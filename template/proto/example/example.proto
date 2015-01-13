@@ -1,0 +1,9 @@
+package go.micro.service.template.example;
+
+message Request {
+	required string name = 1;
+}
+
+message Response {
+	required string msg = 1;
+}
