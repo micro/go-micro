@@ -3,7 +3,7 @@ package store
 import (
 	"errors"
 
-	consul "github.com/armon/consul-api"
+	consul "github.com/hashicorp/consul/api"
 )
 
 type ConsulStore struct {
@@ -47,7 +47,7 @@ func (c *ConsulStore) NewItem(key string, value []byte) Item {
 }
 
 func NewConsulStore() Store {
-	client, _ := consul.NewClient(&consul.Config{})
+	client, _ := consul.NewClient(consul.DefaultConfig())
 
 	return &ConsulStore{
 		Client: client,
