@@ -3,7 +3,7 @@ package registry
 import (
 	"errors"
 
-	consul "github.com/armon/consul-api"
+	consul "github.com/hashicorp/consul/api"
 )
 
 type ConsulRegistry struct {
@@ -100,7 +100,7 @@ func (c *ConsulRegistry) NewNode(id, address string, port int) Node {
 }
 
 func NewConsulRegistry() Registry {
-	client, _ := consul.NewClient(&consul.Config{})
+	client, _ := consul.NewClient(consul.DefaultConfig())
 
 	return &ConsulRegistry{
 		Client: client,
