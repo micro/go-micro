@@ -27,8 +27,8 @@ func New(id, detail string, code int32) error {
 }
 
 func Parse(err string) *Error {
-	var e *Error
-	errr := json.Unmarshal([]byte(err), &e)
+	e := new(Error)
+	errr := json.Unmarshal([]byte(err), e)
 	if errr != nil {
 		e.Detail = err
 	}
