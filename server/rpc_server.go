@@ -11,7 +11,7 @@ import (
 	"sync"
 
 	"github.com/asim/go-micro/errors"
-	log "github.com/cihub/seelog"
+	log "github.com/golang/glog"
 	rpc "github.com/youtube/vitess/go/rpcplus"
 	js "github.com/youtube/vitess/go/rpcplus/jsonrpc"
 	pb "github.com/youtube/vitess/go/rpcplus/pbrpc"
@@ -32,8 +32,8 @@ var (
 func executeRequestSafely(c *serverContext, r *http.Request) {
 	defer func() {
 		if x := recover(); x != nil {
-			log.Criticalf("Panicked on request: %v", r)
-			log.Criticalf("%v: %v", x, string(debug.Stack()))
+			log.Warningf("Panicked on request: %v", r)
+			log.Warningf("%v: %v", x, string(debug.Stack()))
 			err := errors.InternalServerError("go.micro.server", "Unexpected error")
 			c.WriteHeader(500)
 			c.Write([]byte(err.Error()))
@@ -153,7 +153,7 @@ func (s *RpcServer) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 }
 
 func (s *RpcServer) Init() error {
-	log.Debugf("Rpc handler %s", RpcPath)
+	log.Infof("Rpc handler %s", RpcPath)
 	http.Handle(RpcPath, s)
 	return nil
 }
@@ -184,7 +184,7 @@ func (s *RpcServer) Start() error {
 		return err
 	}
 
-	log.Debugf("Listening on %s", l.Addr().String())
+	log.Infof("Listening on %s", l.Addr().String())
 
 	s.mtx.Lock()
 	s.address = l.Addr().String()
