@@ -1,10 +1,9 @@
 package main
 
 import (
-	"log"
-
 	"github.com/asim/go-micro/server"
 	"github.com/asim/go-micro/template/handler"
+	log "github.com/golang/glog"
 )
 
 func main() {
@@ -24,5 +23,4 @@ func main() {
 	if err := server.Run(); err != nil {
 		log.Fatal(err)
 	}
-
 }

@@ -66,13 +66,13 @@ import (
 
 	"github.com/asim/go-micro/server"
 	example "github.com/asim/go-micro/template/proto/example"
-	log "github.com/cihub/seelog"
+	log "github.com/golang/glog"
 )
 
 type Example struct{}
 
 func (e *Example) Call(ctx context.Context, req *example.Request, rsp *example.Response) error {
-	log.Debug("Received Example.Call request")
+	log.Info("Received Example.Call request")
 
 	rsp.Msg = proto.String(server.Id + ": Hello " + req.GetName())
 
@@ -87,10 +87,9 @@ func (e *Example) Call(ctx context.Context, req *example.Request, rsp *example.R
 package main
 
 import (
-	"log"
-
 	"github.com/asim/go-micro/server"
 	"github.com/asim/go-micro/template/handler"
+	log "github.com/golang/glog"
 )
 
 func main() {
@@ -110,7 +109,6 @@ func main() {
 	if err := server.Run(); err != nil {
 		log.Fatal(err)
 	}
-
 }
 ```
 

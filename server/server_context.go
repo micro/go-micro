@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"github.com/asim/go-micro/client"
-	log "github.com/cihub/seelog"
+	log "github.com/golang/glog"
 )
 
 var ctxs = struct {
@@ -109,7 +109,7 @@ func (c *serverContext) Write(b []byte) (int, error) {
 
 func (c *serverContext) WriteHeader(code int) {
 	if c.outCode != 0 {
-		log.Errorf("WriteHeader called multiple times on request.")
+		log.Error("WriteHeader called multiple times on request.")
 		return
 	}
 	c.outCode = code

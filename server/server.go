@@ -11,7 +11,7 @@ import (
 	"code.google.com/p/go-uuid/uuid"
 	"github.com/asim/go-micro/registry"
 	"github.com/asim/go-micro/store"
-	log "github.com/cihub/seelog"
+	log "github.com/golang/glog"
 )
 
 type Server interface {
@@ -39,6 +39,7 @@ func init() {
 }
 
 func Init() error {
+	defer log.Flush()
 	flag.Parse()
 
 	switch flagRegistry {
@@ -88,25 +89,25 @@ func Run() error {
 	node := registry.NewNode(Id, host, port)
 	service := registry.NewService(Name, node)
 
-	log.Debugf("Registering %s", node.Id())
+	log.Infof("Registering %s", node.Id())
 	registry.Register(service)
 
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, syscall.SIGTERM, syscall.SIGINT, syscall.SIGKILL)
-	log.Debugf("Received signal %s", <-ch)
+	log.Infof("Received signal %s", <-ch)
 
-	log.Debugf("Deregistering %s", node.Id())
+	log.Infof("Deregistering %s", node.Id())
 	registry.Deregister(service)
 
 	return Stop()
 }
 
 func Start() error {
-	log.Debugf("Starting server %s id %s", Name, Id)
+	log.Infof("Starting server %s id %s", Name, Id)
 	return DefaultServer.Start()
 }
 
 func Stop() error {
-	log.Debugf("Stopping server")
+	log.Infof("Stopping server")
 	return DefaultServer.Stop()
 }
