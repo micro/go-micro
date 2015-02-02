@@ -1,6 +1,6 @@
 # Go Micro - a microservices client/server library
 
-This a minimalistic step into microservices using HTTP/RPC and protobuf.
+This a minimalistic step into microservices using HTTP/RPC and protobuf. It's the first implementation of a microservices "spec" called [Micro](https://github.com/asim/micro).
 
 An example server can be found in go-micro/template.
 
@@ -57,7 +57,7 @@ Compile proto `protoc -I$GOPATH/src --go_out=$GOPATH/src $GOPATH/src/github.com/
 ### Create request handler
 `go-micro/template/handler/example.go`:
 
-```
+```go
 package handler
 
 import (
@@ -83,7 +83,7 @@ func (e *Example) Call(ctx context.Context, req *example.Request, rsp *example.R
 ### Init server
 `go-micro/template/main.go`:
 
-```
+```go
 package main
 
 import (
