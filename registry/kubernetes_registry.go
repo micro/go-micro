@@ -3,6 +3,7 @@ package registry
 import (
 	"fmt"
 	"os"
+	"sync"
 
 	k8s "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
@@ -11,6 +12,13 @@ import (
 type KubernetesRegistry struct {
 	Client    *k8s.Client
 	Namespace string
+
+	mtx      sync.RWMutex
+	services map[string]Service
+}
+
+func (c *KubernetesRegistry) Watch() {
+	NewKubernetesWatcher(c)
 }
 
 func (c *KubernetesRegistry) Deregister(s Service) error {
@@ -22,6 +30,14 @@ func (c *KubernetesRegistry) Register(s Service) error {
 }
 
 func (c *KubernetesRegistry) GetService(name string) (Service, error) {
+	c.mtx.RLock()
+	service, ok := c.services[name]
+	c.mtx.RUnlock()
+
+	if ok {
+		return service, nil
+	}
+
 	services, err := c.Client.Services(c.Namespace).List(labels.OneTermEqualSelector("name", name))
 	if err != nil {
 		return nil, err
@@ -70,8 +86,13 @@ func NewKubernetesRegistry() Registry {
 		Host: "http://" + os.Getenv("KUBERNETES_RO_SERVICE_HOST") + ":" + os.Getenv("KUBERNETES_RO_SERVICE_PORT"),
 	})
 
-	return &KubernetesRegistry{
+	kr := &KubernetesRegistry{
 		Client:    client,
 		Namespace: "default",
+		services:  make(map[string]Service),
 	}
+
+	kr.Watch()
+
+	return kr
 }
