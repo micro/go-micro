@@ -1,7 +1,6 @@
 package server
 
 import (
-	"flag"
 	"os"
 	"os/signal"
 	"strconv"
@@ -10,7 +9,6 @@ import (
 
 	"code.google.com/p/go-uuid/uuid"
 	"github.com/asim/go-micro/registry"
-	"github.com/asim/go-micro/store"
 	log "github.com/golang/glog"
 )
 
@@ -25,28 +23,14 @@ type Server interface {
 }
 
 var (
+	Address       string
 	Name          string
 	Id            string
 	DefaultServer Server
-
-	flagRegistry    string
-	flagBindAddress string
 )
-
-func init() {
-	flag.StringVar(&flagRegistry, "registry", "consul", "Registry for discovery. kubernetes, consul, etc")
-	flag.StringVar(&flagBindAddress, "bind_address", ":0", "Bind address for the server. 127.0.0.1:8080")
-}
 
 func Init() error {
 	defer log.Flush()
-	flag.Parse()
-
-	switch flagRegistry {
-	case "kubernetes":
-		registry.DefaultRegistry = registry.NewKubernetesRegistry()
-		store.DefaultStore = store.NewMemcacheStore()
-	}
 
 	if len(Name) == 0 {
 		Name = "go-server"
@@ -57,7 +41,7 @@ func Init() error {
 	}
 
 	if DefaultServer == nil {
-		DefaultServer = NewRpcServer(flagBindAddress)
+		DefaultServer = NewRpcServer(Address)
 	}
 
 	return DefaultServer.Init()
