@@ -4,6 +4,8 @@ This a minimalistic step into microservices using HTTP/RPC and protobuf. It's th
 
 An example server can be found in go-micro/template.
 
+[![GoDoc](http://img.shields.io/badge/go-documentation-brightgreen.svg?style=flat-square)](https://godoc.org/github.com/asim/go-micro)
+
 ## Prerequisites
 
 Consul is the default discovery mechanism provided in go-micro. Discovery is however pluggable.
