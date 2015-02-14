@@ -2,17 +2,18 @@ package registry
 
 import (
 	"errors"
+	"sync"
 
 	consul "github.com/hashicorp/consul/api"
 )
 
 type ConsulRegistry struct {
-	Client *consul.Client
-}
+	Address string
+	Client  *consul.Client
 
-var (
-	ConsulCheckTTL = "30s"
-)
+	mtx      sync.RWMutex
+	services map[string]Service
+}
 
 func (c *ConsulRegistry) Deregister(s Service) error {
 	if len(s.Nodes()) == 0 {
@@ -51,6 +52,14 @@ func (c *ConsulRegistry) Register(s Service) error {
 }
 
 func (c *ConsulRegistry) GetService(name string) (Service, error) {
+	c.mtx.RLock()
+	service, ok := c.services[name]
+	c.mtx.RUnlock()
+
+	if ok {
+		return service, nil
+	}
+
 	rsp, _, err := c.Client.Catalog().Service(name, "", nil)
 	if err != nil {
 		return nil, err
@@ -99,10 +108,20 @@ func (c *ConsulRegistry) NewNode(id, address string, port int) Node {
 	}
 }
 
-func NewConsulRegistry() Registry {
-	client, _ := consul.NewClient(consul.DefaultConfig())
+func (c *ConsulRegistry) Watch() {
+	NewConsulWatcher(c)
+}
 
-	return &ConsulRegistry{
-		Client: client,
+func NewConsulRegistry() Registry {
+	config := consul.DefaultConfig()
+	client, _ := consul.NewClient(config)
+
+	cr := &ConsulRegistry{
+		Address:  config.Address,
+		Client:   client,
+		services: make(map[string]Service),
 	}
+
+	cr.Watch()
+	return cr
 }
