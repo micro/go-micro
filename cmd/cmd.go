@@ -33,6 +33,8 @@ func Init() {
 	switch flagStore {
 	case "memcached":
 		store.DefaultStore = store.NewMemcacheStore()
+	case "memory":
+		store.DefaultStore = store.NewMemoryStore()
 	case "etcd":
 		store.DefaultStore = store.NewEtcdStore()
 	}
