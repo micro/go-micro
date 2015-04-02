@@ -60,6 +60,38 @@ func (c *KubernetesRegistry) GetService(name string) (Service, error) {
 	return ks, nil
 }
 
+func (c *KubernetesRegistry) ListServices() ([]Service, error) {
+	c.mtx.RLock()
+	serviceMap := c.services
+	c.mtx.RUnlock()
+
+	var services []Service
+
+	if len(serviceMap) > 0 {
+		for _, service := range serviceMap {
+			services = append(services, service)
+		}
+		return services, nil
+	}
+
+	rsp, err := c.Client.Services(c.Namespace).List(labels.Everything())
+	if err != nil {
+		return nil, err
+	}
+
+	for _, service := range rsp.Items {
+		if len(service.ObjectMeta.Labels["name"]) == 0 {
+			continue
+		}
+
+		services = append(services, &KubernetesService{
+			ServiceName: service.ObjectMeta.Labels["name"],
+		})
+	}
+
+	return services, nil
+}
+
 func (c *KubernetesRegistry) NewService(name string, nodes ...Node) Service {
 	var snodes []*KubernetesNode
 

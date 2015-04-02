@@ -84,6 +84,32 @@ func (c *ConsulRegistry) GetService(name string) (Service, error) {
 	return cs, nil
 }
 
+func (c *ConsulRegistry) ListServices() ([]Service, error) {
+	c.mtx.RLock()
+	serviceMap := c.services
+	c.mtx.RUnlock()
+
+	var services []Service
+
+	if len(serviceMap) > 0 {
+		for _, service := range services {
+			services = append(services, service)
+		}
+		return services, nil
+	}
+
+	rsp, _, err := c.Client.Catalog().Services(&consul.QueryOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	for service, _ := range rsp {
+		services = append(services, &ConsulService{ServiceName: service})
+	}
+
+	return services, nil
+}
+
 func (c *ConsulRegistry) NewService(name string, nodes ...Node) Service {
 	var snodes []*ConsulNode
 

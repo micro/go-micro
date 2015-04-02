@@ -4,6 +4,7 @@ type Registry interface {
 	Register(Service) error
 	Deregister(Service) error
 	GetService(string) (Service, error)
+	ListServices() ([]Service, error)
 	NewService(string, ...Node) Service
 	NewNode(string, string, int) Node
 }
@@ -22,4 +23,8 @@ func Deregister(s Service) error {
 
 func GetService(name string) (Service, error) {
 	return DefaultRegistry.GetService(name)
+}
+
+func ListServices() ([]Service, error) {
+	return DefaultRegistry.ListServices()
 }
