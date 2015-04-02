@@ -1,6 +1,6 @@
-# Go Micro - a microservices client/server library
+# Go Micro
 
-This a minimalistic step into microservices using HTTP/RPC and protobuf. It's the first implementation of a microservices "spec" called [Micro](https://github.com/asim/micro).
+Go Micro is a microservices client/server library utilising HTTP/RPC and protobuf. It is part of the [Micro](https://github.com/asim/micro) toolchain.
 
 An example server can be found in go-micro/template.
 
