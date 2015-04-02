@@ -38,7 +38,9 @@ func (c *KubernetesRegistry) GetService(name string) (Service, error) {
 		return service, nil
 	}
 
-	services, err := c.Client.Services(c.Namespace).List(labels.OneTermEqualSelector("name", name))
+	selector := labels.SelectorFromSet(labels.Set{"name": name})
+
+	services, err := c.Client.Services(c.Namespace).List(selector)
 	if err != nil {
 		return nil, err
 	}
@@ -51,7 +53,7 @@ func (c *KubernetesRegistry) GetService(name string) (Service, error) {
 	for _, item := range services.Items {
 		ks.ServiceNodes = append(ks.ServiceNodes, &KubernetesNode{
 			NodeAddress: item.Spec.PortalIP,
-			NodePort:    item.Spec.Port,
+			NodePort:    item.Spec.Ports[0].Port,
 		})
 	}
 

@@ -32,7 +32,7 @@ func (k *KubernetesWatcher) OnUpdate(services []api.Service) {
 			ServiceNodes: []*KubernetesNode{
 				&KubernetesNode{
 					NodeAddress: serviceIP.String(),
-					NodePort:    service.Spec.Port,
+					NodePort:    service.Spec.Ports[0].Port,
 				},
 			},
 		}
