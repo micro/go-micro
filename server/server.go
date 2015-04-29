@@ -12,12 +12,12 @@ import (
 	log "github.com/golang/glog"
 )
 
+type HandlerFunc func(Server)
+
 type Server interface {
 	Address() string
 	Init() error
-	NewReceiver(interface{}) Receiver
-	NewNamedReceiver(string, interface{}) Receiver
-	Register(Receiver) error
+	Register(HandlerFunc) error
 	Start() error
 	Stop() error
 }
@@ -41,22 +41,14 @@ func Init() error {
 	}
 
 	if DefaultServer == nil {
-		DefaultServer = NewRpcServer(Address)
+		DefaultServer = NewGRPCServer(Address)
 	}
 
 	return DefaultServer.Init()
 }
 
-func NewReceiver(handler interface{}) Receiver {
-	return DefaultServer.NewReceiver(handler)
-}
-
-func NewNamedReceiver(path string, handler interface{}) Receiver {
-	return DefaultServer.NewNamedReceiver(path, handler)
-}
-
-func Register(r Receiver) error {
-	return DefaultServer.Register(r)
+func Register(handler HandlerFunc) error {
+	return DefaultServer.Register(handler)
 }
 
 func Run() error {
