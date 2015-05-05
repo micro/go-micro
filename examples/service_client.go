@@ -3,9 +3,9 @@ package main
 import (
 	"fmt"
 
-	"code.google.com/p/goprotobuf/proto"
-	"github.com/asim/go-micro/client"
-	example "github.com/asim/go-micro/template/proto/example"
+	"github.com/golang/protobuf/proto"
+	"github.com/myodc/go-micro/client"
+	example "github.com/myodc/go-micro/template/proto/example"
 )
 
 func main() {

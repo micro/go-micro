@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/asim/go-micro/broker"
+	"github.com/myodc/go-micro/broker"
 )
 
 var (

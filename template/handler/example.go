@@ -2,11 +2,11 @@ package handler
 
 import (
 	"code.google.com/p/go.net/context"
-	"code.google.com/p/goprotobuf/proto"
+	"github.com/golang/protobuf/proto"
 
-	"github.com/asim/go-micro/server"
-	example "github.com/asim/go-micro/template/proto/example"
 	log "github.com/golang/glog"
+	"github.com/myodc/go-micro/server"
+	example "github.com/myodc/go-micro/template/proto/example"
 )
 
 type Example struct{}

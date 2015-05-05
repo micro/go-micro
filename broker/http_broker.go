@@ -16,9 +16,9 @@ import (
 	"time"
 
 	"code.google.com/p/go-uuid/uuid"
-	"github.com/asim/go-micro/errors"
-	"github.com/asim/go-micro/registry"
 	log "github.com/golang/glog"
+	"github.com/myodc/go-micro/errors"
+	"github.com/myodc/go-micro/registry"
 )
 
 type HttpBroker struct {

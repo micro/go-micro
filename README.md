@@ -1,10 +1,10 @@
 # Go Micro
 
-Go Micro is a microservices client/server library utilising HTTP/RPC and protobuf. It is part of the [Micro](https://github.com/asim/micro) toolchain.
+Go Micro is a microservices client/server library utilising HTTP/RPC and protobuf. It is part of the [Micro](https://github.com/myodc/micro) toolchain.
 
 An example server can be found in go-micro/template.
 
-[![GoDoc](http://img.shields.io/badge/go-documentation-brightgreen.svg?style=flat-square)](https://godoc.org/github.com/asim/go-micro)
+[![GoDoc](http://img.shields.io/badge/go-documentation-brightgreen.svg?style=flat-square)](https://godoc.org/github.com/myodc/go-micro)
 
 ## Prerequisites
 
@@ -54,7 +54,7 @@ message Response {
 }
 ```
 
-Compile proto `protoc -I$GOPATH/src --go_out=$GOPATH/src $GOPATH/src/github.com/asim/go-micro/template/proto/example/example.proto`
+Compile proto `protoc -I$GOPATH/src --go_out=$GOPATH/src $GOPATH/src/github.com/myodc/go-micro/template/proto/example/example.proto`
 
 ### Create request handler
 `go-micro/template/handler/example.go`:
@@ -64,10 +64,10 @@ package handler
 
 import (
 	"code.google.com/p/go.net/context"
-	"code.google.com/p/goprotobuf/proto"
+	"github.com/golang/protobuf/proto"
 
-	"github.com/asim/go-micro/server"
-	example "github.com/asim/go-micro/template/proto/example"
+	"github.com/myodc/go-micro/server"
+	example "github.com/myodc/go-micro/template/proto/example"
 	log "github.com/golang/glog"
 )
 
@@ -89,8 +89,8 @@ func (e *Example) Call(ctx context.Context, req *example.Request, rsp *example.R
 package main
 
 import (
-	"github.com/asim/go-micro/server"
-	"github.com/asim/go-micro/template/handler"
+	"github.com/myodc/go-micro/server"
+	"github.com/myodc/go-micro/template/handler"
 	log "github.com/golang/glog"
 )
 

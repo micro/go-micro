@@ -5,10 +5,10 @@ import (
 	"text/tabwriter"
 	"text/template"
 
-	"github.com/asim/go-micro/registry"
-	"github.com/asim/go-micro/server"
-	"github.com/asim/go-micro/store"
 	"github.com/codegangsta/cli"
+	"github.com/myodc/go-micro/registry"
+	"github.com/myodc/go-micro/server"
+	"github.com/myodc/go-micro/store"
 )
 
 var (

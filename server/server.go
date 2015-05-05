@@ -8,8 +8,8 @@ import (
 	"syscall"
 
 	"code.google.com/p/go-uuid/uuid"
-	"github.com/asim/go-micro/registry"
 	log "github.com/golang/glog"
+	"github.com/myodc/go-micro/registry"
 )
 
 type Server interface {
