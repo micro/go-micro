@@ -1,9 +1,9 @@
-package go.micro.service.template.example;
+syntax = "proto3";
 
 message Request {
-	required string name = 1;
+	optional string name = 1;
 }
 
 message Response {
-	required string msg = 1;
+	optional string msg = 1;
 }

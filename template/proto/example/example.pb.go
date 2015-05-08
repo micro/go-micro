@@ -3,7 +3,7 @@
 // DO NOT EDIT!
 
 /*
-Package go_micro_service_template_example is a generated protocol buffer package.
+Package example is a generated protocol buffer package.
 
 It is generated from these files:
 	myodc/go-micro/template/proto/example/example.proto
@@ -12,46 +12,28 @@ It has these top-level messages:
 	Request
 	Response
 */
-package go_micro_service_template_example
+package example
 
 import proto "github.com/golang/protobuf/proto"
-import math "math"
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
-var _ = math.Inf
 
 type Request struct {
-	Name             *string `protobuf:"bytes,1,req,name=name" json:"name,omitempty"`
-	XXX_unrecognized []byte  `json:"-"`
+	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
 }
 
 func (m *Request) Reset()         { *m = Request{} }
 func (m *Request) String() string { return proto.CompactTextString(m) }
 func (*Request) ProtoMessage()    {}
 
-func (m *Request) GetName() string {
-	if m != nil && m.Name != nil {
-		return *m.Name
-	}
-	return ""
-}
-
 type Response struct {
-	Msg              *string `protobuf:"bytes,1,req,name=msg" json:"msg,omitempty"`
-	XXX_unrecognized []byte  `json:"-"`
+	Msg string `protobuf:"bytes,1,opt,name=msg" json:"msg,omitempty"`
 }
 
 func (m *Response) Reset()         { *m = Response{} }
 func (m *Response) String() string { return proto.CompactTextString(m) }
 func (*Response) ProtoMessage()    {}
-
-func (m *Response) GetMsg() string {
-	if m != nil && m.Msg != nil {
-		return *m.Msg
-	}
-	return ""
-}
 
 func init() {
 }
