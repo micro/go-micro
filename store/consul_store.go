@@ -46,8 +46,13 @@ func (c *ConsulStore) NewItem(key string, value []byte) Item {
 	}
 }
 
-func NewConsulStore() Store {
-	client, _ := consul.NewClient(consul.DefaultConfig())
+func NewConsulStore(addrs []string, opts ...Options) Store {
+	config := consul.DefaultConfig()
+	if len(addrs) > 0 {
+		config.Address = addrs[0]
+	}
+
+	client, _ := consul.NewClient(config)
 
 	return &ConsulStore{
 		Client: client,

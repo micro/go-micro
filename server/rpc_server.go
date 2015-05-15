@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/bradfitz/http2"
 	log "github.com/golang/glog"
 	"github.com/myodc/go-micro/errors"
 	rpc "github.com/youtube/vitess/go/rpcplus"
@@ -190,7 +191,13 @@ func (s *RpcServer) Start() error {
 	s.address = l.Addr().String()
 	s.mtx.Unlock()
 
-	go http.Serve(l, http.HandlerFunc(s.handler))
+	srv := &http.Server{
+		Handler: http.HandlerFunc(s.handler),
+	}
+
+	http2.ConfigureServer(srv, nil)
+
+	go srv.Serve(l)
 
 	go func() {
 		ch := <-s.exit

@@ -115,9 +115,14 @@ func (c *KubernetesRegistry) NewNode(id, address string, port int) Node {
 	}
 }
 
-func NewKubernetesRegistry() Registry {
+func NewKubernetesRegistry(addrs []string, opts ...Options) Registry {
+	host := "http://" + os.Getenv("KUBERNETES_RO_SERVICE_HOST") + ":" + os.Getenv("KUBERNETES_RO_SERVICE_PORT")
+	if len(addrs) > 0 {
+		host = addrs[0]
+	}
+
 	client, _ := k8s.New(&k8s.Config{
-		Host: "http://" + os.Getenv("KUBERNETES_RO_SERVICE_HOST") + ":" + os.Getenv("KUBERNETES_RO_SERVICE_PORT"),
+		Host: host,
 	})
 
 	kr := &KubernetesRegistry{

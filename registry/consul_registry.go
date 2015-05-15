@@ -138,9 +138,12 @@ func (c *ConsulRegistry) Watch() {
 	NewConsulWatcher(c)
 }
 
-func NewConsulRegistry() Registry {
+func NewConsulRegistry(addrs []string, opts ...Options) Registry {
 	config := consul.DefaultConfig()
 	client, _ := consul.NewClient(config)
+	if len(addrs) > 0 {
+		config.Address = addrs[0]
+	}
 
 	cr := &ConsulRegistry{
 		Address:  config.Address,

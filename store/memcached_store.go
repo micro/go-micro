@@ -2,7 +2,6 @@ package store
 
 import (
 	"errors"
-	"os"
 
 	mc "github.com/bradfitz/gomemcache/memcache"
 )
@@ -47,19 +46,11 @@ func (m *MemcacheStore) NewItem(key string, value []byte) Item {
 	}
 }
 
-func NewMemcacheStore() Store {
-	server := os.Getenv("MEMCACHED_SERVICE_HOST")
-	port := os.Getenv("MEMCACHED_SERVICE_PORT")
-
-	if len(server) == 0 {
-		server = "127.0.0.1"
+func NewMemcacheStore(addrs []string, opts ...Options) Store {
+	if len(addrs) == 0 {
+		addrs = []string{"127.0.0.1:11211"}
 	}
-
-	if len(port) == 0 {
-		port = "11211"
-	}
-
 	return &MemcacheStore{
-		Client: mc.New(server + ":" + port),
+		Client: mc.New(addrs...),
 	}
 }

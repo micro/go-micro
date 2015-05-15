@@ -9,8 +9,12 @@ type Registry interface {
 	NewNode(string, string, int) Node
 }
 
+type options struct{}
+
+type Options func(*options)
+
 var (
-	DefaultRegistry = NewConsulRegistry()
+	DefaultRegistry = NewConsulRegistry([]string{})
 )
 
 func Register(s Service) error {

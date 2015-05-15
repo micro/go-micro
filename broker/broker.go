@@ -25,6 +25,10 @@ type Subscriber interface {
 	Unsubscribe() error
 }
 
+type options struct{}
+
+type Options func(*options)
+
 var (
 	Address       string
 	Id            string
@@ -37,7 +41,7 @@ func Init() error {
 	}
 
 	if DefaultBroker == nil {
-		DefaultBroker = NewHttpBroker(Address)
+		DefaultBroker = NewHttpBroker([]string{Address})
 	}
 
 	return DefaultBroker.Init()

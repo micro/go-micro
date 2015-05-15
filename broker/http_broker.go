@@ -225,10 +225,15 @@ func (h *HttpBroker) Subscribe(topic string, function func(*Message)) (Subscribe
 	return subscriber, nil
 }
 
-func NewHttpBroker(address string) Broker {
+func NewHttpBroker(addrs []string, opts ...Options) Broker {
+	addr := ":0"
+	if len(addrs) > 0 {
+		addr = addrs[0]
+	}
+
 	return &HttpBroker{
 		id:          Id,
-		address:     address,
+		address:     addr,
 		subscribers: make(map[string][]*HttpSubscriber),
 		unsubscribe: make(chan *HttpSubscriber),
 		exit:        make(chan chan error),

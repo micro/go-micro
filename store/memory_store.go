@@ -41,7 +41,7 @@ func (m *MemoryStore) NewItem(key string, value []byte) Item {
 	}
 }
 
-func NewMemoryStore() Store {
+func NewMemoryStore(addrs []string, opts ...Options) Store {
 	return &MemoryStore{
 		store: make(map[string]Item),
 	}

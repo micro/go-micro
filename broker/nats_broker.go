@@ -2,6 +2,7 @@ package broker
 
 import (
 	"encoding/json"
+	"strings"
 	"time"
 
 	"code.google.com/p/go-uuid/uuid"
@@ -9,8 +10,8 @@ import (
 )
 
 type NatsBroker struct {
-	address string
-	conn    *nats.Conn
+	addrs []string
+	conn  *nats.Conn
 }
 
 type NatsSubscriber struct {
@@ -26,7 +27,10 @@ func (n *NatsSubscriber) Unsubscribe() error {
 }
 
 func (n *NatsBroker) Address() string {
-	return n.address
+	if len(n.addrs) > 0 {
+		return n.addrs[0]
+	}
+	return ""
 }
 
 func (n *NatsBroker) Connect() error {
@@ -34,7 +38,9 @@ func (n *NatsBroker) Connect() error {
 		return nil
 	}
 
-	c, err := nats.Connect(n.address)
+	opts := nats.DefaultOptions
+	opts.Servers = n.addrs
+	c, err := opts.Connect()
 	if err != nil {
 		return err
 	}
@@ -78,8 +84,16 @@ func (n *NatsBroker) Subscribe(topic string, function func(*Message)) (Subscribe
 	return &NatsSubscriber{s: subscriber}, nil
 }
 
-func NewNatsBroker(address string) Broker {
+func NewNatsBroker(addrs []string, opts ...Options) Broker {
+	if len(addrs) == 0 {
+		addrs = []string{nats.DefaultURL}
+	}
+	for i, addr := range addrs {
+		if !strings.HasPrefix(addr, "nats://") {
+			addrs[i] = "nats://" + addr
+		}
+	}
 	return &NatsBroker{
-		address: address,
+		addrs: addrs,
 	}
 }

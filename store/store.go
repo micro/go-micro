@@ -7,8 +7,12 @@ type Store interface {
 	NewItem(string, []byte) Item
 }
 
+type options struct{}
+
+type Options func(*options)
+
 var (
-	DefaultStore = NewConsulStore()
+	DefaultStore = NewConsulStore([]string{})
 )
 
 func Get(key string) (Item, error) {
