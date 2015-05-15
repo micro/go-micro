@@ -14,6 +14,8 @@ import (
 	rpc "github.com/youtube/vitess/go/rpcplus"
 	js "github.com/youtube/vitess/go/rpcplus/jsonrpc"
 	pb "github.com/youtube/vitess/go/rpcplus/pbrpc"
+	ctx "golang.org/x/net/context"
+	"google.golang.org/grpc"
 )
 
 type headerRoundTripper struct {
@@ -32,6 +34,18 @@ func (t *headerRoundTripper) RoundTrip(r *http.Request) (*http.Response, error) 
 }
 
 func (r *RpcClient) call(address, path string, request Request, response interface{}) error {
+	switch request.ContentType() {
+	case "application/grpc":
+		cc, err := grpc.Dial(address)
+		if err != nil {
+			return errors.InternalServerError("go.micro.client", fmt.Sprintf("Error connecting to server: %v", err))
+		}
+		if err := grpc.Invoke(ctx.Background(), path, request.Request(), response, cc); err != nil {
+			return errors.InternalServerError("go.micro.client", fmt.Sprintf("Error sending request: %v", err))
+		}
+		return nil
+	}
+
 	pReq := &rpc.Request{
 		ServiceMethod: request.Method(),
 	}
