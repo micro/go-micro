@@ -6,6 +6,18 @@ An example server can be found in go-micro/template.
 
 [![GoDoc](http://img.shields.io/badge/go-documentation-brightgreen.svg?style=flat-square)](https://godoc.org/github.com/myodc/go-micro)
 
+## Features
+- Discovery
+- Client/Server
+- Pub/Sub
+- Key/Value store
+
+### Planned
+- Metrics
+- Tracing
+- Logging
+- Stats
+
 ## Prerequisites
 
 Consul is the default discovery mechanism provided in go-micro. Discovery is however pluggable.
