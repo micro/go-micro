@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"io"
 	"os"
 	"strings"
 	"text/tabwriter"
@@ -102,7 +103,7 @@ GLOBAL OPTIONS:
    {{end}}
 `
 
-	cli.HelpPrinter = func(templ string, data interface{}) {
+	cli.HelpPrinter = func(writer io.Writer, templ string, data interface{}) {
 		w := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', 0)
 		t := template.Must(template.New("help").Parse(templ))
 		err := t.Execute(w, data)
