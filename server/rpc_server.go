@@ -2,27 +2,23 @@ package server
 
 import (
 	"bytes"
-	"fmt"
-	"io/ioutil"
-	"net"
 	"net/http"
-	"runtime/debug"
-	"strconv"
 	"sync"
 
-	"github.com/bradfitz/http2"
 	log "github.com/golang/glog"
-	"github.com/myodc/go-micro/errors"
+	"github.com/myodc/go-micro/transport"
 	rpc "github.com/youtube/vitess/go/rpcplus"
 	js "github.com/youtube/vitess/go/rpcplus/jsonrpc"
 	pb "github.com/youtube/vitess/go/rpcplus/pbrpc"
+	"golang.org/x/net/context"
 )
 
 type RpcServer struct {
-	mtx     sync.RWMutex
-	rpc     *rpc.Server
-	address string
-	exit    chan chan error
+	mtx       sync.RWMutex
+	address   string
+	transport transport.Transport
+	rpc       *rpc.Server
+	exit      chan chan error
 }
 
 var (
@@ -30,92 +26,14 @@ var (
 	RpcPath    = "/_rpc"
 )
 
-func executeRequestSafely(c *serverContext, r *http.Request) {
-	defer func() {
-		if x := recover(); x != nil {
-			log.Warningf("Panicked on request: %v", r)
-			log.Warningf("%v: %v", x, string(debug.Stack()))
-			err := errors.InternalServerError("go.micro.server", "Unexpected error")
-			c.WriteHeader(500)
-			c.Write([]byte(err.Error()))
-		}
-	}()
-
-	http.DefaultServeMux.ServeHTTP(c, r)
-}
-
-func (s *RpcServer) handler(w http.ResponseWriter, r *http.Request) {
-	c := &serverContext{
-		req:       &serverRequest{r},
-		outHeader: w.Header(),
-	}
-
-	ctxs.Lock()
-	ctxs.m[r] = c
-	ctxs.Unlock()
-	defer func() {
-		ctxs.Lock()
-		delete(ctxs.m, r)
-		ctxs.Unlock()
-	}()
-
-	// Patch up RemoteAddr so it looks reasonable.
-	if addr := r.Header.Get("X-Forwarded-For"); len(addr) > 0 {
-		r.RemoteAddr = addr
-	} else {
-		// Should not normally reach here, but pick a sensible default anyway.
-		r.RemoteAddr = "127.0.0.1"
-	}
-	// The address in the headers will most likely be of these forms:
-	//	123.123.123.123
-	//	2001:db8::1
-	// net/http.Request.RemoteAddr is specified to be in "IP:port" form.
-	if _, _, err := net.SplitHostPort(r.RemoteAddr); err != nil {
-		// Assume the remote address is only a host; add a default port.
-		r.RemoteAddr = net.JoinHostPort(r.RemoteAddr, "80")
-	}
-
-	executeRequestSafely(c, r)
-	c.outHeader = nil // make sure header changes aren't respected any more
-
-	// Avoid nil Write call if c.Write is never called.
-	if c.outCode != 0 {
-		w.WriteHeader(c.outCode)
-	}
-	if c.outBody != nil {
-		w.Write(c.outBody)
-	}
-}
-
-func (s *RpcServer) Address() string {
-	s.mtx.RLock()
-	defer s.mtx.RUnlock()
-	return s.address
-}
-
-func (s *RpcServer) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	serveCtx := getServerContext(req)
-
-	// TODO: get user scope from context
-	// check access
-
-	if req.Method != "POST" {
-		err := errors.BadRequest("go.micro.server", "Method not allowed")
-		http.Error(w, err.Error(), http.StatusMethodNotAllowed)
-		return
-	}
-	defer req.Body.Close()
-
-	b, err := ioutil.ReadAll(req.Body)
+func (s *RpcServer) serve(sock transport.Socket) {
+	//	serveCtx := getServerContext(req)
+	msg, err := sock.Recv()
 	if err != nil {
-		errr := errors.InternalServerError("go.micro.server", fmt.Sprintf("Error reading request body: %v", err))
-		w.WriteHeader(500)
-		w.Write([]byte(errr.Error()))
-		log.Errorf("Erroring reading request body: %v", err)
 		return
 	}
 
-	rbq := bytes.NewBuffer(b)
+	rbq := bytes.NewBuffer(msg.Body)
 	rsp := bytes.NewBuffer(nil)
 	defer rsp.Reset()
 	defer rbq.Reset()
@@ -126,36 +44,34 @@ func (s *RpcServer) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 
 	var cc rpc.ServerCodec
-	switch req.Header.Get("Content-Type") {
+	switch msg.Header["Content-Type"] {
 	case "application/octet-stream":
 		cc = pb.NewServerCodec(buf)
 	case "application/json":
 		cc = js.NewServerCodec(buf)
 	default:
-		err = errors.InternalServerError("go.micro.server", fmt.Sprintf("Unsupported content-type: %v", req.Header.Get("Content-Type")))
-		w.WriteHeader(500)
-		w.Write([]byte(err.Error()))
 		return
+		//		return nil, errors.InternalServerError("go.micro.server", fmt.Sprintf("Unsupported content-type: %v", req.Header.Get("Content-Type")))
 	}
 
-	ctx := newContext(&ctx{}, serveCtx)
-	err = s.rpc.ServeRequestWithContext(ctx, cc)
+	//ctx := newContext(&ctx{}, serveCtx)
+	err = s.rpc.ServeRequestWithContext(context.Background(), cc)
 	if err != nil {
-		// This should not be possible.
-		w.WriteHeader(500)
-		w.Write([]byte(err.Error()))
-		log.Errorf("Erroring serving request: %v", err)
 		return
 	}
 
-	w.Header().Set("Content-Type", req.Header.Get("Content-Type"))
-	w.Header().Set("Content-Length", strconv.Itoa(rsp.Len()))
-	w.Write(rsp.Bytes())
+	sock.WriteHeader("Content-Type", msg.Header["Content-Type"])
+	sock.Write(rsp.Bytes())
+}
+
+func (s *RpcServer) Address() string {
+	s.mtx.RLock()
+	address := s.address
+	s.mtx.RUnlock()
+	return address
 }
 
 func (s *RpcServer) Init() error {
-	log.Infof("Rpc handler %s", RpcPath)
-	http.Handle(RpcPath, s)
 	return nil
 }
 
@@ -180,28 +96,22 @@ func (s *RpcServer) Register(r Receiver) error {
 func (s *RpcServer) Start() error {
 	registerHealthChecker(http.DefaultServeMux)
 
-	l, err := net.Listen("tcp", s.address)
+	ts, err := s.transport.NewServer(Name, s.address)
 	if err != nil {
 		return err
 	}
 
-	log.Infof("Listening on %s", l.Addr().String())
+	log.Infof("Listening on %s", ts.Addr())
 
-	s.mtx.Lock()
-	s.address = l.Addr().String()
-	s.mtx.Unlock()
+	s.mtx.RLock()
+	s.address = ts.Addr()
+	s.mtx.RUnlock()
 
-	srv := &http.Server{
-		Handler: http.HandlerFunc(s.handler),
-	}
-
-	http2.ConfigureServer(srv, nil)
-
-	go srv.Serve(l)
+	go ts.Serve(s.serve)
 
 	go func() {
 		ch := <-s.exit
-		ch <- l.Close()
+		ch <- ts.Close()
 	}()
 
 	return nil
@@ -215,8 +125,9 @@ func (s *RpcServer) Stop() error {
 
 func NewRpcServer(address string) *RpcServer {
 	return &RpcServer{
-		rpc:     rpc.NewServer(),
-		address: address,
-		exit:    make(chan chan error),
+		address:   address,
+		transport: transport.DefaultTransport,
+		rpc:       rpc.NewServer(),
+		exit:      make(chan chan error),
 	}
 }

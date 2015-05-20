@@ -3,14 +3,13 @@ package client
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"math/rand"
 	"net/http"
-	"net/url"
 	"time"
 
 	"github.com/myodc/go-micro/errors"
 	"github.com/myodc/go-micro/registry"
+	"github.com/myodc/go-micro/transport"
 	rpc "github.com/youtube/vitess/go/rpcplus"
 	js "github.com/youtube/vitess/go/rpcplus/jsonrpc"
 	pb "github.com/youtube/vitess/go/rpcplus/pbrpc"
@@ -22,7 +21,9 @@ type headerRoundTripper struct {
 	r http.RoundTripper
 }
 
-type RpcClient struct{}
+type RpcClient struct {
+	transport transport.Transport
+}
 
 func init() {
 	rand.Seed(time.Now().UnixNano())
@@ -71,48 +72,43 @@ func (r *RpcClient) call(address, path string, request Request, response interfa
 		return errors.InternalServerError("go.micro.client", fmt.Sprintf("Error writing request: %v", err))
 	}
 
-	client := &http.Client{}
-	client.Transport = &headerRoundTripper{http.DefaultTransport}
-
-	request.Headers().Set("Content-Type", request.ContentType())
-
-	hreq := &http.Request{
-		Method: "POST",
-		URL: &url.URL{
-			Scheme: "http",
-			Host:   address,
-			Path:   path,
-		},
-		Header:        request.Headers().(http.Header),
-		Body:          buf,
-		ContentLength: int64(reqB.Len()),
-		Host:          address,
+	msg := &transport.Message{
+		Header: make(map[string]string),
+		Body:   reqB.Bytes(),
 	}
 
-	rsp, err := client.Do(hreq)
+	h, _ := request.Headers().(http.Header)
+	for k, v := range h {
+		if len(v) > 0 {
+			msg.Header[k] = v[0]
+		}
+	}
+
+	msg.Header["Content-Type"] = request.ContentType()
+
+	c, err := r.transport.NewClient(request.Service(), address)
 	if err != nil {
 		return errors.InternalServerError("go.micro.client", fmt.Sprintf("Error sending request: %v", err))
 	}
-	defer rsp.Body.Close()
 
-	b, err := ioutil.ReadAll(rsp.Body)
+	rsp, err := c.Send(msg)
 	if err != nil {
-		return errors.InternalServerError("go.micro.client", fmt.Sprintf("Error reading response: %v", err))
+		return errors.InternalServerError("go.micro.client", fmt.Sprintf("Error sending request: %v", err))
 	}
 
-	rspB := bytes.NewBuffer(b)
+	rspB := bytes.NewBuffer(rsp.Body)
 	defer rspB.Reset()
 	rBuf := &buffer{
 		rspB,
 	}
 
-	switch rsp.Header.Get("Content-Type") {
+	switch rsp.Header["Content-Type"] {
 	case "application/octet-stream":
 		cc = pb.NewClientCodec(rBuf)
 	case "application/json":
 		cc = js.NewClientCodec(rBuf)
 	default:
-		return errors.InternalServerError("go.micro.client", string(b))
+		return errors.InternalServerError("go.micro.client", string(rsp.Body))
 	}
 
 	pRsp := &rpc.Response{}
@@ -167,5 +163,7 @@ func (r *RpcClient) NewJsonRequest(service, method string, request interface{}) 
 }
 
 func NewRpcClient() *RpcClient {
-	return &RpcClient{}
+	return &RpcClient{
+		transport: transport.DefaultTransport,
+	}
 }

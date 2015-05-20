@@ -11,6 +11,7 @@ import (
 	"github.com/myodc/go-micro/registry"
 	"github.com/myodc/go-micro/server"
 	"github.com/myodc/go-micro/store"
+	"github.com/myodc/go-micro/transport"
 )
 
 var (
@@ -30,7 +31,6 @@ var (
 		cli.StringFlag{
 			Name:   "broker_address",
 			EnvVar: "MICRO_BROKER_ADDRESS",
-			Value:  ":0",
 			Usage:  "Comma-separated list of broker addresses",
 		},
 		cli.StringFlag{
@@ -42,7 +42,6 @@ var (
 		cli.StringFlag{
 			Name:   "registry_address",
 			EnvVar: "MICRO_REGISTRY_ADDRESS",
-			Value:  "127.0.0.1:8500",
 			Usage:  "Comma-separated list of registry addresses",
 		},
 		cli.StringFlag{
@@ -54,8 +53,18 @@ var (
 		cli.StringFlag{
 			Name:   "store_address",
 			EnvVar: "MICRO_STORE_ADDRESS",
-			Value:  "127.0.0.1:8500",
 			Usage:  "Comma-separated list of store addresses",
+		},
+		cli.StringFlag{
+			Name:   "transport",
+			EnvVar: "MICRO_TRANSPORT",
+			Value:  "http",
+			Usage:  "Transport mechanism used; http, rabbitmq, etc",
+		},
+		cli.StringFlag{
+			Name:   "transport_address",
+			EnvVar: "MICRO_TRANSPORT_ADDRESS",
+			Usage:  "Comma-separated list of transport addresses",
 		},
 	}
 )
@@ -63,33 +72,44 @@ var (
 func Setup(c *cli.Context) error {
 	server.Address = c.String("server_address")
 
-	broker_addrs := strings.Split(c.String("broker_address"), ",")
+	bAddrs := strings.Split(c.String("broker_address"), ",")
 
 	switch c.String("broker") {
 	case "http":
-		broker.DefaultBroker = broker.NewHttpBroker(broker_addrs)
+		broker.DefaultBroker = broker.NewHttpBroker(bAddrs)
 	case "nats":
-		broker.DefaultBroker = broker.NewNatsBroker(broker_addrs)
+		broker.DefaultBroker = broker.NewNatsBroker(bAddrs)
 	}
 
-	registry_addrs := strings.Split(c.String("registry_address"), ",")
+	rAddrs := strings.Split(c.String("registry_address"), ",")
 
 	switch c.String("registry") {
 	case "kubernetes":
-		registry.DefaultRegistry = registry.NewKubernetesRegistry(registry_addrs)
+		registry.DefaultRegistry = registry.NewKubernetesRegistry(rAddrs)
 	case "consul":
-		registry.DefaultRegistry = registry.NewConsulRegistry(registry_addrs)
+		registry.DefaultRegistry = registry.NewConsulRegistry(rAddrs)
 	}
 
-	store_addrs := strings.Split(c.String("store_address"), ",")
+	sAddrs := strings.Split(c.String("store_address"), ",")
 
 	switch c.String("store") {
 	case "memcached":
-		store.DefaultStore = store.NewMemcacheStore(store_addrs)
+		store.DefaultStore = store.NewMemcacheStore(sAddrs)
 	case "memory":
-		store.DefaultStore = store.NewMemoryStore(store_addrs)
+		store.DefaultStore = store.NewMemoryStore(sAddrs)
 	case "etcd":
-		store.DefaultStore = store.NewEtcdStore(store_addrs)
+		store.DefaultStore = store.NewEtcdStore(sAddrs)
+	}
+
+	tAddrs := strings.Split(c.String("transport_address"), ",")
+
+	switch c.String("transport") {
+	case "http":
+		transport.DefaultTransport = transport.NewHttpTransport(tAddrs)
+	case "rabbitmq":
+		transport.DefaultTransport = transport.NewRabbitMQTransport(tAddrs)
+	case "nats":
+		transport.DefaultTransport = transport.NewNatsTransport(tAddrs)
 	}
 
 	return nil
