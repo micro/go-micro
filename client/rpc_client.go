@@ -167,7 +167,7 @@ func (r *RpcClient) NewJsonRequest(service, method string, request interface{}) 
 	return newRpcRequest(service, method, request, "application/json")
 }
 
-func NewRpcClient(opt ...Options) *RpcClient {
+func NewRpcClient(opt ...Option) *RpcClient {
 	var opts options
 
 	for _, o := range opt {

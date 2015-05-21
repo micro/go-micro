@@ -27,7 +27,7 @@ type options struct {
 	transport transport.Transport
 }
 
-type Options func(*options)
+type Option func(*options)
 
 var (
 	Address       string
@@ -35,6 +35,12 @@ var (
 	Id            string
 	DefaultServer Server
 )
+
+func Transport(t transport.Transport) Option {
+	return func(o *options) {
+		o.transport = t
+	}
+}
 
 func Init() error {
 	defer log.Flush()

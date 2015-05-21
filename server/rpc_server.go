@@ -123,7 +123,7 @@ func (s *RpcServer) Stop() error {
 	return <-ch
 }
 
-func NewRpcServer(address string, opt ...Options) *RpcServer {
+func NewRpcServer(address string, opt ...Option) *RpcServer {
 	var opts options
 
 	for _, o := range opt {

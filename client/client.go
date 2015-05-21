@@ -16,11 +16,17 @@ type options struct {
 	transport transport.Transport
 }
 
-type Options func(*options)
+type Option func(*options)
 
 var (
 	DefaultClient Client = NewRpcClient()
 )
+
+func Transport(t transport.Transport) Option {
+	return func(o *options) {
+		o.transport = t
+	}
+}
 
 func Call(request Request, response interface{}) error {
 	return DefaultClient.Call(request, response)
