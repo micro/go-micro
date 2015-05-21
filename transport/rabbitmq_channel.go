@@ -11,18 +11,18 @@ import (
 	"github.com/streadway/amqp"
 )
 
-type RabbitChannel struct {
+type rabbitMQChannel struct {
 	uuid       string
 	connection *amqp.Connection
 	channel    *amqp.Channel
 }
 
-func NewRabbitChannel(conn *amqp.Connection) (*RabbitChannel, error) {
+func newRabbitChannel(conn *amqp.Connection) (*rabbitMQChannel, error) {
 	id, err := uuid.NewV4()
 	if err != nil {
 		return nil, err
 	}
-	rabbitCh := &RabbitChannel{
+	rabbitCh := &rabbitMQChannel{
 		uuid:       id.String(),
 		connection: conn,
 	}
@@ -33,7 +33,7 @@ func NewRabbitChannel(conn *amqp.Connection) (*RabbitChannel, error) {
 
 }
 
-func (r *RabbitChannel) Connect() error {
+func (r *rabbitMQChannel) Connect() error {
 	var err error
 	r.channel, err = r.connection.Channel()
 	if err != nil {
@@ -42,21 +42,21 @@ func (r *RabbitChannel) Connect() error {
 	return nil
 }
 
-func (r *RabbitChannel) Close() error {
+func (r *rabbitMQChannel) Close() error {
 	if r.channel == nil {
 		return errors.New("Channel is nil")
 	}
 	return r.channel.Close()
 }
 
-func (r *RabbitChannel) Publish(exchange, key string, message amqp.Publishing) error {
+func (r *rabbitMQChannel) Publish(exchange, key string, message amqp.Publishing) error {
 	if r.channel == nil {
 		return errors.New("Channel is nil")
 	}
 	return r.channel.Publish(exchange, key, false, false, message)
 }
 
-func (r *RabbitChannel) DeclareExchange(exchange string) error {
+func (r *rabbitMQChannel) DeclareExchange(exchange string) error {
 	return r.channel.ExchangeDeclare(
 		exchange, // name
 		"topic",  // kind
@@ -68,7 +68,7 @@ func (r *RabbitChannel) DeclareExchange(exchange string) error {
 	)
 }
 
-func (r *RabbitChannel) DeclareQueue(queue string) error {
+func (r *rabbitMQChannel) DeclareQueue(queue string) error {
 	_, err := r.channel.QueueDeclare(
 		queue, // name
 		false, // durable
@@ -80,7 +80,7 @@ func (r *RabbitChannel) DeclareQueue(queue string) error {
 	return err
 }
 
-func (r *RabbitChannel) DeclareDurableQueue(queue string) error {
+func (r *rabbitMQChannel) DeclareDurableQueue(queue string) error {
 	_, err := r.channel.QueueDeclare(
 		queue, // name
 		true,  // durable
@@ -92,7 +92,7 @@ func (r *RabbitChannel) DeclareDurableQueue(queue string) error {
 	return err
 }
 
-func (r *RabbitChannel) DeclareReplyQueue(queue string) error {
+func (r *rabbitMQChannel) DeclareReplyQueue(queue string) error {
 	_, err := r.channel.QueueDeclare(
 		queue, // name
 		false, // durable
@@ -104,7 +104,7 @@ func (r *RabbitChannel) DeclareReplyQueue(queue string) error {
 	return err
 }
 
-func (r *RabbitChannel) ConsumeQueue(queue string) (<-chan amqp.Delivery, error) {
+func (r *rabbitMQChannel) ConsumeQueue(queue string) (<-chan amqp.Delivery, error) {
 	return r.channel.Consume(
 		queue,  // queue
 		r.uuid, // consumer
@@ -116,7 +116,7 @@ func (r *RabbitChannel) ConsumeQueue(queue string) (<-chan amqp.Delivery, error)
 	)
 }
 
-func (r *RabbitChannel) BindQueue(queue, exchange string) error {
+func (r *rabbitMQChannel) BindQueue(queue, exchange string) error {
 	return r.channel.QueueBind(
 		queue,    // name
 		queue,    // key

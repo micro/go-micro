@@ -17,10 +17,10 @@ var (
 	DefaultRabbitURL = "amqp://guest:guest@127.0.0.1:5672"
 )
 
-type RabbitConnection struct {
+type rabbitMQConn struct {
 	Connection      *amqp.Connection
-	Channel         *RabbitChannel
-	ExchangeChannel *RabbitChannel
+	Channel         *rabbitMQChannel
+	ExchangeChannel *rabbitMQChannel
 	notify          chan bool
 	exchange        string
 	url             string
@@ -32,12 +32,33 @@ type RabbitConnection struct {
 	closed bool
 }
 
-func (r *RabbitConnection) Init() chan bool {
+func newRabbitMQConn(exchange string, urls []string) *rabbitMQConn {
+	var url string
+
+	if len(urls) > 0 && strings.HasPrefix(urls[0], "amqp://") {
+		url = urls[0]
+	} else {
+		url = DefaultRabbitURL
+	}
+
+	if len(exchange) == 0 {
+		exchange = DefaultExchange
+	}
+
+	return &rabbitMQConn{
+		exchange: exchange,
+		url:      url,
+		notify:   make(chan bool, 1),
+		close:    make(chan bool),
+	}
+}
+
+func (r *rabbitMQConn) Init() chan bool {
 	go r.Connect(r.notify)
 	return r.notify
 }
 
-func (r *RabbitConnection) Connect(connected chan bool) {
+func (r *rabbitMQConn) Connect(connected chan bool) {
 	for {
 		if err := r.tryToConnect(); err != nil {
 			time.Sleep(1 * time.Second)
@@ -63,11 +84,11 @@ func (r *RabbitConnection) Connect(connected chan bool) {
 	}
 }
 
-func (r *RabbitConnection) IsConnected() bool {
+func (r *rabbitMQConn) IsConnected() bool {
 	return r.connected
 }
 
-func (r *RabbitConnection) Close() {
+func (r *rabbitMQConn) Close() {
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
 
@@ -79,26 +100,26 @@ func (r *RabbitConnection) Close() {
 	r.closed = true
 }
 
-func (r *RabbitConnection) tryToConnect() error {
+func (r *rabbitMQConn) tryToConnect() error {
 	var err error
 	r.Connection, err = amqp.Dial(r.url)
 	if err != nil {
 		return err
 	}
-	r.Channel, err = NewRabbitChannel(r.Connection)
+	r.Channel, err = newRabbitChannel(r.Connection)
 	if err != nil {
 		return err
 	}
 	r.Channel.DeclareExchange(r.exchange)
-	r.ExchangeChannel, err = NewRabbitChannel(r.Connection)
+	r.ExchangeChannel, err = newRabbitChannel(r.Connection)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (r *RabbitConnection) Consume(queue string) (<-chan amqp.Delivery, error) {
-	consumerChannel, err := NewRabbitChannel(r.Connection)
+func (r *rabbitMQConn) Consume(queue string) (<-chan amqp.Delivery, error) {
+	consumerChannel, err := newRabbitChannel(r.Connection)
 	if err != nil {
 		return nil, err
 	}
@@ -121,27 +142,6 @@ func (r *RabbitConnection) Consume(queue string) (<-chan amqp.Delivery, error) {
 	return deliveries, nil
 }
 
-func (r *RabbitConnection) Publish(exchange, key string, msg amqp.Publishing) error {
+func (r *rabbitMQConn) Publish(exchange, key string, msg amqp.Publishing) error {
 	return r.ExchangeChannel.Publish(exchange, key, msg)
-}
-
-func NewRabbitConnection(exchange string, urls []string) *RabbitConnection {
-	var url string
-
-	if len(urls) > 0 && strings.HasPrefix(urls[0], "amqp://") {
-		url = urls[0]
-	} else {
-		url = DefaultRabbitURL
-	}
-
-	if len(exchange) == 0 {
-		exchange = DefaultExchange
-	}
-
-	return &RabbitConnection{
-		exchange: exchange,
-		url:      url,
-		notify:   make(chan bool, 1),
-		close:    make(chan bool),
-	}
 }

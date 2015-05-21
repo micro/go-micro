@@ -1,7 +1,6 @@
 package transport
 
 import (
-	"bytes"
 	"fmt"
 	"sync"
 	"time"
@@ -12,7 +11,7 @@ import (
 )
 
 type RabbitMQTransport struct {
-	conn  *RabbitConnection
+	conn  *rabbitMQConn
 	addrs []string
 }
 
@@ -27,13 +26,12 @@ type RabbitMQTransportClient struct {
 }
 
 type RabbitMQTransportSocket struct {
-	d   *amqp.Delivery
-	hdr amqp.Table
-	buf *bytes.Buffer
+	conn *rabbitMQConn
+	d    *amqp.Delivery
 }
 
-type RabbitMQTransportServer struct {
-	conn *RabbitConnection
+type RabbitMQTransportListener struct {
+	conn *rabbitMQConn
 	addr string
 }
 
@@ -136,62 +134,63 @@ func (r *RabbitMQTransportClient) Close() error {
 	return nil
 }
 
-func (r *RabbitMQTransportSocket) Recv() (*Message, error) {
-	m := &Message{
+func (r *RabbitMQTransportSocket) Recv(m *Message) error {
+	if m == nil {
+		return errors.New("message passed in is nil")
+	}
+
+	mr := &Message{
 		Header: make(map[string]string),
 		Body:   r.d.Body,
 	}
 
 	for k, v := range r.d.Headers {
-		m.Header[k] = fmt.Sprintf("%v", v)
+		mr.Header[k] = fmt.Sprintf("%v", v)
 	}
 
-	return m, nil
+	*m = *mr
+	return nil
 }
 
-func (r *RabbitMQTransportSocket) WriteHeader(k string, v string) {
-	r.hdr[k] = v
+func (r *RabbitMQTransportSocket) Send(m *Message) error {
+	msg := amqp.Publishing{
+		CorrelationId: r.d.CorrelationId,
+		Timestamp:     time.Now().UTC(),
+		Body:          m.Body,
+		Headers:       amqp.Table{},
+	}
+
+	for k, v := range m.Header {
+		msg.Headers[k] = v
+	}
+
+	return r.conn.Publish("", r.d.ReplyTo, msg)
 }
 
-func (r *RabbitMQTransportSocket) Write(b []byte) error {
-	_, err := r.buf.Write(b)
-	return err
+func (r *RabbitMQTransportSocket) Close() error {
+	return nil
 }
 
-func (r *RabbitMQTransportServer) Addr() string {
+func (r *RabbitMQTransportListener) Addr() string {
 	return r.addr
 }
 
-func (r *RabbitMQTransportServer) Close() error {
+func (r *RabbitMQTransportListener) Close() error {
 	r.conn.Close()
 	return nil
 }
 
-func (r *RabbitMQTransportServer) Serve(fn func(Socket)) error {
+func (r *RabbitMQTransportListener) Accept(fn func(Socket)) error {
 	deliveries, err := r.conn.Consume(r.addr)
 	if err != nil {
 		return err
 	}
 
 	handler := func(d amqp.Delivery) {
-		buf := bytes.NewBuffer(nil)
-		headers := amqp.Table{}
-
 		fn(&RabbitMQTransportSocket{
-			d:   &d,
-			hdr: headers,
-			buf: buf,
+			d:    &d,
+			conn: r.conn,
 		})
-
-		msg := amqp.Publishing{
-			CorrelationId: d.CorrelationId,
-			Timestamp:     time.Now().UTC(),
-			Body:          buf.Bytes(),
-			Headers:       headers,
-		}
-
-		r.conn.Publish("", d.ReplyTo, msg)
-		buf.Reset()
 	}
 
 	for d := range deliveries {
@@ -201,7 +200,7 @@ func (r *RabbitMQTransportServer) Serve(fn func(Socket)) error {
 	return nil
 }
 
-func (r *RabbitMQTransport) NewClient(addr string) (Client, error) {
+func (r *RabbitMQTransport) Dial(addr string) (Client, error) {
 	id, err := uuid.NewV4()
 	if err != nil {
 		return nil, err
@@ -215,16 +214,16 @@ func (r *RabbitMQTransport) NewClient(addr string) (Client, error) {
 	}, nil
 }
 
-func (r *RabbitMQTransport) NewServer(addr string) (Server, error) {
+func (r *RabbitMQTransport) Listen(addr string) (Listener, error) {
 	id, err := uuid.NewV4()
 	if err != nil {
 		return nil, err
 	}
 
-	conn := NewRabbitConnection("", r.addrs)
+	conn := newRabbitMQConn("", r.addrs)
 	<-conn.Init()
 
-	return &RabbitMQTransportServer{
+	return &RabbitMQTransportListener{
 		addr: id.String(),
 		conn: conn,
 	}, nil
@@ -232,7 +231,7 @@ func (r *RabbitMQTransport) NewServer(addr string) (Server, error) {
 
 func NewRabbitMQTransport(addrs []string) *RabbitMQTransport {
 	return &RabbitMQTransport{
-		conn:  NewRabbitConnection("", addrs),
+		conn:  newRabbitMQConn("", addrs),
 		addrs: addrs,
 	}
 }

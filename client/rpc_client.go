@@ -86,7 +86,7 @@ func (r *RpcClient) call(address, path string, request Request, response interfa
 
 	msg.Header["Content-Type"] = request.ContentType()
 
-	c, err := r.opts.transport.NewClient(address)
+	c, err := r.opts.transport.Dial(address)
 	if err != nil {
 		return errors.InternalServerError("go.micro.client", fmt.Sprintf("Error sending request: %v", err))
 	}

@@ -6,9 +6,9 @@ type Message struct {
 }
 
 type Socket interface {
-	Recv() (*Message, error)
-	WriteHeader(string, string)
-	Write([]byte) error
+	Recv(*Message) error
+	Send(*Message) error
+	Close() error
 }
 
 type Client interface {
@@ -16,25 +16,25 @@ type Client interface {
 	Close() error
 }
 
-type Server interface {
+type Listener interface {
 	Addr() string
 	Close() error
-	Serve(func(Socket)) error
+	Accept(func(Socket)) error
 }
 
 type Transport interface {
-	NewClient(addr string) (Client, error)
-	NewServer(addr string) (Server, error)
+	Dial(addr string) (Client, error)
+	Listen(addr string) (Listener, error)
 }
 
 var (
 	DefaultTransport Transport = NewHttpTransport([]string{})
 )
 
-func NewClient(addr string) (Client, error) {
-	return DefaultTransport.NewClient(addr)
+func Dial(addr string) (Client, error) {
+	return DefaultTransport.Dial(addr)
 }
 
-func NewServer(addr string) (Server, error) {
-	return DefaultTransport.NewServer(addr)
+func Listen(addr string) (Listener, error) {
+	return DefaultTransport.Listen(addr)
 }

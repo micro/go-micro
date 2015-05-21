@@ -2,6 +2,7 @@ package transport
 
 import (
 	"bytes"
+	"errors"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -26,7 +27,7 @@ type HttpTransportSocket struct {
 	w http.ResponseWriter
 }
 
-type HttpTransportServer struct {
+type HttpTransportListener struct {
 	listener net.Listener
 }
 
@@ -92,46 +93,55 @@ func (h *HttpTransportClient) Close() error {
 	return nil
 }
 
-func (h *HttpTransportSocket) Recv() (*Message, error) {
-	b, err := ioutil.ReadAll(h.r.Body)
-	if err != nil {
-		return nil, err
+func (h *HttpTransportSocket) Recv(m *Message) error {
+	if m == nil {
+		return errors.New("message passed in is nil")
 	}
 
-	m := &Message{
+	b, err := ioutil.ReadAll(h.r.Body)
+	if err != nil {
+		return err
+	}
+
+	mr := &Message{
 		Header: make(map[string]string),
 		Body:   b,
 	}
 
 	for k, v := range h.r.Header {
 		if len(v) > 0 {
-			m.Header[k] = v[0]
+			mr.Header[k] = v[0]
 		} else {
-			m.Header[k] = ""
+			mr.Header[k] = ""
 		}
 	}
 
-	return m, nil
+	*m = *mr
+	return nil
 }
 
-func (h *HttpTransportSocket) WriteHeader(k string, v string) {
-	h.w.Header().Set(k, v)
-}
+func (h *HttpTransportSocket) Send(m *Message) error {
+	for k, v := range m.Header {
+		h.w.Header().Set(k, v)
+	}
 
-func (h *HttpTransportSocket) Write(b []byte) error {
-	_, err := h.w.Write(b)
+	_, err := h.w.Write(m.Body)
 	return err
 }
 
-func (h *HttpTransportServer) Addr() string {
+func (h *HttpTransportSocket) Close() error {
+	return nil
+}
+
+func (h *HttpTransportListener) Addr() string {
 	return h.listener.Addr().String()
 }
 
-func (h *HttpTransportServer) Close() error {
+func (h *HttpTransportListener) Close() error {
 	return h.listener.Close()
 }
 
-func (h *HttpTransportServer) Serve(fn func(Socket)) error {
+func (h *HttpTransportListener) Accept(fn func(Socket)) error {
 	srv := &http.Server{
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			fn(&HttpTransportSocket{
@@ -144,20 +154,20 @@ func (h *HttpTransportServer) Serve(fn func(Socket)) error {
 	return srv.Serve(h.listener)
 }
 
-func (h *HttpTransport) NewClient(addr string) (Client, error) {
+func (h *HttpTransport) Dial(addr string) (Client, error) {
 	return &HttpTransportClient{
 		ht:   h,
 		addr: addr,
 	}, nil
 }
 
-func (h *HttpTransport) NewServer(addr string) (Server, error) {
+func (h *HttpTransport) Listen(addr string) (Listener, error) {
 	l, err := net.Listen("tcp", addr)
 	if err != nil {
 		return nil, err
 	}
 
-	return &HttpTransportServer{
+	return &HttpTransportListener{
 		listener: l,
 	}, nil
 }

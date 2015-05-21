@@ -26,10 +26,10 @@ var (
 	RpcPath    = "/_rpc"
 )
 
-func (s *RpcServer) serve(sock transport.Socket) {
+func (s *RpcServer) accept(sock transport.Socket) {
 	//	serveCtx := getServerContext(req)
-	msg, err := sock.Recv()
-	if err != nil {
+	var msg transport.Message
+	if err := sock.Recv(&msg); err != nil {
 		return
 	}
 
@@ -55,13 +55,16 @@ func (s *RpcServer) serve(sock transport.Socket) {
 	}
 
 	//ctx := newContext(&ctx{}, serveCtx)
-	err = s.rpc.ServeRequestWithContext(context.Background(), cc)
-	if err != nil {
+	if err := s.rpc.ServeRequestWithContext(context.Background(), cc); err != nil {
 		return
 	}
 
-	sock.WriteHeader("Content-Type", msg.Header["Content-Type"])
-	sock.Write(rsp.Bytes())
+	sock.Send(&transport.Message{
+		Header: map[string]string{
+			"Content-Type": msg.Header["Content-Type"],
+		},
+		Body: rsp.Bytes(),
+	})
 }
 
 func (s *RpcServer) Address() string {
@@ -96,7 +99,7 @@ func (s *RpcServer) Register(r Receiver) error {
 func (s *RpcServer) Start() error {
 	registerHealthChecker(http.DefaultServeMux)
 
-	ts, err := s.opts.transport.NewServer(s.address)
+	ts, err := s.opts.transport.Listen(s.address)
 	if err != nil {
 		return err
 	}
@@ -107,7 +110,7 @@ func (s *RpcServer) Start() error {
 	s.address = ts.Addr()
 	s.mtx.RUnlock()
 
-	go ts.Serve(s.serve)
+	go ts.Accept(s.accept)
 
 	go func() {
 		ch := <-s.exit

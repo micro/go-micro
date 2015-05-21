@@ -1,8 +1,8 @@
 package transport
 
 import (
-	"bytes"
 	"encoding/json"
+	"errors"
 	"strings"
 	"time"
 
@@ -19,12 +19,11 @@ type NatsTransportClient struct {
 }
 
 type NatsTransportSocket struct {
-	m   *nats.Msg
-	hdr map[string]string
-	buf *bytes.Buffer
+	conn *nats.Conn
+	m    *nats.Msg
 }
 
-type NatsTransportServer struct {
+type NatsTransportListener struct {
 	conn *nats.Conn
 	addr string
 	exit chan bool
@@ -54,58 +53,45 @@ func (n *NatsTransportClient) Close() error {
 	return nil
 }
 
-func (n *NatsTransportSocket) Recv() (*Message, error) {
-	var m *Message
-
-	if err := json.Unmarshal(n.m.Data, &m); err != nil {
-		return nil, err
+func (n *NatsTransportSocket) Recv(m *Message) error {
+	if m == nil {
+		return errors.New("message passed in is nil")
 	}
 
-	return m, nil
+	if err := json.Unmarshal(n.m.Data, &m); err != nil {
+		return err
+	}
+	return nil
 }
 
-func (n *NatsTransportSocket) WriteHeader(k string, v string) {
-	n.hdr[k] = v
+func (n *NatsTransportSocket) Send(m *Message) error {
+	b, err := json.Marshal(m)
+	if err != nil {
+		return err
+	}
+	return n.conn.Publish(n.m.Reply, b)
 }
 
-func (n *NatsTransportSocket) Write(b []byte) error {
-	_, err := n.buf.Write(b)
-	return err
+func (n *NatsTransportSocket) Close() error {
+	return nil
 }
 
-func (n *NatsTransportServer) Addr() string {
+func (n *NatsTransportListener) Addr() string {
 	return n.addr
 }
 
-func (n *NatsTransportServer) Close() error {
+func (n *NatsTransportListener) Close() error {
 	n.exit <- true
 	n.conn.Close()
 	return nil
 }
 
-func (n *NatsTransportServer) Serve(fn func(Socket)) error {
+func (n *NatsTransportListener) Accept(fn func(Socket)) error {
 	s, err := n.conn.Subscribe(n.addr, func(m *nats.Msg) {
-		buf := bytes.NewBuffer(nil)
-		hdr := make(map[string]string)
-
 		fn(&NatsTransportSocket{
-			m:   m,
-			hdr: hdr,
-			buf: buf,
+			conn: n.conn,
+			m:    m,
 		})
-
-		mrsp := &Message{
-			Header: hdr,
-			Body:   buf.Bytes(),
-		}
-
-		b, err := json.Marshal(mrsp)
-		if err != nil {
-			return
-		}
-
-		n.conn.Publish(m.Reply, b)
-		buf.Reset()
 	})
 	if err != nil {
 		return err
@@ -115,7 +101,7 @@ func (n *NatsTransportServer) Serve(fn func(Socket)) error {
 	return s.Unsubscribe()
 }
 
-func (n *NatsTransport) NewClient(addr string) (Client, error) {
+func (n *NatsTransport) Dial(addr string) (Client, error) {
 	cAddr := nats.DefaultURL
 
 	if len(n.addrs) > 0 && strings.HasPrefix(n.addrs[0], "nats://") {
@@ -133,7 +119,7 @@ func (n *NatsTransport) NewClient(addr string) (Client, error) {
 	}, nil
 }
 
-func (n *NatsTransport) NewServer(addr string) (Server, error) {
+func (n *NatsTransport) Listen(addr string) (Listener, error) {
 	cAddr := nats.DefaultURL
 
 	if len(n.addrs) > 0 && strings.HasPrefix(n.addrs[0], "nats://") {
@@ -145,7 +131,7 @@ func (n *NatsTransport) NewServer(addr string) (Server, error) {
 		return nil, err
 	}
 
-	return &NatsTransportServer{
+	return &NatsTransportListener{
 		addr: nats.NewInbox(),
 		conn: c,
 		exit: make(chan bool, 1),
