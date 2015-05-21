@@ -10,6 +10,7 @@ import (
 	"code.google.com/p/go-uuid/uuid"
 	log "github.com/golang/glog"
 	"github.com/myodc/go-micro/registry"
+	"github.com/myodc/go-micro/transport"
 )
 
 type Server interface {
@@ -21,6 +22,12 @@ type Server interface {
 	Start() error
 	Stop() error
 }
+
+type options struct {
+	transport transport.Transport
+}
+
+type Options func(*options)
 
 var (
 	Address       string
@@ -65,16 +72,26 @@ func Run() error {
 	}
 
 	// parse address for host, port
+	var host string
+	var port int
 	parts := strings.Split(DefaultServer.Address(), ":")
-	host := strings.Join(parts[:len(parts)-1], ":")
-	port, _ := strconv.Atoi(parts[len(parts)-1])
+	if len(parts) > 1 {
+		host = strings.Join(parts[:len(parts)-1], ":")
+		port, _ = strconv.Atoi(parts[len(parts)-1])
+	} else {
+		host = parts[0]
+	}
 
 	// register service
 	node := registry.NewNode(Id, host, port)
 	service := registry.NewService(Name, node)
 
-	log.Infof("Registering %s", node.Id())
-	registry.Register(service)
+	log.Infof("Registering node: %s", node.Id())
+
+	err := registry.Register(service)
+	if err != nil {
+		log.Fatal("Failed to register: %v", err)
+	}
 
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, syscall.SIGTERM, syscall.SIGINT, syscall.SIGKILL)

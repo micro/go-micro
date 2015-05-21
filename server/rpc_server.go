@@ -14,11 +14,11 @@ import (
 )
 
 type RpcServer struct {
-	mtx       sync.RWMutex
-	address   string
-	transport transport.Transport
-	rpc       *rpc.Server
-	exit      chan chan error
+	mtx     sync.RWMutex
+	address string
+	opts    options
+	rpc     *rpc.Server
+	exit    chan chan error
 }
 
 var (
@@ -96,7 +96,7 @@ func (s *RpcServer) Register(r Receiver) error {
 func (s *RpcServer) Start() error {
 	registerHealthChecker(http.DefaultServeMux)
 
-	ts, err := s.transport.NewServer(Name, s.address)
+	ts, err := s.opts.transport.NewServer(s.address)
 	if err != nil {
 		return err
 	}
@@ -123,11 +123,21 @@ func (s *RpcServer) Stop() error {
 	return <-ch
 }
 
-func NewRpcServer(address string) *RpcServer {
+func NewRpcServer(address string, opt ...Options) *RpcServer {
+	var opts options
+
+	for _, o := range opt {
+		o(&opts)
+	}
+
+	if opts.transport == nil {
+		opts.transport = transport.DefaultTransport
+	}
+
 	return &RpcServer{
-		address:   address,
-		transport: transport.DefaultTransport,
-		rpc:       rpc.NewServer(),
-		exit:      make(chan chan error),
+		opts:    opts,
+		address: address,
+		rpc:     rpc.NewServer(),
+		exit:    make(chan chan error),
 	}
 }

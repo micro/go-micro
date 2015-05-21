@@ -2,7 +2,6 @@ package transport
 
 //
 // All credit to Mondo
-// https://github.com/mondough/typhon
 //
 
 import (
@@ -50,11 +49,11 @@ func (r *RabbitChannel) Close() error {
 	return r.channel.Close()
 }
 
-func (r *RabbitChannel) Publish(exchange, routingKey string, message amqp.Publishing) error {
+func (r *RabbitChannel) Publish(exchange, key string, message amqp.Publishing) error {
 	if r.channel == nil {
 		return errors.New("Channel is nil")
 	}
-	return r.channel.Publish(exchange, routingKey, false, false, message)
+	return r.channel.Publish(exchange, key, false, false, message)
 }
 
 func (r *RabbitChannel) DeclareExchange(exchange string) error {

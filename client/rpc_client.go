@@ -22,7 +22,7 @@ type headerRoundTripper struct {
 }
 
 type RpcClient struct {
-	transport transport.Transport
+	opts options
 }
 
 func init() {
@@ -86,7 +86,7 @@ func (r *RpcClient) call(address, path string, request Request, response interfa
 
 	msg.Header["Content-Type"] = request.ContentType()
 
-	c, err := r.transport.NewClient(request.Service(), address)
+	c, err := r.opts.transport.NewClient(address)
 	if err != nil {
 		return errors.InternalServerError("go.micro.client", fmt.Sprintf("Error sending request: %v", err))
 	}
@@ -146,24 +146,39 @@ func (r *RpcClient) Call(request Request, response interface{}) error {
 
 	n := rand.Int() % len(service.Nodes())
 	node := service.Nodes()[n]
-	address := fmt.Sprintf("%s:%d", node.Address(), node.Port())
-	return r.call(address, "/_rpc", request, response)
+
+	address := node.Address()
+	if node.Port() > 0 {
+		address = fmt.Sprintf("%s:%d", address, node.Port())
+	}
+
+	return r.call(address, "", request, response)
 }
 
-func (r *RpcClient) NewRequest(service, method string, request interface{}) *RpcRequest {
+func (r *RpcClient) NewRequest(service, method string, request interface{}) Request {
 	return r.NewProtoRequest(service, method, request)
 }
 
-func (r *RpcClient) NewProtoRequest(service, method string, request interface{}) *RpcRequest {
+func (r *RpcClient) NewProtoRequest(service, method string, request interface{}) Request {
 	return newRpcRequest(service, method, request, "application/octet-stream")
 }
 
-func (r *RpcClient) NewJsonRequest(service, method string, request interface{}) *RpcRequest {
+func (r *RpcClient) NewJsonRequest(service, method string, request interface{}) Request {
 	return newRpcRequest(service, method, request, "application/json")
 }
 
-func NewRpcClient() *RpcClient {
+func NewRpcClient(opt ...Options) *RpcClient {
+	var opts options
+
+	for _, o := range opt {
+		o(&opts)
+	}
+
+	if opts.transport == nil {
+		opts.transport = transport.DefaultTransport
+	}
+
 	return &RpcClient{
-		transport: transport.DefaultTransport,
+		opts: opts,
 	}
 }

@@ -2,10 +2,10 @@ package transport
 
 //
 // All credit to Mondo
-// https://github.com/mondough/typhon
 //
 
 import (
+	"strings"
 	"sync"
 	"time"
 
@@ -27,9 +27,9 @@ type RabbitConnection struct {
 
 	connected bool
 
-	mtx       sync.Mutex
-	closeChan chan struct{}
-	closed    bool
+	mtx    sync.Mutex
+	close  chan bool
+	closed bool
 }
 
 func (r *RabbitConnection) Init() chan bool {
@@ -53,7 +53,7 @@ func (r *RabbitConnection) Connect(connected chan bool) {
 		case <-notifyClose:
 			// Spin around and reconnect
 			r.connected = false
-		case <-r.closeChan:
+		case <-r.close:
 			// Shut down connection
 			if err := r.Connection.Close(); err != nil {
 			}
@@ -75,7 +75,7 @@ func (r *RabbitConnection) Close() {
 		return
 	}
 
-	close(r.closeChan)
+	close(r.close)
 	r.closed = true
 }
 
@@ -97,23 +97,23 @@ func (r *RabbitConnection) tryToConnect() error {
 	return nil
 }
 
-func (r *RabbitConnection) Consume(serverName string) (<-chan amqp.Delivery, error) {
+func (r *RabbitConnection) Consume(queue string) (<-chan amqp.Delivery, error) {
 	consumerChannel, err := NewRabbitChannel(r.Connection)
 	if err != nil {
 		return nil, err
 	}
 
-	err = consumerChannel.DeclareQueue(serverName)
+	err = consumerChannel.DeclareQueue(queue)
 	if err != nil {
 		return nil, err
 	}
 
-	deliveries, err := consumerChannel.ConsumeQueue(serverName)
+	deliveries, err := consumerChannel.ConsumeQueue(queue)
 	if err != nil {
 		return nil, err
 	}
 
-	err = consumerChannel.BindQueue(serverName, r.exchange)
+	err = consumerChannel.BindQueue(queue, r.exchange)
 	if err != nil {
 		return nil, err
 	}
@@ -121,12 +121,16 @@ func (r *RabbitConnection) Consume(serverName string) (<-chan amqp.Delivery, err
 	return deliveries, nil
 }
 
-func (r *RabbitConnection) Publish(exchange, routingKey string, msg amqp.Publishing) error {
-	return r.ExchangeChannel.Publish(exchange, routingKey, msg)
+func (r *RabbitConnection) Publish(exchange, key string, msg amqp.Publishing) error {
+	return r.ExchangeChannel.Publish(exchange, key, msg)
 }
 
-func NewRabbitConnection(exchange, url string) *RabbitConnection {
-	if len(url) == 0 {
+func NewRabbitConnection(exchange string, urls []string) *RabbitConnection {
+	var url string
+
+	if len(urls) > 0 && strings.HasPrefix(urls[0], "amqp://") {
+		url = urls[0]
+	} else {
 		url = DefaultRabbitURL
 	}
 
@@ -135,9 +139,9 @@ func NewRabbitConnection(exchange, url string) *RabbitConnection {
 	}
 
 	return &RabbitConnection{
-		exchange:  DefaultExchange,
-		url:       DefaultRabbitURL,
-		notify:    make(chan bool, 1),
-		closeChan: make(chan struct{}),
+		exchange: exchange,
+		url:      url,
+		notify:   make(chan bool, 1),
+		close:    make(chan bool),
 	}
 }

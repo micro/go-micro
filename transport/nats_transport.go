@@ -9,11 +9,13 @@ import (
 	"github.com/apcera/nats"
 )
 
-type NatsTransport struct{}
+type NatsTransport struct {
+	addrs []string
+}
 
 type NatsTransportClient struct {
-	conn   *nats.Conn
-	target string
+	conn *nats.Conn
+	addr string
 }
 
 type NatsTransportSocket struct {
@@ -24,7 +26,7 @@ type NatsTransportSocket struct {
 
 type NatsTransportServer struct {
 	conn *nats.Conn
-	name string
+	addr string
 	exit chan bool
 }
 
@@ -34,7 +36,7 @@ func (n *NatsTransportClient) Send(m *Message) (*Message, error) {
 		return nil, err
 	}
 
-	rsp, err := n.conn.Request(n.target, b, time.Second*10)
+	rsp, err := n.conn.Request(n.addr, b, time.Second*10)
 	if err != nil {
 		return nil, err
 	}
@@ -72,7 +74,7 @@ func (n *NatsTransportSocket) Write(b []byte) error {
 }
 
 func (n *NatsTransportServer) Addr() string {
-	return "127.0.0.1:4222"
+	return n.addr
 }
 
 func (n *NatsTransportServer) Close() error {
@@ -82,7 +84,7 @@ func (n *NatsTransportServer) Close() error {
 }
 
 func (n *NatsTransportServer) Serve(fn func(Socket)) error {
-	s, err := n.conn.QueueSubscribe(n.name, "queue:"+n.name, func(m *nats.Msg) {
+	s, err := n.conn.Subscribe(n.addr, func(m *nats.Msg) {
 		buf := bytes.NewBuffer(nil)
 		hdr := make(map[string]string)
 
@@ -113,39 +115,45 @@ func (n *NatsTransportServer) Serve(fn func(Socket)) error {
 	return s.Unsubscribe()
 }
 
-func (n *NatsTransport) NewClient(name, addr string) (Client, error) {
-	if !strings.HasPrefix(addr, "nats://") {
-		addr = nats.DefaultURL
+func (n *NatsTransport) NewClient(addr string) (Client, error) {
+	cAddr := nats.DefaultURL
+
+	if len(n.addrs) > 0 && strings.HasPrefix(n.addrs[0], "nats://") {
+		cAddr = n.addrs[0]
 	}
 
-	c, err := nats.Connect(addr)
+	c, err := nats.Connect(cAddr)
 	if err != nil {
 		return nil, err
 	}
 
 	return &NatsTransportClient{
-		conn:   c,
-		target: name,
+		conn: c,
+		addr: addr,
 	}, nil
 }
 
-func (n *NatsTransport) NewServer(name, addr string) (Server, error) {
-	if !strings.HasPrefix(addr, "nats://") {
-		addr = nats.DefaultURL
+func (n *NatsTransport) NewServer(addr string) (Server, error) {
+	cAddr := nats.DefaultURL
+
+	if len(n.addrs) > 0 && strings.HasPrefix(n.addrs[0], "nats://") {
+		cAddr = n.addrs[0]
 	}
 
-	c, err := nats.Connect(addr)
+	c, err := nats.Connect(cAddr)
 	if err != nil {
 		return nil, err
 	}
 
 	return &NatsTransportServer{
-		name: name,
+		addr: nats.NewInbox(),
 		conn: c,
 		exit: make(chan bool, 1),
 	}, nil
 }
 
 func NewNatsTransport(addrs []string) *NatsTransport {
-	return &NatsTransport{}
+	return &NatsTransport{
+		addrs: addrs,
+	}
 }

@@ -23,18 +23,18 @@ type Server interface {
 }
 
 type Transport interface {
-	NewClient(name, addr string) (Client, error)
-	NewServer(name, addr string) (Server, error)
+	NewClient(addr string) (Client, error)
+	NewServer(addr string) (Server, error)
 }
 
 var (
 	DefaultTransport Transport = NewHttpTransport([]string{})
 )
 
-func NewClient(name, addr string) (Client, error) {
-	return DefaultTransport.NewClient(name, addr)
+func NewClient(addr string) (Client, error) {
+	return DefaultTransport.NewClient(addr)
 }
 
-func NewServer(name, addr string) (Server, error) {
-	return DefaultTransport.NewServer(name, addr)
+func NewServer(addr string) (Server, error) {
+	return DefaultTransport.NewServer(addr)
 }

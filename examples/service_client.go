@@ -4,10 +4,13 @@ import (
 	"fmt"
 
 	"github.com/myodc/go-micro/client"
+	"github.com/myodc/go-micro/cmd"
 	example "github.com/myodc/go-micro/template/proto/example"
 )
 
 func main() {
+	cmd.Init()
+	client.DefaultClient = client.NewRpcClient()
 	// Create new request to service go.micro.service.go-template, method Example.Call
 	req := client.NewRequest("go.micro.service.template", "Example.Call", &example.Request{
 		Name: "John",

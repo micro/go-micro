@@ -17,8 +17,8 @@ type HttpTransport struct {
 }
 
 type HttpTransportClient struct {
-	client *http.Client
-	target string
+	ht   *HttpTransport
+	addr string
 }
 
 type HttpTransportSocket struct {
@@ -52,16 +52,16 @@ func (h *HttpTransportClient) Send(m *Message) (*Message, error) {
 		Method: "POST",
 		URL: &url.URL{
 			Scheme: "http",
-			Host:   h.target,
+			Host:   h.addr,
 			//		Path:   path,
 		},
 		Header:        header,
 		Body:          buf,
 		ContentLength: int64(reqB.Len()),
-		Host:          h.target,
+		Host:          h.addr,
 	}
 
-	rsp, err := h.client.Do(hreq)
+	rsp, err := h.ht.client.Do(hreq)
 	if err != nil {
 		return nil, err
 	}
@@ -144,14 +144,14 @@ func (h *HttpTransportServer) Serve(fn func(Socket)) error {
 	return srv.Serve(h.listener)
 }
 
-func (h *HttpTransport) NewClient(name, addr string) (Client, error) {
+func (h *HttpTransport) NewClient(addr string) (Client, error) {
 	return &HttpTransportClient{
-		client: h.client,
-		target: addr,
+		ht:   h,
+		addr: addr,
 	}, nil
 }
 
-func (h *HttpTransport) NewServer(name, addr string) (Server, error) {
+func (h *HttpTransport) NewServer(addr string) (Server, error) {
 	l, err := net.Listen("tcp", addr)
 	if err != nil {
 		return nil, err
