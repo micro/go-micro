@@ -9,6 +9,7 @@ import (
 
 	"github.com/codegangsta/cli"
 	"github.com/myodc/go-micro/broker"
+	"github.com/myodc/go-micro/client"
 	"github.com/myodc/go-micro/registry"
 	"github.com/myodc/go-micro/server"
 	"github.com/myodc/go-micro/store"
@@ -112,6 +113,8 @@ func Setup(c *cli.Context) error {
 	case "nats":
 		transport.DefaultTransport = transport.NewNatsTransport(tAddrs)
 	}
+
+	client.DefaultClient = client.NewRpcClient()
 
 	return nil
 }

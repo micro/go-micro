@@ -1,21 +1,17 @@
 package server
 
 import (
-	"io"
-	"net/http"
-	"net/url"
+	"github.com/myodc/go-micro/proto/health"
+	"golang.org/x/net/context"
 )
 
-func registerHealthChecker(mux *http.ServeMux) {
-	req := &http.Request{
-		Method: "GET",
-		URL: &url.URL{
-			Path: HealthPath,
-		},
-	}
-	if _, path := mux.Handler(req); path != HealthPath {
-		mux.HandleFunc(HealthPath, func(w http.ResponseWriter, r *http.Request) {
-			io.WriteString(w, "ok")
-		})
-	}
+type Debug struct{}
+
+func (d *Debug) Health(ctx context.Context, req *health.Request, rsp *health.Response) error {
+	rsp.Status = "ok"
+	return nil
+}
+
+func registerHealthChecker(r Server) {
+	r.Register(r.NewReceiver(&Debug{}))
 }

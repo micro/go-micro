@@ -2,7 +2,6 @@ package server
 
 import (
 	"bytes"
-	"net/http"
 	"sync"
 
 	log "github.com/golang/glog"
@@ -97,7 +96,7 @@ func (s *RpcServer) Register(r Receiver) error {
 }
 
 func (s *RpcServer) Start() error {
-	registerHealthChecker(http.DefaultServeMux)
+	registerHealthChecker(s)
 
 	ts, err := s.opts.transport.Listen(s.address)
 	if err != nil {
