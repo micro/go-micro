@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"time"
 
+	log "github.com/golang/glog"
 	"github.com/myodc/go-micro/broker"
+	"github.com/myodc/go-micro/cmd"
 )
 
 var (
@@ -16,8 +18,11 @@ func pub() {
 	i := 0
 	for _ = range tick.C {
 		msg := fmt.Sprintf("%d: %s", i, time.Now().String())
-		fmt.Println("[pub] pubbed message:", msg)
-		broker.Publish(topic, []byte(msg))
+		if err := broker.Publish(topic, []byte(msg)); err != nil {
+			log.Errorf("[pub] failed: %v", err)
+		} else {
+			fmt.Println("[pub] pubbed message:", msg)
+		}
 		i++
 	}
 }
@@ -32,8 +37,14 @@ func sub() {
 }
 
 func main() {
-	broker.Init()
-	broker.Connect()
+	cmd.Init()
+
+	if err := broker.Init(); err != nil {
+		log.Fatalf("Broker Init error: %v", err)
+	}
+	if err := broker.Connect(); err != nil {
+		log.Fatalf("Broker Connect error: %v", err)
+	}
 
 	go pub()
 	go sub()
