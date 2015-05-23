@@ -5,5 +5,4 @@ type Request interface {
 	Method() string
 	ContentType() string
 	Request() interface{}
-	Headers() Headers
 }

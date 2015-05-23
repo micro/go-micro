@@ -54,7 +54,6 @@ func (h *HttpTransportClient) Send(m *Message) (*Message, error) {
 		URL: &url.URL{
 			Scheme: "http",
 			Host:   h.addr,
-			//		Path:   path,
 		},
 		Header:        header,
 		Body:          buf,

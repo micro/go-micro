@@ -2,14 +2,15 @@ package client
 
 import (
 	"github.com/myodc/go-micro/transport"
+	"golang.org/x/net/context"
 )
 
 type Client interface {
 	NewRequest(string, string, interface{}) Request
 	NewProtoRequest(string, string, interface{}) Request
 	NewJsonRequest(string, string, interface{}) Request
-	Call(Request, interface{}) error
-	CallRemote(string, string, Request, interface{}) error
+	Call(context.Context, Request, interface{}) error
+	CallRemote(context.Context, string, Request, interface{}) error
 }
 
 type options struct {
@@ -28,12 +29,12 @@ func Transport(t transport.Transport) Option {
 	}
 }
 
-func Call(request Request, response interface{}) error {
-	return DefaultClient.Call(request, response)
+func Call(ctx context.Context, request Request, response interface{}) error {
+	return DefaultClient.Call(ctx, request, response)
 }
 
-func CallRemote(address, path string, request Request, response interface{}) error {
-	return DefaultClient.CallRemote(address, path, request, response)
+func CallRemote(ctx context.Context, address string, request Request, response interface{}) error {
+	return DefaultClient.CallRemote(ctx, address, request, response)
 }
 
 func NewRequest(service, method string, request interface{}) Request {

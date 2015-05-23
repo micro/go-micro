@@ -1,13 +1,10 @@
 package client
 
-import (
-	"net/http"
-)
-
 type RpcRequest struct {
-	service, method, contentType string
-	request                      interface{}
-	headers                      http.Header
+	service     string
+	method      string
+	contentType string
+	request     interface{}
 }
 
 func newRpcRequest(service, method string, request interface{}, contentType string) *RpcRequest {
@@ -16,16 +13,11 @@ func newRpcRequest(service, method string, request interface{}, contentType stri
 		method:      method,
 		request:     request,
 		contentType: contentType,
-		headers:     make(http.Header),
 	}
 }
 
 func (r *RpcRequest) ContentType() string {
 	return r.contentType
-}
-
-func (r *RpcRequest) Headers() Headers {
-	return r.headers
 }
 
 func (r *RpcRequest) Service() string {

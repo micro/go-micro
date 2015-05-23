@@ -7,13 +7,16 @@ import (
 	"net/http"
 	"time"
 
+	c "github.com/myodc/go-micro/context"
 	"github.com/myodc/go-micro/errors"
 	"github.com/myodc/go-micro/registry"
 	"github.com/myodc/go-micro/transport"
+
 	rpc "github.com/youtube/vitess/go/rpcplus"
 	js "github.com/youtube/vitess/go/rpcplus/jsonrpc"
 	pb "github.com/youtube/vitess/go/rpcplus/pbrpc"
-	ctx "golang.org/x/net/context"
+
+	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 )
 
@@ -34,14 +37,14 @@ func (t *headerRoundTripper) RoundTrip(r *http.Request) (*http.Response, error) 
 	return t.r.RoundTrip(r)
 }
 
-func (r *RpcClient) call(address, path string, request Request, response interface{}) error {
+func (r *RpcClient) call(ctx context.Context, address string, request Request, response interface{}) error {
 	switch request.ContentType() {
 	case "application/grpc":
 		cc, err := grpc.Dial(address)
 		if err != nil {
 			return errors.InternalServerError("go.micro.client", fmt.Sprintf("Error connecting to server: %v", err))
 		}
-		if err := grpc.Invoke(ctx.Background(), path, request.Request(), response, cc); err != nil {
+		if err := grpc.Invoke(ctx, request.Method(), request.Request(), response, cc); err != nil {
 			return errors.InternalServerError("go.micro.client", fmt.Sprintf("Error sending request: %v", err))
 		}
 		return nil
@@ -77,10 +80,10 @@ func (r *RpcClient) call(address, path string, request Request, response interfa
 		Body:   reqB.Bytes(),
 	}
 
-	h, _ := request.Headers().(http.Header)
-	for k, v := range h {
-		if len(v) > 0 {
-			msg.Header[k] = v[0]
+	md, ok := c.GetMetaData(ctx)
+	if ok {
+		for k, v := range md {
+			msg.Header[k] = v
 		}
 	}
 
@@ -129,12 +132,12 @@ func (r *RpcClient) call(address, path string, request Request, response interfa
 	return nil
 }
 
-func (r *RpcClient) CallRemote(address, path string, request Request, response interface{}) error {
-	return r.call(address, path, request, response)
+func (r *RpcClient) CallRemote(ctx context.Context, address string, request Request, response interface{}) error {
+	return r.call(ctx, address, request, response)
 }
 
 // TODO: Call(..., opts *Options) error {
-func (r *RpcClient) Call(request Request, response interface{}) error {
+func (r *RpcClient) Call(ctx context.Context, request Request, response interface{}) error {
 	service, err := registry.GetService(request.Service())
 	if err != nil {
 		return errors.InternalServerError("go.micro.client", err.Error())
@@ -152,7 +155,7 @@ func (r *RpcClient) Call(request Request, response interface{}) error {
 		address = fmt.Sprintf("%s:%d", address, node.Port())
 	}
 
-	return r.call(address, "", request, response)
+	return r.call(ctx, address, request, response)
 }
 
 func (r *RpcClient) NewRequest(service, method string, request interface{}) Request {

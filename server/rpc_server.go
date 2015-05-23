@@ -4,11 +4,14 @@ import (
 	"bytes"
 	"sync"
 
-	log "github.com/golang/glog"
+	c "github.com/myodc/go-micro/context"
 	"github.com/myodc/go-micro/transport"
+
+	log "github.com/golang/glog"
 	rpc "github.com/youtube/vitess/go/rpcplus"
 	js "github.com/youtube/vitess/go/rpcplus/jsonrpc"
 	pb "github.com/youtube/vitess/go/rpcplus/pbrpc"
+
 	"golang.org/x/net/context"
 )
 
@@ -26,7 +29,6 @@ var (
 )
 
 func (s *RpcServer) accept(sock transport.Socket) {
-	//	serveCtx := getServerContext(req)
 	var msg transport.Message
 	if err := sock.Recv(&msg); err != nil {
 		return
@@ -50,17 +52,21 @@ func (s *RpcServer) accept(sock transport.Socket) {
 		cc = js.NewServerCodec(buf)
 	default:
 		return
-		//		return nil, errors.InternalServerError("go.micro.server", fmt.Sprintf("Unsupported content-type: %v", req.Header.Get("Content-Type")))
 	}
 
-	//ctx := newContext(&ctx{}, serveCtx)
-	if err := s.rpc.ServeRequestWithContext(context.Background(), cc); err != nil {
+	// strip our headers
+	ct := msg.Header["Content-Type"]
+	delete(msg.Header, "Content-Type")
+
+	ctx := c.WithMetaData(context.Background(), msg.Header)
+
+	if err := s.rpc.ServeRequestWithContext(ctx, cc); err != nil {
 		return
 	}
 
 	sock.Send(&transport.Message{
 		Header: map[string]string{
-			"Content-Type": msg.Header["Content-Type"],
+			"Content-Type": ct,
 		},
 		Body: rsp.Bytes(),
 	})
