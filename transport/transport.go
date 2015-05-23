@@ -27,9 +27,17 @@ type Transport interface {
 	Listen(addr string) (Listener, error)
 }
 
+type options struct{}
+
+type Option func(*options)
+
 var (
-	DefaultTransport Transport = NewHttpTransport([]string{})
+	DefaultTransport Transport = newHttpTransport([]string{})
 )
+
+func NewTransport(addrs []string, opt ...Option) Transport {
+	return newHttpTransport(addrs, opt...)
+}
 
 func Dial(addr string) (Client, error) {
 	return DefaultTransport.Dial(addr)

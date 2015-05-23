@@ -9,11 +9,15 @@ type Store interface {
 
 type options struct{}
 
-type Options func(*options)
+type Option func(*options)
 
 var (
-	DefaultStore = NewConsulStore([]string{})
+	DefaultStore = newConsulStore([]string{})
 )
+
+func NewStore(addrs []string, opt ...Option) Store {
+	return newConsulStore(addrs, opt...)
+}
 
 func Get(key string) (Item, error) {
 	return DefaultStore.Get(key)

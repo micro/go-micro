@@ -1,14 +1,14 @@
 package store
 
-type ConsulItem struct {
+type consulItem struct {
 	key   string
 	value []byte
 }
 
-func (c *ConsulItem) Key() string {
+func (c *consulItem) Key() string {
 	return c.key
 }
 
-func (c *ConsulItem) Value() []byte {
+func (c *consulItem) Value() []byte {
 	return c.value
 }

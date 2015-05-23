@@ -1,15 +1,15 @@
 package registry
 
-type ConsulService struct {
+type consulService struct {
 	ServiceName  string
-	ServiceNodes []*ConsulNode
+	ServiceNodes []*consulNode
 }
 
-func (c *ConsulService) Name() string {
+func (c *consulService) Name() string {
 	return c.ServiceName
 }
 
-func (c *ConsulService) Nodes() []Node {
+func (c *consulService) Nodes() []Node {
 	var nodes []Node
 
 	for _, node := range c.ServiceNodes {

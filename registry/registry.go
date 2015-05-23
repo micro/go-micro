@@ -11,11 +11,15 @@ type Registry interface {
 
 type options struct{}
 
-type Options func(*options)
+type Option func(*options)
 
 var (
-	DefaultRegistry = NewConsulRegistry([]string{})
+	DefaultRegistry = newConsulRegistry([]string{})
 )
+
+func NewRegistry(addrs []string, opt ...Option) Registry {
+	return newConsulRegistry(addrs, opt...)
+}
 
 func Register(s Service) error {
 	return DefaultRegistry.Register(s)

@@ -37,7 +37,7 @@ func CallRemote(ctx context.Context, address string, request Request, response i
 	return DefaultClient.CallRemote(ctx, address, request, response)
 }
 
-func New(opt ...Option) Client {
+func NewClient(opt ...Option) Client {
 	return newRpcClient(opt...)
 }
 

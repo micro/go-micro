@@ -1,20 +1,20 @@
 package registry
 
-type ConsulNode struct {
+type consulNode struct {
 	Node        string
 	NodeId      string
 	NodeAddress string
 	NodePort    int
 }
 
-func (c *ConsulNode) Id() string {
+func (c *consulNode) Id() string {
 	return c.NodeId
 }
 
-func (c *ConsulNode) Address() string {
+func (c *consulNode) Address() string {
 	return c.NodeAddress
 }
 
-func (c *ConsulNode) Port() int {
+func (c *consulNode) Port() int {
 	return c.NodePort
 }

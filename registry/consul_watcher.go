@@ -5,8 +5,8 @@ import (
 	"github.com/hashicorp/consul/watch"
 )
 
-type ConsulWatcher struct {
-	Registry *ConsulRegistry
+type consulWatcher struct {
+	Registry *consulRegistry
 	wp       *watch.WatchPlan
 	watchers map[string]*watch.WatchPlan
 }
@@ -15,17 +15,33 @@ type serviceWatcher struct {
 	name string
 }
 
-func (cw *ConsulWatcher) serviceHandler(idx uint64, data interface{}) {
+func newConsulWatcher(cr *consulRegistry) *consulWatcher {
+	cw := &consulWatcher{
+		Registry: cr,
+		watchers: make(map[string]*watch.WatchPlan),
+	}
+
+	wp, err := watch.Parse(map[string]interface{}{"type": "services"})
+	if err == nil {
+		wp.Handler = cw.Handle
+		go wp.Run(cr.Address)
+		cw.wp = wp
+	}
+
+	return cw
+}
+
+func (cw *consulWatcher) serviceHandler(idx uint64, data interface{}) {
 	entries, ok := data.([]*api.ServiceEntry)
 	if !ok {
 		return
 	}
 
-	cs := &ConsulService{}
+	cs := &consulService{}
 
 	for _, e := range entries {
 		cs.ServiceName = e.Service.Service
-		cs.ServiceNodes = append(cs.ServiceNodes, &ConsulNode{
+		cs.ServiceNodes = append(cs.ServiceNodes, &consulNode{
 			Node:        e.Node.Node,
 			NodeId:      e.Service.ID,
 			NodeAddress: e.Node.Address,
@@ -38,7 +54,7 @@ func (cw *ConsulWatcher) serviceHandler(idx uint64, data interface{}) {
 	cw.Registry.mtx.Unlock()
 }
 
-func (cw *ConsulWatcher) Handle(idx uint64, data interface{}) {
+func (cw *consulWatcher) Handle(idx uint64, data interface{}) {
 	services, ok := data.(map[string][]string)
 	if !ok {
 		return
@@ -82,25 +98,9 @@ func (cw *ConsulWatcher) Handle(idx uint64, data interface{}) {
 	}
 }
 
-func (cw *ConsulWatcher) Stop() {
+func (cw *consulWatcher) Stop() {
 	if cw.wp == nil {
 		return
 	}
 	cw.wp.Stop()
-}
-
-func NewConsulWatcher(cr *ConsulRegistry) *ConsulWatcher {
-	cw := &ConsulWatcher{
-		Registry: cr,
-		watchers: make(map[string]*watch.WatchPlan),
-	}
-
-	wp, err := watch.Parse(map[string]interface{}{"type": "services"})
-	if err == nil {
-		wp.Handler = cw.Handle
-		go wp.Run(cr.Address)
-		cw.wp = wp
-	}
-
-	return cw
 }

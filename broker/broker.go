@@ -27,7 +27,7 @@ type Subscriber interface {
 
 type options struct{}
 
-type Options func(*options)
+type Option func(*options)
 
 var (
 	Address       string
@@ -35,13 +35,17 @@ var (
 	DefaultBroker Broker
 )
 
+func NewBroker(addrs []string, opt ...Option) Broker {
+	return newHttpBroker([]string{Address}, opt...)
+}
+
 func Init() error {
 	if len(Id) == 0 {
 		Id = "broker-" + uuid.NewUUID().String()
 	}
 
 	if DefaultBroker == nil {
-		DefaultBroker = NewHttpBroker([]string{Address})
+		DefaultBroker = newHttpBroker([]string{Address})
 	}
 
 	return DefaultBroker.Init()

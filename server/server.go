@@ -60,7 +60,7 @@ func Init() error {
 	return DefaultServer.Init()
 }
 
-func New(address string, opt ...Option) Server {
+func NewServer(address string, opt ...Option) Server {
 	return newRpcServer(address, opt...)
 }
 

@@ -1,4 +1,4 @@
-package transport
+package rabbitmq
 
 import (
 	"fmt"
@@ -8,16 +8,18 @@ import (
 	"errors"
 	uuid "github.com/nu7hatch/gouuid"
 	"github.com/streadway/amqp"
+
+	"github.com/myodc/go-micro/transport"
 )
 
-type RabbitMQTransport struct {
+type rmqtport struct {
 	conn  *rabbitMQConn
 	addrs []string
 }
 
-type RabbitMQTransportClient struct {
+type rmqtportClient struct {
 	once    sync.Once
-	rt      *RabbitMQTransport
+	rt      *rmqtport
 	addr    string
 	replyTo string
 
@@ -25,17 +27,17 @@ type RabbitMQTransportClient struct {
 	inflight map[string]chan amqp.Delivery
 }
 
-type RabbitMQTransportSocket struct {
+type rmqtportSocket struct {
 	conn *rabbitMQConn
 	d    *amqp.Delivery
 }
 
-type RabbitMQTransportListener struct {
+type rmqtportListener struct {
 	conn *rabbitMQConn
 	addr string
 }
 
-func (r *RabbitMQTransportClient) init() {
+func (r *rmqtportClient) init() {
 	<-r.rt.conn.Init()
 	if err := r.rt.conn.Channel.DeclareReplyQueue(r.replyTo); err != nil {
 		return
@@ -51,7 +53,7 @@ func (r *RabbitMQTransportClient) init() {
 	}()
 }
 
-func (r *RabbitMQTransportClient) handle(delivery amqp.Delivery) {
+func (r *rmqtportClient) handle(delivery amqp.Delivery) {
 	ch := r.getReq(delivery.CorrelationId)
 	if ch == nil {
 		return
@@ -62,7 +64,7 @@ func (r *RabbitMQTransportClient) handle(delivery amqp.Delivery) {
 	}
 }
 
-func (r *RabbitMQTransportClient) putReq(id string) chan amqp.Delivery {
+func (r *rmqtportClient) putReq(id string) chan amqp.Delivery {
 	r.Lock()
 	ch := make(chan amqp.Delivery, 1)
 	r.inflight[id] = ch
@@ -70,7 +72,7 @@ func (r *RabbitMQTransportClient) putReq(id string) chan amqp.Delivery {
 	return ch
 }
 
-func (r *RabbitMQTransportClient) getReq(id string) chan amqp.Delivery {
+func (r *rmqtportClient) getReq(id string) chan amqp.Delivery {
 	r.Lock()
 	defer r.Unlock()
 	if ch, ok := r.inflight[id]; ok {
@@ -80,7 +82,7 @@ func (r *RabbitMQTransportClient) getReq(id string) chan amqp.Delivery {
 	return nil
 }
 
-func (r *RabbitMQTransportClient) Send(m *Message) (*Message, error) {
+func (r *rmqtportClient) Send(m *transport.Message) (*transport.Message, error) {
 	r.once.Do(r.init)
 
 	if !r.rt.conn.IsConnected() {
@@ -115,7 +117,7 @@ func (r *RabbitMQTransportClient) Send(m *Message) (*Message, error) {
 
 	select {
 	case d := <-replyChan:
-		mr := &Message{
+		mr := &transport.Message{
 			Header: make(map[string]string),
 			Body:   d.Body,
 		}
@@ -130,16 +132,16 @@ func (r *RabbitMQTransportClient) Send(m *Message) (*Message, error) {
 	}
 }
 
-func (r *RabbitMQTransportClient) Close() error {
+func (r *rmqtportClient) Close() error {
 	return nil
 }
 
-func (r *RabbitMQTransportSocket) Recv(m *Message) error {
+func (r *rmqtportSocket) Recv(m *transport.Message) error {
 	if m == nil {
 		return errors.New("message passed in is nil")
 	}
 
-	mr := &Message{
+	mr := &transport.Message{
 		Header: make(map[string]string),
 		Body:   r.d.Body,
 	}
@@ -152,7 +154,7 @@ func (r *RabbitMQTransportSocket) Recv(m *Message) error {
 	return nil
 }
 
-func (r *RabbitMQTransportSocket) Send(m *Message) error {
+func (r *rmqtportSocket) Send(m *transport.Message) error {
 	msg := amqp.Publishing{
 		CorrelationId: r.d.CorrelationId,
 		Timestamp:     time.Now().UTC(),
@@ -167,27 +169,27 @@ func (r *RabbitMQTransportSocket) Send(m *Message) error {
 	return r.conn.Publish("", r.d.ReplyTo, msg)
 }
 
-func (r *RabbitMQTransportSocket) Close() error {
+func (r *rmqtportSocket) Close() error {
 	return nil
 }
 
-func (r *RabbitMQTransportListener) Addr() string {
+func (r *rmqtportListener) Addr() string {
 	return r.addr
 }
 
-func (r *RabbitMQTransportListener) Close() error {
+func (r *rmqtportListener) Close() error {
 	r.conn.Close()
 	return nil
 }
 
-func (r *RabbitMQTransportListener) Accept(fn func(Socket)) error {
+func (r *rmqtportListener) Accept(fn func(transport.Socket)) error {
 	deliveries, err := r.conn.Consume(r.addr)
 	if err != nil {
 		return err
 	}
 
 	handler := func(d amqp.Delivery) {
-		fn(&RabbitMQTransportSocket{
+		fn(&rmqtportSocket{
 			d:    &d,
 			conn: r.conn,
 		})
@@ -200,13 +202,13 @@ func (r *RabbitMQTransportListener) Accept(fn func(Socket)) error {
 	return nil
 }
 
-func (r *RabbitMQTransport) Dial(addr string) (Client, error) {
+func (r *rmqtport) Dial(addr string) (transport.Client, error) {
 	id, err := uuid.NewV4()
 	if err != nil {
 		return nil, err
 	}
 
-	return &RabbitMQTransportClient{
+	return &rmqtportClient{
 		rt:       r,
 		addr:     addr,
 		inflight: make(map[string]chan amqp.Delivery),
@@ -214,7 +216,7 @@ func (r *RabbitMQTransport) Dial(addr string) (Client, error) {
 	}, nil
 }
 
-func (r *RabbitMQTransport) Listen(addr string) (Listener, error) {
+func (r *rmqtport) Listen(addr string) (transport.Listener, error) {
 	id, err := uuid.NewV4()
 	if err != nil {
 		return nil, err
@@ -223,14 +225,14 @@ func (r *RabbitMQTransport) Listen(addr string) (Listener, error) {
 	conn := newRabbitMQConn("", r.addrs)
 	<-conn.Init()
 
-	return &RabbitMQTransportListener{
+	return &rmqtportListener{
 		addr: id.String(),
 		conn: conn,
 	}, nil
 }
 
-func NewRabbitMQTransport(addrs []string) *RabbitMQTransport {
-	return &RabbitMQTransport{
+func NewTransport(addrs []string, opt ...transport.Option) transport.Transport {
+	return &rmqtport{
 		conn:  newRabbitMQConn("", addrs),
 		addrs: addrs,
 	}

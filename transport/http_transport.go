@@ -13,21 +13,21 @@ type headerRoundTripper struct {
 	r http.RoundTripper
 }
 
-type HttpTransport struct {
+type httpTransport struct {
 	client *http.Client
 }
 
-type HttpTransportClient struct {
-	ht   *HttpTransport
+type httpTransportClient struct {
+	ht   *httpTransport
 	addr string
 }
 
-type HttpTransportSocket struct {
+type httpTransportSocket struct {
 	r *http.Request
 	w http.ResponseWriter
 }
 
-type HttpTransportListener struct {
+type httpTransportListener struct {
 	listener net.Listener
 }
 
@@ -36,7 +36,7 @@ func (t *headerRoundTripper) RoundTrip(r *http.Request) (*http.Response, error) 
 	return t.r.RoundTrip(r)
 }
 
-func (h *HttpTransportClient) Send(m *Message) (*Message, error) {
+func (h *httpTransportClient) Send(m *Message) (*Message, error) {
 	header := make(http.Header)
 
 	for k, v := range m.Header {
@@ -88,11 +88,11 @@ func (h *HttpTransportClient) Send(m *Message) (*Message, error) {
 	return mr, nil
 }
 
-func (h *HttpTransportClient) Close() error {
+func (h *httpTransportClient) Close() error {
 	return nil
 }
 
-func (h *HttpTransportSocket) Recv(m *Message) error {
+func (h *httpTransportSocket) Recv(m *Message) error {
 	if m == nil {
 		return errors.New("message passed in is nil")
 	}
@@ -119,7 +119,7 @@ func (h *HttpTransportSocket) Recv(m *Message) error {
 	return nil
 }
 
-func (h *HttpTransportSocket) Send(m *Message) error {
+func (h *httpTransportSocket) Send(m *Message) error {
 	for k, v := range m.Header {
 		h.w.Header().Set(k, v)
 	}
@@ -128,22 +128,22 @@ func (h *HttpTransportSocket) Send(m *Message) error {
 	return err
 }
 
-func (h *HttpTransportSocket) Close() error {
+func (h *httpTransportSocket) Close() error {
 	return nil
 }
 
-func (h *HttpTransportListener) Addr() string {
+func (h *httpTransportListener) Addr() string {
 	return h.listener.Addr().String()
 }
 
-func (h *HttpTransportListener) Close() error {
+func (h *httpTransportListener) Close() error {
 	return h.listener.Close()
 }
 
-func (h *HttpTransportListener) Accept(fn func(Socket)) error {
+func (h *httpTransportListener) Accept(fn func(Socket)) error {
 	srv := &http.Server{
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			fn(&HttpTransportSocket{
+			fn(&httpTransportSocket{
 				r: r,
 				w: w,
 			})
@@ -153,27 +153,27 @@ func (h *HttpTransportListener) Accept(fn func(Socket)) error {
 	return srv.Serve(h.listener)
 }
 
-func (h *HttpTransport) Dial(addr string) (Client, error) {
-	return &HttpTransportClient{
+func (h *httpTransport) Dial(addr string) (Client, error) {
+	return &httpTransportClient{
 		ht:   h,
 		addr: addr,
 	}, nil
 }
 
-func (h *HttpTransport) Listen(addr string) (Listener, error) {
+func (h *httpTransport) Listen(addr string) (Listener, error) {
 	l, err := net.Listen("tcp", addr)
 	if err != nil {
 		return nil, err
 	}
 
-	return &HttpTransportListener{
+	return &httpTransportListener{
 		listener: l,
 	}, nil
 }
 
-func NewHttpTransport(addrs []string) *HttpTransport {
+func newHttpTransport(addrs []string, opt ...Option) *httpTransport {
 	client := &http.Client{}
 	client.Transport = &headerRoundTripper{http.DefaultTransport}
 
-	return &HttpTransport{client: client}
+	return &httpTransport{client: client}
 }

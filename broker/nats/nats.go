@@ -1,4 +1,4 @@
-package broker
+package nats
 
 import (
 	"encoding/json"
@@ -7,33 +7,34 @@ import (
 
 	"code.google.com/p/go-uuid/uuid"
 	"github.com/apcera/nats"
+	"github.com/myodc/go-micro/broker"
 )
 
-type NatsBroker struct {
+type nbroker struct {
 	addrs []string
 	conn  *nats.Conn
 }
 
-type NatsSubscriber struct {
+type subscriber struct {
 	s *nats.Subscription
 }
 
-func (n *NatsSubscriber) Topic() string {
+func (n *subscriber) Topic() string {
 	return n.s.Subject
 }
 
-func (n *NatsSubscriber) Unsubscribe() error {
+func (n *subscriber) Unsubscribe() error {
 	return n.s.Unsubscribe()
 }
 
-func (n *NatsBroker) Address() string {
+func (n *nbroker) Address() string {
 	if len(n.addrs) > 0 {
 		return n.addrs[0]
 	}
 	return ""
 }
 
-func (n *NatsBroker) Connect() error {
+func (n *nbroker) Connect() error {
 	if n.conn != nil {
 		return nil
 	}
@@ -48,17 +49,17 @@ func (n *NatsBroker) Connect() error {
 	return nil
 }
 
-func (n *NatsBroker) Disconnect() error {
+func (n *nbroker) Disconnect() error {
 	n.conn.Close()
 	return nil
 }
 
-func (n *NatsBroker) Init() error {
+func (n *nbroker) Init() error {
 	return nil
 }
 
-func (n *NatsBroker) Publish(topic string, data []byte) error {
-	b, err := json.Marshal(&Message{
+func (n *nbroker) Publish(topic string, data []byte) error {
+	b, err := json.Marshal(&broker.Message{
 		Id:        uuid.NewUUID().String(),
 		Timestamp: time.Now().Unix(),
 		Topic:     topic,
@@ -70,9 +71,9 @@ func (n *NatsBroker) Publish(topic string, data []byte) error {
 	return n.conn.Publish(topic, b)
 }
 
-func (n *NatsBroker) Subscribe(topic string, function func(*Message)) (Subscriber, error) {
-	subscriber, err := n.conn.Subscribe(topic, func(msg *nats.Msg) {
-		var data *Message
+func (n *nbroker) Subscribe(topic string, function func(*broker.Message)) (broker.Subscriber, error) {
+	sub, err := n.conn.Subscribe(topic, func(msg *nats.Msg) {
+		var data *broker.Message
 		if err := json.Unmarshal(msg.Data, &data); err != nil {
 			return
 		}
@@ -81,10 +82,10 @@ func (n *NatsBroker) Subscribe(topic string, function func(*Message)) (Subscribe
 	if err != nil {
 		return nil, err
 	}
-	return &NatsSubscriber{s: subscriber}, nil
+	return &subscriber{s: sub}, nil
 }
 
-func NewNatsBroker(addrs []string, opts ...Options) Broker {
+func NewBroker(addrs []string, opt ...broker.Option) broker.Broker {
 	var cAddrs []string
 	for _, addr := range addrs {
 		if len(addr) == 0 {
@@ -98,7 +99,7 @@ func NewNatsBroker(addrs []string, opts ...Options) Broker {
 	if len(cAddrs) == 0 {
 		cAddrs = []string{nats.DefaultURL}
 	}
-	return &NatsBroker{
+	return &nbroker{
 		addrs: cAddrs,
 	}
 }

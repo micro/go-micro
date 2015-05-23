@@ -1,4 +1,4 @@
-package transport
+package rabbitmq
 
 //
 // All credit to Mondo

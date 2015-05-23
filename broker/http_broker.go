@@ -21,39 +21,54 @@ import (
 	"github.com/myodc/go-micro/registry"
 )
 
-type HttpBroker struct {
+type httpBroker struct {
 	id          string
 	address     string
-	unsubscribe chan *HttpSubscriber
+	unsubscribe chan *httpSubscriber
 
 	sync.RWMutex
-	subscribers map[string][]*HttpSubscriber
+	subscribers map[string][]*httpSubscriber
 	running     bool
 	exit        chan chan error
 }
 
-type HttpSubscriber struct {
+type httpSubscriber struct {
 	id    string
 	topic string
-	ch    chan *HttpSubscriber
+	ch    chan *httpSubscriber
 	fn    func(*Message)
 	svc   registry.Service
 }
 
 var (
-	SubPath = "/_sub"
+	DefaultSubPath = "/_sub"
 )
 
-func (h *HttpSubscriber) Topic() string {
+func newHttpBroker(addrs []string, opt ...Option) Broker {
+	addr := ":0"
+	if len(addrs) > 0 {
+		addr = addrs[0]
+	}
+
+	return &httpBroker{
+		id:          Id,
+		address:     addr,
+		subscribers: make(map[string][]*httpSubscriber),
+		unsubscribe: make(chan *httpSubscriber),
+		exit:        make(chan chan error),
+	}
+}
+
+func (h *httpSubscriber) Topic() string {
 	return h.topic
 }
 
-func (h *HttpSubscriber) Unsubscribe() error {
+func (h *httpSubscriber) Unsubscribe() error {
 	h.ch <- h
 	return nil
 }
 
-func (h *HttpBroker) start() error {
+func (h *httpBroker) start() error {
 	h.Lock()
 	defer h.Unlock()
 
@@ -87,7 +102,7 @@ func (h *HttpBroker) start() error {
 				h.stop()
 			case subscriber := <-h.unsubscribe:
 				h.Lock()
-				var subscribers []*HttpSubscriber
+				var subscribers []*httpSubscriber
 				for _, sub := range h.subscribers[subscriber.topic] {
 					if sub.id == subscriber.id {
 						registry.Deregister(sub.svc)
@@ -104,13 +119,13 @@ func (h *HttpBroker) start() error {
 	return nil
 }
 
-func (h *HttpBroker) stop() error {
+func (h *httpBroker) stop() error {
 	ch := make(chan error)
 	h.exit <- ch
 	return <-ch
 }
 
-func (h *HttpBroker) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+func (h *httpBroker) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	if req.Method != "POST" {
 		err := errors.BadRequest("go.micro.broker", "Method not allowed")
 		http.Error(w, err.Error(), http.StatusMethodNotAllowed)
@@ -148,28 +163,28 @@ func (h *HttpBroker) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	h.RUnlock()
 }
 
-func (h *HttpBroker) Address() string {
+func (h *httpBroker) Address() string {
 	return h.address
 }
 
-func (h *HttpBroker) Connect() error {
+func (h *httpBroker) Connect() error {
 	return h.start()
 }
 
-func (h *HttpBroker) Disconnect() error {
+func (h *httpBroker) Disconnect() error {
 	return h.stop()
 }
 
-func (h *HttpBroker) Init() error {
+func (h *httpBroker) Init() error {
 	if len(h.id) == 0 {
 		h.id = "broker-" + uuid.NewUUID().String()
 	}
 
-	http.Handle(SubPath, h)
+	http.Handle(DefaultSubPath, h)
 	return nil
 }
 
-func (h *HttpBroker) Publish(topic string, data []byte) error {
+func (h *httpBroker) Publish(topic string, data []byte) error {
 	s, err := registry.GetService("topic:" + topic)
 	if err != nil {
 		return err
@@ -186,7 +201,7 @@ func (h *HttpBroker) Publish(topic string, data []byte) error {
 	}
 
 	for _, node := range s.Nodes() {
-		r, err := http.Post(fmt.Sprintf("http://%s:%d%s", node.Address(), node.Port(), SubPath), "application/json", bytes.NewBuffer(b))
+		r, err := http.Post(fmt.Sprintf("http://%s:%d%s", node.Address(), node.Port(), DefaultSubPath), "application/json", bytes.NewBuffer(b))
 		if err == nil {
 			r.Body.Close()
 		}
@@ -195,7 +210,7 @@ func (h *HttpBroker) Publish(topic string, data []byte) error {
 	return nil
 }
 
-func (h *HttpBroker) Subscribe(topic string, function func(*Message)) (Subscriber, error) {
+func (h *httpBroker) Subscribe(topic string, function func(*Message)) (Subscriber, error) {
 	// parse address for host, port
 	parts := strings.Split(h.Address(), ":")
 	host := strings.Join(parts[:len(parts)-1], ":")
@@ -205,7 +220,7 @@ func (h *HttpBroker) Subscribe(topic string, function func(*Message)) (Subscribe
 	node := registry.NewNode(h.id, host, port)
 	service := registry.NewService("topic:"+topic, node)
 
-	subscriber := &HttpSubscriber{
+	subscriber := &httpSubscriber{
 		id:    uuid.NewUUID().String(),
 		topic: topic,
 		ch:    h.unsubscribe,
@@ -223,19 +238,4 @@ func (h *HttpBroker) Subscribe(topic string, function func(*Message)) (Subscribe
 	h.Unlock()
 
 	return subscriber, nil
-}
-
-func NewHttpBroker(addrs []string, opts ...Options) Broker {
-	addr := ":0"
-	if len(addrs) > 0 {
-		addr = addrs[0]
-	}
-
-	return &HttpBroker{
-		id:          Id,
-		address:     addr,
-		subscribers: make(map[string][]*HttpSubscriber),
-		unsubscribe: make(chan *HttpSubscriber),
-		exit:        make(chan chan error),
-	}
 }

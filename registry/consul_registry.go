@@ -7,7 +7,7 @@ import (
 	consul "github.com/hashicorp/consul/api"
 )
 
-type ConsulRegistry struct {
+type consulRegistry struct {
 	Address string
 	Client  *consul.Client
 
@@ -15,7 +15,24 @@ type ConsulRegistry struct {
 	services map[string]Service
 }
 
-func (c *ConsulRegistry) Deregister(s Service) error {
+func newConsulRegistry(addrs []string, opts ...Option) Registry {
+	config := consul.DefaultConfig()
+	client, _ := consul.NewClient(config)
+	if len(addrs) > 0 {
+		config.Address = addrs[0]
+	}
+
+	cr := &consulRegistry{
+		Address:  config.Address,
+		Client:   client,
+		services: make(map[string]Service),
+	}
+
+	cr.Watch()
+	return cr
+}
+
+func (c *consulRegistry) Deregister(s Service) error {
 	if len(s.Nodes()) == 0 {
 		return errors.New("Require at least one node")
 	}
@@ -31,7 +48,7 @@ func (c *ConsulRegistry) Deregister(s Service) error {
 	return err
 }
 
-func (c *ConsulRegistry) Register(s Service) error {
+func (c *consulRegistry) Register(s Service) error {
 	if len(s.Nodes()) == 0 {
 		return errors.New("Require at least one node")
 	}
@@ -51,7 +68,7 @@ func (c *ConsulRegistry) Register(s Service) error {
 	return err
 }
 
-func (c *ConsulRegistry) GetService(name string) (Service, error) {
+func (c *consulRegistry) GetService(name string) (Service, error) {
 	c.mtx.RLock()
 	service, ok := c.services[name]
 	c.mtx.RUnlock()
@@ -65,7 +82,7 @@ func (c *ConsulRegistry) GetService(name string) (Service, error) {
 		return nil, err
 	}
 
-	cs := &ConsulService{}
+	cs := &consulService{}
 
 	for _, s := range rsp {
 		if s.ServiceName != name {
@@ -73,7 +90,7 @@ func (c *ConsulRegistry) GetService(name string) (Service, error) {
 		}
 
 		cs.ServiceName = s.ServiceName
-		cs.ServiceNodes = append(cs.ServiceNodes, &ConsulNode{
+		cs.ServiceNodes = append(cs.ServiceNodes, &consulNode{
 			Node:        s.Node,
 			NodeId:      s.ServiceID,
 			NodeAddress: s.Address,
@@ -84,7 +101,7 @@ func (c *ConsulRegistry) GetService(name string) (Service, error) {
 	return cs, nil
 }
 
-func (c *ConsulRegistry) ListServices() ([]Service, error) {
+func (c *consulRegistry) ListServices() ([]Service, error) {
 	c.mtx.RLock()
 	serviceMap := c.services
 	c.mtx.RUnlock()
@@ -104,29 +121,29 @@ func (c *ConsulRegistry) ListServices() ([]Service, error) {
 	}
 
 	for service, _ := range rsp {
-		services = append(services, &ConsulService{ServiceName: service})
+		services = append(services, &consulService{ServiceName: service})
 	}
 
 	return services, nil
 }
 
-func (c *ConsulRegistry) NewService(name string, nodes ...Node) Service {
-	var snodes []*ConsulNode
+func (c *consulRegistry) NewService(name string, nodes ...Node) Service {
+	var snodes []*consulNode
 
 	for _, node := range nodes {
-		if n, ok := node.(*ConsulNode); ok {
+		if n, ok := node.(*consulNode); ok {
 			snodes = append(snodes, n)
 		}
 	}
 
-	return &ConsulService{
+	return &consulService{
 		ServiceName:  name,
 		ServiceNodes: snodes,
 	}
 }
 
-func (c *ConsulRegistry) NewNode(id, address string, port int) Node {
-	return &ConsulNode{
+func (c *consulRegistry) NewNode(id, address string, port int) Node {
+	return &consulNode{
 		Node:        id,
 		NodeId:      id,
 		NodeAddress: address,
@@ -134,23 +151,6 @@ func (c *ConsulRegistry) NewNode(id, address string, port int) Node {
 	}
 }
 
-func (c *ConsulRegistry) Watch() {
-	NewConsulWatcher(c)
-}
-
-func NewConsulRegistry(addrs []string, opts ...Options) Registry {
-	config := consul.DefaultConfig()
-	client, _ := consul.NewClient(config)
-	if len(addrs) > 0 {
-		config.Address = addrs[0]
-	}
-
-	cr := &ConsulRegistry{
-		Address:  config.Address,
-		Client:   client,
-		services: make(map[string]Service),
-	}
-
-	cr.Watch()
-	return cr
+func (c *consulRegistry) Watch() {
+	newConsulWatcher(c)
 }

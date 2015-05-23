@@ -14,6 +14,25 @@ import (
 	"github.com/myodc/go-micro/server"
 	"github.com/myodc/go-micro/store"
 	"github.com/myodc/go-micro/transport"
+
+	// brokers
+	"github.com/myodc/go-micro/broker/http"
+	"github.com/myodc/go-micro/broker/nats"
+
+	// registries
+	"github.com/myodc/go-micro/registry/consul"
+	"github.com/myodc/go-micro/registry/kubernetes"
+
+	// stores
+	sconsul "github.com/myodc/go-micro/store/consul"
+	"github.com/myodc/go-micro/store/etcd"
+	"github.com/myodc/go-micro/store/memcached"
+	"github.com/myodc/go-micro/store/memory"
+
+	// transport
+	thttp "github.com/myodc/go-micro/transport/http"
+	tnats "github.com/myodc/go-micro/transport/nats"
+	"github.com/myodc/go-micro/transport/rabbitmq"
 )
 
 var (
@@ -78,43 +97,45 @@ func Setup(c *cli.Context) error {
 
 	switch c.String("broker") {
 	case "http":
-		broker.DefaultBroker = broker.NewHttpBroker(bAddrs)
+		broker.DefaultBroker = http.NewBroker(bAddrs)
 	case "nats":
-		broker.DefaultBroker = broker.NewNatsBroker(bAddrs)
+		broker.DefaultBroker = nats.NewBroker(bAddrs)
 	}
 
 	rAddrs := strings.Split(c.String("registry_address"), ",")
 
 	switch c.String("registry") {
 	case "kubernetes":
-		registry.DefaultRegistry = registry.NewKubernetesRegistry(rAddrs)
+		registry.DefaultRegistry = kubernetes.NewRegistry(rAddrs)
 	case "consul":
-		registry.DefaultRegistry = registry.NewConsulRegistry(rAddrs)
+		registry.DefaultRegistry = consul.NewRegistry(rAddrs)
 	}
 
 	sAddrs := strings.Split(c.String("store_address"), ",")
 
 	switch c.String("store") {
+	case "consul":
+		store.DefaultStore = sconsul.NewStore(sAddrs)
 	case "memcached":
-		store.DefaultStore = store.NewMemcacheStore(sAddrs)
+		store.DefaultStore = memcached.NewStore(sAddrs)
 	case "memory":
-		store.DefaultStore = store.NewMemoryStore(sAddrs)
+		store.DefaultStore = memory.NewStore(sAddrs)
 	case "etcd":
-		store.DefaultStore = store.NewEtcdStore(sAddrs)
+		store.DefaultStore = etcd.NewStore(sAddrs)
 	}
 
 	tAddrs := strings.Split(c.String("transport_address"), ",")
 
 	switch c.String("transport") {
 	case "http":
-		transport.DefaultTransport = transport.NewHttpTransport(tAddrs)
+		transport.DefaultTransport = thttp.NewTransport(tAddrs)
 	case "rabbitmq":
-		transport.DefaultTransport = transport.NewRabbitMQTransport(tAddrs)
+		transport.DefaultTransport = rabbitmq.NewTransport(tAddrs)
 	case "nats":
-		transport.DefaultTransport = transport.NewNatsTransport(tAddrs)
+		transport.DefaultTransport = tnats.NewTransport(tAddrs)
 	}
 
-	client.DefaultClient = client.New()
+	client.DefaultClient = client.NewClient()
 
 	return nil
 }
