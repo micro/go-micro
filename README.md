@@ -129,7 +129,6 @@ func main() {
 ```
 $ go run go-micro/template/main.go
 
-
 I0523 12:21:09.506998   77096 server.go:113] Starting server go.micro.service.template id go.micro.service.template-cfc481fc-013d-11e5-bcdc-68a86d0d36b6
 I0523 12:21:09.507281   77096 rpc_server.go:112] Listening on [::]:51868
 I0523 12:21:09.507329   77096 server.go:95] Registering node: go.micro.service.template-cfc481fc-013d-11e5-bcdc-68a86d0d36b6
