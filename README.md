@@ -1,6 +1,6 @@
 # Go Micro
 
-Go Micro is a microservices client/server library utilising HTTP/RPC and protobuf. It is part of the [Micro](https://github.com/myodc/micro) toolchain.
+Go Micro is a microservices library which provides the fundamental building blocks for writing fault tolerant distributed systems at scale. It is part of the [Micro](https://github.com/myodc/micro) toolchain.
 
 An example server can be found in go-micro/template.
 
