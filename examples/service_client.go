@@ -12,7 +12,6 @@ import (
 
 func main() {
 	cmd.Init()
-	client.DefaultClient = client.NewRpcClient()
 	// Create new request to service go.micro.service.go-template, method Example.Call
 	req := client.NewRequest("go.micro.service.template", "Example.Call", &example.Request{
 		Name: "John",

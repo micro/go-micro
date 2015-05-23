@@ -54,10 +54,14 @@ func Init() error {
 	}
 
 	if DefaultServer == nil {
-		DefaultServer = NewRpcServer(Address)
+		DefaultServer = newRpcServer(Address)
 	}
 
 	return DefaultServer.Init()
+}
+
+func New(address string, opt ...Option) Server {
+	return newRpcServer(address, opt...)
 }
 
 func NewReceiver(handler interface{}) Receiver {

@@ -20,7 +20,7 @@ type options struct {
 type Option func(*options)
 
 var (
-	DefaultClient Client = NewRpcClient()
+	DefaultClient Client = newRpcClient()
 )
 
 func Transport(t transport.Transport) Option {
@@ -35,6 +35,10 @@ func Call(ctx context.Context, request Request, response interface{}) error {
 
 func CallRemote(ctx context.Context, address string, request Request, response interface{}) error {
 	return DefaultClient.CallRemote(ctx, address, request, response)
+}
+
+func New(opt ...Option) Client {
+	return newRpcClient(opt...)
 }
 
 func NewRequest(service, method string, request interface{}) Request {

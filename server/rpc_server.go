@@ -15,7 +15,7 @@ import (
 	"golang.org/x/net/context"
 )
 
-type RpcServer struct {
+type rpcServer struct {
 	mtx     sync.RWMutex
 	address string
 	opts    options
@@ -23,12 +23,26 @@ type RpcServer struct {
 	exit    chan chan error
 }
 
-var (
-	HealthPath = "/_status/health"
-	RpcPath    = "/_rpc"
-)
+func newRpcServer(address string, opt ...Option) Server {
+	var opts options
 
-func (s *RpcServer) accept(sock transport.Socket) {
+	for _, o := range opt {
+		o(&opts)
+	}
+
+	if opts.transport == nil {
+		opts.transport = transport.DefaultTransport
+	}
+
+	return &rpcServer{
+		opts:    opts,
+		address: address,
+		rpc:     rpc.NewServer(),
+		exit:    make(chan chan error),
+	}
+}
+
+func (s *rpcServer) accept(sock transport.Socket) {
 	var msg transport.Message
 	if err := sock.Recv(&msg); err != nil {
 		return
@@ -72,26 +86,26 @@ func (s *RpcServer) accept(sock transport.Socket) {
 	})
 }
 
-func (s *RpcServer) Address() string {
+func (s *rpcServer) Address() string {
 	s.mtx.RLock()
 	address := s.address
 	s.mtx.RUnlock()
 	return address
 }
 
-func (s *RpcServer) Init() error {
+func (s *rpcServer) Init() error {
 	return nil
 }
 
-func (s *RpcServer) NewReceiver(handler interface{}) Receiver {
+func (s *rpcServer) NewReceiver(handler interface{}) Receiver {
 	return newRpcReceiver("", handler)
 }
 
-func (s *RpcServer) NewNamedReceiver(name string, handler interface{}) Receiver {
+func (s *rpcServer) NewNamedReceiver(name string, handler interface{}) Receiver {
 	return newRpcReceiver(name, handler)
 }
 
-func (s *RpcServer) Register(r Receiver) error {
+func (s *rpcServer) Register(r Receiver) error {
 	if len(r.Name()) > 0 {
 		s.rpc.RegisterName(r.Name(), r.Handler())
 		return nil
@@ -101,7 +115,7 @@ func (s *RpcServer) Register(r Receiver) error {
 	return nil
 }
 
-func (s *RpcServer) Start() error {
+func (s *rpcServer) Start() error {
 	registerHealthChecker(s)
 
 	ts, err := s.opts.transport.Listen(s.address)
@@ -125,27 +139,8 @@ func (s *RpcServer) Start() error {
 	return nil
 }
 
-func (s *RpcServer) Stop() error {
+func (s *rpcServer) Stop() error {
 	ch := make(chan error)
 	s.exit <- ch
 	return <-ch
-}
-
-func NewRpcServer(address string, opt ...Option) *RpcServer {
-	var opts options
-
-	for _, o := range opt {
-		o(&opts)
-	}
-
-	if opts.transport == nil {
-		opts.transport = transport.DefaultTransport
-	}
-
-	return &RpcServer{
-		opts:    opts,
-		address: address,
-		rpc:     rpc.NewServer(),
-		exit:    make(chan chan error),
-	}
 }

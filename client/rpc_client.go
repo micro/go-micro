@@ -24,7 +24,7 @@ type headerRoundTripper struct {
 	r http.RoundTripper
 }
 
-type RpcClient struct {
+type rpcClient struct {
 	opts options
 }
 
@@ -32,12 +32,28 @@ func init() {
 	rand.Seed(time.Now().UnixNano())
 }
 
+func newRpcClient(opt ...Option) Client {
+	var opts options
+
+	for _, o := range opt {
+		o(&opts)
+	}
+
+	if opts.transport == nil {
+		opts.transport = transport.DefaultTransport
+	}
+
+	return &rpcClient{
+		opts: opts,
+	}
+}
+
 func (t *headerRoundTripper) RoundTrip(r *http.Request) (*http.Response, error) {
 	r.Header.Set("X-Client-Version", "1.0")
 	return t.r.RoundTrip(r)
 }
 
-func (r *RpcClient) call(ctx context.Context, address string, request Request, response interface{}) error {
+func (r *rpcClient) call(ctx context.Context, address string, request Request, response interface{}) error {
 	switch request.ContentType() {
 	case "application/grpc":
 		cc, err := grpc.Dial(address)
@@ -132,12 +148,12 @@ func (r *RpcClient) call(ctx context.Context, address string, request Request, r
 	return nil
 }
 
-func (r *RpcClient) CallRemote(ctx context.Context, address string, request Request, response interface{}) error {
+func (r *rpcClient) CallRemote(ctx context.Context, address string, request Request, response interface{}) error {
 	return r.call(ctx, address, request, response)
 }
 
 // TODO: Call(..., opts *Options) error {
-func (r *RpcClient) Call(ctx context.Context, request Request, response interface{}) error {
+func (r *rpcClient) Call(ctx context.Context, request Request, response interface{}) error {
 	service, err := registry.GetService(request.Service())
 	if err != nil {
 		return errors.InternalServerError("go.micro.client", err.Error())
@@ -158,30 +174,14 @@ func (r *RpcClient) Call(ctx context.Context, request Request, response interfac
 	return r.call(ctx, address, request, response)
 }
 
-func (r *RpcClient) NewRequest(service, method string, request interface{}) Request {
+func (r *rpcClient) NewRequest(service, method string, request interface{}) Request {
 	return r.NewProtoRequest(service, method, request)
 }
 
-func (r *RpcClient) NewProtoRequest(service, method string, request interface{}) Request {
+func (r *rpcClient) NewProtoRequest(service, method string, request interface{}) Request {
 	return newRpcRequest(service, method, request, "application/octet-stream")
 }
 
-func (r *RpcClient) NewJsonRequest(service, method string, request interface{}) Request {
+func (r *rpcClient) NewJsonRequest(service, method string, request interface{}) Request {
 	return newRpcRequest(service, method, request, "application/json")
-}
-
-func NewRpcClient(opt ...Option) *RpcClient {
-	var opts options
-
-	for _, o := range opt {
-		o(&opts)
-	}
-
-	if opts.transport == nil {
-		opts.transport = transport.DefaultTransport
-	}
-
-	return &RpcClient{
-		opts: opts,
-	}
 }

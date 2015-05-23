@@ -114,7 +114,7 @@ func Setup(c *cli.Context) error {
 		transport.DefaultTransport = transport.NewNatsTransport(tAddrs)
 	}
 
-	client.DefaultClient = client.NewRpcClient()
+	client.DefaultClient = client.New()
 
 	return nil
 }
