@@ -85,15 +85,20 @@ func (n *NatsBroker) Subscribe(topic string, function func(*Message)) (Subscribe
 }
 
 func NewNatsBroker(addrs []string, opts ...Options) Broker {
-	if len(addrs) == 0 {
-		addrs = []string{nats.DefaultURL}
-	}
-	for i, addr := range addrs {
-		if !strings.HasPrefix(addr, "nats://") {
-			addrs[i] = "nats://" + addr
+	var cAddrs []string
+	for _, addr := range addrs {
+		if len(addr) == 0 {
+			continue
 		}
+		if !strings.HasPrefix(addr, "nats://") {
+			addr = "nats://" + addr
+		}
+		cAddrs = append(cAddrs, addr)
+	}
+	if len(cAddrs) == 0 {
+		cAddrs = []string{nats.DefaultURL}
 	}
 	return &NatsBroker{
-		addrs: addrs,
+		addrs: cAddrs,
 	}
 }
