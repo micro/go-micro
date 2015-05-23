@@ -2,6 +2,7 @@ package broker
 
 import (
 	"code.google.com/p/go-uuid/uuid"
+	"golang.org/x/net/context"
 )
 
 type Broker interface {
@@ -9,15 +10,15 @@ type Broker interface {
 	Connect() error
 	Disconnect() error
 	Init() error
-	Publish(string, []byte) error
-	Subscribe(string, func(*Message)) (Subscriber, error)
+	Publish(context.Context, string, []byte) error
+	Subscribe(string, func(context.Context, *Message)) (Subscriber, error)
 }
 
 type Message struct {
 	Id        string
 	Timestamp int64
 	Topic     string
-	Data      []byte
+	Body      []byte
 }
 
 type Subscriber interface {
@@ -59,10 +60,10 @@ func Disconnect() error {
 	return DefaultBroker.Disconnect()
 }
 
-func Publish(topic string, data []byte) error {
-	return DefaultBroker.Publish(topic, data)
+func Publish(ctx context.Context, topic string, body []byte) error {
+	return DefaultBroker.Publish(ctx, topic, body)
 }
 
-func Subscribe(topic string, function func(*Message)) (Subscriber, error) {
+func Subscribe(topic string, function func(context.Context, *Message)) (Subscriber, error) {
 	return DefaultBroker.Subscribe(topic, function)
 }

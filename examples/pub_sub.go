@@ -7,6 +7,9 @@ import (
 	log "github.com/golang/glog"
 	"github.com/myodc/go-micro/broker"
 	"github.com/myodc/go-micro/cmd"
+	c "github.com/myodc/go-micro/context"
+
+	"golang.org/x/net/context"
 )
 
 var (
@@ -17,8 +20,12 @@ func pub() {
 	tick := time.NewTicker(time.Second)
 	i := 0
 	for _ = range tick.C {
+		ctx := c.WithMetaData(context.Background(), map[string]string{
+			"id": fmt.Sprintf("%d", i),
+		})
+
 		msg := fmt.Sprintf("%d: %s", i, time.Now().String())
-		if err := broker.Publish(topic, []byte(msg)); err != nil {
+		if err := broker.Publish(ctx, topic, []byte(msg)); err != nil {
 			log.Errorf("[pub] failed: %v", err)
 		} else {
 			fmt.Println("[pub] pubbed message:", msg)
@@ -28,8 +35,9 @@ func pub() {
 }
 
 func sub() {
-	_, err := broker.Subscribe(topic, func(msg *broker.Message) {
-		fmt.Println("[sub] received message:", string(msg.Data))
+	_, err := broker.Subscribe(topic, func(ctx context.Context, msg *broker.Message) {
+		md, _ := c.GetMetaData(ctx)
+		fmt.Println("[sub] received message:", string(msg.Body), "context", md)
 	})
 	if err != nil {
 		fmt.Println(err)

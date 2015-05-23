@@ -17,8 +17,11 @@ import (
 
 	"code.google.com/p/go-uuid/uuid"
 	log "github.com/golang/glog"
+	c "github.com/myodc/go-micro/context"
 	"github.com/myodc/go-micro/errors"
 	"github.com/myodc/go-micro/registry"
+
+	"golang.org/x/net/context"
 )
 
 type httpBroker struct {
@@ -36,8 +39,14 @@ type httpSubscriber struct {
 	id    string
 	topic string
 	ch    chan *httpSubscriber
-	fn    func(*Message)
+	fn    func(context.Context, *Message)
 	svc   registry.Service
+}
+
+// used in brokers where there is no support for headers
+type envelope struct {
+	Header  map[string]string
+	Message *Message
 }
 
 var (
@@ -141,24 +150,26 @@ func (h *httpBroker) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	var msg *Message
-	if err = json.Unmarshal(b, &msg); err != nil {
+	var e *envelope
+	if err = json.Unmarshal(b, &e); err != nil {
 		errr := errors.InternalServerError("go.micro.broker", fmt.Sprintf("Error parsing request body: %v", err))
 		w.WriteHeader(500)
 		w.Write([]byte(errr.Error()))
 		return
 	}
 
-	if len(msg.Topic) == 0 {
+	if len(e.Message.Topic) == 0 {
 		errr := errors.InternalServerError("go.micro.broker", "Topic not found")
 		w.WriteHeader(500)
 		w.Write([]byte(errr.Error()))
 		return
 	}
 
+	ctx := c.WithMetaData(context.Background(), e.Header)
+
 	h.RLock()
-	for _, subscriber := range h.subscribers[msg.Topic] {
-		subscriber.fn(msg)
+	for _, subscriber := range h.subscribers[e.Message.Topic] {
+		subscriber.fn(ctx, e.Message)
 	}
 	h.RUnlock()
 }
@@ -184,18 +195,26 @@ func (h *httpBroker) Init() error {
 	return nil
 }
 
-func (h *httpBroker) Publish(topic string, data []byte) error {
+func (h *httpBroker) Publish(ctx context.Context, topic string, body []byte) error {
 	s, err := registry.GetService("topic:" + topic)
 	if err != nil {
 		return err
 	}
 
-	b, err := json.Marshal(&Message{
+	message := &Message{
 		Id:        uuid.NewUUID().String(),
 		Timestamp: time.Now().Unix(),
 		Topic:     topic,
-		Data:      data,
+		Body:      body,
+	}
+
+	header, _ := c.GetMetaData(ctx)
+
+	b, err := json.Marshal(&envelope{
+		header,
+		message,
 	})
+
 	if err != nil {
 		return err
 	}
@@ -210,7 +229,7 @@ func (h *httpBroker) Publish(topic string, data []byte) error {
 	return nil
 }
 
-func (h *httpBroker) Subscribe(topic string, function func(*Message)) (Subscriber, error) {
+func (h *httpBroker) Subscribe(topic string, function func(context.Context, *Message)) (Subscriber, error) {
 	// parse address for host, port
 	parts := strings.Split(h.Address(), ":")
 	host := strings.Join(parts[:len(parts)-1], ":")

@@ -8,6 +8,9 @@ import (
 	"code.google.com/p/go-uuid/uuid"
 	"github.com/apcera/nats"
 	"github.com/myodc/go-micro/broker"
+	c "github.com/myodc/go-micro/context"
+
+	"golang.org/x/net/context"
 )
 
 type nbroker struct {
@@ -17,6 +20,12 @@ type nbroker struct {
 
 type subscriber struct {
 	s *nats.Subscription
+}
+
+// used in brokers where there is no support for headers
+type envelope struct {
+	Header  map[string]string
+	Message *broker.Message
 }
 
 func (n *subscriber) Topic() string {
@@ -58,12 +67,19 @@ func (n *nbroker) Init() error {
 	return nil
 }
 
-func (n *nbroker) Publish(topic string, data []byte) error {
-	b, err := json.Marshal(&broker.Message{
+func (n *nbroker) Publish(ctx context.Context, topic string, body []byte) error {
+	header, _ := c.GetMetaData(ctx)
+
+	message := &broker.Message{
 		Id:        uuid.NewUUID().String(),
 		Timestamp: time.Now().Unix(),
 		Topic:     topic,
-		Data:      data,
+		Body:      body,
+	}
+
+	b, err := json.Marshal(&envelope{
+		header,
+		message,
 	})
 	if err != nil {
 		return err
@@ -71,13 +87,14 @@ func (n *nbroker) Publish(topic string, data []byte) error {
 	return n.conn.Publish(topic, b)
 }
 
-func (n *nbroker) Subscribe(topic string, function func(*broker.Message)) (broker.Subscriber, error) {
+func (n *nbroker) Subscribe(topic string, function func(context.Context, *broker.Message)) (broker.Subscriber, error) {
 	sub, err := n.conn.Subscribe(topic, func(msg *nats.Msg) {
-		var data *broker.Message
-		if err := json.Unmarshal(msg.Data, &data); err != nil {
+		var e *envelope
+		if err := json.Unmarshal(msg.Data, &e); err != nil {
 			return
 		}
-		function(data)
+		ctx := c.WithMetaData(context.Background(), e.Header)
+		function(ctx, e.Message)
 	})
 	if err != nil {
 		return nil, err
