@@ -10,7 +10,7 @@ type consulStore struct {
 	Client *consul.Client
 }
 
-func (c *consulStore) Get(key string) (Item, error) {
+func (c *consulStore) Get(key string) (*Item, error) {
 	kv, _, err := c.Client.KV().Get(key, nil)
 	if err != nil {
 		return nil, err
@@ -19,9 +19,9 @@ func (c *consulStore) Get(key string) (Item, error) {
 		return nil, errors.New("key not found")
 	}
 
-	return &consulItem{
-		key:   kv.Key,
-		value: kv.Value,
+	return &Item{
+		Key:   kv.Key,
+		Value: kv.Value,
 	}, nil
 }
 
@@ -30,20 +30,13 @@ func (c *consulStore) Del(key string) error {
 	return err
 }
 
-func (c *consulStore) Put(item Item) error {
+func (c *consulStore) Put(item *Item) error {
 	_, err := c.Client.KV().Put(&consul.KVPair{
-		Key:   item.Key(),
-		Value: item.Value(),
+		Key:   item.Key,
+		Value: item.Value,
 	}, nil)
 
 	return err
-}
-
-func (c *consulStore) NewItem(key string, value []byte) Item {
-	return &consulItem{
-		key:   key,
-		value: value,
-	}
 }
 
 func newConsulStore(addrs []string, opt ...Option) Store {
