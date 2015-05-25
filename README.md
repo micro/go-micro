@@ -11,11 +11,12 @@ An example server can be found in go-micro/template.
 - Client/Server
 - Pub/Sub
 
-### Planned
-- Metrics
+## Future Features
+- Config
+- Routing
+- Monitoring
 - Tracing
 - Logging
-- Stats
 
 ## Prerequisites
 
