@@ -40,7 +40,7 @@ type httpSubscriber struct {
 	topic string
 	ch    chan *httpSubscriber
 	fn    func(context.Context, *Message)
-	svc   registry.Service
+	svc   *registry.Service
 }
 
 // used in brokers where there is no support for headers
@@ -219,8 +219,8 @@ func (h *httpBroker) Publish(ctx context.Context, topic string, body []byte) err
 		return err
 	}
 
-	for _, node := range s.Nodes() {
-		r, err := http.Post(fmt.Sprintf("http://%s:%d%s", node.Address(), node.Port(), DefaultSubPath), "application/json", bytes.NewBuffer(b))
+	for _, node := range s.Nodes {
+		r, err := http.Post(fmt.Sprintf("http://%s:%d%s", node.Address, node.Port, DefaultSubPath), "application/json", bytes.NewBuffer(b))
 		if err == nil {
 			r.Body.Close()
 		}
@@ -236,8 +236,16 @@ func (h *httpBroker) Subscribe(topic string, function func(context.Context, *Mes
 	port, _ := strconv.Atoi(parts[len(parts)-1])
 
 	// register service
-	node := registry.NewNode(h.id, host, port)
-	service := registry.NewService("topic:"+topic, node)
+	node := &registry.Node{
+		Id:      h.id,
+		Address: host,
+		Port:    port,
+	}
+
+	service := &registry.Service{
+		Name:  "topic:" + topic,
+		Nodes: []*registry.Node{node},
+	}
 
 	subscriber := &httpSubscriber{
 		id:    uuid.NewUUID().String(),
@@ -247,7 +255,7 @@ func (h *httpBroker) Subscribe(topic string, function func(context.Context, *Mes
 		svc:   service,
 	}
 
-	log.Infof("Registering subscriber %s", node.Id())
+	log.Infof("Registering subscriber %s", node.Id)
 	if err := registry.Register(service); err != nil {
 		return nil, err
 	}

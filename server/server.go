@@ -93,10 +93,18 @@ func Run() error {
 	}
 
 	// register service
-	node := registry.NewNode(Id, host, port)
-	service := registry.NewService(Name, node)
+	node := &registry.Node{
+		Id:      Id,
+		Address: host,
+		Port:    port,
+	}
 
-	log.Infof("Registering node: %s", node.Id())
+	service := &registry.Service{
+		Name:  Name,
+		Nodes: []*registry.Node{node},
+	}
+
+	log.Infof("Registering node: %s", node.Id)
 
 	err := registry.Register(service)
 	if err != nil {
@@ -107,7 +115,7 @@ func Run() error {
 	signal.Notify(ch, syscall.SIGTERM, syscall.SIGINT, syscall.SIGKILL)
 	log.Infof("Received signal %s", <-ch)
 
-	log.Infof("Deregistering %s", node.Id())
+	log.Infof("Deregistering %s", node.Id)
 	registry.Deregister(service)
 
 	return Stop()

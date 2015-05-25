@@ -1,6 +1,7 @@
 package registry
 
 import (
+	"encoding/json"
 	"errors"
 	"sync"
 
@@ -12,7 +13,32 @@ type consulRegistry struct {
 	Client  *consul.Client
 
 	mtx      sync.RWMutex
-	services map[string]Service
+	services map[string]*Service
+}
+
+func encodeMetaData(md map[string]string) []string {
+	var tags []string
+	for k, v := range md {
+		if b, err := json.Marshal(map[string]string{
+			k: v,
+		}); err == nil {
+			tags = append(tags, string(b))
+		}
+	}
+	return tags
+}
+
+func decodeMetaData(tags []string) map[string]string {
+	md := make(map[string]string)
+	for _, tag := range tags {
+		var kv map[string]string
+		if err := json.Unmarshal([]byte(tag), &kv); err == nil {
+			for k, v := range kv {
+				md[k] = v
+			}
+		}
+	}
+	return md
 }
 
 func newConsulRegistry(addrs []string, opts ...Option) Registry {
@@ -25,50 +51,53 @@ func newConsulRegistry(addrs []string, opts ...Option) Registry {
 	cr := &consulRegistry{
 		Address:  config.Address,
 		Client:   client,
-		services: make(map[string]Service),
+		services: make(map[string]*Service),
 	}
 
 	cr.Watch()
 	return cr
 }
 
-func (c *consulRegistry) Deregister(s Service) error {
-	if len(s.Nodes()) == 0 {
+func (c *consulRegistry) Deregister(s *Service) error {
+	if len(s.Nodes) == 0 {
 		return errors.New("Require at least one node")
 	}
 
-	node := s.Nodes()[0]
+	node := s.Nodes[0]
 
 	_, err := c.Client.Catalog().Deregister(&consul.CatalogDeregistration{
-		Node:      node.Id(),
-		Address:   node.Address(),
-		ServiceID: node.Id(),
+		Node:      node.Id,
+		Address:   node.Address,
+		ServiceID: node.Id,
 	}, nil)
 
 	return err
 }
 
-func (c *consulRegistry) Register(s Service) error {
-	if len(s.Nodes()) == 0 {
+func (c *consulRegistry) Register(s *Service) error {
+	if len(s.Nodes) == 0 {
 		return errors.New("Require at least one node")
 	}
 
-	node := s.Nodes()[0]
+	node := s.Nodes[0]
+
+	tags := encodeMetaData(node.MetaData)
 
 	_, err := c.Client.Catalog().Register(&consul.CatalogRegistration{
-		Node:    node.Id(),
-		Address: node.Address(),
+		Node:    node.Id,
+		Address: node.Address,
 		Service: &consul.AgentService{
-			ID:      node.Id(),
-			Service: s.Name(),
-			Port:    node.Port(),
+			ID:      node.Id,
+			Service: s.Name,
+			Port:    node.Port,
+			Tags:    tags,
 		},
 	}, nil)
 
 	return err
 }
 
-func (c *consulRegistry) GetService(name string) (Service, error) {
+func (c *consulRegistry) GetService(name string) (*Service, error) {
 	c.mtx.RLock()
 	service, ok := c.services[name]
 	c.mtx.RUnlock()
@@ -82,31 +111,31 @@ func (c *consulRegistry) GetService(name string) (Service, error) {
 		return nil, err
 	}
 
-	cs := &consulService{}
+	cs := &Service{}
 
 	for _, s := range rsp {
 		if s.ServiceName != name {
 			continue
 		}
 
-		cs.ServiceName = s.ServiceName
-		cs.ServiceNodes = append(cs.ServiceNodes, &consulNode{
-			Node:        s.Node,
-			NodeId:      s.ServiceID,
-			NodeAddress: s.Address,
-			NodePort:    s.ServicePort,
+		cs.Name = s.ServiceName
+		cs.Nodes = append(cs.Nodes, &Node{
+			Id:       s.ServiceID,
+			Address:  s.Address,
+			Port:     s.ServicePort,
+			MetaData: decodeMetaData(s.ServiceTags),
 		})
 	}
 
 	return cs, nil
 }
 
-func (c *consulRegistry) ListServices() ([]Service, error) {
+func (c *consulRegistry) ListServices() ([]*Service, error) {
 	c.mtx.RLock()
 	serviceMap := c.services
 	c.mtx.RUnlock()
 
-	var services []Service
+	var services []*Service
 
 	if len(serviceMap) > 0 {
 		for _, service := range services {
@@ -121,34 +150,10 @@ func (c *consulRegistry) ListServices() ([]Service, error) {
 	}
 
 	for service, _ := range rsp {
-		services = append(services, &consulService{ServiceName: service})
+		services = append(services, &Service{Name: service})
 	}
 
 	return services, nil
-}
-
-func (c *consulRegistry) NewService(name string, nodes ...Node) Service {
-	var snodes []*consulNode
-
-	for _, node := range nodes {
-		if n, ok := node.(*consulNode); ok {
-			snodes = append(snodes, n)
-		}
-	}
-
-	return &consulService{
-		ServiceName:  name,
-		ServiceNodes: snodes,
-	}
-}
-
-func (c *consulRegistry) NewNode(id, address string, port int) Node {
-	return &consulNode{
-		Node:        id,
-		NodeId:      id,
-		NodeAddress: address,
-		NodePort:    port,
-	}
 }
 
 func (c *consulRegistry) Watch() {

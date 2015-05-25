@@ -8,6 +8,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/proxy/config"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"github.com/myodc/go-micro/registry"
 )
 
 type watcher struct {
@@ -27,12 +28,12 @@ func (k *watcher) OnUpdate(services []api.Service) {
 		activeServices.Insert(name)
 		serviceIP := net.ParseIP(svc.Spec.PortalIP)
 
-		ks := &service{
-			name: name,
-			nodes: []*node{
-				&node{
-					address: serviceIP.String(),
-					port:    svc.Spec.Ports[0].Port,
+		ks := &registry.Service{
+			Name: name,
+			Nodes: []*registry.Node{
+				&registry.Node{
+					Address: serviceIP.String(),
+					Port:    svc.Spec.Ports[0].Port,
 				},
 			},
 		}

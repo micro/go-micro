@@ -37,20 +37,20 @@ func (cw *consulWatcher) serviceHandler(idx uint64, data interface{}) {
 		return
 	}
 
-	cs := &consulService{}
+	cs := &Service{}
 
 	for _, e := range entries {
-		cs.ServiceName = e.Service.Service
-		cs.ServiceNodes = append(cs.ServiceNodes, &consulNode{
-			Node:        e.Node.Node,
-			NodeId:      e.Service.ID,
-			NodeAddress: e.Node.Address,
-			NodePort:    e.Service.Port,
+		cs.Name = e.Service.Service
+		cs.Nodes = append(cs.Nodes, &Node{
+			Id:       e.Service.ID,
+			Address:  e.Node.Address,
+			Port:     e.Service.Port,
+			MetaData: decodeMetaData(e.Service.Tags),
 		})
 	}
 
 	cw.Registry.mtx.Lock()
-	cw.Registry.services[cs.ServiceName] = cs
+	cw.Registry.services[cs.Name] = cs
 	cw.Registry.mtx.Unlock()
 }
 

@@ -16,22 +16,22 @@ type kregistry struct {
 	namespace string
 
 	mtx      sync.RWMutex
-	services map[string]registry.Service
+	services map[string]*registry.Service
 }
 
 func (c *kregistry) Watch() {
 	newWatcher(c)
 }
 
-func (c *kregistry) Deregister(s registry.Service) error {
+func (c *kregistry) Deregister(s *registry.Service) error {
 	return nil
 }
 
-func (c *kregistry) Register(s registry.Service) error {
+func (c *kregistry) Register(s *registry.Service) error {
 	return nil
 }
 
-func (c *kregistry) GetService(name string) (registry.Service, error) {
+func (c *kregistry) GetService(name string) (*registry.Service, error) {
 	c.mtx.RLock()
 	svc, ok := c.services[name]
 	c.mtx.RUnlock()
@@ -51,23 +51,26 @@ func (c *kregistry) GetService(name string) (registry.Service, error) {
 		return nil, fmt.Errorf("Service not found")
 	}
 
-	ks := &service{name: name}
+	ks := &registry.Service{
+		Name: name,
+	}
+
 	for _, item := range services.Items {
-		ks.nodes = append(ks.nodes, &node{
-			address: item.Spec.PortalIP,
-			port:    item.Spec.Ports[0].Port,
+		ks.Nodes = append(ks.Nodes, &registry.Node{
+			Address: item.Spec.PortalIP,
+			Port:    item.Spec.Ports[0].Port,
 		})
 	}
 
 	return ks, nil
 }
 
-func (c *kregistry) ListServices() ([]registry.Service, error) {
+func (c *kregistry) ListServices() ([]*registry.Service, error) {
 	c.mtx.RLock()
 	serviceMap := c.services
 	c.mtx.RUnlock()
 
-	var services []registry.Service
+	var services []*registry.Service
 
 	if len(serviceMap) > 0 {
 		for _, service := range serviceMap {
@@ -86,35 +89,12 @@ func (c *kregistry) ListServices() ([]registry.Service, error) {
 			continue
 		}
 
-		services = append(services, &service{
-			name: svc.ObjectMeta.Labels["name"],
+		services = append(services, &registry.Service{
+			Name: svc.ObjectMeta.Labels["name"],
 		})
 	}
 
 	return services, nil
-}
-
-func (c *kregistry) NewService(name string, nodes ...registry.Node) registry.Service {
-	var snodes []*node
-
-	for _, nod := range nodes {
-		if n, ok := nod.(*node); ok {
-			snodes = append(snodes, n)
-		}
-	}
-
-	return &service{
-		name:  name,
-		nodes: snodes,
-	}
-}
-
-func (c *kregistry) NewNode(id, address string, port int) registry.Node {
-	return &node{
-		id:      id,
-		address: address,
-		port:    port,
-	}
 }
 
 func NewRegistry(addrs []string, opts ...registry.Option) registry.Registry {
@@ -130,7 +110,7 @@ func NewRegistry(addrs []string, opts ...registry.Option) registry.Registry {
 	kr := &kregistry{
 		client:    client,
 		namespace: "default",
-		services:  make(map[string]registry.Service),
+		services:  make(map[string]*registry.Service),
 	}
 
 	kr.Watch()

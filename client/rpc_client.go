@@ -159,16 +159,16 @@ func (r *rpcClient) Call(ctx context.Context, request Request, response interfac
 		return errors.InternalServerError("go.micro.client", err.Error())
 	}
 
-	if len(service.Nodes()) == 0 {
+	if len(service.Nodes) == 0 {
 		return errors.NotFound("go.micro.client", "Service not found")
 	}
 
-	n := rand.Int() % len(service.Nodes())
-	node := service.Nodes()[n]
+	n := rand.Int() % len(service.Nodes)
+	node := service.Nodes[n]
 
-	address := node.Address()
-	if node.Port() > 0 {
-		address = fmt.Sprintf("%s:%d", address, node.Port())
+	address := node.Address
+	if node.Port > 0 {
+		address = fmt.Sprintf("%s:%d", address, node.Port)
 	}
 
 	return r.call(ctx, address, request, response)

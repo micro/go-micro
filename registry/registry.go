@@ -1,12 +1,23 @@
 package registry
 
 type Registry interface {
-	Register(Service) error
-	Deregister(Service) error
-	GetService(string) (Service, error)
-	ListServices() ([]Service, error)
-	NewService(string, ...Node) Service
-	NewNode(string, string, int) Node
+	Register(*Service) error
+	Deregister(*Service) error
+	GetService(string) (*Service, error)
+	ListServices() ([]*Service, error)
+}
+
+type Service struct {
+	Name     string
+	MetaData map[string]string
+	Nodes    []*Node
+}
+
+type Node struct {
+	Id       string
+	Address  string
+	Port     int
+	MetaData map[string]string
 }
 
 type options struct{}
@@ -21,18 +32,18 @@ func NewRegistry(addrs []string, opt ...Option) Registry {
 	return newConsulRegistry(addrs, opt...)
 }
 
-func Register(s Service) error {
+func Register(s *Service) error {
 	return DefaultRegistry.Register(s)
 }
 
-func Deregister(s Service) error {
+func Deregister(s *Service) error {
 	return DefaultRegistry.Deregister(s)
 }
 
-func GetService(name string) (Service, error) {
+func GetService(name string) (*Service, error) {
 	return DefaultRegistry.GetService(name)
 }
 
-func ListServices() ([]Service, error) {
+func ListServices() ([]*Service, error) {
 	return DefaultRegistry.ListServices()
 }
