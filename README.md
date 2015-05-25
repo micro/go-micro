@@ -2,21 +2,15 @@
 
 Go Micro is a microservices library which provides the fundamental building blocks for writing fault tolerant distributed systems at scale. It is part of the [Micro](https://github.com/myodc/micro) toolchain.
 
-An example server can be found in go-micro/template.
+An example server can be found in examples/server.
 
 [![GoDoc](http://img.shields.io/badge/go-documentation-brightgreen.svg?style=flat-square)](https://godoc.org/github.com/myodc/go-micro)
 
 ## Features
 - Discovery
-- Client/Server
+- Client
+- Server
 - Pub/Sub
-
-## Future Features
-- Config
-- Routing
-- Monitoring
-- Tracing
-- Logging
 
 ## Prerequisites
 
@@ -34,79 +28,80 @@ $ consul agent -server -bootstrap-expect 1 -data-dir /tmp/consul
 
 ### Run Service
 ```
-$ go run go-micro/template/main.go
-
-I0523 12:21:09.506998   77096 server.go:113] Starting server go.micro.service.template id go.micro.service.template-cfc481fc-013d-11e5-bcdc-68a86d0d36b6
-I0523 12:21:09.507281   77096 rpc_server.go:112] Listening on [::]:51868
-I0523 12:21:09.507329   77096 server.go:95] Registering node: go.micro.service.template-cfc481fc-013d-11e5-bcdc-68a86d0d36b6
+$ go run examples/server/main.go
+I0525 18:06:14.471489   83304 server.go:117] Starting server go.micro.srv.example id go.micro.srv.example-59b6e0ab-0300-11e5-b696-68a86d0d36b6
+I0525 18:06:14.474960   83304 rpc_server.go:126] Listening on [::]:62216
+I0525 18:06:14.474997   83304 server.go:99] Registering node: go.micro.srv.example-59b6e0ab-0300-11e5-b696-68a86d0d36b6
 ```
 
 ### Test Service
 ```
-$ go run go-micro/examples/service_client.go
-
-go.micro.service.template-cfc481fc-013d-11e5-bcdc-68a86d0d36b6: Hello John
+$ go run examples/client/main.go 
+go.micro.srv.example-59b6e0ab-0300-11e5-b696-68a86d0d36b6: Hello John
 ```
 
 ## Writing a service
 
 ### Create request/response proto
-`go-micro/template/proto/example/example.proto`:
+`go-micro/examples/server/proto/example/example.proto`:
 
 ```
-package go.micro.service.template.example;
+syntax = "proto3";
 
 message Request {
-	required string name = 1;
+        string name = 1;
 }
 
 message Response {
-	required string msg = 1;
+        string msg = 1;
 }
 ```
 
 Compile proto `protoc -I$GOPATH/src --go_out=$GOPATH/src $GOPATH/src/github.com/myodc/go-micro/template/proto/example/example.proto`
 
 ### Create request handler
-`go-micro/template/handler/example.go`:
+`go-micro/examples/server/handler/example.go`:
 
 ```go
 package handler
 
 import (
-	"code.google.com/p/go.net/context"
-	"github.com/golang/protobuf/proto"
+        log "github.com/golang/glog"
+        c "github.com/myodc/go-micro/context"
+        example "github.com/myodc/go-micro/examples/server/proto/example"
+        "github.com/myodc/go-micro/server"
 
-	"github.com/myodc/go-micro/server"
-	example "github.com/myodc/go-micro/template/proto/example"
-	log "github.com/golang/glog"
+        "golang.org/x/net/context"
 )
 
 type Example struct{}
 
 func (e *Example) Call(ctx context.Context, req *example.Request, rsp *example.Response) error {
-	log.Info("Received Example.Call request")
-
-	rsp.Msg = proto.String(server.Id + ": Hello " + req.GetName())
-
-	return nil
+        md, _ := c.GetMetaData(ctx)
+        log.Info("Received Example.Call request with metadata: %v", md)
+        rsp.Msg = server.Id + ": Hello " + req.Name
+        return nil
 }
 ```
 
 ### Init server
-`go-micro/template/main.go`:
+`go-micro/examples/server/main.go`:
 
 ```go
 package main
 
 import (
-	"github.com/myodc/go-micro/server"
-	"github.com/myodc/go-micro/template/handler"
 	log "github.com/golang/glog"
+	"github.com/myodc/go-micro/cmd"
+	"github.com/myodc/go-micro/examples/server/handler"
+	"github.com/myodc/go-micro/server"
 )
 
 func main() {
-	server.Name = "go.micro.service.template"
+	// optionally setup command line usage
+	cmd.Init()
+
+	server.Name = "go.micro.srv.example"
 
 	// Initialise Server
 	server.Init()
@@ -127,9 +122,8 @@ func main() {
 
 ### Run service
 ```
-$ go run go-micro/template/main.go
-
-I0523 12:21:09.506998   77096 server.go:113] Starting server go.micro.service.template id go.micro.service.template-cfc481fc-013d-11e5-bcdc-68a86d0d36b6
-I0523 12:21:09.507281   77096 rpc_server.go:112] Listening on [::]:51868
-I0523 12:21:09.507329   77096 server.go:95] Registering node: go.micro.service.template-cfc481fc-013d-11e5-bcdc-68a86d0d36b6
+$ go run examples/server/main.go
+I0525 18:06:14.471489   83304 server.go:117] Starting server go.micro.srv.example id go.micro.srv.example-59b6e0ab-0300-11e5-b696-68a86d0d36b6
+I0525 18:06:14.474960   83304 rpc_server.go:126] Listening on [::]:62216
+I0525 18:06:14.474997   83304 server.go:99] Registering node: go.micro.srv.example-59b6e0ab-0300-11e5-b696-68a86d0d36b6
 ```

@@ -1,9 +1,9 @@
 syntax = "proto3";
 
 message Request {
-	optional string name = 1;
+	string name = 1;
 }
 
 message Response {
-	optional string msg = 1;
+	string msg = 1;
 }

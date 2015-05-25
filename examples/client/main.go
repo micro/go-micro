@@ -6,14 +6,15 @@ import (
 	"github.com/myodc/go-micro/client"
 	"github.com/myodc/go-micro/cmd"
 	c "github.com/myodc/go-micro/context"
-	example "github.com/myodc/go-micro/template/proto/example"
+	example "github.com/myodc/go-micro/examples/server/proto/example"
 	"golang.org/x/net/context"
 )
 
 func main() {
 	cmd.Init()
-	// Create new request to service go.micro.service.go-template, method Example.Call
-	req := client.NewRequest("go.micro.service.template", "Example.Call", &example.Request{
+
+	// Create new request to service go.micro.srv.example, method Example.Call
+	req := client.NewRequest("go.micro.srv.example", "Example.Call", &example.Request{
 		Name: "John",
 	})
 

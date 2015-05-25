@@ -1,9 +1,0 @@
-{
-  "id": "template-service",
-  "kind": "Service",
-  "apiVersion": "v1beta1",
-  "port": 9091,
-  "containerPort": 8080,
-  "selector": { "name": "go.micro.service.template" },
-  "labels": { "name": "go.micro.service.template" }
-}
