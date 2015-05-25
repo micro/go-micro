@@ -10,7 +10,6 @@ An example server can be found in go-micro/template.
 - Discovery
 - Client/Server
 - Pub/Sub
-- Key/Value store
 
 ### Planned
 - Metrics

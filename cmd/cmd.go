@@ -12,7 +12,6 @@ import (
 	"github.com/myodc/go-micro/client"
 	"github.com/myodc/go-micro/registry"
 	"github.com/myodc/go-micro/server"
-	"github.com/myodc/go-micro/store"
 	"github.com/myodc/go-micro/transport"
 
 	// brokers
@@ -22,12 +21,6 @@ import (
 	// registries
 	"github.com/myodc/go-micro/registry/consul"
 	"github.com/myodc/go-micro/registry/kubernetes"
-
-	// stores
-	sconsul "github.com/myodc/go-micro/store/consul"
-	"github.com/myodc/go-micro/store/etcd"
-	"github.com/myodc/go-micro/store/memcached"
-	"github.com/myodc/go-micro/store/memory"
 
 	// transport
 	thttp "github.com/myodc/go-micro/transport/http"
@@ -66,17 +59,6 @@ var (
 			Usage:  "Comma-separated list of registry addresses",
 		},
 		cli.StringFlag{
-			Name:   "store",
-			EnvVar: "MICRO_STORE",
-			Value:  "consul",
-			Usage:  "Store used as a basic key/value store using consul, memcached, etc",
-		},
-		cli.StringFlag{
-			Name:   "store_address",
-			EnvVar: "MICRO_STORE_ADDRESS",
-			Usage:  "Comma-separated list of store addresses",
-		},
-		cli.StringFlag{
 			Name:   "transport",
 			EnvVar: "MICRO_TRANSPORT",
 			Value:  "http",
@@ -109,19 +91,6 @@ func Setup(c *cli.Context) error {
 		registry.DefaultRegistry = kubernetes.NewRegistry(rAddrs)
 	case "consul":
 		registry.DefaultRegistry = consul.NewRegistry(rAddrs)
-	}
-
-	sAddrs := strings.Split(c.String("store_address"), ",")
-
-	switch c.String("store") {
-	case "consul":
-		store.DefaultStore = sconsul.NewStore(sAddrs)
-	case "memcached":
-		store.DefaultStore = memcached.NewStore(sAddrs)
-	case "memory":
-		store.DefaultStore = memory.NewStore(sAddrs)
-	case "etcd":
-		store.DefaultStore = etcd.NewStore(sAddrs)
 	}
 
 	tAddrs := strings.Split(c.String("transport_address"), ",")
