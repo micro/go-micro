@@ -1,7 +1,7 @@
 package server
 
 import (
-	"github.com/myodc/go-micro/proto/health"
+	"github.com/myodc/go-micro/server/proto/health"
 	"golang.org/x/net/context"
 )
 
