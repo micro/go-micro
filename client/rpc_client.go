@@ -96,7 +96,7 @@ func (r *rpcClient) call(ctx context.Context, address string, request Request, r
 		Body:   reqB.Bytes(),
 	}
 
-	md, ok := c.GetMetaData(ctx)
+	md, ok := c.GetMetadata(ctx)
 	if ok {
 		for k, v := range md {
 			msg.Header[k] = v

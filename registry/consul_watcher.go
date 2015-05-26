@@ -45,7 +45,7 @@ func (cw *consulWatcher) serviceHandler(idx uint64, data interface{}) {
 			Id:       e.Service.ID,
 			Address:  e.Node.Address,
 			Port:     e.Service.Port,
-			MetaData: decodeMetaData(e.Service.Tags),
+			Metadata: decodeMetadata(e.Service.Tags),
 		})
 	}
 

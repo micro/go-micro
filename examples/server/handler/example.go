@@ -12,8 +12,8 @@ import (
 type Example struct{}
 
 func (e *Example) Call(ctx context.Context, req *example.Request, rsp *example.Response) error {
-	md, _ := c.GetMetaData(ctx)
+	md, _ := c.GetMetadata(ctx)
 	log.Info("Received Example.Call request with metadata: %v", md)
-	rsp.Msg = server.Id + ": Hello " + req.Name
+	rsp.Msg = server.Config().Id() + ": Hello " + req.Name
 	return nil
 }

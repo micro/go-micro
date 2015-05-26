@@ -165,7 +165,7 @@ func (h *httpBroker) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	ctx := c.WithMetaData(context.Background(), e.Header)
+	ctx := c.WithMetadata(context.Background(), e.Header)
 
 	h.RLock()
 	for _, subscriber := range h.subscribers[e.Message.Topic] {
@@ -208,7 +208,7 @@ func (h *httpBroker) Publish(ctx context.Context, topic string, body []byte) err
 		Body:      body,
 	}
 
-	header, _ := c.GetMetaData(ctx)
+	header, _ := c.GetMetadata(ctx)
 
 	b, err := json.Marshal(&envelope{
 		header,

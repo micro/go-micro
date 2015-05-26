@@ -68,7 +68,7 @@ func (n *nbroker) Init() error {
 }
 
 func (n *nbroker) Publish(ctx context.Context, topic string, body []byte) error {
-	header, _ := c.GetMetaData(ctx)
+	header, _ := c.GetMetadata(ctx)
 
 	message := &broker.Message{
 		Id:        uuid.NewUUID().String(),
@@ -93,7 +93,7 @@ func (n *nbroker) Subscribe(topic string, function func(context.Context, *broker
 		if err := json.Unmarshal(msg.Data, &e); err != nil {
 			return
 		}
-		ctx := c.WithMetaData(context.Background(), e.Header)
+		ctx := c.WithMetadata(context.Background(), e.Header)
 		function(ctx, e.Message)
 	})
 	if err != nil {

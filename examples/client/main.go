@@ -19,7 +19,7 @@ func main() {
 	})
 
 	// create context with metadata
-	ctx := c.WithMetaData(context.Background(), map[string]string{
+	ctx := c.WithMetadata(context.Background(), map[string]string{
 		"X-User-Id": "john",
 		"X-From-Id": "script",
 	})

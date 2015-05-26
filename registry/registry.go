@@ -9,7 +9,7 @@ type Registry interface {
 
 type Service struct {
 	Name     string
-	MetaData map[string]string
+	Metadata map[string]string
 	Nodes    []*Node
 }
 
@@ -17,7 +17,7 @@ type Node struct {
 	Id       string
 	Address  string
 	Port     int
-	MetaData map[string]string
+	Metadata map[string]string
 }
 
 type options struct{}

@@ -20,7 +20,7 @@ func pub() {
 	tick := time.NewTicker(time.Second)
 	i := 0
 	for _ = range tick.C {
-		ctx := c.WithMetaData(context.Background(), map[string]string{
+		ctx := c.WithMetadata(context.Background(), map[string]string{
 			"id": fmt.Sprintf("%d", i),
 		})
 
@@ -36,7 +36,7 @@ func pub() {
 
 func sub() {
 	_, err := broker.Subscribe(topic, func(ctx context.Context, msg *broker.Message) {
-		md, _ := c.GetMetaData(ctx)
+		md, _ := c.GetMetadata(ctx)
 		fmt.Println("[sub] received message:", string(msg.Body), "context", md)
 	})
 	if err != nil {

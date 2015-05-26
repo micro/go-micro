@@ -31,10 +31,26 @@ import (
 var (
 	Flags = []cli.Flag{
 		cli.StringFlag{
+			Name:   "server_name",
+			EnvVar: "MICRO_SERVER_NAME",
+			Usage:  "Name of the server. go.micro.srv.example",
+		},
+		cli.StringFlag{
+			Name:   "server_id",
+			EnvVar: "MICRO_SERVER_ID",
+			Usage:  "Id of the server. Auto-generated if not specified",
+		},
+		cli.StringFlag{
 			Name:   "server_address",
 			EnvVar: "MICRO_SERVER_ADDRESS",
 			Value:  ":0",
 			Usage:  "Bind address for the server. 127.0.0.1:8080",
+		},
+		cli.StringSliceFlag{
+			Name:   "server_metadata",
+			EnvVar: "MICRO_SERVER_METADATA",
+			Value:  &cli.StringSlice{},
+			Usage:  "A list of key-value pairs defining metadata. version=1.0.0",
 		},
 		cli.StringFlag{
 			Name:   "broker",
@@ -73,8 +89,6 @@ var (
 )
 
 func Setup(c *cli.Context) error {
-	server.Address = c.String("server_address")
-
 	bAddrs := strings.Split(c.String("broker_address"), ",")
 
 	switch c.String("broker") {
@@ -103,6 +117,24 @@ func Setup(c *cli.Context) error {
 	case "nats":
 		transport.DefaultTransport = tnats.NewTransport(tAddrs)
 	}
+
+	metadata := make(map[string]string)
+	for _, d := range c.StringSlice("server_metadata") {
+		var key, val string
+		parts := strings.Split(d, "=")
+		key = parts[0]
+		if len(parts) > 1 {
+			val = strings.Join(parts[1:], "=")
+		}
+		metadata[key] = val
+	}
+
+	server.DefaultServer = server.NewServer(
+		server.Name(c.String("server_name")),
+		server.Id(c.String("server_id")),
+		server.Address(c.String("server_address")),
+		server.Metadata(metadata),
+	)
 
 	client.DefaultClient = client.NewClient()
 

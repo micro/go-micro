@@ -16,7 +16,7 @@ type consulRegistry struct {
 	services map[string]*Service
 }
 
-func encodeMetaData(md map[string]string) []string {
+func encodeMetadata(md map[string]string) []string {
 	var tags []string
 	for k, v := range md {
 		if b, err := json.Marshal(map[string]string{
@@ -28,7 +28,7 @@ func encodeMetaData(md map[string]string) []string {
 	return tags
 }
 
-func decodeMetaData(tags []string) map[string]string {
+func decodeMetadata(tags []string) map[string]string {
 	md := make(map[string]string)
 	for _, tag := range tags {
 		var kv map[string]string
@@ -81,7 +81,7 @@ func (c *consulRegistry) Register(s *Service) error {
 
 	node := s.Nodes[0]
 
-	tags := encodeMetaData(node.MetaData)
+	tags := encodeMetadata(node.Metadata)
 
 	_, err := c.Client.Catalog().Register(&consul.CatalogRegistration{
 		Node:    node.Id,
@@ -123,7 +123,7 @@ func (c *consulRegistry) GetService(name string) (*Service, error) {
 			Id:       s.ServiceID,
 			Address:  s.Address,
 			Port:     s.ServicePort,
-			MetaData: decodeMetaData(s.ServiceTags),
+			Metadata: decodeMetadata(s.ServiceTags),
 		})
 	}
 

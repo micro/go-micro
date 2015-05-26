@@ -10,13 +10,13 @@ const (
 	mdKey = key(0)
 )
 
-type MetaData map[string]string
+type Metadata map[string]string
 
-func GetMetaData(ctx context.Context) (MetaData, bool) {
-	md, ok := ctx.Value(mdKey).(MetaData)
+func GetMetadata(ctx context.Context) (Metadata, bool) {
+	md, ok := ctx.Value(mdKey).(Metadata)
 	return md, ok
 }
 
-func WithMetaData(ctx context.Context, md MetaData) context.Context {
+func WithMetadata(ctx context.Context, md Metadata) context.Context {
 	return context.WithValue(ctx, mdKey, md)
 }

@@ -14,8 +14,8 @@ import (
 )
 
 type Server interface {
-	Address() string
-	Init() error
+	Config() options
+	Init(...Option)
 	NewReceiver(interface{}) Receiver
 	NewNamedReceiver(string, interface{}) Receiver
 	Register(Receiver) error
@@ -23,18 +23,32 @@ type Server interface {
 	Stop() error
 }
 
-type options struct {
-	transport transport.Transport
-}
-
 type Option func(*options)
 
 var (
-	Address       string
-	Name          string
-	Id            string
-	DefaultServer Server
+	DefaultAddress        = ":0"
+	DefaultName           = "go-server"
+	DefaultId             = uuid.NewUUID().String()
+	DefaultServer  Server = newRpcServer()
 )
+
+func Name(n string) Option {
+	return func(o *options) {
+		o.name = n
+	}
+}
+
+func Id(id string) Option {
+	return func(o *options) {
+		o.id = id
+	}
+}
+
+func Address(a string) Option {
+	return func(o *options) {
+		o.address = a
+	}
+}
 
 func Transport(t transport.Transport) Option {
 	return func(o *options) {
@@ -42,26 +56,25 @@ func Transport(t transport.Transport) Option {
 	}
 }
 
-func Init() error {
-	defer log.Flush()
-
-	if len(Name) == 0 {
-		Name = "go-server"
+func Metadata(md map[string]string) Option {
+	return func(o *options) {
+		o.metadata = md
 	}
-
-	if len(Id) == 0 {
-		Id = Name + "-" + uuid.NewUUID().String()
-	}
-
-	if DefaultServer == nil {
-		DefaultServer = newRpcServer(Address)
-	}
-
-	return DefaultServer.Init()
 }
 
-func NewServer(address string, opt ...Option) Server {
-	return newRpcServer(address, opt...)
+func Config() options {
+	return DefaultServer.Config()
+}
+
+func Init(opt ...Option) {
+	if DefaultServer == nil {
+		DefaultServer = newRpcServer(opt...)
+	}
+	DefaultServer.Init(opt...)
+}
+
+func NewServer(opt ...Option) Server {
+	return newRpcServer(opt...)
 }
 
 func NewReceiver(handler interface{}) Receiver {
@@ -82,9 +95,10 @@ func Run() error {
 	}
 
 	// parse address for host, port
+	config := DefaultServer.Config()
 	var host string
 	var port int
-	parts := strings.Split(DefaultServer.Address(), ":")
+	parts := strings.Split(config.Address(), ":")
 	if len(parts) > 1 {
 		host = strings.Join(parts[:len(parts)-1], ":")
 		port, _ = strconv.Atoi(parts[len(parts)-1])
@@ -94,13 +108,14 @@ func Run() error {
 
 	// register service
 	node := &registry.Node{
-		Id:      Id,
-		Address: host,
-		Port:    port,
+		Id:       config.Id(),
+		Address:  host,
+		Port:     port,
+		Metadata: config.Metadata(),
 	}
 
 	service := &registry.Service{
-		Name:  Name,
+		Name:  config.Name(),
 		Nodes: []*registry.Node{node},
 	}
 
@@ -122,7 +137,8 @@ func Run() error {
 }
 
 func Start() error {
-	log.Infof("Starting server %s id %s", Name, Id)
+	config := DefaultServer.Config()
+	log.Infof("Starting server %s id %s", config.Name(), config.Id())
 	return DefaultServer.Start()
 }
 

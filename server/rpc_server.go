@@ -2,7 +2,6 @@ package server
 
 import (
 	"bytes"
-	"sync"
 
 	c "github.com/myodc/go-micro/context"
 	"github.com/myodc/go-micro/transport"
@@ -16,29 +15,16 @@ import (
 )
 
 type rpcServer struct {
-	mtx     sync.RWMutex
-	address string
-	opts    options
-	rpc     *rpc.Server
-	exit    chan chan error
+	opts options
+	rpc  *rpc.Server
+	exit chan chan error
 }
 
-func newRpcServer(address string, opt ...Option) Server {
-	var opts options
-
-	for _, o := range opt {
-		o(&opts)
-	}
-
-	if opts.transport == nil {
-		opts.transport = transport.DefaultTransport
-	}
-
+func newRpcServer(opts ...Option) Server {
 	return &rpcServer{
-		opts:    opts,
-		address: address,
-		rpc:     rpc.NewServer(),
-		exit:    make(chan chan error),
+		opts: newOptions(opts...),
+		rpc:  rpc.NewServer(),
+		exit: make(chan chan error),
 	}
 }
 
@@ -72,7 +58,7 @@ func (s *rpcServer) accept(sock transport.Socket) {
 	ct := msg.Header["Content-Type"]
 	delete(msg.Header, "Content-Type")
 
-	ctx := c.WithMetaData(context.Background(), msg.Header)
+	ctx := c.WithMetadata(context.Background(), msg.Header)
 
 	if err := s.rpc.ServeRequestWithContext(ctx, cc); err != nil {
 		return
@@ -86,15 +72,17 @@ func (s *rpcServer) accept(sock transport.Socket) {
 	})
 }
 
-func (s *rpcServer) Address() string {
-	s.mtx.RLock()
-	address := s.address
-	s.mtx.RUnlock()
-	return address
+func (s *rpcServer) Config() options {
+	return s.opts
 }
 
-func (s *rpcServer) Init() error {
-	return nil
+func (s *rpcServer) Init(opts ...Option) {
+	for _, opt := range opts {
+		opt(&s.opts)
+	}
+	if len(s.opts.id) == 0 {
+		s.opts.id = s.opts.name + "-" + DefaultId
+	}
 }
 
 func (s *rpcServer) NewReceiver(handler interface{}) Receiver {
@@ -118,16 +106,14 @@ func (s *rpcServer) Register(r Receiver) error {
 func (s *rpcServer) Start() error {
 	registerHealthChecker(s)
 
-	ts, err := s.opts.transport.Listen(s.address)
+	ts, err := s.opts.transport.Listen(s.opts.address)
 	if err != nil {
 		return err
 	}
 
 	log.Infof("Listening on %s", ts.Addr())
 
-	s.mtx.RLock()
-	s.address = ts.Addr()
-	s.mtx.RUnlock()
+	s.opts.address = ts.Addr()
 
 	go ts.Accept(s.accept)
 
