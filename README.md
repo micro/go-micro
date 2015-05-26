@@ -101,10 +101,10 @@ func main() {
 	// optionally setup command line usage
 	cmd.Init()
 
-	server.Name = "go.micro.srv.example"
-
 	// Initialise Server
-	server.Init()
+	server.Init(
+		server.Name("go.micro.srv.example"),
+	)
 
 	// Register Handlers
 	server.Register(
