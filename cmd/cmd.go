@@ -20,6 +20,7 @@ import (
 
 	// registries
 	"github.com/myodc/go-micro/registry/consul"
+	"github.com/myodc/go-micro/registry/etcd"
 	"github.com/myodc/go-micro/registry/kubernetes"
 
 	// transport
@@ -105,6 +106,8 @@ func Setup(c *cli.Context) error {
 		registry.DefaultRegistry = kubernetes.NewRegistry(rAddrs)
 	case "consul":
 		registry.DefaultRegistry = consul.NewRegistry(rAddrs)
+	case "etcd":
+		registry.DefaultRegistry = etcd.NewRegistry(rAddrs)
 	}
 
 	tAddrs := strings.Split(c.String("transport_address"), ",")
