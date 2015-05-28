@@ -17,6 +17,7 @@ import (
 	// brokers
 	"github.com/myodc/go-micro/broker/http"
 	"github.com/myodc/go-micro/broker/nats"
+	"github.com/myodc/go-micro/broker/rabbitmq"
 
 	// registries
 	"github.com/myodc/go-micro/registry/consul"
@@ -26,7 +27,7 @@ import (
 	// transport
 	thttp "github.com/myodc/go-micro/transport/http"
 	tnats "github.com/myodc/go-micro/transport/nats"
-	"github.com/myodc/go-micro/transport/rabbitmq"
+	trmq "github.com/myodc/go-micro/transport/rabbitmq"
 )
 
 var (
@@ -97,6 +98,8 @@ func Setup(c *cli.Context) error {
 		broker.DefaultBroker = http.NewBroker(bAddrs)
 	case "nats":
 		broker.DefaultBroker = nats.NewBroker(bAddrs)
+	case "rabbitmq":
+		broker.DefaultBroker = rabbitmq.NewBroker(bAddrs)
 	}
 
 	rAddrs := strings.Split(c.String("registry_address"), ",")
@@ -116,7 +119,7 @@ func Setup(c *cli.Context) error {
 	case "http":
 		transport.DefaultTransport = thttp.NewTransport(tAddrs)
 	case "rabbitmq":
-		transport.DefaultTransport = rabbitmq.NewTransport(tAddrs)
+		transport.DefaultTransport = trmq.NewTransport(tAddrs)
 	case "nats":
 		transport.DefaultTransport = tnats.NewTransport(tAddrs)
 	}
