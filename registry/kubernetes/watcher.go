@@ -26,7 +26,7 @@ func (k *watcher) OnUpdate(services []api.Service) {
 		}
 
 		activeServices.Insert(name)
-		serviceIP := net.ParseIP(svc.Spec.PortalIP)
+		serviceIP := net.ParseIP(svc.Spec.ClusterIP)
 
 		ks := &registry.Service{
 			Name: name,

@@ -57,7 +57,7 @@ func (c *kregistry) GetService(name string) (*registry.Service, error) {
 
 	for _, item := range services.Items {
 		ks.Nodes = append(ks.Nodes, &registry.Node{
-			Address: item.Spec.PortalIP,
+			Address: item.Spec.ClusterIP,
 			Port:    item.Spec.Ports[0].Port,
 		})
 	}
