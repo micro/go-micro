@@ -10,9 +10,7 @@ import (
 	"golang.org/x/net/context"
 )
 
-func main() {
-	cmd.Init()
-
+func call(i int) {
 	// Create new request to service go.micro.srv.example, method Example.Call
 	req := client.NewRequest("go.micro.srv.example", "Example.Call", &example.Request{
 		Name: "John",
@@ -28,9 +26,45 @@ func main() {
 
 	// Call service
 	if err := client.Call(ctx, req, rsp); err != nil {
-		fmt.Println(err)
+		fmt.Println("err: ", err, rsp)
 		return
 	}
 
-	fmt.Println(rsp.Msg)
+	fmt.Println("Call:", i, "rsp:", rsp.Msg)
+}
+
+func stream() {
+	// Create new request to service go.micro.srv.example, method Example.Call
+	req := client.NewRequest("go.micro.srv.example", "Example.Stream", &example.StreamingRequest{
+		Count: int64(10),
+	})
+
+	rspChan := make(chan *example.StreamingResponse, 10)
+
+	stream, err := client.Stream(context.Background(), req, rspChan)
+	if err != nil {
+		fmt.Println("err:", err)
+		return
+	}
+
+	for rsp := range rspChan {
+		fmt.Println("Stream: rsp:", rsp.Count)
+	}
+
+	if stream.Error() != nil {
+		fmt.Println("err:", err)
+		return
+	}
+
+	stream.Close()
+}
+
+func main() {
+	cmd.Init()
+
+	for i := 0; i < 10; i++ {
+		call(i)
+	}
+
+	stream()
 }

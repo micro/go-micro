@@ -54,7 +54,6 @@ func newConsulRegistry(addrs []string, opts ...Option) Registry {
 		services: make(map[string]*Service),
 	}
 
-	cr.Watch()
 	return cr
 }
 
@@ -156,6 +155,6 @@ func (c *consulRegistry) ListServices() ([]*Service, error) {
 	return services, nil
 }
 
-func (c *consulRegistry) Watch() {
-	newConsulWatcher(c)
+func (c *consulRegistry) Watch() (Watcher, error) {
+	return newConsulWatcher(c)
 }

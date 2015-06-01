@@ -19,10 +19,6 @@ type kregistry struct {
 	services map[string]*registry.Service
 }
 
-func (c *kregistry) Watch() {
-	newWatcher(c)
-}
-
 func (c *kregistry) Deregister(s *registry.Service) error {
 	return nil
 }
@@ -97,6 +93,10 @@ func (c *kregistry) ListServices() ([]*registry.Service, error) {
 	return services, nil
 }
 
+func (c *kregistry) Watch() (registry.Watcher, error) {
+	return newWatcher(c)
+}
+
 func NewRegistry(addrs []string, opts ...registry.Option) registry.Registry {
 	host := "http://" + os.Getenv("KUBERNETES_RO_SERVICE_HOST") + ":" + os.Getenv("KUBERNETES_RO_SERVICE_PORT")
 	if len(addrs) > 0 {
@@ -112,8 +112,6 @@ func NewRegistry(addrs []string, opts ...registry.Option) registry.Registry {
 		namespace: "default",
 		services:  make(map[string]*registry.Service),
 	}
-
-	kr.Watch()
 
 	return kr
 }

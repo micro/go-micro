@@ -1,6 +1,7 @@
 package transport
 
 type Message struct {
+	Id     string
 	Header map[string]string
 	Body   []byte
 }
@@ -12,7 +13,8 @@ type Socket interface {
 }
 
 type Client interface {
-	Send(*Message) (*Message, error)
+	Recv(*Message) error
+	Send(*Message) error
 	Close() error
 }
 
@@ -23,24 +25,36 @@ type Listener interface {
 }
 
 type Transport interface {
-	Dial(addr string) (Client, error)
+	Dial(addr string, opts ...DialOption) (Client, error)
 	Listen(addr string) (Listener, error)
 }
 
 type options struct{}
 
+type dialOptions struct {
+	stream bool
+}
+
 type Option func(*options)
+
+type DialOption func(*dialOptions)
 
 var (
 	DefaultTransport Transport = newHttpTransport([]string{})
 )
 
+func WithStream() DialOption {
+	return func(o *dialOptions) {
+		o.stream = true
+	}
+}
+
 func NewTransport(addrs []string, opt ...Option) Transport {
 	return newHttpTransport(addrs, opt...)
 }
 
-func Dial(addr string) (Client, error) {
-	return DefaultTransport.Dial(addr)
+func Dial(addr string, opts ...DialOption) (Client, error) {
+	return DefaultTransport.Dial(addr, opts...)
 }
 
 func Listen(addr string) (Listener, error) {

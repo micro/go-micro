@@ -15,20 +15,22 @@ type serviceWatcher struct {
 	name string
 }
 
-func newConsulWatcher(cr *consulRegistry) *consulWatcher {
+func newConsulWatcher(cr *consulRegistry) (Watcher, error) {
 	cw := &consulWatcher{
 		Registry: cr,
 		watchers: make(map[string]*watch.WatchPlan),
 	}
 
 	wp, err := watch.Parse(map[string]interface{}{"type": "services"})
-	if err == nil {
-		wp.Handler = cw.Handle
-		go wp.Run(cr.Address)
-		cw.wp = wp
+	if err != nil {
+		return nil, err
 	}
 
-	return cw
+	wp.Handler = cw.Handle
+	go wp.Run(cr.Address)
+	cw.wp = wp
+
+	return cw, nil
 }
 
 func (cw *consulWatcher) serviceHandler(idx uint64, data interface{}) {

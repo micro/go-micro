@@ -50,6 +50,12 @@ func Address(a string) Option {
 	}
 }
 
+func Registry(r registry.Registry) Option {
+	return func(o *options) {
+		o.registry = r
+	}
+}
+
 func Transport(t transport.Transport) Option {
 	return func(o *options) {
 		o.transport = t
@@ -121,9 +127,9 @@ func Run() error {
 
 	log.Infof("Registering node: %s", node.Id)
 
-	err := registry.Register(service)
+	err := config.registry.Register(service)
 	if err != nil {
-		log.Fatal("Failed to register: %v", err)
+		log.Fatalf("Failed to register: %v", err)
 	}
 
 	ch := make(chan os.Signal, 1)
@@ -131,7 +137,7 @@ func Run() error {
 	log.Infof("Received signal %s", <-ch)
 
 	log.Infof("Deregistering %s", node.Id)
-	registry.Deregister(service)
+	config.registry.Deregister(service)
 
 	return Stop()
 }

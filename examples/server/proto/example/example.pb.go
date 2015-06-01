@@ -11,6 +11,8 @@ It is generated from these files:
 It has these top-level messages:
 	Request
 	Response
+	StreamingRequest
+	StreamingResponse
 */
 package example
 
@@ -34,6 +36,22 @@ type Response struct {
 func (m *Response) Reset()         { *m = Response{} }
 func (m *Response) String() string { return proto.CompactTextString(m) }
 func (*Response) ProtoMessage()    {}
+
+type StreamingRequest struct {
+	Count int64 `protobuf:"varint,1,opt,name=count" json:"count,omitempty"`
+}
+
+func (m *StreamingRequest) Reset()         { *m = StreamingRequest{} }
+func (m *StreamingRequest) String() string { return proto.CompactTextString(m) }
+func (*StreamingRequest) ProtoMessage()    {}
+
+type StreamingResponse struct {
+	Count int64 `protobuf:"varint,1,opt,name=count" json:"count,omitempty"`
+}
+
+func (m *StreamingResponse) Reset()         { *m = StreamingResponse{} }
+func (m *StreamingResponse) String() string { return proto.CompactTextString(m) }
+func (*StreamingResponse) ProtoMessage()    {}
 
 func init() {
 }

@@ -17,6 +17,8 @@ type ntport struct {
 type ntportClient struct {
 	conn *nats.Conn
 	addr string
+	id   string
+	sub  *nats.Subscription
 }
 
 type ntportSocket struct {
@@ -30,26 +32,32 @@ type ntportListener struct {
 	exit chan bool
 }
 
-func (n *ntportClient) Send(m *transport.Message) (*transport.Message, error) {
+func (n *ntportClient) Send(m *transport.Message) error {
 	b, err := json.Marshal(m)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	rsp, err := n.conn.Request(n.addr, b, time.Second*10)
+	return n.conn.PublishRequest(n.addr, n.id, b)
+}
+
+func (n *ntportClient) Recv(m *transport.Message) error {
+	rsp, err := n.sub.NextMsg(time.Second * 10)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	var mr *transport.Message
 	if err := json.Unmarshal(rsp.Data, &mr); err != nil {
-		return nil, err
+		return err
 	}
 
-	return mr, nil
+	*m = *mr
+	return nil
 }
 
 func (n *ntportClient) Close() error {
+	n.sub.Unsubscribe()
 	n.conn.Close()
 	return nil
 }
@@ -102,7 +110,7 @@ func (n *ntportListener) Accept(fn func(transport.Socket)) error {
 	return s.Unsubscribe()
 }
 
-func (n *ntport) Dial(addr string) (transport.Client, error) {
+func (n *ntport) Dial(addr string, opts ...transport.DialOption) (transport.Client, error) {
 	cAddr := nats.DefaultURL
 
 	if len(n.addrs) > 0 && strings.HasPrefix(n.addrs[0], "nats://") {
@@ -114,9 +122,17 @@ func (n *ntport) Dial(addr string) (transport.Client, error) {
 		return nil, err
 	}
 
+	id := nats.NewInbox()
+	sub, err := c.SubscribeSync(id)
+	if err != nil {
+		return nil, err
+	}
+
 	return &ntportClient{
 		conn: c,
 		addr: addr,
+		id:   id,
+		sub:  sub,
 	}, nil
 }
 

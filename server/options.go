@@ -1,10 +1,12 @@
 package server
 
 import (
+	"github.com/myodc/go-micro/registry"
 	"github.com/myodc/go-micro/transport"
 )
 
 type options struct {
+	registry  registry.Registry
 	transport transport.Transport
 	metadata  map[string]string
 	name      string
@@ -17,6 +19,10 @@ func newOptions(opt ...Option) options {
 
 	for _, o := range opt {
 		o(&opts)
+	}
+
+	if opts.registry == nil {
+		opts.registry = registry.DefaultRegistry
 	}
 
 	if opts.transport == nil {

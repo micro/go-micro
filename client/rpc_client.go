@@ -1,7 +1,6 @@
 package client
 
 import (
-	"bytes"
 	"fmt"
 	"math/rand"
 	"net/http"
@@ -13,11 +12,8 @@ import (
 	"github.com/myodc/go-micro/transport"
 
 	rpc "github.com/youtube/vitess/go/rpcplus"
-	js "github.com/youtube/vitess/go/rpcplus/jsonrpc"
-	pb "github.com/youtube/vitess/go/rpcplus/pbrpc"
 
 	"golang.org/x/net/context"
-	"google.golang.org/grpc"
 )
 
 type headerRoundTripper struct {
@@ -54,46 +50,8 @@ func (t *headerRoundTripper) RoundTrip(r *http.Request) (*http.Response, error) 
 }
 
 func (r *rpcClient) call(ctx context.Context, address string, request Request, response interface{}) error {
-	switch request.ContentType() {
-	case "application/grpc":
-		cc, err := grpc.Dial(address)
-		if err != nil {
-			return errors.InternalServerError("go.micro.client", fmt.Sprintf("Error connecting to server: %v", err))
-		}
-		if err := grpc.Invoke(ctx, request.Method(), request.Request(), response, cc); err != nil {
-			return errors.InternalServerError("go.micro.client", fmt.Sprintf("Error sending request: %v", err))
-		}
-		return nil
-	}
-
-	pReq := &rpc.Request{
-		ServiceMethod: request.Method(),
-	}
-
-	reqB := bytes.NewBuffer(nil)
-	defer reqB.Reset()
-	buf := &buffer{
-		reqB,
-	}
-
-	var cc rpc.ClientCodec
-	switch request.ContentType() {
-	case "application/octet-stream":
-		cc = pb.NewClientCodec(buf)
-	case "application/json":
-		cc = js.NewClientCodec(buf)
-	default:
-		return errors.InternalServerError("go.micro.client", fmt.Sprintf("Unsupported request type: %s", request.ContentType()))
-	}
-
-	err := cc.WriteRequest(pReq, request.Request())
-	if err != nil {
-		return errors.InternalServerError("go.micro.client", fmt.Sprintf("Error writing request: %v", err))
-	}
-
 	msg := &transport.Message{
 		Header: make(map[string]string),
-		Body:   reqB.Bytes(),
 	}
 
 	md, ok := c.GetMetadata(ctx)
@@ -110,42 +68,37 @@ func (r *rpcClient) call(ctx context.Context, address string, request Request, r
 		return errors.InternalServerError("go.micro.client", fmt.Sprintf("Error sending request: %v", err))
 	}
 
-	rsp, err := c.Send(msg)
+	client := rpc.NewClientWithCodec(newRpcPlusCodec(msg, c))
+	return client.Call(ctx, request.Method(), request.Request(), response)
+}
+
+func (r *rpcClient) stream(ctx context.Context, address string, request Request, responseChan interface{}) (Streamer, error) {
+	msg := &transport.Message{
+		Header: make(map[string]string),
+	}
+
+	md, ok := c.GetMetadata(ctx)
+	if ok {
+		for k, v := range md {
+			msg.Header[k] = v
+		}
+	}
+
+	msg.Header["Content-Type"] = request.ContentType()
+
+	c, err := r.opts.transport.Dial(address, transport.WithStream())
 	if err != nil {
-		return errors.InternalServerError("go.micro.client", fmt.Sprintf("Error sending request: %v", err))
+		return nil, errors.InternalServerError("go.micro.client", fmt.Sprintf("Error sending request: %v", err))
 	}
 
-	rspB := bytes.NewBuffer(rsp.Body)
-	defer rspB.Reset()
-	rBuf := &buffer{
-		rspB,
-	}
+	client := rpc.NewClientWithCodec(newRpcPlusCodec(msg, c))
+	call := client.StreamGo(request.Method(), request.Request(), responseChan)
 
-	switch rsp.Header["Content-Type"] {
-	case "application/octet-stream":
-		cc = pb.NewClientCodec(rBuf)
-	case "application/json":
-		cc = js.NewClientCodec(rBuf)
-	default:
-		return errors.InternalServerError("go.micro.client", string(rsp.Body))
-	}
-
-	pRsp := &rpc.Response{}
-	err = cc.ReadResponseHeader(pRsp)
-	if err != nil {
-		return errors.InternalServerError("go.micro.client", fmt.Sprintf("Error reading response headers: %v", err))
-	}
-
-	if len(pRsp.Error) > 0 {
-		return errors.Parse(pRsp.Error)
-	}
-
-	err = cc.ReadResponseBody(response)
-	if err != nil {
-		return errors.InternalServerError("go.micro.client", fmt.Sprintf("Error reading response body: %v", err))
-	}
-
-	return nil
+	return &rpcStream{
+		request: request,
+		call:    call,
+		client:  client,
+	}, nil
 }
 
 func (r *rpcClient) CallRemote(ctx context.Context, address string, request Request, response interface{}) error {
@@ -172,6 +125,31 @@ func (r *rpcClient) Call(ctx context.Context, request Request, response interfac
 	}
 
 	return r.call(ctx, address, request, response)
+}
+
+func (r *rpcClient) StreamRemote(ctx context.Context, address string, request Request, responseChan interface{}) (Streamer, error) {
+	return r.stream(ctx, address, request, responseChan)
+}
+
+func (r *rpcClient) Stream(ctx context.Context, request Request, responseChan interface{}) (Streamer, error) {
+	service, err := registry.GetService(request.Service())
+	if err != nil {
+		return nil, errors.InternalServerError("go.micro.client", err.Error())
+	}
+
+	if len(service.Nodes) == 0 {
+		return nil, errors.NotFound("go.micro.client", "Service not found")
+	}
+
+	n := rand.Int() % len(service.Nodes)
+	node := service.Nodes[n]
+
+	address := node.Address
+	if node.Port > 0 {
+		address = fmt.Sprintf("%s:%d", address, node.Port)
+	}
+
+	return r.stream(ctx, address, request, responseChan)
 }
 
 func (r *rpcClient) NewRequest(service, method string, request interface{}) Request {

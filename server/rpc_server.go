@@ -1,15 +1,11 @@
 package server
 
 import (
-	"bytes"
-
 	c "github.com/myodc/go-micro/context"
 	"github.com/myodc/go-micro/transport"
 
 	log "github.com/golang/glog"
 	rpc "github.com/youtube/vitess/go/rpcplus"
-	js "github.com/youtube/vitess/go/rpcplus/jsonrpc"
-	pb "github.com/youtube/vitess/go/rpcplus/pbrpc"
 
 	"golang.org/x/net/context"
 )
@@ -34,42 +30,17 @@ func (s *rpcServer) accept(sock transport.Socket) {
 		return
 	}
 
-	rbq := bytes.NewBuffer(msg.Body)
-	rsp := bytes.NewBuffer(nil)
-	defer rsp.Reset()
-	defer rbq.Reset()
-
-	buf := &buffer{
-		rbq,
-		rsp,
-	}
-
-	var cc rpc.ServerCodec
-	switch msg.Header["Content-Type"] {
-	case "application/octet-stream":
-		cc = pb.NewServerCodec(buf)
-	case "application/json":
-		cc = js.NewServerCodec(buf)
-	default:
-		return
-	}
+	codec := newRpcPlusCodec(&msg, sock)
 
 	// strip our headers
-	ct := msg.Header["Content-Type"]
-	delete(msg.Header, "Content-Type")
-
-	ctx := c.WithMetadata(context.Background(), msg.Header)
-
-	if err := s.rpc.ServeRequestWithContext(ctx, cc); err != nil {
-		return
+	hdr := make(map[string]string)
+	for k, v := range msg.Header {
+		hdr[k] = v
 	}
+	delete(hdr, "Content-Type")
 
-	sock.Send(&transport.Message{
-		Header: map[string]string{
-			"Content-Type": ct,
-		},
-		Body: rsp.Bytes(),
-	})
+	ctx := c.WithMetadata(context.Background(), hdr)
+	s.rpc.ServeRequestWithContext(ctx, codec)
 }
 
 func (s *rpcServer) Config() options {

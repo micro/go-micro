@@ -1,6 +1,7 @@
 package transport
 
 import (
+	"bufio"
 	"bytes"
 	"errors"
 	"io/ioutil"
@@ -9,34 +10,27 @@ import (
 	"net/url"
 )
 
-type headerRoundTripper struct {
-	r http.RoundTripper
-}
-
-type httpTransport struct {
-	client *http.Client
-}
+type httpTransport struct{}
 
 type httpTransportClient struct {
-	ht   *httpTransport
-	addr string
+	ht       *httpTransport
+	addr     string
+	conn     net.Conn
+	buff     *bufio.Reader
+	dialOpts dialOptions
+	r        chan *http.Request
 }
 
 type httpTransportSocket struct {
-	r *http.Request
-	w http.ResponseWriter
+	r    *http.Request
+	conn net.Conn
 }
 
 type httpTransportListener struct {
 	listener net.Listener
 }
 
-func (t *headerRoundTripper) RoundTrip(r *http.Request) (*http.Response, error) {
-	r.Header.Set("X-Client-Version", "1.0")
-	return t.r.RoundTrip(r)
-}
-
-func (h *httpTransportClient) Send(m *Message) (*Message, error) {
+func (h *httpTransportClient) Send(m *Message) error {
 	header := make(http.Header)
 
 	for k, v := range m.Header {
@@ -49,7 +43,7 @@ func (h *httpTransportClient) Send(m *Message) (*Message, error) {
 		reqB,
 	}
 
-	hreq := &http.Request{
+	req := &http.Request{
 		Method: "POST",
 		URL: &url.URL{
 			Scheme: "http",
@@ -61,15 +55,26 @@ func (h *httpTransportClient) Send(m *Message) (*Message, error) {
 		Host:          h.addr,
 	}
 
-	rsp, err := h.ht.client.Do(hreq)
+	h.r <- req
+
+	return req.Write(h.conn)
+}
+
+func (h *httpTransportClient) Recv(m *Message) error {
+	var r *http.Request
+	if !h.dialOpts.stream {
+		r = <-h.r
+	}
+
+	rsp, err := http.ReadResponse(h.buff, r)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer rsp.Body.Close()
 
 	b, err := ioutil.ReadAll(rsp.Body)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	mr := &Message{
@@ -85,11 +90,12 @@ func (h *httpTransportClient) Send(m *Message) (*Message, error) {
 		}
 	}
 
-	return mr, nil
+	*m = *mr
+	return nil
 }
 
 func (h *httpTransportClient) Close() error {
-	return nil
+	return h.conn.Close()
 }
 
 func (h *httpTransportSocket) Recv(m *Message) error {
@@ -101,7 +107,7 @@ func (h *httpTransportSocket) Recv(m *Message) error {
 	if err != nil {
 		return err
 	}
-
+	h.r.Body.Close()
 	mr := &Message{
 		Header: make(map[string]string),
 		Body:   b,
@@ -120,16 +126,30 @@ func (h *httpTransportSocket) Recv(m *Message) error {
 }
 
 func (h *httpTransportSocket) Send(m *Message) error {
-	for k, v := range m.Header {
-		h.w.Header().Set(k, v)
+	b := bytes.NewBuffer(m.Body)
+	defer b.Reset()
+	rsp := &http.Response{
+		Header:        h.r.Header,
+		Body:          &buffer{b},
+		Status:        "200 OK",
+		StatusCode:    200,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		ContentLength: int64(len(m.Body)),
+		//		Request:       h.r,
 	}
 
-	_, err := h.w.Write(m.Body)
-	return err
+	for k, v := range m.Header {
+		rsp.Header.Set(k, v)
+	}
+
+	return rsp.Write(h.conn)
 }
 
 func (h *httpTransportSocket) Close() error {
-	return nil
+	// TODO: fix this
+	return h.conn.Close()
 }
 
 func (h *httpTransportListener) Addr() string {
@@ -143,9 +163,14 @@ func (h *httpTransportListener) Close() error {
 func (h *httpTransportListener) Accept(fn func(Socket)) error {
 	srv := &http.Server{
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			conn, _, err := w.(http.Hijacker).Hijack()
+			if err != nil {
+				return
+			}
+
 			fn(&httpTransportSocket{
-				r: r,
-				w: w,
+				conn: conn,
+				r:    r,
 			})
 		}),
 	}
@@ -153,10 +178,25 @@ func (h *httpTransportListener) Accept(fn func(Socket)) error {
 	return srv.Serve(h.listener)
 }
 
-func (h *httpTransport) Dial(addr string) (Client, error) {
+func (h *httpTransport) Dial(addr string, opts ...DialOption) (Client, error) {
+	conn, err := net.Dial("tcp", addr)
+	if err != nil {
+		return nil, err
+	}
+
+	var dopts dialOptions
+
+	for _, opt := range opts {
+		opt(&dopts)
+	}
+
 	return &httpTransportClient{
-		ht:   h,
-		addr: addr,
+		ht:       h,
+		addr:     addr,
+		conn:     conn,
+		buff:     bufio.NewReader(conn),
+		dialOpts: dopts,
+		r:        make(chan *http.Request, 1),
 	}, nil
 }
 
@@ -172,8 +212,5 @@ func (h *httpTransport) Listen(addr string) (Listener, error) {
 }
 
 func newHttpTransport(addrs []string, opt ...Option) *httpTransport {
-	client := &http.Client{}
-	client.Transport = &headerRoundTripper{http.DefaultTransport}
-
-	return &httpTransport{client: client}
+	return &httpTransport{}
 }

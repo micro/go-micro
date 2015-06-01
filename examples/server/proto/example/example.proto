@@ -7,3 +7,11 @@ message Request {
 message Response {
 	string msg = 1;
 }
+
+message StreamingRequest {
+	int64 count = 1;
+}
+
+message StreamingResponse {
+	int64 count = 1;
+}

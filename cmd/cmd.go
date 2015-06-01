@@ -88,40 +88,37 @@ var (
 			Usage:  "Comma-separated list of transport addresses",
 		},
 	}
+
+	Brokers = map[string]func([]string, ...broker.Option) broker.Broker{
+		"http":     http.NewBroker,
+		"nats":     nats.NewBroker,
+		"rabbitmq": rabbitmq.NewBroker,
+	}
+
+	Registries = map[string]func([]string, ...registry.Option) registry.Registry{
+		"kubernetes": kubernetes.NewRegistry,
+		"consul":     consul.NewRegistry,
+		"etcd":       etcd.NewRegistry,
+	}
+
+	Transports = map[string]func([]string, ...transport.Option) transport.Transport{
+		"http":     thttp.NewTransport,
+		"rabbitmq": trmq.NewTransport,
+		"nats":     tnats.NewTransport,
+	}
 )
 
 func Setup(c *cli.Context) error {
-	bAddrs := strings.Split(c.String("broker_address"), ",")
-
-	switch c.String("broker") {
-	case "http":
-		broker.DefaultBroker = http.NewBroker(bAddrs)
-	case "nats":
-		broker.DefaultBroker = nats.NewBroker(bAddrs)
-	case "rabbitmq":
-		broker.DefaultBroker = rabbitmq.NewBroker(bAddrs)
+	if b, ok := Brokers[c.String("broker")]; ok {
+		broker.DefaultBroker = b(strings.Split(c.String("broker_address"), ","))
 	}
 
-	rAddrs := strings.Split(c.String("registry_address"), ",")
-
-	switch c.String("registry") {
-	case "kubernetes":
-		registry.DefaultRegistry = kubernetes.NewRegistry(rAddrs)
-	case "consul":
-		registry.DefaultRegistry = consul.NewRegistry(rAddrs)
-	case "etcd":
-		registry.DefaultRegistry = etcd.NewRegistry(rAddrs)
+	if r, ok := Registries[c.String("registry")]; ok {
+		registry.DefaultRegistry = r(strings.Split(c.String("registry_address"), ","))
 	}
 
-	tAddrs := strings.Split(c.String("transport_address"), ",")
-
-	switch c.String("transport") {
-	case "http":
-		transport.DefaultTransport = thttp.NewTransport(tAddrs)
-	case "rabbitmq":
-		transport.DefaultTransport = trmq.NewTransport(tAddrs)
-	case "nats":
-		transport.DefaultTransport = tnats.NewTransport(tAddrs)
+	if t, ok := Transports[c.String("transport")]; ok {
+		transport.DefaultTransport = t(strings.Split(c.String("transport_address"), ","))
 	}
 
 	metadata := make(map[string]string)

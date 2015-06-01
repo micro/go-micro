@@ -147,8 +147,9 @@ func (e *etcdRegistry) ListServices() ([]*registry.Service, error) {
 	return services, nil
 }
 
-func (e *etcdRegistry) Watch() {
-	newEtcdWatcher(e)
+func (e *etcdRegistry) Watch() (registry.Watcher, error) {
+	// todo: fix watcher
+	return newEtcdWatcher(e)
 }
 
 func NewRegistry(addrs []string, opt ...registry.Option) registry.Registry {
@@ -169,9 +170,6 @@ func NewRegistry(addrs []string, opt ...registry.Option) registry.Registry {
 		client:   etcd.NewClient(cAddrs),
 		services: make(map[string]*registry.Service),
 	}
-
-	// Need to fix watcher
-	// e.Watch()
 
 	return e
 }

@@ -5,6 +5,11 @@ type Registry interface {
 	Deregister(*Service) error
 	GetService(string) (*Service, error)
 	ListServices() ([]*Service, error)
+	Watch() (Watcher, error)
+}
+
+type Watcher interface {
+	Stop()
 }
 
 type Service struct {
