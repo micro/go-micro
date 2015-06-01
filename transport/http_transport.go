@@ -148,7 +148,6 @@ func (h *httpTransportSocket) Send(m *Message) error {
 }
 
 func (h *httpTransportSocket) Close() error {
-	// TODO: fix this
 	return h.conn.Close()
 }
 
