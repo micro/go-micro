@@ -12,19 +12,6 @@ type Watcher interface {
 	Stop()
 }
 
-type Service struct {
-	Name     string
-	Metadata map[string]string
-	Nodes    []*Node
-}
-
-type Node struct {
-	Id       string
-	Address  string
-	Port     int
-	Metadata map[string]string
-}
-
 type options struct{}
 
 type Option func(*options)

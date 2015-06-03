@@ -12,6 +12,6 @@ func (d *Debug) Health(ctx context.Context, req *health.Request, rsp *health.Res
 	return nil
 }
 
-func registerHealthChecker(r Server) {
-	r.Register(r.NewReceiver(&Debug{}))
+func registerHealthChecker(s Server) {
+	s.Handle(s.NewHandler(&Debug{}))
 }
