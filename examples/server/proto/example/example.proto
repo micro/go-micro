@@ -1,5 +1,9 @@
 syntax = "proto3";
 
+message Message {
+	string say = 1;
+}
+
 message Request {
 	string name = 1;
 }

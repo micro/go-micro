@@ -1,7 +1,6 @@
 package transport
 
 type Message struct {
-	Id     string
 	Header map[string]string
 	Body   []byte
 }

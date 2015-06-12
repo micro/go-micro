@@ -4,6 +4,7 @@ import (
 	log "github.com/golang/glog"
 	"github.com/myodc/go-micro/cmd"
 	"github.com/myodc/go-micro/examples/server/handler"
+	"github.com/myodc/go-micro/examples/server/subscriber"
 	"github.com/myodc/go-micro/server"
 )
 
@@ -20,6 +21,21 @@ func main() {
 	server.Handle(
 		server.NewHandler(
 			new(handler.Example),
+		),
+	)
+
+	// Register Subscribers
+	server.Subscribe(
+		server.NewSubscriber(
+			"topic.go.micro.srv.example",
+			new(subscriber.Example),
+		),
+	)
+
+	server.Subscribe(
+		server.NewSubscriber(
+			"topic.go.micro.srv.example",
+			subscriber.Handler,
 		),
 	)
 

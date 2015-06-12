@@ -7,21 +7,14 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
-	"os"
-	"os/signal"
 	"strconv"
 	"strings"
 	"sync"
-	"syscall"
-	"time"
 
 	"code.google.com/p/go-uuid/uuid"
 	log "github.com/golang/glog"
-	c "github.com/myodc/go-micro/context"
 	"github.com/myodc/go-micro/errors"
 	"github.com/myodc/go-micro/registry"
-
-	"golang.org/x/net/context"
 )
 
 type httpBroker struct {
@@ -39,14 +32,8 @@ type httpSubscriber struct {
 	id    string
 	topic string
 	ch    chan *httpSubscriber
-	fn    func(context.Context, *Message)
+	fn    Handler
 	svc   *registry.Service
-}
-
-// used in brokers where there is no support for headers
-type envelope struct {
-	Header  map[string]string
-	Message *Message
 }
 
 var (
@@ -55,12 +42,12 @@ var (
 
 func newHttpBroker(addrs []string, opt ...Option) Broker {
 	addr := ":0"
-	if len(addrs) > 0 {
+	if len(addrs) > 0 && len(addrs[0]) > 0 {
 		addr = addrs[0]
 	}
 
 	return &httpBroker{
-		id:          Id,
+		id:          "broker-" + uuid.NewUUID().String(),
 		address:     addr,
 		subscribers: make(map[string][]*httpSubscriber),
 		unsubscribe: make(chan *httpSubscriber),
@@ -96,9 +83,6 @@ func (h *httpBroker) start() error {
 	go http.Serve(l, h)
 
 	go func() {
-		ce := make(chan os.Signal, 1)
-		signal.Notify(ce, syscall.SIGTERM, syscall.SIGINT, syscall.SIGKILL)
-
 		for {
 			select {
 			case ch := <-h.exit:
@@ -107,8 +91,6 @@ func (h *httpBroker) start() error {
 				h.running = false
 				h.Unlock()
 				return
-			case <-ce:
-				h.stop()
 			case subscriber := <-h.unsubscribe:
 				h.Lock()
 				var subscribers []*httpSubscriber
@@ -150,26 +132,27 @@ func (h *httpBroker) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	var e *envelope
-	if err = json.Unmarshal(b, &e); err != nil {
+	var m *Message
+	if err = json.Unmarshal(b, &m); err != nil {
 		errr := errors.InternalServerError("go.micro.broker", fmt.Sprintf("Error parsing request body: %v", err))
 		w.WriteHeader(500)
 		w.Write([]byte(errr.Error()))
 		return
 	}
 
-	if len(e.Message.Topic) == 0 {
+	topic := m.Header[":topic"]
+	delete(m.Header, ":topic")
+
+	if len(topic) == 0 {
 		errr := errors.InternalServerError("go.micro.broker", "Topic not found")
 		w.WriteHeader(500)
 		w.Write([]byte(errr.Error()))
 		return
 	}
 
-	ctx := c.WithMetadata(context.Background(), e.Header)
-
 	h.RLock()
-	for _, subscriber := range h.subscribers[e.Message.Topic] {
-		subscriber.fn(ctx, e.Message)
+	for _, subscriber := range h.subscribers[topic] {
+		subscriber.fn(m)
 	}
 	h.RUnlock()
 }
@@ -195,26 +178,14 @@ func (h *httpBroker) Init() error {
 	return nil
 }
 
-func (h *httpBroker) Publish(ctx context.Context, topic string, body []byte) error {
+func (h *httpBroker) Publish(topic string, msg *Message) error {
 	s, err := registry.GetService("topic:" + topic)
 	if err != nil {
 		return err
 	}
 
-	message := &Message{
-		Id:        uuid.NewUUID().String(),
-		Timestamp: time.Now().Unix(),
-		Topic:     topic,
-		Body:      body,
-	}
-
-	header, _ := c.GetMetadata(ctx)
-
-	b, err := json.Marshal(&envelope{
-		header,
-		message,
-	})
-
+	msg.Header[":topic"] = topic
+	b, err := json.Marshal(msg)
 	if err != nil {
 		return err
 	}
@@ -229,7 +200,7 @@ func (h *httpBroker) Publish(ctx context.Context, topic string, body []byte) err
 	return nil
 }
 
-func (h *httpBroker) Subscribe(topic string, function func(context.Context, *Message)) (Subscriber, error) {
+func (h *httpBroker) Subscribe(topic string, handler Handler) (Subscriber, error) {
 	// parse address for host, port
 	parts := strings.Split(h.Address(), ":")
 	host := strings.Join(parts[:len(parts)-1], ":")
@@ -251,11 +222,10 @@ func (h *httpBroker) Subscribe(topic string, function func(context.Context, *Mes
 		id:    uuid.NewUUID().String(),
 		topic: topic,
 		ch:    h.unsubscribe,
-		fn:    function,
+		fn:    handler,
 		svc:   service,
 	}
 
-	log.Infof("Registering subscriber %s", node.Id)
 	if err := registry.Register(service); err != nil {
 		return nil, err
 	}

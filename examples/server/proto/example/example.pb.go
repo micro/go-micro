@@ -9,6 +9,7 @@ It is generated from these files:
 	go-micro/examples/server/proto/example/example.proto
 
 It has these top-level messages:
+	Message
 	Request
 	Response
 	StreamingRequest
@@ -20,6 +21,14 @@ import proto "github.com/golang/protobuf/proto"
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
+
+type Message struct {
+	Say string `protobuf:"bytes,1,opt,name=say" json:"say,omitempty"`
+}
+
+func (m *Message) Reset()         { *m = Message{} }
+func (m *Message) String() string { return proto.CompactTextString(m) }
+func (*Message) ProtoMessage()    {}
 
 type Request struct {
 	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`

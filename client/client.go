@@ -1,19 +1,32 @@
 package client
 
 import (
-	"github.com/myodc/go-micro/registry"
-	"github.com/myodc/go-micro/transport"
 	"golang.org/x/net/context"
 )
 
 type Client interface {
-	NewRequest(string, string, interface{}) Request
-	NewProtoRequest(string, string, interface{}) Request
-	NewJsonRequest(string, string, interface{}) Request
-	Call(context.Context, Request, interface{}) error
-	CallRemote(context.Context, string, Request, interface{}) error
-	Stream(context.Context, Request, interface{}) (Streamer, error)
-	StreamRemote(context.Context, string, Request, interface{}) (Streamer, error)
+	NewPublication(topic string, msg interface{}) Publication
+	NewRequest(service, method string, req interface{}) Request
+	NewProtoRequest(service, method string, req interface{}) Request
+	NewJsonRequest(service, method string, req interface{}) Request
+	Call(ctx context.Context, req Request, rsp interface{}) error
+	CallRemote(ctx context.Context, addr string, req Request, rsp interface{}) error
+	Stream(ctx context.Context, req Request, rspChan interface{}) (Streamer, error)
+	StreamRemote(ctx context.Context, addr string, req Request, rspChan interface{}) (Streamer, error)
+	Publish(ctx context.Context, p Publication) error
+}
+
+type Publication interface {
+	Topic() string
+	Message() interface{}
+	ContentType() string
+}
+
+type Request interface {
+	Service() string
+	Method() string
+	ContentType() string
+	Request() interface{}
 }
 
 type Streamer interface {
@@ -22,28 +35,11 @@ type Streamer interface {
 	Close() error
 }
 
-type options struct {
-	registry  registry.Registry
-	transport transport.Transport
-}
-
 type Option func(*options)
 
 var (
 	DefaultClient Client = newRpcClient()
 )
-
-func Registry(r registry.Registry) Option {
-	return func(o *options) {
-		o.registry = r
-	}
-}
-
-func Transport(t transport.Transport) Option {
-	return func(o *options) {
-		o.transport = t
-	}
-}
 
 func Call(ctx context.Context, request Request, response interface{}) error {
 	return DefaultClient.Call(ctx, request, response)
@@ -61,8 +57,16 @@ func StreamRemote(ctx context.Context, address string, request Request, response
 	return DefaultClient.StreamRemote(ctx, address, request, responseChan)
 }
 
+func Publish(ctx context.Context, p Publication) error {
+	return DefaultClient.Publish(ctx, p)
+}
+
 func NewClient(opt ...Option) Client {
 	return newRpcClient(opt...)
+}
+
+func NewPublication(topic string, message interface{}) Publication {
+	return DefaultClient.NewPublication(topic, message)
 }
 
 func NewRequest(service, method string, request interface{}) Request {

@@ -1,24 +1,19 @@
 package broker
 
-import (
-	"code.google.com/p/go-uuid/uuid"
-	"golang.org/x/net/context"
-)
-
 type Broker interface {
 	Address() string
 	Connect() error
 	Disconnect() error
 	Init() error
-	Publish(context.Context, string, []byte) error
-	Subscribe(string, func(context.Context, *Message)) (Subscriber, error)
+	Publish(string, *Message) error
+	Subscribe(string, Handler) (Subscriber, error)
 }
 
+type Handler func(*Message)
+
 type Message struct {
-	Id        string
-	Timestamp int64
-	Topic     string
-	Body      []byte
+	Header map[string]string
+	Body   []byte
 }
 
 type Subscriber interface {
@@ -31,24 +26,14 @@ type options struct{}
 type Option func(*options)
 
 var (
-	Address       string
-	Id            string
-	DefaultBroker Broker
+	DefaultBroker Broker = newHttpBroker([]string{})
 )
 
 func NewBroker(addrs []string, opt ...Option) Broker {
-	return newHttpBroker([]string{Address}, opt...)
+	return newHttpBroker(addrs, opt...)
 }
 
 func Init() error {
-	if len(Id) == 0 {
-		Id = "broker-" + uuid.NewUUID().String()
-	}
-
-	if DefaultBroker == nil {
-		DefaultBroker = newHttpBroker([]string{Address})
-	}
-
 	return DefaultBroker.Init()
 }
 
@@ -60,10 +45,10 @@ func Disconnect() error {
 	return DefaultBroker.Disconnect()
 }
 
-func Publish(ctx context.Context, topic string, body []byte) error {
-	return DefaultBroker.Publish(ctx, topic, body)
+func Publish(topic string, msg *Message) error {
+	return DefaultBroker.Publish(topic, msg)
 }
 
-func Subscribe(topic string, function func(context.Context, *Message)) (Subscriber, error) {
-	return DefaultBroker.Subscribe(topic, function)
+func Subscribe(topic string, handler Handler) (Subscriber, error) {
+	return DefaultBroker.Subscribe(topic, handler)
 }

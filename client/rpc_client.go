@@ -1,11 +1,14 @@
 package client
 
 import (
+	"encoding/json"
 	"fmt"
 	"math/rand"
 	"net/http"
+	"sync"
 	"time"
 
+	"github.com/myodc/go-micro/broker"
 	c "github.com/myodc/go-micro/context"
 	"github.com/myodc/go-micro/errors"
 	"github.com/myodc/go-micro/registry"
@@ -13,6 +16,7 @@ import (
 
 	rpc "github.com/youtube/vitess/go/rpcplus"
 
+	"github.com/golang/protobuf/proto"
 	"golang.org/x/net/context"
 )
 
@@ -21,6 +25,7 @@ type headerRoundTripper struct {
 }
 
 type rpcClient struct {
+	once sync.Once
 	opts options
 }
 
@@ -39,7 +44,14 @@ func newRpcClient(opt ...Option) Client {
 		opts.transport = transport.DefaultTransport
 	}
 
+	if opts.broker == nil {
+		opts.broker = broker.DefaultBroker
+	}
+
+	var once sync.Once
+
 	return &rpcClient{
+		once: once,
 		opts: opts,
 	}
 }
@@ -152,6 +164,48 @@ func (r *rpcClient) Stream(ctx context.Context, request Request, responseChan in
 	return r.stream(ctx, address, request, responseChan)
 }
 
+func (r *rpcClient) Publish(ctx context.Context, p Publication) error {
+	md, ok := c.GetMetadata(ctx)
+	if !ok {
+		md = make(map[string]string)
+	}
+	md["Content-Type"] = p.ContentType()
+
+	// encode message body
+	var body []byte
+
+	switch p.ContentType() {
+	case "application/octet-stream":
+		b, err := proto.Marshal(p.Message().(proto.Message))
+		if err != nil {
+			return err
+		}
+		body = b
+	case "application/json":
+		b, err := json.Marshal(p.Message())
+		if err != nil {
+			return err
+		}
+		body = b
+	}
+
+	r.once.Do(func() {
+		r.opts.broker.Connect()
+	})
+
+	return r.opts.broker.Publish(p.Topic(), &broker.Message{
+		Header: md,
+		Body:   body,
+	})
+}
+
+func (r *rpcClient) NewPublication(topic string, message interface{}) Publication {
+	return r.NewProtoPublication(topic, message)
+}
+
+func (r *rpcClient) NewProtoPublication(topic string, message interface{}) Publication {
+	return newRpcPublication(topic, message, "application/octet-stream")
+}
 func (r *rpcClient) NewRequest(service, method string, request interface{}) Request {
 	return r.NewProtoRequest(service, method, request)
 }

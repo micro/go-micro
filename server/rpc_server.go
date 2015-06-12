@@ -1,10 +1,12 @@
 package server
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 	"sync"
 
+	"github.com/myodc/go-micro/broker"
 	c "github.com/myodc/go-micro/context"
 	"github.com/myodc/go-micro/registry"
 	"github.com/myodc/go-micro/transport"
@@ -20,16 +22,18 @@ type rpcServer struct {
 	exit chan chan error
 
 	sync.RWMutex
-	opts     options
-	handlers map[string]Handler
+	opts        options
+	handlers    map[string]Handler
+	subscribers map[*subscriber][]broker.Subscriber
 }
 
 func newRpcServer(opts ...Option) Server {
 	return &rpcServer{
-		opts:     newOptions(opts...),
-		rpc:      rpc.NewServer(),
-		handlers: make(map[string]Handler),
-		exit:     make(chan chan error),
+		opts:        newOptions(opts...),
+		rpc:         rpc.NewServer(),
+		handlers:    make(map[string]Handler),
+		subscribers: make(map[*subscriber][]broker.Subscriber),
+		exit:        make(chan chan error),
 	}
 }
 
@@ -84,6 +88,29 @@ func (s *rpcServer) Handle(h Handler) error {
 	return nil
 }
 
+func (s *rpcServer) NewSubscriber(topic string, sb interface{}) Subscriber {
+	return newSubscriber(topic, sb)
+}
+
+func (s *rpcServer) Subscribe(sb Subscriber) error {
+	sub, ok := sb.(*subscriber)
+	if !ok {
+		return fmt.Errorf("invalid subscriber: expected *subscriber")
+	}
+	if len(sub.handlers) == 0 {
+		return fmt.Errorf("invalid subscriber: no handler functions")
+	}
+
+	s.Lock()
+	_, ok = s.subscribers[sub]
+	if ok {
+		return fmt.Errorf("subscriber %v already exists", s)
+	}
+	s.subscribers[sub] = nil
+	s.Unlock()
+	return nil
+}
+
 func (s *rpcServer) Register() error {
 	// parse address for host, port
 	config := s.Config()
@@ -110,6 +137,9 @@ func (s *rpcServer) Register() error {
 	for _, e := range s.handlers {
 		endpoints = append(endpoints, e.Endpoints()...)
 	}
+	for e, _ := range s.subscribers {
+		endpoints = append(endpoints, e.Endpoints()...)
+	}
 	s.RUnlock()
 
 	service := &registry.Service{
@@ -120,7 +150,23 @@ func (s *rpcServer) Register() error {
 	}
 
 	log.Infof("Registering node: %s", node.Id)
-	return config.registry.Register(service)
+	if err := config.registry.Register(service); err != nil {
+		return err
+	}
+
+	s.Lock()
+	defer s.Unlock()
+
+	for sb, _ := range s.subscribers {
+		handler := createSubHandler(sb)
+		sub, err := config.broker.Subscribe(sb.Topic(), handler)
+		if err != nil {
+			return err
+		}
+		s.subscribers[sb] = []broker.Subscriber{sub}
+	}
+
+	return nil
 }
 
 func (s *rpcServer) Deregister() error {
@@ -147,7 +193,21 @@ func (s *rpcServer) Deregister() error {
 		Nodes:   []*registry.Node{node},
 	}
 
-	return config.registry.Deregister(service)
+	log.Infof("Deregistering node: %s", node.Id)
+	if err := config.registry.Deregister(service); err != nil {
+		return err
+	}
+
+	s.Lock()
+	for sb, subs := range s.subscribers {
+		for _, sub := range subs {
+			log.Infof("Unsubscribing from topic: %s", sub.Topic())
+			sub.Unsubscribe()
+		}
+		s.subscribers[sb] = nil
+	}
+	s.Unlock()
+	return nil
 }
 
 func (s *rpcServer) Start() error {
@@ -169,9 +229,11 @@ func (s *rpcServer) Start() error {
 	go func() {
 		ch := <-s.exit
 		ch <- ts.Close()
+		config.broker.Disconnect()
 	}()
 
-	return nil
+	// TODO: subscribe to cruft
+	return config.broker.Connect()
 }
 
 func (s *rpcServer) Stop() error {

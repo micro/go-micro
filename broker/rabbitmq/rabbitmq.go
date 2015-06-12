@@ -1,13 +1,8 @@
 package rabbitmq
 
 import (
-	"time"
-
-	"code.google.com/p/go-uuid/uuid"
 	"github.com/myodc/go-micro/broker"
-	c "github.com/myodc/go-micro/context"
 	"github.com/streadway/amqp"
-	"golang.org/x/net/context"
 )
 
 type rbroker struct {
@@ -28,24 +23,20 @@ func (s *subscriber) Unsubscribe() error {
 	return s.ch.Close()
 }
 
-func (r *rbroker) Publish(ctx context.Context, topic string, body []byte) error {
-	header, _ := c.GetMetadata(ctx)
-
-	msg := amqp.Publishing{
-		MessageId: uuid.NewUUID().String(),
-		Timestamp: time.Now().UTC(),
-		Body:      body,
-		Headers:   amqp.Table{},
+func (r *rbroker) Publish(topic string, msg *broker.Message) error {
+	m := amqp.Publishing{
+		Body:    msg.Body,
+		Headers: amqp.Table{},
 	}
 
-	for k, v := range header {
-		msg.Headers[k] = v
+	for k, v := range msg.Header {
+		m.Headers[k] = v
 	}
 
-	return r.conn.Publish("", topic, msg)
+	return r.conn.Publish("", topic, m)
 }
 
-func (r *rbroker) Subscribe(topic string, function func(context.Context, *broker.Message)) (broker.Subscriber, error) {
+func (r *rbroker) Subscribe(topic string, handler broker.Handler) (broker.Subscriber, error) {
 	ch, sub, err := r.conn.Consume(topic)
 	if err != nil {
 		return nil, err
@@ -56,12 +47,9 @@ func (r *rbroker) Subscribe(topic string, function func(context.Context, *broker
 		for k, v := range msg.Headers {
 			header[k], _ = v.(string)
 		}
-		ctx := c.WithMetadata(context.Background(), header)
-		function(ctx, &broker.Message{
-			Id:        msg.MessageId,
-			Timestamp: msg.Timestamp.Unix(),
-			Topic:     topic,
-			Body:      msg.Body,
+		handler(&broker.Message{
+			Header: header,
+			Body:   msg.Body,
 		})
 	}
 

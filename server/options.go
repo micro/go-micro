@@ -1,11 +1,13 @@
 package server
 
 import (
+	"github.com/myodc/go-micro/broker"
 	"github.com/myodc/go-micro/registry"
 	"github.com/myodc/go-micro/transport"
 )
 
 type options struct {
+	broker    broker.Broker
 	registry  registry.Registry
 	transport transport.Transport
 	metadata  map[string]string
@@ -20,6 +22,10 @@ func newOptions(opt ...Option) options {
 
 	for _, o := range opt {
 		o(&opts)
+	}
+
+	if opts.broker == nil {
+		opts.broker = broker.DefaultBroker
 	}
 
 	if opts.registry == nil {
@@ -90,6 +96,12 @@ func Version(v string) Option {
 func Address(a string) Option {
 	return func(o *options) {
 		o.address = a
+	}
+}
+
+func Broker(b broker.Broker) Option {
+	return func(o *options) {
+		o.broker = b
 	}
 }
 

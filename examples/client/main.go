@@ -10,6 +10,26 @@ import (
 	"golang.org/x/net/context"
 )
 
+func pub() {
+	msg := client.NewPublication("topic.go.micro.srv.example", &example.Message{
+		Say: "This is a publication",
+	})
+
+	// create context with metadata
+	ctx := c.WithMetadata(context.Background(), map[string]string{
+		"X-User-Id": "john",
+		"X-From-Id": "script",
+	})
+
+	// publish message
+	if err := client.Publish(ctx, msg); err != nil {
+		fmt.Println("pub err: ", err)
+		return
+	}
+
+	fmt.Printf("Published: %v\n", msg)
+}
+
 func call(i int) {
 	// Create new request to service go.micro.srv.example, method Example.Call
 	req := client.NewRequest("go.micro.srv.example", "Example.Call", &example.Request{
@@ -26,7 +46,7 @@ func call(i int) {
 
 	// Call service
 	if err := client.Call(ctx, req, rsp); err != nil {
-		fmt.Println("err: ", err, rsp)
+		fmt.Println("call err: ", err, rsp)
 		return
 	}
 
@@ -52,7 +72,7 @@ func stream() {
 	}
 
 	if stream.Error() != nil {
-		fmt.Println("err:", err)
+		fmt.Println("stream err:", err)
 		return
 	}
 
@@ -67,4 +87,5 @@ func main() {
 	}
 
 	stream()
+	pub()
 }

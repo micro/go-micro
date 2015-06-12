@@ -19,6 +19,7 @@ type Endpoint struct {
 	Name     string
 	Request  *Value
 	Response *Value
+	Metadata map[string]string
 }
 
 type Value struct {

@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"reflect"
 
 	"github.com/myodc/go-micro/registry"
@@ -37,7 +38,7 @@ func extractEndpoint(method reflect.Method) *registry.Endpoint {
 	}
 
 	var rspType, reqType reflect.Type
-	//	var stream bool
+	var stream bool
 	mt := method.Type
 
 	switch mt.NumIn() {
@@ -51,9 +52,9 @@ func extractEndpoint(method reflect.Method) *registry.Endpoint {
 		return nil
 	}
 
-	//	if rspType.Kind() == reflect.Func {
-	//		stream = true
-	//	}
+	if rspType.Kind() == reflect.Func {
+		stream = true
+	}
 
 	request := extractValue(reqType)
 	response := extractValue(rspType)
@@ -62,5 +63,21 @@ func extractEndpoint(method reflect.Method) *registry.Endpoint {
 		Name:     method.Name,
 		Request:  request,
 		Response: response,
+		Metadata: map[string]string{
+			"stream": fmt.Sprintf("%v", stream),
+		},
 	}
+}
+
+func extractSubValue(typ reflect.Type) *registry.Value {
+	var reqType reflect.Type
+	switch typ.NumIn() {
+	case 1:
+		reqType = typ.In(0)
+	case 2:
+		reqType = typ.In(1)
+	default:
+		return nil
+	}
+	return extractValue(reqType)
 }

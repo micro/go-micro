@@ -137,7 +137,6 @@ func (h *httpTransportSocket) Send(m *Message) error {
 		ProtoMajor:    1,
 		ProtoMinor:    1,
 		ContentLength: int64(len(m.Body)),
-		//		Request:       h.r,
 	}
 
 	for k, v := range m.Header {

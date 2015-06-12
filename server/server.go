@@ -14,6 +14,8 @@ type Server interface {
 	Init(...Option)
 	Handle(Handler) error
 	NewHandler(interface{}) Handler
+	NewSubscriber(string, interface{}) Subscriber
+	Subscribe(Subscriber) error
 	Register() error
 	Deregister() error
 	Start() error
@@ -45,12 +47,20 @@ func NewServer(opt ...Option) Server {
 	return newRpcServer(opt...)
 }
 
+func NewSubscriber(topic string, h interface{}) Subscriber {
+	return DefaultServer.NewSubscriber(topic, h)
+}
+
 func NewHandler(h interface{}) Handler {
 	return DefaultServer.NewHandler(h)
 }
 
 func Handle(h Handler) error {
 	return DefaultServer.Handle(h)
+}
+
+func Subscribe(s Subscriber) error {
+	return DefaultServer.Subscribe(s)
 }
 
 func Register() error {
@@ -77,9 +87,6 @@ func Run() error {
 	if err := DefaultServer.Deregister(); err != nil {
 		return err
 	}
-
-	log.Infof("Deregistering %s", DefaultServer.Config().Id())
-	DefaultServer.Deregister()
 
 	return Stop()
 }

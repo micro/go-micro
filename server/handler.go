@@ -9,3 +9,9 @@ type Handler interface {
 	Handler() interface{}
 	Endpoints() []*registry.Endpoint
 }
+
+type Subscriber interface {
+	Topic() string
+	Subscriber() interface{}
+	Endpoints() []*registry.Endpoint
+}

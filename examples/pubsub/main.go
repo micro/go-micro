@@ -7,9 +7,6 @@ import (
 	log "github.com/golang/glog"
 	"github.com/myodc/go-micro/broker"
 	"github.com/myodc/go-micro/cmd"
-	c "github.com/myodc/go-micro/context"
-
-	"golang.org/x/net/context"
 )
 
 var (
@@ -20,24 +17,24 @@ func pub() {
 	tick := time.NewTicker(time.Second)
 	i := 0
 	for _ = range tick.C {
-		ctx := c.WithMetadata(context.Background(), map[string]string{
-			"id": fmt.Sprintf("%d", i),
-		})
-
-		msg := fmt.Sprintf("%d: %s", i, time.Now().String())
-		if err := broker.Publish(ctx, topic, []byte(msg)); err != nil {
+		msg := &broker.Message{
+			Header: map[string]string{
+				"id": fmt.Sprintf("%d", i),
+			},
+			Body: []byte(fmt.Sprintf("%d: %s", i, time.Now().String())),
+		}
+		if err := broker.Publish(topic, msg); err != nil {
 			log.Errorf("[pub] failed: %v", err)
 		} else {
-			fmt.Println("[pub] pubbed message:", msg)
+			fmt.Println("[pub] pubbed message:", string(msg.Body))
 		}
 		i++
 	}
 }
 
 func sub() {
-	_, err := broker.Subscribe(topic, func(ctx context.Context, msg *broker.Message) {
-		md, _ := c.GetMetadata(ctx)
-		fmt.Println("[sub] received message:", string(msg.Body), "context", md)
+	_, err := broker.Subscribe(topic, func(msg *broker.Message) {
+		fmt.Println("[sub] received message:", string(msg.Body), "header", msg.Header)
 	})
 	if err != nil {
 		fmt.Println(err)
