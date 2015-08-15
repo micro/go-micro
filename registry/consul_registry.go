@@ -65,9 +65,8 @@ func (c *consulRegistry) Deregister(s *Service) error {
 	node := s.Nodes[0]
 
 	_, err := c.Client.Catalog().Deregister(&consul.CatalogDeregistration{
-		Node:      node.Id,
-		Address:   node.Address,
-		ServiceID: node.Id,
+		Node:    node.Id,
+		Address: node.Address,
 	}, nil)
 
 	return err
