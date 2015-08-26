@@ -8,7 +8,7 @@ import (
 	"sync"
 
 	"github.com/coreos/go-etcd/etcd"
-	"github.com/myodc/go-micro/registry"
+	"github.com/kynrai/go-micro/registry"
 )
 
 var (

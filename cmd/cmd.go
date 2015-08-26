@@ -8,26 +8,26 @@ import (
 	"text/template"
 
 	"github.com/codegangsta/cli"
-	"github.com/myodc/go-micro/broker"
-	"github.com/myodc/go-micro/client"
-	"github.com/myodc/go-micro/registry"
-	"github.com/myodc/go-micro/server"
-	"github.com/myodc/go-micro/transport"
+	"github.com/kynrai/go-micro/broker"
+	"github.com/kynrai/go-micro/client"
+	"github.com/kynrai/go-micro/registry"
+	"github.com/kynrai/go-micro/server"
+	"github.com/kynrai/go-micro/transport"
 
 	// brokers
-	"github.com/myodc/go-micro/broker/http"
-	"github.com/myodc/go-micro/broker/nats"
-	"github.com/myodc/go-micro/broker/rabbitmq"
+	"github.com/kynrai/go-micro/broker/http"
+	"github.com/kynrai/go-micro/broker/nats"
+	"github.com/kynrai/go-micro/broker/rabbitmq"
 
 	// registries
-	"github.com/myodc/go-micro/registry/consul"
-	"github.com/myodc/go-micro/registry/etcd"
-	"github.com/myodc/go-micro/registry/kubernetes"
+	"github.com/kynrai/go-micro/registry/consul"
+	"github.com/kynrai/go-micro/registry/etcd"
+	"github.com/kynrai/go-micro/registry/kubernetes"
 
 	// transport
-	thttp "github.com/myodc/go-micro/transport/http"
-	tnats "github.com/myodc/go-micro/transport/nats"
-	trmq "github.com/myodc/go-micro/transport/rabbitmq"
+	thttp "github.com/kynrai/go-micro/transport/http"
+	tnats "github.com/kynrai/go-micro/transport/nats"
+	trmq "github.com/kynrai/go-micro/transport/rabbitmq"
 )
 
 var (

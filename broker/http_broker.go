@@ -11,10 +11,10 @@ import (
 	"strings"
 	"sync"
 
-	"code.google.com/p/go-uuid/uuid"
+	"github.com/satori/go.uuid"
 	log "github.com/golang/glog"
-	"github.com/myodc/go-micro/errors"
-	"github.com/myodc/go-micro/registry"
+	"github.com/kynrai/go-micro/errors"
+	"github.com/kynrai/go-micro/registry"
 )
 
 type httpBroker struct {
@@ -47,7 +47,7 @@ func newHttpBroker(addrs []string, opt ...Option) Broker {
 	}
 
 	return &httpBroker{
-		id:          "broker-" + uuid.NewUUID().String(),
+		id:          "broker-" + uuid.NewV4().String(),
 		address:     addr,
 		subscribers: make(map[string][]*httpSubscriber),
 		unsubscribe: make(chan *httpSubscriber),
@@ -171,7 +171,7 @@ func (h *httpBroker) Disconnect() error {
 
 func (h *httpBroker) Init() error {
 	if len(h.id) == 0 {
-		h.id = "broker-" + uuid.NewUUID().String()
+		h.id = "broker-" + uuid.NewV4().String()
 	}
 
 	http.Handle(DefaultSubPath, h)
@@ -219,7 +219,7 @@ func (h *httpBroker) Subscribe(topic string, handler Handler) (Subscriber, error
 	}
 
 	subscriber := &httpSubscriber{
-		id:    uuid.NewUUID().String(),
+		id:    uuid.NewV4().String(),
 		topic: topic,
 		ch:    h.unsubscribe,
 		fn:    handler,

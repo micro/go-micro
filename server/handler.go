@@ -1,7 +1,7 @@
 package server
 
 import (
-	"github.com/myodc/go-micro/registry"
+	"github.com/kynrai/go-micro/registry"
 )
 
 type Handler interface {
