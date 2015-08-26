@@ -9,7 +9,7 @@ import (
 	uuid "github.com/nu7hatch/gouuid"
 	"github.com/streadway/amqp"
 
-	"github.com/myodc/go-micro/transport"
+	"github.com/kynrai/go-micro/transport"
 )
 
 type rmqtport struct {

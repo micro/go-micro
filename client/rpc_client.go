@@ -8,11 +8,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/myodc/go-micro/broker"
-	c "github.com/myodc/go-micro/context"
-	"github.com/myodc/go-micro/errors"
-	"github.com/myodc/go-micro/registry"
-	"github.com/myodc/go-micro/transport"
+	"github.com/kynrai/go-micro/broker"
+	c "github.com/kynrai/go-micro/context"
+	"github.com/kynrai/go-micro/errors"
+	"github.com/kynrai/go-micro/registry"
+	"github.com/kynrai/go-micro/transport"
 
 	rpc "github.com/youtube/vitess/go/rpcplus"
 

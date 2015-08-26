@@ -13,8 +13,8 @@ import (
 
 	"github.com/satori/go.uuid"
 	log "github.com/golang/glog"
-	"github.com/myodc/go-micro/errors"
-	"github.com/myodc/go-micro/registry"
+	"github.com/kynrai/go-micro/errors"
+	"github.com/kynrai/go-micro/registry"
 )
 
 type httpBroker struct {
