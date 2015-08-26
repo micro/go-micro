@@ -5,7 +5,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"code.google.com/p/go-uuid/uuid"
+	"github.com/satori/go.uuid"
 	log "github.com/golang/glog"
 )
 
@@ -28,7 +28,7 @@ var (
 	DefaultAddress        = ":0"
 	DefaultName           = "go-server"
 	DefaultVersion        = "1.0.0"
-	DefaultId             = uuid.NewUUID().String()
+	DefaultId             = uuid.NewV4().String()
 	DefaultServer  Server = newRpcServer()
 )
 
