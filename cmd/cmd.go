@@ -28,6 +28,7 @@ import (
 	thttp "github.com/kynrai/go-micro/transport/http"
 	tnats "github.com/kynrai/go-micro/transport/nats"
 	trmq "github.com/kynrai/go-micro/transport/rabbitmq"
+	"flag"
 )
 
 var (
@@ -145,6 +146,7 @@ func Setup(c *cli.Context) error {
 }
 
 func Init() {
+	flag.Parse()
 	cli.AppHelpTemplate = `
 GLOBAL OPTIONS:
    {{range .Flags}}{{.}}
