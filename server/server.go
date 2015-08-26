@@ -5,8 +5,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	"code.google.com/p/go-uuid/uuid"
 	log "github.com/golang/glog"
+	"github.com/pborman/uuid"
 )
 
 type Server interface {

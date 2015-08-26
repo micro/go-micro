@@ -11,10 +11,10 @@ import (
 	"strings"
 	"sync"
 
-	"code.google.com/p/go-uuid/uuid"
 	log "github.com/golang/glog"
 	"github.com/myodc/go-micro/errors"
 	"github.com/myodc/go-micro/registry"
+	"github.com/pborman/uuid"
 )
 
 type httpBroker struct {
