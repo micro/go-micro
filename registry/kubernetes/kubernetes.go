@@ -7,8 +7,8 @@ import (
 
 	"github.com/myodc/go-micro/registry"
 
-	k8s "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	k8s "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/labels"
 )
 
 type kregistry struct {
