@@ -172,6 +172,9 @@ func Setup(c *cli.Context) error {
 	)
 
 	client.DefaultClient = client.NewClient()
+
+	os.Args = os.Args[:1]
+
 	flag.Set("logtostderr", fmt.Sprintf("%v", c.Bool("logtostderr")))
 	flag.Set("alsologtostderr", fmt.Sprintf("%v", c.Bool("alsologtostderr")))
 	flag.Set("stderrthreshold", c.String("stderrthreshold"))
@@ -179,6 +182,7 @@ func Setup(c *cli.Context) error {
 	flag.Set("log_dir", c.String("log_dir"))
 	flag.Set("vmodule", c.String("vmodule"))
 	flag.Set("v", c.String("v"))
+
 	flag.Parse()
 
 	return nil
