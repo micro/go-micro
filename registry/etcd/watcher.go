@@ -1,8 +1,9 @@
 package etcd
 
 import (
-	"github.com/coreos/go-etcd/etcd"
+	etcd "github.com/coreos/etcd/client"
 	"github.com/myodc/go-micro/registry"
+	"golang.org/x/net/context"
 )
 
 type etcdWatcher struct {
@@ -16,16 +17,28 @@ func newEtcdWatcher(r *etcdRegistry) (registry.Watcher, error) {
 		stop:     make(chan bool),
 	}
 
-	ch := make(chan *etcd.Response)
+	w := r.client.Watcher(prefix, &etcd.WatcherOptions{AfterIndex: 0, Recursive: true})
 
-	go r.client.Watch(prefix, 0, true, ch, ew.stop)
-	go ew.watch(ch)
+	c := context.Background()
+	ctx, cancel := context.WithCancel(c)
+
+	go func() {
+		<-ew.stop
+		cancel()
+	}()
+
+	go ew.watch(ctx, w)
 
 	return ew, nil
 }
 
-func (e *etcdWatcher) watch(ch chan *etcd.Response) {
-	for rsp := range ch {
+func (e *etcdWatcher) watch(ctx context.Context, w etcd.Watcher) {
+	for {
+		rsp, err := w.Next(ctx)
+		if err != nil && ctx.Err() != nil {
+			return
+		}
+
 		if rsp.Node.Dir {
 			continue
 		}
