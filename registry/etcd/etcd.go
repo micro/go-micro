@@ -66,8 +66,10 @@ func (e *etcdRegistry) Register(s *registry.Service) error {
 	}
 
 	service := &registry.Service{
-		Name:     s.Name,
-		Metadata: s.Metadata,
+		Name:      s.Name,
+		Version:   s.Version,
+		Metadata:  s.Metadata,
+		Endpoints: s.Endpoints,
 	}
 
 	e.client.Set(context.Background(), servicePath(s.Name), "", &etcd.SetOptions{Dir: true})
@@ -105,7 +107,9 @@ func (e *etcdRegistry) GetService(name string) (*registry.Service, error) {
 		}
 		sn := decode(n.Value)
 		s.Name = sn.Name
+		s.Version = sn.Version
 		s.Metadata = sn.Metadata
+		s.Endpoints = sn.Endpoints
 		for _, node := range sn.Nodes {
 			s.Nodes = append(s.Nodes, node)
 		}
