@@ -21,6 +21,7 @@ func newRpcHandler(handler interface{}) Handler {
 
 	for m := 0; m < typ.NumMethod(); m++ {
 		if e := extractEndpoint(typ.Method(m)); e != nil {
+			e.Name = name + "." + e.Name
 			endpoints = append(endpoints, e)
 		}
 	}

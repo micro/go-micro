@@ -42,6 +42,7 @@ func (cw *consulWatcher) serviceHandler(idx uint64, data interface{}) {
 	cs := &Service{}
 
 	for _, e := range entries {
+		cs.Endpoints = decodeEndpoints(e.Service.Tags)
 		cs.Name = e.Service.Service
 		cs.Nodes = append(cs.Nodes, &Node{
 			Id:       e.Service.ID,

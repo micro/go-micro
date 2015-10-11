@@ -16,13 +16,38 @@ type consulRegistry struct {
 	services map[string]*Service
 }
 
+func encodeEndpoints(en []*Endpoint) []string {
+	var tags []string
+	for _, e := range en {
+		if b, err := json.Marshal(e); err == nil {
+			tags = append(tags, "e="+string(b))
+		}
+	}
+	return tags
+}
+
+func decodeEndpoints(tags []string) []*Endpoint {
+	var en []*Endpoint
+	for _, tag := range tags {
+		if len(tag) == 0 || tag[0] != 'e' {
+			continue
+		}
+
+		var e *Endpoint
+		if err := json.Unmarshal([]byte(tag[2:]), &e); err == nil {
+			en = append(en, e)
+		}
+	}
+	return en
+}
+
 func encodeMetadata(md map[string]string) []string {
 	var tags []string
 	for k, v := range md {
 		if b, err := json.Marshal(map[string]string{
 			k: v,
 		}); err == nil {
-			tags = append(tags, string(b))
+			tags = append(tags, "t="+string(b))
 		}
 	}
 	return tags
@@ -31,8 +56,12 @@ func encodeMetadata(md map[string]string) []string {
 func decodeMetadata(tags []string) map[string]string {
 	md := make(map[string]string)
 	for _, tag := range tags {
+		if len(tag) == 0 || tag[0] != 't' {
+			continue
+		}
+
 		var kv map[string]string
-		if err := json.Unmarshal([]byte(tag), &kv); err == nil {
+		if err := json.Unmarshal([]byte(tag[2:]), &kv); err == nil {
 			for k, v := range kv {
 				md[k] = v
 			}
@@ -80,6 +109,7 @@ func (c *consulRegistry) Register(s *Service) error {
 	node := s.Nodes[0]
 
 	tags := encodeMetadata(node.Metadata)
+	tags = append(tags, encodeEndpoints(s.Endpoints)...)
 
 	_, err := c.Client.Catalog().Register(&consul.CatalogRegistration{
 		Node:    node.Id,
@@ -116,6 +146,7 @@ func (c *consulRegistry) GetService(name string) (*Service, error) {
 			continue
 		}
 
+		cs.Endpoints = decodeEndpoints(s.ServiceTags)
 		cs.Name = s.ServiceName
 		cs.Nodes = append(cs.Nodes, &Node{
 			Id:       s.ServiceID,
