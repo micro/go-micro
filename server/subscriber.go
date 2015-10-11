@@ -49,10 +49,14 @@ func newSubscriber(topic string, sub interface{}) Subscriber {
 			Name:    "Func",
 			Request: extractSubValue(typ),
 			Metadata: map[string]string{
-				"topic": topic,
+				"topic":      topic,
+				"subscriber": "true",
 			},
 		})
 	} else {
+		hdlr := reflect.ValueOf(sub)
+		name := reflect.Indirect(hdlr).Type().Name()
+
 		for m := 0; m < typ.NumMethod(); m++ {
 			method := typ.Method(m)
 			h := &handler{
@@ -70,10 +74,11 @@ func newSubscriber(topic string, sub interface{}) Subscriber {
 			handlers = append(handlers, h)
 
 			endpoints = append(endpoints, &registry.Endpoint{
-				Name:    method.Name,
+				Name:    name + "." + method.Name,
 				Request: extractSubValue(method.Type),
 				Metadata: map[string]string{
-					"topic": topic,
+					"topic":      topic,
+					"subscriber": "true",
 				},
 			})
 		}
