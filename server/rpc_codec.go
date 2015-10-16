@@ -37,14 +37,14 @@ func (rwc *readWriteCloser) Close() error {
 }
 
 func newRpcPlusCodec(req *transport.Message, socket transport.Socket) rpc.ServerCodec {
-        r := &rpcPlusCodec{
-                socket: socket,
-                req:    req,
+	r := &rpcPlusCodec{
+		socket: socket,
+		req:    req,
 		buf: &readWriteCloser{
 			rbuf: bytes.NewBuffer(req.Body),
 			wbuf: bytes.NewBuffer(nil),
 		},
-        }
+	}
 
 	switch req.Header["Content-Type"] {
 	case "application/octet-stream":
