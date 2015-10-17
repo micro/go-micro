@@ -24,7 +24,7 @@ import (
 	// registries
 	"github.com/myodc/go-micro/registry/consul"
 	"github.com/myodc/go-micro/registry/etcd"
-	"github.com/myodc/go-micro/registry/kubernetes"
+	"github.com/myodc/go-micro/registry/memory"
 
 	// transport
 	thttp "github.com/myodc/go-micro/transport/http"
@@ -71,7 +71,7 @@ var (
 			Name:   "registry",
 			EnvVar: "MICRO_REGISTRY",
 			Value:  "consul",
-			Usage:  "Registry for discovery. kubernetes, consul, etc",
+			Usage:  "Registry for discovery. mdns, consul, etc",
 		},
 		cli.StringFlag{
 			Name:   "registry_address",
@@ -128,9 +128,9 @@ var (
 	}
 
 	Registries = map[string]func([]string, ...registry.Option) registry.Registry{
-		"kubernetes": kubernetes.NewRegistry,
-		"consul":     consul.NewRegistry,
-		"etcd":       etcd.NewRegistry,
+		"consul": consul.NewRegistry,
+		"etcd":   etcd.NewRegistry,
+		"memory": memory.NewRegistry,
 	}
 
 	Transports = map[string]func([]string, ...transport.Option) transport.Transport{
@@ -141,6 +141,18 @@ var (
 )
 
 func Setup(c *cli.Context) error {
+	os.Args = os.Args[:1]
+
+	flag.Set("logtostderr", fmt.Sprintf("%v", c.Bool("logtostderr")))
+	flag.Set("alsologtostderr", fmt.Sprintf("%v", c.Bool("alsologtostderr")))
+	flag.Set("stderrthreshold", c.String("stderrthreshold"))
+	flag.Set("log_backtrace_at", c.String("log_backtrace_at"))
+	flag.Set("log_dir", c.String("log_dir"))
+	flag.Set("vmodule", c.String("vmodule"))
+	flag.Set("v", c.String("v"))
+
+	flag.Parse()
+
 	if b, ok := Brokers[c.String("broker")]; ok {
 		broker.DefaultBroker = b(strings.Split(c.String("broker_address"), ","))
 	}
@@ -172,18 +184,6 @@ func Setup(c *cli.Context) error {
 	)
 
 	client.DefaultClient = client.NewClient()
-
-	os.Args = os.Args[:1]
-
-	flag.Set("logtostderr", fmt.Sprintf("%v", c.Bool("logtostderr")))
-	flag.Set("alsologtostderr", fmt.Sprintf("%v", c.Bool("alsologtostderr")))
-	flag.Set("stderrthreshold", c.String("stderrthreshold"))
-	flag.Set("log_backtrace_at", c.String("log_backtrace_at"))
-	flag.Set("log_dir", c.String("log_dir"))
-	flag.Set("vmodule", c.String("vmodule"))
-	flag.Set("v", c.String("v"))
-
-	flag.Parse()
 
 	return nil
 }
