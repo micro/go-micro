@@ -71,7 +71,7 @@ var (
 			Name:   "registry",
 			EnvVar: "MICRO_REGISTRY",
 			Value:  "consul",
-			Usage:  "Registry for discovery. mdns, consul, etc",
+			Usage:  "Registry for discovery. memory, consul, etcd",
 		},
 		cli.StringFlag{
 			Name:   "registry_address",
