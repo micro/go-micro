@@ -24,6 +24,7 @@ import (
 	// registries
 	"github.com/myodc/go-micro/registry/consul"
 	"github.com/myodc/go-micro/registry/etcd"
+	"github.com/myodc/go-micro/registry/kubernetes"
 	"github.com/myodc/go-micro/registry/memory"
 
 	// transport
@@ -60,7 +61,7 @@ var (
 			Name:   "broker",
 			EnvVar: "MICRO_BROKER",
 			Value:  "http",
-			Usage:  "Broker for pub/sub. http, nats, etc",
+			Usage:  "Broker for pub/sub. http, nats, rabbitmq",
 		},
 		cli.StringFlag{
 			Name:   "broker_address",
@@ -71,7 +72,7 @@ var (
 			Name:   "registry",
 			EnvVar: "MICRO_REGISTRY",
 			Value:  "consul",
-			Usage:  "Registry for discovery. memory, consul, etcd",
+			Usage:  "Registry for discovery. memory, consul, etcd, kubernetes",
 		},
 		cli.StringFlag{
 			Name:   "registry_address",
@@ -82,7 +83,7 @@ var (
 			Name:   "transport",
 			EnvVar: "MICRO_TRANSPORT",
 			Value:  "http",
-			Usage:  "Transport mechanism used; http, rabbitmq, etc",
+			Usage:  "Transport mechanism used; http, rabbitmq, nats",
 		},
 		cli.StringFlag{
 			Name:   "transport_address",
@@ -128,9 +129,10 @@ var (
 	}
 
 	Registries = map[string]func([]string, ...registry.Option) registry.Registry{
-		"consul": consul.NewRegistry,
-		"etcd":   etcd.NewRegistry,
-		"memory": memory.NewRegistry,
+		"consul":     consul.NewRegistry,
+		"etcd":       etcd.NewRegistry,
+		"kubernetes": kubernetes.NewRegistry,
+		"memory":     memory.NewRegistry,
 	}
 
 	Transports = map[string]func([]string, ...transport.Option) transport.Transport{
