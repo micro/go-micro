@@ -66,7 +66,7 @@ func (k *watcher) Stop() {
 func newWatcher(kr *kregistry) (registry.Watcher, error) {
 	svi := kr.client.Services(api.NamespaceAll)
 
-	services, err := svi.List(labels.Everything())
+	services, err := svi.List(labels.Everything(), fields.Everything())
 	if err != nil {
 		return nil, err
 	}

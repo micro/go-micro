@@ -8,6 +8,7 @@ import (
 	"github.com/myodc/go-micro/registry"
 
 	k8s "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 )
 
@@ -38,7 +39,7 @@ func (c *kregistry) GetService(name string) (*registry.Service, error) {
 
 	selector := labels.SelectorFromSet(labels.Set{"name": name})
 
-	services, err := c.client.Services(c.namespace).List(selector)
+	services, err := c.client.Services(c.namespace).List(selector, fields.Everything())
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +76,7 @@ func (c *kregistry) ListServices() ([]*registry.Service, error) {
 		return services, nil
 	}
 
-	rsp, err := c.client.Services(c.namespace).List(labels.Everything())
+	rsp, err := c.client.Services(c.namespace).List(labels.Everything(), fields.Everything())
 	if err != nil {
 		return nil, err
 	}
