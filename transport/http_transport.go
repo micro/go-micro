@@ -95,6 +95,7 @@ func (h *httpTransportClient) Recv(m *Message) error {
 }
 
 func (h *httpTransportClient) Close() error {
+	h.buff.Reset(nil)
 	return h.conn.Close()
 }
 
