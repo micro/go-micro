@@ -79,6 +79,7 @@ func (r *rpcClient) call(ctx context.Context, address string, request Request, r
 	if err != nil {
 		return errors.InternalServerError("go.micro.client", fmt.Sprintf("Error sending request: %v", err))
 	}
+	defer c.Close()
 
 	client := rpc.NewClientWithCodec(newRpcPlusCodec(msg, c))
 	return client.Call(ctx, request.Method(), request.Request(), response)
