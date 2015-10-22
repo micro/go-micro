@@ -82,7 +82,11 @@ func (r *rpcClient) call(ctx context.Context, address string, request Request, r
 	defer c.Close()
 
 	client := rpc.NewClientWithCodec(newRpcPlusCodec(msg, c))
-	return client.Call(ctx, request.Method(), request.Request(), response)
+	err = client.Call(ctx, request.Method(), request.Request(), response)
+	if err != nil {
+		return err
+	}
+	return client.Close()
 }
 
 func (r *rpcClient) stream(ctx context.Context, address string, request Request, responseChan interface{}) (Streamer, error) {
