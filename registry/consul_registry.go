@@ -72,10 +72,10 @@ func decodeMetadata(tags []string) map[string]string {
 
 func newConsulRegistry(addrs []string, opts ...Option) Registry {
 	config := consul.DefaultConfig()
-	client, _ := consul.NewClient(config)
 	if len(addrs) > 0 {
 		config.Address = addrs[0]
 	}
+	client, _ := consul.NewClient(config)
 
 	cr := &consulRegistry{
 		Address:  config.Address,
