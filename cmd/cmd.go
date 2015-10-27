@@ -24,7 +24,6 @@ import (
 	// registries
 	"github.com/myodc/go-micro/registry/consul"
 	"github.com/myodc/go-micro/registry/etcd"
-	"github.com/myodc/go-micro/registry/kubernetes"
 	"github.com/myodc/go-micro/registry/memory"
 
 	// transport
