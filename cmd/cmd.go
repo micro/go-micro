@@ -131,7 +131,6 @@ var (
 	Registries = map[string]func([]string, ...registry.Option) registry.Registry{
 		"consul":     consul.NewRegistry,
 		"etcd":       etcd.NewRegistry,
-		"kubernetes": kubernetes.NewRegistry,
 		"memory":     memory.NewRegistry,
 	}
 
