@@ -116,6 +116,7 @@ func (s *rpcServer) Register() error {
 	config := s.Config()
 	var host string
 	var port int
+
 	parts := strings.Split(config.Address(), ":")
 	if len(parts) > 1 {
 		host = strings.Join(parts[:len(parts)-1], ":")
@@ -124,10 +125,15 @@ func (s *rpcServer) Register() error {
 		host = parts[0]
 	}
 
+	addr, err := extractAddress(host)
+	if err != nil {
+		return err
+	}
+
 	// register service
 	node := &registry.Node{
 		Id:       config.Id(),
-		Address:  host,
+		Address:  addr,
 		Port:     port,
 		Metadata: config.Metadata(),
 	}
@@ -181,9 +187,14 @@ func (s *rpcServer) Deregister() error {
 		host = parts[0]
 	}
 
+	addr, err := extractAddress(host)
+	if err != nil {
+		return err
+	}
+
 	node := &registry.Node{
 		Id:      config.Id(),
-		Address: host,
+		Address: addr,
 		Port:    port,
 	}
 
