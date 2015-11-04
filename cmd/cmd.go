@@ -128,9 +128,9 @@ var (
 	}
 
 	Registries = map[string]func([]string, ...registry.Option) registry.Registry{
-		"consul":     consul.NewRegistry,
-		"etcd":       etcd.NewRegistry,
-		"memory":     memory.NewRegistry,
+		"consul": consul.NewRegistry,
+		"etcd":   etcd.NewRegistry,
+		"memory": memory.NewRegistry,
 	}
 
 	Transports = map[string]func([]string, ...transport.Option) transport.Transport{
