@@ -159,10 +159,12 @@ func (s *rpcServer) Register() error {
 
 	for sb, _ := range s.subscribers {
 		handler := createSubHandler(sb)
-		sub, err := config.broker.Subscribe(sb.Topic(), handler)
+		sub, err := config.broker.NewSubscriber("", sb.Topic())
 		if err != nil {
 			return err
 		}
+		sub.SetHandlerFunc(handler, 1)
+		sub.Subscribe()
 		s.subscribers[sb] = []broker.Subscriber{sub}
 	}
 
