@@ -4,7 +4,7 @@ import (
 	"errors"
 	"io/ioutil"
 
-	"github.com/myodc/go-micro/broker"
+	"github.com/piemapping/go-micro/broker"
 
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"

@@ -3,7 +3,7 @@ package rabbitmq
 // @todo fix all of this
 
 import (
-// "github.com/myodc/go-micro/broker"
+// "github.com/piemapping/go-micro/broker"
 // "github.com/streadway/amqp"
 )
 

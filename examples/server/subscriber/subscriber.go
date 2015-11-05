@@ -2,7 +2,7 @@ package subscriber
 
 import (
 	log "github.com/golang/glog"
-	example "github.com/myodc/go-micro/examples/server/proto/example"
+	example "github.com/piemapping/go-micro/examples/server/proto/example"
 	"golang.org/x/net/context"
 )
 
