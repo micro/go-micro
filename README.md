@@ -4,6 +4,9 @@ Go Micro is a microservices library which provides the fundamental building bloc
 
 An example server can be found in examples/server.
 
+- [Mailing List](https://groups.google.com/forum/#!forum/micro-services) 
+- [Slack](https://micro-services.slack.com) 
+
 ## Features
 - Discovery
 - Client
