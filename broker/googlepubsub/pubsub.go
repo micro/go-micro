@@ -87,21 +87,49 @@ func (ps *pubsubBroker) Address() string {
 	return ""
 }
 
-func (ps *pubsubBroker) Init() error {
+func (ps *pubsubBroker) getContext() (context.Context, error) {
+	// if no JSON file path is specified, use the default authentication mechanism
+	// as we assume we are running inside Google Cloud Engine
+	if len(ps.jsonFilePath) == 0 {
+		ctx := context.TODO()
+		ts, err := google.DefaultTokenSource(ctx,
+			pubsub.ScopeCloudPlatform,
+			pubsub.ScopePubSub,
+		)
+
+		if err != nil {
+			return nil, err
+		}
+
+		return cloud.NewContext(ps.projectID, oauth2.NewClient(ctx, ts)), nil
+	}
+	// Otherwise... just use the JSON file key
 	jsonKey, err := ioutil.ReadFile(ps.jsonFilePath)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
+	// @todo if there is no json config key assume we are using the default credentials
 	conf, err := google.JWTConfigFromJSON(
 		jsonKey,
 		pubsub.ScopeCloudPlatform,
 		pubsub.ScopePubSub,
 	)
+
+	if err != nil {
+		return nil, err
+	}
+	return cloud.NewContext(ps.projectID, conf.Client(oauth2.NoContext)), nil
+
+}
+
+func (ps *pubsubBroker) Init() error {
+	ctx, err := ps.getContext()
 	if err != nil {
 		return err
 	}
-	ps.ctx = cloud.NewContext(ps.projectID, conf.Client(oauth2.NoContext))
+
+	ps.ctx = ctx
 
 	return nil
 }
