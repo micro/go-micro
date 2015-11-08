@@ -3,7 +3,7 @@ package registry
 type Registry interface {
 	Register(*Service) error
 	Deregister(*Service) error
-	GetService(string) (*Service, error)
+	GetService(string) ([]*Service, error)
 	ListServices() ([]*Service, error)
 	Watch() (Watcher, error)
 }
@@ -32,7 +32,7 @@ func Deregister(s *Service) error {
 	return DefaultRegistry.Deregister(s)
 }
 
-func GetService(name string) (*Service, error) {
+func GetService(name string) ([]*Service, error) {
 	return DefaultRegistry.GetService(name)
 }
 

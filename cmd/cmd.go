@@ -40,6 +40,11 @@ var (
 			Usage:  "Name of the server. go.micro.srv.example",
 		},
 		cli.StringFlag{
+			Name:   "server_version",
+			EnvVar: "MICRO_SERVER_VERSION",
+			Usage:  "Version of the server. 1.1.0",
+		},
+		cli.StringFlag{
 			Name:   "server_id",
 			EnvVar: "MICRO_SERVER_ID",
 			Usage:  "Id of the server. Auto-generated if not specified",
@@ -178,6 +183,7 @@ func Setup(c *cli.Context) error {
 
 	server.DefaultServer = server.NewServer(
 		server.Name(c.String("server_name")),
+		server.Version(c.String("server_version")),
 		server.Id(c.String("server_id")),
 		server.Address(c.String("server_address")),
 		server.Metadata(metadata),

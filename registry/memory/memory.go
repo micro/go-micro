@@ -35,7 +35,7 @@ type memoryRegistry struct {
 	updates    chan *update
 
 	sync.RWMutex
-	services map[string]*registry.Service
+	services map[string][]*registry.Service
 }
 
 type update struct {
@@ -96,7 +96,7 @@ func (d *delegate) LocalState(join bool) []byte {
 	}
 
 	syncCh := make(chan *registry.Service, 1)
-	m := map[string]*registry.Service{}
+	m := map[string][]*registry.Service{}
 
 	d.updates <- &update{
 		Action: syncAction,
@@ -104,7 +104,7 @@ func (d *delegate) LocalState(join bool) []byte {
 	}
 
 	for s := range syncCh {
-		m[s.Name] = s
+		m[s.Name] = append(m[s.Name], s)
 	}
 
 	b, _ := json.Marshal(m)
@@ -119,16 +119,18 @@ func (d *delegate) MergeRemoteState(buf []byte, join bool) {
 		return
 	}
 
-	var m map[string]*registry.Service
+	var m map[string][]*registry.Service
 	if err := json.Unmarshal(buf, &m); err != nil {
 		return
 	}
 
-	for _, service := range m {
-		d.updates <- &update{
-			Action:  addAction,
-			Service: service,
-			sync:    nil,
+	for _, services := range m {
+		for _, service := range services {
+			d.updates <- &update{
+				Action:  addAction,
+				Service: service,
+				sync:    nil,
+			}
 		}
 	}
 }
@@ -138,19 +140,31 @@ func (m *memoryRegistry) run() {
 		switch u.Action {
 		case addAction:
 			m.Lock()
-			m.services[u.Service.Name] = u.Service
+			if service, ok := m.services[u.Service.Name]; !ok {
+				m.services[u.Service.Name] = []*registry.Service{u.Service}
+			} else {
+				m.services[u.Service.Name] = addServices(service, []*registry.Service{u.Service})
+			}
 			m.Unlock()
 		case delAction:
 			m.Lock()
-			delete(m.services, u.Service.Name)
+			if service, ok := m.services[u.Service.Name]; ok {
+				if services := delServices(service, []*registry.Service{u.Service}); len(services) == 0 {
+					delete(m.services, u.Service.Name)
+				} else {
+					m.services[u.Service.Name] = services
+				}
+			}
 			m.Unlock()
 		case syncAction:
 			if u.sync == nil {
 				continue
 			}
 			m.RLock()
-			for _, service := range m.services {
-				u.sync <- service
+			for _, services := range m.services {
+				for _, service := range services {
+					u.sync <- service
+				}
 			}
 			m.RUnlock()
 			close(u.sync)
@@ -160,7 +174,11 @@ func (m *memoryRegistry) run() {
 
 func (m *memoryRegistry) Register(s *registry.Service) error {
 	m.Lock()
-	m.services[s.Name] = s
+	if service, ok := m.services[s.Name]; !ok {
+		m.services[s.Name] = []*registry.Service{s}
+	} else {
+		m.services[s.Name] = addServices(service, []*registry.Service{s})
+	}
 	m.Unlock()
 
 	b, _ := json.Marshal([]*update{
@@ -180,7 +198,13 @@ func (m *memoryRegistry) Register(s *registry.Service) error {
 
 func (m *memoryRegistry) Deregister(s *registry.Service) error {
 	m.Lock()
-	delete(m.services, s.Name)
+	if service, ok := m.services[s.Name]; ok {
+		if services := delServices(service, []*registry.Service{s}); len(services) == 0 {
+			delete(m.services, s.Name)
+		} else {
+			m.services[s.Name] = services
+		}
+	}
 	m.Unlock()
 
 	b, _ := json.Marshal([]*update{
@@ -198,7 +222,7 @@ func (m *memoryRegistry) Deregister(s *registry.Service) error {
 	return nil
 }
 
-func (m *memoryRegistry) GetService(name string) (*registry.Service, error) {
+func (m *memoryRegistry) GetService(name string) ([]*registry.Service, error) {
 	m.RLock()
 	service, ok := m.services[name]
 	m.RUnlock()
@@ -212,7 +236,7 @@ func (m *memoryRegistry) ListServices() ([]*registry.Service, error) {
 	var services []*registry.Service
 	m.RLock()
 	for _, service := range m.services {
-		services = append(services, service)
+		services = append(services, service...)
 	}
 	m.RUnlock()
 	return services, nil
@@ -224,6 +248,77 @@ func (m *memoryRegistry) Watch() (registry.Watcher, error) {
 
 func (w *watcher) Stop() {
 	return
+}
+
+func addNodes(old, neu []*registry.Node) []*registry.Node {
+	for _, n := range neu {
+		var seen bool
+		for i, o := range old {
+			if o.Id == n.Id {
+				seen = true
+				old[i] = n
+				break
+			}
+		}
+		if !seen {
+			old = append(old, n)
+		}
+	}
+	return old
+}
+
+func addServices(old, neu []*registry.Service) []*registry.Service {
+	for _, s := range neu {
+		var seen bool
+		for i, o := range old {
+			if o.Version == s.Version {
+				s.Nodes = addNodes(o.Nodes, s.Nodes)
+				seen = true
+				old[i] = s
+				break
+			}
+		}
+		if !seen {
+			old = append(old, s)
+		}
+	}
+	return old
+}
+
+func delNodes(old, del []*registry.Node) []*registry.Node {
+	var nodes []*registry.Node
+	for _, o := range old {
+		var rem bool
+		for _, n := range del {
+			if o.Id == n.Id {
+				rem = true
+				break
+			}
+		}
+		if !rem {
+			nodes = append(nodes, o)
+		}
+	}
+	return nodes
+}
+
+func delServices(old, del []*registry.Service) []*registry.Service {
+	var services []*registry.Service
+	for i, o := range old {
+		var rem bool
+		for _, s := range del {
+			if o.Version == s.Version {
+				old[i].Nodes = delNodes(o.Nodes, s.Nodes)
+				if len(old[i].Nodes) == 0 {
+					rem = true
+				}
+			}
+		}
+		if !rem {
+			services = append(services, o)
+		}
+	}
+	return services
 }
 
 func NewRegistry(addrs []string, opt ...registry.Option) registry.Registry {
@@ -246,7 +341,7 @@ func NewRegistry(addrs []string, opt ...registry.Option) registry.Registry {
 
 	mr := &memoryRegistry{
 		broadcasts: broadcasts,
-		services:   make(map[string]*registry.Service),
+		services:   make(map[string][]*registry.Service),
 		updates:    updates,
 	}
 

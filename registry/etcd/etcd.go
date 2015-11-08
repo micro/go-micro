@@ -20,7 +20,7 @@ type etcdRegistry struct {
 	client etcd.KeysAPI
 
 	sync.RWMutex
-	services map[string]*registry.Service
+	services map[string][]*registry.Service
 }
 
 func encode(s *registry.Service) string {
@@ -85,7 +85,7 @@ func (e *etcdRegistry) Register(s *registry.Service) error {
 	return nil
 }
 
-func (e *etcdRegistry) GetService(name string) (*registry.Service, error) {
+func (e *etcdRegistry) GetService(name string) ([]*registry.Service, error) {
 	e.RLock()
 	service, ok := e.services[name]
 	e.RUnlock()
@@ -99,23 +99,35 @@ func (e *etcdRegistry) GetService(name string) (*registry.Service, error) {
 		return nil, err
 	}
 
-	s := &registry.Service{}
+	serviceMap := map[string]*registry.Service{}
 
 	for _, n := range rsp.Node.Nodes {
 		if n.Dir {
 			continue
 		}
 		sn := decode(n.Value)
-		s.Name = sn.Name
-		s.Version = sn.Version
-		s.Metadata = sn.Metadata
-		s.Endpoints = sn.Endpoints
+
+		s, ok := serviceMap[sn.Version]
+		if !ok {
+			s = &registry.Service{
+				Name:      sn.Name,
+				Version:   sn.Version,
+				Metadata:  sn.Metadata,
+				Endpoints: sn.Endpoints,
+			}
+			serviceMap[s.Version] = s
+		}
+
 		for _, node := range sn.Nodes {
 			s.Nodes = append(s.Nodes, node)
 		}
 	}
 
-	return s, nil
+	var services []*registry.Service
+	for _, service := range serviceMap {
+		services = append(services, service)
+	}
+	return services, nil
 }
 
 func (e *etcdRegistry) ListServices() ([]*registry.Service, error) {
@@ -126,8 +138,8 @@ func (e *etcdRegistry) ListServices() ([]*registry.Service, error) {
 	var services []*registry.Service
 
 	if len(serviceMap) > 0 {
-		for _, service := range services {
-			services = append(services, service)
+		for _, service := range serviceMap {
+			services = append(services, service...)
 		}
 		return services, nil
 	}
@@ -139,15 +151,10 @@ func (e *etcdRegistry) ListServices() ([]*registry.Service, error) {
 
 	for _, node := range rsp.Node.Nodes {
 		service := &registry.Service{}
-
 		for _, n := range node.Nodes {
 			i := decode(n.Value)
 			service.Name = i.Name
-			for _, in := range i.Nodes {
-				service.Nodes = append(service.Nodes, in)
-			}
 		}
-
 		services = append(services, service)
 	}
 
@@ -179,7 +186,7 @@ func NewRegistry(addrs []string, opt ...registry.Option) registry.Registry {
 
 	e := &etcdRegistry{
 		client:   etcd.NewKeysAPI(c),
-		services: make(map[string]*registry.Service),
+		services: make(map[string][]*registry.Service),
 	}
 
 	return e
