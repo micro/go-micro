@@ -72,12 +72,15 @@ func Publish(topic string, msg *Message) error {
 }
 
 // Subscribe creates a subscriber and initiates the subscription
-func Subscribe(topic, name string, handlerFunc func(*Message) error) (Subscriber, error) {
+func Subscribe(name, topic string, handlerFunc func(*Message) error) (Subscriber, error) {
 	subscriber, err := DefaultBroker.NewSubscriber(name, topic)
 
 	if err != nil {
 		return nil, err
 	}
+
+	// By default we only have a concurrency level of 1
+	subscriber.SetHandlerFunc(handlerFunc, 1)
 
 	return subscriber, subscriber.Subscribe()
 }

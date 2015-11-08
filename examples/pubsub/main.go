@@ -33,11 +33,13 @@ func pub() {
 }
 
 func sub() {
-	_, err := broker.Subscribe(topic, "", func(msg *broker.Message) error {
+	_, err := broker.Subscribe("", topic, func(msg *broker.Message) error {
 		fmt.Println("[sub] received message:", string(msg.Body), "header", msg.Header)
+		return nil
 	})
+
 	if err != nil {
-		fmt.Println(err)
+		log.Errorf("%v", err)
 	}
 }
 

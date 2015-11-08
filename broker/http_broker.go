@@ -12,9 +12,9 @@ import (
 	"sync"
 
 	log "github.com/golang/glog"
+	"github.com/pborman/uuid"
 	"github.com/piemapping/go-micro/errors"
 	"github.com/piemapping/go-micro/registry"
-	"github.com/pborman/uuid"
 )
 
 type httpBroker struct {
@@ -184,7 +184,7 @@ func (h *httpBroker) Init() error {
 }
 
 func (h *httpBroker) Publish(topic string, msg *Message) error {
-	s, err := registry.GetService("topic:" + topic)
+	s, err := registry.GetService(fmt.Sprintf("topic:%s", topic))
 	if err != nil {
 		return err
 	}
@@ -219,7 +219,7 @@ func (h *httpBroker) NewSubscriber(name, topic string) (Subscriber, error) {
 	}
 
 	service := &registry.Service{
-		Name:  "topic:" + topic,
+		Name:  fmt.Sprintf("topic:%s", topic),
 		Nodes: []*registry.Node{node},
 	}
 
@@ -227,8 +227,7 @@ func (h *httpBroker) NewSubscriber(name, topic string) (Subscriber, error) {
 		id:    uuid.NewUUID().String(),
 		topic: topic,
 		ch:    h.unsubscribe,
-		// fn:    handlerFunc,
-		svc: service,
+		svc:   service,
 	}
 
 	h.Lock()

@@ -109,7 +109,7 @@ func (ps *pubsubBroker) getContext() (context.Context, error) {
 		return nil, err
 	}
 
-	// @todo if there is no json config key assume we are using the default credentials
+	// if there is no json config key assume we are using the default credentials
 	conf, err := google.JWTConfigFromJSON(
 		jsonKey,
 		pubsub.ScopeCloudPlatform,
