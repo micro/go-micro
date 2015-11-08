@@ -18,12 +18,11 @@ var (
 )
 
 type rabbitMQConn struct {
-	Connection      *amqp.Connection
-	Channel         *rabbitMQChannel
-	ExchangeChannel *rabbitMQChannel
-	notify          chan bool
-	exchange        string
-	url             string
+	Connection *amqp.Connection
+	Channel    *rabbitMQChannel
+	notify     chan bool
+	exchange   string
+	url        string
 
 	connected bool
 
@@ -111,10 +110,6 @@ func (r *rabbitMQConn) tryToConnect() error {
 		return err
 	}
 	r.Channel.DeclareExchange(r.exchange)
-	r.ExchangeChannel, err = newRabbitChannel(r.Connection)
-	if err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -143,5 +138,5 @@ func (r *rabbitMQConn) Consume(queue string) (<-chan amqp.Delivery, error) {
 }
 
 func (r *rabbitMQConn) Publish(exchange, key string, msg amqp.Publishing) error {
-	return r.ExchangeChannel.Publish(exchange, key, msg)
+	return r.Channel.Publish(exchange, key, msg)
 }
