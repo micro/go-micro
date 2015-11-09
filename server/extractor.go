@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/myodc/go-micro/registry"
+	"github.com/piemapping/go-micro/registry"
 )
 
 func extractValue(v reflect.Type) *registry.Value {

@@ -12,9 +12,9 @@ import (
 	"sync"
 
 	log "github.com/golang/glog"
-	"github.com/myodc/go-micro/errors"
-	"github.com/myodc/go-micro/registry"
 	"github.com/pborman/uuid"
+	"github.com/piemapping/go-micro/errors"
+	"github.com/piemapping/go-micro/registry"
 )
 
 type httpBroker struct {
@@ -32,15 +32,16 @@ type httpSubscriber struct {
 	id    string
 	topic string
 	ch    chan *httpSubscriber
-	fn    Handler
+	fn    HandlerFunc
 	svc   *registry.Service
 }
 
 var (
+	// DefaultSubPath stipulates what the default subscription path should be
 	DefaultSubPath = "/_sub"
 )
 
-func newHttpBroker(addrs []string, opt ...Option) Broker {
+func newHTTPBroker(addrs []string, opt ...Option) Broker {
 	addr := ":0"
 	if len(addrs) > 0 && len(addrs[0]) > 0 {
 		addr = addrs[0]
@@ -57,6 +58,10 @@ func newHttpBroker(addrs []string, opt ...Option) Broker {
 
 func (h *httpSubscriber) Topic() string {
 	return h.topic
+}
+
+func (h *httpSubscriber) Name() string {
+	return ""
 }
 
 func (h *httpSubscriber) Unsubscribe() error {
@@ -179,7 +184,7 @@ func (h *httpBroker) Init() error {
 }
 
 func (h *httpBroker) Publish(topic string, msg *Message) error {
-	s, err := registry.GetService("topic:" + topic)
+	s, err := registry.GetService(fmt.Sprintf("topic:%s", topic))
 	if err != nil {
 		return err
 	}
@@ -200,7 +205,7 @@ func (h *httpBroker) Publish(topic string, msg *Message) error {
 	return nil
 }
 
-func (h *httpBroker) Subscribe(topic string, handler Handler) (Subscriber, error) {
+func (h *httpBroker) NewSubscriber(name, topic string) (Subscriber, error) {
 	// parse address for host, port
 	parts := strings.Split(h.Address(), ":")
 	host := strings.Join(parts[:len(parts)-1], ":")
@@ -214,7 +219,7 @@ func (h *httpBroker) Subscribe(topic string, handler Handler) (Subscriber, error
 	}
 
 	service := &registry.Service{
-		Name:  "topic:" + topic,
+		Name:  fmt.Sprintf("topic:%s", topic),
 		Nodes: []*registry.Node{node},
 	}
 
@@ -222,12 +227,7 @@ func (h *httpBroker) Subscribe(topic string, handler Handler) (Subscriber, error
 		id:    uuid.NewUUID().String(),
 		topic: topic,
 		ch:    h.unsubscribe,
-		fn:    handler,
 		svc:   service,
-	}
-
-	if err := registry.Register(service); err != nil {
-		return nil, err
 	}
 
 	h.Lock()
@@ -235,4 +235,13 @@ func (h *httpBroker) Subscribe(topic string, handler Handler) (Subscriber, error
 	h.Unlock()
 
 	return subscriber, nil
+}
+
+func (h *httpSubscriber) Subscribe() error {
+	return registry.Register(h.svc)
+}
+
+func (h *httpSubscriber) SetHandlerFunc(handlerFunc HandlerFunc, concurrency int) {
+	// @todo in the future handle concurrency as well
+	h.fn = handlerFunc
 }

@@ -2,7 +2,7 @@ package etcd
 
 import (
 	etcd "github.com/coreos/etcd/client"
-	"github.com/myodc/go-micro/registry"
+	"github.com/piemapping/go-micro/registry"
 	"golang.org/x/net/context"
 )
 

@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/apcera/nats"
-	"github.com/myodc/go-micro/broker"
+	"github.com/piemapping/go-micro/broker"
 )
 
 type nbroker struct {
@@ -14,15 +14,59 @@ type nbroker struct {
 }
 
 type subscriber struct {
-	s *nats.Subscription
+	topic   string
+	s       *nats.Subscription
+	conn    *nats.Conn
+	handler *natsMsgHandler
+}
+
+type natsMsgHandler struct {
+	handlerFunc broker.HandlerFunc
+}
+
+func (n *natsMsgHandler) Handle(msg *broker.Message) error {
+	return n.handlerFunc(msg)
+}
+
+func (n *natsMsgHandler) Ack(msg *broker.Message) error {
+	// No need to acknowledge the message in Nats?
+	return nil
 }
 
 func (n *subscriber) Topic() string {
 	return n.s.Subject
 }
 
+func (n *subscriber) Name() string {
+	return ""
+}
+
 func (n *subscriber) Unsubscribe() error {
 	return n.s.Unsubscribe()
+}
+
+func (n *subscriber) SetHandlerFunc(h broker.HandlerFunc, concurrency int) {
+	n.handler = &natsMsgHandler{
+		handlerFunc: h,
+	}
+}
+
+func (n *subscriber) Subscribe() error {
+	sub, err := n.conn.Subscribe(n.topic, func(msg *nats.Msg) {
+		m := new(broker.Message)
+		if err := json.Unmarshal(msg.Data, m); err != nil {
+			return
+		}
+		n.handler.Handle(m)
+	})
+
+	if err != nil {
+		return err
+	}
+
+	n.s = sub
+
+	return nil
 }
 
 func (n *nbroker) Address() string {
@@ -64,20 +108,14 @@ func (n *nbroker) Publish(topic string, msg *broker.Message) error {
 	return n.conn.Publish(topic, b)
 }
 
-func (n *nbroker) Subscribe(topic string, handler broker.Handler) (broker.Subscriber, error) {
-	sub, err := n.conn.Subscribe(topic, func(msg *nats.Msg) {
-		var m *broker.Message
-		if err := json.Unmarshal(msg.Data, &m); err != nil {
-			return
-		}
-		handler(m)
-	})
-	if err != nil {
-		return nil, err
-	}
-	return &subscriber{s: sub}, nil
+func (n *nbroker) NewSubscriber(name, topic string) (broker.Subscriber, error) {
+	return &subscriber{
+		topic: topic,
+		conn:  n.conn,
+	}, nil
 }
 
+// NewBroker instantiates and returns a newly created Nats-backed broker
 func NewBroker(addrs []string, opt ...broker.Option) broker.Broker {
 	var cAddrs []string
 	for _, addr := range addrs {
