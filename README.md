@@ -15,6 +15,7 @@ Discovery	| [Registry](https://godoc.org/github.com/myodc/go-micro/registry)	|	A
 Client		| [Client](https://godoc.org/github.com/myodc/go-micro/client)	|	Used to make RPC requests to a service
 Server		| [Server](https://godoc.org/github.com/myodc/go-micro/server)	|	Listens and serves RPC requests
 Pub/Sub		| [Broker](https://godoc.org/github.com/myodc/go-micro/broker)	|	Publish and Subscribe to events
+Transport	| [Transport](https://godoc.org/github.com/myodc/go-micro/transport)	|	Communication mechanism between services
 
 ## Prerequisites
 
