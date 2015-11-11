@@ -8,10 +8,13 @@ An example server can be found in examples/server.
 - [Slack](https://micro-services.slack.com) : [auto-invite](http://micro-invites.herokuapp.com/)
 
 ## Features
-- Discovery
-- Client
-- Server
-- Pub/Sub
+
+Feature		| Package	|	Description
+-------		| -------	|	---------
+Discovery	| Registry	|	A way of locating services to communicate with
+Client		| Client	|	Used to make RPC requests to a service
+Server		| Server	|	Listens and serves RPC requests
+Pub/Sub		| Broker	|	Publish and Subscribe to events
 
 ## Prerequisites
 
