@@ -55,6 +55,11 @@ var (
 			Value:  ":0",
 			Usage:  "Bind address for the server. 127.0.0.1:8080",
 		},
+		cli.StringFlag{
+			Name:   "server_advertise",
+			EnvVar: "MICRO_SERVER_ADVERTISE",
+			Usage:  "Used instead of the server_address when registering with discovery. 127.0.0.1:8080",
+		},
 		cli.StringSliceFlag{
 			Name:   "server_metadata",
 			EnvVar: "MICRO_SERVER_METADATA",
@@ -186,6 +191,7 @@ func Setup(c *cli.Context) error {
 		server.Version(c.String("server_version")),
 		server.Id(c.String("server_id")),
 		server.Address(c.String("server_address")),
+		server.Advertise(c.String("server_advertise")),
 		server.Metadata(metadata),
 	)
 
