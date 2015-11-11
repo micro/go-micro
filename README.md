@@ -11,10 +11,10 @@ An example server can be found in examples/server.
 
 Feature		| Package	|	Description
 -------		| -------	|	---------
-Discovery	| Registry	|	A way of locating services to communicate with
-Client		| Client	|	Used to make RPC requests to a service
-Server		| Server	|	Listens and serves RPC requests
-Pub/Sub		| Broker	|	Publish and Subscribe to events
+Discovery	| [Registry](https://godoc.org/github.com/myodc/go-micro/registry)	|	A way of locating services to communicate with
+Client		| [Client](https://godoc.org/github.com/myodc/go-micro/client)	|	Used to make RPC requests to a service
+Server		| [Server](https://godoc.org/github.com/myodc/go-micro/server)	|	Listens and serves RPC requests
+Pub/Sub		| [Broker](https://godoc.org/github.com/myodc/go-micro/broker)	|	Publish and Subscribe to events
 
 ## Prerequisites
 
