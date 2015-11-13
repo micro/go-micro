@@ -3,7 +3,7 @@ package http
 // This is a hack
 
 import (
-	"github.com/piemapping/go-micro/transport"
+	"github.com/myodc/go-micro/transport"
 )
 
 func NewTransport(addrs []string, opt ...transport.Option) transport.Transport {

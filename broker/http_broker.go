@@ -13,8 +13,8 @@ import (
 
 	log "github.com/golang/glog"
 	"github.com/pborman/uuid"
-	"github.com/piemapping/go-micro/errors"
-	"github.com/piemapping/go-micro/registry"
+	"github.com/myodc/go-micro/errors"
+	"github.com/myodc/go-micro/registry"
 )
 
 type httpBroker struct {

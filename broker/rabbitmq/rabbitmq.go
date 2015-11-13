@@ -1,7 +1,7 @@
 package rabbitmq
 
 import (
-	"github.com/piemapping/go-micro/broker"
+	"github.com/myodc/go-micro/broker"
 	"github.com/streadway/amqp"
 )
 

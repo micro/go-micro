@@ -1,9 +1,9 @@
 package client
 
 import (
-	"github.com/piemapping/go-micro/broker"
-	"github.com/piemapping/go-micro/registry"
-	"github.com/piemapping/go-micro/transport"
+	"github.com/myodc/go-micro/broker"
+	"github.com/myodc/go-micro/registry"
+	"github.com/myodc/go-micro/transport"
 )
 
 type options struct {

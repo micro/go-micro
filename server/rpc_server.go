@@ -6,10 +6,10 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/piemapping/go-micro/broker"
-	c "github.com/piemapping/go-micro/context"
-	"github.com/piemapping/go-micro/registry"
-	"github.com/piemapping/go-micro/transport"
+	"github.com/myodc/go-micro/broker"
+	c "github.com/myodc/go-micro/context"
+	"github.com/myodc/go-micro/registry"
+	"github.com/myodc/go-micro/transport"
 
 	log "github.com/golang/glog"
 	rpc "github.com/youtube/vitess/go/rpcplus"

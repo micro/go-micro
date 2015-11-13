@@ -3,7 +3,7 @@ package http
 // This is a hack
 
 import (
-	"github.com/piemapping/go-micro/broker"
+	"github.com/myodc/go-micro/broker"
 )
 
 // NewBroker instantiates and returns a new HTTP-based broker

@@ -1,7 +1,7 @@
 package server
 
 import (
-	"github.com/piemapping/go-micro/registry"
+	"github.com/myodc/go-micro/registry"
 )
 
 type Handler interface {

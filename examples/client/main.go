@@ -3,10 +3,10 @@ package main
 import (
 	"fmt"
 
-	"github.com/piemapping/go-micro/client"
-	"github.com/piemapping/go-micro/cmd"
-	c "github.com/piemapping/go-micro/context"
-	example "github.com/piemapping/go-micro/examples/server/proto/example"
+	"github.com/myodc/go-micro/client"
+	"github.com/myodc/go-micro/cmd"
+	c "github.com/myodc/go-micro/context"
+	example "github.com/myodc/go-micro/examples/server/proto/example"
 	"golang.org/x/net/context"
 )
 

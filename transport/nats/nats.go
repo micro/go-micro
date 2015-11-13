@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/apcera/nats"
-	"github.com/piemapping/go-micro/transport"
+	"github.com/myodc/go-micro/transport"
 )
 
 type ntport struct {

@@ -1,4 +1,4 @@
-# Go Micro [![GoDoc](https://godoc.org/github.com/piemapping/go-micro?status.svg)](https://godoc.org/github.com/piemapping/go-micro) [![Travis CI](https://travis-ci.org/myodc/go-micro.svg?branch=master)](https://travis-ci.org/myodc/go-micro)
+# Go Micro [![GoDoc](https://godoc.org/github.com/myodc/go-micro?status.svg)](https://godoc.org/github.com/myodc/go-micro) [![Travis CI](https://travis-ci.org/myodc/go-micro.svg?branch=master)](https://travis-ci.org/myodc/go-micro)
 
 Go Micro is a microservices library which provides the fundamental building blocks for writing fault tolerant distributed systems at scale. It is part of the [Micro](https://github.com/piemapping/micro) toolchain.
 
@@ -55,7 +55,7 @@ message Response {
 }
 ```
 
-Compile proto `protoc -I$GOPATH/src --go_out=$GOPATH/src $GOPATH/src/github.com/piemapping/go-micro/template/proto/example/example.proto`
+Compile proto `protoc -I$GOPATH/src --go_out=$GOPATH/src $GOPATH/src/github.com/myodc/go-micro/template/proto/example/example.proto`
 
 ### Create request handler
 `go-micro/examples/server/handler/example.go`:
@@ -65,9 +65,9 @@ package handler
 
 import (
         log "github.com/golang/glog"
-        c "github.com/piemapping/go-micro/context"
-        example "github.com/piemapping/go-micro/examples/server/proto/example"
-        "github.com/piemapping/go-micro/server"
+        c "github.com/myodc/go-micro/context"
+        example "github.com/myodc/go-micro/examples/server/proto/example"
+        "github.com/myodc/go-micro/server"
 
         "golang.org/x/net/context"
 )
@@ -90,9 +90,9 @@ package main
 
 import (
 	log "github.com/golang/glog"
-	"github.com/piemapping/go-micro/cmd"
-	"github.com/piemapping/go-micro/examples/server/handler"
-	"github.com/piemapping/go-micro/server"
+	"github.com/myodc/go-micro/cmd"
+	"github.com/myodc/go-micro/examples/server/handler"
+	"github.com/myodc/go-micro/server"
 )
 
 func main() {
