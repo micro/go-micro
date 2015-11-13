@@ -1,6 +1,6 @@
 # Go Micro [![GoDoc](https://godoc.org/github.com/myodc/go-micro?status.svg)](https://godoc.org/github.com/myodc/go-micro) [![Travis CI](https://travis-ci.org/myodc/go-micro.svg?branch=master)](https://travis-ci.org/myodc/go-micro)
 
-Go Micro is a microservices library which provides the fundamental building blocks for writing fault tolerant distributed systems at scale. It is part of the [Micro](https://github.com/myodc/micro) toolchain.
+Go Micro is a microservices library which provides the fundamental building blocks for writing fault tolerant distributed systems at scale. It is part of the [Micro](https://github.com/piemapping/micro) toolchain.
 
 An example server can be found in examples/server.
 

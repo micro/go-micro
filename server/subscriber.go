@@ -94,8 +94,9 @@ func newSubscriber(topic string, sub interface{}) Subscriber {
 	}
 }
 
-func createSubHandler(sb *subscriber) broker.Handler {
-	return func(msg *broker.Message) {
+func createSubHandler(sb *subscriber) func(msg *broker.Message) error {
+
+	return func(msg *broker.Message) error {
 		hdr := make(map[string]string)
 		for k, v := range msg.Header {
 			hdr[k] = v
@@ -143,6 +144,8 @@ func createSubHandler(sb *subscriber) broker.Handler {
 			vals = append(vals, req)
 			go handler.method.Call(vals)
 		}
+
+		return nil
 	}
 }
 
