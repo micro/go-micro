@@ -114,9 +114,19 @@ func (s *rpcServer) Subscribe(sb Subscriber) error {
 func (s *rpcServer) Register() error {
 	// parse address for host, port
 	config := s.Config()
-	var host string
+	var advt, host string
 	var port int
-	parts := strings.Split(config.Address(), ":")
+
+	// check the advertise address first
+	// if it exists then use it, otherwise
+	// use the address
+	if len(config.Advertise()) > 0 {
+		advt = config.Advertise()
+	} else {
+		advt = config.Address()
+	}
+
+	parts := strings.Split(advt, ":")
 	if len(parts) > 1 {
 		host = strings.Join(parts[:len(parts)-1], ":")
 		port, _ = strconv.Atoi(parts[len(parts)-1])
@@ -124,10 +134,15 @@ func (s *rpcServer) Register() error {
 		host = parts[0]
 	}
 
+	addr, err := extractAddress(host)
+	if err != nil {
+		return err
+	}
+
 	// register service
 	node := &registry.Node{
 		Id:       config.Id(),
-		Address:  host,
+		Address:  addr,
 		Port:     port,
 		Metadata: config.Metadata(),
 	}
@@ -173,9 +188,19 @@ func (s *rpcServer) Register() error {
 
 func (s *rpcServer) Deregister() error {
 	config := s.Config()
-	var host string
+	var advt, host string
 	var port int
-	parts := strings.Split(config.Address(), ":")
+
+	// check the advertise address first
+	// if it exists then use it, otherwise
+	// use the address
+	if len(config.Advertise()) > 0 {
+		advt = config.Advertise()
+	} else {
+		advt = config.Address()
+	}
+
+	parts := strings.Split(advt, ":")
 	if len(parts) > 1 {
 		host = strings.Join(parts[:len(parts)-1], ":")
 		port, _ = strconv.Atoi(parts[len(parts)-1])
@@ -183,9 +208,14 @@ func (s *rpcServer) Deregister() error {
 		host = parts[0]
 	}
 
+	addr, err := extractAddress(host)
+	if err != nil {
+		return err
+	}
+
 	node := &registry.Node{
 		Id:      config.Id(),
-		Address: host,
+		Address: addr,
 		Port:    port,
 	}
 

@@ -13,7 +13,7 @@ type consulRegistry struct {
 	Client  *consul.Client
 
 	mtx      sync.RWMutex
-	services map[string]*Service
+	services map[string][]*Service
 }
 
 func encodeEndpoints(en []*Endpoint) []string {
@@ -80,7 +80,7 @@ func newConsulRegistry(addrs []string, opts ...Option) Registry {
 	cr := &consulRegistry{
 		Address:  config.Address,
 		Client:   client,
-		services: make(map[string]*Service),
+		services: make(map[string][]*Service),
 	}
 
 	return cr
@@ -115,7 +115,7 @@ func (c *consulRegistry) Register(s *Service) error {
 		Node:    node.Id,
 		Address: node.Address,
 		Service: &consul.AgentService{
-			ID:      node.Id,
+			ID:      s.Version,
 			Service: s.Name,
 			Port:    node.Port,
 			Tags:    tags,
@@ -125,7 +125,7 @@ func (c *consulRegistry) Register(s *Service) error {
 	return err
 }
 
-func (c *consulRegistry) GetService(name string) (*Service, error) {
+func (c *consulRegistry) GetService(name string) ([]*Service, error) {
 	c.mtx.RLock()
 	service, ok := c.services[name]
 	c.mtx.RUnlock()
@@ -139,24 +139,47 @@ func (c *consulRegistry) GetService(name string) (*Service, error) {
 		return nil, err
 	}
 
-	cs := &Service{}
+	serviceMap := map[string]*Service{}
 
 	for _, s := range rsp {
 		if s.ServiceName != name {
 			continue
 		}
 
-		cs.Endpoints = decodeEndpoints(s.ServiceTags)
-		cs.Name = s.ServiceName
-		cs.Nodes = append(cs.Nodes, &Node{
-			Id:       s.ServiceID,
+		id := s.Node
+		key := s.ServiceID
+		version := s.ServiceID
+
+		// We're adding service version but
+		// don't want to break backwards compatibility
+		if id == version {
+			key = "default"
+			version = ""
+		}
+
+		svc, ok := serviceMap[key]
+		if !ok {
+			svc = &Service{
+				Endpoints: decodeEndpoints(s.ServiceTags),
+				Name:      s.ServiceName,
+				Version:   version,
+			}
+			serviceMap[key] = svc
+		}
+
+		svc.Nodes = append(svc.Nodes, &Node{
+			Id:       id,
 			Address:  s.Address,
 			Port:     s.ServicePort,
 			Metadata: decodeMetadata(s.ServiceTags),
 		})
 	}
 
-	return cs, nil
+	var services []*Service
+	for _, service := range serviceMap {
+		services = append(services, service)
+	}
+	return services, nil
 }
 
 func (c *consulRegistry) ListServices() ([]*Service, error) {
@@ -167,8 +190,8 @@ func (c *consulRegistry) ListServices() ([]*Service, error) {
 	var services []*Service
 
 	if len(serviceMap) > 0 {
-		for _, service := range services {
-			services = append(services, service)
+		for _, service := range serviceMap {
+			services = append(services, service...)
 		}
 		return services, nil
 	}

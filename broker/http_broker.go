@@ -195,13 +195,14 @@ func (h *httpBroker) Publish(topic string, msg *Message) error {
 		return err
 	}
 
-	for _, node := range s.Nodes {
-		r, err := http.Post(fmt.Sprintf("http://%s:%d%s", node.Address, node.Port, DefaultSubPath), "application/json", bytes.NewBuffer(b))
-		if err == nil {
-			r.Body.Close()
+	for _, service := range s {
+		for _, node := range service.Nodes {
+			r, err := http.Post(fmt.Sprintf("http://%s:%d%s", node.Address, node.Port, DefaultSubPath), "application/json", bytes.NewBuffer(b))
+			if err == nil {
+				r.Body.Close()
+			}
 		}
 	}
-
 	return nil
 }
 

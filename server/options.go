@@ -13,6 +13,7 @@ type options struct {
 	metadata  map[string]string
 	name      string
 	address   string
+	advertise string
 	id        string
 	version   string
 }
@@ -71,6 +72,10 @@ func (o options) Address() string {
 	return o.address
 }
 
+func (o options) Advertise() string {
+	return o.advertise
+}
+
 func (o options) Metadata() map[string]string {
 	return o.metadata
 }
@@ -96,6 +101,12 @@ func Version(v string) Option {
 func Address(a string) Option {
 	return func(o *options) {
 		o.address = a
+	}
+}
+
+func Advertise(a string) Option {
+	return func(o *options) {
+		o.advertise = a
 	}
 }
 

@@ -40,6 +40,11 @@ var (
 			Usage:  "Name of the server. go.micro.srv.example",
 		},
 		cli.StringFlag{
+			Name:   "server_version",
+			EnvVar: "MICRO_SERVER_VERSION",
+			Usage:  "Version of the server. 1.1.0",
+		},
+		cli.StringFlag{
 			Name:   "server_id",
 			EnvVar: "MICRO_SERVER_ID",
 			Usage:  "Id of the server. Auto-generated if not specified",
@@ -49,6 +54,11 @@ var (
 			EnvVar: "MICRO_SERVER_ADDRESS",
 			Value:  ":0",
 			Usage:  "Bind address for the server. 127.0.0.1:8080",
+		},
+		cli.StringFlag{
+			Name:   "server_advertise",
+			EnvVar: "MICRO_SERVER_ADVERTISE",
+			Usage:  "Used instead of the server_address when registering with discovery. 127.0.0.1:8080",
 		},
 		cli.StringSliceFlag{
 			Name:   "server_metadata",
@@ -128,9 +138,9 @@ var (
 	}
 
 	Registries = map[string]func([]string, ...registry.Option) registry.Registry{
-		"consul":     consul.NewRegistry,
-		"etcd":       etcd.NewRegistry,
-		"memory":     memory.NewRegistry,
+		"consul": consul.NewRegistry,
+		"etcd":   etcd.NewRegistry,
+		"memory": memory.NewRegistry,
 	}
 
 	Transports = map[string]func([]string, ...transport.Option) transport.Transport{
@@ -178,8 +188,10 @@ func Setup(c *cli.Context) error {
 
 	server.DefaultServer = server.NewServer(
 		server.Name(c.String("server_name")),
+		server.Version(c.String("server_version")),
 		server.Id(c.String("server_id")),
 		server.Address(c.String("server_address")),
+		server.Advertise(c.String("server_advertise")),
 		server.Metadata(metadata),
 	)
 

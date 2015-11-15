@@ -39,13 +39,34 @@ func (cw *consulWatcher) serviceHandler(idx uint64, data interface{}) {
 		return
 	}
 
-	cs := &Service{}
+	serviceMap := map[string]*Service{}
+	serviceName := ""
 
 	for _, e := range entries {
-		cs.Endpoints = decodeEndpoints(e.Service.Tags)
-		cs.Name = e.Service.Service
-		cs.Nodes = append(cs.Nodes, &Node{
-			Id:       e.Service.ID,
+		serviceName = e.Service.Service
+		id := e.Node.Node
+		key := e.Service.Service + e.Service.ID
+		version := e.Service.ID
+
+		// We're adding service version but
+		// don't want to break backwards compatibility
+		if id == version {
+			key = e.Service.Service + "default"
+			version = ""
+		}
+
+		svc, ok := serviceMap[key]
+		if !ok {
+			svc = &Service{
+				Endpoints: decodeEndpoints(e.Service.Tags),
+				Name:      e.Service.Service,
+				Version:   version,
+			}
+			serviceMap[key] = svc
+		}
+
+		svc.Nodes = append(svc.Nodes, &Node{
+			Id:       id,
 			Address:  e.Node.Address,
 			Port:     e.Service.Port,
 			Metadata: decodeMetadata(e.Service.Tags),
@@ -53,7 +74,11 @@ func (cw *consulWatcher) serviceHandler(idx uint64, data interface{}) {
 	}
 
 	cw.Registry.mtx.Lock()
-	cw.Registry.services[cs.Name] = cs
+	var services []*Service
+	for _, service := range serviceMap {
+		services = append(services, service)
+	}
+	cw.Registry.services[serviceName] = services
 	cw.Registry.mtx.Unlock()
 }
 

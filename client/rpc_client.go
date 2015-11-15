@@ -3,10 +3,8 @@ package client
 import (
 	"encoding/json"
 	"fmt"
-	"math/rand"
 	"net/http"
 	"sync"
-	"time"
 
 	"github.com/piemapping/go-micro/broker"
 	c "github.com/piemapping/go-micro/context"
@@ -27,10 +25,6 @@ type headerRoundTripper struct {
 type rpcClient struct {
 	once sync.Once
 	opts options
-}
-
-func init() {
-	rand.Seed(time.Now().UnixNano())
 }
 
 func newRpcClient(opt ...Option) Client {
@@ -129,12 +123,10 @@ func (r *rpcClient) Call(ctx context.Context, request Request, response interfac
 		return errors.InternalServerError("go.micro.client", err.Error())
 	}
 
-	if len(service.Nodes) == 0 {
-		return errors.NotFound("go.micro.client", "Service not found")
+	node, err := nodeSelector(service)
+	if err != nil {
+		return err
 	}
-
-	n := rand.Int() % len(service.Nodes)
-	node := service.Nodes[n]
 
 	address := node.Address
 	if node.Port > 0 {
@@ -154,12 +146,10 @@ func (r *rpcClient) Stream(ctx context.Context, request Request, responseChan in
 		return nil, errors.InternalServerError("go.micro.client", err.Error())
 	}
 
-	if len(service.Nodes) == 0 {
-		return nil, errors.NotFound("go.micro.client", "Service not found")
+	node, err := nodeSelector(service)
+	if err != nil {
+		return nil, err
 	}
-
-	n := rand.Int() % len(service.Nodes)
-	node := service.Nodes[n]
 
 	address := node.Address
 	if node.Port > 0 {

@@ -12,6 +12,10 @@ import (
 	"github.com/piemapping/go-micro/transport"
 )
 
+const (
+	directReplyQueue = "amq.rabbitmq.reply-to"
+)
+
 type rmqtport struct {
 	conn  *rabbitMQConn
 	addrs []string
@@ -236,12 +240,10 @@ func (r *rmqtport) Listen(addr string) (transport.Listener, error) {
 }
 
 func NewTransport(addrs []string, opt ...transport.Option) transport.Transport {
-	id, _ := uuid.NewV4()
-
 	return &rmqtport{
 		conn:     newRabbitMQConn("", addrs),
 		addrs:    addrs,
-		replyTo:  id.String(),
+		replyTo:  directReplyQueue,
 		inflight: make(map[string]chan amqp.Delivery),
 	}
 }
