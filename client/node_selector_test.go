@@ -3,7 +3,7 @@ package client
 import (
 	"testing"
 
-	"github.com/myodc/go-micro/registry"
+	"github.com/piemapping/go-micro/registry"
 )
 
 func TestNodeSelector(t *testing.T) {

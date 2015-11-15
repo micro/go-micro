@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"strings"
 	"text/tabwriter"
@@ -89,6 +90,11 @@ var (
 			Usage:  "Comma-separated list of registry addresses",
 		},
 		cli.StringFlag{
+			Name:   "registry_address_file",
+			EnvVar: "MICRO_REGISTRY_ADDRESS_FILE",
+			Usage:  "Path of a file containing comma-separated list of registry addresses",
+		},
+		cli.StringFlag{
 			Name:   "transport",
 			EnvVar: "MICRO_TRANSPORT",
 			Value:  "http",
@@ -168,7 +174,16 @@ func Setup(c *cli.Context) error {
 	}
 
 	if r, ok := Registries[c.String("registry")]; ok {
-		registry.DefaultRegistry = r(strings.Split(c.String("registry_address"), ","))
+		ra := c.String("registry_address")
+		raf := c.String("registry_address_file")
+		if raf := c.String("registry_address_file"); len(raf) > 0 && len(ra) == 0 {
+			content, err := ioutil.ReadFile(raf)
+			if err != nil {
+				panic(err)
+			}
+			ra = string(content)
+		}
+		registry.DefaultRegistry = r(strings.Split(, ","))
 	}
 
 	if t, ok := Transports[c.String("transport")]; ok {
