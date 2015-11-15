@@ -175,7 +175,6 @@ func Setup(c *cli.Context) error {
 
 	if r, ok := Registries[c.String("registry")]; ok {
 		ra := c.String("registry_address")
-		raf := c.String("registry_address_file")
 		if raf := c.String("registry_address_file"); len(raf) > 0 && len(ra) == 0 {
 			content, err := ioutil.ReadFile(raf)
 			if err != nil {
@@ -183,7 +182,7 @@ func Setup(c *cli.Context) error {
 			}
 			ra = string(content)
 		}
-		registry.DefaultRegistry = r(strings.Split(, ","))
+		registry.DefaultRegistry = r(strings.Split(ra, ","))
 	}
 
 	if t, ok := Transports[c.String("transport")]; ok {
