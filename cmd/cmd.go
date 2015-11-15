@@ -4,32 +4,33 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"strings"
 	"text/tabwriter"
 	"text/template"
 
 	"github.com/codegangsta/cli"
-	"github.com/myodc/go-micro/broker"
-	"github.com/myodc/go-micro/client"
-	"github.com/myodc/go-micro/registry"
-	"github.com/myodc/go-micro/server"
-	"github.com/myodc/go-micro/transport"
+	"github.com/piemapping/go-micro/broker"
+	"github.com/piemapping/go-micro/client"
+	"github.com/piemapping/go-micro/registry"
+	"github.com/piemapping/go-micro/server"
+	"github.com/piemapping/go-micro/transport"
 
 	// brokers
-	"github.com/myodc/go-micro/broker/http"
-	"github.com/myodc/go-micro/broker/nats"
-	"github.com/myodc/go-micro/broker/rabbitmq"
+	"github.com/piemapping/go-micro/broker/http"
+	"github.com/piemapping/go-micro/broker/nats"
+	"github.com/piemapping/go-micro/broker/rabbitmq"
 
 	// registries
-	"github.com/myodc/go-micro/registry/consul"
-	"github.com/myodc/go-micro/registry/etcd"
-	"github.com/myodc/go-micro/registry/memory"
+	"github.com/piemapping/go-micro/registry/consul"
+	"github.com/piemapping/go-micro/registry/etcd"
+	"github.com/piemapping/go-micro/registry/memory"
 
 	// transport
-	thttp "github.com/myodc/go-micro/transport/http"
-	tnats "github.com/myodc/go-micro/transport/nats"
-	trmq "github.com/myodc/go-micro/transport/rabbitmq"
+	thttp "github.com/piemapping/go-micro/transport/http"
+	tnats "github.com/piemapping/go-micro/transport/nats"
+	trmq "github.com/piemapping/go-micro/transport/rabbitmq"
 )
 
 var (
@@ -87,6 +88,11 @@ var (
 			Name:   "registry_address",
 			EnvVar: "MICRO_REGISTRY_ADDRESS",
 			Usage:  "Comma-separated list of registry addresses",
+		},
+		cli.StringFlag{
+			Name:   "registry_address_file",
+			EnvVar: "MICRO_REGISTRY_ADDRESS_FILE",
+			Usage:  "Path of a file containing comma-separated list of registry addresses",
 		},
 		cli.StringFlag{
 			Name:   "transport",
@@ -168,7 +174,15 @@ func Setup(c *cli.Context) error {
 	}
 
 	if r, ok := Registries[c.String("registry")]; ok {
-		registry.DefaultRegistry = r(strings.Split(c.String("registry_address"), ","))
+		ra := c.String("registry_address")
+		if raf := c.String("registry_address_file"); len(raf) > 0 && len(ra) == 0 {
+			content, err := ioutil.ReadFile(raf)
+			if err != nil {
+				panic(err)
+			}
+			ra = string(content)
+		}
+		registry.DefaultRegistry = r(strings.Split(ra, ","))
 	}
 
 	if t, ok := Transports[c.String("transport")]; ok {

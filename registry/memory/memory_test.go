@@ -3,7 +3,7 @@ package memory
 import (
 	"testing"
 
-	"github.com/myodc/go-micro/registry"
+	"github.com/piemapping/go-micro/registry"
 )
 
 func TestDelServices(t *testing.T) {

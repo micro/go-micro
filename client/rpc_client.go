@@ -6,11 +6,11 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/myodc/go-micro/broker"
-	c "github.com/myodc/go-micro/context"
-	"github.com/myodc/go-micro/errors"
-	"github.com/myodc/go-micro/registry"
-	"github.com/myodc/go-micro/transport"
+	"github.com/piemapping/go-micro/broker"
+	c "github.com/piemapping/go-micro/context"
+	"github.com/piemapping/go-micro/errors"
+	"github.com/piemapping/go-micro/registry"
+	"github.com/piemapping/go-micro/transport"
 
 	rpc "github.com/youtube/vitess/go/rpcplus"
 

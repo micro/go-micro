@@ -2,9 +2,9 @@ package handler
 
 import (
 	log "github.com/golang/glog"
-	c "github.com/myodc/go-micro/context"
-	example "github.com/myodc/go-micro/examples/server/proto/example"
-	"github.com/myodc/go-micro/server"
+	c "github.com/piemapping/go-micro/context"
+	example "github.com/piemapping/go-micro/examples/server/proto/example"
+	"github.com/piemapping/go-micro/server"
 
 	"golang.org/x/net/context"
 )

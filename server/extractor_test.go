@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/myodc/go-micro/registry"
+	"github.com/piemapping/go-micro/registry"
 	"golang.org/x/net/context"
 )
 

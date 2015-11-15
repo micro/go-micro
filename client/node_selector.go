@@ -4,8 +4,8 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/myodc/go-micro/errors"
-	"github.com/myodc/go-micro/registry"
+	"github.com/piemapping/go-micro/errors"
+	"github.com/piemapping/go-micro/registry"
 )
 
 func init() {

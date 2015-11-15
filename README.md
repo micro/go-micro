@@ -1,6 +1,6 @@
-# Go Micro [![GoDoc](https://godoc.org/github.com/myodc/go-micro?status.svg)](https://godoc.org/github.com/myodc/go-micro) [![Travis CI](https://travis-ci.org/myodc/go-micro.svg?branch=master)](https://travis-ci.org/myodc/go-micro)
+# Go Micro [![GoDoc](https://godoc.org/github.com/piemapping/go-micro?status.svg)](https://godoc.org/github.com/piemapping/go-micro) [![Travis CI](https://travis-ci.org/piemapping/go-micro.svg?branch=master)](https://travis-ci.org/piemapping/go-micro)
 
-Go Micro is a microservices library which provides the fundamental building blocks for writing fault tolerant distributed systems at scale. It is part of the [Micro](https://github.com/myodc/micro) toolchain.
+Go Micro is a microservices library which provides the fundamental building blocks for writing fault tolerant distributed systems at scale. It is part of the [Micro](https://github.com/piemapping/micro) toolchain.
 
 An example server can be found in examples/server.
 
@@ -11,11 +11,11 @@ An example server can be found in examples/server.
 
 Feature		| Package	|	Description
 -------		| -------	|	---------
-Discovery	| [Registry](https://godoc.org/github.com/myodc/go-micro/registry)	|	A way of locating services to communicate with
-Client		| [Client](https://godoc.org/github.com/myodc/go-micro/client)	|	Used to make RPC requests to a service
-Server		| [Server](https://godoc.org/github.com/myodc/go-micro/server)	|	Listens and serves RPC requests
-Pub/Sub		| [Broker](https://godoc.org/github.com/myodc/go-micro/broker)	|	Publish and Subscribe to events
-Transport	| [Transport](https://godoc.org/github.com/myodc/go-micro/transport)	|	Communication mechanism between services
+Discovery	| [Registry](https://godoc.org/github.com/piemapping/go-micro/registry)	|	A way of locating services to communicate with
+Client		| [Client](https://godoc.org/github.com/piemapping/go-micro/client)	|	Used to make RPC requests to a service
+Server		| [Server](https://godoc.org/github.com/piemapping/go-micro/server)	|	Listens and serves RPC requests
+Pub/Sub		| [Broker](https://godoc.org/github.com/piemapping/go-micro/broker)	|	Publish and Subscribe to events
+Transport	| [Transport](https://godoc.org/github.com/piemapping/go-micro/transport)	|	Communication mechanism between services
 
 ## Prerequisites
 
@@ -63,7 +63,7 @@ message Response {
 }
 ```
 
-Compile proto `protoc -I$GOPATH/src --go_out=$GOPATH/src $GOPATH/src/github.com/myodc/go-micro/examples/server/proto/example/example.proto`
+Compile proto `protoc -I$GOPATH/src --go_out=$GOPATH/src $GOPATH/src/github.com/piemapping/go-micro/template/proto/example/example.proto`
 
 ### Create request handler
 `go-micro/examples/server/handler/example.go`:
@@ -72,12 +72,12 @@ Compile proto `protoc -I$GOPATH/src --go_out=$GOPATH/src $GOPATH/src/github.com/
 package handler
 
 import (
-	log "github.com/golang/glog"
-	c "github.com/myodc/go-micro/context"
-	example "github.com/myodc/go-micro/examples/server/proto/example"
-	"github.com/myodc/go-micro/server"
+        log "github.com/golang/glog"
+        c "github.com/piemapping/go-micro/context"
+        example "github.com/piemapping/go-micro/examples/server/proto/example"
+        "github.com/piemapping/go-micro/server"
 
-	"golang.org/x/net/context"
+    	"golang.org/x/net/context"
 )
 
 type Example struct{}
@@ -98,9 +98,9 @@ package main
 
 import (
 	log "github.com/golang/glog"
-	"github.com/myodc/go-micro/cmd"
-	"github.com/myodc/go-micro/examples/server/handler"
-	"github.com/myodc/go-micro/server"
+	"github.com/piemapping/go-micro/cmd"
+	"github.com/piemapping/go-micro/examples/server/handler"
+	"github.com/piemapping/go-micro/server"
 )
 
 func main() {

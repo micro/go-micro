@@ -5,8 +5,8 @@ import (
 	"time"
 
 	log "github.com/golang/glog"
-	"github.com/myodc/go-micro/broker"
-	"github.com/myodc/go-micro/cmd"
+	"github.com/piemapping/go-micro/broker"
+	"github.com/piemapping/go-micro/cmd"
 )
 
 var (
@@ -33,11 +33,13 @@ func pub() {
 }
 
 func sub() {
-	_, err := broker.Subscribe(topic, func(msg *broker.Message) {
+	_, err := broker.Subscribe("", topic, func(msg *broker.Message) error {
 		fmt.Println("[sub] received message:", string(msg.Body), "header", msg.Header)
+		return nil
 	})
+
 	if err != nil {
-		fmt.Println(err)
+		log.Errorf("%v", err)
 	}
 }
 

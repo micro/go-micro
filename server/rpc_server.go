@@ -6,10 +6,10 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/myodc/go-micro/broker"
-	c "github.com/myodc/go-micro/context"
-	"github.com/myodc/go-micro/registry"
-	"github.com/myodc/go-micro/transport"
+	"github.com/piemapping/go-micro/broker"
+	c "github.com/piemapping/go-micro/context"
+	"github.com/piemapping/go-micro/registry"
+	"github.com/piemapping/go-micro/transport"
 
 	log "github.com/golang/glog"
 	rpc "github.com/youtube/vitess/go/rpcplus"
@@ -174,10 +174,12 @@ func (s *rpcServer) Register() error {
 
 	for sb, _ := range s.subscribers {
 		handler := createSubHandler(sb)
-		sub, err := config.broker.Subscribe(sb.Topic(), handler)
+		sub, err := config.broker.NewSubscriber("", sb.Topic())
 		if err != nil {
 			return err
 		}
+		sub.SetHandlerFunc(handler, 1)
+		sub.Subscribe()
 		s.subscribers[sb] = []broker.Subscriber{sub}
 	}
 
