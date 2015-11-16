@@ -3,6 +3,8 @@ package registry
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
+	"net"
 	"sync"
 
 	consul "github.com/hashicorp/consul/api"
@@ -73,7 +75,13 @@ func decodeMetadata(tags []string) map[string]string {
 func newConsulRegistry(addrs []string, opts ...Option) Registry {
 	config := consul.DefaultConfig()
 	if len(addrs) > 0 {
-		config.Address = addrs[0]
+		addr, port, err := net.SplitHostPort(addrs[0])
+		if ae, ok := err.(*net.AddrError); ok && ae.Err == "missing port in address" {
+			port = "8500"
+			config.Address = fmt.Sprintf("%s:%s", addr, port)
+		} else if err == nil {
+			config.Address = fmt.Sprintf("%s:%s", addr, port)
+		}
 	}
 	client, _ := consul.NewClient(config)
 
