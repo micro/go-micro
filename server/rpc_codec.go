@@ -3,7 +3,7 @@ package server
 import (
 	"bytes"
 	"fmt"
-	"github.com/myodc/go-micro/transport"
+	"github.com/micro/go-micro/transport"
 	rpc "github.com/youtube/vitess/go/rpcplus"
 	js "github.com/youtube/vitess/go/rpcplus/jsonrpc"
 	pb "github.com/youtube/vitess/go/rpcplus/pbrpc"

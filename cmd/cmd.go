@@ -10,26 +10,26 @@ import (
 	"text/template"
 
 	"github.com/codegangsta/cli"
-	"github.com/myodc/go-micro/broker"
-	"github.com/myodc/go-micro/client"
-	"github.com/myodc/go-micro/registry"
-	"github.com/myodc/go-micro/server"
-	"github.com/myodc/go-micro/transport"
+	"github.com/micro/go-micro/broker"
+	"github.com/micro/go-micro/client"
+	"github.com/micro/go-micro/registry"
+	"github.com/micro/go-micro/server"
+	"github.com/micro/go-micro/transport"
 
 	// brokers
-	"github.com/myodc/go-micro/broker/http"
-	"github.com/myodc/go-micro/broker/nats"
-	"github.com/myodc/go-micro/broker/rabbitmq"
+	"github.com/micro/go-micro/broker/http"
+	"github.com/micro/go-micro/broker/nats"
+	"github.com/micro/go-micro/broker/rabbitmq"
 
 	// registries
-	"github.com/myodc/go-micro/registry/consul"
-	"github.com/myodc/go-micro/registry/etcd"
-	"github.com/myodc/go-micro/registry/memory"
+	"github.com/micro/go-micro/registry/consul"
+	"github.com/micro/go-micro/registry/etcd"
+	"github.com/micro/go-micro/registry/memory"
 
 	// transport
-	thttp "github.com/myodc/go-micro/transport/http"
-	tnats "github.com/myodc/go-micro/transport/nats"
-	trmq "github.com/myodc/go-micro/transport/rabbitmq"
+	thttp "github.com/micro/go-micro/transport/http"
+	tnats "github.com/micro/go-micro/transport/nats"
+	trmq "github.com/micro/go-micro/transport/rabbitmq"
 )
 
 var (

@@ -5,7 +5,7 @@ import (
 	"net"
 	"reflect"
 
-	"github.com/myodc/go-micro/registry"
+	"github.com/micro/go-micro/registry"
 )
 
 var (

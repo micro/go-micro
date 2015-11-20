@@ -8,7 +8,7 @@ import (
 
 	log "github.com/golang/glog"
 	"github.com/hashicorp/memberlist"
-	"github.com/myodc/go-micro/registry"
+	"github.com/micro/go-micro/registry"
 	"github.com/pborman/uuid"
 )
 

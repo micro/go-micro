@@ -1,9 +1,9 @@
 package server
 
 import (
-	"github.com/myodc/go-micro/broker"
-	"github.com/myodc/go-micro/registry"
-	"github.com/myodc/go-micro/transport"
+	"github.com/micro/go-micro/broker"
+	"github.com/micro/go-micro/registry"
+	"github.com/micro/go-micro/transport"
 )
 
 type options struct {

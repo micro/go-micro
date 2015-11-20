@@ -12,8 +12,8 @@ import (
 	"sync"
 
 	log "github.com/golang/glog"
-	"github.com/myodc/go-micro/errors"
-	"github.com/myodc/go-micro/registry"
+	"github.com/micro/go-micro/errors"
+	"github.com/micro/go-micro/registry"
 	"github.com/pborman/uuid"
 )
 

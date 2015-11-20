@@ -1,6 +1,6 @@
-# Go Micro [![GoDoc](https://godoc.org/github.com/myodc/go-micro?status.svg)](https://godoc.org/github.com/myodc/go-micro) [![Travis CI](https://travis-ci.org/myodc/go-micro.svg?branch=master)](https://travis-ci.org/myodc/go-micro)
+# Go Micro [![GoDoc](https://godoc.org/github.com/micro/go-micro?status.svg)](https://godoc.org/github.com/micro/go-micro) [![Travis CI](https://travis-ci.org/micro/go-micro.svg?branch=master)](https://travis-ci.org/micro/go-micro)
 
-Go Micro is a microservices library which provides the fundamental building blocks for writing fault tolerant distributed systems at scale. It is part of the [Micro](https://github.com/myodc/micro) toolchain.
+Go Micro is a microservices library which provides the fundamental building blocks for writing fault tolerant distributed systems at scale. It is part of the [Micro](https://github.com/micro/micro) toolchain.
 
 An example server can be found in examples/server.
 
@@ -11,11 +11,11 @@ An example server can be found in examples/server.
 
 Feature		| Package	|	Description
 -------		| -------	|	---------
-Discovery	| [Registry](https://godoc.org/github.com/myodc/go-micro/registry)	|	A way of locating services to communicate with
-Client		| [Client](https://godoc.org/github.com/myodc/go-micro/client)	|	Used to make RPC requests to a service
-Server		| [Server](https://godoc.org/github.com/myodc/go-micro/server)	|	Listens and serves RPC requests
-Pub/Sub		| [Broker](https://godoc.org/github.com/myodc/go-micro/broker)	|	Publish and Subscribe to events
-Transport	| [Transport](https://godoc.org/github.com/myodc/go-micro/transport)	|	Communication mechanism between services
+Discovery	| [Registry](https://godoc.org/github.com/micro/go-micro/registry)	|	A way of locating services to communicate with
+Client		| [Client](https://godoc.org/github.com/micro/go-micro/client)	|	Used to make RPC requests to a service
+Server		| [Server](https://godoc.org/github.com/micro/go-micro/server)	|	Listens and serves RPC requests
+Pub/Sub		| [Broker](https://godoc.org/github.com/micro/go-micro/broker)	|	Publish and Subscribe to events
+Transport	| [Transport](https://godoc.org/github.com/micro/go-micro/transport)	|	Communication mechanism between services
 
 ## Prerequisites
 
@@ -63,7 +63,7 @@ message Response {
 }
 ```
 
-Compile proto `protoc -I$GOPATH/src --go_out=$GOPATH/src $GOPATH/src/github.com/myodc/go-micro/examples/server/proto/example/example.proto`
+Compile proto `protoc -I$GOPATH/src --go_out=$GOPATH/src $GOPATH/src/github.com/micro/go-micro/examples/server/proto/example/example.proto`
 
 ### Create request handler
 `go-micro/examples/server/handler/example.go`:
@@ -73,9 +73,9 @@ package handler
 
 import (
 	log "github.com/golang/glog"
-	c "github.com/myodc/go-micro/context"
-	example "github.com/myodc/go-micro/examples/server/proto/example"
-	"github.com/myodc/go-micro/server"
+	c "github.com/micro/go-micro/context"
+	example "github.com/micro/go-micro/examples/server/proto/example"
+	"github.com/micro/go-micro/server"
 
 	"golang.org/x/net/context"
 )
@@ -98,9 +98,9 @@ package main
 
 import (
 	log "github.com/golang/glog"
-	"github.com/myodc/go-micro/cmd"
-	"github.com/myodc/go-micro/examples/server/handler"
-	"github.com/myodc/go-micro/server"
+	"github.com/micro/go-micro/cmd"
+	"github.com/micro/go-micro/examples/server/handler"
+	"github.com/micro/go-micro/server"
 )
 
 func main() {

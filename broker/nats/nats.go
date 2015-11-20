@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/apcera/nats"
-	"github.com/myodc/go-micro/broker"
+	"github.com/micro/go-micro/broker"
 )
 
 type nbroker struct {

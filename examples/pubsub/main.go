@@ -5,8 +5,8 @@ import (
 	"time"
 
 	log "github.com/golang/glog"
-	"github.com/myodc/go-micro/broker"
-	"github.com/myodc/go-micro/cmd"
+	"github.com/micro/go-micro/broker"
+	"github.com/micro/go-micro/cmd"
 )
 
 var (

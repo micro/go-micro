@@ -5,9 +5,9 @@ import (
 	"reflect"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/myodc/go-micro/broker"
-	c "github.com/myodc/go-micro/context"
-	"github.com/myodc/go-micro/registry"
+	"github.com/micro/go-micro/broker"
+	c "github.com/micro/go-micro/context"
+	"github.com/micro/go-micro/registry"
 	"golang.org/x/net/context"
 )
 

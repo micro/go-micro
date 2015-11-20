@@ -2,10 +2,10 @@ package main
 
 import (
 	log "github.com/golang/glog"
-	"github.com/myodc/go-micro/cmd"
-	"github.com/myodc/go-micro/examples/server/handler"
-	"github.com/myodc/go-micro/examples/server/subscriber"
-	"github.com/myodc/go-micro/server"
+	"github.com/micro/go-micro/cmd"
+	"github.com/micro/go-micro/examples/server/handler"
+	"github.com/micro/go-micro/examples/server/subscriber"
+	"github.com/micro/go-micro/server"
 )
 
 func main() {

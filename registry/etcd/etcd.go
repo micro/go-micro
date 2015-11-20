@@ -8,7 +8,7 @@ import (
 	"sync"
 
 	etcd "github.com/coreos/etcd/client"
-	"github.com/myodc/go-micro/registry"
+	"github.com/micro/go-micro/registry"
 	"golang.org/x/net/context"
 )
 
