@@ -157,6 +157,27 @@ func (h *httpTransportSocket) Send(m *Message) error {
 	return rsp.Write(h.conn)
 }
 
+func (h *httpTransportSocket) error(m *Message) error {
+	b := bytes.NewBuffer(m.Body)
+	defer b.Reset()
+	rsp := &http.Response{
+		Header:        make(http.Header),
+		Body:          &buffer{b},
+		Status:        "500 Internal Server Error",
+		StatusCode:    500,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		ContentLength: int64(len(m.Body)),
+	}
+
+	for k, v := range m.Header {
+		rsp.Header.Set(k, v)
+	}
+
+	return rsp.Write(h.conn)
+}
+
 func (h *httpTransportSocket) Close() error {
 	return h.conn.Close()
 }
@@ -177,10 +198,19 @@ func (h *httpTransportListener) Accept(fn func(Socket)) error {
 				return
 			}
 
-			fn(&httpTransportSocket{
+			sock := &httpTransportSocket{
 				conn: conn,
 				r:    r,
-			})
+			}
+
+			// TODO: think of a better error response strategy
+			defer func() {
+				if r := recover(); r != nil {
+					sock.Close()
+				}
+			}()
+
+			fn(sock)
 		}),
 	}
 
