@@ -9,11 +9,6 @@ import (
 	"github.com/youtube/vitess/go/rpcplus/pbrpc"
 )
 
-type CodecFunc func(io.ReadWriteCloser) rpc.ServerCodec
-
-// for internal use only
-type codecFunc func(io.ReadWriteCloser) rpcplus.ServerCodec
-
 var (
 	defaultCodecs = map[string]codecFunc{
 		"application/json":         jsonrpc.NewServerCodec,
@@ -23,6 +18,11 @@ var (
 		"application/octet-stream": pbrpc.NewServerCodec,
 	}
 )
+
+type CodecFunc func(io.ReadWriteCloser) rpc.ServerCodec
+
+// for internal use only
+type codecFunc func(io.ReadWriteCloser) rpcplus.ServerCodec
 
 // wraps an net/rpc ServerCodec to provide an rpcplus.ServerCodec
 // temporary until we strip out use of rpcplus
