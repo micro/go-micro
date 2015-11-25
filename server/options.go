@@ -7,6 +7,7 @@ import (
 )
 
 type options struct {
+	codecs    map[string]CodecFunc
 	broker    broker.Broker
 	registry  registry.Registry
 	transport transport.Transport
@@ -19,7 +20,9 @@ type options struct {
 }
 
 func newOptions(opt ...Option) options {
-	var opts options
+	opts := options{
+		codecs: make(map[string]CodecFunc),
+	}
 
 	for _, o := range opt {
 		o(&opts)
@@ -113,6 +116,12 @@ func Advertise(a string) Option {
 func Broker(b broker.Broker) Option {
 	return func(o *options) {
 		o.broker = b
+	}
+}
+
+func Codec(contentType string, cf CodecFunc) Option {
+	return func(o *options) {
+		o.codecs[contentType] = cf
 	}
 }
 

@@ -2,12 +2,9 @@ package client
 
 import (
 	"bytes"
-	"fmt"
 
 	"github.com/micro/go-micro/transport"
 	rpc "github.com/youtube/vitess/go/rpcplus"
-	js "github.com/youtube/vitess/go/rpcplus/jsonrpc"
-	pb "github.com/youtube/vitess/go/rpcplus/pbrpc"
 )
 
 type rpcPlusCodec struct {
@@ -37,50 +34,33 @@ func (rwc *readWriteCloser) Close() error {
 	return nil
 }
 
-func newRpcPlusCodec(req *transport.Message, client transport.Client) *rpcPlusCodec {
+func newRpcPlusCodec(req *transport.Message, client transport.Client, cf codecFunc) *rpcPlusCodec {
+	rwc := &readWriteCloser{
+		wbuf: bytes.NewBuffer(nil),
+		rbuf: bytes.NewBuffer(nil),
+	}
 	r := &rpcPlusCodec{
-		req:    req,
+		buf:    rwc,
 		client: client,
-		buf: &readWriteCloser{
-			wbuf: bytes.NewBuffer(nil),
-			rbuf: bytes.NewBuffer(nil),
-		},
+		codec:  cf(rwc),
+		req:    req,
 	}
-
-	switch req.Header["Content-Type"] {
-	case "application/octet-stream":
-		r.codec = pb.NewClientCodec(r.buf)
-	case "application/json":
-		r.codec = js.NewClientCodec(r.buf)
-	}
-
 	return r
 }
 
 func (c *rpcPlusCodec) WriteRequest(req *rpc.Request, body interface{}) error {
-	if c.codec == nil {
-		return fmt.Errorf("unsupported request type: %s", c.req.Header["Content-Type"])
-	}
-
 	if err := c.codec.WriteRequest(req, body); err != nil {
 		return err
 	}
-
 	c.req.Body = c.buf.wbuf.Bytes()
 	return c.client.Send(c.req)
 }
 
 func (c *rpcPlusCodec) ReadResponseHeader(r *rpc.Response) error {
 	var m transport.Message
-
 	if err := c.client.Recv(&m); err != nil {
 		return err
 	}
-
-	if c.codec == nil {
-		return fmt.Errorf("%s", string(m.Body))
-	}
-
 	c.buf.rbuf.Reset()
 	c.buf.rbuf.Write(m.Body)
 	return c.codec.ReadResponseHeader(r)

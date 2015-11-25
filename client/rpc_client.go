@@ -28,10 +28,16 @@ type rpcClient struct {
 }
 
 func newRpcClient(opt ...Option) Client {
-	var opts options
+	opts := options{
+		codecs: make(map[string]CodecFunc),
+	}
 
 	for _, o := range opt {
 		o(&opts)
+	}
+
+	if len(opts.contentType) == 0 {
+		opts.contentType = defaultContentType
 	}
 
 	if opts.transport == nil {
@@ -55,6 +61,16 @@ func (t *headerRoundTripper) RoundTrip(r *http.Request) (*http.Response, error) 
 	return t.r.RoundTrip(r)
 }
 
+func (r *rpcClient) codecFunc(contentType string) (codecFunc, error) {
+	if cf, ok := r.opts.codecs[contentType]; ok {
+		return codecWrap(cf), nil
+	}
+	if cf, ok := defaultCodecs[contentType]; ok {
+		return cf, nil
+	}
+	return nil, fmt.Errorf("Unsupported Content-Type: %s", contentType)
+}
+
 func (r *rpcClient) call(ctx context.Context, address string, request Request, response interface{}) error {
 	msg := &transport.Message{
 		Header: make(map[string]string),
@@ -69,13 +85,18 @@ func (r *rpcClient) call(ctx context.Context, address string, request Request, r
 
 	msg.Header["Content-Type"] = request.ContentType()
 
+	cf, err := r.codecFunc(request.ContentType())
+	if err != nil {
+		return errors.InternalServerError("go.micro.client", err.Error())
+	}
+
 	c, err := r.opts.transport.Dial(address)
 	if err != nil {
 		return errors.InternalServerError("go.micro.client", fmt.Sprintf("Error sending request: %v", err))
 	}
 	defer c.Close()
 
-	client := rpc.NewClientWithCodec(newRpcPlusCodec(msg, c))
+	client := rpc.NewClientWithCodec(newRpcPlusCodec(msg, c, cf))
 	err = client.Call(ctx, request.Method(), request.Request(), response)
 	if err != nil {
 		return err
@@ -97,12 +118,17 @@ func (r *rpcClient) stream(ctx context.Context, address string, request Request,
 
 	msg.Header["Content-Type"] = request.ContentType()
 
+	cf, err := r.codecFunc(request.ContentType())
+	if err != nil {
+		return nil, errors.InternalServerError("go.micro.client", err.Error())
+	}
+
 	c, err := r.opts.transport.Dial(address, transport.WithStream())
 	if err != nil {
 		return nil, errors.InternalServerError("go.micro.client", fmt.Sprintf("Error sending request: %v", err))
 	}
 
-	client := rpc.NewClientWithCodec(newRpcPlusCodec(msg, c))
+	client := rpc.NewClientWithCodec(newRpcPlusCodec(msg, c, cf))
 	call := client.StreamGo(request.Method(), request.Request(), responseChan)
 
 	return &rpcStream{
@@ -195,14 +221,14 @@ func (r *rpcClient) Publish(ctx context.Context, p Publication) error {
 }
 
 func (r *rpcClient) NewPublication(topic string, message interface{}) Publication {
-	return r.NewProtoPublication(topic, message)
+	return newRpcPublication(topic, message, r.opts.contentType)
 }
 
 func (r *rpcClient) NewProtoPublication(topic string, message interface{}) Publication {
 	return newRpcPublication(topic, message, "application/octet-stream")
 }
 func (r *rpcClient) NewRequest(service, method string, request interface{}) Request {
-	return r.NewProtoRequest(service, method, request)
+	return newRpcRequest(service, method, request, r.opts.contentType)
 }
 
 func (r *rpcClient) NewProtoRequest(service, method string, request interface{}) Request {

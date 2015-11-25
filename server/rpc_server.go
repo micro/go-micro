@@ -43,7 +43,20 @@ func (s *rpcServer) accept(sock transport.Socket) {
 		return
 	}
 
-	codec := newRpcPlusCodec(&msg, sock)
+	cf, err := s.codecFunc(msg.Header["Content-Type"])
+	// TODO: needs better error handling
+	if err != nil {
+		sock.Send(&transport.Message{
+			Header: map[string]string{
+				"Content-Type": "text/plain",
+			},
+			Body: []byte(err.Error()),
+		})
+		sock.Close()
+		return
+	}
+
+	codec := newRpcPlusCodec(&msg, sock, cf)
 
 	// strip our headers
 	hdr := make(map[string]string)
@@ -55,9 +68,19 @@ func (s *rpcServer) accept(sock transport.Socket) {
 	ctx := c.WithMetadata(context.Background(), hdr)
 	// TODO: needs better error handling
 	if err := s.rpc.ServeRequestWithContext(ctx, codec); err != nil {
-		log.Errorf("Unexpected error servinc request, closing socket: %v", err)
+		log.Errorf("Unexpected error serving request, closing socket: %v", err)
 		sock.Close()
 	}
+}
+
+func (s *rpcServer) codecFunc(contentType string) (codecFunc, error) {
+	if cf, ok := s.opts.codecs[contentType]; ok {
+		return codecWrap(cf), nil
+	}
+	if cf, ok := defaultCodecs[contentType]; ok {
+		return cf, nil
+	}
+	return nil, fmt.Errorf("Unsupported Content-Type: %s", contentType)
 }
 
 func (s *rpcServer) Config() options {
