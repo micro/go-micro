@@ -15,21 +15,6 @@ import (
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/server"
 	"github.com/micro/go-micro/transport"
-
-	// brokers
-	"github.com/micro/go-micro/broker/http"
-	"github.com/micro/go-micro/broker/nats"
-	"github.com/micro/go-micro/broker/rabbitmq"
-
-	// registries
-	"github.com/micro/go-micro/registry/consul"
-	"github.com/micro/go-micro/registry/etcd"
-	"github.com/micro/go-micro/registry/memory"
-
-	// transport
-	thttp "github.com/micro/go-micro/transport/http"
-	tnats "github.com/micro/go-micro/transport/nats"
-	trmq "github.com/micro/go-micro/transport/rabbitmq"
 )
 
 var (
@@ -132,21 +117,15 @@ var (
 	}
 
 	Brokers = map[string]func([]string, ...broker.Option) broker.Broker{
-		"http":     http.NewBroker,
-		"nats":     nats.NewBroker,
-		"rabbitmq": rabbitmq.NewBroker,
+		"http": broker.NewBroker,
 	}
 
 	Registries = map[string]func([]string, ...registry.Option) registry.Registry{
-		"consul": consul.NewRegistry,
-		"etcd":   etcd.NewRegistry,
-		"memory": memory.NewRegistry,
+		"consul": registry.NewRegistry,
 	}
 
 	Transports = map[string]func([]string, ...transport.Option) transport.Transport{
-		"http":     thttp.NewTransport,
-		"rabbitmq": trmq.NewTransport,
-		"nats":     tnats.NewTransport,
+		"http": transport.NewTransport,
 	}
 )
 

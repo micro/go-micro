@@ -12,6 +12,10 @@ import (
 	"sync"
 )
 
+type buffer struct {
+	io.ReadWriter
+}
+
 type httpTransport struct{}
 
 type httpTransportClient struct {
@@ -31,6 +35,10 @@ type httpTransportSocket struct {
 
 type httpTransportListener struct {
 	listener net.Listener
+}
+
+func (b *buffer) Close() error {
+	return nil
 }
 
 func (h *httpTransportClient) Send(m *Message) error {
