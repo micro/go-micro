@@ -3,7 +3,6 @@ package client
 import (
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"sync"
 
 	"github.com/micro/go-micro/broker"
@@ -17,10 +16,6 @@ import (
 	"github.com/golang/protobuf/proto"
 	"golang.org/x/net/context"
 )
-
-type headerRoundTripper struct {
-	r http.RoundTripper
-}
 
 type rpcClient struct {
 	once sync.Once
@@ -54,11 +49,6 @@ func newRpcClient(opt ...Option) Client {
 		once: once,
 		opts: opts,
 	}
-}
-
-func (t *headerRoundTripper) RoundTrip(r *http.Request) (*http.Response, error) {
-	r.Header.Set("X-Client-Version", "1.0")
-	return t.r.RoundTrip(r)
 }
 
 func (r *rpcClient) codecFunc(contentType string) (codecFunc, error) {
