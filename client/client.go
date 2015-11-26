@@ -1,3 +1,8 @@
+/*
+The client package provides a method to make synchronous, asynchronous and
+streaming requests to services. By default json and protobuf codecs are
+supported.
+*/
 package client
 
 import (
