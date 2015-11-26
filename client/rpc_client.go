@@ -23,6 +23,8 @@ type rpcClient struct {
 }
 
 func newRpcClient(opt ...Option) Client {
+	var once sync.Once
+
 	opts := options{
 		codecs: make(map[string]CodecFunc),
 	}
@@ -43,12 +45,19 @@ func newRpcClient(opt ...Option) Client {
 		opts.broker = broker.DefaultBroker
 	}
 
-	var once sync.Once
-
-	return &rpcClient{
+	rc := &rpcClient{
 		once: once,
 		opts: opts,
 	}
+
+	c := Client(rc)
+
+	// wrap in reverse
+	for i := len(opts.wrappers); i > 0; i-- {
+		c = opts.wrappers[i-1](c)
+	}
+
+	return c
 }
 
 func (r *rpcClient) codecFunc(contentType string) (codecFunc, error) {

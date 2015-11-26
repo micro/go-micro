@@ -12,6 +12,7 @@ type options struct {
 	broker      broker.Broker
 	registry    registry.Registry
 	transport   transport.Transport
+	wrappers    []Wrapper
 }
 
 // Broker to be used for pub/sub
@@ -46,5 +47,12 @@ func Registry(r registry.Registry) Option {
 func Transport(t transport.Transport) Option {
 	return func(o *options) {
 		o.transport = t
+	}
+}
+
+// Adds a Wrapper to a list of options passed into the client
+func Wrap(w Wrapper) Option {
+	return func(o *options) {
+		o.wrappers = append(o.wrappers, w)
 	}
 }
