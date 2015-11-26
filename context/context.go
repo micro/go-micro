@@ -18,5 +18,12 @@ func GetMetadata(ctx context.Context) (Metadata, bool) {
 }
 
 func WithMetadata(ctx context.Context, md Metadata) context.Context {
+	if emd, ok := ctx.Value(mdKey).(Metadata); ok {
+		for k, v := range emd {
+			if _, ok := md[k]; !ok {
+				md[k] = v
+			}
+		}
+	}
 	return context.WithValue(ctx, mdKey, md)
 }
