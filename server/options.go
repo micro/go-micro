@@ -83,60 +83,70 @@ func (o options) Metadata() map[string]string {
 	return o.metadata
 }
 
+// Server name
 func Name(n string) Option {
 	return func(o *options) {
 		o.name = n
 	}
 }
 
+// Unique server id
 func Id(id string) Option {
 	return func(o *options) {
 		o.id = id
 	}
 }
 
+// Version of the service
 func Version(v string) Option {
 	return func(o *options) {
 		o.version = v
 	}
 }
 
+// Address to bind to - host:port
 func Address(a string) Option {
 	return func(o *options) {
 		o.address = a
 	}
 }
 
+// The address to advertise for discovery - host:port
 func Advertise(a string) Option {
 	return func(o *options) {
 		o.advertise = a
 	}
 }
 
+// Broker to use for pub/sub
 func Broker(b broker.Broker) Option {
 	return func(o *options) {
 		o.broker = b
 	}
 }
 
+// Codec to use to encode/decode requests for a given content type
 func Codec(contentType string, cf CodecFunc) Option {
 	return func(o *options) {
 		o.codecs[contentType] = cf
 	}
 }
 
+// Registry used for discovery
 func Registry(r registry.Registry) Option {
 	return func(o *options) {
 		o.registry = r
 	}
 }
 
+// Transport mechanism for communication e.g http, rabbitmq, etc
 func Transport(t transport.Transport) Option {
 	return func(o *options) {
 		o.transport = t
 	}
 }
 
+// Metadata associated with the server
 func Metadata(md map[string]string) Option {
 	return func(o *options) {
 		o.metadata = md
