@@ -32,10 +32,12 @@ var (
 	DefaultServer  Server = newRpcServer()
 )
 
+// Returns config options for the default service
 func Config() options {
 	return DefaultServer.Config()
 }
 
+// Initialises the default server with options passed in
 func Init(opt ...Option) {
 	if DefaultServer == nil {
 		DefaultServer = newRpcServer(opt...)
@@ -43,34 +45,46 @@ func Init(opt ...Option) {
 	DefaultServer.Init(opt...)
 }
 
+// Returns a new server with options passed in
 func NewServer(opt ...Option) Server {
 	return newRpcServer(opt...)
 }
 
+// Creates a new subscriber interface with the given topic
+// and handler using the default server
 func NewSubscriber(topic string, h interface{}) Subscriber {
 	return DefaultServer.NewSubscriber(topic, h)
 }
 
+// Creates a new handler interface using the default server
 func NewHandler(h interface{}) Handler {
 	return DefaultServer.NewHandler(h)
 }
 
+// Registers a handler interface with the default server to
+// handle inbound requests
 func Handle(h Handler) error {
 	return DefaultServer.Handle(h)
 }
 
+// Registers a subscriber interface with the default server
+// which subscribes to specified topic with the broker
 func Subscribe(s Subscriber) error {
 	return DefaultServer.Subscribe(s)
 }
 
+// Registers the default server with the discovery system
 func Register() error {
 	return DefaultServer.Register()
 }
 
+// Deregisters the default server from the discovery system
 func Deregister() error {
 	return DefaultServer.Deregister()
 }
 
+// Blocking run starts the default server and waits for a kill
+// signal before exiting. Also registers/deregisters the server
 func Run() error {
 	if err := Start(); err != nil {
 		return err
@@ -91,12 +105,14 @@ func Run() error {
 	return Stop()
 }
 
+// Starts the default server
 func Start() error {
 	config := DefaultServer.Config()
 	log.Infof("Starting server %s id %s", config.Name(), config.Id())
 	return DefaultServer.Start()
 }
 
+// Stops the default server
 func Stop() error {
 	log.Infof("Stopping server")
 	return DefaultServer.Stop()
