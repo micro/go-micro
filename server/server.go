@@ -1,4 +1,14 @@
+/* 
+Server represents a server instance in go-micro which handles synchronous 
+requests via handlers and asynchronous requests via subscribers that 
+register with a broker.
+
+The server combines the all the packages in go-micro to create a whole unit 
+used for building applications including discovery, client/server communication 
+and pub/sub.
+*/
 package server
+
 
 import (
 	"os"
