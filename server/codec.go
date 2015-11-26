@@ -19,6 +19,7 @@ var (
 	}
 )
 
+// CodecFunc is used to encode/decode requests/responses
 type CodecFunc func(io.ReadWriteCloser) rpc.ServerCodec
 
 // for internal use only
