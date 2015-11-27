@@ -6,6 +6,7 @@ import (
 
 	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/cmd"
+	"github.com/micro/go-micro/codec/pb"
 	c "github.com/micro/go-micro/context"
 	example "github.com/micro/go-micro/examples/server/proto/example"
 	"golang.org/x/net/context"
@@ -118,6 +119,12 @@ func stream() {
 
 func main() {
 	cmd.Init()
+
+	client.DefaultClient = client.NewClient(
+		client.Codec("application/pb", pb.Codec),
+		client.ContentType("application/pb"),
+	)
+
 
 	fmt.Println("\n--- Call example ---\n")
 	for i := 0; i < 10; i++ {

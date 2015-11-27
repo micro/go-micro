@@ -2,12 +2,13 @@ package server
 
 import (
 	"github.com/micro/go-micro/broker"
+	"github.com/micro/go-micro/codec"
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/transport"
 )
 
 type options struct {
-	codecs    map[string]CodecFunc
+	codecs    map[string]codec.Codec
 	broker    broker.Broker
 	registry  registry.Registry
 	transport transport.Transport
@@ -21,7 +22,7 @@ type options struct {
 
 func newOptions(opt ...Option) options {
 	opts := options{
-		codecs: make(map[string]CodecFunc),
+		codecs: make(map[string]codec.Codec),
 	}
 
 	for _, o := range opt {
@@ -126,9 +127,9 @@ func Broker(b broker.Broker) Option {
 }
 
 // Codec to use to encode/decode requests for a given content type
-func Codec(contentType string, cf CodecFunc) Option {
+func Codec(contentType string, c codec.Codec) Option {
 	return func(o *options) {
-		o.codecs[contentType] = cf
+		o.codecs[contentType] = c
 	}
 }
 

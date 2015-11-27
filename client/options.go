@@ -2,14 +2,15 @@ package client
 
 import (
 	"github.com/micro/go-micro/broker"
+	"github.com/micro/go-micro/codec"
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/transport"
 )
 
 type options struct {
 	contentType string
-	codecs      map[string]CodecFunc
 	broker      broker.Broker
+	codecs      map[string]codec.Codec
 	registry    registry.Registry
 	transport   transport.Transport
 	wrappers    []Wrapper
@@ -23,9 +24,9 @@ func Broker(b broker.Broker) Option {
 }
 
 // Codec to be used to encode/decode requests for a given content type
-func Codec(contentType string, cf CodecFunc) Option {
+func Codec(contentType string, c codec.Codec) Option {
 	return func(o *options) {
-		o.codecs[contentType] = cf
+		o.codecs[contentType] = c
 	}
 }
 

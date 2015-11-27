@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/micro/go-micro/broker"
+	"github.com/micro/go-micro/codec"
 	c "github.com/micro/go-micro/context"
 	"github.com/micro/go-micro/errors"
 	"github.com/micro/go-micro/registry"
@@ -26,7 +27,7 @@ func newRpcClient(opt ...Option) Client {
 	var once sync.Once
 
 	opts := options{
-		codecs: make(map[string]CodecFunc),
+		codecs: make(map[string]codec.Codec),
 	}
 
 	for _, o := range opt {
@@ -36,6 +37,7 @@ func newRpcClient(opt ...Option) Client {
 	if len(opts.contentType) == 0 {
 		opts.contentType = defaultContentType
 	}
+	fmt.Println("content type", opts.contentType)
 
 	if opts.transport == nil {
 		opts.transport = transport.DefaultTransport
@@ -61,8 +63,8 @@ func newRpcClient(opt ...Option) Client {
 }
 
 func (r *rpcClient) codecFunc(contentType string) (codecFunc, error) {
-	if cf, ok := r.opts.codecs[contentType]; ok {
-		return codecWrap(cf), nil
+	if c, ok := r.opts.codecs[contentType]; ok {
+		return codecWrap(c), nil
 	}
 	if cf, ok := defaultCodecs[contentType]; ok {
 		return cf, nil
