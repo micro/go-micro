@@ -22,10 +22,12 @@ type httpTransportClient struct {
 	ht       *httpTransport
 	addr     string
 	conn     net.Conn
-	buff     *bufio.Reader
 	dialOpts dialOptions
 	r        chan *http.Request
 	once     sync.Once
+
+	sync.Mutex
+	buff *bufio.Reader
 }
 
 type httpTransportSocket struct {
@@ -81,6 +83,12 @@ func (h *httpTransportClient) Recv(m *Message) error {
 		r = rc
 	}
 
+	h.Lock()
+	defer h.Unlock()
+	if h.buff == nil {
+		return io.EOF
+	}
+
 	rsp, err := http.ReadResponse(h.buff, r)
 	if err != nil {
 		return err
@@ -110,11 +118,15 @@ func (h *httpTransportClient) Recv(m *Message) error {
 }
 
 func (h *httpTransportClient) Close() error {
-	h.buff.Reset(nil)
+	err := h.conn.Close()
 	h.once.Do(func() {
+		h.Lock()
+		h.buff.Reset(nil)
+		h.buff = nil
+		h.Unlock()
 		close(h.r)
 	})
-	return h.conn.Close()
+	return err
 }
 
 func (h *httpTransportSocket) Recv(m *Message) error {
