@@ -1,11 +1,11 @@
 package server
 
 import (
-	"encoding/json"
+	"bytes"
 	"reflect"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/micro/go-micro/broker"
+	"github.com/micro/go-micro/codec"
 	c "github.com/micro/go-micro/context"
 	"github.com/micro/go-micro/registry"
 	"golang.org/x/net/context"
@@ -94,8 +94,19 @@ func newSubscriber(topic string, sub interface{}) Subscriber {
 	}
 }
 
-func createSubHandler(sb *subscriber) broker.Handler {
+func (s *rpcServer) createSubHandler(sb *subscriber) broker.Handler {
 	return func(msg *broker.Message) {
+		cf, err := s.newCodec(msg.Header["Content-Type"])
+		if err != nil {
+			return
+		}
+
+		b := &buffer{bytes.NewBuffer(msg.Body)}
+		co := cf(b)
+		if err := co.ReadHeader(&codec.Message{}, codec.Publication); err != nil {
+			return
+		}
+
 		hdr := make(map[string]string)
 		for k, v := range msg.Header {
 			hdr[k] = v
@@ -107,7 +118,6 @@ func createSubHandler(sb *subscriber) broker.Handler {
 		for _, handler := range sb.handlers {
 			var isVal bool
 			var req reflect.Value
-			var uerr error
 
 			if handler.reqType.Kind() == reflect.Ptr {
 				req = reflect.New(handler.reqType.Elem())
@@ -116,14 +126,7 @@ func createSubHandler(sb *subscriber) broker.Handler {
 				isVal = true
 			}
 
-			switch msg.Header["Content-Type"] {
-			case "application/octet-stream":
-				uerr = proto.Unmarshal(msg.Body, req.Interface().(proto.Message))
-			case "application/json":
-				uerr = json.Unmarshal(msg.Body, req.Interface())
-			}
-
-			if uerr != nil {
+			if err := co.ReadBody(req.Interface()); err != nil {
 				continue
 			}
 

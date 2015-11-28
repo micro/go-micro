@@ -3,13 +3,16 @@ package client
 import (
 	"bytes"
 
+	"github.com/micro/go-micro/codec"
+	"github.com/micro/go-micro/codec/jsonrpc"
+	"github.com/micro/go-micro/codec/protorpc"
 	"github.com/micro/go-micro/transport"
 	rpc "github.com/youtube/vitess/go/rpcplus"
 )
 
 type rpcPlusCodec struct {
 	client transport.Client
-	codec  rpc.ClientCodec
+	codec  codec.Codec
 
 	req *transport.Message
 	buf *readWriteCloser
@@ -19,6 +22,18 @@ type readWriteCloser struct {
 	wbuf *bytes.Buffer
 	rbuf *bytes.Buffer
 }
+
+var (
+	defaultContentType = "application/octet-stream"
+
+	defaultCodecs = map[string]codec.NewCodec{
+		"application/json":         jsonrpc.NewCodec,
+		"application/json-rpc":     jsonrpc.NewCodec,
+		"application/protobuf":     protorpc.NewCodec,
+		"application/proto-rpc":    protorpc.NewCodec,
+		"application/octet-stream": protorpc.NewCodec,
+	}
+)
 
 func (rwc *readWriteCloser) Read(p []byte) (n int, err error) {
 	return rwc.rbuf.Read(p)
@@ -34,7 +49,7 @@ func (rwc *readWriteCloser) Close() error {
 	return nil
 }
 
-func newRpcPlusCodec(req *transport.Message, client transport.Client, cf codecFunc) *rpcPlusCodec {
+func newRpcPlusCodec(req *transport.Message, client transport.Client, c codec.NewCodec) *rpcPlusCodec {
 	rwc := &readWriteCloser{
 		wbuf: bytes.NewBuffer(nil),
 		rbuf: bytes.NewBuffer(nil),
@@ -42,14 +57,19 @@ func newRpcPlusCodec(req *transport.Message, client transport.Client, cf codecFu
 	r := &rpcPlusCodec{
 		buf:    rwc,
 		client: client,
-		codec:  cf(rwc),
+		codec:  c(rwc),
 		req:    req,
 	}
 	return r
 }
 
 func (c *rpcPlusCodec) WriteRequest(req *rpc.Request, body interface{}) error {
-	if err := c.codec.WriteRequest(req, body); err != nil {
+	m := &codec.Message{
+		Id:     req.Seq,
+		Method: req.ServiceMethod,
+		Type:   codec.Request,
+	}
+	if err := c.codec.Write(m, body); err != nil {
 		return err
 	}
 	c.req.Body = c.buf.wbuf.Bytes()
@@ -63,14 +83,20 @@ func (c *rpcPlusCodec) ReadResponseHeader(r *rpc.Response) error {
 	}
 	c.buf.rbuf.Reset()
 	c.buf.rbuf.Write(m.Body)
-	return c.codec.ReadResponseHeader(r)
+	var me codec.Message
+	err := c.codec.ReadHeader(&me, codec.Response)
+	r.ServiceMethod = me.Method
+	r.Seq = me.Id
+	r.Error = me.Error
+	return err
 }
 
-func (c *rpcPlusCodec) ReadResponseBody(r interface{}) error {
-	return c.codec.ReadResponseBody(r)
+func (c *rpcPlusCodec) ReadResponseBody(b interface{}) error {
+	return c.codec.ReadBody(b)
 }
 
 func (c *rpcPlusCodec) Close() error {
 	c.buf.Close()
+	c.codec.Close()
 	return c.client.Close()
 }

@@ -1,0 +1,12 @@
+package protorpc;
+
+message Request {
+	optional string service_method = 1;
+	optional fixed64 seq = 2;
+}
+
+message Response {
+	optional string service_method = 1;
+	optional fixed64 seq = 2;
+	optional string error = 3;
+}

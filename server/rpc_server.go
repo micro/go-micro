@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/micro/go-micro/broker"
+	"github.com/micro/go-micro/codec"
 	c "github.com/micro/go-micro/context"
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/transport"
@@ -43,7 +44,7 @@ func (s *rpcServer) accept(sock transport.Socket) {
 		return
 	}
 
-	cf, err := s.codecFunc(msg.Header["Content-Type"])
+	cf, err := s.newCodec(msg.Header["Content-Type"])
 	// TODO: needs better error handling
 	if err != nil {
 		sock.Send(&transport.Message{
@@ -73,9 +74,9 @@ func (s *rpcServer) accept(sock transport.Socket) {
 	}
 }
 
-func (s *rpcServer) codecFunc(contentType string) (codecFunc, error) {
+func (s *rpcServer) newCodec(contentType string) (codec.NewCodec, error) {
 	if cf, ok := s.opts.codecs[contentType]; ok {
-		return codecWrap(cf), nil
+		return cf, nil
 	}
 	if cf, ok := defaultCodecs[contentType]; ok {
 		return cf, nil
@@ -200,7 +201,7 @@ func (s *rpcServer) Register() error {
 	defer s.Unlock()
 
 	for sb, _ := range s.subscribers {
-		handler := createSubHandler(sb)
+		handler := s.createSubHandler(sb)
 		sub, err := config.broker.Subscribe(sb.Topic(), handler)
 		if err != nil {
 			return err

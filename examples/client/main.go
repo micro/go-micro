@@ -113,35 +113,44 @@ func stream() {
 		return
 	}
 
-	stream.Close()
+	if err := stream.Close(); err != nil {
+		fmt.Println("stream close err:", err)
+	}
 }
 
 func main() {
 	cmd.Init()
 
-	fmt.Println("\n--- Call example ---\n")
-	for i := 0; i < 10; i++ {
-		call(i)
+	//	client.DefaultClient = client.NewClient(
+	//		client.Codec("application/pb", pb.Codec),
+	//		client.ContentType("application/pb"),
+	//	)
+	for {
+		fmt.Println("\n--- Call example ---\n")
+		for i := 0; i < 10; i++ {
+			call(i)
+		}
+
+		fmt.Println("\n--- Streamer example ---\n")
+		stream()
+
+		fmt.Println("\n--- Publisher example ---\n")
+		pub()
+
+		fmt.Println("\n--- Wrapper example ---\n")
+
+		// Wrap the default client
+		client.DefaultClient = logWrap(client.DefaultClient)
+
+		call(0)
+
+		// Wrap using client.Wrap option
+		client.DefaultClient = client.NewClient(
+			client.Wrap(traceWrap),
+			client.Wrap(logWrap),
+		)
+
+		call(1)
+		time.Sleep(time.Millisecond * 100)
 	}
-
-	fmt.Println("\n--- Streamer example ---\n")
-	stream()
-
-	fmt.Println("\n--- Publisher example ---\n")
-	pub()
-
-	fmt.Println("\n--- Wrapper example ---\n")
-
-	// Wrap the default client
-	client.DefaultClient = logWrap(client.DefaultClient)
-
-	call(0)
-
-	// Wrap using client.Wrap option
-	client.DefaultClient = client.NewClient(
-		client.Wrap(traceWrap),
-		client.Wrap(logWrap),
-	)
-
-	call(1)
 }

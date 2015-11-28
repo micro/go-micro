@@ -12,6 +12,10 @@ func main() {
 	// optionally setup command line usage
 	cmd.Init()
 
+	//	server.DefaultServer = server.NewServer(
+	//		server.Codec("application/bson", bson.Codec),
+	//	)
+
 	// Initialise Server
 	server.Init(
 		server.Name("go.micro.srv.example"),
