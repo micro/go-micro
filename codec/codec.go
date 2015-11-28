@@ -19,19 +19,11 @@ type NewCodec func(io.ReadWriteCloser) Codec
 // Codec encodes/decodes various types of
 // messages used within go-micro
 type Codec interface {
-	Encoder
-	Decoder
-	Close() error
-	String() string
-}
-
-type Encoder interface {
-	Write(*Message, interface{}) error
-}
-
-type Decoder interface {
 	ReadHeader(*Message, MessageType) error
 	ReadBody(interface{}) error
+	Write(*Message, interface{}) error
+	Close() error
+	String() string
 }
 
 // Message represents detailed information about
