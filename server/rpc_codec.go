@@ -4,6 +4,7 @@ import (
 	"bytes"
 
 	"github.com/micro/go-micro/codec"
+	"github.com/micro/go-micro/codec/json"
 	"github.com/micro/go-micro/codec/proto"
 	"github.com/micro/go-micro/transport"
 	rpc "github.com/youtube/vitess/go/rpcplus"
@@ -24,8 +25,8 @@ type readWriteCloser struct {
 
 var (
 	defaultCodecs = map[string]codec.NewCodec{
-		//                "application/json":         jsonrpc.NewServerCodec,
-		//                "application/json-rpc":     jsonrpc.NewServerCodec,
+		"application/json":         json.NewCodec,
+		"application/json-rpc":     json.NewCodec,
 		"application/protobuf":     proto.NewCodec,
 		"application/proto-rpc":    proto.NewCodec,
 		"application/octet-stream": proto.NewCodec,
