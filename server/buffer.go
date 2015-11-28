@@ -1,13 +1,14 @@
 package server
 
 import (
-	"io"
+	"bytes"
 )
 
 type buffer struct {
-	io.ReadWriter
+	*bytes.Buffer
 }
 
 func (b *buffer) Close() error {
+	b.Buffer.Reset()
 	return nil
 }

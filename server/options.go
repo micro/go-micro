@@ -8,7 +8,7 @@ import (
 )
 
 type options struct {
-	codecs    map[string]codec.Codec
+	codecs    map[string]codec.NewCodec
 	broker    broker.Broker
 	registry  registry.Registry
 	transport transport.Transport
@@ -22,7 +22,7 @@ type options struct {
 
 func newOptions(opt ...Option) options {
 	opts := options{
-		codecs: make(map[string]codec.Codec),
+		codecs: make(map[string]codec.NewCodec),
 	}
 
 	for _, o := range opt {
@@ -127,7 +127,7 @@ func Broker(b broker.Broker) Option {
 }
 
 // Codec to use to encode/decode requests for a given content type
-func Codec(contentType string, c codec.Codec) Option {
+func Codec(contentType string, c codec.NewCodec) Option {
 	return func(o *options) {
 		o.codecs[contentType] = c
 	}

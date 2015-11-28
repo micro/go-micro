@@ -3,13 +3,15 @@ package server
 import (
 	"bytes"
 
+	"github.com/micro/go-micro/codec"
+	"github.com/micro/go-micro/codec/proto"
 	"github.com/micro/go-micro/transport"
 	rpc "github.com/youtube/vitess/go/rpcplus"
 )
 
 type rpcPlusCodec struct {
 	socket transport.Socket
-	codec  rpc.ServerCodec
+	codec  codec.Codec
 
 	req *transport.Message
 	buf *readWriteCloser
@@ -19,6 +21,16 @@ type readWriteCloser struct {
 	wbuf *bytes.Buffer
 	rbuf *bytes.Buffer
 }
+
+var (
+	defaultCodecs = map[string]codec.NewCodec{
+		//                "application/json":         jsonrpc.NewServerCodec,
+		//                "application/json-rpc":     jsonrpc.NewServerCodec,
+		"application/protobuf":     proto.NewCodec,
+		"application/proto-rpc":    proto.NewCodec,
+		"application/octet-stream": proto.NewCodec,
+	}
+)
 
 func (rwc *readWriteCloser) Read(p []byte) (n int, err error) {
 	return rwc.rbuf.Read(p)
@@ -34,14 +46,14 @@ func (rwc *readWriteCloser) Close() error {
 	return nil
 }
 
-func newRpcPlusCodec(req *transport.Message, socket transport.Socket, cf codecFunc) rpc.ServerCodec {
+func newRpcPlusCodec(req *transport.Message, socket transport.Socket, c codec.NewCodec) rpc.ServerCodec {
 	rwc := &readWriteCloser{
 		rbuf: bytes.NewBuffer(req.Body),
 		wbuf: bytes.NewBuffer(nil),
 	}
 	r := &rpcPlusCodec{
 		buf:    rwc,
-		codec:  cf(rwc),
+		codec:  c(rwc),
 		req:    req,
 		socket: socket,
 	}
@@ -49,16 +61,26 @@ func newRpcPlusCodec(req *transport.Message, socket transport.Socket, cf codecFu
 }
 
 func (c *rpcPlusCodec) ReadRequestHeader(r *rpc.Request) error {
-	return c.codec.ReadRequestHeader(r)
+	var m codec.Message
+	err := c.codec.ReadHeader(&m, codec.Request)
+	r.ServiceMethod = m.Method
+	r.Seq = m.Id
+	return err
 }
 
-func (c *rpcPlusCodec) ReadRequestBody(r interface{}) error {
-	return c.codec.ReadRequestBody(r)
+func (c *rpcPlusCodec) ReadRequestBody(b interface{}) error {
+	return c.codec.ReadBody(b)
 }
 
 func (c *rpcPlusCodec) WriteResponse(r *rpc.Response, body interface{}, last bool) error {
 	c.buf.wbuf.Reset()
-	if err := c.codec.WriteResponse(r, body, last); err != nil {
+	m := &codec.Message{
+		Method: r.ServiceMethod,
+		Id:     r.Seq,
+		Error:  r.Error,
+		Type:   codec.Response,
+	}
+	if err := c.codec.Write(m, body); err != nil {
 		return err
 	}
 	return c.socket.Send(&transport.Message{
@@ -69,5 +91,6 @@ func (c *rpcPlusCodec) WriteResponse(r *rpc.Response, body interface{}, last boo
 
 func (c *rpcPlusCodec) Close() error {
 	c.buf.Close()
+	c.codec.Close()
 	return c.socket.Close()
 }

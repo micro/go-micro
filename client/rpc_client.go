@@ -1,7 +1,7 @@
 package client
 
 import (
-	"encoding/json"
+	"bytes"
 	"fmt"
 	"sync"
 
@@ -13,8 +13,6 @@ import (
 	"github.com/micro/go-micro/transport"
 
 	rpc "github.com/youtube/vitess/go/rpcplus"
-
-	"github.com/golang/protobuf/proto"
 	"golang.org/x/net/context"
 )
 
@@ -27,7 +25,7 @@ func newRpcClient(opt ...Option) Client {
 	var once sync.Once
 
 	opts := options{
-		codecs: make(map[string]codec.Codec),
+		codecs: make(map[string]codec.NewCodec),
 	}
 
 	for _, o := range opt {
@@ -37,7 +35,6 @@ func newRpcClient(opt ...Option) Client {
 	if len(opts.contentType) == 0 {
 		opts.contentType = defaultContentType
 	}
-	fmt.Println("content type", opts.contentType)
 
 	if opts.transport == nil {
 		opts.transport = transport.DefaultTransport
@@ -62,9 +59,9 @@ func newRpcClient(opt ...Option) Client {
 	return c
 }
 
-func (r *rpcClient) codecFunc(contentType string) (codecFunc, error) {
+func (r *rpcClient) newCodec(contentType string) (codec.NewCodec, error) {
 	if c, ok := r.opts.codecs[contentType]; ok {
-		return codecWrap(c), nil
+		return c, nil
 	}
 	if cf, ok := defaultCodecs[contentType]; ok {
 		return cf, nil
@@ -86,7 +83,7 @@ func (r *rpcClient) call(ctx context.Context, address string, request Request, r
 
 	msg.Header["Content-Type"] = request.ContentType()
 
-	cf, err := r.codecFunc(request.ContentType())
+	cf, err := r.newCodec(request.ContentType())
 	if err != nil {
 		return errors.InternalServerError("go.micro.client", err.Error())
 	}
@@ -119,7 +116,7 @@ func (r *rpcClient) stream(ctx context.Context, address string, request Request,
 
 	msg.Header["Content-Type"] = request.ContentType()
 
-	cf, err := r.codecFunc(request.ContentType())
+	cf, err := r.newCodec(request.ContentType())
 	if err != nil {
 		return nil, errors.InternalServerError("go.micro.client", err.Error())
 	}
@@ -194,30 +191,21 @@ func (r *rpcClient) Publish(ctx context.Context, p Publication) error {
 	md["Content-Type"] = p.ContentType()
 
 	// encode message body
-	var body []byte
-
-	switch p.ContentType() {
-	case "application/octet-stream":
-		b, err := proto.Marshal(p.Message().(proto.Message))
-		if err != nil {
-			return err
-		}
-		body = b
-	case "application/json":
-		b, err := json.Marshal(p.Message())
-		if err != nil {
-			return err
-		}
-		body = b
+	cf, err := r.newCodec(p.ContentType())
+	if err != nil {
+		return errors.InternalServerError("go.micro.client", err.Error())
 	}
-
+	b := &buffer{bytes.NewBuffer(nil)}
+	if err := cf(b).Write(&codec.Message{Type: codec.Publication}, p.Message()); err != nil {
+		return errors.InternalServerError("go.micro.client", err.Error())
+	}
 	r.once.Do(func() {
 		r.opts.broker.Connect()
 	})
 
 	return r.opts.broker.Publish(p.Topic(), &broker.Message{
 		Header: md,
-		Body:   body,
+		Body:   b.Bytes(),
 	})
 }
 
