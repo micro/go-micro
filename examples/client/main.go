@@ -113,7 +113,9 @@ func stream() {
 		return
 	}
 
-	stream.Close()
+	if err := stream.Close(); err != nil {
+		fmt.Println("stream close err:", err)
+	}
 }
 
 func main() {
