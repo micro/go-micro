@@ -1,4 +1,4 @@
-package proto
+package protorpc
 
 import (
 	"encoding/binary"

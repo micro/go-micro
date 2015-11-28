@@ -12,7 +12,7 @@ It has these top-level messages:
 	Request
 	Response
 */
-package proto
+package protorpc
 
 import proto "github.com/golang/protobuf/proto"
 import json "encoding/json"

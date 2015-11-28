@@ -1,4 +1,4 @@
-package proto;
+package protorpc;
 
 message Request {
 	optional string service_method = 1;

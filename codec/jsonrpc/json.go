@@ -1,4 +1,4 @@
-package json
+package jsonrpc
 
 import (
 	"bytes"
@@ -23,7 +23,7 @@ func (j *jsonCodec) Close() error {
 }
 
 func (j *jsonCodec) String() string {
-	return "json"
+	return "json-rpc"
 }
 
 func (j *jsonCodec) Write(m *codec.Message, b interface{}) error {

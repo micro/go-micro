@@ -1,4 +1,4 @@
-package proto
+package protorpc
 
 import (
 	"bytes"
@@ -27,7 +27,7 @@ func (c *protoCodec) Close() error {
 }
 
 func (c *protoCodec) String() string {
-	return "proto"
+	return "proto-rpc"
 }
 
 func (c *protoCodec) Write(m *codec.Message, b interface{}) error {
