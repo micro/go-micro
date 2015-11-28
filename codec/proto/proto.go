@@ -8,7 +8,6 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/micro/go-micro/codec"
-	rpc "github.com/youtube/vitess/go/rpcplus/pbrpc"
 )
 
 type flusher interface {
@@ -37,7 +36,7 @@ func (c *protoCodec) Write(m *codec.Message, b interface{}) error {
 		c.Lock()
 		defer c.Unlock()
 		// This is protobuf, of course we copy it.
-		pbr := &rpc.Request{ServiceMethod: &m.Method, Seq: &m.Id}
+		pbr := &Request{ServiceMethod: &m.Method, Seq: &m.Id}
 		data, err := proto.Marshal(pbr)
 		if err != nil {
 			return err
@@ -61,7 +60,7 @@ func (c *protoCodec) Write(m *codec.Message, b interface{}) error {
 	case codec.Response:
 		c.Lock()
 		defer c.Unlock()
-		rtmp := &rpc.Response{ServiceMethod: &m.Method, Seq: &m.Id, Error: &m.Error}
+		rtmp := &Response{ServiceMethod: &m.Method, Seq: &m.Id, Error: &m.Error}
 		data, err := proto.Marshal(rtmp)
 		if err != nil {
 			return err
@@ -107,7 +106,7 @@ func (c *protoCodec) ReadHeader(m *codec.Message, mt codec.MessageType) error {
 		if err != nil {
 			return err
 		}
-		rtmp := new(rpc.Request)
+		rtmp := new(Request)
 		err = proto.Unmarshal(data, rtmp)
 		if err != nil {
 			return err
@@ -119,7 +118,7 @@ func (c *protoCodec) ReadHeader(m *codec.Message, mt codec.MessageType) error {
 		if err != nil {
 			return err
 		}
-		rtmp := new(rpc.Response)
+		rtmp := new(Response)
 		err = proto.Unmarshal(data, rtmp)
 		if err != nil {
 			return err
