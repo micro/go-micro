@@ -1,6 +1,6 @@
 # Go Micro [![GoDoc](https://godoc.org/github.com/micro/go-micro?status.svg)](https://godoc.org/github.com/micro/go-micro) [![Travis CI](https://travis-ci.org/micro/go-micro.svg?branch=master)](https://travis-ci.org/micro/go-micro)
 
-Go Micro is a microservices library which provides the fundamental building blocks for writing fault tolerant distributed systems at scale. It is part of the [Micro](https://github.com/micro/micro) toolchain.
+Go Micro is a pluggable RPC based microservice library which provides the fundamental building blocks for writing distributed applications. It is part of the [Micro](https://github.com/micro/micro) toolchain. It supports Proto-RPC and JSON-RPC as the request/response protocol out of the box and defaults to Consul for discovery. Every aspect of go-micro is pluggable.
 
 An example server can be found in examples/server.
 
@@ -13,6 +13,7 @@ Feature		| Package	|	Description
 -------		| -------	|	---------
 Discovery	| [Registry](https://godoc.org/github.com/micro/go-micro/registry)	|	A way of locating services to communicate with
 Client		| [Client](https://godoc.org/github.com/micro/go-micro/client)	|	Used to make RPC requests to a service
+Codec		| [Client](https://godoc.org/github.com/micro/go-micro/codec)	|	Encoding/Decoding handler for requests
 Server		| [Server](https://godoc.org/github.com/micro/go-micro/server)	|	Listens and serves RPC requests
 Pub/Sub		| [Broker](https://godoc.org/github.com/micro/go-micro/broker)	|	Publish and Subscribe to events
 Transport	| [Transport](https://godoc.org/github.com/micro/go-micro/transport)	|	Communication mechanism between services
