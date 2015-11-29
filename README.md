@@ -13,7 +13,7 @@ Feature		| Package	|	Description
 -------		| -------	|	---------
 Discovery	| [Registry](https://godoc.org/github.com/micro/go-micro/registry)	|	A way of locating services to communicate with
 Client		| [Client](https://godoc.org/github.com/micro/go-micro/client)	|	Used to make RPC requests to a service
-Codec		| [Client](https://godoc.org/github.com/micro/go-micro/codec)	|	Encoding/Decoding handler for requests
+Codec		| [Codec](https://godoc.org/github.com/micro/go-micro/codec)	|	Encoding/Decoding handler for requests
 Server		| [Server](https://godoc.org/github.com/micro/go-micro/server)	|	Listens and serves RPC requests
 Pub/Sub		| [Broker](https://godoc.org/github.com/micro/go-micro/broker)	|	Publish and Subscribe to events
 Transport	| [Transport](https://godoc.org/github.com/micro/go-micro/transport)	|	Communication mechanism between services
