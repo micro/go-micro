@@ -1,6 +1,8 @@
 # Go Micro [![GoDoc](https://godoc.org/github.com/micro/go-micro?status.svg)](https://godoc.org/github.com/micro/go-micro) [![Travis CI](https://travis-ci.org/micro/go-micro.svg?branch=master)](https://travis-ci.org/micro/go-micro)
 
-Go Micro is a pluggable RPC based microservice library which provides the fundamental building blocks for writing distributed applications. It is part of the [Micro](https://github.com/micro/micro) toolchain. It supports Proto-RPC and JSON-RPC as the request/response protocol out of the box and defaults to Consul for discovery. Every aspect of go-micro is pluggable.
+Go Micro is a pluggable RPC based microservice library which provides the fundamental building blocks for writing distributed applications. It is part of the [Micro](https://github.com/micro/micro) toolchain. It supports Proto-RPC and JSON-RPC as the request/response protocol out of the box and defaults to Consul for discovery.
+
+Every aspect of go-micro is pluggable.
 
 An example server can be found in examples/server.
 
