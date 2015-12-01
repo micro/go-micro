@@ -66,6 +66,15 @@ func NewSubscriber(topic string, h interface{}) Subscriber {
 }
 
 // Creates a new handler interface using the default server
+// Handlers are required to be a public object with public
+// methods. Call to a service method such as Foo.Bar expects
+// the type:
+//
+// type Foo struct {}
+// func (f *Foo) Bar(ctx, req, rsp) error {
+// 	return nil
+// }
+//
 func NewHandler(h interface{}) Handler {
 	return DefaultServer.NewHandler(h)
 }
