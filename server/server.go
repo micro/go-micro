@@ -70,10 +70,10 @@ func NewSubscriber(topic string, h interface{}) Subscriber {
 // methods. Call to a service method such as Foo.Bar expects
 // the type:
 //
-// type Foo struct {}
-// func (f *Foo) Bar(ctx, req, rsp) error {
-// 	return nil
-// }
+//	type Foo struct {}
+//	func (f *Foo) Bar(ctx, req, rsp) error {
+//		return nil
+//	}
 //
 func NewHandler(h interface{}) Handler {
 	return DefaultServer.NewHandler(h)

@@ -7,11 +7,14 @@ import (
 // Handler interface represents a Service request handler. It's generated
 // by passing any type of public concrete object with methods into server.NewHandler.
 // Most will pass in a struct.
+//
 // Example:
-// type Service struct {}
-// func (s *Service) Method(context, request, response) error {
-//	return nil
-// }
+//
+//	type Service struct {}
+//
+//	func (s *Service) Method(context, request, response) error {
+//		return nil
+//	}
 //
 type Handler interface {
 	Name() string
