@@ -1,13 +1,9 @@
 package client
 
-import (
-	rpc "github.com/youtube/vitess/go/rpcplus"
-)
-
 type rpcStream struct {
 	request Request
-	call    *rpc.Call
-	client  *rpc.Client
+	call    *call
+	client  *client
 }
 
 func (r *rpcStream) Request() Request {

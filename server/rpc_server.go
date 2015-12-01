@@ -13,13 +13,12 @@ import (
 	"github.com/micro/go-micro/transport"
 
 	log "github.com/golang/glog"
-	rpc "github.com/youtube/vitess/go/rpcplus"
 
 	"golang.org/x/net/context"
 )
 
 type rpcServer struct {
-	rpc  *rpc.Server
+	rpc  *server
 	exit chan chan error
 
 	sync.RWMutex
@@ -31,7 +30,7 @@ type rpcServer struct {
 func newRpcServer(opts ...Option) Server {
 	return &rpcServer{
 		opts:        newOptions(opts...),
-		rpc:         rpc.NewServer(),
+		rpc:         newServer(),
 		handlers:    make(map[string]Handler),
 		subscribers: make(map[*subscriber][]broker.Subscriber),
 		exit:        make(chan chan error),

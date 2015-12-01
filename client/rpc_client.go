@@ -12,7 +12,6 @@ import (
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/transport"
 
-	rpc "github.com/youtube/vitess/go/rpcplus"
 	"golang.org/x/net/context"
 )
 
@@ -94,7 +93,7 @@ func (r *rpcClient) call(ctx context.Context, address string, request Request, r
 	}
 	defer c.Close()
 
-	client := rpc.NewClientWithCodec(newRpcPlusCodec(msg, c, cf))
+	client := newClientWithCodec(newRpcPlusCodec(msg, c, cf))
 	err = client.Call(ctx, request.Method(), request.Request(), response)
 	if err != nil {
 		return err
@@ -126,7 +125,7 @@ func (r *rpcClient) stream(ctx context.Context, address string, request Request,
 		return nil, errors.InternalServerError("go.micro.client", fmt.Sprintf("Error sending request: %v", err))
 	}
 
-	client := rpc.NewClientWithCodec(newRpcPlusCodec(msg, c, cf))
+	client := newClientWithCodec(newRpcPlusCodec(msg, c, cf))
 	call := client.StreamGo(request.Method(), request.Request(), responseChan)
 
 	return &rpcStream{

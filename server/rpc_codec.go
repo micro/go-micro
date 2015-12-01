@@ -7,7 +7,6 @@ import (
 	"github.com/micro/go-micro/codec/jsonrpc"
 	"github.com/micro/go-micro/codec/protorpc"
 	"github.com/micro/go-micro/transport"
-	rpc "github.com/youtube/vitess/go/rpcplus"
 )
 
 type rpcPlusCodec struct {
@@ -47,7 +46,7 @@ func (rwc *readWriteCloser) Close() error {
 	return nil
 }
 
-func newRpcPlusCodec(req *transport.Message, socket transport.Socket, c codec.NewCodec) rpc.ServerCodec {
+func newRpcPlusCodec(req *transport.Message, socket transport.Socket, c codec.NewCodec) serverCodec {
 	rwc := &readWriteCloser{
 		rbuf: bytes.NewBuffer(req.Body),
 		wbuf: bytes.NewBuffer(nil),
@@ -61,7 +60,7 @@ func newRpcPlusCodec(req *transport.Message, socket transport.Socket, c codec.Ne
 	return r
 }
 
-func (c *rpcPlusCodec) ReadRequestHeader(r *rpc.Request) error {
+func (c *rpcPlusCodec) ReadRequestHeader(r *request) error {
 	var m codec.Message
 	err := c.codec.ReadHeader(&m, codec.Request)
 	r.ServiceMethod = m.Method
@@ -73,7 +72,7 @@ func (c *rpcPlusCodec) ReadRequestBody(b interface{}) error {
 	return c.codec.ReadBody(b)
 }
 
-func (c *rpcPlusCodec) WriteResponse(r *rpc.Response, body interface{}, last bool) error {
+func (c *rpcPlusCodec) WriteResponse(r *response, body interface{}, last bool) error {
 	c.buf.wbuf.Reset()
 	m := &codec.Message{
 		Method: r.ServiceMethod,

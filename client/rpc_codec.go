@@ -7,7 +7,6 @@ import (
 	"github.com/micro/go-micro/codec/jsonrpc"
 	"github.com/micro/go-micro/codec/protorpc"
 	"github.com/micro/go-micro/transport"
-	rpc "github.com/youtube/vitess/go/rpcplus"
 )
 
 type rpcPlusCodec struct {
@@ -63,7 +62,7 @@ func newRpcPlusCodec(req *transport.Message, client transport.Client, c codec.Ne
 	return r
 }
 
-func (c *rpcPlusCodec) WriteRequest(req *rpc.Request, body interface{}) error {
+func (c *rpcPlusCodec) WriteRequest(req *request, body interface{}) error {
 	m := &codec.Message{
 		Id:     req.Seq,
 		Method: req.ServiceMethod,
@@ -76,7 +75,7 @@ func (c *rpcPlusCodec) WriteRequest(req *rpc.Request, body interface{}) error {
 	return c.client.Send(c.req)
 }
 
-func (c *rpcPlusCodec) ReadResponseHeader(r *rpc.Response) error {
+func (c *rpcPlusCodec) ReadResponseHeader(r *response) error {
 	var m transport.Message
 	if err := c.client.Recv(&m); err != nil {
 		return err
