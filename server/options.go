@@ -18,6 +18,7 @@ type options struct {
 	advertise string
 	id        string
 	version   string
+	wrappers  []Wrapper
 }
 
 func newOptions(opt ...Option) options {
@@ -151,5 +152,12 @@ func Transport(t transport.Transport) Option {
 func Metadata(md map[string]string) Option {
 	return func(o *options) {
 		o.metadata = md
+	}
+}
+
+// Adds a handler Wrapper to a list of options passed into the server
+func Wrap(w Wrapper) Option {
+	return func(o *options) {
+		o.wrappers = append(o.wrappers, w)
 	}
 }

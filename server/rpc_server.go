@@ -28,9 +28,13 @@ type rpcServer struct {
 }
 
 func newRpcServer(opts ...Option) Server {
+	options := newOptions(opts...)
 	return &rpcServer{
-		opts:        newOptions(opts...),
-		rpc:         newServer(),
+		opts: options,
+		rpc: &server{
+			serviceMap: make(map[string]*service),
+			wrappers:   options.wrappers,
+		},
 		handlers:    make(map[string]Handler),
 		subscribers: make(map[*subscriber][]broker.Subscriber),
 		exit:        make(chan chan error),
