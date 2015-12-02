@@ -56,14 +56,6 @@ type client struct {
 	shutdown bool
 }
 
-// A clientCodec implements writing of RPC requests and
-// reading of RPC responses for the client side of an RPC session.
-// The client calls WriteRequest to write a request to the connection
-// and calls ReadResponseHeader and ReadResponseBody in pairs
-// to read responses.  The client calls Close when finished with the
-// connection. ReadResponseBody may be called with a nil
-// argument to force the body of the response to be read and then
-// discarded.
 type clientCodec interface {
 	WriteRequest(*request, interface{}) error
 	ReadResponseHeader(*response) error
@@ -224,8 +216,6 @@ func (call *call) done() {
 	}
 }
 
-// NewclientWithCodec is like Newclient but uses the specified
-// codec to encode requests and decode responses.
 func newClientWithCodec(codec clientCodec) *client {
 	client := &client{
 		codec:   codec,

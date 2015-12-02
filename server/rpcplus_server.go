@@ -75,7 +75,7 @@ type server struct {
 	freeReq    *request
 	respLock   sync.Mutex // protects freeResp
 	freeResp   *response
-	wrappers   []Wrapper
+	wrappers   []HandlerWrapper
 }
 
 // Is this an exported - upper case - name?
@@ -465,13 +465,6 @@ func (server *server) readRequestHeader(codec serverCodec) (service *service, mt
 	return
 }
 
-// A serverCodec implements reading of RPC requests and writing of
-// RPC responses for the server side of an RPC session.
-// The server calls ReadRequestHeader and ReadRequestBody in pairs
-// to read requests from the connection, and it calls WriteResponse to
-// write a response back. The server calls Close when finished with the
-// connection. ReadRequestBody may be called with a nil
-// argument to force the body of the request to be read and discarded.
 type serverCodec interface {
 	ReadRequestHeader(*request) error
 	ReadRequestBody(interface{}) error

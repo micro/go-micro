@@ -6,4 +6,8 @@ import (
 
 type HandlerFunc func(ctx context.Context, req interface{}, rsp interface{}) error
 
-type Wrapper func(HandlerFunc) HandlerFunc
+type SubscriberFunc func(ctx context.Context, msg interface{}) error
+
+type HandlerWrapper func(HandlerFunc) HandlerFunc
+
+type SubscriberWrapper func(SubscriberFunc) SubscriberFunc

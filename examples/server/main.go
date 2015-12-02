@@ -6,15 +6,25 @@ import (
 	"github.com/micro/go-micro/examples/server/handler"
 	"github.com/micro/go-micro/examples/server/subscriber"
 	"github.com/micro/go-micro/server"
+	"golang.org/x/net/context"
 )
+
+func logWrapper(fn server.HandlerFunc) server.HandlerFunc {
+	return func(ctx context.Context, req interface{}, rsp interface{}) error {
+		log.Infof("[Log Wrapper] Before serving request")
+		err := fn(ctx, req, rsp)
+		log.Infof("[Log Wrapper] After serving request")
+		return err
+	}
+}
 
 func main() {
 	// optionally setup command line usage
 	cmd.Init()
 
-	//	server.DefaultServer = server.NewServer(
-	//		server.Codec("application/bson", bson.Codec),
-	//	)
+	server.DefaultServer = server.NewServer(
+		server.WrapHandler(logWrapper),
+	)
 
 	// Initialise Server
 	server.Init(
