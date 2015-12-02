@@ -18,12 +18,22 @@ func logWrapper(fn server.HandlerFunc) server.HandlerFunc {
 	}
 }
 
+func logSubWrapper(fn server.SubscriberFunc) server.SubscriberFunc {
+	return func(ctx context.Context, req interface{}) error {
+		log.Infof("[Log Sub Wrapper] Before serving publication")
+		err := fn(ctx, req)
+		log.Infof("[Log Sub Wrapper] After serving publication")
+		return err
+	}
+}
+
 func main() {
 	// optionally setup command line usage
 	cmd.Init()
 
 	server.DefaultServer = server.NewServer(
 		server.WrapHandler(logWrapper),
+		server.WrapSubscriber(logSubWrapper),
 	)
 
 	// Initialise Server
