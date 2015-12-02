@@ -154,16 +154,10 @@ func validateSubscriber(sub Subscriber) error {
 	return nil
 }
 
-func (s *rpcServer) createSubHandler(sb *subscriber) broker.Handler {
+func (s *rpcServer) createSubHandler(sb *subscriber, opts options) broker.Handler {
 	return func(msg *broker.Message) {
 		cf, err := s.newCodec(msg.Header["Content-Type"])
 		if err != nil {
-			return
-		}
-
-		b := &buffer{bytes.NewBuffer(msg.Body)}
-		co := cf(b)
-		if err := co.ReadHeader(&codec.Message{}, codec.Publication); err != nil {
 			return
 		}
 
@@ -173,9 +167,10 @@ func (s *rpcServer) createSubHandler(sb *subscriber) broker.Handler {
 		}
 		delete(hdr, "Content-Type")
 		ctx := c.WithMetadata(context.Background(), hdr)
-		rctx := reflect.ValueOf(ctx)
 
-		for _, handler := range sb.handlers {
+		for i := 0; i < len(sb.handlers); i++ {
+			handler := sb.handlers[i]
+
 			var isVal bool
 			var req reflect.Value
 
@@ -185,26 +180,45 @@ func (s *rpcServer) createSubHandler(sb *subscriber) broker.Handler {
 				req = reflect.New(handler.reqType)
 				isVal = true
 			}
+			if isVal {
+				req = req.Elem()
+			}
+
+			b := &buffer{bytes.NewBuffer(msg.Body)}
+			co := cf(b)
+			defer co.Close()
+
+			if err := co.ReadHeader(&codec.Message{}, codec.Publication); err != nil {
+				continue
+			}
 
 			if err := co.ReadBody(req.Interface()); err != nil {
 				continue
 			}
 
-			if isVal {
-				req = req.Elem()
+			fn := func(ctx context.Context, msg interface{}) error {
+				var vals []reflect.Value
+				if sb.typ.Kind() != reflect.Func {
+					vals = append(vals, sb.rcvr)
+				}
+				if handler.ctxType != nil {
+					vals = append(vals, reflect.ValueOf(ctx))
+				}
+
+				vals = append(vals, reflect.ValueOf(msg))
+
+				returnValues := handler.method.Call(vals)
+				if err := returnValues[0].Interface(); err != nil {
+					return err.(error)
+				}
+				return nil
 			}
 
-			var vals []reflect.Value
-			if sb.typ.Kind() != reflect.Func {
-				vals = append(vals, sb.rcvr)
+			for i := len(opts.subWrappers); i > 0; i-- {
+				fn = opts.subWrappers[i-1](fn)
 			}
 
-			if handler.ctxType != nil {
-				vals = append(vals, rctx)
-			}
-
-			vals = append(vals, req)
-			go handler.method.Call(vals)
+			go fn(ctx, req.Interface())
 		}
 	}
 }

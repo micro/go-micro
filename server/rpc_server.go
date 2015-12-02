@@ -208,7 +208,7 @@ func (s *rpcServer) Register() error {
 	defer s.Unlock()
 
 	for sb, _ := range s.subscribers {
-		handler := s.createSubHandler(sb)
+		handler := s.createSubHandler(sb, s.opts)
 		sub, err := config.broker.Subscribe(sb.Topic(), handler)
 		if err != nil {
 			return err
@@ -279,7 +279,7 @@ func (s *rpcServer) Start() error {
 	registerHealthChecker(s)
 	config := s.Config()
 
-	ts, err := config.transport.Listen(s.opts.address)
+	ts, err := config.transport.Listen(config.address)
 	if err != nil {
 		return err
 	}
