@@ -1,5 +1,12 @@
 syntax = "proto3";
 
+package go.micro.srv.example;
+
+service Example {
+	rpc Call(Request) returns (Response) {}
+	rpc Stream(StreamingRequest) returns (stream StreamingResponse) {}
+}
+
 message Message {
 	string say = 1;
 }
