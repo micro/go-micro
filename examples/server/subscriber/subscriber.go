@@ -13,6 +13,7 @@ func (e *Example) Handle(ctx context.Context, msg *example.Message) error {
 	return nil
 }
 
-func Handler(msg *example.Message) {
+func Handler(ctx context.Context, msg *example.Message) error {
 	log.Info("Function Received message: ", msg.Say)
+	return nil
 }

@@ -28,9 +28,14 @@ type rpcServer struct {
 }
 
 func newRpcServer(opts ...Option) Server {
+	options := newOptions(opts...)
 	return &rpcServer{
-		opts:        newOptions(opts...),
-		rpc:         newServer(),
+		opts: options,
+		rpc: &server{
+			name:         options.name,
+			serviceMap:   make(map[string]*service),
+			hdlrWrappers: options.hdlrWrappers,
+		},
 		handlers:    make(map[string]Handler),
 		subscribers: make(map[*subscriber][]broker.Subscriber),
 		exit:        make(chan chan error),
@@ -43,7 +48,8 @@ func (s *rpcServer) accept(sock transport.Socket) {
 		return
 	}
 
-	cf, err := s.newCodec(msg.Header["Content-Type"])
+	ct := msg.Header["Content-Type"]
+	cf, err := s.newCodec(ct)
 	// TODO: needs better error handling
 	if err != nil {
 		sock.Send(&transport.Message{
@@ -66,8 +72,9 @@ func (s *rpcServer) accept(sock transport.Socket) {
 	delete(hdr, "Content-Type")
 
 	ctx := c.WithMetadata(context.Background(), hdr)
+
 	// TODO: needs better error handling
-	if err := s.rpc.ServeRequestWithContext(ctx, codec); err != nil {
+	if err := s.rpc.serveRequest(ctx, codec, ct); err != nil {
 		log.Errorf("Unexpected error serving request, closing socket: %v", err)
 		sock.Close()
 	}
@@ -106,7 +113,7 @@ func (s *rpcServer) NewHandler(h interface{}) Handler {
 }
 
 func (s *rpcServer) Handle(h Handler) error {
-	if err := s.rpc.Register(h.Handler()); err != nil {
+	if err := s.rpc.register(h.Handler()); err != nil {
 		return err
 	}
 	s.Lock()
@@ -126,6 +133,10 @@ func (s *rpcServer) Subscribe(sb Subscriber) error {
 	}
 	if len(sub.handlers) == 0 {
 		return fmt.Errorf("invalid subscriber: no handler functions")
+	}
+
+	if err := validateSubscriber(sb); err != nil {
+		return err
 	}
 
 	s.Lock()
@@ -200,7 +211,7 @@ func (s *rpcServer) Register() error {
 	defer s.Unlock()
 
 	for sb, _ := range s.subscribers {
-		handler := s.createSubHandler(sb)
+		handler := s.createSubHandler(sb, s.opts)
 		sub, err := config.broker.Subscribe(sb.Topic(), handler)
 		if err != nil {
 			return err
@@ -271,7 +282,7 @@ func (s *rpcServer) Start() error {
 	registerHealthChecker(s)
 	config := s.Config()
 
-	ts, err := config.transport.Listen(s.opts.address)
+	ts, err := config.transport.Listen(config.address)
 	if err != nil {
 		return err
 	}

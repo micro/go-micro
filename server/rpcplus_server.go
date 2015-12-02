@@ -18,11 +18,8 @@ import (
 	"golang.org/x/net/context"
 )
 
-const (
-	lastStreamResponseError = "EOS"
-)
-
 var (
+	lastStreamResponseError = errors.New("EOS")
 	// A value sent as a placeholder for the server's response value when the server
 	// receives an invalid request. It is never decoded by the client since the Response
 	// contains an error when it is used.
@@ -41,10 +38,6 @@ type methodType struct {
 	ContextType reflect.Type
 	stream      bool
 	numCalls    uint
-}
-
-func (m *methodType) TakesContext() bool {
-	return m.ContextType != nil
 }
 
 func (m *methodType) NumCalls() (n uint) {
@@ -76,16 +69,14 @@ type response struct {
 
 // server represents an RPC Server.
 type server struct {
-	mu         sync.Mutex // protects the serviceMap
-	serviceMap map[string]*service
-	reqLock    sync.Mutex // protects freeReq
-	freeReq    *request
-	respLock   sync.Mutex // protects freeResp
-	freeResp   *response
-}
-
-func newServer() *server {
-	return &server{serviceMap: make(map[string]*service)}
+	name         string
+	mu           sync.Mutex // protects the serviceMap
+	serviceMap   map[string]*service
+	reqLock      sync.Mutex // protects freeReq
+	freeReq      *request
+	respLock     sync.Mutex // protects freeResp
+	freeResp     *response
+	hdlrWrappers []HandlerWrapper
 }
 
 // Is this an exported - upper case - name?
@@ -104,10 +95,6 @@ func isExportedOrBuiltinType(t reflect.Type) bool {
 	return isExported(t.Name()) || t.PkgPath() == ""
 }
 
-func (server *server) Register(rcvr interface{}) error {
-	return server.register(rcvr, "", false)
-}
-
 // prepareMethod returns a methodType for the provided method or nil
 // in case if the method was unsuitable.
 func prepareMethod(method reflect.Method) *methodType {
@@ -122,11 +109,6 @@ func prepareMethod(method reflect.Method) *methodType {
 	}
 
 	switch mtype.NumIn() {
-	case 3:
-		// normal method
-		argType = mtype.In(1)
-		replyType = mtype.In(2)
-		contextType = nil
 	case 4:
 		// method that takes a context
 		argType = mtype.In(2)
@@ -188,7 +170,7 @@ func prepareMethod(method reflect.Method) *methodType {
 	return &methodType{method: method, ArgType: argType, ReplyType: replyType, ContextType: contextType, stream: stream}
 }
 
-func (server *server) register(rcvr interface{}, name string, useName bool) error {
+func (server *server) register(rcvr interface{}) error {
 	server.mu.Lock()
 	defer server.mu.Unlock()
 	if server.serviceMap == nil {
@@ -198,13 +180,10 @@ func (server *server) register(rcvr interface{}, name string, useName bool) erro
 	s.typ = reflect.TypeOf(rcvr)
 	s.rcvr = reflect.ValueOf(rcvr)
 	sname := reflect.Indirect(s.rcvr).Type().Name()
-	if useName {
-		sname = name
-	}
 	if sname == "" {
 		log.Fatal("rpc: no service name for type", s.typ.String())
 	}
-	if !isExported(sname) && !useName {
+	if !isExported(sname) {
 		s := "rpc Register: type " + sname + " is not exported"
 		log.Print(s)
 		return errors.New(s)
@@ -251,28 +230,42 @@ func (server *server) sendResponse(sending *sync.Mutex, req *request, reply inte
 	return err
 }
 
-func (s *service) call(ctx context.Context, server *server, sending *sync.Mutex, mtype *methodType, req *request, argv, replyv reflect.Value, codec serverCodec) {
+func (s *service) call(ctx context.Context, server *server, sending *sync.Mutex, mtype *methodType, req *request, argv, replyv reflect.Value, codec serverCodec, ct string) {
 	mtype.Lock()
 	mtype.numCalls++
 	mtype.Unlock()
 	function := mtype.method.Func
 	var returnValues []reflect.Value
 
+	r := &rpcRequest{
+		service:     s.name,
+		contentType: ct,
+		method:      req.ServiceMethod,
+		request:     argv.Interface(),
+	}
+
 	if !mtype.stream {
+		fn := func(ctx context.Context, req Request, rsp interface{}) error {
+			returnValues = function.Call([]reflect.Value{s.rcvr, mtype.prepareContext(ctx), reflect.ValueOf(req.Request()), reflect.ValueOf(rsp)})
 
-		// Invoke the method, providing a new value for the reply.
-		if mtype.TakesContext() {
-			returnValues = function.Call([]reflect.Value{s.rcvr, mtype.prepareContext(ctx), argv, replyv})
-		} else {
-			returnValues = function.Call([]reflect.Value{s.rcvr, argv, replyv})
+			// The return value for the method is an error.
+			if err := returnValues[0].Interface(); err != nil {
+				return err.(error)
+			}
+
+			return nil
 		}
 
-		// The return value for the method is an error.
-		errInter := returnValues[0].Interface()
+		for i := len(server.hdlrWrappers); i > 0; i-- {
+			fn = server.hdlrWrappers[i-1](fn)
+		}
+
 		errmsg := ""
-		if errInter != nil {
-			errmsg = errInter.(error).Error()
+		err := fn(ctx, r, replyv.Interface())
+		if err != nil {
+			errmsg = err.Error()
 		}
+
 		server.sendResponse(sending, req, replyv.Interface(), codec, errmsg, true)
 		server.freeRequest(req)
 		return
@@ -314,22 +307,31 @@ func (s *service) call(ctx context.Context, server *server, sending *sync.Mutex,
 	}
 
 	// Invoke the method, providing a new value for the reply.
-	if mtype.TakesContext() {
-		returnValues = function.Call([]reflect.Value{s.rcvr, mtype.prepareContext(ctx), argv, reflect.ValueOf(sendReply)})
-	} else {
-		returnValues = function.Call([]reflect.Value{s.rcvr, argv, reflect.ValueOf(sendReply)})
+	fn := func(ctx context.Context, req Request, rspFn interface{}) error {
+		returnValues = function.Call([]reflect.Value{s.rcvr, mtype.prepareContext(ctx), reflect.ValueOf(req.Request()), reflect.ValueOf(rspFn)})
+		if err := returnValues[0].Interface(); err != nil {
+			// the function returned an error, we use that
+			return err.(error)
+		} else if lastError != nil {
+			// we had an error inside sendReply, we use that
+			return lastError
+		} else {
+			// no error, we send the special EOS error
+			return lastStreamResponseError
+		}
+		return nil
 	}
-	errInter := returnValues[0].Interface()
+
+	for i := len(server.hdlrWrappers); i > 0; i-- {
+		fn = server.hdlrWrappers[i-1](fn)
+	}
+
+	// client.Stream request
+	r.stream = true
+
 	errmsg := ""
-	if errInter != nil {
-		// the function returned an error, we use that
-		errmsg = errInter.(error).Error()
-	} else if lastError != nil {
-		// we had an error inside sendReply, we use that
-		errmsg = lastError.Error()
-	} else {
-		// no error, we send the special EOS error
-		errmsg = lastStreamResponseError
+	if err := fn(ctx, r, reflect.ValueOf(sendReply).Interface()); err != nil {
+		errmsg = err.Error()
 	}
 
 	// this is the last packet, we don't do anything with
@@ -346,7 +348,7 @@ func (m *methodType) prepareContext(ctx context.Context) reflect.Value {
 	return reflect.Zero(m.ContextType)
 }
 
-func (server *server) ServeRequestWithContext(ctx context.Context, codec serverCodec) error {
+func (server *server) serveRequest(ctx context.Context, codec serverCodec, ct string) error {
 	sending := new(sync.Mutex)
 	service, mtype, req, argv, replyv, keepReading, err := server.readRequest(codec)
 	if err != nil {
@@ -360,7 +362,7 @@ func (server *server) ServeRequestWithContext(ctx context.Context, codec serverC
 		}
 		return err
 	}
-	service.call(ctx, server, sending, mtype, req, argv, replyv, codec)
+	service.call(ctx, server, sending, mtype, req, argv, replyv, codec, ct)
 	return nil
 }
 
@@ -474,13 +476,6 @@ func (server *server) readRequestHeader(codec serverCodec) (service *service, mt
 	return
 }
 
-// A serverCodec implements reading of RPC requests and writing of
-// RPC responses for the server side of an RPC session.
-// The server calls ReadRequestHeader and ReadRequestBody in pairs
-// to read requests from the connection, and it calls WriteResponse to
-// write a response back. The server calls Close when finished with the
-// connection. ReadRequestBody may be called with a nil
-// argument to force the body of the request to be read and discarded.
 type serverCodec interface {
 	ReadRequestHeader(*request) error
 	ReadRequestBody(interface{}) error

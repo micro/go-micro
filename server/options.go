@@ -8,16 +8,18 @@ import (
 )
 
 type options struct {
-	codecs    map[string]codec.NewCodec
-	broker    broker.Broker
-	registry  registry.Registry
-	transport transport.Transport
-	metadata  map[string]string
-	name      string
-	address   string
-	advertise string
-	id        string
-	version   string
+	codecs       map[string]codec.NewCodec
+	broker       broker.Broker
+	registry     registry.Registry
+	transport    transport.Transport
+	metadata     map[string]string
+	name         string
+	address      string
+	advertise    string
+	id           string
+	version      string
+	hdlrWrappers []HandlerWrapper
+	subWrappers  []SubscriberWrapper
 }
 
 func newOptions(opt ...Option) options {
@@ -151,5 +153,19 @@ func Transport(t transport.Transport) Option {
 func Metadata(md map[string]string) Option {
 	return func(o *options) {
 		o.metadata = md
+	}
+}
+
+// Adds a handler Wrapper to a list of options passed into the server
+func WrapHandler(w HandlerWrapper) Option {
+	return func(o *options) {
+		o.hdlrWrappers = append(o.hdlrWrappers, w)
+	}
+}
+
+// Adds a subscriber Wrapper to a list of options passed into the server
+func WrapSubscriber(w SubscriberWrapper) Option {
+	return func(o *options) {
+		o.subWrappers = append(o.subWrappers, w)
 	}
 }

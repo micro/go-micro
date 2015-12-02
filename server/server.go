@@ -31,6 +31,21 @@ type Server interface {
 	Stop() error
 }
 
+type Publication interface {
+	Topic() string
+	Message() interface{}
+	ContentType() string
+}
+
+type Request interface {
+	Service() string
+	Method() string
+	ContentType() string
+	Request() interface{}
+	// indicates whether the response should be streaming
+	Stream() bool
+}
+
 type Option func(*options)
 
 var (
