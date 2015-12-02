@@ -47,7 +47,7 @@ go get github.com/micro/protobuf/protoc-gen-go
 
 ### Define your proto service.
 
-greeter.proto
+hello.proto
 ```shell
 syntax = "proto3";
 
