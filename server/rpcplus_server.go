@@ -337,7 +337,7 @@ func (m *methodType) prepareContext(ctx context.Context) reflect.Value {
 	return reflect.Zero(m.ContextType)
 }
 
-func (server *server) ServeRequestWithContext(ctx context.Context, codec serverCodec) error {
+func (server *server) serveRequest(ctx context.Context, codec serverCodec) error {
 	sending := new(sync.Mutex)
 	service, mtype, req, argv, replyv, keepReading, err := server.readRequest(codec)
 	if err != nil {

@@ -71,7 +71,7 @@ func (s *rpcServer) accept(sock transport.Socket) {
 
 	ctx := c.WithMetadata(context.Background(), hdr)
 	// TODO: needs better error handling
-	if err := s.rpc.ServeRequestWithContext(ctx, codec); err != nil {
+	if err := s.rpc.serveRequest(ctx, codec); err != nil {
 		log.Errorf("Unexpected error serving request, closing socket: %v", err)
 		sock.Close()
 	}
