@@ -39,19 +39,23 @@ func main() {
 	)
 
 	// Register Subscribers
-	server.Subscribe(
+	if err := server.Subscribe(
 		server.NewSubscriber(
 			"topic.go.micro.srv.example",
 			new(subscriber.Example),
 		),
-	)
+	); err != nil {
+		log.Fatal(err)
+	}
 
-	server.Subscribe(
+	if err := server.Subscribe(
 		server.NewSubscriber(
 			"topic.go.micro.srv.example",
 			subscriber.Handler,
 		),
-	)
+	); err != nil {
+		log.Fatal(err)
+	}
 
 	// Run server
 	if err := server.Run(); err != nil {

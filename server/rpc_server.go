@@ -132,6 +132,10 @@ func (s *rpcServer) Subscribe(sb Subscriber) error {
 		return fmt.Errorf("invalid subscriber: no handler functions")
 	}
 
+	if err := validateSubscriber(sb); err != nil {
+		return err
+	}
+
 	s.Lock()
 	_, ok = s.subscribers[sub]
 	if ok {
