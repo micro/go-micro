@@ -34,7 +34,7 @@ cd examples/server/proto/example
 protoc --go_out=plugins=micro:. example.proto
 ```
 
-Look at examples/server/proto/example/examples/server/proto/example/example.pb.go 
+Look at examples/server/proto/example/example.pb.go 
 to see the generated code.
 
 ## Guide
