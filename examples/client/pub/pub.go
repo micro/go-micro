@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/cmd"
@@ -35,11 +34,7 @@ func pub(i int) {
 func main() {
 	cmd.Init()
 	fmt.Println("\n--- Publisher example ---\n")
-	//	for i := 0; i < 10; i++ {
-	i := 0
-	for {
+	for i := 0; i < 10; i++ {
 		pub(i)
-		i++
-		time.Sleep(time.Millisecond * 5)
 	}
 }

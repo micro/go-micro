@@ -238,7 +238,7 @@ func (s *service) call(ctx context.Context, server *server, sending *sync.Mutex,
 
 	if !mtype.stream {
 		fn := func(ctx context.Context, req interface{}, rsp interface{}) error {
-			returnValues = function.Call([]reflect.Value{s.rcvr, mtype.prepareContext(ctx), argv, replyv})
+			returnValues = function.Call([]reflect.Value{s.rcvr, mtype.prepareContext(ctx), reflect.ValueOf(req), reflect.ValueOf(rsp)})
 
 			// The return value for the method is an error.
 			if err := returnValues[0].Interface(); err != nil {
@@ -300,7 +300,7 @@ func (s *service) call(ctx context.Context, server *server, sending *sync.Mutex,
 
 	// Invoke the method, providing a new value for the reply.
 	fn := func(ctx context.Context, req interface{}, rspFn interface{}) error {
-		returnValues = function.Call([]reflect.Value{s.rcvr, mtype.prepareContext(ctx), argv, reflect.ValueOf(sendReply)})
+		returnValues = function.Call([]reflect.Value{s.rcvr, mtype.prepareContext(ctx), reflect.ValueOf(req), reflect.ValueOf(rspFn)})
 		if err := returnValues[0].Interface(); err != nil {
 			// the function returned an error, we use that
 			return err.(error)
