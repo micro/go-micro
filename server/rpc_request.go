@@ -5,7 +5,7 @@ type rpcRequest struct {
 	method      string
 	contentType string
 	request     interface{}
-	stream bool
+	stream      bool
 }
 
 type rpcPublication struct {

@@ -31,7 +31,6 @@ type Server interface {
 	Stop() error
 }
 
-
 type Publication interface {
 	Topic() string
 	Message() interface{}

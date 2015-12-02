@@ -69,14 +69,14 @@ type response struct {
 
 // server represents an RPC Server.
 type server struct {
-	name string
-	mu         sync.Mutex // protects the serviceMap
-	serviceMap map[string]*service
-	reqLock    sync.Mutex // protects freeReq
-	freeReq    *request
-	respLock   sync.Mutex // protects freeResp
-	freeResp   *response
-	wrappers   []HandlerWrapper
+	name         string
+	mu           sync.Mutex // protects the serviceMap
+	serviceMap   map[string]*service
+	reqLock      sync.Mutex // protects freeReq
+	freeReq      *request
+	respLock     sync.Mutex // protects freeResp
+	freeResp     *response
+	hdlrWrappers []HandlerWrapper
 }
 
 // Is this an exported - upper case - name?
@@ -238,10 +238,10 @@ func (s *service) call(ctx context.Context, server *server, sending *sync.Mutex,
 	var returnValues []reflect.Value
 
 	r := &rpcRequest{
-		service: s.name,
+		service:     s.name,
 		contentType: ct,
-		method: req.ServiceMethod,
-		request: argv.Interface(),
+		method:      req.ServiceMethod,
+		request:     argv.Interface(),
 	}
 
 	if !mtype.stream {
@@ -256,8 +256,8 @@ func (s *service) call(ctx context.Context, server *server, sending *sync.Mutex,
 			return nil
 		}
 
-		for i := len(server.wrappers); i > 0; i-- {
-			fn = server.wrappers[i-1](fn)
+		for i := len(server.hdlrWrappers); i > 0; i-- {
+			fn = server.hdlrWrappers[i-1](fn)
 		}
 
 		errmsg := ""
@@ -265,7 +265,6 @@ func (s *service) call(ctx context.Context, server *server, sending *sync.Mutex,
 		if err != nil {
 			errmsg = err.Error()
 		}
-
 
 		server.sendResponse(sending, req, replyv.Interface(), codec, errmsg, true)
 		server.freeRequest(req)
@@ -323,8 +322,8 @@ func (s *service) call(ctx context.Context, server *server, sending *sync.Mutex,
 		return nil
 	}
 
-	for i := len(server.wrappers); i > 0; i-- {
-		fn = server.wrappers[i-1](fn)
+	for i := len(server.hdlrWrappers); i > 0; i-- {
+		fn = server.hdlrWrappers[i-1](fn)
 	}
 
 	// client.Stream request

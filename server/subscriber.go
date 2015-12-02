@@ -220,9 +220,9 @@ func (s *rpcServer) createSubHandler(sb *subscriber, opts options) broker.Handle
 			}
 
 			go fn(ctx, &rpcPublication{
-				topic: sb.topic,
+				topic:       sb.topic,
 				contentType: ct,
-				message: req.Interface(),
+				message:     req.Interface(),
 			})
 		}
 	}

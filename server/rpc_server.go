@@ -32,9 +32,9 @@ func newRpcServer(opts ...Option) Server {
 	return &rpcServer{
 		opts: options,
 		rpc: &server{
-			name: options.name,
-			serviceMap: make(map[string]*service),
-			wrappers:   options.wrappers,
+			name:         options.name,
+			serviceMap:   make(map[string]*service),
+			hdlrWrappers: options.hdlrWrappers,
 		},
 		handlers:    make(map[string]Handler),
 		subscribers: make(map[*subscriber][]broker.Subscriber),
