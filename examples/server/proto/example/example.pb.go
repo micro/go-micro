@@ -151,8 +151,8 @@ func (x *exampleStreamClient) Next() (*StreamingResponse, error) {
 // Server API for Example service
 
 type ExampleServer interface {
-	Call(context.Context, *Request) (*Response, error)
-	Stream(context.Context, *StreamingRequest, func(*StreamingResponse) error) error
+	Call(context.Context, *Request, *Response) error
+	Stream(context.Context, func(*StreamingResponse) error) error
 }
 
 func RegisterExampleServer(s server.Server, srv ExampleServer) {
