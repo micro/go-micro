@@ -110,7 +110,7 @@ func (s *rpcServer) NewHandler(h interface{}) Handler {
 }
 
 func (s *rpcServer) Handle(h Handler) error {
-	if err := s.rpc.Register(h.Handler()); err != nil {
+	if err := s.rpc.register(h.Handler()); err != nil {
 		return err
 	}
 	s.Lock()

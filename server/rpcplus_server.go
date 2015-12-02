@@ -94,10 +94,6 @@ func isExportedOrBuiltinType(t reflect.Type) bool {
 	return isExported(t.Name()) || t.PkgPath() == ""
 }
 
-func (server *server) Register(rcvr interface{}) error {
-	return server.register(rcvr, "", false)
-}
-
 // prepareMethod returns a methodType for the provided method or nil
 // in case if the method was unsuitable.
 func prepareMethod(method reflect.Method) *methodType {
@@ -173,7 +169,7 @@ func prepareMethod(method reflect.Method) *methodType {
 	return &methodType{method: method, ArgType: argType, ReplyType: replyType, ContextType: contextType, stream: stream}
 }
 
-func (server *server) register(rcvr interface{}, name string, useName bool) error {
+func (server *server) register(rcvr interface{}) error {
 	server.mu.Lock()
 	defer server.mu.Unlock()
 	if server.serviceMap == nil {
@@ -183,13 +179,10 @@ func (server *server) register(rcvr interface{}, name string, useName bool) erro
 	s.typ = reflect.TypeOf(rcvr)
 	s.rcvr = reflect.ValueOf(rcvr)
 	sname := reflect.Indirect(s.rcvr).Type().Name()
-	if useName {
-		sname = name
-	}
 	if sname == "" {
 		log.Fatal("rpc: no service name for type", s.typ.String())
 	}
-	if !isExported(sname) && !useName {
+	if !isExported(sname) {
 		s := "rpc Register: type " + sname + " is not exported"
 		log.Print(s)
 		return errors.New(s)
