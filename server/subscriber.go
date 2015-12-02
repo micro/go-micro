@@ -156,7 +156,8 @@ func validateSubscriber(sub Subscriber) error {
 
 func (s *rpcServer) createSubHandler(sb *subscriber, opts options) broker.Handler {
 	return func(msg *broker.Message) {
-		cf, err := s.newCodec(msg.Header["Content-Type"])
+		ct := msg.Header["Content-Type"]
+		cf, err := s.newCodec(ct)
 		if err != nil {
 			return
 		}
@@ -196,7 +197,7 @@ func (s *rpcServer) createSubHandler(sb *subscriber, opts options) broker.Handle
 				continue
 			}
 
-			fn := func(ctx context.Context, msg interface{}) error {
+			fn := func(ctx context.Context, msg Publication) error {
 				var vals []reflect.Value
 				if sb.typ.Kind() != reflect.Func {
 					vals = append(vals, sb.rcvr)
@@ -205,7 +206,7 @@ func (s *rpcServer) createSubHandler(sb *subscriber, opts options) broker.Handle
 					vals = append(vals, reflect.ValueOf(ctx))
 				}
 
-				vals = append(vals, reflect.ValueOf(msg))
+				vals = append(vals, reflect.ValueOf(msg.Message()))
 
 				returnValues := handler.method.Call(vals)
 				if err := returnValues[0].Interface(); err != nil {
@@ -218,7 +219,11 @@ func (s *rpcServer) createSubHandler(sb *subscriber, opts options) broker.Handle
 				fn = opts.subWrappers[i-1](fn)
 			}
 
-			go fn(ctx, req.Interface())
+			go fn(ctx, &rpcPublication{
+				topic: sb.topic,
+				contentType: ct,
+				message: req.Interface(),
+			})
 		}
 	}
 }

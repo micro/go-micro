@@ -69,6 +69,7 @@ type response struct {
 
 // server represents an RPC Server.
 type server struct {
+	name string
 	mu         sync.Mutex // protects the serviceMap
 	serviceMap map[string]*service
 	reqLock    sync.Mutex // protects freeReq
@@ -229,16 +230,23 @@ func (server *server) sendResponse(sending *sync.Mutex, req *request, reply inte
 	return err
 }
 
-func (s *service) call(ctx context.Context, server *server, sending *sync.Mutex, mtype *methodType, req *request, argv, replyv reflect.Value, codec serverCodec) {
+func (s *service) call(ctx context.Context, server *server, sending *sync.Mutex, mtype *methodType, req *request, argv, replyv reflect.Value, codec serverCodec, ct string) {
 	mtype.Lock()
 	mtype.numCalls++
 	mtype.Unlock()
 	function := mtype.method.Func
 	var returnValues []reflect.Value
 
+	r := &rpcRequest{
+		service: s.name,
+		contentType: ct,
+		method: req.ServiceMethod,
+		request: argv.Interface(),
+	}
+
 	if !mtype.stream {
-		fn := func(ctx context.Context, req interface{}, rsp interface{}) error {
-			returnValues = function.Call([]reflect.Value{s.rcvr, mtype.prepareContext(ctx), reflect.ValueOf(req), reflect.ValueOf(rsp)})
+		fn := func(ctx context.Context, req Request, rsp interface{}) error {
+			returnValues = function.Call([]reflect.Value{s.rcvr, mtype.prepareContext(ctx), reflect.ValueOf(req.Request()), reflect.ValueOf(rsp)})
 
 			// The return value for the method is an error.
 			if err := returnValues[0].Interface(); err != nil {
@@ -253,10 +261,11 @@ func (s *service) call(ctx context.Context, server *server, sending *sync.Mutex,
 		}
 
 		errmsg := ""
-		err := fn(ctx, argv.Interface(), replyv.Interface())
+		err := fn(ctx, r, replyv.Interface())
 		if err != nil {
 			errmsg = err.Error()
 		}
+
 
 		server.sendResponse(sending, req, replyv.Interface(), codec, errmsg, true)
 		server.freeRequest(req)
@@ -299,8 +308,8 @@ func (s *service) call(ctx context.Context, server *server, sending *sync.Mutex,
 	}
 
 	// Invoke the method, providing a new value for the reply.
-	fn := func(ctx context.Context, req interface{}, rspFn interface{}) error {
-		returnValues = function.Call([]reflect.Value{s.rcvr, mtype.prepareContext(ctx), reflect.ValueOf(req), reflect.ValueOf(rspFn)})
+	fn := func(ctx context.Context, req Request, rspFn interface{}) error {
+		returnValues = function.Call([]reflect.Value{s.rcvr, mtype.prepareContext(ctx), reflect.ValueOf(req.Request()), reflect.ValueOf(rspFn)})
 		if err := returnValues[0].Interface(); err != nil {
 			// the function returned an error, we use that
 			return err.(error)
@@ -318,8 +327,11 @@ func (s *service) call(ctx context.Context, server *server, sending *sync.Mutex,
 		fn = server.wrappers[i-1](fn)
 	}
 
+	// client.Stream request
+	r.stream = true
+
 	errmsg := ""
-	if err := fn(ctx, argv.Interface(), reflect.ValueOf(sendReply).Interface()); err != nil {
+	if err := fn(ctx, r, reflect.ValueOf(sendReply).Interface()); err != nil {
 		errmsg = err.Error()
 	}
 
@@ -337,7 +349,7 @@ func (m *methodType) prepareContext(ctx context.Context) reflect.Value {
 	return reflect.Zero(m.ContextType)
 }
 
-func (server *server) serveRequest(ctx context.Context, codec serverCodec) error {
+func (server *server) serveRequest(ctx context.Context, codec serverCodec, ct string) error {
 	sending := new(sync.Mutex)
 	service, mtype, req, argv, replyv, keepReading, err := server.readRequest(codec)
 	if err != nil {
@@ -351,7 +363,7 @@ func (server *server) serveRequest(ctx context.Context, codec serverCodec) error
 		}
 		return err
 	}
-	service.call(ctx, server, sending, mtype, req, argv, replyv, codec)
+	service.call(ctx, server, sending, mtype, req, argv, replyv, codec, ct)
 	return nil
 }
 

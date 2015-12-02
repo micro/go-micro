@@ -4,9 +4,9 @@ import (
 	"golang.org/x/net/context"
 )
 
-type HandlerFunc func(ctx context.Context, req interface{}, rsp interface{}) error
+type HandlerFunc func(ctx context.Context, req Request, rsp interface{}) error
 
-type SubscriberFunc func(ctx context.Context, msg interface{}) error
+type SubscriberFunc func(ctx context.Context, msg Publication) error
 
 type HandlerWrapper func(HandlerFunc) HandlerFunc
 

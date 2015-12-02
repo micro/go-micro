@@ -32,6 +32,7 @@ func newRpcServer(opts ...Option) Server {
 	return &rpcServer{
 		opts: options,
 		rpc: &server{
+			name: options.name,
 			serviceMap: make(map[string]*service),
 			wrappers:   options.wrappers,
 		},
@@ -47,7 +48,8 @@ func (s *rpcServer) accept(sock transport.Socket) {
 		return
 	}
 
-	cf, err := s.newCodec(msg.Header["Content-Type"])
+	ct := msg.Header["Content-Type"]
+	cf, err := s.newCodec(ct)
 	// TODO: needs better error handling
 	if err != nil {
 		sock.Send(&transport.Message{
@@ -70,8 +72,9 @@ func (s *rpcServer) accept(sock transport.Socket) {
 	delete(hdr, "Content-Type")
 
 	ctx := c.WithMetadata(context.Background(), hdr)
+
 	// TODO: needs better error handling
-	if err := s.rpc.serveRequest(ctx, codec); err != nil {
+	if err := s.rpc.serveRequest(ctx, codec, ct); err != nil {
 		log.Errorf("Unexpected error serving request, closing socket: %v", err)
 		sock.Close()
 	}

@@ -10,8 +10,8 @@ import (
 )
 
 func logWrapper(fn server.HandlerFunc) server.HandlerFunc {
-	return func(ctx context.Context, req interface{}, rsp interface{}) error {
-		log.Infof("[Log Wrapper] Before serving request")
+	return func(ctx context.Context, req server.Request, rsp interface{}) error {
+		log.Infof("[Log Wrapper] Before serving request method: %v", req.Method())
 		err := fn(ctx, req, rsp)
 		log.Infof("[Log Wrapper] After serving request")
 		return err
@@ -19,8 +19,8 @@ func logWrapper(fn server.HandlerFunc) server.HandlerFunc {
 }
 
 func logSubWrapper(fn server.SubscriberFunc) server.SubscriberFunc {
-	return func(ctx context.Context, req interface{}) error {
-		log.Infof("[Log Sub Wrapper] Before serving publication")
+	return func(ctx context.Context, req server.Publication) error {
+		log.Infof("[Log Sub Wrapper] Before serving publication topic: %v", req.Topic())
 		err := fn(ctx, req)
 		log.Infof("[Log Sub Wrapper] After serving publication")
 		return err
