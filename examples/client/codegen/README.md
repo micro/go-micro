@@ -51,6 +51,7 @@ greeter.proto
 ```shell
 syntax = "proto3";
 
+// package name is used as the service name for discovery
 package go.micro.srv.greeter;
 
 service Say {
@@ -65,6 +66,9 @@ message Response {
 	optional string msg = 1;
 }
 ```
+
+**Note: Remember to set package name in the proto, it's used to generate 
+the service for discovery.**
 
 ### Generate code
 
