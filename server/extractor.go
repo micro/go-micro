@@ -89,6 +89,8 @@ func extractSubValue(typ reflect.Type) *registry.Value {
 		reqType = typ.In(0)
 	case 2:
 		reqType = typ.In(1)
+	case 3:
+		reqType = typ.In(2)
 	default:
 		return nil
 	}
