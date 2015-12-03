@@ -11,14 +11,18 @@ An example server can be found in examples/server.
 
 ## Features
 
-Feature		| Package	|	Description
+Feature		| Package	|	Built-in Plugin		|	Description
 -------		| -------	|	---------
-Discovery	| [Registry](https://godoc.org/github.com/micro/go-micro/registry)	|	A way of locating services to communicate with
-Client		| [Client](https://godoc.org/github.com/micro/go-micro/client)	|	Used to make RPC requests to a service
-Codec		| [Codec](https://godoc.org/github.com/micro/go-micro/codec)	|	Encoding/Decoding handler for requests
-Server		| [Server](https://godoc.org/github.com/micro/go-micro/server)	|	Listens and serves RPC requests
-Pub/Sub		| [Broker](https://godoc.org/github.com/micro/go-micro/broker)	|	Publish and Subscribe to events
-Transport	| [Transport](https://godoc.org/github.com/micro/go-micro/transport)	|	Communication mechanism between services
+Discovery	| [Registry](https://godoc.org/github.com/micro/go-micro/registry) | consul | A way of locating services to communicate with
+Client		| [Client](https://godoc.org/github.com/micro/go-micro/client)	| http | Used to make RPC requests to a service
+Codec		| [Codec](https://godoc.org/github.com/micro/go-micro/codec)	| proto,json | Encoding/Decoding handler for requests
+Server		| [Server](https://godoc.org/github.com/micro/go-micro/server)	| http | Listens and serves RPC requests
+Pub/Sub		| [Broker](https://godoc.org/github.com/micro/go-micro/broker)	| http | Publish and Subscribe to events
+Transport	| [Transport](https://godoc.org/github.com/micro/go-micro/transport) | http | Communication mechanism between services
+
+## Go Plugins
+
+By default go-micro only provides a single implementation of each interface. Plugins can be found at [github.com/micro/go-plugins](https://github.com/micro/go-plugins). Contributions welcome!
 
 ## Prerequisites
 
