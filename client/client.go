@@ -7,7 +7,7 @@ supported.
 
 	c := client.NewClient()
 
-	req := c.NewRequest("go.micro.srv.greeter", &greeter.Request{
+	req := c.NewRequest("go.micro.srv.greeter", "Greeter.Hello", &greeter.Request{
 		Name: "John",
 	})
 
