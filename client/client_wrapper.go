@@ -1,3 +1,5 @@
+package client
+
 /*
 Wrapper is a type of middleware for the go-micro client. It allows
 the client to be "wrapped" so that requests and responses can be intercepted
@@ -31,7 +33,6 @@ Example usage:
 
 
 */
-package client
 
 // Wrapper wraps a client and returns a client
 type Wrapper func(Client) Client
