@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"sync"
 
 	consul "github.com/hashicorp/consul/api"
 )
@@ -13,9 +12,6 @@ import (
 type consulRegistry struct {
 	Address string
 	Client  *consul.Client
-
-	mtx      sync.RWMutex
-	services map[string][]*Service
 }
 
 func encodeEndpoints(en []*Endpoint) []string {
@@ -86,9 +82,8 @@ func newConsulRegistry(addrs []string, opts ...Option) Registry {
 	client, _ := consul.NewClient(config)
 
 	cr := &consulRegistry{
-		Address:  config.Address,
-		Client:   client,
-		services: make(map[string][]*Service),
+		Address: config.Address,
+		Client:  client,
 	}
 
 	return cr
@@ -134,14 +129,6 @@ func (c *consulRegistry) Register(s *Service) error {
 }
 
 func (c *consulRegistry) GetService(name string) ([]*Service, error) {
-	c.mtx.RLock()
-	service, ok := c.services[name]
-	c.mtx.RUnlock()
-
-	if ok {
-		return service, nil
-	}
-
 	rsp, _, err := c.Client.Catalog().Service(name, "", nil)
 	if err != nil {
 		return nil, err
@@ -191,23 +178,12 @@ func (c *consulRegistry) GetService(name string) ([]*Service, error) {
 }
 
 func (c *consulRegistry) ListServices() ([]*Service, error) {
-	c.mtx.RLock()
-	serviceMap := c.services
-	c.mtx.RUnlock()
-
-	var services []*Service
-
-	if len(serviceMap) > 0 {
-		for _, service := range serviceMap {
-			services = append(services, service...)
-		}
-		return services, nil
-	}
-
 	rsp, _, err := c.Client.Catalog().Services(&consul.QueryOptions{})
 	if err != nil {
 		return nil, err
 	}
+
+	var services []*Service
 
 	for service, _ := range rsp {
 		services = append(services, &Service{Name: service})

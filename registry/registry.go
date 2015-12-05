@@ -8,10 +8,6 @@ type Registry interface {
 	Watch() (Watcher, error)
 }
 
-type Watcher interface {
-	Stop()
-}
-
 type options struct{}
 
 type Option func(*options)
@@ -38,4 +34,8 @@ func GetService(name string) ([]*Service, error) {
 
 func ListServices() ([]*Service, error) {
 	return DefaultRegistry.ListServices()
+}
+
+func Watch() (Watcher, error) {
+	return DefaultRegistry.Watch()
 }

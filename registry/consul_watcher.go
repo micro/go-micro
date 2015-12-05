@@ -1,24 +1,33 @@
 package registry
 
 import (
+	"errors"
+	"sync"
+
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/watch"
 )
 
 type consulWatcher struct {
-	Registry *consulRegistry
+	r        *consulRegistry
 	wp       *watch.WatchPlan
 	watchers map[string]*watch.WatchPlan
-}
 
-type serviceWatcher struct {
-	name string
+	once sync.Once
+	next chan *Result
+
+	sync.RWMutex
+	services map[string][]*Service
 }
 
 func newConsulWatcher(cr *consulRegistry) (Watcher, error) {
+	var once sync.Once
 	cw := &consulWatcher{
-		Registry: cr,
+		r:        cr,
+		once:     once,
+		next:     make(chan *Result, 10),
 		watchers: make(map[string]*watch.WatchPlan),
+		services: make(map[string][]*Service),
 	}
 
 	wp, err := watch.Parse(map[string]interface{}{"type": "services"})
@@ -26,7 +35,7 @@ func newConsulWatcher(cr *consulRegistry) (Watcher, error) {
 		return nil, err
 	}
 
-	wp.Handler = cw.Handle
+	wp.Handler = cw.handle
 	go wp.Run(cr.Address)
 	cw.wp = wp
 
@@ -73,16 +82,80 @@ func (cw *consulWatcher) serviceHandler(idx uint64, data interface{}) {
 		})
 	}
 
-	cw.Registry.mtx.Lock()
-	var services []*Service
-	for _, service := range serviceMap {
-		services = append(services, service)
+	cw.RLock()
+	rservices := cw.services
+	cw.RUnlock()
+
+	var newServices []*Service
+
+	// serviceMap is the new set of services keyed by name+version
+	for _, newService := range serviceMap {
+		// append to the new set of cached services
+		newServices = append(newServices, newService)
+
+		// check if the service exists in the existing cache
+		oldServices, ok := rservices[serviceName]
+		if !ok {
+			// does not exist? then we're creating brand new entries
+			cw.next <- &Result{Action: "create", Service: newService}
+			continue
+		}
+
+		// service exists. ok let's figure out what to update and delete version wise
+		action := "create"
+
+		for _, oldService := range oldServices {
+			// does this version exist?
+			// no? then default to create
+			if oldService.Version != newService.Version {
+				continue
+			}
+
+			// yes? then it's an update
+			action = "update"
+
+			var nodes []*Node
+			// check the old nodes to see if they've been deleted
+			for _, oldNode := range oldService.Nodes {
+				var seen bool
+				for _, newNode := range newService.Nodes {
+					if newNode.Id == oldNode.Id {
+						seen = true
+						break
+					}
+				}
+				// does the old node exist in the new set of nodes
+				// no? then delete that shit
+				if !seen {
+					nodes = append(nodes, oldNode)
+				}
+			}
+
+			// it's an update rather than creation
+			if len(nodes) > 0 {
+				delService := oldService
+				delService.Nodes = nodes
+				cw.next <- &Result{Action: "delete", Service: delService}
+			}
+		}
+		cw.next <- &Result{Action: action, Service: newService}
 	}
-	cw.Registry.services[serviceName] = services
-	cw.Registry.mtx.Unlock()
+
+	// Now check old versions that may not be in new services map
+	for _, old := range rservices[serviceName] {
+		// old version does not exist in new version map
+		// kill it with fire!
+		if _, ok := serviceMap[serviceName+old.Version]; !ok {
+			cw.next <- &Result{Action: "delete", Service: old}
+		}
+	}
+
+	cw.Lock()
+	cw.services[serviceName] = newServices
+	cw.Unlock()
 }
 
-func (cw *consulWatcher) Handle(idx uint64, data interface{}) {
+func (cw *consulWatcher) handle(idx uint64, data interface{}) {
 	services, ok := data.(map[string][]string)
 	if !ok {
 		return
@@ -99,21 +172,22 @@ func (cw *consulWatcher) Handle(idx uint64, data interface{}) {
 		})
 		if err == nil {
 			wp.Handler = cw.serviceHandler
-			go wp.Run(cw.Registry.Address)
+			go wp.Run(cw.r.Address)
 			cw.watchers[service] = wp
+			cw.next <- &Result{Action: "create", Service: &Service{Name: service}}
 		}
 	}
 
-	cw.Registry.mtx.RLock()
-	rservices := cw.Registry.services
-	cw.Registry.mtx.RUnlock()
+	cw.RLock()
+	rservices := cw.services
+	cw.RUnlock()
 
 	// remove unknown services from registry
 	for service, _ := range rservices {
 		if _, ok := services[service]; !ok {
-			cw.Registry.mtx.Lock()
-			delete(cw.Registry.services, service)
-			cw.Registry.mtx.Unlock()
+			cw.Lock()
+			delete(cw.services, service)
+			cw.Unlock()
 		}
 	}
 
@@ -122,8 +196,17 @@ func (cw *consulWatcher) Handle(idx uint64, data interface{}) {
 		if _, ok := services[service]; !ok {
 			w.Stop()
 			delete(cw.watchers, service)
+			cw.next <- &Result{Action: "delete", Service: &Service{Name: service}}
 		}
 	}
+}
+
+func (cw *consulWatcher) Next() (*Result, error) {
+	r, ok := <-cw.next
+	if !ok {
+		return nil, errors.New("chan closed")
+	}
+	return r, nil
 }
 
 func (cw *consulWatcher) Stop() {
@@ -131,4 +214,8 @@ func (cw *consulWatcher) Stop() {
 		return
 	}
 	cw.wp.Stop()
+
+	cw.once.Do(func() {
+		close(cw.next)
+	})
 }
