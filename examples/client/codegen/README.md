@@ -52,6 +52,8 @@ hello.proto
 syntax = "proto3";
 
 // package name is used as the service name for discovery
+// if service name is not passed in when initialising the 
+// client
 package go.micro.srv.greeter;
 
 service Say {
@@ -82,40 +84,45 @@ protoc --go_out=plugins=micro:. hello.proto
 // Client API for Say service
 
 type SayClient interface {
-	Hello(ctx context.Context, in *Request) (*Response, error)
+        Hello(ctx context.Context, in *Request) (*Response, error)
 }
 
 type sayClient struct {
-	c client.Client
+        c           client.Client
+        serviceName string
 }
 
-func NewSayClient(c client.Client) SayClient {
-	if c == nil {
-		c = client.NewClient()
-	}
-	return &sayClient{
-		c: c,
-	}
+func NewSayClient(serviceName string, c client.Client) SayClient {
+        if c == nil {
+                c = client.NewClient()
+        }
+        if len(serviceName) == 0 {
+                serviceName = "go.micro.srv.greeter"
+        }
+        return &sayClient{
+                c:           c,
+                serviceName: serviceName,
+        }
 }
 
 func (c *sayClient) Hello(ctx context.Context, in *Request) (*Response, error) {
-	req := c.c.NewRequest("go.micro.srv.greeter", "Say.Hello", in)
-	out := new(Response)
-	err := c.c.Call(ctx, req, out)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
+        req := c.c.NewRequest(c.serviceName, "Say.Hello", in)
+        out := new(Response)
+        err := c.c.Call(ctx, req, out)
+        if err != nil {
+                return nil, err
+        }
+        return out, nil
 }
 
 // Server API for Say service
 
-type SayServer interface {
-	Hello(context.Context, *Request, *Response) error
+type SayHandler interface {
+        Hello(context.Context, *Request, *Response) error
 }
 
-func RegisterSayServer(s server.Server, srv SayServer) {
-	s.Handle(s.NewHandler(srv))
+func RegisterSayHandler(s server.Server, hdlr SayHandler) {
+        s.Handle(s.NewHandler(hdlr))
 }
 ```
 
@@ -131,7 +138,9 @@ import (
 )
 
 func main() {
-	cl := hello.NewSayClient(client.DefaultClient)
+	cl := hello.NewSayClient("go.micro.srv.greeter", client.DefaultClient)
+	// alternative initialisation
+	// cl := hello.NewSayClient("", nil)
 
 	rsp, err := cl.Hello(contex.Background(), &hello.Request{"Name": "John"})
 	if err != nil {

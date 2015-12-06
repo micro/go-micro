@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	cl = example.NewExampleClient(nil)
+	cl = example.NewExampleClient("go.micro.srv.example", nil)
 )
 
 func call(i int) {
