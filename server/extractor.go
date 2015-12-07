@@ -34,12 +34,20 @@ func extractValue(v reflect.Type) *registry.Value {
 		Type: v.Name(),
 	}
 
-	if v.Kind() == reflect.Struct {
+	switch v.Kind() {
+	case reflect.Struct:
 		for i := 0; i < v.NumField(); i++ {
 			val := extractValue(v.Field(i).Type)
 			val.Name = v.Field(i).Name
 			arg.Values = append(arg.Values, val)
 		}
+	case reflect.Slice:
+		p := v.Elem()
+		if p.Kind() == reflect.Ptr {
+			p = p.Elem()
+		}
+		arg.Type = "[]" + p.Name()
+		arg.Values = append(arg.Values, extractValue(v.Elem()))
 	}
 
 	return arg
