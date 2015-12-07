@@ -7,7 +7,6 @@ import (
 
 	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/cmd"
-	c "github.com/micro/go-micro/context"
 	"github.com/micro/go-micro/errors"
 	example "github.com/micro/go-micro/examples/server/proto/example"
 	"github.com/micro/go-micro/registry"
@@ -18,33 +17,43 @@ func init() {
 	rand.Seed(time.Now().Unix())
 }
 
-// A random node selector
-func randomSelector(s []*registry.Service) (*registry.Node, error) {
-	if len(s) == 0 {
+// Built in random hashed node selector
+type nodeSelector struct {
+	r registry.Registry
+}
+
+func (n *nodeSelector) Retrieve(ctx context.Context, req client.Request) (*registry.Node, error) {
+	service, err := n.r.GetService(req.Service())
+	if err != nil {
+		return nil, errors.InternalServerError("go.micro.client", err.Error())
+	}
+
+	if len(service) == 0 {
 		return nil, errors.NotFound("go.micro.client", "Service not found")
 	}
 
 	i := rand.Int()
-	j := i % len(s)
+	j := i % len(service)
 
-	if len(s[j].Nodes) == 0 {
+	if len(service[j].Nodes) == 0 {
 		return nil, errors.NotFound("go.micro.client", "Service not found")
 	}
 
-	n := i % len(s[j].Nodes)
-	return s[j].Nodes[n], nil
+	k := i % len(service[j].Nodes)
+	return service[j].Nodes[k], nil
 }
 
-// Wraps the node selector so that it will log what node was selected
-func wrapSelector(fn client.NodeSelector) client.NodeSelector {
-	return func(s []*registry.Service) (*registry.Node, error) {
-		n, err := fn(s)
-		if err != nil {
-			return nil, err
-		}
-		fmt.Printf("Selected node %v\n", n)
-		return n, nil
-	}
+func (n *nodeSelector) Response(node *registry.Node, err error) {
+	return
+}
+
+func (n *nodeSelector) Reset() {
+	return
+}
+
+// Return a new random node selector
+func RandomSelector(r registry.Registry) client.NodeSelector {
+	return &nodeSelector{r}
 }
 
 func call(i int) {
@@ -53,16 +62,10 @@ func call(i int) {
 		Name: "John",
 	})
 
-	// create context with metadata
-	ctx := c.WithMetadata(context.Background(), map[string]string{
-		"X-User-Id": "john",
-		"X-From-Id": "script",
-	})
-
 	rsp := &example.Response{}
 
 	// Call service
-	if err := client.Call(ctx, req, rsp); err != nil {
+	if err := client.Call(context.Background(), req, rsp); err != nil {
 		fmt.Println("call err: ", err, rsp)
 		return
 	}
@@ -74,7 +77,7 @@ func main() {
 	cmd.Init()
 
 	client.DefaultClient = client.NewClient(
-		client.Selector(wrapSelector(randomSelector)),
+		client.Select(RandomSelector),
 	)
 
 	fmt.Println("\n--- Call example ---\n")

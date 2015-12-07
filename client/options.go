@@ -14,7 +14,7 @@ type options struct {
 	registry    registry.Registry
 	transport   transport.Transport
 	wrappers    []Wrapper
-	selector    NodeSelector
+	selector    Selector
 }
 
 // Broker to be used for pub/sub
@@ -52,8 +52,8 @@ func Transport(t transport.Transport) Option {
 	}
 }
 
-// Selector is used to select a node to route a request to
-func Selector(s NodeSelector) Option {
+// Select is used to select a node to route a request to
+func Select(s Selector) Option {
 	return func(o *options) {
 		o.selector = s
 	}
