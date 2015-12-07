@@ -43,6 +43,10 @@ func newRpcClient(opt ...Option) Client {
 		opts.broker = broker.DefaultBroker
 	}
 
+	if opts.selector == nil {
+		opts.selector = nodeSelector
+	}
+
 	rc := &rpcClient{
 		once: once,
 		opts: opts,
@@ -146,7 +150,7 @@ func (r *rpcClient) Call(ctx context.Context, request Request, response interfac
 		return errors.InternalServerError("go.micro.client", err.Error())
 	}
 
-	node, err := nodeSelector(service)
+	node, err := r.opts.selector(service)
 	if err != nil {
 		return err
 	}
@@ -169,7 +173,7 @@ func (r *rpcClient) Stream(ctx context.Context, request Request, responseChan in
 		return nil, errors.InternalServerError("go.micro.client", err.Error())
 	}
 
-	node, err := nodeSelector(service)
+	node, err := r.opts.selector(service)
 	if err != nil {
 		return nil, err
 	}
