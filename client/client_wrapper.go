@@ -17,7 +17,7 @@ Example usage:
 		client.Client
 	}
 
-	func (l *LogWrapper) Call(ctx context.Context, req Request, rsp interface{}) error {
+	func (l *LogWrapper) Call(ctx context.Context, req client.Request, rsp interface{}, opts ...client.CallOption) error {
 		log.Println("Making request to service " + req.Service() + " method " + req.Method())
 		return w.Client.Call(ctx, req, rsp)
 	}
