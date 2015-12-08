@@ -16,7 +16,7 @@ import (
 // response from a client call. Reset is called to zero out
 // any state.
 type NodeSelector interface {
-	Retrieve(context.Context, Request) (*registry.Node, error)
+	Select(context.Context, Request) (*registry.Node, error)
 	Response(*registry.Node, error)
 	Reset()
 }
@@ -30,7 +30,7 @@ type nodeSelector struct {
 	r registry.Registry
 }
 
-func (n *nodeSelector) Retrieve(ctx context.Context, req Request) (*registry.Node, error) {
+func (n *nodeSelector) Select(ctx context.Context, req Request) (*registry.Node, error) {
 	service, err := n.r.GetService(req.Service())
 	if err != nil {
 		return nil, errors.InternalServerError("go.micro.client", err.Error())

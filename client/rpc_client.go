@@ -154,7 +154,7 @@ func (r *rpcClient) CallRemote(ctx context.Context, address string, request Requ
 
 // TODO: Call(..., opts *Options) error {
 func (r *rpcClient) Call(ctx context.Context, request Request, response interface{}) error {
-	node, err := r.sel.Retrieve(ctx, request)
+	node, err := r.sel.Select(ctx, request)
 	if err != nil {
 		return err
 	}
@@ -174,7 +174,7 @@ func (r *rpcClient) StreamRemote(ctx context.Context, address string, request Re
 }
 
 func (r *rpcClient) Stream(ctx context.Context, request Request, responseChan interface{}) (Streamer, error) {
-	node, err := r.sel.Retrieve(ctx, request)
+	node, err := r.sel.Select(ctx, request)
 	if err != nil {
 		return nil, err
 	}

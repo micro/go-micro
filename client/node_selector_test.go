@@ -59,7 +59,7 @@ func TestNodeSelector(t *testing.T) {
 	}
 
 	for i := 0; i < 100; i++ {
-		n, err := n.Retrieve(context.Background(), newRpcRequest("foo", "Foo.Bar", nil, ""))
+		n, err := n.Select(context.Background(), newRpcRequest("foo", "Foo.Bar", nil, ""))
 		if err != nil {
 			t.Errorf("Expected node, got err: %v", err)
 		}
