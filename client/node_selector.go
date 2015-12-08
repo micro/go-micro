@@ -21,10 +21,6 @@ type NodeSelector interface {
 	Reset()
 }
 
-// Selector takes a Registry and returns a NodeSelector.
-// Used by the client to initialise a selector.
-type Selector func(registry.Registry) NodeSelector
-
 func init() {
 	rand.Seed(time.Now().UnixNano())
 }
