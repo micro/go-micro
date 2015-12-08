@@ -17,6 +17,10 @@ type options struct {
 	selector    Selector
 }
 
+type callOptions struct{}
+
+type publishOptions struct{}
+
 // Broker to be used for pub/sub
 func Broker(b broker.Broker) Option {
 	return func(o *options) {

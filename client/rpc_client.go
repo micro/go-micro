@@ -148,12 +148,11 @@ func (r *rpcClient) stream(ctx context.Context, address string, request Request,
 	}, nil
 }
 
-func (r *rpcClient) CallRemote(ctx context.Context, address string, request Request, response interface{}) error {
+func (r *rpcClient) CallRemote(ctx context.Context, address string, request Request, response interface{}, opts ...CallOption) error {
 	return r.call(ctx, address, request, response)
 }
 
-// TODO: Call(..., opts *Options) error {
-func (r *rpcClient) Call(ctx context.Context, request Request, response interface{}) error {
+func (r *rpcClient) Call(ctx context.Context, request Request, response interface{}, opts ...CallOption) error {
 	node, err := r.sel.Select(ctx, request)
 	if err != nil {
 		return err
@@ -169,11 +168,11 @@ func (r *rpcClient) Call(ctx context.Context, request Request, response interfac
 	return err
 }
 
-func (r *rpcClient) StreamRemote(ctx context.Context, address string, request Request, responseChan interface{}) (Streamer, error) {
+func (r *rpcClient) StreamRemote(ctx context.Context, address string, request Request, responseChan interface{}, opts ...CallOption) (Streamer, error) {
 	return r.stream(ctx, address, request, responseChan)
 }
 
-func (r *rpcClient) Stream(ctx context.Context, request Request, responseChan interface{}) (Streamer, error) {
+func (r *rpcClient) Stream(ctx context.Context, request Request, responseChan interface{}, opts ...CallOption) (Streamer, error) {
 	node, err := r.sel.Select(ctx, request)
 	if err != nil {
 		return nil, err
@@ -189,7 +188,7 @@ func (r *rpcClient) Stream(ctx context.Context, request Request, responseChan in
 	return stream, err
 }
 
-func (r *rpcClient) Publish(ctx context.Context, p Publication) error {
+func (r *rpcClient) Publish(ctx context.Context, p Publication, opts ...PublishOption) error {
 	md, ok := c.GetMetadata(ctx)
 	if !ok {
 		md = make(map[string]string)

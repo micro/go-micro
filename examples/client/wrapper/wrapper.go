@@ -18,7 +18,7 @@ type logWrapper struct {
 	client.Client
 }
 
-func (l *logWrapper) Call(ctx context.Context, req client.Request, rsp interface{}) error {
+func (l *logWrapper) Call(ctx context.Context, req client.Request, rsp interface{}, opts ...client.CallOption) error {
 	md, _ := c.GetMetadata(ctx)
 	fmt.Printf("[Log Wrapper] ctx: %v service: %s method: %s\n", md, req.Service(), req.Method())
 	return l.Client.Call(ctx, req, rsp)
@@ -29,7 +29,7 @@ type traceWrapper struct {
 	client.Client
 }
 
-func (t *traceWrapper) Call(ctx context.Context, req client.Request, rsp interface{}) error {
+func (t *traceWrapper) Call(ctx context.Context, req client.Request, rsp interface{}, opts ...client.CallOption) error {
 	ctx = c.WithMetadata(ctx, map[string]string{
 		"X-Trace-Id": fmt.Sprintf("%d", time.Now().Unix()),
 	})

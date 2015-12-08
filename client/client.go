@@ -30,11 +30,11 @@ type Client interface {
 	NewRequest(service, method string, req interface{}) Request
 	NewProtoRequest(service, method string, req interface{}) Request
 	NewJsonRequest(service, method string, req interface{}) Request
-	Call(ctx context.Context, req Request, rsp interface{}) error
-	CallRemote(ctx context.Context, addr string, req Request, rsp interface{}) error
-	Stream(ctx context.Context, req Request, rspChan interface{}) (Streamer, error)
-	StreamRemote(ctx context.Context, addr string, req Request, rspChan interface{}) (Streamer, error)
-	Publish(ctx context.Context, p Publication) error
+	Call(ctx context.Context, req Request, rsp interface{}, opts ...CallOption) error
+	CallRemote(ctx context.Context, addr string, req Request, rsp interface{}, opts ...CallOption) error
+	Stream(ctx context.Context, req Request, rspChan interface{}, opts ...CallOption) (Streamer, error)
+	StreamRemote(ctx context.Context, addr string, req Request, rspChan interface{}, opts ...CallOption) (Streamer, error)
+	Publish(ctx context.Context, p Publication, opts ...PublishOption) error
 }
 
 type Publication interface {
@@ -57,30 +57,32 @@ type Streamer interface {
 }
 
 type Option func(*options)
+type CallOption func(*callOptions)
+type PublishOption func(*publishOptions)
 
 var (
 	DefaultClient Client = newRpcClient()
 )
 
 // Makes a synchronous call to a service using the default client
-func Call(ctx context.Context, request Request, response interface{}) error {
-	return DefaultClient.Call(ctx, request, response)
+func Call(ctx context.Context, request Request, response interface{}, opts ...CallOption) error {
+	return DefaultClient.Call(ctx, request, response, opts...)
 }
 
 // Makes a synchronous call to the specified address using the default client
-func CallRemote(ctx context.Context, address string, request Request, response interface{}) error {
-	return DefaultClient.CallRemote(ctx, address, request, response)
+func CallRemote(ctx context.Context, address string, request Request, response interface{}, opts ...CallOption) error {
+	return DefaultClient.CallRemote(ctx, address, request, response, opts...)
 }
 
 // Creates a streaming connection with a service and returns responses on the
 // channel passed in. It's upto the user to close the streamer.
-func Stream(ctx context.Context, request Request, responseChan interface{}) (Streamer, error) {
-	return DefaultClient.Stream(ctx, request, responseChan)
+func Stream(ctx context.Context, request Request, responseChan interface{}, opts ...CallOption) (Streamer, error) {
+	return DefaultClient.Stream(ctx, request, responseChan, opts...)
 }
 
 // Creates a streaming connection to the address specified.
-func StreamRemote(ctx context.Context, address string, request Request, responseChan interface{}) (Streamer, error) {
-	return DefaultClient.StreamRemote(ctx, address, request, responseChan)
+func StreamRemote(ctx context.Context, address string, request Request, responseChan interface{}, opts ...CallOption) (Streamer, error) {
+	return DefaultClient.StreamRemote(ctx, address, request, responseChan, opts...)
 }
 
 // Publishes a publication using the default client. Using the underlying broker
