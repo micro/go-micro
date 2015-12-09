@@ -156,13 +156,17 @@ func (r *rpcClient) Call(ctx context.Context, request Request, response interfac
 	}
 
 	next, err := r.opts.selector.Select(request.Service(), copts.selectOptions...)
-	if err != nil {
-		return err
+	if err != nil && err == registry.ErrNotFound {
+		return errors.NotFound("go.micro.client", err.Error())
+	} else if err != nil {
+		return errors.InternalServerError("go.micro.client", err.Error())
 	}
 
 	node, err := next()
-	if err != nil {
-		return err
+	if err != nil && err == registry.ErrNotFound {
+		return errors.NotFound("go.micro.client", err.Error())
+	} else if err != nil {
+		return errors.InternalServerError("go.micro.client", err.Error())
 	}
 
 	address := node.Address
@@ -186,13 +190,17 @@ func (r *rpcClient) Stream(ctx context.Context, request Request, responseChan in
 	}
 
 	next, err := r.opts.selector.Select(request.Service(), copts.selectOptions...)
-	if err != nil {
-		return nil, err
+	if err != nil && err == registry.ErrNotFound {
+		return nil, errors.NotFound("go.micro.client", err.Error())
+	} else if err != nil {
+		return nil, errors.InternalServerError("go.micro.client", err.Error())
 	}
 
 	node, err := next()
-	if err != nil {
-		return nil, err
+	if err != nil && err == registry.ErrNotFound {
+		return nil, errors.NotFound("go.micro.client", err.Error())
+	} else if err != nil {
+		return nil, errors.InternalServerError("go.micro.client", err.Error())
 	}
 
 	address := node.Address
