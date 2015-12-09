@@ -10,6 +10,7 @@ import (
 	c "github.com/micro/go-micro/context"
 	"github.com/micro/go-micro/errors"
 	"github.com/micro/go-micro/registry"
+	"github.com/micro/go-micro/selector"
 	"github.com/micro/go-micro/transport"
 
 	"golang.org/x/net/context"
@@ -18,11 +19,9 @@ import (
 type rpcClient struct {
 	once sync.Once
 	opts options
-	sel  NodeSelector
 }
 
 func newRpcClient(opt ...Option) Client {
-	var sel NodeSelector
 	var once sync.Once
 
 	opts := options{
@@ -37,28 +36,27 @@ func newRpcClient(opt ...Option) Client {
 		opts.contentType = defaultContentType
 	}
 
-	if opts.transport == nil {
-		opts.transport = transport.DefaultTransport
+	if opts.broker == nil {
+		opts.broker = broker.DefaultBroker
 	}
 
 	if opts.registry == nil {
 		opts.registry = registry.DefaultRegistry
 	}
 
-	if opts.broker == nil {
-		opts.broker = broker.DefaultBroker
+	if opts.selector == nil {
+		opts.selector = selector.NewSelector(
+			selector.Registry(opts.registry),
+		)
 	}
 
-	if opts.selector != nil {
-		sel = opts.selector(opts.registry)
-	} else {
-		sel = &nodeSelector{opts.registry}
+	if opts.transport == nil {
+		opts.transport = transport.DefaultTransport
 	}
 
 	rc := &rpcClient{
 		once: once,
 		opts: opts,
-		sel:  sel,
 	}
 
 	c := Client(rc)
@@ -153,9 +151,23 @@ func (r *rpcClient) CallRemote(ctx context.Context, address string, request Requ
 }
 
 func (r *rpcClient) Call(ctx context.Context, request Request, response interface{}, opts ...CallOption) error {
-	node, err := r.sel.Select(ctx, request)
-	if err != nil {
-		return err
+	var copts callOptions
+	for _, opt := range opts {
+		opt(&copts)
+	}
+
+	next, err := r.opts.selector.Select(request.Service(), copts.selectOptions...)
+	if err != nil && err == selector.ErrNotFound {
+		return errors.NotFound("go.micro.client", err.Error())
+	} else if err != nil {
+		return errors.InternalServerError("go.micro.client", err.Error())
+	}
+
+	node, err := next()
+	if err != nil && err == selector.ErrNotFound {
+		return errors.NotFound("go.micro.client", err.Error())
+	} else if err != nil {
+		return errors.InternalServerError("go.micro.client", err.Error())
 	}
 
 	address := node.Address
@@ -164,7 +176,7 @@ func (r *rpcClient) Call(ctx context.Context, request Request, response interfac
 	}
 
 	err = r.call(ctx, address, request, response)
-	r.sel.Response(node, err)
+	r.opts.selector.Mark(request.Service(), node, err)
 	return err
 }
 
@@ -173,9 +185,23 @@ func (r *rpcClient) StreamRemote(ctx context.Context, address string, request Re
 }
 
 func (r *rpcClient) Stream(ctx context.Context, request Request, responseChan interface{}, opts ...CallOption) (Streamer, error) {
-	node, err := r.sel.Select(ctx, request)
-	if err != nil {
-		return nil, err
+	var copts callOptions
+	for _, opt := range opts {
+		opt(&copts)
+	}
+
+	next, err := r.opts.selector.Select(request.Service(), copts.selectOptions...)
+	if err != nil && err == selector.ErrNotFound {
+		return nil, errors.NotFound("go.micro.client", err.Error())
+	} else if err != nil {
+		return nil, errors.InternalServerError("go.micro.client", err.Error())
+	}
+
+	node, err := next()
+	if err != nil && err == selector.ErrNotFound {
+		return nil, errors.NotFound("go.micro.client", err.Error())
+	} else if err != nil {
+		return nil, errors.InternalServerError("go.micro.client", err.Error())
 	}
 
 	address := node.Address
@@ -184,7 +210,7 @@ func (r *rpcClient) Stream(ctx context.Context, request Request, responseChan in
 	}
 
 	stream, err := r.stream(ctx, address, request, responseChan)
-	r.sel.Response(node, err)
+	r.opts.selector.Mark(request.Service(), node, err)
 	return stream, err
 }
 

@@ -31,9 +31,13 @@ func main() {
 	// optionally setup command line usage
 	cmd.Init()
 
+	md := server.Config().Metadata()
+	md["datacenter"] = "local"
+
 	server.DefaultServer = server.NewServer(
 		server.WrapHandler(logWrapper),
 		server.WrapSubscriber(logSubWrapper),
+		server.Metadata(md),
 	)
 
 	// Initialise Server

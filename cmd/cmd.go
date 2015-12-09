@@ -19,6 +19,7 @@ import (
 	"github.com/micro/go-micro/broker"
 	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/registry"
+	"github.com/micro/go-micro/selector"
 	"github.com/micro/go-micro/server"
 	"github.com/micro/go-micro/transport"
 	"github.com/pborman/uuid"
@@ -81,6 +82,12 @@ var (
 			Usage:  "Comma-separated list of registry addresses",
 		},
 		cli.StringFlag{
+			Name:   "selector",
+			EnvVar: "MICRO_SELECTOR",
+			Value:  "selector",
+			Usage:  "Selector used to pick nodes for querying. random, roundrobin, blacklist",
+		},
+		cli.StringFlag{
 			Name:   "transport",
 			EnvVar: "MICRO_TRANSPORT",
 			Value:  "http",
@@ -135,6 +142,10 @@ var (
 
 	Registries = map[string]func([]string, ...registry.Option) registry.Registry{
 		"consul": registry.NewRegistry,
+	}
+
+	Selectors = map[string]func(...selector.Option) selector.Selector{
+		"random": selector.NewSelector,
 	}
 
 	Transports = map[string]func([]string, ...transport.Option) transport.Transport{
@@ -212,6 +223,10 @@ func Setup(c *cli.Context) error {
 
 	if r, ok := Registries[c.String("registry")]; ok {
 		registry.DefaultRegistry = r(strings.Split(c.String("registry_address"), ","))
+	}
+
+	if s, ok := Selectors[c.String("selector")]; ok {
+		selector.DefaultSelector = s(selector.Registry(registry.DefaultRegistry))
 	}
 
 	if t, ok := Transports[c.String("transport")]; ok {
