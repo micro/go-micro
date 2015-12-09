@@ -107,6 +107,11 @@ func (r *blackListSelector) Select(service string, opts ...SelectOption) (Select
 func (r *blackListSelector) Mark(service string, node *Node, err error) {
 	r.Lock()
 	defer r.Unlock()
+	if err == nil {
+		delete(r.bl, node.Id)
+		return
+	}
+
 	r.bl[node.Id] = blackListNode{
 		age:     time.Now().Add(time.Duration(r.ttl) * time.Second),
 		id:      node.Id,
