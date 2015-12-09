@@ -1,9 +1,12 @@
-package registry
+package blacklist
 
 import (
 	"math/rand"
 	"sync"
 	"time"
+
+	"github.com/micro/go-micro/registry"
+	"github.com/micro/go-micro/selector"
 )
 
 type blackListNode struct {
@@ -13,7 +16,7 @@ type blackListNode struct {
 }
 
 type blackListSelector struct {
-	so   SelectorOptions
+	so   selector.Options
 	ttl  int64
 	exit chan bool
 	once sync.Once
@@ -51,8 +54,8 @@ func (r *blackListSelector) run() {
 	}
 }
 
-func (r *blackListSelector) Select(service string, opts ...SelectOption) (SelectNext, error) {
-	var sopts SelectOptions
+func (r *blackListSelector) Select(service string, opts ...selector.SelectOption) (selector.Next, error) {
+	var sopts selector.SelectOptions
 	for _, opt := range opts {
 		opt(&sopts)
 	}
@@ -70,10 +73,10 @@ func (r *blackListSelector) Select(service string, opts ...SelectOption) (Select
 
 	// if there's nothing left, return
 	if len(services) == 0 {
-		return nil, ErrNotFound
+		return nil, selector.ErrNotFound
 	}
 
-	var nodes []*Node
+	var nodes []*registry.Node
 
 	for _, service := range services {
 		for _, node := range service.Nodes {
@@ -82,11 +85,11 @@ func (r *blackListSelector) Select(service string, opts ...SelectOption) (Select
 	}
 
 	if len(nodes) == 0 {
-		return nil, ErrNotFound
+		return nil, selector.ErrNotFound
 	}
 
-	return func() (*Node, error) {
-		var viable []*Node
+	return func() (*registry.Node, error) {
+		var viable []*registry.Node
 
 		r.RLock()
 		for _, node := range nodes {
@@ -97,14 +100,14 @@ func (r *blackListSelector) Select(service string, opts ...SelectOption) (Select
 		r.RUnlock()
 
 		if len(viable) == 0 {
-			return nil, ErrNoneAvailable
+			return nil, selector.ErrNoneAvailable
 		}
 
 		return viable[rand.Int()%len(viable)], nil
 	}, nil
 }
 
-func (r *blackListSelector) Mark(service string, node *Node, err error) {
+func (r *blackListSelector) Mark(service string, node *registry.Node, err error) {
 	r.Lock()
 	defer r.Unlock()
 	if err == nil {
@@ -138,15 +141,15 @@ func (r *blackListSelector) Close() error {
 	return nil
 }
 
-func NewBlackListSelector(opts ...SelectorOption) Selector {
-	var sopts SelectorOptions
+func NewSelector(opts ...selector.Option) selector.Selector {
+	var sopts selector.Options
 
 	for _, opt := range opts {
 		opt(&sopts)
 	}
 
 	if sopts.Registry == nil {
-		sopts.Registry = DefaultRegistry
+		sopts.Registry = registry.DefaultRegistry
 	}
 
 	var once sync.Once

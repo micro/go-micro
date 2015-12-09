@@ -8,9 +8,11 @@ import (
 	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/cmd"
 	c "github.com/micro/go-micro/context"
-	example "github.com/micro/go-micro/examples/server/proto/example"
 	"github.com/micro/go-micro/registry"
+	"github.com/micro/go-micro/selector"
 	"golang.org/x/net/context"
+
+	example "github.com/micro/go-micro/examples/server/proto/example"
 )
 
 func init() {
@@ -38,7 +40,9 @@ func (dc *dcWrapper) Call(ctx context.Context, req client.Request, rsp interface
 		return services
 	}
 
-	callOptions := append(opts, client.WithSelectOption(registry.SelectFilter(filter)))
+	callOptions := append(opts, client.WithSelectOption(
+		selector.Filter(filter),
+	))
 
 	fmt.Printf("[DC Wrapper] filtering for datacenter %s\n", md["datacenter"])
 	return dc.Client.Call(ctx, req, rsp, callOptions...)

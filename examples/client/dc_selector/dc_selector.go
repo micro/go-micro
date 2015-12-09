@@ -8,14 +8,16 @@ import (
 
 	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/cmd"
-	example "github.com/micro/go-micro/examples/server/proto/example"
 	"github.com/micro/go-micro/registry"
+	"github.com/micro/go-micro/selector"
 	"golang.org/x/net/context"
+
+	example "github.com/micro/go-micro/examples/server/proto/example"
 )
 
 // Built in random hashed node selector
 type dcSelector struct {
-	opts registry.SelectorOptions
+	opts selector.Options
 }
 
 var (
@@ -26,14 +28,14 @@ func init() {
 	rand.Seed(time.Now().Unix())
 }
 
-func (n *dcSelector) Select(service string, opts ...registry.SelectOption) (registry.SelectNext, error) {
+func (n *dcSelector) Select(service string, opts ...selector.SelectOption) (selector.Next, error) {
 	services, err := n.opts.Registry.GetService(service)
 	if err != nil {
 		return nil, err
 	}
 
 	if len(services) == 0 {
-		return nil, registry.ErrNotFound
+		return nil, selector.ErrNotFound
 	}
 
 	var nodes []*registry.Node
@@ -48,7 +50,7 @@ func (n *dcSelector) Select(service string, opts ...registry.SelectOption) (regi
 	}
 
 	if len(nodes) == 0 {
-		return nil, registry.ErrNotFound
+		return nil, selector.ErrNotFound
 	}
 
 	var i int
@@ -75,8 +77,8 @@ func (n *dcSelector) Close() error {
 }
 
 // Return a new first node selector
-func DCSelector(opts ...registry.SelectorOption) registry.Selector {
-	var sopts registry.SelectorOptions
+func DCSelector(opts ...selector.Option) selector.Selector {
+	var sopts selector.Options
 	for _, opt := range opts {
 		opt(&sopts)
 	}

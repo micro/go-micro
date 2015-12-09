@@ -1,17 +1,20 @@
-package registry
+package blacklist
 
 import (
 	"errors"
 	"testing"
 	"time"
+
+	"github.com/micro/go-micro/registry/mock"
+	"github.com/micro/go-micro/selector"
 )
 
 func TestBlackListSelector(t *testing.T) {
 	counts := map[string]int{}
 
 	bl := &blackListSelector{
-		so: SelectorOptions{
-			Registry: &mockRegistry{},
+		so: selector.Options{
+			Registry: mock.NewRegistry(),
 		},
 		ttl:  2,
 		bl:   make(map[string]blackListNode),
@@ -44,7 +47,7 @@ func TestBlackListSelector(t *testing.T) {
 		}
 		bl.Mark("foo", node, errors.New("blacklist"))
 	}
-	if node, err := next(); err != ErrNoneAvailable {
+	if node, err := next(); err != selector.ErrNoneAvailable {
 		t.Errorf("Expected none available err, got node %v err %v", node, err)
 	}
 	time.Sleep(time.Second * time.Duration(bl.ttl) * 2)
@@ -60,7 +63,7 @@ func TestBlackListSelector(t *testing.T) {
 		}
 		bl.Mark("foo", node, errors.New("blacklist"))
 	}
-	if node, err := next(); err != ErrNoneAvailable {
+	if node, err := next(); err != selector.ErrNoneAvailable {
 		t.Errorf("Expected none available err, got node %v err %v", node, err)
 	}
 	bl.Reset("foo")

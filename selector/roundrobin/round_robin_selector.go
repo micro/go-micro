@@ -1,15 +1,18 @@
-package registry
+package roundrobin
 
 import (
 	"sync"
+
+	"github.com/micro/go-micro/registry"
+	"github.com/micro/go-micro/selector"
 )
 
 type roundRobinSelector struct {
-	so SelectorOptions
+	so selector.Options
 }
 
-func (r *roundRobinSelector) Select(service string, opts ...SelectOption) (SelectNext, error) {
-	var sopts SelectOptions
+func (r *roundRobinSelector) Select(service string, opts ...selector.SelectOption) (selector.Next, error) {
+	var sopts selector.SelectOptions
 	for _, opt := range opts {
 		opt(&sopts)
 	}
@@ -27,10 +30,10 @@ func (r *roundRobinSelector) Select(service string, opts ...SelectOption) (Selec
 
 	// if there's nothing left, return
 	if len(services) == 0 {
-		return nil, ErrNotFound
+		return nil, selector.ErrNotFound
 	}
 
-	var nodes []*Node
+	var nodes []*registry.Node
 
 	for _, service := range services {
 		for _, node := range service.Nodes {
@@ -39,13 +42,13 @@ func (r *roundRobinSelector) Select(service string, opts ...SelectOption) (Selec
 	}
 
 	if len(nodes) == 0 {
-		return nil, ErrNotFound
+		return nil, selector.ErrNotFound
 	}
 
 	var i int
 	var mtx sync.Mutex
 
-	return func() (*Node, error) {
+	return func() (*registry.Node, error) {
 		mtx.Lock()
 		defer mtx.Unlock()
 		i++
@@ -53,7 +56,7 @@ func (r *roundRobinSelector) Select(service string, opts ...SelectOption) (Selec
 	}, nil
 }
 
-func (r *roundRobinSelector) Mark(service string, node *Node, err error) {
+func (r *roundRobinSelector) Mark(service string, node *registry.Node, err error) {
 	return
 }
 
@@ -65,15 +68,15 @@ func (r *roundRobinSelector) Close() error {
 	return nil
 }
 
-func NewRoundRobinSelector(opts ...SelectorOption) Selector {
-	var sopts SelectorOptions
+func NewRoundRobinSelector(opts ...selector.Option) selector.Selector {
+	var sopts selector.Options
 
 	for _, opt := range opts {
 		opt(&sopts)
 	}
 
 	if sopts.Registry == nil {
-		sopts.Registry = DefaultRegistry
+		sopts.Registry = registry.DefaultRegistry
 	}
 
 	return &roundRobinSelector{sopts}

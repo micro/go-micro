@@ -9,6 +9,7 @@ import (
 	"github.com/micro/go-micro/cmd"
 	example "github.com/micro/go-micro/examples/server/proto/example"
 	"github.com/micro/go-micro/registry"
+	"github.com/micro/go-micro/selector"
 	"golang.org/x/net/context"
 )
 
@@ -18,20 +19,20 @@ func init() {
 
 // Built in random hashed node selector
 type firstNodeSelector struct {
-	opts registry.SelectorOptions
+	opts selector.Options
 }
 
-func (n *firstNodeSelector) Select(service string, opts ...registry.SelectOption) (registry.SelectNext, error) {
+func (n *firstNodeSelector) Select(service string, opts ...selector.SelectOption) (selector.Next, error) {
 	services, err := n.opts.Registry.GetService(service)
 	if err != nil {
 		return nil, err
 	}
 
 	if len(services) == 0 {
-		return nil, registry.ErrNotFound
+		return nil, selector.ErrNotFound
 	}
 
-	var sopts registry.SelectOptions
+	var sopts selector.SelectOptions
 	for _, opt := range opts {
 		opt(&sopts)
 	}
@@ -41,11 +42,11 @@ func (n *firstNodeSelector) Select(service string, opts ...registry.SelectOption
 	}
 
 	if len(services) == 0 {
-		return nil, registry.ErrNotFound
+		return nil, selector.ErrNotFound
 	}
 
 	if len(services[0].Nodes) == 0 {
-		return nil, registry.ErrNotFound
+		return nil, selector.ErrNotFound
 	}
 
 	return func() (*registry.Node, error) {
@@ -66,8 +67,8 @@ func (n *firstNodeSelector) Close() error {
 }
 
 // Return a new first node selector
-func FirstNodeSelector(opts ...registry.SelectorOption) registry.Selector {
-	var sopts registry.SelectorOptions
+func FirstNodeSelector(opts ...selector.Option) selector.Selector {
+	var sopts selector.Options
 	for _, opt := range opts {
 		opt(&sopts)
 	}

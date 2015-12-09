@@ -1,19 +1,21 @@
-package registry
+package selector
 
 import (
 	"math/rand"
 	"time"
+
+	"github.com/micro/go-micro/registry"
 )
 
 type randomSelector struct {
-	so SelectorOptions
+	so Options
 }
 
 func init() {
 	rand.Seed(time.Now().Unix())
 }
 
-func (r *randomSelector) Select(service string, opts ...SelectOption) (SelectNext, error) {
+func (r *randomSelector) Select(service string, opts ...SelectOption) (Next, error) {
 	var sopts SelectOptions
 	for _, opt := range opts {
 		opt(&sopts)
@@ -35,7 +37,7 @@ func (r *randomSelector) Select(service string, opts ...SelectOption) (SelectNex
 		return nil, ErrNotFound
 	}
 
-	var nodes []*Node
+	var nodes []*registry.Node
 
 	for _, service := range services {
 		for _, node := range service.Nodes {
@@ -47,7 +49,7 @@ func (r *randomSelector) Select(service string, opts ...SelectOption) (SelectNex
 		return nil, ErrNotFound
 	}
 
-	return func() (*Node, error) {
+	return func() (*registry.Node, error) {
 		i := rand.Int()
 		j := i % len(services)
 
@@ -60,7 +62,7 @@ func (r *randomSelector) Select(service string, opts ...SelectOption) (SelectNex
 	}, nil
 }
 
-func (r *randomSelector) Mark(service string, node *Node, err error) {
+func (r *randomSelector) Mark(service string, node *registry.Node, err error) {
 	return
 }
 
@@ -72,15 +74,15 @@ func (r *randomSelector) Close() error {
 	return nil
 }
 
-func NewRandomSelector(opts ...SelectorOption) Selector {
-	var sopts SelectorOptions
+func newRandomSelector(opts ...Option) Selector {
+	var sopts Options
 
 	for _, opt := range opts {
 		opt(&sopts)
 	}
 
 	if sopts.Registry == nil {
-		sopts.Registry = DefaultRegistry
+		sopts.Registry = registry.DefaultRegistry
 	}
 
 	return &randomSelector{sopts}

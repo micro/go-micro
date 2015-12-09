@@ -1,15 +1,18 @@
-package registry
+package roundrobin
 
 import (
 	"testing"
+
+	"github.com/micro/go-micro/registry/mock"
+	"github.com/micro/go-micro/selector"
 )
 
 func TestRoundRobinSelector(t *testing.T) {
 	counts := map[string]int{}
 
 	rr := &roundRobinSelector{
-		so: SelectorOptions{
-			Registry: &mockRegistry{},
+		so: selector.Options{
+			Registry: mock.NewRegistry(),
 		},
 	}
 

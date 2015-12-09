@@ -10,6 +10,7 @@ import (
 	c "github.com/micro/go-micro/context"
 	"github.com/micro/go-micro/errors"
 	"github.com/micro/go-micro/registry"
+	"github.com/micro/go-micro/selector"
 	"github.com/micro/go-micro/transport"
 
 	"golang.org/x/net/context"
@@ -44,8 +45,8 @@ func newRpcClient(opt ...Option) Client {
 	}
 
 	if opts.selector == nil {
-		opts.selector = registry.NewRandomSelector(
-			registry.SelectorRegistry(opts.registry),
+		opts.selector = selector.NewSelector(
+			selector.Registry(opts.registry),
 		)
 	}
 
@@ -156,14 +157,14 @@ func (r *rpcClient) Call(ctx context.Context, request Request, response interfac
 	}
 
 	next, err := r.opts.selector.Select(request.Service(), copts.selectOptions...)
-	if err != nil && err == registry.ErrNotFound {
+	if err != nil && err == selector.ErrNotFound {
 		return errors.NotFound("go.micro.client", err.Error())
 	} else if err != nil {
 		return errors.InternalServerError("go.micro.client", err.Error())
 	}
 
 	node, err := next()
-	if err != nil && err == registry.ErrNotFound {
+	if err != nil && err == selector.ErrNotFound {
 		return errors.NotFound("go.micro.client", err.Error())
 	} else if err != nil {
 		return errors.InternalServerError("go.micro.client", err.Error())
@@ -190,14 +191,14 @@ func (r *rpcClient) Stream(ctx context.Context, request Request, responseChan in
 	}
 
 	next, err := r.opts.selector.Select(request.Service(), copts.selectOptions...)
-	if err != nil && err == registry.ErrNotFound {
+	if err != nil && err == selector.ErrNotFound {
 		return nil, errors.NotFound("go.micro.client", err.Error())
 	} else if err != nil {
 		return nil, errors.InternalServerError("go.micro.client", err.Error())
 	}
 
 	node, err := next()
-	if err != nil && err == registry.ErrNotFound {
+	if err != nil && err == selector.ErrNotFound {
 		return nil, errors.NotFound("go.micro.client", err.Error())
 	} else if err != nil {
 		return nil, errors.InternalServerError("go.micro.client", err.Error())

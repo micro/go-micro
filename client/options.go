@@ -4,6 +4,7 @@ import (
 	"github.com/micro/go-micro/broker"
 	"github.com/micro/go-micro/codec"
 	"github.com/micro/go-micro/registry"
+	"github.com/micro/go-micro/selector"
 	"github.com/micro/go-micro/transport"
 )
 
@@ -12,13 +13,13 @@ type options struct {
 	broker      broker.Broker
 	codecs      map[string]codec.NewCodec
 	registry    registry.Registry
-	selector    registry.Selector
+	selector    selector.Selector
 	transport   transport.Transport
 	wrappers    []Wrapper
 }
 
 type callOptions struct {
-	selectOptions []registry.SelectOption
+	selectOptions []selector.SelectOption
 }
 
 type publishOptions struct{}
@@ -59,7 +60,7 @@ func Transport(t transport.Transport) Option {
 }
 
 // Select is used to select a node to route a request to
-func Selector(s registry.Selector) Option {
+func Selector(s selector.Selector) Option {
 	return func(o *options) {
 		o.selector = s
 	}
@@ -74,7 +75,7 @@ func Wrap(w Wrapper) Option {
 
 // Call Options
 
-func WithSelectOption(so registry.SelectOption) CallOption {
+func WithSelectOption(so selector.SelectOption) CallOption {
 	return func(o *callOptions) {
 		o.selectOptions = append(o.selectOptions, so)
 	}

@@ -1,19 +1,21 @@
-package registry
+package selector
 
 import (
 	"testing"
+
+	"github.com/micro/go-micro/registry/mock"
 )
 
 func TestRandomSelector(t *testing.T) {
 	counts := map[string]int{}
 
-	rr := &randomSelector{
-		so: SelectorOptions{
-			Registry: &mockRegistry{},
+	bl := &randomSelector{
+		so: Options{
+			Registry: mock.NewRegistry(),
 		},
 	}
 
-	next, err := rr.Select("foo")
+	next, err := bl.Select("foo")
 	if err != nil {
 		t.Errorf("Unexpected error calling random select: %v", err)
 	}
