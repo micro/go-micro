@@ -19,7 +19,8 @@ type Option func(*options)
 var (
 	DefaultRegistry = newConsulRegistry([]string{})
 
-	ErrNotFound = errors.New("not found")
+	ErrNotFound      = errors.New("not found")
+	ErrNoneAvailable = errors.New("none available")
 )
 
 func NewRegistry(addrs []string, opt ...Option) Registry {

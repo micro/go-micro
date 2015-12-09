@@ -15,7 +15,7 @@ func TestRandomSelector(t *testing.T) {
 
 	next, err := rr.Select("foo")
 	if err != nil {
-		t.Errorf("Unexpected error calling rr select: %v", err)
+		t.Errorf("Unexpected error calling random select: %v", err)
 	}
 
 	for i := 0; i < 100; i++ {
