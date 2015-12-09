@@ -48,7 +48,15 @@ func (r *randomSelector) Select(service string, opts ...SelectOption) (SelectNex
 	}
 
 	return func() (*Node, error) {
-		return nodes[rand.Int()%len(nodes)], nil
+		i := rand.Int()
+		j := i % len(services)
+
+		if len(services[j].Nodes) == 0 {
+			return nil, ErrNotFound
+		}
+
+		k := i % len(services[j].Nodes)
+		return services[j].Nodes[k], nil
 	}, nil
 }
 
