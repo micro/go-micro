@@ -12,12 +12,14 @@ type options struct {
 	broker      broker.Broker
 	codecs      map[string]codec.NewCodec
 	registry    registry.Registry
+	selector    registry.Selector
 	transport   transport.Transport
 	wrappers    []Wrapper
-	selector    Selector
 }
 
-type callOptions struct{}
+type callOptions struct {
+	selectOptions []registry.SelectOption
+}
 
 type publishOptions struct{}
 
@@ -57,7 +59,7 @@ func Transport(t transport.Transport) Option {
 }
 
 // Select is used to select a node to route a request to
-func Select(s Selector) Option {
+func Selector(s registry.Selector) Option {
 	return func(o *options) {
 		o.selector = s
 	}
@@ -67,5 +69,13 @@ func Select(s Selector) Option {
 func Wrap(w Wrapper) Option {
 	return func(o *options) {
 		o.wrappers = append(o.wrappers, w)
+	}
+}
+
+// Call Options
+
+func WithSelectOption(so registry.SelectOption) CallOption {
+	return func(o *callOptions) {
+		o.selectOptions = append(o.selectOptions, so)
 	}
 }

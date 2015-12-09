@@ -1,5 +1,9 @@
 package registry
 
+import (
+	"errors"
+)
+
 type Registry interface {
 	Register(*Service) error
 	Deregister(*Service) error
@@ -14,6 +18,8 @@ type Option func(*options)
 
 var (
 	DefaultRegistry = newConsulRegistry([]string{})
+
+	ErrNotFound = errors.New("not found")
 )
 
 func NewRegistry(addrs []string, opt ...Option) Registry {
