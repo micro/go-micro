@@ -64,14 +64,19 @@ func newRpcPlusCodec(req *transport.Message, client transport.Client, c codec.Ne
 
 func (c *rpcPlusCodec) WriteRequest(req *request, body interface{}) error {
 	m := &codec.Message{
-		Id:     req.Seq,
-		Method: req.ServiceMethod,
-		Type:   codec.Request,
+		Id:      req.Seq,
+		Target:  req.Service,
+		Method:  req.ServiceMethod,
+		Type:    codec.Request,
+		Headers: map[string]string{},
 	}
 	if err := c.codec.Write(m, body); err != nil {
 		return err
 	}
 	c.req.Body = c.buf.wbuf.Bytes()
+	for k, v := range m.Headers {
+		c.req.Header[k] = v
+	}
 	return c.client.Send(c.req)
 }
 
