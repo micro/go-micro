@@ -19,3 +19,5 @@ type HandlerWrapper func(HandlerFunc) HandlerFunc
 
 // SubscriberWrapper wraps the SubscriberFunc and returns the equivalent
 type SubscriberWrapper func(SubscriberFunc) SubscriberFunc
+
+type StreamWrapper func(Streamer) Streamer

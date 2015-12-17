@@ -112,7 +112,7 @@ func (r *rpcClient) call(ctx context.Context, address string, request Request, r
 	return client.Close()
 }
 
-func (r *rpcClient) stream(ctx context.Context, address string, request Request, responseChan interface{}) (Streamer, error) {
+func (r *rpcClient) stream(ctx context.Context, address string, req Request) (Streamer, error) {
 	msg := &transport.Message{
 		Header: make(map[string]string),
 	}
@@ -124,9 +124,9 @@ func (r *rpcClient) stream(ctx context.Context, address string, request Request,
 		}
 	}
 
-	msg.Header["Content-Type"] = request.ContentType()
+	msg.Header["Content-Type"] = req.ContentType()
 
-	cf, err := r.newCodec(request.ContentType())
+	cf, err := r.newCodec(req.ContentType())
 	if err != nil {
 		return nil, errors.InternalServerError("go.micro.client", err.Error())
 	}
@@ -136,13 +136,22 @@ func (r *rpcClient) stream(ctx context.Context, address string, request Request,
 		return nil, errors.InternalServerError("go.micro.client", fmt.Sprintf("Error sending request: %v", err))
 	}
 
-	client := newClientWithCodec(newRpcPlusCodec(msg, c, cf))
-	call := client.StreamGo(request.Service(), request.Method(), request.Request(), responseChan)
+	codec := newRpcPlusCodec(msg, c, cf)
+
+	err = codec.WriteRequest(&request{
+		Service:       req.Service(),
+		ServiceMethod: req.Method(),
+		Seq:           0,
+	}, req.Request())
+
+	if err != nil {
+		return nil, errors.InternalServerError("go.micro.client", err.Error())
+	}
 
 	return &rpcStream{
-		request: request,
-		call:    call,
-		client:  client,
+		context: ctx,
+		request: req,
+		codec:   codec,
 	}, nil
 }
 
@@ -180,11 +189,11 @@ func (r *rpcClient) Call(ctx context.Context, request Request, response interfac
 	return err
 }
 
-func (r *rpcClient) StreamRemote(ctx context.Context, address string, request Request, responseChan interface{}, opts ...CallOption) (Streamer, error) {
-	return r.stream(ctx, address, request, responseChan)
+func (r *rpcClient) StreamRemote(ctx context.Context, address string, request Request, opts ...CallOption) (Streamer, error) {
+	return r.stream(ctx, address, request)
 }
 
-func (r *rpcClient) Stream(ctx context.Context, request Request, responseChan interface{}, opts ...CallOption) (Streamer, error) {
+func (r *rpcClient) Stream(ctx context.Context, request Request, opts ...CallOption) (Streamer, error) {
 	var copts callOptions
 	for _, opt := range opts {
 		opt(&copts)
@@ -209,7 +218,7 @@ func (r *rpcClient) Stream(ctx context.Context, request Request, responseChan in
 		address = fmt.Sprintf("%s:%d", address, node.Port)
 	}
 
-	stream, err := r.stream(ctx, address, request, responseChan)
+	stream, err := r.stream(ctx, address, request)
 	r.opts.selector.Mark(request.Service(), node, err)
 	return stream, err
 }
@@ -247,14 +256,14 @@ func (r *rpcClient) NewPublication(topic string, message interface{}) Publicatio
 func (r *rpcClient) NewProtoPublication(topic string, message interface{}) Publication {
 	return newRpcPublication(topic, message, "application/octet-stream")
 }
-func (r *rpcClient) NewRequest(service, method string, request interface{}) Request {
-	return newRpcRequest(service, method, request, r.opts.contentType)
+func (r *rpcClient) NewRequest(service, method string, request interface{}, reqOpts ...RequestOption) Request {
+	return newRpcRequest(service, method, request, r.opts.contentType, reqOpts...)
 }
 
-func (r *rpcClient) NewProtoRequest(service, method string, request interface{}) Request {
-	return newRpcRequest(service, method, request, "application/octet-stream")
+func (r *rpcClient) NewProtoRequest(service, method string, request interface{}, reqOpts ...RequestOption) Request {
+	return newRpcRequest(service, method, request, "application/octet-stream", reqOpts...)
 }
 
-func (r *rpcClient) NewJsonRequest(service, method string, request interface{}) Request {
-	return newRpcRequest(service, method, request, "application/json")
+func (r *rpcClient) NewJsonRequest(service, method string, request interface{}, reqOpts ...RequestOption) Request {
+	return newRpcRequest(service, method, request, "application/json", reqOpts...)
 }

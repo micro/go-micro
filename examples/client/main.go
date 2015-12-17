@@ -60,15 +60,19 @@ func stream() {
 		Count: int64(10),
 	})
 
-	rspChan := make(chan *example.StreamingResponse, 10)
-
-	stream, err := client.Stream(context.Background(), req, rspChan)
+	stream, err := client.Stream(context.Background(), req)
 	if err != nil {
 		fmt.Println("err:", err)
 		return
 	}
 
-	for rsp := range rspChan {
+	for stream.Error() == nil {
+		rsp := &example.StreamingResponse{}
+		err := stream.Recv(rsp)
+		if err != nil {
+			fmt.Println(err)
+			break
+		}
 		fmt.Println("Stream: rsp:", rsp.Count)
 	}
 

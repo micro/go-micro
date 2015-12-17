@@ -127,30 +127,29 @@ func (c *exampleClient) Call(ctx context.Context, in *Request, opts ...client.Ca
 
 func (c *exampleClient) Stream(ctx context.Context, in *StreamingRequest, opts ...client.CallOption) (Example_StreamClient, error) {
 	req := c.c.NewRequest(c.serviceName, "Example.Stream", in)
-	outCh := make(chan *StreamingResponse)
-	stream, err := c.c.Stream(ctx, req, outCh, opts...)
+	stream, err := c.c.Stream(ctx, req, opts...)
 	if err != nil {
 		return nil, err
 	}
-	return &exampleStreamClient{stream, outCh}, nil
+	return &exampleStreamClient{stream}, nil
 }
 
 type Example_StreamClient interface {
-	Next() (*StreamingResponse, error)
+	RecvMsg() (*StreamingResponse, error)
 	client.Streamer
 }
 
 type exampleStreamClient struct {
 	client.Streamer
-	next chan *StreamingResponse
 }
 
-func (x *exampleStreamClient) Next() (*StreamingResponse, error) {
-	out, ok := <-x.next
-	if !ok {
-		return nil, fmt.Errorf(`chan closed`)
+func (x *exampleStreamClient) RecvMsg() (*StreamingResponse, error) {
+	m := new(StreamingResponse)
+	err := x.Recv(m)
+	if err != nil {
+		return nil, err
 	}
-	return out, nil
+	return m, nil
 }
 
 // Server API for Example service
