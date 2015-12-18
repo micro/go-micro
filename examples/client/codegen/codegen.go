@@ -21,14 +21,14 @@ func call(i int) {
 	fmt.Println("Call:", i, "rsp:", rsp.Msg)
 }
 
-func stream() {
-	stream, err := cl.Stream(context.Background(), &example.StreamingRequest{Count: int64(10)})
+func stream(i int) {
+	stream, err := cl.Stream(context.Background(), &example.StreamingRequest{Count: int64(i)})
 	if err != nil {
 		fmt.Println("err:", err)
 		return
 	}
-	for i := 0; i < 10; i++ {
-		rsp, err := stream.Next()
+	for j := 0; j < i; j++ {
+		rsp, err := stream.RecvR()
 		if err != nil {
 			fmt.Println("err:", err)
 			break
@@ -44,6 +44,34 @@ func stream() {
 	}
 }
 
+func pingPong(i int) {
+	stream, err := cl.PingPong(context.Background())
+	if err != nil {
+		fmt.Println("err:", err)
+		return
+	}
+	for j := 0; j < i; j++ {
+		if err := stream.SendR(&example.Ping{Stroke: int64(j)}); err != nil {
+			fmt.Println("err:", err)
+			return
+		}
+		rsp, err := stream.RecvR()
+		if err != nil {
+			fmt.Println("recv err", err)
+			break
+		}
+		fmt.Printf("Sent ping %v got pong %v\n", j, rsp.Stroke)
+	}
+	if stream.Error() != nil {
+		fmt.Println("stream err:", err)
+		return
+	}
+
+	if err := stream.Close(); err != nil {
+		fmt.Println("stream close err:", err)
+	}
+}
+
 func main() {
 	cmd.Init()
 
@@ -51,6 +79,10 @@ func main() {
 	for i := 0; i < 10; i++ {
 		call(i)
 	}
+
 	fmt.Println("\n--- Streamer example ---\n")
-	stream()
+	stream(10)
+
+	fmt.Println("\n--- Ping Pong example ---\n")
+	pingPong(10)
 }

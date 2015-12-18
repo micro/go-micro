@@ -117,7 +117,7 @@ var _ server.Option
 type ExampleClient interface {
 	Call(ctx context.Context, in *Request, opts ...client.CallOption) (*Response, error)
 	Stream(ctx context.Context, in *StreamingRequest, opts ...client.CallOption) (Example_StreamClient, error)
-	PingPong(ctx context.Context, in *Ping, opts ...client.CallOption) (Example_PingPongClient, error)
+	PingPong(ctx context.Context, opts ...client.CallOption) (Example_PingPongClient, error)
 }
 
 type exampleClient struct {
@@ -149,16 +149,19 @@ func (c *exampleClient) Call(ctx context.Context, in *Request, opts ...client.Ca
 }
 
 func (c *exampleClient) Stream(ctx context.Context, in *StreamingRequest, opts ...client.CallOption) (Example_StreamClient, error) {
-	req := c.c.NewRequest(c.serviceName, "Example.Stream", in)
+	req := c.c.NewRequest(c.serviceName, "Example.Stream", &StreamingRequest{})
 	stream, err := c.c.Stream(ctx, req, opts...)
 	if err != nil {
+		return nil, err
+	}
+	if err := stream.Send(in); err != nil {
 		return nil, err
 	}
 	return &exampleStreamClient{stream}, nil
 }
 
 type Example_StreamClient interface {
-	RecvMsg() (*StreamingResponse, error)
+	RecvR() (*StreamingResponse, error)
 	client.Streamer
 }
 
@@ -166,7 +169,7 @@ type exampleStreamClient struct {
 	client.Streamer
 }
 
-func (x *exampleStreamClient) RecvMsg() (*StreamingResponse, error) {
+func (x *exampleStreamClient) RecvR() (*StreamingResponse, error) {
 	m := new(StreamingResponse)
 	err := x.Recv(m)
 	if err != nil {
@@ -175,8 +178,8 @@ func (x *exampleStreamClient) RecvMsg() (*StreamingResponse, error) {
 	return m, nil
 }
 
-func (c *exampleClient) PingPong(ctx context.Context, in *Ping, opts ...client.CallOption) (Example_PingPongClient, error) {
-	req := c.c.NewRequest(c.serviceName, "Example.PingPong", in)
+func (c *exampleClient) PingPong(ctx context.Context, opts ...client.CallOption) (Example_PingPongClient, error) {
+	req := c.c.NewRequest(c.serviceName, "Example.PingPong", &Ping{})
 	stream, err := c.c.Stream(ctx, req, opts...)
 	if err != nil {
 		return nil, err
@@ -185,8 +188,8 @@ func (c *exampleClient) PingPong(ctx context.Context, in *Ping, opts ...client.C
 }
 
 type Example_PingPongClient interface {
-	SendMsg(*Ping) error
-	RecvMsg() (*Pong, error)
+	SendR(*Ping) error
+	RecvR() (*Pong, error)
 	client.Streamer
 }
 
@@ -194,11 +197,11 @@ type examplePingPongClient struct {
 	client.Streamer
 }
 
-func (x *examplePingPongClient) SendMsg(m *Ping) error {
+func (x *examplePingPongClient) SendR(m *Ping) error {
 	return x.Send(m)
 }
 
-func (x *examplePingPongClient) RecvMsg() (*Pong, error) {
+func (x *examplePingPongClient) RecvR() (*Pong, error) {
 	m := new(Pong)
 	err := x.Recv(m)
 	if err != nil {
@@ -211,12 +214,67 @@ func (x *examplePingPongClient) RecvMsg() (*Pong, error) {
 
 type ExampleHandler interface {
 	Call(context.Context, *Request, *Response) error
-	Stream(context.Context, func(*StreamingResponse) error) error
-	PingPong(context.Context, func(*Pong) error) error
+	Stream(context.Context, *StreamingRequest, Example_StreamStream) error
+	PingPong(context.Context, Example_PingPongStream) error
 }
 
 func RegisterExampleHandler(s server.Server, hdlr ExampleHandler) {
-	s.Handle(s.NewHandler(hdlr))
+	s.Handle(s.NewHandler(&exampleHandler{hdlr}))
+}
+
+type exampleHandler struct {
+	ExampleHandler
+}
+
+func (h *exampleHandler) Call(ctx context.Context, in *Request, out *Response) error {
+	return h.ExampleHandler.Call(ctx, in, out)
+}
+
+func (h *exampleHandler) Stream(ctx context.Context, stream server.Streamer) error {
+	m := new(StreamingRequest)
+	if err := stream.Recv(m); err != nil {
+		return err
+	}
+	return h.ExampleHandler.Stream(ctx, m, &exampleStreamStream{stream})
+}
+
+type Example_StreamStream interface {
+	SendR(*StreamingResponse) error
+	server.Streamer
+}
+
+type exampleStreamStream struct {
+	server.Streamer
+}
+
+func (x *exampleStreamStream) SendR(m *StreamingResponse) error {
+	return x.Streamer.Send(m)
+}
+
+func (h *exampleHandler) PingPong(ctx context.Context, stream server.Streamer) error {
+	return h.ExampleHandler.PingPong(ctx, &examplePingPongStream{stream})
+}
+
+type Example_PingPongStream interface {
+	SendR(*Pong) error
+	RecvR() (*Ping, error)
+	server.Streamer
+}
+
+type examplePingPongStream struct {
+	server.Streamer
+}
+
+func (x *examplePingPongStream) SendR(m *Pong) error {
+	return x.Streamer.Send(m)
+}
+
+func (x *examplePingPongStream) RecvR() (*Ping, error) {
+	m := new(Ping)
+	if err := x.Streamer.Recv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
 }
 
 var fileDescriptor0 = []byte{
