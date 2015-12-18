@@ -136,23 +136,14 @@ func (r *rpcClient) stream(ctx context.Context, address string, req Request) (St
 		return nil, errors.InternalServerError("go.micro.client", fmt.Sprintf("Error sending request: %v", err))
 	}
 
-	codec := newRpcPlusCodec(msg, c, cf)
-
-	err = codec.WriteRequest(&request{
-		Service:       req.Service(),
-		ServiceMethod: req.Method(),
-		Seq:           0,
-	}, req.Request())
-
-	if err != nil {
-		return nil, errors.InternalServerError("go.micro.client", err.Error())
-	}
-
-	return &rpcStream{
+	stream := &rpcStream{
 		context: ctx,
 		request: req,
-		codec:   codec,
-	}, nil
+		codec:   newRpcPlusCodec(msg, c, cf),
+	}
+
+	err = stream.Send(req.Request())
+	return stream, err
 }
 
 func (r *rpcClient) CallRemote(ctx context.Context, address string, request Request, response interface{}, opts ...CallOption) error {

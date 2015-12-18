@@ -64,20 +64,11 @@ func stream() {
 		return
 	}
 
-	fmt.Println("sending request")
-	if err := stream.Send(&example.StreamingRequest{
-		Count: int64(10),
-	}); err != nil {
-		fmt.Println("err", err)
-		return
-	}
-	fmt.Println("sent request")
-
 	for stream.Error() == nil {
 		rsp := &example.StreamingResponse{}
 		err := stream.Recv(rsp)
 		if err != nil {
-			fmt.Println(err)
+			fmt.Println("recv err", err)
 			break
 		}
 		fmt.Println("Stream: rsp:", rsp.Count)
