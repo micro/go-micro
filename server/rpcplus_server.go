@@ -102,14 +102,19 @@ func prepareMethod(method reflect.Method) *methodType {
 	mtype := method.Type
 	mname := method.Name
 	var replyType, argType, contextType reflect.Type
+	var stream bool
 
-	stream := false
 	// Method must be exported.
 	if method.PkgPath != "" {
 		return nil
 	}
 
 	switch mtype.NumIn() {
+	case 3:
+		// assuming streaming
+		argType = mtype.In(2)
+		contextType = mtype.In(1)
+		stream = true
 	case 4:
 		// method that takes a context
 		argType = mtype.In(2)
@@ -120,44 +125,34 @@ func prepareMethod(method reflect.Method) *methodType {
 		return nil
 	}
 
-	// First arg need not be a pointer.
-	if !isExportedOrBuiltinType(argType) {
-		log.Println(mname, "argument type not exported:", argType)
-		return nil
-	}
+	if stream {
+		// check stream type
+		streamType := reflect.TypeOf((*Streamer)(nil)).Elem()
+		if !argType.Implements(streamType) {
+			log.Println(mname, "argument does not implement Streamer interface:", argType)
+			return nil
+		}
+	} else {
+		// if not stream check the replyType
 
-	// the second argument will tell us if it's a streaming call
-	// or a regular call
-	if replyType.Kind() == reflect.Func {
-		// this is a streaming call
-		stream = true
-		if replyType.NumIn() != 1 {
-			log.Println("method", mname, "sendReply has wrong number of ins:", replyType.NumIn())
-			return nil
-		}
-		if replyType.In(0).Kind() != reflect.Interface {
-			log.Println("method", mname, "sendReply parameter type not an interface:", replyType.In(0))
-			return nil
-		}
-		if replyType.NumOut() != 1 {
-			log.Println("method", mname, "sendReply has wrong number of outs:", replyType.NumOut())
-			return nil
-		}
-		if returnType := replyType.Out(0); returnType != typeOfError {
-			log.Println("method", mname, "sendReply returns", returnType.String(), "not error")
+		// First arg need not be a pointer.
+		if !isExportedOrBuiltinType(argType) {
+			log.Println(mname, "argument type not exported:", argType)
 			return nil
 		}
 
-	} else if replyType.Kind() != reflect.Ptr {
-		log.Println("method", mname, "reply type not a pointer:", replyType)
-		return nil
+		if replyType.Kind() != reflect.Ptr {
+			log.Println("method", mname, "reply type not a pointer:", replyType)
+			return nil
+		}
+
+		// Reply type must be exported.
+		if !isExportedOrBuiltinType(replyType) {
+			log.Println("method", mname, "reply type not exported:", replyType)
+			return nil
+		}
 	}
 
-	// Reply type must be exported.
-	if !isExportedOrBuiltinType(replyType) {
-		log.Println("method", mname, "reply type not exported:", replyType)
-		return nil
-	}
 	// Method needs one out.
 	if mtype.NumOut() != 1 {
 		log.Println("method", mname, "has wrong number of outs:", mtype.NumOut())
@@ -242,10 +237,11 @@ func (s *service) call(ctx context.Context, server *server, sending *sync.Mutex,
 		service:     s.name,
 		contentType: ct,
 		method:      req.ServiceMethod,
-		request:     argv.Interface(),
 	}
 
 	if !mtype.stream {
+		r.request = argv.Interface()
+
 		fn := func(ctx context.Context, req Request, rsp interface{}) error {
 			returnValues = function.Call([]reflect.Value{s.rcvr, mtype.prepareContext(ctx), reflect.ValueOf(req.Request()), reflect.ValueOf(rsp)})
 
@@ -276,40 +272,16 @@ func (s *service) call(ctx context.Context, server *server, sending *sync.Mutex,
 	// keep track of the type, to make sure we return
 	// the same one consistently
 	var lastError error
-	var firstType reflect.Type
 
-	sendReply := func(oneReply interface{}) error {
-
-		// we already triggered an error, we're done
-		if lastError != nil {
-			return lastError
-		}
-
-		// check the oneReply has the right type using reflection
-		typ := reflect.TypeOf(oneReply)
-		if firstType == nil {
-			firstType = typ
-		} else {
-			if firstType != typ {
-				log.Println("passing wrong type to sendReply",
-					firstType, "!=", typ)
-				lastError = errors.New("rpc: passing wrong type to sendReply")
-				return lastError
-			}
-		}
-
-		lastError = server.sendResponse(sending, req, oneReply, codec, "", false)
-		if lastError != nil {
-			return lastError
-		}
-
-		// we manage to send, we're good
-		return nil
+	stream := &rpcStream{
+		context: ctx,
+		codec:   codec,
+		request: r,
 	}
 
 	// Invoke the method, providing a new value for the reply.
-	fn := func(ctx context.Context, req Request, rspFn interface{}) error {
-		returnValues = function.Call([]reflect.Value{s.rcvr, mtype.prepareContext(ctx), reflect.ValueOf(req.Request()), reflect.ValueOf(rspFn)})
+	fn := func(ctx context.Context, req Request, stream interface{}) error {
+		returnValues = function.Call([]reflect.Value{s.rcvr, mtype.prepareContext(ctx), reflect.ValueOf(stream)})
 		if err := returnValues[0].Interface(); err != nil {
 			// the function returned an error, we use that
 			return err.(error)
@@ -331,7 +303,7 @@ func (s *service) call(ctx context.Context, server *server, sending *sync.Mutex,
 	r.stream = true
 
 	errmsg := ""
-	if err := fn(ctx, r, reflect.ValueOf(sendReply).Interface()); err != nil {
+	if err := fn(ctx, r, stream); err != nil {
 		errmsg = err.Error()
 	}
 
@@ -414,6 +386,12 @@ func (server *server) readRequest(codec serverCodec) (service *service, mtype *m
 			return
 		}
 		// discard body
+		codec.ReadRequestBody(nil)
+		return
+	}
+
+	// is it a streaming request? then we don't read the body
+	if mtype.stream {
 		codec.ReadRequestBody(nil)
 		return
 	}

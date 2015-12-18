@@ -1,14 +1,13 @@
 package server
 
 import (
-	"errors"
-	"io"
 	"log"
 	"sync"
 
 	"golang.org/x/net/context"
 )
 
+// Implements the Streamer interface
 type rpcStream struct {
 	sync.RWMutex
 	seq     uint64
@@ -39,7 +38,7 @@ func (r *rpcStream) Send(msg interface{}) error {
 		Seq:           seq,
 	}
 
-	err := codec.WriteResponse(&resp, msg, false)
+	err := r.codec.WriteResponse(&resp, msg, false)
 	if err != nil {
 		log.Println("rpc: writing response:", err)
 	}
@@ -52,13 +51,13 @@ func (r *rpcStream) Recv(msg interface{}) error {
 
 	req := request{}
 
-	if err := codec.ReadRequestHeader(&req); err != nil {
+	if err := r.codec.ReadRequestHeader(&req); err != nil {
 		// discard body
-		codec.ReadRequestBody(nil)
+		r.codec.ReadRequestBody(nil)
 		return err
 	}
 
-	if err = codec.ReadRequestBody(msg); err != nil {
+	if err := r.codec.ReadRequestBody(msg); err != nil {
 		return err
 	}
 

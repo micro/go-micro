@@ -9,6 +9,7 @@ import (
 	"golang.org/x/net/context"
 )
 
+// Implements the streamer interface
 type rpcStream struct {
 	sync.RWMutex
 	seq     uint64

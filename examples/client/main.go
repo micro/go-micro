@@ -56,15 +56,22 @@ func call(i int) {
 
 func stream() {
 	// Create new request to service go.micro.srv.example, method Example.Call
-	req := client.NewRequest("go.micro.srv.example", "Example.Stream", &example.StreamingRequest{
-		Count: int64(10),
-	})
+	req := client.NewRequest("go.micro.srv.example", "Example.Stream", &example.StreamingRequest{})
 
 	stream, err := client.Stream(context.Background(), req)
 	if err != nil {
 		fmt.Println("err:", err)
 		return
 	}
+
+	fmt.Println("sending request")
+	if err := stream.Send(&example.StreamingRequest{
+		Count: int64(10),
+	}); err != nil {
+		fmt.Println("err", err)
+		return
+	}
+	fmt.Println("sent request")
 
 	for stream.Error() == nil {
 		rsp := &example.StreamingResponse{}
@@ -88,14 +95,14 @@ func stream() {
 
 func main() {
 	cmd.Init()
-	fmt.Println("\n--- Call example ---\n")
-	for i := 0; i < 10; i++ {
-		call(i)
-	}
+	//	fmt.Println("\n--- Call example ---\n")
+	//	for i := 0; i < 10; i++ {
+	//		call(i)
+	//	}
 
 	fmt.Println("\n--- Streamer example ---\n")
 	stream()
 
-	fmt.Println("\n--- Publisher example ---\n")
-	pub()
+	//	fmt.Println("\n--- Publisher example ---\n")
+	//	pub()
 }
