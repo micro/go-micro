@@ -389,7 +389,6 @@ func (server *server) readRequest(codec serverCodec) (service *service, mtype *m
 		codec.ReadRequestBody(nil)
 		return
 	}
-
 	// is it a streaming request? then we don't read the body
 	if mtype.stream {
 		codec.ReadRequestBody(nil)
@@ -421,7 +420,7 @@ func (server *server) readRequest(codec serverCodec) (service *service, mtype *m
 func (server *server) readRequestHeader(codec serverCodec) (service *service, mtype *methodType, req *request, keepReading bool, err error) {
 	// Grab the request header.
 	req = server.getRequest()
-	err = codec.ReadRequestHeader(req)
+	err = codec.ReadRequestHeader(req, true)
 	if err != nil {
 		req = nil
 		if err == io.EOF || err == io.ErrUnexpectedEOF {
@@ -456,7 +455,7 @@ func (server *server) readRequestHeader(codec serverCodec) (service *service, mt
 }
 
 type serverCodec interface {
-	ReadRequestHeader(*request) error
+	ReadRequestHeader(*request, bool) error
 	ReadRequestBody(interface{}) error
 	WriteResponse(*response, interface{}, bool) error
 

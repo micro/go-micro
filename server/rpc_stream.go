@@ -51,7 +51,7 @@ func (r *rpcStream) Recv(msg interface{}) error {
 
 	req := request{}
 
-	if err := r.codec.ReadRequestHeader(&req); err != nil {
+	if err := r.codec.ReadRequestHeader(&req, false); err != nil {
 		// discard body
 		r.codec.ReadRequestBody(nil)
 		return err

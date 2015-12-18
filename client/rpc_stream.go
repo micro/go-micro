@@ -50,7 +50,6 @@ func (r *rpcStream) Send(msg interface{}) error {
 		r.err = err
 		return err
 	}
-
 	return nil
 }
 

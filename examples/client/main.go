@@ -54,8 +54,9 @@ func call(i int) {
 	fmt.Println("Call:", i, "rsp:", rsp.Msg)
 }
 
-func stream() {
+func stream(i int) {
 	// Create new request to service go.micro.srv.example, method Example.Call
+	// Request can be empty as its actually ignored and merely used to call the handler
 	req := client.NewRequest("go.micro.srv.example", "Example.Stream", &example.StreamingRequest{})
 
 	stream, err := client.Stream(context.Background(), req)
@@ -63,7 +64,10 @@ func stream() {
 		fmt.Println("err:", err)
 		return
 	}
-
+	if err := stream.Send(&example.StreamingRequest{Count: int64(i)}); err != nil {
+		fmt.Println("err:", err)
+		return
+	}
 	for stream.Error() == nil {
 		rsp := &example.StreamingResponse{}
 		err := stream.Recv(rsp)
@@ -84,6 +88,41 @@ func stream() {
 	}
 }
 
+func pingPong(i int) {
+	// Create new request to service go.micro.srv.example, method Example.Call
+	// Request can be empty as its actually ignored and merely used to call the handler
+	req := client.NewRequest("go.micro.srv.example", "Example.PingPong", &example.StreamingRequest{})
+
+	stream, err := client.Stream(context.Background(), req)
+	if err != nil {
+		fmt.Println("err:", err)
+		return
+	}
+
+	for j := 0; j < i; j++ {
+		if err := stream.Send(&example.Ping{Stroke: int64(j)}); err != nil {
+			fmt.Println("err:", err)
+			return
+		}
+		rsp := &example.Pong{}
+		err := stream.Recv(rsp)
+		if err != nil {
+			fmt.Println("recv err", err)
+			break
+		}
+		fmt.Printf("Sent ping %v got pong %v\n", j, rsp.Stroke)
+	}
+
+	if stream.Error() != nil {
+		fmt.Println("stream err:", err)
+		return
+	}
+
+	if err := stream.Close(); err != nil {
+		fmt.Println("stream close err:", err)
+	}
+}
+
 func main() {
 	cmd.Init()
 	//	fmt.Println("\n--- Call example ---\n")
@@ -91,8 +130,11 @@ func main() {
 	//		call(i)
 	//	}
 
-	fmt.Println("\n--- Streamer example ---\n")
-	stream()
+	//	fmt.Println("\n--- Streamer example ---\n")
+	//	stream(10)
+
+	fmt.Println("\n--- Ping Pong example ---\n")
+	pingPong(10)
 
 	//	fmt.Println("\n--- Publisher example ---\n")
 	//	pub()

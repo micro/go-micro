@@ -63,6 +63,7 @@ func newRpcPlusCodec(req *transport.Message, client transport.Client, c codec.Ne
 }
 
 func (c *rpcPlusCodec) WriteRequest(req *request, body interface{}) error {
+	c.buf.wbuf.Reset()
 	m := &codec.Message{
 		Id:      req.Seq,
 		Target:  req.Service,

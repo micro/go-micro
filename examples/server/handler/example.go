@@ -42,3 +42,17 @@ func (e *Example) Stream(ctx context.Context, stream server.Streamer) error {
 
 	return nil
 }
+
+func (e *Example) PingPong(ctx context.Context, stream server.Streamer) error {
+	for {
+		req := &example.Ping{}
+		if err := stream.Recv(req); err != nil {
+			return err
+		}
+		log.Infof("Got ping %v", req.Stroke)
+		if err := stream.Send(&example.Pong{Stroke: req.Stroke}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
