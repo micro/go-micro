@@ -8,9 +8,7 @@ type Registry interface {
 	Watch() (Watcher, error)
 }
 
-type options struct{}
-
-type Option func(*options)
+type Option func(*Options)
 
 var (
 	DefaultRegistry = newConsulRegistry([]string{})

@@ -12,6 +12,7 @@ import (
 type consulRegistry struct {
 	Address string
 	Client  *consul.Client
+	Options Options
 }
 
 func encodeEndpoints(en []*Endpoint) []string {
@@ -69,7 +70,20 @@ func decodeMetadata(tags []string) map[string]string {
 }
 
 func newConsulRegistry(addrs []string, opts ...Option) Registry {
+	var opt Options
+	for _, o := range opts {
+		o(&opt)
+	}
+
+	// use default config
 	config := consul.DefaultConfig()
+
+	// set timeout
+	if opt.Timeout > 0 {
+		config.HttpClient.Timeout = opt.Timeout
+	}
+
+	// check if there are any addrs
 	if len(addrs) > 0 {
 		addr, port, err := net.SplitHostPort(addrs[0])
 		if ae, ok := err.(*net.AddrError); ok && ae.Err == "missing port in address" {
@@ -79,11 +93,14 @@ func newConsulRegistry(addrs []string, opts ...Option) Registry {
 			config.Address = fmt.Sprintf("%s:%s", addr, port)
 		}
 	}
+
+	// create the client
 	client, _ := consul.NewClient(config)
 
 	cr := &consulRegistry{
 		Address: config.Address,
 		Client:  client,
+		Options: opt,
 	}
 
 	return cr
@@ -178,7 +195,7 @@ func (c *consulRegistry) GetService(name string) ([]*Service, error) {
 }
 
 func (c *consulRegistry) ListServices() ([]*Service, error) {
-	rsp, _, err := c.Client.Catalog().Services(&consul.QueryOptions{})
+	rsp, _, err := c.Client.Catalog().Services(nil)
 	if err != nil {
 		return nil, err
 	}
