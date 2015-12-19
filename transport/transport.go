@@ -26,6 +26,7 @@ type Listener interface {
 type Transport interface {
 	Dial(addr string, opts ...DialOption) (Client, error)
 	Listen(addr string) (Listener, error)
+	String() string
 }
 
 type options struct{}
@@ -58,4 +59,8 @@ func Dial(addr string, opts ...DialOption) (Client, error) {
 
 func Listen(addr string) (Listener, error) {
 	return DefaultTransport.Listen(addr)
+}
+
+func String() string {
+	return DefaultTransport.String()
 }

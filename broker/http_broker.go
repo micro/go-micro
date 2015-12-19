@@ -237,3 +237,7 @@ func (h *httpBroker) Subscribe(topic string, handler Handler) (Subscriber, error
 
 	return subscriber, nil
 }
+
+func (h *httpBroker) String() string {
+	return "http"
+}

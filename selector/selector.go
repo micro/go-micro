@@ -72,6 +72,8 @@ type Selector interface {
 	Reset(service string)
 	// Close renders the selector unusable
 	Close() error
+	// Name of the selector
+	String() string
 }
 
 // Next is a function that returns the next node

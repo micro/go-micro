@@ -66,6 +66,10 @@ func (n *firstNodeSelector) Close() error {
 	return nil
 }
 
+func (n *firstNodeSelector) String() string {
+	return "first"
+}
+
 // Return a new first node selector
 func FirstNodeSelector(opts ...selector.Option) selector.Selector {
 	var sopts selector.Options

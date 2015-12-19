@@ -6,6 +6,7 @@ type Registry interface {
 	GetService(string) ([]*Service, error)
 	ListServices() ([]*Service, error)
 	Watch() (Watcher, error)
+	String() string
 }
 
 type Option func(*Options)
@@ -36,4 +37,8 @@ func ListServices() ([]*Service, error) {
 
 func Watch() (Watcher, error) {
 	return DefaultRegistry.Watch()
+}
+
+func String() string {
+	return DefaultRegistry.String()
 }

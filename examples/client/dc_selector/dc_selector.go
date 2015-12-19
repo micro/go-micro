@@ -76,6 +76,10 @@ func (n *dcSelector) Close() error {
 	return nil
 }
 
+func (n *dcSelector) String() string {
+	return "dc"
+}
+
 // Return a new first node selector
 func DCSelector(opts ...selector.Option) selector.Selector {
 	var sopts selector.Options

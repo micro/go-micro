@@ -65,6 +65,10 @@ func (m *MockRegistry) Watch() (registry.Watcher, error) {
 	return nil, nil
 }
 
+func (m *MockRegistry) String() string {
+	return "mock"
+}
+
 func NewRegistry() *MockRegistry {
 	return &MockRegistry{}
 }

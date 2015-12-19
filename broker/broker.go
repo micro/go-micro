@@ -7,6 +7,7 @@ type Broker interface {
 	Init() error
 	Publish(string, *Message) error
 	Subscribe(string, Handler) (Subscriber, error)
+	String() string
 }
 
 type Handler func(*Message)
@@ -51,4 +52,8 @@ func Publish(topic string, msg *Message) error {
 
 func Subscribe(topic string, handler Handler) (Subscriber, error) {
 	return DefaultBroker.Subscribe(topic, handler)
+}
+
+func String() string {
+	return DefaultBroker.String()
 }

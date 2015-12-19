@@ -258,3 +258,7 @@ func (r *rpcClient) NewProtoRequest(service, method string, request interface{},
 func (r *rpcClient) NewJsonRequest(service, method string, request interface{}, reqOpts ...RequestOption) Request {
 	return newRpcRequest(service, method, request, "application/json", reqOpts...)
 }
+
+func (r *rpcClient) String() string {
+	return "rpc"
+}

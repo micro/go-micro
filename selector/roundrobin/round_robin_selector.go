@@ -73,6 +73,10 @@ func (r *roundRobinSelector) Close() error {
 	return nil
 }
 
+func (r *roundRobinSelector) String() string {
+	return "roundrobin"
+}
+
 func NewSelector(opts ...selector.Option) selector.Selector {
 	var sopts selector.Options
 

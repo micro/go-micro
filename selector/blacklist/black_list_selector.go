@@ -143,6 +143,10 @@ func (r *blackListSelector) Close() error {
 	return nil
 }
 
+func (r *blackListSelector) String() string {
+	return "blacklist"
+}
+
 func NewSelector(opts ...selector.Option) selector.Selector {
 	var sopts selector.Options
 

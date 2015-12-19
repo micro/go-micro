@@ -185,6 +185,8 @@ func (s *rpcServer) Register() error {
 		Metadata: config.Metadata(),
 	}
 
+	node.Metadata["transport"] = config.transport.String()
+
 	s.RLock()
 	var endpoints []*registry.Endpoint
 	for _, e := range s.handlers {
@@ -308,4 +310,8 @@ func (s *rpcServer) Stop() error {
 	ch := make(chan error)
 	s.exit <- ch
 	return <-ch
+}
+
+func (s *rpcServer) String() string {
+	return "rpc"
 }

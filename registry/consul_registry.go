@@ -212,3 +212,7 @@ func (c *consulRegistry) ListServices() ([]*Service, error) {
 func (c *consulRegistry) Watch() (Watcher, error) {
 	return newConsulWatcher(c)
 }
+
+func (c *consulRegistry) String() string {
+	return "consul"
+}

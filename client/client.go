@@ -35,6 +35,7 @@ type Client interface {
 	Stream(ctx context.Context, req Request, opts ...CallOption) (Streamer, error)
 	StreamRemote(ctx context.Context, addr string, req Request, opts ...CallOption) (Streamer, error)
 	Publish(ctx context.Context, p Publication, opts ...PublishOption) error
+	String() string
 }
 
 type Publication interface {
@@ -121,4 +122,8 @@ func NewProtoRequest(service, method string, request interface{}, reqOpts ...Req
 // Creates a new json request using the default client
 func NewJsonRequest(service, method string, request interface{}, reqOpts ...RequestOption) Request {
 	return DefaultClient.NewJsonRequest(service, method, request, reqOpts...)
+}
+
+func String() string {
+	return DefaultClient.String()
 }

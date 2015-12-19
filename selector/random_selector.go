@@ -74,6 +74,10 @@ func (r *randomSelector) Close() error {
 	return nil
 }
 
+func (r *randomSelector) String() string {
+	return "random"
+}
+
 func newRandomSelector(opts ...Option) Selector {
 	var sopts Options
 

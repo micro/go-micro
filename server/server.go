@@ -49,6 +49,7 @@ type Server interface {
 	Deregister() error
 	Start() error
 	Stop() error
+	String() string
 }
 
 type Publication interface {
@@ -182,4 +183,8 @@ func Start() error {
 func Stop() error {
 	log.Infof("Stopping server")
 	return DefaultServer.Stop()
+}
+
+func String() string {
+	return DefaultServer.String()
 }

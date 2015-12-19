@@ -308,6 +308,10 @@ func (h *httpTransport) Listen(addr string) (Listener, error) {
 	}, nil
 }
 
+func (h *httpTransport) String() string {
+	return "http"
+}
+
 func newHttpTransport(addrs []string, opt ...Option) *httpTransport {
 	return &httpTransport{}
 }
