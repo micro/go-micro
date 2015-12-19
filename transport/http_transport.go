@@ -23,16 +23,21 @@ type httpTransportClient struct {
 	addr     string
 	conn     net.Conn
 	dialOpts dialOptions
-	r        chan *http.Request
 	once     sync.Once
 
 	sync.Mutex
+	r    chan *http.Request
+	bl   []*http.Request
 	buff *bufio.Reader
 }
 
 type httpTransportSocket struct {
-	r    *http.Request
+	r    chan *http.Request
 	conn net.Conn
+	once sync.Once
+
+	sync.Mutex
+	buff *bufio.Reader
 }
 
 type httpTransportListener struct {
@@ -68,7 +73,14 @@ func (h *httpTransportClient) Send(m *Message) error {
 		Host:          h.addr,
 	}
 
-	h.r <- req
+	h.Lock()
+	h.bl = append(h.bl, req)
+	select {
+	case h.r <- h.bl[0]:
+		h.bl = h.bl[1:]
+	default:
+	}
+	h.Unlock()
 
 	return req.Write(h.conn)
 }
@@ -134,22 +146,33 @@ func (h *httpTransportSocket) Recv(m *Message) error {
 		return errors.New("message passed in is nil")
 	}
 
-	b, err := ioutil.ReadAll(h.r.Body)
+	r, err := http.ReadRequest(h.buff)
 	if err != nil {
 		return err
 	}
-	h.r.Body.Close()
+
+	b, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return err
+	}
+	r.Body.Close()
+
 	mr := &Message{
 		Header: make(map[string]string),
 		Body:   b,
 	}
 
-	for k, v := range h.r.Header {
+	for k, v := range r.Header {
 		if len(v) > 0 {
 			mr.Header[k] = v[0]
 		} else {
 			mr.Header[k] = ""
 		}
+	}
+
+	select {
+	case h.r <- r:
+	default:
 	}
 
 	*m = *mr
@@ -159,8 +182,11 @@ func (h *httpTransportSocket) Recv(m *Message) error {
 func (h *httpTransportSocket) Send(m *Message) error {
 	b := bytes.NewBuffer(m.Body)
 	defer b.Reset()
+
+	r := <-h.r
+
 	rsp := &http.Response{
-		Header:        h.r.Header,
+		Header:        r.Header,
 		Body:          &buffer{b},
 		Status:        "200 OK",
 		StatusCode:    200,
@@ -172,6 +198,11 @@ func (h *httpTransportSocket) Send(m *Message) error {
 
 	for k, v := range m.Header {
 		rsp.Header.Set(k, v)
+	}
+
+	select {
+	case h.r <- r:
+	default:
 	}
 
 	return rsp.Write(h.conn)
@@ -199,7 +230,14 @@ func (h *httpTransportSocket) error(m *Message) error {
 }
 
 func (h *httpTransportSocket) Close() error {
-	return h.conn.Close()
+	err := h.conn.Close()
+	h.once.Do(func() {
+		h.Lock()
+		h.buff.Reset(nil)
+		h.buff = nil
+		h.Unlock()
+	})
+	return err
 }
 
 func (h *httpTransportListener) Addr() string {
@@ -211,18 +249,19 @@ func (h *httpTransportListener) Close() error {
 }
 
 func (h *httpTransportListener) Accept(fn func(Socket)) error {
-	srv := &http.Server{
-		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			conn, _, err := w.(http.Hijacker).Hijack()
-			if err != nil {
-				return
-			}
+	for {
+		c, err := h.listener.Accept()
+		if err != nil {
+			return err
+		}
 
-			sock := &httpTransportSocket{
-				conn: conn,
-				r:    r,
-			}
+		sock := &httpTransportSocket{
+			conn: c,
+			buff: bufio.NewReader(c),
+			r:    make(chan *http.Request, 1),
+		}
 
+		go func() {
 			// TODO: think of a better error response strategy
 			defer func() {
 				if r := recover(); r != nil {
@@ -231,10 +270,9 @@ func (h *httpTransportListener) Accept(fn func(Socket)) error {
 			}()
 
 			fn(sock)
-		}),
+		}()
 	}
-
-	return srv.Serve(h.listener)
+	return nil
 }
 
 func (h *httpTransport) Dial(addr string, opts ...DialOption) (Client, error) {

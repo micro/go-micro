@@ -24,6 +24,10 @@ type callOptions struct {
 
 type publishOptions struct{}
 
+type requestOptions struct {
+	stream bool
+}
+
 // Broker to be used for pub/sub
 func Broker(b broker.Broker) Option {
 	return func(o *options) {
@@ -78,5 +82,13 @@ func Wrap(w Wrapper) Option {
 func WithSelectOption(so selector.SelectOption) CallOption {
 	return func(o *callOptions) {
 		o.selectOptions = append(o.selectOptions, so)
+	}
+}
+
+// Request Options
+
+func StreamingRequest() RequestOption {
+	return func(o *requestOptions) {
+		o.stream = true
 	}
 }

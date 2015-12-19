@@ -36,3 +36,6 @@ Example usage:
 
 // Wrapper wraps a client and returns a client
 type Wrapper func(Client) Client
+
+// StreamWrapper wraps a Stream and returns the equivalent
+type StreamWrapper func(Streamer) Streamer

@@ -60,9 +60,20 @@ func newRpcPlusCodec(req *transport.Message, socket transport.Socket, c codec.Ne
 	return r
 }
 
-func (c *rpcPlusCodec) ReadRequestHeader(r *request) error {
-	m := codec.Message{
-		Headers: c.req.Header,
+func (c *rpcPlusCodec) ReadRequestHeader(r *request, first bool) error {
+	m := codec.Message{Headers: c.req.Header}
+
+	if !first {
+		var tm transport.Message
+		if err := c.socket.Recv(&tm); err != nil {
+			return err
+		}
+		c.buf.rbuf.Reset()
+		if _, err := c.buf.rbuf.Write(tm.Body); err != nil {
+			return err
+		}
+
+		m.Headers = tm.Header
 	}
 
 	err := c.codec.ReadHeader(&m, codec.Request)

@@ -35,6 +35,7 @@ import (
 
 	log "github.com/golang/glog"
 	"github.com/pborman/uuid"
+	"golang.org/x/net/context"
 )
 
 type Server interface {
@@ -61,8 +62,21 @@ type Request interface {
 	Method() string
 	ContentType() string
 	Request() interface{}
-	// indicates whether the response should be streaming
+	// indicates whether the request will be streamed
 	Stream() bool
+}
+
+// Streamer represents a stream established with a client.
+// A stream can be bidirectional which is indicated by the request.
+// The last error will be left in Error().
+// EOF indicated end of the stream.
+type Streamer interface {
+	Context() context.Context
+	Request() Request
+	Send(interface{}) error
+	Recv(interface{}) error
+	Error() error
+	Close() error
 }
 
 type Option func(*options)

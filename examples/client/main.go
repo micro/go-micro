@@ -54,22 +54,63 @@ func call(i int) {
 	fmt.Println("Call:", i, "rsp:", rsp.Msg)
 }
 
-func stream() {
+func stream(i int) {
 	// Create new request to service go.micro.srv.example, method Example.Call
-	req := client.NewRequest("go.micro.srv.example", "Example.Stream", &example.StreamingRequest{
-		Count: int64(10),
-	})
+	// Request can be empty as its actually ignored and merely used to call the handler
+	req := client.NewRequest("go.micro.srv.example", "Example.Stream", &example.StreamingRequest{})
 
-	rspChan := make(chan *example.StreamingResponse, 10)
+	stream, err := client.Stream(context.Background(), req)
+	if err != nil {
+		fmt.Println("err:", err)
+		return
+	}
+	if err := stream.Send(&example.StreamingRequest{Count: int64(i)}); err != nil {
+		fmt.Println("err:", err)
+		return
+	}
+	for stream.Error() == nil {
+		rsp := &example.StreamingResponse{}
+		err := stream.Recv(rsp)
+		if err != nil {
+			fmt.Println("recv err", err)
+			break
+		}
+		fmt.Println("Stream: rsp:", rsp.Count)
+	}
 
-	stream, err := client.Stream(context.Background(), req, rspChan)
+	if stream.Error() != nil {
+		fmt.Println("stream err:", err)
+		return
+	}
+
+	if err := stream.Close(); err != nil {
+		fmt.Println("stream close err:", err)
+	}
+}
+
+func pingPong(i int) {
+	// Create new request to service go.micro.srv.example, method Example.Call
+	// Request can be empty as its actually ignored and merely used to call the handler
+	req := client.NewRequest("go.micro.srv.example", "Example.PingPong", &example.StreamingRequest{})
+
+	stream, err := client.Stream(context.Background(), req)
 	if err != nil {
 		fmt.Println("err:", err)
 		return
 	}
 
-	for rsp := range rspChan {
-		fmt.Println("Stream: rsp:", rsp.Count)
+	for j := 0; j < i; j++ {
+		if err := stream.Send(&example.Ping{Stroke: int64(j + 1)}); err != nil {
+			fmt.Println("err:", err)
+			return
+		}
+		rsp := &example.Pong{}
+		err := stream.Recv(rsp)
+		if err != nil {
+			fmt.Println("recv err", err)
+			break
+		}
+		fmt.Printf("Sent ping %v got pong %v\n", j+1, rsp.Stroke)
 	}
 
 	if stream.Error() != nil {
@@ -90,7 +131,10 @@ func main() {
 	}
 
 	fmt.Println("\n--- Streamer example ---\n")
-	stream()
+	stream(10)
+
+	fmt.Println("\n--- Ping Pong example ---\n")
+	pingPong(10)
 
 	fmt.Println("\n--- Publisher example ---\n")
 	pub()

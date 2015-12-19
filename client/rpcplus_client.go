@@ -8,7 +8,6 @@ import (
 	"errors"
 	"io"
 	"log"
-	"reflect"
 	"sync"
 
 	"github.com/youtube/vitess/go/trace"
@@ -38,7 +37,6 @@ type call struct {
 	Reply         interface{} // The reply from the function (*struct for single, chan * struct for streaming).
 	Error         error       // After completion, the error status.
 	Done          chan *call  // Strobes when call is complete (nil for streaming RPCs)
-	Stream        bool        // True for a streaming RPC call, false otherwise
 	Subseq        uint64      // The next expected subseq in the packets
 }
 
@@ -145,28 +143,12 @@ func (client *client) input() {
 			// We've got an error response. Give this to the request;
 			// any subsequent requests will get the ReadResponseBody
 			// error if there is one.
-			if !(call.Stream && resp.Error == lastStreamResponseError) {
-				call.Error = serverError(resp.Error)
-			}
+			call.Error = serverError(resp.Error)
 			err = client.codec.ReadResponseBody(nil)
 			if err != nil {
 				err = errors.New("reading error payload: " + err.Error())
 			}
 			client.done(seq)
-		case call.Stream:
-			// call.Reply is a chan *T2
-			// we need to create a T2 and get a *T2 back
-			value := reflect.New(reflect.TypeOf(call.Reply).Elem().Elem()).Interface()
-			err = client.codec.ReadResponseBody(value)
-			if err != nil {
-				call.Error = errors.New("reading body " + err.Error())
-			} else {
-				// writing on the channel could block forever. For
-				// instance, if a client calls 'close', this might block
-				// forever.  the current suggestion is for the
-				// client to drain the receiving channel in that case
-				reflect.ValueOf(call.Reply).Send(reflect.ValueOf(value))
-			}
 		default:
 			err = client.codec.ReadResponseBody(call.Reply)
 			if err != nil {
@@ -203,12 +185,6 @@ func (client *client) done(seq uint64) {
 }
 
 func (call *call) done() {
-	if call.Stream {
-		// need to close the channel. client won't be able to read any more.
-		reflect.ValueOf(call.Reply).Close()
-		return
-	}
-
 	select {
 	case call.Done <- call:
 		// ok
@@ -268,28 +244,6 @@ func (client *client) Go(ctx context.Context, service, serviceMethod string, arg
 	cal.Done = done
 	client.send(cal)
 	return cal
-}
-
-// StreamGo invokes the streaming function asynchronously.  It returns the call structure representing
-// the invocation.
-func (client *client) StreamGo(service string, serviceMethod string, args interface{}, replyStream interface{}) *call {
-	// first check the replyStream object is a stream of pointers to a data structure
-	typ := reflect.TypeOf(replyStream)
-	// FIXME: check the direction of the channel, maybe?
-	if typ.Kind() != reflect.Chan || typ.Elem().Kind() != reflect.Ptr {
-		log.Panic("rpc: replyStream is not a channel of pointers")
-		return nil
-	}
-
-	call := new(call)
-	call.Service = service
-	call.ServiceMethod = serviceMethod
-	call.Args = args
-	call.Reply = replyStream
-	call.Stream = true
-	call.Subseq = 0
-	client.send(call)
-	return call
 }
 
 // call invokes the named function, waits for it to complete, and returns its error status.
