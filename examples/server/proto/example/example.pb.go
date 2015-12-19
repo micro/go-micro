@@ -219,18 +219,18 @@ type ExampleHandler interface {
 }
 
 func RegisterExampleHandler(s server.Server, hdlr ExampleHandler) {
-	s.Handle(s.NewHandler(&exampleHandler{hdlr}))
+	s.Handle(s.NewHandler(&Example{hdlr}))
 }
 
-type exampleHandler struct {
+type Example struct {
 	ExampleHandler
 }
 
-func (h *exampleHandler) Call(ctx context.Context, in *Request, out *Response) error {
+func (h *Example) Call(ctx context.Context, in *Request, out *Response) error {
 	return h.ExampleHandler.Call(ctx, in, out)
 }
 
-func (h *exampleHandler) Stream(ctx context.Context, stream server.Streamer) error {
+func (h *Example) Stream(ctx context.Context, stream server.Streamer) error {
 	m := new(StreamingRequest)
 	if err := stream.Recv(m); err != nil {
 		return err
@@ -251,7 +251,7 @@ func (x *exampleStreamStream) SendR(m *StreamingResponse) error {
 	return x.Streamer.Send(m)
 }
 
-func (h *exampleHandler) PingPong(ctx context.Context, stream server.Streamer) error {
+func (h *Example) PingPong(ctx context.Context, stream server.Streamer) error {
 	return h.ExampleHandler.PingPong(ctx, &examplePingPongStream{stream})
 }
 
