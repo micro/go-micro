@@ -100,7 +100,7 @@ func pingPong(i int) {
 	}
 
 	for j := 0; j < i; j++ {
-		if err := stream.Send(&example.Ping{Stroke: int64(j)}); err != nil {
+		if err := stream.Send(&example.Ping{Stroke: int64(j + 1)}); err != nil {
 			fmt.Println("err:", err)
 			return
 		}
@@ -110,7 +110,7 @@ func pingPong(i int) {
 			fmt.Println("recv err", err)
 			break
 		}
-		fmt.Printf("Sent ping %v got pong %v\n", j, rsp.Stroke)
+		fmt.Printf("Sent ping %v got pong %v\n", j+1, rsp.Stroke)
 	}
 
 	if stream.Error() != nil {
