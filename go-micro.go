@@ -5,19 +5,15 @@ Go micro provides a pluggable library to build microservices.
 		micro "github.com/micro/go-micro"
 	)
 
-	service := micro.New(
-		micro.Registry(r),
-		micro.Broker(b),
-	)
-
+	service := micro.NewService()
 	h := service.Server().NewHandler(&Greeter{})
 	service.Server().Handle(h)
 	service.Run()
 
 
-	req := service.Client.NewRequest(service, method, request)
+	req := service.Client().NewRequest(service, method, request)
 	rsp := response{}
-	err := service.Client.Call(req, rsp)
+	err := service.Client().Call(req, rsp)
 
 */
 
