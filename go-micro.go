@@ -34,8 +34,7 @@ type Service interface {
 type Option func(*Options)
 
 var (
-	HeaderPrefix   = "X-Micro-"
-	DefaultService = newService()
+	HeaderPrefix = "X-Micro-"
 )
 
 func NewService(opts ...Option) Service {
