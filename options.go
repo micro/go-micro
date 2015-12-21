@@ -44,3 +44,33 @@ func newOptions(opts ...Option) Options {
 
 	return opt
 }
+
+func Broker(b broker.Broker) Option {
+	return func(o *Options) {
+		o.Broker = b
+	}
+}
+
+func Client(c client.Client) Option {
+	return func(o *Options) {
+		o.Client = c
+	}
+}
+
+func Server(s server.Server) Option {
+	return func(o *Options) {
+		o.Server = s
+	}
+}
+
+func Registry(r registry.Registry) Option {
+	return func(o *Options) {
+		o.Registry = r
+	}
+}
+
+func Transport(t transport.Transport) Option {
+	return func(o *Options) {
+		o.Transport = t
+	}
+}
