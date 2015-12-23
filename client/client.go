@@ -2,6 +2,8 @@ package client
 
 import (
 	"golang.org/x/net/context"
+
+	"github.com/piemapping/plugged/trace"
 )
 
 type Client interface {
@@ -42,7 +44,19 @@ var (
 )
 
 func Call(ctx context.Context, request Request, response interface{}) error {
-	return DefaultClient.Call(ctx, request, response)
+	// Create a trace just before sending the message over the wire
+	tr, ctx := createTrace(ctx, trace.SenderSend, request.Service(), request.Method(), request.Request(), nil)
+	// and submit it...
+	submitTrace(tr)
+
+	err := DefaultClient.Call(ctx, request, response)
+
+	// Create a trace just after getting the response (or error) from remote server
+	tr, ctx = createTrace(ctx, trace.SenderReceive, request.Service(), request.Method(), response, err)
+	// and submit it...
+	submitTrace(tr)
+
+	return err
 }
 
 func CallRemote(ctx context.Context, address string, request Request, response interface{}) error {
