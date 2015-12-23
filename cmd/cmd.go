@@ -26,6 +26,8 @@ import (
 )
 
 var (
+	Actions = []func(*cli.Context){}
+
 	Flags = []cli.Flag{
 		cli.StringFlag{
 			Name:   "server_name",
@@ -283,7 +285,11 @@ GLOBAL OPTIONS:
 	app := cli.NewApp()
 	app.HideVersion = true
 	app.Usage = "a go micro app"
-	app.Action = func(c *cli.Context) {}
+	app.Action = func(c *cli.Context) {
+		for _, action := range Actions {
+			action(c)
+		}
+	}
 	app.Before = Setup
 	app.Flags = Flags
 	app.RunAndExitOnError()
