@@ -5,10 +5,9 @@ type Options struct{}
 type PublishOptions struct{}
 
 type SubscribeOptions struct {
-	// AutoAck defaults to true
+	// AutoAck defaults to true. When a handler returns
+	// with a nil error the message is acked.
 	AutoAck bool
-	// NumHandlers defaults to 1
-	NumHandlers int
 	// Subscribers with the same queue name
 	// will create a shared subscription where each
 	// receives a subset of messages.
@@ -29,14 +28,7 @@ func DisableAutoAck() SubscribeOption {
 	}
 }
 
-// NumHandlers sets the number of concurrent handlers to create
-// for a subscriber.
-func NumHandlers(i int) SubscribeOption {
-	return func(o *SubscribeOptions) {
-		o.NumHandlers = i
-	}
-}
-
+// QueueName sets the name of the queue to share messages on
 func QueueName(name string) SubscribeOption {
 	return func(o *SubscribeOptions) {
 		o.Queue = name
@@ -45,8 +37,7 @@ func QueueName(name string) SubscribeOption {
 
 func newSubscribeOptions(opts ...SubscribeOption) SubscribeOptions {
 	opt := SubscribeOptions{
-		AutoAck:     true,
-		NumHandlers: 1,
+		AutoAck: true,
 	}
 
 	for _, o := range opts {
