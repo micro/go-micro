@@ -9,6 +9,10 @@ type SubscribeOptions struct {
 	AutoAck bool
 	// NumHandlers defaults to 1
 	NumHandlers int
+	// Subscribers with the same queue name
+	// will create a shared subscription where each
+	// receives a subset of messages.
+	Queue string
 }
 
 type Option func(*Options)
@@ -30,6 +34,12 @@ func DisableAutoAck() SubscribeOption {
 func NumHandlers(i int) SubscribeOption {
 	return func(o *SubscribeOptions) {
 		o.NumHandlers = i
+	}
+}
+
+func QueueName(name string) SubscribeOption {
+	return func(o *SubscribeOptions) {
+		o.Queue = name
 	}
 }
 

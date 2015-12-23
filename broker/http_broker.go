@@ -4,12 +4,15 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
+	"math/rand"
 	"net"
 	"net/http"
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	log "github.com/golang/glog"
 	"github.com/micro/go-micro/errors"
@@ -47,8 +50,13 @@ type httpPublication struct {
 }
 
 var (
-	DefaultSubPath = "/_sub"
+	DefaultSubPath   = "/_sub"
+	broadcastVersion = "ff.http.broadcast"
 )
+
+func init() {
+	rand.Seed(time.Now().Unix())
+}
 
 func newHttpBroker(addrs []string, opt ...Option) Broker {
 	addr := ":0"
@@ -217,14 +225,36 @@ func (h *httpBroker) Publish(topic string, msg *Message, opts ...PublishOption) 
 		return err
 	}
 
-	for _, service := range s {
-		for _, node := range service.Nodes {
-			r, err := http.Post(fmt.Sprintf("http://%s:%d%s", node.Address, node.Port, DefaultSubPath), "application/json", bytes.NewBuffer(b))
-			if err == nil {
-				r.Body.Close()
-			}
+	fn := func(node *registry.Node, b io.Reader) {
+		r, err := http.Post(fmt.Sprintf("http://%s:%d%s", node.Address, node.Port, DefaultSubPath), "application/json", b)
+		if err == nil {
+			r.Body.Close()
 		}
 	}
+
+	buf := bytes.NewBuffer(nil)
+
+	for _, service := range s {
+		// broadcast version means broadcast to all nodes
+		if service.Version == broadcastVersion {
+			for _, node := range service.Nodes {
+				buf.Reset()
+				buf.Write(b)
+				fn(node, buf)
+			}
+			return nil
+		}
+
+		node := service.Nodes[rand.Int()%len(service.Nodes)]
+		buf.Reset()
+		buf.Write(b)
+		fn(node, buf)
+		return nil
+	}
+
+	buf.Reset()
+	buf = nil
+
 	return nil
 }
 
@@ -243,9 +273,15 @@ func (h *httpBroker) Subscribe(topic string, handler Handler, opts ...SubscribeO
 		Port:    port,
 	}
 
+	version := opt.Queue
+	if len(version) == 0 {
+		version = broadcastVersion
+	}
+
 	service := &registry.Service{
-		Name:  "topic:" + topic,
-		Nodes: []*registry.Node{node},
+		Name:    "topic:" + topic,
+		Version: version,
+		Nodes:   []*registry.Node{node},
 	}
 
 	subscriber := &httpSubscriber{
