@@ -24,7 +24,8 @@ type options struct {
 
 func newOptions(opt ...Option) options {
 	opts := options{
-		codecs: make(map[string]codec.NewCodec),
+		codecs:   make(map[string]codec.NewCodec),
+		metadata: map[string]string{},
 	}
 
 	for _, o := range opt {
