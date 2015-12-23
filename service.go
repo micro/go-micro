@@ -17,7 +17,7 @@ type service struct {
 func newService(opts ...Option) Service {
 	options := newOptions(opts...)
 
-	options.Client = &clientWrap{
+	options.Client = &clientWrapper{
 		options.Client,
 		context.Metadata{
 			HeaderPrefix + "From-Service": options.Server.Config().Name(),

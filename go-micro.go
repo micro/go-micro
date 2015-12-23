@@ -24,6 +24,9 @@ import (
 	"github.com/micro/go-micro/server"
 )
 
+// Service is an interface that wraps the lower level libraries
+// within go-micro. Its a convenience method for building
+// and initialising services.
 type Service interface {
 	Client() client.Client
 	Server() server.Server
