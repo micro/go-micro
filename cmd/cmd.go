@@ -15,6 +15,7 @@ import (
 	"text/template"
 	"time"
 
+	log "github.com/golang/glog"
 	"github.com/codegangsta/cli"
 	"github.com/micro/go-micro/broker"
 	"github.com/micro/go-micro/client"
@@ -102,9 +103,9 @@ var (
 		},
 
 		cli.BoolFlag{
-			Name:   "disable_ping",
-			EnvVar: "MICRO_DISABLE_PING",
-			Usage:  "Disable ping",
+			Name:   "enable_ping",
+			EnvVar: "MICRO_ENABLE_PING",
+			Usage:  "Enable ping",
 		},
 
 		// logging flags
@@ -182,6 +183,7 @@ func ping() {
 	cl := &http.Client{}
 
 	fn := func() {
+		log.Infof("Ping micro-services.co")
 		p.Timestamp = time.Now().Unix()
 		b, err := json.Marshal(p)
 		if err != nil {
@@ -257,7 +259,7 @@ func Setup(c *cli.Context) error {
 
 	client.DefaultClient = client.NewClient()
 
-	if !c.Bool("disable_ping") {
+	if c.Bool("enable_ping") {
 		go ping()
 	}
 
