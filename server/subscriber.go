@@ -155,11 +155,12 @@ func validateSubscriber(sub Subscriber) error {
 }
 
 func (s *rpcServer) createSubHandler(sb *subscriber, opts options) broker.Handler {
-	return func(msg *broker.Message) {
+	return func(p broker.Publication) error {
+		msg := p.Message()
 		ct := msg.Header["Content-Type"]
 		cf, err := s.newCodec(ct)
 		if err != nil {
-			return
+			return err
 		}
 
 		hdr := make(map[string]string)
@@ -190,11 +191,11 @@ func (s *rpcServer) createSubHandler(sb *subscriber, opts options) broker.Handle
 			defer co.Close()
 
 			if err := co.ReadHeader(&codec.Message{}, codec.Publication); err != nil {
-				continue
+				return err
 			}
 
 			if err := co.ReadBody(req.Interface()); err != nil {
-				continue
+				return err
 			}
 
 			fn := func(ctx context.Context, msg Publication) error {
@@ -225,6 +226,7 @@ func (s *rpcServer) createSubHandler(sb *subscriber, opts options) broker.Handle
 				message:     req.Interface(),
 			})
 		}
+		return nil
 	}
 }
 
