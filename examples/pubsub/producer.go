@@ -8,7 +8,8 @@ import (
 	"github.com/micro/go-micro/broker"
 	"github.com/micro/go-micro/cmd"
 
-	_ "github.com/micro/go-plugins/broker/rabbitmq"
+	// To enable rabbitmq plugin uncomment
+	//_ "github.com/micro/go-plugins/broker/rabbitmq"
 )
 
 var (
