@@ -20,7 +20,10 @@ func init() {
 	}
 }
 
-func extractValue(v reflect.Type) *registry.Value {
+func extractValue(v reflect.Type, d int) *registry.Value {
+	if d == 3 {
+		return nil
+	}
 	if v == nil {
 		return nil
 	}
@@ -37,7 +40,10 @@ func extractValue(v reflect.Type) *registry.Value {
 	switch v.Kind() {
 	case reflect.Struct:
 		for i := 0; i < v.NumField(); i++ {
-			val := extractValue(v.Field(i).Type)
+			val := extractValue(v.Field(i).Type, d+1)
+			if val == nil {
+				continue
+			}
 			val.Name = v.Field(i).Name
 			arg.Values = append(arg.Values, val)
 		}
@@ -47,7 +53,10 @@ func extractValue(v reflect.Type) *registry.Value {
 			p = p.Elem()
 		}
 		arg.Type = "[]" + p.Name()
-		arg.Values = append(arg.Values, extractValue(v.Elem()))
+		val := extractValue(v.Elem(), d+1)
+		if val != nil {
+			arg.Values = append(arg.Values, val)
+		}
 	}
 
 	return arg
@@ -77,8 +86,8 @@ func extractEndpoint(method reflect.Method) *registry.Endpoint {
 		stream = true
 	}
 
-	request := extractValue(reqType)
-	response := extractValue(rspType)
+	request := extractValue(reqType, 0)
+	response := extractValue(rspType, 0)
 
 	return &registry.Endpoint{
 		Name:     method.Name,
@@ -102,7 +111,7 @@ func extractSubValue(typ reflect.Type) *registry.Value {
 	default:
 		return nil
 	}
-	return extractValue(reqType)
+	return extractValue(reqType, 0)
 }
 
 func extractAddress(addr string) (string, error) {
