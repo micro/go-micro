@@ -15,8 +15,8 @@ import (
 	"text/template"
 	"time"
 
-	log "github.com/golang/glog"
 	"github.com/codegangsta/cli"
+	log "github.com/golang/glog"
 	"github.com/micro/go-micro/broker"
 	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/registry"
