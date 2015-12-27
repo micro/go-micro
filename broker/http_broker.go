@@ -260,15 +260,18 @@ func (h *httpBroker) Publish(topic string, msg *Message, opts ...PublishOption) 
 
 func (h *httpBroker) Subscribe(topic string, handler Handler, opts ...SubscribeOption) (Subscriber, error) {
 	opt := newSubscribeOptions(opts...)
+	fmt.Println("subscribe to", topic)
 
 	// parse address for host, port
 	parts := strings.Split(h.Address(), ":")
 	host := strings.Join(parts[:len(parts)-1], ":")
 	port, _ := strconv.Atoi(parts[len(parts)-1])
 
+	id := uuid.NewUUID().String()
+
 	// register service
 	node := &registry.Node{
-		Id:      h.id,
+		Id:      topic + "." + h.id + "." + id,
 		Address: host,
 		Port:    port,
 	}
@@ -286,7 +289,7 @@ func (h *httpBroker) Subscribe(topic string, handler Handler, opts ...SubscribeO
 
 	subscriber := &httpSubscriber{
 		opts:  opt,
-		id:    uuid.NewUUID().String(),
+		id:    id,
 		topic: topic,
 		ch:    h.unsubscribe,
 		fn:    handler,
@@ -299,8 +302,8 @@ func (h *httpBroker) Subscribe(topic string, handler Handler, opts ...SubscribeO
 
 	h.Lock()
 	h.subscribers[topic] = append(h.subscribers[topic], subscriber)
+	fmt.Println(h.subscribers)
 	h.Unlock()
-
 	return subscriber, nil
 }
 
