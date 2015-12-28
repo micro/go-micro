@@ -13,11 +13,23 @@ import (
 type rpcStream struct {
 	sync.RWMutex
 	seq     uint64
-	closed  bool
+	once    sync.Once
+	closed  chan bool
 	err     error
 	request Request
 	codec   clientCodec
 	context context.Context
+}
+
+func (r *rpcStream) isClosed() bool {
+	select {
+	case _, ok := <-r.closed:
+		if !ok {
+			return true
+		}
+	default:
+	}
+	return false
 }
 
 func (r *rpcStream) Context() context.Context {
@@ -32,7 +44,7 @@ func (r *rpcStream) Send(msg interface{}) error {
 	r.Lock()
 	defer r.Unlock()
 
-	if r.closed {
+	if r.isClosed() {
 		r.err = errShutdown
 		return errShutdown
 	}
@@ -57,14 +69,14 @@ func (r *rpcStream) Recv(msg interface{}) error {
 	r.Lock()
 	defer r.Unlock()
 
-	if r.closed {
+	if r.isClosed() {
 		r.err = errShutdown
 		return errShutdown
 	}
 
 	var resp response
 	if err := r.codec.ReadResponseHeader(&resp); err != nil {
-		if err == io.EOF && !r.closed {
+		if err == io.EOF && !r.isClosed() {
 			r.err = io.ErrUnexpectedEOF
 			return io.ErrUnexpectedEOF
 		}
@@ -91,7 +103,7 @@ func (r *rpcStream) Recv(msg interface{}) error {
 		}
 	}
 
-	if r.err != nil && r.err != io.EOF && !r.closed {
+	if r.err != nil && r.err != io.EOF && !r.isClosed() {
 		log.Println("rpc: client protocol error:", r.err)
 	}
 
@@ -105,8 +117,8 @@ func (r *rpcStream) Error() error {
 }
 
 func (r *rpcStream) Close() error {
-	r.Lock()
-	defer r.Unlock()
-	r.closed = true
+	r.once.Do(func() {
+		close(r.closed)
+	})
 	return r.codec.Close()
 }
