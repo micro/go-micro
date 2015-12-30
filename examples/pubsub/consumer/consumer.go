@@ -2,36 +2,31 @@ package main
 
 import (
 	"fmt"
-	"time"
 
 	log "github.com/golang/glog"
 	"github.com/micro/go-micro/broker"
 	"github.com/micro/go-micro/cmd"
+
+	// To enable rabbitmq plugin uncomment
+	//_ "github.com/micro/go-plugins/broker/rabbitmq"
 )
 
 var (
 	topic = "go.micro.topic.foo"
 )
 
-func pub() {
-	tick := time.NewTicker(time.Second)
-	i := 0
-	for _ = range tick.C {
-		msg := &broker.Message{
-			Header: map[string]string{
-				"id": fmt.Sprintf("%d", i),
-			},
-			Body: []byte(fmt.Sprintf("%d: %s", i, time.Now().String())),
-		}
-		if err := broker.Publish(topic, msg); err != nil {
-			log.Errorf("[pub] failed: %v", err)
-		} else {
-			fmt.Println("[pub] pubbed message:", string(msg.Body))
-		}
-		i++
+// Example of a shared subscription which receives a subset of messages
+func sharedSub() {
+	_, err := broker.Subscribe(topic, func(p broker.Publication) error {
+		fmt.Println("[sub] received message:", string(p.Message().Body), "header", p.Message().Header)
+		return nil
+	}, broker.QueueName("consumer"))
+	if err != nil {
+		fmt.Println(err)
 	}
 }
 
+// Example of a subscription which receives all the messages
 func sub() {
 	_, err := broker.Subscribe(topic, func(p broker.Publication) error {
 		fmt.Println("[sub] received message:", string(p.Message().Body), "header", p.Message().Header)
@@ -52,8 +47,6 @@ func main() {
 		log.Fatalf("Broker Connect error: %v", err)
 	}
 
-	go pub()
-	go sub()
-
-	<-time.After(time.Second * 10)
+	sub()
+	select {}
 }

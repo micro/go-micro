@@ -136,9 +136,12 @@ func (r *rpcClient) stream(ctx context.Context, address string, req Request) (St
 		return nil, errors.InternalServerError("go.micro.client", fmt.Sprintf("Error sending request: %v", err))
 	}
 
+	var once sync.Once
 	stream := &rpcStream{
 		context: ctx,
 		request: req,
+		once:    once,
+		closed:  make(chan bool),
 		codec:   newRpcPlusCodec(msg, c, cf),
 	}
 

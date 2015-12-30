@@ -4,18 +4,25 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
+	"math/rand"
 	"net"
 	"net/http"
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	log "github.com/golang/glog"
 	"github.com/micro/go-micro/errors"
 	"github.com/micro/go-micro/registry"
 	"github.com/pborman/uuid"
 )
+
+// HTTP Broker is a placeholder for actual message brokers.
+// This should not really be used in production but useful
+// in developer where you want zero dependencies.
 
 type httpBroker struct {
 	id          string
@@ -29,6 +36,7 @@ type httpBroker struct {
 }
 
 type httpSubscriber struct {
+	opts  SubscribeOptions
 	id    string
 	topic string
 	ch    chan *httpSubscriber
@@ -36,9 +44,19 @@ type httpSubscriber struct {
 	svc   *registry.Service
 }
 
+type httpPublication struct {
+	m *Message
+	t string
+}
+
 var (
-	DefaultSubPath = "/_sub"
+	DefaultSubPath   = "/_sub"
+	broadcastVersion = "ff.http.broadcast"
 )
+
+func init() {
+	rand.Seed(time.Now().Unix())
+}
 
 func newHttpBroker(addrs []string, opt ...Option) Broker {
 	addr := ":0"
@@ -53,6 +71,22 @@ func newHttpBroker(addrs []string, opt ...Option) Broker {
 		unsubscribe: make(chan *httpSubscriber),
 		exit:        make(chan chan error),
 	}
+}
+
+func (h *httpPublication) Ack() error {
+	return nil
+}
+
+func (h *httpPublication) Message() *Message {
+	return h.m
+}
+
+func (h *httpPublication) Topic() string {
+	return h.t
+}
+
+func (h *httpSubscriber) Config() SubscribeOptions {
+	return h.opts
 }
 
 func (h *httpSubscriber) Topic() string {
@@ -150,9 +184,10 @@ func (h *httpBroker) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	p := &httpPublication{m: m, t: topic}
 	h.RLock()
 	for _, subscriber := range h.subscribers[topic] {
-		subscriber.fn(m)
+		subscriber.fn(p)
 	}
 	h.RUnlock()
 }
@@ -169,7 +204,7 @@ func (h *httpBroker) Disconnect() error {
 	return h.stop()
 }
 
-func (h *httpBroker) Init() error {
+func (h *httpBroker) Init(opts ...Option) error {
 	if len(h.id) == 0 {
 		h.id = "broker-" + uuid.NewUUID().String()
 	}
@@ -178,7 +213,7 @@ func (h *httpBroker) Init() error {
 	return nil
 }
 
-func (h *httpBroker) Publish(topic string, msg *Message) error {
+func (h *httpBroker) Publish(topic string, msg *Message, opts ...PublishOption) error {
 	s, err := registry.GetService("topic:" + topic)
 	if err != nil {
 		return err
@@ -190,37 +225,70 @@ func (h *httpBroker) Publish(topic string, msg *Message) error {
 		return err
 	}
 
-	for _, service := range s {
-		for _, node := range service.Nodes {
-			r, err := http.Post(fmt.Sprintf("http://%s:%d%s", node.Address, node.Port, DefaultSubPath), "application/json", bytes.NewBuffer(b))
-			if err == nil {
-				r.Body.Close()
-			}
+	fn := func(node *registry.Node, b io.Reader) {
+		r, err := http.Post(fmt.Sprintf("http://%s:%d%s", node.Address, node.Port, DefaultSubPath), "application/json", b)
+		if err == nil {
+			r.Body.Close()
 		}
 	}
+
+	buf := bytes.NewBuffer(nil)
+
+	for _, service := range s {
+		// broadcast version means broadcast to all nodes
+		if service.Version == broadcastVersion {
+			for _, node := range service.Nodes {
+				buf.Reset()
+				buf.Write(b)
+				fn(node, buf)
+			}
+			return nil
+		}
+
+		node := service.Nodes[rand.Int()%len(service.Nodes)]
+		buf.Reset()
+		buf.Write(b)
+		fn(node, buf)
+		return nil
+	}
+
+	buf.Reset()
+	buf = nil
+
 	return nil
 }
 
-func (h *httpBroker) Subscribe(topic string, handler Handler) (Subscriber, error) {
+func (h *httpBroker) Subscribe(topic string, handler Handler, opts ...SubscribeOption) (Subscriber, error) {
+	opt := newSubscribeOptions(opts...)
+
 	// parse address for host, port
 	parts := strings.Split(h.Address(), ":")
 	host := strings.Join(parts[:len(parts)-1], ":")
 	port, _ := strconv.Atoi(parts[len(parts)-1])
 
+	id := uuid.NewUUID().String()
+
 	// register service
 	node := &registry.Node{
-		Id:      h.id,
+		Id:      topic + "." + h.id + "." + id,
 		Address: host,
 		Port:    port,
 	}
 
+	version := opt.Queue
+	if len(version) == 0 {
+		version = broadcastVersion
+	}
+
 	service := &registry.Service{
-		Name:  "topic:" + topic,
-		Nodes: []*registry.Node{node},
+		Name:    "topic:" + topic,
+		Version: version,
+		Nodes:   []*registry.Node{node},
 	}
 
 	subscriber := &httpSubscriber{
-		id:    uuid.NewUUID().String(),
+		opts:  opt,
+		id:    id,
 		topic: topic,
 		ch:    h.unsubscribe,
 		fn:    handler,
@@ -234,7 +302,6 @@ func (h *httpBroker) Subscribe(topic string, handler Handler) (Subscriber, error
 	h.Lock()
 	h.subscribers[topic] = append(h.subscribers[topic], subscriber)
 	h.Unlock()
-
 	return subscriber, nil
 }
 

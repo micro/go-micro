@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/codegangsta/cli"
+	log "github.com/golang/glog"
 	"github.com/micro/go-micro/broker"
 	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/registry"
@@ -26,6 +27,8 @@ import (
 )
 
 var (
+	Actions = []func(*cli.Context){}
+
 	Flags = []cli.Flag{
 		cli.StringFlag{
 			Name:   "server_name",
@@ -100,9 +103,9 @@ var (
 		},
 
 		cli.BoolFlag{
-			Name:   "disable_ping",
-			EnvVar: "MICRO_DISABLE_PING",
-			Usage:  "Disable ping",
+			Name:   "enable_ping",
+			EnvVar: "MICRO_ENABLE_PING",
+			Usage:  "Enable ping",
 		},
 
 		// logging flags
@@ -180,6 +183,7 @@ func ping() {
 	cl := &http.Client{}
 
 	fn := func() {
+		log.Infof("Ping micro-services.co")
 		p.Timestamp = time.Now().Unix()
 		b, err := json.Marshal(p)
 		if err != nil {
@@ -255,7 +259,7 @@ func Setup(c *cli.Context) error {
 
 	client.DefaultClient = client.NewClient()
 
-	if !c.Bool("disable_ping") {
+	if c.Bool("enable_ping") {
 		go ping()
 	}
 
@@ -283,7 +287,11 @@ GLOBAL OPTIONS:
 	app := cli.NewApp()
 	app.HideVersion = true
 	app.Usage = "a go micro app"
-	app.Action = func(c *cli.Context) {}
+	app.Action = func(c *cli.Context) {
+		for _, action := range Actions {
+			action(c)
+		}
+	}
 	app.Before = Setup
 	app.Flags = Flags
 	app.RunAndExitOnError()

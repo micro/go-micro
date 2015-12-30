@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"sync"
@@ -43,6 +44,13 @@ func newRpcServer(opts ...Option) Server {
 }
 
 func (s *rpcServer) accept(sock transport.Socket) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Error(r, string(debug.Stack()))
+			sock.Close()
+		}
+	}()
+
 	var msg transport.Message
 	if err := sock.Recv(&msg); err != nil {
 		return
