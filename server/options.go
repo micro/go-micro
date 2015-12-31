@@ -7,166 +7,147 @@ import (
 	"github.com/micro/go-micro/transport"
 )
 
-type options struct {
-	codecs       map[string]codec.NewCodec
-	broker       broker.Broker
-	registry     registry.Registry
-	transport    transport.Transport
-	metadata     map[string]string
-	name         string
-	address      string
-	advertise    string
-	id           string
-	version      string
-	hdlrWrappers []HandlerWrapper
-	subWrappers  []SubscriberWrapper
+type Options struct {
+	Codecs       map[string]codec.NewCodec
+	Broker       broker.Broker
+	Registry     registry.Registry
+	Transport    transport.Transport
+	Metadata     map[string]string
+	Name         string
+	Address      string
+	Advertise    string
+	Id           string
+	Version      string
+	HdlrWrappers []HandlerWrapper
+	SubWrappers  []SubscriberWrapper
+
+	// Extra options settable by users.
+	// Used for other implementations.
+	Options map[string]string
 }
 
-func newOptions(opt ...Option) options {
-	opts := options{
-		codecs:   make(map[string]codec.NewCodec),
-		metadata: map[string]string{},
+func newOptions(opt ...Option) Options {
+	opts := Options{
+		Codecs:   make(map[string]codec.NewCodec),
+		Metadata: map[string]string{},
+		Options:  map[string]string{},
 	}
 
 	for _, o := range opt {
 		o(&opts)
 	}
 
-	if opts.broker == nil {
-		opts.broker = broker.DefaultBroker
+	if opts.Broker == nil {
+		opts.Broker = broker.DefaultBroker
 	}
 
-	if opts.registry == nil {
-		opts.registry = registry.DefaultRegistry
+	if opts.Registry == nil {
+		opts.Registry = registry.DefaultRegistry
 	}
 
-	if opts.transport == nil {
-		opts.transport = transport.DefaultTransport
+	if opts.Transport == nil {
+		opts.Transport = transport.DefaultTransport
 	}
 
-	if len(opts.address) == 0 {
-		opts.address = DefaultAddress
+	if len(opts.Address) == 0 {
+		opts.Address = DefaultAddress
 	}
 
-	if len(opts.name) == 0 {
-		opts.name = DefaultName
+	if len(opts.Name) == 0 {
+		opts.Name = DefaultName
 	}
 
-	if len(opts.id) == 0 {
-		opts.id = DefaultId
+	if len(opts.Id) == 0 {
+		opts.Id = DefaultId
 	}
 
-	if len(opts.version) == 0 {
-		opts.version = DefaultVersion
+	if len(opts.Version) == 0 {
+		opts.Version = DefaultVersion
 	}
 
 	return opts
 }
 
-func (o options) Name() string {
-	return o.name
-}
-
-func (o options) Id() string {
-	return o.name + "-" + o.id
-}
-
-func (o options) Version() string {
-	return o.version
-}
-
-func (o options) Address() string {
-	return o.address
-}
-
-func (o options) Advertise() string {
-	return o.advertise
-}
-
-func (o options) Metadata() map[string]string {
-	return o.metadata
-}
-
 // Server name
 func Name(n string) Option {
-	return func(o *options) {
-		o.name = n
+	return func(o *Options) {
+		o.Name = n
 	}
 }
 
 // Unique server id
 func Id(id string) Option {
-	return func(o *options) {
-		o.id = id
+	return func(o *Options) {
+		o.Id = id
 	}
 }
 
 // Version of the service
 func Version(v string) Option {
-	return func(o *options) {
-		o.version = v
+	return func(o *Options) {
+		o.Version = v
 	}
 }
 
 // Address to bind to - host:port
 func Address(a string) Option {
-	return func(o *options) {
-		o.address = a
+	return func(o *Options) {
+		o.Address = a
 	}
 }
 
 // The address to advertise for discovery - host:port
 func Advertise(a string) Option {
-	return func(o *options) {
-		o.advertise = a
+	return func(o *Options) {
+		o.Advertise = a
 	}
 }
 
 // Broker to use for pub/sub
 func Broker(b broker.Broker) Option {
-	return func(o *options) {
-		o.broker = b
+	return func(o *Options) {
+		o.Broker = b
 	}
 }
 
 // Codec to use to encode/decode requests for a given content type
 func Codec(contentType string, c codec.NewCodec) Option {
-	return func(o *options) {
-		o.codecs[contentType] = c
+	return func(o *Options) {
+		o.Codecs[contentType] = c
 	}
 }
 
 // Registry used for discovery
 func Registry(r registry.Registry) Option {
-	return func(o *options) {
-		o.registry = r
+	return func(o *Options) {
+		o.Registry = r
 	}
 }
 
 // Transport mechanism for communication e.g http, rabbitmq, etc
 func Transport(t transport.Transport) Option {
-	return func(o *options) {
-		o.transport = t
+	return func(o *Options) {
+		o.Transport = t
 	}
 }
 
 // Metadata associated with the server
 func Metadata(md map[string]string) Option {
-	return func(o *options) {
-		o.metadata = md
+	return func(o *Options) {
+		o.Metadata = md
 	}
 }
 
 // Adds a handler Wrapper to a list of options passed into the server
 func WrapHandler(w HandlerWrapper) Option {
-	return func(o *options) {
-		o.hdlrWrappers = append(o.hdlrWrappers, w)
+	return func(o *Options) {
+		o.HdlrWrappers = append(o.HdlrWrappers, w)
 	}
 }
 
 // Adds a subscriber Wrapper to a list of options passed into the server
 func WrapSubscriber(w SubscriberWrapper) Option {
-	return func(o *options) {
-		o.subWrappers = append(o.subWrappers, w)
+	return func(o *Options) {
+		o.SubWrappers = append(o.SubWrappers, w)
 	}
 }

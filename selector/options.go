@@ -6,10 +6,16 @@ import (
 
 type Options struct {
 	Registry registry.Registry
+
+	// Other options to be used by broker implementations
+	Options map[string]string
 }
 
 type SelectOptions struct {
 	Filters []SelectFilter
+
+	// Other options to be used by broker implementations
+	Options map[string]string
 }
 
 // Option used to initialise the selector

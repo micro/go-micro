@@ -154,7 +154,7 @@ func validateSubscriber(sub Subscriber) error {
 	return nil
 }
 
-func (s *rpcServer) createSubHandler(sb *subscriber, opts options) broker.Handler {
+func (s *rpcServer) createSubHandler(sb *subscriber, opts Options) broker.Handler {
 	return func(p broker.Publication) error {
 		msg := p.Message()
 		ct := msg.Header["Content-Type"]
@@ -216,8 +216,8 @@ func (s *rpcServer) createSubHandler(sb *subscriber, opts options) broker.Handle
 				return nil
 			}
 
-			for i := len(opts.subWrappers); i > 0; i-- {
-				fn = opts.subWrappers[i-1](fn)
+			for i := len(opts.SubWrappers); i > 0; i-- {
+				fn = opts.SubWrappers[i-1](fn)
 			}
 
 			go fn(ctx, &rpcPublication{

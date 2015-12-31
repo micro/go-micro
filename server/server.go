@@ -39,7 +39,7 @@ import (
 )
 
 type Server interface {
-	Config() options
+	Options() Options
 	Init(...Option)
 	Handle(Handler) error
 	NewHandler(interface{}) Handler
@@ -80,7 +80,7 @@ type Streamer interface {
 	Close() error
 }
 
-type Option func(*options)
+type Option func(*Options)
 
 var (
 	DefaultAddress        = ":0"
@@ -91,8 +91,8 @@ var (
 )
 
 // Returns config options for the default service
-func Config() options {
-	return DefaultServer.Config()
+func DefaultOptions() Options {
+	return DefaultServer.Options()
 }
 
 // Initialises the default server with options passed in
@@ -174,8 +174,8 @@ func Run() error {
 
 // Starts the default server
 func Start() error {
-	config := DefaultServer.Config()
-	log.Infof("Starting server %s id %s", config.Name(), config.Id())
+	config := DefaultServer.Options()
+	log.Infof("Starting server %s id %s", config.Name, config.Id)
 	return DefaultServer.Start()
 }
 

@@ -62,10 +62,10 @@ type Streamer interface {
 	Close() error
 }
 
-type Option func(*options)
-type CallOption func(*callOptions)
-type PublishOption func(*publishOptions)
-type RequestOption func(*requestOptions)
+type Option func(*Options)
+type CallOption func(*CallOptions)
+type PublishOption func(*PublishOptions)
+type RequestOption func(*RequestOptions)
 
 var (
 	DefaultClient Client = newRpcClient()

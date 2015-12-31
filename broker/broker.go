@@ -1,6 +1,7 @@
 package broker
 
 type Broker interface {
+	Options() Options
 	Address() string
 	Connect() error
 	Disconnect() error
@@ -28,7 +29,7 @@ type Publication interface {
 }
 
 type Subscriber interface {
-	Config() SubscribeOptions
+	Options() SubscribeOptions
 	Topic() string
 	Unsubscribe() error
 }
