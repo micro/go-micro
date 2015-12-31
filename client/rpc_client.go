@@ -18,40 +18,40 @@ import (
 
 type rpcClient struct {
 	once sync.Once
-	opts options
+	opts Options
 }
 
 func newRpcClient(opt ...Option) Client {
 	var once sync.Once
 
-	opts := options{
-		codecs: make(map[string]codec.NewCodec),
+	opts := Options{
+		Codecs: make(map[string]codec.NewCodec),
 	}
 
 	for _, o := range opt {
 		o(&opts)
 	}
 
-	if len(opts.contentType) == 0 {
-		opts.contentType = defaultContentType
+	if len(opts.ContentType) == 0 {
+		opts.ContentType = defaultContentType
 	}
 
-	if opts.broker == nil {
-		opts.broker = broker.DefaultBroker
+	if opts.Broker == nil {
+		opts.Broker = broker.DefaultBroker
 	}
 
-	if opts.registry == nil {
-		opts.registry = registry.DefaultRegistry
+	if opts.Registry == nil {
+		opts.Registry = registry.DefaultRegistry
 	}
 
-	if opts.selector == nil {
-		opts.selector = selector.NewSelector(
-			selector.Registry(opts.registry),
+	if opts.Selector == nil {
+		opts.Selector = selector.NewSelector(
+			selector.Registry(opts.Registry),
 		)
 	}
 
-	if opts.transport == nil {
-		opts.transport = transport.DefaultTransport
+	if opts.Transport == nil {
+		opts.Transport = transport.DefaultTransport
 	}
 
 	rc := &rpcClient{
@@ -62,15 +62,15 @@ func newRpcClient(opt ...Option) Client {
 	c := Client(rc)
 
 	// wrap in reverse
-	for i := len(opts.wrappers); i > 0; i-- {
-		c = opts.wrappers[i-1](c)
+	for i := len(opts.Wrappers); i > 0; i-- {
+		c = opts.Wrappers[i-1](c)
 	}
 
 	return c
 }
 
 func (r *rpcClient) newCodec(contentType string) (codec.NewCodec, error) {
-	if c, ok := r.opts.codecs[contentType]; ok {
+	if c, ok := r.opts.Codecs[contentType]; ok {
 		return c, nil
 	}
 	if cf, ok := defaultCodecs[contentType]; ok {
@@ -98,7 +98,7 @@ func (r *rpcClient) call(ctx context.Context, address string, request Request, r
 		return errors.InternalServerError("go.micro.client", err.Error())
 	}
 
-	c, err := r.opts.transport.Dial(address)
+	c, err := r.opts.Transport.Dial(address)
 	if err != nil {
 		return errors.InternalServerError("go.micro.client", fmt.Sprintf("Error sending request: %v", err))
 	}
@@ -131,7 +131,7 @@ func (r *rpcClient) stream(ctx context.Context, address string, req Request) (St
 		return nil, errors.InternalServerError("go.micro.client", err.Error())
 	}
 
-	c, err := r.opts.transport.Dial(address, transport.WithStream())
+	c, err := r.opts.Transport.Dial(address, transport.WithStream())
 	if err != nil {
 		return nil, errors.InternalServerError("go.micro.client", fmt.Sprintf("Error sending request: %v", err))
 	}
@@ -154,12 +154,12 @@ func (r *rpcClient) CallRemote(ctx context.Context, address string, request Requ
 }
 
 func (r *rpcClient) Call(ctx context.Context, request Request, response interface{}, opts ...CallOption) error {
-	var copts callOptions
+	var copts CallOptions
 	for _, opt := range opts {
 		opt(&copts)
 	}
 
-	next, err := r.opts.selector.Select(request.Service(), copts.selectOptions...)
+	next, err := r.opts.Selector.Select(request.Service(), copts.SelectOptions...)
 	if err != nil && err == selector.ErrNotFound {
 		return errors.NotFound("go.micro.client", err.Error())
 	} else if err != nil {
@@ -179,7 +179,7 @@ func (r *rpcClient) Call(ctx context.Context, request Request, response interfac
 	}
 
 	err = r.call(ctx, address, request, response)
-	r.opts.selector.Mark(request.Service(), node, err)
+	r.opts.Selector.Mark(request.Service(), node, err)
 	return err
 }
 
@@ -188,12 +188,12 @@ func (r *rpcClient) StreamRemote(ctx context.Context, address string, request Re
 }
 
 func (r *rpcClient) Stream(ctx context.Context, request Request, opts ...CallOption) (Streamer, error) {
-	var copts callOptions
+	var copts CallOptions
 	for _, opt := range opts {
 		opt(&copts)
 	}
 
-	next, err := r.opts.selector.Select(request.Service(), copts.selectOptions...)
+	next, err := r.opts.Selector.Select(request.Service(), copts.SelectOptions...)
 	if err != nil && err == selector.ErrNotFound {
 		return nil, errors.NotFound("go.micro.client", err.Error())
 	} else if err != nil {
@@ -213,7 +213,7 @@ func (r *rpcClient) Stream(ctx context.Context, request Request, opts ...CallOpt
 	}
 
 	stream, err := r.stream(ctx, address, request)
-	r.opts.selector.Mark(request.Service(), node, err)
+	r.opts.Selector.Mark(request.Service(), node, err)
 	return stream, err
 }
 
@@ -234,24 +234,24 @@ func (r *rpcClient) Publish(ctx context.Context, p Publication, opts ...PublishO
 		return errors.InternalServerError("go.micro.client", err.Error())
 	}
 	r.once.Do(func() {
-		r.opts.broker.Connect()
+		r.opts.Broker.Connect()
 	})
 
-	return r.opts.broker.Publish(p.Topic(), &broker.Message{
+	return r.opts.Broker.Publish(p.Topic(), &broker.Message{
 		Header: md,
 		Body:   b.Bytes(),
 	})
 }
 
 func (r *rpcClient) NewPublication(topic string, message interface{}) Publication {
-	return newRpcPublication(topic, message, r.opts.contentType)
+	return newRpcPublication(topic, message, r.opts.ContentType)
 }
 
 func (r *rpcClient) NewProtoPublication(topic string, message interface{}) Publication {
 	return newRpcPublication(topic, message, "application/octet-stream")
 }
 func (r *rpcClient) NewRequest(service, method string, request interface{}, reqOpts ...RequestOption) Request {
-	return newRpcRequest(service, method, request, r.opts.contentType, reqOpts...)
+	return newRpcRequest(service, method, request, r.opts.ContentType, reqOpts...)
 }
 
 func (r *rpcClient) NewProtoRequest(service, method string, request interface{}, reqOpts ...RequestOption) Request {

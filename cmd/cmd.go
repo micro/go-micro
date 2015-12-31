@@ -1,29 +1,23 @@
 package cmd
 
 import (
-	"bytes"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
 	"math/rand"
-	"net/http"
 	"os"
-	"runtime"
 	"strings"
 	"text/tabwriter"
 	"text/template"
 	"time"
 
 	"github.com/codegangsta/cli"
-	log "github.com/golang/glog"
 	"github.com/micro/go-micro/broker"
 	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/selector"
 	"github.com/micro/go-micro/server"
 	"github.com/micro/go-micro/transport"
-	"github.com/pborman/uuid"
 )
 
 var (
@@ -102,12 +96,6 @@ var (
 			Usage:  "Comma-separated list of transport addresses",
 		},
 
-		cli.BoolFlag{
-			Name:   "enable_ping",
-			EnvVar: "MICRO_ENABLE_PING",
-			Usage:  "Enable ping",
-		},
-
 		// logging flags
 		cli.BoolFlag{
 			Name:  "logtostderr",
@@ -160,54 +148,6 @@ func init() {
 	rand.Seed(time.Now().Unix())
 }
 
-// ping informs micro-services about this thing
-func ping() {
-	type Ping struct {
-		Id        string
-		Timestamp int64
-		Product   string
-		Version   string
-		Arch      string
-		Os        string
-	}
-
-	p := Ping{
-		Id:      uuid.NewUUID().String(),
-		Product: "go-micro",
-		Version: "latest",
-		Arch:    runtime.GOARCH,
-		Os:      runtime.GOOS,
-	}
-
-	buf := bytes.NewBuffer(nil)
-	cl := &http.Client{}
-
-	fn := func() {
-		log.Infof("Ping micro-services.co")
-		p.Timestamp = time.Now().Unix()
-		b, err := json.Marshal(p)
-		if err != nil {
-			return
-		}
-		buf.Reset()
-		buf.Write(b)
-		rsp, err := cl.Post("https://micro-services.co/_ping", "application/json", buf)
-		if err != nil {
-			return
-		}
-		rsp.Body.Close()
-	}
-
-	// don't ping unless this thing has lived for 30 seconds
-	time.Sleep(time.Second * 30)
-
-	// only ping every 24 hours, be non invasive
-	for {
-		fn()
-		time.Sleep(time.Hour * 24)
-	}
-}
-
 func Setup(c *cli.Context) error {
 	os.Args = os.Args[:1]
 
@@ -258,10 +198,6 @@ func Setup(c *cli.Context) error {
 	)
 
 	client.DefaultClient = client.NewClient()
-
-	if c.Bool("enable_ping") {
-		go ping()
-	}
 
 	return nil
 }

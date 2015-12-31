@@ -29,23 +29,29 @@ type Transport interface {
 	String() string
 }
 
-type options struct{}
-
-type dialOptions struct {
-	stream bool
+type Options struct {
+	// Other options to be used by broker implementations
+	Options map[string]string
 }
 
-type Option func(*options)
+type DialOptions struct {
+	Stream bool
 
-type DialOption func(*dialOptions)
+	// Other options to be used by broker implementations
+	Options map[string]string
+}
+
+type Option func(*Options)
+
+type DialOption func(*DialOptions)
 
 var (
 	DefaultTransport Transport = newHttpTransport([]string{})
 )
 
 func WithStream() DialOption {
-	return func(o *dialOptions) {
-		o.stream = true
+	return func(o *DialOptions) {
+		o.Stream = true
 	}
 }
 

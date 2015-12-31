@@ -22,7 +22,7 @@ type httpTransportClient struct {
 	ht       *httpTransport
 	addr     string
 	conn     net.Conn
-	dialOpts dialOptions
+	dialOpts DialOptions
 	once     sync.Once
 
 	sync.Mutex
@@ -87,7 +87,7 @@ func (h *httpTransportClient) Send(m *Message) error {
 
 func (h *httpTransportClient) Recv(m *Message) error {
 	var r *http.Request
-	if !h.dialOpts.stream {
+	if !h.dialOpts.Stream {
 		rc, ok := <-h.r
 		if !ok {
 			return io.EOF
@@ -281,7 +281,7 @@ func (h *httpTransport) Dial(addr string, opts ...DialOption) (Client, error) {
 		return nil, err
 	}
 
-	var dopts dialOptions
+	var dopts DialOptions
 
 	for _, opt := range opts {
 		opt(&dopts)

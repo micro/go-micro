@@ -14,7 +14,7 @@ type Example struct{}
 
 func (e *Example) Call(ctx context.Context, req *example.Request, rsp *example.Response) error {
 	log.Info("Received Example.Call request")
-	rsp.Msg = server.Config().Id() + ": Hello " + req.Name
+	rsp.Msg = server.DefaultOptions().Id + ": Hello " + req.Name
 	return nil
 }
 
