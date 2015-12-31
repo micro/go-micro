@@ -29,10 +29,16 @@ type Transport interface {
 	String() string
 }
 
-type Options struct{}
+type Options struct {
+	// Other options to be used by broker implementations
+	Options map[string]string
+}
 
 type DialOptions struct {
-	stream bool
+	Stream bool
+
+	// Other options to be used by broker implementations
+	Options map[string]string
 }
 
 type Option func(*Options)
@@ -45,7 +51,7 @@ var (
 
 func WithStream() DialOption {
 	return func(o *DialOptions) {
-		o.stream = true
+		o.Stream = true
 	}
 }
 

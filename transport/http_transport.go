@@ -87,7 +87,7 @@ func (h *httpTransportClient) Send(m *Message) error {
 
 func (h *httpTransportClient) Recv(m *Message) error {
 	var r *http.Request
-	if !h.dialOpts.stream {
+	if !h.dialOpts.Stream {
 		rc, ok := <-h.r
 		if !ok {
 			return io.EOF

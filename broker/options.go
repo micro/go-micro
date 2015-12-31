@@ -6,7 +6,10 @@ type Options struct {
 	Options map[string]string
 }
 
-type PublishOptions struct{}
+type PublishOptions struct {
+	// Other options to be used by broker implementations
+	Options map[string]string
+}
 
 type SubscribeOptions struct {
 	// AutoAck defaults to true. When a handler returns
@@ -16,6 +19,9 @@ type SubscribeOptions struct {
 	// will create a shared subscription where each
 	// receives a subset of messages.
 	Queue string
+
+	// Other options to be used by broker implementations
+	Options map[string]string
 }
 
 type Option func(*Options)
