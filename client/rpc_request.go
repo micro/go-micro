@@ -5,11 +5,11 @@ type rpcRequest struct {
 	method      string
 	contentType string
 	request     interface{}
-	opts        requestOptions
+	opts        RequestOptions
 }
 
 func newRpcRequest(service, method string, request interface{}, contentType string, reqOpts ...RequestOption) Request {
-	var opts requestOptions
+	var opts RequestOptions
 
 	for _, o := range reqOpts {
 		o(&opts)
@@ -41,5 +41,5 @@ func (r *rpcRequest) Request() interface{} {
 }
 
 func (r *rpcRequest) Stream() bool {
-	return r.opts.stream
+	return r.opts.Stream
 }

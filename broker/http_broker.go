@@ -28,6 +28,7 @@ type httpBroker struct {
 	id          string
 	address     string
 	unsubscribe chan *httpSubscriber
+	opts        Options
 
 	sync.RWMutex
 	subscribers map[string][]*httpSubscriber
@@ -85,7 +86,7 @@ func (h *httpPublication) Topic() string {
 	return h.t
 }
 
-func (h *httpSubscriber) Config() SubscribeOptions {
+func (h *httpSubscriber) Options() SubscribeOptions {
 	return h.opts
 }
 
@@ -211,6 +212,10 @@ func (h *httpBroker) Init(opts ...Option) error {
 
 	http.Handle(DefaultSubPath, h)
 	return nil
+}
+
+func (h *httpBroker) Options() Options {
+	return h.opts
 }
 
 func (h *httpBroker) Publish(topic string, msg *Message, opts ...PublishOption) error {

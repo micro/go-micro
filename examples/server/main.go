@@ -31,7 +31,7 @@ func main() {
 	// optionally setup command line usage
 	cmd.Init()
 
-	md := server.Config().Metadata()
+	md := server.DefaultOptions().Metadata
 	md["datacenter"] = "local"
 
 	server.DefaultServer = server.NewServer(

@@ -93,7 +93,7 @@ type Example struct{}
 func (e *Example) Call(ctx context.Context, req *example.Request, rsp *example.Response) error {
 	md, _ := c.GetMetadata(ctx)
 	log.Infof("Received Example.Call request with metadata: %v", md)
-	rsp.Msg = server.Config().Id() + ": Hello " + req.Name
+	rsp.Msg = server.Options().Id + ": Hello " + req.Name
 	return nil
 }
 ```

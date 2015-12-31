@@ -23,7 +23,7 @@ type rpcServer struct {
 	exit chan chan error
 
 	sync.RWMutex
-	opts        options
+	opts        Options
 	handlers    map[string]Handler
 	subscribers map[*subscriber][]broker.Subscriber
 }
@@ -33,9 +33,9 @@ func newRpcServer(opts ...Option) Server {
 	return &rpcServer{
 		opts: options,
 		rpc: &server{
-			name:         options.name,
+			name:         options.Name,
 			serviceMap:   make(map[string]*service),
-			hdlrWrappers: options.hdlrWrappers,
+			hdlrWrappers: options.HdlrWrappers,
 		},
 		handlers:    make(map[string]Handler),
 		subscribers: make(map[*subscriber][]broker.Subscriber),
@@ -89,7 +89,7 @@ func (s *rpcServer) accept(sock transport.Socket) {
 }
 
 func (s *rpcServer) newCodec(contentType string) (codec.NewCodec, error) {
-	if cf, ok := s.opts.codecs[contentType]; ok {
+	if cf, ok := s.opts.Codecs[contentType]; ok {
 		return cf, nil
 	}
 	if cf, ok := defaultCodecs[contentType]; ok {
@@ -98,7 +98,7 @@ func (s *rpcServer) newCodec(contentType string) (codec.NewCodec, error) {
 	return nil, fmt.Errorf("Unsupported Content-Type: %s", contentType)
 }
 
-func (s *rpcServer) Config() options {
+func (s *rpcServer) Options() Options {
 	s.RLock()
 	opts := s.opts
 	s.RUnlock()
@@ -110,8 +110,8 @@ func (s *rpcServer) Init(opts ...Option) {
 	for _, opt := range opts {
 		opt(&s.opts)
 	}
-	if len(s.opts.id) == 0 {
-		s.opts.id = s.opts.name + "-" + DefaultId
+	if len(s.opts.Id) == 0 {
+		s.opts.Id = s.opts.Name + "-" + DefaultId
 	}
 	s.Unlock()
 }
@@ -159,17 +159,17 @@ func (s *rpcServer) Subscribe(sb Subscriber) error {
 
 func (s *rpcServer) Register() error {
 	// parse address for host, port
-	config := s.Config()
+	config := s.Options()
 	var advt, host string
 	var port int
 
 	// check the advertise address first
 	// if it exists then use it, otherwise
 	// use the address
-	if len(config.Advertise()) > 0 {
-		advt = config.Advertise()
+	if len(config.Advertise) > 0 {
+		advt = config.Advertise
 	} else {
-		advt = config.Address()
+		advt = config.Address
 	}
 
 	parts := strings.Split(advt, ":")
@@ -187,13 +187,13 @@ func (s *rpcServer) Register() error {
 
 	// register service
 	node := &registry.Node{
-		Id:       config.Id(),
+		Id:       config.Id,
 		Address:  addr,
 		Port:     port,
-		Metadata: config.Metadata(),
+		Metadata: config.Metadata,
 	}
 
-	node.Metadata["transport"] = config.transport.String()
+	node.Metadata["transport"] = config.Transport.String()
 
 	s.RLock()
 	var endpoints []*registry.Endpoint
@@ -206,14 +206,14 @@ func (s *rpcServer) Register() error {
 	s.RUnlock()
 
 	service := &registry.Service{
-		Name:      config.Name(),
-		Version:   config.Version(),
+		Name:      config.Name,
+		Version:   config.Version,
 		Nodes:     []*registry.Node{node},
 		Endpoints: endpoints,
 	}
 
 	log.Infof("Registering node: %s", node.Id)
-	if err := config.registry.Register(service); err != nil {
+	if err := config.Registry.Register(service); err != nil {
 		return err
 	}
 
@@ -222,7 +222,7 @@ func (s *rpcServer) Register() error {
 
 	for sb, _ := range s.subscribers {
 		handler := s.createSubHandler(sb, s.opts)
-		sub, err := config.broker.Subscribe(sb.Topic(), handler)
+		sub, err := config.Broker.Subscribe(sb.Topic(), handler)
 		if err != nil {
 			return err
 		}
@@ -233,17 +233,17 @@ func (s *rpcServer) Register() error {
 }
 
 func (s *rpcServer) Deregister() error {
-	config := s.Config()
+	config := s.Options()
 	var advt, host string
 	var port int
 
 	// check the advertise address first
 	// if it exists then use it, otherwise
 	// use the address
-	if len(config.Advertise()) > 0 {
-		advt = config.Advertise()
+	if len(config.Advertise) > 0 {
+		advt = config.Advertise
 	} else {
-		advt = config.Address()
+		advt = config.Address
 	}
 
 	parts := strings.Split(advt, ":")
@@ -260,19 +260,19 @@ func (s *rpcServer) Deregister() error {
 	}
 
 	node := &registry.Node{
-		Id:      config.Id(),
+		Id:      config.Id,
 		Address: addr,
 		Port:    port,
 	}
 
 	service := &registry.Service{
-		Name:    config.Name(),
-		Version: config.Version(),
+		Name:    config.Name,
+		Version: config.Version,
 		Nodes:   []*registry.Node{node},
 	}
 
 	log.Infof("Deregistering node: %s", node.Id)
-	if err := config.registry.Deregister(service); err != nil {
+	if err := config.Registry.Deregister(service); err != nil {
 		return err
 	}
 
@@ -290,16 +290,16 @@ func (s *rpcServer) Deregister() error {
 
 func (s *rpcServer) Start() error {
 	registerHealthChecker(s)
-	config := s.Config()
+	config := s.Options()
 
-	ts, err := config.transport.Listen(config.address)
+	ts, err := config.Transport.Listen(config.Address)
 	if err != nil {
 		return err
 	}
 
 	log.Infof("Listening on %s", ts.Addr())
 	s.Lock()
-	s.opts.address = ts.Addr()
+	s.opts.Address = ts.Addr()
 	s.Unlock()
 
 	go ts.Accept(s.accept)
@@ -307,11 +307,11 @@ func (s *rpcServer) Start() error {
 	go func() {
 		ch := <-s.exit
 		ch <- ts.Close()
-		config.broker.Disconnect()
+		config.Broker.Disconnect()
 	}()
 
 	// TODO: subscribe to cruft
-	return config.broker.Connect()
+	return config.Broker.Connect()
 }
 
 func (s *rpcServer) Stop() error {

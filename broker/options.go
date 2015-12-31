@@ -1,6 +1,10 @@
 package broker
 
-type Options struct{}
+type Options struct {
+
+	// Other options to be used by broker implementations
+	Options map[string]string
+}
 
 type PublishOptions struct{}
 

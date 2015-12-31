@@ -22,7 +22,7 @@ type httpTransportClient struct {
 	ht       *httpTransport
 	addr     string
 	conn     net.Conn
-	dialOpts dialOptions
+	dialOpts DialOptions
 	once     sync.Once
 
 	sync.Mutex
@@ -281,7 +281,7 @@ func (h *httpTransport) Dial(addr string, opts ...DialOption) (Client, error) {
 		return nil, err
 	}
 
-	var dopts dialOptions
+	var dopts DialOptions
 
 	for _, opt := range opts {
 		opt(&dopts)
