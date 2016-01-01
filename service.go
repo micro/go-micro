@@ -6,6 +6,7 @@ import (
 	"syscall"
 
 	"github.com/micro/go-micro/client"
+	"github.com/micro/go-micro/cmd"
 	"github.com/micro/go-micro/context"
 	"github.com/micro/go-micro/server"
 )
@@ -20,13 +21,22 @@ func newService(opts ...Option) Service {
 	options.Client = &clientWrapper{
 		options.Client,
 		context.Metadata{
-			HeaderPrefix + "From-Service": options.Server.Config().Name(),
+			HeaderPrefix + "From-Service": options.Server.Options().Name,
 		},
 	}
 
 	return &service{
 		opts: options,
 	}
+}
+
+func (s *service) Init(opts ...Option) {
+	s.opts.Cmd.Init()
+	s = newService(opts...).(*service)
+}
+
+func (s *service) Cmd() cmd.Cmd {
+	return s.opts.Cmd
 }
 
 func (s *service) Client() client.Client {
@@ -42,6 +52,12 @@ func (s *service) String() string {
 }
 
 func (s *service) Start() error {
+	for _, fn := range s.opts.BeforeStart {
+		if err := fn(); err != nil {
+			return err
+		}
+	}
+
 	if err := s.opts.Server.Start(); err != nil {
 		return err
 	}
@@ -62,7 +78,16 @@ func (s *service) Stop() error {
 		return err
 	}
 
-	return nil
+	var gerr error
+	for _, fn := range s.opts.AfterStop {
+		if err := fn(); err != nil {
+			// should we bail if it fails?
+			// other funcs will not be executed
+			// seems wrong
+			gerr = err
+		}
+	}
+	return gerr
 }
 
 func (s *service) Run() error {

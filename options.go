@@ -3,6 +3,7 @@ package gomicro
 import (
 	"github.com/micro/go-micro/broker"
 	"github.com/micro/go-micro/client"
+	"github.com/micro/go-micro/cmd"
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/server"
 	"github.com/micro/go-micro/transport"
@@ -10,36 +11,33 @@ import (
 
 type Options struct {
 	Broker    broker.Broker
+	Cmd       cmd.Cmd
 	Client    client.Client
 	Server    server.Server
 	Registry  registry.Registry
 	Transport transport.Transport
+
+	// Before and After funcs
+	BeforeStart []func() error
+	AfterStop   []func() error
+
+	// Alternative options for those implementing the interface
+	Options map[string]string
 }
 
 func newOptions(opts ...Option) Options {
-	var opt Options
+	opt := Options{
+		Broker:    broker.DefaultBroker,
+		Cmd:       cmd.DefaultCmd,
+		Client:    client.DefaultClient,
+		Server:    server.DefaultServer,
+		Registry:  registry.DefaultRegistry,
+		Transport: transport.DefaultTransport,
+		Options:   map[string]string{},
+	}
+
 	for _, o := range opts {
 		o(&opt)
-	}
-
-	if opt.Broker == nil {
-		opt.Broker = broker.DefaultBroker
-	}
-
-	if opt.Client == nil {
-		opt.Client = client.DefaultClient
-	}
-
-	if opt.Server == nil {
-		opt.Server = server.DefaultServer
-	}
-
-	if opt.Registry == nil {
-		opt.Registry = registry.DefaultRegistry
-	}
-
-	if opt.Transport == nil {
-		opt.Transport = transport.DefaultTransport
 	}
 
 	return opt
@@ -48,6 +46,12 @@ func newOptions(opts ...Option) Options {
 func Broker(b broker.Broker) Option {
 	return func(o *Options) {
 		o.Broker = b
+	}
+}
+
+func Cmd(c cmd.Cmd) Option {
+	return func(o *Options) {
+		o.Cmd = c
 	}
 }
 
@@ -72,5 +76,42 @@ func Registry(r registry.Registry) Option {
 func Transport(t transport.Transport) Option {
 	return func(o *Options) {
 		o.Transport = t
+	}
+}
+
+// Convenience options
+
+// Name of the service
+func Name(n string) Option {
+	return func(o *Options) {
+		o.Server.Init(server.Name(n))
+	}
+}
+
+// Version of the service
+func Version(v string) Option {
+	return func(o *Options) {
+		o.Server.Init(server.Version(v))
+	}
+}
+
+// Metadata associated with the service
+func Metadata(md map[string]string) Option {
+	return func(o *Options) {
+		o.Server.Init(server.Metadata(md))
+	}
+}
+
+// Before and Afters
+
+func BeforeStart(fn func() error) Option {
+	return func(o *Options) {
+		o.BeforeStart = append(o.BeforeStart, fn)
+	}
+}
+
+func AfterStop(fn func() error) Option {
+	return func(o *Options) {
+		o.AfterStop = append(o.AfterStop, fn)
 	}
 }

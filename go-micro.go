@@ -21,6 +21,7 @@ package gomicro
 
 import (
 	"github.com/micro/go-micro/client"
+	"github.com/micro/go-micro/cmd"
 	"github.com/micro/go-micro/server"
 )
 
@@ -28,6 +29,8 @@ import (
 // within go-micro. Its a convenience method for building
 // and initialising services.
 type Service interface {
+	Init(...Option)
+	Cmd() cmd.Cmd
 	Client() client.Client
 	Server() server.Server
 	Run() error
