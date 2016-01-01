@@ -43,10 +43,6 @@ func flags(service micro.Service) {
 	app := service.Cmd().App()
 	app.Flags = append(app.Flags,
 		&cli.BoolFlag{
-			Name:  "server",
-			Usage: "Launch the server",
-		},
-		&cli.BoolFlag{
 			Name:  "client",
 			Usage: "Launch the client",
 		},
