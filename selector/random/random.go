@@ -6,7 +6,7 @@ import (
 )
 
 func init() {
-	cmd.Selectors["random"] = NewSelector
+	cmd.DefaultSelectors["random"] = NewSelector
 }
 
 func NewSelector(opts ...selector.Option) selector.Selector {
