@@ -28,7 +28,6 @@ type Options struct {
 func newOptions(opts ...Option) Options {
 	opt := Options{
 		Broker:    broker.DefaultBroker,
-		Cmd:       cmd.DefaultCmd,
 		Client:    client.DefaultClient,
 		Server:    server.DefaultServer,
 		Registry:  registry.DefaultRegistry,
@@ -38,6 +37,14 @@ func newOptions(opts ...Option) Options {
 
 	for _, o := range opts {
 		o(&opt)
+	}
+
+	// New Command
+	if opt.Cmd == nil {
+		opt.Cmd = cmd.NewCmd(
+			cmd.Name(opt.Server.Options().Name),
+			cmd.Version(opt.Server.Options().Version),
+		)
 	}
 
 	return opt

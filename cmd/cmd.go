@@ -3,6 +3,7 @@ package cmd
 import (
 	"flag"
 	"fmt"
+	"io"
 	"math/rand"
 	"os"
 	"strings"
@@ -160,6 +161,11 @@ var (
 
 func init() {
 	rand.Seed(time.Now().Unix())
+	help := cli.HelpPrinter
+	cli.HelpPrinter = func(writer io.Writer, templ string, data interface{}) {
+		help(writer, templ, data)
+		os.Exit(0)
+	}
 }
 
 func newCmd(opts ...Option) Cmd {
@@ -174,6 +180,10 @@ func newCmd(opts ...Option) Cmd {
 		o(&options)
 	}
 
+	if len(options.Description) == 0 {
+		options.Description = "a go-micro service"
+	}
+
 	cmd := new(cmd)
 	cmd.opts = options
 	cmd.app = cli.NewApp()
@@ -183,6 +193,11 @@ func newCmd(opts ...Option) Cmd {
 	cmd.app.Before = cmd.Before
 	cmd.app.Flags = DefaultFlags
 	cmd.app.Action = func(c *cli.Context) {}
+
+	if len(options.Version) == 0 {
+		cmd.app.HideVersion = true
+	}
+
 	return cmd
 }
 

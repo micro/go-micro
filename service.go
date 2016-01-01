@@ -32,6 +32,11 @@ func newService(opts ...Option) Service {
 
 func (s *service) Init(opts ...Option) {
 	s.opts.Cmd.Init()
+
+	for _, o := range opts {
+		o(&s.opts)
+	}
+
 	s = newService(opts...).(*service)
 }
 
