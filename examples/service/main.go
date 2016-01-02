@@ -38,25 +38,6 @@ func client(service micro.Service) {
 	fmt.Println(rsp.Greeting)
 }
 
-// Setup some command line flags
-func flags(service micro.Service) {
-	app := service.Cmd().App()
-	app.Flags = append(app.Flags,
-		&cli.BoolFlag{
-			Name:  "client",
-			Usage: "Launch the client",
-		},
-	)
-
-	// Let's launch the server or the client
-	app.Action = func(c *cli.Context) {
-		if c.Bool("client") {
-			client(service)
-			os.Exit(0)
-		}
-	}
-}
-
 func main() {
 	// Create a new service. Optionally include some options here.
 	service := micro.NewService(
@@ -65,15 +46,30 @@ func main() {
 		micro.Metadata(map[string]string{
 			"type": "helloworld",
 		}),
-	)
 
-	// Setup some flags. Specify --client to run the client
-	flags(service)
+		// Setup some flags. Specify --client to run the client
+
+		// Add runtime flags
+		// We could do this below too
+		micro.Flags(cli.BoolFlag{
+			Name:  "client",
+			Usage: "Launch the client",
+		}),
+	)
 
 	// Init will parse the command line flags. Any flags set will
 	// override the above settings. Options defined here will
 	// override anything set on the command line.
-	service.Init()
+	service.Init(
+		// Add runtime action
+		// We could actually do this above
+		micro.Action(func(c *cli.Context) {
+			if c.Bool("client") {
+				client(service)
+				os.Exit(0)
+			}
+		}),
+	)
 
 	// By default we'll run the server unless the flags catch us
 

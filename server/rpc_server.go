@@ -105,12 +105,13 @@ func (s *rpcServer) Options() Options {
 	return opts
 }
 
-func (s *rpcServer) Init(opts ...Option) {
+func (s *rpcServer) Init(opts ...Option) error {
 	s.Lock()
 	for _, opt := range opts {
 		opt(&s.opts)
 	}
 	s.Unlock()
+	return nil
 }
 
 func (s *rpcServer) NewHandler(h interface{}) Handler {

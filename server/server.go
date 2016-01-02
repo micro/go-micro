@@ -40,7 +40,7 @@ import (
 
 type Server interface {
 	Options() Options
-	Init(...Option)
+	Init(...Option) error
 	Handle(Handler) error
 	NewHandler(interface{}) Handler
 	NewSubscriber(string, interface{}) Subscriber

@@ -21,7 +21,6 @@ package gomicro
 
 import (
 	"github.com/micro/go-micro/client"
-	"github.com/micro/go-micro/cmd"
 	"github.com/micro/go-micro/server"
 )
 
@@ -30,7 +29,7 @@ import (
 // and initialising services.
 type Service interface {
 	Init(...Option)
-	Cmd() cmd.Cmd
+	Options() Options
 	Client() client.Client
 	Server() server.Server
 	Run() error

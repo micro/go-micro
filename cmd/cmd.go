@@ -23,7 +23,7 @@ type Cmd interface {
 	App() *cli.App
 	// Adds options, parses flags and initialise
 	// exits on error
-	Init(opts ...Option)
+	Init(opts ...Option) error
 	// Options set within this command
 	Options() Options
 }
@@ -323,13 +323,13 @@ func (c *cmd) Before(ctx *cli.Context) error {
 
 	// Use an init option?
 	if len(clientOpts) > 0 {
-		*c.opts.Client = client.NewClient(clientOpts...)
+		(*c.opts.Client).Init(clientOpts...)
 	}
 
 	return nil
 }
 
-func (c *cmd) Init(opts ...Option) {
+func (c *cmd) Init(opts ...Option) error {
 	for _, o := range opts {
 		o(&c.opts)
 	}
@@ -337,10 +337,11 @@ func (c *cmd) Init(opts ...Option) {
 	c.app.Version = c.opts.Version
 	c.app.Usage = c.opts.Description
 	c.app.RunAndExitOnError()
+	return nil
 }
 
-func Init(opts ...Option) {
-	DefaultCmd.Init(opts...)
+func Init(opts ...Option) error {
+	return DefaultCmd.Init(opts...)
 }
 
 func NewCmd(opts ...Option) Cmd {

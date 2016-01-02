@@ -6,7 +6,6 @@ import (
 	"syscall"
 
 	"github.com/micro/go-micro/client"
-	"github.com/micro/go-micro/cmd"
 	"github.com/micro/go-micro/context"
 	"github.com/micro/go-micro/server"
 )
@@ -31,6 +30,15 @@ func newService(opts ...Option) Service {
 }
 
 func (s *service) Init(opts ...Option) {
+	// We might get more command flags or the action here
+	// This is pretty ugly, find a better way
+	options := newOptions()
+	options.Cmd = s.opts.Cmd
+	for _, o := range opts {
+		o(&options)
+	}
+	s.opts.Cmd = options.Cmd
+
 	// Initialise the command flags, overriding new service
 	s.opts.Cmd.Init()
 
@@ -40,8 +48,8 @@ func (s *service) Init(opts ...Option) {
 	}
 }
 
-func (s *service) Cmd() cmd.Cmd {
-	return s.opts.Cmd
+func (s *service) Options() Options {
+	return s.opts
 }
 
 func (s *service) Client() client.Client {

@@ -1,6 +1,7 @@
 package gomicro
 
 import (
+	"github.com/micro/cli"
 	"github.com/micro/go-micro/broker"
 	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/cmd"
@@ -92,6 +93,18 @@ func Name(n string) Option {
 func Version(v string) Option {
 	return func(o *Options) {
 		o.Server.Init(server.Version(v))
+	}
+}
+
+func Flags(flags ...cli.Flag) Option {
+	return func(o *Options) {
+		o.Cmd.App().Flags = append(o.Cmd.App().Flags, flags...)
+	}
+}
+
+func Action(a func(*cli.Context)) Option {
+	return func(o *Options) {
+		o.Cmd.App().Action = a
 	}
 }
 

@@ -149,6 +149,17 @@ func (r *rpcClient) stream(ctx context.Context, address string, req Request) (St
 	return stream, err
 }
 
+func (r *rpcClient) Init(opts ...Option) error {
+	for _, o := range opts {
+		o(&r.opts)
+	}
+	return nil
+}
+
+func (r *rpcClient) Options() Options {
+	return r.opts
+}
+
 func (r *rpcClient) CallRemote(ctx context.Context, address string, request Request, response interface{}, opts ...CallOption) error {
 	return r.call(ctx, address, request, response)
 }

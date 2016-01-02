@@ -26,6 +26,8 @@ import (
 )
 
 type Client interface {
+	Init(...Option) error
+	Options() Options
 	NewPublication(topic string, msg interface{}) Publication
 	NewRequest(service, method string, req interface{}, reqOpts ...RequestOption) Request
 	NewProtoRequest(service, method string, req interface{}, reqOpts ...RequestOption) Request
