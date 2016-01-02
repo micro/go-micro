@@ -6,6 +6,7 @@ import (
 	"syscall"
 
 	"github.com/micro/go-micro/client"
+	"github.com/micro/go-micro/cmd"
 	"github.com/micro/go-micro/context"
 	"github.com/micro/go-micro/server"
 )
@@ -40,7 +41,13 @@ func (s *service) Init(opts ...Option) {
 	s.opts.Cmd = options.Cmd
 
 	// Initialise the command flags, overriding new service
-	s.opts.Cmd.Init()
+	s.opts.Cmd.Init(
+		cmd.Broker(&s.opts.Broker),
+		cmd.Registry(&s.opts.Registry),
+		cmd.Transport(&s.opts.Transport),
+		cmd.Client(&s.opts.Client),
+		cmd.Server(&s.opts.Server),
+	)
 
 	// Update any options to override command flags
 	for _, o := range opts {
