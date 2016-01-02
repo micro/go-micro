@@ -17,7 +17,7 @@ Go micro provides a pluggable library to build microservices.
 
 */
 
-package gomicro
+package micro
 
 import (
 	"github.com/micro/go-micro/client"

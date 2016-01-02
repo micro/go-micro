@@ -1,4 +1,4 @@
-package gomicro
+package micro
 
 import (
 	"os"

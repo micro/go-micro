@@ -1,4 +1,4 @@
-package gomicro
+package micro
 
 import (
 	"github.com/micro/cli"
@@ -96,6 +96,13 @@ func Version(v string) Option {
 	}
 }
 
+// Metadata associated with the service
+func Metadata(md map[string]string) Option {
+	return func(o *Options) {
+		o.Server.Init(server.Metadata(md))
+	}
+}
+
 func Flags(flags ...cli.Flag) Option {
 	return func(o *Options) {
 		o.Cmd.App().Flags = append(o.Cmd.App().Flags, flags...)
@@ -105,13 +112,6 @@ func Flags(flags ...cli.Flag) Option {
 func Action(a func(*cli.Context)) Option {
 	return func(o *Options) {
 		o.Cmd.App().Action = a
-	}
-}
-
-// Metadata associated with the service
-func Metadata(md map[string]string) Option {
-	return func(o *Options) {
-		o.Server.Init(server.Metadata(md))
 	}
 }
 
