@@ -2,15 +2,26 @@ package cmd
 
 import (
 	"github.com/micro/go-micro/broker"
+	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/selector"
+	"github.com/micro/go-micro/server"
 	"github.com/micro/go-micro/transport"
 )
 
 type Options struct {
+	// For the Command Line itself
 	Name        string
 	Description string
 	Version     string
+
+	// We need pointers to things so we can swap them out if needed.
+	Broker    *broker.Broker
+	Registry  *registry.Registry
+	Selector  *selector.Selector
+	Transport *transport.Transport
+	Client    *client.Client
+	Server    *server.Server
 
 	Brokers    map[string]func([]string, ...broker.Option) broker.Broker
 	Registries map[string]func([]string, ...registry.Option) registry.Registry
@@ -18,43 +29,86 @@ type Options struct {
 	Transports map[string]func([]string, ...transport.Option) transport.Transport
 }
 
+// Command line Name
 func Name(n string) Option {
 	return func(o *Options) {
 		o.Name = n
 	}
 }
 
+// Command line Description
 func Description(d string) Option {
 	return func(o *Options) {
 		o.Description = d
 	}
 }
 
+// Command line Version
 func Version(v string) Option {
 	return func(o *Options) {
 		o.Version = v
 	}
 }
 
-func Broker(name string, b func([]string, ...broker.Option) broker.Broker) Option {
+func Broker(b *broker.Broker) Option {
+	return func(o *Options) {
+		o.Broker = b
+	}
+}
+
+func Selector(s *selector.Selector) Option {
+	return func(o *Options) {
+		o.Selector = s
+	}
+}
+
+func Registry(r *registry.Registry) Option {
+	return func(o *Options) {
+		o.Registry = r
+	}
+}
+
+func Transport(t *transport.Transport) Option {
+	return func(o *Options) {
+		o.Transport = t
+	}
+}
+
+func Client(c *client.Client) Option {
+	return func(o *Options) {
+		o.Client = c
+	}
+}
+
+func Server(s *server.Server) Option {
+	return func(o *Options) {
+		o.Server = s
+	}
+}
+
+// New broker func
+func NewBroker(name string, b func([]string, ...broker.Option) broker.Broker) Option {
 	return func(o *Options) {
 		o.Brokers[name] = b
 	}
 }
 
-func Registry(name string, r func([]string, ...registry.Option) registry.Registry) Option {
+// New registry func
+func NewRegistry(name string, r func([]string, ...registry.Option) registry.Registry) Option {
 	return func(o *Options) {
 		o.Registries[name] = r
 	}
 }
 
-func Selector(name string, s func(...selector.Option) selector.Selector) Option {
+// New selector func
+func NewSelector(name string, s func(...selector.Option) selector.Selector) Option {
 	return func(o *Options) {
 		o.Selectors[name] = s
 	}
 }
 
-func Transport(name string, t func([]string, ...transport.Option) transport.Transport) Option {
+// New transport func
+func NewTransport(name string, t func([]string, ...transport.Option) transport.Transport) Option {
 	return func(o *Options) {
 		o.Transports[name] = t
 	}

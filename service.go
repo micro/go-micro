@@ -31,13 +31,13 @@ func newService(opts ...Option) Service {
 }
 
 func (s *service) Init(opts ...Option) {
+	// Initialise the command flags, overriding new service
 	s.opts.Cmd.Init()
 
+	// Update any options to override command flags
 	for _, o := range opts {
 		o(&s.opts)
 	}
-
-	s = newService(opts...).(*service)
 }
 
 func (s *service) Cmd() cmd.Cmd {

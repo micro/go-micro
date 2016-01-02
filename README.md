@@ -27,7 +27,7 @@ By default go-micro only provides a single implementation of each interface. Plu
 
 ## Prerequisites
 
-Consul is the default discovery mechanism provided in go-micro. Discovery is however pluggable.
+Consul is the default discovery mechanism provided in go-micro. Discovery is however pluggable so you can used etcd, kubernetes, zookeeper, etc.
 
 ### Install Consul
 [https://www.consul.io/intro/getting-started/install.html](https://www.consul.io/intro/getting-started/install.html)
@@ -41,104 +41,141 @@ $ consul agent -server -bootstrap-expect 1 -data-dir /tmp/consul
 
 ### Run Service
 ```
-$ go run examples/server/main.go --logtostderr
-I1108 11:08:19.926071   11358 server.go:96] Starting server go.micro.srv.example id go.micro.srv.example-04de4cf0-8609-11e5-bf3a-68a86d0d36b6
-I1108 11:08:19.926407   11358 rpc_server.go:233] Listening on [::]:54080
-I1108 11:08:19.926500   11358 http_broker.go:80] Broker Listening on [::]:54081
-I1108 11:08:19.926632   11358 rpc_server.go:158] Registering node: go.micro.srv.example-04de4cf0-8609-11e5-bf3a-68a86d0d36b6
+$ go run examples/service/main.go --logtostderr
+I0102 00:22:26.413467   12018 rpc_server.go:297] Listening on [::]:62492
+I0102 00:22:26.413803   12018 http_broker.go:115] Broker Listening on [::]:62493
+I0102 00:22:26.414009   12018 rpc_server.go:212] Registering node: greeter-e6b2fc6f-b0e6-11e5-a42f-68a86d0d36b6
 ```
 
 ### Test Service
 ```
-$ go run examples/client/main.go 
-go.micro.srv.example-59b6e0ab-0300-11e5-b696-68a86d0d36b6: Hello John
+$ go run examples/service/main.go --client
+Hello John
 ```
 
 ## Writing a service
 
 ### Create request/response proto
-`go-micro/examples/server/proto/example/example.proto`:
+`go-micro/examples/service/proto/greeter.proto`:
 
 ```
 syntax = "proto3";
 
-message Request {
-        string name = 1;
+service Greeter {
+	rpc Hello(HelloRequest) returns (HelloResponse) {}
 }
 
-message Response {
-        string msg = 1;
+message HelloRequest {
+	string name = 1;
 }
-```
 
-Compile proto `protoc -I$GOPATH/src --go_out=$GOPATH/src $GOPATH/src/github.com/micro/go-micro/examples/server/proto/example/example.proto`
-
-### Create request handler
-`go-micro/examples/server/handler/example.go`:
-
-```go
-package handler
-
-import (
-	log "github.com/golang/glog"
-	c "github.com/micro/go-micro/context"
-	example "github.com/micro/go-micro/examples/server/proto/example"
-	"github.com/micro/go-micro/server"
-
-	"golang.org/x/net/context"
-)
-
-type Example struct{}
-
-func (e *Example) Call(ctx context.Context, req *example.Request, rsp *example.Response) error {
-	md, _ := c.GetMetadata(ctx)
-	log.Infof("Received Example.Call request with metadata: %v", md)
-	rsp.Msg = server.Options().Id + ": Hello " + req.Name
-	return nil
+message HelloResponse {
+	string greeting = 2;
 }
 ```
 
-### Init server
-`go-micro/examples/server/main.go`:
+### Install protobuf for code generation
+
+We use a protobuf plugin for code generation. This is completely optional. Look at [examples/server](https://github.com/micro/go-micro/blob/master/examples/server/main.go) 
+and [examples/client](https://github.com/micro/go-micro/blob/master/examples/client/main.go) for examples without code generation.
+
+```shell
+go get github.com/micro/protobuf
+```
+
+Compile proto `protoc -I$GOPATH/src --go_out=plugins=micro:$GOPATH/src $GOPATH/src/github.com/micro/go-micro/examples/service/proto/greeter.proto`
+
+### Define the service
+`go-micro/examples/service/main.go`:
 
 ```go
 package main
 
 import (
-	log "github.com/golang/glog"
-	"github.com/micro/go-micro/cmd"
-	"github.com/micro/go-micro/examples/server/handler"
-	"github.com/micro/go-micro/server"
+	"fmt"
+
+	micro "github.com/micro/go-micro"
+	proto "github.com/micro/go-micro/examples/service/proto"
+	"golang.org/x/net/context"
 )
 
+type Greeter struct{}
+
+func (g *Greeter) Hello(ctx context.Context, req *proto.HelloRequest, rsp *proto.HelloResponse) error {
+	rsp.Greeting = "Hello " + req.Name
+	return nil
+}
+
 func main() {
-	// optionally setup command line usage
-	cmd.Init()
-
-	// Initialise Server
-	server.Init(
-		server.Name("go.micro.srv.example"),
+	// Create a new service. Optionally include some options here.
+	service := micro.NewService(
+		micro.Name("greeter"),
+		micro.Version("latest"),
+		micro.Metadata(map[string]string{
+			"type": "helloworld",
+		}),
 	)
 
-	// Register Handlers
-	server.Handle(
-		server.NewHandler(
-			new(handler.Example),
-		),
-	)
+	// Init will parse the command line flags. Any flags set will
+	// override the above settings. Options defined here will
+	// override anything set on the command line.
+	service.Init()
 
-	// Run server
-	if err := server.Run(); err != nil {
-		log.Fatal(err)
+	// Register handler
+	proto.RegisterGreeterHandler(service.Server(), new(Greeter))
+
+	// Run the server
+	if err := service.Run(); err != nil {
+		fmt.Println(err)
 	}
 }
 ```
 
 ### Run service
 ```
-$ go run examples/server/main.go --logtostderr
-I1108 11:08:19.926071   11358 server.go:96] Starting server go.micro.srv.example id go.micro.srv.example-04de4cf0-8609-11e5-bf3a-68a86d0d36b6
-I1108 11:08:19.926407   11358 rpc_server.go:233] Listening on [::]:54080
-I1108 11:08:19.926500   11358 http_broker.go:80] Broker Listening on [::]:54081
-I1108 11:08:19.926632   11358 rpc_server.go:158] Registering node: go.micro.srv.example-04de4cf0-8609-11e5-bf3a-68a86d0d36b6
+go run examples/service/main.go --logtostderr
+I0102 00:22:26.413467   12018 rpc_server.go:297] Listening on [::]:62492
+I0102 00:22:26.413803   12018 http_broker.go:115] Broker Listening on [::]:62493
+I0102 00:22:26.414009   12018 rpc_server.go:212] Registering node: greeter-e6b2fc6f-b0e6-11e5-a42f-68a86d0d36b6
+```
+
+### Define a client
+
+`client.go`
+
+```go
+package main
+
+import (
+	"fmt"
+
+	micro "github.com/micro/go-micro"
+	proto "github.com/micro/go-micro/examples/service/proto"
+	"golang.org/x/net/context"
+)
+
+
+func main() {
+	// Create a new service. Optionally include some options here.
+	service := micro.NewService(micro.Name("greeter.client"))
+
+	// Create new greeter client
+	greeter := proto.NewGreeterClient("greeter", service.Client())
+
+	// Call the greeter
+	rsp, err := greeter.Hello(context.TODO(), &proto.HelloRequest{Name: "John"})
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	// Print response
+	fmt.Println(rsp.Greeting)
+}
+```
+
+### Run the client
+
+```shell
+go run client.go
+Hello John
 ```

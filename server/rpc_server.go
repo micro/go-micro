@@ -110,9 +110,6 @@ func (s *rpcServer) Init(opts ...Option) {
 	for _, opt := range opts {
 		opt(&s.opts)
 	}
-	if len(s.opts.Id) == 0 {
-		s.opts.Id = s.opts.Name + "-" + DefaultId
-	}
 	s.Unlock()
 }
 
@@ -187,7 +184,7 @@ func (s *rpcServer) Register() error {
 
 	// register service
 	node := &registry.Node{
-		Id:       config.Id,
+		Id:       config.Name + "-" + config.Id,
 		Address:  addr,
 		Port:     port,
 		Metadata: config.Metadata,
@@ -260,7 +257,7 @@ func (s *rpcServer) Deregister() error {
 	}
 
 	node := &registry.Node{
-		Id:      config.Id,
+		Id:      config.Name + "-" + config.Id,
 		Address: addr,
 		Port:    port,
 	}

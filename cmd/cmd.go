@@ -57,7 +57,6 @@ var (
 		cli.StringFlag{
 			Name:   "server_address",
 			EnvVar: "MICRO_SERVER_ADDRESS",
-			Value:  ":0",
 			Usage:  "Bind address for the server. 127.0.0.1:8080",
 		},
 		cli.StringFlag{
@@ -74,7 +73,6 @@ var (
 		cli.StringFlag{
 			Name:   "broker",
 			EnvVar: "MICRO_BROKER",
-			Value:  "http",
 			Usage:  "Broker for pub/sub. http, nats, rabbitmq",
 		},
 		cli.StringFlag{
@@ -85,7 +83,6 @@ var (
 		cli.StringFlag{
 			Name:   "registry",
 			EnvVar: "MICRO_REGISTRY",
-			Value:  "consul",
 			Usage:  "Registry for discovery. memory, consul, etcd, kubernetes",
 		},
 		cli.StringFlag{
@@ -96,13 +93,11 @@ var (
 		cli.StringFlag{
 			Name:   "selector",
 			EnvVar: "MICRO_SELECTOR",
-			Value:  "selector",
 			Usage:  "Selector used to pick nodes for querying. random, roundrobin, blacklist",
 		},
 		cli.StringFlag{
 			Name:   "transport",
 			EnvVar: "MICRO_TRANSPORT",
-			Value:  "http",
 			Usage:  "Transport mechanism used; http, rabbitmq, nats",
 		},
 		cli.StringFlag{
@@ -170,6 +165,13 @@ func init() {
 
 func newCmd(opts ...Option) Cmd {
 	options := Options{
+		Broker:    &broker.DefaultBroker,
+		Client:    &client.DefaultClient,
+		Registry:  &registry.DefaultRegistry,
+		Server:    &server.DefaultServer,
+		Selector:  &selector.DefaultSelector,
+		Transport: &transport.DefaultTransport,
+
 		Brokers:    DefaultBrokers,
 		Registries: DefaultRegistries,
 		Selectors:  DefaultSelectors,
@@ -221,22 +223,63 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	flag.Set("v", ctx.String("v"))
 	flag.Parse()
 
-	if b, ok := c.opts.Brokers[ctx.String("broker")]; ok {
-		broker.DefaultBroker = b(strings.Split(ctx.String("broker_address"), ","))
+	// If flags are set then use them otherwise do nothing
+	var serverOpts []server.Option
+	var clientOpts []client.Option
+
+	// Set the broker
+	if len(ctx.String("broker")) > 0 {
+		if b, ok := c.opts.Brokers[ctx.String("broker")]; ok {
+			n := b(strings.Split(ctx.String("broker_address"), ","))
+			c.opts.Broker = &n
+		} else {
+			return fmt.Errorf("Broker %s not found", ctx.String("broker"))
+		}
+
+		serverOpts = append(serverOpts, server.Broker(*c.opts.Broker))
+		clientOpts = append(clientOpts, client.Broker(*c.opts.Broker))
 	}
 
-	if r, ok := c.opts.Registries[ctx.String("registry")]; ok {
-		registry.DefaultRegistry = r(strings.Split(ctx.String("registry_address"), ","))
+	// Set the registry
+	if len(ctx.String("registry")) > 0 {
+		if r, ok := c.opts.Registries[ctx.String("registry")]; ok {
+			n := r(strings.Split(ctx.String("registry_address"), ","))
+			c.opts.Registry = &n
+		} else {
+			return fmt.Errorf("Registry %s not found", ctx.String("registry"))
+		}
+
+		serverOpts = append(serverOpts, server.Registry(*c.opts.Registry))
+		clientOpts = append(clientOpts, client.Registry(*c.opts.Registry))
 	}
 
-	if s, ok := c.opts.Selectors[ctx.String("selector")]; ok {
-		selector.DefaultSelector = s(selector.Registry(registry.DefaultRegistry))
+	// Set the selector
+	if len(ctx.String("selector")) > 0 {
+		if s, ok := c.opts.Selectors[ctx.String("selector")]; ok {
+			n := s(selector.Registry(*c.opts.Registry))
+			c.opts.Selector = &n
+		} else {
+			return fmt.Errorf("Selector %s not found", ctx.String("selector"))
+		}
+
+		// No server option here. Should there be?
+		clientOpts = append(clientOpts, client.Selector(*c.opts.Selector))
 	}
 
-	if t, ok := c.opts.Transports[ctx.String("transport")]; ok {
-		transport.DefaultTransport = t(strings.Split(ctx.String("transport_address"), ","))
+	// Set the transport
+	if len(ctx.String("transport")) > 0 {
+		if t, ok := c.opts.Transports[ctx.String("transport")]; ok {
+			n := t(strings.Split(ctx.String("transport_address"), ","))
+			c.opts.Transport = &n
+		} else {
+			return fmt.Errorf("Transport %s not found", ctx.String("transport"))
+		}
+
+		serverOpts = append(serverOpts, server.Transport(*c.opts.Transport))
+		clientOpts = append(clientOpts, client.Transport(*c.opts.Transport))
 	}
 
+	// Parse the server options
 	metadata := make(map[string]string)
 	for _, d := range ctx.StringSlice("server_metadata") {
 		var key, val string
@@ -248,16 +291,40 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		metadata[key] = val
 	}
 
-	server.DefaultServer = server.NewServer(
-		server.Name(ctx.String("server_name")),
-		server.Version(ctx.String("server_version")),
-		server.Id(ctx.String("server_id")),
-		server.Address(ctx.String("server_address")),
-		server.Advertise(ctx.String("server_advertise")),
-		server.Metadata(metadata),
-	)
+	if len(metadata) > 0 {
+		serverOpts = append(serverOpts, server.Metadata(metadata))
+	}
 
-	client.DefaultClient = client.NewClient()
+	if len(ctx.String("server_name")) > 0 {
+		serverOpts = append(serverOpts, server.Name(ctx.String("server_name")))
+	}
+
+	if len(ctx.String("server_version")) > 0 {
+		serverOpts = append(serverOpts, server.Version(ctx.String("server_version")))
+	}
+
+	if len(ctx.String("server_id")) > 0 {
+		serverOpts = append(serverOpts, server.Id(ctx.String("server_id")))
+	}
+
+	if len(ctx.String("server_address")) > 0 {
+		serverOpts = append(serverOpts, server.Address(ctx.String("server_address")))
+	}
+
+	if len(ctx.String("server_advertise")) > 0 {
+		serverOpts = append(serverOpts, server.Advertise(ctx.String("server_advertise")))
+	}
+
+	// We have some command line opts for the server.
+	// Lets set it up
+	if len(serverOpts) > 0 {
+		(*c.opts.Server).Init(serverOpts...)
+	}
+
+	// Use an init option?
+	if len(clientOpts) > 0 {
+		*c.opts.Client = client.NewClient(clientOpts...)
+	}
 
 	return nil
 }
