@@ -16,6 +16,7 @@ type Options struct {
 	Selector    selector.Selector
 	Transport   transport.Transport
 	Wrappers    []Wrapper
+	Retries     int
 
 	// Other options to be used by client implementations
 	Options map[string]string
@@ -38,6 +39,44 @@ type RequestOptions struct {
 
 	// Other options to be used by client implementations
 	Options map[string]string
+}
+
+func newOptions(options ...Option) Options {
+	opts := Options{
+		Codecs: make(map[string]codec.NewCodec),
+	}
+
+	for _, o := range options {
+		o(&opts)
+	}
+
+	if opts.Retries == 0 {
+		opts.Retries = 1
+	}
+
+	if len(opts.ContentType) == 0 {
+		opts.ContentType = defaultContentType
+	}
+
+	if opts.Broker == nil {
+		opts.Broker = broker.DefaultBroker
+	}
+
+	if opts.Registry == nil {
+		opts.Registry = registry.DefaultRegistry
+	}
+
+	if opts.Selector == nil {
+		opts.Selector = selector.NewSelector(
+			selector.Registry(opts.Registry),
+		)
+	}
+
+	if opts.Transport == nil {
+		opts.Transport = transport.DefaultTransport
+	}
+
+	return opts
 }
 
 // Broker to be used for pub/sub
@@ -86,6 +125,13 @@ func Selector(s selector.Selector) Option {
 func Wrap(w Wrapper) Option {
 	return func(o *Options) {
 		o.Wrappers = append(o.Wrappers, w)
+	}
+}
+
+// Number of retries when making the request
+func Retries(i int) Option {
+	return func(o *Options) {
+		o.Retries = i
 	}
 }
 
