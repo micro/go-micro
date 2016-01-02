@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/micro/cli"
-	micro "github.com/micro/go-micro"
+	"github.com/micro/go-micro"
 	proto "github.com/micro/go-micro/examples/service/proto"
 	"golang.org/x/net/context"
 )
@@ -24,7 +24,7 @@ func (g *Greeter) Hello(ctx context.Context, req *proto.HelloRequest, rsp *proto
 }
 
 // Setup and the client
-func client(service micro.Service) {
+func runClient(service micro.Service) {
 	// Create new greeter client
 	greeter := proto.NewGreeterClient("greeter", service.Client())
 
@@ -32,6 +32,7 @@ func client(service micro.Service) {
 	rsp, err := greeter.Hello(context.TODO(), &proto.HelloRequest{Name: "John"})
 	if err != nil {
 		fmt.Println(err)
+		return
 	}
 
 	// Print response
@@ -65,7 +66,7 @@ func main() {
 		// We could actually do this above
 		micro.Action(func(c *cli.Context) {
 			if c.Bool("client") {
-				client(service)
+				runClient(service)
 				os.Exit(0)
 			}
 		}),
