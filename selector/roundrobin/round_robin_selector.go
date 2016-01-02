@@ -13,7 +13,7 @@ type roundRobinSelector struct {
 }
 
 func init() {
-	cmd.Selectors["roundrobin"] = NewSelector
+	cmd.DefaultSelectors["roundrobin"] = NewSelector
 }
 
 func (r *roundRobinSelector) Select(service string, opts ...selector.SelectOption) (selector.Next, error) {

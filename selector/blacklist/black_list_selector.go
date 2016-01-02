@@ -27,7 +27,7 @@ type blackListSelector struct {
 }
 
 func init() {
-	cmd.Selectors["blacklist"] = NewSelector
+	cmd.DefaultSelectors["blacklist"] = NewSelector
 	rand.Seed(time.Now().Unix())
 }
 

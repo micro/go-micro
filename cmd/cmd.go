@@ -7,11 +7,9 @@ import (
 	"math/rand"
 	"os"
 	"strings"
-	"text/tabwriter"
-	"text/template"
 	"time"
 
-	"github.com/codegangsta/cli"
+	"github.com/micro/cli"
 	"github.com/micro/go-micro/broker"
 	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/registry"
@@ -20,10 +18,27 @@ import (
 	"github.com/micro/go-micro/transport"
 )
 
-var (
-	Actions = []func(*cli.Context){}
+type Cmd interface {
+	// The cli app within this cmd
+	App() *cli.App
+	// Adds options, parses flags and initialise
+	// exits on error
+	Init(opts ...Option) error
+	// Options set within this command
+	Options() Options
+}
 
-	Flags = []cli.Flag{
+type cmd struct {
+	opts Options
+	app  *cli.App
+}
+
+type Option func(o *Options)
+
+var (
+	DefaultCmd = newCmd()
+
+	DefaultFlags = []cli.Flag{
 		cli.StringFlag{
 			Name:   "server_name",
 			EnvVar: "MICRO_SERVER_NAME",
@@ -42,7 +57,6 @@ var (
 		cli.StringFlag{
 			Name:   "server_address",
 			EnvVar: "MICRO_SERVER_ADDRESS",
-			Value:  ":0",
 			Usage:  "Bind address for the server. 127.0.0.1:8080",
 		},
 		cli.StringFlag{
@@ -59,7 +73,6 @@ var (
 		cli.StringFlag{
 			Name:   "broker",
 			EnvVar: "MICRO_BROKER",
-			Value:  "http",
 			Usage:  "Broker for pub/sub. http, nats, rabbitmq",
 		},
 		cli.StringFlag{
@@ -70,7 +83,6 @@ var (
 		cli.StringFlag{
 			Name:   "registry",
 			EnvVar: "MICRO_REGISTRY",
-			Value:  "consul",
 			Usage:  "Registry for discovery. memory, consul, etcd, kubernetes",
 		},
 		cli.StringFlag{
@@ -81,13 +93,11 @@ var (
 		cli.StringFlag{
 			Name:   "selector",
 			EnvVar: "MICRO_SELECTOR",
-			Value:  "selector",
 			Usage:  "Selector used to pick nodes for querying. random, roundrobin, blacklist",
 		},
 		cli.StringFlag{
 			Name:   "transport",
 			EnvVar: "MICRO_TRANSPORT",
-			Value:  "http",
 			Usage:  "Transport mechanism used; http, rabbitmq, nats",
 		},
 		cli.StringFlag{
@@ -127,58 +137,151 @@ var (
 		},
 	}
 
-	Brokers = map[string]func([]string, ...broker.Option) broker.Broker{
+	DefaultBrokers = map[string]func([]string, ...broker.Option) broker.Broker{
 		"http": broker.NewBroker,
 	}
 
-	Registries = map[string]func([]string, ...registry.Option) registry.Registry{
+	DefaultRegistries = map[string]func([]string, ...registry.Option) registry.Registry{
 		"consul": registry.NewRegistry,
 	}
 
-	Selectors = map[string]func(...selector.Option) selector.Selector{
+	DefaultSelectors = map[string]func(...selector.Option) selector.Selector{
 		"random": selector.NewSelector,
 	}
 
-	Transports = map[string]func([]string, ...transport.Option) transport.Transport{
+	DefaultTransports = map[string]func([]string, ...transport.Option) transport.Transport{
 		"http": transport.NewTransport,
 	}
 )
 
 func init() {
 	rand.Seed(time.Now().Unix())
+	help := cli.HelpPrinter
+	cli.HelpPrinter = func(writer io.Writer, templ string, data interface{}) {
+		help(writer, templ, data)
+		os.Exit(0)
+	}
 }
 
-func Setup(c *cli.Context) error {
+func newCmd(opts ...Option) Cmd {
+	options := Options{
+		Broker:    &broker.DefaultBroker,
+		Client:    &client.DefaultClient,
+		Registry:  &registry.DefaultRegistry,
+		Server:    &server.DefaultServer,
+		Selector:  &selector.DefaultSelector,
+		Transport: &transport.DefaultTransport,
+
+		Brokers:    DefaultBrokers,
+		Registries: DefaultRegistries,
+		Selectors:  DefaultSelectors,
+		Transports: DefaultTransports,
+	}
+
+	for _, o := range opts {
+		o(&options)
+	}
+
+	if len(options.Description) == 0 {
+		options.Description = "a go-micro service"
+	}
+
+	cmd := new(cmd)
+	cmd.opts = options
+	cmd.app = cli.NewApp()
+	cmd.app.Name = cmd.opts.Name
+	cmd.app.Version = cmd.opts.Version
+	cmd.app.Usage = cmd.opts.Description
+	cmd.app.Before = cmd.Before
+	cmd.app.Flags = DefaultFlags
+	cmd.app.Action = func(c *cli.Context) {}
+
+	if len(options.Version) == 0 {
+		cmd.app.HideVersion = true
+	}
+
+	return cmd
+}
+
+func (c *cmd) App() *cli.App {
+	return c.app
+}
+
+func (c *cmd) Options() Options {
+	return c.opts
+}
+
+func (c *cmd) Before(ctx *cli.Context) error {
+	// Due to logger issues with glog, we need to do this
 	os.Args = os.Args[:1]
-
-	flag.Set("logtostderr", fmt.Sprintf("%v", c.Bool("logtostderr")))
-	flag.Set("alsologtostderr", fmt.Sprintf("%v", c.Bool("alsologtostderr")))
-	flag.Set("stderrthreshold", c.String("stderrthreshold"))
-	flag.Set("log_backtrace_at", c.String("log_backtrace_at"))
-	flag.Set("log_dir", c.String("log_dir"))
-	flag.Set("vmodule", c.String("vmodule"))
-	flag.Set("v", c.String("v"))
-
+	flag.Set("logtostderr", fmt.Sprintf("%v", ctx.Bool("logtostderr")))
+	flag.Set("alsologtostderr", fmt.Sprintf("%v", ctx.Bool("alsologtostderr")))
+	flag.Set("stderrthreshold", ctx.String("stderrthreshold"))
+	flag.Set("log_backtrace_at", ctx.String("log_backtrace_at"))
+	flag.Set("log_dir", ctx.String("log_dir"))
+	flag.Set("vmodule", ctx.String("vmodule"))
+	flag.Set("v", ctx.String("v"))
 	flag.Parse()
 
-	if b, ok := Brokers[c.String("broker")]; ok {
-		broker.DefaultBroker = b(strings.Split(c.String("broker_address"), ","))
+	// If flags are set then use them otherwise do nothing
+	var serverOpts []server.Option
+	var clientOpts []client.Option
+
+	// Set the broker
+	if len(ctx.String("broker")) > 0 {
+		if b, ok := c.opts.Brokers[ctx.String("broker")]; ok {
+			n := b(strings.Split(ctx.String("broker_address"), ","))
+			c.opts.Broker = &n
+		} else {
+			return fmt.Errorf("Broker %s not found", ctx.String("broker"))
+		}
+
+		serverOpts = append(serverOpts, server.Broker(*c.opts.Broker))
+		clientOpts = append(clientOpts, client.Broker(*c.opts.Broker))
 	}
 
-	if r, ok := Registries[c.String("registry")]; ok {
-		registry.DefaultRegistry = r(strings.Split(c.String("registry_address"), ","))
+	// Set the registry
+	if len(ctx.String("registry")) > 0 {
+		if r, ok := c.opts.Registries[ctx.String("registry")]; ok {
+			n := r(strings.Split(ctx.String("registry_address"), ","))
+			c.opts.Registry = &n
+		} else {
+			return fmt.Errorf("Registry %s not found", ctx.String("registry"))
+		}
+
+		serverOpts = append(serverOpts, server.Registry(*c.opts.Registry))
+		clientOpts = append(clientOpts, client.Registry(*c.opts.Registry))
 	}
 
-	if s, ok := Selectors[c.String("selector")]; ok {
-		selector.DefaultSelector = s(selector.Registry(registry.DefaultRegistry))
+	// Set the selector
+	if len(ctx.String("selector")) > 0 {
+		if s, ok := c.opts.Selectors[ctx.String("selector")]; ok {
+			n := s(selector.Registry(*c.opts.Registry))
+			c.opts.Selector = &n
+		} else {
+			return fmt.Errorf("Selector %s not found", ctx.String("selector"))
+		}
+
+		// No server option here. Should there be?
+		clientOpts = append(clientOpts, client.Selector(*c.opts.Selector))
 	}
 
-	if t, ok := Transports[c.String("transport")]; ok {
-		transport.DefaultTransport = t(strings.Split(c.String("transport_address"), ","))
+	// Set the transport
+	if len(ctx.String("transport")) > 0 {
+		if t, ok := c.opts.Transports[ctx.String("transport")]; ok {
+			n := t(strings.Split(ctx.String("transport_address"), ","))
+			c.opts.Transport = &n
+		} else {
+			return fmt.Errorf("Transport %s not found", ctx.String("transport"))
+		}
+
+		serverOpts = append(serverOpts, server.Transport(*c.opts.Transport))
+		clientOpts = append(clientOpts, client.Transport(*c.opts.Transport))
 	}
 
+	// Parse the server options
 	metadata := make(map[string]string)
-	for _, d := range c.StringSlice("server_metadata") {
+	for _, d := range ctx.StringSlice("server_metadata") {
 		var key, val string
 		parts := strings.Split(d, "=")
 		key = parts[0]
@@ -188,47 +291,59 @@ func Setup(c *cli.Context) error {
 		metadata[key] = val
 	}
 
-	server.DefaultServer = server.NewServer(
-		server.Name(c.String("server_name")),
-		server.Version(c.String("server_version")),
-		server.Id(c.String("server_id")),
-		server.Address(c.String("server_address")),
-		server.Advertise(c.String("server_advertise")),
-		server.Metadata(metadata),
-	)
+	if len(metadata) > 0 {
+		serverOpts = append(serverOpts, server.Metadata(metadata))
+	}
 
-	client.DefaultClient = client.NewClient()
+	if len(ctx.String("server_name")) > 0 {
+		serverOpts = append(serverOpts, server.Name(ctx.String("server_name")))
+	}
+
+	if len(ctx.String("server_version")) > 0 {
+		serverOpts = append(serverOpts, server.Version(ctx.String("server_version")))
+	}
+
+	if len(ctx.String("server_id")) > 0 {
+		serverOpts = append(serverOpts, server.Id(ctx.String("server_id")))
+	}
+
+	if len(ctx.String("server_address")) > 0 {
+		serverOpts = append(serverOpts, server.Address(ctx.String("server_address")))
+	}
+
+	if len(ctx.String("server_advertise")) > 0 {
+		serverOpts = append(serverOpts, server.Advertise(ctx.String("server_advertise")))
+	}
+
+	// We have some command line opts for the server.
+	// Lets set it up
+	if len(serverOpts) > 0 {
+		(*c.opts.Server).Init(serverOpts...)
+	}
+
+	// Use an init option?
+	if len(clientOpts) > 0 {
+		(*c.opts.Client).Init(clientOpts...)
+	}
 
 	return nil
 }
 
-func Init() {
-	cli.AppHelpTemplate = `
-GLOBAL OPTIONS:
-   {{range .Flags}}{{.}}
-   {{end}}
-`
-
-	cli.HelpPrinter = func(writer io.Writer, templ string, data interface{}) {
-		w := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', 0)
-		t := template.Must(template.New("help").Parse(templ))
-		err := t.Execute(w, data)
-		if err != nil {
-			panic(err)
-		}
-		w.Flush()
-		os.Exit(2)
+func (c *cmd) Init(opts ...Option) error {
+	for _, o := range opts {
+		o(&c.opts)
 	}
+	c.app.Name = c.opts.Name
+	c.app.Version = c.opts.Version
+	c.app.Usage = c.opts.Description
+	c.app.RunAndExitOnError()
+	return nil
+}
 
-	app := cli.NewApp()
-	app.HideVersion = true
-	app.Usage = "a go micro app"
-	app.Action = func(c *cli.Context) {
-		for _, action := range Actions {
-			action(c)
-		}
-	}
-	app.Before = Setup
-	app.Flags = Flags
-	app.RunAndExitOnError()
+func Init(opts ...Option) error {
+	return DefaultCmd.Init(opts...)
+}
+
+func NewCmd(opts ...Option) Cmd {
+	return newCmd(opts...)
 }
