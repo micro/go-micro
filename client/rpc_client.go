@@ -70,7 +70,7 @@ func (r *rpcClient) call(ctx context.Context, address string, request Request, r
 		return errors.InternalServerError("go.micro.client", err.Error())
 	}
 
-	c, err := r.opts.Transport.Dial(address)
+	c, err := r.opts.Transport.Dial(address, transport.WithTimeout(r.opts.DialTimeout))
 	if err != nil {
 		return errors.InternalServerError("go.micro.client", fmt.Sprintf("Error sending request: %v", err))
 	}
@@ -116,7 +116,7 @@ func (r *rpcClient) stream(ctx context.Context, address string, req Request) (St
 		return nil, errors.InternalServerError("go.micro.client", err.Error())
 	}
 
-	c, err := r.opts.Transport.Dial(address, transport.WithStream())
+	c, err := r.opts.Transport.Dial(address, transport.WithStream(), transport.WithTimeout(r.opts.DialTimeout))
 	if err != nil {
 		return nil, errors.InternalServerError("go.micro.client", fmt.Sprintf("Error sending request: %v", err))
 	}

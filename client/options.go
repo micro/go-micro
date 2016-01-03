@@ -20,6 +20,7 @@ type Options struct {
 	Wrappers       []Wrapper
 	Retries        int
 	RequestTimeout time.Duration
+	DialTimeout    time.Duration
 
 	// Other options to be used by client implementations
 	Options map[string]string
@@ -49,6 +50,7 @@ func newOptions(options ...Option) Options {
 		Codecs:         make(map[string]codec.NewCodec),
 		Retries:        DefaultRetries,
 		RequestTimeout: DefaultRequestTimeout,
+		DialTimeout:    transport.DefaultDialTimeout,
 	}
 
 	for _, o := range options {
@@ -142,6 +144,13 @@ func Retries(i int) Option {
 func RequestTimeout(d time.Duration) Option {
 	return func(o *Options) {
 		o.RequestTimeout = d
+	}
+}
+
+// Transport dial timeout
+func DialTimeout(d time.Duration) Option {
+	return func(o *Options) {
+		o.DialTimeout = d
 	}
 }
 

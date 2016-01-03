@@ -1,5 +1,9 @@
 package transport
 
+import (
+	"time"
+)
+
 type Message struct {
 	Header map[string]string
 	Body   []byte
@@ -35,7 +39,8 @@ type Options struct {
 }
 
 type DialOptions struct {
-	Stream bool
+	Stream  bool
+	Timeout time.Duration
 
 	// Other options to be used by broker implementations
 	Options map[string]string
@@ -47,11 +52,19 @@ type DialOption func(*DialOptions)
 
 var (
 	DefaultTransport Transport = newHttpTransport([]string{})
+
+	DefaultDialTimeout = time.Second * 5
 )
 
 func WithStream() DialOption {
 	return func(o *DialOptions) {
 		o.Stream = true
+	}
+}
+
+func WithTimeout(d time.Duration) DialOption {
+	return func(o *DialOptions) {
+		o.Timeout = d
 	}
 }
 

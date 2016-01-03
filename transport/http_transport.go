@@ -276,15 +276,17 @@ func (h *httpTransportListener) Accept(fn func(Socket)) error {
 }
 
 func (h *httpTransport) Dial(addr string, opts ...DialOption) (Client, error) {
-	conn, err := net.Dial("tcp", addr)
-	if err != nil {
-		return nil, err
+	dopts := DialOptions{
+		Timeout: DefaultDialTimeout,
 	}
-
-	var dopts DialOptions
 
 	for _, opt := range opts {
 		opt(&dopts)
+	}
+
+	conn, err := net.DialTimeout("tcp", addr, dopts.Timeout)
+	if err != nil {
+		return nil, err
 	}
 
 	return &httpTransportClient{
