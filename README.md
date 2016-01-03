@@ -58,7 +58,7 @@ Hello John
 ### Create request/response proto
 `go-micro/examples/service/proto/greeter.proto`:
 
-```
+```proto
 syntax = "proto3";
 
 service Greeter {
