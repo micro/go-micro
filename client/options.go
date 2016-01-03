@@ -1,6 +1,8 @@
 package client
 
 import (
+	"time"
+
 	"github.com/micro/go-micro/broker"
 	"github.com/micro/go-micro/codec"
 	"github.com/micro/go-micro/registry"
@@ -9,14 +11,15 @@ import (
 )
 
 type Options struct {
-	ContentType string
-	Broker      broker.Broker
-	Codecs      map[string]codec.NewCodec
-	Registry    registry.Registry
-	Selector    selector.Selector
-	Transport   transport.Transport
-	Wrappers    []Wrapper
-	Retries     int
+	ContentType    string
+	Broker         broker.Broker
+	Codecs         map[string]codec.NewCodec
+	Registry       registry.Registry
+	Selector       selector.Selector
+	Transport      transport.Transport
+	Wrappers       []Wrapper
+	Retries        int
+	RequestTimeout time.Duration
 
 	// Other options to be used by client implementations
 	Options map[string]string
@@ -43,15 +46,13 @@ type RequestOptions struct {
 
 func newOptions(options ...Option) Options {
 	opts := Options{
-		Codecs: make(map[string]codec.NewCodec),
+		Codecs:         make(map[string]codec.NewCodec),
+		Retries:        DefaultRetries,
+		RequestTimeout: DefaultRequestTimeout,
 	}
 
 	for _, o := range options {
 		o(&opts)
-	}
-
-	if opts.Retries == 0 {
-		opts.Retries = 1
 	}
 
 	if len(opts.ContentType) == 0 {
@@ -128,10 +129,19 @@ func Wrap(w Wrapper) Option {
 	}
 }
 
-// Number of retries when making the request
+// Number of retries when making the request.
+// Should this be a Call Option?
 func Retries(i int) Option {
 	return func(o *Options) {
 		o.Retries = i
+	}
+}
+
+// The request timeout.
+// Should this be a Call Option?
+func RequestTimeout(d time.Duration) Option {
+	return func(o *Options) {
+		o.RequestTimeout = d
 	}
 }
 

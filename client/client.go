@@ -22,6 +22,8 @@ supported.
 package client
 
 import (
+	"time"
+
 	"golang.org/x/net/context"
 )
 
@@ -71,6 +73,9 @@ type RequestOption func(*RequestOptions)
 
 var (
 	DefaultClient Client = newRpcClient()
+
+	DefaultRetries        = 1
+	DefaultRequestTimeout = time.Second * 5
 )
 
 // Makes a synchronous call to a service using the default client
