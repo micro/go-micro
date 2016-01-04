@@ -194,6 +194,7 @@ func (s *rpcServer) Register() error {
 	node.Metadata["transport"] = config.Transport.String()
 	node.Metadata["broker"] = config.Broker.String()
 	node.Metadata["server"] = s.String()
+	node.Metadata["registry"] = config.Registry.String()
 
 	s.RLock()
 	var endpoints []*registry.Endpoint
