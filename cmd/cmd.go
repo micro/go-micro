@@ -231,7 +231,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	if len(ctx.String("broker")) > 0 {
 		if b, ok := c.opts.Brokers[ctx.String("broker")]; ok {
 			n := b(strings.Split(ctx.String("broker_address"), ","))
-			c.opts.Broker = &n
+			*c.opts.Broker = n
 		} else {
 			return fmt.Errorf("Broker %s not found", ctx.String("broker"))
 		}
@@ -245,7 +245,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	if len(ctx.String("registry")) > 0 {
 		if r, ok := c.opts.Registries[ctx.String("registry")]; ok {
 			n := r(strings.Split(ctx.String("registry_address"), ","))
-			c.opts.Registry = &n
+			*c.opts.Registry = n
 		} else {
 			return fmt.Errorf("Registry %s not found", ctx.String("registry"))
 		}
@@ -261,7 +261,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	if len(ctx.String("selector")) > 0 {
 		if s, ok := c.opts.Selectors[ctx.String("selector")]; ok {
 			n := s(selector.Registry(*c.opts.Registry))
-			c.opts.Selector = &n
+			*c.opts.Selector = n
 		} else {
 			return fmt.Errorf("Selector %s not found", ctx.String("selector"))
 		}
@@ -274,7 +274,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	if len(ctx.String("transport")) > 0 {
 		if t, ok := c.opts.Transports[ctx.String("transport")]; ok {
 			n := t(strings.Split(ctx.String("transport_address"), ","))
-			c.opts.Transport = &n
+			*c.opts.Transport = n
 		} else {
 			return fmt.Errorf("Transport %s not found", ctx.String("transport"))
 		}
