@@ -340,6 +340,14 @@ func (c *cmd) Init(opts ...Option) error {
 	return nil
 }
 
+func DefaultOptions() Options {
+	return DefaultCmd.Options()
+}
+
+func App() *cli.App {
+	return DefaultCmd.App()
+}
+
 func Init(opts ...Option) error {
 	return DefaultCmd.Init(opts...)
 }
