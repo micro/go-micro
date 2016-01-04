@@ -56,6 +56,17 @@ func (r *blackListSelector) run() {
 	}
 }
 
+func (r *blackListSelector) Init(opts ...selector.Option) error {
+	for _, o := range opts {
+		o(&r.so)
+	}
+	return nil
+}
+
+func (r *blackListSelector) Options() selector.Options {
+	return r.so
+}
+
 func (r *blackListSelector) Select(service string, opts ...selector.SelectOption) (selector.Next, error) {
 	var sopts selector.SelectOptions
 	for _, opt := range opts {

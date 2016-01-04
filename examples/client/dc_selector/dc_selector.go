@@ -28,6 +28,17 @@ func init() {
 	rand.Seed(time.Now().Unix())
 }
 
+func (n *dcSelector) Init(opts ...selector.Option) error {
+	for _, o := range opts {
+		o(&n.opts)
+	}
+	return nil
+}
+
+func (n *dcSelector) Options() selector.Options {
+	return n.opts
+}
+
 func (n *dcSelector) Select(service string, opts ...selector.SelectOption) (selector.Next, error) {
 	services, err := n.opts.Registry.GetService(service)
 	if err != nil {

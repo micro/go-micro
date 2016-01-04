@@ -238,6 +238,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 
 		serverOpts = append(serverOpts, server.Broker(*c.opts.Broker))
 		clientOpts = append(clientOpts, client.Broker(*c.opts.Broker))
+
 	}
 
 	// Set the registry
@@ -251,6 +252,9 @@ func (c *cmd) Before(ctx *cli.Context) error {
 
 		serverOpts = append(serverOpts, server.Registry(*c.opts.Registry))
 		clientOpts = append(clientOpts, client.Registry(*c.opts.Registry))
+
+		(*c.opts.Selector).Init(selector.Registry(*c.opts.Registry))
+		clientOpts = append(clientOpts, client.Selector(*c.opts.Selector))
 	}
 
 	// Set the selector

@@ -22,6 +22,17 @@ type firstNodeSelector struct {
 	opts selector.Options
 }
 
+func (n *firstNodeSelector) Init(opts ...selector.Option) error {
+	for _, o := range opts {
+		o(&n.opts)
+	}
+	return nil
+}
+
+func (n *firstNodeSelector) Options() selector.Options {
+	return n.opts
+}
+
 func (n *firstNodeSelector) Select(service string, opts ...selector.SelectOption) (selector.Next, error) {
 	services, err := n.opts.Registry.GetService(service)
 	if err != nil {

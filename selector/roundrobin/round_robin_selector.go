@@ -16,6 +16,17 @@ func init() {
 	cmd.DefaultSelectors["roundrobin"] = NewSelector
 }
 
+func (r *roundRobinSelector) Init(opts ...selector.Option) error {
+	for _, o := range opts {
+		o(&r.so)
+	}
+	return nil
+}
+
+func (r *roundRobinSelector) Options() selector.Options {
+	return r.so
+}
+
 func (r *roundRobinSelector) Select(service string, opts ...selector.SelectOption) (selector.Next, error) {
 	var sopts selector.SelectOptions
 	for _, opt := range opts {

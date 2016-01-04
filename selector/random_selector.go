@@ -15,6 +15,17 @@ func init() {
 	rand.Seed(time.Now().Unix())
 }
 
+func (r *randomSelector) Init(opts ...Option) error {
+	for _, o := range opts {
+		o(&r.so)
+	}
+	return nil
+}
+
+func (r *randomSelector) Options() Options {
+	return r.so
+}
+
 func (r *randomSelector) Select(service string, opts ...SelectOption) (Next, error) {
 	var sopts SelectOptions
 	for _, opt := range opts {
