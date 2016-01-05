@@ -4,7 +4,7 @@ Go Micro is a pluggable RPC based microservice library which provides the fundam
 
 Every aspect of go-micro is pluggable.
 
-An example server can be found in examples/server.
+An example service can be found in [**examples/service**](https://github.com/micro/go-micro/tree/master/examples/service). The [**examples**](https://github.com/micro/go-micro/tree/master/examples) directory contains many more examples for using things such as middleware/wrappers, selector filters, pub/sub and code generation.
 
 - [Mailing List](https://groups.google.com/forum/#!forum/micro-services) 
 - [Slack](https://micro-services.slack.com) : [auto-invite](http://micro-invites.herokuapp.com/)
@@ -20,6 +20,22 @@ Balancer	| [Selector](https://godoc.org/github.com/micro/go-micro/selector)	| ra
 Server		| [Server](https://godoc.org/github.com/micro/go-micro/server)	| rpc	| Listens and serves RPC requests
 Pub/Sub		| [Broker](https://godoc.org/github.com/micro/go-micro/broker)	| http	| Publish and Subscribe to events
 Transport	| [Transport](https://godoc.org/github.com/micro/go-micro/transport)	| http	| Communication mechanism between services
+
+## Example Services
+Project		|	Description
+-----		|	------
+[greeter](https://github.com/micro/micro/tree/master/examples/greeter)	|	A greeter service (includes Go, Ruby, Python examples)
+[geo-srv](https://github.com/micro/geo-srv)	|	Geolocation tracking service using hailocab/go-geoindex
+[geo-api](https://github.com/micro/geo-api)	|	A HTTP API handler for geo location tracking and search
+[discovery-srv](https://github.com/micro/discovery-srv)	|	A discovery in the micro platform
+[geocode-srv](https://github.com/micro/geocode-srv)	|	A geocoding service using the Google Geocoding API
+[hailo-srv](https://github.com/micro/hailo-srv)	|	A service for the hailo taxi service developer api
+[monitoring-srv](https://github.com/micro/monitoring-srv)	|	A monitoring service for Micro services
+[place-srv](https://github.com/micro/place-srv)	|	A microservice to store and retrieve places (includes Google Place Search API)
+[slack-srv](https://github.com/micro/slack-srv)	|	The slack bot API as a go-micro RPC service
+[trace-srv](https://github.com/micro/trace-srv)	|	A distributed tracing microservice in the realm of dapper, zipkin, etc
+[twitter-srv](https://github.com/micro/twitter-srv)	|	A microservice for the twitter API
+[user-srv](https://github.com/micro/user-srv)	|	A microservice for user management and authentication
 
 ## Go Plugins
 
