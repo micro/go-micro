@@ -10,7 +10,6 @@ import (
 	"log"
 	"sync"
 
-	"github.com/youtube/vitess/go/trace"
 	"golang.org/x/net/context"
 )
 
@@ -216,38 +215,15 @@ func (client *client) Close() error {
 	return client.codec.Close()
 }
 
-// Go invokes the function asynchronously.  It returns the call structure representing
-// the invocation.  The done channel will signal when the call is complete by returning
-// the same call object.  If done is nil, Go will allocate a new channel.
-// If non-nil, done must be buffered or Go will deliberately crash.
-func (client *client) Go(ctx context.Context, service, serviceMethod string, args interface{}, reply interface{}, done chan *call) *call {
-	span := trace.NewSpanFromContext(ctx)
-	span.StartClient(serviceMethod)
-	defer span.Finish()
-
+// call invokes the named function, waits for it to complete, and returns its error status.
+func (client *client) Call(ctx context.Context, service string, serviceMethod string, args interface{}, reply interface{}) error {
 	cal := new(call)
 	cal.Service = service
 	cal.ServiceMethod = serviceMethod
 	cal.Args = args
 	cal.Reply = reply
-	if done == nil {
-		done = make(chan *call, 10) // buffered.
-	} else {
-		// If caller passes done != nil, it must arrange that
-		// done has enough buffer for the number of simultaneous
-		// RPCs that will be using that channel.  If the channel
-		// is totally unbuffered, it's best not to run at all.
-		if cap(done) == 0 {
-			log.Panic("rpc: done channel is unbuffered")
-		}
-	}
-	cal.Done = done
+	cal.Done = make(chan *call, 1)
 	client.send(cal)
-	return cal
-}
-
-// call invokes the named function, waits for it to complete, and returns its error status.
-func (client *client) Call(ctx context.Context, service string, serviceMethod string, args interface{}, reply interface{}) error {
-	call := <-client.Go(ctx, service, serviceMethod, args, reply, make(chan *call, 1)).Done
+	call := <-cal.Done
 	return call.Error
 }
