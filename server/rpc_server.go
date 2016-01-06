@@ -290,7 +290,7 @@ func (s *rpcServer) Deregister() error {
 }
 
 func (s *rpcServer) Start() error {
-	registerHealthChecker(s)
+	registerDebugHandler(s)
 	config := s.Options()
 
 	ts, err := config.Transport.Listen(config.Address)

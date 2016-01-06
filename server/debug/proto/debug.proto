@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+// This is commented out due to import cycles.
+// But its what we expect the RPC service to 
+// return.
+//
+// service Debug {
+// 	rpc Health(HealthRequest) returns (HealthResponse) {}
+// }
+
+message HealthRequest {
+}
+
+message HealthResponse {
+	string status = 1;
+}

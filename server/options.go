@@ -4,6 +4,7 @@ import (
 	"github.com/micro/go-micro/broker"
 	"github.com/micro/go-micro/codec"
 	"github.com/micro/go-micro/registry"
+	"github.com/micro/go-micro/server/debug"
 	"github.com/micro/go-micro/transport"
 
 	"golang.org/x/net/context"
@@ -22,6 +23,9 @@ type Options struct {
 	Version      string
 	HdlrWrappers []HandlerWrapper
 	SubWrappers  []SubscriberWrapper
+
+	// Debug Handler which can be set by a user
+	DebugHandler debug.DebugHandler
 
 	// Other options for implementations of the interface
 	// can be stored in a context
@@ -48,6 +52,10 @@ func newOptions(opt ...Option) Options {
 
 	if opts.Transport == nil {
 		opts.Transport = transport.DefaultTransport
+	}
+
+	if opts.DebugHandler == nil {
+		opts.DebugHandler = debug.DefaultDebugHandler
 	}
 
 	if len(opts.Address) == 0 {
@@ -129,6 +137,13 @@ func Registry(r registry.Registry) Option {
 func Transport(t transport.Transport) Option {
 	return func(o *Options) {
 		o.Transport = t
+	}
+}
+
+// DebugHandler for this server
+func DebugHandler(d debug.DebugHandler) Option {
+	return func(o *Options) {
+		o.DebugHandler = d
 	}
 }
 
