@@ -2,11 +2,29 @@ package client
 
 import (
 	"bytes"
+	"errors"
 
 	"github.com/micro/go-micro/codec"
 	"github.com/micro/go-micro/codec/jsonrpc"
 	"github.com/micro/go-micro/codec/protorpc"
 	"github.com/micro/go-micro/transport"
+)
+
+const (
+	lastStreamResponseError = "EOS"
+)
+
+// serverError represents an error that has been returned from
+// the remote side of the RPC connection.
+type serverError string
+
+func (e serverError) Error() string {
+	return string(e)
+}
+
+// errShutdown holds the specific error for closing/closed connections
+var (
+	errShutdown = errors.New("connection is shut down")
 )
 
 type rpcPlusCodec struct {
@@ -20,6 +38,28 @@ type rpcPlusCodec struct {
 type readWriteCloser struct {
 	wbuf *bytes.Buffer
 	rbuf *bytes.Buffer
+}
+
+type clientCodec interface {
+	WriteRequest(*request, interface{}) error
+	ReadResponseHeader(*response) error
+	ReadResponseBody(interface{}) error
+
+	Close() error
+}
+
+type request struct {
+	Service       string
+	ServiceMethod string   // format: "Service.Method"
+	Seq           uint64   // sequence number chosen by client
+	next          *request // for free list in Server
+}
+
+type response struct {
+	ServiceMethod string    // echoes that of the Request
+	Seq           uint64    // echoes that of the request
+	Error         string    // error, if any.
+	next          *response // for free list in Server
 }
 
 var (

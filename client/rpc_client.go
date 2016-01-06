@@ -51,7 +51,7 @@ func (r *rpcClient) newCodec(contentType string) (codec.NewCodec, error) {
 	return nil, fmt.Errorf("Unsupported Content-Type: %s", contentType)
 }
 
-func (r *rpcClient) call(ctx context.Context, address string, request Request, response interface{}) error {
+func (r *rpcClient) call(ctx context.Context, address string, req Request, resp interface{}) error {
 	msg := &transport.Message{
 		Header: make(map[string]string),
 	}
@@ -63,9 +63,9 @@ func (r *rpcClient) call(ctx context.Context, address string, request Request, r
 		}
 	}
 
-	msg.Header["Content-Type"] = request.ContentType()
+	msg.Header["Content-Type"] = req.ContentType()
 
-	cf, err := r.newCodec(request.ContentType())
+	cf, err := r.newCodec(req.ContentType())
 	if err != nil {
 		return errors.InternalServerError("go.micro.client", err.Error())
 	}
@@ -74,18 +74,36 @@ func (r *rpcClient) call(ctx context.Context, address string, request Request, r
 	if err != nil {
 		return errors.InternalServerError("go.micro.client", fmt.Sprintf("Error sending request: %v", err))
 	}
-	defer c.Close()
 
-	client := newClientWithCodec(newRpcPlusCodec(msg, c, cf))
-	defer client.Close()
+	var once sync.Once
+	stream := &rpcStream{
+		context: ctx,
+		request: req,
+		once:    once,
+		closed:  make(chan bool),
+		codec:   newRpcPlusCodec(msg, c, cf),
+	}
 
 	ch := make(chan error, 1)
 
 	go func() {
-		select {
-		case ch <- client.Call(ctx, request.Service(), request.Method(), request.Request(), response):
-		default:
+		// defer stream close
+		defer stream.Close()
+
+		// send request
+		if err := stream.Send(req.Request()); err != nil {
+			ch <- err
+			return
 		}
+
+		// recv request
+		if err := stream.Recv(resp); err != nil {
+			ch <- err
+			return
+		}
+
+		// success
+		ch <- nil
 	}()
 
 	select {
@@ -133,10 +151,7 @@ func (r *rpcClient) stream(ctx context.Context, address string, req Request) (St
 	ch := make(chan error, 1)
 
 	go func() {
-		select {
-		case ch <- stream.Send(req.Request()):
-		default:
-		}
+		ch <- stream.Send(req.Request())
 	}()
 
 	select {
