@@ -5,7 +5,15 @@ import (
 	"golang.org/x/net/context"
 )
 
-type Debug struct{}
+type (
+	HealthChecker interface {
+		Health(ctx context.Context, req *health.Request, rsp *health.Response) error
+	}
+
+	Debug struct{}
+)
+
+var DefaultHealthChecker HealthChecker = new(Debug)
 
 func (d *Debug) Health(ctx context.Context, req *health.Request, rsp *health.Response) error {
 	rsp.Status = "ok"
@@ -13,5 +21,5 @@ func (d *Debug) Health(ctx context.Context, req *health.Request, rsp *health.Res
 }
 
 func registerHealthChecker(s Server) {
-	s.Handle(s.NewHandler(&Debug{}))
+	s.Handle(s.NewHandler(DefaultHealthChecker))
 }
