@@ -161,17 +161,31 @@ func (c *exampleClient) Stream(ctx context.Context, in *StreamingRequest, opts .
 }
 
 type Example_StreamClient interface {
-	RecvR() (*StreamingResponse, error)
-	client.Streamer
+	SendMsg(interface{}) error
+	RecvMsg(interface{}) error
+	Close() error
+	Recv() (*StreamingResponse, error)
 }
 
 type exampleStreamClient struct {
-	client.Streamer
+	stream client.Streamer
 }
 
-func (x *exampleStreamClient) RecvR() (*StreamingResponse, error) {
+func (x *exampleStreamClient) Close() error {
+	return x.stream.Close()
+}
+
+func (x *exampleStreamClient) SendMsg(m interface{}) error {
+	return x.stream.Send(m)
+}
+
+func (x *exampleStreamClient) RecvMsg(m interface{}) error {
+	return x.stream.Recv(m)
+}
+
+func (x *exampleStreamClient) Recv() (*StreamingResponse, error) {
 	m := new(StreamingResponse)
-	err := x.Recv(m)
+	err := x.stream.Recv(m)
 	if err != nil {
 		return nil, err
 	}
@@ -188,22 +202,36 @@ func (c *exampleClient) PingPong(ctx context.Context, opts ...client.CallOption)
 }
 
 type Example_PingPongClient interface {
-	SendR(*Ping) error
-	RecvR() (*Pong, error)
-	client.Streamer
+	SendMsg(interface{}) error
+	RecvMsg(interface{}) error
+	Close() error
+	Send(*Ping) error
+	Recv() (*Pong, error)
 }
 
 type examplePingPongClient struct {
-	client.Streamer
+	stream client.Streamer
 }
 
-func (x *examplePingPongClient) SendR(m *Ping) error {
-	return x.Send(m)
+func (x *examplePingPongClient) Close() error {
+	return x.stream.Close()
 }
 
-func (x *examplePingPongClient) RecvR() (*Pong, error) {
+func (x *examplePingPongClient) SendMsg(m interface{}) error {
+	return x.stream.Send(m)
+}
+
+func (x *examplePingPongClient) RecvMsg(m interface{}) error {
+	return x.stream.Recv(m)
+}
+
+func (x *examplePingPongClient) Send(m *Ping) error {
+	return x.stream.Send(m)
+}
+
+func (x *examplePingPongClient) Recv() (*Pong, error) {
 	m := new(Pong)
-	err := x.Recv(m)
+	err := x.stream.Recv(m)
 	if err != nil {
 		return nil, err
 	}
@@ -239,16 +267,30 @@ func (h *Example) Stream(ctx context.Context, stream server.Streamer) error {
 }
 
 type Example_StreamStream interface {
-	SendR(*StreamingResponse) error
-	server.Streamer
+	SendMsg(interface{}) error
+	RecvMsg(interface{}) error
+	Close() error
+	Send(*StreamingResponse) error
 }
 
 type exampleStreamStream struct {
-	server.Streamer
+	stream server.Streamer
 }
 
-func (x *exampleStreamStream) SendR(m *StreamingResponse) error {
-	return x.Streamer.Send(m)
+func (x *exampleStreamStream) Close() error {
+	return x.stream.Close()
+}
+
+func (x *exampleStreamStream) SendMsg(m interface{}) error {
+	return x.stream.Send(m)
+}
+
+func (x *exampleStreamStream) RecvMsg(m interface{}) error {
+	return x.stream.Recv(m)
+}
+
+func (x *exampleStreamStream) Send(m *StreamingResponse) error {
+	return x.stream.Send(m)
 }
 
 func (h *Example) PingPong(ctx context.Context, stream server.Streamer) error {
@@ -256,22 +298,36 @@ func (h *Example) PingPong(ctx context.Context, stream server.Streamer) error {
 }
 
 type Example_PingPongStream interface {
-	SendR(*Pong) error
-	RecvR() (*Ping, error)
-	server.Streamer
+	SendMsg(interface{}) error
+	RecvMsg(interface{}) error
+	Close() error
+	Send(*Pong) error
+	Recv() (*Ping, error)
 }
 
 type examplePingPongStream struct {
-	server.Streamer
+	stream server.Streamer
 }
 
-func (x *examplePingPongStream) SendR(m *Pong) error {
-	return x.Streamer.Send(m)
+func (x *examplePingPongStream) Close() error {
+	return x.stream.Close()
 }
 
-func (x *examplePingPongStream) RecvR() (*Ping, error) {
+func (x *examplePingPongStream) SendMsg(m interface{}) error {
+	return x.stream.Send(m)
+}
+
+func (x *examplePingPongStream) RecvMsg(m interface{}) error {
+	return x.stream.Recv(m)
+}
+
+func (x *examplePingPongStream) Send(m *Pong) error {
+	return x.stream.Send(m)
+}
+
+func (x *examplePingPongStream) Recv() (*Ping, error) {
 	m := new(Ping)
-	if err := x.Streamer.Recv(m); err != nil {
+	if err := x.stream.Recv(m); err != nil {
 		return nil, err
 	}
 	return m, nil

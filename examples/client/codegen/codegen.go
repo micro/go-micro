@@ -28,16 +28,12 @@ func stream(i int) {
 		return
 	}
 	for j := 0; j < i; j++ {
-		rsp, err := stream.RecvR()
+		rsp, err := stream.Recv()
 		if err != nil {
 			fmt.Println("err:", err)
 			break
 		}
 		fmt.Println("Stream: rsp:", rsp.Count)
-	}
-	if stream.Error() != nil {
-		fmt.Println("stream err:", err)
-		return
 	}
 	if err := stream.Close(); err != nil {
 		fmt.Println("stream close err:", err)
@@ -51,22 +47,17 @@ func pingPong(i int) {
 		return
 	}
 	for j := 0; j < i; j++ {
-		if err := stream.SendR(&example.Ping{Stroke: int64(j)}); err != nil {
+		if err := stream.Send(&example.Ping{Stroke: int64(j)}); err != nil {
 			fmt.Println("err:", err)
 			return
 		}
-		rsp, err := stream.RecvR()
+		rsp, err := stream.Recv()
 		if err != nil {
 			fmt.Println("recv err", err)
 			break
 		}
 		fmt.Printf("Sent ping %v got pong %v\n", j, rsp.Stroke)
 	}
-	if stream.Error() != nil {
-		fmt.Println("stream err:", err)
-		return
-	}
-
 	if err := stream.Close(); err != nil {
 		fmt.Println("stream close err:", err)
 	}
