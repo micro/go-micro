@@ -5,6 +5,8 @@ import (
 	"github.com/micro/go-micro/codec"
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/transport"
+
+	"golang.org/x/net/context"
 )
 
 type Options struct {
@@ -21,16 +23,15 @@ type Options struct {
 	HdlrWrappers []HandlerWrapper
 	SubWrappers  []SubscriberWrapper
 
-	// Extra options settable by users.
-	// Used for other implementations.
-	Options map[string]string
+	// Other options for implementations of the interface
+	// can be stored in a context
+	Context context.Context
 }
 
 func newOptions(opt ...Option) Options {
 	opts := Options{
 		Codecs:   make(map[string]codec.NewCodec),
 		Metadata: map[string]string{},
-		Options:  map[string]string{},
 	}
 
 	for _, o := range opt {

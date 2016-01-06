@@ -8,6 +8,8 @@ import (
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/server"
 	"github.com/micro/go-micro/transport"
+
+	"golang.org/x/net/context"
 )
 
 type Options struct {
@@ -22,8 +24,9 @@ type Options struct {
 	BeforeStart []func() error
 	AfterStop   []func() error
 
-	// Alternative options for those implementing the interface
-	Options map[string]string
+	// Other options for implementations of the interface
+	// can be stored in a context
+	Context context.Context
 }
 
 func newOptions(opts ...Option) Options {
@@ -34,7 +37,6 @@ func newOptions(opts ...Option) Options {
 		Server:    server.DefaultServer,
 		Registry:  registry.DefaultRegistry,
 		Transport: transport.DefaultTransport,
-		Options:   map[string]string{},
 	}
 
 	for _, o := range opts {

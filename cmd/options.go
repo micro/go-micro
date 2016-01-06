@@ -7,6 +7,8 @@ import (
 	"github.com/micro/go-micro/selector"
 	"github.com/micro/go-micro/server"
 	"github.com/micro/go-micro/transport"
+
+	"golang.org/x/net/context"
 )
 
 type Options struct {
@@ -27,6 +29,10 @@ type Options struct {
 	Registries map[string]func([]string, ...registry.Option) registry.Registry
 	Selectors  map[string]func(...selector.Option) selector.Selector
 	Transports map[string]func([]string, ...transport.Option) transport.Transport
+
+	// Other options for implementations of the interface
+	// can be stored in a context
+	Context context.Context
 }
 
 // Command line Name

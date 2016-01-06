@@ -2,6 +2,8 @@ package transport
 
 import (
 	"time"
+
+	"golang.org/x/net/context"
 )
 
 type Message struct {
@@ -34,16 +36,18 @@ type Transport interface {
 }
 
 type Options struct {
-	// Other options to be used by broker implementations
-	Options map[string]string
+	// Other options for implementations of the interface
+	// can be stored in a context
+	Context context.Context
 }
 
 type DialOptions struct {
 	Stream  bool
 	Timeout time.Duration
 
-	// Other options to be used by broker implementations
-	Options map[string]string
+	// Other options for implementations of the interface
+	// can be stored in a context
+	Context context.Context
 }
 
 type Option func(*Options)

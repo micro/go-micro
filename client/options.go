@@ -8,6 +8,8 @@ import (
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/selector"
 	"github.com/micro/go-micro/transport"
+
+	"golang.org/x/net/context"
 )
 
 type Options struct {
@@ -22,27 +24,31 @@ type Options struct {
 	RequestTimeout time.Duration
 	DialTimeout    time.Duration
 
-	// Other options to be used by client implementations
-	Options map[string]string
+	// Other options for implementations of the interface
+	// can be stored in a context
+	Context context.Context
 }
 
 type CallOptions struct {
 	SelectOptions []selector.SelectOption
 
-	// Other options to be used by client implementations
-	Options map[string]string
+	// Other options for implementations of the interface
+	// can be stored in a context
+	Context context.Context
 }
 
 type PublishOptions struct {
-	// Other options to be used by client implementations
-	Options map[string]string
+	// Other options for implementations of the interface
+	// can be stored in a context
+	Context context.Context
 }
 
 type RequestOptions struct {
 	Stream bool
 
-	// Other options to be used by client implementations
-	Options map[string]string
+	// Other options for implementations of the interface
+	// can be stored in a context
+	Context context.Context
 }
 
 func newOptions(options ...Option) Options {

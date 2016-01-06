@@ -2,20 +2,24 @@ package selector
 
 import (
 	"github.com/micro/go-micro/registry"
+
+	"golang.org/x/net/context"
 )
 
 type Options struct {
 	Registry registry.Registry
 
-	// Other options to be used by broker implementations
-	Options map[string]string
+	// Other options for implementations of the interface
+	// can be stored in a context
+	Context context.Context
 }
 
 type SelectOptions struct {
 	Filters []SelectFilter
 
-	// Other options to be used by broker implementations
-	Options map[string]string
+	// Other options for implementations of the interface
+	// can be stored in a context
+	Context context.Context
 }
 
 // Option used to initialise the selector

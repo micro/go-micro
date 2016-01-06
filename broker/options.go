@@ -1,14 +1,20 @@
 package broker
 
+import (
+	"golang.org/x/net/context"
+)
+
 type Options struct {
 
-	// Other options to be used by broker implementations
-	Options map[string]string
+	// Other options for implementations of the interface
+	// can be stored in a context
+	Context context.Context
 }
 
 type PublishOptions struct {
-	// Other options to be used by broker implementations
-	Options map[string]string
+	// Other options for implementations of the interface
+	// can be stored in a context
+	Context context.Context
 }
 
 type SubscribeOptions struct {
@@ -20,8 +26,9 @@ type SubscribeOptions struct {
 	// receives a subset of messages.
 	Queue string
 
-	// Other options to be used by broker implementations
-	Options map[string]string
+	// Other options for implementations of the interface
+	// can be stored in a context
+	Context context.Context
 }
 
 type Option func(*Options)
