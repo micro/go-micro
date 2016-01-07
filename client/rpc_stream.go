@@ -3,7 +3,6 @@ package client
 import (
 	"errors"
 	"io"
-	"log"
 	"sync"
 
 	"golang.org/x/net/context"
@@ -101,10 +100,6 @@ func (r *rpcStream) Recv(msg interface{}) error {
 		if err := r.codec.ReadResponseBody(msg); err != nil {
 			r.err = errors.New("reading body " + err.Error())
 		}
-	}
-
-	if r.err != nil && r.err != io.EOF && !r.isClosed() {
-		log.Println("rpc: client protocol error:", r.err)
 	}
 
 	return r.err
