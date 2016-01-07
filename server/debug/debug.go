@@ -18,7 +18,7 @@ type DebugHandler interface {
 type debug struct{}
 
 var (
-	DefaultDebugHandler = new(debug)
+	DefaultDebugHandler DebugHandler = new(debug)
 )
 
 func (d *debug) Health(ctx context.Context, req *proto.HealthRequest, rsp *proto.HealthResponse) error {
