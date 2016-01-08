@@ -17,5 +17,5 @@ func (d *Debug) Health(ctx context.Context, req *proto.HealthRequest, rsp *proto
 }
 
 func registerDebugHandler(s Server) {
-	s.Handle(s.NewHandler(&Debug{s.Options().DebugHandler}))
+	s.Handle(s.NewHandler(&Debug{s.Options().DebugHandler}, InternalHandler(true)))
 }

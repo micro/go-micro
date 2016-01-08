@@ -10,9 +10,15 @@ type rpcHandler struct {
 	name      string
 	handler   interface{}
 	endpoints []*registry.Endpoint
+	opts      HandlerOptions
 }
 
-func newRpcHandler(handler interface{}) Handler {
+func newRpcHandler(handler interface{}, opts ...HandlerOption) Handler {
+	var options HandlerOptions
+	for _, o := range opts {
+		o(&options)
+	}
+
 	typ := reflect.TypeOf(handler)
 	hdlr := reflect.ValueOf(handler)
 	name := reflect.Indirect(hdlr).Type().Name()
@@ -30,6 +36,7 @@ func newRpcHandler(handler interface{}) Handler {
 		name:      name,
 		handler:   handler,
 		endpoints: endpoints,
+		opts:      options,
 	}
 }
 
@@ -43,4 +50,8 @@ func (r *rpcHandler) Handler() interface{} {
 
 func (r *rpcHandler) Endpoints() []*registry.Endpoint {
 	return r.endpoints
+}
+
+func (r *rpcHandler) Options() HandlerOptions {
+	return r.opts
 }

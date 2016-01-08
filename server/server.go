@@ -42,8 +42,8 @@ type Server interface {
 	Options() Options
 	Init(...Option) error
 	Handle(Handler) error
-	NewHandler(interface{}) Handler
-	NewSubscriber(string, interface{}) Subscriber
+	NewHandler(interface{}, ...HandlerOption) Handler
+	NewSubscriber(string, interface{}, ...SubscriberOption) Subscriber
 	Subscribe(Subscriber) error
 	Register() error
 	Deregister() error
@@ -82,6 +82,10 @@ type Streamer interface {
 
 type Option func(*Options)
 
+type HandlerOption func(*HandlerOptions)
+
+type SubscriberOption func(*SubscriberOptions)
+
 var (
 	DefaultAddress        = ":0"
 	DefaultName           = "go-server"
@@ -110,8 +114,8 @@ func NewServer(opt ...Option) Server {
 
 // Creates a new subscriber interface with the given topic
 // and handler using the default server
-func NewSubscriber(topic string, h interface{}) Subscriber {
-	return DefaultServer.NewSubscriber(topic, h)
+func NewSubscriber(topic string, h interface{}, opts ...SubscriberOption) Subscriber {
+	return DefaultServer.NewSubscriber(topic, h, opts...)
 }
 
 // Creates a new handler interface using the default server
@@ -124,8 +128,8 @@ func NewSubscriber(topic string, h interface{}) Subscriber {
 //		return nil
 //	}
 //
-func NewHandler(h interface{}) Handler {
-	return DefaultServer.NewHandler(h)
+func NewHandler(h interface{}, opts ...HandlerOption) Handler {
+	return DefaultServer.NewHandler(h, opts...)
 }
 
 // Registers a handler interface with the default server to

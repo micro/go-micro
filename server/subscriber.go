@@ -29,9 +29,15 @@ type subscriber struct {
 	subscriber interface{}
 	handlers   []*handler
 	endpoints  []*registry.Endpoint
+	opts       SubscriberOptions
 }
 
-func newSubscriber(topic string, sub interface{}) Subscriber {
+func newSubscriber(topic string, sub interface{}, opts ...SubscriberOption) Subscriber {
+	var options SubscriberOptions
+	for _, o := range opts {
+		o(&options)
+	}
+
 	var endpoints []*registry.Endpoint
 	var handlers []*handler
 
@@ -96,6 +102,7 @@ func newSubscriber(topic string, sub interface{}) Subscriber {
 		subscriber: sub,
 		handlers:   handlers,
 		endpoints:  endpoints,
+		opts:       options,
 	}
 }
 
@@ -240,4 +247,8 @@ func (s *subscriber) Subscriber() interface{} {
 
 func (s *subscriber) Endpoints() []*registry.Endpoint {
 	return s.endpoints
+}
+
+func (s *subscriber) Options() SubscriberOptions {
+	return s.opts
 }
