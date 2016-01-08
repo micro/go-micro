@@ -114,8 +114,8 @@ func (s *rpcServer) Init(opts ...Option) error {
 	return nil
 }
 
-func (s *rpcServer) NewHandler(h interface{}) Handler {
-	return newRpcHandler(h)
+func (s *rpcServer) NewHandler(h interface{}, opts ...HandlerOption) Handler {
+	return newRpcHandler(h, opts...)
 }
 
 func (s *rpcServer) Handle(h Handler) error {
@@ -128,8 +128,8 @@ func (s *rpcServer) Handle(h Handler) error {
 	return nil
 }
 
-func (s *rpcServer) NewSubscriber(topic string, sb interface{}) Subscriber {
-	return newSubscriber(topic, sb)
+func (s *rpcServer) NewSubscriber(topic string, sb interface{}, opts ...SubscriberOption) Subscriber {
+	return newSubscriber(topic, sb, opts...)
 }
 
 func (s *rpcServer) Subscribe(sb Subscriber) error {
@@ -199,10 +199,16 @@ func (s *rpcServer) Register() error {
 	s.RLock()
 	var endpoints []*registry.Endpoint
 	for _, e := range s.handlers {
-		endpoints = append(endpoints, e.Endpoints()...)
+		// Only advertise non internal handlers
+		if !e.Options().Internal {
+			endpoints = append(endpoints, e.Endpoints()...)
+		}
 	}
 	for e, _ := range s.subscribers {
-		endpoints = append(endpoints, e.Endpoints()...)
+		// Only advertise non internal subscribers
+		if !e.Options().Internal {
+			endpoints = append(endpoints, e.Endpoints()...)
+		}
 	}
 	s.RUnlock()
 

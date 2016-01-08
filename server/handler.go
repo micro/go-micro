@@ -20,6 +20,7 @@ type Handler interface {
 	Name() string
 	Handler() interface{}
 	Endpoints() []*registry.Endpoint
+	Options() HandlerOptions
 }
 
 // Subscriber interface represents a subscription to a given topic using
@@ -28,4 +29,30 @@ type Subscriber interface {
 	Topic() string
 	Subscriber() interface{}
 	Endpoints() []*registry.Endpoint
+	Options() SubscriberOptions
+}
+
+type HandlerOptions struct {
+	Internal bool
+}
+
+type SubscriberOptions struct {
+	Internal bool
+}
+
+// Internal Handler options specifies that a handler is not advertised
+// to the discovery system. In the future this may also limit request
+// to the internal network or authorised user.
+func InternalHandler(b bool) HandlerOption {
+	return func(o *HandlerOptions) {
+		o.Internal = b
+	}
+}
+
+// Internal Subscriber options specifies that a subscriber is not advertised
+// to the discovery system.
+func InternalSubscriber(b bool) SubscriberOption {
+	return func(o *SubscriberOptions) {
+		o.Internal = b
+	}
 }
