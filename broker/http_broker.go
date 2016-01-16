@@ -257,12 +257,9 @@ func (h *httpBroker) Disconnect() error {
 }
 
 func (h *httpBroker) Init(opts ...Option) error {
-	var options Options
 	for _, o := range opts {
-		o(&options)
+		o(&h.opts)
 	}
-
-	h.opts = options
 
 	if len(h.id) == 0 {
 		h.id = "broker-" + uuid.NewUUID().String()
