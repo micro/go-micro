@@ -19,7 +19,13 @@ type consulRegistry struct {
 	Options Options
 }
 
-func newTransport() *http.Transport {
+func newTransport(config *tls.Config) *http.Transport {
+	if config == nil {
+		config = &tls.Config{
+			InsecureSkipVerify: true,
+		}
+	}
+
 	t := &http.Transport{
 		Proxy: http.ProxyFromEnvironment,
 		Dial: (&net.Dialer{
@@ -27,9 +33,7 @@ func newTransport() *http.Transport {
 			KeepAlive: 30 * time.Second,
 		}).Dial,
 		TLSHandshakeTimeout: 10 * time.Second,
-		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: true,
-		},
+		TLSClientConfig:     config,
 	}
 	runtime.SetFinalizer(&t, func(tr **http.Transport) {
 		(*tr).CloseIdleConnections()
@@ -120,7 +124,7 @@ func newConsulRegistry(addrs []string, opts ...Option) Registry {
 	if opt.Secure {
 		config.Scheme = "https"
 		// We're going to support InsecureSkipVerify
-		config.HttpClient.Transport = newTransport()
+		config.HttpClient.Transport = newTransport(opt.TLSConfig)
 	}
 
 	// create the client

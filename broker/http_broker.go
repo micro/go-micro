@@ -144,11 +144,15 @@ func (h *httpBroker) start() error {
 	var err error
 
 	if h.opts.Secure {
-		cert, err := mls.Certificate(h.address)
-		if err != nil {
-			return err
+		config := h.opts.TLSConfig
+		if config == nil {
+			cert, err := mls.Certificate(h.address)
+			if err != nil {
+				return err
+			}
+			config = &tls.Config{Certificates: []tls.Certificate{cert}}
 		}
-		l, err = tls.Listen("tcp", h.address, &tls.Config{Certificates: []tls.Certificate{cert}})
+		l, err = tls.Listen("tcp", h.address, config)
 	} else {
 		l, err = net.Listen("tcp", h.address)
 	}

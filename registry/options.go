@@ -1,14 +1,16 @@
 package registry
 
 import (
+	"crypto/tls"
 	"time"
 
 	"golang.org/x/net/context"
 )
 
 type Options struct {
-	Timeout time.Duration
-	Secure  bool
+	Timeout   time.Duration
+	Secure    bool
+	TLSConfig *tls.Config
 
 	// Other options for implementations of the interface
 	// can be stored in a context
@@ -25,5 +27,12 @@ func Timeout(t time.Duration) Option {
 func Secure(b bool) Option {
 	return func(o *Options) {
 		o.Secure = b
+	}
+}
+
+// Specify TLS Config
+func TLSConfig(t *tls.Config) Option {
+	return func(o *Options) {
+		o.TLSConfig = t
 	}
 }

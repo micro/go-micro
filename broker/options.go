@@ -1,11 +1,14 @@
 package broker
 
 import (
+	"crypto/tls"
+
 	"golang.org/x/net/context"
 )
 
 type Options struct {
-	Secure bool
+	Secure    bool
+	TLSConfig *tls.Config
 
 	// Other options for implementations of the interface
 	// can be stored in a context
@@ -69,5 +72,12 @@ func QueueName(name string) SubscribeOption {
 func Secure(b bool) Option {
 	return func(o *Options) {
 		o.Secure = b
+	}
+}
+
+// Specify TLS Config
+func TLSConfig(t *tls.Config) Option {
+	return func(o *Options) {
+		o.TLSConfig = t
 	}
 }
