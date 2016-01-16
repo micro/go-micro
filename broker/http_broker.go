@@ -20,6 +20,7 @@ import (
 	log "github.com/golang/glog"
 	"github.com/micro/go-micro/errors"
 	"github.com/micro/go-micro/registry"
+	mls "github.com/micro/misc/lib/tls"
 	"github.com/pborman/uuid"
 )
 
@@ -82,7 +83,12 @@ func newTransport() *http.Transport {
 	return t
 }
 
-func newHttpBroker(addrs []string, opt ...Option) Broker {
+func newHttpBroker(addrs []string, opts ...Option) Broker {
+	var options Options
+	for _, o := range opts {
+		o(&options)
+	}
+
 	addr := ":0"
 	if len(addrs) > 0 && len(addrs[0]) > 0 {
 		addr = addrs[0]
@@ -91,6 +97,7 @@ func newHttpBroker(addrs []string, opt ...Option) Broker {
 	return &httpBroker{
 		id:          "broker-" + uuid.NewUUID().String(),
 		address:     addr,
+		opts:        options,
 		c:           &http.Client{Transport: newTransport()},
 		subscribers: make(map[string][]*httpSubscriber),
 		unsubscribe: make(chan *httpSubscriber),
@@ -120,6 +127,8 @@ func (h *httpSubscriber) Topic() string {
 
 func (h *httpSubscriber) Unsubscribe() error {
 	h.ch <- h
+	// artificial delay
+	time.Sleep(time.Millisecond * 10)
 	return nil
 }
 
@@ -131,7 +140,19 @@ func (h *httpBroker) start() error {
 		return nil
 	}
 
-	l, err := net.Listen("tcp", h.address)
+	var l net.Listener
+	var err error
+
+	if h.opts.Secure {
+		cert, err := mls.Certificate(h.address)
+		if err != nil {
+			return err
+		}
+		l, err = tls.Listen("tcp", h.address, &tls.Config{Certificates: []tls.Certificate{cert}})
+	} else {
+		l, err = net.Listen("tcp", h.address)
+	}
+
 	if err != nil {
 		return err
 	}
@@ -236,6 +257,13 @@ func (h *httpBroker) Disconnect() error {
 }
 
 func (h *httpBroker) Init(opts ...Option) error {
+	var options Options
+	for _, o := range opts {
+		o(&options)
+	}
+
+	h.opts = options
+
 	if len(h.id) == 0 {
 		h.id = "broker-" + uuid.NewUUID().String()
 	}
@@ -262,6 +290,7 @@ func (h *httpBroker) Publish(topic string, msg *Message, opts ...PublishOption) 
 
 	fn := func(node *registry.Node, b io.Reader) {
 		scheme := "http"
+
 		// check if secure is added in metadata
 		if node.Metadata["secure"] == "true" {
 			scheme = "https"
