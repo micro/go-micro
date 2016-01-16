@@ -5,6 +5,7 @@ import (
 )
 
 type Options struct {
+	Secure bool
 
 	// Other options for implementations of the interface
 	// can be stored in a context
@@ -37,6 +38,18 @@ type PublishOption func(*PublishOptions)
 
 type SubscribeOption func(*SubscribeOptions)
 
+func newSubscribeOptions(opts ...SubscribeOption) SubscribeOptions {
+	opt := SubscribeOptions{
+		AutoAck: true,
+	}
+
+	for _, o := range opts {
+		o(&opt)
+	}
+
+	return opt
+}
+
 // DisableAutoAck will disable auto acking of messages
 // after they have been handled.
 func DisableAutoAck() SubscribeOption {
@@ -52,14 +65,9 @@ func QueueName(name string) SubscribeOption {
 	}
 }
 
-func newSubscribeOptions(opts ...SubscribeOption) SubscribeOptions {
-	opt := SubscribeOptions{
-		AutoAck: true,
+// Secure communication with the broker
+func Secure(b bool) Option {
+	return func(o *Options) {
+		o.Secure = b
 	}
-
-	for _, o := range opts {
-		o(&opt)
-	}
-
-	return opt
 }
