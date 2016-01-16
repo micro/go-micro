@@ -1,10 +1,14 @@
 package registry
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
+	"net/http"
+	"runtime"
+	"time"
 
 	consul "github.com/hashicorp/consul/api"
 )
@@ -13,6 +17,24 @@ type consulRegistry struct {
 	Address string
 	Client  *consul.Client
 	Options Options
+}
+
+func newTransport() *http.Transport {
+	t := &http.Transport{
+		Proxy: http.ProxyFromEnvironment,
+		Dial: (&net.Dialer{
+			Timeout:   30 * time.Second,
+			KeepAlive: 30 * time.Second,
+		}).Dial,
+		TLSHandshakeTimeout: 10 * time.Second,
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: true,
+		},
+	}
+	runtime.SetFinalizer(&t, func(tr **http.Transport) {
+		(*tr).CloseIdleConnections()
+	})
+	return t
 }
 
 func encodeEndpoints(en []*Endpoint) []string {
@@ -92,6 +114,13 @@ func newConsulRegistry(addrs []string, opts ...Option) Registry {
 		} else if err == nil {
 			config.Address = fmt.Sprintf("%s:%s", addr, port)
 		}
+	}
+
+	// requires secure connection?
+	if opt.Secure {
+		config.Scheme = "https"
+		// We're going to support InsecureSkipVerify
+		config.HttpClient.Transport = newTransport()
 	}
 
 	// create the client
