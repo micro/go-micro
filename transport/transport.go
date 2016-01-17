@@ -2,8 +2,6 @@ package transport
 
 import (
 	"time"
-
-	"golang.org/x/net/context"
 )
 
 type Message struct {
@@ -35,21 +33,6 @@ type Transport interface {
 	String() string
 }
 
-type Options struct {
-	// Other options for implementations of the interface
-	// can be stored in a context
-	Context context.Context
-}
-
-type DialOptions struct {
-	Stream  bool
-	Timeout time.Duration
-
-	// Other options for implementations of the interface
-	// can be stored in a context
-	Context context.Context
-}
-
 type Option func(*Options)
 
 type DialOption func(*DialOptions)
@@ -59,18 +42,6 @@ var (
 
 	DefaultDialTimeout = time.Second * 5
 )
-
-func WithStream() DialOption {
-	return func(o *DialOptions) {
-		o.Stream = true
-	}
-}
-
-func WithTimeout(d time.Duration) DialOption {
-	return func(o *DialOptions) {
-		o.Timeout = d
-	}
-}
 
 func NewTransport(addrs []string, opt ...Option) Transport {
 	return newHttpTransport(addrs, opt...)
