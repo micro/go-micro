@@ -65,7 +65,13 @@ func init() {
 	rand.Seed(time.Now().Unix())
 }
 
-func newTransport() *http.Transport {
+func newTransport(config *tls.Config) *http.Transport {
+	if config == nil {
+		config = &tls.Config{
+			InsecureSkipVerify: true,
+		}
+	}
+
 	t := &http.Transport{
 		Proxy: http.ProxyFromEnvironment,
 		Dial: (&net.Dialer{
@@ -73,9 +79,7 @@ func newTransport() *http.Transport {
 			KeepAlive: 30 * time.Second,
 		}).Dial,
 		TLSHandshakeTimeout: 10 * time.Second,
-		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: true,
-		},
+		TLSClientConfig: config,
 	}
 	runtime.SetFinalizer(&t, func(tr **http.Transport) {
 		(*tr).CloseIdleConnections()
@@ -98,7 +102,7 @@ func newHttpBroker(addrs []string, opts ...Option) Broker {
 		id:          "broker-" + uuid.NewUUID().String(),
 		address:     addr,
 		opts:        options,
-		c:           &http.Client{Transport: newTransport()},
+		c:           &http.Client{Transport: newTransport(options.TLSConfig)},
 		subscribers: make(map[string][]*httpSubscriber),
 		unsubscribe: make(chan *httpSubscriber),
 		exit:        make(chan chan error),
@@ -143,7 +147,7 @@ func (h *httpBroker) start() error {
 	var l net.Listener
 	var err error
 
-	if h.opts.Secure {
+	if h.opts.Secure || h.opts.TLSConfig != nil {
 		config := h.opts.TLSConfig
 		if config == nil {
 			cert, err := mls.Certificate(h.address)
@@ -342,13 +346,19 @@ func (h *httpBroker) Subscribe(topic string, handler Handler, opts ...SubscribeO
 
 	id := uuid.NewUUID().String()
 
+	var secure bool
+
+	if h.opts.Secure || h.opts.TLSConfig != nil {
+		secure = true
+	}
+
 	// register service
 	node := &registry.Node{
 		Id:      h.id + "." + id,
 		Address: host,
 		Port:    port,
 		Metadata: map[string]string{
-			"secure": fmt.Sprintf("%t", h.opts.Secure),
+			"secure": fmt.Sprintf("%t", secure),
 		},
 	}
 

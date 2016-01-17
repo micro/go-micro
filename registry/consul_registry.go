@@ -121,7 +121,7 @@ func newConsulRegistry(addrs []string, opts ...Option) Registry {
 	}
 
 	// requires secure connection?
-	if opt.Secure {
+	if opt.Secure || opt.TLSConfig != nil {
 		config.Scheme = "https"
 		// We're going to support InsecureSkipVerify
 		config.HttpClient.Transport = newTransport(opt.TLSConfig)
