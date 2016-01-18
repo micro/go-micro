@@ -3,6 +3,7 @@ package transport
 import (
 	"bufio"
 	"bytes"
+	"crypto/tls"
 	"errors"
 	"io"
 	"io/ioutil"
@@ -10,13 +11,17 @@ import (
 	"net/http"
 	"net/url"
 	"sync"
+
+	mls "github.com/micro/misc/lib/tls"
 )
 
 type buffer struct {
 	io.ReadWriter
 }
 
-type httpTransport struct{}
+type httpTransport struct {
+	opts Options
+}
 
 type httpTransportClient struct {
 	ht       *httpTransport
@@ -284,7 +289,22 @@ func (h *httpTransport) Dial(addr string, opts ...DialOption) (Client, error) {
 		opt(&dopts)
 	}
 
-	conn, err := net.DialTimeout("tcp", addr, dopts.Timeout)
+	var conn net.Conn
+	var err error
+
+	// TODO: support dial option here rather than using internal config
+	if h.opts.Secure || h.opts.TLSConfig != nil {
+		config := h.opts.TLSConfig
+		if config == nil {
+			config = &tls.Config{
+				InsecureSkipVerify: true,
+			}
+		}
+		conn, err = tls.DialWithDialer(&net.Dialer{Timeout: dopts.Timeout}, "tcp", addr, config)
+	} else {
+		conn, err = net.DialTimeout("tcp", addr, dopts.Timeout)
+	}
+
 	if err != nil {
 		return nil, err
 	}
@@ -299,8 +319,30 @@ func (h *httpTransport) Dial(addr string, opts ...DialOption) (Client, error) {
 	}, nil
 }
 
-func (h *httpTransport) Listen(addr string) (Listener, error) {
-	l, err := net.Listen("tcp", addr)
+func (h *httpTransport) Listen(addr string, opts ...ListenOption) (Listener, error) {
+	var options ListenOptions
+	for _, o := range opts {
+		o(&options)
+	}
+
+	var l net.Listener
+	var err error
+
+	// TODO: support use of listen options
+	if h.opts.Secure || h.opts.TLSConfig != nil {
+		config := h.opts.TLSConfig
+		if config == nil {
+			cert, err := mls.Certificate(addr)
+			if err != nil {
+				return nil, err
+			}
+			config = &tls.Config{Certificates: []tls.Certificate{cert}}
+		}
+		l, err = tls.Listen("tcp", addr, config)
+	} else {
+		l, err = net.Listen("tcp", addr)
+	}
+
 	if err != nil {
 		return nil, err
 	}
@@ -314,6 +356,10 @@ func (h *httpTransport) String() string {
 	return "http"
 }
 
-func newHttpTransport(addrs []string, opt ...Option) *httpTransport {
-	return &httpTransport{}
+func newHttpTransport(addrs []string, opts ...Option) *httpTransport {
+	var options Options
+	for _, o := range opts {
+		o(&options)
+	}
+	return &httpTransport{opts: options}
 }

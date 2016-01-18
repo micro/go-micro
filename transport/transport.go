@@ -29,13 +29,15 @@ type Listener interface {
 
 type Transport interface {
 	Dial(addr string, opts ...DialOption) (Client, error)
-	Listen(addr string) (Listener, error)
+	Listen(addr string, opts ...ListenOption) (Listener, error)
 	String() string
 }
 
 type Option func(*Options)
 
 type DialOption func(*DialOptions)
+
+type ListenOption func(*ListenOptions)
 
 var (
 	DefaultTransport Transport = newHttpTransport([]string{})
@@ -51,8 +53,8 @@ func Dial(addr string, opts ...DialOption) (Client, error) {
 	return DefaultTransport.Dial(addr, opts...)
 }
 
-func Listen(addr string) (Listener, error) {
-	return DefaultTransport.Listen(addr)
+func Listen(addr string, opts ...ListenOption) (Listener, error) {
+	return DefaultTransport.Listen(addr, opts...)
 }
 
 func String() string {

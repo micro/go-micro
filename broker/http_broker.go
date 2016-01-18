@@ -79,7 +79,7 @@ func newTransport(config *tls.Config) *http.Transport {
 			KeepAlive: 30 * time.Second,
 		}).Dial,
 		TLSHandshakeTimeout: 10 * time.Second,
-		TLSClientConfig: config,
+		TLSClientConfig:     config,
 	}
 	runtime.SetFinalizer(&t, func(tr **http.Transport) {
 		(*tr).CloseIdleConnections()
