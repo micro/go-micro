@@ -3,6 +3,7 @@ package broker
 import (
 	"crypto/tls"
 
+	"github.com/micro/go-micro/registry"
 	"golang.org/x/net/context"
 )
 
@@ -41,6 +42,12 @@ type PublishOption func(*PublishOptions)
 
 type SubscribeOption func(*SubscribeOptions)
 
+type contextKeyT string
+
+var (
+	registryKey = contextKeyT("github.com/micro/go-micro/registry")
+)
+
 func newSubscribeOptions(opts ...SubscribeOption) SubscribeOptions {
 	opt := SubscribeOptions{
 		AutoAck: true,
@@ -65,6 +72,12 @@ func DisableAutoAck() SubscribeOption {
 func QueueName(name string) SubscribeOption {
 	return func(o *SubscribeOptions) {
 		o.Queue = name
+	}
+}
+
+func Registry(r registry.Registry) Option {
+	return func(o *Options) {
+		o.Context = context.WithValue(o.Context, registryKey, r)
 	}
 }
 

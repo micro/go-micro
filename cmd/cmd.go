@@ -255,6 +255,8 @@ func (c *cmd) Before(ctx *cli.Context) error {
 
 		(*c.opts.Selector).Init(selector.Registry(*c.opts.Registry))
 		clientOpts = append(clientOpts, client.Selector(*c.opts.Selector))
+
+		(*c.opts.Broker).Init(broker.Registry(*c.opts.Registry))
 	}
 
 	// Set the selector
