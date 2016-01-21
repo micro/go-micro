@@ -30,18 +30,16 @@ func (r *rpcStream) Send(msg interface{}) error {
 	r.Lock()
 	defer r.Unlock()
 
-	seq := r.seq
-	r.seq++
-
 	resp := response{
 		ServiceMethod: r.request.Method(),
-		Seq:           seq,
+		Seq:           r.seq,
 	}
 
 	err := r.codec.WriteResponse(&resp, msg, false)
 	if err != nil {
 		log.Println("rpc: writing response:", err)
 	}
+
 	return err
 }
 
@@ -56,6 +54,9 @@ func (r *rpcStream) Recv(msg interface{}) error {
 		r.codec.ReadRequestBody(nil)
 		return err
 	}
+
+	// we need to stay upto date with sequence numbers
+	r.seq = req.Seq
 
 	if err := r.codec.ReadRequestBody(msg); err != nil {
 		return err

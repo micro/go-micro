@@ -277,6 +277,7 @@ func (s *service) call(ctx context.Context, server *server, sending *sync.Mutex,
 		context: ctx,
 		codec:   codec,
 		request: r,
+		seq:     req.Seq,
 	}
 
 	// Invoke the method, providing a new value for the reply.
