@@ -229,7 +229,11 @@ func (s *rpcServer) Register() error {
 
 	for sb, _ := range s.subscribers {
 		handler := s.createSubHandler(sb, s.opts)
-		sub, err := config.Broker.Subscribe(sb.Topic(), handler)
+		var opts []broker.SubscribeOption
+		if queue := sb.Options().Queue; len(queue) > 0 {
+			opts = append(opts, broker.QueueName(queue))
+		}
+		sub, err := config.Broker.Subscribe(sb.Topic(), handler, opts...)
 		if err != nil {
 			return err
 		}

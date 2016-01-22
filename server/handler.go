@@ -37,6 +37,7 @@ type HandlerOptions struct {
 }
 
 type SubscriberOptions struct {
+	Queue    string
 	Internal bool
 }
 
@@ -54,5 +55,12 @@ func InternalHandler(b bool) HandlerOption {
 func InternalSubscriber(b bool) SubscriberOption {
 	return func(o *SubscriberOptions) {
 		o.Internal = b
+	}
+}
+
+// Shared queue name distributed messages across subscribers
+func SubscriberQueue(n string) SubscriberOption {
+	return func(o *SubscriberOptions) {
+		o.Queue = n
 	}
 }
