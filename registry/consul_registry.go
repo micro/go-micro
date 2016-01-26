@@ -95,6 +95,20 @@ func decodeMetadata(tags []string) map[string]string {
 	return md
 }
 
+func encodeVersion(v string) string {
+	return "v=" + v
+}
+
+func decodeVersion(tags []string) (string, bool) {
+	for _, tag := range tags {
+		if len(tag) == 0 || tag[0] != 'v' {
+			continue
+		}
+		return tag[2:], true
+	}
+	return "", false
+}
+
 func newConsulRegistry(addrs []string, opts ...Option) Registry {
 	var opt Options
 	for _, o := range opts {
@@ -114,6 +128,7 @@ func newConsulRegistry(addrs []string, opts ...Option) Registry {
 		addr, port, err := net.SplitHostPort(addrs[0])
 		if ae, ok := err.(*net.AddrError); ok && ae.Err == "missing port in address" {
 			port = "8500"
+			addr = addrs[0]
 			config.Address = fmt.Sprintf("%s:%s", addr, port)
 		} else if err == nil {
 			config.Address = fmt.Sprintf("%s:%s", addr, port)
@@ -147,10 +162,10 @@ func (c *consulRegistry) Deregister(s *Service) error {
 	node := s.Nodes[0]
 
 	_, err := c.Client.Catalog().Deregister(&consul.CatalogDeregistration{
-		Node:    node.Id,
-		Address: node.Address,
+		Node:      node.Id,
+		Address:   node.Address,
+		ServiceID: node.Id,
 	}, nil)
-
 	return err
 }
 
@@ -163,19 +178,24 @@ func (c *consulRegistry) Register(s *Service) error {
 
 	tags := encodeMetadata(node.Metadata)
 	tags = append(tags, encodeEndpoints(s.Endpoints)...)
+	tags = append(tags, encodeVersion(s.Version))
 
-	_, err := c.Client.Catalog().Register(&consul.CatalogRegistration{
+	if _, err := c.Client.Catalog().Register(&consul.CatalogRegistration{
+		// TODO: remove setting node and address
 		Node:    node.Id,
 		Address: node.Address,
 		Service: &consul.AgentService{
-			ID:      s.Version,
+			ID:      node.Id,
 			Service: s.Name,
 			Port:    node.Port,
 			Tags:    tags,
+			Address: node.Address,
 		},
-	}, nil)
+	}, nil); err != nil {
+		return err
+	}
 
-	return err
+	return nil
 }
 
 func (c *consulRegistry) GetService(name string) ([]*Service, error) {
@@ -191,15 +211,26 @@ func (c *consulRegistry) GetService(name string) ([]*Service, error) {
 			continue
 		}
 
-		id := s.Node
-		key := s.ServiceID
-		version := s.ServiceID
+		// version is now a tag
+		version, found := decodeVersion(s.ServiceTags)
+		// service ID is now the node id
+		id := s.ServiceID
+		// key is always the version
+		key := version
+		// address is service address
+		address := s.ServiceAddress
 
-		// We're adding service version but
-		// don't want to break backwards compatibility
-		if id == version {
-			key = "default"
-			version = ""
+		// if we can't get the new type of version
+		// use old the old ways
+		if !found {
+			// id was set as node
+			id = s.Node
+			// key was service id
+			key = s.ServiceID
+			// version was service id
+			version = s.ServiceID
+			// address was address
+			address = s.Address
 		}
 
 		svc, ok := serviceMap[key]
@@ -214,7 +245,7 @@ func (c *consulRegistry) GetService(name string) ([]*Service, error) {
 
 		svc.Nodes = append(svc.Nodes, &Node{
 			Id:       id,
-			Address:  s.Address,
+			Address:  address,
 			Port:     s.ServicePort,
 			Metadata: decodeMetadata(s.ServiceTags),
 		})
