@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"os"
 	"runtime"
 	"time"
 
@@ -159,7 +158,15 @@ func (c *consulRegistry) Deregister(s *Service) error {
 	if len(s.Nodes) == 0 {
 		return errors.New("Require at least one node")
 	}
-	return c.Client.Agent().ServiceDeregister(s.Nodes[0].Id)
+
+	node := s.Nodes[0]
+
+	_, err := c.Client.Catalog().Deregister(&consul.CatalogDeregistration{
+		Node:      node.Id,
+		Address:   node.Address,
+		ServiceID: node.Id,
+	}, nil)
+	return err
 }
 
 func (c *consulRegistry) Register(s *Service) error {
