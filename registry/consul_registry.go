@@ -161,17 +161,26 @@ func (c *consulRegistry) Deregister(s *Service) error {
 
 	node := s.Nodes[0]
 
-	_, err := c.Client.Catalog().Deregister(&consul.CatalogDeregistration{
+	if _, err := c.Client.Catalog().Deregister(&consul.CatalogDeregistration{
 		Node:      node.Id,
 		Address:   node.Address,
 		ServiceID: node.Id,
-	}, nil)
-	return err
+		CheckID:   node.Id,
+	}, nil); err != nil {
+		return err
+	}
+
+	return c.Client.Agent().ServiceDeregister(node.Id)
 }
 
-func (c *consulRegistry) Register(s *Service) error {
+func (c *consulRegistry) Register(s *Service, opts ...RegisterOption) error {
 	if len(s.Nodes) == 0 {
 		return errors.New("Require at least one node")
+	}
+
+	var options RegisterOptions
+	for _, o := range opts {
+		o(&options)
 	}
 
 	node := s.Nodes[0]
@@ -191,15 +200,37 @@ func (c *consulRegistry) Register(s *Service) error {
 			Tags:    tags,
 			Address: node.Address,
 		},
+		Check: &consul.AgentCheck{
+			Node: node.Id,
+			CheckID:     node.Id,
+			Name:        s.Name,
+			ServiceID:   node.Id,
+			ServiceName: s.Name,
+			Status:      "passing",
+		},
 	}, nil); err != nil {
 		return err
 	}
 
-	return nil
+	if options.TTL <= time.Duration(0) {
+		return nil
+	}
+
+	// this is cruft
+	return c.Client.Agent().ServiceRegister(&consul.AgentServiceRegistration{
+		ID: node.Id,
+		Name: s.Name,
+		Tags: tags,
+		Port: node.Port,
+		Address: node.Address,
+		Check: &consul.AgentServiceCheck{
+			TTL: fmt.Sprintf("%v", options.TTL),
+		},
+	})
 }
 
 func (c *consulRegistry) GetService(name string) ([]*Service, error) {
-	rsp, _, err := c.Client.Catalog().Service(name, "", nil)
+	rsp, _, err := c.Client.Health().Service(name, "", true, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -207,37 +238,37 @@ func (c *consulRegistry) GetService(name string) ([]*Service, error) {
 	serviceMap := map[string]*Service{}
 
 	for _, s := range rsp {
-		if s.ServiceName != name {
+		if s.Service.Service != name {
 			continue
 		}
 
 		// version is now a tag
-		version, found := decodeVersion(s.ServiceTags)
+		version, found := decodeVersion(s.Service.Tags)
 		// service ID is now the node id
-		id := s.ServiceID
+		id := s.Service.ID
 		// key is always the version
 		key := version
 		// address is service address
-		address := s.ServiceAddress
+		address := s.Service.Address
 
 		// if we can't get the new type of version
 		// use old the old ways
 		if !found {
 			// id was set as node
-			id = s.Node
+			id = s.Node.Node
 			// key was service id
-			key = s.ServiceID
+			key = s.Service.ID
 			// version was service id
-			version = s.ServiceID
+			version = s.Service.ID
 			// address was address
-			address = s.Address
+			address = s.Node.Address
 		}
 
 		svc, ok := serviceMap[key]
 		if !ok {
 			svc = &Service{
-				Endpoints: decodeEndpoints(s.ServiceTags),
-				Name:      s.ServiceName,
+				Endpoints: decodeEndpoints(s.Service.Tags),
+				Name:      s.Service.Service,
 				Version:   version,
 			}
 			serviceMap[key] = svc
@@ -246,8 +277,8 @@ func (c *consulRegistry) GetService(name string) ([]*Service, error) {
 		svc.Nodes = append(svc.Nodes, &Node{
 			Id:       id,
 			Address:  address,
-			Port:     s.ServicePort,
-			Metadata: decodeMetadata(s.ServiceTags),
+			Port:     s.Service.Port,
+			Metadata: decodeMetadata(s.Service.Tags),
 		})
 	}
 

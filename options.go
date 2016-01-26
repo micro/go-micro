@@ -1,6 +1,8 @@
 package micro
 
 import (
+	"time"
+
 	"github.com/micro/cli"
 	"github.com/micro/go-micro/broker"
 	"github.com/micro/go-micro/client"
@@ -19,6 +21,10 @@ type Options struct {
 	Server    server.Server
 	Registry  registry.Registry
 	Transport transport.Transport
+
+	// Registration options
+	RegisterTTL      time.Duration
+	RegisterInterval time.Duration
 
 	// Before and After funcs
 	BeforeStart []func() error
@@ -114,6 +120,18 @@ func Flags(flags ...cli.Flag) Option {
 func Action(a func(*cli.Context)) Option {
 	return func(o *Options) {
 		o.Cmd.App().Action = a
+	}
+}
+
+func RegisterTTL(t time.Duration) Option {
+	return func(o *Options) {
+		o.RegisterTTL = t
+	}
+}
+
+func RegisterInterval(t time.Duration) Option {
+	return func(o *Options) {
+		o.RegisterInterval = t
 	}
 }
 

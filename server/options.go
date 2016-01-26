@@ -1,6 +1,8 @@
 package server
 
 import (
+	"time"
+
 	"github.com/micro/go-micro/broker"
 	"github.com/micro/go-micro/codec"
 	"github.com/micro/go-micro/registry"
@@ -30,6 +32,10 @@ type Options struct {
 	// Other options for implementations of the interface
 	// can be stored in a context
 	Context context.Context
+}
+
+type RegisterOptions struct {
+	TTL time.Duration
 }
 
 func newOptions(opt ...Option) Options {
@@ -165,5 +171,12 @@ func WrapHandler(w HandlerWrapper) Option {
 func WrapSubscriber(w SubscriberWrapper) Option {
 	return func(o *Options) {
 		o.SubWrappers = append(o.SubWrappers, w)
+	}
+}
+
+// Register the service with a TTL
+func RegisterTTL(t time.Duration) RegisterOption {
+	return func(o *RegisterOptions) {
+		o.TTL = t
 	}
 }

@@ -155,7 +155,15 @@ func (s *rpcServer) Subscribe(sb Subscriber) error {
 	return nil
 }
 
-func (s *rpcServer) Register() error {
+func (s *rpcServer) Register(opts ...RegisterOption) error {
+	var options RegisterOptions
+	for _, o := range opts {
+		o(&options)
+	}
+
+	// create registry options
+	rOpts := []registry.RegisterOption{registry.WithTTL(options.TTL)}
+
 	// parse address for host, port
 	config := s.Options()
 	var advt, host string
@@ -220,7 +228,7 @@ func (s *rpcServer) Register() error {
 	}
 
 	log.Infof("Registering node: %s", node.Id)
-	if err := config.Registry.Register(service); err != nil {
+	if err := config.Registry.Register(service, rOpts...); err != nil {
 		return err
 	}
 

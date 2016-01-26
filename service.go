@@ -1,9 +1,11 @@
 package micro
 
 import (
+	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/cmd"
@@ -27,6 +29,27 @@ func newService(opts ...Option) Service {
 
 	return &service{
 		opts: options,
+	}
+}
+
+func (s *service) run(exit chan bool) {
+	if s.opts.RegisterInterval <= time.Duration(0) {
+		return
+	}
+
+	t := time.NewTicker(s.opts.RegisterInterval)
+
+	for {
+		select {
+		case <-t.C:
+			fmt.Println("heartbeat")
+			if err := s.opts.Server.Register(server.RegisterTTL(s.opts.RegisterTTL)); err != nil {
+				fmt.Println("FUCK", err)
+			}
+		case <-exit:
+			t.Stop()
+			return
+		}
 	}
 }
 
@@ -82,7 +105,7 @@ func (s *service) Start() error {
 		return err
 	}
 
-	if err := s.opts.Server.Register(); err != nil {
+	if err := s.opts.Server.Register(server.RegisterTTL(s.opts.RegisterTTL)); err != nil {
 		return err
 	}
 
@@ -115,9 +138,16 @@ func (s *service) Run() error {
 		return err
 	}
 
+	// start reg loop
+	ex := make(chan bool)
+	go s.run(ex)
+
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, syscall.SIGTERM, syscall.SIGINT, syscall.SIGKILL)
 	<-ch
+
+	// exit reg loop
+	close(ex)
 
 	if err := s.Stop(); err != nil {
 		return err
