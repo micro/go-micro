@@ -53,15 +53,26 @@ func (cw *consulWatcher) serviceHandler(idx uint64, data interface{}) {
 
 	for _, e := range entries {
 		serviceName = e.Service.Service
-		id := e.Node.Node
-		key := e.Service.Service + e.Service.ID
-		version := e.Service.ID
+		// version is now a tag
+		version, found := decodeVersion(e.Service.Tags)
+		// service ID is now the node id
+		id := e.Service.ID
+		// key is always the version
+		key := version
+		// address is service address
+		address := e.Service.Address
 
-		// We're adding service version but
-		// don't want to break backwards compatibility
-		if id == version {
-			key = e.Service.Service + "default"
-			version = ""
+		// if we can't get the new type of version
+		// use old the old ways
+		if !found {
+			// id was set as node
+			id = e.Node.Node
+			// key was service id
+			key = e.Service.ID
+			// version was service id
+			version = e.Service.ID
+			// address was address
+			address = e.Node.Address
 		}
 
 		svc, ok := serviceMap[key]
@@ -76,7 +87,7 @@ func (cw *consulWatcher) serviceHandler(idx uint64, data interface{}) {
 
 		svc.Nodes = append(svc.Nodes, &Node{
 			Id:       id,
-			Address:  e.Node.Address,
+			Address:  address,
 			Port:     e.Service.Port,
 			Metadata: decodeMetadata(e.Service.Tags),
 		})
