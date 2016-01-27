@@ -160,16 +160,6 @@ func (c *consulRegistry) Deregister(s *Service) error {
 	}
 
 	node := s.Nodes[0]
-
-	if _, err := c.Client.Catalog().Deregister(&consul.CatalogDeregistration{
-		Node:      node.Id,
-		Address:   node.Address,
-		ServiceID: node.Id,
-		CheckID:   node.Id,
-	}, nil); err != nil {
-		return err
-	}
-
 	return c.Client.Agent().ServiceDeregister(node.Id)
 }
 
@@ -189,44 +179,20 @@ func (c *consulRegistry) Register(s *Service, opts ...RegisterOption) error {
 	tags = append(tags, encodeEndpoints(s.Endpoints)...)
 	tags = append(tags, encodeVersion(s.Version))
 
-	if _, err := c.Client.Catalog().Register(&consul.CatalogRegistration{
-		// TODO: remove setting node and address
-		Node:    node.Id,
-		Address: node.Address,
-		Service: &consul.AgentService{
-			ID:      node.Id,
-			Service: s.Name,
-			Port:    node.Port,
-			Tags:    tags,
-			Address: node.Address,
-		},
-		Check: &consul.AgentCheck{
-			Node: node.Id,
-			CheckID:     node.Id,
-			Name:        s.Name,
-			ServiceID:   node.Id,
-			ServiceName: s.Name,
-			Status:      "passing",
-		},
-	}, nil); err != nil {
-		return err
-	}
-
-	if options.TTL <= time.Duration(0) {
-		return nil
-	}
-
-	// this is cruft
-	return c.Client.Agent().ServiceRegister(&consul.AgentServiceRegistration{
-		ID: node.Id,
-		Name: s.Name,
-		Tags: tags,
-		Port: node.Port,
+	if err := c.Client.Agent().ServiceRegister(&consul.AgentServiceRegistration{
+		ID:      node.Id,
+		Name:    s.Name,
+		Tags:    tags,
+		Port:    node.Port,
 		Address: node.Address,
 		Check: &consul.AgentServiceCheck{
 			TTL: fmt.Sprintf("%v", options.TTL),
 		},
-	})
+	}); err != nil {
+		return err
+	}
+
+	return c.Client.Agent().PassTTL("service:"+node.Id, "")
 }
 
 func (c *consulRegistry) GetService(name string) ([]*Service, error) {
