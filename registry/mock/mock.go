@@ -53,7 +53,7 @@ func (m *MockRegistry) ListServices() ([]*registry.Service, error) {
 	return []*registry.Service{}, nil
 }
 
-func (m *MockRegistry) Register(s *registry.Service) error {
+func (m *MockRegistry) Register(s *registry.Service, opts ...registry.RegisterOption) error {
 	return nil
 }
 
