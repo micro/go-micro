@@ -1,7 +1,6 @@
 package micro
 
 import (
-	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -42,9 +41,7 @@ func (s *service) run(exit chan bool) {
 	for {
 		select {
 		case <-t.C:
-			fmt.Println("heartbeat")
 			if err := s.opts.Server.Register(server.RegisterTTL(s.opts.RegisterTTL)); err != nil {
-				fmt.Println("FUCK", err)
 			}
 		case <-exit:
 			t.Stop()
