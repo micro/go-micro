@@ -179,17 +179,27 @@ func (c *consulRegistry) Register(s *Service, opts ...RegisterOption) error {
 	tags = append(tags, encodeEndpoints(s.Endpoints)...)
 	tags = append(tags, encodeVersion(s.Version))
 
+	var check *consul.AgentServiceCheck
+
+	if options.TTL > time.Duration(0) {
+		check = &consul.AgentServiceCheck{
+			TTL: fmt.Sprintf("%v", options.TTL),
+		}
+	}
+
 	if err := c.Client.Agent().ServiceRegister(&consul.AgentServiceRegistration{
 		ID:      node.Id,
 		Name:    s.Name,
 		Tags:    tags,
 		Port:    node.Port,
 		Address: node.Address,
-		Check: &consul.AgentServiceCheck{
-			TTL: fmt.Sprintf("%v", options.TTL),
-		},
+		Check:   check,
 	}); err != nil {
 		return err
+	}
+
+	if options.TTL == time.Duration(0) {
+		return nil
 	}
 
 	return c.Client.Agent().PassTTL("service:"+node.Id, "")
