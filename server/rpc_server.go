@@ -220,7 +220,10 @@ func (s *rpcServer) Register() error {
 	}
 
 	log.Infof("Registering node: %s", node.Id)
-	if err := config.Registry.Register(service); err != nil {
+	// create registry options
+	rOpts := []registry.RegisterOption{registry.RegisterTTL(config.RegisterTTL)}
+
+	if err := config.Registry.Register(service, rOpts...); err != nil {
 		return err
 	}
 

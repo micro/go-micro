@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/cmd"
@@ -27,6 +28,24 @@ func newService(opts ...Option) Service {
 
 	return &service{
 		opts: options,
+	}
+}
+
+func (s *service) run(exit chan bool) {
+	if s.opts.RegisterInterval <= time.Duration(0) {
+		return
+	}
+
+	t := time.NewTicker(s.opts.RegisterInterval)
+
+	for {
+		select {
+		case <-t.C:
+			s.opts.Server.Register()
+		case <-exit:
+			t.Stop()
+			return
+		}
 	}
 }
 
@@ -115,9 +134,16 @@ func (s *service) Run() error {
 		return err
 	}
 
+	// start reg loop
+	ex := make(chan bool)
+	go s.run(ex)
+
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, syscall.SIGTERM, syscall.SIGINT, syscall.SIGKILL)
 	<-ch
+
+	// exit reg loop
+	close(ex)
 
 	if err := s.Stop(); err != nil {
 		return err

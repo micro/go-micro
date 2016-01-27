@@ -1,6 +1,8 @@
 package server
 
 import (
+	"time"
+
 	"github.com/micro/go-micro/broker"
 	"github.com/micro/go-micro/codec"
 	"github.com/micro/go-micro/registry"
@@ -23,6 +25,8 @@ type Options struct {
 	Version      string
 	HdlrWrappers []HandlerWrapper
 	SubWrappers  []SubscriberWrapper
+
+	RegisterTTL time.Duration
 
 	// Debug Handler which can be set by a user
 	DebugHandler debug.DebugHandler
@@ -151,6 +155,13 @@ func DebugHandler(d debug.DebugHandler) Option {
 func Metadata(md map[string]string) Option {
 	return func(o *Options) {
 		o.Metadata = md
+	}
+}
+
+// Register the service with a TTL
+func RegisterTTL(t time.Duration) Option {
+	return func(o *Options) {
+		o.RegisterTTL = t
 	}
 }
 

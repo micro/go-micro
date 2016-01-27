@@ -1,7 +1,7 @@
 package registry
 
 type Registry interface {
-	Register(*Service) error
+	Register(*Service, ...RegisterOption) error
 	Deregister(*Service) error
 	GetService(string) ([]*Service, error)
 	ListServices() ([]*Service, error)
@@ -11,6 +11,8 @@ type Registry interface {
 
 type Option func(*Options)
 
+type RegisterOption func(*RegisterOptions)
+
 var (
 	DefaultRegistry = newConsulRegistry([]string{})
 )
@@ -19,8 +21,8 @@ func NewRegistry(addrs []string, opt ...Option) Registry {
 	return newConsulRegistry(addrs, opt...)
 }
 
-func Register(s *Service) error {
-	return DefaultRegistry.Register(s)
+func Register(s *Service, opts ...RegisterOption) error {
+	return DefaultRegistry.Register(s, opts...)
 }
 
 func Deregister(s *Service) error {
