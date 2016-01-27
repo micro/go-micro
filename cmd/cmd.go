@@ -152,6 +152,12 @@ var (
 	DefaultTransports = map[string]func([]string, ...transport.Option) transport.Transport{
 		"http": transport.NewTransport,
 	}
+
+	// used for default selection as the fall back
+	defaultBroker    = "http"
+	defaultRegistry  = "consul"
+	defaultSelector  = "random"
+	defaultTransport = "http"
 )
 
 func init() {
@@ -228,12 +234,16 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	var clientOpts []client.Option
 
 	// Set the broker
-	if len(ctx.String("broker")) > 0 {
-		if b, ok := c.opts.Brokers[ctx.String("broker")]; ok {
+	if name := ctx.String("broker"); len(name) > 0 || len(ctx.String("broker_address")) > 0 {
+		if len(name) == 0 {
+			name = defaultBroker
+		}
+
+		if b, ok := c.opts.Brokers[name]; ok {
 			n := b(strings.Split(ctx.String("broker_address"), ","))
 			*c.opts.Broker = n
 		} else {
-			return fmt.Errorf("Broker %s not found", ctx.String("broker"))
+			return fmt.Errorf("Broker %s not found", name)
 		}
 
 		serverOpts = append(serverOpts, server.Broker(*c.opts.Broker))
@@ -242,12 +252,16 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	}
 
 	// Set the registry
-	if len(ctx.String("registry")) > 0 {
-		if r, ok := c.opts.Registries[ctx.String("registry")]; ok {
+	if name := ctx.String("registry"); len(name) > 0 || len(ctx.String("registry_address")) > 0 {
+		if len(name) == 0 {
+			name = defaultRegistry
+		}
+
+		if r, ok := c.opts.Registries[name]; ok {
 			n := r(strings.Split(ctx.String("registry_address"), ","))
 			*c.opts.Registry = n
 		} else {
-			return fmt.Errorf("Registry %s not found", ctx.String("registry"))
+			return fmt.Errorf("Registry %s not found", name)
 		}
 
 		serverOpts = append(serverOpts, server.Registry(*c.opts.Registry))
@@ -260,12 +274,12 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	}
 
 	// Set the selector
-	if len(ctx.String("selector")) > 0 {
-		if s, ok := c.opts.Selectors[ctx.String("selector")]; ok {
+	if name := ctx.String("selector"); len(name) > 0 {
+		if s, ok := c.opts.Selectors[name]; ok {
 			n := s(selector.Registry(*c.opts.Registry))
 			*c.opts.Selector = n
 		} else {
-			return fmt.Errorf("Selector %s not found", ctx.String("selector"))
+			return fmt.Errorf("Selector %s not found", name)
 		}
 
 		// No server option here. Should there be?
@@ -273,12 +287,16 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	}
 
 	// Set the transport
-	if len(ctx.String("transport")) > 0 {
-		if t, ok := c.opts.Transports[ctx.String("transport")]; ok {
+	if name := ctx.String("transport"); len(name) > 0 || len(ctx.String("transport_address")) > 0 {
+		if len(name) == 0 {
+			name = defaultTransport
+		}
+
+		if t, ok := c.opts.Transports[name]; ok {
 			n := t(strings.Split(ctx.String("transport_address"), ","))
 			*c.opts.Transport = n
 		} else {
-			return fmt.Errorf("Transport %s not found", ctx.String("transport"))
+			return fmt.Errorf("Transport %s not found", name)
 		}
 
 		serverOpts = append(serverOpts, server.Transport(*c.opts.Transport))
