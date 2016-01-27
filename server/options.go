@@ -26,16 +26,14 @@ type Options struct {
 	HdlrWrappers []HandlerWrapper
 	SubWrappers  []SubscriberWrapper
 
+	RegisterTTL time.Duration
+
 	// Debug Handler which can be set by a user
 	DebugHandler debug.DebugHandler
 
 	// Other options for implementations of the interface
 	// can be stored in a context
 	Context context.Context
-}
-
-type RegisterOptions struct {
-	TTL time.Duration
 }
 
 func newOptions(opt ...Option) Options {
@@ -160,6 +158,13 @@ func Metadata(md map[string]string) Option {
 	}
 }
 
+// Register the service with a TTL
+func RegisterTTL(t time.Duration) Option {
+	return func(o *Options) {
+		o.RegisterTTL = t
+	}
+}
+
 // Adds a handler Wrapper to a list of options passed into the server
 func WrapHandler(w HandlerWrapper) Option {
 	return func(o *Options) {
@@ -171,12 +176,5 @@ func WrapHandler(w HandlerWrapper) Option {
 func WrapSubscriber(w SubscriberWrapper) Option {
 	return func(o *Options) {
 		o.SubWrappers = append(o.SubWrappers, w)
-	}
-}
-
-// Register the service with a TTL
-func RegisterTTL(t time.Duration) RegisterOption {
-	return func(o *RegisterOptions) {
-		o.TTL = t
 	}
 }

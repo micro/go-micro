@@ -41,8 +41,7 @@ func (s *service) run(exit chan bool) {
 	for {
 		select {
 		case <-t.C:
-			if err := s.opts.Server.Register(server.RegisterTTL(s.opts.RegisterTTL)); err != nil {
-			}
+			s.opts.Server.Register()
 		case <-exit:
 			t.Stop()
 			return
@@ -102,7 +101,7 @@ func (s *service) Start() error {
 		return err
 	}
 
-	if err := s.opts.Server.Register(server.RegisterTTL(s.opts.RegisterTTL)); err != nil {
+	if err := s.opts.Server.Register(); err != nil {
 		return err
 	}
 

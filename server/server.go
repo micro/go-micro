@@ -45,7 +45,7 @@ type Server interface {
 	NewHandler(interface{}, ...HandlerOption) Handler
 	NewSubscriber(string, interface{}, ...SubscriberOption) Subscriber
 	Subscribe(Subscriber) error
-	Register(...RegisterOption) error
+	Register() error
 	Deregister() error
 	Start() error
 	Stop() error
@@ -85,8 +85,6 @@ type Option func(*Options)
 type HandlerOption func(*HandlerOptions)
 
 type SubscriberOption func(*SubscriberOptions)
-
-type RegisterOption func(*RegisterOptions)
 
 var (
 	DefaultAddress        = ":0"

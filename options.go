@@ -22,8 +22,7 @@ type Options struct {
 	Registry  registry.Registry
 	Transport transport.Transport
 
-	// Registration options
-	RegisterTTL      time.Duration
+	// Register loop interval
 	RegisterInterval time.Duration
 
 	// Before and After funcs
@@ -125,7 +124,7 @@ func Action(a func(*cli.Context)) Option {
 
 func RegisterTTL(t time.Duration) Option {
 	return func(o *Options) {
-		o.RegisterTTL = t
+		o.Server.Init(server.RegisterTTL(t))
 	}
 }
 

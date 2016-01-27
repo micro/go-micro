@@ -44,7 +44,7 @@ func TLSConfig(t *tls.Config) Option {
 	}
 }
 
-func WithTTL(t time.Duration) RegisterOption {
+func RegisterTTL(t time.Duration) RegisterOption {
 	return func(o *RegisterOptions) {
 		o.TTL = t
 	}
