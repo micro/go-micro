@@ -6,8 +6,8 @@ import (
 
 	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/cmd"
-	c "github.com/micro/go-micro/context"
 	example "github.com/micro/go-micro/examples/server/proto/example"
+	"github.com/micro/go-micro/metadata"
 	"golang.org/x/net/context"
 )
 
@@ -19,7 +19,7 @@ type logWrapper struct {
 }
 
 func (l *logWrapper) Call(ctx context.Context, req client.Request, rsp interface{}, opts ...client.CallOption) error {
-	md, _ := c.GetMetadata(ctx)
+	md, _ := metadata.FromContext(ctx)
 	fmt.Printf("[Log Wrapper] ctx: %v service: %s method: %s\n", md, req.Service(), req.Method())
 	return l.Client.Call(ctx, req, rsp)
 }
@@ -30,7 +30,7 @@ type traceWrapper struct {
 }
 
 func (t *traceWrapper) Call(ctx context.Context, req client.Request, rsp interface{}, opts ...client.CallOption) error {
-	ctx = c.WithMetadata(ctx, map[string]string{
+	ctx = metadata.NewContext(ctx, map[string]string{
 		"X-Trace-Id": fmt.Sprintf("%d", time.Now().Unix()),
 	})
 	return t.Client.Call(ctx, req, rsp)
@@ -53,7 +53,7 @@ func call(i int) {
 	})
 
 	// create context with metadata
-	ctx := c.WithMetadata(context.Background(), map[string]string{
+	ctx := metadata.NewContext(context.Background(), map[string]string{
 		"X-User-Id": "john",
 		"X-From-Id": "script",
 	})

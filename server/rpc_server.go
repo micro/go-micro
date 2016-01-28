@@ -9,7 +9,7 @@ import (
 
 	"github.com/micro/go-micro/broker"
 	"github.com/micro/go-micro/codec"
-	c "github.com/micro/go-micro/context"
+	"github.com/micro/go-micro/metadata"
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/transport"
 
@@ -79,7 +79,7 @@ func (s *rpcServer) accept(sock transport.Socket) {
 	}
 	delete(hdr, "Content-Type")
 
-	ctx := c.WithMetadata(context.Background(), hdr)
+	ctx := metadata.NewContext(context.Background(), hdr)
 
 	// TODO: needs better error handling
 	if err := s.rpc.serveRequest(ctx, codec, ct); err != nil {

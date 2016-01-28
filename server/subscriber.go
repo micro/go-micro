@@ -7,7 +7,7 @@ import (
 
 	"github.com/micro/go-micro/broker"
 	"github.com/micro/go-micro/codec"
-	c "github.com/micro/go-micro/context"
+	"github.com/micro/go-micro/metadata"
 	"github.com/micro/go-micro/registry"
 	"golang.org/x/net/context"
 )
@@ -175,7 +175,7 @@ func (s *rpcServer) createSubHandler(sb *subscriber, opts Options) broker.Handle
 			hdr[k] = v
 		}
 		delete(hdr, "Content-Type")
-		ctx := c.WithMetadata(context.Background(), hdr)
+		ctx := metadata.NewContext(context.Background(), hdr)
 
 		for i := 0; i < len(sb.handlers); i++ {
 			handler := sb.handlers[i]

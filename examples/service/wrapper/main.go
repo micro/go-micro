@@ -7,8 +7,8 @@ import (
 	"github.com/micro/cli"
 	"github.com/micro/go-micro"
 	"github.com/micro/go-micro/client"
-	c "github.com/micro/go-micro/context"
 	proto "github.com/micro/go-micro/examples/service/proto"
+	"github.com/micro/go-micro/metadata"
 	"github.com/micro/go-micro/server"
 	"golang.org/x/net/context"
 )
@@ -24,7 +24,7 @@ type logWrapper struct {
 }
 
 func (l *logWrapper) Call(ctx context.Context, req client.Request, rsp interface{}, opts ...client.CallOption) error {
-	md, _ := c.GetMetadata(ctx)
+	md, _ := metadata.FromContext(ctx)
 	fmt.Printf("[Log Wrapper] ctx: %v service: %s method: %s\n", md, req.Service(), req.Method())
 	return l.Client.Call(ctx, req, rsp)
 }
