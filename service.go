@@ -8,7 +8,7 @@ import (
 
 	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/cmd"
-	"github.com/micro/go-micro/context"
+	"github.com/micro/go-micro/metadata"
 	"github.com/micro/go-micro/server"
 )
 
@@ -21,7 +21,7 @@ func newService(opts ...Option) Service {
 
 	options.Client = &clientWrapper{
 		options.Client,
-		context.Metadata{
+		metadata.Metadata{
 			HeaderPrefix + "From-Service": options.Server.Options().Name,
 		},
 	}

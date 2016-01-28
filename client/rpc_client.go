@@ -8,8 +8,8 @@ import (
 
 	"github.com/micro/go-micro/broker"
 	"github.com/micro/go-micro/codec"
-	c "github.com/micro/go-micro/context"
 	"github.com/micro/go-micro/errors"
+	"github.com/micro/go-micro/metadata"
 	"github.com/micro/go-micro/selector"
 	"github.com/micro/go-micro/transport"
 
@@ -56,7 +56,7 @@ func (r *rpcClient) call(ctx context.Context, address string, req Request, resp 
 		Header: make(map[string]string),
 	}
 
-	md, ok := c.GetMetadata(ctx)
+	md, ok := metadata.FromContext(ctx)
 	if ok {
 		for k, v := range md {
 			msg.Header[k] = v
@@ -120,7 +120,7 @@ func (r *rpcClient) stream(ctx context.Context, address string, req Request) (St
 		Header: make(map[string]string),
 	}
 
-	md, ok := c.GetMetadata(ctx)
+	md, ok := metadata.FromContext(ctx)
 	if ok {
 		for k, v := range md {
 			msg.Header[k] = v
@@ -264,7 +264,7 @@ func (r *rpcClient) Stream(ctx context.Context, request Request, opts ...CallOpt
 }
 
 func (r *rpcClient) Publish(ctx context.Context, p Publication, opts ...PublishOption) error {
-	md, ok := c.GetMetadata(ctx)
+	md, ok := metadata.FromContext(ctx)
 	if !ok {
 		md = make(map[string]string)
 	}

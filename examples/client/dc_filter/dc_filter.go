@@ -7,7 +7,7 @@ import (
 
 	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/cmd"
-	c "github.com/micro/go-micro/context"
+	"github.com/micro/go-micro/metadata"
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/selector"
 	"golang.org/x/net/context"
@@ -25,7 +25,7 @@ type dcWrapper struct {
 }
 
 func (dc *dcWrapper) Call(ctx context.Context, req client.Request, rsp interface{}, opts ...client.CallOption) error {
-	md, _ := c.GetMetadata(ctx)
+	md, _ := metadata.FromContext(ctx)
 
 	filter := func(services []*registry.Service) []*registry.Service {
 		for _, service := range services {
@@ -59,7 +59,7 @@ func call(i int) {
 	})
 
 	// create context with metadata
-	ctx := c.WithMetadata(context.Background(), map[string]string{
+	ctx := metadata.NewContext(context.Background(), map[string]string{
 		"datacenter": "local",
 	})
 
