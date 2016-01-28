@@ -61,7 +61,7 @@ func newRpcPlusCodec(req *transport.Message, socket transport.Socket, c codec.Ne
 }
 
 func (c *rpcPlusCodec) ReadRequestHeader(r *request, first bool) error {
-	m := codec.Message{Headers: c.req.Header}
+	m := codec.Message{Header: c.req.Header}
 
 	if !first {
 		var tm transport.Message
@@ -73,7 +73,7 @@ func (c *rpcPlusCodec) ReadRequestHeader(r *request, first bool) error {
 			return err
 		}
 
-		m.Headers = tm.Header
+		m.Header = tm.Header
 	}
 
 	err := c.codec.ReadHeader(&m, codec.Request)
@@ -89,19 +89,19 @@ func (c *rpcPlusCodec) ReadRequestBody(b interface{}) error {
 func (c *rpcPlusCodec) WriteResponse(r *response, body interface{}, last bool) error {
 	c.buf.wbuf.Reset()
 	m := &codec.Message{
-		Method:  r.ServiceMethod,
-		Id:      r.Seq,
-		Error:   r.Error,
-		Type:    codec.Response,
-		Headers: map[string]string{},
+		Method: r.ServiceMethod,
+		Id:     r.Seq,
+		Error:  r.Error,
+		Type:   codec.Response,
+		Header: map[string]string{},
 	}
 	if err := c.codec.Write(m, body); err != nil {
 		return err
 	}
 
-	m.Headers["Content-Type"] = c.req.Header["Content-Type"]
+	m.Header["Content-Type"] = c.req.Header["Content-Type"]
 	return c.socket.Send(&transport.Message{
-		Header: m.Headers,
+		Header: m.Header,
 		Body:   c.buf.wbuf.Bytes(),
 	})
 }
