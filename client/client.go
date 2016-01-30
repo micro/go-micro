@@ -27,6 +27,9 @@ import (
 	"golang.org/x/net/context"
 )
 
+// Client is the interface used to make requests to services.
+// It supports Request/Response via Transport and Publishing via the Broker.
+// It also supports bidiectional streaming of requests.
 type Client interface {
 	Init(...Option) error
 	Options() Options
