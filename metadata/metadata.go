@@ -6,6 +6,9 @@ import (
 
 type metaKey struct{}
 
+// Metadata is our way of representing request headers internally.
+// They're used at the RPC level and translate back and forth
+// from Transport headers.
 type Metadata map[string]string
 
 func FromContext(ctx context.Context) (Metadata, bool) {
