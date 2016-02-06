@@ -1,11 +1,12 @@
 # Go Micro [![GoDoc](https://godoc.org/github.com/micro/go-micro?status.svg)](https://godoc.org/github.com/micro/go-micro) [![Travis CI](https://travis-ci.org/micro/go-micro.svg?branch=master)](https://travis-ci.org/micro/go-micro)
 
-Go Micro is a pluggable RPC based microservice library which provides the fundamental building blocks for writing distributed applications. It is part of the [Micro](https://github.com/micro/micro) toolchain. It supports Proto-RPC and JSON-RPC as the request/response protocol out of the box and defaults to Consul for discovery.
+Go Micro is a pluggable RPC based microservice library which provides the fundamental building blocks for writing distributed applications. It is part of the [Micro](https://github.com/micro/micro) toolkit. It supports Proto-RPC and JSON-RPC as the request/response protocol out of the box and defaults to Consul for discovery.
 
-Every aspect of go-micro is pluggable.
+The Micro philosophy is "batteries included" with a pluggable architecture. We provide sane defaults but everything can be swapped out.
 
 An example service can be found in [**examples/service**](https://github.com/micro/go-micro/tree/master/examples/service). The [**examples**](https://github.com/micro/go-micro/tree/master/examples) directory contains many more examples for using things such as middleware/wrappers, selector filters, pub/sub and code generation.
 
+Join the community to learn more:
 - [Mailing List](https://groups.google.com/forum/#!forum/micro-services) 
 - [Slack](https://micro-services.slack.com) : [auto-invite](http://micro-invites.herokuapp.com/)
 
@@ -41,14 +42,69 @@ Project		|	Description
 
 By default go-micro only provides a single implementation of each interface. Plugins can be found at [github.com/micro/go-plugins](https://github.com/micro/go-plugins). Contributions welcome!
 
-## Prerequisites
+## How does it work?
 
-Consul is the default discovery mechanism provided in go-micro. Discovery is however pluggable so you can used etcd, kubernetes, zookeeper, etc.
+Go Micro is a framework that addresses the fundamental requirements to write microservices. 
+
+Let's dig into the core components.
+
+### Registry
+
+The registry provides a service discovery mechanism to resolve names to addresses. It can be backed by consul, etcd, zookeeper, dns, gossip, etc. 
+Services should register using the registry on startup and deregister on shutdown. Services can optionally provide an expiry TTL and reregister 
+on an interval to ensure liveness and that the service is cleaned up if it dies.
+
+### Selector
+
+The selector is a load balancing abstraction which builds on the registry. It allows services to be "filtered" using filter functions and "selected" 
+using a choice of algorithms such as random, roundrobin, leastconn, etc. The selector is leveraged by the Client when making requests. The client 
+will use the selector rather than the registry as it provides that built in mechanism of load balancing. 
+
+### Transport
+
+The transport is the interface for synchronous request/response communication between services. It's akin to the golang net package but provides 
+a higher level abstraction which allows us to switch out communication mechanisms e.g http, rabbitmq, websockets, NATS. The transport also 
+supports bidirectional streaming. This is powerful for client side push to the server.
+
+### Broker
+
+The broker provides an interface to a message broker for asynchronous pub/sub communication. This is one of the fundamental requirements of an event 
+driven architecture and microservices. By default we use an inbox style point to point HTTP system to minimise the number of dependencies required 
+to get started. However there are many message broker implementations available in go-plugins e.g RabbitMQ, NATS, NSQ, Google Cloud Pub Sub.
+
+### Codec
+
+The codec is used for encoding and decoding messages before transporting them across the wire. This could be json, protobuf, bson, msgpack, etc. 
+Where this differs from most other codecs is that we actually support the RPC format here as well. So we have JSON-RPC, PROTO-RPC, BSON-RPC, etc. 
+It separates encoding from the client/server and provides a powerful method for integrating other systems such as gRPC, Vanadium, etc.
+
+### Server
+
+The server is the building block for writing a service. Here you can name your service, register request handlers, add middeware, etc. The service 
+builds on the above packages to provide a unified interface for serving requests. The built in server is an RPC system. In the future there maybe 
+other implementations. The server also allows you to define multiple codecs to serve different encoded messages.
+
+### Client
+
+The client provides an interface to make requests to services. Again like the server, it builds on the other packages to provide a unified interface 
+for finding services by name using the registry, load balancing using the selector, making synchronous requests with the transport and asynchronous 
+messaging using the broker. 
+
+
+The  above components are combined at the top-level of micro as a **Service**.
+
+## Getting Started
+
+This is a quick getting started guide with the greeter service example.
+
+### Prerequisites
+
+There's just one prerequisite. We need a service discovery system to resolve service names to their address. 
+The default discovery mechanism used in go-micro is Consul. Discovery is however pluggable so you can used 
+etcd, kubernetes, zookeeper, etc. Other implementations can be found in [go-plugins](https://github.com/micro/go-plugins).
 
 ### Install Consul
 [https://www.consul.io/intro/getting-started/install.html](https://www.consul.io/intro/getting-started/install.html)
-
-## Getting Started
 
 ### Run Consul
 ```
