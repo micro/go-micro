@@ -108,7 +108,7 @@ etcd, kubernetes, zookeeper, etc. Other implementations can be found in [go-plug
 
 ### Run Consul
 ```
-$ consul agent -server -bootstrap-expect 1 -data-dir /tmp/consul
+$ consul agent -dev -advertise=127.0.0.1
 ```
 
 ### Run Service
