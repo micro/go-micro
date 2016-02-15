@@ -389,6 +389,11 @@ func (h *httpBroker) Subscribe(topic string, handler Handler, opts ...SubscribeO
 	host := strings.Join(parts[:len(parts)-1], ":")
 	port, _ := strconv.Atoi(parts[len(parts)-1])
 
+	addr, err := extractAddress(host)
+	if err != nil {
+		return nil, err
+	}
+
 	id := uuid.NewUUID().String()
 
 	var secure bool
@@ -400,7 +405,7 @@ func (h *httpBroker) Subscribe(topic string, handler Handler, opts ...SubscribeO
 	// register service
 	node := &registry.Node{
 		Id:      h.id + "." + id,
-		Address: host,
+		Address: addr,
 		Port:    port,
 		Metadata: map[string]string{
 			"secure": fmt.Sprintf("%t", secure),
