@@ -26,6 +26,8 @@ type rpcServer struct {
 	opts        Options
 	handlers    map[string]Handler
 	subscribers map[*subscriber][]broker.Subscriber
+	// used for first registration
+	registered bool
 }
 
 func newRpcServer(opts ...Option) Server {
@@ -230,6 +232,12 @@ func (s *rpcServer) Register() error {
 	s.Lock()
 	defer s.Unlock()
 
+	if s.registered {
+		return nil
+	}
+
+	s.registered = true
+
 	for sb, _ := range s.subscribers {
 		handler := s.createSubHandler(sb, s.opts)
 		var opts []broker.SubscribeOption
@@ -291,6 +299,14 @@ func (s *rpcServer) Deregister() error {
 	}
 
 	s.Lock()
+
+	if !s.registered {
+		s.Unlock()
+		return nil
+	}
+
+	s.registered = false
+
 	for sb, subs := range s.subscribers {
 		for _, sub := range subs {
 			log.Infof("Unsubscribing from topic: %s", sub.Topic())
@@ -298,6 +314,7 @@ func (s *rpcServer) Deregister() error {
 		}
 		s.subscribers[sb] = nil
 	}
+
 	s.Unlock()
 	return nil
 }

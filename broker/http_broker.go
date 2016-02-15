@@ -432,7 +432,7 @@ func (h *httpBroker) Subscribe(topic string, handler Handler, opts ...SubscribeO
 		svc:   service,
 	}
 
-	if err := h.r.Register(service); err != nil {
+	if err := h.r.Register(service, registry.RegisterTTL(registerTTL)); err != nil {
 		return nil, err
 	}
 
