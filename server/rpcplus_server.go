@@ -234,7 +234,7 @@ func (s *service) call(ctx context.Context, server *server, sending *sync.Mutex,
 	var returnValues []reflect.Value
 
 	r := &rpcRequest{
-		service:     s.name,
+		service:     server.name,
 		contentType: ct,
 		method:      req.ServiceMethod,
 	}

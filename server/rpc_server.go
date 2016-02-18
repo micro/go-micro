@@ -112,6 +112,12 @@ func (s *rpcServer) Init(opts ...Option) error {
 	for _, opt := range opts {
 		opt(&s.opts)
 	}
+	// update internal server
+	s.rpc = &server{
+		name:         s.opts.Name,
+		serviceMap:   s.rpc.serviceMap,
+		hdlrWrappers: s.opts.HdlrWrappers,
+	}
 	s.Unlock()
 	return nil
 }
@@ -121,12 +127,15 @@ func (s *rpcServer) NewHandler(h interface{}, opts ...HandlerOption) Handler {
 }
 
 func (s *rpcServer) Handle(h Handler) error {
+	s.Lock()
+	defer s.Unlock()
+
 	if err := s.rpc.register(h.Handler()); err != nil {
 		return err
 	}
-	s.Lock()
+
 	s.handlers[h.Name()] = h
-	s.Unlock()
+
 	return nil
 }
 
