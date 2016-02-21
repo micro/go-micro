@@ -332,6 +332,10 @@ func (h *httpBroker) Publish(topic string, msg *Message, opts ...PublishOption) 
 		return err
 	}
 
+	if msg.Header == nil {
+		msg.Header = map[string]string{}
+	}
+
 	msg.Header[":topic"] = topic
 	b, err := json.Marshal(msg)
 	if err != nil {
