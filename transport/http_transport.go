@@ -356,6 +356,10 @@ func (h *httpTransport) String() string {
 	return "http"
 }
 
+func (h *httpTransport) Options() Options {
+	return h.opts
+}
+
 func newHttpTransport(addrs []string, opts ...Option) *httpTransport {
 	var options Options
 	for _, o := range opts {
