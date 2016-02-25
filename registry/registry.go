@@ -1,5 +1,9 @@
 package registry
 
+import (
+	"errors"
+)
+
 // The registry provides an interface for service discovery
 // and an abstraction over varying implementations
 // {consul, etcd, zookeeper, ...}
@@ -18,6 +22,8 @@ type RegisterOption func(*RegisterOptions)
 
 var (
 	DefaultRegistry = newConsulRegistry([]string{})
+
+	ErrNotFound = errors.New("not found")
 )
 
 func NewRegistry(addrs []string, opt ...Option) Registry {
