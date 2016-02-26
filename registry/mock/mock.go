@@ -4,10 +4,13 @@ import (
 	"github.com/micro/go-micro/registry"
 )
 
-type MockRegistry struct{}
+type MockRegistry struct {
+	Services map[string][]*registry.Service
+}
 
-func (m *MockRegistry) GetService(service string) ([]*registry.Service, error) {
-	return []*registry.Service{
+func (m *MockRegistry) init() {
+	// add some mock data
+	m.Services["foo"] = []*registry.Service{
 		{
 			Name:    "foo",
 			Version: "1.0.0",
@@ -46,11 +49,24 @@ func (m *MockRegistry) GetService(service string) ([]*registry.Service, error) {
 				},
 			},
 		},
-	}, nil
+	}
+}
+
+func (m *MockRegistry) GetService(service string) ([]*registry.Service, error) {
+	s, ok := m.Services[service]
+	if !ok {
+		return nil, registry.ErrNotFound
+	}
+	return s, nil
+
 }
 
 func (m *MockRegistry) ListServices() ([]*registry.Service, error) {
-	return []*registry.Service{}, nil
+	var services []*registry.Service
+	for _, service := range m.Services {
+		services = append(services, service...)
+	}
+	return services, nil
 }
 
 func (m *MockRegistry) Register(s *registry.Service, opts ...registry.RegisterOption) error {
@@ -70,5 +86,7 @@ func (m *MockRegistry) String() string {
 }
 
 func NewRegistry() *MockRegistry {
-	return &MockRegistry{}
+	m := &MockRegistry{Services: make(map[string][]*registry.Service)}
+	m.init()
+	return m
 }

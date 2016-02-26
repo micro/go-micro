@@ -9,13 +9,13 @@ import (
 func TestRandomSelector(t *testing.T) {
 	counts := map[string]int{}
 
-	bl := &randomSelector{
+	rs := &randomSelector{
 		so: Options{
 			Registry: mock.NewRegistry(),
 		},
 	}
 
-	next, err := bl.Select("foo")
+	next, err := rs.Select("foo")
 	if err != nil {
 		t.Errorf("Unexpected error calling random select: %v", err)
 	}
