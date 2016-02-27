@@ -230,7 +230,14 @@ func (s *rpcServer) Register() error {
 		Endpoints: endpoints,
 	}
 
-	log.Infof("Registering node: %s", node.Id)
+	s.Lock()
+	registered := s.registered
+	s.Unlock()
+
+	if !registered {
+		log.Infof("Registering node: %s", node.Id)
+	}
+
 	// create registry options
 	rOpts := []registry.RegisterOption{registry.RegisterTTL(config.RegisterTTL)}
 
@@ -238,12 +245,13 @@ func (s *rpcServer) Register() error {
 		return err
 	}
 
-	s.Lock()
-	defer s.Unlock()
-
-	if s.registered {
+	// already registered? don't need to register subscribers
+	if registered {
 		return nil
 	}
+
+	s.Lock()
+	defer s.Unlock()
 
 	s.registered = true
 
