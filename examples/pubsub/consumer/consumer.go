@@ -6,7 +6,6 @@ import (
 	log "github.com/golang/glog"
 	"github.com/micro/go-micro/broker"
 	"github.com/micro/go-micro/cmd"
-
 	// To enable rabbitmq plugin uncomment
 	//_ "github.com/micro/go-plugins/broker/rabbitmq"
 )
