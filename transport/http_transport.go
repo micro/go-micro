@@ -5,11 +5,14 @@ import (
 	"bytes"
 	"crypto/tls"
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
+	"strconv"
+	"strings"
 	"sync"
 
 	mls "github.com/micro/misc/lib/tls"
@@ -47,6 +50,58 @@ type httpTransportSocket struct {
 
 type httpTransportListener struct {
 	listener net.Listener
+}
+
+func listen(addr string, fn func(string) (net.Listener, error)) (net.Listener, error) {
+	// host:port || host:min-max
+	parts := strings.Split(addr, ":")
+
+	//
+	if len(parts) < 2 {
+		return fn(addr)
+	}
+
+	// try to extract port range
+	ports := strings.Split(parts[len(parts)-1], "-")
+
+	// single port
+	if len(ports) < 2 {
+		return fn(addr)
+	}
+
+	// we have a port range
+
+	// extract min port
+	min, err := strconv.Atoi(ports[0])
+	if err != nil {
+		return nil, errors.New("unable to extract port range")
+	}
+
+	// extract max port
+	max, err := strconv.Atoi(ports[1])
+	if err != nil {
+		return nil, errors.New("unable to extract port range")
+	}
+
+	// set host
+	host := parts[:len(parts)-1]
+
+	// range the ports
+	for port := min; port <= max; port++ {
+		// try bind to host:port
+		ln, err := fn(fmt.Sprintf("%s:%d", host, port))
+		if err == nil {
+			return ln, nil
+		}
+
+		// hit max port
+		if port == max {
+			return nil, err
+		}
+	}
+
+	// why are we here?
+	return nil, fmt.Errorf("unable to bind to %s", addr)
 }
 
 func (b *buffer) Close() error {
@@ -331,16 +386,25 @@ func (h *httpTransport) Listen(addr string, opts ...ListenOption) (Listener, err
 	// TODO: support use of listen options
 	if h.opts.Secure || h.opts.TLSConfig != nil {
 		config := h.opts.TLSConfig
-		if config == nil {
-			cert, err := mls.Certificate(addr)
-			if err != nil {
-				return nil, err
+
+		fn := func(addr string) (net.Listener, error) {
+			if config == nil {
+				cert, err := mls.Certificate(addr)
+				if err != nil {
+					return nil, err
+				}
+				config = &tls.Config{Certificates: []tls.Certificate{cert}}
 			}
-			config = &tls.Config{Certificates: []tls.Certificate{cert}}
+			return tls.Listen("tcp", addr, config)
 		}
-		l, err = tls.Listen("tcp", addr, config)
+
+		l, err = listen(addr, fn)
 	} else {
-		l, err = net.Listen("tcp", addr)
+		fn := func(addr string) (net.Listener, error) {
+			return net.Listen("tcp", addr)
+		}
+
+		l, err = listen(addr, fn)
 	}
 
 	if err != nil {
