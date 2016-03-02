@@ -32,6 +32,7 @@ type Listener interface {
 // implementations {HTTP, RabbitMQ, NATS, ...}
 type Transport interface {
 	Dial(addr string, opts ...DialOption) (Client, error)
+	Options() Options
 	Listen(addr string, opts ...ListenOption) (Listener, error)
 	String() string
 }

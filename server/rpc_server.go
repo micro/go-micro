@@ -340,9 +340,24 @@ func (s *rpcServer) Start() error {
 	registerDebugHandler(s)
 	config := s.Options()
 
-	ts, err := config.Transport.Listen(config.Address)
-	if err != nil {
-		return err
+	var ts transport.Listener
+	var err error
+
+	if config.Transport.Options().PortRange == nil {
+		ts, err = config.Transport.Listen(config.Address)
+		if err != nil {
+			return err
+		}
+	} else {
+		pr := config.Transport.Options().PortRange
+		for i := pr.Min; i <= pr.Max; i++ {
+			ts, err = config.Transport.Listen(fmt.Sprintf(":%d", i))
+			if err == nil {
+				break
+			} else if i == pr.Max {
+				return err
+			}
+		}
 	}
 
 	log.Infof("Listening on %s", ts.Addr())
