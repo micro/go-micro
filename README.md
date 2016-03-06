@@ -149,7 +149,7 @@ We use a protobuf plugin for code generation. This is completely optional. Look 
 and [examples/client](https://github.com/micro/go-micro/blob/master/examples/client/main.go) for examples without code generation.
 
 ```shell
-go get github.com/micro/protobuf
+go get github.com/micro/protobuf/{proto,protoc-gen-go}
 ```
 
 Compile proto `protoc -I$GOPATH/src --go_out=plugins=micro:$GOPATH/src $GOPATH/src/github.com/micro/go-micro/examples/service/proto/greeter.proto`
