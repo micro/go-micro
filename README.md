@@ -125,6 +125,10 @@ Hello John
 ## Writing a service
 
 ### Create request/response proto
+
+One of the key requirements of microservices is strongly defined interfaces so we utilised protobuf to define the handler and request/response. 
+Here's a definition for the Greeter handler with the method Hello which takes a HelloRequest and HelloResponse both with one string arguments.
+
 `go-micro/examples/service/proto/greeter.proto`:
 
 ```proto
