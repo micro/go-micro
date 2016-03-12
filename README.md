@@ -268,6 +268,7 @@ Hello John
 
 ### Next steps
 
-To learn more, checkout the [**examples**](https://github.com/micro/go-micro/tree/master/examples) director or a number 
-of [**example services**](https://github.com/micro/go-micro#example-services) littered throughout the [github.com/micro](https://github.com/micro) 
-repo.
+- [Examples Directory](https://github.com/micro/go-micro/tree/master/examples)
+- [Example Services](https://github.com/micro/go-micro#example-services)
+- [Micro Toolkit](https://github.com/micro/micro)
+- Join the [Slack](https://micro-services.slack.com)! - [Invite Here](http://micro-invites.herokuapp.com/)
