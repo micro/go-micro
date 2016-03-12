@@ -266,9 +266,17 @@ go run client.go
 Hello John
 ```
 
-### Next steps
+## Next steps
 
 - [Examples Directory](https://github.com/micro/go-micro/tree/master/examples)
 - [Example Services](https://github.com/micro/go-micro#example-services)
 - [Micro Toolkit](https://github.com/micro/micro)
 - Join the [Slack](https://micro-services.slack.com)! - [Invite Here](http://micro-invites.herokuapp.com/)
+
+
+## Contributing
+
+- Checkout the issues list [github.com/micro/go-micro/issues](https://github.com/micro/go-micro/issues)
+- Join the Slack to discuss the roadmap
+- PR plugins to [github.com/micro/go-plugins](https://github.com/micro/go-plugins)
+- Write example services for others to use
