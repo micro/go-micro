@@ -265,3 +265,9 @@ func main() {
 go run client.go
 Hello John
 ```
+
+### Next steps
+
+To learn more, checkout the [**examples**](https://github.com/micro/go-micro/tree/master/examples) director or a number 
+of [**example services**](https://github.com/micro/go-micro#example-services) littered throughout the [github.com/micro](https://github.com/micro) 
+repo.
