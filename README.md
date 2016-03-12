@@ -156,9 +156,19 @@ and [examples/client](https://github.com/micro/go-micro/blob/master/examples/cli
 go get github.com/micro/protobuf/{proto,protoc-gen-go}
 ```
 
-Compile proto `protoc -I$GOPATH/src --go_out=plugins=micro:$GOPATH/src $GOPATH/src/github.com/micro/go-micro/examples/service/proto/greeter.proto`
+There's still a need for proto compiler to generate Go stub code from our proto file. You can either use the micro fork above or the official repo `github.com/golang/protobuf`.
+
+### Compile the protobuf file
+
+```
+`protoc -I$GOPATH/src --go_out=plugins=micro:$GOPATH/src $GOPATH/src/github.com/micro/go-micro/examples/service/proto/greeter.proto`
+```
 
 ### Define the service
+
+Below is the code sample for the Greeter service. It basically implements the interface defined above for the Greeter handler, 
+initialises the service, registers the handler and then runs itself. Simple as that.
+
 `go-micro/examples/service/main.go`:
 
 ```go
@@ -213,6 +223,9 @@ I0102 00:22:26.414009   12018 rpc_server.go:212] Registering node: greeter-e6b2f
 ```
 
 ### Define a client
+
+Below is the client code to query the greeter service. Notice we're using the code generated client interface `proto.NewGreeterClient`. 
+This reduces the amount of boiler plate code we need to write. The greeter client can be reused throughout the code if need be.
 
 `client.go`
 
