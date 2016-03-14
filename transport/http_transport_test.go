@@ -52,8 +52,6 @@ func TestHTTPTransportCommunication(t *testing.T) {
 	defer l.Close()
 
 	fn := func(sock transport.Socket) {
-		defer sock.Close()
-
 		for {
 			var m transport.Message
 			if err := sock.Recv(&m); err != nil {
