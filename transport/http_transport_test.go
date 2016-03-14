@@ -52,6 +52,8 @@ func TestHTTPTransportCommunication(t *testing.T) {
 	defer l.Close()
 
 	fn := func(sock transport.Socket) {
+		defer sock.Close()
+
 		for {
 			var m transport.Message
 			if err := sock.Recv(&m); err != nil {
@@ -66,9 +68,15 @@ func TestHTTPTransportCommunication(t *testing.T) {
 		}
 	}
 
+	done := make(chan bool)
+
 	go func() {
 		if err := l.Accept(fn); err != nil {
-			t.Errorf("Unexpected accept err: %v", err)
+			select {
+			case <-done:
+			default:
+				t.Errorf("Unexpected accept err: %v", err)
+			}
 		}
 	}()
 
@@ -98,4 +106,6 @@ func TestHTTPTransportCommunication(t *testing.T) {
 	if string(rm.Body) != string(m.Body) {
 		t.Errorf("Expected %v, got %v", m.Body, rm.Body)
 	}
+
+	close(done)
 }
