@@ -110,10 +110,10 @@ $ consul agent -dev -advertise=127.0.0.1
 
 ### Run Service
 ```
-$ go run examples/service/main.go --logtostderr
-I0102 00:22:26.413467   12018 rpc_server.go:297] Listening on [::]:62492
-I0102 00:22:26.413803   12018 http_broker.go:115] Broker Listening on [::]:62493
-I0102 00:22:26.414009   12018 rpc_server.go:212] Registering node: greeter-e6b2fc6f-b0e6-11e5-a42f-68a86d0d36b6
+$ go run examples/service/main.go
+2016/03/14 10:59:14 Listening on [::]:50137
+2016/03/14 10:59:14 Broker Listening on [::]:50138
+2016/03/14 10:59:14 Registering node: greeter-ca62b017-e9d3-11e5-9bbb-68a86d0d36b6
 ```
 
 ### Test Service
@@ -216,10 +216,10 @@ func main() {
 
 ### Run service
 ```
-go run examples/service/main.go --logtostderr
-I0102 00:22:26.413467   12018 rpc_server.go:297] Listening on [::]:62492
-I0102 00:22:26.413803   12018 http_broker.go:115] Broker Listening on [::]:62493
-I0102 00:22:26.414009   12018 rpc_server.go:212] Registering node: greeter-e6b2fc6f-b0e6-11e5-a42f-68a86d0d36b6
+go run examples/service/main.go
+2016/03/14 10:59:14 Listening on [::]:50137
+2016/03/14 10:59:14 Broker Listening on [::]:50138
+2016/03/14 10:59:14 Registering node: greeter-ca62b017-e9d3-11e5-9bbb-68a86d0d36b6
 ```
 
 ### Define a client

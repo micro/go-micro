@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"log"
 	"runtime/debug"
 	"strconv"
 	"strings"
@@ -12,8 +13,6 @@ import (
 	"github.com/micro/go-micro/metadata"
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/transport"
-
-	log "github.com/golang/glog"
 
 	"golang.org/x/net/context"
 )
@@ -48,7 +47,7 @@ func newRpcServer(opts ...Option) Server {
 func (s *rpcServer) accept(sock transport.Socket) {
 	defer func() {
 		if r := recover(); r != nil {
-			log.Error(r, string(debug.Stack()))
+			log.Print(r, string(debug.Stack()))
 			sock.Close()
 		}
 	}()
@@ -85,7 +84,7 @@ func (s *rpcServer) accept(sock transport.Socket) {
 
 	// TODO: needs better error handling
 	if err := s.rpc.serveRequest(ctx, codec, ct); err != nil {
-		log.Errorf("Unexpected error serving request, closing socket: %v", err)
+		log.Printf("Unexpected error serving request, closing socket: %v", err)
 		sock.Close()
 	}
 }
@@ -235,7 +234,7 @@ func (s *rpcServer) Register() error {
 	s.Unlock()
 
 	if !registered {
-		log.Infof("Registering node: %s", node.Id)
+		log.Printf("Registering node: %s", node.Id)
 	}
 
 	// create registry options
@@ -310,7 +309,7 @@ func (s *rpcServer) Deregister() error {
 		Nodes:   []*registry.Node{node},
 	}
 
-	log.Infof("Deregistering node: %s", node.Id)
+	log.Printf("Deregistering node: %s", node.Id)
 	if err := config.Registry.Deregister(service); err != nil {
 		return err
 	}
@@ -326,7 +325,7 @@ func (s *rpcServer) Deregister() error {
 
 	for sb, subs := range s.subscribers {
 		for _, sub := range subs {
-			log.Infof("Unsubscribing from topic: %s", sub.Topic())
+			log.Printf("Unsubscribing from topic: %s", sub.Topic())
 			sub.Unsubscribe()
 		}
 		s.subscribers[sb] = nil
@@ -345,7 +344,7 @@ func (s *rpcServer) Start() error {
 		return err
 	}
 
-	log.Infof("Listening on %s", ts.Addr())
+	log.Printf("Listening on %s", ts.Addr())
 	s.Lock()
 	s.opts.Address = ts.Addr()
 	s.Unlock()

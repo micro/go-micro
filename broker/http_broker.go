@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"math/rand"
 	"net"
 	"net/http"
@@ -17,7 +18,6 @@ import (
 	"sync"
 	"time"
 
-	log "github.com/golang/glog"
 	"github.com/micro/go-micro/errors"
 	"github.com/micro/go-micro/registry"
 	mls "github.com/micro/misc/lib/tls"
@@ -217,7 +217,7 @@ func (h *httpBroker) start() error {
 		return err
 	}
 
-	log.Infof("Broker Listening on %s", l.Addr().String())
+	log.Printf("Broker Listening on %s", l.Addr().String())
 	h.address = l.Addr().String()
 
 	go http.Serve(l, h)
