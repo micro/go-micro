@@ -8,48 +8,54 @@ type MockRegistry struct {
 	Services map[string][]*registry.Service
 }
 
-func (m *MockRegistry) init() {
-	// add some mock data
-	m.Services["foo"] = []*registry.Service{
-		{
-			Name:    "foo",
-			Version: "1.0.0",
-			Nodes: []*registry.Node{
-				{
-					Id:      "foo-1.0.0-123",
-					Address: "localhost",
-					Port:    9999,
-				},
-				{
-					Id:      "foo-1.0.0-321",
-					Address: "localhost",
-					Port:    9999,
-				},
-			},
-		},
-		{
-			Name:    "foo",
-			Version: "1.0.1",
-			Nodes: []*registry.Node{
-				{
-					Id:      "foo-1.0.1-321",
-					Address: "localhost",
-					Port:    6666,
+var (
+	mockData = map[string][]*registry.Service{
+		"foo": []*registry.Service{
+			{
+				Name:    "foo",
+				Version: "1.0.0",
+				Nodes: []*registry.Node{
+					{
+						Id:      "foo-1.0.0-123",
+						Address: "localhost",
+						Port:    9999,
+					},
+					{
+						Id:      "foo-1.0.0-321",
+						Address: "localhost",
+						Port:    9999,
+					},
 				},
 			},
-		},
-		{
-			Name:    "foo",
-			Version: "1.0.3",
-			Nodes: []*registry.Node{
-				{
-					Id:      "foo-1.0.3-345",
-					Address: "localhost",
-					Port:    8888,
+			{
+				Name:    "foo",
+				Version: "1.0.1",
+				Nodes: []*registry.Node{
+					{
+						Id:      "foo-1.0.1-321",
+						Address: "localhost",
+						Port:    6666,
+					},
+				},
+			},
+			{
+				Name:    "foo",
+				Version: "1.0.3",
+				Nodes: []*registry.Node{
+					{
+						Id:      "foo-1.0.3-345",
+						Address: "localhost",
+						Port:    8888,
+					},
 				},
 			},
 		},
 	}
+)
+
+func (m *MockRegistry) init() {
+	// add some mock data
+	m.Services = mockData
 }
 
 func (m *MockRegistry) GetService(service string) ([]*registry.Service, error) {
@@ -70,10 +76,14 @@ func (m *MockRegistry) ListServices() ([]*registry.Service, error) {
 }
 
 func (m *MockRegistry) Register(s *registry.Service, opts ...registry.RegisterOption) error {
+	services := addServices(m.Services[s.Name], []*registry.Service{s})
+	m.Services[s.Name] = services
 	return nil
 }
 
 func (m *MockRegistry) Deregister(s *registry.Service) error {
+	services := delServices(m.Services[s.Name], []*registry.Service{s})
+	m.Services[s.Name] = services
 	return nil
 }
 
