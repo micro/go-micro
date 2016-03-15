@@ -420,7 +420,7 @@ func (h *httpTransport) String() string {
 	return "http"
 }
 
-func newHttpTransport(addrs []string, opts ...Option) *httpTransport {
+func newHttpTransport(opts ...Option) *httpTransport {
 	var options Options
 	for _, o := range opts {
 		o(&options)

@@ -118,7 +118,7 @@ var (
 		"random": selector.NewSelector,
 	}
 
-	DefaultTransports = map[string]func([]string, ...transport.Option) transport.Transport{
+	DefaultTransports = map[string]func(...transport.Option) transport.Transport{
 		"http": transport.NewTransport,
 	}
 
@@ -251,7 +251,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		}
 
 		if t, ok := c.opts.Transports[name]; ok {
-			n := t(strings.Split(ctx.String("transport_address"), ","))
+			n := t(transport.Addrs(strings.Split(ctx.String("transport_address"), ",")...))
 			*c.opts.Transport = n
 		} else {
 			return fmt.Errorf("Transport %s not found", name)

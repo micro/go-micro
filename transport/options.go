@@ -8,6 +8,7 @@ import (
 )
 
 type Options struct {
+	Addrs     []string
 	Secure    bool
 	TLSConfig *tls.Config
 
@@ -35,6 +36,13 @@ type ListenOptions struct {
 	// Other options for implementations of the interface
 	// can be stored in a context
 	Context context.Context
+}
+
+// Addrs to use for transport
+func Addrs(addrs ...string) Option {
+	return func(o *Options) {
+		o.Addrs = addrs
+	}
 }
 
 // Use secure communication. If TLSConfig is not specified we
