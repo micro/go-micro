@@ -25,7 +25,7 @@ type Options struct {
 	Client    *client.Client
 	Server    *server.Server
 
-	Brokers    map[string]func([]string, ...broker.Option) broker.Broker
+	Brokers    map[string]func(...broker.Option) broker.Broker
 	Registries map[string]func([]string, ...registry.Option) registry.Registry
 	Selectors  map[string]func(...selector.Option) selector.Selector
 	Transports map[string]func([]string, ...transport.Option) transport.Transport
@@ -93,7 +93,7 @@ func Server(s *server.Server) Option {
 }
 
 // New broker func
-func NewBroker(name string, b func([]string, ...broker.Option) broker.Broker) Option {
+func NewBroker(name string, b func(...broker.Option) broker.Broker) Option {
 	return func(o *Options) {
 		o.Brokers[name] = b
 	}

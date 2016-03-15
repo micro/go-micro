@@ -8,6 +8,7 @@ import (
 )
 
 type Options struct {
+	Addrs     []string
 	Secure    bool
 	TLSConfig *tls.Config
 
@@ -58,6 +59,13 @@ func newSubscribeOptions(opts ...SubscribeOption) SubscribeOptions {
 	}
 
 	return opt
+}
+
+// Addrs sets the host addresses to be used by the broker
+func Addrs(addrs ...string) Option {
+	return func(o *Options) {
+		o.Addrs = addrs
+	}
 }
 
 // DisableAutoAck will disable auto acking of messages

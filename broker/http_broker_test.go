@@ -8,7 +8,7 @@ import (
 
 func TestBroker(t *testing.T) {
 	m := mock.NewRegistry()
-	b := NewBroker([]string{}, Registry(m))
+	b := NewBroker(Registry(m))
 
 	if err := b.Init(); err != nil {
 		t.Errorf("Unexpected init error: %v", err)

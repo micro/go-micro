@@ -106,7 +106,7 @@ var (
 		},
 	}
 
-	DefaultBrokers = map[string]func([]string, ...broker.Option) broker.Broker{
+	DefaultBrokers = map[string]func(...broker.Option) broker.Broker{
 		"http": broker.NewBroker,
 	}
 
@@ -198,7 +198,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		}
 
 		if b, ok := c.opts.Brokers[name]; ok {
-			n := b(strings.Split(ctx.String("broker_address"), ","))
+			n := b(broker.Addrs(strings.Split(ctx.String("broker_address"), ",")...))
 			*c.opts.Broker = n
 		} else {
 			return fmt.Errorf("Broker %s not found", name)
