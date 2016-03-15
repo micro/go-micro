@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"flag"
 	"fmt"
 	"io"
 	"math/rand"
@@ -105,36 +104,6 @@ var (
 			EnvVar: "MICRO_TRANSPORT_ADDRESS",
 			Usage:  "Comma-separated list of transport addresses",
 		},
-
-		// logging flags
-		cli.BoolFlag{
-			Name:  "logtostderr",
-			Usage: "log to standard error instead of files",
-		},
-		cli.BoolFlag{
-			Name:  "alsologtostderr",
-			Usage: "log to standard error as well as files",
-		},
-		cli.StringFlag{
-			Name:  "log_dir",
-			Usage: "log files will be written to this directory instead of the default temporary directory",
-		},
-		cli.StringFlag{
-			Name:  "stderrthreshold",
-			Usage: "logs at or above this threshold go to stderr",
-		},
-		cli.StringFlag{
-			Name:  "v",
-			Usage: "log level for V logs",
-		},
-		cli.StringFlag{
-			Name:  "vmodule",
-			Usage: "comma-separated list of pattern=N settings for file-filtered logging",
-		},
-		cli.StringFlag{
-			Name:  "log_backtrace_at",
-			Usage: "when logging hits line file:N, emit a stack trace",
-		},
 	}
 
 	DefaultBrokers = map[string]func([]string, ...broker.Option) broker.Broker{
@@ -218,17 +187,6 @@ func (c *cmd) Options() Options {
 }
 
 func (c *cmd) Before(ctx *cli.Context) error {
-	// Due to logger issues with glog, we need to do this
-	os.Args = os.Args[:1]
-	flag.Set("logtostderr", fmt.Sprintf("%v", ctx.Bool("logtostderr")))
-	flag.Set("alsologtostderr", fmt.Sprintf("%v", ctx.Bool("alsologtostderr")))
-	flag.Set("stderrthreshold", ctx.String("stderrthreshold"))
-	flag.Set("log_backtrace_at", ctx.String("log_backtrace_at"))
-	flag.Set("log_dir", ctx.String("log_dir"))
-	flag.Set("vmodule", ctx.String("vmodule"))
-	flag.Set("v", ctx.String("v"))
-	flag.Parse()
-
 	// If flags are set then use them otherwise do nothing
 	var serverOpts []server.Option
 	var clientOpts []client.Option

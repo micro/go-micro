@@ -2,9 +2,9 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"time"
 
-	log "github.com/golang/glog"
 	"github.com/micro/go-micro/broker"
 	"github.com/micro/go-micro/cmd"
 )
@@ -24,7 +24,7 @@ func pub() {
 			Body: []byte(fmt.Sprintf("%d: %s", i, time.Now().String())),
 		}
 		if err := broker.Publish(topic, msg); err != nil {
-			log.Errorf("[pub] failed: %v", err)
+			log.Printf("[pub] failed: %v", err)
 		} else {
 			fmt.Println("[pub] pubbed message:", string(msg.Body))
 		}

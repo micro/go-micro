@@ -29,11 +29,11 @@ and pub/sub.
 package server
 
 import (
+	"log"
 	"os"
 	"os/signal"
 	"syscall"
 
-	log "github.com/golang/glog"
 	"github.com/pborman/uuid"
 	"golang.org/x/net/context"
 )
@@ -167,7 +167,7 @@ func Run() error {
 
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, syscall.SIGTERM, syscall.SIGINT, syscall.SIGKILL)
-	log.Infof("Received signal %s", <-ch)
+	log.Printf("Received signal %s", <-ch)
 
 	if err := DefaultServer.Deregister(); err != nil {
 		return err
@@ -179,13 +179,13 @@ func Run() error {
 // Starts the default server
 func Start() error {
 	config := DefaultServer.Options()
-	log.Infof("Starting server %s id %s", config.Name, config.Id)
+	log.Printf("Starting server %s id %s", config.Name, config.Id)
 	return DefaultServer.Start()
 }
 
 // Stops the default server
 func Stop() error {
-	log.Infof("Stopping server")
+	log.Printf("Stopping server")
 	return DefaultServer.Stop()
 }
 
