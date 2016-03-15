@@ -9,6 +9,6 @@ func init() {
 	cmd.DefaultRegistries["consul"] = NewRegistry
 }
 
-func NewRegistry(addrs []string, opts ...registry.Option) registry.Registry {
-	return registry.NewRegistry(addrs, opts...)
+func NewRegistry(opts ...registry.Option) registry.Registry {
+	return registry.NewRegistry(opts...)
 }

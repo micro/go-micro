@@ -26,7 +26,7 @@ type Options struct {
 	Server    *server.Server
 
 	Brokers    map[string]func(...broker.Option) broker.Broker
-	Registries map[string]func([]string, ...registry.Option) registry.Registry
+	Registries map[string]func(...registry.Option) registry.Registry
 	Selectors  map[string]func(...selector.Option) selector.Selector
 	Transports map[string]func([]string, ...transport.Option) transport.Transport
 
@@ -100,7 +100,7 @@ func NewBroker(name string, b func(...broker.Option) broker.Broker) Option {
 }
 
 // New registry func
-func NewRegistry(name string, r func([]string, ...registry.Option) registry.Registry) Option {
+func NewRegistry(name string, r func(...registry.Option) registry.Registry) Option {
 	return func(o *Options) {
 		o.Registries[name] = r
 	}

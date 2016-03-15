@@ -110,7 +110,7 @@ var (
 		"http": broker.NewBroker,
 	}
 
-	DefaultRegistries = map[string]func([]string, ...registry.Option) registry.Registry{
+	DefaultRegistries = map[string]func(...registry.Option) registry.Registry{
 		"consul": registry.NewRegistry,
 	}
 
@@ -216,7 +216,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		}
 
 		if r, ok := c.opts.Registries[name]; ok {
-			n := r(strings.Split(ctx.String("registry_address"), ","))
+			n := r(registry.Addrs(strings.Split(ctx.String("registry_address"), ",")...))
 			*c.opts.Registry = n
 		} else {
 			return fmt.Errorf("Registry %s not found", name)

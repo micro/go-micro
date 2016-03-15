@@ -21,13 +21,13 @@ type Option func(*Options)
 type RegisterOption func(*RegisterOptions)
 
 var (
-	DefaultRegistry = newConsulRegistry([]string{})
+	DefaultRegistry = newConsulRegistry()
 
 	ErrNotFound = errors.New("not found")
 )
 
-func NewRegistry(addrs []string, opt ...Option) Registry {
-	return newConsulRegistry(addrs, opt...)
+func NewRegistry(opts ...Option) Registry {
+	return newConsulRegistry(opts...)
 }
 
 // Register a service node. Additionally supply options such as TTL.

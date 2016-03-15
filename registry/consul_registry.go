@@ -109,26 +109,26 @@ func decodeVersion(tags []string) (string, bool) {
 	return "", false
 }
 
-func newConsulRegistry(addrs []string, opts ...Option) Registry {
-	var opt Options
+func newConsulRegistry(opts ...Option) Registry {
+	var options Options
 	for _, o := range opts {
-		o(&opt)
+		o(&options)
 	}
 
 	// use default config
 	config := consul.DefaultConfig()
 
 	// set timeout
-	if opt.Timeout > 0 {
-		config.HttpClient.Timeout = opt.Timeout
+	if options.Timeout > 0 {
+		config.HttpClient.Timeout = options.Timeout
 	}
 
 	// check if there are any addrs
-	if len(addrs) > 0 {
-		addr, port, err := net.SplitHostPort(addrs[0])
+	if len(options.Addrs) > 0 {
+		addr, port, err := net.SplitHostPort(options.Addrs[0])
 		if ae, ok := err.(*net.AddrError); ok && ae.Err == "missing port in address" {
 			port = "8500"
-			addr = addrs[0]
+			addr = options.Addrs[0]
 			config.Address = fmt.Sprintf("%s:%s", addr, port)
 		} else if err == nil {
 			config.Address = fmt.Sprintf("%s:%s", addr, port)
@@ -136,10 +136,10 @@ func newConsulRegistry(addrs []string, opts ...Option) Registry {
 	}
 
 	// requires secure connection?
-	if opt.Secure || opt.TLSConfig != nil {
+	if options.Secure || options.TLSConfig != nil {
 		config.Scheme = "https"
 		// We're going to support InsecureSkipVerify
-		config.HttpClient.Transport = newTransport(opt.TLSConfig)
+		config.HttpClient.Transport = newTransport(options.TLSConfig)
 	}
 
 	// create the client
@@ -148,7 +148,7 @@ func newConsulRegistry(addrs []string, opts ...Option) Registry {
 	cr := &consulRegistry{
 		Address: config.Address,
 		Client:  client,
-		Options: opt,
+		Options: options,
 	}
 
 	return cr
