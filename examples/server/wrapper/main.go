@@ -1,7 +1,8 @@
 package main
 
 import (
-	log "github.com/golang/glog"
+	"log"
+
 	"github.com/micro/go-micro/cmd"
 	"github.com/micro/go-micro/examples/server/handler"
 	"github.com/micro/go-micro/examples/server/subscriber"
@@ -11,18 +12,18 @@ import (
 
 func logWrapper(fn server.HandlerFunc) server.HandlerFunc {
 	return func(ctx context.Context, req server.Request, rsp interface{}) error {
-		log.Infof("[Log Wrapper] Before serving request method: %v", req.Method())
+		log.Printf("[Log Wrapper] Before serving request method: %v", req.Method())
 		err := fn(ctx, req, rsp)
-		log.Infof("[Log Wrapper] After serving request")
+		log.Printf("[Log Wrapper] After serving request")
 		return err
 	}
 }
 
 func logSubWrapper(fn server.SubscriberFunc) server.SubscriberFunc {
 	return func(ctx context.Context, req server.Publication) error {
-		log.Infof("[Log Sub Wrapper] Before serving publication topic: %v", req.Topic())
+		log.Printf("[Log Sub Wrapper] Before serving publication topic: %v", req.Topic())
 		err := fn(ctx, req)
-		log.Infof("[Log Sub Wrapper] After serving publication")
+		log.Printf("[Log Sub Wrapper] After serving publication")
 		return err
 	}
 }
