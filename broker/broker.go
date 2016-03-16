@@ -38,11 +38,11 @@ type Subscriber interface {
 }
 
 var (
-	DefaultBroker Broker = newHttpBroker([]string{})
+	DefaultBroker Broker = newHttpBroker()
 )
 
-func NewBroker(addrs []string, opt ...Option) Broker {
-	return newHttpBroker(addrs, opt...)
+func NewBroker(opts ...Option) Broker {
+	return newHttpBroker(opts...)
 }
 
 func Init(opts ...Option) error {

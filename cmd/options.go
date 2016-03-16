@@ -25,10 +25,10 @@ type Options struct {
 	Client    *client.Client
 	Server    *server.Server
 
-	Brokers    map[string]func([]string, ...broker.Option) broker.Broker
-	Registries map[string]func([]string, ...registry.Option) registry.Registry
+	Brokers    map[string]func(...broker.Option) broker.Broker
+	Registries map[string]func(...registry.Option) registry.Registry
 	Selectors  map[string]func(...selector.Option) selector.Selector
-	Transports map[string]func([]string, ...transport.Option) transport.Transport
+	Transports map[string]func(...transport.Option) transport.Transport
 
 	// Other options for implementations of the interface
 	// can be stored in a context
@@ -93,14 +93,14 @@ func Server(s *server.Server) Option {
 }
 
 // New broker func
-func NewBroker(name string, b func([]string, ...broker.Option) broker.Broker) Option {
+func NewBroker(name string, b func(...broker.Option) broker.Broker) Option {
 	return func(o *Options) {
 		o.Brokers[name] = b
 	}
 }
 
 // New registry func
-func NewRegistry(name string, r func([]string, ...registry.Option) registry.Registry) Option {
+func NewRegistry(name string, r func(...registry.Option) registry.Registry) Option {
 	return func(o *Options) {
 		o.Registries[name] = r
 	}
@@ -114,7 +114,7 @@ func NewSelector(name string, s func(...selector.Option) selector.Selector) Opti
 }
 
 // New transport func
-func NewTransport(name string, t func([]string, ...transport.Option) transport.Transport) Option {
+func NewTransport(name string, t func(...transport.Option) transport.Transport) Option {
 	return func(o *Options) {
 		o.Transports[name] = t
 	}

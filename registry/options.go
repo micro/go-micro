@@ -8,6 +8,7 @@ import (
 )
 
 type Options struct {
+	Addrs     []string
 	Timeout   time.Duration
 	Secure    bool
 	TLSConfig *tls.Config
@@ -22,6 +23,13 @@ type RegisterOptions struct {
 	// Other options for implementations of the interface
 	// can be stored in a context
 	Context context.Context
+}
+
+// Addrs is the registry addresses to use
+func Addrs(addrs ...string) Option {
+	return func(o *Options) {
+		o.Addrs = addrs
+	}
 }
 
 func Timeout(t time.Duration) Option {

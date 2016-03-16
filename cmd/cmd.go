@@ -106,11 +106,11 @@ var (
 		},
 	}
 
-	DefaultBrokers = map[string]func([]string, ...broker.Option) broker.Broker{
+	DefaultBrokers = map[string]func(...broker.Option) broker.Broker{
 		"http": broker.NewBroker,
 	}
 
-	DefaultRegistries = map[string]func([]string, ...registry.Option) registry.Registry{
+	DefaultRegistries = map[string]func(...registry.Option) registry.Registry{
 		"consul": registry.NewRegistry,
 	}
 
@@ -118,7 +118,7 @@ var (
 		"random": selector.NewSelector,
 	}
 
-	DefaultTransports = map[string]func([]string, ...transport.Option) transport.Transport{
+	DefaultTransports = map[string]func(...transport.Option) transport.Transport{
 		"http": transport.NewTransport,
 	}
 
@@ -198,7 +198,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		}
 
 		if b, ok := c.opts.Brokers[name]; ok {
-			n := b(strings.Split(ctx.String("broker_address"), ","))
+			n := b(broker.Addrs(strings.Split(ctx.String("broker_address"), ",")...))
 			*c.opts.Broker = n
 		} else {
 			return fmt.Errorf("Broker %s not found", name)
@@ -216,7 +216,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		}
 
 		if r, ok := c.opts.Registries[name]; ok {
-			n := r(strings.Split(ctx.String("registry_address"), ","))
+			n := r(registry.Addrs(strings.Split(ctx.String("registry_address"), ",")...))
 			*c.opts.Registry = n
 		} else {
 			return fmt.Errorf("Registry %s not found", name)
@@ -251,7 +251,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		}
 
 		if t, ok := c.opts.Transports[name]; ok {
-			n := t(strings.Split(ctx.String("transport_address"), ","))
+			n := t(transport.Addrs(strings.Split(ctx.String("transport_address"), ",")...))
 			*c.opts.Transport = n
 		} else {
 			return fmt.Errorf("Transport %s not found", name)

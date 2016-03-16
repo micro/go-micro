@@ -92,7 +92,7 @@ func newTransport(config *tls.Config) *http.Transport {
 	return t
 }
 
-func newHttpBroker(addrs []string, opts ...Option) Broker {
+func newHttpBroker(opts ...Option) Broker {
 	options := Options{
 		Context: context.TODO(),
 	}
@@ -102,8 +102,8 @@ func newHttpBroker(addrs []string, opts ...Option) Broker {
 	}
 
 	addr := ":0"
-	if len(addrs) > 0 && len(addrs[0]) > 0 {
-		addr = addrs[0]
+	if len(options.Addrs) > 0 && len(options.Addrs[0]) > 0 {
+		addr = options.Addrs[0]
 	}
 
 	reg, ok := options.Context.Value(registryKey).(registry.Registry)

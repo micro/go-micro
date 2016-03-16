@@ -9,6 +9,6 @@ func init() {
 	cmd.DefaultTransports["http"] = NewTransport
 }
 
-func NewTransport(addrs []string, opts ...transport.Option) transport.Transport {
-	return transport.NewTransport(addrs, opts...)
+func NewTransport(opts ...transport.Option) transport.Transport {
+	return transport.NewTransport(opts...)
 }

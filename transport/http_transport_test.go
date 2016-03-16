@@ -18,7 +18,7 @@ func expectedPort(t *testing.T, expected string, lsn transport.Listener) {
 }
 
 func TestHTTPTransportPortRange(t *testing.T) {
-	tp := transport.NewTransport([]string{})
+	tp := transport.NewTransport()
 
 	lsn1, err := tp.Listen(":44444-44448")
 	if err != nil {
@@ -43,7 +43,7 @@ func TestHTTPTransportPortRange(t *testing.T) {
 }
 
 func TestHTTPTransportCommunication(t *testing.T) {
-	tr := transport.NewTransport([]string{})
+	tr := transport.NewTransport()
 
 	l, err := tr.Listen(":0")
 	if err != nil {
