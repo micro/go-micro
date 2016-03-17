@@ -4,7 +4,7 @@ import (
 	"github.com/micro/go-micro/registry"
 )
 
-type MockRegistry struct {
+type mockRegistry struct {
 	Services map[string][]*registry.Service
 }
 
@@ -53,12 +53,12 @@ var (
 	}
 )
 
-func (m *MockRegistry) init() {
+func (m *mockRegistry) init() {
 	// add some mock data
 	m.Services = mockData
 }
 
-func (m *MockRegistry) GetService(service string) ([]*registry.Service, error) {
+func (m *mockRegistry) GetService(service string) ([]*registry.Service, error) {
 	s, ok := m.Services[service]
 	if !ok {
 		return nil, registry.ErrNotFound
@@ -67,7 +67,7 @@ func (m *MockRegistry) GetService(service string) ([]*registry.Service, error) {
 
 }
 
-func (m *MockRegistry) ListServices() ([]*registry.Service, error) {
+func (m *mockRegistry) ListServices() ([]*registry.Service, error) {
 	var services []*registry.Service
 	for _, service := range m.Services {
 		services = append(services, service...)
@@ -75,28 +75,28 @@ func (m *MockRegistry) ListServices() ([]*registry.Service, error) {
 	return services, nil
 }
 
-func (m *MockRegistry) Register(s *registry.Service, opts ...registry.RegisterOption) error {
+func (m *mockRegistry) Register(s *registry.Service, opts ...registry.RegisterOption) error {
 	services := addServices(m.Services[s.Name], []*registry.Service{s})
 	m.Services[s.Name] = services
 	return nil
 }
 
-func (m *MockRegistry) Deregister(s *registry.Service) error {
+func (m *mockRegistry) Deregister(s *registry.Service) error {
 	services := delServices(m.Services[s.Name], []*registry.Service{s})
 	m.Services[s.Name] = services
 	return nil
 }
 
-func (m *MockRegistry) Watch() (registry.Watcher, error) {
+func (m *mockRegistry) Watch() (registry.Watcher, error) {
 	return nil, nil
 }
 
-func (m *MockRegistry) String() string {
+func (m *mockRegistry) String() string {
 	return "mock"
 }
 
-func NewRegistry() *MockRegistry {
-	m := &MockRegistry{Services: make(map[string][]*registry.Service)}
+func NewRegistry() registry.Registry {
+	m := &mockRegistry{Services: make(map[string][]*registry.Service)}
 	m.init()
 	return m
 }
