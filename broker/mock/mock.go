@@ -8,20 +8,20 @@ import (
 	"github.com/pborman/uuid"
 )
 
-type MockBroker struct {
+type mockBroker struct {
 	opts broker.Options
 
 	sync.RWMutex
 	connected   bool
-	Subscribers map[string][]*MockSubscriber
+	Subscribers map[string][]*mockSubscriber
 }
 
-type MockPublication struct {
+type mockPublication struct {
 	topic   string
 	message *broker.Message
 }
 
-type MockSubscriber struct {
+type mockSubscriber struct {
 	id      string
 	topic   string
 	exit    chan bool
@@ -29,15 +29,15 @@ type MockSubscriber struct {
 	opts    broker.SubscribeOptions
 }
 
-func (m *MockBroker) Options() broker.Options {
+func (m *mockBroker) Options() broker.Options {
 	return m.opts
 }
 
-func (m *MockBroker) Address() string {
+func (m *mockBroker) Address() string {
 	return ""
 }
 
-func (m *MockBroker) Connect() error {
+func (m *mockBroker) Connect() error {
 	m.Lock()
 	defer m.Unlock()
 
@@ -50,7 +50,7 @@ func (m *MockBroker) Connect() error {
 	return nil
 }
 
-func (m *MockBroker) Disconnect() error {
+func (m *mockBroker) Disconnect() error {
 	m.Lock()
 	defer m.Unlock()
 
@@ -63,14 +63,14 @@ func (m *MockBroker) Disconnect() error {
 	return nil
 }
 
-func (m *MockBroker) Init(opts ...broker.Option) error {
+func (m *mockBroker) Init(opts ...broker.Option) error {
 	for _, o := range opts {
 		o(&m.opts)
 	}
 	return nil
 }
 
-func (m *MockBroker) Publish(topic string, message *broker.Message, opts ...broker.PublishOption) error {
+func (m *mockBroker) Publish(topic string, message *broker.Message, opts ...broker.PublishOption) error {
 	m.Lock()
 	defer m.Unlock()
 
@@ -83,7 +83,7 @@ func (m *MockBroker) Publish(topic string, message *broker.Message, opts ...brok
 		return nil
 	}
 
-	p := &MockPublication{
+	p := &mockPublication{
 		topic:   topic,
 		message: message,
 	}
@@ -97,7 +97,7 @@ func (m *MockBroker) Publish(topic string, message *broker.Message, opts ...brok
 	return nil
 }
 
-func (m *MockBroker) Subscribe(topic string, handler broker.Handler, opts ...broker.SubscribeOption) (broker.Subscriber, error) {
+func (m *mockBroker) Subscribe(topic string, handler broker.Handler, opts ...broker.SubscribeOption) (broker.Subscriber, error) {
 	m.Lock()
 	defer m.Unlock()
 
@@ -110,7 +110,7 @@ func (m *MockBroker) Subscribe(topic string, handler broker.Handler, opts ...bro
 		o(&options)
 	}
 
-	sub := &MockSubscriber{
+	sub := &mockSubscriber{
 		exit:    make(chan bool, 1),
 		id:      uuid.NewUUID().String(),
 		topic:   topic,
@@ -123,7 +123,7 @@ func (m *MockBroker) Subscribe(topic string, handler broker.Handler, opts ...bro
 	go func() {
 		<-sub.exit
 		m.Lock()
-		var newSubscribers []*MockSubscriber
+		var newSubscribers []*mockSubscriber
 		for _, sb := range m.Subscribers[topic] {
 			if sb.id == sub.id {
 				continue
@@ -137,31 +137,31 @@ func (m *MockBroker) Subscribe(topic string, handler broker.Handler, opts ...bro
 	return sub, nil
 }
 
-func (m *MockBroker) String() string {
+func (m *mockBroker) String() string {
 	return "mock"
 }
 
-func (m *MockPublication) Topic() string {
+func (m *mockPublication) Topic() string {
 	return m.topic
 }
 
-func (m *MockPublication) Message() *broker.Message {
+func (m *mockPublication) Message() *broker.Message {
 	return m.message
 }
 
-func (m *MockPublication) Ack() error {
+func (m *mockPublication) Ack() error {
 	return nil
 }
 
-func (m *MockSubscriber) Options() broker.SubscribeOptions {
+func (m *mockSubscriber) Options() broker.SubscribeOptions {
 	return m.opts
 }
 
-func (m *MockSubscriber) Topic() string {
+func (m *mockSubscriber) Topic() string {
 	return m.topic
 }
 
-func (m *MockSubscriber) Unsubscribe() error {
+func (m *mockSubscriber) Unsubscribe() error {
 	m.exit <- true
 	return nil
 }
@@ -172,8 +172,8 @@ func NewBroker(opts ...broker.Option) broker.Broker {
 		o(&options)
 	}
 
-	return &MockBroker{
+	return &mockBroker{
 		opts:        options,
-		Subscribers: make(map[string][]*MockSubscriber),
+		Subscribers: make(map[string][]*mockSubscriber),
 	}
 }
