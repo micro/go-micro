@@ -79,7 +79,7 @@ func (m *mockListener) Accept(fn func(transport.Socket)) error {
 			return nil
 		case c := <-m.conn:
 			go fn(&mockSocket{
-				lexit: make(chan bool),
+				lexit: c.lexit,
 				exit:  c.exit,
 				send:  c.recv,
 				recv:  c.send,
