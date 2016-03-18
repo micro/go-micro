@@ -38,9 +38,9 @@ type mockTransport struct {
 func (ms *mockSocket) Recv(m *transport.Message) error {
 	select {
 	case <-ms.exit:
-		return errors.New("server side connection closed")
+		return errors.New("connection closed")
 	case <-ms.lexit:
-		return errors.New("server side connection closed")
+		return errors.New("server connection closed")
 	case cm := <-ms.recv:
 		*m = *cm
 	}
@@ -50,9 +50,9 @@ func (ms *mockSocket) Recv(m *transport.Message) error {
 func (ms *mockSocket) Send(m *transport.Message) error {
 	select {
 	case <-ms.exit:
-		return errors.New("client side connection closed")
+		return errors.New("connection closed")
 	case <-ms.lexit:
-		return errors.New("server side connection closed")
+		return errors.New("server connection closed")
 	case ms.send <- m:
 	}
 	return nil
