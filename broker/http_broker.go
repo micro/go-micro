@@ -36,6 +36,8 @@ type httpBroker struct {
 	unsubscribe chan *httpSubscriber
 	opts        Options
 
+	mux *http.ServeMux
+
 	c *http.Client
 	r registry.Registry
 
@@ -111,7 +113,7 @@ func newHttpBroker(opts ...Option) Broker {
 		reg = registry.DefaultRegistry
 	}
 
-	return &httpBroker{
+	h := &httpBroker{
 		id:          "broker-" + uuid.NewUUID().String(),
 		address:     addr,
 		opts:        options,
@@ -120,7 +122,11 @@ func newHttpBroker(opts ...Option) Broker {
 		subscribers: make(map[string][]*httpSubscriber),
 		unsubscribe: make(chan *httpSubscriber),
 		exit:        make(chan chan error),
+		mux:         http.NewServeMux(),
 	}
+
+	h.mux.Handle(DefaultSubPath, h)
+	return h
 }
 
 func (h *httpPublication) Ack() error {
@@ -220,7 +226,7 @@ func (h *httpBroker) start() error {
 	log.Printf("Broker Listening on %s", l.Addr().String())
 	h.address = l.Addr().String()
 
-	go http.Serve(l, h)
+	go http.Serve(l, h.mux)
 	go h.run(l)
 
 	h.running = true
@@ -318,7 +324,6 @@ func (h *httpBroker) Init(opts ...Option) error {
 
 	h.r = reg
 
-	http.Handle(DefaultSubPath, h)
 	return nil
 }
 
