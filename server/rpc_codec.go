@@ -6,6 +6,7 @@ import (
 	"github.com/micro/go-micro/codec"
 	"github.com/micro/go-micro/codec/jsonrpc"
 	"github.com/micro/go-micro/codec/protorpc"
+	"github.com/micro/go-micro/errors"
 	"github.com/micro/go-micro/transport"
 )
 
@@ -76,14 +77,20 @@ func (c *rpcPlusCodec) ReadRequestHeader(r *request, first bool) error {
 		m.Header = tm.Header
 	}
 
-	err := c.codec.ReadHeader(&m, codec.Request)
+	if err := c.codec.ReadHeader(&m, codec.Request); err != nil {
+		return errors.InternalServerError("go.micro.rpc", "error reading request header: "+err.Error())
+	}
+
 	r.ServiceMethod = m.Method
 	r.Seq = m.Id
-	return err
+	return nil
 }
 
 func (c *rpcPlusCodec) ReadRequestBody(b interface{}) error {
-	return c.codec.ReadBody(b)
+	if err := c.codec.ReadBody(b); err != nil {
+		return errors.InternalServerError("go.micro.rpc", "error reading request body: "+err.Error())
+	}
+	return nil
 }
 
 func (c *rpcPlusCodec) WriteResponse(r *response, body interface{}, last bool) error {
@@ -96,7 +103,7 @@ func (c *rpcPlusCodec) WriteResponse(r *response, body interface{}, last bool) e
 		Header: map[string]string{},
 	}
 	if err := c.codec.Write(m, body); err != nil {
-		return err
+		return errors.InternalServerError("go.micro.rpc", "error writing response: "+err.Error())
 	}
 
 	m.Header["Content-Type"] = c.req.Header["Content-Type"]
