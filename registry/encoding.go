@@ -57,8 +57,17 @@ func encodeEndpoints(en []*Endpoint) []string {
 
 func decodeEndpoints(tags []string) []*Endpoint {
 	var en []*Endpoint
+
+	// use the first format you find
+	var ver byte
+
 	for _, tag := range tags {
 		if len(tag) == 0 || tag[0] != 'e' {
+			continue
+		}
+
+		// check version
+		if ver > 0 && tag[1] != ver {
 			continue
 		}
 
@@ -78,6 +87,9 @@ func decodeEndpoints(tags []string) []*Endpoint {
 		if err := json.Unmarshal(buf, &e); err == nil {
 			en = append(en, e)
 		}
+
+		// set version
+		ver = tag[1]
 	}
 	return en
 }
@@ -100,8 +112,16 @@ func encodeMetadata(md map[string]string) []string {
 
 func decodeMetadata(tags []string) map[string]string {
 	md := make(map[string]string)
+
+	var ver byte
+
 	for _, tag := range tags {
 		if len(tag) == 0 || tag[0] != 't' {
+			continue
+		}
+
+		// check version
+		if ver > 0 && tag[1] != ver {
 			continue
 		}
 
@@ -124,6 +144,9 @@ func decodeMetadata(tags []string) map[string]string {
 				md[k] = v
 			}
 		}
+
+		// set version
+		ver = tag[1]
 	}
 	return md
 }
