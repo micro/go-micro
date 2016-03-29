@@ -39,6 +39,16 @@ var (
 
 	DefaultFlags = []cli.Flag{
 		cli.StringFlag{
+			Name:   "client_request_timeout",
+			EnvVar: "MICRO_CLIENT_REQUEST_TIMEOUT",
+			Usage:  "Sets the client request timeout. e.g 500ms, 5s, 1m. Default: 5s",
+		},
+		cli.IntFlag{
+			Name:   "client_retries",
+			EnvVar: "MICRO_CLIENT_RETRIES",
+			Usage:  "Sets the client retries. Default: 1",
+		},
+		cli.StringFlag{
 			Name:   "server_name",
 			EnvVar: "MICRO_SERVER_NAME",
 			Usage:  "Name of the server. go.micro.srv.example",
@@ -295,6 +305,19 @@ func (c *cmd) Before(ctx *cli.Context) error {
 
 	if len(ctx.String("server_advertise")) > 0 {
 		serverOpts = append(serverOpts, server.Advertise(ctx.String("server_advertise")))
+	}
+
+	// client opts
+	if r := ctx.Int("client_retries"); r > 0 {
+		clientOpts = append(clientOpts, client.Retries(r))
+	}
+
+	if t := ctx.String("client_request_timeout"); len(t) > 0 {
+		d, err := time.ParseDuration(t)
+		if err != nil {
+			return fmt.Errorf("failed to parse client_request_timeout: %v", t)
+		}
+		clientOpts = append(clientOpts, client.RequestTimeout(d))
 	}
 
 	// We have some command line opts for the server.
