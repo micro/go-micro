@@ -108,7 +108,7 @@ func (c *consulRegistry) Register(s *Service, opts ...RegisterOption) error {
 
 	tags := encodeMetadata(node.Metadata)
 	tags = append(tags, encodeEndpoints(s.Endpoints)...)
-	tags = append(tags, encodeVersion(s.Version))
+	tags = append(tags, encodeVersion(s.Version)...)
 
 	var check *consul.AgentServiceCheck
 

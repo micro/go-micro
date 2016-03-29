@@ -33,7 +33,7 @@ func TestEncodingEndpoints(t *testing.T) {
 	for _, data := range testData {
 		e := encodeEndpoints([]*Endpoint{data.decoded})
 
-		if len(e) != 1 || e[0] != data.encoded {
+		if len(e) != 2 || e[1] != data.encoded {
 			t.Fatalf("Expected %s got %s", data.encoded, e)
 		}
 
@@ -82,11 +82,11 @@ func TestEncodingVersion(t *testing.T) {
 	for _, data := range testData {
 		e := encodeVersion(data.decoded)
 
-		if e != data.encoded {
+		if e[1] != data.encoded {
 			t.Fatalf("Expected %s got %s", data.encoded, e)
 		}
 
-		d, ok := decodeVersion([]string{e})
+		d, ok := decodeVersion(e)
 		if !ok {
 			t.Fatal("Unexpected %t for %s", ok, data.encoded)
 		}

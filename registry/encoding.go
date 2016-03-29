@@ -45,6 +45,10 @@ func encodeEndpoints(en []*Endpoint) []string {
 	var tags []string
 	for _, e := range en {
 		if b, err := json.Marshal(e); err == nil {
+			// old encoding
+			// TODO: remove in 09/2016
+			tags = append(tags, "e="+string(b))
+			// new encoding
 			tags = append(tags, "e-"+encode(b))
 		}
 	}
@@ -84,6 +88,10 @@ func encodeMetadata(md map[string]string) []string {
 		if b, err := json.Marshal(map[string]string{
 			k: v,
 		}); err == nil {
+			// old encoding
+			// TODO: remove in 09/2016
+			tags = append(tags, "t="+string(b))
+			// new encoding
 			tags = append(tags, "t-"+encode(b))
 		}
 	}
@@ -120,8 +128,14 @@ func decodeMetadata(tags []string) map[string]string {
 	return md
 }
 
-func encodeVersion(v string) string {
-	return "v-" + encode([]byte(v))
+func encodeVersion(v string) []string {
+	return []string{
+		// old encoding,
+		// TODO: remove in 09/2016
+		"v=" + v,
+		// new encoding,
+		"v-" + encode([]byte(v)),
+	}
 }
 
 func decodeVersion(tags []string) (string, bool) {
