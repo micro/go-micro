@@ -1,71 +1,116 @@
 package registry
 
 import (
+	"encoding/json"
+
 	"testing"
 )
 
 func TestEncodingEndpoints(t *testing.T) {
-	testData := []struct {
-		decoded    *Endpoint
-		encoded    string
-		oldEncoded string
-	}{
-		{
-			&Endpoint{
-				Name: "Endpoint",
-				Request: &Value{
-					Name: "request",
-					Type: "Request",
-				},
-				Response: &Value{
-					Name: "response",
-					Type: "Response",
-				},
-				Metadata: map[string]string{
-					"foo": "bar",
-				},
+	eps := []*Endpoint{
+		&Endpoint{
+			Name: "endpoint1",
+			Request: &Value{
+				Name: "request",
+				Type: "request",
 			},
-			"e-789caa56ca4bcc4d55b25272cd4b29c8cfcc2b51d2512a4a2d2c4d2d2e51b2824bc24474944a2a0b4002417081b2c41c204bc92aaf3427a716a4b7b8203faf38154533540849375c044d7b6e6a49624a624922487b5a7e3e506d526291526d2d200000ffffb9fb3937",
-			`e={"name":"Endpoint","request":{"name":"request","type":"Request","values":null},"response":{"name":"response","type":"Response","values":null},"metadata":{"foo":"bar"}}`,
+			Response: &Value{
+				Name: "response",
+				Type: "response",
+			},
+			Metadata: map[string]string{
+				"foo1": "bar1",
+			},
+		},
+		&Endpoint{
+			Name: "endpoint2",
+			Request: &Value{
+				Name: "request",
+				Type: "request",
+			},
+			Response: &Value{
+				Name: "response",
+				Type: "response",
+			},
+			Metadata: map[string]string{
+				"foo2": "bar2",
+			},
+		},
+		&Endpoint{
+			Name: "endpoint3",
+			Request: &Value{
+				Name: "request",
+				Type: "request",
+			},
+			Response: &Value{
+				Name: "response",
+				Type: "response",
+			},
+			Metadata: map[string]string{
+				"foo3": "bar3",
+			},
 		},
 	}
 
-	for _, data := range testData {
-		e := encodeEndpoints([]*Endpoint{data.decoded})
+	testEp := func(ep *Endpoint, enc string) {
+		// encode endpoint
+		e := encodeEndpoints([]*Endpoint{ep})
 
-		if len(e) != 2 || e[1] != data.encoded {
-			t.Fatalf("Expected %s got %s", data.encoded, e)
+		// check there are two tags; old and new
+		if len(e) != 2 {
+			t.Fatal("Expected 2 encoded tags, got %v", e)
 		}
 
-		d := decodeEndpoints(e)
+		// check old encoding
+		var seen bool
+
+		for _, en := range e {
+			if en == enc {
+				seen = true
+				break
+			}
+		}
+
+		if !seen {
+			t.Fatal("Expected %s but not found", enc)
+		}
+
+		// decode
+		d := decodeEndpoints([]string{enc})
 		if len(d) == 0 {
-			t.Fatalf("Expected %v got %v", data.decoded, d)
+			t.Fatalf("Expected %v got %v", ep, d)
 		}
 
-		if d[0].Name != data.decoded.Name {
-			t.Fatalf("Expected ep %s got %s", data.decoded.Name, d[0].Name)
+		// check name
+		if d[0].Name != ep.Name {
+			t.Fatalf("Expected ep %s got %s", ep.Name, d[0].Name)
 		}
 
-		for k, v := range data.decoded.Metadata {
+		// check all the metadata exists
+		for k, v := range ep.Metadata {
 			if gv := d[0].Metadata[k]; gv != v {
 				t.Fatalf("Expected key %s val %s got val %s", k, v, gv)
 			}
 		}
+	}
 
-		d = decodeEndpoints([]string{data.oldEncoded})
-		if len(d) == 0 {
-			t.Fatalf("Expected %v got %v", data.decoded, d)
+	for _, ep := range eps {
+		// JSON encoded
+		jencoded, err := json.Marshal(ep)
+		if err != nil {
+			t.Fatal(err)
 		}
 
-		if d[0].Name != data.decoded.Name {
-			t.Fatalf("Expected ep %s got %s", data.decoded.Name, d[0].Name)
-		}
+		// HEX encoded
+		hencoded := encode(jencoded)
+		// endpoint tag
+		jepTag := "e=" + string(jencoded)
+		hepTag := "e-" + hencoded
 
-		for k, v := range data.decoded.Metadata {
-			if gv := d[0].Metadata[k]; gv != v {
-				t.Fatalf("Expected key %s val %s got val %s", k, v, gv)
-			}
-		}
+		// test old
+		testEp(ep, jepTag)
+		// test new
+		testEp(ep, hepTag)
 	}
 }
 
