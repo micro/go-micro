@@ -111,8 +111,8 @@ func (c *protoCodec) ReadHeader(m *codec.Message, mt codec.MessageType) error {
 		if err != nil {
 			return err
 		}
-		m.Method = *rtmp.ServiceMethod
-		m.Id = *rtmp.Seq
+		m.Method = rtmp.GetServiceMethod()
+		m.Id = rtmp.GetSeq()
 	case codec.Response:
 		data, err := ReadNetString(c.rwc)
 		if err != nil {
@@ -123,9 +123,9 @@ func (c *protoCodec) ReadHeader(m *codec.Message, mt codec.MessageType) error {
 		if err != nil {
 			return err
 		}
-		m.Method = *rtmp.ServiceMethod
-		m.Id = *rtmp.Seq
-		m.Error = *rtmp.Error
+		m.Method = rtmp.GetServiceMethod()
+		m.Id = rtmp.GetSeq()
+		m.Error = rtmp.GetError()
 	case codec.Publication:
 		io.Copy(c.buf, c.rwc)
 	default:
