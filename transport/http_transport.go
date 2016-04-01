@@ -8,12 +8,14 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"net"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	mls "github.com/micro/misc/lib/tls"
 )
@@ -309,9 +311,23 @@ func (h *httpTransportListener) Close() error {
 }
 
 func (h *httpTransportListener) Accept(fn func(Socket)) error {
+	var tempDelay time.Duration
 	for {
 		c, err := h.listener.Accept()
 		if err != nil {
+			if ne, ok := err.(net.Error); ok && ne.Temporary() {
+				if tempDelay == 0 {
+					tempDelay = 5 * time.Millisecond
+				} else {
+					tempDelay *= 2
+				}
+				if max := 1 * time.Second; tempDelay > max {
+					tempDelay = max
+				}
+				log.Printf("http: Accept error: %v; retrying in %v\n", err, tempDelay)
+				time.Sleep(tempDelay)
+				continue
+			}
 			return err
 		}
 
