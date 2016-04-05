@@ -2,7 +2,6 @@ package registry
 
 import (
 	"crypto/tls"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
@@ -39,74 +38,6 @@ func newTransport(config *tls.Config) *http.Transport {
 		(*tr).CloseIdleConnections()
 	})
 	return t
-}
-
-func encodeEndpoints(en []*Endpoint) []string {
-	var tags []string
-	for _, e := range en {
-		if b, err := json.Marshal(e); err == nil {
-			tags = append(tags, "e="+string(b))
-		}
-	}
-	return tags
-}
-
-func decodeEndpoints(tags []string) []*Endpoint {
-	var en []*Endpoint
-	for _, tag := range tags {
-		if len(tag) == 0 || tag[0] != 'e' {
-			continue
-		}
-
-		var e *Endpoint
-		if err := json.Unmarshal([]byte(tag[2:]), &e); err == nil {
-			en = append(en, e)
-		}
-	}
-	return en
-}
-
-func encodeMetadata(md map[string]string) []string {
-	var tags []string
-	for k, v := range md {
-		if b, err := json.Marshal(map[string]string{
-			k: v,
-		}); err == nil {
-			tags = append(tags, "t="+string(b))
-		}
-	}
-	return tags
-}
-
-func decodeMetadata(tags []string) map[string]string {
-	md := make(map[string]string)
-	for _, tag := range tags {
-		if len(tag) == 0 || tag[0] != 't' {
-			continue
-		}
-
-		var kv map[string]string
-		if err := json.Unmarshal([]byte(tag[2:]), &kv); err == nil {
-			for k, v := range kv {
-				md[k] = v
-			}
-		}
-	}
-	return md
-}
-
-func encodeVersion(v string) string {
-	return "v=" + v
-}
-
-func decodeVersion(tags []string) (string, bool) {
-	for _, tag := range tags {
-		if len(tag) == 0 || tag[0] != 'v' {
-			continue
-		}
-		return tag[2:], true
-	}
-	return "", false
 }
 
 func newConsulRegistry(opts ...Option) Registry {
@@ -177,7 +108,7 @@ func (c *consulRegistry) Register(s *Service, opts ...RegisterOption) error {
 
 	tags := encodeMetadata(node.Metadata)
 	tags = append(tags, encodeEndpoints(s.Endpoints)...)
-	tags = append(tags, encodeVersion(s.Version))
+	tags = append(tags, encodeVersion(s.Version)...)
 
 	var check *consul.AgentServiceCheck
 
