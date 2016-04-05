@@ -13,16 +13,21 @@ import (
 )
 
 type Options struct {
-	ContentType    string
-	Broker         broker.Broker
-	Codecs         map[string]codec.NewCodec
-	Registry       registry.Registry
-	Selector       selector.Selector
-	Transport      transport.Transport
-	Wrappers       []Wrapper
-	Retries        int
-	RequestTimeout time.Duration
-	DialTimeout    time.Duration
+	// Used to select codec
+	ContentType string
+
+	// Plugged interfaces
+	Broker    broker.Broker
+	Codecs    map[string]codec.NewCodec
+	Registry  registry.Registry
+	Selector  selector.Selector
+	Transport transport.Transport
+
+	// Middleware for client
+	Wrappers []Wrapper
+
+	// Default Call Options
+	CallOptions CallOptions
 
 	// Other options for implementations of the interface
 	// can be stored in a context
@@ -31,6 +36,13 @@ type Options struct {
 
 type CallOptions struct {
 	SelectOptions []selector.SelectOption
+
+	// Transport Dial Timeout
+	DialTimeout time.Duration
+	// Number of Call attempts
+	Retries int
+	// Request/Response timeout
+	RequestTimeout time.Duration
 
 	// Other options for implementations of the interface
 	// can be stored in a context
@@ -53,10 +65,12 @@ type RequestOptions struct {
 
 func newOptions(options ...Option) Options {
 	opts := Options{
-		Codecs:         make(map[string]codec.NewCodec),
-		Retries:        DefaultRetries,
-		RequestTimeout: DefaultRequestTimeout,
-		DialTimeout:    transport.DefaultDialTimeout,
+		Codecs: make(map[string]codec.NewCodec),
+		CallOptions: CallOptions{
+			Retries:        DefaultRetries,
+			RequestTimeout: DefaultRequestTimeout,
+			DialTimeout:    transport.DefaultDialTimeout,
+		},
 	}
 
 	for _, o := range options {
@@ -141,7 +155,7 @@ func Wrap(w Wrapper) Option {
 // Should this be a Call Option?
 func Retries(i int) Option {
 	return func(o *Options) {
-		o.Retries = i
+		o.CallOptions.Retries = i
 	}
 }
 
@@ -149,14 +163,14 @@ func Retries(i int) Option {
 // Should this be a Call Option?
 func RequestTimeout(d time.Duration) Option {
 	return func(o *Options) {
-		o.RequestTimeout = d
+		o.CallOptions.RequestTimeout = d
 	}
 }
 
 // Transport dial timeout
 func DialTimeout(d time.Duration) Option {
 	return func(o *Options) {
-		o.DialTimeout = d
+		o.CallOptions.DialTimeout = d
 	}
 }
 
@@ -165,6 +179,30 @@ func DialTimeout(d time.Duration) Option {
 func WithSelectOption(so selector.SelectOption) CallOption {
 	return func(o *CallOptions) {
 		o.SelectOptions = append(o.SelectOptions, so)
+	}
+}
+
+// WithRetries is a CallOption which overrides that which
+// set in Options.CallOptions
+func WithRetries(i int) CallOption {
+	return func(o *CallOptions) {
+		o.Retries = i
+	}
+}
+
+// WithRequestTimeout is a CallOption which overrides that which
+// set in Options.CallOptions
+func WithRequestTimeout(d time.Duration) CallOption {
+	return func(o *CallOptions) {
+		o.RequestTimeout = d
+	}
+}
+
+// WithDialTimeout is a CallOption which overrides that which
+// set in Options.CallOptions
+func WithDialTimeout(d time.Duration) CallOption {
+	return func(o *CallOptions) {
+		o.DialTimeout = d
 	}
 }
 

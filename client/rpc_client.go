@@ -51,7 +51,7 @@ func (r *rpcClient) newCodec(contentType string) (codec.NewCodec, error) {
 	return nil, fmt.Errorf("Unsupported Content-Type: %s", contentType)
 }
 
-func (r *rpcClient) call(ctx context.Context, address string, req Request, resp interface{}) error {
+func (r *rpcClient) call(ctx context.Context, address string, req Request, resp interface{}, opts CallOptions) error {
 	msg := &transport.Message{
 		Header: make(map[string]string),
 	}
@@ -70,7 +70,7 @@ func (r *rpcClient) call(ctx context.Context, address string, req Request, resp 
 		return errors.InternalServerError("go.micro.client", err.Error())
 	}
 
-	c, err := r.opts.Transport.Dial(address, transport.WithTimeout(r.opts.DialTimeout))
+	c, err := r.opts.Transport.Dial(address, transport.WithTimeout(opts.DialTimeout))
 	if err != nil {
 		return errors.InternalServerError("go.micro.client", fmt.Sprintf("Error sending request: %v", err))
 	}
@@ -108,14 +108,14 @@ func (r *rpcClient) call(ctx context.Context, address string, req Request, resp 
 
 	select {
 	case err = <-ch:
-	case <-time.After(r.opts.RequestTimeout):
+	case <-time.After(opts.RequestTimeout):
 		err = errors.New("go.micro.client", "request timeout", 408)
 	}
 
 	return err
 }
 
-func (r *rpcClient) stream(ctx context.Context, address string, req Request) (Streamer, error) {
+func (r *rpcClient) stream(ctx context.Context, address string, req Request, opts CallOptions) (Streamer, error) {
 	msg := &transport.Message{
 		Header: make(map[string]string),
 	}
@@ -134,7 +134,7 @@ func (r *rpcClient) stream(ctx context.Context, address string, req Request) (St
 		return nil, errors.InternalServerError("go.micro.client", err.Error())
 	}
 
-	c, err := r.opts.Transport.Dial(address, transport.WithStream(), transport.WithTimeout(r.opts.DialTimeout))
+	c, err := r.opts.Transport.Dial(address, transport.WithStream(), transport.WithTimeout(opts.DialTimeout))
 	if err != nil {
 		return nil, errors.InternalServerError("go.micro.client", fmt.Sprintf("Error sending request: %v", err))
 	}
@@ -156,7 +156,7 @@ func (r *rpcClient) stream(ctx context.Context, address string, req Request) (St
 
 	select {
 	case err = <-ch:
-	case <-time.After(r.opts.RequestTimeout):
+	case <-time.After(opts.RequestTimeout):
 		err = errors.New("go.micro.client", "request timeout", 408)
 	}
 
@@ -175,16 +175,25 @@ func (r *rpcClient) Options() Options {
 }
 
 func (r *rpcClient) CallRemote(ctx context.Context, address string, request Request, response interface{}, opts ...CallOption) error {
-	return r.call(ctx, address, request, response)
+	// make a copy of call opts
+	callOpts := r.opts.CallOptions
+
+	for _, opt := range opts {
+		opt(&callOpts)
+	}
+
+	return r.call(ctx, address, request, response, callOpts)
 }
 
 func (r *rpcClient) Call(ctx context.Context, request Request, response interface{}, opts ...CallOption) error {
-	var copts CallOptions
+	// make a copy of call opts
+	callOpts := r.opts.CallOptions
+
 	for _, opt := range opts {
-		opt(&copts)
+		opt(&callOpts)
 	}
 
-	next, err := r.opts.Selector.Select(request.Service(), copts.SelectOptions...)
+	next, err := r.opts.Selector.Select(request.Service(), callOpts.SelectOptions...)
 	if err != nil && err == selector.ErrNotFound {
 		return errors.NotFound("go.micro.client", err.Error())
 	} else if err != nil {
@@ -193,7 +202,7 @@ func (r *rpcClient) Call(ctx context.Context, request Request, response interfac
 
 	var grr error
 
-	for i := 0; i < r.opts.Retries; i++ {
+	for i := 0; i < callOpts.Retries; i++ {
 		node, err := next()
 		if err != nil && err == selector.ErrNotFound {
 			return errors.NotFound("go.micro.client", err.Error())
@@ -206,7 +215,7 @@ func (r *rpcClient) Call(ctx context.Context, request Request, response interfac
 			address = fmt.Sprintf("%s:%d", address, node.Port)
 		}
 
-		grr = r.call(ctx, address, request, response)
+		grr = r.call(ctx, address, request, response, callOpts)
 		r.opts.Selector.Mark(request.Service(), node, grr)
 
 		// if the call succeeded lets bail early
@@ -219,16 +228,25 @@ func (r *rpcClient) Call(ctx context.Context, request Request, response interfac
 }
 
 func (r *rpcClient) StreamRemote(ctx context.Context, address string, request Request, opts ...CallOption) (Streamer, error) {
-	return r.stream(ctx, address, request)
+	// make a copy of call opts
+	callOpts := r.opts.CallOptions
+
+	for _, opt := range opts {
+		opt(&callOpts)
+	}
+
+	return r.stream(ctx, address, request, callOpts)
 }
 
 func (r *rpcClient) Stream(ctx context.Context, request Request, opts ...CallOption) (Streamer, error) {
-	var copts CallOptions
+	// make a copy of call opts
+	callOpts := r.opts.CallOptions
+
 	for _, opt := range opts {
-		opt(&copts)
+		opt(&callOpts)
 	}
 
-	next, err := r.opts.Selector.Select(request.Service(), copts.SelectOptions...)
+	next, err := r.opts.Selector.Select(request.Service(), callOpts.SelectOptions...)
 	if err != nil && err == selector.ErrNotFound {
 		return nil, errors.NotFound("go.micro.client", err.Error())
 	} else if err != nil {
@@ -238,7 +256,7 @@ func (r *rpcClient) Stream(ctx context.Context, request Request, opts ...CallOpt
 	var stream Streamer
 	var grr error
 
-	for i := 0; i < r.opts.Retries; i++ {
+	for i := 0; i < callOpts.Retries; i++ {
 		node, err := next()
 		if err != nil && err == selector.ErrNotFound {
 			return nil, errors.NotFound("go.micro.client", err.Error())
@@ -251,7 +269,7 @@ func (r *rpcClient) Stream(ctx context.Context, request Request, opts ...CallOpt
 			address = fmt.Sprintf("%s:%d", address, node.Port)
 		}
 
-		stream, grr = r.stream(ctx, address, request)
+		stream, grr = r.stream(ctx, address, request, callOpts)
 		r.opts.Selector.Mark(request.Service(), node, grr)
 
 		// bail early if succeeds
