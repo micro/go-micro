@@ -37,6 +37,8 @@ type Options struct {
 type CallOptions struct {
 	SelectOptions []selector.SelectOption
 
+	// Backoff func
+	Backoff BackoffFunc
 	// Transport Dial Timeout
 	DialTimeout time.Duration
 	// Number of Call attempts
@@ -67,6 +69,7 @@ func newOptions(options ...Option) Options {
 	opts := Options{
 		Codecs: make(map[string]codec.NewCodec),
 		CallOptions: CallOptions{
+			Backoff:        DefaultBackoff,
 			Retries:        DefaultRetries,
 			RequestTimeout: DefaultRequestTimeout,
 			DialTimeout:    transport.DefaultDialTimeout,
@@ -151,6 +154,14 @@ func Wrap(w Wrapper) Option {
 	}
 }
 
+// Backoff is used to set the backoff function used
+// when retrying Calls
+func Backoff(fn BackoffFunc) Option {
+	return func(o *Options) {
+		o.CallOptions.Backoff = fn
+	}
+}
+
 // Number of retries when making the request.
 // Should this be a Call Option?
 func Retries(i int) Option {
@@ -179,6 +190,14 @@ func DialTimeout(d time.Duration) Option {
 func WithSelectOption(so selector.SelectOption) CallOption {
 	return func(o *CallOptions) {
 		o.SelectOptions = append(o.SelectOptions, so)
+	}
+}
+
+// WithBackoff is a CallOption which overrides that which
+// set in Options.CallOptions
+func WithBackoff(fn BackoffFunc) CallOption {
+	return func(o *CallOptions) {
+		o.Backoff = fn
 	}
 }
 

@@ -203,6 +203,17 @@ func (r *rpcClient) Call(ctx context.Context, request Request, response interfac
 	var grr error
 
 	for i := 0; i < callOpts.Retries; i++ {
+		// call backoff first. Someone may want an initial start delay
+		t, err := callOpts.Backoff(ctx, request, i)
+		if err != nil {
+			return errors.InternalServerError("go.micro.client", err.Error())
+		}
+
+		// only sleep if greater than 0
+		if t.Seconds() > 0 {
+			time.Sleep(t)
+		}
+
 		node, err := next()
 		if err != nil && err == selector.ErrNotFound {
 			return errors.NotFound("go.micro.client", err.Error())
@@ -257,6 +268,17 @@ func (r *rpcClient) Stream(ctx context.Context, request Request, opts ...CallOpt
 	var grr error
 
 	for i := 0; i < callOpts.Retries; i++ {
+		// call backoff first. Someone may want an initial start delay
+		t, err := callOpts.Backoff(ctx, request, i)
+		if err != nil {
+			return nil, errors.InternalServerError("go.micro.client", err.Error())
+		}
+
+		// only sleep if greater than 0
+		if t.Seconds() > 0 {
+			time.Sleep(t)
+		}
+
 		node, err := next()
 		if err != nil && err == selector.ErrNotFound {
 			return nil, errors.NotFound("go.micro.client", err.Error())
