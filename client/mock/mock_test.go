@@ -9,13 +9,13 @@ import (
 )
 
 func TestClient(t *testing.T) {
-	type TestRequest struct {
+	type TestResponse struct {
 		Param string
 	}
 
 	response := []MockResponse{
 		{Method: "Foo.Bar", Response: map[string]interface{}{"foo": "bar"}},
-		{Method: "Foo.Struct", Response: &TestRequest{Param: "aparam"}},
+		{Method: "Foo.Struct", Response: &TestResponse{Param: "aparam"}},
 		{Method: "Foo.Fail", Error: errors.InternalServerError("go.mock", "failed")},
 	}
 
