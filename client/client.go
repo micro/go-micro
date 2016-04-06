@@ -1,5 +1,5 @@
 /*
-The client package provides a method to make synchronous, asynchronous and
+Package client provides a method to make synchronous, asynchronous and
 streaming requests to services. By default json and protobuf codecs are
 supported.
 
@@ -45,12 +45,14 @@ type Client interface {
 	String() string
 }
 
+// Publication is the interface for a message published asynchronously
 type Publication interface {
 	Topic() string
 	Message() interface{}
 	ContentType() string
 }
 
+// Request is the interface for a synchronous request used by Call or Stream
 type Request interface {
 	Service() string
 	Method() string
@@ -60,6 +62,7 @@ type Request interface {
 	Stream() bool
 }
 
+// Streamer is the inteface for a bidirectional synchronous stream
 type Streamer interface {
 	Context() context.Context
 	Request() Request
@@ -69,16 +72,28 @@ type Streamer interface {
 	Close() error
 }
 
+// Option used by the Client
 type Option func(*Options)
+
+// CallOption used by Call or Stream
 type CallOption func(*CallOptions)
+
+// PublishOption used by Publish
 type PublishOption func(*PublishOptions)
+
+// RequestOption used by NewRequest
 type RequestOption func(*RequestOptions)
 
 var (
+	// DefaultClient is a default client to use out of the box
 	DefaultClient Client = newRpcClient()
 
-	DefaultBackoff        = exponentialBackoff
-	DefaultRetries        = 1
+	// DefaultBackoff is the default backoff function for retries
+	DefaultBackoff = exponentialBackoff
+
+	// DefaultRetries is the default number of times a request is tried
+	DefaultRetries = 1
+	// DefaultRequestTimeout is the default request timeout
 	DefaultRequestTimeout = time.Second * 5
 )
 
@@ -93,7 +108,7 @@ func CallRemote(ctx context.Context, address string, request Request, response i
 }
 
 // Creates a streaming connection with a service and returns responses on the
-// channel passed in. It's upto the user to close the streamer.
+// channel passed in. It's up to the user to close the streamer.
 func Stream(ctx context.Context, request Request, opts ...CallOption) (Streamer, error) {
 	return DefaultClient.Stream(ctx, request, opts...)
 }

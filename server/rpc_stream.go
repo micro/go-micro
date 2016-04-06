@@ -55,7 +55,7 @@ func (r *rpcStream) Recv(msg interface{}) error {
 		return err
 	}
 
-	// we need to stay upto date with sequence numbers
+	// we need to stay up to date with sequence numbers
 	r.seq = req.Seq
 
 	if err := r.codec.ReadRequestBody(msg); err != nil {
