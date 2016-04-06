@@ -77,6 +77,7 @@ type RequestOption func(*RequestOptions)
 var (
 	DefaultClient Client = newRpcClient()
 
+	DefaultBackoff        = exponentialBackoff
 	DefaultRetries        = 1
 	DefaultRequestTimeout = time.Second * 5
 )
