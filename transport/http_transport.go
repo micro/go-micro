@@ -312,6 +312,7 @@ func (h *httpTransportListener) Close() error {
 
 func (h *httpTransportListener) Accept(fn func(Socket)) error {
 	var tempDelay time.Duration
+
 	for {
 		c, err := h.listener.Accept()
 		if err != nil {
@@ -348,7 +349,6 @@ func (h *httpTransportListener) Accept(fn func(Socket)) error {
 			fn(sock)
 		}()
 	}
-	return nil
 }
 
 func (h *httpTransport) Dial(addr string, opts ...DialOption) (Client, error) {
@@ -436,7 +436,7 @@ func (h *httpTransport) String() string {
 	return "http"
 }
 
-func newHttpTransport(opts ...Option) *httpTransport {
+func newHTTPTransport(opts ...Option) *httpTransport {
 	var options Options
 	for _, o := range opts {
 		o(&options)

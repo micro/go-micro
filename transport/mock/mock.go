@@ -86,7 +86,6 @@ func (m *mockListener) Accept(fn func(transport.Socket)) error {
 			})
 		}
 	}
-	return nil
 }
 
 func (m *mockTransport) Dial(addr string, opts ...transport.DialOption) (transport.Client, error) {

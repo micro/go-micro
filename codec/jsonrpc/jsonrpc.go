@@ -42,7 +42,6 @@ func (j *jsonCodec) Write(m *codec.Message, b interface{}) error {
 	default:
 		return fmt.Errorf("Unrecognised message type: %v", m.Type)
 	}
-	return nil
 }
 
 func (j *jsonCodec) ReadHeader(m *codec.Message, mt codec.MessageType) error {

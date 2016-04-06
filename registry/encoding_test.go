@@ -58,7 +58,7 @@ func TestEncodingEndpoints(t *testing.T) {
 
 		// check there are two tags; old and new
 		if len(e) != 2 {
-			t.Fatal("Expected 2 encoded tags, got %v", e)
+			t.Fatalf("Expected 2 encoded tags, got %v", e)
 		}
 
 		// check old encoding
@@ -72,7 +72,7 @@ func TestEncodingEndpoints(t *testing.T) {
 		}
 
 		if !seen {
-			t.Fatal("Expected %s but not found", enc)
+			t.Fatalf("Expected %s but not found", enc)
 		}
 
 		// decode
@@ -133,29 +133,29 @@ func TestEncodingVersion(t *testing.T) {
 
 		d, ok := decodeVersion(e)
 		if !ok {
-			t.Fatal("Unexpected %t for %s", ok, data.encoded)
+			t.Fatalf("Unexpected %t for %s", ok, data.encoded)
 		}
 
 		if d != data.decoded {
-			t.Fatal("Expected %s got %s", data.decoded, d)
+			t.Fatalf("Expected %s got %s", data.decoded, d)
 		}
 
 		d, ok = decodeVersion([]string{data.encoded})
 		if !ok {
-			t.Fatal("Unexpected %t for %s", ok, data.encoded)
+			t.Fatalf("Unexpected %t for %s", ok, data.encoded)
 		}
 
 		if d != data.decoded {
-			t.Fatal("Expected %s got %s", data.decoded, d)
+			t.Fatalf("Expected %s got %s", data.decoded, d)
 		}
 
 		d, ok = decodeVersion([]string{data.oldEncoded})
 		if !ok {
-			t.Fatal("Unexpected %t for %s", ok, data.oldEncoded)
+			t.Fatalf("Unexpected %t for %s", ok, data.oldEncoded)
 		}
 
 		if d != data.decoded {
-			t.Fatal("Expected %s got %s", data.decoded, d)
+			t.Fatalf("Expected %s got %s", data.decoded, d)
 		}
 	}
 }

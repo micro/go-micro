@@ -45,7 +45,6 @@ func (e *Example) PingPong(ctx context.Context, stream example.Example_PingPongS
 			return err
 		}
 	}
-	return nil
 }
 
 func main() {

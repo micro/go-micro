@@ -122,8 +122,7 @@ func validateSubscriber(sub Subscriber) error {
 			return fmt.Errorf("subscriber %v argument type not exported: %v", name, argType)
 		}
 		if typ.NumOut() != 1 {
-			return fmt.Errorf(
-				"subscriber %v.%v has wrong number of outs: %v require signature %s",
+			return fmt.Errorf("subscriber %v has wrong number of outs: %v require signature %s",
 				name, typ.NumOut(), subSig)
 		}
 		if returnType := typ.Out(0); returnType != typeOfError {

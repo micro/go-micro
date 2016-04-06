@@ -11,7 +11,7 @@ func TestBroker(t *testing.T) {
 	b := NewBroker()
 
 	if err := b.Connect(); err != nil {
-		t.Fatal("Unexpected connect error %v", err)
+		t.Fatalf("Unexpected connect error %v", err)
 	}
 
 	topic := "test"

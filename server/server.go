@@ -94,12 +94,12 @@ var (
 	DefaultServer  Server = newRpcServer()
 )
 
-// Returns config options for the default service
+// DefaultOptions returns config options for the default service
 func DefaultOptions() Options {
 	return DefaultServer.Options()
 }
 
-// Initialises the default server with options passed in
+// Init initialises the default server with options passed in
 func Init(opt ...Option) {
 	if DefaultServer == nil {
 		DefaultServer = newRpcServer(opt...)
@@ -107,18 +107,18 @@ func Init(opt ...Option) {
 	DefaultServer.Init(opt...)
 }
 
-// Returns a new server with options passed in
+// NewServer returns a new server with options passed in
 func NewServer(opt ...Option) Server {
 	return newRpcServer(opt...)
 }
 
-// Creates a new subscriber interface with the given topic
+// NewSubscriber creates a new subscriber interface with the given topic
 // and handler using the default server
 func NewSubscriber(topic string, h interface{}, opts ...SubscriberOption) Subscriber {
 	return DefaultServer.NewSubscriber(topic, h, opts...)
 }
 
-// Creates a new handler interface using the default server
+// NewHandler creates a new handler interface using the default server
 // Handlers are required to be a public object with public
 // methods. Call to a service method such as Foo.Bar expects
 // the type:
@@ -132,29 +132,29 @@ func NewHandler(h interface{}, opts ...HandlerOption) Handler {
 	return DefaultServer.NewHandler(h, opts...)
 }
 
-// Registers a handler interface with the default server to
+// Handle registers a handler interface with the default server to
 // handle inbound requests
 func Handle(h Handler) error {
 	return DefaultServer.Handle(h)
 }
 
-// Registers a subscriber interface with the default server
+// Subscribe registers a subscriber interface with the default server
 // which subscribes to specified topic with the broker
 func Subscribe(s Subscriber) error {
 	return DefaultServer.Subscribe(s)
 }
 
-// Registers the default server with the discovery system
+// Register registers the default server with the discovery system
 func Register() error {
 	return DefaultServer.Register()
 }
 
-// Deregisters the default server from the discovery system
+// Deregister deregisters the default server from the discovery system
 func Deregister() error {
 	return DefaultServer.Deregister()
 }
 
-// Blocking run starts the default server and waits for a kill
+// Run starts the default server and waits for a kill
 // signal before exiting. Also registers/deregisters the server
 func Run() error {
 	if err := Start(); err != nil {
@@ -176,19 +176,20 @@ func Run() error {
 	return Stop()
 }
 
-// Starts the default server
+// Start starts the default server
 func Start() error {
 	config := DefaultServer.Options()
 	log.Printf("Starting server %s id %s", config.Name, config.Id)
 	return DefaultServer.Start()
 }
 
-// Stops the default server
+// Stop stops the default server
 func Stop() error {
 	log.Printf("Stopping server")
 	return DefaultServer.Stop()
 }
 
+// String returns name of Server implementation
 func String() string {
 	return DefaultServer.String()
 }

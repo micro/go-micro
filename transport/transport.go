@@ -43,13 +43,13 @@ type DialOption func(*DialOptions)
 type ListenOption func(*ListenOptions)
 
 var (
-	DefaultTransport Transport = newHttpTransport()
+	DefaultTransport Transport = newHTTPTransport()
 
 	DefaultDialTimeout = time.Second * 5
 )
 
 func NewTransport(opts ...Option) Transport {
-	return newHttpTransport(opts...)
+	return newHTTPTransport(opts...)
 }
 
 func Dial(addr string, opts ...DialOption) (Client, error) {

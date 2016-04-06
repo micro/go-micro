@@ -293,7 +293,6 @@ func (s *service) call(ctx context.Context, server *server, sending *sync.Mutex,
 			// no error, we send the special EOS error
 			return lastStreamResponseError
 		}
-		return nil
 	}
 
 	for i := len(server.hdlrWrappers); i > 0; i-- {

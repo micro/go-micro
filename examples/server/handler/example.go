@@ -55,5 +55,4 @@ func (e *Example) PingPong(ctx context.Context, stream server.Streamer) error {
 			return err
 		}
 	}
-	return nil
 }
