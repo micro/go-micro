@@ -9,8 +9,13 @@ import (
 )
 
 func TestClient(t *testing.T) {
+	type TestRequest struct {
+		Param string
+	}
+
 	response := []MockResponse{
 		{Method: "Foo.Bar", Response: map[string]interface{}{"foo": "bar"}},
+		{Method: "Foo.Struct", Response: &TestRequest{Param: "aparam"}},
 		{Method: "Foo.Fail", Error: errors.InternalServerError("go.mock", "failed")},
 	}
 
@@ -18,7 +23,7 @@ func TestClient(t *testing.T) {
 
 	for _, r := range response {
 		req := c.NewJsonRequest("go.mock", r.Method, map[string]interface{}{"foo": "bar"})
-		var rsp map[string]interface{}
+		var rsp interface{}
 
 		err := c.Call(context.TODO(), req, &rsp)
 
