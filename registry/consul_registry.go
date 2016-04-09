@@ -200,17 +200,10 @@ func (c *consulRegistry) GetService(name string) ([]*Service, error) {
 		// address is service address
 		address := s.Service.Address
 
-		// if we can't get the new type of version
+		// if we can't get the version we bail
 		// use old the old ways
 		if !found {
-			// id was set as node
-			id = s.Node.Node
-			// key was service id
-			key = s.Service.ID
-			// version was service id
-			version = s.Service.ID
-			// address was address
-			address = s.Node.Address
+			continue
 		}
 
 		svc, ok := serviceMap[key]
