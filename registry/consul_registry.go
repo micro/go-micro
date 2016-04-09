@@ -82,9 +82,10 @@ func newConsulRegistry(opts ...Option) Registry {
 	client, _ := consul.NewClient(config)
 
 	cr := &consulRegistry{
-		Address: config.Address,
-		Client:  client,
-		Options: options,
+		Address:  config.Address,
+		Client:   client,
+		Options:  options,
+		register: make(map[string]uint64),
 	}
 
 	return cr
