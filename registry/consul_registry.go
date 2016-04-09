@@ -7,15 +7,20 @@ import (
 	"net"
 	"net/http"
 	"runtime"
+	"sync"
 	"time"
 
 	consul "github.com/hashicorp/consul/api"
+	hash "github.com/mitchellh/hashstructure"
 )
 
 type consulRegistry struct {
 	Address string
 	Client  *consul.Client
 	Options Options
+
+	sync.Mutex
+	register map[string]uint64
 }
 
 func newTransport(config *tls.Config) *http.Transport {
@@ -90,6 +95,11 @@ func (c *consulRegistry) Deregister(s *Service) error {
 		return errors.New("Require at least one node")
 	}
 
+	// delete our hash of the service
+	c.Lock()
+	delete(c.register, s.Name)
+	c.Unlock()
+
 	node := s.Nodes[0]
 	return c.Client.Agent().ServiceDeregister(node.Id)
 }
@@ -104,20 +114,44 @@ func (c *consulRegistry) Register(s *Service, opts ...RegisterOption) error {
 		o(&options)
 	}
 
+	// create hash of service; uint64
+	h, err := hash.Hash(s, nil)
+	if err != nil {
+		return err
+	}
+
+	// use first node
 	node := s.Nodes[0]
 
+	// get existing hash
+	c.Lock()
+	v, ok := c.register[s.Name]
+	c.Unlock()
+
+	// if it's already registered and matches then just pass the check
+	if ok && v == h {
+		// if the err is nil we're all good, bail out
+		// if not, we don't know what the state is, so full re-register
+		if err := c.Client.Agent().PassTTL("service:"+node.Id, ""); err == nil {
+			return nil
+		}
+	}
+
+	// encode the tags
 	tags := encodeMetadata(node.Metadata)
 	tags = append(tags, encodeEndpoints(s.Endpoints)...)
 	tags = append(tags, encodeVersion(s.Version)...)
 
 	var check *consul.AgentServiceCheck
 
+	// if the TTL is greater than 0 create an associated check
 	if options.TTL > time.Duration(0) {
 		check = &consul.AgentServiceCheck{
 			TTL: fmt.Sprintf("%v", options.TTL),
 		}
 	}
 
+	// register the service
 	if err := c.Client.Agent().ServiceRegister(&consul.AgentServiceRegistration{
 		ID:      node.Id,
 		Name:    s.Name,
@@ -129,10 +163,17 @@ func (c *consulRegistry) Register(s *Service, opts ...RegisterOption) error {
 		return err
 	}
 
+	// save our hash of the service
+	c.Lock()
+	c.register[s.Name] = h
+	c.Unlock()
+
+	// if the TTL is 0 we don't mess with the checks
 	if options.TTL == time.Duration(0) {
 		return nil
 	}
 
+	// pass the healthcheck
 	return c.Client.Agent().PassTTL("service:"+node.Id, "")
 }
 
