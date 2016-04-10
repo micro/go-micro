@@ -62,17 +62,9 @@ func (cw *consulWatcher) serviceHandler(idx uint64, data interface{}) {
 		// address is service address
 		address := e.Service.Address
 
-		// if we can't get the new type of version
-		// use old the old ways
+		// if we can't get the version we bail
 		if !found {
-			// id was set as node
-			id = e.Node.Node
-			// key was service id
-			key = e.Service.ID
-			// version was service id
-			version = e.Service.ID
-			// address was address
-			address = e.Node.Address
+			continue
 		}
 
 		svc, ok := serviceMap[key]
@@ -156,7 +148,7 @@ func (cw *consulWatcher) serviceHandler(idx uint64, data interface{}) {
 	for _, old := range rservices[serviceName] {
 		// old version does not exist in new version map
 		// kill it with fire!
-		if _, ok := serviceMap[serviceName+old.Version]; !ok {
+		if _, ok := serviceMap[old.Version]; !ok {
 			cw.next <- &Result{Action: "delete", Service: old}
 		}
 	}
