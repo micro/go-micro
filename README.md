@@ -2,9 +2,11 @@
 
 Go Micro is a pluggable RPC based microservice library which provides the fundamental building blocks for writing distributed applications. It is part of the [Micro](https://github.com/micro/micro) toolkit. It supports Proto-RPC and JSON-RPC as the request/response protocol out of the box and defaults to Consul for discovery.
 
-The Micro philosophy is "batteries included" with a pluggable architecture. We provide sane defaults but everything can be swapped out.
+The Micro philosophy is sane defaults with a pluggable architecture. We provide defaults to get you started quickly but everything can be easily swapped out.
 
 An example service can be found in [**examples/service**](https://github.com/micro/go-micro/tree/master/examples/service). The [**examples**](https://github.com/micro/go-micro/tree/master/examples) directory contains many more examples for using things such as middleware/wrappers, selector filters, pub/sub and code generation.
+
+Check out the blog post to learn how to write go-micro services [https://blog.micro.mu/2016/03/28/go-micro.html](https://blog.micro.mu/2016/03/28/go-micro.html).
 
 Join the community to learn more:
 - [Mailing List](https://groups.google.com/forum/#!forum/micro-services) 
