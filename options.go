@@ -156,7 +156,7 @@ func WrapClient(w ...client.Wrapper) Option {
 	return func(o *Options) {
 		// apply in reverse
 		for i := len(w); i > 0; i-- {
-			o.Client = w[i](o.Client)
+			o.Client = w[i-1](o.Client)
 		}
 	}
 }
