@@ -8,6 +8,7 @@ import (
 	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/cmd"
 	"github.com/micro/go-micro/registry"
+	"github.com/micro/go-micro/selector"
 	"github.com/micro/go-micro/server"
 	"github.com/micro/go-micro/transport"
 
@@ -54,6 +55,9 @@ func newOptions(opts ...Option) Options {
 func Broker(b broker.Broker) Option {
 	return func(o *Options) {
 		o.Broker = b
+		// Update Client and Server
+		o.Client.Init(client.Broker(b))
+		o.Server.Init(server.Broker(b))
 	}
 }
 
@@ -75,15 +79,27 @@ func Server(s server.Server) Option {
 	}
 }
 
+// Registry sets the registry for the service
+// and the underlying components
 func Registry(r registry.Registry) Option {
 	return func(o *Options) {
 		o.Registry = r
+		// Update Client and Server
+		o.Client.Init(client.Registry(r))
+		o.Server.Init(server.Registry(r))
+		// Update Selector
+		o.Client.Options().Selector.Init(selector.Registry(r))
 	}
 }
 
+// Transport sets the transport for the service
+// and the underlying components
 func Transport(t transport.Transport) Option {
 	return func(o *Options) {
 		o.Transport = t
+		// Update Client and Server
+		o.Client.Init(client.Transport(t))
+		o.Server.Init(server.Transport(t))
 	}
 }
 
@@ -131,6 +147,45 @@ func RegisterTTL(t time.Duration) Option {
 func RegisterInterval(t time.Duration) Option {
 	return func(o *Options) {
 		o.RegisterInterval = t
+	}
+}
+
+// WrapClient is a convenience method for wrapping a Client with
+// some middleware component. A list of wrappers can be provided.
+func WrapClient(w ...client.Wrapper) Option {
+	return func(o *Options) {
+		// apply in reverse
+		for i := len(w); i > 0; i-- {
+			o.Client = w[i-1](o.Client)
+		}
+	}
+}
+
+// WrapHandler adds a handler Wrapper to a list of options passed into the server
+func WrapHandler(w ...server.HandlerWrapper) Option {
+	return func(o *Options) {
+		var wrappers []server.Option
+
+		for _, wrap := range w {
+			wrappers = append(wrappers, server.WrapHandler(wrap))
+		}
+
+		// Init once
+		o.Server.Init(wrappers...)
+	}
+}
+
+// WrapSubscriber adds a subscriber Wrapper to a list of options passed into the server
+func WrapSubscriber(w ...server.SubscriberWrapper) Option {
+	return func(o *Options) {
+		var wrappers []server.Option
+
+		for _, wrap := range w {
+			wrappers = append(wrappers, server.WrapSubscriber(wrap))
+		}
+
+		// Init once
+		o.Server.Init(wrappers...)
 	}
 }
 
