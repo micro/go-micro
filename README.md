@@ -43,6 +43,10 @@ By default go-micro only provides a single implementation of each interface. Plu
 
 ## How does it work?
 
+<p align="center">
+  <img src="go-micro.png" />
+</p>
+
 Go Micro is a framework that addresses the fundamental requirements to write microservices. 
 
 Let's dig into the core components.
