@@ -27,10 +27,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/micro/go-micro/broker"
-	"github.com/micro/go-micro/cmd"
-
 	"github.com/eclipse/paho.mqtt.golang"
+	"github.com/micro/go-micro/broker"
 )
 
 type mqttBroker struct {
@@ -41,7 +39,6 @@ type mqttBroker struct {
 
 func init() {
 	rand.Seed(time.Now().UnixNano())
-	cmd.DefaultBrokers["mqtt"] = NewBroker
 }
 
 func setAddrs(addrs []string) []string {
@@ -160,8 +157,10 @@ func (m *mqttBroker) Address() string {
 }
 
 func (m *mqttBroker) Connect() error {
-	t := m.client.Connect()
-	return t.Error()
+	if t := m.client.Connect(); t.Wait() && t.Error() != nil {
+		return t.Error()
+	}
+	return nil
 }
 
 func (m *mqttBroker) Disconnect() error {
@@ -201,7 +200,7 @@ func (m *mqttBroker) Subscribe(topic string, h broker.Handler, opts ...broker.Su
 		}
 	})
 
-	if t.Error() != nil {
+	if t.Wait() && t.Error() != nil {
 		return nil, t.Error()
 	}
 
