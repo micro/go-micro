@@ -37,8 +37,8 @@ func Registry(r registry.Registry) Option {
 
 // WithFilter adds a filter function to the list of filters
 // used during the Select call.
-func WithFilter(fn Filter) SelectOption {
+func WithFilter(fn ...Filter) SelectOption {
 	return func(o *SelectOptions) {
-		o.Filters = append(o.Filters, fn)
+		o.Filters = append(o.Filters, fn...)
 	}
 }
