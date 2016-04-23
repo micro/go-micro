@@ -15,7 +15,7 @@ type Options struct {
 }
 
 type SelectOptions struct {
-	Filters []SelectFilter
+	Filters []Filter
 
 	// Other options for implementations of the interface
 	// can be stored in a context
@@ -35,9 +35,9 @@ func Registry(r registry.Registry) Option {
 	}
 }
 
-// Filter adds a filter function to the list of filters
+// WithFilter adds a filter function to the list of filters
 // used during the Select call.
-func Filter(fn SelectFilter) SelectOption {
+func WithFilter(fn Filter) SelectOption {
 	return func(o *SelectOptions) {
 		o.Filters = append(o.Filters, fn)
 	}

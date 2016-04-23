@@ -82,8 +82,8 @@ type Selector interface {
 // based on the selector's algorithm
 type Next func() (*registry.Node, error)
 
-// SelectFilter is used to filter a service during the selection process
-type SelectFilter func([]*registry.Service) []*registry.Service
+// Filter is used to filter a service during the selection process
+type Filter func([]*registry.Service) []*registry.Service
 
 var (
 	DefaultSelector = newRandomSelector()
