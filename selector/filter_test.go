@@ -6,6 +6,87 @@ import (
 	"github.com/micro/go-micro/registry"
 )
 
+func TestFilterEndpoint(t *testing.T) {
+	testData := []struct {
+		services []*registry.Service
+		endpoint string
+		count    int
+	}{
+		{
+			services: []*registry.Service{
+				&registry.Service{
+					Name:    "test",
+					Version: "1.0.0",
+					Endpoints: []*registry.Endpoint{
+						&registry.Endpoint{
+							Name: "Foo.Bar",
+						},
+					},
+				},
+				&registry.Service{
+					Name:    "test",
+					Version: "1.1.0",
+					Endpoints: []*registry.Endpoint{
+						&registry.Endpoint{
+							Name: "Baz.Bar",
+						},
+					},
+				},
+			},
+			endpoint: "Foo.Bar",
+			count:    1,
+		},
+		{
+			services: []*registry.Service{
+				&registry.Service{
+					Name:    "test",
+					Version: "1.0.0",
+					Endpoints: []*registry.Endpoint{
+						&registry.Endpoint{
+							Name: "Foo.Bar",
+						},
+					},
+				},
+				&registry.Service{
+					Name:    "test",
+					Version: "1.1.0",
+					Endpoints: []*registry.Endpoint{
+						&registry.Endpoint{
+							Name: "Foo.Bar",
+						},
+					},
+				},
+			},
+			endpoint: "Bar.Baz",
+			count:    0,
+		},
+	}
+
+	for _, data := range testData {
+		filter := FilterEndpoint(data.endpoint)
+		services := filter(data.services)
+
+		if len(services) != data.count {
+			t.Fatalf("Expected %d services, got %d", data.count, len(services))
+		}
+
+		for _, service := range services {
+			var seen bool
+
+			for _, ep := range service.Endpoints {
+				if ep.Name == data.endpoint {
+					seen = true
+					break
+				}
+			}
+
+			if seen == false && data.count > 0 {
+				t.Fatalf("Expected %d services but seen is %t; result %+v", data.count, seen, services)
+			}
+		}
+	}
+}
+
 func TestFilterLabel(t *testing.T) {
 	testData := []struct {
 		services []*registry.Service

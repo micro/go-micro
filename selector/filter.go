@@ -4,6 +4,25 @@ import (
 	"github.com/micro/go-micro/registry"
 )
 
+// FilterEndpoint is an endpoint based Select Filter which will
+// only return services with the endpoint specified.
+func FilterEndpoint(name string) Filter {
+	return func(old []*registry.Service) []*registry.Service {
+		var services []*registry.Service
+
+		for _, service := range old {
+			for _, ep := range service.Endpoints {
+				if ep.Name == name {
+					services = append(services, service)
+					break
+				}
+			}
+		}
+
+		return services
+	}
+}
+
 // FilterLabel is a label based Select Filter which will
 // only return services with the label specified.
 func FilterLabel(key, val string) Filter {
