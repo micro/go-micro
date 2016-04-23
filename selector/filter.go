@@ -4,9 +4,9 @@ import (
 	"github.com/micro/go-micro/registry"
 )
 
-// LabelFilter is a label based Select Filter which will
+// FilterLabel is a label based Select Filter which will
 // only return services with the label specified.
-func LabelFilter(key, val string) Filter {
+func FilterLabel(key, val string) Filter {
 	return func(old []*registry.Service) []*registry.Service {
 		var services []*registry.Service
 
@@ -37,9 +37,9 @@ func LabelFilter(key, val string) Filter {
 	}
 }
 
-// VersionFilter is a version based Select Filter which will
+// FilterVersion is a version based Select Filter which will
 // only return services with the version specified.
-func VersionFilter(version string) Filter {
+func FilterVersion(version string) Filter {
 	return func(old []*registry.Service) []*registry.Service {
 		var services []*registry.Service
 

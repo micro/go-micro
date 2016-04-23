@@ -6,7 +6,7 @@ import (
 	"github.com/micro/go-micro/registry"
 )
 
-func TestLabelFilter(t *testing.T) {
+func TestFilterLabel(t *testing.T) {
 	testData := []struct {
 		services []*registry.Service
 		label    [2]string
@@ -73,7 +73,7 @@ func TestLabelFilter(t *testing.T) {
 	}
 
 	for _, data := range testData {
-		filter := LabelFilter(data.label[0], data.label[1])
+		filter := FilterLabel(data.label[0], data.label[1])
 		services := filter(data.services)
 
 		if len(services) != data.count {
@@ -98,7 +98,7 @@ func TestLabelFilter(t *testing.T) {
 	}
 }
 
-func TestVersionFilter(t *testing.T) {
+func TestFilterVersion(t *testing.T) {
 	testData := []struct {
 		services []*registry.Service
 		version  string
@@ -135,7 +135,7 @@ func TestVersionFilter(t *testing.T) {
 	}
 
 	for _, data := range testData {
-		filter := VersionFilter(data.version)
+		filter := FilterVersion(data.version)
 		services := filter(data.services)
 
 		if len(services) != data.count {
