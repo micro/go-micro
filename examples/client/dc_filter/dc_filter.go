@@ -41,7 +41,7 @@ func (dc *dcWrapper) Call(ctx context.Context, req client.Request, rsp interface
 	}
 
 	callOptions := append(opts, client.WithSelectOption(
-		selector.Filter(filter),
+		selector.WithFilter(filter),
 	))
 
 	fmt.Printf("[DC Wrapper] filtering for datacenter %s\n", md["datacenter"])

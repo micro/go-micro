@@ -187,9 +187,9 @@ func DialTimeout(d time.Duration) Option {
 
 // Call Options
 
-func WithSelectOption(so selector.SelectOption) CallOption {
+func WithSelectOption(so ...selector.SelectOption) CallOption {
 	return func(o *CallOptions) {
-		o.SelectOptions = append(o.SelectOptions, so)
+		o.SelectOptions = append(o.SelectOptions, so...)
 	}
 }
 
