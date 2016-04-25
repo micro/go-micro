@@ -7,7 +7,8 @@ import (
 
 // mqttPub is a broker.Publication
 type mqttPub struct {
-	msg mqtt.Message
+	topic string
+	msg   *broker.Message
 }
 
 // mqttPub is a broker.Subscriber
@@ -22,14 +23,11 @@ func (m *mqttPub) Ack() error {
 }
 
 func (m *mqttPub) Topic() string {
-	return m.msg.Topic()
+	return m.topic
 }
 
 func (m *mqttPub) Message() *broker.Message {
-	// TODO: Support encoding to preserve headers
-	return &broker.Message{
-		Body: m.msg.Payload(),
-	}
+	return m.msg
 }
 
 func (m *mqttSub) Options() broker.SubscribeOptions {

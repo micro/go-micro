@@ -33,7 +33,8 @@ func TestMQTTMock(t *testing.T) {
 
 func TestMQTTHandler(t *testing.T) {
 	p := &mqttPub{
-		msg: newMockMessage("mock", 0, false, []byte(`hello`)),
+		topic: "mock",
+		msg:   &broker.Message{Body: []byte(`hello`)},
 	}
 
 	if p.Topic() != "mock" {
