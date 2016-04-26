@@ -272,6 +272,10 @@ go run client.go
 Hello John
 ```
 
+## Sponsors
+
+<a href="https://www.sixt.com"><img src="https://micro.mu/sixt_logo.png" width=150px height="auto" /></a>
+
 ## Next steps
 
 - [Examples Directory](https://github.com/micro/go-micro/tree/master/examples)
