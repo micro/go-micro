@@ -24,6 +24,7 @@ import (
 	// selectors
 	"github.com/micro/go-micro/selector"
 	"github.com/micro/go-micro/selector/blacklist"
+	"github.com/micro/go-micro/selector/cache"
 	"github.com/micro/go-micro/selector/random"
 	"github.com/micro/go-micro/selector/roundrobin"
 
@@ -141,6 +142,7 @@ var (
 	}
 
 	DefaultSelectors = map[string]func(...selector.Option) selector.Selector{
+		"cache":      cache.NewSelector,
 		"random":     random.NewSelector,
 		"roundrobin": roundrobin.NewSelector,
 		"blacklist":  blacklist.NewSelector,
