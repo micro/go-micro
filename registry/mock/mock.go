@@ -88,7 +88,7 @@ func (m *mockRegistry) Deregister(s *registry.Service) error {
 }
 
 func (m *mockRegistry) Watch() (registry.Watcher, error) {
-	return nil, nil
+	return &mockWatcher{exit: make(chan bool)}, nil
 }
 
 func (m *mockRegistry) String() string {
