@@ -9,13 +9,28 @@ import (
 	"time"
 
 	"github.com/micro/cli"
-	"github.com/micro/go-micro/broker"
-	"github.com/micro/go-micro/broker/mqtt"
 	"github.com/micro/go-micro/client"
-	"github.com/micro/go-micro/registry"
-	"github.com/micro/go-micro/selector"
 	"github.com/micro/go-micro/server"
+
+	// brokers
+	"github.com/micro/go-micro/broker"
+	"github.com/micro/go-micro/broker/http"
+	"github.com/micro/go-micro/broker/mqtt"
+
+	// registries
+	"github.com/micro/go-micro/registry"
+	"github.com/micro/go-micro/registry/consul"
+
+	// selectors
+	"github.com/micro/go-micro/selector"
+	"github.com/micro/go-micro/selector/blacklist"
+	"github.com/micro/go-micro/selector/cache"
+	"github.com/micro/go-micro/selector/random"
+	"github.com/micro/go-micro/selector/roundrobin"
+
+	// transports
 	"github.com/micro/go-micro/transport"
+	thttp "github.com/micro/go-micro/transport/http"
 )
 
 type Cmd interface {
@@ -118,20 +133,23 @@ var (
 	}
 
 	DefaultBrokers = map[string]func(...broker.Option) broker.Broker{
-		"http": broker.NewBroker,
+		"http": http.NewBroker,
 		"mqtt": mqtt.NewBroker,
 	}
 
 	DefaultRegistries = map[string]func(...registry.Option) registry.Registry{
-		"consul": registry.NewRegistry,
+		"consul": consul.NewRegistry,
 	}
 
 	DefaultSelectors = map[string]func(...selector.Option) selector.Selector{
-		"random": selector.NewSelector,
+		"cache":      cache.NewSelector,
+		"random":     random.NewSelector,
+		"roundrobin": roundrobin.NewSelector,
+		"blacklist":  blacklist.NewSelector,
 	}
 
 	DefaultTransports = map[string]func(...transport.Option) transport.Transport{
-		"http": transport.NewTransport,
+		"http": thttp.NewTransport,
 	}
 
 	// used for default selection as the fall back

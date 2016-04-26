@@ -5,7 +5,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/micro/go-micro/cmd"
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/selector"
 )
@@ -27,7 +26,6 @@ type blackListSelector struct {
 }
 
 func init() {
-	cmd.DefaultSelectors["blacklist"] = NewSelector
 	rand.Seed(time.Now().Unix())
 }
 

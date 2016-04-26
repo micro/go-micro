@@ -3,17 +3,12 @@ package roundrobin
 import (
 	"sync"
 
-	"github.com/micro/go-micro/cmd"
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/selector"
 )
 
 type roundRobinSelector struct {
 	so selector.Options
-}
-
-func init() {
-	cmd.DefaultSelectors["roundrobin"] = NewSelector
 }
 
 func (r *roundRobinSelector) Init(opts ...selector.Option) error {
