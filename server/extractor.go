@@ -82,7 +82,9 @@ func extractEndpoint(method reflect.Method) *registry.Endpoint {
 		return nil
 	}
 
-	if rspType.Kind() == reflect.Func {
+	// are we dealing with a stream?
+	switch rspType.Kind() {
+	case reflect.Func, reflect.Interface:
 		stream = true
 	}
 
