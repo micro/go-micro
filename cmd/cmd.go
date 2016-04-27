@@ -20,6 +20,7 @@ import (
 	// registries
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/registry/consul"
+	"github.com/micro/go-micro/registry/mdns"
 
 	// selectors
 	"github.com/micro/go-micro/selector"
@@ -139,6 +140,7 @@ var (
 
 	DefaultRegistries = map[string]func(...registry.Option) registry.Registry{
 		"consul": consul.NewRegistry,
+		"mdns": mdns.NewRegistry,
 	}
 
 	DefaultSelectors = map[string]func(...selector.Option) selector.Selector{
