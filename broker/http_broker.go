@@ -288,8 +288,11 @@ func (h *httpBroker) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	id := req.Form.Get("id")
 
 	h.RLock()
+
 	for _, subscriber := range h.subscribers[topic] {
 		if id == subscriber.id {
+			// sub is sync; crufty rate limiting
+			// so we don't hose the cpu
 			subscriber.fn(p)
 		}
 	}
@@ -347,7 +350,7 @@ func (h *httpBroker) Publish(topic string, msg *Message, opts ...PublishOption) 
 		return err
 	}
 
-	fn := func(node *registry.Node, b io.Reader) {
+	fn := func(node *registry.Node, b []byte) {
 		scheme := "http"
 
 		// check if secure is added in metadata
@@ -357,35 +360,30 @@ func (h *httpBroker) Publish(topic string, msg *Message, opts ...PublishOption) 
 
 		vals := url.Values{}
 		vals.Add("id", node.Id)
+
 		uri := fmt.Sprintf("%s://%s:%d%s?%s", scheme, node.Address, node.Port, DefaultSubPath, vals.Encode())
-		r, err := h.c.Post(uri, "application/json", b)
+		r, err := h.c.Post(uri, "application/json", bytes.NewReader(b))
 		if err == nil {
+			io.Copy(ioutil.Discard, r.Body)
 			r.Body.Close()
 		}
 	}
-
-	buf := bytes.NewBuffer(nil)
 
 	for _, service := range s {
 		// broadcast version means broadcast to all nodes
 		if service.Version == broadcastVersion {
 			for _, node := range service.Nodes {
-				buf.Reset()
-				buf.Write(b)
-				fn(node, buf)
+				// publish async
+				go fn(node, b)
 			}
 			return nil
 		}
 
 		node := service.Nodes[rand.Int()%len(service.Nodes)]
-		buf.Reset()
-		buf.Write(b)
-		fn(node, buf)
+		// publish async
+		go fn(node, b)
 		return nil
 	}
-
-	buf.Reset()
-	buf = nil
 
 	return nil
 }
