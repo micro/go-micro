@@ -18,6 +18,12 @@ import (
 	hash "github.com/mitchellh/hashstructure"
 )
 
+type mdnsTxt struct {
+	Version   string
+	Endpoints []*registry.Endpoint
+	Metadata  map[string]string
+}
+
 type mdnsEntry struct {
 	hash uint64
 	id   string
@@ -103,10 +109,16 @@ func (m *mdnsRegistry) Register(service *registry.Service, opts ...registry.Regi
 			e = &mdnsEntry{hash: h}
 		}
 
-		var txt []string
-		txt = append(txt, encodeVersion(service.Version)...)
-		txt = append(txt, encodeMetadata(node.Metadata)...)
-		//		txt = append(txt, encodeEndpoints(service.Endpoints)...)
+		txt, err := encode(&mdnsTxt{
+			Version:   service.Version,
+			Endpoints: service.Endpoints,
+			Metadata:  node.Metadata,
+		})
+
+		if err != nil {
+			gerr = err
+			continue
+		}
 
 		// we got here, new node
 		s, err := mdns.NewMDNSService(
@@ -195,17 +207,17 @@ func (m *mdnsRegistry) GetService(service string) ([]*registry.Service, error) {
 					continue
 				}
 
-				version, exists := decodeVersion(e.InfoFields)
-				if !exists {
+				txt, err := decode(e.InfoFields)
+				if err != nil {
 					continue
 				}
 
-				s, ok := serviceMap[version]
+				s, ok := serviceMap[txt.Version]
 				if !ok {
 					s = &registry.Service{
-						Name:    service,
-						Version: version,
-						//						Endpoints: decodeEndpoints(e.InfoFields),
+						Name:      service,
+						Version:   txt.Version,
+						Endpoints: txt.Endpoints,
 					}
 				}
 
@@ -213,10 +225,10 @@ func (m *mdnsRegistry) GetService(service string) ([]*registry.Service, error) {
 					Id:       strings.TrimSuffix(e.Name, "."+p.Service+"."+p.Domain+"."),
 					Address:  e.AddrV4.String(),
 					Port:     e.Port,
-					Metadata: decodeMetadata(e.InfoFields),
+					Metadata: txt.Metadata,
 				})
 
-				serviceMap[version] = s
+				serviceMap[txt.Version] = s
 			case <-exit:
 				return
 			}

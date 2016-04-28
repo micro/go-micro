@@ -6,119 +6,68 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"io/ioutil"
-
-	"github.com/micro/go-micro/registry"
+	"strings"
 )
 
-func encode(buf []byte) string {
-	var b bytes.Buffer
-	defer b.Reset()
+func encode(txt *mdnsTxt) ([]string, error) {
+	b, err := json.Marshal(txt)
+	if err != nil {
+		return nil, err
+	}
 
-	w := zlib.NewWriter(&b)
-	if _, err := w.Write(buf); err != nil {
-		return ""
+	var buf bytes.Buffer
+	defer buf.Reset()
+
+	w := zlib.NewWriter(&buf)
+	if _, err := w.Write(b); err != nil {
+		return nil, err
 	}
 	w.Close()
 
-	return hex.EncodeToString(b.Bytes())
+	encoded := hex.EncodeToString(buf.Bytes())
+
+	// individual txt limit
+	if len(encoded) <= 255 {
+		return []string{encoded}, nil
+	}
+
+	// split encoded string
+	var record []string
+
+	for len(encoded) > 255 {
+		record = append(record, encoded[:255])
+		encoded = encoded[255:]
+	}
+
+	record = append(record, encoded)
+
+	return record, nil
 }
 
-func decode(d string) []byte {
-	hr, err := hex.DecodeString(d)
+func decode(record []string) (*mdnsTxt, error) {
+	encoded := strings.Join(record, "")
+
+	hr, err := hex.DecodeString(encoded)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
 	br := bytes.NewReader(hr)
 	zr, err := zlib.NewReader(br)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
 	rbuf, err := ioutil.ReadAll(zr)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
-	return rbuf
-}
+	var txt *mdnsTxt
 
-func encodeEndpoints(en []*registry.Endpoint) []string {
-	var tags []string
-	for _, e := range en {
-		if b, err := json.Marshal(e); err == nil {
-			tags = append(tags, "e-"+encode(b))
-		}
+	if err := json.Unmarshal(rbuf, &txt); err != nil {
+		return nil, err
 	}
-	return tags
-}
 
-func decodeEndpoints(tags []string) []*registry.Endpoint {
-	var en []*registry.Endpoint
-
-	for _, tag := range tags {
-		if len(tag) == 0 || tag[0] != 'e' || tag[1] != '-' {
-			continue
-		}
-
-		buf := decode(tag[2:])
-
-		var e *registry.Endpoint
-		if err := json.Unmarshal(buf, &e); err == nil {
-			en = append(en, e)
-		}
-	}
-	return en
-}
-
-func encodeMetadata(md map[string]string) []string {
-	var tags []string
-	for k, v := range md {
-		if b, err := json.Marshal(map[string]string{
-			k: v,
-		}); err == nil {
-			// new encoding
-			tags = append(tags, "t-"+encode(b))
-		}
-	}
-	return tags
-}
-
-func decodeMetadata(tags []string) map[string]string {
-	md := make(map[string]string)
-
-	for _, tag := range tags {
-		if len(tag) == 0 || tag[0] != 't' || tag[1] != '-' {
-			continue
-		}
-
-		buf := decode(tag[2:])
-
-		var kv map[string]string
-
-		// Now unmarshal
-		if err := json.Unmarshal(buf, &kv); err == nil {
-			for k, v := range kv {
-				md[k] = v
-			}
-		}
-	}
-	return md
-}
-
-func encodeVersion(v string) []string {
-	return []string{
-		// new encoding,
-		"v-" + encode([]byte(v)),
-	}
-}
-
-func decodeVersion(tags []string) (string, bool) {
-	for _, tag := range tags {
-		if len(tag) < 2 || tag[0] != 'v' || tag[1] != '-' {
-			continue
-		}
-		return string(decode(tag[2:])), true
-	}
-	return "", false
+	return txt, nil
 }
