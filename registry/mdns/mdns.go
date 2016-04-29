@@ -13,8 +13,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/micro/mdns"
 	"github.com/micro/go-micro/registry"
+	"github.com/micro/mdns"
 	hash "github.com/mitchellh/hashstructure"
 )
 
@@ -68,7 +68,7 @@ func (m *mdnsRegistry) Register(service *registry.Service, opts ...registry.Regi
 			return err
 		}
 
-		srv, err := mdns.NewServer(&mdns.Config{Zone: s})
+		srv, err := mdns.NewServer(&mdns.Config{Zone: &mdns.DNSSDService{s}})
 		if err != nil {
 			return err
 		}
