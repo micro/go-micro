@@ -91,7 +91,7 @@ func (c *cacheSelector) get(service string) ([]*registry.Service, error) {
 	}
 
 	// we didn't have any results so cache
-	c.cache[service] = services
+	c.cache[service] = c.cp(services)
 
 	return services, nil
 }
