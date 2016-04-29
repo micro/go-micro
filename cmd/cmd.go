@@ -140,7 +140,7 @@ var (
 
 	DefaultRegistries = map[string]func(...registry.Option) registry.Registry{
 		"consul": consul.NewRegistry,
-		"mdns": mdns.NewRegistry,
+		"mdns":   mdns.NewRegistry,
 	}
 
 	DefaultSelectors = map[string]func(...selector.Option) selector.Selector{
