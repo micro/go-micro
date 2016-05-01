@@ -52,6 +52,39 @@ func TestWatcher(t *testing.T) {
 		},
 	}
 
+	testFn := func(service, s *registry.Service) {
+		if s == nil {
+			t.Fatalf("Expected one result for %s got nil", service.Name)
+
+		}
+
+		if s.Name != service.Name {
+			t.Fatalf("Expected name %s got %s", service.Name, s.Name)
+		}
+
+		if s.Version != service.Version {
+			t.Fatalf("Expected version %s got %s", service.Version, s.Version)
+		}
+
+		if len(s.Nodes) != 1 {
+			t.Fatalf("Expected 1 node, got %d", len(s.Nodes))
+		}
+
+		node := s.Nodes[0]
+
+		if node.Id != service.Nodes[0].Id {
+			t.Fatalf("Expected node id %s got %s", service.Nodes[0].Id, node.Id)
+		}
+
+		if node.Address != service.Nodes[0].Address {
+			t.Fatalf("Expected node address %s got %s", service.Nodes[0].Address, node.Address)
+		}
+
+		if node.Port != service.Nodes[0].Port {
+			t.Fatalf("Expected node port %s got %s", service.Nodes[0].Port, node.Port)
+		}
+	}
+
 	// new registry
 	r := NewRegistry()
 
@@ -66,63 +99,31 @@ func TestWatcher(t *testing.T) {
 		if err := r.Register(service); err != nil {
 			t.Fatal(err)
 		}
-	}
 
-	for i := 0; i < 3; i++ {
-		// get registered service
-		res, err := w.Next()
-		if err != nil {
-			t.Fatal(err)
-		}
+		var ok bool
 
-		if res.Action != "create" {
-			t.Fatal("Expected create action for %s", res.Service.Name)
-		}
+		for i := 0; i < 5; i++ {
+			// get registered service
+			res, err := w.Next()
+			if err != nil {
+				t.Fatal(err)
+			}
 
-		var service *registry.Service
-
-		for _, srv := range testData {
-			if res.Service.Name == srv.Name {
-				service = res.Service
+			if res.Service.Name != service.Name {
 				break
 			}
+
+			if res.Action != "create" {
+				break
+			}
+
+			testFn(service, res.Service)
+			ok = true
+			break
 		}
 
-		if service == nil {
-			t.Fatal("Got watch result for unknown service %s", res.Service.Name)
-		}
-
-		s := []*registry.Service{res.Service}
-
-		if len(s) != 1 {
-			t.Fatalf("Expected one result for %s got %d", service.Name, len(s))
-
-		}
-
-		if s[0].Name != service.Name {
-			t.Fatalf("Expected name %s got %s", service.Name, s[0].Name)
-		}
-
-		if s[0].Version != service.Version {
-			t.Fatalf("Expected version %s got %s", service.Version, s[0].Version)
-		}
-
-		if len(s[0].Nodes) != 1 {
-			t.Fatalf("Expected 1 node, got %d", len(s[0].Nodes))
-		}
-
-		node := s[0].Nodes[0]
-
-		if node.Id != service.Nodes[0].Id {
-			t.Fatalf("Expected node id %s got %s", service.Nodes[0].Id, node.Id)
-		}
-
-		if node.Address != service.Nodes[0].Address {
-			t.Fatalf("Expected node address %s got %s", service.Nodes[0].Address, node.Address)
-		}
-
-		if node.Port != service.Nodes[0].Port {
-			t.Fatalf("Expected node port %s got %s", service.Nodes[0].Port, node.Port)
+		if !ok {
+			t.Fatalf("Watch test failed for creation of %s", service.Name)
 		}
 	}
 
@@ -132,60 +133,30 @@ func TestWatcher(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		// get registered service
-		res, err := w.Next()
-		if err != nil {
-			t.Fatal(err)
-		}
+		var ok bool
 
-		if res.Action != "delete" {
-			t.Fatalf("Expected create action for %s", res.Service.Name)
-		}
+		for i := 0; i < 5; i++ {
+			// get registered service
+			res, err := w.Next()
+			if err != nil {
+				t.Fatal(err)
+			}
 
-		var service *registry.Service
+			if res.Action != "delete" {
+				continue
+			}
 
-		for _, srv := range testData {
-			if res.Service.Name == srv.Name {
-				service = res.Service
+			if res.Service.Name != service.Name {
 				break
 			}
+
+			testFn(service, res.Service)
+			ok = true
+			break
 		}
 
-		if service == nil {
-			t.Fatal("Got watch result for unknown service %s", res.Service.Name)
-		}
-
-		s := []*registry.Service{res.Service}
-
-		if len(s) != 1 {
-			t.Fatalf("Expected one result for %s got %d", service.Name, len(s))
-
-		}
-
-		if s[0].Name != service.Name {
-			t.Fatalf("Expected name %s got %s", service.Name, s[0].Name)
-		}
-
-		if s[0].Version != service.Version {
-			t.Fatalf("Expected version %s got %s", service.Version, s[0].Version)
-		}
-
-		if len(s[0].Nodes) != 1 {
-			t.Fatalf("Expected 1 node, got %d", len(s[0].Nodes))
-		}
-
-		node := s[0].Nodes[0]
-
-		if node.Id != service.Nodes[0].Id {
-			t.Fatalf("Expected node id %s got %s", service.Nodes[0].Id, node.Id)
-		}
-
-		if node.Address != service.Nodes[0].Address {
-			t.Fatalf("Expected node address %s got %s", service.Nodes[0].Address, node.Address)
-		}
-
-		if node.Port != service.Nodes[0].Port {
-			t.Fatalf("Expected node port %s got %s", service.Nodes[0].Port, node.Port)
+		if !ok {
+			t.Fatalf("Watch test failed for deletion of %s", service.Name)
 		}
 	}
 
