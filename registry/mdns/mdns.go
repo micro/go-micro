@@ -218,10 +218,14 @@ func (m *mdnsRegistry) GetService(service string) ([]*registry.Service, error) {
 					continue
 				}
 
+				if txt.Service != service {
+					continue
+				}
+
 				s, ok := serviceMap[txt.Version]
 				if !ok {
 					s = &registry.Service{
-						Name:      service,
+						Name:      txt.Service,
 						Version:   txt.Version,
 						Endpoints: txt.Endpoints,
 					}
