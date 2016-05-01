@@ -19,6 +19,7 @@ import (
 )
 
 type mdnsTxt struct {
+	Service   string
 	Version   string
 	Endpoints []*registry.Endpoint
 	Metadata  map[string]string
@@ -110,6 +111,7 @@ func (m *mdnsRegistry) Register(service *registry.Service, opts ...registry.Regi
 		}
 
 		txt, err := encode(&mdnsTxt{
+			Service:   service.Name,
 			Version:   service.Version,
 			Endpoints: service.Endpoints,
 			Metadata:  node.Metadata,
@@ -207,6 +209,10 @@ func (m *mdnsRegistry) GetService(service string) ([]*registry.Service, error) {
 					continue
 				}
 
+				if e.TTL == 0 {
+					continue
+				}
+
 				txt, err := decode(e.InfoFields)
 				if err != nil {
 					continue
@@ -265,6 +271,10 @@ func (m *mdnsRegistry) ListServices() ([]*registry.Service, error) {
 		for {
 			select {
 			case e := <-entryCh:
+				if e.TTL == 0 {
+					continue
+				}
+
 				name := strings.TrimSuffix(e.Name, "."+p.Service+"."+p.Domain+".")
 				if !serviceMap[name] {
 					serviceMap[name] = true
@@ -284,7 +294,18 @@ func (m *mdnsRegistry) ListServices() ([]*registry.Service, error) {
 }
 
 func (m *mdnsRegistry) Watch() (registry.Watcher, error) {
-	return nil, nil
+	md := &mdnsWatcher{
+		ch:   make(chan *mdns.ServiceEntry, 32),
+		exit: make(chan struct{}),
+	}
+
+	go func() {
+		if err := mdns.Listen(md.ch, md.exit); err != nil {
+			md.Stop()
+		}
+	}()
+
+	return md, nil
 }
 
 func (m *mdnsRegistry) String() string {
