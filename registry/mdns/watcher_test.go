@@ -66,7 +66,9 @@ func TestWatcher(t *testing.T) {
 		if err := r.Register(service); err != nil {
 			t.Fatal(err)
 		}
+	}
 
+	for i := 0; i < 3; i++ {
 		// get registered service
 		res, err := w.Next()
 		if err != nil {
@@ -74,7 +76,20 @@ func TestWatcher(t *testing.T) {
 		}
 
 		if res.Action != "create" {
-			t.Fatal("Expected create action for %s", service.Name)
+			t.Fatal("Expected create action for %s", res.Service.Name)
+		}
+
+		var service *registry.Service
+
+		for _, srv := range testData {
+			if res.Service.Name == srv.Name {
+				service = res.Service
+				break
+			}
+		}
+
+		if service == nil {
+			t.Fatal("Got watch result for unknown service %s", res.Service.Name)
 		}
 
 		s := []*registry.Service{res.Service}
@@ -124,7 +139,20 @@ func TestWatcher(t *testing.T) {
 		}
 
 		if res.Action != "delete" {
-			t.Fatalf("Expected create action for %s", service.Name)
+			t.Fatalf("Expected create action for %s", res.Service.Name)
+		}
+
+		var service *registry.Service
+
+		for _, srv := range testData {
+			if res.Service.Name == srv.Name {
+				service = res.Service
+				break
+			}
+		}
+
+		if service == nil {
+			t.Fatal("Got watch result for unknown service %s", res.Service.Name)
 		}
 
 		s := []*registry.Service{res.Service}
