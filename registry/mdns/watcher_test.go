@@ -100,64 +100,45 @@ func TestWatcher(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		var ok bool
-
-		for i := 0; i < 5; i++ {
-			// get registered service
+		for {
 			res, err := w.Next()
 			if err != nil {
 				t.Fatal(err)
 			}
 
 			if res.Service.Name != service.Name {
-				break
+				continue
 			}
 
 			if res.Action != "create" {
-				break
+				t.Fatalf("Expected create event got %s for %s", res.Action, res.Service.Name)
 			}
 
 			testFn(service, res.Service)
-			ok = true
 			break
 		}
 
-		if !ok {
-			t.Fatalf("Watch test failed for creation of %s", service.Name)
-		}
-	}
-
-	for _, service := range testData {
 		// deregister
 		if err := r.Deregister(service); err != nil {
 			t.Fatal(err)
 		}
 
-		var ok bool
-
-		for i := 0; i < 5; i++ {
-			// get registered service
+		for {
 			res, err := w.Next()
 			if err != nil {
 				t.Fatal(err)
+			}
+
+			if res.Service.Name != service.Name {
+				continue
 			}
 
 			if res.Action != "delete" {
 				continue
 			}
 
-			if res.Service.Name != service.Name {
-				break
-			}
-
 			testFn(service, res.Service)
-			ok = true
 			break
 		}
-
-		if !ok {
-			t.Fatalf("Watch test failed for deletion of %s", service.Name)
-		}
 	}
-
 }
