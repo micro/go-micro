@@ -77,6 +77,29 @@ func (cw *consulWatcher) serviceHandler(idx uint64, data interface{}) {
 			serviceMap[key] = svc
 		}
 
+		var del bool
+
+		for _, check := range e.Checks {
+			if check.ServiceName != serviceName {
+				continue
+			}
+
+			if check.ServiceID != id {
+				continue
+			}
+
+			// delete the node
+			if check.Status == "critical" {
+				del = true
+				break
+			}
+		}
+
+		// if delete then skip the node
+		if del {
+			continue
+		}
+
 		svc.Nodes = append(svc.Nodes, &Node{
 			Id:       id,
 			Address:  address,
@@ -141,6 +164,7 @@ func (cw *consulWatcher) serviceHandler(idx uint64, data interface{}) {
 				cw.next <- &Result{Action: "delete", Service: delService}
 			}
 		}
+
 		cw.next <- &Result{Action: action, Service: newService}
 	}
 
