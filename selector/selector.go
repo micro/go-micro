@@ -79,19 +79,22 @@ type Selector interface {
 }
 
 // Next is a function that returns the next node
-// based on the selector's algorithm
+// based on the selector's strategy
 type Next func() (*registry.Node, error)
 
 // Filter is used to filter a service during the selection process
 type Filter func([]*registry.Service) []*registry.Service
 
+// Strategy is a selection strategy e.g random, round robin
+type Strategy func([]*registry.Service) Next
+
 var (
-	DefaultSelector = newRandomSelector()
+	DefaultSelector = newDefaultSelector()
 
 	ErrNotFound      = errors.New("not found")
 	ErrNoneAvailable = errors.New("none available")
 )
 
 func NewSelector(opts ...Option) Selector {
-	return newRandomSelector(opts...)
+	return newDefaultSelector(opts...)
 }
