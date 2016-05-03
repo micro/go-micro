@@ -26,8 +26,6 @@ import (
 	"github.com/micro/go-micro/selector"
 	"github.com/micro/go-micro/selector/blacklist"
 	"github.com/micro/go-micro/selector/cache"
-	"github.com/micro/go-micro/selector/random"
-	"github.com/micro/go-micro/selector/roundrobin"
 
 	// transports
 	"github.com/micro/go-micro/transport"
@@ -119,7 +117,7 @@ var (
 		cli.StringFlag{
 			Name:   "selector",
 			EnvVar: "MICRO_SELECTOR",
-			Usage:  "Selector used to pick nodes for querying. random, roundrobin, blacklist",
+			Usage:  "Selector used to pick nodes for querying",
 		},
 		cli.StringFlag{
 			Name:   "transport",
@@ -144,10 +142,8 @@ var (
 	}
 
 	DefaultSelectors = map[string]func(...selector.Option) selector.Selector{
-		"cache":      cache.NewSelector,
-		"random":     random.NewSelector,
-		"roundrobin": roundrobin.NewSelector,
-		"blacklist":  blacklist.NewSelector,
+		"cache":     cache.NewSelector,
+		"blacklist": blacklist.NewSelector,
 	}
 
 	DefaultTransports = map[string]func(...transport.Option) transport.Transport{
