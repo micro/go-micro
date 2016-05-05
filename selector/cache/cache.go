@@ -359,7 +359,7 @@ func (c *cacheSelector) Mark(service string, node *registry.Node, err error) {
 
 func (c *cacheSelector) Reset(service string) {
 	c.Lock()
-	delete(c.cache, service)
+	c.del(service)
 	c.Unlock()
 }
 
