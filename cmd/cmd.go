@@ -142,6 +142,7 @@ var (
 	}
 
 	DefaultSelectors = map[string]func(...selector.Option) selector.Selector{
+		"default": selector.NewSelector,
 		"cache":     cache.NewSelector,
 		"blacklist": blacklist.NewSelector,
 	}
@@ -153,7 +154,7 @@ var (
 	// used for default selection as the fall back
 	defaultBroker    = "http"
 	defaultRegistry  = "consul"
-	defaultSelector  = "random"
+	defaultSelector  = "default"
 	defaultTransport = "http"
 )
 
