@@ -5,14 +5,31 @@ import (
 	"time"
 
 	"github.com/micro/go-micro/registry"
+	"github.com/micro/go-micro/selector/internal/blacklist"
 )
 
 type defaultSelector struct {
-	so Options
+	so   Options
+	exit chan bool
+	bl   *blacklist.BlackList
 }
 
 func init() {
 	rand.Seed(time.Now().Unix())
+}
+
+func (r *defaultSelector) run() {
+	t := time.NewTicker(time.Second * 30)
+
+	for {
+		select {
+		case <-t.C:
+			// TODO
+		case <-r.exit:
+			t.Stop()
+			return
+		}
+	}
 }
 
 func (r *defaultSelector) Init(opts ...Option) error {
@@ -46,6 +63,12 @@ func (r *defaultSelector) Select(service string, opts ...SelectOption) (Next, er
 		services = filter(services)
 	}
 
+	// apply the blacklist
+	services, err = r.bl.Filter(services)
+	if err != nil {
+		return nil, err
+	}
+
 	// if there's nothing left, return
 	if len(services) == 0 {
 		return nil, ErrNotFound
@@ -55,14 +78,21 @@ func (r *defaultSelector) Select(service string, opts ...SelectOption) (Next, er
 }
 
 func (r *defaultSelector) Mark(service string, node *registry.Node, err error) {
-	return
+	r.bl.Mark(service, node, err)
 }
 
 func (r *defaultSelector) Reset(service string) {
-	return
+	r.bl.Reset(service)
 }
 
 func (r *defaultSelector) Close() error {
+	select {
+	case <-r.exit:
+		return nil
+	default:
+		close(r.exit)
+		r.bl.Close()
+	}
 	return nil
 }
 
@@ -83,5 +113,12 @@ func newDefaultSelector(opts ...Option) Selector {
 		sopts.Registry = registry.DefaultRegistry
 	}
 
-	return &defaultSelector{sopts}
+	se := &defaultSelector{
+		so:   sopts,
+		exit: make(chan bool),
+		bl:   blacklist.New(),
+	}
+
+	go se.run()
+	return se
 }
