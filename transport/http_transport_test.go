@@ -1,13 +1,11 @@
-package transport_test
+package transport
 
 import (
 	"strings"
 	"testing"
-
-	"github.com/micro/go-micro/transport"
 )
 
-func expectedPort(t *testing.T, expected string, lsn transport.Listener) {
+func expectedPort(t *testing.T, expected string, lsn Listener) {
 	parts := strings.Split(lsn.Addr(), ":")
 	port := parts[len(parts)-1]
 
@@ -18,7 +16,7 @@ func expectedPort(t *testing.T, expected string, lsn transport.Listener) {
 }
 
 func TestHTTPTransportPortRange(t *testing.T) {
-	tp := transport.NewTransport()
+	tp := NewTransport()
 
 	lsn1, err := tp.Listen(":44444-44448")
 	if err != nil {
@@ -43,7 +41,7 @@ func TestHTTPTransportPortRange(t *testing.T) {
 }
 
 func TestHTTPTransportCommunication(t *testing.T) {
-	tr := transport.NewTransport()
+	tr := NewTransport()
 
 	l, err := tr.Listen(":0")
 	if err != nil {
@@ -51,16 +49,14 @@ func TestHTTPTransportCommunication(t *testing.T) {
 	}
 	defer l.Close()
 
-	fn := func(sock transport.Socket) {
+	fn := func(sock Socket) {
 		defer sock.Close()
 
 		for {
-			var m transport.Message
+			var m Message
 			if err := sock.Recv(&m); err != nil {
 				return
 			}
-
-			t.Logf("Successfully received %+v", m)
 
 			if err := sock.Send(&m); err != nil {
 				return
@@ -86,7 +82,7 @@ func TestHTTPTransportCommunication(t *testing.T) {
 	}
 	defer c.Close()
 
-	m := transport.Message{
+	m := Message{
 		Header: map[string]string{
 			"Content-Type": "application/json",
 		},
@@ -97,7 +93,7 @@ func TestHTTPTransportCommunication(t *testing.T) {
 		t.Errorf("Unexpected send err: %v", err)
 	}
 
-	var rm transport.Message
+	var rm Message
 
 	if err := c.Recv(&rm); err != nil {
 		t.Errorf("Unexpected recv err: %v", err)
@@ -105,6 +101,73 @@ func TestHTTPTransportCommunication(t *testing.T) {
 
 	if string(rm.Body) != string(m.Body) {
 		t.Errorf("Expected %v, got %v", m.Body, rm.Body)
+	}
+
+	close(done)
+}
+
+func TestHTTPTransportError(t *testing.T) {
+	tr := NewTransport()
+
+	l, err := tr.Listen(":0")
+	if err != nil {
+		t.Errorf("Unexpected listen err: %v", err)
+	}
+	defer l.Close()
+
+	fn := func(sock Socket) {
+		defer sock.Close()
+
+		for {
+			var m Message
+			if err := sock.Recv(&m); err != nil {
+				t.Fatal(err)
+			}
+
+			sock.(*httpTransportSocket).error(&Message{
+				Body: []byte(`an error occurred`),
+			})
+		}
+	}
+
+	done := make(chan bool)
+
+	go func() {
+		if err := l.Accept(fn); err != nil {
+			select {
+			case <-done:
+			default:
+				t.Errorf("Unexpected accept err: %v", err)
+			}
+		}
+	}()
+
+	c, err := tr.Dial(l.Addr())
+	if err != nil {
+		t.Errorf("Unexpected dial err: %v", err)
+	}
+	defer c.Close()
+
+	m := Message{
+		Header: map[string]string{
+			"Content-Type": "application/json",
+		},
+		Body: []byte(`{"message": "Hello World"}`),
+	}
+
+	if err := c.Send(&m); err != nil {
+		t.Errorf("Unexpected send err: %v", err)
+	}
+
+	var rm Message
+
+	err = c.Recv(&rm)
+	if err == nil {
+		t.Fatal("Expected error but got nil")
+	}
+
+	if err.Error() != "500 Internal Server Error: an error occurred" {
+		t.Fatalf("Did not receive expected error, got: %v", err)
 	}
 
 	close(done)
