@@ -7,6 +7,7 @@ import (
 
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/selector"
+	"github.com/micro/go-micro/selector/internal/blacklist"
 )
 
 /*
@@ -26,6 +27,9 @@ type cacheSelector struct {
 	// used to close or reload watcher
 	reload chan bool
 	exit   chan bool
+
+	// blacklist
+	bl *blacklist.BlackList
 }
 
 var (
@@ -345,6 +349,11 @@ func (c *cacheSelector) Select(service string, opts ...selector.SelectOption) (s
 		services = filter(services)
 	}
 
+	services, err = c.bl.Filter(services)
+	if err != nil {
+		return nil, err
+	}
+
 	// if there's nothing left, return
 	if len(services) == 0 {
 		return nil, selector.ErrNotFound
@@ -354,13 +363,14 @@ func (c *cacheSelector) Select(service string, opts ...selector.SelectOption) (s
 }
 
 func (c *cacheSelector) Mark(service string, node *registry.Node, err error) {
-	return
+	c.bl.Mark(service, node, err)
 }
 
 func (c *cacheSelector) Reset(service string) {
 	c.Lock()
 	c.del(service)
 	c.Unlock()
+	c.bl.Reset(service)
 }
 
 // Close stops the watcher and destroys the cache
@@ -374,6 +384,7 @@ func (c *cacheSelector) Close() error {
 		return nil
 	default:
 		close(c.exit)
+		c.bl.Close()
 	}
 	return nil
 }
@@ -410,6 +421,7 @@ func NewSelector(opts ...selector.Option) selector.Selector {
 		ttls:   make(map[string]time.Time),
 		reload: make(chan bool, 1),
 		exit:   make(chan bool),
+		bl:     blacklist.New(),
 	}
 
 	go c.run()
