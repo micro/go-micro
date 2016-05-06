@@ -2,12 +2,12 @@ package cache
 
 import (
 	"log"
-	"math/rand"
 	"sync"
 	"time"
 
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/selector"
+	"github.com/micro/go-micro/selector/internal/blacklist"
 )
 
 /*
@@ -27,15 +27,14 @@ type cacheSelector struct {
 	// used to close or reload watcher
 	reload chan bool
 	exit   chan bool
+
+	// blacklist
+	bl *blacklist.BlackList
 }
 
 var (
 	DefaultTTL = time.Minute
 )
-
-func init() {
-	rand.Seed(time.Now().UnixNano())
-}
 
 func (c *cacheSelector) quit() bool {
 	select {
@@ -329,7 +328,10 @@ func (c *cacheSelector) Options() selector.Options {
 }
 
 func (c *cacheSelector) Select(service string, opts ...selector.SelectOption) (selector.Next, error) {
-	var sopts selector.SelectOptions
+	sopts := selector.SelectOptions{
+		Strategy: c.so.Strategy,
+	}
+
 	for _, opt := range opts {
 		opt(&sopts)
 	}
@@ -347,44 +349,28 @@ func (c *cacheSelector) Select(service string, opts ...selector.SelectOption) (s
 		services = filter(services)
 	}
 
+	services, err = c.bl.Filter(services)
+	if err != nil {
+		return nil, err
+	}
+
 	// if there's nothing left, return
 	if len(services) == 0 {
-		return nil, selector.ErrNotFound
+		return nil, selector.ErrNoneAvailable
 	}
 
-	var nodes []*registry.Node
-
-	for _, service := range services {
-		for _, node := range service.Nodes {
-			nodes = append(nodes, node)
-		}
-	}
-
-	if len(nodes) == 0 {
-		return nil, selector.ErrNotFound
-	}
-
-	return func() (*registry.Node, error) {
-		i := rand.Int()
-		j := i % len(services)
-
-		if len(services[j].Nodes) == 0 {
-			return nil, selector.ErrNotFound
-		}
-
-		k := i % len(services[j].Nodes)
-		return services[j].Nodes[k], nil
-	}, nil
+	return sopts.Strategy(services), nil
 }
 
 func (c *cacheSelector) Mark(service string, node *registry.Node, err error) {
-	return
+	c.bl.Mark(service, node, err)
 }
 
 func (c *cacheSelector) Reset(service string) {
 	c.Lock()
-	delete(c.cache, service)
+	c.del(service)
 	c.Unlock()
+	c.bl.Reset(service)
 }
 
 // Close stops the watcher and destroys the cache
@@ -398,6 +384,7 @@ func (c *cacheSelector) Close() error {
 		return nil
 	default:
 		close(c.exit)
+		c.bl.Close()
 	}
 	return nil
 }
@@ -407,7 +394,9 @@ func (c *cacheSelector) String() string {
 }
 
 func NewSelector(opts ...selector.Option) selector.Selector {
-	var sopts selector.Options
+	sopts := selector.Options{
+		Strategy: selector.Random,
+	}
 
 	for _, opt := range opts {
 		opt(&sopts)
@@ -432,6 +421,7 @@ func NewSelector(opts ...selector.Option) selector.Selector {
 		ttls:   make(map[string]time.Time),
 		reload: make(chan bool, 1),
 		exit:   make(chan bool),
+		bl:     blacklist.New(),
 	}
 
 	go c.run()
