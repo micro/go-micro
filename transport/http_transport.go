@@ -174,6 +174,10 @@ func (h *httpTransportClient) Recv(m *Message) error {
 		return err
 	}
 
+	if rsp.StatusCode != 200 {
+		return errors.New(rsp.Status + ": " + string(b))
+	}
+
 	mr := &Message{
 		Header: make(map[string]string),
 		Body:   b,
