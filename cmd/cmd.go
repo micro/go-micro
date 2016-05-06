@@ -24,7 +24,6 @@ import (
 
 	// selectors
 	"github.com/micro/go-micro/selector"
-	"github.com/micro/go-micro/selector/blacklist"
 	"github.com/micro/go-micro/selector/cache"
 
 	// transports
@@ -143,8 +142,7 @@ var (
 
 	DefaultSelectors = map[string]func(...selector.Option) selector.Selector{
 		"default": selector.NewSelector,
-		"cache":     cache.NewSelector,
-		"blacklist": blacklist.NewSelector,
+		"cache":   cache.NewSelector,
 	}
 
 	DefaultTransports = map[string]func(...transport.Option) transport.Transport{
