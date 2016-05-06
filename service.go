@@ -14,6 +14,8 @@ import (
 
 type service struct {
 	opts Options
+
+	init chan bool
 }
 
 func newService(opts ...Option) Service {
@@ -28,6 +30,7 @@ func newService(opts ...Option) Service {
 
 	return &service{
 		opts: options,
+		init: make(chan bool),
 	}
 }
 
@@ -49,24 +52,36 @@ func (s *service) run(exit chan bool) {
 	}
 }
 
+// Init initialises options. Additionally it calls cmd.Init
+// which parses command line flags. cmd.Init is only called
+// on first Init.
 func (s *service) Init(opts ...Option) {
-	// We might get more command flags or the action here
-	// This is pretty ugly, find a better way
-	options := newOptions()
-	options.Cmd = s.opts.Cmd
-	for _, o := range opts {
-		o(&options)
-	}
-	s.opts.Cmd = options.Cmd
+	// If <-s.init blocks, Init has not been called yet
+	// so we can call cmd.Init once.
+	select {
+	case <-s.init:
+	default:
+		// close init
+		close(s.init)
 
-	// Initialise the command flags, overriding new service
-	s.opts.Cmd.Init(
-		cmd.Broker(&s.opts.Broker),
-		cmd.Registry(&s.opts.Registry),
-		cmd.Transport(&s.opts.Transport),
-		cmd.Client(&s.opts.Client),
-		cmd.Server(&s.opts.Server),
-	)
+		// We might get more command flags or the action here
+		// This is pretty ugly, find a better way
+		options := newOptions()
+		options.Cmd = s.opts.Cmd
+		for _, o := range opts {
+			o(&options)
+		}
+		s.opts.Cmd = options.Cmd
+
+		// Initialise the command flags, overriding new service
+		s.opts.Cmd.Init(
+			cmd.Broker(&s.opts.Broker),
+			cmd.Registry(&s.opts.Registry),
+			cmd.Transport(&s.opts.Transport),
+			cmd.Client(&s.opts.Client),
+			cmd.Server(&s.opts.Server),
+		)
+	}
 
 	// Update any options to override command flags
 	for _, o := range opts {
