@@ -71,7 +71,7 @@ func (r *defaultSelector) Select(service string, opts ...SelectOption) (Next, er
 
 	// if there's nothing left, return
 	if len(services) == 0 {
-		return nil, ErrNotFound
+		return nil, ErrNoneAvailable
 	}
 
 	return sopts.Strategy(services), nil

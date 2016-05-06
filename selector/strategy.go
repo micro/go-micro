@@ -22,7 +22,7 @@ func Random(services []*registry.Service) Next {
 
 	return func() (*registry.Node, error) {
 		if len(nodes) == 0 {
-			return nil, ErrNotFound
+			return nil, ErrNoneAvailable
 		}
 
 		i := rand.Int() % len(nodes)
@@ -43,7 +43,7 @@ func RoundRobin(services []*registry.Service) Next {
 
 	return func() (*registry.Node, error) {
 		if len(nodes) == 0 {
-			return nil, ErrNotFound
+			return nil, ErrNoneAvailable
 		}
 
 		mtx.Lock()

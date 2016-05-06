@@ -356,7 +356,7 @@ func (c *cacheSelector) Select(service string, opts ...selector.SelectOption) (s
 
 	// if there's nothing left, return
 	if len(services) == 0 {
-		return nil, selector.ErrNotFound
+		return nil, selector.ErrNoneAvailable
 	}
 
 	return sopts.Strategy(services), nil
