@@ -18,20 +18,6 @@ func init() {
 	rand.Seed(time.Now().Unix())
 }
 
-func (r *defaultSelector) run() {
-	t := time.NewTicker(time.Second * 30)
-
-	for {
-		select {
-		case <-t.C:
-			// TODO
-		case <-r.exit:
-			t.Stop()
-			return
-		}
-	}
-}
-
 func (r *defaultSelector) Init(opts ...Option) error {
 	for _, o := range opts {
 		o(&r.so)
@@ -113,12 +99,9 @@ func newDefaultSelector(opts ...Option) Selector {
 		sopts.Registry = registry.DefaultRegistry
 	}
 
-	se := &defaultSelector{
+	return &defaultSelector{
 		so:   sopts,
 		exit: make(chan bool),
 		bl:   blacklist.New(),
 	}
-
-	go se.run()
-	return se
 }
