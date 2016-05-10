@@ -12,7 +12,6 @@ import (
 type rpcStream struct {
 	sync.RWMutex
 	seq     uint64
-	once    sync.Once
 	closed  chan bool
 	err     error
 	request Request
@@ -22,13 +21,11 @@ type rpcStream struct {
 
 func (r *rpcStream) isClosed() bool {
 	select {
-	case _, ok := <-r.closed:
-		if !ok {
-			return true
-		}
+	case <-r.closed:
+		return true
 	default:
+		return false
 	}
-	return false
 }
 
 func (r *rpcStream) Context() context.Context {
@@ -112,8 +109,11 @@ func (r *rpcStream) Error() error {
 }
 
 func (r *rpcStream) Close() error {
-	r.once.Do(func() {
+	select {
+	case <-r.closed:
+		return nil
+	default:
 		close(r.closed)
-	})
-	return r.codec.Close()
+		return r.codec.Close()
+	}
 }
