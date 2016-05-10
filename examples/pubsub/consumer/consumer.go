@@ -19,7 +19,7 @@ func sharedSub() {
 	_, err := broker.Subscribe(topic, func(p broker.Publication) error {
 		fmt.Println("[sub] received message:", string(p.Message().Body), "header", p.Message().Header)
 		return nil
-	}, broker.QueueName("consumer"))
+	}, broker.Queue("consumer"))
 	if err != nil {
 		fmt.Println(err)
 	}

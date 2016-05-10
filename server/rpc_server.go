@@ -46,9 +46,11 @@ func newRpcServer(opts ...Option) Server {
 
 func (s *rpcServer) accept(sock transport.Socket) {
 	defer func() {
+		// close socket
+		sock.Close()
+
 		if r := recover(); r != nil {
 			log.Print(r, string(debug.Stack()))
-			sock.Close()
 		}
 	}()
 
@@ -67,7 +69,6 @@ func (s *rpcServer) accept(sock transport.Socket) {
 			},
 			Body: []byte(err.Error()),
 		})
-		sock.Close()
 		return
 	}
 
@@ -85,7 +86,6 @@ func (s *rpcServer) accept(sock transport.Socket) {
 	// TODO: needs better error handling
 	if err := s.rpc.serveRequest(ctx, codec, ct); err != nil {
 		log.Printf("Unexpected error serving request, closing socket: %v", err)
-		sock.Close()
 	}
 }
 
@@ -258,7 +258,7 @@ func (s *rpcServer) Register() error {
 		handler := s.createSubHandler(sb, s.opts)
 		var opts []broker.SubscribeOption
 		if queue := sb.Options().Queue; len(queue) > 0 {
-			opts = append(opts, broker.QueueName(queue))
+			opts = append(opts, broker.Queue(queue))
 		}
 		sub, err := config.Broker.Subscribe(sb.Topic(), handler, opts...)
 		if err != nil {

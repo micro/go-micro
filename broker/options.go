@@ -76,8 +76,8 @@ func DisableAutoAck() SubscribeOption {
 	}
 }
 
-// QueueName sets the name of the queue to share messages on
-func QueueName(name string) SubscribeOption {
+// Queue sets the name of the queue to share messages on
+func Queue(name string) SubscribeOption {
 	return func(o *SubscribeOptions) {
 		o.Queue = name
 	}
