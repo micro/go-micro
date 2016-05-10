@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"sync"
+	"bytes"
 
 	"github.com/micro/go-micro/codec"
 )
