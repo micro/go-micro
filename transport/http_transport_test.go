@@ -1,6 +1,7 @@
 package transport
 
 import (
+	"io"
 	"strings"
 	"testing"
 )
@@ -121,6 +122,9 @@ func TestHTTPTransportError(t *testing.T) {
 		for {
 			var m Message
 			if err := sock.Recv(&m); err != nil {
+				if err == io.EOF {
+					return
+				}
 				t.Fatal(err)
 			}
 
