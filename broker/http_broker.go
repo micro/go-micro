@@ -382,7 +382,6 @@ func (h *httpBroker) Publish(topic string, msg *Message, opts ...PublishOption) 
 		node := service.Nodes[rand.Int()%len(service.Nodes)]
 		// publish async
 		go fn(node, b)
-		return nil
 	}
 
 	return nil
