@@ -109,7 +109,7 @@ func (r *rpcClient) call(ctx context.Context, address string, req Request, resp 
 	case err := <-ch:
 		return err
 	case <-ctx.Done():
-		return errors.New("go.micro.client", ctx.Err(), 408)
+		return errors.New("go.micro.client", fmt.Sprintf("%v", ctx.Err()), 408)
 	}
 }
 
@@ -159,7 +159,7 @@ func (r *rpcClient) stream(ctx context.Context, address string, req Request, opt
 	case err := <-ch:
 		grr = err
 	case <-ctx.Done():
-		grr = errors.New("go.micro.client", ctx.Err(), 408)
+		grr = errors.New("go.micro.client", fmt.Sprintf("%v", ctx.Err()), 408)
 	}
 
 	if grr != nil {
@@ -217,6 +217,13 @@ func (r *rpcClient) Call(ctx context.Context, request Request, response interfac
 		opt(&callOpts)
 	}
 
+	// should we noop right here?
+	select {
+	case <-ctx.Done():
+		return errors.New("go.micro.client", fmt.Sprintf("%v", ctx.Err()), 408)
+	default:
+	}
+
 	// return errors.New("go.micro.client", "request timeout", 408)
 	call := func(i int) error {
 		// call backoff first. Someone may want an initial start delay
@@ -260,7 +267,7 @@ func (r *rpcClient) Call(ctx context.Context, request Request, response interfac
 
 		select {
 		case <-ctx.Done():
-			return errors.New("go.micro.client", ctx.Err(), 408)
+			return errors.New("go.micro.client", fmt.Sprintf("%v", ctx.Err()), 408)
 		case err := <-ch:
 			// if the call succeeded lets bail early
 			if err == nil {
@@ -309,6 +316,13 @@ func (r *rpcClient) Stream(ctx context.Context, request Request, opts ...CallOpt
 		opt(&callOpts)
 	}
 
+	// should we noop right here?
+	select {
+	case <-ctx.Done():
+		return nil, errors.New("go.micro.client", fmt.Sprintf("%v", ctx.Err()), 408)
+	default:
+	}
+
 	call := func(i int) (Streamer, error) {
 		// call backoff first. Someone may want an initial start delay
 		t, err := callOpts.Backoff(ctx, request, i)
@@ -354,7 +368,7 @@ func (r *rpcClient) Stream(ctx context.Context, request Request, opts ...CallOpt
 
 		select {
 		case <-ctx.Done():
-			return nil, errors.New("go.micro.client", ctx.Err(), 408)
+			return nil, errors.New("go.micro.client", fmt.Sprintf("%v", ctx.Err()), 408)
 		case rsp := <-ch:
 			// if the call succeeded lets bail early
 			if rsp.err == nil {
