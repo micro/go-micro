@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/micro/go-micro/broker"
 	"github.com/micro/go-micro/codec"
@@ -59,7 +60,11 @@ func (s *rpcServer) accept(sock transport.Socket) {
 		return
 	}
 
+	// we use this Timeout header to set a server deadline
+	to := msg.Header["Timeout"]
+	// we use this Content-Type header to identify the codec needed
 	ct := msg.Header["Content-Type"]
+
 	cf, err := s.newCodec(ct)
 	// TODO: needs better error handling
 	if err != nil {
@@ -80,8 +85,16 @@ func (s *rpcServer) accept(sock transport.Socket) {
 		hdr[k] = v
 	}
 	delete(hdr, "Content-Type")
+	delete(hdr, "Timeout")
 
 	ctx := metadata.NewContext(context.Background(), hdr)
+
+	// set the timeout if we have it
+	if len(to) > 0 {
+		if n, err := strconv.ParseUint(to, 10, 64); err == nil {
+			ctx, _ = context.WithTimeout(ctx, time.Duration(n))
+		}
+	}
 
 	// TODO: needs better error handling
 	if err := s.rpc.serveRequest(ctx, codec, ct); err != nil {
