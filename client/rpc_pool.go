@@ -63,6 +63,7 @@ func (p *pool) release(addr string, conn *poolConn, err error) {
 	p.Lock()
 	conns := p.conns[addr]
 	if len(conns) >= maxIdleConn {
+		p.Unlock()
 		conn.Client.Close()
 		return
 	}
