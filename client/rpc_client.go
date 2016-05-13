@@ -19,16 +19,16 @@ import (
 type rpcClient struct {
 	once sync.Once
 	opts Options
+	pool *pool
 }
 
 func newRpcClient(opt ...Option) Client {
-	var once sync.Once
-
 	opts := newOptions(opt...)
 
 	rc := &rpcClient{
-		once: once,
+		once: sync.Once{},
 		opts: opts,
+		pool: newPool(),
 	}
 
 	c := Client(rc)
@@ -73,10 +73,15 @@ func (r *rpcClient) call(ctx context.Context, address string, req Request, resp 
 		return errors.InternalServerError("go.micro.client", err.Error())
 	}
 
-	c, err := r.opts.Transport.Dial(address, transport.WithTimeout(opts.DialTimeout))
+	var grr error
+	c, err := r.pool.getConn(address, r.opts.Transport, transport.WithTimeout(opts.DialTimeout))
 	if err != nil {
 		return errors.InternalServerError("go.micro.client", fmt.Sprintf("Error sending request: %v", err))
 	}
+	defer func() {
+		// defer execution of release
+		r.pool.release(address, c, grr)
+	}()
 
 	stream := &rpcStream{
 		context: ctx,
@@ -107,8 +112,10 @@ func (r *rpcClient) call(ctx context.Context, address string, req Request, resp 
 
 	select {
 	case err := <-ch:
+		grr = err
 		return err
 	case <-ctx.Done():
+		grr = ctx.Err()
 		return errors.New("go.micro.client", fmt.Sprintf("%v", ctx.Err()), 408)
 	}
 }
