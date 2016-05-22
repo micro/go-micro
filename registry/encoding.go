@@ -54,13 +54,26 @@ func encodeEndpoints(en []*Endpoint) []string {
 func decodeEndpoints(tags []string) []*Endpoint {
 	var en []*Endpoint
 
+	// use the first format you find
+	var ver byte
+
 	for _, tag := range tags {
 		if len(tag) == 0 || tag[0] != 'e' {
 			continue
 		}
 
+		// check version
+		if ver > 0 && tag[1] != ver {
+			continue
+		}
+
 		var e *Endpoint
 		var buf []byte
+
+		// Old encoding was plain
+		if tag[1] == '=' {
+			buf = []byte(tag[2:])
+		}
 
 		// New encoding is hex
 		if tag[1] == '-' {
@@ -70,6 +83,9 @@ func decodeEndpoints(tags []string) []*Endpoint {
 		if err := json.Unmarshal(buf, &e); err == nil {
 			en = append(en, e)
 		}
+
+		// set version
+		ver = tag[1]
 	}
 	return en
 }
@@ -90,13 +106,25 @@ func encodeMetadata(md map[string]string) []string {
 func decodeMetadata(tags []string) map[string]string {
 	md := make(map[string]string)
 
+	var ver byte
+
 	for _, tag := range tags {
 		if len(tag) == 0 || tag[0] != 't' {
 			continue
 		}
 
+		// check version
+		if ver > 0 && tag[1] != ver {
+			continue
+		}
+
 		var kv map[string]string
 		var buf []byte
+
+		// Old encoding was plain
+		if tag[1] == '=' {
+			buf = []byte(tag[2:])
+		}
 
 		// New encoding is hex
 		if tag[1] == '-' {
@@ -109,6 +137,9 @@ func decodeMetadata(tags []string) map[string]string {
 				md[k] = v
 			}
 		}
+
+		// set version
+		ver = tag[1]
 	}
 	return md
 }
@@ -121,6 +152,11 @@ func decodeVersion(tags []string) (string, bool) {
 	for _, tag := range tags {
 		if len(tag) < 2 || tag[0] != 'v' {
 			continue
+		}
+
+		// Old encoding was plain
+		if tag[1] == '=' {
+			return tag[2:], true
 		}
 
 		// New encoding is hex
