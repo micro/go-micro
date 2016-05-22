@@ -45,10 +45,6 @@ func encodeEndpoints(en []*Endpoint) []string {
 	var tags []string
 	for _, e := range en {
 		if b, err := json.Marshal(e); err == nil {
-			// old encoding
-			// TODO: remove in 09/2016
-			tags = append(tags, "e="+string(b))
-			// new encoding
 			tags = append(tags, "e-"+encode(b))
 		}
 	}
@@ -58,26 +54,13 @@ func encodeEndpoints(en []*Endpoint) []string {
 func decodeEndpoints(tags []string) []*Endpoint {
 	var en []*Endpoint
 
-	// use the first format you find
-	var ver byte
-
 	for _, tag := range tags {
 		if len(tag) == 0 || tag[0] != 'e' {
 			continue
 		}
 
-		// check version
-		if ver > 0 && tag[1] != ver {
-			continue
-		}
-
 		var e *Endpoint
 		var buf []byte
-
-		// Old encoding was plain
-		if tag[1] == '=' {
-			buf = []byte(tag[2:])
-		}
 
 		// New encoding is hex
 		if tag[1] == '-' {
@@ -87,9 +70,6 @@ func decodeEndpoints(tags []string) []*Endpoint {
 		if err := json.Unmarshal(buf, &e); err == nil {
 			en = append(en, e)
 		}
-
-		// set version
-		ver = tag[1]
 	}
 	return en
 }
@@ -100,9 +80,6 @@ func encodeMetadata(md map[string]string) []string {
 		if b, err := json.Marshal(map[string]string{
 			k: v,
 		}); err == nil {
-			// old encoding
-			// TODO: remove in 09/2016
-			tags = append(tags, "t="+string(b))
 			// new encoding
 			tags = append(tags, "t-"+encode(b))
 		}
@@ -113,25 +90,13 @@ func encodeMetadata(md map[string]string) []string {
 func decodeMetadata(tags []string) map[string]string {
 	md := make(map[string]string)
 
-	var ver byte
-
 	for _, tag := range tags {
 		if len(tag) == 0 || tag[0] != 't' {
 			continue
 		}
 
-		// check version
-		if ver > 0 && tag[1] != ver {
-			continue
-		}
-
 		var kv map[string]string
 		var buf []byte
-
-		// Old encoding was plain
-		if tag[1] == '=' {
-			buf = []byte(tag[2:])
-		}
 
 		// New encoding is hex
 		if tag[1] == '-' {
@@ -144,32 +109,18 @@ func decodeMetadata(tags []string) map[string]string {
 				md[k] = v
 			}
 		}
-
-		// set version
-		ver = tag[1]
 	}
 	return md
 }
 
 func encodeVersion(v string) []string {
-	return []string{
-		// old encoding,
-		// TODO: remove in 09/2016
-		"v=" + v,
-		// new encoding,
-		"v-" + encode([]byte(v)),
-	}
+	return []string{"v-" + encode([]byte(v))}
 }
 
 func decodeVersion(tags []string) (string, bool) {
 	for _, tag := range tags {
 		if len(tag) < 2 || tag[0] != 'v' {
 			continue
-		}
-
-		// Old encoding was plain
-		if tag[1] == '=' {
-			return tag[2:], true
 		}
 
 		// New encoding is hex
