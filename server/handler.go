@@ -34,6 +34,7 @@ type Subscriber interface {
 
 type HandlerOptions struct {
 	Internal bool
+	Metadata map[string]map[string]string
 }
 
 type SubscriberOptions struct {
@@ -47,6 +48,14 @@ type SubscriberOptions struct {
 func InternalHandler(b bool) HandlerOption {
 	return func(o *HandlerOptions) {
 		o.Internal = b
+	}
+}
+
+// EndpointMetadata is a Handler option that allows metadata to be added to
+// individual endpoints.
+func EndpointMetadata(endpoint string, metadata map[string]string) HandlerOption {
+	return func(o *HandlerOptions) {
+		o.Metadata[endpoint] = metadata
 	}
 }
 
