@@ -90,7 +90,7 @@ func TestBlackList(t *testing.T) {
 	}
 
 	// blacklist all of it
-	for i := 0; i < 9; i++ {
+	for i := 0; i < 20; i++ {
 		node, err = next()
 		if err != nil {
 			t.Fatal(err)
