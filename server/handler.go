@@ -53,9 +53,9 @@ func InternalHandler(b bool) HandlerOption {
 
 // EndpointMetadata is a Handler option that allows metadata to be added to
 // individual endpoints.
-func EndpointMetadata(endpoint string, metadata map[string]string) HandlerOption {
+func EndpointMetadata(name string, md map[string]string) HandlerOption {
 	return func(o *HandlerOptions) {
-		o.Metadata[endpoint] = metadata
+		o.Metadata[name] = md
 	}
 }
 
