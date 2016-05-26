@@ -34,11 +34,20 @@ type Subscriber interface {
 
 type HandlerOptions struct {
 	Internal bool
+	Metadata map[string]map[string]string
 }
 
 type SubscriberOptions struct {
 	Queue    string
 	Internal bool
+}
+
+// EndpointMetadata is a Handler option that allows metadata to be added to
+// individual endpoints.
+func EndpointMetadata(name string, md map[string]string) HandlerOption {
+	return func(o *HandlerOptions) {
+		o.Metadata[name] = md
+	}
 }
 
 // Internal Handler options specifies that a handler is not advertised
