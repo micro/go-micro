@@ -123,6 +123,8 @@ func (m *MockClient) CallRemote(ctx context.Context, addr string, req client.Req
 		}
 
 		v.Set(reflect.ValueOf(r.Response))
+		
+		return nil
 	}
 
 	return fmt.Errorf("rpc: can't find service %s", req.Method())
