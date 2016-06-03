@@ -63,7 +63,12 @@ func (ms *mockSocket) Send(m *transport.Message) error {
 }
 
 func (ms *mockSocket) Close() error {
-	close(ms.exit)
+	select {
+	case <-ms.exit:
+		return nil
+	default:
+		close(ms.exit)
+	}
 	return nil
 }
 
@@ -72,7 +77,12 @@ func (m *mockListener) Addr() string {
 }
 
 func (m *mockListener) Close() error {
-	close(m.exit)
+	select {
+	case <-m.exit:
+		return nil
+	default:
+		close(m.exit)
+	}
 	return nil
 }
 
