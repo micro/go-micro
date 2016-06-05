@@ -409,7 +409,16 @@ func (h *httpTransport) Listen(addr string, opts ...ListenOption) (Listener, err
 
 		fn := func(addr string) (net.Listener, error) {
 			if config == nil {
-				cert, err := mls.Certificate(addr)
+				hosts := []string{addr}
+				if h, _, e := net.SplitHostPort(addr); e == nil {
+					if h == "" {
+						hosts = getIPAddrList()
+					} else {
+						hosts = []string{h}
+					}
+				}
+
+				cert, err := mls.Certificate(hosts...)
 				if err != nil {
 					return nil, err
 				}
@@ -446,4 +455,42 @@ func newHTTPTransport(opts ...Option) *httpTransport {
 		o(&options)
 	}
 	return &httpTransport{opts: options}
+}
+
+func getIPAddrList() []string {
+	ifaces, err := net.Interfaces()
+
+	if err != nil {
+		return nil
+	}
+
+	var ipAddrlist []string
+
+	for _, i := range ifaces {
+		if addrs, err := i.Addrs(); err != nil {
+			continue
+		} else {
+			for _, addr := range addrs {
+				var ip net.IP
+				switch v := addr.(type) {
+				case *net.IPNet:
+					ip = v.IP
+				case *net.IPAddr:
+					ip = v.IP
+				}
+
+				if ip == nil {
+					continue
+				}
+
+				ip = ip.To4()
+				if ip == nil {
+					continue
+				}
+
+				ipAddrlist = append(ipAddrlist, ip.String())
+			}
+		}
+	}
+	return ipAddrlist
 }
