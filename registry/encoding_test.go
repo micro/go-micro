@@ -57,8 +57,8 @@ func TestEncodingEndpoints(t *testing.T) {
 		e := encodeEndpoints([]*Endpoint{ep})
 
 		// check there are two tags; old and new
-		if len(e) != 2 {
-			t.Fatalf("Expected 2 encoded tags, got %v", e)
+		if len(e) != 1 {
+			t.Fatalf("Expected 1 encoded tags, got %v", e)
 		}
 
 		// check old encoding
@@ -104,30 +104,24 @@ func TestEncodingEndpoints(t *testing.T) {
 		// HEX encoded
 		hencoded := encode(jencoded)
 		// endpoint tag
-		jepTag := "e=" + string(jencoded)
 		hepTag := "e-" + hencoded
-
-		// test old
-		testEp(ep, jepTag)
-		// test new
 		testEp(ep, hepTag)
 	}
 }
 
 func TestEncodingVersion(t *testing.T) {
 	testData := []struct {
-		decoded    string
-		encoded    string
-		oldEncoded string
+		decoded string
+		encoded string
 	}{
-		{"1.0.0", "v-789c32d433d03300040000ffff02ce00ee", "v=1.0.0"},
-		{"latest", "v-789cca492c492d2e01040000ffff08cc028e", "v=latest"},
+		{"1.0.0", "v-789c32d433d03300040000ffff02ce00ee"},
+		{"latest", "v-789cca492c492d2e01040000ffff08cc028e"},
 	}
 
 	for _, data := range testData {
 		e := encodeVersion(data.decoded)
 
-		if e[1] != data.encoded {
+		if e[0] != data.encoded {
 			t.Fatalf("Expected %s got %s", data.encoded, e)
 		}
 
@@ -143,15 +137,6 @@ func TestEncodingVersion(t *testing.T) {
 		d, ok = decodeVersion([]string{data.encoded})
 		if !ok {
 			t.Fatalf("Unexpected %t for %s", ok, data.encoded)
-		}
-
-		if d != data.decoded {
-			t.Fatalf("Expected %s got %s", data.decoded, d)
-		}
-
-		d, ok = decodeVersion([]string{data.oldEncoded})
-		if !ok {
-			t.Fatalf("Unexpected %t for %s", ok, data.oldEncoded)
 		}
 
 		if d != data.decoded {

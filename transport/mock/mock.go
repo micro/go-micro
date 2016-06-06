@@ -2,7 +2,11 @@ package mock
 
 import (
 	"errors"
+	"fmt"
+	"math/rand"
+	"strings"
 	"sync"
+	"time"
 
 	"github.com/micro/go-micro/transport"
 )
@@ -59,7 +63,12 @@ func (ms *mockSocket) Send(m *transport.Message) error {
 }
 
 func (ms *mockSocket) Close() error {
-	close(ms.exit)
+	select {
+	case <-ms.exit:
+		return nil
+	default:
+		close(ms.exit)
+	}
 	return nil
 }
 
@@ -68,7 +77,12 @@ func (m *mockListener) Addr() string {
 }
 
 func (m *mockListener) Close() error {
-	close(m.exit)
+	select {
+	case <-m.exit:
+		return nil
+	default:
+		close(m.exit)
+	}
 	return nil
 }
 
@@ -126,13 +140,23 @@ func (m *mockTransport) Listen(addr string, opts ...transport.ListenOption) (tra
 	m.Lock()
 	defer m.Unlock()
 
-	if _, ok := m.listeners[addr]; ok {
-		return nil, errors.New("already listening on " + addr)
-	}
-
 	var options transport.ListenOptions
 	for _, o := range opts {
 		o(&options)
+	}
+
+	parts := strings.Split(addr, ":")
+
+	// if zero port then randomly assign one
+	if len(parts) > 1 && parts[len(parts)-1] == "0" {
+		r := rand.New(rand.NewSource(time.Now().UnixNano()))
+		i := r.Intn(10000)
+		// set addr with port
+		addr = fmt.Sprintf("%s:%d", parts[:len(parts)-1], 10000+i)
+	}
+
+	if _, ok := m.listeners[addr]; ok {
+		return nil, errors.New("already listening on " + addr)
 	}
 
 	listener := &mockListener{

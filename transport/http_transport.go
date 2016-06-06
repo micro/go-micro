@@ -409,7 +409,19 @@ func (h *httpTransport) Listen(addr string, opts ...ListenOption) (Listener, err
 
 		fn := func(addr string) (net.Listener, error) {
 			if config == nil {
-				cert, err := mls.Certificate(addr)
+				hosts := []string{addr}
+
+				// check if its a valid host:port
+				if host, _, err := net.SplitHostPort(addr); err == nil {
+					if len(host) == 0 {
+						hosts = getIPAddrs()
+					} else {
+						hosts = []string{host}
+					}
+				}
+
+				// generate a certificate
+				cert, err := mls.Certificate(hosts...)
 				if err != nil {
 					return nil, err
 				}
@@ -438,6 +450,45 @@ func (h *httpTransport) Listen(addr string, opts ...ListenOption) (Listener, err
 
 func (h *httpTransport) String() string {
 	return "http"
+}
+
+func getIPAddrs() []string {
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		return nil
+	}
+
+	var ipAddrs []string
+
+	for _, i := range ifaces {
+		addrs, err := i.Addrs()
+		if err != nil {
+			continue
+		}
+
+		for _, addr := range addrs {
+			var ip net.IP
+			switch v := addr.(type) {
+			case *net.IPNet:
+				ip = v.IP
+			case *net.IPAddr:
+				ip = v.IP
+			}
+
+			if ip == nil {
+				continue
+			}
+
+			ip = ip.To4()
+			if ip == nil {
+				continue
+			}
+
+			ipAddrs = append(ipAddrs, ip.String())
+		}
+	}
+
+	return ipAddrs
 }
 
 func newHTTPTransport(opts ...Option) *httpTransport {

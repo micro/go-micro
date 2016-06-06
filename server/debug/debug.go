@@ -1,6 +1,9 @@
 package debug
 
 import (
+	"runtime"
+	"time"
+
 	proto "github.com/micro/go-micro/server/debug/proto"
 
 	"golang.org/x/net/context"
@@ -12,16 +15,37 @@ import (
 // and /varz
 type DebugHandler interface {
 	Health(ctx context.Context, req *proto.HealthRequest, rsp *proto.HealthResponse) error
+	Stats(ctx context.Context, req *proto.StatsRequest, rsp *proto.StatsResponse) error
 }
 
 // Our own internal handler
-type debug struct{}
+type debug struct {
+	started int64
+}
 
 var (
-	DefaultDebugHandler DebugHandler = new(debug)
+	DefaultDebugHandler DebugHandler = newDebug()
 )
+
+func newDebug() *debug {
+	return &debug{
+		started: time.Now().Unix(),
+	}
+}
 
 func (d *debug) Health(ctx context.Context, req *proto.HealthRequest, rsp *proto.HealthResponse) error {
 	rsp.Status = "ok"
+	return nil
+}
+
+func (d *debug) Stats(ctx context.Context, req *proto.StatsRequest, rsp *proto.StatsResponse) error {
+	var mstat runtime.MemStats
+	runtime.ReadMemStats(&mstat)
+
+	rsp.Started = uint64(d.started)
+	rsp.Uptime = uint64(time.Now().Unix() - d.started)
+	rsp.Memory = mstat.Alloc
+	rsp.Gc = mstat.PauseTotalNs
+	rsp.Threads = uint64(runtime.NumGoroutine())
 	return nil
 }

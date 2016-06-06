@@ -14,7 +14,10 @@ type rpcHandler struct {
 }
 
 func newRpcHandler(handler interface{}, opts ...HandlerOption) Handler {
-	var options HandlerOptions
+	options := HandlerOptions{
+		Metadata: make(map[string]map[string]string),
+	}
+
 	for _, o := range opts {
 		o(&options)
 	}
@@ -28,6 +31,11 @@ func newRpcHandler(handler interface{}, opts ...HandlerOption) Handler {
 	for m := 0; m < typ.NumMethod(); m++ {
 		if e := extractEndpoint(typ.Method(m)); e != nil {
 			e.Name = name + "." + e.Name
+
+			for k, v := range options.Metadata[e.Name] {
+				e.Metadata[k] = v
+			}
+
 			endpoints = append(endpoints, e)
 		}
 	}
