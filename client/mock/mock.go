@@ -123,7 +123,7 @@ func (m *MockClient) CallRemote(ctx context.Context, addr string, req client.Req
 		}
 
 		v.Set(reflect.ValueOf(r.Response))
-		
+
 		return nil
 	}
 
