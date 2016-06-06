@@ -411,8 +411,8 @@ func (h *httpTransport) Listen(addr string, opts ...ListenOption) (Listener, err
 			if config == nil {
 				hosts := []string{addr}
 				if h, _, e := net.SplitHostPort(addr); e == nil {
-					if h == "" {
-						hosts = getIPAddrList()
+					if len(h) == 0 {
+						hosts = getIPAddrs()
 					} else {
 						hosts = []string{h}
 					}
@@ -457,40 +457,40 @@ func newHTTPTransport(opts ...Option) *httpTransport {
 	return &httpTransport{opts: options}
 }
 
-func getIPAddrList() []string {
+func getIPAddrs() []string {
 	ifaces, err := net.Interfaces()
-
 	if err != nil {
 		return nil
 	}
 
-	var ipAddrlist []string
+	var ipAddrs []string
 
 	for _, i := range ifaces {
-		if addrs, err := i.Addrs(); err != nil {
+		addrs, err := i.Addrs()
+		if err != nil {
 			continue
-		} else {
-			for _, addr := range addrs {
-				var ip net.IP
-				switch v := addr.(type) {
-				case *net.IPNet:
-					ip = v.IP
-				case *net.IPAddr:
-					ip = v.IP
-				}
+		}
 
-				if ip == nil {
-					continue
-				}
-
-				ip = ip.To4()
-				if ip == nil {
-					continue
-				}
-
-				ipAddrlist = append(ipAddrlist, ip.String())
+		for _, addr := range addrs {
+			var ip net.IP
+			switch v := addr.(type) {
+			case *net.IPNet:
+				ip = v.IP
+			case *net.IPAddr:
+				ip = v.IP
 			}
+
+			if ip == nil {
+				continue
+			}
+
+			ip = ip.To4()
+			if ip == nil {
+				continue
+			}
+
+			ipAddrs = append(ipAddrs, ip.String())
 		}
 	}
-	return ipAddrlist
+	return ipAddrs
 }
