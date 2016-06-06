@@ -28,7 +28,7 @@ func newRpcClient(opt ...Option) Client {
 	rc := &rpcClient{
 		once: sync.Once{},
 		opts: opts,
-		pool: newPool(),
+		pool: newPool(opts.PoolSize, opts.PoolTTL),
 	}
 
 	c := Client(rc)
@@ -178,9 +178,18 @@ func (r *rpcClient) stream(ctx context.Context, address string, req Request, opt
 }
 
 func (r *rpcClient) Init(opts ...Option) error {
+	size := r.opts.PoolSize
+	ttl := r.opts.PoolTTL
+
 	for _, o := range opts {
 		o(&r.opts)
 	}
+
+	// recreate the pool if the options changed
+	if size != r.opts.PoolSize || ttl != r.opts.PoolTTL {
+		r.pool = newPool(r.opts.PoolSize, r.opts.PoolTTL)
+	}
+
 	return nil
 }
 

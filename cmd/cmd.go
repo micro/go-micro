@@ -62,6 +62,16 @@ var (
 			EnvVar: "MICRO_CLIENT_RETRIES",
 			Usage:  "Sets the client retries. Default: 1",
 		},
+		cli.IntFlag{
+			Name:   "client_pool_size",
+			EnvVar: "MICRO_CLIENT_POOL_SIZE",
+			Usage:  "Sets the client connection pool size. Default: 0",
+		},
+		cli.StringFlag{
+			Name:   "client_pool_ttl",
+			EnvVar: "MICRO_CLIENT_POOL_TTL",
+			Usage:  "Sets the client connection pool ttl. e.g 500ms, 5s, 1m. Default: 1m",
+		},
 		cli.StringFlag{
 			Name:   "server_name",
 			EnvVar: "MICRO_SERVER_NAME",
@@ -335,6 +345,18 @@ func (c *cmd) Before(ctx *cli.Context) error {
 			return fmt.Errorf("failed to parse client_request_timeout: %v", t)
 		}
 		clientOpts = append(clientOpts, client.RequestTimeout(d))
+	}
+
+	if r := ctx.Int("client_pool_size"); r > 0 {
+		clientOpts = append(clientOpts, client.PoolSize(r))
+	}
+
+	if t := ctx.String("client_pool_ttl"); len(t) > 0 {
+		d, err := time.ParseDuration(t)
+		if err != nil {
+			return fmt.Errorf("failed to parse client_pool_ttl: %v", t)
+		}
+		clientOpts = append(clientOpts, client.PoolTTL(d))
 	}
 
 	// We have some command line opts for the server.

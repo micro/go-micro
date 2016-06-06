@@ -1,6 +1,7 @@
 package client
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -8,7 +9,8 @@ import (
 )
 
 type pool struct {
-	tr transport.Transport
+	size int
+	ttl  int64
 
 	sync.Mutex
 	conns map[string][]*poolConn
@@ -19,15 +21,10 @@ type poolConn struct {
 	created int64
 }
 
-var (
-	// only hold on to this many conns
-	maxIdleConn = 2
-	// only hold on to the conn for this period
-	maxLifeTime = int64(60)
-)
-
-func newPool() *pool {
+func newPool(size int, ttl time.Duration) *pool {
 	return &pool{
+		size:  size,
+		ttl:   int64(ttl.Seconds()),
 		conns: make(map[string][]*poolConn),
 	}
 }
@@ -50,7 +47,7 @@ func (p *pool) getConn(addr string, tr transport.Transport, opts ...transport.Di
 		p.conns[addr] = conns
 
 		// if conn is old kill it and move on
-		if d := now - conn.created; d > maxLifeTime {
+		if d := now - conn.created; d > p.ttl {
 			conn.Client.Close()
 			continue
 		}
@@ -58,10 +55,13 @@ func (p *pool) getConn(addr string, tr transport.Transport, opts ...transport.Di
 		// we got a good conn, lets unlock and return it
 		p.Unlock()
 
+		fmt.Println("old conn")
 		return conn, nil
 	}
 
 	p.Unlock()
+
+	fmt.Println("new conn")
 
 	// create new conn
 	c, err := tr.Dial(addr, opts...)
@@ -81,7 +81,7 @@ func (p *pool) release(addr string, conn *poolConn, err error) {
 	// otherwise put it back for reuse
 	p.Lock()
 	conns := p.conns[addr]
-	if len(conns) >= maxIdleConn {
+	if len(conns) >= p.size {
 		p.Unlock()
 		conn.Client.Close()
 		return
