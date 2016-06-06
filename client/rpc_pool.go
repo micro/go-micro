@@ -1,7 +1,6 @@
 package client
 
 import (
-	"fmt"
 	"sync"
 	"time"
 
@@ -55,13 +54,10 @@ func (p *pool) getConn(addr string, tr transport.Transport, opts ...transport.Di
 		// we got a good conn, lets unlock and return it
 		p.Unlock()
 
-		fmt.Println("old conn")
 		return conn, nil
 	}
 
 	p.Unlock()
-
-	fmt.Println("new conn")
 
 	// create new conn
 	c, err := tr.Dial(addr, opts...)
