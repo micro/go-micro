@@ -55,50 +55,53 @@ func (s *rpcServer) accept(sock transport.Socket) {
 		}
 	}()
 
-	var msg transport.Message
-	if err := sock.Recv(&msg); err != nil {
-		return
-	}
-
-	// we use this Timeout header to set a server deadline
-	to := msg.Header["Timeout"]
-	// we use this Content-Type header to identify the codec needed
-	ct := msg.Header["Content-Type"]
-
-	cf, err := s.newCodec(ct)
-	// TODO: needs better error handling
-	if err != nil {
-		sock.Send(&transport.Message{
-			Header: map[string]string{
-				"Content-Type": "text/plain",
-			},
-			Body: []byte(err.Error()),
-		})
-		return
-	}
-
-	codec := newRpcPlusCodec(&msg, sock, cf)
-
-	// strip our headers
-	hdr := make(map[string]string)
-	for k, v := range msg.Header {
-		hdr[k] = v
-	}
-	delete(hdr, "Content-Type")
-	delete(hdr, "Timeout")
-
-	ctx := metadata.NewContext(context.Background(), hdr)
-
-	// set the timeout if we have it
-	if len(to) > 0 {
-		if n, err := strconv.ParseUint(to, 10, 64); err == nil {
-			ctx, _ = context.WithTimeout(ctx, time.Duration(n))
+	for {
+		var msg transport.Message
+		if err := sock.Recv(&msg); err != nil {
+			return
 		}
-	}
 
-	// TODO: needs better error handling
-	if err := s.rpc.serveRequest(ctx, codec, ct); err != nil {
-		log.Printf("Unexpected error serving request, closing socket: %v", err)
+		// we use this Timeout header to set a server deadline
+		to := msg.Header["Timeout"]
+		// we use this Content-Type header to identify the codec needed
+		ct := msg.Header["Content-Type"]
+
+		cf, err := s.newCodec(ct)
+		// TODO: needs better error handling
+		if err != nil {
+			sock.Send(&transport.Message{
+				Header: map[string]string{
+					"Content-Type": "text/plain",
+				},
+				Body: []byte(err.Error()),
+			})
+			return
+		}
+
+		codec := newRpcPlusCodec(&msg, sock, cf)
+
+		// strip our headers
+		hdr := make(map[string]string)
+		for k, v := range msg.Header {
+			hdr[k] = v
+		}
+		delete(hdr, "Content-Type")
+		delete(hdr, "Timeout")
+
+		ctx := metadata.NewContext(context.Background(), hdr)
+
+		// set the timeout if we have it
+		if len(to) > 0 {
+			if n, err := strconv.ParseUint(to, 10, 64); err == nil {
+				ctx, _ = context.WithTimeout(ctx, time.Duration(n))
+			}
+		}
+
+		// TODO: needs better error handling
+		if err := s.rpc.serveRequest(ctx, codec, ct); err != nil {
+			log.Printf("Unexpected error serving request, closing socket: %v", err)
+			return
+		}
 	}
 }
 
