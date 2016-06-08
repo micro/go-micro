@@ -3,6 +3,7 @@ package broker
 import (
 	"crypto/tls"
 
+	"github.com/micro/go-micro/codec"
 	"github.com/micro/go-micro/registry"
 	"golang.org/x/net/context"
 )
@@ -11,6 +12,9 @@ type Options struct {
 	Addrs     []string
 	Secure    bool
 	TLSConfig *tls.Config
+
+	// Encoding Codec
+	Codec codec.NewCodec
 
 	// Other options for implementations of the interface
 	// can be stored in a context
@@ -65,6 +69,13 @@ func newSubscribeOptions(opts ...SubscribeOption) SubscribeOptions {
 func Addrs(addrs ...string) Option {
 	return func(o *Options) {
 		o.Addrs = addrs
+	}
+}
+
+// Codec sets the codec to use for the broker
+func Codec(c codec.NewCodec) Option {
+	return func(o *Options) {
+		o.Codec = c
 	}
 }
 
