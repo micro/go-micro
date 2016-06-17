@@ -349,10 +349,12 @@ func (c *cacheSelector) Select(service string, opts ...selector.SelectOption) (s
 		services = filter(services)
 	}
 
-	services, err = c.bl.Filter(services)
-	if err != nil {
-		return nil, err
-	}
+	/*
+		services, err = c.bl.Filter(services)
+		if err != nil {
+			return nil, err
+		}
+	*/
 
 	// if there's nothing left, return
 	if len(services) == 0 {

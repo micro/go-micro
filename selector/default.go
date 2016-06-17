@@ -50,10 +50,12 @@ func (r *defaultSelector) Select(service string, opts ...SelectOption) (Next, er
 	}
 
 	// apply the blacklist
-	services, err = r.bl.Filter(services)
-	if err != nil {
-		return nil, err
-	}
+	/*
+		services, err = r.bl.Filter(services)
+		if err != nil {
+			return nil, err
+		}
+	*/
 
 	// if there's nothing left, return
 	if len(services) == 0 {
