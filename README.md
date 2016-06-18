@@ -106,6 +106,8 @@ There's just one prerequisite. We need a service discovery system to resolve ser
 The default discovery mechanism used in go-micro is Consul. Discovery is however pluggable so you can used 
 etcd, kubernetes, zookeeper, etc. Other implementations can be found in [go-plugins](https://github.com/micro/go-plugins).
 
+Alternatively we can use multicast DNS with the built in MDNS registry for a zero dependency configuration. Just pass `--registry=mdns` to the below commands.
+
 ### Install Consul
 [https://www.consul.io/intro/getting-started/install.html](https://www.consul.io/intro/getting-started/install.html)
 
