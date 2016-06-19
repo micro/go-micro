@@ -5,13 +5,10 @@ import (
 	"time"
 
 	"github.com/micro/go-micro/registry"
-	"github.com/micro/go-micro/selector/internal/blacklist"
 )
 
 type defaultSelector struct {
-	so   Options
-	exit chan bool
-	bl   *blacklist.BlackList
+	so Options
 }
 
 func init() {
@@ -49,14 +46,6 @@ func (r *defaultSelector) Select(service string, opts ...SelectOption) (Next, er
 		services = filter(services)
 	}
 
-	// apply the blacklist
-	/*
-		services, err = r.bl.Filter(services)
-		if err != nil {
-			return nil, err
-		}
-	*/
-
 	// if there's nothing left, return
 	if len(services) == 0 {
 		return nil, ErrNoneAvailable
@@ -66,21 +55,14 @@ func (r *defaultSelector) Select(service string, opts ...SelectOption) (Next, er
 }
 
 func (r *defaultSelector) Mark(service string, node *registry.Node, err error) {
-	r.bl.Mark(service, node, err)
+	return
 }
 
 func (r *defaultSelector) Reset(service string) {
-	r.bl.Reset(service)
+	return
 }
 
 func (r *defaultSelector) Close() error {
-	select {
-	case <-r.exit:
-		return nil
-	default:
-		close(r.exit)
-		r.bl.Close()
-	}
 	return nil
 }
 
@@ -102,8 +84,6 @@ func newDefaultSelector(opts ...Option) Selector {
 	}
 
 	return &defaultSelector{
-		so:   sopts,
-		exit: make(chan bool),
-		bl:   blacklist.New(),
+		so: sopts,
 	}
 }
