@@ -46,15 +46,18 @@ var (
 	HeaderPrefix = "X-Micro-"
 )
 
+// NewService creates an returns a new Service based on the packages within.
 func NewService(opts ...Option) Service {
 	return newService(opts...)
 }
 
+// FromContext retrieves a Service from the Context.
 func FromContext(ctx context.Context) (Service, bool) {
 	s, ok := ctx.Value(serviceKey{}).(Service)
 	return s, ok
 }
 
+// NewContext returns a new Context with the Service embedded within it.
 func NewContext(ctx context.Context, s Service) context.Context {
 	return context.WithValue(ctx, serviceKey{}, s)
 }
