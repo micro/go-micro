@@ -1,8 +1,10 @@
 # Go Micro [![License](https://img.shields.io/:license-apache-blue.svg)](https://opensource.org/licenses/Apache-2.0) [![GoDoc](https://godoc.org/github.com/micro/go-micro?status.svg)](https://godoc.org/github.com/micro/go-micro) [![Travis CI](https://travis-ci.org/micro/go-micro.svg?branch=master)](https://travis-ci.org/micro/go-micro) [![Go Report Card](https://goreportcard.com/badge/micro/go-micro)](https://goreportcard.com/report/github.com/micro/go-micro)
 
-Go Micro is a pluggable RPC based microservice library which provides the fundamental building blocks for writing distributed applications. It is part of the [Micro](https://github.com/micro/micro) toolkit. It supports Proto-RPC and JSON-RPC as the request/response protocol out of the box and defaults to Consul for discovery.
+Go Micro is a pluggable RPC framework which provides the fundamental building blocks for writing microservices. It is part of [Micro](https://github.com/micro/micro), the microservice toolkit.
 
-The Micro philosophy is sane defaults with a pluggable architecture. We provide defaults to get you started quickly but everything can be easily swapped out.
+The **Micro** philosophy is sane defaults with a pluggable architecture. We provide defaults to get you started quickly but everything can be easily swapped out. It comes with built in support for {json,proto}-rpc encoding, consul or multicast dns for service discovery, http for communication and random hashed client side load balancing.
+
+Everything in go-micro is **pluggable**. You can find and contribute to plugins at [github.com/micro/go-plugins](https://github.com/micro/go-plugins).
 
 An example service can be found in [**examples/service**](https://github.com/micro/go-micro/tree/master/examples/service). The [**examples**](https://github.com/micro/go-micro/tree/master/examples) directory contains many more examples for using things such as middleware/wrappers, selector filters, pub/sub and code generation.
 
@@ -10,7 +12,7 @@ Check out the blog post to learn how to write go-micro services [https://blog.mi
 
 Join the community to learn more:
 - [Mailing List](https://groups.google.com/forum/#!forum/micro-services) 
-- [Slack](https://micro-services.slack.com) : [auto-invite](http://micro-invites.herokuapp.com/)
+- [Slack](https://micro-services.slack.com) : [Invite](http://slack.micro.mu/)
 
 ## Features
 
