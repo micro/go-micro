@@ -18,7 +18,7 @@ Join the community to learn more:
 
 Feature		| Package	|	Built-in Plugin		|	Description
 -------		| -------	|	---------		|	-----------
-Discovery	| [Registry](https://godoc.org/github.com/micro/go-micro/registry)	| consul,mdns	| A way of locating services to communicate with
+Discovery	| [Registry](https://godoc.org/github.com/micro/go-micro/registry)	| consul,mdns	| Service discovery mechanism
 Client		| [Client](https://godoc.org/github.com/micro/go-micro/client)	| rpc	| Used to make RPC requests to a service
 Codec		| [Codec](https://godoc.org/github.com/micro/go-micro/codec)	| proto,json	| Request message encoding 
 Balancer	| [Selector](https://godoc.org/github.com/micro/go-micro/selector)	| random	| Client side load balancing
