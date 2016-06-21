@@ -3,7 +3,6 @@ package broker
 import (
 	"bytes"
 	"crypto/tls"
-	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -18,6 +17,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/micro/go-micro/codec"
+	"github.com/micro/go-micro/codec/jsonrpc"
 	"github.com/micro/go-micro/errors"
 	"github.com/micro/go-micro/registry"
 	mls "github.com/micro/misc/lib/tls"
@@ -96,6 +97,7 @@ func newTransport(config *tls.Config) *http.Transport {
 
 func newHttpBroker(opts ...Option) Broker {
 	options := Options{
+		Codec:   jsonrpc.NewCodec,
 		Context: context.TODO(),
 	}
 
@@ -254,20 +256,23 @@ func (h *httpBroker) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, err.Error(), http.StatusMethodNotAllowed)
 		return
 	}
-	defer req.Body.Close()
+	defer func() {
+		io.Copy(ioutil.Discard, req.Body)
+		req.Body.Close()
+	}()
 
 	req.ParseForm()
+	var m *Message
 
-	b, err := ioutil.ReadAll(req.Body)
-	if err != nil {
-		errr := errors.InternalServerError("go.micro.broker", fmt.Sprintf("Error reading request body: %v", err))
+	c := h.opts.Codec(&writeBuffer{req.Body})
+	if err := c.ReadHeader(&codec.Message{}, codec.Publication); err != nil {
+		errr := errors.InternalServerError("go.micro.broker", fmt.Sprintf("Error parsing request body: %v", err))
 		w.WriteHeader(500)
 		w.Write([]byte(errr.Error()))
 		return
 	}
 
-	var m *Message
-	if err = json.Unmarshal(b, &m); err != nil {
+	if err := c.ReadBody(&m); err != nil {
 		errr := errors.InternalServerError("go.micro.broker", fmt.Sprintf("Error parsing request body: %v", err))
 		w.WriteHeader(500)
 		w.Write([]byte(errr.Error()))
@@ -345,8 +350,13 @@ func (h *httpBroker) Publish(topic string, msg *Message, opts ...PublishOption) 
 	}
 
 	msg.Header[":topic"] = topic
-	b, err := json.Marshal(msg)
-	if err != nil {
+
+	buf := bytes.NewBuffer(nil)
+	defer buf.Reset()
+
+	if err := h.opts.Codec(&closeBuffer{buf}).Write(&codec.Message{
+		Type: codec.Publication,
+	}, msg); err != nil {
 		return err
 	}
 
@@ -374,14 +384,14 @@ func (h *httpBroker) Publish(topic string, msg *Message, opts ...PublishOption) 
 		if service.Version == broadcastVersion {
 			for _, node := range service.Nodes {
 				// publish async
-				go fn(node, b)
+				go fn(node, buf.Bytes())
 			}
 			return nil
 		}
 
 		node := service.Nodes[rand.Int()%len(service.Nodes)]
 		// publish async
-		go fn(node, b)
+		go fn(node, buf.Bytes())
 	}
 
 	return nil
