@@ -19,12 +19,12 @@ Join the community to learn more:
 Feature		| Package	|	Built-in Plugin		|	Description
 -------		| -------	|	---------		|	-----------
 Discovery	| [Registry](https://godoc.org/github.com/micro/go-micro/registry)	| consul,mdns	| Service discovery mechanism
-Client		| [Client](https://godoc.org/github.com/micro/go-micro/client)	| rpc	| RPC Client
 Codec		| [Codec](https://godoc.org/github.com/micro/go-micro/codec)	| proto,json	| Message encoding 
 Balancer	| [Selector](https://godoc.org/github.com/micro/go-micro/selector)	| random	| Client side load balancing
-Server		| [Server](https://godoc.org/github.com/micro/go-micro/server)	| rpc	| RPC Server
 Pub/Sub		| [Broker](https://godoc.org/github.com/micro/go-micro/broker)	| http	| Asynchonous communication
 Transport	| [Transport](https://godoc.org/github.com/micro/go-micro/transport)	| http	| Synchronous communication
+Client		| [Client](https://godoc.org/github.com/micro/go-micro/client)	| rpc	| RPC Client
+Server		| [Server](https://godoc.org/github.com/micro/go-micro/server)	| rpc	| RPC Server
 
 ## Example Services
 Project		|	Description
