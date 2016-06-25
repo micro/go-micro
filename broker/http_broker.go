@@ -288,7 +288,6 @@ func (h *httpBroker) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	id := req.Form.Get("id")
 
 	h.RLock()
-
 	for _, subscriber := range h.subscribers[topic] {
 		if id == subscriber.id {
 			// sub is sync; crufty rate limiting
@@ -340,12 +339,18 @@ func (h *httpBroker) Publish(topic string, msg *Message, opts ...PublishOption) 
 		return err
 	}
 
-	if msg.Header == nil {
-		msg.Header = map[string]string{}
+	m := &Message{
+		Header: make(map[string]string),
+		Body:   msg.Body,
 	}
 
-	msg.Header[":topic"] = topic
-	b, err := json.Marshal(msg)
+	for k, v := range msg.Header {
+		m.Header[k] = v
+	}
+
+	m.Header[":topic"] = topic
+
+	b, err := json.Marshal(m)
 	if err != nil {
 		return err
 	}
