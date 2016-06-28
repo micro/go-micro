@@ -116,7 +116,7 @@ var (
 		cli.StringFlag{
 			Name:   "registry",
 			EnvVar: "MICRO_REGISTRY",
-			Usage:  "Registry for discovery. memory, consul, etcd, kubernetes",
+			Usage:  "Registry for discovery. consul, mdns",
 		},
 		cli.StringFlag{
 			Name:   "registry_address",
@@ -131,7 +131,7 @@ var (
 		cli.StringFlag{
 			Name:   "transport",
 			EnvVar: "MICRO_TRANSPORT",
-			Usage:  "Transport mechanism used; http, rabbitmq, nats",
+			Usage:  "Transport mechanism used; http",
 		},
 		cli.StringFlag{
 			Name:   "transport_address",
