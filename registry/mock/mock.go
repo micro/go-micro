@@ -60,7 +60,7 @@ func (m *mockRegistry) init() {
 
 func (m *mockRegistry) GetService(service string) ([]*registry.Service, error) {
 	s, ok := m.Services[service]
-	if !ok {
+	if !ok || len(s) == 0 {
 		return nil, registry.ErrNotFound
 	}
 	return s, nil
