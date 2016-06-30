@@ -86,7 +86,7 @@ func (c *clientCodec) ReadHeader(m *codec.Message) error {
 }
 
 func (c *clientCodec) ReadBody(x interface{}) error {
-	if x == nil {
+	if x == nil || c.resp.Result == nil {
 		return nil
 	}
 	return json.Unmarshal(*c.resp.Result, x)
