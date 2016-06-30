@@ -94,6 +94,12 @@ func (r *rpcClient) call(ctx context.Context, address string, req Request, resp 
 	ch := make(chan error, 1)
 
 	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				ch <- errors.InternalServerError("go.micro.client", "request error")
+			}
+		}()
+
 		// send request
 		if err := stream.Send(req.Request()); err != nil {
 			ch <- err
