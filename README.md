@@ -13,7 +13,7 @@ For the complete greeter example look at [**micro/examples/greeter**](https://gi
 Check out the blog post to learn how to write go-micro services [https://blog.micro.mu/2016/03/28/go-micro.html](https://blog.micro.mu/2016/03/28/go-micro.html).
 
 Join the community to learn more:
-- [Mailing List](https://groups.google.com/forum/#!forum/micro-services) 
+- [Mailing List](https://groups.google.com/forum/#!forum/microhq) 
 - [Slack](https://micro-services.slack.com) : [Invite](http://slack.micro.mu/)
 
 ## Features
