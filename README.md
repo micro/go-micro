@@ -6,44 +6,42 @@ The **Micro** philosophy is sane defaults with a pluggable architecture. We prov
 
 Everything in go-micro is **pluggable**. You can find and contribute to plugins at [github.com/micro/go-plugins](https://github.com/micro/go-plugins).
 
+## The Features
+
+Go Micro abstracts way the details of distributed systems and makes building microservices simple. Beneath the covers it provides a number of features.
+
+**Service Discovery** - Applications are automatically registered with service discovery so they can locate each other
+
+**Load Balancing** - Smart client side load balancing is used to balance requests between instances of a service.
+
+**Synchronous Communication** - Request-response is provided as a bidirectional streaming transport layer.
+
+**Asynchronous Communication** - Microservices are an event driven architecture. Publish and Subscribe via the Broker.
+
+**Message Encoding** - Micro services can encode requests in a number of encoding formats and seamlessly decode based on the Content-Type header.
+
+**RPC Client/Server** - The client and server leverage the above features and provide a clean simple interface for building microservices.
+
+## Learn By Example
+
 An example service can be found in [**examples/service**](https://github.com/micro/go-micro/tree/master/examples/service). The [**examples**](https://github.com/micro/go-micro/tree/master/examples) directory contains many more examples for using things such as middleware/wrappers, selector filters, pub/sub and code generation. 
 
-For the complete greeter example look at [**micro/examples/greeter**](https://github.com/micro/micro/tree/master/examples/greeter).
+For the complete greeter example look at [**micro/examples/greeter**](https://github.com/micro/micro/tree/master/examples/greeter). Other examples can be found throughout the GitHub repository.
 
 Check out the blog post to learn how to write go-micro services [https://blog.micro.mu/2016/03/28/go-micro.html](https://blog.micro.mu/2016/03/28/go-micro.html).
 
-Join the community to learn more:
+## Join The Community
+
+There's a growing community on Slack with hundreds of members and a mailing list for those that prefer the classic method of communication.
+
+Join us to discuss, learn and contribute:
+
 - [Mailing List](https://groups.google.com/forum/#!forum/microhq) 
 - [Slack](https://micro-services.slack.com) : [Invite](http://slack.micro.mu/)
 
-## Features
+## Community Plugins
 
-Feature		| Package	|	Built-in Plugin		|	Description
--------		| -------	|	---------		|	-----------
-Discovery	| [Registry](https://godoc.org/github.com/micro/go-micro/registry)	| consul,mdns	| Service discovery mechanism
-Codec		| [Codec](https://godoc.org/github.com/micro/go-micro/codec)	| proto,json	| Message encoding 
-Balancer	| [Selector](https://godoc.org/github.com/micro/go-micro/selector)	| random	| Client side load balancing
-Pub/Sub		| [Broker](https://godoc.org/github.com/micro/go-micro/broker)	| http	| Asynchonous communication
-Transport	| [Transport](https://godoc.org/github.com/micro/go-micro/transport)	| http	| Synchronous communication
-Client		| [Client](https://godoc.org/github.com/micro/go-micro/client)	| rpc	| RPC Client
-Server		| [Server](https://godoc.org/github.com/micro/go-micro/server)	| rpc	| RPC Server
-
-## Example Services
-Project		|	Description
------		|	------
-[greeter](https://github.com/micro/micro/tree/master/examples/greeter)	|	A greeter service (includes Go, Ruby, Python examples)
-[geo-srv](https://github.com/micro/geo-srv)	|	Geolocation tracking service using hailocab/go-geoindex
-[geo-api](https://github.com/micro/geo-api)	|	A HTTP API handler for geo location tracking and search
-[geocode-srv](https://github.com/micro/geocode-srv)	|	A geocoding service using the Google Geocoding API
-[hailo-srv](https://github.com/micro/hailo-srv)	|	A service for the hailo taxi service developer api
-[place-srv](https://github.com/micro/place-srv)	|	A microservice to store and retrieve places (includes Google Place Search API)
-[slack-srv](https://github.com/micro/slack-srv)	|	The slack bot API as a go-micro RPC service
-[twitter-srv](https://github.com/micro/twitter-srv)	|	A microservice for the twitter API
-[user-srv](https://github.com/micro/user-srv)	|	A microservice for user management and authentication
-
-## Go Plugins
-
-By default go-micro only provides a single implementation of each interface. Plugins can be found at [github.com/micro/go-plugins](https://github.com/micro/go-plugins). Contributions welcome!
+By default go-micro only provides a few implementation of each interface at the core but it's completely pluggable. There's already dozens of plugins which are available at [github.com/micro/go-plugins](https://github.com/micro/go-plugins). Contributions are welcome!
 
 ## How does it work?
 
