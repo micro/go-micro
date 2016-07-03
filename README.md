@@ -6,7 +6,9 @@ The **Micro** philosophy is sane defaults with a pluggable architecture. We prov
 
 Everything in go-micro is **pluggable**. You can find and contribute to plugins at [github.com/micro/go-plugins](https://github.com/micro/go-plugins).
 
-An example service can be found in [**examples/service**](https://github.com/micro/go-micro/tree/master/examples/service). The [**examples**](https://github.com/micro/go-micro/tree/master/examples) directory contains many more examples for using things such as middleware/wrappers, selector filters, pub/sub and code generation. For a greeter example look at [micro/examples/greeter](https://github.com/micro/micro/tree/master/examples/greeter).
+An example service can be found in [**examples/service**](https://github.com/micro/go-micro/tree/master/examples/service). The [**examples**](https://github.com/micro/go-micro/tree/master/examples) directory contains many more examples for using things such as middleware/wrappers, selector filters, pub/sub and code generation. 
+
+For the complete greeter example look at [**micro/examples/greeter**](https://github.com/micro/micro/tree/master/examples/greeter).
 
 Check out the blog post to learn how to write go-micro services [https://blog.micro.mu/2016/03/28/go-micro.html](https://blog.micro.mu/2016/03/28/go-micro.html).
 
