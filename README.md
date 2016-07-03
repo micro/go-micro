@@ -10,13 +10,13 @@ Everything in go-micro is **pluggable**. You can find and contribute to plugins 
 
 Go Micro abstracts way the details of distributed systems and makes building microservices simple. Beneath the covers it provides a number of features.
 
-**Service Discovery** - Applications are automatically registered with service discovery so they can locate each other
+**Service Discovery** - Applications are automatically registered with service discovery so they can locate each other.
 
 **Load Balancing** - Smart client side load balancing is used to balance requests between instances of a service.
 
 **Synchronous Communication** - Request-response is provided as a bidirectional streaming transport layer.
 
-**Asynchronous Communication** - Microservices are an event driven architecture. Publish and Subscribe via the Broker.
+**Asynchronous Communication** - Microservices should promote an event driven architecture. Publish and Subscribe semantics are built in.
 
 **Message Encoding** - Micro services can encode requests in a number of encoding formats and seamlessly decode based on the Content-Type header.
 
