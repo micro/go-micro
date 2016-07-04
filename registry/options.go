@@ -10,6 +10,7 @@ import (
 type Options struct {
 	Addrs     []string
 	Timeout   time.Duration
+	Quorum    int
 	Secure    bool
 	TLSConfig *tls.Config
 
@@ -32,9 +33,17 @@ func Addrs(addrs ...string) Option {
 	}
 }
 
+// Timeout is the registry timeout.
 func Timeout(t time.Duration) Option {
 	return func(o *Options) {
 		o.Timeout = t
+	}
+}
+
+// Quorum is the registry quorum.
+func Quorum(n int) Option {
+	return func(o *Options) {
+		o.Quorum = n
 	}
 }
 
