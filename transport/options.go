@@ -11,7 +11,8 @@ type Options struct {
 	Addrs     []string
 	Secure    bool
 	TLSConfig *tls.Config
-
+	// Deadline sets the time to wait to Send/Recv
+	Deadline time.Duration
 	// Other options for implementations of the interface
 	// can be stored in a context
 	Context context.Context
@@ -42,6 +43,13 @@ type ListenOptions struct {
 func Addrs(addrs ...string) Option {
 	return func(o *Options) {
 		o.Addrs = addrs
+	}
+}
+
+// Deadline sets the time to wait for Send/Recv execution
+func Deadline(t time.Duration) Option {
+	return func(o *Options) {
+		o.Deadline = t
 	}
 }
 
