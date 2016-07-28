@@ -42,6 +42,7 @@ type httpTransportClient struct {
 }
 
 type httpTransportSocket struct {
+	ht   *httpTransport
 	r    chan *http.Request
 	conn net.Conn
 	once sync.Once
@@ -51,6 +52,7 @@ type httpTransportSocket struct {
 }
 
 type httpTransportListener struct {
+	ht       *httpTransport
 	listener net.Listener
 }
 
@@ -144,6 +146,11 @@ func (h *httpTransportClient) Send(m *Message) error {
 	}
 	h.Unlock()
 
+	// set deadline if its greater than 0
+	if h.ht.opts.Deadline > time.Duration(0) {
+		h.conn.SetDeadline(time.Now().Add(h.ht.opts.Deadline))
+	}
+
 	return req.Write(h.conn)
 }
 
@@ -161,6 +168,11 @@ func (h *httpTransportClient) Recv(m *Message) error {
 	defer h.Unlock()
 	if h.buff == nil {
 		return io.EOF
+	}
+
+	// set deadline if its greater than 0
+	if h.ht.opts.Deadline > time.Duration(0) {
+		h.conn.SetDeadline(time.Now().Add(h.ht.opts.Deadline))
 	}
 
 	rsp, err := http.ReadResponse(h.buff, r)
@@ -210,6 +222,11 @@ func (h *httpTransportClient) Close() error {
 func (h *httpTransportSocket) Recv(m *Message) error {
 	if m == nil {
 		return errors.New("message passed in is nil")
+	}
+
+	// set deadline if its greater than 0
+	if h.ht.opts.Deadline > time.Duration(0) {
+		h.conn.SetDeadline(time.Now().Add(h.ht.opts.Deadline))
 	}
 
 	r, err := http.ReadRequest(h.buff)
@@ -269,6 +286,11 @@ func (h *httpTransportSocket) Send(m *Message) error {
 	select {
 	case h.r <- r:
 	default:
+	}
+
+	// set deadline if its greater than 0
+	if h.ht.opts.Deadline > time.Duration(0) {
+		h.conn.SetDeadline(time.Now().Add(h.ht.opts.Deadline))
 	}
 
 	return rsp.Write(h.conn)
@@ -337,6 +359,7 @@ func (h *httpTransportListener) Accept(fn func(Socket)) error {
 		}
 
 		sock := &httpTransportSocket{
+			ht:   h.ht,
 			conn: c,
 			buff: bufio.NewReader(c),
 			r:    make(chan *http.Request, 1),
@@ -444,6 +467,7 @@ func (h *httpTransport) Listen(addr string, opts ...ListenOption) (Listener, err
 	}
 
 	return &httpTransportListener{
+		ht:       h,
 		listener: l,
 	}, nil
 }
