@@ -4,6 +4,7 @@ import (
 	"io"
 	"strings"
 	"testing"
+	"time"
 )
 
 func expectedPort(t *testing.T, expected string, lsn Listener) {
@@ -175,4 +176,69 @@ func TestHTTPTransportError(t *testing.T) {
 	}
 
 	close(done)
+}
+
+func TestHTTPTransportDeadline(t *testing.T) {
+	tr := NewTransport(Deadline(time.Millisecond * 100))
+
+	l, err := tr.Listen(":0")
+	if err != nil {
+		t.Errorf("Unexpected listen err: %v", err)
+	}
+	defer l.Close()
+
+	done := make(chan bool)
+
+	fn := func(sock Socket) {
+		defer func() {
+			sock.Close()
+			close(done)
+		}()
+
+		go func() {
+			select {
+			case <-done:
+				return
+			case <-time.After(time.Second):
+				t.Fatal("deadline not executed")
+			}
+		}()
+
+		for {
+			var m Message
+
+			if err := sock.Recv(&m); err != nil {
+				return
+			}
+		}
+	}
+
+	go func() {
+		if err := l.Accept(fn); err != nil {
+			select {
+			case <-done:
+			default:
+				t.Errorf("Unexpected accept err: %v", err)
+			}
+		}
+	}()
+
+	c, err := tr.Dial(l.Addr())
+	if err != nil {
+		t.Errorf("Unexpected dial err: %v", err)
+	}
+	defer c.Close()
+
+	m := Message{
+		Header: map[string]string{
+			"Content-Type": "application/json",
+		},
+		Body: []byte(`{"message": "Hello World"}`),
+	}
+
+	if err := c.Send(&m); err != nil {
+		t.Errorf("Unexpected send err: %v", err)
+	}
+
+	<-done
 }
