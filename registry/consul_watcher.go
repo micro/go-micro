@@ -13,18 +13,17 @@ type consulWatcher struct {
 	wp       *watch.WatchPlan
 	watchers map[string]*watch.WatchPlan
 
-	once sync.Once
 	next chan *Result
+	exit chan bool
 
 	sync.RWMutex
 	services map[string][]*Service
 }
 
 func newConsulWatcher(cr *consulRegistry) (Watcher, error) {
-	var once sync.Once
 	cw := &consulWatcher{
 		r:        cr,
-		once:     once,
+		exit:     make(chan bool),
 		next:     make(chan *Result, 10),
 		watchers: make(map[string]*watch.WatchPlan),
 		services: make(map[string][]*Service),
@@ -229,20 +228,36 @@ func (cw *consulWatcher) handle(idx uint64, data interface{}) {
 }
 
 func (cw *consulWatcher) Next() (*Result, error) {
-	r, ok := <-cw.next
-	if !ok {
-		return nil, errors.New("chan closed")
+	select {
+	case <-cw.exit:
+		return nil, errors.New("result chan closed")
+	case r, ok := <-cw.next:
+		if !ok {
+			return nil, errors.New("result chan closed")
+		}
+		return r, nil
 	}
-	return r, nil
+	return nil, errors.New("result chan closed")
 }
 
 func (cw *consulWatcher) Stop() {
-	if cw.wp == nil {
+	select {
+	case <-cw.exit:
 		return
-	}
-	cw.wp.Stop()
+	default:
+		close(cw.exit)
+		if cw.wp == nil {
+			return
+		}
+		cw.wp.Stop()
 
-	cw.once.Do(func() {
-		close(cw.next)
-	})
+		// drain results
+		for {
+			select {
+			case <-cw.next:
+			default:
+				return
+			}
+		}
+	}
 }
