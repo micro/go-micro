@@ -178,8 +178,8 @@ func TestHTTPTransportError(t *testing.T) {
 	close(done)
 }
 
-func TestHTTPTransportDeadline(t *testing.T) {
-	tr := NewTransport(Deadline(time.Millisecond * 100))
+func TestHTTPTransportTimeout(t *testing.T) {
+	tr := NewTransport(Timeout(time.Millisecond * 100))
 
 	l, err := tr.Listen(":0")
 	if err != nil {

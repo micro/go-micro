@@ -11,8 +11,8 @@ type Options struct {
 	Addrs     []string
 	Secure    bool
 	TLSConfig *tls.Config
-	// Deadline sets the time to wait to Send/Recv
-	Deadline time.Duration
+	// Timeout sets the timeout for Send/Recv
+	Timeout time.Duration
 	// Other options for implementations of the interface
 	// can be stored in a context
 	Context context.Context
@@ -46,10 +46,10 @@ func Addrs(addrs ...string) Option {
 	}
 }
 
-// Deadline sets the time to wait for Send/Recv execution
-func Deadline(t time.Duration) Option {
+// Timeout sets the timeout for Send/Recv execution
+func Timeout(t time.Duration) Option {
 	return func(o *Options) {
-		o.Deadline = t
+		o.Timeout = t
 	}
 }
 

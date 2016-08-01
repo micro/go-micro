@@ -146,9 +146,9 @@ func (h *httpTransportClient) Send(m *Message) error {
 	}
 	h.Unlock()
 
-	// set deadline if its greater than 0
-	if h.ht.opts.Deadline > time.Duration(0) {
-		h.conn.SetDeadline(time.Now().Add(h.ht.opts.Deadline))
+	// set timeout if its greater than 0
+	if h.ht.opts.Timeout > time.Duration(0) {
+		h.conn.SetDeadline(time.Now().Add(h.ht.opts.Timeout))
 	}
 
 	return req.Write(h.conn)
@@ -170,9 +170,9 @@ func (h *httpTransportClient) Recv(m *Message) error {
 		return io.EOF
 	}
 
-	// set deadline if its greater than 0
-	if h.ht.opts.Deadline > time.Duration(0) {
-		h.conn.SetDeadline(time.Now().Add(h.ht.opts.Deadline))
+	// set timeout if its greater than 0
+	if h.ht.opts.Timeout > time.Duration(0) {
+		h.conn.SetDeadline(time.Now().Add(h.ht.opts.Timeout))
 	}
 
 	rsp, err := http.ReadResponse(h.buff, r)
@@ -224,9 +224,9 @@ func (h *httpTransportSocket) Recv(m *Message) error {
 		return errors.New("message passed in is nil")
 	}
 
-	// set deadline if its greater than 0
-	if h.ht.opts.Deadline > time.Duration(0) {
-		h.conn.SetDeadline(time.Now().Add(h.ht.opts.Deadline))
+	// set timeout if its greater than 0
+	if h.ht.opts.Timeout > time.Duration(0) {
+		h.conn.SetDeadline(time.Now().Add(h.ht.opts.Timeout))
 	}
 
 	r, err := http.ReadRequest(h.buff)
@@ -288,9 +288,9 @@ func (h *httpTransportSocket) Send(m *Message) error {
 	default:
 	}
 
-	// set deadline if its greater than 0
-	if h.ht.opts.Deadline > time.Duration(0) {
-		h.conn.SetDeadline(time.Now().Add(h.ht.opts.Deadline))
+	// set timeout if its greater than 0
+	if h.ht.opts.Timeout > time.Duration(0) {
+		h.conn.SetDeadline(time.Now().Add(h.ht.opts.Timeout))
 	}
 
 	return rsp.Write(h.conn)
