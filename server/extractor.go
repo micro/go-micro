@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"reflect"
+	"strings"
 
 	"github.com/micro/go-micro/registry"
 )
@@ -40,11 +41,23 @@ func extractValue(v reflect.Type, d int) *registry.Value {
 	switch v.Kind() {
 	case reflect.Struct:
 		for i := 0; i < v.NumField(); i++ {
-			val := extractValue(v.Field(i).Type, d+1)
+			f := v.Field(i)
+			val := extractValue(f.Type, d+1)
 			if val == nil {
 				continue
 			}
-			val.Name = v.Field(i).Name
+
+			// if we can find a json tag use it
+			if tags := f.Tag.Get("json"); len(tags) > 0 {
+				parts := strings.Split(tags, ",")
+				val.Name = parts[0]
+			}
+
+			// if there's no name default it
+			if len(val.Name) == 0 {
+				val.Name = v.Field(i).Name
+			}
+
 			arg.Values = append(arg.Values, val)
 		}
 	case reflect.Slice:
