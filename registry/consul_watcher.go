@@ -79,15 +79,7 @@ func (cw *consulWatcher) serviceHandler(idx uint64, data interface{}) {
 		var del bool
 
 		for _, check := range e.Checks {
-			if check.ServiceName != serviceName {
-				continue
-			}
-
-			if check.ServiceID != id {
-				continue
-			}
-
-			// delete the node
+			// delete the node if the status is critical
 			if check.Status == "critical" {
 				del = true
 				break
