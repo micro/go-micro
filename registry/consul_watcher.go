@@ -201,7 +201,11 @@ func (cw *consulWatcher) handle(idx uint64, data interface{}) {
 	}
 
 	cw.RLock()
-	rservices := cw.services
+	// make a copy
+	rservices := make(map[string][]*Service)
+	for k, v := range cw.services {
+		rservices[k] = v
+	}
 	cw.RUnlock()
 
 	// remove unknown services from registry
