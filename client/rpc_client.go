@@ -67,6 +67,8 @@ func (r *rpcClient) call(ctx context.Context, address string, req Request, resp 
 	msg.Header["Timeout"] = fmt.Sprintf("%d", opts.RequestTimeout)
 	// set the content type for the request
 	msg.Header["Content-Type"] = req.ContentType()
+	// set the accept header
+	msg.Header["Accept"] = req.ContentType()
 
 	cf, err := r.newCodec(req.ContentType())
 	if err != nil {
@@ -142,6 +144,8 @@ func (r *rpcClient) stream(ctx context.Context, address string, req Request, opt
 	msg.Header["Timeout"] = fmt.Sprintf("%d", opts.RequestTimeout)
 	// set the content type for the request
 	msg.Header["Content-Type"] = req.ContentType()
+	// set the accept header
+	msg.Header["Accept"] = req.ContentType()
 
 	cf, err := r.newCodec(req.ContentType())
 	if err != nil {
