@@ -179,7 +179,7 @@ func (c *consulRegistry) Register(s *Service, opts ...RegisterOption) error {
 }
 
 func (c *consulRegistry) GetService(name string) ([]*Service, error) {
-	rsp, _, err := c.Client.Health().Service(name, "", true, nil)
+	rsp, _, err := c.Client.Health().Service(name, "", false, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -214,6 +214,20 @@ func (c *consulRegistry) GetService(name string) ([]*Service, error) {
 				Version:   version,
 			}
 			serviceMap[key] = svc
+		}
+
+		var del bool
+		for _, check := range s.Checks {
+			// delete the node if the status is critical
+			if check.Status == "critical" {
+				del = true
+				break
+			}
+		}
+
+		// if delete then skip the node
+		if del {
+			continue
 		}
 
 		svc.Nodes = append(svc.Nodes, &Node{
