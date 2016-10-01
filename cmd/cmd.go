@@ -15,7 +15,6 @@ import (
 	// brokers
 	"github.com/micro/go-micro/broker"
 	"github.com/micro/go-micro/broker/http"
-	"github.com/micro/go-micro/broker/mqtt"
 
 	// registries
 	"github.com/micro/go-micro/registry"
@@ -142,7 +141,6 @@ var (
 
 	DefaultBrokers = map[string]func(...broker.Option) broker.Broker{
 		"http": http.NewBroker,
-		"mqtt": mqtt.NewBroker,
 	}
 
 	DefaultRegistries = map[string]func(...registry.Option) registry.Registry{
