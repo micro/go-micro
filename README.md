@@ -39,11 +39,6 @@ Join us to discuss, learn and contribute:
 - [Mailing List](https://groups.google.com/forum/#!forum/microhq) 
 - [Slack](https://micro-services.slack.com) : [Invite](http://slack.micro.mu/)
 
-## Community Plugins
-
-By default go-micro only provides a few implementation of each interface at the core but it's completely pluggable. There's already dozens of plugins which are available at [github.com/micro/go-plugins](https://github.com/micro/go-plugins). Contributions are welcome!
-
-
 ## Getting Started
 
 This is a quick getting started guide with the greeter service example.
@@ -276,6 +271,10 @@ messaging using the broker.
 
 
 The  above components are combined at the top-level of micro as a **Service**.
+
+## Community Plugins
+
+By default go-micro only provides a few implementation of each interface at the core but it's completely pluggable. There's already dozens of plugins which are available at [github.com/micro/go-plugins](https://github.com/micro/go-plugins). Contributions are welcome!
 
 ## Sponsors
 
