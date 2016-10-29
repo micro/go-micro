@@ -56,6 +56,45 @@ type httpTransportListener struct {
 	listener net.Listener
 }
 
+func getIPAddrs() []string {
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		return nil
+	}
+
+	var ipAddrs []string
+
+	for _, i := range ifaces {
+		addrs, err := i.Addrs()
+		if err != nil {
+			continue
+		}
+
+		for _, addr := range addrs {
+			var ip net.IP
+			switch v := addr.(type) {
+			case *net.IPNet:
+				ip = v.IP
+			case *net.IPAddr:
+				ip = v.IP
+			}
+
+			if ip == nil {
+				continue
+			}
+
+			ip = ip.To4()
+			if ip == nil {
+				continue
+			}
+
+			ipAddrs = append(ipAddrs, ip.String())
+		}
+	}
+
+	return ipAddrs
+}
+
 func listen(addr string, fn func(string) (net.Listener, error)) (net.Listener, error) {
 	// host:port || host:min-max
 	parts := strings.Split(addr, ":")
@@ -477,45 +516,6 @@ func (h *httpTransport) Listen(addr string, opts ...ListenOption) (Listener, err
 
 func (h *httpTransport) String() string {
 	return "http"
-}
-
-func getIPAddrs() []string {
-	ifaces, err := net.Interfaces()
-	if err != nil {
-		return nil
-	}
-
-	var ipAddrs []string
-
-	for _, i := range ifaces {
-		addrs, err := i.Addrs()
-		if err != nil {
-			continue
-		}
-
-		for _, addr := range addrs {
-			var ip net.IP
-			switch v := addr.(type) {
-			case *net.IPNet:
-				ip = v.IP
-			case *net.IPAddr:
-				ip = v.IP
-			}
-
-			if ip == nil {
-				continue
-			}
-
-			ip = ip.To4()
-			if ip == nil {
-				continue
-			}
-
-			ipAddrs = append(ipAddrs, ip.String())
-		}
-	}
-
-	return ipAddrs
 }
 
 func newHTTPTransport(opts ...Option) *httpTransport {
