@@ -155,6 +155,10 @@ func (h *httpTransportClient) Send(m *Message) error {
 }
 
 func (h *httpTransportClient) Recv(m *Message) error {
+	if m == nil {
+		return errors.New("message passed in is nil")
+	}
+
 	var r *http.Request
 	if !h.dialOpts.Stream {
 		rc, ok := <-h.r
@@ -190,20 +194,20 @@ func (h *httpTransportClient) Recv(m *Message) error {
 		return errors.New(rsp.Status + ": " + string(b))
 	}
 
-	mr := &Message{
-		Header: make(map[string]string),
-		Body:   b,
+	m.Body = b
+
+	if m.Header == nil {
+		m.Header = make(map[string]string)
 	}
 
 	for k, v := range rsp.Header {
 		if len(v) > 0 {
-			mr.Header[k] = v[0]
+			m.Header[k] = v[0]
 		} else {
-			mr.Header[k] = ""
+			m.Header[k] = ""
 		}
 	}
 
-	*m = *mr
 	return nil
 }
 
@@ -239,17 +243,17 @@ func (h *httpTransportSocket) Recv(m *Message) error {
 		return err
 	}
 	r.Body.Close()
+	m.Body = b
 
-	mr := &Message{
-		Header: make(map[string]string),
-		Body:   b,
+	if m.Header == nil {
+		m.Header = make(map[string]string)
 	}
 
 	for k, v := range r.Header {
 		if len(v) > 0 {
-			mr.Header[k] = v[0]
+			m.Header[k] = v[0]
 		} else {
-			mr.Header[k] = ""
+			m.Header[k] = ""
 		}
 	}
 
@@ -258,7 +262,6 @@ func (h *httpTransportSocket) Recv(m *Message) error {
 	default:
 	}
 
-	*m = *mr
 	return nil
 }
 
