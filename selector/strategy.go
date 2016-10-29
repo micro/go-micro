@@ -38,7 +38,7 @@ func RoundRobin(services []*registry.Service) Next {
 		nodes = append(nodes, service.Nodes...)
 	}
 
-	var i int
+	var i = rand.Int()
 	var mtx sync.Mutex
 
 	return func() (*registry.Node, error) {
