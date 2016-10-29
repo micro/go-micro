@@ -21,12 +21,12 @@ func Random(services []*registry.Service) Next {
 	}
 
 	return func() (*registry.Node, error) {
-		if len(nodes) == 0 {
+		if count := len(nodes); count == 0 {
 			return nil, ErrNoneAvailable
+		} else {
+			i := rand.Int() % count
+			return nodes[i], nil
 		}
-
-		i := rand.Int() % len(nodes)
-		return nodes[i], nil
 	}
 }
 
@@ -38,19 +38,25 @@ func RoundRobin(services []*registry.Service) Next {
 		nodes = append(nodes, service.Nodes...)
 	}
 
+	// Shuffle: No need to start from the first
+	for i := range nodes {
+		j := rand.Intn(i + 1)
+		nodes[i], nodes[j] = nodes[j], nodes[i]
+	}
+
 	var i int
 	var mtx sync.Mutex
 
 	return func() (*registry.Node, error) {
-		if len(nodes) == 0 {
+		if count := len(nodes); count == 0 {
 			return nil, ErrNoneAvailable
+		} else {
+			mtx.Lock()
+			node := nodes[i%count]
+			i++
+			mtx.Unlock()
+
+			return node, nil
 		}
-
-		mtx.Lock()
-		node := nodes[i%len(nodes)]
-		i++
-		mtx.Unlock()
-
-		return node, nil
 	}
 }
