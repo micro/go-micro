@@ -38,14 +38,6 @@ type methodType struct {
 	ReplyType   reflect.Type
 	ContextType reflect.Type
 	stream      bool
-	numCalls    uint
-}
-
-func (m *methodType) NumCalls() (n uint) {
-	m.Lock()
-	n = m.numCalls
-	m.Unlock()
-	return n
 }
 
 type service struct {
@@ -227,9 +219,6 @@ func (server *server) sendResponse(sending *sync.Mutex, req *request, reply inte
 }
 
 func (s *service) call(ctx context.Context, server *server, sending *sync.Mutex, mtype *methodType, req *request, argv, replyv reflect.Value, codec serverCodec, ct string) {
-	mtype.Lock()
-	mtype.numCalls++
-	mtype.Unlock()
 	function := mtype.method.Func
 	var returnValues []reflect.Value
 
