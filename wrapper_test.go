@@ -38,7 +38,7 @@ func TestWrapper(t *testing.T) {
 		}
 
 		ctx := metadata.NewContext(context.Background(), d.existing)
-		c.setHeaders(ctx)
+		ctx = c.setHeaders(ctx)
 
 		md, _ := metadata.FromContext(ctx)
 
