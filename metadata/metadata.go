@@ -13,7 +13,13 @@ type Metadata map[string]string
 
 func FromContext(ctx context.Context) (Metadata, bool) {
 	md, ok := ctx.Value(metaKey{}).(Metadata)
-	return md, ok
+
+	mdCopy := make(map[string]string)
+	for k,v := range md {
+		mdCopy[k] = v
+	}
+
+	return mdCopy, ok
 }
 
 func NewContext(ctx context.Context, md Metadata) context.Context {
