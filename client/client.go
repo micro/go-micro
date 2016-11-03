@@ -68,6 +68,8 @@ var (
 	DefaultClient Client = newRpcClient()
 	// DefaultBackoff is the default backoff function for retries
 	DefaultBackoff = exponentialBackoff
+	// DefaultCheckIfRetriable is the default check-for-retry function for retries
+	DefaultCheckIfRetriable = AlwaysRetry
 	// DefaultRetries is the default number of times a request is tried
 	DefaultRetries = 1
 	// DefaultRequestTimeout is the default request timeout

@@ -299,6 +299,11 @@ func (r *rpcClient) Call(ctx context.Context, request Request, response interfac
 			if err == nil {
 				return nil
 			}
+
+			if !callOpts.CheckIfRetriable(err) {
+				return err
+			}
+
 			gerr = err
 		}
 	}
