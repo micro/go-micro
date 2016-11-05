@@ -16,9 +16,7 @@ type Socket interface {
 }
 
 type Client interface {
-	Recv(*Message) error
-	Send(*Message) error
-	Close() error
+	Socket
 }
 
 type Listener interface {
