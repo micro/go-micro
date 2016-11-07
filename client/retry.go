@@ -1,8 +1,10 @@
 package client
 
-type RetryFunc func(err error) bool
+import "context"
+
+type RetryFunc func(ctx context.Context, req Request, retryCount int, err error) (bool, error)
 
 // always retry on error
-func alwaysRetry(err error) bool {
-	return true
+func alwaysRetry(ctx context.Context, req Request, retryCount int, err error) (bool, error) {
+	return true, err
 }
