@@ -279,8 +279,8 @@ func (r *rpcClient) Call(ctx context.Context, request Request, response interfac
 
 		// wrap the call in reverse
 		rcall := r.call
-		for i := len(callOpts.CallWrappers); i > 0; i-- {
-			rcall = callOpts.CallWrappers[i-1](rcall)
+		for i := len(callOpts.CallFuncWrappers); i > 0; i-- {
+			rcall = callOpts.CallFuncWrappers[i-1](rcall)
 		}
 
 		// make the call

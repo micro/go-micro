@@ -53,7 +53,7 @@ type CallOptions struct {
 	RequestTimeout time.Duration
 
 	// Middleware for low level call func
-	CallWrappers []CallFuncWrapper
+	CallFuncWrappers []CallFuncWrapper
 
 	// Other options for implementations of the interface
 	// can be stored in a context
@@ -183,7 +183,7 @@ func Wrap(w Wrapper) Option {
 // Adds a Wrapper to the list of CallFunc wrappers
 func WrapCallFunc(cw ...CallFuncWrapper) Option {
 	return func(o *Options) {
-		o.CallOptions.CallWrappers = append(o.CallOptions.CallWrappers, cw...)
+		o.CallOptions.CallFuncWrappers = append(o.CallOptions.CallFuncWrappers, cw...)
 	}
 }
 
@@ -229,7 +229,7 @@ func WithSelectOption(so ...selector.SelectOption) CallOption {
 // WithCallFuncWrapper is a CallOption which adds to the existing CallFunc wrappers
 func WithCallFuncWrapper(cw ...CallFuncWrapper) CallOption {
 	return func(o *CallOptions) {
-		o.CallWrappers = append(o.CallWrappers, cw...)
+		o.CallFuncWrappers = append(o.CallFuncWrappers, cw...)
 	}
 }
 
