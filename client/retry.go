@@ -1,6 +1,6 @@
 package client
 
-import "context"
+import "golang.org/x/net/context"
 
 type RetryFunc func(ctx context.Context, req Request, retryCount int, err error) (bool, error)
 
