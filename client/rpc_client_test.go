@@ -21,7 +21,7 @@ func TestCallWrapper(t *testing.T) {
 	address := "10.1.10.1:8080"
 
 	wrap := func(cf CallFunc) CallFunc {
-		return func(ctx context.Context, addr string, req Request, rsp interface{}, opts ...CallOptions) error {
+		return func(ctx context.Context, addr string, req Request, rsp interface{}, opts CallOptions) error {
 			called = true
 
 			if req.Service() != service {
