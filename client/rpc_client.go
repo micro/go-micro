@@ -300,9 +300,15 @@ func (r *rpcClient) Call(ctx context.Context, request Request, response interfac
 				return nil
 			}
 
-			if retry, err := callOpts.Retry(ctx, request, i, err); !retry {
+			retry, rerr := callOpts.Retry(ctx, request, i, err)
+			if rerr != nil {
+				return rerr
+			}
+
+			if !retry {
 				return err
 			}
+
 
 			gerr = err
 		}
@@ -406,8 +412,13 @@ func (r *rpcClient) Stream(ctx context.Context, request Request, opts ...CallOpt
 				return rsp.stream, nil
 			}
 
-			if retry, err := callOpts.Retry(ctx, request, i, rsp.err); !retry {
-				return nil, err
+			retry, rerr := callOpts.Retry(ctx, request, i, rsp.err)
+			if rerr != nil {
+				return nil, rerr
+			}
+
+			if !retry {
+				return nil, rsp.err
 			}
 
 			grr = err
