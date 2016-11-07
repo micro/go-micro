@@ -41,17 +41,11 @@ import (
 // CallFunc represents the individual call func
 type CallFunc func(ctx context.Context, address string, req Request, rsp interface{}, opts CallOptions) error
 
-// StreamFunc represents the individual stream func
-type StreamFunc func(ctx context.Context, address string, req Request, opts CallOptions) (Streamer, error)
+// CallWrapper is a low level wrapper for the CallFunc
+type CallWrapper func(CallFunc) CallFunc
 
 // Wrapper wraps a client and returns a client
 type Wrapper func(Client) Client
 
 // StreamWrapper wraps a Stream and returns the equivalent
 type StreamWrapper func(Streamer) Streamer
-
-// CallFuncWrapper is a low level wrapper for the CallFunc
-type CallFuncWrapper func(CallFunc) CallFunc
-
-// StreamFuncWrapper is a low level wrapper for the StreamFunc
-type StreamFuncWrapper func(StreamFunc) StreamFunc
