@@ -181,7 +181,7 @@ func Wrap(w Wrapper) Option {
 }
 
 // Adds a Wrapper to the list of CallFunc wrappers
-func WrapCallFunc(cw ...CallWrapper) Option {
+func WrapCall(cw ...CallWrapper) Option {
 	return func(o *Options) {
 		o.CallOptions.CallWrappers = append(o.CallOptions.CallWrappers, cw...)
 	}
