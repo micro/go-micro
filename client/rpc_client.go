@@ -277,8 +277,14 @@ func (r *rpcClient) Call(ctx context.Context, request Request, response interfac
 			address = fmt.Sprintf("%s:%d", address, node.Port)
 		}
 
+		// wrap the call in reverse
+		rcall := r.call
+		for i := len(callOpts.CallWrappers); i > 0; i-- {
+			rcall = callOpts.CallWrappers[i-1](rcall)
+		}
+
 		// make the call
-		err = r.call(ctx, address, request, response, callOpts)
+		err = rcall(ctx, address, request, response, callOpts)
 		r.opts.Selector.Mark(request.Service(), node, err)
 		return err
 	}
