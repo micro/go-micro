@@ -300,7 +300,7 @@ func (r *rpcClient) Call(ctx context.Context, request Request, response interfac
 				return nil
 			}
 
-			if !callOpts.CheckIfRetriable(err) {
+			if !callOpts.Retry(err) {
 				return err
 			}
 

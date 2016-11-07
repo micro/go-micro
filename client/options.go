@@ -44,7 +44,7 @@ type CallOptions struct {
 	// Backoff func
 	Backoff BackoffFunc
 	// Check if retriable func
-	CheckIfRetriable IsRetriableFunc
+	Retry RetryFunc
 	// Transport Dial Timeout
 	DialTimeout time.Duration
 	// Number of Call attempts
@@ -76,7 +76,7 @@ func newOptions(options ...Option) Options {
 		Codecs: make(map[string]codec.NewCodec),
 		CallOptions: CallOptions{
 			Backoff:          DefaultBackoff,
-			CheckIfRetriable: DefaultCheckIfRetriable,
+			Retry:            DefaultRetry,
 			Retries:          DefaultRetries,
 			RequestTimeout:   DefaultRequestTimeout,
 			DialTimeout:      transport.DefaultDialTimeout,
@@ -224,11 +224,11 @@ func WithBackoff(fn BackoffFunc) CallOption {
 	}
 }
 
-// WithCheckIfRetriable is a CallOption which overrides that which
+// WithRetry is a CallOption which overrides that which
 // set in Options.CallOptions
-func WithCheckIfRetriable(fn IsRetriableFunc) CallOption {
+func WithRetry(fn RetryFunc) CallOption {
 	return func(o *CallOptions) {
-		o.CheckIfRetriable = fn
+		o.Retry = fn
 	}
 }
 
