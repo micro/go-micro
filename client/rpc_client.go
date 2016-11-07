@@ -309,7 +309,6 @@ func (r *rpcClient) Call(ctx context.Context, request Request, response interfac
 				return err
 			}
 
-
 			gerr = err
 		}
 	}
@@ -421,7 +420,7 @@ func (r *rpcClient) Stream(ctx context.Context, request Request, opts ...CallOpt
 				return nil, rsp.err
 			}
 
-			grr = err
+			grr = rsp.err
 		}
 	}
 

@@ -75,11 +75,11 @@ func newOptions(options ...Option) Options {
 	opts := Options{
 		Codecs: make(map[string]codec.NewCodec),
 		CallOptions: CallOptions{
-			Backoff:          DefaultBackoff,
-			Retry:            DefaultRetry,
-			Retries:          DefaultRetries,
-			RequestTimeout:   DefaultRequestTimeout,
-			DialTimeout:      transport.DefaultDialTimeout,
+			Backoff:        DefaultBackoff,
+			Retry:          DefaultRetry,
+			Retries:        DefaultRetries,
+			RequestTimeout: DefaultRequestTimeout,
+			DialTimeout:    transport.DefaultDialTimeout,
 		},
 		PoolSize: DefaultPoolSize,
 		PoolTTL:  DefaultPoolTTL,
