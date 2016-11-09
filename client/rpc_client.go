@@ -250,6 +250,14 @@ func (r *rpcClient) Call(ctx context.Context, request Request, response interfac
 	default:
 	}
 
+	// make copy of call method
+	rcall := r.call
+
+	// wrap the call in reverse
+	for i := len(callOpts.CallWrappers); i > 0; i-- {
+		rcall = callOpts.CallWrappers[i-1](rcall)
+	}
+
 	// return errors.New("go.micro.client", "request timeout", 408)
 	call := func(i int) error {
 		// call backoff first. Someone may want an initial start delay
@@ -275,12 +283,6 @@ func (r *rpcClient) Call(ctx context.Context, request Request, response interfac
 		address := node.Address
 		if node.Port > 0 {
 			address = fmt.Sprintf("%s:%d", address, node.Port)
-		}
-
-		// wrap the call in reverse
-		rcall := r.call
-		for i := len(callOpts.CallWrappers); i > 0; i-- {
-			rcall = callOpts.CallWrappers[i-1](rcall)
 		}
 
 		// make the call
