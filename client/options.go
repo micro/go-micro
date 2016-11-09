@@ -52,6 +52,9 @@ type CallOptions struct {
 	// Request/Response timeout
 	RequestTimeout time.Duration
 
+	// Middleware for low level call func
+	CallWrappers []CallWrapper
+
 	// Other options for implementations of the interface
 	// can be stored in a context
 	Context context.Context
@@ -177,6 +180,13 @@ func Wrap(w Wrapper) Option {
 	}
 }
 
+// Adds a Wrapper to the list of CallFunc wrappers
+func WrapCall(cw ...CallWrapper) Option {
+	return func(o *Options) {
+		o.CallOptions.CallWrappers = append(o.CallOptions.CallWrappers, cw...)
+	}
+}
+
 // Backoff is used to set the backoff function used
 // when retrying Calls
 func Backoff(fn BackoffFunc) Option {
@@ -213,6 +223,13 @@ func DialTimeout(d time.Duration) Option {
 func WithSelectOption(so ...selector.SelectOption) CallOption {
 	return func(o *CallOptions) {
 		o.SelectOptions = append(o.SelectOptions, so...)
+	}
+}
+
+// WithCallWrapper is a CallOption which adds to the existing CallFunc wrappers
+func WithCallWrapper(cw ...CallWrapper) CallOption {
+	return func(o *CallOptions) {
+		o.CallWrappers = append(o.CallWrappers, cw...)
 	}
 }
 

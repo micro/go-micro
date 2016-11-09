@@ -46,6 +46,15 @@ func traceWrap(c client.Client) client.Client {
 	return &traceWrapper{c}
 }
 
+func metricsWrap(cf client.CallFunc) client.CallFunc {
+	return func(ctx context.Context, addr string, req client.Request, rsp interface{}, opts client.CallOptions) error {
+		t := time.Now()
+		err := cf(ctx, addr, req, rsp, opts)
+		fmt.Printf("[Metrics Wrapper] called: %s %s.%s duration: %v\n", addr, req.Service(), req.Method(), time.Since(t))
+		return err
+	}
+}
+
 func call(i int) {
 	// Create new request to service go.micro.srv.example, method Example.Call
 	req := client.NewRequest("go.micro.srv.example", "Example.Call", &example.Request{
@@ -88,4 +97,13 @@ func main() {
 	)
 
 	call(1)
+
+	fmt.Println("\n--- Metrics Wrapper example ---\n")
+
+	// Wrap using client.Wrap option
+	client.DefaultClient = client.NewClient(
+		client.WrapCall(metricsWrap),
+	)
+
+	call(2)
 }
