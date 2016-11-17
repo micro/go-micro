@@ -53,6 +53,13 @@ func newConsulRegistry(opts ...Option) Registry {
 
 	// use default config
 	config := consul.DefaultConfig()
+	if options.Context != nil {
+		// Use the consul config passed in the options, if available
+		c := options.Context.Value("consul_config")
+		if c != nil {
+			config = c.(*consul.Config)
+		}
+	}
 
 	// set timeout
 	if options.Timeout > 0 {
@@ -253,7 +260,7 @@ func (c *consulRegistry) ListServices() ([]*Service, error) {
 
 	var services []*Service
 
-	for service, _ := range rsp {
+	for service := range rsp {
 		services = append(services, &Service{Name: service})
 	}
 
