@@ -59,6 +59,10 @@ func newConsulRegistry(opts ...Option) Registry {
 		if c != nil {
 			config = c.(*consul.Config)
 		}
+		t := options.Context.Value("consul_token")
+		if t != nil {
+			config.Token = t.(string)
+		}
 	}
 
 	// set timeout
