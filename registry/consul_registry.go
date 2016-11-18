@@ -55,13 +55,12 @@ func newConsulRegistry(opts ...Option) Registry {
 	config := consul.DefaultConfig()
 	if options.Context != nil {
 		// Use the consul config passed in the options, if available
-		c := options.Context.Value("consul_config")
-		if c != nil {
-			config = c.(*consul.Config)
+		if c, ok := options.Context.Value("consul_config").(*consul.Config); ok {
+			config = c
 		}
-		t := options.Context.Value("consul_token")
-		if t != nil {
-			config.Token = t.(string)
+
+		if t, ok := options.Context.Value("consul_token").(string); ok {
+			config.Token = t
 		}
 	}
 
