@@ -26,8 +26,10 @@ type Options struct {
 	Server    *server.Server
 
 	Brokers    map[string]func(...broker.Option) broker.Broker
+	Clients    map[string]func(...client.Option) client.Client
 	Registries map[string]func(...registry.Option) registry.Registry
 	Selectors  map[string]func(...selector.Option) selector.Selector
+	Servers    map[string]func(...server.Option) server.Server
 	Transports map[string]func(...transport.Option) transport.Transport
 
 	// Other options for implementations of the interface
@@ -99,6 +101,13 @@ func NewBroker(name string, b func(...broker.Option) broker.Broker) Option {
 	}
 }
 
+// New client func
+func NewClient(name string, b func(...client.Option) client.Client) Option {
+	return func(o *Options) {
+		o.Clients[name] = b
+	}
+}
+
 // New registry func
 func NewRegistry(name string, r func(...registry.Option) registry.Registry) Option {
 	return func(o *Options) {
@@ -110,6 +119,13 @@ func NewRegistry(name string, r func(...registry.Option) registry.Registry) Opti
 func NewSelector(name string, s func(...selector.Option) selector.Selector) Option {
 	return func(o *Options) {
 		o.Selectors[name] = s
+	}
+}
+
+// New server func
+func NewServer(name string, s func(...server.Option) server.Server) Option {
+	return func(o *Options) {
+		o.Servers[name] = s
 	}
 }
 

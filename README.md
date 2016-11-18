@@ -69,7 +69,7 @@ $ go run examples/service/main.go
 
 ### Test Service
 ```
-$ go run examples/service/main.go --client
+$ go run examples/service/main.go --run_client
 Hello John
 ```
 

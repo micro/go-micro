@@ -52,6 +52,11 @@ var (
 
 	DefaultFlags = []cli.Flag{
 		cli.StringFlag{
+			Name:   "client",
+			EnvVar: "MICRO_CLIENT",
+			Usage:  "Client for go-micro; rpc",
+		},
+		cli.StringFlag{
 			Name:   "client_request_timeout",
 			EnvVar: "MICRO_CLIENT_REQUEST_TIMEOUT",
 			Usage:  "Sets the client request timeout. e.g 500ms, 5s, 1m. Default: 5s",
@@ -128,6 +133,11 @@ var (
 			Usage:  "Selector used to pick nodes for querying",
 		},
 		cli.StringFlag{
+			Name:   "server",
+			EnvVar: "MICRO_SERVER",
+			Usage:  "Server for go-micro; rpc",
+		},
+		cli.StringFlag{
 			Name:   "transport",
 			EnvVar: "MICRO_TRANSPORT",
 			Usage:  "Transport mechanism used; http",
@@ -143,6 +153,10 @@ var (
 		"http": http.NewBroker,
 	}
 
+	DefaultClients = map[string]func(...client.Option) client.Client{
+		"rpc": client.NewClient,
+	}
+
 	DefaultRegistries = map[string]func(...registry.Option) registry.Registry{
 		"consul": consul.NewRegistry,
 		"mdns":   mdns.NewRegistry,
@@ -153,11 +167,17 @@ var (
 		"cache":   cache.NewSelector,
 	}
 
+	DefaultServers = map[string]func(...server.Option) server.Server{
+		"rpc": server.NewServer,
+	}
+
 	DefaultTransports = map[string]func(...transport.Option) transport.Transport{
 		"http": thttp.NewTransport,
 	}
 
 	// used for default selection as the fall back
+	defaultClient    = "rpc"
+	defaultServer    = "rpc"
 	defaultBroker    = "http"
 	defaultRegistry  = "consul"
 	defaultSelector  = "default"
@@ -183,8 +203,10 @@ func newCmd(opts ...Option) Cmd {
 		Transport: &transport.DefaultTransport,
 
 		Brokers:    DefaultBrokers,
+		Clients:    DefaultClients,
 		Registries: DefaultRegistries,
 		Selectors:  DefaultSelectors,
+		Servers:    DefaultServers,
 		Transports: DefaultTransports,
 	}
 
@@ -226,6 +248,20 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	var serverOpts []server.Option
 	var clientOpts []client.Option
 
+	// Set the client
+	if name := ctx.String("client"); len(name) > 0 {
+		if cl, ok := c.opts.Clients[name]; ok {
+			*c.opts.Client = cl()
+		}
+	}
+
+	// Set the server
+	if name := ctx.String("server"); len(name) > 0 {
+		if s, ok := c.opts.Servers[name]; ok {
+			*c.opts.Server = s()
+		}
+	}
+
 	// Set the broker
 	if name := ctx.String("broker"); len(name) > 0 || len(ctx.String("broker_address")) > 0 {
 		if len(name) == 0 {
@@ -241,7 +277,6 @@ func (c *cmd) Before(ctx *cli.Context) error {
 
 		serverOpts = append(serverOpts, server.Broker(*c.opts.Broker))
 		clientOpts = append(clientOpts, client.Broker(*c.opts.Broker))
-
 	}
 
 	// Set the registry

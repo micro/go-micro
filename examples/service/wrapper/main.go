@@ -78,12 +78,12 @@ func main() {
 			"type": "helloworld",
 		}),
 
-		// Setup some flags. Specify --client to run the client
+		// Setup some flags. Specify --run_client to run the client
 
 		// Add runtime flags
 		// We could do this below too
 		micro.Flags(cli.BoolFlag{
-			Name:  "client",
+			Name:  "run_client",
 			Usage: "Launch the client",
 		}),
 	)
@@ -95,7 +95,7 @@ func main() {
 		// Add runtime action
 		// We could actually do this above
 		micro.Action(func(c *cli.Context) {
-			if c.Bool("client") {
+			if c.Bool("run_client") {
 				runClient(service)
 				os.Exit(0)
 			}

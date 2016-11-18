@@ -32,7 +32,7 @@ $GOPATH/bin/service
 3. Run the client
 
 ```shell
-$GOPATH/bin/service --client
+$GOPATH/bin/service --run_client
 ```
 
 And that's all there is to it.
