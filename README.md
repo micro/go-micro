@@ -43,18 +43,34 @@ Join us to discuss, learn and contribute:
 
 This is a quick getting started guide with the greeter service example.
 
-### Prerequisites
+### Prerequisites: Service Discovery
 
 There's just one prerequisite. We need a service discovery system to resolve service names to their address. 
 The default discovery mechanism used in go-micro is Consul. Discovery is however pluggable so you can used 
-etcd, kubernetes, zookeeper, etc. Other implementations can be found in [go-plugins](https://github.com/micro/go-plugins).
+etcd, kubernetes, zookeeper, etc. Plugins can be found in [micro/go-plugins](https://github.com/micro/go-plugins).
 
-Alternatively we can use multicast DNS with the built in MDNS registry for a zero dependency configuration. Just pass `--registry=mdns` to the below commands.
+### Zero Dependency Discovery
 
-### Install Consul
-[https://www.consul.io/intro/getting-started/install.html](https://www.consul.io/intro/getting-started/install.html)
+We can use multicast DNS with the built in MDNS registry for a zero dependency configuration. 
 
-### Run Consul
+Just pass `--registry=mdns` to any command
+```
+$ go run main.go --registry=mdns
+```
+
+### Consul Discovery
+
+Alternatively we can use the default discovery system which is Consul.
+
+**Install on OS X**
+
+```
+brew install consul
+```
+
+[Further installation instructions](https://www.consul.io/intro/getting-started/install.html)
+
+**Run Consul**
 ```
 $ consul agent -dev -advertise=127.0.0.1
 ```
