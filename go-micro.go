@@ -1,22 +1,4 @@
-/*
-Go micro provides a pluggable library to build microservices.
-
-	import (
-		micro "github.com/micro/go-micro"
-	)
-
-	service := micro.NewService()
-	h := service.Server().NewHandler(&Greeter{})
-	service.Server().Handle(h)
-	service.Run()
-
-
-	req := service.Client().NewRequest(service, method, request)
-	rsp := response{}
-	err := service.Client().Call(req, rsp)
-
-*/
-
+// Package micro is a pluggable RPC framework for microservices
 package micro
 
 import (
