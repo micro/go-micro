@@ -127,8 +127,9 @@ There's still a need for proto compiler to generate Go stub code from our proto 
 
 ### Compile the protobuf file
 
-```
-`protoc -I$GOPATH/src --go_out=plugins=micro:$GOPATH/src $GOPATH/src/github.com/micro/go-micro/examples/service/proto/greeter.proto`
+```shell
+protoc -I$GOPATH/src --go_out=plugins=micro:$GOPATH/src \
+	$GOPATH/src/github.com/micro/go-micro/examples/service/proto/greeter.proto
 ```
 
 ### Define the service
