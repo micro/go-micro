@@ -375,18 +375,26 @@ func (h *httpBroker) Publish(topic string, msg *Message, opts ...PublishOption) 
 	}
 
 	for _, service := range s {
+		// only process if we have nodes
+		if len(service.Nodes) == 0 {
+			continue
+		}
+
+		switch service.Version {
 		// broadcast version means broadcast to all nodes
-		if service.Version == broadcastVersion {
+		case broadcastVersion:
 			for _, node := range service.Nodes {
 				// publish async
 				go fn(node, b)
 			}
-			return nil
-		}
 
-		node := service.Nodes[rand.Int()%len(service.Nodes)]
-		// publish async
-		go fn(node, b)
+		default:
+			// select node to publish to
+			node := service.Nodes[rand.Int()%len(service.Nodes)]
+
+			// publish async
+			go fn(node, b)
+		}
 	}
 
 	return nil
