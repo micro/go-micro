@@ -59,6 +59,30 @@ func newConsulRegistry(opts ...Option) Registry {
 			config = c
 		}
 
+		if addr, ok := options.Context.Value("consul_address").(string); ok {
+			config.Address = addr
+		}
+
+		if s, ok := options.Context.Value("consul_scheme").(string); ok {
+			config.Scheme = s
+		}
+
+		if dc, ok := options.Context.Value("consul_datacenter").(string); ok {
+			config.Datacenter = dc
+		}
+
+		if h, ok := options.Context.Value("consul_http-client").(*http.Client); ok {
+			config.HttpClient = h
+		}
+
+		if a, ok := options.Context.Value("consul_http-auth").(*consul.HttpBasicAuth); ok {
+			config.HttpAuth = a
+		}
+
+		if wt, ok := options.Context.Value("consul_wait-time").(time.Duration); ok {
+			config.WaitTime = wt
+		}
+
 		if t, ok := options.Context.Value("consul_token").(string); ok {
 			config.Token = t
 		}
