@@ -14,12 +14,3 @@ func Config(c *consul.Config) registry.Option {
 		o.Context = context.WithValue(o.Context, "consul_config", c)
 	}
 }
-
-func Token(t string) registry.Option {
-	return func(o *registry.Options) {
-		if o.Context == nil {
-			o.Context = context.Background()
-		}
-		o.Context = context.WithValue(o.Context, "consul_token", t)
-	}
-}
