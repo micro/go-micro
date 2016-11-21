@@ -183,8 +183,10 @@ func (h *httpBroker) run(l net.Listener) {
 			h.Lock()
 			var subscribers []*httpSubscriber
 			for _, sub := range h.subscribers[subscriber.topic] {
+				// deregister and skip forward
 				if sub.id == subscriber.id {
 					h.r.Deregister(sub.svc)
+					continue
 				}
 				subscribers = append(subscribers, sub)
 			}
