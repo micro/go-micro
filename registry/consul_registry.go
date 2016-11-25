@@ -153,8 +153,17 @@ func (c *consulRegistry) Register(s *Service, opts ...RegisterOption) error {
 
 	// if the TTL is greater than 0 create an associated check
 	if options.TTL > time.Duration(0) {
+		// splay slightly for the watcher?
+		splay := time.Second * 5
+		deregTTL := options.TTL + splay
+		// consul has a minimum timeout on deregistration of 1 minute.
+		if options.TTL < time.Minute {
+			deregTTL = time.Minute + splay
+		}
+
 		check = &consul.AgentServiceCheck{
 			TTL: fmt.Sprintf("%v", options.TTL),
+			DeregisterCriticalServiceAfter: fmt.Sprintf("%v", deregTTL),
 		}
 	}
 
