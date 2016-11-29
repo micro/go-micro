@@ -302,7 +302,7 @@ By default go-micro only provides a few implementation of each interface at the 
 - [Examples Directory](https://github.com/micro/go-micro/tree/master/examples)
 - [Example Services](https://github.com/micro/go-micro#example-services)
 - [Micro Toolkit](https://github.com/micro/micro)
-- Join the [Slack](https://micro-services.slack.com)! - [Invite Here](http://micro-invites.herokuapp.com/)
+- Join the [Slack](https://micro-services.slack.com)! - [Invite Here](http://slack.micro.mu/)
 
 
 ## Contributing
