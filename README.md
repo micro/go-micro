@@ -295,7 +295,7 @@ By default go-micro only provides a few implementation of each interface at the 
 
 ## Sponsors
 
-<a href="https://www.sixt.com"><img src="https://micro.mu/sixt_logo.png" width=150px height="auto" /></a>
+<a href="https://blog.micro.mu/2016/04/25/announcing-sixt-sponsorship.html"><img src="https://micro.mu/sixt_logo.png" width=150px height="auto" /></a>
 
 ## Next steps
 
