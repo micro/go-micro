@@ -1,7 +1,6 @@
 package client
 
 import (
-	"errors"
 	"io"
 	"sync"
 
@@ -91,11 +90,11 @@ func (r *rpcStream) Recv(msg interface{}) error {
 			r.err = io.EOF
 		}
 		if err := r.codec.ReadResponseBody(nil); err != nil {
-			r.err = errors.New("reading error payload: " + err.Error())
+			r.err = err
 		}
 	default:
 		if err := r.codec.ReadResponseBody(msg); err != nil {
-			r.err = errors.New("reading body " + err.Error())
+			r.err = err
 		}
 	}
 

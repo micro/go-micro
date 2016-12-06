@@ -78,7 +78,7 @@ func (r *rpcClient) call(ctx context.Context, address string, req Request, resp 
 	var grr error
 	c, err := r.pool.getConn(address, r.opts.Transport, transport.WithTimeout(opts.DialTimeout))
 	if err != nil {
-		return errors.InternalServerError("go.micro.client", fmt.Sprintf("Error sending request: %v", err))
+		return errors.InternalServerError("go.micro.client", fmt.Sprintf("connection error: %v", err))
 	}
 	defer func() {
 		// defer execution of release
@@ -154,7 +154,7 @@ func (r *rpcClient) stream(ctx context.Context, address string, req Request, opt
 
 	c, err := r.opts.Transport.Dial(address, transport.WithStream(), transport.WithTimeout(opts.DialTimeout))
 	if err != nil {
-		return nil, errors.InternalServerError("go.micro.client", fmt.Sprintf("Error sending request: %v", err))
+		return nil, errors.InternalServerError("go.micro.client", fmt.Sprintf("connection error: %v", err))
 	}
 
 	stream := &rpcStream{

@@ -2,11 +2,12 @@ package client
 
 import (
 	"bytes"
-	"errors"
+	errs "errors"
 
 	"github.com/micro/go-micro/codec"
 	"github.com/micro/go-micro/codec/jsonrpc"
 	"github.com/micro/go-micro/codec/protorpc"
+	"github.com/micro/go-micro/errors"
 	"github.com/micro/go-micro/transport"
 )
 
@@ -24,7 +25,7 @@ func (e serverError) Error() string {
 
 // errShutdown holds the specific error for closing/closed connections
 var (
-	errShutdown = errors.New("connection is shut down")
+	errShutdown = errs.New("connection is shut down")
 )
 
 type rpcPlusCodec struct {
@@ -112,19 +113,22 @@ func (c *rpcPlusCodec) WriteRequest(req *request, body interface{}) error {
 		Header: map[string]string{},
 	}
 	if err := c.codec.Write(m, body); err != nil {
-		return err
+		return errors.InternalServerError("go.micro.client.codec", err.Error())
 	}
 	c.req.Body = c.buf.wbuf.Bytes()
 	for k, v := range m.Header {
 		c.req.Header[k] = v
 	}
-	return c.client.Send(c.req)
+	if err := c.client.Send(c.req); err != nil {
+		return errors.InternalServerError("go.micro.client.transport", err.Error())
+	}
+	return nil
 }
 
 func (c *rpcPlusCodec) ReadResponseHeader(r *response) error {
 	var m transport.Message
 	if err := c.client.Recv(&m); err != nil {
-		return err
+		return errors.InternalServerError("go.micro.client.transport", err.Error())
 	}
 	c.buf.rbuf.Reset()
 	c.buf.rbuf.Write(m.Body)
@@ -133,15 +137,24 @@ func (c *rpcPlusCodec) ReadResponseHeader(r *response) error {
 	r.ServiceMethod = me.Method
 	r.Seq = me.Id
 	r.Error = me.Error
-	return err
+	if err != nil {
+		return errors.InternalServerError("go.micro.client.codec", err.Error())
+	}
+	return nil
 }
 
 func (c *rpcPlusCodec) ReadResponseBody(b interface{}) error {
-	return c.codec.ReadBody(b)
+	if err := c.codec.ReadBody(b); err != nil {
+		return errors.InternalServerError("go.micro.client.codec", err.Error())
+	}
+	return nil
 }
 
 func (c *rpcPlusCodec) Close() error {
 	c.buf.Close()
 	c.codec.Close()
-	return c.client.Close()
+	if err := c.client.Close(); err != nil {
+		return errors.InternalServerError("go.micro.client.transport", err.Error())
+	}
+	return nil
 }
