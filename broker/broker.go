@@ -31,10 +31,20 @@ type Publication interface {
 	Ack() error
 }
 
+// Subscriber is a convenience return type for the Subscribe method
 type Subscriber interface {
 	Options() SubscribeOptions
 	Topic() string
 	Unsubscribe() error
+}
+
+// Codec is used for encoding where the broker doesn't natively support
+// headers in the message type. In this case the entire message is
+// encoded as the payload
+type Codec interface {
+	Marshal(interface{}) ([]byte, error)
+	Unmarshal([]byte, interface{}) error
+	String() string
 }
 
 var (

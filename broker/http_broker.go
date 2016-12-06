@@ -3,7 +3,6 @@ package broker
 import (
 	"bytes"
 	"crypto/tls"
-	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -96,6 +95,7 @@ func newTransport(config *tls.Config) *http.Transport {
 
 func newHttpBroker(opts ...Option) Broker {
 	options := Options{
+		Codec:   jsonCodec{},
 		Context: context.TODO(),
 	}
 
@@ -269,7 +269,7 @@ func (h *httpBroker) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 
 	var m *Message
-	if err = json.Unmarshal(b, &m); err != nil {
+	if err = h.opts.Codec.Unmarshal(b, &m); err != nil {
 		errr := errors.InternalServerError("go.micro.broker", fmt.Sprintf("Error parsing request body: %v", err))
 		w.WriteHeader(500)
 		w.Write([]byte(errr.Error()))
@@ -352,7 +352,7 @@ func (h *httpBroker) Publish(topic string, msg *Message, opts ...PublishOption) 
 
 	m.Header[":topic"] = topic
 
-	b, err := json.Marshal(m)
+	b, err := h.opts.Codec.Marshal(m)
 	if err != nil {
 		return err
 	}

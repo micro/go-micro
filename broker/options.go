@@ -10,6 +10,7 @@ import (
 type Options struct {
 	Addrs     []string
 	Secure    bool
+	Codec     Codec
 	TLSConfig *tls.Config
 
 	// Other options for implementations of the interface
@@ -93,6 +94,14 @@ func Registry(r registry.Registry) Option {
 func Secure(b bool) Option {
 	return func(o *Options) {
 		o.Secure = b
+	}
+}
+
+// Codec sets the codec used for encoding/decoding used where
+// a broker does not support headers
+func SetCodec(c Codec) Option {
+	return func(o *Options) {
+		o.Codec = c
 	}
 }
 
