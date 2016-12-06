@@ -4,11 +4,13 @@ import (
 	"crypto/tls"
 	"time"
 
+	"github.com/micro/go-micro/transport/codec"
 	"golang.org/x/net/context"
 )
 
 type Options struct {
 	Addrs     []string
+	Codec     codec.Codec
 	Secure    bool
 	TLSConfig *tls.Config
 	// Timeout sets the timeout for Send/Recv
@@ -43,6 +45,14 @@ type ListenOptions struct {
 func Addrs(addrs ...string) Option {
 	return func(o *Options) {
 		o.Addrs = addrs
+	}
+}
+
+// Codec sets the codec used for encoding where the transport
+// does not support message headers
+func Codec(c codec.Codec) Option {
+	return func(o *Options) {
+		o.Codec = c
 	}
 }
 

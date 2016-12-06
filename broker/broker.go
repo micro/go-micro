@@ -31,6 +31,7 @@ type Publication interface {
 	Ack() error
 }
 
+// Subscriber is a convenience return type for the Subscribe method
 type Subscriber interface {
 	Options() SubscribeOptions
 	Topic() string
