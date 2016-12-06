@@ -3,7 +3,7 @@ package json
 import (
 	"encoding/json"
 
-	"github.com/micro/go-micro/broker"
+	"github.com/micro/go-micro/broker/codec"
 )
 
 type jsonCodec struct{}
@@ -20,6 +20,6 @@ func (j jsonCodec) String() string {
 	return "json"
 }
 
-func NewCodec() broker.Codec {
+func NewCodec() codec.Codec {
 	return jsonCodec{}
 }

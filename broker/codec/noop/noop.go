@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/micro/go-micro/broker"
+	"github.com/micro/go-micro/broker/codec"
 )
 
 type noopCodec struct{}
@@ -29,6 +30,6 @@ func (n noopCodec) String() string {
 	return "noop"
 }
 
-func NewCodec() broker.Codec {
+func NewCodec() codec.Codec {
 	return noopCodec{}
 }
