@@ -17,6 +17,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/micro/go-micro/broker/codec/json"
 	"github.com/micro/go-micro/errors"
 	"github.com/micro/go-micro/registry"
 	mls "github.com/micro/misc/lib/tls"
@@ -95,7 +96,7 @@ func newTransport(config *tls.Config) *http.Transport {
 
 func newHttpBroker(opts ...Option) Broker {
 	options := Options{
-		Codec:   jsonCodec{},
+		Codec:   json.NewCodec(),
 		Context: context.TODO(),
 	}
 
