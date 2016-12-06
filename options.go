@@ -161,6 +161,13 @@ func WrapClient(w ...client.Wrapper) Option {
 	}
 }
 
+// WrapCall is a convenience method for wrapping a Client CallFunc
+func WrapCall(w ...client.CallWrapper) Option {
+	return func(o *Options) {
+		o.Client.Init(client.WrapCall(w...))
+	}
+}
+
 // WrapHandler adds a handler Wrapper to a list of options passed into the server
 func WrapHandler(w ...server.HandlerWrapper) Option {
 	return func(o *Options) {
