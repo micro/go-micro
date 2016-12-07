@@ -1,12 +1,12 @@
 # Go Micro [![License](https://img.shields.io/:license-apache-blue.svg)](https://opensource.org/licenses/Apache-2.0) [![GoDoc](https://godoc.org/github.com/micro/go-micro?status.svg)](https://godoc.org/github.com/micro/go-micro) [![Travis CI](https://api.travis-ci.org/micro/go-micro.svg?branch=master)](https://travis-ci.org/micro/go-micro) [![Go Report Card](https://goreportcard.com/badge/micro/go-micro)](https://goreportcard.com/report/github.com/micro/go-micro)
 
-Go Micro is a pluggable RPC framework for **microservices**. It provides the fundamental building blocks for writing distributed systems. It is part of [Micro](https://github.com/micro/micro), the microservice toolkit.
+Go Micro is a pluggable RPC framework for **microservices**. It provides the fundamental building blocks for writing distributed systems. It is part of the [Micro](https://github.com/micro/micro) toolkit.
 
 The **Micro** philosophy is sane defaults with a pluggable architecture. We provide defaults to get you started quickly but everything can be easily swapped out. It comes with built in support for {json,proto}-rpc encoding, consul or multicast dns for service discovery, http for communication and random hashed client side load balancing.
 
 Everything in go-micro is **pluggable**. You can find and contribute to plugins at [github.com/micro/go-plugins](https://github.com/micro/go-plugins).
 
-## The Features
+## Features
 
 Go Micro abstracts way the details of distributed systems and makes building microservices simple. Beneath the covers it provides a number of features.
 
@@ -91,7 +91,7 @@ Hello John
 
 ## Writing a service
 
-### Create request/response proto
+### Create service proto
 
 One of the key requirements of microservices is strongly defined interfaces so we utilised protobuf to define the handler and request/response. 
 Here's a definition for the Greeter handler with the method Hello which takes a HelloRequest and HelloResponse both with one string arguments.
@@ -114,7 +114,7 @@ message HelloResponse {
 }
 ```
 
-### Install protobuf for code generation
+### Install protobuf
 
 We use a protobuf plugin for code generation. This is completely optional. Look at [examples/server](https://github.com/micro/go-micro/blob/master/examples/server/main.go) 
 and [examples/client](https://github.com/micro/go-micro/blob/master/examples/client/main.go) for examples without code generation.
@@ -125,7 +125,7 @@ go get github.com/micro/protobuf/{proto,protoc-gen-go}
 
 There's still a need for proto compiler to generate Go stub code from our proto file. You can either use the micro fork above or the official repo `github.com/golang/protobuf`.
 
-### Compile the protobuf file
+### Compile the proto
 
 ```shell
 protoc -I$GOPATH/src --go_out=plugins=micro:$GOPATH/src \
@@ -289,7 +289,7 @@ messaging using the broker.
 
 The  above components are combined at the top-level of micro as a **Service**.
 
-## Community Plugins
+## Plugins
 
 By default go-micro only provides a few implementation of each interface at the core but it's completely pluggable. There's already dozens of plugins which are available at [github.com/micro/go-plugins](https://github.com/micro/go-plugins). Contributions are welcome!
 
@@ -299,8 +299,7 @@ By default go-micro only provides a few implementation of each interface at the 
 
 ## Next steps
 
-- [Examples Directory](https://github.com/micro/go-micro/tree/master/examples)
-- [Example Services](https://github.com/micro/go-micro#example-services)
+- [Examples](https://github.com/micro/go-micro/tree/master/examples)
 - [Micro Toolkit](https://github.com/micro/micro)
 - Join the [Slack](https://micro-services.slack.com)! - [Invite Here](http://slack.micro.mu/)
 
