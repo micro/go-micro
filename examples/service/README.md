@@ -1,38 +1,37 @@
 # Service
 
-This is an example of creating a micro service using the top level interface.
+This is an example of creating a micro service.
 
 ## Prereqs
 
 Micro services need a discovery system so they can find each other. Micro uses consul by default but 
 its easily swapped out with etcd, kubernetes, or various other systems. We'll run consul for convenience.
 
-1. Follow the install instructions - [https://www.consul.io/intro/getting-started/install.html](https://www.consul.io/intro/getting-started/install.html)
+Install consul
+```shell
+brew install consul
+```
 
-2. Run Consul
+Alternative instructions - [https://www.consul.io/intro/getting-started/install.html](https://www.consul.io/intro/getting-started/install.html)
+
+Run Consul
 
 ```shell
-$ consul agent -dev -advertise=127.0.0.1
+consul agent -dev -advertise=127.0.0.1
 ```
 
 ## Run the example
 
-1. Get the service
+Run the service
 
 ```shell
-go get github.com/micro/go-micro/examples/service
+go run main.go
 ```
 
-2. Run the server
+Run the client
 
 ```shell
-$GOPATH/bin/service
-```
-
-3. Run the client
-
-```shell
-$GOPATH/bin/service --run_client
+go run main.go --run_client
 ```
 
 And that's all there is to it.
