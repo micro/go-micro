@@ -1,3 +1,4 @@
+// Package client is an interface for an RPC client
 package client
 
 import (

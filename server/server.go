@@ -1,3 +1,4 @@
+// Package server is an interface for a micro server
 package server
 
 import (

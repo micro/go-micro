@@ -1,3 +1,4 @@
+// Package broker is an interface used for asynchronous messaging
 package broker
 
 // Broker is an interface used for asynchronous messaging.
