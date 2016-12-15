@@ -210,9 +210,6 @@ func (server *server) sendResponse(sending *sync.Mutex, req *request, reply inte
 	resp.Seq = req.Seq
 	sending.Lock()
 	err = codec.WriteResponse(resp, reply, last)
-	if err != nil {
-		log.Println("rpc: writing response:", err)
-	}
 	sending.Unlock()
 	server.freeResponse(resp)
 	return err

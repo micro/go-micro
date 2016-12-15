@@ -1,7 +1,6 @@
 package server
 
 import (
-	"log"
 	"sync"
 
 	"golang.org/x/net/context"
@@ -35,12 +34,7 @@ func (r *rpcStream) Send(msg interface{}) error {
 		Seq:           r.seq,
 	}
 
-	err := r.codec.WriteResponse(&resp, msg, false)
-	if err != nil {
-		log.Println("rpc: writing response:", err)
-	}
-
-	return err
+	return r.codec.WriteResponse(&resp, msg, false)
 }
 
 func (r *rpcStream) Recv(msg interface{}) error {
@@ -57,12 +51,7 @@ func (r *rpcStream) Recv(msg interface{}) error {
 
 	// we need to stay up to date with sequence numbers
 	r.seq = req.Seq
-
-	if err := r.codec.ReadRequestBody(msg); err != nil {
-		return err
-	}
-
-	return nil
+	return r.codec.ReadRequestBody(msg)
 }
 
 func (r *rpcStream) Error() error {
