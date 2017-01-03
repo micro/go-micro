@@ -223,6 +223,7 @@ func (s *service) call(ctx context.Context, server *server, sending *sync.Mutex,
 		service:     server.name,
 		contentType: ct,
 		method:      req.ServiceMethod,
+		rawMethod:   req.ServiceMethod,
 	}
 
 	if !mtype.stream {
