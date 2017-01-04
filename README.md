@@ -300,6 +300,7 @@ import (
         _ "github.com/micro/go-plugins/transport/nats"
         // kafka broker
         _ "github.com/micro/go-plugins/broker/kafka"
+)
 ```
 
 Build binary
