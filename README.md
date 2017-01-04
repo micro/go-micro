@@ -287,6 +287,32 @@ The  above components are combined at the top-level of micro as a **Service**.
 
 By default go-micro only provides a few implementation of each interface at the core but it's completely pluggable. There's already dozens of plugins which are available at [github.com/micro/go-plugins](https://github.com/micro/go-plugins). Contributions are welcome!
 
+### Build with plugins
+
+If you want to integrate plugins simply link them in a separate file and rebuild
+
+Create a plugins.go file
+```go
+import (
+        // etcd v3 registry
+        _ "github.com/micro/go-plugins/registry/etcdv3"
+        // nats transport
+        _ "github.com/micro/go-plugins/transport/nats"
+        // kafka broker
+        _ "github.com/micro/go-plugins/broker/kafka"
+```
+
+Build binary
+```shell
+// For local use
+go build -i -o service ./main.go ./plugins.go
+```
+
+Flag usage of plugins
+```shell
+service --registry=etcdv3 --transport=nats --broker=kafka
+```
+
 ## Sponsors
 
 Open source development of Micro is sponsored by Sixt
