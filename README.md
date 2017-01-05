@@ -110,8 +110,8 @@ message HelloResponse {
 
 ### Install protobuf
 
-We use a protobuf plugin for code generation. This is completely optional. Look at [examples/server](https://github.com/micro/go-micro/blob/master/examples/server/main.go) 
-and [examples/client](https://github.com/micro/go-micro/blob/master/examples/client/main.go) for examples without code generation.
+We use a protobuf plugin for code generation. This is completely optional. Look at [examples/server](https://github.com/micro/examples/blob/master/server/main.go) 
+and [examples/client](https://github.com/micro/examples/blob/master/client/main.go) for examples without code generation.
 
 ```shell
 go get github.com/micro/protobuf/{proto,protoc-gen-go}
