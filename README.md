@@ -27,7 +27,7 @@ Go Micro abstracts way the details of distributed systems. Here are the main fea
 
 ## Learn By Example
 
-An example service can be found in [**examples/service**](https://github.com/micro/go-micro/tree/master/examples/service). The [**examples**](https://github.com/micro/go-micro/tree/master/examples) directory contains many more examples for using things such as middleware/wrappers, selector filters, pub/sub and code generation. 
+An example service can be found in [**examples/service**](https://github.com/micro/examples/tree/master/service). The [**examples**](https://github.com/micro/examples) directory contains many more examples for using things such as middleware/wrappers, selector filters, pub/sub and code generation. 
 
 For the complete greeter example look at [**examples/greeter**](https://github.com/micro/examples/tree/master/greeter). Other examples can be found throughout the GitHub repository.
 
@@ -123,7 +123,7 @@ There's still a need for proto compiler to generate Go stub code from our proto 
 
 ```shell
 protoc -I$GOPATH/src --go_out=plugins=micro:$GOPATH/src \
-	$GOPATH/src/github.com/micro/go-micro/examples/service/proto/greeter.proto
+	$GOPATH/src/github.com/micro/examples/service/proto/greeter.proto
 ```
 
 ### Define the service
@@ -140,7 +140,7 @@ import (
 	"fmt"
 
 	micro "github.com/micro/go-micro"
-	proto "github.com/micro/go-micro/examples/service/proto"
+	proto "github.com/micro/examples/service/proto"
 	"golang.org/x/net/context"
 )
 
@@ -198,7 +198,7 @@ import (
 	"fmt"
 
 	micro "github.com/micro/go-micro"
-	proto "github.com/micro/go-micro/examples/service/proto"
+	proto "github.com/micro/examples/service/proto"
 	"golang.org/x/net/context"
 )
 
