@@ -29,7 +29,7 @@ Go Micro abstracts way the details of distributed systems. Here are the main fea
 
 An example service can be found in [**examples/service**](https://github.com/micro/go-micro/tree/master/examples/service). The [**examples**](https://github.com/micro/go-micro/tree/master/examples) directory contains many more examples for using things such as middleware/wrappers, selector filters, pub/sub and code generation. 
 
-For the complete greeter example look at [**micro/examples/greeter**](https://github.com/micro/micro/tree/master/examples/greeter). Other examples can be found throughout the GitHub repository.
+For the complete greeter example look at [**examples/greeter**](https://github.com/micro/examples/tree/master/greeter). Other examples can be found throughout the GitHub repository.
 
 Check out the blog post to learn how to write go-micro services [https://blog.micro.mu/2016/03/28/go-micro.html](https://blog.micro.mu/2016/03/28/go-micro.html) or watch the talk from the [Golang UK Conf 2016](https://www.youtube.com/watch?v=xspaDovwk34).
 
