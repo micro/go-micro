@@ -13,17 +13,12 @@ check out the [Mailing List](https://groups.google.com/forum/#!forum/microhq).
 
 Go Micro abstracts way the details of distributed systems. Here are the main features.
 
-**Service Discovery** - Applications are automatically registered with service discovery so they can find each other.
-
-**Load Balancing** - Smart client side load balancing is used to balance requests between instances of a service.
-
-**Synchronous Communication** - Request-response is provided as a bidirectional streaming transport layer.
-
-**Asynchronous Communication** - Microservices should promote an event driven architecture. Publish and Subscribe semantics are built in.
-
-**Message Encoding** - Micro services can encode requests in a number of encoding formats and seamlessly decode based on the Content-Type header.
-
-**RPC Client/Server** - The client and server leverage the above features and provide a clean simple interface for building microservices.
+- **Service Discovery** - Applications are automatically registered with service discovery so they can find each other.
+- **Load Balancing** - Smart client side load balancing is used to balance requests between instances of a service.
+- **Synchronous Communication** - Request-response is provided as a bidirectional streaming transport layer.
+- **Asynchronous Communication** - Microservices should promote an event driven architecture. Publish and Subscribe semantics are built in.
+- **Message Encoding** - Micro services can encode requests in a number of encoding formats and seamlessly decode based on the Content-Type header.
+- **RPC Client/Server** - The client and server leverage the above features and provide a clean simple interface for building microservices.
 
 ## Learn By Example
 
