@@ -28,6 +28,8 @@ type Options struct {
 
 	// Before and After funcs
 	BeforeStart []func() error
+	BeforeStop  []func() error
+	AfterStart  []func() error
 	AfterStop   []func() error
 
 	// Other options for implementations of the interface
@@ -43,6 +45,7 @@ func newOptions(opts ...Option) Options {
 		Server:    server.DefaultServer,
 		Registry:  registry.DefaultRegistry,
 		Transport: transport.DefaultTransport,
+		Context:   context.Background(),
 	}
 
 	for _, o := range opts {
@@ -70,6 +73,15 @@ func Cmd(c cmd.Cmd) Option {
 func Client(c client.Client) Option {
 	return func(o *Options) {
 		o.Client = c
+	}
+}
+
+// Context specifies a context for the service
+// Can be used to signal shutdown of the service
+// Can be used for extra option values
+func Context(ctx context.Context) Option {
+	return func(o *Options) {
+		o.Context = ctx
 	}
 }
 
@@ -201,6 +213,18 @@ func WrapSubscriber(w ...server.SubscriberWrapper) Option {
 func BeforeStart(fn func() error) Option {
 	return func(o *Options) {
 		o.BeforeStart = append(o.BeforeStart, fn)
+	}
+}
+
+func BeforeStop(fn func() error) Option {
+	return func(o *Options) {
+		o.BeforeStop = append(o.BeforeStop, fn)
+	}
+}
+
+func AfterStart(fn func() error) Option {
+	return func(o *Options) {
+		o.AfterStart = append(o.AfterStart, fn)
 	}
 }
 

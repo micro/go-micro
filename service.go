@@ -120,10 +120,24 @@ func (s *service) Start() error {
 		return err
 	}
 
+	for _, fn := range s.opts.AfterStart {
+		if err := fn(); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
 func (s *service) Stop() error {
+	var gerr error
+
+	for _, fn := range s.opts.BeforeStop {
+		if err := fn(); err != nil {
+			gerr = err
+		}
+	}
+
 	if err := s.opts.Server.Deregister(); err != nil {
 		return err
 	}
@@ -132,15 +146,12 @@ func (s *service) Stop() error {
 		return err
 	}
 
-	var gerr error
 	for _, fn := range s.opts.AfterStop {
 		if err := fn(); err != nil {
-			// should we bail if it fails?
-			// other funcs will not be executed
-			// seems wrong
 			gerr = err
 		}
 	}
+
 	return gerr
 }
 
@@ -155,7 +166,13 @@ func (s *service) Run() error {
 
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, syscall.SIGTERM, syscall.SIGINT, syscall.SIGKILL)
-	<-ch
+
+	select {
+	// wait on kill signal
+	case <-ch:
+	// wait on context cancel
+	case <-s.opts.Context.Done():
+	}
 
 	// exit reg loop
 	close(ex)
