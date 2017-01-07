@@ -150,12 +150,14 @@ func Action(a func(*cli.Context)) Option {
 	}
 }
 
+// RegisterTTL specifies the TTL to use when registering the service
 func RegisterTTL(t time.Duration) Option {
 	return func(o *Options) {
 		o.Server.Init(server.RegisterTTL(t))
 	}
 }
 
+// RegisterInterval specifies the interval on which to re-register
 func RegisterInterval(t time.Duration) Option {
 	return func(o *Options) {
 		o.RegisterInterval = t
