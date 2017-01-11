@@ -34,6 +34,7 @@ type Publication interface {
 type Request interface {
 	Service() string
 	Method() string
+	RawMethod() string
 	ContentType() string
 	Request() interface{}
 	// indicates whether the request will be streamed
