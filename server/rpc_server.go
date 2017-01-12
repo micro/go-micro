@@ -15,6 +15,8 @@ import (
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/transport"
 
+	"github.com/micro/misc/lib/addr"
+
 	"golang.org/x/net/context"
 )
 
@@ -204,7 +206,7 @@ func (s *rpcServer) Register() error {
 		host = parts[0]
 	}
 
-	addr, err := extractAddress(host)
+	addr, err := addr.Extract(host)
 	if err != nil {
 		return err
 	}
@@ -308,7 +310,7 @@ func (s *rpcServer) Deregister() error {
 		host = parts[0]
 	}
 
-	addr, err := extractAddress(host)
+	addr, err := addr.Extract(host)
 	if err != nil {
 		return err
 	}

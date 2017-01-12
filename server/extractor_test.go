@@ -18,25 +18,6 @@ func (t *testHandler) Test(ctx context.Context, req *testRequest, rsp *testRespo
 	return nil
 }
 
-func TestExtractAddress(t *testing.T) {
-	data := []struct {
-		Input  string
-		Output string
-	}{
-		{"10.0.0.1", "10.0.0.1"},
-	}
-
-	for _, d := range data {
-		addr, err := extractAddress(d.Input)
-		if err != nil {
-			t.Errorf("Expected %s: %v", d.Output, err)
-		}
-		if addr != d.Output {
-			t.Errorf("Expected %s, got %s", d.Output, addr)
-		}
-	}
-}
-
 func TestExtractEndpoint(t *testing.T) {
 	handler := &testHandler{}
 	typ := reflect.TypeOf(handler)

@@ -20,6 +20,7 @@ import (
 	"github.com/micro/go-micro/broker/codec/json"
 	"github.com/micro/go-micro/errors"
 	"github.com/micro/go-micro/registry"
+	"github.com/micro/misc/lib/addr"
 	mls "github.com/micro/misc/lib/tls"
 	"github.com/pborman/uuid"
 
@@ -411,7 +412,7 @@ func (h *httpBroker) Subscribe(topic string, handler Handler, opts ...SubscribeO
 	host := strings.Join(parts[:len(parts)-1], ":")
 	port, _ := strconv.Atoi(parts[len(parts)-1])
 
-	addr, err := extractAddress(host)
+	addr, err := addr.Extract(host)
 	if err != nil {
 		return nil, err
 	}
