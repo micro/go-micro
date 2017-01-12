@@ -17,6 +17,7 @@ import (
 	"sync"
 	"time"
 
+	maddr "github.com/micro/misc/lib/addr"
 	mls "github.com/micro/misc/lib/tls"
 )
 
@@ -54,45 +55,6 @@ type httpTransportSocket struct {
 type httpTransportListener struct {
 	ht       *httpTransport
 	listener net.Listener
-}
-
-func getIPAddrs() []string {
-	ifaces, err := net.Interfaces()
-	if err != nil {
-		return nil
-	}
-
-	var ipAddrs []string
-
-	for _, i := range ifaces {
-		addrs, err := i.Addrs()
-		if err != nil {
-			continue
-		}
-
-		for _, addr := range addrs {
-			var ip net.IP
-			switch v := addr.(type) {
-			case *net.IPNet:
-				ip = v.IP
-			case *net.IPAddr:
-				ip = v.IP
-			}
-
-			if ip == nil {
-				continue
-			}
-
-			ip = ip.To4()
-			if ip == nil {
-				continue
-			}
-
-			ipAddrs = append(ipAddrs, ip.String())
-		}
-	}
-
-	return ipAddrs
 }
 
 func listen(addr string, fn func(string) (net.Listener, error)) (net.Listener, error) {
@@ -479,7 +441,7 @@ func (h *httpTransport) Listen(addr string, opts ...ListenOption) (Listener, err
 				// check if its a valid host:port
 				if host, _, err := net.SplitHostPort(addr); err == nil {
 					if len(host) == 0 {
-						hosts = getIPAddrs()
+						hosts = maddr.IPs()
 					} else {
 						hosts = []string{host}
 					}
