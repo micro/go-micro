@@ -20,7 +20,8 @@ import (
 	"github.com/micro/go-micro/broker/codec/json"
 	"github.com/micro/go-micro/errors"
 	"github.com/micro/go-micro/registry"
-	"github.com/micro/misc/lib/addr"
+	maddr "github.com/micro/misc/lib/addr"
+	mnet "github.com/micro/misc/lib/net"
 	mls "github.com/micro/misc/lib/tls"
 	"github.com/pborman/uuid"
 
@@ -211,16 +212,37 @@ func (h *httpBroker) start() error {
 
 	if h.opts.Secure || h.opts.TLSConfig != nil {
 		config := h.opts.TLSConfig
-		if config == nil {
-			cert, err := mls.Certificate(h.address)
-			if err != nil {
-				return err
+
+		fn := func(addr string) (net.Listener, error) {
+			if config == nil {
+				hosts := []string{addr}
+
+				// check if its a valid host:port
+				if host, _, err := net.SplitHostPort(addr); err == nil {
+					if len(host) == 0 {
+						hosts = maddr.IPs()
+					} else {
+						hosts = []string{host}
+					}
+				}
+
+				// generate a certificate
+				cert, err := mls.Certificate(hosts...)
+				if err != nil {
+					return nil, err
+				}
+				config = &tls.Config{Certificates: []tls.Certificate{cert}}
 			}
-			config = &tls.Config{Certificates: []tls.Certificate{cert}}
+			return tls.Listen("tcp", addr, config)
 		}
-		l, err = tls.Listen("tcp", h.address, config)
+
+		l, err = mnet.Listen(h.address, fn)
 	} else {
-		l, err = net.Listen("tcp", h.address)
+		fn := func(addr string) (net.Listener, error) {
+			return net.Listen("tcp", addr)
+		}
+
+		l, err = mnet.Listen(h.address, fn)
 	}
 
 	if err != nil {
@@ -412,7 +434,7 @@ func (h *httpBroker) Subscribe(topic string, handler Handler, opts ...SubscribeO
 	host := strings.Join(parts[:len(parts)-1], ":")
 	port, _ := strconv.Atoi(parts[len(parts)-1])
 
-	addr, err := addr.Extract(host)
+	addr, err := maddr.Extract(host)
 	if err != nil {
 		return nil, err
 	}
