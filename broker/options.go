@@ -31,9 +31,9 @@ type SubscribeOptions struct {
 	// Subscribers with the same queue name
 	// will create a shared subscription where each
 	// receives a subset of messages.
-	Queue string
+	Queue         string
 	PrefetchCount int
-	PrefetchSize int
+	PrefetchSize  int
 
 	// Other options for implementations of the interface
 	// can be stored in a context

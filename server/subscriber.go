@@ -34,9 +34,9 @@ type subscriber struct {
 
 func newSubscriber(topic string, sub interface{}, opts ...SubscriberOption) Subscriber {
 	options := SubscriberOptions{
-		AutoAck: true,
+		AutoAck:       true,
 		PrefetchCount: 0,
-		PrefetchSize : 0,
+		PrefetchSize:  0,
 	}
 	for _, o := range opts {
 		o(&options)
@@ -223,7 +223,7 @@ func (s *rpcServer) createSubHandler(sb *subscriber, opts Options) broker.Handle
 				if err := returnValues[0].Interface(); err != nil {
 					return err.(error)
 				}
-				if (!sb.opts.AutoAck) {
+				if !sb.opts.AutoAck {
 					p.Ack()
 				}
 				return nil

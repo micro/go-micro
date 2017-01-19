@@ -38,11 +38,11 @@ type HandlerOptions struct {
 }
 
 type SubscriberOptions struct {
-	Queue    string
-	Internal bool
-	AutoAck	 bool
+	Queue         string
+	Internal      bool
+	AutoAck       bool
 	PrefetchCount int
-	PrefetchSize int
+	PrefetchSize  int
 }
 
 // EndpointMetadata is a Handler option that allows metadata to be added to
