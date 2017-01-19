@@ -278,6 +278,10 @@ func (s *rpcServer) Register() error {
 		if queue := sb.Options().Queue; len(queue) > 0 {
 			opts = append(opts, broker.Queue(queue))
 		}
+		if autoAck := sb.Options().AutoAck; !autoAck {
+			opts = append(opts, broker.DisableAutoAck())
+		}
+		opts = append(opts, broker.Qos(sb.Options().PrefetchCount, sb.Options().PrefetchSize))
 		sub, err := config.Broker.Subscribe(sb.Topic(), handler, opts...)
 		if err != nil {
 			return err

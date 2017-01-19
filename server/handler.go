@@ -40,6 +40,9 @@ type HandlerOptions struct {
 type SubscriberOptions struct {
 	Queue    string
 	Internal bool
+	AutoAck	 bool
+	PrefetchCount int
+	PrefetchSize int
 }
 
 // EndpointMetadata is a Handler option that allows metadata to be added to
@@ -71,5 +74,18 @@ func InternalSubscriber(b bool) SubscriberOption {
 func SubscriberQueue(n string) SubscriberOption {
 	return func(o *SubscriberOptions) {
 		o.Queue = n
+	}
+}
+
+func DisableAutoAck() SubscriberOption {
+	return func(o *SubscriberOptions) {
+		o.AutoAck = false
+	}
+}
+
+func Qos(prefetchCount, prefetchSize int) SubscriberOption {
+	return func(o *SubscriberOptions) {
+		o.PrefetchCount = prefetchCount
+		o.PrefetchSize = prefetchSize
 	}
 }

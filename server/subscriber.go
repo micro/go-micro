@@ -33,7 +33,11 @@ type subscriber struct {
 }
 
 func newSubscriber(topic string, sub interface{}, opts ...SubscriberOption) Subscriber {
-	var options SubscriberOptions
+	options := SubscriberOptions{
+		AutoAck: true,
+		PrefetchCount: 0,
+		PrefetchSize : 0,
+	}
 	for _, o := range opts {
 		o(&options)
 	}
@@ -219,13 +223,15 @@ func (s *rpcServer) createSubHandler(sb *subscriber, opts Options) broker.Handle
 				if err := returnValues[0].Interface(); err != nil {
 					return err.(error)
 				}
+				if (!sb.opts.AutoAck) {
+					p.Ack()
+				}
 				return nil
 			}
 
 			for i := len(opts.SubWrappers); i > 0; i-- {
 				fn = opts.SubWrappers[i-1](fn)
 			}
-
 			go fn(ctx, &rpcPublication{
 				topic:       sb.topic,
 				contentType: ct,
