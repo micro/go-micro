@@ -205,6 +205,7 @@ func (s *rpcServer) createSubHandler(sb *subscriber, opts Options) broker.Handle
 			}
 
 			fn := func(ctx context.Context, msg Publication) error {
+				defer p.Ack()
 				var vals []reflect.Value
 				if sb.typ.Kind() != reflect.Func {
 					vals = append(vals, sb.rcvr)
