@@ -38,7 +38,7 @@ There's just one prerequisite. We need a service discovery system to resolve ser
 The default discovery mechanism used in go-micro is Consul. Discovery is however pluggable so you can used 
 etcd, kubernetes, zookeeper, etc. Plugins can be found in [micro/go-plugins](https://github.com/micro/go-plugins).
 
-### Zero Dependency Discovery
+### Multicast DNS
 
 We can use multicast DNS with the built in MDNS registry for a zero dependency configuration. 
 
@@ -47,22 +47,23 @@ Just pass `--registry=mdns` to any command
 $ go run main.go --registry=mdns
 ```
 
-### Consul Discovery
+### Consul
 
 Alternatively we can use the default discovery system which is Consul.
 
-**Install on OS X**
-
+**Mac OS**
 ```
 brew install consul
+consul agent -dev
+```
+
+**Docker**
+```
+docker run consul
 ```
 
 [Further installation instructions](https://www.consul.io/intro/getting-started/install.html)
 
-**Run Consul**
-```
-$ consul agent -dev -advertise=127.0.0.1
-```
 
 ### Run Service
 ```
