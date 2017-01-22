@@ -64,18 +64,18 @@ docker run consul
 
 [Further installation instructions](https://www.consul.io/intro/getting-started/install.html)
 
-
 ### Run Service
+
 ```
-$ go run examples/service/main.go
+$ go get github.com/micro/examples/service && service
 2016/03/14 10:59:14 Listening on [::]:50137
 2016/03/14 10:59:14 Broker Listening on [::]:50138
 2016/03/14 10:59:14 Registering node: greeter-ca62b017-e9d3-11e5-9bbb-68a86d0d36b6
 ```
 
-### Test Service
+### Call Service
 ```
-$ go run examples/service/main.go --run_client
+$ service --run_client
 Hello John
 ```
 
