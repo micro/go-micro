@@ -310,6 +310,10 @@ Flag usage of plugins
 service --registry=etcdv3 --transport=nats --broker=kafka
 ```
 
+## Other Languages
+
+Check out [java-micro](https://github.com/Sixt/java-micro) to write services in Java
+
 ## Sponsors
 
 Open source development of Micro is sponsored by Sixt
