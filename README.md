@@ -20,6 +20,10 @@ Go Micro abstracts way the details of distributed systems. Here are the main fea
 - **Message Encoding** - Micro services can encode requests in a number of encoding formats and seamlessly decode based on the Content-Type header.
 - **RPC Client/Server** - The client and server leverage the above features and provide a clean simple interface for building microservices.
 
+## Docs
+
+For more detailed information on the architecture, installation and use of go-micro checkout the [docs](https://micro.mu/docs).
+
 ## Learn By Example
 
 An example service can be found in [**examples/service**](https://github.com/micro/examples/tree/master/service). The [**examples**](https://github.com/micro/examples) directory contains many more examples for using things such as middleware/wrappers, selector filters, pub/sub and code generation. 
