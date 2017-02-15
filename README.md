@@ -316,7 +316,7 @@ service --registry=etcdv3 --transport=nats --broker=kafka
 
 ## Other Languages
 
-Check out [java-micro](https://github.com/Sixt/java-micro) to write services in Java
+Check out [ja-micro](https://github.com/Sixt/ja-micro) to write services in Java
 
 ## Sponsors
 
