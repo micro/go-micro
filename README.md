@@ -292,6 +292,7 @@ By default go-micro only provides a few implementation of each interface at the 
 If you want to integrate plugins simply link them in a separate file and rebuild
 
 Create a plugins.go file
+
 ```go
 import (
         // etcd v3 registry
@@ -304,6 +305,7 @@ import (
 ```
 
 Build binary
+
 ```shell
 // For local use
 go build -i -o service ./main.go ./plugins.go
