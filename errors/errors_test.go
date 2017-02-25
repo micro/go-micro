@@ -37,7 +37,7 @@ func TestErrors(t *testing.T) {
 		}
 
 		if pe.Code != e.Code {
-			t.Fatalf("Expected %s got %s", e.Code, pe.Code)
+			t.Fatalf("Expected %d got %d", e.Code, pe.Code)
 		}
 
 		if pe.Status != e.Status {
