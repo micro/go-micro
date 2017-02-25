@@ -166,7 +166,7 @@ func TestFilterLabel(t *testing.T) {
 
 			for _, node := range service.Nodes {
 				if node.Metadata[data.label[0]] != data.label[1] {
-					t.Fatal("Expected %s=%s but got %s=%s for service %+v node %+v",
+					t.Fatalf("Expected %s=%s but got %s=%s for service %+v node %+v",
 						data.label[0], data.label[1], data.label[0], node.Metadata[data.label[0]], service, node)
 				}
 				seen = true

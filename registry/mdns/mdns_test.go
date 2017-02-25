@@ -96,7 +96,7 @@ func TestMDNS(t *testing.T) {
 		}
 
 		if node.Port != service.Nodes[0].Port {
-			t.Fatalf("Expected node port %s got %s", service.Nodes[0].Port, node.Port)
+			t.Fatalf("Expected node port %d got %d", service.Nodes[0].Port, node.Port)
 		}
 	}
 

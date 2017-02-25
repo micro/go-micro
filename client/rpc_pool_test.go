@@ -72,7 +72,7 @@ func testPool(t *testing.T, size int, ttl time.Duration) {
 		p.Lock()
 		if i := len(p.conns[l.Addr()]); i > size {
 			p.Unlock()
-			t.Fatal("pool size %d is greater than expected %d", i, size)
+			t.Fatalf("pool size %d is greater than expected %d", i, size)
 		}
 		p.Unlock()
 	}
