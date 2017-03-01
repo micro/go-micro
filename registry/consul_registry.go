@@ -215,9 +215,40 @@ func (c *consulRegistry) GetService(name string) ([]*Service, error) {
 		// address is service address
 		address := s.Service.Address
 
-		// if we can't get the version we bail
-		// use old the old ways
+		// if we can't get the version and still got a service
+		// we are probably dealing with a non-micro framework service
+		// return the service as a thirdparty service
 		if !found {
+			svc, ok := serviceMap[key]
+			if !ok {
+				svc = &Service{
+					Name:       s.Service.Service,
+					ThirdParty: true,
+				}
+				serviceMap[key] = svc
+			}
+
+			var del bool
+			for _, check := range s.Checks {
+				// delete the node if the status is critical
+				if check.Status == "critical" {
+					del = true
+					break
+				}
+			}
+
+			// if delete then skip the node
+			if del {
+				continue
+			}
+
+			svc.Nodes = append(svc.Nodes, &Node{
+				Id:       id,
+				Address:  address,
+				Port:     s.Service.Port,
+				Metadata: decodeMetadataThirdParty(s.Service.Tags), // Third Party service, add tags as MetaData
+			})
+
 			continue
 		}
 
