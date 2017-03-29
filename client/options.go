@@ -55,6 +55,8 @@ type CallOptions struct {
 	// Middleware for low level call func
 	CallWrappers []CallWrapper
 
+	PackageName string
+
 	// Other options for implementations of the interface
 	// can be stored in a context
 	Context context.Context
