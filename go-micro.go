@@ -22,6 +22,11 @@ type Service interface {
 	String() string
 }
 
+// Publisher is syntactic sugar for publishing
+type Publisher interface {
+	Publish(ctx context.Context, msg interface{}, opts ...client.PublishOption) error
+}
+
 type Option func(*Options)
 
 var (
@@ -42,4 +47,22 @@ func FromContext(ctx context.Context) (Service, bool) {
 // NewContext returns a new Context with the Service embedded within it.
 func NewContext(ctx context.Context, s Service) context.Context {
 	return context.WithValue(ctx, serviceKey{}, s)
+}
+
+// NewPublisher returns a new Publisher
+func NewPublisher(topic string, c client.Client) Publisher {
+	if c == nil {
+		c = client.NewClient()
+	}
+	return &publisher{c, topic}
+}
+
+// RegisterHandler is syntactic sugar for registering a handler
+func RegisterHandler(s server.Server, h interface{}, opts ...server.HandlerOption) error {
+	return s.Handle(s.NewHandler(h, opts...))
+}
+
+// RegisterSubscriber is syntactic sugar for registering a subscriber
+func RegisterSubscriber(topic string, s server.Server, h interface{}, opts ...server.SubscriberOption) error {
+	return s.Subscribe(s.NewSubscriber(topic, h))
 }
