@@ -203,6 +203,13 @@ func Retries(i int) Option {
 	}
 }
 
+// Retry sets the retry function to be used when re-trying.
+func Retry(fn RetryFunc) Option {
+	return func(o *Options) {
+		o.CallOptions.Retry = fn
+	}
+}
+
 // The request timeout.
 // Should this be a Call Option?
 func RequestTimeout(d time.Duration) Option {
