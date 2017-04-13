@@ -3,12 +3,15 @@ package client
 import (
 	"fmt"
 	"testing"
+	"time"
 
+	"github.com/micro/go-micro/metadata"
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/registry/mock"
 	"github.com/micro/go-micro/selector"
 
 	"golang.org/x/net/context"
+	"golang.org/x/sync/errgroup"
 )
 
 func TestCallWrapper(t *testing.T) {
@@ -68,4 +71,43 @@ func TestCallWrapper(t *testing.T) {
 	if !called {
 		t.Fatal("wrapper not called")
 	}
+}
+
+func TestCall_MetadataRaceCondition(t *testing.T) {
+	r := mock.NewRegistry()
+	c := NewClient(Registry(r), DialTimeout(10*time.Millisecond))
+	c.Options().Selector.Init(selector.Registry(r))
+
+	r.Register(&registry.Service{
+		Name:    "micro.service",
+		Version: "latest",
+		Nodes: []*registry.Node{
+			&registry.Node{
+				Id:      "id1",
+				Address: "10.1.10.1",
+				Port:    1234,
+			},
+		},
+	})
+
+	ctx := metadata.NewContext(context.Background(), metadata.Metadata{})
+	req := c.NewRequest("micro.service", "TestService.Method", nil)
+
+	g, _ := errgroup.WithContext(ctx)
+
+	g.Go(func() error {
+		return c.Call(ctx, req, nil)
+	})
+
+	g.Go(func() error {
+		md, ok := metadata.FromContext(ctx)
+		if !ok {
+			t.Fatal("unable to parse metadata from context")
+		}
+		md["key"] = "value"
+
+		return c.Call(metadata.NewContext(ctx, md), req, nil)
+	})
+
+	g.Wait()
 }

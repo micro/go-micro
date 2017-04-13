@@ -17,18 +17,20 @@ import (
 )
 
 type rpcClient struct {
-	once sync.Once
-	opts Options
-	pool *pool
+	once   sync.Once
+	mdLock sync.RWMutex
+	opts   Options
+	pool   *pool
 }
 
 func newRpcClient(opt ...Option) Client {
 	opts := newOptions(opt...)
 
 	rc := &rpcClient{
-		once: sync.Once{},
-		opts: opts,
-		pool: newPool(opts.PoolSize, opts.PoolTTL),
+		once:   sync.Once{},
+		mdLock: sync.RWMutex{},
+		opts:   opts,
+		pool:   newPool(opts.PoolSize, opts.PoolTTL),
 	}
 
 	c := Client(rc)
@@ -58,9 +60,11 @@ func (r *rpcClient) call(ctx context.Context, address string, req Request, resp 
 
 	md, ok := metadata.FromContext(ctx)
 	if ok {
+		r.mdLock.RLock()
 		for k, v := range md {
 			msg.Header[k] = v
 		}
+		r.mdLock.RUnlock()
 	}
 
 	// set timeout in nanoseconds
@@ -135,9 +139,11 @@ func (r *rpcClient) stream(ctx context.Context, address string, req Request, opt
 
 	md, ok := metadata.FromContext(ctx)
 	if ok {
+		r.mdLock.RLock()
 		for k, v := range md {
 			msg.Header[k] = v
 		}
+		r.mdLock.RUnlock()
 	}
 
 	// set timeout in nanoseconds
@@ -440,7 +446,9 @@ func (r *rpcClient) Publish(ctx context.Context, p Publication, opts ...PublishO
 	if !ok {
 		md = make(map[string]string)
 	}
+	r.mdLock.Lock()
 	md["Content-Type"] = p.ContentType()
+	r.mdLock.Unlock()
 
 	// encode message body
 	cf, err := r.newCodec(p.ContentType())
