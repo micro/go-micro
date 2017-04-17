@@ -68,16 +68,10 @@ func (s *service) Init(opts ...Option) {
 		// close init
 		close(s.init)
 
-		// We might get more command flags or the action here
-		// This is pretty ugly, find a better way
-		options := newOptions()
-		options.Cmd = s.opts.Cmd
-
+		// process options
 		for _, o := range opts {
-			o(&options)
+			o(&s.opts)
 		}
-
-		s.opts.Cmd = options.Cmd
 
 		// Initialise the command flags, overriding new service
 		s.opts.Cmd.Init(
