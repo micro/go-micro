@@ -10,8 +10,8 @@ import (
 
 type consulWatcher struct {
 	r        *consulRegistry
-	wp       *watch.WatchPlan
-	watchers map[string]*watch.WatchPlan
+	wp       *watch.Plan
+	watchers map[string]*watch.Plan
 
 	next chan *Result
 	exit chan bool
@@ -25,7 +25,7 @@ func newConsulWatcher(cr *consulRegistry) (Watcher, error) {
 		r:        cr,
 		exit:     make(chan bool),
 		next:     make(chan *Result, 10),
-		watchers: make(map[string]*watch.WatchPlan),
+		watchers: make(map[string]*watch.Plan),
 		services: make(map[string][]*Service),
 	}
 
