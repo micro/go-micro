@@ -1,10 +1,10 @@
 package cache
 
 import (
-	"log"
 	"sync"
 	"time"
 
+	"github.com/micro/go-log"
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/selector"
 )
@@ -241,14 +241,14 @@ func (c *cacheSelector) run() {
 		// create new watcher
 		w, err := c.so.Registry.Watch()
 		if err != nil {
-			log.Println(err)
+			log.Log(err)
 			time.Sleep(time.Second)
 			continue
 		}
 
 		// watch for events
 		if err := c.watch(w); err != nil {
-			log.Println(err)
+			log.Log(err)
 			continue
 		}
 	}

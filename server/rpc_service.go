@@ -9,13 +9,13 @@ package server
 import (
 	"errors"
 	"io"
-	"log"
 	"reflect"
 	"strings"
 	"sync"
 	"unicode"
 	"unicode/utf8"
 
+	"github.com/micro/go-log"
 	"golang.org/x/net/context"
 )
 
@@ -113,7 +113,7 @@ func prepareMethod(method reflect.Method) *methodType {
 		replyType = mtype.In(3)
 		contextType = mtype.In(1)
 	default:
-		log.Println("method", mname, "of", mtype, "has wrong number of ins:", mtype.NumIn())
+		log.Log("method", mname, "of", mtype, "has wrong number of ins:", mtype.NumIn())
 		return nil
 	}
 
@@ -121,7 +121,7 @@ func prepareMethod(method reflect.Method) *methodType {
 		// check stream type
 		streamType := reflect.TypeOf((*Streamer)(nil)).Elem()
 		if !argType.Implements(streamType) {
-			log.Println(mname, "argument does not implement Streamer interface:", argType)
+			log.Log(mname, "argument does not implement Streamer interface:", argType)
 			return nil
 		}
 	} else {
@@ -129,30 +129,30 @@ func prepareMethod(method reflect.Method) *methodType {
 
 		// First arg need not be a pointer.
 		if !isExportedOrBuiltinType(argType) {
-			log.Println(mname, "argument type not exported:", argType)
+			log.Log(mname, "argument type not exported:", argType)
 			return nil
 		}
 
 		if replyType.Kind() != reflect.Ptr {
-			log.Println("method", mname, "reply type not a pointer:", replyType)
+			log.Log("method", mname, "reply type not a pointer:", replyType)
 			return nil
 		}
 
 		// Reply type must be exported.
 		if !isExportedOrBuiltinType(replyType) {
-			log.Println("method", mname, "reply type not exported:", replyType)
+			log.Log("method", mname, "reply type not exported:", replyType)
 			return nil
 		}
 	}
 
 	// Method needs one out.
 	if mtype.NumOut() != 1 {
-		log.Println("method", mname, "has wrong number of outs:", mtype.NumOut())
+		log.Log("method", mname, "has wrong number of outs:", mtype.NumOut())
 		return nil
 	}
 	// The return type of the method must be error.
 	if returnType := mtype.Out(0); returnType != typeOfError {
-		log.Println("method", mname, "returns", returnType.String(), "not error")
+		log.Log("method", mname, "returns", returnType.String(), "not error")
 		return nil
 	}
 	return &methodType{method: method, ArgType: argType, ReplyType: replyType, ContextType: contextType, stream: stream}
@@ -169,11 +169,12 @@ func (server *server) register(rcvr interface{}) error {
 	s.rcvr = reflect.ValueOf(rcvr)
 	sname := reflect.Indirect(s.rcvr).Type().Name()
 	if sname == "" {
-		log.Fatal("rpc: no service name for type", s.typ.String())
+		log.Log("rpc: no service name for type", s.typ.String())
+		return errors.New("rpc: no service name for type" + s.typ.String())
 	}
 	if !isExported(sname) {
 		s := "rpc Register: type " + sname + " is not exported"
-		log.Print(s)
+		log.Log(s)
 		return errors.New(s)
 	}
 	if _, present := server.serviceMap[sname]; present {
@@ -192,7 +193,7 @@ func (server *server) register(rcvr interface{}) error {
 
 	if len(s.method) == 0 {
 		s := "rpc Register: type " + sname + " has no exported methods of suitable type"
-		log.Print(s)
+		log.Log(s)
 		return errors.New(s)
 	}
 	server.serviceMap[s.name] = s
