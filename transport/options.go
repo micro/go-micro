@@ -17,7 +17,8 @@ type Options struct {
 	Timeout time.Duration
 	// Other options for implementations of the interface
 	// can be stored in a context
-	Context context.Context
+	Context         context.Context
+	OnPanicCallBack func(obj interface{})
 }
 
 type DialOptions struct {
@@ -89,5 +90,12 @@ func WithStream() DialOption {
 func WithTimeout(d time.Duration) DialOption {
 	return func(o *DialOptions) {
 		o.Timeout = d
+	}
+}
+
+// OnPanic lets you specify what should happen when a panic occured
+func OnPanic(cbfn func(obj interface{})) Option {
+	return func(o *Options) {
+		o.OnPanicCallBack = cbfn
 	}
 }

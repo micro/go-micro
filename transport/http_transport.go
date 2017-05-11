@@ -316,9 +316,13 @@ func (h *httpTransportListener) Accept(fn func(Socket)) error {
 		}
 
 		go func() {
-			// TODO: think of a better error response strategy
 			defer func() {
 				if r := recover(); r != nil {
+					// in case a callback handler was specified, call it
+					if h.ht.opts.OnPanicCallBack != nil {
+						h.ht.opts.OnPanicCallBack(r)
+					}
+					// we close the socket anyway, because the handling already failed
 					sock.Close()
 				}
 			}()

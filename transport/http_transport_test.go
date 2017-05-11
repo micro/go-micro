@@ -1,7 +1,10 @@
 package transport
 
 import (
+	"context"
+	"errors"
 	"io"
+	"net"
 	"strings"
 	"testing"
 	"time"
@@ -241,4 +244,51 @@ func TestHTTPTransportTimeout(t *testing.T) {
 	}
 
 	<-done
+}
+
+type mockListener struct {
+}
+
+func (b *mockListener) Accept() (net.Conn, error) {
+	server, _ := net.Pipe()
+	return server, nil
+}
+
+// Close closes the listener.
+// Any blocked Accept operations will be unblocked and return errors.
+func (b *mockListener) Close() error {
+	return nil
+}
+
+// Addr returns the listener's network address.
+func (b *mockListener) Addr() net.Addr {
+	return nil
+}
+
+func TestOnPanic(t *testing.T) {
+
+	backChan := make(chan interface{})
+	err := errors.New("I am random panic thrown")
+	h := &httpTransportListener{
+		listener: &mockListener{},
+		ht: newHTTPTransport(OnPanic(func(obj interface{}) {
+			backChan <- err
+		})),
+	}
+	fn := func(Socket) {
+		panic(err)
+	}
+	go h.Accept(fn)
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+	var recovered interface{}
+	select {
+	case recovered = <-backChan:
+		break
+	case <-ctx.Done():
+		t.Fatal("Timeout when waiting for panic")
+	}
+	if err != recovered {
+		t.Fatalf("Expected <%#v> but got <%#v>", err, recovered)
+	}
 }
