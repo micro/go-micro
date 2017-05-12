@@ -7,13 +7,13 @@ import (
 	"errors"
 	"io"
 	"io/ioutil"
-	"log"
 	"net"
 	"net/http"
 	"net/url"
 	"sync"
 	"time"
 
+	"github.com/micro/go-log"
 	maddr "github.com/micro/misc/lib/addr"
 	mnet "github.com/micro/misc/lib/net"
 	mls "github.com/micro/misc/lib/tls"
@@ -301,7 +301,7 @@ func (h *httpTransportListener) Accept(fn func(Socket)) error {
 				if max := 1 * time.Second; tempDelay > max {
 					tempDelay = max
 				}
-				log.Printf("http: Accept error: %v; retrying in %v\n", err, tempDelay)
+				log.Logf("http: Accept error: %v; retrying in %v\n", err, tempDelay)
 				time.Sleep(tempDelay)
 				continue
 			}
@@ -319,6 +319,7 @@ func (h *httpTransportListener) Accept(fn func(Socket)) error {
 			// TODO: think of a better error response strategy
 			defer func() {
 				if r := recover(); r != nil {
+					log.Logf("http: recovered %v", r)
 					sock.Close()
 				}
 			}()

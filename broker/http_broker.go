@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"math/rand"
 	"net"
 	"net/http"
@@ -17,6 +16,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/micro/go-log"
 	"github.com/micro/go-micro/broker/codec/json"
 	"github.com/micro/go-micro/errors"
 	"github.com/micro/go-micro/registry"
@@ -249,7 +249,7 @@ func (h *httpBroker) start() error {
 		return err
 	}
 
-	log.Printf("Broker Listening on %s", l.Addr().String())
+	log.Logf("Broker Listening on %s", l.Addr().String())
 	h.address = l.Addr().String()
 
 	go http.Serve(l, h.mux)
