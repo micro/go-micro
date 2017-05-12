@@ -169,8 +169,7 @@ func (server *server) register(rcvr interface{}) error {
 	s.rcvr = reflect.ValueOf(rcvr)
 	sname := reflect.Indirect(s.rcvr).Type().Name()
 	if sname == "" {
-		log.Log("rpc: no service name for type", s.typ.String())
-		return errors.New("rpc: no service name for type" + s.typ.String())
+		log.Fatal("rpc: no service name for type", s.typ.String())
 	}
 	if !isExported(sname) {
 		s := "rpc Register: type " + sname + " is not exported"
