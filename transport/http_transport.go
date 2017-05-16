@@ -319,7 +319,7 @@ func (h *httpTransportListener) Accept(fn func(Socket)) error {
 			// TODO: think of a better error response strategy
 			defer func() {
 				if r := recover(); r != nil {
-					log.Logf("http: recovered %v", r)
+					log.Log("panic recovered: ", r)
 					sock.Close()
 				}
 			}()

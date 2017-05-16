@@ -98,7 +98,7 @@ func (r *rpcClient) call(ctx context.Context, address string, req Request, resp 
 	go func() {
 		defer func() {
 			if r := recover(); r != nil {
-				ch <- errors.InternalServerError("go.micro.client", "request error")
+				ch <- errors.InternalServerError("go.micro.client", fmt.Sprintf("panic recovered: %v", r))
 			}
 		}()
 

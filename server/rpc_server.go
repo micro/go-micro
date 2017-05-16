@@ -53,7 +53,8 @@ func (s *rpcServer) accept(sock transport.Socket) {
 		sock.Close()
 
 		if r := recover(); r != nil {
-			log.Log(r, string(debug.Stack()))
+			log.Log("panic recovered: ", r)
+			log.Log(string(debug.Stack()))
 		}
 	}()
 
