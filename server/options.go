@@ -165,6 +165,16 @@ func RegisterTTL(t time.Duration) Option {
 	}
 }
 
+// Wait tells the server to wait for requests to finish before exiting
+func Wait(b bool) Option {
+	return func(o *Options) {
+		if o.Context == nil {
+			o.Context = context.Background()
+		}
+		o.Context = context.WithValue(o.Context, "wait", b)
+	}
+}
+
 // Adds a handler Wrapper to a list of options passed into the server
 func WrapHandler(w HandlerWrapper) Option {
 	return func(o *Options) {
