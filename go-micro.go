@@ -22,6 +22,18 @@ type Service interface {
 	String() string
 }
 
+// Function is a one time executing Service
+type Function interface {
+	// Inherits Service interface
+	Service
+	// Done signals to complete execution
+	Done() error
+	// Handle registers an RPC handler
+	Handle(v interface{}) error
+	// Subscribe registers a subscriber
+	Subscribe(topic string, v interface{}) error
+}
+
 // Publisher is syntactic sugar for publishing
 type Publisher interface {
 	Publish(ctx context.Context, msg interface{}, opts ...client.PublishOption) error
