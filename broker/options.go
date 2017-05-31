@@ -31,7 +31,9 @@ type SubscribeOptions struct {
 	// Subscribers with the same queue name
 	// will create a shared subscription where each
 	// receives a subset of messages.
-	Queue string
+	Queue         string
+	PrefetchCount int
+	PrefetchSize  int
 
 	// Other options for implementations of the interface
 	// can be stored in a context
@@ -89,6 +91,13 @@ func DisableAutoAck() SubscribeOption {
 func Queue(name string) SubscribeOption {
 	return func(o *SubscribeOptions) {
 		o.Queue = name
+	}
+}
+
+func Qos(prefetchCount, prefetchSize int) SubscribeOption {
+	return func(o *SubscribeOptions) {
+		o.PrefetchSize = prefetchSize
+		o.PrefetchCount = prefetchCount
 	}
 }
 
