@@ -1,0 +1,67 @@
+package micro
+
+import (
+	"github.com/micro/go-micro/server"
+	"golang.org/x/net/context"
+)
+
+type function struct {
+	cancel context.CancelFunc
+	Service
+}
+
+func fnHandlerWrapper(f Function) server.HandlerWrapper {
+	return func(h server.HandlerFunc) server.HandlerFunc {
+		return func(ctx context.Context, req server.Request, rsp interface{}) error {
+			defer f.Done()
+			return h(ctx, req, rsp)
+		}
+	}
+}
+
+func fnSubWrapper(f Function) server.SubscriberWrapper {
+	return func(s server.SubscriberFunc) server.SubscriberFunc {
+		return func(ctx context.Context, msg server.Publication) error {
+			defer f.Done()
+			return s(ctx, msg)
+		}
+	}
+}
+
+func newFunction(opts ...Option) Function {
+	ctx, cancel := context.WithCancel(context.Background())
+	opts = append(opts, Context(ctx))
+	service := newService(opts...)
+
+	fn := &function{
+		cancel:  cancel,
+		Service: service,
+	}
+
+	service.Server().Init(
+		// ensure the service waits for requests to finish
+		server.Wait(true),
+		// wrap handlers and subscribers to finish execution
+		server.WrapHandler(fnHandlerWrapper(fn)),
+		server.WrapSubscriber(fnSubWrapper(fn)),
+	)
+
+	return fn
+}
+
+func (f *function) Done() error {
+	f.cancel()
+	return nil
+}
+
+func (f *function) Handle(v interface{}) error {
+	return f.Service.Server().Handle(
+		f.Service.Server().NewHandler(v),
+	)
+}
+
+func (f *function) Subscribe(topic string, v interface{}) error {
+	return f.Service.Server().Subscribe(
+		f.Service.Server().NewSubscriber(topic, v),
+	)
+}

@@ -61,6 +61,11 @@ func NewContext(ctx context.Context, s Service) context.Context {
 	return context.WithValue(ctx, serviceKey{}, s)
 }
 
+// NewFunction returns a new Function for a one time executing Service
+func NewFunction(opts ...Option) Function {
+	return newFunction(opts...)
+}
+
 // NewPublisher returns a new Publisher
 func NewPublisher(topic string, c client.Client) Publisher {
 	if c == nil {
