@@ -10,7 +10,10 @@ func wait(ctx context.Context) bool {
 	if ctx == nil {
 		return false
 	}
-	wait, _ := ctx.Value("wait").(bool)
+	wait, ok := ctx.Value("wait").(bool)
+	if !ok {
+		return false
+	}
 	return wait
 }
 
