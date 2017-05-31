@@ -6,6 +6,14 @@ import (
 
 type serverKey struct{}
 
+func wait(ctx context.Context) bool {
+	if ctx == nil {
+		return false
+	}
+	wait, _ := ctx.Value("wait").(bool)
+	return wait
+}
+
 func FromContext(ctx context.Context) (Server, bool) {
 	c, ok := ctx.Value(serverKey{}).(Server)
 	return c, ok
