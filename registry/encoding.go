@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"io/ioutil"
+	"strconv"
 )
 
 func encode(buf []byte) string {
@@ -141,6 +142,20 @@ func decodeMetadata(tags []string) map[string]string {
 		// set version
 		ver = tag[1]
 	}
+	return md
+}
+
+func decodeMetadataThirdParty(tags []string) map[string]string {
+	md := make(map[string]string)
+
+	for i, tag := range tags {
+		if len(tag) == 0 {
+			continue
+		}
+
+		md[strconv.Itoa(i)] = tag
+	}
+
 	return md
 }
 
