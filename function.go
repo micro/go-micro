@@ -1,6 +1,8 @@
 package micro
 
 import (
+	"time"
+
 	"github.com/micro/go-micro/server"
 	"golang.org/x/net/context"
 )
@@ -30,8 +32,20 @@ func fnSubWrapper(f Function) server.SubscriberWrapper {
 
 func newFunction(opts ...Option) Function {
 	ctx, cancel := context.WithCancel(context.Background())
-	opts = append(opts, Context(ctx))
-	service := newService(opts...)
+
+	// force ttl/interval
+	fopts := []Option{
+		RegisterTTL(time.Minute),
+		RegisterInterval(time.Second * 30),
+	}
+
+	// prepend to opts
+	fopts = append(fopts, opts...)
+
+	// make context the last thing
+	fopts = append(fopts, Context(ctx))
+
+	service := newService(fopts...)
 
 	fn := &function{
 		cancel:  cancel,
