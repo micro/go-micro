@@ -1,10 +1,10 @@
 package registry
 
 import (
+	"context"
 	"crypto/tls"
 	"time"
 
-	"golang.org/x/net/context"
 )
 
 type Options struct {
