@@ -131,6 +131,13 @@ func Version(v string) Option {
 	}
 }
 
+// Command line Description
+func Description(d string) Option {
+	return func(o *Options) {
+		o.Cmd.Init(cmd.Description(d))
+	}
+}
+
 // Metadata associated with the service
 func Metadata(md map[string]string) Option {
 	return func(o *Options) {
