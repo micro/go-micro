@@ -3,6 +3,7 @@ package micro
 import (
 	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/metadata"
+	"github.com/micro/go-micro/server"
 
 	"golang.org/x/net/context"
 )
@@ -44,4 +45,13 @@ func (c *clientWrapper) Stream(ctx context.Context, req client.Request, opts ...
 func (c *clientWrapper) Publish(ctx context.Context, p client.Publication, opts ...client.PublishOption) error {
 	ctx = c.setHeaders(ctx)
 	return c.Client.Publish(ctx, p, opts...)
+}
+
+func serverWrapper(s Service) server.HandlerWrapper {
+	return func(fn server.HandlerFunc) server.HandlerFunc {
+		return func(ctx context.Context, req server.Request, rsp interface{}) error {
+			ctx = NewContext(ctx, s)
+			return fn(ctx, req, rsp)
+		}
+	}
 }

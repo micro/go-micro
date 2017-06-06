@@ -28,10 +28,16 @@ func newService(opts ...Option) Service {
 		},
 	}
 
-	return &service{
+	s := &service{
 		opts: options,
 		init: make(chan bool),
 	}
+
+	s.opts.Server.Init(
+		server.WrapHandler(serverWrapper(s)),
+	)
+
+	return s
 }
 
 func (s *service) run(exit chan bool) {
