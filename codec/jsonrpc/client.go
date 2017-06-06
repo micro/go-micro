@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"sync"
+	"bytes"
 
 	"github.com/micro/go-micro/codec"
 )
@@ -89,7 +90,9 @@ func (c *clientCodec) ReadBody(x interface{}) error {
 	if x == nil || c.resp.Result == nil {
 		return nil
 	}
-	return json.Unmarshal(*c.resp.Result, x)
+	decoder := json.NewDecoder(bytes.NewReader(*c.resp.Result))
+	decoder.UseNumber()
+	return decoder.Decode(x)
 }
 
 func (c *clientCodec) Close() error {
