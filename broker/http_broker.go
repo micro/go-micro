@@ -286,7 +286,7 @@ func (h *httpBroker) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	b, err := ioutil.ReadAll(req.Body)
 	if err != nil {
-		errr := errors.InternalServerError("go.micro.broker", fmt.Sprintf("Error reading request body: %v", err))
+		errr := errors.InternalServerError("go.micro.broker", "Error reading request body: %v", err)
 		w.WriteHeader(500)
 		w.Write([]byte(errr.Error()))
 		return
@@ -294,7 +294,7 @@ func (h *httpBroker) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	var m *Message
 	if err = h.opts.Codec.Unmarshal(b, &m); err != nil {
-		errr := errors.InternalServerError("go.micro.broker", fmt.Sprintf("Error parsing request body: %v", err))
+		errr := errors.InternalServerError("go.micro.broker", "Error parsing request body: %v", err)
 		w.WriteHeader(500)
 		w.Write([]byte(errr.Error()))
 		return
