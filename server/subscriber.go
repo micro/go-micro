@@ -228,12 +228,12 @@ func (s *rpcServer) createSubHandler(sb *subscriber, opts Options) broker.Handle
 
 			s.wg.Add(1)
 			go func() {
+				defer s.wg.Done()
 				fn(ctx, &rpcPublication{
 					topic:       sb.topic,
 					contentType: ct,
 					message:     req.Interface(),
 				})
-				s.wg.Done()
 			}()
 		}
 		return nil

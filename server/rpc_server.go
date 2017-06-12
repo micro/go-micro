@@ -104,16 +104,13 @@ func (s *rpcServer) accept(sock transport.Socket) {
 
 		// add to wait group
 		s.wg.Add(1)
+		defer s.wg.Done()
 
 		// TODO: needs better error handling
 		if err := s.rpc.serveRequest(ctx, codec, ct); err != nil {
 			log.Logf("Unexpected error serving request, closing socket: %v", err)
-			s.wg.Done()
 			return
 		}
-
-		// finish request
-		s.wg.Done()
 	}
 }
 
