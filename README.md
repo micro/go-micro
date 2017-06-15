@@ -11,7 +11,7 @@ check out the [Mailing List](https://groups.google.com/forum/#!forum/microhq).
 
 ## Features
 
-Go Micro abstracts way the details of distributed systems. Here are the main features.
+Go Micro abstracts away the details of distributed systems. Here are the main features.
 
 - **Service Discovery** - Applications are automatically registered with service discovery so they can find each other.
 - **Load Balancing** - Smart client side load balancing is used to balance requests between instances of a service.
