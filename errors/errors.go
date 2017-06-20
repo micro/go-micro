@@ -46,9 +46,9 @@ func Parse(err string) *Error {
 func BadRequest(id, format string, a ...interface{}) error {
 	return &Error{
 		Id:     id,
-		Code:   400,
+		Code:   http.StatusBadRequest,
 		Detail: fmt.Sprintf(format, a...),
-		Status: http.StatusText(400),
+		Status: http.StatusText(http.StatusBadRequest),
 	}
 }
 
@@ -56,9 +56,9 @@ func BadRequest(id, format string, a ...interface{}) error {
 func Unauthorized(id, format string, a ...interface{}) error {
 	return &Error{
 		Id:     id,
-		Code:   401,
+		Code:   http.StatusUnauthorized,
 		Detail: fmt.Sprintf(format, a...),
-		Status: http.StatusText(401),
+		Status: http.StatusText(http.StatusUnauthorized),
 	}
 }
 
@@ -66,9 +66,9 @@ func Unauthorized(id, format string, a ...interface{}) error {
 func Forbidden(id, format string, a ...interface{}) error {
 	return &Error{
 		Id:     id,
-		Code:   403,
+		Code:   http.StatusForbidden,
 		Detail: fmt.Sprintf(format, a...),
-		Status: http.StatusText(403),
+		Status: http.StatusText(http.StatusForbidden),
 	}
 }
 
@@ -76,9 +76,9 @@ func Forbidden(id, format string, a ...interface{}) error {
 func NotFound(id, format string, a ...interface{}) error {
 	return &Error{
 		Id:     id,
-		Code:   404,
+		Code:   http.StatusNotFound,
 		Detail: fmt.Sprintf(format, a...),
-		Status: http.StatusText(404),
+		Status: http.StatusText(http.StatusNotFound),
 	}
 }
 
@@ -86,8 +86,18 @@ func NotFound(id, format string, a ...interface{}) error {
 func InternalServerError(id, format string, a ...interface{}) error {
 	return &Error{
 		Id:     id,
-		Code:   500,
+		Code:   http.StatusInternalServerError,
 		Detail: fmt.Sprintf(format, a...),
-		Status: http.StatusText(500),
+		Status: http.StatusText(http.StatusInternalServerError),
+	}
+}
+
+// UnprocessableEntity generates a 422 error.
+func UnprocessableEntity(id, format string, a ...interface{}) error {
+	return &Error{
+		Id:     id,
+		Code:   http.StatusUnprocessableEntity,
+		Detail: fmt.Sprintf(format, a...),
+		Status: http.StatusText(http.StatusUnprocessableEntity),
 	}
 }
