@@ -1,6 +1,9 @@
 // Package broker is an interface used for asynchronous messaging
 package broker
 
+// This is required by the MsgPack broker codel
+//go:generate msgp -io=false -tests=false
+
 // Broker is an interface used for asynchronous messaging.
 // Its an abstraction over various message brokers
 // {NATS, RabbitMQ, Kafka, ...}
