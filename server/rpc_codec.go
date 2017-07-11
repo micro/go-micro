@@ -7,6 +7,7 @@ import (
 	"github.com/micro/go-micro/codec/jsonrpc"
 	"github.com/micro/go-micro/codec/protorpc"
 	"github.com/micro/go-micro/transport"
+	"github.com/pkg/errors"
 )
 
 type rpcPlusCodec struct {
@@ -96,7 +97,11 @@ func (c *rpcPlusCodec) WriteResponse(r *response, body interface{}, last bool) e
 		Header: map[string]string{},
 	}
 	if err := c.codec.Write(m, body); err != nil {
-		return err
+		c.buf.wbuf.Reset()
+		m.Error = errors.Wrapf(err, "Unable to encode body").Error()
+		if err := c.codec.Write(m, nil); err != nil {
+			return err
+		}
 	}
 
 	m.Header["Content-Type"] = c.req.Header["Content-Type"]

@@ -249,7 +249,10 @@ func (s *service) call(ctx context.Context, server *server, sending *sync.Mutex,
 			errmsg = err.Error()
 		}
 
-		server.sendResponse(sending, req, replyv.Interface(), codec, errmsg, true)
+		err = server.sendResponse(sending, req, replyv.Interface(), codec, errmsg, true)
+		if err != nil {
+			log.Log("rpc call: unable to send response: ", err)
+		}
 		server.freeRequest(req)
 		return
 	}
