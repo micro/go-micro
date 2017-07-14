@@ -157,14 +157,9 @@ func main() {
 	service := micro.NewService(
 		micro.Name("greeter"),
 		micro.Version("latest"),
-		micro.Metadata(map[string]string{
-			"type": "helloworld",
-		}),
 	)
 
-	// Init will parse the command line flags. Any flags set will
-	// override the above settings. Options defined here will
-	// override anything set on the command line.
+	// Init will parse the command line flags.
 	service.Init()
 
 	// Register handler
