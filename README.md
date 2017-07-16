@@ -6,8 +6,7 @@ The **Micro** philosophy is sane defaults with a pluggable architecture. We prov
 
 Everything in go-micro is **pluggable**. You can find and contribute to plugins at [github.com/micro/go-plugins](https://github.com/micro/go-plugins).
 
-Follow us on Twitter at [@MicroHQ](https://twitter.com/microhq), join the [Slack](https://micro-services.slack.com) community [here](http://slack.micro.mu/) or 
-check out the [Mailing List](https://groups.google.com/forum/#!forum/microhq).
+Follow us on [Twitter](https://twitter.com/microhq) or join the [Slack](http://slack.micro.mu/) community.
 
 ## Features
 
