@@ -1,7 +1,7 @@
 language: go
 go:
-- 1.7.4
-- 1.8rc3
+- 1.8.3
+- 1.9rc2
 notifications:
   slack:
     secure: aEvhLbhujaGaKSrOokiG3//PaVHTIrc3fBpoRbCRqfZpyq6WREoapJJhF+tIpWWOwaC9GmChbD6aHo/jMUgwKXVyPSaNjiEL87YzUUpL8B2zslNp1rgfTg/LrzthOx3Q1TYwpaAl3to0fuHUVFX4yMeC2vuThq7WSXgMMxFCtbc=
