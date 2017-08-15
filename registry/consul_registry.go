@@ -59,6 +59,9 @@ func newConsulRegistry(opts ...Option) Registry {
 			config = c
 		}
 	}
+	if config.HttpClient == nil {
+		config.HttpClient = new(http.Client)
+	}
 
 	// set timeout
 	if options.Timeout > 0 {
@@ -81,9 +84,6 @@ func newConsulRegistry(opts ...Option) Registry {
 	if options.Secure || options.TLSConfig != nil {
 		config.Scheme = "https"
 		// We're going to support InsecureSkipVerify
-		if config.HttpClient == nil {
-			config.HttpClient = new(http.Client)
-		}
 		config.HttpClient.Transport = newTransport(options.TLSConfig)
 	}
 
