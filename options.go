@@ -25,6 +25,8 @@ type Options struct {
 
 	// Register loop interval
 	RegisterInterval time.Duration
+	Interval time.Duration
+	TCP string
 
 	// Before and After funcs
 	BeforeStart []func() error
@@ -163,6 +165,19 @@ func RegisterInterval(t time.Duration) Option {
 		o.RegisterInterval = t
 	}
 }
+
+func CheckInterval(t time.Duration) Option {
+	return func (o *Options) {
+		o.Server.Init(server.CheckInterval(t))
+	}
+}
+
+func CheckTCP(tcp string) Option {
+	return func (o *Options) {
+		o.Server.Init(server.CheckTCP(tcp))
+	}
+}
+
 
 // WrapClient is a convenience method for wrapping a Client with
 // some middleware component. A list of wrappers can be provided.
