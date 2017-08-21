@@ -155,7 +155,7 @@ func (c *consulRegistry) Register(s *Service, opts ...RegisterOption) error {
 	var check *consul.AgentServiceCheck
 
 	// if the TTL is greater than 0 create an associated check
-	if options.TTL > time.Duration(0) {
+	if options.TTL > time.Duration(0) || options.Interval > time.Duration(0) || len(options.TCP) > 0 {
 		// splay slightly for the watcher?
 		splay := time.Second * 5
 		deregTTL := options.TTL + splay
@@ -165,8 +165,17 @@ func (c *consulRegistry) Register(s *Service, opts ...RegisterOption) error {
 		}
 
 		check = &consul.AgentServiceCheck{
-			TTL: fmt.Sprintf("%v", options.TTL),
+			Status: "passing",
 			DeregisterCriticalServiceAfter: fmt.Sprintf("%v", deregTTL),
+		}
+		if options.Interval > time.Duration(0) {
+			check.Interval = fmt.Sprintf("%v", options.Interval)
+		}
+		if len(options.TCP) > 0 {
+			check.TCP = options.TCP
+		}
+		if options.TTL > time.Duration(0) {
+			check.TTL = fmt.Sprintf("%v", options.TTL)
 		}
 	}
 

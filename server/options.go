@@ -27,6 +27,8 @@ type Options struct {
 	SubWrappers  []SubscriberWrapper
 
 	RegisterTTL time.Duration
+	Interval time.Duration
+	TCP string
 
 	// Debug Handler which can be set by a user
 	DebugHandler debug.DebugHandler
@@ -162,6 +164,18 @@ func Metadata(md map[string]string) Option {
 func RegisterTTL(t time.Duration) Option {
 	return func(o *Options) {
 		o.RegisterTTL = t
+	}
+}
+
+func CheckInterval(t time.Duration) Option {
+	return func(o *Options){
+		o.Interval = t
+	}
+}
+
+func CheckTCP(tcp string) Option {
+	return func(o *Options) {
+		o.TCP = tcp
 	}
 }
 
