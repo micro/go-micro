@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 	"runtime/debug"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -232,18 +233,33 @@ func (s *rpcServer) Register() error {
 	node.Metadata["registry"] = config.Registry.String()
 
 	s.RLock()
-	var endpoints []*registry.Endpoint
-	for _, e := range s.handlers {
+	// Maps are ordered randomly, sort the keys for consistency
+	var handlerList []string
+	for n, e := range s.handlers {
 		// Only advertise non internal handlers
 		if !e.Options().Internal {
-			endpoints = append(endpoints, e.Endpoints()...)
+			handlerList = append(handlerList, n)
 		}
 	}
-	for e, _ := range s.subscribers {
+	sort.Strings(handlerList)
+
+	var subscriberList []*subscriber
+	for e := range s.subscribers {
 		// Only advertise non internal subscribers
 		if !e.Options().Internal {
-			endpoints = append(endpoints, e.Endpoints()...)
+			subscriberList = append(subscriberList, e)
 		}
+	}
+	sort.Slice(subscriberList, func(i, j int) bool {
+		return subscriberList[i].topic > subscriberList[j].topic
+	})
+
+	var endpoints []*registry.Endpoint
+	for _, n := range handlerList {
+		endpoints = append(endpoints, s.handlers[n].Endpoints()...)
+	}
+	for _, e := range subscriberList {
+		endpoints = append(endpoints, e.Endpoints()...)
 	}
 	s.RUnlock()
 
