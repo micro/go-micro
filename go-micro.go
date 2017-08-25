@@ -45,7 +45,7 @@ var (
 	HeaderPrefix = "X-Micro-"
 )
 
-// NewService creates an returns a new Service based on the packages within.
+// NewService creates and returns a new Service based on the packages within.
 func NewService(opts ...Option) Service {
 	return newService(opts...)
 }
