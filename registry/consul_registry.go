@@ -208,6 +208,19 @@ func (c *consulRegistry) GetService(name string) ([]*Service, error) {
 		if s.Service.Service != name {
 			continue
 		}
+		var del bool
+		for _, check := range s.Checks {
+			// delete the node if the status is critical
+			if check.Status != "passing" {
+				del = true
+				break
+			}
+		}
+
+		// if delete then skip the node
+		if del {
+			continue
+		}
 
 		// version is now a tag
 		version, found := decodeVersion(s.Service.Tags)
@@ -232,20 +245,6 @@ func (c *consulRegistry) GetService(name string) ([]*Service, error) {
 				Version:   version,
 			}
 			serviceMap[key] = svc
-		}
-
-		var del bool
-		for _, check := range s.Checks {
-			// delete the node if the status is critical
-			if check.Status == "critical" {
-				del = true
-				break
-			}
-		}
-
-		// if delete then skip the node
-		if del {
-			continue
 		}
 
 		svc.Nodes = append(svc.Nodes, &Node{
