@@ -203,9 +203,20 @@ func (c *consulRegistry) GetService(name string) ([]*Service, error) {
 	}
 
 	serviceMap := map[string]*Service{}
+	isHealthy := func(s *consul.ServiceEntry) bool {
+		for _, chk := range s.Checks {
+			if chk.Status != "passing" {
+				return false
+			}
+		}
+		return true
+	}
 
 	for _, s := range rsp {
 		if s.Service.Service != name {
+			continue
+		}
+		if !isHealthy(s) {
 			continue
 		}
 
