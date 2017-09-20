@@ -1,4 +1,4 @@
-// transport is an interface for synchronous communication
+// Package is an interface for synchronous communication
 package transport
 
 import (
