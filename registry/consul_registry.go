@@ -203,20 +203,22 @@ func (c *consulRegistry) GetService(name string) ([]*Service, error) {
 	}
 
 	serviceMap := map[string]*Service{}
-	isHealthy := func(s *consul.ServiceEntry) bool {
-		for _, chk := range s.Checks {
-			if chk.Status != "passing" {
-				return false
-			}
-		}
-		return true
-	}
 
 	for _, s := range rsp {
 		if s.Service.Service != name {
 			continue
 		}
-		if !isHealthy(s) {
+		var del bool
+		for _, check := range s.Checks {
+			// delete the node if the status is critical
+			if check.Status != "passing" {
+				del = true
+				break
+			}
+		}
+
+		// if delete then skip the node
+		if del {
 			continue
 		}
 
@@ -243,20 +245,6 @@ func (c *consulRegistry) GetService(name string) ([]*Service, error) {
 				Version:   version,
 			}
 			serviceMap[key] = svc
-		}
-
-		var del bool
-		for _, check := range s.Checks {
-			// delete the node if the status is critical
-			if check.Status == "critical" {
-				del = true
-				break
-			}
-		}
-
-		// if delete then skip the node
-		if del {
-			continue
 		}
 
 		svc.Nodes = append(svc.Nodes, &Node{
