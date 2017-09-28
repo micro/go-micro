@@ -15,6 +15,7 @@ type Registry interface {
 	ListServices() ([]*Service, error)
 	Watch() (Watcher, error)
 	String() string
+	Options() Options
 }
 
 type Option func(*Options)

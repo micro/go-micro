@@ -17,7 +17,7 @@ import (
 type consulRegistry struct {
 	Address string
 	Client  *consul.Client
-	Options Options
+	opts    Options
 
 	sync.Mutex
 	register map[string]uint64
@@ -93,7 +93,7 @@ func newConsulRegistry(opts ...Option) Registry {
 	cr := &consulRegistry{
 		Address:  config.Address,
 		Client:   client,
-		Options:  options,
+		opts:     options,
 		register: make(map[string]uint64),
 	}
 
@@ -284,4 +284,8 @@ func (c *consulRegistry) Watch() (Watcher, error) {
 
 func (c *consulRegistry) String() string {
 	return "consul"
+}
+
+func (c *consulRegistry) Options() Options {
+	return c.opts
 }

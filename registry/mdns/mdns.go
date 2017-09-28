@@ -316,6 +316,10 @@ func (m *mdnsRegistry) String() string {
 	return "mdns"
 }
 
+func (m *mdnsRegistry) Options() registry.Options {
+	return m.opts
+}
+
 func NewRegistry(opts ...registry.Option) registry.Registry {
 	return newRegistry(opts...)
 }
