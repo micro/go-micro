@@ -57,15 +57,10 @@ go run main.go --registry=mdns
 
 Here's a quick start for the default service discovery system consul.
 
-**Mac OS**
+On Mac OS
 ```
 brew install consul
 consul agent -dev
-```
-
-**Docker**
-```
-docker run consul
 ```
 
 [Further installation instructions](https://www.consul.io/intro/getting-started/install.html)
