@@ -46,7 +46,7 @@ etcd, kubernetes, zookeeper, etc. Plugins are in [micro/go-plugins](https://gith
 
 ### Multicast DNS
 
-[Multicast DNS](https://en.wikipedia.org/wiki/Multicast_DNS) can alternatively be used for service discovery as a zero dependency configuration. 
+[Multicast DNS](https://en.wikipedia.org/wiki/Multicast_DNS) is a built in service discovery plugin for a zero dependency configuration. 
 
 Pass `--registry=mdns` to any command or the enviroment variable MICRO_REGISTRY=mdns
 ```
@@ -55,7 +55,7 @@ go run main.go --registry=mdns
 
 ### Consul
 
-Alternatively we can use the default discovery system which is Consul.
+Here's a quick start for the default service discovery system consul.
 
 **Mac OS**
 ```
