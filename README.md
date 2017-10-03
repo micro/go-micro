@@ -27,28 +27,30 @@ For more detailed information on the architecture, installation and use of go-mi
 
 ## Learn By Example
 
-An example service can be found in [**examples/service**](https://github.com/micro/examples/tree/master/service) and function in [**examples/function**](https://github.com/micro/examples/tree/master/function). The [**examples**](https://github.com/micro/examples) directory contains many more examples for using things such as middleware/wrappers, selector filters, pub/sub and code generation. 
-For the complete greeter example look at [**examples/greeter**](https://github.com/micro/examples/tree/master/greeter). Other examples can be found throughout the GitHub repository.
+An example service can be found in [**examples/service**](https://github.com/micro/examples/tree/master/service) and function in [**examples/function**](https://github.com/micro/examples/tree/master/function). 
 
-Check out the blog post to learn how to write go-micro services [https://micro.mu/blog/2016/03/28/go-micro.html](https://micro.mu/blog/2016/03/28/go-micro.html) or watch the talk from the [Golang UK Conf 2016](https://www.youtube.com/watch?v=xspaDovwk34).
+The [**examples**](https://github.com/micro/examples) directory contains examples for using things such as middleware/wrappers, selector filters, pub/sub, grpc, plugins and much more. For the complete greeter example look at [**examples/greeter**](https://github.com/micro/examples/tree/master/greeter). Other examples can be found throughout the GitHub repository.
+
+Watch the [Golang UK Conf 2016](https://www.youtube.com/watch?v=xspaDovwk34) video for a high level overview.
 
 ## Getting Started
 
 This is a quick getting started guide with the greeter service example.
 
-### Prerequisites: Service Discovery
+### Prereq: Service Discovery
 
-There's just one prerequisite. We need a service discovery system to resolve service names to their address. 
-The default discovery mechanism used in go-micro is Consul. Discovery is however pluggable so you can used 
-etcd, kubernetes, zookeeper, etc. Plugins can be found in [micro/go-plugins](https://github.com/micro/go-plugins).
+Service discovery is required to resolve services to their addresses. 
+
+The default discovery plugin is consul. Discovery is however pluggable so you can use 
+etcd, kubernetes, zookeeper, etc. Plugins are in [micro/go-plugins](https://github.com/micro/go-plugins).
 
 ### Multicast DNS
 
-We can use multicast DNS with the built in MDNS registry for a zero dependency configuration. 
+[Multicast DNS](https://en.wikipedia.org/wiki/Multicast_DNS) can alternatively be used for service discovery as a zero dependency configuration. 
 
-Just pass `--registry=mdns` to any command
+Pass `--registry=mdns` to any command or the enviroment variable MICRO_REGISTRY=mdns
 ```
-$ go run main.go --registry=mdns
+go run main.go --registry=mdns
 ```
 
 ### Consul
@@ -71,7 +73,11 @@ docker run consul
 ### Run Service
 
 ```
-$ go get github.com/micro/examples/service && service
+go get github.com/micro/examples/service && service
+```
+
+Output
+```
 2016/03/14 10:59:14 Listening on [::]:50137
 2016/03/14 10:59:14 Broker Listening on [::]:50138
 2016/03/14 10:59:14 Registering node: greeter-ca62b017-e9d3-11e5-9bbb-68a86d0d36b6
@@ -79,18 +85,25 @@ $ go get github.com/micro/examples/service && service
 
 ### Call Service
 ```
-$ service --run_client
+service --run_client
+```
+
+Output
+```
 Hello John
 ```
 
 ## Writing a service
 
+This is a simple greeter RPC service example
+
+Find this example at [examples/service](https://github.com/micro/examples/tree/master/service).
+
 ### Create service proto
 
-One of the key requirements of microservices is strongly defined interfaces so we utilised protobuf to define the handler and request/response. 
-Here's a definition for the Greeter handler with the method Hello which takes a HelloRequest and HelloResponse both with one string arguments.
+One of the key requirements of microservices is strongly defined interfaces. Micro uses protobuf to achieve this.
 
-`go-micro/examples/service/proto/greeter.proto`:
+Here we define the Greeter handler with the method Hello. It takes a HelloRequest and HelloResponse both with one string arguments.
 
 ```proto
 syntax = "proto3";
@@ -110,28 +123,33 @@ message HelloResponse {
 
 ### Install protobuf
 
-We use a protobuf plugin for code generation. This is completely optional. Look at [examples/server](https://github.com/micro/examples/blob/master/server/main.go) 
-and [examples/client](https://github.com/micro/examples/blob/master/client/main.go) for examples without code generation.
+Install [protobuf](https://developers.google.com/protocol-buffers/)
+
+Now install the micro fork of protoc-gen-go. The protobuf compiler for Go. 
 
 ```shell
 go get github.com/micro/protobuf/{proto,protoc-gen-go}
 ```
 
-There's still a need for proto compiler to generate Go stub code from our proto file. You can either use the micro fork above or the official repo `github.com/golang/protobuf`.
+### Generate the proto
 
-### Compile the proto
+After writing the proto definition we must compile it using protoc with the micro plugin.
 
 ```shell
 protoc -I$GOPATH/src --go_out=plugins=micro:$GOPATH/src \
 	$GOPATH/src/github.com/micro/examples/service/proto/greeter.proto
 ```
 
-### Define the service
+### Write the service
 
-Below is the code sample for the Greeter service. It basically implements the interface defined above for the Greeter handler, 
-initialises the service, registers the handler and then runs itself. Simple as that.
+Below is the code for the greeter service. 
 
-`go-micro/examples/service/main.go`:
+It does the following:
+
+1. Implements the interface defined for the Greeter handler
+2. Initialises a micro.Service
+3. Registers the Greeter handler
+4. Runs the service
 
 ```go
 package main
@@ -174,6 +192,10 @@ func main() {
 ### Run service
 ```
 go run examples/service/main.go
+```
+
+Output
+```
 2016/03/14 10:59:14 Listening on [::]:50137
 2016/03/14 10:59:14 Broker Listening on [::]:50138
 2016/03/14 10:59:14 Registering node: greeter-ca62b017-e9d3-11e5-9bbb-68a86d0d36b6
@@ -181,10 +203,9 @@ go run examples/service/main.go
 
 ### Define a client
 
-Below is the client code to query the greeter service. Notice we're using the code generated client interface `proto.NewGreeterClient`. 
-This reduces the amount of boiler plate code we need to write. The greeter client can be reused throughout the code if need be.
+Below is the client code to query the greeter service. 
 
-`client.go`
+The generated proto includes a greeter client to reduce boilerplate code.
 
 ```go
 package main
@@ -220,13 +241,18 @@ func main() {
 
 ```shell
 go run client.go
+```
+
+Output
+```
 Hello John
 ```
 
 ## Writing a Function
 
-Go Micro includes the Function programming model. This is the notion of a one time executing Service which operates much like a service except exiting 
-after completing a request. A function is defined much like a service and called in exactly the same way.
+Go Micro includes the Function programming model. 
+
+A Function is a one time executing Service which exits after completing a request. 
 
 ### Defining a Function
 
@@ -265,13 +291,13 @@ func main() {
 
 It's that simple.
 
-## How does it work?
+## How it works
 
 <p align="center">
   <img src="go-micro.png" />
 </p>
 
-Go Micro is a framework that addresses the fundamental requirements to write microservices. 
+Go Micro is a framework that addresses the fundamental requirements for writing microservices. 
 
 Let's dig into the core components.
 
