@@ -10,12 +10,13 @@ import (
 	"github.com/micro/go-micro/cmd"
 	"github.com/micro/go-micro/metadata"
 	"github.com/micro/go-micro/server"
+	"sync"
 )
 
 type service struct {
 	opts Options
 
-	init chan bool
+	once sync.Once
 }
 
 func newService(opts ...Option) Service {
@@ -30,7 +31,6 @@ func newService(opts ...Option) Service {
 
 	return &service{
 		opts: options,
-		init: make(chan bool),
 	}
 }
 
@@ -56,23 +56,12 @@ func (s *service) run(exit chan bool) {
 // which parses command line flags. cmd.Init is only called
 // on first Init.
 func (s *service) Init(opts ...Option) {
-	// If <-s.init blocks, Init has not been called yet
-	// so we can call cmd.Init once.
-	select {
-	case <-s.init:
-		// only process options
-		for _, o := range opts {
-			o(&s.opts)
-		}
-	default:
-		// close init
-		close(s.init)
+	// process options
+	for _, o := range opts {
+		o(&s.opts)
+	}
 
-		// process options
-		for _, o := range opts {
-			o(&s.opts)
-		}
-
+	s.once.Do(func() {
 		// Initialise the command flags, overriding new service
 		s.opts.Cmd.Init(
 			cmd.Broker(&s.opts.Broker),
@@ -81,7 +70,7 @@ func (s *service) Init(opts ...Option) {
 			cmd.Client(&s.opts.Client),
 			cmd.Server(&s.opts.Server),
 		)
-	}
+	})
 }
 
 func (s *service) Options() Options {
