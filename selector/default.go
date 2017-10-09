@@ -1,18 +1,11 @@
 package selector
 
 import (
-	"math/rand"
-	"time"
-
 	"github.com/micro/go-micro/registry"
 )
 
 type defaultSelector struct {
 	so Options
-}
-
-func init() {
-	rand.Seed(time.Now().Unix())
 }
 
 func (r *defaultSelector) Init(opts ...Option) error {
