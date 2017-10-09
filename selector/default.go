@@ -11,10 +11,6 @@ type defaultSelector struct {
 	so Options
 }
 
-func init() {
-	rand.Seed(time.Now().Unix())
-}
-
 func (r *defaultSelector) Init(opts ...Option) error {
 	for _, o := range opts {
 		o(&r.so)
