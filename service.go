@@ -3,6 +3,7 @@ package micro
 import (
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
@@ -10,7 +11,6 @@ import (
 	"github.com/micro/go-micro/cmd"
 	"github.com/micro/go-micro/metadata"
 	"github.com/micro/go-micro/server"
-	"sync"
 )
 
 type service struct {
