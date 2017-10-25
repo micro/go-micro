@@ -7,6 +7,7 @@ import (
 	"syscall"
 	"time"
 
+	log "github.com/micro/go-log"
 	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/cmd"
 	"github.com/micro/go-micro/metadata"
@@ -44,7 +45,10 @@ func (s *service) run(exit chan bool) {
 	for {
 		select {
 		case <-t.C:
-			s.opts.Server.Register()
+			err := s.opts.Server.Register()
+			if err != nil {
+				log.Log("service run Server.Register err : ", err)
+			}
 		case <-exit:
 			t.Stop()
 			return
