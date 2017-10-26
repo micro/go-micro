@@ -23,6 +23,8 @@ type cacheSelector struct {
 	cache map[string][]*registry.Service
 	ttls  map[string]time.Time
 
+	once sync.Once
+
 	// used to close or reload watcher
 	reload chan bool
 	exit   chan bool
@@ -241,6 +243,9 @@ func (c *cacheSelector) run() {
 		// create new watcher
 		w, err := c.so.Registry.Watch()
 		if err != nil {
+			if c.quit() {
+				return
+			}
 			log.Log(err)
 			time.Sleep(time.Second)
 			continue
@@ -248,6 +253,9 @@ func (c *cacheSelector) run() {
 
 		// watch for events
 		if err := c.watch(w); err != nil {
+			if c.quit() {
+				return
+			}
 			log.Log(err)
 			continue
 		}
@@ -324,6 +332,10 @@ func (c *cacheSelector) Options() selector.Options {
 }
 
 func (c *cacheSelector) Select(service string, opts ...selector.SelectOption) (selector.Next, error) {
+	c.once.Do(func() {
+		go c.run()
+	})
+
 	sopts := selector.SelectOptions{
 		Strategy: c.so.Strategy,
 	}
@@ -401,7 +413,7 @@ func NewSelector(opts ...selector.Option) selector.Selector {
 		}
 	}
 
-	c := &cacheSelector{
+	return &cacheSelector{
 		so:     sopts,
 		ttl:    ttl,
 		cache:  make(map[string][]*registry.Service),
@@ -409,7 +421,4 @@ func NewSelector(opts ...selector.Option) selector.Selector {
 		reload: make(chan bool, 1),
 		exit:   make(chan bool),
 	}
-
-	go c.run()
-	return c
 }
