@@ -43,7 +43,7 @@ Watch the [Golang UK Conf 2016](https://www.youtube.com/watch?v=xspaDovwk34) vid
 
 ## Service Discovery
 
-Service discovery is used to resolve service names to addresses.
+Service discovery is used to resolve service names to addresses. It's the only dependency of go-micro.
 
 ### Consul
 
