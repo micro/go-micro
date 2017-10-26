@@ -88,30 +88,43 @@ func (c *cacheSelector) get(service string) ([]*registry.Service, error) {
 	c.Lock()
 	defer c.Unlock()
 
+	// get does the actual request for a service
+	// it also caches it
+	get := func(service string) ([]*registry.Service, error) {
+		// ask the registry
+		services, err := c.so.Registry.GetService(service)
+		if err != nil {
+			return nil, err
+		}
+
+		// cache results
+		c.set(service, c.cp(services))
+		return services, nil
+	}
+
 	// check the cache first
 	services, ok := c.cache[service]
+
+	// cache miss or no services
+	if !ok || len(services) == 0 {
+		return get(service)
+	}
+
+	// got cache but lets check ttl
 	ttl, kk := c.ttls[service]
 
-	// got results, copy and return
-	if ok && len(services) > 0 {
-		// only return if its less than the ttl
-		if kk && time.Since(ttl) < c.ttl {
-			return c.cp(services), nil
-		}
+	// within ttl so return cache
+	if kk && time.Since(ttl) < c.ttl {
+		return c.cp(services), nil
 	}
 
-	// cache miss or ttl expired
-
-	// now ask the registry
-	services, err := c.so.Registry.GetService(service)
-	if err != nil {
-		return nil, err
+	// expired entry so get service
+	if services, err := get(service); err == nil {
+		return services, nil
 	}
 
-	// we didn't have any results so cache
-	c.cache[service] = c.cp(services)
-	c.ttls[service] = time.Now().Add(c.ttl)
-	return services, nil
+	// return expired cache as last resort
+	return c.cp(services), nil
 }
 
 func (c *cacheSelector) set(service string, services []*registry.Service) {
@@ -232,8 +245,6 @@ func (c *cacheSelector) update(res *registry.Result) {
 // reloads the watcher if Init is called
 // and returns when Close is called
 func (c *cacheSelector) run() {
-	go c.tick()
-
 	for {
 		// exit early if already dead
 		if c.quit() {
@@ -258,27 +269,6 @@ func (c *cacheSelector) run() {
 			}
 			log.Log(err)
 			continue
-		}
-	}
-}
-
-// check cache and expire on each tick
-func (c *cacheSelector) tick() {
-	t := time.NewTicker(time.Minute)
-
-	for {
-		select {
-		case <-t.C:
-			c.Lock()
-			for service, expiry := range c.ttls {
-				if d := time.Since(expiry); d > c.ttl {
-					// TODO: maybe refresh the cache rather than blowing it away
-					c.del(service)
-				}
-			}
-			c.Unlock()
-		case <-c.exit:
-			return
 		}
 	}
 }
