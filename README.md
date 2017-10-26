@@ -33,59 +33,34 @@ The [**examples**](https://github.com/micro/examples) directory contains example
 
 Watch the [Golang UK Conf 2016](https://www.youtube.com/watch?v=xspaDovwk34) video for a high level overview.
 
-## Getting Started
+## Getting started
 
-This is a quick getting started guide with the greeter service example.
+- [Service Discovery](#service-discovery)
+- [Writing a Service](#writing-a-service)
+- [Writing a Function](#writing-a-function)
+- [Plugins](#plugins)
+- [Wrappers](#wrappers)
 
-### Prereq: Service Discovery
+## Service Discovery
 
-Service discovery is required to resolve services to their addresses. 
+Service discovery is used to resolve service names to addresses. It's the only dependency of go-micro.
 
-The default discovery plugin is consul. Discovery is however pluggable so you can use 
-etcd, kubernetes, zookeeper, etc. Plugins are in [micro/go-plugins](https://github.com/micro/go-plugins).
+### Consul
+
+[Consul](https://www.consul.io/) is used as the default service discovery system. 
+
+Discovery is pluggable. Find plugins for etcd, kubernetes, zookeeper and more in the [micro/go-plugins](https://github.com/micro/go-plugins) repo.
+
+[Install guide](https://www.consul.io/intro/getting-started/install.html)
 
 ### Multicast DNS
 
 [Multicast DNS](https://en.wikipedia.org/wiki/Multicast_DNS) is a built in service discovery plugin for a zero dependency configuration. 
 
 Pass `--registry=mdns` to any command or the enviroment variable MICRO_REGISTRY=mdns
+
 ```
 go run main.go --registry=mdns
-```
-
-### Consul
-
-Here's a quick start for the default service discovery system consul.
-
-On Mac OS
-```
-brew install consul
-consul agent -dev
-```
-
-[Further installation instructions](https://www.consul.io/intro/getting-started/install.html)
-
-### Run Service
-
-```
-go get github.com/micro/examples/service && service
-```
-
-Output
-```
-2016/03/14 10:59:14 Listening on [::]:50137
-2016/03/14 10:59:14 Broker Listening on [::]:50138
-2016/03/14 10:59:14 Registering node: greeter-ca62b017-e9d3-11e5-9bbb-68a86d0d36b6
-```
-
-### Call Service
-```
-service --run_client
-```
-
-Output
-```
-Hello John
 ```
 
 ## Writing a service
@@ -286,61 +261,6 @@ func main() {
 
 It's that simple.
 
-## How it works
-
-<p align="center">
-  <img src="go-micro.png" />
-</p>
-
-Go Micro is a framework that addresses the fundamental requirements for writing microservices. 
-
-Let's dig into the core components.
-
-### Registry
-
-The registry provides a service discovery mechanism to resolve names to addresses. It can be backed by consul, etcd, zookeeper, dns, gossip, etc. 
-Services should register using the registry on startup and deregister on shutdown. Services can optionally provide an expiry TTL and reregister 
-on an interval to ensure liveness and that the service is cleaned up if it dies.
-
-### Selector
-
-The selector is a load balancing abstraction which builds on the registry. It allows services to be "filtered" using filter functions and "selected" 
-using a choice of algorithms such as random, roundrobin, leastconn, etc. The selector is leveraged by the Client when making requests. The client 
-will use the selector rather than the registry as it provides that built in mechanism of load balancing. 
-
-### Transport
-
-The transport is the interface for synchronous request/response communication between services. It's akin to the golang net package but provides 
-a higher level abstraction which allows us to switch out communication mechanisms e.g http, rabbitmq, websockets, NATS. The transport also 
-supports bidirectional streaming. This is powerful for client side push to the server.
-
-### Broker
-
-The broker provides an interface to a message broker for asynchronous pub/sub communication. This is one of the fundamental requirements of an event 
-driven architecture and microservices. By default we use an inbox style point to point HTTP system to minimise the number of dependencies required 
-to get started. However there are many message broker implementations available in go-plugins e.g RabbitMQ, NATS, NSQ, Google Cloud Pub Sub.
-
-### Codec
-
-The codec is used for encoding and decoding messages before transporting them across the wire. This could be json, protobuf, bson, msgpack, etc. 
-Where this differs from most other codecs is that we actually support the RPC format here as well. So we have JSON-RPC, PROTO-RPC, BSON-RPC, etc. 
-It separates encoding from the client/server and provides a powerful method for integrating other systems such as gRPC, Vanadium, etc.
-
-### Server
-
-The server is the building block for writing a service. Here you can name your service, register request handlers, add middeware, etc. The service 
-builds on the above packages to provide a unified interface for serving requests. The built in server is an RPC system. In the future there maybe 
-other implementations. The server also allows you to define multiple codecs to serve different encoded messages.
-
-### Client
-
-The client provides an interface to make requests to services. Again like the server, it builds on the other packages to provide a unified interface 
-for finding services by name using the registry, load balancing using the selector, making synchronous requests with the transport and asynchronous 
-messaging using the broker. 
-
-
-The  above components are combined at the top-level of micro as a **Service**.
-
 ## Plugins
 
 By default go-micro only provides a few implementation of each interface at the core but it's completely pluggable. There's already dozens of plugins which are available at [github.com/micro/go-plugins](https://github.com/micro/go-plugins). Contributions are welcome!
@@ -372,6 +292,64 @@ go build -i -o service ./main.go ./plugins.go
 Flag usage of plugins
 ```shell
 service --registry=etcdv3 --transport=nats --broker=kafka
+```
+
+## Wrappers
+
+Go-micro includes the notion of middleware as wrappers. The client or handlers can be wrapped using the decorator pattern.
+
+### Handler
+
+Here's an example service handler wrapper which logs the incoming request
+
+```go
+// implements the server.HandlerWrapper
+func logWrapper(fn server.HandlerFunc) server.HandlerFunc {
+	return func(ctx context.Context, req server.Request, rsp interface{}) error {
+		fmt.Printf("[%v] server request: %s", time.Now(), req.Method())
+		return fn(ctx, req, rsp)
+	}
+}
+```
+
+It can be initialised when creating the service
+
+```go
+service := micro.NewService(
+	micro.Name("greeter"),
+	// wrap the handler
+	micro.WrapHandler(logWrapper),
+)
+```
+
+### Client
+
+Here's an example of a client wrapper which logs requests made
+
+```go
+type logWrapper struct {
+	client.Client
+}
+
+func (l *logWrapper) Call(ctx context.Context, req client.Request, rsp interface{}, opts ...client.CallOption) error {
+	fmt.Printf("[wrapper] client request to service: %s method: %s\n", req.Service(), req.Method())
+	return l.Client.Call(ctx, req, rsp)
+}
+
+// implements client.Wrapper as logWrapper
+func logWrap(c client.Client) client.Client {
+	return &logWrapper{c}
+}
+```
+
+It can be initialised when creating the service
+
+```go
+service := micro.NewService(
+	micro.Name("greeter"),
+	// wrap the client
+	micro.WrapClient(logWrap),
+)
 ```
 
 ## Other Languages
