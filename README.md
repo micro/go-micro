@@ -327,7 +327,7 @@ Go-micro includes the notion of middleware as wrappers. The client or handlers c
 
 Here's an example service handler wrapper which logs the incoming request
 
-```
+```go
 // implements the server.HandlerWrapper
 func logWrapper(fn server.HandlerFunc) server.HandlerFunc {
 	return func(ctx context.Context, req server.Request, rsp interface{}) error {
@@ -339,7 +339,7 @@ func logWrapper(fn server.HandlerFunc) server.HandlerFunc {
 
 It can be initialised when creating the service
 
-```
+```go
 service := micro.NewService(
 	micro.Name("greeter"),
 	// wrap the handler
@@ -351,7 +351,7 @@ service := micro.NewService(
 
 Here's an example of a client wrapper which logs requests made
 
-```
+```go
 type logWrapper struct {
 	client.Client
 }
@@ -369,7 +369,7 @@ func logWrap(c client.Client) client.Client {
 
 It can be initialised when creating the service
 
-```
+```go
 service := micro.NewService(
 	micro.Name("greeter"),
 	// wrap the client
