@@ -47,11 +47,11 @@ Service discovery is used to resolve service names to addresses. It's the only d
 
 ### Consul
 
-Consul is used as the default service discovery system. Discovery is however pluggable so you can use etcd, kubernetes, zookeeper, etc. 
+[Consul](https://www.consul.io/) is used as the default service discovery system. 
 
-Plugins are in the [micro/go-plugins](https://github.com/micro/go-plugins) repo.
+Discovery is pluggable. Find plugins for etcd, kubernetes, zookeeper and more in the [micro/go-plugins](https://github.com/micro/go-plugins) repo.
 
-[Install Consul](https://www.consul.io/intro/getting-started/install.html)
+[Install guide](https://www.consul.io/intro/getting-started/install.html)
 
 ### Multicast DNS
 
