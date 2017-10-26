@@ -33,59 +33,34 @@ The [**examples**](https://github.com/micro/examples) directory contains example
 
 Watch the [Golang UK Conf 2016](https://www.youtube.com/watch?v=xspaDovwk34) video for a high level overview.
 
-## Getting Started
+## Getting started
 
-This is a quick getting started guide with the greeter service example.
+- [Service Discovery](#service-discovery)
+- [Writing a Service](#writing-a-service)
+- [Writing a Function](#writing-a-function)
+- [Plugins](#plugins)
+- [Wrappers](#wrappers)
 
-### Prereq: Service Discovery
+## Service Discovery
 
-Service discovery is required to resolve services to their addresses. 
+Service discovery is used to resolve service names to addresses.
 
-The default discovery plugin is consul. Discovery is however pluggable so you can use 
-etcd, kubernetes, zookeeper, etc. Plugins are in [micro/go-plugins](https://github.com/micro/go-plugins).
+### Consul
+
+Consul is used as the default service discovery system. Discovery is however pluggable so you can use etcd, kubernetes, zookeeper, etc. 
+
+Plugins are in the [micro/go-plugins](https://github.com/micro/go-plugins) repo.
+
+[Install Consul](https://www.consul.io/intro/getting-started/install.html)
 
 ### Multicast DNS
 
 [Multicast DNS](https://en.wikipedia.org/wiki/Multicast_DNS) is a built in service discovery plugin for a zero dependency configuration. 
 
 Pass `--registry=mdns` to any command or the enviroment variable MICRO_REGISTRY=mdns
+
 ```
 go run main.go --registry=mdns
-```
-
-### Consul
-
-Here's a quick start for the default service discovery system consul.
-
-On Mac OS
-```
-brew install consul
-consul agent -dev
-```
-
-[Further installation instructions](https://www.consul.io/intro/getting-started/install.html)
-
-### Run Service
-
-```
-go get github.com/micro/examples/service && service
-```
-
-Output
-```
-2016/03/14 10:59:14 Listening on [::]:50137
-2016/03/14 10:59:14 Broker Listening on [::]:50138
-2016/03/14 10:59:14 Registering node: greeter-ca62b017-e9d3-11e5-9bbb-68a86d0d36b6
-```
-
-### Call Service
-```
-service --run_client
-```
-
-Output
-```
-Hello John
 ```
 
 ## Writing a service
