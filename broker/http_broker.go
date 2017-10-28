@@ -38,9 +38,8 @@ type httpBroker struct {
 
 	mux *http.ServeMux
 
-	c  *http.Client
-	r  registry.Registry
-	rc rcache.Cache
+	c *http.Client
+	r registry.Registry
 
 	sync.RWMutex
 	subscribers map[string][]*httpSubscriber
