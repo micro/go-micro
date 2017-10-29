@@ -70,7 +70,8 @@ var (
 		cli.IntFlag{
 			Name:   "client_pool_size",
 			EnvVar: "MICRO_CLIENT_POOL_SIZE",
-			Usage:  "Sets the client connection pool size. Default: 0",
+			Usage:  "Sets the client connection pool size. Default: 1",
+			Value:  1,
 		},
 		cli.StringFlag{
 			Name:   "client_pool_ttl",
@@ -132,6 +133,7 @@ var (
 			Name:   "selector",
 			EnvVar: "MICRO_SELECTOR",
 			Usage:  "Selector used to pick nodes for querying",
+			Value:  "cache",
 		},
 		cli.StringFlag{
 			Name:   "server",
@@ -181,7 +183,7 @@ var (
 	defaultServer    = "rpc"
 	defaultBroker    = "http"
 	defaultRegistry  = "consul"
-	defaultSelector  = "default"
+	defaultSelector  = "cache"
 	defaultTransport = "http"
 )
 

@@ -23,6 +23,8 @@ type cacheSelector struct {
 	cache map[string][]*registry.Service
 	ttls  map[string]time.Time
 
+	once sync.Once
+
 	// used to close or reload watcher
 	reload chan bool
 	exit   chan bool
@@ -86,30 +88,53 @@ func (c *cacheSelector) get(service string) ([]*registry.Service, error) {
 	c.Lock()
 	defer c.Unlock()
 
+	// get does the actual request for a service
+	// it also caches it
+	get := func(service string) ([]*registry.Service, error) {
+		// ask the registry
+		services, err := c.so.Registry.GetService(service)
+		if err != nil {
+			return nil, err
+		}
+
+		// cache results
+		c.set(service, c.cp(services))
+		return services, nil
+	}
+
 	// check the cache first
 	services, ok := c.cache[service]
+
+	// cache miss or no services
+	if !ok || len(services) == 0 {
+		return get(service)
+	}
+
+	// got cache but lets check ttl
 	ttl, kk := c.ttls[service]
 
-	// got results, copy and return
-	if ok && len(services) > 0 {
-		// only return if its less than the ttl
-		if kk && time.Since(ttl) < c.ttl {
-			return c.cp(services), nil
-		}
+	// within ttl so return cache
+	if kk && time.Since(ttl) < c.ttl {
+		return c.cp(services), nil
 	}
 
-	// cache miss or ttl expired
+	// expired entry so get service
+	services, err := get(service)
 
-	// now ask the registry
-	services, err := c.so.Registry.GetService(service)
-	if err != nil {
-		return nil, err
+	// no error then return error
+	if err == nil {
+		return services, nil
 	}
 
-	// we didn't have any results so cache
-	c.cache[service] = c.cp(services)
-	c.ttls[service] = time.Now().Add(c.ttl)
-	return services, nil
+	// not found error then return
+	if err == registry.ErrNotFound {
+		return nil, selector.ErrNotFound
+	}
+
+	// other error
+
+	// return expired cache as last resort
+	return c.cp(services), nil
 }
 
 func (c *cacheSelector) set(service string, services []*registry.Service) {
@@ -230,8 +255,6 @@ func (c *cacheSelector) update(res *registry.Result) {
 // reloads the watcher if Init is called
 // and returns when Close is called
 func (c *cacheSelector) run() {
-	go c.tick()
-
 	for {
 		// exit early if already dead
 		if c.quit() {
@@ -241,6 +264,9 @@ func (c *cacheSelector) run() {
 		// create new watcher
 		w, err := c.so.Registry.Watch()
 		if err != nil {
+			if c.quit() {
+				return
+			}
 			log.Log(err)
 			time.Sleep(time.Second)
 			continue
@@ -248,29 +274,11 @@ func (c *cacheSelector) run() {
 
 		// watch for events
 		if err := c.watch(w); err != nil {
+			if c.quit() {
+				return
+			}
 			log.Log(err)
 			continue
-		}
-	}
-}
-
-// check cache and expire on each tick
-func (c *cacheSelector) tick() {
-	t := time.NewTicker(time.Minute)
-
-	for {
-		select {
-		case <-t.C:
-			c.Lock()
-			for service, expiry := range c.ttls {
-				if d := time.Since(expiry); d > c.ttl {
-					// TODO: maybe refresh the cache rather than blowing it away
-					c.del(service)
-				}
-			}
-			c.Unlock()
-		case <-c.exit:
-			return
 		}
 	}
 }
@@ -324,6 +332,10 @@ func (c *cacheSelector) Options() selector.Options {
 }
 
 func (c *cacheSelector) Select(service string, opts ...selector.SelectOption) (selector.Next, error) {
+	c.once.Do(func() {
+		go c.run()
+	})
+
 	sopts := selector.SelectOptions{
 		Strategy: c.so.Strategy,
 	}
@@ -401,7 +413,7 @@ func NewSelector(opts ...selector.Option) selector.Selector {
 		}
 	}
 
-	c := &cacheSelector{
+	return &cacheSelector{
 		so:     sopts,
 		ttl:    ttl,
 		cache:  make(map[string][]*registry.Service),
@@ -409,7 +421,4 @@ func NewSelector(opts ...selector.Option) selector.Selector {
 		reload: make(chan bool, 1),
 		exit:   make(chan bool),
 	}
-
-	go c.run()
-	return c
 }

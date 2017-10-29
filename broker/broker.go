@@ -2,8 +2,6 @@
 package broker
 
 // Broker is an interface used for asynchronous messaging.
-// Its an abstraction over various message brokers
-// {NATS, RabbitMQ, Kafka, ...}
 type Broker interface {
 	Options() Options
 	Address() string
