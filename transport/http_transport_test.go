@@ -32,7 +32,7 @@ func TestHTTPTransportPortRange(t *testing.T) {
 	}
 	expectedPort(t, "44445", lsn2)
 
-	lsn, err := tp.Listen(":0")
+	lsn, err := tp.Listen("127.0.0.1:0")
 	if err != nil {
 		t.Errorf("Did not expect an error, got %s", err)
 	}
@@ -45,7 +45,7 @@ func TestHTTPTransportPortRange(t *testing.T) {
 func TestHTTPTransportCommunication(t *testing.T) {
 	tr := NewTransport()
 
-	l, err := tr.Listen(":0")
+	l, err := tr.Listen("127.0.0.1:0")
 	if err != nil {
 		t.Errorf("Unexpected listen err: %v", err)
 	}
@@ -111,7 +111,7 @@ func TestHTTPTransportCommunication(t *testing.T) {
 func TestHTTPTransportError(t *testing.T) {
 	tr := NewTransport()
 
-	l, err := tr.Listen(":0")
+	l, err := tr.Listen("127.0.0.1:0")
 	if err != nil {
 		t.Errorf("Unexpected listen err: %v", err)
 	}
@@ -181,7 +181,7 @@ func TestHTTPTransportError(t *testing.T) {
 func TestHTTPTransportTimeout(t *testing.T) {
 	tr := NewTransport(Timeout(time.Millisecond * 100))
 
-	l, err := tr.Listen(":0")
+	l, err := tr.Listen("127.0.0.1:0")
 	if err != nil {
 		t.Errorf("Unexpected listen err: %v", err)
 	}
