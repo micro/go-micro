@@ -41,7 +41,7 @@ func newMockServer(rg *mockRegistry, l net.Listener) error {
 }
 
 func newConsulTestRegistry(r *mockRegistry) (*consulRegistry, func()) {
-	l, err := net.Listen("tcp", ":0")
+	l, err := net.Listen("tcp", "localhost:0")
 	if err != nil {
 		// blurgh?!!
 		panic(err.Error())
