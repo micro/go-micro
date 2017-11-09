@@ -47,7 +47,7 @@ func (s *service) run(exit chan bool) {
 		case <-t.C:
 			err := s.opts.Server.Register()
 			if err != nil {
-				log.Log("service run Server.Register err : ", err)
+				log.Log("service run Server.Register error: ", err)
 			}
 		case <-exit:
 			t.Stop()
