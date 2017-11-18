@@ -5,6 +5,7 @@ import (
 	errs "errors"
 
 	"github.com/micro/go-micro/codec"
+	"github.com/micro/go-micro/codec/jsonpbrpc"
 	"github.com/micro/go-micro/codec/jsonrpc"
 	"github.com/micro/go-micro/codec/protorpc"
 	"github.com/micro/go-micro/errors"
@@ -69,6 +70,8 @@ var (
 	defaultCodecs = map[string]codec.NewCodec{
 		"application/json":         jsonrpc.NewCodec,
 		"application/json-rpc":     jsonrpc.NewCodec,
+		"application/jsonpb":       jsonpbrpc.NewCodec,
+		"application/jsonpb-rpc":   jsonpbrpc.NewCodec,
 		"application/protobuf":     protorpc.NewCodec,
 		"application/proto-rpc":    protorpc.NewCodec,
 		"application/octet-stream": protorpc.NewCodec,
