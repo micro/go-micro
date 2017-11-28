@@ -59,14 +59,6 @@ func newConsulRegistry(opts ...Option) Registry {
 			config = c
 		}
 	}
-	if config.HttpClient == nil {
-		config.HttpClient = new(http.Client)
-	}
-
-	// set timeout
-	if options.Timeout > 0 {
-		config.HttpClient.Timeout = options.Timeout
-	}
 
 	// check if there are any addrs
 	if len(options.Addrs) > 0 {
@@ -82,6 +74,10 @@ func newConsulRegistry(opts ...Option) Registry {
 
 	// requires secure connection?
 	if options.Secure || options.TLSConfig != nil {
+		if config.HttpClient == nil {
+			config.HttpClient = new(http.Client)
+		}
+
 		config.Scheme = "https"
 		// We're going to support InsecureSkipVerify
 		config.HttpClient.Transport = newTransport(options.TLSConfig)
@@ -89,6 +85,11 @@ func newConsulRegistry(opts ...Option) Registry {
 
 	// create the client
 	client, _ := consul.NewClient(config)
+
+	// set timeout
+	if options.Timeout > 0 {
+		config.HttpClient.Timeout = options.Timeout
+	}
 
 	cr := &consulRegistry{
 		Address:  config.Address,
