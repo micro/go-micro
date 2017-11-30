@@ -143,7 +143,6 @@ func main() {
 	// Create a new service. Optionally include some options here.
 	service := micro.NewService(
 		micro.Name("greeter"),
-		micro.Version("latest"),
 	)
 
 	// Init will parse the command line flags.
