@@ -104,6 +104,13 @@ func Registry(r registry.Registry) Option {
 	}
 }
 
+// Selector sets the selector for the service client
+func Selector(s selector.Selector) Option {
+	return func(o *Options) {
+		o.Client.Init(client.Selector(s))
+	}
+}
+
 // Transport sets the transport for the service
 // and the underlying components
 func Transport(t transport.Transport) Option {
