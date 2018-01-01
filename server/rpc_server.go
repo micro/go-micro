@@ -182,12 +182,12 @@ func (s *rpcServer) Subscribe(sb Subscriber) error {
 	}
 
 	s.Lock()
+	defer s.Unlock()
 	_, ok = s.subscribers[sub]
 	if ok {
 		return fmt.Errorf("subscriber %v already exists", s)
 	}
 	s.subscribers[sub] = nil
-	s.Unlock()
 	return nil
 }
 
