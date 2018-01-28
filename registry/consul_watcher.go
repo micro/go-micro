@@ -9,7 +9,7 @@ import (
 )
 
 type consulWatcher struct {
-	r        *consulRegistry
+	r        *ConsulRegistry
 	wp       *watch.Plan
 	watchers map[string]*watch.Plan
 
@@ -20,7 +20,7 @@ type consulWatcher struct {
 	services map[string][]*Service
 }
 
-func newConsulWatcher(cr *consulRegistry) (Watcher, error) {
+func newConsulWatcher(cr *ConsulRegistry) (Watcher, error) {
 	cw := &consulWatcher{
 		r:        cr,
 		exit:     make(chan bool),

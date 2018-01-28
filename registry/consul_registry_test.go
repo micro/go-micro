@@ -40,7 +40,7 @@ func newMockServer(rg *mockRegistry, l net.Listener) error {
 	return http.Serve(l, mux)
 }
 
-func newConsulTestRegistry(r *mockRegistry) (*consulRegistry, func()) {
+func newConsulTestRegistry(r *mockRegistry) (*ConsulRegistry, func()) {
 	l, err := net.Listen("tcp", "localhost:0")
 	if err != nil {
 		// blurgh?!!
@@ -52,7 +52,7 @@ func newConsulTestRegistry(r *mockRegistry) (*consulRegistry, func()) {
 
 	go newMockServer(r, l)
 
-	return &consulRegistry{
+	return &ConsulRegistry{
 			Address:  cfg.Address,
 			Client:   cl,
 			register: make(map[string]uint64),

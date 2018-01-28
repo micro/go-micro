@@ -14,7 +14,7 @@ import (
 	hash "github.com/mitchellh/hashstructure"
 )
 
-type consulRegistry struct {
+type ConsulRegistry struct {
 	Address string
 	Client  *consul.Client
 	Options Options
@@ -91,7 +91,7 @@ func newConsulRegistry(opts ...Option) Registry {
 		config.HttpClient.Timeout = options.Timeout
 	}
 
-	cr := &consulRegistry{
+	cr := &ConsulRegistry{
 		Address:  config.Address,
 		Client:   client,
 		Options:  options,
@@ -101,7 +101,7 @@ func newConsulRegistry(opts ...Option) Registry {
 	return cr
 }
 
-func (c *consulRegistry) Deregister(s *Service) error {
+func (c *ConsulRegistry) Deregister(s *Service) error {
 	if len(s.Nodes) == 0 {
 		return errors.New("Require at least one node")
 	}
@@ -115,7 +115,7 @@ func (c *consulRegistry) Deregister(s *Service) error {
 	return c.Client.Agent().ServiceDeregister(node.Id)
 }
 
-func (c *consulRegistry) Register(s *Service, opts ...RegisterOption) error {
+func (c *ConsulRegistry) Register(s *Service, opts ...RegisterOption) error {
 	if len(s.Nodes) == 0 {
 		return errors.New("Require at least one node")
 	}
@@ -197,7 +197,7 @@ func (c *consulRegistry) Register(s *Service, opts ...RegisterOption) error {
 	return c.Client.Agent().PassTTL("service:"+node.Id, "")
 }
 
-func (c *consulRegistry) GetService(name string) ([]*Service, error) {
+func (c *ConsulRegistry) GetService(name string) ([]*Service, error) {
 	rsp, _, err := c.Client.Health().Service(name, "", false, nil)
 	if err != nil {
 		return nil, err
@@ -264,7 +264,7 @@ func (c *consulRegistry) GetService(name string) ([]*Service, error) {
 	return services, nil
 }
 
-func (c *consulRegistry) ListServices() ([]*Service, error) {
+func (c *ConsulRegistry) ListServices() ([]*Service, error) {
 	rsp, _, err := c.Client.Catalog().Services(nil)
 	if err != nil {
 		return nil, err
@@ -279,10 +279,10 @@ func (c *consulRegistry) ListServices() ([]*Service, error) {
 	return services, nil
 }
 
-func (c *consulRegistry) Watch() (Watcher, error) {
+func (c *ConsulRegistry) Watch() (Watcher, error) {
 	return newConsulWatcher(c)
 }
 
-func (c *consulRegistry) String() string {
+func (c *ConsulRegistry) String() string {
 	return "consul"
 }
