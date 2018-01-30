@@ -12,12 +12,12 @@ Follow us on [Twitter](https://twitter.com/microhq) or join the [Slack](http://s
 
 Go Micro abstracts away the details of distributed systems. Here are the main features.
 
-- **Service Discovery** - Automatic registration and name resolution with service discovery
-- **Load Balancing** - Smart client side load balancing of services built on discovery
-- **Synchronous Comms** - RPC based communication with support for bidirectional streaming
-- **Asynchronous Comms** - PubSub interface built in for event driven architectures
+- **Service Discovery** - Automatic service registration and name resolution
+- **Load Balancing** - Client side load balancing built on discovery
+- **Sync Comms** - RPC based communication with support for bidirectional streaming
+- **Async Comms** - Native PubSub messaging built in for event driven architectures
 - **Message Encoding** - Dynamic encoding based on content-type with protobuf and json out of the box
-- **Service Interface** - All features are packaged in a simple high level interface for developing microservices
+- **Service Interface** - All features are wrapped up in a simple high level interface
 
 Go Micro supports both the Service and Function programming models. Read on to learn more.
 
@@ -292,6 +292,60 @@ Flag usage of plugins
 ```shell
 service --registry=etcdv3 --transport=nats --broker=kafka
 ```
+
+### Plugin as option
+
+Alternatively you can set the plugin as an option to a service
+
+```go
+
+import (
+        "github.com/micro/go-micro" 
+        // etcd v3 registry
+        "github.com/micro/go-plugins/registry/etcdv3"
+        // nats transport
+        "github.com/micro/go-plugins/transport/nats"
+        // kafka broker
+        "github.com/micro/go-plugins/broker/kafka"
+)
+
+func main() {
+	registry := etcdv3.NewRegistry()
+	broker := kafka.NewBroker()
+	transport := nats.NewTransport()
+
+        service := micro.NewService(
+                micro.Name("greeter"),
+                micro.Registry(registry),
+                micro.Broker(broker),
+                micro.Transport(transport),
+        )
+
+	service.Init()
+	service.Run()
+}
+```
+
+### Write plugins
+
+Plugins are a concept built on Go's interface. Each package maintains a high level interface abstraction. 
+Simply implement the interface and pass it in as an option to the service.
+
+The service discovery interface is called [Registry](https://godoc.org/github.com/micro/go-micro/registry#Registry). 
+Anything which implements this interface can be used as a registry. The same applies to the other packages.
+
+```go
+type Registry interface {
+    Register(*Service, ...RegisterOption) error
+    Deregister(*Service) error
+    GetService(string) ([]*Service, error)
+    ListServices() ([]*Service, error)
+    Watch() (Watcher, error)
+    String() string
+}
+```
+
+Browse [go-plugins](https://github.com/micro/go-plugins) to get a better idea of implementation details.
 
 ## Wrappers
 
