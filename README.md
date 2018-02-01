@@ -57,7 +57,7 @@ Discovery is pluggable. Find plugins for etcd, kubernetes, zookeeper and more in
 
 [Multicast DNS](https://en.wikipedia.org/wiki/Multicast_DNS) is a built in service discovery plugin for a zero dependency configuration. 
 
-Pass `--registry=mdns` to any command or the enviroment variable MICRO_REGISTRY=mdns
+Pass `--registry=mdns` to any command or the enviroment variable `MICRO_REGISTRY=mdns`
 
 ```
 go run main.go --registry=mdns
