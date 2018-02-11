@@ -91,3 +91,13 @@ func InternalServerError(id, format string, a ...interface{}) error {
 		Status: http.StatusText(500),
 	}
 }
+
+// Conflict generates a 409 error.
+func Conflict(id, format string, a ...interface{}) error {
+	return &Error{
+		Id:     id,
+		Code:   409,
+		Detail: fmt.Sprintf(format, a...),
+		Status: http.StatusText(409),
+	}
+}
