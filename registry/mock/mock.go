@@ -99,6 +99,10 @@ func (m *mockRegistry) String() string {
 	return "mock"
 }
 
+func (m *mockRegistry) Options() registry.Options {
+	return registry.Options{}
+}
+
 func NewRegistry() registry.Registry {
 	m := &mockRegistry{Services: make(map[string][]*registry.Service)}
 	m.init()
