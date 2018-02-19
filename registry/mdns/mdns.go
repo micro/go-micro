@@ -297,8 +297,14 @@ func (m *mdnsRegistry) ListServices() ([]*registry.Service, error) {
 	return services, nil
 }
 
-func (m *mdnsRegistry) Watch() (registry.Watcher, error) {
+func (m *mdnsRegistry) Watch(opts ...registry.WatchOption) (registry.Watcher, error) {
+	var wo registry.WatchOptions
+	for _, o := range opts {
+		o(&wo)
+	}
+
 	md := &mdnsWatcher{
+		wo:   wo,
 		ch:   make(chan *mdns.ServiceEntry, 32),
 		exit: make(chan struct{}),
 	}

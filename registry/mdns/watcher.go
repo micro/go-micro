@@ -9,6 +9,7 @@ import (
 )
 
 type mdnsWatcher struct {
+	wo   registry.WatchOptions
 	ch   chan *mdns.ServiceEntry
 	exit chan struct{}
 }
@@ -23,6 +24,12 @@ func (m *mdnsWatcher) Next() (*registry.Result, error) {
 			}
 
 			if len(txt.Service) == 0 || len(txt.Version) == 0 {
+				continue
+			}
+
+			// Filter watch options
+			// wo.Service: Only keep services we care about
+			if len(m.wo.Service) > 0 && txt.Service != m.wo.Service {
 				continue
 			}
 

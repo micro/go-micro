@@ -279,8 +279,8 @@ func (c *consulRegistry) ListServices() ([]*Service, error) {
 	return services, nil
 }
 
-func (c *consulRegistry) Watch() (Watcher, error) {
-	return newConsulWatcher(c)
+func (c *consulRegistry) Watch(opts ...WatchOption) (Watcher, error) {
+	return newConsulWatcher(c, opts...)
 }
 
 func (c *consulRegistry) String() string {

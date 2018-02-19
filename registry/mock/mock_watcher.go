@@ -8,6 +8,7 @@ import (
 
 type mockWatcher struct {
 	exit chan bool
+	opts registry.WatchOptions
 }
 
 func (m *mockWatcher) Next() (*registry.Result, error) {

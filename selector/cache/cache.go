@@ -1,3 +1,4 @@
+// Package cache is a caching selector. It uses the registry watcher.
 package cache
 
 import (
@@ -9,11 +10,6 @@ import (
 	"github.com/micro/go-micro/selector"
 )
 
-/*
-	Cache selector is a selector which uses the registry.Watcher to Cache service entries.
-	It defaults to a TTL for 1 minute and causes a cache miss on the next request.
-*/
-
 type cacheSelector struct {
 	so  selector.Options
 	ttl time.Duration
@@ -23,7 +19,7 @@ type cacheSelector struct {
 	cache map[string][]*registry.Service
 	ttls  map[string]time.Time
 
-	once sync.Once
+	watched map[string]bool
 
 	// used to close or reload watcher
 	reload chan bool
@@ -87,6 +83,12 @@ func (c *cacheSelector) del(service string) {
 func (c *cacheSelector) get(service string) ([]*registry.Service, error) {
 	c.Lock()
 	defer c.Unlock()
+
+	// watch service if not watched
+	if _, ok := c.watched[service]; !ok {
+		go c.run(service)
+		c.watched[service] = true
+	}
 
 	// get does the actual request for a service
 	// it also caches it
@@ -254,7 +256,7 @@ func (c *cacheSelector) update(res *registry.Result) {
 // it creates a new watcher if there's a problem
 // reloads the watcher if Init is called
 // and returns when Close is called
-func (c *cacheSelector) run() {
+func (c *cacheSelector) run(name string) {
 	for {
 		// exit early if already dead
 		if c.quit() {
@@ -262,7 +264,9 @@ func (c *cacheSelector) run() {
 		}
 
 		// create new watcher
-		w, err := c.so.Registry.Watch()
+		w, err := c.so.Registry.Watch(
+			registry.WatchService(name),
+		)
 		if err != nil {
 			if c.quit() {
 				return
@@ -332,10 +336,6 @@ func (c *cacheSelector) Options() selector.Options {
 }
 
 func (c *cacheSelector) Select(service string, opts ...selector.SelectOption) (selector.Next, error) {
-	c.once.Do(func() {
-		go c.run()
-	})
-
 	sopts := selector.SelectOptions{
 		Strategy: c.so.Strategy,
 	}
@@ -377,6 +377,7 @@ func (c *cacheSelector) Reset(service string) {
 func (c *cacheSelector) Close() error {
 	c.Lock()
 	c.cache = make(map[string][]*registry.Service)
+	c.watched = make(map[string]bool)
 	c.Unlock()
 
 	select {
@@ -414,11 +415,12 @@ func NewSelector(opts ...selector.Option) selector.Selector {
 	}
 
 	return &cacheSelector{
-		so:     sopts,
-		ttl:    ttl,
-		cache:  make(map[string][]*registry.Service),
-		ttls:   make(map[string]time.Time),
-		reload: make(chan bool, 1),
-		exit:   make(chan bool),
+		so:      sopts,
+		ttl:     ttl,
+		watched: make(map[string]bool),
+		cache:   make(map[string][]*registry.Service),
+		ttls:    make(map[string]time.Time),
+		reload:  make(chan bool, 1),
+		exit:    make(chan bool),
 	}
 }
