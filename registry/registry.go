@@ -13,13 +13,15 @@ type Registry interface {
 	Deregister(*Service) error
 	GetService(string) ([]*Service, error)
 	ListServices() ([]*Service, error)
-	Watch() (Watcher, error)
+	Watch(...WatchOption) (Watcher, error)
 	String() string
 }
 
 type Option func(*Options)
 
 type RegisterOption func(*RegisterOptions)
+
+type WatchOption func(*WatchOptions)
 
 var (
 	DefaultRegistry = newConsulRegistry()
@@ -52,8 +54,8 @@ func ListServices() ([]*Service, error) {
 }
 
 // Watch returns a watcher which allows you to track updates to the registry.
-func Watch() (Watcher, error) {
-	return DefaultRegistry.Watch()
+func Watch(opts ...WatchOption) (Watcher, error) {
+	return DefaultRegistry.Watch(opts...)
 }
 
 func String() string {
