@@ -54,7 +54,7 @@ You'll need to install:
 
 ## Service Discovery
 
-Service discovery is used to resolve service names to addresses. It's the only dependency of go-micro.
+Service discovery is used to resolve service names to addresses. 
 
 ### Consul
 
@@ -71,7 +71,7 @@ Discovery is pluggable. Find plugins for etcd, kubernetes, zookeeper and more in
 Pass `--registry=mdns` to any command or the enviroment variable `MICRO_REGISTRY=mdns`
 
 ```
-go run main.go --registry=mdns
+MICRO_REGISTRY=mdns go run main.go
 ```
 
 ## Writing a service
