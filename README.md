@@ -35,11 +35,22 @@ Watch the [Golang UK Conf 2016](https://www.youtube.com/watch?v=xspaDovwk34) vid
 
 ## Getting started
 
+- [Install Protobuf](#install-protobuf)
 - [Service Discovery](#service-discovery)
 - [Writing a Service](#writing-a-service)
 - [Writing a Function](#writing-a-function)
 - [Plugins](#plugins)
 - [Wrappers](#wrappers)
+
+## Install Protobuf
+
+Protobuf is required for code generation
+
+You'll need to install:
+
+- [protoc](https://github.com/google/protobuf)
+- [protoc-gen-go](https://github.com/golang/protobuf)
+- [protoc-gen-micro](https://github.com/micro/protoc-gen-micro)
 
 ## Service Discovery
 
@@ -91,23 +102,12 @@ message HelloResponse {
 }
 ```
 
-### Install protobuf
-
-Install [protobuf](https://developers.google.com/protocol-buffers/)
-
-Now install the micro fork of protoc-gen-go. The protobuf compiler for Go. 
-
-```shell
-go get github.com/micro/protobuf/{proto,protoc-gen-go}
-```
-
 ### Generate the proto
 
 After writing the proto definition we must compile it using protoc with the micro plugin.
 
 ```shell
-protoc -I$GOPATH/src --go_out=plugins=micro:$GOPATH/src \
-	$GOPATH/src/github.com/micro/examples/service/proto/greeter.proto
+protoc --proto_path=$GOPATH/src:. --micro_out=. --go_out=. path/to/greeter.proto
 ```
 
 ### Write the service
@@ -191,6 +191,7 @@ import (
 func main() {
 	// Create a new service. Optionally include some options here.
 	service := micro.NewService(micro.Name("greeter.client"))
+	service.Init()
 
 	// Create new greeter client
 	greeter := proto.NewGreeterClient("greeter", service.Client())
