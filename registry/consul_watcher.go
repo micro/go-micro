@@ -60,7 +60,7 @@ func (cw *consulWatcher) serviceHandler(idx uint64, data interface{}) {
 	for _, e := range entries {
 		serviceName = e.Service.Service
 		// version is now a tag
-		version, found := decodeVersion(e.Service.Tags)
+		version, _ := decodeVersion(e.Service.Tags)
 		// service ID is now the node id
 		id := e.Service.ID
 		// key is always the version
@@ -68,9 +68,9 @@ func (cw *consulWatcher) serviceHandler(idx uint64, data interface{}) {
 		// address is service address
 		address := e.Service.Address
 
-		// if we can't get the version we bail
-		if !found {
-			continue
+		// use node address
+		if len(address) == 0 {
+			address = e.Node.Address
 		}
 
 		svc, ok := serviceMap[key]

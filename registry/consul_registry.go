@@ -211,18 +211,18 @@ func (c *consulRegistry) GetService(name string) ([]*Service, error) {
 		}
 
 		// version is now a tag
-		version, found := decodeVersion(s.Service.Tags)
+		version, _ := decodeVersion(s.Service.Tags)
 		// service ID is now the node id
 		id := s.Service.ID
 		// key is always the version
 		key := version
+
 		// address is service address
 		address := s.Service.Address
 
-		// if we can't get the version we bail
-		// use old the old ways
-		if !found {
-			continue
+		// use node address
+		if len(address) == 0 {
+			address = s.Node.Address
 		}
 
 		svc, ok := serviceMap[key]
@@ -236,6 +236,7 @@ func (c *consulRegistry) GetService(name string) ([]*Service, error) {
 		}
 
 		var del bool
+
 		for _, check := range s.Checks {
 			// delete the node if the status is critical
 			if check.Status == "critical" {
