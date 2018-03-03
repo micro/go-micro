@@ -1,14 +1,13 @@
 package client
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/registry/mock"
 	"github.com/micro/go-micro/selector"
-
-	"golang.org/x/net/context"
 )
 
 func TestCallWrapper(t *testing.T) {

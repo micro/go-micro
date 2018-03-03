@@ -1,10 +1,9 @@
 package client
 
 import (
+	"context"
 	"io"
 	"sync"
-
-	"golang.org/x/net/context"
 )
 
 // Implements the streamer interface

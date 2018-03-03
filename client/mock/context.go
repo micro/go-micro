@@ -1,7 +1,7 @@
 package mock
 
 import (
-	"golang.org/x/net/context"
+	"context"
 )
 
 type responseKey struct{}

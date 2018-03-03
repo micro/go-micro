@@ -2,10 +2,10 @@
 package micro
 
 import (
+	"context"
+
 	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/server"
-
-	"golang.org/x/net/context"
 )
 
 type serviceKey struct{}

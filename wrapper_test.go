@@ -1,11 +1,10 @@
 package micro
 
 import (
+	"context"
 	"testing"
 
 	"github.com/micro/go-micro/metadata"
-
-	"golang.org/x/net/context"
 )
 
 func TestWrapper(t *testing.T) {

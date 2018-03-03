@@ -1,10 +1,10 @@
 package cache
 
 import (
+	"context"
 	"time"
 
 	"github.com/micro/go-micro/selector"
-	"golang.org/x/net/context"
 )
 
 type ttlKey struct{}

@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"runtime/debug"
 	"sort"
@@ -17,8 +18,6 @@ import (
 	"github.com/micro/go-micro/transport"
 
 	"github.com/micro/misc/lib/addr"
-
-	"golang.org/x/net/context"
 )
 
 type rpcServer struct {

@@ -1,11 +1,11 @@
 package broker
 
 import (
+	"context"
 	"crypto/tls"
 
 	"github.com/micro/go-micro/broker/codec"
 	"github.com/micro/go-micro/registry"
-	"golang.org/x/net/context"
 )
 
 type Options struct {

@@ -1,11 +1,10 @@
 package client
 
 import (
+	"context"
 	"math"
 	"testing"
 	"time"
-
-	"golang.org/x/net/context"
 )
 
 func TestBackoff(t *testing.T) {

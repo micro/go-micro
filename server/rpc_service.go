@@ -7,6 +7,7 @@ package server
 // Meh, we need to get rid of this shit
 
 import (
+	"context"
 	"errors"
 	"io"
 	"reflect"
@@ -16,7 +17,6 @@ import (
 	"unicode/utf8"
 
 	"github.com/micro/go-log"
-	"golang.org/x/net/context"
 )
 
 var (
