@@ -1,14 +1,13 @@
 package mock
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"sync"
 
 	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/errors"
-
-	"golang.org/x/net/context"
 )
 
 var (

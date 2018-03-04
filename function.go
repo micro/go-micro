@@ -1,10 +1,10 @@
 package micro
 
 import (
+	"context"
 	"time"
 
 	"github.com/micro/go-micro/server"
-	"golang.org/x/net/context"
 )
 
 type function struct {

@@ -1,11 +1,11 @@
 package server
 
 import (
+	"context"
 	"reflect"
 	"testing"
 
 	"github.com/micro/go-micro/registry"
-	"golang.org/x/net/context"
 )
 
 type testHandler struct{}

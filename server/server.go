@@ -2,13 +2,13 @@
 package server
 
 import (
+	"context"
 	"os"
 	"os/signal"
 	"syscall"
 
 	"github.com/micro/go-log"
 	"github.com/pborman/uuid"
-	"golang.org/x/net/context"
 )
 
 type Server interface {

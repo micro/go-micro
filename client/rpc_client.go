@@ -2,6 +2,7 @@ package client
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"sync"
 	"time"
@@ -12,8 +13,6 @@ import (
 	"github.com/micro/go-micro/metadata"
 	"github.com/micro/go-micro/selector"
 	"github.com/micro/go-micro/transport"
-
-	"golang.org/x/net/context"
 )
 
 type rpcClient struct {

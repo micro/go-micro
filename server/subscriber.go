@@ -2,6 +2,7 @@ package server
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"reflect"
 
@@ -9,7 +10,6 @@ import (
 	"github.com/micro/go-micro/codec"
 	"github.com/micro/go-micro/metadata"
 	"github.com/micro/go-micro/registry"
-	"golang.org/x/net/context"
 )
 
 const (

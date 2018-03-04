@@ -2,6 +2,7 @@ package broker
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"errors"
 	"fmt"
@@ -26,8 +27,6 @@ import (
 	mnet "github.com/micro/misc/lib/net"
 	mls "github.com/micro/misc/lib/tls"
 	"github.com/pborman/uuid"
-
-	"golang.org/x/net/context"
 )
 
 // HTTP Broker is a point to point async broker

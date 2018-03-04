@@ -1,11 +1,10 @@
 package mock
 
 import (
+	"context"
 	"testing"
 
 	"github.com/micro/go-micro/errors"
-
-	"golang.org/x/net/context"
 )
 
 func TestClient(t *testing.T) {

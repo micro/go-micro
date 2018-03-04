@@ -1,12 +1,11 @@
 package debug
 
 import (
+	"context"
 	"runtime"
 	"time"
 
 	proto "github.com/micro/go-micro/server/debug/proto"
-
-	"golang.org/x/net/context"
 )
 
 // The debug handler represents an internal server handler

@@ -1,7 +1,7 @@
 package server
 
 import (
-	"golang.org/x/net/context"
+	"context"
 )
 
 // HandlerFunc represents a single method of a handler. It's used primarily

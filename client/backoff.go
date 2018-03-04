@@ -1,10 +1,9 @@
 package client
 
 import (
+	"context"
 	"math"
 	"time"
-
-	"golang.org/x/net/context"
 )
 
 type BackoffFunc func(ctx context.Context, req Request, attempts int) (time.Duration, error)

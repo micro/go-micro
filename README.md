@@ -125,11 +125,11 @@ It does the following:
 package main
 
 import (
+	"context"
 	"fmt"
 
 	micro "github.com/micro/go-micro"
 	proto "github.com/micro/examples/service/proto"
-	"golang.org/x/net/context"
 )
 
 type Greeter struct{}
@@ -180,11 +180,11 @@ The generated proto includes a greeter client to reduce boilerplate code.
 package main
 
 import (
+	"context"
 	"fmt"
 
 	micro "github.com/micro/go-micro"
 	proto "github.com/micro/examples/service/proto"
-	"golang.org/x/net/context"
 )
 
 
@@ -230,9 +230,10 @@ A Function is a one time executing Service which exits after completing a reques
 package main
 
 import (
+	"context"
+
 	proto "github.com/micro/examples/function/proto"
 	"github.com/micro/go-micro"
-	"golang.org/x/net/context"
 )
 
 type Greeter struct{}

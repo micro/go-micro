@@ -1,13 +1,12 @@
 package micro
 
 import (
+	"context"
 	"sync"
 	"testing"
 
 	"github.com/micro/go-micro/registry/mock"
 	proto "github.com/micro/go-micro/server/debug/proto"
-
-	"golang.org/x/net/context"
 )
 
 func TestFunction(t *testing.T) {

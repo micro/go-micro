@@ -1,8 +1,9 @@
 package micro
 
 import (
+	"context"
+
 	"github.com/micro/go-micro/client"
-	"golang.org/x/net/context"
 )
 
 type publisher struct {
