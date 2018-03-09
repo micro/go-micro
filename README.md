@@ -246,7 +246,7 @@ func (g *Greeter) Hello(ctx context.Context, req *proto.HelloRequest, rsp *proto
 func main() {
 	// create a new function
 	fnc := micro.NewFunction(
-		micro.Name("go.micro.fnc.greeter"),
+		micro.Name("greeter"),
 	)
 
 	// init the command line
