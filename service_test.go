@@ -30,38 +30,30 @@ func TestService(t *testing.T) {
 	// we can't test service.Init as it parses the command line
 	// service.Init()
 
-	t.Run("Run", func(t *testing.T) {
-		t.Parallel()
+	// run service
+	go service.Run()
 
-		// run service
-		service.Run()
-	})
+	// wait for start
+	wg.Wait()
 
-	t.Run("Debug.Health", func(t *testing.T) {
-		t.Parallel()
+	// test call debug
+	req := service.Client().NewRequest(
+		"test.service",
+		"Debug.Health",
+		new(proto.HealthRequest),
+	)
 
-		// wait for start
-		wg.Wait()
+	rsp := new(proto.HealthResponse)
 
-		// test call debug
-		req := service.Client().NewRequest(
-			"test.service",
-			"Debug.Health",
-			new(proto.HealthRequest),
-		)
+	err := service.Client().Call(context.TODO(), req, rsp)
+	if err != nil {
+		t.Fatal(err)
+	}
 
-		rsp := new(proto.HealthResponse)
+	if rsp.Status != "ok" {
+		t.Fatalf("service response: %s", rsp.Status)
+	}
 
-		err := service.Client().Call(context.TODO(), req, rsp)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		if rsp.Status != "ok" {
-			t.Fatalf("service response: %s", rsp.Status)
-		}
-
-		// shutdown the service
-		cancel()
-	})
+	// shutdown the service
+	cancel()
 }
