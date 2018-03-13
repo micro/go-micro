@@ -67,7 +67,7 @@ func (s *service) Init(opts ...Option) {
 
 	s.once.Do(func() {
 		// Initialise the command flags, overriding new service
-		s.opts.Cmd.Init(
+		_ = s.opts.Cmd.Init(
 			cmd.Broker(&s.opts.Broker),
 			cmd.Registry(&s.opts.Registry),
 			cmd.Transport(&s.opts.Transport),
@@ -153,7 +153,7 @@ func (s *service) Run() error {
 	go s.run(ex)
 
 	ch := make(chan os.Signal, 1)
-	signal.Notify(ch, syscall.SIGTERM, syscall.SIGINT, syscall.SIGKILL)
+	signal.Notify(ch, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
 
 	select {
 	// wait on kill signal
@@ -165,9 +165,5 @@ func (s *service) Run() error {
 	// exit reg loop
 	close(ex)
 
-	if err := s.Stop(); err != nil {
-		return err
-	}
-
-	return nil
+	return s.Stop()
 }

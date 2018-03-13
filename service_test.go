@@ -30,10 +30,16 @@ func TestService(t *testing.T) {
 	// we can't test service.Init as it parses the command line
 	// service.Init()
 
-	// register handler
-	// do that later
+	t.Run("Run", func(t *testing.T) {
+		t.Parallel()
 
-	go func() {
+		// run service
+		service.Run()
+	})
+
+	t.Run("Debug.Health", func(t *testing.T) {
+		t.Parallel()
+
 		// wait for start
 		wg.Wait()
 
@@ -57,8 +63,5 @@ func TestService(t *testing.T) {
 
 		// shutdown the service
 		cancel()
-	}()
-
-	// run service
-	service.Run()
+	})
 }
