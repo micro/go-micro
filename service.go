@@ -165,9 +165,5 @@ func (s *service) Run() error {
 	// exit reg loop
 	close(ex)
 
-	if err := s.Stop(); err != nil {
-		return err
-	}
-
-	return nil
+	return s.Stop()
 }
