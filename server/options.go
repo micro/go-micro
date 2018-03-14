@@ -25,7 +25,9 @@ type Options struct {
 	HdlrWrappers []HandlerWrapper
 	SubWrappers  []SubscriberWrapper
 
-	RegisterTTL time.Duration
+	RegisterTCPCheck bool
+	RegisterTTL      time.Duration
+	RegisterInterval time.Duration
 
 	// Debug Handler which can be set by a user
 	DebugHandler debug.DebugHandler
@@ -161,6 +163,23 @@ func Metadata(md map[string]string) Option {
 func RegisterTTL(t time.Duration) Option {
 	return func(o *Options) {
 		o.RegisterTTL = t
+	}
+}
+
+//
+// RegisterTCPCheck will tell the service provider to check the service address
+// and port every `t` interval. It will enabled only if `t` is greater than 0.
+// This option is for registry using Consul, see `TCP + Interval` more
+// information [1].
+//
+// [1] https://www.consul.io/docs/agent/checks.html
+//
+func RegisterTCPCheck(t time.Duration) Option {
+	return func(o *Options) {
+		if t > time.Duration(0) {
+			o.RegisterTCPCheck = true
+			o.RegisterInterval = t
+		}
 	}
 }
 

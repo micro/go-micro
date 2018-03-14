@@ -18,7 +18,9 @@ type Options struct {
 }
 
 type RegisterOptions struct {
-	TTL time.Duration
+	TCPCheck bool
+	TTL      time.Duration
+	Interval time.Duration
 	// Other options for implementations of the interface
 	// can be stored in a context
 	Context context.Context
@@ -63,6 +65,23 @@ func TLSConfig(t *tls.Config) Option {
 func RegisterTTL(t time.Duration) RegisterOption {
 	return func(o *RegisterOptions) {
 		o.TTL = t
+	}
+}
+
+//
+// RegisterTCPCheck will tell the service provider to check the service address
+// and port every `t` interval. It will enabled only if `t` is greater than 0.
+// This option is for registry using Consul, see `TCP + Interval` more
+// information [1].
+//
+// [1] https://www.consul.io/docs/agent/checks.html
+//
+func RegisterTCPCheck(t time.Duration) RegisterOption {
+	return func(o *RegisterOptions) {
+		if t > time.Duration(0) {
+			o.TCPCheck = true
+			o.Interval = t
+		}
 	}
 }
 

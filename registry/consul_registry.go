@@ -115,6 +115,19 @@ func (c *consulRegistry) Deregister(s *Service) error {
 	return c.Client.Agent().ServiceDeregister(node.Id)
 }
 
+func getDeregisterTTL(t time.Duration) time.Duration {
+	// splay slightly for the watcher?
+	splay := time.Second * 5
+	deregTTL := t + splay
+
+	// consul has a minimum timeout on deregistration of 1 minute.
+	if t < time.Minute {
+		deregTTL = time.Minute + splay
+	}
+
+	return deregTTL
+}
+
 func (c *consulRegistry) Register(s *Service, opts ...RegisterOption) error {
 	if len(s.Nodes) == 0 {
 		return errors.New("Require at least one node")
@@ -155,15 +168,18 @@ func (c *consulRegistry) Register(s *Service, opts ...RegisterOption) error {
 
 	var check *consul.AgentServiceCheck
 
-	// if the TTL is greater than 0 create an associated check
-	if options.TTL > time.Duration(0) {
-		// splay slightly for the watcher?
-		splay := time.Second * 5
-		deregTTL := options.TTL + splay
-		// consul has a minimum timeout on deregistration of 1 minute.
-		if options.TTL < time.Minute {
-			deregTTL = time.Minute + splay
+	if options.TCPCheck {
+		deregTTL := getDeregisterTTL(options.Interval)
+
+		check = &consul.AgentServiceCheck{
+			TCP:                            c.Address,
+			Interval:                       fmt.Sprintf("%v", options.Interval),
+			DeregisterCriticalServiceAfter: fmt.Sprintf("%v", deregTTL),
 		}
+
+		// if the TTL is greater than 0 create an associated check
+	} else if options.TTL > time.Duration(0) {
+		deregTTL := getDeregisterTTL(options.TTL)
 
 		check = &consul.AgentServiceCheck{
 			TTL: fmt.Sprintf("%v", options.TTL),

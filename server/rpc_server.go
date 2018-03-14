@@ -278,7 +278,10 @@ func (s *rpcServer) Register() error {
 	}
 
 	// create registry options
-	rOpts := []registry.RegisterOption{registry.RegisterTTL(config.RegisterTTL)}
+	rOpts := []registry.RegisterOption{
+		registry.RegisterTTL(config.RegisterTTL),
+		registry.RegisterTCPCheck(config.RegisterInterval),
+	}
 
 	if err := config.Registry.Register(service, rOpts...); err != nil {
 		return err
