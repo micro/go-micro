@@ -14,6 +14,10 @@ import (
 	hash "github.com/mitchellh/hashstructure"
 )
 
+const (
+	ConsulRegisterTCPCheckKey = "consul_register_tcp_check"
+)
+
 type consulRegistry struct {
 	Address string
 	Client  *consul.Client
@@ -136,6 +140,15 @@ func (c *consulRegistry) Register(s *Service, opts ...RegisterOption) error {
 	var options RegisterOptions
 	for _, o := range opts {
 		o(&options)
+	}
+
+	if c.opts.Context != nil {
+		tcpCheckInterval, ok := c.opts.Context.
+			Value(ConsulRegisterTCPCheckKey).(time.Duration)
+		if ok {
+			options.TCPCheck = true
+			options.Interval = tcpCheckInterval
+		}
 	}
 
 	// create hash of service; uint64
