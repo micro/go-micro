@@ -2,9 +2,9 @@
 
 Go Micro is a pluggable RPC framework for distributed systems development.
 
-The **Micro** philosophy is sane defaults with a pluggable architecture. We provide defaults to get you started quickly but everything can be easily swapped out. It comes with built in support for {json,proto}-rpc encoding, consul or multicast dns for service discovery, http for communication and random hashed client side load balancing.
+The **micro** philosophy is sane defaults with a pluggable architecture. We provide defaults to get you started quickly but everything can be easily swapped out. It comes with built in support for {json,proto}-rpc encoding, consul or multicast dns for service discovery, http for communication and random hashed client side load balancing.
 
-Everything in go-micro is **pluggable**. You can find and contribute to plugins at [github.com/micro/go-plugins](https://github.com/micro/go-plugins).
+Plugins are available at [github.com/micro/go-plugins](https://github.com/micro/go-plugins).
 
 Follow us on [Twitter](https://twitter.com/microhq) or join the [Slack](http://slack.micro.mu/) community.
 
@@ -17,7 +17,6 @@ Go Micro abstracts away the details of distributed systems. Here are the main fe
 - **Sync Comms** - RPC based communication with support for bidirectional streaming
 - **Async Comms** - Native PubSub messaging built in for event driven architectures
 - **Message Encoding** - Dynamic encoding based on content-type with protobuf and json out of the box
-- **Service Interface** - All features are wrapped up in a simple high level interface
 
 Go Micro supports both the Service and Function programming models. Read on to learn more.
 
@@ -48,8 +47,6 @@ Protobuf is required for code generation
 
 You'll need to install:
 
-- [protoc](https://github.com/google/protobuf)
-- [protoc-gen-go](https://github.com/golang/protobuf)
 - [protoc-gen-micro](https://github.com/micro/protoc-gen-micro)
 
 ## Service Discovery
