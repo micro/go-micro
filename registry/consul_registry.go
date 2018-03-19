@@ -172,7 +172,7 @@ func (c *consulRegistry) Register(s *Service, opts ...RegisterOption) error {
 		deregTTL := getDeregisterTTL(options.Interval)
 
 		check = &consul.AgentServiceCheck{
-			TCP:                            c.Address,
+			TCP:                            fmt.Sprintf("%s:%d", node.Address, node.Port),
 			Interval:                       fmt.Sprintf("%v", options.Interval),
 			DeregisterCriticalServiceAfter: fmt.Sprintf("%v", deregTTL),
 		}
