@@ -18,9 +18,7 @@ type Options struct {
 }
 
 type RegisterOptions struct {
-	TCPCheck bool
-	TTL      time.Duration
-	Interval time.Duration
+	TTL time.Duration
 	// Other options for implementations of the interface
 	// can be stored in a context
 	Context context.Context
