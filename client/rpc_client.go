@@ -13,12 +13,14 @@ import (
 	"github.com/micro/go-micro/metadata"
 	"github.com/micro/go-micro/selector"
 	"github.com/micro/go-micro/transport"
+	"sync/atomic"
 )
 
 type rpcClient struct {
 	once sync.Once
 	opts Options
 	pool *pool
+	seq  uint64
 }
 
 func newRpcClient(opt ...Option) Client {
@@ -28,6 +30,7 @@ func newRpcClient(opt ...Option) Client {
 		once: sync.Once{},
 		opts: opts,
 		pool: newPool(opts.PoolSize, opts.PoolTTL),
+		seq:  0,
 	}
 
 	c := Client(rc)
@@ -84,11 +87,15 @@ func (r *rpcClient) call(ctx context.Context, address string, req Request, resp 
 		r.pool.release(address, c, grr)
 	}()
 
+	seq := r.seq
+	atomic.AddUint64(&r.seq, 1)
+
 	stream := &rpcStream{
 		context: ctx,
 		request: req,
 		closed:  make(chan bool),
 		codec:   newRpcPlusCodec(msg, c, cf),
+		seq:     seq,
 	}
 	defer stream.Close()
 
