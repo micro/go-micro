@@ -142,7 +142,7 @@ func (c *consulRegistry) Register(s *Service, opts ...RegisterOption) error {
 	}
 
 	if c.opts.Context != nil {
-		if tcpCheckInterval, ok := c.opts.Context.Value("consul_register_tcp_check").(time.Duration); ok {
+		if tcpCheckInterval, ok := c.opts.Context.Value("consul_tcp_check").(time.Duration); ok {
 			regTCPCheck = true
 			regInterval = tcpCheckInterval
 		}

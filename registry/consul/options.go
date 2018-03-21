@@ -32,6 +32,6 @@ func TCPCheck(t time.Duration) registry.Option {
 		if o.Context == nil {
 			o.Context = context.Background()
 		}
-		o.Context = context.WithValue(o.Context, "consul_register_tcp_check", t)
+		o.Context = context.WithValue(o.Context, "consul_tcp_check", t)
 	}
 }
