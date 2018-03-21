@@ -226,15 +226,14 @@ func (s *rpcServer) createSubHandler(sb *subscriber, opts Options) broker.Handle
 				fn = opts.SubWrappers[i-1](fn)
 			}
 
-			s.wg.Add(1)
-			go func() {
-				defer s.wg.Done()
-				fn(ctx, &rpcPublication{
-					topic:       sb.topic,
-					contentType: ct,
-					message:     req.Interface(),
-				})
-			}()
+			err := fn(ctx, &rpcPublication{
+				topic:       sb.topic,
+				contentType: ct,
+				message:     req.Interface(),
+			})
+			if err != nil {
+				return err
+			}
 		}
 		return nil
 	}
