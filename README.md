@@ -272,13 +272,13 @@ By default go-micro includes a point-to-point http broker but this can be swappe
 
 Create a new publisher with a `topic` name and service client
 
-```
+```go
 p := micro.NewPublisher("events", service.Client())
 ```
 
 Publish a proto message
 
-```
+```go
 p.Publish(context.TODO(), &proto.Event{Name: "event"})
 ```
 
@@ -286,7 +286,7 @@ p.Publish(context.TODO(), &proto.Event{Name: "event"})
 
 Create a message handler. It's signature should be `func(context.Context, v interface{}) error`.
 
-```
+```go
 func ProcessEvent(ctx context.Context, event *proto.Event) error {
 	fmt.Printf("Got event %+v\n", event)
 	return nil
@@ -295,7 +295,7 @@ func ProcessEvent(ctx context.Context, event *proto.Event) error {
 
 Register the message handler with a `topic`
 
-```
+```go
 micro.RegisterSubscriber("events", ProcessEvent)
 ```
 
