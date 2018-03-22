@@ -299,6 +299,8 @@ Register the message handler with a `topic`
 micro.RegisterSubscriber("events", ProcessEvent)
 ```
 
+See [examples/pubsub](https://github.com/micro/examples/tree/master/pubsub) for a complete example.
+
 ## Plugins
 
 By default go-micro only provides a few implementation of each interface at the core but it's completely pluggable. There's already dozens of plugins which are available at [github.com/micro/go-plugins](https://github.com/micro/go-plugins). Contributions are welcome!
