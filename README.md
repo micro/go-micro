@@ -38,6 +38,7 @@ Watch the [Golang UK Conf 2016](https://www.youtube.com/watch?v=xspaDovwk34) vid
 - [Service Discovery](#service-discovery)
 - [Writing a Service](#writing-a-service)
 - [Writing a Function](#writing-a-function)
+- [Publish & Subscribe](#publish--subscribe)
 - [Plugins](#plugins)
 - [Wrappers](#wrappers)
 
@@ -258,6 +259,45 @@ func main() {
 ```
 
 It's that simple.
+
+## Publish & Subscribe
+
+Go-micro has a built in message broker interface for event driven architectures.
+
+PubSub operates on the same protobuf generated messages as RPC. They are encoded/decoded automatically and sent via the broker. 
+By default go-micro includes a point-to-point http broker but this can be swapped out via go-plugins.
+
+### Publish
+
+
+Create a new publisher with a `topic` name and service client
+
+```
+p := micro.NewPublisher("events", service.Client())
+```
+
+// Publish a proto message
+
+```
+p.Publish(context.TODO(), &proto.Event{Name: "event"})
+```
+
+### Subscribe
+
+Create a message handler. It's signature should be `func(context.Context, v interface{}) error`.
+
+```
+func ProcessEvent(ctx context.Context, event *proto.Event) error {
+	fmt.Printf("Got event %+v\n", event)
+	return nil
+}
+```
+
+Register the message handler with a `topic`
+
+```
+micro.RegisterSubscriber("events", ProcessEvent)
+```
 
 ## Plugins
 
