@@ -267,7 +267,7 @@ Go-micro has a built in message broker interface for event driven architectures.
 PubSub operates on the same protobuf generated messages as RPC. They are encoded/decoded automatically and sent via the broker. 
 By default go-micro includes a point-to-point http broker but this can be swapped out via go-plugins.
 
-### Publish
+### Publish
 
 
 Create a new publisher with a `topic` name and service client
@@ -276,7 +276,7 @@ Create a new publisher with a `topic` name and service client
 p := micro.NewPublisher("events", service.Client())
 ```
 
-// Publish a proto message
+Publish a proto message
 
 ```
 p.Publish(context.TODO(), &proto.Event{Name: "event"})
