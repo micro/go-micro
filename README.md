@@ -14,9 +14,9 @@ Go Micro abstracts away the details of distributed systems. Here are the main fe
 
 - **Service Discovery** - Automatic service registration and name resolution
 - **Load Balancing** - Client side load balancing built on discovery
-- **Sync Comms** - RPC based communication with support for bidirectional streaming
-- **Async Comms** - Native PubSub messaging built in for event driven architectures
-- **Message Encoding** - Dynamic encoding based on content-type with protobuf and json out of the box
+- **Message Encoding** - Dynamic encoding based on content-type with protobuf and json support
+- **Sync Streaming** - RPC based communication with support for bidirectional streaming
+- **Async Messaging** - Native PubSub messaging built in for event driven architectures
 
 Go Micro supports both the Service and Function programming models. Read on to learn more.
 
