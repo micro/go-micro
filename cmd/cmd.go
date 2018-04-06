@@ -78,6 +78,16 @@ var (
 			EnvVar: "MICRO_CLIENT_POOL_TTL",
 			Usage:  "Sets the client connection pool ttl. e.g 500ms, 5s, 1m. Default: 1m",
 		},
+		cli.IntFlag{
+			Name:   "register_ttl",
+			EnvVar: "MICRO_REGISTER_TTL",
+			Usage:  "Register TTL in seconds",
+		},
+		cli.IntFlag{
+			Name:   "register_interval",
+			EnvVar: "MICRO_REGISTER_INTERVAL",
+			Usage:  "Register interval in seconds",
+		},
 		cli.StringFlag{
 			Name:   "server_name",
 			EnvVar: "MICRO_SERVER_NAME",
@@ -368,6 +378,10 @@ func (c *cmd) Before(ctx *cli.Context) error {
 
 	if len(ctx.String("server_advertise")) > 0 {
 		serverOpts = append(serverOpts, server.Advertise(ctx.String("server_advertise")))
+	}
+
+	if ttl := time.Duration(ctx.GlobalInt("register_ttl")); ttl > 0 {
+		serverOpts = append(serverOpts, server.RegisterTTL(ttl*time.Second))
 	}
 
 	// client opts

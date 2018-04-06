@@ -7,7 +7,8 @@ import (
 	"syscall"
 	"time"
 
-	log "github.com/micro/go-log"
+	"github.com/micro/cli"
+	"github.com/micro/go-log"
 	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/cmd"
 	"github.com/micro/go-micro/metadata"
@@ -66,6 +67,20 @@ func (s *service) Init(opts ...Option) {
 	}
 
 	s.once.Do(func() {
+		// save user action
+		action := s.opts.Cmd.App().Action
+
+		// set service action
+		s.opts.Cmd.App().Action = func(c *cli.Context) {
+			// set register interval
+			if i := time.Duration(c.GlobalInt("register_interval")); i > 0 {
+				s.opts.RegisterInterval = i * time.Second
+			}
+
+			// user action
+			action(c)
+		}
+
 		// Initialise the command flags, overriding new service
 		_ = s.opts.Cmd.Init(
 			cmd.Broker(&s.opts.Broker),
