@@ -44,7 +44,7 @@ func (r *rpcStream) Send(msg interface{}) error {
 	}
 
 	seq := r.seq
-	
+
 	req := request{
 		Service:       r.request.Service(),
 		Seq:           seq,
