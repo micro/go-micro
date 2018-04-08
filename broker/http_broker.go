@@ -23,9 +23,9 @@ import (
 	merr "github.com/micro/go-micro/errors"
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-rcache"
-	maddr "github.com/micro/misc/lib/addr"
-	mnet "github.com/micro/misc/lib/net"
-	mls "github.com/micro/misc/lib/tls"
+	maddr "github.com/micro/util/go/lib/addr"
+	mnet "github.com/micro/util/go/lib/net"
+	mls "github.com/micro/util/go/lib/tls"
 	"github.com/pborman/uuid"
 )
 
