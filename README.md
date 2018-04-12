@@ -452,6 +452,8 @@ Check out [ja-micro](https://github.com/Sixt/ja-micro) to write services in Java
 
 ## Sponsors
 
-Open source development of Micro is sponsored by Sixt
+Sixt is an Enterprise Sponsor of Micro
 
 <a href="https://micro.mu/blog/2016/04/25/announcing-sixt-sponsorship.html"><img src="https://micro.mu/sixt_logo.png" width=150px height="auto" /></a>
+
+Become a sponsor by backing micro on [Patreon](https://www.patreon.com/microhq)
