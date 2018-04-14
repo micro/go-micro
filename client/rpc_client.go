@@ -135,7 +135,7 @@ func (r *rpcClient) call(ctx context.Context, address string, req Request, resp 
 	}
 }
 
-func (r *rpcClient) stream(ctx context.Context, address string, req Request, opts CallOptions) (Streamer, error) {
+func (r *rpcClient) stream(ctx context.Context, address string, req Request, opts CallOptions) (Stream, error) {
 	msg := &transport.Message{
 		Header: make(map[string]string),
 	}
@@ -340,7 +340,7 @@ func (r *rpcClient) Call(ctx context.Context, request Request, response interfac
 	return gerr
 }
 
-func (r *rpcClient) Stream(ctx context.Context, request Request, opts ...CallOption) (Streamer, error) {
+func (r *rpcClient) Stream(ctx context.Context, request Request, opts ...CallOption) (Stream, error) {
 	// make a copy of call opts
 	callOpts := r.opts.CallOptions
 	for _, opt := range opts {
@@ -371,7 +371,7 @@ func (r *rpcClient) Stream(ctx context.Context, request Request, opts ...CallOpt
 	default:
 	}
 
-	call := func(i int) (Streamer, error) {
+	call := func(i int) (Stream, error) {
 		// call backoff first. Someone may want an initial start delay
 		t, err := callOpts.Backoff(ctx, request, i)
 		if err != nil {
@@ -401,7 +401,7 @@ func (r *rpcClient) Stream(ctx context.Context, request Request, opts ...CallOpt
 	}
 
 	type response struct {
-		stream Streamer
+		stream Stream
 		err    error
 	}
 

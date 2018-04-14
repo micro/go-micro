@@ -36,12 +36,12 @@ func (c *clientWrapper) Call(ctx context.Context, req client.Request, rsp interf
 	return c.Client.Call(ctx, req, rsp, opts...)
 }
 
-func (c *clientWrapper) Stream(ctx context.Context, req client.Request, opts ...client.CallOption) (client.Streamer, error) {
+func (c *clientWrapper) Stream(ctx context.Context, req client.Request, opts ...client.CallOption) (client.Stream, error) {
 	ctx = c.setHeaders(ctx)
 	return c.Client.Stream(ctx, req, opts...)
 }
 
-func (c *clientWrapper) Publish(ctx context.Context, p client.Publication, opts ...client.PublishOption) error {
+func (c *clientWrapper) Publish(ctx context.Context, p client.Message, opts ...client.PublishOption) error {
 	ctx = c.setHeaders(ctx)
 	return c.Client.Publish(ctx, p, opts...)
 }

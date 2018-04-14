@@ -14,4 +14,4 @@ type CallWrapper func(CallFunc) CallFunc
 type Wrapper func(Client) Client
 
 // StreamWrapper wraps a Stream and returns the equivalent
-type StreamWrapper func(Streamer) Streamer
+type StreamWrapper func(Stream) Stream

@@ -20,8 +20,8 @@ type HandlerWrapper func(HandlerFunc) HandlerFunc
 // SubscriberWrapper wraps the SubscriberFunc and returns the equivalent
 type SubscriberWrapper func(SubscriberFunc) SubscriberFunc
 
-// StreamerWrapper wraps a Streamer interface and returns the equivalent.
+// StreamWrapper wraps a Stream interface and returns the equivalent.
 // Because streams exist for the lifetime of a method invocation this
 // is a convenient way to wrap a Stream as its in use for trace, monitoring,
 // metrics, etc.
-type StreamerWrapper func(Streamer) Streamer
+type StreamWrapper func(Stream) Stream

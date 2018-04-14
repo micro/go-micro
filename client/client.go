@@ -15,7 +15,7 @@ type Client interface {
 	NewMessage(topic string, msg interface{}) Message
 	NewRequest(service, method string, req interface{}, reqOpts ...RequestOption) Request
 	Call(ctx context.Context, req Request, rsp interface{}, opts ...CallOption) error
-	Stream(ctx context.Context, req Request, opts ...CallOption) (Streamer, error)
+	Stream(ctx context.Context, req Request, opts ...CallOption) (Stream, error)
 	Publish(ctx context.Context, msg Message, opts ...PublishOption) error
 	String() string
 }
@@ -37,8 +37,8 @@ type Request interface {
 	Stream() bool
 }
 
-// Streamer is the inteface for a bidirectional synchronous stream
-type Streamer interface {
+// Stream is the inteface for a bidirectional synchronous stream
+type Stream interface {
 	Context() context.Context
 	Request() Request
 	Send(interface{}) error
@@ -76,35 +76,7 @@ var (
 	DefaultPoolTTL = time.Minute
 )
 
-// Makes a synchronous call to a service using the default client
-func Call(ctx context.Context, request Request, response interface{}, opts ...CallOption) error {
-	return DefaultClient.Call(ctx, request, response, opts...)
-}
-
-// Creates a streaming connection with a service and returns responses on the
-// channel passed in. It's up to the user to close the streamer.
-func Stream(ctx context.Context, request Request, opts ...CallOption) (Streamer, error) {
-	return DefaultClient.Stream(ctx, request, opts...)
-}
-
-// Publishes a publication using the default client. Using the underlying broker
-// set within the options.
-func Publish(ctx context.Context, msg Message) error {
-	return DefaultClient.Publish(ctx, msg)
-}
-
 // Creates a new client with the options passed in
 func NewClient(opt ...Option) Client {
 	return newRpcClient(opt...)
-}
-
-// Creates a new message using the default client
-func NewMessage(topic string, message interface{}) Message {
-	return DefaultClient.NewMessage(topic, message)
-}
-
-// Creates a new request using the default client. Content Type will
-// be set to the default within options and use the appropriate codec
-func NewRequest(service, method string, request interface{}, reqOpts ...RequestOption) Request {
-	return DefaultClient.NewRequest(service, method, request, reqOpts...)
 }

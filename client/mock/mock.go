@@ -89,7 +89,7 @@ func (m *MockClient) Call(ctx context.Context, req client.Request, rsp interface
 	return fmt.Errorf("rpc: can't find service %s", req.Method())
 }
 
-func (m *MockClient) Stream(ctx context.Context, req client.Request, opts ...client.CallOption) (client.Streamer, error) {
+func (m *MockClient) Stream(ctx context.Context, req client.Request, opts ...client.CallOption) (client.Stream, error) {
 	m.Lock()
 	defer m.Unlock()
 
