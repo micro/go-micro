@@ -8,11 +8,16 @@ type rpcRequest struct {
 	opts        RequestOptions
 }
 
-func newRpcRequest(service, method string, request interface{}, contentType string, reqOpts ...RequestOption) Request {
+func newRequest(service, method string, request interface{}, contentType string, reqOpts ...RequestOption) Request {
 	var opts RequestOptions
 
 	for _, o := range reqOpts {
 		o(&opts)
+	}
+
+	// set the content-type specified
+	if len(opts.ContentType) > 0 {
+		contentType = opts.ContentType
 	}
 
 	return &rpcRequest{

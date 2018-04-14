@@ -68,7 +68,8 @@ type PublishOptions struct {
 }
 
 type RequestOptions struct {
-	Stream bool
+	ContentType string
+	Stream      bool
 
 	// Other options for implementations of the interface
 	// can be stored in a context
@@ -289,6 +290,12 @@ func WithDialTimeout(d time.Duration) CallOption {
 }
 
 // Request Options
+
+func WithContentType(ct string) RequestOption {
+	return func(o *RequestOptions) {
+		o.ContentType = ct
+	}
+}
 
 func StreamingRequest() RequestOption {
 	return func(o *RequestOptions) {

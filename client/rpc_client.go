@@ -439,49 +439,38 @@ func (r *rpcClient) Stream(ctx context.Context, request Request, opts ...CallOpt
 	return nil, grr
 }
 
-func (r *rpcClient) Publish(ctx context.Context, p Publication, opts ...PublishOption) error {
+func (r *rpcClient) Publish(ctx context.Context, msg Message, opts ...PublishOption) error {
 	md, ok := metadata.FromContext(ctx)
 	if !ok {
 		md = make(map[string]string)
 	}
-	md["Content-Type"] = p.ContentType()
+	md["Content-Type"] = msg.ContentType()
 
 	// encode message body
-	cf, err := r.newCodec(p.ContentType())
+	cf, err := r.newCodec(msg.ContentType())
 	if err != nil {
 		return errors.InternalServerError("go.micro.client", err.Error())
 	}
 	b := &buffer{bytes.NewBuffer(nil)}
-	if err := cf(b).Write(&codec.Message{Type: codec.Publication}, p.Message()); err != nil {
+	if err := cf(b).Write(&codec.Message{Type: codec.Publication}, msg.Payload()); err != nil {
 		return errors.InternalServerError("go.micro.client", err.Error())
 	}
 	r.once.Do(func() {
 		r.opts.Broker.Connect()
 	})
 
-	return r.opts.Broker.Publish(p.Topic(), &broker.Message{
+	return r.opts.Broker.Publish(msg.Topic(), &broker.Message{
 		Header: md,
 		Body:   b.Bytes(),
 	})
 }
 
-func (r *rpcClient) NewPublication(topic string, message interface{}) Publication {
-	return newRpcPublication(topic, message, r.opts.ContentType)
+func (r *rpcClient) NewMessage(topic string, message interface{}) Message {
+	return newMessage(topic, message, r.opts.ContentType)
 }
 
-func (r *rpcClient) NewProtoPublication(topic string, message interface{}) Publication {
-	return newRpcPublication(topic, message, "application/octet-stream")
-}
 func (r *rpcClient) NewRequest(service, method string, request interface{}, reqOpts ...RequestOption) Request {
-	return newRpcRequest(service, method, request, r.opts.ContentType, reqOpts...)
-}
-
-func (r *rpcClient) NewProtoRequest(service, method string, request interface{}, reqOpts ...RequestOption) Request {
-	return newRpcRequest(service, method, request, "application/octet-stream", reqOpts...)
-}
-
-func (r *rpcClient) NewJsonRequest(service, method string, request interface{}, reqOpts ...RequestOption) Request {
-	return newRpcRequest(service, method, request, "application/json", reqOpts...)
+	return newRequest(service, method, request, r.opts.ContentType, reqOpts...)
 }
 
 func (r *rpcClient) String() string {

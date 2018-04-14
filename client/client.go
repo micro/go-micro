@@ -12,20 +12,18 @@ import (
 type Client interface {
 	Init(...Option) error
 	Options() Options
-	NewPublication(topic string, msg interface{}) Publication
+	NewMessage(topic string, msg interface{}) Message
 	NewRequest(service, method string, req interface{}, reqOpts ...RequestOption) Request
-	NewProtoRequest(service, method string, req interface{}, reqOpts ...RequestOption) Request
-	NewJsonRequest(service, method string, req interface{}, reqOpts ...RequestOption) Request
 	Call(ctx context.Context, req Request, rsp interface{}, opts ...CallOption) error
 	Stream(ctx context.Context, req Request, opts ...CallOption) (Streamer, error)
-	Publish(ctx context.Context, p Publication, opts ...PublishOption) error
+	Publish(ctx context.Context, msg Message, opts ...PublishOption) error
 	String() string
 }
 
-// Publication is the interface for a message published asynchronously
-type Publication interface {
+// Message is the interface for publishing asynchronously
+type Message interface {
 	Topic() string
-	Message() interface{}
+	Payload() interface{}
 	ContentType() string
 }
 
@@ -91,8 +89,8 @@ func Stream(ctx context.Context, request Request, opts ...CallOption) (Streamer,
 
 // Publishes a publication using the default client. Using the underlying broker
 // set within the options.
-func Publish(ctx context.Context, p Publication) error {
-	return DefaultClient.Publish(ctx, p)
+func Publish(ctx context.Context, msg Message) error {
+	return DefaultClient.Publish(ctx, msg)
 }
 
 // Creates a new client with the options passed in
@@ -100,27 +98,13 @@ func NewClient(opt ...Option) Client {
 	return newRpcClient(opt...)
 }
 
-// Creates a new publication using the default client
-func NewPublication(topic string, message interface{}) Publication {
-	return DefaultClient.NewPublication(topic, message)
+// Creates a new message using the default client
+func NewMessage(topic string, message interface{}) Message {
+	return DefaultClient.NewMessage(topic, message)
 }
 
 // Creates a new request using the default client. Content Type will
 // be set to the default within options and use the appropriate codec
 func NewRequest(service, method string, request interface{}, reqOpts ...RequestOption) Request {
 	return DefaultClient.NewRequest(service, method, request, reqOpts...)
-}
-
-// Creates a new protobuf request using the default client
-func NewProtoRequest(service, method string, request interface{}, reqOpts ...RequestOption) Request {
-	return DefaultClient.NewProtoRequest(service, method, request, reqOpts...)
-}
-
-// Creates a new json request using the default client
-func NewJsonRequest(service, method string, request interface{}, reqOpts ...RequestOption) Request {
-	return DefaultClient.NewJsonRequest(service, method, request, reqOpts...)
-}
-
-func String() string {
-	return DefaultClient.String()
 }
