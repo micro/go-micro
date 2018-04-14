@@ -204,7 +204,7 @@ func (s *rpcServer) createSubHandler(sb *subscriber, opts Options) broker.Handle
 				return err
 			}
 
-			fn := func(ctx context.Context, msg Publication) error {
+			fn := func(ctx context.Context, msg Message) error {
 				var vals []reflect.Value
 				if sb.typ.Kind() != reflect.Func {
 					vals = append(vals, sb.rcvr)
@@ -213,7 +213,7 @@ func (s *rpcServer) createSubHandler(sb *subscriber, opts Options) broker.Handle
 					vals = append(vals, reflect.ValueOf(ctx))
 				}
 
-				vals = append(vals, reflect.ValueOf(msg.Message()))
+				vals = append(vals, reflect.ValueOf(msg.Payload()))
 
 				returnValues := handler.method.Call(vals)
 				if err := returnValues[0].Interface(); err != nil {
@@ -229,10 +229,10 @@ func (s *rpcServer) createSubHandler(sb *subscriber, opts Options) broker.Handle
 			s.wg.Add(1)
 			go func() {
 				defer s.wg.Done()
-				fn(ctx, &rpcPublication{
+				fn(ctx, &rpcMessage{
 					topic:       sb.topic,
 					contentType: ct,
-					message:     req.Interface(),
+					payload:     req.Interface(),
 				})
 			}()
 		}

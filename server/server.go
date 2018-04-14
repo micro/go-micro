@@ -21,9 +21,9 @@ type Server interface {
 	String() string
 }
 
-type Publication interface {
+type Message interface {
 	Topic() string
-	Message() interface{}
+	Payload() interface{}
 	ContentType() string
 }
 
