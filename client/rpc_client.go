@@ -11,6 +11,7 @@ import (
 	"github.com/micro/go-micro/codec"
 	"github.com/micro/go-micro/errors"
 	"github.com/micro/go-micro/metadata"
+	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/selector"
 	"github.com/micro/go-micro/transport"
 	"sync/atomic"
@@ -213,13 +214,25 @@ func (r *rpcClient) Options() Options {
 	return r.opts
 }
 
-func (r *rpcClient) CallRemote(ctx context.Context, address string, request Request, response interface{}, opts ...CallOption) error {
-	// make a copy of call opts
-	callOpts := r.opts.CallOptions
-	for _, opt := range opts {
-		opt(&callOpts)
+func (r *rpcClient) next(request Request, opts CallOptions) (selector.Next, error) {
+	// return remote address
+	if len(opts.Address) > 0 {
+		return func() (*registry.Node, error) {
+			return &registry.Node{
+				Address: opts.Address,
+			}, nil
+		}, nil
 	}
-	return r.call(ctx, address, request, response, callOpts)
+
+	// get next nodes from the selector
+	next, err := r.opts.Selector.Select(request.Service(), opts.SelectOptions...)
+	if err != nil && err == selector.ErrNotFound {
+		return nil, errors.NotFound("go.micro.client", err.Error())
+	} else if err != nil {
+		return nil, errors.InternalServerError("go.micro.client", err.Error())
+	}
+
+	return next, nil
 }
 
 func (r *rpcClient) Call(ctx context.Context, request Request, response interface{}, opts ...CallOption) error {
@@ -229,12 +242,9 @@ func (r *rpcClient) Call(ctx context.Context, request Request, response interfac
 		opt(&callOpts)
 	}
 
-	// get next nodes from the selector
-	next, err := r.opts.Selector.Select(request.Service(), callOpts.SelectOptions...)
-	if err != nil && err == selector.ErrNotFound {
-		return errors.NotFound("go.micro.client", err.Error())
-	} else if err != nil {
-		return errors.InternalServerError("go.micro.client", err.Error())
+	next, err := r.next(request, callOpts)
+	if err != nil {
+		return err
 	}
 
 	// check if we already have a deadline
@@ -330,15 +340,6 @@ func (r *rpcClient) Call(ctx context.Context, request Request, response interfac
 	return gerr
 }
 
-func (r *rpcClient) StreamRemote(ctx context.Context, address string, request Request, opts ...CallOption) (Streamer, error) {
-	// make a copy of call opts
-	callOpts := r.opts.CallOptions
-	for _, opt := range opts {
-		opt(&callOpts)
-	}
-	return r.stream(ctx, address, request, callOpts)
-}
-
 func (r *rpcClient) Stream(ctx context.Context, request Request, opts ...CallOption) (Streamer, error) {
 	// make a copy of call opts
 	callOpts := r.opts.CallOptions
@@ -346,12 +347,9 @@ func (r *rpcClient) Stream(ctx context.Context, request Request, opts ...CallOpt
 		opt(&callOpts)
 	}
 
-	// get next nodes from the selector
-	next, err := r.opts.Selector.Select(request.Service(), callOpts.SelectOptions...)
-	if err != nil && err == selector.ErrNotFound {
-		return nil, errors.NotFound("go.micro.client", err.Error())
-	} else if err != nil {
-		return nil, errors.InternalServerError("go.micro.client", err.Error())
+	next, err := r.next(request, callOpts)
+	if err != nil {
+		return nil, err
 	}
 
 	// check if we already have a deadline
