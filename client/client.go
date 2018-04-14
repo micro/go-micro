@@ -17,9 +17,7 @@ type Client interface {
 	NewProtoRequest(service, method string, req interface{}, reqOpts ...RequestOption) Request
 	NewJsonRequest(service, method string, req interface{}, reqOpts ...RequestOption) Request
 	Call(ctx context.Context, req Request, rsp interface{}, opts ...CallOption) error
-	CallRemote(ctx context.Context, addr string, req Request, rsp interface{}, opts ...CallOption) error
 	Stream(ctx context.Context, req Request, opts ...CallOption) (Streamer, error)
-	StreamRemote(ctx context.Context, addr string, req Request, opts ...CallOption) (Streamer, error)
 	Publish(ctx context.Context, p Publication, opts ...PublishOption) error
 	String() string
 }
@@ -85,20 +83,10 @@ func Call(ctx context.Context, request Request, response interface{}, opts ...Ca
 	return DefaultClient.Call(ctx, request, response, opts...)
 }
 
-// Makes a synchronous call to the specified address using the default client
-func CallRemote(ctx context.Context, address string, request Request, response interface{}, opts ...CallOption) error {
-	return DefaultClient.CallRemote(ctx, address, request, response, opts...)
-}
-
 // Creates a streaming connection with a service and returns responses on the
 // channel passed in. It's up to the user to close the streamer.
 func Stream(ctx context.Context, request Request, opts ...CallOption) (Streamer, error) {
 	return DefaultClient.Stream(ctx, request, opts...)
-}
-
-// Creates a streaming connection to the address specified.
-func StreamRemote(ctx context.Context, address string, request Request, opts ...CallOption) (Streamer, error) {
-	return DefaultClient.StreamRemote(ctx, address, request, opts...)
 }
 
 // Publishes a publication using the default client. Using the underlying broker

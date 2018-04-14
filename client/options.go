@@ -40,6 +40,8 @@ type Options struct {
 type CallOptions struct {
 	SelectOptions []selector.SelectOption
 
+	// Address of remote host
+	Address string
 	// Backoff func
 	Backoff BackoffFunc
 	// Check if retriable func
@@ -225,6 +227,13 @@ func DialTimeout(d time.Duration) Option {
 }
 
 // Call Options
+
+// WithAddress sets the remote address to use rather than using service discovery
+func WithAddress(a string) CallOption {
+	return func(o *CallOptions) {
+		o.Address = a
+	}
+}
 
 func WithSelectOption(so ...selector.SelectOption) CallOption {
 	return func(o *CallOptions) {
