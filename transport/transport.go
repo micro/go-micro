@@ -50,15 +50,3 @@ var (
 func NewTransport(opts ...Option) Transport {
 	return newHTTPTransport(opts...)
 }
-
-func Dial(addr string, opts ...DialOption) (Client, error) {
-	return DefaultTransport.Dial(addr, opts...)
-}
-
-func Listen(addr string, opts ...ListenOption) (Listener, error) {
-	return DefaultTransport.Listen(addr, opts...)
-}
-
-func String() string {
-	return DefaultTransport.String()
-}
