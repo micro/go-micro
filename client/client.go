@@ -76,7 +76,39 @@ var (
 	DefaultPoolTTL = time.Minute
 )
 
+// Makes a synchronous call to a service using the default client
+func Call(ctx context.Context, request Request, response interface{}, opts ...CallOption) error {
+	return DefaultClient.Call(ctx, request, response, opts...)
+}
+
+// Publishes a publication using the default client. Using the underlying broker
+// set within the options.
+func Publish(ctx context.Context, msg Message) error {
+	return DefaultClient.Publish(ctx, msg)
+}
+
+// Creates a new message using the default client
+func NewMessage(topic string, payload interface{}) Message {
+	return DefaultClient.NewMessage(topic, payload)
+}
+
 // Creates a new client with the options passed in
 func NewClient(opt ...Option) Client {
 	return newRpcClient(opt...)
+}
+
+// Creates a new request using the default client. Content Type will
+// be set to the default within options and use the appropriate codec
+func NewRequest(service, method string, request interface{}, reqOpts ...RequestOption) Request {
+	return DefaultClient.NewRequest(service, method, request, reqOpts...)
+}
+
+// Creates a streaming connection with a service and returns responses on the
+// channel passed in. It's up to the user to close the streamer.
+func NewStream(ctx context.Context, request Request, opts ...CallOption) (Stream, error) {
+	return DefaultClient.Stream(ctx, request, opts...)
+}
+
+func String() string {
+	return DefaultClient.String()
 }
