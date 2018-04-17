@@ -40,6 +40,8 @@ type Options struct {
 type CallOptions struct {
 	SelectOptions []selector.SelectOption
 
+	// Address of remote host
+	Address string
 	// Backoff func
 	Backoff BackoffFunc
 	// Check if retriable func
@@ -66,7 +68,8 @@ type PublishOptions struct {
 }
 
 type RequestOptions struct {
-	Stream bool
+	ContentType string
+	Stream      bool
 
 	// Other options for implementations of the interface
 	// can be stored in a context
@@ -226,6 +229,13 @@ func DialTimeout(d time.Duration) Option {
 
 // Call Options
 
+// WithAddress sets the remote address to use rather than using service discovery
+func WithAddress(a string) CallOption {
+	return func(o *CallOptions) {
+		o.Address = a
+	}
+}
+
 func WithSelectOption(so ...selector.SelectOption) CallOption {
 	return func(o *CallOptions) {
 		o.SelectOptions = append(o.SelectOptions, so...)
@@ -280,6 +290,12 @@ func WithDialTimeout(d time.Duration) CallOption {
 }
 
 // Request Options
+
+func WithContentType(ct string) RequestOption {
+	return func(o *RequestOptions) {
+		o.ContentType = ct
+	}
+}
 
 func StreamingRequest() RequestOption {
 	return func(o *RequestOptions) {

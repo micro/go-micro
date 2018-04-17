@@ -8,10 +8,10 @@ type rpcRequest struct {
 	stream      bool
 }
 
-type rpcPublication struct {
+type rpcMessage struct {
 	topic       string
 	contentType string
-	message     interface{}
+	payload     interface{}
 }
 
 func (r *rpcRequest) ContentType() string {
@@ -34,14 +34,14 @@ func (r *rpcRequest) Stream() bool {
 	return r.stream
 }
 
-func (r *rpcPublication) ContentType() string {
+func (r *rpcMessage) ContentType() string {
 	return r.contentType
 }
 
-func (r *rpcPublication) Topic() string {
+func (r *rpcMessage) Topic() string {
 	return r.topic
 }
 
-func (r *rpcPublication) Message() interface{} {
-	return r.message
+func (r *rpcMessage) Payload() interface{} {
+	return r.payload
 }

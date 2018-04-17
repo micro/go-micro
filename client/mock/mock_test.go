@@ -21,7 +21,7 @@ func TestClient(t *testing.T) {
 	c := NewClient(Response("go.mock", response))
 
 	for _, r := range response {
-		req := c.NewJsonRequest("go.mock", r.Method, map[string]interface{}{"foo": "bar"})
+		req := c.NewRequest("go.mock", r.Method, map[string]interface{}{"foo": "bar"})
 		var rsp interface{}
 
 		err := c.Call(context.TODO(), req, &rsp)

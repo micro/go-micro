@@ -12,22 +12,18 @@ import (
 type Client interface {
 	Init(...Option) error
 	Options() Options
-	NewPublication(topic string, msg interface{}) Publication
+	NewMessage(topic string, msg interface{}) Message
 	NewRequest(service, method string, req interface{}, reqOpts ...RequestOption) Request
-	NewProtoRequest(service, method string, req interface{}, reqOpts ...RequestOption) Request
-	NewJsonRequest(service, method string, req interface{}, reqOpts ...RequestOption) Request
 	Call(ctx context.Context, req Request, rsp interface{}, opts ...CallOption) error
-	CallRemote(ctx context.Context, addr string, req Request, rsp interface{}, opts ...CallOption) error
-	Stream(ctx context.Context, req Request, opts ...CallOption) (Streamer, error)
-	StreamRemote(ctx context.Context, addr string, req Request, opts ...CallOption) (Streamer, error)
-	Publish(ctx context.Context, p Publication, opts ...PublishOption) error
+	Stream(ctx context.Context, req Request, opts ...CallOption) (Stream, error)
+	Publish(ctx context.Context, msg Message, opts ...PublishOption) error
 	String() string
 }
 
-// Publication is the interface for a message published asynchronously
-type Publication interface {
+// Message is the interface for publishing asynchronously
+type Message interface {
 	Topic() string
-	Message() interface{}
+	Payload() interface{}
 	ContentType() string
 }
 
@@ -41,8 +37,8 @@ type Request interface {
 	Stream() bool
 }
 
-// Streamer is the inteface for a bidirectional synchronous stream
-type Streamer interface {
+// Stream is the inteface for a bidirectional synchronous stream
+type Stream interface {
 	Context() context.Context
 	Request() Request
 	Send(interface{}) error
@@ -85,36 +81,20 @@ func Call(ctx context.Context, request Request, response interface{}, opts ...Ca
 	return DefaultClient.Call(ctx, request, response, opts...)
 }
 
-// Makes a synchronous call to the specified address using the default client
-func CallRemote(ctx context.Context, address string, request Request, response interface{}, opts ...CallOption) error {
-	return DefaultClient.CallRemote(ctx, address, request, response, opts...)
-}
-
-// Creates a streaming connection with a service and returns responses on the
-// channel passed in. It's up to the user to close the streamer.
-func Stream(ctx context.Context, request Request, opts ...CallOption) (Streamer, error) {
-	return DefaultClient.Stream(ctx, request, opts...)
-}
-
-// Creates a streaming connection to the address specified.
-func StreamRemote(ctx context.Context, address string, request Request, opts ...CallOption) (Streamer, error) {
-	return DefaultClient.StreamRemote(ctx, address, request, opts...)
-}
-
 // Publishes a publication using the default client. Using the underlying broker
 // set within the options.
-func Publish(ctx context.Context, p Publication) error {
-	return DefaultClient.Publish(ctx, p)
+func Publish(ctx context.Context, msg Message) error {
+	return DefaultClient.Publish(ctx, msg)
+}
+
+// Creates a new message using the default client
+func NewMessage(topic string, payload interface{}) Message {
+	return DefaultClient.NewMessage(topic, payload)
 }
 
 // Creates a new client with the options passed in
 func NewClient(opt ...Option) Client {
 	return newRpcClient(opt...)
-}
-
-// Creates a new publication using the default client
-func NewPublication(topic string, message interface{}) Publication {
-	return DefaultClient.NewPublication(topic, message)
 }
 
 // Creates a new request using the default client. Content Type will
@@ -123,14 +103,10 @@ func NewRequest(service, method string, request interface{}, reqOpts ...RequestO
 	return DefaultClient.NewRequest(service, method, request, reqOpts...)
 }
 
-// Creates a new protobuf request using the default client
-func NewProtoRequest(service, method string, request interface{}, reqOpts ...RequestOption) Request {
-	return DefaultClient.NewProtoRequest(service, method, request, reqOpts...)
-}
-
-// Creates a new json request using the default client
-func NewJsonRequest(service, method string, request interface{}, reqOpts ...RequestOption) Request {
-	return DefaultClient.NewJsonRequest(service, method, request, reqOpts...)
+// Creates a streaming connection with a service and returns responses on the
+// channel passed in. It's up to the user to close the streamer.
+func NewStream(ctx context.Context, request Request, opts ...CallOption) (Stream, error) {
+	return DefaultClient.Stream(ctx, request, opts...)
 }
 
 func String() string {

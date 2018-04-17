@@ -25,9 +25,9 @@ type Server interface {
 	String() string
 }
 
-type Publication interface {
+type Message interface {
 	Topic() string
-	Message() interface{}
+	Payload() interface{}
 	ContentType() string
 }
 
@@ -40,11 +40,11 @@ type Request interface {
 	Stream() bool
 }
 
-// Streamer represents a stream established with a client.
+// Stream represents a stream established with a client.
 // A stream can be bidirectional which is indicated by the request.
 // The last error will be left in Error().
 // EOF indicated end of the stream.
-type Streamer interface {
+type Stream interface {
 	Context() context.Context
 	Request() Request
 	Send(interface{}) error
