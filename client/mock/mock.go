@@ -49,8 +49,8 @@ func (m *MockClient) Options() client.Options {
 	return m.Opts
 }
 
-func (m *MockClient) NewMessage(topic string, msg interface{}) client.Message {
-	return m.Client.NewMessage(topic, msg)
+func (m *MockClient) NewMessage(topic string, msg interface{}, opts ...client.MessageOption) client.Message {
+	return m.Client.NewMessage(topic, msg, opts...)
 }
 
 func (m *MockClient) NewRequest(service, method string, req interface{}, reqOpts ...client.RequestOption) client.Request {
