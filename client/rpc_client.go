@@ -465,8 +465,8 @@ func (r *rpcClient) Publish(ctx context.Context, msg Message, opts ...PublishOpt
 	})
 }
 
-func (r *rpcClient) NewMessage(topic string, message interface{}) Message {
-	return newMessage(topic, message, r.opts.ContentType)
+func (r *rpcClient) NewMessage(topic string, message interface{}, opts ...MessageOption) Message {
+	return newMessage(topic, message, r.opts.ContentType, opts...)
 }
 
 func (r *rpcClient) NewRequest(service, method string, request interface{}, reqOpts ...RequestOption) Request {

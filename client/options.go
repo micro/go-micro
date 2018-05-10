@@ -67,6 +67,10 @@ type PublishOptions struct {
 	Context context.Context
 }
 
+type MessageOptions struct {
+	ContentType string
+}
+
 type RequestOptions struct {
 	ContentType string
 	Stream      bool
