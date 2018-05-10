@@ -6,7 +6,16 @@ type message struct {
 	payload     interface{}
 }
 
-func newMessage(topic string, payload interface{}, contentType string) Message {
+func newMessage(topic string, payload interface{}, contentType string, opts ...MessageOption) Message {
+	var options MessageOptions
+	for _, o := range opts {
+		o(&options)
+	}
+
+	if len(options.ContentType) > 0 {
+		contentType = options.ContentType
+	}
+
 	return &message{
 		payload:     payload,
 		topic:       topic,

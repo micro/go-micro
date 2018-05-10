@@ -12,7 +12,7 @@ import (
 type Client interface {
 	Init(...Option) error
 	Options() Options
-	NewMessage(topic string, msg interface{}) Message
+	NewMessage(topic string, msg interface{}, opts ...MessageOption) Message
 	NewRequest(service, method string, req interface{}, reqOpts ...RequestOption) Request
 	Call(ctx context.Context, req Request, rsp interface{}, opts ...CallOption) error
 	Stream(ctx context.Context, req Request, opts ...CallOption) (Stream, error)
@@ -56,6 +56,9 @@ type CallOption func(*CallOptions)
 // PublishOption used by Publish
 type PublishOption func(*PublishOptions)
 
+// MessageOption used by NewMessage
+type MessageOption func(*MessageOptions)
+
 // RequestOption used by NewRequest
 type RequestOption func(*RequestOptions)
 
@@ -83,13 +86,13 @@ func Call(ctx context.Context, request Request, response interface{}, opts ...Ca
 
 // Publishes a publication using the default client. Using the underlying broker
 // set within the options.
-func Publish(ctx context.Context, msg Message) error {
-	return DefaultClient.Publish(ctx, msg)
+func Publish(ctx context.Context, msg Message, opts ...PublishOption) error {
+	return DefaultClient.Publish(ctx, msg, opts...)
 }
 
 // Creates a new message using the default client
-func NewMessage(topic string, payload interface{}) Message {
-	return DefaultClient.NewMessage(topic, payload)
+func NewMessage(topic string, payload interface{}, opts ...MessageOption) Message {
+	return DefaultClient.NewMessage(topic, payload, opts...)
 }
 
 // Creates a new client with the options passed in
