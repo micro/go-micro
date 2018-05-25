@@ -326,10 +326,16 @@ func (h *httpBroker) Connect() error {
 	}
 
 	log.Logf("Broker Listening on %s", l.Addr().String())
+	addr := h.address
 	h.address = l.Addr().String()
 
 	go http.Serve(l, h.mux)
-	go h.run(l)
+	go func() {
+		h.run(l)
+		h.Lock()
+		h.address = addr
+		h.Unlock()
+	}()
 
 	// get registry
 	reg, ok := h.opts.Context.Value(registryKey).(registry.Registry)

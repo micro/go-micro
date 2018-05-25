@@ -386,6 +386,8 @@ func (s *rpcServer) Start() error {
 
 	log.Logf("Listening on %s", ts.Addr())
 	s.Lock()
+	// swap address
+	addr := s.opts.Address
 	s.opts.Address = ts.Addr()
 	s.Unlock()
 
@@ -405,6 +407,11 @@ func (s *rpcServer) Start() error {
 
 		// disconnect the broker
 		config.Broker.Disconnect()
+
+		s.Lock()
+		// swap back address
+		s.opts.Address = addr
+		s.Unlock()
 	}()
 
 	// TODO: subscribe to cruft
