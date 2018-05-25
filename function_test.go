@@ -13,9 +13,13 @@ func TestFunction(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(1)
 
+	// cancellation context
+	ctx, cancel := context.WithCancel(context.Background())
+
 	// create service
 	fn := NewFunction(
 		Name("test.function"),
+		Context(ctx),
 		Registry(mock.NewRegistry()),
 		AfterStart(func() error {
 			wg.Done()
@@ -47,6 +51,8 @@ func TestFunction(t *testing.T) {
 		if rsp.Status != "ok" {
 			t.Fatalf("function response: %s", rsp.Status)
 		}
+
+		cancel()
 	}()
 
 	// run service
