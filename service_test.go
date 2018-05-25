@@ -31,29 +31,33 @@ func TestService(t *testing.T) {
 	// service.Init()
 
 	// run service
-	go service.Run()
+	go func() {
+		// wait for start
+		wg.Wait()
 
-	// wait for start
-	wg.Wait()
+		// test call debug
+		req := service.Client().NewRequest(
+			"test.service",
+			"Debug.Health",
+			new(proto.HealthRequest),
+		)
 
-	// test call debug
-	req := service.Client().NewRequest(
-		"test.service",
-		"Debug.Health",
-		new(proto.HealthRequest),
-	)
+		rsp := new(proto.HealthResponse)
 
-	rsp := new(proto.HealthResponse)
+		err := service.Client().Call(context.TODO(), req, rsp)
+		if err != nil {
+			t.Fatal(err)
+		}
 
-	err := service.Client().Call(context.TODO(), req, rsp)
-	if err != nil {
+		if rsp.Status != "ok" {
+			t.Fatalf("service response: %s", rsp.Status)
+		}
+
+		// shutdown the service
+		cancel()
+	}()
+
+	if err := service.Run(); err != nil {
 		t.Fatal(err)
 	}
-
-	if rsp.Status != "ok" {
-		t.Fatalf("service response: %s", rsp.Status)
-	}
-
-	// shutdown the service
-	cancel()
 }

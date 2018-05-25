@@ -50,5 +50,7 @@ func TestFunction(t *testing.T) {
 	}()
 
 	// run service
-	fn.Run()
+	if err := fn.Run(); err != nil {
+		t.Fatal(err)
+	}
 }
