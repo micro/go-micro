@@ -202,9 +202,12 @@ func (r *rpcClient) Init(opts ...Option) error {
 		o(&r.opts)
 	}
 
-	// recreate the pool if the options changed
+	// update pool configuration if the options changed
 	if size != r.opts.PoolSize || ttl != r.opts.PoolTTL {
-		r.pool = newPool(r.opts.PoolSize, r.opts.PoolTTL)
+		r.pool.Lock()
+		r.pool.size = r.opts.PoolSize
+		r.pool.ttl = int64(r.opts.PoolTTL.Seconds())
+		r.pool.Unlock()
 	}
 
 	return nil
