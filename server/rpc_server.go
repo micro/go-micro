@@ -66,6 +66,9 @@ func (s *rpcServer) accept(sock transport.Socket) {
 			return
 		}
 
+		// add to wait group
+		s.wg.Add(1)
+
 		// we use this Timeout header to set a server deadline
 		to := msg.Header["Timeout"]
 		// we use this Content-Type header to identify the codec needed
@@ -80,6 +83,7 @@ func (s *rpcServer) accept(sock transport.Socket) {
 				},
 				Body: []byte(err.Error()),
 			})
+			s.wg.Done()
 			return
 		}
 
@@ -102,15 +106,13 @@ func (s *rpcServer) accept(sock transport.Socket) {
 			}
 		}
 
-		// add to wait group
-		s.wg.Add(1)
-		defer s.wg.Done()
-
 		// TODO: needs better error handling
 		if err := s.rpc.serveRequest(ctx, codec, ct); err != nil {
+			s.wg.Done()
 			log.Logf("Unexpected error serving request, closing socket: %v", err)
 			return
 		}
+		s.wg.Done()
 	}
 }
 
