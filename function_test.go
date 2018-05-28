@@ -15,8 +15,8 @@ func TestFunction(t *testing.T) {
 
 	// create service
 	fn := NewFunction(
-		Name("test.function"),
 		Registry(mock.NewRegistry()),
+		Name("test.function"),
 		AfterStart(func() error {
 			wg.Done()
 			return nil
@@ -26,31 +26,35 @@ func TestFunction(t *testing.T) {
 	// we can't test fn.Init as it parses the command line
 	// fn.Init()
 
+	ch := make(chan error, 2)
+
 	go func() {
-		// wait for start
-		wg.Wait()
-
-		// test call debug
-		req := fn.Client().NewRequest(
-			"test.function",
-			"Debug.Health",
-			new(proto.HealthRequest),
-		)
-
-		rsp := new(proto.HealthResponse)
-
-		err := fn.Client().Call(context.TODO(), req, rsp)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		if rsp.Status != "ok" {
-			t.Fatalf("function response: %s", rsp.Status)
-		}
+		// run service
+		ch <- fn.Run()
 	}()
 
-	// run service
-	if err := fn.Run(); err != nil {
+	// wait for start
+	wg.Wait()
+
+	// test call debug
+	req := fn.Client().NewRequest(
+		"test.function",
+		"Debug.Health",
+		new(proto.HealthRequest),
+	)
+
+	rsp := new(proto.HealthResponse)
+
+	err := fn.Client().Call(context.TODO(), req, rsp)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if rsp.Status != "ok" {
+		t.Fatalf("function response: %s", rsp.Status)
+	}
+
+	if err := <-ch; err != nil {
 		t.Fatal(err)
 	}
 }
