@@ -313,7 +313,7 @@ func (r *rpcClient) Call(ctx context.Context, request Request, response interfac
 	ch := make(chan error, callOpts.Retries)
 	var gerr error
 
-	for i := 0; i < callOpts.Retries; i++ {
+	for i := 0; i <= callOpts.Retries; i++ {
 		go func() {
 			ch <- call(i)
 		}()
@@ -411,7 +411,7 @@ func (r *rpcClient) Stream(ctx context.Context, request Request, opts ...CallOpt
 	ch := make(chan response, callOpts.Retries)
 	var grr error
 
-	for i := 0; i < callOpts.Retries; i++ {
+	for i := 0; i <= callOpts.Retries; i++ {
 		go func() {
 			s, err := call(i)
 			ch <- response{s, err}

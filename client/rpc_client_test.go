@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 
@@ -56,6 +57,46 @@ func TestCallAddress(t *testing.T) {
 	}
 
 }
+
+func TestCallRetry(t *testing.T) {
+	service := "test.service"
+	method := "Test.Method"
+	address := "10.1.10.1:8080"
+
+	var called int
+
+	wrap := func(cf CallFunc) CallFunc {
+		return func(ctx context.Context, addr string, req Request, rsp interface{}, opts CallOptions) error {
+			called++
+			if called == 1 {
+				return errors.New("retry request")
+			}
+
+			// don't do the call
+			return nil
+		}
+	}
+
+	r := mock.NewRegistry()
+	c := NewClient(
+		Registry(r),
+		WrapCall(wrap),
+	)
+	c.Options().Selector.Init(selector.Registry(r))
+
+	req := c.NewRequest(service, method, nil)
+
+	// test calling remote address
+	if err := c.Call(context.Background(), req, nil, WithAddress(address)); err != nil {
+		t.Fatal("call with address error", err)
+	}
+
+	// num calls
+	if called < c.Options().CallOptions.Retries+1 {
+		t.Fatal("request not retried")
+	}
+}
+
 func TestCallWrapper(t *testing.T) {
 	var called bool
 	id := "test.1"
