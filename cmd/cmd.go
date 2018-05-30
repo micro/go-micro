@@ -82,11 +82,13 @@ var (
 			Name:   "register_ttl",
 			EnvVar: "MICRO_REGISTER_TTL",
 			Usage:  "Register TTL in seconds",
+			Value:  60,
 		},
 		cli.IntFlag{
 			Name:   "register_interval",
 			EnvVar: "MICRO_REGISTER_INTERVAL",
 			Usage:  "Register interval in seconds",
+			Value:  30,
 		},
 		cli.StringFlag{
 			Name:   "server_name",
