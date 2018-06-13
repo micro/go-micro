@@ -80,8 +80,12 @@ func (m *MockClient) Call(ctx context.Context, req client.Request, rsp interface
 		if t := reflect.TypeOf(rsp); t.Kind() == reflect.Ptr {
 			v = reflect.Indirect(v)
 		}
+		response := r.Response
+		if t := reflect.TypeOf(r.Response); t.Kind() == reflect.Func {
+			response = reflect.ValueOf(r.Response).Call([]reflect.Value{})[0].Interface()
+		}
 
-		v.Set(reflect.ValueOf(r.Response))
+		v.Set(reflect.ValueOf(response))
 
 		return nil
 	}
