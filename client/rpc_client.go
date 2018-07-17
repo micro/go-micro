@@ -159,7 +159,15 @@ func (r *rpcClient) stream(ctx context.Context, address string, req Request, opt
 		return nil, errors.InternalServerError("go.micro.client", err.Error())
 	}
 
-	c, err := r.opts.Transport.Dial(address, transport.WithStream(), transport.WithTimeout(opts.DialTimeout))
+	dOpts := []transport.DialOption{
+		transport.WithStream(),
+	}
+
+	if opts.DialTimeout >= 0 {
+		dOpts = append(dOpts, transport.WithTimeout(opts.DialTimeout))
+	}
+
+	c, err := r.opts.Transport.Dial(address, dOpts...)
 	if err != nil {
 		return nil, errors.InternalServerError("go.micro.client", "connection error: %v", err)
 	}
