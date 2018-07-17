@@ -363,18 +363,6 @@ func (r *rpcClient) Stream(ctx context.Context, request Request, opts ...CallOpt
 		return nil, err
 	}
 
-	// check if we already have a deadline
-	d, ok := ctx.Deadline()
-	if !ok {
-		// no deadline so we create a new one
-		ctx, _ = context.WithTimeout(ctx, callOpts.RequestTimeout)
-	} else {
-		// got a deadline so no need to setup context
-		// but we need to set the timeout we pass along
-		opt := WithRequestTimeout(d.Sub(time.Now()))
-		opt(&callOpts)
-	}
-
 	// should we noop right here?
 	select {
 	case <-ctx.Done():
