@@ -384,7 +384,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	}
 
 	// client opts
-	if r := ctx.Int("client_retries"); r > 0 {
+	if r := ctx.Int("client_retries"); r >= 0 {
 		clientOpts = append(clientOpts, client.Retries(r))
 	}
 
