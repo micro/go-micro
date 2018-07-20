@@ -384,10 +384,10 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	}
 
 	// client opts
-	if r := ctx.Int("client_retries"); r > 0 {
+	if r := ctx.Int("client_retries"); r >= 0 {
 		clientOpts = append(clientOpts, client.Retries(r))
 	}
-
+	
 	if t := ctx.String("client_request_timeout"); len(t) > 0 {
 		d, err := time.ParseDuration(t)
 		if err != nil {
