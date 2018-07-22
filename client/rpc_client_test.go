@@ -2,10 +2,10 @@ package client
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"testing"
 
+	"github.com/micro/go-micro/errors"
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/registry/mock"
 	"github.com/micro/go-micro/selector"
@@ -69,7 +69,7 @@ func TestCallRetry(t *testing.T) {
 		return func(ctx context.Context, addr string, req Request, rsp interface{}, opts CallOptions) error {
 			called++
 			if called == 1 {
-				return errors.New("retry request")
+				return errors.InternalServerError("test.error", "retry request")
 			}
 
 			// don't do the call
