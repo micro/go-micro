@@ -238,9 +238,9 @@ func (r *rpcClient) next(request Request, opts CallOptions) (selector.Next, erro
 	// get next nodes from the selector
 	next, err := r.opts.Selector.Select(request.Service(), opts.SelectOptions...)
 	if err != nil && err == selector.ErrNotFound {
-		return nil, errors.NotFound("go.micro.client", err.Error())
+		return nil, errors.NotFound("go.micro.client", "service %s: %v", request.Service(), err.Error())
 	} else if err != nil {
-		return nil, errors.InternalServerError("go.micro.client", err.Error())
+		return nil, errors.InternalServerError("go.micro.client", "error selecting %s node: %v", request.Service(), err.Error())
 	}
 
 	return next, nil
@@ -290,7 +290,7 @@ func (r *rpcClient) Call(ctx context.Context, request Request, response interfac
 		// call backoff first. Someone may want an initial start delay
 		t, err := callOpts.Backoff(ctx, request, i)
 		if err != nil {
-			return errors.InternalServerError("go.micro.client", err.Error())
+			return errors.InternalServerError("go.micro.client", "backoff error: %v", err.Error())
 		}
 
 		// only sleep if greater than 0
@@ -301,9 +301,9 @@ func (r *rpcClient) Call(ctx context.Context, request Request, response interfac
 		// select next node
 		node, err := next()
 		if err != nil && err == selector.ErrNotFound {
-			return errors.NotFound("go.micro.client", err.Error())
+			return errors.NotFound("go.micro.client", "service %s: %v", request.Service(), err.Error())
 		} else if err != nil {
-			return errors.InternalServerError("go.micro.client", err.Error())
+			return errors.InternalServerError("go.micro.client", "error getting next %s node: %v", request.Service(), err.Error())
 		}
 
 		// set the address
@@ -374,7 +374,7 @@ func (r *rpcClient) Stream(ctx context.Context, request Request, opts ...CallOpt
 		// call backoff first. Someone may want an initial start delay
 		t, err := callOpts.Backoff(ctx, request, i)
 		if err != nil {
-			return nil, errors.InternalServerError("go.micro.client", err.Error())
+			return nil, errors.InternalServerError("go.micro.client", "backoff error: %v", err.Error())
 		}
 
 		// only sleep if greater than 0
@@ -384,9 +384,9 @@ func (r *rpcClient) Stream(ctx context.Context, request Request, opts ...CallOpt
 
 		node, err := next()
 		if err != nil && err == selector.ErrNotFound {
-			return nil, errors.NotFound("go.micro.client", err.Error())
+			return nil, errors.NotFound("go.micro.client", "service %s: %v", request.Service(), err.Error())
 		} else if err != nil {
-			return nil, errors.InternalServerError("go.micro.client", err.Error())
+			return nil, errors.InternalServerError("go.micro.client", "error getting next %s node: %v", request.Service(), err.Error())
 		}
 
 		address := node.Address
