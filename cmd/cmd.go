@@ -56,26 +56,31 @@ var (
 			Name:   "client",
 			EnvVar: "MICRO_CLIENT",
 			Usage:  "Client for go-micro; rpc",
+			Value:  "rpc",
 		},
 		cli.StringFlag{
 			Name:   "client_request_timeout",
 			EnvVar: "MICRO_CLIENT_REQUEST_TIMEOUT",
 			Usage:  "Sets the client request timeout. e.g 500ms, 5s, 1m. Default: 5s",
+			Value:  "5s",
 		},
 		cli.IntFlag{
 			Name:   "client_retries",
 			EnvVar: "MICRO_CLIENT_RETRIES",
 			Usage:  "Sets the client retries. Default: 1",
+			Value:  1,
 		},
 		cli.IntFlag{
 			Name:   "client_pool_size",
 			EnvVar: "MICRO_CLIENT_POOL_SIZE",
 			Usage:  "Sets the client connection pool size. Default: 1",
+			Value:  1,
 		},
 		cli.StringFlag{
 			Name:   "client_pool_ttl",
 			EnvVar: "MICRO_CLIENT_POOL_TTL",
 			Usage:  "Sets the client connection pool ttl. e.g 500ms, 5s, 1m. Default: 1m",
+			Value:  "1m",
 		},
 		cli.IntFlag{
 			Name:   "register_ttl",
