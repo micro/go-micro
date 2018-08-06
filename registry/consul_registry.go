@@ -19,6 +19,9 @@ type consulRegistry struct {
 	Client  *consul.Client
 	opts    Options
 
+	// connect enabled
+	connect bool
+
 	sync.Mutex
 	register map[string]uint64
 }
@@ -53,10 +56,15 @@ func newConsulRegistry(opts ...Option) Registry {
 
 	// use default config
 	config := consul.DefaultConfig()
+	connect := false
+
 	if options.Context != nil {
 		// Use the consul config passed in the options, if available
 		if c, ok := options.Context.Value("consul_config").(*consul.Config); ok {
 			config = c
+		}
+		if cn, ok := options.Context.Value("consul_connect").(bool); ok {
+			connect = cn
 		}
 	}
 
@@ -96,6 +104,7 @@ func newConsulRegistry(opts ...Option) Registry {
 		Client:   client,
 		opts:     options,
 		register: make(map[string]uint64),
+		connect:  connect,
 	}
 
 	return cr
@@ -198,14 +207,23 @@ func (c *consulRegistry) Register(s *Service, opts ...RegisterOption) error {
 	}
 
 	// register the service
-	if err := c.Client.Agent().ServiceRegister(&consul.AgentServiceRegistration{
+	asr := &consul.AgentServiceRegistration{
 		ID:      node.Id,
 		Name:    s.Name,
 		Tags:    tags,
 		Port:    node.Port,
 		Address: node.Address,
 		Check:   check,
-	}); err != nil {
+	}
+
+	// Specify consul connect
+	if c.connect {
+		asr.Connect = &consul.AgentServiceConnect{
+			Native: true,
+		}
+	}
+
+	if err := c.Client.Agent().ServiceRegister(asr); err != nil {
 		return err
 	}
 
@@ -224,7 +242,15 @@ func (c *consulRegistry) Register(s *Service, opts ...RegisterOption) error {
 }
 
 func (c *consulRegistry) GetService(name string) ([]*Service, error) {
-	rsp, _, err := c.Client.Health().Service(name, "", false, nil)
+	var rsp []*consul.ServiceEntry
+	var err error
+
+	// if we're connect enabled only get connect services
+	if c.connect {
+		rsp, _, err = c.Client.Health().Connect(name, "", false, nil)
+	} else {
+		rsp, _, err = c.Client.Health().Service(name, "", false, nil)
+	}
 	if err != nil {
 		return nil, err
 	}
