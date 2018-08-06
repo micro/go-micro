@@ -8,6 +8,16 @@ import (
 	"github.com/micro/go-micro/registry"
 )
 
+// Connect specifies services should be registered as Consul Connect services
+func Connect() registry.Option {
+	return func(o *registry.Options) {
+		if o.Context == nil {
+			o.Context = context.Background()
+		}
+		o.Context = context.WithValue(o.Context, "consul_connect", true)
+	}
+}
+
 func Config(c *consul.Config) registry.Option {
 	return func(o *registry.Options) {
 		if o.Context == nil {
