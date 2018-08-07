@@ -22,6 +22,15 @@ type Service interface {
 	String() string
 }
 
+// Proxy is an interface for proxying go-micro functionality through a proxy
+// The default implementation using consul connect
+type Proxy interface {
+	// Service returns a new proxied Service
+	Service(opts ...Option) Service
+	// String is the name of the proxy
+	String() string
+}
+
 // Function is a one time executing Service
 type Function interface {
 	// Inherits Service interface
@@ -45,11 +54,6 @@ var (
 	HeaderPrefix = "X-Micro-"
 )
 
-// NewService creates and returns a new Service based on the packages within.
-func NewService(opts ...Option) Service {
-	return newService(opts...)
-}
-
 // FromContext retrieves a Service from the Context.
 func FromContext(ctx context.Context) (Service, bool) {
 	s, ok := ctx.Value(serviceKey{}).(Service)
@@ -66,12 +70,22 @@ func NewFunction(opts ...Option) Function {
 	return newFunction(opts...)
 }
 
+// NewProxy creates and returns a new Proxy based on the packages within.
+func NewProxy(opts ...Option) Proxy {
+	return newProxy(opts...)
+}
+
 // NewPublisher returns a new Publisher
 func NewPublisher(topic string, c client.Client) Publisher {
 	if c == nil {
 		c = client.NewClient()
 	}
 	return &publisher{c, topic}
+}
+
+// NewService creates and returns a new Service based on the packages within.
+func NewService(opts ...Option) Service {
+	return newService(opts...)
 }
 
 // RegisterHandler is syntactic sugar for registering a handler
