@@ -262,48 +262,40 @@ func (c *cmd) Before(ctx *cli.Context) error {
 
 	// Set the client
 	if name := ctx.String("client"); len(name) > 0 {
-		if cl, ok := c.opts.Clients[name]; ok {
+		// only change if we have the client and type differs
+		if cl, ok := c.opts.Clients[name]; ok && (*c.opts.Client).String() != name {
 			*c.opts.Client = cl()
 		}
 	}
 
 	// Set the server
 	if name := ctx.String("server"); len(name) > 0 {
-		if s, ok := c.opts.Servers[name]; ok {
+		// only change if we have the server and type differs
+		if s, ok := c.opts.Servers[name]; ok && (*c.opts.Server).String() != name {
 			*c.opts.Server = s()
 		}
 	}
 
 	// Set the broker
-	if name := ctx.String("broker"); len(name) > 0 || len(ctx.String("broker_address")) > 0 {
-		if len(name) == 0 {
-			name = defaultBroker
-		}
-
-		if b, ok := c.opts.Brokers[name]; ok {
-			n := b(broker.Addrs(strings.Split(ctx.String("broker_address"), ",")...))
-			*c.opts.Broker = n
-		} else {
+	if name := ctx.String("broker"); len(name) > 0 && (*c.opts.Broker).String() != name {
+		b, ok := c.opts.Brokers[name]
+		if !ok {
 			return fmt.Errorf("Broker %s not found", name)
 		}
 
+		*c.opts.Broker = b()
 		serverOpts = append(serverOpts, server.Broker(*c.opts.Broker))
 		clientOpts = append(clientOpts, client.Broker(*c.opts.Broker))
 	}
 
 	// Set the registry
-	if name := ctx.String("registry"); len(name) > 0 || len(ctx.String("registry_address")) > 0 {
-		if len(name) == 0 {
-			name = defaultRegistry
-		}
-
-		if r, ok := c.opts.Registries[name]; ok {
-			n := r(registry.Addrs(strings.Split(ctx.String("registry_address"), ",")...))
-			*c.opts.Registry = n
-		} else {
+	if name := ctx.String("registry"); len(name) > 0 && (*c.opts.Registry).String() != name {
+		r, ok := c.opts.Registries[name]
+		if !ok {
 			return fmt.Errorf("Registry %s not found", name)
 		}
 
+		*c.opts.Registry = r()
 		serverOpts = append(serverOpts, server.Registry(*c.opts.Registry))
 		clientOpts = append(clientOpts, client.Registry(*c.opts.Registry))
 
@@ -314,31 +306,26 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	}
 
 	// Set the selector
-	if name := ctx.String("selector"); len(name) > 0 {
-		if s, ok := c.opts.Selectors[name]; ok {
-			n := s(selector.Registry(*c.opts.Registry))
-			*c.opts.Selector = n
-		} else {
+	if name := ctx.String("selector"); len(name) > 0 && (*c.opts.Selector).String() != name {
+		s, ok := c.opts.Selectors[name]
+		if !ok {
 			return fmt.Errorf("Selector %s not found", name)
 		}
+
+		*c.opts.Selector = s(selector.Registry(*c.opts.Registry))
 
 		// No server option here. Should there be?
 		clientOpts = append(clientOpts, client.Selector(*c.opts.Selector))
 	}
 
 	// Set the transport
-	if name := ctx.String("transport"); len(name) > 0 || len(ctx.String("transport_address")) > 0 {
-		if len(name) == 0 {
-			name = defaultTransport
-		}
-
-		if t, ok := c.opts.Transports[name]; ok {
-			n := t(transport.Addrs(strings.Split(ctx.String("transport_address"), ",")...))
-			*c.opts.Transport = n
-		} else {
+	if name := ctx.String("transport"); len(name) > 0 && (*c.opts.Transport).String() != name {
+		t, ok := c.opts.Transports[name]
+		if !ok {
 			return fmt.Errorf("Transport %s not found", name)
 		}
 
+		*c.opts.Transport = t()
 		serverOpts = append(serverOpts, server.Transport(*c.opts.Transport))
 		clientOpts = append(clientOpts, client.Transport(*c.opts.Transport))
 	}
@@ -357,6 +344,18 @@ func (c *cmd) Before(ctx *cli.Context) error {
 
 	if len(metadata) > 0 {
 		serverOpts = append(serverOpts, server.Metadata(metadata))
+	}
+
+	if len(ctx.String("broker_address")) > 0 {
+		(*c.opts.Broker).Init(broker.Addrs(strings.Split(ctx.String("broker_address"), ",")...))
+	}
+
+	if len(ctx.String("registry_address")) > 0 {
+		(*c.opts.Registry).Init(registry.Addrs(strings.Split(ctx.String("registry_address"), ",")...))
+	}
+
+	if len(ctx.String("transport_address")) > 0 {
+		(*c.opts.Transport).Init(transport.Addrs(strings.Split(ctx.String("transport_address"), ",")...))
 	}
 
 	if len(ctx.String("server_name")) > 0 {

@@ -171,6 +171,17 @@ func (m *mockTransport) Listen(addr string, opts ...transport.ListenOption) (tra
 	return listener, nil
 }
 
+func (m *mockTransport) Init(opts ...transport.Option) error {
+	for _, o := range opts {
+		o(&m.opts)
+	}
+	return nil
+}
+
+func (m *mockTransport) Options() transport.Options {
+	return m.opts
+}
+
 func (m *mockTransport) String() string {
 	return "mock"
 }

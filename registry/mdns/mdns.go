@@ -49,6 +49,17 @@ func newRegistry(opts ...registry.Option) registry.Registry {
 	}
 }
 
+func (m *mdnsRegistry) Init(opts ...registry.Option) error {
+	for _, o := range opts {
+		o(&m.opts)
+	}
+	return nil
+}
+
+func (m *mdnsRegistry) Options() registry.Options {
+	return m.opts
+}
+
 func (m *mdnsRegistry) Register(service *registry.Service, opts ...registry.RegisterOption) error {
 	m.Lock()
 	defer m.Unlock()
@@ -320,10 +331,6 @@ func (m *mdnsRegistry) Watch(opts ...registry.WatchOption) (registry.Watcher, er
 
 func (m *mdnsRegistry) String() string {
 	return "mdns"
-}
-
-func (m *mdnsRegistry) Options() registry.Options {
-	return m.opts
 }
 
 func NewRegistry(opts ...registry.Option) registry.Registry {
