@@ -30,6 +30,8 @@ type Listener interface {
 // services. It uses socket send/recv semantics and had various
 // implementations {HTTP, RabbitMQ, NATS, ...}
 type Transport interface {
+	Init(...Option) error
+	Options() Options
 	Dial(addr string, opts ...DialOption) (Client, error)
 	Listen(addr string, opts ...ListenOption) (Listener, error)
 	String() string
