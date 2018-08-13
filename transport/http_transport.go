@@ -423,6 +423,17 @@ func (h *httpTransport) Listen(addr string, opts ...ListenOption) (Listener, err
 	}, nil
 }
 
+func (h *httpTransport) Init(opts ...Option) error {
+	for _, o := range opts {
+		o(&h.opts)
+	}
+	return nil
+}
+
+func (h *httpTransport) Options() Options {
+	return h.opts
+}
+
 func (h *httpTransport) String() string {
 	return "http"
 }

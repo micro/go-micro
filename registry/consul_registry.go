@@ -26,6 +26,19 @@ type consulRegistry struct {
 	register map[string]uint64
 }
 
+func getDeregisterTTL(t time.Duration) time.Duration {
+	// splay slightly for the watcher?
+	splay := time.Second * 5
+	deregTTL := t + splay
+
+	// consul has a minimum timeout on deregistration of 1 minute.
+	if t < time.Minute {
+		deregTTL = time.Minute + splay
+	}
+
+	return deregTTL
+}
+
 func newTransport(config *tls.Config) *http.Transport {
 	if config == nil {
 		config = &tls.Config{
@@ -48,32 +61,31 @@ func newTransport(config *tls.Config) *http.Transport {
 	return t
 }
 
-func newConsulRegistry(opts ...Option) Registry {
-	var options Options
+func configure(c *consulRegistry, opts ...Option) {
+	// set opts
 	for _, o := range opts {
-		o(&options)
+		o(&c.opts)
 	}
 
 	// use default config
 	config := consul.DefaultConfig()
-	connect := false
 
-	if options.Context != nil {
+	if c.opts.Context != nil {
 		// Use the consul config passed in the options, if available
-		if c, ok := options.Context.Value("consul_config").(*consul.Config); ok {
-			config = c
+		if co, ok := c.opts.Context.Value("consul_config").(*consul.Config); ok {
+			config = co
 		}
-		if cn, ok := options.Context.Value("consul_connect").(bool); ok {
-			connect = cn
+		if cn, ok := c.opts.Context.Value("consul_connect").(bool); ok {
+			c.connect = cn
 		}
 	}
 
 	// check if there are any addrs
-	if len(options.Addrs) > 0 {
-		addr, port, err := net.SplitHostPort(options.Addrs[0])
+	if len(c.opts.Addrs) > 0 {
+		addr, port, err := net.SplitHostPort(c.opts.Addrs[0])
 		if ae, ok := err.(*net.AddrError); ok && ae.Err == "missing port in address" {
 			port = "8500"
-			addr = options.Addrs[0]
+			addr = c.opts.Addrs[0]
 			config.Address = fmt.Sprintf("%s:%s", addr, port)
 		} else if err == nil {
 			config.Address = fmt.Sprintf("%s:%s", addr, port)
@@ -81,33 +93,41 @@ func newConsulRegistry(opts ...Option) Registry {
 	}
 
 	// requires secure connection?
-	if options.Secure || options.TLSConfig != nil {
+	if c.opts.Secure || c.opts.TLSConfig != nil {
 		if config.HttpClient == nil {
 			config.HttpClient = new(http.Client)
 		}
 
 		config.Scheme = "https"
 		// We're going to support InsecureSkipVerify
-		config.HttpClient.Transport = newTransport(options.TLSConfig)
+		config.HttpClient.Transport = newTransport(c.opts.TLSConfig)
+	}
+
+	// set timeout
+	if c.opts.Timeout > 0 {
+		config.HttpClient.Timeout = c.opts.Timeout
 	}
 
 	// create the client
 	client, _ := consul.NewClient(config)
 
-	// set timeout
-	if options.Timeout > 0 {
-		config.HttpClient.Timeout = options.Timeout
-	}
+	// set address/client
+	c.Address = config.Address
+	c.Client = client
+}
 
+func newConsulRegistry(opts ...Option) Registry {
 	cr := &consulRegistry{
-		Address:  config.Address,
-		Client:   client,
-		opts:     options,
+		opts:     Options{},
 		register: make(map[string]uint64),
-		connect:  connect,
 	}
-
+	configure(cr, opts...)
 	return cr
+}
+
+func (c *consulRegistry) Init(opts ...Option) error {
+	configure(c, opts...)
+	return nil
 }
 
 func (c *consulRegistry) Deregister(s *Service) error {
@@ -122,19 +142,6 @@ func (c *consulRegistry) Deregister(s *Service) error {
 
 	node := s.Nodes[0]
 	return c.Client.Agent().ServiceDeregister(node.Id)
-}
-
-func getDeregisterTTL(t time.Duration) time.Duration {
-	// splay slightly for the watcher?
-	splay := time.Second * 5
-	deregTTL := t + splay
-
-	// consul has a minimum timeout on deregistration of 1 minute.
-	if t < time.Minute {
-		deregTTL = time.Minute + splay
-	}
-
-	return deregTTL
 }
 
 func (c *consulRegistry) Register(s *Service, opts ...RegisterOption) error {

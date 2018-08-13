@@ -9,13 +9,14 @@ import (
 // and an abstraction over varying implementations
 // {consul, etcd, zookeeper, ...}
 type Registry interface {
+	Init(...Option) error
+	Options() Options
 	Register(*Service, ...RegisterOption) error
 	Deregister(*Service) error
 	GetService(string) ([]*Service, error)
 	ListServices() ([]*Service, error)
 	Watch(...WatchOption) (Watcher, error)
 	String() string
-	Options() Options
 }
 
 type Option func(*Options)
