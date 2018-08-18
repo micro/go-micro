@@ -276,7 +276,6 @@ func (h *httpBroker) Address() string {
 }
 
 func (h *httpBroker) Connect() error {
-
 	h.RLock()
 	if h.running {
 		h.RUnlock()
@@ -395,6 +394,10 @@ func (h *httpBroker) Init(opts ...Option) error {
 
 	for _, o := range opts {
 		o(&h.opts)
+	}
+
+	if len(h.opts.Addrs) > 0 && len(h.opts.Addrs[0]) > 0 {
+		h.address = h.opts.Addrs[0]
 	}
 
 	if len(h.id) == 0 {
