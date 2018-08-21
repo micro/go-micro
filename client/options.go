@@ -22,10 +22,6 @@ type Options struct {
 	Selector  selector.Selector
 	Transport transport.Transport
 
-	// Connection Pool
-	PoolSize int
-	PoolTTL  time.Duration
-
 	// Middleware for client
 	Wrappers []Wrapper
 
