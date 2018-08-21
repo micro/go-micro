@@ -10,10 +10,10 @@ import (
 // Pool is a connection pool.
 type Pool interface {
 	Conn(ctx context.Context, addr string) Conn
-	Release(ctx context.Context, addr string, conn Conn, err error)
+	Close() error
 	Idle() int
 	Options() PoolOptions
-	Close() error
+	Release(ctx context.Context, addr string, conn Conn, err error)
 }
 
 // Conn is a item in the client pool
