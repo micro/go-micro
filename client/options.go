@@ -94,8 +94,8 @@ func newOptions(options ...Option) Options {
 			DialTimeout:    transport.DefaultDialTimeout,
 		},
 		PoolOptions: PoolOptions{
-			PoolSize: DefaultPoolSize,
-			PoolTTL:  DefaultPoolTTL,
+			Size: DefaultPoolSize,
+			TTL:  DefaultPoolTTL,
 		},
 	}
 
