@@ -24,23 +24,23 @@ type Conn interface {
 
 // PoolOptions are options for the client pool.
 type PoolOptions struct {
-	PoolSize int
-	PoolTTL  time.Duration
+	Size int
+	TTL  time.Duration
 }
 
 // PoolOption is a option for the client pool
 type PoolOption func(*PoolOptions)
 
-// WithPoolSize sets the connection pool size
-func WithPoolSize(d int) PoolOption {
+// WithSize sets the connection pool size
+func WithSize(d int) PoolOption {
 	return func(o *PoolOptions) {
-		o.PoolSize = d
+		o.Size = d
 	}
 }
 
-// TTL sets the connection pool size
-func WithPoolTTL(d time.Duration) PoolOption {
+// WithTTL sets the connection pool size
+func WithTTL(d time.Duration) PoolOption {
 	return func(o *PoolOptions) {
-		o.PoolTTL = d
+		o.TTL = d
 	}
 }

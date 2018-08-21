@@ -142,6 +142,20 @@ func Codec(contentType string, c codec.NewCodec) Option {
 	}
 }
 
+// PoolSize sets the connection pool size
+func PoolSize(d int) Option {
+	return func(o *Options) {
+		o.PoolOptions.Size = d
+	}
+}
+
+// PoolTTL sets the connection pool ttl
+func PoolTTL(d time.Duration) Option {
+	return func(o *Options) {
+		o.PoolOptions.TTL = d
+	}
+}
+
 // Default content type of the client
 func ContentType(ct string) Option {
 	return func(o *Options) {
