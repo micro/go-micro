@@ -9,8 +9,8 @@ import (
 
 // Pool is a connection pool.
 type Pool interface {
-	Conn(ctx context.Context, addr string) Conn
 	Close() error
+	Conn(ctx context.Context, addr string) Conn
 	Idle() int
 	Options() PoolOptions
 	Release(ctx context.Context, addr string, conn Conn, err error)
