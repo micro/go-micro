@@ -82,6 +82,16 @@ func NotFound(id, format string, a ...interface{}) error {
 	}
 }
 
+// MethodNotAllowed generates a 405 error.
+func MethodNotAllowed(id, format string, a ...interface{}) error {
+	return &Error{
+		Id:     id,
+		Code:   405,
+		Detail: fmt.Sprintf(format, a...),
+		Status: http.StatusText(405),
+	}
+}
+
 // InternalServerError generates a 500 error.
 func InternalServerError(id, format string, a ...interface{}) error {
 	return &Error{
