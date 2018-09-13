@@ -88,6 +88,11 @@ var (
 			Usage:  "Register interval in seconds",
 		},
 		cli.StringFlag{
+			Name:   "server",
+			EnvVar: "MICRO_SERVER",
+			Usage:  "Server for go-micro; rpc",
+		},
+		cli.StringFlag{
 			Name:   "server_name",
 			EnvVar: "MICRO_SERVER_NAME",
 			Usage:  "Name of the server. go.micro.srv.example",
@@ -143,11 +148,6 @@ var (
 			EnvVar: "MICRO_SELECTOR",
 			Usage:  "Selector used to pick nodes for querying",
 			Value:  "cache",
-		},
-		cli.StringFlag{
-			Name:   "server",
-			EnvVar: "MICRO_SERVER",
-			Usage:  "Server for go-micro; rpc",
 		},
 		cli.StringFlag{
 			Name:   "transport",
