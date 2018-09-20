@@ -22,15 +22,14 @@ type Options struct {
 	Selector  selector.Selector
 	Transport transport.Transport
 
-	// Connection Pool
-	PoolSize int
-	PoolTTL  time.Duration
-
 	// Middleware for client
 	Wrappers []Wrapper
 
 	// Default Call Options
 	CallOptions CallOptions
+
+	// Default Pool Options
+	PoolOptions PoolOptions
 
 	// Other options for implementations of the interface
 	// can be stored in a context
@@ -90,8 +89,10 @@ func newOptions(options ...Option) Options {
 			RequestTimeout: DefaultRequestTimeout,
 			DialTimeout:    transport.DefaultDialTimeout,
 		},
-		PoolSize: DefaultPoolSize,
-		PoolTTL:  DefaultPoolTTL,
+		PoolOptions: PoolOptions{
+			Size: DefaultPoolSize,
+			TTL:  DefaultPoolTTL,
+		},
 	}
 
 	for _, o := range options {
@@ -137,24 +138,24 @@ func Codec(contentType string, c codec.NewCodec) Option {
 	}
 }
 
+// PoolSize sets the connection pool size
+func PoolSize(d int) Option {
+	return func(o *Options) {
+		o.PoolOptions.Size = d
+	}
+}
+
+// PoolTTL sets the connection pool ttl
+func PoolTTL(d time.Duration) Option {
+	return func(o *Options) {
+		o.PoolOptions.TTL = d
+	}
+}
+
 // Default content type of the client
 func ContentType(ct string) Option {
 	return func(o *Options) {
 		o.ContentType = ct
-	}
-}
-
-// PoolSize sets the connection pool size
-func PoolSize(d int) Option {
-	return func(o *Options) {
-		o.PoolSize = d
-	}
-}
-
-// PoolSize sets the connection pool size
-func PoolTTL(d time.Duration) Option {
-	return func(o *Options) {
-		o.PoolTTL = d
 	}
 }
 
