@@ -182,13 +182,31 @@ func (s *rpcServer) Subscribe(sb Subscriber) error {
 		return err
 	}
 
+	config := s.Options()
+
 	s.Lock()
-	defer s.Unlock()
 	_, ok = s.subscribers[sub]
 	if ok {
+		s.Unlock()
 		return fmt.Errorf("subscriber %v already exists", s)
 	}
 	s.subscribers[sub] = nil
+	defer s.Unlock()
+
+	registered := s.registered
+	if registered {
+		handler := s.createSubHandler(sub, s.opts)
+		var opts []broker.SubscribeOption
+		if queue := sub.Options().Queue; len(queue) > 0 {
+			opts = append(opts, broker.Queue(queue))
+		}
+		subs, err := config.Broker.Subscribe(sub.Topic(), handler, opts...)
+		if err != nil {
+			return err
+		}
+		s.subscribers[sub] = []broker.Subscriber{subs}
+	}
+
 	return nil
 }
 
