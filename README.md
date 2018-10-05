@@ -192,7 +192,7 @@ func main() {
 	service.Init()
 
 	// Create new greeter client
-	greeter := proto.NewGreeterService("greeter", service.Client())
+	greeter := proto.NewGreeterClient("greeter", service.Client())
 
 	// Call the greeter
 	rsp, err := greeter.Hello(context.TODO(), &proto.HelloRequest{Name: "John"})
