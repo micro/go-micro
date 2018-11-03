@@ -181,7 +181,7 @@ func (c *consulRegistry) Register(s *Service, opts ...RegisterOption) error {
 	// if it's already registered and matches then just pass the check
 	if ok && v == h {
 		if options.TTL == time.Duration(0) {
-			services,_, err := c.Client.Health().Checks(s.Name, nil)
+			services, _, err := c.Client.Health().Checks(s.Name, nil)
 			if err == nil {
 				for _, v := range services {
 					if v.ServiceID == node.Id {
@@ -189,7 +189,7 @@ func (c *consulRegistry) Register(s *Service, opts ...RegisterOption) error {
 					}
 				}
 			}
-		}else{
+		} else {
 			// if the err is nil we're all good, bail out
 			// if not, we don't know what the state is, so full re-register
 			if err := c.Client.Agent().PassTTL("service:"+node.Id, ""); err == nil {
@@ -219,7 +219,7 @@ func (c *consulRegistry) Register(s *Service, opts ...RegisterOption) error {
 		deregTTL := getDeregisterTTL(options.TTL)
 
 		check = &consul.AgentServiceCheck{
-			TTL: fmt.Sprintf("%v", options.TTL),
+			TTL:                            fmt.Sprintf("%v", options.TTL),
 			DeregisterCriticalServiceAfter: fmt.Sprintf("%v", deregTTL),
 		}
 	}
