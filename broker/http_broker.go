@@ -176,7 +176,7 @@ func (h *httpBroker) unsubscribe(s *httpSubscriber) error {
 	for _, sub := range h.subscribers[s.topic] {
 		// deregister and skip forward
 		if sub.id == s.id {
-			h.r.Deregister(sub.svc)
+			_ = h.r.Deregister(sub.svc)
 			continue
 		}
 		// keep subscriber
@@ -200,7 +200,7 @@ func (h *httpBroker) run(l net.Listener) {
 			h.RLock()
 			for _, subs := range h.subscribers {
 				for _, sub := range subs {
-					h.r.Register(sub.svc, registry.RegisterTTL(registerTTL))
+					_ = h.r.Register(sub.svc, registry.RegisterTTL(registerTTL))
 				}
 			}
 			h.RUnlock()
@@ -210,7 +210,7 @@ func (h *httpBroker) run(l net.Listener) {
 			h.RLock()
 			for _, subs := range h.subscribers {
 				for _, sub := range subs {
-					h.r.Deregister(sub.svc)
+					_ = h.r.Deregister(sub.svc)
 				}
 			}
 			h.RUnlock()
