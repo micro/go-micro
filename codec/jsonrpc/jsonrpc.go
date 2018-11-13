@@ -54,7 +54,8 @@ func (j *jsonCodec) ReadHeader(m *codec.Message, mt codec.MessageType) error {
 	case codec.Response:
 		return j.c.ReadHeader(m)
 	case codec.Publication:
-		io.Copy(j.buf, j.rwc)
+		_, err := io.Copy(j.buf, j.rwc)
+		return err
 	default:
 		return fmt.Errorf("Unrecognised message type: %v", mt)
 	}

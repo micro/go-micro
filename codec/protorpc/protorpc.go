@@ -55,7 +55,9 @@ func (c *protoCodec) Write(m *codec.Message, b interface{}) error {
 			return err
 		}
 		if flusher, ok := c.rwc.(flusher); ok {
-			err = flusher.Flush()
+			if err = flusher.Flush(); err != nil {
+				return err
+			}
 		}
 	case codec.Response:
 		c.Lock()
@@ -82,7 +84,9 @@ func (c *protoCodec) Write(m *codec.Message, b interface{}) error {
 			return err
 		}
 		if flusher, ok := c.rwc.(flusher); ok {
-			err = flusher.Flush()
+			if err = flusher.Flush(); err != nil {
+				return err
+			}
 		}
 	case codec.Publication:
 		data, err := proto.Marshal(b.(proto.Message))
@@ -127,7 +131,8 @@ func (c *protoCodec) ReadHeader(m *codec.Message, mt codec.MessageType) error {
 		m.Id = rtmp.GetSeq()
 		m.Error = rtmp.GetError()
 	case codec.Publication:
-		io.Copy(c.buf, c.rwc)
+		_, err := io.Copy(c.buf, c.rwc)
+		return err
 	default:
 		return fmt.Errorf("Unrecognised message type: %v", mt)
 	}
