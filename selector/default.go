@@ -48,11 +48,9 @@ func (r *defaultSelector) Select(service string, opts ...SelectOption) (Next, er
 }
 
 func (r *defaultSelector) Mark(service string, node *registry.Node, err error) {
-	return
 }
 
 func (r *defaultSelector) Reset(service string) {
-	return
 }
 
 func (r *defaultSelector) Close() error {

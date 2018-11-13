@@ -366,11 +366,9 @@ func (c *cacheSelector) Select(service string, opts ...selector.SelectOption) (s
 }
 
 func (c *cacheSelector) Mark(service string, node *registry.Node, err error) {
-	return
 }
 
 func (c *cacheSelector) Reset(service string) {
-	return
 }
 
 // Close stops the watcher and destroys the cache
