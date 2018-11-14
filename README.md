@@ -24,10 +24,6 @@ Go Micro supports both the Service and Function programming models. Read on to l
 
 For detailed information on the architecture, installation and use of go-micro checkout the [docs](https://micro.mu/docs).
 
-## Learn By Example
-
-An example service can be found in [**examples/service**](https://github.com/micro/examples/tree/master/service) and function in [**examples/function**](https://github.com/micro/examples/tree/master/function). 
-
 ## Sponsors
 
 Sixt is an Enterprise Sponsor of Micro
