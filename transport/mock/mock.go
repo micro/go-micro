@@ -18,6 +18,9 @@ type mockSocket struct {
 	exit chan bool
 	// listener exit
 	lexit chan bool
+
+	local  string
+	remote string
 }
 
 type mockClient struct {
@@ -49,6 +52,14 @@ func (ms *mockSocket) Recv(m *transport.Message) error {
 		*m = *cm
 	}
 	return nil
+}
+
+func (ms *mockSocket) Local() string {
+	return ms.local
+}
+
+func (ms *mockSocket) Remote() string {
+	return ms.remote
 }
 
 func (ms *mockSocket) Send(m *transport.Message) error {
@@ -93,10 +104,12 @@ func (m *mockListener) Accept(fn func(transport.Socket)) error {
 			return nil
 		case c := <-m.conn:
 			go fn(&mockSocket{
-				lexit: c.lexit,
-				exit:  c.exit,
-				send:  c.recv,
-				recv:  c.send,
+				lexit:  c.lexit,
+				exit:   c.exit,
+				send:   c.recv,
+				recv:   c.send,
+				local:  c.Remote(),
+				remote: c.Local(),
 			})
 		}
 	}
@@ -118,10 +131,12 @@ func (m *mockTransport) Dial(addr string, opts ...transport.DialOption) (transpo
 
 	client := &mockClient{
 		&mockSocket{
-			send:  make(chan *transport.Message),
-			recv:  make(chan *transport.Message),
-			exit:  make(chan bool),
-			lexit: listener.exit,
+			send:   make(chan *transport.Message),
+			recv:   make(chan *transport.Message),
+			exit:   make(chan bool),
+			lexit:  listener.exit,
+			local:  addr,
+			remote: addr,
 		},
 		options,
 	}
