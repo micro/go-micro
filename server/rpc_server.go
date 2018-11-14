@@ -97,6 +97,10 @@ func (s *rpcServer) accept(sock transport.Socket) {
 		delete(hdr, "Content-Type")
 		delete(hdr, "Timeout")
 
+		// set local/remote ips
+		hdr["Local"] = sock.Local()
+		hdr["Remote"] = sock.Remote()
+
 		ctx := metadata.NewContext(context.Background(), hdr)
 
 		// set the timeout if we have it
