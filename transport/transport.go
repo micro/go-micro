@@ -11,11 +11,11 @@ type Message struct {
 }
 
 type Socket interface {
-	Local() string
-	Remote() string
 	Recv(*Message) error
 	Send(*Message) error
 	Close() error
+	Local() string
+	Remote() string
 }
 
 type Client interface {
