@@ -18,8 +18,6 @@ Go Micro abstracts away the details of distributed systems. Here are the main fe
 - **Sync Streaming** - RPC based communication with support for bidirectional streaming
 - **Async Messaging** - Native PubSub messaging built in for event driven architectures
 
-Go Micro supports both the Service and Function programming models. Read on to learn more.
-
 ## Getting Started
 
 For detailed information on the architecture, installation and use of go-micro checkout the [docs](https://micro.mu/docs).
