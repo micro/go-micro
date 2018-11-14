@@ -40,6 +40,10 @@ type httpTransportClient struct {
 	r    chan *http.Request
 	bl   []*http.Request
 	buff *bufio.Reader
+
+	// local/remote ip
+	local  string
+	remote string
 }
 
 type httpTransportSocket struct {
@@ -51,6 +55,10 @@ type httpTransportSocket struct {
 	conn net.Conn
 	// for the first request
 	ch chan *http.Request
+
+	// local/remote ip
+	local  string
+	remote string
 }
 
 type httpTransportListener struct {
@@ -60,6 +68,14 @@ type httpTransportListener struct {
 
 func (b *buffer) Close() error {
 	return nil
+}
+
+func (h *httpTransportClient) Local() string {
+	return h.local
+}
+
+func (h *httpTransportClient) Remote() string {
+	return h.remote
 }
 
 func (h *httpTransportClient) Send(m *Message) error {
@@ -171,6 +187,14 @@ func (h *httpTransportClient) Close() error {
 		close(h.r)
 	})
 	return err
+}
+
+func (h *httpTransportSocket) Local() string {
+	return h.local
+}
+
+func (h *httpTransportSocket) Remote() string {
+	return h.remote
 }
 
 func (h *httpTransportSocket) Recv(m *Message) error {
@@ -368,12 +392,14 @@ func (h *httpTransportListener) Accept(fn func(Socket)) error {
 		ch <- r
 
 		fn(&httpTransportSocket{
-			ht:   h.ht,
-			w:    w,
-			r:    r,
-			rw:   buf,
-			ch:   ch,
-			conn: con,
+			ht:     h.ht,
+			w:      w,
+			r:      r,
+			rw:     buf,
+			ch:     ch,
+			conn:   con,
+			local:  h.Addr(),
+			remote: r.RemoteAddr,
 		})
 	})
 
@@ -430,6 +456,8 @@ func (h *httpTransport) Dial(addr string, opts ...DialOption) (Client, error) {
 		buff:     bufio.NewReader(conn),
 		dialOpts: dopts,
 		r:        make(chan *http.Request, 1),
+		local:    conn.LocalAddr().String(),
+		remote:   conn.RemoteAddr().String(),
 	}, nil
 }
 

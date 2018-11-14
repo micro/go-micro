@@ -15,6 +15,8 @@ type testCodec struct {
 }
 
 type testSocket struct {
+	local  string
+	remote string
 }
 
 // TestCodecWriteError simulates what happens when a codec is unable
@@ -85,6 +87,14 @@ func (c *testCodec) Close() error {
 
 func (c *testCodec) String() string {
 	return "string"
+}
+
+func (s testSocket) Local() string {
+	return s.local
+}
+
+func (s testSocket) Remote() string {
+	return s.remote
 }
 
 func (s testSocket) Recv(message *transport.Message) error {
