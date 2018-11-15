@@ -414,6 +414,7 @@ func (s *rpcServer) Start() error {
 			if err != nil {
 				log.Logf("Accept error: %v", err)
 				time.Sleep(time.Second)
+				continue
 			}
 
 			// no error just exit
