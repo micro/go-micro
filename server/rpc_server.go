@@ -397,11 +397,35 @@ func (s *rpcServer) Start() error {
 	s.opts.Address = ts.Addr()
 	s.Unlock()
 
-	go ts.Accept(s.accept)
+	exit := make(chan bool, 1)
+
+	go func() {
+		for {
+			err := ts.Accept(s.accept)
+
+			// check if we're supposed to exit
+			select {
+			case <-exit:
+				return
+			default:
+			}
+
+			// check the error and backoff
+			if err != nil {
+				log.Logf("Accept error: %v", err)
+				time.Sleep(time.Second)
+				continue
+			}
+
+			// no error just exit
+			return
+		}
+	}()
 
 	go func() {
 		// wait for exit
 		ch := <-s.exit
+		exit <- true
 
 		// wait for requests to finish
 		if wait(s.opts.Context) {
