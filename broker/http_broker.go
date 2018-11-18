@@ -126,7 +126,19 @@ func newHttpBroker(opts ...Option) Broker {
 		mux:         http.NewServeMux(),
 	}
 
+	// specify the message handler
 	h.mux.Handle(DefaultSubPath, h)
+
+	// get optional handlers
+	if h.opts.Context != nil {
+		handlers, ok := h.opts.Context.Value("http_handlers").(map[string]http.Handler)
+		if ok {
+			for pattern, handler := range handlers {
+				h.mux.Handle(pattern, handler)
+			}
+		}
+	}
+
 	return h
 }
 
