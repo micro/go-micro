@@ -357,6 +357,8 @@ func (h *httpTransportListener) Close() error {
 func (h *httpTransportListener) Accept(fn func(Socket)) error {
 	// create handler mux
 	mux := http.NewServeMux()
+
+	// register our transport handler
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		var buf *bufio.ReadWriter
 		var con net.Conn
@@ -402,6 +404,16 @@ func (h *httpTransportListener) Accept(fn func(Socket)) error {
 			remote: r.RemoteAddr,
 		})
 	})
+
+	// get optional handlers
+	if h.ht.opts.Context != nil {
+		handlers, ok := h.ht.opts.Context.Value("http_handlers").(map[string]http.Handler)
+		if ok {
+			for pattern, handler := range handlers {
+				mux.Handle(pattern, handler)
+			}
+		}
+	}
 
 	// default http2 server
 	srv := &http.Server{
