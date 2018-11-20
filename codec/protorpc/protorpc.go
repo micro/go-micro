@@ -1,3 +1,4 @@
+// Protorpc provides a net/rpc proto-rpc codec. See envelope.proto for the format.
 package protorpc
 
 import (

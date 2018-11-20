@@ -1,3 +1,4 @@
+// Package jsonrpc provides a json-rpc 1.0 codec
 package jsonrpc
 
 import (
