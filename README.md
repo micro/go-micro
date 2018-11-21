@@ -19,7 +19,7 @@ Go Micro abstracts away the details of distributed systems. Here are the main fe
 
 ## Getting Started
 
-For detailed information on the architecture, installation and use of go-micro checkout the [docs](https://micro.mu/docs/go-micro.html).
+See the [docs](https://micro.mu/docs/go-micro.html) for detailed information on the architecture, installation and use of go-micro.
 
 ## Sponsors
 
