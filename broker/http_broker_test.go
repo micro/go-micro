@@ -5,15 +5,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/micro/go-micro/registry/mock"
-	"github.com/pborman/uuid"
 )
 
 func sub(be *testing.B, c int) {
 	be.StopTimer()
 	m := mock.NewRegistry()
 	b := NewBroker(Registry(m))
-	topic := uuid.NewUUID().String()
+	topic := uuid.New().String()
 
 	if err := b.Init(); err != nil {
 		be.Fatalf("Unexpected init error: %v", err)
@@ -72,7 +72,7 @@ func pub(be *testing.B, c int) {
 	be.StopTimer()
 	m := mock.NewRegistry()
 	b := NewBroker(Registry(m))
-	topic := uuid.NewUUID().String()
+	topic := uuid.New().String()
 
 	if err := b.Init(); err != nil {
 		be.Fatalf("Unexpected init error: %v", err)

@@ -18,6 +18,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/micro/go-log"
 	"github.com/micro/go-micro/broker/codec/json"
 	merr "github.com/micro/go-micro/errors"
@@ -26,7 +27,6 @@ import (
 	maddr "github.com/micro/util/go/lib/addr"
 	mnet "github.com/micro/util/go/lib/net"
 	mls "github.com/micro/util/go/lib/tls"
-	"github.com/pborman/uuid"
 )
 
 // HTTP Broker is a point to point async broker
@@ -116,7 +116,7 @@ func newHttpBroker(opts ...Option) Broker {
 	}
 
 	h := &httpBroker{
-		id:          "broker-" + uuid.NewUUID().String(),
+		id:          "broker-" + uuid.New().String(),
 		address:     addr,
 		opts:        options,
 		r:           reg,
@@ -413,7 +413,7 @@ func (h *httpBroker) Init(opts ...Option) error {
 	}
 
 	if len(h.id) == 0 {
-		h.id = "broker-" + uuid.NewUUID().String()
+		h.id = "broker-" + uuid.New().String()
 	}
 
 	// get registry
@@ -520,7 +520,7 @@ func (h *httpBroker) Subscribe(topic string, handler Handler, opts ...SubscribeO
 	}
 
 	// create unique id
-	id := h.id + "." + uuid.NewUUID().String()
+	id := h.id + "." + uuid.New().String()
 
 	var secure bool
 
