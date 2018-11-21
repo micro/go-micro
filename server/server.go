@@ -7,8 +7,8 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/google/uuid"
 	"github.com/micro/go-log"
-	"github.com/pborman/uuid"
 )
 
 type Server interface {
@@ -63,7 +63,7 @@ var (
 	DefaultAddress        = ":0"
 	DefaultName           = "go-server"
 	DefaultVersion        = "1.0.0"
-	DefaultId             = uuid.NewUUID().String()
+	DefaultId             = uuid.New().String()
 	DefaultServer  Server = newRpcServer()
 )
 

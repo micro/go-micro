@@ -4,8 +4,8 @@ import (
 	"errors"
 	"sync"
 
+	"github.com/google/uuid"
 	"github.com/micro/go-micro/broker"
-	"github.com/pborman/uuid"
 )
 
 type mockBroker struct {
@@ -112,7 +112,7 @@ func (m *mockBroker) Subscribe(topic string, handler broker.Handler, opts ...bro
 
 	sub := &mockSubscriber{
 		exit:    make(chan bool, 1),
-		id:      uuid.NewUUID().String(),
+		id:      uuid.New().String(),
 		topic:   topic,
 		handler: handler,
 		opts:    options,
