@@ -238,7 +238,7 @@ func (h *httpTransportSocket) Recv(m *Message) error {
 		m.Body = b
 
 		// set headers
-		for k, v := range h.r.Header {
+		for k, v := range r.Header {
 			if len(v) > 0 {
 				m.Header[k] = v[0]
 			} else {
