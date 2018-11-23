@@ -87,7 +87,7 @@ func (s *rpcServer) accept(sock transport.Socket) {
 			return
 		}
 
-		codec := newRpcPlusCodec(&msg, sock, cf)
+		codec := newRpcCodec(&msg, sock, cf)
 
 		// strip our headers
 		hdr := make(map[string]string)

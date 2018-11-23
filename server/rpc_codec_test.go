@@ -38,7 +38,7 @@ func TestCodecWriteError(t *testing.T) {
 		wbuf: new(bytes.Buffer),
 	}
 
-	c := rpcPlusCodec{
+	c := rpcCodec{
 		buf: &rwc,
 		codec: &testCodec{
 			buf: rwc.wbuf,

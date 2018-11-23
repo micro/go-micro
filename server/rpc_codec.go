@@ -10,7 +10,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-type rpcPlusCodec struct {
+type rpcCodec struct {
 	socket transport.Socket
 	codec  codec.Codec
 
@@ -47,12 +47,12 @@ func (rwc *readWriteCloser) Close() error {
 	return nil
 }
 
-func newRpcPlusCodec(req *transport.Message, socket transport.Socket, c codec.NewCodec) serverCodec {
+func newRpcCodec(req *transport.Message, socket transport.Socket, c codec.NewCodec) serverCodec {
 	rwc := &readWriteCloser{
 		rbuf: bytes.NewBuffer(req.Body),
 		wbuf: bytes.NewBuffer(nil),
 	}
-	r := &rpcPlusCodec{
+	r := &rpcCodec{
 		buf:    rwc,
 		codec:  c(rwc),
 		req:    req,
@@ -61,7 +61,7 @@ func newRpcPlusCodec(req *transport.Message, socket transport.Socket, c codec.Ne
 	return r
 }
 
-func (c *rpcPlusCodec) ReadRequestHeader(r *request, first bool) error {
+func (c *rpcCodec) ReadRequestHeader(r *request, first bool) error {
 	m := codec.Message{Header: c.req.Header}
 
 	if !first {
@@ -83,11 +83,11 @@ func (c *rpcPlusCodec) ReadRequestHeader(r *request, first bool) error {
 	return err
 }
 
-func (c *rpcPlusCodec) ReadRequestBody(b interface{}) error {
+func (c *rpcCodec) ReadRequestBody(b interface{}) error {
 	return c.codec.ReadBody(b)
 }
 
-func (c *rpcPlusCodec) WriteResponse(r *response, body interface{}, last bool) error {
+func (c *rpcCodec) WriteResponse(r *response, body interface{}, last bool) error {
 	c.buf.wbuf.Reset()
 	m := &codec.Message{
 		Method: r.ServiceMethod,
@@ -111,7 +111,7 @@ func (c *rpcPlusCodec) WriteResponse(r *response, body interface{}, last bool) e
 	})
 }
 
-func (c *rpcPlusCodec) Close() error {
+func (c *rpcCodec) Close() error {
 	c.buf.Close()
 	c.codec.Close()
 	return c.socket.Close()
