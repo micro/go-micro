@@ -22,6 +22,8 @@ type consulRegistry struct {
 	// connect enabled
 	connect bool
 
+	queryOptions *consul.QueryOptions
+
 	sync.Mutex
 	register map[string]uint64
 	// lastChecked tracks when a node was last checked as existing in Consul
@@ -80,6 +82,14 @@ func configure(c *consulRegistry, opts ...Option) {
 		if cn, ok := c.opts.Context.Value("consul_connect").(bool); ok {
 			c.connect = cn
 		}
+
+		// Use the consul query options passed in the options, if available
+		if qo, ok := c.opts.Context.Value("consul_query_options").(*consul.QueryOptions); ok && qo != nil {
+			c.queryOptions = qo
+		}
+		if as, ok := c.opts.Context.Value("consul_allow_stale").(bool); ok {
+			c.queryOptions.AllowStale = as
+		}
 	}
 
 	// check if there are any addrs
@@ -123,6 +133,9 @@ func newConsulRegistry(opts ...Option) Registry {
 		opts:        Options{},
 		register:    make(map[string]uint64),
 		lastChecked: make(map[string]time.Time),
+		queryOptions: &consul.QueryOptions{
+			AllowStale: true,
+		},
 	}
 	configure(cr, opts...)
 	return cr
@@ -189,9 +202,7 @@ func (c *consulRegistry) Register(s *Service, opts ...RegisterOption) error {
 			if time.Since(c.lastChecked[s.Name]) <= getDeregisterTTL(regInterval) {
 				return nil
 			}
-			services, _, err := c.Client.Health().Checks(s.Name, &consul.QueryOptions{
-				AllowStale: true,
-			})
+			services, _, err := c.Client.Health().Checks(s.Name, c.queryOptions)
 			if err == nil {
 				for _, v := range services {
 					if v.ServiceID == node.Id {
@@ -276,9 +287,9 @@ func (c *consulRegistry) GetService(name string) ([]*Service, error) {
 
 	// if we're connect enabled only get connect services
 	if c.connect {
-		rsp, _, err = c.Client.Health().Connect(name, "", false, nil)
+		rsp, _, err = c.Client.Health().Connect(name, "", false, c.queryOptions)
 	} else {
-		rsp, _, err = c.Client.Health().Service(name, "", false, nil)
+		rsp, _, err = c.Client.Health().Service(name, "", false, c.queryOptions)
 	}
 	if err != nil {
 		return nil, err
@@ -347,7 +358,7 @@ func (c *consulRegistry) GetService(name string) ([]*Service, error) {
 }
 
 func (c *consulRegistry) ListServices() ([]*Service, error) {
-	rsp, _, err := c.Client.Catalog().Services(nil)
+	rsp, _, err := c.Client.Catalog().Services(c.queryOptions)
 	if err != nil {
 		return nil, err
 	}
