@@ -52,6 +52,8 @@ type CallOptions struct {
 	Retries int
 	// Request/Response timeout
 	RequestTimeout time.Duration
+	// MaxRecvMsgSize the maximum message size the client can receive.
+	MaxRecvMsgSize int
 
 	// Middleware for low level call func
 	CallWrappers []CallWrapper
@@ -85,6 +87,7 @@ func newOptions(options ...Option) Options {
 		Codecs: make(map[string]codec.NewCodec),
 		CallOptions: CallOptions{
 			Backoff:        DefaultBackoff,
+			MaxRecvMsgSize: DefaultMaxRecvMsgSize,
 			Retry:          DefaultRetry,
 			Retries:        DefaultRetries,
 			RequestTimeout: DefaultRequestTimeout,
@@ -228,6 +231,14 @@ func RequestTimeout(d time.Duration) Option {
 func DialTimeout(d time.Duration) Option {
 	return func(o *Options) {
 		o.CallOptions.DialTimeout = d
+	}
+}
+
+// WithMaxRecvMsgSize is a CallOptions which overrides that which set in
+// Options.CallOptions.
+func WithMaxRecvMsgSize(s int) Option {
+	return func(o *Options) {
+		o.CallOptions.MaxRecvMsgSize = s
 	}
 }
 

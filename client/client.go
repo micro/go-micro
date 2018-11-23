@@ -77,6 +77,9 @@ var (
 	DefaultPoolSize = 1
 	// DefaultPoolTTL sets the connection pool ttl
 	DefaultPoolTTL = time.Minute
+	// DefaultMaxRecvMsgSize maximum message that client can receive
+	// (4 MB).
+	DefaultMaxRecvMsgSize = 1024 * 1024 * 4
 )
 
 // Makes a synchronous call to a service using the default client
