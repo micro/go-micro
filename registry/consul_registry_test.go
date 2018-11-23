@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"testing"
+	"time"
 
 	consul "github.com/hashicorp/consul/api"
 )
@@ -53,9 +54,14 @@ func newConsulTestRegistry(r *mockRegistry) (*consulRegistry, func()) {
 	go newMockServer(r, l)
 
 	return &consulRegistry{
-			Address:  cfg.Address,
-			Client:   cl,
-			register: make(map[string]uint64),
+			Address:     cfg.Address,
+			Client:      cl,
+			opts:        Options{},
+			register:    make(map[string]uint64),
+			lastChecked: make(map[string]time.Time),
+			queryOptions: &consul.QueryOptions{
+				AllowStale: true,
+			},
 		}, func() {
 			l.Close()
 		}
