@@ -92,13 +92,13 @@ func MethodNotAllowed(id, format string, a ...interface{}) error {
 	}
 }
 
-// InternalServerError generates a 500 error.
-func InternalServerError(id, format string, a ...interface{}) error {
+// Timeout generates a 408 error.
+func Timeout(id, format string, a ...interface{}) error {
 	return &Error{
 		Id:     id,
-		Code:   500,
+		Code:   408,
 		Detail: fmt.Sprintf(format, a...),
-		Status: http.StatusText(500),
+		Status: http.StatusText(408),
 	}
 }
 
@@ -109,5 +109,15 @@ func Conflict(id, format string, a ...interface{}) error {
 		Code:   409,
 		Detail: fmt.Sprintf(format, a...),
 		Status: http.StatusText(409),
+	}
+}
+
+// InternalServerError generates a 500 error.
+func InternalServerError(id, format string, a ...interface{}) error {
+	return &Error{
+		Id:     id,
+		Code:   500,
+		Detail: fmt.Sprintf(format, a...),
+		Status: http.StatusText(500),
 	}
 }

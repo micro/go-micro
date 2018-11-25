@@ -132,7 +132,7 @@ func (r *rpcClient) call(ctx context.Context, address string, req Request, resp 
 		return err
 	case <-ctx.Done():
 		grr = ctx.Err()
-		return errors.New("go.micro.client", fmt.Sprintf("request timeout: %v", ctx.Err()), 408)
+		return errors.Timeout("go.micro.client", fmt.Sprintf("%v", ctx.Err()))
 	}
 }
 
@@ -192,7 +192,7 @@ func (r *rpcClient) stream(ctx context.Context, address string, req Request, opt
 	case err := <-ch:
 		grr = err
 	case <-ctx.Done():
-		grr = errors.New("go.micro.client", fmt.Sprintf("request timeout: %v", ctx.Err()), 408)
+		grr = errors.Timeout("go.micro.client", fmt.Sprintf("%v", ctx.Err()))
 	}
 
 	if grr != nil {
@@ -274,7 +274,7 @@ func (r *rpcClient) Call(ctx context.Context, request Request, response interfac
 	// should we noop right here?
 	select {
 	case <-ctx.Done():
-		return errors.New("go.micro.client", fmt.Sprintf("%v", ctx.Err()), 408)
+		return errors.Timeout("go.micro.client", fmt.Sprintf("%v", ctx.Err()))
 	default:
 	}
 
@@ -329,7 +329,7 @@ func (r *rpcClient) Call(ctx context.Context, request Request, response interfac
 
 		select {
 		case <-ctx.Done():
-			return errors.New("go.micro.client", fmt.Sprintf("call timeout: %v", ctx.Err()), 408)
+			return errors.Timeout("go.micro.client", fmt.Sprintf("call timeout: %v", ctx.Err()))
 		case err := <-ch:
 			// if the call succeeded lets bail early
 			if err == nil {
@@ -367,7 +367,7 @@ func (r *rpcClient) Stream(ctx context.Context, request Request, opts ...CallOpt
 	// should we noop right here?
 	select {
 	case <-ctx.Done():
-		return nil, errors.New("go.micro.client", fmt.Sprintf("%v", ctx.Err()), 408)
+		return nil, errors.Timeout("go.micro.client", fmt.Sprintf("%v", ctx.Err()))
 	default:
 	}
 
@@ -416,7 +416,7 @@ func (r *rpcClient) Stream(ctx context.Context, request Request, opts ...CallOpt
 
 		select {
 		case <-ctx.Done():
-			return nil, errors.New("go.micro.client", fmt.Sprintf("call timeout: %v", ctx.Err()), 408)
+			return nil, errors.Timeout("go.micro.client", fmt.Sprintf("call timeout: %v", ctx.Err()))
 		case rsp := <-ch:
 			// if the call succeeded lets bail early
 			if rsp.err == nil {
