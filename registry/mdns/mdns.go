@@ -1,3 +1,4 @@
+// Package mdns is a multicast dns registry
 package mdns
 
 /*
