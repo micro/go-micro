@@ -9,8 +9,10 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/micro/go-log"
+	"github.com/micro/go-micro/registry"
 )
 
+// Server is a simple micro server abstraction
 type Server interface {
 	Options() Options
 	Init(...Option) error
@@ -25,12 +27,14 @@ type Server interface {
 	String() string
 }
 
+// Message is an async message interface
 type Message interface {
 	Topic() string
 	Payload() interface{}
 	ContentType() string
 }
 
+// Request is a synchronous request interface
 type Request interface {
 	Service() string
 	Method() string
@@ -43,7 +47,7 @@ type Request interface {
 // Stream represents a stream established with a client.
 // A stream can be bidirectional which is indicated by the request.
 // The last error will be left in Error().
-// EOF indicated end of the stream.
+// EOF indicates end of the stream.
 type Stream interface {
 	Context() context.Context
 	Request() Request
@@ -51,6 +55,34 @@ type Stream interface {
 	Recv(interface{}) error
 	Error() error
 	Close() error
+}
+
+// Handler interface represents a request handler. It's generated
+// by passing any type of public concrete object with methods into server.NewHandler.
+// Most will pass in a struct.
+//
+// Example:
+//
+//      type Greeter struct {}
+//
+//      func (g *Greeter) Hello(context, request, response) error {
+//              return nil
+//      }
+//
+type Handler interface {
+	Name() string
+	Handler() interface{}
+	Endpoints() []*registry.Endpoint
+	Options() HandlerOptions
+}
+
+// Subscriber interface represents a subscription to a given topic using
+// a specific subscriber function or object with methods.
+type Subscriber interface {
+	Topic() string
+	Subscriber() interface{}
+	Endpoints() []*registry.Endpoint
+	Options() SubscriberOptions
 }
 
 type Option func(*Options)
