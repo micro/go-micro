@@ -2,7 +2,12 @@
 
 Go Micro is a pluggable framework for distributed systems development.
 
-The **micro** philosophy is sane defaults with a pluggable architecture. We provide defaults to get you started quickly but everything can be swapped out. 
+## Overview
+
+Go Micro provides the core requirements for distributed systems development including RPC and Event driven communication. 
+The **micro** philosophy is sane defaults with a pluggable architecture. We provide defaults to get you started quickly 
+but everything can be easily swapped out. 
+
 Plugins are available at [github.com/micro/go-plugins](https://github.com/micro/go-plugins).
 
 Follow us on [Twitter](https://twitter.com/microhq) or join the [Slack](http://slack.micro.mu/) community.
@@ -16,6 +21,16 @@ Go Micro abstracts away the details of distributed systems. Here are the main fe
 - **Message Encoding** - Dynamic encoding based on content-type with protobuf and json support
 - **Sync Streaming** - RPC based request/response with support for bidirectional streaming
 - **Async Messaging** - Native pubsub messaging built in for event driven architectures
+
+## Defaults
+
+We provide simple defaults to get you started.
+
+- Service Discovery - consul or mdns
+- Load Balancing - client side random hashed
+- Message Encoding - protobuf and json-rpc
+- Request/Response - http and http2
+- PubSub Messaging - point to point http
 
 ## Getting Started
 
