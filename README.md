@@ -16,21 +16,11 @@ Follow us on [Twitter](https://twitter.com/microhq) or join the [Slack](http://s
 
 Go Micro abstracts away the details of distributed systems. Here are the main features.
 
-- **Service Discovery** - Automatic service registration and name resolution
-- **Load Balancing** - Client side load balancing built on discovery
-- **Message Encoding** - Dynamic encoding based on content-type with protobuf and json support
-- **Sync Streaming** - RPC based request/response with support for bidirectional streaming
-- **Async Messaging** - Native pubsub messaging built in for event driven architectures
-
-## Defaults
-
-We provide simple defaults to get you started.
-
-- Service Discovery - consul or mdns
-- Load Balancing - client side random hashed
-- Message Encoding - protobuf and json-rpc
-- Request/Response - http and http2
-- PubSub Messaging - point to point http
+- **Service Discovery** - Automatic service registration and name resolution (default: consul or mdns)
+- **Load Balancing** - Client side load balancing built on discovery (default: random hashed)
+- **Message Encoding** - Dynamic encoding based on content-type (default: protobuf and json-rpc)
+- **Sync Streaming** - RPC based request/response with support for bidirectional streaming (default: http/1.1 and http2)
+- **Async Messaging** - Native pubsub messaging built in for event driven architectures (default: point to point http)
 
 ## Getting Started
 
