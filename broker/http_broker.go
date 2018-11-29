@@ -27,6 +27,7 @@ import (
 	maddr "github.com/micro/util/go/lib/addr"
 	mnet "github.com/micro/util/go/lib/net"
 	mls "github.com/micro/util/go/lib/tls"
+	"golang.org/x/net/http2"
 )
 
 // HTTP Broker is a point to point async broker
@@ -78,6 +79,10 @@ func newTransport(config *tls.Config) *http.Transport {
 		}
 	}
 
+	dialTLS := func(network string, addr string) (net.Conn, error) {
+		return tls.Dial(network, addr, config)
+	}
+
 	t := &http.Transport{
 		Proxy: http.ProxyFromEnvironment,
 		Dial: (&net.Dialer{
@@ -85,11 +90,15 @@ func newTransport(config *tls.Config) *http.Transport {
 			KeepAlive: 30 * time.Second,
 		}).Dial,
 		TLSHandshakeTimeout: 10 * time.Second,
-		TLSClientConfig:     config,
+		DialTLS:             dialTLS,
 	}
 	runtime.SetFinalizer(&t, func(tr **http.Transport) {
 		(*tr).CloseIdleConnections()
 	})
+
+	// setup http2
+	http2.ConfigureTransport(t)
+
 	return t
 }
 
@@ -429,6 +438,13 @@ func (h *httpBroker) Init(opts ...Option) error {
 
 	// set registry
 	h.r = rcache.New(reg)
+
+	// reconfigure tls config
+	if c := h.opts.TLSConfig; c != nil {
+		h.c = &http.Client{
+			Transport: newTransport(c),
+		}
+	}
 
 	return nil
 }
