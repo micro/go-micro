@@ -50,7 +50,7 @@ var (
 	registryKey = contextKeyT("github.com/micro/go-micro/registry")
 )
 
-func newSubscribeOptions(opts ...SubscribeOption) SubscribeOptions {
+func NewSubscribeOptions(opts ...SubscribeOption) SubscribeOptions {
 	opt := SubscribeOptions{
 		AutoAck: true,
 	}

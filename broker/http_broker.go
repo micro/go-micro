@@ -523,7 +523,7 @@ func (h *httpBroker) Publish(topic string, msg *Message, opts ...PublishOption) 
 }
 
 func (h *httpBroker) Subscribe(topic string, handler Handler, opts ...SubscribeOption) (Subscriber, error) {
-	options := newSubscribeOptions(opts...)
+	options := NewSubscribeOptions(opts...)
 
 	// parse address for host, port
 	parts := strings.Split(h.Address(), ":")
