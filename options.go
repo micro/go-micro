@@ -174,6 +174,7 @@ func RegisterInterval(t time.Duration) Option {
 
 // WrapClient is a convenience method for wrapping a Client with
 // some middleware component. A list of wrappers can be provided.
+// Wrappers are applied in reverse order so the last is executed first.
 func WrapClient(w ...client.Wrapper) Option {
 	return func(o *Options) {
 		// apply in reverse
