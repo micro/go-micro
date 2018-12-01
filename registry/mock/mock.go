@@ -1,3 +1,4 @@
+// Package mock provides a mock registry for testing
 package mock
 
 import (

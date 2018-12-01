@@ -1,3 +1,4 @@
+// Package mock provides a mock client for testing
 package mock
 
 import (

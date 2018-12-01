@@ -1,3 +1,4 @@
+// Package mock provides a mock broker for testing
 package mock
 
 import (
