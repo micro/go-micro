@@ -38,6 +38,10 @@ transport is http/1.1 or http2 when tls is enabled.
 Event notifications are a core pattern in micro service development. The default messaging is point-to-point http/1.1 or http2 when tls 
 is enabled.
 
+- **Pluggable Interfaces** - Go Micro makes use of Go interfaces for each distributed system abstraction. Because of this these interfaces 
+are pluggable and allows Go Micro to be runtime agnostic. You can plugin any underlying technology. Find plugins in 
+[github.com/micro/go-plugins](https://github.com/micro/go-plugins).
+
 ## Getting Started
 
 See the [docs](https://micro.mu/docs/go-micro.html) for detailed information on the architecture, installation and use of go-micro.
