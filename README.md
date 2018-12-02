@@ -18,11 +18,25 @@ Follow us on [Twitter](https://twitter.com/microhq) or join the [Slack](http://s
 
 Go Micro abstracts away the details of distributed systems. Here are the main features.
 
-- **Service Discovery** - Automatic service registration and name resolution (default: consul or mdns)
-- **Load Balancing** - Client side load balancing built on discovery (default: random hashed)
-- **Message Encoding** - Dynamic encoding based on content-type (default: protobuf and json-rpc)
-- **Sync Streaming** - RPC based request/response with support for bidirectional streaming (default: http/1.1 and http2)
-- **Async Messaging** - Native pubsub messaging built in for event driven architectures (default: point to point http)
+- **Service Discovery** - Automatic service registration and name resolution. Service discovery is at the core of micro service 
+development. When service A needs to speak to service B it needs the location of that service. Consul is the default discovery 
+system with multicast DNS being a local option.
+
+- **Load Balancing** - Client side load balancing built on service discovery. Once we have the addresses of any number of instances 
+of a service we now need a way to decide which node to route to. We use random hashed load balancing to provide even distribution 
+across the services and retry a different node if there's a problem. 
+
+- **Message Encoding** - Dynamic message encoding based on content-type. The client and server will use codecs along with content-type 
+to seamlessly encode and decode Go types for you. Any variety of messages could be encoded and sent from different clients. The client 
+and server handle this by default. This includes proto-rpc and json-rpc by default.
+
+- **Sync Streaming** - RPC based request/response with support for bidirectional streaming. We provide an abstraction for synchronous 
+communication. A request made to a service will be automatically resolved, load balanced, dialled and streamed. The default 
+transport is http/1.1 or http2 when tls is enabled.
+
+- **Async Messaging** - PubSub is built in as a first class citizen for asynchronous communication and event driven architectures. 
+Event notifications are a core pattern in micro service development. The default messaging is point-to-point http/1.1 or http2 when tls 
+is enabled.
 
 ## Getting Started
 
