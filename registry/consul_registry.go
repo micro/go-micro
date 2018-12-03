@@ -190,16 +190,17 @@ func (c *consulRegistry) Register(s *Service, opts ...RegisterOption) error {
 	// use first node
 	node := s.Nodes[0]
 
-	// get existing hash
+	// get existing hash and last checked time
 	c.Lock()
 	v, ok := c.register[s.Name]
+	lastChecked := c.lastChecked[s.Name]
 	c.Unlock()
 
 	// if it's already registered and matches then just pass the check
 	if ok && v == h {
 		if options.TTL == time.Duration(0) {
 			// ensure that our service hasn't been deregistered by Consul
-			if time.Since(c.lastChecked[s.Name]) <= getDeregisterTTL(regInterval) {
+			if time.Since(lastChecked) <= getDeregisterTTL(regInterval) {
 				return nil
 			}
 			services, _, err := c.Client.Health().Checks(s.Name, c.queryOptions)
