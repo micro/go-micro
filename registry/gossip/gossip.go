@@ -28,7 +28,8 @@ type gossipRegistry struct {
 }
 
 var (
-	defaultPort = 8118
+	// defaults to random port
+	defaultPort = 0
 )
 
 type broadcast struct {
@@ -349,6 +350,7 @@ func (g *gossipRegistry) run() error {
 		RetransmitMult: 3,
 	}
 
+	g.queue = d.queue
 	g.memberlist = m
 	g.delegate = d
 	d.registry = g
@@ -364,12 +366,14 @@ func NewRegistry(opts ...registry.Option) registry.Registry {
 	}
 
 	g := &gossipRegistry{
-		opts: options,
+		opts:     options,
+		services: make(map[string][]*registry.Service),
 	}
 	if err := g.run(); err != nil {
 		log.Fatal(err)
 	}
 
+	log.Logf("Registry gossiping at %s", g.memberlist.LocalNode().Address())
 	// return gossip registry
 	return g
 }
