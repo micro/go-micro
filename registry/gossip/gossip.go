@@ -3,6 +3,7 @@ package gossip
 
 import (
 	"encoding/json"
+	"io/ioutil"
 	"os"
 	"strings"
 	"sync"
@@ -326,6 +327,9 @@ func (g *gossipRegistry) run() error {
 	// set the name
 	c.Name = strings.Join([]string{"micro", hostname, uuid.New().String()}, "-")
 
+	// log to dev null
+	c.LogOutput = ioutil.Discard
+
 	// TODO: set advertise addr to advertise behind nat
 
 	// create the memberlist
@@ -373,7 +377,7 @@ func NewRegistry(opts ...registry.Option) registry.Registry {
 		log.Fatal(err)
 	}
 
-	log.Logf("Registry gossiping at %s", g.memberlist.LocalNode().Address())
+	log.Logf("Registry Listening on %s", g.memberlist.LocalNode().Address())
 	// return gossip registry
 	return g
 }
