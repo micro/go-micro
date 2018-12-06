@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package gossip;
+
+// Update is the message broadcast
+message Update {
+	// unique id of update
+	string id = 1;
+	// unix nano timestamp of update
+	uint64 timestamp = 2;
+	// time to live for entry
+	uint64 expires = 3;
+	// type of update; service
+	string type = 4;
+	// what action is taken; add, del, put
+	string action = 5;
+	// any other associated metadata about the data
+	map<string, string> metadata = 6;
+	// the payload data;
+	bytes data = 7;
+}
