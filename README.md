@@ -20,7 +20,7 @@ Go Micro abstracts away the details of distributed systems. Here are the main fe
 
 - **Service Discovery** - Automatic service registration and name resolution. Service discovery is at the core of micro service 
 development. When service A needs to speak to service B it needs the location of that service. Consul is the default discovery 
-system with multicast DNS being a local option.
+system with multicast DNS (mdns) as a local option or the SWIM protocol (gossip) for zero dependency p2p networks.
 
 - **Load Balancing** - Client side load balancing built on service discovery. Once we have the addresses of any number of instances 
 of a service we now need a way to decide which node to route to. We use random hashed load balancing to provide even distribution 
