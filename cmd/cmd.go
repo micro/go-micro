@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/micro/cli"
+	"github.com/micro/go-log"
 	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/server"
 
@@ -301,10 +302,15 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		serverOpts = append(serverOpts, server.Registry(*c.opts.Registry))
 		clientOpts = append(clientOpts, client.Registry(*c.opts.Registry))
 
-		(*c.opts.Selector).Init(selector.Registry(*c.opts.Registry))
+		if err := (*c.opts.Selector).Init(selector.Registry(*c.opts.Registry)); err != nil {
+			log.Fatalf("Error configuring registry: %v", err)
+		}
+
 		clientOpts = append(clientOpts, client.Selector(*c.opts.Selector))
 
-		(*c.opts.Broker).Init(broker.Registry(*c.opts.Registry))
+		if err := (*c.opts.Broker).Init(broker.Registry(*c.opts.Registry)); err != nil {
+			log.Fatalf("Error configuring broker: %v", err)
+		}
 	}
 
 	// Set the selector
@@ -349,15 +355,21 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	}
 
 	if len(ctx.String("broker_address")) > 0 {
-		(*c.opts.Broker).Init(broker.Addrs(strings.Split(ctx.String("broker_address"), ",")...))
+		if err := (*c.opts.Broker).Init(broker.Addrs(strings.Split(ctx.String("broker_address"), ",")...)); err != nil {
+			log.Fatalf("Error configuring broker: %v", err)
+		}
 	}
 
 	if len(ctx.String("registry_address")) > 0 {
-		(*c.opts.Registry).Init(registry.Addrs(strings.Split(ctx.String("registry_address"), ",")...))
+		if err := (*c.opts.Registry).Init(registry.Addrs(strings.Split(ctx.String("registry_address"), ",")...)); err != nil {
+			log.Fatalf("Error configuring registry: %v", err)
+		}
 	}
 
 	if len(ctx.String("transport_address")) > 0 {
-		(*c.opts.Transport).Init(transport.Addrs(strings.Split(ctx.String("transport_address"), ",")...))
+		if err := (*c.opts.Transport).Init(transport.Addrs(strings.Split(ctx.String("transport_address"), ",")...)); err != nil {
+			log.Fatalf("Error configuring transport: %v", err)
+		}
 	}
 
 	if len(ctx.String("server_name")) > 0 {
@@ -412,12 +424,16 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	// We have some command line opts for the server.
 	// Lets set it up
 	if len(serverOpts) > 0 {
-		(*c.opts.Server).Init(serverOpts...)
+		if err := (*c.opts.Server).Init(serverOpts...); err != nil {
+			log.Fatalf("Error configuring server: %v", err)
+		}
 	}
 
 	// Use an init option?
 	if len(clientOpts) > 0 {
-		(*c.opts.Client).Init(clientOpts...)
+		if err := (*c.opts.Client).Init(clientOpts...); err != nil {
+			log.Fatalf("Error configuring client: %v", err)
+		}
 	}
 
 	return nil

@@ -4,37 +4,48 @@ import (
 	"github.com/micro/go-micro/registry"
 )
 
-type watcher struct {
-	id   string
-	srv  string
-	ch   chan *registry.Result
-	exit chan bool
-	fn   func()
+type gossipWatcher struct {
+	wo   registry.WatchOptions
+	next chan *registry.Result
+	stop chan bool
 }
 
-func (w *watcher) Next() (*registry.Result, error) {
+func newGossipWatcher(ch chan *registry.Result, stop chan bool, opts ...registry.WatchOption) (registry.Watcher, error) {
+	var wo registry.WatchOptions
+	for _, o := range opts {
+		o(&wo)
+	}
+
+	return &gossipWatcher{
+		wo:   wo,
+		next: ch,
+		stop: stop,
+	}, nil
+}
+
+func (m *gossipWatcher) Next() (*registry.Result, error) {
 	for {
 		select {
-		case r := <-w.ch:
-			if r.Service == nil {
-				continue
+		case r, ok := <-m.next:
+			if !ok {
+				return nil, registry.ErrWatcherStopped
 			}
-			if len(w.srv) > 0 && (r.Service.Name != w.srv) {
+			// check watch options
+			if len(m.wo.Service) > 0 && r.Service.Name != m.wo.Service {
 				continue
 			}
 			return r, nil
-		case <-w.exit:
+		case <-m.stop:
 			return nil, registry.ErrWatcherStopped
 		}
 	}
 }
 
-func (w *watcher) Stop() {
+func (m *gossipWatcher) Stop() {
 	select {
-	case <-w.exit:
+	case <-m.stop:
 		return
 	default:
-		close(w.exit)
-		w.fn()
+		close(m.stop)
 	}
 }
