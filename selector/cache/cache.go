@@ -15,9 +15,10 @@ type cacheSelector struct {
 	ttl time.Duration
 
 	// registry cache
-	sync.Mutex
+	sync.RWMutex
 	cache map[string][]*registry.Service
 	ttls  map[string]time.Time
+	isRequesting bool
 
 	watched map[string]bool
 
@@ -81,8 +82,8 @@ func (c *cacheSelector) del(service string) {
 }
 
 func (c *cacheSelector) get(service string) ([]*registry.Service, error) {
-	c.Lock()
-	defer c.Unlock()
+	c.RLock()
+	defer c.RUnlock()
 
 	// watch service if not watched
 	if _, ok := c.watched[service]; !ok {
@@ -90,58 +91,86 @@ func (c *cacheSelector) get(service string) ([]*registry.Service, error) {
 		c.watched[service] = true
 	}
 
-	// get does the actual request for a service
-	// it also caches it
-	get := func(service string) ([]*registry.Service, error) {
-		// ask the registry
-		services, err := c.so.Registry.GetService(service)
-		if err != nil {
-			return nil, err
-		}
-
-		// cache results
-		c.set(service, c.cp(services))
-		return services, nil
-	}
-
 	// check the cache first
 	services, ok := c.cache[service]
 
 	// cache miss or no services
 	if !ok || len(services) == 0 {
-		return get(service)
+		return nil, nil
 	}
 
 	// got cache but lets check ttl
 	ttl, kk := c.ttls[service]
 
-	// within ttl so return cache
-	if kk && time.Since(ttl) < c.ttl {
-		return c.cp(services), nil
+	// without ttl so refresh from server asynchronous
+	if kk && time.Since(ttl) > c.ttl {
+		//when is not requesting, do it
+		if c.isRequesting == false {
+			go c.updateFromRegistryAsyn(service)
+		}
 	}
 
-	// expired entry so get service
-	services, err := get(service)
-
-	// no error then return error
-	if err == nil {
-		return services, nil
-	}
-
-	// not found error then return
-	if err == registry.ErrNotFound {
-		return nil, selector.ErrNotFound
-	}
-
-	// other error
-
-	// return expired cache as last resort
 	return c.cp(services), nil
 }
 
 func (c *cacheSelector) set(service string, services []*registry.Service) {
 	c.cache[service] = services
 	c.ttls[service] = time.Now().Add(c.ttl)
+}
+
+func (c *cacheSelector) updateFromRegistryAsyn(service string) {
+	//set flag requesting from register server
+	c.Lock()
+	if c.isRequesting == true {
+		c.Unlock()
+		return
+	}
+	c.isRequesting = true
+	c.Unlock()
+
+	// get does the actual request for a service
+	// it also caches it
+	// ask the registry
+	services, err := c.so.Registry.GetService(service)
+
+	c.Lock()
+	defer c.Unlock()
+	c.isRequesting = false
+	// found error then return
+	if err != nil {
+		return
+	}
+	// cache results
+	c.set(service, c.cp(services))
+}
+
+func (c *cacheSelector) getFromRegistry(service string) ([]*registry.Service, error) {
+	c.Lock()
+	defer c.Unlock()
+
+	// check the cache first
+	services, ok := c.cache[service]
+	if ok && len(services) > 0 {
+		return c.cp(services), nil
+	}
+
+	// get does the actual request for a service
+	// it also caches it
+	// ask the registry
+	services, err := c.so.Registry.GetService(service)
+	// not found error then return
+	if err == registry.ErrNotFound {
+		return nil, selector.ErrNotFound
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	// cache results
+	c.set(service, c.cp(services))
+
+	return services, nil
 }
 
 func (c *cacheSelector) update(res *registry.Result) {
@@ -346,10 +375,17 @@ func (c *cacheSelector) Select(service string, opts ...selector.SelectOption) (s
 
 	// get the service
 	// try the cache first
-	// if that fails go directly to the registry
 	services, err := c.get(service)
 	if err != nil {
 		return nil, err
+	}
+
+	// if that fails go directly to the registry
+	if services == nil {
+		services, err = c.getFromRegistry(service)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// apply the filters
