@@ -81,16 +81,25 @@ func (c *cacheSelector) del(service string) {
 }
 
 func (c *cacheSelector) get(service string) ([]*registry.Service, error) {
-	// read lock for the duration
+	// read lock
 	c.RLock()
 
-	// watch service if not watched
-	if _, ok := c.watched[service]; !ok {
-		go c.run(service)
+	// check the cache first
+	services, ok := c.cache[service]
+	// get cache ttl
+	ttl, kk := c.ttls[service]
+
+	// got services && within ttl so return cache
+	if ok && kk && time.Since(ttl) < c.ttl {
+		// make a copy
+		cp := c.cp(services)
+		// unlock the read
+		c.RUnlock()
+		// return servics
+		return cp, nil
 	}
 
-	// get does the actual request for a service
-	// it also caches it
+	// get does the actual request for a service and cache it
 	get := func(service string) ([]*registry.Service, error) {
 		// ask the registry
 		services, err := c.so.Registry.GetService(service)
@@ -106,52 +115,16 @@ func (c *cacheSelector) get(service string) ([]*registry.Service, error) {
 		return services, nil
 	}
 
-	// check the cache first
-	services, ok := c.cache[service]
-	// make a copy
-	cp := c.cp(services)
-
-	// cache miss or no services
-	if !ok || len(services) == 0 {
-		// unlock the read
-		c.RUnlock()
-
-		// get and return services
-		return get(service)
+	// watch service if not watched
+	if _, ok := c.watched[service]; !ok {
+		go c.run(service)
 	}
 
-	// got cache but lets check ttl
-	ttl, kk := c.ttls[service]
-
-	// within ttl so return cache
-	if kk && time.Since(ttl) < c.ttl {
-		// unlock the read
-		c.RUnlock()
-
-		// return servics
-		return cp, nil
-	}
-
-	// unlock read
+	// unlock the read lock
 	c.RUnlock()
 
-	// expired entry so get service
-	rservices, err := get(service)
-
-	// no error then return services
-	if err == nil {
-		return rservices, nil
-	}
-
-	// not found error then return
-	if err == registry.ErrNotFound {
-		return nil, selector.ErrNotFound
-	}
-
-	// other error
-
-	// return expired cache copy as last resort
-	return cp, nil
+	// get and return services
+	return get(service)
 }
 
 func (c *cacheSelector) set(service string, services []*registry.Service) {
