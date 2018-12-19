@@ -170,20 +170,37 @@ func configure(g *gossipRegistry, opts ...registry.Option) error {
 		return err
 	}
 
-	// join the memberlist
-	if len(curAddrs) > 0 {
-		_, err := m.Join(curAddrs)
-		if err != nil {
-			return err
-		}
-	}
-
 	// set internals
 	g.queue = queue
 	g.member = m
 	g.interval = c.GossipInterval
 
 	log.Logf("Registry Listening on %s", m.LocalNode().Address())
+	return nil
+}
+
+func join(g *gossipRegistry) error {
+	addrs := func(curAddrs []string) []string {
+		var newAddrs []string
+		for _, addr := range curAddrs {
+			if trimAddr := strings.TrimSpace(addr); len(trimAddr) > 0 {
+				newAddrs = append(newAddrs, trimAddr)
+			}
+		}
+		return newAddrs
+	}
+
+	// new address list
+	newAddrs := addrs(g.options.Addrs)
+
+	// join the memberlist
+	if len(newAddrs) > 0 {
+		_, err := g.member.Join(newAddrs)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -589,6 +606,10 @@ func NewRegistry(opts ...registry.Option) registry.Registry {
 
 	// wait for setup
 	<-time.After(gossip.interval * 2)
+
+	if err := join(gossip); err != nil {
+		log.Fatalf("Error configuring registry: %v", err)
+	}
 
 	return gossip
 }
