@@ -579,13 +579,13 @@ func NewRegistry(opts ...registry.Option) registry.Registry {
 		watchers: make(map[string]chan *registry.Result),
 	}
 
+	// run the updater
+	go gossip.run()
+
 	// configure the gossiper
 	if err := configure(gossip, opts...); err != nil {
 		log.Fatalf("Error configuring registry: %v", err)
 	}
-
-	// run the updater
-	go gossip.run()
 
 	// wait for setup
 	<-time.After(gossip.interval * 2)
