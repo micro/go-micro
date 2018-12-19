@@ -2,9 +2,12 @@
 package gossip
 
 import (
+	"context"
 	"encoding/json"
 	"io/ioutil"
+	"net"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -12,7 +15,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/google/uuid"
 	"github.com/hashicorp/memberlist"
-	"github.com/micro/go-log"
+	log "github.com/micro/go-log"
 	"github.com/micro/go-micro/registry"
 	pb "github.com/micro/go-micro/registry/gossip/proto"
 	"github.com/mitchellh/hashstructure"
@@ -56,7 +59,7 @@ type update struct {
 
 var (
 	// You should change this if using secure
-	DefaultSecret = []byte("gossip")
+	DefaultSecret = []byte("micro-gossip-key") // exactly 16 bytes
 	ExpiryTick    = time.Second * 5
 )
 
@@ -104,14 +107,40 @@ func configure(g *gossipRegistry, opts ...registry.Option) error {
 		RetransmitMult: 3,
 	}
 
-	// machine hostname
-	hostname, _ := os.Hostname()
-
 	// create a new default config
 	c := memberlist.DefaultLocalConfig()
 
-	// set bind to random port
-	c.BindPort = 0
+	if optConfig, ok := g.options.Context.Value(contextConfig{}).(*memberlist.Config); ok && optConfig != nil {
+		c = optConfig
+	}
+
+	if hostport, ok := g.options.Context.Value(contextAddress{}).(string); ok {
+		host, port, err := net.SplitHostPort(hostport)
+		if err == nil {
+			pn, err := strconv.Atoi(port)
+			if err == nil {
+				c.BindPort = pn
+			}
+			c.BindAddr = host
+		}
+	} else {
+		// set bind to random port
+		c.BindPort = 0
+	}
+
+	if hostport, ok := g.options.Context.Value(contextAdvertise{}).(string); ok {
+		host, port, err := net.SplitHostPort(hostport)
+		if err == nil {
+			pn, err := strconv.Atoi(port)
+			if err == nil {
+				c.AdvertisePort = pn
+			}
+			c.AdvertiseAddr = host
+		}
+	}
+
+	// machine hostname
+	hostname, _ := os.Hostname()
 
 	// set the name
 	c.Name = strings.Join([]string{"micro", hostname, uuid.New().String()}, "-")
@@ -134,8 +163,6 @@ func configure(g *gossipRegistry, opts ...registry.Option) error {
 		}
 		c.SecretKey = k
 	}
-
-	// TODO: set advertise addr to advertise behind nat
 
 	// create the memberlist
 	m, err := memberlist.Create(c)
@@ -550,9 +577,13 @@ func NewRegistry(opts ...registry.Option) registry.Registry {
 		watchers: make(map[string]chan *registry.Result),
 	}
 
+	if gossip.options.Context == nil {
+		gossip.options.Context = context.Background()
+	}
+
 	// configure the gossiper
 	if err := configure(gossip, opts...); err != nil {
-		log.Fatal("Error configuring registry: %v", err)
+		log.Fatalf("Error configuring registry: %v", err)
 	}
 
 	// run the updater
