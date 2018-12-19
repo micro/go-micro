@@ -571,14 +571,12 @@ func (g *gossipRegistry) String() string {
 
 func NewRegistry(opts ...registry.Option) registry.Registry {
 	gossip := &gossipRegistry{
-		options:  registry.Options{},
+		options: registry.Options{
+			Context: context.Background(),
+		},
 		updates:  make(chan *update, 100),
 		services: make(map[string][]*registry.Service),
 		watchers: make(map[string]chan *registry.Result),
-	}
-
-	if gossip.options.Context == nil {
-		gossip.options.Context = context.Background()
 	}
 
 	// configure the gossiper
