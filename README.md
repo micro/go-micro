@@ -28,7 +28,7 @@ across the services and retry a different node if there's a problem.
 
 - **Message Encoding** - Dynamic message encoding based on content-type. The client and server will use codecs along with content-type 
 to seamlessly encode and decode Go types for you. Any variety of messages could be encoded and sent from different clients. The client 
-and server handle this by default. This includes proto-rpc and json-rpc by default.
+and server handle this by default. This includes protobuf and json by default.
 
 - **Sync Streaming** - RPC based request/response with support for bidirectional streaming. We provide an abstraction for synchronous 
 communication. A request made to a service will be automatically resolved, load balanced, dialled and streamed. The default 
