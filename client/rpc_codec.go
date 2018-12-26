@@ -105,12 +105,15 @@ func newRpcPlusCodec(req *transport.Message, client transport.Client, c codec.Ne
 
 func (c *rpcPlusCodec) WriteRequest(req *request, body interface{}) error {
 	c.buf.wbuf.Reset()
+
 	m := &codec.Message{
 		Id:     req.Seq,
 		Target: req.Service,
 		Method: req.ServiceMethod,
 		Type:   codec.Request,
-		Header: map[string]string{},
+		Header: map[string]string{
+			"X-Micro-Target": req.Service,
+		},
 	}
 	if err := c.codec.Write(m, body); err != nil {
 		return errors.InternalServerError("go.micro.client.codec", err.Error())
