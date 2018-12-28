@@ -3,7 +3,7 @@ module github.com/micro/go-micro
 require (
 	github.com/armon/go-metrics v0.0.0-20180917152333-f0300d1749da // indirect
 	github.com/go-log/log v0.1.0 // indirect
-	github.com/golang/protobuf v1.2.0
+	github.com/golang/protobuf v1.2.1-0.20181128192352-1d3f30b51784
 	github.com/google/uuid v1.1.0
 	github.com/hashicorp/consul v1.4.0
 	github.com/hashicorp/go-cleanhttp v0.5.0 // indirect
