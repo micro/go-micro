@@ -26,4 +26,8 @@ require (
 	github.com/mitchellh/mapstructure v1.1.2 // indirect
 	github.com/pkg/errors v0.8.0
 	github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529 // indirect
+	golang.org/x/crypto v0.0.0-20181203042331-505ab145d0a9 // indirect
+	golang.org/x/net v0.0.0-20181220203305-927f97764cc3
+	golang.org/x/sys v0.0.0-20181221143128-b4a75ba826a6 // indirect
+	golang.org/x/text v0.3.0 // indirect
 )
