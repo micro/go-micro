@@ -113,6 +113,7 @@ func (c *rpcPlusCodec) WriteRequest(req *request, body interface{}) error {
 		Type:   codec.Request,
 		Header: map[string]string{
 			"X-Micro-Target": req.Service,
+			"X-Micro-Method": req.ServiceMethod,
 		},
 	}
 	if err := c.codec.Write(m, body); err != nil {
