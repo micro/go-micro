@@ -26,7 +26,6 @@ import (
 
 	// selectors
 	"github.com/micro/go-micro/selector"
-	"github.com/micro/go-micro/selector/cache"
 
 	// transports
 	"github.com/micro/go-micro/transport"
@@ -149,7 +148,6 @@ var (
 			Name:   "selector",
 			EnvVar: "MICRO_SELECTOR",
 			Usage:  "Selector used to pick nodes for querying",
-			Value:  "cache",
 		},
 		cli.StringFlag{
 			Name:   "transport",
@@ -179,7 +177,7 @@ var (
 
 	DefaultSelectors = map[string]func(...selector.Option) selector.Selector{
 		"default": selector.NewSelector,
-		"cache":   cache.NewSelector,
+		"cache":   selector.NewSelector,
 	}
 
 	DefaultServers = map[string]func(...server.Option) server.Server{

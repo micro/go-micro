@@ -38,20 +38,35 @@ func cp(current []*registry.Service) []*registry.Service {
 }
 
 func addNodes(old, neu []*registry.Node) []*registry.Node {
+	var nodes []*registry.Node
+
+	// add all new nodes
 	for _, n := range neu {
-		var seen bool
-		for i, o := range old {
+		node := *n
+		nodes = append(nodes, &node)
+	}
+
+	// look at old nodes
+	for _, o := range old {
+		var exists bool
+
+		// check against new nodes
+		for _, n := range nodes {
+			// ids match then skip
 			if o.Id == n.Id {
-				seen = true
-				old[i] = n
+				exists = true
 				break
 			}
 		}
-		if !seen {
-			old = append(old, n)
+
+		// keep old node
+		if !exists {
+			node := *o
+			nodes = append(nodes, &node)
 		}
 	}
-	return old
+
+	return nodes
 }
 
 func addServices(old, neu []*registry.Service) []*registry.Service {
@@ -91,19 +106,27 @@ func delNodes(old, del []*registry.Node) []*registry.Node {
 
 func delServices(old, del []*registry.Service) []*registry.Service {
 	var services []*registry.Service
-	for i, o := range old {
+
+	for _, o := range old {
+		srv := new(registry.Service)
+		*srv = *o
+
 		var rem bool
+
 		for _, s := range del {
-			if o.Version == s.Version {
-				old[i].Nodes = delNodes(o.Nodes, s.Nodes)
-				if len(old[i].Nodes) == 0 {
+			if srv.Version == s.Version {
+				srv.Nodes = delNodes(srv.Nodes, s.Nodes)
+
+				if len(srv.Nodes) == 0 {
 					rem = true
 				}
 			}
 		}
+
 		if !rem {
-			services = append(services, o)
+			services = append(services, srv)
 		}
 	}
+
 	return services
 }
