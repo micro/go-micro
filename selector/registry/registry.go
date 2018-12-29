@@ -1,4 +1,4 @@
-// Package registry is uses the go-micro registry for selection
+// Package registry uses the go-micro registry for selection
 package registry
 
 import (

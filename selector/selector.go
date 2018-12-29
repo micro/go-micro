@@ -1,4 +1,4 @@
-// Package selector is a way to load balance service nodes
+// Package selector is a way to pick a list of service nodes
 package selector
 
 import (
