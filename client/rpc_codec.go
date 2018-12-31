@@ -43,9 +43,7 @@ type readWriteCloser struct {
 
 type clientCodec interface {
 	WriteRequest(*request, interface{}) error
-	ReadResponseHeader(*response) error
-	ReadResponseBody(interface{}) error
-
+	ReadResponse(*response, interface{}) error
 	Close() error
 }
 
@@ -129,28 +127,33 @@ func (c *rpcCodec) WriteRequest(req *request, body interface{}) error {
 	return nil
 }
 
-func (c *rpcCodec) ReadResponseHeader(r *response) error {
+func (c *rpcCodec) ReadResponse(r *response, b interface{}) error {
 	var m transport.Message
 	if err := c.client.Recv(&m); err != nil {
 		return errors.InternalServerError("go.micro.client.transport", err.Error())
 	}
 	c.buf.rbuf.Reset()
 	c.buf.rbuf.Write(m.Body)
+
 	var me codec.Message
+	// set headers
+	me.Header = m.Header
+
+	// read header
 	err := c.codec.ReadHeader(&me, codec.Response)
 	r.ServiceMethod = me.Method
 	r.Seq = me.Id
 	r.Error = me.Error
+
 	if err != nil {
 		return errors.InternalServerError("go.micro.client.codec", err.Error())
 	}
-	return nil
-}
 
-func (c *rpcCodec) ReadResponseBody(b interface{}) error {
+	// read body
 	if err := c.codec.ReadBody(b); err != nil {
 		return errors.InternalServerError("go.micro.client.codec", err.Error())
 	}
+
 	return nil
 }
 

@@ -68,7 +68,8 @@ func (r *rpcStream) Recv(msg interface{}) error {
 	}
 
 	var resp response
-	if err := r.codec.ReadResponseHeader(&resp); err != nil {
+
+	if err := r.codec.ReadResponse(&resp, msg); err != nil {
 		if err == io.EOF && !r.isClosed() {
 			r.err = io.ErrUnexpectedEOF
 			return io.ErrUnexpectedEOF
@@ -86,13 +87,6 @@ func (r *rpcStream) Recv(msg interface{}) error {
 			r.err = serverError(resp.Error)
 		} else {
 			r.err = io.EOF
-		}
-		if err := r.codec.ReadResponseBody(nil); err != nil {
-			r.err = err
-		}
-	default:
-		if err := r.codec.ReadResponseBody(msg); err != nil {
-			r.err = err
 		}
 	}
 
