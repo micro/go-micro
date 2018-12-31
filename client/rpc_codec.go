@@ -87,7 +87,7 @@ func (rwc *readWriteCloser) Close() error {
 	return nil
 }
 
-func newRpcPlusCodec(req *transport.Message, client transport.Client, c codec.NewCodec) *rpcCodec {
+func newRpcCodec(req *transport.Message, client transport.Client, c codec.NewCodec) *rpcCodec {
 	rwc := &readWriteCloser{
 		wbuf: bytes.NewBuffer(nil),
 		rbuf: bytes.NewBuffer(nil),

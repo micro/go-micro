@@ -96,7 +96,7 @@ func (r *rpcClient) call(ctx context.Context, address string, req Request, resp 
 		context: ctx,
 		request: req,
 		closed:  make(chan bool),
-		codec:   newRpcPlusCodec(msg, c, cf),
+		codec:   newRpcCodec(msg, c, cf),
 		seq:     seq,
 	}
 	defer stream.Close()
@@ -177,7 +177,7 @@ func (r *rpcClient) stream(ctx context.Context, address string, req Request, opt
 		context: ctx,
 		request: req,
 		closed:  make(chan bool),
-		codec:   newRpcPlusCodec(msg, c, cf),
+		codec:   newRpcCodec(msg, c, cf),
 	}
 
 	ch := make(chan error, 1)
