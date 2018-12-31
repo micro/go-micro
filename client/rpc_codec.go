@@ -28,7 +28,7 @@ var (
 	errShutdown = errs.New("connection is shut down")
 )
 
-type rpcPlusCodec struct {
+type rpcCodec struct {
 	client transport.Client
 	codec  codec.Codec
 
@@ -89,12 +89,12 @@ func (rwc *readWriteCloser) Close() error {
 	return nil
 }
 
-func newRpcPlusCodec(req *transport.Message, client transport.Client, c codec.NewCodec) *rpcPlusCodec {
+func newRpcPlusCodec(req *transport.Message, client transport.Client, c codec.NewCodec) *rpcCodec {
 	rwc := &readWriteCloser{
 		wbuf: bytes.NewBuffer(nil),
 		rbuf: bytes.NewBuffer(nil),
 	}
-	r := &rpcPlusCodec{
+	r := &rpcCodec{
 		buf:    rwc,
 		client: client,
 		codec:  c(rwc),
@@ -103,7 +103,7 @@ func newRpcPlusCodec(req *transport.Message, client transport.Client, c codec.Ne
 	return r
 }
 
-func (c *rpcPlusCodec) WriteRequest(req *request, body interface{}) error {
+func (c *rpcCodec) WriteRequest(req *request, body interface{}) error {
 	c.buf.wbuf.Reset()
 
 	m := &codec.Message{
@@ -129,7 +129,7 @@ func (c *rpcPlusCodec) WriteRequest(req *request, body interface{}) error {
 	return nil
 }
 
-func (c *rpcPlusCodec) ReadResponseHeader(r *response) error {
+func (c *rpcCodec) ReadResponseHeader(r *response) error {
 	var m transport.Message
 	if err := c.client.Recv(&m); err != nil {
 		return errors.InternalServerError("go.micro.client.transport", err.Error())
@@ -147,14 +147,14 @@ func (c *rpcPlusCodec) ReadResponseHeader(r *response) error {
 	return nil
 }
 
-func (c *rpcPlusCodec) ReadResponseBody(b interface{}) error {
+func (c *rpcCodec) ReadResponseBody(b interface{}) error {
 	if err := c.codec.ReadBody(b); err != nil {
 		return errors.InternalServerError("go.micro.client.codec", err.Error())
 	}
 	return nil
 }
 
-func (c *rpcPlusCodec) Close() error {
+func (c *rpcCodec) Close() error {
 	c.buf.Close()
 	c.codec.Close()
 	if err := c.client.Close(); err != nil {
