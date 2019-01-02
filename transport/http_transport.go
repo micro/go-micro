@@ -452,9 +452,13 @@ func (h *httpTransport) Dial(addr string, opts ...DialOption) (Client, error) {
 				InsecureSkipVerify: true,
 			}
 		}
-		conn, err = tls.DialWithDialer(&net.Dialer{Timeout: dopts.Timeout}, "tcp", addr, config)
+		conn, err = newConn(func(addr string) (net.Conn, error) {
+			return tls.DialWithDialer(&net.Dialer{Timeout: dopts.Timeout}, "tcp", addr, config)
+		})(addr)
 	} else {
-		conn, err = net.DialTimeout("tcp", addr, dopts.Timeout)
+		conn, err = newConn(func(addr string) (net.Conn, error) {
+			return net.DialTimeout("tcp", addr, dopts.Timeout)
+		})(addr)
 	}
 
 	if err != nil {
