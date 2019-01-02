@@ -5,7 +5,9 @@ import (
 	errs "errors"
 
 	"github.com/micro/go-micro/codec"
+	"github.com/micro/go-micro/codec/json"
 	"github.com/micro/go-micro/codec/jsonrpc"
+	"github.com/micro/go-micro/codec/proto"
 	"github.com/micro/go-micro/codec/protorpc"
 	"github.com/micro/go-micro/errors"
 	"github.com/micro/go-micro/transport"
@@ -65,9 +67,9 @@ var (
 	defaultContentType = "application/octet-stream"
 
 	defaultCodecs = map[string]codec.NewCodec{
-		"application/json":         jsonrpc.NewCodec,
+		"application/protobuf":     proto.NewCodec,
+		"application/json":         json.NewCodec,
 		"application/json-rpc":     jsonrpc.NewCodec,
-		"application/protobuf":     protorpc.NewCodec,
 		"application/proto-rpc":    protorpc.NewCodec,
 		"application/octet-stream": protorpc.NewCodec,
 	}
@@ -110,8 +112,8 @@ func (c *rpcCodec) WriteRequest(req *request, body interface{}) error {
 		Method: req.ServiceMethod,
 		Type:   codec.Request,
 		Header: map[string]string{
-			"X-Micro-Target": req.Service,
-			"X-Micro-Method": req.ServiceMethod,
+			"X-Micro-Service": req.Service,
+			"X-Micro-Method":  req.ServiceMethod,
 		},
 	}
 	if err := c.codec.Write(m, body); err != nil {

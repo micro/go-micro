@@ -4,7 +4,10 @@ import (
 	"bytes"
 
 	"github.com/micro/go-micro/codec"
+	"github.com/micro/go-micro/codec/grpc"
+	"github.com/micro/go-micro/codec/json"
 	"github.com/micro/go-micro/codec/jsonrpc"
+	"github.com/micro/go-micro/codec/proto"
 	"github.com/micro/go-micro/codec/protorpc"
 	"github.com/micro/go-micro/transport"
 	"github.com/pkg/errors"
@@ -25,9 +28,12 @@ type readWriteCloser struct {
 
 var (
 	defaultCodecs = map[string]codec.NewCodec{
-		"application/json":         jsonrpc.NewCodec,
+		"application/grpc":         grpc.NewCodec,
+		"application/grpc+json":    grpc.NewCodec,
+		"application/grpc+proto":   grpc.NewCodec,
+		"application/json":         json.NewCodec,
 		"application/json-rpc":     jsonrpc.NewCodec,
-		"application/protobuf":     protorpc.NewCodec,
+		"application/protobuf":     proto.NewCodec,
 		"application/proto-rpc":    protorpc.NewCodec,
 		"application/octet-stream": protorpc.NewCodec,
 	}
@@ -76,6 +82,10 @@ func (c *rpcCodec) ReadRequestHeader(r *request, first bool) error {
 
 		m.Header = tm.Header
 	}
+
+	// set some internal things
+	m.Target = m.Header["X-Micro-Service"]
+	m.Method = m.Header["X-Micro-Method"]
 
 	err := c.codec.ReadHeader(&m, codec.Request)
 	r.ServiceMethod = m.Method
