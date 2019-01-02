@@ -6,8 +6,8 @@ import (
 
 	"github.com/micro/go-micro/codec"
 	"github.com/micro/go-micro/codec/json"
-	"github.com/micro/go-micro/codec/proto"
 	"github.com/micro/go-micro/codec/jsonrpc"
+	"github.com/micro/go-micro/codec/proto"
 	"github.com/micro/go-micro/codec/protorpc"
 	"github.com/micro/go-micro/errors"
 	"github.com/micro/go-micro/transport"
@@ -113,7 +113,7 @@ func (c *rpcCodec) WriteRequest(req *request, body interface{}) error {
 		Type:   codec.Request,
 		Header: map[string]string{
 			"X-Micro-Service": req.Service,
-			"X-Micro-Method": req.ServiceMethod,
+			"X-Micro-Method":  req.ServiceMethod,
 		},
 	}
 	if err := c.codec.Write(m, body); err != nil {

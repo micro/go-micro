@@ -245,6 +245,9 @@ func (h *httpTransportSocket) Recv(m *Message) error {
 			}
 		}
 
+		// set path
+		m.Header[":path"] = h.r.URL.Path
+
 		// return early early
 		return nil
 	}
@@ -275,6 +278,9 @@ func (h *httpTransportSocket) Recv(m *Message) error {
 			m.Header[k] = ""
 		}
 	}
+
+	// set path
+	m.Header[":path"] = h.r.URL.Path
 
 	return nil
 }
