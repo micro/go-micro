@@ -26,6 +26,7 @@ import (
 
 	// selectors
 	"github.com/micro/go-micro/selector"
+	"github.com/micro/go-micro/selector/static"
 
 	// transports
 	"github.com/micro/go-micro/transport"
@@ -178,6 +179,7 @@ var (
 	DefaultSelectors = map[string]func(...selector.Option) selector.Selector{
 		"default": selector.NewSelector,
 		"cache":   selector.NewSelector,
+		"static": static.NewSelector,
 	}
 
 	DefaultServers = map[string]func(...server.Option) server.Server{
