@@ -26,6 +26,7 @@ import (
 
 	// selectors
 	"github.com/micro/go-micro/selector"
+	"github.com/micro/go-micro/selector/dns"
 	"github.com/micro/go-micro/selector/static"
 
 	// transports
@@ -178,6 +179,7 @@ var (
 
 	DefaultSelectors = map[string]func(...selector.Option) selector.Selector{
 		"default": selector.NewSelector,
+		"dns":     dns.NewSelector,
 		"cache":   selector.NewSelector,
 		"static": static.NewSelector,
 	}
