@@ -29,6 +29,13 @@ type readWriteCloser struct {
 	rbuf *bytes.Buffer
 }
 
+type serverCodec interface {
+	ReadHeader(*request, bool) error
+	ReadBody(interface{}) error
+	Write(*response, interface{}, bool) error
+	Close() error
+}
+
 var (
 	DefaultContentType = "application/protobuf"
 
@@ -72,7 +79,7 @@ func newRpcCodec(req *transport.Message, socket transport.Socket, c codec.NewCod
 	return r
 }
 
-func (c *rpcCodec) ReadRequestHeader(r *request, first bool) error {
+func (c *rpcCodec) ReadHeader(r *request, first bool) error {
 	m := codec.Message{Header: c.req.Header}
 
 	if !first {
@@ -106,11 +113,11 @@ func (c *rpcCodec) ReadRequestHeader(r *request, first bool) error {
 	return err
 }
 
-func (c *rpcCodec) ReadRequestBody(b interface{}) error {
+func (c *rpcCodec) ReadBody(b interface{}) error {
 	return c.codec.ReadBody(b)
 }
 
-func (c *rpcCodec) WriteResponse(r *response, body interface{}, last bool) error {
+func (c *rpcCodec) Write(r *response, body interface{}, last bool) error {
 	c.buf.wbuf.Reset()
 	m := &codec.Message{
 		Method: r.ServiceMethod,

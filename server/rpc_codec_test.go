@@ -47,7 +47,7 @@ func TestCodecWriteError(t *testing.T) {
 		socket: socket,
 	}
 
-	err := c.WriteResponse(&response{
+	err := c.Write(&response{
 		ServiceMethod: "Service.Method",
 		Seq:           0,
 		Error:         "",
@@ -55,7 +55,7 @@ func TestCodecWriteError(t *testing.T) {
 	}, "body", false)
 
 	if err != nil {
-		t.Fatalf(`Expected WriteResponse to fail; got "%+v" instead`, err)
+		t.Fatalf(`Expected Write to fail; got "%+v" instead`, err)
 	}
 
 	const expectedError = "Unable to encode body: simulating a codec write failure"

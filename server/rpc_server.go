@@ -70,6 +70,26 @@ func (s *rpcServer) accept(sock transport.Socket) {
 		// we use this Content-Type header to identify the codec needed
 		ct := msg.Header["Content-Type"]
 
+		// strip our headers
+		hdr := make(map[string]string)
+		for k, v := range msg.Header {
+			hdr[k] = v
+		}
+
+		// set local/remote ips
+		hdr["Local"] = sock.Local()
+		hdr["Remote"] = sock.Remote()
+
+		// create new context
+		ctx := metadata.NewContext(context.Background(), hdr)
+
+		// set the timeout if we have it
+		if len(to) > 0 {
+			if n, err := strconv.ParseUint(to, 10, 64); err == nil {
+				ctx, _ = context.WithTimeout(ctx, time.Duration(n))
+			}
+		}
+
 		// no content type
 		if len(ct) == 0 {
 			ct = DefaultContentType
@@ -88,28 +108,8 @@ func (s *rpcServer) accept(sock transport.Socket) {
 			return
 		}
 
+		// create the internal server codec
 		codec := newRpcCodec(&msg, sock, cf)
-
-		// strip our headers
-		hdr := make(map[string]string)
-		for k, v := range msg.Header {
-			hdr[k] = v
-		}
-		delete(hdr, "Content-Type")
-		delete(hdr, "Timeout")
-
-		// set local/remote ips
-		hdr["Local"] = sock.Local()
-		hdr["Remote"] = sock.Remote()
-
-		ctx := metadata.NewContext(context.Background(), hdr)
-
-		// set the timeout if we have it
-		if len(to) > 0 {
-			if n, err := strconv.ParseUint(to, 10, 64); err == nil {
-				ctx, _ = context.WithTimeout(ctx, time.Duration(n))
-			}
-		}
 
 		// TODO: needs better error handling
 		if err := s.router.ServeRequest(ctx, codec, ct); err != nil {

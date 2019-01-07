@@ -225,7 +225,7 @@ func (router *router) sendResponse(sending sync.Locker, req *request, reply inte
 	}
 	resp.Seq = req.Seq
 	sending.Lock()
-	err = codec.WriteResponse(resp, reply, last)
+	err = codec.Write(resp, reply, last)
 	sending.Unlock()
 	router.freeResponse(resp)
 	return err
@@ -391,12 +391,12 @@ func (router *router) readRequest(codec serverCodec) (service *service, mtype *m
 			return
 		}
 		// discard body
-		codec.ReadRequestBody(nil)
+		codec.ReadBody(nil)
 		return
 	}
 	// is it a streaming request? then we don't read the body
 	if mtype.stream {
-		codec.ReadRequestBody(nil)
+		codec.ReadBody(nil)
 		return
 	}
 
@@ -409,7 +409,7 @@ func (router *router) readRequest(codec serverCodec) (service *service, mtype *m
 		argIsValue = true
 	}
 	// argv guaranteed to be a pointer now.
-	if err = codec.ReadRequestBody(argv.Interface()); err != nil {
+	if err = codec.ReadBody(argv.Interface()); err != nil {
 		return
 	}
 	if argIsValue {
@@ -425,7 +425,7 @@ func (router *router) readRequest(codec serverCodec) (service *service, mtype *m
 func (router *router) readRequestHeader(codec serverCodec) (service *service, mtype *methodType, req *request, keepReading bool, err error) {
 	// Grab the request header.
 	req = router.getRequest()
-	err = codec.ReadRequestHeader(req, true)
+	err = codec.ReadHeader(req, true)
 	if err != nil {
 		req = nil
 		if err == io.EOF || err == io.ErrUnexpectedEOF {
@@ -457,12 +457,4 @@ func (router *router) readRequestHeader(codec serverCodec) (service *service, mt
 		err = errors.New("rpc: can't find method " + req.ServiceMethod)
 	}
 	return
-}
-
-type serverCodec interface {
-	ReadRequestHeader(*request, bool) error
-	ReadRequestBody(interface{}) error
-	WriteResponse(*response, interface{}, bool) error
-
-	Close() error
 }

@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/micro/go-log"
+	"github.com/micro/go-micro/codec"
 	"github.com/micro/go-micro/registry"
 )
 
@@ -29,7 +30,7 @@ type Server interface {
 
 // Router handle serving messages
 type Router interface {
-	ServeRequest(context.Context, Stream) error
+	ServeCodec(context.Context, codec.Codec) error
 }
 
 // Message is an async message interface
