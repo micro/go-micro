@@ -2,6 +2,8 @@ package server
 
 import (
 	"bytes"
+	"fmt"
+	"strconv"
 
 	"github.com/micro/go-micro/codec"
 	"github.com/micro/go-micro/codec/grpc"
@@ -87,9 +89,17 @@ func (c *rpcCodec) ReadRequestHeader(r *request, first bool) error {
 	m.Target = m.Header["X-Micro-Service"]
 	m.Method = m.Header["X-Micro-Method"]
 
+	// set id
+	if len(m.Header["X-Micro-Id"]) > 0 {
+		id, _ := strconv.ParseInt(m.Header["X-Micro-Id"], 10, 64)
+		m.Id = uint64(id)
+	}
+
+	// read header via codec
 	err := c.codec.ReadHeader(&m, codec.Request)
 	r.ServiceMethod = m.Method
 	r.Seq = m.Id
+
 	return err
 }
 
@@ -104,11 +114,16 @@ func (c *rpcCodec) WriteResponse(r *response, body interface{}, last bool) error
 		Id:     r.Seq,
 		Error:  r.Error,
 		Type:   codec.Response,
-		Header: map[string]string{},
+		Header: map[string]string{
+			"X-Micro-Id":     fmt.Sprintf("%d", r.Seq),
+			"X-Micro-Method": r.ServiceMethod,
+			"X-Micro-Error":  r.Error,
+		},
 	}
 	if err := c.codec.Write(m, body); err != nil {
 		c.buf.wbuf.Reset()
 		m.Error = errors.Wrapf(err, "Unable to encode body").Error()
+		m.Header["X-Micro-Error"] = m.Error
 		if err := c.codec.Write(m, nil); err != nil {
 			return err
 		}
