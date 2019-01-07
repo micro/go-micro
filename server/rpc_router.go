@@ -166,28 +166,35 @@ func prepareMethod(method reflect.Method) *methodType {
 	return &methodType{method: method, ArgType: argType, ReplyType: replyType, ContextType: contextType, stream: stream}
 }
 
-func (router *router) register(rcvr interface{}) error {
+func (router *router) NewHandler(h interface{}, opts ...HandlerOption) Handler {
+	return newRpcHandler(h, opts...)
+}
+
+func (router *router) Handle(h Handler) error {
 	router.mu.Lock()
 	defer router.mu.Unlock()
 	if router.serviceMap == nil {
 		router.serviceMap = make(map[string]*service)
 	}
+
+	if len(h.Name()) == 0 {
+		return errors.New("rpc.Handle: handler has no name")
+	}
+	if !isExported(h.Name()) {
+		return errors.New("rpc.Handle: type " + h.Name() + " is not exported")
+	}
+
+	rcvr := h.Handler()
 	s := new(service)
 	s.typ = reflect.TypeOf(rcvr)
 	s.rcvr = reflect.ValueOf(rcvr)
-	sname := reflect.Indirect(s.rcvr).Type().Name()
-	if sname == "" {
-		log.Fatal("rpc: no service name for type", s.typ.String())
+
+	// check name
+	if _, present := router.serviceMap[h.Name()]; present {
+		return errors.New("rpc.Handle: service already defined: " + h.Name())
 	}
-	if !isExported(sname) {
-		s := "rpc Register: type " + sname + " is not exported"
-		log.Log(s)
-		return errors.New(s)
-	}
-	if _, present := router.serviceMap[sname]; present {
-		return errors.New("rpc: service already defined: " + sname)
-	}
-	s.name = sname
+
+	s.name = h.Name()
 	s.method = make(map[string]*methodType)
 
 	// Install the methods
@@ -198,11 +205,12 @@ func (router *router) register(rcvr interface{}) error {
 		}
 	}
 
+	// Check there are methods
 	if len(s.method) == 0 {
-		s := "rpc Register: type " + sname + " has no exported methods of suitable type"
-		log.Log(s)
-		return errors.New(s)
+		return errors.New("rpc Register: type " + s.name + " has no exported methods of suitable type")
 	}
+
+	// save handler
 	router.serviceMap[s.name] = s
 	return nil
 }
@@ -318,7 +326,7 @@ func (m *methodType) prepareContext(ctx context.Context) reflect.Value {
 	return reflect.Zero(m.ContextType)
 }
 
-func (router *router) serveRequest(ctx context.Context, codec serverCodec, ct string) error {
+func (router *router) ServeRequest(ctx context.Context, codec serverCodec, ct string) error {
 	sending := new(sync.Mutex)
 	service, mtype, req, argv, replyv, keepReading, err := router.readRequest(codec)
 	if err != nil {

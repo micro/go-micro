@@ -107,7 +107,7 @@ func (s *rpcServer) accept(sock transport.Socket) {
 		}
 
 		// TODO: needs better error handling
-		if err := s.router.serveRequest(ctx, codec, ct); err != nil {
+		if err := s.router.ServeRequest(ctx, codec, ct); err != nil {
 			s.wg.Done()
 			log.Logf("Unexpected error serving request, closing socket: %v", err)
 			return
@@ -149,14 +149,14 @@ func (s *rpcServer) Init(opts ...Option) error {
 }
 
 func (s *rpcServer) NewHandler(h interface{}, opts ...HandlerOption) Handler {
-	return newRpcHandler(h, opts...)
+	return s.router.NewHandler(h, opts...)
 }
 
 func (s *rpcServer) Handle(h Handler) error {
 	s.Lock()
 	defer s.Unlock()
 
-	if err := s.router.register(h.Handler()); err != nil {
+	if err := s.router.Handle(h); err != nil {
 		return err
 	}
 
