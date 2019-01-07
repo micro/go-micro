@@ -385,7 +385,7 @@ func (router *router) freeResponse(resp *response) {
 }
 
 func (router *router) readRequest(codec serverCodec) (service *service, mtype *methodType, req *request, argv, replyv reflect.Value, keepReading bool, err error) {
-	service, mtype, req, keepReading, err = router.readRequestHeader(codec)
+	service, mtype, req, keepReading, err = router.readHeader(codec)
 	if err != nil {
 		if !keepReading {
 			return
@@ -422,7 +422,7 @@ func (router *router) readRequest(codec serverCodec) (service *service, mtype *m
 	return
 }
 
-func (router *router) readRequestHeader(codec serverCodec) (service *service, mtype *methodType, req *request, keepReading bool, err error) {
+func (router *router) readHeader(codec serverCodec) (service *service, mtype *methodType, req *request, keepReading bool, err error) {
 	// Grab the request header.
 	req = router.getRequest()
 	err = codec.ReadHeader(req, true)
