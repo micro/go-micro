@@ -21,8 +21,8 @@ import (
 )
 
 type rpcServer struct {
-	rpc  *server
-	exit chan chan error
+	router *router
+	exit   chan chan error
 
 	sync.RWMutex
 	opts        Options
@@ -37,12 +37,8 @@ type rpcServer struct {
 func newRpcServer(opts ...Option) Server {
 	options := newOptions(opts...)
 	return &rpcServer{
-		opts: options,
-		rpc: &server{
-			name:         options.Name,
-			serviceMap:   make(map[string]*service),
-			hdlrWrappers: options.HdlrWrappers,
-		},
+		opts:        options,
+		router:      newRpcRouter(options),
 		handlers:    make(map[string]Handler),
 		subscribers: make(map[*subscriber][]broker.Subscriber),
 		exit:        make(chan chan error),
@@ -111,7 +107,7 @@ func (s *rpcServer) accept(sock transport.Socket) {
 		}
 
 		// TODO: needs better error handling
-		if err := s.rpc.serveRequest(ctx, codec, ct); err != nil {
+		if err := s.router.serveRequest(ctx, codec, ct); err != nil {
 			s.wg.Done()
 			log.Logf("Unexpected error serving request, closing socket: %v", err)
 			return
@@ -142,12 +138,12 @@ func (s *rpcServer) Init(opts ...Option) error {
 	for _, opt := range opts {
 		opt(&s.opts)
 	}
-	// update internal server
-	s.rpc = &server{
-		name:         s.opts.Name,
-		serviceMap:   s.rpc.serviceMap,
-		hdlrWrappers: s.opts.HdlrWrappers,
-	}
+
+	// update router
+	r := newRpcRouter(s.opts)
+	r.serviceMap = s.router.serviceMap
+	s.router = r
+
 	s.Unlock()
 	return nil
 }
@@ -160,7 +156,7 @@ func (s *rpcServer) Handle(h Handler) error {
 	s.Lock()
 	defer s.Unlock()
 
-	if err := s.rpc.register(h.Handler()); err != nil {
+	if err := s.router.register(h.Handler()); err != nil {
 		return err
 	}
 

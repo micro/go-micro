@@ -27,6 +27,11 @@ type Server interface {
 	String() string
 }
 
+// Router handle serving messages
+type Router interface {
+	ServeRequest(context.Context, Stream) error
+}
+
 // Message is an async message interface
 type Message interface {
 	Topic() string
@@ -97,6 +102,7 @@ var (
 	DefaultVersion        = "1.0.0"
 	DefaultId             = uuid.New().String()
 	DefaultServer  Server = newRpcServer()
+	DefaultRouter         = newRpcRouter(newOptions())
 )
 
 // DefaultOptions returns config options for the default service
