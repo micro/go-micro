@@ -27,7 +27,7 @@ func Random(services []*registry.Service) Next {
 			return nil, ErrNoneAvailable
 		}
 
-		i := rand.Int() % len(nodes)
+		n := rand.Int() % len(nodes)
 		return nodes[i], nil
 	}
 }
