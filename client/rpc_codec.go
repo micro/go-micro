@@ -3,6 +3,8 @@ package client
 import (
 	"bytes"
 	errs "errors"
+	"fmt"
+	"strconv"
 
 	"github.com/micro/go-micro/codec"
 	"github.com/micro/go-micro/codec/json"
@@ -112,6 +114,7 @@ func (c *rpcCodec) WriteRequest(req *request, body interface{}) error {
 		Method: req.ServiceMethod,
 		Type:   codec.Request,
 		Header: map[string]string{
+			"X-Micro-Id":      fmt.Sprintf("%d", req.Seq),
 			"X-Micro-Service": req.Service,
 			"X-Micro-Method":  req.ServiceMethod,
 		},
@@ -146,6 +149,21 @@ func (c *rpcCodec) ReadResponse(r *response, b interface{}) error {
 	r.ServiceMethod = me.Method
 	r.Seq = me.Id
 	r.Error = me.Error
+
+	// check error in header
+	if len(me.Error) == 0 {
+		r.Error = me.Header["X-Micro-Error"]
+	}
+
+	// check method in header
+	if len(me.Method) == 0 {
+		r.ServiceMethod = me.Header["X-Micro-Method"]
+	}
+
+	if me.Id == 0 && len(me.Header["X-Micro-Id"]) > 0 {
+		id, _ := strconv.ParseInt(me.Header["X-Micro-Id"], 10, 64)
+		r.Seq = uint64(id)
+	}
 
 	if err != nil {
 		return errors.InternalServerError("go.micro.client.codec", err.Error())
