@@ -12,6 +12,8 @@ func init() {
 	rand.Seed(time.Now().UnixNano())
 }
 
+var i = rand.Int()
+
 // Random is a random strategy algorithm for node selection
 func Random(services []*registry.Service) Next {
 	var nodes []*registry.Node
@@ -38,7 +40,6 @@ func RoundRobin(services []*registry.Service) Next {
 		nodes = append(nodes, service.Nodes...)
 	}
 
-	var i = rand.Int()
 	var mtx sync.Mutex
 
 	return func() (*registry.Node, error) {
