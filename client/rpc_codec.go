@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/micro/go-micro/codec"
+	raw "github.com/micro/go-micro/codec/bytes"
 	"github.com/micro/go-micro/codec/json"
 	"github.com/micro/go-micro/codec/jsonrpc"
 	"github.com/micro/go-micro/codec/proto"
@@ -66,14 +67,14 @@ type response struct {
 }
 
 var (
-	defaultContentType = "application/octet-stream"
+	DefaultContentType = "application/protobuf"
 
-	defaultCodecs = map[string]codec.NewCodec{
+	DefaultCodecs = map[string]codec.NewCodec{
 		"application/protobuf":     proto.NewCodec,
 		"application/json":         json.NewCodec,
 		"application/json-rpc":     jsonrpc.NewCodec,
 		"application/proto-rpc":    protorpc.NewCodec,
-		"application/octet-stream": protorpc.NewCodec,
+		"application/octet-stream": raw.NewCodec,
 	}
 )
 

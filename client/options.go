@@ -99,7 +99,7 @@ func newOptions(options ...Option) Options {
 	}
 
 	if len(opts.ContentType) == 0 {
-		opts.ContentType = defaultContentType
+		opts.ContentType = DefaultContentType
 	}
 
 	if opts.Broker == nil {

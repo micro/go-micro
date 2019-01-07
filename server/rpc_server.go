@@ -74,8 +74,13 @@ func (s *rpcServer) accept(sock transport.Socket) {
 		// we use this Content-Type header to identify the codec needed
 		ct := msg.Header["Content-Type"]
 
-		cf, err := s.newCodec(ct)
+		// no content type
+		if len(ct) == 0 {
+			ct = DefaultContentType
+		}
+
 		// TODO: needs better error handling
+		cf, err := s.newCodec(ct)
 		if err != nil {
 			sock.Send(&transport.Message{
 				Header: map[string]string{
@@ -124,7 +129,7 @@ func (s *rpcServer) newCodec(contentType string) (codec.NewCodec, error) {
 	if cf, ok := s.opts.Codecs[contentType]; ok {
 		return cf, nil
 	}
-	if cf, ok := defaultCodecs[contentType]; ok {
+	if cf, ok := DefaultCodecs[contentType]; ok {
 		return cf, nil
 	}
 	return nil, fmt.Errorf("Unsupported Content-Type: %s", contentType)
