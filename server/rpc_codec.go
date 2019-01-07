@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/micro/go-micro/codec"
+	raw "github.com/micro/go-micro/codec/bytes"
 	"github.com/micro/go-micro/codec/grpc"
 	"github.com/micro/go-micro/codec/json"
 	"github.com/micro/go-micro/codec/jsonrpc"
@@ -29,7 +30,9 @@ type readWriteCloser struct {
 }
 
 var (
-	defaultCodecs = map[string]codec.NewCodec{
+	DefaultContentType = "application/protobuf"
+
+	DefaultCodecs = map[string]codec.NewCodec{
 		"application/grpc":         grpc.NewCodec,
 		"application/grpc+json":    grpc.NewCodec,
 		"application/grpc+proto":   grpc.NewCodec,
@@ -37,7 +40,7 @@ var (
 		"application/json-rpc":     jsonrpc.NewCodec,
 		"application/protobuf":     proto.NewCodec,
 		"application/proto-rpc":    protorpc.NewCodec,
-		"application/octet-stream": protorpc.NewCodec,
+		"application/octet-stream": raw.NewCodec,
 	}
 )
 

@@ -49,7 +49,7 @@ func (r *rpcClient) newCodec(contentType string) (codec.NewCodec, error) {
 	if c, ok := r.opts.Codecs[contentType]; ok {
 		return c, nil
 	}
-	if cf, ok := defaultCodecs[contentType]; ok {
+	if cf, ok := DefaultCodecs[contentType]; ok {
 		return cf, nil
 	}
 	return nil, fmt.Errorf("Unsupported Content-Type: %s", contentType)
