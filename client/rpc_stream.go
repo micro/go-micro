@@ -51,7 +51,7 @@ func (r *rpcStream) Send(msg interface{}) error {
 		ServiceMethod: r.request.Method(),
 	}
 
-	if err := r.codec.WriteRequest(&req, msg); err != nil {
+	if err := r.codec.Write(&req, msg); err != nil {
 		r.err = err
 		return err
 	}
@@ -69,7 +69,7 @@ func (r *rpcStream) Recv(msg interface{}) error {
 
 	var resp response
 
-	if err := r.codec.ReadResponse(&resp, msg); err != nil {
+	if err := r.codec.Read(&resp, msg); err != nil {
 		if err == io.EOF && !r.isClosed() {
 			r.err = io.ErrUnexpectedEOF
 			return io.ErrUnexpectedEOF
@@ -81,7 +81,7 @@ func (r *rpcStream) Recv(msg interface{}) error {
 	switch {
 	case len(resp.Error) > 0:
 		// We've got an error response. Give this to the request;
-		// any subsequent requests will get the ReadResponseBody
+		// any subsequent requests will get the ReadBody
 		// error if there is one.
 		if resp.Error != lastStreamResponseError {
 			r.err = serverError(resp.Error)
