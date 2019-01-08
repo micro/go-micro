@@ -233,13 +233,13 @@ func (router *router) sendResponse(sending sync.Locker, req *request, reply inte
 	return err
 }
 
-func (s *service) call(ctx context.Context, router *router, sending *sync.Mutex, mtype *methodType, req *request, argv, replyv reflect.Value, codec codec.Codec, ct string) {
+func (s *service) call(ctx context.Context, router *router, sending *sync.Mutex, mtype *methodType, req *request, argv, replyv reflect.Value, codec codec.Codec) {
 	function := mtype.method.Func
 	var returnValues []reflect.Value
 
 	r := &rpcRequest{
 		service:     router.name,
-		contentType: ct,
+		contentType: req.msg.Header["Content-Type"],
 		method:      req.msg.Method,
 	}
 
@@ -328,7 +328,7 @@ func (m *methodType) prepareContext(ctx context.Context) reflect.Value {
 	return reflect.Zero(m.ContextType)
 }
 
-func (router *router) ServeRequest(ctx context.Context, cc codec.Codec, ct string) error {
+func (router *router) ServeRequest(ctx context.Context, cc codec.Codec) error {
 	sending := new(sync.Mutex)
 	service, mtype, req, argv, replyv, keepReading, err := router.readRequest(cc)
 	if err != nil {
@@ -342,7 +342,7 @@ func (router *router) ServeRequest(ctx context.Context, cc codec.Codec, ct strin
 		}
 		return err
 	}
-	service.call(ctx, router, sending, mtype, req, argv, replyv, cc, ct)
+	service.call(ctx, router, sending, mtype, req, argv, replyv, cc)
 	return nil
 }
 
