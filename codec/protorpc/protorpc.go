@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"strconv"
 	"sync"
 
 	"github.com/golang/protobuf/proto"
@@ -31,13 +32,22 @@ func (c *protoCodec) String() string {
 	return "proto-rpc"
 }
 
+func id(id string) *uint64 {
+	p, err := strconv.ParseInt(id, 10, 64)
+	if err != nil {
+		p = 0
+	}
+	i := uint64(p)
+	return &i
+}
+
 func (c *protoCodec) Write(m *codec.Message, b interface{}) error {
 	switch m.Type {
 	case codec.Request:
 		c.Lock()
 		defer c.Unlock()
 		// This is protobuf, of course we copy it.
-		pbr := &Request{ServiceMethod: &m.Method, Seq: &m.Id}
+		pbr := &Request{ServiceMethod: &m.Method, Seq: id(m.Id)}
 		data, err := proto.Marshal(pbr)
 		if err != nil {
 			return err
@@ -63,7 +73,7 @@ func (c *protoCodec) Write(m *codec.Message, b interface{}) error {
 	case codec.Response:
 		c.Lock()
 		defer c.Unlock()
-		rtmp := &Response{ServiceMethod: &m.Method, Seq: &m.Id, Error: &m.Error}
+		rtmp := &Response{ServiceMethod: &m.Method, Seq: id(m.Id), Error: &m.Error}
 		data, err := proto.Marshal(rtmp)
 		if err != nil {
 			return err
@@ -117,7 +127,7 @@ func (c *protoCodec) ReadHeader(m *codec.Message, mt codec.MessageType) error {
 			return err
 		}
 		m.Method = rtmp.GetServiceMethod()
-		m.Id = rtmp.GetSeq()
+		m.Id = fmt.Sprintf("%d", rtmp.GetSeq())
 	case codec.Response:
 		data, err := ReadNetString(c.rwc)
 		if err != nil {
@@ -129,7 +139,7 @@ func (c *protoCodec) ReadHeader(m *codec.Message, mt codec.MessageType) error {
 			return err
 		}
 		m.Method = rtmp.GetServiceMethod()
-		m.Id = rtmp.GetSeq()
+		m.Id = fmt.Sprintf("%d", rtmp.GetSeq())
 		m.Error = rtmp.GetError()
 	case codec.Publication:
 		_, err := io.Copy(c.buf, c.rwc)

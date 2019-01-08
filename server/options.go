@@ -25,7 +25,11 @@ type Options struct {
 	HdlrWrappers []HandlerWrapper
 	SubWrappers  []SubscriberWrapper
 
+	// The register expiry time
 	RegisterTTL time.Duration
+
+	// The router for requests
+	Router Router
 
 	// Debug Handler which can be set by a user
 	DebugHandler debug.DebugHandler
@@ -161,6 +165,13 @@ func Metadata(md map[string]string) Option {
 func RegisterTTL(t time.Duration) Option {
 	return func(o *Options) {
 		o.RegisterTTL = t
+	}
+}
+
+// WithRouter sets the request router
+func WithRouter(r Router) Option {
+	return func(o *Options) {
+		o.Router = r
 	}
 }
 

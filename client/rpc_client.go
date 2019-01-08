@@ -97,7 +97,7 @@ func (r *rpcClient) call(ctx context.Context, address string, req Request, resp 
 		request: req,
 		closed:  make(chan bool),
 		codec:   newRpcCodec(msg, c, cf),
-		seq:     seq,
+		seq:     fmt.Sprintf("%v", seq),
 	}
 	defer stream.Close()
 

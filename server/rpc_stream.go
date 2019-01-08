@@ -3,16 +3,18 @@ package server
 import (
 	"context"
 	"sync"
+
+	"github.com/micro/go-micro/codec"
 )
 
 // Implements the Streamer interface
 type rpcStream struct {
 	sync.RWMutex
-	seq     uint64
+	id      string
 	closed  bool
 	err     error
 	request Request
-	codec   serverCodec
+	codec   codec.Codec
 	context context.Context
 }
 
@@ -28,28 +30,30 @@ func (r *rpcStream) Send(msg interface{}) error {
 	r.Lock()
 	defer r.Unlock()
 
-	resp := response{
-		ServiceMethod: r.request.Method(),
-		Seq:           r.seq,
+	resp := codec.Message{
+		Method: r.request.Method(),
+		Id:     r.id,
+		Type:   codec.Response,
 	}
 
-	return r.codec.Write(&resp, msg, false)
+	return r.codec.Write(&resp, msg)
 }
 
 func (r *rpcStream) Recv(msg interface{}) error {
 	r.Lock()
 	defer r.Unlock()
 
-	req := request{}
+	req := new(codec.Message)
+	req.Type = codec.Request
 
-	if err := r.codec.ReadHeader(&req, false); err != nil {
+	if err := r.codec.ReadHeader(req, req.Type); err != nil {
 		// discard body
 		r.codec.ReadBody(nil)
 		return err
 	}
 
 	// we need to stay up to date with sequence numbers
-	r.seq = req.Seq
+	r.id = req.Id
 	return r.codec.ReadBody(msg)
 }
 

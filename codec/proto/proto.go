@@ -22,11 +22,18 @@ func (c *Codec) ReadBody(b interface{}) error {
 	if err != nil {
 		return err
 	}
+	if b == nil {
+		return nil
+	}
 	return proto.Unmarshal(buf, b.(proto.Message))
 }
 
 func (c *Codec) Write(m *codec.Message, b interface{}) error {
-	buf, err := proto.Marshal(b.(proto.Message))
+	p, ok := b.(proto.Message)
+	if !ok {
+		return nil
+	}
+	buf, err := proto.Marshal(p)
 	if err != nil {
 		return err
 	}

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	errs "errors"
 	"fmt"
-	"strconv"
 
 	"github.com/micro/go-micro/codec"
 	raw "github.com/micro/go-micro/codec/bytes"
@@ -55,13 +54,13 @@ type clientCodec interface {
 type request struct {
 	Service       string
 	ServiceMethod string   // format: "Service.Method"
-	Seq           uint64   // sequence number chosen by client
+	Seq           string   // sequence number chosen by client
 	next          *request // for free list in Server
 }
 
 type response struct {
 	ServiceMethod string    // echoes that of the Request
-	Seq           uint64    // echoes that of the request
+	Seq           string    // echoes that of the request
 	Error         string    // error, if any.
 	next          *response // for free list in Server
 }
@@ -115,7 +114,7 @@ func (c *rpcCodec) Write(req *request, body interface{}) error {
 		Method: req.ServiceMethod,
 		Type:   codec.Request,
 		Header: map[string]string{
-			"X-Micro-Id":      fmt.Sprintf("%d", req.Seq),
+			"X-Micro-Id":      fmt.Sprintf("%v", req.Seq),
 			"X-Micro-Service": req.Service,
 			"X-Micro-Method":  req.ServiceMethod,
 		},
@@ -161,9 +160,8 @@ func (c *rpcCodec) Read(r *response, b interface{}) error {
 		r.ServiceMethod = me.Header["X-Micro-Method"]
 	}
 
-	if me.Id == 0 && len(me.Header["X-Micro-Id"]) > 0 {
-		id, _ := strconv.ParseInt(me.Header["X-Micro-Id"], 10, 64)
-		r.Seq = uint64(id)
+	if len(me.Id) == 0 {
+		r.Seq = me.Header["X-Micro-Id"]
 	}
 
 	if err != nil {

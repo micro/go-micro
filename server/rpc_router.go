@@ -17,6 +17,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/micro/go-log"
+	"github.com/micro/go-micro/codec"
 )
 
 var (
@@ -48,16 +49,13 @@ type service struct {
 }
 
 type request struct {
-	ServiceMethod string   // format: "Service.Method"
-	Seq           uint64   // sequence number chosen by client
-	next          *request // for free list in Server
+	msg  *codec.Message
+	next *request // for free list in Server
 }
 
 type response struct {
-	ServiceMethod string    // echoes that of the Request
-	Seq           uint64    // echoes that of the request
-	Error         string    // error, if any.
-	next          *response // for free list in Server
+	msg  *codec.Message
+	next *response // for free list in Server
 }
 
 // router represents an RPC router.
@@ -215,30 +213,34 @@ func (router *router) Handle(h Handler) error {
 	return nil
 }
 
-func (router *router) sendResponse(sending sync.Locker, req *request, reply interface{}, codec serverCodec, errmsg string, last bool) (err error) {
+func (router *router) sendResponse(sending sync.Locker, req *request, reply interface{}, cc codec.Codec, errmsg string, last bool) (err error) {
+	msg := new(codec.Message)
+	msg.Type = codec.Response
 	resp := router.getResponse()
+	resp.msg = msg
+
 	// Encode the response header
-	resp.ServiceMethod = req.ServiceMethod
+	resp.msg.Method = req.msg.Method
 	if errmsg != "" {
-		resp.Error = errmsg
+		resp.msg.Error = errmsg
 		reply = invalidRequest
 	}
-	resp.Seq = req.Seq
+	resp.msg.Id = req.msg.Id
 	sending.Lock()
-	err = codec.Write(resp, reply, last)
+	err = cc.Write(resp.msg, reply)
 	sending.Unlock()
 	router.freeResponse(resp)
 	return err
 }
 
-func (s *service) call(ctx context.Context, router *router, sending *sync.Mutex, mtype *methodType, req *request, argv, replyv reflect.Value, codec serverCodec, ct string) {
+func (s *service) call(ctx context.Context, router *router, sending *sync.Mutex, mtype *methodType, req *request, argv, replyv reflect.Value, codec codec.Codec) {
 	function := mtype.method.Func
 	var returnValues []reflect.Value
 
 	r := &rpcRequest{
 		service:     router.name,
-		contentType: ct,
-		method:      req.ServiceMethod,
+		contentType: req.msg.Header["Content-Type"],
+		method:      req.msg.Method,
 	}
 
 	if !mtype.stream {
@@ -282,7 +284,7 @@ func (s *service) call(ctx context.Context, router *router, sending *sync.Mutex,
 		context: ctx,
 		codec:   codec,
 		request: r,
-		seq:     req.Seq,
+		id:      req.msg.Id,
 	}
 
 	// Invoke the method, providing a new value for the reply.
@@ -326,21 +328,21 @@ func (m *methodType) prepareContext(ctx context.Context) reflect.Value {
 	return reflect.Zero(m.ContextType)
 }
 
-func (router *router) ServeRequest(ctx context.Context, codec serverCodec, ct string) error {
+func (router *router) ServeRequest(ctx context.Context, cc codec.Codec) error {
 	sending := new(sync.Mutex)
-	service, mtype, req, argv, replyv, keepReading, err := router.readRequest(codec)
+	service, mtype, req, argv, replyv, keepReading, err := router.readRequest(cc)
 	if err != nil {
 		if !keepReading {
 			return err
 		}
 		// send a response if we actually managed to read a header.
 		if req != nil {
-			router.sendResponse(sending, req, invalidRequest, codec, err.Error(), true)
+			router.sendResponse(sending, req, invalidRequest, cc, err.Error(), true)
 			router.freeRequest(req)
 		}
 		return err
 	}
-	service.call(ctx, router, sending, mtype, req, argv, replyv, codec, ct)
+	service.call(ctx, router, sending, mtype, req, argv, replyv, cc)
 	return nil
 }
 
@@ -384,19 +386,19 @@ func (router *router) freeResponse(resp *response) {
 	router.respLock.Unlock()
 }
 
-func (router *router) readRequest(codec serverCodec) (service *service, mtype *methodType, req *request, argv, replyv reflect.Value, keepReading bool, err error) {
-	service, mtype, req, keepReading, err = router.readHeader(codec)
+func (router *router) readRequest(cc codec.Codec) (service *service, mtype *methodType, req *request, argv, replyv reflect.Value, keepReading bool, err error) {
+	service, mtype, req, keepReading, err = router.readHeader(cc)
 	if err != nil {
 		if !keepReading {
 			return
 		}
 		// discard body
-		codec.ReadBody(nil)
+		cc.ReadBody(nil)
 		return
 	}
 	// is it a streaming request? then we don't read the body
 	if mtype.stream {
-		codec.ReadBody(nil)
+		cc.ReadBody(nil)
 		return
 	}
 
@@ -409,7 +411,7 @@ func (router *router) readRequest(codec serverCodec) (service *service, mtype *m
 		argIsValue = true
 	}
 	// argv guaranteed to be a pointer now.
-	if err = codec.ReadBody(argv.Interface()); err != nil {
+	if err = cc.ReadBody(argv.Interface()); err != nil {
 		return
 	}
 	if argIsValue {
@@ -422,10 +424,14 @@ func (router *router) readRequest(codec serverCodec) (service *service, mtype *m
 	return
 }
 
-func (router *router) readHeader(codec serverCodec) (service *service, mtype *methodType, req *request, keepReading bool, err error) {
+func (router *router) readHeader(cc codec.Codec) (service *service, mtype *methodType, req *request, keepReading bool, err error) {
 	// Grab the request header.
+	msg := new(codec.Message)
+	msg.Type = codec.Request
 	req = router.getRequest()
-	err = codec.ReadHeader(req, true)
+	req.msg = msg
+
+	err = cc.ReadHeader(msg, msg.Type)
 	if err != nil {
 		req = nil
 		if err == io.EOF || err == io.ErrUnexpectedEOF {
@@ -439,9 +445,9 @@ func (router *router) readHeader(codec serverCodec) (service *service, mtype *me
 	// we can still recover and move on to the next request.
 	keepReading = true
 
-	serviceMethod := strings.Split(req.ServiceMethod, ".")
+	serviceMethod := strings.Split(req.msg.Method, ".")
 	if len(serviceMethod) != 2 {
-		err = errors.New("rpc: service/method request ill-formed: " + req.ServiceMethod)
+		err = errors.New("rpc: service/method request ill-formed: " + req.msg.Method)
 		return
 	}
 	// Look up the request.
@@ -449,12 +455,12 @@ func (router *router) readHeader(codec serverCodec) (service *service, mtype *me
 	service = router.serviceMap[serviceMethod[0]]
 	router.mu.Unlock()
 	if service == nil {
-		err = errors.New("rpc: can't find service " + req.ServiceMethod)
+		err = errors.New("rpc: can't find service " + req.msg.Method)
 		return
 	}
 	mtype = service.method[serviceMethod[1]]
 	if mtype == nil {
-		err = errors.New("rpc: can't find method " + req.ServiceMethod)
+		err = errors.New("rpc: can't find method " + req.msg.Method)
 	}
 	return
 }

@@ -30,7 +30,7 @@ type Server interface {
 
 // Router handle serving messages
 type Router interface {
-	ServeCodec(context.Context, codec.Codec) error
+	ServeRequest(context.Context, codec.Codec) error
 }
 
 // Message is an async message interface

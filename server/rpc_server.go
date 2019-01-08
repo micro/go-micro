@@ -45,7 +45,8 @@ func newRpcServer(opts ...Option) Server {
 	}
 }
 
-func (s *rpcServer) accept(sock transport.Socket) {
+// ServeConn serves a single connection
+func (s *rpcServer) ServeConn(sock transport.Socket) {
 	defer func() {
 		// close socket
 		sock.Close()
@@ -92,6 +93,7 @@ func (s *rpcServer) accept(sock transport.Socket) {
 
 		// no content type
 		if len(ct) == 0 {
+			msg.Header["Content-Type"] = DefaultContentType
 			ct = DefaultContentType
 		}
 
@@ -111,8 +113,16 @@ func (s *rpcServer) accept(sock transport.Socket) {
 		// create the internal server codec
 		codec := newRpcCodec(&msg, sock, cf)
 
+		// set router
+		var r Router
+		r = s.router
+
+		if s.opts.Router != nil {
+			r = s.opts.Router
+		}
+
 		// TODO: needs better error handling
-		if err := s.router.ServeRequest(ctx, codec, ct); err != nil {
+		if err := r.ServeRequest(ctx, codec); err != nil {
 			s.wg.Done()
 			log.Logf("Unexpected error serving request, closing socket: %v", err)
 			return
@@ -402,7 +412,7 @@ func (s *rpcServer) Start() error {
 
 	go func() {
 		for {
-			err := ts.Accept(s.accept)
+			err := ts.Accept(s.ServeConn)
 
 			// check if we're supposed to exit
 			select {

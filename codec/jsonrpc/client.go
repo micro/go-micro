@@ -19,17 +19,17 @@ type clientCodec struct {
 	resp clientResponse
 
 	sync.Mutex
-	pending map[uint64]string
+	pending map[interface{}]string
 }
 
 type clientRequest struct {
 	Method string         `json:"method"`
 	Params [1]interface{} `json:"params"`
-	ID     uint64         `json:"id"`
+	ID     interface{}    `json:"id"`
 }
 
 type clientResponse struct {
-	ID     uint64           `json:"id"`
+	ID     interface{}      `json:"id"`
 	Result *json.RawMessage `json:"result"`
 	Error  interface{}      `json:"error"`
 }
@@ -39,7 +39,7 @@ func newClientCodec(conn io.ReadWriteCloser) *clientCodec {
 		dec:     json.NewDecoder(conn),
 		enc:     json.NewEncoder(conn),
 		c:       conn,
-		pending: make(map[uint64]string),
+		pending: make(map[interface{}]string),
 	}
 }
 
@@ -71,7 +71,7 @@ func (c *clientCodec) ReadHeader(m *codec.Message) error {
 	c.Unlock()
 
 	m.Error = ""
-	m.Id = c.resp.ID
+	m.Id = fmt.Sprintf("%v", c.resp.ID)
 	if c.resp.Error != nil {
 		x, ok := c.resp.Error.(string)
 		if !ok {

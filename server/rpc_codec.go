@@ -2,8 +2,6 @@ package server
 
 import (
 	"bytes"
-	"fmt"
-	"strconv"
 
 	"github.com/micro/go-micro/codec"
 	raw "github.com/micro/go-micro/codec/bytes"
@@ -19,6 +17,7 @@ import (
 type rpcCodec struct {
 	socket transport.Socket
 	codec  codec.Codec
+	first  bool
 
 	req *transport.Message
 	buf *readWriteCloser
@@ -65,12 +64,13 @@ func (rwc *readWriteCloser) Close() error {
 	return nil
 }
 
-func newRpcCodec(req *transport.Message, socket transport.Socket, c codec.NewCodec) serverCodec {
+func newRpcCodec(req *transport.Message, socket transport.Socket, c codec.NewCodec) codec.Codec {
 	rwc := &readWriteCloser{
 		rbuf: bytes.NewBuffer(req.Body),
 		wbuf: bytes.NewBuffer(nil),
 	}
 	r := &rpcCodec{
+		first:  true,
 		buf:    rwc,
 		codec:  c(rwc),
 		req:    req,
@@ -79,36 +79,43 @@ func newRpcCodec(req *transport.Message, socket transport.Socket, c codec.NewCod
 	return r
 }
 
-func (c *rpcCodec) ReadHeader(r *request, first bool) error {
+func (c *rpcCodec) ReadHeader(r *codec.Message, t codec.MessageType) error {
 	m := codec.Message{Header: c.req.Header}
 
-	if !first {
+	// if its a follow on request read it
+	if !c.first {
 		var tm transport.Message
+
+		// read off the socket
 		if err := c.socket.Recv(&tm); err != nil {
 			return err
 		}
+		// reset the read buffer
 		c.buf.rbuf.Reset()
+
+		// write the body to the buffer
 		if _, err := c.buf.rbuf.Write(tm.Body); err != nil {
 			return err
 		}
 
+		// set the message header
 		m.Header = tm.Header
 	}
+
+	// no longer first read
+	c.first = false
 
 	// set some internal things
 	m.Target = m.Header["X-Micro-Service"]
 	m.Method = m.Header["X-Micro-Method"]
-
-	// set id
-	if len(m.Header["X-Micro-Id"]) > 0 {
-		id, _ := strconv.ParseInt(m.Header["X-Micro-Id"], 10, 64)
-		m.Id = uint64(id)
-	}
+	m.Id = m.Header["X-Micro-Id"]
 
 	// read header via codec
 	err := c.codec.ReadHeader(&m, codec.Request)
-	r.ServiceMethod = m.Method
-	r.Seq = m.Id
+
+	// set the method/id
+	r.Method = m.Method
+	r.Id = m.Id
 
 	return err
 }
@@ -117,21 +124,28 @@ func (c *rpcCodec) ReadBody(b interface{}) error {
 	return c.codec.ReadBody(b)
 }
 
-func (c *rpcCodec) Write(r *response, body interface{}, last bool) error {
+func (c *rpcCodec) Write(r *codec.Message, body interface{}) error {
 	c.buf.wbuf.Reset()
+
+	// create a new message
 	m := &codec.Message{
-		Method: r.ServiceMethod,
-		Id:     r.Seq,
+		Method: r.Method,
+		Id:     r.Id,
 		Error:  r.Error,
-		Type:   codec.Response,
+		Type:   r.Type,
 		Header: map[string]string{
-			"X-Micro-Id":     fmt.Sprintf("%d", r.Seq),
-			"X-Micro-Method": r.ServiceMethod,
+			"X-Micro-Id":     r.Id,
+			"X-Micro-Method": r.Method,
 			"X-Micro-Error":  r.Error,
+			"Content-Type":   c.req.Header["Content-Type"],
 		},
 	}
+
+	// write to the body
 	if err := c.codec.Write(m, body); err != nil {
 		c.buf.wbuf.Reset()
+
+		// write an error if it failed
 		m.Error = errors.Wrapf(err, "Unable to encode body").Error()
 		m.Header["X-Micro-Error"] = m.Error
 		if err := c.codec.Write(m, nil); err != nil {
@@ -139,7 +153,7 @@ func (c *rpcCodec) Write(r *response, body interface{}, last bool) error {
 		}
 	}
 
-	m.Header["Content-Type"] = c.req.Header["Content-Type"]
+	// send on the socket
 	return c.socket.Send(&transport.Message{
 		Header: m.Header,
 		Body:   c.buf.wbuf.Bytes(),
@@ -150,4 +164,8 @@ func (c *rpcCodec) Close() error {
 	c.buf.Close()
 	c.codec.Close()
 	return c.socket.Close()
+}
+
+func (c *rpcCodec) String() string {
+	return "rpc"
 }
