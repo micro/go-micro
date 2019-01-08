@@ -47,12 +47,11 @@ func TestCodecWriteError(t *testing.T) {
 		socket: socket,
 	}
 
-	err := c.Write(&response{
-		ServiceMethod: "Service.Method",
-		Seq:           0,
-		Error:         "",
-		next:          nil,
-	}, "body", false)
+	err := c.Write(&codec.Message{
+		Method: "Service.Method",
+		Id:     "0",
+		Error:  "",
+	}, "body")
 
 	if err != nil {
 		t.Fatalf(`Expected Write to fail; got "%+v" instead`, err)

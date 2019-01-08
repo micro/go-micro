@@ -181,7 +181,7 @@ var (
 		"default": selector.NewSelector,
 		"dns":     dns.NewSelector,
 		"cache":   selector.NewSelector,
-		"static": static.NewSelector,
+		"static":  static.NewSelector,
 	}
 
 	DefaultServers = map[string]func(...server.Option) server.Server{

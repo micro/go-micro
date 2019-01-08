@@ -34,7 +34,7 @@ type Codec interface {
 // the communication, likely followed by the body.
 // In the case of an error, body may be nil.
 type Message struct {
-	Id     uint64
+	Id     string
 	Type   MessageType
 	Target string
 	Method string

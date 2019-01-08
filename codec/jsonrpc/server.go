@@ -2,9 +2,8 @@ package jsonrpc
 
 import (
 	"encoding/json"
-	"errors"
+	"fmt"
 	"io"
-	"sync"
 
 	"github.com/micro/go-micro/codec"
 )
@@ -17,30 +16,25 @@ type serverCodec struct {
 	// temporary work space
 	req  serverRequest
 	resp serverResponse
-
-	sync.Mutex
-	seq     uint64
-	pending map[uint64]*json.RawMessage
 }
 
 type serverRequest struct {
 	Method string           `json:"method"`
 	Params *json.RawMessage `json:"params"`
-	ID     *json.RawMessage `json:"id"`
+	ID     interface{}      `json:"id"`
 }
 
 type serverResponse struct {
-	ID     *json.RawMessage `json:"id"`
-	Result interface{}      `json:"result"`
-	Error  interface{}      `json:"error"`
+	ID     interface{} `json:"id"`
+	Result interface{} `json:"result"`
+	Error  interface{} `json:"error"`
 }
 
 func newServerCodec(conn io.ReadWriteCloser) *serverCodec {
 	return &serverCodec{
-		dec:     json.NewDecoder(conn),
-		enc:     json.NewEncoder(conn),
-		c:       conn,
-		pending: make(map[uint64]*json.RawMessage),
+		dec: json.NewDecoder(conn),
+		enc: json.NewEncoder(conn),
+		c:   conn,
 	}
 }
 
@@ -50,7 +44,7 @@ func (r *serverRequest) reset() {
 		*r.Params = (*r.Params)[0:0]
 	}
 	if r.ID != nil {
-		*r.ID = (*r.ID)[0:0]
+		r.ID = nil
 	}
 }
 
@@ -60,14 +54,8 @@ func (c *serverCodec) ReadHeader(m *codec.Message) error {
 		return err
 	}
 	m.Method = c.req.Method
-
-	c.Lock()
-	c.seq++
-	c.pending[c.seq] = c.req.ID
+	m.Id = fmt.Sprintf("%v", c.req.ID)
 	c.req.ID = nil
-	m.Id = c.seq
-	c.Unlock()
-
 	return nil
 }
 
@@ -84,19 +72,7 @@ var null = json.RawMessage([]byte("null"))
 
 func (c *serverCodec) Write(m *codec.Message, x interface{}) error {
 	var resp serverResponse
-	c.Lock()
-	b, ok := c.pending[m.Id]
-	if !ok {
-		c.Unlock()
-		return errors.New("invalid sequence number in response")
-	}
-	c.Unlock()
-
-	if b == nil {
-		// Invalid request so no id.  Use JSON null.
-		b = &null
-	}
-	resp.ID = b
+	resp.ID = m.Id
 	resp.Result = x
 	if m.Error == "" {
 		resp.Error = nil
