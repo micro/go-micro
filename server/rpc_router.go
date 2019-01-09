@@ -164,55 +164,6 @@ func prepareMethod(method reflect.Method) *methodType {
 	return &methodType{method: method, ArgType: argType, ReplyType: replyType, ContextType: contextType, stream: stream}
 }
 
-func (router *router) NewHandler(h interface{}, opts ...HandlerOption) Handler {
-	return newRpcHandler(h, opts...)
-}
-
-func (router *router) Handle(h Handler) error {
-	router.mu.Lock()
-	defer router.mu.Unlock()
-	if router.serviceMap == nil {
-		router.serviceMap = make(map[string]*service)
-	}
-
-	if len(h.Name()) == 0 {
-		return errors.New("rpc.Handle: handler has no name")
-	}
-	if !isExported(h.Name()) {
-		return errors.New("rpc.Handle: type " + h.Name() + " is not exported")
-	}
-
-	rcvr := h.Handler()
-	s := new(service)
-	s.typ = reflect.TypeOf(rcvr)
-	s.rcvr = reflect.ValueOf(rcvr)
-
-	// check name
-	if _, present := router.serviceMap[h.Name()]; present {
-		return errors.New("rpc.Handle: service already defined: " + h.Name())
-	}
-
-	s.name = h.Name()
-	s.method = make(map[string]*methodType)
-
-	// Install the methods
-	for m := 0; m < s.typ.NumMethod(); m++ {
-		method := s.typ.Method(m)
-		if mt := prepareMethod(method); mt != nil {
-			s.method[method.Name] = mt
-		}
-	}
-
-	// Check there are methods
-	if len(s.method) == 0 {
-		return errors.New("rpc Register: type " + s.name + " has no exported methods of suitable type")
-	}
-
-	// save handler
-	router.serviceMap[s.name] = s
-	return nil
-}
-
 func (router *router) sendResponse(sending sync.Locker, req *request, reply interface{}, cc codec.Codec, errmsg string, last bool) (err error) {
 	msg := new(codec.Message)
 	msg.Type = codec.Response
@@ -326,24 +277,6 @@ func (m *methodType) prepareContext(ctx context.Context) reflect.Value {
 		return contextv
 	}
 	return reflect.Zero(m.ContextType)
-}
-
-func (router *router) ServeRequest(ctx context.Context, cc codec.Codec) error {
-	sending := new(sync.Mutex)
-	service, mtype, req, argv, replyv, keepReading, err := router.readRequest(cc)
-	if err != nil {
-		if !keepReading {
-			return err
-		}
-		// send a response if we actually managed to read a header.
-		if req != nil {
-			router.sendResponse(sending, req, invalidRequest, cc, err.Error(), true)
-			router.freeRequest(req)
-		}
-		return err
-	}
-	service.call(ctx, router, sending, mtype, req, argv, replyv, cc)
-	return nil
 }
 
 func (router *router) getRequest() *request {
@@ -463,4 +396,71 @@ func (router *router) readHeader(cc codec.Codec) (service *service, mtype *metho
 		err = errors.New("rpc: can't find method " + req.msg.Method)
 	}
 	return
+}
+
+func (router *router) NewHandler(h interface{}, opts ...HandlerOption) Handler {
+	return newRpcHandler(h, opts...)
+}
+
+func (router *router) Handle(h Handler) error {
+	router.mu.Lock()
+	defer router.mu.Unlock()
+	if router.serviceMap == nil {
+		router.serviceMap = make(map[string]*service)
+	}
+
+	if len(h.Name()) == 0 {
+		return errors.New("rpc.Handle: handler has no name")
+	}
+	if !isExported(h.Name()) {
+		return errors.New("rpc.Handle: type " + h.Name() + " is not exported")
+	}
+
+	rcvr := h.Handler()
+	s := new(service)
+	s.typ = reflect.TypeOf(rcvr)
+	s.rcvr = reflect.ValueOf(rcvr)
+
+	// check name
+	if _, present := router.serviceMap[h.Name()]; present {
+		return errors.New("rpc.Handle: service already defined: " + h.Name())
+	}
+
+	s.name = h.Name()
+	s.method = make(map[string]*methodType)
+
+	// Install the methods
+	for m := 0; m < s.typ.NumMethod(); m++ {
+		method := s.typ.Method(m)
+		if mt := prepareMethod(method); mt != nil {
+			s.method[method.Name] = mt
+		}
+	}
+
+	// Check there are methods
+	if len(s.method) == 0 {
+		return errors.New("rpc Register: type " + s.name + " has no exported methods of suitable type")
+	}
+
+	// save handler
+	router.serviceMap[s.name] = s
+	return nil
+}
+
+func (router *router) ServeRequest(ctx context.Context, cc codec.Codec) error {
+	sending := new(sync.Mutex)
+	service, mtype, req, argv, replyv, keepReading, err := router.readRequest(cc)
+	if err != nil {
+		if !keepReading {
+			return err
+		}
+		// send a response if we actually managed to read a header.
+		if req != nil {
+			router.sendResponse(sending, req, invalidRequest, cc, err.Error(), true)
+			router.freeRequest(req)
+		}
+		return err
+	}
+	service.call(ctx, router, sending, mtype, req, argv, replyv, cc)
+	return nil
 }
