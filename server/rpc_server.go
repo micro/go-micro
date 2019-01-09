@@ -110,8 +110,15 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 			return
 		}
 
-		// create the internal server codec
-		codec := newRpcCodec(&msg, sock, cf)
+		// internal request
+		request := &rpcRequest{
+			service:     msg.Header["X-Micro-Service"],
+			method:      msg.Header["X-Micro-Method"],
+			contentType: ct,
+			codec:       newRpcCodec(&msg, sock, cf),
+			body:        msg.Body,
+			stream:      true,
+		}
 
 		// set router
 		var r Router
@@ -122,7 +129,7 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 		}
 
 		// TODO: needs better error handling
-		if err := r.ServeRequest(ctx, codec); err != nil {
+		if err := r.ServeRequest(ctx, request, sock); err != nil {
 			s.wg.Done()
 			log.Logf("Unexpected error serving request, closing socket: %v", err)
 			return

@@ -39,5 +39,8 @@ type Message struct {
 	Target string
 	Method string
 	Error  string
+
+	// The values read from the socket
 	Header map[string]string
+	Body []byte
 }

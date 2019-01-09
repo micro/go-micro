@@ -18,6 +18,7 @@ import (
 
 	"github.com/micro/go-log"
 	"github.com/micro/go-micro/codec"
+	"github.com/micro/go-micro/transport"
 )
 
 var (
@@ -184,21 +185,20 @@ func (router *router) sendResponse(sending sync.Locker, req *request, reply inte
 	return err
 }
 
-func (s *service) call(ctx context.Context, router *router, sending *sync.Mutex, mtype *methodType, req *request, argv, replyv reflect.Value, codec codec.Codec) {
+func (s *service) call(ctx context.Context, router *router, sending *sync.Mutex, mtype *methodType, req *request, argv, replyv reflect.Value, cc codec.Codec) {
 	function := mtype.method.Func
 	var returnValues []reflect.Value
 
 	r := &rpcRequest{
-		service:     router.name,
+		service:     req.msg.Target,
 		contentType: req.msg.Header["Content-Type"],
 		method:      req.msg.Method,
+		body:        req.msg.Body,
 	}
 
 	if !mtype.stream {
-		r.request = argv.Interface()
-
 		fn := func(ctx context.Context, req Request, rsp interface{}) error {
-			returnValues = function.Call([]reflect.Value{s.rcvr, mtype.prepareContext(ctx), reflect.ValueOf(req.Request()), reflect.ValueOf(rsp)})
+			returnValues = function.Call([]reflect.Value{s.rcvr, mtype.prepareContext(ctx), reflect.ValueOf(argv.Interface()), reflect.ValueOf(rsp)})
 
 			// The return value for the method is an error.
 			if err := returnValues[0].Interface(); err != nil {
@@ -218,7 +218,7 @@ func (s *service) call(ctx context.Context, router *router, sending *sync.Mutex,
 			errmsg = err.Error()
 		}
 
-		err = router.sendResponse(sending, req, replyv.Interface(), codec, errmsg, true)
+		err = router.sendResponse(sending, req, replyv.Interface(), cc, errmsg, true)
 		if err != nil {
 			log.Log("rpc call: unable to send response: ", err)
 		}
@@ -233,7 +233,7 @@ func (s *service) call(ctx context.Context, router *router, sending *sync.Mutex,
 
 	stream := &rpcStream{
 		context: ctx,
-		codec:   codec,
+		codec:   cc,
 		request: r,
 		id:      req.msg.Id,
 	}
@@ -268,7 +268,7 @@ func (s *service) call(ctx context.Context, router *router, sending *sync.Mutex,
 	// this is the last packet, we don't do anything with
 	// the error here (well sendStreamResponse will log it
 	// already)
-	router.sendResponse(sending, req, nil, codec, errmsg, true)
+	router.sendResponse(sending, req, nil, cc, errmsg, true)
 	router.freeRequest(req)
 }
 
@@ -319,7 +319,9 @@ func (router *router) freeResponse(resp *response) {
 	router.respLock.Unlock()
 }
 
-func (router *router) readRequest(cc codec.Codec) (service *service, mtype *methodType, req *request, argv, replyv reflect.Value, keepReading bool, err error) {
+func (router *router) readRequest(r Request) (service *service, mtype *methodType, req *request, argv, replyv reflect.Value, keepReading bool, err error) {
+	cc := r.Codec()
+
 	service, mtype, req, keepReading, err = router.readHeader(cc)
 	if err != nil {
 		if !keepReading {
@@ -447,9 +449,10 @@ func (router *router) Handle(h Handler) error {
 	return nil
 }
 
-func (router *router) ServeRequest(ctx context.Context, cc codec.Codec) error {
+func (router *router) ServeRequest(ctx context.Context, r Request, s transport.Socket) error {
+	cc := r.Codec()
 	sending := new(sync.Mutex)
-	service, mtype, req, argv, replyv, keepReading, err := router.readRequest(cc)
+	service, mtype, req, argv, replyv, keepReading, err := router.readRequest(r)
 	if err != nil {
 		if !keepReading {
 			return err

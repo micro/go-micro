@@ -1,10 +1,15 @@
 package server
 
+import (
+	"github.com/micro/go-micro/codec"
+)
+
 type rpcRequest struct {
 	service     string
 	method      string
 	contentType string
-	request     interface{}
+	codec       codec.Codec
+	body        []byte
 	stream      bool
 }
 
@@ -12,6 +17,10 @@ type rpcMessage struct {
 	topic       string
 	contentType string
 	payload     interface{}
+}
+
+func (r *rpcRequest) Codec() codec.Codec {
+	return r.codec
 }
 
 func (r *rpcRequest) ContentType() string {
@@ -26,8 +35,8 @@ func (r *rpcRequest) Method() string {
 	return r.method
 }
 
-func (r *rpcRequest) Request() interface{} {
-	return r.request
+func (r *rpcRequest) Body() []byte {
+	return r.body
 }
 
 func (r *rpcRequest) Stream() bool {

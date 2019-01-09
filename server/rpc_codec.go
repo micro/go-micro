@@ -73,7 +73,11 @@ func newRpcCodec(req *transport.Message, socket transport.Socket, c codec.NewCod
 }
 
 func (c *rpcCodec) ReadHeader(r *codec.Message, t codec.MessageType) error {
-	m := codec.Message{Header: c.req.Header}
+	// the initieal message
+	m := codec.Message{
+		Header: c.req.Header,
+		Body:   c.req.Body,
+	}
 
 	// if its a follow on request read it
 	if !c.first {
@@ -93,6 +97,8 @@ func (c *rpcCodec) ReadHeader(r *codec.Message, t codec.MessageType) error {
 
 		// set the message header
 		m.Header = tm.Header
+		// set the message body
+		m.Body = tm.Body
 	}
 
 	// no longer first read
@@ -117,7 +123,7 @@ func (c *rpcCodec) ReadBody(b interface{}) error {
 	return c.codec.ReadBody(b)
 }
 
-func (c *rpcCodec) Write(r *codec.Message, body interface{}) error {
+func (c *rpcCodec) Write(r *codec.Message, b interface{}) error {
 	c.buf.wbuf.Reset()
 
 	// create a new message
@@ -134,22 +140,33 @@ func (c *rpcCodec) Write(r *codec.Message, body interface{}) error {
 		},
 	}
 
-	// write to the body
-	if err := c.codec.Write(m, body); err != nil {
+	// the body being sent
+	var body []byte
+
+	// if we have encoded data just send it
+	if len(r.Body) > 0 {
+		body = r.Body
+		// write to the body
+	} else if err := c.codec.Write(m, b); err != nil {
 		c.buf.wbuf.Reset()
 
 		// write an error if it failed
 		m.Error = errors.Wrapf(err, "Unable to encode body").Error()
 		m.Header["X-Micro-Error"] = m.Error
+		// no body to write
 		if err := c.codec.Write(m, nil); err != nil {
 			return err
 		}
+		// write the body
+	} else {
+		// set the body
+		body = c.buf.wbuf.Bytes()
 	}
 
 	// send on the socket
 	return c.socket.Send(&transport.Message{
 		Header: m.Header,
-		Body:   c.buf.wbuf.Bytes(),
+		Body:   body,
 	})
 }
 

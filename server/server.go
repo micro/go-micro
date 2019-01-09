@@ -11,6 +11,7 @@ import (
 	"github.com/micro/go-log"
 	"github.com/micro/go-micro/codec"
 	"github.com/micro/go-micro/registry"
+	"github.com/micro/go-micro/transport"
 )
 
 // Server is a simple micro server abstraction
@@ -30,7 +31,8 @@ type Server interface {
 
 // Router handle serving messages
 type Router interface {
-	ServeRequest(context.Context, codec.Codec) error
+	// ServeRequest processes a request to completion
+	ServeRequest(context.Context, Request, transport.Socket) error
 }
 
 // Message is an async message interface
@@ -42,11 +44,17 @@ type Message interface {
 
 // Request is a synchronous request interface
 type Request interface {
+	// Service name requested
 	Service() string
+	// Method name requested
 	Method() string
+	// The initial request body
+	Body() []byte
+	// Content type provided
 	ContentType() string
-	Request() interface{}
-	// indicates whether the request will be streamed
+	// The codec for encoding/decoding messages
+	Codec() codec.Codec
+	// Indicates whether its a stream
 	Stream() bool
 }
 
