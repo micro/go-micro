@@ -2,10 +2,13 @@
 package mock
 
 import (
+	"sync"
+
 	"github.com/micro/go-micro/registry"
 )
 
 type mockRegistry struct {
+	sync.RWMutex
 	Services map[string][]*registry.Service
 }
 
@@ -55,11 +58,17 @@ var (
 )
 
 func (m *mockRegistry) init() {
+	m.Lock()
+	defer m.Unlock()
+
 	// add some mock data
 	m.Services = mockData
 }
 
 func (m *mockRegistry) GetService(service string) ([]*registry.Service, error) {
+	m.Lock()
+	defer m.Unlock()
+
 	s, ok := m.Services[service]
 	if !ok || len(s) == 0 {
 		return nil, registry.ErrNotFound
@@ -69,6 +78,9 @@ func (m *mockRegistry) GetService(service string) ([]*registry.Service, error) {
 }
 
 func (m *mockRegistry) ListServices() ([]*registry.Service, error) {
+	m.Lock()
+	defer m.Unlock()
+
 	var services []*registry.Service
 	for _, service := range m.Services {
 		services = append(services, service...)
@@ -77,12 +89,18 @@ func (m *mockRegistry) ListServices() ([]*registry.Service, error) {
 }
 
 func (m *mockRegistry) Register(s *registry.Service, opts ...registry.RegisterOption) error {
+	m.Lock()
+	defer m.Unlock()
+
 	services := addServices(m.Services[s.Name], []*registry.Service{s})
 	m.Services[s.Name] = services
 	return nil
 }
 
 func (m *mockRegistry) Deregister(s *registry.Service) error {
+	m.Lock()
+	defer m.Unlock()
+
 	services := delServices(m.Services[s.Name], []*registry.Service{s})
 	m.Services[s.Name] = services
 	return nil
