@@ -110,12 +110,14 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 			return
 		}
 
+		codec := newRpcCodec(&msg, sock, cf)
+
 		// internal request
 		request := &rpcRequest{
 			service:     msg.Header["X-Micro-Service"],
 			method:      msg.Header["X-Micro-Method"],
 			contentType: ct,
-			codec:       newRpcCodec(&msg, sock, cf),
+			codec:       codec,
 			header:      msg.Header,
 			body:        msg.Body,
 			socket:      sock,
@@ -126,6 +128,7 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 		response := &rpcResponse{
 			header: make(map[string]string),
 			socket: sock,
+			codec:  codec,
 		}
 
 		// set router

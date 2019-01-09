@@ -164,7 +164,7 @@ func prepareMethod(method reflect.Method) *methodType {
 	return &methodType{method: method, ArgType: argType, ReplyType: replyType, ContextType: contextType, stream: stream}
 }
 
-func (router *router) sendResponse(sending sync.Locker, req *request, reply interface{}, cc codec.Codec, errmsg string, last bool) (err error) {
+func (router *router) sendResponse(sending sync.Locker, req *request, reply interface{}, cc codec.Writer, errmsg string, last bool) (err error) {
 	msg := new(codec.Message)
 	msg.Type = codec.Response
 	resp := router.getResponse()
@@ -184,7 +184,7 @@ func (router *router) sendResponse(sending sync.Locker, req *request, reply inte
 	return err
 }
 
-func (s *service) call(ctx context.Context, router *router, sending *sync.Mutex, mtype *methodType, req *request, argv, replyv reflect.Value, cc codec.Codec) {
+func (s *service) call(ctx context.Context, router *router, sending *sync.Mutex, mtype *methodType, req *request, argv, replyv reflect.Value, cc codec.Writer) {
 	function := mtype.method.Func
 	var returnValues []reflect.Value
 
@@ -232,7 +232,7 @@ func (s *service) call(ctx context.Context, router *router, sending *sync.Mutex,
 
 	stream := &rpcStream{
 		context: ctx,
-		codec:   cc,
+		codec:   cc.(codec.Codec),
 		request: r,
 		id:      req.msg.Id,
 	}
@@ -358,7 +358,7 @@ func (router *router) readRequest(r Request) (service *service, mtype *methodTyp
 	return
 }
 
-func (router *router) readHeader(cc codec.Codec) (service *service, mtype *methodType, req *request, keepReading bool, err error) {
+func (router *router) readHeader(cc codec.Reader) (service *service, mtype *methodType, req *request, keepReading bool, err error) {
 	// Grab the request header.
 	msg := new(codec.Message)
 	msg.Type = codec.Request
@@ -449,7 +449,6 @@ func (router *router) Handle(h Handler) error {
 }
 
 func (router *router) ServeRequest(ctx context.Context, r Request, rsp Response) error {
-	cc := r.Codec()
 	sending := new(sync.Mutex)
 	service, mtype, req, argv, replyv, keepReading, err := router.readRequest(r)
 	if err != nil {
@@ -458,11 +457,11 @@ func (router *router) ServeRequest(ctx context.Context, r Request, rsp Response)
 		}
 		// send a response if we actually managed to read a header.
 		if req != nil {
-			router.sendResponse(sending, req, invalidRequest, cc, err.Error(), true)
+			router.sendResponse(sending, req, invalidRequest, rsp.Codec(), err.Error(), true)
 			router.freeRequest(req)
 		}
 		return err
 	}
-	service.call(ctx, router, sending, mtype, req, argv, replyv, cc)
+	service.call(ctx, router, sending, mtype, req, argv, replyv, rsp.Codec())
 	return nil
 }

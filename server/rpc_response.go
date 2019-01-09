@@ -3,12 +3,18 @@ package server
 import (
 	"net/http"
 
+	"github.com/micro/go-micro/codec"
 	"github.com/micro/go-micro/transport"
 )
 
 type rpcResponse struct {
 	header map[string]string
 	socket transport.Socket
+	codec  codec.Codec
+}
+
+func (r *rpcResponse) Codec() codec.Writer {
+	return r.codec
 }
 
 func (r *rpcResponse) WriteHeader(hdr map[string]string) {

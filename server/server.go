@@ -54,13 +54,15 @@ type Request interface {
 	// Read the undecoded request body
 	Read() ([]byte, error)
 	// The encoded message stream
-	Codec() codec.Codec
+	Codec() codec.Reader
 	// Indicates whether its a stream
 	Stream() bool
 }
 
 // Response is the response writer for unencoded messages
 type Response interface {
+	// Encoded writer
+	Codec() codec.Writer
 	// Write the header
 	WriteHeader(map[string]string)
 	// write a response directly to the client

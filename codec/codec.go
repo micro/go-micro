@@ -23,11 +23,19 @@ type NewCodec func(io.ReadWriteCloser) Codec
 // connection. ReadBody may be called with a nil argument to force the
 // body to be read and discarded.
 type Codec interface {
-	ReadHeader(*Message, MessageType) error
-	ReadBody(interface{}) error
-	Write(*Message, interface{}) error
+	Reader
+	Writer
 	Close() error
 	String() string
+}
+
+type Reader interface {
+	ReadHeader(*Message, MessageType) error
+	ReadBody(interface{}) error
+}
+
+type Writer interface {
+	Write(*Message, interface{}) error
 }
 
 // Message represents detailed information about
@@ -42,5 +50,5 @@ type Message struct {
 
 	// The values read from the socket
 	Header map[string]string
-	Body []byte
+	Body   []byte
 }

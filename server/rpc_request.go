@@ -22,7 +22,7 @@ type rpcMessage struct {
 	payload     interface{}
 }
 
-func (r *rpcRequest) Codec() codec.Codec {
+func (r *rpcRequest) Codec() codec.Reader {
 	return r.codec
 }
 
