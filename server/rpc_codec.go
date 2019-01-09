@@ -28,13 +28,6 @@ type readWriteCloser struct {
 	rbuf *bytes.Buffer
 }
 
-type serverCodec interface {
-	ReadHeader(*request, bool) error
-	ReadBody(interface{}) error
-	Write(*response, interface{}, bool) error
-	Close() error
-}
-
 var (
 	DefaultContentType = "application/protobuf"
 
