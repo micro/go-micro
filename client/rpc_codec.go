@@ -45,12 +45,6 @@ type readWriteCloser struct {
 	rbuf *bytes.Buffer
 }
 
-type clientCodec interface {
-	Write(*request, interface{}) error
-	Read(*response, interface{}) error
-	Close() error
-}
-
 type request struct {
 	Service       string
 	ServiceMethod string   // format: "Service.Method"

@@ -13,7 +13,7 @@ type rpcStream struct {
 	closed  chan bool
 	err     error
 	request Request
-	codec   clientCodec
+	codec   *rpcCodec
 	context context.Context
 }
 
