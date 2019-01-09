@@ -18,7 +18,6 @@ import (
 
 	"github.com/micro/go-log"
 	"github.com/micro/go-micro/codec"
-	"github.com/micro/go-micro/transport"
 )
 
 var (
@@ -449,7 +448,7 @@ func (router *router) Handle(h Handler) error {
 	return nil
 }
 
-func (router *router) ServeRequest(ctx context.Context, r Request, s transport.Socket) error {
+func (router *router) ServeRequest(ctx context.Context, r Request, rsp Response) error {
 	cc := r.Codec()
 	sending := new(sync.Mutex)
 	service, mtype, req, argv, replyv, keepReading, err := router.readRequest(r)

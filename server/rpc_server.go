@@ -116,20 +116,26 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 			method:      msg.Header["X-Micro-Method"],
 			contentType: ct,
 			codec:       newRpcCodec(&msg, sock, cf),
+			header:      msg.Header,
 			body:        msg.Body,
+			socket:      sock,
 			stream:      true,
 		}
 
-		// set router
-		var r Router
-		r = s.router
+		// internal response
+		response := &rpcResponse{
+			header: make(map[string]string),
+			socket: sock,
+		}
 
-		if s.opts.Router != nil {
-			r = s.opts.Router
+		// set router
+		r := s.opts.Router
+		if s.opts.Router == nil {
+			r = s.router
 		}
 
 		// TODO: needs better error handling
-		if err := r.ServeRequest(ctx, request, sock); err != nil {
+		if err := r.ServeRequest(ctx, request, response); err != nil {
 			s.wg.Done()
 			log.Logf("Unexpected error serving request, closing socket: %v", err)
 			return
