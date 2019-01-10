@@ -19,10 +19,16 @@ func (c *Codec) ReadHeader(m *codec.Message, t codec.MessageType) error {
 }
 
 func (c *Codec) ReadBody(b interface{}) error {
+	if b == nil {
+		return nil
+	}
 	return c.Decoder.Decode(b)
 }
 
 func (c *Codec) Write(m *codec.Message, b interface{}) error {
+	if b == nil {
+		return nil
+	}
 	return c.Encoder.Encode(b)
 }
 
