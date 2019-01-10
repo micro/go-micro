@@ -171,7 +171,7 @@ func (router *router) sendResponse(sending sync.Locker, req *request, reply inte
 	resp.msg = msg
 
 	// Encode the response header
-	resp.msg.Method = req.msg.Method
+	resp.msg.Endpoint = req.msg.Endpoint
 	if errmsg != "" {
 		resp.msg.Error = errmsg
 		reply = invalidRequest
@@ -191,7 +191,7 @@ func (s *service) call(ctx context.Context, router *router, sending *sync.Mutex,
 	r := &rpcRequest{
 		service:     req.msg.Target,
 		contentType: req.msg.Header["Content-Type"],
-		method:      req.msg.Method,
+		endpoint:    req.msg.Endpoint,
 		body:        req.msg.Body,
 	}
 
@@ -379,9 +379,9 @@ func (router *router) readHeader(cc codec.Reader) (service *service, mtype *meth
 	// we can still recover and move on to the next request.
 	keepReading = true
 
-	serviceMethod := strings.Split(req.msg.Method, ".")
+	serviceMethod := strings.Split(req.msg.Endpoint, ".")
 	if len(serviceMethod) != 2 {
-		err = errors.New("rpc: service/method request ill-formed: " + req.msg.Method)
+		err = errors.New("rpc: service/method request ill-formed: " + req.msg.Endpoint)
 		return
 	}
 	// Look up the request.
@@ -389,12 +389,12 @@ func (router *router) readHeader(cc codec.Reader) (service *service, mtype *meth
 	service = router.serviceMap[serviceMethod[0]]
 	router.mu.Unlock()
 	if service == nil {
-		err = errors.New("rpc: can't find service " + req.msg.Method)
+		err = errors.New("rpc: can't find service " + req.msg.Endpoint)
 		return
 	}
 	mtype = service.method[serviceMethod[1]]
 	if mtype == nil {
-		err = errors.New("rpc: can't find method " + req.msg.Method)
+		err = errors.New("rpc: can't find method " + req.msg.Endpoint)
 	}
 	return
 }

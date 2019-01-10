@@ -106,14 +106,14 @@ func (c *rpcCodec) ReadHeader(r *codec.Message, t codec.MessageType) error {
 
 	// set some internal things
 	m.Target = m.Header["X-Micro-Service"]
-	m.Method = m.Header["X-Micro-Method"]
+	m.Endpoint = m.Header["X-Micro-Endpoint"]
 	m.Id = m.Header["X-Micro-Id"]
 
 	// read header via codec
 	err := c.codec.ReadHeader(&m, codec.Request)
 
 	// set the method/id
-	r.Method = m.Method
+	r.Endpoint = m.Endpoint
 	r.Id = m.Id
 
 	return err
@@ -128,15 +128,15 @@ func (c *rpcCodec) Write(r *codec.Message, b interface{}) error {
 
 	// create a new message
 	m := &codec.Message{
-		Method: r.Method,
-		Id:     r.Id,
-		Error:  r.Error,
-		Type:   r.Type,
+		Endpoint: r.Endpoint,
+		Id:       r.Id,
+		Error:    r.Error,
+		Type:     r.Type,
 		Header: map[string]string{
-			"X-Micro-Id":     r.Id,
-			"X-Micro-Method": r.Method,
-			"X-Micro-Error":  r.Error,
-			"Content-Type":   c.req.Header["Content-Type"],
+			"X-Micro-Id":       r.Id,
+			"X-Micro-Endpoint": r.Endpoint,
+			"X-Micro-Error":    r.Error,
+			"Content-Type":     c.req.Header["Content-Type"],
 		},
 	}
 

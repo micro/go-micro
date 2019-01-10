@@ -14,7 +14,7 @@ import (
 func TestCallAddress(t *testing.T) {
 	var called bool
 	service := "test.service"
-	method := "Test.Method"
+	endpoint := "Test.Endpoint"
 	address := "10.1.10.1:8080"
 
 	wrap := func(cf CallFunc) CallFunc {
@@ -25,8 +25,8 @@ func TestCallAddress(t *testing.T) {
 				return fmt.Errorf("expected service: %s got %s", service, req.Service())
 			}
 
-			if req.Method() != method {
-				return fmt.Errorf("expected service: %s got %s", method, req.Method())
+			if req.Endpoint() != endpoint {
+				return fmt.Errorf("expected service: %s got %s", endpoint, req.Endpoint())
 			}
 
 			if addr != address {
@@ -45,7 +45,7 @@ func TestCallAddress(t *testing.T) {
 	)
 	c.Options().Selector.Init(selector.Registry(r))
 
-	req := c.NewRequest(service, method, nil)
+	req := c.NewRequest(service, endpoint, nil)
 
 	// test calling remote address
 	if err := c.Call(context.Background(), req, nil, WithAddress(address)); err != nil {
@@ -60,7 +60,7 @@ func TestCallAddress(t *testing.T) {
 
 func TestCallRetry(t *testing.T) {
 	service := "test.service"
-	method := "Test.Method"
+	endpoint := "Test.Endpoint"
 	address := "10.1.10.1:8080"
 
 	var called int
@@ -84,7 +84,7 @@ func TestCallRetry(t *testing.T) {
 	)
 	c.Options().Selector.Init(selector.Registry(r))
 
-	req := c.NewRequest(service, method, nil)
+	req := c.NewRequest(service, endpoint, nil)
 
 	// test calling remote address
 	if err := c.Call(context.Background(), req, nil, WithAddress(address)); err != nil {
@@ -101,7 +101,7 @@ func TestCallWrapper(t *testing.T) {
 	var called bool
 	id := "test.1"
 	service := "test.service"
-	method := "Test.Method"
+	endpoint := "Test.Endpoint"
 	host := "10.1.10.1"
 	port := 8080
 	address := "10.1.10.1:8080"
@@ -114,8 +114,8 @@ func TestCallWrapper(t *testing.T) {
 				return fmt.Errorf("expected service: %s got %s", service, req.Service())
 			}
 
-			if req.Method() != method {
-				return fmt.Errorf("expected service: %s got %s", method, req.Method())
+			if req.Endpoint() != endpoint {
+				return fmt.Errorf("expected service: %s got %s", endpoint, req.Endpoint())
 			}
 
 			if addr != address {
@@ -146,7 +146,7 @@ func TestCallWrapper(t *testing.T) {
 		},
 	})
 
-	req := c.NewRequest(service, method, nil)
+	req := c.NewRequest(service, endpoint, nil)
 	if err := c.Call(context.Background(), req, nil); err != nil {
 		t.Fatal("call wrapper error", err)
 	}

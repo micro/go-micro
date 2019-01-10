@@ -45,8 +45,8 @@ type Message interface {
 type Request interface {
 	// Service name requested
 	Service() string
-	// Method name requested
-	Method() string
+	// Endpoint name requested
+	Endpoint() string
 	// Content type provided
 	ContentType() string
 	// Header of the request
@@ -83,7 +83,7 @@ type Stream interface {
 }
 
 // Handler interface represents a request handler. It's generated
-// by passing any type of public concrete object with methods into server.NewHandler.
+// by passing any type of public concrete object with endpoints into server.NewHandler.
 // Most will pass in a struct.
 //
 // Example:
@@ -102,7 +102,7 @@ type Handler interface {
 }
 
 // Subscriber interface represents a subscription to a given topic using
-// a specific subscriber function or object with methods.
+// a specific subscriber function or object with endpoints.
 type Subscriber interface {
 	Topic() string
 	Subscriber() interface{}
@@ -151,7 +151,7 @@ func NewSubscriber(topic string, h interface{}, opts ...SubscriberOption) Subscr
 
 // NewHandler creates a new handler interface using the default server
 // Handlers are required to be a public object with public
-// methods. Call to a service method such as Foo.Bar expects
+// endpoints. Call to a service endpoint such as Foo.Bar expects
 // the type:
 //
 //	type Foo struct {}

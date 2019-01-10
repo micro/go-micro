@@ -102,14 +102,14 @@ func (c *rpcCodec) Write(wm *codec.Message, body interface{}) error {
 	c.buf.wbuf.Reset()
 
 	m := &codec.Message{
-		Id:     wm.Id,
-		Target: wm.Target,
-		Method: wm.Method,
-		Type:   codec.Request,
+		Id:       wm.Id,
+		Target:   wm.Target,
+		Endpoint: wm.Endpoint,
+		Type:     codec.Request,
 		Header: map[string]string{
-			"X-Micro-Id":      wm.Id,
-			"X-Micro-Service": wm.Target,
-			"X-Micro-Method":  wm.Method,
+			"X-Micro-Id":       wm.Id,
+			"X-Micro-Service":  wm.Target,
+			"X-Micro-Endpoint": wm.Endpoint,
 		},
 	}
 
@@ -150,7 +150,7 @@ func (c *rpcCodec) ReadHeader(wm *codec.Message, r codec.MessageType) error {
 
 	// read header
 	err := c.codec.ReadHeader(&me, r)
-	wm.Method = me.Method
+	wm.Endpoint = me.Endpoint
 	wm.Id = me.Id
 	wm.Error = me.Error
 
@@ -160,8 +160,8 @@ func (c *rpcCodec) ReadHeader(wm *codec.Message, r codec.MessageType) error {
 	}
 
 	// check method in header
-	if len(me.Method) == 0 {
-		wm.Method = me.Header["X-Micro-Method"]
+	if len(me.Endpoint) == 0 {
+		wm.Endpoint = me.Header["X-Micro-Endpoint"]
 	}
 
 	if len(me.Id) == 0 {

@@ -15,7 +15,7 @@ type Client interface {
 	Init(...Option) error
 	Options() Options
 	NewMessage(topic string, msg interface{}, opts ...MessageOption) Message
-	NewRequest(service, method string, req interface{}, reqOpts ...RequestOption) Request
+	NewRequest(service, endpoint string, req interface{}, reqOpts ...RequestOption) Request
 	Call(ctx context.Context, req Request, rsp interface{}, opts ...CallOption) error
 	Stream(ctx context.Context, req Request, opts ...CallOption) (Stream, error)
 	Publish(ctx context.Context, msg Message, opts ...PublishOption) error
@@ -38,8 +38,8 @@ type Message interface {
 type Request interface {
 	// The service to call
 	Service() string
-	// The method to call
-	Method() string
+	// The endpoint to call
+	Endpoint() string
 	// The content type
 	ContentType() string
 	// The unencoded request body
@@ -125,8 +125,8 @@ func NewClient(opt ...Option) Client {
 
 // Creates a new request using the default client. Content Type will
 // be set to the default within options and use the appropriate codec
-func NewRequest(service, method string, request interface{}, reqOpts ...RequestOption) Request {
-	return DefaultClient.NewRequest(service, method, request, reqOpts...)
+func NewRequest(service, endpoint string, request interface{}, reqOpts ...RequestOption) Request {
+	return DefaultClient.NewRequest(service, endpoint, request, reqOpts...)
 }
 
 // Creates a streaming connection with a service and returns responses on the
