@@ -4,14 +4,14 @@ import (
 	"context"
 	"crypto/tls"
 
-	"github.com/micro/go-micro/broker/codec"
+	"github.com/micro/go-micro/codec"
 	"github.com/micro/go-micro/registry"
 )
 
 type Options struct {
 	Addrs     []string
 	Secure    bool
-	Codec     codec.Codec
+	Codec     codec.Marshaler
 	TLSConfig *tls.Config
 	// Other options for implementations of the interface
 	// can be stored in a context
@@ -71,7 +71,7 @@ func Addrs(addrs ...string) Option {
 
 // Codec sets the codec used for encoding/decoding used where
 // a broker does not support headers
-func Codec(c codec.Codec) Option {
+func Codec(c codec.Marshaler) Option {
 	return func(o *Options) {
 		o.Codec = c
 	}

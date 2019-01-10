@@ -20,7 +20,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/micro/go-log"
-	"github.com/micro/go-micro/broker/codec/json"
+	"github.com/micro/go-micro/codec/json"
 	merr "github.com/micro/go-micro/errors"
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-rcache"
@@ -108,7 +108,7 @@ func newTransport(config *tls.Config) *http.Transport {
 
 func newHttpBroker(opts ...Option) Broker {
 	options := Options{
-		Codec:   json.NewCodec(),
+		Codec:   json.Marshaler{},
 		Context: context.TODO(),
 	}
 

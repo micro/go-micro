@@ -38,6 +38,15 @@ type Writer interface {
 	Write(*Message, interface{}) error
 }
 
+
+// Marshaler is a simple encoding interface used for the broker/transport 
+// where headers are not supported by the underlying implementation.
+type Marshaler interface {
+	Marshal(interface{}) ([]byte, error)
+	Unmarshal([]byte, interface{}) error
+	String() string
+}
+
 // Message represents detailed information about
 // the communication, likely followed by the body.
 // In the case of an error, body may be nil.
