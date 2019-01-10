@@ -4,16 +4,18 @@ import (
 	"context"
 	"io"
 	"sync"
+
+	"github.com/micro/go-micro/codec"
 )
 
 // Implements the streamer interface
 type rpcStream struct {
 	sync.RWMutex
-	seq     string
+	id      string
 	closed  chan bool
 	err     error
 	request Request
-	codec   *rpcCodec
+	codec   codec.Codec
 	context context.Context
 }
 
@@ -43,18 +45,18 @@ func (r *rpcStream) Send(msg interface{}) error {
 		return errShutdown
 	}
 
-	seq := r.seq
-
-	req := request{
-		Service:       r.request.Service(),
-		Seq:           seq,
-		ServiceMethod: r.request.Method(),
+	req := codec.Message{
+		Id:     r.id,
+		Target: r.request.Service(),
+		Method: r.request.Method(),
+		Type:   codec.Request,
 	}
 
 	if err := r.codec.Write(&req, msg); err != nil {
 		r.err = err
 		return err
 	}
+
 	return nil
 }
 
@@ -67,9 +69,9 @@ func (r *rpcStream) Recv(msg interface{}) error {
 		return errShutdown
 	}
 
-	var resp response
+	var resp codec.Message
 
-	if err := r.codec.Read(&resp, msg); err != nil {
+	if err := r.codec.ReadHeader(&resp, codec.Response); err != nil {
 		if err == io.EOF && !r.isClosed() {
 			r.err = io.ErrUnexpectedEOF
 			return io.ErrUnexpectedEOF
@@ -81,12 +83,19 @@ func (r *rpcStream) Recv(msg interface{}) error {
 	switch {
 	case len(resp.Error) > 0:
 		// We've got an error response. Give this to the request;
-		// any subsequent requests will get the ReadBody
+		// any subsequent requests will get the ReadResponseBody
 		// error if there is one.
 		if resp.Error != lastStreamResponseError {
 			r.err = serverError(resp.Error)
 		} else {
 			r.err = io.EOF
+		}
+		if err := r.codec.ReadBody(nil); err != nil {
+			r.err = err
+		}
+	default:
+		if err := r.codec.ReadBody(msg); err != nil {
+			r.err = err
 		}
 	}
 

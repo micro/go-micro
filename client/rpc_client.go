@@ -97,7 +97,7 @@ func (r *rpcClient) call(ctx context.Context, address string, req Request, resp 
 		request: req,
 		closed:  make(chan bool),
 		codec:   newRpcCodec(msg, c, cf),
-		seq:     fmt.Sprintf("%v", seq),
+		id:      fmt.Sprintf("%v", seq),
 	}
 	defer stream.Close()
 
@@ -111,7 +111,7 @@ func (r *rpcClient) call(ctx context.Context, address string, req Request, resp 
 		}()
 
 		// send request
-		if err := stream.Send(req.Request()); err != nil {
+		if err := stream.Send(req.Body()); err != nil {
 			ch <- err
 			return
 		}
@@ -183,7 +183,7 @@ func (r *rpcClient) stream(ctx context.Context, address string, req Request, opt
 	ch := make(chan error, 1)
 
 	go func() {
-		ch <- stream.Send(req.Request())
+		ch <- stream.Send(req.Body())
 	}()
 
 	var grr error

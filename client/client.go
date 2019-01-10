@@ -4,6 +4,8 @@ package client
 import (
 	"context"
 	"time"
+
+	"github.com/micro/go-micro/codec"
 )
 
 // Client is the interface used to make requests to services.
@@ -20,6 +22,11 @@ type Client interface {
 	String() string
 }
 
+// Router manages request routing
+type Router interface {
+	SendRequest(context.Context, Request) (Response, error)
+}
+
 // Message is the interface for publishing asynchronously
 type Message interface {
 	Topic() string
@@ -29,12 +36,28 @@ type Message interface {
 
 // Request is the interface for a synchronous request used by Call or Stream
 type Request interface {
+	// The service to call
 	Service() string
+	// The method to call
 	Method() string
+	// The content type
 	ContentType() string
-	Request() interface{}
+	// The unencoded request body
+	Body() interface{}
+	// Write to the encoded request writer. This is nil before a call is made
+	Codec() codec.Writer
 	// indicates whether the request will be a streaming one rather than unary
 	Stream() bool
+}
+
+// Response is the response received from a service
+type Response interface {
+	// Read the response
+	Codec() codec.Reader
+	// read the header
+	Header() map[string]string
+	// Read the undecoded response
+	Read() ([]byte, error)
 }
 
 // Stream is the inteface for a bidirectional synchronous stream

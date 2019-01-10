@@ -3,7 +3,6 @@ package client
 import (
 	"bytes"
 	errs "errors"
-	"fmt"
 
 	"github.com/micro/go-micro/codec"
 	raw "github.com/micro/go-micro/codec/bytes"
@@ -85,7 +84,7 @@ func (rwc *readWriteCloser) Close() error {
 	return nil
 }
 
-func newRpcCodec(req *transport.Message, client transport.Client, c codec.NewCodec) *rpcCodec {
+func newRpcCodec(req *transport.Message, client transport.Client, c codec.NewCodec) codec.Codec {
 	rwc := &readWriteCloser{
 		wbuf: bytes.NewBuffer(nil),
 		rbuf: bytes.NewBuffer(nil),
@@ -99,34 +98,45 @@ func newRpcCodec(req *transport.Message, client transport.Client, c codec.NewCod
 	return r
 }
 
-func (c *rpcCodec) Write(req *request, body interface{}) error {
+func (c *rpcCodec) Write(wm *codec.Message, body interface{}) error {
 	c.buf.wbuf.Reset()
 
 	m := &codec.Message{
-		Id:     req.Seq,
-		Target: req.Service,
-		Method: req.ServiceMethod,
+		Id:     wm.Id,
+		Target: wm.Target,
+		Method: wm.Method,
 		Type:   codec.Request,
 		Header: map[string]string{
-			"X-Micro-Id":      fmt.Sprintf("%v", req.Seq),
-			"X-Micro-Service": req.Service,
-			"X-Micro-Method":  req.ServiceMethod,
+			"X-Micro-Id":      wm.Id,
+			"X-Micro-Service": wm.Target,
+			"X-Micro-Method":  wm.Method,
 		},
 	}
+
 	if err := c.codec.Write(m, body); err != nil {
 		return errors.InternalServerError("go.micro.client.codec", err.Error())
 	}
-	c.req.Body = c.buf.wbuf.Bytes()
+
+	// set body
+	if len(wm.Body) > 0 {
+		c.req.Body = wm.Body
+	} else {
+		c.req.Body = c.buf.wbuf.Bytes()
+	}
+
+	// set header
 	for k, v := range m.Header {
 		c.req.Header[k] = v
 	}
+
+	// send the request
 	if err := c.client.Send(c.req); err != nil {
 		return errors.InternalServerError("go.micro.client.transport", err.Error())
 	}
 	return nil
 }
 
-func (c *rpcCodec) Read(r *response, b interface{}) error {
+func (c *rpcCodec) ReadHeader(wm *codec.Message, r codec.MessageType) error {
 	var m transport.Message
 	if err := c.client.Recv(&m); err != nil {
 		return errors.InternalServerError("go.micro.client.transport", err.Error())
@@ -139,34 +149,38 @@ func (c *rpcCodec) Read(r *response, b interface{}) error {
 	me.Header = m.Header
 
 	// read header
-	err := c.codec.ReadHeader(&me, codec.Response)
-	r.ServiceMethod = me.Method
-	r.Seq = me.Id
-	r.Error = me.Error
+	err := c.codec.ReadHeader(&me, r)
+	wm.Method = me.Method
+	wm.Id = me.Id
+	wm.Error = me.Error
 
 	// check error in header
 	if len(me.Error) == 0 {
-		r.Error = me.Header["X-Micro-Error"]
+		wm.Error = me.Header["X-Micro-Error"]
 	}
 
 	// check method in header
 	if len(me.Method) == 0 {
-		r.ServiceMethod = me.Header["X-Micro-Method"]
+		wm.Method = me.Header["X-Micro-Method"]
 	}
 
 	if len(me.Id) == 0 {
-		r.Seq = me.Header["X-Micro-Id"]
+		wm.Id = me.Header["X-Micro-Id"]
 	}
 
+	// return header error
 	if err != nil {
 		return errors.InternalServerError("go.micro.client.codec", err.Error())
 	}
 
+	return nil
+}
+
+func (c *rpcCodec) ReadBody(b interface{}) error {
 	// read body
 	if err := c.codec.ReadBody(b); err != nil {
 		return errors.InternalServerError("go.micro.client.codec", err.Error())
 	}
-
 	return nil
 }
 
@@ -177,4 +191,8 @@ func (c *rpcCodec) Close() error {
 		return errors.InternalServerError("go.micro.client.transport", err.Error())
 	}
 	return nil
+}
+
+func (c *rpcCodec) String() string {
+	return "rpc"
 }
