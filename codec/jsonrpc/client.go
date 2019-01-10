@@ -45,9 +45,9 @@ func newClientCodec(conn io.ReadWriteCloser) *clientCodec {
 
 func (c *clientCodec) Write(m *codec.Message, b interface{}) error {
 	c.Lock()
-	c.pending[m.Id] = m.Method
+	c.pending[m.Id] = m.Endpoint
 	c.Unlock()
-	c.req.Method = m.Method
+	c.req.Method = m.Endpoint
 	c.req.Params[0] = b
 	c.req.ID = m.Id
 	return c.enc.Encode(&c.req)
@@ -66,7 +66,7 @@ func (c *clientCodec) ReadHeader(m *codec.Message) error {
 	}
 
 	c.Lock()
-	m.Method = c.pending[c.resp.ID]
+	m.Endpoint = c.pending[c.resp.ID]
 	delete(c.pending, c.resp.ID)
 	c.Unlock()
 

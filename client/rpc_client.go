@@ -458,7 +458,8 @@ func (r *rpcClient) Publish(ctx context.Context, msg Message, opts ...PublishOpt
 	}
 	b := &buffer{bytes.NewBuffer(nil)}
 	if err := cf(b).Write(&codec.Message{
-		Type: codec.Publication,
+		Target: msg.Topic(),
+		Type:   codec.Publication,
 		Header: map[string]string{
 			"X-Micro-Id":    id,
 			"X-Micro-Topic": msg.Topic(),

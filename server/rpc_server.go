@@ -115,7 +115,7 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 		// internal request
 		request := &rpcRequest{
 			service:     msg.Header["X-Micro-Service"],
-			method:      msg.Header["X-Micro-Method"],
+			endpoint:    msg.Header["X-Micro-Endpoint"],
 			contentType: ct,
 			codec:       codec,
 			header:      msg.Header,

@@ -46,10 +46,10 @@ func (r *rpcStream) Send(msg interface{}) error {
 	}
 
 	req := codec.Message{
-		Id:     r.id,
-		Target: r.request.Service(),
-		Method: r.request.Method(),
-		Type:   codec.Request,
+		Id:       r.id,
+		Target:   r.request.Service(),
+		Endpoint: r.request.Endpoint(),
+		Type:     codec.Request,
 	}
 
 	if err := r.codec.Write(&req, msg); err != nil {

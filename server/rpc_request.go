@@ -7,7 +7,7 @@ import (
 
 type rpcRequest struct {
 	service     string
-	method      string
+	endpoint    string
 	contentType string
 	socket      transport.Socket
 	codec       codec.Codec
@@ -34,8 +34,8 @@ func (r *rpcRequest) Service() string {
 	return r.service
 }
 
-func (r *rpcRequest) Method() string {
-	return r.method
+func (r *rpcRequest) Endpoint() string {
+	return r.endpoint
 }
 
 func (r *rpcRequest) Header() map[string]string {

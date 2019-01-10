@@ -29,7 +29,7 @@ func (c *Codec) ReadHeader(m *codec.Message, t codec.MessageType) error {
 	path := m.Header[":path"]
 	if len(path) == 0 || path[0] != '/' {
 		m.Target = m.Header["X-Micro-Service"]
-		m.Method = m.Header["X-Micro-Method"]
+		m.Endpoint = m.Header["X-Micro-Endpoint"]
 	} else {
 		// [ , a.package.Foo, Bar]
 		parts := strings.Split(path, "/")
@@ -37,7 +37,7 @@ func (c *Codec) ReadHeader(m *codec.Message, t codec.MessageType) error {
 			return errors.New("Unknown request path")
 		}
 		service := strings.Split(parts[1], ".")
-		m.Method = strings.Join([]string{service[len(service)-1], parts[2]}, ".")
+		m.Endpoint = strings.Join([]string{service[len(service)-1], parts[2]}, ".")
 		m.Target = strings.Join(service[:len(service)-1], ".")
 	}
 

@@ -53,7 +53,7 @@ func (c *serverCodec) ReadHeader(m *codec.Message) error {
 	if err := c.dec.Decode(&c.req); err != nil {
 		return err
 	}
-	m.Method = c.req.Method
+	m.Endpoint = c.req.Method
 	m.Id = fmt.Sprintf("%v", c.req.ID)
 	c.req.ID = nil
 	return nil
