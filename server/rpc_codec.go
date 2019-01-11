@@ -132,12 +132,26 @@ func (c *rpcCodec) Write(r *codec.Message, b interface{}) error {
 		Id:       r.Id,
 		Error:    r.Error,
 		Type:     r.Type,
-		Header: map[string]string{
-			"X-Micro-Id":       r.Id,
-			"X-Micro-Endpoint": r.Endpoint,
-			"X-Micro-Error":    r.Error,
-			"Content-Type":     c.req.Header["Content-Type"],
-		},
+		Header:   map[string]string{},
+	}
+
+	// set request id
+	if len(r.Id) > 0 {
+		m.Header["X-Micro-Id"] = r.Id
+	}
+
+	// set target
+	if len(r.Target) > 0 {
+		m.Header["X-Micro-Service"] = r.Target
+	}
+
+	// set request endpoint
+	if len(r.Endpoint) > 0 {
+		m.Header["X-Micro-Endpoint"] = r.Endpoint
+	}
+
+	if len(r.Error) > 0 {
+		m.Header["X-Micro-Error"] = r.Error
 	}
 
 	// the body being sent
@@ -161,6 +175,11 @@ func (c *rpcCodec) Write(r *codec.Message, b interface{}) error {
 	} else {
 		// set the body
 		body = c.buf.wbuf.Bytes()
+	}
+
+	// Set content type if theres content
+	if len(body) > 0 {
+		m.Header["Content-Type"] = c.req.Header["Content-Type"]
 	}
 
 	// send on the socket

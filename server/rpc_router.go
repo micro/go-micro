@@ -381,7 +381,7 @@ func (router *router) readHeader(cc codec.Reader) (service *service, mtype *meth
 
 	serviceMethod := strings.Split(req.msg.Endpoint, ".")
 	if len(serviceMethod) != 2 {
-		err = errors.New("rpc: service/method request ill-formed: " + req.msg.Endpoint)
+		err = errors.New("rpc: service/endpoint request ill-formed: " + req.msg.Endpoint)
 		return
 	}
 	// Look up the request.
@@ -389,12 +389,12 @@ func (router *router) readHeader(cc codec.Reader) (service *service, mtype *meth
 	service = router.serviceMap[serviceMethod[0]]
 	router.mu.Unlock()
 	if service == nil {
-		err = errors.New("rpc: can't find service " + req.msg.Endpoint)
+		err = errors.New("rpc: can't find service " + serviceMethod[0])
 		return
 	}
 	mtype = service.method[serviceMethod[1]]
 	if mtype == nil {
-		err = errors.New("rpc: can't find method " + req.msg.Endpoint)
+		err = errors.New("rpc: can't find method " + serviceMethod[1])
 	}
 	return
 }
