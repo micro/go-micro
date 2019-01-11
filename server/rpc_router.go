@@ -70,11 +70,9 @@ type router struct {
 	hdlrWrappers []HandlerWrapper
 }
 
-func newRpcRouter(opts Options) *router {
+func newRpcRouter() *router {
 	return &router{
-		name:         opts.Name,
-		hdlrWrappers: opts.HdlrWrappers,
-		serviceMap:   make(map[string]*service),
+		serviceMap: make(map[string]*service),
 	}
 }
 
@@ -207,10 +205,6 @@ func (s *service) call(ctx context.Context, router *router, sending *sync.Mutex,
 			return nil
 		}
 
-		for i := len(router.hdlrWrappers); i > 0; i-- {
-			fn = router.hdlrWrappers[i-1](fn)
-		}
-
 		errmsg := ""
 		err := fn(ctx, r, replyv.Interface())
 		if err != nil {
@@ -250,10 +244,6 @@ func (s *service) call(ctx context.Context, router *router, sending *sync.Mutex,
 			// no error, we send the special EOS error
 			return lastStreamResponseError
 		}
-	}
-
-	for i := len(router.hdlrWrappers); i > 0; i-- {
-		fn = router.hdlrWrappers[i-1](fn)
 	}
 
 	// client.Stream request

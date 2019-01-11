@@ -122,7 +122,7 @@ var (
 	DefaultVersion        = "1.0.0"
 	DefaultId             = uuid.New().String()
 	DefaultServer  Server = newRpcServer()
-	DefaultRouter         = newRpcRouter(newOptions())
+	DefaultRouter         = newRpcRouter()
 )
 
 // DefaultOptions returns config options for the default service

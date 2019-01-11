@@ -38,7 +38,7 @@ func newRpcServer(opts ...Option) Server {
 	options := newOptions(opts...)
 	return &rpcServer{
 		opts:        options,
-		router:      newRpcRouter(options),
+		router:      newRpcRouter(),
 		handlers:    make(map[string]Handler),
 		subscribers: make(map[*subscriber][]broker.Subscriber),
 		exit:        make(chan chan error),
@@ -133,16 +133,29 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 
 		// set router
 		r := s.opts.Router
+
+		// if nil use default router
 		if s.opts.Router == nil {
 			r = s.router
 		}
 
-		// TODO: needs better error handling
-		if err := r.ServeRequest(ctx, request, response); err != nil {
+		// create a wrapped function
+		handler := func(ctx context.Context, req Request, rsp interface{}) error {
+			return r.ServeRequest(ctx, req, rsp.(Response))
+		}
+
+		for i := len(s.opts.HdlrWrappers); i > 0; i-- {
+			handler = s.opts.HdlrWrappers[i-1](handler)
+		}
+
+		// TODO: handle error better
+		if err := handler(ctx, request, response); err != nil {
 			s.wg.Done()
 			log.Logf("Unexpected error serving request, closing socket: %v", err)
 			return
 		}
+
+		// done
 		s.wg.Done()
 	}
 }
@@ -171,7 +184,7 @@ func (s *rpcServer) Init(opts ...Option) error {
 	}
 
 	// update router
-	r := newRpcRouter(s.opts)
+	r := newRpcRouter()
 	r.serviceMap = s.router.serviceMap
 	s.router = r
 

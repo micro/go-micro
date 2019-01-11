@@ -164,17 +164,29 @@ func validateSubscriber(sub Subscriber) error {
 func (s *rpcServer) createSubHandler(sb *subscriber, opts Options) broker.Handler {
 	return func(p broker.Publication) error {
 		msg := p.Message()
+
+		// get codec
 		ct := msg.Header["Content-Type"]
+
+		// default content type
+		if len(ct) == 0 {
+			msg.Header["Content-Type"] = DefaultContentType
+			ct = DefaultContentType
+		}
+
+		// get codec
 		cf, err := s.newCodec(ct)
 		if err != nil {
 			return err
 		}
 
+		// copy headers
 		hdr := make(map[string]string)
 		for k, v := range msg.Header {
 			hdr[k] = v
 		}
-		delete(hdr, "Content-Type")
+
+		// create context
 		ctx := metadata.NewContext(context.Background(), hdr)
 
 		results := make(chan error, len(sb.handlers))
