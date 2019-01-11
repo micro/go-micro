@@ -44,20 +44,6 @@ type readWriteCloser struct {
 	rbuf *bytes.Buffer
 }
 
-type request struct {
-	Service       string
-	ServiceMethod string   // format: "Service.Method"
-	Seq           string   // sequence number chosen by client
-	next          *request // for free list in Server
-}
-
-type response struct {
-	ServiceMethod string    // echoes that of the Request
-	Seq           string    // echoes that of the request
-	Error         string    // error, if any.
-	next          *response // for free list in Server
-}
-
 var (
 	DefaultContentType = "application/protobuf"
 
