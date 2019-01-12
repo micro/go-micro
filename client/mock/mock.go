@@ -51,11 +51,11 @@ func (m *MockClient) Options() client.Options {
 }
 
 func (m *MockClient) NewMessage(topic string, msg interface{}, opts ...client.MessageOption) client.Message {
-	return m.Client.NewMessage(topic, msg, opts...)
+	return newMessage(topic, msg, opts...)
 }
 
 func (m *MockClient) NewRequest(service, endpoint string, req interface{}, reqOpts ...client.RequestOption) client.Request {
-	return m.Client.NewRequest(service, endpoint, req, reqOpts...)
+	return newRequest(service, endpoint, req, reqOpts...)
 }
 
 func (m *MockClient) Call(ctx context.Context, req client.Request, rsp interface{}, opts ...client.CallOption) error {
@@ -125,7 +125,6 @@ func NewClient(opts ...client.Option) *MockClient {
 	}
 
 	return &MockClient{
-		Client:   client.DefaultClient,
 		Opts:     options,
 		Response: r,
 	}

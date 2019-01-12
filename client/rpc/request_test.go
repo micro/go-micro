@@ -1,7 +1,9 @@
-package client
+package rpc
 
 import (
 	"testing"
+
+	"github.com/micro/go-micro/client"
 )
 
 func TestRequestOptions(t *testing.T) {
@@ -16,7 +18,7 @@ func TestRequestOptions(t *testing.T) {
 		t.Fatalf("expected 'endpoint' got %s", r.ContentType())
 	}
 
-	r2 := newRequest("service", "endpoint", nil, "application/json", WithContentType("application/protobuf"))
+	r2 := newRequest("service", "endpoint", nil, "application/json", client.WithContentType("application/protobuf"))
 	if r2.ContentType() != "application/protobuf" {
 		t.Fatalf("expected 'endpoint' got %s", r2.ContentType())
 	}

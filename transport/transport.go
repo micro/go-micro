@@ -49,4 +49,6 @@ var (
 	DefaultTransport Transport
 
 	DefaultDialTimeout = time.Second * 5
+
+	NewTransport func(...Option) Transport
 )

@@ -1,4 +1,4 @@
-package client
+package rpc
 
 import (
 	"github.com/micro/go-micro/codec"

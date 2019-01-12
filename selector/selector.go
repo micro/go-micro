@@ -3,6 +3,7 @@ package selector
 
 import (
 	"errors"
+
 	"github.com/micro/go-micro/registry"
 )
 
@@ -35,7 +36,9 @@ type Filter func([]*registry.Service) []*registry.Service
 type Strategy func([]*registry.Service) Next
 
 var (
-	DefaultSelector = NewSelector()
+	DefaultSelector Selector
+
+	NewSelector func(...Option) Selector
 
 	ErrNotFound      = errors.New("not found")
 	ErrNoneAvailable = errors.New("none available")

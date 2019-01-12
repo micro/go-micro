@@ -1,15 +1,16 @@
-package selector
+package registry
 
 import (
 	"testing"
 
 	"github.com/micro/go-micro/registry/mock"
+	"github.com/micro/go-micro/selector"
 )
 
 func TestRegistrySelector(t *testing.T) {
 	counts := map[string]int{}
 
-	cache := NewSelector(Registry(mock.NewRegistry()))
+	cache := NewSelector(selector.Registry(mock.NewRegistry()))
 
 	next, err := cache.Select("foo")
 	if err != nil {

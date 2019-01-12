@@ -1,10 +1,11 @@
-package client
+package rpc
 
 import (
 	"context"
 	"io"
 	"sync"
 
+	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/codec"
 )
 
@@ -14,7 +15,7 @@ type rpcStream struct {
 	id      string
 	closed  chan bool
 	err     error
-	request Request
+	request client.Request
 	codec   codec.Codec
 	context context.Context
 }
@@ -32,7 +33,7 @@ func (r *rpcStream) Context() context.Context {
 	return r.context
 }
 
-func (r *rpcStream) Request() Request {
+func (r *rpcStream) Request() client.Request {
 	return r.request
 }
 

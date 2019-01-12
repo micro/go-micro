@@ -28,6 +28,8 @@ type WatchOption func(*WatchOptions)
 var (
 	DefaultRegistry Registry
 
+	NewRegistry func(...Option) Registry
+
 	// Not found error when GetService is called
 	ErrNotFound = errors.New("not found")
 	// Watcher stopped error when watcher is stopped

@@ -12,7 +12,9 @@ import (
 	"github.com/micro/cli"
 	"github.com/micro/go-log"
 	"github.com/micro/go-micro/client"
+	"github.com/micro/go-micro/client/rpc"
 	"github.com/micro/go-micro/server"
+	"github.com/micro/go-micro/server/rpc"
 
 	// brokers
 	"github.com/micro/go-micro/broker"
@@ -27,6 +29,7 @@ import (
 	// selectors
 	"github.com/micro/go-micro/selector"
 	"github.com/micro/go-micro/selector/dns"
+	reg "github.com/micro/go-micro/selector/registry"
 	"github.com/micro/go-micro/selector/static"
 
 	// transports
@@ -168,7 +171,7 @@ var (
 	}
 
 	DefaultClients = map[string]func(...client.Option) client.Client{
-		"rpc": client.NewClient,
+		"rpc": rpc.NewClient,
 	}
 
 	DefaultRegistries = map[string]func(...registry.Option) registry.Registry{
@@ -178,14 +181,13 @@ var (
 	}
 
 	DefaultSelectors = map[string]func(...selector.Option) selector.Selector{
-		"default": selector.NewSelector,
-		"dns":     dns.NewSelector,
-		"cache":   selector.NewSelector,
-		"static":  static.NewSelector,
+		"registry": reg.NewSelector,
+		"dns":      dns.NewSelector,
+		"static":   static.NewSelector,
 	}
 
 	DefaultServers = map[string]func(...server.Option) server.Server{
-		"rpc": server.NewServer,
+		"rpc": rpc.NewServer,
 	}
 
 	DefaultTransports = map[string]func(...transport.Option) transport.Transport{
@@ -196,8 +198,8 @@ var (
 	defaultClient    = "rpc"
 	defaultServer    = "rpc"
 	defaultBroker    = "http"
-	defaultRegistry  = "consul"
-	defaultSelector  = "cache"
+	defaultRegistry  = "mdns"
+	defaultSelector  = "registry"
 	defaultTransport = "http"
 )
 
@@ -208,6 +210,22 @@ func init() {
 		help(writer, templ, data)
 		os.Exit(0)
 	}
+
+	// set defaults
+	registry.DefaultRegistry = DefaultRegistries[defaultRegistry]()
+	broker.DefaultBroker = DefaultBrokers[defaultBroker]()
+	transport.DefaultTransport = DefaultTransports[defaultTransport]()
+	selector.DefaultSelector = DefaultSelectors[defaultSelector]()
+	client.DefaultClient = DefaultClients[defaultClient]()
+	server.DefaultServer = DefaultServers[defaultServer]()
+
+	// set new values
+	registry.NewRegistry = DefaultRegistries[defaultRegistry]
+	broker.NewBroker = DefaultBrokers[defaultBroker]
+	transport.NewTransport = DefaultTransports[defaultTransport]
+	selector.NewSelector = DefaultSelectors[defaultSelector]
+	client.NewClient = DefaultClients[defaultClient]
+	server.NewServer = DefaultServers[defaultServer]
 }
 
 func newCmd(opts ...Option) Cmd {

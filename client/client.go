@@ -86,8 +86,6 @@ type MessageOption func(*MessageOptions)
 type RequestOption func(*RequestOptions)
 
 var (
-	// DefaultClient is a default client to use out of the box
-	DefaultClient Client = newRpcClient()
 	// DefaultBackoff is the default backoff function for retries
 	DefaultBackoff = exponentialBackoff
 	// DefaultRetry is the default check-for-retry function for retries
@@ -100,6 +98,13 @@ var (
 	DefaultPoolSize = 1
 	// DefaultPoolTTL sets the connection pool ttl
 	DefaultPoolTTL = time.Minute
+
+	// DefaultClient is a default client to use out of the box
+	DefaultClient Client
+
+	DefaultContentType = "application/protobuf"
+
+	NewClient func(opt ...Option) Client
 )
 
 // Makes a synchronous call to a service using the default client
@@ -116,11 +121,6 @@ func Publish(ctx context.Context, msg Message, opts ...PublishOption) error {
 // Creates a new message using the default client
 func NewMessage(topic string, payload interface{}, opts ...MessageOption) Message {
 	return DefaultClient.NewMessage(topic, payload, opts...)
-}
-
-// Creates a new client with the options passed in
-func NewClient(opt ...Option) Client {
-	return newRpcClient(opt...)
 }
 
 // Creates a new request using the default client. Content Type will

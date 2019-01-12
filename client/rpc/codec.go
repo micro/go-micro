@@ -1,4 +1,4 @@
-package client
+package rpc
 
 import (
 	"bytes"
@@ -45,8 +45,6 @@ type readWriteCloser struct {
 }
 
 var (
-	DefaultContentType = "application/protobuf"
-
 	DefaultCodecs = map[string]codec.NewCodec{
 		"application/protobuf":     proto.NewCodec,
 		"application/json":         json.NewCodec,

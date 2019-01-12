@@ -80,7 +80,7 @@ type RequestOptions struct {
 	Context context.Context
 }
 
-func newOptions(options ...Option) Options {
+func NewOptions(options ...Option) Options {
 	opts := Options{
 		Codecs: make(map[string]codec.NewCodec),
 		CallOptions: CallOptions{

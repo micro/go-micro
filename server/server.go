@@ -121,8 +121,10 @@ var (
 	DefaultName           = "go-server"
 	DefaultVersion        = "1.0.0"
 	DefaultId             = uuid.New().String()
-	DefaultServer  Server = newRpcServer()
-	DefaultRouter         = newRpcRouter()
+	DefaultServer  Server
+	DefaultRouter  Router
+
+	NewServer func(opt ...Option) Server
 )
 
 // DefaultOptions returns config options for the default service
