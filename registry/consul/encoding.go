@@ -1,4 +1,4 @@
-package registry
+package consul
 
 import (
 	"bytes"
@@ -6,6 +6,8 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"io/ioutil"
+
+	"github.com/micro/go-micro/registry"
 )
 
 func encode(buf []byte) string {
@@ -41,7 +43,7 @@ func decode(d string) []byte {
 	return rbuf
 }
 
-func encodeEndpoints(en []*Endpoint) []string {
+func encodeEndpoints(en []*registry.Endpoint) []string {
 	var tags []string
 	for _, e := range en {
 		if b, err := json.Marshal(e); err == nil {
@@ -51,8 +53,8 @@ func encodeEndpoints(en []*Endpoint) []string {
 	return tags
 }
 
-func decodeEndpoints(tags []string) []*Endpoint {
-	var en []*Endpoint
+func decodeEndpoints(tags []string) []*registry.Endpoint {
+	var en []*registry.Endpoint
 
 	// use the first format you find
 	var ver byte
@@ -67,7 +69,7 @@ func decodeEndpoints(tags []string) []*Endpoint {
 			continue
 		}
 
-		var e *Endpoint
+		var e *registry.Endpoint
 		var buf []byte
 
 		// Old encoding was plain

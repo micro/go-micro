@@ -1,20 +1,21 @@
-package registry
+package consul
 
 import (
 	"encoding/json"
-
 	"testing"
+
+	"github.com/micro/go-micro/registry"
 )
 
 func TestEncodingEndpoints(t *testing.T) {
-	eps := []*Endpoint{
-		&Endpoint{
+	eps := []*registry.Endpoint{
+		&registry.Endpoint{
 			Name: "endpoint1",
-			Request: &Value{
+			Request: &registry.Value{
 				Name: "request",
 				Type: "request",
 			},
-			Response: &Value{
+			Response: &registry.Value{
 				Name: "response",
 				Type: "response",
 			},
@@ -22,13 +23,13 @@ func TestEncodingEndpoints(t *testing.T) {
 				"foo1": "bar1",
 			},
 		},
-		&Endpoint{
+		&registry.Endpoint{
 			Name: "endpoint2",
-			Request: &Value{
+			Request: &registry.Value{
 				Name: "request",
 				Type: "request",
 			},
-			Response: &Value{
+			Response: &registry.Value{
 				Name: "response",
 				Type: "response",
 			},
@@ -36,13 +37,13 @@ func TestEncodingEndpoints(t *testing.T) {
 				"foo2": "bar2",
 			},
 		},
-		&Endpoint{
+		&registry.Endpoint{
 			Name: "endpoint3",
-			Request: &Value{
+			Request: &registry.Value{
 				Name: "request",
 				Type: "request",
 			},
-			Response: &Value{
+			Response: &registry.Value{
 				Name: "response",
 				Type: "response",
 			},
@@ -52,9 +53,9 @@ func TestEncodingEndpoints(t *testing.T) {
 		},
 	}
 
-	testEp := func(ep *Endpoint, enc string) {
+	testEp := func(ep *registry.Endpoint, enc string) {
 		// encode endpoint
-		e := encodeEndpoints([]*Endpoint{ep})
+		e := encodeEndpoints([]*registry.Endpoint{ep})
 
 		// check there are two tags; old and new
 		if len(e) != 1 {

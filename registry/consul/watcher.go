@@ -1,4 +1,4 @@
-package registry
+package consul
 
 import (
 	"errors"
@@ -6,23 +6,24 @@ import (
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/watch"
+	"github.com/micro/go-micro/registry"
 )
 
 type consulWatcher struct {
 	r        *consulRegistry
-	wo       WatchOptions
+	wo       registry.WatchOptions
 	wp       *watch.Plan
 	watchers map[string]*watch.Plan
 
-	next chan *Result
+	next chan *registry.Result
 	exit chan bool
 
 	sync.RWMutex
-	services map[string][]*Service
+	services map[string][]*registry.Service
 }
 
-func newConsulWatcher(cr *consulRegistry, opts ...WatchOption) (Watcher, error) {
-	var wo WatchOptions
+func newConsulWatcher(cr *consulRegistry, opts ...registry.WatchOption) (registry.Watcher, error) {
+	var wo registry.WatchOptions
 	for _, o := range opts {
 		o(&wo)
 	}
@@ -31,9 +32,9 @@ func newConsulWatcher(cr *consulRegistry, opts ...WatchOption) (Watcher, error) 
 		r:        cr,
 		wo:       wo,
 		exit:     make(chan bool),
-		next:     make(chan *Result, 10),
+		next:     make(chan *registry.Result, 10),
 		watchers: make(map[string]*watch.Plan),
-		services: make(map[string][]*Service),
+		services: make(map[string][]*registry.Service),
 	}
 
 	wp, err := watch.Parse(map[string]interface{}{"type": "services"})
@@ -54,7 +55,7 @@ func (cw *consulWatcher) serviceHandler(idx uint64, data interface{}) {
 		return
 	}
 
-	serviceMap := map[string]*Service{}
+	serviceMap := map[string]*registry.Service{}
 	serviceName := ""
 
 	for _, e := range entries {
@@ -75,7 +76,7 @@ func (cw *consulWatcher) serviceHandler(idx uint64, data interface{}) {
 
 		svc, ok := serviceMap[key]
 		if !ok {
-			svc = &Service{
+			svc = &registry.Service{
 				Endpoints: decodeEndpoints(e.Service.Tags),
 				Name:      e.Service.Service,
 				Version:   version,
@@ -98,7 +99,7 @@ func (cw *consulWatcher) serviceHandler(idx uint64, data interface{}) {
 			continue
 		}
 
-		svc.Nodes = append(svc.Nodes, &Node{
+		svc.Nodes = append(svc.Nodes, &registry.Node{
 			Id:       id,
 			Address:  address,
 			Port:     e.Service.Port,
@@ -108,13 +109,13 @@ func (cw *consulWatcher) serviceHandler(idx uint64, data interface{}) {
 
 	cw.RLock()
 	// make a copy
-	rservices := make(map[string][]*Service)
+	rservices := make(map[string][]*registry.Service)
 	for k, v := range cw.services {
 		rservices[k] = v
 	}
 	cw.RUnlock()
 
-	var newServices []*Service
+	var newServices []*registry.Service
 
 	// serviceMap is the new set of services keyed by name+version
 	for _, newService := range serviceMap {
@@ -125,7 +126,7 @@ func (cw *consulWatcher) serviceHandler(idx uint64, data interface{}) {
 		oldServices, ok := rservices[serviceName]
 		if !ok {
 			// does not exist? then we're creating brand new entries
-			cw.next <- &Result{Action: "create", Service: newService}
+			cw.next <- &registry.Result{Action: "create", Service: newService}
 			continue
 		}
 
@@ -142,7 +143,7 @@ func (cw *consulWatcher) serviceHandler(idx uint64, data interface{}) {
 			// yes? then it's an update
 			action = "update"
 
-			var nodes []*Node
+			var nodes []*registry.Node
 			// check the old nodes to see if they've been deleted
 			for _, oldNode := range oldService.Nodes {
 				var seen bool
@@ -163,11 +164,11 @@ func (cw *consulWatcher) serviceHandler(idx uint64, data interface{}) {
 			if len(nodes) > 0 {
 				delService := oldService
 				delService.Nodes = nodes
-				cw.next <- &Result{Action: "delete", Service: delService}
+				cw.next <- &registry.Result{Action: "delete", Service: delService}
 			}
 		}
 
-		cw.next <- &Result{Action: action, Service: newService}
+		cw.next <- &registry.Result{Action: action, Service: newService}
 	}
 
 	// Now check old versions that may not be in new services map
@@ -175,7 +176,7 @@ func (cw *consulWatcher) serviceHandler(idx uint64, data interface{}) {
 		// old version does not exist in new version map
 		// kill it with fire!
 		if _, ok := serviceMap[old.Version]; !ok {
-			cw.next <- &Result{Action: "delete", Service: old}
+			cw.next <- &registry.Result{Action: "delete", Service: old}
 		}
 	}
 
@@ -209,13 +210,13 @@ func (cw *consulWatcher) handle(idx uint64, data interface{}) {
 			wp.Handler = cw.serviceHandler
 			go wp.Run(cw.r.Address)
 			cw.watchers[service] = wp
-			cw.next <- &Result{Action: "create", Service: &Service{Name: service}}
+			cw.next <- &registry.Result{Action: "create", Service: &registry.Service{Name: service}}
 		}
 	}
 
 	cw.RLock()
 	// make a copy
-	rservices := make(map[string][]*Service)
+	rservices := make(map[string][]*registry.Service)
 	for k, v := range cw.services {
 		rservices[k] = v
 	}
@@ -235,12 +236,12 @@ func (cw *consulWatcher) handle(idx uint64, data interface{}) {
 		if _, ok := services[service]; !ok {
 			w.Stop()
 			delete(cw.watchers, service)
-			cw.next <- &Result{Action: "delete", Service: &Service{Name: service}}
+			cw.next <- &registry.Result{Action: "delete", Service: &registry.Service{Name: service}}
 		}
 	}
 }
 
-func (cw *consulWatcher) Next() (*Result, error) {
+func (cw *consulWatcher) Next() (*registry.Result, error) {
 	select {
 	case <-cw.exit:
 		return nil, errors.New("result chan closed")
