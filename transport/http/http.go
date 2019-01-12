@@ -553,7 +553,7 @@ func (h *httpTransport) String() string {
 	return "http"
 }
 
-func NewTransport(opts ...transport.Option) *httpTransport {
+func NewTransport(opts ...transport.Option) transport.Transport {
 	var options transport.Options
 	for _, o := range opts {
 		o(&options)

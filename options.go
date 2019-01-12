@@ -6,6 +6,7 @@ import (
 
 	"github.com/micro/cli"
 	"github.com/micro/go-micro/broker"
+	"github.com/micro/go-micro/broker/http"
 	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/cmd"
 	"github.com/micro/go-micro/registry"
@@ -101,7 +102,7 @@ func Registry(r registry.Registry) Option {
 		// Update Selector
 		o.Client.Options().Selector.Init(selector.Registry(r))
 		// Update Broker
-		o.Broker.Init(broker.Registry(r))
+		o.Broker.Init(http.Registry(r))
 	}
 }
 

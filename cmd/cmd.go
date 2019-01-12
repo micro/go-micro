@@ -12,9 +12,9 @@ import (
 	"github.com/micro/cli"
 	"github.com/micro/go-log"
 	"github.com/micro/go-micro/client"
-	"github.com/micro/go-micro/client/rpc"
+	crpc "github.com/micro/go-micro/client/rpc"
 	"github.com/micro/go-micro/server"
-	"github.com/micro/go-micro/server/rpc"
+	srpc "github.com/micro/go-micro/server/rpc"
 
 	// brokers
 	"github.com/micro/go-micro/broker"
@@ -171,7 +171,7 @@ var (
 	}
 
 	DefaultClients = map[string]func(...client.Option) client.Client{
-		"rpc": rpc.NewClient,
+		"rpc": crpc.NewClient,
 	}
 
 	DefaultRegistries = map[string]func(...registry.Option) registry.Registry{
@@ -187,7 +187,7 @@ var (
 	}
 
 	DefaultServers = map[string]func(...server.Option) server.Server{
-		"rpc": rpc.NewServer,
+		"rpc": srpc.NewServer,
 	}
 
 	DefaultTransports = map[string]func(...transport.Option) transport.Transport{
@@ -328,7 +328,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 
 		clientOpts = append(clientOpts, client.Selector(*c.opts.Selector))
 
-		if err := (*c.opts.Broker).Init(broker.Registry(*c.opts.Registry)); err != nil {
+		if err := (*c.opts.Broker).Init(http.Registry(*c.opts.Registry)); err != nil {
 			log.Fatalf("Error configuring broker: %v", err)
 		}
 	}

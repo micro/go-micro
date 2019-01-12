@@ -117,10 +117,10 @@ type HandlerOption func(*HandlerOptions)
 type SubscriberOption func(*SubscriberOptions)
 
 var (
-	DefaultAddress        = ":0"
-	DefaultName           = "go-server"
-	DefaultVersion        = "1.0.0"
-	DefaultId             = uuid.New().String()
+	DefaultAddress = ":0"
+	DefaultName    = "go-server"
+	DefaultVersion = "1.0.0"
+	DefaultId      = uuid.New().String()
 	DefaultServer  Server
 	DefaultRouter  Router
 
@@ -135,14 +135,9 @@ func DefaultOptions() Options {
 // Init initialises the default server with options passed in
 func Init(opt ...Option) {
 	if DefaultServer == nil {
-		DefaultServer = newRpcServer(opt...)
+		DefaultServer = NewServer(opt...)
 	}
 	DefaultServer.Init(opt...)
-}
-
-// NewServer returns a new server with options passed in
-func NewServer(opt ...Option) Server {
-	return newRpcServer(opt...)
 }
 
 // NewSubscriber creates a new subscriber interface with the given topic
