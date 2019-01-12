@@ -5,7 +5,6 @@ import (
 	"crypto/tls"
 
 	"github.com/micro/go-micro/codec"
-	"github.com/micro/go-micro/registry"
 )
 
 type Options struct {
@@ -43,12 +42,6 @@ type Option func(*Options)
 type PublishOption func(*PublishOptions)
 
 type SubscribeOption func(*SubscribeOptions)
-
-type contextKeyT string
-
-var (
-	registryKey = contextKeyT("github.com/micro/go-micro/registry")
-)
 
 func NewSubscribeOptions(opts ...SubscribeOption) SubscribeOptions {
 	opt := SubscribeOptions{
@@ -89,12 +82,6 @@ func DisableAutoAck() SubscribeOption {
 func Queue(name string) SubscribeOption {
 	return func(o *SubscribeOptions) {
 		o.Queue = name
-	}
-}
-
-func Registry(r registry.Registry) Option {
-	return func(o *Options) {
-		o.Context = context.WithValue(o.Context, registryKey, r)
 	}
 }
 

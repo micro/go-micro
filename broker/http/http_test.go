@@ -1,4 +1,4 @@
-package broker
+package http
 
 import (
 	"sync"
@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/micro/go-micro/broker"
 	"github.com/micro/go-micro/registry/mock"
 )
 
@@ -23,18 +24,18 @@ func sub(be *testing.B, c int) {
 		be.Fatalf("Unexpected connect error: %v", err)
 	}
 
-	msg := &Message{
+	msg := &broker.Message{
 		Header: map[string]string{
 			"Content-Type": "application/json",
 		},
 		Body: []byte(`{"message": "Hello World"}`),
 	}
 
-	var subs []Subscriber
+	var subs []broker.Subscriber
 	done := make(chan bool, c)
 
 	for i := 0; i < c; i++ {
-		sub, err := b.Subscribe(topic, func(p Publication) error {
+		sub, err := b.Subscribe(topic, func(p broker.Publication) error {
 			done <- true
 			m := p.Message()
 
@@ -43,7 +44,7 @@ func sub(be *testing.B, c int) {
 			}
 
 			return nil
-		}, Queue("shared"))
+		}, broker.Queue("shared"))
 		if err != nil {
 			be.Fatalf("Unexpected subscribe error: %v", err)
 		}
@@ -82,7 +83,7 @@ func pub(be *testing.B, c int) {
 		be.Fatalf("Unexpected connect error: %v", err)
 	}
 
-	msg := &Message{
+	msg := &broker.Message{
 		Header: map[string]string{
 			"Content-Type": "application/json",
 		},
@@ -91,14 +92,14 @@ func pub(be *testing.B, c int) {
 
 	done := make(chan bool, c*4)
 
-	sub, err := b.Subscribe(topic, func(p Publication) error {
+	sub, err := b.Subscribe(topic, func(p broker.Publication) error {
 		done <- true
 		m := p.Message()
 		if string(m.Body) != string(msg.Body) {
 			be.Fatalf("Unexpected msg %s, expected %s", string(m.Body), string(msg.Body))
 		}
 		return nil
-	}, Queue("shared"))
+	}, broker.Queue("shared"))
 	if err != nil {
 		be.Fatalf("Unexpected subscribe error: %v", err)
 	}
@@ -150,7 +151,7 @@ func TestBroker(t *testing.T) {
 		t.Fatalf("Unexpected connect error: %v", err)
 	}
 
-	msg := &Message{
+	msg := &broker.Message{
 		Header: map[string]string{
 			"Content-Type": "application/json",
 		},
@@ -159,7 +160,7 @@ func TestBroker(t *testing.T) {
 
 	done := make(chan bool)
 
-	sub, err := b.Subscribe("test", func(p Publication) error {
+	sub, err := b.Subscribe("test", func(p broker.Publication) error {
 		m := p.Message()
 
 		if string(m.Body) != string(msg.Body) {
@@ -197,18 +198,18 @@ func TestConcurrentSubBroker(t *testing.T) {
 		t.Fatalf("Unexpected connect error: %v", err)
 	}
 
-	msg := &Message{
+	msg := &broker.Message{
 		Header: map[string]string{
 			"Content-Type": "application/json",
 		},
 		Body: []byte(`{"message": "Hello World"}`),
 	}
 
-	var subs []Subscriber
+	var subs []broker.Subscriber
 	var wg sync.WaitGroup
 
 	for i := 0; i < 10; i++ {
-		sub, err := b.Subscribe("test", func(p Publication) error {
+		sub, err := b.Subscribe("test", func(p broker.Publication) error {
 			defer wg.Done()
 
 			m := p.Message()
@@ -254,7 +255,7 @@ func TestConcurrentPubBroker(t *testing.T) {
 		t.Fatalf("Unexpected connect error: %v", err)
 	}
 
-	msg := &Message{
+	msg := &broker.Message{
 		Header: map[string]string{
 			"Content-Type": "application/json",
 		},
@@ -263,7 +264,7 @@ func TestConcurrentPubBroker(t *testing.T) {
 
 	var wg sync.WaitGroup
 
-	sub, err := b.Subscribe("test", func(p Publication) error {
+	sub, err := b.Subscribe("test", func(p broker.Publication) error {
 		defer wg.Done()
 
 		m := p.Message()
