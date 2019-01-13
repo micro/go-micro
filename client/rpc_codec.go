@@ -6,6 +6,7 @@ import (
 
 	"github.com/micro/go-micro/codec"
 	raw "github.com/micro/go-micro/codec/bytes"
+	"github.com/micro/go-micro/codec/grpc"
 	"github.com/micro/go-micro/codec/json"
 	"github.com/micro/go-micro/codec/jsonrpc"
 	"github.com/micro/go-micro/codec/proto"
@@ -48,6 +49,9 @@ var (
 	DefaultContentType = "application/protobuf"
 
 	DefaultCodecs = map[string]codec.NewCodec{
+		"application/grpc":         grpc.NewCodec,
+		"application/grpc+json":    grpc.NewCodec,
+		"application/grpc+proto":   grpc.NewCodec,
 		"application/protobuf":     proto.NewCodec,
 		"application/json":         json.NewCodec,
 		"application/json-rpc":     jsonrpc.NewCodec,

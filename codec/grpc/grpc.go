@@ -4,6 +4,7 @@ package grpc
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"strings"
 
@@ -77,8 +78,23 @@ func (c *Codec) Write(m *codec.Message, b interface{}) error {
 		c.ContentType = ct
 	}
 
-	m.Header["Trailer"] = "grpc-status, grpc-message"
+	switch m.Type {
+	case codec.Request:
+		parts := strings.Split(m.Endpoint, ".")
+		m.Header[":method"] = "POST"
+		m.Header[":path"] = fmt.Sprintf("/%s.%s/%s", m.Target, parts[0], parts[1])
+		m.Header[":proto"] = "HTTP/2.0"
+		m.Header["te"] = "trailers"
+		m.Header["user-agent"] = "grpc-go/1.0.0"
+		m.Header[":authority"] = m.Target
+		m.Header["content-type"] = c.ContentType
+	case codec.Response:
+		m.Header["Trailer"] = "grpc-status, grpc-message"
+		m.Header["grpc-status"] = "0"
+		m.Header["grpc-message"] = ""
+	}
 
+	// marshal content
 	switch c.ContentType {
 	case "application/grpc+json":
 		buf, err = json.Marshal(b)
@@ -90,15 +106,12 @@ func (c *Codec) Write(m *codec.Message, b interface{}) error {
 	default:
 		err = errors.New("Unsupported Content-Type")
 	}
-
+	// check error
 	if err != nil {
 		m.Header["grpc-status"] = "8"
 		m.Header["grpc-message"] = err.Error()
 		return err
 	}
-
-	m.Header["grpc-status"] = "0"
-	m.Header["grpc-message"] = ""
 
 	return encode(0, buf, c.Conn)
 }

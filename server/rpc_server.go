@@ -153,8 +153,8 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 			// write an error response
 			rcodec.Write(&codec.Message{
 				Header: msg.Header,
-				Error: err.Error(),
-				Type: codec.Error,
+				Error:  err.Error(),
+				Type:   codec.Error,
 			}, nil)
 
 			s.wg.Done()
