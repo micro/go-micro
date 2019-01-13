@@ -70,7 +70,7 @@ func (c *protoCodec) Write(m *codec.Message, b interface{}) error {
 				return err
 			}
 		}
-	case codec.Response:
+	case codec.Response, codec.Error:
 		c.Lock()
 		defer c.Unlock()
 		rtmp := &Response{ServiceMethod: &m.Endpoint, Seq: id(m.Id), Error: &m.Error}

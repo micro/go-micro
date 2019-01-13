@@ -31,7 +31,7 @@ func (j *jsonCodec) Write(m *codec.Message, b interface{}) error {
 	switch m.Type {
 	case codec.Request:
 		return j.c.Write(m, b)
-	case codec.Response:
+	case codec.Response, codec.Error:
 		return j.s.Write(m, b)
 	case codec.Publication:
 		data, err := json.Marshal(b)
