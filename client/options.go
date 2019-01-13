@@ -22,6 +22,9 @@ type Options struct {
 	Selector  selector.Selector
 	Transport transport.Transport
 
+	// Router sets the router
+	Router Router
+
 	// Connection Pool
 	PoolSize int
 	PoolTTL  time.Duration
@@ -304,5 +307,12 @@ func WithContentType(ct string) RequestOption {
 func StreamingRequest() RequestOption {
 	return func(o *RequestOptions) {
 		o.Stream = true
+	}
+}
+
+// WithRouter sets the client router
+func WithRouter(r Router) Option {
+	return func(o *Options) {
+		o.Router = r
 	}
 }
