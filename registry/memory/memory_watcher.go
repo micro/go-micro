@@ -1,4 +1,4 @@
-package mock
+package memory
 
 import (
 	"errors"
@@ -6,12 +6,12 @@ import (
 	"github.com/micro/go-micro/registry"
 )
 
-type mockWatcher struct {
+type memoryWatcher struct {
 	exit chan bool
 	opts registry.WatchOptions
 }
 
-func (m *mockWatcher) Next() (*registry.Result, error) {
+func (m *memoryWatcher) Next() (*registry.Result, error) {
 	// not implement so we just block until exit
 	select {
 	case <-m.exit:
@@ -19,7 +19,7 @@ func (m *mockWatcher) Next() (*registry.Result, error) {
 	}
 }
 
-func (m *mockWatcher) Stop() {
+func (m *memoryWatcher) Stop() {
 	select {
 	case <-m.exit:
 		return

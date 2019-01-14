@@ -1,4 +1,5 @@
-package mock
+// Package memory is an in-memory transport
+package memory
 
 import (
 	"errors"
@@ -11,7 +12,7 @@ import (
 	"github.com/micro/go-micro/transport"
 )
 
-type mockSocket struct {
+type memorySocket struct {
 	recv chan *transport.Message
 	send chan *transport.Message
 	// sock exit
@@ -23,26 +24,26 @@ type mockSocket struct {
 	remote string
 }
 
-type mockClient struct {
-	*mockSocket
+type memoryClient struct {
+	*memorySocket
 	opts transport.DialOptions
 }
 
-type mockListener struct {
+type memoryListener struct {
 	addr string
 	exit chan bool
-	conn chan *mockSocket
+	conn chan *memorySocket
 	opts transport.ListenOptions
 }
 
-type mockTransport struct {
+type memoryTransport struct {
 	opts transport.Options
 
 	sync.Mutex
-	listeners map[string]*mockListener
+	listeners map[string]*memoryListener
 }
 
-func (ms *mockSocket) Recv(m *transport.Message) error {
+func (ms *memorySocket) Recv(m *transport.Message) error {
 	select {
 	case <-ms.exit:
 		return errors.New("connection closed")
@@ -54,15 +55,15 @@ func (ms *mockSocket) Recv(m *transport.Message) error {
 	return nil
 }
 
-func (ms *mockSocket) Local() string {
+func (ms *memorySocket) Local() string {
 	return ms.local
 }
 
-func (ms *mockSocket) Remote() string {
+func (ms *memorySocket) Remote() string {
 	return ms.remote
 }
 
-func (ms *mockSocket) Send(m *transport.Message) error {
+func (ms *memorySocket) Send(m *transport.Message) error {
 	select {
 	case <-ms.exit:
 		return errors.New("connection closed")
@@ -73,7 +74,7 @@ func (ms *mockSocket) Send(m *transport.Message) error {
 	return nil
 }
 
-func (ms *mockSocket) Close() error {
+func (ms *memorySocket) Close() error {
 	select {
 	case <-ms.exit:
 		return nil
@@ -83,11 +84,11 @@ func (ms *mockSocket) Close() error {
 	return nil
 }
 
-func (m *mockListener) Addr() string {
+func (m *memoryListener) Addr() string {
 	return m.addr
 }
 
-func (m *mockListener) Close() error {
+func (m *memoryListener) Close() error {
 	select {
 	case <-m.exit:
 		return nil
@@ -97,13 +98,13 @@ func (m *mockListener) Close() error {
 	return nil
 }
 
-func (m *mockListener) Accept(fn func(transport.Socket)) error {
+func (m *memoryListener) Accept(fn func(transport.Socket)) error {
 	for {
 		select {
 		case <-m.exit:
 			return nil
 		case c := <-m.conn:
-			go fn(&mockSocket{
+			go fn(&memorySocket{
 				lexit:  c.lexit,
 				exit:   c.exit,
 				send:   c.recv,
@@ -115,7 +116,7 @@ func (m *mockListener) Accept(fn func(transport.Socket)) error {
 	}
 }
 
-func (m *mockTransport) Dial(addr string, opts ...transport.DialOption) (transport.Client, error) {
+func (m *memoryTransport) Dial(addr string, opts ...transport.DialOption) (transport.Client, error) {
 	m.Lock()
 	defer m.Unlock()
 
@@ -129,8 +130,8 @@ func (m *mockTransport) Dial(addr string, opts ...transport.DialOption) (transpo
 		o(&options)
 	}
 
-	client := &mockClient{
-		&mockSocket{
+	client := &memoryClient{
+		&memorySocket{
 			send:   make(chan *transport.Message),
 			recv:   make(chan *transport.Message),
 			exit:   make(chan bool),
@@ -145,13 +146,13 @@ func (m *mockTransport) Dial(addr string, opts ...transport.DialOption) (transpo
 	select {
 	case <-listener.exit:
 		return nil, errors.New("connection error")
-	case listener.conn <- client.mockSocket:
+	case listener.conn <- client.memorySocket:
 	}
 
 	return client, nil
 }
 
-func (m *mockTransport) Listen(addr string, opts ...transport.ListenOption) (transport.Listener, error) {
+func (m *memoryTransport) Listen(addr string, opts ...transport.ListenOption) (transport.Listener, error) {
 	m.Lock()
 	defer m.Unlock()
 
@@ -174,10 +175,10 @@ func (m *mockTransport) Listen(addr string, opts ...transport.ListenOption) (tra
 		return nil, errors.New("already listening on " + addr)
 	}
 
-	listener := &mockListener{
+	listener := &memoryListener{
 		opts: options,
 		addr: addr,
-		conn: make(chan *mockSocket),
+		conn: make(chan *memorySocket),
 		exit: make(chan bool),
 	}
 
@@ -186,19 +187,19 @@ func (m *mockTransport) Listen(addr string, opts ...transport.ListenOption) (tra
 	return listener, nil
 }
 
-func (m *mockTransport) Init(opts ...transport.Option) error {
+func (m *memoryTransport) Init(opts ...transport.Option) error {
 	for _, o := range opts {
 		o(&m.opts)
 	}
 	return nil
 }
 
-func (m *mockTransport) Options() transport.Options {
+func (m *memoryTransport) Options() transport.Options {
 	return m.opts
 }
 
-func (m *mockTransport) String() string {
-	return "mock"
+func (m *memoryTransport) String() string {
+	return "memory"
 }
 
 func NewTransport(opts ...transport.Option) transport.Transport {
@@ -207,8 +208,8 @@ func NewTransport(opts ...transport.Option) transport.Transport {
 		o(&options)
 	}
 
-	return &mockTransport{
+	return &memoryTransport{
 		opts:      options,
-		listeners: make(map[string]*mockListener),
+		listeners: make(map[string]*memoryListener),
 	}
 }

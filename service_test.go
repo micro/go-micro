@@ -5,7 +5,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/micro/go-micro/registry/mock"
+	"github.com/micro/go-micro/registry/memory"
 	proto "github.com/micro/go-micro/server/debug/proto"
 )
 
@@ -16,11 +16,14 @@ func TestService(t *testing.T) {
 	// cancellation context
 	ctx, cancel := context.WithCancel(context.Background())
 
+	r := memory.NewRegistry()
+	r.(*memory.Registry).Setup()
+
 	// create service
 	service := NewService(
 		Name("test.service"),
 		Context(ctx),
-		Registry(mock.NewRegistry()),
+		Registry(r),
 		AfterStart(func() error {
 			wg.Done()
 			return nil

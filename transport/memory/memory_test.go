@@ -1,4 +1,4 @@
-package mock
+package memory
 
 import (
 	"testing"
@@ -6,7 +6,7 @@ import (
 	"github.com/micro/go-micro/transport"
 )
 
-func TestTransport(t *testing.T) {
+func TestMemoryTransport(t *testing.T) {
 	tr := NewTransport()
 
 	// bind / listen

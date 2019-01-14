@@ -17,12 +17,14 @@ import (
 	// brokers
 	"github.com/micro/go-micro/broker"
 	"github.com/micro/go-micro/broker/http"
+	"github.com/micro/go-micro/broker/memory"
 
 	// registries
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/registry/consul"
 	"github.com/micro/go-micro/registry/gossip"
 	"github.com/micro/go-micro/registry/mdns"
+	rmem "github.com/micro/go-micro/registry/memory"
 
 	// selectors
 	"github.com/micro/go-micro/selector"
@@ -32,6 +34,7 @@ import (
 	// transports
 	"github.com/micro/go-micro/transport"
 	thttp "github.com/micro/go-micro/transport/http"
+	tmem "github.com/micro/go-micro/transport/memory"
 )
 
 type Cmd interface {
@@ -164,7 +167,8 @@ var (
 	}
 
 	DefaultBrokers = map[string]func(...broker.Option) broker.Broker{
-		"http": http.NewBroker,
+		"http":   http.NewBroker,
+		"memory": memory.NewBroker,
 	}
 
 	DefaultClients = map[string]func(...client.Option) client.Client{
@@ -175,6 +179,7 @@ var (
 		"consul": consul.NewRegistry,
 		"gossip": gossip.NewRegistry,
 		"mdns":   mdns.NewRegistry,
+		"memory": rmem.NewRegistry,
 	}
 
 	DefaultSelectors = map[string]func(...selector.Option) selector.Selector{
@@ -189,7 +194,8 @@ var (
 	}
 
 	DefaultTransports = map[string]func(...transport.Option) transport.Transport{
-		"http": thttp.NewTransport,
+		"memory": tmem.NewTransport,
+		"http":   thttp.NewTransport,
 	}
 
 	// used for default selection as the fall back

@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/micro/go-micro/transport"
-	"github.com/micro/go-micro/transport/mock"
+	"github.com/micro/go-micro/transport/memory"
 )
 
 func testPool(t *testing.T, size int, ttl time.Duration) {
@@ -13,7 +13,7 @@ func testPool(t *testing.T, size int, ttl time.Duration) {
 	p := newPool(size, ttl)
 
 	// mock transport
-	tr := mock.NewTransport()
+	tr := memory.NewTransport()
 
 	// listen
 	l, err := tr.Listen(":0")

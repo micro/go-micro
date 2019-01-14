@@ -7,9 +7,15 @@ import (
 
 	"github.com/micro/go-micro/errors"
 	"github.com/micro/go-micro/registry"
-	"github.com/micro/go-micro/registry/mock"
+	"github.com/micro/go-micro/registry/memory"
 	"github.com/micro/go-micro/selector"
 )
+
+func newTestRegistry() registry.Registry {
+	r := memory.NewRegistry()
+	r.(*memory.Registry).Setup()
+	return r
+}
 
 func TestCallAddress(t *testing.T) {
 	var called bool
@@ -38,7 +44,7 @@ func TestCallAddress(t *testing.T) {
 		}
 	}
 
-	r := mock.NewRegistry()
+	r := newTestRegistry()
 	c := NewClient(
 		Registry(r),
 		WrapCall(wrap),
@@ -77,7 +83,7 @@ func TestCallRetry(t *testing.T) {
 		}
 	}
 
-	r := mock.NewRegistry()
+	r := newTestRegistry()
 	c := NewClient(
 		Registry(r),
 		WrapCall(wrap),
@@ -127,7 +133,7 @@ func TestCallWrapper(t *testing.T) {
 		}
 	}
 
-	r := mock.NewRegistry()
+	r := newTestRegistry()
 	c := NewClient(
 		Registry(r),
 		WrapCall(wrap),

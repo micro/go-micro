@@ -1,4 +1,4 @@
-package mock
+package memory
 
 import (
 	"testing"
@@ -82,6 +82,7 @@ var (
 
 func TestMockRegistry(t *testing.T) {
 	m := NewRegistry()
+	m.(*Registry).Setup()
 
 	fn := func(k string, v []*registry.Service) {
 		services, err := m.GetService(k)
@@ -107,8 +108,8 @@ func TestMockRegistry(t *testing.T) {
 		}
 	}
 
-	// test existing mock data
-	for k, v := range mockData {
+	// test existing memory data
+	for k, v := range Data {
 		fn(k, v)
 	}
 

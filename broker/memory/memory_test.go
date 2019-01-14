@@ -1,4 +1,4 @@
-package mock
+package memory
 
 import (
 	"fmt"
@@ -7,7 +7,7 @@ import (
 	"github.com/micro/go-micro/broker"
 )
 
-func TestBroker(t *testing.T) {
+func TestMemoryBroker(t *testing.T) {
 	b := NewBroker()
 
 	if err := b.Connect(); err != nil {

@@ -1,5 +1,5 @@
-// Package mock provides a mock broker for testing
-package mock
+// Package memory provides a memory broker
+package memory
 
 import (
 	"errors"
@@ -9,20 +9,20 @@ import (
 	"github.com/micro/go-micro/broker"
 )
 
-type mockBroker struct {
+type memoryBroker struct {
 	opts broker.Options
 
 	sync.RWMutex
 	connected   bool
-	Subscribers map[string][]*mockSubscriber
+	Subscribers map[string][]*memorySubscriber
 }
 
-type mockPublication struct {
+type memoryPublication struct {
 	topic   string
 	message *broker.Message
 }
 
-type mockSubscriber struct {
+type memorySubscriber struct {
 	id      string
 	topic   string
 	exit    chan bool
@@ -30,15 +30,15 @@ type mockSubscriber struct {
 	opts    broker.SubscribeOptions
 }
 
-func (m *mockBroker) Options() broker.Options {
+func (m *memoryBroker) Options() broker.Options {
 	return m.opts
 }
 
-func (m *mockBroker) Address() string {
+func (m *memoryBroker) Address() string {
 	return ""
 }
 
-func (m *mockBroker) Connect() error {
+func (m *memoryBroker) Connect() error {
 	m.Lock()
 	defer m.Unlock()
 
@@ -51,7 +51,7 @@ func (m *mockBroker) Connect() error {
 	return nil
 }
 
-func (m *mockBroker) Disconnect() error {
+func (m *memoryBroker) Disconnect() error {
 	m.Lock()
 	defer m.Unlock()
 
@@ -64,14 +64,14 @@ func (m *mockBroker) Disconnect() error {
 	return nil
 }
 
-func (m *mockBroker) Init(opts ...broker.Option) error {
+func (m *memoryBroker) Init(opts ...broker.Option) error {
 	for _, o := range opts {
 		o(&m.opts)
 	}
 	return nil
 }
 
-func (m *mockBroker) Publish(topic string, message *broker.Message, opts ...broker.PublishOption) error {
+func (m *memoryBroker) Publish(topic string, message *broker.Message, opts ...broker.PublishOption) error {
 	m.Lock()
 	defer m.Unlock()
 
@@ -84,7 +84,7 @@ func (m *mockBroker) Publish(topic string, message *broker.Message, opts ...brok
 		return nil
 	}
 
-	p := &mockPublication{
+	p := &memoryPublication{
 		topic:   topic,
 		message: message,
 	}
@@ -98,7 +98,7 @@ func (m *mockBroker) Publish(topic string, message *broker.Message, opts ...brok
 	return nil
 }
 
-func (m *mockBroker) Subscribe(topic string, handler broker.Handler, opts ...broker.SubscribeOption) (broker.Subscriber, error) {
+func (m *memoryBroker) Subscribe(topic string, handler broker.Handler, opts ...broker.SubscribeOption) (broker.Subscriber, error) {
 	m.Lock()
 	defer m.Unlock()
 
@@ -111,7 +111,7 @@ func (m *mockBroker) Subscribe(topic string, handler broker.Handler, opts ...bro
 		o(&options)
 	}
 
-	sub := &mockSubscriber{
+	sub := &memorySubscriber{
 		exit:    make(chan bool, 1),
 		id:      uuid.New().String(),
 		topic:   topic,
@@ -124,7 +124,7 @@ func (m *mockBroker) Subscribe(topic string, handler broker.Handler, opts ...bro
 	go func() {
 		<-sub.exit
 		m.Lock()
-		var newSubscribers []*mockSubscriber
+		var newSubscribers []*memorySubscriber
 		for _, sb := range m.Subscribers[topic] {
 			if sb.id == sub.id {
 				continue
@@ -138,31 +138,31 @@ func (m *mockBroker) Subscribe(topic string, handler broker.Handler, opts ...bro
 	return sub, nil
 }
 
-func (m *mockBroker) String() string {
-	return "mock"
+func (m *memoryBroker) String() string {
+	return "memory"
 }
 
-func (m *mockPublication) Topic() string {
+func (m *memoryPublication) Topic() string {
 	return m.topic
 }
 
-func (m *mockPublication) Message() *broker.Message {
+func (m *memoryPublication) Message() *broker.Message {
 	return m.message
 }
 
-func (m *mockPublication) Ack() error {
+func (m *memoryPublication) Ack() error {
 	return nil
 }
 
-func (m *mockSubscriber) Options() broker.SubscribeOptions {
+func (m *memorySubscriber) Options() broker.SubscribeOptions {
 	return m.opts
 }
 
-func (m *mockSubscriber) Topic() string {
+func (m *memorySubscriber) Topic() string {
 	return m.topic
 }
 
-func (m *mockSubscriber) Unsubscribe() error {
+func (m *memorySubscriber) Unsubscribe() error {
 	m.exit <- true
 	return nil
 }
@@ -173,8 +173,8 @@ func NewBroker(opts ...broker.Option) broker.Broker {
 		o(&options)
 	}
 
-	return &mockBroker{
+	return &memoryBroker{
 		opts:        options,
-		Subscribers: make(map[string][]*mockSubscriber),
+		Subscribers: make(map[string][]*memorySubscriber),
 	}
 }

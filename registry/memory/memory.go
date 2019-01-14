@@ -1,5 +1,5 @@
-// Package mock provides a mock registry for testing
-package mock
+// Package memory provides an in-memory registry
+package memory
 
 import (
 	"sync"
@@ -7,13 +7,14 @@ import (
 	"github.com/micro/go-micro/registry"
 )
 
-type mockRegistry struct {
+type Registry struct {
 	sync.RWMutex
 	Services map[string][]*registry.Service
 }
 
 var (
-	mockData = map[string][]*registry.Service{
+	// mock data
+	Data = map[string][]*registry.Service{
 		"foo": []*registry.Service{
 			{
 				Name:    "foo",
@@ -57,15 +58,16 @@ var (
 	}
 )
 
-func (m *mockRegistry) init() {
+// Setup sets mock data
+func (m *Registry) Setup() {
 	m.Lock()
 	defer m.Unlock()
 
-	// add some mock data
-	m.Services = mockData
+	// add some memory data
+	m.Services = Data
 }
 
-func (m *mockRegistry) GetService(service string) ([]*registry.Service, error) {
+func (m *Registry) GetService(service string) ([]*registry.Service, error) {
 	m.Lock()
 	defer m.Unlock()
 
@@ -77,7 +79,7 @@ func (m *mockRegistry) GetService(service string) ([]*registry.Service, error) {
 
 }
 
-func (m *mockRegistry) ListServices() ([]*registry.Service, error) {
+func (m *Registry) ListServices() ([]*registry.Service, error) {
 	m.Lock()
 	defer m.Unlock()
 
@@ -88,7 +90,7 @@ func (m *mockRegistry) ListServices() ([]*registry.Service, error) {
 	return services, nil
 }
 
-func (m *mockRegistry) Register(s *registry.Service, opts ...registry.RegisterOption) error {
+func (m *Registry) Register(s *registry.Service, opts ...registry.RegisterOption) error {
 	m.Lock()
 	defer m.Unlock()
 
@@ -97,7 +99,7 @@ func (m *mockRegistry) Register(s *registry.Service, opts ...registry.RegisterOp
 	return nil
 }
 
-func (m *mockRegistry) Deregister(s *registry.Service) error {
+func (m *Registry) Deregister(s *registry.Service) error {
 	m.Lock()
 	defer m.Unlock()
 
@@ -106,28 +108,28 @@ func (m *mockRegistry) Deregister(s *registry.Service) error {
 	return nil
 }
 
-func (m *mockRegistry) Watch(opts ...registry.WatchOption) (registry.Watcher, error) {
+func (m *Registry) Watch(opts ...registry.WatchOption) (registry.Watcher, error) {
 	var wopts registry.WatchOptions
 	for _, o := range opts {
 		o(&wopts)
 	}
-	return &mockWatcher{exit: make(chan bool), opts: wopts}, nil
+	return &memoryWatcher{exit: make(chan bool), opts: wopts}, nil
 }
 
-func (m *mockRegistry) String() string {
-	return "mock"
+func (m *Registry) String() string {
+	return "memory"
 }
 
-func (m *mockRegistry) Init(opts ...registry.Option) error {
+func (m *Registry) Init(opts ...registry.Option) error {
 	return nil
 }
 
-func (m *mockRegistry) Options() registry.Options {
+func (m *Registry) Options() registry.Options {
 	return registry.Options{}
 }
 
-func NewRegistry(opts ...registry.Options) registry.Registry {
-	m := &mockRegistry{Services: make(map[string][]*registry.Service)}
-	m.init()
-	return m
+func NewRegistry(opts ...registry.Option) registry.Registry {
+	return &Registry{
+		Services: make(map[string][]*registry.Service),
+	}
 }

@@ -1,4 +1,4 @@
-package mock
+package memory
 
 import (
 	"github.com/micro/go-micro/registry"
