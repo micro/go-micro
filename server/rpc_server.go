@@ -38,7 +38,7 @@ func newRpcServer(opts ...Option) Server {
 	options := newOptions(opts...)
 	return &rpcServer{
 		opts:        options,
-		router:      newRpcRouter(),
+		router:      DefaultRouter,
 		handlers:    make(map[string]Handler),
 		subscribers: make(map[*subscriber][]broker.Subscriber),
 		exit:        make(chan chan error),
@@ -188,12 +188,6 @@ func (s *rpcServer) Init(opts ...Option) error {
 	for _, opt := range opts {
 		opt(&s.opts)
 	}
-
-	// update router
-	r := newRpcRouter()
-	r.serviceMap = s.router.serviceMap
-	s.router = r
-
 	s.Unlock()
 	return nil
 }
