@@ -255,6 +255,9 @@ func (c *registrySelector) run(name string) {
 		c.Unlock()
 	}()
 
+	// error counter
+	var cerr int
+
 	for {
 		// exit early if already dead
 		if c.quit() {
@@ -265,11 +268,16 @@ func (c *registrySelector) run(name string) {
 		w, err := c.so.Registry.Watch(
 			registry.WatchService(name),
 		)
+
 		if err != nil {
 			if c.quit() {
 				return
 			}
-			log.Log(err)
+			cerr++
+			if cerr > 3 {
+				log.Log(err)
+				cerr = 0
+			}
 			time.Sleep(time.Second)
 			continue
 		}
@@ -279,9 +287,16 @@ func (c *registrySelector) run(name string) {
 			if c.quit() {
 				return
 			}
-			log.Log(err)
+			cerr++
+			if cerr > 3 {
+				cerr = 0
+				log.Log(err)
+			}
 			continue
 		}
+
+		// reset err counter
+		cerr = 0
 	}
 }
 
