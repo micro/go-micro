@@ -62,11 +62,19 @@ type Response interface {
 
 // Stream is the inteface for a bidirectional synchronous stream
 type Stream interface {
+	// Context for the stream
 	Context() context.Context
+	// The request made
 	Request() Request
+	// The response read
+	Response() Response
+	// Send will encode and send a request
 	Send(interface{}) error
+	// Recv will decode and read a response
 	Recv(interface{}) error
+	// Error returns the stream error
 	Error() error
+	// Close closes the stream
 	Close() error
 }
 

@@ -92,13 +92,20 @@ func (r *rpcClient) call(ctx context.Context, address string, req Request, resp 
 
 	seq := atomic.LoadUint64(&r.seq)
 	atomic.AddUint64(&r.seq, 1)
+	codec := newRpcCodec(msg, c, cf)
+
+	rsp := &rpcResponse{
+		socket: c,
+		codec:  codec,
+	}
 
 	stream := &rpcStream{
-		context: ctx,
-		request: req,
-		closed:  make(chan bool),
-		codec:   newRpcCodec(msg, c, cf),
-		id:      fmt.Sprintf("%v", seq),
+		context:  ctx,
+		request:  req,
+		response: rsp,
+		codec:    codec,
+		closed:   make(chan bool),
+		id:       fmt.Sprintf("%v", seq),
 	}
 	defer stream.Close()
 
@@ -174,11 +181,19 @@ func (r *rpcClient) stream(ctx context.Context, address string, req Request, opt
 		return nil, errors.InternalServerError("go.micro.client", "connection error: %v", err)
 	}
 
+	codec := newRpcCodec(msg, c, cf)
+
+	rsp := &rpcResponse{
+		socket: c,
+		codec:  codec,
+	}
+
 	stream := &rpcStream{
-		context: ctx,
-		request: req,
-		closed:  make(chan bool),
-		codec:   newRpcCodec(msg, c, cf),
+		context:  ctx,
+		request:  req,
+		response: rsp,
+		closed:   make(chan bool),
+		codec:    newRpcCodec(msg, c, cf),
 	}
 
 	ch := make(chan error, 1)

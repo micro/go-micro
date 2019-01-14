@@ -11,12 +11,13 @@ import (
 // Implements the streamer interface
 type rpcStream struct {
 	sync.RWMutex
-	id      string
-	closed  chan bool
-	err     error
-	request Request
-	codec   codec.Codec
-	context context.Context
+	id       string
+	closed   chan bool
+	err      error
+	request  Request
+	response Response
+	codec    codec.Codec
+	context  context.Context
 }
 
 func (r *rpcStream) isClosed() bool {
@@ -34,6 +35,10 @@ func (r *rpcStream) Context() context.Context {
 
 func (r *rpcStream) Request() Request {
 	return r.request
+}
+
+func (r *rpcStream) Response() Response {
+	return r.response
 }
 
 func (r *rpcStream) Send(msg interface{}) error {

@@ -35,11 +35,17 @@ func (c *Codec) ReadBody(b interface{}) error {
 }
 
 func (c *Codec) Write(m *codec.Message, b interface{}) error {
-	v, ok := b.(*[]byte)
-	if !ok {
-		return fmt.Errorf("failed to write: %v is not type of *[]byte", b)
+	var v []byte
+	switch b.(type) {
+	case *[]byte:
+		ve := b.(*[]byte)
+		v = *ve
+	case []byte:
+		v = b.([]byte)
+	default:
+		return fmt.Errorf("failed to write: %v is not type of *[]byte or []byte", b)
 	}
-	_, err := c.Conn.Write(*v)
+	_, err := c.Conn.Write(v)
 	return err
 }
 

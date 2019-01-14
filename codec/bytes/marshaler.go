@@ -13,6 +13,9 @@ type Message struct {
 
 func (n Marshaler) Marshal(v interface{}) ([]byte, error) {
 	switch v.(type) {
+	case *[]byte:
+		ve := v.(*[]byte)
+		return *ve, nil
 	case []byte:
 		return v.([]byte), nil
 	case *Message:

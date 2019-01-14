@@ -12,7 +12,7 @@ type rpcResponse struct {
 	codec  codec.Codec
 }
 
-func (r *rpcResponse) Codec() codec.Writer {
+func (r *rpcResponse) Codec() codec.Reader {
 	return r.codec
 }
 

@@ -99,6 +99,9 @@ func (c *rpcCodec) ReadHeader(r *codec.Message, t codec.MessageType) error {
 		m.Header = tm.Header
 		// set the message body
 		m.Body = tm.Body
+
+		// set req
+		c.req = &tm
 	}
 
 	// no longer first read
@@ -120,6 +123,10 @@ func (c *rpcCodec) ReadHeader(r *codec.Message, t codec.MessageType) error {
 }
 
 func (c *rpcCodec) ReadBody(b interface{}) error {
+	// don't read empty body
+	if len(c.req.Body) == 0 {
+		return nil
+	}
 	return c.codec.ReadBody(b)
 }
 
@@ -132,7 +139,11 @@ func (c *rpcCodec) Write(r *codec.Message, b interface{}) error {
 		Id:       r.Id,
 		Error:    r.Error,
 		Type:     r.Type,
-		Header:   map[string]string{},
+		Header:   r.Header,
+	}
+
+	if m.Header == nil {
+		m.Header = map[string]string{}
 	}
 
 	// set request id
@@ -160,7 +171,7 @@ func (c *rpcCodec) Write(r *codec.Message, b interface{}) error {
 	// if we have encoded data just send it
 	if len(r.Body) > 0 {
 		body = r.Body
-		// write to the body
+		// write the body to codec
 	} else if err := c.codec.Write(m, b); err != nil {
 		c.buf.wbuf.Reset()
 

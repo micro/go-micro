@@ -88,41 +88,54 @@ func newRpcCodec(req *transport.Message, client transport.Client, c codec.NewCod
 	return r
 }
 
-func (c *rpcCodec) Write(wm *codec.Message, body interface{}) error {
+func (c *rpcCodec) Write(m *codec.Message, body interface{}) error {
 	c.buf.wbuf.Reset()
 
-	m := &codec.Message{
-		Id:       wm.Id,
-		Target:   wm.Target,
-		Endpoint: wm.Endpoint,
-		Type:     codec.Request,
-		Header: map[string]string{
-			"X-Micro-Id":       wm.Id,
-			"X-Micro-Service":  wm.Target,
-			"X-Micro-Endpoint": wm.Endpoint,
-		},
+	// create header
+	if m.Header == nil {
+		m.Header = map[string]string{}
 	}
 
-	if err := c.codec.Write(m, body); err != nil {
-		return errors.InternalServerError("go.micro.client.codec", err.Error())
+	// copy original header
+	for k, v := range c.req.Header {
+		m.Header[k] = v
 	}
 
-	// set body
-	if len(wm.Body) > 0 {
-		c.req.Body = wm.Body
-	} else {
-		c.req.Body = c.buf.wbuf.Bytes()
+	// set the mucp headers
+	m.Header["X-Micro-Id"] = m.Id
+	m.Header["X-Micro-Service"] = m.Target
+	m.Header["X-Micro-Endpoint"] = m.Endpoint
+
+	// if body is bytes don't encode
+	if body != nil {
+		b, ok := body.([]byte)
+		if ok {
+			// set body
+			m.Body = b
+			body = nil
+		}
 	}
 
-	// set header
-	for k, v := range m.Header {
-		c.req.Header[k] = v
+	if len(m.Body) == 0 {
+		// write to codec
+		if err := c.codec.Write(m, body); err != nil {
+			return errors.InternalServerError("go.micro.client.codec", err.Error())
+		}
+		// set body
+		m.Body = c.buf.wbuf.Bytes()
+	}
+
+	// create new transport message
+	msg := transport.Message{
+		Header: m.Header,
+		Body:   m.Body,
 	}
 
 	// send the request
-	if err := c.client.Send(c.req); err != nil {
+	if err := c.client.Send(&msg); err != nil {
 		return errors.InternalServerError("go.micro.client.transport", err.Error())
 	}
+
 	return nil
 }
 
