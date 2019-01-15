@@ -430,7 +430,7 @@ func (s *rpcServer) Start() error {
 		return err
 	}
 
-	log.Logf("Listening on %s", ts.Addr())
+	log.Logf("Transport Listening on %s", ts.Addr())
 	s.Lock()
 	// swap address
 	addr := s.opts.Address
