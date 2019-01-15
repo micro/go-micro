@@ -1,4 +1,4 @@
-package registry
+package consul
 
 import (
 	"bytes"
@@ -10,6 +10,7 @@ import (
 	"time"
 
 	consul "github.com/hashicorp/consul/api"
+	"github.com/micro/go-micro/registry"
 )
 
 type mockRegistry struct {
@@ -56,7 +57,7 @@ func newConsulTestRegistry(r *mockRegistry) (*consulRegistry, func()) {
 	return &consulRegistry{
 			Address:     cfg.Address,
 			Client:      cl,
-			opts:        Options{},
+			opts:        registry.Options{},
 			register:    make(map[string]uint64),
 			lastChecked: make(map[string]time.Time),
 			queryOptions: &consul.QueryOptions{
