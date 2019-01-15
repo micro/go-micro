@@ -202,8 +202,8 @@ var (
 	defaultClient    = "rpc"
 	defaultServer    = "rpc"
 	defaultBroker    = "http"
-	defaultRegistry  = "consul"
-	defaultSelector  = "cache"
+	defaultRegistry  = "mdns"
+	defaultSelector  = "registry"
 	defaultTransport = "http"
 )
 

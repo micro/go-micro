@@ -1,9 +1,10 @@
-package registry
+package consul
 
 import (
 	"testing"
 
 	"github.com/hashicorp/consul/api"
+	"github.com/micro/go-micro/registry"
 )
 
 func TestHealthyServiceHandler(t *testing.T) {
@@ -58,8 +59,8 @@ func TestUnhealthyNodeServiceHandler(t *testing.T) {
 func newWatcher() *consulWatcher {
 	return &consulWatcher{
 		exit:     make(chan bool),
-		next:     make(chan *Result, 10),
-		services: make(map[string][]*Service),
+		next:     make(chan *registry.Result, 10),
+		services: make(map[string][]*registry.Service),
 	}
 }
 
