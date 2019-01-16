@@ -127,6 +127,12 @@ func (c *rpcCodec) ReadBody(b interface{}) error {
 	if len(c.req.Body) == 0 {
 		return nil
 	}
+	// read raw data
+	if v, ok := b.(*raw.Frame); ok {
+		v.Data = c.req.Body
+		return nil
+	}
+	// decode the usual way
 	return c.codec.ReadBody(b)
 }
 
@@ -168,8 +174,11 @@ func (c *rpcCodec) Write(r *codec.Message, b interface{}) error {
 	// the body being sent
 	var body []byte
 
-	// if we have encoded data just send it
-	if len(r.Body) > 0 {
+	// is it a raw frame?
+	if v, ok := b.(*raw.Frame); ok {
+		body = v.Data
+		// if we have encoded data just send it
+	} else if len(r.Body) > 0 {
 		body = r.Body
 		// write the body to codec
 	} else if err := c.codec.Write(m, b); err != nil {
@@ -182,7 +191,6 @@ func (c *rpcCodec) Write(r *codec.Message, b interface{}) error {
 		if err := c.codec.Write(m, nil); err != nil {
 			return err
 		}
-		// write the body
 	} else {
 		// set the body
 		body = c.buf.wbuf.Bytes()

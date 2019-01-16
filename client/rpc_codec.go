@@ -106,12 +106,12 @@ func (c *rpcCodec) Write(m *codec.Message, body interface{}) error {
 	m.Header["X-Micro-Service"] = m.Target
 	m.Header["X-Micro-Endpoint"] = m.Endpoint
 
-	// if body is bytes don't encode
+	// if body is bytes Frame don't encode
 	if body != nil {
-		b, ok := body.([]byte)
+		b, ok := body.(*raw.Frame)
 		if ok {
 			// set body
-			m.Body = b
+			m.Body = b.Data
 			body = nil
 		}
 	}
