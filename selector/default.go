@@ -104,12 +104,12 @@ func (c *registrySelector) get(service string) ([]*registry.Service, error) {
 	c.RLock()
 
 	// check the cache first
-	services, ok := c.cache[service]
+	services := c.cache[service]
 	// get cache ttl
-	ttl, kk := c.ttls[service]
+	ttl := c.ttls[service]
 
 	// got services && within ttl so return cache
-	if ok && kk && c.isValid(services, ttl) {
+	if c.isValid(services, ttl) {
 		// make a copy
 		cp := c.cp(services)
 		// unlock the read
