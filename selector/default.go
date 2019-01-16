@@ -28,6 +28,27 @@ var (
 	DefaultTTL = time.Minute
 )
 
+// isValid checks if the service is valid
+func (c *registrySelector) isValid(services []*registry.Service, ttl time.Time) bool {
+	// no services exist
+	if len(services) == 0 {
+		return false
+	}
+
+	// ttl is invalid
+	if ttl.IsZero() {
+		return false
+	}
+
+	// time since ttl is longer than timeout
+	if time.Since(ttl) > c.ttl {
+		return false
+	}
+
+	// ok
+	return true
+}
+
 func (c *registrySelector) quit() bool {
 	select {
 	case <-c.exit:
@@ -88,7 +109,7 @@ func (c *registrySelector) get(service string) ([]*registry.Service, error) {
 	ttl, kk := c.ttls[service]
 
 	// got services && within ttl so return cache
-	if ok && kk && time.Since(ttl) < c.ttl {
+	if ok && kk && c.isValid(services, ttl) {
 		// make a copy
 		cp := c.cp(services)
 		// unlock the read
