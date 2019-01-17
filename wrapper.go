@@ -13,15 +13,11 @@ type clientWrapper struct {
 }
 
 func (c *clientWrapper) setHeaders(ctx context.Context) context.Context {
-	md := make(metadata.Metadata)
+	// copy metadata
+	mda, _ := metadata.FromContext(ctx)
+	md := metadata.Copy(mda)
 
-	if mda, ok := metadata.FromContext(ctx); ok {
-		// make copy of metadata
-		for k, v := range mda {
-			md[k] = v
-		}
-	}
-
+	// set headers
 	for k, v := range c.headers {
 		if _, ok := md[k]; !ok {
 			md[k] = v
