@@ -142,7 +142,13 @@ func Version(v string) Option {
 // Metadata associated with the service
 func Metadata(md map[string]string) Option {
 	return func(o *Options) {
-		o.Server.Init(server.Metadata(md))
+		newMd := make(map[string]string)
+
+		for k, v := range md {
+			newMd[k] = v
+		}
+
+		o.Server.Init(server.Metadata(newMd))
 	}
 }
 

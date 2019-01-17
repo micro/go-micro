@@ -220,12 +220,18 @@ func (s *rpcServer) Register() error {
 		return err
 	}
 
+	newMd := make(map[string]string)
+
+	for k, v := range config.Metadata {
+		newMd[k] = v
+	}
+
 	// register service
 	node := &registry.Node{
 		Id:       config.Name + "-" + config.Id,
 		Address:  addr,
 		Port:     port,
-		Metadata: config.Metadata,
+		Metadata: newMd,
 	}
 
 	node.Metadata["transport"] = config.Transport.String()
