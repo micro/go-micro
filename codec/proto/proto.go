@@ -18,12 +18,12 @@ func (c *Codec) ReadHeader(m *codec.Message, t codec.MessageType) error {
 }
 
 func (c *Codec) ReadBody(b interface{}) error {
+	if b == nil {
+		return nil
+	}
 	buf, err := ioutil.ReadAll(c.Conn)
 	if err != nil {
 		return err
-	}
-	if b == nil {
-		return nil
 	}
 	return proto.Unmarshal(buf, b.(proto.Message))
 }
