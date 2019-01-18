@@ -12,6 +12,7 @@ import (
 	"github.com/micro/go-micro/codec/proto"
 	"github.com/micro/go-micro/codec/protorpc"
 	"github.com/micro/go-micro/errors"
+	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/transport"
 )
 
@@ -58,6 +59,15 @@ var (
 		"application/proto-rpc":    protorpc.NewCodec,
 		"application/octet-stream": raw.NewCodec,
 	}
+
+	// TODO: remove legacy codec list
+	defaultCodecs = map[string]codec.NewCodec{
+		"application/json":         jsonrpc.NewCodec,
+		"application/json-rpc":     jsonrpc.NewCodec,
+		"application/protobuf":     protorpc.NewCodec,
+		"application/proto-rpc":    protorpc.NewCodec,
+		"application/octet-stream": protorpc.NewCodec,
+	}
 )
 
 func (rwc *readWriteCloser) Read(p []byte) (n int, err error) {
@@ -72,6 +82,27 @@ func (rwc *readWriteCloser) Close() error {
 	rwc.rbuf.Reset()
 	rwc.wbuf.Reset()
 	return nil
+}
+
+// setupProtocol sets up the old protocol
+func setupProtocol(msg *transport.Message, node *registry.Node) codec.NewCodec {
+	protocol := node.Metadata["protocol"]
+
+	// got protocol
+	if len(protocol) > 0 {
+		return nil
+	}
+
+	// no protocol use old codecs
+	switch msg.Header["Content-Type"] {
+	case "application/json":
+		msg.Header["Content-Type"] = "application/json-rpc"
+	case "application/protobuf":
+		msg.Header["Content-Type"] = "application/proto-rpc"
+	}
+
+	// now return codec
+	return defaultCodecs[msg.Header["Content-Type"]]
 }
 
 func newRpcCodec(req *transport.Message, client transport.Client, c codec.NewCodec) codec.Codec {
@@ -104,6 +135,7 @@ func (c *rpcCodec) Write(m *codec.Message, body interface{}) error {
 	// set the mucp headers
 	m.Header["X-Micro-Id"] = m.Id
 	m.Header["X-Micro-Service"] = m.Target
+	m.Header["X-Micro-Method"] = m.Method
 	m.Header["X-Micro-Endpoint"] = m.Endpoint
 
 	// if body is bytes Frame don't encode
@@ -154,6 +186,7 @@ func (c *rpcCodec) ReadHeader(wm *codec.Message, r codec.MessageType) error {
 	// read header
 	err := c.codec.ReadHeader(&me, r)
 	wm.Endpoint = me.Endpoint
+	wm.Method = me.Method
 	wm.Id = me.Id
 	wm.Error = me.Error
 
@@ -162,9 +195,14 @@ func (c *rpcCodec) ReadHeader(wm *codec.Message, r codec.MessageType) error {
 		wm.Error = me.Header["X-Micro-Error"]
 	}
 
-	// check method in header
+	// check endpoint in header
 	if len(me.Endpoint) == 0 {
 		wm.Endpoint = me.Header["X-Micro-Endpoint"]
+	}
+
+	// check method in header
+	if len(me.Method) == 0 {
+		wm.Method = me.Header["X-Micro-Method"]
 	}
 
 	if len(me.Id) == 0 {

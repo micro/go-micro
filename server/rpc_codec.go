@@ -41,6 +41,15 @@ var (
 		"application/proto-rpc":    protorpc.NewCodec,
 		"application/octet-stream": raw.NewCodec,
 	}
+
+	// TODO: remove legacy codec list
+	defaultCodecs = map[string]codec.NewCodec{
+		"application/json":         jsonrpc.NewCodec,
+		"application/json-rpc":     jsonrpc.NewCodec,
+		"application/protobuf":     protorpc.NewCodec,
+		"application/proto-rpc":    protorpc.NewCodec,
+		"application/octet-stream": protorpc.NewCodec,
+	}
 )
 
 func (rwc *readWriteCloser) Read(p []byte) (n int, err error) {
@@ -54,6 +63,42 @@ func (rwc *readWriteCloser) Write(p []byte) (n int, err error) {
 func (rwc *readWriteCloser) Close() error {
 	rwc.rbuf.Reset()
 	rwc.wbuf.Reset()
+	return nil
+}
+
+// setupProtocol sets up the old protocol
+func setupProtocol(msg *transport.Message) codec.NewCodec {
+	service := msg.Header["X-Micro-Service"]
+	method := msg.Header["X-Micro-Method"]
+	endpoint := msg.Header["X-Micro-Endpoint"]
+	protocol := msg.Header["X-Micro-Protocol"]
+	target := msg.Header["X-Micro-Target"]
+
+	// if the protocol exists (mucp) do nothing
+	if len(protocol) > 0 {
+		return nil
+	}
+
+	// if no service/method/endpoint then it's the old protocol
+	if len(service) == 0 && len(method) == 0 && len(endpoint) == 0 {
+		return defaultCodecs[msg.Header["Content-Type"]]
+	}
+
+	// old target method specified
+	if len(target) > 0 {
+		return defaultCodecs[msg.Header["Content-Type"]]
+	}
+
+	// no method then set to endpoint
+	if len(method) == 0 {
+		msg.Header["X-Micro-Method"] = method
+	}
+
+	// no endpoint then set to method
+	if len(endpoint) == 0 {
+		msg.Header["X-Micro-Endpoint"] = method
+	}
+
 	return nil
 }
 
@@ -109,6 +154,7 @@ func (c *rpcCodec) ReadHeader(r *codec.Message, t codec.MessageType) error {
 
 	// set some internal things
 	m.Target = m.Header["X-Micro-Service"]
+	m.Method = m.Header["X-Micro-Method"]
 	m.Endpoint = m.Header["X-Micro-Endpoint"]
 	m.Id = m.Header["X-Micro-Id"]
 
@@ -116,8 +162,14 @@ func (c *rpcCodec) ReadHeader(r *codec.Message, t codec.MessageType) error {
 	err := c.codec.ReadHeader(&m, codec.Request)
 
 	// set the method/id
+	r.Method = m.Method
 	r.Endpoint = m.Endpoint
 	r.Id = m.Id
+
+	// TODO: remove the old legacy cruft
+	if len(r.Endpoint) == 0 {
+		r.Endpoint = r.Method
+	}
 
 	return err
 }
@@ -141,6 +193,8 @@ func (c *rpcCodec) Write(r *codec.Message, b interface{}) error {
 
 	// create a new message
 	m := &codec.Message{
+		Target:   r.Target,
+		Method:   r.Method,
 		Endpoint: r.Endpoint,
 		Id:       r.Id,
 		Error:    r.Error,
@@ -160,6 +214,11 @@ func (c *rpcCodec) Write(r *codec.Message, b interface{}) error {
 	// set target
 	if len(r.Target) > 0 {
 		m.Header["X-Micro-Service"] = r.Target
+	}
+
+	// set request method
+	if len(r.Method) > 0 {
+		m.Header["X-Micro-Method"] = r.Method
 	}
 
 	// set request endpoint

@@ -189,6 +189,7 @@ func (s *service) call(ctx context.Context, router *router, sending *sync.Mutex,
 	r := &rpcRequest{
 		service:     req.msg.Target,
 		contentType: req.msg.Header["Content-Type"],
+		method:      req.msg.Method,
 		endpoint:    req.msg.Endpoint,
 		body:        req.msg.Body,
 	}
