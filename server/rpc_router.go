@@ -182,7 +182,7 @@ func (router *router) sendResponse(sending sync.Locker, req *request, reply inte
 	return err
 }
 
-func (s *service) call(ctx context.Context, router *router, sending *sync.Mutex, mtype *methodType, req *request, argv, replyv reflect.Value, cc codec.Writer) {
+func (s *service) call(ctx context.Context, router *router, sending *sync.Mutex, mtype *methodType, req *request, argv, replyv reflect.Value, cc codec.Writer) error {
 	function := mtype.method.Func
 	var returnValues []reflect.Value
 
@@ -212,12 +212,13 @@ func (s *service) call(ctx context.Context, router *router, sending *sync.Mutex,
 			errmsg = err.Error()
 		}
 
-		err = router.sendResponse(sending, req, replyv.Interface(), cc, errmsg, true)
-		if err != nil {
-			log.Log("rpc call: unable to send response: ", err)
+		errResponse := router.sendResponse(sending, req, replyv.Interface(), cc, errmsg, true)
+		if errResponse != nil {
+			log.Log("rpc call: unable to send response: ", errResponse)
 		}
 		router.freeRequest(req)
-		return
+
+		return err
 	}
 
 	// declare a local error to see if we errored out already
@@ -251,7 +252,8 @@ func (s *service) call(ctx context.Context, router *router, sending *sync.Mutex,
 	r.stream = true
 
 	errmsg := ""
-	if err := fn(ctx, r, stream); err != nil {
+	err := fn(ctx, r, stream)
+	if err != nil {
 		errmsg = err.Error()
 	}
 
@@ -260,6 +262,8 @@ func (s *service) call(ctx context.Context, router *router, sending *sync.Mutex,
 	// already)
 	router.sendResponse(sending, req, nil, cc, errmsg, true)
 	router.freeRequest(req)
+
+	return err
 }
 
 func (m *methodType) prepareContext(ctx context.Context) reflect.Value {
@@ -453,6 +457,5 @@ func (router *router) ServeRequest(ctx context.Context, r Request, rsp Response)
 		}
 		return err
 	}
-	service.call(ctx, router, sending, mtype, req, argv, replyv, rsp.Codec())
-	return nil
+	return service.call(ctx, router, sending, mtype, req, argv, replyv, rsp.Codec())
 }
