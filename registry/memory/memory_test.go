@@ -80,9 +80,8 @@ var (
 	}
 )
 
-func TestMockRegistry(t *testing.T) {
+func TestMemoryRegistry(t *testing.T) {
 	m := NewRegistry()
-	m.(*Registry).Setup()
 
 	fn := func(k string, v []*registry.Service) {
 		services, err := m.GetService(k)
@@ -108,11 +107,6 @@ func TestMockRegistry(t *testing.T) {
 		}
 	}
 
-	// test existing memory data
-	for k, v := range Data {
-		fn(k, v)
-	}
-
 	// register data
 	for _, v := range testData {
 		for _, service := range v {
@@ -124,7 +118,6 @@ func TestMockRegistry(t *testing.T) {
 
 	// using test data
 	for k, v := range testData {
-
 		fn(k, v)
 	}
 

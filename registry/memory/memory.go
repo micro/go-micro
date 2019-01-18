@@ -2,60 +2,24 @@
 package memory
 
 import (
+	"context"
 	"sync"
+	"time"
 
+	"github.com/google/uuid"
 	"github.com/micro/go-micro/registry"
 )
 
 type Registry struct {
+	options registry.Options
+
 	sync.RWMutex
 	Services map[string][]*registry.Service
+	Watchers map[string]*Watcher
 }
 
 var (
-	// mock data
-	Data = map[string][]*registry.Service{
-		"foo": []*registry.Service{
-			{
-				Name:    "foo",
-				Version: "1.0.0",
-				Nodes: []*registry.Node{
-					{
-						Id:      "foo-1.0.0-123",
-						Address: "localhost",
-						Port:    9999,
-					},
-					{
-						Id:      "foo-1.0.0-321",
-						Address: "localhost",
-						Port:    9999,
-					},
-				},
-			},
-			{
-				Name:    "foo",
-				Version: "1.0.1",
-				Nodes: []*registry.Node{
-					{
-						Id:      "foo-1.0.1-321",
-						Address: "localhost",
-						Port:    6666,
-					},
-				},
-			},
-			{
-				Name:    "foo",
-				Version: "1.0.3",
-				Nodes: []*registry.Node{
-					{
-						Id:      "foo-1.0.3-345",
-						Address: "localhost",
-						Port:    8888,
-					},
-				},
-			},
-		},
-	}
+	timeout = time.Millisecond * 10
 )
 
 // Setup sets mock data
@@ -67,69 +31,130 @@ func (m *Registry) Setup() {
 	m.Services = Data
 }
 
-func (m *Registry) GetService(service string) ([]*registry.Service, error) {
-	m.Lock()
-	defer m.Unlock()
+func (m *Registry) watch(r *registry.Result) {
+	var watchers []*Watcher
 
+	m.RLock()
+	for _, w := range m.Watchers {
+		watchers = append(watchers, w)
+	}
+	m.RUnlock()
+
+	for _, w := range watchers {
+		select {
+		case <-w.exit:
+			m.Lock()
+			delete(m.Watchers, w.id)
+			m.Unlock()
+		default:
+			select {
+			case w.res <- r:
+			case <-time.After(timeout):
+			}
+		}
+	}
+}
+
+func (m *Registry) Init(opts ...registry.Option) error {
+	for _, o := range opts {
+		o(&m.options)
+	}
+
+	// add services
+	m.Lock()
+	for k, v := range getServices(m.options.Context) {
+		s := m.Services[k]
+		m.Services[k] = addServices(s, v)
+	}
+	m.Unlock()
+	return nil
+}
+
+func (m *Registry) Options() registry.Options {
+	return m.options
+}
+
+func (m *Registry) GetService(service string) ([]*registry.Service, error) {
+	m.RLock()
 	s, ok := m.Services[service]
 	if !ok || len(s) == 0 {
+		m.RUnlock()
 		return nil, registry.ErrNotFound
 	}
+	m.RUnlock()
 	return s, nil
-
 }
 
 func (m *Registry) ListServices() ([]*registry.Service, error) {
-	m.Lock()
-	defer m.Unlock()
-
+	m.RLock()
 	var services []*registry.Service
 	for _, service := range m.Services {
 		services = append(services, service...)
 	}
+	m.RUnlock()
 	return services, nil
 }
 
 func (m *Registry) Register(s *registry.Service, opts ...registry.RegisterOption) error {
-	m.Lock()
-	defer m.Unlock()
+	go m.watch(&registry.Result{Action: "update", Service: s})
 
+	m.Lock()
 	services := addServices(m.Services[s.Name], []*registry.Service{s})
 	m.Services[s.Name] = services
+	m.Unlock()
 	return nil
 }
 
 func (m *Registry) Deregister(s *registry.Service) error {
-	m.Lock()
-	defer m.Unlock()
+	go m.watch(&registry.Result{Action: "delete", Service: s})
 
+	m.Lock()
 	services := delServices(m.Services[s.Name], []*registry.Service{s})
 	m.Services[s.Name] = services
+	m.Unlock()
 	return nil
 }
 
 func (m *Registry) Watch(opts ...registry.WatchOption) (registry.Watcher, error) {
-	var wopts registry.WatchOptions
+	var wo registry.WatchOptions
 	for _, o := range opts {
-		o(&wopts)
+		o(&wo)
 	}
-	return &memoryWatcher{exit: make(chan bool), opts: wopts}, nil
+
+	w := &Watcher{
+		exit: make(chan bool),
+		res:  make(chan *registry.Result),
+		id:   uuid.New().String(),
+		wo:   wo,
+	}
+
+	m.Lock()
+	m.Watchers[w.id] = w
+	m.Unlock()
+	return w, nil
 }
 
 func (m *Registry) String() string {
 	return "memory"
 }
 
-func (m *Registry) Init(opts ...registry.Option) error {
-	return nil
-}
-
-func (m *Registry) Options() registry.Options {
-	return registry.Options{}
-}
-
 func NewRegistry(opts ...registry.Option) registry.Registry {
+	options := registry.Options{
+		Context: context.Background(),
+	}
+
+	for _, o := range opts {
+		o(&options)
+	}
+
+	services := getServices(options.Context)
+	if services == nil {
+		services = make(map[string][]*registry.Service)
+	}
+
 	return &Registry{
-		Services: make(map[string][]*registry.Service),
+		options:  options,
+		Services: services,
+		Watchers: make(map[string]*Watcher),
 	}
 }
