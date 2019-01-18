@@ -68,29 +68,38 @@ func (rwc *readWriteCloser) Close() error {
 
 // setupProtocol sets up the old protocol
 func setupProtocol(msg *transport.Message) codec.NewCodec {
-	// if the protocol exists do nothing
-	if len(msg.Header["X-Micro-Protocol"]) > 0 {
+	service := msg.Header["X-Micro-Service"]
+	method := msg.Header["X-Micro-Method"]
+	endpoint := msg.Header["X-Micro-Endpoint"]
+	protocol := msg.Header["X-Micro-Protocol"]
+	target := msg.Header["X-Micro-Target"]
+
+	// if the protocol exists (mucp) do nothing
+	if len(protocol) > 0 {
 		return nil
 	}
 
-	// if 0.17 - 0.21
-	if len(msg.Header["X-Micro-Service"]) > 0 {
-		// set method to endpoint
-		if len(msg.Header["X-Micro-Method"]) == 0 {
-			msg.Header["X-Micro-Method"] = msg.Header["X-Micro-Endpoint"]
-		}
-
-		// set endpoint to method
-		if len(msg.Header["X-Micro-Endpoint"]) == 0 {
-			msg.Header["X-Micro-Endpoint"] = msg.Header["X-Micro-Method"]
-		}
-
-		// done
-		return nil
+	// if no service/method/endpoint then it's the old protocol
+	if len(service) == 0 && len(method) == 0 && len(endpoint) == 0 {
+		return defaultCodecs[msg.Header["Content-Type"]]
 	}
 
-	// old ways
-	return defaultCodecs[msg.Header["Content-Type"]]
+	// old target method specified
+	if len(target) > 0 {
+		return defaultCodecs[msg.Header["Content-Type"]]
+	}
+
+	// no method then set to endpoint
+	if len(method) == 0 {
+		msg.Header["X-Micro-Method"] = method
+	}
+
+	// no endpoint then set to method
+	if len(endpoint) == 0 {
+		msg.Header["X-Micro-Endpoint"] = method
+	}
+
+	return nil
 }
 
 func newRpcCodec(req *transport.Message, socket transport.Socket, c codec.NewCodec) codec.Codec {
