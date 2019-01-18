@@ -47,7 +47,7 @@ func (c *protoCodec) Write(m *codec.Message, b interface{}) error {
 		c.Lock()
 		defer c.Unlock()
 		// This is protobuf, of course we copy it.
-		pbr := &Request{ServiceMethod: &m.Endpoint, Seq: id(m.Id)}
+		pbr := &Request{ServiceMethod: &m.Method, Seq: id(m.Id)}
 		data, err := proto.Marshal(pbr)
 		if err != nil {
 			return err
@@ -73,7 +73,7 @@ func (c *protoCodec) Write(m *codec.Message, b interface{}) error {
 	case codec.Response, codec.Error:
 		c.Lock()
 		defer c.Unlock()
-		rtmp := &Response{ServiceMethod: &m.Endpoint, Seq: id(m.Id), Error: &m.Error}
+		rtmp := &Response{ServiceMethod: &m.Method, Seq: id(m.Id), Error: &m.Error}
 		data, err := proto.Marshal(rtmp)
 		if err != nil {
 			return err
@@ -126,7 +126,7 @@ func (c *protoCodec) ReadHeader(m *codec.Message, mt codec.MessageType) error {
 		if err != nil {
 			return err
 		}
-		m.Endpoint = rtmp.GetServiceMethod()
+		m.Method = rtmp.GetServiceMethod()
 		m.Id = fmt.Sprintf("%d", rtmp.GetSeq())
 	case codec.Response:
 		data, err := ReadNetString(c.rwc)
@@ -138,7 +138,7 @@ func (c *protoCodec) ReadHeader(m *codec.Message, mt codec.MessageType) error {
 		if err != nil {
 			return err
 		}
-		m.Endpoint = rtmp.GetServiceMethod()
+		m.Method = rtmp.GetServiceMethod()
 		m.Id = fmt.Sprintf("%d", rtmp.GetSeq())
 		m.Error = rtmp.GetError()
 	case codec.Publication:

@@ -6,6 +6,7 @@ import (
 
 type rpcRequest struct {
 	service     string
+	method	string
 	endpoint    string
 	contentType string
 	codec       codec.Codec
@@ -27,6 +28,7 @@ func newRequest(service, endpoint string, request interface{}, contentType strin
 
 	return &rpcRequest{
 		service:     service,
+		method: endpoint,
 		endpoint:    endpoint,
 		body:        request,
 		contentType: contentType,
@@ -40,6 +42,10 @@ func (r *rpcRequest) ContentType() string {
 
 func (r *rpcRequest) Service() string {
 	return r.service
+}
+
+func (r *rpcRequest) Method() string {
+	return r.method
 }
 
 func (r *rpcRequest) Endpoint() string {

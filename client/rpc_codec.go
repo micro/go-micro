@@ -104,6 +104,7 @@ func (c *rpcCodec) Write(m *codec.Message, body interface{}) error {
 	// set the mucp headers
 	m.Header["X-Micro-Id"] = m.Id
 	m.Header["X-Micro-Service"] = m.Target
+	m.Header["X-Micro-Method"] = m.Method
 	m.Header["X-Micro-Endpoint"] = m.Endpoint
 
 	// if body is bytes Frame don't encode
@@ -154,6 +155,7 @@ func (c *rpcCodec) ReadHeader(wm *codec.Message, r codec.MessageType) error {
 	// read header
 	err := c.codec.ReadHeader(&me, r)
 	wm.Endpoint = me.Endpoint
+	wm.Method = me.Method
 	wm.Id = me.Id
 	wm.Error = me.Error
 
@@ -162,9 +164,14 @@ func (c *rpcCodec) ReadHeader(wm *codec.Message, r codec.MessageType) error {
 		wm.Error = me.Header["X-Micro-Error"]
 	}
 
-	// check method in header
+	// check endpoint in header
 	if len(me.Endpoint) == 0 {
 		wm.Endpoint = me.Header["X-Micro-Endpoint"]
+	}
+
+	// check method in header
+	if len(me.Method) == 0 {
+		wm.Method = me.Header["X-Micro-Method"]
 	}
 
 	if len(me.Id) == 0 {

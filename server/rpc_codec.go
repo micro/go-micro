@@ -41,6 +41,15 @@ var (
 		"application/proto-rpc":    protorpc.NewCodec,
 		"application/octet-stream": raw.NewCodec,
 	}
+
+	// TODO: remove legacy codec list
+	defaultCodecs = map[string]codec.NewCodec{
+		"application/json":         jsonrpc.NewCodec,
+		"application/json-rpc":     jsonrpc.NewCodec,
+		"application/protobuf":     protorpc.NewCodec,
+		"application/proto-rpc":    protorpc.NewCodec,
+		"application/octet-stream": protorpc.NewCodec,
+	}
 )
 
 func (rwc *readWriteCloser) Read(p []byte) (n int, err error) {
@@ -55,6 +64,33 @@ func (rwc *readWriteCloser) Close() error {
 	rwc.rbuf.Reset()
 	rwc.wbuf.Reset()
 	return nil
+}
+
+// setupProtocol sets up the old protocol
+func setupProtocol(msg *transport.Message) codec.NewCodec {
+	// if the protocol exists do nothing
+	if len(msg.Header["X-Micro-Protocol"]) > 0 {
+		return nil
+	}
+
+	// if 0.17 - 0.21
+	if len(msg.Header["X-Micro-Service"]) > 0 {
+		// set method to endpoint
+		if len(msg.Header["X-Micro-Method"]) == 0 {
+			msg.Header["X-Micro-Method"] = msg.Header["X-Micro-Endpoint"]
+		}
+
+		// set endpoint to method
+		if len(msg.Header["X-Micro-Endpoint"]) == 0 {
+			msg.Header["X-Micro-Endpoint"] = msg.Header["X-Micro-Method"]
+		}
+
+		// done
+		return nil
+	}
+
+	// old ways
+	return defaultCodecs[msg.Header["Content-Type"]]
 }
 
 func newRpcCodec(req *transport.Message, socket transport.Socket, c codec.NewCodec) codec.Codec {
@@ -109,6 +145,7 @@ func (c *rpcCodec) ReadHeader(r *codec.Message, t codec.MessageType) error {
 
 	// set some internal things
 	m.Target = m.Header["X-Micro-Service"]
+	m.Method = m.Header["X-Micro-Method"]
 	m.Endpoint = m.Header["X-Micro-Endpoint"]
 	m.Id = m.Header["X-Micro-Id"]
 
@@ -141,6 +178,8 @@ func (c *rpcCodec) Write(r *codec.Message, b interface{}) error {
 
 	// create a new message
 	m := &codec.Message{
+		Target:   r.Target,
+		Method:   r.Method,
 		Endpoint: r.Endpoint,
 		Id:       r.Id,
 		Error:    r.Error,
@@ -160,6 +199,11 @@ func (c *rpcCodec) Write(r *codec.Message, b interface{}) error {
 	// set target
 	if len(r.Target) > 0 {
 		m.Header["X-Micro-Service"] = r.Target
+	}
+
+	// set request method
+	if len(r.Method) > 0 {
+		m.Header["X-Micro-Method"] = r.Method
 	}
 
 	// set request endpoint

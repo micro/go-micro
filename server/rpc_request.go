@@ -7,6 +7,7 @@ import (
 
 type rpcRequest struct {
 	service     string
+	method      string
 	endpoint    string
 	contentType string
 	socket      transport.Socket
@@ -32,6 +33,10 @@ func (r *rpcRequest) ContentType() string {
 
 func (r *rpcRequest) Service() string {
 	return r.service
+}
+
+func (r *rpcRequest) Method() string {
+	return r.method
 }
 
 func (r *rpcRequest) Endpoint() string {

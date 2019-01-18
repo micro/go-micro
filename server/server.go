@@ -45,6 +45,8 @@ type Message interface {
 type Request interface {
 	// Service name requested
 	Service() string
+	// The action requested
+	Method() string
 	// Endpoint name requested
 	Endpoint() string
 	// Content type provided

@@ -53,6 +53,7 @@ type Message struct {
 	Id       string
 	Type     MessageType
 	Target   string
+	Method   string
 	Endpoint string
 	Error    string
 

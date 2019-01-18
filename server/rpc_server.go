@@ -97,17 +97,23 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 			ct = DefaultContentType
 		}
 
-		// TODO: needs better error handling
-		cf, err := s.newCodec(ct)
-		if err != nil {
-			sock.Send(&transport.Message{
-				Header: map[string]string{
-					"Content-Type": "text/plain",
-				},
-				Body: []byte(err.Error()),
-			})
-			s.wg.Done()
-			return
+		// setup old protocol
+		cf := setupProtocol(&msg)
+
+		// no old codec
+		if cf == nil {
+			// TODO: needs better error handling
+			var err error
+			if cf, err = s.newCodec(ct); err != nil {
+				sock.Send(&transport.Message{
+					Header: map[string]string{
+						"Content-Type": "text/plain",
+					},
+					Body: []byte(err.Error()),
+				})
+				s.wg.Done()
+				return
+			}
 		}
 
 		rcodec := newRpcCodec(&msg, sock, cf)
@@ -115,6 +121,7 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 		// internal request
 		request := &rpcRequest{
 			service:     msg.Header["X-Micro-Service"],
+			method:      msg.Header["X-Micro-Method"],
 			endpoint:    msg.Header["X-Micro-Endpoint"],
 			contentType: ct,
 			codec:       rcodec,
