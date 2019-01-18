@@ -153,8 +153,14 @@ func (c *rpcCodec) ReadHeader(r *codec.Message, t codec.MessageType) error {
 	err := c.codec.ReadHeader(&m, codec.Request)
 
 	// set the method/id
+	r.Method = m.Method
 	r.Endpoint = m.Endpoint
 	r.Id = m.Id
+
+	// TODO: remove the old legacy cruft
+	if len(r.Endpoint) == 0 {
+		r.Endpoint = r.Method
+	}
 
 	return err
 }
