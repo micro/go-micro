@@ -12,6 +12,7 @@ import (
 	"github.com/micro/go-micro/codec/proto"
 	"github.com/micro/go-micro/codec/protorpc"
 	"github.com/micro/go-micro/errors"
+	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/transport"
 )
 
@@ -58,6 +59,15 @@ var (
 		"application/proto-rpc":    protorpc.NewCodec,
 		"application/octet-stream": raw.NewCodec,
 	}
+
+	// TODO: remove legacy codec list
+	defaultCodecs = map[string]codec.NewCodec{
+		"application/json":         jsonrpc.NewCodec,
+		"application/json-rpc":     jsonrpc.NewCodec,
+		"application/protobuf":     protorpc.NewCodec,
+		"application/proto-rpc":    protorpc.NewCodec,
+		"application/octet-stream": protorpc.NewCodec,
+	}
 )
 
 func (rwc *readWriteCloser) Read(p []byte) (n int, err error) {
@@ -72,6 +82,27 @@ func (rwc *readWriteCloser) Close() error {
 	rwc.rbuf.Reset()
 	rwc.wbuf.Reset()
 	return nil
+}
+
+// setupProtocol sets up the old protocol
+func setupProtocol(msg *transport.Message, node *registry.Node) codec.NewCodec {
+	protocol := node.Metadata["protocol"]
+
+	// got protocol
+	if len(protocol) > 0 {
+		return nil
+	}
+
+	// no protocol use old codecs
+	switch msg.Header["Content-Type"] {
+	case "application/json":
+		msg.Header["Content-Type"] = "application/json-rpc"
+	case "application/protobuf":
+		msg.Header["Content-Type"] = "application/proto-rpc"
+	}
+
+	// now return codec
+	return defaultCodecs[msg.Header["Content-Type"]]
 }
 
 func newRpcCodec(req *transport.Message, client transport.Client, c codec.NewCodec) codec.Codec {

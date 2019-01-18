@@ -53,7 +53,7 @@ func (r *rpcStream) Send(msg interface{}) error {
 	req := codec.Message{
 		Id:       r.id,
 		Target:   r.request.Service(),
-		Method: r.request.Method(),
+		Method:   r.request.Method(),
 		Endpoint: r.request.Endpoint(),
 		Type:     codec.Request,
 	}

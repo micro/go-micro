@@ -283,6 +283,7 @@ func (s *rpcServer) Register() error {
 	node.Metadata["broker"] = config.Broker.String()
 	node.Metadata["server"] = s.String()
 	node.Metadata["registry"] = config.Registry.String()
+	node.Metadata["protocol"] = "mucp"
 
 	s.RLock()
 	// Maps are ordered randomly, sort the keys for consistency

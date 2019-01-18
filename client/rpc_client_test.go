@@ -21,10 +21,11 @@ func TestCallAddress(t *testing.T) {
 	var called bool
 	service := "test.service"
 	endpoint := "Test.Endpoint"
-	address := "10.1.10.1:8080"
+	address := "10.1.10.1"
+	port := 8080
 
 	wrap := func(cf CallFunc) CallFunc {
-		return func(ctx context.Context, addr string, req Request, rsp interface{}, opts CallOptions) error {
+		return func(ctx context.Context, node *registry.Node, req Request, rsp interface{}, opts CallOptions) error {
 			called = true
 
 			if req.Service() != service {
@@ -35,8 +36,12 @@ func TestCallAddress(t *testing.T) {
 				return fmt.Errorf("expected service: %s got %s", endpoint, req.Endpoint())
 			}
 
-			if addr != address {
-				return fmt.Errorf("expected address: %s got %s", address, addr)
+			if node.Address != address {
+				return fmt.Errorf("expected address: %s got %s", address, node.Address)
+			}
+
+			if node.Port != port {
+				return fmt.Errorf("expected address: %d got %d", port, node.Port)
 			}
 
 			// don't do the call
@@ -54,7 +59,7 @@ func TestCallAddress(t *testing.T) {
 	req := c.NewRequest(service, endpoint, nil)
 
 	// test calling remote address
-	if err := c.Call(context.Background(), req, nil, WithAddress(address)); err != nil {
+	if err := c.Call(context.Background(), req, nil, WithAddress(fmt.Sprintf("%s:%d", address, port))); err != nil {
 		t.Fatal("call with address error", err)
 	}
 
@@ -67,12 +72,12 @@ func TestCallAddress(t *testing.T) {
 func TestCallRetry(t *testing.T) {
 	service := "test.service"
 	endpoint := "Test.Endpoint"
-	address := "10.1.10.1:8080"
+	address := "10.1.10.1"
 
 	var called int
 
 	wrap := func(cf CallFunc) CallFunc {
-		return func(ctx context.Context, addr string, req Request, rsp interface{}, opts CallOptions) error {
+		return func(ctx context.Context, node *registry.Node, req Request, rsp interface{}, opts CallOptions) error {
 			called++
 			if called == 1 {
 				return errors.InternalServerError("test.error", "retry request")
@@ -108,12 +113,11 @@ func TestCallWrapper(t *testing.T) {
 	id := "test.1"
 	service := "test.service"
 	endpoint := "Test.Endpoint"
-	host := "10.1.10.1"
+	address := "10.1.10.1"
 	port := 8080
-	address := "10.1.10.1:8080"
 
 	wrap := func(cf CallFunc) CallFunc {
-		return func(ctx context.Context, addr string, req Request, rsp interface{}, opts CallOptions) error {
+		return func(ctx context.Context, node *registry.Node, req Request, rsp interface{}, opts CallOptions) error {
 			called = true
 
 			if req.Service() != service {
@@ -124,8 +128,8 @@ func TestCallWrapper(t *testing.T) {
 				return fmt.Errorf("expected service: %s got %s", endpoint, req.Endpoint())
 			}
 
-			if addr != address {
-				return fmt.Errorf("expected address: %s got %s", address, addr)
+			if node.Address != address {
+				return fmt.Errorf("expected address: %s got %s", address, node.Address)
 			}
 
 			// don't do the call
@@ -146,7 +150,7 @@ func TestCallWrapper(t *testing.T) {
 		Nodes: []*registry.Node{
 			&registry.Node{
 				Id:      id,
-				Address: host,
+				Address: address,
 				Port:    port,
 			},
 		},

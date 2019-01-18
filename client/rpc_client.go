@@ -4,10 +4,11 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"net"
+	"strconv"
 	"sync"
-	"time"
-
 	"sync/atomic"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/micro/go-micro/broker"
@@ -56,7 +57,12 @@ func (r *rpcClient) newCodec(contentType string) (codec.NewCodec, error) {
 	return nil, fmt.Errorf("Unsupported Content-Type: %s", contentType)
 }
 
-func (r *rpcClient) call(ctx context.Context, address string, req Request, resp interface{}, opts CallOptions) error {
+func (r *rpcClient) call(ctx context.Context, node *registry.Node, req Request, resp interface{}, opts CallOptions) error {
+	address := node.Address
+	if node.Port > 0 {
+		address = fmt.Sprintf("%s:%d", address, node.Port)
+	}
+
 	msg := &transport.Message{
 		Header: make(map[string]string),
 	}
@@ -75,9 +81,16 @@ func (r *rpcClient) call(ctx context.Context, address string, req Request, resp 
 	// set the accept header
 	msg.Header["Accept"] = req.ContentType()
 
-	cf, err := r.newCodec(req.ContentType())
-	if err != nil {
-		return errors.InternalServerError("go.micro.client", err.Error())
+	// setup old protocol
+	cf := setupProtocol(msg, node)
+
+	// no codec specified
+	if cf == nil {
+		var err error
+		cf, err = r.newCodec(req.ContentType())
+		if err != nil {
+			return errors.InternalServerError("go.micro.client", err.Error())
+		}
 	}
 
 	var grr error
@@ -144,7 +157,12 @@ func (r *rpcClient) call(ctx context.Context, address string, req Request, resp 
 	}
 }
 
-func (r *rpcClient) stream(ctx context.Context, address string, req Request, opts CallOptions) (Stream, error) {
+func (r *rpcClient) stream(ctx context.Context, node *registry.Node, req Request, opts CallOptions) (Stream, error) {
+	address := node.Address
+	if node.Port > 0 {
+		address = fmt.Sprintf("%s:%d", address, node.Port)
+	}
+
 	msg := &transport.Message{
 		Header: make(map[string]string),
 	}
@@ -163,9 +181,16 @@ func (r *rpcClient) stream(ctx context.Context, address string, req Request, opt
 	// set the accept header
 	msg.Header["Accept"] = req.ContentType()
 
-	cf, err := r.newCodec(req.ContentType())
-	if err != nil {
-		return nil, errors.InternalServerError("go.micro.client", err.Error())
+	// set old codecs
+	cf := setupProtocol(msg, node)
+
+	// no codec specified
+	if cf == nil {
+		var err error
+		cf, err = r.newCodec(req.ContentType())
+		if err != nil {
+			return nil, errors.InternalServerError("go.micro.client", err.Error())
+		}
 	}
 
 	dOpts := []transport.DialOption{
@@ -245,9 +270,19 @@ func (r *rpcClient) Options() Options {
 func (r *rpcClient) next(request Request, opts CallOptions) (selector.Next, error) {
 	// return remote address
 	if len(opts.Address) > 0 {
+		address := opts.Address
+		port := 0
+
+		host, sport, err := net.SplitHostPort(opts.Address)
+		if err == nil {
+			address = host
+			port, _ = strconv.Atoi(sport)
+		}
+
 		return func() (*registry.Node, error) {
 			return &registry.Node{
-				Address: opts.Address,
+				Address: address,
+				Port:    port,
 			}, nil
 		}, nil
 	}
@@ -323,14 +358,8 @@ func (r *rpcClient) Call(ctx context.Context, request Request, response interfac
 			return errors.InternalServerError("go.micro.client", "error getting next %s node: %v", request.Service(), err.Error())
 		}
 
-		// set the address
-		address := node.Address
-		if node.Port > 0 {
-			address = fmt.Sprintf("%s:%d", address, node.Port)
-		}
-
 		// make the call
-		err = rcall(ctx, address, request, response, callOpts)
+		err = rcall(ctx, node, request, response, callOpts)
 		r.opts.Selector.Mark(request.Service(), node, err)
 		return err
 	}
@@ -406,12 +435,7 @@ func (r *rpcClient) Stream(ctx context.Context, request Request, opts ...CallOpt
 			return nil, errors.InternalServerError("go.micro.client", "error getting next %s node: %v", request.Service(), err.Error())
 		}
 
-		address := node.Address
-		if node.Port > 0 {
-			address = fmt.Sprintf("%s:%d", address, node.Port)
-		}
-
-		stream, err := r.stream(ctx, address, request, callOpts)
+		stream, err := r.stream(ctx, node, request, callOpts)
 		r.opts.Selector.Mark(request.Service(), node, err)
 		return stream, err
 	}
