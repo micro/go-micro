@@ -326,12 +326,16 @@ func (c *registrySelector) run(name string) {
 func (c *registrySelector) watch(w registry.Watcher) error {
 	defer w.Stop()
 
+	// reload chan
+	reload := make(chan bool, 1)
+
 	// manage this loop
 	go func() {
 		// wait for exit or reload signal
 		select {
 		case <-c.exit:
 		case <-c.reload:
+			reload <- true
 		}
 
 		// stop the watcher
@@ -341,7 +345,12 @@ func (c *registrySelector) watch(w registry.Watcher) error {
 	for {
 		res, err := w.Next()
 		if err != nil {
-			return err
+			select {
+			case <-reload:
+				return nil
+			default:
+				return err
+			}
 		}
 		c.update(res)
 	}
