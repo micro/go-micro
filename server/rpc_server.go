@@ -158,12 +158,15 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 		// TODO: handle error better
 		if err := handler(ctx, request, response); err != nil {
 			// write an error response
-			rcodec.Write(&codec.Message{
+			err = rcodec.Write(&codec.Message{
 				Header: msg.Header,
 				Error:  err.Error(),
 				Type:   codec.Error,
 			}, nil)
-
+			// could not write the error response
+			if err != nil {
+				log.Logf("rpc: unable to write error response: %v", err)
+			}
 			s.wg.Done()
 			return
 		}
