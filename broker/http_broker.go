@@ -19,7 +19,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/micro/go-log"
 	"github.com/micro/go-micro/codec/json"
 	merr "github.com/micro/go-micro/errors"
 	"github.com/micro/go-micro/registry"
@@ -397,7 +396,6 @@ func (h *httpBroker) Connect() error {
 		return err
 	}
 
-	log.Logf("Broker Listening on %s", l.Addr().String())
 	addr := h.address
 	h.address = l.Addr().String()
 

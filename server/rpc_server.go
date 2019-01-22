@@ -438,7 +438,8 @@ func (s *rpcServer) Start() error {
 		return err
 	}
 
-	log.Logf("Transport Listening on %s", ts.Addr())
+	log.Logf("Transport [%s] Listening on %s", config.Transport.String(), ts.Addr())
+
 	s.Lock()
 	// swap address
 	addr := s.opts.Address
@@ -493,7 +494,12 @@ func (s *rpcServer) Start() error {
 	}()
 
 	// TODO: subscribe to cruft
-	return config.Broker.Connect()
+	if err := config.Broker.Connect(); err != nil {
+		return err
+	}
+
+	log.Logf("Broker [%s] Listening on %s", config.Broker.String(), config.Broker.Address())
+	return nil
 }
 
 func (s *rpcServer) Stop() error {
