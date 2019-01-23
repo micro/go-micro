@@ -4,6 +4,7 @@ package micro
 import (
 	"context"
 
+	"github.com/micro/go-micro/broker"
 	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/server"
 )
@@ -36,7 +37,7 @@ type Function interface {
 
 // Publisher is syntactic sugar for publishing
 type Publisher interface {
-	Publish(ctx context.Context, msg interface{}, opts ...client.PublishOption) error
+	Publish(ctx context.Context, msg interface{}, opts ...broker.PublishOption) error
 }
 
 type Option func(*Options)
@@ -80,6 +81,6 @@ func RegisterHandler(s server.Server, h interface{}, opts ...server.HandlerOptio
 }
 
 // RegisterSubscriber is syntactic sugar for registering a subscriber
-func RegisterSubscriber(topic string, s server.Server, h interface{}, opts ...server.SubscriberOption) error {
+func RegisterSubscriber(topic string, s server.Server, h interface{}, opts ...broker.SubscribeOption) error {
 	return s.Subscribe(s.NewSubscriber(topic, h, opts...))
 }

@@ -3,6 +3,7 @@ package micro
 import (
 	"context"
 
+	"github.com/micro/go-micro/broker"
 	"github.com/micro/go-micro/client"
 )
 
@@ -11,6 +12,6 @@ type publisher struct {
 	topic string
 }
 
-func (p *publisher) Publish(ctx context.Context, msg interface{}, opts ...client.PublishOption) error {
-	return p.c.Publish(ctx, p.c.NewMessage(p.topic, msg))
+func (p *publisher) Publish(ctx context.Context, msg interface{}, opts ...broker.PublishOption) error {
+	return p.c.Publish(ctx, p.c.NewMessage(p.topic, msg), opts...)
 }

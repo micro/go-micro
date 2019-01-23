@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"sync"
 
+	"github.com/micro/go-micro/broker"
 	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/errors"
 )
@@ -102,7 +103,7 @@ func (m *MockClient) Stream(ctx context.Context, req client.Request, opts ...cli
 	return nil, nil
 }
 
-func (m *MockClient) Publish(ctx context.Context, p client.Message, opts ...client.PublishOption) error {
+func (m *MockClient) Publish(ctx context.Context, p client.Message, opts ...broker.PublishOption) error {
 	return nil
 }
 

@@ -1,13 +1,13 @@
 package mock
 
 import (
+	"github.com/micro/go-micro/broker"
 	"github.com/micro/go-micro/registry"
-	"github.com/micro/go-micro/server"
 )
 
 type MockSubscriber struct {
 	Id   string
-	Opts server.SubscriberOptions
+	Opts broker.SubscribeOptions
 	Sub  interface{}
 }
 
@@ -23,6 +23,6 @@ func (m *MockSubscriber) Endpoints() []*registry.Endpoint {
 	return []*registry.Endpoint{}
 }
 
-func (m *MockSubscriber) Options() server.SubscriberOptions {
+func (m *MockSubscriber) Options() broker.SubscribeOptions {
 	return m.Opts
 }

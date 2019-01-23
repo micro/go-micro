@@ -30,11 +30,11 @@ type subscriber struct {
 	subscriber interface{}
 	handlers   []*handler
 	endpoints  []*registry.Endpoint
-	opts       SubscriberOptions
+	opts       broker.SubscribeOptions
 }
 
-func newSubscriber(topic string, sub interface{}, opts ...SubscriberOption) Subscriber {
-	var options SubscriberOptions
+func newSubscriber(topic string, sub interface{}, opts ...broker.SubscribeOption) Subscriber {
+	var options broker.SubscribeOptions
 	for _, o := range opts {
 		o(&options)
 	}
@@ -280,6 +280,6 @@ func (s *subscriber) Endpoints() []*registry.Endpoint {
 	return s.endpoints
 }
 
-func (s *subscriber) Options() SubscriberOptions {
+func (s *subscriber) Options() broker.SubscribeOptions {
 	return s.opts
 }

@@ -479,7 +479,7 @@ func (r *rpcClient) Stream(ctx context.Context, request Request, opts ...CallOpt
 	return nil, grr
 }
 
-func (r *rpcClient) Publish(ctx context.Context, msg Message, opts ...PublishOption) error {
+func (r *rpcClient) Publish(ctx context.Context, msg Message, opts ...broker.PublishOption) error {
 	md, ok := metadata.FromContext(ctx)
 	if !ok {
 		md = make(map[string]string)

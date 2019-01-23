@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/google/uuid"
+	"github.com/micro/go-micro/broker"
 	"github.com/micro/go-micro/server"
 )
 
@@ -75,8 +76,8 @@ func (m *MockServer) NewHandler(h interface{}, opts ...server.HandlerOption) ser
 	}
 }
 
-func (m *MockServer) NewSubscriber(topic string, fn interface{}, opts ...server.SubscriberOption) server.Subscriber {
-	var options server.SubscriberOptions
+func (m *MockServer) NewSubscriber(topic string, fn interface{}, opts ...broker.SubscribeOption) server.Subscriber {
+	var options broker.SubscribeOptions
 	for _, o := range opts {
 		o(&options)
 	}

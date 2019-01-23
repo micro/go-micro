@@ -3,6 +3,7 @@ package micro
 import (
 	"context"
 
+	"github.com/micro/go-micro/broker"
 	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/metadata"
 )
@@ -37,7 +38,7 @@ func (c *clientWrapper) Stream(ctx context.Context, req client.Request, opts ...
 	return c.Client.Stream(ctx, req, opts...)
 }
 
-func (c *clientWrapper) Publish(ctx context.Context, p client.Message, opts ...client.PublishOption) error {
+func (c *clientWrapper) Publish(ctx context.Context, p client.Message, opts ...broker.PublishOption) error {
 	ctx = c.setHeaders(ctx)
 	return c.Client.Publish(ctx, p, opts...)
 }
