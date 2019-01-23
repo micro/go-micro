@@ -1,4 +1,4 @@
-// Package micro is a pluggable RPC framework for microservices
+// Package micro is a pluggable framework for microservices
 package micro
 
 import (
