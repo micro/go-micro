@@ -114,10 +114,6 @@ type Subscriber interface {
 
 type Option func(*Options)
 
-type HandlerOption func(*HandlerOptions)
-
-type SubscriberOption func(*SubscriberOptions)
-
 var (
 	DefaultAddress        = ":0"
 	DefaultName           = "go-server"
