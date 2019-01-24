@@ -27,6 +27,8 @@ type Options struct {
 
 	// The register expiry time
 	RegisterTTL time.Duration
+	// The interval on which to register
+	RegisterInterval time.Duration
 
 	// The router for requests
 	Router Router
@@ -165,6 +167,13 @@ func Metadata(md map[string]string) Option {
 func RegisterTTL(t time.Duration) Option {
 	return func(o *Options) {
 		o.RegisterTTL = t
+	}
+}
+
+// Register the service with at interval
+func RegisterInterval(t time.Duration) Option {
+	return func(o *Options) {
+		o.RegisterInterval = t
 	}
 }
 

@@ -404,6 +404,10 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		serverOpts = append(serverOpts, server.RegisterTTL(ttl*time.Second))
 	}
 
+	if val := time.Duration(ctx.GlobalInt("register_interval")); val > 0 {
+		serverOpts = append(serverOpts, server.RegisterInterval(val*time.Second))
+	}
+
 	// client opts
 	if r := ctx.Int("client_retries"); r >= 0 {
 		clientOpts = append(clientOpts, client.Retries(r))

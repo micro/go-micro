@@ -21,8 +21,6 @@ type Server interface {
 	NewHandler(interface{}, ...HandlerOption) Handler
 	NewSubscriber(string, interface{}, ...SubscriberOption) Subscriber
 	Subscribe(Subscriber) error
-	Register() error
-	Deregister() error
 	Start() error
 	Stop() error
 	String() string
@@ -173,16 +171,6 @@ func Subscribe(s Subscriber) error {
 	return DefaultServer.Subscribe(s)
 }
 
-// Register registers the default server with the discovery system
-func Register() error {
-	return DefaultServer.Register()
-}
-
-// Deregister deregisters the default server from the discovery system
-func Deregister() error {
-	return DefaultServer.Deregister()
-}
-
 // Run starts the default server and waits for a kill
 // signal before exiting. Also registers/deregisters the server
 func Run() error {
@@ -190,17 +178,9 @@ func Run() error {
 		return err
 	}
 
-	if err := DefaultServer.Register(); err != nil {
-		return err
-	}
-
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, syscall.SIGTERM, syscall.SIGINT, syscall.SIGKILL)
 	log.Logf("Received signal %s", <-ch)
-
-	if err := DefaultServer.Deregister(); err != nil {
-		return err
-	}
 
 	return Stop()
 }
