@@ -29,8 +29,8 @@ func (c *Codec) ReadHeader(m *codec.Message, t codec.MessageType) error {
 	// service method
 	path := m.Header[":path"]
 	if len(path) == 0 || path[0] != '/' {
-		m.Target = m.Header["X-Micro-Service"]
-		m.Endpoint = m.Header["X-Micro-Endpoint"]
+		m.Target = m.Header["Micro-Service"]
+		m.Endpoint = m.Header["Micro-Endpoint"]
 	} else {
 		// [ , a.package.Foo, Bar]
 		parts := strings.Split(path, "/")

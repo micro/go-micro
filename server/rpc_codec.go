@@ -66,13 +66,63 @@ func (rwc *readWriteCloser) Close() error {
 	return nil
 }
 
+func getHeader(hdr string, md map[string]string) string {
+	if hd := md[hdr]; len(hd) > 0 {
+		return hd
+	}
+	return md["X-"+hdr]
+}
+
+func getHeaders(m *codec.Message) {
+	get := func(hdr, v string) string {
+		if len(v) > 0 {
+			return v
+		}
+
+		if hd := m.Header[hdr]; len(hd) > 0 {
+			return hd
+		}
+
+		// old
+		return m.Header["X-"+hdr]
+	}
+
+	m.Id = get("Micro-Id", m.Id)
+	m.Error = get("Micro-Error", m.Error)
+	m.Endpoint = get("Micro-Endpoint", m.Endpoint)
+	m.Method = get("Micro-Method", m.Method)
+	m.Target = get("Micro-Service", m.Target)
+
+	// TODO: remove this cruft
+	if len(m.Endpoint) == 0 {
+		m.Endpoint = m.Method
+	}
+}
+
+func setHeaders(m, r *codec.Message) {
+	set := func(hdr, v string) {
+		if len(v) == 0 {
+			return
+		}
+		m.Header[hdr] = v
+		m.Header["X-"+hdr] = v
+	}
+
+	// set headers
+	set("Micro-Id", r.Id)
+	set("Micro-Service", r.Target)
+	set("Micro-Method", r.Method)
+	set("Micro-Endpoint", r.Endpoint)
+	set("Micro-Error", r.Error)
+}
+
 // setupProtocol sets up the old protocol
 func setupProtocol(msg *transport.Message) codec.NewCodec {
-	service := msg.Header["X-Micro-Service"]
-	method := msg.Header["X-Micro-Method"]
-	endpoint := msg.Header["X-Micro-Endpoint"]
-	protocol := msg.Header["X-Micro-Protocol"]
-	target := msg.Header["X-Micro-Target"]
+	service := getHeader("Micro-Service", msg.Header)
+	method := getHeader("Micro-Method", msg.Header)
+	endpoint := getHeader("Micro-Endpoint", msg.Header)
+	protocol := getHeader("Micro-Protocol", msg.Header)
+	target := getHeader("Micro-Target", msg.Header)
 
 	// if the protocol exists (mucp) do nothing
 	if len(protocol) > 0 {
@@ -91,12 +141,12 @@ func setupProtocol(msg *transport.Message) codec.NewCodec {
 
 	// no method then set to endpoint
 	if len(method) == 0 {
-		msg.Header["X-Micro-Method"] = method
+		msg.Header["Micro-Method"] = endpoint
 	}
 
 	// no endpoint then set to method
 	if len(endpoint) == 0 {
-		msg.Header["X-Micro-Endpoint"] = method
+		msg.Header["Micro-Endpoint"] = method
 	}
 
 	return nil
@@ -118,7 +168,7 @@ func newRpcCodec(req *transport.Message, socket transport.Socket, c codec.NewCod
 }
 
 func (c *rpcCodec) ReadHeader(r *codec.Message, t codec.MessageType) error {
-	// the initieal message
+	// the initial message
 	m := codec.Message{
 		Header: c.req.Header,
 		Body:   c.req.Body,
@@ -153,25 +203,17 @@ func (c *rpcCodec) ReadHeader(r *codec.Message, t codec.MessageType) error {
 	c.first = false
 
 	// set some internal things
-	m.Target = m.Header["X-Micro-Service"]
-	m.Method = m.Header["X-Micro-Method"]
-	m.Endpoint = m.Header["X-Micro-Endpoint"]
-	m.Id = m.Header["X-Micro-Id"]
+	getHeaders(&m)
 
 	// read header via codec
-	err := c.codec.ReadHeader(&m, codec.Request)
-
-	// set the method/id
-	r.Method = m.Method
-	r.Endpoint = m.Endpoint
-	r.Id = m.Id
-
-	// TODO: remove the old legacy cruft
-	if len(r.Endpoint) == 0 {
-		r.Endpoint = r.Method
+	if err := c.codec.ReadHeader(&m, codec.Request); err != nil {
+		return err
 	}
 
-	return err
+	// set message
+	*r = m
+
+	return nil
 }
 
 func (c *rpcCodec) ReadBody(b interface{}) error {
@@ -206,29 +248,7 @@ func (c *rpcCodec) Write(r *codec.Message, b interface{}) error {
 		m.Header = map[string]string{}
 	}
 
-	// set request id
-	if len(r.Id) > 0 {
-		m.Header["X-Micro-Id"] = r.Id
-	}
-
-	// set target
-	if len(r.Target) > 0 {
-		m.Header["X-Micro-Service"] = r.Target
-	}
-
-	// set request method
-	if len(r.Method) > 0 {
-		m.Header["X-Micro-Method"] = r.Method
-	}
-
-	// set request endpoint
-	if len(r.Endpoint) > 0 {
-		m.Header["X-Micro-Endpoint"] = r.Endpoint
-	}
-
-	if len(r.Error) > 0 {
-		m.Header["X-Micro-Error"] = r.Error
-	}
+	setHeaders(m, r)
 
 	// the body being sent
 	var body []byte
@@ -246,6 +266,7 @@ func (c *rpcCodec) Write(r *codec.Message, b interface{}) error {
 		// write an error if it failed
 		m.Error = errors.Wrapf(err, "Unable to encode body").Error()
 		m.Header["X-Micro-Error"] = m.Error
+		m.Header["Micro-Error"] = m.Error
 		// no body to write
 		if err := c.codec.Write(m, nil); err != nil {
 			return err

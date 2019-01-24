@@ -487,8 +487,8 @@ func (r *rpcClient) Publish(ctx context.Context, msg Message, opts ...PublishOpt
 
 	id := uuid.New().String()
 	md["Content-Type"] = msg.ContentType()
-	md["X-Micro-Topic"] = msg.Topic()
-	md["X-Micro-Id"] = id
+	md["Micro-Topic"] = msg.Topic()
+	md["Micro-Id"] = id
 
 	// encode message body
 	cf, err := r.newCodec(msg.ContentType())
@@ -500,8 +500,8 @@ func (r *rpcClient) Publish(ctx context.Context, msg Message, opts ...PublishOpt
 		Target: msg.Topic(),
 		Type:   codec.Publication,
 		Header: map[string]string{
-			"X-Micro-Id":    id,
-			"X-Micro-Topic": msg.Topic(),
+			"Micro-Id":    id,
+			"Micro-Topic": msg.Topic(),
 		},
 	}, msg.Payload()); err != nil {
 		return errors.InternalServerError("go.micro.client", err.Error())

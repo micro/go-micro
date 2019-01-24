@@ -84,6 +84,47 @@ func (rwc *readWriteCloser) Close() error {
 	return nil
 }
 
+func getHeaders(m *codec.Message) {
+	get := func(hdr string) string {
+		if hd := m.Header[hdr]; len(hd) > 0 {
+			return hd
+		}
+		// old
+		return m.Header["X-"+hdr]
+	}
+
+	// check error in header
+	if len(m.Error) == 0 {
+		m.Error = get("Micro-Error")
+	}
+
+	// check endpoint in header
+	if len(m.Endpoint) == 0 {
+		m.Endpoint = get("Micro-Endpoint")
+	}
+
+	// check method in header
+	if len(m.Method) == 0 {
+		m.Method = get("Micro-Method")
+	}
+
+	if len(m.Id) == 0 {
+		m.Id = get("Micro-Id")
+	}
+}
+
+func setHeaders(m *codec.Message) {
+	set := func(hdr, v string) {
+		m.Header[hdr] = v
+		m.Header["X-"+hdr] = v
+	}
+
+	set("Micro-Id", m.Id)
+	set("Micro-Service", m.Target)
+	set("Micro-Method", m.Method)
+	set("Micro-Endpoint", m.Endpoint)
+}
+
 // setupProtocol sets up the old protocol
 func setupProtocol(msg *transport.Message, node *registry.Node) codec.NewCodec {
 	protocol := node.Metadata["protocol"]
@@ -133,10 +174,7 @@ func (c *rpcCodec) Write(m *codec.Message, body interface{}) error {
 	}
 
 	// set the mucp headers
-	m.Header["X-Micro-Id"] = m.Id
-	m.Header["X-Micro-Service"] = m.Target
-	m.Header["X-Micro-Method"] = m.Method
-	m.Header["X-Micro-Endpoint"] = m.Endpoint
+	setHeaders(m)
 
 	// if body is bytes Frame don't encode
 	if body != nil {
@@ -171,43 +209,25 @@ func (c *rpcCodec) Write(m *codec.Message, body interface{}) error {
 	return nil
 }
 
-func (c *rpcCodec) ReadHeader(wm *codec.Message, r codec.MessageType) error {
-	var m transport.Message
-	if err := c.client.Recv(&m); err != nil {
+func (c *rpcCodec) ReadHeader(m *codec.Message, r codec.MessageType) error {
+	var tm transport.Message
+
+	// read message from transport
+	if err := c.client.Recv(&tm); err != nil {
 		return errors.InternalServerError("go.micro.client.transport", err.Error())
 	}
-	c.buf.rbuf.Reset()
-	c.buf.rbuf.Write(m.Body)
 
-	var me codec.Message
-	// set headers
-	me.Header = m.Header
+	c.buf.rbuf.Reset()
+	c.buf.rbuf.Write(tm.Body)
+
+	// set headers from transport
+	m.Header = tm.Header
 
 	// read header
-	err := c.codec.ReadHeader(&me, r)
-	wm.Endpoint = me.Endpoint
-	wm.Method = me.Method
-	wm.Id = me.Id
-	wm.Error = me.Error
+	err := c.codec.ReadHeader(m, r)
 
-	// check error in header
-	if len(me.Error) == 0 {
-		wm.Error = me.Header["X-Micro-Error"]
-	}
-
-	// check endpoint in header
-	if len(me.Endpoint) == 0 {
-		wm.Endpoint = me.Header["X-Micro-Endpoint"]
-	}
-
-	// check method in header
-	if len(me.Method) == 0 {
-		wm.Method = me.Header["X-Micro-Method"]
-	}
-
-	if len(me.Id) == 0 {
-		wm.Id = me.Header["X-Micro-Id"]
-	}
+	// get headers
+	getHeaders(m)
 
 	// return header error
 	if err != nil {

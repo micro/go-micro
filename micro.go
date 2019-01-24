@@ -42,7 +42,7 @@ type Publisher interface {
 type Option func(*Options)
 
 var (
-	HeaderPrefix = "X-Micro-"
+	HeaderPrefix = "Micro-"
 )
 
 // NewService creates and returns a new Service based on the packages within.
