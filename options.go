@@ -22,9 +22,6 @@ type Options struct {
 	Registry  registry.Registry
 	Transport transport.Transport
 
-	// Register loop interval
-	RegisterInterval time.Duration
-
 	// Before and After funcs
 	BeforeStart []func() error
 	BeforeStop  []func() error
@@ -168,7 +165,7 @@ func RegisterTTL(t time.Duration) Option {
 // RegisterInterval specifies the interval on which to re-register
 func RegisterInterval(t time.Duration) Option {
 	return func(o *Options) {
-		o.RegisterInterval = t
+		o.Server.Init(server.RegisterInterval(t))
 	}
 }
 

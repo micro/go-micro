@@ -436,6 +436,7 @@ func (s *rpcServer) Start() error {
 	registerDebugHandler(s)
 	config := s.Options()
 
+	// start listening on the transport
 	ts, err := config.Transport.Listen(config.Address)
 	if err != nil {
 		return err
@@ -443,30 +444,45 @@ func (s *rpcServer) Start() error {
 
 	log.Logf("Transport [%s] Listening on %s", config.Transport.String(), ts.Addr())
 
-	s.Lock()
 	// swap address
+	s.Lock()
 	addr := s.opts.Address
 	s.opts.Address = ts.Addr()
 	s.Unlock()
 
-	exit := make(chan bool, 1)
+	// connect to the broker
+	if err := config.Broker.Connect(); err != nil {
+		return err
+	}
+
+	log.Logf("Broker [%s] Listening on %s", config.Broker.String(), config.Broker.Address())
+
+	// announce self to the world
+	if err := s.Register(); err != nil {
+		log.Log("Server register error: ", err)
+	}
+
+	exit := make(chan bool)
 
 	go func() {
 		for {
+			// listen for connections
 			err := ts.Accept(s.ServeConn)
 
-			// check if we're supposed to exit
+			// TODO: listen for messages
+			// msg := broker.Exchange(service).Consume()
+
 			select {
+			// check if we're supposed to exit
 			case <-exit:
 				return
-			default:
-			}
-
 			// check the error and backoff
-			if err != nil {
-				log.Logf("Accept error: %v", err)
-				time.Sleep(time.Second)
-				continue
+			default:
+				if err != nil {
+					log.Logf("Accept error: %v", err)
+					time.Sleep(time.Second)
+					continue
+				}
 			}
 
 			// no error just exit
@@ -475,9 +491,38 @@ func (s *rpcServer) Start() error {
 	}()
 
 	go func() {
-		// wait for exit
-		ch := <-s.exit
-		exit <- true
+
+		// new ticker
+		t := time.NewTicker(s.opts.RegisterInterval)
+
+		// only process if it exists
+		if s.opts.RegisterInterval <= time.Duration(0) {
+			t.C = nil
+		}
+
+		// return error chan
+		var ch chan error
+
+	Loop:
+		for {
+			select {
+			// register self on interval
+			case <-t.C:
+				if err := s.Register(); err != nil {
+					log.Log("Server register error: ", err)
+				}
+			// wait for exit
+			case ch = <-s.exit:
+				t.Stop()
+				close(exit)
+				break Loop
+			}
+		}
+
+		// deregister self
+		if err := s.Deregister(); err != nil {
+			log.Log("Server deregister error: ", err)
+		}
 
 		// wait for requests to finish
 		if wait(s.opts.Context) {
@@ -490,18 +535,12 @@ func (s *rpcServer) Start() error {
 		// disconnect the broker
 		config.Broker.Disconnect()
 
-		s.Lock()
 		// swap back address
+		s.Lock()
 		s.opts.Address = addr
 		s.Unlock()
 	}()
 
-	// TODO: subscribe to cruft
-	if err := config.Broker.Connect(); err != nil {
-		return err
-	}
-
-	log.Logf("Broker [%s] Listening on %s", config.Broker.String(), config.Broker.Address())
 	return nil
 }
 
