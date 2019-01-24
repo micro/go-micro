@@ -494,13 +494,12 @@ func (s *rpcServer) Start() error {
 	}()
 
 	go func() {
-
-		// new ticker
-		t := time.NewTicker(s.opts.RegisterInterval)
+		t := new(time.Ticker)
 
 		// only process if it exists
-		if s.opts.RegisterInterval <= time.Duration(0) {
-			t.C = nil
+		if s.opts.RegisterInterval > time.Duration(0) {
+			// new ticker
+			t = time.NewTicker(s.opts.RegisterInterval)
 		}
 
 		// return error chan
