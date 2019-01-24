@@ -111,3 +111,10 @@ func TLSConfig(t *tls.Config) Option {
 		o.TLSConfig = t
 	}
 }
+
+// SubscribeContext set context
+func SubscribeContext(ctx context.Context) SubscribeOption {
+	return func(o *SubscribeOptions) {
+		o.Context = ctx
+	}
+}
