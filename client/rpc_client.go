@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"os"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -213,12 +214,17 @@ func (r *rpcClient) stream(ctx context.Context, node *registry.Node, req Request
 		codec:  codec,
 	}
 
+	// set request codec
+	if r, ok := req.(*rpcRequest); ok {
+		r.codec = codec
+	}
+
 	stream := &rpcStream{
 		context:  ctx,
 		request:  req,
 		response: rsp,
 		closed:   make(chan bool),
-		codec:    newRpcCodec(msg, c, cf),
+		codec:    codec,
 	}
 
 	ch := make(chan error, 1)
@@ -268,6 +274,18 @@ func (r *rpcClient) Options() Options {
 }
 
 func (r *rpcClient) next(request Request, opts CallOptions) (selector.Next, error) {
+	service := request.Service()
+
+	// get proxy
+	if prx := os.Getenv("MICRO_PROXY"); len(prx) > 0 {
+		service = prx
+	}
+
+	// get proxy address
+	if prx := os.Getenv("MICRO_PROXY_ADDRESS"); len(prx) > 0 {
+		opts.Address = prx
+	}
+
 	// return remote address
 	if len(opts.Address) > 0 {
 		address := opts.Address
@@ -288,11 +306,11 @@ func (r *rpcClient) next(request Request, opts CallOptions) (selector.Next, erro
 	}
 
 	// get next nodes from the selector
-	next, err := r.opts.Selector.Select(request.Service(), opts.SelectOptions...)
+	next, err := r.opts.Selector.Select(service, opts.SelectOptions...)
 	if err != nil && err == selector.ErrNotFound {
-		return nil, errors.NotFound("go.micro.client", "service %s: %v", request.Service(), err.Error())
+		return nil, errors.NotFound("go.micro.client", "service %s: %v", service, err.Error())
 	} else if err != nil {
-		return nil, errors.InternalServerError("go.micro.client", "error selecting %s node: %v", request.Service(), err.Error())
+		return nil, errors.InternalServerError("go.micro.client", "error selecting %s node: %v", service, err.Error())
 	}
 
 	return next, nil

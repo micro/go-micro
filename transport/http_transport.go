@@ -35,7 +35,7 @@ type httpTransportClient struct {
 	dialOpts DialOptions
 	once     sync.Once
 
-	sync.Mutex
+	sync.RWMutex
 	r    chan *http.Request
 	bl   []*http.Request
 	buff *bufio.Reader
@@ -133,11 +133,11 @@ func (h *httpTransportClient) Recv(m *Message) error {
 		r = rc
 	}
 
-	h.Lock()
-	defer h.Unlock()
+	h.RLock()
 	if h.buff == nil {
 		return io.EOF
 	}
+	h.RUnlock()
 
 	// set timeout if its greater than 0
 	if h.ht.opts.Timeout > time.Duration(0) {

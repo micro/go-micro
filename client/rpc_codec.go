@@ -115,6 +115,9 @@ func getHeaders(m *codec.Message) {
 
 func setHeaders(m *codec.Message) {
 	set := func(hdr, v string) {
+		if len(v) == 0 {
+			return
+		}
 		m.Header[hdr] = v
 		m.Header["X-"+hdr] = v
 	}
@@ -200,12 +203,10 @@ func (c *rpcCodec) Write(m *codec.Message, body interface{}) error {
 		Header: m.Header,
 		Body:   m.Body,
 	}
-
 	// send the request
 	if err := c.client.Send(&msg); err != nil {
 		return errors.InternalServerError("go.micro.client.transport", err.Error())
 	}
-
 	return nil
 }
 
