@@ -1,6 +1,6 @@
 # Gossip Registry
 
-Gossip is a zero dependency registry which uses hashicorp/memberlist to broadcast registry information 
+Gossip is a zero dependency registry which uses github.com/hashicorp/memberlist to broadcast registry information 
 via the SWIM protocol. 
 
 ## Usage
@@ -20,5 +20,5 @@ On startup you'll see something like
 To join this gossip ring set the registry address using flag or env var
 
 ```bash
-MICRO_REGISTRY_ADDRESS= 192.168.1.65:56390 
+MICRO_REGISTRY_ADDRESS=192.168.1.65:56390
 ```
