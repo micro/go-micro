@@ -13,11 +13,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/micro/h2c"
 	maddr "github.com/micro/util/go/lib/addr"
 	mnet "github.com/micro/util/go/lib/net"
 	mls "github.com/micro/util/go/lib/tls"
 	"golang.org/x/net/http2"
+	"golang.org/x/net/http2/h2c"
 )
 
 type buffer struct {
@@ -424,10 +424,7 @@ func (h *httpTransportListener) Accept(fn func(Socket)) error {
 
 	// insecure connection use h2c
 	if !(h.ht.opts.Secure || h.ht.opts.TLSConfig != nil) {
-		srv.Handler = &h2c.HandlerH2C{
-			Handler:  mux,
-			H2Server: &http2.Server{},
-		}
+		srv.Handler = h2c.NewHandler(mux, &http2.Server{})
 	}
 
 	// begin serving
