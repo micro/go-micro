@@ -70,21 +70,30 @@ func addNodes(old, neu []*registry.Node) []*registry.Node {
 }
 
 func addServices(old, neu []*registry.Service) []*registry.Service {
+	var srv []*registry.Service
+
 	for _, s := range neu {
 		var seen bool
-		for i, o := range old {
+		for _, o := range old {
 			if o.Version == s.Version {
-				s.Nodes = addNodes(o.Nodes, s.Nodes)
+				var sp *registry.Service
+				// make copy
+				*sp = *o
+				// set nodes
+				sp.Nodes = addNodes(o.Nodes, s.Nodes)
+
+				// mark as seen
 				seen = true
-				old[i] = s
+				srv = append(srv, sp)
 				break
 			}
 		}
 		if !seen {
-			old = append(old, s)
+			srv = append(srv, cp([]*registry.Service{s})...)
 		}
 	}
-	return old
+
+	return srv
 }
 
 func delNodes(old, del []*registry.Node) []*registry.Node {
