@@ -76,7 +76,7 @@ func addServices(old, neu []*registry.Service) []*registry.Service {
 		var seen bool
 		for _, o := range old {
 			if o.Version == s.Version {
-				var sp *registry.Service
+				sp := new(registry.Service)
 				// make copy
 				*sp = *o
 				// set nodes
