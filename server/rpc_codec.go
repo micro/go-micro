@@ -210,6 +210,11 @@ func (c *rpcCodec) ReadHeader(r *codec.Message, t codec.MessageType) error {
 		return err
 	}
 
+	// fallback for 0.14 and older
+	if len(m.Endpoint) == 0 {
+		m.Endpoint = m.Method
+	}
+
 	// set message
 	*r = m
 
