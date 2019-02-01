@@ -242,7 +242,9 @@ func (m *mdnsRegistry) GetService(service string) ([]*Service, error) {
 					Metadata: txt.Metadata,
 				})
 
+				m.Lock()
 				serviceMap[txt.Version] = s
+				m.Unlock()
 			case <-exit:
 				return
 			}
@@ -256,9 +258,11 @@ func (m *mdnsRegistry) GetService(service string) ([]*Service, error) {
 	// create list and return
 	var services []*Service
 
+	m.Lock()
 	for _, service := range serviceMap {
 		services = append(services, service)
 	}
+	m.Unlock()
 
 	return services, nil
 }
@@ -286,7 +290,9 @@ func (m *mdnsRegistry) ListServices() ([]*Service, error) {
 				name := strings.TrimSuffix(e.Name, "."+p.Service+"."+p.Domain+".")
 				if !serviceMap[name] {
 					serviceMap[name] = true
+					m.Lock()
 					services = append(services, &Service{Name: name})
+					m.Unlock()
 				}
 			case <-exit:
 				return
