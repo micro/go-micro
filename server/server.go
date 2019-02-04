@@ -51,6 +51,8 @@ type Request interface {
 	ContentType() string
 	// Header of the request
 	Header() map[string]string
+	// Body is the initial decoded value
+	Body() interface{}
 	// Read the undecoded request body
 	Read() ([]byte, error)
 	// The encoded message stream

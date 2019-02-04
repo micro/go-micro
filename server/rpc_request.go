@@ -47,6 +47,11 @@ func (r *rpcRequest) Header() map[string]string {
 	return r.header
 }
 
+func (r *rpcRequest) Body() interface{} {
+	// TODO: convert to interface value
+	return r.body
+}
+
 func (r *rpcRequest) Read() ([]byte, error) {
 	// got a body
 	if r.body != nil {
