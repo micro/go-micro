@@ -2,6 +2,7 @@ package gossip
 
 import (
 	"context"
+	"time"
 
 	"github.com/hashicorp/memberlist"
 	"github.com/micro/go-micro/registry"
@@ -43,4 +44,19 @@ type contextContext struct{}
 // Can be used for extra option values.
 func Context(ctx context.Context) registry.Option {
 	return setRegistryOption(contextContext{}, ctx)
+}
+
+type connectTimeout struct{}
+
+// ConnectTimeout specify registry connect timeout use -1 to specify infinite
+func ConnectTimeout(td time.Duration) registry.Option {
+	return setRegistryOption(connectTimeout{}, td)
+}
+
+type connectRetry struct{}
+
+// ConnectRetry enable reconnect to registry then connection closed,
+// use with ConnectTimeout to specify how long retry
+func ConnectRetry(v bool) registry.Option {
+	return setRegistryOption(connectRetry{}, v)
 }
