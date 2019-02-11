@@ -52,5 +52,3 @@ See the [docs](https://micro.mu/docs/go-micro.html) for detailed information on 
 Sixt is an Enterprise Sponsor of Micro
 
 <a href="https://micro.mu/blog/2016/04/25/announcing-sixt-sponsorship.html"><img src="https://micro.mu/sixt_logo.png" width=150px height="auto" /></a>
-
-Become a sponsor by backing micro on [Patreon](https://www.patreon.com/microhq)
