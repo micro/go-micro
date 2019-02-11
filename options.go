@@ -122,6 +122,13 @@ func Transport(t transport.Transport) Option {
 
 // Convenience options
 
+// Address sets the address of the server
+func Address(addr string) Option {
+	return func(o *Options) {
+		o.Server.Init(server.Address(addr))
+	}
+}
+
 // Name of the service
 func Name(n string) Option {
 	return func(o *Options) {
