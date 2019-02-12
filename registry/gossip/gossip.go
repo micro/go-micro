@@ -4,6 +4,7 @@ package gossip
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net"
 	"os"
@@ -35,6 +36,13 @@ const (
 	actionTypeSync
 )
 
+const (
+	nodeActionUnknown int32 = iota
+	nodeActionJoin
+	nodeActionLeave
+	nodeActionUpdate
+)
+
 func actionTypeString(t int32) string {
 	switch t {
 	case actionTypeCreate:
@@ -64,18 +72,45 @@ type delegate struct {
 	updates chan *update
 }
 
-type gossipRegistry struct {
-	queue    *memberlist.TransmitLimitedQueue
-	updates  chan *update
-	options  registry.Options
-	member   *memberlist.Memberlist
-	interval time.Duration
+type event struct {
+	action int32
+	node   string
+}
 
+type eventDelegate struct {
+	events chan *event
+}
+
+func (ed *eventDelegate) NotifyJoin(n *memberlist.Node) {
+	ed.events <- &event{action: nodeActionJoin, node: n.Address()}
+}
+func (ed *eventDelegate) NotifyLeave(n *memberlist.Node) {
+	ed.events <- &event{action: nodeActionLeave, node: n.Address()}
+}
+func (ed *eventDelegate) NotifyUpdate(n *memberlist.Node) {
+	ed.events <- &event{action: nodeActionUpdate, node: n.Address()}
+}
+
+type gossipRegistry struct {
+	queue       *memberlist.TransmitLimitedQueue
+	updates     chan *update
+	events      chan *event
+	options     registry.Options
+	member      *memberlist.Memberlist
+	interval    time.Duration
+	tcpInterval time.Duration
+
+	connectRetry   bool
+	connectTimeout time.Duration
 	sync.RWMutex
 	services map[string][]*registry.Service
 
-	s        sync.RWMutex
 	watchers map[string]chan *registry.Result
+
+	mtu     int
+	addrs   []string
+	members map[string]int32
+	done    chan struct{}
 }
 
 type update struct {
@@ -87,8 +122,59 @@ type update struct {
 var (
 	// You should change this if using secure
 	DefaultSecret = []byte("micro-gossip-key") // exactly 16 bytes
-	ExpiryTick    = time.Second * 5
+	ExpiryTick    = time.Second * 1            // needs to be smaller than registry.RegisterTTL
+	MaxPacketSize = 512
 )
+
+func (g *gossipRegistry) connect(addrs []string) error {
+	var err error
+
+	if len(addrs) == 0 {
+		return nil
+	}
+
+	timeout := make(<-chan time.Time)
+	if g.connectTimeout > 0 {
+		timeout = time.After(g.connectTimeout)
+	}
+
+	ticker := time.NewTicker(1 * time.Second)
+	defer ticker.Stop()
+
+	fn := func() (int, error) {
+		return g.member.Join(addrs)
+	}
+
+	// don't wait for first try
+	if _, err = fn(); err == nil {
+		return nil
+	}
+
+	// wait loop
+	for {
+		select {
+		// context closed
+		case <-g.options.Context.Done():
+			return nil
+		// call close, don't wait anymore
+		case <-g.done:
+			return nil
+		//  in case of timeout fail with a timeout error
+		case <-timeout:
+			return fmt.Errorf("[gossip]: timedout connect to %v", g.addrs)
+		// got a tick, try to connect
+		case <-ticker.C:
+			if _, err = fn(); err == nil {
+				log.Logf("[gossip]: success connect to %v", g.addrs)
+				return nil
+			} else {
+				log.Logf("[gossip]: failed connect to %v", g.addrs)
+			}
+		}
+	}
+
+	return err
+}
 
 func configure(g *gossipRegistry, opts ...registry.Option) error {
 	// loop through address list and get valid entries
@@ -129,8 +215,10 @@ func configure(g *gossipRegistry, opts ...registry.Option) error {
 	// create a new default config
 	c := memberlist.DefaultLocalConfig()
 
-	// log to dev null
-	c.LogOutput = ioutil.Discard
+	// sane good default options
+	c.LogOutput = ioutil.Discard // log to /dev/null
+	c.PushPullInterval = 0       // disable expensive tcp push/pull
+	c.ProtocolVersion = 4        // suport latest stable features
 
 	if optConfig, ok := g.options.Context.Value(contextConfig{}).(*memberlist.Config); ok && optConfig != nil {
 		c = optConfig
@@ -177,6 +265,13 @@ func configure(g *gossipRegistry, opts ...registry.Option) error {
 		c.SecretKey = k
 	}
 
+	if v, ok := g.options.Context.Value(connectRetry{}).(bool); ok && v {
+		g.connectRetry = true
+	}
+	if td, ok := g.options.Context.Value(connectTimeout{}).(time.Duration); ok {
+		g.connectTimeout = td
+	}
+
 	// create a queue
 	queue := &memberlist.TransmitLimitedQueue{
 		NumNodes: func() int {
@@ -191,27 +286,34 @@ func configure(g *gossipRegistry, opts ...registry.Option) error {
 		queue:   queue,
 	}
 
+	if g.connectRetry {
+		c.Events = &eventDelegate{
+			events: g.events,
+		}
+	}
+
 	// create the memberlist
 	m, err := memberlist.Create(c)
 	if err != nil {
 		return err
 	}
 
-	// join the memberlist
+	// set internals
+	g.Lock()
 	if len(curAddrs) > 0 {
-		_, err := m.Join(curAddrs)
-		if err != nil {
-			return err
+		for _, addr := range curAddrs {
+			g.members[addr] = nodeActionUnknown
 		}
 	}
-
-	// set internals
+	g.tcpInterval = c.PushPullInterval
+	g.addrs = curAddrs
 	g.queue = queue
 	g.member = m
 	g.interval = c.GossipInterval
+	g.Unlock()
 
-	log.Logf("Registry Listening on %s", m.LocalNode().Address())
-	return nil
+	log.Logf("[gossip]: Registry Listening on %s", m.LocalNode().Address())
+	return g.connect(curAddrs)
 }
 
 func (*broadcast) UniqueBroadcast() {}
@@ -224,6 +326,9 @@ func (b *broadcast) Message() []byte {
 	up, err := proto.Marshal(b.update)
 	if err != nil {
 		return nil
+	}
+	if l := len(up); l > MaxPacketSize {
+		log.Logf("[gossip]: broadcast message size %d bigger then MaxPacketSize %d", l, MaxPacketSize)
 	}
 	return up
 }
@@ -313,7 +418,6 @@ func (d *delegate) MergeRemoteState(buf []byte, join bool) {
 	if err := json.Unmarshal(buf, &services); err != nil {
 		return
 	}
-
 	for _, service := range services {
 		for _, srv := range service {
 			d.updates <- &update{
@@ -326,7 +430,7 @@ func (d *delegate) MergeRemoteState(buf []byte, join bool) {
 }
 
 func (g *gossipRegistry) publish(action string, services []*registry.Service) {
-	g.s.RLock()
+	g.RLock()
 	for _, sub := range g.watchers {
 		go func(sub chan *registry.Result) {
 			for _, service := range services {
@@ -334,7 +438,7 @@ func (g *gossipRegistry) publish(action string, services []*registry.Service) {
 			}
 		}(sub)
 	}
-	g.s.RUnlock()
+	g.RUnlock()
 }
 
 func (g *gossipRegistry) subscribe() (chan *registry.Result, chan bool) {
@@ -343,16 +447,16 @@ func (g *gossipRegistry) subscribe() (chan *registry.Result, chan bool) {
 
 	id := uuid.New().String()
 
-	g.s.Lock()
+	g.Lock()
 	g.watchers[id] = next
-	g.s.Unlock()
+	g.Unlock()
 
 	go func() {
 		<-exit
-		g.s.Lock()
+		g.Lock()
 		delete(g.watchers, id)
 		close(next)
-		g.s.Unlock()
+		g.Unlock()
 	}()
 
 	return next, exit
@@ -378,9 +482,19 @@ func (g *gossipRegistry) wait() {
 	g.Stop()
 }
 
-func (g *gossipRegistry) Stop() {
-	g.member.Leave(g.interval * 2)
-	g.member.Shutdown()
+func (g *gossipRegistry) Stop() error {
+	g.Lock()
+	if g.done != nil {
+		close(g.done)
+		g.done = nil
+	}
+	if g.member != nil {
+		g.member.Leave(g.interval * 2)
+		g.member.Shutdown()
+		g.member = nil
+	}
+	g.Unlock()
+	return nil
 }
 
 func (g *gossipRegistry) run() {
@@ -389,30 +503,77 @@ func (g *gossipRegistry) run() {
 
 	// expiry loop
 	go func() {
-		t := time.NewTicker(ExpiryTick)
-		defer t.Stop()
+		ticker := time.NewTicker(ExpiryTick)
+		defer ticker.Stop()
 
-		for _ = range t.C {
-			now := uint64(time.Now().UnixNano())
+		for {
+			select {
+			case <-g.done:
+				return
+			case <-ticker.C:
+				now := uint64(time.Now().UnixNano())
 
-			mtx.Lock()
+				mtx.Lock()
 
-			// process all the updates
-			for k, v := range updates {
-				// check if expiry time has passed
-				if d := (v.Update.Expires); d < now {
-					// delete from records
-					delete(updates, k)
-					// set to delete
-					v.Update.Action = actionTypeDelete
-					// fire a new update
-					g.updates <- v
+				// process all the updates
+				for k, v := range updates {
+					// check if expiry time has passed
+					if d := (v.Update.Expires); d < now {
+						// delete from records
+						delete(updates, k)
+						// set to delete
+						v.Update.Action = actionTypeDelete
+						// fire a new update
+						g.updates <- v
+					}
 				}
-			}
 
-			mtx.Unlock()
+				mtx.Unlock()
+			}
 		}
 	}()
+
+	go func() {
+		for {
+			select {
+			case <-g.done:
+				return
+			case ed := <-g.events:
+				// may be not block all registry?
+				g.Lock()
+				if _, ok := g.members[ed.node]; ok {
+					g.members[ed.node] = ed.action
+				}
+				g.Unlock()
+			}
+		}
+	}()
+
+	if g.connectRetry {
+		go func() {
+			ticker := time.NewTicker(1 * time.Second)
+			defer ticker.Stop()
+
+			for {
+				select {
+				case <-g.done:
+					return
+				case <-ticker.C:
+					var addrs []string
+					g.RLock()
+					for node, action := range g.members {
+						if action == nodeActionLeave && g.member.LocalNode().Address() != node {
+							addrs = append(addrs, node)
+						}
+					}
+					g.RUnlock()
+					if len(addrs) > 0 {
+						g.connect(addrs)
+					}
+				}
+			}
+		}()
+	}
 
 	// process the updates
 	for u := range g.updates {
@@ -512,6 +673,10 @@ func (g *gossipRegistry) Register(s *registry.Service, opts ...registry.Register
 		o(&options)
 	}
 
+	if options.TTL == 0 && g.tcpInterval == 0 {
+		return fmt.Errorf("must provide registry.RegisterTTL option or set PushPullInterval in *memberlist.Config")
+	}
+
 	up := &pb.Update{
 		Expires: uint64(time.Now().Add(options.TTL).UnixNano()),
 		Action:  actionTypeCreate,
@@ -604,8 +769,11 @@ func NewRegistry(opts ...registry.Option) registry.Registry {
 			Context: context.Background(),
 		},
 		updates:  make(chan *update, 100),
+		events:   make(chan *event, 100),
 		services: make(map[string][]*registry.Service),
 		watchers: make(map[string]chan *registry.Result),
+		done:     make(chan struct{}),
+		members:  make(map[string]int32),
 	}
 
 	// run the updater
