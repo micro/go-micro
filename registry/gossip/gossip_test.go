@@ -35,7 +35,7 @@ func newRegistry(opts ...registry.Option) registry.Registry {
 	return r
 }
 
-func TestRegistryBroadcast(t *testing.T) {
+func TestGossipRegistryBroadcast(t *testing.T) {
 	mc1 := newMemberlistConfig()
 	r1 := newRegistry(Config(mc1), Address("127.0.0.1:54321"))
 
@@ -45,65 +45,57 @@ func TestRegistryBroadcast(t *testing.T) {
 	defer r1.(*gossipRegistry).Stop()
 	defer r2.(*gossipRegistry).Stop()
 
-	svc1 := &registry.Service{Name: "r1-svc", Version: "0.0.0.1"}
-	svc2 := &registry.Service{Name: "r2-svc", Version: "0.0.0.2"}
+	svc1 := &registry.Service{Name: "service.1", Version: "0.0.0.1"}
+	svc2 := &registry.Service{Name: "service.2", Version: "0.0.0.2"}
 
-	t.Logf("register service svc1 on r1\n")
 	if err := r1.Register(svc1, registry.RegisterTTL(10*time.Second)); err != nil {
 		t.Fatal(err)
 	}
-	t.Logf("register service svc2 on r2\n")
 	if err := r2.Register(svc2, registry.RegisterTTL(10*time.Second)); err != nil {
 		t.Fatal(err)
 	}
 
 	var found bool
-	t.Logf("list services on r1\n")
 	svcs, err := r1.ListServices()
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	for _, svc := range svcs {
-		if svc.Name == "r2-svc" {
+		if svc.Name == "service.2" {
 			found = true
 		}
 	}
 	if !found {
-		t.Fatalf("r2-svc not found in r1, broadcast not work")
-	} else {
-		t.Logf("r2-svc found in r1, all ok")
+		t.Fatalf("[gossip registry] service.2 not found in r1, broadcast not work")
 	}
 
 	found = false
-	t.Logf("list services on r2\n")
+
 	svcs, err = r2.ListServices()
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	for _, svc := range svcs {
-		if svc.Name == "r1-svc" {
+		if svc.Name == "service.1" {
 			found = true
 		}
 	}
+
 	if !found {
-		t.Fatalf("r1-svc not found in r2, broadcast not work")
-	} else {
-		t.Logf("r1-svc found in r1, all ok")
+		t.Fatalf("[gossip registry] broadcast failed: service.1 not found in r2")
 	}
 
-	t.Logf("deregister service svc1 on r1\n")
 	if err := r1.Deregister(svc1); err != nil {
 		t.Fatal(err)
 	}
-	t.Logf("deregister service svc1 on r2\n")
 	if err := r2.Deregister(svc2); err != nil {
 		t.Fatal(err)
 	}
 
 }
-func TestRegistryRetry(t *testing.T) {
+func TestGossipRegistryRetry(t *testing.T) {
 	mc1 := newMemberlistConfig()
 	r1 := newRegistry(Config(mc1), Address("127.0.0.1:54321"))
 
@@ -113,8 +105,8 @@ func TestRegistryRetry(t *testing.T) {
 	defer r1.(*gossipRegistry).Stop()
 	defer r2.(*gossipRegistry).Stop()
 
-	svc1 := &registry.Service{Name: "r1-svc", Version: "0.0.0.1"}
-	svc2 := &registry.Service{Name: "r2-svc", Version: "0.0.0.2"}
+	svc1 := &registry.Service{Name: "service.1", Version: "0.0.0.1"}
+	svc2 := &registry.Service{Name: "service.2", Version: "0.0.0.2"}
 
 	var mu sync.Mutex
 	ch := make(chan struct{})
@@ -150,17 +142,17 @@ func TestRegistryRetry(t *testing.T) {
 	}
 
 	for _, svc := range svcs {
-		if svc.Name == "r1-svc" {
+		if svc.Name == "service.1" {
 			found = true
 		}
 	}
+
 	if !found {
-		t.Fatalf("r1-svc not found in r2, broadcast not work, retry cant test")
+		t.Fatalf("[gossip registry] broadcast failed: service.1 not found in r2")
 	}
 
-	t.Logf("stop r1\n")
 	if err = r1.(*gossipRegistry).Stop(); err != nil {
-		t.Fatalf("cant stop r1 registry %v", err)
+		t.Fatalf("[gossip registry] failed to stop registry: %v", err)
 	}
 
 	mu.Lock()
@@ -176,25 +168,23 @@ func TestRegistryRetry(t *testing.T) {
 	}
 
 	for _, svc := range svcs {
-		if svc.Name == "r1-svc" {
+		if svc.Name == "service.1" {
 			found = true
 		}
 	}
+
 	if found {
-		t.Fatalf("r1-svc found in r2, something wrong")
+		t.Fatalf("[gossip registry] service.1 found in r2")
 	}
 
-	t.Logf("start r1\n")
+	if tr := os.Getenv("TRAVIS"); len(tr) > 0 {
+		t.Logf("[gossip registry] skip test on travis")
+		t.Skip()
+		return
+	}
 
 	r1 = newRegistry(Config(mc1), Address("127.0.0.1:54321"))
 	<-time.After(2 * time.Second)
-
-	if tr := os.Getenv("TRAVIS"); len(tr) > 0 {
-		t.Logf("skip next test part, becasue it not works in travis")
-		t.Skip()
-		return
-		<-time.After(5 * time.Second)
-	}
 
 	found = false
 	svcs, err = r2.ListServices()
@@ -203,12 +193,13 @@ func TestRegistryRetry(t *testing.T) {
 	}
 
 	for _, svc := range svcs {
-		if svc.Name == "r1-svc" {
+		if svc.Name == "service.1" {
 			found = true
 		}
 	}
+
 	if !found {
-		t.Fatalf("r1-svc not found in r2, connect retry not works")
+		t.Fatalf("[gossip registry] connect retry failed: service.1 not found in r2")
 	}
 
 	if err := r1.Deregister(svc1); err != nil {

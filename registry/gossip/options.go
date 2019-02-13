@@ -8,55 +8,51 @@ import (
 	"github.com/micro/go-micro/registry"
 )
 
-type contextSecretKey struct{}
+type secretKey struct{}
+type addressKey struct{}
+type configKey struct{}
+type advertiseKey struct{}
+type connectTimeoutKey struct{}
+type connectRetryKey struct{}
+
+// helper for setting registry options
+func setRegistryOption(k, v interface{}) registry.Option {
+	return func(o *registry.Options) {
+		if o.Context == nil {
+			o.Context = context.Background()
+		}
+		o.Context = context.WithValue(o.Context, k, v)
+	}
+}
 
 // Secret specifies an encryption key. The value should be either
 // 16, 24, or 32 bytes to select AES-128, AES-192, or AES-256.
 func Secret(k []byte) registry.Option {
-	return setRegistryOption(contextSecretKey{}, k)
+	return setRegistryOption(secretKey{}, k)
 }
-
-type contextAddress struct{}
 
 // Address to bind to - host:port
 func Address(a string) registry.Option {
-	return setRegistryOption(contextAddress{}, a)
+	return setRegistryOption(addressKey{}, a)
 }
 
-type contextConfig struct{}
-
-// Config allow to inject a *memberlist.Config struct for configuring gossip
+// Config sets *memberlist.Config for configuring gossip
 func Config(c *memberlist.Config) registry.Option {
-	return setRegistryOption(contextConfig{}, c)
+	return setRegistryOption(configKey{}, c)
 }
 
-type contextAdvertise struct{}
-
-// The address to advertise for other gossip members - host:port
+// The address to advertise for other gossip members to connect to - host:port
 func Advertise(a string) registry.Option {
-	return setRegistryOption(contextAdvertise{}, a)
+	return setRegistryOption(advertiseKey{}, a)
 }
 
-type contextContext struct{}
-
-// Context specifies a context for the registry.
-// Can be used to signal shutdown of the registry.
-// Can be used for extra option values.
-func Context(ctx context.Context) registry.Option {
-	return setRegistryOption(contextContext{}, ctx)
-}
-
-type connectTimeout struct{}
-
-// ConnectTimeout specify registry connect timeout use -1 to specify infinite
+// ConnectTimeout sets the registry connect timeout. Use -1 to specify infinite timeout
 func ConnectTimeout(td time.Duration) registry.Option {
-	return setRegistryOption(connectTimeout{}, td)
+	return setRegistryOption(connectTimeoutKey{}, td)
 }
 
-type connectRetry struct{}
-
-// ConnectRetry enable reconnect to registry then connection closed,
+// ConnectRetry enables reconnect to registry then connection closed,
 // use with ConnectTimeout to specify how long retry
 func ConnectRetry(v bool) registry.Option {
-	return setRegistryOption(connectRetry{}, v)
+	return setRegistryOption(connectRetryKey{}, v)
 }
