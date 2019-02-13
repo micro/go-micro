@@ -2,6 +2,7 @@ module github.com/micro/go-micro
 
 require (
 	github.com/armon/go-radix v1.0.0 // indirect
+	github.com/go-log/log v0.1.0
 	github.com/golang/protobuf v1.2.0
 	github.com/google/uuid v1.1.0
 	github.com/hashicorp/consul v1.4.2
@@ -21,8 +22,8 @@ require (
 	github.com/pkg/errors v0.8.1
 	github.com/posener/complete v1.2.1 // indirect
 	github.com/stretchr/objx v0.1.1 // indirect
-	golang.org/x/crypto v0.0.0-20190131182504-b8fe1690c613 // indirect
-	golang.org/x/net v0.0.0-20190206173232-65e2d4e15006
-	golang.org/x/sys v0.0.0-20190204203706-41f3e6584952 // indirect
+	golang.org/x/crypto v0.0.0-20190211182817-74369b46fc67 // indirect
+	golang.org/x/net v0.0.0-20190213061140-3a22650c66bd
+	golang.org/x/sys v0.0.0-20190213121743-983097b1a8a3 // indirect
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
 )
