@@ -561,9 +561,11 @@ func (g *gossipRegistry) run() {
 				case <-ticker.C:
 					var addrs []string
 					g.RLock()
-					for node, action := range g.members {
-						if action == nodeActionLeave && g.member.LocalNode().Address() != node {
-							addrs = append(addrs, node)
+					if g.member != nil {
+						for node, action := range g.members {
+							if action == nodeActionLeave && g.member.LocalNode().Address() != node {
+								addrs = append(addrs, node)
+							}
 						}
 					}
 					g.RUnlock()
