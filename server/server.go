@@ -116,8 +116,8 @@ type Option func(*Options)
 
 var (
 	DefaultAddress        = ":0"
-	DefaultName           = "go-server"
-	DefaultVersion        = "1.0.0"
+	DefaultName           = "server"
+	DefaultVersion        = "latest"
 	DefaultId             = uuid.New().String()
 	DefaultServer  Server = newRpcServer()
 	DefaultRouter         = newRpcRouter()
