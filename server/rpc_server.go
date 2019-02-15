@@ -339,7 +339,7 @@ func (s *rpcServer) Register() error {
 	s.Unlock()
 
 	if !registered {
-		log.Logf("Registering node: %s", node.Id)
+		log.Logf("Registry [%s] Registering node: %s", config.Registry.String(), node.Id)
 	}
 
 	// create registry options
@@ -417,7 +417,7 @@ func (s *rpcServer) Deregister() error {
 		Nodes:   []*registry.Node{node},
 	}
 
-	log.Logf("Deregistering node: %s", node.Id)
+	log.Logf("Registry [%s] Deregistering node: %s", config.Registry.String(), node.Id)
 	if err := config.Registry.Deregister(service); err != nil {
 		return err
 	}
@@ -466,7 +466,7 @@ func (s *rpcServer) Start() error {
 		return err
 	}
 
-	log.Logf("Broker [%s] Listening on %s", config.Broker.String(), config.Broker.Address())
+	log.Logf("Broker [%s] Connected to %s", config.Broker.String(), config.Broker.Address())
 
 	// announce self to the world
 	if err := s.Register(); err != nil {
