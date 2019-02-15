@@ -133,12 +133,6 @@ func (h *httpTransportClient) Recv(m *Message) error {
 		r = rc
 	}
 
-	h.RLock()
-	if h.buff == nil {
-		return io.EOF
-	}
-	h.RUnlock()
-
 	// set timeout if its greater than 0
 	if h.ht.opts.Timeout > time.Duration(0) {
 		h.conn.SetDeadline(time.Now().Add(h.ht.opts.Timeout))
@@ -181,7 +175,6 @@ func (h *httpTransportClient) Close() error {
 	h.once.Do(func() {
 		h.Lock()
 		h.buff.Reset(nil)
-		h.buff = nil
 		h.Unlock()
 		close(h.r)
 	})
