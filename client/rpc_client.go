@@ -498,6 +498,13 @@ func (r *rpcClient) Stream(ctx context.Context, request Request, opts ...CallOpt
 }
 
 func (r *rpcClient) Publish(ctx context.Context, msg Message, opts ...PublishOption) error {
+	options := PublishOptions{
+		Context: context.Background(),
+	}
+	for _, o := range opts {
+		o(&options)
+	}
+
 	md, ok := metadata.FromContext(ctx)
 	if !ok {
 		md = make(map[string]string)
@@ -508,6 +515,12 @@ func (r *rpcClient) Publish(ctx context.Context, msg Message, opts ...PublishOpt
 	md["Micro-Topic"] = msg.Topic()
 	md["Micro-Id"] = id
 
+	// get the routing exchange
+	topic := msg.Topic()
+	if len(options.Exchange) > 0 {
+		topic = options.Exchange
+	}
+
 	// encode message body
 	cf, err := r.newCodec(msg.ContentType())
 	if err != nil {
@@ -515,7 +528,7 @@ func (r *rpcClient) Publish(ctx context.Context, msg Message, opts ...PublishOpt
 	}
 	b := &buffer{bytes.NewBuffer(nil)}
 	if err := cf(b).Write(&codec.Message{
-		Target: msg.Topic(),
+		Target: topic,
 		Type:   codec.Publication,
 		Header: map[string]string{
 			"Micro-Id":    id,
@@ -528,7 +541,7 @@ func (r *rpcClient) Publish(ctx context.Context, msg Message, opts ...PublishOpt
 		r.opts.Broker.Connect()
 	})
 
-	return r.opts.Broker.Publish(msg.Topic(), &broker.Message{
+	return r.opts.Broker.Publish(topic, &broker.Message{
 		Header: md,
 		Body:   b.Bytes(),
 	})
