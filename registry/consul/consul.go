@@ -105,12 +105,13 @@ func configure(c *consulRegistry, opts ...registry.Option) {
 		}
 	}
 
+	if config.HttpClient == nil {
+		config.HttpClient = new(http.Client)
+	}
+
 	// requires secure connection?
 	if c.opts.Secure || c.opts.TLSConfig != nil {
-		if config.HttpClient == nil {
-			config.HttpClient = new(http.Client)
-		}
-
+		
 		config.Scheme = "https"
 		// We're going to support InsecureSkipVerify
 		config.HttpClient.Transport = newTransport(c.opts.TLSConfig)
