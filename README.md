@@ -2,7 +2,7 @@
 
 Go Micro is a framework for micro service development.
 
-Read this in other languages: [简体中文](./README.zh-cn.md)
+Read this in other languages: [Simplified Chinese](./README.zh-cn.md)
 
 ## Overview
 
