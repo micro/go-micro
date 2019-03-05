@@ -2,8 +2,6 @@
 
 Go Micro is a framework for micro service development.
 
-Read this in other languages: [Simplified Chinese](./README.zh-cn.md)
-
 ## Overview
 
 Go Micro provides the core requirements for distributed systems development including RPC and Event driven communication. 
