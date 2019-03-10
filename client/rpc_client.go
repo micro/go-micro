@@ -75,7 +75,7 @@ func (r *rpcClient) call(ctx context.Context, node *registry.Node, req Request, 
 		}
 	}
 
-	// set timeout in nanoseconds
+	// set timeout in seconds
 	msg.Header["Timeout"] = fmt.Sprintf("%d", opts.RequestTimeout)
 	// set the content type for the request
 	msg.Header["Content-Type"] = req.ContentType()
@@ -175,7 +175,7 @@ func (r *rpcClient) stream(ctx context.Context, node *registry.Node, req Request
 		}
 	}
 
-	// set timeout in nanoseconds
+	// set timeout in seconds
 	msg.Header["Timeout"] = fmt.Sprintf("%d", opts.RequestTimeout)
 	// set the content type for the request
 	msg.Header["Content-Type"] = req.ContentType()
