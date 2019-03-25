@@ -159,7 +159,16 @@ func DebugHandler(d debug.DebugHandler) Option {
 // Metadata associated with the server
 func Metadata(md map[string]string) Option {
 	return func(o *Options) {
-		o.Metadata = md
+
+		if o.Metadata == nil {
+			o.Metadata = map[string]string{}
+		}
+
+		if md != nil {
+			for k, v := range md {
+				o.Metadata[k] = v
+			}
+		}
 	}
 }
 

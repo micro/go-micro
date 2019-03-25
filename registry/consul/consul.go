@@ -111,7 +111,7 @@ func configure(c *consulRegistry, opts ...registry.Option) {
 
 	// requires secure connection?
 	if c.opts.Secure || c.opts.TLSConfig != nil {
-		
+
 		config.Scheme = "https"
 		// We're going to support InsecureSkipVerify
 		config.HttpClient.Transport = newTransport(c.opts.TLSConfig)
@@ -243,6 +243,7 @@ func (c *consulRegistry) Register(s *registry.Service, opts ...registry.Register
 		Port:    node.Port,
 		Address: node.Address,
 		Check:   check,
+		Meta:    s.Metadata,
 	}
 
 	// Specify consul connect
@@ -313,6 +314,7 @@ func (c *consulRegistry) GetService(name string) ([]*registry.Service, error) {
 				Endpoints: decodeEndpoints(s.Service.Tags),
 				Name:      s.Service.Service,
 				Version:   version,
+				Metadata:  s.Service.Meta,
 			}
 			serviceMap[key] = svc
 		}

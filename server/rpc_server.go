@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	log "github.com/micro/go-log"
+	"github.com/micro/go-log"
 	"github.com/micro/go-micro/broker"
 	"github.com/micro/go-micro/codec"
 	"github.com/micro/go-micro/metadata"
@@ -23,7 +23,6 @@ import (
 type rpcServer struct {
 	router *router
 	exit   chan chan error
-
 	sync.RWMutex
 	opts        Options
 	handlers    map[string]Handler
@@ -249,6 +248,7 @@ func (s *rpcServer) Subscribe(sb Subscriber) error {
 }
 
 func (s *rpcServer) Register() error {
+
 	// parse address for host, port
 	config := s.Options()
 	var advt, host string
@@ -327,11 +327,18 @@ func (s *rpcServer) Register() error {
 	}
 	s.RUnlock()
 
+	serviceMetadata := map[string]string{
+		MetadataFieldNameServerType: config.Metadata[MetadataFieldNameServerType],
+	}
+
 	service := &registry.Service{
 		Name:      config.Name,
 		Version:   config.Version,
 		Nodes:     []*registry.Node{node},
 		Endpoints: endpoints,
+
+		// service metadata, not the node's
+		Metadata: serviceMetadata,
 	}
 
 	s.Lock()
