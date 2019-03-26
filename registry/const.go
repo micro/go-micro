@@ -1,4 +1,4 @@
-package server
+package registry
 
 const (
 	MetadataFieldNameServerType     = "server_type"
