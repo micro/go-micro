@@ -233,9 +233,6 @@ func (m *mdnsRegistry) GetService(service string) ([]*Service, error) {
 						Name:      txt.Service,
 						Version:   txt.Version,
 						Endpoints: txt.Endpoints,
-						Metadata: map[string]string{
-							MetadataFieldNameServerType: txt.Metadata[MetadataFieldNameServerType],
-						},
 					}
 				}
 

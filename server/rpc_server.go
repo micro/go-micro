@@ -327,18 +327,11 @@ func (s *rpcServer) Register() error {
 	}
 	s.RUnlock()
 
-	serviceMetadata := map[string]string{
-		registry.MetadataFieldNameServerType: config.Metadata[registry.MetadataFieldNameServerType],
-	}
-
 	service := &registry.Service{
 		Name:      config.Name,
 		Version:   config.Version,
 		Nodes:     []*registry.Node{node},
 		Endpoints: endpoints,
-
-		// service metadata, not the node's
-		Metadata: serviceMetadata,
 	}
 
 	s.Lock()
