@@ -71,6 +71,7 @@ var (
 		cli.IntFlag{
 			Name:   "client_retries",
 			EnvVar: "MICRO_CLIENT_RETRIES",
+			Value:  client.DefaultRetries,
 			Usage:  "Sets the client retries. Default: 1",
 		},
 		cli.IntFlag{
