@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/watch"
+	"github.com/hashicorp/consul/api/watch"
 	"github.com/micro/go-micro/registry"
 )
 
