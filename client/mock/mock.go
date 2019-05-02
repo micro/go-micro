@@ -83,11 +83,11 @@ func (m *MockClient) Call(ctx context.Context, req client.Request, rsp interface
 		}
 		response := r.Response
 		if t := reflect.TypeOf(r.Response); t.Kind() == reflect.Func {
-			var reqBody []reflect.Value
+			var request []reflect.Value
 			if t.NumIn() == 1 {
-				reqBody = append(reqBody, reflect.ValueOf(req.Body()))
+				request = append(request, reflect.ValueOf(req.Body()))
 			}
-			response = reflect.ValueOf(r.Response).Call(reqBody)[0].Interface()
+			response = reflect.ValueOf(r.Response).Call(request)[0].Interface()
 		}
 
 		v.Set(reflect.ValueOf(response))
