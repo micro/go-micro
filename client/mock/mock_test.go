@@ -18,12 +18,18 @@ func TestClient(t *testing.T) {
 		{Endpoint: "Foo.Fail", Error: errors.InternalServerError("go.mock", "failed")},
 		{Endpoint: "Foo.Func", Response: func() string { return "string" }},
 		{Endpoint: "Foo.FuncStruct", Response: func() *TestResponse { return &TestResponse{Param: "aparam"} }},
+		{Endpoint: "Foo.FuncWithReqBody", Response: func(req interface{}) string {
+			if req.(map[string]string)["foo"] == "bar" {
+				return "string"
+			}
+			return "wrong"
+		}},
 	}
 
 	c := NewClient(Response("go.mock", response))
 
 	for _, r := range response {
-		req := c.NewRequest("go.mock", r.Endpoint, map[string]interface{}{"foo": "bar"})
+		req := c.NewRequest("go.mock", r.Endpoint, map[string]string{"foo": "bar"})
 		var rsp interface{}
 
 		err := c.Call(context.TODO(), req, &rsp)
@@ -33,6 +39,20 @@ func TestClient(t *testing.T) {
 		}
 
 		t.Log(rsp)
+		if r.Endpoint == "Foo.FuncWithReqBody" {
+			req := c.NewRequest("go.mock", r.Endpoint, map[string]string{"foo": "wrong"})
+			var rsp interface{}
+
+			err := c.Call(context.TODO(), req, &rsp)
+
+			if err != r.Error {
+				t.Fatalf("Expecter error %v got %v", r.Error, err)
+			}
+			if rsp.(string) != "wrong" {
+				t.Fatalf("Expecter response 'wrong' got %v", rsp)
+			}
+			t.Log(rsp)
+		}
 	}
 
 }
