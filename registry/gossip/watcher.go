@@ -34,7 +34,9 @@ func (m *gossipWatcher) Next() (*registry.Result, error) {
 			if len(m.wo.Service) > 0 && r.Service.Name != m.wo.Service {
 				continue
 			}
-			return r, nil
+			nr := &registry.Result{}
+			*nr = *r
+			return nr, nil
 		case <-m.stop:
 			return nil, registry.ErrWatcherStopped
 		}
