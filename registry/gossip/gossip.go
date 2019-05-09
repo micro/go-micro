@@ -159,6 +159,10 @@ func configure(g *gossipRegistry, opts ...registry.Option) error {
 
 	// shutdown old member
 	g.Stop()
+
+	// lock internals
+	g.Lock()
+
 	// new done chan
 	g.done = make(chan bool)
 
@@ -250,15 +254,11 @@ func configure(g *gossipRegistry, opts ...registry.Option) error {
 			events: g.events,
 		}
 	}
-
 	// create the memberlist
 	m, err := memberlist.Create(c)
 	if err != nil {
 		return err
 	}
-
-	// set internals
-	g.Lock()
 
 	if len(curAddrs) > 0 {
 		for _, addr := range curAddrs {
@@ -547,9 +547,13 @@ func (g *gossipRegistry) expiryLoop(updates *updates) {
 	ticker := time.NewTicker(ExpiryTick)
 	defer ticker.Stop()
 
+	g.RLock()
+	done := g.done
+	g.RUnlock()
+
 	for {
 		select {
-		case <-g.done:
+		case <-done:
 			return
 		case <-ticker.C:
 			now := uint64(time.Now().UnixNano())
@@ -576,10 +580,13 @@ func (g *gossipRegistry) expiryLoop(updates *updates) {
 
 // process member events
 func (g *gossipRegistry) eventLoop() {
+	g.RLock()
+	done := g.done
+	g.RUnlock()
 	for {
 		select {
 		// return when done
-		case <-g.done:
+		case <-done:
 			return
 		case ev := <-g.events:
 			// TODO: nonblocking update
@@ -603,10 +610,12 @@ func (g *gossipRegistry) run() {
 	// event loop
 	go g.eventLoop()
 
+	g.RLock()
 	// connect loop
 	if g.connectRetry {
 		go g.connectLoop()
 	}
+	g.RUnlock()
 
 	// process the updates
 	for u := range g.updates {
@@ -808,7 +817,6 @@ func NewRegistry(opts ...registry.Option) registry.Registry {
 		watchers: make(map[string]chan *registry.Result),
 		members:  make(map[string]int32),
 	}
-
 	// run the updater
 	go g.run()
 
@@ -816,7 +824,6 @@ func NewRegistry(opts ...registry.Option) registry.Registry {
 	if err := configure(g, opts...); err != nil {
 		log.Fatalf("[gossip] Error configuring registry: %v", err)
 	}
-
 	// wait for setup
 	<-time.After(g.interval * 2)
 
