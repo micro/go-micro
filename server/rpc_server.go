@@ -468,9 +468,14 @@ func (s *rpcServer) Start() error {
 
 	log.Logf("Broker [%s] Connected to %s", config.Broker.String(), config.Broker.Address())
 
-	// announce self to the world
-	if err := s.Register(); err != nil {
-		log.Log("Server register error: ", err)
+	// use RegisterCheck func before register
+	if err = s.opts.RegisterCheck(s.opts.Context); err != nil {
+		log.Logf("Server %s-%s register check error: %s", config.Name, config.Id, err)
+	} else {
+		// announce self to the world
+		if err = s.Register(); err != nil {
+			log.Log("Server %s-%s register error: %s", config.Name, config.Id, err)
+		}
 	}
 
 	exit := make(chan bool)
@@ -518,8 +523,19 @@ func (s *rpcServer) Start() error {
 			select {
 			// register self on interval
 			case <-t.C:
-				if err := s.Register(); err != nil {
-					log.Log("Server register error: ", err)
+				s.RLock()
+				registered := s.registered
+				s.RUnlock()
+				if err = s.opts.RegisterCheck(s.opts.Context); err != nil && registered {
+					log.Logf("Server %s-%s register check error: %s, deregister it", config.Name, config.Id, err)
+					// deregister self in case of error
+					if err := s.Deregister(); err != nil {
+						log.Logf("Server %s-%s deregister error: %s", config.Name, config.Id, err)
+					}
+				} else {
+					if err := s.Register(); err != nil {
+						log.Logf("Server %s-%s register error: %s", config.Name, config.Id, err)
+					}
 				}
 			// wait for exit
 			case ch = <-s.exit:
@@ -531,7 +547,7 @@ func (s *rpcServer) Start() error {
 
 		// deregister self
 		if err := s.Deregister(); err != nil {
-			log.Log("Server deregister error: ", err)
+			log.Logf("Server %s-%s deregister error: %s", config.Name, config.Id, err)
 		}
 
 		// wait for requests to finish
