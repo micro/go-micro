@@ -8,7 +8,7 @@ import (
 	"syscall"
 
 	"github.com/google/uuid"
-	"github.com/micro/go-log"
+	log "github.com/micro/go-log"
 	"github.com/micro/go-micro/codec"
 	"github.com/micro/go-micro/registry"
 )
@@ -115,12 +115,13 @@ type Subscriber interface {
 type Option func(*Options)
 
 var (
-	DefaultAddress        = ":0"
-	DefaultName           = "server"
-	DefaultVersion        = "latest"
-	DefaultId             = uuid.New().String()
-	DefaultServer  Server = newRpcServer()
-	DefaultRouter         = newRpcRouter()
+	DefaultAddress              = ":0"
+	DefaultName                 = "server"
+	DefaultVersion              = "latest"
+	DefaultId                   = uuid.New().String()
+	DefaultServer        Server = newRpcServer()
+	DefaultRouter               = newRpcRouter()
+	DefaultRegisterCheck        = func(context.Context) error { return nil }
 )
 
 // DefaultOptions returns config options for the default service
