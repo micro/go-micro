@@ -34,8 +34,3 @@ Go Micro把分布式系统的各种细节抽象出来。下面是它的主要特
 
 更多关于架构、安装的资料可以查看[文档](https://micro.mu/docs/go-micro_cn.html)。
 
-## 赞助商
-
-Sixt是我们的赞助商。
-
-<a href="https://micro.mu/blog/2016/04/25/announcing-sixt-sponsorship.html"><img src="https://micro.mu/sixt_logo.png" width=150px height="auto" /></a>

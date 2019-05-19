@@ -47,8 +47,3 @@ are pluggable and allows Go Micro to be runtime agnostic. You can plugin any und
 
 See the [docs](https://micro.mu/docs/go-micro.html) for detailed information on the architecture, installation and use of go-micro.
 
-## Sponsors
-
-Sixt is an Enterprise Sponsor of Micro
-
-<a href="https://micro.mu/blog/2016/04/25/announcing-sixt-sponsorship.html"><img src="https://micro.mu/sixt_logo.png" width=150px height="auto" /></a>
