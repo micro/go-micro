@@ -12,6 +12,9 @@ type HandlerOptions struct {
 type SubscriberOption func(*SubscriberOptions)
 
 type SubscriberOptions struct {
+	// AutoAck defaults to true. When a handler returns
+	// with a nil error the message is acked.
+	AutoAck  bool
 	Queue    string
 	Internal bool
 	Context  context.Context
@@ -43,6 +46,7 @@ func InternalSubscriber(b bool) SubscriberOption {
 }
 func NewSubscriberOptions(opts ...SubscriberOption) SubscriberOptions {
 	opt := SubscriberOptions{
+		AutoAck: true,
 		Context: context.Background(),
 	}
 
@@ -51,6 +55,14 @@ func NewSubscriberOptions(opts ...SubscriberOption) SubscriberOptions {
 	}
 
 	return opt
+}
+
+// DisableAutoAck will disable auto acking of messages
+// after they have been handled.
+func DisableAutoAck() SubscriberOption {
+	return func(o *SubscriberOptions) {
+		o.AutoAck = false
+	}
 }
 
 // Shared queue name distributed messages across subscribers
