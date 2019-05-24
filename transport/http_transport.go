@@ -444,6 +444,7 @@ func (h *httpTransport) Dial(addr string, opts ...DialOption) (Client, error) {
 				InsecureSkipVerify: true,
 			}
 		}
+		config.NextProtos = []string{"http/1.1"}
 		conn, err = newConn(func(addr string) (net.Conn, error) {
 			return tls.DialWithDialer(&net.Dialer{Timeout: dopts.Timeout}, "tcp", addr, config)
 		})(addr)
