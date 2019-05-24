@@ -33,6 +33,7 @@ import (
 
 	// transports
 	"github.com/micro/go-micro/transport"
+	tgrpc "github.com/micro/go-micro/transport/grpc"
 	thttp "github.com/micro/go-micro/transport/http"
 	tmem "github.com/micro/go-micro/transport/memory"
 )
@@ -197,6 +198,7 @@ var (
 	DefaultTransports = map[string]func(...transport.Option) transport.Transport{
 		"memory": tmem.NewTransport,
 		"http":   thttp.NewTransport,
+		"grpc":   tgrpc.NewTransport,
 	}
 
 	// used for default selection as the fall back
