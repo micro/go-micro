@@ -82,8 +82,6 @@ func (q *quicListener) Accept(fn func(transport.Socket)) error {
 			continue
 		}
 
-//		buf := bufio.NewWriter(stream)
-
 		go func() {
 			fn(&quicSocket{
 				s:   s,
@@ -128,7 +126,6 @@ func (q *quicTransport) Dial(addr string, opts ...transport.DialOption) (transpo
 		return nil, err
 	}
 
-	//buf := bufio.NewWriter(st)
 	enc := gob.NewEncoder(st)
 	dec := gob.NewDecoder(st)
 
