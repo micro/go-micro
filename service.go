@@ -5,10 +5,7 @@ import (
 	"os/signal"
 	"sync"
 	"syscall"
-	"time"
 
-	"github.com/micro/cli"
-	"github.com/micro/go-log"
 	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/cmd"
 	"github.com/micro/go-micro/metadata"
@@ -36,27 +33,6 @@ func newService(opts ...Option) Service {
 	}
 }
 
-func (s *service) run(exit chan bool) {
-	if s.opts.RegisterInterval <= time.Duration(0) {
-		return
-	}
-
-	t := time.NewTicker(s.opts.RegisterInterval)
-
-	for {
-		select {
-		case <-t.C:
-			err := s.opts.Server.Register()
-			if err != nil {
-				log.Log("service run Server.Register error: ", err)
-			}
-		case <-exit:
-			t.Stop()
-			return
-		}
-	}
-}
-
 // Init initialises options. Additionally it calls cmd.Init
 // which parses command line flags. cmd.Init is only called
 // on first Init.
@@ -67,20 +43,6 @@ func (s *service) Init(opts ...Option) {
 	}
 
 	s.once.Do(func() {
-		// save user action
-		action := s.opts.Cmd.App().Action
-
-		// set service action
-		s.opts.Cmd.App().Action = func(c *cli.Context) {
-			// set register interval
-			if i := time.Duration(c.GlobalInt("register_interval")); i > 0 {
-				s.opts.RegisterInterval = i * time.Second
-			}
-
-			// user action
-			action(c)
-		}
-
 		// Initialise the command flags, overriding new service
 		_ = s.opts.Cmd.Init(
 			cmd.Broker(&s.opts.Broker),
@@ -105,7 +67,7 @@ func (s *service) Server() server.Server {
 }
 
 func (s *service) String() string {
-	return "go-micro"
+	return "micro"
 }
 
 func (s *service) Start() error {
@@ -116,10 +78,6 @@ func (s *service) Start() error {
 	}
 
 	if err := s.opts.Server.Start(); err != nil {
-		return err
-	}
-
-	if err := s.opts.Server.Register(); err != nil {
 		return err
 	}
 
@@ -141,10 +99,6 @@ func (s *service) Stop() error {
 		}
 	}
 
-	if err := s.opts.Server.Deregister(); err != nil {
-		return err
-	}
-
 	if err := s.opts.Server.Stop(); err != nil {
 		return err
 	}
@@ -163,10 +117,6 @@ func (s *service) Run() error {
 		return err
 	}
 
-	// start reg loop
-	ex := make(chan bool)
-	go s.run(ex)
-
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
 
@@ -176,9 +126,6 @@ func (s *service) Run() error {
 	// wait on context cancel
 	case <-s.opts.Context.Done():
 	}
-
-	// exit reg loop
-	close(ex)
 
 	return s.Stop()
 }

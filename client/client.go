@@ -4,6 +4,8 @@ package client
 import (
 	"context"
 	"time"
+
+	"github.com/micro/go-micro/codec"
 )
 
 // Client is the interface used to make requests to services.
@@ -13,11 +15,16 @@ type Client interface {
 	Init(...Option) error
 	Options() Options
 	NewMessage(topic string, msg interface{}, opts ...MessageOption) Message
-	NewRequest(service, method string, req interface{}, reqOpts ...RequestOption) Request
+	NewRequest(service, endpoint string, req interface{}, reqOpts ...RequestOption) Request
 	Call(ctx context.Context, req Request, rsp interface{}, opts ...CallOption) error
 	Stream(ctx context.Context, req Request, opts ...CallOption) (Stream, error)
 	Publish(ctx context.Context, msg Message, opts ...PublishOption) error
 	String() string
+}
+
+// Router manages request routing
+type Router interface {
+	SendRequest(context.Context, Request) (Response, error)
 }
 
 // Message is the interface for publishing asynchronously
@@ -29,21 +36,47 @@ type Message interface {
 
 // Request is the interface for a synchronous request used by Call or Stream
 type Request interface {
+	// The service to call
 	Service() string
+	// The action to take
 	Method() string
+	// The endpoint to invoke
+	Endpoint() string
+	// The content type
 	ContentType() string
-	Request() interface{}
+	// The unencoded request body
+	Body() interface{}
+	// Write to the encoded request writer. This is nil before a call is made
+	Codec() codec.Writer
 	// indicates whether the request will be a streaming one rather than unary
 	Stream() bool
 }
 
+// Response is the response received from a service
+type Response interface {
+	// Read the response
+	Codec() codec.Reader
+	// read the header
+	Header() map[string]string
+	// Read the undecoded response
+	Read() ([]byte, error)
+}
+
 // Stream is the inteface for a bidirectional synchronous stream
 type Stream interface {
+	// Context for the stream
 	Context() context.Context
+	// The request made
 	Request() Request
+	// The response read
+	Response() Response
+	// Send will encode and send a request
 	Send(interface{}) error
+	// Recv will decode and read a response
 	Recv(interface{}) error
+	// Error returns the stream error
 	Error() error
+	// Close closes the stream
 	Close() error
 }
 
@@ -74,7 +107,7 @@ var (
 	// DefaultRequestTimeout is the default request timeout
 	DefaultRequestTimeout = time.Second * 5
 	// DefaultPoolSize sets the connection pool size
-	DefaultPoolSize = 1
+	DefaultPoolSize = 100
 	// DefaultPoolTTL sets the connection pool ttl
 	DefaultPoolTTL = time.Minute
 )
@@ -102,8 +135,8 @@ func NewClient(opt ...Option) Client {
 
 // Creates a new request using the default client. Content Type will
 // be set to the default within options and use the appropriate codec
-func NewRequest(service, method string, request interface{}, reqOpts ...RequestOption) Request {
-	return DefaultClient.NewRequest(service, method, request, reqOpts...)
+func NewRequest(service, endpoint string, request interface{}, reqOpts ...RequestOption) Request {
+	return DefaultClient.NewRequest(service, endpoint, request, reqOpts...)
 }
 
 // Creates a streaming connection with a service and returns responses on the

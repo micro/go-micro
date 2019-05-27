@@ -5,12 +5,12 @@ import (
 	"crypto/tls"
 	"time"
 
-	"github.com/micro/go-micro/transport/codec"
+	"github.com/micro/go-micro/codec"
 )
 
 type Options struct {
 	Addrs     []string
-	Codec     codec.Codec
+	Codec     codec.Marshaler
 	Secure    bool
 	TLSConfig *tls.Config
 	// Timeout sets the timeout for Send/Recv
@@ -50,7 +50,7 @@ func Addrs(addrs ...string) Option {
 
 // Codec sets the codec used for encoding where the transport
 // does not support message headers
-func Codec(c codec.Codec) Option {
+func Codec(c codec.Marshaler) Option {
 	return func(o *Options) {
 		o.Codec = c
 	}

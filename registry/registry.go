@@ -26,14 +26,13 @@ type RegisterOption func(*RegisterOptions)
 type WatchOption func(*WatchOptions)
 
 var (
-	DefaultRegistry = newConsulRegistry()
+	DefaultRegistry = NewRegistry()
 
+	// Not found error when GetService is called
 	ErrNotFound = errors.New("not found")
+	// Watcher stopped error when watcher is stopped
+	ErrWatcherStopped = errors.New("watcher stopped")
 )
-
-func NewRegistry(opts ...Option) Registry {
-	return newConsulRegistry(opts...)
-}
 
 // Register a service node. Additionally supply options such as TTL.
 func Register(s *Service, opts ...RegisterOption) error {

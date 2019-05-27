@@ -7,30 +7,41 @@ import (
 
 	"github.com/micro/go-micro/errors"
 	"github.com/micro/go-micro/registry"
-	"github.com/micro/go-micro/registry/mock"
+	"github.com/micro/go-micro/registry/memory"
 	"github.com/micro/go-micro/selector"
 )
+
+func newTestRegistry() registry.Registry {
+	r := memory.NewRegistry()
+	r.(*memory.Registry).Setup()
+	return r
+}
 
 func TestCallAddress(t *testing.T) {
 	var called bool
 	service := "test.service"
-	method := "Test.Method"
-	address := "10.1.10.1:8080"
+	endpoint := "Test.Endpoint"
+	address := "10.1.10.1"
+	port := 8080
 
 	wrap := func(cf CallFunc) CallFunc {
-		return func(ctx context.Context, addr string, req Request, rsp interface{}, opts CallOptions) error {
+		return func(ctx context.Context, node *registry.Node, req Request, rsp interface{}, opts CallOptions) error {
 			called = true
 
 			if req.Service() != service {
 				return fmt.Errorf("expected service: %s got %s", service, req.Service())
 			}
 
-			if req.Method() != method {
-				return fmt.Errorf("expected service: %s got %s", method, req.Method())
+			if req.Endpoint() != endpoint {
+				return fmt.Errorf("expected service: %s got %s", endpoint, req.Endpoint())
 			}
 
-			if addr != address {
-				return fmt.Errorf("expected address: %s got %s", address, addr)
+			if node.Address != address {
+				return fmt.Errorf("expected address: %s got %s", address, node.Address)
+			}
+
+			if node.Port != port {
+				return fmt.Errorf("expected address: %d got %d", port, node.Port)
 			}
 
 			// don't do the call
@@ -38,17 +49,17 @@ func TestCallAddress(t *testing.T) {
 		}
 	}
 
-	r := mock.NewRegistry()
+	r := newTestRegistry()
 	c := NewClient(
 		Registry(r),
 		WrapCall(wrap),
 	)
 	c.Options().Selector.Init(selector.Registry(r))
 
-	req := c.NewRequest(service, method, nil)
+	req := c.NewRequest(service, endpoint, nil)
 
 	// test calling remote address
-	if err := c.Call(context.Background(), req, nil, WithAddress(address)); err != nil {
+	if err := c.Call(context.Background(), req, nil, WithAddress(fmt.Sprintf("%s:%d", address, port))); err != nil {
 		t.Fatal("call with address error", err)
 	}
 
@@ -60,13 +71,13 @@ func TestCallAddress(t *testing.T) {
 
 func TestCallRetry(t *testing.T) {
 	service := "test.service"
-	method := "Test.Method"
-	address := "10.1.10.1:8080"
+	endpoint := "Test.Endpoint"
+	address := "10.1.10.1"
 
 	var called int
 
 	wrap := func(cf CallFunc) CallFunc {
-		return func(ctx context.Context, addr string, req Request, rsp interface{}, opts CallOptions) error {
+		return func(ctx context.Context, node *registry.Node, req Request, rsp interface{}, opts CallOptions) error {
 			called++
 			if called == 1 {
 				return errors.InternalServerError("test.error", "retry request")
@@ -77,14 +88,14 @@ func TestCallRetry(t *testing.T) {
 		}
 	}
 
-	r := mock.NewRegistry()
+	r := newTestRegistry()
 	c := NewClient(
 		Registry(r),
 		WrapCall(wrap),
 	)
 	c.Options().Selector.Init(selector.Registry(r))
 
-	req := c.NewRequest(service, method, nil)
+	req := c.NewRequest(service, endpoint, nil)
 
 	// test calling remote address
 	if err := c.Call(context.Background(), req, nil, WithAddress(address)); err != nil {
@@ -101,25 +112,24 @@ func TestCallWrapper(t *testing.T) {
 	var called bool
 	id := "test.1"
 	service := "test.service"
-	method := "Test.Method"
-	host := "10.1.10.1"
+	endpoint := "Test.Endpoint"
+	address := "10.1.10.1"
 	port := 8080
-	address := "10.1.10.1:8080"
 
 	wrap := func(cf CallFunc) CallFunc {
-		return func(ctx context.Context, addr string, req Request, rsp interface{}, opts CallOptions) error {
+		return func(ctx context.Context, node *registry.Node, req Request, rsp interface{}, opts CallOptions) error {
 			called = true
 
 			if req.Service() != service {
 				return fmt.Errorf("expected service: %s got %s", service, req.Service())
 			}
 
-			if req.Method() != method {
-				return fmt.Errorf("expected service: %s got %s", method, req.Method())
+			if req.Endpoint() != endpoint {
+				return fmt.Errorf("expected service: %s got %s", endpoint, req.Endpoint())
 			}
 
-			if addr != address {
-				return fmt.Errorf("expected address: %s got %s", address, addr)
+			if node.Address != address {
+				return fmt.Errorf("expected address: %s got %s", address, node.Address)
 			}
 
 			// don't do the call
@@ -127,7 +137,7 @@ func TestCallWrapper(t *testing.T) {
 		}
 	}
 
-	r := mock.NewRegistry()
+	r := newTestRegistry()
 	c := NewClient(
 		Registry(r),
 		WrapCall(wrap),
@@ -140,13 +150,13 @@ func TestCallWrapper(t *testing.T) {
 		Nodes: []*registry.Node{
 			&registry.Node{
 				Id:      id,
-				Address: host,
+				Address: address,
 				Port:    port,
 			},
 		},
 	})
 
-	req := c.NewRequest(service, method, nil)
+	req := c.NewRequest(service, endpoint, nil)
 	if err := c.Call(context.Background(), req, nil); err != nil {
 		t.Fatal("call wrapper error", err)
 	}

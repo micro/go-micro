@@ -80,7 +80,7 @@ func TestFilterEndpoint(t *testing.T) {
 				}
 			}
 
-			if seen == false && data.count > 0 {
+			if !seen && data.count > 0 {
 				t.Fatalf("Expected %d services but seen is %t; result %+v", data.count, seen, services)
 			}
 		}
@@ -232,7 +232,7 @@ func TestFilterVersion(t *testing.T) {
 			seen = true
 		}
 
-		if seen == false && data.count > 0 {
+		if !seen && data.count > 0 {
 			t.Fatalf("Expected %d services but seen is %t; result %+v", data.count, seen, services)
 		}
 	}

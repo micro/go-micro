@@ -5,7 +5,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/micro/go-micro/registry/mock"
+	"github.com/micro/go-micro/registry/memory"
 	proto "github.com/micro/go-micro/server/debug/proto"
 )
 
@@ -13,9 +13,12 @@ func TestFunction(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(1)
 
+	r := memory.NewRegistry()
+	r.(*memory.Registry).Setup()
+
 	// create service
 	fn := NewFunction(
-		Registry(mock.NewRegistry()),
+		Registry(r),
 		Name("test.function"),
 		AfterStart(func() error {
 			wg.Done()

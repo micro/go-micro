@@ -11,7 +11,6 @@ type Options struct {
 	Timeout   time.Duration
 	Secure    bool
 	TLSConfig *tls.Config
-
 	// Other options for implementations of the interface
 	// can be stored in a context
 	Context context.Context

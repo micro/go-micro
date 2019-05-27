@@ -7,10 +7,13 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/micro/go-log"
-	"github.com/pborman/uuid"
+	"github.com/google/uuid"
+	log "github.com/micro/go-log"
+	"github.com/micro/go-micro/codec"
+	"github.com/micro/go-micro/registry"
 )
 
+// Server is a simple micro server abstraction
 type Server interface {
 	Options() Options
 	Init(...Option) error
@@ -18,32 +21,60 @@ type Server interface {
 	NewHandler(interface{}, ...HandlerOption) Handler
 	NewSubscriber(string, interface{}, ...SubscriberOption) Subscriber
 	Subscribe(Subscriber) error
-	Register() error
-	Deregister() error
 	Start() error
 	Stop() error
 	String() string
 }
 
+// Router handle serving messages
+type Router interface {
+	// ServeRequest processes a request to completion
+	ServeRequest(context.Context, Request, Response) error
+}
+
+// Message is an async message interface
 type Message interface {
 	Topic() string
 	Payload() interface{}
 	ContentType() string
 }
 
+// Request is a synchronous request interface
 type Request interface {
+	// Service name requested
 	Service() string
+	// The action requested
 	Method() string
+	// Endpoint name requested
+	Endpoint() string
+	// Content type provided
 	ContentType() string
-	Request() interface{}
-	// indicates whether the request will be streamed
+	// Header of the request
+	Header() map[string]string
+	// Body is the initial decoded value
+	Body() interface{}
+	// Read the undecoded request body
+	Read() ([]byte, error)
+	// The encoded message stream
+	Codec() codec.Reader
+	// Indicates whether its a stream
 	Stream() bool
+}
+
+// Response is the response writer for unencoded messages
+type Response interface {
+	// Encoded writer
+	Codec() codec.Writer
+	// Write the header
+	WriteHeader(map[string]string)
+	// write a response directly to the client
+	Write([]byte) error
 }
 
 // Stream represents a stream established with a client.
 // A stream can be bidirectional which is indicated by the request.
 // The last error will be left in Error().
-// EOF indicated end of the stream.
+// EOF indicates end of the stream.
 type Stream interface {
 	Context() context.Context
 	Request() Request
@@ -53,18 +84,44 @@ type Stream interface {
 	Close() error
 }
 
+// Handler interface represents a request handler. It's generated
+// by passing any type of public concrete object with endpoints into server.NewHandler.
+// Most will pass in a struct.
+//
+// Example:
+//
+//      type Greeter struct {}
+//
+//      func (g *Greeter) Hello(context, request, response) error {
+//              return nil
+//      }
+//
+type Handler interface {
+	Name() string
+	Handler() interface{}
+	Endpoints() []*registry.Endpoint
+	Options() HandlerOptions
+}
+
+// Subscriber interface represents a subscription to a given topic using
+// a specific subscriber function or object with endpoints.
+type Subscriber interface {
+	Topic() string
+	Subscriber() interface{}
+	Endpoints() []*registry.Endpoint
+	Options() SubscriberOptions
+}
+
 type Option func(*Options)
 
-type HandlerOption func(*HandlerOptions)
-
-type SubscriberOption func(*SubscriberOptions)
-
 var (
-	DefaultAddress        = ":0"
-	DefaultName           = "go-server"
-	DefaultVersion        = "1.0.0"
-	DefaultId             = uuid.NewUUID().String()
-	DefaultServer  Server = newRpcServer()
+	DefaultAddress              = ":0"
+	DefaultName                 = "server"
+	DefaultVersion              = "latest"
+	DefaultId                   = uuid.New().String()
+	DefaultServer        Server = newRpcServer()
+	DefaultRouter               = newRpcRouter()
+	DefaultRegisterCheck        = func(context.Context) error { return nil }
 )
 
 // DefaultOptions returns config options for the default service
@@ -93,7 +150,7 @@ func NewSubscriber(topic string, h interface{}, opts ...SubscriberOption) Subscr
 
 // NewHandler creates a new handler interface using the default server
 // Handlers are required to be a public object with public
-// methods. Call to a service method such as Foo.Bar expects
+// endpoints. Call to a service endpoint such as Foo.Bar expects
 // the type:
 //
 //	type Foo struct {}
@@ -117,16 +174,6 @@ func Subscribe(s Subscriber) error {
 	return DefaultServer.Subscribe(s)
 }
 
-// Register registers the default server with the discovery system
-func Register() error {
-	return DefaultServer.Register()
-}
-
-// Deregister deregisters the default server from the discovery system
-func Deregister() error {
-	return DefaultServer.Deregister()
-}
-
 // Run starts the default server and waits for a kill
 // signal before exiting. Also registers/deregisters the server
 func Run() error {
@@ -134,17 +181,9 @@ func Run() error {
 		return err
 	}
 
-	if err := DefaultServer.Register(); err != nil {
-		return err
-	}
-
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, syscall.SIGTERM, syscall.SIGINT, syscall.SIGKILL)
 	log.Logf("Received signal %s", <-ch)
-
-	if err := DefaultServer.Deregister(); err != nil {
-		return err
-	}
 
 	return Stop()
 }

@@ -5,9 +5,14 @@ import (
 	errs "errors"
 
 	"github.com/micro/go-micro/codec"
+	raw "github.com/micro/go-micro/codec/bytes"
+	"github.com/micro/go-micro/codec/grpc"
+	"github.com/micro/go-micro/codec/json"
 	"github.com/micro/go-micro/codec/jsonrpc"
+	"github.com/micro/go-micro/codec/proto"
 	"github.com/micro/go-micro/codec/protorpc"
 	"github.com/micro/go-micro/errors"
+	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/transport"
 )
 
@@ -28,7 +33,7 @@ var (
 	errShutdown = errs.New("connection is shut down")
 )
 
-type rpcPlusCodec struct {
+type rpcCodec struct {
 	client transport.Client
 	codec  codec.Codec
 
@@ -41,31 +46,21 @@ type readWriteCloser struct {
 	rbuf *bytes.Buffer
 }
 
-type clientCodec interface {
-	WriteRequest(*request, interface{}) error
-	ReadResponseHeader(*response) error
-	ReadResponseBody(interface{}) error
-
-	Close() error
-}
-
-type request struct {
-	Service       string
-	ServiceMethod string   // format: "Service.Method"
-	Seq           uint64   // sequence number chosen by client
-	next          *request // for free list in Server
-}
-
-type response struct {
-	ServiceMethod string    // echoes that of the Request
-	Seq           uint64    // echoes that of the request
-	Error         string    // error, if any.
-	next          *response // for free list in Server
-}
-
 var (
-	defaultContentType = "application/octet-stream"
+	DefaultContentType = "application/protobuf"
 
+	DefaultCodecs = map[string]codec.NewCodec{
+		"application/grpc":         grpc.NewCodec,
+		"application/grpc+json":    grpc.NewCodec,
+		"application/grpc+proto":   grpc.NewCodec,
+		"application/protobuf":     proto.NewCodec,
+		"application/json":         json.NewCodec,
+		"application/json-rpc":     jsonrpc.NewCodec,
+		"application/proto-rpc":    protorpc.NewCodec,
+		"application/octet-stream": raw.NewCodec,
+	}
+
+	// TODO: remove legacy codec list
 	defaultCodecs = map[string]codec.NewCodec{
 		"application/json":         jsonrpc.NewCodec,
 		"application/json-rpc":     jsonrpc.NewCodec,
@@ -89,12 +84,77 @@ func (rwc *readWriteCloser) Close() error {
 	return nil
 }
 
-func newRpcPlusCodec(req *transport.Message, client transport.Client, c codec.NewCodec) *rpcPlusCodec {
+func getHeaders(m *codec.Message) {
+	get := func(hdr string) string {
+		if hd := m.Header[hdr]; len(hd) > 0 {
+			return hd
+		}
+		// old
+		return m.Header["X-"+hdr]
+	}
+
+	// check error in header
+	if len(m.Error) == 0 {
+		m.Error = get("Micro-Error")
+	}
+
+	// check endpoint in header
+	if len(m.Endpoint) == 0 {
+		m.Endpoint = get("Micro-Endpoint")
+	}
+
+	// check method in header
+	if len(m.Method) == 0 {
+		m.Method = get("Micro-Method")
+	}
+
+	if len(m.Id) == 0 {
+		m.Id = get("Micro-Id")
+	}
+}
+
+func setHeaders(m *codec.Message) {
+	set := func(hdr, v string) {
+		if len(v) == 0 {
+			return
+		}
+		m.Header[hdr] = v
+		m.Header["X-"+hdr] = v
+	}
+
+	set("Micro-Id", m.Id)
+	set("Micro-Service", m.Target)
+	set("Micro-Method", m.Method)
+	set("Micro-Endpoint", m.Endpoint)
+}
+
+// setupProtocol sets up the old protocol
+func setupProtocol(msg *transport.Message, node *registry.Node) codec.NewCodec {
+	protocol := node.Metadata["protocol"]
+
+	// got protocol
+	if len(protocol) > 0 {
+		return nil
+	}
+
+	// no protocol use old codecs
+	switch msg.Header["Content-Type"] {
+	case "application/json":
+		msg.Header["Content-Type"] = "application/json-rpc"
+	case "application/protobuf":
+		msg.Header["Content-Type"] = "application/proto-rpc"
+	}
+
+	// now return codec
+	return defaultCodecs[msg.Header["Content-Type"]]
+}
+
+func newRpcCodec(req *transport.Message, client transport.Client, c codec.NewCodec) codec.Codec {
 	rwc := &readWriteCloser{
 		wbuf: bytes.NewBuffer(nil),
 		rbuf: bytes.NewBuffer(nil),
 	}
-	r := &rpcPlusCodec{
+	r := &rpcCodec{
 		buf:    rwc,
 		client: client,
 		codec:  c(rwc),
@@ -103,58 +163,98 @@ func newRpcPlusCodec(req *transport.Message, client transport.Client, c codec.Ne
 	return r
 }
 
-func (c *rpcPlusCodec) WriteRequest(req *request, body interface{}) error {
+func (c *rpcCodec) Write(m *codec.Message, body interface{}) error {
 	c.buf.wbuf.Reset()
-	m := &codec.Message{
-		Id:     req.Seq,
-		Target: req.Service,
-		Method: req.ServiceMethod,
-		Type:   codec.Request,
-		Header: map[string]string{},
+
+	// create header
+	if m.Header == nil {
+		m.Header = map[string]string{}
 	}
-	if err := c.codec.Write(m, body); err != nil {
-		return errors.InternalServerError("go.micro.client.codec", err.Error())
+
+	// copy original header
+	for k, v := range c.req.Header {
+		m.Header[k] = v
 	}
-	c.req.Body = c.buf.wbuf.Bytes()
-	for k, v := range m.Header {
-		c.req.Header[k] = v
+
+	// set the mucp headers
+	setHeaders(m)
+
+	// if body is bytes Frame don't encode
+	if body != nil {
+		b, ok := body.(*raw.Frame)
+		if ok {
+			// set body
+			m.Body = b.Data
+			body = nil
+		}
 	}
-	if err := c.client.Send(c.req); err != nil {
+
+	if len(m.Body) == 0 {
+		// write to codec
+		if err := c.codec.Write(m, body); err != nil {
+			return errors.InternalServerError("go.micro.client.codec", err.Error())
+		}
+		// set body
+		m.Body = c.buf.wbuf.Bytes()
+	}
+
+	// create new transport message
+	msg := transport.Message{
+		Header: m.Header,
+		Body:   m.Body,
+	}
+	// send the request
+	if err := c.client.Send(&msg); err != nil {
 		return errors.InternalServerError("go.micro.client.transport", err.Error())
 	}
 	return nil
 }
 
-func (c *rpcPlusCodec) ReadResponseHeader(r *response) error {
-	var m transport.Message
-	if err := c.client.Recv(&m); err != nil {
+func (c *rpcCodec) ReadHeader(m *codec.Message, r codec.MessageType) error {
+	var tm transport.Message
+
+	// read message from transport
+	if err := c.client.Recv(&tm); err != nil {
 		return errors.InternalServerError("go.micro.client.transport", err.Error())
 	}
+
 	c.buf.rbuf.Reset()
-	c.buf.rbuf.Write(m.Body)
-	var me codec.Message
-	err := c.codec.ReadHeader(&me, codec.Response)
-	r.ServiceMethod = me.Method
-	r.Seq = me.Id
-	r.Error = me.Error
+	c.buf.rbuf.Write(tm.Body)
+
+	// set headers from transport
+	m.Header = tm.Header
+
+	// read header
+	err := c.codec.ReadHeader(m, r)
+
+	// get headers
+	getHeaders(m)
+
+	// return header error
 	if err != nil {
 		return errors.InternalServerError("go.micro.client.codec", err.Error())
 	}
+
 	return nil
 }
 
-func (c *rpcPlusCodec) ReadResponseBody(b interface{}) error {
+func (c *rpcCodec) ReadBody(b interface{}) error {
+	// read body
 	if err := c.codec.ReadBody(b); err != nil {
 		return errors.InternalServerError("go.micro.client.codec", err.Error())
 	}
 	return nil
 }
 
-func (c *rpcPlusCodec) Close() error {
+func (c *rpcCodec) Close() error {
 	c.buf.Close()
 	c.codec.Close()
 	if err := c.client.Close(); err != nil {
 		return errors.InternalServerError("go.micro.client.transport", err.Error())
 	}
 	return nil
+}
+
+func (c *rpcCodec) String() string {
+	return "rpc"
 }

@@ -5,19 +5,19 @@ import (
 )
 
 func TestRequestOptions(t *testing.T) {
-	r := newRequest("service", "method", nil, "application/json")
+	r := newRequest("service", "endpoint", nil, "application/json")
 	if r.Service() != "service" {
 		t.Fatalf("expected 'service' got %s", r.Service())
 	}
-	if r.Method() != "method" {
-		t.Fatalf("expected 'method' got %s", r.Method())
+	if r.Endpoint() != "endpoint" {
+		t.Fatalf("expected 'endpoint' got %s", r.Endpoint())
 	}
 	if r.ContentType() != "application/json" {
-		t.Fatalf("expected 'method' got %s", r.ContentType())
+		t.Fatalf("expected 'endpoint' got %s", r.ContentType())
 	}
 
-	r2 := newRequest("service", "method", nil, "application/json", WithContentType("application/protobuf"))
+	r2 := newRequest("service", "endpoint", nil, "application/json", WithContentType("application/protobuf"))
 	if r2.ContentType() != "application/protobuf" {
-		t.Fatalf("expected 'method' got %s", r2.ContentType())
+		t.Fatalf("expected 'endpoint' got %s", r2.ContentType())
 	}
 }

@@ -1,4 +1,4 @@
-// Package selector is a way to load balance service nodes
+// Package selector is a way to pick a list of service nodes
 package selector
 
 import (
@@ -35,12 +35,8 @@ type Filter func([]*registry.Service) []*registry.Service
 type Strategy func([]*registry.Service) Next
 
 var (
-	DefaultSelector = newDefaultSelector()
+	DefaultSelector = NewSelector()
 
 	ErrNotFound      = errors.New("not found")
 	ErrNoneAvailable = errors.New("none available")
 )
-
-func NewSelector(opts ...Option) Selector {
-	return newDefaultSelector(opts...)
-}

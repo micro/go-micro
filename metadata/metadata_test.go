@@ -5,6 +5,21 @@ import (
 	"testing"
 )
 
+func TestMetadataCopy(t *testing.T) {
+	md := Metadata{
+		"foo": "bar",
+		"bar": "baz",
+	}
+
+	cp := Copy(md)
+
+	for k, v := range md {
+		if cv := cp[k]; cv != v {
+			t.Fatalf("Got %s:%s for %s:%s", k, cv, k, v)
+		}
+	}
+}
+
 func TestMetadataContext(t *testing.T) {
 	md := Metadata{
 		"foo": "bar",

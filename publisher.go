@@ -12,5 +12,5 @@ type publisher struct {
 }
 
 func (p *publisher) Publish(ctx context.Context, msg interface{}, opts ...client.PublishOption) error {
-	return p.c.Publish(ctx, p.c.NewMessage(p.topic, msg))
+	return p.c.Publish(ctx, p.c.NewMessage(p.topic, msg), opts...)
 }

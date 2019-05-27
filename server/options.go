@@ -25,7 +25,15 @@ type Options struct {
 	HdlrWrappers []HandlerWrapper
 	SubWrappers  []SubscriberWrapper
 
+	// RegisterCheck runs a check function before registering the service
+	RegisterCheck func(context.Context) error
+	// The register expiry time
 	RegisterTTL time.Duration
+	// The interval on which to register
+	RegisterInterval time.Duration
+
+	// The router for requests
+	Router Router
 
 	// Debug Handler which can be set by a user
 	DebugHandler debug.DebugHandler
@@ -59,6 +67,10 @@ func newOptions(opt ...Option) Options {
 
 	if opts.DebugHandler == nil {
 		opts.DebugHandler = debug.DefaultDebugHandler
+	}
+
+	if opts.RegisterCheck == nil {
+		opts.RegisterCheck = DefaultRegisterCheck
 	}
 
 	if len(opts.Address) == 0 {
@@ -157,10 +169,31 @@ func Metadata(md map[string]string) Option {
 	}
 }
 
+// RegisterCheck run func before registry service
+func RegisterCheck(fn func(context.Context) error) Option {
+	return func(o *Options) {
+		o.RegisterCheck = fn
+	}
+}
+
 // Register the service with a TTL
 func RegisterTTL(t time.Duration) Option {
 	return func(o *Options) {
 		o.RegisterTTL = t
+	}
+}
+
+// Register the service with at interval
+func RegisterInterval(t time.Duration) Option {
+	return func(o *Options) {
+		o.RegisterInterval = t
+	}
+}
+
+// WithRouter sets the request router
+func WithRouter(r Router) Option {
+	return func(o *Options) {
+		o.Router = r
 	}
 }
 

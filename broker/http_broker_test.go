@@ -5,15 +5,28 @@ import (
 	"testing"
 	"time"
 
-	"github.com/micro/go-micro/registry/mock"
-	"github.com/pborman/uuid"
+	glog "github.com/go-log/log"
+	"github.com/google/uuid"
+	"github.com/micro/go-log"
+	"github.com/micro/go-micro/registry/memory"
 )
 
+func newTestRegistry() *memory.Registry {
+	r := memory.NewRegistry()
+	m := r.(*memory.Registry)
+	m.Setup()
+	return m
+}
+
 func sub(be *testing.B, c int) {
+	// set no op logger
+	log.SetLogger(glog.DefaultLogger)
+
 	be.StopTimer()
-	m := mock.NewRegistry()
+	m := newTestRegistry()
+
 	b := NewBroker(Registry(m))
-	topic := uuid.NewUUID().String()
+	topic := uuid.New().String()
 
 	if err := b.Init(); err != nil {
 		be.Fatalf("Unexpected init error: %v", err)
@@ -69,10 +82,13 @@ func sub(be *testing.B, c int) {
 }
 
 func pub(be *testing.B, c int) {
+	// set no op logger
+	log.SetLogger(glog.DefaultLogger)
+
 	be.StopTimer()
-	m := mock.NewRegistry()
+	m := newTestRegistry()
 	b := NewBroker(Registry(m))
-	topic := uuid.NewUUID().String()
+	topic := uuid.New().String()
 
 	if err := b.Init(); err != nil {
 		be.Fatalf("Unexpected init error: %v", err)
@@ -139,7 +155,7 @@ func pub(be *testing.B, c int) {
 }
 
 func TestBroker(t *testing.T) {
-	m := mock.NewRegistry()
+	m := newTestRegistry()
 	b := NewBroker(Registry(m))
 
 	if err := b.Init(); err != nil {
@@ -186,7 +202,7 @@ func TestBroker(t *testing.T) {
 }
 
 func TestConcurrentSubBroker(t *testing.T) {
-	m := mock.NewRegistry()
+	m := newTestRegistry()
 	b := NewBroker(Registry(m))
 
 	if err := b.Init(); err != nil {
@@ -243,7 +259,7 @@ func TestConcurrentSubBroker(t *testing.T) {
 }
 
 func TestConcurrentPubBroker(t *testing.T) {
-	m := mock.NewRegistry()
+	m := newTestRegistry()
 	b := NewBroker(Registry(m))
 
 	if err := b.Init(); err != nil {

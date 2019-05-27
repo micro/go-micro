@@ -1,27 +1,45 @@
 package selector
 
 import (
+	"time"
+
 	"github.com/micro/go-micro/registry"
+	"github.com/micro/go-rcache"
 )
 
-type defaultSelector struct {
+type registrySelector struct {
 	so Options
+	rc rcache.Cache
 }
 
-func (r *defaultSelector) Init(opts ...Option) error {
-	for _, o := range opts {
-		o(&r.so)
+func (c *registrySelector) newRCache() rcache.Cache {
+	ropts := []rcache.Option{}
+	if c.so.Context != nil {
+		if t, ok := c.so.Context.Value("selector_ttl").(time.Duration); ok {
+			ropts = append(ropts, rcache.WithTTL(t))
+		}
 	}
+	return rcache.New(c.so.Registry, ropts...)
+}
+
+func (c *registrySelector) Init(opts ...Option) error {
+	for _, o := range opts {
+		o(&c.so)
+	}
+
+	c.rc.Stop()
+	c.rc = c.newRCache()
+
 	return nil
 }
 
-func (r *defaultSelector) Options() Options {
-	return r.so
+func (c *registrySelector) Options() Options {
+	return c.so
 }
 
-func (r *defaultSelector) Select(service string, opts ...SelectOption) (Next, error) {
+func (c *registrySelector) Select(service string, opts ...SelectOption) (Next, error) {
 	sopts := SelectOptions{
-		Strategy: r.so.Strategy,
+		Strategy: c.so.Strategy,
 	}
 
 	for _, opt := range opts {
@@ -29,7 +47,9 @@ func (r *defaultSelector) Select(service string, opts ...SelectOption) (Next, er
 	}
 
 	// get the service
-	services, err := r.so.Registry.GetService(service)
+	// try the cache first
+	// if that fails go directly to the registry
+	services, err := c.rc.GetService(service)
 	if err != nil {
 		return nil, err
 	}
@@ -47,23 +67,24 @@ func (r *defaultSelector) Select(service string, opts ...SelectOption) (Next, er
 	return sopts.Strategy(services), nil
 }
 
-func (r *defaultSelector) Mark(service string, node *registry.Node, err error) {
-	return
+func (c *registrySelector) Mark(service string, node *registry.Node, err error) {
 }
 
-func (r *defaultSelector) Reset(service string) {
-	return
+func (c *registrySelector) Reset(service string) {
 }
 
-func (r *defaultSelector) Close() error {
+// Close stops the watcher and destroys the cache
+func (c *registrySelector) Close() error {
+	c.rc.Stop()
+
 	return nil
 }
 
-func (r *defaultSelector) String() string {
-	return "default"
+func (c *registrySelector) String() string {
+	return "registry"
 }
 
-func newDefaultSelector(opts ...Option) Selector {
+func NewSelector(opts ...Option) Selector {
 	sopts := Options{
 		Strategy: Random,
 	}
@@ -76,7 +97,10 @@ func newDefaultSelector(opts ...Option) Selector {
 		sopts.Registry = registry.DefaultRegistry
 	}
 
-	return &defaultSelector{
+	s := &registrySelector{
 		so: sopts,
 	}
+	s.rc = s.newRCache()
+
+	return s
 }

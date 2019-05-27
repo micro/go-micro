@@ -10,25 +10,31 @@ import (
 	"time"
 
 	"github.com/micro/cli"
+	"github.com/micro/go-log"
 	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/server"
 
 	// brokers
 	"github.com/micro/go-micro/broker"
 	"github.com/micro/go-micro/broker/http"
+	"github.com/micro/go-micro/broker/memory"
 
 	// registries
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/registry/consul"
+	"github.com/micro/go-micro/registry/gossip"
 	"github.com/micro/go-micro/registry/mdns"
+	rmem "github.com/micro/go-micro/registry/memory"
 
 	// selectors
 	"github.com/micro/go-micro/selector"
-	"github.com/micro/go-micro/selector/cache"
+	"github.com/micro/go-micro/selector/dns"
+	"github.com/micro/go-micro/selector/static"
 
 	// transports
 	"github.com/micro/go-micro/transport"
 	thttp "github.com/micro/go-micro/transport/http"
+	tmem "github.com/micro/go-micro/transport/memory"
 )
 
 type Cmd interface {
@@ -65,6 +71,7 @@ var (
 		cli.IntFlag{
 			Name:   "client_retries",
 			EnvVar: "MICRO_CLIENT_RETRIES",
+			Value:  client.DefaultRetries,
 			Usage:  "Sets the client retries. Default: 1",
 		},
 		cli.IntFlag{
@@ -86,6 +93,11 @@ var (
 			Name:   "register_interval",
 			EnvVar: "MICRO_REGISTER_INTERVAL",
 			Usage:  "Register interval in seconds",
+		},
+		cli.StringFlag{
+			Name:   "server",
+			EnvVar: "MICRO_SERVER",
+			Usage:  "Server for go-micro; rpc",
 		},
 		cli.StringFlag{
 			Name:   "server_name",
@@ -142,12 +154,6 @@ var (
 			Name:   "selector",
 			EnvVar: "MICRO_SELECTOR",
 			Usage:  "Selector used to pick nodes for querying",
-			Value:  "cache",
-		},
-		cli.StringFlag{
-			Name:   "server",
-			EnvVar: "MICRO_SERVER",
-			Usage:  "Server for go-micro; rpc",
 		},
 		cli.StringFlag{
 			Name:   "transport",
@@ -162,7 +168,8 @@ var (
 	}
 
 	DefaultBrokers = map[string]func(...broker.Option) broker.Broker{
-		"http": http.NewBroker,
+		"http":   http.NewBroker,
+		"memory": memory.NewBroker,
 	}
 
 	DefaultClients = map[string]func(...client.Option) client.Client{
@@ -171,12 +178,16 @@ var (
 
 	DefaultRegistries = map[string]func(...registry.Option) registry.Registry{
 		"consul": consul.NewRegistry,
+		"gossip": gossip.NewRegistry,
 		"mdns":   mdns.NewRegistry,
+		"memory": rmem.NewRegistry,
 	}
 
 	DefaultSelectors = map[string]func(...selector.Option) selector.Selector{
 		"default": selector.NewSelector,
-		"cache":   cache.NewSelector,
+		"dns":     dns.NewSelector,
+		"cache":   selector.NewSelector,
+		"static":  static.NewSelector,
 	}
 
 	DefaultServers = map[string]func(...server.Option) server.Server{
@@ -184,15 +195,16 @@ var (
 	}
 
 	DefaultTransports = map[string]func(...transport.Option) transport.Transport{
-		"http": thttp.NewTransport,
+		"memory": tmem.NewTransport,
+		"http":   thttp.NewTransport,
 	}
 
 	// used for default selection as the fall back
 	defaultClient    = "rpc"
 	defaultServer    = "rpc"
 	defaultBroker    = "http"
-	defaultRegistry  = "consul"
-	defaultSelector  = "cache"
+	defaultRegistry  = "mdns"
+	defaultSelector  = "registry"
 	defaultTransport = "http"
 )
 
@@ -299,10 +311,15 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		serverOpts = append(serverOpts, server.Registry(*c.opts.Registry))
 		clientOpts = append(clientOpts, client.Registry(*c.opts.Registry))
 
-		(*c.opts.Selector).Init(selector.Registry(*c.opts.Registry))
+		if err := (*c.opts.Selector).Init(selector.Registry(*c.opts.Registry)); err != nil {
+			log.Fatalf("Error configuring registry: %v", err)
+		}
+
 		clientOpts = append(clientOpts, client.Selector(*c.opts.Selector))
 
-		(*c.opts.Broker).Init(broker.Registry(*c.opts.Registry))
+		if err := (*c.opts.Broker).Init(broker.Registry(*c.opts.Registry)); err != nil {
+			log.Fatalf("Error configuring broker: %v", err)
+		}
 	}
 
 	// Set the selector
@@ -347,15 +364,21 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	}
 
 	if len(ctx.String("broker_address")) > 0 {
-		(*c.opts.Broker).Init(broker.Addrs(strings.Split(ctx.String("broker_address"), ",")...))
+		if err := (*c.opts.Broker).Init(broker.Addrs(strings.Split(ctx.String("broker_address"), ",")...)); err != nil {
+			log.Fatalf("Error configuring broker: %v", err)
+		}
 	}
 
 	if len(ctx.String("registry_address")) > 0 {
-		(*c.opts.Registry).Init(registry.Addrs(strings.Split(ctx.String("registry_address"), ",")...))
+		if err := (*c.opts.Registry).Init(registry.Addrs(strings.Split(ctx.String("registry_address"), ",")...)); err != nil {
+			log.Fatalf("Error configuring registry: %v", err)
+		}
 	}
 
 	if len(ctx.String("transport_address")) > 0 {
-		(*c.opts.Transport).Init(transport.Addrs(strings.Split(ctx.String("transport_address"), ",")...))
+		if err := (*c.opts.Transport).Init(transport.Addrs(strings.Split(ctx.String("transport_address"), ",")...)); err != nil {
+			log.Fatalf("Error configuring transport: %v", err)
+		}
 	}
 
 	if len(ctx.String("server_name")) > 0 {
@@ -380,6 +403,10 @@ func (c *cmd) Before(ctx *cli.Context) error {
 
 	if ttl := time.Duration(ctx.GlobalInt("register_ttl")); ttl > 0 {
 		serverOpts = append(serverOpts, server.RegisterTTL(ttl*time.Second))
+	}
+
+	if val := time.Duration(ctx.GlobalInt("register_interval")); val > 0 {
+		serverOpts = append(serverOpts, server.RegisterInterval(val*time.Second))
 	}
 
 	// client opts
@@ -410,12 +437,16 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	// We have some command line opts for the server.
 	// Lets set it up
 	if len(serverOpts) > 0 {
-		(*c.opts.Server).Init(serverOpts...)
+		if err := (*c.opts.Server).Init(serverOpts...); err != nil {
+			log.Fatalf("Error configuring server: %v", err)
+		}
 	}
 
 	// Use an init option?
 	if len(clientOpts) > 0 {
-		(*c.opts.Client).Init(clientOpts...)
+		if err := (*c.opts.Client).Init(clientOpts...); err != nil {
+			log.Fatalf("Error configuring client: %v", err)
+		}
 	}
 
 	return nil

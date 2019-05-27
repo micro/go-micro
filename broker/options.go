@@ -4,14 +4,14 @@ import (
 	"context"
 	"crypto/tls"
 
-	"github.com/micro/go-micro/broker/codec"
+	"github.com/micro/go-micro/codec"
 	"github.com/micro/go-micro/registry"
 )
 
 type Options struct {
 	Addrs     []string
 	Secure    bool
-	Codec     codec.Codec
+	Codec     codec.Marshaler
 	TLSConfig *tls.Config
 	// Other options for implementations of the interface
 	// can be stored in a context
@@ -50,7 +50,7 @@ var (
 	registryKey = contextKeyT("github.com/micro/go-micro/registry")
 )
 
-func newSubscribeOptions(opts ...SubscribeOption) SubscribeOptions {
+func NewSubscribeOptions(opts ...SubscribeOption) SubscribeOptions {
 	opt := SubscribeOptions{
 		AutoAck: true,
 	}
@@ -71,7 +71,7 @@ func Addrs(addrs ...string) Option {
 
 // Codec sets the codec used for encoding/decoding used where
 // a broker does not support headers
-func Codec(c codec.Codec) Option {
+func Codec(c codec.Marshaler) Option {
 	return func(o *Options) {
 		o.Codec = c
 	}
@@ -109,5 +109,12 @@ func Secure(b bool) Option {
 func TLSConfig(t *tls.Config) Option {
 	return func(o *Options) {
 		o.TLSConfig = t
+	}
+}
+
+// SubscribeContext set context
+func SubscribeContext(ctx context.Context) SubscribeOption {
+	return func(o *SubscribeOptions) {
+		o.Context = ctx
 	}
 }

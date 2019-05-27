@@ -15,6 +15,8 @@ type testCodec struct {
 }
 
 type testSocket struct {
+	local  string
+	remote string
 }
 
 // TestCodecWriteError simulates what happens when a codec is unable
@@ -36,7 +38,7 @@ func TestCodecWriteError(t *testing.T) {
 		wbuf: new(bytes.Buffer),
 	}
 
-	c := rpcPlusCodec{
+	c := rpcCodec{
 		buf: &rwc,
 		codec: &testCodec{
 			buf: rwc.wbuf,
@@ -45,15 +47,14 @@ func TestCodecWriteError(t *testing.T) {
 		socket: socket,
 	}
 
-	err := c.WriteResponse(&response{
-		ServiceMethod: "Service.Method",
-		Seq:           0,
-		Error:         "",
-		next:          nil,
-	}, "body", false)
+	err := c.Write(&codec.Message{
+		Endpoint: "Service.Endpoint",
+		Id:       "0",
+		Error:    "",
+	}, "body")
 
 	if err != nil {
-		t.Fatalf(`Expected WriteResponse to fail; got "%+v" instead`, err)
+		t.Fatalf(`Expected Write to fail; got "%+v" instead`, err)
 	}
 
 	const expectedError = "Unable to encode body: simulating a codec write failure"
@@ -85,6 +86,14 @@ func (c *testCodec) Close() error {
 
 func (c *testCodec) String() string {
 	return "string"
+}
+
+func (s testSocket) Local() string {
+	return s.local
+}
+
+func (s testSocket) Remote() string {
+	return s.remote
 }
 
 func (s testSocket) Recv(message *transport.Message) error {

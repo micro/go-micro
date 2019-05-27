@@ -4,17 +4,20 @@ import (
 	"context"
 	"io"
 	"sync"
+
+	"github.com/micro/go-micro/codec"
 )
 
 // Implements the streamer interface
 type rpcStream struct {
 	sync.RWMutex
-	seq     uint64
-	closed  chan bool
-	err     error
-	request Request
-	codec   clientCodec
-	context context.Context
+	id       string
+	closed   chan bool
+	err      error
+	request  Request
+	response Response
+	codec    codec.Codec
+	context  context.Context
 }
 
 func (r *rpcStream) isClosed() bool {
@@ -34,6 +37,10 @@ func (r *rpcStream) Request() Request {
 	return r.request
 }
 
+func (r *rpcStream) Response() Response {
+	return r.response
+}
+
 func (r *rpcStream) Send(msg interface{}) error {
 	r.Lock()
 	defer r.Unlock()
@@ -43,18 +50,19 @@ func (r *rpcStream) Send(msg interface{}) error {
 		return errShutdown
 	}
 
-	seq := r.seq
-
-	req := request{
-		Service:       r.request.Service(),
-		Seq:           seq,
-		ServiceMethod: r.request.Method(),
+	req := codec.Message{
+		Id:       r.id,
+		Target:   r.request.Service(),
+		Method:   r.request.Method(),
+		Endpoint: r.request.Endpoint(),
+		Type:     codec.Request,
 	}
 
-	if err := r.codec.WriteRequest(&req, msg); err != nil {
+	if err := r.codec.Write(&req, msg); err != nil {
 		r.err = err
 		return err
 	}
+
 	return nil
 }
 
@@ -67,8 +75,9 @@ func (r *rpcStream) Recv(msg interface{}) error {
 		return errShutdown
 	}
 
-	var resp response
-	if err := r.codec.ReadResponseHeader(&resp); err != nil {
+	var resp codec.Message
+
+	if err := r.codec.ReadHeader(&resp, codec.Response); err != nil {
 		if err == io.EOF && !r.isClosed() {
 			r.err = io.ErrUnexpectedEOF
 			return io.ErrUnexpectedEOF
@@ -87,11 +96,11 @@ func (r *rpcStream) Recv(msg interface{}) error {
 		} else {
 			r.err = io.EOF
 		}
-		if err := r.codec.ReadResponseBody(nil); err != nil {
+		if err := r.codec.ReadBody(nil); err != nil {
 			r.err = err
 		}
 	default:
-		if err := r.codec.ReadResponseBody(msg); err != nil {
+		if err := r.codec.ReadBody(msg); err != nil {
 			r.err = err
 		}
 	}

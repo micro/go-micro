@@ -22,6 +22,9 @@ type Options struct {
 	Selector  selector.Selector
 	Transport transport.Transport
 
+	// Router sets the router
+	Router Router
+
 	// Connection Pool
 	PoolSize int
 	PoolTTL  time.Duration
@@ -62,6 +65,8 @@ type CallOptions struct {
 }
 
 type PublishOptions struct {
+	// Exchange is the routing exchange for the message
+	Exchange string
 	// Other options for implementations of the interface
 	// can be stored in a context
 	Context context.Context
@@ -99,7 +104,7 @@ func newOptions(options ...Option) Options {
 	}
 
 	if len(opts.ContentType) == 0 {
-		opts.ContentType = defaultContentType
+		opts.ContentType = DefaultContentType
 	}
 
 	if opts.Broker == nil {
@@ -233,6 +238,13 @@ func DialTimeout(d time.Duration) Option {
 
 // Call Options
 
+// WithExchange sets the exchange to route a message through
+func WithExchange(e string) PublishOption {
+	return func(o *PublishOptions) {
+		o.Exchange = e
+	}
+}
+
 // WithAddress sets the remote address to use rather than using service discovery
 func WithAddress(a string) CallOption {
 	return func(o *CallOptions) {
@@ -304,5 +316,12 @@ func WithContentType(ct string) RequestOption {
 func StreamingRequest() RequestOption {
 	return func(o *RequestOptions) {
 		o.Stream = true
+	}
+}
+
+// WithRouter sets the client router
+func WithRouter(r Router) Option {
+	return func(o *Options) {
+		o.Router = r
 	}
 }

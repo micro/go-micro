@@ -1,3 +1,4 @@
+// Package jsonrpc provides a json-rpc 1.0 codec
 package jsonrpc
 
 import (
@@ -30,7 +31,7 @@ func (j *jsonCodec) Write(m *codec.Message, b interface{}) error {
 	switch m.Type {
 	case codec.Request:
 		return j.c.Write(m, b)
-	case codec.Response:
+	case codec.Response, codec.Error:
 		return j.s.Write(m, b)
 	case codec.Publication:
 		data, err := json.Marshal(b)
@@ -54,7 +55,8 @@ func (j *jsonCodec) ReadHeader(m *codec.Message, mt codec.MessageType) error {
 	case codec.Response:
 		return j.c.ReadHeader(m)
 	case codec.Publication:
-		io.Copy(j.buf, j.rwc)
+		_, err := io.Copy(j.buf, j.rwc)
+		return err
 	default:
 		return fmt.Errorf("Unrecognised message type: %v", mt)
 	}
