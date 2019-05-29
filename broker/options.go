@@ -44,10 +44,8 @@ type PublishOption func(*PublishOptions)
 
 type SubscribeOption func(*SubscribeOptions)
 
-type contextKeyT string
-
 var (
-	registryKey = contextKeyT("github.com/micro/go-micro/registry")
+	registryKey = "github.com/micro/go-micro/registry"
 )
 
 func NewSubscribeOptions(opts ...SubscribeOption) SubscribeOptions {
