@@ -18,6 +18,7 @@ import (
 	"github.com/micro/go-micro/broker"
 	"github.com/micro/go-micro/broker/http"
 	"github.com/micro/go-micro/broker/memory"
+	"github.com/micro/go-micro/broker/nats"
 
 	// registries
 	"github.com/micro/go-micro/registry"
@@ -170,6 +171,7 @@ var (
 	DefaultBrokers = map[string]func(...broker.Option) broker.Broker{
 		"http":   http.NewBroker,
 		"memory": memory.NewBroker,
+		"nats":   nats.NewBroker,
 	}
 
 	DefaultClients = map[string]func(...client.Option) client.Client{
