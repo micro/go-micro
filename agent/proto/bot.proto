@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package go.micro.bot;
+
+service Command {
+	rpc Help(HelpRequest) returns (HelpResponse) {};
+	rpc Exec(ExecRequest) returns (ExecResponse) {};
+}
+
+message HelpRequest {
+}
+
+message HelpResponse {
+	string usage = 1;
+	string description = 2;
+}
+
+message ExecRequest {
+	repeated string args = 1;
+}
+
+message ExecResponse {
+	bytes result = 1;
+	string error = 2;
+}
