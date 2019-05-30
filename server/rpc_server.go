@@ -16,8 +16,7 @@ import (
 	"github.com/micro/go-micro/metadata"
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/transport"
-
-	"github.com/micro/util/go/lib/addr"
+	"github.com/micro/go-micro/util/addr"
 )
 
 type rpcServer struct {
