@@ -10,7 +10,7 @@ import (
 
 	"github.com/fsouza/go-dockerclient"
 	"github.com/micro/go-log"
-	"github.com/micro/go-run/package"
+	"github.com/micro/go-micro/runtime/package"
 )
 
 type Packager struct {

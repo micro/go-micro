@@ -7,7 +7,7 @@ import (
 	"os/exec"
 	"strconv"
 
-	"github.com/micro/go-run/process"
+	"github.com/micro/go-micro/runtime/process"
 )
 
 type Process struct {
