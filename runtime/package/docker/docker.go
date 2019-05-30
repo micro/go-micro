@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 
 	"github.com/fsouza/go-dockerclient"
-	"github.com/micro/go-log"
 	"github.com/micro/go-micro/runtime/package"
+	"github.com/micro/go-micro/util/log"
 )
 
 type Packager struct {

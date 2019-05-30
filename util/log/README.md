@@ -9,7 +9,7 @@ It defaults the logger to the stdlib log implementation.
 Set the logger for micro libraries
 
 ```go
-// import micro/go-log
+// import go-micro/util/log
 import "github.com/micro/go-micro/util/log"
 
 // SetLogger expects github.com/go-log/log.Logger interface

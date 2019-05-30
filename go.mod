@@ -122,7 +122,7 @@ require (
 	github.com/mholt/certmagic v0.5.1 // indirect
 	github.com/michaelklishin/rabbit-hole v1.5.0 // indirect
 	github.com/micro/cli v0.2.0
-	github.com/micro/go-log v0.1.0
+	github.com/micro/go-micro/util/log v0.1.0
 	github.com/micro/go-rcache v0.3.0
 	github.com/micro/mdns v0.1.0
 	github.com/micro/util v0.2.0

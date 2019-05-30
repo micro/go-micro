@@ -7,8 +7,8 @@ import (
 
 	glog "github.com/go-log/log"
 	"github.com/google/uuid"
-	"github.com/micro/go-log"
 	"github.com/micro/go-micro/registry/memory"
+	"github.com/micro/go-micro/util/log"
 )
 
 func newTestRegistry() *memory.Registry {

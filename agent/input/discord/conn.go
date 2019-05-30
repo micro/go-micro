@@ -7,7 +7,7 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/micro/go-micro/agent/input"
-	"github.com/micro/go-log"
+	"github.com/micro/go-micro/util/log"
 )
 
 type discordConn struct {

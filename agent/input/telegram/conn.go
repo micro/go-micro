@@ -7,7 +7,7 @@ import (
 
 	"github.com/forestgiant/sliceutil"
 	"github.com/micro/go-micro/agent/input"
-	"github.com/micro/go-log"
+	"github.com/micro/go-micro/util/log"
 	"gopkg.in/telegram-bot-api.v4"
 )
 

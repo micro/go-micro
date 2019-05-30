@@ -10,13 +10,13 @@ import (
 	"sync"
 	"time"
 
-	log "github.com/micro/go-log"
 	"github.com/micro/go-micro/broker"
 	"github.com/micro/go-micro/codec"
 	"github.com/micro/go-micro/metadata"
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/transport"
 	"github.com/micro/go-micro/util/addr"
+	log "github.com/micro/go-micro/util/log"
 )
 
 type rpcServer struct {
