@@ -4,22 +4,22 @@ import (
 	"time"
 
 	"github.com/micro/go-micro/registry"
-	"github.com/micro/go-rcache"
+	"github.com/micro/go-micro/registry/cache"
 )
 
 type registrySelector struct {
 	so Options
-	rc rcache.Cache
+	rc cache.Cache
 }
 
-func (c *registrySelector) newRCache() rcache.Cache {
-	ropts := []rcache.Option{}
+func (c *registrySelector) newCache() cache.Cache {
+	ropts := []cache.Option{}
 	if c.so.Context != nil {
 		if t, ok := c.so.Context.Value("selector_ttl").(time.Duration); ok {
-			ropts = append(ropts, rcache.WithTTL(t))
+			ropts = append(ropts, cache.WithTTL(t))
 		}
 	}
-	return rcache.New(c.so.Registry, ropts...)
+	return cache.New(c.so.Registry, ropts...)
 }
 
 func (c *registrySelector) Init(opts ...Option) error {
@@ -28,7 +28,7 @@ func (c *registrySelector) Init(opts ...Option) error {
 	}
 
 	c.rc.Stop()
-	c.rc = c.newRCache()
+	c.rc = c.newCache()
 
 	return nil
 }
@@ -100,7 +100,7 @@ func NewSelector(opts ...Option) Selector {
 	s := &registrySelector{
 		so: sopts,
 	}
-	s.rc = s.newRCache()
+	s.rc = s.newCache()
 
 	return s
 }
