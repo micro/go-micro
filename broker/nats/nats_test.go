@@ -38,7 +38,7 @@ var addrTestCases = []struct {
 		"default",
 		"check if default Address is set correctly",
 		map[string]string{
-			"nats://127.0.0.1:4222": "",
+			"nats://localhost:4222": "",
 		},
 	},
 }
