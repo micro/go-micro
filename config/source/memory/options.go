@@ -30,12 +30,12 @@ func WithChangeSet(cs *source.ChangeSet) source.Option {
 	}
 }
 
-// WithJson allows the source data to be set to json
-func WithJson(d []byte) source.Option {
+// WithJSON allows the source data to be set to json
+func WithJSON(d []byte) source.Option {
 	return withData(d, "json")
 }
 
-// WithYaml allows the source data to be set to yaml
-func WithYaml(d []byte) source.Option {
+// WithYAML allows the source data to be set to yaml
+func WithYAML(d []byte) source.Option {
 	return withData(d, "yaml")
 }
