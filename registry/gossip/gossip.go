@@ -16,9 +16,9 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/google/uuid"
 	"github.com/hashicorp/memberlist"
-	log "github.com/micro/go-log"
 	"github.com/micro/go-micro/registry"
 	pb "github.com/micro/go-micro/registry/gossip/proto"
+	log "github.com/micro/go-micro/util/log"
 	"github.com/mitchellh/hashstructure"
 )
 

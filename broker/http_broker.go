@@ -22,10 +22,10 @@ import (
 	"github.com/micro/go-micro/codec/json"
 	merr "github.com/micro/go-micro/errors"
 	"github.com/micro/go-micro/registry"
+	maddr "github.com/micro/go-micro/util/addr"
+	mnet "github.com/micro/go-micro/util/net"
+	mls "github.com/micro/go-micro/util/tls"
 	"github.com/micro/go-rcache"
-	maddr "github.com/micro/util/go/lib/addr"
-	mnet "github.com/micro/util/go/lib/net"
-	mls "github.com/micro/util/go/lib/tls"
 	"golang.org/x/net/http2"
 )
 

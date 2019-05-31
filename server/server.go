@@ -8,9 +8,9 @@ import (
 	"syscall"
 
 	"github.com/google/uuid"
-	log "github.com/micro/go-log"
 	"github.com/micro/go-micro/codec"
 	"github.com/micro/go-micro/registry"
+	log "github.com/micro/go-micro/util/log"
 )
 
 // Server is a simple micro server abstraction
