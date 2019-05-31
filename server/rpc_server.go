@@ -31,7 +31,7 @@ type rpcServer struct {
 	// used for first registration
 	registered bool
 	// graceful exit
-	wg sync.WaitGroup
+	wg *sync.WaitGroup
 }
 
 func newRpcServer(opts ...Option) Server {
@@ -42,6 +42,7 @@ func newRpcServer(opts ...Option) Server {
 		handlers:    make(map[string]Handler),
 		subscribers: make(map[*subscriber][]broker.Subscriber),
 		exit:        make(chan chan error),
+		wg:          wait(options.Context),
 	}
 }
 
@@ -63,8 +64,10 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 			return
 		}
 
-		// add to wait group
-		s.wg.Add(1)
+		// add to wait group if "wait" is opt-in
+		if s.wg != nil {
+			s.wg.Add(1)
+		}
 
 		// we use this Timeout header to set a server deadline
 		to := msg.Header["Timeout"]
@@ -111,7 +114,9 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 					},
 					Body: []byte(err.Error()),
 				})
-				s.wg.Done()
+				if s.wg != nil {
+					s.wg.Done()
+				}
 				return
 			}
 		}
@@ -167,12 +172,16 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 			if err != nil {
 				log.Logf("rpc: unable to write error response: %v", err)
 			}
-			s.wg.Done()
+			if s.wg != nil {
+				s.wg.Done()
+			}
 			return
 		}
 
 		// done
-		s.wg.Done()
+		if s.wg != nil {
+			s.wg.Done()
+		}
 	}
 }
 
@@ -555,7 +564,7 @@ func (s *rpcServer) Start() error {
 		}
 
 		// wait for requests to finish
-		if wait(s.opts.Context) {
+		if s.wg != nil {
 			s.wg.Wait()
 		}
 
