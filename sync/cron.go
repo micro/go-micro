@@ -5,7 +5,7 @@ import (
 	"math"
 	"time"
 
-	"github.com/micro/go-log"
+	"github.com/micro/go-micro/util/log"
 	"github.com/micro/go-micro/sync/leader/consul"
 	"github.com/micro/go-micro/sync/task"
 	"github.com/micro/go-micro/sync/task/local"

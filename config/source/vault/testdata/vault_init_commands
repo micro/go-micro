@@ -1,1 +1,0 @@
-vault kv put secret/data/db/auth user=myuser password=mypassword2 host=128.23.33.21 port=3307
