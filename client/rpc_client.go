@@ -467,10 +467,10 @@ func (r *rpcClient) Stream(ctx context.Context, request Request, opts ...CallOpt
 	var grr error
 
 	for i := 0; i <= callOpts.Retries; i++ {
-		go func() {
+		go func(i int) {
 			s, err := call(i)
 			ch <- response{s, err}
-		}()
+		}(i)
 
 		select {
 		case <-ctx.Done():
