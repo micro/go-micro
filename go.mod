@@ -101,7 +101,7 @@ require (
 	github.com/hashicorp/vault-plugin-secrets-gcp v0.5.2 // indirect
 	github.com/hashicorp/vault-plugin-secrets-gcpkms v0.5.1 // indirect
 	github.com/hashicorp/vault-plugin-secrets-kv v0.5.1 // indirect
-	github.com/hashicorp/vault/api v1.0.2
+	github.com/hashicorp/vault/api v1.0.2 // indirect
 	github.com/hashicorp/vault/sdk v0.1.11 // indirect
 	github.com/imdario/mergo v0.3.7
 	github.com/influxdata/flux v0.31.1 // indirect
@@ -200,9 +200,9 @@ require (
 	gopkg.in/telegram-bot-api.v4 v4.6.4
 	honnef.co/go/tools v0.0.0-20190530170028-a1efa522b896 // indirect
 	k8s.io/api v0.0.0-20190528154508-67ef80593b24 // indirect
+	k8s.io/apimachinery v0.0.0-20190531095030-97c9a3e58b4c // indirect
 	k8s.io/client-go v11.0.0+incompatible // indirect
 	k8s.io/gengo v0.0.0-20190327210449-e17681d19d3a // indirect
-	k8s.io/klog v0.3.2 // indirect
 	k8s.io/kube-openapi v0.0.0-20190530181030-b52b5b0f5a7c // indirect
 	layeh.com/radius v0.0.0-20190322222518-890bc1058917 // indirect
 )

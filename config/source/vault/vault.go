@@ -2,9 +2,10 @@ package vault
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/hashicorp/vault/api"
 	"github.com/micro/go-micro/config/source"
-	"time"
 )
 
 // Currently a single vault reader

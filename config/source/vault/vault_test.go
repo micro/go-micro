@@ -3,11 +3,12 @@ package vault
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/micro/go-micro/config"
 	"os"
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/micro/go-micro/config"
 )
 
 func TestVaultMakeMap(t *testing.T) {
