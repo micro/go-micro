@@ -15,7 +15,7 @@ Commands are functions executed by the bot based on text based pattern matching.
 ### Write a Command
 
 ```go
-import "github.com/micro/go-bot/command"
+import "github.com/micro/go-micro/agent/command"
 
 func Ping() command.Command {
 	usage := "ping"
@@ -32,7 +32,7 @@ func Ping() command.Command {
 Add the command to the Commands map with a pattern key that can be matched by golang/regexp.Match
 
 ```go
-import "github.com/micro/go-bot/command"
+import "github.com/micro/go-micro/agent/command"
 
 func init() {
 	command.Commands["^ping$"] = Ping()
@@ -116,7 +116,7 @@ is executed, the bot will call the service with method `Command.Exec`. It also e
 to exist for usage info.
 
 
-The service interface is as follows and can be found at [go-bot/proto](https://github.com/micro/go-bot/blob/master/proto/bot.proto)
+The service interface is as follows and can be found at [go-micro/agent/proto](https://github.com/micro/go-micro/agent/blob/master/proto/bot.proto)
 
 ```
 syntax = "proto3";
@@ -160,7 +160,7 @@ import (
 	"github.com/micro/go-micro"
 	"golang.org/x/net/context"
 
-	proto "github.com/micro/go-bot/proto"
+	proto "github.com/micro/go-micro/agent/proto"
 )
 
 type Command struct{}
