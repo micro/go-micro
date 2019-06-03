@@ -27,11 +27,14 @@ require (
 	github.com/imdario/mergo v0.3.7
 	github.com/joncalhoun/qson v0.0.0-20170526102502-8a9cab3a62b1
 	github.com/json-iterator/go v1.1.6
+	github.com/lucas-clemente/quic-go v0.11.2
 	github.com/micro/cli v0.2.0
 	github.com/micro/examples v0.1.0
+	github.com/micro/go-log v0.1.0
 	github.com/micro/go-plugins v1.1.0
 	github.com/micro/mdns v0.1.0
 	github.com/micro/micro v1.3.0
+	github.com/micro/util v0.2.0
 	github.com/mitchellh/hashstructure v1.0.0
 	github.com/nats-io/nats.go v1.7.2
 	github.com/nlopes/slack v0.5.0
@@ -52,7 +55,16 @@ require (
 	honnef.co/go/tools v0.0.0-20190602125119-5a4a2f4a438d // indirect
 )
 
-exclude sourcegraph.com/sourcegraph/go-diff v0.5.1
+exclude (
+	github.com/Sirupsen/logrus v1.1.0
+	github.com/Sirupsen/logrus v1.1.1
+	github.com/Sirupsen/logrus v1.2.0
+	github.com/Sirupsen/logrus v1.3.0
+	github.com/Sirupsen/logrus v1.4.0
+	github.com/Sirupsen/logrus v1.4.1
+	github.com/Sirupsen/logrus v1.4.2
+	sourcegraph.com/sourcegraph/go-diff v0.5.1
+)
 
 replace (
 	github.com/golang/lint => github.com/golang/lint v0.0.0-20190227174305-8f45f776aaf1
