@@ -214,9 +214,7 @@ func (s *service) call(ctx context.Context, router *router, sending *sync.Mutex,
 	// declare a local error to see if we errored out already
 	// keep track of the type, to make sure we return
 	// the same one consistently
-	var lastError error
-
-	stream := &rpcStream{
+	rawStream := &rpcStream{
 		context: ctx,
 		codec:   cc.(codec.Codec),
 		request: r,
@@ -229,9 +227,8 @@ func (s *service) call(ctx context.Context, router *router, sending *sync.Mutex,
 		if err := returnValues[0].Interface(); err != nil {
 			// the function returned an error, we use that
 			return err.(error)
-		} else if lastError != nil {
-			// we had an error inside sendReply, we use that
-			return lastError
+		} else if serr := rawStream.Error(); serr == io.EOF || serr == io.ErrUnexpectedEOF {
+			return nil
 		} else {
 			// no error, we send the special EOS error
 			return lastStreamResponseError
@@ -242,14 +239,7 @@ func (s *service) call(ctx context.Context, router *router, sending *sync.Mutex,
 	r.stream = true
 
 	// execute handler
-	if err := fn(ctx, r, stream); err != nil {
-		return err
-	}
-
-	// this is the last packet, we don't do anything with
-	// the error here (well sendStreamResponse will log it
-	// already)
-	return router.sendResponse(sending, req, nil, cc, true)
+	return fn(ctx, r, rawStream)
 }
 
 func (m *methodType) prepareContext(ctx context.Context) reflect.Value {
