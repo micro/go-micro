@@ -1,4 +1,4 @@
-# Go Web [![GoDoc](https://godoc.org/github.com/micro/go-micro/web?status.svg)](https://godoc.org/github.com/micro/go-micro/web) [![Travis CI](https://travis-ci.org/micro/go-micro/web.svg?branch=master)](https://travis-ci.org/micro/go-micro/web) [![Go Report Card](https://goreportcard.com/badge/micro/go-micro/web)](https://goreportcard.com/report/github.com/micro/go-micro/web)
+# Go Web
 
 **Go Web** is a framework for micro service web development.
 
