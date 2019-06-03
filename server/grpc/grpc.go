@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/micro/go-micro/broker"
-	"github.com/micro/go-micro/cmd"
 	"github.com/micro/go-micro/codec"
 	"github.com/micro/go-micro/errors"
 	meta "github.com/micro/go-micro/metadata"
@@ -59,8 +58,6 @@ type grpcServer struct {
 func init() {
 	encoding.RegisterCodec(jsonCodec{})
 	encoding.RegisterCodec(bytesCodec{})
-
-	cmd.DefaultServers["grpc"] = NewServer
 }
 
 func newGRPCServer(opts ...server.Option) server.Server {

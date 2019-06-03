@@ -5,7 +5,6 @@ import (
 	"crypto/tls"
 	"encoding/gob"
 
-	"github.com/micro/go-micro/cmd"
 	"github.com/lucas-clemente/quic-go"
 	"github.com/micro/go-micro/transport"
 	utls "github.com/micro/util/go/lib/tls"
@@ -32,10 +31,6 @@ type quicListener struct {
 	l    quic.Listener
 	t    *quicTransport
 	opts transport.ListenOptions
-}
-
-func init() {
-	cmd.DefaultTransports["quic"] = NewTransport
 }
 
 func (q *quicClient) Close() error {
