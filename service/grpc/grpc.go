@@ -5,8 +5,8 @@ import (
 
 	"github.com/micro/go-micro"
 	broker "github.com/micro/go-micro/broker"
-	client "github.com/micro/go-micro/client"
-	server "github.com/micro/go-micro/server"
+	client "github.com/micro/go-micro/client/grpc"
+	server "github.com/micro/go-micro/server/grpc"
 )
 
 // NewService returns a grpc service compatible with go-micro.Service
