@@ -486,7 +486,7 @@ func (s *rpcServer) Start() error {
 	} else {
 		// announce self to the world
 		if err = s.Register(); err != nil {
-			log.Log("Server %s-%s register error: %s", config.Name, config.Id, err)
+			log.Logf("Server %s-%s register error: %s", config.Name, config.Id, err)
 		}
 	}
 
