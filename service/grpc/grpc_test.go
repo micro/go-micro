@@ -8,13 +8,13 @@ import (
 
 	"github.com/micro/go-micro"
 	"github.com/micro/go-micro/registry/memory"
-	hello "github.com/micro/go-micro/service/grpc/examples/greeter/server/proto/hello"
+	hello "github.com/micro/go-micro/service/grpc/proto"
 	mls "github.com/micro/go-micro/util/tls"
 )
 
 type testHandler struct{}
 
-func (t *testHandler) Hello(ctx context.Context, req *hello.Request, rsp *hello.Response) error {
+func (t *testHandler) Call(ctx context.Context, req *hello.Request, rsp *hello.Response) error {
 	rsp.Msg = "Hello " + req.Name
 	return nil
 }
@@ -41,7 +41,7 @@ func TestGRPCService(t *testing.T) {
 	)
 
 	// register test handler
-	hello.RegisterSayHandler(service.Server(), &testHandler{})
+	hello.RegisterTestHandler(service.Server(), &testHandler{})
 
 	// run service
 	go func() {
@@ -54,10 +54,10 @@ func TestGRPCService(t *testing.T) {
 	wg.Wait()
 
 	// create client
-	say := hello.NewSayService("test.service", service.Client())
+	test := hello.NewTestService("test.service", service.Client())
 
 	// call service
-	rsp, err := say.Hello(context.Background(), &hello.Request{
+	rsp, err := test.Call(context.Background(), &hello.Request{
 		Name: "John",
 	})
 	if err != nil {
@@ -89,7 +89,7 @@ func TestGRPCFunction(t *testing.T) {
 	)
 
 	// register test handler
-	hello.RegisterSayHandler(fn.Server(), &testHandler{})
+	hello.RegisterTestHandler(fn.Server(), &testHandler{})
 
 	// run service
 	go fn.Run()
@@ -98,10 +98,10 @@ func TestGRPCFunction(t *testing.T) {
 	wg.Wait()
 
 	// create client
-	say := hello.NewSayService("test.function", fn.Client())
+	test := hello.NewTestService("test.function", fn.Client())
 
 	// call service
-	rsp, err := say.Hello(context.Background(), &hello.Request{
+	rsp, err := test.Call(context.Background(), &hello.Request{
 		Name: "John",
 	})
 	if err != nil {
@@ -148,7 +148,7 @@ func TestGRPCTLSService(t *testing.T) {
 	)
 
 	// register test handler
-	hello.RegisterSayHandler(service.Server(), &testHandler{})
+	hello.RegisterTestHandler(service.Server(), &testHandler{})
 
 	// run service
 	go func() {
@@ -161,10 +161,10 @@ func TestGRPCTLSService(t *testing.T) {
 	wg.Wait()
 
 	// create client
-	say := hello.NewSayService("test.service", service.Client())
+	test := hello.NewTestService("test.service", service.Client())
 
 	// call service
-	rsp, err := say.Hello(context.Background(), &hello.Request{
+	rsp, err := test.Call(context.Background(), &hello.Request{
 		Name: "John",
 	})
 	if err != nil {

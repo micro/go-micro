@@ -4,8 +4,8 @@ import (
 	"crypto/tls"
 
 	"github.com/micro/go-micro"
-	gc "github.com/micro/go-plugins/client/grpc"
-	gs "github.com/micro/go-plugins/server/grpc"
+	gc "github.com/micro/go-micro/client/grpc"
+	gs "github.com/micro/go-micro/server/grpc"
 )
 
 // WithTLS sets the TLS config for the service

@@ -8,14 +8,14 @@ import (
 	"github.com/micro/go-micro/server"
 	"google.golang.org/grpc"
 
-	pb "github.com/micro/examples/greeter/srv/proto/hello"
+	pb "github.com/micro/go-micro/server/grpc/proto"
 )
 
 // server is used to implement helloworld.GreeterServer.
-type sayServer struct{}
+type testServer struct{}
 
-// SayHello implements helloworld.GreeterServer
-func (s *sayServer) Hello(ctx context.Context, req *pb.Request, rsp *pb.Response) error {
+// TestHello implements helloworld.GreeterServer
+func (s *testServer) Call(ctx context.Context, req *pb.Request, rsp *pb.Response) error {
 	rsp.Msg = "Hello " + req.Name
 	return nil
 }
@@ -27,7 +27,7 @@ func TestGRPCServer(t *testing.T) {
 		server.Registry(r),
 	)
 
-	pb.RegisterSayHandler(s, &sayServer{})
+	pb.RegisterTestHandler(s, &testServer{})
 
 	if err := s.Start(); err != nil {
 		t.Fatalf("failed to start: %v", err)
@@ -50,7 +50,7 @@ func TestGRPCServer(t *testing.T) {
 		t.Fatalf("failed to dial server: %v", err)
 	}
 
-	testMethods := []string{"/helloworld.Say/Hello", "/greeter.helloworld.Say/Hello"}
+	testMethods := []string{"/test.Test/Call", "/go.micro.test.Test/Call"}
 
 	for _, method := range testMethods {
 		rsp := pb.Response{}
