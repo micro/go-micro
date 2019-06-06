@@ -1,4 +1,4 @@
-package init
+package options
 
 type defaultOptions struct {
 	opts *Values

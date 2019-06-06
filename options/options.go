@@ -1,8 +1,20 @@
-package init
+package options
 
 import (
 	"sync"
 )
+
+// Options is used for initialisation
+type Options interface {
+	// Initialise options
+	Init(...Option) error
+	// Options returns the current options
+	Options() Options
+	// Value returns an option value
+	Value(k interface{}) (interface{}, bool)
+	// The name for who these options exist
+	String() string
+}
 
 // Values holds the set of option values and protects them
 type Values struct {
@@ -52,4 +64,11 @@ func WithOption(o Option) Option {
 // String sets the string
 func String(s string) Option {
 	return WithValue(stringKey{}, s)
+}
+
+// NewOptions returns a new initialiser
+func NewOptions(opts ...Option) Options {
+	o := new(defaultOptions)
+	o.Init(opts...)
+	return o
 }
