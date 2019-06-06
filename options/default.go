@@ -18,15 +18,8 @@ func (d *defaultOptions) Init(opts ...Option) error {
 	return nil
 }
 
-func (d *defaultOptions) Options() Options {
-	return d
-}
-
-func (d *defaultOptions) Value(k interface{}) (interface{}, bool) {
-	if d.opts == nil {
-		d.opts = new(Values)
-	}
-	return d.opts.Get(k)
+func (d *defaultOptions) Values() *Values {
+	return d.opts
 }
 
 func (d *defaultOptions) String() string {

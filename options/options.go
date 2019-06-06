@@ -9,9 +9,7 @@ type Options interface {
 	// Initialise options
 	Init(...Option) error
 	// Options returns the current options
-	Options() Options
-	// Value returns an option value
-	Value(k interface{}) (interface{}, bool)
+	Values() *Values
 	// The name for who these options exist
 	String() string
 }
@@ -62,7 +60,7 @@ func WithOption(o Option) Option {
 }
 
 // String sets the string
-func String(s string) Option {
+func WithString(s string) Option {
 	return WithValue(stringKey{}, s)
 }
 

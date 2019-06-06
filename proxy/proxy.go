@@ -13,6 +13,4 @@ type Proxy interface {
 	options.Options
 	// ServeRequest will serve a request
 	ServeRequest(context.Context, server.Request, server.Response) error
-	// run the proxy
-	Run() error
 }
