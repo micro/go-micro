@@ -1,44 +1,41 @@
 package init
 
-type defaultInit struct {
-	opts *Options
+type defaultOptions struct {
+	opts *Values
 }
 
 type stringKey struct{}
 
-func (i *defaultInit) Init(opts ...Option) error {
-	if i.opts == nil {
-		i.opts = new(Options)
+func (d *defaultOptions) Init(opts ...Option) error {
+	if d.opts == nil {
+		d.opts = new(Values)
 	}
 	for _, o := range opts {
-		if err := i.opts.SetOption(o); err != nil {
+		if err := d.opts.Option(o); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (i *defaultInit) Options() *Options {
-	if i.opts == nil {
-		i.opts = new(Options)
-	}
-	return i.opts
+func (d *defaultOptions) Options() Options {
+	return d
 }
 
-func (i *defaultInit) Value(k interface{}) (interface{}, bool) {
-	if i.opts == nil {
-		i.opts = new(Options)
+func (d *defaultOptions) Value(k interface{}) (interface{}, bool) {
+	if d.opts == nil {
+		d.opts = new(Values)
 	}
-	return i.opts.Value(k)
+	return d.opts.Get(k)
 }
 
-func (i *defaultInit) String() string {
-	if i.opts == nil {
-		i.opts = new(Options)
+func (d *defaultOptions) String() string {
+	if d.opts == nil {
+		d.opts = new(Values)
 	}
-	n, ok := i.opts.Value(stringKey{})
+	n, ok := d.opts.Get(stringKey{})
 	if ok {
 		return n.(string)
 	}
-	return "defaultInit"
+	return "Values"
 }

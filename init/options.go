@@ -4,17 +4,17 @@ import (
 	"sync"
 )
 
-// Options holds the set of option values and protects them
-type Options struct {
+// Values holds the set of option values and protects them
+type Values struct {
 	sync.RWMutex
 	values map[interface{}]interface{}
 }
 
 // Option gives access to options
-type Option func(o *Options) error
+type Option func(o *Values) error
 
 // Get a value from options
-func (o *Options) Value(k interface{}) (interface{}, bool) {
+func (o *Values) Get(k interface{}) (interface{}, bool) {
 	o.RLock()
 	defer o.RUnlock()
 	v, ok := o.values[k]
@@ -22,7 +22,7 @@ func (o *Options) Value(k interface{}) (interface{}, bool) {
 }
 
 // Set a value in the options
-func (o *Options) SetValue(k, v interface{}) error {
+func (o *Values) Set(k, v interface{}) error {
 	o.Lock()
 	defer o.Unlock()
 	if o.values == nil {
@@ -33,14 +33,14 @@ func (o *Options) SetValue(k, v interface{}) error {
 }
 
 // SetOption executes an option
-func (o *Options) SetOption(op Option) error {
+func (o *Values) Option(op Option) error {
 	return op(o)
 }
 
 // WithValue allows you to set any value within the options
 func WithValue(k, v interface{}) Option {
-	return func(o *Options) error {
-		return o.SetValue(k, v)
+	return func(o *Values) error {
+		return o.Set(k, v)
 	}
 }
 
