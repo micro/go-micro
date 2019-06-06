@@ -10,14 +10,15 @@ import (
 	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/codec"
 	"github.com/micro/go-micro/codec/bytes"
+	"github.com/micro/go-micro/init"
 	"github.com/micro/go-micro/server"
 	"github.com/micro/go-micro/service/grpc"
 )
 
-// Router will transparently proxy requests to the backend.
+// Proxy will transparently proxy requests to the backend.
 // If no backend is specified it will call a service using the client.
-// If the service matches the Name it will use the server.DefaultRouter.
-type Router struct {
+// If the service matches the Name it will use the server.DefaultProxy.
+type Proxy struct {
 	// Name of the local service. In the event it's to be left alone
 	Name string
 
@@ -33,13 +34,16 @@ type Router struct {
 
 	// The client to use for outbound requests
 	Client client.Client
+
+	// The proxy options
+	Options init.Options
 }
 
 var (
 	// The default name of this local service
 	DefaultName = "go.micro.proxy"
 	// The default router
-	DefaultRouter = &Router{}
+	DefaultProxy = &Proxy{}
 )
 
 // read client request and write to server
@@ -75,8 +79,8 @@ func readLoop(r server.Request, s client.Stream) error {
 	}
 }
 
-// ServeRequest honours the server.Router interface
-func (p *Router) ServeRequest(ctx context.Context, req server.Request, rsp server.Response) error {
+// ServeRequest honours the server.Proxy interface
+func (p *Proxy) ServeRequest(ctx context.Context, req server.Request, rsp server.Response) error {
 	// set the default name e.g local proxy
 	if p.Name == "" {
 		p.Name = DefaultName
@@ -90,7 +94,7 @@ func (p *Router) ServeRequest(ctx context.Context, req server.Request, rsp serve
 	// check service route
 	if req.Service() == p.Name {
 		// use the default router
-		return server.DefaultRouter.ServeRequest(ctx, req, rsp)
+		return server.DefaultProxy.ServeRequest(ctx, req, rsp)
 	}
 
 	opts := []client.CallOption{}
@@ -165,7 +169,14 @@ func (p *Router) ServeRequest(ctx context.Context, req server.Request, rsp serve
 	return nil
 }
 
-// NewSingleHostRouter returns a router which sends requests to a single backend
+// NewProxy returns a new grpc proxy server
+func NewProxy(opts ...init.Option) *Proxy {
+	return &Proxy{
+		Options: init.NewOptions(opts...),
+	}
+}
+
+// NewSingleHostProxy returns a router which sends requests to a single backend
 //
 // It is used by setting it in a new micro service to act as a proxy for a backend.
 //
@@ -173,19 +184,19 @@ func (p *Router) ServeRequest(ctx context.Context, req server.Request, rsp serve
 //
 // Create a new router to the http backend
 //
-// 	r := NewSingleHostRouter("localhost:10001")
+// 	r := NewSingleHostProxy("localhost:10001")
 //
 // 	// Create your new service
 // 	service := micro.NewService(
 // 		micro.Name("greeter"),
 //		// Set the router
-//		http.WithRouter(r),
+//		http.WithProxy(r),
 // 	)
 //
 // 	// Run the service
 // 	service.Run()
-func NewSingleHostRouter(url string) *Router {
-	return &Router{
+func NewSingleHostProxy(url string) *Proxy {
+	return &Proxy{
 		Backend: url,
 	}
 }
@@ -216,13 +227,13 @@ func NewSingleHostRouter(url string) *Router {
 //	 )
 //
 func NewService(opts ...micro.Option) micro.Service {
-	router := DefaultRouter
+	router := DefaultProxy
 	name := DefaultName
 
 	// prepend router to opts
 	opts = append([]micro.Option{
 		micro.Name(name),
-		WithRouter(router),
+		WithProxy(router),
 	}, opts...)
 
 	// create the new service
