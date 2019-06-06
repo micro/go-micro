@@ -2,7 +2,6 @@ package router
 
 import (
 	"context"
-	"time"
 
 	"github.com/micro/go-micro/registry"
 )
@@ -15,17 +14,33 @@ type Options struct {
 	Context context.Context
 }
 
-// RouteOption allows to soecify routing table options
-type RouteOption struct {
-	// TTL defines route entry lifetime
-	TTL time.Duration
+// Registry allows to set local service registry
+func Registry(r registry.Registry) Option {
+	return func(o *Options) {
+		o.Registry = r
+	}
+}
+
+// RouteOptions allows to specify routing table options
+type RouteOptions struct {
+	// NetID is network ID
+	NetID string
+	// Metric is route metric
+	Metric int
 	// COntext allows to specify other arbitrary options
 	Context context.Context
 }
 
-// Registry is local registry
-func Registry(r registry.Registry) Option {
-	return func(o *Options) {
-		o.Registry = r
+// NetID allows to set micro network ID
+func NetID(id string) RouteOption {
+	return func(o *RouteOptions) {
+		o.NetID = id
+	}
+}
+
+// Metric allows to set route cost metric
+func Metric(m int) RouteOption {
+	return func(o *RouteOptions) {
+		o.Metric = m
 	}
 }
