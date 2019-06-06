@@ -13,12 +13,12 @@ func WithBackend(url string) micro.Option {
 
 		// not set
 		if r == nil {
-			r = DefaultRouter
+			r = DefaultProxy
 			o.Server.Init(server.WithRouter(r))
 		}
 
 		// check its a proxy router
-		if proxyRouter, ok := r.(*Router); ok {
+		if proxyRouter, ok := r.(*Proxy); ok {
 			proxyRouter.Backend = url
 		}
 	}

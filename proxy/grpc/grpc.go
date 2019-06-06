@@ -10,14 +10,14 @@ import (
 	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/codec"
 	"github.com/micro/go-micro/codec/bytes"
-	"github.com/micro/go-micro/init"
+	"github.com/micro/go-micro/options"
 	"github.com/micro/go-micro/server"
 	"github.com/micro/go-micro/service/grpc"
 )
 
 // Proxy will transparently proxy requests to the backend.
 // If no backend is specified it will call a service using the client.
-// If the service matches the Name it will use the server.DefaultProxy.
+// If the service matches the Name it will use the server.DefaultRouter.
 type Proxy struct {
 	// Name of the local service. In the event it's to be left alone
 	Name string
@@ -36,7 +36,7 @@ type Proxy struct {
 	Client client.Client
 
 	// The proxy options
-	Options init.Options
+	Options options.Options
 }
 
 var (
@@ -94,7 +94,7 @@ func (p *Proxy) ServeRequest(ctx context.Context, req server.Request, rsp server
 	// check service route
 	if req.Service() == p.Name {
 		// use the default router
-		return server.DefaultProxy.ServeRequest(ctx, req, rsp)
+		return server.DefaultRouter.ServeRequest(ctx, req, rsp)
 	}
 
 	opts := []client.CallOption{}
@@ -170,9 +170,9 @@ func (p *Proxy) ServeRequest(ctx context.Context, req server.Request, rsp server
 }
 
 // NewProxy returns a new grpc proxy server
-func NewProxy(opts ...init.Option) *Proxy {
+func NewProxy(opts ...options.Option) *Proxy {
 	return &Proxy{
-		Options: init.NewOptions(opts...),
+		Options: options.NewOptions(opts...),
 	}
 }
 
@@ -233,7 +233,7 @@ func NewService(opts ...micro.Option) micro.Service {
 	// prepend router to opts
 	opts = append([]micro.Option{
 		micro.Name(name),
-		WithProxy(router),
+		WithRouter(router),
 	}, opts...)
 
 	// create the new service
