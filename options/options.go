@@ -1,3 +1,4 @@
+// Package options provides a way to initialise options
 package options
 
 import (
