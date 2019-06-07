@@ -1,26 +1,31 @@
 package router
 
 import (
+	"github.com/google/uuid"
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/registry/gossip"
 )
 
 type router struct {
-	opts Options
-	goss registry.Registry
-	t    Table
+	opts  Options
+	goss  registry.Registry
+	table Table
+	id    uuid.UUID
 }
 
 func newRouter(opts ...Option) Router {
 	// TODO: figure out how to supply gossip registry options
 	r := &router{
-		goss: gossip.NewRegistry(),
-		t:    NewTable(),
+		goss:  gossip.NewRegistry(),
+		table: NewTable(),
+		id:    uuid.New(),
 	}
 
 	for _, o := range opts {
 		o(&r.opts)
 	}
+
+	// TODO: need to start some gossip.Registry watch here
 
 	return r
 }
@@ -63,10 +68,15 @@ func (r *router) Lookup(q Query) ([]*Entry, error) {
 
 // Table returns routing table
 func (r *router) Table() Table {
-	return nil
+	return r.table
 }
 
-// Address returns router's network address
+// Network returns router's micro network
+func (r *router) Network() string {
+	return r.opts.Network
+}
+
+// Address returns router's bind address
 func (r *router) Address() string {
 	return r.opts.Address
 }

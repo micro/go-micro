@@ -24,6 +24,8 @@ type Router interface {
 	Table() Table
 	// Address is Router adddress
 	Address() string
+	// Network defines network router is in
+	Network() string
 	// String implemens fmt.Stringer interface
 	String() string
 }

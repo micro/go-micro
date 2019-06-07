@@ -1,6 +1,9 @@
 package router
 
-import "errors"
+import (
+	"errors"
+	"sync"
+)
 
 var (
 	// DefaultRouter returns default micro router
@@ -29,8 +32,8 @@ type Table interface {
 
 // Entry is micro network routing table entry
 type Entry struct {
-	// DestAddr is destination address
-	DestAddr string
+	// Addr is destination address
+	Addr string
 	// NetID is micro network ID
 	NetID string
 	// Hop is the next route hop
@@ -44,6 +47,7 @@ type Entry struct {
 type table struct {
 	// m stores routing table map
 	m map[string][]Entry
+	sync.RWMutex
 }
 
 // NewTable creates new routing table and returns it

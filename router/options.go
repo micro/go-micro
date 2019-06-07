@@ -8,6 +8,8 @@ import (
 type Options struct {
 	// Address is router address
 	Address string
+	// Network defines micro network address
+	Network string
 	// RIB is Routing Information Base
 	RIB RIB
 	// Table is routing table
@@ -16,17 +18,24 @@ type Options struct {
 	Context context.Context
 }
 
-// RIBase allows to configure RIB
-func RIBase(r RIB) Option {
-	return func(o *Options) {
-		o.RIB = r
-	}
-}
-
 // Address allows to set router address
 func Address(a string) Option {
 	return func(o *Options) {
 		o.Address = a
+	}
+}
+
+// Network allows to set router network
+func Network(n string) Option {
+	return func(o *Options) {
+		o.Network = n
+	}
+}
+
+// RIBase allows to configure RIB
+func RIBase(r RIB) Option {
+	return func(o *Options) {
+		o.RIB = r
 	}
 }
 
