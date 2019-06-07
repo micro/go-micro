@@ -14,6 +14,7 @@ type rpcRequest struct {
 	codec       codec.Codec
 	header      map[string]string
 	body        []byte
+	rawBody     interface{}
 	stream      bool
 }
 
@@ -48,8 +49,7 @@ func (r *rpcRequest) Header() map[string]string {
 }
 
 func (r *rpcRequest) Body() interface{} {
-	// TODO: convert to interface value
-	return r.body
+	return r.rawBody
 }
 
 func (r *rpcRequest) Read() ([]byte, error) {

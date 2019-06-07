@@ -188,6 +188,7 @@ func (s *service) call(ctx context.Context, router *router, sending *sync.Mutex,
 		method:      req.msg.Method,
 		endpoint:    req.msg.Endpoint,
 		body:        req.msg.Body,
+		rawBody:     argv.Interface(),
 	}
 
 	if !mtype.stream {
@@ -200,6 +201,11 @@ func (s *service) call(ctx context.Context, router *router, sending *sync.Mutex,
 			}
 
 			return nil
+		}
+
+		// wrap the handler
+		for i := len(router.hdlrWrappers); i > 0; i-- {
+			fn = router.hdlrWrappers[i-1](fn)
 		}
 
 		// execute handler
@@ -233,6 +239,11 @@ func (s *service) call(ctx context.Context, router *router, sending *sync.Mutex,
 			// no error, we send the special EOS error
 			return lastStreamResponseError
 		}
+	}
+
+	// wrap the handler
+	for i := len(router.hdlrWrappers); i > 0; i-- {
+		fn = router.hdlrWrappers[i-1](fn)
 	}
 
 	// client.Stream request
