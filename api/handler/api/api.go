@@ -6,11 +6,11 @@ import (
 
 	goapi "github.com/micro/go-micro/api"
 	"github.com/micro/go-micro/api/handler"
+	api "github.com/micro/go-micro/api/proto"
 	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/errors"
 	"github.com/micro/go-micro/selector"
 	"github.com/micro/go-micro/util/ctx"
-	api "github.com/micro/go-micro/api/proto"
 )
 
 type apiHandler struct {

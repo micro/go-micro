@@ -31,7 +31,7 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/pborman/uuid"
+	"github.com/google/uuid"
 	"gopkg.in/go-playground/validator.v9"
 )
 
@@ -66,7 +66,7 @@ func New(eventType string, mimeType string, payload interface{}) *Event {
 		EventType:          eventType,
 		CloudEventsVersion: CloudEventsVersion,
 		Source:             "https://micro.mu",
-		EventID:            uuid.NewUUID().String(),
+		EventID:            uuid.New().String(),
 		EventTime:          &now,
 		ContentType:        mimeType,
 		Data:               payload,

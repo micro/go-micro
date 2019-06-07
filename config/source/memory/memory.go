@@ -5,8 +5,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/micro/go-micro/config/source"
-	"github.com/pborman/uuid"
 )
 
 type memory struct {
@@ -29,7 +29,7 @@ func (s *memory) Read() (*source.ChangeSet, error) {
 
 func (s *memory) Watch() (source.Watcher, error) {
 	w := &watcher{
-		Id:      uuid.NewUUID().String(),
+		Id:      uuid.New().String(),
 		Updates: make(chan *source.ChangeSet, 100),
 		Source:  s,
 	}

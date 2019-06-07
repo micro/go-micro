@@ -10,10 +10,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/micro/go-micro/api/handler"
 	proto "github.com/micro/go-micro/api/proto"
 	"github.com/micro/go-micro/util/ctx"
-	"github.com/pborman/uuid"
 )
 
 type event struct {
@@ -73,7 +73,7 @@ func (e *event) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ev := &proto.Event{
 		Name: action,
 		// TODO: dedupe event
-		Id:        fmt.Sprintf("%s-%s-%s", topic, action, uuid.NewUUID().String()),
+		Id:        fmt.Sprintf("%s-%s-%s", topic, action, uuid.New().String()),
 		Header:    make(map[string]*proto.Pair),
 		Timestamp: time.Now().Unix(),
 	}
