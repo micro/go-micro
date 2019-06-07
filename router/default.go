@@ -8,7 +8,7 @@ import (
 type router struct {
 	opts Options
 	goss registry.Registry
-	t    *Table
+	t    Table
 }
 
 func newRouter(opts ...Option) Router {
@@ -62,13 +62,13 @@ func (r *router) Lookup(q Query) ([]*Entry, error) {
 }
 
 // Table returns routing table
-func (r *router) Table() *Table {
+func (r *router) Table() Table {
 	return nil
 }
 
 // Address returns router's network address
 func (r *router) Address() string {
-	return ""
+	return r.opts.Address
 }
 
 // String prints debugging information about router

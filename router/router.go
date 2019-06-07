@@ -1,10 +1,6 @@
 // Package router provides an interface for micro network routers
 package router
 
-import (
-	"github.com/micro/go-micro/registry"
-)
-
 var (
 	// DefaultRouter returns default micro router
 	DefaultRouter = NewRouter()
@@ -25,10 +21,16 @@ type Router interface {
 	// Lookup queries the routing table and returns matching entries
 	Lookup(Query) ([]*Entry, error)
 	// Table returns routing table
-	Table() *Table
+	Table() Table
 	// Address is Router adddress
 	Address() string
 	// String implemens fmt.Stringer interface
+	String() string
+}
+
+// RIB is Routing Information Base
+type RIB interface {
+	// String returns debug info
 	String() string
 }
 
@@ -43,9 +45,9 @@ type QueryOption func(*QueryOptions)
 
 // NewRouter creates new Router and returns it
 func NewRouter(opts ...Option) Router {
-	// router registry to DefaultRegistry
+	// set default options
 	ropts := Options{
-		Registry: registry.DefaultRegistry,
+		Table: DefaultTable,
 	}
 
 	for _, o := range opts {

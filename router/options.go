@@ -2,22 +2,38 @@ package router
 
 import (
 	"context"
-
-	"github.com/micro/go-micro/registry"
 )
 
 // Options allows to set Router options
 type Options struct {
-	// Registry is route source registry i.e. local registry
-	Registry registry.Registry
+	// Address is router address
+	Address string
+	// RIB is Routing Information Base
+	RIB RIB
+	// Table is routing table
+	Table Table
 	// Context stores arbitrary options
 	Context context.Context
 }
 
-// Registry allows to set local service registry
-func Registry(r registry.Registry) Option {
+// RIBase allows to configure RIB
+func RIBase(r RIB) Option {
 	return func(o *Options) {
-		o.Registry = r
+		o.RIB = r
+	}
+}
+
+// Address allows to set router address
+func Address(a string) Option {
+	return func(o *Options) {
+		o.Address = a
+	}
+}
+
+// RoutingTable allows to specify custom routing table
+func RoutingTable(t Table) Option {
+	return func(o *Options) {
+		o.Table = t
 	}
 }
 
