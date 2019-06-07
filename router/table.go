@@ -6,8 +6,6 @@ import (
 )
 
 var (
-	// DefaultRouter returns default micro router
-	DefaultTable = NewTable()
 	// ErrRouteNotFound is returned when no route was found
 	ErrRouteNotFound = errors.New("route not found")
 	// ErrDuplicateRoute is return when route already exists

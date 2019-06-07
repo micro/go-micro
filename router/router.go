@@ -1,11 +1,6 @@
 // Package router provides an interface for micro network routers
 package router
 
-var (
-	// DefaultRouter returns default micro router
-	DefaultRouter = NewRouter()
-)
-
 // Router is micro network router
 type Router interface {
 	// Initi initializes Router with options
@@ -49,7 +44,8 @@ type QueryOption func(*QueryOptions)
 func NewRouter(opts ...Option) Router {
 	// set default options
 	ropts := Options{
-		Table: DefaultTable,
+		// Default table
+		Table: NewTable(),
 	}
 
 	for _, o := range opts {
