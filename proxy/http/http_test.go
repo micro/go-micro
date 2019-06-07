@@ -20,7 +20,7 @@ func (t *testHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(`{"hello": "world"}`))
 }
 
-func TestHTTPRouter(t *testing.T) {
+func TestHTTPProxy(t *testing.T) {
 	c, err := net.Listen("tcp", "localhost:0")
 	if err != nil {
 		t.Fatal(err)
@@ -47,7 +47,7 @@ func TestHTTPRouter(t *testing.T) {
 	http.Handle("/", new(testHandler))
 
 	// new proxy
-	p := NewSingleHostRouter(url)
+	p := NewSingleHostProxy(url)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -89,34 +89,5 @@ func TestHTTPRouter(t *testing.T) {
 		if v := rsp["hello"]; v != "world" {
 			t.Fatalf("Expected hello world got %s from %s", v, test.rpcEp)
 		}
-	}
-}
-
-func TestHTTPRouterOptions(t *testing.T) {
-	// test endpoint
-	service := NewService(
-		WithBackend("http://foo.bar"),
-	)
-
-	r := service.Server().Options().Router
-	httpRouter, ok := r.(*Router)
-	if !ok {
-		t.Fatal("Expected http router to be installed")
-	}
-	if httpRouter.Backend != "http://foo.bar" {
-		t.Fatalf("Expected endpoint http://foo.bar got %v", httpRouter.Backend)
-	}
-
-	// test router
-	service = NewService(
-		WithRouter(&Router{Backend: "http://foo2.bar"}),
-	)
-	r = service.Server().Options().Router
-	httpRouter, ok = r.(*Router)
-	if !ok {
-		t.Fatal("Expected http router to be installed")
-	}
-	if httpRouter.Backend != "http://foo2.bar" {
-		t.Fatalf("Expected endpoint http://foo2.bar got %v", httpRouter.Backend)
 	}
 }

@@ -301,6 +301,10 @@ func (r *rpcClient) next(request Request, opts CallOptions) (selector.Next, erro
 			return &registry.Node{
 				Address: address,
 				Port:    port,
+				// Set the protocol
+				Metadata: map[string]string{
+					"protocol": "mucp",
+				},
 			}, nil
 		}, nil
 	}

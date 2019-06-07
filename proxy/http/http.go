@@ -10,26 +10,22 @@ import (
 	"net/url"
 	"path"
 
-	"github.com/micro/go-micro"
 	"github.com/micro/go-micro/errors"
+	"github.com/micro/go-micro/options"
+	"github.com/micro/go-micro/proxy"
 	"github.com/micro/go-micro/server"
 )
 
-// Router will proxy rpc requests as http POST requests. It is a server.Router
-type Router struct {
+// Proxy will proxy rpc requests as http POST requests. It is a server.Proxy
+type Proxy struct {
+	options.Options
+
 	// The http backend to call
-	Backend string
+	Endpoint string
 
 	// first request
 	first bool
 }
-
-var (
-	// The default backend
-	DefaultBackend = "http://localhost:9090"
-	// The default router
-	DefaultRouter = &Router{}
-)
 
 func getMethod(hdr map[string]string) string {
 	switch hdr["Micro-Method"] {
@@ -49,9 +45,9 @@ func getEndpoint(hdr map[string]string) string {
 }
 
 // ServeRequest honours the server.Router interface
-func (p *Router) ServeRequest(ctx context.Context, req server.Request, rsp server.Response) error {
-	if p.Backend == "" {
-		p.Backend = DefaultBackend
+func (p *Proxy) ServeRequest(ctx context.Context, req server.Request, rsp server.Response) error {
+	if p.Endpoint == "" {
+		p.Endpoint = proxy.DefaultEndpoint
 	}
 
 	for {
@@ -75,10 +71,10 @@ func (p *Router) ServeRequest(ctx context.Context, req server.Request, rsp serve
 
 		// set the endpoint
 		if len(endpoint) == 0 {
-			endpoint = p.Backend
+			endpoint = p.Endpoint
 		} else {
 			// add endpoint to backend
-			u, err := url.Parse(p.Backend)
+			u, err := url.Parse(p.Endpoint)
 			if err != nil {
 				return errors.InternalServerError(req.Service(), err.Error())
 			}
@@ -130,48 +126,24 @@ func (p *Router) ServeRequest(ctx context.Context, req server.Request, rsp serve
 	return nil
 }
 
-// NewSingleHostRouter returns a router which sends requests to a single http backend
-//
-// It is used by setting it in a new micro service to act as a proxy for a http backend.
-//
-// Usage:
-//
-// Create a new router to the http backend
-//
-// 	r := NewSingleHostRouter("http://localhost:10001")
-//
-// 	// Create your new service
-// 	service := micro.NewService(
-// 		micro.Name("greeter"),
-//		// Set the router
-//		http.WithRouter(r),
-// 	)
-//
-// 	// Run the service
-// 	service.Run()
-func NewSingleHostRouter(url string) *Router {
-	return &Router{
-		Backend: url,
+// NewSingleHostProxy returns a router which sends requests to a single http backend
+func NewSingleHostProxy(url string) proxy.Proxy {
+	return &Proxy{
+		Endpoint: url,
 	}
 }
 
-// NewService returns a new http proxy. It acts as a micro service proxy.
-// Any request on the transport is routed to a fixed http backend.
-//
-// Usage:
-//
-// 	service := NewService(
-//		micro.Name("greeter"),
-//		// Sets the default http endpoint
-//		http.WithBackend("http://localhost:10001"),
-//	 )
-//
-func NewService(opts ...micro.Option) micro.Service {
-	// prepend router to opts
-	opts = append([]micro.Option{
-		WithRouter(DefaultRouter),
-	}, opts...)
+// NewProxy returns a new proxy which will route using a http client
+func NewProxy(opts ...options.Option) proxy.Proxy {
+	p := new(Proxy)
+	p.Options = options.NewOptions(opts...)
+	p.Options.Init(options.WithString("http"))
 
-	// create the new service
-	return micro.NewService(opts...)
+	// get endpoint
+	ep, ok := p.Options.Values().Get("proxy.endpoint")
+	if ok {
+		p.Endpoint = ep.(string)
+	}
+
+	return p
 }
