@@ -14,8 +14,9 @@ type grpcStream struct {
 	sync.RWMutex
 	err     error
 	conn    *grpc.ClientConn
-	request client.Request
 	stream  grpc.ClientStream
+	request client.Request
+	response client.Response
 	context context.Context
 }
 
@@ -28,7 +29,7 @@ func (g *grpcStream) Request() client.Request {
 }
 
 func (g *grpcStream) Response() client.Response {
-	return nil
+	return g.response
 }
 
 func (g *grpcStream) Send(msg interface{}) error {

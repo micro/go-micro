@@ -1,5 +1,5 @@
-// Package rpc provides an rpc client
-package rpc
+// Package mucp provides an mucp client
+package mucp
 
 import (
 	"github.com/micro/go-micro/client"

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"sync"
 	"time"
+	"os"
 
 	"github.com/micro/go-micro/broker"
 	"github.com/micro/go-micro/client"
@@ -48,6 +49,18 @@ func (g *grpcClient) secure() grpc.DialOption {
 }
 
 func (g *grpcClient) next(request client.Request, opts client.CallOptions) (selector.Next, error) {
+        service := request.Service()
+
+        // get proxy
+        if prx := os.Getenv("MICRO_PROXY"); len(prx) > 0 {
+                service = prx
+        }
+
+        // get proxy address
+        if prx := os.Getenv("MICRO_PROXY_ADDRESS"); len(prx) > 0 {
+                opts.Address = prx
+        }
+
 	// return remote address
 	if len(opts.Address) > 0 {
 		return func() (*registry.Node, error) {
@@ -58,7 +71,7 @@ func (g *grpcClient) next(request client.Request, opts client.CallOptions) (sele
 	}
 
 	// get next nodes from the selector
-	next, err := g.opts.Selector.Select(request.Service(), opts.SelectOptions...)
+	next, err := g.opts.Selector.Select(service, opts.SelectOptions...)
 	if err != nil && err == selector.ErrNotFound {
 		return nil, errors.NotFound("go.micro.client", err.Error())
 	} else if err != nil {
@@ -164,7 +177,7 @@ func (g *grpcClient) stream(ctx context.Context, node *registry.Node, req client
 		dialCtx, cancel = context.WithCancel(ctx)
 	}
 	defer cancel()
-	cc, err := grpc.DialContext(dialCtx, address, grpc.WithDefaultCallOptions(grpc.CallCustomCodec(cf)), g.secure())
+	cc, err := grpc.DialContext(dialCtx, address, grpc.WithDefaultCallOptions(grpc.ForceCodec(cf)), g.secure())
 	if err != nil {
 		return nil, errors.InternalServerError("go.micro.client", fmt.Sprintf("Error sending request: %v", err))
 	}
@@ -175,14 +188,21 @@ func (g *grpcClient) stream(ctx context.Context, node *registry.Node, req client
 		ServerStreams: true,
 	}
 
-	st, err := cc.NewStream(ctx, desc, methodToGRPC(req.Endpoint(), req.Body()), grpc.CallContentSubtype(cf.String()))
+	st, err := cc.NewStream(ctx, desc, methodToGRPC(req.Endpoint(), req.Body()))
 	if err != nil {
 		return nil, errors.InternalServerError("go.micro.client", fmt.Sprintf("Error creating stream: %v", err))
+	}
+
+	rsp := &response{
+		conn: cc,
+		stream: st,
+		codec: cf,
 	}
 
 	return &grpcStream{
 		context: ctx,
 		request: req,
+		response: rsp,
 		stream:  st,
 		conn:    cc,
 	}, nil
