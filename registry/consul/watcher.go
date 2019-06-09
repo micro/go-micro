@@ -1,7 +1,6 @@
 package consul
 
 import (
-	"errors"
 	"log"
 	"os"
 	"sync"
@@ -246,14 +245,16 @@ func (cw *consulWatcher) handle(idx uint64, data interface{}) {
 func (cw *consulWatcher) Next() (*registry.Result, error) {
 	select {
 	case <-cw.exit:
-		return nil, errors.New("result chan closed")
+		return nil, registry.ErrWatcherStopped
 	case r, ok := <-cw.next:
 		if !ok {
-			return nil, errors.New("result chan closed")
+			return nil, registry.ErrWatcherStopped
 		}
 		return r, nil
 	}
-	return nil, errors.New("result chan closed")
+	// NOTE: This is a dead code path: e.g. it will never be reached
+	// as we return in all previous code paths never leading to this return
+	return nil, registry.ErrWatcherStopped
 }
 
 func (cw *consulWatcher) Stop() {
