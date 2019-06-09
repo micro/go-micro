@@ -45,27 +45,3 @@ func RoutingTable(t Table) Option {
 		o.Table = t
 	}
 }
-
-// RouteOptions allows to specify routing table options
-type RouteOptions struct {
-	// NetID is network ID
-	NetID string
-	// Metric is route metric
-	Metric int
-	// COntext allows to specify other arbitrary options
-	Context context.Context
-}
-
-// NetID allows to set micro network ID
-func NetID(id string) RouteOption {
-	return func(o *RouteOptions) {
-		o.NetID = id
-	}
-}
-
-// Metric allows to set route cost metric
-func Metric(m int) RouteOption {
-	return func(o *RouteOptions) {
-		o.Metric = m
-	}
-}

@@ -8,18 +8,18 @@ type Router interface {
 	// Options returns Router options
 	Options() Options
 	// Add adds new entry into routing table
-	Add(*Entry, ...RouteOption) error
+	Add(Entry) error
 	// Remove removes entry from the routing table
-	Remove(*Entry) error
+	Remove(Entry) error
 	// Update updates entry in the routing table
-	Update(*Entry) error
+	Update(...EntryOption) error
 	// Lookup queries the routing table and returns matching entries
 	Lookup(Query) ([]*Entry, error)
 	// Table returns routing table
 	Table() Table
-	// Address is Router adddress
+	// Address returns the router bind adddress
 	Address() string
-	// Network defines network router is in
+	// Network returns router's micro network bind address
 	Network() string
 	// String implemens fmt.Stringer interface
 	String() string
@@ -31,13 +31,13 @@ type RIB interface {
 	String() string
 }
 
-// Option used by the Router
+// Option used by the router
 type Option func(*Options)
 
-// RouteOption is used by Router for adding routing table entries
-type RouteOption func(*RouteOptions)
+// EntryOption is used to define routing entry options
+type EntryOption func(*EntryOptions)
 
-// QueryOption is used to defined routing table lookup query
+// QueryOption is used to define query options
 type QueryOption func(*QueryOptions)
 
 // NewRouter creates new Router and returns it

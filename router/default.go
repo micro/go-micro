@@ -1,6 +1,9 @@
 package router
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/google/uuid"
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/registry/gossip"
@@ -45,25 +48,25 @@ func (r *router) Options() Options {
 
 // Add adds new entry into routing table with given options.
 // It returns error if the entry could not be added.
-func (r *router) Add(e *Entry, opts ...RouteOption) error {
-	return nil
+func (r *router) Add(e Entry) error {
+	return r.table.Add(e)
 }
 
 // Remove removes entry from the routing table.
 // It returns error if either the entry could not be removed or it does not exist.
-func (r *router) Remove(e *Entry) error {
-	return nil
+func (r *router) Remove(e Entry) error {
+	return r.table.Remove(e)
 }
 
 // Update updates an entry in the router's routing table
 // It returns error if the entry was not found or it failed to be updated.
-func (r *router) Update(e *Entry) error {
-	return nil
+func (r *router) Update(opts ...EntryOption) error {
+	return r.table.Update(opts...)
 }
 
 // Lookup makes a query lookup and returns all matching entries
 func (r *router) Lookup(q Query) ([]*Entry, error) {
-	return nil, nil
+	return nil, ErrNotImplemented
 }
 
 // Table returns routing table
@@ -83,5 +86,16 @@ func (r *router) Address() string {
 
 // String prints debugging information about router
 func (r *router) String() string {
-	return ""
+	sb := &strings.Builder{}
+
+	s := fmt.Sprintf("Router Local Address: %s\n", r.opts.Address)
+	sb.WriteString(s)
+
+	s = fmt.Sprintf("Router Network Address: %s\n", r.opts.Network)
+	sb.WriteString(s)
+
+	s = fmt.Sprintf("Routing table size: %d\n", r.opts.Table.Size())
+	sb.WriteString(s)
+
+	return sb.String()
 }

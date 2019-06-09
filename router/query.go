@@ -1,27 +1,27 @@
 package router
 
-// Policy defines query policy
-type QueryPolicy int
+// LookupPolicy defines query policy
+type LookupPolicy int
 
 const (
-	// DiscardNoRoute discards query when no rout is found
-	DiscardNoRoute QueryPolicy = iota
-	// ClosestMatch returns closest match to query
+	// DiscardNoRoute discards query when no route is found
+	DiscardNoRoute LookupPolicy = iota
+	// ClosestMatch returns closest match to supplied query
 	ClosestMatch
 )
 
 // QueryOptions allow to define routing table query options
 type QueryOptions struct {
 	// Route allows to set route options
-	Route *RouteOptions
+	Route *EntryOptions
 	// Service is micro service name
 	Service string
 	// Policy defines query lookup policy
-	Policy QueryPolicy
+	Policy LookupPolicy
 }
 
-// Route allows to set the route query options
-func Route(r *RouteOptions) QueryOption {
+// EntryOpts allows to set the route query options
+func EntryOpts(r *EntryOptions) QueryOption {
 	return func(o *QueryOptions) {
 		o.Route = r
 	}
@@ -34,8 +34,8 @@ func Service(s string) QueryOption {
 	}
 }
 
-// Policy allows to define query lookup policy
-func Policy(p QueryPolicy) QueryOption {
+// QueryLookupPolicy allows to define query lookup policy
+func QueryLookupPolicy(p LookupPolicy) QueryOption {
 	return func(o *QueryOptions) {
 		o.Policy = p
 	}
