@@ -11,10 +11,9 @@ import (
 )
 
 type Codec struct {
-	Conn        io.ReadWriteCloser
-	Encoder     *json.Encoder
-	Decoder     *json.Decoder
-	Unmarshaler *jsonpb.Unmarshaler
+	Conn    io.ReadWriteCloser
+	Encoder *json.Encoder
+	Decoder *json.Decoder
 }
 
 func (c *Codec) ReadHeader(m *codec.Message, t codec.MessageType) error {
@@ -26,7 +25,7 @@ func (c *Codec) ReadBody(b interface{}) error {
 		return nil
 	}
 	if pb, ok := b.(proto.Message); ok {
-		return c.Unmarshaler.UnmarshalNext(c.Decoder, pb)
+		return jsonpb.UnmarshalNext(c.Decoder, pb)
 	}
 	return c.Decoder.Decode(b)
 }
@@ -48,9 +47,8 @@ func (c *Codec) String() string {
 
 func NewCodec(c io.ReadWriteCloser) codec.Codec {
 	return &Codec{
-		Conn:        c,
-		Decoder:     json.NewDecoder(c),
-		Encoder:     json.NewEncoder(c),
-		Unmarshaler: &jsonpb.Unmarshaler{},
+		Conn:    c,
+		Decoder: json.NewDecoder(c),
+		Encoder: json.NewEncoder(c),
 	}
 }
