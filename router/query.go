@@ -18,6 +18,8 @@ type QueryOptions struct {
 	Service string
 	// Policy defines query lookup policy
 	Policy LookupPolicy
+	// Count defines max number of results to return
+	Count int
 }
 
 // EntryOpts allows to set the route query options
@@ -38,6 +40,13 @@ func Service(s string) QueryOption {
 func QueryLookupPolicy(p LookupPolicy) QueryOption {
 	return func(o *QueryOptions) {
 		o.Policy = p
+	}
+}
+
+// ResultCount allows to set max results to return
+func ResultCount(c int) QueryOption {
+	return func(o *QueryOptions) {
+		o.Count = c
 	}
 }
 

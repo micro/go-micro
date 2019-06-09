@@ -88,7 +88,10 @@ func (r *router) Address() string {
 func (r *router) String() string {
 	sb := &strings.Builder{}
 
-	s := fmt.Sprintf("Router Local Address: %s\n", r.opts.Address)
+	s := fmt.Sprintf("Router ID: %s\n", r.id.String())
+	sb.WriteString(s)
+
+	s = fmt.Sprintf("Router Local Address: %s\n", r.opts.Address)
 	sb.WriteString(s)
 
 	s = fmt.Sprintf("Router Network Address: %s\n", r.opts.Network)
