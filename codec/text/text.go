@@ -30,6 +30,9 @@ func (c *Codec) ReadBody(b interface{}) error {
 	}
 
 	switch b.(type) {
+	case *string:
+		v := b.(*string)
+		*v = string(buf)
 	case *[]byte:
 		v := b.(*[]byte)
 		*v = buf
@@ -51,6 +54,12 @@ func (c *Codec) Write(m *codec.Message, b interface{}) error {
 	case *[]byte:
 		ve := b.(*[]byte)
 		v = *ve
+	case *string:
+		ve := b.(*string)
+		v = []byte(*ve)
+	case string:
+		ve := b.(string)
+		v = []byte(ve)
 	case []byte:
 		v = b.([]byte)
 	default:
@@ -65,7 +74,7 @@ func (c *Codec) Close() error {
 }
 
 func (c *Codec) String() string {
-	return "bytes"
+	return "text"
 }
 
 func NewCodec(c io.ReadWriteCloser) codec.Codec {
