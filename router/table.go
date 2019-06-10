@@ -3,6 +3,7 @@ package router
 import (
 	"errors"
 	"fmt"
+	"hash"
 	"hash/fnv"
 	"strings"
 	"sync"
@@ -22,13 +23,13 @@ var (
 // Table is routing table
 type Table interface {
 	// Add adds new route to the table
-	Add(Entry) error
+	Add(Route) error
 	// Remove removes route from the table
-	Remove(Entry) error
+	Remove(Route) error
 	// Update updates route in the table
-	Update(...EntryOption) error
+	Update(...RouteOption) error
 	// Lookup looks up routes in the table
-	Lookup(Query) ([]Entry, error)
+	Lookup(Query) ([]Route, error)
 	// Size returns the size of the table
 	Size() int
 	// String prints the routing table
@@ -39,35 +40,37 @@ type Table interface {
 // It maps service name to routes
 type table struct {
 	// m stores routing table map
-	m map[string]map[uint64]Entry
+	m map[uint64]Route
+	// h is a hasher hashes route entries
+	h hash.Hash64
 	sync.RWMutex
 }
 
 // NewTable creates new routing table and returns it
 func NewTable() Table {
+	h := fnv.New64()
+	h.Reset()
+
 	return &table{
-		m: make(map[string]map[uint64]Entry),
+		m: make(map[uint64]Route),
+		h: h,
 	}
 }
 
 // Add adds new routing entry
-func (t *table) Add(e Entry) error {
+func (t *table) Add(r Route) error {
 	t.Lock()
 	defer t.Unlock()
 
-	destAddr := e.Options().DestAddr
-	h := fnv.New64()
-	h.Write([]byte(e.Options().DestAddr + e.Options().Hop.Address()))
+	sum := t.hash(r)
 
-	if _, ok := t.m[destAddr]; !ok {
-		// create new map for DestAddr routes
-		t.m[destAddr] = make(map[uint64]Entry)
-		t.m[destAddr][h.Sum64()] = e
+	if _, ok := t.m[sum]; !ok {
+		t.m[sum] = r
 		return nil
 	}
 
-	if _, ok := t.m[destAddr][h.Sum64()]; ok && e.Options().Policy == OverrideIfExists {
-		t.m[destAddr][h.Sum64()] = e
+	if _, ok := t.m[sum]; ok && r.Options().Policy == OverrideIfExists {
+		t.m[sum] = r
 		return nil
 	}
 
@@ -75,41 +78,36 @@ func (t *table) Add(e Entry) error {
 }
 
 // Remove removes entry from the routing table
-func (t *table) Remove(e Entry) error {
+func (t *table) Remove(r Route) error {
 	t.Lock()
 	defer t.Unlock()
 
-	destAddr := e.Options().DestAddr
-	h := fnv.New64()
-	h.Write([]byte(e.Options().DestAddr + e.Options().Hop.Address()))
+	sum := t.hash(r)
 
-	if _, ok := t.m[destAddr]; !ok {
+	if _, ok := t.m[sum]; !ok {
 		return ErrRouteNotFound
-	} else {
-		delete(t.m[destAddr], h.Sum64())
-		return nil
 	}
+
+	delete(t.m, sum)
 
 	return nil
 }
 
 // Update updates routing entry
-func (t *table) Update(opts ...EntryOption) error {
+func (t *table) Update(opts ...RouteOption) error {
 	t.Lock()
 	defer t.Unlock()
 
-	e := NewEntry(opts...)
+	r := NewRoute(opts...)
 
-	destAddr := e.Options().DestAddr
-	h := fnv.New64()
-	h.Write([]byte(e.Options().DestAddr + e.Options().Hop.Address()))
+	sum := t.hash(r)
 
-	if _, ok := t.m[destAddr]; !ok {
+	if _, ok := t.m[sum]; !ok {
 		return ErrRouteNotFound
 	}
 
-	if _, ok := t.m[destAddr][h.Sum64()]; ok {
-		t.m[destAddr][h.Sum64()] = e
+	if _, ok := t.m[sum]; ok {
+		t.m[sum] = r
 		return nil
 	}
 
@@ -117,7 +115,7 @@ func (t *table) Update(opts ...EntryOption) error {
 }
 
 // Lookup looks up entry in the routing table
-func (t *table) Lookup(q Query) ([]Entry, error) {
+func (t *table) Lookup(q Query) ([]Route, error) {
 	return nil, ErrNotImplemented
 }
 
@@ -141,25 +139,26 @@ func (t *table) String() string {
 	table := tablewriter.NewWriter(sb)
 	table.SetHeader([]string{"Dest", "Hop", "Src", "Metric"})
 
-	var destAddr, prevAddr string
-
-	for _, entries := range t.m {
-		for _, entry := range entries {
-			destAddr = entry.Options().DestAddr
-			// we want to avoid printing the same dest address
-			if prevAddr == destAddr {
-				destAddr = ""
-			}
-			strEntry := []string{
-				destAddr,
-				entry.Options().Hop.Address(),
-				fmt.Sprintf("%d", entry.Options().SrcAddr),
-				fmt.Sprintf("%d", entry.Options().Metric),
-			}
-			table.Append(strEntry)
-			prevAddr = destAddr
+	for _, route := range t.m {
+		strRoute := []string{
+			route.Options().DestAddr,
+			route.Options().Hop.Address(),
+			fmt.Sprintf("%d", route.Options().SrcAddr),
+			fmt.Sprintf("%d", route.Options().Metric),
 		}
+		table.Append(strRoute)
 	}
 
 	return sb.String()
+}
+
+func (t *table) hash(r Route) uint64 {
+	srcAddr := r.Options().SrcAddr
+	destAddr := r.Options().DestAddr
+	routerAddr := r.Options().Hop.Address()
+
+	t.h.Reset()
+	t.h.Write([]byte(srcAddr + destAddr + routerAddr))
+
+	return t.h.Sum64()
 }

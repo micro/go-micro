@@ -8,13 +8,13 @@ type Router interface {
 	// Options returns Router options
 	Options() Options
 	// Add adds new entry into routing table
-	Add(Entry) error
+	Add(Route) error
 	// Remove removes entry from the routing table
-	Remove(Entry) error
+	Remove(Route) error
 	// Update updates entry in the routing table
-	Update(...EntryOption) error
+	Update(...RouteOption) error
 	// Lookup queries the routing table and returns matching entries
-	Lookup(Query) ([]*Entry, error)
+	Lookup(Query) ([]*Route, error)
 	// Table returns routing table
 	Table() Table
 	// Address returns the router bind adddress
@@ -34,8 +34,8 @@ type RIB interface {
 // Option used by the router
 type Option func(*Options)
 
-// EntryOption is used to define routing entry options
-type EntryOption func(*EntryOptions)
+// RouteOption is used to define routing table entry options
+type RouteOption func(*RouteOptions)
 
 // QueryOption is used to define query options
 type QueryOption func(*QueryOptions)

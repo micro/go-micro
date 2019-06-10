@@ -13,7 +13,7 @@ const (
 // QueryOptions allow to define routing table query options
 type QueryOptions struct {
 	// Route allows to set route options
-	Route *EntryOptions
+	Route *RouteOptions
 	// Service is micro service name
 	Service string
 	// Policy defines query lookup policy
@@ -22,8 +22,8 @@ type QueryOptions struct {
 	Count int
 }
 
-// EntryOpts allows to set the route query options
-func EntryOpts(r *EntryOptions) QueryOption {
+// RouteOpts allows to set the route query options
+func RouteOpts(r *RouteOptions) QueryOption {
 	return func(o *QueryOptions) {
 		o.Route = r
 	}
@@ -36,8 +36,8 @@ func Service(s string) QueryOption {
 	}
 }
 
-// QueryLookupPolicy allows to define query lookup policy
-func QueryLookupPolicy(p LookupPolicy) QueryOption {
+// QueryPolicy allows to define query lookup policy
+func QueryPolicy(p LookupPolicy) QueryOption {
 	return func(o *QueryOptions) {
 		o.Policy = p
 	}

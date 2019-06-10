@@ -48,24 +48,24 @@ func (r *router) Options() Options {
 
 // Add adds new entry into routing table with given options.
 // It returns error if the entry could not be added.
-func (r *router) Add(e Entry) error {
+func (r *router) Add(e Route) error {
 	return r.table.Add(e)
 }
 
 // Remove removes entry from the routing table.
 // It returns error if either the entry could not be removed or it does not exist.
-func (r *router) Remove(e Entry) error {
+func (r *router) Remove(e Route) error {
 	return r.table.Remove(e)
 }
 
 // Update updates an entry in the router's routing table
 // It returns error if the entry was not found or it failed to be updated.
-func (r *router) Update(opts ...EntryOption) error {
+func (r *router) Update(opts ...RouteOption) error {
 	return r.table.Update(opts...)
 }
 
 // Lookup makes a query lookup and returns all matching entries
-func (r *router) Lookup(q Query) ([]*Entry, error) {
+func (r *router) Lookup(q Query) ([]*Route, error) {
 	return nil, ErrNotImplemented
 }
 

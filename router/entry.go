@@ -4,14 +4,14 @@ package router
 type AddPolicy int
 
 const (
-	// Override overrides existing routing table entry
+	// Override overrides existing routing table route
 	OverrideIfExists AddPolicy = iota
-	// ErrIfExists returns error if the entry already exists
+	// ErrIfExists returns error if the route already exists
 	ErrIfExists
 )
 
-// EntryOptions defines micro network routing table entry options
-type EntryOptions struct {
+// RouteOptions defines micro network routing table route options
+type RouteOptions struct {
 	// DestAddr is destination address
 	DestAddr string
 	// Hop is the next route hop
@@ -21,69 +21,69 @@ type EntryOptions struct {
 	SrcAddr string
 	// Metric is route cost metric
 	Metric int
-	// Policy defines entry addition policy
+	// Policy defines route addition policy
 	Policy AddPolicy
 }
 
 // DestAddr sets destination address
-func DestAddr(a string) EntryOption {
-	return func(o *EntryOptions) {
+func DestAddr(a string) RouteOption {
+	return func(o *RouteOptions) {
 		o.DestAddr = a
 	}
 }
 
-// Hop allows to set the route entry options
-func Hop(r Router) EntryOption {
-	return func(o *EntryOptions) {
+// Hop allows to set the route route options
+func Hop(r Router) RouteOption {
+	return func(o *RouteOptions) {
 		o.Hop = r
 	}
 }
 
 // SrcAddr sets source address
-func SrcAddr(a string) EntryOption {
-	return func(o *EntryOptions) {
+func SrcAddr(a string) RouteOption {
+	return func(o *RouteOptions) {
 		o.SrcAddr = a
 	}
 }
 
-// Metric sets entry metric
-func Metric(m int) EntryOption {
-	return func(o *EntryOptions) {
+// Metric sets route metric
+func Metric(m int) RouteOption {
+	return func(o *RouteOptions) {
 		o.Metric = m
 	}
 }
 
-// AddEntryPolicy sets add entry policy
-func AddEntryPolicy(p AddPolicy) EntryOption {
-	return func(o *EntryOptions) {
+// RoutePolicy sets add route policy
+func RoutePolicy(p AddPolicy) RouteOption {
+	return func(o *RouteOptions) {
 		o.Policy = p
 	}
 }
 
-// Entry is routing table entry
-type Entry interface {
-	// Options returns entry options
-	Options() EntryOptions
+// Route is routing table route
+type Route interface {
+	// Options returns route options
+	Options() RouteOptions
 }
 
-type entry struct {
-	opts EntryOptions
+type route struct {
+	opts RouteOptions
 }
 
-// NewEntry returns new routing table entry
-func NewEntry(opts ...EntryOption) Entry {
-	eopts := EntryOptions{}
+// NewRoute returns new routing table route
+func NewRoute(opts ...RouteOption) Route {
+	eopts := RouteOptions{}
 
 	for _, o := range opts {
 		o(&eopts)
 	}
 
-	return &entry{
+	return &route{
 		opts: eopts,
 	}
 }
 
-// Options returns entry options
-func (e *entry) Options() EntryOptions {
-	return e.opts
+// Options returns route options
+func (r *route) Options() RouteOptions {
+	return r.opts
 }
