@@ -6,16 +6,27 @@ import (
 
 // Options allows to set Router options
 type Options struct {
+	// ID is router ID
+	ID string
 	// Address is router address
 	Address string
-	// Network defines micro network address
-	Network string
+	// GossipAddr is router gossip address
+	GossipAddr string
+	// NetworkAddr defines micro network address
+	NetworkAddr string
 	// RIB is Routing Information Base
 	RIB RIB
 	// Table is routing table
 	Table Table
 	// Context stores arbitrary options
 	Context context.Context
+}
+
+// ID sets Router ID
+func ID(id string) Option {
+	return func(o *Options) {
+		o.ID = id
+	}
 }
 
 // Address allows to set router address
@@ -25,10 +36,17 @@ func Address(a string) Option {
 	}
 }
 
-// Network allows to set router network
-func Network(n string) Option {
+// GossipAddress allows to set router address
+func GossipAddress(a string) Option {
 	return func(o *Options) {
-		o.Network = n
+		o.GossipAddr = a
+	}
+}
+
+// NetworkAddr allows to set router network
+func NetworkAddr(n string) Option {
+	return func(o *Options) {
+		o.NetworkAddr = n
 	}
 }
 

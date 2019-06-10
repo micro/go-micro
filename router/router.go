@@ -7,19 +7,11 @@ type Router interface {
 	Init(...Option) error
 	// Options returns Router options
 	Options() Options
-	// Add adds new entry into routing table
-	Add(Route) error
-	// Remove removes entry from the routing table
-	Remove(Route) error
-	// Update updates entry in the routing table
-	Update(...RouteOption) error
-	// Lookup queries the routing table and returns matching entries
-	Lookup(Query) ([]*Route, error)
 	// Table returns routing table
 	Table() Table
-	// Address returns the router bind adddress
+	// Address returns router gossip adddress
 	Address() string
-	// Network returns router's micro network bind address
+	// Network returns micro network address
 	Network() string
 	// String implemens fmt.Stringer interface
 	String() string
@@ -42,15 +34,5 @@ type QueryOption func(*QueryOptions)
 
 // NewRouter creates new Router and returns it
 func NewRouter(opts ...Option) Router {
-	// set default options
-	ropts := Options{
-		// Default table
-		Table: NewTable(),
-	}
-
-	for _, o := range opts {
-		o(&ropts)
-	}
-
 	return newRouter(opts...)
 }

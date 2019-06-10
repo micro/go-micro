@@ -4,31 +4,36 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/google/uuid"
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/registry/gossip"
+	"github.com/olekukonko/tablewriter"
 )
 
 type router struct {
-	opts  Options
-	goss  registry.Registry
-	table Table
-	id    uuid.UUID
+	opts Options
+	goss registry.Registry
 }
 
 func newRouter(opts ...Option) Router {
-	// TODO: figure out how to supply gossip registry options
-	r := &router{
-		goss:  gossip.NewRegistry(),
-		table: NewTable(),
-		id:    uuid.New(),
+	// set default options
+	options := Options{
+		Table: NewTable(),
 	}
 
 	for _, o := range opts {
-		o(&r.opts)
+		o(&options)
 	}
 
-	// TODO: need to start some gossip.Registry watch here
+	goss := gossip.NewRegistry(
+		gossip.Address(options.GossipAddr),
+	)
+
+	r := &router{
+		opts: options,
+		goss: goss,
+	}
+
+	// TODO: start gossip.Registry watch here
 
 	return r
 }
@@ -46,37 +51,9 @@ func (r *router) Options() Options {
 	return r.opts
 }
 
-// Add adds new entry into routing table with given options.
-// It returns error if the entry could not be added.
-func (r *router) Add(e Route) error {
-	return r.table.Add(e)
-}
-
-// Remove removes entry from the routing table.
-// It returns error if either the entry could not be removed or it does not exist.
-func (r *router) Remove(e Route) error {
-	return r.table.Remove(e)
-}
-
-// Update updates an entry in the router's routing table
-// It returns error if the entry was not found or it failed to be updated.
-func (r *router) Update(opts ...RouteOption) error {
-	return r.table.Update(opts...)
-}
-
-// Lookup makes a query lookup and returns all matching entries
-func (r *router) Lookup(q Query) ([]*Route, error) {
-	return nil, ErrNotImplemented
-}
-
 // Table returns routing table
 func (r *router) Table() Table {
-	return r.table
-}
-
-// Network returns router's micro network
-func (r *router) Network() string {
-	return r.opts.Network
+	return r.opts.Table
 }
 
 // Address returns router's bind address
@@ -84,21 +61,29 @@ func (r *router) Address() string {
 	return r.opts.Address
 }
 
+// Network returns router's micro network
+func (r *router) Network() string {
+	return r.opts.NetworkAddr
+}
+
 // String prints debugging information about router
 func (r *router) String() string {
 	sb := &strings.Builder{}
 
-	s := fmt.Sprintf("Router ID: %s\n", r.id.String())
-	sb.WriteString(s)
+	table := tablewriter.NewWriter(sb)
+	table.SetHeader([]string{"ID", "Address", "Gossip", "Network", "Table"})
 
-	s = fmt.Sprintf("Router Local Address: %s\n", r.opts.Address)
-	sb.WriteString(s)
+	data := []string{
+		r.opts.ID,
+		r.opts.Address,
+		r.opts.GossipAddr,
+		r.opts.NetworkAddr,
+		fmt.Sprintf("%d", r.opts.Table.Size()),
+	}
+	table.Append(data)
 
-	s = fmt.Sprintf("Router Network Address: %s\n", r.opts.Network)
-	sb.WriteString(s)
-
-	s = fmt.Sprintf("Routing table size: %d\n", r.opts.Table.Size())
-	sb.WriteString(s)
+	// render table into sb
+	table.Render()
 
 	return sb.String()
 }

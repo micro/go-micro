@@ -137,28 +137,31 @@ func (t *table) String() string {
 
 	// create nice table printing structure
 	table := tablewriter.NewWriter(sb)
-	table.SetHeader([]string{"Dest", "Hop", "Src", "Metric"})
+	table.SetHeader([]string{"Service", "Gateway", "Network", "Metric"})
 
 	for _, route := range t.m {
 		strRoute := []string{
 			route.Options().DestAddr,
 			route.Options().Hop.Address(),
-			fmt.Sprintf("%d", route.Options().SrcAddr),
+			route.Options().Network,
 			fmt.Sprintf("%d", route.Options().Metric),
 		}
 		table.Append(strRoute)
 	}
 
+	// render table into sb
+	table.Render()
+
 	return sb.String()
 }
 
 func (t *table) hash(r Route) uint64 {
-	srcAddr := r.Options().SrcAddr
 	destAddr := r.Options().DestAddr
 	routerAddr := r.Options().Hop.Address()
+	network := r.Options().Network
 
 	t.h.Reset()
-	t.h.Write([]byte(srcAddr + destAddr + routerAddr))
+	t.h.Write([]byte(destAddr + routerAddr + network))
 
 	return t.h.Sum64()
 }

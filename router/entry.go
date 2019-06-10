@@ -16,9 +16,8 @@ type RouteOptions struct {
 	DestAddr string
 	// Hop is the next route hop
 	Hop Router
-	// SrcAddr defines local routing address
-	// On local networkss, this will be the address of local router
-	SrcAddr string
+	// Network defines micro network
+	Network string
 	// Metric is route cost metric
 	Metric int
 	// Policy defines route addition policy
@@ -39,10 +38,10 @@ func Hop(r Router) RouteOption {
 	}
 }
 
-// SrcAddr sets source address
-func SrcAddr(a string) RouteOption {
+// Network sets micro network
+func Network(n string) RouteOption {
 	return func(o *RouteOptions) {
-		o.SrcAddr = a
+		o.Network = n
 	}
 }
 
