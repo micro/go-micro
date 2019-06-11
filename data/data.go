@@ -4,6 +4,8 @@ package data
 import (
 	"errors"
 	"time"
+
+	"github.com/micro/go-micro/options"
 )
 
 var (
@@ -12,6 +14,8 @@ var (
 
 // Data is a data storage interface
 type Data interface {
+	// embed options
+	options.Options
 	// Dump the known records
 	Dump() ([]*Record, error)
 	// Read a record with key
@@ -28,5 +32,3 @@ type Record struct {
 	Value      []byte
 	Expiration time.Duration
 }
-
-type Option func(o *Options)

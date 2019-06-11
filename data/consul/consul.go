@@ -6,10 +6,12 @@ import (
 	"net"
 
 	"github.com/hashicorp/consul/api"
-	"github.com/micro/go-micro/sync/data"
+	"github.com/micro/go-micro/data"
+	"github.com/micro/go-micro/options"
 )
 
 type ckv struct {
+	options.Options
 	client *api.Client
 }
 
@@ -64,22 +66,22 @@ func (c *ckv) String() string {
 	return "consul"
 }
 
-func NewData(opts ...data.Option) data.Data {
-	var options data.Options
-	for _, o := range opts {
-		o(&options)
-	}
-
+func NewData(opts ...options.Option) data.Data {
+	options := options.NewOptions(opts...)
 	config := api.DefaultConfig()
 
+	var nodes []string
+
+	if n, ok := options.Values().Get("data.nodes"); ok {
+		nodes = n.([]string)
+	}
+
 	// set host
-	// config.Host something
-	// check if there are any addrs
-	if len(options.Nodes) > 0 {
-		addr, port, err := net.SplitHostPort(options.Nodes[0])
+	if len(nodes) > 0 {
+		addr, port, err := net.SplitHostPort(nodes[0])
 		if ae, ok := err.(*net.AddrError); ok && ae.Err == "missing port in address" {
 			port = "8500"
-			config.Address = fmt.Sprintf("%s:%s", options.Nodes[0], port)
+			config.Address = fmt.Sprintf("%s:%s", nodes[0], port)
 		} else if err == nil {
 			config.Address = fmt.Sprintf("%s:%s", addr, port)
 		}
@@ -88,6 +90,7 @@ func NewData(opts ...data.Option) data.Data {
 	client, _ := api.NewClient(config)
 
 	return &ckv{
-		client: client,
+		Options: options,
+		client:  client,
 	}
 }

@@ -6,8 +6,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/micro/go-micro/sync/data"
-	ckv "github.com/micro/go-micro/sync/data/consul"
+	"github.com/micro/go-micro/data"
+	ckv "github.com/micro/go-micro/data/consul"
 	lock "github.com/micro/go-micro/sync/lock/consul"
 )
 

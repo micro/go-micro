@@ -1,7 +1,7 @@
 package sync
 
 import (
-	"github.com/micro/go-micro/sync/data"
+	"github.com/micro/go-micro/data"
 	"github.com/micro/go-micro/sync/leader"
 	"github.com/micro/go-micro/sync/lock"
 	"github.com/micro/go-micro/sync/time"
