@@ -11,7 +11,7 @@ import (
 	lock "github.com/micro/go-micro/sync/lock/consul"
 )
 
-type syncDB struct {
+type syncMap struct {
 	opts Options
 }
 
@@ -20,7 +20,7 @@ func ekey(k interface{}) string {
 	return base64.StdEncoding.EncodeToString(b)
 }
 
-func (m *syncDB) Read(key, val interface{}) error {
+func (m *syncMap) Read(key, val interface{}) error {
 	if key == nil {
 		return fmt.Errorf("key is nil")
 	}
@@ -43,7 +43,7 @@ func (m *syncDB) Read(key, val interface{}) error {
 	return json.Unmarshal(kval.Value, val)
 }
 
-func (m *syncDB) Write(key, val interface{}) error {
+func (m *syncMap) Write(key, val interface{}) error {
 	if key == nil {
 		return fmt.Errorf("key is nil")
 	}
@@ -69,7 +69,7 @@ func (m *syncDB) Write(key, val interface{}) error {
 	})
 }
 
-func (m *syncDB) Delete(key interface{}) error {
+func (m *syncMap) Delete(key interface{}) error {
 	if key == nil {
 		return fmt.Errorf("key is nil")
 	}
@@ -84,7 +84,7 @@ func (m *syncDB) Delete(key interface{}) error {
 	return m.opts.Data.Delete(kstr)
 }
 
-func (m *syncDB) Iterate(fn func(key, val interface{}) error) error {
+func (m *syncMap) Iterate(fn func(key, val interface{}) error) error {
 	keyvals, err := m.opts.Data.Dump()
 	if err != nil {
 		return err
@@ -137,7 +137,7 @@ func (m *syncDB) Iterate(fn func(key, val interface{}) error) error {
 	return nil
 }
 
-func NewDB(opts ...Option) DB {
+func NewMap(opts ...Option) Map {
 	var options Options
 	for _, o := range opts {
 		o(&options)
@@ -151,7 +151,7 @@ func NewDB(opts ...Option) DB {
 		options.Data = ckv.NewData()
 	}
 
-	return &syncDB{
+	return &syncMap{
 		opts: options,
 	}
 }

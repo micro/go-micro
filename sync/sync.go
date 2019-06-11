@@ -9,10 +9,10 @@ import (
 	"github.com/micro/go-micro/sync/time"
 )
 
-// DB provides synchronized access to key-value storage.
+// Map provides synchronized access to key-value storage.
 // It uses the data interface and lock interface to
 // provide a consistent storage mechanism.
-type DB interface {
+type Map interface {
 	// Read value with given key
 	Read(key, val interface{}) error
 	// Write value with given key
