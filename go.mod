@@ -7,7 +7,6 @@ require (
 	github.com/beevik/ntp v0.2.0
 	github.com/bitly/go-simplejson v0.5.0
 	github.com/bwmarrin/discordgo v0.19.0
-	github.com/coreos/etcd v3.3.13+incompatible
 	github.com/forestgiant/sliceutil v0.0.0-20160425183142-94783f95db6c
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/fsouza/go-dockerclient v1.4.1
@@ -36,9 +35,8 @@ require (
 	github.com/nlopes/slack v0.5.0
 	github.com/pkg/errors v0.8.1
 	github.com/technoweenie/multipartstreamer v1.0.1 // indirect
-	go.etcd.io/etcd v3.3.13+incompatible
 	golang.org/x/crypto v0.0.0-20190605123033-f99c8df09eb5
-	golang.org/x/net v0.0.0-20190606173856-1492cefac77f
+	golang.org/x/net v0.0.0-20190607181551-461777fb6f67
 	google.golang.org/grpc v1.21.1
 	gopkg.in/go-playground/validator.v9 v9.29.0
 	gopkg.in/src-d/go-git.v4 v4.11.0
