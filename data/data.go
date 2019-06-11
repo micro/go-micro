@@ -28,7 +28,7 @@ type Data interface {
 
 // Record represents a data record
 type Record struct {
-	Key        string
-	Value      []byte
-	Expiration time.Duration
+	Key    string
+	Value  []byte
+	Expiry time.Duration
 }
