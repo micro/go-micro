@@ -1,4 +1,4 @@
-// Package router provides an interface for micro network routers
+// Package router provides an interface for micro network router
 package router
 
 // Router is micro network router
@@ -9,11 +9,15 @@ type Router interface {
 	Options() Options
 	// Table returns routing table
 	Table() Table
-	// Address returns router gossip adddress
+	// Address returns router adddress
 	Address() string
-	// Network returns micro network address
+	// Network returns router network address
 	Network() string
-	// String implemens fmt.Stringer interface
+	// Start starts router
+	Start() error
+	// Stop stops router
+	Stop() error
+	// String returns router debug info
 	String() string
 }
 
@@ -31,6 +35,9 @@ type RouteOption func(*RouteOptions)
 
 // QueryOption is used to define query options
 type QueryOption func(*QueryOptions)
+
+// WatchOption is used to define what routes to watch in the table
+type WatchOption func(*WatchOptions)
 
 // NewRouter creates new Router and returns it
 func NewRouter(opts ...Option) Router {

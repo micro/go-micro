@@ -14,8 +14,8 @@ const (
 type RouteOptions struct {
 	// DestAddr is destination address
 	DestAddr string
-	// Hop is the next route hop
-	Hop Router
+	// Gateway is the next route hop
+	Gateway Router
 	// Network defines micro network
 	Network string
 	// Metric is route cost metric
@@ -31,10 +31,10 @@ func DestAddr(a string) RouteOption {
 	}
 }
 
-// Hop allows to set the route route options
-func Hop(r Router) RouteOption {
+// Gateway sets the route gateway
+func Gateway(r Router) RouteOption {
 	return func(o *RouteOptions) {
-		o.Hop = r
+		o.Gateway = r
 	}
 }
 

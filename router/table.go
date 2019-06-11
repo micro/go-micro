@@ -8,6 +8,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/google/uuid"
 	"github.com/olekukonko/tablewriter"
 )
 
@@ -24,12 +25,14 @@ var (
 type Table interface {
 	// Add adds new route to the table
 	Add(Route) error
-	// Remove removes route from the table
+	// Remove removes existing route from the table
 	Remove(Route) error
 	// Update updates route in the table
 	Update(...RouteOption) error
 	// Lookup looks up routes in the table
 	Lookup(Query) ([]Route, error)
+	// Watch returns a watcher which allows you to track updates to the table
+	Watch(opts ...WatchOption) (Watcher, error)
 	// Size returns the size of the table
 	Size() int
 	// String prints the routing table
@@ -37,12 +40,13 @@ type Table interface {
 }
 
 // table is routing table
-// It maps service name to routes
 type table struct {
 	// m stores routing table map
-	m map[uint64]Route
-	// h is a hasher hashes route entries
+	m map[string]map[uint64]Route
+	// h hashes route entries
 	h hash.Hash64
+	// w is a list of table watchers
+	w map[string]*tableWatcher
 	sync.RWMutex
 }
 
@@ -52,71 +56,118 @@ func NewTable() Table {
 	h.Reset()
 
 	return &table{
-		m: make(map[uint64]Route),
+		m: make(map[string]map[uint64]Route),
+		w: make(map[string]*tableWatcher),
 		h: h,
 	}
 }
 
-// Add adds new routing entry
+// Add adds a route to the routing table
 func (t *table) Add(r Route) error {
 	t.Lock()
 	defer t.Unlock()
 
+	destAddr := r.Options().DestAddr
 	sum := t.hash(r)
 
-	if _, ok := t.m[sum]; !ok {
-		t.m[sum] = r
+	if _, ok := t.m[destAddr]; !ok {
+		t.m[destAddr] = make(map[uint64]Route)
+		t.m[destAddr][sum] = r
+		go t.sendResult(&Result{Action: "add", Route: r})
 		return nil
 	}
 
-	if _, ok := t.m[sum]; ok && r.Options().Policy == OverrideIfExists {
-		t.m[sum] = r
+	if _, ok := t.m[destAddr][sum]; ok && r.Options().Policy == OverrideIfExists {
+		t.m[destAddr][sum] = r
+		go t.sendResult(&Result{Action: "update", Route: r})
 		return nil
 	}
 
 	return ErrDuplicateRoute
 }
 
-// Remove removes entry from the routing table
+// Remove removes the route from the routing table
 func (t *table) Remove(r Route) error {
 	t.Lock()
 	defer t.Unlock()
 
+	destAddr := r.Options().DestAddr
 	sum := t.hash(r)
 
-	if _, ok := t.m[sum]; !ok {
+	if _, ok := t.m[destAddr]; !ok {
 		return ErrRouteNotFound
 	}
 
-	delete(t.m, sum)
+	delete(t.m[destAddr], sum)
+	go t.sendResult(&Result{Action: "remove", Route: r})
 
 	return nil
 }
 
-// Update updates routing entry
+// Update updates routing table using propvided options
 func (t *table) Update(opts ...RouteOption) error {
 	t.Lock()
 	defer t.Unlock()
 
 	r := NewRoute(opts...)
 
+	destAddr := r.Options().DestAddr
 	sum := t.hash(r)
 
-	if _, ok := t.m[sum]; !ok {
+	if _, ok := t.m[destAddr]; !ok {
 		return ErrRouteNotFound
 	}
 
-	if _, ok := t.m[sum]; ok {
-		t.m[sum] = r
+	if _, ok := t.m[destAddr][sum]; ok {
+		t.m[destAddr][sum] = r
+		go t.sendResult(&Result{Action: "update", Route: r})
 		return nil
 	}
 
 	return ErrRouteNotFound
 }
 
-// Lookup looks up entry in the routing table
+// Lookup queries routing table and returns all routes that match it
 func (t *table) Lookup(q Query) ([]Route, error) {
 	return nil, ErrNotImplemented
+}
+
+// Watch returns routing table entry watcher
+func (t *table) Watch(opts ...WatchOption) (Watcher, error) {
+	// by default watch everything
+	wopts := WatchOptions{
+		DestAddr: "*",
+		Network:  "*",
+	}
+
+	for _, o := range opts {
+		o(&wopts)
+	}
+
+	watcher := &tableWatcher{
+		opts:    wopts,
+		resChan: make(chan *Result, 10),
+		done:    make(chan struct{}),
+	}
+
+	t.Lock()
+	t.w[uuid.New().String()] = watcher
+	t.Unlock()
+
+	return watcher, nil
+}
+
+// sendResult sends rules to all subscribe watchers
+func (t *table) sendResult(r *Result) {
+	t.RLock()
+	defer t.RUnlock()
+
+	for _, w := range t.w {
+		select {
+		case w.resChan <- r:
+		case <-w.done:
+		}
+	}
 }
 
 // Size returns the size of the routing table
@@ -127,7 +178,7 @@ func (t *table) Size() int {
 	return len(t.m)
 }
 
-// String returns text representation of routing table
+// String returns debug information
 func (t *table) String() string {
 	t.RLock()
 	defer t.RUnlock()
@@ -137,16 +188,18 @@ func (t *table) String() string {
 
 	// create nice table printing structure
 	table := tablewriter.NewWriter(sb)
-	table.SetHeader([]string{"Service", "Gateway", "Network", "Metric"})
+	table.SetHeader([]string{"Destination", "Gateway", "Network", "Metric"})
 
-	for _, route := range t.m {
-		strRoute := []string{
-			route.Options().DestAddr,
-			route.Options().Hop.Address(),
-			route.Options().Network,
-			fmt.Sprintf("%d", route.Options().Metric),
+	for _, destRoute := range t.m {
+		for _, route := range destRoute {
+			strRoute := []string{
+				route.Options().DestAddr,
+				route.Options().Gateway.Address(),
+				route.Options().Gateway.Network(),
+				fmt.Sprintf("%d", route.Options().Metric),
+			}
+			table.Append(strRoute)
 		}
-		table.Append(strRoute)
 	}
 
 	// render table into sb
@@ -155,13 +208,13 @@ func (t *table) String() string {
 	return sb.String()
 }
 
+// hash hashes the route using router gateway and network address
 func (t *table) hash(r Route) uint64 {
-	destAddr := r.Options().DestAddr
-	routerAddr := r.Options().Hop.Address()
-	network := r.Options().Network
+	gwAddr := r.Options().Gateway.Address()
+	netAddr := r.Options().Network
 
 	t.h.Reset()
-	t.h.Write([]byte(destAddr + routerAddr + network))
+	t.h.Write([]byte(gwAddr + netAddr))
 
 	return t.h.Sum64()
 }

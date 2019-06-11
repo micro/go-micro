@@ -3,7 +3,9 @@ package router
 import (
 	"fmt"
 	"strings"
+	"sync"
 
+	"github.com/micro/go-log"
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/registry/gossip"
 	"github.com/olekukonko/tablewriter"
@@ -12,6 +14,8 @@ import (
 type router struct {
 	opts Options
 	goss registry.Registry
+	exit chan struct{}
+	wg   *sync.WaitGroup
 }
 
 func newRouter(opts ...Option) Router {
@@ -20,22 +24,22 @@ func newRouter(opts ...Option) Router {
 		Table: NewTable(),
 	}
 
+	// apply requested options
 	for _, o := range opts {
 		o(&options)
 	}
 
+	// bind to gossip address to join gossip registry
 	goss := gossip.NewRegistry(
 		gossip.Address(options.GossipAddr),
 	)
 
-	r := &router{
+	return &router{
 		opts: options,
 		goss: goss,
+		exit: make(chan struct{}),
+		wg:   &sync.WaitGroup{},
 	}
-
-	// TODO: start gossip.Registry watch here
-
-	return r
 }
 
 // Init initializes router with given options
@@ -64,6 +68,118 @@ func (r *router) Address() string {
 // Network returns router's micro network
 func (r *router) Network() string {
 	return r.opts.NetworkAddr
+}
+
+// Start starts the router
+func (r *router) Start() error {
+	// TODO:
+	// - list all remote services and populate routing table
+	// - list all local services and populate remote registry
+
+	gWatcher, err := r.goss.Watch()
+	if err != nil {
+		return fmt.Errorf("failed to create router gossip registry watcher: %v", err)
+	}
+
+	tWatcher, err := r.opts.Table.Watch()
+	if err != nil {
+		return fmt.Errorf("failed to create routing table watcher: %v", err)
+	}
+
+	r.wg.Add(1)
+	go r.watchGossip(gWatcher)
+
+	r.wg.Add(1)
+	go r.watchTable(tWatcher)
+
+	return nil
+}
+
+// watch gossip registry
+func (r *router) watchGossip(w registry.Watcher) error {
+	defer r.wg.Done()
+
+	r.wg.Add(1)
+	go func() {
+		defer r.wg.Done()
+		<-r.exit
+		// stop gossip registry watcher
+		w.Stop()
+	}()
+
+	var watchErr error
+
+	// watch for changes to services
+	for {
+		res, err := w.Next()
+		if err == registry.ErrWatcherStopped {
+			break
+		}
+
+		if err != nil {
+			watchErr = err
+			break
+		}
+
+		switch res.Action {
+		case "create":
+			if len(res.Service.Nodes) > 0 {
+				log.Logf("Action: %s, Service: %v", res.Action, res.Service.Name)
+			}
+		case "delete":
+			log.Logf("Action: %s, Service: %v", res.Action, res.Service.Name)
+		}
+	}
+
+	return watchErr
+}
+
+// watch gossip registry
+func (r *router) watchTable(w Watcher) error {
+	defer r.wg.Done()
+
+	r.wg.Add(1)
+	go func() {
+		defer r.wg.Done()
+		<-r.exit
+		// stop gossip registry watcher
+		w.Stop()
+	}()
+
+	var watchErr error
+
+	// watch for changes to services
+	for {
+		res, err := w.Next()
+		if err == ErrWatcherStopped {
+			break
+		}
+
+		if err != nil {
+			watchErr = err
+			break
+		}
+
+		switch res.Action {
+		case "add":
+			log.Logf("Action: %s, Route: %v", res.Action, res.Route)
+		case "remove":
+			log.Logf("Action: %s, Route: %v", res.Action, res.Route)
+		}
+	}
+
+	return watchErr
+}
+
+// Stop stops the router
+func (r *router) Stop() error {
+	// notify all goroutines to finish
+	close(r.exit)
+
+	// wait for all goroutines to finish
+	r.wg.Wait()
+
+	return nil
 }
 
 // String prints debugging information about router

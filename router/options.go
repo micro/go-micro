@@ -29,21 +29,21 @@ func ID(id string) Option {
 	}
 }
 
-// Address allows to set router address
+// Address sets router address
 func Address(a string) Option {
 	return func(o *Options) {
 		o.Address = a
 	}
 }
 
-// GossipAddress allows to set router address
-func GossipAddress(a string) Option {
+// GossipAddr sets router gossip address
+func GossipAddr(a string) Option {
 	return func(o *Options) {
 		o.GossipAddr = a
 	}
 }
 
-// NetworkAddr allows to set router network
+// NetworkAddr sets router network address
 func NetworkAddr(n string) Option {
 	return func(o *Options) {
 		o.NetworkAddr = n

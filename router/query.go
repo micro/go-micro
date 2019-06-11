@@ -13,26 +13,17 @@ const (
 // QueryOptions allow to define routing table query options
 type QueryOptions struct {
 	// Route allows to set route options
-	Route *RouteOptions
-	// Service is micro service name
-	Service string
+	RouteOptions *RouteOptions
 	// Policy defines query lookup policy
 	Policy LookupPolicy
 	// Count defines max number of results to return
 	Count int
 }
 
-// RouteOpts allows to set the route query options
-func RouteOpts(r *RouteOptions) QueryOption {
+// QueryRouteOpts allows to set the route query options
+func QueryRouteOptons(r *RouteOptions) QueryOption {
 	return func(o *QueryOptions) {
-		o.Route = r
-	}
-}
-
-// Service allows to set the service name in routing query
-func Service(s string) QueryOption {
-	return func(o *QueryOptions) {
-		o.Service = s
+		o.RouteOptions = r
 	}
 }
 
@@ -43,8 +34,8 @@ func QueryPolicy(p LookupPolicy) QueryOption {
 	}
 }
 
-// ResultCount allows to set max results to return
-func ResultCount(c int) QueryOption {
+// QueryCount allows to set max results to return
+func QueryCount(c int) QueryOption {
 	return func(o *QueryOptions) {
 		o.Count = c
 	}
