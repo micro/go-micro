@@ -6,9 +6,9 @@ import (
 	"net"
 	"time"
 
+	cetcd "github.com/coreos/etcd/clientv3"
+	"github.com/coreos/etcd/mvcc/mvccpb"
 	"github.com/micro/go-micro/config/source"
-	cetcd "go.etcd.io/etcd/clientv3"
-	"go.etcd.io/etcd/mvcc/mvccpb"
 )
 
 // Currently a single etcd reader
@@ -100,8 +100,15 @@ func NewSource(opts ...source.Option) source.Source {
 		endpoints = []string{"localhost:2379"}
 	}
 
+	// check dial timeout option
+	dialTimeout, ok := options.Context.Value(dialTimeoutKey{}).(time.Duration)
+	if !ok {
+		dialTimeout = 3 * time.Second // default dial timeout
+	}
+
 	config := cetcd.Config{
-		Endpoints: endpoints,
+		Endpoints:   endpoints,
+		DialTimeout: dialTimeout,
 	}
 
 	u, ok := options.Context.Value(authKey{}).(*authCreds)
