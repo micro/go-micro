@@ -1,4 +1,4 @@
-// Package data is an interface for key-value storage.
+// Package data is an interface for distribute data storage.
 package data
 
 import (
