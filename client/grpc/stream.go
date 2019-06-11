@@ -12,12 +12,12 @@ import (
 // Implements the streamer interface
 type grpcStream struct {
 	sync.RWMutex
-	err     error
-	conn    *grpc.ClientConn
-	stream  grpc.ClientStream
-	request client.Request
+	err      error
+	conn     *grpc.ClientConn
+	stream   grpc.ClientStream
+	request  client.Request
 	response client.Response
-	context context.Context
+	context  context.Context
 }
 
 func (g *grpcStream) Context() context.Context {

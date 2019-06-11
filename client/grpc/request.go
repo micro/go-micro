@@ -15,7 +15,7 @@ type grpcRequest struct {
 	contentType string
 	request     interface{}
 	opts        client.RequestOptions
-	codec codec.Codec
+	codec       codec.Codec
 }
 
 func methodToGRPC(method string, request interface{}) string {

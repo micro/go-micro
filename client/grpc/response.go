@@ -5,12 +5,13 @@ import (
 
 	"github.com/micro/go-micro/codec"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/encoding"
 )
 
 type response struct {
-	conn *grpc.ClientConn
+	conn   *grpc.ClientConn
 	stream grpc.ClientStream
-	codec grpc.Codec
+	codec  encoding.Codec
 }
 
 // Read the response

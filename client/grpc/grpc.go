@@ -6,9 +6,9 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"os"
 	"sync"
 	"time"
-	"os"
 
 	"github.com/micro/go-micro/broker"
 	"github.com/micro/go-micro/client"
@@ -49,17 +49,17 @@ func (g *grpcClient) secure() grpc.DialOption {
 }
 
 func (g *grpcClient) next(request client.Request, opts client.CallOptions) (selector.Next, error) {
-        service := request.Service()
+	service := request.Service()
 
-        // get proxy
-        if prx := os.Getenv("MICRO_PROXY"); len(prx) > 0 {
-                service = prx
-        }
+	// get proxy
+	if prx := os.Getenv("MICRO_PROXY"); len(prx) > 0 {
+		service = prx
+	}
 
-        // get proxy address
-        if prx := os.Getenv("MICRO_PROXY_ADDRESS"); len(prx) > 0 {
-                opts.Address = prx
-        }
+	// get proxy address
+	if prx := os.Getenv("MICRO_PROXY_ADDRESS"); len(prx) > 0 {
+		opts.Address = prx
+	}
 
 	// return remote address
 	if len(opts.Address) > 0 {
@@ -112,7 +112,7 @@ func (g *grpcClient) call(ctx context.Context, node *registry.Node, req client.R
 
 	var grr error
 
-	cc, err := g.pool.getConn(address, grpc.WithDefaultCallOptions(grpc.CallCustomCodec(cf)),
+	cc, err := g.pool.getConn(address, grpc.WithDefaultCallOptions(grpc.ForceCodec(cf)),
 		grpc.WithTimeout(opts.DialTimeout), g.secure(),
 		grpc.WithDefaultCallOptions(
 			grpc.MaxCallRecvMsgSize(maxRecvMsgSize),
@@ -129,7 +129,7 @@ func (g *grpcClient) call(ctx context.Context, node *registry.Node, req client.R
 	ch := make(chan error, 1)
 
 	go func() {
-		err := cc.Invoke(ctx, methodToGRPC(req.Endpoint(), req.Body()), req.Body(), rsp, grpc.CallContentSubtype(cf.String()))
+		err := cc.Invoke(ctx, methodToGRPC(req.Endpoint(), req.Body()), req.Body(), rsp, grpc.ForceCodec(cf))
 		ch <- microError(err)
 	}()
 
@@ -194,17 +194,17 @@ func (g *grpcClient) stream(ctx context.Context, node *registry.Node, req client
 	}
 
 	rsp := &response{
-		conn: cc,
+		conn:   cc,
 		stream: st,
-		codec: cf,
+		codec:  cf,
 	}
 
 	return &grpcStream{
-		context: ctx,
-		request: req,
+		context:  ctx,
+		request:  req,
 		response: rsp,
-		stream:  st,
-		conn:    cc,
+		stream:   st,
+		conn:     cc,
 	}, nil
 }
 
@@ -230,7 +230,7 @@ func (g *grpcClient) maxSendMsgSizeValue() int {
 	return v.(int)
 }
 
-func (g *grpcClient) newGRPCCodec(contentType string) (grpc.Codec, error) {
+func (g *grpcClient) newGRPCCodec(contentType string) (encoding.Codec, error) {
 	codecs := make(map[string]encoding.Codec)
 	if g.opts.Context != nil {
 		if v := g.opts.Context.Value(codecsKey{}); v != nil {
