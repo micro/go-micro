@@ -40,7 +40,7 @@ func newRpcServer(opts ...Option) Server {
 
 	return &rpcServer{
 		opts:        options,
-		router:      DefaultRouter,
+		router:      router,
 		handlers:    make(map[string]Handler),
 		subscribers: make(map[*subscriber][]broker.Subscriber),
 		exit:        make(chan chan error),
