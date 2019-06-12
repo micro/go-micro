@@ -6,24 +6,26 @@ import (
 	"net"
 
 	"github.com/hashicorp/consul/api"
-	"github.com/micro/go-micro/sync/data"
+	"github.com/micro/go-micro/options"
+	"github.com/micro/go-micro/store"
 )
 
 type ckv struct {
+	options.Options
 	client *api.Client
 }
 
-func (c *ckv) Read(key string) (*data.Record, error) {
+func (c *ckv) Read(key string) (*store.Record, error) {
 	keyval, _, err := c.client.KV().Get(key, nil)
 	if err != nil {
 		return nil, err
 	}
 
 	if keyval == nil {
-		return nil, data.ErrNotFound
+		return nil, store.ErrNotFound
 	}
 
-	return &data.Record{
+	return &store.Record{
 		Key:   keyval.Key,
 		Value: keyval.Value,
 	}, nil
@@ -34,7 +36,7 @@ func (c *ckv) Delete(key string) error {
 	return err
 }
 
-func (c *ckv) Write(record *data.Record) error {
+func (c *ckv) Write(record *store.Record) error {
 	_, err := c.client.KV().Put(&api.KVPair{
 		Key:   record.Key,
 		Value: record.Value,
@@ -42,17 +44,17 @@ func (c *ckv) Write(record *data.Record) error {
 	return err
 }
 
-func (c *ckv) Dump() ([]*data.Record, error) {
+func (c *ckv) Dump() ([]*store.Record, error) {
 	keyval, _, err := c.client.KV().List("/", nil)
 	if err != nil {
 		return nil, err
 	}
 	if keyval == nil {
-		return nil, data.ErrNotFound
+		return nil, store.ErrNotFound
 	}
-	var vals []*data.Record
+	var vals []*store.Record
 	for _, keyv := range keyval {
-		vals = append(vals, &data.Record{
+		vals = append(vals, &store.Record{
 			Key:   keyv.Key,
 			Value: keyv.Value,
 		})
@@ -64,22 +66,22 @@ func (c *ckv) String() string {
 	return "consul"
 }
 
-func NewData(opts ...data.Option) data.Data {
-	var options data.Options
-	for _, o := range opts {
-		o(&options)
-	}
-
+func NewStore(opts ...options.Option) store.Store {
+	options := options.NewOptions(opts...)
 	config := api.DefaultConfig()
 
+	var nodes []string
+
+	if n, ok := options.Values().Get("store.nodes"); ok {
+		nodes = n.([]string)
+	}
+
 	// set host
-	// config.Host something
-	// check if there are any addrs
-	if len(options.Nodes) > 0 {
-		addr, port, err := net.SplitHostPort(options.Nodes[0])
+	if len(nodes) > 0 {
+		addr, port, err := net.SplitHostPort(nodes[0])
 		if ae, ok := err.(*net.AddrError); ok && ae.Err == "missing port in address" {
 			port = "8500"
-			config.Address = fmt.Sprintf("%s:%s", options.Nodes[0], port)
+			config.Address = fmt.Sprintf("%s:%s", nodes[0], port)
 		} else if err == nil {
 			config.Address = fmt.Sprintf("%s:%s", addr, port)
 		}
@@ -88,6 +90,7 @@ func NewData(opts ...data.Option) data.Data {
 	client, _ := api.NewClient(config)
 
 	return &ckv{
-		client: client,
+		Options: options,
+		client:  client,
 	}
 }

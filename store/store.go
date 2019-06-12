@@ -1,17 +1,21 @@
-// Package data is an interface for key-value storage.
-package data
+// Package store is an interface for distribute data storage.
+package store
 
 import (
 	"errors"
 	"time"
+
+	"github.com/micro/go-micro/options"
 )
 
 var (
 	ErrNotFound = errors.New("not found")
 )
 
-// Data is a data storage interface
-type Data interface {
+// Store is a data storage interface
+type Store interface {
+	// embed options
+	options.Options
 	// Dump the known records
 	Dump() ([]*Record, error)
 	// Read a record with key
@@ -24,9 +28,7 @@ type Data interface {
 
 // Record represents a data record
 type Record struct {
-	Key        string
-	Value      []byte
-	Expiration time.Duration
+	Key    string
+	Value  []byte
+	Expiry time.Duration
 }
-
-type Option func(o *Options)

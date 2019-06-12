@@ -2,17 +2,17 @@
 package sync
 
 import (
-	"github.com/micro/go-micro/sync/data"
+	"github.com/micro/go-micro/store"
 	"github.com/micro/go-micro/sync/leader"
 	"github.com/micro/go-micro/sync/lock"
 	"github.com/micro/go-micro/sync/task"
 	"github.com/micro/go-micro/sync/time"
 )
 
-// DB provides synchronized access to key-value storage.
-// It uses the data interface and lock interface to
+// Map provides synchronized access to key-value storage.
+// It uses the store interface and lock interface to
 // provide a consistent storage mechanism.
-type DB interface {
+type Map interface {
 	// Read value with given key
 	Read(key, val interface{}) error
 	// Write value with given key
@@ -33,7 +33,7 @@ type Cron interface {
 type Options struct {
 	Leader leader.Leader
 	Lock   lock.Lock
-	Data   data.Data
+	Store  store.Store
 	Task   task.Task
 	Time   time.Time
 }
