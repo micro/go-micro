@@ -22,6 +22,7 @@ var (
 	timeout = time.Millisecond * 10
 )
 
+/*
 // Setup sets mock data
 func (m *Registry) Setup() {
 	m.Lock()
@@ -30,6 +31,7 @@ func (m *Registry) Setup() {
 	// add some memory data
 	m.Services = Data
 }
+*/
 
 func (m *Registry) watch(r *registry.Result) {
 	var watchers []*Watcher

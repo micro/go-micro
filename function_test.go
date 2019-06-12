@@ -14,7 +14,7 @@ func TestFunction(t *testing.T) {
 	wg.Add(1)
 
 	r := memory.NewRegistry()
-	r.(*memory.Registry).Setup()
+	r.(*memory.Registry).Services = testData
 
 	// create service
 	fn := NewFunction(

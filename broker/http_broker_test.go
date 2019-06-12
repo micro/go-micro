@@ -14,7 +14,7 @@ import (
 func newTestRegistry() *memory.Registry {
 	r := memory.NewRegistry()
 	m := r.(*memory.Registry)
-	m.Setup()
+	m.Services = testData
 	return m
 }
 

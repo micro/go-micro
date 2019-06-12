@@ -1,4 +1,4 @@
-package memory
+package micro
 
 import (
 	"github.com/micro/go-micro/registry"
@@ -6,7 +6,7 @@ import (
 
 var (
 	// mock data
-	Data = map[string][]*registry.Service{
+	testData = map[string][]*registry.Service{
 		"foo": []*registry.Service{
 			{
 				Name:    "foo",
