@@ -12,18 +12,25 @@ const (
 
 // QueryOptions allow to define routing table query options
 type QueryOptions struct {
-	// Route allows to set route options
-	RouteOptions *RouteOptions
+	// DestAddr defines destination address
+	DestAddr string
+	// NetworkAddress defines network address
+	Network string
 	// Policy defines query lookup policy
 	Policy LookupPolicy
-	// Count defines max number of results to return
-	Count int
 }
 
-// QueryRouteOpts allows to set the route query options
-func QueryRouteOptons(r *RouteOptions) QueryOption {
+// QueryDestAddr sets query destination address
+func QueryDestAddr(a string) QueryOption {
 	return func(o *QueryOptions) {
-		o.RouteOptions = r
+		o.DestAddr = a
+	}
+}
+
+// QueryNetwork sets query network address
+func QueryNetwork(a string) QueryOption {
+	return func(o *QueryOptions) {
+		o.Network = a
 	}
 }
 
@@ -31,13 +38,6 @@ func QueryRouteOptons(r *RouteOptions) QueryOption {
 func QueryPolicy(p LookupPolicy) QueryOption {
 	return func(o *QueryOptions) {
 		o.Policy = p
-	}
-}
-
-// QueryCount allows to set max results to return
-func QueryCount(c int) QueryOption {
-	return func(o *QueryOptions) {
-		o.Count = c
 	}
 }
 
@@ -53,7 +53,12 @@ type query struct {
 
 // NewQuery creates new query and returns it
 func NewQuery(opts ...QueryOption) Query {
-	qopts := QueryOptions{}
+	// default options
+	qopts := QueryOptions{
+		DestAddr: "*",
+		Network:  "*",
+		Policy:   DiscardNoRoute,
+	}
 
 	for _, o := range opts {
 		o(&qopts)

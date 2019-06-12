@@ -1,11 +1,15 @@
 package router
 
+import "context"
+
 // AddPolicy defines routing table addition policy
 type AddPolicy int
 
 const (
 	// Override overrides existing routing table route
 	OverrideIfExists AddPolicy = iota
+	// IgnoreIfExists does not add new route
+	IgnoreIfExists
 	// ErrIfExists returns error if the route already exists
 	ErrIfExists
 )
@@ -22,6 +26,8 @@ type RouteOptions struct {
 	Metric int
 	// Policy defines route addition policy
 	Policy AddPolicy
+	// Context stores other arbitrary options
+	Context context.Context
 }
 
 // DestAddr sets destination address

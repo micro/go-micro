@@ -54,14 +54,14 @@ type tableWatcher struct {
 	done    chan struct{}
 }
 
-// TODO: We might simply use Query here once QueryLookup is figured out
+// TODO: this needs to be thought through properly
 // Next returns the next noticed action taken on table
 func (w *tableWatcher) Next() (*Result, error) {
 	for {
 		select {
 		case res := <-w.resChan:
 			switch w.opts.DestAddr {
-			case "*":
+			case "*", "":
 				if w.opts.Network == "*" || w.opts.Network == res.Route.Options().Network {
 					return res, nil
 				}

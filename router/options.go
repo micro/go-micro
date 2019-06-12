@@ -1,25 +1,35 @@
 package router
 
 import (
-	"context"
+	"github.com/google/uuid"
+	"github.com/micro/go-micro/registry"
 )
 
-// Options allows to set Router options
+var (
+	// DefaultAddress is default router bind address
+	DefaultAddress = ":9093"
+	// DefaultNetworkAddress is default micro network bind address
+	DefaultNetworkAddress = ":9094"
+)
+
+// Options allows to set router options
 type Options struct {
 	// ID is router ID
 	ID string
 	// Address is router address
 	Address string
-	// GossipAddr is router gossip address
-	GossipAddr string
-	// NetworkAddr defines micro network address
-	NetworkAddr string
-	// RIB is Routing Information Base
-	RIB RIB
+	// GossipAddress is router gossip address
+	GossipAddress string
+	// NetworkAddress is micro network address
+	NetworkAddress string
+	// LocalRegistry is router local registry
+	LocalRegistry registry.Registry
+	// NetworkRegistry is router remote registry
+	NetworkRegistry registry.Registry
 	// Table is routing table
 	Table Table
-	// Context stores arbitrary options
-	Context context.Context
+	// RIB is Routing Information Base
+	RIB RIB
 }
 
 // ID sets Router ID
@@ -36,24 +46,17 @@ func Address(a string) Option {
 	}
 }
 
-// GossipAddr sets router gossip address
-func GossipAddr(a string) Option {
+// GossipAddress sets router gossip address
+func GossipAddress(a string) Option {
 	return func(o *Options) {
-		o.GossipAddr = a
+		o.GossipAddress = a
 	}
 }
 
-// NetworkAddr sets router network address
-func NetworkAddr(n string) Option {
+// NetworkAddress sets router network address
+func NetworkAddress(n string) Option {
 	return func(o *Options) {
-		o.NetworkAddr = n
-	}
-}
-
-// RIBase allows to configure RIB
-func RIBase(r RIB) Option {
-	return func(o *Options) {
-		o.RIB = r
+		o.NetworkAddress = n
 	}
 }
 
@@ -61,5 +64,40 @@ func RIBase(r RIB) Option {
 func RoutingTable(t Table) Option {
 	return func(o *Options) {
 		o.Table = t
+	}
+}
+
+// LocalRegistry allows to specify local registry
+func LocalRegistry(r registry.Registry) Option {
+	return func(o *Options) {
+		o.LocalRegistry = r
+	}
+}
+
+// NetworkRegistry allows to specify remote registry
+func NetworkRegistry(r registry.Registry) Option {
+	return func(o *Options) {
+		o.NetworkRegistry = r
+	}
+}
+
+// RouterIB allows to configure RIB
+func RouterIB(r RIB) Option {
+	return func(o *Options) {
+		o.RIB = r
+	}
+}
+
+// DefaultOptions returns router default options
+func DefaultOptions() Options {
+	// NOTE: by default both local and network registies use default registry i.e. mdns
+	// TODO: DefaultRIB needs to be added once it's properly figured out
+	return Options{
+		ID:              uuid.New().String(),
+		Address:         DefaultAddress,
+		NetworkAddress:  DefaultNetworkAddress,
+		LocalRegistry:   registry.DefaultRegistry,
+		NetworkRegistry: registry.DefaultRegistry,
+		Table:           NewTable(),
 	}
 }

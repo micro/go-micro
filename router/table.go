@@ -28,7 +28,7 @@ type Table interface {
 	// Remove removes existing route from the table
 	Remove(Route) error
 	// Update updates route in the table
-	Update(...RouteOption) error
+	Update(Route) error
 	// Lookup looks up routes in the table
 	Lookup(Query) ([]Route, error)
 	// Watch returns a watcher which allows you to track updates to the table
@@ -83,6 +83,10 @@ func (t *table) Add(r Route) error {
 		return nil
 	}
 
+	if r.Options().Policy == IgnoreIfExists {
+		return nil
+	}
+
 	return ErrDuplicateRoute
 }
 
@@ -104,12 +108,10 @@ func (t *table) Remove(r Route) error {
 	return nil
 }
 
-// Update updates routing table using propvided options
-func (t *table) Update(opts ...RouteOption) error {
+// Update updates routing table with new route
+func (t *table) Update(r Route) error {
 	t.Lock()
 	defer t.Unlock()
-
-	r := NewRoute(opts...)
 
 	destAddr := r.Options().DestAddr
 	sum := t.hash(r)
@@ -129,7 +131,37 @@ func (t *table) Update(opts ...RouteOption) error {
 
 // Lookup queries routing table and returns all routes that match it
 func (t *table) Lookup(q Query) ([]Route, error) {
-	return nil, ErrNotImplemented
+	t.RLock()
+	defer t.RUnlock()
+
+	var results []Route
+
+	for destAddr, routes := range t.m {
+		if q.Options().DestAddr != "*" {
+			if q.Options().DestAddr != destAddr {
+				continue
+			}
+			for _, route := range routes {
+				if q.Options().Network == "*" || q.Options().Network == route.Options().Network {
+					results = append(results, route)
+				}
+			}
+		}
+
+		if q.Options().DestAddr == "*" {
+			for _, route := range routes {
+				if q.Options().Network == "*" || q.Options().Network == route.Options().Network {
+					results = append(results, route)
+				}
+			}
+		}
+	}
+
+	if len(results) == 0 && q.Options().Policy != DiscardNoRoute {
+		return nil, ErrRouteNotFound
+	}
+
+	return results, nil
 }
 
 // Watch returns routing table entry watcher
