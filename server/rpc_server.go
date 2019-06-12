@@ -611,5 +611,5 @@ func (s *rpcServer) Stop() error {
 }
 
 func (s *rpcServer) String() string {
-	return "rpc"
+	return "mucp"
 }

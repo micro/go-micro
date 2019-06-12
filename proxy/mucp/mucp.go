@@ -9,7 +9,7 @@ import (
 	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/codec"
 	"github.com/micro/go-micro/codec/bytes"
-	"github.com/micro/go-micro/options"
+	"github.com/micro/go-micro/config/options"
 	"github.com/micro/go-micro/proxy"
 	"github.com/micro/go-micro/server"
 )

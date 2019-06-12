@@ -11,7 +11,7 @@ import (
 	"path"
 
 	"github.com/micro/go-micro/errors"
-	"github.com/micro/go-micro/options"
+	"github.com/micro/go-micro/config/options"
 	"github.com/micro/go-micro/proxy"
 	"github.com/micro/go-micro/server"
 )
