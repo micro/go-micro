@@ -6,8 +6,8 @@ import (
 	"net"
 
 	"github.com/hashicorp/consul/api"
-	"github.com/micro/go-micro/data"
 	"github.com/micro/go-micro/options"
+	"github.com/micro/go-micro/store"
 )
 
 type ckv struct {
@@ -15,17 +15,17 @@ type ckv struct {
 	client *api.Client
 }
 
-func (c *ckv) Read(key string) (*data.Record, error) {
+func (c *ckv) Read(key string) (*store.Record, error) {
 	keyval, _, err := c.client.KV().Get(key, nil)
 	if err != nil {
 		return nil, err
 	}
 
 	if keyval == nil {
-		return nil, data.ErrNotFound
+		return nil, store.ErrNotFound
 	}
 
-	return &data.Record{
+	return &store.Record{
 		Key:   keyval.Key,
 		Value: keyval.Value,
 	}, nil
@@ -36,7 +36,7 @@ func (c *ckv) Delete(key string) error {
 	return err
 }
 
-func (c *ckv) Write(record *data.Record) error {
+func (c *ckv) Write(record *store.Record) error {
 	_, err := c.client.KV().Put(&api.KVPair{
 		Key:   record.Key,
 		Value: record.Value,
@@ -44,17 +44,17 @@ func (c *ckv) Write(record *data.Record) error {
 	return err
 }
 
-func (c *ckv) Dump() ([]*data.Record, error) {
+func (c *ckv) Dump() ([]*store.Record, error) {
 	keyval, _, err := c.client.KV().List("/", nil)
 	if err != nil {
 		return nil, err
 	}
 	if keyval == nil {
-		return nil, data.ErrNotFound
+		return nil, store.ErrNotFound
 	}
-	var vals []*data.Record
+	var vals []*store.Record
 	for _, keyv := range keyval {
-		vals = append(vals, &data.Record{
+		vals = append(vals, &store.Record{
 			Key:   keyv.Key,
 			Value: keyv.Value,
 		})
@@ -66,13 +66,13 @@ func (c *ckv) String() string {
 	return "consul"
 }
 
-func NewData(opts ...options.Option) data.Data {
+func NewStore(opts ...options.Option) store.Store {
 	options := options.NewOptions(opts...)
 	config := api.DefaultConfig()
 
 	var nodes []string
 
-	if n, ok := options.Values().Get("data.nodes"); ok {
+	if n, ok := options.Values().Get("store.nodes"); ok {
 		nodes = n.([]string)
 	}
 

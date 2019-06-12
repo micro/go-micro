@@ -1,5 +1,5 @@
-// Package data is an interface for distribute data storage.
-package data
+// Package store is an interface for distribute data storage.
+package store
 
 import (
 	"errors"
@@ -12,8 +12,8 @@ var (
 	ErrNotFound = errors.New("not found")
 )
 
-// Data is a data storage interface
-type Data interface {
+// Store is a data storage interface
+type Store interface {
 	// embed options
 	options.Options
 	// Dump the known records

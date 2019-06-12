@@ -1,15 +1,15 @@
-// Package memory is a in-memory data store
+// Package memory is a in-memory store store
 package memory
 
 import (
 	"sync"
 	"time"
 
-	"github.com/micro/go-micro/data"
 	"github.com/micro/go-micro/options"
+	"github.com/micro/go-micro/store"
 )
 
-type memoryData struct {
+type memoryStore struct {
 	options.Options
 
 	sync.RWMutex
@@ -17,15 +17,15 @@ type memoryData struct {
 }
 
 type memoryRecord struct {
-	r *data.Record
+	r *store.Record
 	c time.Time
 }
 
-func (m *memoryData) Dump() ([]*data.Record, error) {
+func (m *memoryStore) Dump() ([]*store.Record, error) {
 	m.RLock()
 	defer m.RUnlock()
 
-	var values []*data.Record
+	var values []*store.Record
 
 	for _, v := range m.values {
 		// get expiry
@@ -42,13 +42,13 @@ func (m *memoryData) Dump() ([]*data.Record, error) {
 	return values, nil
 }
 
-func (m *memoryData) Read(key string) (*data.Record, error) {
+func (m *memoryStore) Read(key string) (*store.Record, error) {
 	m.RLock()
 	defer m.RUnlock()
 
 	v, ok := m.values[key]
 	if !ok {
-		return nil, data.ErrNotFound
+		return nil, store.ErrNotFound
 	}
 
 	// get expiry
@@ -57,13 +57,13 @@ func (m *memoryData) Read(key string) (*data.Record, error) {
 
 	// expired
 	if d > time.Duration(0) && t > d {
-		return nil, data.ErrNotFound
+		return nil, store.ErrNotFound
 	}
 
 	return v.r, nil
 }
 
-func (m *memoryData) Write(r *data.Record) error {
+func (m *memoryStore) Write(r *store.Record) error {
 	m.Lock()
 	defer m.Unlock()
 
@@ -76,7 +76,7 @@ func (m *memoryData) Write(r *data.Record) error {
 	return nil
 }
 
-func (m *memoryData) Delete(key string) error {
+func (m *memoryStore) Delete(key string) error {
 	m.Lock()
 	defer m.Unlock()
 
@@ -86,11 +86,11 @@ func (m *memoryData) Delete(key string) error {
 	return nil
 }
 
-// NewData returns a new data.Data
-func NewData(opts ...options.Option) data.Data {
+// NewStore returns a new store.Store
+func NewStore(opts ...options.Option) store.Store {
 	options := options.NewOptions(opts...)
 
-	return &memoryData{
+	return &memoryStore{
 		Options: options,
 		values:  make(map[string]*memoryRecord),
 	}
