@@ -2,7 +2,7 @@
 package sync
 
 import (
-	"github.com/micro/go-micro/data"
+	"github.com/micro/go-micro/store"
 	"github.com/micro/go-micro/sync/leader"
 	"github.com/micro/go-micro/sync/lock"
 	"github.com/micro/go-micro/sync/task"
@@ -10,7 +10,7 @@ import (
 )
 
 // Map provides synchronized access to key-value storage.
-// It uses the data interface and lock interface to
+// It uses the store interface and lock interface to
 // provide a consistent storage mechanism.
 type Map interface {
 	// Read value with given key
@@ -33,7 +33,7 @@ type Cron interface {
 type Options struct {
 	Leader leader.Leader
 	Lock   lock.Lock
-	Data   data.Data
+	Store  store.Store
 	Task   task.Task
 	Time   time.Time
 }

@@ -1,7 +1,7 @@
 package sync
 
 import (
-	"github.com/micro/go-micro/data"
+	"github.com/micro/go-micro/store"
 	"github.com/micro/go-micro/sync/leader"
 	"github.com/micro/go-micro/sync/lock"
 	"github.com/micro/go-micro/sync/time"
@@ -21,10 +21,10 @@ func WithLock(l lock.Lock) Option {
 	}
 }
 
-// WithData sets the data implementation option
-func WithData(s data.Data) Option {
+// WithStore sets the store implementation option
+func WithStore(s store.Store) Option {
 	return func(o *Options) {
-		o.Data = s
+		o.Store = s
 	}
 }
 

@@ -6,8 +6,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/micro/go-micro/data"
-	ckv "github.com/micro/go-micro/data/consul"
+	"github.com/micro/go-micro/store"
+	ckv "github.com/micro/go-micro/store/consul"
 	lock "github.com/micro/go-micro/sync/lock/consul"
 )
 
@@ -34,7 +34,7 @@ func (m *syncMap) Read(key, val interface{}) error {
 	defer m.opts.Lock.Release(kstr)
 
 	// get key
-	kval, err := m.opts.Data.Read(kstr)
+	kval, err := m.opts.Store.Read(kstr)
 	if err != nil {
 		return err
 	}
@@ -63,7 +63,7 @@ func (m *syncMap) Write(key, val interface{}) error {
 	}
 
 	// set key
-	return m.opts.Data.Write(&data.Record{
+	return m.opts.Store.Write(&store.Record{
 		Key:   kstr,
 		Value: b,
 	})
@@ -81,11 +81,11 @@ func (m *syncMap) Delete(key interface{}) error {
 		return err
 	}
 	defer m.opts.Lock.Release(kstr)
-	return m.opts.Data.Delete(kstr)
+	return m.opts.Store.Delete(kstr)
 }
 
 func (m *syncMap) Iterate(fn func(key, val interface{}) error) error {
-	keyvals, err := m.opts.Data.Dump()
+	keyvals, err := m.opts.Store.Dump()
 	if err != nil {
 		return err
 	}
@@ -126,7 +126,7 @@ func (m *syncMap) Iterate(fn func(key, val interface{}) error) error {
 		}
 
 		// set key
-		if err := m.opts.Data.Write(&data.Record{
+		if err := m.opts.Store.Write(&store.Record{
 			Key:   keyval.Key,
 			Value: b,
 		}); err != nil {
@@ -147,8 +147,8 @@ func NewMap(opts ...Option) Map {
 		options.Lock = lock.NewLock()
 	}
 
-	if options.Data == nil {
-		options.Data = ckv.NewData()
+	if options.Store == nil {
+		options.Store = ckv.NewStore()
 	}
 
 	return &syncMap{
