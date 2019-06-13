@@ -70,35 +70,30 @@ func (r *router) Network() string {
 // Start starts the router
 func (r *router) Start() error {
 	// add local service routes into the routing table
-	if err := r.addServiceRoutes(r.opts.LocalRegistry, "local", 1); err != nil {
+	if err := r.addServiceRoutes(r.opts.LocalRegistry, "local", DefaultLocalMetric); err != nil {
 		return fmt.Errorf("failed adding routes for local services: %v", err)
 	}
 
 	// add network service routes into the routing table
-	if err := r.addServiceRoutes(r.opts.NetworkRegistry, r.opts.NetworkAddress, 10); err != nil {
+	if err := r.addServiceRoutes(r.opts.NetworkRegistry, r.opts.NetworkAddress, DefaultNetworkMetric); err != nil {
 		return fmt.Errorf("failed adding routes for network services: %v", err)
 	}
 
-	// lookup local service routes and advertise them in network registry
+	// routing table has been bootstrapped;
+	// NOTE: we only need to advertise local services upstream
+	// lookup local service routes and advertise them upstream
 	query := NewQuery(QueryNetwork("local"))
 	localRoutes, err := r.opts.Table.Lookup(query)
 	if err != nil && err != ErrRouteNotFound {
 		return fmt.Errorf("failed to lookup local service routes: %v", err)
 	}
 
-	addr := strings.Split(r.opts.Address, ":")
-	port, err := strconv.Atoi(addr[1])
+	node, err := r.parseToNode()
 	if err != nil {
-		fmt.Errorf("could not parse router address from %s: %v", r.opts.Address, err)
+		return fmt.Errorf("failed to parse router into node: %v", err)
 	}
 
 	for _, route := range localRoutes {
-		node := &registry.Node{
-			Id:      r.opts.ID,
-			Address: addr[0],
-			Port:    port,
-		}
-
 		service := &registry.Service{
 			Name:  route.Options().DestAddr,
 			Nodes: []*registry.Node{node},
@@ -108,37 +103,37 @@ func (r *router) Start() error {
 		}
 	}
 
-	lWatcher, err := r.opts.LocalRegistry.Watch()
+	localWatcher, err := r.opts.LocalRegistry.Watch()
 	if err != nil {
 		return fmt.Errorf("failed to create local registry watcher: %v", err)
 	}
 
-	rWatcher, err := r.opts.NetworkRegistry.Watch()
+	networkWatcher, err := r.opts.NetworkRegistry.Watch()
 	if err != nil {
 		return fmt.Errorf("failed to create network registry watcher: %v", err)
 	}
 
-	// we only watch local entries which we resend to network registry
-	tWatcher, err := r.opts.Table.Watch(WatchNetwork("local"))
+	// we only watch local netwrork entries which we then propagate upstream to network
+	tableWatcher, err := r.opts.Table.Watch(WatchNetwork("local"))
 	if err != nil {
 		return fmt.Errorf("failed to create routing table watcher: %v", err)
 	}
 
 	r.wg.Add(1)
-	go r.manageServiceRoutes(lWatcher, "local", DefaultLocalMetric)
+	go r.manageServiceRoutes(localWatcher, "local", DefaultLocalMetric)
 
 	r.wg.Add(1)
-	go r.manageServiceRoutes(rWatcher, r.opts.NetworkAddress, DefaultNetworkMetric)
+	go r.manageServiceRoutes(networkWatcher, r.opts.NetworkAddress, DefaultNetworkMetric)
 
 	r.wg.Add(1)
-	go r.watchTable(tWatcher)
+	go r.watchTable(tableWatcher)
 
 	return nil
 }
 
 // addServiceRouteslists all available services in given registry and adds them to the routing table.
 // NOTE: this is a one-off operation done to bootstrap the rouing table of the new router when it starts.
-// It returns error if the route could not be added to the routing table.
+// It returns error if any of the routes could not be added to the routing table.
 func (r *router) addServiceRoutes(reg registry.Registry, network string, metric int) error {
 	services, err := reg.ListServices()
 	if err != nil {
@@ -153,11 +148,32 @@ func (r *router) addServiceRoutes(reg registry.Registry, network string, metric 
 			Metric(metric),
 		)
 		if err := r.opts.Table.Add(route); err != nil {
-			return fmt.Errorf("failed to add route for service: %s", service.Name)
+			return fmt.Errorf("error adding route for service: %s", service.Name)
 		}
 	}
 
 	return nil
+}
+
+// parseToNode parses router address into registryNode.
+// It retuns error if the router network address could not be parsed into service host and port.
+// NOTE: We use ":" as a default delimiter we split the network address on and then attempt to parse port into int.
+func (r *router) parseToNode() (*registry.Node, error) {
+	// split on ":" as a standard host:port delimiter
+	addr := strings.Split(r.opts.NetworkAddress, ":")
+	// try to parse network port into integer
+	port, err := strconv.Atoi(addr[1])
+	if err != nil {
+		return nil, fmt.Errorf("could not parse router network address from %s: %v", r.opts.NetworkAddress, err)
+	}
+
+	node := &registry.Node{
+		Id:      r.opts.ID,
+		Address: addr[0],
+		Port:    port,
+	}
+
+	return node, nil
 }
 
 // manageServiceRoutes watches services in given registry and updates the routing table accordingly.
@@ -237,16 +253,9 @@ func (r *router) watchTable(w Watcher) error {
 			break
 		}
 
-		addr := strings.Split(r.opts.Address, ":")
-		port, err := strconv.Atoi(addr[1])
+		node, err := r.parseToNode()
 		if err != nil {
-			continue
-		}
-
-		node := &registry.Node{
-			Id:      r.opts.ID,
-			Address: addr[0],
-			Port:    port,
+			return fmt.Errorf("failed to parse router into node: %v", err)
 		}
 
 		service := &registry.Service{

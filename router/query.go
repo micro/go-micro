@@ -10,16 +10,16 @@ const (
 	ClosestMatch
 )
 
-// QueryOption is used to define query options
+// QueryOption sets routing table query options
 type QueryOption func(*QueryOptions)
 
-// QueryOptions allow to define routing table query options
+// QueryOptions are routing table query options
 type QueryOptions struct {
-	// DestAddr defines destination address
+	// DestAddr is destination address
 	DestAddr string
-	// NetworkAddress defines network address
+	// NetworkAddress is network address
 	Network string
-	// Policy defines query lookup policy
+	// Policy is query lookup policy
 	Policy LookupPolicy
 }
 
@@ -37,19 +37,20 @@ func QueryNetwork(a string) QueryOption {
 	}
 }
 
-// QueryPolicy allows to define query lookup policy
+// QueryPolicy sets query policy
 func QueryPolicy(p LookupPolicy) QueryOption {
 	return func(o *QueryOptions) {
 		o.Policy = p
 	}
 }
 
-// Query defines routing table query
+// Query is routing table query
 type Query interface {
 	// Options returns query options
 	Options() QueryOptions
 }
 
+// query is a basic implementation of Query
 type query struct {
 	opts QueryOptions
 }

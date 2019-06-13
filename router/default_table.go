@@ -11,8 +11,8 @@ import (
 	"github.com/olekukonko/tablewriter"
 )
 
-// TODO: This will allow for arbitrary routing table config.
 // TableOptions are routing table options
+// TODO: This will allow for arbitrary routing table options in the future
 type TableOptions struct{}
 
 // table is in memory routing table
@@ -28,7 +28,7 @@ type table struct {
 	sync.RWMutex
 }
 
-// newTable creates default routing table and returns it
+// newTable creates in memory routing table and returns it
 func newTable(opts ...TableOption) Table {
 	// default options
 	var options TableOptions
@@ -64,11 +64,12 @@ func (t *table) Options() TableOptions {
 
 // Add adds a route to the routing table
 func (t *table) Add(r Route) error {
-	t.Lock()
-	defer t.Unlock()
 
 	destAddr := r.Options().DestAddr
 	sum := t.hash(r)
+
+	t.Lock()
+	defer t.Unlock()
 
 	if _, ok := t.m[destAddr]; !ok {
 		t.m[destAddr] = make(map[uint64]Route)
@@ -110,11 +111,11 @@ func (t *table) Remove(r Route) error {
 
 // Update updates routing table with new route
 func (t *table) Update(r Route) error {
-	t.Lock()
-	defer t.Unlock()
-
 	destAddr := r.Options().DestAddr
 	sum := t.hash(r)
+
+	t.Lock()
+	defer t.Unlock()
 
 	if _, ok := t.m[destAddr]; !ok {
 		return ErrRouteNotFound

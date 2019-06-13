@@ -29,7 +29,7 @@ type Result struct {
 	Route Route
 }
 
-// Watcher options
+// WatchOptions are table watcher options
 type WatchOptions struct {
 	// Specify destination address to watch
 	DestAddr string

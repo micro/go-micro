@@ -13,10 +13,10 @@ type RIB interface {
 	String() string
 }
 
-// RIBOptopn sets RIB options
+// RIBOption sets RIB options
 type RIBOption func(*RIBOptions)
 
-// RIBOptions configures various RIB options
+// RIBOptions are RIB options
 type RIBOptions struct {
 	// Source defines RIB source URL
 	Source string

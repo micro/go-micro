@@ -13,16 +13,16 @@ var (
 type AddPolicy int
 
 const (
-	// Override overrides existing routing table route
+	// OverrideIfExists overrides route if it already exists
 	OverrideIfExists AddPolicy = iota
-	// IgnoreIfExists does not add new route
+	// IgnoreIfExists does not modify existing route
 	IgnoreIfExists
 )
 
-// RouteOption is used to define routing table entry options
+// RouteOption is used to set routing table entry options
 type RouteOption func(*RouteOptions)
 
-// RouteOptions defines micro network routing table route options
+// RouteOptions are route options
 type RouteOptions struct {
 	// DestAddr is destination address
 	DestAddr string

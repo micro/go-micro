@@ -25,6 +25,7 @@ type Options struct {
 	// LocalRegistry is router local registry
 	LocalRegistry registry.Registry
 	// NetworkRegistry is router remote registry
+	// NOTE: we need some abstraction on top of gossip.Registry
 	NetworkRegistry registry.Registry
 	// Table is routing table
 	Table Table
@@ -81,7 +82,7 @@ func NetworkRegistry(r registry.Registry) Option {
 	}
 }
 
-// RouterIB allows to configure RIB
+// RouterRIB allows to configure RIB
 func RouterRIB(r RIB) Option {
 	return func(o *Options) {
 		o.RIB = r
