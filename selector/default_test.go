@@ -10,7 +10,8 @@ func TestRegistrySelector(t *testing.T) {
 	counts := map[string]int{}
 
 	r := memory.NewRegistry()
-	r.(*memory.Registry).Setup()
+	rg := r.(*memory.Registry)
+	rg.Services = testData
 	cache := NewSelector(Registry(r))
 
 	next, err := cache.Select("foo")

@@ -13,8 +13,9 @@ import (
 
 func newTestRegistry() registry.Registry {
 	r := memory.NewRegistry()
-	r.(*memory.Registry).Setup()
-	return r
+	reg := r.(*memory.Registry)
+	reg.Services = testData
+	return reg
 }
 
 func TestCallAddress(t *testing.T) {
