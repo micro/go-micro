@@ -6,17 +6,17 @@ import (
 )
 
 var (
-	// DefaultAddress is default router bind address
-	DefaultAddress = ":9093"
-	// DefaultNetworkAddress is default micro network bind address
+	// DefaultGossipAddress is default gossip bind address
+	DefaultGossipAddress = ":9093"
+	// DefaultNetworkAddress is default network bind address
 	DefaultNetworkAddress = ":9094"
 )
 
 // Options are router options
 type Options struct {
-	// ID is router ID
+	// ID is router id
 	ID string
-	// Address is router address
+	// Address is router micro service address
 	Address string
 	// GossipAddress is router gossip address
 	GossipAddress string
@@ -39,7 +39,7 @@ func ID(id string) Option {
 	}
 }
 
-// Address sets router address
+// Address sets router service address
 func Address(a string) Option {
 	return func(o *Options) {
 		o.Address = a
@@ -94,7 +94,8 @@ func DefaultOptions() Options {
 	// TODO: DefaultRIB needs to be added once it's properly figured out
 	return Options{
 		ID:              uuid.New().String(),
-		Address:         DefaultAddress,
+		Address:         ":8083",
+		GossipAddress:   DefaultGossipAddress,
 		NetworkAddress:  DefaultNetworkAddress,
 		LocalRegistry:   registry.DefaultRegistry,
 		NetworkRegistry: registry.DefaultRegistry,

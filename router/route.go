@@ -2,6 +2,13 @@ package router
 
 import "context"
 
+var (
+	// DefaultLocalMetric is default route cost for local network
+	DefaultLocalMetric = 1
+	// DefaultNetworkMetric is default route cost for micro network
+	DefaultNetworkMetric = 10
+)
+
 // AddPolicy defines routing table addition policy
 type AddPolicy int
 
@@ -10,8 +17,6 @@ const (
 	OverrideIfExists AddPolicy = iota
 	// IgnoreIfExists does not add new route
 	IgnoreIfExists
-	// ErrIfExists returns error if the route already exists
-	ErrIfExists
 )
 
 // RouteOption is used to define routing table entry options

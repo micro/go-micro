@@ -1,21 +1,22 @@
 package router
 
-// RIB is Routing Information Base
+// RIB is Routing Information Base.
+// RIB is used to source the base routing table.
 type RIB interface {
 	// Initi initializes RIB
 	Init(...RIBOption) error
 	// Options returns RIB options
 	Options() RIBOptions
-	// Routes returns routes in RIB
+	// Routes returns routes
 	Routes() []Route
 	// String returns debug info
 	String() string
 }
 
-// RIBOptopn is used to configure RIB
+// RIBOptopn sets RIB options
 type RIBOption func(*RIBOptions)
 
-// RIBOptions allow to set RIB sources.
+// RIBOptions configures various RIB options
 type RIBOptions struct {
 	// Source defines RIB source URL
 	Source string

@@ -11,6 +11,7 @@ import (
 	"github.com/olekukonko/tablewriter"
 )
 
+// TODO: This will allow for arbitrary routing table config.
 // TableOptions are routing table options
 type TableOptions struct{}
 

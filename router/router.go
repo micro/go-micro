@@ -1,13 +1,6 @@
 // Package router provides an interface for micro network router
 package router
 
-import "errors"
-
-var (
-	// ErrNotImplemented is returned when some functionality has not been implemented
-	ErrNotImplemented = errors.New("not implemented")
-)
-
 // Router is micro network router
 type Router interface {
 	// Init initializes the router with options
