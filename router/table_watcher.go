@@ -9,7 +9,11 @@ var (
 	ErrWatcherStopped = errors.New("routing table watcher stopped")
 )
 
-// Watcher is an interface that returns updates to the routing table
+// WatchOption is used to define what routes to watch in the table
+type WatchOption func(*WatchOptions)
+
+// Watcher defines routing table watcher interface
+// Watcher returns updates to the routing table
 type Watcher interface {
 	// Next is a blocking call that returns watch result
 	Next() (*Result, error)

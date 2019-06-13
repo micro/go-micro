@@ -12,6 +12,9 @@ type RIB interface {
 	String() string
 }
 
+// RIBOptopn is used to configure RIB
+type RIBOption func(*RIBOptions)
+
 // RIBOptions allow to set RIB sources.
 type RIBOptions struct {
 	// Source defines RIB source URL

@@ -12,7 +12,7 @@ var (
 	DefaultNetworkAddress = ":9094"
 )
 
-// Options allows to set router options
+// Options are router options
 type Options struct {
 	// ID is router ID
 	ID string
@@ -82,7 +82,7 @@ func NetworkRegistry(r registry.Registry) Option {
 }
 
 // RouterIB allows to configure RIB
-func RouterIB(r RIB) Option {
+func RouterRIB(r RIB) Option {
 	return func(o *Options) {
 		o.RIB = r
 	}

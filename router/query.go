@@ -10,6 +10,9 @@ const (
 	ClosestMatch
 )
 
+// QueryOption is used to define query options
+type QueryOption func(*QueryOptions)
+
 // QueryOptions allow to define routing table query options
 type QueryOptions struct {
 	// DestAddr defines destination address

@@ -14,6 +14,9 @@ const (
 	ErrIfExists
 )
 
+// RouteOption is used to define routing table entry options
+type RouteOption func(*RouteOptions)
+
 // RouteOptions defines micro network routing table route options
 type RouteOptions struct {
 	// DestAddr is destination address
