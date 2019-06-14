@@ -9,7 +9,7 @@ import (
 
 	"github.com/micro/go-micro/broker"
 	"github.com/micro/go-micro/codec/json"
-	nats "github.com/nats-io/nats.go"
+	nats "github.com/nats-io/go-nats"
 )
 
 type natsBroker struct {
