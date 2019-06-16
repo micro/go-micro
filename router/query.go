@@ -19,6 +19,8 @@ type QueryOptions struct {
 	DestAddr string
 	// NetworkAddress is network address
 	Network string
+	// Gateway is gateway address
+	Gateway Router
 	// Policy is query lookup policy
 	Policy LookupPolicy
 }
@@ -34,6 +36,13 @@ func QueryDestAddr(a string) QueryOption {
 func QueryNetwork(a string) QueryOption {
 	return func(o *QueryOptions) {
 		o.Network = a
+	}
+}
+
+// QueryGateway sets query gateway address
+func QueryGateway(r Router) QueryOption {
+	return func(o *QueryOptions) {
+		o.Gateway = r
 	}
 }
 
@@ -57,10 +66,14 @@ type query struct {
 
 // NewQuery creates new query and returns it
 func NewQuery(opts ...QueryOption) Query {
+	// default gateway for wildcard router
+	r := newRouter(ID("*"))
+
 	// default options
 	qopts := QueryOptions{
 		DestAddr: "*",
 		Network:  "*",
+		Gateway:  r,
 		Policy:   DiscardNoRoute,
 	}
 

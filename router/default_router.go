@@ -47,6 +47,11 @@ func (r *router) Options() Options {
 	return r.opts
 }
 
+// ID returns router ID
+func (r *router) ID() string {
+	return r.opts.ID
+}
+
 // Table returns routing table
 func (r *router) Table() Table {
 	return r.opts.Table
@@ -90,7 +95,7 @@ func (r *router) Start() error {
 
 	node, err := r.parseToNode()
 	if err != nil {
-		return fmt.Errorf("failed to parse router into node: %v", err)
+		return fmt.Errorf("failed to parse router into service node: %v", err)
 	}
 
 	for _, route := range localRoutes {
@@ -147,7 +152,7 @@ func (r *router) addServiceRoutes(reg registry.Registry, network string, metric 
 			Network(network),
 			Metric(metric),
 		)
-		if err := r.opts.Table.Add(route); err != nil {
+		if err := r.opts.Table.Add(route); err != nil && err != ErrDuplicateRoute {
 			return fmt.Errorf("error adding route for service: %s", service.Name)
 		}
 	}
@@ -214,12 +219,12 @@ func (r *router) manageServiceRoutes(w registry.Watcher, network string, metric 
 		switch res.Action {
 		case "create":
 			if len(res.Service.Nodes) > 0 {
-				if err := r.opts.Table.Add(route); err != nil {
+				if err := r.opts.Table.Add(route); err != nil && err != ErrDuplicateRoute {
 					return fmt.Errorf("failed to add route for service: %v", res.Service.Name)
 				}
 			}
 		case "delete":
-			if err := r.opts.Table.Remove(route); err != nil {
+			if err := r.opts.Table.Remove(route); err != nil && err != ErrRouteNotFound {
 				return fmt.Errorf("failed to remove route for service: %v", res.Service.Name)
 			}
 		}
@@ -280,6 +285,29 @@ func (r *router) watchTable(w Watcher) error {
 
 // Stop stops the router
 func (r *router) Stop() error {
+	// NOTE: we need a more efficient way of doing this e.g. network routes should be autoremoved when router stops gossiping
+	// deregister all services advertised by this router from remote registry
+	query := NewQuery(QueryGateway(r), QueryNetwork(r.opts.NetworkAddress))
+	routes, err := r.opts.Table.Lookup(query)
+	if err != nil && err != ErrRouteNotFound {
+		return fmt.Errorf("failed to lookup routes for router %s: %v", r.opts.ID, err)
+	}
+
+	node, err := r.parseToNode()
+	if err != nil {
+		return fmt.Errorf("failed to parse router into service node: %v", err)
+	}
+
+	for _, route := range routes {
+		service := &registry.Service{
+			Name:  route.Options().DestAddr,
+			Nodes: []*registry.Node{node},
+		}
+		if err := r.opts.NetworkRegistry.Deregister(service); err != nil {
+			return fmt.Errorf("failed to deregister service %s from network registry: %v", service.Name, err)
+		}
+	}
+
 	// notify all goroutines to finish
 	close(r.exit)
 

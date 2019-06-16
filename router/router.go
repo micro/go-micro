@@ -7,6 +7,8 @@ type Router interface {
 	Init(...Option) error
 	// Options returns the router options
 	Options() Options
+	// ID returns id of the router
+	ID() string
 	// Table returns the router routing table
 	Table() Table
 	// Address returns the router adddress

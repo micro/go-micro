@@ -64,7 +64,6 @@ func (t *table) Options() TableOptions {
 
 // Add adds a route to the routing table
 func (t *table) Add(r Route) error {
-
 	destAddr := r.Options().DestAddr
 	sum := t.hash(r)
 
@@ -144,7 +143,9 @@ func (t *table) Lookup(q Query) ([]Route, error) {
 			}
 			for _, route := range routes {
 				if q.Options().Network == "*" || q.Options().Network == route.Options().Network {
-					results = append(results, route)
+					if q.Options().Gateway.ID() == "*" || q.Options().Gateway.ID() == route.Options().Gateway.ID() {
+						results = append(results, route)
+					}
 				}
 			}
 		}
@@ -152,7 +153,9 @@ func (t *table) Lookup(q Query) ([]Route, error) {
 		if q.Options().DestAddr == "*" {
 			for _, route := range routes {
 				if q.Options().Network == "*" || q.Options().Network == route.Options().Network {
-					results = append(results, route)
+					if q.Options().Gateway.ID() == "*" || q.Options().Gateway.ID() == route.Options().Gateway.ID() {
+						results = append(results, route)
+					}
 				}
 			}
 		}
