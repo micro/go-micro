@@ -25,10 +25,8 @@ type Network interface {
 
 // Node represents a network node
 type Node interface {
-	// Id of the node
-	Id() string
-	// The network for this node
-	Network() Network
+	// Node is a network. Network is a node.
+	Network
 }
 
 // Message is a message sent over the network
