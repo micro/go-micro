@@ -56,8 +56,8 @@ type grpcServer struct {
 }
 
 func init() {
-	encoding.RegisterCodec(jsonCodec{})
-	encoding.RegisterCodec(bytesCodec{})
+	encoding.RegisterCodec(wrapCodec{jsonCodec{}})
+	encoding.RegisterCodec(wrapCodec{bytesCodec{}})
 }
 
 func newGRPCServer(opts ...server.Option) server.Server {

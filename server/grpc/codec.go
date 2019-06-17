@@ -6,6 +6,7 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/micro/go-micro/codec"
+	"github.com/micro/go-micro/codec/bytes"
 	"github.com/micro/go-micro/codec/jsonrpc"
 	"github.com/micro/go-micro/codec/protorpc"
 	"google.golang.org/grpc/encoding"
@@ -14,6 +15,7 @@ import (
 type jsonCodec struct{}
 type bytesCodec struct{}
 type protoCodec struct{}
+type wrapCodec struct { encoding.Codec }
 
 var (
 	defaultGRPCCodecs = map[string]encoding.Codec{
@@ -35,6 +37,27 @@ var (
 		"application/octet-stream": protorpc.NewCodec,
 	}
 )
+
+func (w wrapCodec) String() string {
+        return w.Codec.Name()
+}
+
+func (w wrapCodec) Marshal(v interface{}) ([]byte, error) {
+        b, ok := v.(*bytes.Frame)
+        if ok {
+                return b.Data, nil
+        }
+        return w.Codec.Marshal(v)
+}
+
+func (w wrapCodec) Unmarshal(data []byte, v interface{}) error {
+        b, ok := v.(*bytes.Frame)
+        if ok {
+                b.Data = data
+                return nil
+        }
+        return w.Codec.Unmarshal(data, v)
+}
 
 func (protoCodec) Marshal(v interface{}) ([]byte, error) {
 	return proto.Marshal(v.(proto.Message))
