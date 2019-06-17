@@ -40,3 +40,8 @@ type Message struct {
 	// Body is the encaspulated payload
 	Body []byte
 }
+
+var (
+	// TODO: set default network
+	DefaultNetwork Network
+)
