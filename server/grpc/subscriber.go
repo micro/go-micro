@@ -231,9 +231,13 @@ func (g *grpcServer) createSubHandler(sb *subscriber, opts server.Options) broke
 				fn = opts.SubWrappers[i-1](fn)
 			}
 
-			g.wg.Add(1)
+			if g.wg != nil {
+				g.wg.Add(1)
+			}
 			go func() {
-				defer g.wg.Done()
+				if g.wg != nil {
+					defer g.wg.Done()
+				}
 				fn(ctx, &rpcMessage{
 					topic:       sb.topic,
 					contentType: ct,
