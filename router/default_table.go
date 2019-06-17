@@ -70,6 +70,7 @@ func (t *table) Add(r Route) error {
 	t.Lock()
 	defer t.Unlock()
 
+	// check if the destination has any routes in the table
 	if _, ok := t.m[destAddr]; !ok {
 		t.m[destAddr] = make(map[uint64]Route)
 		t.m[destAddr][sum] = r
@@ -77,12 +78,15 @@ func (t *table) Add(r Route) error {
 		return nil
 	}
 
+	// only add the route if it exists and if override is requested
 	if _, ok := t.m[destAddr][sum]; ok && r.Options().Policy == OverrideIfExists {
 		t.m[destAddr][sum] = r
 		go t.sendResult(&Result{Action: "update", Route: r})
 		return nil
 	}
 
+	// if we reached this point without already returning the route already exists
+	// we return nil only if explicitly requested by the client
 	if r.Options().Policy == IgnoreIfExists {
 		return nil
 	}
@@ -90,8 +94,8 @@ func (t *table) Add(r Route) error {
 	return ErrDuplicateRoute
 }
 
-// Remove removes the route from the routing table
-func (t *table) Remove(r Route) error {
+// Delete deletes the route from the routing table
+func (t *table) Delete(r Route) error {
 	t.Lock()
 	defer t.Unlock()
 
@@ -103,7 +107,7 @@ func (t *table) Remove(r Route) error {
 	}
 
 	delete(t.m[destAddr], sum)
-	go t.sendResult(&Result{Action: "remove", Route: r})
+	go t.sendResult(&Result{Action: "delete", Route: r})
 
 	return nil
 }
@@ -116,10 +120,12 @@ func (t *table) Update(r Route) error {
 	t.Lock()
 	defer t.Unlock()
 
+	// check if the destAddr has ANY routes in the table
 	if _, ok := t.m[destAddr]; !ok {
 		return ErrRouteNotFound
 	}
 
+	// if the route has been found update it
 	if _, ok := t.m[destAddr][sum]; ok {
 		t.m[destAddr][sum] = r
 		go t.sendResult(&Result{Action: "update", Route: r})

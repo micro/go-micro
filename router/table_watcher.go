@@ -23,7 +23,7 @@ type Watcher interface {
 
 // Result is returned by a call to Next on the watcher.
 type Result struct {
-	// Action is routing table action which is either of add, remove or update
+	// Action is routing table action which is either of add, delete or update
 	Action string
 	// Route is table rout
 	Route Route
@@ -58,8 +58,9 @@ type tableWatcher struct {
 	done    chan struct{}
 }
 
-// TODO: this needs to be thought through properly
 // Next returns the next noticed action taken on table
+// TODO: this needs to be thought through properly
+// we are aiming to provide the same watch options Query() provides
 func (w *tableWatcher) Next() (*Result, error) {
 	for {
 		select {
@@ -74,8 +75,6 @@ func (w *tableWatcher) Next() (*Result, error) {
 					return res, nil
 				}
 			}
-			// ignore if no match is found
-			continue
 		case <-w.done:
 			return nil, ErrWatcherStopped
 		}

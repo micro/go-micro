@@ -19,8 +19,8 @@ type Table interface {
 	Options() TableOptions
 	// Add adds new route to the routing table
 	Add(Route) error
-	// Remove removes existing route from the routing table
-	Remove(Route) error
+	// Delete deletes existing route from the routing table
+	Delete(Route) error
 	// Update updates route in the routing table
 	Update(Route) error
 	// Lookup looks up routes in the routing table and returns them

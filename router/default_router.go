@@ -103,7 +103,7 @@ func (r *router) Start() error {
 			Name:  route.Options().DestAddr,
 			Nodes: []*registry.Node{node},
 		}
-		if err := r.opts.NetworkRegistry.Register(service, registry.RegisterTTL(10*time.Second)); err != nil {
+		if err := r.opts.NetworkRegistry.Register(service, registry.RegisterTTL(120*time.Second)); err != nil {
 			return fmt.Errorf("failed to register service %s in network registry: %v", service.Name, err)
 		}
 	}
@@ -137,8 +137,8 @@ func (r *router) Start() error {
 }
 
 // addServiceRouteslists all available services in given registry and adds them to the routing table.
-// NOTE: this is a one-off operation done to bootstrap the rouing table of the new router when it starts.
-// It returns error if any of the routes could not be added to the routing table.
+// NOTE: this is a one-off operation done when bootstrapping the routing table of the new router.
+// It returns error if either the services could not be listed or if the routes could not be added to the routing table.
 func (r *router) addServiceRoutes(reg registry.Registry, network string, metric int) error {
 	services, err := reg.ListServices()
 	if err != nil {
@@ -160,11 +160,11 @@ func (r *router) addServiceRoutes(reg registry.Registry, network string, metric 
 	return nil
 }
 
-// parseToNode parses router address into registryNode.
-// It retuns error if the router network address could not be parsed into service host and port.
-// NOTE: We use ":" as a default delimiter we split the network address on and then attempt to parse port into int.
+// parseToNode parses router into registry.Node and returns the result.
+// It returns error if the router network address could not be parsed into service host and port.
+// NOTE: We use ":" as the default delimiter when we split the network address.
 func (r *router) parseToNode() (*registry.Node, error) {
-	// split on ":" as a standard host:port delimiter
+	// split on ":" as a standard host/port delimiter
 	addr := strings.Split(r.opts.NetworkAddress, ":")
 	// try to parse network port into integer
 	port, err := strconv.Atoi(addr[1])
@@ -219,13 +219,17 @@ func (r *router) manageServiceRoutes(w registry.Watcher, network string, metric 
 		switch res.Action {
 		case "create":
 			if len(res.Service.Nodes) > 0 {
+				/// only return error if the route is not duplicate, but something else has failed
 				if err := r.opts.Table.Add(route); err != nil && err != ErrDuplicateRoute {
 					return fmt.Errorf("failed to add route for service: %v", res.Service.Name)
 				}
 			}
 		case "delete":
-			if err := r.opts.Table.Remove(route); err != nil && err != ErrRouteNotFound {
-				return fmt.Errorf("failed to remove route for service: %v", res.Service.Name)
+			if len(res.Service.Nodes) <= 1 {
+				// only return error if the route is present in the table, but something else has failed
+				if err := r.opts.Table.Delete(route); err != nil && err != ErrRouteNotFound {
+					return fmt.Errorf("failed to delete route for service: %v", res.Service.Name)
+				}
 			}
 		}
 	}
@@ -233,7 +237,8 @@ func (r *router) manageServiceRoutes(w registry.Watcher, network string, metric 
 	return watchErr
 }
 
-// watch routing table changes
+// watchTable watches routing table entries and either adds or deletes locally registered service to/from network registry
+// It returns error if the locally registered services either fails to be added/deleted to/from network registry.
 func (r *router) watchTable(w Watcher) error {
 	defer r.wg.Done()
 
@@ -270,12 +275,18 @@ func (r *router) watchTable(w Watcher) error {
 
 		switch res.Action {
 		case "add":
-			if err := r.opts.NetworkRegistry.Register(service, registry.RegisterTTL(10*time.Second)); err != nil {
-				return fmt.Errorf("failed to register service %s in network registry: %v", service.Name, err)
+			// only register remotely if the service is "local"
+			if res.Route.Options().Network == "local" {
+				if err := r.opts.NetworkRegistry.Register(service, registry.RegisterTTL(120*time.Second)); err != nil {
+					return fmt.Errorf("failed to register service %s in network registry: %v", service.Name, err)
+				}
 			}
-		case "remove":
-			if err := r.opts.NetworkRegistry.Register(service); err != nil {
-				return fmt.Errorf("failed to deregister service %s from network registry: %v", service.Name, err)
+		case "delete":
+			// only deregister remotely if the service is "local"
+			if res.Route.Options().Network == "local" {
+				if err := r.opts.NetworkRegistry.Deregister(service); err != nil {
+					return fmt.Errorf("failed to deregister service %s from network registry: %v", service.Name, err)
+				}
 			}
 		}
 	}
@@ -285,7 +296,8 @@ func (r *router) watchTable(w Watcher) error {
 
 // Stop stops the router
 func (r *router) Stop() error {
-	// NOTE: we need a more efficient way of doing this e.g. network routes should be autoremoved when router stops gossiping
+	// NOTE: we need a more efficient way of doing this e.g. network routes
+	// should ideally be autodeleted when the router stops gossiping
 	// deregister all services advertised by this router from remote registry
 	query := NewQuery(QueryGateway(r), QueryNetwork(r.opts.NetworkAddress))
 	routes, err := r.opts.Table.Lookup(query)
