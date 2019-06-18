@@ -9,11 +9,29 @@ import (
 type Watcher struct {
 	id   string
 	wo   registry.WatchOptions
-	res  chan *registry.Result
+	res  chan *registry.Event
 	exit chan bool
 }
 
-func (m *Watcher) Next() (*registry.Result, error) {
+func (m *Watcher) Chan() (<-chan *registry.Event, error) {
+        ch := make(chan *registry.Event, 32)
+
+        // spinup a watcher
+        go func() {
+                for {
+                        ev, err := m.Next()
+                        if err != nil {
+                                close(ch)
+                                return
+                        }
+                        ch <- ev
+                }
+        }()
+
+        return ch, nil
+}
+
+func (m *Watcher) Next() (*registry.Event, error) {
 	for {
 		select {
 		case r := <-m.res:

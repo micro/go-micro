@@ -16,7 +16,7 @@ type consulWatcher struct {
 	wp       *watch.Plan
 	watchers map[string]*watch.Plan
 
-	next chan *registry.Result
+	next chan *registry.Event
 	exit chan bool
 
 	sync.RWMutex
@@ -33,7 +33,7 @@ func newConsulWatcher(cr *consulRegistry, opts ...registry.WatchOption) (registr
 		r:        cr,
 		wo:       wo,
 		exit:     make(chan bool),
-		next:     make(chan *registry.Result, 10),
+		next:     make(chan *registry.Event, 10),
 		watchers: make(map[string]*watch.Plan),
 		services: make(map[string][]*registry.Service),
 	}
@@ -127,12 +127,12 @@ func (cw *consulWatcher) serviceHandler(idx uint64, data interface{}) {
 		oldServices, ok := rservices[serviceName]
 		if !ok {
 			// does not exist? then we're creating brand new entries
-			cw.next <- &registry.Result{Action: "create", Service: newService}
+			cw.next <- &registry.Event{Type: registry.CreateEvent, Service: newService}
 			continue
 		}
 
 		// service exists. ok let's figure out what to update and delete version wise
-		action := "create"
+		action := registry.CreateEvent
 
 		for _, oldService := range oldServices {
 			// does this version exist?
@@ -142,7 +142,7 @@ func (cw *consulWatcher) serviceHandler(idx uint64, data interface{}) {
 			}
 
 			// yes? then it's an update
-			action = "update"
+			action = registry.UpdateEvent
 
 			var nodes []*registry.Node
 			// check the old nodes to see if they've been deleted
@@ -165,11 +165,11 @@ func (cw *consulWatcher) serviceHandler(idx uint64, data interface{}) {
 			if len(nodes) > 0 {
 				delService := oldService
 				delService.Nodes = nodes
-				cw.next <- &registry.Result{Action: "delete", Service: delService}
+				cw.next <- &registry.Event{Type: registry.DeleteEvent, Service: delService}
 			}
 		}
 
-		cw.next <- &registry.Result{Action: action, Service: newService}
+		cw.next <- &registry.Event{Type: action, Service: newService}
 	}
 
 	// Now check old versions that may not be in new services map
@@ -177,7 +177,7 @@ func (cw *consulWatcher) serviceHandler(idx uint64, data interface{}) {
 		// old version does not exist in new version map
 		// kill it with fire!
 		if _, ok := serviceMap[old.Version]; !ok {
-			cw.next <- &registry.Result{Action: "delete", Service: old}
+			cw.next <- &registry.Event{Type: registry.DeleteEvent, Service: old}
 		}
 	}
 
@@ -211,7 +211,7 @@ func (cw *consulWatcher) handle(idx uint64, data interface{}) {
 			wp.Handler = cw.serviceHandler
 			go wp.RunWithClientAndLogger(cw.r.Client, log.New(os.Stderr, "", log.LstdFlags))
 			cw.watchers[service] = wp
-			cw.next <- &registry.Result{Action: "create", Service: &registry.Service{Name: service}}
+			cw.next <- &registry.Event{Type: registry.CreateEvent, Service: &registry.Service{Name: service}}
 		}
 	}
 
@@ -237,12 +237,30 @@ func (cw *consulWatcher) handle(idx uint64, data interface{}) {
 		if _, ok := services[service]; !ok {
 			w.Stop()
 			delete(cw.watchers, service)
-			cw.next <- &registry.Result{Action: "delete", Service: &registry.Service{Name: service}}
+			cw.next <- &registry.Event{Type: registry.DeleteEvent, Service: &registry.Service{Name: service}}
 		}
 	}
 }
 
-func (cw *consulWatcher) Next() (*registry.Result, error) {
+func (cw *consulWatcher) Chan() (<-chan *registry.Event, error) {
+	ch := make(chan *registry.Event, 32)
+
+	// spinup a watcher
+	go func() {
+		for {
+			ev, err := cw.Next()
+			if err != nil {
+				close(ch)
+				return
+			}
+			ch <- ev
+		}
+	}()
+
+	return ch, nil
+}
+
+func (cw *consulWatcher) Next() (*registry.Event, error) {
 	select {
 	case <-cw.exit:
 		return nil, registry.ErrWatcherStopped

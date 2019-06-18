@@ -5,7 +5,10 @@ const (
 	CreateEvent
 	DeleteEvent
 	UpdateEvent
+	SyncEvent
 )
+
+type EventType int
 
 // Watcher is an interface that returns updates
 // about services within the registry.

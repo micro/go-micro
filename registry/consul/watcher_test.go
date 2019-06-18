@@ -59,7 +59,7 @@ func TestUnhealthyNodeServiceHandler(t *testing.T) {
 func newWatcher() *consulWatcher {
 	return &consulWatcher{
 		exit:     make(chan bool),
-		next:     make(chan *registry.Result, 10),
+		next:     make(chan *registry.Event, 10),
 		services: make(map[string][]*registry.Service),
 	}
 }

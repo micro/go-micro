@@ -1,7 +1,6 @@
 package registry
 
 import (
-	"errors"
 	"strings"
 
 	"github.com/micro/mdns"
@@ -13,7 +12,25 @@ type mdnsWatcher struct {
 	exit chan struct{}
 }
 
-func (m *mdnsWatcher) Next() (*Result, error) {
+func (m *mdnsWatcher) Chan() (<-chan *Event, error) {
+	ch := make(chan *Event, 32)
+
+	// spinup a watcher
+	go func() {
+		for {
+			ev, err := m.Next()
+			if err != nil {
+				close(ch)
+				return
+			}
+			ch <- ev
+		}
+	}()
+
+	return ch, nil
+}
+
+func (m *mdnsWatcher) Next() (*Event, error) {
 	for {
 		select {
 		case e := <-m.ch:
@@ -32,12 +49,11 @@ func (m *mdnsWatcher) Next() (*Result, error) {
 				continue
 			}
 
-			var action string
+			eventType := CreateEvent
 
+			// If the ttl is zero then assume delete
 			if e.TTL == 0 {
-				action = "delete"
-			} else {
-				action = "create"
+				eventType = DeleteEvent
 			}
 
 			service := &Service{
@@ -58,12 +74,12 @@ func (m *mdnsWatcher) Next() (*Result, error) {
 				Metadata: txt.Metadata,
 			})
 
-			return &Result{
-				Action:  action,
+			return &Event{
+				Type:  eventType,
 				Service: service,
 			}, nil
 		case <-m.exit:
-			return nil, errors.New("watcher stopped")
+			return nil, ErrWatcherStopped
 		}
 	}
 }

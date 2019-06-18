@@ -271,6 +271,10 @@ func (c *consulRegistry) Register(s *registry.Service, opts ...registry.Register
 	return c.Client.Agent().PassTTL("service:"+node.Id, "")
 }
 
+func (c *consulRegistry) SendEvent(ev *registry.Event) error {
+	return nil
+}
+
 func (c *consulRegistry) GetService(name string) ([]*registry.Service, error) {
 	var rsp []*consul.ServiceEntry
 	var err error

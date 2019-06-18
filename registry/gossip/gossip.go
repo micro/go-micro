@@ -22,7 +22,7 @@ import (
 	"github.com/mitchellh/hashstructure"
 )
 
-// use registry.Result int32 values after it switches from string to int32 types
+// use registry.Event int32 values after it switches from string to int32 types
 // type actionType int32
 // type updateType int32
 
@@ -41,18 +41,18 @@ const (
 	nodeActionUpdate
 )
 
-func actionTypeString(t int32) string {
+func actionTypeString(t int32) registry.EventType {
 	switch t {
 	case actionTypeCreate:
-		return "create"
+		return registry.CreateEvent
 	case actionTypeDelete:
-		return "delete"
+		return registry.DeleteEvent
 	case actionTypeUpdate:
-		return "update"
+		return registry.UpdateEvent
 	case actionTypeSync:
-		return "sync"
+		return registry.SyncEvent
 	}
-	return "invalid"
+	return -1
 }
 
 const (
@@ -103,7 +103,7 @@ type gossipRegistry struct {
 	sync.RWMutex
 	services map[string][]*registry.Service
 
-	watchers map[string]chan *registry.Result
+	watchers map[string]chan *registry.Event
 
 	mtu     int
 	addrs   []string
@@ -442,20 +442,20 @@ func (g *gossipRegistry) connect(addrs []string) error {
 	return nil
 }
 
-func (g *gossipRegistry) publish(action string, services []*registry.Service) {
+func (g *gossipRegistry) publish(evType registry.EventType, services []*registry.Service) {
 	g.RLock()
 	for _, sub := range g.watchers {
-		go func(sub chan *registry.Result) {
+		go func(sub chan *registry.Event) {
 			for _, service := range services {
-				sub <- &registry.Result{Action: action, Service: service}
+				sub <- &registry.Event{Type: evType, Service: service}
 			}
 		}(sub)
 	}
 	g.RUnlock()
 }
 
-func (g *gossipRegistry) subscribe() (chan *registry.Result, chan bool) {
-	next := make(chan *registry.Result, 10)
+func (g *gossipRegistry) subscribe() (chan *registry.Event, chan bool) {
+	next := make(chan *registry.Event, 10)
 	exit := make(chan bool)
 
 	id := uuid.New().String()
@@ -696,6 +696,10 @@ func (g *gossipRegistry) Options() registry.Options {
 	return g.options
 }
 
+func (g *gossipRegistry) SendEvent(ev *registry.Event) error {
+	return nil
+}
+
 func (g *gossipRegistry) Register(s *registry.Service, opts ...registry.RegisterOption) error {
 	b, err := json.Marshal(s)
 	if err != nil {
@@ -827,7 +831,7 @@ func NewRegistry(opts ...registry.Option) registry.Registry {
 		events:   make(chan *event, 100),
 		updates:  make(chan *update, 100),
 		services: make(map[string][]*registry.Service),
-		watchers: make(map[string]chan *registry.Result),
+		watchers: make(map[string]chan *registry.Event),
 		members:  make(map[string]int32),
 	}
 	// run the updater

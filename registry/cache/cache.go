@@ -172,7 +172,7 @@ func (c *cache) set(service string, services []*registry.Service) {
 	c.ttls[service] = time.Now().Add(c.opts.TTL)
 }
 
-func (c *cache) update(res *registry.Result) {
+func (c *cache) update(res *registry.Event) {
 	if res == nil || res.Service == nil {
 		return
 	}
@@ -188,8 +188,8 @@ func (c *cache) update(res *registry.Result) {
 	}
 
 	if len(res.Service.Nodes) == 0 {
-		switch res.Action {
-		case "delete":
+		switch res.Type {
+		case registry.DeleteEvent:
 			c.del(res.Service.Name)
 		}
 		return
@@ -205,8 +205,8 @@ func (c *cache) update(res *registry.Result) {
 		}
 	}
 
-	switch res.Action {
-	case "create", "update":
+	switch res.Type {
+	case registry.CreateEvent, registry.UpdateEvent:
 		if service == nil {
 			c.set(res.Service.Name, append(services, res.Service))
 			return
@@ -228,7 +228,7 @@ func (c *cache) update(res *registry.Result) {
 
 		services[index] = res.Service
 		c.set(res.Service.Name, services)
-	case "delete":
+	case registry.DeleteEvent:
 		if service == nil {
 			return
 		}

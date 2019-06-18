@@ -33,7 +33,7 @@ func (m *Registry) Setup() {
 }
 */
 
-func (m *Registry) watch(r *registry.Result) {
+func (m *Registry) watch(r *registry.Event) {
 	var watchers []*Watcher
 
 	m.RLock()
@@ -76,6 +76,10 @@ func (m *Registry) Options() registry.Options {
 	return m.options
 }
 
+func (m *Registry) SendEvent(ev *registry.Event) error {
+	return nil
+}
+
 func (m *Registry) GetService(service string) ([]*registry.Service, error) {
 	m.RLock()
 	s, ok := m.Services[service]
@@ -98,7 +102,7 @@ func (m *Registry) ListServices() ([]*registry.Service, error) {
 }
 
 func (m *Registry) Register(s *registry.Service, opts ...registry.RegisterOption) error {
-	go m.watch(&registry.Result{Action: "update", Service: s})
+	go m.watch(&registry.Event{Type: registry.UpdateEvent, Service: s})
 
 	m.Lock()
 	services := addServices(m.Services[s.Name], []*registry.Service{s})
@@ -108,7 +112,7 @@ func (m *Registry) Register(s *registry.Service, opts ...registry.RegisterOption
 }
 
 func (m *Registry) Deregister(s *registry.Service) error {
-	go m.watch(&registry.Result{Action: "delete", Service: s})
+	go m.watch(&registry.Event{Type: registry.DeleteEvent, Service: s})
 
 	m.Lock()
 	services := delServices(m.Services[s.Name], []*registry.Service{s})
@@ -125,7 +129,7 @@ func (m *Registry) Watch(opts ...registry.WatchOption) (registry.Watcher, error)
 
 	w := &Watcher{
 		exit: make(chan bool),
-		res:  make(chan *registry.Result),
+		res:  make(chan *registry.Event),
 		id:   uuid.New().String(),
 		wo:   wo,
 	}

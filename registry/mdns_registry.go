@@ -54,6 +54,10 @@ func (m *mdnsRegistry) Options() Options {
 	return m.opts
 }
 
+func (m *mdnsRegistry) SendEvent(ev *Event) error {
+	return nil
+}
+
 func (m *mdnsRegistry) Register(service *Service, opts ...RegisterOption) error {
 	m.Lock()
 	defer m.Unlock()
