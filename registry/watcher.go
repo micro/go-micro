@@ -1,5 +1,12 @@
 package registry
 
+const (
+	MessageEvent EventType = iota
+	CreateEvent
+	DeleteEvent
+	UpdateEvent
+)
+
 // Watcher is an interface that returns updates
 // about services within the registry.
 type Watcher interface {
@@ -15,9 +22,7 @@ type Watcher interface {
 // the watcher. Types can be create, update, delete, ...
 type Event struct {
 	// type of event e.g create, update, delete, expire, ...
-	Type  string
-	// delta interval from the last event
-	Interval int64
+	Type EventType
 	// service for which this occured
 	Service *Service
 	// the event message
