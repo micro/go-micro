@@ -781,7 +781,6 @@ func (g *gossipRegistry) Deregister(s *registry.Service) error {
 	})
 
 	// send update to local watchers
-	// send update to local watchers
 	g.updates <- &update{
 		Update:  up,
 		Service: s,
