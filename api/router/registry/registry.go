@@ -98,7 +98,7 @@ func (r *registryRouter) refresh() {
 }
 
 // process watch event
-func (r *registryRouter) process(res *registry.Result) {
+func (r *registryRouter) process(res *registry.Event) {
 	// skip these things
 	if res == nil || res.Service == nil || !strings.HasPrefix(res.Service.Name, r.opts.Namespace) {
 		return
