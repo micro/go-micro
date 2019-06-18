@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/micro/go-micro/codec"
+	"github.com/micro/go-micro/codec/bytes"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/encoding"
 )
@@ -12,11 +13,12 @@ type response struct {
 	conn   *grpc.ClientConn
 	stream grpc.ClientStream
 	codec  encoding.Codec
+	gcodec codec.Codec
 }
 
 // Read the response
 func (r *response) Codec() codec.Reader {
-	return nil
+	return r.gcodec
 }
 
 // read the header
@@ -34,5 +36,9 @@ func (r *response) Header() map[string]string {
 
 // Read the undecoded response
 func (r *response) Read() ([]byte, error) {
-	return nil, nil
+	f := &bytes.Frame{}
+	if err := r.gcodec.ReadBody(f); err != nil {
+		return nil, err
+	}
+	return f.Data, nil
 }

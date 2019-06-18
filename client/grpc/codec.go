@@ -10,8 +10,8 @@ import (
 	"github.com/micro/go-micro/codec/bytes"
 	"github.com/micro/go-micro/codec/jsonrpc"
 	"github.com/micro/go-micro/codec/protorpc"
-	"google.golang.org/grpc/encoding"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/encoding"
 )
 
 type jsonCodec struct{}
@@ -123,9 +123,9 @@ func (jsonCodec) Name() string {
 
 type grpcCodec struct {
 	// headers
-	id string
-	target string
-	method string
+	id       string
+	target   string
+	method   string
 	endpoint string
 
 	s grpc.ClientStream
@@ -154,27 +154,19 @@ func (g *grpcCodec) ReadHeader(m *codec.Message, mt codec.MessageType) error {
 }
 
 func (g *grpcCodec) ReadBody(v interface{}) error {
-	frame := &bytes.Frame{}
-	if err := g.s.RecvMsg(frame); err != nil {
-		return err
+	if f, ok := v.(*bytes.Frame); ok {
+		return g.s.RecvMsg(f)
 	}
-	return g.c.Unmarshal(frame.Data, v)
+	return g.s.RecvMsg(v)
 }
 
 func (g *grpcCodec) Write(m *codec.Message, v interface{}) error {
 	// if we don't have a body
-	if len(m.Body) == 0 {
-		b, err := g.c.Marshal(v)
-		if err != nil {
-			return err
-		}
-		m.Body = b
+	if v != nil {
+		return g.s.SendMsg(v)
 	}
-
-	// create an encoded frame
-	frame := &bytes.Frame{m.Body}
 	// write the body using the framing codec
-	return g.s.SendMsg(frame)
+	return g.s.SendMsg(&bytes.Frame{m.Body})
 }
 
 func (g *grpcCodec) Close() error {
@@ -184,4 +176,3 @@ func (g *grpcCodec) Close() error {
 func (g *grpcCodec) String() string {
 	return g.c.Name()
 }
-

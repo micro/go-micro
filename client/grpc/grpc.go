@@ -32,8 +32,9 @@ type grpcClient struct {
 }
 
 func init() {
-	encoding.RegisterCodec(jsonCodec{})
-	encoding.RegisterCodec(bytesCodec{})
+	encoding.RegisterCodec(wrapCodec{jsonCodec{}})
+	encoding.RegisterCodec(wrapCodec{jsonCodec{}})
+	encoding.RegisterCodec(wrapCodec{bytesCodec{}})
 }
 
 // secure returns the dial option for whether its a secure or insecure connection
@@ -129,7 +130,7 @@ func (g *grpcClient) call(ctx context.Context, node *registry.Node, req client.R
 	ch := make(chan error, 1)
 
 	go func() {
-		err := cc.Invoke(ctx, methodToGRPC(req.Endpoint(), req.Body()), req.Body(), rsp, grpc.ForceCodec(cf))
+		err := cc.Invoke(ctx, methodToGRPC(req.Service(), req.Endpoint()), req.Body(), rsp, grpc.ForceCodec(cf))
 		ch <- microError(err)
 	}()
 
@@ -191,23 +192,26 @@ func (g *grpcClient) stream(ctx context.Context, node *registry.Node, req client
 		ServerStreams: true,
 	}
 
-	st, err := cc.NewStream(ctx, desc, methodToGRPC(req.Endpoint(), req.Body()))
+	st, err := cc.NewStream(ctx, desc, methodToGRPC(req.Service(), req.Endpoint()))
 	if err != nil {
 		return nil, errors.InternalServerError("go.micro.client", fmt.Sprintf("Error creating stream: %v", err))
 	}
 
+	codec := &grpcCodec{
+		s: st,
+		c: wc,
+	}
+
 	// set request codec
 	if r, ok := req.(*grpcRequest); ok {
-		r.codec = &grpcCodec{
-			s: st,
-			c: wc,
-		}
+		r.codec = codec
 	}
 
 	rsp := &response{
 		conn:   cc,
 		stream: st,
 		codec:  cf,
+		gcodec: codec,
 	}
 
 	return &grpcStream{

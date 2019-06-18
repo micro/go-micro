@@ -56,6 +56,7 @@ type grpcServer struct {
 }
 
 func init() {
+	encoding.RegisterCodec(wrapCodec{protoCodec{}})
 	encoding.RegisterCodec(wrapCodec{jsonCodec{}})
 	encoding.RegisterCodec(wrapCodec{bytesCodec{}})
 }
@@ -211,14 +212,30 @@ func (g *grpcServer) handler(srv interface{}, stream grpc.ServerStream) error {
 
 	// process via router
 	if g.opts.Router != nil {
-		// create a client.Request
-		request := &rpcRequest{
-			service:     g.opts.Name,
-			contentType: ct,
-			method:      fmt.Sprintf("%s.%s", serviceName, methodName),
+		cc, err := g.newGRPCCodec(ct)
+		if err != nil {
+			return errors.InternalServerError("go.micro.server", err.Error())
+		}
+		codec := &grpcCodec{
+			method:   fmt.Sprintf("%s.%s", serviceName, methodName),
+			endpoint: fmt.Sprintf("%s.%s", serviceName, methodName),
+			target:   g.opts.Name,
+			s:        stream,
+			c:        cc,
 		}
 
-		response := &rpcResponse{}
+		// create a client.Request
+		request := &rpcRequest{
+			service:     mgrpc.ServiceFromMethod(fullMethod),
+			contentType: ct,
+			method:      fmt.Sprintf("%s.%s", serviceName, methodName),
+			codec:       codec,
+		}
+
+		response := &rpcResponse{
+			header: make(map[string]string),
+			codec:  codec,
+		}
 
 		// create a wrapped function
 		handler := func(ctx context.Context, req server.Request, rsp interface{}) error {
