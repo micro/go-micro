@@ -118,7 +118,7 @@ func (r *router) Start() error {
 		return fmt.Errorf("failed to create network registry watcher: %v", err)
 	}
 
-	// we only watch local netwrork entries which we then propagate upstream to network
+	// NOTE: we only watch local netwrork entries which we then propagate upstream to network
 	tableWatcher, err := r.opts.Table.Watch(WatchNetwork("local"))
 	if err != nil {
 		return fmt.Errorf("failed to create routing table watcher: %v", err)
@@ -225,7 +225,7 @@ func (r *router) manageServiceRoutes(w registry.Watcher, network string, metric 
 				}
 			}
 		case "delete":
-			if len(res.Service.Nodes) <= 1 {
+			if len(res.Service.Nodes) < 1 {
 				// only return error if the route is present in the table, but something else has failed
 				if err := r.opts.Table.Delete(route); err != nil && err != ErrRouteNotFound {
 					return fmt.Errorf("failed to delete route for service: %v", res.Service.Name)
@@ -268,6 +268,7 @@ func (r *router) watchTable(w Watcher) error {
 			return fmt.Errorf("failed to parse router into node: %v", err)
 		}
 
+		// we know that .DestAddr contains the registered service name
 		service := &registry.Service{
 			Name:  event.Route.Options().DestAddr,
 			Nodes: []*registry.Node{node},
@@ -275,18 +276,12 @@ func (r *router) watchTable(w Watcher) error {
 
 		switch event.Type {
 		case CreateEvent:
-			// only register remotely if the service is "local"
-			if event.Route.Options().Network == "local" {
-				if err := r.opts.NetworkRegistry.Register(service, registry.RegisterTTL(120*time.Second)); err != nil {
-					return fmt.Errorf("failed to register service %s in network registry: %v", service.Name, err)
-				}
+			if err := r.opts.NetworkRegistry.Register(service, registry.RegisterTTL(120*time.Second)); err != nil {
+				return fmt.Errorf("failed to register service %s in network registry: %v", service.Name, err)
 			}
-		case UpdateEvent:
-			// only deregister remotely if the service is "local"
-			if event.Route.Options().Network == "local" {
-				if err := r.opts.NetworkRegistry.Deregister(service); err != nil {
-					return fmt.Errorf("failed to deregister service %s from network registry: %v", service.Name, err)
-				}
+		case DeleteEvent:
+			if err := r.opts.NetworkRegistry.Deregister(service); err != nil {
+				return fmt.Errorf("failed to deregister service %s from network registry: %v", service.Name, err)
 			}
 		}
 	}
