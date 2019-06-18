@@ -1,45 +1,45 @@
-// Package network is an interface for defining a network overlay
+// Package network is a package for defining a network overlay
 package network
 
 import (
 	"github.com/micro/go-micro/config/options"
 )
 
+// Network is an interface defining networks or graphs
 type Network interface {
 	options.Options
-	// Id of this network
-	Id() string
-	// Connect to the network with id
-	Connect(id string) error
+	// Id of this node
+	Id() uint64
+	// Connect to a node
+	Connect(id uint64) (Link, error)
 	// Close the network connection
 	Close() error
-	// Accept messages
+	// Accept messages on the network
 	Accept() (*Message, error)
-	// Send a message
+	// Send a message to the network
 	Send(*Message) error
-	// Advertise a service on this network
-	Advertise(service string) error
-	// Retrieve list of nodes for a service
-	Nodes(service string) ([]Node, error)
+	// Retrieve list of connections
+	Links() ([]Link, error)
 }
 
 // Node represents a network node
 type Node interface {
-	// Id of the node
-	Id() string
-	// The network for this node
-	Network() Network
+	// Node is a network. Network is a node.
+	Network
 }
 
-// Message is a message sent over the network
-type Message struct {
-	// Headers are the routing headers
-	// e.g Micro-Service, Micro-Endpoint, Micro-Network
-	// see https://github.com/micro/development/blob/master/protocol.md
-	Header map[string]string
-	// Body is the encaspulated payload
-	Body []byte
+// Link is a connection to another node
+type Link interface {
+	// remote node
+	Node
+	// length of link which dictates speed
+	Length() int
+	// weight of link which dictates curvature
+	Weight() int
 }
+
+// Message is the base type for opaque data
+type Message []byte
 
 var (
 	// TODO: set default network

@@ -734,6 +734,12 @@ func (g *gossipRegistry) Register(s *registry.Service, opts ...registry.Register
 		notify: nil,
 	})
 
+	// send update to local watchers
+	g.updates <- &update{
+		Update:  up,
+		Service: s,
+	}
+
 	// wait
 	<-time.After(g.interval * 2)
 
@@ -769,6 +775,13 @@ func (g *gossipRegistry) Deregister(s *registry.Service) error {
 		update: up,
 		notify: nil,
 	})
+
+	// send update to local watchers
+	// send update to local watchers
+	g.updates <- &update{
+		Update:  up,
+		Service: s,
+	}
 
 	// wait
 	<-time.After(g.interval * 2)

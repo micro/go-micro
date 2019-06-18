@@ -14,8 +14,8 @@ import (
 	cgrpc "github.com/micro/go-micro/client/grpc"
 	cmucp "github.com/micro/go-micro/client/mucp"
 	"github.com/micro/go-micro/server"
-	smucp "github.com/micro/go-micro/server/mucp"
 	sgrpc "github.com/micro/go-micro/server/grpc"
+	smucp "github.com/micro/go-micro/server/mucp"
 	"github.com/micro/go-micro/util/log"
 
 	// brokers
@@ -180,7 +180,7 @@ var (
 	}
 
 	DefaultClients = map[string]func(...client.Option) client.Client{
-		"rpc": client.NewClient,
+		"rpc":  client.NewClient,
 		"mucp": cmucp.NewClient,
 		"grpc": cgrpc.NewClient,
 	}
@@ -200,7 +200,7 @@ var (
 	}
 
 	DefaultServers = map[string]func(...server.Option) server.Server{
-		"rpc": server.NewServer,
+		"rpc":  server.NewServer,
 		"mucp": smucp.NewServer,
 		"grpc": sgrpc.NewServer,
 	}
