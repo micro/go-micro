@@ -10,6 +10,18 @@ const (
 	ClosestMatch
 )
 
+// String returns human representation of LookupPolicy
+func (lp LookupPolicy) String() string {
+	switch lp {
+	case DiscardNoRoute:
+		return "DISCARD"
+	case ClosestMatch:
+		return "CLOSEST"
+	default:
+		return "UNKNOWN"
+	}
+}
+
 // QueryOption sets routing table query options
 type QueryOption func(*QueryOptions)
 

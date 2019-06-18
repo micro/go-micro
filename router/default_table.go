@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/google/uuid"
+	"github.com/micro/go-log"
 	"github.com/olekukonko/tablewriter"
 )
 
@@ -70,9 +71,20 @@ func (t *table) Add(r Route) error {
 	t.Lock()
 	defer t.Unlock()
 
+	log.Logf("[table] AddRoute request %d %s: \n%s", sum, r.Options().Policy, r)
+
 	// check if the destination has any routes in the table
 	if _, ok := t.m[destAddr]; !ok {
+		log.Logf("[table] destination does NOT exist ADDING: \n%s", r)
 		t.m[destAddr] = make(map[uint64]Route)
+		t.m[destAddr][sum] = r
+		go t.sendEvent(&Event{Type: CreateEvent, Route: r})
+		return nil
+	}
+
+	// add new route to the table for the given destination
+	if _, ok := t.m[destAddr][sum]; !ok {
+		log.Logf("[table] route does NOT exist ADDING: \n%s", r)
 		t.m[destAddr][sum] = r
 		go t.sendEvent(&Event{Type: CreateEvent, Route: r})
 		return nil
@@ -80,6 +92,7 @@ func (t *table) Add(r Route) error {
 
 	// only add the route if it exists and if override is requested
 	if _, ok := t.m[destAddr][sum]; ok && r.Options().Policy == OverrideIfExists {
+		log.Logf("[table] route does exist OVERRIDING: \n%s", r)
 		t.m[destAddr][sum] = r
 		go t.sendEvent(&Event{Type: UpdateEvent, Route: r})
 		return nil
@@ -88,8 +101,11 @@ func (t *table) Add(r Route) error {
 	// if we reached this point without already returning the route already exists
 	// we return nil only if explicitly requested by the client
 	if r.Options().Policy == IgnoreIfExists {
+		log.Logf("[table] route does exist IGNORING: \n%s", r)
 		return nil
 	}
+
+	log.Logf("[table] AddRoute request: DUPPLICATE ROUTE")
 
 	return ErrDuplicateRoute
 }
@@ -102,7 +118,10 @@ func (t *table) Delete(r Route) error {
 	destAddr := r.Options().DestAddr
 	sum := t.hash(r)
 
+	log.Logf("[table] DeleteRoute request %d: \n%s", sum, r)
+
 	if _, ok := t.m[destAddr]; !ok {
+		log.Logf("[table] DeleteRoute Route NOT found: %s", r)
 		return ErrRouteNotFound
 	}
 
@@ -237,7 +256,7 @@ func (t *table) String() string {
 			strRoute := []string{
 				route.Options().DestAddr,
 				route.Options().Gateway.Address(),
-				route.Options().Gateway.Network(),
+				route.Options().Network,
 				fmt.Sprintf("%d", route.Options().Metric),
 			}
 			table.Append(strRoute)
@@ -252,11 +271,12 @@ func (t *table) String() string {
 
 // hash hashes the route using router gateway and network address
 func (t *table) hash(r Route) uint64 {
+	destAddr := r.Options().DestAddr
 	gwAddr := r.Options().Gateway.Address()
 	netAddr := r.Options().Network
 
 	t.h.Reset()
-	t.h.Write([]byte(gwAddr + netAddr))
+	t.h.Write([]byte(destAddr + gwAddr + netAddr))
 
 	return t.h.Sum64()
 }

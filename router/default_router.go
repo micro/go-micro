@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/micro/go-log"
 	"github.com/micro/go-micro/registry"
 	"github.com/olekukonko/tablewriter"
 )
@@ -206,6 +207,7 @@ func (r *router) manageServiceRoutes(w registry.Watcher, network string, metric 
 
 		if err != nil {
 			watchErr = err
+			log.Logf("[router] registry error: %s", err)
 			break
 		}
 
@@ -218,18 +220,25 @@ func (r *router) manageServiceRoutes(w registry.Watcher, network string, metric 
 
 		switch res.Action {
 		case "create":
+			log.Logf("[router] received <%s> create event for service %s", network, res.Service.Name)
 			if len(res.Service.Nodes) > 0 {
+				log.Logf("[router] adding <%s> service %s to routing table", network, res.Service.Name)
 				/// only return error if the route is not duplicate, but something else has failed
 				if err := r.opts.Table.Add(route); err != nil && err != ErrDuplicateRoute {
 					return fmt.Errorf("failed to add route for service: %v", res.Service.Name)
 				}
+				log.Logf("[router] route successfully added; routing table: \n%s", r.opts.Table)
 			}
 		case "delete":
+			log.Logf("[router] received <%s> delete event for service %s", network, res.Service.Name)
+			//log.Logf("[router] <%s> service nodes: %v", network, res.Service.Nodes)
 			if len(res.Service.Nodes) < 1 {
+				log.Logf("[router] removing <%s> service %s from routing table", network, res.Service.Name)
 				// only return error if the route is present in the table, but something else has failed
 				if err := r.opts.Table.Delete(route); err != nil && err != ErrRouteNotFound {
 					return fmt.Errorf("failed to delete route for service: %v", res.Service.Name)
 				}
+				log.Logf("[router] route successfully deleted; routing table: \n%s", r.opts.Table)
 			}
 		}
 	}
@@ -260,6 +269,7 @@ func (r *router) watchTable(w Watcher) error {
 
 		if err != nil {
 			watchErr = err
+			log.Logf("[router] routing table error: %s", err)
 			break
 		}
 
@@ -276,13 +286,18 @@ func (r *router) watchTable(w Watcher) error {
 
 		switch event.Type {
 		case CreateEvent:
-			if err := r.opts.NetworkRegistry.Register(service, registry.RegisterTTL(120*time.Second)); err != nil {
+			log.Logf("[router] adding service %s to network registry", event.Route.Options().DestAddr)
+			//if err := r.opts.NetworkRegistry.Register(service, registry.RegisterTTL(120*time.Second)); err != nil {
+			if err := r.opts.NetworkRegistry.Register(service, registry.RegisterTTL(5*time.Second)); err != nil {
 				return fmt.Errorf("failed to register service %s in network registry: %v", service.Name, err)
 			}
+			log.Logf("[router] successfully added service %s to network registry", event.Route.Options().DestAddr)
 		case DeleteEvent:
+			log.Logf("[router] deleting service %s from network registry", event.Route.Options().DestAddr)
 			if err := r.opts.NetworkRegistry.Deregister(service); err != nil {
 				return fmt.Errorf("failed to deregister service %s from network registry: %v", service.Name, err)
 			}
+			log.Logf("[router] successfully deleted service %s from network registry", event.Route.Options().DestAddr)
 		}
 	}
 
