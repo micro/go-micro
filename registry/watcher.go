@@ -30,9 +30,4 @@ type Event struct {
 }
 
 // Message is a message received as part of an event
-type Message struct {
-	// metadata associated with the message
-	Header map[string]string
-	// opaque body for an encoded message
-	Body []byte
-}
+type Message []byte
