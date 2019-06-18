@@ -11,8 +11,8 @@ import (
 	"github.com/olekukonko/tablewriter"
 )
 
+// TODO: table options TBD in the future
 // TableOptions are routing table options
-// TODO: This will allow for arbitrary routing table options in the future
 type TableOptions struct{}
 
 // table is in memory routing table
@@ -74,14 +74,14 @@ func (t *table) Add(r Route) error {
 	if _, ok := t.m[destAddr]; !ok {
 		t.m[destAddr] = make(map[uint64]Route)
 		t.m[destAddr][sum] = r
-		go t.sendResult(&Result{Action: "add", Route: r})
+		go t.sendEvent(&Event{Type: CreateEvent, Route: r})
 		return nil
 	}
 
 	// only add the route if it exists and if override is requested
 	if _, ok := t.m[destAddr][sum]; ok && r.Options().Policy == OverrideIfExists {
 		t.m[destAddr][sum] = r
-		go t.sendResult(&Result{Action: "update", Route: r})
+		go t.sendEvent(&Event{Type: UpdateEvent, Route: r})
 		return nil
 	}
 
@@ -107,7 +107,7 @@ func (t *table) Delete(r Route) error {
 	}
 
 	delete(t.m[destAddr], sum)
-	go t.sendResult(&Result{Action: "delete", Route: r})
+	go t.sendEvent(&Event{Type: DeleteEvent, Route: r})
 
 	return nil
 }
@@ -128,7 +128,7 @@ func (t *table) Update(r Route) error {
 	// if the route has been found update it
 	if _, ok := t.m[destAddr][sum]; ok {
 		t.m[destAddr][sum] = r
-		go t.sendResult(&Result{Action: "update", Route: r})
+		go t.sendEvent(&Event{Type: UpdateEvent, Route: r})
 		return nil
 	}
 
@@ -188,7 +188,7 @@ func (t *table) Watch(opts ...WatchOption) (Watcher, error) {
 
 	watcher := &tableWatcher{
 		opts:    wopts,
-		resChan: make(chan *Result, 10),
+		resChan: make(chan *Event, 10),
 		done:    make(chan struct{}),
 	}
 
@@ -199,8 +199,8 @@ func (t *table) Watch(opts ...WatchOption) (Watcher, error) {
 	return watcher, nil
 }
 
-// sendResult sends rules to all subscribe watchers
-func (t *table) sendResult(r *Result) {
+// sendEvent sends rules to all subscribe watchers
+func (t *table) sendEvent(r *Event) {
 	t.RLock()
 	defer t.RUnlock()
 

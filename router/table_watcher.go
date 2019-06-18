@@ -9,6 +9,40 @@ var (
 	ErrWatcherStopped = errors.New("routing table watcher stopped")
 )
 
+// EventType defines routing table event
+type EventType int
+
+const (
+	// CreateEvent is emitted when new route has been created
+	CreateEvent EventType = iota
+	// DeleteEvent is emitted when an existing route has been deleted
+	DeleteEvent
+	// UpdateEvent is emitted when a routing table has been updated
+	UpdateEvent
+)
+
+// String returns string representation of the event
+func (et EventType) String() string {
+	switch et {
+	case CreateEvent:
+		return "CREATE"
+	case DeleteEvent:
+		return "DELETE"
+	case UpdateEvent:
+		return "UPDATE"
+	default:
+		return "UNKNOWN"
+	}
+}
+
+// Event is returned by a call to Next on the watcher.
+type Event struct {
+	// Type defines type of event
+	Type EventType
+	// Route is table rout
+	Route Route
+}
+
 // WatchOption is used to define what routes to watch in the table
 type WatchOption func(*WatchOptions)
 
@@ -16,17 +50,9 @@ type WatchOption func(*WatchOptions)
 // Watcher returns updates to the routing table
 type Watcher interface {
 	// Next is a blocking call that returns watch result
-	Next() (*Result, error)
+	Next() (*Event, error)
 	// Stop stops watcher
 	Stop()
-}
-
-// Result is returned by a call to Next on the watcher.
-type Result struct {
-	// Action is routing table action which is either of add, delete or update
-	Action string
-	// Route is table rout
-	Route Route
 }
 
 // WatchOptions are table watcher options
@@ -54,14 +80,14 @@ func WatchNetwork(n string) WatchOption {
 
 type tableWatcher struct {
 	opts    WatchOptions
-	resChan chan *Result
+	resChan chan *Event
 	done    chan struct{}
 }
 
 // Next returns the next noticed action taken on table
 // TODO: this needs to be thought through properly
 // we are aiming to provide the same watch options Query() provides
-func (w *tableWatcher) Next() (*Result, error) {
+func (w *tableWatcher) Next() (*Event, error) {
 	for {
 		select {
 		case res := <-w.resChan:

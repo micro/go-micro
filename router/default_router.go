@@ -253,7 +253,7 @@ func (r *router) watchTable(w Watcher) error {
 
 	// watch for changes to services
 	for {
-		res, err := w.Next()
+		event, err := w.Next()
 		if err == ErrWatcherStopped {
 			break
 		}
@@ -269,21 +269,21 @@ func (r *router) watchTable(w Watcher) error {
 		}
 
 		service := &registry.Service{
-			Name:  res.Route.Options().DestAddr,
+			Name:  event.Route.Options().DestAddr,
 			Nodes: []*registry.Node{node},
 		}
 
-		switch res.Action {
-		case "add":
+		switch event.Type {
+		case CreateEvent:
 			// only register remotely if the service is "local"
-			if res.Route.Options().Network == "local" {
+			if event.Route.Options().Network == "local" {
 				if err := r.opts.NetworkRegistry.Register(service, registry.RegisterTTL(120*time.Second)); err != nil {
 					return fmt.Errorf("failed to register service %s in network registry: %v", service.Name, err)
 				}
 			}
-		case "delete":
+		case UpdateEvent:
 			// only deregister remotely if the service is "local"
-			if res.Route.Options().Network == "local" {
+			if event.Route.Options().Network == "local" {
 				if err := r.opts.NetworkRegistry.Deregister(service); err != nil {
 					return fmt.Errorf("failed to deregister service %s from network registry: %v", service.Name, err)
 				}
