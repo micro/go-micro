@@ -54,6 +54,8 @@ type WatchOption func(*WatchOptions)
 type Watcher interface {
 	// Next is a blocking call that returns watch result
 	Next() (*Event, error)
+	// Chan returns event channel
+	Chan() (<-chan *Event, error)
 	// Stop stops watcher
 	Stop()
 }
@@ -61,16 +63,16 @@ type Watcher interface {
 // WatchOptions are table watcher options
 type WatchOptions struct {
 	// Specify destination address to watch
-	DestAddr string
+	Destination string
 	// Specify network to watch
 	Network string
 }
 
-// WatchDestAddr sets what destination to watch
+// WatchDestination sets what destination to watch
 // Destination is usually microservice name
-func WatchDestAddr(a string) WatchOption {
+func WatchDestination(a string) WatchOption {
 	return func(o *WatchOptions) {
-		o.DestAddr = a
+		o.Destination = a
 	}
 }
 
@@ -94,13 +96,13 @@ func (w *tableWatcher) Next() (*Event, error) {
 	for {
 		select {
 		case res := <-w.resChan:
-			switch w.opts.DestAddr {
+			switch w.opts.Destination {
 			case "*", "":
-				if w.opts.Network == "*" || w.opts.Network == res.Route.Options().Network {
+				if w.opts.Network == "*" || w.opts.Network == res.Route.Network {
 					return res, nil
 				}
-			case res.Route.Options().DestAddr:
-				if w.opts.Network == "*" || w.opts.Network == res.Route.Options().Network {
+			case res.Route.Destination:
+				if w.opts.Network == "*" || w.opts.Network == res.Route.Network {
 					return res, nil
 				}
 			}
@@ -108,6 +110,11 @@ func (w *tableWatcher) Next() (*Event, error) {
 			return nil, ErrWatcherStopped
 		}
 	}
+}
+
+// Chan returns watcher events channel
+func (w *tableWatcher) Chan() (<-chan *Event, error) {
+	return w.resChan, nil
 }
 
 // Stop stops routing table watcher
@@ -125,10 +132,10 @@ func (w *tableWatcher) String() string {
 	sb := &strings.Builder{}
 
 	table := tablewriter.NewWriter(sb)
-	table.SetHeader([]string{"DestAddr", "Network"})
+	table.SetHeader([]string{"Destination", "Network"})
 
 	data := []string{
-		w.opts.DestAddr,
+		w.opts.Destination,
 		w.opts.Network,
 	}
 	table.Append(data)

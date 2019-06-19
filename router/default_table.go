@@ -64,7 +64,7 @@ func (t *table) Options() TableOptions {
 
 // Add adds a route to the routing table
 func (t *table) Add(r Route) error {
-	destAddr := r.Options().DestAddr
+	destAddr := r.Destination
 	sum := t.hash(r)
 
 	t.Lock()
@@ -86,7 +86,7 @@ func (t *table) Add(r Route) error {
 	}
 
 	// only add the route if the route override is explicitly requested
-	if _, ok := t.m[destAddr][sum]; ok && r.Options().Policy == OverrideIfExists {
+	if _, ok := t.m[destAddr][sum]; ok && r.Policy == OverrideIfExists {
 		t.m[destAddr][sum] = r
 		go t.sendEvent(&Event{Type: UpdateEvent, Route: r})
 		return nil
@@ -94,7 +94,7 @@ func (t *table) Add(r Route) error {
 
 	// if we reached this point without already returning the route already exists
 	// we return nil only if explicitly requested by the client
-	if r.Options().Policy == IgnoreIfExists {
+	if r.Policy == IgnoreIfExists {
 		return nil
 	}
 
@@ -106,7 +106,7 @@ func (t *table) Delete(r Route) error {
 	t.Lock()
 	defer t.Unlock()
 
-	destAddr := r.Options().DestAddr
+	destAddr := r.Destination
 	sum := t.hash(r)
 
 	if _, ok := t.m[destAddr]; !ok {
@@ -121,7 +121,7 @@ func (t *table) Delete(r Route) error {
 
 // Update updates routing table with new route
 func (t *table) Update(r Route) error {
-	destAddr := r.Options().DestAddr
+	destAddr := r.Destination
 	sum := t.hash(r)
 
 	t.Lock()
@@ -165,24 +165,28 @@ func (t *table) Lookup(q Query) ([]Route, error) {
 	var results []Route
 
 	for destAddr, routes := range t.m {
-		if q.Options().DestAddr != "*" {
-			if q.Options().DestAddr != destAddr {
+		if q.Options().Destination != "*" {
+			if q.Options().Destination != destAddr {
 				continue
 			}
 			for _, route := range routes {
-				if q.Options().Network == "*" || q.Options().Network == route.Options().Network {
-					if q.Options().Gateway.ID() == "*" || q.Options().Gateway.ID() == route.Options().Gateway.ID() {
-						results = append(results, route)
+				if q.Options().Network == "*" || q.Options().Network == route.Network {
+					if q.Options().Router.ID() == "*" || q.Options().Router.ID() == route.Router.ID() {
+						if route.Metric <= q.Options().Metric {
+							results = append(results, route)
+						}
 					}
 				}
 			}
 		}
 
-		if q.Options().DestAddr == "*" {
+		if q.Options().Destination == "*" {
 			for _, route := range routes {
-				if q.Options().Network == "*" || q.Options().Network == route.Options().Network {
-					if q.Options().Gateway.ID() == "*" || q.Options().Gateway.ID() == route.Options().Gateway.ID() {
-						results = append(results, route)
+				if q.Options().Network == "*" || q.Options().Network == route.Router.Network() {
+					if q.Options().Router.ID() == "*" || q.Options().Router.ID() == route.Router.ID() {
+						if route.Metric <= q.Options().Metric {
+							results = append(results, route)
+						}
 					}
 				}
 			}
@@ -200,8 +204,8 @@ func (t *table) Lookup(q Query) ([]Route, error) {
 func (t *table) Watch(opts ...WatchOption) (Watcher, error) {
 	// by default watch everything
 	wopts := WatchOptions{
-		DestAddr: "*",
-		Network:  "*",
+		Destination: "*",
+		Network:     "*",
 	}
 
 	for _, o := range opts {
@@ -252,15 +256,15 @@ func (t *table) String() string {
 
 	// create nice table printing structure
 	table := tablewriter.NewWriter(sb)
-	table.SetHeader([]string{"Destination", "Gateway", "Network", "Metric"})
+	table.SetHeader([]string{"Destination", "Router", "Network", "Metric"})
 
 	for _, destRoute := range t.m {
 		for _, route := range destRoute {
 			strRoute := []string{
-				route.Options().DestAddr,
-				route.Options().Gateway.Address(),
-				route.Options().Network,
-				fmt.Sprintf("%d", route.Options().Metric),
+				route.Destination,
+				route.Router.Address(),
+				route.Network,
+				fmt.Sprintf("%d", route.Metric),
 			}
 			table.Append(strRoute)
 		}
@@ -274,12 +278,12 @@ func (t *table) String() string {
 
 // hash hashes the route using router gateway and network address
 func (t *table) hash(r Route) uint64 {
-	destAddr := r.Options().DestAddr
-	gwAddr := r.Options().Gateway.Address()
-	netAddr := r.Options().Network
+	destAddr := r.Destination
+	routerAddr := r.Router.Address()
+	netAddr := r.Network
 
 	t.h.Reset()
-	t.h.Write([]byte(destAddr + gwAddr + netAddr))
+	t.h.Write([]byte(destAddr + routerAddr + netAddr))
 
 	return t.h.Sum64()
 }

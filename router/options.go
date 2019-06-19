@@ -6,31 +6,26 @@ import (
 )
 
 var (
-	// DefaultGossipAddress is default gossip bind address
-	DefaultGossipAddress = ":9093"
-	// DefaultNetworkAddress is default network bind address
-	DefaultNetworkAddress = ":9094"
+	// DefaultAddress is default router address
+	DefaultAddress = ":9093"
+	// DefaultAdvertise is default address advertised to the network
+	DefaultAdvertise = ":9094"
 )
 
 // Options are router options
 type Options struct {
 	// ID is router id
 	ID string
-	// Address is router micro service address
+	// Address is router address
 	Address string
-	// GossipAddress is router gossip address
-	GossipAddress string
-	// NetworkAddress is micro network address
-	NetworkAddress string
-	// LocalRegistry is router local registry
-	LocalRegistry registry.Registry
-	// NetworkRegistry is router remote registry
-	// NOTE: we need some abstraction on top of gossip.Registry
-	NetworkRegistry registry.Registry
+	// Advertise is the address advertised to the network
+	Advertise string
+	// Registry is the local registry
+	Registry registry.Registry
+	// Networkis the network registry
+	Network registry.Registry
 	// Table is routing table
 	Table Table
-	// RIB is Routing Information Base
-	RIB RIB
 }
 
 // ID sets Router ID
@@ -47,59 +42,43 @@ func Address(a string) Option {
 	}
 }
 
-// GossipAddress sets router gossip address
-func GossipAddress(a string) Option {
+// Advertise sets the address that is advertise to the network
+func Advertise(n string) Option {
 	return func(o *Options) {
-		o.GossipAddress = a
+		o.Advertise = n
 	}
 }
 
-// NetworkAddress sets router network address
-func NetworkAddress(n string) Option {
-	return func(o *Options) {
-		o.NetworkAddress = n
-	}
-}
-
-// RoutingTable allows to specify custom routing table
+// RoutingTable sets the routing table
 func RoutingTable(t Table) Option {
 	return func(o *Options) {
 		o.Table = t
 	}
 }
 
-// LocalRegistry allows to specify local registry
-func LocalRegistry(r registry.Registry) Option {
+// Registry sets the local registry
+func Registry(r registry.Registry) Option {
 	return func(o *Options) {
-		o.LocalRegistry = r
+		o.Registry = r
 	}
 }
 
-// NetworkRegistry allows to specify remote registry
-func NetworkRegistry(r registry.Registry) Option {
+// Network sets the network registry
+func Network(r registry.Registry) Option {
 	return func(o *Options) {
-		o.NetworkRegistry = r
-	}
-}
-
-// RouterRIB allows to configure RIB
-func RouterRIB(r RIB) Option {
-	return func(o *Options) {
-		o.RIB = r
+		o.Network = r
 	}
 }
 
 // DefaultOptions returns router default options
 func DefaultOptions() Options {
 	// NOTE: by default both local and network registies use default registry i.e. mdns
-	// TODO: DefaultRIB needs to be added once it's properly figured out
 	return Options{
-		ID:              uuid.New().String(),
-		Address:         ":8083",
-		GossipAddress:   DefaultGossipAddress,
-		NetworkAddress:  DefaultNetworkAddress,
-		LocalRegistry:   registry.DefaultRegistry,
-		NetworkRegistry: registry.DefaultRegistry,
-		Table:           NewTable(),
+		ID:        uuid.New().String(),
+		Address:   DefaultAddress,
+		Advertise: DefaultAdvertise,
+		Registry:  registry.DefaultRegistry,
+		Network:   registry.DefaultRegistry,
+		Table:     NewTable(),
 	}
 }

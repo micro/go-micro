@@ -12,12 +12,12 @@ import (
 )
 
 var (
-	// AdvertiseToNetworkTick defines how often in seconds do we scal the local registry
+	// AdvertiseTick defines how often in seconds do we scal the local registry
 	// to advertise the local services to the network registry
-	AdvertiseToNetworkTick = 5 * time.Second
-	// AdvertiseNetworkTTL defines network registry TTL in seconds
+	AdvertiseTick = 5 * time.Second
+	// AdvertiseTTL defines network registry TTL in seconds
 	// NOTE: this is a rather arbitrary picked value subject to change
-	AdvertiseNetworkTTL = 120 * time.Second
+	AdvertiseTTL = 120 * time.Second
 )
 
 type router struct {
@@ -71,25 +71,20 @@ func (r *router) Address() string {
 	return r.opts.Address
 }
 
-// Gossip returns gossip bind address
-func (r *router) Gossip() string {
-	return r.opts.GossipAddress
-}
-
-// Network returns router's micro network
+// Network returns the address router advertises to the network
 func (r *router) Network() string {
-	return r.opts.NetworkAddress
+	return r.opts.Advertise
 }
 
 // Start starts the router
 func (r *router) Start() error {
 	// add local service routes into the routing table
-	if err := r.addServiceRoutes(r.opts.LocalRegistry, r.opts.Address, DefaultLocalMetric); err != nil {
+	if err := r.addServiceRoutes(r.opts.Registry, DefaultLocalMetric); err != nil {
 		return fmt.Errorf("failed adding routes for local services: %v", err)
 	}
 
 	// add network service routes into the routing table
-	if err := r.addServiceRoutes(r.opts.NetworkRegistry, r.opts.NetworkAddress, DefaultNetworkMetric); err != nil {
+	if err := r.addServiceRoutes(r.opts.Network, DefaultNetworkMetric); err != nil {
 		return fmt.Errorf("failed adding routes for network services: %v", err)
 	}
 
@@ -98,12 +93,12 @@ func (r *router) Start() error {
 		return fmt.Errorf("failed to parse router into service node: %v", err)
 	}
 
-	localRegWatcher, err := r.opts.LocalRegistry.Watch()
+	localWatcher, err := r.opts.Registry.Watch()
 	if err != nil {
 		return fmt.Errorf("failed to create local registry watcher: %v", err)
 	}
 
-	networkRegWatcher, err := r.opts.NetworkRegistry.Watch()
+	networkWatcher, err := r.opts.Network.Watch()
 	if err != nil {
 		return fmt.Errorf("failed to create network registry watcher: %v", err)
 	}
@@ -115,14 +110,14 @@ func (r *router) Start() error {
 	go func() {
 		defer r.wg.Done()
 		// watch local registry and register routes in routine table
-		errChan <- r.manageServiceRoutes(localRegWatcher, r.opts.Address, DefaultLocalMetric)
+		errChan <- r.manageServiceRoutes(localWatcher, DefaultLocalMetric)
 	}()
 
 	r.wg.Add(1)
 	go func() {
 		defer r.wg.Done()
 		// watch network registry and register routes in routine table
-		errChan <- r.manageServiceRoutes(networkRegWatcher, r.opts.NetworkAddress, DefaultNetworkMetric)
+		errChan <- r.manageServiceRoutes(networkWatcher, DefaultNetworkMetric)
 	}()
 
 	r.wg.Add(1)
@@ -138,19 +133,19 @@ func (r *router) Start() error {
 // addServiceRouteslists all available services in given registry and adds them to the routing table.
 // NOTE: this is a one-off operation done when bootstrapping the routing table of the new router.
 // It returns error if either the services could not be listed or if the routes could not be added to the routing table.
-func (r *router) addServiceRoutes(reg registry.Registry, network string, metric int) error {
+func (r *router) addServiceRoutes(reg registry.Registry, metric int) error {
 	services, err := reg.ListServices()
 	if err != nil {
 		return fmt.Errorf("failed to list services: %v", err)
 	}
 
 	for _, service := range services {
-		route := NewRoute(
-			DestAddr(service.Name),
-			Gateway(r),
-			Network(network),
-			Metric(metric),
-		)
+		route := Route{
+			Destination: service.Name,
+			Router:      r,
+			Network:     r.opts.Advertise,
+			Metric:      metric,
+		}
 		if err := r.opts.Table.Add(route); err != nil && err != ErrDuplicateRoute {
 			return fmt.Errorf("error adding route for service: %s", service.Name)
 		}
@@ -160,15 +155,15 @@ func (r *router) addServiceRoutes(reg registry.Registry, network string, metric 
 }
 
 // parseToNode parses router into registry.Node and returns the result.
-// It returns error if the router network address could not be parsed into service host and port.
-// NOTE: We use ":" as the default delimiter when we split the network address.
+// It returns error if the router network address could not be parsed into host and port.
+// NOTE: We use ":" as the delimiter when we splitting the router network address.
 func (r *router) parseToNode() (*registry.Node, error) {
 	// split on ":" as a standard host/port delimiter
-	addr := strings.Split(r.opts.NetworkAddress, ":")
+	addr := strings.Split(r.opts.Advertise, ":")
 	// try to parse network port into integer
 	port, err := strconv.Atoi(addr[1])
 	if err != nil {
-		return nil, fmt.Errorf("could not parse router network address from %s: %v", r.opts.NetworkAddress, err)
+		return nil, fmt.Errorf("could not parse router network address: %v", err)
 	}
 
 	node := &registry.Node{
@@ -184,7 +179,7 @@ func (r *router) parseToNode() (*registry.Node, error) {
 // It returns error if either the local services failed to be listed or if it fails to register local service in network registry.
 func (r *router) advertiseToNetwork(node *registry.Node) error {
 	// ticker to periodically scan the local registry
-	ticker := time.NewTicker(AdvertiseToNetworkTick)
+	ticker := time.NewTicker(AdvertiseTick)
 
 	for {
 		select {
@@ -192,7 +187,7 @@ func (r *router) advertiseToNetwork(node *registry.Node) error {
 			return nil
 		case <-ticker.C:
 			// list all local services
-			services, err := r.opts.LocalRegistry.ListServices()
+			services, err := r.opts.Registry.ListServices()
 			if err != nil {
 				return fmt.Errorf("failed to list local services: %v", err)
 			}
@@ -203,7 +198,7 @@ func (r *router) advertiseToNetwork(node *registry.Node) error {
 					Nodes: []*registry.Node{node},
 				}
 				// register the local service in the network registry
-				if err := r.opts.NetworkRegistry.Register(svc, registry.RegisterTTL(AdvertiseNetworkTTL)); err != nil {
+				if err := r.opts.Network.Register(svc, registry.RegisterTTL(AdvertiseTTL)); err != nil {
 					return fmt.Errorf("failed to register service %s in network registry: %v", svc.Name, err)
 				}
 			}
@@ -213,7 +208,7 @@ func (r *router) advertiseToNetwork(node *registry.Node) error {
 
 // manageServiceRoutes watches services in given registry and updates the routing table accordingly.
 // It returns error if the service registry watcher has stopped or if the routing table failed to be updated.
-func (r *router) manageServiceRoutes(w registry.Watcher, network string, metric int) error {
+func (r *router) manageServiceRoutes(w registry.Watcher, metric int) error {
 	// wait in the background for the router to stop
 	// when the router stops, stop the watcher and exit
 	r.wg.Add(1)
@@ -236,17 +231,17 @@ func (r *router) manageServiceRoutes(w registry.Watcher, network string, metric 
 			break
 		}
 
-		route := NewRoute(
-			DestAddr(res.Service.Name),
-			Gateway(r),
-			Network(network),
-			Metric(metric),
-		)
+		route := Route{
+			Destination: res.Service.Name,
+			Router:      r,
+			Network:     r.opts.Advertise,
+			Metric:      metric,
+		}
 
 		switch res.Action {
 		case "create":
 			if len(res.Service.Nodes) > 0 {
-				/// only return error if the route is not duplicate, but something else has failed
+				// only return error if the route is not duplicate, but something else has failed
 				if err := r.opts.Table.Add(route); err != nil && err != ErrDuplicateRoute {
 					return fmt.Errorf("failed to add route for service: %v", res.Service.Name)
 				}
@@ -274,8 +269,7 @@ func (r *router) Stop() error {
 
 	// NOTE: we need a more efficient way of doing this e.g. network routes
 	// should ideally be autodeleted when the router stops gossiping
-	// deregister all services advertised by this router from remote registry
-	query := NewQuery(QueryGateway(r), QueryNetwork(r.opts.NetworkAddress))
+	query := NewQuery(QueryRouter(r), QueryNetwork(r.opts.Advertise))
 	routes, err := r.opts.Table.Lookup(query)
 	if err != nil && err != ErrRouteNotFound {
 		return fmt.Errorf("failed to lookup routes for router %s: %v", r.opts.ID, err)
@@ -289,10 +283,10 @@ func (r *router) Stop() error {
 
 	for _, route := range routes {
 		service := &registry.Service{
-			Name:  route.Options().DestAddr,
+			Name:  route.Destination,
 			Nodes: []*registry.Node{node},
 		}
-		if err := r.opts.NetworkRegistry.Deregister(service); err != nil {
+		if err := r.opts.Network.Deregister(service); err != nil {
 			return fmt.Errorf("failed to deregister service %s from network registry: %v", service.Name, err)
 		}
 	}
@@ -310,7 +304,7 @@ func (r *router) String() string {
 	data := []string{
 		r.opts.ID,
 		r.opts.Address,
-		r.opts.NetworkAddress,
+		r.opts.Advertise,
 		fmt.Sprintf("%d", r.opts.Table.Size()),
 	}
 	table.Append(data)

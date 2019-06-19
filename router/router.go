@@ -13,8 +13,6 @@ type Router interface {
 	Table() Table
 	// Address returns the router adddress
 	Address() string
-	// Gossip returns the router gossip address
-	Gossip() string
 	// Network returns the router network address
 	Network() string
 	// Start starts the router

@@ -27,20 +27,22 @@ type QueryOption func(*QueryOptions)
 
 // QueryOptions are routing table query options
 type QueryOptions struct {
-	// DestAddr is destination address
-	DestAddr string
-	// NetworkAddress is network address
+	// Destination is destination address
+	Destination string
+	// Network is network address
 	Network string
-	// Gateway is gateway address
-	Gateway Router
+	// Router is gateway address
+	Router Router
+	// Metric is route metric
+	Metric int
 	// Policy is query lookup policy
 	Policy LookupPolicy
 }
 
-// QueryDestAddr sets query destination address
-func QueryDestAddr(a string) QueryOption {
+// QueryDestination sets query destination address
+func QueryDestination(a string) QueryOption {
 	return func(o *QueryOptions) {
-		o.DestAddr = a
+		o.Destination = a
 	}
 }
 
@@ -51,14 +53,22 @@ func QueryNetwork(a string) QueryOption {
 	}
 }
 
-// QueryGateway sets query gateway address
-func QueryGateway(r Router) QueryOption {
+// QueryRouter sets query gateway address
+func QueryRouter(r Router) QueryOption {
 	return func(o *QueryOptions) {
-		o.Gateway = r
+		o.Router = r
+	}
+}
+
+// QueryMetric sets query metric
+func QueryMetric(m int) QueryOption {
+	return func(o *QueryOptions) {
+		o.Metric = m
 	}
 }
 
 // QueryPolicy sets query policy
+// NOTE: this might be renamed to filter or some such
 func QueryPolicy(p LookupPolicy) QueryOption {
 	return func(o *QueryOptions) {
 		o.Policy = p
@@ -82,11 +92,13 @@ func NewQuery(opts ...QueryOption) Query {
 	r := newRouter(ID("*"))
 
 	// default options
+	// NOTE: by default we use DefaultNetworkMetric
 	qopts := QueryOptions{
-		DestAddr: "*",
-		Network:  "*",
-		Gateway:  r,
-		Policy:   DiscardNoRoute,
+		Destination: "*",
+		Network:     "*",
+		Router:      r,
+		Metric:      DefaultNetworkMetric,
+		Policy:      DiscardNoRoute,
 	}
 
 	for _, o := range opts {
