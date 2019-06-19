@@ -23,6 +23,8 @@ type Table interface {
 	Delete(Route) error
 	// Update updates route in the routing table
 	Update(Route) error
+	// List returns the list of all routes in the table
+	List() ([]Route, error)
 	// Lookup looks up routes in the routing table and returns them
 	Lookup(Query) ([]Route, error)
 	// Watch returns a watcher which allows to track updates to the routing table

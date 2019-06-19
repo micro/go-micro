@@ -8,12 +8,11 @@ import (
 	"sync"
 
 	"github.com/google/uuid"
-	"github.com/micro/go-log"
 	"github.com/olekukonko/tablewriter"
 )
 
-// TODO: table options TBD in the future
 // TableOptions are routing table options
+// TODO: table options TBD in the future
 type TableOptions struct{}
 
 // table is in memory routing table
@@ -71,11 +70,8 @@ func (t *table) Add(r Route) error {
 	t.Lock()
 	defer t.Unlock()
 
-	log.Logf("[table] AddRoute request %d %s: \n%s", sum, r.Options().Policy, r)
-
 	// check if the destination has any routes in the table
 	if _, ok := t.m[destAddr]; !ok {
-		log.Logf("[table] destination does NOT exist ADDING: \n%s", r)
 		t.m[destAddr] = make(map[uint64]Route)
 		t.m[destAddr][sum] = r
 		go t.sendEvent(&Event{Type: CreateEvent, Route: r})
@@ -84,15 +80,13 @@ func (t *table) Add(r Route) error {
 
 	// add new route to the table for the given destination
 	if _, ok := t.m[destAddr][sum]; !ok {
-		log.Logf("[table] route does NOT exist ADDING: \n%s", r)
 		t.m[destAddr][sum] = r
 		go t.sendEvent(&Event{Type: CreateEvent, Route: r})
 		return nil
 	}
 
-	// only add the route if it exists and if override is requested
+	// only add the route if the route override is explicitly requested
 	if _, ok := t.m[destAddr][sum]; ok && r.Options().Policy == OverrideIfExists {
-		log.Logf("[table] route does exist OVERRIDING: \n%s", r)
 		t.m[destAddr][sum] = r
 		go t.sendEvent(&Event{Type: UpdateEvent, Route: r})
 		return nil
@@ -101,11 +95,8 @@ func (t *table) Add(r Route) error {
 	// if we reached this point without already returning the route already exists
 	// we return nil only if explicitly requested by the client
 	if r.Options().Policy == IgnoreIfExists {
-		log.Logf("[table] route does exist IGNORING: \n%s", r)
 		return nil
 	}
-
-	log.Logf("[table] AddRoute request: DUPPLICATE ROUTE")
 
 	return ErrDuplicateRoute
 }
@@ -118,10 +109,7 @@ func (t *table) Delete(r Route) error {
 	destAddr := r.Options().DestAddr
 	sum := t.hash(r)
 
-	log.Logf("[table] DeleteRoute request %d: \n%s", sum, r)
-
 	if _, ok := t.m[destAddr]; !ok {
-		log.Logf("[table] DeleteRoute Route NOT found: %s", r)
 		return ErrRouteNotFound
 	}
 
@@ -152,6 +140,21 @@ func (t *table) Update(r Route) error {
 	}
 
 	return ErrRouteNotFound
+}
+
+// List returns a list of all routes in the table
+func (t *table) List() ([]Route, error) {
+	t.RLock()
+	defer t.RUnlock()
+
+	var routes []Route
+	for _, rmap := range t.m {
+		for _, route := range rmap {
+			routes = append(routes, route)
+		}
+	}
+
+	return routes, nil
 }
 
 // Lookup queries routing table and returns all routes that match it

@@ -2,6 +2,9 @@ package router
 
 import (
 	"errors"
+	"strings"
+
+	"github.com/olekukonko/tablewriter"
 )
 
 var (
@@ -86,7 +89,7 @@ type tableWatcher struct {
 
 // Next returns the next noticed action taken on table
 // TODO: this needs to be thought through properly
-// we are aiming to provide the same watch options Query() provides
+// we are aiming to provide the same options Query provides
 func (w *tableWatcher) Next() (*Event, error) {
 	for {
 		select {
@@ -115,4 +118,23 @@ func (w *tableWatcher) Stop() {
 	default:
 		close(w.done)
 	}
+}
+
+// String prints debug information
+func (w *tableWatcher) String() string {
+	sb := &strings.Builder{}
+
+	table := tablewriter.NewWriter(sb)
+	table.SetHeader([]string{"DestAddr", "Network"})
+
+	data := []string{
+		w.opts.DestAddr,
+		w.opts.Network,
+	}
+	table.Append(data)
+
+	// render table into sb
+	table.Render()
+
+	return sb.String()
 }
