@@ -1,15 +1,11 @@
 package grpc
 
 import (
-	"net/http"
-
 	"github.com/micro/go-micro/codec"
-	"github.com/micro/go-micro/transport"
 )
 
 type rpcResponse struct {
 	header map[string]string
-	socket transport.Socket
 	codec  codec.Codec
 }
 
@@ -24,12 +20,8 @@ func (r *rpcResponse) WriteHeader(hdr map[string]string) {
 }
 
 func (r *rpcResponse) Write(b []byte) error {
-	if _, ok := r.header["Content-Type"]; !ok {
-		r.header["Content-Type"] = http.DetectContentType(b)
-	}
-
-	return r.socket.Send(&transport.Message{
+	return r.codec.Write(&codec.Message{
 		Header: r.header,
 		Body:   b,
-	})
+	}, nil)
 }

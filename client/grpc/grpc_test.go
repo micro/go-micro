@@ -45,7 +45,7 @@ func TestGRPCClient(t *testing.T) {
 
 	// register service
 	r.Register(&registry.Service{
-		Name:    "test",
+		Name:    "helloworld",
 		Version: "test",
 		Nodes: []*registry.Node{
 			&registry.Node{
@@ -73,7 +73,7 @@ func TestGRPCClient(t *testing.T) {
 	}
 
 	for _, method := range testMethods {
-		req := c.NewRequest("test", method, &pb.HelloRequest{
+		req := c.NewRequest("helloworld", method, &pb.HelloRequest{
 			Name: "John",
 		})
 

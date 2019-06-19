@@ -39,6 +39,7 @@ func readLoop(r server.Request, s client.Stream) error {
 		if err == io.EOF {
 			return nil
 		}
+
 		if err != nil {
 			return err
 		}
@@ -50,6 +51,7 @@ func readLoop(r server.Request, s client.Stream) error {
 			Header: hdr,
 			Body:   body,
 		}
+
 		// write the raw request
 		err = req.Codec().Write(msg, nil)
 		if err == io.EOF {
