@@ -9,6 +9,7 @@ import (
 	"runtime"
 	"sync"
 	"time"
+	"encoding/json"
 
 	consul "github.com/hashicorp/consul/api"
 	"github.com/micro/go-micro/registry"
@@ -272,7 +273,19 @@ func (c *consulRegistry) Register(s *registry.Service, opts ...registry.Register
 }
 
 func (c *consulRegistry) SendEvent(ev *registry.Event) error {
-	return nil
+	// TODO: proto marshal?
+	b, err := json.Marshal(ev)
+	if err != nil {
+		return err
+	}
+
+	_, _, err = c.Client.Event().Fire(&consul.UserEvent{
+		// TODO: add tags or name
+		Name: "event",
+		Payload: b,
+	}, nil)
+
+	return err
 }
 
 func (c *consulRegistry) GetService(name string) ([]*registry.Service, error) {
