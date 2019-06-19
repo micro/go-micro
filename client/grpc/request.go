@@ -30,6 +30,10 @@ func methodToGRPC(service, method string) string {
 		return method
 	}
 
+	if len(service) == 0 {
+		return fmt.Sprintf("/%s/%s", mParts[0], mParts[1])
+	}
+
 	// return /pkg.Foo/Bar
 	return fmt.Sprintf("/%s.%s/%s", service, mParts[0], mParts[1])
 }
