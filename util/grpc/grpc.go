@@ -38,3 +38,20 @@ func ServiceMethod(m string) (string, string, error) {
 
 	return parts[0], parts[1], nil
 }
+
+// ServiceFromMethod returns the service
+// /service.Foo/Bar => service
+func ServiceFromMethod(m string) string {
+	if len(m) == 0 {
+		return m
+	}
+	if m[0] != '/' {
+		return m
+	}
+	parts := strings.Split(m, "/")
+	if len(parts) < 3 {
+		return m
+	}
+	parts = strings.Split(parts[1], ".")
+	return strings.Join(parts[:len(parts)-1], ".")
+}

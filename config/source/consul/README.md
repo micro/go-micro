@@ -4,7 +4,7 @@ The consul source reads config from consul key/values
 
 ## Consul Format
 
-The consul source expects keys under the default prefix `/micro/config`
+The consul source expects keys under the default prefix `micro/config`
 
 Values are expected to be json
 
@@ -29,8 +29,8 @@ Specify source with data
 consulSource := consul.NewSource(
 	// optionally specify consul address; default to localhost:8500
 	consul.WithAddress("10.0.0.10:8500"),
-	// optionally specify prefix; defaults to /micro/config
-	consul.WithPrefix("/my/prefix"),
+	// optionally specify prefix; defaults to micro/config
+	consul.WithPrefix("my/prefix"),
   // optionally strip the provided prefix from the keys, defaults to false
   consul.StripPrefix(true),
 )

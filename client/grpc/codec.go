@@ -2,12 +2,15 @@ package grpc
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/json-iterator/go"
 	"github.com/micro/go-micro/codec"
+	"github.com/micro/go-micro/codec/bytes"
 	"github.com/micro/go-micro/codec/jsonrpc"
 	"github.com/micro/go-micro/codec/protorpc"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/encoding"
 )
 
@@ -52,7 +55,28 @@ func (w wrapCodec) String() string {
 	return w.Codec.Name()
 }
 
+func (w wrapCodec) Marshal(v interface{}) ([]byte, error) {
+	b, ok := v.(*bytes.Frame)
+	if ok {
+		return b.Data, nil
+	}
+	return w.Codec.Marshal(v)
+}
+
+func (w wrapCodec) Unmarshal(data []byte, v interface{}) error {
+	b, ok := v.(*bytes.Frame)
+	if ok {
+		b.Data = data
+		return nil
+	}
+	return w.Codec.Unmarshal(data, v)
+}
+
 func (protoCodec) Marshal(v interface{}) ([]byte, error) {
+	b, ok := v.(*bytes.Frame)
+	if ok {
+		return b.Data, nil
+	}
 	return proto.Marshal(v.(proto.Message))
 }
 
@@ -95,4 +119,60 @@ func (jsonCodec) Unmarshal(data []byte, v interface{}) error {
 
 func (jsonCodec) Name() string {
 	return "json"
+}
+
+type grpcCodec struct {
+	// headers
+	id       string
+	target   string
+	method   string
+	endpoint string
+
+	s grpc.ClientStream
+	c encoding.Codec
+}
+
+func (g *grpcCodec) ReadHeader(m *codec.Message, mt codec.MessageType) error {
+	md, err := g.s.Header()
+	if err != nil {
+		return err
+	}
+	if m == nil {
+		m = new(codec.Message)
+	}
+	if m.Header == nil {
+		m.Header = make(map[string]string)
+	}
+	for k, v := range md {
+		m.Header[k] = strings.Join(v, ",")
+	}
+	m.Id = g.id
+	m.Target = g.target
+	m.Method = g.method
+	m.Endpoint = g.endpoint
+	return nil
+}
+
+func (g *grpcCodec) ReadBody(v interface{}) error {
+	if f, ok := v.(*bytes.Frame); ok {
+		return g.s.RecvMsg(f)
+	}
+	return g.s.RecvMsg(v)
+}
+
+func (g *grpcCodec) Write(m *codec.Message, v interface{}) error {
+	// if we don't have a body
+	if v != nil {
+		return g.s.SendMsg(v)
+	}
+	// write the body using the framing codec
+	return g.s.SendMsg(&bytes.Frame{m.Body})
+}
+
+func (g *grpcCodec) Close() error {
+	return g.s.CloseSend()
+}
+
+func (g *grpcCodec) String() string {
+	return g.c.Name()
 }
