@@ -84,7 +84,7 @@ func (r *router) Network() string {
 // Start starts the router
 func (r *router) Start() error {
 	// add local service routes into the routing table
-	if err := r.addServiceRoutes(r.opts.LocalRegistry, "local", DefaultLocalMetric); err != nil {
+	if err := r.addServiceRoutes(r.opts.LocalRegistry, r.opts.Address, DefaultLocalMetric); err != nil {
 		return fmt.Errorf("failed adding routes for local services: %v", err)
 	}
 
@@ -115,7 +115,7 @@ func (r *router) Start() error {
 	go func() {
 		defer r.wg.Done()
 		// watch local registry and register routes in routine table
-		errChan <- r.manageServiceRoutes(localRegWatcher, "local", DefaultLocalMetric)
+		errChan <- r.manageServiceRoutes(localRegWatcher, r.opts.Address, DefaultLocalMetric)
 	}()
 
 	r.wg.Add(1)
