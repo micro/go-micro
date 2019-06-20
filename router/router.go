@@ -7,16 +7,16 @@ type Router interface {
 	Init(...Option) error
 	// Options returns the router options
 	Options() Options
-	// ID returns id of the router
+	// ID returns the id of the router
 	ID() string
-	// Table returns the router routing table
+	// Table returns the routing table
 	Table() Table
 	// Address returns the router adddress
 	Address() string
-	// Network returns the router network address
+	// Network returns the network address of the router
 	Network() string
-	// Start starts the router
-	Start() error
+	// Advertise starts advertising the routes to the network
+	Advertise() error
 	// Stop stops the router
 	Stop() error
 	// String returns debug info

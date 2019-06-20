@@ -2,6 +2,7 @@ package router
 
 import (
 	"fmt"
+	"net"
 	"strconv"
 	"strings"
 	"sync"
@@ -76,8 +77,11 @@ func (r *router) Network() string {
 	return r.opts.Advertise
 }
 
-// Start starts the router
-func (r *router) Start() error {
+// Advertise advertises the router routes to the network.
+// Advertise is a blocking function. It launches multiple goroutines that watch
+// service registries and advertise the router routes to other routers in the network.
+// It returns error if any of the launched goroutines fail with error.
+func (r *router) Advertise() error {
 	// add local service routes into the routing table
 	if err := r.addServiceRoutes(r.opts.Registry, DefaultLocalMetric); err != nil {
 		return fmt.Errorf("failed adding routes for local services: %v", err)
@@ -130,7 +134,7 @@ func (r *router) Start() error {
 	return <-errChan
 }
 
-// addServiceRouteslists all available services in given registry and adds them to the routing table.
+// addServiceRoutes adds all services in given registry to the routing table.
 // NOTE: this is a one-off operation done when bootstrapping the routing table of the new router.
 // It returns error if either the services could not be listed or if the routes could not be added to the routing table.
 func (r *router) addServiceRoutes(reg registry.Registry, metric int) error {
@@ -156,19 +160,22 @@ func (r *router) addServiceRoutes(reg registry.Registry, metric int) error {
 
 // parseToNode parses router into registry.Node and returns the result.
 // It returns error if the router network address could not be parsed into host and port.
-// NOTE: We use ":" as the delimiter when we splitting the router network address.
 func (r *router) parseToNode() (*registry.Node, error) {
-	// split on ":" as a standard host/port delimiter
-	addr := strings.Split(r.opts.Advertise, ":")
+	// split router address to host and port part
+	addr, portStr, err := net.SplitHostPort(r.opts.Advertise)
+	if err != nil {
+		return nil, fmt.Errorf("could not parse router address: %v", err)
+	}
+
 	// try to parse network port into integer
-	port, err := strconv.Atoi(addr[1])
+	port, err := strconv.Atoi(portStr)
 	if err != nil {
 		return nil, fmt.Errorf("could not parse router network address: %v", err)
 	}
 
 	node := &registry.Node{
 		Id:      r.opts.ID,
-		Address: addr[0],
+		Address: addr,
 		Port:    port,
 	}
 
