@@ -19,7 +19,7 @@ import (
 	"github.com/micro/go-micro/codec/protorpc"
 	"github.com/micro/go-micro/errors"
 	"github.com/micro/go-micro/registry"
-	"github.com/micro/go-micro/selector"
+	"github.com/micro/go-micro/client/selector"
 	"github.com/micro/go-micro/util/ctx"
 )
 

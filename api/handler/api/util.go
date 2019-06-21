@@ -10,7 +10,7 @@ import (
 
 	api "github.com/micro/go-micro/api/proto"
 	"github.com/micro/go-micro/registry"
-	"github.com/micro/go-micro/selector"
+	"github.com/micro/go-micro/client/selector"
 )
 
 func requestToProto(r *http.Request) (*api.Request, error) {

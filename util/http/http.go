@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/micro/go-micro/registry"
-	"github.com/micro/go-micro/selector"
+	"github.com/micro/go-micro/client/selector"
 )
 
 func NewRoundTripper(opts ...Option) http.RoundTripper {
