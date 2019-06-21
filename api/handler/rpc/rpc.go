@@ -14,12 +14,12 @@ import (
 	"github.com/micro/go-micro/api/handler"
 	proto "github.com/micro/go-micro/api/internal/proto"
 	"github.com/micro/go-micro/client"
+	"github.com/micro/go-micro/client/selector"
 	"github.com/micro/go-micro/codec"
 	"github.com/micro/go-micro/codec/jsonrpc"
 	"github.com/micro/go-micro/codec/protorpc"
 	"github.com/micro/go-micro/errors"
 	"github.com/micro/go-micro/registry"
-	"github.com/micro/go-micro/client/selector"
 	"github.com/micro/go-micro/util/ctx"
 )
 
