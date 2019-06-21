@@ -3,47 +3,80 @@ package registry
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/micro/go-micro/util/log"
 	"github.com/micro/mdns"
-	hash "github.com/mitchellh/hashstructure"
+	"github.com/miekg/dns"
 )
 
 type mdnsTxt struct {
-	Service   string
 	Version   string
 	Endpoints []*Endpoint
 	Metadata  map[string]string
 }
 
-type mdnsEntry struct {
-	hash uint64
-	id   string
-	node *mdns.Server
-}
-
 type mdnsRegistry struct {
-	opts Options
-
-	sync.Mutex
-	services map[string][]*mdnsEntry
+	opts   Options
+	domain string
+	iface  *net.Interface
+	sync.RWMutex
+	services map[string][]*Service
+	nodes    map[string]*Node
+	srv      *mdns.Server
+	updates  chan *dns.Msg
+	err      error
 }
 
 func newRegistry(opts ...Option) Registry {
 	options := Options{
-		Timeout: time.Millisecond * 100,
+		Timeout: 1 * time.Second,
 	}
 
-	return &mdnsRegistry{
-		opts:     options,
-		services: make(map[string][]*mdnsEntry),
+	for _, o := range opts {
+		o(&options)
 	}
+
+	if options.Context == nil {
+		options.Context = context.Background()
+	}
+
+	m := &mdnsRegistry{
+		opts:     options,
+		services: make(map[string][]*Service),
+		updates:  make(chan *dns.Msg, 100),
+		domain:   "local",
+	}
+
+	if domain, ok := options.Context.Value(mdnsDomainKey{}).(string); ok {
+		m.domain = domain
+	}
+
+	cfg := &mdns.Config{
+		Zone: m,
+	}
+
+	srv, err := mdns.NewServer(cfg)
+	if err != nil {
+		log.Fatalf("[mdns] Failed to initialize registry: %v", err)
+	}
+
+	m.Lock()
+	m.srv = srv
+	m.Unlock()
+
+	//go m.run()
+
+	return m
 }
 
 func (m *mdnsRegistry) Init(opts ...Option) error {
+	m.Lock()
+	defer m.Unlock()
 	for _, o := range opts {
 		o(&m.opts)
 	}
@@ -51,157 +84,214 @@ func (m *mdnsRegistry) Init(opts ...Option) error {
 }
 
 func (m *mdnsRegistry) Options() Options {
+	m.RLock()
+	defer m.RUnlock()
 	return m.opts
 }
 
-func (m *mdnsRegistry) Register(service *Service, opts ...RegisterOption) error {
-	m.Lock()
-	defer m.Unlock()
+func (m *mdnsRegistry) rrTXT(s *Service, ttl uint32) ([]dns.RR, error) {
+	var rr []dns.RR
 
-	entries, ok := m.services[service.Name]
-	// first entry, create wildcard used for list queries
-	if !ok {
-		s, err := mdns.NewMDNSService(
-			service.Name,
-			"_services",
-			"",
-			"",
-			9999,
-			[]net.IP{net.ParseIP("0.0.0.0")},
-			nil,
-		)
-		if err != nil {
-			return err
-		}
+	m.RLock()
+	domain := m.domain
+	m.RUnlock()
 
-		srv, err := mdns.NewServer(&mdns.Config{Zone: &mdns.DNSSDService{s}})
-		if err != nil {
-			return err
-		}
-
-		// append the wildcard entry
-		entries = append(entries, &mdnsEntry{id: "*", node: srv})
+	enctxt, err := encode(&mdnsTxt{
+		Version:   s.Version,
+		Endpoints: s.Endpoints,
+		Metadata:  s.Metadata,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("[mdns] Failed to register: %v", err)
 	}
 
-	var gerr error
-
-	for _, node := range service.Nodes {
-		// create hash of service; uint64
-		h, err := hash.Hash(node, nil)
-		if err != nil {
-			gerr = err
-			continue
+	for _, n := range s.Nodes {
+		txt := &dns.TXT{
+			Hdr: dns.RR_Header{
+				Name:   fmt.Sprintf("%s.%s.", n.Id, domain),
+				Rrtype: dns.TypeTXT,
+				Class:  dns.ClassINET,
+				Ttl:    ttl,
+			},
+			Txt: enctxt,
 		}
-
-		var seen bool
-		var e *mdnsEntry
-
-		for _, entry := range entries {
-			if node.Id == entry.id {
-				seen = true
-				e = entry
-				break
-			}
-		}
-
-		// already registered, continue
-		if seen && e.hash == h {
-			continue
-			// hash doesn't match, shutdown
-		} else if seen {
-			e.node.Shutdown()
-			// doesn't exist
-		} else {
-			e = &mdnsEntry{hash: h}
-		}
-
-		txt, err := encode(&mdnsTxt{
-			Service:   service.Name,
-			Version:   service.Version,
-			Endpoints: service.Endpoints,
-			Metadata:  node.Metadata,
-		})
-
-		if err != nil {
-			gerr = err
-			continue
-		}
-
-		// we got here, new node
-		s, err := mdns.NewMDNSService(
-			node.Id,
-			service.Name,
-			"",
-			"",
-			node.Port,
-			[]net.IP{net.ParseIP(node.Address)},
-			txt,
-		)
-		if err != nil {
-			gerr = err
-			continue
-		}
-
-		srv, err := mdns.NewServer(&mdns.Config{Zone: s})
-		if err != nil {
-			gerr = err
-			continue
-		}
-
-		e.id = node.Id
-		e.node = srv
-		entries = append(entries, e)
+		rr = append(rr, txt)
 	}
 
-	// save
-	m.services[service.Name] = entries
-
-	return gerr
+	return rr, nil
 }
 
-func (m *mdnsRegistry) Deregister(service *Service) error {
+func (m *mdnsRegistry) rrSRV(s *Service, ttl uint32) ([]dns.RR, error) {
+	var rr []dns.RR
+
+	m.RLock()
+	domain := m.domain
+	m.RUnlock()
+
+	for _, n := range s.Nodes {
+		srv := &dns.SRV{
+			Hdr: dns.RR_Header{
+				Name:   fmt.Sprintf("%s.%s.", s.Name, domain),
+				Rrtype: dns.TypeSRV,
+				Class:  dns.ClassINET,
+				Ttl:    ttl,
+			},
+			Priority: 0,
+			Weight:   0,
+			Port:     uint16(n.Port),
+			Target:   fmt.Sprintf("%s.%s.", n.Id, domain),
+		}
+		rr = append(rr, srv)
+	}
+
+	return rr, nil
+}
+
+func (m *mdnsRegistry) rrA(s *Service, ttl uint32) ([]dns.RR, error) {
+	var rr []dns.RR
+
+	m.RLock()
+	domain := m.domain
+	m.RUnlock()
+
+	for _, n := range s.Nodes {
+		a := &dns.A{
+			Hdr: dns.RR_Header{
+				Name:   fmt.Sprintf("%s.%s.", n.Id, domain),
+				Rrtype: dns.TypeA,
+				Class:  dns.ClassINET,
+				Ttl:    ttl,
+			},
+			A: net.ParseIP(n.Address),
+		}
+		rr = append(rr, a)
+	}
+	return rr, nil
+}
+
+func (m *mdnsRegistry) rrPTR(s *Service, ttl uint32) ([]dns.RR, error) {
+	var rr []dns.RR
+
+	m.RLock()
+	domain := m.domain
+	m.RUnlock()
+
+	for _, n := range s.Nodes {
+		ptr := &dns.PTR{
+			Hdr: dns.RR_Header{
+				Name:   fmt.Sprintf("%s.%s.", s.Name, domain),
+				Rrtype: dns.TypePTR,
+				Class:  dns.ClassINET,
+				Ttl:    ttl,
+			},
+			Ptr: fmt.Sprintf("%s.%s.", n.Id, domain),
+		}
+		rr = append(rr, ptr)
+	}
+
+	return rr, nil
+}
+
+func (m *mdnsRegistry) Register(s *Service, opts ...RegisterOption) error {
 	m.Lock()
-	defer m.Unlock()
+	if service, ok := m.services[s.Name]; !ok {
+		m.services[s.Name] = []*Service{s}
+	} else {
+		m.services[s.Name] = addServices(service, []*Service{s})
+	}
+	m.Unlock()
 
-	var newEntries []*mdnsEntry
+	var options RegisterOptions
+	for _, o := range opts {
+		o(&options)
+	}
 
-	// loop existing entries, check if any match, shutdown those that do
-	for _, entry := range m.services[service.Name] {
-		var remove bool
+	ttl := uint32(options.TTL / time.Second)
 
-		for _, node := range service.Nodes {
-			if node.Id == entry.id {
-				entry.node.Shutdown()
-				remove = true
-				break
+	if options.TTL < 60 {
+		ttl = 60
+	}
+
+	pkt := new(dns.Msg)
+	pkt.MsgHdr.Response = true
+
+	var rr []dns.RR
+	var err error
+
+	if rr, err = m.rrSRV(s, ttl); err != nil {
+		return fmt.Errorf("[mdns] Failed to register: %v", err)
+	} else {
+		pkt.Answer = append(pkt.Answer, rr...)
+	}
+
+	if rr, err = m.rrA(s, ttl); err != nil {
+		return fmt.Errorf("[mdns] Failed to register: %v", err)
+	} else {
+		pkt.Answer = append(pkt.Answer, rr...)
+	}
+
+	if rr, err = m.rrTXT(s, ttl); err != nil {
+		return fmt.Errorf("[mdns] Failed to register: %v", err)
+	} else {
+		pkt.Answer = append(pkt.Answer, rr...)
+	}
+
+	_ = pkt
+	//	m.updates <- pkt
+
+	return nil
+}
+
+func (m *mdnsRegistry) run() {
+
+	// not announce faster when 10 times at minute
+	// https://tools.ietf.org/html/rfc6762#section-8.4
+	ticker := time.NewTicker(time.Minute / 10)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			pkt := <-m.updates
+			if err := m.srv.SendMulticast(pkt); err != nil {
+				log.Logf("[mdns] Failed to announce: %v", err)
 			}
 		}
+	}
+}
 
-		// keep it?
-		if !remove {
-			newEntries = append(newEntries, entry)
+func (m *mdnsRegistry) Deregister(s *Service) error {
+	m.Lock()
+	if service, ok := m.services[s.Name]; ok {
+		if services := delServices(service, []*Service{s}); len(services) == 0 {
+			delete(m.services, s.Name)
+		} else {
+			m.services[s.Name] = services
 		}
 	}
-
-	// last entry is the wildcard for list queries. Remove it.
-	if len(newEntries) == 1 && newEntries[0].id == "*" {
-		newEntries[0].node.Shutdown()
-		delete(m.services, service.Name)
-	} else {
-		m.services[service.Name] = newEntries
-	}
+	m.Unlock()
 
 	return nil
 }
 
 func (m *mdnsRegistry) GetService(service string) ([]*Service, error) {
 	serviceMap := make(map[string]*Service)
-	entries := make(chan *mdns.ServiceEntry, 10)
+	entries := make(chan *mdns.ServiceEntry, 100)
 	done := make(chan bool)
 
 	p := mdns.DefaultParams(service)
+	m.RLock()
+	if len(m.domain) > 0 {
+		p.Domain = m.domain
+	}
+	if m.iface != nil {
+		p.Interface = m.iface
+	}
+	timeout := m.opts.Timeout
+	m.RUnlock()
+
 	// set context with timeout
-	p.Context, _ = context.WithTimeout(context.Background(), m.opts.Timeout)
+	p.Context, _ = context.WithTimeout(context.Background(), timeout)
 	// set entries channel
 	p.Entries = entries
 
@@ -217,33 +307,33 @@ func (m *mdnsRegistry) GetService(service string) ([]*Service, error) {
 				if e.TTL == 0 {
 					continue
 				}
-
 				txt, err := decode(e.InfoFields)
 				if err != nil {
 					continue
 				}
 
-				if txt.Service != service {
+				if strings.TrimSuffix(e.Name, "."+p.Domain+".") != service {
 					continue
 				}
 
 				s, ok := serviceMap[txt.Version]
 				if !ok {
 					s = &Service{
-						Name:      txt.Service,
+						Name:      strings.TrimSuffix(e.Name, "."+p.Domain+"."),
 						Version:   txt.Version,
 						Endpoints: txt.Endpoints,
 					}
 				}
 
 				s.Nodes = append(s.Nodes, &Node{
-					Id:       strings.TrimSuffix(e.Name, "."+p.Service+"."+p.Domain+"."),
+					Id:       strings.TrimSuffix(e.Host, "."+p.Domain+"."),
 					Address:  e.AddrV4.String(),
 					Port:     e.Port,
 					Metadata: txt.Metadata,
 				})
 
 				serviceMap[txt.Version] = s
+
 			case <-p.Context.Done():
 				close(done)
 				return
@@ -271,12 +361,22 @@ func (m *mdnsRegistry) GetService(service string) ([]*Service, error) {
 
 func (m *mdnsRegistry) ListServices() ([]*Service, error) {
 	serviceMap := make(map[string]bool)
-	entries := make(chan *mdns.ServiceEntry, 10)
+	entries := make(chan *mdns.ServiceEntry, 100)
 	done := make(chan bool)
 
 	p := mdns.DefaultParams("_services")
+	m.RLock()
+	if len(m.domain) > 0 {
+		p.Domain = m.domain
+	}
+	if m.iface != nil {
+		p.Interface = m.iface
+	}
+	timeout := m.opts.Timeout
+	m.RUnlock()
+
 	// set context with timeout
-	p.Context, _ = context.WithTimeout(context.Background(), m.opts.Timeout)
+	p.Context, _ = context.WithTimeout(context.Background(), timeout)
 	// set entries channel
 	p.Entries = entries
 
@@ -319,10 +419,15 @@ func (m *mdnsRegistry) Watch(opts ...WatchOption) (Watcher, error) {
 		o(&wo)
 	}
 
+	m.RLock()
+	domain := m.domain
+	m.RUnlock()
+
 	md := &mdnsWatcher{
-		wo:   wo,
-		ch:   make(chan *mdns.ServiceEntry, 32),
-		exit: make(chan struct{}),
+		domain: domain,
+		wo:     wo,
+		ch:     make(chan *mdns.ServiceEntry, 100),
+		exit:   make(chan struct{}),
 	}
 
 	go func() {

@@ -8,27 +8,29 @@ import (
 )
 
 type mdnsWatcher struct {
-	wo   WatchOptions
-	ch   chan *mdns.ServiceEntry
-	exit chan struct{}
+	domain string
+	wo     WatchOptions
+	ch     chan *mdns.ServiceEntry
+	exit   chan struct{}
 }
 
 func (m *mdnsWatcher) Next() (*Result, error) {
 	for {
 		select {
 		case e := <-m.ch:
+
 			txt, err := decode(e.InfoFields)
 			if err != nil {
 				continue
 			}
 
-			if len(txt.Service) == 0 || len(txt.Version) == 0 {
+			if len(e.Name) == 0 || len(txt.Version) == 0 {
 				continue
 			}
 
 			// Filter watch options
 			// wo.Service: Only keep services we care about
-			if len(m.wo.Service) > 0 && txt.Service != m.wo.Service {
+			if len(m.wo.Service) > 0 && e.Name != m.wo.Service {
 				continue
 			}
 
@@ -41,18 +43,18 @@ func (m *mdnsWatcher) Next() (*Result, error) {
 			}
 
 			service := &Service{
-				Name:      txt.Service,
+				Name:      e.Name,
 				Version:   txt.Version,
 				Endpoints: txt.Endpoints,
 			}
 
 			// TODO: don't hardcode .local.
-			if !strings.HasSuffix(e.Name, "."+service.Name+".local.") {
+			if !strings.HasSuffix(e.Name, "."+service.Name+"."+m.domain+".") {
 				continue
 			}
 
 			service.Nodes = append(service.Nodes, &Node{
-				Id:       strings.TrimSuffix(e.Name, "."+service.Name+".local."),
+				Id:       strings.TrimSuffix(e.Name, "."+service.Name+"."+m.domain+"."),
 				Address:  e.AddrV4.String(),
 				Port:     e.Port,
 				Metadata: txt.Metadata,

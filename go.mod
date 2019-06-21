@@ -52,7 +52,7 @@ require (
 	github.com/mattn/go-runewidth v0.0.4 // indirect
 	github.com/micro/cli v0.2.0
 	github.com/micro/mdns v0.1.0
-	github.com/miekg/dns v1.1.14 // indirect
+	github.com/miekg/dns v1.1.14
 	github.com/mitchellh/gox v1.0.1 // indirect
 	github.com/mitchellh/hashstructure v1.0.0
 	github.com/nats-io/nats.go v1.8.1
