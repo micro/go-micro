@@ -11,7 +11,7 @@ import (
 	"github.com/micro/go-micro/api/handler"
 	"github.com/micro/go-micro/api/router"
 	regRouter "github.com/micro/go-micro/api/router/registry"
-	"github.com/micro/go-micro/cmd"
+	"github.com/micro/go-micro/config/cmd"
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/registry/memory"
 )

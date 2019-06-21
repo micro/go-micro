@@ -1,7 +1,7 @@
-// Package router provides an interface for micro network router
+// Package router provides a network routing control plane
 package router
 
-// Router is micro network router
+// Router is an interface for a routing control plane
 type Router interface {
 	// Init initializes the router with options
 	Init(...Option) error
