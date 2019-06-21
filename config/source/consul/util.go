@@ -36,7 +36,7 @@ func makeMap(e encoder.Encoder, kv api.KVPairs, stripPrefix string) (map[string]
 
 	// consul guarantees lexicographic order, so no need to sort
 	for _, v := range kv {
-		pathString := strings.TrimPrefix(strings.TrimPrefix(v.Key, stripPrefix), "/")
+		pathString := strings.TrimPrefix(strings.TrimPrefix(v.Key, strings.TrimPrefix(stripPrefix, "/")), "/")
 		if pathString == "" {
 			continue
 		}
@@ -58,6 +58,7 @@ func makeMap(e encoder.Encoder, kv api.KVPairs, stripPrefix string) (map[string]
 			}
 		}
 
+		// set target at the root
 		target := data
 		path := strings.Split(pathString, "/")
 		// find (or create) the leaf node we want to put this value at
