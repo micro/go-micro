@@ -3,14 +3,14 @@ package client
 import (
 	"context"
 	"io"
-	"sync"
+	// "sync"
 
 	"github.com/micro/go-micro/codec"
 )
 
 // Implements the streamer interface
 type rpcStream struct {
-	sync.RWMutex
+	// sync.RWMutex         // maybe no need ?
 	id       string
 	closed   chan bool
 	err      error
@@ -42,8 +42,8 @@ func (r *rpcStream) Response() Response {
 }
 
 func (r *rpcStream) Send(msg interface{}) error {
-	r.Lock()
-	defer r.Unlock()
+	// r.Lock()
+	// defer r.Unlock()
 
 	if r.isClosed() {
 		r.err = errShutdown
@@ -67,8 +67,8 @@ func (r *rpcStream) Send(msg interface{}) error {
 }
 
 func (r *rpcStream) Recv(msg interface{}) error {
-	r.Lock()
-	defer r.Unlock()
+	// r.Lock()
+	// defer r.Unlock()
 
 	if r.isClosed() {
 		r.err = errShutdown
@@ -109,8 +109,8 @@ func (r *rpcStream) Recv(msg interface{}) error {
 }
 
 func (r *rpcStream) Error() error {
-	r.RLock()
-	defer r.RUnlock()
+	// r.RLock()
+	// defer r.RUnlock()
 	return r.err
 }
 
