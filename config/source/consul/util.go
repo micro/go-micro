@@ -13,7 +13,7 @@ func makeMap(e encoder.Encoder, kv api.KVPairs, stripPrefix string) (map[string]
 
 	// consul guarantees lexicographic order, so no need to sort
 	for _, v := range kv {
-		pathString := strings.TrimPrefix(strings.TrimPrefix(v.Key, stripPrefix), "/")
+		pathString := strings.TrimPrefix(strings.TrimPrefix(v.Key, strings.TrimPrefix(stripPrefix, "/")), "/")
 		var val map[string]interface{}
 
 		// ensure a valid value is stored at this location
