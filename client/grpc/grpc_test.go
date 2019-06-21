@@ -10,7 +10,7 @@ import (
 	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/registry/memory"
-	"github.com/micro/go-micro/selector"
+	"github.com/micro/go-micro/client/selector"
 	pgrpc "google.golang.org/grpc"
 	pb "google.golang.org/grpc/examples/helloworld/helloworld"
 )

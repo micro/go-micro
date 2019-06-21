@@ -188,7 +188,11 @@ func (s *service) call(ctx context.Context, router *router, sending *sync.Mutex,
 		method:      req.msg.Method,
 		endpoint:    req.msg.Endpoint,
 		body:        req.msg.Body,
-		rawBody:     argv.Interface(),
+	}
+
+	// only set if not nil
+	if argv.IsValid() {
+		r.rawBody = argv.Interface()
 	}
 
 	if !mtype.stream {

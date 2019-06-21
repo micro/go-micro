@@ -13,7 +13,7 @@ import (
 
 	"github.com/micro/go-micro/api"
 	"github.com/micro/go-micro/api/handler"
-	"github.com/micro/go-micro/selector"
+	"github.com/micro/go-micro/client/selector"
 )
 
 const (
