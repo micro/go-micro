@@ -8,24 +8,26 @@ import (
 	"github.com/micro/go-micro/config/encoder"
 )
 
-type jsonValue interface {
+type configValue interface {
 	Value() interface{}
-	Decode(encoder.Encoder, []byte) (jsonValue, error)
+	Decode(encoder.Encoder, []byte) error
 }
-type jsonArrayValue []interface{}
-type jsonMapValue map[string]interface{}
+type configArrayValue struct {
+	v []interface{}
+}
 
-func (a jsonArrayValue) Value() interface{} { return a }
-func (a jsonArrayValue) Decode(e encoder.Encoder, b []byte) (jsonValue, error) {
-	v := jsonArrayValue{}
-	err := e.Decode(b, &v)
-	return v, err
+func (a *configArrayValue) Value() interface{} { return a.v }
+func (a *configArrayValue) Decode(e encoder.Encoder, b []byte) error {
+	return e.Decode(b, &a.v)
 }
-func (m jsonMapValue) Value() interface{} { return m }
-func (m jsonMapValue) Decode(e encoder.Encoder, b []byte) (jsonValue, error) {
-	v := jsonMapValue{}
-	err := e.Decode(b, &v)
-	return v, err
+
+type configMapValue struct {
+	v map[string]interface{}
+}
+
+func (m *configMapValue) Value() interface{} { return m.v }
+func (m *configMapValue) Decode(e encoder.Encoder, b []byte) error {
+	return e.Decode(b, &m.v)
 }
 
 func makeMap(e encoder.Encoder, kv api.KVPairs, stripPrefix string) (map[string]interface{}, error) {
@@ -38,22 +40,21 @@ func makeMap(e encoder.Encoder, kv api.KVPairs, stripPrefix string) (map[string]
 		if pathString == "" {
 			continue
 		}
-		var val jsonValue
+		var val configValue
 		var err error
 
 		// ensure a valid value is stored at this location
 		if len(v.Value) > 0 {
-			// check whether this is an array
-			if v.Value[0] == 91 && v.Value[len(v.Value)-1] == 93 {
-				val = jsonArrayValue{}
-				if val, err = val.Decode(e, v.Value); err != nil {
-					return nil, fmt.Errorf("faild decode value. path: %s, error: %s", pathString, err)
-				}
-			} else {
-				val = jsonMapValue{}
-				if val, err = val.Decode(e, v.Value); err != nil {
-					return nil, fmt.Errorf("faild decode value. path: %s, error: %s", pathString, err)
-				}
+			// try to decode into map value or array value
+			arrayV := &configArrayValue{v: []interface{}{}}
+			mapV := &configMapValue{v: map[string]interface{}{}}
+			switch {
+			case arrayV.Decode(e, v.Value) == nil:
+				val = arrayV
+			case mapV.Decode(e, v.Value) == nil:
+				val = mapV
+			default:
+				return nil, fmt.Errorf("faild decode value. path: %s, error: %s", pathString, err)
 			}
 		}
 
@@ -71,12 +72,12 @@ func makeMap(e encoder.Encoder, kv api.KVPairs, stripPrefix string) (map[string]
 
 		// copy over the keys from the value
 		switch val.(type) {
-		case jsonArrayValue:
+		case *configArrayValue:
 			target[leafDir] = val.Value()
-		case jsonMapValue:
+		case *configMapValue:
 			target[leafDir] = make(map[string]interface{})
 			target = target[leafDir].(map[string]interface{})
-			mapv := val.Value().(jsonMapValue)
+			mapv := val.Value().(map[string]interface{})
 			for k := range mapv {
 				target[k] = mapv[k]
 			}
