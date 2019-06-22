@@ -10,18 +10,10 @@ type Network interface {
 	options.Options
 	// Id of this node
 	Id() string
-	// Address of the network
-	Address() string
 	// Connect to the network
 	Connect() (Node, error)
 	// Peer with a neighboring network
 	Peer(Network) (Link, error)
-	// Close the network connection
-	Close() error
-	// Accept messages on the network
-	Accept() (*Message, error)
-	// Send a message to the network
-	Send(*Message) error
 	// Retrieve list of connections
 	Links() ([]Link, error)
 }
@@ -30,6 +22,14 @@ type Network interface {
 type Node interface {
 	// Node is a network. Network is a node.
 	Network
+	// Address of the node
+	Address() string
+	// Close the network connection
+	Close() error
+	// Accept messages on the network
+	Accept() (*Message, error)
+	// Send a message to the network
+	Send(*Message) error
 }
 
 // Link is a connection between one network and another
