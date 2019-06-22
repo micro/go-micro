@@ -115,20 +115,27 @@ func delNodes(old, del []*registry.Node) []*registry.Node {
 
 func delServices(old, del []*registry.Service) []*registry.Service {
 	var services []*registry.Service
+
 	for _, o := range old {
+		srv := new(registry.Service)
+		*srv = *o
+
 		var rem bool
+
 		for _, s := range del {
-			if o.Version == s.Version {
-				s.Nodes = delNodes(s.Nodes, o.Nodes)
-				if len(s.Nodes) == 0 {
+			if srv.Version == s.Version {
+				srv.Nodes = delNodes(srv.Nodes, s.Nodes)
+
+				if len(srv.Nodes) == 0 {
 					rem = true
-					break
 				}
 			}
 		}
+
 		if !rem {
-			services = append(services, o)
+			services = append(services, srv)
 		}
 	}
+
 	return services
 }
