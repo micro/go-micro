@@ -5,13 +5,17 @@ import (
 	"github.com/micro/go-micro/config/options"
 )
 
-// Network is an interface defining networks or graphs
+// Network is an interface defining a network
 type Network interface {
 	options.Options
 	// Id of this node
-	Id() uint64
-	// Connect to a node
-	Connect(id uint64) (Link, error)
+	Id() string
+	// Address of the network
+	Address() string
+	// Connect to the network
+	Connect() (Node, error)
+	// Peer with a neighboring network
+	Peer(Network) (Link, error)
 	// Close the network connection
 	Close() error
 	// Accept messages on the network
@@ -22,15 +26,15 @@ type Network interface {
 	Links() ([]Link, error)
 }
 
-// Node represents a network node
+// Node represents a single node on a network
 type Node interface {
 	// Node is a network. Network is a node.
 	Network
 }
 
-// Link is a connection to another node
+// Link is a connection between one network and another
 type Link interface {
-	// remote node
+	// remote node the link is to
 	Node
 	// length of link which dictates speed
 	Length() int
@@ -39,7 +43,12 @@ type Link interface {
 }
 
 // Message is the base type for opaque data
-type Message []byte
+type Message struct {
+	// Headers which provide local/remote info
+	Header map[string]string
+	// The opaque data being sent
+	Data []byte
+}
 
 var (
 	// TODO: set default network
