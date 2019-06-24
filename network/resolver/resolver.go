@@ -6,7 +6,7 @@ type Resolver interface {
 	Resolve(id string) ([]*Record, error)
 }
 
-// A resoved id
+// A resolved record
 type Record struct {
 	Address string `json:"address"`
 }
