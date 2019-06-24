@@ -8,5 +8,5 @@ type Resolver interface {
 
 // A resoved id
 type Record struct {
-	Address string
+	Address string `json:"address"`
 }
