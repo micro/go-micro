@@ -12,7 +12,7 @@ type prefixKey struct{}
 type stripPrefixKey struct{}
 type dcKey struct{}
 type tokenKey struct{}
-type consulConfigKey struct{}
+type configKey struct{}
 
 // WithAddress sets the consul address
 func WithAddress(a string) source.Option {
@@ -64,12 +64,12 @@ func WithToken(p string) source.Option {
 	}
 }
 
-// WithConsulConfig set consul-specific options
-func WithConsulConfig(c *api.Config) source.Option {
+// WithConfig set consul-specific options
+func WithConfig(c *api.Config) source.Option {
 	return func(o *source.Options) {
 		if o.Context == nil {
 			o.Context = context.Background()
 		}
-		o.Context = context.WithValue(o.Context, consulConfigKey{}, c)
+		o.Context = context.WithValue(o.Context, configKey{}, c)
 	}
 }

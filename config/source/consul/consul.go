@@ -75,7 +75,7 @@ func NewSource(opts ...source.Option) source.Source {
 	config := api.DefaultConfig()
 
 	// use the consul config passed in the options if any
-	if co, ok := options.Context.Value(consulConfigKey{}).(*api.Config); ok {
+	if co, ok := options.Context.Value(configKey{}).(*api.Config); ok {
 		config = co
 	}
 
