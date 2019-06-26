@@ -283,29 +283,36 @@ func (r *rpcClient) next(request Request, opts CallOptions) (selector.Next, erro
 
 	// get proxy address
 	if prx := os.Getenv("MICRO_PROXY_ADDRESS"); len(prx) > 0 {
-		opts.Address = prx
+		opts.Address = []string{prx}
 	}
 
 	// return remote address
 	if len(opts.Address) > 0 {
-		address := opts.Address
-		port := 0
+		var nodes []*registry.Node
 
-		host, sport, err := net.SplitHostPort(opts.Address)
-		if err == nil {
-			address = host
-			port, _ = strconv.Atoi(sport)
-		}
+		for _, addr := range opts.Address {
+			address := addr
+			port := 0
 
-		return func() (*registry.Node, error) {
-			return &registry.Node{
+			host, sport, err := net.SplitHostPort(addr)
+			if err == nil {
+				address = host
+				port, _ = strconv.Atoi(sport)
+			}
+
+			nodes = append(nodes, &registry.Node{
 				Address: address,
 				Port:    port,
 				// Set the protocol
 				Metadata: map[string]string{
 					"protocol": "mucp",
 				},
-			}, nil
+			})
+		}
+
+		// crude return method
+		return func() (*registry.Node, error) {
+			return nodes[time.Now().Unix()%int64(len(nodes))], nil
 		}, nil
 	}
 

@@ -59,14 +59,14 @@ func (g *grpcClient) next(request client.Request, opts client.CallOptions) (sele
 
 	// get proxy address
 	if prx := os.Getenv("MICRO_PROXY_ADDRESS"); len(prx) > 0 {
-		opts.Address = prx
+		opts.Address = []string{prx}
 	}
 
 	// return remote address
 	if len(opts.Address) > 0 {
 		return func() (*registry.Node, error) {
 			return &registry.Node{
-				Address: opts.Address,
+				Address: opts.Address[0],
 			}, nil
 		}, nil
 	}
