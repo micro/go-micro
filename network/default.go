@@ -4,8 +4,8 @@ import (
 	"sync"
 
 	"github.com/micro/go-micro/config/options"
-	"github.com/micro/go-micro/network/router"
 	"github.com/micro/go-micro/network/proxy"
+	"github.com/micro/go-micro/network/router"
 )
 
 type network struct {
@@ -21,7 +21,7 @@ type network struct {
 	id string
 
 	// links maintained for this network
-	mtx sync.RWMutex
+	mtx   sync.RWMutex
 	links []Link
 }
 
@@ -32,14 +32,14 @@ type node struct {
 	address string
 }
 
-
 type link struct {
 	// the embedded node
 	*node
 
 	// length and weight of the link
-	mtx sync.RWMutex
-	length, weight int
+	mtx    sync.RWMutex
+	length int
+	weight int
 }
 
 // network methods
