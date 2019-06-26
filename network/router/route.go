@@ -1,0 +1,74 @@
+package router
+
+import (
+	"fmt"
+	"strings"
+
+	"github.com/olekukonko/tablewriter"
+)
+
+var (
+	// DefaultLocalMetric is default route cost for local network
+	DefaultLocalMetric = 1
+	// DefaultNetworkMetric is default route cost for micro network
+	DefaultNetworkMetric = 10
+)
+
+// RoutePolicy defines routing table addition policy
+type RoutePolicy int
+
+const (
+	// OverrideIfExists overrides route if it already exists
+	OverrideIfExists RoutePolicy = iota
+	// IgnoreIfExists does not modify existing route
+	IgnoreIfExists
+)
+
+// String returns human reprensentation of policy
+func (p RoutePolicy) String() string {
+	switch p {
+	case OverrideIfExists:
+		return "OVERRIDE"
+	case IgnoreIfExists:
+		return "IGNORE"
+	default:
+		return "UNKNOWN"
+	}
+}
+
+// Route is network route
+type Route struct {
+	// Destination is destination address
+	Destination string
+	// Router is the network router
+	Router Router
+	// Network is micro network address
+	Network string
+	// Metric is the route cost metric
+	Metric int
+	// Policy defines route policy
+	Policy RoutePolicy
+}
+
+// String allows to print the route
+func (r *Route) String() string {
+	// this will help us build routing table string
+	sb := &strings.Builder{}
+
+	// create nice table printing structure
+	table := tablewriter.NewWriter(sb)
+	table.SetHeader([]string{"Destination", "Router", "Network", "Metric"})
+
+	strRoute := []string{
+		r.Destination,
+		r.Router.Address(),
+		r.Network,
+		fmt.Sprintf("%d", r.Metric),
+	}
+	table.Append(strRoute)
+
+	// render table into sb
+	table.Render()
+
+	return sb.String()
+}

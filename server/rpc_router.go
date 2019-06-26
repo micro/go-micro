@@ -16,8 +16,8 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/micro/go-log"
 	"github.com/micro/go-micro/codec"
+	"github.com/micro/go-micro/util/log"
 )
 
 var (
@@ -190,6 +190,11 @@ func (s *service) call(ctx context.Context, router *router, sending *sync.Mutex,
 		body:        req.msg.Body,
 	}
 
+	// only set if not nil
+	if argv.IsValid() {
+		r.rawBody = argv.Interface()
+	}
+
 	if !mtype.stream {
 		fn := func(ctx context.Context, req Request, rsp interface{}) error {
 			returnValues = function.Call([]reflect.Value{s.rcvr, mtype.prepareContext(ctx), reflect.ValueOf(argv.Interface()), reflect.ValueOf(rsp)})
@@ -200,6 +205,11 @@ func (s *service) call(ctx context.Context, router *router, sending *sync.Mutex,
 			}
 
 			return nil
+		}
+
+		// wrap the handler
+		for i := len(router.hdlrWrappers); i > 0; i-- {
+			fn = router.hdlrWrappers[i-1](fn)
 		}
 
 		// execute handler
@@ -214,9 +224,7 @@ func (s *service) call(ctx context.Context, router *router, sending *sync.Mutex,
 	// declare a local error to see if we errored out already
 	// keep track of the type, to make sure we return
 	// the same one consistently
-	var lastError error
-
-	stream := &rpcStream{
+	rawStream := &rpcStream{
 		context: ctx,
 		codec:   cc.(codec.Codec),
 		request: r,
@@ -229,27 +237,24 @@ func (s *service) call(ctx context.Context, router *router, sending *sync.Mutex,
 		if err := returnValues[0].Interface(); err != nil {
 			// the function returned an error, we use that
 			return err.(error)
-		} else if lastError != nil {
-			// we had an error inside sendReply, we use that
-			return lastError
+		} else if serr := rawStream.Error(); serr == io.EOF || serr == io.ErrUnexpectedEOF {
+			return nil
 		} else {
 			// no error, we send the special EOS error
 			return lastStreamResponseError
 		}
 	}
 
+	// wrap the handler
+	for i := len(router.hdlrWrappers); i > 0; i-- {
+		fn = router.hdlrWrappers[i-1](fn)
+	}
+
 	// client.Stream request
 	r.stream = true
 
 	// execute handler
-	if err := fn(ctx, r, stream); err != nil {
-		return err
-	}
-
-	// this is the last packet, we don't do anything with
-	// the error here (well sendStreamResponse will log it
-	// already)
-	return router.sendResponse(sending, req, nil, cc, true)
+	return fn(ctx, r, rawStream)
 }
 
 func (m *methodType) prepareContext(ctx context.Context) reflect.Value {

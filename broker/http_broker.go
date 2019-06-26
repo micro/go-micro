@@ -22,10 +22,10 @@ import (
 	"github.com/micro/go-micro/codec/json"
 	merr "github.com/micro/go-micro/errors"
 	"github.com/micro/go-micro/registry"
-	"github.com/micro/go-rcache"
-	maddr "github.com/micro/util/go/lib/addr"
-	mnet "github.com/micro/util/go/lib/net"
-	mls "github.com/micro/util/go/lib/tls"
+	"github.com/micro/go-micro/registry/cache"
+	maddr "github.com/micro/go-micro/util/addr"
+	mnet "github.com/micro/go-micro/util/net"
+	mls "github.com/micro/go-micro/util/tls"
 	"golang.org/x/net/http2"
 )
 
@@ -412,8 +412,8 @@ func (h *httpBroker) Connect() error {
 	if !ok {
 		reg = registry.DefaultRegistry
 	}
-	// set rcache
-	h.r = rcache.New(reg)
+	// set cache
+	h.r = cache.New(reg)
 
 	// set running
 	h.running = true
@@ -432,8 +432,8 @@ func (h *httpBroker) Disconnect() error {
 	h.Lock()
 	defer h.Unlock()
 
-	// stop rcache
-	rc, ok := h.r.(rcache.Cache)
+	// stop cache
+	rc, ok := h.r.(cache.Cache)
 	if ok {
 		rc.Stop()
 	}
@@ -477,13 +477,13 @@ func (h *httpBroker) Init(opts ...Option) error {
 		reg = registry.DefaultRegistry
 	}
 
-	// get rcache
-	if rc, ok := h.r.(rcache.Cache); ok {
+	// get cache
+	if rc, ok := h.r.(cache.Cache); ok {
 		rc.Stop()
 	}
 
 	// set registry
-	h.r = rcache.New(reg)
+	h.r = cache.New(reg)
 
 	// reconfigure tls config
 	if c := h.opts.TLSConfig; c != nil {

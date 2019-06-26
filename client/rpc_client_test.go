@@ -5,16 +5,17 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/micro/go-micro/client/selector"
 	"github.com/micro/go-micro/errors"
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/registry/memory"
-	"github.com/micro/go-micro/selector"
 )
 
 func newTestRegistry() registry.Registry {
 	r := memory.NewRegistry()
-	r.(*memory.Registry).Setup()
-	return r
+	reg := r.(*memory.Registry)
+	reg.Services = testData
+	return reg
 }
 
 func TestCallAddress(t *testing.T) {

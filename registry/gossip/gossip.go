@@ -16,9 +16,9 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/google/uuid"
 	"github.com/hashicorp/memberlist"
-	log "github.com/micro/go-log"
 	"github.com/micro/go-micro/registry"
 	pb "github.com/micro/go-micro/registry/gossip/proto"
+	log "github.com/micro/go-micro/util/log"
 	"github.com/mitchellh/hashstructure"
 )
 
@@ -734,6 +734,12 @@ func (g *gossipRegistry) Register(s *registry.Service, opts ...registry.Register
 		notify: nil,
 	})
 
+	// send update to local watchers
+	g.updates <- &update{
+		Update:  up,
+		Service: s,
+	}
+
 	// wait
 	<-time.After(g.interval * 2)
 
@@ -769,6 +775,12 @@ func (g *gossipRegistry) Deregister(s *registry.Service) error {
 		update: up,
 		notify: nil,
 	})
+
+	// send update to local watchers
+	g.updates <- &update{
+		Update:  up,
+		Service: s,
+	}
 
 	// wait
 	<-time.After(g.interval * 2)

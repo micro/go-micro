@@ -38,7 +38,11 @@ func (r *rpcStream) Send(msg interface{}) error {
 		Type:     codec.Response,
 	}
 
-	return r.codec.Write(&resp, msg)
+	if err := r.codec.Write(&resp, msg); err != nil {
+		r.err = err
+	}
+
+	return nil
 }
 
 func (r *rpcStream) Recv(msg interface{}) error {
@@ -51,12 +55,18 @@ func (r *rpcStream) Recv(msg interface{}) error {
 	if err := r.codec.ReadHeader(req, req.Type); err != nil {
 		// discard body
 		r.codec.ReadBody(nil)
+		r.err = err
 		return err
 	}
 
 	// we need to stay up to date with sequence numbers
 	r.id = req.Id
-	return r.codec.ReadBody(msg)
+	if err := r.codec.ReadBody(msg); err != nil {
+		r.err = err
+		return err
+	}
+
+	return nil
 }
 
 func (r *rpcStream) Error() error {
