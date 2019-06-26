@@ -20,7 +20,7 @@ type RoutePolicy int
 const (
 	// OverrideIfExists overrides route if it already exists
 	OverrideIfExists RoutePolicy = iota
-	// IgnoreIfExists does not modify existing route
+	// IgnoreIfExists instructs to not modify existing route
 	IgnoreIfExists
 )
 
@@ -40,8 +40,10 @@ func (p RoutePolicy) String() string {
 type Route struct {
 	// Destination is destination address
 	Destination string
-	// Router is the network router
-	Router Router
+	// Gateway is route gateway
+	Gateway string
+	// Router is the network router address
+	Router string
 	// Network is micro network address
 	Network string
 	// Metric is the route cost metric
@@ -57,11 +59,12 @@ func (r *Route) String() string {
 
 	// create nice table printing structure
 	table := tablewriter.NewWriter(sb)
-	table.SetHeader([]string{"Destination", "Router", "Network", "Metric"})
+	table.SetHeader([]string{"Destination", "Gateway", "Router", "Network", "Metric"})
 
 	strRoute := []string{
 		r.Destination,
-		r.Router.Address(),
+		r.Gateway,
+		r.Router,
 		r.Network,
 		fmt.Sprintf("%d", r.Metric),
 	}

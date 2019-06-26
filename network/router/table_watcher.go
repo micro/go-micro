@@ -64,22 +64,13 @@ type Watcher interface {
 type WatchOptions struct {
 	// Specify destination address to watch
 	Destination string
-	// Specify network to watch
-	Network string
 }
 
 // WatchDestination sets what destination to watch
 // Destination is usually microservice name
-func WatchDestination(a string) WatchOption {
+func WatchDestination(d string) WatchOption {
 	return func(o *WatchOptions) {
-		o.Destination = a
-	}
-}
-
-// WatchNetwork sets what network to watch
-func WatchNetwork(n string) WatchOption {
-	return func(o *WatchOptions) {
-		o.Network = n
+		o.Destination = d
 	}
 }
 
@@ -90,19 +81,16 @@ type tableWatcher struct {
 }
 
 // Next returns the next noticed action taken on table
-// TODO: this needs to be thought through properly
-// we are aiming to provide the same options Query provides
+// TODO: this needs to be thought through properly; we only allow watching particular route destination
 func (w *tableWatcher) Next() (*Event, error) {
 	for {
 		select {
 		case res := <-w.resChan:
 			switch w.opts.Destination {
 			case "*", "":
-				if w.opts.Network == "*" || w.opts.Network == res.Route.Network {
-					return res, nil
-				}
-			case res.Route.Destination:
-				if w.opts.Network == "*" || w.opts.Network == res.Route.Network {
+				return res, nil
+			default:
+				if w.opts.Destination == res.Route.Destination {
 					return res, nil
 				}
 			}
@@ -132,11 +120,10 @@ func (w *tableWatcher) String() string {
 	sb := &strings.Builder{}
 
 	table := tablewriter.NewWriter(sb)
-	table.SetHeader([]string{"Destination", "Network"})
+	table.SetHeader([]string{"Destination"})
 
 	data := []string{
 		w.opts.Destination,
-		w.opts.Network,
 	}
 	table.Append(data)
 
