@@ -3,6 +3,7 @@ package router
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"os"
 	"sort"
@@ -22,8 +23,14 @@ type routerSelector struct {
 	// the router
 	r router.Router
 
+	// the client we have
+	c client.Client
+
 	// the client for the remote router
-	c pb.RouterService
+	rs pb.RouterService
+
+	// name of the router
+	name string
 
 	// address of the remote router
 	addr string
@@ -46,21 +53,59 @@ func (r *routerSelector) getRoutes(service string) ([]router.Route, error) {
 
 	// lookup the remote router
 
-	var clientOpts []client.CallOption
+	var addrs []string
 
 	// set the remote address if specified
 	if len(r.addr) > 0 {
-		clientOpts = append(clientOpts, client.WithAddress(r.addr))
+		addrs = append(addrs, r.addr)
+	} else {
+		// we have a name so we need to check the registry
+		services, err := r.c.Options().Registry.GetService(r.name)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, service := range services {
+			for _, node := range service.Nodes {
+				addr := node.Address
+				if node.Port > 0 {
+					addr = fmt.Sprintf("%s:%d", node.Address, node.Port)
+				}
+				addrs = append(addrs, addr)
+			}
+		}
 	}
 
-	// call the router
-	pbRoutes, err := r.c.Lookup(context.Background(), &pb.LookupRequest{
-		Query: &pb.Query{
-			Destination: service,
-		},
-	}, clientOpts...)
+	// no router addresses available
+	if len(addrs) == 0 {
+		return nil, selector.ErrNoneAvailable
+	}
+
+	var pbRoutes *pb.LookupResponse
+	var err error
+
+	// TODO: implement backoff and retries
+	for _, addr := range addrs {
+		// call the router
+		pbRoutes, err = r.rs.Lookup(context.Background(), &pb.LookupRequest{
+			Query: &pb.Query{
+				Destination: service,
+			},
+		}, client.WithAddress(addr))
+		if err != nil {
+			continue
+		}
+		break
+	}
+
+	// errored out
 	if err != nil {
 		return nil, err
+	}
+
+	// no routes
+	if pbRoutes == nil {
+		return nil, selector.ErrNoneAvailable
 	}
 
 	var routes []router.Route
@@ -209,7 +254,11 @@ func NewSelector(opts ...selector.Option) selector.Selector {
 		// set the internal router
 		r: r,
 		// set the client
-		c: pb.NewRouterService(routerName, c),
+		c: c,
+		// set the router client
+		rs: pb.NewRouterService(routerName, c),
+		// name of the router
+		name: routerName,
 		// address of router
 		addr: routerAddress,
 		// let ourselves know to use the remote router
