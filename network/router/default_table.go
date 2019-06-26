@@ -171,7 +171,7 @@ func (t *table) Lookup(q Query) ([]Route, error) {
 			}
 			for _, route := range routes {
 				if q.Options().Network == "*" || q.Options().Network == route.Network {
-					if q.Options().Router.ID() == "*" || q.Options().Router.ID() == route.Router.ID() {
+					if q.Options().Router == "*" {
 						if route.Metric <= q.Options().Metric {
 							results = append(results, route)
 						}
@@ -182,8 +182,8 @@ func (t *table) Lookup(q Query) ([]Route, error) {
 
 		if q.Options().Destination == "*" {
 			for _, route := range routes {
-				if q.Options().Network == "*" || q.Options().Network == route.Router.Network() {
-					if q.Options().Router.ID() == "*" || q.Options().Router.ID() == route.Router.ID() {
+				if q.Options().Network == "*" || q.Options().Network == route.Network {
+					if q.Options().Router == "*" {
 						if route.Metric <= q.Options().Metric {
 							results = append(results, route)
 						}
@@ -193,7 +193,7 @@ func (t *table) Lookup(q Query) ([]Route, error) {
 		}
 	}
 
-	if len(results) == 0 && q.Options().Policy != DiscardNoRoute {
+	if len(results) == 0 && q.Options().Policy != DiscardIfNone {
 		return nil, ErrRouteNotFound
 	}
 
@@ -205,7 +205,6 @@ func (t *table) Watch(opts ...WatchOption) (Watcher, error) {
 	// by default watch everything
 	wopts := WatchOptions{
 		Destination: "*",
-		Network:     "*",
 	}
 
 	for _, o := range opts {
@@ -256,13 +255,14 @@ func (t *table) String() string {
 
 	// create nice table printing structure
 	table := tablewriter.NewWriter(sb)
-	table.SetHeader([]string{"Destination", "Router", "Network", "Metric"})
+	table.SetHeader([]string{"Destination", "Gateway", "Router", "Network", "Metric"})
 
 	for _, destRoute := range t.m {
 		for _, route := range destRoute {
 			strRoute := []string{
 				route.Destination,
-				route.Router.Address(),
+				route.Gateway,
+				route.Router,
 				route.Network,
 				fmt.Sprintf("%d", route.Metric),
 			}
@@ -278,12 +278,8 @@ func (t *table) String() string {
 
 // hash hashes the route using router gateway and network address
 func (t *table) hash(r Route) uint64 {
-	destAddr := r.Destination
-	routerAddr := r.Router.Address()
-	netAddr := r.Network
-
 	t.h.Reset()
-	t.h.Write([]byte(destAddr + routerAddr + netAddr))
+	t.h.Write([]byte(r.Destination + r.Gateway + r.Router + r.Network))
 
 	return t.h.Sum64()
 }

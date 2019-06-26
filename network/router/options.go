@@ -8,8 +8,6 @@ import (
 var (
 	// DefaultAddress is default router address
 	DefaultAddress = ":9093"
-	// DefaultAdvertise is default address advertised to the network
-	DefaultAdvertise = ":9094"
 )
 
 // Options are router options
@@ -18,12 +16,10 @@ type Options struct {
 	ID string
 	// Address is router address
 	Address string
-	// Advertise is the address advertised to the network
-	Advertise string
+	// Network is micro network
+	Network string
 	// Registry is the local registry
 	Registry registry.Registry
-	// Networkis the network registry
-	Network registry.Registry
 	// Table is routing table
 	Table Table
 }
@@ -42,10 +38,10 @@ func Address(a string) Option {
 	}
 }
 
-// Advertise sets the address that is advertise to the network
-func Advertise(n string) Option {
+// Network sets router network
+func Network(n string) Option {
 	return func(o *Options) {
-		o.Advertise = n
+		o.Network = n
 	}
 }
 
@@ -63,22 +59,13 @@ func Registry(r registry.Registry) Option {
 	}
 }
 
-// Network sets the network registry
-func Network(r registry.Registry) Option {
-	return func(o *Options) {
-		o.Network = r
-	}
-}
-
 // DefaultOptions returns router default options
 func DefaultOptions() Options {
 	// NOTE: by default both local and network registies use default registry i.e. mdns
 	return Options{
-		ID:        uuid.New().String(),
-		Address:   DefaultAddress,
-		Advertise: DefaultAdvertise,
-		Registry:  registry.DefaultRegistry,
-		Network:   registry.DefaultRegistry,
-		Table:     NewTable(),
+		ID:       uuid.New().String(),
+		Address:  DefaultAddress,
+		Registry: registry.DefaultRegistry,
+		Table:    NewTable(),
 	}
 }
