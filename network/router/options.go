@@ -67,6 +67,6 @@ func DefaultOptions() Options {
 		Address:  DefaultAddress,
 		Registry: registry.DefaultRegistry,
 		Table:    NewTable(),
-		Network: "local",
+		Network:  "local",
 	}
 }
