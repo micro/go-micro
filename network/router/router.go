@@ -26,6 +26,10 @@ type Router interface {
 // Option used by the router
 type Option func(*Options)
 
+var (
+	DefaultRouter = NewRouter()
+)
+
 // NewRouter creates new Router and returns it
 func NewRouter(opts ...Option) Router {
 	return newRouter(opts...)
