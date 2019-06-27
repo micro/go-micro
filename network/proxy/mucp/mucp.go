@@ -131,6 +131,8 @@ func (p *Proxy) getRoute(service string) ([]string, error) {
 	// no router is specified we're going to set the default
 	if len(name) == 0 && len(addr) == 0 {
 		p.Router = router.DefaultRouter
+		go p.Router.Advertise()
+
 		// recursively execute getRoute
 		return p.getRoute(service)
 	}
@@ -170,7 +172,7 @@ func (p *Proxy) getRoute(service string) ([]string, error) {
 	}
 
 	var pbRoutes *pb.LookupResponse
-	var err error
+	var gerr error
 
 	// set default client
 	if p.RouterService == nil {
@@ -180,20 +182,23 @@ func (p *Proxy) getRoute(service string) ([]string, error) {
 	// TODO: implement backoff and retries
 	for _, addr := range addrs {
 		// call the router
-		pbRoutes, err = p.RouterService.Lookup(context.Background(), &pb.LookupRequest{
+		proutes, err := p.RouterService.Lookup(context.Background(), &pb.LookupRequest{
 			Query: &pb.Query{
 				Destination: service,
 			},
 		}, client.WithAddress(addr))
 		if err != nil {
+			gerr = err
 			continue
 		}
+		// set routes
+		pbRoutes = proutes
 		break
 	}
 
 	// errored out
-	if err != nil {
-		return nil, err
+	if gerr != nil {
+		return nil, gerr
 	}
 
 	// no routes
@@ -340,6 +345,8 @@ func NewProxy(opts ...options.Option) proxy.Proxy {
 	r, ok := p.Options.Values().Get("proxy.router")
 	if ok {
 		p.Router = r.(router.Router)
+		// TODO: should we advertise?
+		go p.Router.Advertise()
 	}
 
 	return p
