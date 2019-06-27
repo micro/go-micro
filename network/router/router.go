@@ -1,6 +1,11 @@
 // Package router provides a network routing control plane
 package router
 
+var (
+	// DefaultRouter is default network router
+	DefaultRouter = NewRouter()
+)
+
 // Router is an interface for a routing control plane
 type Router interface {
 	// Init initializes the router with options
@@ -15,20 +20,26 @@ type Router interface {
 	Address() string
 	// Network returns the network address of the router
 	Network() string
-	// Advertise starts advertising the routes to the network
-	Advertise() error
+	// Advertise starts advertising routes to the network
+	Advertise() (<-chan *Advertisement, error)
+	// Update updates the routing table
+	Update(*Advertisement) error
 	// Stop stops the router
 	Stop() error
 	// String returns debug info
 	String() string
 }
 
+// Advertisement is sent by the router to the network
+type Advertisement struct {
+	// ID is the source router ID
+	ID string
+	// Event defines advertisement even
+	Event *Event
+}
+
 // Option used by the router
 type Option func(*Options)
-
-var (
-	DefaultRouter = NewRouter()
-)
 
 // NewRouter creates new Router and returns it
 func NewRouter(opts ...Option) Router {
