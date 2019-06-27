@@ -107,7 +107,20 @@ func (r *router) addServiceRoutes(reg registry.Registry, network string, metric 
 
 	// add each service node as a separate route;
 	for _, service := range services {
-		for _, node := range service.Nodes {
+		// get the service to retrieve all its info
+		srvs, err := reg.GetService(service.Name)
+		if err != nil {
+			continue
+		}
+
+		// create a flat slide of nodes
+		var nodes []*registry.Node
+		for _, s := range srvs {
+			nodes = append(nodes, s.Nodes...)
+		}
+
+		// range over the flat slice of nodes
+		for _, node := range nodes {
 			gw := node.Address
 			if node.Port > 0 {
 				gw = fmt.Sprintf("%s:%d", node.Address, node.Port)
