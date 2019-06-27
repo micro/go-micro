@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+// Router service is used by the proxy to lookup routes
+service Router {
+	rpc Lookup(LookupRequest) returns (LookupResponse) {};
+}
+
+// LookupRequest is made to Lookup
+message LookupRequest {
+	Query query = 1;
+}
+
+// LookupResponse is returns by Lookup
+message LookupResponse {
+	repeated Route routes = 1;
+}
+
+// Query is passed in a LookupRequest
+message Query {
+	// destination to lookup
+	string destination = 1;
+}
+
+// Route is a service route
+message Route {
+	// service for the route
+	string destination = 1;
+	// gateway as the next hop
+	string gateway = 2;
+	// the router that advertise this route
+	string router = 3;
+	// the network for this destination
+	string network = 4;
+	// the metric / score of this route
+	int64 metric = 5;
+}

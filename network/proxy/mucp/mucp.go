@@ -7,10 +7,12 @@ import (
 	"strings"
 
 	"github.com/micro/go-micro/client"
+	rselect "github.com/micro/go-micro/client/selector/router"
 	"github.com/micro/go-micro/codec"
 	"github.com/micro/go-micro/codec/bytes"
 	"github.com/micro/go-micro/config/options"
 	"github.com/micro/go-micro/network/proxy"
+	"github.com/micro/go-micro/network/router"
 	"github.com/micro/go-micro/server"
 )
 
@@ -160,6 +162,19 @@ func NewProxy(opts ...options.Option) proxy.Proxy {
 	c, ok := p.Options.Values().Get("proxy.client")
 	if ok {
 		p.Client = c.(client.Client)
+	}
+
+	// get router
+	r, ok := p.Options.Values().Get("proxy.router")
+	if ok {
+		// set the router in the client
+		p.Client.Init(
+			// pass new selector as an option to the client
+			client.Selector(rselect.NewSelector(
+				// set the router in the selector
+				rselect.WithRouter(r.(router.Router)),
+			)),
+		)
 	}
 
 	return p

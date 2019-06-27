@@ -51,6 +51,25 @@ type Message struct {
 }
 
 var (
-	// TODO: set default network
-	DefaultNetwork Network
+	// The default network ID is local
+	DefaultNetworkId = "local"
+
+	// just the standard network element
+	DefaultNetwork = NewNetwork()
 )
+
+// NewNetwork returns a new network
+func NewNetwork(opts ...options.Option) Network {
+	options := options.NewOptions(opts...)
+
+	// get router
+
+	// get proxy
+
+	return &network{
+		Options: options,
+		// fill the blanks
+		// router: r,
+		// proxy: p,
+	}
+}
