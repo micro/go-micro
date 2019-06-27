@@ -372,9 +372,9 @@ func (g *grpcClient) Call(ctx context.Context, req client.Request, rsp interface
 	var gerr error
 
 	for i := 0; i <= callOpts.Retries; i++ {
-		go func() {
+		go func(i int) {
 			ch <- call(i)
-		}()
+		}(i)
 
 		select {
 		case <-ctx.Done():
@@ -455,10 +455,10 @@ func (g *grpcClient) Stream(ctx context.Context, req client.Request, opts ...cli
 	var grr error
 
 	for i := 0; i <= callOpts.Retries; i++ {
-		go func() {
+		go func(i int) {
 			s, err := call(i)
 			ch <- response{s, err}
-		}()
+		}(i)
 
 		select {
 		case <-ctx.Done():
