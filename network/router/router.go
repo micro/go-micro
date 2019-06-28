@@ -56,8 +56,10 @@ type Status struct {
 }
 
 const (
-	// Running means the rotuer is running
-	Running StatusCode = iota
+	// Init means the rotuer has just been initialized
+	Init StatusCode = iota
+	// Running means the router is running
+	Running
 	// Error means the router has crashed with error
 	Error
 	// Stopped means the router has stopped
@@ -67,6 +69,8 @@ const (
 // String returns human readable status code
 func (sc StatusCode) String() string {
 	switch sc {
+	case Init:
+		return "INITIALIZED"
 	case Running:
 		return "RUNNING"
 	case Error:
