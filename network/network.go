@@ -10,10 +10,12 @@ import (
 	"github.com/micro/go-micro/network/router"
 )
 
-// Network defines a network interface
+// Network defines a network interface. The network is a single
+// shared network between all nodes connected to it. The network
+// is responsible for routing messages to the correct services.
 type Network interface {
 	options.Options
-	// Id of this node
+	// Id of the network
 	Id() string
 	// Connect to the network
 	Connect() (Node, error)
@@ -30,7 +32,7 @@ type Node interface {
 	// Address of the node
 	Address() string
 	// The network of the node
-	Network() Network
+	Network() string
 	// Links to other nodes
 	Links() ([]Link, error)
 	// Close the network connection

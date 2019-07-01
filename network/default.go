@@ -189,8 +189,6 @@ func (n *network) Connect() (Node, error) {
 		node.transport = transport.DefaultTransport
 	}
 
-	// start the node
-
 	// we listen on a random address, this is not advertised
 	// TODO: use util/addr to get something anyone in the same private network can talk to
 	l, err := node.transport.Listen(":0")
@@ -479,8 +477,8 @@ func (n *node) Links() ([]Link, error) {
 	return links, nil
 }
 
-func (n *node) Network() Network {
-	return n.network
+func (n *node) Network() string {
+	return n.network.id
 }
 
 func (n *node) Send(m *Message) error {
