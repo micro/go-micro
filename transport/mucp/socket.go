@@ -1,4 +1,4 @@
-package network
+package mucp
 
 import (
 	"errors"
