@@ -41,7 +41,7 @@ type Node interface {
 
 // Link is a connection between one network and another
 type Link interface {
-	// remote node the link is to
+	// remote node the link is peered with
 	Node
 	// length defines the speed or distance of the link
 	Length() int
