@@ -2,6 +2,20 @@ package router
 
 import "testing"
 
+func testSetup() (Table, Route) {
+	table := NewTable()
+
+	route := Route{
+		Destination: "dest.svc",
+		Gateway:     "dest.gw",
+		Router:      "dest.router",
+		Network:     "dest.network",
+		Metric:      10,
+	}
+
+	return table, route
+}
+
 func TestNewTable(t *testing.T) {
 	table := NewTable()
 
@@ -11,19 +25,7 @@ func TestNewTable(t *testing.T) {
 }
 
 func TestAdd(t *testing.T) {
-	table := NewTable()
-
-	if table.Size() != 0 {
-		t.Errorf("new table should be empty")
-	}
-
-	route := Route{
-		Destination: "dest.svc",
-		Gateway:     "dest.gw",
-		Router:      "dest.router",
-		Network:     "dest.network",
-		Metric:      10,
-	}
+	table, route := testSetup()
 
 	if err := table.Add(route); err != nil {
 		t.Errorf("error adding route: %s", err)
@@ -76,19 +78,7 @@ func TestAdd(t *testing.T) {
 }
 
 func TestDelete(t *testing.T) {
-	table := NewTable()
-
-	if table.Size() != 0 {
-		t.Errorf("new table should be empty")
-	}
-
-	route := Route{
-		Destination: "dest.svc",
-		Gateway:     "dest.gw",
-		Router:      "dest.router",
-		Network:     "dest.network",
-		Metric:      10,
-	}
+	table, route := testSetup()
 
 	if err := table.Add(route); err != nil {
 		t.Errorf("error adding route: %s", err)
@@ -123,19 +113,7 @@ func TestDelete(t *testing.T) {
 }
 
 func TestUpdate(t *testing.T) {
-	table := NewTable()
-
-	if table.Size() != 0 {
-		t.Errorf("new table should be empty")
-	}
-
-	route := Route{
-		Destination: "dest.svc",
-		Gateway:     "dest.gw",
-		Router:      "dest.router",
-		Network:     "dest.network",
-		Metric:      10,
-	}
+	table, route := testSetup()
 
 	if err := table.Add(route); err != nil {
 		t.Errorf("error adding route: %s", err)
@@ -189,5 +167,31 @@ func TestUpdate(t *testing.T) {
 
 	if table.Size() != 3 {
 		t.Errorf("invalid number of routes. expected: 3, given: %d", table.Size())
+	}
+}
+
+func TestListRoutest(t *testing.T) {
+	table, route := testSetup()
+
+	dest := []string{"one.svc", "two.svc", "three.svc"}
+
+	for i := 0; i < len(dest); i++ {
+		route.Destination = dest[i]
+		if err := table.Add(route); err != nil {
+			t.Errorf("error adding route: %s", err)
+		}
+	}
+
+	routes, err := table.List()
+	if err != nil {
+		t.Errorf("error listing routes: %s", err)
+	}
+
+	if len(routes) != len(dest) {
+		t.Errorf("incorrect number of routes listed. Expected: %d, Given: %d", len(dest), len(routes))
+	}
+
+	if len(routes) != table.Size() {
+		t.Errorf("mismatch number of routes and table size. Routes: %d, Size: %d", len(routes), table.Size())
 	}
 }
