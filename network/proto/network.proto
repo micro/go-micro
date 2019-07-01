@@ -24,4 +24,5 @@ message Lease {
 message Node {
 	string id = 1;
 	string address = 2;
+	string network = 3;
 }
