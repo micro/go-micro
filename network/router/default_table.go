@@ -129,6 +129,12 @@ func (t *table) Update(r Route) error {
 
 	// check if the destAddr has ANY routes in the table
 	if _, ok := t.m[destAddr]; !ok {
+		if r.Policy == AddIfNotExists {
+			t.m[destAddr] = make(map[uint64]Route)
+			t.m[destAddr][sum] = r
+			go t.sendEvent(&Event{Type: CreateEvent, Route: r})
+			return nil
+		}
 		return ErrRouteNotFound
 	}
 
@@ -279,7 +285,7 @@ func (t *table) String() string {
 // hash hashes the route using router gateway and network address
 func (t *table) hash(r Route) uint64 {
 	t.h.Reset()
-	t.h.Write([]byte(r.Destination + r.Gateway + r.Router + r.Network))
+	t.h.Write([]byte(r.Destination + r.Gateway + r.Network))
 
 	return t.h.Sum64()
 }

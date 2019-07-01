@@ -20,6 +20,8 @@ type RoutePolicy int
 const (
 	// OverrideIfExists overrides route if it already exists
 	OverrideIfExists RoutePolicy = iota
+	// AddIfNotExist adds the route if it does not exist
+	AddIfNotExists
 	// IgnoreIfExists instructs to not modify existing route
 	IgnoreIfExists
 )
@@ -28,9 +30,11 @@ const (
 func (p RoutePolicy) String() string {
 	switch p {
 	case OverrideIfExists:
-		return "OVERRIDE"
+		return "OVERRIDE_IF_EXISTS"
+	case AddIfNotExists:
+		return "ADD_IF_NOT_EXISTS"
 	case IgnoreIfExists:
-		return "IGNORE"
+		return "IGNORE_IF_EXISTS"
 	default:
 		return "UNKNOWN"
 	}

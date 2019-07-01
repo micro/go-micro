@@ -8,6 +8,8 @@ import (
 var (
 	// DefaultAddress is default router address
 	DefaultAddress = ":9093"
+	// DefaultNetwork is default micro network
+	DefaultNetwork = "local"
 )
 
 // Options are router options
@@ -18,6 +20,8 @@ type Options struct {
 	Address string
 	// Network is micro network
 	Network string
+	// Gateway is micro network gateway
+	Gateway string
 	// Registry is the local registry
 	Registry registry.Registry
 	// Table is routing table
@@ -45,6 +49,13 @@ func Network(n string) Option {
 	}
 }
 
+// Gateway sets network gateway
+func Gateway(g string) Option {
+	return func(o *Options) {
+		o.Gateway = g
+	}
+}
+
 // RoutingTable sets the routing table
 func RoutingTable(t Table) Option {
 	return func(o *Options) {
@@ -61,12 +72,11 @@ func Registry(r registry.Registry) Option {
 
 // DefaultOptions returns router default options
 func DefaultOptions() Options {
-	// NOTE: by default both local and network registies use default registry i.e. mdns
 	return Options{
 		ID:       uuid.New().String(),
 		Address:  DefaultAddress,
+		Network:  DefaultNetwork,
 		Registry: registry.DefaultRegistry,
 		Table:    NewTable(),
-		Network:  "local",
 	}
 }
