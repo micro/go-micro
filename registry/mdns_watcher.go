@@ -1,7 +1,6 @@
 package registry
 
 import (
-	"errors"
 	"strings"
 
 	"github.com/micro/mdns"
@@ -63,7 +62,7 @@ func (m *mdnsWatcher) Next() (*Result, error) {
 				Service: service,
 			}, nil
 		case <-m.exit:
-			return nil, errors.New("watcher stopped")
+			return nil, ErrWatcherStopped
 		}
 	}
 }
