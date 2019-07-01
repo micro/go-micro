@@ -36,41 +36,32 @@ type QueryOption func(*QueryOptions)
 type QueryOptions struct {
 	// Destination is destination address
 	Destination string
-	// Router is router address
-	Router string
 	// Network is network address
 	Network string
-	// Metric is route metric
-	Metric int
+	// Router is router address
+	Router string
 	// Policy is query lookup policy
 	Policy LookupPolicy
 }
 
-// QueryDestination sets query destination address
-func QueryDestination(a string) QueryOption {
+// QueryDestination sets destination address
+func QueryDestination(d string) QueryOption {
 	return func(o *QueryOptions) {
-		o.Destination = a
+		o.Destination = d
 	}
 }
 
-// QueryNetwork sets query network address
+// QueryNetwork sets route network address
 func QueryNetwork(a string) QueryOption {
 	return func(o *QueryOptions) {
 		o.Network = a
 	}
 }
 
-// QueryRouter sets query gateway address
+// QueryRouter sets route router address
 func QueryRouter(r string) QueryOption {
 	return func(o *QueryOptions) {
 		o.Router = r
-	}
-}
-
-// QueryMetric sets query metric
-func QueryMetric(m int) QueryOption {
-	return func(o *QueryOptions) {
-		o.Metric = m
 	}
 }
 
@@ -99,9 +90,7 @@ func NewQuery(opts ...QueryOption) Query {
 	// NOTE: by default we use DefaultNetworkMetric
 	qopts := QueryOptions{
 		Destination: "*",
-		Router:      "*",
 		Network:     "*",
-		Metric:      DefaultNetworkMetric,
 		Policy:      DiscardIfNone,
 	}
 
@@ -126,13 +115,12 @@ func (q query) String() string {
 
 	// create nice table printing structure
 	table := tablewriter.NewWriter(sb)
-	table.SetHeader([]string{"Destination", "Router", "Network", "Metric", "Policy"})
+	table.SetHeader([]string{"Destination", "Network", "Router", "Policy"})
 
 	strQuery := []string{
 		q.opts.Destination,
-		q.opts.Router,
 		q.opts.Network,
-		fmt.Sprintf("%d", q.opts.Metric),
+		q.opts.Router,
 		fmt.Sprintf("%s", q.opts.Policy),
 	}
 	table.Append(strQuery)

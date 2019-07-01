@@ -232,7 +232,11 @@ func (r *router) watchError(errChan <-chan error) {
 
 	// stop the router if some error happened
 	if err != nil && code != Stopped {
+		// this will stop watchers which will close r.advertChan
 		close(r.exit)
+		// drain the advertise channel
+		for range r.advertChan {
+		}
 	}
 }
 
@@ -343,12 +347,11 @@ func (r *router) Stop() error {
 	if r.status.Code == Running {
 		// notify all goroutines to finish
 		close(r.exit)
+		// drain the advertise channel
+		for range r.advertChan {
+		}
 	}
 	r.RUnlock()
-
-	// drain the advertise channel
-	for range r.advertChan {
-	}
 
 	// wait for all goroutines to finish
 	r.wg.Wait()

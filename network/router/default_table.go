@@ -163,44 +163,44 @@ func (t *table) List() ([]Route, error) {
 	return routes, nil
 }
 
-// Lookup queries routing table and returns all routes that match it
+// isMatch checks if the route matches given network and router
+func isMatch(route Route, network, router string) bool {
+	if network == "*" || network == route.Network {
+		if router == "*" || router == route.Router {
+			return true
+		}
+	}
+	return false
+}
+
+// findRoutes finds all the routes for given network and router and returns them
+func findRoutes(routes map[uint64]Route, network, router string) []Route {
+	var results []Route
+	for _, route := range routes {
+		if isMatch(route, network, router) {
+			results = append(results, route)
+		}
+	}
+	return results
+}
+
+// Lookup queries routing table and returns all routes that match the lookup query
 func (t *table) Lookup(q Query) ([]Route, error) {
 	t.RLock()
 	defer t.RUnlock()
 
-	var results []Route
-
-	for destAddr, routes := range t.m {
-		if q.Options().Destination != "*" {
-			if q.Options().Destination != destAddr {
-				continue
-			}
-			for _, route := range routes {
-				if q.Options().Network == "*" || q.Options().Network == route.Network {
-					if q.Options().Router == "*" {
-						if route.Metric <= q.Options().Metric {
-							results = append(results, route)
-						}
-					}
-				}
-			}
+	if q.Options().Destination != "*" {
+		// no routes found for the destination and query policy is not a DiscardIfNone
+		if _, ok := t.m[q.Options().Destination]; !ok && q.Options().Policy != DiscardIfNone {
+			return nil, ErrRouteNotFound
 		}
-
-		if q.Options().Destination == "*" {
-			for _, route := range routes {
-				if q.Options().Network == "*" || q.Options().Network == route.Network {
-					if q.Options().Router == "*" {
-						if route.Metric <= q.Options().Metric {
-							results = append(results, route)
-						}
-					}
-				}
-			}
-		}
+		return findRoutes(t.m[q.Options().Destination], q.Options().Network, q.Options().Router), nil
 	}
 
-	if len(results) == 0 && q.Options().Policy != DiscardIfNone {
-		return nil, ErrRouteNotFound
+	var results []Route
+	// search through all destinations
+	for _, routes := range t.m {
+		results = append(results, findRoutes(routes, q.Options().Network, q.Options().Router)...)
 	}
 
 	return results, nil
