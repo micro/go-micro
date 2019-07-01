@@ -3,9 +3,14 @@ package network
 
 import (
 	"github.com/micro/go-micro/config/options"
+	"github.com/micro/go-micro/network/proxy"
+	"github.com/micro/go-micro/network/proxy/mucp"
+	"github.com/micro/go-micro/network/resolver"
+	"github.com/micro/go-micro/network/resolver/registry"
+	"github.com/micro/go-micro/network/router"
 )
 
-// Network is an interface defining a network
+// Network defines a network interface
 type Network interface {
 	options.Options
 	// Id of this node
@@ -14,16 +19,20 @@ type Network interface {
 	Connect() (Node, error)
 	// Peer with a neighboring network
 	Peer(Network) (Link, error)
-	// Retrieve list of connections
+	// Retrieve list of peers
 	Links() ([]Link, error)
 }
 
 // Node represents a single node on a network
 type Node interface {
-	// Node is a network. Network is a node.
-	Network
+	// Id of the node
+	Id() string
 	// Address of the node
 	Address() string
+	// The network of the node
+	Network() Network
+	// Links to other nodes
+	Links() ([]Link, error)
 	// Close the network connection
 	Close() error
 	// Accept messages on the network
@@ -36,9 +45,9 @@ type Node interface {
 type Link interface {
 	// remote node the link is to
 	Node
-	// length of link which dictates speed
+	// length defines the speed or distance of the link
 	Length() int
-	// weight of link which dictates curvature
+	// weight defines the saturation or usage of the link
 	Weight() int
 }
 
@@ -47,29 +56,55 @@ type Message struct {
 	// Headers which provide local/remote info
 	Header map[string]string
 	// The opaque data being sent
-	Data []byte
+	Body []byte
 }
 
 var (
 	// The default network ID is local
-	DefaultNetworkId = "local"
+	DefaultId = "local"
 
 	// just the standard network element
 	DefaultNetwork = NewNetwork()
 )
 
-// NewNetwork returns a new network
+// NewNetwork returns a new network interface
 func NewNetwork(opts ...options.Option) Network {
 	options := options.NewOptions(opts...)
 
+	// new network instance
+	net := &network{
+		id: DefaultId,
+	}
+
+	// get network id
+	id, ok := options.Values().Get("network.id")
+	if ok {
+		net.id = id.(string)
+	}
+
 	// get router
+	r, ok := options.Values().Get("network.router")
+	if ok {
+		net.router = r.(router.Router)
+	} else {
+		net.router = router.DefaultRouter
+	}
 
 	// get proxy
-
-	return &network{
-		Options: options,
-		// fill the blanks
-		// router: r,
-		// proxy: p,
+	p, ok := options.Values().Get("network.proxy")
+	if ok {
+		net.proxy = p.(proxy.Proxy)
+	} else {
+		net.proxy = new(mucp.Proxy)
 	}
+
+	// get resolver
+	res, ok := options.Values().Get("network.resolver")
+	if ok {
+		net.resolver = res.(resolver.Resolver)
+	} else {
+		net.resolver = new(registry.Resolver)
+	}
+
+	return net
 }

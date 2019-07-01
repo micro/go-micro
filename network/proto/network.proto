@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package go.micro.network;
+
+// A connect message is for connecting to the network
+message Connect {
+	// Lease specifies an existing lease to indicate 
+	// we don't need a new address, we just want to
+	// establish a link.
+	Lease lease = 1;
+}
+
+// A lease is returned to anyone attempting to connect.
+message Lease {
+	// unique lease id
+	string id = 1;
+	// timestamp of lease
+	int64 timestamp = 2;
+	// the node
+	Node node = 3;
+}
+
+// A node is the network node
+message Node {
+	string id = 1;
+	string address = 2;
+}
