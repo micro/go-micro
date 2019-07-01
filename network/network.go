@@ -21,8 +21,6 @@ type Network interface {
 	Connect() (Node, error)
 	// Peer with a neighboring network
 	Peer(Network) (Link, error)
-	// Retrieve list of peers
-	Links() ([]Link, error)
 }
 
 // Node represents a single node on a network
@@ -33,8 +31,6 @@ type Node interface {
 	Address() string
 	// The network of the node
 	Network() string
-	// Links to other nodes
-	Links() ([]Link, error)
 	// Close the network connection
 	Close() error
 	// Accept messages on the network
