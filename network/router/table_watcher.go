@@ -9,7 +9,7 @@ import (
 
 var (
 	// ErrWatcherStopped is returned when routing table watcher has been stopped
-	ErrWatcherStopped = errors.New("routing table watcher stopped")
+	ErrWatcherStopped = errors.New("watcher stopped")
 )
 
 // EventType defines routing table event
@@ -81,7 +81,7 @@ type tableWatcher struct {
 }
 
 // Next returns the next noticed action taken on table
-// TODO: this needs to be thought through properly; we only allow watching particular route destination
+// TODO: this needs to be thought through properly; we only allow watching particular route destination for now
 func (w *tableWatcher) Next() (*Event, error) {
 	for {
 		select {
@@ -93,6 +93,7 @@ func (w *tableWatcher) Next() (*Event, error) {
 				if w.opts.Destination == res.Route.Destination {
 					return res, nil
 				}
+				continue
 			}
 		case <-w.done:
 			return nil, ErrWatcherStopped
