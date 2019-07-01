@@ -18,10 +18,10 @@ var (
 type RoutePolicy int
 
 const (
-	// OverrideIfExists overrides route if it already exists
-	OverrideIfExists RoutePolicy = iota
 	// AddIfNotExist adds the route if it does not exist
-	AddIfNotExists
+	AddIfNotExists RoutePolicy = iota
+	// OverrideIfExists overrides route if it already exists
+	OverrideIfExists
 	// IgnoreIfExists instructs to not modify existing route
 	IgnoreIfExists
 )

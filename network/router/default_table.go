@@ -138,6 +138,12 @@ func (t *table) Update(r Route) error {
 		return ErrRouteNotFound
 	}
 
+	if _, ok := t.m[destAddr][sum]; !ok && r.Policy == AddIfNotExists {
+		t.m[destAddr][sum] = r
+		go t.sendEvent(&Event{Type: CreateEvent, Route: r})
+		return nil
+	}
+
 	// if the route has been found update it
 	if _, ok := t.m[destAddr][sum]; ok {
 		t.m[destAddr][sum] = r
@@ -248,7 +254,12 @@ func (t *table) Size() int {
 	t.RLock()
 	defer t.RUnlock()
 
-	return len(t.m)
+	size := 0
+	for dest, _ := range t.m {
+		size += len(t.m[dest])
+	}
+
+	return size
 }
 
 // String returns debug information
