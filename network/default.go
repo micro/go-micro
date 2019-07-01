@@ -14,6 +14,7 @@ import (
 	"github.com/micro/go-micro/codec/proto"
 	"github.com/micro/go-micro/config/options"
 	"github.com/micro/go-micro/network/proxy"
+	"github.com/micro/go-micro/network/proxy/mucp"
 	"github.com/micro/go-micro/network/resolver"
 	"github.com/micro/go-micro/network/router"
 	"github.com/micro/go-micro/registry"
@@ -682,4 +683,46 @@ func (s *socket) recv(m *Message, v interface{}) error {
 
 	// return unmarshalled
 	return s.codec.Unmarshal(m.Body, v.(gproto.Message))
+}
+
+// newNetwork returns a new network interface
+func newNetwork(opts ...options.Option) *network {
+	options := options.NewOptions(opts...)
+
+	// new network instance
+	net := &network{
+		id: DefaultId,
+	}
+
+	// get network id
+	id, ok := options.Values().Get("network.id")
+	if ok {
+		net.id = id.(string)
+	}
+
+	// get router
+	r, ok := options.Values().Get("network.router")
+	if ok {
+		net.router = r.(router.Router)
+	} else {
+		net.router = router.DefaultRouter
+	}
+
+	// get proxy
+	p, ok := options.Values().Get("network.proxy")
+	if ok {
+		net.proxy = p.(proxy.Proxy)
+	} else {
+		net.proxy = new(mucp.Proxy)
+	}
+
+	// get resolver
+	res, ok := options.Values().Get("network.resolver")
+	if ok {
+		net.resolver = res.(resolver.Resolver)
+	} else {
+		net.resolver = new(nreg.Resolver)
+	}
+
+	return net
 }

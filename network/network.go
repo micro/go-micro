@@ -3,11 +3,6 @@ package network
 
 import (
 	"github.com/micro/go-micro/config/options"
-	"github.com/micro/go-micro/network/proxy"
-	"github.com/micro/go-micro/network/proxy/mucp"
-	"github.com/micro/go-micro/network/resolver"
-	"github.com/micro/go-micro/network/resolver/registry"
-	"github.com/micro/go-micro/network/router"
 )
 
 // Network defines a network interface. The network is a single
@@ -67,42 +62,5 @@ var (
 
 // NewNetwork returns a new network interface
 func NewNetwork(opts ...options.Option) Network {
-	options := options.NewOptions(opts...)
-
-	// new network instance
-	net := &network{
-		id: DefaultId,
-	}
-
-	// get network id
-	id, ok := options.Values().Get("network.id")
-	if ok {
-		net.id = id.(string)
-	}
-
-	// get router
-	r, ok := options.Values().Get("network.router")
-	if ok {
-		net.router = r.(router.Router)
-	} else {
-		net.router = router.DefaultRouter
-	}
-
-	// get proxy
-	p, ok := options.Values().Get("network.proxy")
-	if ok {
-		net.proxy = p.(proxy.Proxy)
-	} else {
-		net.proxy = new(mucp.Proxy)
-	}
-
-	// get resolver
-	res, ok := options.Values().Get("network.resolver")
-	if ok {
-		net.resolver = res.(resolver.Resolver)
-	} else {
-		net.resolver = new(registry.Resolver)
-	}
-
-	return net
+	return newNetwork(opts...)
 }
