@@ -16,14 +16,6 @@ func testSetup() (Table, Route) {
 	return table, route
 }
 
-func TestNewTable(t *testing.T) {
-	table := NewTable()
-
-	if table.Size() != 0 {
-		t.Errorf("new table should be empty")
-	}
-}
-
 func TestAdd(t *testing.T) {
 	table, route := testSetup()
 
@@ -170,7 +162,7 @@ func TestUpdate(t *testing.T) {
 	}
 }
 
-func TestListRoutest(t *testing.T) {
+func TestList(t *testing.T) {
 	table, route := testSetup()
 
 	dest := []string{"one.svc", "two.svc", "three.svc"}

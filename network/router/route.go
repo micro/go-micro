@@ -29,10 +29,10 @@ const (
 // String returns human reprensentation of policy
 func (p RoutePolicy) String() string {
 	switch p {
-	case OverrideIfExists:
-		return "OVERRIDE_IF_EXISTS"
 	case AddIfNotExists:
 		return "ADD_IF_NOT_EXISTS"
+	case OverrideIfExists:
+		return "OVERRIDE_IF_EXISTS"
 	case IgnoreIfExists:
 		return "IGNORE_IF_EXISTS"
 	default:
