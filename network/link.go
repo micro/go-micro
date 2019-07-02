@@ -2,10 +2,10 @@ package network
 
 import (
 	"errors"
-	"fmt"
 	"io"
 	"sync"
 
+	"github.com/micro/go-micro/util/log"
 	gproto "github.com/golang/protobuf/proto"
 	"github.com/micro/go-micro/codec"
 	pb "github.com/micro/go-micro/network/proto"
@@ -190,7 +190,7 @@ func (l *link) send(m *Message, v interface{}) error {
 		tm.Body = b
 	}
 
-	fmt.Printf("link %s sending %+v %+v\n", l.id, m, v)
+	log.Debugf("link %s sending %+v %+v\n", l.id, m, v)
 
 	// send via the transport socket
 	return l.socket.Send(&transport.Message{
@@ -212,7 +212,7 @@ func (l *link) recv(m *Message, v interface{}) error {
 		return err
 	}
 
-	fmt.Printf("link %s receiving %+v %+v\n", l.id, tm, v)
+	log.Debugf("link %s receiving %+v %+v\n", l.id, tm, v)
 
 	// set the message
 	m.Header = tm.Header
