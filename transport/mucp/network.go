@@ -15,7 +15,7 @@ import (
 type networkKey struct{}
 
 // Transport is a mucp transport. It should only
-// be created with NewTransport and cast to 
+// be created with NewTransport and cast to
 // *Transport if there's a need to close it.
 type Transport struct {
 	options transport.Options
