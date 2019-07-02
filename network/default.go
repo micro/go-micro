@@ -44,15 +44,17 @@ type network struct {
 
 // lease generates a new lease with a node id/address
 // TODO: use a consensus mechanism, pool or some deterministic
-// unique prefixing method.
+// unique addressing method.
 func (n *network) lease() *pb.Lease {
 	// create the id
 	id := uuid.New().String()
 	// create a timestamp
 	now := time.Now().UnixNano()
-	// create the address
+
+	// create the address by hashing the id and timestamp
 	h := sha256.New()
 	h.Write([]byte(fmt.Sprintf("%s-%d\n", id, now)))
+	// magic new address
 	address := fmt.Sprintf("%x", h.Sum(nil))
 
 	// return the node
@@ -62,6 +64,7 @@ func (n *network) lease() *pb.Lease {
 		Node: &pb.Node{
 			Id:      id,
 			Address: address,
+			Network: n.id,
 		},
 	}
 }
@@ -104,7 +107,10 @@ func (n *network) Connect() (Node, error) {
 	return newNode(n)
 }
 
-// TODO: establish links for peering networks
+// Peer is used to establish a link between two networks.
+// e.g micro.mu connects to example.com and share routes
+// This is done by creating a new node on both networks
+// and creating a link between them.
 func (n *network) Peer(Network) (Link, error) {
 	// New network was created using NewNetwork after receiving routes from a different node
 
@@ -125,9 +131,13 @@ func (n *network) Peer(Network) (Link, error) {
 func newNetwork(opts ...options.Option) *network {
 	options := options.NewOptions(opts...)
 
-	// new network instance
+	// new network instance with defaults
 	net := &network{
-		id: DefaultId,
+		Options:  options,
+		id:       DefaultId,
+		router:   router.DefaultRouter,
+		proxy:    new(mucp.Proxy),
+		resolver: new(nreg.Resolver),
 	}
 
 	// get network id
@@ -140,24 +150,18 @@ func newNetwork(opts ...options.Option) *network {
 	r, ok := options.Values().Get("network.router")
 	if ok {
 		net.router = r.(router.Router)
-	} else {
-		net.router = router.DefaultRouter
 	}
 
 	// get proxy
 	p, ok := options.Values().Get("network.proxy")
 	if ok {
 		net.proxy = p.(proxy.Proxy)
-	} else {
-		net.proxy = new(mucp.Proxy)
 	}
 
 	// get resolver
 	res, ok := options.Values().Get("network.resolver")
 	if ok {
 		net.resolver = res.(resolver.Resolver)
-	} else {
-		net.resolver = new(nreg.Resolver)
 	}
 
 	return net
