@@ -2,12 +2,22 @@ package router
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/micro/go-micro/registry"
 	"github.com/olekukonko/tablewriter"
+)
+
+const (
+	// UpdateRoutePenalty penalises route updates
+	UpdateRoutePenalty = 500
+	// DeleteRoutePenalty penalises route deletes
+	DeleteRoutePenalty = 1000
+	// AdvertiseTick is time interval in which we advertise route updates
+	AdvertiseTick = 5 * time.Second
 )
 
 // router provides default router implementation
@@ -79,7 +89,7 @@ func (r *router) Network() string {
 func (r *router) addServiceRoutes(reg registry.Registry, network string, metric int) error {
 	services, err := reg.ListServices()
 	if err != nil {
-		return fmt.Errorf("failed to list services: %v", err)
+		return fmt.Errorf("failed listing services: %v", err)
 	}
 
 	// add each service node as a separate route
@@ -148,12 +158,12 @@ func (r *router) manageServiceRoutes(w registry.Watcher, metric int) error {
 		case "create":
 			// only return error if the route is not duplicate, but something else has failed
 			if err := r.opts.Table.Add(route); err != nil && err != ErrDuplicateRoute {
-				return fmt.Errorf("failed to add route for service %v: %s", res.Service.Name, err)
+				return fmt.Errorf("failed adding route for service %v: %s", res.Service.Name, err)
 			}
 		case "delete":
 			// only return error if the route is not in the table, but something else has failed
 			if err := r.opts.Table.Delete(route); err != nil && err != ErrRouteNotFound {
-				return fmt.Errorf("failed to delete route for service %v: %s", res.Service.Name, err)
+				return fmt.Errorf("failed adding route for service %v: %s", res.Service.Name, err)
 			}
 		}
 	}
@@ -175,7 +185,6 @@ func (r *router) watchTable(w Watcher) error {
 
 	var watchErr error
 
-exit:
 	for {
 		event, err := w.Next()
 		if err != nil {
@@ -188,12 +197,13 @@ exit:
 		u := &Update{
 			ID:        r.ID(),
 			Timestamp: time.Now(),
-			Event:     event,
+			Events:    []*Event{event},
 		}
 
 		select {
 		case <-r.exit:
-			break exit
+			close(r.advertChan)
+			return watchErr
 		case r.advertChan <- u:
 		}
 	}
@@ -258,7 +268,7 @@ func (r *router) Advertise() (<-chan *Update, error) {
 				Metric:      DefaultLocalMetric,
 			}
 			if err := r.opts.Table.Add(route); err != nil {
-				return nil, fmt.Errorf("error to add default gateway route: %s", err)
+				return nil, fmt.Errorf("failed adding default gateway route: %s", err)
 			}
 		}
 
@@ -271,12 +281,12 @@ func (r *router) Advertise() (<-chan *Update, error) {
 		// routing table watcher which watches all routes i.e. to every destination
 		tableWatcher, err := r.opts.Table.Watch(WatchDestination("*"))
 		if err != nil {
-			return nil, fmt.Errorf("failed to create routing table watcher: %v", err)
+			return nil, fmt.Errorf("failed creating routing table watcher: %v", err)
 		}
 		// registry watcher
 		regWatcher, err := r.opts.Registry.Watch()
 		if err != nil {
-			return nil, fmt.Errorf("failed to create registry watcher: %v", err)
+			return nil, fmt.Errorf("failed creating registry watcher: %v", err)
 		}
 
 		// error channel collecting goroutine errors
@@ -311,18 +321,32 @@ func (r *router) Advertise() (<-chan *Update, error) {
 }
 
 // Update updates the routing table using the advertised values
-func (r *router) Update(a *Update) error {
-	// we extract the route from advertisement and update the routing table
-	route := Route{
-		Destination: a.Event.Route.Destination,
-		Gateway:     a.Event.Route.Gateway,
-		Router:      a.Event.Route.Router,
-		Network:     a.Event.Route.Network,
-		Metric:      a.Event.Route.Metric,
-		Policy:      AddIfNotExists,
+func (r *router) Update(u *Update) error {
+	// NOTE: event sorting might not be necessary
+	// copy update events intp new slices
+	events := make([]*Event, len(u.Events))
+	copy(events, u.Events)
+	// sort events by timestamp
+	sort.Slice(events, func(i, j int) bool {
+		return events[i].Timestamp.Before(events[j].Timestamp)
+	})
+
+	for _, event := range events {
+		// we extract the route from advertisement and update the routing table
+		route := Route{
+			Destination: event.Route.Destination,
+			Gateway:     event.Route.Gateway,
+			Router:      event.Route.Router,
+			Network:     event.Route.Network,
+			Metric:      event.Route.Metric,
+			Policy:      AddIfNotExists,
+		}
+		if err := r.opts.Table.Update(route); err != nil {
+			return fmt.Errorf("failed updating routing table: %v", err)
+		}
 	}
 
-	return r.opts.Table.Update(route)
+	return nil
 }
 
 // Status returns router status

@@ -34,14 +34,39 @@ type Router interface {
 	String() string
 }
 
+// Option used by the router
+type Option func(*Options)
+
+// UpdateType is route advertisement update type
+type UpdateType int
+
+const (
+	// Announce is advertised when the router announces itself
+	Announce UpdateType = iota
+	// RouteEvent advertises route events
+	RouteEvent
+)
+
+// String returns string representation of update event
+func (ut UpdateType) String() string {
+	switch ut {
+	case Announce:
+		return "ANNOUNCE"
+	case RouteEvent:
+		return "ROUTE"
+	default:
+		return "UNKNOWN"
+	}
+}
+
 // Update is sent by the router to the network
 type Update struct {
 	// ID is the router ID
 	ID string
-	// Timestamp marks the time when update is sent
+	// Timestamp marks the time when the update is sent
 	Timestamp time.Time
-	// Event defines advertisement even
-	Event *Event
+	// Events is a list of events to advertise
+	Events []*Event
 }
 
 // StatusCode defines router status
@@ -58,12 +83,12 @@ type Status struct {
 const (
 	// Init means the rotuer has just been initialized
 	Init StatusCode = iota
-	// Running means the router is running
+	// Running means the router is up and running
 	Running
-	// Error means the router has crashed with error
-	Error
-	// Stopped means the router has stopped
+	// Stopped means the router has been stopped
 	Stopped
+	// Error means the router has encountered error
+	Error
 )
 
 // String returns human readable status code
@@ -73,17 +98,14 @@ func (sc StatusCode) String() string {
 		return "INITIALIZED"
 	case Running:
 		return "RUNNING"
-	case Error:
-		return "ERROR"
 	case Stopped:
 		return "STOPPED"
+	case Error:
+		return "ERROR"
 	default:
 		return "UNKNOWN"
 	}
 }
-
-// Option used by the router
-type Option func(*Options)
 
 // NewRouter creates new Router and returns it
 func NewRouter(opts ...Option) Router {

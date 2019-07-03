@@ -138,6 +138,7 @@ func (t *table) Update(r Route) error {
 		return ErrRouteNotFound
 	}
 
+	// check if destination has this particular router in the table
 	if _, ok := t.m[destAddr][sum]; !ok && r.Policy == AddIfNotExists {
 		t.m[destAddr][sum] = r
 		go t.sendEvent(&Event{Type: CreateEvent, Route: r})

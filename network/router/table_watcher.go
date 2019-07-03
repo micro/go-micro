@@ -3,6 +3,7 @@ package router
 import (
 	"errors"
 	"strings"
+	"time"
 
 	"github.com/olekukonko/tablewriter"
 )
@@ -16,11 +17,11 @@ var (
 type EventType int
 
 const (
-	// CreateEvent is emitted when new route has been created
+	// CreateEvent is emitted when a new route has been created
 	CreateEvent EventType = iota
 	// DeleteEvent is emitted when an existing route has been deleted
 	DeleteEvent
-	// UpdateEvent is emitted when a routing table has been updated
+	// UpdateEvent is emitted when an existing route has been updated
 	UpdateEvent
 )
 
@@ -42,6 +43,8 @@ func (et EventType) String() string {
 type Event struct {
 	// Type defines type of event
 	Type EventType
+	// Timestamp is event timestamp
+	Timestamp time.Time
 	// Route is table rout
 	Route Route
 }
@@ -81,18 +84,16 @@ type tableWatcher struct {
 }
 
 // Next returns the next noticed action taken on table
-// TODO: this needs to be thought through properly; we only allow watching particular route destination for now
+// TODO: this needs to be thought through properly;
+// right now we only allow to watch destination
 func (w *tableWatcher) Next() (*Event, error) {
 	for {
 		select {
 		case res := <-w.resChan:
 			switch w.opts.Destination {
-			case "*", "":
+			case res.Route.Destination, "*":
 				return res, nil
 			default:
-				if w.opts.Destination == res.Route.Destination {
-					return res, nil
-				}
 				continue
 			}
 		case <-w.done:
