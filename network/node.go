@@ -3,6 +3,7 @@ package network
 import (
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"runtime/debug"
 	"sort"
@@ -282,7 +283,6 @@ func (n *node) process() {
 				})
 
 				// queue the message
-				log.Debugf("sending on link %s", links[0].id)
 				links[0].Send(m)
 			}
 			n.RUnlock()
@@ -304,6 +304,9 @@ func (n *node) manage(l *link) {
 		// so we can judge link saturation both ways.
 
 		m, err := l.Accept()
+		if err == io.EOF {
+			return
+		}
 		if err != nil {
 			log.Debugf("Error accepting message on link %s: %v", l.id, err)
 			// ???
