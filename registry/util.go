@@ -1,30 +1,26 @@
-package gossip
+package registry
 
-import (
-	"github.com/micro/go-micro/registry"
-)
-
-func cp(current []*registry.Service) []*registry.Service {
-	var services []*registry.Service
+func CopyServices(current []*Service) []*Service {
+	var services []*Service
 
 	for _, service := range current {
 		// copy service
-		s := new(registry.Service)
+		s := new(Service)
 		*s = *service
 
 		// copy nodes
-		var nodes []*registry.Node
+		var nodes []*Node
 		for _, node := range service.Nodes {
-			n := new(registry.Node)
+			n := new(Node)
 			*n = *node
 			nodes = append(nodes, n)
 		}
 		s.Nodes = nodes
 
 		// copy endpoints
-		var eps []*registry.Endpoint
+		var eps []*Endpoint
 		for _, ep := range service.Endpoints {
-			e := new(registry.Endpoint)
+			e := new(Endpoint)
 			*e = *ep
 			eps = append(eps, e)
 		}
@@ -37,8 +33,8 @@ func cp(current []*registry.Service) []*registry.Service {
 	return services
 }
 
-func addNodes(old, neu []*registry.Node) []*registry.Node {
-	var nodes []*registry.Node
+func addServiceNodes(old, neu []*Node) []*Node {
+	var nodes []*Node
 
 	// add all new nodes
 	for _, n := range neu {
@@ -69,35 +65,39 @@ func addNodes(old, neu []*registry.Node) []*registry.Node {
 	return nodes
 }
 
-func addServices(old, neu []*registry.Service) []*registry.Service {
-	var srv []*registry.Service
+func AddServices(olist []*Service, nlist []*Service) []*Service {
+	var srv []*Service
 
-	for _, s := range neu {
+	for _, n := range nlist {
 		var seen bool
-		for _, o := range old {
-			if o.Version == s.Version {
-				sp := new(registry.Service)
+		for _, o := range olist {
+			if o.Version == n.Version {
+				sp := new(Service)
 				// make copy
 				*sp = *o
 				// set nodes
-				sp.Nodes = addNodes(o.Nodes, s.Nodes)
+				sp.Nodes = addServiceNodes(o.Nodes, n.Nodes)
 
 				// mark as seen
 				seen = true
 				srv = append(srv, sp)
 				break
+			} else {
+				sp := new(Service)
+				// make copy
+				*sp = *o
+				srv = append(srv, sp)
 			}
 		}
 		if !seen {
-			srv = append(srv, cp([]*registry.Service{s})...)
+			srv = append(srv, CopyServices([]*Service{n})...)
 		}
 	}
-
 	return srv
 }
 
-func delNodes(old, del []*registry.Node) []*registry.Node {
-	var nodes []*registry.Node
+func delServiceNodes(old, del []*Node) []*Node {
+	var nodes []*Node
 	for _, o := range old {
 		var rem bool
 		for _, n := range del {
@@ -113,18 +113,18 @@ func delNodes(old, del []*registry.Node) []*registry.Node {
 	return nodes
 }
 
-func delServices(old, del []*registry.Service) []*registry.Service {
-	var services []*registry.Service
+func DelServices(old, del []*Service) []*Service {
+	var services []*Service
 
 	for _, o := range old {
-		srv := new(registry.Service)
+		srv := new(Service)
 		*srv = *o
 
 		var rem bool
 
 		for _, s := range del {
 			if srv.Version == s.Version {
-				srv.Nodes = delNodes(srv.Nodes, s.Nodes)
+				srv.Nodes = delServiceNodes(srv.Nodes, s.Nodes)
 
 				if len(srv.Nodes) == 0 {
 					rem = true

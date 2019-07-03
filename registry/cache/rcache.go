@@ -80,41 +80,6 @@ func (c *cache) quit() bool {
 	}
 }
 
-// cp copies a service. Because we're caching handing back pointers would
-// create a race condition, so we do this instead its fast enough
-func (c *cache) cp(current []*registry.Service) []*registry.Service {
-	var services []*registry.Service
-
-	for _, service := range current {
-		// copy service
-		s := new(registry.Service)
-		*s = *service
-
-		// copy nodes
-		var nodes []*registry.Node
-		for _, node := range service.Nodes {
-			n := new(registry.Node)
-			*n = *node
-			nodes = append(nodes, n)
-		}
-		s.Nodes = nodes
-
-		// copy endpoints
-		var eps []*registry.Endpoint
-		for _, ep := range service.Endpoints {
-			e := new(registry.Endpoint)
-			*e = *ep
-			eps = append(eps, e)
-		}
-		s.Endpoints = eps
-
-		// append service
-		services = append(services, s)
-	}
-
-	return services
-}
-
 func (c *cache) del(service string) {
 	delete(c.cache, service)
 	delete(c.ttls, service)
@@ -132,7 +97,7 @@ func (c *cache) get(service string) ([]*registry.Service, error) {
 	// got services && within ttl so return cache
 	if c.isValid(services, ttl) {
 		// make a copy
-		cp := c.cp(services)
+		cp := registry.CopyServices(services)
 		// unlock the read
 		c.RUnlock()
 		// return servics
@@ -149,7 +114,7 @@ func (c *cache) get(service string) ([]*registry.Service, error) {
 
 		// cache results
 		c.Lock()
-		c.set(service, c.cp(services))
+		c.set(service, registry.CopyServices(services))
 		c.Unlock()
 
 		return services, nil
