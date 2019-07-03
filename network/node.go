@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"net"
 	"runtime/debug"
+	"sort"
 	"strconv"
 	"sync"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/micro/go-micro/codec/proto"
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/transport"
 	"github.com/micro/go-micro/util/addr"
@@ -22,16 +22,22 @@ import (
 type node struct {
 	*network
 
-	// closed channel
+	// closed channel to close our connection to the network
 	closed chan bool
 
 	sync.RWMutex
 
-	// the node id
+	// the nodes unique micro assigned mac address
+	muid string
+
+	// the node id registered in registry
 	id string
 
-	// address of this node
+	// address of this node registered in registry
 	address string
+
+	// our network lease with our network id/address
+	lease *pb.Lease
 
 	// the node registry
 	registry registry.Registry
@@ -42,9 +48,13 @@ type node struct {
 	// the listener
 	listener transport.Listener
 
+	// connected records
+	// record.Address:true
+	connected map[string]bool
+
 	// leases for connections to us
-	// link id:link
-	links map[string]*link
+	// link remote node:link
+	links map[string][]*link
 
 	// messages received over links
 	recv chan *Message
@@ -57,8 +67,12 @@ type node struct {
 func newNode(n *network) (*node, error) {
 	// create a new node
 	node := &node{
+		// this nodes unique micro assigned mac address
+		muid: fmt.Sprintf("%s-%s", n.id, uuid.New().String()),
+		// map of connected records
+		connected: make(map[string]bool),
 		// the links
-		links: make(map[string]*link),
+		links: make(map[string][]*link),
 		// closed channel
 		closed: make(chan bool),
 		// set the nodes network
@@ -113,17 +127,6 @@ func newNode(n *network) (*node, error) {
 	// forwards to every link we have
 	go node.process()
 
-	// lookup the network to see if there's any nodes
-	records := n.lookup(node.registry)
-
-	// assuming if there are no records, we are the first
-	// we set ourselves a lease. should we actually do this?
-	if len(records) == 0 {
-		// set your own node id
-		lease := n.lease()
-		node.id = lease.Node.Id
-	}
-
 	var port int
 	// TODO: this should be an overlay address
 	// ideally received via some dhcp style broadcast
@@ -140,6 +143,9 @@ func newNode(n *network) (*node, error) {
 	// set the address
 	addr, _ := addr.Extract(host)
 
+	// used to register in registry for network resolution
+	// separate to our lease on the network itself
+	node.id = uuid.New().String()
 	node.address = fmt.Sprintf("%s:%d", addr, port)
 
 	// register self with the registry using network: prefix
@@ -169,15 +175,19 @@ func newNode(n *network) (*node, error) {
 	link := <-linkChan
 
 	// process this link
+	log.Debugf("connect managing link %s", link.id)
 	go node.manage(link)
 
 	go func() {
-		// process any further new links
-		select {
-		case l := <-linkChan:
-			go node.manage(l)
-		case <-node.closed:
-			return
+		for {
+			// process any further new links
+			select {
+			case l := <-linkChan:
+				log.Debugf("Managing new link %s", l.id)
+				go node.manage(l)
+			case <-node.closed:
+				return
+			}
 		}
 	}()
 
@@ -203,18 +213,7 @@ func (n *node) accept(l transport.Listener) error {
 		}()
 
 		// create a new link
-		link := &link{
-			// link has a unique id
-			id: uuid.New().String(),
-			// proto marshaler
-			codec: proto.Marshaler{},
-			// link has a socket
-			socket: sock,
-			// for generating leases,
-			node: n,
-			// the send queue,
-			queue: make(chan *Message, 128),
-		}
+		link := newLink(n, sock, nil)
 
 		log.Debugf("Accepting connection from %s", link.socket.Remote())
 
@@ -222,24 +221,44 @@ func (n *node) accept(l transport.Listener) error {
 		// the remote end will send "Connect"
 		// and we will return a "Lease"
 		if err := link.accept(); err != nil {
+			log.Debugf("Error accepting connection %v", err)
 			return
 		}
 
 		log.Debugf("Accepted link from %s", link.socket.Remote())
 
-		// save with the remote address as the key
+		// save with the muid as the key
 		// where we attempt to connect to nodes
 		// we do not connect to the same thing
-		n.Lock()
-		n.links[link.socket.Remote()] = link
-		n.Unlock()
+
+		// TODO: figure out why this is an issue
+		// When we receive a connection from ourself
+		// we can't maintain the two links separately
+		// so we don't save it. It's basically some
+		// weird loopback issue because its our own socket.
+		if n.muid != link.lease.Node.Muid {
+			n.Lock()
+			// get the links
+
+			links := n.links[link.lease.Node.Muid]
+			// append to the current links
+			links = append(links, link)
+			// save the links with muid as the key
+			n.links[link.lease.Node.Muid] = links
+			n.Unlock()
+		}
 
 		// manage the link for its lifetime
+		log.Debugf("managing the link now %s", link.id)
 		n.manage(link)
 	})
 }
 
-// processes the send queue
+// processes the sends the messages from n.Send into the queue of
+// each link. If multiple links exist for a muid it should only
+// send on link to figure it out.
+// If we connected to a record and that link goes down we should
+// also remove it from the n.connected map.
 func (n *node) process() {
 	for {
 		select {
@@ -251,29 +270,51 @@ func (n *node) process() {
 			// queue the message on each link
 			// TODO: more than likely use proxy
 			n.RLock()
-			for _, l := range n.links {
-				l.queue <- m
+			// range over all the links
+			for _, links := range n.links {
+				if len(links) == 0 {
+					continue
+				}
+
+				// sort the links by weight
+				sort.Slice(links, func(i, j int) bool {
+					return links[i].Weight() < links[j].Weight()
+				})
+
+				// queue the message
+				log.Debugf("sending on link %s", links[0].id)
+				links[0].Send(m)
 			}
 			n.RUnlock()
 		}
 	}
 }
 
+// Manage manages the link for its lifetime. It should ideally throw
+// away the link in the n.links map if there's any issues or total disconnection
+// it should look at link.Status.
+// If we connected to a record and that link goes down we should
+// also remove it from the n.connected map.
 func (n *node) manage(l *link) {
 	// now process inbound messages on the link
 	// assumption is this handles everything else
 	for {
-		// get a message on the link
-		m := new(Message)
-		if err := l.recv(m, nil); err != nil {
+		// the send side uses a link queue but the receive side immediately sends it
+		// ideally we should probably have an internal queue on that side as well
+		// so we can judge link saturation both ways.
+
+		m, err := l.Accept()
+		if err != nil {
+			log.Debugf("Error accepting message on link %s: %v", l.id, err)
 			// ???
 			return
 		}
 
+		// if the node connection is closed bail out
 		select {
 		case <-n.closed:
 			return
-		// send to the recv channel e.g node.Accept()
+		// send to the network recv channel e.g node.Accept()
 		case n.recv <- m:
 		}
 	}
@@ -301,18 +342,15 @@ func (n *node) connect(linkChan chan *link) {
 			n.RLock()
 
 			// only start processing if we have less than 3 links
-			if len(n.links) > 2 {
+			conns := len(n.links)
+			if conns > 2 {
 				n.RUnlock()
 				continue
 			}
 
 			// get a list of link addresses so we don't reconnect
 			// to the ones we're already connected to
-			nodes := map[string]bool{}
-			for addr, _ := range n.links {
-				// id is the lookup address used to connect
-				nodes[addr] = true
-			}
+			connected := n.connected
 
 			// unlock our read lock
 			n.RUnlock()
@@ -329,9 +367,15 @@ func (n *node) connect(linkChan chan *link) {
 			// while still connecting to the global network
 			for _, record := range records {
 				// skip existing connections
-				if nodes[record.Address] {
-					log.Debugf("Skipping connection to %s", record.Address)
+				if connected[record.Address] {
+					log.Tracef("Skipping connection to %s", record.Address)
 					continue
+				}
+
+				// check how many connections we have
+				if conns > 2 {
+					log.Debugf("Made enough connections")
+					break
 				}
 
 				// attempt to connect and create a link
@@ -346,13 +390,7 @@ func (n *node) connect(linkChan chan *link) {
 				}
 
 				// create a new link with the lease and socket
-				link := &link{
-					codec:  &proto.Marshaler{},
-					id:     uuid.New().String(),
-					lease:  lease,
-					socket: sock,
-					queue:  make(chan *Message, 128),
-				}
+				link := newLink(n, sock, lease)
 
 				log.Debugf("Connecting link to %s", record.Address)
 
@@ -363,7 +401,6 @@ func (n *node) connect(linkChan chan *link) {
 				// first connect will not have a lease so we get one with node id/address
 				if err := link.connect(); err != nil {
 					// shit
-					link.Close()
 					continue
 				}
 
@@ -375,23 +412,39 @@ func (n *node) connect(linkChan chan *link) {
 				// we may have to expire the lease
 				lease = link.lease
 				// save the new link
-				n.links[link.socket.Remote()] = link
+				// get existing links using the lease author
+				links := n.links[lease.Author]
+				// append to the links
+				links = append(links, link)
+				// save the links using the author
+				n.links[lease.Author] = links
+				n.Unlock()
+
+				// update number of connections
+				conns++
+
+				// save the connection
+				n.Lock()
+				n.connected[record.Address] = true
 				n.Unlock()
 
 				// drop this down the link channel to the network
 				// so it can manage the links
-				select {
-				case linkChan <- link:
-				// we don't wait for anyone
-				default:
-				}
+				linkChan <- link
 			}
 		}
 	}
 }
 
 func (n *node) Address() string {
-	return n.address
+	n.RLock()
+	defer n.RUnlock()
+	// we have no address yet
+	if n.lease == nil {
+		return ""
+	}
+	// return node address in the lease
+	return n.lease.Node.Address
 }
 
 // Close shutdowns all the links and closes the listener
@@ -400,15 +453,19 @@ func (n *node) Close() error {
 	case <-n.closed:
 		return nil
 	default:
-		// mark as closed
+		// mark as closed, we're now useless and there's no coming back
 		close(n.closed)
 
 		// shutdown all the links
 		n.Lock()
-		for id, link := range n.links {
-			link.Close()
-			delete(n.links, id)
+		for muid, links := range n.links {
+			for _, link := range links {
+				link.Close()
+			}
+			delete(n.links, muid)
 		}
+		// reset connected
+		n.connected = nil
 		n.Unlock()
 
 		// deregister self
@@ -442,6 +499,15 @@ func (n *node) Accept() (*Message, error) {
 	}
 	// we never get here
 	return nil, nil
+}
+
+func (n *node) Id() string {
+	n.RLock()
+	defer n.RUnlock()
+	if n.lease == nil {
+		return ""
+	}
+	return n.lease.Node.Id
 }
 
 func (n *node) Network() string {

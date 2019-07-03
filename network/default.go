@@ -45,7 +45,7 @@ type network struct {
 // lease generates a new lease with a node id/address
 // TODO: use a consensus mechanism, pool or some deterministic
 // unique addressing method.
-func (n *network) lease() *pb.Lease {
+func (n *network) lease(muid string) *pb.Lease {
 	// create the id
 	id := uuid.New().String()
 	// create a timestamp
@@ -62,6 +62,7 @@ func (n *network) lease() *pb.Lease {
 		Id:        id,
 		Timestamp: now,
 		Node: &pb.Node{
+			Muid:    muid,
 			Id:      id,
 			Address: address,
 			Network: n.id,

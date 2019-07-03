@@ -5,16 +5,20 @@ import (
 	"io"
 	"sync"
 
-	"github.com/micro/go-micro/util/log"
 	gproto "github.com/golang/protobuf/proto"
+	"github.com/google/uuid"
 	"github.com/micro/go-micro/codec"
+	"github.com/micro/go-micro/codec/proto"
 	pb "github.com/micro/go-micro/network/proto"
 	"github.com/micro/go-micro/transport"
+	"github.com/micro/go-micro/util/log"
 )
 
 type link struct {
 	// the embedded node
 	*node
+
+	closed chan bool
 
 	sync.RWMutex
 
@@ -22,7 +26,9 @@ type link struct {
 	id string
 
 	// the send queue to the socket
-	queue chan *Message
+	sendQueue chan *Message
+	// the recv queue to the socket
+	recvQueue chan *Message
 
 	// codec we use to marshal things
 	codec codec.Marshaler
@@ -39,16 +45,53 @@ type link struct {
 	weight int
 }
 
+var (
+	ErrLinkClosed = errors.New("link closed")
+)
+
+func newLink(n *node, sock transport.Socket, lease *pb.Lease) *link {
+	return &link{
+		id:        uuid.New().String(),
+		closed:    make(chan bool),
+		codec:     &proto.Marshaler{},
+		node:      n,
+		lease:     lease,
+		socket:    sock,
+		sendQueue: make(chan *Message, 128),
+		recvQueue: make(chan *Message, 128),
+	}
+}
+
 // link methods
 
-// process processe messages on the send queue
+// process processes messages on the send queue.
+// these are messages to be sent to the remote side.
 func (l *link) process() {
-	for {
-		select {
-		case m := <-l.queue:
-			if err := l.send(m, nil); err != nil {
+	go func() {
+		for {
+			m := new(Message)
+			if err := l.recv(m, nil); err != nil {
+				l.Close()
 				return
 			}
+			select {
+			case l.recvQueue <- m:
+				log.Debugf("%s processing recv", l.id)
+			case <-l.closed:
+				return
+			}
+		}
+	}()
+
+	for {
+		select {
+		case m := <-l.sendQueue:
+			if err := l.send(m, nil); err != nil {
+				l.Close()
+				return
+			}
+		case <-l.closed:
+			return
 		}
 	}
 }
@@ -71,15 +114,22 @@ func (l *link) accept() error {
 
 		switch event {
 		// connect event
-		case "Connect":
+		case "connect":
 			// process connect events from network.Connect()
 			// these are new connections to join the network
 
 			// decode the connection event
 			conn := new(pb.Connect)
+			// expecting a connect message
 			if err := l.codec.Unmarshal(m.Body, conn); err != nil {
 				// skip error
 				continue
+			}
+
+			// no micro id close the link
+			if len(conn.Muid) == 0 {
+				l.Close()
+				return errors.New("invalid muid " + conn.Muid)
 			}
 
 			// get the existing lease if it exists
@@ -87,13 +137,26 @@ func (l *link) accept() error {
 			// if there's no lease create a new one
 			if lease == nil {
 				// create a new lease/node
-				lease = l.node.network.lease()
+				lease = l.node.network.lease(conn.Muid)
 			}
+
+			// check if we connected to ourself
+			if conn.Muid == l.node.muid {
+				// check our own leasae
+				l.node.Lock()
+				if l.node.lease == nil {
+					l.node.lease = lease
+				}
+				l.node.Unlock()
+			}
+
+			// set the author to our own muid
+			lease.Author = l.node.muid
 
 			// send back a lease offer for the node
 			if err := l.send(&Message{
 				Header: map[string]string{
-					"Micro-Method": "Lease",
+					"Micro-Method": "lease",
 				},
 			}, lease); err != nil {
 				return err
@@ -107,11 +170,10 @@ func (l *link) accept() error {
 			// we've connected
 			// start processing the messages
 			go l.process()
-
 			return nil
-		case "Close":
+		case "close":
 			l.Close()
-			return errors.New("connection closed")
+			return io.EOF
 		default:
 			return errors.New("unknown method: " + event)
 		}
@@ -132,9 +194,9 @@ func (l *link) connect() error {
 	// send a lease request
 	if err := l.send(&Message{
 		Header: map[string]string{
-			"Micro-Method": "Connect",
+			"Micro-Method": "connect",
 		},
-	}, &pb.Connect{Lease: lease}); err != nil {
+	}, &pb.Connect{Muid: l.node.muid, Lease: lease}); err != nil {
 		return err
 	}
 
@@ -151,7 +213,7 @@ func (l *link) connect() error {
 
 	// check the method
 	switch event {
-	case "Lease":
+	case "lease":
 		// save the lease
 		l.Lock()
 		l.lease = newLease
@@ -159,10 +221,11 @@ func (l *link) connect() error {
 
 		// start processing the messages
 		go l.process()
-	case "Close":
-		l.socket.Close()
-		return errors.New("connection closed")
+	case "close":
+		l.Close()
+		return io.EOF
 	default:
+		l.Close()
 		return errors.New("unable to attain lease")
 	}
 
@@ -190,13 +253,8 @@ func (l *link) send(m *Message, v interface{}) error {
 		tm.Body = b
 	}
 
-	log.Debugf("link %s sending %+v %+v\n", l.id, m, v)
-
 	// send via the transport socket
-	return l.socket.Send(&transport.Message{
-		Header: m.Header,
-		Body:   m.Body,
-	})
+	return l.socket.Send(tm)
 }
 
 // recv a message on the link
@@ -207,12 +265,14 @@ func (l *link) recv(m *Message, v interface{}) error {
 
 	tm := new(transport.Message)
 
+	log.Debugf("link %s attempting receiving", l.id)
+
 	// receive the transport message
 	if err := l.socket.Recv(tm); err != nil {
 		return err
 	}
 
-	log.Debugf("link %s receiving %+v %+v\n", l.id, tm, v)
+	log.Debugf("link %s received %+v %+v\n", l.id, tm, v)
 
 	// set the message
 	m.Header = tm.Header
@@ -235,12 +295,20 @@ func (l *link) recv(m *Message, v interface{}) error {
 
 // Close the link
 func (l *link) Close() error {
+	select {
+	case <-l.closed:
+		return nil
+	default:
+		close(l.closed)
+	}
+
 	// send a final close message
 	l.socket.Send(&transport.Message{
 		Header: map[string]string{
-			"Micro-Method": "Close",
+			"Micro-Method": "close",
 		},
 	})
+
 	// close the socket
 	return l.socket.Close()
 }
@@ -273,20 +341,27 @@ func (l *link) Length() int {
 }
 
 func (l *link) Weight() int {
-	l.RLock()
-	defer l.RUnlock()
-	return l.weight
+	return len(l.sendQueue) + len(l.recvQueue)
 }
 
+// Accept accepts a message on the socket
 func (l *link) Accept() (*Message, error) {
-	m := new(Message)
-	err := l.recv(m, nil)
-	if err != nil {
-		return nil, err
+	select {
+	case <-l.closed:
+		return nil, ErrLinkClosed
+	case m := <-l.recvQueue:
+		return m, nil
 	}
-	return m, nil
+	// never reach
+	return nil, nil
 }
 
+// Send sends a message on the socket immediately
 func (l *link) Send(m *Message) error {
-	return l.send(m, nil)
+	select {
+	case <-l.closed:
+		return ErrLinkClosed
+	case l.sendQueue <- m:
+	}
+	return nil
 }
