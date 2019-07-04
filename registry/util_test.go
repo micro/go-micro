@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-func TestDelServices(t *testing.T) {
+func TestRemove(t *testing.T) {
 	services := []*Service{
 		{
 			Name:    "foo",
@@ -30,14 +30,14 @@ func TestDelServices(t *testing.T) {
 		},
 	}
 
-	servs := DelServices([]*Service{services[0]}, []*Service{services[1]})
+	servs := Remove([]*Service{services[0]}, []*Service{services[1]})
 	if i := len(servs); i > 0 {
 		t.Errorf("Expected 0 nodes, got %d: %+v", i, servs)
 	}
 	t.Logf("Services %+v", servs)
 }
 
-func TestDelNodes(t *testing.T) {
+func TestRemoveNodes(t *testing.T) {
 	services := []*Service{
 		{
 			Name:    "foo",
@@ -68,7 +68,7 @@ func TestDelNodes(t *testing.T) {
 		},
 	}
 
-	nodes := delServiceNodes(services[0].Nodes, services[1].Nodes)
+	nodes := delNodes(services[0].Nodes, services[1].Nodes)
 	if i := len(nodes); i != 1 {
 		t.Errorf("Expected only 1 node, got %d: %+v", i, nodes)
 	}

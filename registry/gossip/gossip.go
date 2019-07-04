@@ -626,7 +626,7 @@ func (g *gossipRegistry) run() {
 				g.services[u.Service.Name] = []*registry.Service{u.Service}
 
 			} else {
-				g.services[u.Service.Name] = registry.AddServices(service, []*registry.Service{u.Service})
+				g.services[u.Service.Name] = registry.Merge(service, []*registry.Service{u.Service})
 			}
 			g.Unlock()
 
@@ -645,7 +645,7 @@ func (g *gossipRegistry) run() {
 		case actionTypeDelete:
 			g.Lock()
 			if service, ok := g.services[u.Service.Name]; ok {
-				if services := registry.DelServices(service, []*registry.Service{u.Service}); len(services) == 0 {
+				if services := registry.Remove(service, []*registry.Service{u.Service}); len(services) == 0 {
 					delete(g.services, u.Service.Name)
 				} else {
 					g.services[u.Service.Name] = services
@@ -706,7 +706,7 @@ func (g *gossipRegistry) Register(s *registry.Service, opts ...registry.Register
 	if service, ok := g.services[s.Name]; !ok {
 		g.services[s.Name] = []*registry.Service{s}
 	} else {
-		g.services[s.Name] = registry.AddServices(service, []*registry.Service{s})
+		g.services[s.Name] = registry.Merge(service, []*registry.Service{s})
 	}
 	g.Unlock()
 
@@ -754,7 +754,7 @@ func (g *gossipRegistry) Deregister(s *registry.Service) error {
 
 	g.Lock()
 	if service, ok := g.services[s.Name]; ok {
-		if services := registry.DelServices(service, []*registry.Service{s}); len(services) == 0 {
+		if services := registry.Remove(service, []*registry.Service{s}); len(services) == 0 {
 			delete(g.services, s.Name)
 		} else {
 			g.services[s.Name] = services

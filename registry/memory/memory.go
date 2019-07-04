@@ -55,7 +55,7 @@ func (m *Registry) Init(opts ...registry.Option) error {
 	m.Lock()
 	for k, v := range getServices(m.options.Context) {
 		s := m.Services[k]
-		m.Services[k] = registry.AddServices(s, v)
+		m.Services[k] = registry.Merge(s, v)
 	}
 	m.Unlock()
 	return nil
@@ -92,7 +92,7 @@ func (m *Registry) Register(s *registry.Service, opts ...registry.RegisterOption
 	if service, ok := m.Services[s.Name]; !ok {
 		m.Services[s.Name] = []*registry.Service{s}
 	} else {
-		m.Services[s.Name] = registry.AddServices(service, []*registry.Service{s})
+		m.Services[s.Name] = registry.Merge(service, []*registry.Service{s})
 	}
 	m.Unlock()
 
@@ -104,7 +104,7 @@ func (m *Registry) Deregister(s *registry.Service) error {
 
 	m.Lock()
 	if service, ok := m.Services[s.Name]; ok {
-		if service := registry.DelServices(service, []*registry.Service{s}); len(service) == 0 {
+		if service := registry.Remove(service, []*registry.Service{s}); len(service) == 0 {
 			delete(m.Services, s.Name)
 		} else {
 			m.Services[s.Name] = service
