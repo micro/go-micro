@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
 	"github.com/micro/go-micro/codec"
 	"github.com/micro/go-micro/codec/bytes"
@@ -79,6 +80,10 @@ func (jsonCodec) Marshal(v interface{}) ([]byte, error) {
 }
 
 func (jsonCodec) Unmarshal(data []byte, v interface{}) error {
+	if pb, ok := v.(proto.Message); ok {
+		return jsonpb.UnmarshalString(string(data), pb)
+	}
+
 	return json.Unmarshal(data, v)
 }
 
