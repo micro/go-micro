@@ -23,9 +23,9 @@ type Router interface {
 	// Network returns the network address of the router
 	Network() string
 	// Advertise starts advertising routes to the network
-	Advertise() (<-chan *Update, error)
+	Advertise() (<-chan *Advert, error)
 	// Update updates the routing table
-	Update(*Update) error
+	Update(*Advert) error
 	// Status returns router status
 	Status() Status
 	// Stop stops the router
@@ -43,8 +43,8 @@ type UpdateType int
 const (
 	// Announce is advertised when the router announces itself
 	Announce UpdateType = iota
-	// RouteEvent advertises route events
-	RouteEvent
+	// Update advertises route updates
+	Update
 )
 
 // String returns string representation of update event
@@ -52,15 +52,15 @@ func (ut UpdateType) String() string {
 	switch ut {
 	case Announce:
 		return "ANNOUNCE"
-	case RouteEvent:
-		return "ROUTE"
+	case Update:
+		return "UPDATE"
 	default:
 		return "UNKNOWN"
 	}
 }
 
-// Update is sent by the router to the network
-type Update struct {
+// Advert is sent by the router to the network
+type Advert struct {
 	// ID is the router ID
 	ID string
 	// Timestamp marks the time when the update is sent

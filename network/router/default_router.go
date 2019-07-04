@@ -24,7 +24,7 @@ const (
 type router struct {
 	opts       Options
 	status     Status
-	advertChan chan *Update
+	advertChan chan *Advert
 	exit       chan struct{}
 	wg         *sync.WaitGroup
 	sync.RWMutex
@@ -43,7 +43,7 @@ func newRouter(opts ...Option) Router {
 	return &router{
 		opts:       options,
 		status:     Status{Error: nil, Code: Init},
-		advertChan: make(chan *Update),
+		advertChan: make(chan *Advert),
 		exit:       make(chan struct{}),
 		wg:         &sync.WaitGroup{},
 	}
@@ -194,7 +194,7 @@ func (r *router) watchTable(w Watcher) error {
 			break
 		}
 
-		u := &Update{
+		u := &Advert{
 			ID:        r.ID(),
 			Timestamp: time.Now(),
 			Events:    []*Event{event},
@@ -248,7 +248,7 @@ func (r *router) watchError(errChan <-chan error) {
 
 // Advertise advertises the routes to the network.
 // It returns error if any of the launched goroutines fail with error.
-func (r *router) Advertise() (<-chan *Update, error) {
+func (r *router) Advertise() (<-chan *Advert, error) {
 	r.Lock()
 	defer r.Unlock()
 
@@ -275,7 +275,7 @@ func (r *router) Advertise() (<-chan *Update, error) {
 		// NOTE: we only need to recreate the exit/advertChan if the router errored or was stopped
 		if r.status.Code == Error || r.status.Code == Stopped {
 			r.exit = make(chan struct{})
-			r.advertChan = make(chan *Update)
+			r.advertChan = make(chan *Advert)
 		}
 
 		// routing table watcher which watches all routes i.e. to every destination
@@ -321,11 +321,11 @@ func (r *router) Advertise() (<-chan *Update, error) {
 }
 
 // Update updates the routing table using the advertised values
-func (r *router) Update(u *Update) error {
+func (r *router) Update(a *Advert) error {
 	// NOTE: event sorting might not be necessary
 	// copy update events intp new slices
-	events := make([]*Event, len(u.Events))
-	copy(events, u.Events)
+	events := make([]*Event, len(a.Events))
+	copy(events, a.Events)
 	// sort events by timestamp
 	sort.Slice(events, func(i, j int) bool {
 		return events[i].Timestamp.Before(events[j].Timestamp)
