@@ -2,11 +2,13 @@ package router
 
 import (
 	"fmt"
+	"math"
 	"sort"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/micro/go-log"
 	"github.com/micro/go-micro/registry"
 	"github.com/olekukonko/tablewriter"
 )
@@ -18,14 +20,21 @@ const (
 	DeleteRoutePenalty = 1000
 	// AdvertiseTick is time interval in which we advertise route updates
 	AdvertiseTick = 5 * time.Second
+	// AdvertSuppress is advert suppression threshold
+	AdvertSuppress = 2000
+	// AdvertRecover is advert suppression recovery threshold
+	AdvertRecover = 750
+	// PenaltyDecay is the "half-life" of the penalty
+	PenaltyDecay = 1.15
 )
 
 // router provides default router implementation
 type router struct {
 	opts       Options
 	status     Status
-	advertChan chan *Advert
 	exit       chan struct{}
+	eventChan  chan *Event
+	advertChan chan *Advert
 	wg         *sync.WaitGroup
 	sync.RWMutex
 }
@@ -43,8 +52,9 @@ func newRouter(opts ...Option) Router {
 	return &router{
 		opts:       options,
 		status:     Status{Error: nil, Code: Init},
-		advertChan: make(chan *Advert),
 		exit:       make(chan struct{}),
+		eventChan:  make(chan *Event),
+		advertChan: make(chan *Advert),
 		wg:         &sync.WaitGroup{},
 	}
 }
@@ -83,9 +93,9 @@ func (r *router) Network() string {
 }
 
 // addServiceRoutes adds all services in given registry to the routing table.
-// NOTE: this is a one-off operation done when bootstrapping the routing table
+// NOTE: this is a one-off operation done when bootstrapping the router
 // It returns error if either the services failed to be listed or
-// if any of the the routes could not be added to the routing table.
+// if any of the the routes failed to be added to the routing table.
 func (r *router) addServiceRoutes(reg registry.Registry, network string, metric int) error {
 	services, err := reg.ListServices()
 	if err != nil {
@@ -124,9 +134,9 @@ func (r *router) addServiceRoutes(reg registry.Registry, network string, metric 
 	return nil
 }
 
-// manageServiceRoutes watches services in given registry and updates the routing table accordingly.
-// It returns error if the service registry watcher has stopped or if the routing table failed to be updated.
-func (r *router) manageServiceRoutes(w registry.Watcher, metric int) error {
+// watchServices watches services in given registry and updates the routing table accordingly.
+// It returns error if the service registry watcher stops or if the routing table can't be updated.
+func (r *router) watchServices(w registry.Watcher) error {
 	// wait in the background for the router to stop
 	// when the router stops, stop the watcher and exit
 	r.wg.Add(1)
@@ -151,7 +161,7 @@ func (r *router) manageServiceRoutes(w registry.Watcher, metric int) error {
 			Destination: res.Service.Name,
 			Router:      r.opts.Address,
 			Network:     r.opts.Network,
-			Metric:      metric,
+			Metric:      DefaultLocalMetric,
 		}
 
 		switch res.Action {
@@ -193,30 +203,172 @@ func (r *router) watchTable(w Watcher) error {
 			}
 			break
 		}
-
-		u := &Advert{
-			ID:        r.ID(),
-			Timestamp: time.Now(),
-			Events:    []*Event{event},
-		}
-
 		select {
 		case <-r.exit:
-			close(r.advertChan)
-			return watchErr
-		case r.advertChan <- u:
+			close(r.eventChan)
+			return nil
+		case r.eventChan <- event:
 		}
 	}
 
-	// close the advertisement channel
-	close(r.advertChan)
+	// close event channel on error
+	close(r.eventChan)
 
 	return watchErr
 }
 
-// watchError watches router errors
-func (r *router) watchError(errChan <-chan error) {
+func eventFlap(curr, prev *Event) bool {
+	if curr.Type == UpdateEvent && prev.Type == UpdateEvent {
+		// update flap: this can be either metric or whatnot
+		log.Logf("eventFlap(): Update flap")
+		return true
+	}
+
+	if curr.Type == CreateEvent && prev.Type == DeleteEvent || curr.Type == DeleteEvent && prev.Type == CreateEvent {
+		log.Logf("eventFlap(): Create/Delete flap")
+		return true
+	}
+
+	return false
+}
+
+// processEvents processes routing table events.
+// It suppresses unhealthy flapping events and advertises healthy events upstream.
+func (r *router) processEvents() error {
+	// ticker to periodically scan event for advertising
+	ticker := time.NewTicker(AdvertiseTick)
+
+	// TODO: Need to flag already advertised events otherwise we'll keep on advertising them
+	// as they keep getting advertised unless deleted and are only deleted when received by upstream
+
+	// advertEvent is a table event enriched with advert data
+	type advertEvent struct {
+		*Event
+		timestamp    time.Time
+		penalty      float64
+		isSuppressed bool
+		isFlapping   bool
+	}
+
+	// eventMap is a map of advert events that might end up being advertised
+	eventMap := make(map[uint64]*advertEvent)
+	// lock to protect access to eventMap
+	mu := &sync.RWMutex{}
+	// waitgroup to manage advertisement goroutines
+	var wg sync.WaitGroup
+
+process:
+	for {
+		select {
+		case <-ticker.C:
+			var events []*Event
+			// decay the penalties of existing events
+			mu.RLock()
+			for _, event := range eventMap {
+				delta := time.Since(event.timestamp).Seconds()
+				event.penalty = event.penalty * math.Exp(delta)
+				// suppress or recover the event based on its current penalty
+				if !event.isSuppressed && event.penalty > AdvertSuppress {
+					event.isSuppressed = true
+				} else if event.penalty < AdvertRecover {
+					event.isSuppressed = false
+					event.isFlapping = false
+				}
+				if !event.isFlapping {
+					e := new(Event)
+					*e = *event.Event
+					events = append(events, e)
+				}
+			}
+			mu.RUnlock()
+
+			if len(events) > 0 {
+				wg.Add(1)
+				go func(events []*Event) {
+					defer wg.Done()
+
+					log.Logf("go advertise(): start")
+
+					a := &Advert{
+						ID:        r.ID(),
+						Timestamp: time.Now(),
+						Events:    events,
+					}
+
+					select {
+					case r.advertChan <- a:
+						mu.Lock()
+						// once we've advertised the events, we need to delete them
+						for _, event := range a.Events {
+							delete(eventMap, event.Route.Hash())
+						}
+						mu.Unlock()
+					case <-r.exit:
+						log.Logf("go advertise(): exit")
+						return
+					}
+					log.Logf("go advertise(): exit")
+				}(events)
+			}
+		case e := <-r.eventChan:
+			// if event is nil, break
+			if e == nil {
+				continue
+			}
+			log.Logf("r.processEvents(): event received:\n%s", e)
+			// determine the event penalty
+			var penalty float64
+			switch e.Type {
+			case UpdateEvent:
+				penalty = UpdateRoutePenalty
+			case CreateEvent, DeleteEvent:
+				penalty = DeleteRoutePenalty
+			}
+			// we use route hash as eventMap key
+			hash := e.Route.Hash()
+			event, ok := eventMap[hash]
+			if !ok {
+				event = &advertEvent{
+					Event:     e,
+					penalty:   penalty,
+					timestamp: time.Now(),
+				}
+				eventMap[hash] = event
+				continue
+			}
+			// update penalty for existing event: decay existing and add new penalty
+			delta := time.Since(event.timestamp).Seconds()
+			event.penalty = event.penalty*math.Exp(delta) + penalty
+			event.timestamp = time.Now()
+			// suppress or recover the event based on its current penalty
+			if !event.isSuppressed && event.penalty > AdvertSuppress {
+				event.isSuppressed = true
+			} else if event.penalty < AdvertRecover {
+				event.isSuppressed = false
+			}
+			// if not suppressed decide if if its flapping
+			if !event.isSuppressed {
+				// detect if its flapping
+				event.isFlapping = eventFlap(e, event.Event)
+			}
+		case <-r.exit:
+			break process
+		}
+	}
+
+	wg.Wait()
+	close(r.advertChan)
+
+	log.Logf("r.processEvents(): event processor stopped")
+
+	return nil
+}
+
+// manage watches router errors and takes appropriate actions
+func (r *router) manage(errChan <-chan error) {
 	defer r.wg.Done()
+
+	log.Logf("r.manage(): manage start")
 
 	var code StatusCode
 	var err error
@@ -228,6 +380,8 @@ func (r *router) watchError(errChan <-chan error) {
 		code = Error
 	}
 
+	log.Logf("r.manage(): manage exiting")
+
 	r.Lock()
 	defer r.Unlock()
 	status := Status{
@@ -236,6 +390,8 @@ func (r *router) watchError(errChan <-chan error) {
 	}
 	r.status = status
 
+	log.Logf("r.manage(): router status: %v", r.status)
+
 	// stop the router if some error happened
 	if err != nil && code != Stopped {
 		// this will stop watchers which will close r.advertChan
@@ -243,7 +399,12 @@ func (r *router) watchError(errChan <-chan error) {
 		// drain the advertise channel
 		for range r.advertChan {
 		}
+		// drain the event channel
+		for range r.eventChan {
+		}
 	}
+
+	log.Logf("r.manage(): manage exit")
 }
 
 // Advertise advertises the routes to the network.
@@ -257,6 +418,7 @@ func (r *router) Advertise() (<-chan *Advert, error) {
 		if err := r.addServiceRoutes(r.opts.Registry, "local", DefaultLocalMetric); err != nil {
 			return nil, fmt.Errorf("failed adding routes: %v", err)
 		}
+		log.Logf("Routing table:\n%s", r.opts.Table)
 		// add default gateway into routing table
 		if r.opts.Gateway != "" {
 			// note, the only non-default value is the gateway
@@ -273,8 +435,10 @@ func (r *router) Advertise() (<-chan *Advert, error) {
 		}
 
 		// NOTE: we only need to recreate the exit/advertChan if the router errored or was stopped
+		// TODO: these channels most likely won't have to be the struct fields
 		if r.status.Code == Error || r.status.Code == Stopped {
 			r.exit = make(chan struct{})
+			r.eventChan = make(chan *Event)
 			r.advertChan = make(chan *Advert)
 		}
 
@@ -283,31 +447,44 @@ func (r *router) Advertise() (<-chan *Advert, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed creating routing table watcher: %v", err)
 		}
-		// registry watcher
-		regWatcher, err := r.opts.Registry.Watch()
+		// service registry watcher
+		svcWatcher, err := r.opts.Registry.Watch()
 		if err != nil {
-			return nil, fmt.Errorf("failed creating registry watcher: %v", err)
+			return nil, fmt.Errorf("failed creating service registry watcher: %v", err)
 		}
 
 		// error channel collecting goroutine errors
-		errChan := make(chan error, 2)
+		errChan := make(chan error, 3)
 
 		r.wg.Add(1)
 		go func() {
 			defer r.wg.Done()
+			log.Logf("r.Advertise(): r.watchServices() start")
 			// watch local registry and register routes in routine table
-			errChan <- r.manageServiceRoutes(regWatcher, DefaultLocalMetric)
+			errChan <- r.watchServices(svcWatcher)
+			log.Logf("r.Advertise(): r.watchServices() exit")
 		}()
 
 		r.wg.Add(1)
 		go func() {
 			defer r.wg.Done()
+			log.Logf("r.Advertise(): r.watchTable() start")
 			// watch local registry and register routes in routing table
 			errChan <- r.watchTable(tableWatcher)
+			log.Logf("r.Advertise(): r.watchTable() exit")
 		}()
 
 		r.wg.Add(1)
-		go r.watchError(errChan)
+		go func() {
+			defer r.wg.Done()
+			log.Logf("r.Advertise(): r.processEvents() start")
+			// listen to routing table events and process them
+			errChan <- r.processEvents()
+			log.Logf("r.Advertise(): r.processEvents() exit")
+		}()
+
+		r.wg.Add(1)
+		go r.manage(errChan)
 
 		// mark router as running and set its Error to nil
 		status := Status{
@@ -362,20 +539,28 @@ func (r *router) Status() Status {
 
 // Stop stops the router
 func (r *router) Stop() error {
+	log.Logf("r.Stop(): Stopping router")
 	r.RLock()
 	// only close the channel if the router is running
 	if r.status.Code == Running {
 		// notify all goroutines to finish
 		close(r.exit)
+		log.Logf("r.Stop(): exit closed")
 		// drain the advertise channel
 		for range r.advertChan {
 		}
+		log.Logf("r.Stop(): advert channel drained")
+		// drain the event channel
+		for range r.eventChan {
+		}
+		log.Logf("r.Stop(): event channel drained")
 	}
 	r.RUnlock()
 
 	// wait for all goroutines to finish
 	r.wg.Wait()
 
+	log.Logf("r.Stop(): Router stopped")
 	return nil
 }
 

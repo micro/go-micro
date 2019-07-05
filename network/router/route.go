@@ -2,6 +2,7 @@ package router
 
 import (
 	"fmt"
+	"hash/fnv"
 	"strings"
 
 	"github.com/olekukonko/tablewriter"
@@ -56,8 +57,17 @@ type Route struct {
 	Policy RoutePolicy
 }
 
+// Hash returns route hash sum.
+func (r *Route) Hash() uint64 {
+	h := fnv.New64()
+	h.Reset()
+	h.Write([]byte(r.Destination + r.Gateway + r.Network))
+
+	return h.Sum64()
+}
+
 // String allows to print the route
-func (r *Route) String() string {
+func (r Route) String() string {
 	// this will help us build routing table string
 	sb := &strings.Builder{}
 

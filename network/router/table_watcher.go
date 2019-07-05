@@ -2,9 +2,11 @@ package router
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
+	"github.com/micro/go-log"
 	"github.com/olekukonko/tablewriter"
 )
 
@@ -45,8 +47,13 @@ type Event struct {
 	Type EventType
 	// Timestamp is event timestamp
 	Timestamp time.Time
-	// Route is table rout
+	// Route is table route
 	Route Route
+}
+
+// String prints human readable Event
+func (e Event) String() string {
+	return fmt.Sprintf("[EVENT] Type: %s\nRoute:\n%s", e.Type, e.Route)
 }
 
 // WatchOption is used to define what routes to watch in the table
@@ -94,6 +101,7 @@ func (w *tableWatcher) Next() (*Event, error) {
 			case res.Route.Destination, "*":
 				return res, nil
 			default:
+				log.Logf("no table watcher available to receive the event")
 				continue
 			}
 		case <-w.done:
