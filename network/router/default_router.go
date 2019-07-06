@@ -158,25 +158,40 @@ func (r *router) watchServices(w registry.Watcher) error {
 			break
 		}
 
-		log.Logf("r.watchServices() new service event: %s", res.Service.Name)
-
-		route := Route{
-			Destination: res.Service.Name,
-			Router:      r.opts.Address,
-			Network:     r.opts.Network,
-			Metric:      DefaultLocalMetric,
-		}
+		log.Logf("r.watchServices() new service event: Action: %s Service: %v", res.Action, res.Service)
 
 		switch res.Action {
 		case "create":
-			// only return error if the route is not duplicate, but something else has failed
-			if err := r.opts.Table.Add(route); err != nil && err != ErrDuplicateRoute {
-				return fmt.Errorf("failed adding route for service %v: %s", res.Service.Name, err)
+			// range over the flat slice of nodes
+			for _, node := range res.Service.Nodes {
+				gateway := node.Address
+				if node.Port > 0 {
+					gateway = fmt.Sprintf("%s:%d", node.Address, node.Port)
+				}
+				route := Route{
+					Destination: res.Service.Name,
+					Gateway:     gateway,
+					Router:      r.opts.Address,
+					Network:     r.opts.Network,
+					Metric:      DefaultLocalMetric,
+				}
+				if err := r.opts.Table.Add(route); err != nil && err != ErrDuplicateRoute {
+					return fmt.Errorf("error adding route for service %s: %s", res.Service.Name, err)
+				}
 			}
 		case "delete":
-			// only return error if the route is not in the table, but something else has failed
-			if err := r.opts.Table.Delete(route); err != nil && err != ErrRouteNotFound {
-				return fmt.Errorf("failed adding route for service %v: %s", res.Service.Name, err)
+			for _, node := range res.Service.Nodes {
+				route := Route{
+					Destination: res.Service.Name,
+					Gateway:     node.Address,
+					Router:      r.opts.Address,
+					Network:     r.opts.Network,
+					Metric:      DefaultLocalMetric,
+				}
+				// only return error if the route is not in the table, but something else has failed
+				if err := r.opts.Table.Delete(route); err != nil && err != ErrRouteNotFound {
+					return fmt.Errorf("failed adding route for service %v: %s", res.Service.Name, err)
+				}
 			}
 		}
 	}
