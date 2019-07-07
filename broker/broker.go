@@ -7,8 +7,8 @@ type Broker interface {
 	Options() Options
 	Connect() error
 	Disconnect() error
-	Publish(string, *Message, ...PublishOption) error
-	Subscribe(string, Handler, ...SubscribeOption) (Subscriber, error)
+	Publish(topic string, m *Message, opts ...PublishOption) error
+	Subscribe(topic string, h Handler, opts ...SubscribeOption) (Subscriber, error)
 	String() string
 }
 
