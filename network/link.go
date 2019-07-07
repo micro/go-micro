@@ -10,7 +10,7 @@ import (
 	"github.com/micro/go-micro/codec"
 	"github.com/micro/go-micro/codec/proto"
 	pb "github.com/micro/go-micro/network/proto"
-	"github.com/micro/go-micro/transport"
+	"github.com/micro/go-micro/network/transport"
 )
 
 type link struct {

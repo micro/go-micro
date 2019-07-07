@@ -6,7 +6,7 @@ import (
 	"encoding/gob"
 
 	"github.com/lucas-clemente/quic-go"
-	"github.com/micro/go-micro/transport"
+	"github.com/micro/go-micro/network/transport"
 	utls "github.com/micro/go-micro/util/tls"
 )
 

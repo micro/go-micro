@@ -38,10 +38,10 @@ import (
 	"github.com/micro/go-micro/client/selector/static"
 
 	// transports
-	"github.com/micro/go-micro/transport"
-	tgrpc "github.com/micro/go-micro/transport/grpc"
-	thttp "github.com/micro/go-micro/transport/http"
-	tmem "github.com/micro/go-micro/transport/memory"
+	"github.com/micro/go-micro/network/transport"
+	tgrpc "github.com/micro/go-micro/network/transport/grpc"
+	thttp "github.com/micro/go-micro/network/transport/http"
+	tmem "github.com/micro/go-micro/network/transport/memory"
 )
 
 type Cmd interface {

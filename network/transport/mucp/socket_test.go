@@ -3,7 +3,7 @@ package mucp
 import (
 	"testing"
 
-	"github.com/micro/go-micro/transport"
+	"github.com/micro/go-micro/network/transport"
 )
 
 func TestTunnelSocket(t *testing.T) {

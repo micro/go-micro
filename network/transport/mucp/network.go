@@ -9,7 +9,7 @@ import (
 	"sync"
 
 	"github.com/micro/go-micro/network"
-	"github.com/micro/go-micro/transport"
+	"github.com/micro/go-micro/network/transport"
 )
 
 type networkKey struct{}

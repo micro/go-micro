@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/micro/go-micro/codec"
-	"github.com/micro/go-micro/transport"
+	"github.com/micro/go-micro/network/transport"
 )
 
 type rpcResponse struct {

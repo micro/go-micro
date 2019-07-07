@@ -1,7 +1,7 @@
 package mucp
 
 import (
-	"github.com/micro/go-micro/transport"
+	"github.com/micro/go-micro/network/transport"
 )
 
 type listener struct {

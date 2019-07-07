@@ -3,7 +3,7 @@ package mucp
 import (
 	"errors"
 
-	"github.com/micro/go-micro/transport"
+	"github.com/micro/go-micro/network/transport"
 )
 
 // socket is our pseudo socket for transport.Socket

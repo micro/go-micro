@@ -13,7 +13,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/micro/go-micro/registry"
-	"github.com/micro/go-micro/transport"
+	"github.com/micro/go-micro/network/transport"
 	"github.com/micro/go-micro/util/addr"
 	"github.com/micro/go-micro/util/log"
 

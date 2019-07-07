@@ -9,7 +9,7 @@ import (
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/server"
 	"github.com/micro/go-micro/server/debug"
-	"github.com/micro/go-micro/transport"
+	"github.com/micro/go-micro/network/transport"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/encoding"
 )

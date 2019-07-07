@@ -10,7 +10,7 @@ import (
 	"github.com/micro/go-micro/codec/jsonrpc"
 	"github.com/micro/go-micro/codec/proto"
 	"github.com/micro/go-micro/codec/protorpc"
-	"github.com/micro/go-micro/transport"
+	"github.com/micro/go-micro/network/transport"
 	"github.com/pkg/errors"
 )
 

@@ -3,7 +3,7 @@ package tunnel
 
 import (
 	"github.com/micro/go-micro/config/options"
-	"github.com/micro/go-micro/transport"
+	"github.com/micro/go-micro/network/transport"
 )
 
 // Tunnel creates a network tunnel
