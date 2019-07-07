@@ -403,6 +403,7 @@ func (h *httpBroker) Connect() error {
 	go func() {
 		h.run(l)
 		h.Lock()
+		h.opts.Addrs = []string{addr}
 		h.address = addr
 		h.Unlock()
 	}()

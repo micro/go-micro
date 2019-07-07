@@ -3,11 +3,10 @@ package broker
 
 // Broker is an interface used for asynchronous messaging.
 type Broker interface {
+	Init(...Option) error
 	Options() Options
-	Address() string
 	Connect() error
 	Disconnect() error
-	Init(...Option) error
 	Publish(string, *Message, ...PublishOption) error
 	Subscribe(string, Handler, ...SubscribeOption) (Subscriber, error)
 	String() string

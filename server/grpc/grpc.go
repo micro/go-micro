@@ -714,7 +714,10 @@ func (g *grpcServer) Start() error {
 		return err
 	}
 
-	log.Logf("Broker [%s] Listening on %s", config.Broker.String(), config.Broker.Address())
+	baddr := strings.Join(config.Broker.Options().Addrs, ",")
+	bname := config.Broker.String()
+
+	log.Logf("Broker [%s] Listening on %s", bname, baddr)
 
 	// announce self to the world
 	if err := g.Register(); err != nil {
