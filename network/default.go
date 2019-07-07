@@ -30,8 +30,8 @@ type network struct {
 	// proxy used to route through the network
 	proxy proxy.Proxy
 
-	// id of this network
-	id string
+	// name of this network
+	name string
 
 	// links maintained for this network
 	// based on peers not nodes. maybe maintain
@@ -65,7 +65,7 @@ func (n *network) lease(muid string) *pb.Lease {
 			Muid:    muid,
 			Id:      id,
 			Address: address,
-			Network: n.id,
+			Network: n.name,
 		},
 	}
 }
@@ -76,18 +76,18 @@ func (n *network) lookup(r registry.Registry) []*resolver.Record {
 	rr := nreg.Resolver{Registry: r}
 
 	// get all the nodes for the network that are local
-	localRecords, err := rr.Resolve("network:" + n.Id())
+	localRecords, err := rr.Resolve(n.Name())
 	if err != nil {
 		// we're not in a good place here
 	}
 
 	// if its a local network we never try lookup anything else
-	if n.Id() == "local" {
+	if n.Name() == "local" {
 		return localRecords
 	}
 
 	// now resolve incrementally based on resolvers specified
-	networkRecords, err := n.resolver.Resolve(n.Id())
+	networkRecords, err := n.resolver.Resolve(n.Name())
 	if err != nil {
 		// still not in a good place
 	}
@@ -96,8 +96,8 @@ func (n *network) lookup(r registry.Registry) []*resolver.Record {
 	return append(localRecords, networkRecords...)
 }
 
-func (n *network) Id() string {
-	return n.id
+func (n *network) Name() string {
+	return n.name
 }
 
 // Connect connects to the network and returns a new node.
@@ -135,16 +135,16 @@ func newNetwork(opts ...options.Option) *network {
 	// new network instance with defaults
 	net := &network{
 		Options:  options,
-		id:       DefaultId,
+		name:     DefaultName,
 		router:   router.DefaultRouter,
 		proxy:    new(mucp.Proxy),
 		resolver: new(nreg.Resolver),
 	}
 
-	// get network id
-	id, ok := options.Values().Get("network.id")
+	// get network name
+	name, ok := options.Values().Get("network.name")
 	if ok {
-		net.id = id.(string)
+		net.name = name.(string)
 	}
 
 	// get router

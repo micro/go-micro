@@ -10,8 +10,8 @@ import (
 // is responsible for routing messages to the correct services.
 type Network interface {
 	options.Options
-	// Id of the network
-	Id() string
+	// Name of the network
+	Name() string
 	// Connect to the network
 	Connect() (Node, error)
 	// Peer with a neighboring network
@@ -53,8 +53,8 @@ type Message struct {
 }
 
 var (
-	// The default network ID is local
-	DefaultId = "local"
+	// The default network name is local
+	DefaultName = "local"
 
 	// just the standard network element
 	DefaultNetwork = NewNetwork()

@@ -69,7 +69,7 @@ func newNode(n *network) (*node, error) {
 	// create a new node
 	node := &node{
 		// this nodes unique micro assigned mac address
-		muid: fmt.Sprintf("%s-%s", n.id, uuid.New().String()),
+		muid: fmt.Sprintf("%s-%s", n.name, uuid.New().String()),
 		// map of connected records
 		connected: make(map[string]bool),
 		// the links
@@ -156,7 +156,7 @@ func newNode(n *network) (*node, error) {
 	// a registrar or tld or whatever
 	if err := node.registry.Register(&registry.Service{
 		// register with the network id
-		Name: "network:" + n.Id(),
+		Name: n.Name(),
 		Nodes: []*registry.Node{
 			{Id: node.id, Address: addr, Port: port},
 		},
@@ -473,7 +473,7 @@ func (n *node) Close() error {
 
 		// deregister self
 		n.registry.Deregister(&registry.Service{
-			Name: "network:" + n.network.Id(),
+			Name: n.network.Name(),
 			Nodes: []*registry.Node{
 				{Id: n.id, Address: n.address},
 			},
@@ -514,7 +514,7 @@ func (n *node) Id() string {
 }
 
 func (n *node) Network() string {
-	return n.network.id
+	return n.network.Name()
 }
 
 // Send propagates a message over all links. This should probably use its proxy.
