@@ -1,4 +1,4 @@
-// Package transport is an interface for connection based communication
+// Package transport is an interface for synchronous connection based communication
 package transport
 
 import (
