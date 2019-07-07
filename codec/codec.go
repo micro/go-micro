@@ -9,7 +9,7 @@ const (
 	Error MessageType = iota
 	Request
 	Response
-	Publication
+	Event
 )
 
 type MessageType int

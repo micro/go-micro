@@ -167,7 +167,7 @@ func validateSubscriber(sub server.Subscriber) error {
 }
 
 func (g *grpcServer) createSubHandler(sb *subscriber, opts server.Options) broker.Handler {
-	return func(p broker.Publication) error {
+	return func(p broker.Event) error {
 		msg := p.Message()
 		ct := msg.Header["Content-Type"]
 		if len(ct) == 0 {
@@ -208,7 +208,7 @@ func (g *grpcServer) createSubHandler(sb *subscriber, opts server.Options) broke
 			co := cf(b)
 			defer co.Close()
 
-			if err := co.ReadHeader(&codec.Message{}, codec.Publication); err != nil {
+			if err := co.ReadHeader(&codec.Message{}, codec.Event); err != nil {
 				return err
 			}
 

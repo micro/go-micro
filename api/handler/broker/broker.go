@@ -120,7 +120,7 @@ func (c *conn) writeLoop() {
 		opts = append(opts, broker.Queue(c.queue))
 	}
 
-	subscriber, err := c.b.Subscribe(c.topic, func(p broker.Publication) error {
+	subscriber, err := c.b.Subscribe(c.topic, func(p broker.Event) error {
 		b, err := json.Marshal(p.Message())
 		if err != nil {
 			return nil

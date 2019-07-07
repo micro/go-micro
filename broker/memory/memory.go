@@ -17,7 +17,7 @@ type memoryBroker struct {
 	Subscribers map[string][]*memorySubscriber
 }
 
-type memoryPublication struct {
+type memoryEvent struct {
 	topic   string
 	message *broker.Message
 }
@@ -84,7 +84,7 @@ func (m *memoryBroker) Publish(topic string, message *broker.Message, opts ...br
 		return nil
 	}
 
-	p := &memoryPublication{
+	p := &memoryEvent{
 		topic:   topic,
 		message: message,
 	}
@@ -142,15 +142,15 @@ func (m *memoryBroker) String() string {
 	return "memory"
 }
 
-func (m *memoryPublication) Topic() string {
+func (m *memoryEvent) Topic() string {
 	return m.topic
 }
 
-func (m *memoryPublication) Message() *broker.Message {
+func (m *memoryEvent) Message() *broker.Message {
 	return m.message
 }
 
-func (m *memoryPublication) Ack() error {
+func (m *memoryEvent) Ack() error {
 	return nil
 }
 
