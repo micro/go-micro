@@ -295,7 +295,7 @@ func (g *grpcClient) Options() client.Options {
 }
 
 func (g *grpcClient) NewMessage(topic string, msg interface{}, opts ...client.MessageOption) client.Message {
-	return newGRPCPublication(topic, msg, g.opts.ContentType, opts...)
+	return newGRPCEvent(topic, msg, g.opts.ContentType, opts...)
 }
 
 func (g *grpcClient) NewRequest(service, method string, req interface{}, reqOpts ...client.RequestOption) client.Request {
@@ -498,7 +498,7 @@ func (g *grpcClient) Publish(ctx context.Context, p client.Message, opts ...clie
 	}
 
 	b := &buffer{bytes.NewBuffer(nil)}
-	if err := cf(b).Write(&codec.Message{Type: codec.Publication}, p.Payload()); err != nil {
+	if err := cf(b).Write(&codec.Message{Type: codec.Event}, p.Payload()); err != nil {
 		return errors.InternalServerError("go.micro.client", err.Error())
 	}
 

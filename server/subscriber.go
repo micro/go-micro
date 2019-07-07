@@ -165,7 +165,7 @@ func validateSubscriber(sub Subscriber) error {
 }
 
 func (s *rpcServer) createSubHandler(sb *subscriber, opts Options) broker.Handler {
-	return func(p broker.Publication) error {
+	return func(p broker.Event) error {
 		msg := p.Message()
 
 		// get codec
@@ -214,7 +214,7 @@ func (s *rpcServer) createSubHandler(sb *subscriber, opts Options) broker.Handle
 			co := cf(b)
 			defer co.Close()
 
-			if err := co.ReadHeader(&codec.Message{}, codec.Publication); err != nil {
+			if err := co.ReadHeader(&codec.Message{}, codec.Event); err != nil {
 				return err
 			}
 

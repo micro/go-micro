@@ -47,7 +47,7 @@ func (t *Task) Run(c task.Command) error {
 	errCh := make(chan error, t.Options.Pool)
 
 	// subscribe for distributed work
-	workFn := func(p broker.Publication) error {
+	workFn := func(p broker.Event) error {
 		msg := p.Message()
 
 		// get command name
@@ -110,7 +110,7 @@ func (t *Task) Run(c task.Command) error {
 	}
 
 	// subscribe to all status messages
-	subStatus, err := t.Broker.Subscribe(topic, func(p broker.Publication) error {
+	subStatus, err := t.Broker.Subscribe(topic, func(p broker.Event) error {
 		msg := p.Message()
 
 		// get command name

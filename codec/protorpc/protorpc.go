@@ -99,7 +99,7 @@ func (c *protoCodec) Write(m *codec.Message, b interface{}) error {
 				return err
 			}
 		}
-	case codec.Publication:
+	case codec.Event:
 		data, err := proto.Marshal(b.(proto.Message))
 		if err != nil {
 			return err
@@ -141,7 +141,7 @@ func (c *protoCodec) ReadHeader(m *codec.Message, mt codec.MessageType) error {
 		m.Method = rtmp.GetServiceMethod()
 		m.Id = fmt.Sprintf("%d", rtmp.GetSeq())
 		m.Error = rtmp.GetError()
-	case codec.Publication:
+	case codec.Event:
 		_, err := io.Copy(c.buf, c.rwc)
 		return err
 	default:
@@ -159,7 +159,7 @@ func (c *protoCodec) ReadBody(b interface{}) error {
 		if err != nil {
 			return err
 		}
-	case codec.Publication:
+	case codec.Event:
 		data = c.buf.Bytes()
 	default:
 		return fmt.Errorf("Unrecognised message type: %v", c.mt)

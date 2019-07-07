@@ -59,7 +59,7 @@ type httpSubscriber struct {
 	hb    *httpBroker
 }
 
-type httpPublication struct {
+type httpEvent struct {
 	m *Message
 	t string
 }
@@ -155,15 +155,15 @@ func newHttpBroker(opts ...Option) Broker {
 	return h
 }
 
-func (h *httpPublication) Ack() error {
+func (h *httpEvent) Ack() error {
 	return nil
 }
 
-func (h *httpPublication) Message() *Message {
+func (h *httpEvent) Message() *Message {
 	return h.m
 }
 
-func (h *httpPublication) Topic() string {
+func (h *httpEvent) Topic() string {
 	return h.t
 }
 
@@ -323,7 +323,7 @@ func (h *httpBroker) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	p := &httpPublication{m: m, t: topic}
+	p := &httpEvent{m: m, t: topic}
 	id := req.Form.Get("id")
 
 	h.RLock()
