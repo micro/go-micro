@@ -6,9 +6,9 @@ import (
 	"github.com/micro/go-micro/broker"
 	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/client/selector"
+	"github.com/micro/go-micro/network/transport"
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/server"
-	"github.com/micro/go-micro/network/transport"
 )
 
 type Options struct {
