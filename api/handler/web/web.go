@@ -79,7 +79,7 @@ func (wh *webHandler) getService(r *http.Request) (string, error) {
 		return "", nil
 	}
 
-	return fmt.Sprintf("http://%s:%d", s.Address, s.Port), nil
+	return fmt.Sprintf("http://%s", s.Address), nil
 }
 
 // serveWebSocket used to serve a web socket proxied connection

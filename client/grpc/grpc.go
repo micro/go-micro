@@ -84,9 +84,6 @@ func (g *grpcClient) next(request client.Request, opts client.CallOptions) (sele
 
 func (g *grpcClient) call(ctx context.Context, node *registry.Node, req client.Request, rsp interface{}, opts client.CallOptions) error {
 	address := node.Address
-	if node.Port > 0 {
-		address = fmt.Sprintf("%s:%d", address, node.Port)
-	}
 
 	header := make(map[string]string)
 	if md, ok := metadata.FromContext(ctx); ok {
@@ -146,9 +143,6 @@ func (g *grpcClient) call(ctx context.Context, node *registry.Node, req client.R
 
 func (g *grpcClient) stream(ctx context.Context, node *registry.Node, req client.Request, opts client.CallOptions) (client.Stream, error) {
 	address := node.Address
-	if node.Port > 0 {
-		address = fmt.Sprintf("%s:%d", address, node.Port)
-	}
 
 	header := make(map[string]string)
 	if md, ok := metadata.FromContext(ctx); ok {

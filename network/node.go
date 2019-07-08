@@ -158,7 +158,7 @@ func newNode(n *network) (*node, error) {
 		// register with the network id
 		Name: n.Name(),
 		Nodes: []*registry.Node{
-			{Id: node.id, Address: addr, Port: port},
+			{Id: node.id, Address: node.address},
 		},
 	}); err != nil {
 		node.Close()

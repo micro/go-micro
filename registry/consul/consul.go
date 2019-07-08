@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"runtime"
+	"strconv"
 	"sync"
 	"time"
 
@@ -220,7 +221,7 @@ func (c *consulRegistry) Register(s *registry.Service, opts ...registry.Register
 		deregTTL := getDeregisterTTL(regInterval)
 
 		check = &consul.AgentServiceCheck{
-			TCP:                            fmt.Sprintf("%s:%d", node.Address, node.Port),
+			TCP:                            node.Address,
 			Interval:                       fmt.Sprintf("%v", regInterval),
 			DeregisterCriticalServiceAfter: fmt.Sprintf("%v", deregTTL),
 		}
@@ -235,13 +236,16 @@ func (c *consulRegistry) Register(s *registry.Service, opts ...registry.Register
 		}
 	}
 
+	host, pt, _ := net.SplitHostPort(node.Address)
+	port, _ := strconv.Atoi(pt)
+
 	// register the service
 	asr := &consul.AgentServiceRegistration{
 		ID:      node.Id,
 		Name:    s.Name,
 		Tags:    tags,
-		Port:    node.Port,
-		Address: node.Address,
+		Port:    port,
+		Address: host,
 		Check:   check,
 	}
 
@@ -334,8 +338,7 @@ func (c *consulRegistry) GetService(name string) ([]*registry.Service, error) {
 
 		svc.Nodes = append(svc.Nodes, &registry.Node{
 			Id:       id,
-			Address:  address,
-			Port:     s.Service.Port,
+			Address:  fmt.Sprintf("%s:%d", address, s.Service.Port),
 			Metadata: decodeMetadata(s.Service.Tags),
 		})
 	}

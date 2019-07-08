@@ -73,7 +73,7 @@ func (h *httpHandler) getService(r *http.Request) (string, error) {
 		return "", nil
 	}
 
-	return fmt.Sprintf("http://%s:%d", s.Address, s.Port), nil
+	return fmt.Sprintf("http://%s", s.Address), nil
 }
 
 func (h *httpHandler) String() string {

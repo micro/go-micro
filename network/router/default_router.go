@@ -98,13 +98,9 @@ func (r *router) addServiceRoutes(reg registry.Registry, network string, metric 
 
 		// range over the flat slice of nodes
 		for _, node := range nodes {
-			gateway := node.Address
-			if node.Port > 0 {
-				gateway = fmt.Sprintf("%s:%d", node.Address, node.Port)
-			}
 			route := Route{
 				Destination: service.Name,
-				Gateway:     gateway,
+				Gateway:     node.Address,
 				Router:      r.opts.Address,
 				Network:     r.opts.Network,
 				Metric:      metric,
