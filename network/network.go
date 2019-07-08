@@ -10,46 +10,46 @@ import (
 // is responsible for routing messages to the correct services.
 type Network interface {
 	options.Options
+	// Create starts the network
+	Create() (*Node, error)
 	// Name of the network
 	Name() string
-	// Connect to the network
-	Connect() (Node, error)
-	// Peer with a neighboring network
-	Peer(Network) (Link, error)
+	// Connect to a node
+	Connect(*Node) (Conn, error)
+	// Listen for connections
+	Listen(*Node) (Listener, error)
 }
 
-// Node represents a single node on a network
-type Node interface {
-	// Id of the node
-	Id() string
-	// Address of the node
+type Node struct {
+	Id       string
+	Address  string
+	Metadata map[string]string
+}
+
+type Listener interface {
 	Address() string
-	// The network of the node
-	Network() string
-	// Close the network connection
 	Close() error
-	// Accept messages on the network
-	Accept() (*Message, error)
-	// Send a message to the network
+	Accept() (Conn, error)
+}
+
+type Conn interface {
+	// Unique id of the connection
+	Id() string
+	// Close the connection
+	Close() error
+	// Send a message
 	Send(*Message) error
+	// Receive a message
+	Recv(*Message) error
+	// The remote node
+	Remote() string
+	// The local node
+	Local() string
 }
 
-// Link is a connection between one network and another
-type Link interface {
-	// remote node the link is peered with
-	Node
-	// length defines the speed or distance of the link
-	Length() int
-	// weight defines the saturation or usage of the link
-	Weight() int
-}
-
-// Message is the base type for opaque data
 type Message struct {
-	// Headers which provide local/remote info
 	Header map[string]string
-	// The opaque data being sent
-	Body []byte
+	Body   []byte
 }
 
 var (
