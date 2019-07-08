@@ -9,7 +9,7 @@ var (
 	// DefaultAddress is default router address
 	DefaultAddress = ":9093"
 	// DefaultNetwork is default micro network
-	DefaultNetwork = "local"
+	DefaultNetwork = "micro.mu"
 )
 
 // Options are router options

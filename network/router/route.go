@@ -9,33 +9,33 @@ import (
 )
 
 var (
-	// DefaultLocalMetric is default route cost for local network
+	// DefaultLocalMetric is default route cost metric for the local network
 	DefaultLocalMetric = 1
-	// DefaultNetworkMetric is default route cost for micro network
+	// DefaultNetworkMetric is default route cost metric for the micro network
 	DefaultNetworkMetric = 10
 )
 
-// RoutePolicy defines routing table addition policy
+// RoutePolicy defines routing table policy
 type RoutePolicy int
 
 const (
-	// AddIfNotExist adds the route if it does not exist
-	AddIfNotExists RoutePolicy = iota
-	// OverrideIfExists overrides route if it already exists
-	OverrideIfExists
-	// IgnoreIfExists instructs to not modify existing route
-	IgnoreIfExists
+	// Insert inserts a new route if it does not already exist
+	Insert RoutePolicy = iota
+	// Override overrides the route if it already exists
+	Override
+	// Skip skips modifying the route if it already exists
+	Skip
 )
 
 // String returns human reprensentation of policy
 func (p RoutePolicy) String() string {
 	switch p {
-	case AddIfNotExists:
-		return "ADD_IF_NOT_EXISTS"
-	case OverrideIfExists:
-		return "OVERRIDE_IF_EXISTS"
-	case IgnoreIfExists:
-		return "IGNORE_IF_EXISTS"
+	case Insert:
+		return "INSERT"
+	case Override:
+		return "OVERRIDE"
+	case Skip:
+		return "SKIP"
 	default:
 		return "UNKNOWN"
 	}
@@ -47,9 +47,9 @@ type Route struct {
 	Destination string
 	// Gateway is route gateway
 	Gateway string
-	// Router is the network router address
+	// Router is the router address
 	Router string
-	// Network is micro network address
+	// Network is network address
 	Network string
 	// Metric is the route cost metric
 	Metric int
@@ -66,7 +66,7 @@ func (r *Route) Hash() uint64 {
 	return h.Sum64()
 }
 
-// String allows to print the route
+// String returns human readable route
 func (r Route) String() string {
 	// this will help us build routing table string
 	sb := &strings.Builder{}

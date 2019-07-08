@@ -2,7 +2,6 @@ package router
 
 import "testing"
 
-// creates routing table and test route
 func testSetup() (Table, Route) {
 	table := NewTable()
 
@@ -35,32 +34,32 @@ func TestAdd(t *testing.T) {
 	testTableSize += 1
 
 	// overrides an existing route
-	// NOTE: the size of the table should not change
 	route.Metric = 100
-	route.Policy = OverrideIfExists
+	route.Policy = Override
 
 	if err := table.Add(route); err != nil {
 		t.Errorf("error adding route: %s", err)
 	}
 
+	// the size of the table should not change when Override policy is used
 	if table.Size() != testTableSize {
 		t.Errorf("invalid number of routes. expected: %d, given: %d", testTableSize, table.Size())
 	}
 
 	// dont add new route if it already exists
-	// NOTE: The size of the table should not change
-	route.Policy = IgnoreIfExists
+	route.Policy = Skip
 
 	if err := table.Add(route); err != nil {
 		t.Errorf("error adding route: %s", err)
 	}
 
+	// the size of the table should not change if Skip policy is used
 	if table.Size() != testTableSize {
 		t.Errorf("invalid number of routes. expected: %d, given: %d", testTableSize, table.Size())
 	}
 
-	// adding the same route under AddIfNotExists policy must error
-	route.Policy = AddIfNotExists
+	// adding the same route under Insert policy must error
+	route.Policy = Insert
 
 	if err := table.Add(route); err != ErrDuplicateRoute {
 		t.Errorf("error adding route. Expected error: %s, Given: %s", ErrDuplicateRoute, err)
@@ -107,18 +106,17 @@ func TestUpdate(t *testing.T) {
 	testTableSize += 1
 
 	// change the metric of the original route
-	// NOTE: this should NOT change the size of the table
 	route.Metric = 200
 
 	if err := table.Update(route); err != nil {
 		t.Errorf("error updating route: %s", err)
 	}
 
+	// the size of the table should not change as we're only updating the metric of an existing route
 	if table.Size() != testTableSize {
 		t.Errorf("invalid number of routes. expected: %d, given: %d", testTableSize, table.Size())
 	}
 
-	// NOTE: routing table routes on <destination, gateway, network>
 	// this should add a new route
 	route.Destination = "new.dest"
 
@@ -127,12 +125,11 @@ func TestUpdate(t *testing.T) {
 	}
 	testTableSize += 1
 
-	// NOTE: default policy is AddIfNotExists so the new route will be added here
+	// Default policy is Insert so the new route will be added here since the route does not exist
 	if table.Size() != testTableSize {
 		t.Errorf("invalid number of routes. expected: %d, given: %d", testTableSize, table.Size())
 	}
 
-	// NOTE: we are hashing routes on <destination, gateway, network>
 	// this should add a new route
 	route.Gateway = "new.gw"
 
@@ -145,9 +142,9 @@ func TestUpdate(t *testing.T) {
 		t.Errorf("invalid number of routes. expected: %d, given: %d", testTableSize, table.Size())
 	}
 
-	// this should NOT add a new route as we are setting the policy to IgnoreIfExists
+	// this should NOT add a new route as we are setting the policy to Skip
 	route.Destination = "rand.dest"
-	route.Policy = IgnoreIfExists
+	route.Policy = Skip
 
 	if err := table.Update(route); err != ErrRouteNotFound {
 		t.Errorf("error updating route. Expected error: %s, given: %s", ErrRouteNotFound, err)

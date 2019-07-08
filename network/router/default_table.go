@@ -2,8 +2,6 @@ package router
 
 import (
 	"fmt"
-	"hash"
-	"hash/fnv"
 	"strings"
 	"sync"
 
@@ -12,25 +10,22 @@ import (
 	"github.com/olekukonko/tablewriter"
 )
 
-// TableOptions are routing table options
+// TableOptions specify routing table options
 // TODO: table options TBD in the future
 type TableOptions struct{}
 
-// table is in memory routing table
+// table is an in memory routing table
 type table struct {
 	// opts are table options
 	opts TableOptions
-	// TODO: we should stop key-ing on destination
 	// m stores routing table map
 	m map[string]map[uint64]Route
-	// h hashes route entries
-	h hash.Hash64
 	// w is a list of table watchers
 	w map[string]*tableWatcher
 	sync.RWMutex
 }
 
-// newTable creates in memory routing table and returns it
+// newTable creates a new routing table and returns it
 func newTable(opts ...TableOption) Table {
 	// default options
 	var options TableOptions
@@ -40,14 +35,10 @@ func newTable(opts ...TableOption) Table {
 		o(&options)
 	}
 
-	h := fnv.New64()
-	h.Reset()
-
 	return &table{
 		opts: options,
 		m:    make(map[string]map[uint64]Route),
 		w:    make(map[string]*tableWatcher),
-		h:    h,
 	}
 }
 
@@ -67,12 +58,12 @@ func (t *table) Options() TableOptions {
 // Add adds a route to the routing table
 func (t *table) Add(r Route) error {
 	destAddr := r.Destination
-	sum := t.hash(r)
+	sum := r.Hash()
 
 	t.Lock()
 	defer t.Unlock()
 
-	// check if the destination has any routes in the table
+	// check if there are any routes in the table for the route destination
 	if _, ok := t.m[destAddr]; !ok {
 		t.m[destAddr] = make(map[uint64]Route)
 		t.m[destAddr][sum] = r
@@ -80,7 +71,7 @@ func (t *table) Add(r Route) error {
 		return nil
 	}
 
-	// add new route to the table for the given destination
+	// add new route to the table for the route destination
 	if _, ok := t.m[destAddr][sum]; !ok {
 		t.m[destAddr][sum] = r
 		go t.sendEvent(&Event{Type: CreateEvent, Route: r})
@@ -88,15 +79,15 @@ func (t *table) Add(r Route) error {
 	}
 
 	// only add the route if the route override is explicitly requested
-	if _, ok := t.m[destAddr][sum]; ok && r.Policy == OverrideIfExists {
+	if _, ok := t.m[destAddr][sum]; ok && r.Policy == Override {
 		t.m[destAddr][sum] = r
 		go t.sendEvent(&Event{Type: UpdateEvent, Route: r})
 		return nil
 	}
 
-	// if we reached this point without already returning the route already exists
+	// if we reached this point the route must already exist
 	// we return nil only if explicitly requested by the client
-	if r.Policy == IgnoreIfExists {
+	if r.Policy == Skip {
 		return nil
 	}
 
@@ -105,11 +96,11 @@ func (t *table) Add(r Route) error {
 
 // Delete deletes the route from the routing table
 func (t *table) Delete(r Route) error {
+	destAddr := r.Destination
+	sum := r.Hash()
+
 	t.Lock()
 	defer t.Unlock()
-
-	destAddr := r.Destination
-	sum := t.hash(r)
 
 	if _, ok := t.m[destAddr]; !ok {
 		return ErrRouteNotFound
@@ -121,17 +112,17 @@ func (t *table) Delete(r Route) error {
 	return nil
 }
 
-// Update updates routing table with new route
+// Update updates routing table with the new route
 func (t *table) Update(r Route) error {
 	destAddr := r.Destination
-	sum := t.hash(r)
+	sum := r.Hash()
 
 	t.Lock()
 	defer t.Unlock()
 
-	// check if the destAddr has ANY routes in the table
+	// check if the route destination has any routes in the table
 	if _, ok := t.m[destAddr]; !ok {
-		if r.Policy == AddIfNotExists {
+		if r.Policy == Insert {
 			t.m[destAddr] = make(map[uint64]Route)
 			t.m[destAddr][sum] = r
 			go t.sendEvent(&Event{Type: CreateEvent, Route: r})
@@ -140,8 +131,9 @@ func (t *table) Update(r Route) error {
 		return ErrRouteNotFound
 	}
 
-	// check if destination has this particular router in the table
-	if _, ok := t.m[destAddr][sum]; !ok && r.Policy == AddIfNotExists {
+	// check if the route for the route destination already exists
+	// NOTE: We only insert the route if explicitly requested by the client
+	if _, ok := t.m[destAddr][sum]; !ok && r.Policy == Insert {
 		t.m[destAddr][sum] = r
 		go t.sendEvent(&Event{Type: CreateEvent, Route: r})
 		return nil
@@ -298,12 +290,4 @@ func (t *table) String() string {
 	table.Render()
 
 	return sb.String()
-}
-
-// hash hashes the route using router gateway and network address
-func (t *table) hash(r Route) uint64 {
-	t.h.Reset()
-	t.h.Write([]byte(r.Destination + r.Gateway + r.Network))
-
-	return t.h.Sum64()
 }

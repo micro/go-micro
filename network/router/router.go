@@ -14,7 +14,7 @@ type Router interface {
 	Init(...Option) error
 	// Options returns the router options
 	Options() Options
-	// ID returns the id of the router
+	// ID returns the ID of the router
 	ID() string
 	// Table returns the routing table
 	Table() Table
@@ -22,7 +22,7 @@ type Router interface {
 	Address() string
 	// Network returns the network address of the router
 	Network() string
-	// Advertise starts advertising routes to the network
+	// Advertise advertises routes to the network
 	Advertise() (<-chan *Advert, error)
 	// Update updates the routing table
 	Update(*Advert) error
@@ -59,7 +59,7 @@ func (ut UpdateType) String() string {
 	}
 }
 
-// Advert is sent by the router to the network
+// Advert contains a list of events advertised by the router to the network
 type Advert struct {
 	// ID is the router ID
 	ID string
@@ -81,10 +81,8 @@ type Status struct {
 }
 
 const (
-	// Init means the rotuer has just been initialized
-	Init StatusCode = iota
 	// Running means the router is up and running
-	Running
+	Running StatusCode = iota
 	// Stopped means the router has been stopped
 	Stopped
 	// Error means the router has encountered error
@@ -94,8 +92,6 @@ const (
 // String returns human readable status code
 func (sc StatusCode) String() string {
 	switch sc {
-	case Init:
-		return "INITIALIZED"
 	case Running:
 		return "RUNNING"
 	case Stopped:

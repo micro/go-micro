@@ -39,7 +39,7 @@ type router struct {
 	sync.RWMutex
 }
 
-// newRouter creates new router and returns it
+// newRouter creates a new router and returns it
 func newRouter(opts ...Option) Router {
 	// get default options
 	options := DefaultOptions()
@@ -51,7 +51,7 @@ func newRouter(opts ...Option) Router {
 
 	return &router{
 		opts:       options,
-		status:     Status{Error: nil, Code: Init},
+		status:     Status{Error: nil, Code: Stopped},
 		exit:       make(chan struct{}),
 		eventChan:  make(chan *Event),
 		advertChan: make(chan *Advert),
@@ -92,11 +92,39 @@ func (r *router) Network() string {
 	return r.opts.Network
 }
 
-// addServiceRoutes adds all services in given registry to the routing table.
-// NOTE: this is a one-off operation done when bootstrapping the router
-// It returns error if either the services failed to be listed or
-// if any of the the routes failed to be added to the routing table.
-func (r *router) addServiceRoutes(reg registry.Registry, network string, metric int) error {
+// manageServiceRoutes manages the routes for a given service.
+// It returns error of the routing table action fails with error.
+func (r *router) manageServiceRoutes(service *registry.Service, action string, metric int) error {
+	// action is the routing table action
+	action = strings.ToLower(action)
+	// take route action on each service node
+	for _, node := range service.Nodes {
+		route := Route{
+			Destination: service.Name,
+			Gateway:     node.Address,
+			Router:      r.opts.Address,
+			Network:     r.opts.Network,
+			Metric:      metric,
+		}
+		switch action {
+		case "insert", "create":
+			if err := r.opts.Table.Add(route); err != nil && err != ErrDuplicateRoute {
+				return fmt.Errorf("failed adding route for service %s: %s", service.Name, err)
+			}
+		case "delete":
+			if err := r.opts.Table.Delete(route); err != nil && err != ErrRouteNotFound {
+				return fmt.Errorf("failed deleting route for service %v: %s", service.Name, err)
+			}
+		default:
+			return fmt.Errorf("failed to manage route for service %v. Unknown action: %s", service.Name, action)
+		}
+	}
+	return nil
+}
+
+// manageRegistryRoutes manages routes for each service found in the registry.
+// It returns error if either the services failed to be listed or if the routing table action fails wirh error
+func (r *router) manageRegistryRoutes(reg registry.Registry, action string, metric int) error {
 	services, err := reg.ListServices()
 	if err != nil {
 		return fmt.Errorf("failed listing services: %v", err)
@@ -107,27 +135,13 @@ func (r *router) addServiceRoutes(reg registry.Registry, network string, metric 
 		// get the service to retrieve all its info
 		srvs, err := reg.GetService(service.Name)
 		if err != nil {
-			log.Logf("r.addServiceRoutes() GetService() error: %v", err)
+			log.Logf("r.manageRegistryRoutes() GetService() error: %v", err)
 			continue
 		}
-
-		// create a flat slide of nodes
-		var nodes []*registry.Node
+		// manage the routes for all return services
 		for _, s := range srvs {
-			nodes = append(nodes, s.Nodes...)
-		}
-
-		// range over the flat slice of nodes
-		for _, node := range nodes {
-			route := Route{
-				Destination: service.Name,
-				Gateway:     node.Address,
-				Router:      r.opts.Address,
-				Network:     r.opts.Network,
-				Metric:      metric,
-			}
-			if err := r.opts.Table.Add(route); err != nil && err != ErrDuplicateRoute {
-				return fmt.Errorf("error adding route for service %s: %s", service.Name, err)
+			if err := r.manageServiceRoutes(s, action, metric); err != nil {
+				return err
 			}
 		}
 	}
@@ -160,39 +174,8 @@ func (r *router) watchServices(w registry.Watcher) error {
 
 		log.Logf("r.watchServices() new service event: Action: %s Service: %v", res.Action, res.Service)
 
-		switch res.Action {
-		case "create":
-			// range over the flat slice of nodes
-			for _, node := range res.Service.Nodes {
-				gateway := node.Address
-				if node.Port > 0 {
-					gateway = fmt.Sprintf("%s:%d", node.Address, node.Port)
-				}
-				route := Route{
-					Destination: res.Service.Name,
-					Gateway:     gateway,
-					Router:      r.opts.Address,
-					Network:     r.opts.Network,
-					Metric:      DefaultLocalMetric,
-				}
-				if err := r.opts.Table.Add(route); err != nil && err != ErrDuplicateRoute {
-					return fmt.Errorf("error adding route for service %s: %s", res.Service.Name, err)
-				}
-			}
-		case "delete":
-			for _, node := range res.Service.Nodes {
-				route := Route{
-					Destination: res.Service.Name,
-					Gateway:     node.Address,
-					Router:      r.opts.Address,
-					Network:     r.opts.Network,
-					Metric:      DefaultLocalMetric,
-				}
-				// only return error if the route is not in the table, but something else has failed
-				if err := r.opts.Table.Delete(route); err != nil && err != ErrRouteNotFound {
-					return fmt.Errorf("failed adding route for service %v: %s", res.Service.Name, err)
-				}
-			}
+		if err := r.manageServiceRoutes(res.Service, res.Action, DefaultLocalMetric); err != nil {
+			return err
 		}
 	}
 
@@ -431,8 +414,8 @@ func (r *router) Advertise() (<-chan *Advert, error) {
 	defer r.Unlock()
 
 	if r.status.Code != Running {
-		// add local service routes into the routing table
-		if err := r.addServiceRoutes(r.opts.Registry, "local", DefaultLocalMetric); err != nil {
+		// add all local service routes into the routing table
+		if err := r.manageRegistryRoutes(r.opts.Registry, "insert", DefaultLocalMetric); err != nil {
 			return nil, fmt.Errorf("failed adding routes: %v", err)
 		}
 		log.Logf("Routing table:\n%s", r.opts.Table)
@@ -533,7 +516,7 @@ func (r *router) Update(a *Advert) error {
 			Router:      event.Route.Router,
 			Network:     event.Route.Network,
 			Metric:      event.Route.Metric,
-			Policy:      AddIfNotExists,
+			Policy:      Insert,
 		}
 		if err := r.opts.Table.Update(route); err != nil {
 			return fmt.Errorf("failed updating routing table: %v", err)
