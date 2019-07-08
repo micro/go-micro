@@ -43,6 +43,7 @@ func (n *network) Create() (*Node, error) {
 		Address: ip,
 		Metadata: map[string]string{
 			"network": n.Name(),
+			"transport": n.transport.String(),
 		},
 	}, nil
 }
