@@ -313,8 +313,7 @@ func (s *rpcServer) Register() error {
 	// register service
 	node := &registry.Node{
 		Id:       config.Name + "-" + config.Id,
-		Address:  addr,
-		Port:     port,
+		Address:  fmt.Sprintf("%s:%d", addr, port),
 		Metadata: md,
 	}
 
@@ -441,8 +440,7 @@ func (s *rpcServer) Deregister() error {
 
 	node := &registry.Node{
 		Id:      config.Name + "-" + config.Id,
-		Address: addr,
-		Port:    port,
+		Address: fmt.Sprintf("%s:%d", addr, port),
 	}
 
 	service := &registry.Service{

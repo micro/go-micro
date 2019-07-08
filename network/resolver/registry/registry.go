@@ -2,8 +2,6 @@
 package registry
 
 import (
-	"fmt"
-
 	"github.com/micro/go-micro/network/resolver"
 	"github.com/micro/go-micro/registry"
 )
@@ -29,13 +27,8 @@ func (r *Resolver) Resolve(id string) ([]*resolver.Record, error) {
 
 	for _, service := range services {
 		for _, node := range service.Nodes {
-			addr := node.Address
-			// such a hack
-			if node.Port > 0 {
-				addr = fmt.Sprintf("%s:%d", node.Address, node.Port)
-			}
 			records = append(records, &resolver.Record{
-				Address: addr,
+				Address: node.Address,
 			})
 		}
 	}

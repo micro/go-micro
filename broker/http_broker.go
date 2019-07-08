@@ -543,7 +543,7 @@ func (h *httpBroker) Publish(topic string, msg *Message, opts ...PublishOption) 
 		vals := url.Values{}
 		vals.Add("id", node.Id)
 
-		uri := fmt.Sprintf("%s://%s:%d%s?%s", scheme, node.Address, node.Port, DefaultSubPath, vals.Encode())
+		uri := fmt.Sprintf("%s://%s%s?%s", scheme, node.Address, DefaultSubPath, vals.Encode())
 		r, err := h.c.Post(uri, "application/json", bytes.NewReader(b))
 		if err != nil {
 			return err
@@ -638,8 +638,7 @@ func (h *httpBroker) Subscribe(topic string, handler Handler, opts ...SubscribeO
 	// register service
 	node := &registry.Node{
 		Id:      id,
-		Address: addr,
-		Port:    port,
+		Address: fmt.Sprintf("%s:%d", addr, port),
 		Metadata: map[string]string{
 			"secure": fmt.Sprintf("%t", secure),
 		},

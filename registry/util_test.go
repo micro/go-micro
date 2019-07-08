@@ -12,8 +12,7 @@ func TestRemove(t *testing.T) {
 			Nodes: []*Node{
 				{
 					Id:      "foo-123",
-					Address: "localhost",
-					Port:    9999,
+					Address: "localhost:9999",
 				},
 			},
 		},
@@ -23,8 +22,7 @@ func TestRemove(t *testing.T) {
 			Nodes: []*Node{
 				{
 					Id:      "foo-123",
-					Address: "localhost",
-					Port:    6666,
+					Address: "localhost:6666",
 				},
 			},
 		},
@@ -45,13 +43,11 @@ func TestRemoveNodes(t *testing.T) {
 			Nodes: []*Node{
 				{
 					Id:      "foo-123",
-					Address: "localhost",
-					Port:    9999,
+					Address: "localhost:9999",
 				},
 				{
 					Id:      "foo-321",
-					Address: "localhost",
-					Port:    6666,
+					Address: "localhost:6666",
 				},
 			},
 		},
@@ -61,8 +57,7 @@ func TestRemoveNodes(t *testing.T) {
 			Nodes: []*Node{
 				{
 					Id:      "foo-123",
-					Address: "localhost",
-					Port:    6666,
+					Address: "localhost:6666",
 				},
 			},
 		},

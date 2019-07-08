@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"sync"
@@ -102,8 +103,7 @@ func (cw *consulWatcher) serviceHandler(idx uint64, data interface{}) {
 
 		svc.Nodes = append(svc.Nodes, &registry.Node{
 			Id:       id,
-			Address:  address,
-			Port:     e.Service.Port,
+			Address:  fmt.Sprintf("%s:%d", address, e.Service.Port),
 			Metadata: decodeMetadata(e.Service.Tags),
 		})
 	}

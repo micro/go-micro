@@ -1,6 +1,7 @@
 package registry
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/micro/mdns"
@@ -52,8 +53,7 @@ func (m *mdnsWatcher) Next() (*Result, error) {
 
 			service.Nodes = append(service.Nodes, &Node{
 				Id:       strings.TrimSuffix(e.Name, "."+service.Name+".local."),
-				Address:  e.AddrV4.String(),
-				Port:     e.Port,
+				Address:  fmt.Sprintf("%s:%d", e.AddrV4.String(), e.Port),
 				Metadata: txt.Metadata,
 			})
 

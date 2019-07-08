@@ -2,6 +2,7 @@ package web
 
 import (
 	"crypto/tls"
+	"fmt"
 	"net"
 	"net/http"
 	"os"
@@ -83,8 +84,7 @@ func (s *service) genSrv() *registry.Service {
 		Version: s.opts.Version,
 		Nodes: []*registry.Node{&registry.Node{
 			Id:       s.opts.Id,
-			Address:  addr,
-			Port:     port,
+			Address:  fmt.Sprintf("%s:%d", addr, port),
 			Metadata: s.opts.Metadata,
 		}},
 	}

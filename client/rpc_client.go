@@ -4,9 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"net"
 	"os"
-	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -60,9 +58,6 @@ func (r *rpcClient) newCodec(contentType string) (codec.NewCodec, error) {
 
 func (r *rpcClient) call(ctx context.Context, node *registry.Node, req Request, resp interface{}, opts CallOptions) error {
 	address := node.Address
-	if node.Port > 0 {
-		address = fmt.Sprintf("%s:%d", address, node.Port)
-	}
 
 	msg := &transport.Message{
 		Header: make(map[string]string),
@@ -160,9 +155,6 @@ func (r *rpcClient) call(ctx context.Context, node *registry.Node, req Request, 
 
 func (r *rpcClient) stream(ctx context.Context, node *registry.Node, req Request, opts CallOptions) (Stream, error) {
 	address := node.Address
-	if node.Port > 0 {
-		address = fmt.Sprintf("%s:%d", address, node.Port)
-	}
 
 	msg := &transport.Message{
 		Header: make(map[string]string),
@@ -290,19 +282,9 @@ func (r *rpcClient) next(request Request, opts CallOptions) (selector.Next, erro
 	if len(opts.Address) > 0 {
 		var nodes []*registry.Node
 
-		for _, addr := range opts.Address {
-			address := addr
-			port := 0
-
-			host, sport, err := net.SplitHostPort(addr)
-			if err == nil {
-				address = host
-				port, _ = strconv.Atoi(sport)
-			}
-
+		for _, address := range opts.Address {
 			nodes = append(nodes, &registry.Node{
 				Address: address,
-				Port:    port,
 				// Set the protocol
 				Metadata: map[string]string{
 					"protocol": "mucp",

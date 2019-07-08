@@ -3,7 +3,6 @@ package mucp
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"os"
 	"strings"
@@ -157,11 +156,7 @@ func (p *Proxy) getRoute(service string) ([]string, error) {
 
 		for _, service := range services {
 			for _, node := range service.Nodes {
-				addr := node.Address
-				if node.Port > 0 {
-					addr = fmt.Sprintf("%s:%d", node.Address, node.Port)
-				}
-				addrs = append(addrs, addr)
+				addrs = append(addrs, node.Address)
 			}
 		}
 	}

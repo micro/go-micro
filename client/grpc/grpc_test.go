@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"strconv"
 	"strings"
@@ -50,8 +51,7 @@ func TestGRPCClient(t *testing.T) {
 		Nodes: []*registry.Node{
 			&registry.Node{
 				Id:      "test-1",
-				Address: addr,
-				Port:    port,
+				Address: fmt.Sprintf("%s:%d", addr, port),
 			},
 		},
 	})

@@ -3,11 +3,8 @@ package router
 
 import (
 	"context"
-	"fmt"
-	"net"
 	"os"
 	"sort"
-	"strconv"
 	"sync"
 
 	"github.com/micro/go-micro/client"
@@ -67,11 +64,7 @@ func (r *routerSelector) getRoutes(service string) ([]router.Route, error) {
 
 		for _, service := range services {
 			for _, node := range service.Nodes {
-				addr := node.Address
-				if node.Port > 0 {
-					addr = fmt.Sprintf("%s:%d", node.Address, node.Port)
-				}
-				addrs = append(addrs, addr)
+				addrs = append(addrs, node.Address)
 			}
 		}
 	}
@@ -168,23 +161,11 @@ func (r *routerSelector) Select(service string, opts ...selector.SelectOption) (
 
 		// defaults to gateway and no port
 		address := route.Gateway
-		port := 0
-
-		// check if its host:port
-		host, pr, err := net.SplitHostPort(address)
-		if err == nil {
-			pp, _ := strconv.Atoi(pr)
-			// set port
-			port = pp
-			// set address
-			address = host
-		}
 
 		// return as a node
 		return &registry.Node{
 			// TODO: add id and metadata if we can
 			Address: address,
-			Port:    port,
 		}, nil
 	}, nil
 }

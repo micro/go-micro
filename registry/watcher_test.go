@@ -12,8 +12,7 @@ func TestWatcher(t *testing.T) {
 			Nodes: []*Node{
 				&Node{
 					Id:      "test1-1",
-					Address: "10.0.0.1",
-					Port:    10001,
+					Address: "10.0.0.1:10001",
 					Metadata: map[string]string{
 						"foo": "bar",
 					},
@@ -26,8 +25,7 @@ func TestWatcher(t *testing.T) {
 			Nodes: []*Node{
 				&Node{
 					Id:      "test2-1",
-					Address: "10.0.0.2",
-					Port:    10002,
+					Address: "10.0.0.2:10002",
 					Metadata: map[string]string{
 						"foo2": "bar2",
 					},
@@ -40,8 +38,7 @@ func TestWatcher(t *testing.T) {
 			Nodes: []*Node{
 				&Node{
 					Id:      "test3-1",
-					Address: "10.0.0.3",
-					Port:    10003,
+					Address: "10.0.0.3:10003",
 					Metadata: map[string]string{
 						"foo3": "bar3",
 					},
@@ -76,10 +73,6 @@ func TestWatcher(t *testing.T) {
 
 		if node.Address != service.Nodes[0].Address {
 			t.Fatalf("Expected node address %s got %s", service.Nodes[0].Address, node.Address)
-		}
-
-		if node.Port != service.Nodes[0].Port {
-			t.Fatalf("Expected node port %d got %d", service.Nodes[0].Port, node.Port)
 		}
 	}
 

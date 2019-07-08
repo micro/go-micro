@@ -4,7 +4,6 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
-	"strconv"
 	"testing"
 
 	"github.com/micro/go-micro/registry"
@@ -30,16 +29,12 @@ func TestRoundTripper(t *testing.T) {
 
 	go http.Serve(l, nil)
 
-	host, p, _ := net.SplitHostPort(l.Addr().String())
-	port, _ := strconv.Atoi(p)
-
 	m.Register(&registry.Service{
 		Name: "example.com",
 		Nodes: []*registry.Node{
 			{
 				Id:      "1",
-				Address: host,
-				Port:    port,
+				Address: l.Addr().String(),
 			},
 		},
 	})
