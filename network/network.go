@@ -54,7 +54,7 @@ type Message struct {
 
 var (
 	// The default network name is local
-	DefaultName = "local"
+	DefaultName = "go.micro"
 
 	// just the standard network element
 	DefaultNetwork = NewNetwork()
