@@ -1,7 +1,11 @@
 // Package router provides a network routing control plane
 package router
 
-import "time"
+import (
+	"time"
+
+	"github.com/micro/go-micro/network/router/table"
+)
 
 var (
 	// DefaultRouter is default network router
@@ -17,7 +21,7 @@ type Router interface {
 	// ID returns the ID of the router
 	ID() string
 	// Table returns the routing table
-	Table() Table
+	Table() table.Table
 	// Address returns the router adddress
 	Address() string
 	// Network returns the network address of the router
@@ -65,8 +69,8 @@ type Advert struct {
 	ID string
 	// Timestamp marks the time when the update is sent
 	Timestamp time.Time
-	// Events is a list of events to advertise
-	Events []*Event
+	// Events is a list of routing table events to advertise
+	Events []*table.Event
 }
 
 // StatusCode defines router status

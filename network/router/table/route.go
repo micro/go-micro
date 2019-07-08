@@ -1,4 +1,4 @@
-package router
+package table
 
 import (
 	"fmt"

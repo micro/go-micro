@@ -2,6 +2,7 @@ package router
 
 import (
 	"github.com/google/uuid"
+	"github.com/micro/go-micro/network/router/table"
 	"github.com/micro/go-micro/registry"
 )
 
@@ -25,7 +26,7 @@ type Options struct {
 	// Registry is the local registry
 	Registry registry.Registry
 	// Table is routing table
-	Table Table
+	Table table.Table
 }
 
 // ID sets Router ID
@@ -57,7 +58,7 @@ func Gateway(g string) Option {
 }
 
 // RoutingTable sets the routing table
-func RoutingTable(t Table) Option {
+func RoutingTable(t table.Table) Option {
 	return func(o *Options) {
 		o.Table = t
 	}
@@ -77,6 +78,6 @@ func DefaultOptions() Options {
 		Address:  DefaultAddress,
 		Network:  DefaultNetwork,
 		Registry: registry.DefaultRegistry,
-		Table:    NewTable(),
+		Table:    table.NewTable(),
 	}
 }

@@ -1,4 +1,4 @@
-package router
+package table
 
 import (
 	"fmt"
@@ -67,21 +67,21 @@ func (t *table) Add(r Route) error {
 	if _, ok := t.m[destAddr]; !ok {
 		t.m[destAddr] = make(map[uint64]Route)
 		t.m[destAddr][sum] = r
-		go t.sendEvent(&Event{Type: CreateEvent, Route: r})
+		go t.sendEvent(&Event{Type: Create, Route: r})
 		return nil
 	}
 
 	// add new route to the table for the route destination
 	if _, ok := t.m[destAddr][sum]; !ok {
 		t.m[destAddr][sum] = r
-		go t.sendEvent(&Event{Type: CreateEvent, Route: r})
+		go t.sendEvent(&Event{Type: Create, Route: r})
 		return nil
 	}
 
 	// only add the route if the route override is explicitly requested
 	if _, ok := t.m[destAddr][sum]; ok && r.Policy == Override {
 		t.m[destAddr][sum] = r
-		go t.sendEvent(&Event{Type: UpdateEvent, Route: r})
+		go t.sendEvent(&Event{Type: Update, Route: r})
 		return nil
 	}
 
@@ -107,7 +107,7 @@ func (t *table) Delete(r Route) error {
 	}
 
 	delete(t.m[destAddr], sum)
-	go t.sendEvent(&Event{Type: DeleteEvent, Route: r})
+	go t.sendEvent(&Event{Type: Delete, Route: r})
 
 	return nil
 }
@@ -125,7 +125,7 @@ func (t *table) Update(r Route) error {
 		if r.Policy == Insert {
 			t.m[destAddr] = make(map[uint64]Route)
 			t.m[destAddr][sum] = r
-			go t.sendEvent(&Event{Type: CreateEvent, Route: r})
+			go t.sendEvent(&Event{Type: Create, Route: r})
 			return nil
 		}
 		return ErrRouteNotFound
@@ -135,14 +135,14 @@ func (t *table) Update(r Route) error {
 	// NOTE: We only insert the route if explicitly requested by the client
 	if _, ok := t.m[destAddr][sum]; !ok && r.Policy == Insert {
 		t.m[destAddr][sum] = r
-		go t.sendEvent(&Event{Type: CreateEvent, Route: r})
+		go t.sendEvent(&Event{Type: Create, Route: r})
 		return nil
 	}
 
 	// if the route has been found update it
 	if _, ok := t.m[destAddr][sum]; ok {
 		t.m[destAddr][sum] = r
-		go t.sendEvent(&Event{Type: UpdateEvent, Route: r})
+		go t.sendEvent(&Event{Type: Update, Route: r})
 		return nil
 	}
 

@@ -1,4 +1,4 @@
-package router
+package table
 
 import (
 	"errors"
@@ -19,22 +19,22 @@ var (
 type EventType int
 
 const (
-	// CreateEvent is emitted when a new route has been created
-	CreateEvent EventType = iota
-	// DeleteEvent is emitted when an existing route has been deleted
-	DeleteEvent
-	// UpdateEvent is emitted when an existing route has been updated
-	UpdateEvent
+	// Create is emitted when a new route has been created
+	Create EventType = iota
+	// Delete is emitted when an existing route has been deleted
+	Delete
+	// Update is emitted when an existing route has been updated
+	Update
 )
 
 // String returns string representation of the event
 func (et EventType) String() string {
 	switch et {
-	case CreateEvent:
+	case Create:
 		return "CREATE"
-	case DeleteEvent:
+	case Delete:
 		return "DELETE"
-	case UpdateEvent:
+	case Update:
 		return "UPDATE"
 	default:
 		return "UNKNOWN"
@@ -53,7 +53,7 @@ type Event struct {
 
 // String prints human readable Event
 func (e Event) String() string {
-	return fmt.Sprintf("[EVENT] Type: %s\nRoute:\n%s", e.Type, e.Route)
+	return fmt.Sprintf("[EVENT] %s:\nRoute:\n%s", e.Type, e.Route)
 }
 
 // WatchOption is used to define what routes to watch in the table
