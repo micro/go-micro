@@ -90,6 +90,7 @@ func NewQuery(opts ...QueryOption) Query {
 	// NOTE: by default we use DefaultNetworkMetric
 	qopts := QueryOptions{
 		Destination: "*",
+		Router:      "*",
 		Network:     "*",
 		Policy:      DiscardIfNone,
 	}

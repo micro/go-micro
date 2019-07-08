@@ -15,18 +15,20 @@ import (
 )
 
 const (
-	// UpdateRoutePenalty penalises route updates
-	UpdateRoutePenalty = 500
-	// DeleteRoutePenalty penalises route deletes
-	DeleteRoutePenalty = 1000
 	// AdvertiseTick is time interval in which we advertise route updates
 	AdvertiseTick = 5 * time.Second
 	// AdvertSuppress is advert suppression threshold
 	AdvertSuppress = 2000
-	// AdvertRecover is advert suppression recovery threshold
+	// AdvertRecover is advert recovery threshold
 	AdvertRecover = 750
-	// PenaltyDecay is the "half-life" of the penalty
+	// DefaultAdvertTTL is default advertisement TTL
+	DefaultAdvertTTL = time.Minute
+	// PenaltyDecay is the penalty decay
 	PenaltyDecay = 1.15
+	// Delete penalises route addition and deletion
+	Delete = 1000
+	// UpdatePenalty penalises route updates
+	UpdatePenalty = 500
 )
 
 // router provides default router implementation
@@ -93,8 +95,8 @@ func (r *router) Network() string {
 	return r.opts.Network
 }
 
-// manageServiceRoutes manages the routes for a given service.
-// It returns error of the routing table action fails with error.
+// manageServiceRoutes manages routes for a given service.
+// It returns error of the routing table action fails.
 func (r *router) manageServiceRoutes(service *registry.Service, action string, metric int) error {
 	// action is the routing table action
 	action = strings.ToLower(action)
@@ -124,7 +126,7 @@ func (r *router) manageServiceRoutes(service *registry.Service, action string, m
 }
 
 // manageRegistryRoutes manages routes for each service found in the registry.
-// It returns error if either the services failed to be listed or if the routing table action fails wirh error
+// It returns error if either the services failed to be listed or the routing table action fails.
 func (r *router) manageRegistryRoutes(reg registry.Registry, action string, metric int) error {
 	services, err := reg.ListServices()
 	if err != nil {
@@ -222,19 +224,32 @@ func (r *router) watchTable(w table.Watcher) error {
 	return watchErr
 }
 
-func eventFlap(curr, prev *table.Event) bool {
+// isFlapping detects if the event is flapping based on the current and previous event status.
+func isFlapping(curr, prev *table.Event) bool {
 	if curr.Type == table.Update && prev.Type == table.Update {
-		// update flap: this can be either metric or whatnot
-		log.Logf("eventFlap(): Update flap")
+		log.Logf("isFlapping(): Update flap")
 		return true
 	}
 
-	if curr.Type == table.Create && prev.Type == table.Delete || curr.Type == table.Delete && prev.Type == table.Create {
-		log.Logf("eventFlap(): Create/Delete flap")
+	if curr.Type == table.Insert && prev.Type == table.Delete || curr.Type == table.Delete && prev.Type == table.Insert {
+		log.Logf("isFlapping(): Create/Delete flap")
 		return true
 	}
 
 	return false
+}
+
+// updateEvent is a table event enriched with advertisement data
+type updateEvent struct {
+	*table.Event
+	// timestamp marks the time the event has been received
+	timestamp time.Time
+	// penalty is current event penalty
+	penalty float64
+	// isSuppressed flags if the event should be considered for flap detection
+	isSuppressed bool
+	// isFlapping marks the event as flapping event
+	isFlapping bool
 }
 
 // processEvents processes routing table events.
@@ -242,46 +257,27 @@ func eventFlap(curr, prev *table.Event) bool {
 func (r *router) processEvents() error {
 	// ticker to periodically scan event for advertising
 	ticker := time.NewTicker(AdvertiseTick)
-
-	// advertEvent is a table event enriched with advert data
-	type advertEvent struct {
-		*table.Event
-		timestamp    time.Time
-		penalty      float64
-		isSuppressed bool
-		isFlapping   bool
-	}
-
-	// eventMap is a map of advert events that might end up being advertised
-	eventMap := make(map[uint64]*advertEvent)
+	// eventMap is a map of advert events
+	eventMap := make(map[uint64]*updateEvent)
 	// lock to protect access to eventMap
 	mu := &sync.RWMutex{}
 	// waitgroup to manage advertisement goroutines
 	var wg sync.WaitGroup
 
-process:
+processLoop:
 	for {
 		select {
 		case <-ticker.C:
 			var events []*table.Event
-			// decay the penalties of existing events
+			// collect all events which are not flapping
 			mu.Lock()
-			for advert, event := range eventMap {
-				delta := time.Since(event.timestamp).Seconds()
-				event.penalty = event.penalty * math.Exp(delta)
-				// suppress or recover the event based on its current penalty
-				if !event.isSuppressed && event.penalty > AdvertSuppress {
-					event.isSuppressed = true
-				} else if event.penalty < AdvertRecover {
-					event.isSuppressed = false
-					event.isFlapping = false
-				}
-				if !event.isFlapping {
+			for key, event := range eventMap {
+				if !event.isFlapping && !event.isSuppressed {
 					e := new(table.Event)
 					*e = *event.Event
 					events = append(events, e)
 					// this deletes the advertised event from the map
-					delete(eventMap, advert)
+					delete(eventMap, key)
 				}
 			}
 			mu.Unlock()
@@ -301,12 +297,6 @@ process:
 
 					select {
 					case r.advertChan <- a:
-						mu.Lock()
-						// once we've advertised the events, we need to delete them
-						for _, event := range a.Events {
-							delete(eventMap, event.Route.Hash())
-						}
-						mu.Unlock()
 					case <-r.exit:
 						log.Logf("go advertise(): exit")
 						return
@@ -315,7 +305,9 @@ process:
 				}(events)
 			}
 		case e := <-r.eventChan:
-			// if event is nil, break
+			// event timestamp
+			now := time.Now()
+			// if event is nil, continue
 			if e == nil {
 				continue
 			}
@@ -324,15 +316,15 @@ process:
 			var penalty float64
 			switch e.Type {
 			case table.Update:
-				penalty = UpdateRoutePenalty
-			case table.Create, table.Delete:
-				penalty = DeleteRoutePenalty
+				penalty = UpdatePenalty
+			case table.Delete:
+				penalty = Delete
 			}
 			// we use route hash as eventMap key
 			hash := e.Route.Hash()
 			event, ok := eventMap[hash]
 			if !ok {
-				event = &advertEvent{
+				event = &updateEvent{
 					Event:     e,
 					penalty:   penalty,
 					timestamp: time.Now(),
@@ -342,8 +334,8 @@ process:
 			}
 			// update penalty for existing event: decay existing and add new penalty
 			delta := time.Since(event.timestamp).Seconds()
-			event.penalty = event.penalty*math.Exp(delta) + penalty
-			event.timestamp = time.Now()
+			event.penalty = event.penalty*math.Exp(-delta) + penalty
+			event.timestamp = now
 			// suppress or recover the event based on its current penalty
 			if !event.isSuppressed && event.penalty > AdvertSuppress {
 				event.isSuppressed = true
@@ -352,11 +344,11 @@ process:
 			}
 			// if not suppressed decide if if its flapping
 			if !event.isSuppressed {
-				// detect if its flapping
-				event.isFlapping = eventFlap(e, event.Event)
+				// detect if its flapping by comparing current and previous event
+				event.isFlapping = isFlapping(e, event.Event)
 			}
 		case <-r.exit:
-			break process
+			break processLoop
 		}
 	}
 
@@ -438,8 +430,7 @@ func (r *router) Advertise() (<-chan *Advert, error) {
 			}
 		}
 
-		// NOTE: we only need to recreate the exit/advertChan if the router errored or was stopped
-		// TODO: these channels most likely won't have to be the struct fields
+		// NOTE: we only need to recreate these if the router errored or was stopped
 		if r.status.Code == Error || r.status.Code == Stopped {
 			r.exit = make(chan struct{})
 			r.eventChan = make(chan *table.Event)
@@ -490,6 +481,9 @@ func (r *router) Advertise() (<-chan *Advert, error) {
 		r.wg.Add(1)
 		go r.watchErrors(errChan)
 
+		// TODO: send router announcement update comes here
+		// the announcement update contains routes from routing table
+
 		// mark router as running and set its Error to nil
 		status := Status{
 			Code:  Running,
@@ -520,7 +514,6 @@ func (r *router) Update(a *Advert) error {
 			Router:      event.Route.Router,
 			Network:     event.Route.Network,
 			Metric:      event.Route.Metric,
-			Policy:      table.Insert,
 		}
 		if err := r.opts.Table.Update(route); err != nil {
 			return fmt.Errorf("failed updating routing table: %v", err)

@@ -18,6 +18,7 @@ import (
 	"github.com/micro/go-micro/server"
 
 	pb "github.com/micro/go-micro/network/router/proto"
+	"github.com/micro/go-micro/network/router/table"
 )
 
 // Proxy will transparently proxy requests to an endpoint.
@@ -40,7 +41,7 @@ type Proxy struct {
 
 	// A fib of routes service:address
 	sync.RWMutex
-	Routes map[string][]router.Route
+	Routes map[string][]table.Route
 }
 
 // read client request and write to server
@@ -80,7 +81,7 @@ func readLoop(r server.Request, s client.Stream) error {
 
 func (p *Proxy) getRoute(service string) ([]string, error) {
 	// converts routes to just addresses
-	toNodes := func(routes []router.Route) []string {
+	toNodes := func(routes []table.Route) []string {
 		var nodes []string
 		for _, node := range routes {
 			nodes = append(nodes, node.Gateway)
@@ -106,7 +107,7 @@ func (p *Proxy) getRoute(service string) ([]string, error) {
 	if p.Router != nil {
 		// lookup the router
 		routes, err := p.Router.Table().Lookup(
-			router.NewQuery(router.QueryDestination(service)),
+			table.NewQuery(table.QueryDestination(service)),
 		)
 		if err != nil {
 			return nil, err
@@ -114,7 +115,7 @@ func (p *Proxy) getRoute(service string) ([]string, error) {
 
 		p.Lock()
 		if p.Routes == nil {
-			p.Routes = make(map[string][]router.Route)
+			p.Routes = make(map[string][]table.Route)
 		}
 		p.Routes[service] = routes
 		p.Unlock()
@@ -203,7 +204,7 @@ func (p *Proxy) getRoute(service string) ([]string, error) {
 
 	// convert from pb to []*router.Route
 	for _, r := range pbRoutes.Routes {
-		routes = append(routes, router.Route{
+		routes = append(routes, table.Route{
 			Destination: r.Destination,
 			Gateway:     r.Gateway,
 			Router:      r.Router,

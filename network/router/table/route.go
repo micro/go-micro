@@ -15,46 +15,18 @@ var (
 	DefaultNetworkMetric = 10
 )
 
-// RoutePolicy defines routing table policy
-type RoutePolicy int
-
-const (
-	// Insert inserts a new route if it does not already exist
-	Insert RoutePolicy = iota
-	// Override overrides the route if it already exists
-	Override
-	// Skip skips modifying the route if it already exists
-	Skip
-)
-
-// String returns human reprensentation of policy
-func (p RoutePolicy) String() string {
-	switch p {
-	case Insert:
-		return "INSERT"
-	case Override:
-		return "OVERRIDE"
-	case Skip:
-		return "SKIP"
-	default:
-		return "UNKNOWN"
-	}
-}
-
 // Route is network route
 type Route struct {
 	// Destination is destination address
 	Destination string
 	// Gateway is route gateway
 	Gateway string
-	// Router is the router address
-	Router string
 	// Network is network address
 	Network string
+	// Router is the router address
+	Router string
 	// Metric is the route cost metric
 	Metric int
-	// Policy defines route policy
-	Policy RoutePolicy
 }
 
 // Hash returns route hash sum.

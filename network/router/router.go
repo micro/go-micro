@@ -20,12 +20,12 @@ type Router interface {
 	Options() Options
 	// ID returns the ID of the router
 	ID() string
-	// Table returns the routing table
-	Table() table.Table
 	// Address returns the router adddress
 	Address() string
 	// Network returns the network address of the router
 	Network() string
+	// Table returns the routing table
+	Table() table.Table
 	// Advertise advertises routes to the network
 	Advertise() (<-chan *Advert, error)
 	// Update updates the routing table
@@ -69,6 +69,9 @@ type Advert struct {
 	ID string
 	// Timestamp marks the time when the update is sent
 	Timestamp time.Time
+	// TTL is Advert TTL
+	// TODO: not used
+	TTL time.Time
 	// Events is a list of routing table events to advertise
 	Events []*table.Event
 }

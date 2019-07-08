@@ -11,6 +11,7 @@ import (
 	"github.com/micro/go-micro/client/selector"
 	"github.com/micro/go-micro/network/router"
 	pb "github.com/micro/go-micro/network/router/proto"
+	"github.com/micro/go-micro/network/router/table"
 	"github.com/micro/go-micro/registry"
 )
 
@@ -40,11 +41,11 @@ type clientKey struct{}
 type routerKey struct{}
 
 // getRoutes returns the routes whether they are remote or local
-func (r *routerSelector) getRoutes(service string) ([]router.Route, error) {
+func (r *routerSelector) getRoutes(service string) ([]table.Route, error) {
 	if !r.remote {
 		// lookup router for routes for the service
-		return r.r.Table().Lookup(router.NewQuery(
-			router.QueryDestination(service),
+		return r.r.Table().Lookup(table.NewQuery(
+			table.QueryDestination(service),
 		))
 	}
 
@@ -101,11 +102,11 @@ func (r *routerSelector) getRoutes(service string) ([]router.Route, error) {
 		return nil, selector.ErrNoneAvailable
 	}
 
-	var routes []router.Route
+	var routes []table.Route
 
 	// convert from pb to []*router.Route
 	for _, r := range pbRoutes.Routes {
-		routes = append(routes, router.Route{
+		routes = append(routes, table.Route{
 			Destination: r.Destination,
 			Gateway:     r.Gateway,
 			Router:      r.Router,

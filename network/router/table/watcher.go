@@ -19,8 +19,8 @@ var (
 type EventType int
 
 const (
-	// Create is emitted when a new route has been created
-	Create EventType = iota
+	// Insert is emitted when a new route has been inserted
+	Insert EventType = iota
 	// Delete is emitted when an existing route has been deleted
 	Delete
 	// Update is emitted when an existing route has been updated
@@ -30,8 +30,8 @@ const (
 // String returns string representation of the event
 func (et EventType) String() string {
 	switch et {
-	case Create:
-		return "CREATE"
+	case Insert:
+		return "INSERT"
 	case Delete:
 		return "DELETE"
 	case Update:
@@ -126,7 +126,7 @@ func (w *tableWatcher) Stop() {
 }
 
 // String prints debug information
-func (w *tableWatcher) String() string {
+func (w tableWatcher) String() string {
 	sb := &strings.Builder{}
 
 	table := tablewriter.NewWriter(sb)
