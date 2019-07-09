@@ -41,19 +41,19 @@ type Router interface {
 // Option used by the router
 type Option func(*Options)
 
-// UpdateType is route advertisement update type
-type UpdateType int
+// AdvertType is route advertisement type
+type AdvertType int
 
 const (
 	// Announce is advertised when the router announces itself
-	Announce UpdateType = iota
+	Announce AdvertType = iota
 	// Update advertises route updates
 	Update
 )
 
 // String returns string representation of update event
-func (ut UpdateType) String() string {
-	switch ut {
+func (at AdvertType) String() string {
+	switch at {
 	case Announce:
 		return "ANNOUNCE"
 	case Update:
@@ -67,6 +67,8 @@ func (ut UpdateType) String() string {
 type Advert struct {
 	// ID is the router ID
 	ID string
+	// Type is type of advert
+	Type AdvertType
 	// Timestamp marks the time when the update is sent
 	Timestamp time.Time
 	// TTL is Advert TTL
