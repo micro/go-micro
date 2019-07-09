@@ -2,7 +2,7 @@ package server
 
 import (
 	"github.com/micro/go-micro/codec"
-	"github.com/micro/go-micro/network/transport"
+	"github.com/micro/go-micro/transport"
 )
 
 type rpcRequest struct {

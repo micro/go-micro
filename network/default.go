@@ -7,7 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/micro/go-micro/config/options"
-	"github.com/micro/go-micro/network/transport"
+	"github.com/micro/go-micro/transport"
 	"github.com/micro/go-micro/util/addr"
 )
 

@@ -16,7 +16,7 @@ import (
 	"github.com/micro/go-micro/codec"
 	"github.com/micro/go-micro/errors"
 	"github.com/micro/go-micro/metadata"
-	"github.com/micro/go-micro/network/transport"
+	"github.com/micro/go-micro/transport"
 	"github.com/micro/go-micro/registry"
 
 	"google.golang.org/grpc"

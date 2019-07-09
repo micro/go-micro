@@ -6,7 +6,7 @@ import (
 	"sync"
 
 	"github.com/google/uuid"
-	"github.com/micro/go-micro/network/transport"
+	"github.com/micro/go-micro/transport"
 )
 
 type link struct {

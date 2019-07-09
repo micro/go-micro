@@ -13,7 +13,7 @@ import (
 	"github.com/micro/go-micro/broker"
 	"github.com/micro/go-micro/codec"
 	"github.com/micro/go-micro/metadata"
-	"github.com/micro/go-micro/network/transport"
+	"github.com/micro/go-micro/transport"
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/util/addr"
 	log "github.com/micro/go-micro/util/log"

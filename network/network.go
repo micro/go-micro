@@ -3,7 +3,7 @@ package network
 
 import (
 	"github.com/micro/go-micro/config/options"
-	"github.com/micro/go-micro/network/transport"
+	"github.com/micro/go-micro/transport"
 )
 
 // Network defines a network interface. The network is a single

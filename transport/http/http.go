@@ -2,7 +2,7 @@
 package http
 
 import (
-	"github.com/micro/go-micro/network/transport"
+	"github.com/micro/go-micro/transport"
 )
 
 // NewTransport returns a new http transport using net/http and supporting http2

@@ -9,7 +9,7 @@ import (
 	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/client/selector"
 	"github.com/micro/go-micro/config/cmd"
-	"github.com/micro/go-micro/network/transport"
+	"github.com/micro/go-micro/transport"
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/server"
 )

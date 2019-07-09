@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/micro/go-micro/network/transport"
+	"github.com/micro/go-micro/transport"
 )
 
 type pool struct {
