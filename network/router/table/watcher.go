@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/micro/go-log"
 	"github.com/olekukonko/tablewriter"
 )
 
@@ -101,7 +100,6 @@ func (w *tableWatcher) Next() (*Event, error) {
 			case res.Route.Service, "*":
 				return res, nil
 			default:
-				log.Logf("no table watcher available to receive the event")
 				continue
 			}
 		case <-w.done:

@@ -8,7 +8,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/micro/go-log"
 	"github.com/micro/go-micro/network/router/table"
 	"github.com/micro/go-micro/registry"
 	"github.com/olekukonko/tablewriter"
@@ -141,7 +140,6 @@ func (r *router) manageRegistryRoutes(reg registry.Registry, action string) erro
 		// get the service to retrieve all its info
 		srvs, err := reg.GetService(service.Name)
 		if err != nil {
-			log.Logf("r.manageRegistryRoutes() GetService() error: %v", err)
 			continue
 		}
 		// manage the routes for all returned services
@@ -178,8 +176,6 @@ func (r *router) watchServices(w registry.Watcher) error {
 			break
 		}
 
-		log.Logf("r.watchServices() new service event: Action: %s Service: %v", res.Action, res.Service)
-
 		if err := r.manageServiceRoutes(res.Service, res.Action); err != nil {
 			return err
 		}
@@ -211,8 +207,6 @@ func (r *router) watchTable(w table.Watcher) error {
 			break
 		}
 
-		log.Logf("r.watchTable() new table event: %s", event)
-
 		select {
 		case <-r.exit:
 			close(r.eventChan)
@@ -230,8 +224,6 @@ func (r *router) watchTable(w table.Watcher) error {
 func (r *router) advertEvents(advType AdvertType, events []*table.Event) {
 	defer r.advertWg.Done()
 
-	log.Logf("r.advertEvents(): start event: %s", advType)
-
 	a := &Advert{
 		ID:        r.ID(),
 		Type:      advType,
@@ -241,24 +233,19 @@ func (r *router) advertEvents(advType AdvertType, events []*table.Event) {
 
 	select {
 	case r.advertChan <- a:
-		log.Logf("r.advertEvents(): advertised event: %s", advType)
 	case <-r.exit:
-		log.Logf("r.advertEvents(): DONE exit")
 		return
 	}
 
-	log.Logf("r.advertEvents(): REGULAR exit")
 }
 
 // isFlapping detects if the event is flapping based on the current and previous event status.
 func isFlapping(curr, prev *table.Event) bool {
 	if curr.Type == table.Update && prev.Type == table.Update {
-		log.Logf("isFlapping(): Update flap")
 		return true
 	}
 
 	if curr.Type == table.Insert && prev.Type == table.Delete || curr.Type == table.Delete && prev.Type == table.Insert {
-		log.Logf("isFlapping(): Create/Delete flap")
 		return true
 	}
 
@@ -312,7 +299,7 @@ func (r *router) processEvents() error {
 			if e == nil {
 				continue
 			}
-			log.Logf("r.processEvents(): event received:\n%s", e)
+
 			// determine the event penalty
 			var penalty float64
 			switch e.Type {
@@ -337,6 +324,7 @@ func (r *router) processEvents() error {
 			delta := time.Since(event.timestamp).Seconds()
 			event.penalty = event.penalty*math.Exp(-delta) + penalty
 			event.timestamp = now
+
 			// suppress or recover the event based on its current penalty
 			if !event.isSuppressed && event.penalty > AdvertSuppress {
 				event.isSuppressed = true
@@ -353,13 +341,11 @@ func (r *router) processEvents() error {
 			r.advertWg.Wait()
 			// close the advert channel
 			close(r.advertChan)
-			log.Logf("r.processEvents(): event processor stopped")
 			return nil
 		}
 	}
 
 	// we probably never reach this place
-	log.Logf("r.processEvents(): event processor stopped")
 
 	return nil
 }
@@ -367,8 +353,6 @@ func (r *router) processEvents() error {
 // watchErrors watches router errors and takes appropriate actions
 func (r *router) watchErrors(errChan <-chan error) {
 	defer r.wg.Done()
-
-	log.Logf("r.manage(): manage start")
 
 	var code StatusCode
 	var err error
@@ -379,8 +363,6 @@ func (r *router) watchErrors(errChan <-chan error) {
 	case err = <-errChan:
 		code = Error
 	}
-
-	log.Logf("r.watchErrors(): watchErrors exiting")
 
 	r.Lock()
 	defer r.Unlock()
@@ -397,14 +379,11 @@ func (r *router) watchErrors(errChan <-chan error) {
 		// drain the advertise channel
 		for range r.advertChan {
 		}
-		log.Logf("r.watchErrors(): advert channel drained")
 		// drain the event channel
 		for range r.eventChan {
 		}
-		log.Logf("r.watchErrors(): event channel drained")
 	}
 
-	log.Logf("r.watchErrors(): watchErrors exit")
 }
 
 // Advertise advertises the routes to the network.
@@ -418,7 +397,6 @@ func (r *router) Advertise() (<-chan *Advert, error) {
 		if err := r.manageRegistryRoutes(r.opts.Registry, "insert"); err != nil {
 			return nil, fmt.Errorf("failed adding routes: %s", err)
 		}
-		log.Logf("Routing table:\n%s", r.opts.Table)
 
 		// list routing table routes to announce
 		routes, err := r.opts.Table.List()
@@ -476,28 +454,22 @@ func (r *router) Advertise() (<-chan *Advert, error) {
 		r.wg.Add(1)
 		go func() {
 			defer r.wg.Done()
-			log.Logf("r.Advertise(): r.watchServices() start")
 			// watch local registry and register routes in routine table
 			errChan <- r.watchServices(svcWatcher)
-			log.Logf("r.Advertise(): r.watchServices() exit")
 		}()
 
 		r.wg.Add(1)
 		go func() {
 			defer r.wg.Done()
-			log.Logf("r.Advertise(): r.watchTable() start")
 			// watch local registry and register routes in routing table
 			errChan <- r.watchTable(tableWatcher)
-			log.Logf("r.Advertise(): r.watchTable() exit")
 		}()
 
 		r.wg.Add(1)
 		go func() {
 			defer r.wg.Done()
-			log.Logf("r.Advertise(): r.processEvents() start")
 			// listen to routing table events and process them
 			errChan <- r.processEvents()
-			log.Logf("r.Advertise(): r.processEvents() exit")
 		}()
 
 		// watch for errors and cleanup
@@ -554,28 +526,23 @@ func (r *router) Status() Status {
 
 // Stop stops the router
 func (r *router) Stop() error {
-	log.Logf("r.Stop(): Stopping router")
 	r.RLock()
 	// only close the channel if the router is running
 	if r.status.Code == Running {
 		// notify all goroutines to finish
 		close(r.exit)
-		log.Logf("r.Stop(): exit closed")
 		// drain the advertise channel
 		for range r.advertChan {
 		}
-		log.Logf("r.Stop(): advert channel drained")
 		// drain the event channel
 		for range r.eventChan {
 		}
-		log.Logf("r.Stop(): event channel drained")
 	}
 	r.RUnlock()
 
 	// wait for all goroutines to finish
 	r.wg.Wait()
 
-	log.Logf("r.Stop(): Router stopped")
 	return nil
 }
 

@@ -6,7 +6,6 @@ import (
 	"sync"
 
 	"github.com/google/uuid"
-	"github.com/micro/go-log"
 	"github.com/olekukonko/tablewriter"
 )
 
@@ -209,16 +208,12 @@ func (t *table) sendEvent(r *Event) {
 	t.RLock()
 	defer t.RUnlock()
 
-	log.Logf("sending event to %d registered table watchers", len(t.w))
-
 	for _, w := range t.w {
 		select {
 		case w.resChan <- r:
 		case <-w.done:
 		}
 	}
-
-	log.Logf("sending event done")
 }
 
 // Size returns the size of the routing table
