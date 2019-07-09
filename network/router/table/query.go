@@ -34,34 +34,34 @@ type QueryOption func(*QueryOptions)
 
 // QueryOptions are routing table query options
 type QueryOptions struct {
-	// Destination is destination address
-	Destination string
+	// Service is destination service name
+	Service string
+	// Gateway is route gateway
+	Gateway string
 	// Network is network address
 	Network string
-	// Router is router address
-	Router string
 	// Policy is query lookup policy
 	Policy LookupPolicy
 }
 
-// QueryDestination sets destination address
-func QueryDestination(d string) QueryOption {
+// QueryService sets destination address
+func QueryService(s string) QueryOption {
 	return func(o *QueryOptions) {
-		o.Destination = d
+		o.Service = s
+	}
+}
+
+// QueryGateway sets route gateway
+func QueryGateway(g string) QueryOption {
+	return func(o *QueryOptions) {
+		o.Gateway = g
 	}
 }
 
 // QueryNetwork sets route network address
-func QueryNetwork(a string) QueryOption {
+func QueryNetwork(n string) QueryOption {
 	return func(o *QueryOptions) {
-		o.Network = a
-	}
-}
-
-// QueryRouter sets route router address
-func QueryRouter(r string) QueryOption {
-	return func(o *QueryOptions) {
-		o.Router = r
+		o.Network = n
 	}
 }
 
@@ -89,10 +89,10 @@ func NewQuery(opts ...QueryOption) Query {
 	// default options
 	// NOTE: by default we use DefaultNetworkMetric
 	qopts := QueryOptions{
-		Destination: "*",
-		Router:      "*",
-		Network:     "*",
-		Policy:      DiscardIfNone,
+		Service: "*",
+		Gateway: "*",
+		Network: "*",
+		Policy:  DiscardIfNone,
 	}
 
 	for _, o := range opts {
@@ -116,12 +116,12 @@ func (q query) String() string {
 
 	// create nice table printing structure
 	table := tablewriter.NewWriter(sb)
-	table.SetHeader([]string{"Destination", "Network", "Router", "Policy"})
+	table.SetHeader([]string{"Service", "Gateway", "Network", "Policy"})
 
 	strQuery := []string{
-		q.opts.Destination,
+		q.opts.Service,
+		q.opts.Gateway,
 		q.opts.Network,
-		q.opts.Router,
 		fmt.Sprintf("%s", q.opts.Policy),
 	}
 	table.Append(strQuery)

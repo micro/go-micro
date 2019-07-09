@@ -9,6 +9,8 @@ import (
 )
 
 var (
+	// DefaultLink is default network link
+	DefaultLink = "local"
 	// DefaultLocalMetric is default route cost metric for the local network
 	DefaultLocalMetric = 1
 	// DefaultNetworkMetric is default route cost metric for the micro network
@@ -17,14 +19,16 @@ var (
 
 // Route is network route
 type Route struct {
-	// Destination is destination address
-	Destination string
+	// Service is destination service name
+	Service string
+	// Address is service node address
+	Address string
 	// Gateway is route gateway
 	Gateway string
 	// Network is network address
 	Network string
-	// Router is the router address
-	Router string
+	// Link is network link
+	Link string
 	// Metric is the route cost metric
 	Metric int
 }
@@ -33,7 +37,7 @@ type Route struct {
 func (r *Route) Hash() uint64 {
 	h := fnv.New64()
 	h.Reset()
-	h.Write([]byte(r.Destination + r.Gateway + r.Network))
+	h.Write([]byte(r.Service + r.Address + r.Gateway + r.Network + r.Link))
 
 	return h.Sum64()
 }
@@ -45,13 +49,14 @@ func (r Route) String() string {
 
 	// create nice table printing structure
 	table := tablewriter.NewWriter(sb)
-	table.SetHeader([]string{"Destination", "Gateway", "Router", "Network", "Metric"})
+	table.SetHeader([]string{"Service", "Address", "Gateway", "Network", "Link", "Metric"})
 
 	strRoute := []string{
-		r.Destination,
+		r.Service,
+		r.Address,
 		r.Gateway,
-		r.Router,
 		r.Network,
+		r.Link,
 		fmt.Sprintf("%d", r.Metric),
 	}
 	table.Append(strRoute)

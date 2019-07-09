@@ -10,7 +10,7 @@ var (
 	// DefaultAddress is default router address
 	DefaultAddress = ":9093"
 	// DefaultNetwork is default micro network
-	DefaultNetwork = "micro.mu"
+	DefaultNetwork = "go.micro"
 )
 
 // Options are router options
@@ -19,10 +19,10 @@ type Options struct {
 	ID string
 	// Address is router address
 	Address string
-	// Network is micro network
-	Network string
 	// Gateway is micro network gateway
 	Gateway string
+	// Network is micro network
+	Network string
 	// Registry is the local registry
 	Registry registry.Registry
 	// Table is routing table
@@ -43,17 +43,17 @@ func Address(a string) Option {
 	}
 }
 
-// Network sets router network
-func Network(n string) Option {
-	return func(o *Options) {
-		o.Network = n
-	}
-}
-
 // Gateway sets network gateway
 func Gateway(g string) Option {
 	return func(o *Options) {
 		o.Gateway = g
+	}
+}
+
+// Network sets router network
+func Network(n string) Option {
+	return func(o *Options) {
+		o.Network = n
 	}
 }
 

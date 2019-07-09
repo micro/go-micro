@@ -57,23 +57,23 @@ func (t *table) Options() TableOptions {
 
 // Add adds a route to the routing table
 func (t *table) Add(r Route) error {
-	destAddr := r.Destination
+	service := r.Service
 	sum := r.Hash()
 
 	t.Lock()
 	defer t.Unlock()
 
 	// check if there are any routes in the table for the route destination
-	if _, ok := t.m[destAddr]; !ok {
-		t.m[destAddr] = make(map[uint64]Route)
-		t.m[destAddr][sum] = r
+	if _, ok := t.m[service]; !ok {
+		t.m[service] = make(map[uint64]Route)
+		t.m[service][sum] = r
 		go t.sendEvent(&Event{Type: Insert, Route: r})
 		return nil
 	}
 
 	// add new route to the table for the route destination
-	if _, ok := t.m[destAddr][sum]; !ok {
-		t.m[destAddr][sum] = r
+	if _, ok := t.m[service][sum]; !ok {
+		t.m[service][sum] = r
 		go t.sendEvent(&Event{Type: Insert, Route: r})
 		return nil
 	}
@@ -83,17 +83,17 @@ func (t *table) Add(r Route) error {
 
 // Delete deletes the route from the routing table
 func (t *table) Delete(r Route) error {
-	destAddr := r.Destination
+	service := r.Service
 	sum := r.Hash()
 
 	t.Lock()
 	defer t.Unlock()
 
-	if _, ok := t.m[destAddr]; !ok {
+	if _, ok := t.m[service]; !ok {
 		return ErrRouteNotFound
 	}
 
-	delete(t.m[destAddr], sum)
+	delete(t.m[service], sum)
 	go t.sendEvent(&Event{Type: Delete, Route: r})
 
 	return nil
@@ -101,20 +101,20 @@ func (t *table) Delete(r Route) error {
 
 // Update updates routing table with the new route
 func (t *table) Update(r Route) error {
-	destAddr := r.Destination
+	service := r.Service
 	sum := r.Hash()
 
 	t.Lock()
 	defer t.Unlock()
 
 	// check if the route destination has any routes in the table
-	if _, ok := t.m[destAddr]; !ok {
+	if _, ok := t.m[service]; !ok {
 		return ErrRouteNotFound
 	}
 
 	// if the route has been found update it
-	if _, ok := t.m[destAddr][sum]; ok {
-		t.m[destAddr][sum] = r
+	if _, ok := t.m[service][sum]; ok {
+		t.m[service][sum] = r
 		go t.sendEvent(&Event{Type: Update, Route: r})
 		return nil
 	}
@@ -140,7 +140,7 @@ func (t *table) List() ([]Route, error) {
 // isMatch checks if the route matches given network and router
 func isMatch(route Route, network, router string) bool {
 	if network == "*" || network == route.Network {
-		if router == "*" || router == route.Router {
+		if router == "*" || router == route.Gateway {
 			return true
 		}
 	}
@@ -163,18 +163,18 @@ func (t *table) Lookup(q Query) ([]Route, error) {
 	t.RLock()
 	defer t.RUnlock()
 
-	if q.Options().Destination != "*" {
+	if q.Options().Service != "*" {
 		// no routes found for the destination and query policy is not a DiscardIfNone
-		if _, ok := t.m[q.Options().Destination]; !ok && q.Options().Policy != DiscardIfNone {
+		if _, ok := t.m[q.Options().Service]; !ok && q.Options().Policy != DiscardIfNone {
 			return nil, ErrRouteNotFound
 		}
-		return findRoutes(t.m[q.Options().Destination], q.Options().Network, q.Options().Router), nil
+		return findRoutes(t.m[q.Options().Service], q.Options().Network, q.Options().Gateway), nil
 	}
 
 	var results []Route
 	// search through all destinations
 	for _, routes := range t.m {
-		results = append(results, findRoutes(routes, q.Options().Network, q.Options().Router)...)
+		results = append(results, findRoutes(routes, q.Options().Network, q.Options().Gateway)...)
 	}
 
 	return results, nil
@@ -184,7 +184,7 @@ func (t *table) Lookup(q Query) ([]Route, error) {
 func (t *table) Watch(opts ...WatchOption) (Watcher, error) {
 	// by default watch everything
 	wopts := WatchOptions{
-		Destination: "*",
+		Service: "*",
 	}
 
 	for _, o := range opts {
@@ -244,15 +244,16 @@ func (t *table) String() string {
 
 	// create nice table printing structure
 	table := tablewriter.NewWriter(sb)
-	table.SetHeader([]string{"Destination", "Gateway", "Router", "Network", "Metric"})
+	table.SetHeader([]string{"Service", "Address", "Gateway", "Network", "Link", "Metric"})
 
 	for _, destRoute := range t.m {
 		for _, route := range destRoute {
 			strRoute := []string{
-				route.Destination,
+				route.Service,
+				route.Address,
 				route.Gateway,
-				route.Router,
 				route.Network,
+				route.Link,
 				fmt.Sprintf("%d", route.Metric),
 			}
 			table.Append(strRoute)

@@ -53,7 +53,7 @@ type Event struct {
 
 // String prints human readable Event
 func (e Event) String() string {
-	return fmt.Sprintf("[EVENT] %s:\nRoute:\n%s", e.Type, e.Route)
+	return fmt.Sprintf("[EVENT] time: %s type: %s", e.Timestamp, e.Type)
 }
 
 // WatchOption is used to define what routes to watch in the table
@@ -72,15 +72,15 @@ type Watcher interface {
 
 // WatchOptions are table watcher options
 type WatchOptions struct {
-	// Specify destination address to watch
-	Destination string
+	// Service allows to watch specific service routes
+	Service string
 }
 
-// WatchDestination sets what destination to watch
-// Destination is usually microservice name
-func WatchDestination(d string) WatchOption {
+// WatchService sets what service routes to watch
+// Service is the microservice name
+func WatchService(s string) WatchOption {
 	return func(o *WatchOptions) {
-		o.Destination = d
+		o.Service = s
 	}
 }
 
@@ -97,8 +97,8 @@ func (w *tableWatcher) Next() (*Event, error) {
 	for {
 		select {
 		case res := <-w.resChan:
-			switch w.opts.Destination {
-			case res.Route.Destination, "*":
+			switch w.opts.Service {
+			case res.Route.Service, "*":
 				return res, nil
 			default:
 				log.Logf("no table watcher available to receive the event")
@@ -130,10 +130,10 @@ func (w tableWatcher) String() string {
 	sb := &strings.Builder{}
 
 	table := tablewriter.NewWriter(sb)
-	table.SetHeader([]string{"Destination"})
+	table.SetHeader([]string{"Service"})
 
 	data := []string{
-		w.opts.Destination,
+		w.opts.Service,
 	}
 	table.Append(data)
 

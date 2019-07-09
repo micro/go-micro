@@ -6,11 +6,11 @@ func testSetup() (Table, Route) {
 	table := NewTable()
 
 	route := Route{
-		Destination: "dest.svc",
-		Gateway:     "dest.gw",
-		Router:      "dest.router",
-		Network:     "dest.network",
-		Metric:      10,
+		Service: "dest.svc",
+		Gateway: "dest.gw",
+		Network: "dest.network",
+		Link:    "det.link",
+		Metric:  10,
 	}
 
 	return table, route
@@ -34,7 +34,7 @@ func TestAdd(t *testing.T) {
 	testTableSize += 1
 
 	if table.Size() != testTableSize {
-		t.Errorf("invalid number of routes. expected: %d, found: %d", testTableSize, table.Size())
+		t.Errorf("invalid number of routes. Expected: %d, found: %d", testTableSize, table.Size())
 	}
 
 	// adding the same route under Insert policy must error
@@ -53,15 +53,15 @@ func TestDelete(t *testing.T) {
 	testTableSize += 1
 
 	// should fail to delete non-existant route
-	prevDest := route.Destination
-	route.Destination = "randDest"
+	prevSvc := route.Service
+	route.Service = "randDest"
 
 	if err := table.Delete(route); err != ErrRouteNotFound {
-		t.Errorf("error deleting route. Expected error: %s, found: %s", ErrRouteNotFound, err)
+		t.Errorf("error deleting route. Expected: %s, found: %s", ErrRouteNotFound, err)
 	}
 
 	// we should be able to delete the existing route
-	route.Destination = prevDest
+	route.Service = prevSvc
 
 	if err := table.Delete(route); err != nil {
 		t.Errorf("error deleting route: %s", err)
@@ -69,7 +69,7 @@ func TestDelete(t *testing.T) {
 	testTableSize -= 1
 
 	if table.Size() != testTableSize {
-		t.Errorf("invalid number of routes. expected: %d, found: %d", testTableSize, table.Size())
+		t.Errorf("invalid number of routes. Expected: %d, found: %d", testTableSize, table.Size())
 	}
 }
 
@@ -91,28 +91,28 @@ func TestUpdate(t *testing.T) {
 
 	// the size of the table should not change as we're only updating the metric of an existing route
 	if table.Size() != testTableSize {
-		t.Errorf("invalid number of routes. expected: %d, found: %d", testTableSize, table.Size())
+		t.Errorf("invalid number of routes. Expected: %d, found: %d", testTableSize, table.Size())
 	}
 
 	// this should error as the destination does not exist
-	route.Destination = "rand.dest"
+	route.Service = "rand.dest"
 
 	if err := table.Update(route); err != ErrRouteNotFound {
 		t.Errorf("error updating route. Expected error: %s, found: %s", ErrRouteNotFound, err)
 	}
 
 	if table.Size() != testTableSize {
-		t.Errorf("invalid number of routes. expected: %d, found: %d", testTableSize, table.Size())
+		t.Errorf("invalid number of routes. Expected: %d, found: %d", testTableSize, table.Size())
 	}
 }
 
 func TestList(t *testing.T) {
 	table, route := testSetup()
 
-	dest := []string{"one.svc", "two.svc", "three.svc"}
+	svc := []string{"one.svc", "two.svc", "three.svc"}
 
-	for i := 0; i < len(dest); i++ {
-		route.Destination = dest[i]
+	for i := 0; i < len(svc); i++ {
+		route.Service = svc[i]
 		if err := table.Add(route); err != nil {
 			t.Errorf("error adding route: %s", err)
 		}
@@ -123,26 +123,26 @@ func TestList(t *testing.T) {
 		t.Errorf("error listing routes: %s", err)
 	}
 
-	if len(routes) != len(dest) {
-		t.Errorf("incorrect number of routes listed. Expected: %d, found: %d", len(dest), len(routes))
+	if len(routes) != len(svc) {
+		t.Errorf("incorrect number of routes listed. Expected: %d, found: %d", len(svc), len(routes))
 	}
 
 	if len(routes) != table.Size() {
-		t.Errorf("mismatch number of routes and table size. Routes: %d, Size: %d", len(routes), table.Size())
+		t.Errorf("mismatch number of routes and table size. Expected: %d, found: %d", len(routes), table.Size())
 	}
 }
 
 func TestLookup(t *testing.T) {
 	table, route := testSetup()
 
-	dest := []string{"svc1", "svc2", "svc3"}
+	svc := []string{"svc1", "svc2", "svc3"}
 	net := []string{"net1", "net2", "net1"}
-	rtr := []string{"router1", "router2", "router3"}
+	gw := []string{"gw1", "gw2", "gw3"}
 
-	for i := 0; i < len(dest); i++ {
-		route.Destination = dest[i]
+	for i := 0; i < len(svc); i++ {
+		route.Service = svc[i]
 		route.Network = net[i]
-		route.Router = rtr[i]
+		route.Gateway = gw[i]
 		if err := table.Add(route); err != nil {
 			t.Errorf("error adding route: %s", err)
 		}
@@ -157,7 +157,7 @@ func TestLookup(t *testing.T) {
 	}
 
 	if len(routes) != table.Size() {
-		t.Errorf("incorrect number of routes returned. expected: %d, found: %d", table.Size(), len(routes))
+		t.Errorf("incorrect number of routes returned. Expected: %d, found: %d", table.Size(), len(routes))
 	}
 
 	// query particular net
@@ -169,12 +169,12 @@ func TestLookup(t *testing.T) {
 	}
 
 	if len(routes) != 2 {
-		t.Errorf("incorrect number of routes returned. expected: %d, found: %d", 2, len(routes))
+		t.Errorf("incorrect number of routes returned. Expected: %d, found: %d", 2, len(routes))
 	}
 
-	// query particular router
-	router := "router1"
-	query = NewQuery(QueryRouter(router))
+	// query particular gateway
+	gateway := "gw1"
+	query = NewQuery(QueryGateway(gateway))
 
 	routes, err = table.Lookup(query)
 	if err != nil {
@@ -182,17 +182,17 @@ func TestLookup(t *testing.T) {
 	}
 
 	if len(routes) != 1 {
-		t.Errorf("incorrect number of routes returned. expected: %d, found: %d", 1, len(routes))
+		t.Errorf("incorrect number of routes returned. Expected: %d, found: %d", 1, len(routes))
 	}
 
-	if routes[0].Router != router {
-		t.Errorf("incorrect route returned. Expected router: %s, found: %s", router, routes[0].Router)
+	if routes[0].Gateway != gateway {
+		t.Errorf("incorrect route returned. Expected gateway: %s, found: %s", gateway, routes[0].Gateway)
 	}
 
 	// query particular route
 	network := "net1"
 	query = NewQuery(
-		QueryRouter(router),
+		QueryGateway(gateway),
 		QueryNetwork(network),
 	)
 
@@ -202,11 +202,11 @@ func TestLookup(t *testing.T) {
 	}
 
 	if len(routes) != 1 {
-		t.Errorf("incorrect number of routes returned. expected: %d, found: %d", 1, len(routes))
+		t.Errorf("incorrect number of routes returned. Expected: %d, found: %d", 1, len(routes))
 	}
 
-	if routes[0].Router != router {
-		t.Errorf("incorrect route returned. Expected router: %s, found: %s", router, routes[0].Router)
+	if routes[0].Gateway != gateway {
+		t.Errorf("incorrect route returned. Expected gateway: %s, found: %s", gateway, routes[0].Gateway)
 	}
 
 	if routes[0].Network != network {
@@ -214,7 +214,7 @@ func TestLookup(t *testing.T) {
 	}
 
 	// bullshit route query
-	query = NewQuery(QueryDestination("foobar"))
+	query = NewQuery(QueryService("foobar"))
 
 	routes, err = table.Lookup(query)
 	if err != nil {
@@ -222,6 +222,6 @@ func TestLookup(t *testing.T) {
 	}
 
 	if len(routes) != 0 {
-		t.Errorf("incorrect number of routes returned. expected: %d, found: %d", 0, len(routes))
+		t.Errorf("incorrect number of routes returned. Expected: %d, found: %d", 0, len(routes))
 	}
 }

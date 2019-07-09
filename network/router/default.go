@@ -105,11 +105,12 @@ func (r *router) manageServiceRoutes(service *registry.Service, action string) e
 	// take route action on each service node
 	for _, node := range service.Nodes {
 		route := table.Route{
-			Destination: service.Name,
-			Gateway:     node.Address,
-			Router:      r.opts.Address,
-			Network:     r.opts.Network,
-			Metric:      table.DefaultLocalMetric,
+			Service: service.Name,
+			Address: node.Address,
+			Gateway: "",
+			Network: r.opts.Network,
+			Link:    table.DefaultLink,
+			Metric:  table.DefaultLocalMetric,
 		}
 		switch action {
 		case "insert", "create":
@@ -439,11 +440,11 @@ func (r *router) Advertise() (<-chan *Advert, error) {
 		if r.opts.Gateway != "" {
 			// note, the only non-default value is the gateway
 			route := table.Route{
-				Destination: "*",
-				Gateway:     r.opts.Gateway,
-				Router:      "*",
-				Network:     "*",
-				Metric:      table.DefaultLocalMetric,
+				Service: "*",
+				Address: "*",
+				Gateway: r.opts.Gateway,
+				Network: "*",
+				Metric:  table.DefaultLocalMetric,
 			}
 			if err := r.opts.Table.Add(route); err != nil {
 				return nil, fmt.Errorf("failed adding default gateway route: %s", err)
@@ -530,14 +531,8 @@ func (r *router) Update(a *Advert) error {
 	})
 
 	for _, event := range events {
-		// we extract the route from advertisement and update the routing table
-		route := table.Route{
-			Destination: event.Route.Destination,
-			Gateway:     event.Route.Gateway,
-			Router:      event.Route.Router,
-			Network:     event.Route.Network,
-			Metric:      event.Route.Metric,
-		}
+		// create a copy of the route
+		route := event.Route
 		if err := r.opts.Table.Update(route); err != nil {
 			return fmt.Errorf("failed updating routing table: %v", err)
 		}
