@@ -10,7 +10,6 @@ import (
 
 	"github.com/micro/go-micro/network/router/table"
 	"github.com/micro/go-micro/registry"
-	"github.com/olekukonko/tablewriter"
 )
 
 const (
@@ -547,23 +546,6 @@ func (r *router) Stop() error {
 }
 
 // String prints debugging information about router
-func (r *router) String() string {
-	sb := &strings.Builder{}
-
-	table := tablewriter.NewWriter(sb)
-	table.SetHeader([]string{"ID", "Address", "Network", "Table", "Status"})
-
-	data := []string{
-		r.opts.ID,
-		r.opts.Address,
-		r.opts.Network,
-		fmt.Sprintf("%d", r.opts.Table.Size()),
-		r.status.Code.String(),
-	}
-	table.Append(data)
-
-	// render table into sb
-	table.Render()
-
-	return sb.String()
+func (r router) String() string {
+	return "router"
 }

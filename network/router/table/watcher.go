@@ -3,10 +3,7 @@ package table
 import (
 	"errors"
 	"fmt"
-	"strings"
 	"time"
-
-	"github.com/olekukonko/tablewriter"
 )
 
 var (
@@ -125,18 +122,5 @@ func (w *tableWatcher) Stop() {
 
 // String prints debug information
 func (w tableWatcher) String() string {
-	sb := &strings.Builder{}
-
-	table := tablewriter.NewWriter(sb)
-	table.SetHeader([]string{"Service"})
-
-	data := []string{
-		w.opts.Service,
-	}
-	table.Append(data)
-
-	// render table into sb
-	table.Render()
-
-	return sb.String()
+	return "watcher"
 }

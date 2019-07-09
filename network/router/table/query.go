@@ -1,12 +1,5 @@
 package table
 
-import (
-	"fmt"
-	"strings"
-
-	"github.com/olekukonko/tablewriter"
-)
-
 // LookupPolicy defines query policy
 type LookupPolicy int
 
@@ -111,23 +104,5 @@ func (q *query) Options() QueryOptions {
 
 // String prints routing table query in human readable form
 func (q query) String() string {
-	// this will help us build routing table string
-	sb := &strings.Builder{}
-
-	// create nice table printing structure
-	table := tablewriter.NewWriter(sb)
-	table.SetHeader([]string{"Service", "Gateway", "Network", "Policy"})
-
-	strQuery := []string{
-		q.opts.Service,
-		q.opts.Gateway,
-		q.opts.Network,
-		fmt.Sprintf("%s", q.opts.Policy),
-	}
-	table.Append(strQuery)
-
-	// render table into sb
-	table.Render()
-
-	return sb.String()
+	return "query"
 }

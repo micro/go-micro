@@ -1,12 +1,9 @@
 package table
 
 import (
-	"fmt"
-	"strings"
 	"sync"
 
 	"github.com/google/uuid"
-	"github.com/olekukonko/tablewriter"
 )
 
 // TableOptions specify routing table options
@@ -230,33 +227,6 @@ func (t *table) Size() int {
 }
 
 // String returns debug information
-func (t *table) String() string {
-	t.RLock()
-	defer t.RUnlock()
-
-	// this will help us build routing table string
-	sb := &strings.Builder{}
-
-	// create nice table printing structure
-	table := tablewriter.NewWriter(sb)
-	table.SetHeader([]string{"Service", "Address", "Gateway", "Network", "Link", "Metric"})
-
-	for _, destRoute := range t.m {
-		for _, route := range destRoute {
-			strRoute := []string{
-				route.Service,
-				route.Address,
-				route.Gateway,
-				route.Network,
-				route.Link,
-				fmt.Sprintf("%d", route.Metric),
-			}
-			table.Append(strRoute)
-		}
-	}
-
-	// render table into sb
-	table.Render()
-
-	return sb.String()
+func (t table) String() string {
+	return "table"
 }

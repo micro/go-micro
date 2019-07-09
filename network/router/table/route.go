@@ -1,11 +1,7 @@
 package table
 
 import (
-	"fmt"
 	"hash/fnv"
-	"strings"
-
-	"github.com/olekukonko/tablewriter"
 )
 
 var (
@@ -44,25 +40,5 @@ func (r *Route) Hash() uint64 {
 
 // String returns human readable route
 func (r Route) String() string {
-	// this will help us build routing table string
-	sb := &strings.Builder{}
-
-	// create nice table printing structure
-	table := tablewriter.NewWriter(sb)
-	table.SetHeader([]string{"Service", "Address", "Gateway", "Network", "Link", "Metric"})
-
-	strRoute := []string{
-		r.Service,
-		r.Address,
-		r.Gateway,
-		r.Network,
-		r.Link,
-		fmt.Sprintf("%d", r.Metric),
-	}
-	table.Append(strRoute)
-
-	// render table into sb
-	table.Render()
-
-	return sb.String()
+	return "route"
 }
