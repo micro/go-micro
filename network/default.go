@@ -18,6 +18,9 @@ type network struct {
 	// name of the network
 	name string
 
+	// network address used where one is specified
+	address string
+
 	// transport
 	transport transport.Transport
 }
@@ -34,15 +37,16 @@ type listener struct {
 }
 
 func (n *network) Create() (*Node, error) {
-	ip, err := addr.Extract("")
+	ip, err := addr.Extract(n.address)
 	if err != nil {
 		return nil, err
 	}
 	return &Node{
 		Id:      fmt.Sprintf("%s-%s", n.name, uuid.New().String()),
 		Address: ip,
+		Network: n.Name(),
 		Metadata: map[string]string{
-			"network": n.Name(),
+			"network":   n.String(),
 			"transport": n.transport.String(),
 		},
 	}, nil
@@ -138,6 +142,12 @@ func newNetwork(opts ...options.Option) *network {
 	name, ok := options.Values().Get("network.name")
 	if ok {
 		net.name = name.(string)
+	}
+
+	// get network name
+	address, ok := options.Values().Get("network.address")
+	if ok {
+		net.address = address.(string)
 	}
 
 	// get network transport

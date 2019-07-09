@@ -3,6 +3,7 @@ package network
 
 import (
 	"github.com/micro/go-micro/config/options"
+	"github.com/micro/go-micro/network/transport"
 )
 
 // Network defines a network interface. The network is a single
@@ -25,6 +26,7 @@ type Network interface {
 type Node struct {
 	Id       string
 	Address  string
+	Network  string
 	Metadata map[string]string
 }
 
@@ -68,4 +70,19 @@ var (
 // NewNetwork returns a new network interface
 func NewNetwork(opts ...options.Option) Network {
 	return newNetwork(opts...)
+}
+
+// Name sets the network name
+func Name(n string) options.Option {
+	return options.WithValue("network.name", n)
+}
+
+// Address sets the network address
+func Address(a string) options.Option {
+	return options.WithValue("network.address", a)
+}
+
+// Transport sets the network transport
+func Transport(t transport.Transport) options.Option {
+	return options.WithValue("network.transport", t)
 }
