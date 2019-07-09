@@ -418,11 +418,23 @@ func (r *router) Advertise() (<-chan *Advert, error) {
 			return nil, fmt.Errorf("failed adding routes: %s", err)
 		}
 		log.Logf("Routing table:\n%s", r.opts.Table)
+
 		// list routing table routes to announce
 		routes, err := r.opts.Table.List()
 		if err != nil {
 			return nil, fmt.Errorf("failed listing routes: %s", err)
 		}
+		// collect all the added routes before we attempt to add default gateway
+		events := make([]*table.Event, len(routes))
+		for i, route := range routes {
+			event := &table.Event{
+				Type:      table.Insert,
+				Timestamp: time.Now(),
+				Route:     route,
+			}
+			events[i] = event
+		}
+
 		// add default gateway into routing table
 		if r.opts.Gateway != "" {
 			// note, the only non-default value is the gateway
@@ -490,17 +502,6 @@ func (r *router) Advertise() (<-chan *Advert, error) {
 		// watch for errors and cleanup
 		r.wg.Add(1)
 		go r.watchErrors(errChan)
-
-		// announce yourself with all the existing routes
-		events := make([]*table.Event, len(routes))
-		for i, route := range routes {
-			event := &table.Event{
-				Type:      table.Insert,
-				Timestamp: time.Now(),
-				Route:     route,
-			}
-			events[i] = event
-		}
 
 		// advertise your presence
 		r.advertWg.Add(1)
