@@ -107,7 +107,7 @@ func (p *Proxy) getRoute(service string) ([]string, error) {
 	if p.Router != nil {
 		// lookup the router
 		routes, err := p.Router.Table().Lookup(
-			table.NewQuery(table.QueryDestination(service)),
+			table.NewQuery(table.QueryService(service)),
 		)
 		if err != nil {
 			return nil, err
@@ -180,7 +180,7 @@ func (p *Proxy) getRoute(service string) ([]string, error) {
 		// call the router
 		proutes, err := p.RouterService.Lookup(context.Background(), &pb.LookupRequest{
 			Query: &pb.Query{
-				Destination: service,
+				Service: service,
 			},
 		}, client.WithAddress(addr))
 		if err != nil {
@@ -205,11 +205,12 @@ func (p *Proxy) getRoute(service string) ([]string, error) {
 	// convert from pb to []*router.Route
 	for _, r := range pbRoutes.Routes {
 		routes = append(routes, table.Route{
-			Destination: r.Destination,
-			Gateway:     r.Gateway,
-			Router:      r.Router,
-			Network:     r.Network,
-			Metric:      int(r.Metric),
+			Service: r.Service,
+			Address: r.Address,
+			Gateway: r.Gateway,
+			Network: r.Network,
+			Link:    r.Link,
+			Metric:  int(r.Metric),
 		})
 	}
 

@@ -45,7 +45,7 @@ func (r *routerSelector) getRoutes(service string) ([]table.Route, error) {
 	if !r.remote {
 		// lookup router for routes for the service
 		return r.r.Table().Lookup(table.NewQuery(
-			table.QueryDestination(service),
+			table.QueryService(service),
 		))
 	}
 
@@ -83,7 +83,7 @@ func (r *routerSelector) getRoutes(service string) ([]table.Route, error) {
 		// call the router
 		pbRoutes, err = r.rs.Lookup(context.Background(), &pb.LookupRequest{
 			Query: &pb.Query{
-				Destination: service,
+				Service: service,
 			},
 		}, client.WithAddress(addr))
 		if err != nil {
@@ -107,11 +107,12 @@ func (r *routerSelector) getRoutes(service string) ([]table.Route, error) {
 	// convert from pb to []*router.Route
 	for _, r := range pbRoutes.Routes {
 		routes = append(routes, table.Route{
-			Destination: r.Destination,
-			Gateway:     r.Gateway,
-			Router:      r.Router,
-			Network:     r.Network,
-			Metric:      int(r.Metric),
+			Service: r.Service,
+			Address: r.Address,
+			Gateway: r.Gateway,
+			Network: r.Network,
+			Link:    r.Link,
+			Metric:  int(r.Metric),
 		})
 	}
 
