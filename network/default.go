@@ -56,6 +56,10 @@ func (n *network) Name() string {
 	return n.name
 }
 
+func (n *network) String() string {
+	return "local"
+}
+
 func (n *network) Connect(node *Node) (Conn, error) {
 	c, err := n.transport.Dial(node.Address)
 	if err != nil {
