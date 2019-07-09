@@ -11,10 +11,10 @@ import (
 // is responsible for routing messages to the correct services.
 type Network interface {
 	options.Options
-	// Create starts the network and creates a new node
-	Create() (*Node, error)
 	// Name of the network
 	Name() string
+	// Create returns a new network node id/address
+	Create() (*Node, error)
 	// Connect to a node on the network
 	Connect(*Node) (Conn, error)
 	// Listen for connections for this node
