@@ -7,8 +7,8 @@ import (
 	"github.com/micro/go-micro/broker"
 	"github.com/micro/go-micro/client/selector"
 	"github.com/micro/go-micro/codec"
-	"github.com/micro/go-micro/transport"
 	"github.com/micro/go-micro/registry"
+	"github.com/micro/go-micro/transport"
 )
 
 type Options struct {

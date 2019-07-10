@@ -44,7 +44,7 @@ type routerKey struct{}
 func (r *routerSelector) getRoutes(service string) ([]table.Route, error) {
 	if !r.remote {
 		// lookup router for routes for the service
-		return r.r.Table().Lookup(table.NewQuery(
+		return r.r.Lookup(table.NewQuery(
 			table.QueryService(service),
 		))
 	}

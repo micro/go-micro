@@ -106,7 +106,7 @@ func (p *Proxy) getRoute(service string) ([]string, error) {
 	// in future we might set a default gateway
 	if p.Router != nil {
 		// lookup the router
-		routes, err := p.Router.Table().Lookup(
+		routes, err := p.Router.Lookup(
 			table.NewQuery(table.QueryService(service)),
 		)
 		if err != nil {
