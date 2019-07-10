@@ -22,7 +22,7 @@ message WatchRequest {}
 
 // EventType is TableEvent type
 enum EventType {
-        Insert = 0;
+        Create = 0;
         Delete = 1;
         Update = 2;
 }
