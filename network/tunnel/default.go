@@ -150,8 +150,6 @@ func (t *tun) listen() {
 			// has no session but its set a listener session
 			s, exists = t.getSocket(id, "listener")
 			if !exists {
-				conti
-
 				// drop it, we don't care about
 				// messages we don't know about
 				continue
