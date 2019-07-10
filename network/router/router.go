@@ -25,12 +25,12 @@ const (
 
 // Router is an interface for a routing control plane
 type Router interface {
+	// Router provides a routing table
+	table.Table
 	// Init initializes the router with options
 	Init(...Option) error
 	// Options returns the router options
 	Options() Options
-	// Table returns the routing table
-	table.Table
 	// Advertise advertises routes to the network
 	Advertise() (<-chan *Advert, error)
 	// Process processes incoming adverts
