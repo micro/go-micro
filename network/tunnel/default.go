@@ -132,11 +132,12 @@ func (t *tun) listen() {
 		// the session id
 		session := msg.Header["Micro-Tunnel-Session"]
 
-		// try get it based on just the tunnel id
-		// the assumption here is that a listener
-		// has no session but its set a listener session
+		// if the session id is blank there's nothing we can do
+		// TODO: check this is the case, is there any reason
+		// why we'd have a blank session? Is the tunnel
+		// used for some other purpose?
 		if len(session) == 0 {
-			session = "listener"
+			continue
 		}
 
 		// get the socket based on the tunnel id and session
@@ -144,9 +145,17 @@ func (t *tun) listen() {
 		// we have a session for it otherwise its a listener
 		s, exists := t.getSocket(id, session)
 		if !exists {
-			// drop it, we don't care about
-			// messages we don't know about
-			continue
+			// try get it based on just the tunnel id
+			// the assumption here is that a listener
+			// has no session but its set a listener session
+			s, exists = t.getSocket(id, "listener")
+			if !exists {
+				conti
+
+				// drop it, we don't care about
+				// messages we don't know about
+				continue
+			}
 		}
 
 		// is the socket closed?
