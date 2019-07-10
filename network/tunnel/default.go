@@ -132,9 +132,11 @@ func (t *tun) listen() {
 		case "connect":
 			// assuming new connection
 			// TODO: do something with this
+			continue
 		case "close":
 			// assuming connection closed
 			// TODO: do something with this
+			continue
 		}
 
 		// the tunnel id

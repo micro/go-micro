@@ -46,15 +46,25 @@ func (t *tunListener) process() {
 					wait: make(chan bool),
 				}
 
+				// first message
+				sock.recv <- m
+
 				// save the socket
 				conns[m.session] = sock
+
+				// send to accept chan
+				select {
+				case <-t.closed:
+					return
+				case t.accept <- sock:
+				}
 			}
 
 			// send this to the accept chan
 			select {
-			case <-t.closed:
-				return
-			case t.accept <- sock:
+			case <-sock.closed:
+				delete(conns, m.session)
+			case sock.recv <- m:
 			}
 		}
 	}
