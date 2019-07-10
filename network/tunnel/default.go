@@ -280,6 +280,10 @@ func (t *tun) Listen(addr string) (Listener, error) {
 		socket: c,
 	}
 
+	// this kicks off the internal message processor
+	// for the listener so it can create pseudo sockets
+	// per session if they do not exist or pass messages
+	// to the existign sessions
 	go tl.process()
 
 	// return the listener
