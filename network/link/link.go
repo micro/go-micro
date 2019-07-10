@@ -16,7 +16,7 @@ type Link interface {
 	transport.Socket
 	// Connect connects the link. It must be called first.
 	Connect() error
-	// Id of the link likely a uuid if not specified
+	// Id of the link is "local" if not specified
 	Id() string
 	// Status of the link
 	Status() string
