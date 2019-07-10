@@ -1,4 +1,4 @@
-// Package tunnel provides a network tunnel
+// Package tunnel provides a network tunnel ontop of a link
 package tunnel
 
 import (
@@ -6,7 +6,9 @@ import (
 	"github.com/micro/go-micro/transport"
 )
 
-// Tunnel creates a network tunnel
+// Tunnel creates a network tunnel on top of a link.
+// It establishes multiple streams using the Micro-Tunnel header
+// created as a hash of the address.
 type Tunnel interface {
 	// Connect connects the tunnel
 	Connect() error
