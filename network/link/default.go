@@ -4,6 +4,7 @@ package link
 import (
 	"io"
 	"sync"
+	"time"
 
 	"github.com/micro/go-micro/config/options"
 	"github.com/micro/go-micro/transport"
@@ -109,11 +110,48 @@ func (l *link) process() {
 		}
 	}()
 
+	// messages sent
+	i := 0
+	length := 0
+
 	for {
 		select {
 		case m := <-l.sendQueue:
+			t := time.Now()
+
+			// send the message
 			if err := l.send(m); err != nil {
 				return
+			}
+
+			// get header size, body size and time taken
+			hl := len(m.Header)
+			bl := len(m.Body)
+			d := time.Since(t)
+
+			// don't calculate on empty messages
+			if hl == 0 && bl == 0 {
+				continue
+			}
+
+			// increment sent
+			i++
+
+			// time take to send some bits and bytes
+			td := float64(hl+bl) / float64(d.Nanoseconds())
+			// increase the scale
+			td += 1
+
+			// judge the length
+			length = int(td) / (length + int(td))
+
+			// every 10 messages update length
+			if (i % 10) == 1 {
+				// cost average the length
+				// save it
+				l.Lock()
+				l.length = length
+				l.Unlock()
 			}
 		case <-l.closed:
 			return
@@ -158,7 +196,7 @@ func (l *link) Connect() error {
 	// dial the endpoint
 	c, err := l.transport.Dial(l.addr)
 	if err != nil {
-		return nil
+		return err
 	}
 
 	// set the socket

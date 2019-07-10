@@ -42,6 +42,8 @@ func (t *tunListener) process() {
 					recv: make(chan *message, 128),
 					// use the internal send buffer
 					send: t.socket.send,
+					// wait
+					wait: make(chan bool),
 				}
 
 				// save the socket

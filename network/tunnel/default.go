@@ -65,6 +65,7 @@ func (t *tun) newSocket(id, session string) (*socket, bool) {
 		closed:  make(chan bool),
 		recv:    make(chan *message, 128),
 		send:    t.send,
+		wait:    make(chan bool),
 	}
 
 	// save socket
@@ -126,6 +127,16 @@ func (t *tun) listen() {
 			return
 		}
 
+		// first check Micro-Tunnel
+		switch msg.Header["Micro-Tunnel"] {
+		case "connect":
+			// assuming new connection
+			// TODO: do something with this
+		case "close":
+			// assuming connection closed
+			// TODO: do something with this
+		}
+
 		// the tunnel id
 		id := msg.Header["Micro-Tunnel-Id"]
 
@@ -136,7 +147,7 @@ func (t *tun) listen() {
 		// TODO: check this is the case, is there any reason
 		// why we'd have a blank session? Is the tunnel
 		// used for some other purpose?
-		if len(session) == 0 {
+		if len(id) == 0 || len(session) == 0 {
 			continue
 		}
 
@@ -200,6 +211,22 @@ func (t *tun) listen() {
 	}
 }
 
+func (t *tun) connect() error {
+	return t.link.Send(&transport.Message{
+		Header: map[string]string{
+			"Micro-Tunnel": "connect",
+		},
+	})
+}
+
+func (t *tun) close() error {
+	return t.link.Send(&transport.Message{
+		Header: map[string]string{
+			"Micro-Tunnel": "close",
+		},
+	})
+}
+
 // Close the tunnel
 func (t *tun) Close() error {
 	t.Lock()
@@ -220,6 +247,11 @@ func (t *tun) Close() error {
 		// close the connection
 		close(t.closed)
 		t.connected = false
+
+		// send a close message
+		// we don't close the link
+		// just the tunnel
+		return t.close()
 	}
 
 	return nil
@@ -233,6 +265,11 @@ func (t *tun) Connect() error {
 	// already connected
 	if t.connected {
 		return nil
+	}
+
+	// send the connect message
+	if err := t.connect(); err != nil {
+		return err
 	}
 
 	// set as connected
