@@ -5,6 +5,7 @@ package broker
 type Broker interface {
 	Init(...Option) error
 	Options() Options
+	Address() string
 	Connect() error
 	Disconnect() error
 	Publish(topic string, m *Message, opts ...PublishOption) error

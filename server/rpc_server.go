@@ -498,10 +498,9 @@ func (s *rpcServer) Start() error {
 		return err
 	}
 
-	baddr := strings.Join(config.Broker.Options().Addrs, ",")
 	bname := config.Broker.String()
 
-	log.Logf("Broker [%s] Connected to %s", bname, baddr)
+	log.Logf("Broker [%s] Connected to %s", bname, config.Broker.Address())
 
 	// use RegisterCheck func before register
 	if err = s.opts.RegisterCheck(s.opts.Context); err != nil {
