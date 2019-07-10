@@ -1,4 +1,4 @@
-// Package link provides a measured transport.Socket link
+// Package link provides a measured link on top of a transport.Socket
 package link
 
 import (
@@ -8,9 +8,10 @@ import (
 	"github.com/micro/go-micro/transport"
 )
 
-// Link is a layer ontop of a transport socket with the
+// Link is a layer on top of a transport socket with the
 // buffering send and recv queue's with the ability to
-// measure the actual transport link and reconnect.
+// measure the actual transport link and reconnect if
+// an address is specified.
 type Link interface {
 	// provides the transport.Socket interface
 	transport.Socket
@@ -36,13 +37,13 @@ func NewLink(opts ...options.Option) Link {
 	return newLink(options.NewOptions(opts...))
 }
 
-// Sets the link id
+// Sets the link id which otherwise defaults to "local"
 func Id(id string) options.Option {
 	return options.WithValue("link.id", id)
 }
 
 // The address to use for the link. Connect must be
-// called for this to be used.
+// called for this to be used, its otherwise unused.
 func Address(a string) options.Option {
 	return options.WithValue("link.address", a)
 }
@@ -53,8 +54,7 @@ func Transport(t transport.Transport) options.Option {
 	return options.WithValue("link.transport", t)
 }
 
-// Socket sets the socket where it was accepted
-// from a remote end.
+// Socket sets the socket to use instead of dialing.
 func Socket(s transport.Socket) options.Option {
 	return options.WithValue("link.socket", s)
 }
