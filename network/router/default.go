@@ -83,6 +83,7 @@ func (r *router) Options() Options {
 func (r *router) manageServiceRoutes(service *registry.Service, action string) error {
 	// action is the routing table action
 	action = strings.ToLower(action)
+
 	// take route action on each service node
 	for _, node := range service.Nodes {
 		route := table.Route{
@@ -93,19 +94,25 @@ func (r *router) manageServiceRoutes(service *registry.Service, action string) e
 			Link:    table.DefaultLink,
 			Metric:  table.DefaultLocalMetric,
 		}
+
 		switch action {
-		case "insert", "create":
-			if err := r.opts.Table.Create(route); err != nil && err != table.ErrDuplicateRoute {
+		case "create":
+			if err := r.Create(route); err != nil && err != table.ErrDuplicateRoute {
 				return fmt.Errorf("failed adding route for service %s: %s", service.Name, err)
 			}
+		case "update":
+			if err := r.Update(route); err != nil && err != table.ErrDuplicateRoute {
+				return fmt.Errorf("failed updating route for service %s: %s", service.Name, err)
+			}
 		case "delete":
-			if err := r.opts.Table.Delete(route); err != nil && err != table.ErrRouteNotFound {
-				return fmt.Errorf("failed deleting route for service %v: %s", service.Name, err)
+			if err := r.Delete(route); err != nil && err != table.ErrRouteNotFound {
+				return fmt.Errorf("failed deleting route for service %s: %s", service.Name, err)
 			}
 		default:
-			return fmt.Errorf("failed to manage route for service %v. Unknown action: %s", service.Name, action)
+			return fmt.Errorf("failed to manage route for service %s. Unknown action: %s", service.Name, action)
 		}
 	}
+
 	return nil
 }
 
@@ -376,12 +383,12 @@ func (r *router) Advertise() (<-chan *Advert, error) {
 
 	if r.status.Code != Running {
 		// add all local service routes into the routing table
-		if err := r.manageRegistryRoutes(r.opts.Registry, "insert"); err != nil {
+		if err := r.manageRegistryRoutes(r.opts.Registry, "create"); err != nil {
 			return nil, fmt.Errorf("failed adding routes: %s", err)
 		}
 
 		// list routing table routes to announce
-		routes, err := r.opts.Table.List()
+		routes, err := r.List()
 		if err != nil {
 			return nil, fmt.Errorf("failed listing routes: %s", err)
 		}
@@ -406,7 +413,7 @@ func (r *router) Advertise() (<-chan *Advert, error) {
 				Network: "*",
 				Metric:  table.DefaultLocalMetric,
 			}
-			if err := r.opts.Table.Create(route); err != nil {
+			if err := r.Create(route); err != nil {
 				return nil, fmt.Errorf("failed adding default gateway route: %s", err)
 			}
 		}
@@ -420,7 +427,7 @@ func (r *router) Advertise() (<-chan *Advert, error) {
 		}
 
 		// routing table watcher
-		tableWatcher, err := r.opts.Table.Watch()
+		tableWatcher, err := r.Watch()
 		if err != nil {
 			return nil, fmt.Errorf("failed creating routing table watcher: %v", err)
 		}
@@ -487,7 +494,7 @@ func (r *router) Process(a *Advert) error {
 	for _, event := range events {
 		// create a copy of the route
 		route := event.Route
-		if err := r.opts.Table.Update(route); err != nil {
+		if err := r.Update(route); err != nil {
 			return fmt.Errorf("failed updating routing table: %v", err)
 		}
 	}
