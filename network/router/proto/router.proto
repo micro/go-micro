@@ -2,7 +2,9 @@ syntax = "proto3";
 
 // Router service is used by the proxy to lookup routes
 service Router {
+        rpc Watch(WatchRequest) returns (stream TableEvent) {};
 	rpc Lookup(LookupRequest) returns (LookupResponse) {};
+        rpc List(ListRequest) returns (ListResponse) {};
 }
 
 // LookupRequest is made to Lookup
@@ -10,8 +12,36 @@ message LookupRequest {
 	Query query = 1;
 }
 
-// LookupResponse is returns by Lookup
+// LookupResponse is returned by Lookup
 message LookupResponse {
+	repeated Route routes = 1;
+}
+
+// WatchRequest is made to Watch Router
+message WatchRequest {}
+
+// EventType is TableEvent type
+enum EventType {
+        Insert = 0;
+        Delete = 1;
+        Update = 2;
+}
+
+// TableEvent is streamed by WatchRequest
+message TableEvent {
+        // time of table event
+        EventType type = 1;
+        // unix timestamp of event
+        int64 timestamp = 2;
+        // service route
+	Route route = 3;
+}
+
+// ListRequest is made to List routes
+message ListRequest {}
+
+// ListResponse is returned by List
+message ListResponse {
 	repeated Route routes = 1;
 }
 

@@ -13,8 +13,8 @@ var (
 
 // Table defines routing table interface
 type Table interface {
-	// Add adds new route to the routing table
-	Add(Route) error
+	// Create new route in the routing table
+	Create(Route) error
 	// Delete deletes existing route from the routing table
 	Delete(Route) error
 	// Update updates route in the routing table
