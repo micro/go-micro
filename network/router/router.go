@@ -39,7 +39,7 @@ type Router interface {
 	Status() Status
 	// Stop stops the router
 	Stop() error
-	// String returns debug info
+	// Returns the router implementation
 	String() string
 }
 
