@@ -48,6 +48,10 @@ func (s *socket) Id() string {
 	return s.id
 }
 
+func (s *socket) Session() string {
+	return s.session
+}
+
 func (s *socket) Send(m *transport.Message) error {
 	select {
 	case <-s.closed:
