@@ -7,8 +7,9 @@ import (
 )
 
 // Tunnel creates a network tunnel on top of a link.
-// It establishes multiple streams using the Micro-Tunnel header
-// created as a hash of the address.
+// It establishes multiple streams using the Micro-Tunnel-Id header
+// and Micro-Tunnel-Session header. The tunnel id is a hash of
+// the address being requested.
 type Tunnel interface {
 	// Connect connects the tunnel
 	Connect() error
