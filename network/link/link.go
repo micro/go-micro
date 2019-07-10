@@ -1,3 +1,4 @@
+// Package link provides a measured transport.Socket link
 package link
 
 import (
