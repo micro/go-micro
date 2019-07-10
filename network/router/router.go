@@ -23,32 +23,6 @@ const (
 	Error
 )
 
-// String returns string representation of update event
-func (at AdvertType) String() string {
-	switch at {
-	case Announce:
-		return "ANNOUNCE"
-	case Update:
-		return "UPDATE"
-	default:
-		return "UNKNOWN"
-	}
-}
-
-// String returns human readable status code
-func (sc StatusCode) String() string {
-	switch sc {
-	case Running:
-		return "RUNNING"
-	case Stopped:
-		return "STOPPED"
-	case Error:
-		return "ERROR"
-	default:
-		return "UNKNOWN"
-	}
-}
-
 // Router is an interface for a routing control plane
 type Router interface {
 	// Init initializes the router with options
