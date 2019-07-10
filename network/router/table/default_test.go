@@ -94,12 +94,13 @@ func TestUpdate(t *testing.T) {
 		t.Errorf("invalid number of routes. Expected: %d, found: %d", testTableSize, table.Size())
 	}
 
-	// this should error as the destination does not exist
+	// this should add a new route
 	route.Service = "rand.dest"
 
-	if err := table.Update(route); err != ErrRouteNotFound {
-		t.Errorf("error updating route. Expected error: %s, found: %s", ErrRouteNotFound, err)
+	if err := table.Update(route); err != nil {
+		t.Errorf("error updating route: %s", err)
 	}
+	testTableSize += 1
 
 	if table.Size() != testTableSize {
 		t.Errorf("invalid number of routes. Expected: %d, found: %d", testTableSize, table.Size())

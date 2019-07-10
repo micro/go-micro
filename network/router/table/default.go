@@ -106,17 +106,16 @@ func (t *table) Update(r Route) error {
 
 	// check if the route destination has any routes in the table
 	if _, ok := t.m[service]; !ok {
-		return ErrRouteNotFound
-	}
-
-	// if the route has been found update it
-	if _, ok := t.m[service][sum]; ok {
+		t.m[service] = make(map[uint64]Route)
 		t.m[service][sum] = r
-		go t.sendEvent(&Event{Type: Update, Timestamp: time.Now(), Route: r})
+		go t.sendEvent(&Event{Type: Create, Timestamp: time.Now(), Route: r})
 		return nil
 	}
 
-	return ErrRouteNotFound
+	t.m[service][sum] = r
+	go t.sendEvent(&Event{Type: Update, Timestamp: time.Now(), Route: r})
+
+	return nil
 }
 
 // List returns a list of all routes in the table
