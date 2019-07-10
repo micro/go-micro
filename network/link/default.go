@@ -43,6 +43,7 @@ type link struct {
 
 func newLink(options options.Options) *link {
 	// default values
+	var sock transport.Socket
 	id := "local"
 	addr := "127.0.0.1:10001"
 	tr := transport.DefaultTransport
@@ -62,11 +63,19 @@ func newLink(options options.Options) *link {
 		tr = ltr.(transport.Transport)
 	}
 
+	lsock, ok := options.Values().Get("link.socket")
+	if ok {
+		sock = lsock.(transport.Socket)
+	}
+
 	l := &link{
 		// the remote end to dial
 		addr: addr,
 		// transport to dial link
 		transport: tr,
+		// the socket to use
+		// this is nil if not specified
+		socket: sock,
 		// unique id assigned to the link
 		id: id,
 		// the closed channel used to close the conn

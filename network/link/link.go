@@ -14,7 +14,8 @@ import (
 type Link interface {
 	// provides the transport.Socket interface
 	transport.Socket
-	// Connect connects the link. It must be called first.
+	// Connect connects the link. It must be called first
+	// if there's an expectation to create a new socket.
 	Connect() error
 	// Id of the link is "local" if not specified
 	Id() string
@@ -40,12 +41,20 @@ func Id(id string) options.Option {
 	return options.WithValue("link.id", id)
 }
 
-// The address to use for the link
+// The address to use for the link. Connect must be
+// called for this to be used.
 func Address(a string) options.Option {
 	return options.WithValue("link.address", a)
 }
 
-// The transport to use for the link
+// The transport to use for the link where we
+// want to dial the connection first.
 func Transport(t transport.Transport) options.Option {
 	return options.WithValue("link.transport", t)
+}
+
+// Socket sets the socket where it was accepted
+// from a remote end.
+func Socket(s transport.Socket) options.Option {
+	return options.WithValue("link.socket", s)
 }
