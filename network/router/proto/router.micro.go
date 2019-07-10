@@ -34,7 +34,9 @@ var _ server.Option
 // Client API for Router service
 
 type RouterService interface {
+	Watch(ctx context.Context, in *WatchRequest, opts ...client.CallOption) (Router_WatchService, error)
 	Lookup(ctx context.Context, in *LookupRequest, opts ...client.CallOption) (*LookupResponse, error)
+	List(ctx context.Context, in *ListRequest, opts ...client.CallOption) (*ListResponse, error)
 }
 
 type routerService struct {
@@ -55,6 +57,50 @@ func NewRouterService(name string, c client.Client) RouterService {
 	}
 }
 
+func (c *routerService) Watch(ctx context.Context, in *WatchRequest, opts ...client.CallOption) (Router_WatchService, error) {
+	req := c.c.NewRequest(c.name, "Router.Watch", &WatchRequest{})
+	stream, err := c.c.Stream(ctx, req, opts...)
+	if err != nil {
+		return nil, err
+	}
+	if err := stream.Send(in); err != nil {
+		return nil, err
+	}
+	return &routerServiceWatch{stream}, nil
+}
+
+type Router_WatchService interface {
+	SendMsg(interface{}) error
+	RecvMsg(interface{}) error
+	Close() error
+	Recv() (*TableEvent, error)
+}
+
+type routerServiceWatch struct {
+	stream client.Stream
+}
+
+func (x *routerServiceWatch) Close() error {
+	return x.stream.Close()
+}
+
+func (x *routerServiceWatch) SendMsg(m interface{}) error {
+	return x.stream.Send(m)
+}
+
+func (x *routerServiceWatch) RecvMsg(m interface{}) error {
+	return x.stream.Recv(m)
+}
+
+func (x *routerServiceWatch) Recv() (*TableEvent, error) {
+	m := new(TableEvent)
+	err := x.stream.Recv(m)
+	if err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 func (c *routerService) Lookup(ctx context.Context, in *LookupRequest, opts ...client.CallOption) (*LookupResponse, error) {
 	req := c.c.NewRequest(c.name, "Router.Lookup", in)
 	out := new(LookupResponse)
@@ -65,15 +111,29 @@ func (c *routerService) Lookup(ctx context.Context, in *LookupRequest, opts ...c
 	return out, nil
 }
 
+func (c *routerService) List(ctx context.Context, in *ListRequest, opts ...client.CallOption) (*ListResponse, error) {
+	req := c.c.NewRequest(c.name, "Router.List", in)
+	out := new(ListResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Server API for Router service
 
 type RouterHandler interface {
+	Watch(context.Context, *WatchRequest, Router_WatchStream) error
 	Lookup(context.Context, *LookupRequest, *LookupResponse) error
+	List(context.Context, *ListRequest, *ListResponse) error
 }
 
 func RegisterRouterHandler(s server.Server, hdlr RouterHandler, opts ...server.HandlerOption) error {
 	type router interface {
+		Watch(ctx context.Context, stream server.Stream) error
 		Lookup(ctx context.Context, in *LookupRequest, out *LookupResponse) error
+		List(ctx context.Context, in *ListRequest, out *ListResponse) error
 	}
 	type Router struct {
 		router
@@ -86,6 +146,45 @@ type routerHandler struct {
 	RouterHandler
 }
 
+func (h *routerHandler) Watch(ctx context.Context, stream server.Stream) error {
+	m := new(WatchRequest)
+	if err := stream.Recv(m); err != nil {
+		return err
+	}
+	return h.RouterHandler.Watch(ctx, m, &routerWatchStream{stream})
+}
+
+type Router_WatchStream interface {
+	SendMsg(interface{}) error
+	RecvMsg(interface{}) error
+	Close() error
+	Send(*TableEvent) error
+}
+
+type routerWatchStream struct {
+	stream server.Stream
+}
+
+func (x *routerWatchStream) Close() error {
+	return x.stream.Close()
+}
+
+func (x *routerWatchStream) SendMsg(m interface{}) error {
+	return x.stream.Send(m)
+}
+
+func (x *routerWatchStream) RecvMsg(m interface{}) error {
+	return x.stream.Recv(m)
+}
+
+func (x *routerWatchStream) Send(m *TableEvent) error {
+	return x.stream.Send(m)
+}
+
 func (h *routerHandler) Lookup(ctx context.Context, in *LookupRequest, out *LookupResponse) error {
 	return h.RouterHandler.Lookup(ctx, in, out)
+}
+
+func (h *routerHandler) List(ctx context.Context, in *ListRequest, out *ListResponse) error {
+	return h.RouterHandler.List(ctx, in, out)
 }
