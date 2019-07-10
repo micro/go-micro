@@ -224,9 +224,14 @@ func (cw *consulWatcher) handle(idx uint64, data interface{}) {
 	cw.RUnlock()
 
 	// remove unknown services from registry
+	// save the things we want to delete
+	deleted := make(map[string][]*registry.Service)
+
 	for service, _ := range rservices {
 		if _, ok := services[service]; !ok {
 			cw.Lock()
+			// save this before deleting
+			deleted[service] = cw.services[service]
 			delete(cw.services, service)
 			cw.Unlock()
 		}
@@ -237,6 +242,11 @@ func (cw *consulWatcher) handle(idx uint64, data interface{}) {
 		if _, ok := services[service]; !ok {
 			w.Stop()
 			delete(cw.watchers, service)
+			for _, oldService := range deleted[service] {
+				// send a delete for the service nodes that we're removing
+				cw.next <- &registry.Result{Action: "delete", Service: oldService}
+			}
+			// sent the empty list as the last resort to indicate to delete the entire service
 			cw.next <- &registry.Result{Action: "delete", Service: &registry.Service{Name: service}}
 		}
 	}
