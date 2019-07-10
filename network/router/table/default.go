@@ -1,34 +1,27 @@
-package router
+package table
 
 import (
-	"fmt"
-	"hash"
-	"hash/fnv"
-	"strings"
 	"sync"
 
 	"github.com/google/uuid"
-	"github.com/olekukonko/tablewriter"
 )
 
-// TableOptions are routing table options
+// TableOptions specify routing table options
 // TODO: table options TBD in the future
 type TableOptions struct{}
 
-// table is in memory routing table
+// table is an in memory routing table
 type table struct {
 	// opts are table options
 	opts TableOptions
 	// m stores routing table map
 	m map[string]map[uint64]Route
-	// h hashes route entries
-	h hash.Hash64
 	// w is a list of table watchers
 	w map[string]*tableWatcher
 	sync.RWMutex
 }
 
-// newTable creates in memory routing table and returns it
+// newTable creates a new routing table and returns it
 func newTable(opts ...TableOption) Table {
 	// default options
 	var options TableOptions
@@ -38,14 +31,10 @@ func newTable(opts ...TableOption) Table {
 		o(&options)
 	}
 
-	h := fnv.New64()
-	h.Reset()
-
 	return &table{
 		opts: options,
 		m:    make(map[string]map[uint64]Route),
 		w:    make(map[string]*tableWatcher),
-		h:    h,
 	}
 }
 
@@ -64,37 +53,24 @@ func (t *table) Options() TableOptions {
 
 // Add adds a route to the routing table
 func (t *table) Add(r Route) error {
-	destAddr := r.Destination
-	sum := t.hash(r)
+	service := r.Service
+	sum := r.Hash()
 
 	t.Lock()
 	defer t.Unlock()
 
-	// check if the destination has any routes in the table
-	if _, ok := t.m[destAddr]; !ok {
-		t.m[destAddr] = make(map[uint64]Route)
-		t.m[destAddr][sum] = r
-		go t.sendEvent(&Event{Type: CreateEvent, Route: r})
+	// check if there are any routes in the table for the route destination
+	if _, ok := t.m[service]; !ok {
+		t.m[service] = make(map[uint64]Route)
+		t.m[service][sum] = r
+		go t.sendEvent(&Event{Type: Insert, Route: r})
 		return nil
 	}
 
-	// add new route to the table for the given destination
-	if _, ok := t.m[destAddr][sum]; !ok {
-		t.m[destAddr][sum] = r
-		go t.sendEvent(&Event{Type: CreateEvent, Route: r})
-		return nil
-	}
-
-	// only add the route if the route override is explicitly requested
-	if _, ok := t.m[destAddr][sum]; ok && r.Policy == OverrideIfExists {
-		t.m[destAddr][sum] = r
-		go t.sendEvent(&Event{Type: UpdateEvent, Route: r})
-		return nil
-	}
-
-	// if we reached this point without already returning the route already exists
-	// we return nil only if explicitly requested by the client
-	if r.Policy == IgnoreIfExists {
+	// add new route to the table for the route destination
+	if _, ok := t.m[service][sum]; !ok {
+		t.m[service][sum] = r
+		go t.sendEvent(&Event{Type: Insert, Route: r})
 		return nil
 	}
 
@@ -103,51 +79,39 @@ func (t *table) Add(r Route) error {
 
 // Delete deletes the route from the routing table
 func (t *table) Delete(r Route) error {
+	service := r.Service
+	sum := r.Hash()
+
 	t.Lock()
 	defer t.Unlock()
 
-	destAddr := r.Destination
-	sum := t.hash(r)
-
-	if _, ok := t.m[destAddr]; !ok {
+	if _, ok := t.m[service]; !ok {
 		return ErrRouteNotFound
 	}
 
-	delete(t.m[destAddr], sum)
-	go t.sendEvent(&Event{Type: DeleteEvent, Route: r})
+	delete(t.m[service], sum)
+	go t.sendEvent(&Event{Type: Delete, Route: r})
 
 	return nil
 }
 
-// Update updates routing table with new route
+// Update updates routing table with the new route
 func (t *table) Update(r Route) error {
-	destAddr := r.Destination
-	sum := t.hash(r)
+	service := r.Service
+	sum := r.Hash()
 
 	t.Lock()
 	defer t.Unlock()
 
-	// check if the destAddr has ANY routes in the table
-	if _, ok := t.m[destAddr]; !ok {
-		if r.Policy == AddIfNotExists {
-			t.m[destAddr] = make(map[uint64]Route)
-			t.m[destAddr][sum] = r
-			go t.sendEvent(&Event{Type: CreateEvent, Route: r})
-			return nil
-		}
+	// check if the route destination has any routes in the table
+	if _, ok := t.m[service]; !ok {
 		return ErrRouteNotFound
 	}
 
-	if _, ok := t.m[destAddr][sum]; !ok && r.Policy == AddIfNotExists {
-		t.m[destAddr][sum] = r
-		go t.sendEvent(&Event{Type: CreateEvent, Route: r})
-		return nil
-	}
-
 	// if the route has been found update it
-	if _, ok := t.m[destAddr][sum]; ok {
-		t.m[destAddr][sum] = r
-		go t.sendEvent(&Event{Type: UpdateEvent, Route: r})
+	if _, ok := t.m[service][sum]; ok {
+		t.m[service][sum] = r
+		go t.sendEvent(&Event{Type: Update, Route: r})
 		return nil
 	}
 
@@ -172,7 +136,7 @@ func (t *table) List() ([]Route, error) {
 // isMatch checks if the route matches given network and router
 func isMatch(route Route, network, router string) bool {
 	if network == "*" || network == route.Network {
-		if router == "*" || router == route.Router {
+		if router == "*" || router == route.Gateway {
 			return true
 		}
 	}
@@ -195,18 +159,18 @@ func (t *table) Lookup(q Query) ([]Route, error) {
 	t.RLock()
 	defer t.RUnlock()
 
-	if q.Options().Destination != "*" {
+	if q.Options().Service != "*" {
 		// no routes found for the destination and query policy is not a DiscardIfNone
-		if _, ok := t.m[q.Options().Destination]; !ok && q.Options().Policy != DiscardIfNone {
+		if _, ok := t.m[q.Options().Service]; !ok && q.Options().Policy != DiscardIfNone {
 			return nil, ErrRouteNotFound
 		}
-		return findRoutes(t.m[q.Options().Destination], q.Options().Network, q.Options().Router), nil
+		return findRoutes(t.m[q.Options().Service], q.Options().Network, q.Options().Gateway), nil
 	}
 
 	var results []Route
 	// search through all destinations
 	for _, routes := range t.m {
-		results = append(results, findRoutes(routes, q.Options().Network, q.Options().Router)...)
+		results = append(results, findRoutes(routes, q.Options().Network, q.Options().Gateway)...)
 	}
 
 	return results, nil
@@ -216,7 +180,7 @@ func (t *table) Lookup(q Query) ([]Route, error) {
 func (t *table) Watch(opts ...WatchOption) (Watcher, error) {
 	// by default watch everything
 	wopts := WatchOptions{
-		Destination: "*",
+		Service: "*",
 	}
 
 	for _, o := range opts {
@@ -263,40 +227,6 @@ func (t *table) Size() int {
 }
 
 // String returns debug information
-func (t *table) String() string {
-	t.RLock()
-	defer t.RUnlock()
-
-	// this will help us build routing table string
-	sb := &strings.Builder{}
-
-	// create nice table printing structure
-	table := tablewriter.NewWriter(sb)
-	table.SetHeader([]string{"Destination", "Gateway", "Router", "Network", "Metric"})
-
-	for _, destRoute := range t.m {
-		for _, route := range destRoute {
-			strRoute := []string{
-				route.Destination,
-				route.Gateway,
-				route.Router,
-				route.Network,
-				fmt.Sprintf("%d", route.Metric),
-			}
-			table.Append(strRoute)
-		}
-	}
-
-	// render table into sb
-	table.Render()
-
-	return sb.String()
-}
-
-// hash hashes the route using router gateway and network address
-func (t *table) hash(r Route) uint64 {
-	t.h.Reset()
-	t.h.Write([]byte(r.Destination + r.Gateway + r.Network))
-
-	return t.h.Sum64()
+func (t table) String() string {
+	return "table"
 }

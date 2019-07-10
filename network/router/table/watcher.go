@@ -1,10 +1,9 @@
-package router
+package table
 
 import (
 	"errors"
-	"strings"
-
-	"github.com/olekukonko/tablewriter"
+	"fmt"
+	"time"
 )
 
 var (
@@ -16,22 +15,22 @@ var (
 type EventType int
 
 const (
-	// CreateEvent is emitted when new route has been created
-	CreateEvent EventType = iota
-	// DeleteEvent is emitted when an existing route has been deleted
-	DeleteEvent
-	// UpdateEvent is emitted when a routing table has been updated
-	UpdateEvent
+	// Insert is emitted when a new route has been inserted
+	Insert EventType = iota
+	// Delete is emitted when an existing route has been deleted
+	Delete
+	// Update is emitted when an existing route has been updated
+	Update
 )
 
 // String returns string representation of the event
 func (et EventType) String() string {
 	switch et {
-	case CreateEvent:
-		return "CREATE"
-	case DeleteEvent:
+	case Insert:
+		return "INSERT"
+	case Delete:
 		return "DELETE"
-	case UpdateEvent:
+	case Update:
 		return "UPDATE"
 	default:
 		return "UNKNOWN"
@@ -42,8 +41,15 @@ func (et EventType) String() string {
 type Event struct {
 	// Type defines type of event
 	Type EventType
-	// Route is table rout
+	// Timestamp is event timestamp
+	Timestamp time.Time
+	// Route is table route
 	Route Route
+}
+
+// String prints human readable Event
+func (e Event) String() string {
+	return fmt.Sprintf("[EVENT] time: %s type: %s", e.Timestamp, e.Type)
 }
 
 // WatchOption is used to define what routes to watch in the table
@@ -62,15 +68,15 @@ type Watcher interface {
 
 // WatchOptions are table watcher options
 type WatchOptions struct {
-	// Specify destination address to watch
-	Destination string
+	// Service allows to watch specific service routes
+	Service string
 }
 
-// WatchDestination sets what destination to watch
-// Destination is usually microservice name
-func WatchDestination(d string) WatchOption {
+// WatchService sets what service routes to watch
+// Service is the microservice name
+func WatchService(s string) WatchOption {
 	return func(o *WatchOptions) {
-		o.Destination = d
+		o.Service = s
 	}
 }
 
@@ -81,18 +87,16 @@ type tableWatcher struct {
 }
 
 // Next returns the next noticed action taken on table
-// TODO: this needs to be thought through properly; we only allow watching particular route destination for now
+// TODO: this needs to be thought through properly;
+// right now we only allow to watch destination
 func (w *tableWatcher) Next() (*Event, error) {
 	for {
 		select {
 		case res := <-w.resChan:
-			switch w.opts.Destination {
-			case "*", "":
+			switch w.opts.Service {
+			case res.Route.Service, "*":
 				return res, nil
 			default:
-				if w.opts.Destination == res.Route.Destination {
-					return res, nil
-				}
 				continue
 			}
 		case <-w.done:
@@ -117,19 +121,6 @@ func (w *tableWatcher) Stop() {
 }
 
 // String prints debug information
-func (w *tableWatcher) String() string {
-	sb := &strings.Builder{}
-
-	table := tablewriter.NewWriter(sb)
-	table.SetHeader([]string{"Destination"})
-
-	data := []string{
-		w.opts.Destination,
-	}
-	table.Append(data)
-
-	// render table into sb
-	table.Render()
-
-	return sb.String()
+func (w tableWatcher) String() string {
+	return "watcher"
 }

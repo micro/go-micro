@@ -1,7 +1,11 @@
 // Package router provides a network routing control plane
 package router
 
-import "time"
+import (
+	"time"
+
+	"github.com/micro/go-micro/network/router/table"
+)
 
 var (
 	// DefaultRouter is default network router
@@ -14,18 +18,18 @@ type Router interface {
 	Init(...Option) error
 	// Options returns the router options
 	Options() Options
-	// ID returns the id of the router
+	// ID returns the ID of the router
 	ID() string
-	// Table returns the routing table
-	Table() Table
 	// Address returns the router adddress
 	Address() string
 	// Network returns the network address of the router
 	Network() string
-	// Advertise starts advertising routes to the network
-	Advertise() (<-chan *Update, error)
+	// Table returns the routing table
+	Table() table.Table
+	// Advertise advertises routes to the network
+	Advertise() (<-chan *Advert, error)
 	// Update updates the routing table
-	Update(*Update) error
+	Update(*Advert) error
 	// Status returns router status
 	Status() Status
 	// Stop stops the router
@@ -34,14 +38,44 @@ type Router interface {
 	String() string
 }
 
-// Update is sent by the router to the network
-type Update struct {
+// Option used by the router
+type Option func(*Options)
+
+// AdvertType is route advertisement type
+type AdvertType int
+
+const (
+	// Announce is advertised when the router announces itself
+	Announce AdvertType = iota
+	// Update advertises route updates
+	Update
+)
+
+// String returns string representation of update event
+func (at AdvertType) String() string {
+	switch at {
+	case Announce:
+		return "ANNOUNCE"
+	case Update:
+		return "UPDATE"
+	default:
+		return "UNKNOWN"
+	}
+}
+
+// Advert contains a list of events advertised by the router to the network
+type Advert struct {
 	// ID is the router ID
 	ID string
-	// Timestamp marks the time when update is sent
+	// Type is type of advert
+	Type AdvertType
+	// Timestamp marks the time when the update is sent
 	Timestamp time.Time
-	// Event defines advertisement even
-	Event *Event
+	// TTL is Advert TTL
+	// TODO: not used
+	TTL time.Time
+	// Events is a list of routing table events to advertise
+	Events []*table.Event
 }
 
 // StatusCode defines router status
@@ -56,34 +90,27 @@ type Status struct {
 }
 
 const (
-	// Init means the rotuer has just been initialized
-	Init StatusCode = iota
-	// Running means the router is running
-	Running
-	// Error means the router has crashed with error
-	Error
-	// Stopped means the router has stopped
+	// Running means the router is up and running
+	Running StatusCode = iota
+	// Stopped means the router has been stopped
 	Stopped
+	// Error means the router has encountered error
+	Error
 )
 
 // String returns human readable status code
 func (sc StatusCode) String() string {
 	switch sc {
-	case Init:
-		return "INITIALIZED"
 	case Running:
 		return "RUNNING"
-	case Error:
-		return "ERROR"
 	case Stopped:
 		return "STOPPED"
+	case Error:
+		return "ERROR"
 	default:
 		return "UNKNOWN"
 	}
 }
-
-// Option used by the router
-type Option func(*Options)
 
 // NewRouter creates new Router and returns it
 func NewRouter(opts ...Option) Router {
