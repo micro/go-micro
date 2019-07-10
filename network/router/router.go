@@ -8,19 +8,19 @@ import (
 )
 
 const (
-	// Announce is advertised when the router announces itself
-	Announce AdvertType = iota
-	// Update advertises route updates
-	Update
-)
-
-const (
+	// Status codes
 	// Running means the router is up and running
 	Running StatusCode = iota
 	// Stopped means the router has been stopped
 	Stopped
 	// Error means the router has encountered error
 	Error
+
+	// Advert types
+	// Announce is advertised when the router announces itself
+	Announce AdvertType = iota
+	// Update advertises route updates
+	Update
 )
 
 // Router is an interface for a routing control plane
