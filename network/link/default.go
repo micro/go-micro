@@ -44,8 +44,8 @@ type link struct {
 func newLink(options options.Options) *link {
 	// default values
 	var sock transport.Socket
+	var addr string
 	id := "local"
-	addr := "127.0.0.1:10001"
 	tr := transport.DefaultTransport
 
 	lid, ok := options.Values().Get("link.id")
@@ -144,14 +144,20 @@ func (l *link) Connect() error {
 		l.Unlock()
 		return nil
 	}
+	defer l.Unlock()
 
 	// replace closed
 	l.closed = make(chan bool)
 
+	// assume existing socket
+	if len(l.addr) == 0 {
+		go l.process()
+		return nil
+	}
+
 	// dial the endpoint
 	c, err := l.transport.Dial(l.addr)
 	if err != nil {
-		l.Unlock()
 		return nil
 	}
 
