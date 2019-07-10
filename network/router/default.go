@@ -95,7 +95,7 @@ func (r *router) manageServiceRoutes(service *registry.Service, action string) e
 		}
 		switch action {
 		case "insert", "create":
-			if err := r.opts.Table.Add(route); err != nil && err != table.ErrDuplicateRoute {
+			if err := r.opts.Table.Create(route); err != nil && err != table.ErrDuplicateRoute {
 				return fmt.Errorf("failed adding route for service %s: %s", service.Name, err)
 			}
 		case "delete":
@@ -227,7 +227,7 @@ func isFlapping(curr, prev *table.Event) bool {
 		return true
 	}
 
-	if curr.Type == table.Insert && prev.Type == table.Delete || curr.Type == table.Delete && prev.Type == table.Insert {
+	if curr.Type == table.Create && prev.Type == table.Delete || curr.Type == table.Delete && prev.Type == table.Create {
 		return true
 	}
 
@@ -389,7 +389,7 @@ func (r *router) Advertise() (<-chan *Advert, error) {
 		events := make([]*table.Event, len(routes))
 		for i, route := range routes {
 			event := &table.Event{
-				Type:      table.Insert,
+				Type:      table.Create,
 				Timestamp: time.Now(),
 				Route:     route,
 			}
@@ -406,7 +406,7 @@ func (r *router) Advertise() (<-chan *Advert, error) {
 				Network: "*",
 				Metric:  table.DefaultLocalMetric,
 			}
-			if err := r.opts.Table.Add(route); err != nil {
+			if err := r.opts.Table.Create(route); err != nil {
 				return nil, fmt.Errorf("failed adding default gateway route: %s", err)
 			}
 		}

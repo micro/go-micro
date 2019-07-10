@@ -2,6 +2,7 @@ package table
 
 import (
 	"sync"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -51,8 +52,8 @@ func (t *table) Options() TableOptions {
 	return t.opts
 }
 
-// Add adds a route to the routing table
-func (t *table) Add(r Route) error {
+// Create creates new route in the routing table
+func (t *table) Create(r Route) error {
 	service := r.Service
 	sum := r.Hash()
 
@@ -63,14 +64,14 @@ func (t *table) Add(r Route) error {
 	if _, ok := t.m[service]; !ok {
 		t.m[service] = make(map[uint64]Route)
 		t.m[service][sum] = r
-		go t.sendEvent(&Event{Type: Insert, Route: r})
+		go t.sendEvent(&Event{Type: Create, Timestamp: time.Now(), Route: r})
 		return nil
 	}
 
 	// add new route to the table for the route destination
 	if _, ok := t.m[service][sum]; !ok {
 		t.m[service][sum] = r
-		go t.sendEvent(&Event{Type: Insert, Route: r})
+		go t.sendEvent(&Event{Type: Create, Timestamp: time.Now(), Route: r})
 		return nil
 	}
 
@@ -90,7 +91,7 @@ func (t *table) Delete(r Route) error {
 	}
 
 	delete(t.m[service], sum)
-	go t.sendEvent(&Event{Type: Delete, Route: r})
+	go t.sendEvent(&Event{Type: Delete, Timestamp: time.Now(), Route: r})
 
 	return nil
 }
@@ -111,7 +112,7 @@ func (t *table) Update(r Route) error {
 	// if the route has been found update it
 	if _, ok := t.m[service][sum]; ok {
 		t.m[service][sum] = r
-		go t.sendEvent(&Event{Type: Update, Route: r})
+		go t.sendEvent(&Event{Type: Update, Timestamp: time.Now(), Route: r})
 		return nil
 	}
 

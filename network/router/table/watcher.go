@@ -2,7 +2,6 @@ package table
 
 import (
 	"errors"
-	"fmt"
 	"time"
 )
 
@@ -15,27 +14,13 @@ var (
 type EventType int
 
 const (
-	// Insert is emitted when a new route has been inserted
-	Insert EventType = iota
+	// Create is emitted when a new route has been created
+	Create EventType = iota
 	// Delete is emitted when an existing route has been deleted
 	Delete
 	// Update is emitted when an existing route has been updated
 	Update
 )
-
-// String returns string representation of the event
-func (et EventType) String() string {
-	switch et {
-	case Insert:
-		return "INSERT"
-	case Delete:
-		return "DELETE"
-	case Update:
-		return "UPDATE"
-	default:
-		return "UNKNOWN"
-	}
-}
 
 // Event is returned by a call to Next on the watcher.
 type Event struct {
@@ -45,11 +30,6 @@ type Event struct {
 	Timestamp time.Time
 	// Route is table route
 	Route Route
-}
-
-// String prints human readable Event
-func (e Event) String() string {
-	return fmt.Sprintf("[EVENT] time: %s type: %s", e.Timestamp, e.Type)
 }
 
 // WatchOption is used to define what routes to watch in the table
@@ -88,7 +68,7 @@ type tableWatcher struct {
 
 // Next returns the next noticed action taken on table
 // TODO: this needs to be thought through properly;
-// right now we only allow to watch destination
+// right now we only allow to watch service
 func (w *tableWatcher) Next() (*Event, error) {
 	for {
 		select {
