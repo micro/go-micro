@@ -31,6 +31,8 @@ const (
 
 // router provides default router implementation
 type router struct {
+	// embed the table
+	table.Table
 	opts       Options
 	status     Status
 	exit       chan struct{}
@@ -52,6 +54,7 @@ func newRouter(opts ...Option) Router {
 	}
 
 	return &router{
+		Table:      options.Table,
 		opts:       options,
 		status:     Status{Error: nil, Code: Stopped},
 		exit:       make(chan struct{}),
@@ -73,26 +76,6 @@ func (r *router) Init(opts ...Option) error {
 // Options returns router options
 func (r *router) Options() Options {
 	return r.opts
-}
-
-// ID returns router ID
-func (r *router) ID() string {
-	return r.opts.ID
-}
-
-// Table returns routing table
-func (r *router) Table() table.Table {
-	return r.opts.Table
-}
-
-// Address returns router's bind address
-func (r *router) Address() string {
-	return r.opts.Address
-}
-
-// Network returns the address router advertises to the network
-func (r *router) Network() string {
-	return r.opts.Network
 }
 
 // manageServiceRoutes manages routes for a given service.
@@ -224,7 +207,7 @@ func (r *router) advertEvents(advType AdvertType, events []*table.Event) {
 	defer r.advertWg.Done()
 
 	a := &Advert{
-		ID:        r.ID(),
+		Id:        r.opts.Id,
 		Type:      advType,
 		Timestamp: time.Now(),
 		Events:    events,
@@ -490,8 +473,8 @@ func (r *router) Advertise() (<-chan *Advert, error) {
 	return r.advertChan, nil
 }
 
-// Update updates the routing table using the advertised values
-func (r *router) Update(a *Advert) error {
+// Process updates the routing table using the advertised values
+func (r *router) Process(a *Advert) error {
 	// NOTE: event sorting might not be necessary
 	// copy update events intp new slices
 	events := make([]*table.Event, len(a.Events))
@@ -546,6 +529,6 @@ func (r *router) Stop() error {
 }
 
 // String prints debugging information about router
-func (r router) String() string {
+func (r *router) String() string {
 	return "router"
 }

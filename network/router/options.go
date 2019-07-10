@@ -15,8 +15,8 @@ var (
 
 // Options are router options
 type Options struct {
-	// ID is router id
-	ID string
+	// Id is router id
+	Id string
 	// Address is router address
 	Address string
 	// Gateway is micro network gateway
@@ -29,10 +29,10 @@ type Options struct {
 	Table table.Table
 }
 
-// ID sets Router ID
-func ID(id string) Option {
+// Id sets Router Id
+func Id(id string) Option {
 	return func(o *Options) {
-		o.ID = id
+		o.Id = id
 	}
 }
 
@@ -57,8 +57,8 @@ func Network(n string) Option {
 	}
 }
 
-// RoutingTable sets the routing table
-func RoutingTable(t table.Table) Option {
+// Table sets the routing table
+func Table(t table.Table) Option {
 	return func(o *Options) {
 		o.Table = t
 	}
@@ -74,7 +74,7 @@ func Registry(r registry.Registry) Option {
 // DefaultOptions returns router default options
 func DefaultOptions() Options {
 	return Options{
-		ID:       uuid.New().String(),
+		Id:       uuid.New().String(),
 		Address:  DefaultAddress,
 		Network:  DefaultNetwork,
 		Registry: registry.DefaultRegistry,

@@ -13,10 +13,6 @@ var (
 
 // Table defines routing table interface
 type Table interface {
-	// Init initializes the router with options
-	Init(...TableOption) error
-	// Options returns the router options
-	Options() TableOptions
 	// Add adds new route to the routing table
 	Add(Route) error
 	// Delete deletes existing route from the routing table
@@ -31,8 +27,6 @@ type Table interface {
 	Watch(opts ...WatchOption) (Watcher, error)
 	// Size returns the size of the routing table
 	Size() int
-	// String prints the routing table
-	String() string
 }
 
 // TableOption used by the routing table

@@ -34,11 +34,5 @@ func (r *Route) Hash() uint64 {
 	h := fnv.New64()
 	h.Reset()
 	h.Write([]byte(r.Service + r.Address + r.Gateway + r.Network + r.Link))
-
 	return h.Sum64()
-}
-
-// String returns human readable route
-func (r Route) String() string {
-	return "route"
 }
