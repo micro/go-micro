@@ -84,7 +84,11 @@ func (p *Proxy) getRoute(service string) ([]string, error) {
 	toNodes := func(routes []table.Route) []string {
 		var nodes []string
 		for _, node := range routes {
-			nodes = append(nodes, node.Gateway)
+			address := node.Address
+			if len(node.Gateway) > 0 {
+				address = node.Gateway
+			}
+			nodes = append(nodes, address)
 		}
 		return nodes
 	}

@@ -162,7 +162,10 @@ func (r *routerSelector) Select(service string, opts ...selector.SelectOption) (
 		route := routes[idx%len(routes)]
 
 		// defaults to gateway and no port
-		address := route.Gateway
+		address := route.Address
+		if len(route.Gateway) > 0 {
+			address = route.Gateway
+		}
 
 		// return as a node
 		return &registry.Node{
