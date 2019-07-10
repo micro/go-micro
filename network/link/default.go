@@ -92,8 +92,7 @@ func newLink(options options.Options) *link {
 
 // link methods
 
-// process processes messages on the send queue.
-// these are messages to be sent to the remote side.
+// process processes messages on the send and receive queues.
 func (l *link) process() {
 	go func() {
 		for {
@@ -138,6 +137,7 @@ func (l *link) recv(m *transport.Message) error {
 	return l.socket.Recv(m)
 }
 
+// Connect attempts to connect to an address and sets the socket
 func (l *link) Connect() error {
 	l.Lock()
 	if l.connected {
@@ -185,24 +185,28 @@ func (l *link) Id() string {
 	return l.id
 }
 
+// the remote ip of the link
 func (l *link) Remote() string {
 	l.RLock()
 	defer l.RUnlock()
 	return l.socket.Remote()
 }
 
+// the local ip of the link
 func (l *link) Local() string {
 	l.RLock()
 	defer l.RUnlock()
 	return l.socket.Local()
 }
 
+// length/rate of the link
 func (l *link) Length() int {
 	l.RLock()
 	defer l.RUnlock()
 	return l.length
 }
 
+// weight checks the size of the queues
 func (l *link) Weight() int {
 	return len(l.sendQueue) + len(l.recvQueue)
 }
