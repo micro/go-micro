@@ -10,6 +10,8 @@ import (
 type socket struct {
 	// socket id based on Micro-Tunnel
 	id string
+	// the session id based on Micro.Tunnel-Session
+	session string
 	// closed
 	closed chan bool
 	// remote addr
@@ -26,8 +28,10 @@ type socket struct {
 
 // message is sent over the send channel
 type message struct {
-	// socket id
+	// tunnel id
 	id string
+	// the session id
+	session string
 	// transport data
 	data *transport.Message
 }
@@ -52,7 +56,7 @@ func (s *socket) Send(m *transport.Message) error {
 		// no op
 	}
 	// append to backlog
-	s.send <- &message{id: s.id, data: m}
+	s.send <- &message{id: s.id, session: s.session, data: m}
 	return nil
 }
 

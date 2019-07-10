@@ -17,7 +17,13 @@ type Tunnel interface {
 	// Dial an endpoint
 	Dial(addr string) (Conn, error)
 	// Accept connections
-	Accept(addr string) (Conn, error)
+	Listen(addr string) (Listener, error)
+}
+
+type Listener interface {
+	Addr() string
+	Close() error
+	Accept() (Conn, error)
 }
 
 type Conn interface {

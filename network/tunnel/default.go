@@ -60,10 +60,11 @@ func (t *tun) newSocket(id string) *socket {
 
 	// new socket
 	s := &socket{
-		id:     id,
-		closed: make(chan bool),
-		recv:   make(chan *message, 128),
-		send:   t.send,
+		id:      id,
+		session: t.newSession(),
+		closed:  make(chan bool),
+		recv:    make(chan *message, 128),
+		send:    t.send,
 	}
 
 	// save socket
@@ -73,6 +74,11 @@ func (t *tun) newSocket(id string) *socket {
 
 	// return socket
 	return s
+}
+
+// TODO: use tunnel id as part of the session
+func (t *tun) newSession() string {
+	return uuid.New().String()
 }
 
 // process outgoing messages
@@ -87,8 +93,11 @@ func (t *tun) process() {
 				Body:   msg.data.Body,
 			}
 
-			// set the stream id on the outgoing message
-			nmsg.Header["Micro-Tunnel"] = msg.id
+			// set the tunnel id on the outgoing message
+			nmsg.Header["Micro-Tunnel-Id"] = msg.id
+
+			// set the session id
+			nmsg.Header["Micro-Tunnel-Session"] = msg.session
 
 			// send the message via the interface
 			if err := t.link.Send(nmsg); err != nil {
@@ -111,8 +120,11 @@ func (t *tun) listen() {
 			return
 		}
 
-		// a stream id
-		id := msg.Header["Micro-Tunnel"]
+		// the tunnel id
+		id := msg.Header["Micro-Tunnel-Id"]
+
+		// the session id
+		session := msg.Header["Micro-Tunnel-Session"]
 
 		// get the socket
 		s, exists := t.getSocket(id)
@@ -150,7 +162,7 @@ func (t *tun) listen() {
 
 		// TODO: don't block on queuing
 		// append to recv backlog
-		s.recv <- &message{id: id, data: tmsg}
+		s.recv <- &message{id: id, session: session, data: tmsg}
 	}
 }
 
@@ -209,10 +221,12 @@ func (t *tun) Dial(addr string) (Conn, error) {
 	c.remote = addr
 	// set local
 	c.local = t.link.Local()
+
 	return c, nil
 }
 
-func (t *tun) Accept(addr string) (Conn, error) {
+// Accept a connection on the address
+func (t *tun) Listen(addr string) (Listener, error) {
 	// create a new socket by hashing the address
 	c := t.newSocket(addr)
 	// set remote. it will be replaced by the first message received
@@ -227,6 +241,20 @@ func (t *tun) Accept(addr string) (Conn, error) {
 	case <-c.wait:
 	}
 
-	// return socket
-	return c, nil
+	tl := &tunListener{
+		addr: addr,
+		// the accept channel
+		accept: make(chan *socket, 128),
+		// the channel to close
+		closed: make(chan bool),
+		// the connection
+		conn: c,
+		// the listener socket
+		socket: c,
+	}
+
+	go tl.process()
+
+	// return the listener
+	return tl, nil
 }
