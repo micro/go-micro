@@ -16,11 +16,11 @@ func testSetup() (Table, Route) {
 	return table, route
 }
 
-func TestAdd(t *testing.T) {
+func TestCreate(t *testing.T) {
 	table, route := testSetup()
 	testTableSize := table.Size()
 
-	if err := table.Add(route); err != nil {
+	if err := table.Create(route); err != nil {
 		t.Errorf("error adding route: %s", err)
 	}
 	testTableSize += 1
@@ -28,7 +28,7 @@ func TestAdd(t *testing.T) {
 	// adds new route for the original destination
 	route.Gateway = "dest.gw2"
 
-	if err := table.Add(route); err != nil {
+	if err := table.Create(route); err != nil {
 		t.Errorf("error adding route: %s", err)
 	}
 	testTableSize += 1
@@ -38,7 +38,7 @@ func TestAdd(t *testing.T) {
 	}
 
 	// adding the same route under Insert policy must error
-	if err := table.Add(route); err != ErrDuplicateRoute {
+	if err := table.Create(route); err != ErrDuplicateRoute {
 		t.Errorf("error adding route. Expected error: %s, found: %s", ErrDuplicateRoute, err)
 	}
 }
@@ -47,7 +47,7 @@ func TestDelete(t *testing.T) {
 	table, route := testSetup()
 	testTableSize := table.Size()
 
-	if err := table.Add(route); err != nil {
+	if err := table.Create(route); err != nil {
 		t.Errorf("error adding route: %s", err)
 	}
 	testTableSize += 1
@@ -77,7 +77,7 @@ func TestUpdate(t *testing.T) {
 	table, route := testSetup()
 	testTableSize := table.Size()
 
-	if err := table.Add(route); err != nil {
+	if err := table.Create(route); err != nil {
 		t.Errorf("error adding route: %s", err)
 	}
 	testTableSize += 1
@@ -113,7 +113,7 @@ func TestList(t *testing.T) {
 
 	for i := 0; i < len(svc); i++ {
 		route.Service = svc[i]
-		if err := table.Add(route); err != nil {
+		if err := table.Create(route); err != nil {
 			t.Errorf("error adding route: %s", err)
 		}
 	}
@@ -143,7 +143,7 @@ func TestLookup(t *testing.T) {
 		route.Service = svc[i]
 		route.Network = net[i]
 		route.Gateway = gw[i]
-		if err := table.Add(route); err != nil {
+		if err := table.Create(route); err != nil {
 			t.Errorf("error adding route: %s", err)
 		}
 	}
