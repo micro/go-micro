@@ -45,8 +45,7 @@ require (
 	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
 	github.com/kr/pty v1.1.8 // indirect
 	github.com/leodido/go-urn v1.1.0 // indirect
-	github.com/lucas-clemente/quic-go v0.11.2
-	github.com/marten-seemann/qtls v0.3.1 // indirect
+	github.com/lucas-clemente/quic-go v0.7.1-0.20190710050138-1441923ab031
 	github.com/mattn/go-colorable v0.1.2 // indirect
 	github.com/mattn/go-runewidth v0.0.4 // indirect
 	github.com/micro/cli v0.2.0
@@ -55,6 +54,7 @@ require (
 	github.com/mitchellh/gox v1.0.1 // indirect
 	github.com/mitchellh/hashstructure v1.0.0
 	github.com/nats-io/nats.go v1.8.1
+	github.com/nats-io/nkeys v0.1.0 // indirect
 	github.com/nlopes/slack v0.5.0
 	github.com/olekukonko/tablewriter v0.0.1
 	github.com/onsi/ginkgo v1.8.0 // indirect
@@ -69,11 +69,11 @@ require (
 	golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4
 	golang.org/x/exp v0.0.0-20190627132806-fd42eb6b336f // indirect
 	golang.org/x/image v0.0.0-20190703141733-d6a02ce849c9 // indirect
-	golang.org/x/mobile v0.0.0-20190607214518-6fa95d984e88 // indirect
+	golang.org/x/mobile v0.0.0-20190711165009-e47acb2ca7f9 // indirect
 	golang.org/x/mod v0.1.0 // indirect
 	golang.org/x/net v0.0.0-20190628185345-da137c7871d7
 	golang.org/x/sys v0.0.0-20190710143415-6ec70d6a5542 // indirect
-	golang.org/x/tools v0.0.0-20190710184609-286818132824 // indirect
+	golang.org/x/tools v0.0.0-20190711191110-9a621aea19f8 // indirect
 	google.golang.org/genproto v0.0.0-20190708153700-3bdd9d9f5532 // indirect
 	google.golang.org/grpc v1.22.0
 	gopkg.in/go-playground/validator.v9 v9.29.0
