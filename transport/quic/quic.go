@@ -109,6 +109,7 @@ func (q *quicTransport) Dial(addr string, opts ...transport.DialOption) (transpo
 	if config == nil {
 		config = &tls.Config{
 			InsecureSkipVerify: true,
+			NextProtos:         []string{"http/1.1"},
 		}
 	}
 	s, err := quic.DialAddr(addr, config, nil)
@@ -150,6 +151,7 @@ func (q *quicTransport) Listen(addr string, opts ...transport.ListenOption) (tra
 		}
 		config = &tls.Config{
 			Certificates: []tls.Certificate{cfg},
+			NextProtos:   []string{"http/1.1"},
 		}
 	}
 
