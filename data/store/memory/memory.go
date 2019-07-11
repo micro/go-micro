@@ -32,13 +32,12 @@ func (m *memoryStore) Dump() ([]*store.Record, error) {
 		d := v.r.Expiry
 		t := time.Since(v.c)
 
-		// expired
-		if d > time.Duration(0) && t > d {
-			continue
-		}
-
-		// update expiry
 		if d > time.Duration(0) {
+			// expired
+			if t > d {
+				continue
+			}
+			// update expiry
 			v.r.Expiry -= t
 			v.c = time.Now()
 		}
@@ -63,12 +62,11 @@ func (m *memoryStore) Read(key string) (*store.Record, error) {
 	t := time.Since(v.c)
 
 	// expired
-	if d > time.Duration(0) && t > d {
-		return nil, store.ErrNotFound
-	}
-
-	// update expiry
 	if d > time.Duration(0) {
+		if t > d {
+			return nil, store.ErrNotFound
+		}
+		// update expiry
 		v.r.Expiry -= t
 		v.c = time.Now()
 	}
