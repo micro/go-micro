@@ -58,8 +58,7 @@ type Advert struct {
 	// Timestamp marks the time when the update is sent
 	Timestamp time.Time
 	// TTL is Advert TTL
-	// TODO: not used
-	TTL time.Time
+	TTL time.Duration
 	// Events is a list of routing table events to advertise
 	Events []*table.Event
 }
