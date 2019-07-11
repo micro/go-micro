@@ -38,8 +38,10 @@ func (m *memoryStore) Dump() ([]*store.Record, error) {
 		}
 
 		// update expiry
-		v.r.Expiry -= t
-		v.c = time.Now()
+		if d > time.Duration(0) {
+			v.r.Expiry -= t
+			v.c = time.Now()
+		}
 
 		values = append(values, v.r)
 	}
@@ -66,8 +68,10 @@ func (m *memoryStore) Read(key string) (*store.Record, error) {
 	}
 
 	// update expiry
-	v.r.Expiry -= t
-	v.c = time.Now()
+	if d > time.Duration(0) {
+		v.r.Expiry -= t
+		v.c = time.Now()
+	}
 
 	return v.r, nil
 }
