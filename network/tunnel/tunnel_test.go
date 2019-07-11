@@ -5,8 +5,10 @@ import (
 
 	"github.com/micro/go-micro/network/link"
 	"github.com/micro/go-micro/transport"
+	"github.com/micro/go-micro/transport/quic"
 )
 
+// testAccept will accept connections on the transport, create a new link and tunnel on top
 func testAccept(t *testing.T, l transport.Listener, wait chan bool) error {
 	// accept new connections on the transport
 	// establish a link and tunnel
@@ -54,10 +56,12 @@ func testAccept(t *testing.T, l transport.Listener, wait chan bool) error {
 	})
 }
 
+// testSend will create a new link to an address and then a tunnel on top
 func testSend(t *testing.T, addr string) {
 	// create a new link
 	l := link.NewLink(
 		link.Address(addr),
+		link.Transport(quic.NewTransport()),
 	)
 
 	// connect the link, this includes dialing
@@ -91,7 +95,7 @@ func testSend(t *testing.T, addr string) {
 
 func TestTunnel(t *testing.T) {
 	// create a new listener
-	tr := transport.NewTransport()
+	tr := quic.NewTransport()
 	l, err := tr.Listen(":0")
 	if err != nil {
 		t.Fatal(err)
