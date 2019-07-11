@@ -2,6 +2,7 @@
 package quic
 
 import (
+	"context"
 	"crypto/tls"
 	"encoding/gob"
 
@@ -67,12 +68,12 @@ func (q *quicListener) Close() error {
 
 func (q *quicListener) Accept(fn func(transport.Socket)) error {
 	for {
-		s, err := q.l.Accept()
+		s, err := q.l.Accept(context.TODO())
 		if err != nil {
 			return err
 		}
 
-		stream, err := s.AcceptStream()
+		stream, err := s.AcceptStream(context.TODO())
 		if err != nil {
 			continue
 		}
@@ -117,7 +118,7 @@ func (q *quicTransport) Dial(addr string, opts ...transport.DialOption) (transpo
 		return nil, err
 	}
 
-	st, err := s.OpenStreamSync()
+	st, err := s.OpenStreamSync(context.TODO())
 	if err != nil {
 		return nil, err
 	}
