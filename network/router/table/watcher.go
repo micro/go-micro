@@ -22,6 +22,22 @@ const (
 	Update
 )
 
+// String implements fmt.Stringer
+// NOTE: we need this as this makes converting the numeric codes
+// into miro style string actions very simple
+func (et EventType) String() string {
+	switch et {
+	case Create:
+		return "create"
+	case Delete:
+		return "delete"
+	case Update:
+		return "update"
+	default:
+		return "unknown"
+	}
+}
+
 // Event is returned by a call to Next on the watcher.
 type Event struct {
 	// Type defines type of event
