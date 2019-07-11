@@ -73,7 +73,7 @@ type Router_WatchService interface {
 	SendMsg(interface{}) error
 	RecvMsg(interface{}) error
 	Close() error
-	Recv() (*TableEvent, error)
+	Recv() (*Event, error)
 }
 
 type routerServiceWatch struct {
@@ -92,8 +92,8 @@ func (x *routerServiceWatch) RecvMsg(m interface{}) error {
 	return x.stream.Recv(m)
 }
 
-func (x *routerServiceWatch) Recv() (*TableEvent, error) {
-	m := new(TableEvent)
+func (x *routerServiceWatch) Recv() (*Event, error) {
+	m := new(Event)
 	err := x.stream.Recv(m)
 	if err != nil {
 		return nil, err
@@ -158,7 +158,7 @@ type Router_WatchStream interface {
 	SendMsg(interface{}) error
 	RecvMsg(interface{}) error
 	Close() error
-	Send(*TableEvent) error
+	Send(*Event) error
 }
 
 type routerWatchStream struct {
@@ -177,7 +177,7 @@ func (x *routerWatchStream) RecvMsg(m interface{}) error {
 	return x.stream.Recv(m)
 }
 
-func (x *routerWatchStream) Send(m *TableEvent) error {
+func (x *routerWatchStream) Send(m *Event) error {
 	return x.stream.Send(m)
 }
 
