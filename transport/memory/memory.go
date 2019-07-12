@@ -166,9 +166,6 @@ func (m *memoryTransport) Dial(addr string, opts ...transport.DialOption) (trans
 }
 
 func (m *memoryTransport) Listen(addr string, opts ...transport.ListenOption) (transport.Listener, error) {
-	m.Lock()
-	defer m.Unlock()
-
 	var options transport.ListenOptions
 	for _, o := range opts {
 		o(&options)
@@ -178,11 +175,22 @@ func (m *memoryTransport) Listen(addr string, opts ...transport.ListenOption) (t
 
 	// if zero port then randomly assign one
 	if len(parts) > 1 && parts[len(parts)-1] == "0" {
-		i := r.Intn(10000)
-		// set addr with port
-		addr = fmt.Sprintf("%s:%d", parts[:len(parts)-1], 10000+i)
+		for idx := 0; idx < 100; idx++ {
+			i := r.Intn(10000)
+			// set addr with port
+			addr = fmt.Sprintf("%s:%d", parts[:len(parts)-1], 10000+i)
+			m.RLock()
+			if _, ok := m.listeners[addr]; ok {
+				m.RUnlock()
+				continue
+			}
+			m.RUnlock()
+			break
+		}
 	}
 
+	m.Lock()
+	defer m.Unlock()
 	if _, ok := m.listeners[addr]; ok {
 		return nil, errors.New("already listening on " + addr)
 	}
