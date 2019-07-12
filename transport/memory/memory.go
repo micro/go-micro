@@ -84,8 +84,8 @@ func (ms *memorySocket) Send(m *transport.Message) error {
 }
 
 func (ms *memorySocket) Close() error {
-	ms.RLock()
-	defer ms.RUnlock()
+	ms.Lock()
+	defer ms.Unlock()
 	select {
 	case <-ms.exit:
 		return nil
