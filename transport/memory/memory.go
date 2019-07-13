@@ -12,10 +12,6 @@ import (
 	"github.com/micro/go-micro/transport"
 )
 
-var (
-	r = rand.New(rand.NewSource(time.Now().UnixNano()))
-)
-
 type memorySocket struct {
 	recv chan *transport.Message
 	send chan *transport.Message
@@ -178,7 +174,7 @@ func (m *memoryTransport) Listen(addr string, opts ...transport.ListenOption) (t
 
 	// if zero port then randomly assign one
 	if len(parts) > 1 && parts[len(parts)-1] == "0" {
-		i := r.Intn(10000)
+		i := rand.Intn(20000)
 		// set addr with port
 		addr = fmt.Sprintf("%s:%d", parts[:len(parts)-1], 10000+i)
 	}
@@ -215,6 +211,7 @@ func (m *memoryTransport) String() string {
 }
 
 func NewTransport(opts ...transport.Option) transport.Transport {
+	rand.Seed(time.Now().UnixNano())
 	var options transport.Options
 	for _, o := range opts {
 		o(&options)
