@@ -1,12 +1,11 @@
 package registry
 
 func addNodes(old, neu []*Node) []*Node {
-	var nodes []*Node
-
+	nodes := make([]*Node, len(neu))
 	// add all new nodes
-	for _, n := range neu {
+	for i, n := range neu {
 		node := *n
-		nodes = append(nodes, &node)
+		nodes[i] = &node
 	}
 
 	// look at old nodes
