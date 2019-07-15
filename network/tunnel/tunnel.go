@@ -1,4 +1,4 @@
-// Package tunnel provides a network tunnel ontop of a link
+// Package tunnel provides gre network tunnelling
 package tunnel
 
 import (
@@ -6,7 +6,7 @@ import (
 	"github.com/micro/go-micro/transport"
 )
 
-// Tunnel creates a network tunnel on top of a link.
+// Tunnel creates a gre network tunnel on top of a link.
 // It establishes multiple streams using the Micro-Tunnel-Id header
 // and Micro-Tunnel-Session header. The tunnel id is a hash of
 // the address being requested.
