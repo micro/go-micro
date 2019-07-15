@@ -1,12 +1,11 @@
 package registry
 
 func addNodes(old, neu []*Node) []*Node {
-	var nodes []*Node
-
+	nodes := make([]*Node, len(neu))
 	// add all new nodes
-	for _, n := range neu {
+	for i, n := range neu {
 		node := *n
-		nodes = append(nodes, &node)
+		nodes[i] = &node
 	}
 
 	// look at old nodes
@@ -51,33 +50,32 @@ func delNodes(old, del []*Node) []*Node {
 
 // Copy makes a copy of services
 func Copy(current []*Service) []*Service {
-	var services []*Service
-
-	for _, service := range current {
+	services := make([]*Service, len(current))
+	for i, service := range current {
 		// copy service
 		s := new(Service)
 		*s = *service
 
 		// copy nodes
-		var nodes []*Node
-		for _, node := range service.Nodes {
+		nodes := make([]*Node, len(service.Nodes))
+		for j, node := range service.Nodes {
 			n := new(Node)
 			*n = *node
-			nodes = append(nodes, n)
+			nodes[j] = n
 		}
 		s.Nodes = nodes
 
 		// copy endpoints
-		var eps []*Endpoint
-		for _, ep := range service.Endpoints {
+		eps := make([]*Endpoint, len(service.Endpoints))
+		for j, ep := range service.Endpoints {
 			e := new(Endpoint)
 			*e = *ep
-			eps = append(eps, e)
+			eps[j] = e
 		}
 		s.Endpoints = eps
 
 		// append service
-		services = append(services, s)
+		services[i] = s
 	}
 
 	return services
