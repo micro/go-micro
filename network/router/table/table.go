@@ -29,10 +29,10 @@ type Table interface {
 	Size() int
 }
 
-// TableOption used by the routing table
-type TableOption func(*TableOptions)
+// Option used by the routing table
+type Option func(*Options)
 
 // NewTable creates new routing table and returns it
-func NewTable(opts ...TableOption) Table {
+func NewTable(opts ...Option) Table {
 	return newTable(opts...)
 }

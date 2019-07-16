@@ -160,7 +160,7 @@ func (r *router) manageRegistryRoutes(reg registry.Registry, action string) erro
 	return nil
 }
 
-// watchRegistry watches sregistry and updates the routing table.
+// watchRegistry watches registry and updates routing table based on the received events.
 // It returns error if either the registry watcher fails with error or if the routing table update fails.
 func (r *router) watchRegistry(w registry.Watcher) error {
 	// wait in the background for the router to stop
@@ -282,8 +282,6 @@ func (r *router) advertiseTable() error {
 			return nil
 		}
 	}
-
-	return nil
 }
 
 // routeAdvert contains a list of route events to be advertised
@@ -400,10 +398,6 @@ func (r *router) processEvents() error {
 			return nil
 		}
 	}
-
-	// we probably never reach this code path
-
-	return nil
 }
 
 // watchErrors watches router errors and takes appropriate actions
@@ -609,5 +603,5 @@ func (r *router) Stop() error {
 
 // String prints debugging information about router
 func (r *router) String() string {
-	return "default router"
+	return "default"
 }

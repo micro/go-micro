@@ -23,7 +23,7 @@ func TestCreate(t *testing.T) {
 	if err := table.Create(route); err != nil {
 		t.Errorf("error adding route: %s", err)
 	}
-	testTableSize += 1
+	testTableSize++
 
 	// adds new route for the original destination
 	route.Gateway = "dest.gw2"
@@ -31,7 +31,7 @@ func TestCreate(t *testing.T) {
 	if err := table.Create(route); err != nil {
 		t.Errorf("error adding route: %s", err)
 	}
-	testTableSize += 1
+	testTableSize++
 
 	if table.Size() != testTableSize {
 		t.Errorf("invalid number of routes. Expected: %d, found: %d", testTableSize, table.Size())
@@ -50,7 +50,7 @@ func TestDelete(t *testing.T) {
 	if err := table.Create(route); err != nil {
 		t.Errorf("error adding route: %s", err)
 	}
-	testTableSize += 1
+	testTableSize++
 
 	// should fail to delete non-existant route
 	prevSvc := route.Service
@@ -66,7 +66,7 @@ func TestDelete(t *testing.T) {
 	if err := table.Delete(route); err != nil {
 		t.Errorf("error deleting route: %s", err)
 	}
-	testTableSize -= 1
+	testTableSize--
 
 	if table.Size() != testTableSize {
 		t.Errorf("invalid number of routes. Expected: %d, found: %d", testTableSize, table.Size())
@@ -80,7 +80,7 @@ func TestUpdate(t *testing.T) {
 	if err := table.Create(route); err != nil {
 		t.Errorf("error adding route: %s", err)
 	}
-	testTableSize += 1
+	testTableSize++
 
 	// change the metric of the original route
 	route.Metric = 200
@@ -100,7 +100,7 @@ func TestUpdate(t *testing.T) {
 	if err := table.Update(route); err != nil {
 		t.Errorf("error updating route: %s", err)
 	}
-	testTableSize += 1
+	testTableSize++
 
 	if table.Size() != testTableSize {
 		t.Errorf("invalid number of routes. Expected: %d, found: %d", testTableSize, table.Size())

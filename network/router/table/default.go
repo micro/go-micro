@@ -7,14 +7,14 @@ import (
 	"github.com/google/uuid"
 )
 
-// TableOptions specify routing table options
+// Options specify routing table options
 // TODO: table options TBD in the future
-type TableOptions struct{}
+type Options struct{}
 
 // table is an in memory routing table
 type table struct {
 	// opts are table options
-	opts TableOptions
+	opts Options
 	// m stores routing table map
 	m map[string]map[uint64]Route
 	// w is a list of table watchers
@@ -23,9 +23,9 @@ type table struct {
 }
 
 // newTable creates a new routing table and returns it
-func newTable(opts ...TableOption) Table {
+func newTable(opts ...Option) Table {
 	// default options
-	var options TableOptions
+	var options Options
 
 	// apply requested options
 	for _, o := range opts {
@@ -40,7 +40,7 @@ func newTable(opts ...TableOption) Table {
 }
 
 // Init initializes routing table with options
-func (t *table) Init(opts ...TableOption) error {
+func (t *table) Init(opts ...Option) error {
 	for _, o := range opts {
 		o(&t.opts)
 	}
@@ -48,7 +48,7 @@ func (t *table) Init(opts ...TableOption) error {
 }
 
 // Options returns routing table options
-func (t *table) Options() TableOptions {
+func (t *table) Options() Options {
 	return t.opts
 }
 
@@ -219,7 +219,7 @@ func (t *table) Size() int {
 	defer t.RUnlock()
 
 	size := 0
-	for dest, _ := range t.m {
+	for dest := range t.m {
 		size += len(t.m[dest])
 	}
 
@@ -227,6 +227,6 @@ func (t *table) Size() int {
 }
 
 // String returns debug information
-func (t table) String() string {
-	return "table"
+func (t *table) String() string {
+	return "default"
 }
