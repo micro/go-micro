@@ -280,16 +280,16 @@ func (r *rpcClient) next(request Request, opts CallOptions) (selector.Next, erro
 
 	// return remote address
 	if len(opts.Address) > 0 {
-		var nodes []*registry.Node
+		nodes := make([]*registry.Node, len(opts.Address))
 
-		for _, address := range opts.Address {
-			nodes = append(nodes, &registry.Node{
+		for i, address := range opts.Address {
+			nodes[i] = &registry.Node{
 				Address: address,
 				// Set the protocol
 				Metadata: map[string]string{
 					"protocol": "mucp",
 				},
-			})
+			}
 		}
 
 		// crude return method
