@@ -273,10 +273,8 @@ func (r *router) advertiseTable() error {
 
 			// advertise all routes as Update events to subscribers
 			if len(events) > 0 {
-				go func() {
-					r.advertWg.Add(1)
-					r.advertiseEvents(Update, events)
-				}()
+				r.advertWg.Add(1)
+				go r.advertiseEvents(Update, events)
 			}
 		case <-r.exit:
 			return nil
