@@ -22,6 +22,7 @@ import (
 	"github.com/micro/go-micro/util/addr"
 	mgrpc "github.com/micro/go-micro/util/grpc"
 	"github.com/micro/go-micro/util/log"
+	mnet "github.com/micro/go-micro/util/net"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -519,14 +520,11 @@ func (g *grpcServer) Register() error {
 		advt = config.Address
 	}
 
-	if idx := strings.Count(advt, ":"); idx > 1 {
+	if cnt := strings.Count(advt, ":"); cnt >= 1 {
 		// ipv6 address in format [host]:port or ipv4 host:port
 		host, port, err = net.SplitHostPort(advt)
 		if err != nil {
 			return err
-		}
-		if host == "::" {
-			host = fmt.Sprintf("[%s]", host)
 		}
 	} else {
 		host = advt
@@ -540,7 +538,7 @@ func (g *grpcServer) Register() error {
 	// register service
 	node := &registry.Node{
 		Id:       config.Name + "-" + config.Id,
-		Address:  fmt.Sprintf("%s:%s", addr, port),
+		Address:  mnet.HostPort(addr, port),
 		Metadata: config.Metadata,
 	}
 
@@ -649,14 +647,11 @@ func (g *grpcServer) Deregister() error {
 		advt = config.Address
 	}
 
-	if idx := strings.Count(advt, ":"); idx > 1 {
+	if cnt := strings.Count(advt, ":"); cnt >= 1 {
 		// ipv6 address in format [host]:port or ipv4 host:port
 		host, port, err = net.SplitHostPort(advt)
 		if err != nil {
 			return err
-		}
-		if host == "::" {
-			host = fmt.Sprintf("[%s]", host)
 		}
 	} else {
 		host = advt
@@ -669,7 +664,7 @@ func (g *grpcServer) Deregister() error {
 
 	node := &registry.Node{
 		Id:      config.Name + "-" + config.Id,
-		Address: fmt.Sprintf("%s:%s", addr, port),
+		Address: mnet.HostPort(addr, port),
 	}
 
 	service := &registry.Service{

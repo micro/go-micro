@@ -5,11 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
-	"strings"
+	"net"
 	"sync"
 	"time"
 
 	"github.com/micro/go-micro/transport"
+	maddr "github.com/micro/go-micro/util/addr"
+	mnet "github.com/micro/go-micro/util/net"
 )
 
 type memorySocket struct {
@@ -170,14 +172,24 @@ func (m *memoryTransport) Listen(addr string, opts ...transport.ListenOption) (t
 		o(&options)
 	}
 
-	parts := strings.Split(addr, ":")
+	host, port, err := net.SplitHostPort(addr)
+	if err != nil {
+		return nil, err
+	}
+
+	addr, err = maddr.Extract(host)
+	if err != nil {
+		return nil, err
+	}
 
 	// if zero port then randomly assign one
-	if len(parts) > 1 && parts[len(parts)-1] == "0" {
+	if len(port) > 0 && port == "0" {
 		i := rand.Intn(20000)
-		// set addr with port
-		addr = fmt.Sprintf("%s:%d", parts[:len(parts)-1], 10000+i)
+		port = fmt.Sprintf("%d", 10000+i)
 	}
+
+	// set addr with port
+	addr = mnet.HostPort(addr, port)
 
 	if _, ok := m.listeners[addr]; ok {
 		return nil, errors.New("already listening on " + addr)

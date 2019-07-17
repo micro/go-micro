@@ -10,7 +10,7 @@ func TestMemoryTransport(t *testing.T) {
 	tr := NewTransport()
 
 	// bind / listen
-	l, err := tr.Listen("localhost:8080")
+	l, err := tr.Listen("127.0.0.1:8080")
 	if err != nil {
 		t.Fatalf("Unexpected error listening %v", err)
 	}
@@ -37,7 +37,7 @@ func TestMemoryTransport(t *testing.T) {
 	}()
 
 	// dial
-	c, err := tr.Dial("localhost:8080")
+	c, err := tr.Dial("127.0.0.1:8080")
 	if err != nil {
 		t.Fatalf("Unexpected error dialing %v", err)
 	}
