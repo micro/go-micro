@@ -20,6 +20,7 @@ type memorySocket struct {
 	// listener exit
 	lexit chan bool
 
+	once   sync.Once
 	local  string
 	remote string
 	sync.RWMutex
@@ -80,14 +81,18 @@ func (ms *memorySocket) Send(m *transport.Message) error {
 }
 
 func (ms *memorySocket) Close() error {
-	ms.Lock()
-	defer ms.Unlock()
-	select {
-	case <-ms.exit:
-		return nil
-	default:
-		close(ms.exit)
+	onceBody := func() {
+		ms.Lock()
+		defer ms.Unlock()
+		select {
+		case <-ms.exit:
+			return
+		default:
+			close(ms.exit)
+		}
 	}
+	ms.once.Do(onceBody)
+
 	return nil
 }
 
