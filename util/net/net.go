@@ -11,38 +11,42 @@ import (
 // Listen takes addr:portmin-portmax and binds to the first available port
 // Example: Listen("localhost:5000-6000", fn)
 func Listen(addr string, fn func(string) (net.Listener, error)) (net.Listener, error) {
-	// host:port || host:min-max
-	parts := strings.Split(addr, ":")
 
-	//
-	if len(parts) < 2 {
+	if strings.Count(addr, ":") == 1 && strings.Count(addr, "-") == 0 {
 		return fn(addr)
 	}
 
+	// host:port || host:min-max
+	host, ports, err := net.SplitHostPort(addr)
+	if err != nil {
+		return nil, err
+	}
+
+	if host == "::" {
+		host = fmt.Sprintf("[%s]", host)
+	}
+
 	// try to extract port range
-	ports := strings.Split(parts[len(parts)-1], "-")
+	prange := strings.Split(ports, "-")
 
 	// single port
-	if len(ports) < 2 {
+	if len(prange) < 2 {
 		return fn(addr)
 	}
 
 	// we have a port range
 
 	// extract min port
-	min, err := strconv.Atoi(ports[0])
+	min, err := strconv.Atoi(prange[0])
 	if err != nil {
 		return nil, errors.New("unable to extract port range")
 	}
 
 	// extract max port
-	max, err := strconv.Atoi(ports[1])
+	max, err := strconv.Atoi(prange[1])
 	if err != nil {
 		return nil, errors.New("unable to extract port range")
 	}
-
-	// set host
-	host := parts[:len(parts)-1]
 
 	// range the ports
 	for port := min; port <= max; port++ {
