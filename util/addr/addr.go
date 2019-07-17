@@ -30,7 +30,7 @@ func isPrivateIP(ipAddr string) bool {
 // Extract returns a real ip
 func Extract(addr string) (string, error) {
 	// if addr specified then its returned
-	if len(addr) > 0 && (addr != "0.0.0.0" && addr != "[::]") {
+	if len(addr) > 0 && (addr != "0.0.0.0" && addr != "[::]" && addr != "::") {
 		return addr, nil
 	}
 
@@ -113,10 +113,13 @@ func IPs() []string {
 				continue
 			}
 
-			ip = ip.To4()
-			if ip == nil {
-				continue
-			}
+			// dont skip ipv6 addrs
+			/*
+				ip = ip.To4()
+				if ip == nil {
+					continue
+				}
+			*/
 
 			ipAddrs = append(ipAddrs, ip.String())
 		}

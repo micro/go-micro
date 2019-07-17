@@ -504,10 +504,11 @@ func (g *grpcServer) Subscribe(sb server.Subscriber) error {
 }
 
 func (g *grpcServer) Register() error {
+	var err error
+	var advt, host, port string
+
 	// parse address for host, port
 	config := g.opts
-	var advt, host string
-	var port int
 
 	// check the advertise address first
 	// if it exists then use it, otherwise
@@ -518,12 +519,17 @@ func (g *grpcServer) Register() error {
 		advt = config.Address
 	}
 
-	parts := strings.Split(advt, ":")
-	if len(parts) > 1 {
-		host = strings.Join(parts[:len(parts)-1], ":")
-		port, _ = strconv.Atoi(parts[len(parts)-1])
+	if idx := strings.Count(advt, ":"); idx > 1 {
+		// ipv6 address in format [host]:port or ipv4 host:port
+		host, port, err = net.SplitHostPort(advt)
+		if err != nil {
+			return err
+		}
+		if host == "::" {
+			host = fmt.Sprintf("[%s]", host)
+		}
 	} else {
-		host = parts[0]
+		host = advt
 	}
 
 	addr, err := addr.Extract(host)
@@ -534,7 +540,7 @@ func (g *grpcServer) Register() error {
 	// register service
 	node := &registry.Node{
 		Id:       config.Name + "-" + config.Id,
-		Address:  fmt.Sprintf("%s:%d", addr, port),
+		Address:  fmt.Sprintf("%s:%s", addr, port),
 		Metadata: config.Metadata,
 	}
 
@@ -629,9 +635,10 @@ func (g *grpcServer) Register() error {
 }
 
 func (g *grpcServer) Deregister() error {
+	var err error
+	var advt, host, port string
+
 	config := g.opts
-	var advt, host string
-	var port int
 
 	// check the advertise address first
 	// if it exists then use it, otherwise
@@ -642,12 +649,17 @@ func (g *grpcServer) Deregister() error {
 		advt = config.Address
 	}
 
-	parts := strings.Split(advt, ":")
-	if len(parts) > 1 {
-		host = strings.Join(parts[:len(parts)-1], ":")
-		port, _ = strconv.Atoi(parts[len(parts)-1])
+	if idx := strings.Count(advt, ":"); idx > 1 {
+		// ipv6 address in format [host]:port or ipv4 host:port
+		host, port, err = net.SplitHostPort(advt)
+		if err != nil {
+			return err
+		}
+		if host == "::" {
+			host = fmt.Sprintf("[%s]", host)
+		}
 	} else {
-		host = parts[0]
+		host = advt
 	}
 
 	addr, err := addr.Extract(host)
@@ -657,7 +669,7 @@ func (g *grpcServer) Deregister() error {
 
 	node := &registry.Node{
 		Id:      config.Name + "-" + config.Id,
-		Address: fmt.Sprintf("%s:%d", addr, port),
+		Address: fmt.Sprintf("%s:%s", addr, port),
 	}
 
 	service := &registry.Service{

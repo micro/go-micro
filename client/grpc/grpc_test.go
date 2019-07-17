@@ -2,10 +2,7 @@ package grpc
 
 import (
 	"context"
-	"fmt"
 	"net"
-	"strconv"
-	"strings"
 	"testing"
 
 	"github.com/micro/go-micro/client"
@@ -37,10 +34,6 @@ func TestGRPCClient(t *testing.T) {
 	go s.Serve(l)
 	defer s.Stop()
 
-	parts := strings.Split(l.Addr().String(), ":")
-	port, _ := strconv.Atoi(parts[len(parts)-1])
-	addr := strings.Join(parts[:len(parts)-1], ":")
-
 	// create mock registry
 	r := memory.NewRegistry()
 
@@ -51,7 +44,7 @@ func TestGRPCClient(t *testing.T) {
 		Nodes: []*registry.Node{
 			&registry.Node{
 				Id:      "test-1",
-				Address: fmt.Sprintf("%s:%d", addr, port),
+				Address: l.Addr().String(),
 			},
 		},
 	})
