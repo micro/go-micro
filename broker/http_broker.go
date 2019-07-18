@@ -627,12 +627,6 @@ func (h *httpBroker) Subscribe(topic string, handler Handler, opts ...SubscribeO
 		return nil, err
 	}
 
-	// ipv6 addr
-	if addr == "::" {
-		// ipv6 addr
-		addr = fmt.Sprintf("[%s]", addr)
-	}
-
 	// create unique id
 	id := h.id + "." + uuid.New().String()
 
@@ -645,7 +639,7 @@ func (h *httpBroker) Subscribe(topic string, handler Handler, opts ...SubscribeO
 	// register service
 	node := &registry.Node{
 		Id:      id,
-		Address: fmt.Sprintf("%s:%s", addr, port),
+		Address: mnet.HostPort(addr, port),
 		Metadata: map[string]string{
 			"secure": fmt.Sprintf("%t", secure),
 		},

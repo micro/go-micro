@@ -3,15 +3,20 @@ package memory
 
 import (
 	"errors"
+	"math/rand"
 	"sync"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/micro/go-micro/broker"
+	maddr "github.com/micro/go-micro/util/addr"
+	mnet "github.com/micro/go-micro/util/net"
 )
 
 type memoryBroker struct {
 	opts broker.Options
 
+	addr string
 	sync.RWMutex
 	connected   bool
 	Subscribers map[string][]*memorySubscriber
@@ -35,7 +40,7 @@ func (m *memoryBroker) Options() broker.Options {
 }
 
 func (m *memoryBroker) Address() string {
-	return ""
+	return m.addr
 }
 
 func (m *memoryBroker) Connect() error {
@@ -46,6 +51,15 @@ func (m *memoryBroker) Connect() error {
 		return nil
 	}
 
+	addr, err := maddr.Extract("::")
+	if err != nil {
+		return err
+	}
+	i := rand.Intn(20000)
+	// set addr with port
+	addr = mnet.HostPort(addr, 10000+i)
+
+	m.addr = addr
 	m.connected = true
 
 	return nil
@@ -171,6 +185,7 @@ func (m *memorySubscriber) Unsubscribe() error {
 
 func NewBroker(opts ...broker.Option) broker.Broker {
 	var options broker.Options
+	rand.Seed(time.Now().UnixNano())
 	for _, o := range opts {
 		o(&options)
 	}

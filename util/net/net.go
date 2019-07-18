@@ -8,6 +8,15 @@ import (
 	"strings"
 )
 
+// HostPort format addr and port suitable for dial
+func HostPort(addr string, port interface{}) string {
+	host := addr
+	if strings.Count(addr, ":") > 0 {
+		host = fmt.Sprintf("[%s]", addr)
+	}
+	return fmt.Sprintf("%s:%v", host, port)
+}
+
 // Listen takes addr:portmin-portmax and binds to the first available port
 // Example: Listen("localhost:5000-6000", fn)
 func Listen(addr string, fn func(string) (net.Listener, error)) (net.Listener, error) {
@@ -20,10 +29,6 @@ func Listen(addr string, fn func(string) (net.Listener, error)) (net.Listener, e
 	host, ports, err := net.SplitHostPort(addr)
 	if err != nil {
 		return nil, err
-	}
-
-	if host == "::" {
-		host = fmt.Sprintf("[%s]", host)
 	}
 
 	// try to extract port range
@@ -51,7 +56,7 @@ func Listen(addr string, fn func(string) (net.Listener, error)) (net.Listener, e
 	// range the ports
 	for port := min; port <= max; port++ {
 		// try bind to host:port
-		ln, err := fn(fmt.Sprintf("%s:%d", host, port))
+		ln, err := fn(HostPort(host, port))
 		if err == nil {
 			return ln, nil
 		}

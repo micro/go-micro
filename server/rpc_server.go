@@ -18,6 +18,7 @@ import (
 	"github.com/micro/go-micro/transport"
 	"github.com/micro/go-micro/util/addr"
 	log "github.com/micro/go-micro/util/log"
+	mnet "github.com/micro/go-micro/util/net"
 )
 
 type rpcServer struct {
@@ -293,14 +294,11 @@ func (s *rpcServer) Register() error {
 		advt = config.Address
 	}
 
-	if idx := strings.Count(advt, ":"); idx > 1 {
+	if cnt := strings.Count(advt, ":"); cnt >= 1 {
 		// ipv6 address in format [host]:port or ipv4 host:port
 		host, port, err = net.SplitHostPort(advt)
 		if err != nil {
 			return err
-		}
-		if host == "::" {
-			host = fmt.Sprintf("[%s]", host)
 		}
 	} else {
 		host = advt
@@ -320,7 +318,7 @@ func (s *rpcServer) Register() error {
 	// register service
 	node := &registry.Node{
 		Id:       config.Name + "-" + config.Id,
-		Address:  fmt.Sprintf("%s:%s", addr, port),
+		Address:  mnet.HostPort(addr, port),
 		Metadata: md,
 	}
 
@@ -434,14 +432,11 @@ func (s *rpcServer) Deregister() error {
 		advt = config.Address
 	}
 
-	if idx := strings.Count(advt, ":"); idx > 1 {
+	if cnt := strings.Count(advt, ":"); cnt >= 1 {
 		// ipv6 address in format [host]:port or ipv4 host:port
 		host, port, err = net.SplitHostPort(advt)
 		if err != nil {
 			return err
-		}
-		if host == "::" {
-			host = fmt.Sprintf("[%s]", host)
 		}
 	} else {
 		host = advt
@@ -454,7 +449,7 @@ func (s *rpcServer) Deregister() error {
 
 	node := &registry.Node{
 		Id:      config.Name + "-" + config.Id,
-		Address: fmt.Sprintf("%s:%s", addr, port),
+		Address: mnet.HostPort(addr, port),
 	}
 
 	service := &registry.Service{
