@@ -41,7 +41,10 @@ type Proxy struct {
 
 	// A fib of routes service:address
 	sync.RWMutex
-	Routes map[string][]table.Route
+	Routes map[string]map[uint64]table.Route
+
+	// The channel to monitor watcher errors
+	errChan chan error
 }
 
 // read client request and write to server
@@ -81,7 +84,7 @@ func readLoop(r server.Request, s client.Stream) error {
 
 func (p *Proxy) getRoute(service string) ([]string, error) {
 	// converts routes to just addresses
-	toNodes := func(routes []table.Route) []string {
+	toNodes := func(routes map[uint64]table.Route) []string {
 		var nodes []string
 		for _, node := range routes {
 			address := node.Address
@@ -95,6 +98,9 @@ func (p *Proxy) getRoute(service string) ([]string, error) {
 
 	// lookup the route cache first
 	p.RLock()
+	if p.Routes == nil {
+		p.Routes = make(map[string]map[uint64]table.Route)
+	}
 	routes, ok := p.Routes[service]
 	// got it!
 	if ok {
@@ -110,18 +116,19 @@ func (p *Proxy) getRoute(service string) ([]string, error) {
 	// in future we might set a default gateway
 	if p.Router != nil {
 		// lookup the router
-		routes, err := p.Router.Lookup(
+		result, err := p.Router.Lookup(
 			table.NewQuery(table.QueryService(service)),
 		)
 		if err != nil {
 			return nil, err
 		}
 
+		// update the proxy cache
 		p.Lock()
-		if p.Routes == nil {
-			p.Routes = make(map[string][]table.Route)
+		for _, route := range result {
+			p.Routes[service][route.Hash()] = route
 		}
-		p.Routes[service] = routes
+		routes = p.Routes[service]
 		p.Unlock()
 
 		return toNodes(routes), nil
@@ -208,17 +215,49 @@ func (p *Proxy) getRoute(service string) ([]string, error) {
 
 	// convert from pb to []*router.Route
 	for _, r := range resp.Routes {
-		routes = append(routes, table.Route{
+		route := table.Route{
 			Service: r.Service,
 			Address: r.Address,
 			Gateway: r.Gateway,
 			Network: r.Network,
 			Link:    r.Link,
 			Metric:  int(r.Metric),
-		})
+		}
+		routes[route.Hash()] = route
 	}
 
 	return toNodes(routes), nil
+}
+
+// watchRoutes watches remote router service routes and updates proxy cache
+func (p *Proxy) watchRoutes() {
+	stream, err := p.RouterService.Watch(context.Background(), &pb.WatchRequest{})
+	if err != nil {
+		p.errChan <- err
+		return
+	}
+
+	for {
+		event, err := stream.Recv()
+		if err != nil {
+			p.errChan <- err
+			return
+		}
+		p.Lock()
+		if p.Routes == nil {
+			p.Routes = make(map[string]map[uint64]table.Route)
+		}
+		route := table.Route{
+			Service: event.Route.Service,
+			Address: event.Route.Address,
+			Gateway: event.Route.Gateway,
+			Network: event.Route.Network,
+			Link:    event.Route.Link,
+			Metric:  int(event.Route.Metric),
+		}
+		p.Routes[route.Service][route.Hash()] = route
+		p.Unlock()
+	}
 }
 
 // ServeRequest honours the server.Router interface
@@ -290,26 +329,31 @@ func (p *Proxy) ServeRequest(ctx context.Context, req server.Request, rsp server
 
 	// create server response write loop
 	for {
-		// read backend response body
-		body, err := resp.Read()
-		if err == io.EOF {
-			return nil
-		} else if err != nil {
+		select {
+		case err := <-p.errChan:
 			return err
-		}
+		default:
+			// read backend response body
+			body, err := resp.Read()
+			if err == io.EOF {
+				return nil
+			} else if err != nil {
+				return err
+			}
 
-		// read backend response header
-		hdr := resp.Header()
+			// read backend response header
+			hdr := resp.Header()
 
-		// write raw response header to client
-		rsp.WriteHeader(hdr)
+			// write raw response header to client
+			rsp.WriteHeader(hdr)
 
-		// write raw response body to client
-		err = rsp.Write(body)
-		if err == io.EOF {
-			return nil
-		} else if err != nil {
-			return err
+			// write raw response body to client
+			err = rsp.Write(body)
+			if err == io.EOF {
+				return nil
+			} else if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -347,6 +391,10 @@ func NewProxy(opts ...options.Option) proxy.Proxy {
 	if ok {
 		p.Router = r.(router.Router)
 	}
+
+	// watch router service routes
+	p.errChan = make(chan error, 1)
+	go p.watchRoutes()
 
 	return p
 }
