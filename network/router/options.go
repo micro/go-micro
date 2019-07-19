@@ -19,9 +19,9 @@ type Options struct {
 	Id string
 	// Address is router address
 	Address string
-	// Gateway is micro network gateway
+	// Gateway is network gateway
 	Gateway string
-	// Network is micro network
+	// Network is network address
 	Network string
 	// Registry is the local registry
 	Registry registry.Registry
@@ -57,17 +57,17 @@ func Network(n string) Option {
 	}
 }
 
-// Table sets the routing table
-func Table(t table.Table) Option {
-	return func(o *Options) {
-		o.Table = t
-	}
-}
-
 // Registry sets the local registry
 func Registry(r registry.Registry) Option {
 	return func(o *Options) {
 		o.Registry = r
+	}
+}
+
+// Table sets the routing table
+func Table(t table.Table) Option {
+	return func(o *Options) {
+		o.Table = t
 	}
 }
 

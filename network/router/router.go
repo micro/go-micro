@@ -7,20 +7,9 @@ import (
 	"github.com/micro/go-micro/network/router/table"
 )
 
-const (
-	// Status codes
-	// Running means the router is up and running
-	Running StatusCode = iota
-	// Stopped means the router has been stopped
-	Stopped
-	// Error means the router has encountered error
-	Error
-
-	// Advert types
-	// Announce is advertised when the router announces itself
-	Announce AdvertType = iota
-	// Update advertises route updates
-	Update
+var (
+	// DefaultRouter is default network router
+	DefaultRouter = NewRouter()
 )
 
 // Router is an interface for a routing control plane
@@ -31,6 +20,8 @@ type Router interface {
 	Init(...Option) error
 	// Options returns the router options
 	Options() Options
+	// Run starts the router
+	Run() error
 	// Advertise advertises routes to the network
 	Advertise() (<-chan *Advert, error)
 	// Process processes incoming adverts
@@ -46,8 +37,37 @@ type Router interface {
 // Option used by the router
 type Option func(*Options)
 
+// StatusCode defines router status
+type StatusCode int
+
+const (
+	// Running means the router is up and running
+	Running StatusCode = iota
+	// Advertising means the router is advertising
+	Advertising
+	// Stopped means the router has been stopped
+	Stopped
+	// Error means the router has encountered error
+	Error
+)
+
+// Status is router status
+type Status struct {
+	// Error is router error
+	Error error
+	// Code defines router status
+	Code StatusCode
+}
+
 // AdvertType is route advertisement type
 type AdvertType int
+
+const (
+	// Announce is advertised when the router announces itself
+	Announce AdvertType = iota
+	// Update advertises route updates
+	Update
+)
 
 // Advert contains a list of events advertised by the router to the network
 type Advert struct {
@@ -62,22 +82,6 @@ type Advert struct {
 	// Events is a list of routing table events to advertise
 	Events []*table.Event
 }
-
-// StatusCode defines router status
-type StatusCode int
-
-// Status is router status
-type Status struct {
-	// Error is router error
-	Error error
-	// Code defines router status
-	Code StatusCode
-}
-
-var (
-	// DefaultRouter is default network router
-	DefaultRouter = NewRouter()
-)
 
 // NewRouter creates new Router and returns it
 func NewRouter(opts ...Option) Router {

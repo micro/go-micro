@@ -134,8 +134,11 @@ func (p *Proxy) getRoute(service string) ([]string, error) {
 
 	// no router is specified we're going to set the default
 	if len(name) == 0 && len(addr) == 0 {
+		// create default router and start it
 		p.Router = router.DefaultRouter
-		go p.Router.Advertise()
+		if err := p.Router.Run(); err != nil {
+			return nil, err
+		}
 
 		// recursively execute getRoute
 		return p.getRoute(service)
@@ -171,43 +174,40 @@ func (p *Proxy) getRoute(service string) ([]string, error) {
 		return nil, selector.ErrNoneAvailable
 	}
 
-	var pbRoutes *pb.LookupResponse
-	var gerr error
-
 	// set default client
 	if p.RouterService == nil {
 		p.RouterService = pb.NewRouterService(name, p.Client)
 	}
 
+	var resp *pb.LookupResponse
+	var err error
+
 	// TODO: implement backoff and retries
 	for _, addr := range addrs {
 		// call the router
-		proutes, err := p.RouterService.Lookup(context.Background(), &pb.LookupRequest{
+		resp, err = p.RouterService.Lookup(context.Background(), &pb.LookupRequest{
 			Query: &pb.Query{
 				Service: service,
 			},
 		}, client.WithAddress(addr))
 		if err != nil {
-			gerr = err
 			continue
 		}
-		// set routes
-		pbRoutes = proutes
 		break
 	}
 
 	// errored out
-	if gerr != nil {
-		return nil, gerr
+	if err != nil {
+		return nil, err
 	}
 
 	// no routes
-	if pbRoutes == nil {
+	if resp == nil || len(resp.Routes) == 0 {
 		return nil, selector.ErrNoneAvailable
 	}
 
 	// convert from pb to []*router.Route
-	for _, r := range pbRoutes.Routes {
+	for _, r := range resp.Routes {
 		routes = append(routes, table.Route{
 			Service: r.Service,
 			Address: r.Address,
@@ -346,8 +346,6 @@ func NewProxy(opts ...options.Option) proxy.Proxy {
 	r, ok := p.Options.Values().Get("proxy.router")
 	if ok {
 		p.Router = r.(router.Router)
-		// TODO: should we advertise?
-		go p.Router.Advertise()
 	}
 
 	return p
