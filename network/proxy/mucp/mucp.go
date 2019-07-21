@@ -3,7 +3,6 @@ package mucp
 
 import (
 	"context"
-	"errors"
 	"io"
 	"os"
 	"strings"
@@ -20,10 +19,6 @@ import (
 
 	pb "github.com/micro/go-micro/network/router/proto"
 	"github.com/micro/go-micro/network/router/table"
-)
-
-var (
-	ErrRouteWatcher = errors.New("route watcher stopped")
 )
 
 // Proxy will transparently proxy requests to an endpoint.
@@ -253,6 +248,7 @@ func (p *Proxy) watchRoutes() {
 			p.errChan <- err
 			return
 		}
+
 		p.Lock()
 		if p.Routes == nil {
 			p.Routes = make(map[string]map[uint64]table.Route)
@@ -337,16 +333,17 @@ func (p *Proxy) ServeRequest(ctx context.Context, req server.Request, rsp server
 	// get raw response
 	resp := stream.Response()
 
+	// route watcher error
+	var wrErr error
+
 	// create server response write loop
 	for {
 		select {
 		case err := <-p.errChan:
-			// NOTE: // closed channel indicates route watcher error
-			// we could in theory respawn the watchRoute() here if need be
-			if err == nil {
-				return ErrRouteWatcher
+			if err != nil {
+				wrErr = err
 			}
-			return err
+			return wrErr
 		default:
 			// read backend response body
 			body, err := resp.Read()
