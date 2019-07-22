@@ -17,6 +17,8 @@ const (
 	AdvertiseEventsTick = 5 * time.Second
 	// AdvertiseTableTick is time interval in which router advertises all routes found in routing table
 	AdvertiseTableTick = 1 * time.Minute
+	// AdvertiseFlushTick is time the yet unconsumed advertisements are flush i.e. discarded
+	AdvertiseFlushTick = 15 * time.Second
 	// AdvertSuppress is advert suppression threshold
 	AdvertSuppress = 2000.0
 	// AdvertRecover is advert recovery threshold
@@ -64,16 +66,11 @@ func newRouter(opts ...Option) Router {
 	}
 
 	return &router{
-		Table:  options.Table,
-		opts:   options,
-		status: Status{Error: nil, Code: Stopped},
-		exit:   make(chan struct{}),
-		// TODO: this might have to be changed to 3
-		errChan:    make(chan error, 4),
-		eventChan:  make(chan *table.Event),
-		advertChan: make(chan *Advert),
-		advertWg:   &sync.WaitGroup{},
-		wg:         &sync.WaitGroup{},
+		Table:    options.Table,
+		opts:     options,
+		status:   Status{Code: Stopped, Error: nil},
+		advertWg: &sync.WaitGroup{},
+		wg:       &sync.WaitGroup{},
 	}
 }
 
@@ -317,7 +314,10 @@ func (r *router) advertiseEvents() error {
 	go func() {
 		defer r.wg.Done()
 		// watch local registry and register routes in routing table
-		r.errChan <- r.watchTable(tableWatcher)
+		select {
+		case r.errChan <- r.watchTable(tableWatcher):
+		case <-r.exit:
+		}
 	}()
 
 	for {
@@ -419,27 +419,17 @@ func (r *router) advertiseEvents() error {
 func (r *router) watchErrors() {
 	defer r.wg.Done()
 
-	var code StatusCode
 	var err error
 
 	select {
 	case <-r.exit:
-		code = Stopped
 	case err = <-r.errChan:
-		code = Error
 	}
 
 	r.Lock()
 	defer r.Unlock()
-	status := Status{
-		Code:  code,
-		Error: err,
-	}
-	r.status = status
-
-	// stop the router if some error happened
-	if err != nil && code != Stopped {
-		// this will stop watchers which will close r.advertChan
+	if r.status.Code != Stopped {
+		// notify all goroutines to finish
 		close(r.exit)
 		// drain the advertise channel
 		for range r.advertChan {
@@ -448,14 +438,22 @@ func (r *router) watchErrors() {
 		for range r.eventChan {
 		}
 	}
+
+	if err != nil {
+		r.status = Status{Code: Error, Error: err}
+	}
 }
 
-// Run runs the router
+// Run runs the router.
+// It returns error if the router is already running.
 func (r *router) Run() error {
 	r.Lock()
 	defer r.Unlock()
 
-	if r.status.Code == Stopped || r.status.Code == Error {
+	switch r.status.Code {
+	case Running, Advertising:
+		return fmt.Errorf("already running")
+	case Stopped:
 		// add all local service routes into the routing table
 		if err := r.manageRegistryRoutes(r.opts.Registry, "create"); err != nil {
 			return fmt.Errorf("failed adding registry routes: %s", err)
@@ -476,6 +474,9 @@ func (r *router) Run() error {
 			}
 		}
 
+		r.errChan = make(chan error, 1)
+		r.exit = make(chan struct{})
+
 		// registry watcher
 		regWatcher, err := r.opts.Registry.Watch()
 		if err != nil {
@@ -486,7 +487,10 @@ func (r *router) Run() error {
 		go func() {
 			defer r.wg.Done()
 			// watch local registry and register routes in routine table
-			r.errChan <- r.watchRegistry(regWatcher)
+			select {
+			case r.errChan <- r.watchRegistry(regWatcher):
+			case <-r.exit:
+			}
 		}()
 
 		// watch for errors and cleanup
@@ -495,13 +499,16 @@ func (r *router) Run() error {
 
 		// mark router as Running and set its Error to nil
 		r.status = Status{Code: Running, Error: nil}
+
+		return nil
 	}
 
-	return nil
+	return r.status.Error
 }
 
-// Advertise advertises the routes to the network.
-// It returns error if either the router isnt running or its routing table or its routing table is broken.
+// Advertise stars advertising the routes to the network and returns the advertisements channel to consume from.
+// If the router is already advertising it returns the channel to consume from.
+// It returns error if either the router is not running or if the routing table fails to list the routes to advertise.
 func (r *router) Advertise() (<-chan *Advert, error) {
 	r.Lock()
 	defer r.Unlock()
@@ -526,8 +533,6 @@ func (r *router) Advertise() (<-chan *Advert, error) {
 			events[i] = event
 		}
 
-		// NOTE: we only do this when we start advertising
-		r.exit = make(chan struct{})
 		r.eventChan = make(chan *table.Event)
 		r.advertChan = make(chan *Advert)
 
@@ -538,15 +543,21 @@ func (r *router) Advertise() (<-chan *Advert, error) {
 		r.wg.Add(1)
 		go func() {
 			defer r.wg.Done()
-			// watch routing table events and advertise them
-			r.errChan <- r.advertiseEvents()
+			// advertise routing table events
+			select {
+			case r.errChan <- r.advertiseEvents():
+			case <-r.exit:
+			}
 		}()
 
 		r.advertWg.Add(1)
 		go func() {
 			defer r.advertWg.Done()
 			// advertise the whole routing table
-			r.errChan <- r.advertiseTable()
+			select {
+			case r.errChan <- r.advertiseTable():
+			case <-r.exit:
+			}
 		}()
 
 		// mark router as Running and set its Error to nil
@@ -596,9 +607,9 @@ func (r *router) Status() Status {
 
 // Stop stops the router
 func (r *router) Stop() error {
-	r.RLock()
-	// only close the channel if the router is running
-	if r.status.Code == Running {
+	r.Lock()
+	// only close the channel if the router is running and/or advertising
+	if r.status.Code == Running || r.status.Code == Advertising {
 		// notify all goroutines to finish
 		close(r.exit)
 		// drain the advertise channel
@@ -607,8 +618,11 @@ func (r *router) Stop() error {
 		// drain the event channel
 		for range r.eventChan {
 		}
+
+		// mark the router as Stopped and set its Error to nil
+		r.status = Status{Code: Stopped, Error: nil}
 	}
-	r.RUnlock()
+	r.Unlock()
 
 	// wait for all goroutines to finish
 	r.wg.Wait()
