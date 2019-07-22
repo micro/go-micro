@@ -451,9 +451,7 @@ func (r *router) Run() error {
 	defer r.Unlock()
 
 	switch r.status.Code {
-	case Running, Advertising:
-		return fmt.Errorf("already running")
-	case Stopped:
+	case Stopped, Error:
 		// add all local service routes into the routing table
 		if err := r.manageRegistryRoutes(r.opts.Registry, "create"); err != nil {
 			return fmt.Errorf("failed adding registry routes: %s", err)
@@ -474,6 +472,7 @@ func (r *router) Run() error {
 			}
 		}
 
+		// create error and exit channels
 		r.errChan = make(chan error, 1)
 		r.exit = make(chan struct{})
 
@@ -503,7 +502,7 @@ func (r *router) Run() error {
 		return nil
 	}
 
-	return r.status.Error
+	return fmt.Errorf("already running")
 }
 
 // Advertise stars advertising the routes to the network and returns the advertisements channel to consume from.
@@ -533,8 +532,9 @@ func (r *router) Advertise() (<-chan *Advert, error) {
 			events[i] = event
 		}
 
-		r.eventChan = make(chan *table.Event)
+		// create advertise and event channels
 		r.advertChan = make(chan *Advert)
+		r.eventChan = make(chan *table.Event)
 
 		// advertise your presence
 		r.advertWg.Add(1)
@@ -564,11 +564,9 @@ func (r *router) Advertise() (<-chan *Advert, error) {
 		r.status = Status{Code: Advertising, Error: nil}
 
 		return r.advertChan, nil
-	case Stopped:
-		return nil, fmt.Errorf("router stopped")
 	}
 
-	return nil, r.status.Error
+	return nil, fmt.Errorf("not running")
 }
 
 // Process updates the routing table using the advertised values
