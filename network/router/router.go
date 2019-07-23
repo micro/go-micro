@@ -20,8 +20,6 @@ type Router interface {
 	Init(...Option) error
 	// Options returns the router options
 	Options() Options
-	// Run starts the router
-	Run() error
 	// Advertise advertises routes to the network
 	Advertise() (<-chan *Advert, error)
 	// Process processes incoming adverts

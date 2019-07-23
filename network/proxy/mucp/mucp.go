@@ -38,6 +38,8 @@ type Proxy struct {
 
 	// The router service client
 	RouterService pb.RouterService
+	// CallOptions
+	CallOption client.CallOption
 
 	// A fib of routes service:address
 	sync.RWMutex
@@ -82,50 +84,46 @@ func readLoop(r server.Request, s client.Stream) error {
 	}
 }
 
-func (p *Proxy) getRoute(service string) ([]string, error) {
-	// converts routes to just addresses
-	toNodes := func(routes map[uint64]table.Route) []string {
-		var nodes []string
-		for _, node := range routes {
-			address := node.Address
-			if len(node.Gateway) > 0 {
-				address = node.Gateway
-			}
-			nodes = append(nodes, address)
+// toNodes returns a list of node addresses from given routes
+func toNodes(routes map[uint64]table.Route) []string {
+	var nodes []string
+	for _, node := range routes {
+		address := node.Address
+		if len(node.Gateway) > 0 {
+			address = node.Gateway
 		}
-		return nodes
+		nodes = append(nodes, address)
 	}
+	return nodes
+}
 
+func (p *Proxy) getRoute(service string) ([]string, error) {
 	// lookup the route cache first
 	p.RLock()
-	if p.Routes == nil {
-		p.Routes = make(map[string]map[uint64]table.Route)
-	}
 	routes, ok := p.Routes[service]
-	// got it!
 	if ok {
-		p.RUnlock()
 		return toNodes(routes), nil
 	}
+	p.Routes[service] = make(map[uint64]table.Route)
 	p.RUnlock()
 
-	// route cache miss, now lookup the router
-	// if it does not exist, don't error out
-	// the proxy will just hand off to the client
-	// and try the registry
-	// in future we might set a default gateway
-	if p.Router != nil {
-		// lookup the router
-		result, err := p.Router.Lookup(
-			table.NewQuery(table.QueryService(service)),
-		)
-		if err != nil {
-			return nil, err
-		}
+	// if the router is broken return error
+	if status := p.Router.Status(); status.Code == router.Error {
+		return nil, status.Error
+	}
 
+	// lookup the router
+	results, err := p.Router.Lookup(
+		table.NewQuery(table.QueryService(service)),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(results) > 0 {
 		// update the proxy cache
 		p.Lock()
-		for _, route := range result {
+		for _, route := range results {
 			p.Routes[service][route.Hash()] = route
 		}
 		routes = p.Routes[service]
@@ -134,74 +132,12 @@ func (p *Proxy) getRoute(service string) ([]string, error) {
 		return toNodes(routes), nil
 	}
 
-	// we've tried getting cached routes
-	// we've tried using the router
-	addr := os.Getenv("MICRO_ROUTER_ADDRESS")
-	name := os.Getenv("MICRO_ROUTER")
-
-	// no router is specified we're going to set the default
-	if len(name) == 0 && len(addr) == 0 {
-		// create default router and start it
-		p.Router = router.DefaultRouter
-		if err := p.Router.Run(); err != nil {
-			return nil, err
-		}
-
-		// recursively execute getRoute
-		return p.getRoute(service)
-	}
-
-	if len(name) == 0 {
-		name = "go.micro.router"
-	}
-
-	// lookup the remote router
-
-	var addrs []string
-
-	// set the remote address if specified
-	if len(addr) > 0 {
-		addrs = append(addrs, addr)
-	} else {
-		// we have a name so we need to check the registry
-		services, err := p.Client.Options().Registry.GetService(name)
-		if err != nil {
-			return nil, err
-		}
-
-		for _, service := range services {
-			for _, node := range service.Nodes {
-				addrs = append(addrs, node.Address)
-			}
-		}
-	}
-
-	// no router addresses available
-	if len(addrs) == 0 {
-		return nil, selector.ErrNoneAvailable
-	}
-
-	// set default client
-	if p.RouterService == nil {
-		p.RouterService = pb.NewRouterService(name, p.Client)
-	}
-
-	var resp *pb.LookupResponse
-	var err error
-
-	// TODO: implement backoff and retries
-	for _, addr := range addrs {
-		// call the router
-		resp, err = p.RouterService.Lookup(context.Background(), &pb.LookupRequest{
-			Query: &pb.Query{
-				Service: service,
-			},
-		}, client.WithAddress(addr))
-		if err != nil {
-			continue
-		}
-		break
-	}
+	// call the router
+	resp, err := p.RouterService.Lookup(context.Background(), &pb.LookupRequest{
+		Query: &pb.Query{
+			Service: service,
+		},
+	}, p.CallOption)
 
 	// errored out
 	if err != nil {
@@ -250,9 +186,6 @@ func (p *Proxy) watchRoutes() {
 		}
 
 		p.Lock()
-		if p.Routes == nil {
-			p.Routes = make(map[string]map[uint64]table.Route)
-		}
 		route := table.Route{
 			Service: event.Route.Service,
 			Address: event.Route.Address,
@@ -261,6 +194,9 @@ func (p *Proxy) watchRoutes() {
 			Link:    event.Route.Link,
 			Metric:  int(event.Route.Metric),
 		}
+		if _, ok := p.Routes[route.Service]; !ok {
+			p.Routes[route.Service] = make(map[uint64]table.Route)
+		}
 		p.Routes[route.Service][route.Hash()] = route
 		p.Unlock()
 	}
@@ -268,11 +204,6 @@ func (p *Proxy) watchRoutes() {
 
 // ServeRequest honours the server.Router interface
 func (p *Proxy) ServeRequest(ctx context.Context, req server.Request, rsp server.Response) error {
-	// set default client
-	if p.Client == nil {
-		p.Client = client.DefaultClient
-	}
-
 	// service name
 	service := req.Service()
 	endpoint := req.Endpoint()
@@ -398,10 +329,36 @@ func NewProxy(opts ...options.Option) proxy.Proxy {
 		p.Client = c.(client.Client)
 	}
 
+	// set the default client
+	if p.Client == nil {
+		p.Client = client.DefaultClient
+	}
+
 	// get router
 	r, ok := p.Options.Values().Get("proxy.router")
 	if ok {
 		p.Router = r.(router.Router)
+	}
+
+	// create default router and start it
+	if p.Router == nil {
+		p.Router = router.DefaultRouter
+	}
+
+	// routes cache
+	p.Routes = make(map[string]map[uint64]table.Route)
+
+	name := os.Getenv("MICRO_ROUTER")
+
+	if len(name) == 0 {
+		name = "go.micro.router"
+	}
+
+	p.RouterService = pb.NewRouterService(name, p.Client)
+
+	addr := os.Getenv("MICRO_ROUTER_ADDRESS")
+	if len(addr) > 0 {
+		p.CallOption = client.WithAddress(addr)
 	}
 
 	// watch router service routes

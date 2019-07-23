@@ -65,13 +65,17 @@ func newRouter(opts ...Option) Router {
 		o(&options)
 	}
 
-	return &router{
+	r := &router{
 		Table:    options.Table,
 		opts:     options,
 		status:   Status{Code: Stopped, Error: nil},
 		advertWg: &sync.WaitGroup{},
 		wg:       &sync.WaitGroup{},
 	}
+
+	go r.run()
+
+	return r
 }
 
 // Init initializes router with given options
@@ -313,7 +317,6 @@ func (r *router) advertiseEvents() error {
 	r.wg.Add(1)
 	go func() {
 		defer r.wg.Done()
-		// watch local registry and register routes in routing table
 		select {
 		case r.errChan <- r.watchTable(tableWatcher):
 		case <-r.exit:
@@ -417,8 +420,6 @@ func (r *router) advertiseEvents() error {
 
 // watchErrors watches router errors and takes appropriate actions
 func (r *router) watchErrors() {
-	defer r.wg.Done()
-
 	var err error
 
 	select {
@@ -446,7 +447,7 @@ func (r *router) watchErrors() {
 
 // Run runs the router.
 // It returns error if the router is already running.
-func (r *router) Run() error {
+func (r *router) run() {
 	r.Lock()
 	defer r.Unlock()
 
@@ -454,7 +455,8 @@ func (r *router) Run() error {
 	case Stopped, Error:
 		// add all local service routes into the routing table
 		if err := r.manageRegistryRoutes(r.opts.Registry, "create"); err != nil {
-			return fmt.Errorf("failed adding registry routes: %s", err)
+			r.status = Status{Code: Error, Error: fmt.Errorf("failed adding registry routes: %s", err)}
+			return
 		}
 
 		// add default gateway into routing table
@@ -468,7 +470,8 @@ func (r *router) Run() error {
 				Metric:  table.DefaultLocalMetric,
 			}
 			if err := r.Create(route); err != nil {
-				return fmt.Errorf("failed adding default gateway route: %s", err)
+				r.status = Status{Code: Error, Error: fmt.Errorf("failed adding default gateway route: %s", err)}
+				return
 			}
 		}
 
@@ -479,13 +482,13 @@ func (r *router) Run() error {
 		// registry watcher
 		regWatcher, err := r.opts.Registry.Watch()
 		if err != nil {
-			return fmt.Errorf("failed creating registry watcher: %v", err)
+			r.status = Status{Code: Error, Error: fmt.Errorf("failed creating registry watcher: %v", err)}
+			return
 		}
 
 		r.wg.Add(1)
 		go func() {
 			defer r.wg.Done()
-			// watch local registry and register routes in routine table
 			select {
 			case r.errChan <- r.watchRegistry(regWatcher):
 			case <-r.exit:
@@ -494,15 +497,18 @@ func (r *router) Run() error {
 
 		// watch for errors and cleanup
 		r.wg.Add(1)
-		go r.watchErrors()
+		go func() {
+			defer r.wg.Done()
+			r.watchErrors()
+		}()
 
 		// mark router as Running and set its Error to nil
 		r.status = Status{Code: Running, Error: nil}
 
-		return nil
+		return
 	}
 
-	return fmt.Errorf("already running")
+	return
 }
 
 // Advertise stars advertising the routes to the network and returns the advertisements channel to consume from.
@@ -543,7 +549,6 @@ func (r *router) Advertise() (<-chan *Advert, error) {
 		r.wg.Add(1)
 		go func() {
 			defer r.wg.Done()
-			// advertise routing table events
 			select {
 			case r.errChan <- r.advertiseEvents():
 			case <-r.exit:
@@ -564,9 +569,11 @@ func (r *router) Advertise() (<-chan *Advert, error) {
 		r.status = Status{Code: Advertising, Error: nil}
 
 		return r.advertChan, nil
+	case Stopped:
+		return nil, fmt.Errorf("not running")
 	}
 
-	return nil, fmt.Errorf("not running")
+	return nil, fmt.Errorf("error: %s", r.status.Error)
 }
 
 // Process updates the routing table using the advertised values
