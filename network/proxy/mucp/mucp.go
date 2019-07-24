@@ -3,6 +3,7 @@ package mucp
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"os"
 	"strings"
@@ -99,13 +100,14 @@ func toNodes(routes map[uint64]table.Route) []string {
 
 func (p *Proxy) getRoute(service string) ([]string, error) {
 	// lookup the route cache first
-	p.RLock()
+	p.Lock()
 	routes, ok := p.Routes[service]
 	if ok {
+		p.Unlock()
 		return toNodes(routes), nil
 	}
 	p.Routes[service] = make(map[uint64]table.Route)
-	p.RUnlock()
+	p.Unlock()
 
 	// if the router is broken return error
 	if status := p.Router.Status(); status.Code == router.Error {
@@ -165,6 +167,26 @@ func (p *Proxy) getRoute(service string) ([]string, error) {
 	return toNodes(routes), nil
 }
 
+// manageRouteCache applies action on a given route to Proxy route cache
+func (p *Proxy) manageRouteCache(route table.Route, action string) error {
+	switch action {
+	case "create", "update":
+		if _, ok := p.Routes[route.Service]; !ok {
+			p.Routes[route.Service] = make(map[uint64]table.Route)
+		}
+		p.Routes[route.Service][route.Hash()] = route
+	case "delete":
+		if _, ok := p.Routes[route.Service]; !ok {
+			return fmt.Errorf("route not found")
+		}
+		delete(p.Routes[route.Service], route.Hash())
+	default:
+		return fmt.Errorf("unknown action: %s", action)
+	}
+
+	return nil
+}
+
 // watchRoutes watches remote router service routes and updates proxy cache
 func (p *Proxy) watchRoutes() {
 	// this is safe to do as the only way watchRoutes returns is
@@ -185,7 +207,6 @@ func (p *Proxy) watchRoutes() {
 			return
 		}
 
-		p.Lock()
 		route := table.Route{
 			Service: event.Route.Service,
 			Address: event.Route.Address,
@@ -194,10 +215,13 @@ func (p *Proxy) watchRoutes() {
 			Link:    event.Route.Link,
 			Metric:  int(event.Route.Metric),
 		}
-		if _, ok := p.Routes[route.Service]; !ok {
-			p.Routes[route.Service] = make(map[uint64]table.Route)
+		action := event.Type
+
+		p.Lock()
+		if err := p.manageRouteCache(route, fmt.Sprintf("%s", action)); err != nil {
+			// TODO: should we bail here?
+			continue
 		}
-		p.Routes[route.Service][route.Hash()] = route
 		p.Unlock()
 	}
 }
