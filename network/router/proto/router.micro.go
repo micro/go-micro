@@ -37,6 +37,8 @@ type RouterService interface {
 	Watch(ctx context.Context, in *WatchRequest, opts ...client.CallOption) (Router_WatchService, error)
 	Lookup(ctx context.Context, in *LookupRequest, opts ...client.CallOption) (*LookupResponse, error)
 	List(ctx context.Context, in *ListRequest, opts ...client.CallOption) (*ListResponse, error)
+	Advertise(ctx context.Context, in *AdvertiseRequest, opts ...client.CallOption) (Router_AdvertiseService, error)
+	Process(ctx context.Context, in *Advert, opts ...client.CallOption) (*ProcessResponse, error)
 }
 
 type routerService struct {
@@ -121,12 +123,68 @@ func (c *routerService) List(ctx context.Context, in *ListRequest, opts ...clien
 	return out, nil
 }
 
+func (c *routerService) Advertise(ctx context.Context, in *AdvertiseRequest, opts ...client.CallOption) (Router_AdvertiseService, error) {
+	req := c.c.NewRequest(c.name, "Router.Advertise", &AdvertiseRequest{})
+	stream, err := c.c.Stream(ctx, req, opts...)
+	if err != nil {
+		return nil, err
+	}
+	if err := stream.Send(in); err != nil {
+		return nil, err
+	}
+	return &routerServiceAdvertise{stream}, nil
+}
+
+type Router_AdvertiseService interface {
+	SendMsg(interface{}) error
+	RecvMsg(interface{}) error
+	Close() error
+	Recv() (*Advert, error)
+}
+
+type routerServiceAdvertise struct {
+	stream client.Stream
+}
+
+func (x *routerServiceAdvertise) Close() error {
+	return x.stream.Close()
+}
+
+func (x *routerServiceAdvertise) SendMsg(m interface{}) error {
+	return x.stream.Send(m)
+}
+
+func (x *routerServiceAdvertise) RecvMsg(m interface{}) error {
+	return x.stream.Recv(m)
+}
+
+func (x *routerServiceAdvertise) Recv() (*Advert, error) {
+	m := new(Advert)
+	err := x.stream.Recv(m)
+	if err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (c *routerService) Process(ctx context.Context, in *Advert, opts ...client.CallOption) (*ProcessResponse, error) {
+	req := c.c.NewRequest(c.name, "Router.Process", in)
+	out := new(ProcessResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Server API for Router service
 
 type RouterHandler interface {
 	Watch(context.Context, *WatchRequest, Router_WatchStream) error
 	Lookup(context.Context, *LookupRequest, *LookupResponse) error
 	List(context.Context, *ListRequest, *ListResponse) error
+	Advertise(context.Context, *AdvertiseRequest, Router_AdvertiseStream) error
+	Process(context.Context, *Advert, *ProcessResponse) error
 }
 
 func RegisterRouterHandler(s server.Server, hdlr RouterHandler, opts ...server.HandlerOption) error {
@@ -134,6 +192,8 @@ func RegisterRouterHandler(s server.Server, hdlr RouterHandler, opts ...server.H
 		Watch(ctx context.Context, stream server.Stream) error
 		Lookup(ctx context.Context, in *LookupRequest, out *LookupResponse) error
 		List(ctx context.Context, in *ListRequest, out *ListResponse) error
+		Advertise(ctx context.Context, stream server.Stream) error
+		Process(ctx context.Context, in *Advert, out *ProcessResponse) error
 	}
 	type Router struct {
 		router
@@ -187,4 +247,43 @@ func (h *routerHandler) Lookup(ctx context.Context, in *LookupRequest, out *Look
 
 func (h *routerHandler) List(ctx context.Context, in *ListRequest, out *ListResponse) error {
 	return h.RouterHandler.List(ctx, in, out)
+}
+
+func (h *routerHandler) Advertise(ctx context.Context, stream server.Stream) error {
+	m := new(AdvertiseRequest)
+	if err := stream.Recv(m); err != nil {
+		return err
+	}
+	return h.RouterHandler.Advertise(ctx, m, &routerAdvertiseStream{stream})
+}
+
+type Router_AdvertiseStream interface {
+	SendMsg(interface{}) error
+	RecvMsg(interface{}) error
+	Close() error
+	Send(*Advert) error
+}
+
+type routerAdvertiseStream struct {
+	stream server.Stream
+}
+
+func (x *routerAdvertiseStream) Close() error {
+	return x.stream.Close()
+}
+
+func (x *routerAdvertiseStream) SendMsg(m interface{}) error {
+	return x.stream.Send(m)
+}
+
+func (x *routerAdvertiseStream) RecvMsg(m interface{}) error {
+	return x.stream.Recv(m)
+}
+
+func (x *routerAdvertiseStream) Send(m *Advert) error {
+	return x.stream.Send(m)
+}
+
+func (h *routerHandler) Process(ctx context.Context, in *Advert, out *ProcessResponse) error {
+	return h.RouterHandler.Process(ctx, in, out)
 }
