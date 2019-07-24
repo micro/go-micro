@@ -113,7 +113,7 @@ func (r *router) manageRoute(route table.Route, action string) error {
 	return nil
 }
 
-// manageServiceRoutes applies action on all routes of given service.
+// manageServiceRoutes applies action to all routes of the service.
 // It returns error of the action fails with error.
 func (r *router) manageServiceRoutes(service *registry.Service, action string) error {
 	// action is the routing table action
@@ -138,7 +138,7 @@ func (r *router) manageServiceRoutes(service *registry.Service, action string) e
 	return nil
 }
 
-// manageRegistryRoutes applies action on all routes of each service found in the registry.
+// manageRegistryRoutes applies action to all routes of each service found in the registry.
 // It returns error if either the services failed to be listed or the routing table action fails.
 func (r *router) manageRegistryRoutes(reg registry.Registry, action string) error {
 	services, err := reg.ListServices()
