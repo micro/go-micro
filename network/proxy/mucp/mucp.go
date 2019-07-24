@@ -166,6 +166,7 @@ func (p *Proxy) watchRoutes() {
 		p.Lock()
 		if err := p.manageRouteCache(event.Route, fmt.Sprintf("%s", event.Type)); err != nil {
 			// TODO: should we bail here?
+			p.Unlock()
 			continue
 		}
 		p.Unlock()
