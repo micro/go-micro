@@ -5,6 +5,8 @@ service Router {
         rpc Watch(WatchRequest) returns (stream Event) {};
 	rpc Lookup(LookupRequest) returns (LookupResponse) {};
         rpc List(ListRequest) returns (ListResponse) {};
+        rpc Advertise(AdvertiseRequest) returns (stream Advert) {};
+        rpc Process(Advert) returns (ProcessResponse) {};
 }
 
 // LookupRequest is made to Lookup
@@ -19,6 +21,10 @@ message LookupResponse {
 
 // WatchRequest is made to Watch Router
 message WatchRequest {}
+
+
+// AdvertiseRequest request a stream of Adverts
+message AdvertiseRequest {}
 
 // AdvertType defines the type of advert
 enum AdvertType {
@@ -39,6 +45,9 @@ message Advert {
         // events is a list of advertised events
         repeated Event events = 5;
 }
+
+// ProcessResponse is returned by Process
+message ProcessResponse {}
 
 // EventType defines the type of event
 enum EventType {
