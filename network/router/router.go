@@ -8,6 +8,8 @@ import (
 var (
 	// DefaultRouter is default network router
 	DefaultRouter = NewRouter()
+	// DefaultName is default router service name
+	DefaultName = "go.micro.router"
 )
 
 // Router is an interface for a routing control plane
