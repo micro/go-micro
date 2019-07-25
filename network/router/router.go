@@ -24,15 +24,15 @@ type Router interface {
 	Process(*Advert) error
 	// Create new route in the routing table
 	Create(Route) error
-	// Delete deletes existing route from the routing table
+	// Delete existing route from the routing table
 	Delete(Route) error
-	// Update updates route in the routing table
+	// Update exiting route in the routing table
 	Update(Route) error
-	// List returns the list of all routes in the table
+	// List lists all routes in the routing table
 	List() ([]Route, error)
-	// Lookup looks up routes in the routing table and returns them
+	// Lookup queries routes in the routing table
 	Lookup(Query) ([]Route, error)
-	// Watch returns a watcher which allows to track updates to the routing table
+	// Watch returns a watcher which tracks updates to the routing table
 	Watch(opts ...WatchOption) (Watcher, error)
 	// Status returns router status
 	Status() Status
