@@ -3,8 +3,6 @@ package router
 
 import (
 	"time"
-
-	"github.com/micro/go-micro/network/router/table"
 )
 
 var (
@@ -14,8 +12,6 @@ var (
 
 // Router is an interface for a routing control plane
 type Router interface {
-	// Router provides a routing table
-	table.Table
 	// Init initializes the router with options
 	Init(...Option) error
 	// Options returns the router options
@@ -24,6 +20,18 @@ type Router interface {
 	Advertise() (<-chan *Advert, error)
 	// Process processes incoming adverts
 	Process(*Advert) error
+	// Create new route in the routing table
+	Create(Route) error
+	// Delete deletes existing route from the routing table
+	Delete(Route) error
+	// Update updates route in the routing table
+	Update(Route) error
+	// List returns the list of all routes in the table
+	List() ([]Route, error)
+	// Lookup looks up routes in the routing table and returns them
+	Lookup(Query) ([]Route, error)
+	// Watch returns a watcher which allows to track updates to the routing table
+	Watch(opts ...WatchOption) (Watcher, error)
 	// Status returns router status
 	Status() Status
 	// Stop stops the router
@@ -63,9 +71,21 @@ type AdvertType int
 const (
 	// Announce is advertised when the router announces itself
 	Announce AdvertType = iota
-	// Update advertises route updates
-	Update
+	// RouteUpdate advertises route updates
+	RouteUpdate
 )
+
+// String returns human readable advertisement type
+func (t AdvertType) String() string {
+	switch t {
+	case Announce:
+		return "announce"
+	case RouteUpdate:
+		return "update"
+	default:
+		return "unknown"
+	}
+}
 
 // Advert contains a list of events advertised by the router to the network
 type Advert struct {
@@ -78,7 +98,7 @@ type Advert struct {
 	// TTL is Advert TTL
 	TTL time.Duration
 	// Events is a list of routing table events to advertise
-	Events []*table.Event
+	Events []*Event
 }
 
 // NewRouter creates new Router and returns it
