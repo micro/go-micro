@@ -1,11 +1,18 @@
 package service
 
 import (
+	"context"
+	"errors"
 	"sync"
 
 	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/network/router"
 	pb "github.com/micro/go-micro/network/router/proto"
+)
+
+var (
+	// ErrNotImplemented means the functionality has not been implemented
+	ErrNotImplemented = errors.New("not implemented")
 )
 
 type svc struct {
@@ -63,27 +70,70 @@ func (s *svc) Process(a *router.Advert) error {
 
 // Create new route in the routing table
 func (s *svc) Create(r router.Route) error {
-	return nil
+	return ErrNotImplemented
 }
 
 // Delete deletes existing route from the routing table
 func (s *svc) Delete(r router.Route) error {
-	return nil
+	return ErrNotImplemented
 }
 
 // Update updates route in the routing table
 func (s *svc) Update(r router.Route) error {
-	return nil
+	return ErrNotImplemented
 }
 
 // List returns the list of all routes in the table
 func (s *svc) List() ([]router.Route, error) {
-	return nil, nil
+	resp, err := s.router.List(context.Background(), &pb.ListRequest{})
+	if err != nil {
+		return nil, err
+	}
+
+	routes := make([]router.Route, len(resp.Routes))
+	for i, route := range resp.Routes {
+		routes[i] = router.Route{
+			Service: route.Service,
+			Address: route.Address,
+			Gateway: route.Gateway,
+			Network: route.Network,
+			Link:    route.Link,
+			Metric:  int(route.Metric),
+		}
+	}
+
+	return routes, nil
 }
 
 // Lookup looks up routes in the routing table and returns them
 func (s *svc) Lookup(q router.Query) ([]router.Route, error) {
-	return nil, nil
+	// call the router
+	resp, err := s.router.Lookup(context.Background(), &pb.LookupRequest{
+		Query: &pb.Query{
+			Service: q.Options().Service,
+			Gateway: q.Options().Gateway,
+			Network: q.Options().Network,
+		},
+	})
+
+	// errored out
+	if err != nil {
+		return nil, err
+	}
+
+	routes := make([]router.Route, len(resp.Routes))
+	for i, route := range resp.Routes {
+		routes[i] = router.Route{
+			Service: route.Service,
+			Address: route.Address,
+			Gateway: route.Gateway,
+			Network: route.Network,
+			Link:    route.Link,
+			Metric:  int(route.Metric),
+		}
+	}
+
+	return routes, nil
 }
 
 // Watch returns a watcher which allows to track updates to the routing table

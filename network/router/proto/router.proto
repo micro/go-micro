@@ -91,6 +91,10 @@ message Event {
 message Query {
 	// service to lookup
 	string service = 1;
+        // gateway to lookup
+        string gateway = 2;
+        // network to lookup
+        string network = 3;
 }
 
 // Route is a service route
