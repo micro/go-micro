@@ -179,14 +179,14 @@ func (t *Table) Watch(opts ...WatchOption) (Watcher, error) {
 	return w, nil
 }
 
-// sendEvent sends rules to all subscribe watchers
-func (t *Table) sendEvent(r *Event) {
+// sendEvent sends events to all subscribed watchers
+func (t *Table) sendEvent(e *Event) {
 	t.RLock()
 	defer t.RUnlock()
 
 	for _, w := range t.watchers {
 		select {
-		case w.resChan <- r:
+		case w.resChan <- e:
 		case <-w.done:
 		}
 	}
