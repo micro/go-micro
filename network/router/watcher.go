@@ -2,6 +2,7 @@ package router
 
 import (
 	"errors"
+	"sync"
 	"time"
 )
 
@@ -78,10 +79,11 @@ type tableWatcher struct {
 	opts    WatchOptions
 	resChan chan *Event
 	done    chan struct{}
+	sync.RWMutex
 }
 
 // Next returns the next noticed action taken on table
-// TODO: think this through properly; right now we only watch service
+// TODO: right now we only allow to watch particular service
 func (w *tableWatcher) Next() (*Event, error) {
 	for {
 		select {
@@ -105,6 +107,9 @@ func (w *tableWatcher) Chan() (<-chan *Event, error) {
 
 // Stop stops routing table watcher
 func (w *tableWatcher) Stop() {
+	w.Lock()
+	defer w.Unlock()
+
 	select {
 	case <-w.done:
 		return
