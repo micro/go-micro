@@ -191,12 +191,30 @@ func (s *svc) advertiseEvents(stream pb.Router_AdvertiseService) error {
 			break
 		}
 
-		// TODO: sort out events and TTL
+		events := make([]*router.Event, len(resp.Events))
+		for i, event := range resp.Events {
+			route := router.Route{
+				Service: event.Route.Service,
+				Address: event.Route.Address,
+				Gateway: event.Route.Gateway,
+				Network: event.Route.Network,
+				Link:    event.Route.Link,
+				Metric:  int(event.Route.Metric),
+			}
+
+			events[i] = &router.Event{
+				Type:      router.EventType(event.Type),
+				Timestamp: time.Unix(0, event.Timestamp),
+				Route:     route,
+			}
+		}
+
 		advert := &router.Advert{
 			Id:        resp.Id,
 			Type:      router.AdvertType(resp.Type),
 			Timestamp: time.Unix(0, resp.Timestamp),
-			//Events:    events,
+			TTL:       time.Duration(resp.Ttl),
+			Events:    events,
 		}
 
 		select {
@@ -247,7 +265,36 @@ func (s *svc) Advertise() (<-chan *router.Advert, error) {
 }
 
 // Process processes incoming adverts
-func (s *svc) Process(a *router.Advert) error {
+func (s *svc) Process(advert *router.Advert) error {
+	var events []*pb.Event
+	for _, event := range advert.Events {
+		route := &pb.Route{
+			Service: event.Route.Service,
+			Address: event.Route.Address,
+			Gateway: event.Route.Gateway,
+			Network: event.Route.Network,
+			Link:    event.Route.Link,
+			Metric:  int64(event.Route.Metric),
+		}
+		e := &pb.Event{
+			Type:      pb.EventType(event.Type),
+			Timestamp: event.Timestamp.UnixNano(),
+			Route:     route,
+		}
+		events = append(events, e)
+	}
+
+	advertReq := &pb.Advert{
+		Id:        s.Options().Id,
+		Type:      pb.AdvertType(advert.Type),
+		Timestamp: advert.Timestamp.UnixNano(),
+		Events:    events,
+	}
+
+	if _, err := s.router.Process(context.Background(), advertReq); err != nil {
+		return err
+	}
+
 	return nil
 }
 
