@@ -1,5 +1,7 @@
 syntax = "proto3";
 
+package go.micro.router;
+
 // Router service is used by the proxy to lookup routes
 service Router {
         rpc Watch(WatchRequest) returns (stream Event) {};
