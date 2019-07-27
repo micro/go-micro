@@ -431,12 +431,19 @@ func (r *router) watchErrors() {
 	if r.status.Code != Stopped {
 		// notify all goroutines to finish
 		close(r.exit)
-		// drain the advertise channel
-		for range r.advertChan {
+
+		// drain the advertise channel only if advertising
+		if r.status.Code == Advertising {
+			// drain the advertise channel
+			for range r.advertChan {
+			}
+			// drain the event channel
+			for range r.eventChan {
+			}
 		}
-		// drain the event channel
-		for range r.eventChan {
-		}
+
+		// mark the router as Stopped and set its Error to nil
+		r.status = Status{Code: Stopped, Error: nil}
 	}
 
 	if err != nil {
@@ -615,11 +622,15 @@ func (r *router) Stop() error {
 	if r.status.Code == Running || r.status.Code == Advertising {
 		// notify all goroutines to finish
 		close(r.exit)
-		// drain the advertise channel
-		for range r.advertChan {
-		}
-		// drain the event channel
-		for range r.eventChan {
+
+		// drain the advertise channel only if advertising
+		if r.status.Code == Advertising {
+			// drain the advertise channel
+			for range r.advertChan {
+			}
+			// drain the event channel
+			for range r.eventChan {
+			}
 		}
 
 		// mark the router as Stopped and set its Error to nil

@@ -59,6 +59,21 @@ const (
 	Error
 )
 
+func (s StatusCode) String() string {
+	switch s {
+	case Running:
+		return "running"
+	case Advertising:
+		return "advertising"
+	case Stopped:
+		return "stopped"
+	case Error:
+		return "error"
+	default:
+		return "unknown"
+	}
+}
+
 // Status is router status
 type Status struct {
 	// Error is router error
