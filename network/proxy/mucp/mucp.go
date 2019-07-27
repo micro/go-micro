@@ -15,8 +15,6 @@ import (
 	"github.com/micro/go-micro/network/proxy"
 	"github.com/micro/go-micro/network/router"
 	"github.com/micro/go-micro/server"
-
-	"github.com/micro/go-micro/network/router/table"
 )
 
 // Proxy will transparently proxy requests to an endpoint.
@@ -36,7 +34,7 @@ type Proxy struct {
 
 	// A fib of routes service:address
 	sync.RWMutex
-	Routes map[string]map[uint64]table.Route
+	Routes map[string]map[uint64]router.Route
 
 	// The channel to monitor watcher errors
 	errChan chan error
@@ -78,7 +76,7 @@ func readLoop(r server.Request, s client.Stream) error {
 }
 
 // toNodes returns a list of node addresses from given routes
-func toNodes(routes map[uint64]table.Route) []string {
+func toNodes(routes map[uint64]router.Route) []string {
 	var nodes []string
 	for _, node := range routes {
 		address := node.Address
@@ -98,7 +96,7 @@ func (p *Proxy) getRoute(service string) ([]string, error) {
 		p.Unlock()
 		return toNodes(routes), nil
 	}
-	p.Routes[service] = make(map[uint64]table.Route)
+	p.Routes[service] = make(map[uint64]router.Route)
 	p.Unlock()
 
 	// if the router is broken return error
@@ -107,7 +105,7 @@ func (p *Proxy) getRoute(service string) ([]string, error) {
 	}
 
 	// lookup the routes in the router
-	results, err := p.Router.Lookup(table.NewQuery(table.QueryService(service)))
+	results, err := p.Router.Lookup(router.NewQuery(router.QueryService(service)))
 	if err != nil {
 		return nil, err
 	}
@@ -124,11 +122,11 @@ func (p *Proxy) getRoute(service string) ([]string, error) {
 }
 
 // manageRouteCache applies action on a given route to Proxy route cache
-func (p *Proxy) manageRouteCache(route table.Route, action string) error {
+func (p *Proxy) manageRouteCache(route router.Route, action string) error {
 	switch action {
 	case "create", "update":
 		if _, ok := p.Routes[route.Service]; !ok {
-			p.Routes[route.Service] = make(map[uint64]table.Route)
+			p.Routes[route.Service] = make(map[uint64]router.Route)
 		}
 		p.Routes[route.Service][route.Hash()] = route
 	case "delete":
@@ -317,7 +315,7 @@ func NewProxy(opts ...options.Option) proxy.Proxy {
 	}
 
 	// routes cache
-	p.Routes = make(map[string]map[uint64]table.Route)
+	p.Routes = make(map[string]map[uint64]router.Route)
 
 	// watch router service routes
 	p.errChan = make(chan error, 1)
