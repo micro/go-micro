@@ -67,7 +67,12 @@ func (s *svc) Options() router.Options {
 
 // watchRouter watches router and send events to all registered watchers
 func (s *svc) watchRouter(stream pb.Router_WatchService) error {
-	defer stream.Close()
+	s.wg.Add(1)
+	go func() {
+		defer s.wg.Done()
+		<-s.exit
+		stream.Close()
+	}()
 
 	var watchErr error
 
@@ -123,9 +128,12 @@ func (s *svc) watchErrors() {
 	if s.status.Code != router.Stopped {
 		// notify all goroutines to finish
 		close(s.exit)
-		// drain the advertise channel
-		for range s.advertChan {
+		if s.status.Code == router.Advertising {
+			// drain the advertise channel
+			for range s.advertChan {
+			}
 		}
+		s.status = router.Status{Code: router.Stopped, Error: nil}
 	}
 
 	if err != nil {
@@ -176,7 +184,13 @@ func (s *svc) run() {
 }
 
 func (s *svc) advertiseEvents(stream pb.Router_AdvertiseService) error {
-	defer stream.Close()
+	s.wg.Add(1)
+	go func() {
+		defer s.wg.Done()
+		<-s.exit
+		stream.Close()
+	}()
+
 	var advErr error
 
 	for {
@@ -217,9 +231,13 @@ func (s *svc) advertiseEvents(stream pb.Router_AdvertiseService) error {
 		select {
 		case s.advertChan <- advert:
 		case <-s.exit:
+			close(s.advertChan)
 			return nil
 		}
 	}
+
+	// close the channel on exit
+	close(s.advertChan)
 
 	return advErr
 }
@@ -451,9 +469,13 @@ func (s *svc) Stop() error {
 	if s.status.Code == router.Running || s.status.Code == router.Advertising {
 		// notify all goroutines to finish
 		close(s.exit)
-		// drain the advertise channel
-		for range s.advertChan {
+
+		// drain the advertise channel only if advertising
+		if s.status.Code == router.Advertising {
+			for range s.advertChan {
+			}
 		}
+
 		// mark the router as Stopped and set its Error to nil
 		s.status = router.Status{Code: router.Stopped, Error: nil}
 	}
