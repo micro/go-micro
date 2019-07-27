@@ -445,7 +445,6 @@ func (r *router) watchErrors() {
 }
 
 // Run runs the router.
-// It returns error if the router is already running.
 func (r *router) run() {
 	r.Lock()
 	defer r.Unlock()
