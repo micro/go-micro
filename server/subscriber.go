@@ -11,6 +11,7 @@ import (
 	"github.com/micro/go-micro/codec"
 	"github.com/micro/go-micro/metadata"
 	"github.com/micro/go-micro/registry"
+	"github.com/micro/go-micro/util/buf"
 )
 
 const (
@@ -210,7 +211,7 @@ func (s *rpcServer) createSubHandler(sb *subscriber, opts Options) broker.Handle
 				req = req.Elem()
 			}
 
-			b := &buffer{bytes.NewBuffer(msg.Body)}
+			b := buf.New(bytes.NewBuffer(msg.Body))
 			co := cf(b)
 			defer co.Close()
 

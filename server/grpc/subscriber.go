@@ -12,6 +12,7 @@ import (
 	"github.com/micro/go-micro/metadata"
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/server"
+	"github.com/micro/go-micro/util/buf"
 )
 
 const (
@@ -204,7 +205,7 @@ func (g *grpcServer) createSubHandler(sb *subscriber, opts server.Options) broke
 				req = req.Elem()
 			}
 
-			b := &buffer{bytes.NewBuffer(msg.Body)}
+			b := buf.New(bytes.NewBuffer(msg.Body))
 			co := cf(b)
 			defer co.Close()
 

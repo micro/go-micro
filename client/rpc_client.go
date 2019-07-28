@@ -1,7 +1,6 @@
 package client
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"os"
@@ -18,6 +17,7 @@ import (
 	"github.com/micro/go-micro/metadata"
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/transport"
+	"github.com/micro/go-micro/util/buf"
 )
 
 type rpcClient struct {
@@ -538,7 +538,10 @@ func (r *rpcClient) Publish(ctx context.Context, msg Message, opts ...PublishOpt
 	if err != nil {
 		return errors.InternalServerError("go.micro.client", err.Error())
 	}
-	b := &buffer{bytes.NewBuffer(nil)}
+
+	// new buffer
+	b := buf.New(nil)
+
 	if err := cf(b).Write(&codec.Message{
 		Target: topic,
 		Type:   codec.Event,

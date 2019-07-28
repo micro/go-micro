@@ -2,7 +2,6 @@
 package grpc
 
 import (
-	"bytes"
 	"context"
 	"crypto/tls"
 	"fmt"
@@ -19,6 +18,7 @@ import (
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/transport"
 
+	"github.com/micro/go-micro/util/buf"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/encoding"
@@ -491,7 +491,8 @@ func (g *grpcClient) Publish(ctx context.Context, p client.Message, opts ...clie
 		return errors.InternalServerError("go.micro.client", err.Error())
 	}
 
-	b := &buffer{bytes.NewBuffer(nil)}
+	b := buf.New(nil)
+
 	if err := cf(b).Write(&codec.Message{Type: codec.Event}, p.Payload()); err != nil {
 		return errors.InternalServerError("go.micro.client", err.Error())
 	}
