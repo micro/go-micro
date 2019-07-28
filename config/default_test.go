@@ -8,8 +8,24 @@ import (
 	"testing"
 	"time"
 
+	"github.com/micro/go-micro/config/source/env"
 	"github.com/micro/go-micro/config/source/file"
 )
+
+func createFileForIssue18(t *testing.T, content string) *os.File {
+	data := []byte(content)
+	path := filepath.Join(os.TempDir(), fmt.Sprintf("file.%d", time.Now().UnixNano()))
+	fh, err := os.Create(path)
+	if err != nil {
+		t.Error(err)
+	}
+	_, err = fh.Write(data)
+	if err != nil {
+		t.Error(err)
+	}
+
+	return fh
+}
 
 func createFileForTest(t *testing.T) *os.File {
 	data := []byte(`{"foo": "bar"}`)
@@ -26,7 +42,7 @@ func createFileForTest(t *testing.T) *os.File {
 	return fh
 }
 
-func TestLoadWithGoodFile(t *testing.T) {
+func TestConfigLoadWithGoodFile(t *testing.T) {
 	fh := createFileForTest(t)
 	path := fh.Name()
 	defer func() {
@@ -44,7 +60,7 @@ func TestLoadWithGoodFile(t *testing.T) {
 	}
 }
 
-func TestLoadWithInvalidFile(t *testing.T) {
+func TestConfigLoadWithInvalidFile(t *testing.T) {
 	fh := createFileForTest(t)
 	path := fh.Name()
 	defer func() {
@@ -68,34 +84,35 @@ func TestLoadWithInvalidFile(t *testing.T) {
 	}
 }
 
-func TestConsul(t *testing.T) {
-	/*consulSource := consul.NewSource(
-		// optionally specify consul address; default to localhost:8500
-		consul.WithAddress("131.150.38.111:8500"),
-		// optionally specify prefix; defaults to /micro/config
-		consul.WithPrefix("/project"),
-		// optionally strip the provided prefix from the keys, defaults to false
-		consul.StripPrefix(true),
-		consul.WithDatacenter("dc1"),
-		consul.WithToken("xxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"),
+func TestConfigMerge(t *testing.T) {
+	fh := createFileForIssue18(t, `{
+  "amqp": {
+    "host": "rabbit.platform",
+    "port": 80
+  },
+  "handler": {
+    "exchange": "springCloudBus"
+  }
+}`)
+	path := fh.Name()
+	defer func() {
+		fh.Close()
+		os.Remove(path)
+	}()
+	os.Setenv("AMQP_HOST", "rabbit.testing.com")
+
+	conf := NewConfig()
+	conf.Load(
+		file.NewSource(
+			file.WithPath(path),
+		),
+		env.NewSource(),
 	)
 
-	// Create new config
-	conf := NewConfig()
-
-	// Load file source
-	err := conf.Load(consulSource)
-	if err != nil {
-		t.Error(err)
-		return
+	actualHost := conf.Get("amqp", "host").String("backup")
+	if actualHost != "rabbit.testing.com" {
+		t.Fatalf("Expected %v but got %v",
+			"rabbit.testing.com",
+			actualHost)
 	}
-
-	m := conf.Map()
-	t.Log("m: ", m)
-
-	v := conf.Get("project", "dc111", "port")
-
-	t.Log("v: ", v.Int(13))*/
-
-	t.Log("OK")
 }
