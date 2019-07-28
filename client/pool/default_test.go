@@ -1,4 +1,4 @@
-package client
+package pool
 
 import (
 	"testing"
@@ -9,11 +9,16 @@ import (
 )
 
 func testPool(t *testing.T, size int, ttl time.Duration) {
-	// zero pool
-	p := newPool(size, ttl)
-
 	// mock transport
 	tr := memory.NewTransport()
+
+	options := Options{
+		TTL:       ttl,
+		Size:      size,
+		Transport: tr,
+	}
+	// zero pool
+	p := newPool(options)
 
 	// listen
 	l, err := tr.Listen(":0")
@@ -43,7 +48,7 @@ func testPool(t *testing.T, size int, ttl time.Duration) {
 
 	for i := 0; i < 10; i++ {
 		// get a conn
-		c, err := p.getConn(l.Addr(), tr)
+		c, err := p.Get(l.Addr())
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -67,7 +72,7 @@ func testPool(t *testing.T, size int, ttl time.Duration) {
 		}
 
 		// release the conn
-		p.release(l.Addr(), c, nil)
+		p.Release(c, nil)
 
 		p.Lock()
 		if i := len(p.conns[l.Addr()]); i > size {
@@ -78,7 +83,7 @@ func testPool(t *testing.T, size int, ttl time.Duration) {
 	}
 }
 
-func TestRPCPool(t *testing.T) {
+func TestClientPool(t *testing.T) {
 	testPool(t, 0, time.Minute)
 	testPool(t, 2, time.Minute)
 }

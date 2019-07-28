@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/micro/go-micro/broker"
+	"github.com/micro/go-micro/client/pool"
 	"github.com/micro/go-micro/client/selector"
 	"github.com/micro/go-micro/codec"
 	"github.com/micro/go-micro/errors"
@@ -22,17 +23,23 @@ import (
 type rpcClient struct {
 	once sync.Once
 	opts Options
-	pool *pool
+	pool pool.Pool
 	seq  uint64
 }
 
 func newRpcClient(opt ...Option) Client {
 	opts := newOptions(opt...)
 
+	p := pool.NewPool(
+		pool.Size(opts.PoolSize),
+		pool.TTL(opts.PoolTTL),
+		pool.Transport(opts.Transport),
+	)
+
 	rc := &rpcClient{
 		once: sync.Once{},
 		opts: opts,
-		pool: newPool(opts.PoolSize, opts.PoolTTL),
+		pool: p,
 		seq:  0,
 	}
 
@@ -90,13 +97,13 @@ func (r *rpcClient) call(ctx context.Context, node *registry.Node, req Request, 
 	}
 
 	var grr error
-	c, err := r.pool.getConn(address, r.opts.Transport, transport.WithTimeout(opts.DialTimeout))
+	c, err := r.pool.Get(address, transport.WithTimeout(opts.DialTimeout))
 	if err != nil {
 		return errors.InternalServerError("go.micro.client", "connection error: %v", err)
 	}
 	defer func() {
 		// defer execution of release
-		r.pool.release(address, c, grr)
+		r.pool.Release(c, grr)
 	}()
 
 	seq := atomic.LoadUint64(&r.seq)
@@ -245,17 +252,22 @@ func (r *rpcClient) stream(ctx context.Context, node *registry.Node, req Request
 func (r *rpcClient) Init(opts ...Option) error {
 	size := r.opts.PoolSize
 	ttl := r.opts.PoolTTL
+	tr := r.opts.Transport
 
 	for _, o := range opts {
 		o(&r.opts)
 	}
 
 	// update pool configuration if the options changed
-	if size != r.opts.PoolSize || ttl != r.opts.PoolTTL {
-		r.pool.Lock()
-		r.pool.size = r.opts.PoolSize
-		r.pool.ttl = int64(r.opts.PoolTTL.Seconds())
-		r.pool.Unlock()
+	if size != r.opts.PoolSize || ttl != r.opts.PoolTTL || tr != r.opts.Transport {
+		// close existing pool
+		r.pool.Close()
+		// create new pool
+		r.pool = pool.NewPool(
+			pool.Size(r.opts.PoolSize),
+			pool.TTL(r.opts.PoolTTL),
+			pool.Transport(r.opts.Transport),
+		)
 	}
 
 	return nil
