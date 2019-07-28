@@ -1,4 +1,4 @@
-// Package registry resolves ids using the go-micro registry
+// Package registry resolves names using the go-micro registry
 package registry
 
 import (
@@ -12,13 +12,13 @@ type Resolver struct {
 }
 
 // Resolve assumes ID is a domain name e.g micro.mu
-func (r *Resolver) Resolve(id string) ([]*resolver.Record, error) {
+func (r *Resolver) Resolve(name string) ([]*resolver.Record, error) {
 	reg := r.Registry
 	if reg == nil {
 		reg = registry.DefaultRegistry
 	}
 
-	services, err := reg.GetService(id)
+	services, err := reg.GetService(name)
 	if err != nil {
 		return nil, err
 	}

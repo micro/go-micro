@@ -1,4 +1,4 @@
-// Package dns resolves ids to dns srv records
+// Package dns resolves names to dns srv records
 package dns
 
 import (
@@ -11,8 +11,8 @@ import (
 type Resolver struct{}
 
 // Resolve assumes ID is a domain name e.g micro.mu
-func (r *Resolver) Resolve(id string) ([]*resolver.Record, error) {
-	_, addrs, err := net.LookupSRV("network", "udp", id)
+func (r *Resolver) Resolve(name string) ([]*resolver.Record, error) {
+	_, addrs, err := net.LookupSRV("network", "udp", name)
 	if err != nil {
 		return nil, err
 	}

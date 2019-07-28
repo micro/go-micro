@@ -1,4 +1,4 @@
-// Package http resolves ids to network addresses using a http request
+// Package http resolves names to network addresses using a http request
 package http
 
 import (
@@ -18,8 +18,8 @@ type Resolver struct {
 	Path string
 }
 
-// Resolve assumes ID is a domain which can be converted to a http://id/network request
-func (r *Resolver) Resolve(id string) ([]*resolver.Record, error) {
+// Resolve assumes ID is a domain which can be converted to a http://name/network request
+func (r *Resolver) Resolve(name string) ([]*resolver.Record, error) {
 	proto := "http"
 	path := "/network"
 
@@ -34,7 +34,7 @@ func (r *Resolver) Resolve(id string) ([]*resolver.Record, error) {
 	uri := &url.URL{
 		Scheme: proto,
 		Path:   path,
-		Host:   id,
+		Host:   name,
 	}
 
 	rsp, err := http.Get(uri.String())
