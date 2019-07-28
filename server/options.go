@@ -37,7 +37,7 @@ type Options struct {
 	Router Router
 
 	// Debug Handler which can be set by a user
-	DebugHandler debug.DebugHandler
+	DebugHandler debug.Handler
 
 	// Other options for implementations of the interface
 	// can be stored in a context
@@ -67,7 +67,7 @@ func newOptions(opt ...Option) Options {
 	}
 
 	if opts.DebugHandler == nil {
-		opts.DebugHandler = debug.DefaultDebugHandler
+		opts.DebugHandler = debug.DefaultHandler
 	}
 
 	if opts.RegisterCheck == nil {
@@ -157,7 +157,7 @@ func Transport(t transport.Transport) Option {
 }
 
 // DebugHandler for this server
-func DebugHandler(d debug.DebugHandler) Option {
+func DebugHandler(d debug.Handler) Option {
 	return func(o *Options) {
 		o.DebugHandler = d
 	}

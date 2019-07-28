@@ -90,7 +90,7 @@ func newOptions(opt ...server.Option) server.Options {
 	}
 
 	if opts.DebugHandler == nil {
-		opts.DebugHandler = debug.DefaultDebugHandler
+		opts.DebugHandler = debug.DefaultHandler
 	}
 
 	if len(opts.Address) == 0 {
