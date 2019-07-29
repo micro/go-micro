@@ -11,6 +11,8 @@ type Router interface {
 	Init(...Option) error
 	// Options returns the router options
 	Options() Options
+	// The routing table
+	Table() Table
 	// Advertise advertises routes to the network
 	Advertise() (<-chan *Advert, error)
 	// Process processes incoming adverts
@@ -25,6 +27,19 @@ type Router interface {
 	Stop() error
 	// Returns the router implementation
 	String() string
+}
+
+type Table interface {
+	// Create new route in the routing table
+	Create(Route) error
+	// Delete deletes existing route from the routing table
+	Delete(Route) error
+	// Update updates route in the routing table
+	Update(Route) error
+	// List returns the list of all routes in the table
+	List() ([]Route, error)
+	// Query queries routes in the routing table
+	Query(Query) ([]Route, error)
 }
 
 // Option used by the router

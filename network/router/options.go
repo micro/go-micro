@@ -2,6 +2,7 @@ package router
 
 import (
 	"github.com/google/uuid"
+	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/registry"
 )
 
@@ -17,6 +18,8 @@ type Options struct {
 	Network string
 	// Registry is the local registry
 	Registry registry.Registry
+	// Client for calling router
+	Client client.Client
 }
 
 // Id sets Router Id
@@ -30,6 +33,13 @@ func Id(id string) Option {
 func Address(a string) Option {
 	return func(o *Options) {
 		o.Address = a
+	}
+}
+
+// Client to call router service
+func Client(c client.Client) Option {
+	return func(o *Options) {
+		o.Client = c
 	}
 }
 

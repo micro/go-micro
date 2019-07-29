@@ -103,7 +103,7 @@ func TestList(t *testing.T) {
 	}
 }
 
-func TestLookup(t *testing.T) {
+func TestQuery(t *testing.T) {
 	table, route := testSetup()
 
 	svc := []string{"svc1", "svc2", "svc3"}
@@ -122,7 +122,7 @@ func TestLookup(t *testing.T) {
 	// return all routes
 	query := NewQuery()
 
-	routes, err := table.Lookup(query)
+	routes, err := table.Query(query)
 	if err != nil {
 		t.Errorf("error looking up routes: %s", err)
 	}
@@ -130,7 +130,7 @@ func TestLookup(t *testing.T) {
 	// query particular net
 	query = NewQuery(QueryNetwork("net1"))
 
-	routes, err = table.Lookup(query)
+	routes, err = table.Query(query)
 	if err != nil {
 		t.Errorf("error looking up routes: %s", err)
 	}
@@ -143,7 +143,7 @@ func TestLookup(t *testing.T) {
 	gateway := "gw1"
 	query = NewQuery(QueryGateway(gateway))
 
-	routes, err = table.Lookup(query)
+	routes, err = table.Query(query)
 	if err != nil {
 		t.Errorf("error looking up routes: %s", err)
 	}
@@ -163,7 +163,7 @@ func TestLookup(t *testing.T) {
 		QueryNetwork(network),
 	)
 
-	routes, err = table.Lookup(query)
+	routes, err = table.Query(query)
 	if err != nil {
 		t.Errorf("error looking up routes: %s", err)
 	}
@@ -183,7 +183,7 @@ func TestLookup(t *testing.T) {
 	// bullshit route query
 	query = NewQuery(QueryService("foobar"))
 
-	routes, err = table.Lookup(query)
+	routes, err = table.Query(query)
 	if err != ErrRouteNotFound {
 		t.Errorf("error looking up routes. Expected: %s, found: %s", ErrRouteNotFound, err)
 	}

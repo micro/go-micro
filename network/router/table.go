@@ -128,7 +128,7 @@ func findRoutes(routes map[uint64]Route, network, router string) []Route {
 }
 
 // Lookup queries routing table and returns all routes that match the lookup query
-func (t *table) Lookup(q Query) ([]Route, error) {
+func (t *table) Query(q Query) ([]Route, error) {
 	t.RLock()
 	defer t.RUnlock()
 

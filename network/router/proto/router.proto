@@ -4,18 +4,23 @@ package go.micro.router;
 
 // Router service is used by the proxy to lookup routes
 service Router {
-        rpc List(ListRequest) returns (ListResponse) {};
 	rpc Lookup(LookupRequest) returns (LookupResponse) {};
         rpc Watch(WatchRequest) returns (stream Event) {};
-        rpc Advertise(AdvertiseRequest) returns (stream Advert) {};
+        rpc Advertise(Request) returns (stream Advert) {};
         rpc Process(Advert) returns (ProcessResponse) {};
-        rpc Create(Route) returns (CreateResponse) {};
-        rpc Delete(Route) returns (DeleteResponse) {};
-        rpc Update(Route) returns (UpdateResponse) {};
+	rpc Status(Request) returns (StatusResponse) {};
 }
 
-// ListRequest is made to List routes
-message ListRequest {}
+service Table {     
+	rpc Create(Route) returns (CreateResponse) {};
+        rpc Delete(Route) returns (DeleteResponse) {};
+        rpc Update(Route) returns (UpdateResponse) {};
+        rpc List(Request) returns (ListResponse) {};
+	rpc Query(QueryRequest) returns (QueryResponse) {};
+}
+
+// Empty request
+message Request {}
 
 // ListResponse is returned by List
 message ListResponse {
@@ -32,11 +37,16 @@ message LookupResponse {
 	repeated Route routes = 1;
 }
 
+message QueryRequest{
+	Query query = 1;
+}
+
+message QueryResponse {
+	repeated Route routes = 1;
+}
+
 // WatchRequest is made to Watch Router
 message WatchRequest {}
-
-// AdvertiseRequest request a stream of Adverts
-message AdvertiseRequest {}
 
 // AdvertType defines the type of advert
 enum AdvertType {
@@ -111,4 +121,13 @@ message Route {
 	string link = 5;
 	// the metric / score of this route
 	int64 metric = 6;
+}
+
+message Status {
+	string code = 1;
+	string error = 2;
+}
+
+message StatusResponse {
+	Status status = 1;
 }
