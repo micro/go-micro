@@ -14,6 +14,7 @@ import (
 )
 
 type svc struct {
+	sync.RWMutex
 	opts       router.Options
 	router     pb.RouterService
 	status     router.Status
@@ -22,7 +23,6 @@ type svc struct {
 	errChan    chan error
 	advertChan chan *router.Advert
 	wg         *sync.WaitGroup
-	sync.RWMutex
 }
 
 // NewRouter creates new service router and returns it
