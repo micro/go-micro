@@ -8,13 +8,6 @@ import (
 	"github.com/google/uuid"
 )
 
-var (
-	// ErrRouteNotFound is returned when no route was found in the routing table
-	ErrRouteNotFound = errors.New("route not found")
-	// ErrDuplicateRoute is returned when the route already exists
-	ErrDuplicateRoute = errors.New("duplicate route")
-)
-
 // table is an in memory routing table
 type table struct {
 	sync.RWMutex
@@ -191,3 +184,10 @@ func (t *table) sendEvent(e *Event) {
 		}
 	}
 }
+
+var (
+	// ErrRouteNotFound is returned when no route was found in the routing table
+	ErrRouteNotFound = errors.New("route not found")
+	// ErrDuplicateRoute is returned when the route already exists
+	ErrDuplicateRoute = errors.New("duplicate route")
+)
