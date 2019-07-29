@@ -17,11 +17,11 @@ var (
 
 // table is an in memory routing table
 type table struct {
+	sync.RWMutex
 	// routes stores service routes
 	routes map[string]map[uint64]Route
 	// watchers stores table watchers
 	watchers map[string]*tableWatcher
-	sync.RWMutex
 }
 
 // newtable creates a new routing table and returns it

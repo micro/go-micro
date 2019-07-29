@@ -71,10 +71,10 @@ func WatchService(s string) WatchOption {
 }
 
 type tableWatcher struct {
+	sync.RWMutex
 	opts    WatchOptions
 	resChan chan *Event
 	done    chan struct{}
-	sync.RWMutex
 }
 
 // Next returns the next noticed action taken on table

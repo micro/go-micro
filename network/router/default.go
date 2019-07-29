@@ -41,6 +41,7 @@ var (
 
 // router implements default router
 type router struct {
+	sync.RWMutex
 	// embed the table
 	*table
 	opts       Options
@@ -51,7 +52,6 @@ type router struct {
 	advertChan chan *Advert
 	advertWg   *sync.WaitGroup
 	wg         *sync.WaitGroup
-	sync.RWMutex
 }
 
 // newRouter creates new router and returns it
