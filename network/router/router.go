@@ -3,19 +3,17 @@ package router
 
 import (
 	"time"
-
-	"github.com/micro/go-micro/network/router/table"
 )
 
 var (
 	// DefaultRouter is default network router
 	DefaultRouter = NewRouter()
+	// DefaultName is default router service name
+	DefaultName = "go.micro.router"
 )
 
 // Router is an interface for a routing control plane
 type Router interface {
-	// Router provides a routing table
-	table.Table
 	// Init initializes the router with options
 	Init(...Option) error
 	// Options returns the router options
@@ -24,6 +22,18 @@ type Router interface {
 	Advertise() (<-chan *Advert, error)
 	// Process processes incoming adverts
 	Process(*Advert) error
+	// Create new route in the routing table
+	Create(Route) error
+	// Delete existing route from the routing table
+	Delete(Route) error
+	// Update exiting route in the routing table
+	Update(Route) error
+	// List lists all routes in the routing table
+	List() ([]Route, error)
+	// Lookup queries routes in the routing table
+	Lookup(Query) ([]Route, error)
+	// Watch returns a watcher which tracks updates to the routing table
+	Watch(opts ...WatchOption) (Watcher, error)
 	// Status returns router status
 	Status() Status
 	// Stop stops the router
@@ -49,6 +59,21 @@ const (
 	Error
 )
 
+func (s StatusCode) String() string {
+	switch s {
+	case Running:
+		return "running"
+	case Advertising:
+		return "advertising"
+	case Stopped:
+		return "stopped"
+	case Error:
+		return "error"
+	default:
+		return "unknown"
+	}
+}
+
 // Status is router status
 type Status struct {
 	// Error is router error
@@ -63,9 +88,21 @@ type AdvertType int
 const (
 	// Announce is advertised when the router announces itself
 	Announce AdvertType = iota
-	// Update advertises route updates
-	Update
+	// RouteUpdate advertises route updates
+	RouteUpdate
 )
+
+// String returns human readable advertisement type
+func (t AdvertType) String() string {
+	switch t {
+	case Announce:
+		return "announce"
+	case RouteUpdate:
+		return "update"
+	default:
+		return "unknown"
+	}
+}
 
 // Advert contains a list of events advertised by the router to the network
 type Advert struct {
@@ -78,7 +115,7 @@ type Advert struct {
 	// TTL is Advert TTL
 	TTL time.Duration
 	// Events is a list of routing table events to advertise
-	Events []*table.Event
+	Events []*Event
 }
 
 // NewRouter creates new Router and returns it

@@ -1,7 +1,8 @@
-package table
+package router
 
 import (
 	"errors"
+	"sync"
 	"time"
 )
 
@@ -22,11 +23,9 @@ const (
 	Update
 )
 
-// String implements fmt.Stringer
-// NOTE: we need this as this makes converting the numeric codes
-// into miro style string actions very simple
-func (et EventType) String() string {
-	switch et {
+// String returns human readable event type
+func (t EventType) String() string {
+	switch t {
 	case Create:
 		return "create"
 	case Delete:
@@ -80,11 +79,11 @@ type tableWatcher struct {
 	opts    WatchOptions
 	resChan chan *Event
 	done    chan struct{}
+	sync.RWMutex
 }
 
 // Next returns the next noticed action taken on table
-// TODO: this needs to be thought through properly;
-// right now we only allow to watch service
+// TODO: right now we only allow to watch particular service
 func (w *tableWatcher) Next() (*Event, error) {
 	for {
 		select {
@@ -108,6 +107,9 @@ func (w *tableWatcher) Chan() (<-chan *Event, error) {
 
 // Stop stops routing table watcher
 func (w *tableWatcher) Stop() {
+	w.Lock()
+	defer w.Unlock()
+
 	select {
 	case <-w.done:
 		return

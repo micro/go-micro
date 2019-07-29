@@ -4,11 +4,22 @@ package go.micro.router;
 
 // Router service is used by the proxy to lookup routes
 service Router {
-        rpc Watch(WatchRequest) returns (stream Event) {};
-	rpc Lookup(LookupRequest) returns (LookupResponse) {};
         rpc List(ListRequest) returns (ListResponse) {};
+	rpc Lookup(LookupRequest) returns (LookupResponse) {};
+        rpc Watch(WatchRequest) returns (stream Event) {};
         rpc Advertise(AdvertiseRequest) returns (stream Advert) {};
         rpc Process(Advert) returns (ProcessResponse) {};
+        rpc Create(Route) returns (CreateResponse) {};
+        rpc Delete(Route) returns (DeleteResponse) {};
+        rpc Update(Route) returns (UpdateResponse) {};
+}
+
+// ListRequest is made to List routes
+message ListRequest {}
+
+// ListResponse is returned by List
+message ListResponse {
+	repeated Route routes = 1;
 }
 
 // LookupRequest is made to Lookup
@@ -23,7 +34,6 @@ message LookupResponse {
 
 // WatchRequest is made to Watch Router
 message WatchRequest {}
-
 
 // AdvertiseRequest request a stream of Adverts
 message AdvertiseRequest {}
@@ -51,6 +61,15 @@ message Advert {
 // ProcessResponse is returned by Process
 message ProcessResponse {}
 
+// CreateResponse is returned by Create
+message CreateResponse {}
+
+// DeleteResponse is returned by Delete
+message DeleteResponse {}
+
+// UpdateResponse is returned by Update
+message UpdateResponse {}
+
 // EventType defines the type of event
 enum EventType {
         Create = 0;
@@ -68,18 +87,14 @@ message Event {
 	Route route = 3;
 }
 
-// ListRequest is made to List routes
-message ListRequest {}
-
-// ListResponse is returned by List
-message ListResponse {
-	repeated Route routes = 1;
-}
-
 // Query is passed in a LookupRequest
 message Query {
 	// service to lookup
 	string service = 1;
+        // gateway to lookup
+        string gateway = 2;
+        // network to lookup
+        string network = 3;
 }
 
 // Route is a service route

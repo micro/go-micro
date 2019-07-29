@@ -1,4 +1,4 @@
-package table
+package router
 
 import (
 	"hash/fnv"
