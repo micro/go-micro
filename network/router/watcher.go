@@ -6,11 +6,6 @@ import (
 	"time"
 )
 
-var (
-	// ErrWatcherStopped is returned when routing table watcher has been stopped
-	ErrWatcherStopped = errors.New("watcher stopped")
-)
-
 // EventType defines routing table event
 type EventType int
 
@@ -118,7 +113,7 @@ func (w *tableWatcher) Stop() {
 	}
 }
 
-// String prints debug information
-func (w tableWatcher) String() string {
-	return "watcher"
-}
+var (
+	// ErrWatcherStopped is returned when routing table watcher has been stopped
+	ErrWatcherStopped = errors.New("watcher stopped")
+)

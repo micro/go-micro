@@ -5,13 +5,6 @@ import (
 	"github.com/micro/go-micro/registry"
 )
 
-var (
-	// DefaultAddress is default router address
-	DefaultAddress = ":9093"
-	// DefaultNetwork is default micro network
-	DefaultNetwork = "go.micro"
-)
-
 // Options are router options
 type Options struct {
 	// Id is router id
