@@ -7,10 +7,10 @@ import (
 )
 
 type svcWatcher struct {
+	sync.RWMutex
 	opts    router.WatchOptions
 	resChan chan *router.Event
 	done    chan struct{}
-	sync.RWMutex
 }
 
 // Next is a blocking call that returns watch result
