@@ -15,8 +15,8 @@ var (
 	ErrDuplicateRoute = errors.New("duplicate route")
 )
 
-// Table is an in memory routing table
-type Table struct {
+// table is an in memory routing table
+type table struct {
 	// routes stores service routes
 	routes map[string]map[uint64]Route
 	// watchers stores table watchers
@@ -24,16 +24,16 @@ type Table struct {
 	sync.RWMutex
 }
 
-// NewTable creates a new routing table and returns it
-func NewTable(opts ...Option) *Table {
-	return &Table{
+// newtable creates a new routing table and returns it
+func newTable(opts ...Option) *table {
+	return &table{
 		routes:   make(map[string]map[uint64]Route),
 		watchers: make(map[string]*tableWatcher),
 	}
 }
 
 // Create creates new route in the routing table
-func (t *Table) Create(r Route) error {
+func (t *table) Create(r Route) error {
 	service := r.Service
 	sum := r.Hash()
 
@@ -59,7 +59,7 @@ func (t *Table) Create(r Route) error {
 }
 
 // Delete deletes the route from the routing table
-func (t *Table) Delete(r Route) error {
+func (t *table) Delete(r Route) error {
 	service := r.Service
 	sum := r.Hash()
 
@@ -77,7 +77,7 @@ func (t *Table) Delete(r Route) error {
 }
 
 // Update updates routing table with the new route
-func (t *Table) Update(r Route) error {
+func (t *table) Update(r Route) error {
 	service := r.Service
 	sum := r.Hash()
 
@@ -99,7 +99,7 @@ func (t *Table) Update(r Route) error {
 }
 
 // List returns a list of all routes in the table
-func (t *Table) List() ([]Route, error) {
+func (t *table) List() ([]Route, error) {
 	t.RLock()
 	defer t.RUnlock()
 
@@ -135,7 +135,7 @@ func findRoutes(routes map[uint64]Route, network, router string) []Route {
 }
 
 // Lookup queries routing table and returns all routes that match the lookup query
-func (t *Table) Lookup(q Query) ([]Route, error) {
+func (t *table) Lookup(q Query) ([]Route, error) {
 	t.RLock()
 	defer t.RUnlock()
 
@@ -156,7 +156,7 @@ func (t *Table) Lookup(q Query) ([]Route, error) {
 }
 
 // Watch returns routing table entry watcher
-func (t *Table) Watch(opts ...WatchOption) (Watcher, error) {
+func (t *table) Watch(opts ...WatchOption) (Watcher, error) {
 	// by default watch everything
 	wopts := WatchOptions{
 		Service: "*",
@@ -180,7 +180,7 @@ func (t *Table) Watch(opts ...WatchOption) (Watcher, error) {
 }
 
 // sendEvent sends events to all subscribed watchers
-func (t *Table) sendEvent(e *Event) {
+func (t *table) sendEvent(e *Event) {
 	t.RLock()
 	defer t.RUnlock()
 
@@ -190,9 +190,4 @@ func (t *Table) sendEvent(e *Event) {
 		case <-w.done:
 		}
 	}
-}
-
-// String returns debug information
-func (t *Table) String() string {
-	return "table"
 }

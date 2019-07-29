@@ -24,8 +24,6 @@ type Options struct {
 	Network string
 	// Registry is the local registry
 	Registry registry.Registry
-	// Table is routing table
-	Table *Table
 }
 
 // Id sets Router Id
@@ -63,13 +61,6 @@ func Registry(r registry.Registry) Option {
 	}
 }
 
-// RoutingTable sets the routing table
-func RoutingTable(t *Table) Option {
-	return func(o *Options) {
-		o.Table = t
-	}
-}
-
 // DefaultOptions returns router default options
 func DefaultOptions() Options {
 	return Options{
@@ -77,6 +68,5 @@ func DefaultOptions() Options {
 		Address:  DefaultAddress,
 		Network:  DefaultNetwork,
 		Registry: registry.DefaultRegistry,
-		Table:    NewTable(),
 	}
 }

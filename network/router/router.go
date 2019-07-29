@@ -22,14 +22,6 @@ type Router interface {
 	Advertise() (<-chan *Advert, error)
 	// Process processes incoming adverts
 	Process(*Advert) error
-	// Create new route in the routing table
-	Create(Route) error
-	// Delete existing route from the routing table
-	Delete(Route) error
-	// Update exiting route in the routing table
-	Update(Route) error
-	// List lists all routes in the routing table
-	List() ([]Route, error)
 	// Lookup queries routes in the routing table
 	Lookup(Query) ([]Route, error)
 	// Watch returns a watcher which tracks updates to the routing table

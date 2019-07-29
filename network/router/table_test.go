@@ -2,8 +2,8 @@ package router
 
 import "testing"
 
-func testSetup() (*Table, Route) {
-	table := NewTable()
+func testSetup() (*table, Route) {
+	table := newTable()
 
 	route := Route{
 		Service: "dest.svc",

@@ -42,7 +42,7 @@ var (
 // router implements default router
 type router struct {
 	// embed the table
-	*Table
+	*table
 	opts       Options
 	status     Status
 	exit       chan struct{}
@@ -65,7 +65,7 @@ func newRouter(opts ...Option) Router {
 	}
 
 	r := &router{
-		Table:    options.Table,
+		table:    newTable(),
 		opts:     options,
 		status:   Status{Code: Stopped, Error: nil},
 		advertWg: &sync.WaitGroup{},
