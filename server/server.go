@@ -142,6 +142,11 @@ func NewServer(opt ...Option) Server {
 	return newRpcServer(opt...)
 }
 
+// NewRouter returns a new router
+func NewRouter() *router {
+	return newRpcRouter()
+}
+
 // NewSubscriber creates a new subscriber interface with the given topic
 // and handler using the default server
 func NewSubscriber(topic string, h interface{}, opts ...SubscriberOption) Subscriber {

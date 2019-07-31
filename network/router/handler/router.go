@@ -12,7 +12,7 @@ import (
 
 // Router implements router handler
 type Router struct {
-	Router  router.Router
+	Router router.Router
 }
 
 // Lookup looks up routes in the routing table and returns them
