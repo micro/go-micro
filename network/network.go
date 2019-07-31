@@ -16,3 +16,8 @@ var (
 	DefaultAddress = ":0"
 	DefaultNetwork = NewNetwork()
 )
+
+// NewNetwork returns a new network interface
+func NewNetwork(opts ...Option) Network {
+	return newNetwork(opts...)
+}

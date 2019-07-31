@@ -24,8 +24,8 @@ func (n *network) Close() error {
 	return n.options.Server.Stop()
 }
 
-// NewNetwork returns a new network node
-func NewNetwork(opts ...Option) Network {
+// newNetwork returns a new network node
+func newNetwork(opts ...Option) Network {
 	options := Options{
 		Name:    DefaultName,
 		Address: DefaultAddress,
