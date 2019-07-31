@@ -55,6 +55,8 @@ func (n *network) process(advertChan <-chan *router.Advert) {
 				Timestamp: a.Timestamp.UnixNano(),
 				Events:    events,
 			})
+		case <-n.exit:
+			return
 		}
 	}
 }
@@ -78,9 +80,11 @@ func (n *network) Connect() error {
 	defer n.Unlock()
 
 	// check if we're connected
-	if !n.connected {
+	if n.connected {
 		return nil
 	}
+
+	n.exit = make(chan bool)
 
 	// start advertising
 	advertChan, err := n.options.Router.Advertise()
@@ -110,6 +114,8 @@ func (n *network) Close() error {
 	if !n.connected {
 		return nil
 	}
+
+	close(n.exit)
 
 	// set connected to false
 	n.connected = false
