@@ -2,6 +2,8 @@ package network
 
 import (
 	"github.com/micro/go-micro/client"
+	"github.com/micro/go-micro/network/proxy/mucp"
+	"github.com/micro/go-micro/network/router"
 	"github.com/micro/go-micro/server"
 )
 
@@ -28,6 +30,8 @@ func NewNetwork(opts ...Option) Network {
 		Name:   DefaultName,
 		Client: client.DefaultClient,
 		Server: server.DefaultServer,
+		Proxy:  mucp.NewProxy(),
+		Router: router.DefaultRouter,
 	}
 
 	for _, o := range opts {
@@ -37,6 +41,7 @@ func NewNetwork(opts ...Option) Network {
 	// set the server name
 	options.Server.Init(
 		server.Name(options.Name),
+		server.WithRouter(options.Proxy),
 	)
 
 	return &network{
