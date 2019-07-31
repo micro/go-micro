@@ -10,17 +10,36 @@ import (
 type Option func(*Options)
 
 type Options struct {
-	Name   string
-	Client client.Client
-	Server server.Server
-	Proxy  proxy.Proxy
-	Router router.Router
+	// Name of the network
+	Name string
+	// Address of the node
+	Address string
+	// Advertise a different address to the network
+	Advertise string
+	Client    client.Client
+	Server    server.Server
+	Proxy     proxy.Proxy
+	Router    router.Router
 }
 
 // The network name
 func Name(n string) Option {
 	return func(o *Options) {
 		o.Name = n
+	}
+}
+
+// The network address
+func Address(a string) Option {
+	return func(o *Options) {
+		o.Address = a
+	}
+}
+
+// The network advertise address
+func Advertise(a string) Option {
+	return func(o *Options) {
+		o.Advertise = a
 	}
 }
 

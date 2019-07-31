@@ -12,7 +12,7 @@ type Network interface {
 }
 
 var (
-	DefaultName = "go.micro.network"
-
+	DefaultName    = "go.micro.network"
+	DefaultAddress = ":0"
 	DefaultNetwork = NewNetwork()
 )

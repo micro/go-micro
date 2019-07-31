@@ -27,11 +27,12 @@ func (n *network) Close() error {
 // NewNetwork returns a new network node
 func NewNetwork(opts ...Option) Network {
 	options := Options{
-		Name:   DefaultName,
-		Client: client.DefaultClient,
-		Server: server.DefaultServer,
-		Proxy:  mucp.NewProxy(),
-		Router: router.DefaultRouter,
+		Name:    DefaultName,
+		Address: DefaultAddress,
+		Client:  client.DefaultClient,
+		Server:  server.DefaultServer,
+		Proxy:   mucp.NewProxy(),
+		Router:  router.DefaultRouter,
 	}
 
 	for _, o := range opts {
@@ -41,6 +42,8 @@ func NewNetwork(opts ...Option) Network {
 	// set the server name
 	options.Server.Init(
 		server.Name(options.Name),
+		server.Address(options.Address),
+		server.Advertise(options.Advertise),
 		server.WithRouter(options.Proxy),
 	)
 
