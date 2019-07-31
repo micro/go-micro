@@ -49,7 +49,7 @@ require (
 	github.com/mattn/go-colorable v0.1.2 // indirect
 	github.com/mattn/go-runewidth v0.0.4 // indirect
 	github.com/micro/cli v0.2.0
-	github.com/micro/mdns v0.1.1-0.20190729112526-ef68c9635478
+	github.com/micro/mdns v0.2.0
 	github.com/miekg/dns v1.1.15 // indirect
 	github.com/mitchellh/gox v1.0.1 // indirect
 	github.com/mitchellh/hashstructure v1.0.0
