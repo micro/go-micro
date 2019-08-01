@@ -325,18 +325,27 @@ func (c *cache) run(service string) {
 // watch loops the next event and calls update
 // it returns if there's an error
 func (c *cache) watch(w registry.Watcher) error {
-	defer w.Stop()
+	// used to stop the watch
+	stop := make(chan bool)
 
 	// manage this loop
 	go func() {
+		defer w.Stop()
+
+		select {
 		// wait for exit
-		<-c.exit
-		w.Stop()
+		case <-c.exit:
+			return
+		// we've been stopped
+		case <-stop:
+			return
+		}
 	}()
 
 	for {
 		res, err := w.Next()
 		if err != nil {
+			close(stop)
 			return err
 		}
 		c.update(res)
