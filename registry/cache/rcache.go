@@ -328,9 +328,20 @@ func (c *cache) watch(w registry.Watcher) error {
 	defer w.Stop()
 
 	// manage this loop
+	quitLoop := make(chan interface{})
+	defer func() {
+		select {
+		case quitLoop <- nil:
+		default:
+		}
+	}()
 	go func() {
 		// wait for exit
-		<-c.exit
+		select {
+		case <-c.exit:
+		case <-quitLoop:
+		}
+
 		w.Stop()
 	}()
 
