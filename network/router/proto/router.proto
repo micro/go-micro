@@ -11,7 +11,7 @@ service Router {
 	rpc Status(Request) returns (StatusResponse) {};
 }
 
-service Table {     
+service Table {
 	rpc Create(Route) returns (CreateResponse) {};
         rpc Delete(Route) returns (DeleteResponse) {};
         rpc Update(Route) returns (UpdateResponse) {};
