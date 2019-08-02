@@ -160,13 +160,23 @@ func (t *table) Watch(opts ...WatchOption) (Watcher, error) {
 	}
 
 	w := &tableWatcher{
+		id:      uuid.New().String(),
 		opts:    wopts,
 		resChan: make(chan *Event, 10),
 		done:    make(chan struct{}),
 	}
 
+	// when the watcher is stopped delete it
+	go func() {
+		<-w.done
+		t.Lock()
+		delete(t.watchers, w.id)
+		t.Unlock()
+	}()
+
+	// save the watcher
 	t.Lock()
-	t.watchers[uuid.New().String()] = w
+	t.watchers[w.id] = w
 	t.Unlock()
 
 	return w, nil

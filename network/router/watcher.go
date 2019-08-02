@@ -72,6 +72,7 @@ func WatchService(s string) WatchOption {
 
 type tableWatcher struct {
 	sync.RWMutex
+	id      string
 	opts    WatchOptions
 	resChan chan *Event
 	done    chan struct{}
