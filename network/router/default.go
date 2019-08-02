@@ -177,10 +177,24 @@ func (r *router) watchRegistry(w registry.Watcher) error {
 	// wait in the background for the router to stop
 	// when the router stops, stop the watcher and exit
 	r.wg.Add(1)
+
+	exit := make(chan bool)
+
+	defer func() {
+		// close the exit channel when the go routine finishes
+		close(exit)
+		r.wg.Done()
+	}()
+
 	go func() {
-		defer r.wg.Done()
-		<-r.exit
-		w.Stop()
+		defer w.Stop()
+
+		select {
+		case <-r.exit:
+			return
+		case <-exit:
+			return
+		}
 	}()
 
 	var watchErr error
@@ -208,10 +222,23 @@ func (r *router) watchTable(w Watcher) error {
 	// wait in the background for the router to stop
 	// when the router stops, stop the watcher and exit
 	r.wg.Add(1)
+	exit := make(chan bool)
+
+	defer func() {
+		// close the exit channel when the go routine finishes
+		close(exit)
+		r.wg.Done()
+	}()
+
 	go func() {
-		defer r.wg.Done()
-		<-r.exit
-		w.Stop()
+		defer w.Stop()
+
+		select {
+		case <-r.exit:
+			return
+		case <-exit:
+			return
+		}
 	}()
 
 	var watchErr error
