@@ -275,6 +275,7 @@ func (r *router) publishAdvert(advType AdvertType, events []*Event) {
 func (r *router) advertiseTable() error {
 	// create table advertisement ticker
 	ticker := time.NewTicker(AdvertiseTableTick)
+	defer ticker.Stop()
 
 	for {
 		select {
@@ -324,6 +325,8 @@ type routeAdvert struct {
 func (r *router) advertiseEvents() error {
 	// ticker to periodically scan event for advertising
 	ticker := time.NewTicker(AdvertiseEventsTick)
+	defer ticker.Stop()
+
 	// advertMap is a map of advert events
 	advertMap := make(map[uint64]*routeAdvert)
 
@@ -426,7 +429,6 @@ func (r *router) advertiseEvents() error {
 			// update event penalty and recorded timestamp
 			advert.lastUpdate = time.Now()
 			advert.penalty += penalty
-
 		case <-r.exit:
 			// first wait for the advertiser to finish
 			r.advertWg.Wait()
