@@ -3,7 +3,7 @@ package micro
 import (
 	"context"
 
-	"github.com/alexapps/go-micro/client"
+	"github.com/micro/go-micro/client"
 )
 
 type publisher struct {

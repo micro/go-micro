@@ -7,8 +7,8 @@ import (
 	"encoding/gob"
 
 	"github.com/lucas-clemente/quic-go"
-	"github.com/alexapps/go-micro/transport"
-	utls "github.com/alexapps/go-micro/util/tls"
+	"github.com/micro/go-micro/transport"
+	utls "github.com/micro/go-micro/util/tls"
 )
 
 type quicSocket struct {

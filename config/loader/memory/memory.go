@@ -8,10 +8,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/alexapps/go-micro/config/loader"
-	"github.com/alexapps/go-micro/config/reader"
-	"github.com/alexapps/go-micro/config/reader/json"
-	"github.com/alexapps/go-micro/config/source"
+	"github.com/micro/go-micro/config/loader"
+	"github.com/micro/go-micro/config/reader"
+	"github.com/micro/go-micro/config/reader/json"
+	"github.com/micro/go-micro/config/source"
 )
 
 type memory struct {

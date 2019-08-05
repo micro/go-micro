@@ -1,8 +1,8 @@
 package server
 
 import (
-	"github.com/alexapps/go-micro/codec"
-	"github.com/alexapps/go-micro/transport"
+	"github.com/micro/go-micro/codec"
+	"github.com/micro/go-micro/transport"
 )
 
 type rpcRequest struct {

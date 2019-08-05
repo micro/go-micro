@@ -5,9 +5,9 @@ import (
 	"io"
 	"time"
 
-	"github.com/alexapps/go-micro/errors"
-	"github.com/alexapps/go-micro/network/router"
-	pb "github.com/alexapps/go-micro/network/router/proto"
+	"github.com/micro/go-micro/errors"
+	"github.com/micro/go-micro/network/router"
+	pb "github.com/micro/go-micro/network/router/proto"
 )
 
 // Router implements router handler

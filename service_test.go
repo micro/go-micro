@@ -7,10 +7,10 @@ import (
 	"testing"
 
 	glog "github.com/go-log/log"
-	"github.com/alexapps/go-micro/client"
-	"github.com/alexapps/go-micro/registry/memory"
-	proto "github.com/alexapps/go-micro/server/debug/proto"
-	"github.com/alexapps/go-micro/util/log"
+	"github.com/micro/go-micro/client"
+	"github.com/micro/go-micro/registry/memory"
+	proto "github.com/micro/go-micro/server/debug/proto"
+	"github.com/micro/go-micro/util/log"
 )
 
 func testShutdown(wg *sync.WaitGroup, cancel func()) {

@@ -2,8 +2,8 @@ package router
 
 import (
 	"github.com/google/uuid"
-	"github.com/alexapps/go-micro/client"
-	"github.com/alexapps/go-micro/registry"
+	"github.com/micro/go-micro/client"
+	"github.com/micro/go-micro/registry"
 )
 
 // Options are router options

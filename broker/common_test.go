@@ -1,7 +1,7 @@
 package broker
 
 import (
-	"github.com/alexapps/go-micro/registry"
+	"github.com/micro/go-micro/registry"
 )
 
 var (

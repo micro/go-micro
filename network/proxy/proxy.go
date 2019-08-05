@@ -4,10 +4,10 @@ package proxy
 import (
 	"context"
 
-	"github.com/alexapps/go-micro/client"
-	"github.com/alexapps/go-micro/config/options"
-	"github.com/alexapps/go-micro/network/router"
-	"github.com/alexapps/go-micro/server"
+	"github.com/micro/go-micro/client"
+	"github.com/micro/go-micro/config/options"
+	"github.com/micro/go-micro/network/router"
+	"github.com/micro/go-micro/server"
 )
 
 // Proxy can be used as a proxy server for go-micro services

@@ -10,7 +10,7 @@ import (
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/api/watch"
-	"github.com/alexapps/go-micro/sync/leader"
+	"github.com/micro/go-micro/sync/leader"
 )
 
 type consulLeader struct {

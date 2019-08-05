@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/alexapps/go-micro/broker"
+	"github.com/micro/go-micro/broker"
 )
 
 // Handle registers the handler for the given pattern.

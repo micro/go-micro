@@ -6,10 +6,10 @@ import (
 	"sync"
 	"syscall"
 
-	"github.com/alexapps/go-micro/client"
-	"github.com/alexapps/go-micro/config/cmd"
-	"github.com/alexapps/go-micro/metadata"
-	"github.com/alexapps/go-micro/server"
+	"github.com/micro/go-micro/client"
+	"github.com/micro/go-micro/config/cmd"
+	"github.com/micro/go-micro/metadata"
+	"github.com/micro/go-micro/server"
 )
 
 type service struct {

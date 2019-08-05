@@ -3,7 +3,7 @@ package file
 import (
 	"context"
 
-	"github.com/alexapps/go-micro/config/source"
+	"github.com/micro/go-micro/config/source"
 )
 
 type filePathKey struct{}

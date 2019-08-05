@@ -17,13 +17,13 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/alexapps/go-micro/codec/json"
-	merr "github.com/alexapps/go-micro/errors"
-	"github.com/alexapps/go-micro/registry"
-	"github.com/alexapps/go-micro/registry/cache"
-	maddr "github.com/alexapps/go-micro/util/addr"
-	mnet "github.com/alexapps/go-micro/util/net"
-	mls "github.com/alexapps/go-micro/util/tls"
+	"github.com/micro/go-micro/codec/json"
+	merr "github.com/micro/go-micro/errors"
+	"github.com/micro/go-micro/registry"
+	"github.com/micro/go-micro/registry/cache"
+	maddr "github.com/micro/go-micro/util/addr"
+	mnet "github.com/micro/go-micro/util/net"
+	mls "github.com/micro/go-micro/util/tls"
 	"golang.org/x/net/http2"
 )
 

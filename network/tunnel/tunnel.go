@@ -2,8 +2,8 @@
 package tunnel
 
 import (
-	"github.com/alexapps/go-micro/network/link"
-	"github.com/alexapps/go-micro/transport"
+	"github.com/micro/go-micro/network/link"
+	"github.com/micro/go-micro/transport"
 )
 
 // Tunnel creates a gre network tunnel on top of a link.

@@ -9,15 +9,15 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/alexapps/go-micro/broker"
-	"github.com/alexapps/go-micro/client/pool"
-	"github.com/alexapps/go-micro/client/selector"
-	"github.com/alexapps/go-micro/codec"
-	"github.com/alexapps/go-micro/errors"
-	"github.com/alexapps/go-micro/metadata"
-	"github.com/alexapps/go-micro/registry"
-	"github.com/alexapps/go-micro/transport"
-	"github.com/alexapps/go-micro/util/buf"
+	"github.com/micro/go-micro/broker"
+	"github.com/micro/go-micro/client/pool"
+	"github.com/micro/go-micro/client/selector"
+	"github.com/micro/go-micro/codec"
+	"github.com/micro/go-micro/errors"
+	"github.com/micro/go-micro/metadata"
+	"github.com/micro/go-micro/registry"
+	"github.com/micro/go-micro/transport"
+	"github.com/micro/go-micro/util/buf"
 )
 
 type rpcClient struct {

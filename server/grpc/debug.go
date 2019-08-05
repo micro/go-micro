@@ -1,8 +1,8 @@
 package grpc
 
 import (
-	"github.com/alexapps/go-micro/server"
-	"github.com/alexapps/go-micro/server/debug"
+	"github.com/micro/go-micro/server"
+	"github.com/micro/go-micro/server/debug"
 )
 
 func registerDebugHandler(s server.Server) {

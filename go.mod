@@ -2,6 +2,8 @@ module github.com/alexapps/go-micro
 
 go 1.12
 
+replace github.com/micro/go-micro => github.com/alexapps/go-micro v1.8.4
+
 require (
 	cloud.google.com/go v0.41.0 // indirect
 	github.com/BurntSushi/toml v0.3.1

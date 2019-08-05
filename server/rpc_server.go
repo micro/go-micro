@@ -11,14 +11,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/alexapps/go-micro/broker"
-	"github.com/alexapps/go-micro/codec"
-	"github.com/alexapps/go-micro/metadata"
-	"github.com/alexapps/go-micro/registry"
-	"github.com/alexapps/go-micro/transport"
-	"github.com/alexapps/go-micro/util/addr"
-	log "github.com/alexapps/go-micro/util/log"
-	mnet "github.com/alexapps/go-micro/util/net"
+	"github.com/micro/go-micro/broker"
+	"github.com/micro/go-micro/codec"
+	"github.com/micro/go-micro/metadata"
+	"github.com/micro/go-micro/registry"
+	"github.com/micro/go-micro/transport"
+	"github.com/micro/go-micro/util/addr"
+	log "github.com/micro/go-micro/util/log"
+	mnet "github.com/micro/go-micro/util/net"
 )
 
 type rpcServer struct {

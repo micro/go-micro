@@ -4,8 +4,8 @@ import (
 	"context"
 	"crypto/tls"
 
-	"github.com/alexapps/go-micro/codec"
-	"github.com/alexapps/go-micro/registry"
+	"github.com/micro/go-micro/codec"
+	"github.com/micro/go-micro/registry"
 )
 
 type Options struct {
@@ -45,7 +45,7 @@ type PublishOption func(*PublishOptions)
 type SubscribeOption func(*SubscribeOptions)
 
 var (
-	registryKey = "github.com/alexapps/go-micro/registry"
+	registryKey = "github.com/micro/go-micro/registry"
 )
 
 func NewSubscribeOptions(opts ...SubscribeOption) SubscribeOptions {

@@ -4,12 +4,12 @@ import (
 	"context"
 	"crypto/tls"
 
-	"github.com/alexapps/go-micro/broker"
-	"github.com/alexapps/go-micro/codec"
-	"github.com/alexapps/go-micro/registry"
-	"github.com/alexapps/go-micro/server"
-	"github.com/alexapps/go-micro/server/debug"
-	"github.com/alexapps/go-micro/transport"
+	"github.com/micro/go-micro/broker"
+	"github.com/micro/go-micro/codec"
+	"github.com/micro/go-micro/registry"
+	"github.com/micro/go-micro/server"
+	"github.com/micro/go-micro/server/debug"
+	"github.com/micro/go-micro/transport"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/encoding"
 )

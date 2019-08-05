@@ -2,7 +2,7 @@
 package mucp
 
 import (
-	"github.com/alexapps/go-micro/client"
+	"github.com/micro/go-micro/client"
 )
 
 // NewClient returns a new micro client interface

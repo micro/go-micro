@@ -12,7 +12,7 @@ import (
 	"time"
 
 	consul "github.com/hashicorp/consul/api"
-	"github.com/alexapps/go-micro/registry"
+	"github.com/micro/go-micro/registry"
 	hash "github.com/mitchellh/hashstructure"
 )
 

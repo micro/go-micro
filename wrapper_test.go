@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/alexapps/go-micro/metadata"
+	"github.com/micro/go-micro/metadata"
 )
 
 func TestWrapper(t *testing.T) {

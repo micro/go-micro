@@ -7,8 +7,8 @@ import (
 	"reflect"
 	"sync"
 
-	"github.com/alexapps/go-micro/client"
-	"github.com/alexapps/go-micro/errors"
+	"github.com/micro/go-micro/client"
+	"github.com/micro/go-micro/errors"
 )
 
 var (

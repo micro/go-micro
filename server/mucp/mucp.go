@@ -2,7 +2,7 @@
 package mucp
 
 import (
-	"github.com/alexapps/go-micro/server"
+	"github.com/micro/go-micro/server"
 )
 
 // NewServer returns a micro server interface

@@ -3,7 +3,7 @@ package tunnel
 import (
 	"errors"
 
-	"github.com/alexapps/go-micro/transport"
+	"github.com/micro/go-micro/transport"
 )
 
 // socket is our pseudo socket for transport.Socket

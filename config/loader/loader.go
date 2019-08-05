@@ -4,8 +4,8 @@ package loader
 import (
 	"context"
 
-	"github.com/alexapps/go-micro/config/reader"
-	"github.com/alexapps/go-micro/config/source"
+	"github.com/micro/go-micro/config/reader"
+	"github.com/micro/go-micro/config/source"
 )
 
 // Loader manages loading sources

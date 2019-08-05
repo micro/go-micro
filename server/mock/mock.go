@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"github.com/google/uuid"
-	"github.com/alexapps/go-micro/server"
+	"github.com/micro/go-micro/server"
 )
 
 type MockServer struct {

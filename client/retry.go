@@ -3,7 +3,7 @@ package client
 import (
 	"context"
 
-	"github.com/alexapps/go-micro/errors"
+	"github.com/micro/go-micro/errors"
 )
 
 // note that returning either false or a non-nil error will result in the call not being retried

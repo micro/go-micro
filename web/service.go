@@ -15,13 +15,13 @@ import (
 	"time"
 
 	"github.com/micro/cli"
-	"github.com/alexapps/go-micro"
-	"github.com/alexapps/go-micro/registry"
-	maddr "github.com/alexapps/go-micro/util/addr"
-	mhttp "github.com/alexapps/go-micro/util/http"
-	"github.com/alexapps/go-micro/util/log"
-	mnet "github.com/alexapps/go-micro/util/net"
-	mls "github.com/alexapps/go-micro/util/tls"
+	"github.com/micro/go-micro"
+	"github.com/micro/go-micro/registry"
+	maddr "github.com/micro/go-micro/util/addr"
+	mhttp "github.com/micro/go-micro/util/http"
+	"github.com/micro/go-micro/util/log"
+	mnet "github.com/micro/go-micro/util/net"
+	mls "github.com/micro/go-micro/util/tls"
 )
 
 type service struct {

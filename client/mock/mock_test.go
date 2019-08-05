@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/alexapps/go-micro/errors"
+	"github.com/micro/go-micro/errors"
 )
 
 func TestClient(t *testing.T) {

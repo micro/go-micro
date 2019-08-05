@@ -4,7 +4,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/alexapps/go-micro/codec"
+	"github.com/micro/go-micro/codec"
 )
 
 // Implements the Streamer interface

@@ -3,8 +3,8 @@ package grpc
 import (
 	"strings"
 
-	"github.com/alexapps/go-micro/codec"
-	"github.com/alexapps/go-micro/codec/bytes"
+	"github.com/micro/go-micro/codec"
+	"github.com/micro/go-micro/codec/bytes"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/encoding"
 )

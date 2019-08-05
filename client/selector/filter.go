@@ -1,7 +1,7 @@
 package selector
 
 import (
-	"github.com/alexapps/go-micro/registry"
+	"github.com/micro/go-micro/registry"
 )
 
 // FilterEndpoint is an endpoint based Select Filter which will
