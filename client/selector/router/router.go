@@ -9,9 +9,9 @@ import (
 
 	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/client/selector"
-	"github.com/micro/go-micro/network/router"
-	pb "github.com/micro/go-micro/network/router/proto"
 	"github.com/micro/go-micro/registry"
+	"github.com/micro/go-micro/router"
+	pb "github.com/micro/go-micro/router/proto"
 )
 
 type routerSelector struct {

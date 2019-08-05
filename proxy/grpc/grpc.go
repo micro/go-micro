@@ -10,7 +10,7 @@ import (
 	"github.com/micro/go-micro/client/grpc"
 	"github.com/micro/go-micro/codec"
 	"github.com/micro/go-micro/config/options"
-	"github.com/micro/go-micro/network/proxy"
+	"github.com/micro/go-micro/proxy"
 	"github.com/micro/go-micro/server"
 )
 

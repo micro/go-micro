@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/micro/go-micro/errors"
-	"github.com/micro/go-micro/network/router"
-	pb "github.com/micro/go-micro/network/router/proto"
+	"github.com/micro/go-micro/router"
+	pb "github.com/micro/go-micro/router/proto"
 )
 
 type Table struct {

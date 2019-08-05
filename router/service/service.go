@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/micro/go-micro/client"
-	"github.com/micro/go-micro/network/router"
-	pb "github.com/micro/go-micro/network/router/proto"
+	"github.com/micro/go-micro/router"
+	pb "github.com/micro/go-micro/router/proto"
 )
 
 type svc struct {
