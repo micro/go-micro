@@ -50,13 +50,11 @@ func newConsulTestRegistry(r *mockRegistry) (*consulRegistry, func()) {
 	}
 	cfg := consul.DefaultConfig()
 	cfg.Address = l.Addr().String()
-	cl, _ := consul.NewClient(cfg)
 
 	go newMockServer(r, l)
 
 	return &consulRegistry{
-			Address:     cfg.Address,
-			Client:      cl,
+			Address:     []string{cfg.Address},
 			opts:        registry.Options{},
 			register:    make(map[string]uint64),
 			lastChecked: make(map[string]time.Time),
