@@ -6,7 +6,7 @@ import (
 	"io/ioutil"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/micro/go-micro/codec"
+	"github.com/alexapps/go-micro/codec"
 )
 
 type Codec struct {

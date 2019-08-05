@@ -5,11 +5,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/micro/go-micro/broker"
-	"github.com/micro/go-micro/codec"
-	"github.com/micro/go-micro/registry"
-	"github.com/micro/go-micro/server/debug"
-	"github.com/micro/go-micro/transport"
+	"github.com/alexapps/go-micro/broker"
+	"github.com/alexapps/go-micro/codec"
+	"github.com/alexapps/go-micro/registry"
+	"github.com/alexapps/go-micro/server/debug"
+	"github.com/alexapps/go-micro/transport"
 )
 
 type Options struct {

@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/micro/go-micro/config/options"
-	"github.com/micro/go-micro/transport"
+	"github.com/alexapps/go-micro/config/options"
+	"github.com/alexapps/go-micro/transport"
 )
 
 type link struct {

@@ -5,7 +5,7 @@ import (
 	"runtime"
 	"time"
 
-	proto "github.com/micro/go-micro/server/debug/proto"
+	proto "github.com/alexapps/go-micro/server/debug/proto"
 )
 
 // The debug handler represents an internal server handler

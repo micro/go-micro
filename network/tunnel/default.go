@@ -7,8 +7,8 @@ import (
 	"sync"
 
 	"github.com/google/uuid"
-	"github.com/micro/go-micro/network/link"
-	"github.com/micro/go-micro/transport"
+	"github.com/alexapps/go-micro/network/link"
+	"github.com/alexapps/go-micro/transport"
 )
 
 // tun represents a network tunnel

@@ -2,7 +2,7 @@
 package mdns
 
 import (
-	"github.com/micro/go-micro/registry"
+	"github.com/alexapps/go-micro/registry"
 )
 
 // NewRegistry returns a new mdns registry

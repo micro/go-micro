@@ -5,8 +5,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/micro/go-micro/registry"
-	"github.com/micro/go-micro/server"
+	"github.com/alexapps/go-micro/registry"
+	"github.com/alexapps/go-micro/server"
 )
 
 // Endpoint is a mapping between an RPC method and HTTP endpoint

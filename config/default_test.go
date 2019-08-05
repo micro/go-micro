@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/micro/go-micro/config/source/env"
-	"github.com/micro/go-micro/config/source/file"
+	"github.com/alexapps/go-micro/config/source/env"
+	"github.com/alexapps/go-micro/config/source/file"
 )
 
 func createFileForIssue18(t *testing.T, content string) *os.File {

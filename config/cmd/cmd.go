@@ -10,38 +10,38 @@ import (
 	"time"
 
 	"github.com/micro/cli"
-	"github.com/micro/go-micro/client"
-	cgrpc "github.com/micro/go-micro/client/grpc"
-	cmucp "github.com/micro/go-micro/client/mucp"
-	"github.com/micro/go-micro/server"
-	sgrpc "github.com/micro/go-micro/server/grpc"
-	smucp "github.com/micro/go-micro/server/mucp"
-	"github.com/micro/go-micro/util/log"
+	"github.com/alexapps/go-micro/client"
+	cgrpc "github.com/alexapps/go-micro/client/grpc"
+	cmucp "github.com/alexapps/go-micro/client/mucp"
+	"github.com/alexapps/go-micro/server"
+	sgrpc "github.com/alexapps/go-micro/server/grpc"
+	smucp "github.com/alexapps/go-micro/server/mucp"
+	"github.com/alexapps/go-micro/util/log"
 
 	// brokers
-	"github.com/micro/go-micro/broker"
-	"github.com/micro/go-micro/broker/http"
-	"github.com/micro/go-micro/broker/memory"
-	"github.com/micro/go-micro/broker/nats"
+	"github.com/alexapps/go-micro/broker"
+	"github.com/alexapps/go-micro/broker/http"
+	"github.com/alexapps/go-micro/broker/memory"
+	"github.com/alexapps/go-micro/broker/nats"
 
 	// registries
-	"github.com/micro/go-micro/registry"
-	"github.com/micro/go-micro/registry/consul"
-	"github.com/micro/go-micro/registry/gossip"
-	"github.com/micro/go-micro/registry/mdns"
-	rmem "github.com/micro/go-micro/registry/memory"
+	"github.com/alexapps/go-micro/registry"
+	"github.com/alexapps/go-micro/registry/consul"
+	"github.com/alexapps/go-micro/registry/gossip"
+	"github.com/alexapps/go-micro/registry/mdns"
+	rmem "github.com/alexapps/go-micro/registry/memory"
 
 	// selectors
-	"github.com/micro/go-micro/client/selector"
-	"github.com/micro/go-micro/client/selector/dns"
-	"github.com/micro/go-micro/client/selector/router"
-	"github.com/micro/go-micro/client/selector/static"
+	"github.com/alexapps/go-micro/client/selector"
+	"github.com/alexapps/go-micro/client/selector/dns"
+	"github.com/alexapps/go-micro/client/selector/router"
+	"github.com/alexapps/go-micro/client/selector/static"
 
 	// transports
-	"github.com/micro/go-micro/transport"
-	tgrpc "github.com/micro/go-micro/transport/grpc"
-	thttp "github.com/micro/go-micro/transport/http"
-	tmem "github.com/micro/go-micro/transport/memory"
+	"github.com/alexapps/go-micro/transport"
+	tgrpc "github.com/alexapps/go-micro/transport/grpc"
+	thttp "github.com/alexapps/go-micro/transport/http"
+	tmem "github.com/alexapps/go-micro/transport/memory"
 )
 
 type Cmd interface {

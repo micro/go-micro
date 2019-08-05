@@ -5,8 +5,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/micro/go-micro/network/router"
-	pb "github.com/micro/go-micro/network/router/proto"
+	"github.com/alexapps/go-micro/network/router"
+	pb "github.com/alexapps/go-micro/network/router/proto"
 )
 
 type watcher struct {

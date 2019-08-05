@@ -2,8 +2,8 @@
 package registry
 
 import (
-	"github.com/micro/go-micro/network/resolver"
-	"github.com/micro/go-micro/registry"
+	"github.com/alexapps/go-micro/network/resolver"
+	"github.com/alexapps/go-micro/registry"
 )
 
 type Resolver struct {

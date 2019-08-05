@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/micro/go-micro/server"
+	"github.com/alexapps/go-micro/server"
 )
 
 type function struct {

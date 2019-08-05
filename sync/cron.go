@@ -5,10 +5,10 @@ import (
 	"math"
 	"time"
 
-	"github.com/micro/go-micro/sync/leader/consul"
-	"github.com/micro/go-micro/sync/task"
-	"github.com/micro/go-micro/sync/task/local"
-	"github.com/micro/go-micro/util/log"
+	"github.com/alexapps/go-micro/sync/leader/consul"
+	"github.com/alexapps/go-micro/sync/task"
+	"github.com/alexapps/go-micro/sync/task/local"
+	"github.com/alexapps/go-micro/util/log"
 )
 
 type syncCron struct {

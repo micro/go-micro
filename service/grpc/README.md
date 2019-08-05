@@ -4,7 +4,7 @@ A simplified experience for building gRPC services.
 
 ## Overview
 
-The **gRPC service** makes use of [go-micro](https://github.com/micro/go-micro) plugins to create a simpler framework for gRPC development. 
+The **gRPC service** makes use of [go-micro](https://github.com/alexapps/go-micro) plugins to create a simpler framework for gRPC development. 
 It interoperates with standard gRPC services seamlessly, including the [grpc-gateway](https://github.com/grpc-ecosystem/grpc-gateway). 
 The grpc service uses the go-micro broker, client and server plugins which make use of 
 [github.com/grpc/grpc-go](https://github.com/grpc/grpc-go) internally. 

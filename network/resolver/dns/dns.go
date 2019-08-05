@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/micro/go-micro/network/resolver"
+	"github.com/alexapps/go-micro/network/resolver"
 )
 
 type Resolver struct{}

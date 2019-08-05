@@ -7,11 +7,11 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/micro/go-micro/broker"
-	"github.com/micro/go-micro/codec"
-	"github.com/micro/go-micro/metadata"
-	"github.com/micro/go-micro/registry"
-	"github.com/micro/go-micro/util/buf"
+	"github.com/alexapps/go-micro/broker"
+	"github.com/alexapps/go-micro/codec"
+	"github.com/alexapps/go-micro/metadata"
+	"github.com/alexapps/go-micro/registry"
+	"github.com/alexapps/go-micro/util/buf"
 )
 
 const (

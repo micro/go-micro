@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/api"
-	lock "github.com/micro/go-micro/sync/lock"
+	lock "github.com/alexapps/go-micro/sync/lock"
 )
 
 type consulLock struct {

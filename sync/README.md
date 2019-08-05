@@ -20,7 +20,7 @@ an external database or eventing system. Go Sync provides a framework for synchr
 The Lock interface provides distributed locking. Multiple instances attempting to lock the same id will block until available.
 
 ```go
-import "github.com/micro/go-micro/sync/lock/consul"
+import "github.com/alexapps/go-micro/sync/lock/consul"
 
 lock := consul.NewLock()
 
@@ -39,8 +39,8 @@ Leader provides leadership election. Useful where one node needs to coordinate s
 
 ```go
 import (
-	"github.com/micro/go-micro/sync/leader"
-	"github.com/micro/go-micro/sync/leader/consul"
+	"github.com/alexapps/go-micro/sync/leader"
+	"github.com/alexapps/go-micro/sync/leader/consul"
 )
 
 l := consul.NewLeader(
@@ -75,8 +75,8 @@ Task provides distributed job execution. It's a simple way to distribute work ac
 
 ```go
 import (
-	"github.com/micro/go-micro/sync/task"
-	"github.com/micro/go-micro/sync/task/local"
+	"github.com/alexapps/go-micro/sync/task"
+	"github.com/alexapps/go-micro/sync/task/local"
 )
 
 t := local.NewTask(
@@ -103,7 +103,7 @@ Synchronized Time allows you to decide how time is defined for your applications
 
 ```go
 import (
-	"github.com/micro/go-micro/sync/time/ntp"
+	"github.com/alexapps/go-micro/sync/time/ntp"
 )
 
 

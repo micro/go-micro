@@ -11,9 +11,9 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/micro/go-micro/api/handler"
-	"github.com/micro/go-micro/broker"
-	"github.com/micro/go-micro/util/log"
+	"github.com/alexapps/go-micro/api/handler"
+	"github.com/alexapps/go-micro/broker"
+	"github.com/alexapps/go-micro/util/log"
 )
 
 const (

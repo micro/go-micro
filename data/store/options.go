@@ -1,7 +1,7 @@
 package store
 
 import (
-	"github.com/micro/go-micro/config/options"
+	"github.com/alexapps/go-micro/config/options"
 )
 
 // Set the nodes used to back the store

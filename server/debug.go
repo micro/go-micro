@@ -1,7 +1,7 @@
 package server
 
 import (
-	"github.com/micro/go-micro/server/debug"
+	"github.com/alexapps/go-micro/server/debug"
 )
 
 func registerDebugHandler(s Server) {

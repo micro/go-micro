@@ -4,8 +4,8 @@ package link
 import (
 	"errors"
 
-	"github.com/micro/go-micro/config/options"
-	"github.com/micro/go-micro/transport"
+	"github.com/alexapps/go-micro/config/options"
+	"github.com/alexapps/go-micro/transport"
 )
 
 // Link is a layer on top of a transport socket with the

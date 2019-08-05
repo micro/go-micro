@@ -7,11 +7,11 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/micro/go-micro/client"
-	"github.com/micro/go-micro/client/selector"
-	"github.com/micro/go-micro/network/router"
-	pb "github.com/micro/go-micro/network/router/proto"
-	"github.com/micro/go-micro/registry"
+	"github.com/alexapps/go-micro/client"
+	"github.com/alexapps/go-micro/client/selector"
+	"github.com/alexapps/go-micro/network/router"
+	pb "github.com/alexapps/go-micro/network/router/proto"
+	"github.com/alexapps/go-micro/registry"
 )
 
 type routerSelector struct {

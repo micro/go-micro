@@ -6,12 +6,12 @@ import (
 	"io"
 	"strings"
 
-	"github.com/micro/go-micro/client"
-	"github.com/micro/go-micro/client/grpc"
-	"github.com/micro/go-micro/codec"
-	"github.com/micro/go-micro/config/options"
-	"github.com/micro/go-micro/network/proxy"
-	"github.com/micro/go-micro/server"
+	"github.com/alexapps/go-micro/client"
+	"github.com/alexapps/go-micro/client/grpc"
+	"github.com/alexapps/go-micro/codec"
+	"github.com/alexapps/go-micro/config/options"
+	"github.com/alexapps/go-micro/network/proxy"
+	"github.com/alexapps/go-micro/server"
 )
 
 // Proxy will transparently proxy requests to the backend.

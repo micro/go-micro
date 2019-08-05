@@ -5,10 +5,10 @@ import (
 	"net"
 	"testing"
 
-	"github.com/micro/go-micro/client"
-	"github.com/micro/go-micro/client/selector"
-	"github.com/micro/go-micro/registry"
-	"github.com/micro/go-micro/registry/memory"
+	"github.com/alexapps/go-micro/client"
+	"github.com/alexapps/go-micro/client/selector"
+	"github.com/alexapps/go-micro/registry"
+	"github.com/alexapps/go-micro/registry/memory"
 	pgrpc "google.golang.org/grpc"
 	pb "google.golang.org/grpc/examples/helloworld/helloworld"
 )

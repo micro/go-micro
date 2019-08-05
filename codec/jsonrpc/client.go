@@ -6,7 +6,7 @@ import (
 	"io"
 	"sync"
 
-	"github.com/micro/go-micro/codec"
+	"github.com/alexapps/go-micro/codec"
 )
 
 type clientCodec struct {

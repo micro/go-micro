@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/memberlist"
-	"github.com/micro/go-micro/registry"
+	"github.com/alexapps/go-micro/registry"
 )
 
 type secretKey struct{}

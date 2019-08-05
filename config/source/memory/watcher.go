@@ -1,7 +1,7 @@
 package memory
 
 import (
-	"github.com/micro/go-micro/config/source"
+	"github.com/alexapps/go-micro/config/source"
 )
 
 type watcher struct {

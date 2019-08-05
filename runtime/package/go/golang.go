@@ -6,7 +6,7 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"github.com/micro/go-micro/runtime/package"
+	"github.com/alexapps/go-micro/runtime/package"
 )
 
 type Packager struct {

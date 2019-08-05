@@ -1,10 +1,10 @@
 package router
 
 import (
-	"github.com/micro/go-micro/api/resolver"
-	"github.com/micro/go-micro/api/resolver/micro"
-	"github.com/micro/go-micro/config/cmd"
-	"github.com/micro/go-micro/registry"
+	"github.com/alexapps/go-micro/api/resolver"
+	"github.com/alexapps/go-micro/api/resolver/micro"
+	"github.com/alexapps/go-micro/config/cmd"
+	"github.com/alexapps/go-micro/registry"
 )
 
 type Options struct {
