@@ -44,7 +44,7 @@ func (r *Router) Lookup(ctx context.Context, req *pb.LookupRequest, resp *pb.Loo
 	return nil
 }
 
-func (r *Router) Advertise(ctx context.Context, req *pb.AdvertiseRequest, stream pb.Router_AdvertiseStream) error {
+func (r *Router) Advertise(ctx context.Context, req *pb.Request, stream pb.Router_AdvertiseStream) error {
 	advertChan, err := r.Router.Advertise()
 	if err != nil {
 		return errors.InternalServerError("go.micro.router", "failed to get adverts: %v", err)

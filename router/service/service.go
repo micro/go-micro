@@ -145,7 +145,7 @@ func (s *svc) Advertise() (<-chan *router.Advert, error) {
 
 	switch status.Code {
 	case router.Running, router.Advertising:
-		stream, err := s.router.Advertise(context.Background(), &pb.AdvertiseRequest{}, s.callOpts...)
+		stream, err := s.router.Advertise(context.Background(), &pb.Request{}, s.callOpts...)
 		if err != nil {
 			return nil, fmt.Errorf("failed getting advert stream: %s", err)
 		}
