@@ -1,4 +1,4 @@
-module github.com/micro/go-micro
+module github.com/alexapps/go-micro
 
 go 1.12
 
