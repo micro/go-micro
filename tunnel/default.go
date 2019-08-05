@@ -38,7 +38,7 @@ func (t *tun) Address() string {
 }
 
 func (t *tun) Transport() transport.Transport {
-	return t.options.Transport
+	return nil
 }
 
 func (t *tun) Options() transport.Options {
