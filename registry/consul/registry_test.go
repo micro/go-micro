@@ -48,20 +48,26 @@ func newConsulTestRegistry(r *mockRegistry) (*consulRegistry, func()) {
 		// blurgh?!!
 		panic(err.Error())
 	}
+	cfg := consul.DefaultConfig()
+	cfg.Address = l.Addr().String()
 
 	go newMockServer(r, l)
 
-	return &consulRegistry{
-			Address:     []string{l.Addr().String()},
-			opts:        registry.Options{Addrs: []string{l.Addr().String()}},
-			register:    make(map[string]uint64),
-			lastChecked: make(map[string]time.Time),
-			queryOptions: &consul.QueryOptions{
-				AllowStale: true,
-			},
-		}, func() {
-			l.Close()
-		}
+	var cr = &consulRegistry{
+		consulConfig: cfg,
+		Address:      []string{cfg.Address},
+		opts:         registry.Options{},
+		register:     make(map[string]uint64),
+		lastChecked:  make(map[string]time.Time),
+		queryOptions: &consul.QueryOptions{
+			AllowStale: true,
+		},
+	}
+	cr.Client()
+
+	return cr, func() {
+		l.Close()
+	}
 }
 
 func newServiceList(svc []*consul.ServiceEntry) []byte {
