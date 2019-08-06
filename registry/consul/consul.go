@@ -17,9 +17,11 @@ import (
 )
 
 type consulRegistry struct {
-	Address string
-	Client  *consul.Client
+	Address []string
 	opts    registry.Options
+
+	client *consul.Client
+	config *consul.Config
 
 	// connect enabled
 	connect bool
@@ -123,12 +125,12 @@ func configure(c *consulRegistry, opts ...registry.Option) {
 		config.HttpClient.Timeout = c.opts.Timeout
 	}
 
-	// create the client
-	client, _ := consul.NewClient(config)
+	// set address
+	c.Address = c.opts.Addrs
 
-	// set address/client
-	c.Address = config.Address
-	c.Client = client
+	c.config = config
+
+	c.Client()
 }
 
 func (c *consulRegistry) Init(opts ...registry.Option) error {
@@ -148,7 +150,7 @@ func (c *consulRegistry) Deregister(s *registry.Service) error {
 	c.Unlock()
 
 	node := s.Nodes[0]
-	return c.Client.Agent().ServiceDeregister(node.Id)
+	return c.Client().Agent().ServiceDeregister(node.Id)
 }
 
 func (c *consulRegistry) Register(s *registry.Service, opts ...registry.RegisterOption) error {
@@ -193,7 +195,7 @@ func (c *consulRegistry) Register(s *registry.Service, opts ...registry.Register
 			if time.Since(lastChecked) <= getDeregisterTTL(regInterval) {
 				return nil
 			}
-			services, _, err := c.Client.Health().Checks(s.Name, c.queryOptions)
+			services, _, err := c.Client().Health().Checks(s.Name, c.queryOptions)
 			if err == nil {
 				for _, v := range services {
 					if v.ServiceID == node.Id {
@@ -204,7 +206,7 @@ func (c *consulRegistry) Register(s *registry.Service, opts ...registry.Register
 		} else {
 			// if the err is nil we're all good, bail out
 			// if not, we don't know what the state is, so full re-register
-			if err := c.Client.Agent().PassTTL("service:"+node.Id, ""); err == nil {
+			if err := c.Client().Agent().PassTTL("service:"+node.Id, ""); err == nil {
 				return nil
 			}
 		}
@@ -256,7 +258,7 @@ func (c *consulRegistry) Register(s *registry.Service, opts ...registry.Register
 		}
 	}
 
-	if err := c.Client.Agent().ServiceRegister(asr); err != nil {
+	if err := c.Client().Agent().ServiceRegister(asr); err != nil {
 		return err
 	}
 
@@ -272,7 +274,7 @@ func (c *consulRegistry) Register(s *registry.Service, opts ...registry.Register
 	}
 
 	// pass the healthcheck
-	return c.Client.Agent().PassTTL("service:"+node.Id, "")
+	return c.Client().Agent().PassTTL("service:"+node.Id, "")
 }
 
 func (c *consulRegistry) GetService(name string) ([]*registry.Service, error) {
@@ -281,9 +283,9 @@ func (c *consulRegistry) GetService(name string) ([]*registry.Service, error) {
 
 	// if we're connect enabled only get connect services
 	if c.connect {
-		rsp, _, err = c.Client.Health().Connect(name, "", false, c.queryOptions)
+		rsp, _, err = c.Client().Health().Connect(name, "", false, c.queryOptions)
 	} else {
-		rsp, _, err = c.Client.Health().Service(name, "", false, c.queryOptions)
+		rsp, _, err = c.Client().Health().Service(name, "", false, c.queryOptions)
 	}
 	if err != nil {
 		return nil, err
@@ -351,7 +353,7 @@ func (c *consulRegistry) GetService(name string) ([]*registry.Service, error) {
 }
 
 func (c *consulRegistry) ListServices() ([]*registry.Service, error) {
-	rsp, _, err := c.Client.Catalog().Services(c.queryOptions)
+	rsp, _, err := c.Client().Catalog().Services(c.queryOptions)
 	if err != nil {
 		return nil, err
 	}
@@ -375,6 +377,28 @@ func (c *consulRegistry) String() string {
 
 func (c *consulRegistry) Options() registry.Options {
 	return c.opts
+}
+
+func (c *consulRegistry) Client() *consul.Client {
+	if c.client != nil {
+		return c.client
+	}
+
+	if len(c.Address) == 0 {
+		tmp, _ := consul.NewClient(c.config)
+		return tmp
+	}
+
+	c.config.Address = c.Address[0]
+	tmpClint, _ := consul.NewClient(c.config)
+	_, err := tmpClint.Agent().Host()
+	if err != nil {
+		c.Address = c.Address[1:]
+		return c.Client()
+	}
+
+	c.client = tmpClint
+	return c.client
 }
 
 func NewRegistry(opts ...registry.Option) registry.Registry {
