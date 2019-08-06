@@ -14,6 +14,12 @@ func HostPort(addr string, port interface{}) string {
 	if strings.Count(addr, ":") > 0 {
 		host = fmt.Sprintf("[%s]", addr)
 	}
+	// TODO check for NATS case
+	if v, ok := port.(string); ok {
+		if v == "" {
+			return fmt.Sprintf("%s", host)
+		}
+	}
 	return fmt.Sprintf("%s:%v", host, port)
 }
 
