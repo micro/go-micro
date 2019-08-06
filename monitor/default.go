@@ -128,7 +128,7 @@ func (m *monitor) Watch(service string) error {
 
 func (m *monitor) Stop() error {
 	m.Lock()
-	defer m.RUnlock()
+	defer m.Unlock()
 
 	select {
 	case <-m.exit:
@@ -203,6 +203,7 @@ func newMonitor(opts ...Option) Monitor {
 
 	m := &monitor{
 		options:  options,
+		exit:     make(chan bool),
 		client:   options.Client,
 		registry: cache.New(options.Registry),
 		services: make(map[string]*Status),
