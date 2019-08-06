@@ -8,6 +8,10 @@ func TestMonitor(t *testing.T) {
 	// create new monitor
 	m := NewMonitor()
 
+	if err := m.Run(); err != nil {
+		t.Fatalf("failed to stop monitor: %v", err)
+	}
+
 	services := []string{"foo", "bar", "baz"}
 
 	for _, service := range services {
@@ -27,5 +31,7 @@ func TestMonitor(t *testing.T) {
 	}
 
 	// stop monitor
-	m.Stop()
+	if err := m.Stop(); err != nil {
+		t.Fatalf("failed to stop monitor: %v", err)
+	}
 }

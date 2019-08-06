@@ -15,10 +15,14 @@ type StatusCode int
 
 // Monitor monitors a service and reaps dead instances
 type Monitor interface {
+	// Reap a service and stop monitoring
+	Reap(service string) error
 	// Status of the service
 	Status(service string) (Status, error)
 	// Watch starts watching the service
 	Watch(service string) error
+	// Run the monitor to watch all services
+	Run() error
 	// Stop monitoring
 	Stop() error
 }
