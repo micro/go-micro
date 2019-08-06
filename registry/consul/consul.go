@@ -97,15 +97,25 @@ func configure(c *consulRegistry, opts ...registry.Option) {
 	}
 
 	// check if there are any addrs
-	if len(c.opts.Addrs) > 0 {
-		addr, port, err := net.SplitHostPort(c.opts.Addrs[0])
+	var addrs []string
+
+	// iterate the options addresses
+	for _, address := range c.opts.Addrs {
+		// check we have a port
+		addr, port, err := net.SplitHostPort(address)
 		if ae, ok := err.(*net.AddrError); ok && ae.Err == "missing port in address" {
 			port = "8500"
-			addr = c.opts.Addrs[0]
-			config.Address = fmt.Sprintf("%s:%s", addr, port)
+			addr = address
+			addrs = append(addrs, fmt.Sprintf("%s:%s", addr, port))
 		} else if err == nil {
-			config.Address = fmt.Sprintf("%s:%s", addr, port)
+			addrs = append(addrs, fmt.Sprintf("%s:%s", addr, port))
 		}
+	}
+
+	// set the addrs
+	if len(addrs) > 0 {
+		c.Address = addrs
+		config.Address = c.Address[0]
 	}
 
 	if config.HttpClient == nil {
@@ -114,7 +124,6 @@ func configure(c *consulRegistry, opts ...registry.Option) {
 
 	// requires secure connection?
 	if c.opts.Secure || c.opts.TLSConfig != nil {
-
 		config.Scheme = "https"
 		// We're going to support InsecureSkipVerify
 		config.HttpClient.Transport = newTransport(c.opts.TLSConfig)
@@ -125,11 +134,13 @@ func configure(c *consulRegistry, opts ...registry.Option) {
 		config.HttpClient.Timeout = c.opts.Timeout
 	}
 
-	// set address
-	c.Address = c.opts.Addrs
-
+	// set the config
 	c.config = config
 
+	// remove client
+	c.client = nil
+
+	// setup the client
 	c.Client()
 }
 
@@ -384,20 +395,28 @@ func (c *consulRegistry) Client() *consul.Client {
 		return c.client
 	}
 
-	if len(c.Address) == 0 {
-		tmp, _ := consul.NewClient(c.config)
-		return tmp
+	for _, addr := range c.Address {
+		// set the address
+		c.config.Address = addr
+
+		// create a new client
+		tmpClient, _ := consul.NewClient(c.config)
+
+		// test the client
+		_, err := tmpClient.Agent().Host()
+		if err != nil {
+			continue
+		}
+
+		// set the client
+		c.client = tmpClient
+		return c.client
 	}
 
-	c.config.Address = c.Address[0]
-	tmpClint, _ := consul.NewClient(c.config)
-	_, err := tmpClint.Agent().Host()
-	if err != nil {
-		c.Address = c.Address[1:]
-		return c.Client()
-	}
+	// set the default
+	c.client, _ = consul.NewClient(c.config)
 
-	c.client = tmpClint
+	// return the client
 	return c.client
 }
 
