@@ -719,10 +719,10 @@ func (g *grpcServer) Start() error {
 		return err
 	}
 
-	baddr := strings.Join(config.Broker.Options().Addrs, ",")
+	baddr := config.Broker.Address()
 	bname := config.Broker.String()
 
-	log.Logf("Broker [%s] Listening on %s", bname, baddr)
+	log.Logf("Broker [%s] Connected to %s", bname, baddr)
 
 	// announce self to the world
 	if err := g.Register(); err != nil {
