@@ -20,10 +20,6 @@ func extractValue(v reflect.Type, d int) *registry.Value {
 		v = v.Elem()
 	}
 
-	if len(v.Name()) == 0 {
-		return nil
-	}
-
 	arg := &registry.Value{
 		Name: v.Name(),
 		Type: v.Name(),
