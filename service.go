@@ -8,6 +8,7 @@ import (
 
 	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/config/cmd"
+	"github.com/micro/go-micro/debug/handler"
 	"github.com/micro/go-micro/metadata"
 	"github.com/micro/go-micro/server"
 )
@@ -113,6 +114,14 @@ func (s *service) Stop() error {
 }
 
 func (s *service) Run() error {
+	// register the debug handler
+	s.opts.Server.Handle(
+		s.opts.Server.NewHandler(
+			handler.DefaultHandler,
+			server.InternalHandler(true),
+		),
+	)
+
 	if err := s.Start(); err != nil {
 		return err
 	}

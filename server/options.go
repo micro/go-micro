@@ -8,7 +8,6 @@ import (
 	"github.com/micro/go-micro/broker"
 	"github.com/micro/go-micro/codec"
 	"github.com/micro/go-micro/registry"
-	"github.com/micro/go-micro/server/debug"
 	"github.com/micro/go-micro/transport"
 )
 
@@ -36,9 +35,6 @@ type Options struct {
 	// The router for requests
 	Router Router
 
-	// Debug Handler which can be set by a user
-	DebugHandler debug.Handler
-
 	// Other options for implementations of the interface
 	// can be stored in a context
 	Context context.Context
@@ -64,10 +60,6 @@ func newOptions(opt ...Option) Options {
 
 	if opts.Transport == nil {
 		opts.Transport = transport.DefaultTransport
-	}
-
-	if opts.DebugHandler == nil {
-		opts.DebugHandler = debug.DefaultHandler
 	}
 
 	if opts.RegisterCheck == nil {
@@ -153,13 +145,6 @@ func Registry(r registry.Registry) Option {
 func Transport(t transport.Transport) Option {
 	return func(o *Options) {
 		o.Transport = t
-	}
-}
-
-// DebugHandler for this server
-func DebugHandler(d debug.Handler) Option {
-	return func(o *Options) {
-		o.DebugHandler = d
 	}
 }
 
