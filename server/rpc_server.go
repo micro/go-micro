@@ -485,7 +485,6 @@ func (s *rpcServer) Deregister() error {
 }
 
 func (s *rpcServer) Start() error {
-	registerDebugHandler(s)
 	config := s.Options()
 
 	// start listening on the transport

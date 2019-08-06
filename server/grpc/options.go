@@ -8,7 +8,6 @@ import (
 	"github.com/micro/go-micro/codec"
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/server"
-	"github.com/micro/go-micro/server/debug"
 	"github.com/micro/go-micro/transport"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/encoding"
@@ -87,10 +86,6 @@ func newOptions(opt ...server.Option) server.Options {
 
 	if opts.Transport == nil {
 		opts.Transport = transport.DefaultTransport
-	}
-
-	if opts.DebugHandler == nil {
-		opts.DebugHandler = debug.DefaultHandler
 	}
 
 	if len(opts.Address) == 0 {

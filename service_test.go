@@ -8,8 +8,8 @@ import (
 
 	glog "github.com/go-log/log"
 	"github.com/micro/go-micro/client"
+	proto "github.com/micro/go-micro/debug/proto"
 	"github.com/micro/go-micro/registry/memory"
-	proto "github.com/micro/go-micro/server/debug/proto"
 	"github.com/micro/go-micro/util/log"
 )
 

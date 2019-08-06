@@ -700,7 +700,6 @@ func (g *grpcServer) Deregister() error {
 }
 
 func (g *grpcServer) Start() error {
-	registerDebugHandler(g)
 	config := g.opts
 
 	// micro: config.Transport.Listen(config.Address)
