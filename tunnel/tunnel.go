@@ -19,9 +19,11 @@ const (
 type Tunnel interface {
 	// Id returns tunnel id
 	Id() string
+	// Options returns the tunnel options
+	Options() Options
 	// Address returns tunnel address
 	Address() string
-	// Tramsport returns tunnel transport
+	// Transport to use by tunne clients
 	Transport() transport.Transport
 	// Connect connects the tunnel
 	Connect() error

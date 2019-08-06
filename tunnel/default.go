@@ -7,8 +7,9 @@ import (
 )
 
 type tun struct {
-	options Options
 	sync.RWMutex
+	tr        transport.Transport
+	options   Options
 	connected bool
 	closed    chan bool
 }
@@ -21,7 +22,11 @@ func newTunnel(opts ...Option) Tunnel {
 		o(&options)
 	}
 
+	// tunnel transport
+	tr := newTransport()
+
 	t := &tun{
+		tr:      tr,
 		options: options,
 		closed:  make(chan bool),
 	}
@@ -29,30 +34,37 @@ func newTunnel(opts ...Option) Tunnel {
 	return t
 }
 
+// Id returns tunnel id
 func (t *tun) Id() string {
 	return t.options.Id
 }
 
+// Options returns tunnel options
+func (t *tun) Options() Options {
+	return t.options
+}
+
+// Address returns tunnel listen address
 func (t *tun) Address() string {
 	return t.options.Address
 }
 
+// Transport returns tunnel client transport
 func (t *tun) Transport() transport.Transport {
-	return nil
+	return t.tr
 }
 
-func (t *tun) Options() transport.Options {
-	return transport.Options{}
-}
-
+// Connect connects establishes point to point tunnel
 func (t *tun) Connect() error {
 	return nil
 }
 
+// Close closes the tunnel
 func (t *tun) Close() error {
 	return nil
 }
 
+// Status returns tunnel status
 func (t *tun) Status() Status {
 	select {
 	case <-t.closed:
