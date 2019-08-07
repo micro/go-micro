@@ -104,16 +104,10 @@ func TestTwoTunnel(t *testing.T) {
 
 	// start accepting connections
 	wg.Add(1)
-	go testAccept(t, tunA, &wg)
-
-	wg.Add(1)
 	go testAccept(t, tunB, &wg)
 
 	// send a message
 	testSend(t, tunA)
-
-	// send a message
-	testSend(t, tunB)
 
 	// wait until done
 	wg.Wait()
