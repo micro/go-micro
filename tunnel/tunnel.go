@@ -1,39 +1,43 @@
-// Package tunnel provides micro network tunnelling
+// Package tunnel provides gre network tunnelling
 package tunnel
 
 import (
 	"github.com/micro/go-micro/transport"
 )
 
-// Status is tunnel status
-type Status int
-
-const (
-	// Connected means the tunnel is alive
-	Connected Status = iota
-	// Closed meands the tunnel has been disconnected
-	Closed
-)
-
-// Tunnel creates a p2p network tunnel.
+// Tunnel creates a gre network tunnel on top of a link.
+// It establishes multiple streams using the Micro-Tunnel-Id header
+// and Micro-Tunnel-Session header. The tunnel id is a hash of
+// the address being requested.
 type Tunnel interface {
-	// Id returns tunnel id
-	Id() string
-	// Options returns the tunnel options
-	Options() Options
-	// Address returns tunnel address
-	Address() string
-	// Transport to use by tunne clients
-	Transport() transport.Transport
 	// Connect connects the tunnel
 	Connect() error
 	// Close closes the tunnel
 	Close() error
-	// Status returns tunnel status
-	Status() Status
+	// Dial an endpoint
+	Dial(addr string) (Conn, error)
+	// Accept connections
+	Listen(addr string) (Listener, error)
 }
 
-// NewTunnel creates a new tunnel on top of a link
+// The listener provides similar constructs to the transport.Listener
+type Listener interface {
+	Addr() string
+	Close() error
+	Accept() (Conn, error)
+}
+
+// Conn is a connection dialed or accepted which includes the tunnel id and session
+type Conn interface {
+	// Specifies the tunnel id
+	Id() string
+	// The session
+	Session() string
+	// a transport socket
+	transport.Socket
+}
+
+// NewTunnel creates a new tunnel
 func NewTunnel(opts ...Option) Tunnel {
 	return newTunnel(opts...)
 }

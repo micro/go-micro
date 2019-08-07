@@ -3,6 +3,7 @@ package tunnel
 import (
 	"github.com/google/uuid"
 	"github.com/micro/go-micro/transport"
+	"github.com/micro/go-micro/transport/quic"
 )
 
 var (
@@ -39,7 +40,7 @@ func Address(a string) Option {
 }
 
 // Nodes specify remote network nodes
-func Nodes(n []string) Option {
+func Nodes(n ...string) Option {
 	return func(o *Options) {
 		o.Nodes = n
 	}
@@ -57,7 +58,6 @@ func DefaultOptions() Options {
 	return Options{
 		Id:        uuid.New().String(),
 		Address:   DefaultAddress,
-		Nodes:     make([]string, 0),
-		Transport: transport.DefaultTransport,
+		Transport: quic.NewTransport(),
 	}
 }
