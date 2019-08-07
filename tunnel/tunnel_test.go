@@ -54,7 +54,7 @@ func testSend(t *testing.T, tun Tunnel) {
 
 func TestTunnel(t *testing.T) {
 	// create a new listener
-	tun := NewTunnel(Nodes(":9096"))
+	tun := NewTunnel(Nodes("127.0.0.1:9096"))
 	err := tun.Connect()
 	if err != nil {
 		t.Fatal(err)
@@ -77,13 +77,13 @@ func TestTunnel(t *testing.T) {
 func TestTwoTunnel(t *testing.T) {
 	// create a new tunnel client
 	tunA := NewTunnel(
-		Address(":9096"),
-		Nodes(":9097"),
+		Address("127.0.0.1:9096"),
+		Nodes("127.0.0.1:9097"),
 	)
 
 	// create a new tunnel server
 	tunB := NewTunnel(
-		Address(":9097"),
+		Address("127.0.0.1:9097"),
 	)
 
 	// start tunB
