@@ -386,6 +386,13 @@ func (t *tun) Connect() error {
 	return nil
 }
 
+func (t *tun) Init(opts ...Option) error {
+	for _, o := range opts {
+		o(&t.options)
+	}
+	return nil
+}
+
 // Dial an address
 func (t *tun) Dial(addr string) (Conn, error) {
 	c, ok := t.newSocket(addr, t.newSession())

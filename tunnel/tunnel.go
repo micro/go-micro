@@ -10,6 +10,7 @@ import (
 // and Micro-Tunnel-Session header. The tunnel id is a hash of
 // the address being requested.
 type Tunnel interface {
+	Init(opts ...Option) error
 	// Connect connects the tunnel
 	Connect() error
 	// Close closes the tunnel
