@@ -3,6 +3,7 @@ package tunnel
 import (
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/micro/go-micro/transport"
 )
@@ -93,6 +94,8 @@ func TestTwoTunnel(t *testing.T) {
 	}
 	defer tunB.Close()
 
+	time.Sleep(time.Millisecond * 50)
+
 	// start tunA
 	err = tunA.Connect()
 	if err != nil {
@@ -100,14 +103,19 @@ func TestTwoTunnel(t *testing.T) {
 	}
 	defer tunA.Close()
 
+	time.Sleep(time.Millisecond * 50)
+
 	var wg sync.WaitGroup
 
 	// start accepting connections
+	// on tunnel A
 	wg.Add(1)
-	go testAccept(t, tunB, &wg)
+	go testAccept(t, tunA, &wg)
 
-	// send a message
-	testSend(t, tunA)
+	time.Sleep(time.Millisecond * 50)
+
+	// dial and send via B
+	testSend(t, tunB)
 
 	// wait until done
 	wg.Wait()

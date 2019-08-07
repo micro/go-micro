@@ -144,15 +144,8 @@ func (t *tun) listen(link transport.Socket, listener bool) {
 			return
 		}
 
-		// first check Micro-Tunnel
 		switch msg.Header["Micro-Tunnel"] {
-		case "connect":
-			// assuming new connection
-			// TODO: do something with this
-			continue
-		case "close":
-			// assuming connection closed
-			// TODO: do something with this
+		case "connect", "close":
 			continue
 		}
 
@@ -289,13 +282,11 @@ func (t *tun) connect() error {
 			continue
 		}
 
-		err = c.Send(&transport.Message{
+		if err := c.Send(&transport.Message{
 			Header: map[string]string{
 				"Micro-Tunnel": "connect",
 			},
-		})
-
-		if err != nil {
+		}); err != nil {
 			continue
 		}
 
@@ -399,6 +390,7 @@ func (t *tun) Dial(addr string) (Conn, error) {
 	if !ok {
 		return nil, errors.New("error dialing " + addr)
 	}
+
 	// set remote
 	c.remote = addr
 	// set local
