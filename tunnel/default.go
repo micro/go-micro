@@ -250,7 +250,7 @@ func (t *tun) connect() error {
 	go func() {
 		// accept inbound connections
 		err := l.Accept(func(sock transport.Socket) {
-			log.Debugf("Accepted connection from %s", sock.Remote())
+			log.Debugf("Tunnel accepted connection from %s", sock.Remote())
 			// save the link
 			id := uuid.New().String()
 			t.Lock()
@@ -281,13 +281,18 @@ func (t *tun) connect() error {
 	}()
 
 	for _, node := range t.options.Nodes {
-		log.Debugf("Dialing %s", node)
+		// skip zero length nodes
+		if len(node) == 0 {
+			continue
+		}
+
+		log.Debugf("Tunnel dialing %s", node)
 		c, err := t.options.Transport.Dial(node)
 		if err != nil {
 			log.Debugf("Tunnel failed to connect to %s: %v", node, err)
 			continue
 		}
-		log.Debugf("Connected to %s", node)
+		log.Debugf("Tunnel connected to %s", node)
 
 		if err := c.Send(&transport.Message{
 			Header: map[string]string{
