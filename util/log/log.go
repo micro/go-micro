@@ -26,6 +26,19 @@ var (
 	level = info
 )
 
+func init() {
+	switch os.Getenv("MICRO_LOG_LEVEL") {
+	case "debug":
+		level = debug
+	case "info":
+		level = info
+	case "trace":
+		level = trace
+	case "fatal":
+		level = fatal
+	}
+}
+
 // Log makes use of github.com/go-log/log.Log
 func Log(v ...interface{}) {
 	logger.Log(v...)
