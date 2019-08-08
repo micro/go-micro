@@ -11,6 +11,8 @@ type tunListener struct {
 	accept chan *socket
 	// the channel to close
 	closed chan bool
+	// the tunnel closed channel
+	tunClosed chan bool
 	// the connection
 	conn Conn
 	// the listener socket
@@ -74,6 +76,7 @@ func (t *tunListener) Addr() string {
 	return t.addr
 }
 
+// Close closes tunnel listener
 func (t *tunListener) Close() error {
 	select {
 	case <-t.closed:
@@ -89,6 +92,10 @@ func (t *tunListener) Accept() (Conn, error) {
 	select {
 	// if the socket is closed return
 	case <-t.closed:
+		return nil, io.EOF
+	case <-t.tunClosed:
+		// close the listener when the tunnel closes
+		close(t.closed)
 		return nil, io.EOF
 	// wait for a new connection
 	case c, ok := <-t.accept:

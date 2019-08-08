@@ -430,6 +430,8 @@ func (t *tun) Listen(addr string) (Listener, error) {
 		accept: make(chan *socket, 128),
 		// the channel to close
 		closed: make(chan bool),
+		// tunnel closed channel
+		tunClosed: t.closed,
 		// the connection
 		conn: c,
 		// the listener socket
