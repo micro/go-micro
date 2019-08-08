@@ -116,6 +116,10 @@ func (t *tun) process() {
 				Body:   msg.data.Body,
 			}
 
+			if nmsg.Header == nil {
+				nmsg.Header = make(map[string]string)
+			}
+
 			// set the tunnel id on the outgoing message
 			nmsg.Header["Micro-Tunnel-Id"] = msg.id
 
