@@ -79,6 +79,7 @@ func (s *socket) Recv(m *transport.Message) error {
 	return nil
 }
 
+// Close closes the socket
 func (s *socket) Close() error {
 	select {
 	case <-s.closed:
