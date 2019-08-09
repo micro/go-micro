@@ -1,6 +1,6 @@
 # Config [![GoDoc](https://godoc.org/github.com/micro/go-micro/config?status.svg)](https://godoc.org/github.com/micro/go-micro/config)
 
-Go Config is a pluggable dynamic config library.
+Config is a pluggable dynamic config package
 
 Most config in applications are statically configured or include complex logic to load from multiple sources. 
 Go Config makes this easy, pluggable and mergeable. You'll never have to deal with config in the same way again.

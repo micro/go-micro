@@ -14,12 +14,12 @@ import (
 	"github.com/micro/go-micro/api/handler"
 	proto "github.com/micro/go-micro/api/internal/proto"
 	"github.com/micro/go-micro/client"
+	"github.com/micro/go-micro/client/selector"
 	"github.com/micro/go-micro/codec"
 	"github.com/micro/go-micro/codec/jsonrpc"
 	"github.com/micro/go-micro/codec/protorpc"
 	"github.com/micro/go-micro/errors"
 	"github.com/micro/go-micro/registry"
-	"github.com/micro/go-micro/selector"
 	"github.com/micro/go-micro/util/ctx"
 )
 
@@ -120,32 +120,6 @@ func (h *rpcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var rsp []byte
 
 	switch {
-	// json codecs
-	case hasCodec(ct, jsonCodecs):
-		var request json.RawMessage
-		// if the extracted payload isn't empty lets use it
-		if len(br) > 0 {
-			request = json.RawMessage(br)
-		}
-
-		// create request/response
-		var response json.RawMessage
-
-		req := c.NewRequest(
-			service.Name,
-			service.Endpoint.Name,
-			&request,
-			client.WithContentType(ct),
-		)
-
-		// make the call
-		if err := c.Call(cx, req, &response, client.WithSelectOption(so)); err != nil {
-			writeError(w, r, err)
-			return
-		}
-
-		// marshall response
-		rsp, _ = response.MarshalJSON()
 	// proto codecs
 	case hasCodec(ct, protoCodecs):
 		request := &proto.Message{}
@@ -173,8 +147,36 @@ func (h *rpcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		// marshall response
 		rsp, _ = response.Marshal()
 	default:
-		http.Error(w, "Unsupported Content-Type", 400)
-		return
+		// if json codec is not present set to json
+		if !hasCodec(ct, jsonCodecs) {
+			ct = "application/json"
+		}
+
+		// default to trying json
+		var request json.RawMessage
+		// if the extracted payload isn't empty lets use it
+		if len(br) > 0 {
+			request = json.RawMessage(br)
+		}
+
+		// create request/response
+		var response json.RawMessage
+
+		req := c.NewRequest(
+			service.Name,
+			service.Endpoint.Name,
+			&request,
+			client.WithContentType(ct),
+		)
+
+		// make the call
+		if err := c.Call(cx, req, &response, client.WithSelectOption(so)); err != nil {
+			writeError(w, r, err)
+			return
+		}
+
+		// marshall response
+		rsp, _ = response.MarshalJSON()
 	}
 
 	// write the response

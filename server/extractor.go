@@ -20,10 +20,6 @@ func extractValue(v reflect.Type, d int) *registry.Value {
 		v = v.Elem()
 	}
 
-	if len(v.Name()) == 0 {
-		return nil
-	}
-
 	arg := &registry.Value{
 		Name: v.Name(),
 		Type: v.Name(),
@@ -65,10 +61,6 @@ func extractValue(v reflect.Type, d int) *registry.Value {
 			p = p.Elem()
 		}
 		arg.Type = "[]" + p.Name()
-		val := extractValue(v.Elem(), d+1)
-		if val != nil {
-			arg.Values = append(arg.Values, val)
-		}
 	}
 
 	return arg

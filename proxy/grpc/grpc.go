@@ -9,7 +9,6 @@ import (
 	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/client/grpc"
 	"github.com/micro/go-micro/codec"
-	"github.com/micro/go-micro/codec/bytes"
 	"github.com/micro/go-micro/config/options"
 	"github.com/micro/go-micro/proxy"
 	"github.com/micro/go-micro/server"
@@ -86,14 +85,8 @@ func (p *Proxy) ServeRequest(ctx context.Context, req server.Request, rsp server
 		}
 	}
 
-	// read initial request
-	body, err := req.Read()
-	if err != nil {
-		return err
-	}
-
 	// create new request with raw bytes body
-	creq := p.Client.NewRequest(service, endpoint, &bytes.Frame{body}, client.WithContentType(req.ContentType()))
+	creq := p.Client.NewRequest(service, endpoint, nil, client.WithContentType(req.ContentType()))
 
 	// create new stream
 	stream, err := p.Client.Stream(ctx, creq, opts...)

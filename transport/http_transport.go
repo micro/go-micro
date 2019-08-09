@@ -14,15 +14,12 @@ import (
 	"time"
 
 	maddr "github.com/micro/go-micro/util/addr"
+	"github.com/micro/go-micro/util/buf"
 	mnet "github.com/micro/go-micro/util/net"
 	mls "github.com/micro/go-micro/util/tls"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 )
-
-type buffer struct {
-	io.ReadWriter
-}
 
 type httpTransport struct {
 	opts Options
@@ -65,10 +62,6 @@ type httpTransportListener struct {
 	listener net.Listener
 }
 
-func (b *buffer) Close() error {
-	return nil
-}
-
 func (h *httpTransportClient) Local() string {
 	return h.local
 }
@@ -84,11 +77,8 @@ func (h *httpTransportClient) Send(m *Message) error {
 		header.Set(k, v)
 	}
 
-	reqB := bytes.NewBuffer(m.Body)
-	defer reqB.Reset()
-	buf := &buffer{
-		reqB,
-	}
+	b := buf.New(bytes.NewBuffer(m.Body))
+	defer b.Close()
 
 	req := &http.Request{
 		Method: "POST",
@@ -97,8 +87,8 @@ func (h *httpTransportClient) Send(m *Message) error {
 			Host:   h.addr,
 		},
 		Header:        header,
-		Body:          buf,
-		ContentLength: int64(reqB.Len()),
+		Body:          b,
+		ContentLength: int64(b.Len()),
 		Host:          h.addr,
 	}
 

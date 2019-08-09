@@ -13,7 +13,7 @@ import (
 
 	"github.com/micro/go-micro/api"
 	"github.com/micro/go-micro/api/handler"
-	"github.com/micro/go-micro/selector"
+	"github.com/micro/go-micro/client/selector"
 )
 
 const (
@@ -79,7 +79,7 @@ func (wh *webHandler) getService(r *http.Request) (string, error) {
 		return "", nil
 	}
 
-	return fmt.Sprintf("http://%s:%d", s.Address, s.Port), nil
+	return fmt.Sprintf("http://%s", s.Address), nil
 }
 
 // serveWebSocket used to serve a web socket proxied connection

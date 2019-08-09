@@ -4,13 +4,13 @@ import (
 	"github.com/micro/go-micro/client"
 )
 
-type grpcPublication struct {
+type grpcEvent struct {
 	topic       string
 	contentType string
 	payload     interface{}
 }
 
-func newGRPCPublication(topic string, payload interface{}, contentType string, opts ...client.MessageOption) client.Message {
+func newGRPCEvent(topic string, payload interface{}, contentType string, opts ...client.MessageOption) client.Message {
 	var options client.MessageOptions
 	for _, o := range opts {
 		o(&options)
@@ -20,21 +20,21 @@ func newGRPCPublication(topic string, payload interface{}, contentType string, o
 		contentType = options.ContentType
 	}
 
-	return &grpcPublication{
+	return &grpcEvent{
 		payload:     payload,
 		topic:       topic,
 		contentType: contentType,
 	}
 }
 
-func (g *grpcPublication) ContentType() string {
+func (g *grpcEvent) ContentType() string {
 	return g.contentType
 }
 
-func (g *grpcPublication) Topic() string {
+func (g *grpcEvent) Topic() string {
 	return g.topic
 }
 
-func (g *grpcPublication) Payload() interface{} {
+func (g *grpcEvent) Payload() interface{} {
 	return g.payload
 }

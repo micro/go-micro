@@ -626,7 +626,7 @@ func (g *gossipRegistry) run() {
 				g.services[u.Service.Name] = []*registry.Service{u.Service}
 
 			} else {
-				g.services[u.Service.Name] = addServices(service, []*registry.Service{u.Service})
+				g.services[u.Service.Name] = registry.Merge(service, []*registry.Service{u.Service})
 			}
 			g.Unlock()
 
@@ -645,7 +645,7 @@ func (g *gossipRegistry) run() {
 		case actionTypeDelete:
 			g.Lock()
 			if service, ok := g.services[u.Service.Name]; ok {
-				if services := delServices(service, []*registry.Service{u.Service}); len(services) == 0 {
+				if services := registry.Remove(service, []*registry.Service{u.Service}); len(services) == 0 {
 					delete(g.services, u.Service.Name)
 				} else {
 					g.services[u.Service.Name] = services
@@ -706,7 +706,7 @@ func (g *gossipRegistry) Register(s *registry.Service, opts ...registry.Register
 	if service, ok := g.services[s.Name]; !ok {
 		g.services[s.Name] = []*registry.Service{s}
 	} else {
-		g.services[s.Name] = addServices(service, []*registry.Service{s})
+		g.services[s.Name] = registry.Merge(service, []*registry.Service{s})
 	}
 	g.Unlock()
 
@@ -734,6 +734,12 @@ func (g *gossipRegistry) Register(s *registry.Service, opts ...registry.Register
 		notify: nil,
 	})
 
+	// send update to local watchers
+	g.updates <- &update{
+		Update:  up,
+		Service: s,
+	}
+
 	// wait
 	<-time.After(g.interval * 2)
 
@@ -748,7 +754,7 @@ func (g *gossipRegistry) Deregister(s *registry.Service) error {
 
 	g.Lock()
 	if service, ok := g.services[s.Name]; ok {
-		if services := delServices(service, []*registry.Service{s}); len(services) == 0 {
+		if services := registry.Remove(service, []*registry.Service{s}); len(services) == 0 {
 			delete(g.services, s.Name)
 		} else {
 			g.services[s.Name] = services
@@ -769,6 +775,12 @@ func (g *gossipRegistry) Deregister(s *registry.Service) error {
 		update: up,
 		notify: nil,
 	})
+
+	// send update to local watchers
+	g.updates <- &update{
+		Update:  up,
+		Service: s,
+	}
 
 	// wait
 	<-time.After(g.interval * 2)

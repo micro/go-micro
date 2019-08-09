@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"github.com/micro/go-micro/codec"
+	"github.com/micro/go-micro/codec/bytes"
 )
 
 type rpcRequest struct {
@@ -46,7 +47,11 @@ func (r *rpcRequest) Header() map[string]string {
 }
 
 func (r *rpcRequest) Read() ([]byte, error) {
-	return r.body, nil
+	f := &bytes.Frame{}
+	if err := r.codec.ReadBody(f); err != nil {
+		return nil, err
+	}
+	return f.Data, nil
 }
 
 func (r *rpcRequest) Stream() bool {

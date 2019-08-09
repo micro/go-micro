@@ -6,6 +6,7 @@ import (
 
 	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/config/options"
+	"github.com/micro/go-micro/router"
 	"github.com/micro/go-micro/server"
 )
 
@@ -28,4 +29,9 @@ func WithEndpoint(e string) options.Option {
 // WithClient sets the client
 func WithClient(c client.Client) options.Option {
 	return options.WithValue("proxy.client", c)
+}
+
+// WithRouter specifies the router to use
+func WithRouter(r router.Router) options.Option {
+	return options.WithValue("proxy.router", r)
 }

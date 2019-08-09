@@ -2,7 +2,7 @@
 package sync
 
 import (
-	"github.com/micro/go-micro/store"
+	"github.com/micro/go-micro/data/store"
 	"github.com/micro/go-micro/sync/leader"
 	"github.com/micro/go-micro/sync/lock"
 	"github.com/micro/go-micro/sync/task"

@@ -4,14 +4,12 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
-	"strconv"
-	"strings"
 	"testing"
 
 	"github.com/micro/go-micro/api/handler"
 	"github.com/micro/go-micro/api/router"
 	regRouter "github.com/micro/go-micro/api/router/registry"
-	"github.com/micro/go-micro/cmd"
+	"github.com/micro/go-micro/config/cmd"
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/registry/memory"
 )
@@ -26,21 +24,12 @@ func testHttp(t *testing.T, path, service, ns string) {
 	}
 	defer l.Close()
 
-	parts := strings.Split(l.Addr().String(), ":")
-
-	var host string
-	var port int
-
-	host = parts[0]
-	port, _ = strconv.Atoi(parts[1])
-
 	s := &registry.Service{
 		Name: service,
 		Nodes: []*registry.Node{
 			&registry.Node{
 				Id:      service + "-1",
-				Address: host,
-				Port:    port,
+				Address: l.Addr().String(),
 			},
 		},
 	}

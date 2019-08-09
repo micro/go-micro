@@ -75,7 +75,7 @@ func TestService(t *testing.T) {
 		t.Fatalf("Expected %d but got %d services", want, have)
 	}
 
-	rsp, err := http.Get(fmt.Sprintf("http://%s:%d", s[0].Nodes[0].Address, s[0].Nodes[0].Port))
+	rsp, err := http.Get(fmt.Sprintf("http://%s", s[0].Nodes[0].Address))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -243,7 +243,7 @@ func TestTLS(t *testing.T) {
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
 	client := &http.Client{Transport: tr}
-	rsp, err := client.Get(fmt.Sprintf("https://%s:%d", s[0].Nodes[0].Address, s[0].Nodes[0].Port))
+	rsp, err := client.Get(fmt.Sprintf("https://%s", s[0].Nodes[0].Address))
 	if err != nil {
 		t.Fatal(err)
 	}

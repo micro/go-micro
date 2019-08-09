@@ -80,41 +80,6 @@ func (c *cache) quit() bool {
 	}
 }
 
-// cp copies a service. Because we're caching handing back pointers would
-// create a race condition, so we do this instead its fast enough
-func (c *cache) cp(current []*registry.Service) []*registry.Service {
-	var services []*registry.Service
-
-	for _, service := range current {
-		// copy service
-		s := new(registry.Service)
-		*s = *service
-
-		// copy nodes
-		var nodes []*registry.Node
-		for _, node := range service.Nodes {
-			n := new(registry.Node)
-			*n = *node
-			nodes = append(nodes, n)
-		}
-		s.Nodes = nodes
-
-		// copy endpoints
-		var eps []*registry.Endpoint
-		for _, ep := range service.Endpoints {
-			e := new(registry.Endpoint)
-			*e = *ep
-			eps = append(eps, e)
-		}
-		s.Endpoints = eps
-
-		// append service
-		services = append(services, s)
-	}
-
-	return services
-}
-
 func (c *cache) del(service string) {
 	delete(c.cache, service)
 	delete(c.ttls, service)
@@ -132,7 +97,7 @@ func (c *cache) get(service string) ([]*registry.Service, error) {
 	// got services && within ttl so return cache
 	if c.isValid(services, ttl) {
 		// make a copy
-		cp := c.cp(services)
+		cp := registry.Copy(services)
 		// unlock the read
 		c.RUnlock()
 		// return servics
@@ -149,7 +114,7 @@ func (c *cache) get(service string) ([]*registry.Service, error) {
 
 		// cache results
 		c.Lock()
-		c.set(service, c.cp(services))
+		c.set(service, registry.Copy(services))
 		c.Unlock()
 
 		return services, nil
@@ -360,18 +325,27 @@ func (c *cache) run(service string) {
 // watch loops the next event and calls update
 // it returns if there's an error
 func (c *cache) watch(w registry.Watcher) error {
-	defer w.Stop()
+	// used to stop the watch
+	stop := make(chan bool)
 
 	// manage this loop
 	go func() {
+		defer w.Stop()
+
+		select {
 		// wait for exit
-		<-c.exit
-		w.Stop()
+		case <-c.exit:
+			return
+		// we've been stopped
+		case <-stop:
+			return
+		}
 	}()
 
 	for {
 		res, err := w.Next()
 		if err != nil {
+			close(stop)
 			return err
 		}
 		c.update(res)

@@ -5,9 +5,9 @@ import (
 	"time"
 
 	"github.com/micro/go-micro/broker"
+	"github.com/micro/go-micro/client/selector"
 	"github.com/micro/go-micro/codec"
 	"github.com/micro/go-micro/registry"
-	"github.com/micro/go-micro/selector"
 	"github.com/micro/go-micro/transport"
 )
 
@@ -43,8 +43,8 @@ type Options struct {
 type CallOptions struct {
 	SelectOptions []selector.SelectOption
 
-	// Address of remote host
-	Address string
+	// Address of remote hosts
+	Address []string
 	// Backoff func
 	Backoff BackoffFunc
 	// Check if retriable func
@@ -245,8 +245,8 @@ func WithExchange(e string) PublishOption {
 	}
 }
 
-// WithAddress sets the remote address to use rather than using service discovery
-func WithAddress(a string) CallOption {
+// WithAddress sets the remote addresses to use rather than using service discovery
+func WithAddress(a ...string) CallOption {
 	return func(o *CallOptions) {
 		o.Address = a
 	}

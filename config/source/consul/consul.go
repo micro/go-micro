@@ -74,6 +74,11 @@ func NewSource(opts ...source.Option) source.Source {
 	// use default config
 	config := api.DefaultConfig()
 
+	// use the consul config passed in the options if any
+	if co, ok := options.Context.Value(configKey{}).(*api.Config); ok {
+		config = co
+	}
+
 	// check if there are any addrs
 	a, ok := options.Context.Value(addressKey{}).(string)
 	if ok {

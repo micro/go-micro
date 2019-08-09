@@ -3,14 +3,12 @@ package grpc
 import (
 	"context"
 	"net"
-	"strconv"
-	"strings"
 	"testing"
 
 	"github.com/micro/go-micro/client"
+	"github.com/micro/go-micro/client/selector"
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/registry/memory"
-	"github.com/micro/go-micro/selector"
 	pgrpc "google.golang.org/grpc"
 	pb "google.golang.org/grpc/examples/helloworld/helloworld"
 )
@@ -36,22 +34,17 @@ func TestGRPCClient(t *testing.T) {
 	go s.Serve(l)
 	defer s.Stop()
 
-	parts := strings.Split(l.Addr().String(), ":")
-	port, _ := strconv.Atoi(parts[len(parts)-1])
-	addr := strings.Join(parts[:len(parts)-1], ":")
-
 	// create mock registry
 	r := memory.NewRegistry()
 
 	// register service
 	r.Register(&registry.Service{
-		Name:    "test",
+		Name:    "helloworld",
 		Version: "test",
 		Nodes: []*registry.Node{
 			&registry.Node{
 				Id:      "test-1",
-				Address: addr,
-				Port:    port,
+				Address: l.Addr().String(),
 			},
 		},
 	})
@@ -73,7 +66,7 @@ func TestGRPCClient(t *testing.T) {
 	}
 
 	for _, method := range testMethods {
-		req := c.NewRequest("test", method, &pb.HelloRequest{
+		req := c.NewRequest("helloworld", method, &pb.HelloRequest{
 			Name: "John",
 		})
 

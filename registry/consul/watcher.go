@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"sync"
@@ -44,7 +45,7 @@ func newConsulWatcher(cr *consulRegistry, opts ...registry.WatchOption) (registr
 	}
 
 	wp.Handler = cw.handle
-	go wp.RunWithClientAndLogger(cr.Client, log.New(os.Stderr, "", log.LstdFlags))
+	go wp.RunWithClientAndLogger(cr.Client(), log.New(os.Stderr, "", log.LstdFlags))
 	cw.wp = wp
 
 	return cw, nil
@@ -102,8 +103,7 @@ func (cw *consulWatcher) serviceHandler(idx uint64, data interface{}) {
 
 		svc.Nodes = append(svc.Nodes, &registry.Node{
 			Id:       id,
-			Address:  address,
-			Port:     e.Service.Port,
+			Address:  fmt.Sprintf("%s:%d", address, e.Service.Port),
 			Metadata: decodeMetadata(e.Service.Tags),
 		})
 	}
@@ -209,7 +209,7 @@ func (cw *consulWatcher) handle(idx uint64, data interface{}) {
 		})
 		if err == nil {
 			wp.Handler = cw.serviceHandler
-			go wp.RunWithClientAndLogger(cw.r.Client, log.New(os.Stderr, "", log.LstdFlags))
+			go wp.RunWithClientAndLogger(cw.r.Client(), log.New(os.Stderr, "", log.LstdFlags))
 			cw.watchers[service] = wp
 			cw.next <- &registry.Result{Action: "create", Service: &registry.Service{Name: service}}
 		}
@@ -224,9 +224,14 @@ func (cw *consulWatcher) handle(idx uint64, data interface{}) {
 	cw.RUnlock()
 
 	// remove unknown services from registry
+	// save the things we want to delete
+	deleted := make(map[string][]*registry.Service)
+
 	for service, _ := range rservices {
 		if _, ok := services[service]; !ok {
 			cw.Lock()
+			// save this before deleting
+			deleted[service] = cw.services[service]
 			delete(cw.services, service)
 			cw.Unlock()
 		}
@@ -237,6 +242,11 @@ func (cw *consulWatcher) handle(idx uint64, data interface{}) {
 		if _, ok := services[service]; !ok {
 			w.Stop()
 			delete(cw.watchers, service)
+			for _, oldService := range deleted[service] {
+				// send a delete for the service nodes that we're removing
+				cw.next <- &registry.Result{Action: "delete", Service: oldService}
+			}
+			// sent the empty list as the last resort to indicate to delete the entire service
 			cw.next <- &registry.Result{Action: "delete", Service: &registry.Service{Name: service}}
 		}
 	}
