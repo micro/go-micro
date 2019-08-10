@@ -128,7 +128,6 @@ func (t *tun) process() {
 
 			// send the message via the interface
 			t.RLock()
-			log.Debugf("Sending some shit %d links", len(t.links))
 			for _, link := range t.links {
 				log.Debugf("Sending %+v to %s", newMsg, link.Remote())
 				link.Send(newMsg)
