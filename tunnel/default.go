@@ -128,6 +128,7 @@ func (t *tun) process() {
 
 			// send the message via the interface
 			t.RLock()
+			log.Debugf("Sending some shit %d links", len(t.links))
 			for _, link := range t.links {
 				log.Debugf("Sending %+v to %s", newMsg, link.Remote())
 				link.Send(newMsg)
@@ -172,21 +173,15 @@ func (t *tun) listen(link transport.Socket, listener bool) {
 		var exists bool
 
 		log.Debugf("Received %+v from %s", msg, link.Remote())
-		// if its a local listener then we use that as the session id
-		// e.g we're using a loopback connecting to ourselves
-		if listener {
+		// get the socket based on the tunnel id and session
+		// this could be something we dialed in which case
+		// we have a session for it otherwise its a listener
+		s, exists = t.getSocket(id, session)
+		if !exists {
+			// try get it based on just the tunnel id
+			// the assumption here is that a listener
+			// has no session but its set a listener session
 			s, exists = t.getSocket(id, "listener")
-		} else {
-			// get the socket based on the tunnel id and session
-			// this could be something we dialed in which case
-			// we have a session for it otherwise its a listener
-			s, exists = t.getSocket(id, session)
-			if !exists {
-				// try get it based on just the tunnel id
-				// the assumption here is that a listener
-				// has no session but its set a listener session
-				s, exists = t.getSocket(id, "listener")
-			}
 		}
 
 		// no socket in existence
