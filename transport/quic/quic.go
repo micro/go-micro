@@ -113,7 +113,7 @@ func (q *quicTransport) Dial(addr string, opts ...transport.DialOption) (transpo
 			NextProtos:         []string{"http/1.1"},
 		}
 	}
-	s, err := quic.DialAddr(addr, config, nil)
+	s, err := quic.DialAddr(addr, config, &quic.Config{KeepAlive: true})
 	if err != nil {
 		return nil, err
 	}
@@ -156,7 +156,7 @@ func (q *quicTransport) Listen(addr string, opts ...transport.ListenOption) (tra
 		}
 	}
 
-	l, err := quic.ListenAddr(addr, config, nil)
+	l, err := quic.ListenAddr(addr, config, &quic.Config{KeepAlive: true})
 	if err != nil {
 		return nil, err
 	}
