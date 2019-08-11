@@ -271,12 +271,12 @@ func (g *grpcServer) handler(srv interface{}, stream grpc.ServerStream) error {
 	g.rpc.mu.Unlock()
 
 	if service == nil {
-		return status.New(codes.Unimplemented, fmt.Sprintf("unknown service %v", service)).Err()
+		return status.New(codes.Unimplemented, fmt.Sprintf("unknown service %s", serviceName)).Err()
 	}
 
 	mtype := service.method[methodName]
 	if mtype == nil {
-		return status.New(codes.Unimplemented, fmt.Sprintf("unknown service %v", service)).Err()
+		return status.New(codes.Unimplemented, fmt.Sprintf("unknown service %s.%s", serviceName, methodName)).Err()
 	}
 
 	// process unary

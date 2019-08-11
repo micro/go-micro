@@ -73,10 +73,11 @@ func (g *grpcClient) next(request client.Request, opts client.CallOptions) (sele
 
 	// get next nodes from the selector
 	next, err := g.opts.Selector.Select(service, opts.SelectOptions...)
-	if err != nil && err == selector.ErrNotFound {
-		return nil, errors.NotFound("go.micro.client", "service %s not found: %v", service, err.Error())
-	} else if err != nil {
-		return nil, errors.InternalServerError("go.micro.client", err.Error())
+	if err != nil {
+		if err == selector.ErrNotFound {
+			return nil, errors.InternalServerError("go.micro.client", "service %s: %s", service, err.Error())
+		}
+		return nil, errors.InternalServerError("go.micro.client", "error selecting %s node: %s", service, err.Error())
 	}
 
 	return next, nil
@@ -350,15 +351,17 @@ func (g *grpcClient) Call(ctx context.Context, req client.Request, rsp interface
 
 		// select next node
 		node, err := next()
-		if err != nil && err == selector.ErrNotFound {
-			return errors.NotFound("go.micro.client", "service %s not found: %v", req.Service(), err.Error())
-		} else if err != nil {
-			return errors.InternalServerError("go.micro.client", err.Error())
+		service := req.Service()
+		if err != nil {
+			if err == selector.ErrNotFound {
+				return errors.InternalServerError("go.micro.client", "service %s: %s", service, err.Error())
+			}
+			return errors.InternalServerError("go.micro.client", "error selecting %s node: %s", service, err.Error())
 		}
 
 		// make the call
 		err = gcall(ctx, node, req, rsp, callOpts)
-		g.opts.Selector.Mark(req.Service(), node, err)
+		g.opts.Selector.Mark(service, node, err)
 		return err
 	}
 
@@ -429,14 +432,16 @@ func (g *grpcClient) Stream(ctx context.Context, req client.Request, opts ...cli
 		}
 
 		node, err := next()
-		if err != nil && err == selector.ErrNotFound {
-			return nil, errors.NotFound("go.micro.client", "service %s not found: %v", req.Service(), err.Error())
-		} else if err != nil {
-			return nil, errors.InternalServerError("go.micro.client", err.Error())
+		service := req.Service()
+		if err != nil {
+			if err == selector.ErrNotFound {
+				return nil, errors.InternalServerError("go.micro.client", "service %s: %s", service, err.Error())
+			}
+			return nil, errors.InternalServerError("go.micro.client", "error selecting %s node: %s", service, err.Error())
 		}
 
 		stream, err := g.stream(ctx, node, req, callOpts)
-		g.opts.Selector.Mark(req.Service(), node, err)
+		g.opts.Selector.Mark(service, node, err)
 		return stream, err
 	}
 
