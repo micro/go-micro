@@ -133,6 +133,7 @@ func (t *tun) process() {
 			}
 			for _, link := range t.links {
 				log.Debugf("Sending %+v to %s", newMsg, link.Remote())
+				// TODO: error check and reconnect
 				link.Send(newMsg)
 			}
 			t.RUnlock()
@@ -155,14 +156,19 @@ func (t *tun) listen(link transport.Socket, listener bool) {
 
 		switch msg.Header["Micro-Tunnel"] {
 		case "connect", "close":
+			// TODO: handle the connect/close message
+			// maybe used to create the dial/listen sockets
+			// or report io.EOF or maybe to kill the link
 			continue
 		}
 
 		// the tunnel id
 		id := msg.Header["Micro-Tunnel-Id"]
+		delete(msg.Header, "Micro-Tunnel-Id")
 
 		// the session id
 		session := msg.Header["Micro-Tunnel-Session"]
+		delete(msg.Header, "Micro-Tunnel-Session")
 
 		// if the session id is blank there's nothing we can do
 		// TODO: check this is the case, is there any reason
@@ -290,6 +296,7 @@ func (t *tun) connect() error {
 		}
 
 		log.Debugf("Tunnel dialing %s", node)
+		// TODO: reconnection logic is required to keep the tunnel established
 		c, err := t.options.Transport.Dial(node)
 		if err != nil {
 			log.Debugf("Tunnel failed to connect to %s: %v", node, err)
