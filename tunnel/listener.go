@@ -53,14 +53,12 @@ func (t *tunListener) process() {
 
 				// save the socket
 				conns[m.session] = sock
-				sock.recv <- m
 
 				// send to accept chan
 				select {
 				case <-t.closed:
 					return
 				case t.accept <- sock:
-					continue
 				}
 			}
 
