@@ -18,6 +18,7 @@ type memory struct {
 func (s *memory) Read() (*source.ChangeSet, error) {
 	s.RLock()
 	cs := &source.ChangeSet{
+		Format:    s.ChangeSet.Format,
 		Timestamp: s.ChangeSet.Timestamp,
 		Data:      s.ChangeSet.Data,
 		Checksum:  s.ChangeSet.Checksum,
