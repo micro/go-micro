@@ -111,25 +111,26 @@ func (t *tun) process() {
 	for {
 		select {
 		case msg := <-t.send:
-			nmsg := &transport.Message{
-				Header: msg.data.Header,
+			newMsg := &transport.Message{
+				Header: make(map[string]string),
 				Body:   msg.data.Body,
 			}
 
-			if nmsg.Header == nil {
-				nmsg.Header = make(map[string]string)
+			for k, v := range msg.data.Header {
+				newMsg.Header[k] = v
 			}
 
 			// set the tunnel id on the outgoing message
-			nmsg.Header["Micro-Tunnel-Id"] = msg.id
+			newMsg.Header["Micro-Tunnel-Id"] = msg.id
 
 			// set the session id
-			nmsg.Header["Micro-Tunnel-Session"] = msg.session
+			newMsg.Header["Micro-Tunnel-Session"] = msg.session
 
 			// send the message via the interface
 			t.RLock()
 			for _, link := range t.links {
-				link.Send(nmsg)
+				log.Debugf("Sending %+v to %s", newMsg, link.Remote())
+				link.Send(newMsg)
 			}
 			t.RUnlock()
 		case <-t.closed:
@@ -170,29 +171,26 @@ func (t *tun) listen(link transport.Socket, listener bool) {
 		var s *socket
 		var exists bool
 
-		// if its a local listener then we use that as the session id
-		// e.g we're using a loopback connecting to ourselves
-		if listener {
+		log.Debugf("Received %+v from %s", msg, link.Remote())
+		// get the socket based on the tunnel id and session
+		// this could be something we dialed in which case
+		// we have a session for it otherwise its a listener
+		s, exists = t.getSocket(id, session)
+		if !exists {
+			// try get it based on just the tunnel id
+			// the assumption here is that a listener
+			// has no session but its set a listener session
 			s, exists = t.getSocket(id, "listener")
-		} else {
-			// get the socket based on the tunnel id and session
-			// this could be something we dialed in which case
-			// we have a session for it otherwise its a listener
-			s, exists = t.getSocket(id, session)
-			if !exists {
-				// try get it based on just the tunnel id
-				// the assumption here is that a listener
-				// has no session but its set a listener session
-				s, exists = t.getSocket(id, "listener")
-			}
 		}
 
 		// no socket in existence
 		if !exists {
+			log.Debugf("Skipping")
 			// drop it, we don't care about
 			// messages we don't know about
 			continue
 		}
+		log.Debugf("Using socket %s %s", s.id, s.session)
 
 		// is the socket closed?
 		select {
@@ -398,6 +396,7 @@ func (t *tun) Init(opts ...Option) error {
 
 // Dial an address
 func (t *tun) Dial(addr string) (Conn, error) {
+	log.Debugf("Tunnel dialing %s", addr)
 	c, ok := t.newSocket(addr, t.newSession())
 	if !ok {
 		return nil, errors.New("error dialing " + addr)
@@ -413,6 +412,7 @@ func (t *tun) Dial(addr string) (Conn, error) {
 
 // Accept a connection on the address
 func (t *tun) Listen(addr string) (Listener, error) {
+	log.Debugf("Tunnel listening on %s", addr)
 	// create a new socket by hashing the address
 	c, ok := t.newSocket(addr, "listener")
 	if !ok {

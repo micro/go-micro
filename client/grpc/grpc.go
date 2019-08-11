@@ -74,7 +74,7 @@ func (g *grpcClient) next(request client.Request, opts client.CallOptions) (sele
 	// get next nodes from the selector
 	next, err := g.opts.Selector.Select(service, opts.SelectOptions...)
 	if err != nil && err == selector.ErrNotFound {
-		return nil, errors.NotFound("go.micro.client", err.Error())
+		return nil, errors.NotFound("go.micro.client", "service %s not found: %v", service, err.Error())
 	} else if err != nil {
 		return nil, errors.InternalServerError("go.micro.client", err.Error())
 	}
@@ -351,7 +351,7 @@ func (g *grpcClient) Call(ctx context.Context, req client.Request, rsp interface
 		// select next node
 		node, err := next()
 		if err != nil && err == selector.ErrNotFound {
-			return errors.NotFound("go.micro.client", err.Error())
+			return errors.NotFound("go.micro.client", "service %s not found: %v", req.Service(), err.Error())
 		} else if err != nil {
 			return errors.InternalServerError("go.micro.client", err.Error())
 		}
@@ -430,7 +430,7 @@ func (g *grpcClient) Stream(ctx context.Context, req client.Request, opts ...cli
 
 		node, err := next()
 		if err != nil && err == selector.ErrNotFound {
-			return nil, errors.NotFound("go.micro.client", err.Error())
+			return nil, errors.NotFound("go.micro.client", "service %s not found: %v", req.Service(), err.Error())
 		} else if err != nil {
 			return nil, errors.InternalServerError("go.micro.client", err.Error())
 		}

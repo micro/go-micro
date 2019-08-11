@@ -48,9 +48,6 @@ func (t *tunListener) process() {
 					wait: make(chan bool),
 				}
 
-				// first message
-				sock.recv <- m
-
 				// save the socket
 				conns[m.session] = sock
 
