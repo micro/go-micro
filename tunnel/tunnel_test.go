@@ -54,28 +54,6 @@ func testSend(t *testing.T, tun Tunnel) {
 }
 
 func TestTunnel(t *testing.T) {
-	// create a new listener
-	tun := NewTunnel(Nodes("127.0.0.1:9096"))
-	err := tun.Connect()
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer tun.Close()
-
-	var wg sync.WaitGroup
-
-	// start accepting connections
-	wg.Add(1)
-	go testAccept(t, tun, &wg)
-
-	// send a message
-	testSend(t, tun)
-
-	// wait until message is received
-	wg.Wait()
-}
-
-func TestTwoTunnel(t *testing.T) {
 	// create a new tunnel client
 	tunA := NewTunnel(
 		Address("127.0.0.1:9096"),
