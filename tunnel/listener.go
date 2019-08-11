@@ -2,6 +2,8 @@ package tunnel
 
 import (
 	"io"
+
+	"github.com/micro/go-micro/util/log"
 )
 
 type tunListener struct {
@@ -31,6 +33,7 @@ func (t *tunListener) process() {
 		case m := <-t.socket.recv:
 			// get a socket
 			sock, ok := conns[m.session]
+			log.Debugf("Tunnel listener received id %s session %s exists: %t", m.id, m.session, ok)
 			if !ok {
 				// create a new socket session
 				sock = &socket{
@@ -50,12 +53,14 @@ func (t *tunListener) process() {
 
 				// save the socket
 				conns[m.session] = sock
+				sock.recv <- m
 
 				// send to accept chan
 				select {
 				case <-t.closed:
 					return
 				case t.accept <- sock:
+					continue
 				}
 			}
 
@@ -64,6 +69,7 @@ func (t *tunListener) process() {
 			case <-sock.closed:
 				delete(conns, m.session)
 			case sock.recv <- m:
+				log.Debugf("Tunnel listener sent to recv chan id %s session %s", m.id, m.session)
 			}
 		}
 	}
@@ -92,7 +98,7 @@ func (t *tunListener) Accept() (Conn, error) {
 		return nil, io.EOF
 	case <-t.tunClosed:
 		// close the listener when the tunnel closes
-		close(t.closed)
+		t.Close()
 		return nil, io.EOF
 	// wait for a new connection
 	case c, ok := <-t.accept:

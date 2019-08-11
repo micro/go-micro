@@ -128,6 +128,9 @@ func (t *tun) process() {
 
 			// send the message via the interface
 			t.RLock()
+			if len(t.links) == 0 {
+				log.Debugf("Zero links to send to")
+			}
 			for _, link := range t.links {
 				log.Debugf("Sending %+v to %s", newMsg, link.Remote())
 				link.Send(newMsg)
@@ -146,6 +149,7 @@ func (t *tun) listen(link transport.Socket, listener bool) {
 		msg := new(transport.Message)
 		err := link.Recv(msg)
 		if err != nil {
+			log.Debugf("Tunnel link %s receive error: %v", link.Remote(), err)
 			return
 		}
 
@@ -185,12 +189,12 @@ func (t *tun) listen(link transport.Socket, listener bool) {
 
 		// no socket in existence
 		if !exists {
-			log.Debugf("Skipping")
+			log.Debugf("Tunnel skipping no socket exists")
 			// drop it, we don't care about
 			// messages we don't know about
 			continue
 		}
-		log.Debugf("Using socket %s %s", s.id, s.session)
+		log.Debugf("Tunnel using socket %s %s", s.id, s.session)
 
 		// is the socket closed?
 		select {
@@ -260,6 +264,7 @@ func (t *tun) connect() error {
 
 			// delete the link
 			defer func() {
+				log.Debugf("Deleting connection from %s", sock.Remote())
 				t.Lock()
 				delete(t.links, id)
 				t.Unlock()

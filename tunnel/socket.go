@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/micro/go-micro/transport"
+	"github.com/micro/go-micro/util/log"
 )
 
 // socket is our pseudo socket for transport.Socket
@@ -59,8 +60,21 @@ func (s *socket) Send(m *transport.Message) error {
 	default:
 		// no op
 	}
+
+	// make copy
+	data := &transport.Message{
+		Header: make(map[string]string),
+		Body:   m.Body,
+	}
+
+	for k, v := range m.Header {
+		data.Header[k] = v
+	}
+
 	// append to backlog
-	s.send <- &message{id: s.id, session: s.session, data: m}
+	msg := &message{id: s.id, session: s.session, data: data}
+	log.Debugf("Appending %+v to send backlog", msg)
+	s.send <- msg
 	return nil
 }
 
@@ -73,6 +87,7 @@ func (s *socket) Recv(m *transport.Message) error {
 	}
 	// recv from backlog
 	msg := <-s.recv
+	log.Debugf("Received %+v from recv backlog", msg)
 	// set message
 	*m = *msg.data
 	// return nil

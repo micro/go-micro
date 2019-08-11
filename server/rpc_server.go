@@ -146,6 +146,7 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 			body:        msg.Body,
 			socket:      sock,
 			stream:      true,
+			first:       true,
 		}
 
 		// internal response
