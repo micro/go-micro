@@ -99,14 +99,14 @@ func (p *Proxy) getRoute(service string) ([]string, error) {
 	p.Routes[service] = make(map[uint64]router.Route)
 	p.Unlock()
 
-	// if the router is broken return error
-	if status := p.Router.Status(); status.Code == router.Error {
-		return nil, status.Error
-	}
-
 	// lookup the routes in the router
 	results, err := p.Router.Lookup(router.NewQuery(router.QueryService(service)))
 	if err != nil {
+		// check the status of the router
+		if status := p.Router.Status(); status.Code == router.Error {
+			return nil, status.Error
+		}
+		// otherwise return the error
 		return nil, err
 	}
 
