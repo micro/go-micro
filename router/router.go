@@ -21,6 +21,8 @@ type Router interface {
 	Lookup(Query) ([]Route, error)
 	// Watch returns a watcher which tracks updates to the routing table
 	Watch(opts ...WatchOption) (Watcher, error)
+	// Start starts the router
+	Start() error
 	// Status returns router status
 	Status() Status
 	// Stop stops the router
@@ -76,10 +78,15 @@ func (s StatusCode) String() string {
 
 // Status is router status
 type Status struct {
-	// Error is router error
-	Error error
 	// Code defines router status
 	Code StatusCode
+	// Error contains error description
+	Error error
+}
+
+// String returns human readable status
+func (s Status) String() string {
+	return s.Code.String()
 }
 
 // AdvertType is route advertisement type
