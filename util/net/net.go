@@ -14,12 +14,20 @@ func HostPort(addr string, port interface{}) string {
 	if strings.Count(addr, ":") > 0 {
 		host = fmt.Sprintf("[%s]", addr)
 	}
-	// TODO check for NATS case
+	// NATS case
 	if v, ok := port.(string); ok {
 		if v == "" {
 			return fmt.Sprintf("%s", host)
 		}
 	}
+
+	// RabbitMQ case
+	if v, ok := port.(int); ok && v == 0 {
+		if net.ParseIP(host) == nil {
+			return fmt.Sprintf("%s", host)
+		}
+	}
+
 	return fmt.Sprintf("%s:%v", host, port)
 }
 
