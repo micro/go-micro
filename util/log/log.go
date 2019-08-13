@@ -12,30 +12,30 @@ import (
 type Level int
 
 const (
-	trace Level = iota
-	debug
-	info
-	fatal
+	LevelFatal Level = iota
+	LevelInfo
+	LevelDebug
+	LevelTrace
 )
 
 var (
 	// the local logger
 	logger log.Logger = golog.New()
 
-	// default log level is debug
-	level = info
+	// default log level is info
+	level = LevelInfo
 )
 
 func init() {
 	switch os.Getenv("MICRO_LOG_LEVEL") {
 	case "debug":
-		level = debug
+		level = LevelDebug
 	case "info":
-		level = info
+		level = LevelInfo
 	case "trace":
-		level = trace
+		level = LevelTrace
 	case "fatal":
-		level = fatal
+		level = LevelFatal
 	}
 }
 
@@ -51,7 +51,7 @@ func Logf(format string, v ...interface{}) {
 
 // WithLevel logs with the level specified
 func WithLevel(l Level, v ...interface{}) {
-	if l < level {
+	if l > level {
 		return
 	}
 	Log(v...)
@@ -59,7 +59,7 @@ func WithLevel(l Level, v ...interface{}) {
 
 // WithLevel logs with the level specified
 func WithLevelf(l Level, format string, v ...interface{}) {
-	if l < level {
+	if l > level {
 		return
 	}
 	Logf(format, v...)
@@ -67,43 +67,43 @@ func WithLevelf(l Level, format string, v ...interface{}) {
 
 // Trace provides trace level logging
 func Trace(v ...interface{}) {
-	WithLevel(trace, v...)
+	WithLevel(LevelTrace, v...)
 }
 
 // Tracef provides trace level logging
 func Tracef(format string, v ...interface{}) {
-	WithLevelf(trace, format, v...)
+	WithLevelf(LevelTrace, format, v...)
 }
 
 // Debug provides debug level logging
 func Debug(v ...interface{}) {
-	WithLevel(debug, v...)
+	WithLevel(LevelDebug, v...)
 }
 
 // Debugf provides debug level logging
 func Debugf(format string, v ...interface{}) {
-	WithLevelf(debug, format, v...)
+	WithLevelf(LevelDebug, format, v...)
 }
 
 // Info provides info level logging
 func Info(v ...interface{}) {
-	WithLevel(info, v...)
+	WithLevel(LevelInfo, v...)
 }
 
 // Infof provides info level logging
 func Infof(format string, v ...interface{}) {
-	WithLevelf(info, format, v...)
+	WithLevelf(LevelInfo, format, v...)
 }
 
 // Fatal logs with Log and then exits with os.Exit(1)
 func Fatal(v ...interface{}) {
-	WithLevel(fatal, v...)
+	WithLevel(LevelFatal, v...)
 	os.Exit(1)
 }
 
 // Fatalf logs with Logf and then exits with os.Exit(1)
 func Fatalf(format string, v ...interface{}) {
-	WithLevelf(fatal, format, v...)
+	WithLevelf(LevelFatal, format, v...)
 	os.Exit(1)
 }
 
