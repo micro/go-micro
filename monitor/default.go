@@ -41,6 +41,13 @@ func (m *monitor) check(service string) (*Status, error) {
 	// iterate through multiple versions of a service
 	for _, service := range services {
 		for _, node := range service.Nodes {
+			// TODO: checks that are not just RPC based
+			// TODO: better matching of the protocol
+			// TODO: maybe everything has to be a go-micro service?
+			if node.Metadata["server"] != m.client.String() {
+				continue
+			}
+
 			rsp, err := debug.Health(
 				context.Background(),
 				// empty health request
