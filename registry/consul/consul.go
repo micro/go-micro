@@ -251,6 +251,10 @@ func (c *consulRegistry) Register(s *registry.Service, opts ...registry.Register
 	}
 
 	host, pt, _ := net.SplitHostPort(node.Address)
+	if host == "" {
+		host = node.Address
+	}
+
 	port, _ := strconv.Atoi(pt)
 
 	// register the service
