@@ -24,10 +24,22 @@ func testAccept(t *testing.T, tun Tunnel, wg *sync.WaitGroup) {
 
 	// get a message
 	for {
+		// accept the message
 		m := new(transport.Message)
 		if err := c.Recv(m); err != nil {
 			t.Fatal(err)
 		}
+
+		if v := m.Header["test"]; v != "send" {
+			t.Fatalf("Accept side expected test:send header. Received: %s", v)
+		}
+
+		// now respond
+		m.Header["test"] = "accept"
+		if err := c.Send(m); err != nil {
+			t.Fatal(err)
+		}
+
 		wg.Done()
 		return
 	}
@@ -44,12 +56,23 @@ func testSend(t *testing.T, tun Tunnel) {
 
 	m := transport.Message{
 		Header: map[string]string{
-			"test": "header",
+			"test": "send",
 		},
 	}
 
+	// send the message
 	if err := c.Send(&m); err != nil {
 		t.Fatal(err)
+	}
+
+	// now wait for the response
+	mr := new(transport.Message)
+	if err := c.Recv(mr); err != nil {
+		t.Fatal(err)
+	}
+
+	if v := mr.Header["test"]; v != "accept" {
+		t.Fatalf("Message not received from accepted side. Received: %s", v)
 	}
 }
 
@@ -94,6 +117,38 @@ func TestTunnel(t *testing.T) {
 
 	// dial and send via B
 	testSend(t, tunB)
+
+	// wait until done
+	wg.Wait()
+}
+
+func TestLoopbackTunnel(t *testing.T) {
+	// create a new tunnel client
+	tun := NewTunnel(
+		Address("127.0.0.1:9096"),
+		Nodes("127.0.0.1:9096"),
+	)
+
+	// start tunB
+	err := tun.Connect()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tun.Close()
+
+	time.Sleep(time.Millisecond * 50)
+
+	var wg sync.WaitGroup
+
+	// start accepting connections
+	// on tunnel A
+	wg.Add(1)
+	go testAccept(t, tun, &wg)
+
+	time.Sleep(time.Millisecond * 50)
+
+	// dial and send via B
+	testSend(t, tun)
 
 	// wait until done
 	wg.Wait()
