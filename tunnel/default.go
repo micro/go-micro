@@ -131,6 +131,9 @@ func (t *tun) process() {
 			// set the session id
 			newMsg.Header["Micro-Tunnel-Session"] = msg.session
 
+			// set the tunnel token
+			newMsg.Header["Micro-Tunnel-Token"] = t.token
+
 			// send the message via the interface
 			t.RLock()
 			if len(t.links) == 0 {
@@ -150,6 +153,9 @@ func (t *tun) process() {
 
 // process incoming messages
 func (t *tun) listen(link transport.Socket) {
+	// loopback flag
+	var loopback bool
+
 	for {
 		// process anything via the net interface
 		msg := new(transport.Message)
@@ -159,26 +165,19 @@ func (t *tun) listen(link transport.Socket) {
 			return
 		}
 
-		// loopback flag
-		var loopback bool
+		switch msg.Header["Micro-Tunnel"] {
+		case "connect":
+			// check the Micro-Tunnel-Token
+			token, ok := msg.Header["Micro-Tunnel-Token"]
+			if !ok {
+				continue
+			}
 
-		// TODO: figure out the way how to populate Micro-Tunnel-Token for every message
-
-		// check the Micro-Tunnel-Token
-		token, ok := msg.Header["Micro-Tunnel-Token"]
-		if ok {
 			// are we connecting to ourselves?
 			if token == t.token {
 				loopback = true
 			}
-		}
-
-		switch msg.Header["Micro-Tunnel"] {
-		case "connect":
-			// connecting without token is not allowed
-			if token == "" {
-				continue
-			}
+			continue
 		case "close":
 			// TODO: handle the close message
 			// maybe report io.EOF or kill the link
@@ -192,8 +191,6 @@ func (t *tun) listen(link transport.Socket) {
 		// the session id
 		session := msg.Header["Micro-Tunnel-Session"]
 		delete(msg.Header, "Micro-Tunnel-Session")
-
-		// TODO: should we delete Micro-Tunnel-Token header, too?
 
 		// if the session id is blank there's nothing we can do
 		// TODO: check this is the case, is there any reason
@@ -366,7 +363,8 @@ func (t *tun) close() error {
 	for id, link := range t.links {
 		link.Send(&transport.Message{
 			Header: map[string]string{
-				"Micro-Tunnel": "close",
+				"Micro-Tunnel":       "close",
+				"Micro-Tunnel-Token": t.token,
 			},
 		})
 		link.Close()
@@ -444,7 +442,6 @@ func (t *tun) Dial(addr string) (Conn, error) {
 	if !ok {
 		return nil, errors.New("error dialing " + addr)
 	}
-
 	// set remote
 	c.remote = addr
 	// set local
