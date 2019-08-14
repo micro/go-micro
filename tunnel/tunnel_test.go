@@ -98,3 +98,35 @@ func TestTunnel(t *testing.T) {
 	// wait until done
 	wg.Wait()
 }
+
+//func TestLoopbackTunnel(t *testing.T) {
+//	// create a new tunnel client
+//	tun := NewTunnel(
+//		Address("127.0.0.1:9096"),
+//		Nodes("127.0.0.1:9096"),
+//	)
+//
+//	// start tunB
+//	err := tun.Connect()
+//	if err != nil {
+//		t.Fatal(err)
+//	}
+//	defer tun.Close()
+//
+//	time.Sleep(time.Millisecond * 50)
+//
+//	var wg sync.WaitGroup
+//
+//	// start accepting connections
+//	// on tunnel A
+//	wg.Add(1)
+//	go testAccept(t, tun, &wg)
+//
+//	time.Sleep(time.Millisecond * 50)
+//
+//	// dial and send via B
+//	testSend(t, tun)
+//
+//	// wait until done
+//	wg.Wait()
+//}

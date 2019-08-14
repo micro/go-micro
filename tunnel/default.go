@@ -96,6 +96,7 @@ func (t *tun) newSocket(id, session string) (*socket, bool) {
 		t.Unlock()
 		return nil, false
 	}
+
 	t.sockets[id+session] = s
 	t.Unlock()
 
@@ -158,20 +159,25 @@ func (t *tun) listen(link transport.Socket) {
 			return
 		}
 
+		// loopback flag
 		var loopback bool
 
-		switch msg.Header["Micro-Tunnel"] {
-		case "connect":
-			// TODO: handle the connect message
-			// check the Micro-Tunnel-Token
-			token, ok := msg.Header["Micro-Tunnel-Token"]
-			if !ok {
-				// no token found; bailing
-				continue
-			}
+		// TODO: figure out the way how to populate Micro-Tunnel-Token for every message
+
+		// check the Micro-Tunnel-Token
+		token, ok := msg.Header["Micro-Tunnel-Token"]
+		if ok {
 			// are we connecting to ourselves?
 			if token == t.token {
 				loopback = true
+			}
+		}
+
+		switch msg.Header["Micro-Tunnel"] {
+		case "connect":
+			// connecting without token is not allowed
+			if token == "" {
+				continue
 			}
 		case "close":
 			// TODO: handle the close message
@@ -186,6 +192,8 @@ func (t *tun) listen(link transport.Socket) {
 		// the session id
 		session := msg.Header["Micro-Tunnel-Session"]
 		delete(msg.Header, "Micro-Tunnel-Session")
+
+		// TODO: should we delete Micro-Tunnel-Token header, too?
 
 		// if the session id is blank there's nothing we can do
 		// TODO: check this is the case, is there any reason
@@ -208,6 +216,12 @@ func (t *tun) listen(link transport.Socket) {
 			// this could be something we dialed in which case
 			// we have a session for it otherwise its a listener
 			s, exists = t.getSocket(id, session)
+			if !exists {
+				// try get it based on just the tunnel id
+				// the assumption here is that a listener
+				// has no session but its set a listener session
+				s, exists = t.getSocket(id, "listener")
+			}
 		}
 		// bail if no socket has been found
 		if !exists {
