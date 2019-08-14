@@ -61,6 +61,14 @@ func newTunnel(opts ...Option) *tun {
 	}
 }
 
+// Init initializes tunnel options
+func (t *tun) Init(opts ...Option) error {
+	for _, o := range opts {
+		o(&t.options)
+	}
+	return nil
+}
+
 // getSocket returns a socket from the internal socket map.
 // It does this based on the Micro-Tunnel-Id and Micro-Tunnel-Session
 func (t *tun) getSocket(id, session string) (*socket, bool) {
@@ -273,6 +281,7 @@ func (t *tun) listen(link transport.Socket) {
 	}
 }
 
+// connect the tunnel to all the nodes and listen for incoming tunnel connections
 func (t *tun) connect() error {
 	l, err := t.options.Transport.Listen(t.options.Address)
 	if err != nil {
@@ -358,6 +367,29 @@ func (t *tun) connect() error {
 	return nil
 }
 
+// Connect the tunnel
+func (t *tun) Connect() error {
+	t.Lock()
+	defer t.Unlock()
+
+	// already connected
+	if t.connected {
+		return nil
+	}
+
+	// send the connect message
+	if err := t.connect(); err != nil {
+		return err
+	}
+
+	// set as connected
+	t.connected = true
+	// create new close channel
+	t.closed = make(chan bool)
+
+	return nil
+}
+
 func (t *tun) close() error {
 	// close all the links
 	for id, link := range t.links {
@@ -402,36 +434,6 @@ func (t *tun) Close() error {
 		return t.close()
 	}
 
-	return nil
-}
-
-// Connect the tunnel
-func (t *tun) Connect() error {
-	t.Lock()
-	defer t.Unlock()
-
-	// already connected
-	if t.connected {
-		return nil
-	}
-
-	// send the connect message
-	if err := t.connect(); err != nil {
-		return err
-	}
-
-	// set as connected
-	t.connected = true
-	// create new close channel
-	t.closed = make(chan bool)
-
-	return nil
-}
-
-func (t *tun) Init(opts ...Option) error {
-	for _, o := range opts {
-		o(&t.options)
-	}
 	return nil
 }
 
