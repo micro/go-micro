@@ -25,6 +25,8 @@ type socket struct {
 	recv chan *message
 	// wait until we have a connection
 	wait chan bool
+	// outbound marks the socket as outbound
+	outbound bool
 }
 
 // message is sent over the send channel
@@ -33,6 +35,8 @@ type message struct {
 	id string
 	// the session id
 	session string
+	// outbound marks the message as outbound
+	outbound bool
 	// transport data
 	data *transport.Message
 }
@@ -72,7 +76,12 @@ func (s *socket) Send(m *transport.Message) error {
 	}
 
 	// append to backlog
-	msg := &message{id: s.id, session: s.session, data: data}
+	msg := &message{
+		id:       s.id,
+		session:  s.session,
+		outbound: s.outbound,
+		data:     data,
+	}
 	log.Debugf("Appending %+v to send backlog", msg)
 	s.send <- msg
 	return nil

@@ -41,7 +41,8 @@ type tun struct {
 
 type link struct {
 	transport.Socket
-	id string
+	id       string
+	loopback bool
 }
 
 // create new tunnel on top of a link
@@ -148,8 +149,11 @@ func (t *tun) process() {
 				log.Debugf("Zero links to send to")
 			}
 			for _, link := range t.links {
-				log.Debugf("Sending %+v to %s", newMsg, link.Remote())
 				// TODO: error check and reconnect
+				log.Debugf("Sending %+v to %s", newMsg, link.Remote())
+				if link.loopback && msg.outbound {
+					continue
+				}
 				link.Send(newMsg)
 			}
 			t.RUnlock()
@@ -160,7 +164,7 @@ func (t *tun) process() {
 }
 
 // process incoming messages
-func (t *tun) listen(link transport.Socket) {
+func (t *tun) listen(link *link) {
 	// loopback flag
 	var loopback bool
 
@@ -184,6 +188,7 @@ func (t *tun) listen(link transport.Socket) {
 			// are we connecting to ourselves?
 			if token == t.token {
 				loopback = true
+				link.loopback = true
 			}
 			continue
 		case "close":
@@ -298,10 +303,11 @@ func (t *tun) connect() error {
 			// save the link
 			id := uuid.New().String()
 			t.Lock()
-			t.links[id] = &link{
+			link := &link{
 				Socket: sock,
 				id:     id,
 			}
+			t.links[id] = link
 			t.Unlock()
 
 			// delete the link
@@ -313,7 +319,7 @@ func (t *tun) connect() error {
 			}()
 
 			// listen for inbound messages
-			t.listen(sock)
+			t.listen(link)
 		})
 
 		t.Lock()
@@ -349,15 +355,16 @@ func (t *tun) connect() error {
 			continue
 		}
 
-		// process incoming messages
-		go t.listen(c)
-
 		// save the link
 		id := uuid.New().String()
-		t.links[id] = &link{
+		link := &link{
 			Socket: c,
 			id:     id,
 		}
+		t.links[id] = link
+
+		// process incoming messages
+		go t.listen(link)
 	}
 
 	// process outbound messages to be sent
@@ -448,6 +455,8 @@ func (t *tun) Dial(addr string) (Conn, error) {
 	c.remote = addr
 	// set local
 	c.local = "local"
+	// outbound socket
+	c.outbound = true
 
 	return c, nil
 }
