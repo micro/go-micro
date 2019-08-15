@@ -42,6 +42,11 @@ type Proxy struct {
 
 // read client request and write to server
 func readLoop(r server.Request, s client.Stream) error {
+	// we don't loop unless its a stream
+	if !r.Stream() {
+		return nil
+	}
+
 	// request to backend server
 	req := s.Request()
 
@@ -265,6 +270,11 @@ func (p *Proxy) ServeRequest(ctx context.Context, req server.Request, rsp server
 				return nil
 			} else if err != nil {
 				return err
+			}
+
+			// we don't continue unless its a stream
+			if !req.Stream() {
+				return nil
 			}
 		}
 	}
