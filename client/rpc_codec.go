@@ -126,6 +126,7 @@ func setHeaders(m *codec.Message) {
 	set("Micro-Service", m.Target)
 	set("Micro-Method", m.Method)
 	set("Micro-Endpoint", m.Endpoint)
+	set("Micro-Error", m.Error)
 }
 
 // setupProtocol sets up the old protocol
