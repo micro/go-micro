@@ -453,9 +453,14 @@ func (s *rpcServer) Deregister() error {
 		return err
 	}
 
+	// mq-rpc(eg. nats) doesn't need the port. its addr is queue name.
+	if port != "" {
+		addr = mnet.HostPort(addr, port)
+	}
+
 	node := &registry.Node{
 		Id:      config.Name + "-" + config.Id,
-		Address: mnet.HostPort(addr, port),
+		Address: addr,
 	}
 
 	service := &registry.Service{
