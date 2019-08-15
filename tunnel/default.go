@@ -141,7 +141,7 @@ func (t *tun) monitor() {
 			for _, node := range t.options.Nodes {
 				t.Lock()
 				if _, ok := t.links[node]; !ok {
-					link, err := t.nodeLink(node)
+					link, err := t.setupLink(node)
 					if err != nil {
 						log.Debugf("Tunnel failed to establish node link to %s: %v", node, err)
 						continue
@@ -365,9 +365,9 @@ func (t *tun) keepalive(link *link) {
 	}
 }
 
-// nodeLink attempts to connect to node and returns link if successful
-// it returns error if the link failed to be established
-func (t *tun) nodeLink(node string) (*link, error) {
+// setupLink connects to node and returns link if successful
+// It returns error if the link failed to be established
+func (t *tun) setupLink(node string) (*link, error) {
 	log.Debugf("Tunnel dialing %s", node)
 	c, err := t.options.Transport.Dial(node)
 	if err != nil {
@@ -454,7 +454,7 @@ func (t *tun) connect() error {
 		}
 
 		// connect to node and return link
-		link, err := t.nodeLink(node)
+		link, err := t.setupLink(node)
 		if err != nil {
 			log.Debugf("Tunnel failed to establish node link to %s: %v", node, err)
 			continue
