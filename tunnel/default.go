@@ -4,11 +4,18 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
+	"io"
 	"sync"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/micro/go-micro/transport"
 	"github.com/micro/go-micro/util/log"
+)
+
+var (
+	// DefaultKeepAlive defines interval we check if the links are alive
+	DefaultKeepAlive = 30 * time.Second
 )
 
 // tun represents a network tunnel
@@ -41,8 +48,9 @@ type tun struct {
 
 type link struct {
 	transport.Socket
-	id       string
-	loopback bool
+	id            string
+	loopback      bool
+	lastKeepAlive time.Time
 }
 
 // create new tunnel on top of a link
@@ -118,6 +126,11 @@ func (t *tun) newSession() string {
 	return uuid.New().String()
 }
 
+// monitor monitors all links and attempts to dial the failed ones
+func (t *tun) monitor() {
+	// TODO: implement this
+}
+
 // process outgoing messages sent by all local sockets
 func (t *tun) process() {
 	// manage the send buffer
@@ -144,19 +157,24 @@ func (t *tun) process() {
 			newMsg.Header["Micro-Tunnel-Token"] = t.token
 
 			// send the message via the interface
-			t.RLock()
+			t.Lock()
 			if len(t.links) == 0 {
 				log.Debugf("Zero links to send to")
 			}
 			for _, link := range t.links {
-				// TODO: error check and reconnect
-				log.Debugf("Sending %+v to %s", newMsg, link.Remote())
 				if link.loopback && msg.outbound {
 					continue
 				}
-				link.Send(newMsg)
+				log.Debugf("Sending %+v to %s", newMsg, link.Remote())
+				if err := link.Send(newMsg); err != nil {
+					log.Debugf("Error sending %+v to %s: %v", newMsg, link.Remote(), err)
+					if err == io.EOF {
+						delete(t.links, link.id)
+						continue
+					}
+				}
 			}
-			t.RUnlock()
+			t.Unlock()
 		case <-t.closed:
 			return
 		}
@@ -165,9 +183,6 @@ func (t *tun) process() {
 
 // process incoming messages
 func (t *tun) listen(link *link) {
-	// loopback flag
-	var loopback bool
-
 	for {
 		// process anything via the net interface
 		msg := new(transport.Message)
@@ -179,6 +194,7 @@ func (t *tun) listen(link *link) {
 
 		switch msg.Header["Micro-Tunnel"] {
 		case "connect":
+			log.Debugf("Tunnel link %s received connect message", link.Remote())
 			// check the Micro-Tunnel-Token
 			token, ok := msg.Header["Micro-Tunnel-Token"]
 			if !ok {
@@ -187,13 +203,17 @@ func (t *tun) listen(link *link) {
 
 			// are we connecting to ourselves?
 			if token == t.token {
-				loopback = true
 				link.loopback = true
 			}
 			continue
 		case "close":
+			log.Debugf("Tunnel link %s closing connection", link.Remote())
 			// TODO: handle the close message
 			// maybe report io.EOF or kill the link
+			continue
+		case "ping":
+			log.Debugf("Tunnel link %s received keepalive", link.Remote())
+			link.lastKeepAlive = time.Now()
 			continue
 		}
 
@@ -219,7 +239,7 @@ func (t *tun) listen(link *link) {
 		log.Debugf("Received %+v from %s", msg, link.Remote())
 
 		switch {
-		case loopback:
+		case link.loopback:
 			s, exists = t.getSocket(id, "listener")
 		default:
 			// get the socket based on the tunnel id and session
@@ -282,6 +302,36 @@ func (t *tun) listen(link *link) {
 		select {
 		case s.recv <- imsg:
 		default:
+		}
+	}
+}
+
+// keepalive periodically sends ping messages to link
+func (t *tun) keepalive(link *link) {
+	ping := time.NewTicker(DefaultKeepAlive)
+	defer ping.Stop()
+
+	for {
+		select {
+		case <-t.closed:
+			return
+		case <-ping.C:
+			// send ping message
+			log.Debugf("Tunnel sending ping to link %v: %v", link.Remote(), link.id)
+			if err := link.Send(&transport.Message{
+				Header: map[string]string{
+					"Micro-Tunnel":       "ping",
+					"Micro-Tunnel-Token": t.token,
+				},
+			}); err != nil {
+				if err == io.EOF {
+					t.Lock()
+					delete(t.links, link.id)
+					t.Unlock()
+					return
+				}
+				// TODO: handle this error
+			}
 		}
 	}
 }
@@ -365,6 +415,9 @@ func (t *tun) connect() error {
 
 		// process incoming messages
 		go t.listen(link)
+
+		// start keepalive monitor
+		go t.keepalive(link)
 	}
 
 	// process outbound messages to be sent
