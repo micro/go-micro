@@ -123,16 +123,6 @@ func (s *Socket) Close() error {
 	return nil
 }
 
-// Indicates its closed
-func (s *socket) Done() bool {
-	select {
-	case <-s.closed:
-		return true
-	default:
-		return false
-	}
-}
-
 // New returns a new pseudo socket which can be used in the place of a transport socket.
 // Messages are sent to the socket via Accept and receives from the socket via Process.
 // SetLocal/SetRemote should be called before using the socket.

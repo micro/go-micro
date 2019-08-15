@@ -75,8 +75,6 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 	var mtx sync.RWMutex
 	sockets := make(map[string]*socket.Socket)
 
-	log.Info("New socket")
-
 	for {
 		var msg transport.Message
 		if err := sock.Recv(&msg); err != nil {
@@ -103,16 +101,10 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 		psock, ok := sockets[id]
 		mtx.RUnlock()
 
-		log.Infof("Got socket %v %v", id, ok)
-
 		// got the socket
 		if ok {
 			// accept the message
 			if err := psock.Accept(&msg); err != nil {
-				log.Infof("Accept Error %+v", err)
-				// close the socket
-				psock.Close()
-
 				// delete the socket
 				mtx.Lock()
 				delete(sockets, id)
@@ -149,8 +141,6 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 				// get the message from our internal handler/stream
 				m := new(transport.Message)
 				if err := psock.Process(m); err != nil {
-					log.Infof("Process Error %+v", err)
-
 					// delete the socket
 					mtx.Lock()
 					delete(sockets, id)
@@ -286,8 +276,6 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 			mtx.Lock()
 			delete(sockets, id)
 			mtx.Unlock()
-
-			psock.Close()
 
 			// once done serving signal we're done
 			if s.wg != nil {
