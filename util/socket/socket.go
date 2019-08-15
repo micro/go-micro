@@ -7,8 +7,8 @@ import (
 	"github.com/micro/go-micro/transport"
 )
 
-// socket is our pseudo socket for transport.Socket
-type socket struct {
+// Socket is our pseudo socket for transport.Socket
+type Socket struct {
 	// closed
 	closed chan bool
 	// remote addr
@@ -21,16 +21,16 @@ type socket struct {
 	recv chan *transport.Message
 }
 
-func (s *socket) SetLocal(l string) {
+func (s *Socket) SetLocal(l string) {
 	s.local = l
 }
 
-func (s *socket) SetRemote(r string) {
+func (s *Socket) SetRemote(r string) {
 	s.remote = r
 }
 
 // Accept passes a message to the socket which will be processed by the call to Recv
-func (s *socket) Accept(m *transport.Message) error {
+func (s *Socket) Accept(m *transport.Message) error {
 	select {
 	case <-s.closed:
 		return io.EOF
@@ -41,7 +41,7 @@ func (s *socket) Accept(m *transport.Message) error {
 }
 
 // Process takes the next message off the send queue created by a call to Send
-func (s *socket) Process(m *transport.Message) error {
+func (s *Socket) Process(m *transport.Message) error {
 	select {
 	case <-s.closed:
 		return io.EOF
@@ -51,15 +51,15 @@ func (s *socket) Process(m *transport.Message) error {
 	return nil
 }
 
-func (s *socket) Remote() string {
+func (s *Socket) Remote() string {
 	return s.remote
 }
 
-func (s *socket) Local() string {
+func (s *Socket) Local() string {
 	return s.local
 }
 
-func (s *socket) Send(m *transport.Message) error {
+func (s *Socket) Send(m *transport.Message) error {
 	select {
 	case <-s.closed:
 		return io.EOF
@@ -70,12 +70,16 @@ func (s *socket) Send(m *transport.Message) error {
 	// make copy
 	msg := &transport.Message{
 		Header: make(map[string]string),
-		Body:   m.Body,
+		Body: make([]byte, len(m.Body)),
 	}
 
+	// copy headers
 	for k, v := range m.Header {
 		msg.Header[k] = v
 	}
+
+	// copy body
+	copy(msg.Body, m.Body)
 
 	// send a message
 	select {
@@ -87,7 +91,7 @@ func (s *socket) Send(m *transport.Message) error {
 	return nil
 }
 
-func (s *socket) Recv(m *transport.Message) error {
+func (s *Socket) Recv(m *transport.Message) error {
 	select {
 	case <-s.closed:
 		return io.EOF
@@ -109,7 +113,7 @@ func (s *socket) Recv(m *transport.Message) error {
 }
 
 // Close closes the socket
-func (s *socket) Close() error {
+func (s *Socket) Close() error {
 	select {
 	case <-s.closed:
 		// no op
@@ -119,11 +123,21 @@ func (s *socket) Close() error {
 	return nil
 }
 
+// Indicates its closed
+func (s *socket) Done() bool {
+	select {
+	case <-s.closed:
+		return true
+	default:
+		return false
+	}
+}
+
 // New returns a new pseudo socket which can be used in the place of a transport socket.
 // Messages are sent to the socket via Accept and receives from the socket via Process.
 // SetLocal/SetRemote should be called before using the socket.
-func New() *socket {
-	return &socket{
+func New() *Socket {
+	return &Socket{
 		closed: make(chan bool),
 		local:  "local",
 		remote: "remote",

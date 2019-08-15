@@ -39,6 +39,9 @@ type rpcCodec struct {
 
 	req *transport.Message
 	buf *readWriteCloser
+
+	// signify if its a stream
+	stream string
 }
 
 type readWriteCloser struct {
@@ -113,7 +116,7 @@ func getHeaders(m *codec.Message) {
 	}
 }
 
-func setHeaders(m *codec.Message) {
+func setHeaders(m *codec.Message, stream string) {
 	set := func(hdr, v string) {
 		if len(v) == 0 {
 			return
@@ -127,6 +130,10 @@ func setHeaders(m *codec.Message) {
 	set("Micro-Method", m.Method)
 	set("Micro-Endpoint", m.Endpoint)
 	set("Micro-Error", m.Error)
+
+	if len(stream) > 0 {
+		set("Micro-Stream", stream)
+	}
 }
 
 // setupProtocol sets up the old protocol
@@ -150,7 +157,7 @@ func setupProtocol(msg *transport.Message, node *registry.Node) codec.NewCodec {
 	return defaultCodecs[msg.Header["Content-Type"]]
 }
 
-func newRpcCodec(req *transport.Message, client transport.Client, c codec.NewCodec) codec.Codec {
+func newRpcCodec(req *transport.Message, client transport.Client, c codec.NewCodec, stream string) codec.Codec {
 	rwc := &readWriteCloser{
 		wbuf: bytes.NewBuffer(nil),
 		rbuf: bytes.NewBuffer(nil),
@@ -160,6 +167,7 @@ func newRpcCodec(req *transport.Message, client transport.Client, c codec.NewCod
 		client: client,
 		codec:  c(rwc),
 		req:    req,
+		stream: stream,
 	}
 	return r
 }
@@ -178,7 +186,7 @@ func (c *rpcCodec) Write(m *codec.Message, body interface{}) error {
 	}
 
 	// set the mucp headers
-	setHeaders(m)
+	setHeaders(m, c.stream)
 
 	// if body is bytes Frame don't encode
 	if body != nil {

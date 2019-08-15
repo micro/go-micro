@@ -18,6 +18,9 @@ type rpcStream struct {
 	response Response
 	codec    codec.Codec
 	context  context.Context
+
+	// signal whether we should send EOS
+	eos bool
 }
 
 func (r *rpcStream) isClosed() bool {
@@ -120,6 +123,20 @@ func (r *rpcStream) Close() error {
 		return nil
 	default:
 		close(r.closed)
+
+		// send the end of stream message
+		if r.eos {
+			// no need to check for error
+			r.codec.Write(&codec.Message{
+				Id:       r.id,
+				Target:   r.request.Service(),
+				Method:   r.request.Method(),
+				Endpoint: r.request.Endpoint(),
+				Type:     codec.Error,
+				Error: lastStreamResponseError,
+			}, nil)
+		}
+
 		return r.codec.Close()
 	}
 }

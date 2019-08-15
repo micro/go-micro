@@ -158,7 +158,6 @@ func newRpcCodec(req *transport.Message, socket transport.Socket, c codec.NewCod
 		wbuf: bytes.NewBuffer(nil),
 	}
 	r := &rpcCodec{
-		first:  true,
 		buf:    rwc,
 		codec:  c(rwc),
 		req:    req,
@@ -174,33 +173,27 @@ func (c *rpcCodec) ReadHeader(r *codec.Message, t codec.MessageType) error {
 		Body:   c.req.Body,
 	}
 
-	// if its a follow on request read it
-	if !c.first {
-		var tm transport.Message
+	var tm transport.Message
 
-		// read off the socket
-		if err := c.socket.Recv(&tm); err != nil {
-			return err
-		}
-		// reset the read buffer
-		c.buf.rbuf.Reset()
+	// read off the socket
+	if err := c.socket.Recv(&tm); err != nil {
+		return err
+	}
+	// reset the read buffer
+	c.buf.rbuf.Reset()
 
-		// write the body to the buffer
-		if _, err := c.buf.rbuf.Write(tm.Body); err != nil {
-			return err
-		}
-
-		// set the message header
-		m.Header = tm.Header
-		// set the message body
-		m.Body = tm.Body
-
-		// set req
-		c.req = &tm
+	// write the body to the buffer
+	if _, err := c.buf.rbuf.Write(tm.Body); err != nil {
+		return err
 	}
 
-	// no longer first read
-	c.first = false
+	// set the message header
+	m.Header = tm.Header
+	// set the message body
+	m.Body = tm.Body
+
+	// set req
+	c.req = &tm
 
 	// set some internal things
 	getHeaders(&m)
