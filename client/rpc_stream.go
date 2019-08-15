@@ -133,7 +133,7 @@ func (r *rpcStream) Close() error {
 				Method:   r.request.Method(),
 				Endpoint: r.request.Endpoint(),
 				Type:     codec.Error,
-				Error: lastStreamResponseError,
+				Error:    lastStreamResponseError,
 			}, nil)
 		}
 

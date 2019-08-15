@@ -70,7 +70,7 @@ func (s *Socket) Send(m *transport.Message) error {
 	// make copy
 	msg := &transport.Message{
 		Header: make(map[string]string),
-		Body: make([]byte, len(m.Body)),
+		Body:   make([]byte, len(m.Body)),
 	}
 
 	// copy headers

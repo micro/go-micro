@@ -230,7 +230,7 @@ func (r *rpcClient) stream(ctx context.Context, node *registry.Node, req Request
 		response: rsp,
 		closed:   make(chan bool),
 		codec:    codec,
-		id: id,
+		id:       id,
 		// signal the end of stream,
 		eos: true,
 	}
