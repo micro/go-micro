@@ -316,10 +316,15 @@ func (s *rpcServer) Register() error {
 		md[k] = v
 	}
 
+	// mq-rpc(eg. nats) doesn't need the port. its addr is queue name.
+	if port != "" {
+		addr = mnet.HostPort(addr, port)
+	}
+
 	// register service
 	node := &registry.Node{
 		Id:       config.Name + "-" + config.Id,
-		Address:  mnet.HostPort(addr, port),
+		Address:  addr,
 		Metadata: md,
 	}
 
