@@ -19,6 +19,7 @@ import (
 	"github.com/micro/go-micro/util/addr"
 	log "github.com/micro/go-micro/util/log"
 	mnet "github.com/micro/go-micro/util/net"
+	"github.com/micro/go-micro/util/socket"
 )
 
 type rpcServer struct {
@@ -70,10 +71,25 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 		}
 	}()
 
+	// multiplex the streams on a single socket by Micro-Stream
+	var mtx sync.RWMutex
+	sockets := make(map[string]*socket.Socket)
+
 	for {
 		var msg transport.Message
 		if err := sock.Recv(&msg); err != nil {
 			return
+		}
+
+		// use Micro-Stream as the stream identifier
+		// in the event its blank we'll always process
+		// on the same socket
+		id := msg.Header["Micro-Stream"]
+
+		// if there's no stream id then its a standard request
+		// use the Micro-Id
+		if len(id) == 0 {
+			id = msg.Header["Micro-Id"]
 		}
 
 		// add to wait group if "wait" is opt-in
@@ -81,12 +97,73 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 			s.wg.Add(1)
 		}
 
+		// check we have an existing socket
+		mtx.RLock()
+		psock, ok := sockets[id]
+		mtx.RUnlock()
+
+		// got the socket
+		if ok {
+			// accept the message
+			if err := psock.Accept(&msg); err != nil {
+				// delete the socket
+				mtx.Lock()
+				delete(sockets, id)
+				mtx.Unlock()
+			}
+
+			// done(1)
+			if s.wg != nil {
+				s.wg.Done()
+			}
+
+			// continue to the next message
+			continue
+		}
+
+		// no socket was found
+		psock = socket.New()
+		psock.SetLocal(sock.Local())
+		psock.SetRemote(sock.Remote())
+
+		// load the socket
+		psock.Accept(&msg)
+
+		// save a new socket
+		mtx.Lock()
+		sockets[id] = psock
+		mtx.Unlock()
+
+		// process the outbound messages from the socket
+		go func(id string, psock *socket.Socket) {
+			defer psock.Close()
+
+			for {
+				// get the message from our internal handler/stream
+				m := new(transport.Message)
+				if err := psock.Process(m); err != nil {
+					// delete the socket
+					mtx.Lock()
+					delete(sockets, id)
+					mtx.Unlock()
+					return
+				}
+
+				// send the message back over the socket
+				if err := sock.Send(m); err != nil {
+					return
+				}
+			}
+		}(id, psock)
+
+		// now walk the usual path
+
 		// we use this Timeout header to set a server deadline
 		to := msg.Header["Timeout"]
 		// we use this Content-Type header to identify the codec needed
 		ct := msg.Header["Content-Type"]
 
-		// strip our headers
+		// copy the message headers
 		hdr := make(map[string]string)
 		for k, v := range msg.Header {
 			hdr[k] = v
@@ -96,17 +173,17 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 		hdr["Local"] = sock.Local()
 		hdr["Remote"] = sock.Remote()
 
-		// create new context
+		// create new context with the metadata
 		ctx := metadata.NewContext(context.Background(), hdr)
 
-		// set the timeout if we have it
+		// set the timeout from the header if we have it
 		if len(to) > 0 {
 			if n, err := strconv.ParseUint(to, 10, 64); err == nil {
 				ctx, _ = context.WithTimeout(ctx, time.Duration(n))
 			}
 		}
 
-		// no content type
+		// if there's no content type default it
 		if len(ct) == 0 {
 			msg.Header["Content-Type"] = DefaultContentType
 			ct = DefaultContentType
@@ -133,7 +210,13 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 			}
 		}
 
-		rcodec := newRpcCodec(&msg, sock, cf)
+		rcodec := newRpcCodec(&msg, psock, cf)
+
+		// check stream id
+		var stream bool
+		if v := getHeader("Micro-Stream", msg.Header); len(v) > 0 {
+			stream = true
+		}
 
 		// internal request
 		request := &rpcRequest{
@@ -144,15 +227,14 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 			codec:       rcodec,
 			header:      msg.Header,
 			body:        msg.Body,
-			socket:      sock,
-			stream:      true,
-			first:       true,
+			socket:      psock,
+			stream:      stream,
 		}
 
 		// internal response
 		response := &rpcResponse{
 			header: make(map[string]string),
-			socket: sock,
+			socket: psock,
 			codec:  rcodec,
 		}
 
@@ -175,25 +257,34 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 			r = rpcRouter{handler}
 		}
 
-		// serve the actual request using the request router
-		if err := r.ServeRequest(ctx, request, response); err != nil {
-			// write an error response
-			err = rcodec.Write(&codec.Message{
-				Header: msg.Header,
-				Error:  err.Error(),
-				Type:   codec.Error,
-			}, nil)
-			// could not write the error response
-			if err != nil {
-				log.Logf("rpc: unable to write error response: %v", err)
+		// serve the request in a go routine as this may be a stream
+		go func(id string, psock *socket.Socket) {
+			// serve the actual request using the request router
+			if err := r.ServeRequest(ctx, request, response); err != nil {
+				// write an error response
+				err = rcodec.Write(&codec.Message{
+					Header: msg.Header,
+					Error:  err.Error(),
+					Type:   codec.Error,
+				}, nil)
+
+				// could not write the error response
+				if err != nil {
+					log.Logf("rpc: unable to write error response: %v", err)
+				}
 			}
+
+			mtx.Lock()
+			delete(sockets, id)
+			mtx.Unlock()
+
+			// once done serving signal we're done
 			if s.wg != nil {
 				s.wg.Done()
 			}
-			return
-		}
+		}(id, psock)
 
-		// done
+		// signal we're done
 		if s.wg != nil {
 			s.wg.Done()
 		}
