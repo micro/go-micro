@@ -154,7 +154,7 @@ func setupProtocol(msg *transport.Message) codec.NewCodec {
 
 func newRpcCodec(req *transport.Message, socket transport.Socket, c codec.NewCodec) codec.Codec {
 	rwc := &readWriteCloser{
-		rbuf: bytes.NewBuffer(req.Body),
+		rbuf: bytes.NewBuffer(nil),
 		wbuf: bytes.NewBuffer(nil),
 	}
 	r := &rpcCodec{

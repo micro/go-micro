@@ -81,12 +81,13 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 			return
 		}
 
-		// use Micro-Id as the stream identifier
+		// use Micro-Stream as the stream identifier
 		// in the event its blank we'll always process
 		// on the same socket
 		id := msg.Header["Micro-Stream"]
 
 		// if there's no stream id then its a standard request
+		// use the Micro-Id
 		if len(id) == 0 {
 			id = msg.Header["Micro-Id"]
 		}
