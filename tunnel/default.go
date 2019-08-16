@@ -4,7 +4,6 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
-	"io"
 	"sync"
 	"time"
 
@@ -139,16 +138,17 @@ func (t *tun) monitor() {
 			return
 		case <-reconnect.C:
 			for _, node := range t.options.Nodes {
-				t.Lock()
 				if _, ok := t.links[node]; !ok {
+					t.Lock()
 					link, err := t.setupLink(node)
 					if err != nil {
-						log.Debugf("Tunnel failed to establish node link to %s: %v", node, err)
+						log.Debugf("Tunnel failed to setup node link to %s: %v", node, err)
+						t.Unlock()
 						continue
 					}
 					t.links[node] = link
+					t.Unlock()
 				}
-				t.Unlock()
 			}
 		}
 	}
@@ -190,11 +190,9 @@ func (t *tun) process() {
 				}
 				log.Debugf("Sending %+v to %s", newMsg, node)
 				if err := link.Send(newMsg); err != nil {
-					log.Debugf("Error sending %+v to %s: %v", newMsg, node, err)
-					if err == io.EOF {
-						delete(t.links, node)
-						continue
-					}
+					log.Debugf("Tunnel error sending %+v to %s: %v", newMsg, node, err)
+					delete(t.links, node)
+					continue
 				}
 			}
 			t.Unlock()
@@ -211,12 +209,10 @@ func (t *tun) listen(link *link) {
 		msg := new(transport.Message)
 		err := link.Recv(msg)
 		if err != nil {
-			log.Debugf("Tunnel link %s receive error: %v", link.Remote(), err)
-			if err == io.EOF {
-				t.Lock()
-				delete(t.links, link.Remote())
-				t.Unlock()
-			}
+			log.Debugf("Tunnel link %s receive error: %#v", link.Remote(), err)
+			t.Lock()
+			delete(t.links, link.Remote())
+			t.Unlock()
 			return
 		}
 
@@ -353,13 +349,10 @@ func (t *tun) keepalive(link *link) {
 				},
 			}); err != nil {
 				log.Debugf("Error sending keepalive to link %v: %v", link.Remote(), err)
-				if err == io.EOF {
-					t.Lock()
-					delete(t.links, link.Remote())
-					t.Unlock()
-					return
-				}
-				// TODO: handle this error
+				t.Lock()
+				delete(t.links, link.Remote())
+				t.Unlock()
+				return
 			}
 		}
 	}
@@ -428,7 +421,7 @@ func (t *tun) connect() error {
 
 			// delete the link
 			defer func() {
-				log.Debugf("Deleting connection from %s", sock.Remote())
+				log.Debugf("Tunnel deleting connection from %s", sock.Remote())
 				t.Lock()
 				delete(t.links, sock.Remote())
 				t.Unlock()
@@ -527,8 +520,9 @@ func (t *tun) Close() error {
 		return nil
 	default:
 		// close all the sockets
-		for _, s := range t.sockets {
+		for id, s := range t.sockets {
 			s.Close()
+			delete(t.sockets, id)
 		}
 		// close the connection
 		close(t.closed)
