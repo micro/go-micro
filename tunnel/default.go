@@ -138,8 +138,8 @@ func (t *tun) monitor() {
 			return
 		case <-reconnect.C:
 			for _, node := range t.options.Nodes {
+				t.Lock()
 				if _, ok := t.links[node]; !ok {
-					t.Lock()
 					link, err := t.setupLink(node)
 					if err != nil {
 						log.Debugf("Tunnel failed to setup node link to %s: %v", node, err)
@@ -147,8 +147,8 @@ func (t *tun) monitor() {
 						continue
 					}
 					t.links[node] = link
-					t.Unlock()
 				}
+				t.Unlock()
 			}
 		}
 	}

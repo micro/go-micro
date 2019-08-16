@@ -9,7 +9,7 @@ import (
 )
 
 // testAccept will accept connections on the transport, create a new link and tunnel on top
-func testAccept(t *testing.T, tun Tunnel, wait chan struct{}, wg *sync.WaitGroup) {
+func testAccept(t *testing.T, tun Tunnel, wait chan bool, wg *sync.WaitGroup) {
 	// listen on some virtual address
 	tl, err := tun.Listen("test-tunnel")
 	if err != nil {
@@ -17,7 +17,7 @@ func testAccept(t *testing.T, tun Tunnel, wait chan struct{}, wg *sync.WaitGroup
 	}
 
 	// receiver ready; notify sender
-	wait <- struct{}{}
+	wait <- true
 
 	// accept a connection
 	c, err := tl.Accept()
@@ -49,7 +49,7 @@ func testAccept(t *testing.T, tun Tunnel, wait chan struct{}, wg *sync.WaitGroup
 }
 
 // testSend will create a new link to an address and then a tunnel on top
-func testSend(t *testing.T, tun Tunnel, wait chan struct{}, wg *sync.WaitGroup) {
+func testSend(t *testing.T, tun Tunnel, wait chan bool, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	// wait for the listener to get ready
@@ -110,7 +110,7 @@ func TestTunnel(t *testing.T) {
 	}
 	defer tunA.Close()
 
-	wait := make(chan struct{})
+	wait := make(chan bool)
 
 	var wg sync.WaitGroup
 
@@ -140,7 +140,7 @@ func TestLoopbackTunnel(t *testing.T) {
 	}
 	defer tun.Close()
 
-	wait := make(chan struct{})
+	wait := make(chan bool)
 
 	var wg sync.WaitGroup
 
@@ -156,7 +156,7 @@ func TestLoopbackTunnel(t *testing.T) {
 	wg.Wait()
 }
 
-func testBrokenTunAccept(t *testing.T, tun Tunnel, wait chan struct{}, wg *sync.WaitGroup) {
+func testBrokenTunAccept(t *testing.T, tun Tunnel, wait chan bool, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	// listen on some virtual address
@@ -166,7 +166,7 @@ func testBrokenTunAccept(t *testing.T, tun Tunnel, wait chan struct{}, wg *sync.
 	}
 
 	// receiver ready; notify sender
-	wait <- struct{}{}
+	wait <- true
 
 	// accept a connection
 	c, err := tl.Accept()
@@ -196,7 +196,7 @@ func testBrokenTunAccept(t *testing.T, tun Tunnel, wait chan struct{}, wg *sync.
 	}
 
 	// receiver ready; notify sender
-	wait <- struct{}{}
+	wait <- true
 
 	// accept a connection
 	c, err = tl.Accept()
@@ -214,7 +214,7 @@ func testBrokenTunAccept(t *testing.T, tun Tunnel, wait chan struct{}, wg *sync.
 	<-wait
 }
 
-func testBrokenTunSend(t *testing.T, tun Tunnel, wait chan struct{}, wg *sync.WaitGroup) {
+func testBrokenTunSend(t *testing.T, tun Tunnel, wait chan bool, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	// wait for the listener to get ready
@@ -252,7 +252,7 @@ func testBrokenTunSend(t *testing.T, tun Tunnel, wait chan struct{}, wg *sync.Wa
 	// wait for the listener to receive the message
 	// c.Send merely enqueues the message to the link send queue and returns
 	// in order to verify it was received we wait for the listener to tell us
-	wait <- struct{}{}
+	wait <- true
 }
 
 func TestReconnectTunnel(t *testing.T) {
@@ -283,7 +283,7 @@ func TestReconnectTunnel(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	wait := make(chan struct{})
+	wait := make(chan bool)
 
 	var wg sync.WaitGroup
 
