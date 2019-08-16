@@ -59,9 +59,6 @@ type CallOptions struct {
 	// Middleware for low level call func
 	CallWrappers []CallWrapper
 
-	// SendEOS specifies whether to send EOS
-	SendEOS bool
-
 	// Other options for implementations of the interface
 	// can be stored in a context
 	Context context.Context
@@ -305,13 +302,6 @@ func WithRequestTimeout(d time.Duration) CallOption {
 func WithDialTimeout(d time.Duration) CallOption {
 	return func(o *CallOptions) {
 		o.DialTimeout = d
-	}
-}
-
-// SendEOS specifies whether to send the end of stream message
-func SendEOS(b bool) CallOption {
-	return func(o *CallOptions) {
-		o.SendEOS = b
 	}
 }
 

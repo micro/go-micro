@@ -249,6 +249,12 @@ func (c *rpcCodec) ReadHeader(m *codec.Message, r codec.MessageType) error {
 
 func (c *rpcCodec) ReadBody(b interface{}) error {
 	// read body
+	// read raw data
+	if v, ok := b.(*raw.Frame); ok {
+		v.Data = c.buf.rbuf.Bytes()
+		return nil
+	}
+
 	if err := c.codec.ReadBody(b); err != nil {
 		return errors.InternalServerError("go.micro.client.codec", err.Error())
 	}

@@ -118,7 +118,7 @@ func (r *rpcClient) call(ctx context.Context, node *registry.Node, req Request, 
 		codec:    codec,
 		closed:   make(chan bool),
 		release:  func(err error) { r.pool.Release(c, err) },
-		sendEOS:  opts.SendEOS,
+		sendEOS:  false,
 	}
 	// close the stream on exiting this function
 	defer stream.Close()
@@ -244,7 +244,7 @@ func (r *rpcClient) stream(ctx context.Context, node *registry.Node, req Request
 		// used to close the stream
 		closed: make(chan bool),
 		// signal the end of stream,
-		sendEOS: opts.SendEOS,
+		sendEOS: true,
 		// release func
 		release: func(err error) { r.pool.Release(c, err) },
 	}
