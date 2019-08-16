@@ -42,11 +42,6 @@ type Proxy struct {
 
 // read client request and write to server
 func readLoop(r server.Request, s client.Stream) error {
-	// we don't loop unless its a stream
-	if !r.Stream() {
-		return nil
-	}
-
 	// request to backend server
 	req := s.Request()
 
@@ -225,6 +220,11 @@ func (p *Proxy) ServeRequest(ctx context.Context, req server.Request, rsp server
 	// create new request with raw bytes body
 	creq := p.Client.NewRequest(service, endpoint, &bytes.Frame{body}, client.WithContentType(req.ContentType()))
 
+	if !req.Stream() {
+		// specify not to send eos
+		opts = append(opts, client.SendEOS(false))
+	}
+
 	// create new stream
 	stream, err := p.Client.Stream(ctx, creq, opts...)
 	if err != nil {
@@ -232,8 +232,10 @@ func (p *Proxy) ServeRequest(ctx context.Context, req server.Request, rsp server
 	}
 	defer stream.Close()
 
-	// create client request read loop
-	go readLoop(req, stream)
+	// create client request read loop if streaming
+	if req.Stream() {
+		go readLoop(req, stream)
+	}
 
 	// get raw response
 	resp := stream.Response()

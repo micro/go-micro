@@ -20,7 +20,10 @@ type rpcStream struct {
 	context  context.Context
 
 	// signal whether we should send EOS
-	eos bool
+	sendEOS bool
+
+	// release releases the connection back to the pool
+	release func(err error)
 }
 
 func (r *rpcStream) isClosed() bool {
@@ -125,7 +128,7 @@ func (r *rpcStream) Close() error {
 		close(r.closed)
 
 		// send the end of stream message
-		if r.eos {
+		if r.sendEOS {
 			// no need to check for error
 			r.codec.Write(&codec.Message{
 				Id:       r.id,
@@ -137,6 +140,12 @@ func (r *rpcStream) Close() error {
 			}, nil)
 		}
 
-		return r.codec.Close()
+		err := r.codec.Close()
+
+		// release the connection
+		r.release(r.Error())
+
+		// return the codec error
+		return err
 	}
 }
