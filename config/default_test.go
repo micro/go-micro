@@ -172,9 +172,7 @@ func TestFileChange(t *testing.T) {
 		time.Sleep(time.Second)
 	}
 
-	// waiting for Logf completed
-	time.Sleep(time.Second * 1)
-	if changeTimes != 5 {
+	if changeTimes != 4 {
 		t.Error(fmt.Errorf("watcher error: change times %d is not enough", changeTimes))
 	}
 }
