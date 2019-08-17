@@ -67,11 +67,16 @@ func NewFunction(opts ...Option) Function {
 }
 
 // NewPublisher returns a new Publisher
-func NewPublisher(topic string, c client.Client) Publisher {
+func NewPublisher(topic string, c client.Client, contentType... string) Publisher {
 	if c == nil {
 		c = client.NewClient()
 	}
-	return &publisher{c, topic}
+	// compatible old version
+	if len(contentType) > 0 {
+		return &publisher{c, topic, contentType[0]}
+	} else {
+		return &publisher{c, topic, ""}
+	}
 }
 
 // RegisterHandler is syntactic sugar for registering a handler
