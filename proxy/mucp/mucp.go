@@ -220,6 +220,23 @@ func (p *Proxy) ServeRequest(ctx context.Context, req server.Request, rsp server
 	// create new request with raw bytes body
 	creq := p.Client.NewRequest(service, endpoint, &bytes.Frame{body}, client.WithContentType(req.ContentType()))
 
+	// not a stream so make a client.Call request
+	if !req.Stream() {
+		crsp := new(bytes.Frame)
+
+		// make a call to the backend
+		if err := p.Client.Call(ctx, creq, crsp, opts...); err != nil {
+			return err
+		}
+
+		// write the response
+		if err := rsp.Write(crsp.Data); err != nil {
+			return err
+		}
+
+		return nil
+	}
+
 	// create new stream
 	stream, err := p.Client.Stream(ctx, creq, opts...)
 	if err != nil {
@@ -227,7 +244,7 @@ func (p *Proxy) ServeRequest(ctx context.Context, req server.Request, rsp server
 	}
 	defer stream.Close()
 
-	// create client request read loop
+	// create client request read loop if streaming
 	go readLoop(req, stream)
 
 	// get raw response

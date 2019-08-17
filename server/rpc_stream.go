@@ -2,6 +2,8 @@ package server
 
 import (
 	"context"
+	"errors"
+	"io"
 	"sync"
 
 	"github.com/micro/go-micro/codec"
@@ -57,6 +59,20 @@ func (r *rpcStream) Recv(msg interface{}) error {
 		r.codec.ReadBody(nil)
 		r.err = err
 		return err
+	}
+
+	// check the error
+	if len(req.Error) > 0 {
+		// Check the client closed the stream
+		switch req.Error {
+		case lastStreamResponseError.Error():
+			// discard body
+			r.codec.ReadBody(nil)
+			r.err = io.EOF
+			return io.EOF
+		default:
+			return errors.New(req.Error)
+		}
 	}
 
 	// we need to stay up to date with sequence numbers
