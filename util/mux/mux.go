@@ -10,7 +10,7 @@ import (
 	"github.com/micro/go-micro/server"
 )
 
-// Server is a proxy muxer that incudes the use of the DefaultHandler 
+// Server is a proxy muxer that incudes the use of the DefaultHandler
 type Server struct {
 	// name of service
 	Name string
@@ -41,7 +41,7 @@ func New(name string, p proxy.Proxy) *Server {
 	})
 
 	return &Server{
-		Name: name,
+		Name:  name,
 		Proxy: p,
 	}
 }

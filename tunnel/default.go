@@ -5,10 +5,18 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/micro/go-micro/transport"
 	"github.com/micro/go-micro/util/log"
+)
+
+var (
+	// KeepAliveTime defines time interval we send keepalive messages to outbound links
+	KeepAliveTime = 30 * time.Second
+	// ReconnectTime defines time interval we periodically attempt to reconnect dead links
+	ReconnectTime = 5 * time.Second
 )
 
 // tun represents a network tunnel
@@ -16,6 +24,9 @@ type tun struct {
 	options Options
 
 	sync.RWMutex
+
+	// tunnel token
+	token string
 
 	// to indicate if we're connected or not
 	connected bool
@@ -38,7 +49,9 @@ type tun struct {
 
 type link struct {
 	transport.Socket
-	id string
+	id            string
+	loopback      bool
+	lastKeepAlive time.Time
 }
 
 // create new tunnel on top of a link
@@ -50,11 +63,20 @@ func newTunnel(opts ...Option) *tun {
 
 	return &tun{
 		options: options,
+		token:   uuid.New().String(),
 		send:    make(chan *message, 128),
 		closed:  make(chan bool),
 		sockets: make(map[string]*socket),
 		links:   make(map[string]*link),
 	}
+}
+
+// Init initializes tunnel options
+func (t *tun) Init(opts ...Option) error {
+	for _, o := range opts {
+		o(&t.options)
+	}
+	return nil
 }
 
 // getSocket returns a socket from the internal socket map.
@@ -92,6 +114,7 @@ func (t *tun) newSocket(id, session string) (*socket, bool) {
 		t.Unlock()
 		return nil, false
 	}
+
 	t.sockets[id+session] = s
 	t.Unlock()
 
@@ -102,6 +125,33 @@ func (t *tun) newSocket(id, session string) (*socket, bool) {
 // TODO: use tunnel id as part of the session
 func (t *tun) newSession() string {
 	return uuid.New().String()
+}
+
+// monitor monitors outbound links and attempts to reconnect to the failed ones
+func (t *tun) monitor() {
+	reconnect := time.NewTicker(ReconnectTime)
+	defer reconnect.Stop()
+
+	for {
+		select {
+		case <-t.closed:
+			return
+		case <-reconnect.C:
+			for _, node := range t.options.Nodes {
+				t.Lock()
+				if _, ok := t.links[node]; !ok {
+					link, err := t.setupLink(node)
+					if err != nil {
+						log.Debugf("Tunnel failed to setup node link to %s: %v", node, err)
+						t.Unlock()
+						continue
+					}
+					t.links[node] = link
+				}
+				t.Unlock()
+			}
+		}
+	}
 }
 
 // process outgoing messages sent by all local sockets
@@ -126,17 +176,26 @@ func (t *tun) process() {
 			// set the session id
 			newMsg.Header["Micro-Tunnel-Session"] = msg.session
 
+			// set the tunnel token
+			newMsg.Header["Micro-Tunnel-Token"] = t.token
+
 			// send the message via the interface
-			t.RLock()
+			t.Lock()
 			if len(t.links) == 0 {
-				log.Debugf("Zero links to send to")
+				log.Debugf("No links to send to")
 			}
-			for _, link := range t.links {
-				log.Debugf("Sending %+v to %s", newMsg, link.Remote())
-				// TODO: error check and reconnect
-				link.Send(newMsg)
+			for node, link := range t.links {
+				if link.loopback && msg.outbound {
+					continue
+				}
+				log.Debugf("Sending %+v to %s", newMsg, node)
+				if err := link.Send(newMsg); err != nil {
+					log.Debugf("Tunnel error sending %+v to %s: %v", newMsg, node, err)
+					delete(t.links, node)
+					continue
+				}
 			}
-			t.RUnlock()
+			t.Unlock()
 		case <-t.closed:
 			return
 		}
@@ -144,21 +203,41 @@ func (t *tun) process() {
 }
 
 // process incoming messages
-func (t *tun) listen(link transport.Socket, listener bool) {
+func (t *tun) listen(link *link) {
 	for {
 		// process anything via the net interface
 		msg := new(transport.Message)
 		err := link.Recv(msg)
 		if err != nil {
-			log.Debugf("Tunnel link %s receive error: %v", link.Remote(), err)
+			log.Debugf("Tunnel link %s receive error: %#v", link.Remote(), err)
+			t.Lock()
+			delete(t.links, link.Remote())
+			t.Unlock()
 			return
 		}
 
 		switch msg.Header["Micro-Tunnel"] {
-		case "connect", "close":
-			// TODO: handle the connect/close message
-			// maybe used to create the dial/listen sockets
-			// or report io.EOF or maybe to kill the link
+		case "connect":
+			log.Debugf("Tunnel link %s received connect message", link.Remote())
+			// check the Micro-Tunnel-Token
+			token, ok := msg.Header["Micro-Tunnel-Token"]
+			if !ok {
+				continue
+			}
+
+			// are we connecting to ourselves?
+			if token == t.token {
+				link.loopback = true
+			}
+			continue
+		case "close":
+			log.Debugf("Tunnel link %s closing connection", link.Remote())
+			// TODO: handle the close message
+			// maybe report io.EOF or kill the link
+			continue
+		case "keepalive":
+			log.Debugf("Tunnel link %s received keepalive", link.Remote())
+			link.lastKeepAlive = time.Now()
 			continue
 		}
 
@@ -182,18 +261,23 @@ func (t *tun) listen(link transport.Socket, listener bool) {
 		var exists bool
 
 		log.Debugf("Received %+v from %s", msg, link.Remote())
-		// get the socket based on the tunnel id and session
-		// this could be something we dialed in which case
-		// we have a session for it otherwise its a listener
-		s, exists = t.getSocket(id, session)
-		if !exists {
-			// try get it based on just the tunnel id
-			// the assumption here is that a listener
-			// has no session but its set a listener session
-			s, exists = t.getSocket(id, "listener")
-		}
 
-		// no socket in existence
+		switch {
+		case link.loopback:
+			s, exists = t.getSocket(id, "listener")
+		default:
+			// get the socket based on the tunnel id and session
+			// this could be something we dialed in which case
+			// we have a session for it otherwise its a listener
+			s, exists = t.getSocket(id, session)
+			if !exists {
+				// try get it based on just the tunnel id
+				// the assumption here is that a listener
+				// has no session but its set a listener session
+				s, exists = t.getSocket(id, "listener")
+			}
+		}
+		// bail if no socket has been found
 		if !exists {
 			log.Debugf("Tunnel skipping no socket exists")
 			// drop it, we don't care about
@@ -246,6 +330,72 @@ func (t *tun) listen(link transport.Socket, listener bool) {
 	}
 }
 
+// keepalive periodically sends keepalive messages to link
+func (t *tun) keepalive(link *link) {
+	keepalive := time.NewTicker(KeepAliveTime)
+	defer keepalive.Stop()
+
+	for {
+		select {
+		case <-t.closed:
+			return
+		case <-keepalive.C:
+			// send keepalive message
+			log.Debugf("Tunnel sending keepalive to link: %v", link.Remote())
+			if err := link.Send(&transport.Message{
+				Header: map[string]string{
+					"Micro-Tunnel":       "keepalive",
+					"Micro-Tunnel-Token": t.token,
+				},
+			}); err != nil {
+				log.Debugf("Error sending keepalive to link %v: %v", link.Remote(), err)
+				t.Lock()
+				delete(t.links, link.Remote())
+				t.Unlock()
+				return
+			}
+		}
+	}
+}
+
+// setupLink connects to node and returns link if successful
+// It returns error if the link failed to be established
+func (t *tun) setupLink(node string) (*link, error) {
+	log.Debugf("Tunnel dialing %s", node)
+	c, err := t.options.Transport.Dial(node)
+	if err != nil {
+		log.Debugf("Tunnel failed to connect to %s: %v", node, err)
+		return nil, err
+	}
+	log.Debugf("Tunnel connected to %s", node)
+
+	if err := c.Send(&transport.Message{
+		Header: map[string]string{
+			"Micro-Tunnel":       "connect",
+			"Micro-Tunnel-Token": t.token,
+		},
+	}); err != nil {
+		return nil, err
+	}
+
+	// save the link
+	id := uuid.New().String()
+	link := &link{
+		Socket: c,
+		id:     id,
+	}
+	t.links[node] = link
+
+	// process incoming messages
+	go t.listen(link)
+
+	// start keepalive monitor
+	go t.keepalive(link)
+
+	return link, nil
+}
+
+// connect the tunnel to all the nodes and listen for incoming tunnel connections
 func (t *tun) connect() error {
 	l, err := t.options.Transport.Listen(t.options.Address)
 	if err != nil {
@@ -262,22 +412,23 @@ func (t *tun) connect() error {
 			// save the link
 			id := uuid.New().String()
 			t.Lock()
-			t.links[id] = &link{
+			link := &link{
 				Socket: sock,
 				id:     id,
 			}
+			t.links[sock.Remote()] = link
 			t.Unlock()
 
 			// delete the link
 			defer func() {
-				log.Debugf("Deleting connection from %s", sock.Remote())
+				log.Debugf("Tunnel deleting connection from %s", sock.Remote())
 				t.Lock()
-				delete(t.links, id)
+				delete(t.links, sock.Remote())
 				t.Unlock()
 			}()
 
 			// listen for inbound messages
-			t.listen(sock, true)
+			t.listen(link)
 		})
 
 		t.Lock()
@@ -295,83 +446,22 @@ func (t *tun) connect() error {
 			continue
 		}
 
-		log.Debugf("Tunnel dialing %s", node)
-		// TODO: reconnection logic is required to keep the tunnel established
-		c, err := t.options.Transport.Dial(node)
+		// connect to node and return link
+		link, err := t.setupLink(node)
 		if err != nil {
-			log.Debugf("Tunnel failed to connect to %s: %v", node, err)
+			log.Debugf("Tunnel failed to establish node link to %s: %v", node, err)
 			continue
 		}
-		log.Debugf("Tunnel connected to %s", node)
-
-		if err := c.Send(&transport.Message{
-			Header: map[string]string{
-				"Micro-Tunnel": "connect",
-			},
-		}); err != nil {
-			continue
-		}
-
-		// process incoming messages
-		go t.listen(c, false)
-
 		// save the link
-		id := uuid.New().String()
-		t.links[id] = &link{
-			Socket: c,
-			id:     id,
-		}
+		t.links[node] = link
 	}
 
 	// process outbound messages to be sent
 	// process sends to all links
 	go t.process()
 
-	return nil
-}
-
-func (t *tun) close() error {
-	// close all the links
-	for id, link := range t.links {
-		link.Send(&transport.Message{
-			Header: map[string]string{
-				"Micro-Tunnel": "close",
-			},
-		})
-		link.Close()
-		delete(t.links, id)
-	}
-
-	// close the listener
-	return t.listener.Close()
-}
-
-// Close the tunnel
-func (t *tun) Close() error {
-	t.Lock()
-	defer t.Unlock()
-
-	if !t.connected {
-		return nil
-	}
-
-	select {
-	case <-t.closed:
-		return nil
-	default:
-		// close all the sockets
-		for _, s := range t.sockets {
-			s.Close()
-		}
-		// close the connection
-		close(t.closed)
-		t.connected = false
-
-		// send a close message
-		// we don't close the link
-		// just the tunnel
-		return t.close()
-	}
+	// monitor links
+	go t.monitor()
 
 	return nil
 }
@@ -399,10 +489,51 @@ func (t *tun) Connect() error {
 	return nil
 }
 
-func (t *tun) Init(opts ...Option) error {
-	for _, o := range opts {
-		o(&t.options)
+func (t *tun) close() error {
+	// close all the links
+	for node, link := range t.links {
+		link.Send(&transport.Message{
+			Header: map[string]string{
+				"Micro-Tunnel":       "close",
+				"Micro-Tunnel-Token": t.token,
+			},
+		})
+		link.Close()
+		delete(t.links, node)
 	}
+
+	// close the listener
+	return t.listener.Close()
+}
+
+// Close the tunnel
+func (t *tun) Close() error {
+	t.Lock()
+	defer t.Unlock()
+
+	if !t.connected {
+		return nil
+	}
+
+	select {
+	case <-t.closed:
+		return nil
+	default:
+		// close all the sockets
+		for id, s := range t.sockets {
+			s.Close()
+			delete(t.sockets, id)
+		}
+		// close the connection
+		close(t.closed)
+		t.connected = false
+
+		// send a close message
+		// we don't close the link
+		// just the tunnel
+		return t.close()
+	}
+
 	return nil
 }
 
@@ -413,11 +544,12 @@ func (t *tun) Dial(addr string) (Conn, error) {
 	if !ok {
 		return nil, errors.New("error dialing " + addr)
 	}
-
 	// set remote
 	c.remote = addr
 	// set local
 	c.local = "local"
+	// outbound socket
+	c.outbound = true
 
 	return c, nil
 }
