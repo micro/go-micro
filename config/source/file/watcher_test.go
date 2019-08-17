@@ -9,7 +9,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/micro/go-micro/config"
-	file2 "github.com/micro/go-micro/config/source/file"
 )
 
 var (
@@ -27,8 +26,8 @@ func TestChange(t *testing.T) {
 	defer os.Remove("." + sep + fileName)
 
 	// load the file
-	if err := config.Load(file2.NewSource(
-		file2.WithPath("." + sep + fileName),
+	if err := config.Load(NewSource(
+		WithPath("." + sep + fileName),
 	)); err != nil {
 		t.Error(err)
 	}
