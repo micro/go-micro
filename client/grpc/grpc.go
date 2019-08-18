@@ -18,7 +18,6 @@ import (
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/transport"
 
-	"github.com/micro/go-micro/util/buf"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/encoding"
@@ -491,14 +490,13 @@ func (g *grpcClient) Publish(ctx context.Context, p client.Message, opts ...clie
 	}
 	md["Content-Type"] = p.ContentType()
 
-	cf, err := g.newCodec(p.ContentType())
+	cf, err := g.newGRPCCodec(p.ContentType())
 	if err != nil {
 		return errors.InternalServerError("go.micro.client", err.Error())
 	}
 
-	b := buf.New(nil)
-
-	if err := cf(b).Write(&codec.Message{Type: codec.Event}, p.Payload()); err != nil {
+	b, err := cf.Marshal(p.Payload())
+	if err != nil {
 		return errors.InternalServerError("go.micro.client", err.Error())
 	}
 
@@ -508,7 +506,7 @@ func (g *grpcClient) Publish(ctx context.Context, p client.Message, opts ...clie
 
 	return g.opts.Broker.Publish(p.Topic(), &broker.Message{
 		Header: md,
-		Body:   b.Bytes(),
+		Body:   b,
 	})
 }
 
