@@ -1,4 +1,4 @@
-//+build !linux
+//+build linux
 
 package file
 
@@ -55,6 +55,10 @@ func (w *watcher) Next() (*source.ChangeSet, error) {
 		if err != nil {
 			return nil, err
 		}
+
+		// add path again for the event bug of fsnotify
+		w.fw.Add(w.f.path)
+
 		return c, nil
 	case err := <-w.fw.Errors:
 		return nil, err
