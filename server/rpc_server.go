@@ -278,16 +278,13 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 			delete(sockets, id)
 			mtx.Unlock()
 
-			// once done serving signal we're done
+			// signal we're done
 			if s.wg != nil {
 				s.wg.Done()
 			}
+
 		}(id, psock)
 
-		// signal we're done
-		if s.wg != nil {
-			s.wg.Done()
-		}
 	}
 }
 
