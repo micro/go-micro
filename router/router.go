@@ -42,16 +42,17 @@ type Router interface {
 	String() string
 }
 
+// Table is an interface for routing table
 type Table interface {
 	// Create new route in the routing table
 	Create(Route) error
-	// Delete deletes existing route from the routing table
+	// Delete existing route from the routing table
 	Delete(Route) error
-	// Update updates route in the routing table
+	// Update route in the routing table
 	Update(Route) error
-	// List returns the list of all routes in the table
+	// List all routes in the table
 	List() ([]Route, error)
-	// Query queries routes in the routing table
+	// Query routes in the routing table
 	Query(Query) ([]Route, error)
 }
 
