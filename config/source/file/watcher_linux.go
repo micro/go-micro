@@ -3,7 +3,6 @@
 package file
 
 import (
-	"errors"
 	"os"
 
 	"github.com/fsnotify/fsnotify"
@@ -36,7 +35,7 @@ func (w *watcher) Next() (*source.ChangeSet, error) {
 	// is it closed?
 	select {
 	case <-w.exit:
-		return nil, errors.New("watcher stopped")
+		return nil, source.ErrWatcherStopped
 	default:
 	}
 
@@ -63,7 +62,7 @@ func (w *watcher) Next() (*source.ChangeSet, error) {
 	case err := <-w.fw.Errors:
 		return nil, err
 	case <-w.exit:
-		return nil, errors.New("watcher stopped")
+		return nil, source.ErrWatcherStopped
 	}
 }
 
