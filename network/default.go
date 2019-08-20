@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gogo/protobuf/proto"
+	"github.com/golang/protobuf/proto"
 	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/proxy"
 	"github.com/micro/go-micro/router"
