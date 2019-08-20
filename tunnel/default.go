@@ -170,6 +170,9 @@ func (t *tun) process() {
 				newMsg.Header[k] = v
 			}
 
+			// set message head
+			newMsg.Header["Micro-Tunnel"] = "message"
+
 			// set the tunnel id on the outgoing message
 			newMsg.Header["Micro-Tunnel-Id"] = msg.id
 
@@ -229,6 +232,8 @@ func (t *tun) listen(link *link) {
 			if token == t.token {
 				link.loopback = true
 			}
+
+			// nothing more to do
 			continue
 		case "close":
 			log.Debugf("Tunnel link %s closing connection", link.Remote())
@@ -239,7 +244,16 @@ func (t *tun) listen(link *link) {
 			log.Debugf("Tunnel link %s received keepalive", link.Remote())
 			link.lastKeepAlive = time.Now()
 			continue
+		case "message":
+			// process message
+			log.Debugf("Received %+v from %s", msg, link.Remote())
+		default:
+			// blackhole it
+			continue
 		}
+
+		// strip message header
+		delete(msg.Header, "Micro-Tunnel")
 
 		// the tunnel id
 		id := msg.Header["Micro-Tunnel-Id"]
@@ -248,6 +262,9 @@ func (t *tun) listen(link *link) {
 		// the session id
 		session := msg.Header["Micro-Tunnel-Session"]
 		delete(msg.Header, "Micro-Tunnel-Session")
+
+		// strip token header
+		delete(msg.Header, "Micro-Tunnel-Token")
 
 		// if the session id is blank there's nothing we can do
 		// TODO: check this is the case, is there any reason
@@ -259,8 +276,6 @@ func (t *tun) listen(link *link) {
 
 		var s *socket
 		var exists bool
-
-		log.Debugf("Received %+v from %s", msg, link.Remote())
 
 		switch {
 		case link.loopback:
