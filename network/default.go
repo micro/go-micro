@@ -140,12 +140,8 @@ func (n *network) process(client transport.Client) {
 		}
 
 		// switch on type of message and take action
-		switch m.Header["Micro-Tunnel"] {
-		case n.Router.Options().Id:
-			// NOTE: this should not happen
-			// skip local adverts
-			continue
-		default:
+		switch m.Header["Micro-Method"] {
+		case "advert":
 			pbAdvert := &pb.Advert{}
 			if err := proto.Unmarshal(m.Body, pbAdvert); err != nil {
 				continue
