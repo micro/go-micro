@@ -6,6 +6,7 @@ import (
 	"github.com/micro/go-micro/registry"
 )
 
+// Resolver is a registry network resolver
 type Resolver struct {
 	// Registry is the registry to use otherwise we use the defaul
 	Registry registry.Registry

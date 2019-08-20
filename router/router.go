@@ -5,6 +5,17 @@ import (
 	"time"
 )
 
+var (
+	// DefaultAddress is default router address
+	DefaultAddress = ":9093"
+	// DefaultName is default router service name
+	DefaultName = "go.micro.router"
+	// DefaultNetwork is default micro network
+	DefaultNetwork = "go.micro"
+	// DefaultRouter is default network router
+	DefaultRouter = NewRouter()
+)
+
 // Router is an interface for a routing control plane
 type Router interface {
 	// Init initializes the router with options
@@ -124,17 +135,6 @@ type Advert struct {
 	// Events is a list of routing table events to advertise
 	Events []*Event
 }
-
-var (
-	// DefaultAddress is default router address
-	DefaultAddress = ":9093"
-	// DefaultName is default router service name
-	DefaultName = "go.micro.router"
-	// DefaultNetwork is default micro network
-	DefaultNetwork = "go.micro"
-	// DefaultRouter is default network router
-	DefaultRouter = NewRouter()
-)
 
 // NewRouter creates new Router and returns it
 func NewRouter(opts ...Option) Router {
