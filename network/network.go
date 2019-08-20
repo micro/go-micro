@@ -2,6 +2,8 @@
 package network
 
 import (
+	"time"
+
 	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/server"
 )
@@ -11,6 +13,8 @@ var (
 	DefaultName = "go.micro.network"
 	// DefaultAddress is default network address
 	DefaultAddress = ":0"
+	// ResolveTime ddefines the time we periodically resolve network nodes
+	ResolveTime = 1 * time.Minute
 )
 
 // Network is micro network
