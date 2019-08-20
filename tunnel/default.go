@@ -606,3 +606,7 @@ func (t *tun) Listen(addr string) (Listener, error) {
 	// return the listener
 	return tl, nil
 }
+
+func (t *tun) String() string {
+	return "mucp"
+}

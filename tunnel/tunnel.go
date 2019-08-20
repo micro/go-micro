@@ -19,6 +19,8 @@ type Tunnel interface {
 	Dial(addr string) (Conn, error)
 	// Accept connections
 	Listen(addr string) (Listener, error)
+	// Name of the tunnel implementation
+	String() string
 }
 
 // The listener provides similar constructs to the transport.Listener
