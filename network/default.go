@@ -64,7 +64,7 @@ func newNetwork(opts ...Option) Network {
 
 	// srv is network server
 	srv := server.NewServer(
-		server.Name(DefaultName),
+		server.Name(options.Name),
 		server.Transport(tunTransport),
 	)
 
