@@ -11,6 +11,8 @@ import (
 // the address being requested.
 type Tunnel interface {
 	Init(opts ...Option) error
+	// Address the tunnel is listening on
+	Address() string
 	// Connect connects the tunnel
 	Connect() error
 	// Close closes the tunnel

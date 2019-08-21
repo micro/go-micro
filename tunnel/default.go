@@ -521,6 +521,17 @@ func (t *tun) close() error {
 	return t.listener.Close()
 }
 
+func (t *tun) Address() string {
+	t.RLock()
+	defer t.RUnlock()
+
+	if !t.connected {
+		return t.options.Address
+	}
+
+	return t.listener.Addr()
+}
+
 // Close the tunnel
 func (t *tun) Close() error {
 	t.Lock()
