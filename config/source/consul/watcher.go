@@ -1,7 +1,6 @@
 package consul
 
 import (
-	"errors"
 	"time"
 
 	"github.com/hashicorp/consul/api"
@@ -80,7 +79,7 @@ func (w *watcher) Next() (*source.ChangeSet, error) {
 	case cs := <-w.ch:
 		return cs, nil
 	case <-w.exit:
-		return nil, errors.New("watcher stopped")
+		return nil, source.ErrWatcherStopped
 	}
 }
 

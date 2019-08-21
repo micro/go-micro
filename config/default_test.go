@@ -145,16 +145,26 @@ func TestFileChange(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+
 	changeTimes := 0
+	done := make(chan bool)
+
 	go func() {
+		defer func() {
+			close(done)
+		}()
+
 		for {
 			v, err := watcher.Next()
 			if err != nil {
-				t.Error(err)
+				if err.Error() != "watcher stopped" {
+					t.Error(err)
+					return
+				}
 				return
 			}
 			changeTimes++
-			t.Logf("file change，%s", string(v.Bytes()))
+			t.Logf("file change，%s: %d", string(v.Bytes()), changeTimes)
 		}
 	}()
 
@@ -169,10 +179,17 @@ func TestFileChange(t *testing.T) {
 			t.Error(err)
 		}
 
-		time.Sleep(time.Second)
+		time.Sleep(500 * time.Millisecond)
 	}
 
-	if changeTimes != 4 {
-		t.Error(fmt.Errorf("watcher error: change times %d is not enough", changeTimes))
+	if err := watcher.Stop(); err != nil {
+		t.Fatalf("failed to stop watcher: %s", err)
+	}
+
+	// wait for the watcher to finish
+	<-done
+
+	if changeTimes != 5 {
+		t.Errorf("watcher error: change times %d is not enough", changeTimes)
 	}
 }
