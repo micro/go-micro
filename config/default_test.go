@@ -1,7 +1,6 @@
 package config
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -9,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/micro/go-micro/config/source/env"
 	"github.com/micro/go-micro/config/source/file"
 )
@@ -120,76 +118,5 @@ func TestConfigMerge(t *testing.T) {
 		t.Fatalf("Expected %v but got %v",
 			"rabbit.testing.com",
 			actualHost)
-	}
-}
-
-func TestFileChange(t *testing.T) {
-	// create a temp file
-	fileName := uuid.New().String() + "testWatcher.json"
-	f, err := os.OpenFile("."+sep+fileName, os.O_WRONLY|os.O_CREATE, 0666)
-	if err != nil {
-		t.Error(err)
-	}
-	defer f.Close()
-	defer os.Remove("." + sep + fileName)
-
-	// load the file
-	if err := Load(file.NewSource(
-		file.WithPath("." + sep + fileName),
-	)); err != nil {
-		t.Error(err)
-	}
-
-	// watch changes
-	watcher, err := Watch()
-	if err != nil {
-		t.Error(err)
-	}
-
-	changeTimes := 0
-	done := make(chan bool)
-
-	go func() {
-		defer func() {
-			close(done)
-		}()
-
-		for {
-			v, err := watcher.Next()
-			if err != nil {
-				if err.Error() != "watcher stopped" {
-					t.Error(err)
-					return
-				}
-				return
-			}
-			changeTimes++
-			t.Logf("file change，%s: %d", string(v.Bytes()), changeTimes)
-		}
-	}()
-
-	content := map[int]string{}
-	// change the file
-	for i := 0; i < 5; i++ {
-		content[i] = time.Now().String()
-		bytes, _ := json.Marshal(content)
-		f.Truncate(0)
-		f.Seek(0, 0)
-		if _, err := f.Write(bytes); err != nil {
-			t.Error(err)
-		}
-
-		time.Sleep(500 * time.Millisecond)
-	}
-
-	if err := watcher.Stop(); err != nil {
-		t.Fatalf("failed to stop watcher: %s", err)
-	}
-
-	// wait for the watcher to finish
-	<-done
-
-	if changeTimes != 5 {
-		t.Errorf("watcher error: change times %d is not enough", changeTimes)
 	}
 }
