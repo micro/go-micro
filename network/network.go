@@ -10,7 +10,7 @@ import (
 
 var (
 	// DefaultName is default network name
-	DefaultName = "go.micro.network"
+	DefaultName = "go.micro"
 	// DefaultAddress is default network address
 	DefaultAddress = ":0"
 	// ResolveTime ddefines the time to periodically resolve network nodes
