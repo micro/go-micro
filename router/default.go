@@ -508,6 +508,11 @@ func (r *router) Start() error {
 	r.Lock()
 	defer r.Unlock()
 
+	// only start if we're stopped
+	if r.status.Code != Stopped {
+		return nil
+	}
+
 	// add all local service routes into the routing table
 	if err := r.manageRegistryRoutes(r.opts.Registry, "create"); err != nil {
 		e := fmt.Errorf("failed adding registry routes: %s", err)
@@ -716,5 +721,5 @@ func (r *router) Stop() error {
 
 // String prints debugging information about router
 func (r *router) String() string {
-	return "default"
+	return "mucp"
 }
