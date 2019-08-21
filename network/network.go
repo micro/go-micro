@@ -13,7 +13,7 @@ var (
 	DefaultName = "go.micro.network"
 	// DefaultAddress is default network address
 	DefaultAddress = ":0"
-	// ResolveTime ddefines the time we periodically resolve network nodes
+	// ResolveTime ddefines the time to periodically resolve network nodes
 	ResolveTime = 1 * time.Minute
 )
 
@@ -21,6 +21,8 @@ var (
 type Network interface {
 	// Name of the network
 	Name() string
+	// Address returns network bind address
+	Address() string
 	// Connect starts the resolver and tunnel server
 	Connect() error
 	// Close stops the tunnel and resolving

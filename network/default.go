@@ -6,25 +6,25 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/micro/go-micro/client"
+	rtr "github.com/micro/go-micro/client/selector/router"
 	"github.com/micro/go-micro/proxy"
 	"github.com/micro/go-micro/router"
 	pb "github.com/micro/go-micro/router/proto"
 	"github.com/micro/go-micro/server"
 	"github.com/micro/go-micro/transport"
 	"github.com/micro/go-micro/tunnel"
-	tr "github.com/micro/go-micro/tunnel/transport"
+	trn "github.com/micro/go-micro/tunnel/transport"
 	"github.com/micro/go-micro/util/log"
 )
 
 var (
 	// ControlChannel is the name of the tunnel channel for passing contron message
-	ControlChannel = "control-msg"
+	ControlChannel = "control"
 )
 
 // network implements Network interface
 type network struct {
 	// options configure the network
-	// TODO: we might end up embedding
 	options Options
 	// rtr is network router
 	router.Router
@@ -59,7 +59,7 @@ func newNetwork(opts ...Option) Network {
 
 	// create tunnel client with tunnel transport
 	tunTransport := transport.NewTransport(
-		tr.WithTunnel(options.Tunnel),
+		trn.WithTunnel(options.Tunnel),
 	)
 
 	// srv is network server
@@ -70,6 +70,11 @@ func newNetwork(opts ...Option) Network {
 	// client is network client
 	client := client.NewClient(
 		client.Transport(tunTransport),
+		client.Selector(
+			rtr.NewSelector(
+				rtr.WithRouter(options.Router),
+			),
+		),
 	)
 
 	return &network{
@@ -89,7 +94,7 @@ func (n *network) Name() string {
 
 // Address returns network bind address
 func (n *network) Address() string {
-	return n.options.Address
+	return n.Tunnel.Address()
 }
 
 func (n *network) resolveNodes() ([]string, error) {
@@ -272,7 +277,11 @@ func (n *network) Connect() error {
 	// keep resolving network nodes
 	go n.resolve()
 
-	// TODO: do we assume the router has been started?
+	// start the router
+	if err := n.options.Router.Start(); err != nil {
+		return err
+	}
+
 	// start advertising routes
 	advertChan, err := n.options.Router.Advertise()
 	if err != nil {
@@ -284,6 +293,11 @@ func (n *network) Connect() error {
 	// process routes
 	go n.process(client)
 
+	// start the server
+	if err := n.srv.Start(); err != nil {
+		return err
+	}
+
 	// set connected to true
 	n.connected = true
 
@@ -291,6 +305,11 @@ func (n *network) Connect() error {
 }
 
 func (n *network) close() error {
+	// stop the server
+	if err := n.srv.Stop(); err != nil {
+		return err
+	}
+
 	// stop the router
 	if err := n.Router.Stop(); err != nil {
 		return err
