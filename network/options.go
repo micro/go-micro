@@ -2,7 +2,7 @@ package network
 
 import (
 	"github.com/micro/go-micro/network/resolver"
-	"github.com/micro/go-micro/network/resolver/dns"
+	"github.com/micro/go-micro/network/resolver/registry"
 	"github.com/micro/go-micro/proxy"
 	"github.com/micro/go-micro/proxy/mucp"
 	"github.com/micro/go-micro/router"
@@ -77,6 +77,6 @@ func DefaultOptions() Options {
 		Tunnel:   tunnel.NewTunnel(),
 		Router:   router.DefaultRouter,
 		Proxy:    mucp.NewProxy(),
-		Resolver: &dns.Resolver{},
+		Resolver: &registry.Resolver{},
 	}
 }
