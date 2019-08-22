@@ -10,6 +10,8 @@ import (
 
 // testAccept will accept connections on the transport, create a new link and tunnel on top
 func testAccept(t *testing.T, tun Tunnel, wait chan bool, wg *sync.WaitGroup) {
+	defer wg.Done()
+
 	// listen on some virtual address
 	tl, err := tun.Listen("test-tunnel")
 	if err != nil {
@@ -43,7 +45,8 @@ func testAccept(t *testing.T, tun Tunnel, wait chan bool, wg *sync.WaitGroup) {
 			t.Fatal(err)
 		}
 
-		wg.Done()
+		wait <- true
+
 		return
 	}
 }
@@ -78,6 +81,8 @@ func testSend(t *testing.T, tun Tunnel, wait chan bool, wg *sync.WaitGroup) {
 	if err := c.Recv(mr); err != nil {
 		t.Fatal(err)
 	}
+
+	<-wait
 
 	if v := mr.Header["test"]; v != "accept" {
 		t.Fatalf("Message not received from accepted side. Received: %s", v)
@@ -139,6 +144,8 @@ func TestLoopbackTunnel(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer tun.Close()
+
+	time.Sleep(500 * time.Millisecond)
 
 	wait := make(chan bool)
 

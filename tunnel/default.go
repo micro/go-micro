@@ -73,6 +73,8 @@ func newTunnel(opts ...Option) *tun {
 
 // Init initializes tunnel options
 func (t *tun) Init(opts ...Option) error {
+	t.Lock()
+	defer t.Unlock()
 	for _, o := range opts {
 		o(&t.options)
 	}
@@ -230,7 +232,9 @@ func (t *tun) listen(link *link) {
 
 			// are we connecting to ourselves?
 			if token == t.token {
+				t.Lock()
 				link.loopback = true
+				t.Unlock()
 			}
 
 			// nothing more to do
@@ -242,7 +246,9 @@ func (t *tun) listen(link *link) {
 			continue
 		case "keepalive":
 			log.Debugf("Tunnel link %s received keepalive", link.Remote())
+			t.Lock()
 			link.lastKeepAlive = time.Now()
+			t.Unlock()
 			continue
 		case "message":
 			// process message
