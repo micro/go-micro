@@ -223,12 +223,13 @@ func (n *network) advertise(client transport.Client, advertChan <-chan *router.A
 			// create a proto advert
 			var events []*pb.Event
 			for _, event := range advert.Events {
+				// NOTE: we override the Gateway and Link fields here
 				route := &pb.Route{
 					Service: event.Route.Service,
 					Address: event.Route.Address,
 					Gateway: n.options.Address,
-					Network: "network",
-					Link:    event.Route.Link,
+					Network: event.Route.Network,
+					Link:    "network",
 					Metric:  int64(event.Route.Metric),
 				}
 				e := &pb.Event{
