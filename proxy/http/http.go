@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"path"
 
+	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/config/options"
 	"github.com/micro/go-micro/errors"
 	"github.com/micro/go-micro/proxy"
@@ -42,6 +43,10 @@ func getEndpoint(hdr map[string]string) string {
 		return ep
 	}
 	return ""
+}
+
+func (p *Proxy) SendRequest(ctx context.Context, req client.Request, rsp client.Response) error {
+	return errors.InternalServerError("go.micro.proxy.http", "SendRequest is unsupported")
 }
 
 // ServeRequest honours the server.Router interface
