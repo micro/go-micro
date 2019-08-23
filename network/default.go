@@ -281,7 +281,7 @@ func (n *network) Connect() error {
 	// try to resolve network nodes
 	nodes, err := n.resolveNodes()
 	if err != nil {
-		return err
+		log.Debugf("Network failed to resolve nodes: %v", err)
 	}
 
 	// connect network tunnel
