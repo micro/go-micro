@@ -110,6 +110,10 @@ func (p *Proxy) getRoute(service string) ([]router.Route, error) {
 		for _, v := range r {
 			routes = append(routes, v)
 		}
+
+		// sort the routes in order of metric
+		sort.Slice(routes, func(i, j int) bool { return routes[i].Metric < routes[j].Metric })
+
 		return routes
 	}
 
@@ -252,9 +256,6 @@ func (p *Proxy) ServeRequest(ctx context.Context, req server.Request, rsp server
 		// serve the normal way
 		return p.serveRequest(ctx, p.Client, service, endpoint, req, rsp, client.WithAddress(addresses...))
 	}
-
-	// sort the routes in order of metric
-	sort.Slice(routes, func(i, j int) bool { return routes[i].Metric < routes[j].Metric })
 
 	// there's no links e.g we're local routing then just serve it with addresses
 	if local {
