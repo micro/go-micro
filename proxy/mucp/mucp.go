@@ -99,7 +99,7 @@ func (p *Proxy) getLink(r router.Route) (client.Client, error) {
 	}
 	l, ok := p.Links[r.Link]
 	if !ok {
-		return nil, errors.InternalServerError("go.micro.proxy", "route not found")
+		return nil, errors.InternalServerError("go.micro.proxy", "link not found")
 	}
 	return l, nil
 }
