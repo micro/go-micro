@@ -30,6 +30,8 @@ type rpcServer struct {
 	opts        Options
 	handlers    map[string]Handler
 	subscribers map[*subscriber][]broker.Subscriber
+	// marks the serve as started
+	started bool
 	// used for first registration
 	registered bool
 	// graceful exit
@@ -584,6 +586,13 @@ func (s *rpcServer) Deregister() error {
 }
 
 func (s *rpcServer) Start() error {
+	s.RLock()
+	if s.started {
+		s.RUnlock()
+		return nil
+	}
+	s.RUnlock()
+
 	config := s.Options()
 
 	// start listening on the transport
@@ -708,13 +717,32 @@ func (s *rpcServer) Start() error {
 		s.Unlock()
 	}()
 
+	// mark the server as started
+	s.Lock()
+	s.started = true
+	s.Unlock()
+
 	return nil
 }
 
 func (s *rpcServer) Stop() error {
+	s.RLock()
+	if !s.started {
+		s.RUnlock()
+		return nil
+	}
+	s.RUnlock()
+
 	ch := make(chan error)
 	s.exit <- ch
-	return <-ch
+
+	var err error
+	select {
+	case err = <-ch:
+		s.started = false
+	}
+
+	return err
 }
 
 func (s *rpcServer) String() string {
