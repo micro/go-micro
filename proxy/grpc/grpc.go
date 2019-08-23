@@ -10,6 +10,7 @@ import (
 	"github.com/micro/go-micro/client/grpc"
 	"github.com/micro/go-micro/codec"
 	"github.com/micro/go-micro/config/options"
+	"github.com/micro/go-micro/errors"
 	"github.com/micro/go-micro/proxy"
 	"github.com/micro/go-micro/server"
 )
@@ -59,6 +60,10 @@ func readLoop(r server.Request, s client.Stream) error {
 			return err
 		}
 	}
+}
+
+func (p *Proxy) SendRequest(ctx context.Context, req client.Request, rsp client.Response) error {
+	return errors.InternalServerError("go.micro.proxy.grpc", "SendRequest is unsupported")
 }
 
 // ServeRequest honours the server.Proxy interface
