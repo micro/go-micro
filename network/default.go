@@ -226,8 +226,8 @@ func (n *network) advertise(client transport.Client, advertChan <-chan *router.A
 				route := &pb.Route{
 					Service: event.Route.Service,
 					Address: event.Route.Address,
-					Gateway: event.Route.Gateway,
-					Network: event.Route.Network,
+					Gateway: n.options.Address,
+					Network: "network",
 					Link:    event.Route.Link,
 					Metric:  int64(event.Route.Metric),
 				}
@@ -257,6 +257,7 @@ func (n *network) advertise(client transport.Client, advertChan <-chan *router.A
 				},
 				Body: body,
 			}
+
 			if err := client.Send(&m); err != nil {
 				log.Debugf("Network failed to send advert %s: %v", pbAdvert.Id, err)
 				continue
