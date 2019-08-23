@@ -815,7 +815,9 @@ func (g *grpcServer) Stop() error {
 	var err error
 	select {
 	case err = <-ch:
+		g.Lock()
 		g.started = false
+		g.Unlock()
 	}
 
 	return err

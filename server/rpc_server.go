@@ -739,7 +739,9 @@ func (s *rpcServer) Stop() error {
 	var err error
 	select {
 	case err = <-ch:
+		s.Lock()
 		s.started = false
+		s.Unlock()
 	}
 
 	return err
