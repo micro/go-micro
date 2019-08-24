@@ -89,9 +89,11 @@ func (c *Codec) Write(m *codec.Message, b interface{}) error {
 		m.Header[":authority"] = m.Target
 		m.Header["content-type"] = c.ContentType
 	case codec.Response:
-		m.Header["Trailer"] = "grpc-status, grpc-message"
+		m.Header["Trailer"] = "grpc-status" //, grpc-message"
+		m.Header["content-type"] = c.ContentType
+		m.Header[":status"] = "200"
 		m.Header["grpc-status"] = "0"
-		m.Header["grpc-message"] = ""
+		//		m.Header["grpc-message"] = ""
 	}
 
 	// marshal content
