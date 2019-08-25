@@ -154,34 +154,6 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 		sockets[id] = psock
 		mtx.Unlock()
 
-		// wait for processing to exit
-		wg.Add(1)
-
-		// process the outbound messages from the socket
-		go func(id string, psock *socket.Socket) {
-			defer func() {
-				wg.Done()
-			}()
-
-			for {
-				// get the message from our internal handler/stream
-				m := new(transport.Message)
-				if err := psock.Process(m); err != nil {
-					// delete the socket
-					mtx.Lock()
-					delete(sockets, id)
-					mtx.Unlock()
-					return
-				}
-
-				// send the message back over the socket
-				if err := sock.Send(m); err != nil {
-					return
-				}
-
-			}
-		}(id, psock)
-
 		// now walk the usual path
 
 		// we use this Timeout header to set a server deadline
@@ -286,6 +258,33 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 			// set the router
 			r = rpcRouter{handler}
 		}
+
+		// wait for processing to exit
+		wg.Add(1)
+
+		// process the outbound messages from the socket
+		go func(id string, psock *socket.Socket) {
+			defer func() {
+				wg.Done()
+			}()
+
+			for {
+				// get the message from our internal handler/stream
+				m := new(transport.Message)
+				if err := psock.Process(m); err != nil {
+					// delete the socket
+					mtx.Lock()
+					delete(sockets, id)
+					mtx.Unlock()
+					return
+				}
+
+				// send the message back over the socket
+				if err := sock.Send(m); err != nil {
+					return
+				}
+			}
+		}(id, psock)
 
 		// serve the request in a go routine as this may be a stream
 		go func(id string, psock *socket.Socket) {

@@ -324,6 +324,9 @@ func (h *httpTransportSocket) Send(m *Message) error {
 	// write request
 	_, err := h.w.Write(m.Body)
 
+	// flush the trailers
+	h.w.(http.Flusher).Flush()
+
 	return err
 }
 
