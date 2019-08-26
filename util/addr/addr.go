@@ -46,6 +46,9 @@ func Extract(addr string) (string, error) {
 			// ignore error, interface can dissapear from system
 			continue
 		}
+		if iface.Flags&net.FlagLoopback != 0 {
+			continue
+		}
 		addrs = append(addrs, ifaceAddrs...)
 	}
 
