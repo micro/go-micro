@@ -213,9 +213,11 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 		}
 
 		rcodec := newRpcCodec(&msg, psock, cf)
+		protocol := rcodec.String()
 
 		// check stream id
 		var stream bool
+
 		if v := getHeader("Micro-Stream", msg.Header); len(v) > 0 {
 			stream = true
 		}
@@ -265,6 +267,13 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 		// process the outbound messages from the socket
 		go func(id string, psock *socket.Socket) {
 			defer func() {
+				// TODO: don't hack this but if its grpc just break out of the stream
+				// We do this because the underlying connection is h2 and its a stream
+				switch protocol {
+				case "grpc":
+					sock.Close()
+				}
+
 				wg.Done()
 			}()
 

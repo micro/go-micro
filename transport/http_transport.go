@@ -363,6 +363,9 @@ func (h *httpTransportSocket) Close() error {
 		// close the channel
 		close(h.closed)
 
+		// close the buffer
+		h.r.Body.Close()
+
 		// close the connection
 		if h.r.ProtoMajor == 1 {
 			return h.conn.Close()
@@ -435,9 +438,6 @@ func (h *httpTransportListener) Accept(fn func(Socket)) error {
 			remote: r.RemoteAddr,
 			closed: make(chan bool),
 		}
-
-		// cleanup
-		//defer sock.Close()
 
 		// execute the socket
 		fn(sock)
