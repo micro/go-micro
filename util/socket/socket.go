@@ -32,10 +32,10 @@ func (s *Socket) SetRemote(r string) {
 // Accept passes a message to the socket which will be processed by the call to Recv
 func (s *Socket) Accept(m *transport.Message) error {
 	select {
-	case <-s.closed:
-		return io.EOF
 	case s.recv <- m:
 		return nil
+	case <-s.closed:
+		return io.EOF
 	}
 	return nil
 }
@@ -43,10 +43,17 @@ func (s *Socket) Accept(m *transport.Message) error {
 // Process takes the next message off the send queue created by a call to Send
 func (s *Socket) Process(m *transport.Message) error {
 	select {
-	case <-s.closed:
-		return io.EOF
 	case msg := <-s.send:
 		*m = *msg
+	case <-s.closed:
+		// see if we need to drain
+		select {
+		case msg := <-s.send:
+			*m = *msg
+			return nil
+		default:
+			return io.EOF
+		}
 	}
 	return nil
 }
@@ -60,13 +67,6 @@ func (s *Socket) Local() string {
 }
 
 func (s *Socket) Send(m *transport.Message) error {
-	select {
-	case <-s.closed:
-		return io.EOF
-	default:
-		// no op
-	}
-
 	// make copy
 	msg := &transport.Message{
 		Header: make(map[string]string),
@@ -92,13 +92,6 @@ func (s *Socket) Send(m *transport.Message) error {
 }
 
 func (s *Socket) Recv(m *transport.Message) error {
-	select {
-	case <-s.closed:
-		return io.EOF
-	default:
-		// no op
-	}
-
 	// receive a message
 	select {
 	case msg := <-s.recv:

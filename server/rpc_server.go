@@ -63,19 +63,32 @@ func (r rpcRouter) ServeRequest(ctx context.Context, req Request, rsp Response) 
 
 // ServeConn serves a single connection
 func (s *rpcServer) ServeConn(sock transport.Socket) {
+	var wg sync.WaitGroup
+	var mtx sync.RWMutex
+	// streams are multiplexed on Micro-Stream or Micro-Id header
+	sockets := make(map[string]*socket.Socket)
+
 	defer func() {
-		// close socket
+		// wait till done
+		wg.Wait()
+
+		// close underlying socket
 		sock.Close()
 
+		// close the sockets
+		mtx.Lock()
+		for id, psock := range sockets {
+			psock.Close()
+			delete(sockets, id)
+		}
+		mtx.Unlock()
+
+		// recover any panics
 		if r := recover(); r != nil {
 			log.Log("panic recovered: ", r)
 			log.Log(string(debug.Stack()))
 		}
 	}()
-
-	// multiplex the streams on a single socket by Micro-Stream
-	var mtx sync.RWMutex
-	sockets := make(map[string]*socket.Socket)
 
 	for {
 		var msg transport.Message
@@ -93,6 +106,9 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 		if len(id) == 0 {
 			id = msg.Header["Micro-Id"]
 		}
+
+		// we're starting processing
+		wg.Add(1)
 
 		// add to wait group if "wait" is opt-in
 		if s.wg != nil {
@@ -119,6 +135,8 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 				s.wg.Done()
 			}
 
+			wg.Done()
+
 			// continue to the next message
 			continue
 		}
@@ -135,28 +153,6 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 		mtx.Lock()
 		sockets[id] = psock
 		mtx.Unlock()
-
-		// process the outbound messages from the socket
-		go func(id string, psock *socket.Socket) {
-			defer psock.Close()
-
-			for {
-				// get the message from our internal handler/stream
-				m := new(transport.Message)
-				if err := psock.Process(m); err != nil {
-					// delete the socket
-					mtx.Lock()
-					delete(sockets, id)
-					mtx.Unlock()
-					return
-				}
-
-				// send the message back over the socket
-				if err := sock.Send(m); err != nil {
-					return
-				}
-			}
-		}(id, psock)
 
 		// now walk the usual path
 
@@ -205,17 +201,23 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 					},
 					Body: []byte(err.Error()),
 				})
+
 				if s.wg != nil {
 					s.wg.Done()
 				}
+
+				wg.Done()
+
 				return
 			}
 		}
 
 		rcodec := newRpcCodec(&msg, psock, cf)
+		protocol := rcodec.String()
 
 		// check stream id
 		var stream bool
+
 		if v := getHeader("Micro-Stream", msg.Header); len(v) > 0 {
 			stream = true
 		}
@@ -259,8 +261,44 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 			r = rpcRouter{handler}
 		}
 
+		// wait for processing to exit
+		wg.Add(1)
+
+		// process the outbound messages from the socket
+		go func(id string, psock *socket.Socket) {
+			defer func() {
+				// TODO: don't hack this but if its grpc just break out of the stream
+				// We do this because the underlying connection is h2 and its a stream
+				switch protocol {
+				case "grpc":
+					sock.Close()
+				}
+
+				wg.Done()
+			}()
+
+			for {
+				// get the message from our internal handler/stream
+				m := new(transport.Message)
+				if err := psock.Process(m); err != nil {
+					// delete the socket
+					mtx.Lock()
+					delete(sockets, id)
+					mtx.Unlock()
+					return
+				}
+
+				// send the message back over the socket
+				if err := sock.Send(m); err != nil {
+					return
+				}
+			}
+		}(id, psock)
+
 		// serve the request in a go routine as this may be a stream
 		go func(id string, psock *socket.Socket) {
+			defer psock.Close()
+
 			// serve the actual request using the request router
 			if err := r.ServeRequest(ctx, request, response); err != nil {
 				// write an error response
@@ -285,8 +323,9 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 				s.wg.Done()
 			}
 
+			// done with this socket
+			wg.Done()
 		}(id, psock)
-
 	}
 }
 
