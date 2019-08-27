@@ -43,7 +43,7 @@ var (
 // router implements default router
 type router struct {
 	sync.RWMutex
-	opts      Options
+	options   Options
 	status    Status
 	table     *table
 	exit      chan struct{}
@@ -70,7 +70,7 @@ func newRouter(opts ...Option) Router {
 	status := Status{Code: Stopped, Error: nil}
 
 	return &router{
-		opts:        options,
+		options:     options,
 		status:      status,
 		table:       newTable(),
 		advertWg:    &sync.WaitGroup{},
@@ -85,7 +85,7 @@ func (r *router) Init(opts ...Option) error {
 	defer r.Unlock()
 
 	for _, o := range opts {
-		o(&r.opts)
+		o(&r.options)
 	}
 
 	return nil
@@ -94,10 +94,10 @@ func (r *router) Init(opts ...Option) error {
 // Options returns router options
 func (r *router) Options() Options {
 	r.Lock()
-	opts := r.opts
+	options := r.options
 	r.Unlock()
 
-	return opts
+	return options
 }
 
 // Table returns routing table
@@ -139,7 +139,8 @@ func (r *router) manageServiceRoutes(service *registry.Service, action string) e
 			Service: service.Name,
 			Address: node.Address,
 			Gateway: "",
-			Network: r.opts.Network,
+			Network: r.options.Network,
+			Router:  r.options.Id,
 			Link:    DefaultLink,
 			Metric:  DefaultLocalMetric,
 		}
@@ -278,7 +279,7 @@ func (r *router) publishAdvert(advType AdvertType, events []*Event) {
 	defer r.advertWg.Done()
 
 	a := &Advert{
-		Id:        r.opts.Id,
+		Id:        r.options.Id,
 		Type:      advType,
 		TTL:       DefaultAdvertTTL,
 		Timestamp: time.Now(),
@@ -529,20 +530,22 @@ func (r *router) Start() error {
 	}
 
 	// add all local service routes into the routing table
-	if err := r.manageRegistryRoutes(r.opts.Registry, "create"); err != nil {
+	if err := r.manageRegistryRoutes(r.options.Registry, "create"); err != nil {
 		e := fmt.Errorf("failed adding registry routes: %s", err)
 		r.status = Status{Code: Error, Error: e}
 		return e
 	}
 
 	// add default gateway into routing table
-	if r.opts.Gateway != "" {
+	if r.options.Gateway != "" {
 		// note, the only non-default value is the gateway
 		route := Route{
 			Service: "*",
 			Address: "*",
-			Gateway: r.opts.Gateway,
+			Gateway: r.options.Gateway,
 			Network: "*",
+			Router:  r.options.Id,
+			Link:    DefaultLink,
 			Metric:  DefaultLocalMetric,
 		}
 		if err := r.table.Create(route); err != nil {
@@ -557,7 +560,7 @@ func (r *router) Start() error {
 	r.exit = make(chan struct{})
 
 	// registry watcher
-	regWatcher, err := r.opts.Registry.Watch()
+	regWatcher, err := r.options.Registry.Watch()
 	if err != nil {
 		e := fmt.Errorf("failed creating registry watcher: %v", err)
 		r.status = Status{Code: Error, Error: e}
@@ -669,6 +672,10 @@ func (r *router) Process(a *Advert) error {
 	})
 
 	for _, event := range events {
+		// skip if the router is the origin of this route
+		if event.Route.Router == r.options.Id {
+			continue
+		}
 		// create a copy of the route
 		route := event.Route
 		action := event.Type
