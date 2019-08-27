@@ -60,12 +60,13 @@ func newNetwork(opts ...Option) Network {
 	)
 
 	// create tunnel client with tunnel transport
-	tunTransport := transport.NewTransport(
+	tunTransport := trn.NewTransport(
 		trn.WithTunnel(options.Tunnel),
 	)
 
 	// srv is network server
 	srv := server.NewServer(
+		server.Address(options.Address),
 		server.Name(options.Name),
 		server.Transport(tunTransport),
 	)
