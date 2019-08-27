@@ -73,6 +73,8 @@ func newTunnel(opts ...Option) *tun {
 
 // Init initializes tunnel options
 func (t *tun) Init(opts ...Option) error {
+	t.Lock()
+	defer t.Unlock()
 	for _, o := range opts {
 		o(&t.options)
 	}
@@ -170,6 +172,9 @@ func (t *tun) process() {
 				newMsg.Header[k] = v
 			}
 
+			// set message head
+			newMsg.Header["Micro-Tunnel"] = "message"
+
 			// set the tunnel id on the outgoing message
 			newMsg.Header["Micro-Tunnel-Id"] = msg.id
 
@@ -227,8 +232,12 @@ func (t *tun) listen(link *link) {
 
 			// are we connecting to ourselves?
 			if token == t.token {
+				t.Lock()
 				link.loopback = true
+				t.Unlock()
 			}
+
+			// nothing more to do
 			continue
 		case "close":
 			log.Debugf("Tunnel link %s closing connection", link.Remote())
@@ -237,9 +246,20 @@ func (t *tun) listen(link *link) {
 			continue
 		case "keepalive":
 			log.Debugf("Tunnel link %s received keepalive", link.Remote())
+			t.Lock()
 			link.lastKeepAlive = time.Now()
+			t.Unlock()
+			continue
+		case "message":
+			// process message
+			log.Debugf("Received %+v from %s", msg, link.Remote())
+		default:
+			// blackhole it
 			continue
 		}
+
+		// strip message header
+		delete(msg.Header, "Micro-Tunnel")
 
 		// the tunnel id
 		id := msg.Header["Micro-Tunnel-Id"]
@@ -248,6 +268,9 @@ func (t *tun) listen(link *link) {
 		// the session id
 		session := msg.Header["Micro-Tunnel-Session"]
 		delete(msg.Header, "Micro-Tunnel-Session")
+
+		// strip token header
+		delete(msg.Header, "Micro-Tunnel-Token")
 
 		// if the session id is blank there's nothing we can do
 		// TODO: check this is the case, is there any reason
@@ -259,8 +282,6 @@ func (t *tun) listen(link *link) {
 
 		var s *socket
 		var exists bool
-
-		log.Debugf("Received %+v from %s", msg, link.Remote())
 
 		switch {
 		case link.loopback:
@@ -506,6 +527,17 @@ func (t *tun) close() error {
 	return t.listener.Close()
 }
 
+func (t *tun) Address() string {
+	t.RLock()
+	defer t.RUnlock()
+
+	if !t.connected {
+		return t.options.Address
+	}
+
+	return t.listener.Addr()
+}
+
 // Close the tunnel
 func (t *tun) Close() error {
 	t.Lock()
@@ -590,4 +622,8 @@ func (t *tun) Listen(addr string) (Listener, error) {
 
 	// return the listener
 	return tl, nil
+}
+
+func (t *tun) String() string {
+	return "mucp"
 }

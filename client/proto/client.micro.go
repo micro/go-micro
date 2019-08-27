@@ -31,37 +31,37 @@ var _ context.Context
 var _ client.Option
 var _ server.Option
 
-// Client API for Micro service
+// Client API for Client service
 
-type MicroService interface {
+type ClientService interface {
 	// Call allows a single request to be made
 	Call(ctx context.Context, in *Request, opts ...client.CallOption) (*Response, error)
 	// Stream is a bidirectional stream
-	Stream(ctx context.Context, opts ...client.CallOption) (Micro_StreamService, error)
+	Stream(ctx context.Context, opts ...client.CallOption) (Client_StreamService, error)
 	// Publish publishes a message and returns an empty Message
 	Publish(ctx context.Context, in *Message, opts ...client.CallOption) (*Message, error)
 }
 
-type microService struct {
+type clientService struct {
 	c    client.Client
 	name string
 }
 
-func NewMicroService(name string, c client.Client) MicroService {
+func NewClientService(name string, c client.Client) ClientService {
 	if c == nil {
 		c = client.NewClient()
 	}
 	if len(name) == 0 {
 		name = "go.micro.client"
 	}
-	return &microService{
+	return &clientService{
 		c:    c,
 		name: name,
 	}
 }
 
-func (c *microService) Call(ctx context.Context, in *Request, opts ...client.CallOption) (*Response, error) {
-	req := c.c.NewRequest(c.name, "Micro.Call", in)
+func (c *clientService) Call(ctx context.Context, in *Request, opts ...client.CallOption) (*Response, error) {
+	req := c.c.NewRequest(c.name, "Client.Call", in)
 	out := new(Response)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
@@ -70,16 +70,16 @@ func (c *microService) Call(ctx context.Context, in *Request, opts ...client.Cal
 	return out, nil
 }
 
-func (c *microService) Stream(ctx context.Context, opts ...client.CallOption) (Micro_StreamService, error) {
-	req := c.c.NewRequest(c.name, "Micro.Stream", &Request{})
+func (c *clientService) Stream(ctx context.Context, opts ...client.CallOption) (Client_StreamService, error) {
+	req := c.c.NewRequest(c.name, "Client.Stream", &Request{})
 	stream, err := c.c.Stream(ctx, req, opts...)
 	if err != nil {
 		return nil, err
 	}
-	return &microServiceStream{stream}, nil
+	return &clientServiceStream{stream}, nil
 }
 
-type Micro_StreamService interface {
+type Client_StreamService interface {
 	SendMsg(interface{}) error
 	RecvMsg(interface{}) error
 	Close() error
@@ -87,27 +87,27 @@ type Micro_StreamService interface {
 	Recv() (*Response, error)
 }
 
-type microServiceStream struct {
+type clientServiceStream struct {
 	stream client.Stream
 }
 
-func (x *microServiceStream) Close() error {
+func (x *clientServiceStream) Close() error {
 	return x.stream.Close()
 }
 
-func (x *microServiceStream) SendMsg(m interface{}) error {
+func (x *clientServiceStream) SendMsg(m interface{}) error {
 	return x.stream.Send(m)
 }
 
-func (x *microServiceStream) RecvMsg(m interface{}) error {
+func (x *clientServiceStream) RecvMsg(m interface{}) error {
 	return x.stream.Recv(m)
 }
 
-func (x *microServiceStream) Send(m *Request) error {
+func (x *clientServiceStream) Send(m *Request) error {
 	return x.stream.Send(m)
 }
 
-func (x *microServiceStream) Recv() (*Response, error) {
+func (x *clientServiceStream) Recv() (*Response, error) {
 	m := new(Response)
 	err := x.stream.Recv(m)
 	if err != nil {
@@ -116,8 +116,8 @@ func (x *microServiceStream) Recv() (*Response, error) {
 	return m, nil
 }
 
-func (c *microService) Publish(ctx context.Context, in *Message, opts ...client.CallOption) (*Message, error) {
-	req := c.c.NewRequest(c.name, "Micro.Publish", in)
+func (c *clientService) Publish(ctx context.Context, in *Message, opts ...client.CallOption) (*Message, error) {
+	req := c.c.NewRequest(c.name, "Client.Publish", in)
 	out := new(Message)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
@@ -126,43 +126,43 @@ func (c *microService) Publish(ctx context.Context, in *Message, opts ...client.
 	return out, nil
 }
 
-// Server API for Micro service
+// Server API for Client service
 
-type MicroHandler interface {
+type ClientHandler interface {
 	// Call allows a single request to be made
 	Call(context.Context, *Request, *Response) error
 	// Stream is a bidirectional stream
-	Stream(context.Context, Micro_StreamStream) error
+	Stream(context.Context, Client_StreamStream) error
 	// Publish publishes a message and returns an empty Message
 	Publish(context.Context, *Message, *Message) error
 }
 
-func RegisterMicroHandler(s server.Server, hdlr MicroHandler, opts ...server.HandlerOption) error {
-	type micro interface {
+func RegisterClientHandler(s server.Server, hdlr ClientHandler, opts ...server.HandlerOption) error {
+	type client interface {
 		Call(ctx context.Context, in *Request, out *Response) error
 		Stream(ctx context.Context, stream server.Stream) error
 		Publish(ctx context.Context, in *Message, out *Message) error
 	}
-	type Micro struct {
-		micro
+	type Client struct {
+		client
 	}
-	h := &microHandler{hdlr}
-	return s.Handle(s.NewHandler(&Micro{h}, opts...))
+	h := &clientHandler{hdlr}
+	return s.Handle(s.NewHandler(&Client{h}, opts...))
 }
 
-type microHandler struct {
-	MicroHandler
+type clientHandler struct {
+	ClientHandler
 }
 
-func (h *microHandler) Call(ctx context.Context, in *Request, out *Response) error {
-	return h.MicroHandler.Call(ctx, in, out)
+func (h *clientHandler) Call(ctx context.Context, in *Request, out *Response) error {
+	return h.ClientHandler.Call(ctx, in, out)
 }
 
-func (h *microHandler) Stream(ctx context.Context, stream server.Stream) error {
-	return h.MicroHandler.Stream(ctx, &microStreamStream{stream})
+func (h *clientHandler) Stream(ctx context.Context, stream server.Stream) error {
+	return h.ClientHandler.Stream(ctx, &clientStreamStream{stream})
 }
 
-type Micro_StreamStream interface {
+type Client_StreamStream interface {
 	SendMsg(interface{}) error
 	RecvMsg(interface{}) error
 	Close() error
@@ -170,27 +170,27 @@ type Micro_StreamStream interface {
 	Recv() (*Request, error)
 }
 
-type microStreamStream struct {
+type clientStreamStream struct {
 	stream server.Stream
 }
 
-func (x *microStreamStream) Close() error {
+func (x *clientStreamStream) Close() error {
 	return x.stream.Close()
 }
 
-func (x *microStreamStream) SendMsg(m interface{}) error {
+func (x *clientStreamStream) SendMsg(m interface{}) error {
 	return x.stream.Send(m)
 }
 
-func (x *microStreamStream) RecvMsg(m interface{}) error {
+func (x *clientStreamStream) RecvMsg(m interface{}) error {
 	return x.stream.Recv(m)
 }
 
-func (x *microStreamStream) Send(m *Response) error {
+func (x *clientStreamStream) Send(m *Response) error {
 	return x.stream.Send(m)
 }
 
-func (x *microStreamStream) Recv() (*Request, error) {
+func (x *clientStreamStream) Recv() (*Request, error) {
 	m := new(Request)
 	if err := x.stream.Recv(m); err != nil {
 		return nil, err
@@ -198,6 +198,6 @@ func (x *microStreamStream) Recv() (*Request, error) {
 	return m, nil
 }
 
-func (h *microHandler) Publish(ctx context.Context, in *Message, out *Message) error {
-	return h.MicroHandler.Publish(ctx, in, out)
+func (h *clientHandler) Publish(ctx context.Context, in *Message, out *Message) error {
+	return h.ClientHandler.Publish(ctx, in, out)
 }

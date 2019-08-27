@@ -8,7 +8,7 @@ import (
 
 var (
 	// DefaultAddress is default tunnel bind address
-	DefaultAddress = ":9096"
+	DefaultAddress = ":0"
 )
 
 type Option func(*Options)

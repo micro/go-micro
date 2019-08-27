@@ -17,5 +17,5 @@ func NewService(opts ...micro.Option) micro.Service {
 
 	options = append(options, opts...)
 
-	return micro.NewService(opts...)
+	return micro.NewService(options...)
 }

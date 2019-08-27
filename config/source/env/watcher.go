@@ -1,8 +1,6 @@
 package env
 
 import (
-	"errors"
-
 	"github.com/micro/go-micro/config/source"
 )
 
@@ -13,7 +11,7 @@ type watcher struct {
 func (w *watcher) Next() (*source.ChangeSet, error) {
 	<-w.exit
 
-	return nil, errors.New("watcher stopped")
+	return nil, source.ErrWatcherStopped
 }
 
 func (w *watcher) Stop() error {

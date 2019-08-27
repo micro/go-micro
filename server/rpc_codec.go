@@ -15,9 +15,10 @@ import (
 )
 
 type rpcCodec struct {
-	socket transport.Socket
-	codec  codec.Codec
-	first  bool
+	socket   transport.Socket
+	codec    codec.Codec
+	first    bool
+	protocol string
 
 	req *transport.Message
 	buf *readWriteCloser
@@ -157,12 +158,27 @@ func newRpcCodec(req *transport.Message, socket transport.Socket, c codec.NewCod
 		rbuf: bytes.NewBuffer(nil),
 		wbuf: bytes.NewBuffer(nil),
 	}
+
 	r := &rpcCodec{
-		buf:    rwc,
-		codec:  c(rwc),
-		req:    req,
-		socket: socket,
+		buf:      rwc,
+		codec:    c(rwc),
+		req:      req,
+		socket:   socket,
+		protocol: "mucp",
 	}
+
+	// if grpc pre-load the buffer
+	// TODO: remove this terrible hack
+	switch r.codec.String() {
+	case "grpc":
+		// set as first
+		r.first = true
+		// write the body
+		rwc.rbuf.Write(req.Body)
+		// set the protocol
+		r.protocol = "grpc"
+	}
+
 	return r
 }
 
@@ -173,27 +189,33 @@ func (c *rpcCodec) ReadHeader(r *codec.Message, t codec.MessageType) error {
 		Body:   c.req.Body,
 	}
 
-	var tm transport.Message
+	// first message could be pre-loaded
+	if !c.first {
+		var tm transport.Message
 
-	// read off the socket
-	if err := c.socket.Recv(&tm); err != nil {
-		return err
+		// read off the socket
+		if err := c.socket.Recv(&tm); err != nil {
+			return err
+		}
+		// reset the read buffer
+		c.buf.rbuf.Reset()
+
+		// write the body to the buffer
+		if _, err := c.buf.rbuf.Write(tm.Body); err != nil {
+			return err
+		}
+
+		// set the message header
+		m.Header = tm.Header
+		// set the message body
+		m.Body = tm.Body
+
+		// set req
+		c.req = &tm
 	}
-	// reset the read buffer
-	c.buf.rbuf.Reset()
 
-	// write the body to the buffer
-	if _, err := c.buf.rbuf.Write(tm.Body); err != nil {
-		return err
-	}
-
-	// set the message header
-	m.Header = tm.Header
-	// set the message body
-	m.Body = tm.Body
-
-	// set req
-	c.req = &tm
+	// disable first
+	c.first = false
 
 	// set some internal things
 	getHeaders(&m)
@@ -293,5 +315,5 @@ func (c *rpcCodec) Close() error {
 }
 
 func (c *rpcCodec) String() string {
-	return "rpc"
+	return c.protocol
 }

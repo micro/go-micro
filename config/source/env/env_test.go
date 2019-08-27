@@ -86,8 +86,8 @@ func TestEnvvar_Prefixes(t *testing.T) {
 }
 
 func TestEnvvar_WatchNextNoOpsUntilStop(t *testing.T) {
-	source := NewSource(WithStrippedPrefix("GOMICRO_"))
-	w, err := source.Watch()
+	src := NewSource(WithStrippedPrefix("GOMICRO_"))
+	w, err := src.Watch()
 	if err != nil {
 		t.Error(err)
 	}
@@ -97,7 +97,7 @@ func TestEnvvar_WatchNextNoOpsUntilStop(t *testing.T) {
 		w.Stop()
 	}()
 
-	if _, err := w.Next(); err.Error() != "watcher stopped" {
+	if _, err := w.Next(); err != source.ErrWatcherStopped {
 		t.Errorf("expected watcher stopped error, got %v", err)
 	}
 }
