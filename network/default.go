@@ -20,6 +20,8 @@ import (
 var (
 	// ControlChannel is the name of the tunnel channel for passing contron message
 	ControlChannel = "control"
+	// DefaultLink is default network link
+	DefaultLink = "network"
 )
 
 // network implements Network interface
@@ -229,7 +231,7 @@ func (n *network) advertise(client transport.Client, advertChan <-chan *router.A
 					Address: event.Route.Address,
 					Gateway: n.options.Address,
 					Network: event.Route.Network,
-					Link:    "network",
+					Link:    DefaultLink,
 					Metric:  int64(event.Route.Metric),
 				}
 				e := &pb.Event{
