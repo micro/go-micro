@@ -5,7 +5,7 @@ package resolver
 // via the name to connect to. This is done based on Network.Name().
 // Before we can be part of any network, we have to connect to it.
 type Resolver interface {
-	// Resolve returns a list of addresses for an name
+	// Resolve returns a list of addresses for a name
 	Resolve(name string) ([]*Record, error)
 }
 
