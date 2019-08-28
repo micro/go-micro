@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package go.micro.network;
+
+// Node is network node
+message Node {
+        // node ide
+        string id = 1;
+        // node address
+        string address = 2;
+}
+
+// Connect is sent when the node connects to the network
+message Connect {
+        // network mode
+        Node node = 1;
+}
+
+// Close is sent when the node disconnects from the network
+message Close {
+        // network mode
+        Node node = 1;
+}
+
+// Neighbour is used to nnounce node neighbourhood
+message Neighbour {
+        // network mode
+        Node node = 1;
+        // neighbours
+        repeated Node neighbours = 3;
+}
