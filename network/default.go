@@ -29,10 +29,12 @@ var (
 
 // node is network node
 type node struct {
-	// Id is node id
-	Id string
-	// Address is node address
-	Address string
+	// id is node id
+	id string
+	// address is node address
+	address string
+	// neighbours are node neightbours
+	neighbours map[string]*node
 }
 
 // network implements Network interface
@@ -50,10 +52,8 @@ type network struct {
 	// client is network client
 	client client.Client
 
-	// ctrlClient is ControlChannel client
-	ctrlClient transport.Client
-	// netClient is NetwrokChannel client
-	netClient transport.Client
+	// tunClient is a mao of tunnel clients keyed over channel names
+	tunClient map[string]transport.Client
 
 	sync.RWMutex
 	// connected marks the network as connected
@@ -61,7 +61,7 @@ type network struct {
 	// closed closes the network
 	closed chan bool
 	// neighbours maps the node neighbourhood
-	neighbours map[node]map[node]bool
+	neighbours map[string]*node
 }
 
 // newNetwork returns a new network node
@@ -112,7 +112,8 @@ func newNetwork(opts ...Option) Network {
 		Tunnel:     options.Tunnel,
 		server:     server,
 		client:     client,
-		neighbours: make(map[node]map[node]bool),
+		tunClient:  make(map[string]transport.Client),
+		neighbours: make(map[string]*node),
 	}
 }
 
@@ -228,12 +229,13 @@ func (n *network) processNetChan(l tunnel.Listener) {
 				if pbNetConnect.Node.Id == n.options.Id {
 					continue
 				}
-				neighbour := node{
-					Id:      pbNetConnect.Node.Id,
-					Address: pbNetConnect.Node.Address,
+				neighbour := &node{
+					id:         pbNetConnect.Node.Id,
+					address:    pbNetConnect.Node.Address,
+					neighbours: make(map[string]*node),
 				}
 				n.Lock()
-				n.neighbours[neighbour] = make(map[node]bool)
+				n.neighbours[neighbour.id] = neighbour
 				n.Unlock()
 			case "neighbour":
 				pbNetNeighbour := &pbNet.Neighbour{}
@@ -245,20 +247,21 @@ func (n *network) processNetChan(l tunnel.Listener) {
 				if pbNetNeighbour.Node.Id == n.options.Id {
 					continue
 				}
-				neighbour := node{
-					Id:      pbNetNeighbour.Node.Id,
-					Address: pbNetNeighbour.Node.Address,
+				neighbour := &node{
+					id:         pbNetNeighbour.Node.Id,
+					address:    pbNetNeighbour.Node.Address,
+					neighbours: make(map[string]*node),
 				}
 				n.Lock()
 				// we override the existing neighbour map
-				n.neighbours[neighbour] = make(map[node]bool)
+				n.neighbours[neighbour.id] = neighbour
 				// store the neighbouring node and its neighbours
 				for _, pbNeighbour := range pbNetNeighbour.Neighbours {
-					neighbourNode := node{
-						Id:      pbNeighbour.Id,
-						Address: pbNeighbour.Address,
+					neighbourNode := &node{
+						id:      pbNeighbour.Id,
+						address: pbNeighbour.Address,
 					}
-					n.neighbours[neighbour][neighbourNode] = true
+					n.neighbours[neighbour.id].neighbours[neighbourNode.id] = neighbourNode
 				}
 				n.Unlock()
 			case "close":
@@ -271,12 +274,8 @@ func (n *network) processNetChan(l tunnel.Listener) {
 				if pbNetClose.Node.Id == n.options.Id {
 					continue
 				}
-				node := node{
-					Id:      pbNetClose.Node.Id,
-					Address: pbNetClose.Node.Address,
-				}
 				n.Lock()
-				delete(n.neighbours, node)
+				delete(n.neighbours, pbNetClose.Node.Id)
 				n.Unlock()
 			}
 		case <-n.closed:
@@ -298,10 +297,10 @@ func (n *network) announce(client transport.Client) {
 			n.RLock()
 			nodes := make([]*pbNet.Node, len(n.neighbours))
 			i := 0
-			for node, _ := range n.neighbours {
+			for id, _ := range n.neighbours {
 				pbNode := &pbNet.Node{
-					Id:      node.Id,
-					Address: node.Address,
+					Id:      id,
+					Address: n.neighbours[id].address,
 				}
 				nodes[i] = pbNode
 			}
@@ -521,7 +520,7 @@ func (n *network) Connect() error {
 		return err
 	}
 
-	n.ctrlClient = ctrlClient
+	n.tunClient[ControlChannel] = ctrlClient
 
 	// listen on ControlChannel
 	ctrlListener, err := n.Tunnel.Listen(ControlChannel)
@@ -535,7 +534,7 @@ func (n *network) Connect() error {
 		return err
 	}
 
-	n.netClient = netClient
+	n.tunClient[NetworkChannel] = netClient
 
 	// listen on NetworkChannel
 	netListener, err := n.Tunnel.Listen(NetworkChannel)
@@ -641,7 +640,7 @@ func (n *network) Close() error {
 	}
 
 	// send close message only if we managed to connect to NetworkChannel
-	if n.netClient != nil {
+	if netClient, ok := n.tunClient[NetworkChannel]; ok {
 		// send connect message to NetworkChannel
 		node := &pbNet.Node{
 			Id:      n.options.Id,
@@ -661,7 +660,7 @@ func (n *network) Close() error {
 				Body: body,
 			}
 
-			if err := n.netClient.Send(&m); err != nil {
+			if err := netClient.Send(&m); err != nil {
 				log.Debugf("Network failed to send close messsage: %v", err)
 			}
 		}
