@@ -13,8 +13,10 @@ var (
 	DefaultName = "go.micro"
 	// DefaultAddress is default network address
 	DefaultAddress = ":0"
-	// ResolveTime ddefines the time to periodically resolve network nodes
+	// ResolveTime defines time interval to periodically resolve network nodes
 	ResolveTime = 1 * time.Minute
+	// AnnounceTime defines time interval to periodically announce node neighbours
+	AnnounceTime = 30 * time.Second
 )
 
 // Network is micro network
