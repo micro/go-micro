@@ -18,6 +18,7 @@ func (t *Table) Create(ctx context.Context, route *pb.Route, resp *pb.CreateResp
 		Address: route.Address,
 		Gateway: route.Gateway,
 		Network: route.Network,
+		Router:  route.Router,
 		Link:    route.Link,
 		Metric:  int(route.Metric),
 	})
@@ -34,6 +35,7 @@ func (t *Table) Update(ctx context.Context, route *pb.Route, resp *pb.UpdateResp
 		Address: route.Address,
 		Gateway: route.Gateway,
 		Network: route.Network,
+		Router:  route.Router,
 		Link:    route.Link,
 		Metric:  int(route.Metric),
 	})
@@ -50,6 +52,7 @@ func (t *Table) Delete(ctx context.Context, route *pb.Route, resp *pb.DeleteResp
 		Address: route.Address,
 		Gateway: route.Gateway,
 		Network: route.Network,
+		Router:  route.Router,
 		Link:    route.Link,
 		Metric:  int(route.Metric),
 	})
@@ -74,6 +77,7 @@ func (t *Table) List(ctx context.Context, req *pb.Request, resp *pb.ListResponse
 			Address: route.Address,
 			Gateway: route.Gateway,
 			Network: route.Network,
+			Router:  route.Router,
 			Link:    route.Link,
 			Metric:  int64(route.Metric),
 		}
@@ -102,6 +106,7 @@ func (t *Table) Query(ctx context.Context, req *pb.QueryRequest, resp *pb.QueryR
 			Address: route.Address,
 			Gateway: route.Gateway,
 			Network: route.Network,
+			Router:  route.Router,
 			Link:    route.Link,
 			Metric:  int64(route.Metric),
 		}

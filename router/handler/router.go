@@ -33,6 +33,7 @@ func (r *Router) Lookup(ctx context.Context, req *pb.LookupRequest, resp *pb.Loo
 			Address: route.Address,
 			Gateway: route.Gateway,
 			Network: route.Network,
+			Router:  route.Router,
 			Link:    route.Link,
 			Metric:  int64(route.Metric),
 		}
@@ -58,6 +59,7 @@ func (r *Router) Advertise(ctx context.Context, req *pb.Request, stream pb.Route
 				Address: event.Route.Address,
 				Gateway: event.Route.Gateway,
 				Network: event.Route.Network,
+				Router:  event.Route.Router,
 				Link:    event.Route.Link,
 				Metric:  int64(event.Route.Metric),
 			}
@@ -97,6 +99,7 @@ func (r *Router) Process(ctx context.Context, req *pb.Advert, rsp *pb.ProcessRes
 			Address: event.Route.Address,
 			Gateway: event.Route.Gateway,
 			Network: event.Route.Network,
+			Router:  event.Route.Router,
 			Link:    event.Route.Link,
 			Metric:  int(event.Route.Metric),
 		}
@@ -161,6 +164,7 @@ func (r *Router) Watch(ctx context.Context, req *pb.WatchRequest, stream pb.Rout
 			Address: event.Route.Address,
 			Gateway: event.Route.Gateway,
 			Network: event.Route.Network,
+			Router:  event.Route.Router,
 			Link:    event.Route.Link,
 			Metric:  int64(event.Route.Metric),
 		}

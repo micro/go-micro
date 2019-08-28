@@ -117,10 +117,12 @@ message Route {
 	string gateway = 3;
 	// the network for this destination
 	string network = 4;
+	// router if the router id
+	string router = 5;
 	// the network link
-	string link = 5;
+	string link = 6;
 	// the metric / score of this route
-	int64 metric = 6;
+	int64 metric = 7;
 }
 
 message Status {

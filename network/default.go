@@ -194,6 +194,7 @@ func (n *network) process(l tunnel.Listener) {
 						Address: event.Route.Address,
 						Gateway: event.Route.Gateway,
 						Network: event.Route.Network,
+						Router:  event.Route.Router,
 						Link:    event.Route.Link,
 						Metric:  int(event.Route.Metric),
 					}
@@ -238,6 +239,7 @@ func (n *network) advertise(client transport.Client, advertChan <-chan *router.A
 					Address: event.Route.Address,
 					Gateway: n.options.Address,
 					Network: event.Route.Network,
+					Router:  event.Route.Router,
 					Link:    DefaultLink,
 					Metric:  int64(event.Route.Metric),
 				}
