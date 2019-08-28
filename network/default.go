@@ -34,8 +34,8 @@ type network struct {
 	proxy.Proxy
 	// tun is network tunnel
 	tunnel.Tunnel
-	// srv is network server
-	srv server.Server
+	// server is network server
+	server server.Server
 	// client is network client
 	client client.Client
 
@@ -59,13 +59,19 @@ func newNetwork(opts ...Option) Network {
 		tunnel.Address(options.Address),
 	)
 
+	// init router Id to the network id
+	options.Router.Init(
+		router.Id(options.Id),
+	)
+
 	// create tunnel client with tunnel transport
 	tunTransport := trn.NewTransport(
 		trn.WithTunnel(options.Tunnel),
 	)
 
-	// srv is network server
-	srv := server.NewServer(
+	// server is network server
+	server := server.NewServer(
+		server.Id(options.Id),
 		server.Address(options.Address),
 		server.Name(options.Name),
 		server.Transport(tunTransport),
@@ -86,7 +92,7 @@ func newNetwork(opts ...Option) Network {
 		Router:  options.Router,
 		Proxy:   options.Proxy,
 		Tunnel:  options.Tunnel,
-		srv:     srv,
+		server:  server,
 		client:  client,
 	}
 }
@@ -333,7 +339,7 @@ func (n *network) Connect() error {
 	go n.process(listener)
 
 	// start the server
-	if err := n.srv.Start(); err != nil {
+	if err := n.server.Start(); err != nil {
 		return err
 	}
 
@@ -345,7 +351,7 @@ func (n *network) Connect() error {
 
 func (n *network) close() error {
 	// stop the server
-	if err := n.srv.Stop(); err != nil {
+	if err := n.server.Stop(); err != nil {
 		return err
 	}
 
@@ -390,5 +396,5 @@ func (n *network) Client() client.Client {
 
 // Server returns network server
 func (n *network) Server() server.Server {
-	return n.srv
+	return n.server
 }

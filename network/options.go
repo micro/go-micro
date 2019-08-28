@@ -1,6 +1,7 @@
 package network
 
 import (
+	"github.com/google/uuid"
 	"github.com/micro/go-micro/network/resolver"
 	"github.com/micro/go-micro/network/resolver/registry"
 	"github.com/micro/go-micro/proxy"
@@ -13,6 +14,8 @@ type Option func(*Options)
 
 // Options configure network
 type Options struct {
+	// Id of the node
+	Id string
 	// Name of the network
 	Name string
 	// Address to bind to
@@ -27,14 +30,21 @@ type Options struct {
 	Resolver resolver.Resolver
 }
 
-// Name is the network name
+// Id sets the id of the network node
+func Id(id string) Option {
+	return func(o *Options) {
+		o.Id = id
+	}
+}
+
+// Name sets the network name
 func Name(n string) Option {
 	return func(o *Options) {
 		o.Name = n
 	}
 }
 
-// Address is the network address
+// Address sets the network address
 func Address(a string) Option {
 	return func(o *Options) {
 		o.Address = a
@@ -72,6 +82,7 @@ func Resolver(r resolver.Resolver) Option {
 // DefaultOptions returns network default options
 func DefaultOptions() Options {
 	return Options{
+		Id:       uuid.New().String(),
 		Name:     DefaultName,
 		Address:  DefaultAddress,
 		Tunnel:   tunnel.NewTunnel(),
