@@ -25,8 +25,10 @@ type socket struct {
 	recv chan *message
 	// wait until we have a connection
 	wait chan bool
-	// outbound marks the socket as outbound
+	// outbound marks the socket as outbound dialled connection
 	outbound bool
+	// lookback marks the socket as a loopback on the inbound
+	loopback bool
 }
 
 // message is sent over the send channel
@@ -37,6 +39,8 @@ type message struct {
 	session string
 	// outbound marks the message as outbound
 	outbound bool
+	// loopback marks the message intended for loopback
+	loopback bool
 	// transport data
 	data *transport.Message
 }
@@ -80,6 +84,7 @@ func (s *socket) Send(m *transport.Message) error {
 		id:       s.id,
 		session:  s.session,
 		outbound: s.outbound,
+		loopback: s.loopback,
 		data:     data,
 	}
 	log.Debugf("Appending %+v to send backlog", msg)
