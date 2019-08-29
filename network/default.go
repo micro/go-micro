@@ -75,6 +75,7 @@ func newNetwork(opts ...Option) Network {
 	// init tunnel address to the network bind address
 	options.Tunnel.Init(
 		tunnel.Address(options.Address),
+		tunnel.Nodes(options.Nodes...),
 	)
 
 	// init router Id to the network id
@@ -135,10 +136,20 @@ func (n *network) resolveNodes() ([]string, error) {
 		return nil, err
 	}
 
+	nodeMap := make(map[string]bool)
+
 	// collect network node addresses
-	nodes := make([]string, len(records))
+	var nodes []string
 	for i, record := range records {
 		nodes[i] = record.Address
+		nodeMap[record.Address] = true
+	}
+
+	// append seed nodes if we have them
+	for _, node := range n.options.Nodes {
+		if _, ok := nodeMap[node]; !ok {
+			nodes = append(nodes, node)
+		}
 	}
 
 	return nodes, nil
