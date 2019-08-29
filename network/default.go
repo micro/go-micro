@@ -309,11 +309,11 @@ func (n *network) announce(client transport.Client) {
 			nodes := make([]*pbNet.Node, len(n.neighbours))
 			i := 0
 			for id, _ := range n.neighbours {
-				pbNode := &pbNet.Node{
+				nodes[i] = &pbNet.Node{
 					Id:      id,
 					Address: n.neighbours[id].address,
 				}
-				nodes[i] = pbNode
+				i++
 			}
 			n.RUnlock()
 
