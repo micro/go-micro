@@ -53,6 +53,8 @@ type link struct {
 	// which we define for ourselves
 	id string
 	// whether its a loopback connection
+	// this flag is used by the transport listener
+	// which accepts inbound quic connections
 	loopback bool
 	// whether its actually connected
 	// dialled side sets it to connected
@@ -183,7 +185,7 @@ func (t *tun) process() {
 			}
 
 			// set message head
-			newMsg.Header["Micro-Tunnel"] = "message"
+			newMsg.Header["Micro-Tunnel"] = msg.typ
 
 			// set the tunnel id on the outgoing message
 			newMsg.Header["Micro-Tunnel-Id"] = msg.id
@@ -196,13 +198,22 @@ func (t *tun) process() {
 
 			// send the message via the interface
 			t.Lock()
+
 			if len(t.links) == 0 {
 				log.Debugf("No links to send to")
 			}
+
 			for node, link := range t.links {
 				// if the link is not connected skip it
 				if !link.connected {
 					log.Debugf("Link for node %s not connected", node)
+					continue
+				}
+
+				// if we're picking the link check the id
+				// this is where we explicitly set the link
+				// in a message received via the listen method
+				if len(msg.link) > 0 && link.id != msg.link {
 					continue
 				}
 
@@ -219,6 +230,7 @@ func (t *tun) process() {
 					continue
 				}
 
+				// send the message via the current link
 				log.Debugf("Sending %+v to %s", newMsg, node)
 				if err := link.Send(newMsg); err != nil {
 					log.Debugf("Tunnel error sending %+v to %s: %v", newMsg, node, err)
@@ -226,6 +238,7 @@ func (t *tun) process() {
 					continue
 				}
 			}
+
 			t.Unlock()
 		case <-t.closed:
 			return
@@ -283,10 +296,11 @@ func (t *tun) listen(link *link) {
 			log.Debugf("Tunnel link %s closing connection", link.Remote())
 			// TODO: handle the close message
 			// maybe report io.EOF or kill the link
-			continue
+			return
 		case "keepalive":
 			log.Debugf("Tunnel link %s received keepalive", link.Remote())
 			t.Lock()
+			// save the keepalive
 			link.lastKeepAlive = time.Now()
 			t.Unlock()
 			continue
@@ -300,6 +314,7 @@ func (t *tun) listen(link *link) {
 
 		// if its not connected throw away the link
 		if !link.connected {
+			log.Debugf("Tunnel link %s not connected", link.id)
 			return
 		}
 
@@ -388,6 +403,7 @@ func (t *tun) listen(link *link) {
 			id:       id,
 			session:  session,
 			data:     tmsg,
+			link:     link.id,
 			loopback: loopback,
 		}
 
@@ -449,13 +465,10 @@ func (t *tun) setupLink(node string) (*link, error) {
 	}
 
 	// create a new link
-	link := &link{
-		Socket: c,
-		id:     uuid.New().String(),
-		// we made the outbound connection
-		// and sent the connect message
-		connected: true,
-	}
+	link := newLink(c)
+	link.connected = true
+	// we made the outbound connection
+	// and sent the connect message
 
 	// process incoming messages
 	go t.listen(link)
@@ -482,10 +495,7 @@ func (t *tun) connect() error {
 			log.Debugf("Tunnel accepted connection from %s", sock.Remote())
 
 			// create a new link
-			link := &link{
-				Socket: sock,
-				id:     uuid.New().String(),
-			}
+			link := newLink(sock)
 
 			// listen for inbound messages.
 			// only save the link once connected.
@@ -493,8 +503,8 @@ func (t *tun) connect() error {
 			t.listen(link)
 		})
 
-		t.Lock()
-		defer t.Unlock()
+		t.RLock()
+		defer t.RUnlock()
 
 		// still connected but the tunnel died
 		if err != nil && t.connected {
