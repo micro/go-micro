@@ -376,7 +376,43 @@ func (n *network) acceptCtrlConn(l tunnel.Listener, recv chan *transport.Message
 	}
 }
 
-// process processes network advertisements
+// setRouteMetric calculates metric of the route and updates it in place
+// - Local route metric is 1
+// - Routes with ID of adjacent neighbour are 10
+// - Routes of neighbours of the advertiser are 100
+// - Routes beyond your neighbourhood are 1000
+func (n *network) setRouteMetric(route *router.Route) {
+	// we are the origin of the route
+	if route.Router == n.options.Id {
+		route.Metric = 1
+		return
+	}
+
+	n.RLock()
+	// check if the route origin is our neighbour
+	if _, ok := n.neighbours[route.Router]; ok {
+		route.Metric = 10
+		n.RUnlock()
+		return
+	}
+
+	// check if the route origin is the neighbour of our neighbour
+	for _, node := range n.neighbours {
+		for id, _ := range node.neighbours {
+			if route.Router == id {
+				route.Metric = 100
+				n.RUnlock()
+				return
+			}
+		}
+	}
+	n.RUnlock()
+
+	// the origin of the route is beyond our neighbourhood
+	route.Metric = 1000
+}
+
+// processCtrlChan processes messages received on ControlChannel
 func (n *network) processCtrlChan(l tunnel.Listener) {
 	// receive control message queue
 	recv := make(chan *transport.Message, 128)
@@ -406,6 +442,13 @@ func (n *network) processCtrlChan(l tunnel.Listener) {
 						Link:    event.Route.Link,
 						Metric:  int(event.Route.Metric),
 					}
+					// set the route metric
+					n.setRouteMetric(&route)
+					// throw away metric bigger than 1000
+					if route.Metric > 1000 {
+						continue
+					}
+					// create router event
 					e := &router.Event{
 						Type:      router.EventType(event.Type),
 						Timestamp: time.Unix(0, pbRtrAdvert.Timestamp),
