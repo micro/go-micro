@@ -20,6 +20,8 @@ type Options struct {
 	Name string
 	// Address to bind to
 	Address string
+	// Nodes is a list of seed nodes
+	Nodes []string
 	// Tunnel is network tunnel
 	Tunnel tunnel.Tunnel
 	// Router is network router
@@ -48,6 +50,14 @@ func Name(n string) Option {
 func Address(a string) Option {
 	return func(o *Options) {
 		o.Address = a
+	}
+}
+
+// Nodes is a list of seed nodes used along
+// with resolved node
+func Nodes(n ...string) Option {
+	return func(o *Options) {
+		o.Nodes = n
 	}
 }
 
