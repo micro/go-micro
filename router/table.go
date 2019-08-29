@@ -83,8 +83,10 @@ func (t *table) Delete(r Route) error {
 		return ErrRouteNotFound
 	}
 
-	delete(t.routes[service], sum)
-	go t.sendEvent(&Event{Type: Delete, Timestamp: time.Now(), Route: r})
+	if _, ok := t.routes[service][sum]; ok {
+		delete(t.routes[service], sum)
+		go t.sendEvent(&Event{Type: Delete, Timestamp: time.Now(), Route: r})
+	}
 
 	return nil
 }
@@ -105,8 +107,10 @@ func (t *table) Update(r Route) error {
 		return nil
 	}
 
-	t.routes[service][sum] = r
-	go t.sendEvent(&Event{Type: Update, Timestamp: time.Now(), Route: r})
+	if _, ok := t.routes[service][sum]; !ok {
+		t.routes[service][sum] = r
+		go t.sendEvent(&Event{Type: Update, Timestamp: time.Now(), Route: r})
+	}
 
 	return nil
 }
