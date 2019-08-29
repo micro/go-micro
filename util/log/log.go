@@ -14,7 +14,7 @@ type Level int
 const (
 	LevelFatal Level = iota
 	LevelInfo
-	LevelWarn
+	LevelError
 	LevelDebug
 	LevelTrace
 )
@@ -29,16 +29,16 @@ var (
 
 func init() {
 	switch os.Getenv("MICRO_LOG_LEVEL") {
+	case "trace":
+		level = LevelTrace
 	case "debug":
 		level = LevelDebug
 	case "info":
 		level = LevelInfo
-	case "trace":
-		level = LevelTrace
+	case "error":
+		level = LevelError
 	case "fatal":
 		level = LevelFatal
-	case "warn":
-		level = LevelWarn
 	}
 }
 
@@ -98,14 +98,14 @@ func Infof(format string, v ...interface{}) {
 	WithLevelf(LevelInfo, format, v...)
 }
 
-// Warn provides warn level logging
-func Warn(v ...interface{}) {
-	WithLevel(LevelWarn, v...)
+// Error provides warn level logging
+func Error(v ...interface{}) {
+	WithLevel(LevelError, v...)
 }
 
-// Warnf provides warn level logging
-func Warnf(format string, v ...interface{}) {
-	WithLevelf(LevelWarn, format, v...)
+// Errorf provides warn level logging
+func Errorf(format string, v ...interface{}) {
+	WithLevelf(LevelError, format, v...)
 }
 
 // Fatal logs with Log and then exits with os.Exit(1)
