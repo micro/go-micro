@@ -41,6 +41,10 @@ func (t *tunListener) process() {
 					id: m.id,
 					// the session id
 					session: m.session,
+					// is loopback conn
+					loopback: m.loopback,
+					// the link the message was received on
+					link: m.link,
 					// close chan
 					closed: make(chan bool),
 					// recv called by the acceptor
