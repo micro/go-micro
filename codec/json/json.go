@@ -25,7 +25,9 @@ func (c *Codec) ReadBody(b interface{}) error {
 		return nil
 	}
 	if pb, ok := b.(proto.Message); ok {
-		return jsonpb.UnmarshalNext(c.Decoder, pb)
+		unmarshaler := &jsonpb.Unmarshaler{AllowUnknownFields: true}
+
+		return unmarshaler.UnmarshalNext(c.Decoder, pb)
 	}
 	return c.Decoder.Decode(b)
 }
