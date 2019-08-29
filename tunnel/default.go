@@ -447,7 +447,7 @@ func (t *tun) keepalive(link *link) {
 // setupLink connects to node and returns link if successful
 // It returns error if the link failed to be established
 func (t *tun) setupLink(node string) (*link, error) {
-	log.Debugf("Tunnel dialing %s", node)
+	log.Debugf("Tunnel setting up link: %s", node)
 	c, err := t.options.Transport.Dial(node)
 	if err != nil {
 		log.Debugf("Tunnel failed to connect to %s: %v", node, err)
