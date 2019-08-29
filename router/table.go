@@ -105,8 +105,10 @@ func (t *table) Update(r Route) error {
 		return nil
 	}
 
-	t.routes[service][sum] = r
-	go t.sendEvent(&Event{Type: Update, Timestamp: time.Now(), Route: r})
+	if _, ok := t.routes[service][sum]; !ok {
+		t.routes[service][sum] = r
+		go t.sendEvent(&Event{Type: Update, Timestamp: time.Now(), Route: r})
+	}
 
 	return nil
 }
