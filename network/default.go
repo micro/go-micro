@@ -140,8 +140,8 @@ func (n *network) resolveNodes() ([]string, error) {
 
 	// collect network node addresses
 	var nodes []string
-	for i, record := range records {
-		nodes[i] = record.Address
+	for _, record := range records {
+		nodes = append(nodes, record.Address)
 		nodeMap[record.Address] = true
 	}
 
