@@ -14,7 +14,7 @@ import (
 	"github.com/micro/go-micro/server"
 	"github.com/micro/go-micro/transport"
 	"github.com/micro/go-micro/tunnel"
-	trn "github.com/micro/go-micro/tunnel/transport"
+	tun "github.com/micro/go-micro/tunnel/transport"
 	"github.com/micro/go-micro/util/log"
 )
 
@@ -84,8 +84,8 @@ func newNetwork(opts ...Option) Network {
 	)
 
 	// create tunnel client with tunnel transport
-	tunTransport := trn.NewTransport(
-		trn.WithTunnel(options.Tunnel),
+	tunTransport := tun.NewTransport(
+		tun.WithTunnel(options.Tunnel),
 	)
 
 	// server is network server
@@ -439,11 +439,42 @@ func (n *network) processCtrlChan(l tunnel.Listener) {
 			case "advert":
 				pbRtrAdvert := &pbRtr.Advert{}
 				if err := proto.Unmarshal(m.Body, pbRtrAdvert); err != nil {
+					log.Debugf("Network fail to unmarshal advert message: %v", err)
 					continue
 				}
 
+				// loookup advertising node in our neighbourhood
+				n.RLock()
+				advertNode, ok := n.neighbours[pbRtrAdvert.Id]
+				if !ok {
+					// advertising node has not been registered as our neighbour, yet
+					// let's add it to the map of our neighbours
+					advertNode = &node{
+						id:         pbRtrAdvert.Id,
+						neighbours: make(map[string]*node),
+					}
+					n.neighbours[pbRtrAdvert.Id] = advertNode
+				}
+				n.RUnlock()
+
 				var events []*router.Event
 				for _, event := range pbRtrAdvert.Events {
+					// set the address of the advertising node
+					// we know Route.Gateway is the address of advertNode
+					// NOTE: this is true only when advertNode had not been registered
+					// as our neighbour when we received the advert from it
+					if advertNode.address == "" {
+						advertNode.address = event.Route.Gateway
+					}
+					// if advertising node id is not the same as Route.Router
+					// we know the advertising node is not the origin of the route
+					if advertNode.id != event.Route.Router {
+						// if the origin router is not in the advertising node neighbourhood
+						// we can't rule out potential routing loops so we bail here
+						if _, ok := advertNode.neighbours[event.Route.Router]; !ok {
+							continue
+						}
+					}
 					route := router.Route{
 						Service: event.Route.Service,
 						Address: event.Route.Address,
