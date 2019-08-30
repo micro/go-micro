@@ -2,6 +2,23 @@ syntax = "proto3";
 
 package go.micro.network;
 
+import "github.com/micro/go-micro/router/proto/router.proto";
+
+// Network service is usesd to gain visibility into networks
+service Network {
+        rpc ListRoutes(go.micro.router.Request) returns (go.micro.router.ListResponse) {};
+        rpc ListNodes(ListRequest) returns (ListResponse) {};
+        rpc ListNeighbours(ListRequest) returns (ListResponse) {};
+}
+
+// Empty request
+message ListRequest {}
+
+// ListResponse is returned by ListNodes and ListNeighbours
+message ListResponse {
+	repeated Node nodes = 1;
+}
+
 // Node is network node
 message Node {
         // node ide
