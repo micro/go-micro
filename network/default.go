@@ -179,10 +179,10 @@ func (n *network) resolve() {
 }
 
 // handleNetConn handles network announcement messages
-func (n *network) handleNetConn(conn tunnel.Conn, msg chan *transport.Message) {
+func (n *network) handleNetConn(sess tunnel.Session, msg chan *transport.Message) {
 	for {
 		m := new(transport.Message)
-		if err := conn.Recv(m); err != nil {
+		if err := sess.Recv(m); err != nil {
 			// TODO: should we bail here?
 			log.Debugf("Network tunnel [%s] receive error: %v", NetworkChannel, err)
 			return
@@ -349,10 +349,10 @@ func (n *network) announce(client transport.Client) {
 }
 
 // handleCtrlConn handles ControlChannel connections
-func (n *network) handleCtrlConn(conn tunnel.Conn, msg chan *transport.Message) {
+func (n *network) handleCtrlConn(sess tunnel.Session, msg chan *transport.Message) {
 	for {
 		m := new(transport.Message)
-		if err := conn.Recv(m); err != nil {
+		if err := sess.Recv(m); err != nil {
 			// TODO: should we bail here?
 			log.Debugf("Network tunnel advert receive error: %v", err)
 			return

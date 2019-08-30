@@ -2,15 +2,18 @@ package tunnel
 
 import (
 	"errors"
+	"io"
 
 	"github.com/micro/go-micro/transport"
 	"github.com/micro/go-micro/util/log"
 )
 
-// socket is our pseudo socket for transport.Socket
-type socket struct {
-	// socket id based on Micro-Tunnel
+// session is our pseudo session for transport.Socket
+type session struct {
+	// unique id based on the remote tunnel id
 	id string
+	// the channel name
+	channel string
 	// the session id based on Micro.Tunnel-Session
 	session string
 	// closed
@@ -25,12 +28,14 @@ type socket struct {
 	recv chan *message
 	// wait until we have a connection
 	wait chan bool
-	// outbound marks the socket as outbound dialled connection
+	// outbound marks the session as outbound dialled connection
 	outbound bool
-	// lookback marks the socket as a loopback on the inbound
+	// lookback marks the session as a loopback on the inbound
 	loopback bool
 	// the link on which this message was received
 	link string
+	// the error response
+	errChan chan error
 }
 
 // message is sent over the send channel
@@ -39,6 +44,8 @@ type message struct {
 	typ string
 	// tunnel id
 	id string
+	// channel name
+	channel string
 	// the session id
 	session string
 	// outbound marks the message as outbound
@@ -49,28 +56,30 @@ type message struct {
 	link string
 	// transport data
 	data *transport.Message
+	// the error channel
+	errChan chan error
 }
 
-func (s *socket) Remote() string {
+func (s *session) Remote() string {
 	return s.remote
 }
 
-func (s *socket) Local() string {
+func (s *session) Local() string {
 	return s.local
 }
 
-func (s *socket) Id() string {
-	return s.id
-}
-
-func (s *socket) Session() string {
+func (s *session) Id() string {
 	return s.session
 }
 
-func (s *socket) Send(m *transport.Message) error {
+func (s *session) Channel() string {
+	return s.channel
+}
+
+func (s *session) Send(m *transport.Message) error {
 	select {
 	case <-s.closed:
-		return errors.New("socket is closed")
+		return errors.New("session is closed")
 	default:
 		// no op
 	}
@@ -89,28 +98,48 @@ func (s *socket) Send(m *transport.Message) error {
 	msg := &message{
 		typ:      "message",
 		id:       s.id,
+		channel:  s.channel,
 		session:  s.session,
 		outbound: s.outbound,
 		loopback: s.loopback,
 		data:     data,
 		// specify the link on which to send this
-		// it will be blank for dialled sockets
+		// it will be blank for dialled sessions
 		link: s.link,
+		// error chan
+		errChan: s.errChan,
 	}
 	log.Debugf("Appending %+v to send backlog", msg)
 	s.send <- msg
+
+	// wait for an error response
+	select {
+	case err := <-msg.errChan:
+		return err
+	case <-s.closed:
+		return io.EOF
+	}
+
 	return nil
 }
 
-func (s *socket) Recv(m *transport.Message) error {
+func (s *session) Recv(m *transport.Message) error {
 	select {
 	case <-s.closed:
-		return errors.New("socket is closed")
+		return errors.New("session is closed")
 	default:
 		// no op
 	}
 	// recv from backlog
 	msg := <-s.recv
+
+	// check the error if one exists
+	select {
+	case err := <-msg.errChan:
+		return err
+	default:
+	}
+
 	log.Debugf("Received %+v from recv backlog", msg)
 	// set message
 	*m = *msg.data
@@ -118,8 +147,8 @@ func (s *socket) Recv(m *transport.Message) error {
 	return nil
 }
 
-// Close closes the socket
-func (s *socket) Close() error {
+// Close closes the session
+func (s *session) Close() error {
 	select {
 	case <-s.closed:
 		// no op

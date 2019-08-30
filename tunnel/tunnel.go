@@ -17,27 +17,27 @@ type Tunnel interface {
 	Connect() error
 	// Close closes the tunnel
 	Close() error
-	// Dial an endpoint
-	Dial(addr string) (Conn, error)
-	// Accept connections
-	Listen(addr string) (Listener, error)
+	// Connect to a channel
+	Dial(channel string) (Session, error)
+	// Accept connections on a channel
+	Listen(channel string) (Listener, error)
 	// Name of the tunnel implementation
 	String() string
 }
 
 // The listener provides similar constructs to the transport.Listener
 type Listener interface {
-	Addr() string
+	Channel() string
 	Close() error
-	Accept() (Conn, error)
+	Accept() (Session, error)
 }
 
-// Conn is a connection dialed or accepted which includes the tunnel id and session
-type Conn interface {
+// Session is a unique session created when dialling or accepting connections on the tunnel
+type Session interface {
 	// Specifies the tunnel id
 	Id() string
 	// The session
-	Session() string
+	Channel() string
 	// a transport socket
 	transport.Socket
 }

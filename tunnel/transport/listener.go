@@ -10,7 +10,7 @@ type tunListener struct {
 }
 
 func (t *tunListener) Addr() string {
-	return t.l.Addr()
+	return t.l.Channel()
 }
 
 func (t *tunListener) Close() error {
