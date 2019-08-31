@@ -5,8 +5,8 @@ import (
 	"github.com/micro/go-micro/transport"
 )
 
-// Tunnel creates a gre network tunnel on top of a link.
-// It establishes multiple streams using the Micro-Tunnel-Id header
+// Tunnel creates a gre tunnel on top of the go-micro/transport.
+// It establishes multiple streams using the Micro-Tunnel-Channel header
 // and Micro-Tunnel-Session header. The tunnel id is a hash of
 // the address being requested.
 type Tunnel interface {
@@ -27,16 +27,16 @@ type Tunnel interface {
 
 // The listener provides similar constructs to the transport.Listener
 type Listener interface {
+	Accept() (Session, error)
 	Channel() string
 	Close() error
-	Accept() (Session, error)
 }
 
 // Session is a unique session created when dialling or accepting connections on the tunnel
 type Session interface {
-	// Specifies the tunnel id
+	// The unique session id
 	Id() string
-	// The session
+	// The channel name
 	Channel() string
 	// a transport socket
 	transport.Socket
