@@ -9,6 +9,8 @@ import (
 var (
 	// DefaultAddress is default tunnel bind address
 	DefaultAddress = ":0"
+	// The shared default token
+	DefaultToken = "micro"
 )
 
 type Option func(*Options)
@@ -21,6 +23,8 @@ type Options struct {
 	Address string
 	// Nodes are remote nodes
 	Nodes []string
+	// The shared auth token
+	Token string
 	// Transport listens to incoming connections
 	Transport transport.Transport
 }
@@ -46,6 +50,13 @@ func Nodes(n ...string) Option {
 	}
 }
 
+// Token sets the shared token for auth
+func Token(t string) Option {
+	return func(o *Options) {
+		o.Token = t
+	}
+}
+
 // Transport listens for incoming connections
 func Transport(t transport.Transport) Option {
 	return func(o *Options) {
@@ -58,6 +69,7 @@ func DefaultOptions() Options {
 	return Options{
 		Id:        uuid.New().String(),
 		Address:   DefaultAddress,
+		Token:     DefaultToken,
 		Transport: quic.NewTransport(),
 	}
 }

@@ -8,37 +8,37 @@ import (
 
 type tunListener struct {
 	// address of the listener
-	addr string
+	channel string
 	// the accept channel
-	accept chan *socket
+	accept chan *session
 	// the channel to close
 	closed chan bool
 	// the tunnel closed channel
 	tunClosed chan bool
-	// the connection
-	conn Conn
-	// the listener socket
-	socket *socket
+	// the listener session
+	session *session
 }
 
 func (t *tunListener) process() {
 	// our connection map for session
-	conns := make(map[string]*socket)
+	conns := make(map[string]*session)
 
 	for {
 		select {
 		case <-t.closed:
 			return
 		// receive a new message
-		case m := <-t.socket.recv:
-			// get a socket
-			sock, ok := conns[m.session]
+		case m := <-t.session.recv:
+			// get a session
+			sess, ok := conns[m.session]
 			log.Debugf("Tunnel listener received id %s session %s exists: %t", m.id, m.session, ok)
 			if !ok {
-				// create a new socket session
-				sock = &socket{
-					// our tunnel id
+				// create a new session session
+				sess = &session{
+					// the id of the remote side
 					id: m.id,
+					// the channel
+					channel: m.channel,
 					// the session id
 					session: m.session,
 					// is loopback conn
@@ -50,35 +50,37 @@ func (t *tunListener) process() {
 					// recv called by the acceptor
 					recv: make(chan *message, 128),
 					// use the internal send buffer
-					send: t.socket.send,
+					send: t.session.send,
 					// wait
 					wait: make(chan bool),
+					// error channel
+					errChan: make(chan error, 1),
 				}
 
-				// save the socket
-				conns[m.session] = sock
+				// save the session
+				conns[m.session] = sess
 
 				// send to accept chan
 				select {
 				case <-t.closed:
 					return
-				case t.accept <- sock:
+				case t.accept <- sess:
 				}
 			}
 
 			// send this to the accept chan
 			select {
-			case <-sock.closed:
+			case <-sess.closed:
 				delete(conns, m.session)
-			case sock.recv <- m:
+			case sess.recv <- m:
 				log.Debugf("Tunnel listener sent to recv chan id %s session %s", m.id, m.session)
 			}
 		}
 	}
 }
 
-func (t *tunListener) Addr() string {
-	return t.addr
+func (t *tunListener) Channel() string {
+	return t.channel
 }
 
 // Close closes tunnel listener
@@ -93,9 +95,9 @@ func (t *tunListener) Close() error {
 }
 
 // Everytime accept is called we essentially block till we get a new connection
-func (t *tunListener) Accept() (Conn, error) {
+func (t *tunListener) Accept() (Session, error) {
 	select {
-	// if the socket is closed return
+	// if the session is closed return
 	case <-t.closed:
 		return nil, io.EOF
 	case <-t.tunClosed:
