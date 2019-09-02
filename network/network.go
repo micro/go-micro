@@ -19,14 +19,30 @@ var (
 	AnnounceTime = 30 * time.Second
 )
 
+// Node is network node
+type Node interface {
+	// Id is node id
+	Id() string
+	// Address is node bind address
+	Address() string
+	// Neighbourhood is node neighbourhood
+	Neighbourhood() []Node
+	// Network is the network node is in
+	Network() Network
+}
+
 // Network is micro network
 type Network interface {
+	// Node is network node
+	Node
+	// Options returns the network options
+	Options() Options
 	// Name of the network
 	Name() string
-	// Address returns network bind address
-	Address() string
 	// Connect starts the resolver and tunnel server
 	Connect() error
+	// Nodes returns list of network nodes
+	Nodes() []Node
 	// Close stops the tunnel and resolving
 	Close() error
 	// Client is micro client

@@ -33,12 +33,41 @@ type node struct {
 	id string
 	// address is node address
 	address string
-	// neighbours are node neightbours
+	// neighbours maps the node neighbourhood
 	neighbours map[string]*node
+	// network returns network node is in
+	network Network
+}
+
+// Id is node ide
+func (n *node) Id() string {
+	return n.id
+}
+
+// Address returns node address
+func (n *node) Address() string {
+	return n.address
+}
+
+// Network returns node network
+func (n *node) Network() Network {
+	return n.network
+}
+
+// Neighbourhood returns node neighbourhood
+func (n *node) Neighbourhood() []Node {
+	var nodes []Node
+	for _, node := range n.neighbours {
+		nodes = append(nodes, node)
+	}
+
+	return nodes
 }
 
 // network implements Network interface
 type network struct {
+	// node is network node
+	*node
 	// options configure the network
 	options Options
 	// rtr is network router
@@ -52,7 +81,7 @@ type network struct {
 	// client is network client
 	client client.Client
 
-	// tunClient is a mao of tunnel clients keyed over channel names
+	// tunClient is a map of tunnel clients keyed over tunnel channel names
 	tunClient map[string]transport.Client
 
 	sync.RWMutex
@@ -60,8 +89,6 @@ type network struct {
 	connected bool
 	// closed closes the network
 	closed chan bool
-	// neighbours maps the node neighbourhood
-	neighbours map[string]*node
 }
 
 // newNetwork returns a new network node
@@ -106,16 +133,33 @@ func newNetwork(opts ...Option) Network {
 		),
 	)
 
-	return &network{
-		options:    options,
-		Router:     options.Router,
-		Proxy:      options.Proxy,
-		Tunnel:     options.Tunnel,
-		server:     server,
-		client:     client,
-		tunClient:  make(map[string]transport.Client),
-		neighbours: make(map[string]*node),
+	network := &network{
+		node: &node{
+			id:         options.Id,
+			address:    options.Address,
+			neighbours: make(map[string]*node),
+		},
+		options:   options,
+		Router:    options.Router,
+		Proxy:     options.Proxy,
+		Tunnel:    options.Tunnel,
+		server:    server,
+		client:    client,
+		tunClient: make(map[string]transport.Client),
 	}
+
+	network.node.network = network
+
+	return network
+}
+
+// Options returns network options
+func (n *network) Options() Options {
+	n.Lock()
+	options := n.options
+	n.Unlock()
+
+	return options
 }
 
 // Name returns network name
@@ -684,6 +728,46 @@ func (n *network) Connect() error {
 	}
 
 	return nil
+}
+
+// Nodes returns a list of all network nodes
+// NOTE: this is a naive i.e. inefficient BFS implementation
+func (n *network) Nodes() []Node {
+	// map to track visited nodes
+	visited := make(map[string]*node)
+	// queue of the nodes to visit
+	queue := make([]*node, 1)
+	queue[0] = n.node
+	// add the root node to the map of the visited nodes
+	visited[n.node.id] = n.node
+
+	for {
+		// pop a node from the queue
+		qnode := queue[0]
+		// pop is done by reslicing of the queue
+		// https://github.com/golang/go/wiki/SliceTricks
+		queue = queue[1:]
+		// iterate through all of its neighbours
+		// mark the visited nodes; enqueue the non-visted
+		for id, node := range qnode.neighbours {
+			if _, ok := visited[id]; !ok {
+				visited[id] = node
+				queue = append(queue, node)
+			}
+		}
+		// if no nodes are in the queue break
+		if len(queue) == 0 {
+			break
+		}
+	}
+
+	nodes := make([]Node, 0)
+	// collecte all the nodes into slice
+	for _, node := range visited {
+		nodes = append(nodes, node)
+	}
+
+	return nodes
 }
 
 func (n *network) close() error {
