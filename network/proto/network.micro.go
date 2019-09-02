@@ -37,7 +37,7 @@ var _ server.Option
 type NetworkService interface {
 	ListRoutes(ctx context.Context, in *proto1.Request, opts ...client.CallOption) (*proto1.ListResponse, error)
 	ListNodes(ctx context.Context, in *ListRequest, opts ...client.CallOption) (*ListResponse, error)
-	ListNeighbours(ctx context.Context, in *ListRequest, opts ...client.CallOption) (*ListResponse, error)
+	Neighbourhood(ctx context.Context, in *NeighbourhoodRequest, opts ...client.CallOption) (*NeighbourhoodResponse, error)
 }
 
 type networkService struct {
@@ -78,9 +78,9 @@ func (c *networkService) ListNodes(ctx context.Context, in *ListRequest, opts ..
 	return out, nil
 }
 
-func (c *networkService) ListNeighbours(ctx context.Context, in *ListRequest, opts ...client.CallOption) (*ListResponse, error) {
-	req := c.c.NewRequest(c.name, "Network.ListNeighbours", in)
-	out := new(ListResponse)
+func (c *networkService) Neighbourhood(ctx context.Context, in *NeighbourhoodRequest, opts ...client.CallOption) (*NeighbourhoodResponse, error) {
+	req := c.c.NewRequest(c.name, "Network.Neighbourhood", in)
+	out := new(NeighbourhoodResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -93,14 +93,14 @@ func (c *networkService) ListNeighbours(ctx context.Context, in *ListRequest, op
 type NetworkHandler interface {
 	ListRoutes(context.Context, *proto1.Request, *proto1.ListResponse) error
 	ListNodes(context.Context, *ListRequest, *ListResponse) error
-	ListNeighbours(context.Context, *ListRequest, *ListResponse) error
+	Neighbourhood(context.Context, *NeighbourhoodRequest, *NeighbourhoodResponse) error
 }
 
 func RegisterNetworkHandler(s server.Server, hdlr NetworkHandler, opts ...server.HandlerOption) error {
 	type network interface {
 		ListRoutes(ctx context.Context, in *proto1.Request, out *proto1.ListResponse) error
 		ListNodes(ctx context.Context, in *ListRequest, out *ListResponse) error
-		ListNeighbours(ctx context.Context, in *ListRequest, out *ListResponse) error
+		Neighbourhood(ctx context.Context, in *NeighbourhoodRequest, out *NeighbourhoodResponse) error
 	}
 	type Network struct {
 		network
@@ -121,6 +121,6 @@ func (h *networkHandler) ListNodes(ctx context.Context, in *ListRequest, out *Li
 	return h.NetworkHandler.ListNodes(ctx, in, out)
 }
 
-func (h *networkHandler) ListNeighbours(ctx context.Context, in *ListRequest, out *ListResponse) error {
-	return h.NetworkHandler.ListNeighbours(ctx, in, out)
+func (h *networkHandler) Neighbourhood(ctx context.Context, in *NeighbourhoodRequest, out *NeighbourhoodResponse) error {
+	return h.NetworkHandler.Neighbourhood(ctx, in, out)
 }

@@ -52,7 +52,7 @@ type network struct {
 	// client is network client
 	client client.Client
 
-	// tunClient is a mao of tunnel clients keyed over channel names
+	// tunClient is a map of tunnel clients keyed over tunnel channel names
 	tunClient map[string]transport.Client
 
 	sync.RWMutex
@@ -116,6 +116,15 @@ func newNetwork(opts ...Option) Network {
 		tunClient:  make(map[string]transport.Client),
 		neighbours: make(map[string]*node),
 	}
+}
+
+// Options returns network options
+func (n *network) Options() Options {
+	n.Lock()
+	options := n.options
+	n.Unlock()
+
+	return options
 }
 
 // Name returns network name

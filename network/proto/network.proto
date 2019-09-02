@@ -8,7 +8,7 @@ import "github.com/micro/go-micro/router/proto/router.proto";
 service Network {
         rpc ListRoutes(go.micro.router.Request) returns (go.micro.router.ListResponse) {};
         rpc ListNodes(ListRequest) returns (ListResponse) {};
-        rpc ListNeighbours(ListRequest) returns (ListResponse) {};
+        rpc Neighbourhood(NeighbourhoodRequest) returns (NeighbourhoodResponse) {};
 }
 
 // Empty request
@@ -17,6 +17,24 @@ message ListRequest {}
 // ListResponse is returned by ListNodes and ListNeighbours
 message ListResponse {
 	repeated Node nodes = 1;
+}
+
+// NeighbourhoodRequest is sent to query node neighbourhood
+message NeighbourhoodRequest {
+        string id = 1;
+}
+
+// NeighbourhoodResponse contains node neighbourhood hierarchy
+message NeighbourhoodResponse {
+        Neighbour neighbourhood = 1;
+}
+
+// Neighbourhood is node neighbourhood
+message Neighbourhood {
+        // network node
+        Node node = 1;
+        // node neighbours
+        repeated Neighbour neighbour = 2;
 }
 
 // Node is network node
@@ -35,13 +53,13 @@ message Connect {
 
 // Close is sent when the node disconnects from the network
 message Close {
-        // network mode
+        // network node
         Node node = 1;
 }
 
 // Neighbour is used to nnounce node neighbourhood
 message Neighbour {
-        // network mode
+        // network node
         Node node = 1;
         // neighbours
         repeated Node neighbours = 3;

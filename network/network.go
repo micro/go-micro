@@ -21,6 +21,8 @@ var (
 
 // Network is micro network
 type Network interface {
+	// Options returns the network options
+	Options() Options
 	// Name of the network
 	Name() string
 	// Address returns network bind address
