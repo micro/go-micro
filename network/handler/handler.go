@@ -71,14 +71,21 @@ func (n *Network) Neighbourhood(ctx context.Context, req *pbNet.NeighbourhoodReq
 	// get all the nodes in the network
 	nodes := n.Network.Nodes()
 
-	var neighbours []*pbNet.Neighbour
+	// sort the slice of nodes
+	sort.Slice(nodes, func(i, j int) bool { return nodes[i].Id() <= nodes[j].Id() })
 	// find a node with a given id
-	i := sort.Search(len(nodes), func(i int) bool { return nodes[i].Id() == id })
+	i := sort.Search(len(nodes), func(j int) bool { return nodes[j].Id() >= id })
+
+	var neighbours []*pbNet.Neighbour
 	// collect all the nodes in the neighbourhood of the found node
 	if i < len(nodes) && nodes[i].Id() == id {
 		for _, neighbour := range nodes[i].Neighbourhood() {
 			var nodeNeighbours []*pbNet.Node
 			for _, nodeNeighbour := range neighbour.Neighbourhood() {
+				// don't return yourself in response
+				if nodeNeighbour.Id() == n.Network.Id() {
+					continue
+				}
 				nn := &pbNet.Node{
 					Id:      nodeNeighbour.Id(),
 					Address: nodeNeighbour.Address(),
