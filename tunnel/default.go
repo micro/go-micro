@@ -132,17 +132,28 @@ func (t *tun) monitor() {
 		case <-t.closed:
 			return
 		case <-reconnect.C:
+			var connect []string
+
+			// build list of unknown nodes to connect to
+			t.RLock()
 			for _, node := range t.options.Nodes {
-				t.Lock()
 				if _, ok := t.links[node]; !ok {
-					link, err := t.setupLink(node)
-					if err != nil {
-						log.Debugf("Tunnel failed to setup node link to %s: %v", node, err)
-						t.Unlock()
-						continue
-					}
-					t.links[node] = link
+					connect = append(connect, node)
 				}
+			}
+			t.RUnlock()
+
+			for _, node := range connect {
+				// create new link
+				link, err := t.setupLink(node)
+				if err != nil {
+					log.Debugf("Tunnel failed to setup node link to %s: %v", node, err)
+					continue
+				}
+
+				// save the link
+				t.Lock()
+				t.links[node] = link
 				t.Unlock()
 			}
 		}
