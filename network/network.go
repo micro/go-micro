@@ -19,6 +19,18 @@ var (
 	AnnounceTime = 30 * time.Second
 )
 
+// Node is network node
+type Node interface {
+	// Id is node id
+	Id() string
+	// Address is node bind address
+	Address() string
+	// Neighbourhood is node neighbourhood
+	Neighbourhood() []Node
+	// Network is the network node is in
+	Network() Network
+}
+
 // Network is micro network
 type Network interface {
 	// Node is network node
@@ -37,16 +49,6 @@ type Network interface {
 	Client() client.Client
 	// Server is micro server
 	Server() server.Server
-}
-
-// Node is network node
-type Node interface {
-	// Id is node id
-	Id() string
-	// Address is node bind address
-	Address() string
-	// Network is the network node is in
-	Network() Network
 }
 
 // NewNetwork returns a new network interface

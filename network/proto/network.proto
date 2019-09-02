@@ -26,15 +26,7 @@ message NeighbourhoodRequest {
 
 // NeighbourhoodResponse contains node neighbourhood hierarchy
 message NeighbourhoodResponse {
-        Neighbour neighbourhood = 1;
-}
-
-// Neighbourhood is node neighbourhood
-message Neighbourhood {
-        // network node
-        Node node = 1;
-        // node neighbours
-        repeated Neighbour neighbour = 2;
+        repeated Neighbour neighbours = 1;
 }
 
 // Node is network node

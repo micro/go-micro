@@ -54,6 +54,16 @@ func (n *node) Network() Network {
 	return n.network
 }
 
+// Neighbourhood returns node neighbourhood
+func (n *node) Neighbourhood() []Node {
+	var nodes []Node
+	for _, node := range n.neighbours {
+		nodes = append(nodes, node)
+	}
+
+	return nodes
+}
+
 // network implements Network interface
 type network struct {
 	// node is network node
@@ -721,8 +731,43 @@ func (n *network) Connect() error {
 }
 
 // Nodes returns a list of all network nodes
+// NOTE: this is a naive i.e. inefficient BFS implementation
 func (n *network) Nodes() []Node {
-	return nil
+	// map to track visited nodes
+	visited := make(map[string]*node)
+	// queue of the nodes to visit
+	queue := make([]*node, 1)
+	queue[0] = n.node
+	// add the root node to the map of the visited nodes
+	visited[n.node.id] = n.node
+
+	for {
+		// pop a node from the queue
+		qnode := queue[0]
+		// pop is done by reslicing of the queue
+		// https://github.com/golang/go/wiki/SliceTricks
+		queue = queue[1:]
+		// iterate through all of its neighbours
+		// mark the visited nodes; enqueue the non-visted
+		for id, node := range qnode.neighbours {
+			if _, ok := visited[id]; !ok {
+				visited[id] = node
+				queue = append(queue, node)
+			}
+		}
+		// if no nodes are in the queue break
+		if len(queue) == 0 {
+			break
+		}
+	}
+
+	nodes := make([]Node, 0)
+	// collecte all the nodes into slice
+	for _, node := range visited {
+		nodes = append(nodes, node)
+	}
+
+	return nodes
 }
 
 func (n *network) close() error {
