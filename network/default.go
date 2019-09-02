@@ -33,12 +33,31 @@ type node struct {
 	id string
 	// address is node address
 	address string
-	// neighbours are node neightbours
+	// neighbours maps the node neighbourhood
 	neighbours map[string]*node
+	// network returns network node is in
+	network Network
+}
+
+// Id is node ide
+func (n *node) Id() string {
+	return n.id
+}
+
+// Address returns node address
+func (n *node) Address() string {
+	return n.address
+}
+
+// Network returns node network
+func (n *node) Network() Network {
+	return n.network
 }
 
 // network implements Network interface
 type network struct {
+	// node is network node
+	*node
 	// options configure the network
 	options Options
 	// rtr is network router
@@ -60,8 +79,6 @@ type network struct {
 	connected bool
 	// closed closes the network
 	closed chan bool
-	// neighbours maps the node neighbourhood
-	neighbours map[string]*node
 }
 
 // newNetwork returns a new network node
@@ -106,16 +123,24 @@ func newNetwork(opts ...Option) Network {
 		),
 	)
 
-	return &network{
-		options:    options,
-		Router:     options.Router,
-		Proxy:      options.Proxy,
-		Tunnel:     options.Tunnel,
-		server:     server,
-		client:     client,
-		tunClient:  make(map[string]transport.Client),
-		neighbours: make(map[string]*node),
+	network := &network{
+		node: &node{
+			id:         options.Id,
+			address:    options.Address,
+			neighbours: make(map[string]*node),
+		},
+		options:   options,
+		Router:    options.Router,
+		Proxy:     options.Proxy,
+		Tunnel:    options.Tunnel,
+		server:    server,
+		client:    client,
+		tunClient: make(map[string]transport.Client),
 	}
+
+	network.node.network = network
+
+	return network
 }
 
 // Options returns network options
@@ -692,6 +717,11 @@ func (n *network) Connect() error {
 		}
 	}
 
+	return nil
+}
+
+// Nodes returns a list of all network nodes
+func (n *network) Nodes() []Node {
 	return nil
 }
 
