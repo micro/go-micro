@@ -30,6 +30,7 @@ var (
 
 // node is network node
 type node struct {
+	sync.RWMutex
 	// id is node id
 	id string
 	// address is node address
@@ -60,9 +61,18 @@ func (n *node) Network() Network {
 // Neighbourhood returns node neighbourhood
 func (n *node) Neighbourhood() []Node {
 	var nodes []Node
-	for _, node := range n.neighbours {
-		nodes = append(nodes, node)
+	n.RLock()
+	for _, neighbourNode := range n.neighbours {
+		// make a copy of the node
+		n := &node{
+			id:      neighbourNode.id,
+			address: neighbourNode.address,
+			network: neighbourNode.network,
+		}
+		// NOTE: we do not care about neighbour's neighbours
+		nodes = append(nodes, n)
 	}
+	n.RUnlock()
 
 	return nodes
 }
@@ -287,13 +297,19 @@ func (n *network) processNetChan(l tunnel.Listener) {
 				if pbNetConnect.Node.Id == n.options.Id {
 					continue
 				}
-				neighbour := &node{
+				n.Lock()
+				// if the entry already exists skip adding it
+				if _, ok := n.neighbours[pbNetConnect.Node.Id]; ok {
+					n.Unlock()
+					continue
+				}
+				// add a new neighbour;
+				// NOTE: new node does not have any neighbours
+				n.neighbours[pbNetConnect.Node.Id] = &node{
 					id:         pbNetConnect.Node.Id,
 					address:    pbNetConnect.Node.Address,
 					neighbours: make(map[string]*node),
 				}
-				n.Lock()
-				n.neighbours[neighbour.id] = neighbour
 				n.Unlock()
 			case "neighbour":
 				pbNetNeighbour := &pbNet.Neighbour{}
@@ -305,22 +321,24 @@ func (n *network) processNetChan(l tunnel.Listener) {
 				if pbNetNeighbour.Node.Id == n.options.Id {
 					continue
 				}
-				neighbour := &node{
-					id:         pbNetNeighbour.Node.Id,
-					address:    pbNetNeighbour.Node.Address,
-					neighbours: make(map[string]*node),
-					lastSeen:   time.Now(),
-				}
 				n.Lock()
-				// we override the existing neighbour map
-				n.neighbours[neighbour.id] = neighbour
-				// store the neighbouring node and its neighbours
+				// only add the neighbour if it's not already in the neighbourhood
+				if _, ok := n.neighbours[pbNetNeighbour.Node.Id]; !ok {
+					neighbour := &node{
+						id:         pbNetNeighbour.Node.Id,
+						address:    pbNetNeighbour.Node.Address,
+						neighbours: make(map[string]*node),
+						lastSeen:   time.Now(),
+					}
+					n.neighbours[pbNetNeighbour.Node.Id] = neighbour
+				}
+				// update/store the neighbour node neighbours
 				for _, pbNeighbour := range pbNetNeighbour.Neighbours {
 					neighbourNode := &node{
 						id:      pbNeighbour.Id,
 						address: pbNeighbour.Address,
 					}
-					n.neighbours[neighbour.id].neighbours[neighbourNode.id] = neighbourNode
+					n.neighbours[pbNetNeighbour.Node.Id].neighbours[neighbourNode.id] = neighbourNode
 				}
 				n.Unlock()
 			case "close":
