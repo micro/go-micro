@@ -10,8 +10,8 @@ import (
 
 // session is our pseudo session for transport.Socket
 type session struct {
-	// unique id based on the remote tunnel id
-	id string
+	// the tunnel id
+	tunnel string
 	// the channel name
 	channel string
 	// the session id based on Micro.Tunnel-Session
@@ -43,7 +43,7 @@ type message struct {
 	// type of message
 	typ string
 	// tunnel id
-	id string
+	tunnel string
 	// channel name
 	channel string
 	// the session id
@@ -96,8 +96,8 @@ func (s *session) Send(m *transport.Message) error {
 
 	// append to backlog
 	msg := &message{
-		typ:      "message",
-		id:       s.id,
+		typ:      "session",
+		tunnel:   s.tunnel,
 		channel:  s.channel,
 		session:  s.session,
 		outbound: s.outbound,

@@ -91,7 +91,7 @@ func (t *tun) getSession(channel, session string) (*session, bool) {
 func (t *tun) newSession(channel, sessionId string) (*session, bool) {
 	// new session
 	s := &session{
-		id:      t.id,
+		tunnel:  t.id,
 		channel: channel,
 		session: sessionId,
 		closed:  make(chan bool),
@@ -180,7 +180,7 @@ func (t *tun) process() {
 			newMsg.Header["Micro-Tunnel"] = msg.typ
 
 			// set the tunnel id on the outgoing message
-			newMsg.Header["Micro-Tunnel-Id"] = msg.id
+			newMsg.Header["Micro-Tunnel-Id"] = msg.tunnel
 
 			// set the tunnel channel on the outgoing message
 			newMsg.Header["Micro-Tunnel-Channel"] = msg.channel
@@ -292,11 +292,18 @@ func (t *tun) listen(link *link) {
 			return
 		}
 
-		switch msg.Header["Micro-Tunnel"] {
+		// message type
+		mtype := msg.Header["Micro-Tunnel"]
+		// the tunnel id
+		id := msg.Header["Micro-Tunnel-Id"]
+		// the tunnel channel
+		channel := msg.Header["Micro-Tunnel-Channel"]
+		// the session id
+		sessionId := msg.Header["Micro-Tunnel-Session"]
+
+		switch mtype {
 		case "connect":
 			log.Debugf("Tunnel link %s received connect message", link.Remote())
-
-			id := msg.Header["Micro-Tunnel-Id"]
 
 			// are we connecting to ourselves?
 			if id == t.id {
@@ -326,7 +333,7 @@ func (t *tun) listen(link *link) {
 			link.lastKeepAlive = time.Now()
 			t.Unlock()
 			continue
-		case "message":
+		case "session":
 			// process message
 			log.Debugf("Received %+v from %s", msg, link.Remote())
 		default:
@@ -339,13 +346,6 @@ func (t *tun) listen(link *link) {
 			log.Debugf("Tunnel link %s not connected", link.id)
 			return
 		}
-
-		// the tunnel id
-		id := msg.Header["Micro-Tunnel-Id"]
-		// the tunnel channel
-		channel := msg.Header["Micro-Tunnel-Channel"]
-		// the session id
-		sessionId := msg.Header["Micro-Tunnel-Session"]
 
 		// strip tunnel message header
 		for k, _ := range msg.Header {
@@ -423,7 +423,8 @@ func (t *tun) listen(link *link) {
 
 		// construct the internal message
 		imsg := &message{
-			id:       id,
+			tunnel:   id,
+			typ:      mtype,
 			channel:  channel,
 			session:  sessionId,
 			data:     tmsg,

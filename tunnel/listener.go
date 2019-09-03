@@ -31,12 +31,12 @@ func (t *tunListener) process() {
 		case m := <-t.session.recv:
 			// get a session
 			sess, ok := conns[m.session]
-			log.Debugf("Tunnel listener received id %s session %s exists: %t", m.id, m.session, ok)
+			log.Debugf("Tunnel listener received channel %s session %s exists: %t", m.channel, m.session, ok)
 			if !ok {
 				// create a new session session
 				sess = &session{
 					// the id of the remote side
-					id: m.id,
+					tunnel: m.tunnel,
 					// the channel
 					channel: m.channel,
 					// the session id
@@ -73,7 +73,7 @@ func (t *tunListener) process() {
 			case <-sess.closed:
 				delete(conns, m.session)
 			case sess.recv <- m:
-				log.Debugf("Tunnel listener sent to recv chan id %s session %s", m.id, m.session)
+				log.Debugf("Tunnel listener sent to recv chan channel %s session %s", m.channel, m.session)
 			}
 		}
 	}
