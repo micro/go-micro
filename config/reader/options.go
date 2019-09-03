@@ -2,6 +2,7 @@ package reader
 
 import (
 	"github.com/micro/go-micro/config/encoder"
+	"github.com/micro/go-micro/config/encoder/cue"
 	"github.com/micro/go-micro/config/encoder/hcl"
 	"github.com/micro/go-micro/config/encoder/json"
 	"github.com/micro/go-micro/config/encoder/toml"
@@ -24,6 +25,7 @@ func NewOptions(opts ...Option) Options {
 			"xml":  xml.NewEncoder(),
 			"hcl":  hcl.NewEncoder(),
 			"yml":  yaml.NewEncoder(),
+			"cue":  cue.NewEncoder(),
 		},
 	}
 	for _, o := range opts {
