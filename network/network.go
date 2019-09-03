@@ -17,6 +17,9 @@ var (
 	ResolveTime = 1 * time.Minute
 	// AnnounceTime defines time interval to periodically announce node neighbours
 	AnnounceTime = 30 * time.Second
+	// PruneTime defines time interval to periodically check nodes that need to be pruned
+	// due to their not announcing their presence within this time interval
+	PruneTime = 90 * time.Second
 )
 
 // Node is network node
