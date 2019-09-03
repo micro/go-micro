@@ -812,7 +812,7 @@ func (n *network) Nodes() []Node {
 		}
 	}
 
-	nodes := make([]Node, len(visited))
+	var nodes []Node
 	// collect all the nodes and return them
 	for _, node := range visited {
 		nodes = append(nodes, node)
