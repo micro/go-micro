@@ -764,23 +764,10 @@ func (n *network) Connect() error {
 		return err
 	}
 
-	// go resolving network nodes
-	go n.resolve()
-	// broadcast neighbourhood
-	go n.announce(netClient)
-	// prune stale nodes
-	go n.prune()
-	// listen to network messages
-	go n.processNetChan(netListener)
-	// advertise service routes
-	go n.advertise(ctrlClient, advertChan)
-	// accept and process routes
-	go n.processCtrlChan(ctrlListener)
-
-	// set connected to true
-	n.connected = true
-
 	// send connect message to NetworkChannel
+	// NOTE: in theory we could do this as soon as
+	// Dial to NetworkChannel succeeds, but instead
+	// we initialize all other node resources first
 	node := &pbNet.Node{
 		Id:      n.options.Id,
 		Address: n.options.Address,
@@ -802,6 +789,22 @@ func (n *network) Connect() error {
 			log.Debugf("Network failed to send connect messsage: %v", err)
 		}
 	}
+
+	// go resolving network nodes
+	go n.resolve()
+	// broadcast neighbourhood
+	go n.announce(netClient)
+	// prune stale nodes
+	go n.prune()
+	// listen to network messages
+	go n.processNetChan(netListener)
+	// advertise service routes
+	go n.advertise(ctrlClient, advertChan)
+	// accept and process routes
+	go n.processCtrlChan(ctrlListener)
+
+	// set connected to true
+	n.connected = true
 
 	return nil
 }
