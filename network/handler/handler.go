@@ -76,35 +76,35 @@ func (n *Network) Neighbourhood(ctx context.Context, req *pbNet.NeighbourhoodReq
 	// find a node with a given id
 	i := sort.Search(len(nodes), func(j int) bool { return nodes[j].Id() >= id })
 
-	var neighbours []*pbNet.Neighbour
+	var neighbours []*pbNet.Node
 	// collect all the nodes in the neighbourhood of the found node
 	if i < len(nodes) && nodes[i].Id() == id {
 		for _, neighbour := range nodes[i].Neighbourhood() {
-			var nodeNeighbours []*pbNet.Node
-			for _, nodeNeighbour := range neighbour.Neighbourhood() {
-				// don't return yourself in response
-				if nodeNeighbour.Id() == n.Network.Id() {
-					continue
-				}
-				nn := &pbNet.Node{
-					Id:      nodeNeighbour.Id(),
-					Address: nodeNeighbour.Address(),
-				}
-				nodeNeighbours = append(nodeNeighbours, nn)
+			// don't return yourself in response
+			if neighbour.Id() == n.Network.Id() {
+				continue
 			}
-			// node is present at node[i]
-			neighbour := &pbNet.Neighbour{
-				Node: &pbNet.Node{
-					Id:      neighbour.Id(),
-					Address: neighbour.Address(),
-				},
-				Neighbours: nodeNeighbours,
+			pbNeighbour := &pbNet.Node{
+				Id:      neighbour.Id(),
+				Address: neighbour.Address(),
 			}
-			neighbours = append(neighbours, neighbour)
+			neighbours = append(neighbours, pbNeighbour)
 		}
 	}
 
-	resp.Neighbours = neighbours
+	// requested neighbourhood node
+	node := &pbNet.Node{
+		Id:      nodes[i].Id(),
+		Address: nodes[i].Address(),
+	}
+
+	// creaate neighbourhood answer
+	neighbourhood := &pbNet.Neighbour{
+		Node:       node,
+		Neighbours: neighbours,
+	}
+
+	resp.Neighbourhood = neighbourhood
 
 	return nil
 }
