@@ -8,6 +8,14 @@ import (
 	"github.com/micro/go-micro/transport"
 )
 
+var (
+	// ErrDialTimeout is returned by a call to Dial where the timeout occurs
+	ErrDialTimeout = errors.New("dial timeout")
+	// DefaultDialTimeout is the dial timeout if none is specified
+	DefaultDialTimeout = time.Second * 5
+)
+
+
 // Tunnel creates a gre tunnel on top of the go-micro/transport.
 // It establishes multiple streams using the Micro-Tunnel-Channel header
 // and Micro-Tunnel-Session header. The tunnel id is a hash of
@@ -44,12 +52,6 @@ type Session interface {
 	// a transport socket
 	transport.Socket
 }
-
-var (
-	ErrDialTimeout = errors.New("dial timeout")
-
-	DefaultDialTimeout = time.Second * 5
-)
 
 // NewTunnel creates a new tunnel
 func NewTunnel(opts ...Option) Tunnel {
