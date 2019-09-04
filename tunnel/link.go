@@ -97,7 +97,7 @@ func (l *link) Close() error {
 		return nil
 	default:
 		close(l.closed)
-		return l.Socket.Close()
+		return nil
 	}
 
 	return nil
