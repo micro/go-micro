@@ -814,6 +814,14 @@ func (t *tun) Dial(channel string, opts ...DialOption) (Session, error) {
 	// set the dial timeout
 	c.timeout = options.Timeout
 
+	// don't bother with the song and dance below
+	// we're just going to assume things come online
+	// as and when.
+	if c.multicast {
+		return c, nil
+	}
+
+	// non multicast so we need to find the link
 	t.RLock()
 	for _, link := range t.links {
 		link.RLock()

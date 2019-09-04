@@ -64,8 +64,9 @@ func (t *tunListener) process() {
 			sess, ok := conns[m.session]
 			log.Debugf("Tunnel listener received channel %s session %s exists: %t", m.channel, m.session, ok)
 			if !ok {
-				// only create new sessions on open message
-				if m.typ != "open" {
+				switch m.typ {
+				case "open", "session":
+				default:
 					continue
 				}
 
@@ -104,9 +105,6 @@ func (t *tunListener) process() {
 				// send to accept chan
 				case t.accept <- sess:
 				}
-
-				// continue
-				continue
 			}
 
 			// an existing session was found
