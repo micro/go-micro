@@ -830,15 +830,13 @@ func (t *tun) Dial(channel string, opts ...DialOption) (Session, error) {
 
 	// shit fuck
 	if !c.discovered {
-		t.send <- &message{
-			typ:       "discover",
-			tunnel:    t.id,
-			channel:   channel,
-			session:   c.session,
-			broadcast: true,
-			outbound:  true,
-			errChan:   c.errChan,
-		}
+		msg := c.newMessage("discover")
+		msg.broadcast = true
+		msg.outbound = true
+		msg.link = ""
+
+		// send the discovery message
+		t.send <- msg
 
 		select {
 		case err := <-c.errChan:

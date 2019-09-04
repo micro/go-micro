@@ -15,7 +15,6 @@ var (
 	DefaultDialTimeout = time.Second * 5
 )
 
-
 // Tunnel creates a gre tunnel on top of the go-micro/transport.
 // It establishes multiple streams using the Micro-Tunnel-Channel header
 // and Micro-Tunnel-Session header. The tunnel id is a hash of
