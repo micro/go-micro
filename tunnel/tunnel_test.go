@@ -187,29 +187,14 @@ func testBrokenTunAccept(t *testing.T, tun Tunnel, wait chan bool, wg *sync.Wait
 	if err := c.Recv(m); err != nil {
 		t.Fatal(err)
 	}
-	tun.Close()
 
-	// re-start tunnel
-	err = tun.Connect()
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer tun.Close()
-
-	// listen on some virtual address
-	tl, err = tun.Listen("test-tunnel")
-	if err != nil {
-		t.Fatal(err)
+	// close all the links
+	for _, link := range tun.Links() {
+		link.Close()
 	}
 
 	// receiver ready; notify sender
 	wait <- true
-
-	// accept a connection
-	c, err = tl.Accept()
-	if err != nil {
-		t.Fatal(err)
-	}
 
 	// accept the message
 	m = new(transport.Message)
@@ -279,6 +264,7 @@ func TestReconnectTunnel(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer tunB.Close()
 
 	// we manually override the tunnel.ReconnectTime value here
 	// this is so that we make the reconnects faster than the default 5s
@@ -289,6 +275,7 @@ func TestReconnectTunnel(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer tunA.Close()
 
 	wait := make(chan bool)
 

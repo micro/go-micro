@@ -2,7 +2,17 @@
 package tunnel
 
 import (
+	"errors"
+	"time"
+
 	"github.com/micro/go-micro/transport"
+)
+
+var (
+	// ErrDialTimeout is returned by a call to Dial where the timeout occurs
+	ErrDialTimeout = errors.New("dial timeout")
+	// DefaultDialTimeout is the dial timeout if none is specified
+	DefaultDialTimeout = time.Second * 5
 )
 
 // Tunnel creates a gre tunnel on top of the go-micro/transport.
@@ -18,11 +28,21 @@ type Tunnel interface {
 	// Close closes the tunnel
 	Close() error
 	// Connect to a channel
-	Dial(channel string) (Session, error)
+	Dial(channel string, opts ...DialOption) (Session, error)
 	// Accept connections on a channel
 	Listen(channel string) (Listener, error)
+	// All the links the tunnel is connected to
+	Links() []Link
 	// Name of the tunnel implementation
 	String() string
+}
+
+// Link represents internal links to the tunnel
+type Link interface {
+	// The id of the link
+	Id() string
+	// honours transport socket
+	transport.Socket
 }
 
 // The listener provides similar constructs to the transport.Listener
