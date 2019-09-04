@@ -91,7 +91,7 @@ func (s *session) Channel() string {
 	return s.channel
 }
 
-// Open will fire the open message for the session
+// Open will fire the open message for the session. This is called by the dialler.
 func (s *session) Open() error {
 	msg := &message{
 		typ:       "open",
@@ -144,6 +144,7 @@ func (s *session) Open() error {
 	return nil
 }
 
+// Accept sends the accept response to an open message from a dialled connection
 func (s *session) Accept() error {
 	msg := &message{
 		typ:       "accept",
@@ -178,6 +179,27 @@ func (s *session) Accept() error {
 	return nil
 }
 
+// Announce sends an announcement to notify that this session exists. This is primarily used by the listener.
+func (s *session) Announce() error {
+	msg := &message{
+		typ:       "announce",
+		tunnel:    s.tunnel,
+		channel:   s.channel,
+		session:   s.session,
+		outbound:  s.outbound,
+		loopback:  s.loopback,
+		multicast: s.multicast,
+	}
+
+	select {
+	case s.send <- msg:
+		return nil
+	case <-s.closed:
+		return io.EOF
+	}
+}
+
+// Send is used to send a message
 func (s *session) Send(m *transport.Message) error {
 	select {
 	case <-s.closed:
@@ -219,6 +241,7 @@ func (s *session) Send(m *transport.Message) error {
 	}
 
 	log.Debugf("Appending %+v to send backlog", msg)
+	// send the actual message
 	s.send <- msg
 
 	// wait for an error response
@@ -232,6 +255,7 @@ func (s *session) Send(m *transport.Message) error {
 	return nil
 }
 
+// Recv is used to receive a message
 func (s *session) Recv(m *transport.Message) error {
 	select {
 	case <-s.closed:
@@ -256,7 +280,7 @@ func (s *session) Recv(m *transport.Message) error {
 	return nil
 }
 
-// Close closes the session
+// Close closes the session by sending a close message
 func (s *session) Close() error {
 	select {
 	case <-s.closed:

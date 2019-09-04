@@ -27,33 +27,13 @@ func (t *tunListener) announce() {
 	tick := time.NewTicker(time.Minute)
 	defer tick.Stop()
 
-	announce := func() {
-		msg := &message{
-			typ:       "announce",
-			tunnel:    t.session.tunnel,
-			channel:   t.session.channel,
-			session:   t.session.session,
-			outbound:  t.session.outbound,
-			loopback:  t.session.loopback,
-			multicast: t.session.multicast,
-		}
-
-		select {
-		case t.session.send <- msg:
-		case <-t.session.closed:
-			return
-		case <-t.closed:
-			return
-		}
-	}
-
 	// first announcement
-	announce()
+	t.session.Announce()
 
 	for {
 		select {
 		case <-tick.C:
-			announce()
+			t.session.Announce()
 		case <-t.closed:
 			return
 		}
