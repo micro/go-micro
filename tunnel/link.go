@@ -66,7 +66,7 @@ func (l *link) run() {
 			}
 			l.RUnlock()
 
-			// if nothing to kill don't both with a wasted lock
+			// if nothing to kill don't bother with a wasted lock
 			if len(kill) == 0 {
 				continue
 			}
