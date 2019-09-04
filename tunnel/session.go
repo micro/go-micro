@@ -91,6 +91,7 @@ func (s *session) Channel() string {
 	return s.channel
 }
 
+// newMessage creates a new message based on the session
 func (s *session) newMessage(typ string) *message {
 	return &message{
 		typ:       typ,
