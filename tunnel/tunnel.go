@@ -2,6 +2,9 @@
 package tunnel
 
 import (
+	"errors"
+	"time"
+
 	"github.com/micro/go-micro/transport"
 )
 
@@ -18,7 +21,7 @@ type Tunnel interface {
 	// Close closes the tunnel
 	Close() error
 	// Connect to a channel
-	Dial(channel string) (Session, error)
+	Dial(channel string, opts ...DialOption) (Session, error)
 	// Accept connections on a channel
 	Listen(channel string) (Listener, error)
 	// Name of the tunnel implementation
@@ -41,6 +44,12 @@ type Session interface {
 	// a transport socket
 	transport.Socket
 }
+
+var (
+	ErrDialTimeout = errors.New("dial timeout")
+
+	DefaultDialTimeout = time.Second * 5
+)
 
 // NewTunnel creates a new tunnel
 func NewTunnel(opts ...Option) Tunnel {

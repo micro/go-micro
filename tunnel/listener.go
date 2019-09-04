@@ -2,6 +2,7 @@ package tunnel
 
 import (
 	"io"
+	"time"
 
 	"github.com/micro/go-micro/util/log"
 )
@@ -17,15 +18,65 @@ type tunListener struct {
 	tunClosed chan bool
 	// the listener session
 	session *session
+	// del func to kill listener
+	delFunc func()
+}
+
+// periodically announce self
+func (t *tunListener) announce() {
+	tick := time.NewTicker(time.Minute)
+	defer tick.Stop()
+
+	announce := func() {
+		msg := &message{
+			typ:       "announce",
+			tunnel:    t.session.tunnel,
+			channel:   t.session.channel,
+			session:   t.session.session,
+			outbound:  t.session.outbound,
+			loopback:  t.session.loopback,
+			multicast: t.session.multicast,
+		}
+
+		select {
+		case t.session.send <- msg:
+		case <-t.session.closed:
+			return
+		case <-t.closed:
+			return
+		}
+	}
+
+	// first announcement
+	announce()
+
+	for {
+		select {
+		case <-tick.C:
+			announce()
+		case <-t.closed:
+			return
+		}
+	}
 }
 
 func (t *tunListener) process() {
 	// our connection map for session
 	conns := make(map[string]*session)
 
+	defer func() {
+		// close the sessions
+		for _, conn := range conns {
+			conn.Close()
+		}
+	}()
+
 	for {
 		select {
 		case <-t.closed:
+			return
+		case <-t.tunClosed:
+			t.Close()
 			return
 		// receive a new message
 		case m := <-t.session.recv:
@@ -33,6 +84,11 @@ func (t *tunListener) process() {
 			sess, ok := conns[m.session]
 			log.Debugf("Tunnel listener received channel %s session %s exists: %t", m.channel, m.session, ok)
 			if !ok {
+				// only create new sessions on open message
+				if m.typ != "open" {
+					continue
+				}
+
 				// create a new session session
 				sess = &session{
 					// the id of the remote side
@@ -45,6 +101,8 @@ func (t *tunListener) process() {
 					loopback: m.loopback,
 					// the link the message was received on
 					link: m.link,
+					// set multicast
+					multicast: m.multicast,
 					// close chan
 					closed: make(chan bool),
 					// recv called by the acceptor
@@ -60,12 +118,39 @@ func (t *tunListener) process() {
 				// save the session
 				conns[m.session] = sess
 
-				// send to accept chan
 				select {
 				case <-t.closed:
 					return
+				// send to accept chan
 				case t.accept <- sess:
 				}
+
+				// continue
+				continue
+			}
+
+			// an existing session was found
+
+			// received a close message
+			switch m.typ {
+			case "close":
+				select {
+				case <-sess.closed:
+					// no op
+					delete(conns, m.session)
+				default:
+					// close and delete session
+					close(sess.closed)
+					delete(conns, m.session)
+				}
+
+				// continue
+				continue
+			case "session":
+				// operate on this
+			default:
+				// non operational type
+				continue
 			}
 
 			// send this to the accept chan
@@ -89,6 +174,9 @@ func (t *tunListener) Close() error {
 	case <-t.closed:
 		return nil
 	default:
+		// close and delete
+		t.delFunc()
+		t.session.Close()
 		close(t.closed)
 	}
 	return nil
@@ -102,12 +190,16 @@ func (t *tunListener) Accept() (Session, error) {
 		return nil, io.EOF
 	case <-t.tunClosed:
 		// close the listener when the tunnel closes
-		t.Close()
 		return nil, io.EOF
 	// wait for a new connection
 	case c, ok := <-t.accept:
+		// check if the accept chan is closed
 		if !ok {
 			return nil, io.EOF
+		}
+		// send back the accept
+		if err := c.Accept(); err != nil {
+			return nil, err
 		}
 		return c, nil
 	}

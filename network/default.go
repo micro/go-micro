@@ -718,7 +718,7 @@ func (n *network) Connect() error {
 	)
 
 	// dial into ControlChannel to send route adverts
-	ctrlClient, err := n.Tunnel.Dial(ControlChannel)
+	ctrlClient, err := n.Tunnel.Dial(ControlChannel, tunnel.DialMulticast())
 	if err != nil {
 		return err
 	}
@@ -732,7 +732,7 @@ func (n *network) Connect() error {
 	}
 
 	// dial into NetworkChannel to send network messages
-	netClient, err := n.Tunnel.Dial(NetworkChannel)
+	netClient, err := n.Tunnel.Dial(NetworkChannel, tunnel.DialMulticast())
 	if err != nil {
 		return err
 	}

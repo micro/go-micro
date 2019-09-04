@@ -1,6 +1,8 @@
 package tunnel
 
 import (
+	"time"
+
 	"github.com/google/uuid"
 	"github.com/micro/go-micro/transport"
 	"github.com/micro/go-micro/transport/quic"
@@ -27,6 +29,15 @@ type Options struct {
 	Token string
 	// Transport listens to incoming connections
 	Transport transport.Transport
+}
+
+type DialOption func(*DialOptions)
+
+type DialOptions struct {
+	// specify a multicast connection
+	Multicast bool
+	// the dial timeout
+	Timeout time.Duration
 }
 
 // The tunnel id
@@ -71,5 +82,20 @@ func DefaultOptions() Options {
 		Address:   DefaultAddress,
 		Token:     DefaultToken,
 		Transport: quic.NewTransport(),
+	}
+}
+
+// Dial options
+
+// Dial multicast sets the multicast option to send only to those mapped
+func DialMulticast() DialOption {
+	return func(o *DialOptions) {
+		o.Multicast = true
+	}
+}
+
+func DialTimeout(t time.Duration) DialOption {
+	return func(o *DialOptions) {
+		o.Timeout = t
 	}
 }
