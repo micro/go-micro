@@ -2,6 +2,7 @@ package tunnel
 
 import (
 	"errors"
+	"math/rand"
 	"strings"
 	"sync"
 	"time"
@@ -529,7 +530,7 @@ func (t *tun) listen(link *link) {
 
 		// bail if no session or listener has been found
 		if !exists {
-			log.Debugf("Tunnel skipping no session exists")
+			log.Debugf("Tunnel skipping no session %s %s exists", channel, sessionId)
 			// drop it, we don't care about
 			// messages we don't know about
 			continue
@@ -837,6 +838,8 @@ func (t *tun) Dial(channel string, opts ...DialOption) (Session, error) {
 		return wait
 	}
 
+	var links []string
+
 	// non multicast so we need to find the link
 	t.RLock()
 	for _, link := range t.links {
@@ -847,10 +850,19 @@ func (t *tun) Dial(channel string, opts ...DialOption) (Session, error) {
 		// we have at least one channel mapping
 		if ok {
 			c.discovered = true
-			break
+			links = append(links, link.id)
 		}
 	}
 	t.RUnlock()
+
+	// discovered so set the link
+	// TODO: pick the link efficiently based 
+	// on link status and saturation.
+	if c.discovered {
+		// set the link
+		i := rand.Intn(len(links))
+		c.link = links[i]
+	}
 
 	// shit fuck
 	if !c.discovered {
