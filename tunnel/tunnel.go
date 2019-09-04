@@ -31,8 +31,18 @@ type Tunnel interface {
 	Dial(channel string, opts ...DialOption) (Session, error)
 	// Accept connections on a channel
 	Listen(channel string) (Listener, error)
+	// All the links the tunnel is connected to
+	Links() []Link
 	// Name of the tunnel implementation
 	String() string
+}
+
+// Link represents internal links to the tunnel
+type Link interface {
+	// The id of the link
+	Id() string
+	// honours transport socket
+	transport.Socket
 }
 
 // The listener provides similar constructs to the transport.Listener

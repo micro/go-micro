@@ -911,6 +911,19 @@ func (t *tun) Listen(channel string) (Listener, error) {
 	return tl, nil
 }
 
+func (t *tun) Links() []Link {
+	t.RLock()
+	defer t.RUnlock()
+
+	var links []Link
+
+	for _, link := range t.links {
+		links = append(links, link)
+	}
+
+	return links
+}
+
 func (t *tun) String() string {
 	return "mucp"
 }

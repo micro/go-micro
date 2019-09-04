@@ -81,14 +81,24 @@ func (l *link) run() {
 	}
 }
 
-func (l *link) Close() {
+func (l *link) Id() string {
+	l.RLock()
+	defer l.RUnlock()
+
+	return l.id
+}
+
+func (l *link) Close() error {
 	l.Lock()
 	defer l.Unlock()
 
 	select {
 	case <-l.closed:
-		return
+		return nil
 	default:
 		close(l.closed)
+		return l.Socket.Close()
 	}
+
+	return nil
 }
