@@ -288,6 +288,8 @@ func (n *network) processNetChan(l tunnel.Listener) {
 			// switch on type of message and take action
 			switch m.Header["Micro-Method"] {
 			case "connect":
+				// mark the time the message has been received
+				now := time.Now()
 				pbNetConnect := &pbNet.Connect{}
 				if err := proto.Unmarshal(m.Body, pbNetConnect); err != nil {
 					log.Debugf("Network tunnel [%s] connect unmarshal error: %v", NetworkChannel, err)
@@ -298,20 +300,28 @@ func (n *network) processNetChan(l tunnel.Listener) {
 					continue
 				}
 				n.Lock()
+				log.Debugf("Network connect message received from: %s", pbNetConnect.Node.Id)
 				// if the entry already exists skip adding it
-				if _, ok := n.neighbours[pbNetConnect.Node.Id]; ok {
+				if neighbour, ok := n.neighbours[pbNetConnect.Node.Id]; ok {
+					// update lastSeen timestamp
+					if n.neighbours[pbNetConnect.Node.Id].lastSeen.Before(now) {
+						neighbour.lastSeen = now
+					}
 					n.Unlock()
 					continue
 				}
-				// add a new neighbour;
+				// add a new neighbour
 				// NOTE: new node does not have any neighbours
 				n.neighbours[pbNetConnect.Node.Id] = &node{
 					id:         pbNetConnect.Node.Id,
 					address:    pbNetConnect.Node.Address,
 					neighbours: make(map[string]*node),
+					lastSeen:   now,
 				}
 				n.Unlock()
 			case "neighbour":
+				// mark the time the message has been received
+				now := time.Now()
 				pbNetNeighbour := &pbNet.Neighbour{}
 				if err := proto.Unmarshal(m.Body, pbNetNeighbour); err != nil {
 					log.Debugf("Network tunnel [%s] neighbour unmarshal error: %v", NetworkChannel, err)
@@ -322,15 +332,19 @@ func (n *network) processNetChan(l tunnel.Listener) {
 					continue
 				}
 				n.Lock()
+				log.Debugf("Network neighbour message received from: %s", pbNetNeighbour.Node.Id)
 				// only add the neighbour if it's not already in the neighbourhood
 				if _, ok := n.neighbours[pbNetNeighbour.Node.Id]; !ok {
-					neighbour := &node{
+					n.neighbours[pbNetNeighbour.Node.Id] = &node{
 						id:         pbNetNeighbour.Node.Id,
 						address:    pbNetNeighbour.Node.Address,
 						neighbours: make(map[string]*node),
-						lastSeen:   time.Now(),
+						lastSeen:   now,
 					}
-					n.neighbours[pbNetNeighbour.Node.Id] = neighbour
+				}
+				// update lastSeen timestamp
+				if n.neighbours[pbNetNeighbour.Node.Id].lastSeen.Before(now) {
+					n.neighbours[pbNetNeighbour.Node.Id].lastSeen = now
 				}
 				// update/store the neighbour node neighbours
 				for _, pbNeighbour := range pbNetNeighbour.Neighbours {
@@ -430,6 +444,7 @@ func (n *network) pruneNode(id string) error {
 		return err
 	}
 	// delete the found routes
+	log.Logf("Network deleting routes originated by router: %s", id)
 	for _, route := range routes {
 		if err := n.Router.Table().Delete(route); err != nil && err != router.ErrRouteNotFound {
 			return err
@@ -452,8 +467,10 @@ func (n *network) prune() {
 		case <-prune.C:
 			n.Lock()
 			for id, node := range n.neighbours {
-				nodeAge := time.Since(node.lastSeen)
-				if nodeAge > PruneTime {
+				if id == n.options.Id {
+					continue
+				}
+				if time.Since(node.lastSeen) > PruneTime {
 					log.Debugf("Network deleting node %s: reached prune time threshold", id)
 					if err := n.pruneNode(id); err != nil {
 						log.Debugf("Network failed to prune the node %s: %v", id, err)
@@ -555,14 +572,19 @@ func (n *network) processCtrlChan(l tunnel.Listener) {
 			// switch on type of message and take action
 			switch m.Header["Micro-Method"] {
 			case "advert":
+				now := time.Now()
 				pbRtrAdvert := &pbRtr.Advert{}
 				if err := proto.Unmarshal(m.Body, pbRtrAdvert); err != nil {
 					log.Debugf("Network fail to unmarshal advert message: %v", err)
 					continue
 				}
-
+				// don't process your own messages
+				if pbRtrAdvert.Id == n.options.Id {
+					continue
+				}
 				// loookup advertising node in our neighbourhood
 				n.RLock()
+				log.Debugf("Network received advert message from: %s", pbRtrAdvert.Id)
 				advertNode, ok := n.neighbours[pbRtrAdvert.Id]
 				if !ok {
 					// advertising node has not been registered as our neighbour, yet
@@ -570,6 +592,7 @@ func (n *network) processCtrlChan(l tunnel.Listener) {
 					advertNode = &node{
 						id:         pbRtrAdvert.Id,
 						neighbours: make(map[string]*node),
+						lastSeen:   now,
 					}
 					n.neighbours[pbRtrAdvert.Id] = advertNode
 				}
@@ -785,6 +808,7 @@ func (n *network) Connect() error {
 			Body: body,
 		}
 
+		log.Debugf("Network sending connect message: %s", node.Id)
 		if err := netClient.Send(&m); err != nil {
 			log.Debugf("Network failed to send connect messsage: %v", err)
 		}
