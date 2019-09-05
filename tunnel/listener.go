@@ -24,7 +24,7 @@ type tunListener struct {
 
 // periodically announce self
 func (t *tunListener) announce() {
-	tick := time.NewTicker(time.Minute)
+	tick := time.NewTicker(time.Second * 30)
 	defer tick.Stop()
 
 	// first announcement

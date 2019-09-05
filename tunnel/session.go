@@ -180,6 +180,8 @@ func (s *session) Announce() error {
 	msg := s.newMessage("announce")
 	// we don't need an error back
 	msg.errChan = nil
+	// announce to all
+	msg.broadcast = true
 	// we don't need the link
 	msg.link = ""
 
