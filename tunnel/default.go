@@ -951,27 +951,39 @@ func (t *tun) Dial(channel string, opts ...DialOption) (Session, error) {
 
 		var err error
 
+		// set a dialTimeout
+		dialTimeout := after()
+
+		// set a shorter delay for multicast
+		if c.multicast {
+			// shorten this
+			dialTimeout = time.Millisecond * 500
+		}
+
 		// wait for announce
 		select {
 		case msg := <-c.recv:
 			if msg.typ != "announce" {
 				err = errors.New("failed to discover channel")
 			}
-		case <-time.After(after()):
+		case <-time.After(dialTimeout):
 			err = ErrDialTimeout
 		}
 
-		// don't both sending the error for multicast
-		// we're just going to assume things come online
-		if err == nil || c.multicast {
+		// if its multicast just go ahead because this is best effort
+		if c.multicast {
 			c.discovered = true
+			c.accepted = true
 			return c, nil
 		}
 
-		// return the error if unicast
+		// otherwise return an error
 		if err != nil {
 			return nil, err
 		}
+
+		// set discovered to true
+		c.discovered = true
 	}
 
 	// a unicast session so we call "open" and wait for an "accept"
