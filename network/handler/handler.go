@@ -1,3 +1,4 @@
+// Package handler implements network RPC handler
 package handler
 
 import (
