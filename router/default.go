@@ -10,6 +10,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/micro/go-micro/registry"
+	"github.com/micro/go-micro/util/log"
 )
 
 const (
@@ -289,6 +290,7 @@ func (r *router) publishAdvert(advType AdvertType, events []*Event) {
 		Events:    events,
 	}
 
+	log.Debugf("Router publishing advert; %+v", a)
 	r.RLock()
 	for _, sub := range r.subscribers {
 		// check the exit chan first
@@ -601,7 +603,7 @@ func (r *router) Advertise() (<-chan *Advert, error) {
 
 	switch r.status.Code {
 	case Advertising:
-		advertChan := make(chan *Advert)
+		advertChan := make(chan *Advert, 128)
 		r.subscribers[uuid.New().String()] = advertChan
 		return advertChan, nil
 	case Running:
@@ -641,7 +643,7 @@ func (r *router) Advertise() (<-chan *Advert, error) {
 		r.status = Status{Code: Advertising, Error: nil}
 
 		// create advert channel
-		advertChan := make(chan *Advert)
+		advertChan := make(chan *Advert, 128)
 		r.subscribers[uuid.New().String()] = advertChan
 
 		return advertChan, nil
