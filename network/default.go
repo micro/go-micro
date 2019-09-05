@@ -29,8 +29,8 @@ var (
 	DefaultLink = "network"
 	// ErrMsgUnknown is returned when unknown message is attempted to send or receive
 	ErrMsgUnknown = errors.New("unknown message")
-	// ErrChannelUnknown is returned when attempting to send or received on unknown channel
-	ErrChannelUnknown = errors.New("unknown channel")
+	// ErrClientNotFound is returned when client for tunnel channel could not be found
+	ErrClientNotFound = errors.New("client not found")
 )
 
 // node is network node
@@ -462,7 +462,7 @@ func (n *network) sendMsg(msgType string, channel string) error {
 	client, ok := n.tunClient[channel]
 	if !ok {
 		n.RUnlock()
-		return ErrChannelUnknown
+		return ErrClientNotFound
 	}
 	n.RUnlock()
 
