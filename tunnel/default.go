@@ -821,8 +821,8 @@ func (t *tun) close() error {
 	}
 
 	// close the listener
-	//return t.listener.Close()
-	return nil
+	// this appears to be blocking
+	return t.listener.Close()
 }
 
 func (t *tun) Address() string {
