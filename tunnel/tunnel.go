@@ -9,10 +9,12 @@ import (
 )
 
 var (
-	// ErrDialTimeout is returned by a call to Dial where the timeout occurs
-	ErrDialTimeout = errors.New("dial timeout")
 	// DefaultDialTimeout is the dial timeout if none is specified
 	DefaultDialTimeout = time.Second * 5
+	// ErrDialTimeout is returned by a call to Dial where the timeout occurs
+	ErrDialTimeout = errors.New("dial timeout")
+	// ErrDiscoverChan is returned when we failed to receive the "announce" back from a discovery
+	ErrDiscoverChan = errors.New("failed to discover channel")
 )
 
 // Tunnel creates a gre tunnel on top of the go-micro/transport.
