@@ -855,10 +855,10 @@ func (t *tun) Dial(channel string, opts ...DialOption) (Session, error) {
 	}
 	t.RUnlock()
 
-	// discovered so set the link
+	// discovered so set the link if not multicast
 	// TODO: pick the link efficiently based 
 	// on link status and saturation.
-	if c.discovered {
+	if c.discovered && !c.multicast {
 		// set the link
 		i := rand.Intn(len(links))
 		c.link = links[i]
