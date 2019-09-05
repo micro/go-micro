@@ -377,7 +377,7 @@ func (n *network) processNetChan(client transport.Client, listener tunnel.Listen
 				}
 				n.Unlock()
 				// send a solicit message when discovering a new node
-				// NOTE: we need to send the solicit message here after the Lock is released as sendMsg locs
+				// NOTE: we need to send the solicit message here after the Lock is released as sendMsg locks, too
 				if !exists {
 					if err := n.sendMsg("solicit", NetworkChannel); err != nil {
 						log.Debugf("Network failed to send solicit message: %s", err)
@@ -433,7 +433,7 @@ func (n *network) sendMsg(msgType string, channel string) error {
 		n.RLock()
 		nodes := make([]*pbNet.Node, len(n.neighbours))
 		i := 0
-		for id, _ := range n.neighbours {
+		for id := range n.neighbours {
 			nodes[i] = &pbNet.Node{
 				Id:      id,
 				Address: n.neighbours[id].address,
@@ -609,7 +609,7 @@ func (n *network) setRouteMetric(route *router.Route) {
 
 	// check if the route origin is the neighbour of our neighbour
 	for _, node := range n.neighbours {
-		for id, _ := range node.neighbours {
+		for id := range node.neighbours {
 			if route.Router == id {
 				route.Metric = 100
 				n.RUnlock()
