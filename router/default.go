@@ -120,6 +120,9 @@ func (r *router) manageRoute(route Route, action string) error {
 		if err := r.table.Delete(route); err != nil && err != ErrRouteNotFound {
 			return fmt.Errorf("failed deleting route for service %s: %s", route.Service, err)
 		}
+	case "solicit":
+		// nothing to do here
+		return nil
 	default:
 		return fmt.Errorf("failed to manage route for service %s. Unknown action: %s", route.Service, action)
 	}
@@ -603,9 +606,9 @@ func (r *router) Advertise() (<-chan *Advert, error) {
 		return advertChan, nil
 	case Running:
 		// list all the routes and pack them into even slice to advertise
-		events, err := r.flushRouteEvents()
+		events, err := r.flushRouteEvents(Create)
 		if err != nil {
-			return nil, fmt.Errorf("failed to advertise routes: %s", err)
+			return nil, fmt.Errorf("failed to flush routes: %s", err)
 		}
 
 		// create event channels
@@ -676,8 +679,8 @@ func (r *router) Process(a *Advert) error {
 	return nil
 }
 
-// flushRouteEvents lists all the routes and builds a slice of events
-func (r *router) flushRouteEvents() ([]*Event, error) {
+// flushRouteEvents returns a slice of events, one per each route in the routing table
+func (r *router) flushRouteEvents(evType EventType) ([]*Event, error) {
 	// list all routes
 	routes, err := r.table.List()
 	if err != nil {
@@ -688,7 +691,7 @@ func (r *router) flushRouteEvents() ([]*Event, error) {
 	events := make([]*Event, len(routes))
 	for i, route := range routes {
 		event := &Event{
-			Type:      Create,
+			Type:      evType,
 			Timestamp: time.Now(),
 			Route:     route,
 		}
@@ -701,7 +704,7 @@ func (r *router) flushRouteEvents() ([]*Event, error) {
 // Solicit advertises all of its routes to the network
 // It returns error if the router fails to list the routes
 func (r *router) Solicit() error {
-	events, err := r.flushRouteEvents()
+	events, err := r.flushRouteEvents(Update)
 	if err != nil {
 		return fmt.Errorf("failed solicit routes: %s", err)
 	}
