@@ -2,6 +2,7 @@ package network
 
 import (
 	"container/list"
+	"errors"
 	"sync"
 	"time"
 
@@ -26,6 +27,13 @@ var (
 	ControlChannel = "control"
 	// DefaultLink is default network link
 	DefaultLink = "network"
+)
+
+var (
+	// ErrMsgUnknown is returned when unknown message is attempted to send or receive
+	ErrMsgUnknown = errors.New("unknown message")
+	// ErrClientNotFound is returned when client for tunnel channel could not be found
+	ErrClientNotFound = errors.New("client not found")
 )
 
 // node is network node
@@ -275,12 +283,12 @@ func (n *network) acceptNetConn(l tunnel.Listener, recv chan *transport.Message)
 }
 
 // processNetChan processes messages received on NetworkChannel
-func (n *network) processNetChan(l tunnel.Listener) {
+func (n *network) processNetChan(client transport.Client, listener tunnel.Listener) {
 	// receive network message queue
 	recv := make(chan *transport.Message, 128)
 
 	// accept NetworkChannel connections
-	go n.acceptNetConn(l, recv)
+	go n.acceptNetConn(listener, recv)
 
 	for {
 		select {
@@ -319,6 +327,14 @@ func (n *network) processNetChan(l tunnel.Listener) {
 					lastSeen:   now,
 				}
 				n.Unlock()
+				// advertise yourself to the network
+				if err := n.sendMsg("neighbour", NetworkChannel); err != nil {
+					log.Debugf("Network failed to advertise neighbours: %v", err)
+				}
+				// advertise all the routes when a new node has connected
+				if err := n.Router.Solicit(); err != nil {
+					log.Debugf("Network failed to solicit routes: %s", err)
+				}
 			case "neighbour":
 				// mark the time the message has been received
 				now := time.Now()
@@ -334,7 +350,8 @@ func (n *network) processNetChan(l tunnel.Listener) {
 				n.Lock()
 				log.Debugf("Network received neighbour message from: %s", pbNetNeighbour.Node.Id)
 				// only add the neighbour if it is NOT already in node's list of neighbours
-				if _, ok := n.neighbours[pbNetNeighbour.Node.Id]; !ok {
+				_, exists := n.neighbours[pbNetNeighbour.Node.Id]
+				if !exists {
 					n.neighbours[pbNetNeighbour.Node.Id] = &node{
 						id:         pbNetNeighbour.Node.Id,
 						address:    pbNetNeighbour.Node.Address,
@@ -347,7 +364,7 @@ func (n *network) processNetChan(l tunnel.Listener) {
 					n.neighbours[pbNetNeighbour.Node.Id].lastSeen = now
 				}
 				// update/store the neighbour node neighbours
-				// NOTE: * we dont update lastSeen time for the neighbours of the neighbour
+				// NOTE: * we do NOT update lastSeen time for the neighbours of the neighbour
 				//	 * even though we are NOT interested in neighbours of neighbours here
 				// 	   we still allocate the map of neighbours for each of them
 				for _, pbNeighbour := range pbNetNeighbour.Neighbours {
@@ -359,6 +376,13 @@ func (n *network) processNetChan(l tunnel.Listener) {
 					n.neighbours[pbNetNeighbour.Node.Id].neighbours[neighbourNode.id] = neighbourNode
 				}
 				n.Unlock()
+				// send a solicit message when discovering a new node
+				// NOTE: we need to send the solicit message here after the Lock is released as sendMsg locks, too
+				if !exists {
+					if err := n.sendMsg("solicit", NetworkChannel); err != nil {
+						log.Debugf("Network failed to send solicit message: %s", err)
+					}
+				}
 			case "close":
 				pbNetClose := &pbNet.Close{}
 				if err := proto.Unmarshal(m.Body, pbNetClose); err != nil {
@@ -383,6 +407,76 @@ func (n *network) processNetChan(l tunnel.Listener) {
 	}
 }
 
+// sendMsg sends a message to the tunnel channel
+func (n *network) sendMsg(msgType string, channel string) error {
+	node := &pbNet.Node{
+		Id:      n.options.Id,
+		Address: n.options.Address,
+	}
+
+	var protoMsg proto.Message
+
+	switch msgType {
+	case "connect":
+		protoMsg = &pbNet.Connect{
+			Node: node,
+		}
+	case "close":
+		protoMsg = &pbNet.Close{
+			Node: node,
+		}
+	case "solicit":
+		protoMsg = &pbNet.Solicit{
+			Node: node,
+		}
+	case "neighbour":
+		n.RLock()
+		nodes := make([]*pbNet.Node, len(n.neighbours))
+		i := 0
+		for id := range n.neighbours {
+			nodes[i] = &pbNet.Node{
+				Id:      id,
+				Address: n.neighbours[id].address,
+			}
+			i++
+		}
+		n.RUnlock()
+		protoMsg = &pbNet.Neighbour{
+			Node:       node,
+			Neighbours: nodes,
+		}
+	default:
+		return ErrMsgUnknown
+	}
+
+	body, err := proto.Marshal(protoMsg)
+	if err != nil {
+		return err
+	}
+	// create transport message and chuck it down the pipe
+	m := transport.Message{
+		Header: map[string]string{
+			"Micro-Method": msgType,
+		},
+		Body: body,
+	}
+
+	n.RLock()
+	client, ok := n.tunClient[channel]
+	if !ok {
+		n.RUnlock()
+		return ErrClientNotFound
+	}
+	n.RUnlock()
+
+	log.Debugf("Network sending %s message from: %s", msgType, node.Id)
+	if err := client.Send(&m); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // announce announces node neighbourhood to the network
 func (n *network) announce(client transport.Client) {
 	announce := time.NewTicker(AnnounceTime)
@@ -393,44 +487,9 @@ func (n *network) announce(client transport.Client) {
 		case <-n.closed:
 			return
 		case <-announce.C:
-			n.RLock()
-			nodes := make([]*pbNet.Node, len(n.neighbours))
-			i := 0
-			for id, _ := range n.neighbours {
-				nodes[i] = &pbNet.Node{
-					Id:      id,
-					Address: n.neighbours[id].address,
-				}
-				i++
-			}
-			n.RUnlock()
-
-			node := &pbNet.Node{
-				Id:      n.options.Id,
-				Address: n.options.Address,
-			}
-			pbNetNeighbour := &pbNet.Neighbour{
-				Node:       node,
-				Neighbours: nodes,
-			}
-
-			body, err := proto.Marshal(pbNetNeighbour)
-			if err != nil {
-				// TODO: should we bail here?
-				log.Debugf("Network failed to marshal neighbour message: %v", err)
-				continue
-			}
-			// create transport message and chuck it down the pipe
-			m := transport.Message{
-				Header: map[string]string{
-					"Micro-Method": "neighbour",
-				},
-				Body: body,
-			}
-
-			log.Debugf("Network sending neighbour message from: %s", node.Id)
-			if err := client.Send(&m); err != nil {
-				log.Debugf("Network failed to send neighbour messsage: %v", err)
+			// advertise yourself to the network
+			if err := n.sendMsg("neighbour", NetworkChannel); err != nil {
+				log.Debugf("Network failed to advertise neighbours: %v", err)
 				continue
 			}
 		}
@@ -550,7 +609,7 @@ func (n *network) setRouteMetric(route *router.Route) {
 
 	// check if the route origin is the neighbour of our neighbour
 	for _, node := range n.neighbours {
-		for id, _ := range node.neighbours {
+		for id := range node.neighbours {
 			if route.Router == id {
 				route.Metric = 100
 				n.RUnlock()
@@ -565,12 +624,12 @@ func (n *network) setRouteMetric(route *router.Route) {
 }
 
 // processCtrlChan processes messages received on ControlChannel
-func (n *network) processCtrlChan(l tunnel.Listener) {
+func (n *network) processCtrlChan(client transport.Client, listener tunnel.Listener) {
 	// receive control message queue
 	recv := make(chan *transport.Message, 128)
 
 	// accept ControlChannel cconnections
-	go n.acceptCtrlConn(l, recv)
+	go n.acceptCtrlConn(listener, recv)
 
 	for {
 		select {
@@ -601,6 +660,10 @@ func (n *network) processCtrlChan(l tunnel.Listener) {
 						lastSeen:   now,
 					}
 					n.neighbours[pbRtrAdvert.Id] = advertNode
+					// send a solicit message when discovering a new node
+					if err := n.sendMsg("solicit", NetworkChannel); err != nil {
+						log.Debugf("Network failed to send solicit message: %s", err)
+					}
 				}
 				n.RUnlock()
 
@@ -656,6 +719,11 @@ func (n *network) processCtrlChan(l tunnel.Listener) {
 				if err := n.Router.Process(advert); err != nil {
 					log.Debugf("Network failed to process advert %s: %v", advert.Id, err)
 					continue
+				}
+			case "solicit":
+				// advertise all the routes when a new node has connected
+				if err := n.Router.Solicit(); err != nil {
+					log.Debugf("Network failed to solicit routes: %s", err)
 				}
 			}
 		case <-n.closed:
@@ -724,8 +792,6 @@ func (n *network) advertise(client transport.Client, advertChan <-chan *router.A
 // Connect connects the network
 func (n *network) Connect() error {
 	n.Lock()
-	defer n.Unlock()
-
 	// return if already connected
 	if n.connected {
 		return nil
@@ -793,32 +859,14 @@ func (n *network) Connect() error {
 	if err := n.server.Start(); err != nil {
 		return err
 	}
+	n.Unlock()
 
 	// send connect message to NetworkChannel
 	// NOTE: in theory we could do this as soon as
 	// Dial to NetworkChannel succeeds, but instead
 	// we initialize all other node resources first
-	node := &pbNet.Node{
-		Id:      n.options.Id,
-		Address: n.options.Address,
-	}
-	pbNetConnect := &pbNet.Connect{
-		Node: node,
-	}
-
-	// only proceed with sending to NetworkChannel if marshal succeeds
-	if body, err := proto.Marshal(pbNetConnect); err == nil {
-		m := transport.Message{
-			Header: map[string]string{
-				"Micro-Method": "connect",
-			},
-			Body: body,
-		}
-
-		log.Debugf("Network sending connect message: %s", node.Id)
-		if err := netClient.Send(&m); err != nil {
-			log.Debugf("Network failed to send connect messsage: %v", err)
-		}
+	if err := n.sendMsg("connect", NetworkChannel); err != nil {
+		log.Debugf("Network failed to send connect message: %s", err)
 	}
 
 	// go resolving network nodes
@@ -828,14 +876,15 @@ func (n *network) Connect() error {
 	// prune stale nodes
 	go n.prune()
 	// listen to network messages
-	go n.processNetChan(netListener)
+	go n.processNetChan(netClient, netListener)
 	// advertise service routes
 	go n.advertise(ctrlClient, advertChan)
 	// accept and process routes
-	go n.processCtrlChan(ctrlListener)
+	go n.processCtrlChan(ctrlClient, ctrlListener)
 
-	// set connected to true
+	n.Lock()
 	n.connected = true
+	n.Unlock()
 
 	return nil
 }
@@ -912,31 +961,9 @@ func (n *network) Close() error {
 		return nil
 	default:
 		// send close message only if we managed to connect to NetworkChannel
-		if netClient, ok := n.tunClient[NetworkChannel]; ok {
-			// send connect message to NetworkChannel
-			node := &pbNet.Node{
-				Id:      n.options.Id,
-				Address: n.options.Address,
-			}
-			pbNetClose := &pbNet.Close{
-				Node: node,
-			}
-
-			// only proceed with sending to NetworkChannel if marshal succeeds
-			if body, err := proto.Marshal(pbNetClose); err == nil {
-				// create transport message and chuck it down the pipe
-				m := transport.Message{
-					Header: map[string]string{
-						"Micro-Method": "close",
-					},
-					Body: body,
-				}
-
-				log.Debugf("Network sending close message from: %s", node.Id)
-				if err := netClient.Send(&m); err != nil {
-					log.Debugf("Network failed to send close messsage: %v", err)
-				}
-			}
+		log.Debugf("Sending close message from: %s", n.options.Id)
+		if err := n.sendMsg("close", NetworkChannel); err != nil {
+			log.Debugf("Network failed to send close message: %s", err)
 		}
 		// TODO: send close message to the network channel
 		close(n.closed)

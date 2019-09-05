@@ -220,6 +220,42 @@ func (s *svc) Process(advert *router.Advert) error {
 	return nil
 }
 
+// Solicit advertise all routes
+func (s *svc) Solicit() error {
+	// list all the routes
+	routes, err := s.table.List()
+	if err != nil {
+		return err
+	}
+
+	// build events to advertise
+	events := make([]*router.Event, len(routes))
+	for i, _ := range events {
+		events[i] = &router.Event{
+			Type:      router.Update,
+			Timestamp: time.Now(),
+			Route:     routes[i],
+		}
+	}
+
+	advert := &router.Advert{
+		Id:        s.opts.Id,
+		Type:      router.RouteUpdate,
+		Timestamp: time.Now(),
+		TTL:       time.Duration(router.DefaultAdvertTTL),
+		Events:    events,
+	}
+
+	select {
+	case s.advertChan <- advert:
+	case <-s.exit:
+		close(s.advertChan)
+		return nil
+	}
+
+	return nil
+}
+
 // Status returns router status
 func (s *svc) Status() router.Status {
 	s.Lock()

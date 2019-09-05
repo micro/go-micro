@@ -120,6 +120,9 @@ func (r *router) manageRoute(route Route, action string) error {
 		if err := r.table.Delete(route); err != nil && err != ErrRouteNotFound {
 			return fmt.Errorf("failed deleting route for service %s: %s", route.Service, err)
 		}
+	case "solicit":
+		// nothing to do here
+		return nil
 	default:
 		return fmt.Errorf("failed to manage route for service %s. Unknown action: %s", route.Service, action)
 	}
@@ -602,21 +605,10 @@ func (r *router) Advertise() (<-chan *Advert, error) {
 		r.subscribers[uuid.New().String()] = advertChan
 		return advertChan, nil
 	case Running:
-		// list routing table routes to announce
-		routes, err := r.table.List()
+		// list all the routes and pack them into even slice to advertise
+		events, err := r.flushRouteEvents(Create)
 		if err != nil {
-			return nil, fmt.Errorf("failed listing routes: %s", err)
-		}
-
-		// collect all the added routes before we attempt to add default gateway
-		events := make([]*Event, len(routes))
-		for i, route := range routes {
-			event := &Event{
-				Type:      Create,
-				Timestamp: time.Now(),
-				Route:     route,
-			}
-			events[i] = event
+			return nil, fmt.Errorf("failed to flush routes: %s", err)
 		}
 
 		// create event channels
@@ -683,6 +675,43 @@ func (r *router) Process(a *Advert) error {
 			return fmt.Errorf("failed applying action %s to routing table: %s", action, err)
 		}
 	}
+
+	return nil
+}
+
+// flushRouteEvents returns a slice of events, one per each route in the routing table
+func (r *router) flushRouteEvents(evType EventType) ([]*Event, error) {
+	// list all routes
+	routes, err := r.table.List()
+	if err != nil {
+		return nil, fmt.Errorf("failed listing routes: %s", err)
+	}
+
+	// build a list of events to advertise
+	events := make([]*Event, len(routes))
+	for i, route := range routes {
+		event := &Event{
+			Type:      evType,
+			Timestamp: time.Now(),
+			Route:     route,
+		}
+		events[i] = event
+	}
+
+	return events, nil
+}
+
+// Solicit advertises all of its routes to the network
+// It returns error if the router fails to list the routes
+func (r *router) Solicit() error {
+	events, err := r.flushRouteEvents(Update)
+	if err != nil {
+		return fmt.Errorf("failed solicit routes: %s", err)
+	}
+
+	// advertise the routes
+	r.advertWg.Add(1)
+	go r.publishAdvert(RouteUpdate, events)
 
 	return nil
 }
