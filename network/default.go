@@ -27,6 +27,9 @@ var (
 	ControlChannel = "control"
 	// DefaultLink is default network link
 	DefaultLink = "network"
+)
+
+var (
 	// ErrMsgUnknown is returned when unknown message is attempted to send or receive
 	ErrMsgUnknown = errors.New("unknown message")
 	// ErrClientNotFound is returned when client for tunnel channel could not be found
