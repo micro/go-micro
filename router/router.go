@@ -28,6 +28,8 @@ type Router interface {
 	Advertise() (<-chan *Advert, error)
 	// Process processes incoming adverts
 	Process(*Advert) error
+	// Solicit advertises the whole routing table ot the network
+	Solicit() error
 	// Lookup queries routes in the routing table
 	Lookup(Query) ([]Route, error)
 	// Watch returns a watcher which tracks updates to the routing table

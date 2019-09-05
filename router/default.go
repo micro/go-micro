@@ -602,21 +602,10 @@ func (r *router) Advertise() (<-chan *Advert, error) {
 		r.subscribers[uuid.New().String()] = advertChan
 		return advertChan, nil
 	case Running:
-		// list routing table routes to announce
-		routes, err := r.table.List()
+		// list all the routes and pack them into even slice to advertise
+		events, err := r.flushRouteEvents()
 		if err != nil {
-			return nil, fmt.Errorf("failed listing routes: %s", err)
-		}
-
-		// collect all the added routes before we attempt to add default gateway
-		events := make([]*Event, len(routes))
-		for i, route := range routes {
-			event := &Event{
-				Type:      Create,
-				Timestamp: time.Now(),
-				Route:     route,
-			}
-			events[i] = event
+			return nil, fmt.Errorf("failed to advertise routes: %s", err)
 		}
 
 		// create event channels
@@ -683,6 +672,43 @@ func (r *router) Process(a *Advert) error {
 			return fmt.Errorf("failed applying action %s to routing table: %s", action, err)
 		}
 	}
+
+	return nil
+}
+
+// flushRouteEvents lists all the routes and builds a slice of events
+func (r *router) flushRouteEvents() ([]*Event, error) {
+	// list all routes
+	routes, err := r.table.List()
+	if err != nil {
+		return nil, fmt.Errorf("failed listing routes: %s", err)
+	}
+
+	// build a list of events to advertise
+	events := make([]*Event, len(routes))
+	for i, route := range routes {
+		event := &Event{
+			Type:      Create,
+			Timestamp: time.Now(),
+			Route:     route,
+		}
+		events[i] = event
+	}
+
+	return events, nil
+}
+
+// Solicit advertises all of its routes to the network
+// It returns error if the router fails to list the routes
+func (r *router) Solicit() error {
+	events, err := r.flushRouteEvents()
+	if err != nil {
+		return fmt.Errorf("failed solicit routes: %s", err)
+	}
+
+	// advertise the routes
+	r.advertWg.Add(1)
+	go r.publishAdvert(RouteUpdate, events)
 
 	return nil
 }
