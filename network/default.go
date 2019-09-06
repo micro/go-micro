@@ -963,26 +963,32 @@ func (n *network) close() error {
 
 // Close closes network connection
 func (n *network) Close() error {
+	// lock this operation
 	n.Lock()
-	defer n.Unlock()
 
 	if !n.connected {
+		n.Unlock()
 		return nil
 	}
 
 	select {
 	case <-n.closed:
+		n.Unlock()
 		return nil
 	default:
+		// TODO: send close message to the network channel
+		close(n.closed)
+		// set connected to false
+		n.connected = false
+
+		// unlock the lock otherwise we'll deadlock sending the close
+		n.Unlock()
+
 		// send close message only if we managed to connect to NetworkChannel
 		log.Debugf("Sending close message from: %s", n.options.Id)
 		if err := n.sendMsg("close", NetworkChannel); err != nil {
 			log.Debugf("Network failed to send close message: %s", err)
 		}
-		// TODO: send close message to the network channel
-		close(n.closed)
-		// set connected to false
-		n.connected = false
 	}
 
 	return n.close()
