@@ -41,10 +41,12 @@ message LookupResponse {
 	repeated Route routes = 1;
 }
 
+// QueryRequest queries Table for Routes
 message QueryRequest{
 	Query query = 1;
 }
 
+// QueryResponse is returned by Query
 message QueryResponse {
 	repeated Route routes = 1;
 }

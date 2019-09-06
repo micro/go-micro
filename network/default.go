@@ -373,13 +373,13 @@ func (n *network) processNetChan(client transport.Client, listener tunnel.Listen
 						address:    pbNeighbour.Address,
 						neighbours: make(map[string]*node),
 					}
-					n.neighbours[pbNetNeighbour.Node.Id].neighbours[neighbourNode.id] = neighbourNode
+					n.neighbours[pbNetNeighbour.Node.Id].neighbours[pbNeighbour.Id] = neighbourNode
 				}
 				n.Unlock()
 				// send a solicit message when discovering a new node
 				// NOTE: we need to send the solicit message here after the Lock is released as sendMsg locks, too
 				if !exists {
-					if err := n.sendMsg("solicit", NetworkChannel); err != nil {
+					if err := n.sendMsg("solicit", ControlChannel); err != nil {
 						log.Debugf("Network failed to send solicit message: %s", err)
 					}
 				}
@@ -698,6 +698,7 @@ func (n *network) processCtrlChan(client transport.Client, listener tunnel.Liste
 					n.setRouteMetric(&route)
 					// throw away metric bigger than 1000
 					if route.Metric > 1000 {
+						log.Debugf("Network route metric %d dropping node: %s", route.Metric, route.Router)
 						continue
 					}
 					// create router event
@@ -721,6 +722,16 @@ func (n *network) processCtrlChan(client transport.Client, listener tunnel.Liste
 					continue
 				}
 			case "solicit":
+				pbNetSolicit := &pbNet.Solicit{}
+				if err := proto.Unmarshal(m.Body, pbNetSolicit); err != nil {
+					log.Debugf("Network fail to unmarshal solicit message: %v", err)
+					continue
+				}
+				log.Debugf("Network received solicit message from: %s", pbNetSolicit.Node.Id)
+				// don't process your own messages
+				if pbNetSolicit.Node.Id == n.options.Id {
+					continue
+				}
 				// advertise all the routes when a new node has connected
 				if err := n.Router.Solicit(); err != nil {
 					log.Debugf("Network failed to solicit routes: %s", err)
@@ -907,8 +918,9 @@ func (n *network) Nodes() []Node {
 	visited[n.node.id] = n.node
 
 	// keep iterating over the queue until its empty
-	for qnode := queue.Front(); qnode != nil; qnode = qnode.Next() {
-		queue.Remove(qnode)
+	for queue.Len() > 0 {
+		// pop the node from the front of the queue
+		qnode := queue.Front()
 		// iterate through all of its neighbours
 		// mark the visited nodes; enqueue the non-visted
 		for id, node := range qnode.Value.(*node).neighbours {
@@ -917,6 +929,8 @@ func (n *network) Nodes() []Node {
 				queue.PushBack(node)
 			}
 		}
+		// remove the node from the queue
+		queue.Remove(qnode)
 	}
 
 	var nodes []Node
