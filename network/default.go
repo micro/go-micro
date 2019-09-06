@@ -352,7 +352,6 @@ func (n *network) processNetChan(client transport.Client, listener tunnel.Listen
 				// only add the neighbour if it is NOT already in node's list of neighbours
 				_, exists := n.neighbours[pbNetNeighbour.Node.Id]
 				if !exists {
-					log.Debugf("Network neighbour message node exists: %s", pbNetNeighbour.Node.Id)
 					n.neighbours[pbNetNeighbour.Node.Id] = &node{
 						id:         pbNetNeighbour.Node.Id,
 						address:    pbNetNeighbour.Node.Address,
@@ -697,10 +696,9 @@ func (n *network) processCtrlChan(client transport.Client, listener tunnel.Liste
 					}
 					// set the route metric
 					n.setRouteMetric(&route)
-					log.Debugf("Network node %s metric: %d", route.Router, route.Metric)
 					// throw away metric bigger than 1000
 					if route.Metric > 1000 {
-						log.Debugf("Network dropping node: %s", route.Router)
+						log.Debugf("Network route metric %d dropping node: %s", route.Metric, route.Router)
 						continue
 					}
 					// create router event
@@ -937,7 +935,7 @@ func (n *network) Nodes() []Node {
 
 	var nodes []Node
 	// collect all the nodes and return them
-	for id, node := range visited {
+	for _, node := range visited {
 		nodes = append(nodes, node)
 	}
 
