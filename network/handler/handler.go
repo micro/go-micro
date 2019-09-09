@@ -100,7 +100,7 @@ func (n *Network) Neighbourhood(ctx context.Context, req *pbNet.NeighbourhoodReq
 	}
 
 	// creaate neighbourhood answer
-	neighbourhood := &pbNet.Neighbour{
+	neighbourhood := &pbNet.Neighbourhood{
 		Node:       node,
 		Neighbours: neighbours,
 	}

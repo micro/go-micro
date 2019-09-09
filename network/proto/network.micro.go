@@ -35,9 +35,9 @@ var _ server.Option
 // Client API for Network service
 
 type NetworkService interface {
-	ListRoutes(ctx context.Context, in *proto1.Request, opts ...client.CallOption) (*proto1.ListResponse, error)
 	ListNodes(ctx context.Context, in *ListRequest, opts ...client.CallOption) (*ListResponse, error)
 	Neighbourhood(ctx context.Context, in *NeighbourhoodRequest, opts ...client.CallOption) (*NeighbourhoodResponse, error)
+	ListRoutes(ctx context.Context, in *proto1.Request, opts ...client.CallOption) (*proto1.ListResponse, error)
 }
 
 type networkService struct {
@@ -56,16 +56,6 @@ func NewNetworkService(name string, c client.Client) NetworkService {
 		c:    c,
 		name: name,
 	}
-}
-
-func (c *networkService) ListRoutes(ctx context.Context, in *proto1.Request, opts ...client.CallOption) (*proto1.ListResponse, error) {
-	req := c.c.NewRequest(c.name, "Network.ListRoutes", in)
-	out := new(proto1.ListResponse)
-	err := c.c.Call(ctx, req, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
 }
 
 func (c *networkService) ListNodes(ctx context.Context, in *ListRequest, opts ...client.CallOption) (*ListResponse, error) {
@@ -88,19 +78,29 @@ func (c *networkService) Neighbourhood(ctx context.Context, in *NeighbourhoodReq
 	return out, nil
 }
 
+func (c *networkService) ListRoutes(ctx context.Context, in *proto1.Request, opts ...client.CallOption) (*proto1.ListResponse, error) {
+	req := c.c.NewRequest(c.name, "Network.ListRoutes", in)
+	out := new(proto1.ListResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Server API for Network service
 
 type NetworkHandler interface {
-	ListRoutes(context.Context, *proto1.Request, *proto1.ListResponse) error
 	ListNodes(context.Context, *ListRequest, *ListResponse) error
 	Neighbourhood(context.Context, *NeighbourhoodRequest, *NeighbourhoodResponse) error
+	ListRoutes(context.Context, *proto1.Request, *proto1.ListResponse) error
 }
 
 func RegisterNetworkHandler(s server.Server, hdlr NetworkHandler, opts ...server.HandlerOption) error {
 	type network interface {
-		ListRoutes(ctx context.Context, in *proto1.Request, out *proto1.ListResponse) error
 		ListNodes(ctx context.Context, in *ListRequest, out *ListResponse) error
 		Neighbourhood(ctx context.Context, in *NeighbourhoodRequest, out *NeighbourhoodResponse) error
+		ListRoutes(ctx context.Context, in *proto1.Request, out *proto1.ListResponse) error
 	}
 	type Network struct {
 		network
@@ -113,14 +113,14 @@ type networkHandler struct {
 	NetworkHandler
 }
 
-func (h *networkHandler) ListRoutes(ctx context.Context, in *proto1.Request, out *proto1.ListResponse) error {
-	return h.NetworkHandler.ListRoutes(ctx, in, out)
-}
-
 func (h *networkHandler) ListNodes(ctx context.Context, in *ListRequest, out *ListResponse) error {
 	return h.NetworkHandler.ListNodes(ctx, in, out)
 }
 
 func (h *networkHandler) Neighbourhood(ctx context.Context, in *NeighbourhoodRequest, out *NeighbourhoodResponse) error {
 	return h.NetworkHandler.Neighbourhood(ctx, in, out)
+}
+
+func (h *networkHandler) ListRoutes(ctx context.Context, in *proto1.Request, out *proto1.ListResponse) error {
+	return h.NetworkHandler.ListRoutes(ctx, in, out)
 }
