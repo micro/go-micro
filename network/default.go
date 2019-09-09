@@ -27,8 +27,6 @@ var (
 	ControlChannel = "control"
 	// DefaultLink is default network link
 	DefaultLink = "network"
-	// MaxDepth defines max depth of neighbourhood topology
-	MaxDepth = 3
 )
 
 var (
@@ -37,149 +35,6 @@ var (
 	// ErrClientNotFound is returned when client for tunnel channel could not be found
 	ErrClientNotFound = errors.New("client not found")
 )
-
-// node is network node
-type node struct {
-	sync.RWMutex
-	// id is node id
-	id string
-	// address is node address
-	address string
-	// neighbours maps the node neighbourhood
-	neighbours map[string]*node
-	// network returns the node network
-	network Network
-	// lastSeen stores the time the node has been seen last time
-	lastSeen time.Time
-}
-
-// Id is node ide
-func (n *node) Id() string {
-	return n.id
-}
-
-// Address returns node address
-func (n *node) Address() string {
-	return n.address
-}
-
-// Network returns node network
-func (n *node) Network() Network {
-	return n.network
-}
-
-// Neighbourhood returns node neighbourhood
-func (n *node) Neighbourhood() []Node {
-	var nodes []Node
-	n.RLock()
-	for _, neighbourNode := range n.neighbours {
-		// make a copy of the node
-		n := &node{
-			id:      neighbourNode.id,
-			address: neighbourNode.address,
-			network: neighbourNode.network,
-		}
-		// NOTE: we do not care about neighbour's neighbours
-		nodes = append(nodes, n)
-	}
-	n.RUnlock()
-
-	return nodes
-}
-
-// getNeighbours collects node neighbours up to given depth into pbNeighbours
-// NOTE: this method is not thread safe, so make sure you serialize access to it
-// NOTE: we should be able to read-Lock this, even though it's recursive
-// TODO: we should rework this so it returns pbNeighbours along with error
-func (n *node) getNeighbours(pbNeighbours *pbNet.Neighbour, depth int) error {
-	if pbNeighbours == nil {
-		return errors.New("neighbours not initialized")
-	}
-
-	// return if have either reached the depth or have no more neighbours
-	if depth == 0 || len(n.neighbours) == 0 {
-		return nil
-	}
-
-	// decrement the depth
-	depth--
-
-	var neighbours []*pbNet.Neighbour
-	for _, neighbour := range n.neighbours {
-		// node
-		node := &pbNet.Node{
-			Id:      neighbour.id,
-			Address: neighbour.address,
-		}
-		// create new neighbour
-		pbNodeNeighbour := &pbNet.Neighbour{
-			Node:       node,
-			Neighbours: make([]*pbNet.Neighbour, 0),
-		}
-		// get neighbours of the neighbour
-		// NOTE: this is [not] a recursive call
-		if err := neighbour.getNeighbours(pbNodeNeighbour, depth); err != nil {
-			return err
-		}
-		// add current neighbour to explored neighbours
-		neighbours = append(neighbours, pbNodeNeighbour)
-	}
-
-	// add neighbours to the parent topology
-	pbNeighbours.Neighbours = neighbours
-
-	return nil
-}
-
-// unpackNeighbour unpacks pbNet.Neighbour into node of given depth
-func unpackNeighbour(pbNeighbour *pbNet.Neighbour, depth int) (*node, error) {
-	if pbNeighbour == nil {
-		return nil, errors.New("neighbour not initialized")
-	}
-
-	neighbourNode := &node{
-		id:         pbNeighbour.Node.Id,
-		address:    pbNeighbour.Node.Address,
-		neighbours: make(map[string]*node),
-	}
-
-	// return if have either reached the depth or have no more neighbours
-	if depth == 0 || len(pbNeighbour.Neighbours) == 0 {
-		return neighbourNode, nil
-	}
-
-	// decrement the depth
-	depth--
-
-	neighbours := make(map[string]*node)
-	for _, pbNode := range pbNeighbour.Neighbours {
-		node, err := unpackNeighbour(pbNode, depth)
-		if err != nil {
-			return nil, err
-		}
-		neighbours[pbNode.Node.Id] = node
-	}
-
-	neighbourNode.neighbours = neighbours
-
-	return neighbourNode, nil
-}
-
-// updateNeighbour updates node neighbour up to given depth
-func (n *node) updateNeighbour(neighbour *pbNet.Neighbour, depth int) error {
-	// unpack neighbour into topology of size MaxDepth-1
-	// NOTE: we need MaxDepth-1 because node n is the parent adding which
-	// gives us the max neighbour topology we maintain and propagate
-	node, err := unpackNeighbour(neighbour, MaxDepth-1)
-	if err != nil {
-		return err
-	}
-
-	// update node neighbours with new topology
-	n.neighbours[neighbour.Node.Id] = node
-
-	return nil
-}
 
 // network implements Network interface
 type network struct {
@@ -520,21 +375,13 @@ func (n *network) sendMsg(msgType string, channel string) error {
 		}
 	case "neighbour":
 		n.RLock()
-		node := &pbNet.Node{
-			Id:      n.node.id,
-			Address: n.node.address,
-		}
-		nodeNeighbour := &pbNet.Neighbour{
-			Node:       node,
-			Neighbours: make([]*pbNet.Neighbour, 0),
-		}
-		// get all the neighbours down to MaxNeighbourDepth
-		if err := n.node.getNeighbours(nodeNeighbour, MaxDepth); err != nil {
+		var err error
+		// get all the neighbours down to MaxDepth
+		protoMsg, err = n.node.getNeighbours(MaxDepth)
+		if err != nil {
 			log.Debugf("Network unable to retrieve node neighbours: %s", err)
 			return err
 		}
-		// set protoMsg for serialization
-		protoMsg = nodeNeighbour
 		n.RUnlock()
 	default:
 		return ErrMsgUnknown
