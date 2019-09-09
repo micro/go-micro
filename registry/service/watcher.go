@@ -26,7 +26,7 @@ func (s *serviceWatcher) Next() (*registry.Result, error) {
 
 		return &registry.Result{
 			Action:  r.Action,
-			Service: toService(r.Service),
+			Service: ToService(r.Service),
 		}, nil
 	}
 }

@@ -37,7 +37,7 @@ func toValues(v []*pb.Value) []*registry.Value {
 	return vs
 }
 
-func toProto(s *registry.Service) *pb.Service {
+func ToProto(s *registry.Service) *pb.Service {
 	var endpoints []*pb.Endpoint
 	for _, ep := range s.Endpoints {
 		var request, response *pb.Value
@@ -85,7 +85,7 @@ func toProto(s *registry.Service) *pb.Service {
 	}
 }
 
-func toService(s *pb.Service) *registry.Service {
+func ToService(s *pb.Service) *registry.Service {
 	var endpoints []*registry.Endpoint
 	for _, ep := range s.Endpoints {
 		var request, response *registry.Value

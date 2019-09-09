@@ -59,7 +59,7 @@ func (s *serviceRegistry) Register(srv *registry.Service, opts ...registry.Regis
 	}
 
 	// register the service
-	_, err := s.client.Register(context.TODO(), toProto(srv), s.callOpts()...)
+	_, err := s.client.Register(context.TODO(), ToProto(srv), s.callOpts()...)
 	if err != nil {
 		return err
 	}
@@ -69,7 +69,7 @@ func (s *serviceRegistry) Register(srv *registry.Service, opts ...registry.Regis
 
 func (s *serviceRegistry) Deregister(srv *registry.Service) error {
 	// deregister the service
-	_, err := s.client.Deregister(context.TODO(), toProto(srv), s.callOpts()...)
+	_, err := s.client.Deregister(context.TODO(), ToProto(srv), s.callOpts()...)
 	if err != nil {
 		return err
 	}
@@ -87,7 +87,7 @@ func (s *serviceRegistry) GetService(name string) ([]*registry.Service, error) {
 
 	var services []*registry.Service
 	for _, service := range rsp.Services {
-		services = append(services, toService(service))
+		services = append(services, ToService(service))
 	}
 	return services, nil
 }
@@ -100,7 +100,7 @@ func (s *serviceRegistry) ListServices() ([]*registry.Service, error) {
 
 	var services []*registry.Service
 	for _, service := range rsp.Services {
-		services = append(services, toService(service))
+		services = append(services, ToService(service))
 	}
 
 	return services, nil
