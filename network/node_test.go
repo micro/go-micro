@@ -1,6 +1,8 @@
 package network
 
-import "testing"
+import (
+	"testing"
+)
 
 var (
 	testNodeId        = "testNode"
@@ -150,7 +152,7 @@ func TestPeers(t *testing.T) {
 	// iterate through the list of peers and makes sure all have been returned
 	for _, peer := range peers {
 		if _, ok := peerIds[peer.Id()]; !ok {
-			t.Errorf("Expected to find %s peer", node.Id())
+			t.Errorf("Expected to find %s peer", peer.Id())
 		}
 	}
 }
@@ -168,7 +170,47 @@ func TestTopology(t *testing.T) {
 	// you should not be in your topology
 	topCount := 0
 
-	if len(topology) != topCount {
-		t.Errorf("Expected to find %d nodes, found: %d", topCount, len(topology))
+	if len(topology.peers) != topCount {
+		t.Errorf("Expected to find %d nodes, found: %d", topCount, len(topology.peers))
+	}
+
+	// complicated node graph
+	node := testSetup()
+	// list of ids of nodes of depth 1 i.e. node peers
+	peerIds := make(map[string]bool)
+	// add peer Ids
+	for _, id := range testNodePeerIds {
+		peerIds[id] = true
+	}
+	topology = node.Topology(1)
+
+	// depth 1 should return only immediate peers
+	if len(topology.peers) != len(peerIds) {
+		t.Errorf("Expected to find %d nodes, found: %d", len(peerIds), len(topology.peers))
+	}
+	for id := range topology.peers {
+		if _, ok := peerIds[id]; !ok {
+			t.Errorf("Expected to find %s peer", id)
+		}
+	}
+
+	// add peers of peers to peerIds
+	for _, id := range testPeerOfPeerIds {
+		peerIds[id] = true
+	}
+	topology = node.Topology(2)
+
+	// iterate through the whole graph
+	// NOTE: this is a manual iteration as we know the size of the graph
+	for id, peer := range topology.peers {
+		if _, ok := peerIds[id]; !ok {
+			t.Errorf("Expected to find %s peer", peer.Id())
+		}
+		// peers of peers
+		for id := range peer.peers {
+			if _, ok := peerIds[id]; !ok {
+				t.Errorf("Expected to find %s peer", peer.Id())
+			}
+		}
 	}
 }

@@ -36,13 +36,11 @@ message PeerResponse {
 message TopologyRequest {
         // node id
         string id = 1;
-        // topology depth
-        uint64 depth = 2;
 }
 
 // TopologyResponse is returned by Topology
 message TopologyResponse {
-        Topology topology = 1;
+        Peer topology = 1;
 }
 
 // Node is network node
@@ -51,14 +49,6 @@ message Node {
         string id = 1;
         // node address
         string address = 2;
-}
-
-// Topology is used to nnounce node neighbourhood
-message Topology {
-        // network node
-        Node node = 1;
-        // neighbours
-        repeated Node nodes = 2;
 }
 
 // Connect is sent when the node connects to the network

@@ -3,7 +3,6 @@ package network
 import (
 	"container/list"
 	"errors"
-	"sort"
 	"sync"
 	"time"
 
@@ -96,10 +95,13 @@ func (n *node) Peers() []Node {
 		p := &node{
 			id:      peer.id,
 			address: peer.address,
+			peers:   make(map[string]*node),
 			network: peer.network,
 		}
-		// NOTE: we do not care about peer's peers
-		// we only collect the node's peers i.e. its adjacent nodes
+		// collect peer's peers aka pop (peer of peer)
+		for id, pop := range peer.peers {
+			p.peers[id] = pop
+		}
 		peers = append(peers, p)
 	}
 	n.RUnlock()
@@ -107,36 +109,31 @@ func (n *node) Peers() []Node {
 	return peers
 }
 
-// Topology returns a slice of all nodes in reachable by node up to given depth
-func (n *node) Topology(depth uint) []Node {
-	// get all the nodes
-	nodes := n.Nodes()
-
+// topology returns network topology up to MaxDepth
+func (n *node) Topology(depth uint) *node {
 	n.RLock()
-	// sort the slice of nodes
-	sort.Slice(nodes, func(i, j int) bool { return nodes[i].Id() <= nodes[j].Id() })
-	// find the node with our id
-	i := sort.Search(len(nodes), func(j int) bool { return nodes[j].Id() >= n.id })
+	// make a copy of yourself
+	node := &node{
+		id:      n.id,
+		address: n.address,
+		peers:   make(map[string]*node),
+		network: n.network,
+	}
 
-	// TODO: finish implementing this
-	var topology []Node
-	// collect all the reachable nodes into slice
-	if i < len(nodes) && nodes[i].Id() == n.id {
-		for _, peer := range nodes[i].Peers() {
-			// don't return yourself
-			if peer.Id() == n.id {
-				continue
-			}
-			topNode := &node{
-				id:      peer.Id(),
-				address: peer.Address(),
-			}
-			topology = append(topology, topNode)
-		}
+	// return if we reach requested depth or we have no more peers
+	if depth == 0 || len(n.peers) == 0 {
+		return node
+	}
+
+	depth--
+
+	for _, peer := range n.peers {
+		nodePeer := peer.Topology(depth)
+		node.peers[nodePeer.id] = nodePeer
 	}
 	n.RUnlock()
 
-	return topology
+	return node
 }
 
 // getProtoTopology returns node peers up to given depth encoded in protobufs

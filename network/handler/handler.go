@@ -51,37 +51,46 @@ func (n *Network) ListPeers(ctx context.Context, req *pbNet.PeerRequest, resp *p
 	return nil
 }
 
-// Topology returns a list of nodes in node topology i.e. it returns all (in)directly reachable nodes from this node
-func (n *Network) Topology(ctx context.Context, req *pbNet.TopologyRequest, resp *pbNet.TopologyResponse) error {
-	// NOTE: we are downcasting here
-	depth := uint(req.Depth)
-	if depth <= 0 {
-		depth = network.MaxDepth
+// toplogyToProto recursively traverses node topology and returns it
+func toplogyToProto(node network.Node, pbPeer *pbNet.Peer) *pbNet.Peer {
+	// return if we reached the end of topology
+	if len(node.Peers()) == 0 {
+		return pbPeer
 	}
 
-	// get topology
-	topNodes := n.Network.Topology(depth)
-
-	var nodes []*pbNet.Node
-	for _, topNode := range topNodes {
-		// creaate peers answer
+	for _, topNode := range node.Peers() {
 		pbNode := &pbNet.Node{
 			Id:      topNode.Id(),
 			Address: topNode.Address(),
 		}
-		nodes = append(nodes, pbNode)
+		pbPeer := &pbNet.Peer{
+			Node:  pbNode,
+			Peers: make([]*pbNet.Peer, 0),
+		}
+		peer := toplogyToProto(topNode, pbPeer)
+		pbPeer.Peers = append(pbPeer.Peers, peer)
 	}
 
-	// network node
+	return pbPeer
+}
+
+// Topology returns a list of nodes in node topology i.e. it returns all (in)directly reachable nodes from this node
+func (n *Network) Topology(ctx context.Context, req *pbNet.TopologyRequest, resp *pbNet.TopologyResponse) error {
+	// get node topology
+	topNode := n.Network.Topology()
+
+	// network node aka root node
 	node := &pbNet.Node{
 		Id:      n.Network.Id(),
 		Address: n.Network.Address(),
 	}
-
-	topology := &pbNet.Topology{
+	// we will build proto topology into this
+	pbPeer := &pbNet.Peer{
 		Node:  node,
-		Nodes: nodes,
+		Peers: make([]*pbNet.Peer, 0),
 	}
+	// return topology encoded into protobuf
+	topology := toplogyToProto(topNode, pbPeer)
 
 	resp.Topology = topology
 

@@ -838,6 +838,16 @@ func (n *network) Connect() error {
 	return nil
 }
 
+// Nodes returns a list of all network nodes
+func (n *network) Nodes() []Node {
+	return n.node.Nodes()
+}
+
+// Topology returns network topology
+func (n *network) Topology() Node {
+	return n.node.Topology(MaxDepth)
+}
+
 func (n *network) close() error {
 	// stop the server
 	if err := n.server.Stop(); err != nil {
