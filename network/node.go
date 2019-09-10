@@ -46,15 +46,15 @@ func (n *node) Network() Network {
 
 // Nodes returns a slice if all nodes in node topology
 func (n *node) Nodes() []Node {
-	//track the visited nodes
-	visited := make(map[string]*node)
-	// queue of the nodes to visit
-	queue := list.New()
-
 	// we need to freeze the network graph here
 	// otherwise we might get invalid results
 	n.RLock()
 	defer n.RUnlock()
+
+	//track the visited nodes
+	visited := make(map[string]*node)
+	// queue of the nodes to visit
+	queue := list.New()
 
 	// push node to the back of queue
 	queue.PushBack(n)

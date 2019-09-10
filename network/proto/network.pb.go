@@ -53,8 +53,9 @@ func (m *ListRequest) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_ListRequest proto.InternalMessageInfo
 
-// ListResponse is returned by ListNodes and ListNeighbours
+// ListResponse is returned by ListNodes
 type ListResponse struct {
+	// network nodes
 	Nodes                []*Node  `protobuf:"bytes,1,rep,name=nodes,proto3" json:"nodes,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
@@ -93,8 +94,9 @@ func (m *ListResponse) GetNodes() []*Node {
 	return nil
 }
 
-// PeerRequest is sent to query node peers
+// PeerRequest requests list of peers
 type PeerRequest struct {
+	// node id
 	Id                   string   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
@@ -133,7 +135,7 @@ func (m *PeerRequest) GetId() string {
 	return ""
 }
 
-// PeerResponse returns node neighbourhood
+// PeerResponse is returned by ListPeers
 type PeerResponse struct {
 	Peers                *Peers   `protobuf:"bytes,1,opt,name=peers,proto3" json:"peers,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
@@ -173,8 +175,11 @@ func (m *PeerResponse) GetPeers() *Peers {
 	return nil
 }
 
+// Peers are node peers
 type Peers struct {
-	Node                 *Node    `protobuf:"bytes,1,opt,name=node,proto3" json:"node,omitempty"`
+	// network node
+	Node *Node `protobuf:"bytes,1,opt,name=node,proto3" json:"node,omitempty"`
+	// node peers
 	Peers                []*Node  `protobuf:"bytes,2,rep,name=peers,proto3" json:"peers,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
@@ -222,7 +227,7 @@ func (m *Peers) GetPeers() []*Node {
 
 // Node is network node
 type Node struct {
-	// node ide
+	// node id
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	// node address
 	Address              string   `protobuf:"bytes,2,opt,name=address,proto3" json:"address,omitempty"`
@@ -352,7 +357,7 @@ func (m *Close) GetNode() *Node {
 	return nil
 }
 
-// Solicit is sent when requesting route advertisement from the network nodes
+// Solicit is sent when soliciting routes from the network nodes
 type Solicit struct {
 	// network node
 	Node                 *Node    `protobuf:"bytes,1,opt,name=node,proto3" json:"node,omitempty"`
@@ -393,11 +398,11 @@ func (m *Solicit) GetNode() *Node {
 	return nil
 }
 
-// Peer is used to announce node peers
+// Peer is used to advertise node peers
 type Peer struct {
 	// network node
 	Node *Node `protobuf:"bytes,1,opt,name=node,proto3" json:"node,omitempty"`
-	// neighbours
+	// node peers
 	Peers                []*Peer  `protobuf:"bytes,2,rep,name=peers,proto3" json:"peers,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`

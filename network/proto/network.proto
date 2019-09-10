@@ -14,29 +14,34 @@ service Network {
 // Empty request
 message ListRequest {}
 
-// ListResponse is returned by ListNodes and ListNeighbours
+// ListResponse is returned by ListNodes
 message ListResponse {
+        // network nodes
 	repeated Node nodes = 1;
 }
 
-// PeerRequest is sent to query node peers
+// PeerRequest requests list of peers
 message PeerRequest {
+        // node id
         string id = 1;
 }
 
-// PeerResponse returns node neighbourhood
+// PeerResponse is returned by ListPeers
 message PeerResponse {
         Peers peers = 1;
 }
 
+// Peers are node peers
 message Peers {
+        // network node
         Node node = 1;
+        // node peers
         repeated Node peers = 2;
 }
 
 // Node is network node
 message Node {
-        // node ide
+        // node id
         string id = 1;
         // node address
         string address = 2;
@@ -54,16 +59,16 @@ message Close {
         Node node = 1;
 }
 
-// Solicit is sent when requesting route advertisement from the network nodes
+// Solicit is sent when soliciting routes from the network nodes
 message Solicit {
         // network node
         Node node = 1;
 }
 
-// Peer is used to announce node peers
+// Peer is used to advertise node peers
 message Peer {
         // network node
         Node node = 1;
-        // neighbours
+        // node peers
         repeated Peer peers = 2;
 }
