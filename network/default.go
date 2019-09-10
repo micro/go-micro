@@ -586,7 +586,7 @@ func (n *network) processCtrlChan(client transport.Client, listener tunnel.Liste
 					continue
 				}
 				// loookup advertising node in our peers
-				n.RLock()
+				n.Lock()
 				log.Debugf("Network received advert message from: %s", pbRtrAdvert.Id)
 				advertNode, ok := n.peers[pbRtrAdvert.Id]
 				if !ok {
@@ -603,7 +603,7 @@ func (n *network) processCtrlChan(client transport.Client, listener tunnel.Liste
 						log.Debugf("Network failed to send solicit message: %s", err)
 					}
 				}
-				n.RUnlock()
+				n.Unlock()
 
 				var events []*router.Event
 				for _, event := range pbRtrAdvert.Events {
