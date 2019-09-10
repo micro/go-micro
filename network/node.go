@@ -1,6 +1,7 @@
 package network
 
 import (
+	"container/list"
 	"errors"
 	"sync"
 	"time"
@@ -20,11 +21,11 @@ type node struct {
 	id string
 	// address is node address
 	address string
-	// neighbours maps the node neighbourhood
-	neighbours map[string]*node
+	// peers are nodes with direct link to this node
+	peers map[string]*node
 	// network returns the node network
 	network Network
-	// lastSeen stores the time the node has been seen last time
+	// lastSeen keeps track of node lifetime and updates
 	lastSeen time.Time
 }
 
@@ -43,112 +44,147 @@ func (n *node) Network() Network {
 	return n.network
 }
 
-// Neighbourhood returns node neighbourhood
-func (n *node) Neighbourhood() []Node {
-	var nodes []Node
+// Nodes returns a slice if all nodes in node topology
+func (n *node) Nodes() []Node {
+	//track the visited nodes
+	visited := make(map[string]*node)
+	// queue of the nodes to visit
+	queue := list.New()
+
+	// we need to freeze the network graph here
+	// otherwise we might get invalid results
 	n.RLock()
-	for _, neighbourNode := range n.neighbours {
-		// make a copy of the node
-		n := &node{
-			id:      neighbourNode.id,
-			address: neighbourNode.address,
-			network: neighbourNode.network,
+	defer n.RUnlock()
+
+	// push node to the back of queue
+	queue.PushBack(n)
+	// mark the node as visited
+	visited[n.id] = n
+
+	// keep iterating over the queue until its empty
+	for queue.Len() > 0 {
+		// pop the node from the front of the queue
+		qnode := queue.Front()
+		// iterate through all of the node peers
+		// mark the visited nodes; enqueue the non-visted
+		for id, node := range qnode.Value.(*node).peers {
+			if _, ok := visited[id]; !ok {
+				visited[id] = node
+				queue.PushBack(node)
+			}
 		}
-		// NOTE: we do not care about neighbour's neighbours
-		nodes = append(nodes, n)
+		// remove the node from the queue
+		queue.Remove(qnode)
 	}
-	n.RUnlock()
+
+	var nodes []Node
+	// collect all the nodes and return them
+	for _, node := range visited {
+		nodes = append(nodes, node)
+	}
 
 	return nodes
 }
 
-// getNeighbours collects node neighbours up to given depth into pbNeighbours
-// NOTE: this method is not thread safe, so make sure you serialize access to it
-// NOTE: we should be able to read-Lock this, even though it's recursive
-func (n *node) getNeighbours(depth int) (*pbNet.Neighbour, error) {
+// Peers returns node peers
+func (n *node) Peers() []Node {
+	var peers []Node
+	n.RLock()
+	for _, peer := range n.peers {
+		// make a copy of the node
+		p := &node{
+			id:      peer.id,
+			address: peer.address,
+			network: peer.network,
+		}
+		// NOTE: we do not care about peer's peers
+		peers = append(peers, p)
+	}
+	n.RUnlock()
+
+	return peers
+}
+
+// getProtoTopology returns node peers up to given depth encoded in protobufs
+// NOTE: this method is NOT thread-safe, so make sure you serialize access to it
+func (n *node) getProtoTopology(depth int) (*pbNet.Peer, error) {
 	node := &pbNet.Node{
 		Id:      n.id,
 		Address: n.address,
 	}
-	pbNeighbours := &pbNet.Neighbour{
-		Node:       node,
-		Neighbours: make([]*pbNet.Neighbour, 0),
+
+	pbPeers := &pbNet.Peer{
+		Node:  node,
+		Peers: make([]*pbNet.Peer, 0),
 	}
 
-	// return if have either reached the depth or have no more neighbours
-	if depth == 0 || len(n.neighbours) == 0 {
-		return pbNeighbours, nil
+	// return if have either reached the depth or have no more peers
+	if depth == 0 || len(n.peers) == 0 {
+		return pbPeers, nil
 	}
 
 	// decrement the depth
 	depth--
 
-	var neighbours []*pbNet.Neighbour
-	for _, neighbour := range n.neighbours {
-		// get neighbours of the neighbour
+	var peers []*pbNet.Peer
+	for _, peer := range n.peers {
+		// get peers of the node peers
 		// NOTE: this is [not] a recursive call
-		pbNodeNeighbour, err := neighbour.getNeighbours(depth)
+		pbPeerPeer, err := peer.getProtoTopology(depth)
 		if err != nil {
 			return nil, err
 		}
-		// add current neighbour to explored neighbours
-		neighbours = append(neighbours, pbNodeNeighbour)
+		// add current peer to explored peers
+		peers = append(peers, pbPeerPeer)
 	}
 
-	// add neighbours to the parent topology
-	pbNeighbours.Neighbours = neighbours
+	// add peers to the parent topology
+	pbPeers.Peers = peers
 
-	return pbNeighbours, nil
+	return pbPeers, nil
 }
 
-// unpackNeighbour unpacks pbNet.Neighbour into node of given depth
-// NOTE: this method is not thread safe, so make sure you serialize access to it
-func unpackNeighbour(pbNeighbour *pbNet.Neighbour, depth int) (*node, error) {
-	if pbNeighbour == nil {
-		return nil, errors.New("neighbour not initialized")
+// unpackPeer unpacks pbNet.Peer into node topology of given depth
+// NOTE: this method is NOT thread-safe, so make sure you serialize access to it
+func unpackPeer(pbPeer *pbNet.Peer, depth int) *node {
+	peerNode := &node{
+		id:      pbPeer.Node.Id,
+		address: pbPeer.Node.Address,
+		peers:   make(map[string]*node),
 	}
 
-	neighbourNode := &node{
-		id:         pbNeighbour.Node.Id,
-		address:    pbNeighbour.Node.Address,
-		neighbours: make(map[string]*node),
-	}
-
-	// return if have either reached the depth or have no more neighbours
-	if depth == 0 || len(pbNeighbour.Neighbours) == 0 {
-		return neighbourNode, nil
+	// return if have either reached the depth or have no more peers
+	if depth == 0 || len(pbPeer.Peers) == 0 {
+		return peerNode
 	}
 
 	// decrement the depth
 	depth--
 
-	neighbours := make(map[string]*node)
-	for _, pbNode := range pbNeighbour.Neighbours {
-		node, err := unpackNeighbour(pbNode, depth)
-		if err != nil {
-			return nil, err
-		}
-		neighbours[pbNode.Node.Id] = node
+	peers := make(map[string]*node)
+	for _, pbPeer := range pbPeer.Peers {
+		peer := unpackPeer(pbPeer, depth)
+		peers[pbPeer.Node.Id] = peer
 	}
 
-	neighbourNode.neighbours = neighbours
+	peerNode.peers = peers
 
-	return neighbourNode, nil
+	return peerNode
 }
 
-// updateNeighbour updates node neighbour up to given depth
+// updatePeer updates node peer up to given depth
 // NOTE: this method is not thread safe, so make sure you serialize access to it
-func (n *node) updateNeighbour(neighbour *pbNet.Neighbour, depth int) error {
-	// unpack neighbour into topology of size MaxDepth-1
-	// NOTE: we need MaxDepth-1 because node n is the parent adding which
-	// gives us the max neighbour topology we maintain and propagate
-	node, err := unpackNeighbour(neighbour, MaxDepth-1)
-	if err != nil {
-		return err
+func (n *node) updatePeerTopology(pbPeer *pbNet.Peer, depth int) error {
+	if pbPeer == nil {
+		return errors.New("peer not initialized")
 	}
 
-	// update node neighbours with new topology
-	n.neighbours[neighbour.Node.Id] = node
+	// NOTE: we need MaxDepth-1 because node n is the parent adding which
+	// gives us the max peer topology we maintain and propagate
+	peer := unpackPeer(pbPeer, MaxDepth-1)
+
+	// update node peers with new topology
+	n.peers[pbPeer.Node.Id] = peer
 
 	return nil
 }
