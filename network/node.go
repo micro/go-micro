@@ -3,15 +3,16 @@ package network
 import (
 	"container/list"
 	"errors"
+	"sort"
 	"sync"
 	"time"
 
-	pbNet "github.com/micro/go-micro/network/proto"
+	pb "github.com/micro/go-micro/network/proto"
 )
 
 var (
 	// MaxDepth defines max depth of peer topology
-	MaxDepth = 3
+	MaxDepth uint = 3
 )
 
 // node is network node
@@ -98,6 +99,7 @@ func (n *node) Peers() []Node {
 			network: peer.network,
 		}
 		// NOTE: we do not care about peer's peers
+		// we only collect the node's peers i.e. its adjacent nodes
 		peers = append(peers, p)
 	}
 	n.RUnlock()
@@ -105,17 +107,49 @@ func (n *node) Peers() []Node {
 	return peers
 }
 
+// Topology returns a slice of all nodes in reachable by node up to given depth
+func (n *node) Topology(depth uint) []Node {
+	// get all the nodes
+	nodes := n.Nodes()
+
+	n.RLock()
+	// sort the slice of nodes
+	sort.Slice(nodes, func(i, j int) bool { return nodes[i].Id() <= nodes[j].Id() })
+	// find the node with our id
+	i := sort.Search(len(nodes), func(j int) bool { return nodes[j].Id() >= n.id })
+
+	// TODO: finish implementing this
+	var topology []Node
+	// collect all the reachable nodes into slice
+	if i < len(nodes) && nodes[i].Id() == n.id {
+		for _, peer := range nodes[i].Peers() {
+			// don't return yourself
+			if peer.Id() == n.id {
+				continue
+			}
+			topNode := &node{
+				id:      peer.Id(),
+				address: peer.Address(),
+			}
+			topology = append(topology, topNode)
+		}
+	}
+	n.RUnlock()
+
+	return topology
+}
+
 // getProtoTopology returns node peers up to given depth encoded in protobufs
 // NOTE: this method is NOT thread-safe, so make sure you serialize access to it
-func (n *node) getProtoTopology(depth int) (*pbNet.Peer, error) {
-	node := &pbNet.Node{
+func (n *node) getProtoTopology(depth uint) (*pb.Peer, error) {
+	node := &pb.Node{
 		Id:      n.id,
 		Address: n.address,
 	}
 
-	pbPeers := &pbNet.Peer{
+	pbPeers := &pb.Peer{
 		Node:  node,
-		Peers: make([]*pbNet.Peer, 0),
+		Peers: make([]*pb.Peer, 0),
 	}
 
 	// return if have either reached the depth or have no more peers
@@ -126,7 +160,7 @@ func (n *node) getProtoTopology(depth int) (*pbNet.Peer, error) {
 	// decrement the depth
 	depth--
 
-	var peers []*pbNet.Peer
+	var peers []*pb.Peer
 	for _, peer := range n.peers {
 		// get peers of the node peers
 		// NOTE: this is [not] a recursive call
@@ -144,9 +178,9 @@ func (n *node) getProtoTopology(depth int) (*pbNet.Peer, error) {
 	return pbPeers, nil
 }
 
-// unpackPeer unpacks pbNet.Peer into node topology of given depth
+// unpackPeer unpacks pb.Peer into node topology of given depth
 // NOTE: this method is NOT thread-safe, so make sure you serialize access to it
-func unpackPeer(pbPeer *pbNet.Peer, depth int) *node {
+func unpackPeer(pbPeer *pb.Peer, depth uint) *node {
 	peerNode := &node{
 		id:      pbPeer.Node.Id,
 		address: pbPeer.Node.Address,
@@ -174,7 +208,7 @@ func unpackPeer(pbPeer *pbNet.Peer, depth int) *node {
 
 // updatePeer updates node peer up to given depth
 // NOTE: this method is not thread safe, so make sure you serialize access to it
-func (n *node) updatePeerTopology(pbPeer *pbNet.Peer, depth int) error {
+func (n *node) updatePeerTopology(pbPeer *pb.Peer, depth uint) error {
 	if pbPeer == nil {
 		return errors.New("peer not initialized")
 	}

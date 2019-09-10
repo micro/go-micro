@@ -46,6 +46,8 @@ type Network interface {
 	Connect() error
 	// Nodes returns list of network nodes
 	Nodes() []Node
+	// Topology returns a list of all reachable nodes up to depth
+	Topology(depth uint) []Node
 	// Close stops the tunnel and resolving
 	Close() error
 	// Client is micro client

@@ -3,7 +3,6 @@ package handler
 
 import (
 	"context"
-	"sort"
 
 	"github.com/micro/go-micro/errors"
 	"github.com/micro/go-micro/network"
@@ -18,68 +17,73 @@ type Network struct {
 
 // ListNodes returns a list of all accessible nodes in the network
 func (n *Network) ListNodes(ctx context.Context, req *pbNet.ListRequest, resp *pbNet.ListResponse) error {
-	nodes := n.Network.Nodes()
+	networkNodes := n.Network.Nodes()
 
-	var respNodes []*pbNet.Node
-	for _, node := range nodes {
-		respNode := &pbNet.Node{
-			Id:      node.Id(),
-			Address: node.Address(),
+	var nodes []*pbNet.Node
+	for _, networkNode := range networkNodes {
+		node := &pbNet.Node{
+			Id:      networkNode.Id(),
+			Address: networkNode.Address(),
 		}
-		respNodes = append(respNodes, respNode)
+		nodes = append(nodes, node)
 	}
 
-	resp.Nodes = respNodes
+	resp.Nodes = nodes
 
 	return nil
 }
 
 // ListPeers returns a list of all the nodes the node has a direct link with
 func (n *Network) ListPeers(ctx context.Context, req *pbNet.PeerRequest, resp *pbNet.PeerResponse) error {
-	// extract the id of the node to query
-	id := req.Id
-	// if no id is passed, we assume local node
-	if id == "" {
-		id = n.Network.Id()
-	}
+	nodePeers := n.Network.Peers()
 
-	// get all the nodes in the network
-	nodes := n.Network.Nodes()
-
-	// sort the slice of nodes
-	sort.Slice(nodes, func(i, j int) bool { return nodes[i].Id() <= nodes[j].Id() })
-	// find a node with a given id
-	i := sort.Search(len(nodes), func(j int) bool { return nodes[j].Id() >= id })
-
-	var nodePeers []*pbNet.Node
-	// collect all the node peers into slice
-	if i < len(nodes) && nodes[i].Id() == id {
-		for _, peer := range nodes[i].Peers() {
-			// don't return yourself in response
-			if peer.Id() == n.Network.Id() {
-				continue
-			}
-			pbPeer := &pbNet.Node{
-				Id:      peer.Id(),
-				Address: peer.Address(),
-			}
-			nodePeers = append(nodePeers, pbPeer)
+	var peers []*pbNet.Node
+	for _, nodePeer := range nodePeers {
+		peer := &pbNet.Node{
+			Id:      nodePeer.Id(),
+			Address: nodePeer.Address(),
 		}
-	}
-
-	// requested node
-	node := &pbNet.Node{
-		Id:      nodes[i].Id(),
-		Address: nodes[i].Address(),
-	}
-
-	// creaate peers answer
-	peers := &pbNet.Peers{
-		Node:  node,
-		Peers: nodePeers,
+		peers = append(peers, peer)
 	}
 
 	resp.Peers = peers
+
+	return nil
+}
+
+// Topology returns a list of nodes in node topology i.e. it returns all (in)directly reachable nodes from this node
+func (n *Network) Topology(ctx context.Context, req *pbNet.TopologyRequest, resp *pbNet.TopologyResponse) error {
+	// NOTE: we are downcasting here
+	depth := uint(req.Depth)
+	if depth <= 0 {
+		depth = network.MaxDepth
+	}
+
+	// get topology
+	topNodes := n.Network.Topology(depth)
+
+	var nodes []*pbNet.Node
+	for _, topNode := range topNodes {
+		// creaate peers answer
+		pbNode := &pbNet.Node{
+			Id:      topNode.Id(),
+			Address: topNode.Address(),
+		}
+		nodes = append(nodes, pbNode)
+	}
+
+	// network node
+	node := &pbNet.Node{
+		Id:      n.Network.Id(),
+		Address: n.Network.Address(),
+	}
+
+	topology := &pbNet.Topology{
+		Node:  node,
+		Nodes: nodes,
+	}
+
+	resp.Topology = topology
 
 	return nil
 }

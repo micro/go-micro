@@ -37,6 +37,7 @@ var _ server.Option
 type NetworkService interface {
 	ListNodes(ctx context.Context, in *ListRequest, opts ...client.CallOption) (*ListResponse, error)
 	ListPeers(ctx context.Context, in *PeerRequest, opts ...client.CallOption) (*PeerResponse, error)
+	Topology(ctx context.Context, in *TopologyRequest, opts ...client.CallOption) (*TopologyResponse, error)
 	ListRoutes(ctx context.Context, in *proto1.Request, opts ...client.CallOption) (*proto1.ListResponse, error)
 }
 
@@ -78,6 +79,16 @@ func (c *networkService) ListPeers(ctx context.Context, in *PeerRequest, opts ..
 	return out, nil
 }
 
+func (c *networkService) Topology(ctx context.Context, in *TopologyRequest, opts ...client.CallOption) (*TopologyResponse, error) {
+	req := c.c.NewRequest(c.name, "Network.Topology", in)
+	out := new(TopologyResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *networkService) ListRoutes(ctx context.Context, in *proto1.Request, opts ...client.CallOption) (*proto1.ListResponse, error) {
 	req := c.c.NewRequest(c.name, "Network.ListRoutes", in)
 	out := new(proto1.ListResponse)
@@ -93,6 +104,7 @@ func (c *networkService) ListRoutes(ctx context.Context, in *proto1.Request, opt
 type NetworkHandler interface {
 	ListNodes(context.Context, *ListRequest, *ListResponse) error
 	ListPeers(context.Context, *PeerRequest, *PeerResponse) error
+	Topology(context.Context, *TopologyRequest, *TopologyResponse) error
 	ListRoutes(context.Context, *proto1.Request, *proto1.ListResponse) error
 }
 
@@ -100,6 +112,7 @@ func RegisterNetworkHandler(s server.Server, hdlr NetworkHandler, opts ...server
 	type network interface {
 		ListNodes(ctx context.Context, in *ListRequest, out *ListResponse) error
 		ListPeers(ctx context.Context, in *PeerRequest, out *PeerResponse) error
+		Topology(ctx context.Context, in *TopologyRequest, out *TopologyResponse) error
 		ListRoutes(ctx context.Context, in *proto1.Request, out *proto1.ListResponse) error
 	}
 	type Network struct {
@@ -119,6 +132,10 @@ func (h *networkHandler) ListNodes(ctx context.Context, in *ListRequest, out *Li
 
 func (h *networkHandler) ListPeers(ctx context.Context, in *PeerRequest, out *PeerResponse) error {
 	return h.NetworkHandler.ListPeers(ctx, in, out)
+}
+
+func (h *networkHandler) Topology(ctx context.Context, in *TopologyRequest, out *TopologyResponse) error {
+	return h.NetworkHandler.Topology(ctx, in, out)
 }
 
 func (h *networkHandler) ListRoutes(ctx context.Context, in *proto1.Request, out *proto1.ListResponse) error {
