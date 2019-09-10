@@ -92,6 +92,11 @@ var (
 			EnvVar: "MICRO_CLIENT_POOL_TTL",
 			Usage:  "Sets the client connection pool ttl. e.g 500ms, 5s, 1m. Default: 1m",
 		},
+		cli.StringSliceFlag{
+			Name:   "plugin",
+			EnvVar: "MICRO_PLUGIN",
+			Usage:  "Comma separated list of plugins e.g /path/to/plugin.so",
+		},
 		cli.IntFlag{
 			Name:   "register_ttl",
 			EnvVar: "MICRO_REGISTER_TTL",

@@ -32,3 +32,15 @@ var (
 func NewPlugin() Plugin {
 	return &plugin{}
 }
+
+func Build(path string, c *Config) error {
+	return DefaultPlugin.Build(path, c)
+}
+
+func Load(path string) (*Config, error) {
+	return DefaultPlugin.Load(path)
+}
+
+func Init(c *Config) error {
+	return DefaultPlugin.Init(c)
+}

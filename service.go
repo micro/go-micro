@@ -3,6 +3,7 @@ package micro
 import (
 	"os"
 	"os/signal"
+	"strings"
 	"sync"
 	"syscall"
 
@@ -10,7 +11,9 @@ import (
 	"github.com/micro/go-micro/config/cmd"
 	"github.com/micro/go-micro/debug/handler"
 	"github.com/micro/go-micro/metadata"
+	"github.com/micro/go-micro/plugin"
 	"github.com/micro/go-micro/server"
+	"github.com/micro/go-micro/util/log"
 )
 
 type service struct {
@@ -44,6 +47,24 @@ func (s *service) Init(opts ...Option) {
 	}
 
 	s.once.Do(func() {
+		// setup the plugins
+		for _, p := range strings.Split(os.Getenv("MICRO_PLUGIN"), ",") {
+			if len(p) == 0 {
+				continue
+			}
+
+			// load the plugin
+			c, err := plugin.Load(p)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			// initialise the plugin
+			if err := plugin.Init(c); err != nil {
+				log.Fatal(err)
+			}
+		}
+
 		// Initialise the command flags, overriding new service
 		_ = s.opts.Cmd.Init(
 			cmd.Broker(&s.opts.Broker),
