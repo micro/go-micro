@@ -314,6 +314,7 @@ func (n *network) processNetChan(client transport.Client, listener tunnel.Listen
 					if err := n.sendMsg("solicit", ControlChannel); err != nil {
 						log.Debugf("Network failed to send solicit message: %s", err)
 					}
+					// after adding new peer go to the next step
 					continue
 				}
 				// NOTE: we don't update max topology depth as we dont include this network node
@@ -598,7 +599,7 @@ func (n *network) processCtrlChan(client transport.Client, listener tunnel.Liste
 					}
 					n.peers[pbRtrAdvert.Id] = advertNode
 					// send a solicit message when discovering a new node
-					if err := n.sendMsg("solicit", NetworkChannel); err != nil {
+					if err := n.sendMsg("solicit", ControlChannel); err != nil {
 						log.Debugf("Network failed to send solicit message: %s", err)
 					}
 				}
