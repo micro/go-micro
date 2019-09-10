@@ -62,8 +62,11 @@ func (p *plugin) Init(c *Config) error {
 			return fmt.Errorf("Invalid plugin %s", c.Name)
 		}
 		cmd.DefaultTransports[c.Name] = pg
+	default:
+		return fmt.Errorf("Unknown plugin type: %s for %s", c.Type, c.Name)
 	}
-	return fmt.Errorf("Unknown plugin type: %s for %s", c.Type, c.Name)
+
+	return nil
 }
 
 // Load loads a plugin created with `go build -buildmode=plugin`
