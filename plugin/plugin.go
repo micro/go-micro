@@ -23,6 +23,11 @@ type Config struct {
 	NewFunc interface{}
 }
 
+var (
+	// Default plugin loader
+	DefaultPlugin = NewPlugin()
+)
+
 // NewPlugin creates a new plugin interface
 func NewPlugin() Plugin {
 	return &plugin{}
