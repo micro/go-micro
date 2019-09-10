@@ -44,6 +44,6 @@ Load the source into config
 // Create new config
 conf := config.NewConfig()
 
-// Load file source
+// Load consul source
 conf.Load(consulSource)
 ```

@@ -8,8 +8,13 @@ import (
 	"github.com/micro/go-micro/transport"
 )
 
+var (
+	// ErrLinkClosed is returned when attempting i/o operation on the closed link
+	ErrLinkClosed = errors.New("link closed")
+)
+
 // Link is a layer on top of a transport socket with the
-// buffering send and recv queue's with the ability to
+// buffering send and recv queues with the ability to
 // measure the actual transport link and reconnect if
 // an address is specified.
 type Link interface {
@@ -27,10 +32,6 @@ type Link interface {
 	// Rate of the link
 	Length() int
 }
-
-var (
-	ErrLinkClosed = errors.New("link closed")
-)
 
 // NewLink creates a new link on top of a socket
 func NewLink(opts ...options.Option) Link {

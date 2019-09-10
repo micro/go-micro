@@ -1,0 +1,64 @@
+syntax = "proto3";
+
+package go.micro.network;
+
+import "github.com/micro/go-micro/router/proto/router.proto";
+
+// Network service is usesd to gain visibility into networks
+service Network {
+        rpc ListRoutes(go.micro.router.Request) returns (go.micro.router.ListResponse) {};
+        rpc ListNodes(ListRequest) returns (ListResponse) {};
+        rpc Neighbourhood(NeighbourhoodRequest) returns (NeighbourhoodResponse) {};
+}
+
+// Empty request
+message ListRequest {}
+
+// ListResponse is returned by ListNodes and ListNeighbours
+message ListResponse {
+	repeated Node nodes = 1;
+}
+
+// NeighbourhoodRequest is sent to query node neighbourhood
+message NeighbourhoodRequest {
+        string id = 1;
+}
+
+// NeighbourhoodResponse contains node neighbourhood hierarchy
+message NeighbourhoodResponse {
+        Neighbour neighbourhood = 1;
+}
+
+// Node is network node
+message Node {
+        // node ide
+        string id = 1;
+        // node address
+        string address = 2;
+}
+
+// Connect is sent when the node connects to the network
+message Connect {
+        // network mode
+        Node node = 1;
+}
+
+// Close is sent when the node disconnects from the network
+message Close {
+        // network node
+        Node node = 1;
+}
+
+// Solicit is sent when requesting route advertisement from the network nodes
+message Solicit {
+        // network node
+        Node node = 1;
+}
+
+// Neighbour is used to nnounce node neighbourhood
+message Neighbour {
+        // network node
+        Node node = 1;
+        // neighbours
+        repeated Node neighbours = 3;
+}

@@ -161,9 +161,6 @@ func (p *Proxy) manageRouteCache(route router.Route, action string) error {
 		}
 		p.Routes[route.Service][route.Hash()] = route
 	case "delete":
-		if _, ok := p.Routes[route.Service]; !ok {
-			return fmt.Errorf("route not found")
-		}
 		delete(p.Routes[route.Service], route.Hash())
 	default:
 		return fmt.Errorf("unknown action: %s", action)
@@ -218,6 +215,10 @@ func (p *Proxy) ServeRequest(ctx context.Context, req server.Request, rsp server
 	service := req.Service()
 	// endpoint to call
 	endpoint := req.Endpoint()
+
+	if len(service) == 0 {
+		return errors.BadRequest("go.micro.proxy", "service name is blank")
+	}
 
 	// are we network routing or local routing
 	if len(p.Links) == 0 {

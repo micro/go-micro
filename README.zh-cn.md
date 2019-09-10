@@ -32,5 +32,5 @@ Go Micro把分布式系统的各种细节抽象出来。下面是它的主要特
 
 ## 快速上手
 
-更多关于架构、安装的资料可以查看[文档](https://micro.mu/docs/go-micro_cn.html)。
+更多关于架构、安装的资料可以查看[文档](https://micro.mu/docs/cn/)。
 

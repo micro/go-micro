@@ -7,6 +7,7 @@ service Router {
 	rpc Lookup(LookupRequest) returns (LookupResponse) {};
         rpc Watch(WatchRequest) returns (stream Event) {};
         rpc Advertise(Request) returns (stream Advert) {};
+        rpc Solicit(Request) returns (Response) {};
         rpc Process(Advert) returns (ProcessResponse) {};
 	rpc Status(Request) returns (StatusResponse) {};
 }
@@ -21,6 +22,9 @@ service Table {
 
 // Empty request
 message Request {}
+
+// Empty response
+message Response {}
 
 // ListResponse is returned by List
 message ListResponse {
@@ -37,10 +41,12 @@ message LookupResponse {
 	repeated Route routes = 1;
 }
 
+// QueryRequest queries Table for Routes
 message QueryRequest{
 	Query query = 1;
 }
 
+// QueryResponse is returned by Query
 message QueryResponse {
 	repeated Route routes = 1;
 }
@@ -117,10 +123,12 @@ message Route {
 	string gateway = 3;
 	// the network for this destination
 	string network = 4;
+	// router if the router id
+	string router = 5;
 	// the network link
-	string link = 5;
+	string link = 6;
 	// the metric / score of this route
-	int64 metric = 6;
+	int64 metric = 7;
 }
 
 message Status {

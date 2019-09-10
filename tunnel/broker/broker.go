@@ -58,7 +58,7 @@ func (t *tunBroker) Disconnect() error {
 func (t *tunBroker) Publish(topic string, m *broker.Message, opts ...broker.PublishOption) error {
 	// TODO: this is probably inefficient, we might want to just maintain an open connection
 	// it may be easier to add broadcast to the tunnel
-	c, err := t.tunnel.Dial(topic)
+	c, err := t.tunnel.Dial(topic, tunnel.DialMulticast())
 	if err != nil {
 		return err
 	}
