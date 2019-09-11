@@ -34,6 +34,8 @@ type Options struct {
 type DialOption func(*DialOptions)
 
 type DialOptions struct {
+	// Link specifies the link to use
+	Link string
 	// specify a multicast connection
 	Multicast bool
 	// the dial timeout
@@ -94,8 +96,17 @@ func DialMulticast() DialOption {
 	}
 }
 
+// DialTimeout sets the dial timeout of the connection
 func DialTimeout(t time.Duration) DialOption {
 	return func(o *DialOptions) {
 		o.Timeout = t
+	}
+}
+
+// DialLink specifies the link to pin this connection to.
+// This is not applicable if the multicast option is set.
+func DialLink(id string) DialOption {
+	return func(o *DialOptions) {
+		o.Link = id
 	}
 }

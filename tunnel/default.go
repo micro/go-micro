@@ -932,6 +932,11 @@ func (t *tun) Dial(channel string, opts ...DialOption) (Session, error) {
 	// non multicast so we need to find the link
 	t.RLock()
 	for _, link := range t.links {
+		// use the link specified it its available
+		if id := options.Link; len(id) > 0 && link.id != id {
+			continue
+		}
+
 		link.RLock()
 		_, ok := link.channels[channel]
 		link.RUnlock()
@@ -943,6 +948,11 @@ func (t *tun) Dial(channel string, opts ...DialOption) (Session, error) {
 		}
 	}
 	t.RUnlock()
+
+	// link not found
+	if len(links) == 0 && len(options.Link) > 0 {
+		return nil, ErrLinkNotFound
+	}
 
 	// discovered so set the link if not multicast
 	// TODO: pick the link efficiently based
