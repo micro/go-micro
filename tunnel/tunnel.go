@@ -45,6 +45,8 @@ type Tunnel interface {
 type Link interface {
 	// The id of the link
 	Id() string
+	// Status of the link e.g connected/closed
+	Status() string
 	// honours transport socket
 	transport.Socket
 }
