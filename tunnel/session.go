@@ -83,6 +83,10 @@ func (s *session) Local() string {
 	return s.local
 }
 
+func (s *session) Link() string {
+	return s.link
+}
+
 func (s *session) Id() string {
 	return s.session
 }

@@ -62,6 +62,8 @@ type Session interface {
 	Id() string
 	// The channel name
 	Channel() string
+	// The link the session is on
+	Link() string
 	// a transport socket
 	transport.Socket
 }
