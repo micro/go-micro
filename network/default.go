@@ -276,10 +276,7 @@ func (n *network) processNetChan(client transport.Client, listener tunnel.Listen
 				}
 				n.Unlock()
 				// get all the node peers down to MaxDepth encoded in protobuf
-				msg, err := n.node.getProtoTopology(MaxDepth)
-				if err != nil {
-					log.Debugf("Network unable to retrieve node topology: %s", err)
-				}
+				msg := n.node.getProtoTopology(MaxDepth)
 				// advertise yourself to the network
 				if err := n.sendMsg("peer", msg, NetworkChannel); err != nil {
 					log.Debugf("Network failed to advertise peers: %v", err)
@@ -396,12 +393,7 @@ func (n *network) announce(client transport.Client) {
 		case <-n.closed:
 			return
 		case <-announce.C:
-			msg, err := n.node.getProtoTopology(MaxDepth)
-			if err != nil {
-				log.Debugf("Network unable to retrieve node topology: %s", err)
-				continue
-			}
-			n.node.RUnlock()
+			msg := n.node.getProtoTopology(MaxDepth)
 			// advertise yourself to the network
 			if err := n.sendMsg("peer", msg, NetworkChannel); err != nil {
 				log.Debugf("Network failed to advertise peers: %v", err)

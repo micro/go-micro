@@ -266,10 +266,8 @@ func TestGetProtoTopology(t *testing.T) {
 	}
 	topCount := 0
 
-	protoTop, err := single.getProtoTopology(10)
-	if err != nil {
-		t.Errorf("Error getting proto topology: %s", err)
-	}
+	protoTop := single.getProtoTopology(10)
+
 	if len(protoTop.Peers) != topCount {
 		t.Errorf("Expected to find %d nodes, found: %d", topCount, len(protoTop.Peers))
 	}
@@ -284,10 +282,8 @@ func TestGetProtoTopology(t *testing.T) {
 		peerIds[id] = true
 	}
 	// depth 1 should give us immmediate neighbours only
-	protoTop, err = node.getProtoTopology(1)
-	if err != nil {
-		t.Errorf("Error getting proto topology: %s", err)
-	}
+	protoTop = node.getProtoTopology(1)
+
 	if len(protoTop.Peers) != topCount {
 		t.Errorf("Expected to find %d nodes, found: %d", topCount, len(protoTop.Peers))
 	}

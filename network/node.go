@@ -129,7 +129,7 @@ func (n *node) Peers() []Node {
 }
 
 // getProtoTopology returns node topology down to the given depth encoded in protobuf
-func (n *node) getProtoTopology(depth uint) (*pb.Peer, error) {
+func (n *node) getProtoTopology(depth uint) *pb.Peer {
 	n.RLock()
 	defer n.RUnlock()
 
@@ -145,7 +145,7 @@ func (n *node) getProtoTopology(depth uint) (*pb.Peer, error) {
 
 	// return if have either reached the depth or have no more peers
 	if depth == 0 || len(n.peers) == 0 {
-		return pbPeers, nil
+		return pbPeers
 	}
 
 	// decrement the depth
@@ -155,10 +155,7 @@ func (n *node) getProtoTopology(depth uint) (*pb.Peer, error) {
 	for _, peer := range n.peers {
 		// get peers of the node peers
 		// NOTE: this is [not] a recursive call
-		pbPeerPeer, err := peer.getProtoTopology(depth)
-		if err != nil {
-			return nil, err
-		}
+		pbPeerPeer := peer.getProtoTopology(depth)
 		// add current peer to explored peers
 		peers = append(peers, pbPeerPeer)
 	}
@@ -166,7 +163,7 @@ func (n *node) getProtoTopology(depth uint) (*pb.Peer, error) {
 	// add peers to the parent topology
 	pbPeers.Peers = peers
 
-	return pbPeers, nil
+	return pbPeers
 }
 
 // unpackPeer unpacks pb.Peer into node topology of given depth
