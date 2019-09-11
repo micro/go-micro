@@ -316,6 +316,10 @@ func (h *httpTransportSocket) Send(m *Message) error {
 		// no op
 	}
 
+	// we need to lock to protect the write
+	h.mtx.RLock()
+	defer h.mtx.RUnlock()
+
 	// set headers
 	for k, v := range m.Header {
 		h.w.Header().Set(k, v)
