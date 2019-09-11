@@ -275,10 +275,10 @@ func (n *network) processNetChan(client transport.Client, listener tunnel.Listen
 					lastSeen: now,
 				}
 				n.Unlock()
-				// get all the node peers down to MaxDepth encoded in protobuf message
+				// get all the node peers down to MaxDepth encoded in protobuf
 				msg, err := n.node.getProtoTopology(MaxDepth)
 				if err != nil {
-					log.Debugf("Network unable to retrieve node peers: %s", err)
+					log.Debugf("Network unable to retrieve node topology: %s", err)
 				}
 				// advertise yourself to the network
 				if err := n.sendMsg("peer", msg, NetworkChannel); err != nil {
@@ -322,7 +322,7 @@ func (n *network) processNetChan(client transport.Client, listener tunnel.Listen
 					// after adding new peer go to the next step
 					continue
 				}
-				// NOTE: we don't update max topology depth as we dont include this network node
+				// NOTE: we don't update MaxDepth toplogy as we dont update this node only its peers
 				if err := n.node.updatePeerTopology(pbNetPeer, MaxDepth-1); err != nil {
 					log.Debugf("Network failed to update peers")
 				}
@@ -396,14 +396,12 @@ func (n *network) announce(client transport.Client) {
 		case <-n.closed:
 			return
 		case <-announce.C:
-			n.RLock()
 			msg, err := n.node.getProtoTopology(MaxDepth)
 			if err != nil {
-				log.Debugf("Network unable to retrieve node peers: %s", err)
-				n.RUnlock()
+				log.Debugf("Network unable to retrieve node topology: %s", err)
 				continue
 			}
-			n.RUnlock()
+			n.node.RUnlock()
 			// advertise yourself to the network
 			if err := n.sendMsg("peer", msg, NetworkChannel); err != nil {
 				log.Debugf("Network failed to advertise peers: %v", err)

@@ -136,9 +136,11 @@ func (n *node) Topology(depth uint) *node {
 	return node
 }
 
-// getProtoTopology returns node peers up to given depth encoded in protobufs
-// NOTE: this method is NOT thread-safe, so make sure you serialize access to it
+// getProtoTopology returns node topology down to the given depth encoded in protobuf
 func (n *node) getProtoTopology(depth uint) (*pb.Peer, error) {
+	n.RLock()
+	defer n.RUnlock()
+
 	node := &pb.Node{
 		Id:      n.id,
 		Address: n.address,
@@ -176,7 +178,7 @@ func (n *node) getProtoTopology(depth uint) (*pb.Peer, error) {
 }
 
 // unpackPeer unpacks pb.Peer into node topology of given depth
-// NOTE: this method is NOT thread-safe, so make sure you serialize access to it
+// NOTE: this function is not thread-safe
 func unpackPeer(pbPeer *pb.Peer, depth uint) *node {
 	peerNode := &node{
 		id:      pbPeer.Node.Id,
@@ -203,16 +205,17 @@ func unpackPeer(pbPeer *pb.Peer, depth uint) *node {
 	return peerNode
 }
 
-// updatePeer updates node peer up to given depth
-// NOTE: this method is not thread safe, so make sure you serialize access to it
+// updateTopology updates node peer topology down to given depth
 func (n *node) updatePeerTopology(pbPeer *pb.Peer, depth uint) error {
+	n.Lock()
+	defer n.Unlock()
+
 	if pbPeer == nil {
 		return errors.New("peer not initialized")
 	}
 
-	// NOTE: we need MaxDepth-1 because node n is the parent adding which
-	// gives us the max peer topology we maintain and propagate
-	peer := unpackPeer(pbPeer, MaxDepth-1)
+	// unpack Peer topology into *node
+	peer := unpackPeer(pbPeer, depth)
 
 	// update node peers with new topology
 	n.peers[pbPeer.Node.Id] = peer
