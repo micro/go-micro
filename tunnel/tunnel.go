@@ -31,12 +31,12 @@ type Tunnel interface {
 	Connect() error
 	// Close closes the tunnel
 	Close() error
+	// All the links the tunnel is connected to
+	Links() []Link
 	// Connect to a channel
 	Dial(channel string, opts ...DialOption) (Session, error)
 	// Accept connections on a channel
 	Listen(channel string) (Listener, error)
-	// All the links the tunnel is connected to
-	Links() []Link
 	// Name of the tunnel implementation
 	String() string
 }
