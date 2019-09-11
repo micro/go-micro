@@ -6,41 +6,20 @@ import "github.com/micro/go-micro/router/proto/router.proto";
 
 // Network service is usesd to gain visibility into networks
 service Network {
-        rpc ListNodes(ListRequest) returns (ListResponse) {};
         rpc ListPeers(PeerRequest) returns (PeerResponse) {};
-        rpc Topology(TopologyRequest) returns (TopologyResponse) {};
         rpc ListRoutes(go.micro.router.Request) returns (go.micro.router.ListResponse) {};
-}
-
-// Empty request
-message ListRequest {}
-
-// ListResponse is returned by ListNodes
-message ListResponse {
-        // network nodes
-	repeated Node nodes = 1;
 }
 
 // PeerRequest requests list of peers
 message PeerRequest {
-        // node id
-        string id = 1;
+        // node topology depth
+        uint32 depth = 1;
 }
 
 // PeerResponse is returned by ListPeers
 message PeerResponse {
-        repeated Node peers = 1;
-}
-
-// TopologyRequest list node topology
-message TopologyRequest {
-        // node id
-        string id = 1;
-}
-
-// TopologyResponse is returned by Topology
-message TopologyResponse {
-        Peer topology = 1;
+        // return peer topology
+        Peer peers = 1;
 }
 
 // Node is network node

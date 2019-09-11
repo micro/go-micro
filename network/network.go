@@ -44,10 +44,6 @@ type Network interface {
 	Name() string
 	// Connect starts the resolver and tunnel server
 	Connect() error
-	// Nodes returns list of network nodes
-	Nodes() []Node
-	// Topology returns node topology up to MaxDepth hops
-	Topology() Node
 	// Close stops the tunnel and resolving
 	Close() error
 	// Client is micro client

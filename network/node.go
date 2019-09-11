@@ -47,11 +47,11 @@ func (n *node) Network() Network {
 // Nodes returns a slice if all nodes in node topology
 func (n *node) Nodes() []Node {
 	// we need to freeze the network graph here
-	// otherwise we might get invalid results
+	// otherwise we might get inconsisten results
 	n.RLock()
 	defer n.RUnlock()
 
-	//track the visited nodes
+	// track the visited nodes
 	visited := make(map[string]*node)
 	// queue of the nodes to visit
 	queue := list.New()
@@ -86,32 +86,8 @@ func (n *node) Nodes() []Node {
 	return nodes
 }
 
-// Peers returns node peers
-func (n *node) Peers() []Node {
-	var peers []Node
-	n.RLock()
-	for _, peer := range n.peers {
-		// make a copy of the node
-		p := &node{
-			id:      peer.id,
-			address: peer.address,
-			peers:   make(map[string]*node),
-			network: peer.network,
-		}
-		// collect peer's peers aka pop (peer of peer)
-		for id, pop := range peer.peers {
-			p.peers[id] = pop
-		}
-		peers = append(peers, p)
-	}
-	n.RUnlock()
-
-	return peers
-}
-
-// topology returns network topology up to MaxDepth
-func (n *node) Topology(depth uint) *node {
-	n.RLock()
+// topology returns node topology down to given depth
+func (n *node) topology(depth uint) *node {
 	// make a copy of yourself
 	node := &node{
 		id:      n.id,
@@ -125,15 +101,31 @@ func (n *node) Topology(depth uint) *node {
 		return node
 	}
 
+	// decrement the depth
 	depth--
 
+	// iterate through our peers and update the node peers
 	for _, peer := range n.peers {
-		nodePeer := peer.Topology(depth)
-		node.peers[nodePeer.id] = nodePeer
+		nodePeer := peer.topology(depth)
+		if _, ok := node.peers[nodePeer.id]; !ok {
+			node.peers[nodePeer.id] = nodePeer
+		}
+	}
+
+	return node
+}
+
+// Peers returns node peers
+func (n *node) Peers() []Node {
+	n.RLock()
+	var peers []Node
+	for _, nodePeer := range n.peers {
+		peer := nodePeer.topology(MaxDepth)
+		peers = append(peers, peer)
 	}
 	n.RUnlock()
 
-	return node
+	return peers
 }
 
 // getProtoTopology returns node topology down to the given depth encoded in protobuf

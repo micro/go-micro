@@ -21,83 +21,10 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
-// Empty request
-type ListRequest struct {
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
-}
-
-func (m *ListRequest) Reset()         { *m = ListRequest{} }
-func (m *ListRequest) String() string { return proto.CompactTextString(m) }
-func (*ListRequest) ProtoMessage()    {}
-func (*ListRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_8571034d60397816, []int{0}
-}
-
-func (m *ListRequest) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_ListRequest.Unmarshal(m, b)
-}
-func (m *ListRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_ListRequest.Marshal(b, m, deterministic)
-}
-func (m *ListRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ListRequest.Merge(m, src)
-}
-func (m *ListRequest) XXX_Size() int {
-	return xxx_messageInfo_ListRequest.Size(m)
-}
-func (m *ListRequest) XXX_DiscardUnknown() {
-	xxx_messageInfo_ListRequest.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_ListRequest proto.InternalMessageInfo
-
-// ListResponse is returned by ListNodes
-type ListResponse struct {
-	// network nodes
-	Nodes                []*Node  `protobuf:"bytes,1,rep,name=nodes,proto3" json:"nodes,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
-}
-
-func (m *ListResponse) Reset()         { *m = ListResponse{} }
-func (m *ListResponse) String() string { return proto.CompactTextString(m) }
-func (*ListResponse) ProtoMessage()    {}
-func (*ListResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_8571034d60397816, []int{1}
-}
-
-func (m *ListResponse) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_ListResponse.Unmarshal(m, b)
-}
-func (m *ListResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_ListResponse.Marshal(b, m, deterministic)
-}
-func (m *ListResponse) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ListResponse.Merge(m, src)
-}
-func (m *ListResponse) XXX_Size() int {
-	return xxx_messageInfo_ListResponse.Size(m)
-}
-func (m *ListResponse) XXX_DiscardUnknown() {
-	xxx_messageInfo_ListResponse.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_ListResponse proto.InternalMessageInfo
-
-func (m *ListResponse) GetNodes() []*Node {
-	if m != nil {
-		return m.Nodes
-	}
-	return nil
-}
-
 // PeerRequest requests list of peers
 type PeerRequest struct {
-	// node id
-	Id                   string   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// node topology depth
+	Depth                uint32   `protobuf:"varint,1,opt,name=depth,proto3" json:"depth,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -107,7 +34,7 @@ func (m *PeerRequest) Reset()         { *m = PeerRequest{} }
 func (m *PeerRequest) String() string { return proto.CompactTextString(m) }
 func (*PeerRequest) ProtoMessage()    {}
 func (*PeerRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_8571034d60397816, []int{2}
+	return fileDescriptor_8571034d60397816, []int{0}
 }
 
 func (m *PeerRequest) XXX_Unmarshal(b []byte) error {
@@ -128,16 +55,17 @@ func (m *PeerRequest) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_PeerRequest proto.InternalMessageInfo
 
-func (m *PeerRequest) GetId() string {
+func (m *PeerRequest) GetDepth() uint32 {
 	if m != nil {
-		return m.Id
+		return m.Depth
 	}
-	return ""
+	return 0
 }
 
 // PeerResponse is returned by ListPeers
 type PeerResponse struct {
-	Peers                []*Node  `protobuf:"bytes,1,rep,name=peers,proto3" json:"peers,omitempty"`
+	// return peer topology
+	Peers                *Peer    `protobuf:"bytes,1,opt,name=peers,proto3" json:"peers,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -147,7 +75,7 @@ func (m *PeerResponse) Reset()         { *m = PeerResponse{} }
 func (m *PeerResponse) String() string { return proto.CompactTextString(m) }
 func (*PeerResponse) ProtoMessage()    {}
 func (*PeerResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_8571034d60397816, []int{3}
+	return fileDescriptor_8571034d60397816, []int{1}
 }
 
 func (m *PeerResponse) XXX_Unmarshal(b []byte) error {
@@ -168,90 +96,9 @@ func (m *PeerResponse) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_PeerResponse proto.InternalMessageInfo
 
-func (m *PeerResponse) GetPeers() []*Node {
+func (m *PeerResponse) GetPeers() *Peer {
 	if m != nil {
 		return m.Peers
-	}
-	return nil
-}
-
-// TopologyRequest list node topology
-type TopologyRequest struct {
-	// node id
-	Id                   string   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
-}
-
-func (m *TopologyRequest) Reset()         { *m = TopologyRequest{} }
-func (m *TopologyRequest) String() string { return proto.CompactTextString(m) }
-func (*TopologyRequest) ProtoMessage()    {}
-func (*TopologyRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_8571034d60397816, []int{4}
-}
-
-func (m *TopologyRequest) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_TopologyRequest.Unmarshal(m, b)
-}
-func (m *TopologyRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_TopologyRequest.Marshal(b, m, deterministic)
-}
-func (m *TopologyRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_TopologyRequest.Merge(m, src)
-}
-func (m *TopologyRequest) XXX_Size() int {
-	return xxx_messageInfo_TopologyRequest.Size(m)
-}
-func (m *TopologyRequest) XXX_DiscardUnknown() {
-	xxx_messageInfo_TopologyRequest.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_TopologyRequest proto.InternalMessageInfo
-
-func (m *TopologyRequest) GetId() string {
-	if m != nil {
-		return m.Id
-	}
-	return ""
-}
-
-// TopologyResponse is returned by Topology
-type TopologyResponse struct {
-	Topology             *Peer    `protobuf:"bytes,1,opt,name=topology,proto3" json:"topology,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
-}
-
-func (m *TopologyResponse) Reset()         { *m = TopologyResponse{} }
-func (m *TopologyResponse) String() string { return proto.CompactTextString(m) }
-func (*TopologyResponse) ProtoMessage()    {}
-func (*TopologyResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_8571034d60397816, []int{5}
-}
-
-func (m *TopologyResponse) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_TopologyResponse.Unmarshal(m, b)
-}
-func (m *TopologyResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_TopologyResponse.Marshal(b, m, deterministic)
-}
-func (m *TopologyResponse) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_TopologyResponse.Merge(m, src)
-}
-func (m *TopologyResponse) XXX_Size() int {
-	return xxx_messageInfo_TopologyResponse.Size(m)
-}
-func (m *TopologyResponse) XXX_DiscardUnknown() {
-	xxx_messageInfo_TopologyResponse.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_TopologyResponse proto.InternalMessageInfo
-
-func (m *TopologyResponse) GetTopology() *Peer {
-	if m != nil {
-		return m.Topology
 	}
 	return nil
 }
@@ -271,7 +118,7 @@ func (m *Node) Reset()         { *m = Node{} }
 func (m *Node) String() string { return proto.CompactTextString(m) }
 func (*Node) ProtoMessage()    {}
 func (*Node) Descriptor() ([]byte, []int) {
-	return fileDescriptor_8571034d60397816, []int{6}
+	return fileDescriptor_8571034d60397816, []int{2}
 }
 
 func (m *Node) XXX_Unmarshal(b []byte) error {
@@ -319,7 +166,7 @@ func (m *Connect) Reset()         { *m = Connect{} }
 func (m *Connect) String() string { return proto.CompactTextString(m) }
 func (*Connect) ProtoMessage()    {}
 func (*Connect) Descriptor() ([]byte, []int) {
-	return fileDescriptor_8571034d60397816, []int{7}
+	return fileDescriptor_8571034d60397816, []int{3}
 }
 
 func (m *Connect) XXX_Unmarshal(b []byte) error {
@@ -360,7 +207,7 @@ func (m *Close) Reset()         { *m = Close{} }
 func (m *Close) String() string { return proto.CompactTextString(m) }
 func (*Close) ProtoMessage()    {}
 func (*Close) Descriptor() ([]byte, []int) {
-	return fileDescriptor_8571034d60397816, []int{8}
+	return fileDescriptor_8571034d60397816, []int{4}
 }
 
 func (m *Close) XXX_Unmarshal(b []byte) error {
@@ -403,7 +250,7 @@ func (m *Peer) Reset()         { *m = Peer{} }
 func (m *Peer) String() string { return proto.CompactTextString(m) }
 func (*Peer) ProtoMessage()    {}
 func (*Peer) Descriptor() ([]byte, []int) {
-	return fileDescriptor_8571034d60397816, []int{9}
+	return fileDescriptor_8571034d60397816, []int{5}
 }
 
 func (m *Peer) XXX_Unmarshal(b []byte) error {
@@ -439,12 +286,8 @@ func (m *Peer) GetPeers() []*Peer {
 }
 
 func init() {
-	proto.RegisterType((*ListRequest)(nil), "go.micro.network.ListRequest")
-	proto.RegisterType((*ListResponse)(nil), "go.micro.network.ListResponse")
 	proto.RegisterType((*PeerRequest)(nil), "go.micro.network.PeerRequest")
 	proto.RegisterType((*PeerResponse)(nil), "go.micro.network.PeerResponse")
-	proto.RegisterType((*TopologyRequest)(nil), "go.micro.network.TopologyRequest")
-	proto.RegisterType((*TopologyResponse)(nil), "go.micro.network.TopologyResponse")
 	proto.RegisterType((*Node)(nil), "go.micro.network.Node")
 	proto.RegisterType((*Connect)(nil), "go.micro.network.Connect")
 	proto.RegisterType((*Close)(nil), "go.micro.network.Close")
@@ -454,29 +297,24 @@ func init() {
 func init() { proto.RegisterFile("network.proto", fileDescriptor_8571034d60397816) }
 
 var fileDescriptor_8571034d60397816 = []byte{
-	// 371 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x93, 0xc1, 0x4e, 0xc2, 0x40,
-	0x10, 0x86, 0xa1, 0x82, 0xc0, 0x20, 0x4a, 0xf6, 0x60, 0x1a, 0x12, 0x0c, 0xec, 0x89, 0x18, 0x2d,
-	0x06, 0xe2, 0xcd, 0x1b, 0x89, 0x5e, 0x08, 0x31, 0xe8, 0x03, 0x28, 0x74, 0x52, 0x1b, 0xa1, 0x53,
-	0x77, 0x97, 0x18, 0x9f, 0xcf, 0x17, 0x33, 0xbb, 0xdb, 0x52, 0x04, 0xaa, 0xe1, 0xd6, 0x9d, 0xf9,
-	0xe7, 0xfb, 0xb7, 0xb3, 0x33, 0xd0, 0x88, 0x50, 0x7d, 0x92, 0x78, 0xf7, 0x62, 0x41, 0x8a, 0x58,
-	0x33, 0x20, 0x6f, 0x19, 0xce, 0x05, 0x79, 0x49, 0xbc, 0x35, 0x0c, 0x42, 0xf5, 0xb6, 0x9a, 0x79,
-	0x73, 0x5a, 0xf6, 0x4d, 0xa6, 0x1f, 0xd0, 0xb5, 0xfd, 0x10, 0xb4, 0x52, 0x28, 0xfa, 0xa6, 0x32,
-	0x39, 0x58, 0x0c, 0x6f, 0x40, 0x7d, 0x1c, 0x4a, 0x35, 0xc5, 0x8f, 0x15, 0x4a, 0xc5, 0xef, 0xe0,
-	0xc4, 0x1e, 0x65, 0x4c, 0x91, 0x44, 0x76, 0x05, 0xe5, 0x88, 0x7c, 0x94, 0x6e, 0xb1, 0x73, 0xd4,
-	0xab, 0x0f, 0xce, 0xbd, 0x6d, 0x57, 0x6f, 0x42, 0x3e, 0x4e, 0xad, 0x88, 0xb7, 0xa1, 0xfe, 0x88,
-	0x28, 0x12, 0x18, 0x3b, 0x05, 0x27, 0xf4, 0xdd, 0x62, 0xa7, 0xd8, 0xab, 0x4d, 0x9d, 0xd0, 0xd7,
-	0x70, 0x9b, 0xce, 0xe0, 0x31, 0xa2, 0xf8, 0x17, 0x6e, 0x44, 0xbc, 0x0b, 0x67, 0xcf, 0x14, 0xd3,
-	0x82, 0x82, 0xaf, 0x3c, 0x83, 0x7b, 0x68, 0x66, 0x92, 0xc4, 0x64, 0x00, 0x55, 0x95, 0xc4, 0x8c,
-	0x72, 0xaf, 0x8f, 0xb9, 0xd6, 0x5a, 0xc7, 0x6f, 0xa0, 0xa4, 0x9d, 0xb7, 0xf9, 0xcc, 0x85, 0xca,
-	0xab, 0xef, 0x0b, 0x94, 0xd2, 0x75, 0x4c, 0x30, 0x3d, 0xf2, 0x5b, 0xa8, 0x8c, 0x28, 0x8a, 0x70,
-	0xae, 0xd8, 0x25, 0x94, 0x74, 0x37, 0xf2, 0xcd, 0xcc, 0x4f, 0x19, 0x0d, 0x1f, 0x42, 0x79, 0xb4,
-	0x20, 0x89, 0x07, 0x15, 0xbd, 0x40, 0x49, 0xdf, 0xf7, 0x90, 0x9a, 0xac, 0xd5, 0x4e, 0x5e, 0xab,
-	0x4d, 0x0b, 0xac, 0x68, 0xf0, 0xed, 0x40, 0x65, 0x62, 0xe3, 0x6c, 0x0c, 0x35, 0x3d, 0x11, 0x9a,
-	0x25, 0x59, 0x7b, 0xb7, 0x6e, 0x63, 0x7a, 0x5a, 0x17, 0x79, 0x69, 0xfb, 0x16, 0xbc, 0x90, 0xd2,
-	0xb4, 0xd9, 0x5e, 0xda, 0xc6, 0xf8, 0xec, 0xa3, 0x6d, 0x8e, 0x0f, 0x2f, 0xb0, 0x27, 0xa8, 0xa6,
-	0xef, 0xcd, 0xba, 0xbb, 0xea, 0xad, 0x71, 0x69, 0xf1, 0xbf, 0x24, 0x6b, 0xe8, 0x03, 0x80, 0xb9,
-	0xb4, 0xde, 0x12, 0xc9, 0xdc, 0xac, 0x26, 0xd9, 0x9b, 0x94, 0xd6, 0xde, 0xc9, 0xfc, 0xfe, 0xd7,
-	0xd9, 0xb1, 0xd9, 0xb0, 0xe1, 0x4f, 0x00, 0x00, 0x00, 0xff, 0xff, 0x41, 0x11, 0x04, 0x65, 0xb9,
-	0x03, 0x00, 0x00,
+	// 292 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x52, 0xcd, 0x4a, 0xc3, 0x40,
+	0x10, 0x36, 0x31, 0x31, 0x74, 0x6a, 0x45, 0x16, 0x91, 0x50, 0xa8, 0x94, 0xf5, 0x22, 0xa2, 0x1b,
+	0x69, 0xf0, 0xe6, 0xad, 0x07, 0x2f, 0xa5, 0x48, 0x9e, 0x40, 0x9b, 0x1d, 0xd2, 0xa0, 0xcd, 0xc4,
+	0xdd, 0x0d, 0xbe, 0x8e, 0x8f, 0x2a, 0xd9, 0x4d, 0x2d, 0x28, 0xa1, 0xf4, 0x96, 0xf9, 0xfe, 0x32,
+	0xc3, 0xb7, 0x30, 0xaa, 0xd0, 0x7c, 0x91, 0x7a, 0x17, 0xb5, 0x22, 0x43, 0xec, 0xbc, 0x20, 0xb1,
+	0x29, 0x73, 0x45, 0xa2, 0xc3, 0xc7, 0x69, 0x51, 0x9a, 0x75, 0xb3, 0x12, 0x39, 0x6d, 0x12, 0xcb,
+	0x24, 0x05, 0xdd, 0xbb, 0x0f, 0x45, 0x8d, 0x41, 0x95, 0x58, 0x67, 0x37, 0xb8, 0x18, 0x7e, 0x0d,
+	0xc3, 0x17, 0x44, 0x95, 0xe1, 0x67, 0x83, 0xda, 0xb0, 0x0b, 0x08, 0x25, 0xd6, 0x66, 0x1d, 0x7b,
+	0x53, 0xef, 0x66, 0x94, 0xb9, 0x81, 0x3f, 0xc1, 0xa9, 0x13, 0xe9, 0x9a, 0x2a, 0x8d, 0xec, 0x0e,
+	0xc2, 0x1a, 0x51, 0x69, 0xab, 0x1a, 0xce, 0x2e, 0xc5, 0xdf, 0x5d, 0x84, 0x95, 0x3b, 0x11, 0x7f,
+	0x80, 0x60, 0x49, 0x12, 0xd9, 0x19, 0xf8, 0xa5, 0xb4, 0x96, 0x41, 0xe6, 0x97, 0x92, 0xc5, 0x10,
+	0xbd, 0x49, 0xa9, 0x50, 0xeb, 0xd8, 0xb7, 0xe0, 0x76, 0xe4, 0x8f, 0x10, 0xcd, 0xa9, 0xaa, 0x30,
+	0x37, 0xec, 0x16, 0x82, 0x8a, 0x24, 0xf6, 0xff, 0xa9, 0x8d, 0xce, 0xac, 0x86, 0xa7, 0x10, 0xce,
+	0x3f, 0x48, 0xe3, 0x41, 0xa6, 0x57, 0x08, 0xda, 0x65, 0x0f, 0xf1, 0xec, 0xee, 0xf7, 0xa7, 0xc7,
+	0x7b, 0xef, 0x9f, 0x7d, 0x7b, 0x10, 0x2d, 0x1d, 0xce, 0x16, 0x30, 0x58, 0x94, 0xda, 0xb4, 0xb4,
+	0x66, 0x93, 0x1e, 0x9f, 0xeb, 0x62, 0x7c, 0xd5, 0x47, 0xbb, 0x16, 0xf8, 0x11, 0x7b, 0x06, 0x68,
+	0xd3, 0xb2, 0xb6, 0x50, 0xcd, 0xe2, 0x9d, 0xbe, 0xab, 0x78, 0x9b, 0x34, 0xf9, 0xc7, 0x58, 0xdb,
+	0x6f, 0xd0, 0xea, 0xc4, 0x3e, 0x86, 0xf4, 0x27, 0x00, 0x00, 0xff, 0xff, 0x68, 0x11, 0x14, 0x79,
+	0x64, 0x02, 0x00, 0x00,
 }

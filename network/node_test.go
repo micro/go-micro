@@ -118,6 +118,22 @@ func TestNodes(t *testing.T) {
 	}
 }
 
+func collectPeerIds(peer Node, ids map[string]bool) map[string]bool {
+	if len(peer.Peers()) == 0 {
+		return ids
+	}
+
+	// iterate through the whole graph
+	for _, peer := range peer.Peers() {
+		ids = collectPeerIds(peer, ids)
+		if _, ok := ids[peer.Id()]; !ok {
+			ids[peer.Id()] = true
+		}
+	}
+
+	return ids
+}
+
 func TestPeers(t *testing.T) {
 	// single node
 	single := &node{
@@ -126,107 +142,44 @@ func TestPeers(t *testing.T) {
 		peers:   make(map[string]*node),
 		network: newNetwork(Name(testNodeNetName)),
 	}
-	// get all the nodes including yourself
+	// get node peers
 	peers := single.Peers()
+	// there should be no peers
 	peerCount := 0
 
 	if len(peers) != peerCount {
-		t.Errorf("Expected to find %d peers, found: %d", peerCount, len(peers))
+		t.Errorf("Expected to find %d nodes, found: %d", peerCount, len(peers))
 	}
 
 	// complicated node graph
 	node := testSetup()
-	// get all the nodes including yourself
-	peers = node.Peers()
-
-	// compile a list of ids of all nodes in the network into map for easy indexing
+	// list of ids of nodes of MaxDepth
 	peerIds := make(map[string]bool)
 	// add peer Ids
 	for _, id := range testNodePeerIds {
 		peerIds[id] = true
 	}
-
-	// we should return the correct number of peers
-	if len(peers) != len(peerIds) {
-		t.Errorf("Expected %d nodes, found: %d", len(peerIds), len(peers))
-	}
-
-	// iterate through the list of peers and makes sure all have been returned
-	for _, peer := range peers {
-		if _, ok := peerIds[peer.Id()]; !ok {
-			t.Errorf("Expected to find %s peer", peer.Id())
-		}
-	}
-}
-
-func collectTopologyIds(peers map[string]*node, ids map[string]bool) map[string]bool {
-	if len(peers) == 0 {
-		return ids
-	}
-
-	// iterate through the whole graph
-	for id, peer := range peers {
-		ids = collectTopologyIds(peer.peers, ids)
-		if _, ok := ids[id]; !ok {
-			ids[id] = true
-		}
-	}
-
-	return ids
-}
-
-func TestTopology(t *testing.T) {
-	// single node
-	single := &node{
-		id:      testNodeId,
-		address: testNodeAddress,
-		peers:   make(map[string]*node),
-		network: newNetwork(Name(testNodeNetName)),
-	}
-	// get all the nodes including yourself
-	topology := single.Topology(MaxDepth)
-	// you should not be in your topology
-	topCount := 0
-
-	if len(topology.peers) != topCount {
-		t.Errorf("Expected to find %d nodes, found: %d", topCount, len(topology.peers))
-	}
-
-	// complicated node graph
-	node := testSetup()
-	// list of ids of nodes of depth 1 i.e. node peers
-	peerIds := make(map[string]bool)
-	// add peer Ids
-	for _, id := range testNodePeerIds {
-		peerIds[id] = true
-	}
-	topology = node.Topology(1)
-
-	// depth 1 should return only immediate peers
-	if len(topology.peers) != len(peerIds) {
-		t.Errorf("Expected to find %d nodes, found: %d", len(peerIds), len(topology.peers))
-	}
-	for id := range topology.peers {
-		if _, ok := peerIds[id]; !ok {
-			t.Errorf("Expected to find %s peer", id)
-		}
-	}
-
 	// add peers of peers to peerIds
 	for _, id := range testPeerOfPeerIds {
 		peerIds[id] = true
 	}
-	topology = node.Topology(2)
+	// get node peers
+	peers = node.Peers()
 
-	topIds := make(map[string]bool)
-	topIds = collectTopologyIds(topology.peers, topIds)
-
-	if len(topIds) != len(peerIds) {
-		t.Errorf("Expected to find %d nodes, found: %d", len(peerIds), len(topIds))
+	// we will collect all returned Peer Ids into this map
+	resPeerIds := make(map[string]bool)
+	for _, peer := range peers {
+		resPeerIds[peer.Id()] = true
+		resPeerIds = collectPeerIds(peer, resPeerIds)
 	}
 
-	for id := range topIds {
-		if _, ok := topIds[id]; !ok {
+	// if correct, we must collect all peerIds
+	if len(resPeerIds) != len(peerIds) {
+		t.Errorf("Expected to find %d peers, found: %d", len(peerIds), len(resPeerIds))
+	}
+
+	for id := range resPeerIds {
+		if _, ok := peerIds[id]; !ok {
 			t.Errorf("Expected to find %s peer", id)
 		}
 	}
