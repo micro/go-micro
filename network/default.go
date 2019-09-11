@@ -29,8 +29,6 @@ var (
 )
 
 var (
-	// ErrMsgUnknown is returned when unknown message is attempted to send or receive
-	ErrMsgUnknown = errors.New("unknown message")
 	// ErrClientNotFound is returned when client for tunnel channel could not be found
 	ErrClientNotFound = errors.New("client not found")
 )
@@ -277,8 +275,13 @@ func (n *network) processNetChan(client transport.Client, listener tunnel.Listen
 					lastSeen: now,
 				}
 				n.Unlock()
+				// get all the node peers down to MaxDepth encoded in protobuf message
+				msg, err := n.node.getProtoTopology(MaxDepth)
+				if err != nil {
+					log.Debugf("Network unable to retrieve node peers: %s", err)
+				}
 				// advertise yourself to the network
-				if err := n.sendMsg("peer", NetworkChannel); err != nil {
+				if err := n.sendMsg("peer", msg, NetworkChannel); err != nil {
 					log.Debugf("Network failed to advertise peers: %v", err)
 				}
 				// advertise all the routes when a new node has connected
@@ -310,8 +313,10 @@ func (n *network) processNetChan(client transport.Client, listener tunnel.Listen
 					}
 					n.Unlock()
 					// send a solicit message when discovering new peer
-					// NOTE: we need to release the Lock here as sendMsg locsk, too
-					if err := n.sendMsg("solicit", ControlChannel); err != nil {
+					msg := &pbRtr.Solicit{
+						Id: n.options.Id,
+					}
+					if err := n.sendMsg("solicit", msg, ControlChannel); err != nil {
 						log.Debugf("Network failed to send solicit message: %s", err)
 					}
 					// after adding new peer go to the next step
@@ -351,49 +356,15 @@ func (n *network) processNetChan(client transport.Client, listener tunnel.Listen
 }
 
 // sendMsg sends a message to the tunnel channel
-func (n *network) sendMsg(msgType string, channel string) error {
-	node := &pbNet.Node{
-		Id:      n.options.Id,
-		Address: n.options.Address,
-	}
-
-	var protoMsg proto.Message
-
-	switch msgType {
-	case "connect":
-		protoMsg = &pbNet.Connect{
-			Node: node,
-		}
-	case "close":
-		protoMsg = &pbNet.Close{
-			Node: node,
-		}
-	case "solicit":
-		protoMsg = &pbNet.Solicit{
-			Node: node,
-		}
-	case "peer":
-		n.RLock()
-		var err error
-		// get all the node peers down to MaxDepth
-		protoMsg, err = n.node.getProtoTopology(MaxDepth)
-		if err != nil {
-			log.Debugf("Network unable to retrieve node peers: %s", err)
-			return err
-		}
-		n.RUnlock()
-	default:
-		return ErrMsgUnknown
-	}
-
-	body, err := proto.Marshal(protoMsg)
+func (n *network) sendMsg(method string, msg proto.Message, channel string) error {
+	body, err := proto.Marshal(msg)
 	if err != nil {
 		return err
 	}
 	// create transport message and chuck it down the pipe
 	m := transport.Message{
 		Header: map[string]string{
-			"Micro-Method": msgType,
+			"Micro-Method": method,
 		},
 		Body: body,
 	}
@@ -407,7 +378,7 @@ func (n *network) sendMsg(msgType string, channel string) error {
 	}
 	n.RUnlock()
 
-	log.Debugf("Network sending %s message from: %s", msgType, node.Id)
+	log.Debugf("Network sending %s message from: %s", method, n.options.Id)
 	if err := client.Send(&m); err != nil {
 		return err
 	}
@@ -425,8 +396,16 @@ func (n *network) announce(client transport.Client) {
 		case <-n.closed:
 			return
 		case <-announce.C:
+			n.RLock()
+			msg, err := n.node.getProtoTopology(MaxDepth)
+			if err != nil {
+				log.Debugf("Network unable to retrieve node peers: %s", err)
+				n.RUnlock()
+				continue
+			}
+			n.RUnlock()
 			// advertise yourself to the network
-			if err := n.sendMsg("peer", NetworkChannel); err != nil {
+			if err := n.sendMsg("peer", msg, NetworkChannel); err != nil {
 				log.Debugf("Network failed to advertise peers: %v", err)
 				continue
 			}
@@ -598,12 +577,15 @@ func (n *network) processCtrlChan(client transport.Client, listener tunnel.Liste
 						lastSeen: now,
 					}
 					n.peers[pbRtrAdvert.Id] = advertNode
+					n.Unlock()
 					// send a solicit message when discovering a new node
-					if err := n.sendMsg("solicit", ControlChannel); err != nil {
+					msg := &pbRtr.Solicit{
+						Id: n.options.Id,
+					}
+					if err := n.sendMsg("solicit", msg, ControlChannel); err != nil {
 						log.Debugf("Network failed to send solicit message: %s", err)
 					}
 				}
-				n.Unlock()
 
 				var events []*router.Event
 				for _, event := range pbRtrAdvert.Events {
@@ -660,14 +642,14 @@ func (n *network) processCtrlChan(client transport.Client, listener tunnel.Liste
 					continue
 				}
 			case "solicit":
-				pbNetSolicit := &pbNet.Solicit{}
-				if err := proto.Unmarshal(m.Body, pbNetSolicit); err != nil {
+				pbRtrSolicit := &pbRtr.Solicit{}
+				if err := proto.Unmarshal(m.Body, pbRtrSolicit); err != nil {
 					log.Debugf("Network fail to unmarshal solicit message: %v", err)
 					continue
 				}
-				log.Debugf("Network received solicit message from: %s", pbNetSolicit.Node.Id)
-				// don't process your own messages
-				if pbNetSolicit.Node.Id == n.options.Id {
+				log.Debugf("Network received solicit message from: %s", pbRtrSolicit.Id)
+				// ignore solicitation when requested by you
+				if pbRtrSolicit.Id == n.options.Id {
 					continue
 				}
 				// advertise all the routes when a new node has connected
@@ -707,29 +689,14 @@ func (n *network) advertise(client transport.Client, advertChan <-chan *router.A
 				}
 				events = append(events, e)
 			}
-			pbRtrAdvert := &pbRtr.Advert{
+			msg := &pbRtr.Advert{
 				Id:        advert.Id,
 				Type:      pbRtr.AdvertType(advert.Type),
 				Timestamp: advert.Timestamp.UnixNano(),
 				Events:    events,
 			}
-			body, err := proto.Marshal(pbRtrAdvert)
-			if err != nil {
-				// TODO: should we bail here?
-				log.Debugf("Network failed to marshal advert message: %v", err)
-				continue
-			}
-			// create transport message and chuck it down the pipe
-			m := transport.Message{
-				Header: map[string]string{
-					"Micro-Method": "advert",
-				},
-				Body: body,
-			}
-
-			log.Debugf("Network sending advert message from: %s", pbRtrAdvert.Id)
-			if err := client.Send(&m); err != nil {
-				log.Debugf("Network failed to send advert %s: %v", pbRtrAdvert.Id, err)
+			if err := n.sendMsg("advert", msg, NetworkChannel); err != nil {
+				log.Debugf("Network failed to advertise routes: %v", err)
 				continue
 			}
 		case <-n.closed:
@@ -814,7 +781,13 @@ func (n *network) Connect() error {
 	// NOTE: in theory we could do this as soon as
 	// Dial to NetworkChannel succeeds, but instead
 	// we initialize all other node resources first
-	if err := n.sendMsg("connect", NetworkChannel); err != nil {
+	msg := &pbNet.Connect{
+		Node: &pbNet.Node{
+			Id:      n.options.Id,
+			Address: n.options.Address,
+		},
+	}
+	if err := n.sendMsg("connect", msg, NetworkChannel); err != nil {
 		log.Debugf("Network failed to send connect message: %s", err)
 	}
 
@@ -880,9 +853,13 @@ func (n *network) Close() error {
 	case <-n.closed:
 		return nil
 	default:
-		// send close message only if we managed to connect to NetworkChannel
-		log.Debugf("Sending close message from: %s", n.options.Id)
-		if err := n.sendMsg("close", NetworkChannel); err != nil {
+		msg := &pbNet.Close{
+			Node: &pbNet.Node{
+				Id:      n.options.Id,
+				Address: n.options.Address,
+			},
+		}
+		if err := n.sendMsg("close", msg, NetworkChannel); err != nil {
 			log.Debugf("Network failed to send close message: %s", err)
 		}
 		// TODO: send close message to the network channel

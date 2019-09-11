@@ -63,12 +63,6 @@ message Close {
         Node node = 1;
 }
 
-// Solicit is sent when soliciting routes from the network nodes
-message Solicit {
-        // network node
-        Node node = 1;
-}
-
 // Peer is used to advertise node peers
 message Peer {
         // network node
