@@ -15,35 +15,6 @@ type Network struct {
 	Network network.Network
 }
 
-// toplogyToProto recursively traverses node topology and returns it
-func peerTopology(peer network.Node, depth uint) *pbNet.Peer {
-	node := &pbNet.Node{
-		Id:      peer.Id(),
-		Address: peer.Address(),
-	}
-
-	pbPeers := &pbNet.Peer{
-		Node:  node,
-		Peers: make([]*pbNet.Peer, 0),
-	}
-
-	// return if we reached the end of topology or depth
-	if depth == 0 || len(peer.Peers()) == 0 {
-		return pbPeers
-	}
-
-	// decrement the depth
-	depth--
-
-	// iterate through peers of peers aka pops
-	for _, pop := range peer.Peers() {
-		peer := peerTopology(pop, depth)
-		pbPeers.Peers = append(pbPeers.Peers, peer)
-	}
-
-	return pbPeers
-}
-
 // ListPeers returns a list of all the nodes the node has a direct link with
 func (n *Network) ListPeers(ctx context.Context, req *pbNet.PeerRequest, resp *pbNet.PeerResponse) error {
 	depth := uint(req.Depth)
@@ -54,21 +25,8 @@ func (n *Network) ListPeers(ctx context.Context, req *pbNet.PeerRequest, resp *p
 	// get node peers
 	nodePeers := n.Network.Peers()
 
-	// network node aka root node
-	node := &pbNet.Node{
-		Id:      n.Network.Id(),
-		Address: n.Network.Address(),
-	}
-	// we will build proto topology into this
-	peers := &pbNet.Peer{
-		Node:  node,
-		Peers: make([]*pbNet.Peer, 0),
-	}
-
-	for _, nodePeer := range nodePeers {
-		peer := peerTopology(nodePeer, depth)
-		peers.Peers = append(peers.Peers, peer)
-	}
+	// get peers encoded into protobuf
+	peers := network.PeersToProto(n.Network, nodePeers, depth)
 
 	resp.Peers = peers
 

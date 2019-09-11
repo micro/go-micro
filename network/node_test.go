@@ -256,7 +256,7 @@ func TestUpdatePeerTopology(t *testing.T) {
 	}
 }
 
-func TestGetProtoTopology(t *testing.T) {
+func TestPeersToProto(t *testing.T) {
 	// single node
 	single := &node{
 		id:      testNodeId,
@@ -266,10 +266,10 @@ func TestGetProtoTopology(t *testing.T) {
 	}
 	topCount := 0
 
-	protoTop := single.getProtoTopology(10)
+	protoPeers := PeersToProto(single, single.Peers(), 0)
 
-	if len(protoTop.Peers) != topCount {
-		t.Errorf("Expected to find %d nodes, found: %d", topCount, len(protoTop.Peers))
+	if len(protoPeers.Peers) != topCount {
+		t.Errorf("Expected to find %d nodes, found: %d", topCount, len(protoPeers.Peers))
 	}
 
 	// complicated node graph
@@ -282,9 +282,9 @@ func TestGetProtoTopology(t *testing.T) {
 		peerIds[id] = true
 	}
 	// depth 1 should give us immmediate neighbours only
-	protoTop = node.getProtoTopology(1)
+	protoPeers = PeersToProto(node, node.Peers(), 1)
 
-	if len(protoTop.Peers) != topCount {
-		t.Errorf("Expected to find %d nodes, found: %d", topCount, len(protoTop.Peers))
+	if len(protoPeers.Peers) != topCount {
+		t.Errorf("Expected to find %d nodes, found: %d", topCount, len(protoPeers.Peers))
 	}
 }

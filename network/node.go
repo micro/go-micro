@@ -128,42 +128,22 @@ func (n *node) Peers() []Node {
 	return peers
 }
 
-// getProtoTopology returns node topology down to the given depth encoded in protobuf
-func (n *node) getProtoTopology(depth uint) *pb.Peer {
-	n.RLock()
-	defer n.RUnlock()
+// updateTopology updates node peer topology down to given depth
+func (n *node) updatePeerTopology(pbPeer *pb.Peer, depth uint) error {
+	n.Lock()
+	defer n.Unlock()
 
-	node := &pb.Node{
-		Id:      n.id,
-		Address: n.address,
+	if pbPeer == nil {
+		return errors.New("peer not initialized")
 	}
 
-	pbPeers := &pb.Peer{
-		Node:  node,
-		Peers: make([]*pb.Peer, 0),
-	}
+	// unpack Peer topology into *node
+	peer := unpackPeer(pbPeer, depth)
 
-	// return if have either reached the depth or have no more peers
-	if depth == 0 || len(n.peers) == 0 {
-		return pbPeers
-	}
+	// update node peers with new topology
+	n.peers[pbPeer.Node.Id] = peer
 
-	// decrement the depth
-	depth--
-
-	var peers []*pb.Peer
-	for _, peer := range n.peers {
-		// get peers of the node peers
-		// NOTE: this is [not] a recursive call
-		pbPeerPeer := peer.getProtoTopology(depth)
-		// add current peer to explored peers
-		peers = append(peers, pbPeerPeer)
-	}
-
-	// add peers to the parent topology
-	pbPeers.Peers = peers
-
-	return pbPeers
+	return nil
 }
 
 // unpackPeer unpacks pb.Peer into node topology of given depth
@@ -194,20 +174,51 @@ func unpackPeer(pbPeer *pb.Peer, depth uint) *node {
 	return peerNode
 }
 
-// updateTopology updates node peer topology down to given depth
-func (n *node) updatePeerTopology(pbPeer *pb.Peer, depth uint) error {
-	n.Lock()
-	defer n.Unlock()
-
-	if pbPeer == nil {
-		return errors.New("peer not initialized")
+func peerTopology(peer Node, depth uint) *pb.Peer {
+	node := &pb.Node{
+		Id:      peer.Id(),
+		Address: peer.Address(),
 	}
 
-	// unpack Peer topology into *node
-	peer := unpackPeer(pbPeer, depth)
+	pbPeers := &pb.Peer{
+		Node:  node,
+		Peers: make([]*pb.Peer, 0),
+	}
 
-	// update node peers with new topology
-	n.peers[pbPeer.Node.Id] = peer
+	// return if we reached the end of topology or depth
+	if depth == 0 || len(peer.Peers()) == 0 {
+		return pbPeers
+	}
 
-	return nil
+	// decrement the depth
+	depth--
+
+	// iterate through peers of peers aka pops
+	for _, pop := range peer.Peers() {
+		peer := peerTopology(pop, depth)
+		pbPeers.Peers = append(pbPeers.Peers, peer)
+	}
+
+	return pbPeers
+}
+
+// PeersToProto returns node peers graph encoded into protobuf
+func PeersToProto(root Node, peers []Node, depth uint) *pb.Peer {
+	// network node aka root node
+	node := &pb.Node{
+		Id:      root.Id(),
+		Address: root.Address(),
+	}
+	// we will build proto topology into this
+	pbPeers := &pb.Peer{
+		Node:  node,
+		Peers: make([]*pb.Peer, 0),
+	}
+
+	for _, peer := range peers {
+		pbPeer := peerTopology(peer, depth)
+		pbPeers.Peers = append(pbPeers.Peers, pbPeer)
+	}
+
+	return pbPeers
 }
