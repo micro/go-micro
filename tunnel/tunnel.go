@@ -15,6 +15,8 @@ var (
 	ErrDialTimeout = errors.New("dial timeout")
 	// ErrDiscoverChan is returned when we failed to receive the "announce" back from a discovery
 	ErrDiscoverChan = errors.New("failed to discover channel")
+	// ErrLinkNotFound is returned when a link is specified at dial time and does not exist
+	ErrLinkNotFound = errors.New("link not found")
 )
 
 // Tunnel creates a gre tunnel on top of the go-micro/transport.
@@ -43,6 +45,8 @@ type Tunnel interface {
 type Link interface {
 	// The id of the link
 	Id() string
+	// Status of the link e.g connected/closed
+	Status() string
 	// honours transport socket
 	transport.Socket
 }
@@ -60,6 +64,8 @@ type Session interface {
 	Id() string
 	// The channel name
 	Channel() string
+	// The link the session is on
+	Link() string
 	// a transport socket
 	transport.Socket
 }

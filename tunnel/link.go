@@ -12,7 +12,8 @@ type link struct {
 	transport.Socket
 
 	sync.RWMutex
-
+	// stops the link
+	closed chan bool
 	// unique id of this link e.g uuid
 	// which we define for ourselves
 	id string
@@ -30,8 +31,6 @@ type link struct {
 	lastKeepAlive time.Time
 	// channels keeps a mapping of channels and last seen
 	channels map[string]time.Time
-	// stop the link
-	closed chan bool
 }
 
 func newLink(s transport.Socket) *link {
@@ -41,11 +40,12 @@ func newLink(s transport.Socket) *link {
 		channels: make(map[string]time.Time),
 		closed:   make(chan bool),
 	}
-	go l.run()
+	go l.expiry()
 	return l
 }
 
-func (l *link) run() {
+// watches the channel expiry
+func (l *link) expiry() {
 	t := time.NewTicker(time.Minute)
 	defer t.Stop()
 
@@ -98,4 +98,13 @@ func (l *link) Close() error {
 	}
 
 	return nil
+}
+
+func (l *link) Status() string {
+	select {
+	case <-l.closed:
+		return "closed"
+	default:
+		return "connected"
+	}
 }
