@@ -21,12 +21,10 @@ func (r *Resolver) Resolve(name string) ([]*resolver.Record, error) {
 		}, nil
 	}
 
-	var records []*resolver.Record
+	records := make([]*resolver.Record, len(r.Nodes))
 
-	for _, node := range r.Nodes {
-		records = append(records, &resolver.Record{
-			Address: node,
-		})
+	for i, node := range r.Nodes {
+		records[i] = &resolver.Record{Address: node}
 	}
 
 	return records, nil

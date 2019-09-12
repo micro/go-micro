@@ -127,8 +127,7 @@ func (t *tun) newSession(channel, sessionId string) (*session, bool) {
 
 	// save session
 	t.Lock()
-	_, ok := t.sessions[channel+sessionId]
-	if ok {
+	if _, ok := t.sessions[channel+sessionId]; ok {
 		// session already exists
 		t.Unlock()
 		return nil, false
@@ -178,8 +177,7 @@ func (t *tun) announce(channel, session string, link *link) {
 	} else {
 		// otherwise look for a single channel mapping
 		// looking for existing mapping as a listener
-		_, exists := t.getSession(channel, "listener")
-		if !exists {
+		if _, exists := t.getSession(channel, "listener"); !exists {
 			return
 		}
 	}

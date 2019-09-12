@@ -23,8 +23,8 @@ func (n *Network) ListRoutes(ctx context.Context, req *pbRtr.Request, resp *pbRt
 		return errors.InternalServerError("go.micro.network", "failed to list routes: %s", err)
 	}
 
-	var respRoutes []*pbRtr.Route
-	for _, route := range routes {
+	respRoutes := make([]*pbRtr.Route, len(routes))
+	for i, route := range routes {
 		respRoute := &pbRtr.Route{
 			Service: route.Service,
 			Address: route.Address,
@@ -34,7 +34,7 @@ func (n *Network) ListRoutes(ctx context.Context, req *pbRtr.Request, resp *pbRt
 			Link:    route.Link,
 			Metric:  int64(route.Metric),
 		}
-		respRoutes = append(respRoutes, respRoute)
+		respRoutes[i] = respRoute
 	}
 
 	resp.Routes = respRoutes
@@ -46,13 +46,13 @@ func (n *Network) ListRoutes(ctx context.Context, req *pbRtr.Request, resp *pbRt
 func (n *Network) ListNodes(ctx context.Context, req *pbNet.ListRequest, resp *pbNet.ListResponse) error {
 	nodes := n.Network.Nodes()
 
-	var respNodes []*pbNet.Node
-	for _, node := range nodes {
+	respNodes := make([]*pbNet.Node, len(nodes))
+	for i, node := range nodes {
 		respNode := &pbNet.Node{
 			Id:      node.Id(),
 			Address: node.Address(),
 		}
-		respNodes = append(respNodes, respNode)
+		respNodes[i] = respNode
 	}
 
 	resp.Nodes = respNodes
