@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/gob"
+	"time"
 
 	"github.com/lucas-clemente/quic-go"
 	"github.com/micro/go-micro/transport"
@@ -43,6 +44,9 @@ func (q *quicSocket) Recv(m *transport.Message) error {
 }
 
 func (q *quicSocket) Send(m *transport.Message) error {
+	// set the write deadline
+	q.st.SetWriteDeadline(time.Now().Add(time.Second * 10))
+	// send the data
 	return q.enc.Encode(m)
 }
 
@@ -113,7 +117,10 @@ func (q *quicTransport) Dial(addr string, opts ...transport.DialOption) (transpo
 			NextProtos:         []string{"http/1.1"},
 		}
 	}
-	s, err := quic.DialAddr(addr, config, &quic.Config{KeepAlive: true})
+	s, err := quic.DialAddr(addr, config, &quic.Config{
+		IdleTimeout: time.Minute * 2,
+		KeepAlive:   true,
+	})
 	if err != nil {
 		return nil, err
 	}
