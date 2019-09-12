@@ -35,10 +35,11 @@ type link struct {
 
 func newLink(s transport.Socket) *link {
 	l := &link{
-		Socket:   s,
-		id:       uuid.New().String(),
-		channels: make(map[string]time.Time),
-		closed:   make(chan bool),
+		Socket:        s,
+		id:            uuid.New().String(),
+		channels:      make(map[string]time.Time),
+		closed:        make(chan bool),
+		lastKeepAlive: time.Now(),
 	}
 	go l.expiry()
 	return l
