@@ -554,7 +554,7 @@ func (n *network) processCtrlChan(client transport.Client, listener tunnel.Liste
 					if pbRtrAdvert.Id != event.Route.Router {
 						// if the origin router is not the advertising node peer
 						// we can't rule out potential routing loops so we bail here
-						if !advertNode.HasPeer(event.Route.Router) {
+						if peer := advertNode.GetPeerNode(event.Route.Router); peer == nil {
 							log.Debugf("Network skipping advert message from peer: %s", pbRtrAdvert.Id)
 							continue
 						}
