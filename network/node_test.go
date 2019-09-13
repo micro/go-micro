@@ -117,6 +117,12 @@ func TestNodes(t *testing.T) {
 			t.Errorf("Expected to find %s node", node.Id())
 		}
 	}
+
+	// this is a leaf node
+	id := "peer11"
+	if nodePeer := node.GetPeerNode(id); nodePeer == nil {
+		t.Errorf("Expected to find %s node", id)
+	}
 }
 
 func collectPeerIds(peer Node, ids map[string]bool) map[string]bool {

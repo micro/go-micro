@@ -43,7 +43,7 @@ func (n *node) Network() Network {
 	return n.network
 }
 
-// AddPeer adds a new peer to node
+// AddPeer adds a new peer to node topology
 // It returns false if the peer already exists
 func (n *node) AddPeer(peer *node) bool {
 	n.Lock()
@@ -55,33 +55,6 @@ func (n *node) AddPeer(peer *node) bool {
 	}
 
 	return false
-}
-
-// GetPeer returns a peer if it exists
-// It returns nil if the peer was not found
-func (n *node) GetPeer(id string) *node {
-	n.RLock()
-	defer n.RUnlock()
-
-	p, ok := n.peers[id]
-	if !ok {
-		return nil
-	}
-
-	peer := &node{
-		id:       p.id,
-		address:  p.address,
-		peers:    make(map[string]*node),
-		network:  p.network,
-		lastSeen: p.lastSeen,
-	}
-
-	// TODO: recursively retrieve all of its peers
-	for id, pop := range p.peers {
-		peer.peers[id] = pop
-	}
-
-	return peer
 }
 
 // UpdatePeer updates a peer if it exists
@@ -106,7 +79,17 @@ func (n *node) DeletePeer(id string) {
 	delete(n.peers, id)
 }
 
-// Refresh updates node timestamp
+// HasPeer returns true if node has peer with given id
+func (n *node) HasPeer(id string) bool {
+	n.RLock()
+	defer n.RUnlock()
+
+	_, ok := n.peers[id]
+	return ok
+}
+
+// RefreshPeer updates node timestamp
+// It returns false if the peer has not been found.
 func (n *node) RefreshPeer(id string, now time.Time) bool {
 	n.Lock()
 	defer n.Unlock()
@@ -123,13 +106,7 @@ func (n *node) RefreshPeer(id string, now time.Time) bool {
 	return true
 }
 
-// Nodes returns a slice if all nodes in node topology
-func (n *node) Nodes() []Node {
-	// we need to freeze the network graph here
-	// otherwise we might get inconsisten results
-	n.RLock()
-	defer n.RUnlock()
-
+func (n *node) walk(until func(peer *node) bool) map[string]*node {
 	// track the visited nodes
 	visited := make(map[string]*node)
 	// queue of the nodes to visit
@@ -151,10 +128,30 @@ func (n *node) Nodes() []Node {
 				visited[id] = node
 				queue.PushBack(node)
 			}
+			if until(node) {
+				return visited
+			}
 		}
 		// remove the node from the queue
 		queue.Remove(qnode)
 	}
+
+	return visited
+}
+
+// Nodes returns a slice if all nodes in node topology
+func (n *node) Nodes() []Node {
+	// we need to freeze the network graph here
+	// otherwise we might get inconsisten results
+	n.RLock()
+	defer n.RUnlock()
+
+	// NOTE: this should never be true
+	untilNoMorePeers := func(n *node) bool {
+		return n == nil
+	}
+
+	visited := n.walk(untilNoMorePeers)
 
 	var nodes []Node
 	// collect all the nodes and return them
@@ -165,8 +162,34 @@ func (n *node) Nodes() []Node {
 	return nodes
 }
 
-// topology returns node topology down to given depth
-func (n *node) topology(depth uint) *node {
+// GetPeerNode returns a peer from node topology i.e. up to MaxDepth
+// It returns nil if the peer was not found in the node topology
+func (n *node) GetPeerNode(id string) *node {
+	n.RLock()
+	defer n.RUnlock()
+
+	// get node topology up to MaxDepth
+	top := n.Topology(MaxDepth)
+
+	untilFoundPeer := func(n *node) bool {
+		return n.id == id
+	}
+
+	visited := top.walk(untilFoundPeer)
+
+	peerNode, ok := visited[id]
+	if !ok {
+		return nil
+	}
+
+	return peerNode
+}
+
+// Topology returns a copy of th node topology down to given depth
+func (n *node) Topology(depth uint) *node {
+	n.RLock()
+	defer n.RUnlock()
+
 	// make a copy of yourself
 	node := &node{
 		id:       n.id,
@@ -186,7 +209,7 @@ func (n *node) topology(depth uint) *node {
 
 	// iterate through our peers and update the node peers
 	for _, peer := range n.peers {
-		nodePeer := peer.topology(depth)
+		nodePeer := peer.Topology(depth)
 		if _, ok := node.peers[nodePeer.id]; !ok {
 			node.peers[nodePeer.id] = nodePeer
 		}
@@ -195,15 +218,16 @@ func (n *node) topology(depth uint) *node {
 	return node
 }
 
-// Peers returns node peers
+// Peers returns node peers up to MaxDepth
 func (n *node) Peers() []Node {
 	n.RLock()
+	defer n.RUnlock()
+
 	var peers []Node
 	for _, nodePeer := range n.peers {
-		peer := nodePeer.topology(MaxDepth)
+		peer := nodePeer.Topology(MaxDepth)
 		peers = append(peers, peer)
 	}
-	n.RUnlock()
 
 	return peers
 }
@@ -236,7 +260,7 @@ func UnpackPeerTopology(pbPeer *pb.Peer, lastSeen time.Time, depth uint) *node {
 	return peerNode
 }
 
-func peerTopology(peer Node, depth uint) *pb.Peer {
+func peerProtoTopology(peer Node, depth uint) *pb.Peer {
 	node := &pb.Node{
 		Id:      peer.Id(),
 		Address: peer.Address(),
@@ -257,7 +281,7 @@ func peerTopology(peer Node, depth uint) *pb.Peer {
 
 	// iterate through peers of peers aka pops
 	for _, pop := range peer.Peers() {
-		peer := peerTopology(pop, depth)
+		peer := peerProtoTopology(pop, depth)
 		pbPeers.Peers = append(pbPeers.Peers, peer)
 	}
 
@@ -278,7 +302,7 @@ func PeersToProto(node Node, depth uint) *pb.Peer {
 	}
 
 	for _, peer := range node.Peers() {
-		pbPeer := peerTopology(peer, depth)
+		pbPeer := peerProtoTopology(peer, depth)
 		pbPeers.Peers = append(pbPeers.Peers, pbPeer)
 	}
 

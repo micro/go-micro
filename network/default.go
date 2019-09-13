@@ -264,7 +264,7 @@ func (n *network) processNetChan(client transport.Client, listener tunnel.Listen
 				}
 				if ok := n.node.AddPeer(peer); !ok {
 					log.Debugf("Network peer exists, refreshing: %s", peer.id)
-					// update lastSeen time for the peer
+					// update lastSeen time for the existing node
 					if ok := n.RefreshPeer(peer.id, now); !ok {
 						log.Debugf("Network failed refreshing peer: %s", peer.id)
 					}
@@ -314,7 +314,7 @@ func (n *network) processNetChan(client transport.Client, listener tunnel.Listen
 				if ok := n.RefreshPeer(pbNetPeer.Node.Id, now); !ok {
 					log.Debugf("Network failed refreshing peer: %s", pbNetPeer.Node.Id)
 				}
-				// NOTE: we don't uunpack MaxDepth toplogy
+				// NOTE: we don't unpack MaxDepth toplogy
 				peer = UnpackPeerTopology(pbNetPeer, now, MaxDepth-1)
 				log.Debugf("Network updating topology of node: %s", n.node.id)
 				if ok := n.node.UpdatePeer(peer); !ok {
@@ -539,34 +539,23 @@ func (n *network) processCtrlChan(client transport.Client, listener tunnel.Liste
 				if pbRtrAdvert.Id == n.options.Id {
 					continue
 				}
-				log.Debugf("Network received advert message from: %s", pbRtrAdvert.Id)
-				// loookup advertising node in our peers
-				advertNode := n.node.GetPeer(pbRtrAdvert.Id)
-				// if we dont recognize the node as our peer we skip processing its adverts
+				log.Debugf("Network received advert message with %d events from: %s", len(pbRtrAdvert.Events), pbRtrAdvert.Id)
+				// loookup advertising node in our peer topology
+				advertNode := n.node.GetPeerNode(pbRtrAdvert.Id)
 				if advertNode == nil {
+					// if we can't find the node in our topology (MaxDepth) we skipp prcessing adverts
 					log.Debugf("Network skipping advert message from unknown peer: %s", pbRtrAdvert.Id)
 					continue
 				}
 
 				var events []*router.Event
 				for _, event := range pbRtrAdvert.Events {
-					// set the address of the advertising node
-					// we know Route.Gateway is the address of advertNode
-					// NOTE: this is true only when advertNode had not been registered
-					// as our peer when we received the advert from it
-					if advertNode.address == "" {
-						advertNode.address = event.Route.Gateway
-						if ok := n.node.UpdatePeer(advertNode); !ok {
-							log.Debugf("Network failed to update peer: %s", advertNode.id)
-							continue
-						}
-					}
-					// if advertising node id is not the same as Route.Router
 					// we know the advertising node is not the origin of the route
-					if advertNode.id != event.Route.Router {
+					if pbRtrAdvert.Id != event.Route.Router {
 						// if the origin router is not the advertising node peer
 						// we can't rule out potential routing loops so we bail here
-						if peer := advertNode.GetPeer(event.Route.Router); peer == nil {
+						if !advertNode.HasPeer(event.Route.Router) {
+							log.Debugf("Network skipping advert message from peer: %s", pbRtrAdvert.Id)
 							continue
 						}
 					}
@@ -676,14 +665,13 @@ func (n *network) advertise(client transport.Client, advertChan <-chan *router.A
 
 // Connect connects the network
 func (n *network) Connect() error {
-	n.RLock()
+	n.Lock()
 	// return if already connected
 	if n.connected {
-		n.RUnlock()
+		n.Unlock()
 		return nil
 	}
 
-	n.Lock()
 	// try to resolve network nodes
 	nodes, err := n.resolveNodes()
 	if err != nil {
@@ -831,8 +819,6 @@ func (n *network) Close() error {
 		// unlock the lock otherwise we'll deadlock sending the close
 		n.Unlock()
 
-		// send close message only if we managed to connect to NetworkChannel
-		log.Debugf("Sending close message from: %s", n.options.Id)
 		msg := &pbNet.Close{
 			Node: &pbNet.Node{
 				Id:      n.options.Id,
