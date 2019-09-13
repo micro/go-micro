@@ -676,12 +676,14 @@ func (n *network) advertise(client transport.Client, advertChan <-chan *router.A
 
 // Connect connects the network
 func (n *network) Connect() error {
-	n.Lock()
+	n.RLock()
 	// return if already connected
 	if n.connected {
+		n.RUnlock()
 		return nil
 	}
 
+	n.Lock()
 	// try to resolve network nodes
 	nodes, err := n.resolveNodes()
 	if err != nil {
@@ -690,6 +692,7 @@ func (n *network) Connect() error {
 
 	// connect network tunnel
 	if err := n.Tunnel.Connect(); err != nil {
+		n.Unlock()
 		return err
 	}
 
@@ -701,6 +704,7 @@ func (n *network) Connect() error {
 	// dial into ControlChannel to send route adverts
 	ctrlClient, err := n.Tunnel.Dial(ControlChannel, tunnel.DialMulticast())
 	if err != nil {
+		n.Unlock()
 		return err
 	}
 
@@ -709,12 +713,14 @@ func (n *network) Connect() error {
 	// listen on ControlChannel
 	ctrlListener, err := n.Tunnel.Listen(ControlChannel)
 	if err != nil {
+		n.Unlock()
 		return err
 	}
 
 	// dial into NetworkChannel to send network messages
 	netClient, err := n.Tunnel.Dial(NetworkChannel, tunnel.DialMulticast())
 	if err != nil {
+		n.Unlock()
 		return err
 	}
 
@@ -723,6 +729,7 @@ func (n *network) Connect() error {
 	// listen on NetworkChannel
 	netListener, err := n.Tunnel.Listen(NetworkChannel)
 	if err != nil {
+		n.Unlock()
 		return err
 	}
 
@@ -731,17 +738,20 @@ func (n *network) Connect() error {
 
 	// start the router
 	if err := n.options.Router.Start(); err != nil {
+		n.Unlock()
 		return err
 	}
 
 	// start advertising routes
 	advertChan, err := n.options.Router.Advertise()
 	if err != nil {
+		n.Unlock()
 		return err
 	}
 
 	// start the server
 	if err := n.server.Start(); err != nil {
+		n.Unlock()
 		return err
 	}
 	n.Unlock()
