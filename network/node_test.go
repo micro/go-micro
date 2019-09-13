@@ -2,6 +2,7 @@ package network
 
 import (
 	"testing"
+	"time"
 
 	pb "github.com/micro/go-micro/network/proto"
 )
@@ -185,20 +186,7 @@ func TestPeers(t *testing.T) {
 	}
 }
 
-func TestUpdatePeerTopology(t *testing.T) {
-	// single node
-	single := &node{
-		id:      testNodeId,
-		address: testNodeAddress,
-		peers:   make(map[string]*node),
-		network: newNetwork(Name(testNodeNetName)),
-	}
-	// nil peer should return error
-	if err := single.updatePeerTopology(nil, 5); err == nil {
-		t.Errorf("Expected error, got %s", err)
-	}
-
-	// update with peer that is not yet in the peer map
+func TestUnpackPeerTopology(t *testing.T) {
 	pbPeer := &pb.Peer{
 		Node: &pb.Node{
 			Id:      "newPeer",
@@ -207,14 +195,11 @@ func TestUpdatePeerTopology(t *testing.T) {
 		Peers: make([]*pb.Peer, 0),
 	}
 	// it should add pbPeer to the single node peers
-	if err := single.updatePeerTopology(pbPeer, 5); err != nil {
-		t.Errorf("Error updating topology: %s", err)
-	}
-	if _, ok := single.peers[pbPeer.Node.Id]; !ok {
-		t.Errorf("Expected %s to be added to %s peers", pbPeer.Node.Id, single.id)
+	peer := UnpackPeerTopology(pbPeer, time.Now(), 5)
+	if peer.id != pbPeer.Node.Id {
+		t.Errorf("Expected peer id %s, found: %s", pbPeer.Node.Id, peer.id)
 	}
 
-	// complicated node graph
 	node := testSetup()
 	// build a simple topology to update node peer1
 	peer1 := node.peers["peer1"]
@@ -243,14 +228,12 @@ func TestUpdatePeerTopology(t *testing.T) {
 		Node:  pbPeer1Node,
 		Peers: []*pb.Peer{pbPeer111, pbPeer121},
 	}
-	// update peer1 topology
-	if err := node.updatePeerTopology(pbPeer1, 5); err != nil {
-		t.Errorf("Error updating topology: %s", err)
-	}
+	// unpack peer1 topology
+	peer = UnpackPeerTopology(pbPeer1, time.Now(), 5)
 	// make sure peer1 topology has been correctly updated
 	newPeerIds := []string{pbPeer111.Node.Id, pbPeer121.Node.Id}
 	for _, id := range newPeerIds {
-		if _, ok := node.peers["peer1"].peers[id]; !ok {
+		if _, ok := peer.peers[id]; !ok {
 			t.Errorf("Expected %s to be a peer of %s", id, "peer1")
 		}
 	}
@@ -266,7 +249,7 @@ func TestPeersToProto(t *testing.T) {
 	}
 	topCount := 0
 
-	protoPeers := PeersToProto(single, single.Peers(), 0)
+	protoPeers := PeersToProto(single, 0)
 
 	if len(protoPeers.Peers) != topCount {
 		t.Errorf("Expected to find %d nodes, found: %d", topCount, len(protoPeers.Peers))
@@ -282,7 +265,7 @@ func TestPeersToProto(t *testing.T) {
 		peerIds[id] = true
 	}
 	// depth 1 should give us immmediate neighbours only
-	protoPeers = PeersToProto(node, node.Peers(), 1)
+	protoPeers = PeersToProto(node, 1)
 
 	if len(protoPeers.Peers) != topCount {
 		t.Errorf("Expected to find %d nodes, found: %d", topCount, len(protoPeers.Peers))

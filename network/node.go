@@ -2,7 +2,6 @@ package network
 
 import (
 	"container/list"
-	"errors"
 	"sync"
 	"time"
 
@@ -42,6 +41,86 @@ func (n *node) Address() string {
 // Network returns node network
 func (n *node) Network() Network {
 	return n.network
+}
+
+// AddPeer adds a new peer to node
+// It returns false if the peer already exists
+func (n *node) AddPeer(peer *node) bool {
+	n.Lock()
+	defer n.Unlock()
+
+	if _, ok := n.peers[peer.id]; !ok {
+		n.peers[peer.id] = peer
+		return true
+	}
+
+	return false
+}
+
+// GetPeer returns a peer if it exists
+// It returns nil if the peer was not found
+func (n *node) GetPeer(id string) *node {
+	n.RLock()
+	defer n.RUnlock()
+
+	p, ok := n.peers[id]
+	if !ok {
+		return nil
+	}
+
+	peer := &node{
+		id:       p.id,
+		address:  p.address,
+		peers:    make(map[string]*node),
+		network:  p.network,
+		lastSeen: p.lastSeen,
+	}
+
+	// TODO: recursively retrieve all of its peers
+	for id, pop := range p.peers {
+		peer.peers[id] = pop
+	}
+
+	return peer
+}
+
+// UpdatePeer updates a peer if it exists
+// It returns false if the peer does not exist
+func (n *node) UpdatePeer(peer *node) bool {
+	n.Lock()
+	defer n.Unlock()
+
+	if _, ok := n.peers[peer.id]; ok {
+		n.peers[peer.id] = peer
+		return true
+	}
+
+	return false
+}
+
+// DeletePeer deletes a peer if it exists
+func (n *node) DeletePeer(id string) {
+	n.Lock()
+	defer n.Unlock()
+
+	delete(n.peers, id)
+}
+
+// Refresh updates node timestamp
+func (n *node) RefreshPeer(id string, now time.Time) bool {
+	n.Lock()
+	defer n.Unlock()
+
+	peer, ok := n.peers[id]
+	if !ok {
+		return false
+	}
+
+	if peer.lastSeen.Before(now) {
+		peer.lastSeen = now
+	}
+
+	return true
 }
 
 // Nodes returns a slice if all nodes in node topology
@@ -90,10 +169,11 @@ func (n *node) Nodes() []Node {
 func (n *node) topology(depth uint) *node {
 	// make a copy of yourself
 	node := &node{
-		id:      n.id,
-		address: n.address,
-		peers:   make(map[string]*node),
-		network: n.network,
+		id:       n.id,
+		address:  n.address,
+		peers:    make(map[string]*node),
+		network:  n.network,
+		lastSeen: n.lastSeen,
 	}
 
 	// return if we reach requested depth or we have no more peers
@@ -128,31 +208,13 @@ func (n *node) Peers() []Node {
 	return peers
 }
 
-// updateTopology updates node peer topology down to given depth
-func (n *node) updatePeerTopology(pbPeer *pb.Peer, depth uint) error {
-	n.Lock()
-	defer n.Unlock()
-
-	if pbPeer == nil {
-		return errors.New("peer not initialized")
-	}
-
-	// unpack Peer topology into *node
-	peer := unpackPeer(pbPeer, depth)
-
-	// update node peers with new topology
-	n.peers[pbPeer.Node.Id] = peer
-
-	return nil
-}
-
-// unpackPeer unpacks pb.Peer into node topology of given depth
-// NOTE: this function is not thread-safe
-func unpackPeer(pbPeer *pb.Peer, depth uint) *node {
+// UnpackPeerTopology unpacks pb.Peer into node topology of given depth
+func UnpackPeerTopology(pbPeer *pb.Peer, lastSeen time.Time, depth uint) *node {
 	peerNode := &node{
-		id:      pbPeer.Node.Id,
-		address: pbPeer.Node.Address,
-		peers:   make(map[string]*node),
+		id:       pbPeer.Node.Id,
+		address:  pbPeer.Node.Address,
+		peers:    make(map[string]*node),
+		lastSeen: lastSeen,
 	}
 
 	// return if have either reached the depth or have no more peers
@@ -165,7 +227,7 @@ func unpackPeer(pbPeer *pb.Peer, depth uint) *node {
 
 	peers := make(map[string]*node)
 	for _, pbPeer := range pbPeer.Peers {
-		peer := unpackPeer(pbPeer, depth)
+		peer := UnpackPeerTopology(pbPeer, lastSeen, depth)
 		peers[pbPeer.Node.Id] = peer
 	}
 
@@ -203,19 +265,19 @@ func peerTopology(peer Node, depth uint) *pb.Peer {
 }
 
 // PeersToProto returns node peers graph encoded into protobuf
-func PeersToProto(root Node, peers []Node, depth uint) *pb.Peer {
+func PeersToProto(node Node, depth uint) *pb.Peer {
 	// network node aka root node
-	node := &pb.Node{
-		Id:      root.Id(),
-		Address: root.Address(),
+	pbNode := &pb.Node{
+		Id:      node.Id(),
+		Address: node.Address(),
 	}
 	// we will build proto topology into this
 	pbPeers := &pb.Peer{
-		Node:  node,
+		Node:  pbNode,
 		Peers: make([]*pb.Peer, 0),
 	}
 
-	for _, peer := range peers {
+	for _, peer := range node.Peers() {
 		pbPeer := peerTopology(peer, depth)
 		pbPeers.Peers = append(pbPeers.Peers, pbPeer)
 	}

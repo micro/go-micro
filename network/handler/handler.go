@@ -22,11 +22,8 @@ func (n *Network) ListPeers(ctx context.Context, req *pbNet.PeerRequest, resp *p
 		depth = network.MaxDepth
 	}
 
-	// get node peers
-	nodePeers := n.Network.Peers()
-
 	// get peers encoded into protobuf
-	peers := network.PeersToProto(n.Network, nodePeers, depth)
+	peers := network.PeersToProto(n.Network, depth)
 
 	resp.Peers = peers
 
