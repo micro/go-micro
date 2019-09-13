@@ -378,6 +378,7 @@ func (t *tun) delLink(remote string) {
 			continue
 		}
 		// close and delete
+		log.Debugf("Tunnel deleting link node: %s remote: %s", id, link.Remote())
 		link.Close()
 		delete(t.links, id)
 	}
@@ -387,7 +388,6 @@ func (t *tun) delLink(remote string) {
 func (t *tun) listen(link *link) {
 	// remove the link on exit
 	defer func() {
-		log.Debugf("Tunnel deleting connection from %s", link.Remote())
 		t.delLink(link.Remote())
 	}()
 
