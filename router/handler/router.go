@@ -45,6 +45,16 @@ func (r *Router) Lookup(ctx context.Context, req *pb.LookupRequest, resp *pb.Loo
 	return nil
 }
 
+// Solicit triggers full routing table advertisement
+func (r *Router) Solicit(ctx context.Context, req *pb.Request, resp *pb.Response) error {
+	if err := r.Router.Solicit(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// Advertise streams router advertisements
 func (r *Router) Advertise(ctx context.Context, req *pb.Request, stream pb.Router_AdvertiseStream) error {
 	advertChan, err := r.Router.Advertise()
 	if err != nil {
@@ -91,6 +101,7 @@ func (r *Router) Advertise(ctx context.Context, req *pb.Request, stream pb.Route
 	return nil
 }
 
+// Process processes advertisements
 func (r *Router) Process(ctx context.Context, req *pb.Advert, rsp *pb.ProcessResponse) error {
 	events := make([]*router.Event, len(req.Events))
 	for i, event := range req.Events {
@@ -126,6 +137,7 @@ func (r *Router) Process(ctx context.Context, req *pb.Advert, rsp *pb.ProcessRes
 	return nil
 }
 
+// Status returns router status
 func (r *Router) Status(ctx context.Context, req *pb.Request, rsp *pb.StatusResponse) error {
 	status := r.Router.Status()
 

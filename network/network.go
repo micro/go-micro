@@ -28,8 +28,8 @@ type Node interface {
 	Id() string
 	// Address is node bind address
 	Address() string
-	// Neighbourhood is node neighbourhood
-	Neighbourhood() []Node
+	// Peers returns node peers
+	Peers() []Node
 	// Network is the network node is in
 	Network() Network
 }
@@ -44,8 +44,6 @@ type Network interface {
 	Name() string
 	// Connect starts the resolver and tunnel server
 	Connect() error
-	// Nodes returns list of network nodes
-	Nodes() []Node
 	// Close stops the tunnel and resolving
 	Close() error
 	// Client is micro client

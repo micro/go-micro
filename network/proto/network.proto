@@ -6,32 +6,25 @@ import "github.com/micro/go-micro/router/proto/router.proto";
 
 // Network service is usesd to gain visibility into networks
 service Network {
+        rpc ListPeers(PeerRequest) returns (PeerResponse) {};
         rpc ListRoutes(go.micro.router.Request) returns (go.micro.router.ListResponse) {};
-        rpc ListNodes(ListRequest) returns (ListResponse) {};
-        rpc Neighbourhood(NeighbourhoodRequest) returns (NeighbourhoodResponse) {};
 }
 
-// Empty request
-message ListRequest {}
-
-// ListResponse is returned by ListNodes and ListNeighbours
-message ListResponse {
-	repeated Node nodes = 1;
+// PeerRequest requests list of peers
+message PeerRequest {
+        // node topology depth
+        uint32 depth = 1;
 }
 
-// NeighbourhoodRequest is sent to query node neighbourhood
-message NeighbourhoodRequest {
-        string id = 1;
-}
-
-// NeighbourhoodResponse contains node neighbourhood hierarchy
-message NeighbourhoodResponse {
-        Neighbour neighbourhood = 1;
+// PeerResponse is returned by ListPeers
+message PeerResponse {
+        // return peer topology
+        Peer peers = 1;
 }
 
 // Node is network node
 message Node {
-        // node ide
+        // node id
         string id = 1;
         // node address
         string address = 2;
@@ -49,16 +42,10 @@ message Close {
         Node node = 1;
 }
 
-// Solicit is sent when requesting route advertisement from the network nodes
-message Solicit {
+// Peer is used to advertise node peers
+message Peer {
         // network node
         Node node = 1;
-}
-
-// Neighbour is used to nnounce node neighbourhood
-message Neighbour {
-        // network node
-        Node node = 1;
-        // neighbours
-        repeated Node neighbours = 3;
+        // node peers
+        repeated Peer peers = 2;
 }
