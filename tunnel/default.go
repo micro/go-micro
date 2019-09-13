@@ -218,8 +218,6 @@ func (t *tun) monitor() {
 					log.Debugf("Tunnel failed to setup node link to %s: %v", node, err)
 					continue
 				}
-				// set the link id to the remote address
-				link.id = link.Remote()
 				// save the link
 				t.Lock()
 				t.links[node] = link
@@ -441,7 +439,7 @@ func (t *tun) listen(link *link) {
 			}
 
 			// set to remote node
-			link.id = id
+			link.id = link.Remote()
 			// set as connected
 			link.connected = true
 			link.Unlock()
@@ -483,10 +481,10 @@ func (t *tun) listen(link *link) {
 			// otherwise its a session mapping of sorts
 		case "keepalive":
 			log.Debugf("Tunnel link %s received keepalive", link.Remote())
-			t.Lock()
+			link.Lock()
 			// save the keepalive
 			link.lastKeepAlive = time.Now()
-			t.Unlock()
+			link.Unlock()
 			continue
 		// a new connection dialled outbound
 		case "open":
@@ -671,6 +669,8 @@ func (t *tun) discover(link *link) {
 			}); err != nil {
 				log.Debugf("Tunnel failed to send discover to link %s: %v", link.id, err)
 			}
+		case <-link.closed:
+			return
 		case <-t.closed:
 			return
 		}
@@ -685,6 +685,8 @@ func (t *tun) keepalive(link *link) {
 	for {
 		select {
 		case <-t.closed:
+			return
+		case <-link.closed:
 			return
 		case <-keepalive.C:
 			// send keepalive message
@@ -764,6 +766,12 @@ func (t *tun) connect() error {
 			// create a new link
 			link := newLink(sock)
 
+			// start keepalive monitor
+			go t.keepalive(link)
+
+			// discover things on the remote side
+			go t.discover(link)
+
 			// listen for inbound messages.
 			// only save the link once connected.
 			// we do this inside liste
@@ -793,7 +801,7 @@ func (t *tun) connect() error {
 		}
 
 		// save the link
-		t.links[link.Remote()] = link
+		t.links[node] = link
 	}
 
 	// process outbound messages to be sent
