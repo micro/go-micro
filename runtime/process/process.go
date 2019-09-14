@@ -22,6 +22,10 @@ type Process interface {
 type Executable struct {
 	// The executable binary
 	Binary *packager.Binary
+	// The env variables
+	Env []string
+	// Args to pass
+	Args []string
 }
 
 // PID is the running process
