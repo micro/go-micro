@@ -15,8 +15,13 @@ import (
 
 type runtime struct {
 	sync.RWMutex
-	closed   chan bool
-	running  bool
+	// used to stop the runtime
+	closed chan bool
+	// used to start new services
+	start chan *service
+	// indicates if we're running
+	running bool
+	// the service map
 	services map[string]*service
 }
 
@@ -40,6 +45,7 @@ type service struct {
 func newRuntime() *runtime {
 	return &runtime{
 		closed:   make(chan bool),
+		start:    make(chan *service, 128),
 		services: make(map[string]*service),
 	}
 }
@@ -152,6 +158,9 @@ func (r *runtime) Create(s *Service) error {
 	// save service
 	r.services[s.Name] = newService(s)
 
+	// push into start queue
+	r.start <- r.services[s.Name]
+
 	return nil
 }
 
@@ -203,6 +212,16 @@ func (r *runtime) Start() error {
 				}
 			}
 			r.RUnlock()
+		case service := <-r.start:
+			if service.Running() {
+				continue
+			}
+
+			// TODO: check service error
+			log.Debugf("Starting %s", service.Name)
+			if err := service.Start(); err != nil {
+				log.Debugf("Error starting %s: %v", service.Name, err)
+			}
 		case <-closed:
 			// TODO: stop all the things
 			return nil
