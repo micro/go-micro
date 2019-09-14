@@ -585,6 +585,11 @@ func (n *network) processCtrlChan(client transport.Client, listener tunnel.Liste
 					}
 					events = append(events, e)
 				}
+				// if no events are eligible for processing continue
+				if len(events) == 0 {
+					log.Debugf("Network no events to be processed by router: %s", n.options.Id)
+					continue
+				}
 				// create an advert and process it
 				advert := &router.Advert{
 					Id:        pbRtrAdvert.Id,
