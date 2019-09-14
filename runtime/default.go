@@ -141,7 +141,7 @@ func (s *service) Wait() {
 	s.running = false
 }
 
-func (r *runtime) Register(s *Service) error {
+func (r *runtime) Create(s *Service) error {
 	r.Lock()
 	defer r.Unlock()
 
@@ -155,7 +155,19 @@ func (r *runtime) Register(s *Service) error {
 	return nil
 }
 
-func (r *runtime) Run() error {
+func (r *runtime) Delete(s *Service) error {
+	r.Lock()
+	defer r.Unlock()
+
+	if s, ok := r.services[s.Name]; ok {
+		delete(r.services, s.Name)
+		return s.Stop()
+	}
+
+	return nil
+}
+
+func (r *runtime) Start() error {
 	r.Lock()
 
 	// already running

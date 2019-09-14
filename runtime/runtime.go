@@ -4,9 +4,11 @@ package runtime
 // Runtime is a service runtime manager
 type Runtime interface {
 	// Registers a service
-	Register(*Service) error
+	Create(*Service) error
+	// Remove a service
+	Delete(*Service) error
 	// starts the runtime
-	Run() error
+	Start() error
 	// Shutdown the runtime
 	Stop() error
 }
@@ -26,12 +28,16 @@ var (
 	DefaultRuntime = newRuntime()
 )
 
-func Register(s *Service) error {
-	return DefaultRuntime.Register(s)
+func Create(s *Service) error {
+	return DefaultRuntime.Create(s)
 }
 
-func Run() error {
-	return DefaultRuntime.Run()
+func Delete(s *Service) error {
+	return DefaultRuntime.Delete(s)
+}
+
+func Start() error {
+	return DefaultRuntime.Start()
 }
 
 func Stop() error {
