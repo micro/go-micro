@@ -71,12 +71,15 @@ func (n *node) UpdatePeer(peer *node) bool {
 	return false
 }
 
-// DeletePeer deletes a peer if it exists
-func (n *node) DeletePeer(id string) {
+// DeletePeer deletes a peer from node peers
+// It returns true if the peers has been deleted
+func (n *node) DeletePeer(id string) bool {
 	n.Lock()
 	defer n.Unlock()
 
 	delete(n.peers, id)
+
+	return true
 }
 
 // HasPeer returns true if node has peer with given id
@@ -106,6 +109,7 @@ func (n *node) RefreshPeer(id string, now time.Time) bool {
 	return true
 }
 
+// walk walks the node graph until some condition is met
 func (n *node) walk(until func(peer *node) bool) map[string]*node {
 	// track the visited nodes
 	visited := make(map[string]*node)
@@ -139,7 +143,7 @@ func (n *node) walk(until func(peer *node) bool) map[string]*node {
 	return visited
 }
 
-// Nodes returns a slice if all nodes in node topology
+// Nodes returns a slice of all nodes in the whole node topology
 func (n *node) Nodes() []Node {
 	// we need to freeze the network graph here
 	// otherwise we might get inconsisten results
@@ -162,8 +166,8 @@ func (n *node) Nodes() []Node {
 	return nodes
 }
 
-// GetPeerNode returns a peer from node topology i.e. up to MaxDepth
-// It returns nil if the peer was not found in the node topology
+// GetPeerNode returns a node from node MaxDepth topology
+// It returns nil if the peer was not found
 func (n *node) GetPeerNode(id string) *node {
 	n.RLock()
 	defer n.RUnlock()
@@ -185,7 +189,8 @@ func (n *node) GetPeerNode(id string) *node {
 	return peerNode
 }
 
-// Topology returns a copy of th node topology down to given depth
+// Topology returns a copy of the node topology down to given depth
+// NOTE: the returned node is a node graph - not a single node
 func (n *node) Topology(depth uint) *node {
 	n.RLock()
 	defer n.RUnlock()
