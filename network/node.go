@@ -2,6 +2,7 @@ package network
 
 import (
 	"container/list"
+	"errors"
 	"sync"
 	"time"
 
@@ -13,6 +14,13 @@ var (
 	MaxDepth uint = 3
 )
 
+var (
+	// ErrPeerExists is returned when adding a peer which already exists
+	ErrPeerExists = errors.New("peer already exists")
+	// ErrPeerNotFound is returned when a peer could not be found in node topology
+	ErrPeerNotFound = errors.New("peer not found")
+)
+
 // node is network node
 type node struct {
 	sync.RWMutex
@@ -22,6 +30,8 @@ type node struct {
 	address string
 	// peers are nodes with direct link to this node
 	peers map[string]*node
+	// edges store the node edges
+	edges map[string]map[string]*node
 	// network returns the node network
 	network Network
 	// lastSeen keeps track of node lifetime and updates
@@ -43,74 +53,8 @@ func (n *node) Network() Network {
 	return n.network
 }
 
-// AddPeer adds a new peer to node topology
-// It returns false if the peer already exists
-func (n *node) AddPeer(peer *node) bool {
-	n.Lock()
-	defer n.Unlock()
-
-	if _, ok := n.peers[peer.id]; !ok {
-		n.peers[peer.id] = peer
-		return true
-	}
-
-	return false
-}
-
-// UpdatePeer updates a peer if it exists
-// It returns false if the peer does not exist
-func (n *node) UpdatePeer(peer *node) bool {
-	n.Lock()
-	defer n.Unlock()
-
-	if _, ok := n.peers[peer.id]; ok {
-		n.peers[peer.id] = peer
-		return true
-	}
-
-	return false
-}
-
-// DeletePeer deletes a peer from node peers
-// It returns true if the peers has been deleted
-func (n *node) DeletePeer(id string) bool {
-	n.Lock()
-	defer n.Unlock()
-
-	delete(n.peers, id)
-
-	return true
-}
-
-// HasPeer returns true if node has peer with given id
-func (n *node) HasPeer(id string) bool {
-	n.RLock()
-	defer n.RUnlock()
-
-	_, ok := n.peers[id]
-	return ok
-}
-
-// RefreshPeer updates node timestamp
-// It returns false if the peer has not been found.
-func (n *node) RefreshPeer(id string, now time.Time) bool {
-	n.Lock()
-	defer n.Unlock()
-
-	peer, ok := n.peers[id]
-	if !ok {
-		return false
-	}
-
-	if peer.lastSeen.Before(now) {
-		peer.lastSeen = now
-	}
-
-	return true
-}
-
 // walk walks the node graph until some condition is met
-func (n *node) walk(until func(peer *node) bool) map[string]*node {
+func (n *node) walk(until func(peer *node) bool, action func(parent, peer *node)) map[string]*node {
 	// track the visited nodes
 	visited := make(map[string]*node)
 	// queue of the nodes to visit
@@ -125,15 +69,16 @@ func (n *node) walk(until func(peer *node) bool) map[string]*node {
 	for queue.Len() > 0 {
 		// pop the node from the front of the queue
 		qnode := queue.Front()
+		if until(qnode.Value.(*node)) {
+			return visited
+		}
 		// iterate through all of the node peers
 		// mark the visited nodes; enqueue the non-visted
-		for id, node := range qnode.Value.(*node).peers {
+		for id, peer := range qnode.Value.(*node).peers {
 			if _, ok := visited[id]; !ok {
-				visited[id] = node
-				queue.PushBack(node)
-			}
-			if until(node) {
-				return visited
+				visited[id] = peer
+				action(qnode.Value.(*node), peer)
+				queue.PushBack(peer)
 			}
 		}
 		// remove the node from the queue
@@ -141,6 +86,63 @@ func (n *node) walk(until func(peer *node) bool) map[string]*node {
 	}
 
 	return visited
+}
+
+// AddPeer adds a new peer to node topology
+// It returns false if the peer already exists
+func (n *node) AddPeer(peer *node) error {
+	n.Lock()
+	defer n.Unlock()
+
+	if _, ok := n.peers[peer.id]; !ok {
+		n.peers[peer.id] = peer
+		return nil
+	}
+
+	return ErrPeerExists
+}
+
+// DeletePeer deletes a peer from node peers
+// It returns true if the peer has been deleted
+func (n *node) DeletePeer(id string) bool {
+	n.Lock()
+	defer n.Unlock()
+
+	delete(n.peers, id)
+
+	return true
+}
+
+// UpdatePeer updates a peer if it already exists
+// It returns error if the peer does not exist
+func (n *node) UpdatePeer(peer *node) error {
+	n.Lock()
+	defer n.Unlock()
+
+	if _, ok := n.peers[peer.id]; ok {
+		n.peers[peer.id] = peer
+		return nil
+	}
+
+	return ErrPeerNotFound
+}
+
+// RefreshPeer updates node timestamp
+// It returns false if the peer has not been found.
+func (n *node) RefreshPeer(id string, now time.Time) error {
+	n.Lock()
+	defer n.Unlock()
+
+	peer, ok := n.peers[id]
+	if !ok {
+		return ErrPeerNotFound
+	}
+
+	if peer.lastSeen.Before(now) {
+		peer.lastSeen = now
+	}
+
+	return nil
 }
 
 // Nodes returns a slice of all nodes in the whole node topology
@@ -151,11 +153,12 @@ func (n *node) Nodes() []Node {
 	defer n.RUnlock()
 
 	// NOTE: this should never be true
-	untilNoMorePeers := func(n *node) bool {
-		return n == nil
+	untilNoMorePeers := func(node *node) bool {
+		return node == nil
 	}
+	justWalk := func(parent, node *node) {}
 
-	visited := n.walk(untilNoMorePeers)
+	visited := n.walk(untilNoMorePeers, justWalk)
 
 	var nodes []Node
 	// collect all the nodes and return them
@@ -178,8 +181,9 @@ func (n *node) GetPeerNode(id string) *node {
 	untilFoundPeer := func(n *node) bool {
 		return n.id == id
 	}
+	justWalk := func(paent, node *node) {}
 
-	visited := top.walk(untilFoundPeer)
+	visited := top.walk(untilFoundPeer, justWalk)
 
 	peerNode, ok := visited[id]
 	if !ok {
@@ -187,6 +191,55 @@ func (n *node) GetPeerNode(id string) *node {
 	}
 
 	return peerNode
+}
+
+// DeletePeerNode removes peer node from node topology
+func (n *node) DeletePeerNode(id string) error {
+	n.Lock()
+	n.Unlock()
+
+	untilNoMorePeers := func(node *node) bool {
+		return node == nil
+	}
+
+	deleted := make(map[string]*node)
+	deletePeer := func(parent, node *node) {
+		if node.id != n.id && node.id == id {
+			delete(parent.peers, node.id)
+			deleted[node.id] = node
+		}
+	}
+
+	n.walk(untilNoMorePeers, deletePeer)
+
+	if _, ok := deleted[id]; !ok {
+		return ErrPeerNotFound
+	}
+
+	return nil
+}
+
+// PruneStalePeerNodes prune the peers that have not been seen for longer than given time
+// It returns a map of the the nodes that got pruned
+func (n *node) PruneStalePeerNodes(pruneTime time.Duration) map[string]*node {
+	n.Lock()
+	n.Unlock()
+
+	untilNoMorePeers := func(node *node) bool {
+		return node == nil
+	}
+
+	pruned := make(map[string]*node)
+	pruneStalePeer := func(parent, node *node) {
+		if node.id != n.id && time.Since(node.lastSeen) > PruneTime {
+			delete(parent.peers, node.id)
+			pruned[node.id] = node
+		}
+	}
+
+	n.walk(untilNoMorePeers, pruneStalePeer)
+
+	return pruned
 }
 
 // Topology returns a copy of the node topology down to given depth

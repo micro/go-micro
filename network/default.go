@@ -262,11 +262,11 @@ func (n *network) processNetChan(client transport.Client, listener tunnel.Listen
 					peers:    make(map[string]*node),
 					lastSeen: now,
 				}
-				if ok := n.node.AddPeer(peer); !ok {
+				if err := n.node.AddPeer(peer); err == ErrPeerExists {
 					log.Debugf("Network peer exists, refreshing: %s", peer.id)
 					// update lastSeen time for the existing node
-					if ok := n.RefreshPeer(peer.id, now); !ok {
-						log.Debugf("Network failed refreshing peer: %s", peer.id)
+					if err := n.RefreshPeer(peer.id, now); err != nil {
+						log.Debugf("Network failed refreshing peer %s: %v", peer.id, err)
 					}
 					continue
 				}
@@ -299,7 +299,7 @@ func (n *network) processNetChan(client transport.Client, listener tunnel.Listen
 					peers:    make(map[string]*node),
 					lastSeen: now,
 				}
-				if ok := n.node.AddPeer(peer); ok {
+				if err := n.node.AddPeer(peer); err == ErrPeerExists {
 					// send a solicit message when discovering new peer
 					msg := &pbRtr.Solicit{
 						Id: n.options.Id,
@@ -311,14 +311,14 @@ func (n *network) processNetChan(client transport.Client, listener tunnel.Listen
 				}
 				log.Debugf("Network peer exists, refreshing: %s", pbNetPeer.Node.Id)
 				// update lastSeen time for the peer
-				if ok := n.RefreshPeer(pbNetPeer.Node.Id, now); !ok {
-					log.Debugf("Network failed refreshing peer: %s", pbNetPeer.Node.Id)
+				if err := n.RefreshPeer(pbNetPeer.Node.Id, now); err != nil {
+					log.Debugf("Network failed refreshing peer %s: %v", pbNetPeer.Node.Id, err)
 				}
 				// NOTE: we don't unpack MaxDepth toplogy
 				peer = UnpackPeerTopology(pbNetPeer, now, MaxDepth-1)
 				log.Debugf("Network updating topology of node: %s", n.node.id)
-				if ok := n.node.UpdatePeer(peer); !ok {
-					log.Debugf("Network failed to update peers")
+				if err := n.node.UpdatePeer(peer); err != nil {
+					log.Debugf("Network failed to update peers: %v", err)
 				}
 			case "close":
 				pbNetClose := &pbNet.Close{}
@@ -331,15 +331,16 @@ func (n *network) processNetChan(client transport.Client, listener tunnel.Listen
 					continue
 				}
 				log.Debugf("Network received close message from: %s", pbNetClose.Node.Id)
-				n.node.Lock()
 				peer := &node{
 					id:      pbNetClose.Node.Id,
 					address: pbNetClose.Node.Address,
 				}
-				if err := n.prunePeer(peer); err != nil {
-					log.Debugf("Network failed to prune node %s routes: %v", peer.id, err)
+				if err := n.DeletePeerNode(peer.id); err != nil {
+					log.Debugf("Network failed to delete node %s routes: %v", peer.id, err)
 				}
-				n.node.Unlock()
+				if err := n.prunePeerRoutes(peer); err != nil {
+					log.Debugf("Network failed pruning peer %s routes: %v", peer.id, err)
+				}
 			}
 		case <-n.closed:
 			return
@@ -421,7 +422,6 @@ func (n *network) prunePeerRoutes(peer *node) error {
 		router.QueryRouter(peer.id),
 	)
 	if err := n.pruneRoutes(q); err != nil {
-		log.Debugf("Network failed deleting routes originated by %s: %s", peer.id, err)
 		return err
 	}
 
@@ -430,20 +430,9 @@ func (n *network) prunePeerRoutes(peer *node) error {
 		router.QueryGateway(peer.address),
 	)
 	if err := n.pruneRoutes(q); err != nil {
-		log.Debugf("Network failed deleting routes routable via gateway %s: %s", peer.address, err)
 		return err
 	}
 
-	return nil
-}
-
-// prunePeer prune peer from network node as well as all all the routes associated with it
-func (n *network) prunePeer(peer *node) error {
-	delete(n.node.peers, peer.id)
-	if err := n.prunePeerRoutes(peer); err != nil {
-		log.Debugf("Network failed to prune %s routes: %v", peer.id, err)
-		return err
-	}
 	return nil
 }
 
@@ -458,19 +447,13 @@ func (n *network) prune() {
 		case <-n.closed:
 			return
 		case <-prune.C:
-			n.node.Lock()
-			for id, peer := range n.peers {
-				if id == n.options.Id {
-					continue
-				}
-				if time.Since(peer.lastSeen) > PruneTime {
-					log.Debugf("Network peer exceeded prune time: %s", id)
-					if err := n.prunePeer(peer); err != nil {
-						log.Debugf("Network failed to prune %s: %s", id, err)
-					}
+			pruned := n.PruneStalePeerNodes(PruneTime)
+			for id, peer := range pruned {
+				log.Debugf("Network peer exceeded prune time: %s", id)
+				if err := n.prunePeerRoutes(peer); err != nil {
+					log.Debugf("Network failed pruning peer %s routes: %v", id, err)
 				}
 			}
-			n.node.Unlock()
 		}
 	}
 }
