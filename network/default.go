@@ -639,7 +639,7 @@ func (n *network) advertise(client transport.Client, advertChan <-chan *router.A
 				route := &pbRtr.Route{
 					Service: event.Route.Service,
 					Address: event.Route.Address,
-					Gateway: n.options.Address,
+					Gateway: n.node.address,
 					Network: event.Route.Network,
 					Router:  event.Route.Router,
 					Link:    DefaultLink,
@@ -688,6 +688,9 @@ func (n *network) Connect() error {
 		n.Unlock()
 		return err
 	}
+
+	// set our internal node address
+	n.node.address = n.Tunnel.Address()
 
 	// initialize the tunnel to resolved nodes
 	n.Tunnel.Init(
@@ -755,8 +758,8 @@ func (n *network) Connect() error {
 	// we initialize all other node resources first
 	msg := &pbNet.Connect{
 		Node: &pbNet.Node{
-			Id:      n.options.Id,
-			Address: n.options.Address,
+			Id:      n.node.id,
+			Address: n.node.address,
 		},
 	}
 	if err := n.sendMsg("connect", msg, NetworkChannel); err != nil {
@@ -826,8 +829,8 @@ func (n *network) Close() error {
 
 		msg := &pbNet.Close{
 			Node: &pbNet.Node{
-				Id:      n.options.Id,
-				Address: n.options.Address,
+				Id:      n.node.id,
+				Address: n.node.address,
 			},
 		}
 		if err := n.sendMsg("close", msg, NetworkChannel); err != nil {
