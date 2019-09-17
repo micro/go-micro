@@ -87,7 +87,8 @@ func newNetwork(opts ...Option) Network {
 	// server is network server
 	server := server.NewServer(
 		server.Id(options.Id),
-		server.Address(options.Address),
+		server.Address(options.Id),
+		server.Advertise(options.Address),
 		server.Name(options.Name),
 		server.Transport(tunTransport),
 	)
@@ -639,7 +640,7 @@ func (n *network) advertise(client transport.Client, advertChan <-chan *router.A
 				route := &pbRtr.Route{
 					Service: event.Route.Service,
 					Address: event.Route.Address,
-					Gateway: n.node.address,
+					Gateway: n.node.id,
 					Network: event.Route.Network,
 					Router:  event.Route.Router,
 					Link:    DefaultLink,
