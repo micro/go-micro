@@ -14,6 +14,11 @@ import (
 	hash "github.com/mitchellh/hashstructure"
 )
 
+var (
+	// use a .micro domain rather than .local
+	mdnsDomain = "micro"
+)
+
 type mdnsTxt struct {
 	Service   string
 	Version   string
@@ -29,6 +34,8 @@ type mdnsEntry struct {
 
 type mdnsRegistry struct {
 	opts Options
+	// the mdns domain
+	domain string
 
 	sync.Mutex
 	services map[string][]*mdnsEntry
@@ -36,11 +43,25 @@ type mdnsRegistry struct {
 
 func newRegistry(opts ...Option) Registry {
 	options := Options{
+		Context: context.Background(),
 		Timeout: time.Millisecond * 100,
+	}
+
+	for _, o := range opts {
+		o(&options)
+	}
+
+	// set the domain
+	domain := mdnsDomain
+
+	d, ok := options.Context.Value("mdns.domain").(string)
+	if ok {
+		domain = d
 	}
 
 	return &mdnsRegistry{
 		opts:     options,
+		domain:   domain,
 		services: make(map[string][]*mdnsEntry),
 	}
 }
@@ -66,7 +87,7 @@ func (m *mdnsRegistry) Register(service *Service, opts ...RegisterOption) error 
 		s, err := mdns.NewMDNSService(
 			service.Name,
 			"_services",
-			"",
+			m.domain+".",
 			"",
 			9999,
 			[]net.IP{net.ParseIP("0.0.0.0")},
@@ -141,7 +162,7 @@ func (m *mdnsRegistry) Register(service *Service, opts ...RegisterOption) error 
 		s, err := mdns.NewMDNSService(
 			node.Id,
 			service.Name,
-			"",
+			m.domain+".",
 			"",
 			port,
 			[]net.IP{net.ParseIP(host)},
@@ -214,6 +235,8 @@ func (m *mdnsRegistry) GetService(service string) ([]*Service, error) {
 	p.Context, _ = context.WithTimeout(context.Background(), m.opts.Timeout)
 	// set entries channel
 	p.Entries = entries
+	// set the domain
+	p.Domain = m.domain
 
 	go func() {
 		for {
@@ -223,7 +246,9 @@ func (m *mdnsRegistry) GetService(service string) ([]*Service, error) {
 				if p.Service == "_services" {
 					continue
 				}
-
+				if p.Domain != m.domain {
+					continue
+				}
 				if e.TTL == 0 {
 					continue
 				}
@@ -288,6 +313,8 @@ func (m *mdnsRegistry) ListServices() ([]*Service, error) {
 	p.Context, _ = context.WithTimeout(context.Background(), m.opts.Timeout)
 	// set entries channel
 	p.Entries = entries
+	// set domain
+	p.Domain = m.domain
 
 	var services []*Service
 
@@ -298,7 +325,9 @@ func (m *mdnsRegistry) ListServices() ([]*Service, error) {
 				if e.TTL == 0 {
 					continue
 				}
-
+				if !strings.HasSuffix(e.Name, p.Domain+".") {
+					continue
+				}
 				name := strings.TrimSuffix(e.Name, "."+p.Service+"."+p.Domain+".")
 				if !serviceMap[name] {
 					serviceMap[name] = true
@@ -329,9 +358,10 @@ func (m *mdnsRegistry) Watch(opts ...WatchOption) (Watcher, error) {
 	}
 
 	md := &mdnsWatcher{
-		wo:   wo,
-		ch:   make(chan *mdns.ServiceEntry, 32),
-		exit: make(chan struct{}),
+		wo:     wo,
+		ch:     make(chan *mdns.ServiceEntry, 32),
+		exit:   make(chan struct{}),
+		domain: m.domain,
 	}
 
 	go func() {

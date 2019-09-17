@@ -43,9 +43,16 @@ func NewRouter(opts ...router.Option) router.Router {
 		cli = options.Client
 	}
 
+	// set the status to Stopped
+	status := &router.Status{
+		Code:  router.Stopped,
+		Error: nil,
+	}
+
 	// NOTE: should we have Client/Service option in router.Options?
 	s := &svc{
 		opts:   options,
+		status: status,
 		router: pb.NewRouterService(router.DefaultName, cli),
 	}
 
@@ -63,19 +70,41 @@ func NewRouter(opts ...router.Option) router.Router {
 
 // Init initializes router with given options
 func (s *svc) Init(opts ...router.Option) error {
+	s.Lock()
+	defer s.Unlock()
+
 	for _, o := range opts {
 		o(&s.opts)
 	}
+
 	return nil
 }
 
 // Options returns router options
 func (s *svc) Options() router.Options {
-	return s.opts
+	s.Lock()
+	opts := s.opts
+	s.Unlock()
+
+	return opts
 }
 
+// Table returns routing table
 func (s *svc) Table() router.Table {
 	return s.table
+}
+
+// Start starts the service
+func (s *svc) Start() error {
+	s.Lock()
+	defer s.Unlock()
+
+	s.status = &router.Status{
+		Code:  router.Running,
+		Error: nil,
+	}
+
+	return nil
 }
 
 func (s *svc) advertiseEvents(advertChan chan *router.Advert, stream pb.Router_AdvertiseService) error {
@@ -140,10 +169,7 @@ func (s *svc) Advertise() (<-chan *router.Advert, error) {
 	s.Lock()
 	defer s.Unlock()
 
-	// get the status
-	status := s.Status()
-
-	switch status.Code {
+	switch s.status.Code {
 	case router.Running, router.Advertising:
 		stream, err := s.router.Advertise(context.Background(), &pb.Request{}, s.callOpts...)
 		if err != nil {
@@ -154,15 +180,7 @@ func (s *svc) Advertise() (<-chan *router.Advert, error) {
 		go s.advertiseEvents(advertChan, stream)
 		return advertChan, nil
 	case router.Stopped:
-		// check if our router is stopped
-		select {
-		case <-s.exit:
-			s.exit = make(chan bool)
-			// call advertise again
-			return s.Advertise()
-		default:
-			return nil, fmt.Errorf("not running")
-		}
+		return nil, fmt.Errorf("not running")
 	}
 
 	return nil, fmt.Errorf("error: %s", s.status.Error)
@@ -197,6 +215,42 @@ func (s *svc) Process(advert *router.Advert) error {
 
 	if _, err := s.router.Process(context.Background(), advertReq, s.callOpts...); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+// Solicit advertise all routes
+func (s *svc) Solicit() error {
+	// list all the routes
+	routes, err := s.table.List()
+	if err != nil {
+		return err
+	}
+
+	// build events to advertise
+	events := make([]*router.Event, len(routes))
+	for i, _ := range events {
+		events[i] = &router.Event{
+			Type:      router.Update,
+			Timestamp: time.Now(),
+			Route:     routes[i],
+		}
+	}
+
+	advert := &router.Advert{
+		Id:        s.opts.Id,
+		Type:      router.RouteUpdate,
+		Timestamp: time.Now(),
+		TTL:       time.Duration(router.DefaultAdvertTTL),
+		Events:    events,
+	}
+
+	select {
+	case s.advertChan <- advert:
+	case <-s.exit:
+		close(s.advertChan)
+		return nil
 	}
 
 	return nil

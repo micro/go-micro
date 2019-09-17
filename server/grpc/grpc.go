@@ -53,6 +53,8 @@ type grpcServer struct {
 	opts        server.Options
 	handlers    map[string]server.Handler
 	subscribers map[*subscriber][]broker.Subscriber
+	// marks the serve as started
+	started bool
 	// used for first registration
 	registered bool
 }
@@ -271,12 +273,12 @@ func (g *grpcServer) handler(srv interface{}, stream grpc.ServerStream) error {
 	g.rpc.mu.Unlock()
 
 	if service == nil {
-		return status.New(codes.Unimplemented, fmt.Sprintf("unknown service %v", service)).Err()
+		return status.New(codes.Unimplemented, fmt.Sprintf("unknown service %s", serviceName)).Err()
 	}
 
 	mtype := service.method[methodName]
 	if mtype == nil {
-		return status.New(codes.Unimplemented, fmt.Sprintf("unknown service %v", service)).Err()
+		return status.New(codes.Unimplemented, fmt.Sprintf("unknown service %s.%s", serviceName, methodName)).Err()
 	}
 
 	// process unary
@@ -336,6 +338,11 @@ func (g *grpcServer) processRequest(stream grpc.ServerStream, service *service, 
 
 		// define the handler func
 		fn := func(ctx context.Context, req server.Request, rsp interface{}) error {
+			defer func() {
+				if r := recover(); r != nil {
+					log.Logf("handler %s panic recovered, err: %s", mtype.method.Name, r)
+				}
+			}()
 			returnValues = function.Call([]reflect.Value{service.rcvr, mtype.prepareContext(ctx), reflect.ValueOf(argv.Interface()), reflect.ValueOf(rsp)})
 
 			// The return value for the method is an error.
@@ -454,7 +461,10 @@ func (g *grpcServer) newCodec(contentType string) (codec.NewCodec, error) {
 }
 
 func (g *grpcServer) Options() server.Options {
+	g.RLock()
 	opts := g.opts
+	g.RUnlock()
+
 	return opts
 }
 
@@ -700,7 +710,14 @@ func (g *grpcServer) Deregister() error {
 }
 
 func (g *grpcServer) Start() error {
-	config := g.opts
+	g.RLock()
+	if g.started {
+		g.RUnlock()
+		return nil
+	}
+	g.RUnlock()
+
+	config := g.Options()
 
 	// micro: config.Transport.Listen(config.Address)
 	ts, err := net.Listen("tcp", config.Address)
@@ -781,13 +798,34 @@ func (g *grpcServer) Start() error {
 		config.Broker.Disconnect()
 	}()
 
+	// mark the server as started
+	g.Lock()
+	g.started = true
+	g.Unlock()
+
 	return nil
 }
 
 func (g *grpcServer) Stop() error {
+	g.RLock()
+	if !g.started {
+		g.RUnlock()
+		return nil
+	}
+	g.RUnlock()
+
 	ch := make(chan error)
 	g.exit <- ch
-	return <-ch
+
+	var err error
+	select {
+	case err = <-ch:
+		g.Lock()
+		g.started = false
+		g.Unlock()
+	}
+
+	return err
 }
 
 func (g *grpcServer) String() string {

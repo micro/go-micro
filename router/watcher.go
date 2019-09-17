@@ -6,6 +6,11 @@ import (
 	"time"
 )
 
+var (
+	// ErrWatcherStopped is returned when routing table watcher has been stopped
+	ErrWatcherStopped = errors.New("watcher stopped")
+)
+
 // EventType defines routing table event
 type EventType int
 
@@ -42,9 +47,6 @@ type Event struct {
 	Route Route
 }
 
-// WatchOption is used to define what routes to watch in the table
-type WatchOption func(*WatchOptions)
-
 // Watcher defines routing table watcher interface
 // Watcher returns updates to the routing table
 type Watcher interface {
@@ -56,7 +58,11 @@ type Watcher interface {
 	Stop()
 }
 
+// WatchOption is used to define what routes to watch in the table
+type WatchOption func(*WatchOptions)
+
 // WatchOptions are table watcher options
+// TODO: expand the options to watch based on other criteria
 type WatchOptions struct {
 	// Service allows to watch specific service routes
 	Service string
@@ -70,6 +76,7 @@ func WatchService(s string) WatchOption {
 	}
 }
 
+// tableWatcher implements routing table Watcher
 type tableWatcher struct {
 	sync.RWMutex
 	id      string
@@ -113,8 +120,3 @@ func (w *tableWatcher) Stop() {
 		close(w.done)
 	}
 }
-
-var (
-	// ErrWatcherStopped is returned when routing table watcher has been stopped
-	ErrWatcherStopped = errors.New("watcher stopped")
-)

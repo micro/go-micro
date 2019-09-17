@@ -18,7 +18,6 @@ import (
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/transport"
 
-	"github.com/micro/go-micro/util/buf"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/encoding"
@@ -73,10 +72,11 @@ func (g *grpcClient) next(request client.Request, opts client.CallOptions) (sele
 
 	// get next nodes from the selector
 	next, err := g.opts.Selector.Select(service, opts.SelectOptions...)
-	if err != nil && err == selector.ErrNotFound {
-		return nil, errors.NotFound("go.micro.client", err.Error())
-	} else if err != nil {
-		return nil, errors.InternalServerError("go.micro.client", err.Error())
+	if err != nil {
+		if err == selector.ErrNotFound {
+			return nil, errors.InternalServerError("go.micro.client", "service %s: %s", service, err.Error())
+		}
+		return nil, errors.InternalServerError("go.micro.client", "error selecting %s node: %s", service, err.Error())
 	}
 
 	return next, nil
@@ -350,15 +350,17 @@ func (g *grpcClient) Call(ctx context.Context, req client.Request, rsp interface
 
 		// select next node
 		node, err := next()
-		if err != nil && err == selector.ErrNotFound {
-			return errors.NotFound("go.micro.client", err.Error())
-		} else if err != nil {
-			return errors.InternalServerError("go.micro.client", err.Error())
+		service := req.Service()
+		if err != nil {
+			if err == selector.ErrNotFound {
+				return errors.InternalServerError("go.micro.client", "service %s: %s", service, err.Error())
+			}
+			return errors.InternalServerError("go.micro.client", "error selecting %s node: %s", service, err.Error())
 		}
 
 		// make the call
 		err = gcall(ctx, node, req, rsp, callOpts)
-		g.opts.Selector.Mark(req.Service(), node, err)
+		g.opts.Selector.Mark(service, node, err)
 		return err
 	}
 
@@ -429,14 +431,16 @@ func (g *grpcClient) Stream(ctx context.Context, req client.Request, opts ...cli
 		}
 
 		node, err := next()
-		if err != nil && err == selector.ErrNotFound {
-			return nil, errors.NotFound("go.micro.client", err.Error())
-		} else if err != nil {
-			return nil, errors.InternalServerError("go.micro.client", err.Error())
+		service := req.Service()
+		if err != nil {
+			if err == selector.ErrNotFound {
+				return nil, errors.InternalServerError("go.micro.client", "service %s: %s", service, err.Error())
+			}
+			return nil, errors.InternalServerError("go.micro.client", "error selecting %s node: %s", service, err.Error())
 		}
 
 		stream, err := g.stream(ctx, node, req, callOpts)
-		g.opts.Selector.Mark(req.Service(), node, err)
+		g.opts.Selector.Mark(service, node, err)
 		return stream, err
 	}
 
@@ -486,14 +490,13 @@ func (g *grpcClient) Publish(ctx context.Context, p client.Message, opts ...clie
 	}
 	md["Content-Type"] = p.ContentType()
 
-	cf, err := g.newCodec(p.ContentType())
+	cf, err := g.newGRPCCodec(p.ContentType())
 	if err != nil {
 		return errors.InternalServerError("go.micro.client", err.Error())
 	}
 
-	b := buf.New(nil)
-
-	if err := cf(b).Write(&codec.Message{Type: codec.Event}, p.Payload()); err != nil {
+	b, err := cf.Marshal(p.Payload())
+	if err != nil {
 		return errors.InternalServerError("go.micro.client", err.Error())
 	}
 
@@ -503,7 +506,7 @@ func (g *grpcClient) Publish(ctx context.Context, p client.Message, opts ...clie
 
 	return g.opts.Broker.Publish(p.Topic(), &broker.Message{
 		Header: md,
-		Body:   b.Bytes(),
+		Body:   b,
 	})
 }
 

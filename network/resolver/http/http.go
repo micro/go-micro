@@ -10,6 +10,7 @@ import (
 	"github.com/micro/go-micro/network/resolver"
 )
 
+// Resolver is a HTTP network resolver
 type Resolver struct {
 	// If not set, defaults to http
 	Proto string

@@ -40,14 +40,20 @@ func Extract(addr string) (string, error) {
 	}
 
 	var addrs []net.Addr
+	var loAddrs []net.Addr
 	for _, iface := range ifaces {
 		ifaceAddrs, err := iface.Addrs()
 		if err != nil {
 			// ignore error, interface can dissapear from system
 			continue
 		}
+		if iface.Flags&net.FlagLoopback != 0 {
+			loAddrs = append(loAddrs, ifaceAddrs...)
+			continue
+		}
 		addrs = append(addrs, ifaceAddrs...)
 	}
+	addrs = append(addrs, loAddrs...)
 
 	var ipAddr []byte
 	var publicIP []byte

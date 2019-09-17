@@ -19,10 +19,11 @@ func (p *Process) Exec(exe *process.Executable) error {
 }
 
 func (p *Process) Fork(exe *process.Executable) (*process.PID, error) {
-	cmd := exec.Command(exe.Binary.Path)
-	if err := cmd.Start(); err != nil {
-		return nil, err
-	}
+	// create command
+	cmd := exec.Command(exe.Binary.Path, exe.Args...)
+	// set env vars
+	cmd.Env = append(cmd.Env, exe.Env...)
+
 	in, err := cmd.StdinPipe()
 	if err != nil {
 		return nil, err
@@ -33,6 +34,11 @@ func (p *Process) Fork(exe *process.Executable) (*process.PID, error) {
 	}
 	er, err := cmd.StderrPipe()
 	if err != nil {
+		return nil, err
+	}
+
+	// start the process
+	if err := cmd.Start(); err != nil {
 		return nil, err
 	}
 

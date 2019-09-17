@@ -15,9 +15,10 @@ import (
 )
 
 type rpcCodec struct {
-	socket transport.Socket
-	codec  codec.Codec
-	first  bool
+	socket   transport.Socket
+	codec    codec.Codec
+	first    bool
+	protocol string
 
 	req *transport.Message
 	buf *readWriteCloser
@@ -154,16 +155,30 @@ func setupProtocol(msg *transport.Message) codec.NewCodec {
 
 func newRpcCodec(req *transport.Message, socket transport.Socket, c codec.NewCodec) codec.Codec {
 	rwc := &readWriteCloser{
-		rbuf: bytes.NewBuffer(req.Body),
+		rbuf: bytes.NewBuffer(nil),
 		wbuf: bytes.NewBuffer(nil),
 	}
+
 	r := &rpcCodec{
-		first:  true,
-		buf:    rwc,
-		codec:  c(rwc),
-		req:    req,
-		socket: socket,
+		buf:      rwc,
+		codec:    c(rwc),
+		req:      req,
+		socket:   socket,
+		protocol: "mucp",
 	}
+
+	// if grpc pre-load the buffer
+	// TODO: remove this terrible hack
+	switch r.codec.String() {
+	case "grpc":
+		// set as first
+		r.first = true
+		// write the body
+		rwc.rbuf.Write(req.Body)
+		// set the protocol
+		r.protocol = "grpc"
+	}
+
 	return r
 }
 
@@ -174,7 +189,7 @@ func (c *rpcCodec) ReadHeader(r *codec.Message, t codec.MessageType) error {
 		Body:   c.req.Body,
 	}
 
-	// if its a follow on request read it
+	// first message could be pre-loaded
 	if !c.first {
 		var tm transport.Message
 
@@ -199,7 +214,7 @@ func (c *rpcCodec) ReadHeader(r *codec.Message, t codec.MessageType) error {
 		c.req = &tm
 	}
 
-	// no longer first read
+	// disable first
 	c.first = false
 
 	// set some internal things
@@ -300,5 +315,5 @@ func (c *rpcCodec) Close() error {
 }
 
 func (c *rpcCodec) String() string {
-	return "rpc"
+	return c.protocol
 }

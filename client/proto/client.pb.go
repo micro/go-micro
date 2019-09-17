@@ -191,23 +191,23 @@ func init() {
 
 var fileDescriptor_7d733ae29171347b = []byte{
 	// 270 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x9c, 0x91, 0x3f, 0x4f, 0xc3, 0x30,
-	0x10, 0xc5, 0xeb, 0xfe, 0x4b, 0x39, 0x2a, 0x21, 0x9d, 0x18, 0x4c, 0x06, 0x54, 0x32, 0x65, 0xc1,
-	0x45, 0x30, 0x23, 0x86, 0xce, 0x95, 0x50, 0x40, 0xac, 0x28, 0x71, 0x4f, 0xc1, 0x52, 0x6a, 0x9b,
-	0xd8, 0xad, 0x94, 0xef, 0xc8, 0x87, 0x42, 0x38, 0x29, 0x45, 0xd0, 0x2e, 0x6c, 0xf7, 0xee, 0x67,
-	0xbd, 0x3b, 0xbf, 0x83, 0x74, 0xad, 0x64, 0x6d, 0xe6, 0xa5, 0xb9, 0x6e, 0x0b, 0x59, 0x29, 0xd2,
-	0x7e, 0x6e, 0x6b, 0xe3, 0x77, 0x42, 0x04, 0x81, 0x67, 0xa5, 0x11, 0xe1, 0x8d, 0x68, 0xdb, 0xc9,
-	0x16, 0xa2, 0x8c, 0xde, 0x37, 0xe4, 0x3c, 0x72, 0x88, 0x1c, 0xd5, 0x5b, 0x25, 0x89, 0xb3, 0x19,
-	0x4b, 0x4f, 0xb2, 0x9d, 0xc4, 0x18, 0x26, 0xa4, 0x57, 0xd6, 0x28, 0xed, 0x79, 0x3f, 0xa0, 0x6f,
-	0x8d, 0x57, 0x30, 0x95, 0x46, 0x7b, 0xd2, 0xfe, 0xd5, 0x37, 0x96, 0xf8, 0x20, 0xf0, 0xd3, 0xae,
-	0xf7, 0xdc, 0x58, 0x42, 0x84, 0x61, 0x61, 0x56, 0x0d, 0x1f, 0xce, 0x58, 0x3a, 0xcd, 0x42, 0x9d,
-	0x5c, 0xc2, 0x24, 0x23, 0x67, 0x8d, 0x76, 0x7b, 0xce, 0x7e, 0xf0, 0x17, 0x88, 0x96, 0xe4, 0x5c,
-	0x5e, 0x12, 0x9e, 0xc3, 0xc8, 0x1b, 0xab, 0x64, 0xb7, 0x55, 0x2b, 0xfe, 0xcc, 0xed, 0x1f, 0x9f,
-	0x3b, 0xd8, 0xfb, 0xde, 0x7e, 0x30, 0x18, 0x2d, 0xbf, 0x02, 0xc0, 0x7b, 0x18, 0x2e, 0xf2, 0xaa,
-	0x42, 0x2e, 0x7e, 0x65, 0x22, 0xba, 0x40, 0xe2, 0x8b, 0x03, 0xa4, 0x5d, 0x39, 0xe9, 0xe1, 0x02,
-	0xc6, 0x4f, 0xbe, 0xa6, 0x7c, 0xfd, 0x4f, 0x83, 0x94, 0xdd, 0x30, 0x7c, 0x80, 0xe8, 0x71, 0x53,
-	0x54, 0xca, 0xbd, 0x1d, 0x70, 0xe9, 0xfe, 0x1f, 0x1f, 0x25, 0x49, 0xaf, 0x18, 0x87, 0xb3, 0xde,
-	0x7d, 0x06, 0x00, 0x00, 0xff, 0xff, 0xd3, 0x63, 0x94, 0x1a, 0x02, 0x02, 0x00, 0x00,
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x9c, 0x91, 0x41, 0x4b, 0xc3, 0x40,
+	0x10, 0x85, 0xbb, 0x6d, 0x4c, 0xea, 0x58, 0x10, 0x06, 0x0f, 0x6b, 0x0e, 0x52, 0x73, 0xca, 0xc5,
+	0x54, 0xf4, 0x2c, 0x1e, 0x72, 0x16, 0x24, 0x8a, 0x57, 0x49, 0xb6, 0x43, 0x5c, 0x48, 0x77, 0xd7,
+	0xec, 0xb6, 0x90, 0x1f, 0xe9, 0x7f, 0x12, 0x36, 0xa9, 0x15, 0x6d, 0x2f, 0xbd, 0xcd, 0x9b, 0x6f,
+	0x79, 0x33, 0xfb, 0x06, 0xd2, 0x95, 0x14, 0xad, 0x5e, 0xd4, 0xfa, 0xa6, 0x2f, 0x44, 0x23, 0x49,
+	0xb9, 0x85, 0x69, 0xb5, 0xdb, 0x8a, 0xcc, 0x0b, 0x3c, 0xaf, 0x75, 0xe6, 0xdf, 0x64, 0x7d, 0x3b,
+	0xd9, 0x40, 0x54, 0xd0, 0xe7, 0x9a, 0xac, 0x43, 0x0e, 0x91, 0xa5, 0x76, 0x23, 0x05, 0x71, 0x36,
+	0x67, 0xe9, 0x69, 0xb1, 0x95, 0x18, 0xc3, 0x94, 0xd4, 0xd2, 0x68, 0xa9, 0x1c, 0x1f, 0x7b, 0xf4,
+	0xa3, 0xf1, 0x1a, 0x66, 0x42, 0x2b, 0x47, 0xca, 0xbd, 0xbb, 0xce, 0x10, 0x9f, 0x78, 0x7e, 0x36,
+	0xf4, 0x5e, 0x3b, 0x43, 0x88, 0x10, 0x54, 0x7a, 0xd9, 0xf1, 0x60, 0xce, 0xd2, 0x59, 0xe1, 0xeb,
+	0xe4, 0x0a, 0xa6, 0x05, 0x59, 0xa3, 0x95, 0xdd, 0x71, 0xf6, 0x8b, 0xbf, 0x41, 0xf4, 0x44, 0xd6,
+	0x96, 0x35, 0xe1, 0x05, 0x9c, 0x38, 0x6d, 0xa4, 0x18, 0xb6, 0xea, 0xc5, 0xbf, 0xb9, 0xe3, 0xc3,
+	0x73, 0x27, 0x3b, 0xdf, 0xbb, 0x2f, 0x06, 0x61, 0xee, 0xbf, 0x8e, 0x0f, 0x10, 0xe4, 0x65, 0xd3,
+	0x20, 0xcf, 0xfe, 0x84, 0x92, 0x0d, 0x89, 0xc4, 0x97, 0x7b, 0x48, 0xbf, 0x73, 0x32, 0xc2, 0x1c,
+	0xc2, 0x17, 0xd7, 0x52, 0xb9, 0x3a, 0xd2, 0x20, 0x65, 0xb7, 0x0c, 0x1f, 0x21, 0x7a, 0x5e, 0x57,
+	0x8d, 0xb4, 0x1f, 0x7b, 0x5c, 0x86, 0x00, 0xe2, 0x83, 0x24, 0x19, 0x55, 0xa1, 0xbf, 0xeb, 0xfd,
+	0x77, 0x00, 0x00, 0x00, 0xff, 0xff, 0x0a, 0x76, 0x1f, 0x51, 0x03, 0x02, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -218,59 +218,59 @@ var _ grpc.ClientConn
 // is compatible with the grpc package it is being compiled against.
 const _ = grpc.SupportPackageIsVersion4
 
-// MicroClient is the client API for Micro service.
+// ClientClient is the client API for Client service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
-type MicroClient interface {
+type ClientClient interface {
 	// Call allows a single request to be made
 	Call(ctx context.Context, in *Request, opts ...grpc.CallOption) (*Response, error)
 	// Stream is a bidirectional stream
-	Stream(ctx context.Context, opts ...grpc.CallOption) (Micro_StreamClient, error)
+	Stream(ctx context.Context, opts ...grpc.CallOption) (Client_StreamClient, error)
 	// Publish publishes a message and returns an empty Message
 	Publish(ctx context.Context, in *Message, opts ...grpc.CallOption) (*Message, error)
 }
 
-type microClient struct {
+type clientClient struct {
 	cc *grpc.ClientConn
 }
 
-func NewMicroClient(cc *grpc.ClientConn) MicroClient {
-	return &microClient{cc}
+func NewClientClient(cc *grpc.ClientConn) ClientClient {
+	return &clientClient{cc}
 }
 
-func (c *microClient) Call(ctx context.Context, in *Request, opts ...grpc.CallOption) (*Response, error) {
+func (c *clientClient) Call(ctx context.Context, in *Request, opts ...grpc.CallOption) (*Response, error) {
 	out := new(Response)
-	err := c.cc.Invoke(ctx, "/go.micro.client.Micro/Call", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/go.micro.client.Client/Call", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *microClient) Stream(ctx context.Context, opts ...grpc.CallOption) (Micro_StreamClient, error) {
-	stream, err := c.cc.NewStream(ctx, &_Micro_serviceDesc.Streams[0], "/go.micro.client.Micro/Stream", opts...)
+func (c *clientClient) Stream(ctx context.Context, opts ...grpc.CallOption) (Client_StreamClient, error) {
+	stream, err := c.cc.NewStream(ctx, &_Client_serviceDesc.Streams[0], "/go.micro.client.Client/Stream", opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &microStreamClient{stream}
+	x := &clientStreamClient{stream}
 	return x, nil
 }
 
-type Micro_StreamClient interface {
+type Client_StreamClient interface {
 	Send(*Request) error
 	Recv() (*Response, error)
 	grpc.ClientStream
 }
 
-type microStreamClient struct {
+type clientStreamClient struct {
 	grpc.ClientStream
 }
 
-func (x *microStreamClient) Send(m *Request) error {
+func (x *clientStreamClient) Send(m *Request) error {
 	return x.ClientStream.SendMsg(m)
 }
 
-func (x *microStreamClient) Recv() (*Response, error) {
+func (x *clientStreamClient) Recv() (*Response, error) {
 	m := new(Response)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
@@ -278,66 +278,66 @@ func (x *microStreamClient) Recv() (*Response, error) {
 	return m, nil
 }
 
-func (c *microClient) Publish(ctx context.Context, in *Message, opts ...grpc.CallOption) (*Message, error) {
+func (c *clientClient) Publish(ctx context.Context, in *Message, opts ...grpc.CallOption) (*Message, error) {
 	out := new(Message)
-	err := c.cc.Invoke(ctx, "/go.micro.client.Micro/Publish", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/go.micro.client.Client/Publish", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// MicroServer is the server API for Micro service.
-type MicroServer interface {
+// ClientServer is the server API for Client service.
+type ClientServer interface {
 	// Call allows a single request to be made
 	Call(context.Context, *Request) (*Response, error)
 	// Stream is a bidirectional stream
-	Stream(Micro_StreamServer) error
+	Stream(Client_StreamServer) error
 	// Publish publishes a message and returns an empty Message
 	Publish(context.Context, *Message) (*Message, error)
 }
 
-func RegisterMicroServer(s *grpc.Server, srv MicroServer) {
-	s.RegisterService(&_Micro_serviceDesc, srv)
+func RegisterClientServer(s *grpc.Server, srv ClientServer) {
+	s.RegisterService(&_Client_serviceDesc, srv)
 }
 
-func _Micro_Call_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Client_Call_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(Request)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(MicroServer).Call(ctx, in)
+		return srv.(ClientServer).Call(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/go.micro.client.Micro/Call",
+		FullMethod: "/go.micro.client.Client/Call",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MicroServer).Call(ctx, req.(*Request))
+		return srv.(ClientServer).Call(ctx, req.(*Request))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Micro_Stream_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(MicroServer).Stream(&microStreamServer{stream})
+func _Client_Stream_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(ClientServer).Stream(&clientStreamServer{stream})
 }
 
-type Micro_StreamServer interface {
+type Client_StreamServer interface {
 	Send(*Response) error
 	Recv() (*Request, error)
 	grpc.ServerStream
 }
 
-type microStreamServer struct {
+type clientStreamServer struct {
 	grpc.ServerStream
 }
 
-func (x *microStreamServer) Send(m *Response) error {
+func (x *clientStreamServer) Send(m *Response) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func (x *microStreamServer) Recv() (*Request, error) {
+func (x *clientStreamServer) Recv() (*Request, error) {
 	m := new(Request)
 	if err := x.ServerStream.RecvMsg(m); err != nil {
 		return nil, err
@@ -345,41 +345,41 @@ func (x *microStreamServer) Recv() (*Request, error) {
 	return m, nil
 }
 
-func _Micro_Publish_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Client_Publish_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(Message)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(MicroServer).Publish(ctx, in)
+		return srv.(ClientServer).Publish(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/go.micro.client.Micro/Publish",
+		FullMethod: "/go.micro.client.Client/Publish",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MicroServer).Publish(ctx, req.(*Message))
+		return srv.(ClientServer).Publish(ctx, req.(*Message))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-var _Micro_serviceDesc = grpc.ServiceDesc{
-	ServiceName: "go.micro.client.Micro",
-	HandlerType: (*MicroServer)(nil),
+var _Client_serviceDesc = grpc.ServiceDesc{
+	ServiceName: "go.micro.client.Client",
+	HandlerType: (*ClientServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
 			MethodName: "Call",
-			Handler:    _Micro_Call_Handler,
+			Handler:    _Client_Call_Handler,
 		},
 		{
 			MethodName: "Publish",
-			Handler:    _Micro_Publish_Handler,
+			Handler:    _Client_Publish_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
 		{
 			StreamName:    "Stream",
-			Handler:       _Micro_Stream_Handler,
+			Handler:       _Client_Stream_Handler,
 			ServerStreams: true,
 			ClientStreams: true,
 		},

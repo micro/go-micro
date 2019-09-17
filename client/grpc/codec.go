@@ -30,6 +30,7 @@ var (
 		"application/proto":        protoCodec{},
 		"application/protobuf":     protoCodec{},
 		"application/octet-stream": protoCodec{},
+		"application/grpc":         protoCodec{},
 		"application/grpc+json":    jsonCodec{},
 		"application/grpc+proto":   protoCodec{},
 		"application/grpc+bytes":   bytesCodec{},

@@ -11,26 +11,35 @@ type QueryOptions struct {
 	Gateway string
 	// Network is network address
 	Network string
+	// Router is router id
+	Router string
 }
 
-// QueryService sets destination address
+// QueryService sets service to query
 func QueryService(s string) QueryOption {
 	return func(o *QueryOptions) {
 		o.Service = s
 	}
 }
 
-// QueryGateway sets route gateway
+// QueryGateway sets gateway address to query
 func QueryGateway(g string) QueryOption {
 	return func(o *QueryOptions) {
 		o.Gateway = g
 	}
 }
 
-// QueryNetwork sets route network address
+// QueryNetwork sets network name to query
 func QueryNetwork(n string) QueryOption {
 	return func(o *QueryOptions) {
 		o.Network = n
+	}
+}
+
+// QueryRouter sets router id to query
+func QueryRouter(r string) QueryOption {
+	return func(o *QueryOptions) {
+		o.Router = r
 	}
 }
 
@@ -52,6 +61,7 @@ func NewQuery(opts ...QueryOption) Query {
 		Service: "*",
 		Gateway: "*",
 		Network: "*",
+		Router:  "*",
 	}
 
 	for _, o := range opts {
@@ -66,9 +76,4 @@ func NewQuery(opts ...QueryOption) Query {
 // Options returns query options
 func (q *query) Options() QueryOptions {
 	return q.opts
-}
-
-// String prints routing table query in human readable form
-func (q query) String() string {
-	return "query"
 }

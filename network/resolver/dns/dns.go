@@ -8,6 +8,7 @@ import (
 	"github.com/micro/go-micro/network/resolver"
 )
 
+// Resolver is a DNS network resolve
 type Resolver struct{}
 
 // Resolve assumes ID is a domain name e.g micro.mu
