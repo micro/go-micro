@@ -2,6 +2,8 @@ package network
 
 import (
 	"errors"
+	"fmt"
+	"hash/fnv"
 	"sync"
 	"time"
 
@@ -553,7 +555,7 @@ func (n *network) processCtrlChan(client transport.Client, listener tunnel.Liste
 				if pbRtrAdvert.Id == n.options.Id {
 					continue
 				}
-				log.Debugf("Network received advert message with %d events from: %s", len(pbRtrAdvert.Events), pbRtrAdvert.Id)
+				log.Debugf("Network received advert message from: %s", pbRtrAdvert.Id)
 				// loookup advertising node in our peer topology
 				advertNode := n.node.GetPeerNode(pbRtrAdvert.Id)
 				if advertNode == nil {
@@ -642,6 +644,7 @@ func (n *network) processCtrlChan(client transport.Client, listener tunnel.Liste
 
 // advertise advertises routes to the network
 func (n *network) advertise(client transport.Client, advertChan <-chan *router.Advert) {
+	hasher := fnv.New64()
 	for {
 		select {
 		// process local adverts and randomly fire them at other nodes
@@ -649,10 +652,13 @@ func (n *network) advertise(client transport.Client, advertChan <-chan *router.A
 			// create a proto advert
 			var events []*pbRtr.Event
 			for _, event := range advert.Events {
-				// NOTE: we override the Gateway and Link fields here
+				// hash the service before advertising it
+				hasher.Reset()
+				hasher.Write([]byte(event.Route.Address + n.node.id))
+				// NOTE: we override Gateway, Link and Service here
 				route := &pbRtr.Route{
 					Service: event.Route.Service,
-					Address: event.Route.Address,
+					Address: fmt.Sprintf("%d", hasher.Sum64()),
 					Gateway: n.node.id,
 					Network: event.Route.Network,
 					Router:  event.Route.Router,
