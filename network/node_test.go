@@ -192,6 +192,46 @@ func TestPeers(t *testing.T) {
 	}
 }
 
+func TestDeletePeerNode(t *testing.T) {
+	// complicated node graph
+	node := testSetup()
+
+	nodeCount := len(node.Nodes())
+
+	// should not find non-existent peer node
+	if err := node.DeletePeerNode("foobar"); err != ErrPeerNotFound {
+		t.Errorf("Expected: %v, got: %v", ErrPeerNotFound, err)
+	}
+
+	// lets pick one of the peer1 peers
+	if err := node.DeletePeerNode(testPeerOfPeerIds[0]); err != nil {
+		t.Errorf("Error deleting peer node: %v", err)
+	}
+
+	nodeDelCount := len(node.Nodes())
+
+	if nodeDelCount != nodeCount-1 {
+		t.Errorf("Expected node count: %d, got: %d", nodeCount-1, nodeDelCount)
+	}
+}
+
+func TestPruneStalePeerNodes(t *testing.T) {
+	// complicated node graph
+	node := testSetup()
+
+	nodes := node.Nodes()
+
+	pruneTime := 10 * time.Millisecond
+	time.Sleep(pruneTime)
+
+	// should delete all nodes besides node
+	pruned := node.PruneStalePeerNodes(pruneTime)
+
+	if len(pruned) != len(nodes)-1 {
+		t.Errorf("Expected pruned node count: %d, got: %d", len(nodes)-1, len(pruned))
+	}
+}
+
 func TestUnpackPeerTopology(t *testing.T) {
 	pbPeer := &pb.Peer{
 		Node: &pb.Node{
