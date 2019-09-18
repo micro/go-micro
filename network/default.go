@@ -716,7 +716,11 @@ func (n *network) Connect() error {
 	}
 
 	// set our internal node address
-	n.node.address = n.Tunnel.Address()
+	// if advertise address is not set
+	if len(n.options.Advertise) == 0 {
+		n.node.address = n.Tunnel.Address()
+		n.server.Init(server.Advertise(n.Tunnel.Address()))
+	}
 
 	// initialize the tunnel to resolved nodes
 	n.Tunnel.Init(
