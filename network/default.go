@@ -86,11 +86,17 @@ func newNetwork(opts ...Option) Network {
 		tun.WithTunnel(options.Tunnel),
 	)
 
+	// set the address to advertise
+	address := options.Address
+	if len(options.Advertise) > 0 {
+		address = options.Advertise
+	}
+
 	// server is network server
 	server := server.NewServer(
 		server.Id(options.Id),
 		server.Address(options.Id),
-		server.Advertise(options.Address),
+		server.Advertise(address),
 		server.Name(options.Name),
 		server.Transport(tunTransport),
 	)
@@ -108,7 +114,7 @@ func newNetwork(opts ...Option) Network {
 	network := &network{
 		node: &node{
 			id:      options.Id,
-			address: options.Address,
+			address: address,
 			peers:   make(map[string]*node),
 		},
 		options:   options,
@@ -710,7 +716,11 @@ func (n *network) Connect() error {
 	}
 
 	// set our internal node address
-	n.node.address = n.Tunnel.Address()
+	// if advertise address is not set
+	if len(n.options.Advertise) == 0 {
+		n.node.address = n.Tunnel.Address()
+		n.server.Init(server.Advertise(n.Tunnel.Address()))
+	}
 
 	// initialize the tunnel to resolved nodes
 	n.Tunnel.Init(

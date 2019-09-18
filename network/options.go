@@ -20,6 +20,8 @@ type Options struct {
 	Name string
 	// Address to bind to
 	Address string
+	// Advertise sets the address to advertise
+	Advertise string
 	// Nodes is a list of seed nodes
 	Nodes []string
 	// Tunnel is network tunnel
@@ -50,6 +52,13 @@ func Name(n string) Option {
 func Address(a string) Option {
 	return func(o *Options) {
 		o.Address = a
+	}
+}
+
+// Advertise sets the address to advertise
+func Advertise(a string) Option {
+	return func(o *Options) {
+		o.Advertise = a
 	}
 }
 
