@@ -30,8 +30,6 @@ type node struct {
 	address string
 	// peers are nodes with direct link to this node
 	peers map[string]*node
-	// edges store the node edges
-	edges map[string]map[string]*node
 	// network returns the node network
 	network Network
 	// lastSeen keeps track of node lifetime and updates
@@ -196,7 +194,7 @@ func (n *node) GetPeerNode(id string) *node {
 // DeletePeerNode removes peer node from node topology
 func (n *node) DeletePeerNode(id string) error {
 	n.Lock()
-	n.Unlock()
+	defer n.Unlock()
 
 	untilNoMorePeers := func(node *node) bool {
 		return node == nil
@@ -223,7 +221,7 @@ func (n *node) DeletePeerNode(id string) error {
 // It returns a map of the the nodes that got pruned
 func (n *node) PruneStalePeerNodes(pruneTime time.Duration) map[string]*node {
 	n.Lock()
-	n.Unlock()
+	defer n.Unlock()
 
 	untilNoMorePeers := func(node *node) bool {
 		return node == nil
