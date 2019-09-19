@@ -22,8 +22,8 @@ type Options struct {
 	Address string
 	// Advertise sets the address to advertise
 	Advertise string
-	// Nodes is a list of seed nodes
-	Nodes []string
+	// Peers is a list of peers to connect to
+	Peers []string
 	// Tunnel is network tunnel
 	Tunnel tunnel.Tunnel
 	// Router is network router
@@ -62,11 +62,10 @@ func Advertise(a string) Option {
 	}
 }
 
-// Nodes is a list of seed nodes used along
-// with resolved node
-func Nodes(n ...string) Option {
+// Peers is a list of peers to connect to
+func Peers(n ...string) Option {
 	return func(o *Options) {
-		o.Nodes = n
+		o.Peers = n
 	}
 }
 
