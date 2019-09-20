@@ -47,6 +47,10 @@ func (m *monitor) check(service string) (*Status, error) {
 			if node.Metadata["server"] != m.client.String() {
 				continue
 			}
+			// check the transport matches
+			if node.Metadata["transport"] != m.client.Options().Transport.String() {
+				continue
+			}
 
 			rsp, err := debug.Health(
 				context.Background(),
