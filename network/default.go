@@ -658,13 +658,22 @@ func (n *network) advertise(client transport.Client, advertChan <-chan *router.A
 			// create a proto advert
 			var events []*pbRtr.Event
 			for _, event := range advert.Events {
-				// hash the service before advertising it
-				hasher.Reset()
-				hasher.Write([]byte(event.Route.Address + n.node.id))
-				// NOTE: we override Gateway, Link and Service here
+				// the routes service address
+				address := event.Route.Address
+
+				// only hash the address if we're advertising our own local routes
+				if event.Route.Router == advert.Id {
+					// hash the service before advertising it
+					hasher.Reset()
+					hasher.Write([]byte(event.Route.Address + n.node.id))
+					address = fmt.Sprintf("%d", hasher.Sum64())
+				}
+
+				// NOTE: we override Gateway, Link and Address here
+				// TODO: should we avoid overriding gateway?
 				route := &pbRtr.Route{
 					Service: event.Route.Service,
-					Address: fmt.Sprintf("%d", hasher.Sum64()),
+					Address: address,
 					Gateway: n.node.id,
 					Network: event.Route.Network,
 					Router:  event.Route.Router,
