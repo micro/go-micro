@@ -70,11 +70,9 @@ func (w *watcher) watch(stream pb.Router_WatchService) error {
 			Route:     route,
 		}
 
-		for {
-			select {
-			case w.resChan <- event:
-			case <-w.done:
-			}
+		select {
+		case w.resChan <- event:
+		case <-w.done:
 		}
 	}
 

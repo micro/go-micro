@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/codec"
@@ -440,7 +441,16 @@ func NewProxy(opts ...options.Option) proxy.Proxy {
 
 	// watch router service routes
 	p.errChan = make(chan error, 1)
-	go p.watchRoutes()
+
+	go func() {
+		// continuously attempt to watch routes
+		for {
+			// watch the routes
+			p.watchRoutes()
+			// in case of failure just wait a second
+			time.Sleep(time.Second)
+		}
+	}()
 
 	return p
 }

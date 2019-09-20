@@ -164,7 +164,7 @@ func (r *Router) Watch(ctx context.Context, req *pb.WatchRequest, stream pb.Rout
 	for {
 		event, err := watcher.Next()
 		if err == router.ErrWatcherStopped {
-			break
+			return errors.InternalServerError("go.micro.router", "watcher stopped")
 		}
 
 		if err != nil {

@@ -357,7 +357,9 @@ func (s *svc) Watch(opts ...router.WatchOption) (router.Watcher, error) {
 	if err != nil {
 		return nil, err
 	}
-	var options router.WatchOptions
+	options := router.WatchOptions{
+		Service: "*",
+	}
 	for _, o := range opts {
 		o(&options)
 	}
