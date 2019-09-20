@@ -24,6 +24,22 @@ type monitor struct {
 	services map[string]*Status
 }
 
+func (m *monitor) Check(service string) error {
+	status, err := m.check(service)
+	if err != nil {
+		return err
+	}
+	m.Lock()
+	m.services[service] = status
+	m.Unlock()
+
+	if status.Code != StatusRunning {
+		return errors.New(status.Info)
+	}
+
+	return nil
+}
+
 // check provides binary running/failed status.
 // In the event Debug.Health cannot be called on a service we reap the node.
 func (m *monitor) check(service string) (*Status, error) {

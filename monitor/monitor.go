@@ -17,6 +17,8 @@ type StatusCode int
 type Monitor interface {
 	// Reap a service and stop monitoring
 	Reap(service string) error
+	// Check the status of the service now
+	Check(service string) error
 	// Status of the service
 	Status(service string) (Status, error)
 	// Watch starts watching the service
