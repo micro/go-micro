@@ -3,7 +3,6 @@ package server
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
