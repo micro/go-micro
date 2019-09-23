@@ -39,6 +39,7 @@ type RegistryService interface {
 	Deregister(ctx context.Context, in *Service, opts ...client.CallOption) (*EmptyResponse, error)
 	ListServices(ctx context.Context, in *ListRequest, opts ...client.CallOption) (*ListResponse, error)
 	Watch(ctx context.Context, in *WatchRequest, opts ...client.CallOption) (Registry_WatchService, error)
+	Sync(ctx context.Context, in *SyncRequest, opts ...client.CallOption) (*SyncResponse, error)
 }
 
 type registryService struct {
@@ -143,6 +144,16 @@ func (x *registryServiceWatch) Recv() (*Result, error) {
 	return m, nil
 }
 
+func (c *registryService) Sync(ctx context.Context, in *SyncRequest, opts ...client.CallOption) (*SyncResponse, error) {
+	req := c.c.NewRequest(c.name, "Registry.Sync", in)
+	out := new(SyncResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Server API for Registry service
 
 type RegistryHandler interface {
@@ -151,6 +162,7 @@ type RegistryHandler interface {
 	Deregister(context.Context, *Service, *EmptyResponse) error
 	ListServices(context.Context, *ListRequest, *ListResponse) error
 	Watch(context.Context, *WatchRequest, Registry_WatchStream) error
+	Sync(context.Context, *SyncRequest, *SyncResponse) error
 }
 
 func RegisterRegistryHandler(s server.Server, hdlr RegistryHandler, opts ...server.HandlerOption) error {
@@ -160,6 +172,7 @@ func RegisterRegistryHandler(s server.Server, hdlr RegistryHandler, opts ...serv
 		Deregister(ctx context.Context, in *Service, out *EmptyResponse) error
 		ListServices(ctx context.Context, in *ListRequest, out *ListResponse) error
 		Watch(ctx context.Context, stream server.Stream) error
+		Sync(ctx context.Context, in *SyncRequest, out *SyncResponse) error
 	}
 	type Registry struct {
 		registry
@@ -221,4 +234,8 @@ func (x *registryWatchStream) RecvMsg(m interface{}) error {
 
 func (x *registryWatchStream) Send(m *Result) error {
 	return x.stream.Send(m)
+}
+
+func (h *registryHandler) Sync(ctx context.Context, in *SyncRequest, out *SyncResponse) error {
+	return h.RegistryHandler.Sync(ctx, in, out)
 }

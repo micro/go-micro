@@ -8,6 +8,7 @@ service Registry {
 	rpc Deregister(Service) returns (EmptyResponse) {};
 	rpc ListServices(ListRequest) returns (ListResponse) {};
 	rpc Watch(WatchRequest) returns (stream Result) {};
+        rpc Sync(SyncRequest) returns (SyncResponse) {};
 }
 
 // Service represents a go-micro service
@@ -70,6 +71,13 @@ message ListResponse {
 message WatchRequest {
 	// service is optional
 	string service = 1;
+}
+
+// SyncRequest to request registry sync
+message SyncRequest {}
+
+message SyncResponse {
+        repeated Service services = 1;
 }
 
 // EventType defines the type of event
