@@ -17,11 +17,19 @@ type Resolver struct {
 
 	// Path sets the path to lookup. Defaults to /network
 	Path string
+
+	// Host url to use for the query
+	Host string
+}
+
+type Response struct {
+	Nodes []*resolver.Record `json:"nodes,omitempty"`
 }
 
 // Resolve assumes ID is a domain which can be converted to a http://name/network request
 func (r *Resolver) Resolve(name string) ([]*resolver.Record, error) {
-	proto := "http"
+	proto := "https"
+	host := "micro.mu"
 	path := "/network"
 
 	if len(r.Proto) > 0 {
@@ -32,11 +40,18 @@ func (r *Resolver) Resolve(name string) ([]*resolver.Record, error) {
 		path = r.Path
 	}
 
+	if len(r.Host) > 0 {
+		host = r.Host
+	}
+
 	uri := &url.URL{
 		Scheme: proto,
 		Path:   path,
-		Host:   name,
+		Host:   host,
 	}
+	q := uri.Query()
+	q.Set("name", name)
+	uri.RawQuery = q.Encode()
 
 	rsp, err := http.Get(uri.String())
 	if err != nil {
@@ -50,11 +65,11 @@ func (r *Resolver) Resolve(name string) ([]*resolver.Record, error) {
 	}
 
 	// encoding format is assumed to be json
-	var records []*resolver.Record
+	var response *Response
 
-	if err := json.Unmarshal(b, &records); err != nil {
+	if err := json.Unmarshal(b, &response); err != nil {
 		return nil, err
 	}
 
-	return records, nil
+	return response.Nodes, nil
 }
