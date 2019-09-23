@@ -95,11 +95,13 @@ var (
 		cli.IntFlag{
 			Name:   "register_ttl",
 			EnvVar: "MICRO_REGISTER_TTL",
+			Value:  60,
 			Usage:  "Register TTL in seconds",
 		},
 		cli.IntFlag{
 			Name:   "register_interval",
 			EnvVar: "MICRO_REGISTER_INTERVAL",
+			Value:  30,
 			Usage:  "Register interval in seconds",
 		},
 		cli.StringFlag{
@@ -417,11 +419,11 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		serverOpts = append(serverOpts, server.Advertise(ctx.String("server_advertise")))
 	}
 
-	if ttl := time.Duration(ctx.GlobalInt("register_ttl")); ttl > 0 {
+	if ttl := time.Duration(ctx.GlobalInt("register_ttl")); ttl >= 0 {
 		serverOpts = append(serverOpts, server.RegisterTTL(ttl*time.Second))
 	}
 
-	if val := time.Duration(ctx.GlobalInt("register_interval")); val > 0 {
+	if val := time.Duration(ctx.GlobalInt("register_interval")); val >= 0 {
 		serverOpts = append(serverOpts, server.RegisterInterval(val*time.Second))
 	}
 
