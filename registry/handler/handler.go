@@ -74,14 +74,3 @@ func (r *Registry) Watch(ctx context.Context, req *pb.WatchRequest, rsp pb.Regis
 
 	return nil
 }
-
-func (r *Registry) Sync(ctx context.Context, req *pb.SyncRequest, rsp *pb.SyncResponse) error {
-	services, err := r.Registry.ListServices()
-	if err != nil {
-		return errors.InternalServerError("go.micro.registry", err.Error())
-	}
-	for _, srv := range services {
-		rsp.Services = append(rsp.Services, service.ToProto(srv))
-	}
-	return nil
-}
