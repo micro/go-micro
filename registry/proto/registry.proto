@@ -88,5 +88,5 @@ message Event {
         // unix timestamp of event
         int64 timestamp = 3;
         // service entry
-	Service service = 4;
+        Service service = 4;
 }
