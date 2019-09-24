@@ -147,6 +147,48 @@ func (s *service) Wait() {
 	s.running = false
 }
 
+func (r *runtime) run() {
+	r.RLock()
+	closed := r.closed
+	r.RUnlock()
+
+	t := time.NewTicker(time.Second * 5)
+	defer t.Stop()
+
+	for {
+		select {
+		case <-t.C:
+			// check running services
+			r.RLock()
+			for _, service := range r.services {
+				if service.Running() {
+					continue
+				}
+
+				// TODO: check service error
+				log.Debugf("Runtime starting %s", service.Name)
+				if err := service.Start(); err != nil {
+					log.Debugf("Runtime error starting %s: %v", service.Name, err)
+				}
+			}
+			r.RUnlock()
+		case service := <-r.start:
+			if service.Running() {
+				continue
+			}
+
+			// TODO: check service error
+			log.Debugf("Starting %s", service.Name)
+			if err := service.Start(); err != nil {
+				log.Debugf("Runtime error starting %s: %v", service.Name, err)
+			}
+		case <-closed:
+			// TODO: stop all the things
+			return
+		}
+	}
+}
+
 func (r *runtime) Create(s *Service) error {
 	r.Lock()
 	defer r.Unlock()
@@ -178,55 +220,18 @@ func (r *runtime) Delete(s *Service) error {
 
 func (r *runtime) Start() error {
 	r.Lock()
+	defer r.Unlock()
 
 	// already running
 	if r.running {
-		r.Unlock()
 		return nil
 	}
 
 	// set running
 	r.running = true
 	r.closed = make(chan bool)
-	closed := r.closed
 
-	r.Unlock()
-
-	t := time.NewTicker(time.Second * 5)
-	defer t.Stop()
-
-	for {
-		select {
-		case <-t.C:
-			// check running services
-			r.RLock()
-			for _, service := range r.services {
-				if service.Running() {
-					continue
-				}
-
-				// TODO: check service error
-				log.Debugf("Starting %s", service.Name)
-				if err := service.Start(); err != nil {
-					log.Debugf("Error starting %s: %v", service.Name, err)
-				}
-			}
-			r.RUnlock()
-		case service := <-r.start:
-			if service.Running() {
-				continue
-			}
-
-			// TODO: check service error
-			log.Debugf("Starting %s", service.Name)
-			if err := service.Start(); err != nil {
-				log.Debugf("Error starting %s: %v", service.Name, err)
-			}
-		case <-closed:
-			// TODO: stop all the things
-			return nil
-		}
-	}
+	go r.run()
 
 	return nil
 }
@@ -250,6 +255,7 @@ func (r *runtime) Stop() error {
 
 		// stop all the services
 		for _, service := range r.services {
+			log.Debugf("Runtime stopping %s", service.Name)
 			service.Stop()
 		}
 	}
