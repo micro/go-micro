@@ -2,7 +2,6 @@ package runtime
 
 import (
 	"errors"
-	"os"
 	"strings"
 	"sync"
 	"time"
@@ -50,13 +49,25 @@ func newRuntime() *runtime {
 	}
 }
 
-func newService(s *Service) *service {
-	parts := strings.Split(s.Exec, " ")
-	exec := parts[0]
-	args := []string{}
+func newService(s *Service, c CreateOptions) *service {
+	var exec string
+	var args []string
 
-	if len(parts) > 1 {
-		args = parts[1:]
+	if len(s.Exec) > 0 {
+		parts := strings.Split(s.Exec, " ")
+		exec = parts[0]
+		args = []string{}
+
+		if len(parts) > 1 {
+			args = parts[1:]
+		}
+	} else {
+		// set command
+		exec = c.Command[0]
+		// set args
+		if len(c.Command) > 1 {
+			args = c.Command[1:]
+		}
 	}
 
 	return &service{
@@ -67,7 +78,7 @@ func newService(s *Service) *service {
 				Name: s.Name,
 				Path: exec,
 			},
-			Env:  os.Environ(),
+			Env:  c.Env,
 			Args: args,
 		},
 	}
@@ -189,7 +200,7 @@ func (r *runtime) run() {
 	}
 }
 
-func (r *runtime) Create(s *Service) error {
+func (r *runtime) Create(s *Service, opts ...CreateOption) error {
 	r.Lock()
 	defer r.Unlock()
 
@@ -197,8 +208,17 @@ func (r *runtime) Create(s *Service) error {
 		return errors.New("service already registered")
 	}
 
+	var options CreateOptions
+	for _, o := range opts {
+		o(&options)
+	}
+
+	if len(s.Exec) == 0 && len(options.Command) == 0 {
+		return errors.New("missing exec command")
+	}
+
 	// save service
-	r.services[s.Name] = newService(s)
+	r.services[s.Name] = newService(s, options)
 
 	// push into start queue
 	r.start <- r.services[s.Name]

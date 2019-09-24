@@ -4,7 +4,7 @@ package runtime
 // Runtime is a service runtime manager
 type Runtime interface {
 	// Registers a service
-	Create(*Service) error
+	Create(*Service, ...CreateOption) error
 	// Remove a service
 	Delete(*Service) error
 	// starts the runtime
@@ -28,8 +28,8 @@ var (
 	DefaultRuntime = newRuntime()
 )
 
-func Create(s *Service) error {
-	return DefaultRuntime.Create(s)
+func Create(s *Service, opts ...CreateOption) error {
+	return DefaultRuntime.Create(s, opts...)
 }
 
 func Delete(s *Service) error {
