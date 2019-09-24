@@ -71,3 +71,22 @@ message WatchRequest {
 	// service is optional
 	string service = 1;
 }
+
+// EventType defines the type of event
+enum EventType {
+        Create = 0;
+        Delete = 1;
+        Update = 2;
+}
+
+// Event is registry event
+message Event {
+        // Event Id
+        string id = 1;
+        // type of event
+        EventType type = 2;
+        // unix timestamp of event
+        int64 timestamp = 3;
+        // service entry
+        Service service = 4;
+}
