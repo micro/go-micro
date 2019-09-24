@@ -2,6 +2,7 @@ package runtime
 
 import (
 	"errors"
+	"io"
 	"strings"
 	"sync"
 	"time"
@@ -30,6 +31,9 @@ type service struct {
 	running bool
 	closed  chan bool
 	err     error
+
+	// output for logs
+	output io.Writer
 
 	// service to manage
 	*Service
@@ -81,7 +85,13 @@ func newService(s *Service, c CreateOptions) *service {
 			Env:  c.Env,
 			Args: args,
 		},
+		output: c.Output,
 	}
+}
+
+func (s *service) streamOutput() {
+	go io.Copy(s.output, s.PID.Output)
+	go io.Copy(s.output, s.PID.Error)
 }
 
 func (s *service) Running() bool {
@@ -103,7 +113,7 @@ func (s *service) Start() error {
 	s.closed = make(chan bool)
 
 	// TODO: pull source & build binary
-
+	log.Debugf("Runtime service %s forking new process\n")
 	p, err := s.Process.Fork(s.Exec)
 	if err != nil {
 		return err
@@ -113,6 +123,10 @@ func (s *service) Start() error {
 	s.PID = p
 	// set to running
 	s.running = true
+
+	if s.output != nil {
+		s.streamOutput()
+	}
 
 	// wait and watch
 	go s.Wait()

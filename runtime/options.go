@@ -1,5 +1,9 @@
 package runtime
 
+import (
+	"io"
+)
+
 type CreateOption func(o *CreateOptions)
 
 type CreateOptions struct {
@@ -7,9 +11,11 @@ type CreateOptions struct {
 	Command []string
 	// Environment to configure
 	Env []string
+	// Log output
+	Output io.Writer
 }
 
-// Command specifies the command to execute
+// WithCommand specifies the command to execute
 func WithCommand(c string, args ...string) CreateOption {
 	return func(o *CreateOptions) {
 		// set command
@@ -19,9 +25,16 @@ func WithCommand(c string, args ...string) CreateOption {
 	}
 }
 
-// Env sets the created service env
+// WithEnv sets the created service env
 func WithEnv(env []string) CreateOption {
 	return func(o *CreateOptions) {
 		o.Env = env
+	}
+}
+
+// WithOutput sets the arg output
+func WithOutput(out io.Writer) CreateOption {
+	return func(o *CreateOptions) {
+		o.Output = out
 	}
 }
