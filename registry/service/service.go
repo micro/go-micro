@@ -58,8 +58,13 @@ func (s *serviceRegistry) Register(srv *registry.Service, opts ...registry.Regis
 		o(&options)
 	}
 
+	ctx := context.Background()
+	if options.TTL.Nanoseconds() != 0.0 {
+		ctx = context.WithValue(ctx, "register_ttl", options.TTL)
+	}
+
 	// register the service
-	_, err := s.client.Register(context.TODO(), ToProto(srv), s.callOpts()...)
+	_, err := s.client.Register(ctx, ToProto(srv), s.callOpts()...)
 	if err != nil {
 		return err
 	}
