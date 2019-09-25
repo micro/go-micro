@@ -353,10 +353,10 @@ func (t *tun) process() {
 			// send the message
 			for _, link := range sendTo {
 				// send the message via the current link
-				log.Debugf("Sending %+v to %s", newMsg, link.Remote())
+				log.Debugf("Sending %+v to %s", newMsg.Header, link.Remote())
 
 				if errr := link.Send(newMsg); errr != nil {
-					log.Debugf("Tunnel error sending %+v to %s: %v", newMsg, link.Remote(), errr)
+					log.Debugf("Tunnel error sending %+v to %s: %v", newMsg.Header, link.Remote(), errr)
 					err = errors.New(errr.Error())
 					t.delLink(link.Remote())
 					continue
@@ -533,7 +533,7 @@ func (t *tun) listen(link *link) {
 		// a continued session
 		case "session":
 			// process message
-			log.Debugf("Received %+v from %s", msg, link.Remote())
+			log.Debugf("Received %+v from %s", msg.Header, link.Remote())
 		// an announcement of a channel listener
 		case "announce":
 			// process the announcement
