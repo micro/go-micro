@@ -220,6 +220,7 @@ func (t *tun) monitor() {
 			if len(delLinks) > 0 {
 				t.Lock()
 				for _, node := range delLinks {
+					log.Debugf("Tunnel deleting dead link for %s", node)
 					link := t.links[node]
 					link.Close()
 					delete(t.links, node)
