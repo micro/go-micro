@@ -303,7 +303,7 @@ func (n *network) processNetChan(client transport.Client, listener tunnel.Listen
 					peers:    make(map[string]*node),
 					lastSeen: now,
 				}
-				if err := n.node.AddPeer(peer); err == ErrPeerExists {
+				if err := n.node.AddPeer(peer); err == nil {
 					// send a solicit message when discovering new peer
 					msg := &pbRtr.Solicit{
 						Id: n.options.Id,
@@ -312,12 +312,18 @@ func (n *network) processNetChan(client transport.Client, listener tunnel.Listen
 						log.Debugf("Network failed to send solicit message: %s", err)
 					}
 					continue
+					// we're expecting any error to be ErrPeerExists
+				} else if err != ErrPeerExists {
+					log.Debugf("Network got error adding peer %v", err)
+					continue
 				}
+
 				log.Debugf("Network peer exists, refreshing: %s", pbNetPeer.Node.Id)
 				// update lastSeen time for the peer
 				if err := n.RefreshPeer(pbNetPeer.Node.Id, now); err != nil {
 					log.Debugf("Network failed refreshing peer %s: %v", pbNetPeer.Node.Id, err)
 				}
+
 				// NOTE: we don't unpack MaxDepth toplogy
 				peer = UnpackPeerTopology(pbNetPeer, now, MaxDepth-1)
 				log.Debugf("Network updating topology of node: %s", n.node.id)
