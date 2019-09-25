@@ -337,7 +337,7 @@ func (r *router) advertiseTable() error {
 
 			// advertise all routes as Update events to subscribers
 			if len(events) > 0 {
-				log.Debugf("Network router flushing table with %d events: %s", len(events), r.options.Id)
+				log.Debugf("Router flushing table with %d events: %s", len(events), r.options.Id)
 				r.advertWg.Add(1)
 				go r.publishAdvert(RouteUpdate, events)
 			}
@@ -669,13 +669,13 @@ func (r *router) Process(a *Advert) error {
 	for _, event := range events {
 		// skip if the router is the origin of this route
 		if event.Route.Router == r.options.Id {
-			log.Debugf("Network router skipping processing its own route: %s", r.options.Id)
+			log.Debugf("Router skipping processing its own route: %s", r.options.Id)
 			continue
 		}
 		// create a copy of the route
 		route := event.Route
 		action := event.Type
-		log.Debugf("Network router processing route action %s: %s", action, r.options.Id)
+		log.Debugf("Router processing route action %s: %s", action, r.options.Id)
 		if err := r.manageRoute(route, fmt.Sprintf("%s", action)); err != nil {
 			return fmt.Errorf("failed applying action %s to routing table: %s", action, err)
 		}
