@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"io"
 
 	"github.com/micro/go-micro/errors"
 	"github.com/micro/go-micro/registry"
@@ -49,6 +50,58 @@ func (r *Registry) ListServices(ctx context.Context, req *pb.ListRequest, rsp *p
 	for _, srv := range services {
 		rsp.Services = append(rsp.Services, service.ToProto(srv))
 	}
+	return nil
+}
+
+func (r *Registry) Sync(ctx context.Context, req *pb.SyncRequest, stream pb.Registry_SyncStream) error {
+	// list the current services. this only works with the memory registry
+	// it will otherwise only return a list of names
+	services, err := r.Registry.ListServices()
+	if err != nil {
+		return errors.InternalServerError("go.micro.registry", err.Error())
+	}
+
+	// make batches
+	var batch []*registry.Service
+
+	for {
+		// do nothing when there are no services
+		if count := len(services); count == 0 {
+			break
+		} else if count < 100 {
+			batch = services
+			services = nil
+		} else {
+			batch = services[:100]
+			services = services[100:]
+		}
+
+		var sendBatch []*pb.Service
+
+		// create a new proto batch
+		for _, srv := range batch {
+			sendBatch = append(sendBatch, service.ToProto(srv))
+		}
+
+		// send the batch
+		err := stream.Send(&pb.SyncResponse{
+			Services: sendBatch,
+		})
+
+		// keep going
+		if err == nil {
+			continue
+		}
+
+		// something closed on the other side
+		if err == io.EOF {
+			return nil
+		}
+
+		// an error occured
+		return err
+	}
+
 	return nil
 }
 
