@@ -200,6 +200,34 @@ func (t *tun) monitor() {
 		case <-t.closed:
 			return
 		case <-reconnect.C:
+			t.RLock()
+
+			var delLinks []string
+			// check the link status and purge dead links
+			for node, link := range t.links {
+				// check link status
+				switch link.Status() {
+				case "closed":
+					delLinks = append(delLinks, node)
+				case "error":
+					delLinks = append(delLinks, node)
+				}
+			}
+
+			t.RUnlock()
+
+			// delete the dead links
+			if len(delLinks) > 0 {
+				t.Lock()
+				for _, node := range delLinks {
+					link := t.links[node]
+					link.Close()
+					delete(t.links, node)
+				}
+				t.Unlock()
+			}
+
+			// check current link status
 			var connect []string
 
 			// build list of unknown nodes to connect to

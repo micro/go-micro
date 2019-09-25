@@ -31,6 +31,9 @@ type link struct {
 	lastKeepAlive time.Time
 	// channels keeps a mapping of channels and last seen
 	channels map[string]time.Time
+
+	// keep an error count on the link
+	errCount int
 }
 
 func newLink(s transport.Socket) *link {
@@ -101,11 +104,33 @@ func (l *link) Close() error {
 	return nil
 }
 
+func (l *link) Send(m *transport.Message) error {
+	err := l.Socket.Send(m)
+
+	l.Lock()
+	defer l.Unlock()
+
+	// if theres no error reset the counter
+	if err == nil {
+		l.errCount = 0
+	}
+
+	// otherwise increment the counter
+	l.errCount++
+
+	return err
+}
+
 func (l *link) Status() string {
 	select {
 	case <-l.closed:
 		return "closed"
 	default:
+		l.RLock()
+		defer l.RUnlock()
+		if l.errCount > 3 {
+			return "error"
+		}
 		return "connected"
 	}
 }
