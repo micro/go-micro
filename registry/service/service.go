@@ -134,7 +134,14 @@ func NewRegistry(opts ...registry.Option) registry.Registry {
 		o(&options)
 	}
 
-	// use mdns to find the service registry
+	// the registry address
+	addrs := options.Addrs
+
+	if len(addrs) == 0 {
+		addrs = []string{"127.0.0.1:8000"}
+	}
+
+	// use mdns as a fall back in case its used
 	mReg := registry.NewRegistry()
 
 	// create new client with mdns
@@ -149,7 +156,7 @@ func NewRegistry(opts ...registry.Option) registry.Registry {
 	return &serviceRegistry{
 		opts:    options,
 		name:    name,
-		address: options.Addrs,
+		address: addrs,
 		client:  pb.NewRegistryService(name, cli),
 	}
 }
