@@ -113,19 +113,19 @@ func (r *router) manageRoute(route Route, action string) error {
 		if err := r.table.Create(route); err != nil && err != ErrDuplicateRoute {
 			return fmt.Errorf("failed adding route for service %s: %s", route.Service, err)
 		}
-	case "update":
-		if err := r.table.Update(route); err != nil && err != ErrDuplicateRoute {
-			return fmt.Errorf("failed updating route for service %s: %s", route.Service, err)
-		}
 	case "delete":
 		if err := r.table.Delete(route); err != nil && err != ErrRouteNotFound {
 			return fmt.Errorf("failed deleting route for service %s: %s", route.Service, err)
+		}
+	case "update":
+		if err := r.table.Update(route); err != nil {
+			return fmt.Errorf("failed updating route for service %s: %s", route.Service, err)
 		}
 	case "solicit":
 		// nothing to do here
 		return nil
 	default:
-		return fmt.Errorf("failed to manage route for service %s. Unknown action: %s", route.Service, action)
+		return fmt.Errorf("failed to manage route for service %s: unknown action %s", route.Service, action)
 	}
 
 	return nil
@@ -426,6 +426,7 @@ func (r *router) advertiseEvents() error {
 			// advertise all Update events to subscribers
 			if len(events) > 0 {
 				r.advertWg.Add(1)
+				log.Debugf("Router publishing %d events", len(events))
 				go r.publishAdvert(RouteUpdate, events)
 			}
 		case e := <-r.eventChan:
@@ -433,7 +434,7 @@ func (r *router) advertiseEvents() error {
 			if e == nil {
 				continue
 			}
-
+			log.Debugf("Router processing table event %s for service %s", e.Type, e.Route.Address)
 			// determine the event penalty
 			var penalty float64
 			switch e.Type {
@@ -460,7 +461,8 @@ func (r *router) advertiseEvents() error {
 
 			// attempt to squash last two events if possible
 			lastEvent := advert.events[len(advert.events)-1]
-			if lastEvent.Type == e.Type {
+			if lastEvent.Type == e.Type && lastEvent.Route.Hash() == hash {
+				log.Debugf("Router squashing event %s with hash %d for service %s", e.Type, hash, e.Route.Address)
 				advert.events[len(advert.events)-1] = e
 			} else {
 				advert.events = append(advert.events, e)
@@ -675,7 +677,7 @@ func (r *router) Process(a *Advert) error {
 		// create a copy of the route
 		route := event.Route
 		action := event.Type
-		log.Debugf("Router processing route action %s: %s", action, r.options.Id)
+		log.Debugf("Router %s processing route action %s for: %s", r.options.Id, action, route.Address)
 		if err := r.manageRoute(route, fmt.Sprintf("%s", action)); err != nil {
 			return fmt.Errorf("failed applying action %s to routing table: %s", action, err)
 		}
