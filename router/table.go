@@ -87,7 +87,7 @@ func (t *table) Delete(r Route) error {
 	}
 
 	delete(t.routes[service], sum)
-	log.Debugf("Router emitting %s for route: %s", Update, r.Address)
+	log.Debugf("Router emitting %s for route: %s", Delete, r.Address)
 	go t.sendEvent(&Event{Type: Delete, Timestamp: time.Now(), Route: r})
 
 	return nil
@@ -106,9 +106,15 @@ func (t *table) Update(r Route) error {
 		t.routes[service] = make(map[uint64]Route)
 	}
 
+	if _, ok := t.routes[service][sum]; !ok {
+		t.routes[service][sum] = r
+		log.Debugf("Router emitting %s for route: %s", Update, r.Address)
+		go t.sendEvent(&Event{Type: Update, Timestamp: time.Now(), Route: r})
+		return nil
+	}
+
+	// just update the route, but dont emit Update event
 	t.routes[service][sum] = r
-	log.Debugf("Router emitting %s for route: %s", Update, r.Address)
-	go t.sendEvent(&Event{Type: Update, Timestamp: time.Now(), Route: r})
 
 	return nil
 }
