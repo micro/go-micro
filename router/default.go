@@ -668,6 +668,8 @@ func (r *router) Process(a *Advert) error {
 		return events[i].Timestamp.Before(events[j].Timestamp)
 	})
 
+	log.Debugf("Router %s processing advert from: %s", r.options.Id, a.Id)
+
 	for _, event := range events {
 		// skip if the router is the origin of this route
 		if event.Route.Router == r.options.Id {
@@ -677,7 +679,7 @@ func (r *router) Process(a *Advert) error {
 		// create a copy of the route
 		route := event.Route
 		action := event.Type
-		log.Debugf("Router %s processing route action %s for: %s", r.options.Id, action, route.Address)
+		log.Debugf("Router %s applying %s from router %s for address: %s", r.options.Id, action, route.Router, route.Address)
 		if err := r.manageRoute(route, fmt.Sprintf("%s", action)); err != nil {
 			return fmt.Errorf("failed applying action %s to routing table: %s", action, err)
 		}
