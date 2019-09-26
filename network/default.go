@@ -622,7 +622,7 @@ func (n *network) processCtrlChan(client transport.Client, listener tunnel.Liste
 					Events:    events,
 				}
 
-				log.Debugf("Network router processing advert: %s", advert.Id)
+				log.Debugf("Network router %s processing advert: %s", n.Id(), advert.Id)
 				if err := n.router.Process(advert); err != nil {
 					log.Debugf("Network failed to process advert %s: %v", advert.Id, err)
 				}
