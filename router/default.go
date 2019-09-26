@@ -347,9 +347,10 @@ func (r *router) advertiseTable() error {
 	}
 }
 
-// routeAdvert contains a list of route events to be advertised
+// routeAdvert contains a route event to be advertised
 type routeAdvert struct {
-	events []*Event
+	// event received from routing table
+	event *Event
 	// lastUpdate records the time of the last advert update
 	lastUpdate time.Time
 	// penalty is current advert penalty
@@ -398,9 +399,11 @@ func (r *router) advertiseEvents() error {
 				// suppress/recover the event based on its penalty level
 				switch {
 				case advert.penalty > AdvertSuppress && !advert.isSuppressed:
+					log.Debugf("Router supressing advert %d for route %s", key, advert.event.Route.Address)
 					advert.isSuppressed = true
 					advert.suppressTime = time.Now()
 				case advert.penalty < AdvertRecover && advert.isSuppressed:
+					log.Debugf("Router recovering advert %d for route %s", key, advert.event.Route.Address)
 					advert.isSuppressed = false
 				}
 
@@ -413,13 +416,11 @@ func (r *router) advertiseEvents() error {
 				}
 
 				if !advert.isSuppressed {
-					for _, event := range advert.events {
-						e := new(Event)
-						*e = *event
-						events = append(events, e)
-						// delete the advert from the advertMap
-						delete(advertMap, key)
-					}
+					e := new(Event)
+					*e = *(advert.event)
+					events = append(events, e)
+					// delete the advert from the advertMap
+					delete(advertMap, key)
 				}
 			}
 
@@ -445,13 +446,11 @@ func (r *router) advertiseEvents() error {
 			}
 
 			// check if we have already registered the route
-			// we use the route hash as advertMap key
 			hash := e.Route.Hash()
 			advert, ok := advertMap[hash]
 			if !ok {
-				events := []*Event{e}
 				advert = &routeAdvert{
-					events:     events,
+					event:      e,
 					penalty:    penalty,
 					lastUpdate: time.Now(),
 				}
@@ -459,18 +458,15 @@ func (r *router) advertiseEvents() error {
 				continue
 			}
 
-			// attempt to squash last two events if possible
-			lastEvent := advert.events[len(advert.events)-1]
-			if lastEvent.Type == e.Type && lastEvent.Route.Hash() == hash {
-				log.Debugf("Router squashing event %s with hash %d for service %s", e.Type, hash, e.Route.Address)
-				advert.events[len(advert.events)-1] = e
-			} else {
-				advert.events = append(advert.events, e)
+			// override the route event only if the last event was different
+			if advert.event.Type != e.Type {
+				advert.event = e
 			}
 
-			// update event penalty and recorded timestamp
+			// update event penalty and timestamp
 			advert.lastUpdate = time.Now()
 			advert.penalty += penalty
+			log.Debugf("Router advert %d for route %s event penalty: %f", hash, advert.event.Route.Address, advert.penalty)
 		case <-r.exit:
 			// first wait for the advertiser to finish
 			r.advertWg.Wait()
