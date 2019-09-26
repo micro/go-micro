@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/micro/mdns"
-	hash "github.com/mitchellh/hashstructure"
 )
 
 var (
@@ -27,7 +26,6 @@ type mdnsTxt struct {
 }
 
 type mdnsEntry struct {
-	hash uint64
 	id   string
 	node *mdns.Server
 }
@@ -109,13 +107,6 @@ func (m *mdnsRegistry) Register(service *Service, opts ...RegisterOption) error 
 	var gerr error
 
 	for _, node := range service.Nodes {
-		// create hash of service; uint64
-		h, err := hash.Hash(node, nil)
-		if err != nil {
-			gerr = err
-			continue
-		}
-
 		var seen bool
 		var e *mdnsEntry
 
@@ -128,14 +119,11 @@ func (m *mdnsRegistry) Register(service *Service, opts ...RegisterOption) error 
 		}
 
 		// already registered, continue
-		if seen && e.hash == h {
+		if seen {
 			continue
-			// hash doesn't match, shutdown
-		} else if seen {
-			e.node.Shutdown()
 			// doesn't exist
 		} else {
-			e = &mdnsEntry{hash: h}
+			e = &mdnsEntry{}
 		}
 
 		txt, err := encode(&mdnsTxt{
