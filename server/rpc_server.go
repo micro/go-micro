@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"io"
 	"net"
 	"runtime/debug"
 	"sort"
@@ -300,17 +301,21 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 			defer psock.Close()
 
 			// serve the actual request using the request router
-			if err := r.ServeRequest(ctx, request, response); err != nil {
+			if serveRequestError := r.ServeRequest(ctx, request, response); serveRequestError != nil {
 				// write an error response
-				err = rcodec.Write(&codec.Message{
+				writeError := rcodec.Write(&codec.Message{
 					Header: msg.Header,
-					Error:  err.Error(),
+					Error:  serveRequestError.Error(),
 					Type:   codec.Error,
 				}, nil)
 
-				// could not write the error response
-				if err != nil {
-					log.Logf("rpc: unable to write error response: %v", err)
+				// if the server request is an EOS error we let the socket know
+				// sometimes the socket is already closed on the other side, so we can ignore that error
+				alreadyClosed := serveRequestError == lastStreamResponseError && writeError == io.EOF
+
+				// could not write error response
+				if writeError != nil && !alreadyClosed {
+					log.Logf("rpc: unable to write error response: %v", writeError)
 				}
 			}
 
