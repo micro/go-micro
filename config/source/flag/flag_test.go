@@ -12,13 +12,14 @@ var (
 	dbpw   = flag.String("database-password", "", "db pw")
 )
 
-func init() {
+func initTestFlags() {
 	flag.Set("database-host", "localhost")
 	flag.Set("database-password", "some-password")
 	flag.Parse()
 }
 
 func TestFlagsrc_Read(t *testing.T) {
+	initTestFlags()
 	source := NewSource()
 	c, err := source.Read()
 	if err != nil {
@@ -46,6 +47,7 @@ func TestFlagsrc_Read(t *testing.T) {
 }
 
 func TestFlagsrc_ReadAll(t *testing.T) {
+	initTestFlags()
 	source := NewSource(IncludeUnset(true))
 	c, err := source.Read()
 	if err != nil {
