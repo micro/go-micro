@@ -287,5 +287,5 @@ func (m *Registry) Watch(opts ...registry.WatchOption) (registry.Watcher, error)
 }
 
 func (m *Registry) String() string {
-	return "memorynew"
+	return "memory"
 }
