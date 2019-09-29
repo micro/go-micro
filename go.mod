@@ -8,7 +8,6 @@ require (
 	github.com/bitly/go-simplejson v0.5.0
 	github.com/bwmarrin/discordgo v0.20.1
 	github.com/coreos/etcd v3.3.17+incompatible
-	github.com/coreos/pkg v0.0.0-20180928190104-399ea9e2e55f // indirect
 	github.com/forestgiant/sliceutil v0.0.0-20160425183142-94783f95db6c
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/fsouza/go-dockerclient v1.6.0
@@ -16,7 +15,6 @@ require (
 	github.com/go-acme/lego/v3 v3.1.0
 	github.com/go-log/log v0.1.0
 	github.com/go-playground/locales v0.13.0 // indirect
-	github.com/go-playground/universal-translator v0.16.0 // indirect
 	github.com/golang/protobuf v1.3.2
 	github.com/google/uuid v1.1.1
 	github.com/gorilla/handlers v1.4.2
@@ -32,13 +30,13 @@ require (
 	github.com/mholt/certmagic v0.8.3
 	github.com/micro/cli v0.2.0
 	github.com/micro/mdns v0.3.0
-	github.com/miekg/dns v1.1.15
+	github.com/micro/protoc-gen-micro v1.0.0 // indirect
+	github.com/miekg/dns v1.1.22
 	github.com/mitchellh/hashstructure v1.0.0
 	github.com/nats-io/nats.go v1.9.1
 	github.com/nlopes/slack v0.6.0
 	github.com/oxtoacart/bpool v0.0.0-20190530202638-03653db5a59c
 	github.com/pkg/errors v0.8.1
-	github.com/technoweenie/multipartstreamer v1.0.1 // indirect
 	go.uber.org/zap v1.12.0 // indirect
 	golang.org/x/crypto v0.0.0-20191108234033-bd318be0434a
 	golang.org/x/net v0.0.0-20191109021931-daa7c04131f5

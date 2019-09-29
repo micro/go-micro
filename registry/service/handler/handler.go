@@ -28,10 +28,8 @@ func (r *Registry) GetService(ctx context.Context, req *pb.GetRequest, rsp *pb.G
 
 func (r *Registry) Register(ctx context.Context, req *pb.Service, rsp *pb.EmptyResponse) error {
 	var regOpts []registry.RegisterOption
-	if req.Options != nil {
-		ttl := time.Duration(req.Options.Ttl) * time.Second
-		regOpts = append(regOpts, registry.RegisterTTL(ttl))
-	}
+	ttl := time.Duration(req.Options.Ttl) * time.Second
+	regOpts = append(regOpts, registry.RegisterTTL(ttl))
 
 	err := r.Registry.Register(service.ToService(req), regOpts...)
 	if err != nil {

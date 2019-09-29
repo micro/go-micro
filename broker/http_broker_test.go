@@ -7,15 +7,13 @@ import (
 
 	glog "github.com/go-log/log"
 	"github.com/google/uuid"
+	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/registry/memory"
 	"github.com/micro/go-micro/util/log"
 )
 
-func newTestRegistry() *memory.Registry {
-	r := memory.NewRegistry()
-	m := r.(*memory.Registry)
-	m.Services = testData
-	return m
+func newTestRegistry() registry.Registry {
+	return memory.NewRegistry(memory.Services(testData))
 }
 
 func sub(be *testing.B, c int) {
