@@ -58,8 +58,12 @@ func (s *serviceRegistry) Register(srv *registry.Service, opts ...registry.Regis
 		o(&options)
 	}
 
+	// encode srv into protobuf and pack Register TTL into it
+	pbSrv := ToProto(srv)
+	pbSrv.Options.Ttl = int64(options.TTL.Seconds())
+
 	// register the service
-	_, err := s.client.Register(context.TODO(), ToProto(srv), s.callOpts()...)
+	_, err := s.client.Register(context.TODO(), pbSrv, s.callOpts()...)
 	if err != nil {
 		return err
 	}

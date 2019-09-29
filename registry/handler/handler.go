@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"time"
 
 	"github.com/micro/go-micro/errors"
 	"github.com/micro/go-micro/registry"
@@ -26,10 +27,15 @@ func (r *Registry) GetService(ctx context.Context, req *pb.GetRequest, rsp *pb.G
 }
 
 func (r *Registry) Register(ctx context.Context, req *pb.Service, rsp *pb.EmptyResponse) error {
-	err := r.Registry.Register(service.ToService(req))
+	var regOpts []registry.RegisterOption
+	ttl := time.Duration(req.Options.Ttl) * time.Second
+	regOpts = append(regOpts, registry.RegisterTTL(ttl))
+
+	err := r.Registry.Register(service.ToService(req), regOpts...)
 	if err != nil {
 		return errors.InternalServerError("go.micro.registry", err.Error())
 	}
+
 	return nil
 }
 

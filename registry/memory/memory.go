@@ -61,6 +61,20 @@ func NewRegistry(opts ...registry.Option) registry.Registry {
 	return reg
 }
 
+func (m *Registry) ttlPrune() {
+	prune := time.NewTicker(ttlPruneTime)
+	defer prune.Stop()
+
+	for {
+		select {
+		case <-prune.C:
+			m.Lock()
+			// TODO: implement this
+			m.Unlock()
+		}
+	}
+}
+
 func (m *Registry) sendEvent(r *registry.Result) {
 	var watchers []*Watcher
 

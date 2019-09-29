@@ -9,9 +9,7 @@ import (
 func TestRegistrySelector(t *testing.T) {
 	counts := map[string]int{}
 
-	r := memory.NewRegistry()
-	rg := r.(*memory.Registry)
-	rg.Services = testData
+	r := memory.NewRegistry(memory.Services(testData))
 	cache := NewSelector(Registry(r))
 
 	next, err := cache.Select("foo")
