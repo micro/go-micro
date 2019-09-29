@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/micro/go-micro/registry"
+	"github.com/micro/go-micro/util/log"
 )
 
 var (
@@ -69,7 +70,16 @@ func (m *Registry) ttlPrune() {
 		select {
 		case <-prune.C:
 			m.Lock()
-			// TODO: implement this
+			for name, records := range m.records {
+				for version, record := range records {
+					for id, n := range record.Nodes {
+						if time.Since(n.LastSeen) > n.TTL {
+							log.Logf("TTL expired for node %s of service %s", n.Id, name)
+							delete(m.records[name][version].Nodes, id)
+						}
+					}
+				}
+			}
 			m.Unlock()
 		}
 	}
