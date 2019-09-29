@@ -73,8 +73,8 @@ func (m *Registry) ttlPrune() {
 		case <-prune.C:
 			m.Lock()
 			for nodeTrackId, node := range m.nodes {
-				// if we exceed the TTL threshold we need to stop tracking the node
-				if time.Since(node.lastSeen) > node.ttl {
+				// if the TTL has been set and we exceed the hresholdset by it we stop tracking the node
+				if node.ttl.Seconds() != 0.0 && time.Since(node.lastSeen) > node.ttl {
 					// split nodeTrackID into service Name, Version and Node Id
 					trackIdSplit := strings.Split(nodeTrackId, "+")
 					svcName, svcVersion, nodeId := trackIdSplit[0], trackIdSplit[1], trackIdSplit[2]
@@ -181,11 +181,6 @@ func (m *Registry) Register(s *registry.Service, opts ...registry.RegisterOption
 	var options registry.RegisterOptions
 	for _, o := range opts {
 		o(&options)
-	}
-
-	// if no TTL has been set, set it to DefaultTTL
-	if options.TTL.Seconds() == 0.0 {
-		options.TTL = DefaultTTL
 	}
 
 	if service, ok := m.Services[s.Name]; !ok {
