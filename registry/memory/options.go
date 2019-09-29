@@ -8,20 +8,23 @@ import (
 
 type servicesKey struct{}
 
-func getServices(ctx context.Context) map[string][]*registry.Service {
-	s, ok := ctx.Value(servicesKey{}).(map[string][]*registry.Service)
+func getServiceRecords(ctx context.Context) map[string]map[string]*record {
+	memServices, ok := ctx.Value(servicesKey{}).(map[string][]*registry.Service)
 	if !ok {
 		return nil
 	}
-	return s
-}
 
-// Services is an option that preloads service data
-func Services(s map[string][]*registry.Service) registry.Option {
-	return func(o *registry.Options) {
-		if o.Context == nil {
-			o.Context = context.Background()
+	services := make(map[string]map[string]*record)
+
+	for name, svc := range memServices {
+		if _, ok := services[name]; !ok {
+			services[name] = make(map[string]*record)
 		}
-		o.Context = context.WithValue(o.Context, servicesKey{}, s)
+		// go through every version of the service
+		for _, s := range svc {
+			services[s.Name][s.Version] = serviceToRecord(s)
+		}
 	}
+
+	return services
 }
