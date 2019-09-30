@@ -53,8 +53,6 @@ require (
 	github.com/miekg/dns v1.1.15 // indirect
 	github.com/mitchellh/gox v1.0.1 // indirect
 	github.com/mitchellh/hashstructure v1.0.0
-	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
-	github.com/modern-go/reflect2 v1.0.1 // indirect
 	github.com/mwitkow/go-conntrack v0.0.0-20190716064945-2f068394615f // indirect
 	github.com/nats-io/nats.go v1.8.1
 	github.com/nats-io/nkeys v0.1.0 // indirect
