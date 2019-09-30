@@ -6,9 +6,14 @@ import "github.com/micro/go-micro/router/proto/router.proto";
 
 // Network service is usesd to gain visibility into networks
 service Network {
+	// Returns the entire network graph
 	rpc Graph(GraphRequest) returns (GraphResponse) {};
+	// Returns a list of known nodes in the network
         rpc Nodes(NodesRequest) returns (NodesResponse) {};
+	// Returns a list of known routes in the network
         rpc Routes(RoutesRequest) returns (RoutesResponse) {};
+	// Returns a list of known services based on routes
+	rpc Services(ServicesRequest) returns (ServicesResponse) {};
 }
 
 // PeerRequest requests list of peers
@@ -37,6 +42,12 @@ message RoutesRequest {
 
 message RoutesResponse {
 	repeated go.micro.router.Route routes = 1;
+}
+
+message ServicesRequest {}
+
+message ServicesResponse {
+	repeated string services = 1;
 }
 
 // Node is network node
