@@ -200,6 +200,35 @@ func (t *tun) monitor() {
 		case <-t.closed:
 			return
 		case <-reconnect.C:
+			t.RLock()
+
+			var delLinks []string
+			// check the link status and purge dead links
+			for node, link := range t.links {
+				// check link status
+				switch link.Status() {
+				case "closed":
+					delLinks = append(delLinks, node)
+				case "error":
+					delLinks = append(delLinks, node)
+				}
+			}
+
+			t.RUnlock()
+
+			// delete the dead links
+			if len(delLinks) > 0 {
+				t.Lock()
+				for _, node := range delLinks {
+					log.Debugf("Tunnel deleting dead link for %s", node)
+					link := t.links[node]
+					link.Close()
+					delete(t.links, node)
+				}
+				t.Unlock()
+			}
+
+			// check current link status
 			var connect []string
 
 			// build list of unknown nodes to connect to
@@ -324,10 +353,10 @@ func (t *tun) process() {
 			// send the message
 			for _, link := range sendTo {
 				// send the message via the current link
-				log.Debugf("Sending %+v to %s", newMsg, link.Remote())
+				log.Debugf("Sending %+v to %s", newMsg.Header, link.Remote())
 
 				if errr := link.Send(newMsg); errr != nil {
-					log.Debugf("Tunnel error sending %+v to %s: %v", newMsg, link.Remote(), errr)
+					log.Debugf("Tunnel error sending %+v to %s: %v", newMsg.Header, link.Remote(), errr)
 					err = errors.New(errr.Error())
 					t.delLink(link.Remote())
 					continue
@@ -504,7 +533,7 @@ func (t *tun) listen(link *link) {
 		// a continued session
 		case "session":
 			// process message
-			log.Debugf("Received %+v from %s", msg, link.Remote())
+			log.Debugf("Received %+v from %s", msg.Header, link.Remote())
 		// an announcement of a channel listener
 		case "announce":
 			// process the announcement

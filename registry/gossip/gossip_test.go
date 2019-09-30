@@ -40,7 +40,7 @@ func TestGossipRegistryBroadcast(t *testing.T) {
 	r1 := newRegistry(Config(mc1), Address("127.0.0.1:54321"))
 
 	mc2 := newMemberlistConfig()
-	r2 := newRegistry(Config(mc2), Address("127.0.0.2:54321"), registry.Addrs("127.0.0.1:54321"))
+	r2 := newRegistry(Config(mc2), Address("127.0.0.1:54322"), registry.Addrs("127.0.0.1:54321"))
 
 	defer r1.(*gossipRegistry).Stop()
 	defer r2.(*gossipRegistry).Stop()
@@ -100,7 +100,7 @@ func TestGossipRegistryRetry(t *testing.T) {
 	r1 := newRegistry(Config(mc1), Address("127.0.0.1:54321"))
 
 	mc2 := newMemberlistConfig()
-	r2 := newRegistry(Config(mc2), Address("127.0.0.2:54321"), registry.Addrs("127.0.0.1:54321"))
+	r2 := newRegistry(Config(mc2), Address("127.0.0.1:54322"), registry.Addrs("127.0.0.1:54321"))
 
 	defer r1.(*gossipRegistry).Stop()
 	defer r2.(*gossipRegistry).Stop()

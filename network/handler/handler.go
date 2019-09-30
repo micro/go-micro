@@ -123,3 +123,23 @@ func (n *Network) Routes(ctx context.Context, req *pbNet.RoutesRequest, resp *pb
 
 	return nil
 }
+
+// Services returns a list of services based on the routing table
+func (n *Network) Services(ctx context.Context, req *pbNet.ServicesRequest, resp *pbNet.ServicesResponse) error {
+	routes, err := n.Network.Options().Router.Table().List()
+	if err != nil {
+		return errors.InternalServerError("go.micro.network", "failed to list services: %s", err)
+	}
+
+	services := make(map[string]bool)
+
+	for _, route := range routes {
+		if _, ok := services[route.Service]; ok {
+			continue
+		}
+		services[route.Service] = true
+		resp.Services = append(resp.Services, route.Service)
+	}
+
+	return nil
+}

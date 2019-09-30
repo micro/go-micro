@@ -38,8 +38,8 @@ type RegistryService interface {
 	Register(ctx context.Context, in *Service, opts ...client.CallOption) (*EmptyResponse, error)
 	Deregister(ctx context.Context, in *Service, opts ...client.CallOption) (*EmptyResponse, error)
 	ListServices(ctx context.Context, in *ListRequest, opts ...client.CallOption) (*ListResponse, error)
-	Watch(ctx context.Context, in *WatchRequest, opts ...client.CallOption) (Registry_WatchService, error)
 	Sync(ctx context.Context, in *SyncRequest, opts ...client.CallOption) (Registry_SyncService, error)
+	Watch(ctx context.Context, in *WatchRequest, opts ...client.CallOption) (Registry_WatchService, error)
 }
 
 type registryService struct {
@@ -100,50 +100,6 @@ func (c *registryService) ListServices(ctx context.Context, in *ListRequest, opt
 	return out, nil
 }
 
-func (c *registryService) Watch(ctx context.Context, in *WatchRequest, opts ...client.CallOption) (Registry_WatchService, error) {
-	req := c.c.NewRequest(c.name, "Registry.Watch", &WatchRequest{})
-	stream, err := c.c.Stream(ctx, req, opts...)
-	if err != nil {
-		return nil, err
-	}
-	if err := stream.Send(in); err != nil {
-		return nil, err
-	}
-	return &registryServiceWatch{stream}, nil
-}
-
-type Registry_WatchService interface {
-	SendMsg(interface{}) error
-	RecvMsg(interface{}) error
-	Close() error
-	Recv() (*Result, error)
-}
-
-type registryServiceWatch struct {
-	stream client.Stream
-}
-
-func (x *registryServiceWatch) Close() error {
-	return x.stream.Close()
-}
-
-func (x *registryServiceWatch) SendMsg(m interface{}) error {
-	return x.stream.Send(m)
-}
-
-func (x *registryServiceWatch) RecvMsg(m interface{}) error {
-	return x.stream.Recv(m)
-}
-
-func (x *registryServiceWatch) Recv() (*Result, error) {
-	m := new(Result)
-	err := x.stream.Recv(m)
-	if err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
 func (c *registryService) Sync(ctx context.Context, in *SyncRequest, opts ...client.CallOption) (Registry_SyncService, error) {
 	req := c.c.NewRequest(c.name, "Registry.Sync", &SyncRequest{})
 	stream, err := c.c.Stream(ctx, req, opts...)
@@ -188,6 +144,50 @@ func (x *registryServiceSync) Recv() (*SyncResponse, error) {
 	return m, nil
 }
 
+func (c *registryService) Watch(ctx context.Context, in *WatchRequest, opts ...client.CallOption) (Registry_WatchService, error) {
+	req := c.c.NewRequest(c.name, "Registry.Watch", &WatchRequest{})
+	stream, err := c.c.Stream(ctx, req, opts...)
+	if err != nil {
+		return nil, err
+	}
+	if err := stream.Send(in); err != nil {
+		return nil, err
+	}
+	return &registryServiceWatch{stream}, nil
+}
+
+type Registry_WatchService interface {
+	SendMsg(interface{}) error
+	RecvMsg(interface{}) error
+	Close() error
+	Recv() (*Result, error)
+}
+
+type registryServiceWatch struct {
+	stream client.Stream
+}
+
+func (x *registryServiceWatch) Close() error {
+	return x.stream.Close()
+}
+
+func (x *registryServiceWatch) SendMsg(m interface{}) error {
+	return x.stream.Send(m)
+}
+
+func (x *registryServiceWatch) RecvMsg(m interface{}) error {
+	return x.stream.Recv(m)
+}
+
+func (x *registryServiceWatch) Recv() (*Result, error) {
+	m := new(Result)
+	err := x.stream.Recv(m)
+	if err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // Server API for Registry service
 
 type RegistryHandler interface {
@@ -195,8 +195,8 @@ type RegistryHandler interface {
 	Register(context.Context, *Service, *EmptyResponse) error
 	Deregister(context.Context, *Service, *EmptyResponse) error
 	ListServices(context.Context, *ListRequest, *ListResponse) error
-	Watch(context.Context, *WatchRequest, Registry_WatchStream) error
 	Sync(context.Context, *SyncRequest, Registry_SyncStream) error
+	Watch(context.Context, *WatchRequest, Registry_WatchStream) error
 }
 
 func RegisterRegistryHandler(s server.Server, hdlr RegistryHandler, opts ...server.HandlerOption) error {
@@ -205,8 +205,8 @@ func RegisterRegistryHandler(s server.Server, hdlr RegistryHandler, opts ...serv
 		Register(ctx context.Context, in *Service, out *EmptyResponse) error
 		Deregister(ctx context.Context, in *Service, out *EmptyResponse) error
 		ListServices(ctx context.Context, in *ListRequest, out *ListResponse) error
-		Watch(ctx context.Context, stream server.Stream) error
 		Sync(ctx context.Context, stream server.Stream) error
+		Watch(ctx context.Context, stream server.Stream) error
 	}
 	type Registry struct {
 		registry
@@ -233,41 +233,6 @@ func (h *registryHandler) Deregister(ctx context.Context, in *Service, out *Empt
 
 func (h *registryHandler) ListServices(ctx context.Context, in *ListRequest, out *ListResponse) error {
 	return h.RegistryHandler.ListServices(ctx, in, out)
-}
-
-func (h *registryHandler) Watch(ctx context.Context, stream server.Stream) error {
-	m := new(WatchRequest)
-	if err := stream.Recv(m); err != nil {
-		return err
-	}
-	return h.RegistryHandler.Watch(ctx, m, &registryWatchStream{stream})
-}
-
-type Registry_WatchStream interface {
-	SendMsg(interface{}) error
-	RecvMsg(interface{}) error
-	Close() error
-	Send(*Result) error
-}
-
-type registryWatchStream struct {
-	stream server.Stream
-}
-
-func (x *registryWatchStream) Close() error {
-	return x.stream.Close()
-}
-
-func (x *registryWatchStream) SendMsg(m interface{}) error {
-	return x.stream.Send(m)
-}
-
-func (x *registryWatchStream) RecvMsg(m interface{}) error {
-	return x.stream.Recv(m)
-}
-
-func (x *registryWatchStream) Send(m *Result) error {
-	return x.stream.Send(m)
 }
 
 func (h *registryHandler) Sync(ctx context.Context, stream server.Stream) error {
@@ -302,5 +267,40 @@ func (x *registrySyncStream) RecvMsg(m interface{}) error {
 }
 
 func (x *registrySyncStream) Send(m *SyncResponse) error {
+	return x.stream.Send(m)
+}
+
+func (h *registryHandler) Watch(ctx context.Context, stream server.Stream) error {
+	m := new(WatchRequest)
+	if err := stream.Recv(m); err != nil {
+		return err
+	}
+	return h.RegistryHandler.Watch(ctx, m, &registryWatchStream{stream})
+}
+
+type Registry_WatchStream interface {
+	SendMsg(interface{}) error
+	RecvMsg(interface{}) error
+	Close() error
+	Send(*Result) error
+}
+
+type registryWatchStream struct {
+	stream server.Stream
+}
+
+func (x *registryWatchStream) Close() error {
+	return x.stream.Close()
+}
+
+func (x *registryWatchStream) SendMsg(m interface{}) error {
+	return x.stream.Send(m)
+}
+
+func (x *registryWatchStream) RecvMsg(m interface{}) error {
+	return x.stream.Recv(m)
+}
+
+func (x *registryWatchStream) Send(m *Result) error {
 	return x.stream.Send(m)
 }

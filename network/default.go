@@ -42,11 +42,11 @@ type network struct {
 	// options configure the network
 	options Options
 	// rtr is network router
-	router.Router
+	router router.Router
 	// prx is network proxy
-	proxy.Proxy
+	proxy proxy.Proxy
 	// tun is network tunnel
-	tunnel.Tunnel
+	tunnel tunnel.Tunnel
 	// server is network server
 	server server.Server
 	// client is network client
@@ -118,9 +118,9 @@ func newNetwork(opts ...Option) Network {
 			peers:   make(map[string]*node),
 		},
 		options:   options,
-		Router:    options.Router,
-		Proxy:     options.Proxy,
-		Tunnel:    options.Tunnel,
+		router:    options.Router,
+		proxy:     options.Proxy,
+		tunnel:    options.Tunnel,
 		server:    server,
 		client:    client,
 		tunClient: make(map[string]transport.Client),
@@ -144,11 +144,6 @@ func (n *network) Options() Options {
 // Name returns network name
 func (n *network) Name() string {
 	return n.options.Name
-}
-
-// Address returns network bind address
-func (n *network) Address() string {
-	return n.Tunnel.Address()
 }
 
 // resolveNodes resolves network nodes to addresses
@@ -194,7 +189,7 @@ func (n *network) resolve() {
 				continue
 			}
 			// initialize the tunnel
-			n.Tunnel.Init(
+			n.tunnel.Init(
 				tunnel.Nodes(nodes...),
 			)
 		}
@@ -286,7 +281,7 @@ func (n *network) processNetChan(client transport.Client, listener tunnel.Listen
 					log.Debugf("Network failed to advertise peers: %v", err)
 				}
 				// advertise all the routes when a new node has connected
-				if err := n.Router.Solicit(); err != nil {
+				if err := n.router.Solicit(); err != nil {
 					log.Debugf("Network failed to solicit routes: %s", err)
 				}
 			case "peer":
@@ -308,7 +303,7 @@ func (n *network) processNetChan(client transport.Client, listener tunnel.Listen
 					peers:    make(map[string]*node),
 					lastSeen: now,
 				}
-				if err := n.node.AddPeer(peer); err == ErrPeerExists {
+				if err := n.node.AddPeer(peer); err == nil {
 					// send a solicit message when discovering new peer
 					msg := &pbRtr.Solicit{
 						Id: n.options.Id,
@@ -317,12 +312,18 @@ func (n *network) processNetChan(client transport.Client, listener tunnel.Listen
 						log.Debugf("Network failed to send solicit message: %s", err)
 					}
 					continue
+					// we're expecting any error to be ErrPeerExists
+				} else if err != ErrPeerExists {
+					log.Debugf("Network got error adding peer %v", err)
+					continue
 				}
+
 				log.Debugf("Network peer exists, refreshing: %s", pbNetPeer.Node.Id)
 				// update lastSeen time for the peer
 				if err := n.RefreshPeer(pbNetPeer.Node.Id, now); err != nil {
 					log.Debugf("Network failed refreshing peer %s: %v", pbNetPeer.Node.Id, err)
 				}
+
 				// NOTE: we don't unpack MaxDepth toplogy
 				peer = UnpackPeerTopology(pbNetPeer, now, MaxDepth-1)
 				log.Debugf("Network updating topology of node: %s", n.node.id)
@@ -410,13 +411,13 @@ func (n *network) announce(client transport.Client) {
 
 // pruneRoutes prunes routes return by given query
 func (n *network) pruneRoutes(q router.Query) error {
-	routes, err := n.Router.Table().Query(q)
+	routes, err := n.router.Table().Query(q)
 	if err != nil && err != router.ErrRouteNotFound {
 		return err
 	}
 
 	for _, route := range routes {
-		if err := n.Router.Table().Delete(route); err != nil && err != router.ErrRouteNotFound {
+		if err := n.router.Table().Delete(route); err != nil && err != router.ErrRouteNotFound {
 			return err
 		}
 	}
@@ -621,8 +622,8 @@ func (n *network) processCtrlChan(client transport.Client, listener tunnel.Liste
 					Events:    events,
 				}
 
-				log.Debugf("Network router processing advert: %s", advert.Id)
-				if err := n.Router.Process(advert); err != nil {
+				log.Debugf("Network router %s processing advert: %s", n.Id(), advert.Id)
+				if err := n.router.Process(advert); err != nil {
 					log.Debugf("Network failed to process advert %s: %v", advert.Id, err)
 				}
 			case "solicit":
@@ -638,7 +639,7 @@ func (n *network) processCtrlChan(client transport.Client, listener tunnel.Liste
 				}
 				log.Debugf("Network router flushing routes for: %s", pbRtrSolicit.Id)
 				// advertise all the routes when a new node has connected
-				if err := n.Router.Solicit(); err != nil {
+				if err := n.router.Solicit(); err != nil {
 					log.Debugf("Network failed to solicit routes: %s", err)
 				}
 			}
@@ -719,7 +720,7 @@ func (n *network) Connect() error {
 	}
 
 	// connect network tunnel
-	if err := n.Tunnel.Connect(); err != nil {
+	if err := n.tunnel.Connect(); err != nil {
 		n.Unlock()
 		return err
 	}
@@ -727,17 +728,17 @@ func (n *network) Connect() error {
 	// set our internal node address
 	// if advertise address is not set
 	if len(n.options.Advertise) == 0 {
-		n.node.address = n.Tunnel.Address()
-		n.server.Init(server.Advertise(n.Tunnel.Address()))
+		n.node.address = n.tunnel.Address()
+		n.server.Init(server.Advertise(n.tunnel.Address()))
 	}
 
 	// initialize the tunnel to resolved nodes
-	n.Tunnel.Init(
+	n.tunnel.Init(
 		tunnel.Nodes(nodes...),
 	)
 
 	// dial into ControlChannel to send route adverts
-	ctrlClient, err := n.Tunnel.Dial(ControlChannel, tunnel.DialMulticast())
+	ctrlClient, err := n.tunnel.Dial(ControlChannel, tunnel.DialMulticast())
 	if err != nil {
 		n.Unlock()
 		return err
@@ -746,14 +747,14 @@ func (n *network) Connect() error {
 	n.tunClient[ControlChannel] = ctrlClient
 
 	// listen on ControlChannel
-	ctrlListener, err := n.Tunnel.Listen(ControlChannel)
+	ctrlListener, err := n.tunnel.Listen(ControlChannel)
 	if err != nil {
 		n.Unlock()
 		return err
 	}
 
 	// dial into NetworkChannel to send network messages
-	netClient, err := n.Tunnel.Dial(NetworkChannel, tunnel.DialMulticast())
+	netClient, err := n.tunnel.Dial(NetworkChannel, tunnel.DialMulticast())
 	if err != nil {
 		n.Unlock()
 		return err
@@ -762,7 +763,7 @@ func (n *network) Connect() error {
 	n.tunClient[NetworkChannel] = netClient
 
 	// listen on NetworkChannel
-	netListener, err := n.Tunnel.Listen(NetworkChannel)
+	netListener, err := n.tunnel.Listen(NetworkChannel)
 	if err != nil {
 		n.Unlock()
 		return err
@@ -832,12 +833,12 @@ func (n *network) close() error {
 	}
 
 	// stop the router
-	if err := n.Router.Stop(); err != nil {
+	if err := n.router.Stop(); err != nil {
 		return err
 	}
 
 	// close the tunnel
-	if err := n.Tunnel.Close(); err != nil {
+	if err := n.tunnel.Close(); err != nil {
 		return err
 	}
 

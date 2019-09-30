@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/micro/go-micro/util/log"
 )
 
 var (
@@ -56,14 +57,12 @@ func (t *table) Create(r Route) error {
 	// check if there are any routes in the table for the route destination
 	if _, ok := t.routes[service]; !ok {
 		t.routes[service] = make(map[uint64]Route)
-		t.routes[service][sum] = r
-		go t.sendEvent(&Event{Type: Create, Timestamp: time.Now(), Route: r})
-		return nil
 	}
 
 	// add new route to the table for the route destination
 	if _, ok := t.routes[service][sum]; !ok {
 		t.routes[service][sum] = r
+		log.Debugf("Router emitting %s for route: %s", Create, r.Address)
 		go t.sendEvent(&Event{Type: Create, Timestamp: time.Now(), Route: r})
 		return nil
 	}
@@ -83,10 +82,13 @@ func (t *table) Delete(r Route) error {
 		return ErrRouteNotFound
 	}
 
-	if _, ok := t.routes[service][sum]; ok {
-		delete(t.routes[service], sum)
-		go t.sendEvent(&Event{Type: Delete, Timestamp: time.Now(), Route: r})
+	if _, ok := t.routes[service][sum]; !ok {
+		return ErrRouteNotFound
 	}
+
+	delete(t.routes[service], sum)
+	log.Debugf("Router emitting %s for route: %s", Delete, r.Address)
+	go t.sendEvent(&Event{Type: Delete, Timestamp: time.Now(), Route: r})
 
 	return nil
 }
@@ -102,19 +104,17 @@ func (t *table) Update(r Route) error {
 	// check if the route destination has any routes in the table
 	if _, ok := t.routes[service]; !ok {
 		t.routes[service] = make(map[uint64]Route)
-		t.routes[service][sum] = r
-		go t.sendEvent(&Event{Type: Create, Timestamp: time.Now(), Route: r})
-		return nil
 	}
 
 	if _, ok := t.routes[service][sum]; !ok {
 		t.routes[service][sum] = r
+		log.Debugf("Router emitting %s for route: %s", Update, r.Address)
 		go t.sendEvent(&Event{Type: Update, Timestamp: time.Now(), Route: r})
 		return nil
 	}
 
+	// just update the route, but dont emit Update event
 	t.routes[service][sum] = r
-	go t.sendEvent(&Event{Type: Update, Timestamp: time.Now(), Route: r})
 
 	return nil
 }

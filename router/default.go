@@ -113,19 +113,19 @@ func (r *router) manageRoute(route Route, action string) error {
 		if err := r.table.Create(route); err != nil && err != ErrDuplicateRoute {
 			return fmt.Errorf("failed adding route for service %s: %s", route.Service, err)
 		}
-	case "update":
-		if err := r.table.Update(route); err != nil && err != ErrDuplicateRoute {
-			return fmt.Errorf("failed updating route for service %s: %s", route.Service, err)
-		}
 	case "delete":
 		if err := r.table.Delete(route); err != nil && err != ErrRouteNotFound {
 			return fmt.Errorf("failed deleting route for service %s: %s", route.Service, err)
+		}
+	case "update":
+		if err := r.table.Update(route); err != nil {
+			return fmt.Errorf("failed updating route for service %s: %s", route.Service, err)
 		}
 	case "solicit":
 		// nothing to do here
 		return nil
 	default:
-		return fmt.Errorf("failed to manage route for service %s. Unknown action: %s", route.Service, action)
+		return fmt.Errorf("failed to manage route for service %s: unknown action %s", route.Service, action)
 	}
 
 	return nil
@@ -337,7 +337,7 @@ func (r *router) advertiseTable() error {
 
 			// advertise all routes as Update events to subscribers
 			if len(events) > 0 {
-				log.Debugf("Network router flushing table with %d events: %s", len(events), r.options.Id)
+				log.Debugf("Router flushing table with %d events: %s", len(events), r.options.Id)
 				r.advertWg.Add(1)
 				go r.publishAdvert(RouteUpdate, events)
 			}
@@ -347,9 +347,10 @@ func (r *router) advertiseTable() error {
 	}
 }
 
-// routeAdvert contains a list of route events to be advertised
+// routeAdvert contains a route event to be advertised
 type routeAdvert struct {
-	events []*Event
+	// event received from routing table
+	event *Event
 	// lastUpdate records the time of the last advert update
 	lastUpdate time.Time
 	// penalty is current advert penalty
@@ -398,9 +399,11 @@ func (r *router) advertiseEvents() error {
 				// suppress/recover the event based on its penalty level
 				switch {
 				case advert.penalty > AdvertSuppress && !advert.isSuppressed:
+					log.Debugf("Router supressing advert %d for route %s", key, advert.event.Route.Address)
 					advert.isSuppressed = true
 					advert.suppressTime = time.Now()
 				case advert.penalty < AdvertRecover && advert.isSuppressed:
+					log.Debugf("Router recovering advert %d for route %s", key, advert.event.Route.Address)
 					advert.isSuppressed = false
 				}
 
@@ -413,19 +416,18 @@ func (r *router) advertiseEvents() error {
 				}
 
 				if !advert.isSuppressed {
-					for _, event := range advert.events {
-						e := new(Event)
-						*e = *event
-						events = append(events, e)
-						// delete the advert from the advertMap
-						delete(advertMap, key)
-					}
+					e := new(Event)
+					*e = *(advert.event)
+					events = append(events, e)
+					// delete the advert from the advertMap
+					delete(advertMap, key)
 				}
 			}
 
 			// advertise all Update events to subscribers
 			if len(events) > 0 {
 				r.advertWg.Add(1)
+				log.Debugf("Router publishing %d events", len(events))
 				go r.publishAdvert(RouteUpdate, events)
 			}
 		case e := <-r.eventChan:
@@ -433,7 +435,7 @@ func (r *router) advertiseEvents() error {
 			if e == nil {
 				continue
 			}
-
+			log.Debugf("Router processing table event %s for service %s", e.Type, e.Route.Address)
 			// determine the event penalty
 			var penalty float64
 			switch e.Type {
@@ -444,13 +446,11 @@ func (r *router) advertiseEvents() error {
 			}
 
 			// check if we have already registered the route
-			// we use the route hash as advertMap key
 			hash := e.Route.Hash()
 			advert, ok := advertMap[hash]
 			if !ok {
-				events := []*Event{e}
 				advert = &routeAdvert{
-					events:     events,
+					event:      e,
 					penalty:    penalty,
 					lastUpdate: time.Now(),
 				}
@@ -458,17 +458,15 @@ func (r *router) advertiseEvents() error {
 				continue
 			}
 
-			// attempt to squash last two events if possible
-			lastEvent := advert.events[len(advert.events)-1]
-			if lastEvent.Type == e.Type {
-				advert.events[len(advert.events)-1] = e
-			} else {
-				advert.events = append(advert.events, e)
+			// override the route event only if the last event was different
+			if advert.event.Type != e.Type {
+				advert.event = e
 			}
 
-			// update event penalty and recorded timestamp
+			// update event penalty and timestamp
 			advert.lastUpdate = time.Now()
 			advert.penalty += penalty
+			log.Debugf("Router advert %d for route %s event penalty: %f", hash, advert.event.Route.Address, advert.penalty)
 		case <-r.exit:
 			// first wait for the advertiser to finish
 			r.advertWg.Wait()
@@ -666,16 +664,18 @@ func (r *router) Process(a *Advert) error {
 		return events[i].Timestamp.Before(events[j].Timestamp)
 	})
 
+	log.Debugf("Router %s processing advert from: %s", r.options.Id, a.Id)
+
 	for _, event := range events {
 		// skip if the router is the origin of this route
 		if event.Route.Router == r.options.Id {
-			log.Debugf("Network router skipping processing its own route: %s", r.options.Id)
+			log.Debugf("Router skipping processing its own route: %s", r.options.Id)
 			continue
 		}
 		// create a copy of the route
 		route := event.Route
 		action := event.Type
-		log.Debugf("Network router processing route action %s: %s", action, r.options.Id)
+		log.Debugf("Router %s applying %s from router %s for address: %s", r.options.Id, action, route.Router, route.Address)
 		if err := r.manageRoute(route, fmt.Sprintf("%s", action)); err != nil {
 			return fmt.Errorf("failed applying action %s to routing table: %s", action, err)
 		}
