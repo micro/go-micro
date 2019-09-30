@@ -12,11 +12,12 @@ service Registry {
 
 // Service represents a go-micro service
 message Service {
-	string name = 1;
-	string version = 2;
-	map<string,string> metadata = 3;
-	repeated Endpoint endpoints = 4;
-	repeated Node nodes = 5;
+        string name = 1;
+        string version = 2;
+        map<string,string> metadata = 3;
+        repeated Endpoint endpoints = 4;
+        repeated Node nodes = 5;
+        Options options = 6;
 }
 
 // Node represents the node the service is on
@@ -40,6 +41,11 @@ message Value {
 	string name = 1;
 	string type = 2;
 	repeated Value values = 3;
+}
+
+// Options are registry options
+message Options {
+        int64 ttl = 1;
 }
 
 // Result is returns by the watcher
