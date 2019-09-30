@@ -178,6 +178,8 @@ func (m *Registry) Register(s *registry.Service, opts ...registry.RegisterOption
 	m.Lock()
 	defer m.Unlock()
 
+	log.Debugf("Registry deregistering service: %s", s.Name)
+
 	var options registry.RegisterOptions
 	for _, o := range opts {
 		o(&options)
@@ -187,16 +189,17 @@ func (m *Registry) Register(s *registry.Service, opts ...registry.RegisterOption
 		m.Services[s.Name] = []*registry.Service{s}
 		// add all nodes into nodes map to track their TTL
 		for _, n := range s.Nodes {
-			log.Debugf("Registry tracking node %s for service %s", n.Id, s.Name)
+			log.Debugf("Registry tracking new service: %s, node %s", s.Name, n.Id)
 			m.nodes[nodeTrackId(s.Name, s.Version, n.Id)] = &node{
 				lastSeen: time.Now(),
 				ttl:      options.TTL,
 			}
 		}
 		go m.sendEvent(&registry.Result{Action: "update", Service: s})
+		return nil
 	} else {
-		// svcCount essentially keep the count of all service vesions
-		svcCount := len(service)
+		// svcCount keeps the count of all versions of particular service
+		//svcCount := len(service)
 		// svcNodes maintains a list of node Ids per particular service version
 		svcNodes := make(map[string]map[string][]string)
 		// collect all service ids for all service versions
@@ -212,20 +215,7 @@ func (m *Registry) Register(s *registry.Service, opts ...registry.RegisterOption
 		}
 		// if merged count and original service counts changed we know we are adding a new version of the service
 		merged := registry.Merge(service, []*registry.Service{s})
-		if len(merged) != svcCount {
-			m.Services[s.Name] = merged
-			// we know s is the new [version of] service; we need to strart tracking its nodes
-			for _, n := range s.Nodes {
-				log.Debugf("Registry tracking node %s for service %s", n.Id, s.Name)
-				m.nodes[nodeTrackId(s.Name, s.Version, n.Id)] = &node{
-					lastSeen: time.Now(),
-					ttl:      options.TTL,
-				}
-			}
-			go m.sendEvent(&registry.Result{Action: "update", Service: s})
-			return nil
-		}
-		// if the node count of any particular service [version] changed we know we are adding a new node to the service
+		// if the node count of any service [version] changed we know we are adding a new node to the service
 		for _, s := range merged {
 			// we know that if the node counts have changed we need to track new nodes
 			if len(s.Nodes) != len(svcNodes[s.Name][s.Version]) {
@@ -238,7 +228,7 @@ func (m *Registry) Register(s *registry.Service, opts ...registry.RegisterOption
 						}
 					}
 					if !found {
-						log.Debugf("Registry tracking node %s for service %s", n.Id, s.Name)
+						log.Debugf("Registry tracking new node: %s for service %s", n.Id, s.Name)
 						m.nodes[nodeTrackId(s.Name, s.Version, n.Id)] = &node{
 							lastSeen: time.Now(),
 							ttl:      options.TTL,
@@ -268,31 +258,38 @@ func (m *Registry) Deregister(s *registry.Service) error {
 	m.Lock()
 	defer m.Unlock()
 
+	log.Debugf("Registry deregistering service: %s", s.Name)
+
 	if service, ok := m.Services[s.Name]; ok {
-		// svcNodes maintains a list of node Ids per particular service version
+		// svcNodes collects the list of all node Ids for each service version
 		svcNodes := make(map[string]map[string][]string)
-		// collect all service ids for all service versions
-		for _, s := range service {
-			if _, ok := svcNodes[s.Name]; !ok {
-				svcNodes[s.Name] = make(map[string][]string)
+		// collect all service node ids for all service versions
+		for _, svc := range service {
+			if _, ok := svcNodes[svc.Name]; !ok {
+				svcNodes[svc.Name] = make(map[string][]string)
 			}
-			if _, ok := svcNodes[s.Name][s.Version]; !ok {
-				for _, n := range s.Nodes {
-					svcNodes[s.Name][s.Version] = append(svcNodes[s.Name][s.Version], n.Id)
+			if _, ok := svcNodes[svc.Name][svc.Version]; !ok {
+				for _, n := range svc.Nodes {
+					svcNodes[svc.Name][svc.Version] = append(svcNodes[svc.Name][svc.Version], n.Id)
 				}
 			}
 		}
-		if service := registry.Remove(service, []*registry.Service{s}); len(service) == 0 {
-			id := svcNodes[s.Name][s.Version][0]
-			log.Debugf("Registry stopped tracking node %s for service %s", id, s.Name)
-			delete(m.nodes, nodeTrackId(s.Name, s.Version, id))
+		// if there are no more services we know we have either removed all nodes or there were no nodes
+		if updatedService := registry.Remove(service, []*registry.Service{s}); len(updatedService) == 0 {
+			for _, id := range svcNodes[s.Name][s.Version] {
+				log.Debugf("Registry stopped tracking node %s for service %s", id, s.Name)
+				delete(m.nodes, nodeTrackId(s.Name, s.Version, id))
+				go m.sendEvent(&registry.Result{Action: "delete", Service: s})
+			}
+			log.Debugf("Registry deleting service %s: no service nodes", s.Name)
 			delete(m.Services, s.Name)
+			return nil
 		} else {
 			// find out which nodes have been removed
 			for _, id := range svcNodes[s.Name][s.Version] {
-				for _, s := range service {
+				for _, svc := range updatedService {
 					var found bool
-					for _, n := range s.Nodes {
+					for _, n := range svc.Nodes {
 						if id == n.Id {
 							found = true
 							break
@@ -301,12 +298,12 @@ func (m *Registry) Deregister(s *registry.Service) error {
 					if !found {
 						log.Debugf("Registry stopped tracking node %s for service %s", id, s.Name)
 						delete(m.nodes, nodeTrackId(s.Name, s.Version, id))
+						go m.sendEvent(&registry.Result{Action: "delete", Service: s})
 					}
 				}
-				m.Services[s.Name] = service
+				m.Services[s.Name] = updatedService
 			}
 		}
-		go m.sendEvent(&registry.Result{Action: "delete", Service: s})
 	}
 
 	return nil
