@@ -35,9 +35,14 @@ var _ server.Option
 // Client API for Network service
 
 type NetworkService interface {
+	// Returns the entire network graph
 	Graph(ctx context.Context, in *GraphRequest, opts ...client.CallOption) (*GraphResponse, error)
+	// Returns a list of known nodes in the network
 	Nodes(ctx context.Context, in *NodesRequest, opts ...client.CallOption) (*NodesResponse, error)
+	// Returns a list of known routes in the network
 	Routes(ctx context.Context, in *RoutesRequest, opts ...client.CallOption) (*RoutesResponse, error)
+	// Returns a list of known services based on routes
+	Services(ctx context.Context, in *ServicesRequest, opts ...client.CallOption) (*ServicesResponse, error)
 }
 
 type networkService struct {
@@ -88,12 +93,27 @@ func (c *networkService) Routes(ctx context.Context, in *RoutesRequest, opts ...
 	return out, nil
 }
 
+func (c *networkService) Services(ctx context.Context, in *ServicesRequest, opts ...client.CallOption) (*ServicesResponse, error) {
+	req := c.c.NewRequest(c.name, "Network.Services", in)
+	out := new(ServicesResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Server API for Network service
 
 type NetworkHandler interface {
+	// Returns the entire network graph
 	Graph(context.Context, *GraphRequest, *GraphResponse) error
+	// Returns a list of known nodes in the network
 	Nodes(context.Context, *NodesRequest, *NodesResponse) error
+	// Returns a list of known routes in the network
 	Routes(context.Context, *RoutesRequest, *RoutesResponse) error
+	// Returns a list of known services based on routes
+	Services(context.Context, *ServicesRequest, *ServicesResponse) error
 }
 
 func RegisterNetworkHandler(s server.Server, hdlr NetworkHandler, opts ...server.HandlerOption) error {
@@ -101,6 +121,7 @@ func RegisterNetworkHandler(s server.Server, hdlr NetworkHandler, opts ...server
 		Graph(ctx context.Context, in *GraphRequest, out *GraphResponse) error
 		Nodes(ctx context.Context, in *NodesRequest, out *NodesResponse) error
 		Routes(ctx context.Context, in *RoutesRequest, out *RoutesResponse) error
+		Services(ctx context.Context, in *ServicesRequest, out *ServicesResponse) error
 	}
 	type Network struct {
 		network
@@ -123,4 +144,8 @@ func (h *networkHandler) Nodes(ctx context.Context, in *NodesRequest, out *Nodes
 
 func (h *networkHandler) Routes(ctx context.Context, in *RoutesRequest, out *RoutesResponse) error {
 	return h.NetworkHandler.Routes(ctx, in, out)
+}
+
+func (h *networkHandler) Services(ctx context.Context, in *ServicesRequest, out *ServicesResponse) error {
+	return h.NetworkHandler.Services(ctx, in, out)
 }
