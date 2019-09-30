@@ -78,7 +78,7 @@ func (m *Registry) ttlPrune() {
 					// split nodeTrackID into service Name, Version and Node Id
 					trackIdSplit := strings.Split(nodeTrackId, "+")
 					svcName, svcVersion, nodeId := trackIdSplit[0], trackIdSplit[1], trackIdSplit[2]
-					log.Logf("TTL threshold reached for node %s for service %s", nodeId, svcName)
+					log.Debugf("Registry TTL expired for service %s, node %s", svcName, nodeId)
 					// we need to find a node that expired and delete it from service nodes
 					if _, ok := m.Services[svcName]; ok {
 						for _, service := range m.Services[svcName] {
@@ -187,7 +187,7 @@ func (m *Registry) Register(s *registry.Service, opts ...registry.RegisterOption
 		m.Services[s.Name] = []*registry.Service{s}
 		// add all nodes into nodes map to track their TTL
 		for _, n := range s.Nodes {
-			log.Logf("Tracking node %s for service %s", n.Id, s.Name)
+			log.Debugf("Registry tracking node %s for service %s", n.Id, s.Name)
 			m.nodes[nodeTrackId(s.Name, s.Version, n.Id)] = &node{
 				lastSeen: time.Now(),
 				ttl:      options.TTL,
@@ -216,7 +216,7 @@ func (m *Registry) Register(s *registry.Service, opts ...registry.RegisterOption
 			m.Services[s.Name] = merged
 			// we know s is the new [version of] service; we need to strart tracking its nodes
 			for _, n := range s.Nodes {
-				log.Logf("Tracking node %s for service %s", n.Id, s.Name)
+				log.Debugf("Registry tracking node %s for service %s", n.Id, s.Name)
 				m.nodes[nodeTrackId(s.Name, s.Version, n.Id)] = &node{
 					lastSeen: time.Now(),
 					ttl:      options.TTL,
@@ -238,7 +238,7 @@ func (m *Registry) Register(s *registry.Service, opts ...registry.RegisterOption
 						}
 					}
 					if !found {
-						log.Logf("Tracking node %s for service %s", n.Id, s.Name)
+						log.Debugf("Registry tracking node %s for service %s", n.Id, s.Name)
 						m.nodes[nodeTrackId(s.Name, s.Version, n.Id)] = &node{
 							lastSeen: time.Now(),
 							ttl:      options.TTL,
@@ -252,7 +252,7 @@ func (m *Registry) Register(s *registry.Service, opts ...registry.RegisterOption
 			// refresh the timestamp and TTL of the service node
 			for _, n := range s.Nodes {
 				trackId := nodeTrackId(s.Name, s.Version, n.Id)
-				log.Logf("Refreshing TTL for node %s for service %s", n.Id, s.Name)
+				log.Debugf("Registry refreshing TTL for node %s for service %s", n.Id, s.Name)
 				if trackedNode, ok := m.nodes[trackId]; ok {
 					trackedNode.lastSeen = time.Now()
 					trackedNode.ttl = options.TTL
@@ -284,7 +284,7 @@ func (m *Registry) Deregister(s *registry.Service) error {
 		}
 		if service := registry.Remove(service, []*registry.Service{s}); len(service) == 0 {
 			id := svcNodes[s.Name][s.Version][0]
-			log.Logf("Stopped tracking node %s for service %s", id, s.Name)
+			log.Debugf("Registry stopped tracking node %s for service %s", id, s.Name)
 			delete(m.nodes, nodeTrackId(s.Name, s.Version, id))
 			delete(m.Services, s.Name)
 		} else {
@@ -299,7 +299,7 @@ func (m *Registry) Deregister(s *registry.Service) error {
 						}
 					}
 					if !found {
-						log.Logf("Stopped tracking node %s for service %s", id, s.Name)
+						log.Debugf("Registry stopped tracking node %s for service %s", id, s.Name)
 						delete(m.nodes, nodeTrackId(s.Name, s.Version, id))
 					}
 				}
