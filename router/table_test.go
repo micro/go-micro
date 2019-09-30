@@ -9,6 +9,7 @@ func testSetup() (*table, Route) {
 		Service: "dest.svc",
 		Gateway: "dest.gw",
 		Network: "dest.network",
+		Router:  "src.router",
 		Link:    "det.link",
 		Metric:  10,
 	}
@@ -109,11 +110,13 @@ func TestQuery(t *testing.T) {
 	svc := []string{"svc1", "svc2", "svc3"}
 	net := []string{"net1", "net2", "net1"}
 	gw := []string{"gw1", "gw2", "gw3"}
+	rtr := []string{"rtr1", "rt2", "rt3"}
 
 	for i := 0; i < len(svc); i++ {
 		route.Service = svc[i]
 		route.Network = net[i]
 		route.Gateway = gw[i]
+		route.Router = rtr[i]
 		if err := table.Create(route); err != nil {
 			t.Errorf("error adding route: %s", err)
 		}
@@ -127,8 +130,9 @@ func TestQuery(t *testing.T) {
 		t.Errorf("error looking up routes: %s", err)
 	}
 
-	// query particular net
-	query = NewQuery(QueryNetwork("net1"))
+	// query routes particular network
+	network := "net1"
+	query = NewQuery(QueryNetwork(network))
 
 	routes, err = table.Query(query)
 	if err != nil {
@@ -139,7 +143,13 @@ func TestQuery(t *testing.T) {
 		t.Errorf("incorrect number of routes returned. Expected: %d, found: %d", 2, len(routes))
 	}
 
-	// query particular gateway
+	for _, route := range routes {
+		if route.Network != network {
+			t.Errorf("incorrect route returned. Expected network: %s, found: %s", network, route.Network)
+		}
+	}
+
+	// query routes for particular gateway
 	gateway := "gw1"
 	query = NewQuery(QueryGateway(gateway))
 
@@ -156,11 +166,28 @@ func TestQuery(t *testing.T) {
 		t.Errorf("incorrect route returned. Expected gateway: %s, found: %s", gateway, routes[0].Gateway)
 	}
 
-	// query particular route
-	network := "net1"
+	// query routes for particular router
+	router := "rtr1"
+	query = NewQuery(QueryRouter(router))
+
+	routes, err = table.Query(query)
+	if err != nil {
+		t.Errorf("error looking up routes: %s", err)
+	}
+
+	if len(routes) != 1 {
+		t.Errorf("incorrect number of routes returned. Expected: %d, found: %d", 1, len(routes))
+	}
+
+	if routes[0].Router != router {
+		t.Errorf("incorrect route returned. Expected router: %s, found: %s", router, routes[0].Router)
+	}
+
+	// query particular gateway and network
 	query = NewQuery(
 		QueryGateway(gateway),
 		QueryNetwork(network),
+		QueryRouter(router),
 	)
 
 	routes, err = table.Query(query)
@@ -180,7 +207,11 @@ func TestQuery(t *testing.T) {
 		t.Errorf("incorrect network returned. Expected network: %s, found: %s", network, routes[0].Network)
 	}
 
-	// bullshit route query
+	if routes[0].Router != router {
+		t.Errorf("incorrect route returned. Expected router: %s, found: %s", router, routes[0].Router)
+	}
+
+	// non-existen route query
 	query = NewQuery(QueryService("foobar"))
 
 	routes, err = table.Query(query)

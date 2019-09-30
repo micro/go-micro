@@ -51,6 +51,9 @@ func (c *registrySelector) Select(service string, opts ...SelectOption) (Next, e
 	// if that fails go directly to the registry
 	services, err := c.rc.GetService(service)
 	if err != nil {
+		if err == registry.ErrNotFound {
+			return nil, ErrNotFound
+		}
 		return nil, err
 	}
 

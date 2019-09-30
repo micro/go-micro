@@ -24,6 +24,22 @@ type monitor struct {
 	services map[string]*Status
 }
 
+func (m *monitor) Check(service string) error {
+	status, err := m.check(service)
+	if err != nil {
+		return err
+	}
+	m.Lock()
+	m.services[service] = status
+	m.Unlock()
+
+	if status.Code != StatusRunning {
+		return errors.New(status.Info)
+	}
+
+	return nil
+}
+
 // check provides binary running/failed status.
 // In the event Debug.Health cannot be called on a service we reap the node.
 func (m *monitor) check(service string) (*Status, error) {
@@ -41,6 +57,17 @@ func (m *monitor) check(service string) (*Status, error) {
 	// iterate through multiple versions of a service
 	for _, service := range services {
 		for _, node := range service.Nodes {
+			// TODO: checks that are not just RPC based
+			// TODO: better matching of the protocol
+			// TODO: maybe everything has to be a go-micro service?
+			if node.Metadata["server"] != m.client.String() {
+				continue
+			}
+			// check the transport matches
+			if node.Metadata["transport"] != m.client.Options().Transport.String() {
+				continue
+			}
+
 			rsp, err := debug.Health(
 				context.Background(),
 				// empty health request

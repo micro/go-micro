@@ -30,6 +30,7 @@ import (
 	"github.com/micro/go-micro/registry/gossip"
 	"github.com/micro/go-micro/registry/mdns"
 	rmem "github.com/micro/go-micro/registry/memory"
+	regSrv "github.com/micro/go-micro/registry/service"
 
 	// selectors
 	"github.com/micro/go-micro/client/selector"
@@ -95,11 +96,13 @@ var (
 		cli.IntFlag{
 			Name:   "register_ttl",
 			EnvVar: "MICRO_REGISTER_TTL",
+			Value:  60,
 			Usage:  "Register TTL in seconds",
 		},
 		cli.IntFlag{
 			Name:   "register_interval",
 			EnvVar: "MICRO_REGISTER_INTERVAL",
+			Value:  30,
 			Usage:  "Register interval in seconds",
 		},
 		cli.StringFlag{
@@ -188,10 +191,12 @@ var (
 	}
 
 	DefaultRegistries = map[string]func(...registry.Option) registry.Registry{
-		"consul": consul.NewRegistry,
-		"gossip": gossip.NewRegistry,
-		"mdns":   mdns.NewRegistry,
-		"memory": rmem.NewRegistry,
+		"go.micro.registry": regSrv.NewRegistry,
+		"service":           regSrv.NewRegistry,
+		"consul":            consul.NewRegistry,
+		"gossip":            gossip.NewRegistry,
+		"mdns":              mdns.NewRegistry,
+		"memory":            rmem.NewRegistry,
 	}
 
 	DefaultSelectors = map[string]func(...selector.Option) selector.Selector{
@@ -417,11 +422,11 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		serverOpts = append(serverOpts, server.Advertise(ctx.String("server_advertise")))
 	}
 
-	if ttl := time.Duration(ctx.GlobalInt("register_ttl")); ttl > 0 {
+	if ttl := time.Duration(ctx.GlobalInt("register_ttl")); ttl >= 0 {
 		serverOpts = append(serverOpts, server.RegisterTTL(ttl*time.Second))
 	}
 
-	if val := time.Duration(ctx.GlobalInt("register_interval")); val > 0 {
+	if val := time.Duration(ctx.GlobalInt("register_interval")); val >= 0 {
 		serverOpts = append(serverOpts, server.RegisterInterval(val*time.Second))
 	}
 

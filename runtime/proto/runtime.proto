@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package go.micro.runtime;
+
+service Runtime {
+	rpc Create(CreateRequest) returns (CreateResponse) {};
+	rpc Delete(DeleteRequest) returns (DeleteResponse) {};
+}
+
+message Service {
+	// name of the service
+	string name = 1;
+	// git url of the source
+	string source = 2;
+	// local path of the source
+	string path = 3;
+	// command to execute
+	string exec = 4;
+}
+
+message CreateRequest {
+	Service service = 1;
+}
+
+message CreateResponse {}
+
+message DeleteRequest {
+	Service service = 1;
+}
+
+message DeleteResponse {}

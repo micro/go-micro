@@ -11,6 +11,8 @@ type mdnsWatcher struct {
 	wo   WatchOptions
 	ch   chan *mdns.ServiceEntry
 	exit chan struct{}
+	// the mdns domain
+	domain string
 }
 
 func (m *mdnsWatcher) Next() (*Result, error) {
@@ -46,13 +48,14 @@ func (m *mdnsWatcher) Next() (*Result, error) {
 				Endpoints: txt.Endpoints,
 			}
 
-			// TODO: don't hardcode .local.
-			if !strings.HasSuffix(e.Name, "."+service.Name+".local.") {
+			// skip anything without the domain we care about
+			suffix := fmt.Sprintf(".%s.%s.", service.Name, m.domain)
+			if !strings.HasSuffix(e.Name, suffix) {
 				continue
 			}
 
 			service.Nodes = append(service.Nodes, &Node{
-				Id:       strings.TrimSuffix(e.Name, "."+service.Name+".local."),
+				Id:       strings.TrimSuffix(e.Name, suffix),
 				Address:  fmt.Sprintf("%s:%d", e.AddrV4.String(), e.Port),
 				Metadata: txt.Metadata,
 			})

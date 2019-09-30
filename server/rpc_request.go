@@ -16,6 +16,7 @@ type rpcRequest struct {
 	body        []byte
 	rawBody     interface{}
 	stream      bool
+	first       bool
 }
 
 type rpcMessage struct {
@@ -54,9 +55,9 @@ func (r *rpcRequest) Body() interface{} {
 
 func (r *rpcRequest) Read() ([]byte, error) {
 	// got a body
-	if r.body != nil {
+	if r.first {
 		b := r.body
-		r.body = nil
+		r.first = false
 		return b, nil
 	}
 

@@ -33,6 +33,7 @@ func (r *Router) Lookup(ctx context.Context, req *pb.LookupRequest, resp *pb.Loo
 			Address: route.Address,
 			Gateway: route.Gateway,
 			Network: route.Network,
+			Router:  route.Router,
 			Link:    route.Link,
 			Metric:  int64(route.Metric),
 		}
@@ -44,6 +45,16 @@ func (r *Router) Lookup(ctx context.Context, req *pb.LookupRequest, resp *pb.Loo
 	return nil
 }
 
+// Solicit triggers full routing table advertisement
+func (r *Router) Solicit(ctx context.Context, req *pb.Request, resp *pb.Response) error {
+	if err := r.Router.Solicit(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// Advertise streams router advertisements
 func (r *Router) Advertise(ctx context.Context, req *pb.Request, stream pb.Router_AdvertiseStream) error {
 	advertChan, err := r.Router.Advertise()
 	if err != nil {
@@ -58,6 +69,7 @@ func (r *Router) Advertise(ctx context.Context, req *pb.Request, stream pb.Route
 				Address: event.Route.Address,
 				Gateway: event.Route.Gateway,
 				Network: event.Route.Network,
+				Router:  event.Route.Router,
 				Link:    event.Route.Link,
 				Metric:  int64(event.Route.Metric),
 			}
@@ -89,6 +101,7 @@ func (r *Router) Advertise(ctx context.Context, req *pb.Request, stream pb.Route
 	return nil
 }
 
+// Process processes advertisements
 func (r *Router) Process(ctx context.Context, req *pb.Advert, rsp *pb.ProcessResponse) error {
 	events := make([]*router.Event, len(req.Events))
 	for i, event := range req.Events {
@@ -97,6 +110,7 @@ func (r *Router) Process(ctx context.Context, req *pb.Advert, rsp *pb.ProcessRes
 			Address: event.Route.Address,
 			Gateway: event.Route.Gateway,
 			Network: event.Route.Network,
+			Router:  event.Route.Router,
 			Link:    event.Route.Link,
 			Metric:  int(event.Route.Metric),
 		}
@@ -123,6 +137,7 @@ func (r *Router) Process(ctx context.Context, req *pb.Advert, rsp *pb.ProcessRes
 	return nil
 }
 
+// Status returns router status
 func (r *Router) Status(ctx context.Context, req *pb.Request, rsp *pb.StatusResponse) error {
 	status := r.Router.Status()
 
@@ -149,7 +164,7 @@ func (r *Router) Watch(ctx context.Context, req *pb.WatchRequest, stream pb.Rout
 	for {
 		event, err := watcher.Next()
 		if err == router.ErrWatcherStopped {
-			break
+			return errors.InternalServerError("go.micro.router", "watcher stopped")
 		}
 
 		if err != nil {
@@ -161,6 +176,7 @@ func (r *Router) Watch(ctx context.Context, req *pb.WatchRequest, stream pb.Rout
 			Address: event.Route.Address,
 			Gateway: event.Route.Gateway,
 			Network: event.Route.Network,
+			Router:  event.Route.Router,
 			Link:    event.Route.Link,
 			Metric:  int64(event.Route.Metric),
 		}

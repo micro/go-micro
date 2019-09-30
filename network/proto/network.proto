@@ -1,0 +1,79 @@
+syntax = "proto3";
+
+package go.micro.network;
+
+import "github.com/micro/go-micro/router/proto/router.proto";
+
+// Network service is usesd to gain visibility into networks
+service Network {
+	// Returns the entire network graph
+	rpc Graph(GraphRequest) returns (GraphResponse) {};
+	// Returns a list of known nodes in the network
+        rpc Nodes(NodesRequest) returns (NodesResponse) {};
+	// Returns a list of known routes in the network
+        rpc Routes(RoutesRequest) returns (RoutesResponse) {};
+	// Returns a list of known services based on routes
+	rpc Services(ServicesRequest) returns (ServicesResponse) {};
+}
+
+// PeerRequest requests list of peers
+message NodesRequest {
+        // node topology depth
+        uint32 depth = 1;
+}
+
+// PeerResponse is returned by ListPeers
+message NodesResponse {
+        // return peer topology
+        repeated Node nodes = 1;
+}
+
+message GraphRequest {
+        // node topology depth
+        uint32 depth = 1;
+}
+
+message GraphResponse {
+	Peer root = 1;
+}
+
+message RoutesRequest {	
+}
+
+message RoutesResponse {
+	repeated go.micro.router.Route routes = 1;
+}
+
+message ServicesRequest {}
+
+message ServicesResponse {
+	repeated string services = 1;
+}
+
+// Node is network node
+message Node {
+        // node id
+        string id = 1;
+        // node address
+        string address = 2;
+}
+
+// Connect is sent when the node connects to the network
+message Connect {
+        // network mode
+        Node node = 1;
+}
+
+// Close is sent when the node disconnects from the network
+message Close {
+        // network node
+        Node node = 1;
+}
+
+// Peer is used to advertise node peers
+message Peer {
+        // network node
+        Node node = 1;
+        // node peers
+        repeated Peer peers = 2;
+}
