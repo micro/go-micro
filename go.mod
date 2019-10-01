@@ -1,6 +1,6 @@
 module github.com/micro/go-micro
 
-go 1.12
+go 1.13
 
 require (
 	cloud.google.com/go v0.44.0 // indirect
