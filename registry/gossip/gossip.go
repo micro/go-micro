@@ -292,7 +292,7 @@ func (b *broadcast) Message() []byte {
 		return nil
 	}
 	if l := len(up); l > MaxPacketSize {
-		log.Logf("[gossip] broadcast message size %d bigger then MaxPacketSize %d", l, MaxPacketSize)
+		log.Logf("[gossip] Registry broadcast message size %d bigger then MaxPacketSize %d", l, MaxPacketSize)
 	}
 	return up
 }
@@ -427,14 +427,14 @@ func (g *gossipRegistry) connect(addrs []string) error {
 			return nil
 		//  in case of timeout fail with a timeout error
 		case <-timeout:
-			return fmt.Errorf("[gossip] connect timeout %v", g.addrs)
+			return fmt.Errorf("[gossip] Registry connect timeout %v", g.addrs)
 		// got a tick, try to connect
 		case <-ticker.C:
 			if _, err := fn(); err == nil {
-				log.Logf("[gossip] connect success for %v", g.addrs)
+				log.Debugf("[gossip] Registry connect success for %v", g.addrs)
 				return nil
 			} else {
-				log.Logf("[gossip] connect failed for %v", g.addrs)
+				log.Debugf("[gossip] Registry connect failed for %v", g.addrs)
 			}
 		}
 	}
@@ -697,6 +697,8 @@ func (g *gossipRegistry) Options() registry.Options {
 }
 
 func (g *gossipRegistry) Register(s *registry.Service, opts ...registry.RegisterOption) error {
+	log.Debugf("[gossip] Registry registering service: %s", s.Name)
+
 	b, err := json.Marshal(s)
 	if err != nil {
 		return err
@@ -716,7 +718,7 @@ func (g *gossipRegistry) Register(s *registry.Service, opts ...registry.Register
 	}
 
 	if options.TTL == 0 && g.tcpInterval == 0 {
-		return fmt.Errorf("Require register TTL or interval for memberlist.Config")
+		return fmt.Errorf("[gossip] Require register TTL or interval for memberlist.Config")
 	}
 
 	up := &pb.Update{
@@ -747,6 +749,9 @@ func (g *gossipRegistry) Register(s *registry.Service, opts ...registry.Register
 }
 
 func (g *gossipRegistry) Deregister(s *registry.Service) error {
+
+	log.Debugf("[gossip] Registry deregistering service: %s", s.Name)
+
 	b, err := json.Marshal(s)
 	if err != nil {
 		return err
@@ -834,7 +839,7 @@ func NewRegistry(opts ...registry.Option) registry.Registry {
 
 	// configure the gossiper
 	if err := configure(g, opts...); err != nil {
-		log.Fatalf("[gossip] Error configuring registry: %v", err)
+		log.Fatalf("[gossip] Registry configuring error: %v", err)
 	}
 	// wait for setup
 	<-time.After(g.interval * 2)
