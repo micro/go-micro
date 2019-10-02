@@ -19,7 +19,7 @@ import (
 )
 
 var (
-	prefix = "/micro-registry"
+	prefix = "/micro/registry"
 )
 
 type etcdRegistry struct {
