@@ -27,6 +27,7 @@ import (
 	// registries
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/registry/consul"
+	"github.com/micro/go-micro/registry/etcd"
 	"github.com/micro/go-micro/registry/gossip"
 	"github.com/micro/go-micro/registry/mdns"
 	rmem "github.com/micro/go-micro/registry/memory"
@@ -154,7 +155,7 @@ var (
 		cli.StringFlag{
 			Name:   "registry",
 			EnvVar: "MICRO_REGISTRY",
-			Usage:  "Registry for discovery. consul, mdns",
+			Usage:  "Registry for discovery. consul, etcd, mdns",
 		},
 		cli.StringFlag{
 			Name:   "registry_address",
@@ -194,6 +195,7 @@ var (
 		"go.micro.registry": regSrv.NewRegistry,
 		"service":           regSrv.NewRegistry,
 		"consul":            consul.NewRegistry,
+		"etcd":              etcd.NewRegistry,
 		"gossip":            gossip.NewRegistry,
 		"mdns":              mdns.NewRegistry,
 		"memory":            rmem.NewRegistry,

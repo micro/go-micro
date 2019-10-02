@@ -7,6 +7,9 @@ require (
 	github.com/beevik/ntp v0.2.0
 	github.com/bitly/go-simplejson v0.5.0
 	github.com/bwmarrin/discordgo v0.19.0
+	github.com/coreos/etcd v3.3.15+incompatible
+	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f // indirect
+	github.com/coreos/pkg v0.0.0-20180928190104-399ea9e2e55f // indirect
 	github.com/forestgiant/sliceutil v0.0.0-20160425183142-94783f95db6c
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/fsouza/go-dockerclient v1.4.4
@@ -33,6 +36,9 @@ require (
 	github.com/nlopes/slack v0.6.0
 	github.com/pkg/errors v0.8.1
 	github.com/technoweenie/multipartstreamer v1.0.1 // indirect
+	go.uber.org/atomic v1.4.0 // indirect
+	go.uber.org/multierr v1.2.0 // indirect
+	go.uber.org/zap v1.10.0 // indirect
 	golang.org/x/crypto v0.0.0-20191001170739-f9e2070545dc
 	golang.org/x/net v0.0.0-20190930134127-c5a3c61f89f3
 	google.golang.org/grpc v1.24.0
