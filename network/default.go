@@ -86,17 +86,25 @@ func newNetwork(opts ...Option) Network {
 		tun.WithTunnel(options.Tunnel),
 	)
 
+	// set the address to a hashed address
+	hasher := fnv.New64()
+	hasher.Write([]byte(options.Address + options.Id))
+	address := fmt.Sprintf("%d", hasher.Sum64())
+
 	// set the address to advertise
-	address := options.Address
+	var advertise string
+
 	if len(options.Advertise) > 0 {
-		address = options.Advertise
+		advertise = options.Advertise
+	} else {
+		advertise = options.Address
 	}
 
 	// server is network server
 	server := server.NewServer(
 		server.Id(options.Id),
-		server.Address(options.Id),
-		server.Advertise(address),
+		server.Address(address),
+		server.Advertise(advertise),
 		server.Name(options.Name),
 		server.Transport(tunTransport),
 	)
@@ -728,7 +736,6 @@ func (n *network) Connect() error {
 	// set our internal node address
 	// if advertise address is not set
 	if len(n.options.Advertise) == 0 {
-		n.node.address = n.tunnel.Address()
 		n.server.Init(server.Advertise(n.tunnel.Address()))
 	}
 
