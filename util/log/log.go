@@ -2,6 +2,7 @@
 package log
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/go-log/log"
@@ -25,6 +26,9 @@ var (
 
 	// default log level is info
 	level = LevelInfo
+
+	// prefix for all messages
+	prefix string
 )
 
 func init() {
@@ -44,11 +48,18 @@ func init() {
 
 // Log makes use of github.com/go-log/log.Log
 func Log(v ...interface{}) {
+	if len(prefix) > 0 {
+		logger.Log(append([]interface{}{prefix, " "}, v...)...)
+		return
+	}
 	logger.Log(v...)
 }
 
 // Logf makes use of github.com/go-log/log.Logf
 func Logf(format string, v ...interface{}) {
+	if len(prefix) > 0 {
+		format = prefix + " " + format
+	}
 	logger.Logf(format, v...)
 }
 
@@ -138,4 +149,14 @@ func SetLevel(l Level) {
 // GetLevel returns the current level
 func GetLevel() Level {
 	return level
+}
+
+// Set a prefix for the logger
+func SetPrefix(p string) {
+	prefix = p
+}
+
+// Set service name
+func Name(name string) {
+	prefix = fmt.Sprintf("[%s]", name)
 }
