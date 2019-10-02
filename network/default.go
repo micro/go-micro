@@ -683,7 +683,7 @@ func (n *network) advertise(client transport.Client, advertChan <-chan *router.A
 				route := &pbRtr.Route{
 					Service: event.Route.Service,
 					Address: address,
-					Gateway: n.node.id,
+					Gateway: n.node.Address(),
 					Network: event.Route.Network,
 					Router:  event.Route.Router,
 					Link:    DefaultLink,
