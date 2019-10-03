@@ -5,7 +5,7 @@ import (
 	"math"
 	"time"
 
-	"github.com/micro/go-micro/sync/leader/consul"
+	"github.com/micro/go-micro/sync/leader/etcd"
 	"github.com/micro/go-micro/sync/task"
 	"github.com/micro/go-micro/sync/task/local"
 	"github.com/micro/go-micro/util/log"
@@ -80,7 +80,7 @@ func NewCron(opts ...Option) Cron {
 	}
 
 	if options.Leader == nil {
-		options.Leader = consul.NewLeader()
+		options.Leader = etcd.NewLeader()
 	}
 
 	if options.Task == nil {
