@@ -106,7 +106,7 @@ func newNetwork(opts ...Option) Network {
 	// server is network server
 	server := server.NewServer(
 		server.Id(options.Id),
-		server.Address(address),
+		server.Address(peerAddress),
 		server.Advertise(advertise),
 		server.Name(options.Name),
 		server.Transport(tunTransport),
