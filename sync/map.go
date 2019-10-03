@@ -6,9 +6,9 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/micro/go-micro/data/store"
-	ckv "github.com/micro/go-micro/data/store/consul"
-	lock "github.com/micro/go-micro/sync/lock/consul"
+	"github.com/micro/go-micro/store"
+	ckv "github.com/micro/go-micro/store/etcd"
+	lock "github.com/micro/go-micro/sync/lock/etcd"
 )
 
 type syncMap struct {

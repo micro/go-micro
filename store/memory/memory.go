@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/micro/go-micro/config/options"
-	"github.com/micro/go-micro/data/store"
+	"github.com/micro/go-micro/store"
 )
 
 type memoryStore struct {

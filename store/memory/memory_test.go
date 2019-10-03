@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/micro/go-micro/data/store"
+	"github.com/micro/go-micro/store"
 )
 
 func TestReadRecordExpire(t *testing.T) {
