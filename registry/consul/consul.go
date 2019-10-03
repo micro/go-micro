@@ -107,9 +107,9 @@ func configure(c *consulRegistry, opts ...registry.Option) {
 		if ae, ok := err.(*net.AddrError); ok && ae.Err == "missing port in address" {
 			port = "8500"
 			addr = address
-			addrs = append(addrs, fmt.Sprintf("%s:%s", addr, port))
+			addrs = append(addrs, net.JoinHostPort(addr, port))
 		} else if err == nil {
-			addrs = append(addrs, fmt.Sprintf("%s:%s", addr, port))
+			addrs = append(addrs, net.JoinHostPort(addr, port))
 		}
 	}
 

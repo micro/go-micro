@@ -6,6 +6,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"errors"
+	"net"
 	"path"
 	"strings"
 	"sync"
@@ -74,11 +75,18 @@ func configure(e *etcdRegistry, opts ...registry.Option) error {
 
 	var cAddrs []string
 
-	for _, addr := range e.options.Addrs {
-		if len(addr) == 0 {
+	for _, address := range e.options.Addrs {
+		if len(address) == 0 {
 			continue
 		}
-		cAddrs = append(cAddrs, addr)
+		addr, port, err := net.SplitHostPort(address)
+		if ae, ok := err.(*net.AddrError); ok && ae.Err == "missing port in address" {
+			port = "2379"
+			addr = address
+			cAddrs = append(cAddrs, net.JoinHostPort(addr, port))
+		} else if err == nil {
+			cAddrs = append(cAddrs, net.JoinHostPort(addr, port))
+		}
 	}
 
 	// if we got addrs then we'll update
