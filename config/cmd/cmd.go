@@ -28,7 +28,6 @@ import (
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/registry/consul"
 	"github.com/micro/go-micro/registry/etcd"
-	"github.com/micro/go-micro/registry/gossip"
 	"github.com/micro/go-micro/registry/mdns"
 	rmem "github.com/micro/go-micro/registry/memory"
 	regSrv "github.com/micro/go-micro/registry/service"
@@ -196,7 +195,6 @@ var (
 		"service":           regSrv.NewRegistry,
 		"consul":            consul.NewRegistry,
 		"etcd":              etcd.NewRegistry,
-		"gossip":            gossip.NewRegistry,
 		"mdns":              mdns.NewRegistry,
 		"memory":            rmem.NewRegistry,
 	}
