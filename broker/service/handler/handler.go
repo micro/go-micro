@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 
+	"github.com/micro/go-micro/util/log"
 	"github.com/micro/go-micro/broker"
 	pb "github.com/micro/go-micro/broker/service/proto"
 	"github.com/micro/go-micro/errors"
@@ -13,6 +14,7 @@ type Broker struct {
 }
 
 func (b *Broker) Publish(ctx context.Context, req *pb.PublishRequest, rsp *pb.Empty) error {
+	log.Debugf("Publishing message to %s topic", req.Topic)
 	err := b.Broker.Publish(req.Topic, &broker.Message{
 		Header: req.Message.Header,
 		Body:   req.Message.Body,
@@ -42,6 +44,7 @@ func (b *Broker) Subscribe(ctx context.Context, req *pb.SubscribeRequest, stream
 		return nil
 	}
 
+	log.Debugf("Subscribing to %s topic", req.Topic)
 	sub, err := b.Broker.Subscribe(req.Topic, handler, broker.Queue(req.Queue))
 	if err != nil {
 		return errors.InternalServerError("go.micro.broker", err.Error())
