@@ -41,7 +41,7 @@ func (e *ekv) Write(record *store.Record) error {
 	return err
 }
 
-func (e *ekv) Dump() ([]*store.Record, error) {
+func (e *ekv) Sync() ([]*store.Record, error) {
 	keyval, err := e.kv.Get(context.Background(), "/", client.WithPrefix())
 	if err != nil {
 		return nil, err

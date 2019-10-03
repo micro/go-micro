@@ -85,7 +85,7 @@ func (m *syncMap) Delete(key interface{}) error {
 }
 
 func (m *syncMap) Iterate(fn func(key, val interface{}) error) error {
-	keyvals, err := m.opts.Store.Dump()
+	keyvals, err := m.opts.Store.Sync()
 	if err != nil {
 		return err
 	}

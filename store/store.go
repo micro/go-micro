@@ -16,8 +16,8 @@ var (
 type Store interface {
 	// embed options
 	options.Options
-	// Dump the known records
-	Dump() ([]*Record, error)
+	// Sync all the known records
+	Sync() ([]*Record, error)
 	// Read a record with key
 	Read(key string) (*Record, error)
 	// Write a record
