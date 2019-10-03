@@ -93,11 +93,14 @@ func newNetwork(opts ...Option) Network {
 
 	// set the address to advertise
 	var advertise string
+	var peerAddress string
 
 	if len(options.Advertise) > 0 {
 		advertise = options.Advertise
+		peerAddress = options.Advertise
 	} else {
 		advertise = options.Address
+		peerAddress = address
 	}
 
 	// server is network server
@@ -122,7 +125,7 @@ func newNetwork(opts ...Option) Network {
 	network := &network{
 		node: &node{
 			id:      options.Id,
-			address: address,
+			address: peerAddress,
 			peers:   make(map[string]*node),
 		},
 		options:   options,
