@@ -324,15 +324,21 @@ func (h *httpBroker) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	p := &httpEvent{m: m, t: topic}
 	id := req.Form.Get("id")
 
+	var subs []Handler
+
 	h.RLock()
 	for _, subscriber := range h.subscribers[topic] {
-		if id == subscriber.id {
-			// sub is sync; crufty rate limiting
-			// so we don't hose the cpu
-			subscriber.fn(p)
+		if id != subscriber.id {
+			continue
 		}
+		subs = append(subs, subscriber.fn)
 	}
 	h.RUnlock()
+
+	// execute the handler
+	for _, fn := range subs {
+		fn(p)
+	}
 }
 
 func (h *httpBroker) Address() string {
@@ -420,7 +426,6 @@ func (h *httpBroker) Connect() error {
 }
 
 func (h *httpBroker) Disconnect() error {
-
 	h.RLock()
 	if !h.running {
 		h.RUnlock()
