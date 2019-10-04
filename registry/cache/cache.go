@@ -100,7 +100,7 @@ func (c *cache) quit() bool {
 
 func (c *cache) del(service string) {
 	// don't blow away cache in error state
-	if err := c.getStatus(); err != nil {
+	if err := c.status; err != nil {
 		return
 	}
 	// otherwise delete entries
@@ -116,13 +116,14 @@ func (c *cache) get(service string) ([]*registry.Service, error) {
 	services := c.cache[service]
 	// get cache ttl
 	ttl := c.ttls[service]
+	// make a copy
+	cp := registry.Copy(services)
+
+	// unlock the read lock
+	c.RUnlock()
 
 	// got services && within ttl so return cache
-	if c.isValid(services, ttl) {
-		// make a copy
-		cp := registry.Copy(services)
-		// unlock the read
-		c.RUnlock()
+	if c.isValid(cp, ttl) {
 		// return servics
 		return cp, nil
 	}
@@ -136,8 +137,9 @@ func (c *cache) get(service string) ([]*registry.Service, error) {
 			if len(cached) > 0 {
 				// set the error status
 				c.setStatus(err)
+
 				// return the stale cache
-				return registry.Copy(cached), nil
+				return cached, nil
 			}
 			// otherwise return error
 			return nil, err
@@ -160,9 +162,6 @@ func (c *cache) get(service string) ([]*registry.Service, error) {
 	if _, ok := c.watched[service]; !ok {
 		go c.run(service)
 	}
-
-	// unlock the read lock
-	c.RUnlock()
 
 	// get and return services
 	return get(service, services)
