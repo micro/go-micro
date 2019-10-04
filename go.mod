@@ -21,10 +21,8 @@ require (
 	github.com/google/uuid v1.1.1
 	github.com/gorilla/handlers v1.4.2
 	github.com/gorilla/websocket v1.4.1
-	github.com/hashicorp/consul/api v1.2.0
 	github.com/hashicorp/hcl v1.0.0
-	github.com/hashicorp/memberlist v0.1.5
-	github.com/imdario/mergo v0.3.7
+	github.com/imdario/mergo v0.3.8
 	github.com/joncalhoun/qson v0.0.0-20170526102502-8a9cab3a62b1
 	github.com/json-iterator/go v1.1.7
 	github.com/leodido/go-urn v1.1.0 // indirect
@@ -39,8 +37,8 @@ require (
 	go.uber.org/atomic v1.4.0 // indirect
 	go.uber.org/multierr v1.2.0 // indirect
 	go.uber.org/zap v1.10.0 // indirect
-	golang.org/x/crypto v0.0.0-20191001170739-f9e2070545dc
-	golang.org/x/net v0.0.0-20190930134127-c5a3c61f89f3
+	golang.org/x/crypto v0.0.0-20191002192127-34f69633bfdc
+	golang.org/x/net v0.0.0-20191003171128-d98b1b443823
 	google.golang.org/grpc v1.24.0
 	gopkg.in/go-playground/validator.v9 v9.30.0
 	gopkg.in/src-d/go-git.v4 v4.13.1
