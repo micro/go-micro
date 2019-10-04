@@ -119,12 +119,10 @@ func (c *cache) get(service string) ([]*registry.Service, error) {
 	// make a copy
 	cp := registry.Copy(services)
 
-	// unlock the read lock
-	c.RUnlock()
-
 	// got services && within ttl so return cache
 	if c.isValid(cp, ttl) {
-		// return servics
+		c.RUnlock()
+		// return services
 		return cp, nil
 	}
 
@@ -163,8 +161,11 @@ func (c *cache) get(service string) ([]*registry.Service, error) {
 		go c.run(service)
 	}
 
+	// unlock the read lock
+	c.RUnlock()
+
 	// get and return services
-	return get(service, services)
+	return get(service, cp)
 }
 
 func (c *cache) set(service string, services []*registry.Service) {
