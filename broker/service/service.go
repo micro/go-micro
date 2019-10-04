@@ -65,7 +65,7 @@ func (b *serviceBroker) Subscribe(topic string, handler broker.Handler, opts ...
 	stream, err := b.Client.Subscribe(context.TODO(), &pb.SubscribeRequest{
 		Topic: topic,
 		Queue: options.Queue,
-	}, client.WithAddress(b.Addrs...))
+	}, client.WithAddress(b.Addrs...), client.WithRequestTimeout(time.Hour))
 	if err != nil {
 		return nil, err
 	}
@@ -93,7 +93,7 @@ func (b *serviceBroker) Subscribe(topic string, handler broker.Handler, opts ...
 					stream, err := b.Client.Subscribe(context.TODO(), &pb.SubscribeRequest{
 						Topic: topic,
 						Queue: options.Queue,
-					}, client.WithAddress(b.Addrs...))
+					}, client.WithAddress(b.Addrs...), client.WithRequestTimeout(time.Hour))
 					if err != nil {
 						log.Debugf("Failed to resubscribe to topic %s: %v", topic, err)
 						time.Sleep(time.Second)
