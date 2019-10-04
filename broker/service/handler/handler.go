@@ -19,6 +19,7 @@ func (b *Broker) Publish(ctx context.Context, req *pb.PublishRequest, rsp *pb.Em
 		Header: req.Message.Header,
 		Body:   req.Message.Body,
 	})
+	log.Debugf("Published message to %s topic", req.Topic)
 	if err != nil {
 		return errors.InternalServerError("go.micro.broker", err.Error())
 	}
@@ -49,12 +50,17 @@ func (b *Broker) Subscribe(ctx context.Context, req *pb.SubscribeRequest, stream
 	if err != nil {
 		return errors.InternalServerError("go.micro.broker", err.Error())
 	}
-	defer sub.Unsubscribe()
+	defer func() {
+		log.Debugf("Unsubscribing from topic %s", req.Topic)
+		sub.Unsubscribe()
+	}()
 
 	select {
 	case <-ctx.Done():
+		log.Debugf("Context done for subscription to topic %s", req.Topic)
 		return nil
-	case <-errChan:
+	case err := <-errChan:
+		log.Debugf("Subscription error for topic %s: %v", req.Topic, err)
 		return err
 	}
 }

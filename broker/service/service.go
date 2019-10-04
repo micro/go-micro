@@ -3,7 +3,9 @@ package service
 
 import (
 	"context"
+	"time"
 
+	"github.com/micro/go-micro/util/log"
 	"github.com/micro/go-micro/broker"
 	pb "github.com/micro/go-micro/broker/service/proto"
 	"github.com/micro/go-micro/client"
@@ -43,6 +45,7 @@ func (b *serviceBroker) Options() broker.Options {
 }
 
 func (b *serviceBroker) Publish(topic string, msg *broker.Message, opts ...broker.PublishOption) error {
+	log.Debugf("Publishing to topic %s broker %v", topic, b.Addrs)
 	_, err := b.Client.Publish(context.TODO(), &pb.PublishRequest{
 		Topic: topic,
 		Message: &pb.Message{
@@ -58,6 +61,7 @@ func (b *serviceBroker) Subscribe(topic string, handler broker.Handler, opts ...
 	for _, o := range opts {
 		o(&options)
 	}
+	log.Debugf("Subscribing to topic %s queue %s broker %v", topic, options.Queue, b.Addrs)
 	stream, err := b.Client.Subscribe(context.TODO(), &pb.SubscribeRequest{
 		Topic: topic,
 		Queue: options.Queue,
@@ -74,7 +78,33 @@ func (b *serviceBroker) Subscribe(topic string, handler broker.Handler, opts ...
 		closed:  make(chan bool),
 		options: options,
 	}
-	go sub.run()
+
+	go func() {
+		for {
+			select {
+			case <-sub.closed:
+				log.Debugf("Unsubscribed from topic %s", topic)
+				return
+			default:
+				// run the subscriber
+				log.Debugf("Streaming from broker %v to topic [%s] queue [%s]", b.Addrs, topic, options.Queue)
+				if err := sub.run(); err != nil {
+					log.Debugf("Resubscribing to topic %s broker %v", topic, b.Addrs)
+					stream, err := b.Client.Subscribe(context.TODO(), &pb.SubscribeRequest{
+						Topic: topic,
+						Queue: options.Queue,
+					}, client.WithAddress(b.Addrs...))
+					if err != nil {
+						log.Debugf("Failed to resubscribe to topic %s: %v", topic, err)
+						time.Sleep(time.Second)
+						continue
+					}
+					// new stream
+					sub.stream = stream
+				}
+			}
+		}
+	}()
 
 	return sub, nil
 }
