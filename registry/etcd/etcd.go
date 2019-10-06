@@ -157,10 +157,17 @@ func (e *etcdRegistry) registerNode(s *registry.Service, node *registry.Node, op
 		for _, kv := range rsp.Kvs {
 			if kv.Lease > 0 {
 				leaseID = clientv3.LeaseID(kv.Lease)
+
+				// decode the existing node
+				srv := decode(kv.Value)
+				if srv == nil || len(srv.Nodes) == 0 {
+					continue
+				}
+
 				// create hash of service; uint64
-				h, err := hash.Hash(node, nil)
+				h, err := hash.Hash(srv.Nodes[0], nil)
 				if err != nil {
-					return err
+					continue
 				}
 
 				// save the info
@@ -168,6 +175,7 @@ func (e *etcdRegistry) registerNode(s *registry.Service, node *registry.Node, op
 				e.leases[s.Name+node.Id] = leaseID
 				e.register[s.Name+node.Id] = h
 				e.Unlock()
+
 				break
 			}
 		}
