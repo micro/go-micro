@@ -163,7 +163,7 @@ func (s *session) Accept() error {
 	case <-s.closed:
 		return io.EOF
 	case s.send <- msg:
-		return nil
+		// no op here
 	}
 
 	// wait for send response
