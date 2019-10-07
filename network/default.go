@@ -213,6 +213,9 @@ func (n *network) handleNetConn(sess tunnel.Session, msg chan *transport.Message
 		m := new(transport.Message)
 		if err := sess.Recv(m); err != nil {
 			log.Debugf("Network tunnel [%s] receive error: %v", NetworkChannel, err)
+			if sessErr := sess.Close(); sessErr != nil {
+				log.Debugf("Network tunnel [%s] closing connection error: %v", sessErr)
+			}
 			return
 		}
 
@@ -230,9 +233,7 @@ func (n *network) acceptNetConn(l tunnel.Listener, recv chan *transport.Message)
 		// accept a connection
 		conn, err := l.Accept()
 		if err != nil {
-			// TODO: handle this
 			log.Debugf("Network tunnel [%s] accept error: %v", NetworkChannel, err)
-			return
 		}
 
 		select {
@@ -730,6 +731,11 @@ func (n *network) Connect() error {
 		log.Debugf("Network failed to resolve nodes: %v", err)
 	}
 
+	// initialize the tunnel to resolved nodes
+	n.tunnel.Init(
+		tunnel.Nodes(nodes...),
+	)
+
 	// connect network tunnel
 	if err := n.tunnel.Connect(); err != nil {
 		n.Unlock()
@@ -741,11 +747,6 @@ func (n *network) Connect() error {
 	if len(n.options.Advertise) == 0 {
 		n.server.Init(server.Advertise(n.tunnel.Address()))
 	}
-
-	// initialize the tunnel to resolved nodes
-	n.tunnel.Init(
-		tunnel.Nodes(nodes...),
-	)
 
 	// dial into ControlChannel to send route adverts
 	ctrlClient, err := n.tunnel.Dial(ControlChannel, tunnel.DialMulticast())
