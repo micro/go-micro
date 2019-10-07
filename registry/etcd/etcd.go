@@ -349,7 +349,7 @@ func (e *etcdRegistry) GetService(name string) ([]*registry.Service, error) {
 
 func (e *etcdRegistry) ListServices() ([]*registry.Service, error) {
 	var services []*registry.Service
-	nameSet := make(map[string]struct{})
+	versions := make(map[string]*registry.Service)
 
 	ctx, cancel := context.WithTimeout(context.Background(), e.options.Timeout)
 	defer cancel()
@@ -364,13 +364,20 @@ func (e *etcdRegistry) ListServices() ([]*registry.Service, error) {
 	}
 
 	for _, n := range rsp.Kvs {
-		if sn := decode(n.Value); sn != nil {
-			nameSet[sn.Name] = struct{}{}
+		sn := decode(n.Value)
+		if sn == nil {
+			continue
 		}
+		v, ok := versions[sn.Name+sn.Version]
+		if !ok {
+			versions[sn.Name+sn.Version] = sn
+			continue
+		}
+		// append to service:version nodes
+		v.Nodes = append(v.Nodes, sn.Nodes...)
 	}
-	for k := range nameSet {
-		service := &registry.Service{}
-		service.Name = k
+
+	for _, service := range versions {
 		services = append(services, service)
 	}
 
