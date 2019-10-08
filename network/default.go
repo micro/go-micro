@@ -29,6 +29,8 @@ var (
 	ControlChannel = "control"
 	// DefaultLink is default network link
 	DefaultLink = "network"
+	// MaxConnections is the max number of network client connections
+	MaxConnections = 3
 )
 
 var (
@@ -169,9 +171,16 @@ func (n *network) resolveNodes() ([]string, error) {
 
 	// collect network node addresses
 	var nodes []string
+
+	i := 0
 	for _, record := range records {
 		nodes = append(nodes, record.Address)
 		nodeMap[record.Address] = true
+		i++
+		// break once MaxConnection nodes has been reached
+		if i == MaxConnections {
+			break
+		}
 	}
 
 	// use the dns resolver to expand peers
@@ -497,7 +506,6 @@ func (n *network) handleCtrlConn(sess tunnel.Session, msg chan *transport.Messag
 	for {
 		m := new(transport.Message)
 		if err := sess.Recv(m); err != nil {
-			// TODO: should we bail here?
 			log.Debugf("Network tunnel advert receive error: %v", err)
 			return
 		}
@@ -516,9 +524,7 @@ func (n *network) acceptCtrlConn(l tunnel.Listener, recv chan *transport.Message
 		// accept a connection
 		conn, err := l.Accept()
 		if err != nil {
-			// TODO: handle this
 			log.Debugf("Network tunnel [%s] accept error: %v", ControlChannel, err)
-			return
 		}
 
 		select {
