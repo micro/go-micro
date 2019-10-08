@@ -29,8 +29,8 @@ var (
 	ControlChannel = "control"
 	// DefaultLink is default network link
 	DefaultLink = "network"
-	// MaxCconnections is the max number of network client connections
-	MaxCconnections = 3
+	// MaxConnections is the max number of network client connections
+	MaxConnections = 3
 )
 
 var (
@@ -195,9 +195,9 @@ func (n *network) resolveNodes() ([]string, error) {
 		}
 	}
 
-	// only return MaxCconnections nodes
-	if len(nodes) > MaxCconnections {
-		resNodes := make([]string, MaxCconnections)
+	// only return MaxConnections nodes
+	if len(nodes) > MaxConnections {
+		resNodes := make([]string, MaxConnections)
 		for i, _ := range resNodes {
 			resNodes[i] = nodes[i]
 		}
