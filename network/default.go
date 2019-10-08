@@ -171,9 +171,16 @@ func (n *network) resolveNodes() ([]string, error) {
 
 	// collect network node addresses
 	var nodes []string
+
+	i := 0
 	for _, record := range records {
 		nodes = append(nodes, record.Address)
 		nodeMap[record.Address] = true
+		i++
+		// break once MaxConnection nodes has been reached
+		if i == MaxConnections {
+			break
+		}
 	}
 
 	// use the dns resolver to expand peers
@@ -193,15 +200,6 @@ func (n *network) resolveNodes() ([]string, error) {
 				nodes = append(nodes, record.Address)
 			}
 		}
-	}
-
-	// only return MaxConnections nodes
-	if len(nodes) > MaxConnections {
-		resNodes := make([]string, MaxConnections)
-		for i, _ := range resNodes {
-			resNodes[i] = nodes[i]
-		}
-		return resNodes, nil
 	}
 
 	return nodes, nil
