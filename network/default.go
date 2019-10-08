@@ -11,6 +11,7 @@ import (
 	"github.com/micro/go-micro/client"
 	rtr "github.com/micro/go-micro/client/selector/router"
 	pbNet "github.com/micro/go-micro/network/proto"
+	"github.com/micro/go-micro/network/resolver/dns"
 	"github.com/micro/go-micro/proxy"
 	"github.com/micro/go-micro/router"
 	pbRtr "github.com/micro/go-micro/router/proto"
@@ -73,7 +74,6 @@ func newNetwork(opts ...Option) Network {
 	// init tunnel address to the network bind address
 	options.Tunnel.Init(
 		tunnel.Address(options.Address),
-		tunnel.Nodes(options.Peers...),
 	)
 
 	// init router Id to the network id
@@ -174,10 +174,22 @@ func (n *network) resolveNodes() ([]string, error) {
 		nodeMap[record.Address] = true
 	}
 
+	// use the dns resolver to expand peers
+	dns := &dns.Resolver{}
+
 	// append seed nodes if we have them
 	for _, node := range n.options.Peers {
-		if _, ok := nodeMap[node]; !ok {
-			nodes = append(nodes, node)
+		// resolve anything that looks like a host name
+		records, err := dns.Resolve(node)
+		if err != nil {
+			continue
+		}
+
+		// add to the node map
+		for _, record := range records {
+			if _, ok := nodeMap[record.Address]; !ok {
+				nodes = append(nodes, record.Address)
+			}
 		}
 	}
 
