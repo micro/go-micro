@@ -11,7 +11,6 @@ import (
 	"github.com/gorilla/handlers"
 	"github.com/micro/go-micro/api/server"
 	"github.com/micro/go-micro/util/log"
-	"golang.org/x/crypto/acme/autocert"
 )
 
 type httpServer struct {
@@ -55,7 +54,7 @@ func (s *httpServer) Start() error {
 
 	if s.opts.EnableACME {
 		// should we check the address to make sure its using :443?
-		l = autocert.NewListener(s.opts.ACMEHosts...)
+		l, err = s.opts.ACMEProvider.NewListener(s.opts.ACMEHosts...)
 	} else if s.opts.EnableTLS && s.opts.TLSConfig != nil {
 		l, err = tls.Listen("tcp", s.address, s.opts.TLSConfig)
 	} else {
