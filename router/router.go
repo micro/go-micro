@@ -143,19 +143,19 @@ type Advert struct {
 type Strategy int
 
 const (
-	// All advertises all routes to the network
-	All Strategy = iota
-	// Optimal advertises optimal routes to the network
-	Optimal
+	// AdvertiseAll advertises all routes to the network
+	AdvertiseAll Strategy = iota
+	// AdvertiseBest advertises optimal routes to the network
+	AdvertiseBest
 )
 
 // String returns human readable Strategy
 func (s Strategy) String() string {
 	switch s {
-	case All:
+	case AdvertiseAll:
 		return "all"
-	case Optimal:
-		return "optimal"
+	case AdvertiseBest:
+		return "best"
 	default:
 		return "unknown"
 	}

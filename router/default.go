@@ -682,7 +682,7 @@ func (r *router) flushRouteEvents(evType EventType) ([]*Event, error) {
 		return nil, fmt.Errorf("failed listing routes: %s", err)
 	}
 
-	if r.options.Advertise == All {
+	if r.options.Advertise == AdvertiseAll {
 		// build a list of events to advertise
 		events := make([]*Event, len(routes))
 		for i, route := range routes {
@@ -697,33 +697,36 @@ func (r *router) flushRouteEvents(evType EventType) ([]*Event, error) {
 	}
 
 	// routeMap stores optimal routes per service
-	optimalRoutes := make(map[string]Route)
+	bestRoutes := make(map[string]Route)
 
 	// go through all routes found in the routing table and collapse them to optimal routes
 	for _, route := range routes {
-		optimal, ok := optimalRoutes[route.Service]
+		routeKey := route.Service + "@" + route.Network
+		optimal, ok := bestRoutes[routeKey]
 		if !ok {
-			optimalRoutes[route.Service] = route
+			bestRoutes[routeKey] = route
 			continue
 		}
 		// if the current optimal route metric is higher than routing table route, replace it
 		if optimal.Metric > route.Metric {
-			optimalRoutes[route.Service] = route
+			bestRoutes[routeKey] = route
 			continue
 		}
 		// if the metrics are the same, prefer advertising your own route
 		if optimal.Metric == route.Metric {
 			if route.Router == r.options.Id {
-				optimalRoutes[route.Service] = route
+				bestRoutes[routeKey] = route
 				continue
 			}
 		}
 	}
 
+	log.Debugf("Router advertising %d best routes out of %d", len(bestRoutes), len(routes))
+
 	// build a list of events to advertise
-	events := make([]*Event, len(optimalRoutes))
+	events := make([]*Event, len(bestRoutes))
 	i := 0
-	for _, route := range optimalRoutes {
+	for _, route := range bestRoutes {
 		event := &Event{
 			Type:      evType,
 			Timestamp: time.Now(),
