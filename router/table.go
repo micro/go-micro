@@ -136,6 +136,7 @@ func (t *table) List() ([]Route, error) {
 
 // isMatch checks if the route matches given query options
 func isMatch(route Route, address, gateway, network, router string) bool {
+	// matches the values provided
 	match := func(a, b string) bool {
 		if a == "*" || a == b {
 			return true
@@ -143,24 +144,25 @@ func isMatch(route Route, address, gateway, network, router string) bool {
 		return false
 	}
 
-	// match on gateway
-	if !match(gateway, route.Gateway) {
-		return false
+	// a simple struct to hold our values
+	type compare struct {
+		a string
+		b string
 	}
 
-	// match on network
-	if !match(network, route.Network) {
-		return false
+	// compare the following values
+	values := []compare{
+		{gateway, route.Gateway},
+		{network, route.Network},
+		{router, route.Router},
+		{address, route.Address},
 	}
 
-	// match on router
-	if !match(router, route.Router) {
-		return false
-	}
-
-	// match on address
-	if !match(address, route.Address) {
-		return false
+	for _, v := range values {
+		// attempt to match each value
+		if !match(v.a, v.b) {
+			return false
+		}
 	}
 
 	return true
