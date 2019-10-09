@@ -31,7 +31,7 @@ type Router interface {
 	// Solicit advertises the whole routing table to the network
 	Solicit() error
 	// Lookup queries routes in the routing table
-	Lookup(Query) ([]Route, error)
+	Lookup(...QueryOption) ([]Route, error)
 	// Watch returns a watcher which tracks updates to the routing table
 	Watch(opts ...WatchOption) (Watcher, error)
 	// Start starts the router
@@ -55,7 +55,7 @@ type Table interface {
 	// List all routes in the table
 	List() ([]Route, error)
 	// Query routes in the routing table
-	Query(Query) ([]Route, error)
+	Query(...QueryOption) ([]Route, error)
 }
 
 // Option used by the router

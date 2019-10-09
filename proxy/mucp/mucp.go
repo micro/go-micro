@@ -128,7 +128,7 @@ func (p *Proxy) getRoute(service string) ([]router.Route, error) {
 	p.Unlock()
 
 	// lookup the routes in the router
-	results, err := p.Router.Lookup(router.NewQuery(router.QueryService(service)))
+	results, err := p.Router.Lookup(router.QueryService(service))
 	if err != nil {
 		// check the status of the router
 		if status := p.Router.Status(); status.Code == router.Error {

@@ -722,8 +722,8 @@ func (r *router) Solicit() error {
 }
 
 // Lookup routes in the routing table
-func (r *router) Lookup(q Query) ([]Route, error) {
-	return r.table.Query(q)
+func (r *router) Lookup(q ...QueryOption) ([]Route, error) {
+	return r.table.Query(q...)
 }
 
 // Watch routes

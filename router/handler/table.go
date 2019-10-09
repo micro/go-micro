@@ -90,11 +90,7 @@ func (t *Table) List(ctx context.Context, req *pb.Request, resp *pb.ListResponse
 }
 
 func (t *Table) Query(ctx context.Context, req *pb.QueryRequest, resp *pb.QueryResponse) error {
-	query := router.NewQuery(
-		router.QueryService(req.Query.Service),
-	)
-
-	routes, err := t.Router.Table().Query(query)
+	routes, err := t.Router.Table().Query(router.QueryService(req.Query.Service))
 	if err != nil {
 		return errors.InternalServerError("go.micro.router", "failed to lookup routes: %s", err)
 	}

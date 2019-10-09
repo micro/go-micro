@@ -123,18 +123,15 @@ func TestQuery(t *testing.T) {
 	}
 
 	// return all routes
-	query := NewQuery()
-
-	routes, err := table.Query(query)
+	routes, err := table.Query()
 	if err != nil {
 		t.Errorf("error looking up routes: %s", err)
 	}
 
 	// query routes particular network
 	network := "net1"
-	query = NewQuery(QueryNetwork(network))
 
-	routes, err = table.Query(query)
+	routes, err = table.Query(QueryNetwork(network))
 	if err != nil {
 		t.Errorf("error looking up routes: %s", err)
 	}
@@ -151,9 +148,8 @@ func TestQuery(t *testing.T) {
 
 	// query routes for particular gateway
 	gateway := "gw1"
-	query = NewQuery(QueryGateway(gateway))
 
-	routes, err = table.Query(query)
+	routes, err = table.Query(QueryGateway(gateway))
 	if err != nil {
 		t.Errorf("error looking up routes: %s", err)
 	}
@@ -168,9 +164,8 @@ func TestQuery(t *testing.T) {
 
 	// query routes for particular router
 	router := "rtr1"
-	query = NewQuery(QueryRouter(router))
 
-	routes, err = table.Query(query)
+	routes, err = table.Query(QueryRouter(router))
 	if err != nil {
 		t.Errorf("error looking up routes: %s", err)
 	}
@@ -184,13 +179,13 @@ func TestQuery(t *testing.T) {
 	}
 
 	// query particular gateway and network
-	query = NewQuery(
+	query := []QueryOption{
 		QueryGateway(gateway),
 		QueryNetwork(network),
 		QueryRouter(router),
-	)
+	}
 
-	routes, err = table.Query(query)
+	routes, err = table.Query(query...)
 	if err != nil {
 		t.Errorf("error looking up routes: %s", err)
 	}
@@ -212,9 +207,7 @@ func TestQuery(t *testing.T) {
 	}
 
 	// non-existen route query
-	query = NewQuery(QueryService("foobar"))
-
-	routes, err = table.Query(query)
+	routes, err = table.Query(QueryService("foobar"))
 	if err != ErrRouteNotFound {
 		t.Errorf("error looking up routes. Expected: %s, found: %s", ErrRouteNotFound, err)
 	}
