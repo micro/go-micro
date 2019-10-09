@@ -18,6 +18,8 @@ type Options struct {
 	Network string
 	// Registry is the local registry
 	Registry registry.Registry
+	// Advertise is the advertising strategy
+	Advertise Strategy
 	// Client for calling router
 	Client client.Client
 }
@@ -61,6 +63,13 @@ func Network(n string) Option {
 func Registry(r registry.Registry) Option {
 	return func(o *Options) {
 		o.Registry = r
+	}
+}
+
+// Strategy sets route advertising strategy
+func Advertise(a Strategy) Option {
+	return func(o *Options) {
+		o.Advertise = a
 	}
 }
 

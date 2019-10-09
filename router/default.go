@@ -319,23 +319,13 @@ func (r *router) advertiseTable() error {
 	for {
 		select {
 		case <-ticker.C:
-			// list routing table routes to announce
-			routes, err := r.table.List()
+			// do full table flush
+			events, err := r.flushRouteEvents(Update)
 			if err != nil {
-				return fmt.Errorf("failed listing routes: %s", err)
-			}
-			// collect all the added routes before we attempt to add default gateway
-			events := make([]*Event, len(routes))
-			for i, route := range routes {
-				event := &Event{
-					Type:      Update,
-					Timestamp: time.Now(),
-					Route:     route,
-				}
-				events[i] = event
+				return fmt.Errorf("failed flushing routes: %s", err)
 			}
 
-			// advertise all routes as Update events to subscribers
+			// advertise routes to subscribers
 			if len(events) > 0 {
 				log.Debugf("Router flushing table with %d events: %s", len(events), r.options.Id)
 				r.advertWg.Add(1)
@@ -691,6 +681,9 @@ func (r *router) flushRouteEvents(evType EventType) ([]*Event, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed listing routes: %s", err)
 	}
+
+	// TODO: flush the routes based on strategy here
+	// - collapse the routes per service-metric-locality (prefer your routes)
 
 	// build a list of events to advertise
 	events := make([]*Event, len(routes))
