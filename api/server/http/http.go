@@ -10,8 +10,6 @@ import (
 
 	"github.com/gorilla/handlers"
 	"github.com/micro/go-micro/api/server"
-	"github.com/micro/go-micro/api/server/acme"
-	"github.com/micro/go-micro/api/server/acme/autocert"
 	"github.com/micro/go-micro/util/log"
 )
 
@@ -54,14 +52,9 @@ func (s *httpServer) Start() error {
 	var l net.Listener
 	var err error
 
-	if s.opts.ACMELibrary != "none" && len(s.opts.ACMELibrary) > 0 {
-		switch s.opts.ACMELibrary {
-		case acme.LibAutoCert:
-			// should we check the address to make sure its using :443?
-			l, err = autocert.New().NewListener(s.opts.ACMEHosts...)
-		default:
-			err = acme.ErrLibraryNotImplemented
-		}
+	if s.opts.EnableACME {
+		// should we check the address to make sure its using :443?
+		l, err = s.opts.ACMELibrary.NewListener(s.opts.ACMEHosts...)
 	} else if s.opts.EnableTLS && s.opts.TLSConfig != nil {
 		l, err = tls.Listen("tcp", s.address, s.opts.TLSConfig)
 	} else {

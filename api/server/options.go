@@ -2,15 +2,24 @@ package server
 
 import (
 	"crypto/tls"
+
+	"github.com/micro/go-micro/api/server/acme"
 )
 
 type Option func(o *Options)
 
 type Options struct {
-	ACMELibrary string
+	EnableACME  bool
+	ACMELibrary acme.Library
 	EnableTLS   bool
 	ACMEHosts   []string
 	TLSConfig   *tls.Config
+}
+
+func EnableACME(b bool) Option {
+	return func(o *Options) {
+		o.EnableACME = b
+	}
 }
 
 func ACMEHosts(hosts ...string) Option {
@@ -19,7 +28,7 @@ func ACMEHosts(hosts ...string) Option {
 	}
 }
 
-func ACMELibrary(lib string) Option {
+func ACMELibrary(lib acme.Library) Option {
 	return func(o *Options) {
 		o.ACMELibrary = lib
 	}
