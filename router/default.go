@@ -682,18 +682,59 @@ func (r *router) flushRouteEvents(evType EventType) ([]*Event, error) {
 		return nil, fmt.Errorf("failed listing routes: %s", err)
 	}
 
-	// TODO: flush the routes based on strategy here
-	// - collapse the routes per service-metric-locality (prefer your routes)
+	r.RLock()
+	advertStrategy := r.options.Advertise
+	r.RUnlock()
+
+	if advertStrategy == All {
+		// build a list of events to advertise
+		events := make([]*Event, len(routes))
+		for i, route := range routes {
+			event := &Event{
+				Type:      evType,
+				Timestamp: time.Now(),
+				Route:     route,
+			}
+			events[i] = event
+		}
+		return events, nil
+	}
+
+	// routeMap stores optimal routes per service
+	optimalRoutes := make(map[string]Route)
+
+	// go through all routes found in the routing table and collapse them to optimal routes
+	for _, route := range routes {
+		optimal, ok := optimalRoutes[route.Service]
+		if !ok {
+			optimalRoutes[route.Service] = route
+			continue
+		}
+		// if the current optimal route metric is higher than routing table route, replace it
+		if optimal.Metric > route.Metric {
+			optimalRoutes[route.Service] = route
+			continue
+		}
+		// if the metrics are the same, prefer advertising your own route
+		if optimal.Metric == route.Metric {
+			if route.Router == r.options.Id {
+				optimalRoutes[route.Service] = route
+				continue
+			}
+		}
+	}
 
 	// build a list of events to advertise
-	events := make([]*Event, len(routes))
-	for i, route := range routes {
+	events := make([]*Event, len(optimalRoutes))
+	i := 0
+	for _, route := range optimalRoutes {
 		event := &Event{
 			Type:      evType,
 			Timestamp: time.Now(),
 			Route:     route,
 		}
 		events[i] = event
+		i++
 	}
 
 	return events, nil

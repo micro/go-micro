@@ -149,6 +149,18 @@ const (
 	Optimal
 )
 
+// String returns human readable Strategy
+func (s Strategy) String() string {
+	switch s {
+	case All:
+		return "all"
+	case Optimal:
+		return "optimal"
+	default:
+		return "unknown"
+	}
+}
+
 // NewRouter creates new Router and returns it
 func NewRouter(opts ...Option) Router {
 	return newRouter(opts...)

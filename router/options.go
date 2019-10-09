@@ -76,9 +76,10 @@ func Advertise(a Strategy) Option {
 // DefaultOptions returns router default options
 func DefaultOptions() Options {
 	return Options{
-		Id:       uuid.New().String(),
-		Address:  DefaultAddress,
-		Network:  DefaultNetwork,
-		Registry: registry.DefaultRegistry,
+		Id:        uuid.New().String(),
+		Address:   DefaultAddress,
+		Network:   DefaultNetwork,
+		Registry:  registry.DefaultRegistry,
+		Advertise: Optimal,
 	}
 }
