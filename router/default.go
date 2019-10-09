@@ -319,23 +319,13 @@ func (r *router) advertiseTable() error {
 	for {
 		select {
 		case <-ticker.C:
-			// list routing table routes to announce
-			routes, err := r.table.List()
+			// do full table flush
+			events, err := r.flushRouteEvents(Update)
 			if err != nil {
-				return fmt.Errorf("failed listing routes: %s", err)
-			}
-			// collect all the added routes before we attempt to add default gateway
-			events := make([]*Event, len(routes))
-			for i, route := range routes {
-				event := &Event{
-					Type:      Update,
-					Timestamp: time.Now(),
-					Route:     route,
-				}
-				events[i] = event
+				return fmt.Errorf("failed flushing routes: %s", err)
 			}
 
-			// advertise all routes as Update events to subscribers
+			// advertise routes to subscribers
 			if len(events) > 0 {
 				log.Debugf("Router flushing table with %d events: %s", len(events), r.options.Id)
 				r.advertWg.Add(1)
@@ -692,15 +682,58 @@ func (r *router) flushRouteEvents(evType EventType) ([]*Event, error) {
 		return nil, fmt.Errorf("failed listing routes: %s", err)
 	}
 
+	if r.options.Advertise == AdvertiseAll {
+		// build a list of events to advertise
+		events := make([]*Event, len(routes))
+		for i, route := range routes {
+			event := &Event{
+				Type:      evType,
+				Timestamp: time.Now(),
+				Route:     route,
+			}
+			events[i] = event
+		}
+		return events, nil
+	}
+
+	// routeMap stores optimal routes per service
+	bestRoutes := make(map[string]Route)
+
+	// go through all routes found in the routing table and collapse them to optimal routes
+	for _, route := range routes {
+		routeKey := route.Service + "@" + route.Network
+		optimal, ok := bestRoutes[routeKey]
+		if !ok {
+			bestRoutes[routeKey] = route
+			continue
+		}
+		// if the current optimal route metric is higher than routing table route, replace it
+		if optimal.Metric > route.Metric {
+			bestRoutes[routeKey] = route
+			continue
+		}
+		// if the metrics are the same, prefer advertising your own route
+		if optimal.Metric == route.Metric {
+			if route.Router == r.options.Id {
+				bestRoutes[routeKey] = route
+				continue
+			}
+		}
+	}
+
+	log.Debugf("Router advertising %d best routes out of %d", len(bestRoutes), len(routes))
+
 	// build a list of events to advertise
-	events := make([]*Event, len(routes))
-	for i, route := range routes {
+	events := make([]*Event, len(bestRoutes))
+	i := 0
+	for _, route := range bestRoutes {
 		event := &Event{
 			Type:      evType,
 			Timestamp: time.Now(),
 			Route:     route,
 		}
 		events[i] = event
+		i++
 	}
 
 	return events, nil

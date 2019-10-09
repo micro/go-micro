@@ -139,6 +139,28 @@ type Advert struct {
 	Events []*Event
 }
 
+// Strategy is route advertisement strategy
+type Strategy int
+
+const (
+	// AdvertiseAll advertises all routes to the network
+	AdvertiseAll Strategy = iota
+	// AdvertiseBest advertises optimal routes to the network
+	AdvertiseBest
+)
+
+// String returns human readable Strategy
+func (s Strategy) String() string {
+	switch s {
+	case AdvertiseAll:
+		return "all"
+	case AdvertiseBest:
+		return "best"
+	default:
+		return "unknown"
+	}
+}
+
 // NewRouter creates new Router and returns it
 func NewRouter(opts ...Option) Router {
 	return newRouter(opts...)
