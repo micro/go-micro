@@ -23,6 +23,8 @@ type codecsKey struct{}
 type tlsAuth struct{}
 type maxRecvMsgSizeKey struct{}
 type maxSendMsgSizeKey struct{}
+type grpcDialOptions struct{}
+type grpcCallOptions struct{}
 
 // gRPC Codec to be used to encode/decode requests for a given content type
 func Codec(contentType string, c encoding.Codec) client.Option {
@@ -70,5 +72,29 @@ func MaxSendMsgSize(s int) client.Option {
 			o.Context = context.Background()
 		}
 		o.Context = context.WithValue(o.Context, maxSendMsgSizeKey{}, s)
+	}
+}
+
+//
+// DialOptions to be used to configure gRPC dial options
+//
+func DialOptions(opts ...grpc.DialOption) client.Option {
+	return func(o *client.Options) {
+		if o.Context == nil {
+			o.Context = context.Background()
+		}
+		o.Context = context.WithValue(o.Context, grpcDialOptions{}, opts)
+	}
+}
+
+//
+// CallOptions to be used to configure gRPC call options
+//
+func CallOptions(opts ...grpc.CallOption) client.Option {
+	return func(o *client.Options) {
+		if o.CallOptions.Context == nil {
+			o.CallOptions.Context = context.Background()
+		}
+		o.CallOptions.Context = context.WithValue(o.CallOptions.Context, grpcCallOptions{}, opts)
 	}
 }
