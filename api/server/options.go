@@ -9,11 +9,11 @@ import (
 type Option func(o *Options)
 
 type Options struct {
-	EnableACME  bool
-	ACMELibrary acme.Provider
-	EnableTLS   bool
-	ACMEHosts   []string
-	TLSConfig   *tls.Config
+	EnableACME   bool
+	ACMEProvider acme.Provider
+	EnableTLS    bool
+	ACMEHosts    []string
+	TLSConfig    *tls.Config
 }
 
 func EnableACME(b bool) Option {
@@ -30,7 +30,7 @@ func ACMEHosts(hosts ...string) Option {
 
 func ACMEProvider(p acme.Provider) Option {
 	return func(o *Options) {
-		o.ACMELibrary = p
+		o.ACMEProvider = p
 	}
 }
 
