@@ -682,11 +682,7 @@ func (r *router) flushRouteEvents(evType EventType) ([]*Event, error) {
 		return nil, fmt.Errorf("failed listing routes: %s", err)
 	}
 
-	r.RLock()
-	advertStrategy := r.options.Advertise
-	r.RUnlock()
-
-	if advertStrategy == All {
+	if r.options.Advertise == All {
 		// build a list of events to advertise
 		events := make([]*Event, len(routes))
 		for i, route := range routes {
