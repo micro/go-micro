@@ -443,8 +443,8 @@ func (n *network) announce(client transport.Client) {
 }
 
 // pruneRoutes prunes routes return by given query
-func (n *network) pruneRoutes(q router.Query) error {
-	routes, err := n.router.Table().Query(q)
+func (n *network) pruneRoutes(q ...router.QueryOption) error {
+	routes, err := n.router.Table().Query(q...)
 	if err != nil && err != router.ErrRouteNotFound {
 		return err
 	}
@@ -461,18 +461,18 @@ func (n *network) pruneRoutes(q router.Query) error {
 // pruneNodeRoutes prunes routes that were either originated by or routable via given node
 func (n *network) prunePeerRoutes(peer *node) error {
 	// lookup all routes originated by router
-	q := router.NewQuery(
+	q := []router.QueryOption{
 		router.QueryRouter(peer.id),
-	)
-	if err := n.pruneRoutes(q); err != nil {
+	}
+	if err := n.pruneRoutes(q...); err != nil {
 		return err
 	}
 
 	// lookup all routes routable via gw
-	q = router.NewQuery(
+	q = []router.QueryOption{
 		router.QueryGateway(peer.id),
-	)
-	if err := n.pruneRoutes(q); err != nil {
+	}
+	if err := n.pruneRoutes(q...); err != nil {
 		return err
 	}
 

@@ -16,6 +16,15 @@ service Network {
 	rpc Services(ServicesRequest) returns (ServicesResponse) {};
 }
 
+// Query is passed in a LookupRequest
+message Query {
+	string service = 1;
+	string address = 2;
+	string gateway = 3;
+	string router = 4;
+	string network = 5;
+}
+
 // PeerRequest requests list of peers
 message NodesRequest {
         // node topology depth
@@ -38,6 +47,8 @@ message GraphResponse {
 }
 
 message RoutesRequest {	
+	// filter based on
+	Query query = 1;
 }
 
 message RoutesResponse {

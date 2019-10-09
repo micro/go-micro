@@ -17,11 +17,7 @@ type Router struct {
 
 // Lookup looks up routes in the routing table and returns them
 func (r *Router) Lookup(ctx context.Context, req *pb.LookupRequest, resp *pb.LookupResponse) error {
-	query := router.NewQuery(
-		router.QueryService(req.Query.Service),
-	)
-
-	routes, err := r.Router.Lookup(query)
+	routes, err := r.Router.Lookup(router.QueryService(req.Query.Service))
 	if err != nil {
 		return errors.InternalServerError("go.micro.router", "failed to lookup routes: %v", err)
 	}
