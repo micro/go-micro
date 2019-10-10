@@ -470,7 +470,7 @@ func (n *network) prunePeerRoutes(peer *node) error {
 
 	// lookup all routes routable via gw
 	q = []router.QueryOption{
-		router.QueryGateway(peer.id),
+		router.QueryGateway(peer.address),
 	}
 	if err := n.pruneRoutes(q...); err != nil {
 		return err
