@@ -8,6 +8,7 @@ import (
 	"errors"
 	"net"
 	"path"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -20,7 +21,7 @@ import (
 )
 
 var (
-	prefix = "/micro/registry"
+	prefix = "/micro/registry/"
 )
 
 type etcdRegistry struct {
@@ -148,7 +149,7 @@ func (e *etcdRegistry) registerNode(s *registry.Service, node *registry.Node, op
 		defer cancel()
 
 		// look for the existing key
-		rsp, err := e.client.Get(ctx, nodePath(s.Name, node.Id))
+		rsp, err := e.client.Get(ctx, nodePath(s.Name, node.Id), clientv3.WithSerializable())
 		if err != nil {
 			return err
 		}
@@ -310,7 +311,7 @@ func (e *etcdRegistry) GetService(name string) ([]*registry.Service, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), e.options.Timeout)
 	defer cancel()
 
-	rsp, err := e.client.Get(ctx, servicePath(name)+"/", clientv3.WithPrefix(), clientv3.WithSort(clientv3.SortByKey, clientv3.SortDescend))
+	rsp, err := e.client.Get(ctx, servicePath(name)+"/", clientv3.WithPrefix(), clientv3.WithSerializable())
 	if err != nil {
 		return nil, err
 	}
@@ -344,6 +345,7 @@ func (e *etcdRegistry) GetService(name string) ([]*registry.Service, error) {
 	for _, service := range serviceMap {
 		services = append(services, service)
 	}
+
 	return services, nil
 }
 
@@ -354,7 +356,7 @@ func (e *etcdRegistry) ListServices() ([]*registry.Service, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), e.options.Timeout)
 	defer cancel()
 
-	rsp, err := e.client.Get(ctx, prefix, clientv3.WithPrefix(), clientv3.WithSort(clientv3.SortByKey, clientv3.SortDescend))
+	rsp, err := e.client.Get(ctx, prefix, clientv3.WithPrefix(), clientv3.WithSerializable())
 	if err != nil {
 		return nil, err
 	}
@@ -380,6 +382,9 @@ func (e *etcdRegistry) ListServices() ([]*registry.Service, error) {
 	for _, service := range versions {
 		services = append(services, service)
 	}
+
+	// sort the services
+	sort.Slice(services, func(i, j int) bool { return services[i].Name < services[j].Name })
 
 	return services, nil
 }
