@@ -109,7 +109,7 @@ func (g *grpcClient) call(ctx context.Context, node *registry.Node, req client.R
 	maxSendMsgSize := g.maxSendMsgSizeValue()
 
 	var grr error
-	
+
 	grpcDialOptions := []grpc.DialOption{
 		grpc.WithDefaultCallOptions(grpc.ForceCodec(cf)),
 		grpc.WithTimeout(opts.DialTimeout),
@@ -119,7 +119,7 @@ func (g *grpcClient) call(ctx context.Context, node *registry.Node, req client.R
 			grpc.MaxCallSendMsgSize(maxSendMsgSize),
 		),
 	}
-	
+
 	if opts := g.getGrpcDialOptions(); opts != nil {
 		grpcDialOptions = append(grpcDialOptions, opts...)
 	}
@@ -187,12 +187,12 @@ func (g *grpcClient) stream(ctx context.Context, node *registry.Node, req client
 	defer cancel()
 
 	wc := wrapCodec{cf}
-	
+
 	grpcDialOptions := []grpc.DialOption{
-		grpc.WithDefaultCallOptions(grpc.ForceCodec(wc)), 
+		grpc.WithDefaultCallOptions(grpc.ForceCodec(wc)),
 		g.secure(),
 	}
-	
+
 	if opts := g.getGrpcDialOptions(); opts != nil {
 		grpcDialOptions = append(grpcDialOptions, opts...)
 	}
@@ -541,11 +541,11 @@ func (g *grpcClient) String() string {
 }
 
 func (g *grpcClient) getGrpcDialOptions() []grpc.DialOption {
-	if g.opts.Context == nil {
+	if g.opts.CallOptions.Context == nil {
 		return nil
 	}
 
-	v := g.opts.Context.Value(grpcDialOptions{})
+	v := g.opts.CallOptions.Context.Value(grpcDialOptions{})
 
 	if v == nil {
 		return nil

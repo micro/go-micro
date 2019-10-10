@@ -79,8 +79,8 @@ func MaxSendMsgSize(s int) client.Option {
 //
 // DialOptions to be used to configure gRPC dial options
 //
-func DialOptions(opts ...grpc.DialOption) client.Option {
-	return func(o *client.Options) {
+func DialOptions(opts ...grpc.DialOption) client.CallOption {
+	return func(o *client.CallOptions) {
 		if o.Context == nil {
 			o.Context = context.Background()
 		}
@@ -91,11 +91,11 @@ func DialOptions(opts ...grpc.DialOption) client.Option {
 //
 // CallOptions to be used to configure gRPC call options
 //
-func CallOptions(opts ...grpc.CallOption) client.Option {
-	return func(o *client.Options) {
-		if o.CallOptions.Context == nil {
-			o.CallOptions.Context = context.Background()
+func CallOptions(opts ...grpc.CallOption) client.CallOption {
+	return func(o *client.CallOptions) {
+		if o.Context == nil {
+			o.Context = context.Background()
 		}
-		o.CallOptions.Context = context.WithValue(o.CallOptions.Context, grpcCallOptions{}, opts)
+		o.Context = context.WithValue(o.Context, grpcCallOptions{}, opts)
 	}
 }
