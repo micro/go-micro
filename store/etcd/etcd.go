@@ -5,6 +5,7 @@ import (
 	"context"
 	"log"
 
+	"github.com/coreos/etcd/mvcc/mvccpb"
 	client "github.com/coreos/etcd/clientv3"
 	"github.com/micro/go-micro/config/options"
 	"github.com/micro/go-micro/store"
@@ -15,30 +16,56 @@ type ekv struct {
 	kv client.KV
 }
 
-func (e *ekv) Read(key string) (*store.Record, error) {
-	keyval, err := e.kv.Get(context.Background(), key)
-	if err != nil {
-		return nil, err
+func (e *ekv) Read(keys ...string) ([]*store.Record, error) {
+	var values []*mvccpb.KeyValue
+
+	for _, key := range keys {
+		keyval, err := e.kv.Get(context.Background(), key)
+		if err != nil {
+			return nil, err
+		}
+
+		if keyval == nil || len(keyval.Kvs) == 0 {
+			return nil, store.ErrNotFound
+		}
+
+		values = append(values, keyval.Kvs...)
 	}
 
-	if keyval == nil || len(keyval.Kvs) == 0 {
-		return nil, store.ErrNotFound
+	var records []*store.Record
+
+	for _, kv := range values {
+		records = append(records, &store.Record{
+			Key:   string(kv.Key),
+			Value: kv.Value,
+			// TODO: implement expiry
+		})
 	}
 
-	return &store.Record{
-		Key:   string(keyval.Kvs[0].Key),
-		Value: keyval.Kvs[0].Value,
-	}, nil
+	return records, nil
 }
 
-func (e *ekv) Delete(key string) error {
-	_, err := e.kv.Delete(context.Background(), key)
-	return err
+func (e *ekv) Delete(keys ...string) error {
+	var gerr error
+	for _, key := range keys {
+		_, err := e.kv.Delete(context.Background(), key)
+		if err != nil {
+			gerr = err
+		}
+	}
+	return gerr
 }
 
-func (e *ekv) Write(record *store.Record) error {
-	_, err := e.kv.Put(context.Background(), record.Key, string(record.Value))
-	return err
+func (e *ekv) Write(records ...*store.Record) error {
+	var gerr error
+	for _, record := range records {
+		// TODO create lease to expire keys
+		_, err := e.kv.Put(context.Background(), record.Key, string(record.Value))
+		if err != nil {
+			gerr = err
+		}
+	}
+	return gerr
 }
 
 func (e *ekv) Sync() ([]*store.Record, error) {

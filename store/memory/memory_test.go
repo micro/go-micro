@@ -25,7 +25,7 @@ func TestReadRecordExpire(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if rrec.Expiry >= expire {
+	if rrec[0].Expiry >= expire {
 		t.Fatal("expiry of read record is not changed")
 	}
 
