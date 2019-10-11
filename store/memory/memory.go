@@ -48,51 +48,61 @@ func (m *memoryStore) Sync() ([]*store.Record, error) {
 	return values, nil
 }
 
-func (m *memoryStore) Read(key string) (*store.Record, error) {
+func (m *memoryStore) Read(keys ...string) ([]*store.Record, error) {
 	m.RLock()
 	defer m.RUnlock()
 
-	v, ok := m.values[key]
-	if !ok {
-		return nil, store.ErrNotFound
-	}
+	var records []*store.Record
 
-	// get expiry
-	d := v.r.Expiry
-	t := time.Since(v.c)
-
-	// expired
-	if d > time.Duration(0) {
-		if t > d {
+	for _, key := range keys {
+		v, ok := m.values[key]
+		if !ok {
 			return nil, store.ErrNotFound
 		}
-		// update expiry
-		v.r.Expiry -= t
-		v.c = time.Now()
+
+		// get expiry
+		d := v.r.Expiry
+		t := time.Since(v.c)
+
+		// expired
+		if d > time.Duration(0) {
+			if t > d {
+				return nil, store.ErrNotFound
+			}
+			// update expiry
+			v.r.Expiry -= t
+			v.c = time.Now()
+		}
+
+		records = append(records, v.r)
 	}
 
-	return v.r, nil
+	return records, nil
 }
 
-func (m *memoryStore) Write(r *store.Record) error {
+func (m *memoryStore) Write(records ...*store.Record) error {
 	m.Lock()
 	defer m.Unlock()
 
-	// set the record
-	m.values[r.Key] = &memoryRecord{
-		r: r,
-		c: time.Now(),
+	for _, r := range records {
+		// set the record
+		m.values[r.Key] = &memoryRecord{
+			r: r,
+			c: time.Now(),
+		}
 	}
 
 	return nil
 }
 
-func (m *memoryStore) Delete(key string) error {
+func (m *memoryStore) Delete(keys ...string) error {
 	m.Lock()
 	defer m.Unlock()
 
-	// delete the value
-	delete(m.values, key)
+	for _, key := range keys {
+		// delete the value
+		delete(m.values, key)
+	}
 
 	return nil
 }

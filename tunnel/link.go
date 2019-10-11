@@ -98,7 +98,6 @@ func (l *link) Close() error {
 		return nil
 	default:
 		close(l.closed)
-		return nil
 	}
 
 	return nil

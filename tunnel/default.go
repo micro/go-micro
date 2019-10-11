@@ -919,14 +919,12 @@ func (t *tun) Close() error {
 	default:
 		close(t.closed)
 		t.connected = false
-
-		// send a close message
-		// we don't close the link
-		// just the tunnel
-		return t.close()
 	}
 
-	return nil
+	// send a close message
+	// we don't close the link
+	// just the tunnel
+	return t.close()
 }
 
 // Dial an address

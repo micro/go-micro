@@ -18,6 +18,8 @@ type Options struct {
 	Network string
 	// Registry is the local registry
 	Registry registry.Registry
+	// Advertise is the advertising strategy
+	Advertise Strategy
 	// Client for calling router
 	Client client.Client
 }
@@ -64,12 +66,20 @@ func Registry(r registry.Registry) Option {
 	}
 }
 
+// Strategy sets route advertising strategy
+func Advertise(a Strategy) Option {
+	return func(o *Options) {
+		o.Advertise = a
+	}
+}
+
 // DefaultOptions returns router default options
 func DefaultOptions() Options {
 	return Options{
-		Id:       uuid.New().String(),
-		Address:  DefaultAddress,
-		Network:  DefaultNetwork,
-		Registry: registry.DefaultRegistry,
+		Id:        uuid.New().String(),
+		Address:   DefaultAddress,
+		Network:   DefaultNetwork,
+		Registry:  registry.DefaultRegistry,
+		Advertise: AdvertiseBest,
 	}
 }

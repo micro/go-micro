@@ -470,7 +470,7 @@ func (n *network) prunePeerRoutes(peer *node) error {
 
 	// lookup all routes routable via gw
 	q = []router.QueryOption{
-		router.QueryGateway(peer.id),
+		router.QueryGateway(peer.address),
 	}
 	if err := n.pruneRoutes(q...); err != nil {
 		return err
@@ -495,6 +495,25 @@ func (n *network) prune() {
 				log.Debugf("Network peer exceeded prune time: %s", id)
 				if err := n.prunePeerRoutes(peer); err != nil {
 					log.Debugf("Network failed pruning peer %s routes: %v", id, err)
+				}
+			}
+			// get a list of all routes
+			routes, err := n.options.Router.Table().List()
+			if err != nil {
+				log.Debugf("Network failed listing routes: %v", err)
+				continue
+			}
+			// collect all the router IDs in the routing table
+			routers := make(map[string]bool)
+			for _, route := range routes {
+				if _, ok := routers[route.Router]; !ok {
+					routers[route.Router] = true
+					// if the router is NOT in our peer graph, delete all routes originated by it
+					if peerNode := n.node.GetPeerNode(route.Router); peerNode == nil {
+						if err := n.pruneRoutes(router.QueryRouter(route.Router)); err != nil {
+							log.Debugf("Network failed deleting routes by %s: %v", route.Router, err)
+						}
+					}
 				}
 			}
 		}
