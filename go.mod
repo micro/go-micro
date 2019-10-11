@@ -37,7 +37,7 @@ require (
 	github.com/joncalhoun/qson v0.0.0-20170526102502-8a9cab3a62b1
 	github.com/json-iterator/go v1.1.7
 	github.com/leodido/go-urn v1.1.0 // indirect
-	github.com/lucas-clemente/quic-go v0.12.0
+	github.com/lucas-clemente/quic-go v0.12.1
 	github.com/mholt/certmagic v0.7.3
 	github.com/micro/cli v0.2.0
 	github.com/micro/mdns v0.3.0
