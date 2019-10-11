@@ -237,8 +237,6 @@ func (s *session) Send(m *transport.Message) error {
 	case <-s.closed:
 		return io.EOF
 	}
-
-	return nil
 }
 
 // Recv is used to receive a message
