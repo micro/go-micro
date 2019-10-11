@@ -144,7 +144,7 @@ func (c *cache) get(service string) ([]*registry.Service, error) {
 		}
 
 		// reset the status
-		if c.getStatus(); err != nil {
+		if err := c.getStatus(); err != nil {
 			c.setStatus(nil)
 		}
 
