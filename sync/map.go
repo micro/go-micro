@@ -39,8 +39,12 @@ func (m *syncMap) Read(key, val interface{}) error {
 		return err
 	}
 
+	if len(kval) == 0 {
+		return store.ErrNotFound
+	}
+
 	// decode value
-	return json.Unmarshal(kval.Value, val)
+	return json.Unmarshal(kval[0].Value, val)
 }
 
 func (m *syncMap) Write(key, val interface{}) error {
