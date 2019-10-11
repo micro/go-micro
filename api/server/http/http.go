@@ -52,7 +52,7 @@ func (s *httpServer) Start() error {
 	var l net.Listener
 	var err error
 
-	if s.opts.EnableACME {
+	if s.opts.EnableACME && s.opts.ACMEProvider != nil {
 		// should we check the address to make sure its using :443?
 		l, err = s.opts.ACMEProvider.NewListener(s.opts.ACMEHosts...)
 	} else if s.opts.EnableTLS && s.opts.TLSConfig != nil {
