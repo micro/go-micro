@@ -1,4 +1,5 @@
-// Package autocert is the ACME interpreter from golang.org/x/crypto/acme/autocert
+// Package autocert is the ACME provider from golang.org/x/crypto/acme/autocert
+// This provider does not take any config.
 package autocert
 
 import (
