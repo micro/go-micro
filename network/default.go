@@ -171,12 +171,18 @@ func (n *network) resolveNodes() ([]string, error) {
 
 	// collect network node addresses
 	var nodes []string
+	var i int
 
-	i := 0
 	for _, record := range records {
-		nodes = append(nodes, record.Address)
+		if _, ok := nodeMap[record.Address]; ok {
+			continue
+		}
+
 		nodeMap[record.Address] = true
+		nodes = append(nodes, record.Address)
+
 		i++
+
 		// break once MaxConnection nodes has been reached
 		if i == MaxConnections {
 			break
