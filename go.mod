@@ -45,7 +45,7 @@ require (
 	github.com/kisielk/errcheck v1.2.0 // indirect
 	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
 	github.com/leodido/go-urn v1.1.0 // indirect
-	github.com/lucas-clemente/quic-go v0.12.0
+	github.com/lucas-clemente/quic-go v0.12.1
 	github.com/mattn/go-colorable v0.1.2 // indirect
 	github.com/mattn/go-runewidth v0.0.4 // indirect
 	github.com/micro/cli v0.2.0
