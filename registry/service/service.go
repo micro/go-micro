@@ -7,7 +7,7 @@ import (
 
 	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/registry"
-	pb "github.com/micro/go-micro/registry/proto"
+	pb "github.com/micro/go-micro/registry/service/proto"
 )
 
 var (
