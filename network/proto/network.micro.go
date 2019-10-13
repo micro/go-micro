@@ -35,6 +35,8 @@ var _ server.Option
 // Client API for Network service
 
 type NetworkService interface {
+	// Connect to the network
+	Connect(ctx context.Context, in *ConnectRequest, opts ...client.CallOption) (*ConnectResponse, error)
 	// Returns the entire network graph
 	Graph(ctx context.Context, in *GraphRequest, opts ...client.CallOption) (*GraphResponse, error)
 	// Returns a list of known nodes in the network
@@ -61,6 +63,16 @@ func NewNetworkService(name string, c client.Client) NetworkService {
 		c:    c,
 		name: name,
 	}
+}
+
+func (c *networkService) Connect(ctx context.Context, in *ConnectRequest, opts ...client.CallOption) (*ConnectResponse, error) {
+	req := c.c.NewRequest(c.name, "Network.Connect", in)
+	out := new(ConnectResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *networkService) Graph(ctx context.Context, in *GraphRequest, opts ...client.CallOption) (*GraphResponse, error) {
@@ -106,6 +118,8 @@ func (c *networkService) Services(ctx context.Context, in *ServicesRequest, opts
 // Server API for Network service
 
 type NetworkHandler interface {
+	// Connect to the network
+	Connect(context.Context, *ConnectRequest, *ConnectResponse) error
 	// Returns the entire network graph
 	Graph(context.Context, *GraphRequest, *GraphResponse) error
 	// Returns a list of known nodes in the network
@@ -118,6 +132,7 @@ type NetworkHandler interface {
 
 func RegisterNetworkHandler(s server.Server, hdlr NetworkHandler, opts ...server.HandlerOption) error {
 	type network interface {
+		Connect(ctx context.Context, in *ConnectRequest, out *ConnectResponse) error
 		Graph(ctx context.Context, in *GraphRequest, out *GraphResponse) error
 		Nodes(ctx context.Context, in *NodesRequest, out *NodesResponse) error
 		Routes(ctx context.Context, in *RoutesRequest, out *RoutesResponse) error
@@ -132,6 +147,10 @@ func RegisterNetworkHandler(s server.Server, hdlr NetworkHandler, opts ...server
 
 type networkHandler struct {
 	NetworkHandler
+}
+
+func (h *networkHandler) Connect(ctx context.Context, in *ConnectRequest, out *ConnectResponse) error {
+	return h.NetworkHandler.Connect(ctx, in, out)
 }
 
 func (h *networkHandler) Graph(ctx context.Context, in *GraphRequest, out *GraphResponse) error {

@@ -38,6 +38,8 @@ type Node interface {
 type Network interface {
 	// Node is network node
 	Node
+	// Initialise options
+	Init(...Option) error
 	// Options returns the network options
 	Options() Options
 	// Name of the network
