@@ -175,9 +175,6 @@ func (n *network) Name() string {
 func (n *network) resolveNodes() ([]string, error) {
 	// resolve the network address to network nodes
 	records, err := n.options.Resolver.Resolve(n.options.Name)
-	if err != nil {
-		return nil, err
-	}
 
 	nodeMap := make(map[string]bool)
 
@@ -209,6 +206,7 @@ func (n *network) resolveNodes() ([]string, error) {
 		// resolve anything that looks like a host name
 		records, err := dns.Resolve(node)
 		if err != nil {
+			log.Debugf("Failed to resolve %v %v", node, err)
 			continue
 		}
 
@@ -220,7 +218,7 @@ func (n *network) resolveNodes() ([]string, error) {
 		}
 	}
 
-	return nodes, nil
+	return nodes, err
 }
 
 // resolve continuously resolves network nodes and initializes network tunnel with resolved addresses
@@ -347,7 +345,7 @@ func (n *network) processNetChan(client transport.Client, listener tunnel.Listen
 				if pbNetPeer.Node.Id == n.options.Id {
 					continue
 				}
-				log.Debugf("Network received peer message from: %s", pbNetPeer.Node.Id)
+				log.Debugf("Network received peer message from: %s %s", pbNetPeer.Node.Id, pbNetPeer.Node.Address)
 				peer := &node{
 					id:       pbNetPeer.Node.Id,
 					address:  pbNetPeer.Node.Address,
@@ -771,14 +769,25 @@ func (n *network) advertise(client transport.Client, advertChan <-chan *router.A
 	}
 }
 
+func (n *network) sendConnect() {
+	// send connect message to NetworkChannel
+	// NOTE: in theory we could do this as soon as
+	// Dial to NetworkChannel succeeds, but instead
+	// we initialize all other node resources first
+	msg := &pbNet.Connect{
+		Node: &pbNet.Node{
+			Id:      n.node.id,
+			Address: n.node.address,
+		},
+	}
+	if err := n.sendMsg("connect", msg, NetworkChannel); err != nil {
+		log.Debugf("Network failed to send connect message: %s", err)
+	}
+}
+
 // Connect connects the network
 func (n *network) Connect() error {
 	n.Lock()
-	// return if already connected
-	if n.connected {
-		n.Unlock()
-		return nil
-	}
 
 	// try to resolve network nodes
 	nodes, err := n.resolveNodes()
@@ -795,6 +804,15 @@ func (n *network) Connect() error {
 	if err := n.tunnel.Connect(); err != nil {
 		n.Unlock()
 		return err
+	}
+
+	// return if already connected
+	if n.connected {
+		// unlock first
+		n.Unlock()
+		// send the connect message
+		n.sendConnect()
+		return nil
 	}
 
 	// set our internal node address
@@ -858,19 +876,8 @@ func (n *network) Connect() error {
 	}
 	n.Unlock()
 
-	// send connect message to NetworkChannel
-	// NOTE: in theory we could do this as soon as
-	// Dial to NetworkChannel succeeds, but instead
-	// we initialize all other node resources first
-	msg := &pbNet.Connect{
-		Node: &pbNet.Node{
-			Id:      n.node.id,
-			Address: n.node.address,
-		},
-	}
-	if err := n.sendMsg("connect", msg, NetworkChannel); err != nil {
-		log.Debugf("Network failed to send connect message: %s", err)
-	}
+	// send the connect message
+	n.sendConnect()
 
 	// go resolving network nodes
 	go n.resolve()

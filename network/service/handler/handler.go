@@ -9,6 +9,7 @@ import (
 	pbNet "github.com/micro/go-micro/network/proto"
 	"github.com/micro/go-micro/router"
 	pbRtr "github.com/micro/go-micro/router/proto"
+	"github.com/micro/go-micro/util/log"
 )
 
 // Network implements network handler
@@ -78,10 +79,15 @@ func (n *Network) Connect(ctx context.Context, req *pbNet.ConnectRequest, resp *
 		nodes = append(nodes, node.Address)
 	}
 
+	log.Infof("Network.Connect setting peers: %v", nodes)
+
 	// reinitialise the peers
 	n.Network.Init(
 		network.Peers(nodes...),
 	)
+
+	// call the connect method
+	n.Network.Connect()
 
 	return nil
 }

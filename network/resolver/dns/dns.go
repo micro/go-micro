@@ -18,6 +18,10 @@ func (r *Resolver) Resolve(name string) ([]*resolver.Record, error) {
 		port = "8085"
 	}
 
+	if len(host) == 0 {
+		host = "localhost"
+	}
+
 	addrs, err := net.LookupHost(host)
 	if err != nil {
 		return nil, err
