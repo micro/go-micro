@@ -144,6 +144,18 @@ func newNetwork(opts ...Option) Network {
 	return network
 }
 
+func (n *network) Init(opts ...Option) error {
+	n.Lock()
+	defer n.Unlock()
+
+	// TODO: maybe only allow reinit of certain opts
+	for _, o := range opts {
+		o(&n.options)
+	}
+
+	return nil
+}
+
 // Options returns network options
 func (n *network) Options() Options {
 	n.RLock()
