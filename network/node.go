@@ -322,6 +322,11 @@ func peerProtoTopology(peer Node, depth uint) *pb.Peer {
 		Address: peer.Address(),
 	}
 
+	// set the network name if network is not nil
+	if peer.Network() != nil {
+		node.Network = peer.Network().Name()
+	}
+
 	pbPeers := &pb.Peer{
 		Node:  node,
 		Peers: make([]*pb.Peer, 0),
@@ -351,6 +356,12 @@ func PeersToProto(node Node, depth uint) *pb.Peer {
 		Id:      node.Id(),
 		Address: node.Address(),
 	}
+
+	// set the network name if network is not nil
+	if node.Network() != nil {
+		pbNode.Network = node.Network().Name()
+	}
+
 	// we will build proto topology into this
 	pbPeers := &pb.Peer{
 		Node:  pbNode,
