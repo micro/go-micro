@@ -23,7 +23,7 @@ type httpLock struct {
 	opts lock.Options
 }
 
-func (h *httpLock) url(id string) (string, error) {
+func (h *httpLock) url(do, id string) (string, error) {
 	sum := crc32.ChecksumIEEE([]byte(id))
 	node := h.opts.Nodes[sum%uint32(len(h.opts.Nodes))]
 
@@ -39,7 +39,7 @@ func (h *httpLock) url(id string) (string, error) {
 
 	// set path
 	// build path
-	path := filepath.Join(DefaultPath, h.opts.Prefix, id)
+	path := filepath.Join(DefaultPath, do, h.opts.Prefix, id)
 	uri.Path = path
 
 	// return url
@@ -52,7 +52,7 @@ func (h *httpLock) Acquire(id string, opts ...lock.AcquireOption) error {
 		o(&options)
 	}
 
-	uri, err := h.url(id)
+	uri, err := h.url("acquire", id)
 	if err != nil {
 		return err
 	}
@@ -85,7 +85,7 @@ func (h *httpLock) Acquire(id string, opts ...lock.AcquireOption) error {
 }
 
 func (h *httpLock) Release(id string) error {
-	uri, err := h.url(id)
+	uri, err := h.url("release", id)
 	if err != nil {
 		return err
 	}
