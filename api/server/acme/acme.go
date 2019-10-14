@@ -45,8 +45,8 @@ type Options struct {
 	Cache interface{}
 }
 
-// AcceptTLS indicates whether you accept your CA's terms of service
-func AcceptTLS(b bool) Option {
+// AcceptToS indicates whether you accept your CA's terms of service
+func AcceptToS(b bool) Option {
 	return func(o *Options) {
 		o.AcceptToS = b
 	}
@@ -78,7 +78,7 @@ func OnDemand(b bool) Option {
 // Default uses the Let's Encrypt Production CA, with DNS Challenge disabled.
 func Default() []Option {
 	return []Option{
-		AcceptTLS(true),
+		AcceptToS(true),
 		CA(LetsEncryptProductionCA),
 		OnDemand(true),
 	}
