@@ -7,6 +7,8 @@ type QueryOption func(*QueryOptions)
 type QueryOptions struct {
 	// Service is destination service name
 	Service string
+	// Address of the service
+	Address string
 	// Gateway is route gateway
 	Gateway string
 	// Network is network address
@@ -19,6 +21,13 @@ type QueryOptions struct {
 func QueryService(s string) QueryOption {
 	return func(o *QueryOptions) {
 		o.Service = s
+	}
+}
+
+// QueryAddress sets service to query
+func QueryAddress(a string) QueryOption {
+	return func(o *QueryOptions) {
+		o.Address = a
 	}
 }
 
@@ -43,22 +52,12 @@ func QueryRouter(r string) QueryOption {
 	}
 }
 
-// Query is routing table query
-type Query interface {
-	// Options returns query options
-	Options() QueryOptions
-}
-
-// query is a basic implementation of Query
-type query struct {
-	opts QueryOptions
-}
-
 // NewQuery creates new query and returns it
-func NewQuery(opts ...QueryOption) Query {
+func NewQuery(opts ...QueryOption) QueryOptions {
 	// default options
 	qopts := QueryOptions{
 		Service: "*",
+		Address: "*",
 		Gateway: "*",
 		Network: "*",
 		Router:  "*",
@@ -68,12 +67,5 @@ func NewQuery(opts ...QueryOption) Query {
 		o(&qopts)
 	}
 
-	return &query{
-		opts: qopts,
-	}
-}
-
-// Options returns query options
-func (q *query) Options() QueryOptions {
-	return q.opts
+	return qopts
 }

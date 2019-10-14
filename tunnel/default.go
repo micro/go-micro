@@ -777,6 +777,30 @@ func (t *tun) setupLink(node string) (*link, error) {
 	return link, nil
 }
 
+func (t *tun) setupLinks() {
+	for _, node := range t.options.Nodes {
+		// skip zero length nodes
+		if len(node) == 0 {
+			continue
+		}
+
+		// link already exists
+		if _, ok := t.links[node]; ok {
+			continue
+		}
+
+		// connect to node and return link
+		link, err := t.setupLink(node)
+		if err != nil {
+			log.Debugf("Tunnel failed to establish node link to %s: %v", node, err)
+			continue
+		}
+
+		// save the link
+		t.links[node] = link
+	}
+}
+
 // connect the tunnel to all the nodes and listen for incoming tunnel connections
 func (t *tun) connect() error {
 	l, err := t.options.Transport.Listen(t.options.Address)
@@ -816,22 +840,8 @@ func (t *tun) connect() error {
 		}
 	}()
 
-	for _, node := range t.options.Nodes {
-		// skip zero length nodes
-		if len(node) == 0 {
-			continue
-		}
-
-		// connect to node and return link
-		link, err := t.setupLink(node)
-		if err != nil {
-			log.Debugf("Tunnel failed to establish node link to %s: %v", node, err)
-			continue
-		}
-
-		// save the link
-		t.links[node] = link
-	}
+	// setup links
+	t.setupLinks()
 
 	// process outbound messages to be sent
 	// process sends to all links
@@ -850,6 +860,8 @@ func (t *tun) Connect() error {
 
 	// already connected
 	if t.connected {
+		// setup links
+		t.setupLinks()
 		return nil
 	}
 
@@ -919,14 +931,12 @@ func (t *tun) Close() error {
 	default:
 		close(t.closed)
 		t.connected = false
-
-		// send a close message
-		// we don't close the link
-		// just the tunnel
-		return t.close()
 	}
 
-	return nil
+	// send a close message
+	// we don't close the link
+	// just the tunnel
+	return t.close()
 }
 
 // Dial an address

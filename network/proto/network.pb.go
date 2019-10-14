@@ -23,6 +23,148 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
+// Query is passed in a LookupRequest
+type Query struct {
+	Service              string   `protobuf:"bytes,1,opt,name=service,proto3" json:"service,omitempty"`
+	Address              string   `protobuf:"bytes,2,opt,name=address,proto3" json:"address,omitempty"`
+	Gateway              string   `protobuf:"bytes,3,opt,name=gateway,proto3" json:"gateway,omitempty"`
+	Router               string   `protobuf:"bytes,4,opt,name=router,proto3" json:"router,omitempty"`
+	Network              string   `protobuf:"bytes,5,opt,name=network,proto3" json:"network,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *Query) Reset()         { *m = Query{} }
+func (m *Query) String() string { return proto.CompactTextString(m) }
+func (*Query) ProtoMessage()    {}
+func (*Query) Descriptor() ([]byte, []int) {
+	return fileDescriptor_0b7953b26a7c4730, []int{0}
+}
+
+func (m *Query) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_Query.Unmarshal(m, b)
+}
+func (m *Query) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_Query.Marshal(b, m, deterministic)
+}
+func (m *Query) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Query.Merge(m, src)
+}
+func (m *Query) XXX_Size() int {
+	return xxx_messageInfo_Query.Size(m)
+}
+func (m *Query) XXX_DiscardUnknown() {
+	xxx_messageInfo_Query.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_Query proto.InternalMessageInfo
+
+func (m *Query) GetService() string {
+	if m != nil {
+		return m.Service
+	}
+	return ""
+}
+
+func (m *Query) GetAddress() string {
+	if m != nil {
+		return m.Address
+	}
+	return ""
+}
+
+func (m *Query) GetGateway() string {
+	if m != nil {
+		return m.Gateway
+	}
+	return ""
+}
+
+func (m *Query) GetRouter() string {
+	if m != nil {
+		return m.Router
+	}
+	return ""
+}
+
+func (m *Query) GetNetwork() string {
+	if m != nil {
+		return m.Network
+	}
+	return ""
+}
+
+type ConnectRequest struct {
+	Nodes                []*Node  `protobuf:"bytes,1,rep,name=nodes,proto3" json:"nodes,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *ConnectRequest) Reset()         { *m = ConnectRequest{} }
+func (m *ConnectRequest) String() string { return proto.CompactTextString(m) }
+func (*ConnectRequest) ProtoMessage()    {}
+func (*ConnectRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_0b7953b26a7c4730, []int{1}
+}
+
+func (m *ConnectRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_ConnectRequest.Unmarshal(m, b)
+}
+func (m *ConnectRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_ConnectRequest.Marshal(b, m, deterministic)
+}
+func (m *ConnectRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ConnectRequest.Merge(m, src)
+}
+func (m *ConnectRequest) XXX_Size() int {
+	return xxx_messageInfo_ConnectRequest.Size(m)
+}
+func (m *ConnectRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_ConnectRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ConnectRequest proto.InternalMessageInfo
+
+func (m *ConnectRequest) GetNodes() []*Node {
+	if m != nil {
+		return m.Nodes
+	}
+	return nil
+}
+
+type ConnectResponse struct {
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *ConnectResponse) Reset()         { *m = ConnectResponse{} }
+func (m *ConnectResponse) String() string { return proto.CompactTextString(m) }
+func (*ConnectResponse) ProtoMessage()    {}
+func (*ConnectResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_0b7953b26a7c4730, []int{2}
+}
+
+func (m *ConnectResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_ConnectResponse.Unmarshal(m, b)
+}
+func (m *ConnectResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_ConnectResponse.Marshal(b, m, deterministic)
+}
+func (m *ConnectResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ConnectResponse.Merge(m, src)
+}
+func (m *ConnectResponse) XXX_Size() int {
+	return xxx_messageInfo_ConnectResponse.Size(m)
+}
+func (m *ConnectResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_ConnectResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ConnectResponse proto.InternalMessageInfo
+
 // PeerRequest requests list of peers
 type NodesRequest struct {
 	// node topology depth
@@ -36,7 +178,7 @@ func (m *NodesRequest) Reset()         { *m = NodesRequest{} }
 func (m *NodesRequest) String() string { return proto.CompactTextString(m) }
 func (*NodesRequest) ProtoMessage()    {}
 func (*NodesRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_0b7953b26a7c4730, []int{0}
+	return fileDescriptor_0b7953b26a7c4730, []int{3}
 }
 
 func (m *NodesRequest) XXX_Unmarshal(b []byte) error {
@@ -77,7 +219,7 @@ func (m *NodesResponse) Reset()         { *m = NodesResponse{} }
 func (m *NodesResponse) String() string { return proto.CompactTextString(m) }
 func (*NodesResponse) ProtoMessage()    {}
 func (*NodesResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_0b7953b26a7c4730, []int{1}
+	return fileDescriptor_0b7953b26a7c4730, []int{4}
 }
 
 func (m *NodesResponse) XXX_Unmarshal(b []byte) error {
@@ -117,7 +259,7 @@ func (m *GraphRequest) Reset()         { *m = GraphRequest{} }
 func (m *GraphRequest) String() string { return proto.CompactTextString(m) }
 func (*GraphRequest) ProtoMessage()    {}
 func (*GraphRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_0b7953b26a7c4730, []int{2}
+	return fileDescriptor_0b7953b26a7c4730, []int{5}
 }
 
 func (m *GraphRequest) XXX_Unmarshal(b []byte) error {
@@ -156,7 +298,7 @@ func (m *GraphResponse) Reset()         { *m = GraphResponse{} }
 func (m *GraphResponse) String() string { return proto.CompactTextString(m) }
 func (*GraphResponse) ProtoMessage()    {}
 func (*GraphResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_0b7953b26a7c4730, []int{3}
+	return fileDescriptor_0b7953b26a7c4730, []int{6}
 }
 
 func (m *GraphResponse) XXX_Unmarshal(b []byte) error {
@@ -185,6 +327,8 @@ func (m *GraphResponse) GetRoot() *Peer {
 }
 
 type RoutesRequest struct {
+	// filter based on
+	Query                *Query   `protobuf:"bytes,1,opt,name=query,proto3" json:"query,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -194,7 +338,7 @@ func (m *RoutesRequest) Reset()         { *m = RoutesRequest{} }
 func (m *RoutesRequest) String() string { return proto.CompactTextString(m) }
 func (*RoutesRequest) ProtoMessage()    {}
 func (*RoutesRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_0b7953b26a7c4730, []int{4}
+	return fileDescriptor_0b7953b26a7c4730, []int{7}
 }
 
 func (m *RoutesRequest) XXX_Unmarshal(b []byte) error {
@@ -215,6 +359,13 @@ func (m *RoutesRequest) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_RoutesRequest proto.InternalMessageInfo
 
+func (m *RoutesRequest) GetQuery() *Query {
+	if m != nil {
+		return m.Query
+	}
+	return nil
+}
+
 type RoutesResponse struct {
 	Routes               []*proto1.Route `protobuf:"bytes,1,rep,name=routes,proto3" json:"routes,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}        `json:"-"`
@@ -226,7 +377,7 @@ func (m *RoutesResponse) Reset()         { *m = RoutesResponse{} }
 func (m *RoutesResponse) String() string { return proto.CompactTextString(m) }
 func (*RoutesResponse) ProtoMessage()    {}
 func (*RoutesResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_0b7953b26a7c4730, []int{5}
+	return fileDescriptor_0b7953b26a7c4730, []int{8}
 }
 
 func (m *RoutesResponse) XXX_Unmarshal(b []byte) error {
@@ -264,7 +415,7 @@ func (m *ServicesRequest) Reset()         { *m = ServicesRequest{} }
 func (m *ServicesRequest) String() string { return proto.CompactTextString(m) }
 func (*ServicesRequest) ProtoMessage()    {}
 func (*ServicesRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_0b7953b26a7c4730, []int{6}
+	return fileDescriptor_0b7953b26a7c4730, []int{9}
 }
 
 func (m *ServicesRequest) XXX_Unmarshal(b []byte) error {
@@ -296,7 +447,7 @@ func (m *ServicesResponse) Reset()         { *m = ServicesResponse{} }
 func (m *ServicesResponse) String() string { return proto.CompactTextString(m) }
 func (*ServicesResponse) ProtoMessage()    {}
 func (*ServicesResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_0b7953b26a7c4730, []int{7}
+	return fileDescriptor_0b7953b26a7c4730, []int{10}
 }
 
 func (m *ServicesResponse) XXX_Unmarshal(b []byte) error {
@@ -329,17 +480,21 @@ type Node struct {
 	// node id
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	// node address
-	Address              string   `protobuf:"bytes,2,opt,name=address,proto3" json:"address,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	Address string `protobuf:"bytes,2,opt,name=address,proto3" json:"address,omitempty"`
+	// the network
+	Network string `protobuf:"bytes,3,opt,name=network,proto3" json:"network,omitempty"`
+	// associated metadata
+	Metadata             map[string]string `protobuf:"bytes,4,rep,name=metadata,proto3" json:"metadata,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
+	XXX_unrecognized     []byte            `json:"-"`
+	XXX_sizecache        int32             `json:"-"`
 }
 
 func (m *Node) Reset()         { *m = Node{} }
 func (m *Node) String() string { return proto.CompactTextString(m) }
 func (*Node) ProtoMessage()    {}
 func (*Node) Descriptor() ([]byte, []int) {
-	return fileDescriptor_0b7953b26a7c4730, []int{8}
+	return fileDescriptor_0b7953b26a7c4730, []int{11}
 }
 
 func (m *Node) XXX_Unmarshal(b []byte) error {
@@ -374,6 +529,20 @@ func (m *Node) GetAddress() string {
 	return ""
 }
 
+func (m *Node) GetNetwork() string {
+	if m != nil {
+		return m.Network
+	}
+	return ""
+}
+
+func (m *Node) GetMetadata() map[string]string {
+	if m != nil {
+		return m.Metadata
+	}
+	return nil
+}
+
 // Connect is sent when the node connects to the network
 type Connect struct {
 	// network mode
@@ -387,7 +556,7 @@ func (m *Connect) Reset()         { *m = Connect{} }
 func (m *Connect) String() string { return proto.CompactTextString(m) }
 func (*Connect) ProtoMessage()    {}
 func (*Connect) Descriptor() ([]byte, []int) {
-	return fileDescriptor_0b7953b26a7c4730, []int{9}
+	return fileDescriptor_0b7953b26a7c4730, []int{12}
 }
 
 func (m *Connect) XXX_Unmarshal(b []byte) error {
@@ -428,7 +597,7 @@ func (m *Close) Reset()         { *m = Close{} }
 func (m *Close) String() string { return proto.CompactTextString(m) }
 func (*Close) ProtoMessage()    {}
 func (*Close) Descriptor() ([]byte, []int) {
-	return fileDescriptor_0b7953b26a7c4730, []int{10}
+	return fileDescriptor_0b7953b26a7c4730, []int{13}
 }
 
 func (m *Close) XXX_Unmarshal(b []byte) error {
@@ -471,7 +640,7 @@ func (m *Peer) Reset()         { *m = Peer{} }
 func (m *Peer) String() string { return proto.CompactTextString(m) }
 func (*Peer) ProtoMessage()    {}
 func (*Peer) Descriptor() ([]byte, []int) {
-	return fileDescriptor_0b7953b26a7c4730, []int{11}
+	return fileDescriptor_0b7953b26a7c4730, []int{14}
 }
 
 func (m *Peer) XXX_Unmarshal(b []byte) error {
@@ -507,6 +676,9 @@ func (m *Peer) GetPeers() []*Peer {
 }
 
 func init() {
+	proto.RegisterType((*Query)(nil), "go.micro.network.Query")
+	proto.RegisterType((*ConnectRequest)(nil), "go.micro.network.ConnectRequest")
+	proto.RegisterType((*ConnectResponse)(nil), "go.micro.network.ConnectResponse")
 	proto.RegisterType((*NodesRequest)(nil), "go.micro.network.NodesRequest")
 	proto.RegisterType((*NodesResponse)(nil), "go.micro.network.NodesResponse")
 	proto.RegisterType((*GraphRequest)(nil), "go.micro.network.GraphRequest")
@@ -516,6 +688,7 @@ func init() {
 	proto.RegisterType((*ServicesRequest)(nil), "go.micro.network.ServicesRequest")
 	proto.RegisterType((*ServicesResponse)(nil), "go.micro.network.ServicesResponse")
 	proto.RegisterType((*Node)(nil), "go.micro.network.Node")
+	proto.RegisterMapType((map[string]string)(nil), "go.micro.network.Node.MetadataEntry")
 	proto.RegisterType((*Connect)(nil), "go.micro.network.Connect")
 	proto.RegisterType((*Close)(nil), "go.micro.network.Close")
 	proto.RegisterType((*Peer)(nil), "go.micro.network.Peer")
@@ -526,33 +699,43 @@ func init() {
 }
 
 var fileDescriptor_0b7953b26a7c4730 = []byte{
-	// 416 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x93, 0x5d, 0x6f, 0xda, 0x30,
-	0x14, 0x86, 0x21, 0x10, 0x3e, 0xce, 0x16, 0x60, 0xd6, 0x34, 0x45, 0xb9, 0xd8, 0x98, 0xb5, 0x0b,
-	0x34, 0x6d, 0x66, 0x02, 0x71, 0x35, 0x4d, 0x9a, 0xc4, 0x45, 0xa5, 0x4a, 0x45, 0x95, 0xf9, 0x03,
-	0x85, 0xc4, 0x82, 0xa8, 0x25, 0x4e, 0x1d, 0xd3, 0xfe, 0xc2, 0xfe, 0xaf, 0xca, 0x1f, 0xe1, 0x33,
-	0x41, 0xed, 0x1d, 0xe7, 0xf0, 0xf8, 0x3d, 0x3e, 0xaf, 0xdf, 0xc0, 0x64, 0x15, 0xcb, 0xf5, 0x76,
-	0x49, 0x42, 0xbe, 0x19, 0x6e, 0xe2, 0x50, 0xf0, 0xe1, 0x8a, 0xff, 0x36, 0x3f, 0x12, 0x26, 0x9f,
-	0xb9, 0xb8, 0x1f, 0xa6, 0x82, 0xcb, 0x5d, 0x45, 0x74, 0x85, 0x7a, 0x2b, 0x4e, 0x34, 0x45, 0x6c,
-	0x3f, 0x18, 0x97, 0x0b, 0x09, 0xbe, 0x95, 0x4c, 0x58, 0x1d, 0x53, 0x18, 0x19, 0xfc, 0x03, 0x3e,
-	0xce, 0x78, 0xc4, 0x32, 0xca, 0x1e, 0xb7, 0x2c, 0x93, 0xe8, 0x33, 0xb8, 0x11, 0x4b, 0xe5, 0xda,
-	0xaf, 0xf6, 0xab, 0x03, 0x8f, 0x9a, 0x02, 0xff, 0x03, 0xcf, 0x52, 0x59, 0xca, 0x93, 0x8c, 0xa1,
-	0x5f, 0xe0, 0x26, 0xaa, 0xe1, 0x57, 0xfb, 0xb5, 0xc1, 0x87, 0xd1, 0x17, 0x72, 0x7a, 0x1b, 0xa2,
-	0x78, 0x6a, 0x20, 0x35, 0xe4, 0x4a, 0x2c, 0xd2, 0xf5, 0xe5, 0x21, 0x7f, 0xc1, 0xb3, 0x94, 0x1d,
-	0xf2, 0x13, 0xea, 0x82, 0x73, 0xa9, 0xa9, 0xc2, 0x19, 0xb7, 0x8c, 0x09, 0xaa, 0x19, 0xdc, 0x05,
-	0x8f, 0xaa, 0xbd, 0xf2, 0x45, 0xf0, 0x7f, 0xe8, 0xe4, 0x0d, 0x2b, 0x47, 0xa0, 0xa1, 0x57, 0x2f,
-	0xb8, 0xb4, 0xb5, 0x44, 0x1f, 0xa0, 0x96, 0xc2, 0x9f, 0xa0, 0x3b, 0x67, 0xe2, 0x29, 0x0e, 0xf7,
-	0xa2, 0x04, 0x7a, 0xfb, 0x96, 0x95, 0x0d, 0xa0, 0x95, 0xd9, 0x9e, 0x16, 0x6e, 0xd3, 0x5d, 0x8d,
-	0xff, 0x40, 0x5d, 0xf9, 0x80, 0x3a, 0xe0, 0xc4, 0x91, 0xde, 0xa3, 0x4d, 0x9d, 0x38, 0x42, 0x3e,
-	0x34, 0x17, 0x51, 0x24, 0x58, 0x96, 0xf9, 0x8e, 0x6e, 0xe6, 0x25, 0x9e, 0x40, 0x73, 0xca, 0x93,
-	0x84, 0x85, 0x52, 0xad, 0xaf, 0xec, 0x2b, 0x5f, 0x5f, 0x5b, 0xac, 0x19, 0x3c, 0x06, 0x77, 0xfa,
-	0xc0, 0x8d, 0x67, 0x6f, 0x3e, 0x74, 0x07, 0x75, 0xe5, 0xe0, 0x7b, 0xce, 0xa8, 0x87, 0x4f, 0x19,
-	0x13, 0xea, 0xde, 0xb5, 0x0b, 0x8f, 0x62, 0xa0, 0xd1, 0x8b, 0x03, 0xcd, 0x99, 0xe9, 0xa3, 0x6b,
-	0x70, 0xf5, 0xf3, 0xa2, 0xaf, 0xe7, 0x67, 0x0e, 0xd3, 0x11, 0x7c, 0x2b, 0xfd, 0xdf, 0x38, 0x8e,
-	0x2b, 0x4a, 0x4b, 0xe7, 0xb1, 0x48, 0xeb, 0x30, 0xce, 0x45, 0x5a, 0x47, 0x41, 0xc6, 0x15, 0x74,
-	0x03, 0x0d, 0x13, 0x14, 0x54, 0x00, 0x1f, 0x65, 0x2a, 0xe8, 0x97, 0x03, 0x3b, 0xb9, 0x39, 0xb4,
-	0xf2, 0x88, 0xa0, 0xef, 0xe7, 0xfc, 0x49, 0xa2, 0x02, 0x7c, 0x09, 0xc9, 0x45, 0x97, 0x0d, 0xfd,
-	0xb1, 0x8e, 0x5f, 0x03, 0x00, 0x00, 0xff, 0xff, 0x3a, 0x63, 0x7a, 0x7b, 0x2c, 0x04, 0x00, 0x00,
+	// 573 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x54, 0x61, 0x6a, 0xdb, 0x4c,
+	0x10, 0x8d, 0x2c, 0xcb, 0x76, 0xe6, 0x8b, 0xfd, 0xb9, 0x4b, 0x49, 0x85, 0x7e, 0xb4, 0xee, 0xe2,
+	0x1f, 0xa1, 0x34, 0x32, 0xc4, 0x04, 0x4a, 0x43, 0x43, 0x20, 0x94, 0x42, 0x21, 0x21, 0x55, 0x2e,
+	0x50, 0xc5, 0x1a, 0x6c, 0x93, 0x58, 0xeb, 0xac, 0xd6, 0x09, 0x3e, 0x41, 0x8f, 0xd0, 0x33, 0xf5,
+	0x56, 0x65, 0x77, 0x47, 0x8a, 0x1d, 0xcb, 0xa2, 0xf9, 0xe7, 0xd1, 0xbc, 0xf7, 0x66, 0x67, 0xe6,
+	0x8d, 0xe1, 0x78, 0x3c, 0x55, 0x93, 0xc5, 0x4d, 0x38, 0x12, 0xb3, 0xc1, 0x6c, 0x3a, 0x92, 0x62,
+	0x30, 0x16, 0x87, 0xf6, 0x47, 0x8a, 0xea, 0x51, 0xc8, 0xdb, 0xc1, 0x5c, 0x0a, 0x55, 0x44, 0xa1,
+	0x89, 0x58, 0x77, 0x2c, 0x42, 0x83, 0x0a, 0xe9, 0x7b, 0x30, 0xdc, 0x2e, 0x24, 0xc5, 0x42, 0xa1,
+	0x24, 0x1d, 0x1b, 0x58, 0x19, 0xfe, 0xcb, 0x01, 0xef, 0xc7, 0x02, 0xe5, 0x92, 0xf9, 0xd0, 0xcc,
+	0x50, 0x3e, 0x4c, 0x47, 0xe8, 0x3b, 0x3d, 0xe7, 0x60, 0x37, 0xca, 0x43, 0x9d, 0x89, 0x93, 0x44,
+	0x62, 0x96, 0xf9, 0x35, 0x9b, 0xa1, 0x50, 0x67, 0xc6, 0xb1, 0xc2, 0xc7, 0x78, 0xe9, 0xbb, 0x36,
+	0x43, 0x21, 0xdb, 0x87, 0x86, 0xad, 0xe3, 0xd7, 0x4d, 0x82, 0x22, 0xcd, 0xa0, 0xf7, 0xfa, 0x9e,
+	0x65, 0x50, 0xc8, 0x4f, 0xa1, 0x73, 0x2e, 0xd2, 0x14, 0x47, 0x2a, 0xc2, 0xfb, 0x05, 0x66, 0x8a,
+	0x7d, 0x04, 0x2f, 0x15, 0x09, 0x66, 0xbe, 0xd3, 0x73, 0x0f, 0xfe, 0x3b, 0xda, 0x0f, 0x9f, 0xb7,
+	0x1c, 0x5e, 0x8a, 0x04, 0x23, 0x0b, 0xe2, 0xaf, 0xe0, 0xff, 0x82, 0x9f, 0xcd, 0x45, 0x9a, 0x21,
+	0xef, 0xc3, 0x9e, 0x46, 0x64, 0xb9, 0xe0, 0x6b, 0xf0, 0x12, 0x9c, 0xab, 0x89, 0x69, 0xb0, 0x1d,
+	0xd9, 0x80, 0x7f, 0x81, 0x36, 0xa1, 0x2c, 0xed, 0x85, 0x75, 0xfb, 0xb0, 0xf7, 0x4d, 0xc6, 0xf3,
+	0x49, 0x75, 0x91, 0x13, 0x68, 0x13, 0x8a, 0x8a, 0x7c, 0x80, 0xba, 0x14, 0x42, 0x19, 0x54, 0x69,
+	0x8d, 0x2b, 0x44, 0x19, 0x19, 0x0c, 0x3f, 0x85, 0x76, 0xa4, 0xc7, 0x57, 0x34, 0x72, 0x08, 0xde,
+	0xbd, 0x5e, 0x1a, 0xb1, 0xdf, 0x6c, 0xb2, 0xcd, 0x4e, 0x23, 0x8b, 0xe2, 0x67, 0xd0, 0xc9, 0xf9,
+	0x54, 0x3d, 0xa4, 0xf5, 0x94, 0xf4, 0x48, 0xf6, 0x30, 0x04, 0x5a, 0x9b, 0x19, 0xee, 0xb5, 0x75,
+	0x43, 0xfe, 0x06, 0x1e, 0x42, 0xf7, 0xe9, 0x13, 0xc9, 0x06, 0xd0, 0x22, 0xd3, 0x58, 0xe1, 0xdd,
+	0xa8, 0x88, 0xf9, 0x1f, 0x07, 0xea, 0x7a, 0x6e, 0xac, 0x03, 0xb5, 0x69, 0x42, 0x1e, 0xab, 0x4d,
+	0x93, 0x6a, 0x7b, 0xe5, 0x66, 0x71, 0xd7, 0xcc, 0xc2, 0xce, 0xa0, 0x35, 0x43, 0x15, 0x27, 0xb1,
+	0x8a, 0xfd, 0xba, 0xe9, 0xa0, 0x5f, 0xbe, 0xa5, 0xf0, 0x82, 0x60, 0x5f, 0x53, 0x25, 0x97, 0x51,
+	0xc1, 0x0a, 0x4e, 0xa0, 0xbd, 0x96, 0x62, 0x5d, 0x70, 0x6f, 0x71, 0x49, 0xef, 0xd2, 0x3f, 0xf5,
+	0x26, 0x1f, 0xe2, 0xbb, 0x05, 0xd2, 0xb3, 0x6c, 0xf0, 0xb9, 0xf6, 0xc9, 0xe1, 0xc7, 0xd0, 0x24,
+	0xaf, 0xe9, 0x3d, 0x6a, 0x1f, 0x6c, 0xdf, 0xa3, 0xf1, 0x8a, 0xc1, 0xf0, 0x21, 0x78, 0xe7, 0x77,
+	0xc2, 0x2e, 0xff, 0x9f, 0x49, 0x3f, 0xa1, 0xae, 0xad, 0xf0, 0x12, 0x8e, 0x76, 0xf0, 0x1c, 0x51,
+	0xea, 0x81, 0xba, 0x15, 0xee, 0xb2, 0xa0, 0xa3, 0xdf, 0x2e, 0x34, 0x2f, 0x69, 0xb0, 0x57, 0x4f,
+	0x9d, 0xf5, 0x36, 0x59, 0xeb, 0x07, 0x1a, 0xbc, 0xaf, 0x40, 0xd0, 0x09, 0xee, 0xb0, 0xef, 0xe0,
+	0x19, 0xe7, 0xb3, 0xb7, 0x9b, 0xe8, 0xd5, 0xc3, 0x09, 0xde, 0x6d, 0xcd, 0xaf, 0x6a, 0x99, 0x53,
+	0x2d, 0xd3, 0x5a, 0xbd, 0xf4, 0x32, 0xad, 0xb5, 0x1b, 0xe7, 0x3b, 0xec, 0x02, 0x1a, 0xf6, 0x28,
+	0x58, 0x09, 0x78, 0xed, 0xdc, 0x82, 0xde, 0x76, 0x40, 0x21, 0x77, 0x0d, 0xad, 0xfc, 0x1c, 0x58,
+	0xc9, 0x5c, 0x9e, 0x5d, 0x4f, 0xc0, 0xab, 0x20, 0xb9, 0xe8, 0x4d, 0xc3, 0xfc, 0x49, 0x0f, 0xff,
+	0x06, 0x00, 0x00, 0xff, 0xff, 0x79, 0x8a, 0x5f, 0xf0, 0x24, 0x06, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -567,6 +750,8 @@ const _ = grpc.SupportPackageIsVersion4
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type NetworkClient interface {
+	// Connect to the network
+	Connect(ctx context.Context, in *ConnectRequest, opts ...grpc.CallOption) (*ConnectResponse, error)
 	// Returns the entire network graph
 	Graph(ctx context.Context, in *GraphRequest, opts ...grpc.CallOption) (*GraphResponse, error)
 	// Returns a list of known nodes in the network
@@ -583,6 +768,15 @@ type networkClient struct {
 
 func NewNetworkClient(cc *grpc.ClientConn) NetworkClient {
 	return &networkClient{cc}
+}
+
+func (c *networkClient) Connect(ctx context.Context, in *ConnectRequest, opts ...grpc.CallOption) (*ConnectResponse, error) {
+	out := new(ConnectResponse)
+	err := c.cc.Invoke(ctx, "/go.micro.network.Network/Connect", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *networkClient) Graph(ctx context.Context, in *GraphRequest, opts ...grpc.CallOption) (*GraphResponse, error) {
@@ -623,6 +817,8 @@ func (c *networkClient) Services(ctx context.Context, in *ServicesRequest, opts 
 
 // NetworkServer is the server API for Network service.
 type NetworkServer interface {
+	// Connect to the network
+	Connect(context.Context, *ConnectRequest) (*ConnectResponse, error)
 	// Returns the entire network graph
 	Graph(context.Context, *GraphRequest) (*GraphResponse, error)
 	// Returns a list of known nodes in the network
@@ -635,6 +831,24 @@ type NetworkServer interface {
 
 func RegisterNetworkServer(s *grpc.Server, srv NetworkServer) {
 	s.RegisterService(&_Network_serviceDesc, srv)
+}
+
+func _Network_Connect_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ConnectRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NetworkServer).Connect(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/go.micro.network.Network/Connect",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NetworkServer).Connect(ctx, req.(*ConnectRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _Network_Graph_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -713,6 +927,10 @@ var _Network_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "go.micro.network.Network",
 	HandlerType: (*NetworkServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "Connect",
+			Handler:    _Network_Connect_Handler,
+		},
 		{
 			MethodName: "Graph",
 			Handler:    _Network_Graph_Handler,

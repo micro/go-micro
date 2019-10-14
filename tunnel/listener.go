@@ -181,5 +181,4 @@ func (t *tunListener) Accept() (Session, error) {
 		}
 		return c, nil
 	}
-	return nil, nil
 }

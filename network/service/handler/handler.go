@@ -7,7 +7,9 @@ import (
 	"github.com/micro/go-micro/errors"
 	"github.com/micro/go-micro/network"
 	pbNet "github.com/micro/go-micro/network/proto"
+	"github.com/micro/go-micro/router"
 	pbRtr "github.com/micro/go-micro/router/proto"
+	"github.com/micro/go-micro/util/log"
 )
 
 // Network implements network handler
@@ -26,16 +28,14 @@ func flatten(n network.Node, visited map[string]bool) []network.Node {
 		visited = make(map[string]bool)
 	}
 
-	// check if already visited
-	if visited[n.Id()] == true {
-		return nil
-	}
-
 	// create new list of nodes
 	var nodes []network.Node
 
-	// append the current node
-	nodes = append(nodes, n)
+	// check if already visited
+	if visited[n.Id()] == false {
+		// append the current node
+		nodes = append(nodes, n)
+	}
 
 	// set to visited
 	visited[n.Id()] = true
@@ -46,6 +46,50 @@ func flatten(n network.Node, visited map[string]bool) []network.Node {
 	}
 
 	return nodes
+}
+
+func (n *Network) Connect(ctx context.Context, req *pbNet.ConnectRequest, resp *pbNet.ConnectResponse) error {
+	if len(req.Nodes) == 0 {
+		return nil
+	}
+
+	// get list of existing nodes
+	nodes := n.Network.Options().Peers
+
+	// generate a node map
+	nodeMap := make(map[string]bool)
+
+	for _, node := range nodes {
+		nodeMap[node] = true
+	}
+
+	for _, node := range req.Nodes {
+		// TODO: we may have been provided a network only
+		// so process anad resolve node.Network
+		if len(node.Address) == 0 {
+			continue
+		}
+
+		// already exists
+		if _, ok := nodeMap[node.Address]; ok {
+			continue
+		}
+
+		nodeMap[node.Address] = true
+		nodes = append(nodes, node.Address)
+	}
+
+	log.Infof("Network.Connect setting peers: %v", nodes)
+
+	// reinitialise the peers
+	n.Network.Init(
+		network.Peers(nodes...),
+	)
+
+	// call the connect method
+	n.Network.Connect()
+
+	return nil
 }
 
 // Nodes returns the list of nodes
@@ -100,7 +144,29 @@ func (n *Network) Graph(ctx context.Context, req *pbNet.GraphRequest, resp *pbNe
 
 // Routes returns a list of routing table routes
 func (n *Network) Routes(ctx context.Context, req *pbNet.RoutesRequest, resp *pbNet.RoutesResponse) error {
-	routes, err := n.Network.Options().Router.Table().List()
+	// build query
+
+	var qOpts []router.QueryOption
+
+	if q := req.Query; q != nil {
+		if len(q.Service) > 0 {
+			qOpts = append(qOpts, router.QueryService(q.Service))
+		}
+		if len(q.Address) > 0 {
+			qOpts = append(qOpts, router.QueryAddress(q.Address))
+		}
+		if len(q.Gateway) > 0 {
+			qOpts = append(qOpts, router.QueryGateway(q.Gateway))
+		}
+		if len(q.Router) > 0 {
+			qOpts = append(qOpts, router.QueryRouter(q.Router))
+		}
+		if len(q.Network) > 0 {
+			qOpts = append(qOpts, router.QueryNetwork(q.Network))
+		}
+	}
+
+	routes, err := n.Network.Options().Router.Table().Query(qOpts...)
 	if err != nil {
 		return errors.InternalServerError("go.micro.network", "failed to list routes: %s", err)
 	}

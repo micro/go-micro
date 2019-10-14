@@ -19,11 +19,11 @@ type Store interface {
 	// Sync all the known records
 	Sync() ([]*Record, error)
 	// Read a record with key
-	Read(key string) (*Record, error)
+	Read(keys ...string) ([]*Record, error)
 	// Write a record
-	Write(r *Record) error
+	Write(recs ...*Record) error
 	// Delete a record with key
-	Delete(key string) error
+	Delete(keys ...string) error
 }
 
 // Record represents a data record

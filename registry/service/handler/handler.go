@@ -6,8 +6,8 @@ import (
 
 	"github.com/micro/go-micro/errors"
 	"github.com/micro/go-micro/registry"
-	pb "github.com/micro/go-micro/registry/proto"
 	"github.com/micro/go-micro/registry/service"
+	pb "github.com/micro/go-micro/registry/service/proto"
 )
 
 type Registry struct {

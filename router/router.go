@@ -31,7 +31,7 @@ type Router interface {
 	// Solicit advertises the whole routing table to the network
 	Solicit() error
 	// Lookup queries routes in the routing table
-	Lookup(Query) ([]Route, error)
+	Lookup(...QueryOption) ([]Route, error)
 	// Watch returns a watcher which tracks updates to the routing table
 	Watch(opts ...WatchOption) (Watcher, error)
 	// Start starts the router
@@ -55,7 +55,7 @@ type Table interface {
 	// List all routes in the table
 	List() ([]Route, error)
 	// Query routes in the routing table
-	Query(Query) ([]Route, error)
+	Query(...QueryOption) ([]Route, error)
 }
 
 // Option used by the router
@@ -137,6 +137,28 @@ type Advert struct {
 	TTL time.Duration
 	// Events is a list of routing table events to advertise
 	Events []*Event
+}
+
+// Strategy is route advertisement strategy
+type Strategy int
+
+const (
+	// AdvertiseAll advertises all routes to the network
+	AdvertiseAll Strategy = iota
+	// AdvertiseBest advertises optimal routes to the network
+	AdvertiseBest
+)
+
+// String returns human readable Strategy
+func (s Strategy) String() string {
+	switch s {
+	case AdvertiseAll:
+		return "all"
+	case AdvertiseBest:
+		return "best"
+	default:
+		return "unknown"
+	}
 }
 
 // NewRouter creates new Router and returns it
