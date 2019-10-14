@@ -1,5 +1,5 @@
-// Package mutex provides a sync.Mutex implementation of the lock for local use
-package mutex
+// Package memoy provides a sync.Mutex implementation of the lock for local use
+package memory
 
 import (
 	"sync"
@@ -8,7 +8,7 @@ import (
 	lock "github.com/micro/go-micro/sync/lock"
 )
 
-type mutexLock struct {
+type memoryLock struct {
 	sync.RWMutex
 	locks map[string]*mlock
 }
@@ -20,7 +20,7 @@ type mlock struct {
 	release chan bool
 }
 
-func (m *mutexLock) Acquire(id string, opts ...lock.AcquireOption) error {
+func (m *memoryLock) Acquire(id string, opts ...lock.AcquireOption) error {
 	// lock our access
 	m.Lock()
 
@@ -107,7 +107,7 @@ lockLoop:
 	return nil
 }
 
-func (m *mutexLock) Release(id string) error {
+func (m *memoryLock) Release(id string) error {
 	m.Lock()
 	defer m.Unlock()
 
@@ -136,7 +136,7 @@ func NewLock(opts ...lock.Option) lock.Lock {
 		o(&options)
 	}
 
-	return &mutexLock{
+	return &memoryLock{
 		locks: make(map[string]*mlock),
 	}
 }
