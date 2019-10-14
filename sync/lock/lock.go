@@ -2,7 +2,12 @@
 package lock
 
 import (
+	"errors"
 	"time"
+)
+
+var (
+	ErrLockTimeout = errors.New("lock timeout")
 )
 
 // Lock is a distributed locking interface
