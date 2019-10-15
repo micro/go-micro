@@ -2,6 +2,7 @@
 package certmagic
 
 import (
+	"log"
 	"net"
 
 	"github.com/mholt/certmagic"
@@ -36,6 +37,12 @@ func New(options ...acme.Option) acme.Provider {
 			op(o)
 		}
 	}
+	if o.Cache != nil {
+		if _, ok := o.Cache.(certmagic.Storage); !ok {
+			log.Fatal("ACME: cache provided doesn't implement certmagic's Storage interface")
+		}
+	}
+
 	return &certmagicProvider{
 		opts: o,
 	}
