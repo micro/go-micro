@@ -269,14 +269,21 @@ func (n *network) acceptNetConn(l tunnel.Listener, recv chan *transport.Message)
 	for {
 		// accept a connection
 		conn, err := l.Accept()
-		if err != nil {
-			log.Debugf("Network tunnel [%s] accept error: %v", NetworkChannel, err)
-		}
 
 		select {
 		case <-n.closed:
+			// only try to close the connection if it has been successfully opened
+			if err != nil {
+				if closeErr := conn.Close(); closeErr != nil {
+					log.Debugf("Network tunnel [%s] failed to close connection: %v", NetworkChannel, closeErr)
+				}
+			}
 			return
 		default:
+			if err != nil {
+				log.Debugf("Network tunnel [%s] accept error: %v", NetworkChannel, err)
+				continue
+			}
 			// go handle NetworkChannel connection
 			go n.handleNetConn(conn, recv)
 		}
@@ -558,14 +565,21 @@ func (n *network) acceptCtrlConn(l tunnel.Listener, recv chan *transport.Message
 	for {
 		// accept a connection
 		conn, err := l.Accept()
-		if err != nil {
-			log.Debugf("Network tunnel [%s] accept error: %v", ControlChannel, err)
-		}
 
 		select {
 		case <-n.closed:
+			// only try to close the connection if it has been successfully opened
+			if err != nil {
+				if closeErr := conn.Close(); closeErr != nil {
+					log.Debugf("Network tunnel [%s] failed to close connection: %v", ControlChannel, closeErr)
+				}
+			}
 			return
 		default:
+			if err != nil {
+				log.Debugf("Network tunnel [%s] accept error: %v", ControlChannel, err)
+				continue
+			}
 			// go handle ControlChannel connection
 			go n.handleCtrlConn(conn, recv)
 		}
