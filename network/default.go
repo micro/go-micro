@@ -19,6 +19,7 @@ import (
 	"github.com/micro/go-micro/transport"
 	"github.com/micro/go-micro/tunnel"
 	tun "github.com/micro/go-micro/tunnel/transport"
+	"github.com/micro/go-micro/util/backoff"
 	"github.com/micro/go-micro/util/log"
 )
 
@@ -266,24 +267,28 @@ func (n *network) handleNetConn(sess tunnel.Session, msg chan *transport.Message
 
 // acceptNetConn accepts connections from NetworkChannel
 func (n *network) acceptNetConn(l tunnel.Listener, recv chan *transport.Message) {
+	var i int
 	for {
 		// accept a connection
 		conn, err := l.Accept()
+		if err != nil {
+			sleep := backoff.Do(i)
+			log.Debugf("Network tunnel [%s] accept error: %v, backing off for %v", ControlChannel, err, sleep)
+			time.Sleep(sleep)
+			if i > 5 {
+				i = 0
+			}
+			i++
+			continue
+		}
 
 		select {
 		case <-n.closed:
-			// only try to close the connection if it has been successfully opened
-			if err != nil {
-				if closeErr := conn.Close(); closeErr != nil {
-					log.Debugf("Network tunnel [%s] failed to close connection: %v", NetworkChannel, closeErr)
-				}
+			if err := conn.Close(); err != nil {
+				log.Debugf("Network tunnel [%s] failed to close connection: %v", NetworkChannel, err)
 			}
 			return
 		default:
-			if err != nil {
-				log.Debugf("Network tunnel [%s] accept error: %v", NetworkChannel, err)
-				continue
-			}
 			// go handle NetworkChannel connection
 			go n.handleNetConn(conn, recv)
 		}
@@ -562,24 +567,29 @@ func (n *network) handleCtrlConn(sess tunnel.Session, msg chan *transport.Messag
 
 // acceptCtrlConn accepts connections from ControlChannel
 func (n *network) acceptCtrlConn(l tunnel.Listener, recv chan *transport.Message) {
+	var i int
 	for {
 		// accept a connection
 		conn, err := l.Accept()
+		if err != nil {
+			sleep := backoff.Do(i)
+			log.Debugf("Network tunnel [%s] accept error: %v, backing off for %v", ControlChannel, err, sleep)
+			time.Sleep(sleep)
+			if i > 5 {
+				// reset the counter
+				i = 0
+			}
+			i++
+			continue
+		}
 
 		select {
 		case <-n.closed:
-			// only try to close the connection if it has been successfully opened
-			if err != nil {
-				if closeErr := conn.Close(); closeErr != nil {
-					log.Debugf("Network tunnel [%s] failed to close connection: %v", ControlChannel, closeErr)
-				}
+			if err := conn.Close(); err != nil {
+				log.Debugf("Network tunnel [%s] failed to close connection: %v", ControlChannel, err)
 			}
 			return
 		default:
-			if err != nil {
-				log.Debugf("Network tunnel [%s] accept error: %v", ControlChannel, err)
-				continue
-			}
 			// go handle ControlChannel connection
 			go n.handleCtrlConn(conn, recv)
 		}
