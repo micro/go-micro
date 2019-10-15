@@ -846,7 +846,7 @@ func (n *network) Connect() error {
 	}
 
 	// dial into ControlChannel to send route adverts
-	ctrlClient, err := n.tunnel.Dial(ControlChannel, tunnel.DialMulticast())
+	ctrlClient, err := n.tunnel.Dial(ControlChannel, tunnel.DialMode(tunnel.Multicast))
 	if err != nil {
 		n.Unlock()
 		return err
@@ -855,14 +855,14 @@ func (n *network) Connect() error {
 	n.tunClient[ControlChannel] = ctrlClient
 
 	// listen on ControlChannel
-	ctrlListener, err := n.tunnel.Listen(ControlChannel)
+	ctrlListener, err := n.tunnel.Listen(ControlChannel, tunnel.ListenMode(tunnel.Multicast))
 	if err != nil {
 		n.Unlock()
 		return err
 	}
 
 	// dial into NetworkChannel to send network messages
-	netClient, err := n.tunnel.Dial(NetworkChannel, tunnel.DialMulticast())
+	netClient, err := n.tunnel.Dial(NetworkChannel, tunnel.DialMode(tunnel.Multicast))
 	if err != nil {
 		n.Unlock()
 		return err
@@ -871,7 +871,7 @@ func (n *network) Connect() error {
 	n.tunClient[NetworkChannel] = netClient
 
 	// listen on NetworkChannel
-	netListener, err := n.tunnel.Listen(NetworkChannel)
+	netListener, err := n.tunnel.Listen(NetworkChannel, tunnel.ListenMode(tunnel.Multicast))
 	if err != nil {
 		n.Unlock()
 		return err
