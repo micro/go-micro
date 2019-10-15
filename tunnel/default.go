@@ -326,7 +326,7 @@ func (t *tun) process() {
 				}
 
 				// check the multicast mappings
-				if msg.multicast {
+				if msg.mode > Unicast {
 					link.RLock()
 					_, ok := link.channels[msg.channel]
 					link.RUnlock()
@@ -366,7 +366,7 @@ func (t *tun) process() {
 				sent = true
 
 				// keep sending broadcast messages
-				if msg.broadcast || msg.multicast {
+				if msg.mode > Unicast {
 					continue
 				}
 
@@ -523,7 +523,7 @@ func (t *tun) listen(link *link) {
 		case "accept":
 			s, exists := t.getSession(channel, sessionId)
 			// we don't need this
-			if exists && s.multicast {
+			if exists && s.mode > Unicast {
 				s.accepted = true
 				continue
 			}
@@ -963,7 +963,7 @@ func (t *tun) Dial(channel string, opts ...DialOption) (Session, error) {
 	}
 
 	// set the multicast option
-	c.multicast = options.Multicast
+	c.mode = options.Mode
 	// set the dial timeout
 	c.timeout = options.Timeout
 
@@ -1009,7 +1009,7 @@ func (t *tun) Dial(channel string, opts ...DialOption) (Session, error) {
 	// discovered so set the link if not multicast
 	// TODO: pick the link efficiently based
 	// on link status and saturation.
-	if c.discovered && !c.multicast {
+	if c.discovered && c.mode == Unicast {
 		// set the link
 		i := rand.Intn(len(links))
 		c.link = links[i]
@@ -1019,7 +1019,7 @@ func (t *tun) Dial(channel string, opts ...DialOption) (Session, error) {
 	if !c.discovered {
 		// create a new discovery message for this channel
 		msg := c.newMessage("discover")
-		msg.broadcast = true
+		msg.mode = Broadcast
 		msg.outbound = true
 		msg.link = ""
 
@@ -1041,7 +1041,7 @@ func (t *tun) Dial(channel string, opts ...DialOption) (Session, error) {
 		dialTimeout := after()
 
 		// set a shorter delay for multicast
-		if c.multicast {
+		if c.mode > Unicast {
 			// shorten this
 			dialTimeout = time.Millisecond * 500
 		}
@@ -1057,7 +1057,7 @@ func (t *tun) Dial(channel string, opts ...DialOption) (Session, error) {
 		}
 
 		// if its multicast just go ahead because this is best effort
-		if c.multicast {
+		if c.mode > Unicast {
 			c.discovered = true
 			c.accepted = true
 			return c, nil
@@ -1086,8 +1086,13 @@ func (t *tun) Dial(channel string, opts ...DialOption) (Session, error) {
 }
 
 // Accept a connection on the address
-func (t *tun) Listen(channel string) (Listener, error) {
+func (t *tun) Listen(channel string, opts ...ListenOption) (Listener, error) {
 	log.Debugf("Tunnel listening on %s", channel)
+
+	var options ListenOptions
+	for _, o := range opts {
+		o(&options)
+	}
 
 	// create a new session by hashing the address
 	c, ok := t.newSession(channel, "listener")
@@ -1103,6 +1108,8 @@ func (t *tun) Listen(channel string) (Listener, error) {
 	c.remote = "remote"
 	// set local
 	c.local = channel
+	// set mode
+	c.mode = options.Mode
 
 	tl := &tunListener{
 		channel: channel,

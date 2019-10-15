@@ -36,10 +36,17 @@ type DialOption func(*DialOptions)
 type DialOptions struct {
 	// Link specifies the link to use
 	Link string
-	// specify a multicast connection
-	Multicast bool
+	// specify mode of the session
+	Mode Mode
 	// the dial timeout
 	Timeout time.Duration
+}
+
+type ListenOption func(*ListenOptions)
+
+type ListenOptions struct {
+	// specify mode of the session
+	Mode Mode
 }
 
 // The tunnel id
@@ -87,12 +94,19 @@ func DefaultOptions() Options {
 	}
 }
 
+// Listen options
+func ListenMulticast() ListenOption {
+	return func(o *ListenOptions) {
+		o.Mode = Multicast
+	}
+}
+
 // Dial options
 
 // Dial multicast sets the multicast option to send only to those mapped
 func DialMulticast() DialOption {
 	return func(o *DialOptions) {
-		o.Multicast = true
+		o.Mode = Multicast
 	}
 }
 

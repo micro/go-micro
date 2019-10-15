@@ -71,7 +71,7 @@ func (t *tunBroker) Publish(topic string, m *broker.Message, opts ...broker.Publ
 }
 
 func (t *tunBroker) Subscribe(topic string, h broker.Handler, opts ...broker.SubscribeOption) (broker.Subscriber, error) {
-	l, err := t.tunnel.Listen(topic)
+	l, err := t.tunnel.Listen(topic, tunnel.ListenMulticast())
 	if err != nil {
 		return nil, err
 	}
