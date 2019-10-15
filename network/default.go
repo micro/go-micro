@@ -831,7 +831,7 @@ func (n *network) Connect() error {
 	n.tunClient[ControlChannel] = ctrlClient
 
 	// listen on ControlChannel
-	ctrlListener, err := n.tunnel.Listen(ControlChannel)
+	ctrlListener, err := n.tunnel.Listen(ControlChannel, tunnel.ListenMulticast())
 	if err != nil {
 		n.Unlock()
 		return err
@@ -847,7 +847,7 @@ func (n *network) Connect() error {
 	n.tunClient[NetworkChannel] = netClient
 
 	// listen on NetworkChannel
-	netListener, err := n.tunnel.Listen(NetworkChannel)
+	netListener, err := n.tunnel.Listen(NetworkChannel, tunnel.ListenMulticast())
 	if err != nil {
 		n.Unlock()
 		return err
