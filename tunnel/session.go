@@ -125,7 +125,7 @@ func (s *session) Open() error {
 	}
 
 	// don't wait on multicast/broadcast
-	if s.mode > Unicast {
+	if s.mode == Multicast {
 		s.accepted = true
 		return nil
 	}
@@ -163,7 +163,7 @@ func (s *session) Accept() error {
 	}
 
 	// don't wait on multicast/broadcast
-	if s.mode > Unicast {
+	if s.mode == Multicast {
 		return nil
 	}
 
@@ -223,7 +223,7 @@ func (s *session) Send(m *transport.Message) error {
 	msg.data = data
 
 	// if multicast don't set the link
-	if s.mode > Unicast {
+	if s.mode == Multicast {
 		msg.link = ""
 	}
 

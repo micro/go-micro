@@ -9,8 +9,11 @@ import (
 )
 
 const (
+	// send over one link
 	Unicast Mode = iota
+	// send to all channel listeners
 	Multicast
+	// send to all listeners
 	Broadcast
 )
 
@@ -25,6 +28,7 @@ var (
 	ErrLinkNotFound = errors.New("link not found")
 )
 
+// Mode of the session
 type Mode uint8
 
 // Tunnel creates a gre tunnel on top of the go-micro/transport.

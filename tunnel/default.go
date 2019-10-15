@@ -326,7 +326,7 @@ func (t *tun) process() {
 				}
 
 				// check the multicast mappings
-				if msg.mode > Unicast {
+				if msg.mode == Multicast {
 					link.RLock()
 					_, ok := link.channels[msg.channel]
 					link.RUnlock()
