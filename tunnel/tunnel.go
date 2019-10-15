@@ -13,7 +13,7 @@ const (
 	Unicast Mode = iota
 	// send to all channel listeners
 	Multicast
-	// send to all listeners
+	// send to all links
 	Broadcast
 )
 

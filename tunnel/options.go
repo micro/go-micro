@@ -95,18 +95,18 @@ func DefaultOptions() Options {
 }
 
 // Listen options
-func ListenMulticast() ListenOption {
+func ListenMode(m Mode) ListenOption {
 	return func(o *ListenOptions) {
-		o.Mode = Multicast
+		o.Mode = m
 	}
 }
 
 // Dial options
 
 // Dial multicast sets the multicast option to send only to those mapped
-func DialMulticast() DialOption {
+func DialMode(m Mode) DialOption {
 	return func(o *DialOptions) {
-		o.Mode = Multicast
+		o.Mode = m
 	}
 }
 
