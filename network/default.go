@@ -296,7 +296,7 @@ func (n *network) acceptNetConn(l tunnel.Listener, recv chan *transport.Message)
 }
 
 // processNetChan processes messages received on NetworkChannel
-func (n *network) processNetChan(client transport.Client, listener tunnel.Listener) {
+func (n *network) processNetChan(listener tunnel.Listener) {
 	// receive network message queue
 	recv := make(chan *transport.Message, 128)
 
@@ -629,7 +629,7 @@ func (n *network) setRouteMetric(route *router.Route) {
 }
 
 // processCtrlChan processes messages received on ControlChannel
-func (n *network) processCtrlChan(client transport.Client, listener tunnel.Listener) {
+func (n *network) processCtrlChan(listener tunnel.Listener) {
 	// receive control message queue
 	recv := make(chan *transport.Message, 128)
 
@@ -739,7 +739,7 @@ func (n *network) processCtrlChan(client transport.Client, listener tunnel.Liste
 }
 
 // advertise advertises routes to the network
-func (n *network) advertise(client transport.Client, advertChan <-chan *router.Advert) {
+func (n *network) advertise(advertChan <-chan *router.Advert) {
 	hasher := fnv.New64()
 	for {
 		select {
@@ -910,11 +910,11 @@ func (n *network) Connect() error {
 	// prune stale nodes
 	go n.prune()
 	// listen to network messages
-	go n.processNetChan(netClient, netListener)
+	go n.processNetChan(netListener)
 	// advertise service routes
-	go n.advertise(ctrlClient, advertChan)
+	go n.advertise(advertChan)
 	// accept and process routes
-	go n.processCtrlChan(ctrlClient, ctrlListener)
+	go n.processCtrlChan(ctrlListener)
 
 	n.Lock()
 	n.connected = true
