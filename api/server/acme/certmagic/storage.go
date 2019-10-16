@@ -13,12 +13,12 @@ import (
 	"github.com/micro/go-micro/sync/lock"
 )
 
-// file represents a "file" that will be stored in store.Store - the contents and last modified time
-type file struct {
+// File represents a "File" that will be stored in store.Store - the contents and last modified time
+type File struct {
 	// last modified time
-	lastModified time.Time
-	// contents
-	contents []byte
+	LastModified time.Time
+	// Contents
+	Contents []byte
 }
 
 // storage is an implementation of certmagic.Storage using micro's sync.Map and store.Store interfaces.
@@ -38,9 +38,9 @@ func (s *storage) Unlock(key string) error {
 }
 
 func (s *storage) Store(key string, value []byte) error {
-	f := file{
-		lastModified: time.Now(),
-		contents:     value,
+	f := File{
+		LastModified: time.Now(),
+		Contents:     value,
 	}
 	buf := &bytes.Buffer{}
 	e := gob.NewEncoder(buf)
@@ -64,12 +64,12 @@ func (s *storage) Load(key string) ([]byte, error) {
 	}
 	b := bytes.NewBuffer(records[0].Value)
 	d := gob.NewDecoder(b)
-	var f file
+	var f File
 	err = d.Decode(&f)
 	if err != nil {
 		return nil, err
 	}
-	return f.contents, nil
+	return f.Contents, nil
 }
 
 func (s *storage) Delete(key string) error {
@@ -120,15 +120,15 @@ func (s *storage) Stat(key string) (certmagic.KeyInfo, error) {
 	}
 	b := bytes.NewBuffer(records[0].Value)
 	d := gob.NewDecoder(b)
-	var f file
+	var f File
 	err = d.Decode(&f)
 	if err != nil {
 		return certmagic.KeyInfo{}, err
 	}
 	return certmagic.KeyInfo{
 		Key:        key,
-		Modified:   f.lastModified,
-		Size:       int64(len(f.contents)),
+		Modified:   f.LastModified,
+		Size:       int64(len(f.Contents)),
 		IsTerminal: false,
 	}, nil
 }

@@ -2,11 +2,16 @@ package certmagic
 
 import (
 	"os"
+	"reflect"
+	"sort"
 	"testing"
+	"time"
 
 	"github.com/go-acme/lego/v3/providers/dns/cloudflare"
 	"github.com/mholt/certmagic"
 	"github.com/micro/go-micro/api/server/acme"
+	"github.com/micro/go-micro/config/options"
+	cloudflarestorage "github.com/micro/go-micro/store/cloudflare"
 	"github.com/micro/go-micro/sync/lock/memory"
 )
 
@@ -43,13 +48,140 @@ func TestCertMagic(t *testing.T) {
 }
 
 func TestStorageImplementation(t *testing.T) {
-	var s certmagic.Storage
-	s = &storage{
-		lock: memory.NewLock(),
+	apiToken, accountID := os.Getenv("CF_API_TOKEN"), os.Getenv("CF_ACCOUNT_ID")
+	kvID := os.Getenv("KV_NAMESPACE_ID")
+	if len(apiToken) == 0 || len(accountID) == 0 || len(kvID) == 0 {
+		t.Skip("No Cloudflare API keys available, skipping test")
 	}
+
+	var s certmagic.Storage
+	st, err := cloudflarestorage.New(
+		options.WithValue("CF_API_TOKEN", apiToken),
+		options.WithValue("CF_ACCOUNT_ID", accountID),
+		options.WithValue("KV_NAMESPACE_ID", kvID),
+	)
+	if err != nil {
+		t.Fatalf("Couldn't initialise cloudflare storage: %s\n", err.Error())
+	}
+	s = &storage{
+		lock:  memory.NewLock(),
+		store: st,
+	}
+
+	// Test Lock
 	if err := s.Lock("test"); err != nil {
 		t.Error(err)
 	}
-	s.Unlock("test")
+
+	// Test Unlock
+	if err := s.Unlock("test"); err != nil {
+		t.Error(err)
+	}
+
+	// Test data
+	testdata := []struct {
+		key   string
+		value []byte
+	}{
+		{key: "/foo/a", value: []byte("lorem")},
+		{key: "/foo/b", value: []byte("ipsum")},
+		{key: "/foo/c", value: []byte("dolor")},
+		{key: "/foo/d", value: []byte("sit")},
+		{key: "/bar/a", value: []byte("amet")},
+		{key: "/bar/b", value: []byte("consectetur")},
+		{key: "/bar/c", value: []byte("adipiscing")},
+		{key: "/bar/d", value: []byte("elit")},
+		{key: "/foo/bar/a", value: []byte("sed")},
+		{key: "/foo/bar/b", value: []byte("do")},
+		{key: "/foo/bar/c", value: []byte("eiusmod")},
+		{key: "/foo/bar/d", value: []byte("tempor")},
+		{key: "/foo/bar/baz/a", value: []byte("incididunt")},
+		{key: "/foo/bar/baz/b", value: []byte("ut")},
+		{key: "/foo/bar/baz/c", value: []byte("labore")},
+		{key: "/foo/bar/baz/d", value: []byte("et")},
+		// a duplicate just in case there's any edge cases
+		{key: "/foo/a", value: []byte("lorem")},
+	}
+
+	// Test Store
+	for _, d := range testdata {
+		if err := s.Store(d.key, d.value); err != nil {
+			t.Error(err.Error())
+		}
+	}
+
+	// Test Load
+	for _, d := range testdata {
+		if value, err := s.Load(d.key); err != nil {
+			t.Error(err.Error())
+		} else {
+			if !reflect.DeepEqual(value, d.value) {
+				t.Errorf("Load %s: expected %v, got %v", d.key, d.value, value)
+			}
+		}
+	}
+
+	// Test Exists
+	for _, d := range testdata {
+		if !s.Exists(d.key) {
+			t.Errorf("%s should exist, but doesn't\n", d.key)
+		}
+	}
+
+	// Test List
+	if list, err := s.List("/", true); err != nil {
+		t.Error(err.Error())
+	} else {
+		var expected []string
+		for i, d := range testdata {
+			if i != len(testdata)-1 {
+				// Don't store the intentionally duplicated key
+				expected = append(expected, d.key)
+			}
+		}
+		sort.Strings(expected)
+		sort.Strings(list)
+		if !reflect.DeepEqual(expected, list) {
+			t.Errorf("List: Expected %v, got %v\n", expected, list)
+		}
+	}
+	if list, err := s.List("/foo", false); err != nil {
+		t.Error(err.Error())
+	} else {
+		sort.Strings(list)
+		expected := []string{"/foo/a", "/foo/b", "/foo/bar", "/foo/c", "/foo/d"}
+		if !reflect.DeepEqual(expected, list) {
+			t.Errorf("List: expected %s, got %s\n", expected, list)
+		}
+	}
+
+	// Test Stat
+	for _, d := range testdata {
+		info, err := s.Stat(d.key)
+		if err != nil {
+			t.Error(err.Error())
+		} else {
+			if info.Key != d.key {
+				t.Errorf("Stat().Key: expected %s, got %s\n", d.key, info.Key)
+			}
+			if info.Size != int64(len(d.value)) {
+				t.Errorf("Stat().Size: expected %d, got %d\n", len(d.value), info.Size)
+			}
+			if time.Since(info.Modified) > time.Minute {
+				t.Errorf("Stat().Modified: expected time since last modified to be < 1 minute, got %v\n", time.Since(info.Modified))
+			}
+		}
+
+	}
+
+	// Test Delete
+	for _, d := range testdata {
+		if err := s.Delete(d.key); err != nil {
+			t.Error(err.Error())
+		}
+	}
+
+	// New interface doesn't return an error, so call it in case any log.Fatal
+	// happens
 	New(acme.Cache(s))
 }
