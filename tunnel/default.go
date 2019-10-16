@@ -982,28 +982,32 @@ func (t *tun) Dial(channel string, opts ...DialOption) (Session, error) {
 	var links []string
 
 	// non multicast so we need to find the link
-	t.RLock()
-	for _, link := range t.links {
-		// use the link specified it its available
-		if id := options.Link; len(id) > 0 && link.id != id {
-			continue
+	if id := options.Link; id != "" {
+		t.RLock()
+		for _, link := range t.links {
+			// use the link specified it its available
+			if link.id != id {
+				continue
+			}
+
+			link.RLock()
+			_, ok := link.channels[channel]
+			link.RUnlock()
+
+			// we have at least one channel mapping
+			if ok {
+				c.discovered = true
+				links = append(links, link.id)
+			}
+		}
+		t.RUnlock()
+		// link not found
+		if len(links) == 0 {
+			// delete session and return error
+			t.delSession(c.channel, c.session)
+			return nil, ErrLinkNotFound
 		}
 
-		link.RLock()
-		_, ok := link.channels[channel]
-		link.RUnlock()
-
-		// we have at least one channel mapping
-		if ok {
-			c.discovered = true
-			links = append(links, link.id)
-		}
-	}
-	t.RUnlock()
-
-	// link not found
-	if len(links) == 0 && len(options.Link) > 0 {
-		return nil, ErrLinkNotFound
 	}
 
 	// discovered so set the link if not multicast
@@ -1028,9 +1032,11 @@ func (t *tun) Dial(channel string, opts ...DialOption) (Session, error) {
 
 		select {
 		case <-time.After(after()):
+			t.delSession(c.channel, c.session)
 			return nil, ErrDialTimeout
 		case err := <-c.errChan:
 			if err != nil {
+				t.delSession(c.channel, c.session)
 				return nil, err
 			}
 		}
@@ -1041,7 +1047,7 @@ func (t *tun) Dial(channel string, opts ...DialOption) (Session, error) {
 		dialTimeout := after()
 
 		// set a shorter delay for multicast
-		if c.mode > Unicast {
+		if c.mode != Unicast {
 			// shorten this
 			dialTimeout = time.Millisecond * 500
 		}
@@ -1057,7 +1063,7 @@ func (t *tun) Dial(channel string, opts ...DialOption) (Session, error) {
 		}
 
 		// if its multicast just go ahead because this is best effort
-		if c.mode > Unicast {
+		if c.mode != Unicast {
 			c.discovered = true
 			c.accepted = true
 			return c, nil
@@ -1065,6 +1071,7 @@ func (t *tun) Dial(channel string, opts ...DialOption) (Session, error) {
 
 		// otherwise return an error
 		if err != nil {
+			t.delSession(c.channel, c.session)
 			return nil, err
 		}
 
