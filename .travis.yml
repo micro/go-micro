@@ -2,7 +2,7 @@ language: go
 go:
 - 1.13.x
 env:
-  - GO111MODULE=on
+  - GO111MODULE=on IN_TRAVIS_CI=yes
 notifications:
   slack:
     secure: aEvhLbhujaGaKSrOokiG3//PaVHTIrc3fBpoRbCRqfZpyq6WREoapJJhF+tIpWWOwaC9GmChbD6aHo/jMUgwKXVyPSaNjiEL87YzUUpL8B2zslNp1rgfTg/LrzthOx3Q1TYwpaAl3to0fuHUVFX4yMeC2vuThq7WSXgMMxFCtbc=
