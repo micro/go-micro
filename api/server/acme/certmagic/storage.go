@@ -3,6 +3,7 @@ package certmagic
 import (
 	"bytes"
 	"encoding/gob"
+	"errors"
 	"fmt"
 	"path"
 	"strings"
@@ -55,6 +56,9 @@ func (s *storage) Store(key string, value []byte) error {
 }
 
 func (s *storage) Load(key string) ([]byte, error) {
+	if !s.Exists(key) {
+		return nil, certmagic.ErrNotExist(errors.New(key + " doesn't exist"))
+	}
 	records, err := s.store.Read(key)
 	if err != nil {
 		return nil, err
@@ -77,7 +81,7 @@ func (s *storage) Delete(key string) error {
 }
 
 func (s *storage) Exists(key string) bool {
-	_, err := s.store.Read()
+	_, err := s.store.Read(key)
 	if err != nil {
 		return false
 	}
@@ -131,4 +135,12 @@ func (s *storage) Stat(key string) (certmagic.KeyInfo, error) {
 		Size:       int64(len(f.Contents)),
 		IsTerminal: false,
 	}, nil
+}
+
+// NewStorage returns a certmagic.Storage backed by a go-micro/lock and go-micro/store
+func NewStorage(lock lock.Lock, store store.Store) certmagic.Storage {
+	return &storage{
+		lock:  lock,
+		store: store,
+	}
 }

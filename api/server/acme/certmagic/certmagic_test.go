@@ -1,6 +1,7 @@
 package certmagic
 
 import (
+	"net/http"
 	"os"
 	"reflect"
 	"sort"
@@ -184,4 +185,47 @@ func TestStorageImplementation(t *testing.T) {
 	// New interface doesn't return an error, so call it in case any log.Fatal
 	// happens
 	New(acme.Cache(s))
+}
+
+// Full test with a real zone, with  against LE staging
+func TestE2e(t *testing.T) {
+	apiToken, accountID := os.Getenv("CF_API_TOKEN"), os.Getenv("CF_ACCOUNT_ID")
+	kvID := os.Getenv("KV_NAMESPACE_ID")
+	if len(apiToken) == 0 || len(accountID) == 0 || len(kvID) == 0 {
+		t.Skip("No Cloudflare API keys available, skipping test")
+	}
+
+	testLock := memory.NewLock()
+	testStore, err := cloudflarestorage.New(
+		options.WithValue("CF_API_TOKEN", apiToken),
+		options.WithValue("CF_ACCOUNT_ID", accountID),
+		options.WithValue("KV_NAMESPACE_ID", kvID),
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	testStorage := NewStorage(testLock, testStore)
+
+	conf := cloudflare.NewDefaultConfig()
+	conf.AuthToken = apiToken
+	conf.ZoneToken = apiToken
+	testChallengeProvider, err := cloudflare.NewDNSProviderConfig(conf)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	testProvider := New(
+		acme.AcceptToS(true),
+		acme.Cache(testStorage),
+		acme.CA(acme.LetsEncryptStagingCA),
+		acme.ChallengeProvider(testChallengeProvider),
+		acme.OnDemand(false),
+	)
+
+	listener, err := testProvider.NewListener("*.micro.mu", "micro.mu")
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	go http.Serve(listener, http.NotFoundHandler())
+	time.Sleep(10 * time.Minute)
 }
