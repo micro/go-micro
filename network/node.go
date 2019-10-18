@@ -170,9 +170,6 @@ func (n *node) Nodes() []Node {
 // GetPeerNode returns a node from node MaxDepth topology
 // It returns nil if the peer was not found
 func (n *node) GetPeerNode(id string) *node {
-	n.RLock()
-	defer n.RUnlock()
-
 	// get node topology up to MaxDepth
 	top := n.Topology(MaxDepth)
 
@@ -240,12 +237,9 @@ func (n *node) PruneStalePeerNodes(pruneTime time.Duration) map[string]*node {
 	return pruned
 }
 
-// Topology returns a copy of the node topology down to given depth
-// NOTE: the returned node is a node graph - not a single node
-func (n *node) Topology(depth uint) *node {
-	n.RLock()
-	defer n.RUnlock()
-
+// getTopology traverses node graph and builds node topology
+// NOTE: this function is not thread safe
+func (n *node) getTopology(depth uint) *node {
 	// make a copy of yourself
 	node := &node{
 		id:       n.id,
@@ -265,13 +259,22 @@ func (n *node) Topology(depth uint) *node {
 
 	// iterate through our peers and update the node peers
 	for _, peer := range n.peers {
-		nodePeer := peer.Topology(depth)
+		nodePeer := peer.getTopology(depth)
 		if _, ok := node.peers[nodePeer.id]; !ok {
 			node.peers[nodePeer.id] = nodePeer
 		}
 	}
 
 	return node
+}
+
+// Topology returns a copy of the node topology down to given depth
+// NOTE: the returned node is a node graph - not a single node
+func (n *node) Topology(depth uint) *node {
+	n.RLock()
+	defer n.RUnlock()
+
+	return n.getTopology(depth)
 }
 
 // Peers returns node peers up to MaxDepth
@@ -281,7 +284,7 @@ func (n *node) Peers() []Node {
 
 	var peers []Node
 	for _, nodePeer := range n.peers {
-		peer := nodePeer.Topology(MaxDepth)
+		peer := nodePeer.getTopology(MaxDepth)
 		peers = append(peers, peer)
 	}
 
