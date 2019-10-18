@@ -170,9 +170,6 @@ func (n *node) Nodes() []Node {
 // GetPeerNode returns a node from node MaxDepth topology
 // It returns nil if the peer was not found
 func (n *node) GetPeerNode(id string) *node {
-	n.RLock()
-	defer n.RUnlock()
-
 	// get node topology up to MaxDepth
 	top := n.Topology(MaxDepth)
 
