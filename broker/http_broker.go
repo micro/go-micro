@@ -560,11 +560,6 @@ func (h *httpBroker) Publish(topic string, msg *Message, opts ...PublishOption) 
 
 	srv := func(s []*registry.Service, b []byte) {
 		for _, service := range s {
-			// only process if we have nodes
-			if len(service.Nodes) == 0 {
-				continue
-			}
-
 			var nodes []*registry.Node
 
 			for _, node := range service.Nodes {
@@ -579,6 +574,11 @@ func (h *httpBroker) Publish(topic string, msg *Message, opts ...PublishOption) 
 				}
 
 				nodes = append(nodes, node)
+			}
+
+			// only process if we have nodes
+			if len(nodes) == 0 {
+				continue
 			}
 
 			switch service.Version {
