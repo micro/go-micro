@@ -32,6 +32,12 @@ type link struct {
 	// channels keeps a mapping of channels and last seen
 	channels map[string]time.Time
 
+	// the weighted moving average roundtrip
+	rtt int64
+
+	// weighted moving average of bits flowing
+	rate float64
+
 	// keep an error count on the link
 	errCount int
 }
@@ -46,6 +52,21 @@ func newLink(s transport.Socket) *link {
 	}
 	go l.expiry()
 	return l
+}
+
+func (l *link) setRTT(d time.Duration) {
+	l.Lock()
+	defer l.Unlock()
+
+	if l.rtt <= 0 {
+		l.rtt = d.Nanoseconds()
+		return
+	}
+
+	// https://fishi.devtail.io/weblog/2015/04/12/measuring-bandwidth-and-round-trip-time-tcp-connection-inside-application-layer/
+	rtt := 0.8*float64(l.rtt) + 0.2*float64(d.Nanoseconds())
+	// set new rtt
+	l.rtt = int64(rtt)
 }
 
 // watches the channel expiry
@@ -92,12 +113,18 @@ func (l *link) Delay() int64 {
 
 // Current transfer rate as bits per second (lower is better)
 func (l *link) Rate() float64 {
-	return float64(10e8)
+	l.RLock()
+	defer l.RUnlock()
+	return l.rate
 }
 
-// Length returns the roundtrip time as nanoseconds (lower is better)
+// Length returns the roundtrip time as nanoseconds (lower is better).
+// Returns 0 where no measurement has been taken.
 func (l *link) Length() int64 {
-	return time.Second.Nanoseconds()
+	l.RLock()
+	defer l.RUnlock()
+
+	return l.rtt
 }
 
 func (l *link) Id() string {
@@ -119,10 +146,42 @@ func (l *link) Close() error {
 }
 
 func (l *link) Send(m *transport.Message) error {
+	dataSent := len(m.Body)
+
+	// set header length
+	for k, v := range m.Header {
+		dataSent += (len(k) + len(v))
+	}
+
+	// get time now
+	now := time.Now()
+
+	// send the message
 	err := l.Socket.Send(m)
 
 	l.Lock()
 	defer l.Unlock()
+
+	// calculate based on data
+	if dataSent > 0 {
+		// measure time taken
+		delta := time.Since(now)
+
+		// bit sent
+		bits := dataSent * 1024
+
+		// rate of send in bits per nanosecond
+		rate := float64(bits) / float64(delta.Nanoseconds())
+
+		//
+		if l.rate == 0 {
+			// rate per second
+			l.rate = rate * 1e9
+		} else {
+			// set new rate per second
+			l.rate = 0.8*l.rate + 0.2*(rate*1e9)
+		}
+	}
 
 	// if theres no error reset the counter
 	if err == nil {

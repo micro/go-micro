@@ -966,7 +966,7 @@ func (t *tun) Dial(channel string, opts ...DialOption) (Session, error) {
 	c.mode = options.Mode
 	// set the dial timeout
 	c.timeout = options.Timeout
-
+	// get the current time
 	now := time.Now()
 
 	after := func() time.Duration {
@@ -980,6 +980,8 @@ func (t *tun) Dial(channel string, opts ...DialOption) (Session, error) {
 	}
 
 	var links []string
+	// did we measure the rtt
+	var measured bool
 
 	// non multicast so we need to find the link
 	if id := options.Link; id != "" {
@@ -1021,6 +1023,9 @@ func (t *tun) Dial(channel string, opts ...DialOption) (Session, error) {
 
 	// shit fuck
 	if !c.discovered {
+		// piggy back roundtrip
+		nowRTT := time.Now()
+
 		// create a new discovery message for this channel
 		msg := c.newMessage("discover")
 		msg.mode = Broadcast
@@ -1075,11 +1080,29 @@ func (t *tun) Dial(channel string, opts ...DialOption) (Session, error) {
 			return nil, err
 		}
 
+		// set roundtrip
+		d := time.Since(nowRTT)
+
+		// set the link time
+		t.RLock()
+		link, ok := t.links[c.link]
+		t.RUnlock()
+
+		if ok {
+			// set the rountrip time
+			link.setRTT(d)
+			// set measured to true
+			measured = true
+		}
+
 		// set discovered to true
 		c.discovered = true
 	}
 
 	// a unicast session so we call "open" and wait for an "accept"
+
+	// reset now in case we use it
+	now = time.Now()
 
 	// try to open the session
 	err := c.Open()
@@ -1087,6 +1110,18 @@ func (t *tun) Dial(channel string, opts ...DialOption) (Session, error) {
 		// delete the session
 		t.delSession(c.channel, c.session)
 		return nil, err
+	}
+
+	// if we haven't measured the roundtrip do it now
+	if !measured && c.mode == Unicast {
+		// set the link time
+		t.RLock()
+		link, ok := t.links[c.link]
+		t.RUnlock()
+		if ok {
+			// set the rountrip time
+			link.setRTT(time.Since(now))
+		}
 	}
 
 	return c, nil
