@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/micro/go-micro/client"
+	"github.com/micro/go-micro/client/selector"
 	"github.com/micro/go-micro/codec"
 	"github.com/micro/go-micro/codec/bytes"
 	"github.com/micro/go-micro/config/options"
@@ -252,11 +253,18 @@ func (p *Proxy) ServeRequest(ctx context.Context, req server.Request, rsp server
 		routes = addr
 	}
 
+	var opts []client.CallOption
+
+	// set strategy to round robin
+	opts = append(opts, client.WithSelectOption(selector.WithStrategy(selector.RoundRobin)))
+
 	// if the address is already set just serve it
 	// TODO: figure it out if we should know to pick a link
 	if len(addresses) > 0 {
+		opts = append(opts, client.WithAddress(addresses...))
+
 		// serve the normal way
-		return p.serveRequest(ctx, p.Client, service, endpoint, req, rsp, client.WithAddress(addresses...))
+		return p.serveRequest(ctx, p.Client, service, endpoint, req, rsp, opts...)
 	}
 
 	// there's no links e.g we're local routing then just serve it with addresses
@@ -288,9 +296,10 @@ func (p *Proxy) ServeRequest(ctx context.Context, req server.Request, rsp server
 
 		// set the address to call
 		addresses := toNodes([]router.Route{route})
+		opts = append(opts, client.WithAddress(addresses...))
 
 		// do the request with the link
-		gerr = p.serveRequest(ctx, link, service, endpoint, req, rsp, client.WithAddress(addresses...))
+		gerr = p.serveRequest(ctx, link, service, endpoint, req, rsp, opts...)
 		// return on no error since we succeeded
 		if gerr == nil {
 			return nil
