@@ -85,6 +85,21 @@ func (l *link) expiry() {
 	}
 }
 
+// Delay is the current load on the link
+func (l *link) Delay() int64 {
+	return 0
+}
+
+// Transfer rate capability as bits per second (higher is better)
+func (l *link) Rate() float64 {
+	return float64(10e8)
+}
+
+// Length returns the roundtrip time as nanoseconds (lower is better)
+func (l *link) Length() int64 {
+	return time.Second.Nanoseconds()
+}
+
 func (l *link) Id() string {
 	l.RLock()
 	defer l.RUnlock()
