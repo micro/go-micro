@@ -6,6 +6,8 @@ import (
 
 	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/server"
+	"github.com/micro/go-micro/transport"
+	"github.com/micro/go-micro/tunnel"
 )
 
 var (
@@ -52,6 +54,14 @@ type Network interface {
 	Client() client.Client
 	// Server is micro server
 	Server() server.Server
+}
+
+// Message is network message
+type Message struct {
+	// msg is transport message
+	msg *transport.Message
+	// session is tunnel session
+	session tunnel.Session
 }
 
 // NewNetwork returns a new network interface
