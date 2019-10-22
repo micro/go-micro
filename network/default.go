@@ -369,6 +369,7 @@ func (n *network) processNetChan(listener tunnel.Listener) {
 				if err := n.updatePeerLinks(pbNetConnect.Node.Address, m.session.Link()); err != nil {
 					log.Debugf("Network failed updating peer links: %s", err)
 				}
+				// add peer to the list of node peers
 				if err := n.node.AddPeer(peer); err == ErrPeerExists {
 					log.Debugf("Network peer exists, refreshing: %s", peer.id)
 					// update lastSeen time for the existing node
@@ -652,38 +653,6 @@ func (n *network) acceptCtrlConn(l tunnel.Listener, recv chan *Message) {
 	}
 }
 
-// setRouteMetric calculates metric of the route and updates it in place
-// - Local route metric is 1
-// - Routes with ID of adjacent nodes are 10
-// - Routes by peers of the advertiser are 100
-// - Routes beyond your neighbourhood are 1000
-func (n *network) setRouteMetric(route *router.Route) {
-	// we are the origin of the route
-	if route.Router == n.options.Id {
-		route.Metric = 1
-		return
-	}
-
-	// check if the route origin is our peer
-	if _, ok := n.peers[route.Router]; ok {
-		route.Metric = 10
-		return
-	}
-
-	// check if the route origin is the peer of our peer
-	for _, peer := range n.peers {
-		for id := range peer.peers {
-			if route.Router == id {
-				route.Metric = 100
-				return
-			}
-		}
-	}
-
-	// the origin of the route is beyond our neighbourhood
-	route.Metric = 1000
-}
-
 // processCtrlChan processes messages received on ControlChannel
 func (n *network) processCtrlChan(listener tunnel.Listener) {
 	// receive control message queue
@@ -737,14 +706,20 @@ func (n *network) processCtrlChan(listener tunnel.Listener) {
 						Metric:  int(event.Route.Metric),
 					}
 					// set the route metric
-					n.node.RLock()
-					n.setRouteMetric(&route)
-					n.node.RUnlock()
-					// throw away metric bigger than 1000
-					if route.Metric > 1000 {
-						log.Debugf("Network route metric %d dropping node: %s", route.Metric, route.Router)
-						continue
+					n.RLock()
+					if link, ok := n.peerLinks[event.Route.Gateway]; ok {
+						// NOTE: should we change router.Route.Metric to int64?
+						if int(link.Length()) < route.Metric {
+							route.Metric = int(link.Length())
+						}
 					}
+					n.RUnlock()
+					// TODO: Are we dropping any routes?
+					// throw away metric bigger than 1000
+					//if route.Metric > 1000 {
+					//	log.Debugf("Network route metric %d dropping node: %s", route.Metric, route.Router)
+					//	continue
+					//}
 					// create router event
 					e := &router.Event{
 						Type:      router.EventType(event.Type),
