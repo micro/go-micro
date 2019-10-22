@@ -292,3 +292,53 @@ func TestReconnectTunnel(t *testing.T) {
 	// wait until done
 	wg.Wait()
 }
+
+func TestTunnelRTTRate(t *testing.T) {
+	// create a new tunnel client
+	tunA := NewTunnel(
+		Address("127.0.0.1:9096"),
+		Nodes("127.0.0.1:9097"),
+	)
+
+	// create a new tunnel server
+	tunB := NewTunnel(
+		Address("127.0.0.1:9097"),
+	)
+
+	// start tunB
+	err := tunB.Connect()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tunB.Close()
+
+	// start tunA
+	err = tunA.Connect()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tunA.Close()
+
+	wait := make(chan bool)
+
+	var wg sync.WaitGroup
+
+	wg.Add(1)
+	// start the listener
+	go testAccept(t, tunB, wait, &wg)
+
+	wg.Add(1)
+	// start the client
+	go testSend(t, tunA, wait, &wg)
+
+	// wait until done
+	wg.Wait()
+
+	for _, link := range tunA.Links() {
+		t.Logf("Link %s length %v rate %v", link.Id(), link.Length(), link.Rate())
+	}
+
+	for _, link := range tunB.Links() {
+		t.Logf("Link %s length %v rate %v", link.Id(), link.Length(), link.Rate())
+	}
+}

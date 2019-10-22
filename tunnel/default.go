@@ -1085,16 +1085,15 @@ func (t *tun) Dial(channel string, opts ...DialOption) (Session, error) {
 
 		// set the link time
 		t.RLock()
-		link, ok := t.links[msg.link]
+		link, ok := t.links[c.link]
 		t.RUnlock()
 
 		if ok {
 			// set the rountrip time
 			link.setRTT(d)
+			// set measured to true
+			measured = true
 		}
-
-		// set measured to true
-		measured = true
 
 		// set discovered to true
 		c.discovered = true
