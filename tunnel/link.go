@@ -32,6 +32,9 @@ type link struct {
 	// channels keeps a mapping of channels and last seen
 	channels map[string]time.Time
 
+	// the weighed moving average roundtrip
+	rtt int64
+
 	// keep an error count on the link
 	errCount int
 }
@@ -46,6 +49,21 @@ func newLink(s transport.Socket) *link {
 	}
 	go l.expiry()
 	return l
+}
+
+func (l *link) setRTT(d time.Duration) {
+	l.Lock()
+	defer l.Unlock()
+
+	if l.rtt < 0 {
+		l.rtt = d.Nanoseconds()
+		return
+	}
+
+	// https://fishi.devtail.io/weblog/2015/04/12/measuring-bandwidth-and-round-trip-time-tcp-connection-inside-application-layer/
+	rtt := 0.8*float64(l.rtt) + 0.2*float64(d.Nanoseconds())
+	// set new rtt
+	l.rtt = int64(rtt)
 }
 
 // watches the channel expiry
@@ -95,9 +113,13 @@ func (l *link) Rate() float64 {
 	return float64(10e8)
 }
 
-// Length returns the roundtrip time as nanoseconds (lower is better)
+// Length returns the roundtrip time as nanoseconds (lower is better).
+// Returns 0 where no measurement has been taken.
 func (l *link) Length() int64 {
-	return time.Second.Nanoseconds()
+	l.RLock()
+	defer l.RUnlock()
+
+	return l.rtt
 }
 
 func (l *link) Id() string {
