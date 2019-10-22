@@ -59,9 +59,9 @@ type Link interface {
 	Id() string
 	// Status of the link e.g connected/closed
 	Status() string
-	// Delay is the current load on the link
+	// Delay is the current load on the link (lower is better)
 	Delay() int64
-	// Transfer rate capability as bits per second (higher is better)
+	// Current transfer rate as bits per second (lower is better)
 	Rate() float64
 	// Length returns the roundtrip time as nanoseconds (lower is better)
 	Length() int64

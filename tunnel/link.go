@@ -90,7 +90,7 @@ func (l *link) Delay() int64 {
 	return 0
 }
 
-// Transfer rate capability as bits per second (higher is better)
+// Current transfer rate as bits per second (lower is better)
 func (l *link) Rate() float64 {
 	return float64(10e8)
 }
