@@ -427,7 +427,7 @@ func (t *tun) listen(link *link) {
 		// process anything via the net interface
 		msg := new(transport.Message)
 		if err := link.Recv(msg); err != nil {
-			log.Debugf("Tunnel link %s receive error: %#v", link.Remote(), err)
+			log.Debugf("Tunnel link %s receive error: %v", link.Remote(), err)
 			return
 		}
 

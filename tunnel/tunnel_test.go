@@ -202,8 +202,8 @@ func testBrokenTunAccept(t *testing.T, tun Tunnel, wait chan bool, wg *sync.Wait
 		t.Fatal(err)
 	}
 
-	// notify sender we have received the message
-	<-wait
+	// notify the sender we have received
+	wait <- true
 }
 
 func testBrokenTunSend(t *testing.T, tun Tunnel, wait chan bool, wg *sync.WaitGroup) {
@@ -234,7 +234,7 @@ func testBrokenTunSend(t *testing.T, tun Tunnel, wait chan bool, wg *sync.WaitGr
 	<-wait
 
 	// give it time to reconnect
-	time.Sleep(2 * ReconnectTime)
+	time.Sleep(5 * ReconnectTime)
 
 	// send the message
 	if err := c.Send(&m); err != nil {
@@ -244,7 +244,7 @@ func testBrokenTunSend(t *testing.T, tun Tunnel, wait chan bool, wg *sync.WaitGr
 	// wait for the listener to receive the message
 	// c.Send merely enqueues the message to the link send queue and returns
 	// in order to verify it was received we wait for the listener to tell us
-	wait <- true
+	<-wait
 }
 
 func TestReconnectTunnel(t *testing.T) {
