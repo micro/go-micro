@@ -13,6 +13,7 @@ import (
 	"math"
 	"net/http"
 	"net/url"
+	"os"
 	"strconv"
 	"time"
 
@@ -71,6 +72,29 @@ type apiResponse struct {
 type apiMessage struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`
+}
+
+// getOptions returns account id, token and namespace
+func getOptions() (string, string, string) {
+	accountID := os.Getenv("CF_ACCOUNT_ID")
+	apiToken := os.Getenv("CF_API_TOKEN")
+	namespace := os.Getenv("KV_NAMESPACE_ID")
+
+	return accountID, apiToken, namespace
+}
+
+func validateOptions(account, token, namespace string) {
+	if len(account) == 0 {
+		log.Fatal("Store: CF_ACCOUNT_ID is blank")
+	}
+
+	if len(token) == 0 {
+		log.Fatal("Store: CF_API_TOKEN is blank")
+	}
+
+	if len(namespace) == 0 {
+		log.Fatal("Store: KV_NAMESPACE_ID is blank")
+	}
 }
 
 // In the cloudflare workers KV implemention, List() doesn't guarantee
@@ -257,38 +281,47 @@ func (w *workersKV) request(ctx context.Context, method, path string, body inter
 }
 
 // New returns a cloudflare Store implementation.
-// Options expects CF_API_TOKEN to a cloudflare API token scoped to Workers KV,
-// CF_ACCOUNT_ID to contain a string with your cloudflare account ID and
+// Account ID, Token and Namespace must either be passed as options or
+// environment variables. If set as env vars we expect the following;
+// CF_API_TOKEN to a cloudflare API token scoped to Workers KV.
+// CF_ACCOUNT_ID to contain a string with your cloudflare account ID.
 // KV_NAMESPACE_ID to contain the namespace UUID for your KV storage.
 func NewStore(opts ...options.Option) store.Store {
-	// Validate Options
+	// create new Options
 	options := options.NewOptions(opts...)
 
-	var account, token, namespace string
+	// get values from the environment
+	account, token, namespace := getOptions()
 
-	apiToken, ok := options.Values().Get("CF_API_TOKEN")
-	if !ok {
-		log.Fatal("Store: No CF_API_TOKEN passed as an option")
-	}
-	if token, ok = apiToken.(string); !ok {
-		log.Fatal("Store: Option CF_API_TOKEN contains a non-string")
-	}
-
-	accountID, ok := options.Values().Get("CF_ACCOUNT_ID")
-	if !ok {
-		log.Fatal("Store: No CF_ACCOUNT_ID passed as an option")
-	}
-	if account, ok = accountID.(string); !ok {
-		log.Fatal("Store: Option CF_ACCOUNT_ID contains a non-string")
+	// set api token from options if exists
+	if apiToken, ok := options.Values().Get("CF_API_TOKEN"); ok {
+		tk, ok := apiToken.(string)
+		if !ok {
+			log.Fatal("Store: Option CF_API_TOKEN contains a non-string")
+		}
+		token = tk
 	}
 
-	uuid, ok := options.Values().Get("KV_NAMESPACE_ID")
-	if !ok {
-		log.Fatal("Store: No KV_NAMESPACE_ID passed as an option")
+	// set account id from options if exists
+	if accountID, ok := options.Values().Get("CF_ACCOUNT_ID"); ok {
+		id, ok := accountID.(string)
+		if !ok {
+			log.Fatal("Store: Option CF_ACCOUNT_ID contains a non-string")
+		}
+		account = id
 	}
-	if namespace, ok = uuid.(string); !ok {
-		log.Fatal("Store: Option KV_NAMESPACE_ID contains a non-string")
+
+	// set namespace from options if exists
+	if uuid, ok := options.Values().Get("KV_NAMESPACE_ID"); ok {
+		ns, ok := uuid.(string)
+		if !ok {
+			log.Fatal("Store: Option KV_NAMESPACE_ID contains a non-string")
+		}
+		namespace = ns
 	}
+
+	// validate options are not blank or log.Fatal
+	validateOptions(account, token, namespace)
 
 	return &workersKV{
 		account:    account,
