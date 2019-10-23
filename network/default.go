@@ -573,6 +573,9 @@ func (n *network) prune() {
 			pruned := n.PruneStalePeerNodes(PruneTime)
 			for id, peer := range pruned {
 				log.Debugf("Network peer exceeded prune time: %s", id)
+				n.Lock()
+				delete(n.peerLinks, peer.address)
+				n.Unlock()
 				if err := n.prunePeerRoutes(peer); err != nil {
 					log.Debugf("Network failed pruning peer %s routes: %v", id, err)
 				}
@@ -580,7 +583,7 @@ func (n *network) prune() {
 			// get a list of all routes
 			routes, err := n.options.Router.Table().List()
 			if err != nil {
-				log.Debugf("Network failed listing routes: %v", err)
+				log.Debugf("Network failed listing routes when pruning peers: %v", err)
 				continue
 			}
 			// collect all the router IDs in the routing table
@@ -654,31 +657,6 @@ func (n *network) acceptCtrlConn(l tunnel.Listener, recv chan *Message) {
 	}
 }
 
-// getRouteMetric calculates router metric and returns it
-// Route metric is calculated based on link status and route hopd count
-func (n *network) getRouteMetric(router string, gateway string) int64 {
-	// set the route metric
-	n.RLock()
-	defer n.RUnlock()
-
-	if link, ok := n.peerLinks[gateway]; ok {
-		// maka sure delay is non-zero
-		delay := link.Delay()
-		if delay == 0 {
-			delay = 1
-		}
-		// get the route hop count
-		hops := n.getHopCount(router)
-		// make sure length is non-zero
-		length := link.Length()
-		if length == 0 {
-			length = 10e10
-		}
-		return (delay * length * int64(hops)) / 10e9
-	}
-	return math.MaxInt64
-}
-
 // getHopCount queries network graph and returns hop count for given router
 // - Routes for local services have hop count 1
 // - Routes with ID of adjacent nodes have hop count 2
@@ -709,6 +687,31 @@ func (n *network) getHopCount(rtr string) int {
 	}
 	// otherwise we are three hops away
 	return 4
+}
+
+// getRouteMetric calculates router metric and returns it
+// Route metric is calculated based on link status and route hopd count
+func (n *network) getRouteMetric(router string, gateway string) int64 {
+	// set the route metric
+	n.RLock()
+	defer n.RUnlock()
+
+	if link, ok := n.peerLinks[gateway]; ok {
+		// maka sure delay is non-zero
+		delay := link.Delay()
+		if delay == 0 {
+			delay = 1
+		}
+		// get the route hop count
+		hops := n.getHopCount(router)
+		// make sure length is non-zero
+		length := link.Length()
+		if length == 0 {
+			length = 10e10
+		}
+		return (delay * length * int64(hops)) / 10e9
+	}
+	return math.MaxInt64
 }
 
 // processCtrlChan processes messages received on ControlChannel
