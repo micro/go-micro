@@ -423,7 +423,7 @@ func (c *cache) Stop() {
 }
 
 func (c *cache) String() string {
-	return "rcache"
+	return "cache"
 }
 
 // New returns a new cache

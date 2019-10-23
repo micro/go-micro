@@ -37,10 +37,8 @@ type session struct {
 	outbound bool
 	// lookback marks the session as a loopback on the inbound
 	loopback bool
-	// if the session is multicast
-	multicast bool
-	// if the session is broadcast
-	broadcast bool
+	// mode of the connection
+	mode Mode
 	// the timeout
 	timeout time.Duration
 	// the link on which this message was received
@@ -63,10 +61,8 @@ type message struct {
 	outbound bool
 	// loopback marks the message intended for loopback
 	loopback bool
-	// whether to send as multicast
-	multicast bool
-	// broadcast sets the broadcast type
-	broadcast bool
+	// mode of the connection
+	mode Mode
 	// the link to send the message on
 	link string
 	// transport data
@@ -98,15 +94,15 @@ func (s *session) Channel() string {
 // newMessage creates a new message based on the session
 func (s *session) newMessage(typ string) *message {
 	return &message{
-		typ:       typ,
-		tunnel:    s.tunnel,
-		channel:   s.channel,
-		session:   s.session,
-		outbound:  s.outbound,
-		loopback:  s.loopback,
-		multicast: s.multicast,
-		link:      s.link,
-		errChan:   s.errChan,
+		typ:      typ,
+		tunnel:   s.tunnel,
+		channel:  s.channel,
+		session:  s.session,
+		outbound: s.outbound,
+		loopback: s.loopback,
+		mode:     s.mode,
+		link:     s.link,
+		errChan:  s.errChan,
 	}
 }
 
@@ -128,8 +124,8 @@ func (s *session) Open() error {
 		return io.EOF
 	}
 
-	// we don't wait on multicast
-	if s.multicast {
+	// don't wait on multicast/broadcast
+	if s.mode == Multicast {
 		s.accepted = true
 		return nil
 	}
@@ -166,6 +162,11 @@ func (s *session) Accept() error {
 		// no op here
 	}
 
+	// don't wait on multicast/broadcast
+	if s.mode == Multicast {
+		return nil
+	}
+
 	// wait for send response
 	select {
 	case err := <-s.errChan:
@@ -185,7 +186,7 @@ func (s *session) Announce() error {
 	// we don't need an error back
 	msg.errChan = nil
 	// announce to all
-	msg.broadcast = true
+	msg.mode = Broadcast
 	// we don't need the link
 	msg.link = ""
 
@@ -222,7 +223,7 @@ func (s *session) Send(m *transport.Message) error {
 	msg.data = data
 
 	// if multicast don't set the link
-	if s.multicast {
+	if s.mode == Multicast {
 		msg.link = ""
 	}
 

@@ -8,6 +8,15 @@ import (
 	"github.com/micro/go-micro/transport"
 )
 
+const (
+	// send over one link
+	Unicast Mode = iota
+	// send to all channel listeners
+	Multicast
+	// send to all links
+	Broadcast
+)
+
 var (
 	// DefaultDialTimeout is the dial timeout if none is specified
 	DefaultDialTimeout = time.Second * 5
@@ -18,6 +27,9 @@ var (
 	// ErrLinkNotFound is returned when a link is specified at dial time and does not exist
 	ErrLinkNotFound = errors.New("link not found")
 )
+
+// Mode of the session
+type Mode uint8
 
 // Tunnel creates a gre tunnel on top of the go-micro/transport.
 // It establishes multiple streams using the Micro-Tunnel-Channel header
@@ -36,7 +48,7 @@ type Tunnel interface {
 	// Connect to a channel
 	Dial(channel string, opts ...DialOption) (Session, error)
 	// Accept connections on a channel
-	Listen(channel string) (Listener, error)
+	Listen(channel string, opts ...ListenOption) (Listener, error)
 	// Name of the tunnel implementation
 	String() string
 }
@@ -45,6 +57,12 @@ type Tunnel interface {
 type Link interface {
 	// The id of the link
 	Id() string
+	// Delay is the current load on the link (lower is better)
+	Delay() int64
+	// Length returns the roundtrip time as nanoseconds (lower is better)
+	Length() int64
+	// Current transfer rate as bits per second (lower is better)
+	Rate() float64
 	// Status of the link e.g connected/closed
 	Status() string
 	// honours transport socket
