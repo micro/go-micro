@@ -89,7 +89,7 @@ func (s *storage) Exists(key string) bool {
 }
 
 func (s *storage) List(prefix string, recursive bool) ([]string, error) {
-	records, err := s.store.Sync()
+	records, err := s.store.List()
 	if err != nil {
 		return nil, err
 	}

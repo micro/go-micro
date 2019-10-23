@@ -13,7 +13,7 @@ import (
 )
 
 type certmagicProvider struct {
-	opts *acme.Options
+	opts acme.Options
 }
 
 func (c *certmagicProvider) NewListener(ACMEHosts ...string) (net.Listener, error) {
@@ -40,23 +40,19 @@ func (c *certmagicProvider) NewListener(ACMEHosts ...string) (net.Listener, erro
 
 // New returns a certmagic provider
 func New(options ...acme.Option) acme.Provider {
-	o := &acme.Options{}
-	if len(options) == 0 {
-		for _, op := range acme.Default() {
-			op(o)
-		}
-	} else {
-		for _, op := range options {
-			op(o)
-		}
+	opts := acme.DefaultOptions()
+
+	for _, o := range options {
+		o(&opts)
 	}
-	if o.Cache != nil {
-		if _, ok := o.Cache.(certmagic.Storage); !ok {
+
+	if opts.Cache != nil {
+		if _, ok := opts.Cache.(certmagic.Storage); !ok {
 			log.Fatal("ACME: cache provided doesn't implement certmagic's Storage interface")
 		}
 	}
 
 	return &certmagicProvider{
-		opts: o,
+		opts: opts,
 	}
 }

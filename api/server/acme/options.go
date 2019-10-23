@@ -63,11 +63,11 @@ func Cache(c interface{}) Option {
 	}
 }
 
-// Default uses the Let's Encrypt Production CA, with DNS Challenge disabled.
-func Default() []Option {
-	return []Option{
-		AcceptToS(true),
-		CA(LetsEncryptProductionCA),
-		OnDemand(true),
+// DefaultOptions uses the Let's Encrypt Production CA, with DNS Challenge disabled.
+func DefaultOptions() Options {
+	return Options{
+		AcceptToS: true,
+		CA: LetsEncryptProductionCA,
+		OnDemand: true,
 	}
 }
