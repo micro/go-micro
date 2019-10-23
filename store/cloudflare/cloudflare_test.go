@@ -20,15 +20,11 @@ func TestCloudflare(t *testing.T) {
 	randomK := strconv.Itoa(rand.Int())
 	randomV := strconv.Itoa(rand.Int())
 
-	wkv, err := NewStore(
+	wkv := NewStore(
 		ApiToken(apiToken),
 		AccountID(accountID),
 		Namespace(kvID),
 	)
-
-	if err != nil {
-		t.Fatal(err.Error())
-	}
 
 	records, err := wkv.List()
 	if err != nil {

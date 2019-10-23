@@ -21,7 +21,9 @@ import (
 	"github.com/pkg/errors"
 )
 
-const apiBaseURL = "https://api.cloudflare.com/client/v4/"
+const (
+	apiBaseURL = "https://api.cloudflare.com/client/v4/"
+)
 
 type workersKV struct {
 	options.Options
@@ -33,49 +35,6 @@ type workersKV struct {
 	namespace string
 	// http client to use
 	httpClient *http.Client
-}
-
-// New returns a cloudflare Store implementation.
-// Options expects CF_API_TOKEN to a cloudflare API token scoped to Workers KV,
-// CF_ACCOUNT_ID to contain a string with your cloudflare account ID and
-// KV_NAMESPACE_ID to contain the namespace UUID for your KV storage.
-func NewStore(opts ...options.Option) (store.Store, error) {
-	// Validate Options
-	options := options.NewOptions(opts...)
-
-	var account, token, namespace string
-
-	apiToken, ok := options.Values().Get("CF_API_TOKEN")
-	if !ok {
-		log.Fatal("Store: No CF_API_TOKEN passed as an option")
-	}
-	if token, ok = apiToken.(string); !ok {
-		log.Fatal("Store: Option CF_API_TOKEN contains a non-string")
-	}
-
-	accountID, ok := options.Values().Get("CF_ACCOUNT_ID")
-	if !ok {
-		log.Fatal("Store: No CF_ACCOUNT_ID passed as an option")
-	}
-	if account, ok = accountID.(string); !ok {
-		log.Fatal("Store: Option CF_ACCOUNT_ID contains a non-string")
-	}
-
-	uuid, ok := options.Values().Get("KV_NAMESPACE_ID")
-	if !ok {
-		log.Fatal("Store: No KV_NAMESPACE_ID passed as an option")
-	}
-	if namespace, ok = uuid.(string); !ok {
-		log.Fatal("Store: Option KV_NAMESPACE_ID contains a non-string")
-	}
-
-	return &workersKV{
-		account:    account,
-		namespace:  namespace,
-		token:      token,
-		Options:    options,
-		httpClient: &http.Client{},
-	}, nil
 }
 
 // In the cloudflare workers KV implemention, List() doesn't guarantee
@@ -295,4 +254,47 @@ type apiResponse struct {
 type apiMessage struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`
+}
+
+// New returns a cloudflare Store implementation.
+// Options expects CF_API_TOKEN to a cloudflare API token scoped to Workers KV,
+// CF_ACCOUNT_ID to contain a string with your cloudflare account ID and
+// KV_NAMESPACE_ID to contain the namespace UUID for your KV storage.
+func NewStore(opts ...options.Option) store.Store {
+	// Validate Options
+	options := options.NewOptions(opts...)
+
+	var account, token, namespace string
+
+	apiToken, ok := options.Values().Get("CF_API_TOKEN")
+	if !ok {
+		log.Fatal("Store: No CF_API_TOKEN passed as an option")
+	}
+	if token, ok = apiToken.(string); !ok {
+		log.Fatal("Store: Option CF_API_TOKEN contains a non-string")
+	}
+
+	accountID, ok := options.Values().Get("CF_ACCOUNT_ID")
+	if !ok {
+		log.Fatal("Store: No CF_ACCOUNT_ID passed as an option")
+	}
+	if account, ok = accountID.(string); !ok {
+		log.Fatal("Store: Option CF_ACCOUNT_ID contains a non-string")
+	}
+
+	uuid, ok := options.Values().Get("KV_NAMESPACE_ID")
+	if !ok {
+		log.Fatal("Store: No KV_NAMESPACE_ID passed as an option")
+	}
+	if namespace, ok = uuid.(string); !ok {
+		log.Fatal("Store: Option KV_NAMESPACE_ID contains a non-string")
+	}
+
+	return &workersKV{
+		account:    account,
+		namespace:  namespace,
+		token:      token,
+		Options:    options,
+		httpClient: &http.Client{},
+	}
 }

@@ -55,14 +55,11 @@ func TestStorageImplementation(t *testing.T) {
 	}
 
 	var s certmagic.Storage
-	st, err := cfstore.NewStore(
+	st := cfstore.NewStore(
 		cfstore.ApiToken(apiToken),
 		cfstore.AccountID(accountID),
 		cfstore.Namespace(kvID),
 	)
-	if err != nil {
-		t.Fatalf("Couldn't initialise cloudflare storage: %s\n", err.Error())
-	}
 	s = &storage{
 		lock:  memory.NewLock(),
 		store: st,
@@ -195,14 +192,11 @@ func TestE2e(t *testing.T) {
 	}
 
 	testLock := memory.NewLock()
-	testStore, err := cfstore.NewStore(
+	testStore := cfstore.NewStore(
 		cfstore.ApiToken(apiToken),
 		cfstore.AccountID(accountID),
 		cfstore.Namespace(kvID),
 	)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
 	testStorage := NewStorage(testLock, testStore)
 
 	conf := cloudflare.NewDefaultConfig()
