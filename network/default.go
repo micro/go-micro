@@ -653,6 +653,31 @@ func (n *network) acceptCtrlConn(l tunnel.Listener, recv chan *Message) {
 	}
 }
 
+// getRouteMetric calculates router metric and returns it
+// Route metric is calculated based on link status and route hopd count
+func (n *network) getRouteMetric(router string, gateway string) int64 {
+	// set the route metric
+	n.RLock()
+	defer n.RUnlock()
+
+	if link, ok := n.peerLinks[gateway]; ok {
+		// maka sure delay is non-zero
+		delay := link.Delay()
+		if delay == 0 {
+			delay = 1
+		}
+		// get the route hop count
+		hops := n.getHopCount(router)
+		// make sure length is non-zero
+		length := link.Length()
+		if length == 0 {
+			length = 10e10
+		}
+		return (delay * length * int64(hops)) / 10e9
+	}
+	return 0
+}
+
 // getHopCount queries network graph and returns hop count for given router
 // - Routes for local services have hop count 1
 // - Routes with ID of adjacent nodes have hop count 2
@@ -737,25 +762,8 @@ func (n *network) processCtrlChan(listener tunnel.Listener) {
 						Link:    event.Route.Link,
 						Metric:  event.Route.Metric,
 					}
-					// set the route metric
-					n.RLock()
-					if link, ok := n.peerLinks[event.Route.Gateway]; ok {
-						// maka sure delay is non-zero
-						delay := link.Delay()
-						if delay == 0 {
-							delay = 1
-						}
-						// get the route hop count
-						hops := n.getHopCount(event.Route.Router)
-						// make sure length is non-zero
-						length := link.Length()
-						if length == 0 {
-							length = 10e10
-						}
-						metric := (delay * length * int64(hops)) / 10e9
-						route.Metric += metric
-					}
-					n.RUnlock()
+					// calculate route metric and add to the advertised metric
+					route.Metric += n.getRouteMetric(event.Route.Router, event.Route.Gateway)
 					// create router event
 					e := &router.Event{
 						Type:      router.EventType(event.Type),
@@ -825,9 +833,9 @@ func (n *network) advertise(advertChan <-chan *router.Advert) {
 					hasher.Write([]byte(event.Route.Address + n.node.id))
 					address = fmt.Sprintf("%d", hasher.Sum64())
 				}
-
+				// calculate route metric to advertise
+				metric := n.getRouteMetric(event.Route.Router, event.Route.Gateway)
 				// NOTE: we override Gateway, Link and Address here
-				// TODO: should we avoid overriding gateway?
 				route := &pbRtr.Route{
 					Service: event.Route.Service,
 					Address: address,
@@ -835,7 +843,7 @@ func (n *network) advertise(advertChan <-chan *router.Advert) {
 					Network: event.Route.Network,
 					Router:  event.Route.Router,
 					Link:    DefaultLink,
-					Metric:  int64(event.Route.Metric),
+					Metric:  metric,
 				}
 				e := &pbRtr.Event{
 					Type:      pbRtr.EventType(event.Type),
