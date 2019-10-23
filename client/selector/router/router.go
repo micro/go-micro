@@ -111,7 +111,7 @@ func (r *routerSelector) getRoutes(service string) ([]router.Route, error) {
 			Gateway: r.Gateway,
 			Network: r.Network,
 			Link:    r.Link,
-			Metric:  int(r.Metric),
+			Metric:  r.Metric,
 		})
 	}
 

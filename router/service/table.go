@@ -21,7 +21,7 @@ func (t *table) Create(r router.Route) error {
 		Gateway: r.Gateway,
 		Network: r.Network,
 		Link:    r.Link,
-		Metric:  int64(r.Metric),
+		Metric:  r.Metric,
 	}
 
 	if _, err := t.table.Create(context.Background(), route, t.callOpts...); err != nil {
@@ -39,7 +39,7 @@ func (t *table) Delete(r router.Route) error {
 		Gateway: r.Gateway,
 		Network: r.Network,
 		Link:    r.Link,
-		Metric:  int64(r.Metric),
+		Metric:  r.Metric,
 	}
 
 	if _, err := t.table.Delete(context.Background(), route, t.callOpts...); err != nil {
@@ -57,7 +57,7 @@ func (t *table) Update(r router.Route) error {
 		Gateway: r.Gateway,
 		Network: r.Network,
 		Link:    r.Link,
-		Metric:  int64(r.Metric),
+		Metric:  r.Metric,
 	}
 
 	if _, err := t.table.Update(context.Background(), route, t.callOpts...); err != nil {
@@ -82,7 +82,7 @@ func (t *table) List() ([]router.Route, error) {
 			Gateway: route.Gateway,
 			Network: route.Network,
 			Link:    route.Link,
-			Metric:  int(route.Metric),
+			Metric:  route.Metric,
 		}
 	}
 
@@ -115,7 +115,7 @@ func (t *table) Query(q ...router.QueryOption) ([]router.Route, error) {
 			Gateway: route.Gateway,
 			Network: route.Network,
 			Link:    route.Link,
-			Metric:  int(route.Metric),
+			Metric:  route.Metric,
 		}
 	}
 

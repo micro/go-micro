@@ -653,6 +653,38 @@ func (n *network) acceptCtrlConn(l tunnel.Listener, recv chan *Message) {
 	}
 }
 
+// getHopCount queries network graph and returns hop count for given router
+// - Routes for local services have hop count 1
+// - Routes with ID of adjacent nodes have hop count 2
+// - Routes by peers of the advertiser have hop count 3
+// - Routes beyond node neighbourhood have hop count 4
+func (n *network) getHopCount(rtr string) int {
+	// make sure node.peers are not modified
+	n.node.RLock()
+	defer n.node.RUnlock()
+
+	// we are the origin of the route
+	if rtr == n.options.Id {
+		return 1
+	}
+
+	// the route origin is our peer
+	if _, ok := n.peers[rtr]; ok {
+		return 2
+	}
+
+	// the route origin is the peer of our peer
+	for _, peer := range n.peers {
+		for id := range peer.peers {
+			if rtr == id {
+				return 3
+			}
+		}
+	}
+	// otherwise we are three hops away
+	return 4
+}
+
 // processCtrlChan processes messages received on ControlChannel
 func (n *network) processCtrlChan(listener tunnel.Listener) {
 	// receive control message queue
@@ -703,23 +735,27 @@ func (n *network) processCtrlChan(listener tunnel.Listener) {
 						Network: event.Route.Network,
 						Router:  event.Route.Router,
 						Link:    event.Route.Link,
-						Metric:  int(event.Route.Metric),
+						Metric:  event.Route.Metric,
 					}
 					// set the route metric
 					n.RLock()
 					if link, ok := n.peerLinks[event.Route.Gateway]; ok {
-						// NOTE: should we change router.Route.Metric to int64?
-						if int(link.Length()) < route.Metric {
-							route.Metric = int(link.Length())
+						// maka sure delay is non-zero
+						delay := link.Delay()
+						if delay == 0 {
+							delay = 1
 						}
+						// get the route hop count
+						hops := n.getHopCount(event.Route.Router)
+						// make sure length is non-zero
+						length := link.Length()
+						if length == 0 {
+							length = 10e10
+						}
+						metric := (delay * length * int64(hops)) / 10e9
+						route.Metric += metric
 					}
 					n.RUnlock()
-					// TODO: Are we dropping any routes?
-					// throw away metric bigger than 1000
-					//if route.Metric > 1000 {
-					//	log.Debugf("Network route metric %d dropping node: %s", route.Metric, route.Router)
-					//	continue
-					//}
 					// create router event
 					e := &router.Event{
 						Type:      router.EventType(event.Type),
