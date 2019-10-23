@@ -80,7 +80,7 @@ func (w *workersKV) Sync() ([]*store.Record, error) {
 	if err != nil {
 		return nil, err
 	}
-	a := &APIResponse{}
+	a := &apiResponse{}
 	if err := json.Unmarshal(response, a); err != nil {
 		return nil, err
 	}
@@ -151,7 +151,7 @@ func (w *workersKV) Write(records ...*store.Record) error {
 		if err != nil {
 			return err
 		}
-		a := &APIResponse{}
+		a := &apiResponse{}
 		if err := json.Unmarshal(resp, a); err != nil {
 			return err
 		}
@@ -180,7 +180,7 @@ func (w *workersKV) Delete(keys ...string) error {
 			return err
 		}
 
-		a := &APIResponse{}
+		a := &apiResponse{}
 		if err := json.Unmarshal(resp, a); err != nil {
 			return err
 		}
@@ -237,8 +237,8 @@ func (w *workersKV) request(ctx context.Context, method, path string, body inter
 	return respBody, resp.Header, resp.StatusCode, nil
 }
 
-// APIResponse is a cloudflare v4 api response
-type APIResponse struct {
+// apiResponse is a cloudflare v4 api response
+type apiResponse struct {
 	Result []struct {
 		ID         string    `json:"id"`
 		Type       string    `json:"type"`
@@ -256,9 +256,9 @@ type APIResponse struct {
 		CreatedOn  time.Time `json:"created_on"`
 	} `json:"result"`
 	Success bool         `json:"success"`
-	Errors  []APIMessage `json:"errors"`
+	Errors  []apiMessage `json:"errors"`
 	// not sure Messages is ever populated?
-	Messages   []APIMessage `json:"messages"`
+	Messages   []apiMessage `json:"messages"`
 	ResultInfo struct {
 		Page       int `json:"page"`
 		PerPage    int `json:"per_page"`
@@ -267,8 +267,8 @@ type APIResponse struct {
 	} `json:"result_info"`
 }
 
-// APIMessage is a Cloudflare v4 API Error
-type APIMessage struct {
+// apiMessage is a Cloudflare v4 API Error
+type apiMessage struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`
 }
