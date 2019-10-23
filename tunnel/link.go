@@ -210,6 +210,7 @@ func (l *link) Close() error {
 	case <-l.closed:
 		return nil
 	default:
+		l.Socket.Close()
 		close(l.closed)
 	}
 
@@ -227,12 +228,19 @@ func (l *link) Send(m *transport.Message) error {
 	// get time now
 	now := time.Now()
 
-	// queue the message
+	// check if its closed first
 	select {
 	case <-l.closed:
 		return io.EOF
+	default:
+	}
+
+	// queue the message
+	select {
 	case l.sendQueue <- p:
 		// in the send queue
+	case <-l.closed:
+		return io.EOF
 	}
 
 	// error to use
@@ -293,7 +301,17 @@ func (l *link) Send(m *transport.Message) error {
 func (l *link) Recv(m *transport.Message) error {
 	select {
 	case <-l.closed:
-		return io.EOF
+		// check if there's any messages left
+		select {
+		case pk := <-l.recvQueue:
+			// check the packet receive error
+			if pk.err != nil {
+				return pk.err
+			}
+			*m = *pk.message
+		default:
+			return io.EOF
+		}
 	case pk := <-l.recvQueue:
 		// check the packet receive error
 		if pk.err != nil {
