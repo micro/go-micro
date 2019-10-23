@@ -37,6 +37,42 @@ type workersKV struct {
 	httpClient *http.Client
 }
 
+// apiResponse is a cloudflare v4 api response
+type apiResponse struct {
+	Result []struct {
+		ID         string    `json:"id"`
+		Type       string    `json:"type"`
+		Name       string    `json:"name"`
+		Expiration string    `json:"expiration"`
+		Content    string    `json:"content"`
+		Proxiable  bool      `json:"proxiable"`
+		Proxied    bool      `json:"proxied"`
+		TTL        int       `json:"ttl"`
+		Priority   int       `json:"priority"`
+		Locked     bool      `json:"locked"`
+		ZoneID     string    `json:"zone_id"`
+		ZoneName   string    `json:"zone_name"`
+		ModifiedOn time.Time `json:"modified_on"`
+		CreatedOn  time.Time `json:"created_on"`
+	} `json:"result"`
+	Success bool         `json:"success"`
+	Errors  []apiMessage `json:"errors"`
+	// not sure Messages is ever populated?
+	Messages   []apiMessage `json:"messages"`
+	ResultInfo struct {
+		Page       int `json:"page"`
+		PerPage    int `json:"per_page"`
+		Count      int `json:"count"`
+		TotalCount int `json:"total_count"`
+	} `json:"result_info"`
+}
+
+// apiMessage is a Cloudflare v4 API Error
+type apiMessage struct {
+	Code    int    `json:"code"`
+	Message string `json:"message"`
+}
+
 // In the cloudflare workers KV implemention, List() doesn't guarantee
 // anything as the workers API is eventually consistent.
 func (w *workersKV) List() ([]*store.Record, error) {
@@ -218,42 +254,6 @@ func (w *workersKV) request(ctx context.Context, method, path string, body inter
 	}
 
 	return respBody, resp.Header, resp.StatusCode, nil
-}
-
-// apiResponse is a cloudflare v4 api response
-type apiResponse struct {
-	Result []struct {
-		ID         string    `json:"id"`
-		Type       string    `json:"type"`
-		Name       string    `json:"name"`
-		Expiration string    `json:"expiration"`
-		Content    string    `json:"content"`
-		Proxiable  bool      `json:"proxiable"`
-		Proxied    bool      `json:"proxied"`
-		TTL        int       `json:"ttl"`
-		Priority   int       `json:"priority"`
-		Locked     bool      `json:"locked"`
-		ZoneID     string    `json:"zone_id"`
-		ZoneName   string    `json:"zone_name"`
-		ModifiedOn time.Time `json:"modified_on"`
-		CreatedOn  time.Time `json:"created_on"`
-	} `json:"result"`
-	Success bool         `json:"success"`
-	Errors  []apiMessage `json:"errors"`
-	// not sure Messages is ever populated?
-	Messages   []apiMessage `json:"messages"`
-	ResultInfo struct {
-		Page       int `json:"page"`
-		PerPage    int `json:"per_page"`
-		Count      int `json:"count"`
-		TotalCount int `json:"total_count"`
-	} `json:"result_info"`
-}
-
-// apiMessage is a Cloudflare v4 API Error
-type apiMessage struct {
-	Code    int    `json:"code"`
-	Message string `json:"message"`
 }
 
 // New returns a cloudflare Store implementation.
