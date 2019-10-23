@@ -55,19 +55,19 @@ func (s *Store) Delete(ctx context.Context, req *pb.DeleteRequest, rsp *pb.Delet
 	return nil
 }
 
-func (s *Store) Sync(ctx context.Context, req *pb.SyncRequest, stream pb.Store_SyncStream) error {
+func (s *Store) List(ctx context.Context, req *pb.ListRequest, stream pb.Store_ListStream) error {
 	var vals []*store.Record
 	var err error
 
 	if len(req.Key) > 0 {
 		vals, err = s.Store.Read(req.Key)
 	} else {
-		vals, err = s.Store.Sync()
+		vals, err = s.Store.List()
 	}
 	if err != nil {
 		return errors.InternalServerError("go.micro.store", err.Error())
 	}
-	rsp := new(pb.SyncResponse)
+	rsp := new(pb.ListResponse)
 
 	// TODO: batch sync
 	for _, val := range vals {

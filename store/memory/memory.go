@@ -21,7 +21,7 @@ type memoryRecord struct {
 	c time.Time
 }
 
-func (m *memoryStore) Sync() ([]*store.Record, error) {
+func (m *memoryStore) List() ([]*store.Record, error) {
 	m.RLock()
 	defer m.RUnlock()
 

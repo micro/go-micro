@@ -68,7 +68,7 @@ func (e *ekv) Write(records ...*store.Record) error {
 	return gerr
 }
 
-func (e *ekv) Sync() ([]*store.Record, error) {
+func (e *ekv) List() ([]*store.Record, error) {
 	keyval, err := e.kv.Get(context.Background(), "/", client.WithPrefix())
 	if err != nil {
 		return nil, err

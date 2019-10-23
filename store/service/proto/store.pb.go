@@ -298,7 +298,7 @@ func (m *DeleteResponse) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_DeleteResponse proto.InternalMessageInfo
 
-type SyncRequest struct {
+type ListRequest struct {
 	// optional key
 	Key                  string   `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
@@ -306,71 +306,71 @@ type SyncRequest struct {
 	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *SyncRequest) Reset()         { *m = SyncRequest{} }
-func (m *SyncRequest) String() string { return proto.CompactTextString(m) }
-func (*SyncRequest) ProtoMessage()    {}
-func (*SyncRequest) Descriptor() ([]byte, []int) {
+func (m *ListRequest) Reset()         { *m = ListRequest{} }
+func (m *ListRequest) String() string { return proto.CompactTextString(m) }
+func (*ListRequest) ProtoMessage()    {}
+func (*ListRequest) Descriptor() ([]byte, []int) {
 	return fileDescriptor_f84ccc98e143ed3e, []int{7}
 }
 
-func (m *SyncRequest) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_SyncRequest.Unmarshal(m, b)
+func (m *ListRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_ListRequest.Unmarshal(m, b)
 }
-func (m *SyncRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_SyncRequest.Marshal(b, m, deterministic)
+func (m *ListRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_ListRequest.Marshal(b, m, deterministic)
 }
-func (m *SyncRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_SyncRequest.Merge(m, src)
+func (m *ListRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ListRequest.Merge(m, src)
 }
-func (m *SyncRequest) XXX_Size() int {
-	return xxx_messageInfo_SyncRequest.Size(m)
+func (m *ListRequest) XXX_Size() int {
+	return xxx_messageInfo_ListRequest.Size(m)
 }
-func (m *SyncRequest) XXX_DiscardUnknown() {
-	xxx_messageInfo_SyncRequest.DiscardUnknown(m)
+func (m *ListRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_ListRequest.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_SyncRequest proto.InternalMessageInfo
+var xxx_messageInfo_ListRequest proto.InternalMessageInfo
 
-func (m *SyncRequest) GetKey() string {
+func (m *ListRequest) GetKey() string {
 	if m != nil {
 		return m.Key
 	}
 	return ""
 }
 
-type SyncResponse struct {
+type ListResponse struct {
 	Records              []*Record `protobuf:"bytes,1,rep,name=records,proto3" json:"records,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}  `json:"-"`
 	XXX_unrecognized     []byte    `json:"-"`
 	XXX_sizecache        int32     `json:"-"`
 }
 
-func (m *SyncResponse) Reset()         { *m = SyncResponse{} }
-func (m *SyncResponse) String() string { return proto.CompactTextString(m) }
-func (*SyncResponse) ProtoMessage()    {}
-func (*SyncResponse) Descriptor() ([]byte, []int) {
+func (m *ListResponse) Reset()         { *m = ListResponse{} }
+func (m *ListResponse) String() string { return proto.CompactTextString(m) }
+func (*ListResponse) ProtoMessage()    {}
+func (*ListResponse) Descriptor() ([]byte, []int) {
 	return fileDescriptor_f84ccc98e143ed3e, []int{8}
 }
 
-func (m *SyncResponse) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_SyncResponse.Unmarshal(m, b)
+func (m *ListResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_ListResponse.Unmarshal(m, b)
 }
-func (m *SyncResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_SyncResponse.Marshal(b, m, deterministic)
+func (m *ListResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_ListResponse.Marshal(b, m, deterministic)
 }
-func (m *SyncResponse) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_SyncResponse.Merge(m, src)
+func (m *ListResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ListResponse.Merge(m, src)
 }
-func (m *SyncResponse) XXX_Size() int {
-	return xxx_messageInfo_SyncResponse.Size(m)
+func (m *ListResponse) XXX_Size() int {
+	return xxx_messageInfo_ListResponse.Size(m)
 }
-func (m *SyncResponse) XXX_DiscardUnknown() {
-	xxx_messageInfo_SyncResponse.DiscardUnknown(m)
+func (m *ListResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_ListResponse.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_SyncResponse proto.InternalMessageInfo
+var xxx_messageInfo_ListResponse proto.InternalMessageInfo
 
-func (m *SyncResponse) GetRecords() []*Record {
+func (m *ListResponse) GetRecords() []*Record {
 	if m != nil {
 		return m.Records
 	}
@@ -385,8 +385,8 @@ func init() {
 	proto.RegisterType((*WriteResponse)(nil), "go.micro.store.WriteResponse")
 	proto.RegisterType((*DeleteRequest)(nil), "go.micro.store.DeleteRequest")
 	proto.RegisterType((*DeleteResponse)(nil), "go.micro.store.DeleteResponse")
-	proto.RegisterType((*SyncRequest)(nil), "go.micro.store.SyncRequest")
-	proto.RegisterType((*SyncResponse)(nil), "go.micro.store.SyncResponse")
+	proto.RegisterType((*ListRequest)(nil), "go.micro.store.ListRequest")
+	proto.RegisterType((*ListResponse)(nil), "go.micro.store.ListResponse")
 }
 
 func init() {
@@ -395,27 +395,27 @@ func init() {
 
 var fileDescriptor_f84ccc98e143ed3e = []byte{
 	// 333 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x9c, 0x92, 0xcb, 0x6e, 0xf2, 0x30,
-	0x10, 0x85, 0x09, 0x81, 0xfc, 0x62, 0xb8, 0xfc, 0x68, 0x54, 0xa1, 0x88, 0xde, 0xd2, 0x74, 0x93,
-	0x4d, 0x03, 0xa2, 0x2f, 0x50, 0xa9, 0x17, 0xb5, 0x5b, 0xb3, 0xe8, 0x9a, 0x86, 0x11, 0x8a, 0xa0,
-	0x98, 0x3a, 0x01, 0x35, 0x2f, 0xd4, 0xe7, 0xac, 0x6c, 0x27, 0x69, 0x90, 0x41, 0xaa, 0xba, 0x1b,
-	0x7b, 0xce, 0x1c, 0x9f, 0xf9, 0x64, 0x08, 0xdf, 0xe3, 0x48, 0xf0, 0xd1, 0x82, 0xdf, 0xe8, 0x22,
-	0x49, 0xb9, 0xa0, 0x51, 0x42, 0x62, 0x17, 0x47, 0x34, 0xda, 0x08, 0x9e, 0xe6, 0x77, 0xa1, 0xaa,
-	0xb1, 0xb7, 0xe0, 0x7a, 0x24, 0x54, 0xb7, 0xfe, 0x33, 0x38, 0x8c, 0x22, 0x2e, 0xe6, 0xd8, 0x07,
-	0x7b, 0x49, 0x99, 0x6b, 0x79, 0x56, 0xd0, 0x62, 0xb2, 0xc4, 0x13, 0x68, 0xee, 0x66, 0xab, 0x2d,
-	0xb9, 0x75, 0xcf, 0x0a, 0x3a, 0x4c, 0x1f, 0x70, 0x00, 0x0e, 0x7d, 0x6e, 0x62, 0x91, 0xb9, 0xb6,
-	0x67, 0x05, 0x36, 0xcb, 0x4f, 0xfe, 0x15, 0xb4, 0x19, 0xcd, 0xe6, 0x8c, 0x3e, 0xb6, 0x94, 0xa4,
-	0x88, 0xd0, 0x58, 0x52, 0x96, 0xb8, 0x96, 0x67, 0x07, 0x2d, 0xa6, 0x6a, 0xff, 0x0e, 0x3a, 0x5a,
-	0x92, 0x6c, 0xf8, 0x3a, 0x21, 0x1c, 0xc3, 0x3f, 0xa1, 0x1e, 0xd7, 0xb2, 0xf6, 0x64, 0x10, 0xee,
-	0xc7, 0x0b, 0x75, 0x36, 0x56, 0xc8, 0xa4, 0xc3, 0xab, 0x88, 0x53, 0x2a, 0x5e, 0xa9, 0x38, 0xd4,
-	0x7f, 0xe7, 0xf0, 0x1f, 0xba, 0xb9, 0x83, 0x0e, 0xe1, 0x5f, 0x43, 0xf7, 0x81, 0x56, 0xf4, 0xe3,
-	0x79, 0x28, 0x79, 0x1f, 0x7a, 0x85, 0x28, 0x1f, 0xbb, 0x84, 0xf6, 0x34, 0x5b, 0x47, 0xc5, 0x90,
-	0x41, 0x4f, 0x46, 0xd5, 0x82, 0xbf, 0x2e, 0x3b, 0xf9, 0xaa, 0x43, 0x73, 0x2a, 0x3b, 0x78, 0x0f,
-	0x0d, 0x09, 0x0e, 0x4f, 0xcd, 0x91, 0x92, 0xf8, 0xf0, 0xec, 0x70, 0x33, 0xcf, 0x5b, 0xc3, 0x27,
-	0x68, 0xaa, 0xcd, 0xd1, 0x10, 0x56, 0x91, 0x0e, 0xcf, 0x8f, 0x74, 0x4b, 0x9f, 0x17, 0x70, 0x34,
-	0x0b, 0x34, 0xa4, 0x7b, 0x20, 0x87, 0x17, 0xc7, 0xda, 0xa5, 0xd5, 0x23, 0x34, 0x24, 0x23, 0x73,
-	0xaf, 0x0a, 0x5a, 0x73, 0xaf, 0x2a, 0x56, 0xbf, 0x36, 0xb6, 0xde, 0x1c, 0xf5, 0xb7, 0x6f, 0xbf,
-	0x03, 0x00, 0x00, 0xff, 0xff, 0x30, 0xc8, 0x99, 0x52, 0x0d, 0x03, 0x00, 0x00,
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x9c, 0x92, 0x4d, 0x4f, 0xc2, 0x40,
+	0x10, 0x86, 0x59, 0x0a, 0x35, 0x0c, 0x1f, 0x92, 0x89, 0x21, 0x0d, 0x7e, 0xd5, 0x7a, 0xe9, 0xc5,
+	0x42, 0xf0, 0x0f, 0x98, 0xf8, 0x11, 0x4d, 0x3c, 0xad, 0x07, 0xcf, 0x08, 0x13, 0xd2, 0x80, 0x2e,
+	0xee, 0x16, 0x62, 0xff, 0x90, 0xbf, 0xd3, 0xec, 0x6e, 0xab, 0xc5, 0x42, 0x62, 0xbc, 0xcd, 0xee,
+	0xbc, 0xf3, 0xec, 0xdb, 0x79, 0x0b, 0xd1, 0x6b, 0x3c, 0x91, 0x62, 0x30, 0x13, 0x17, 0xb6, 0x50,
+	0x89, 0x90, 0x34, 0x50, 0x24, 0xd7, 0xf1, 0x84, 0x06, 0x4b, 0x29, 0x92, 0xec, 0x2e, 0x32, 0x35,
+	0x76, 0x66, 0xc2, 0x8e, 0x44, 0xe6, 0x36, 0xb8, 0x07, 0x97, 0xd3, 0x44, 0xc8, 0x29, 0x76, 0xc1,
+	0x99, 0x53, 0xea, 0x31, 0x9f, 0x85, 0x0d, 0xae, 0x4b, 0x3c, 0x80, 0xfa, 0x7a, 0xbc, 0x58, 0x91,
+	0x57, 0xf5, 0x59, 0xd8, 0xe2, 0xf6, 0x80, 0x3d, 0x70, 0xe9, 0x63, 0x19, 0xcb, 0xd4, 0x73, 0x7c,
+	0x16, 0x3a, 0x3c, 0x3b, 0x05, 0x67, 0xd0, 0xe4, 0x34, 0x9e, 0x72, 0x7a, 0x5f, 0x91, 0x4a, 0x10,
+	0xa1, 0x36, 0xa7, 0x54, 0x79, 0xcc, 0x77, 0xc2, 0x06, 0x37, 0x75, 0x70, 0x05, 0x2d, 0x2b, 0x51,
+	0x4b, 0xf1, 0xa6, 0x08, 0x87, 0xb0, 0x27, 0xcd, 0xe3, 0x56, 0xd6, 0x1c, 0xf5, 0xa2, 0x4d, 0x7b,
+	0x91, 0xf5, 0xc6, 0x73, 0x99, 0x26, 0x3c, 0xcb, 0x38, 0xa1, 0xfc, 0x95, 0x02, 0xa1, 0xfa, 0x37,
+	0xc2, 0x3e, 0xb4, 0x33, 0x82, 0x35, 0x11, 0x9c, 0x43, 0xfb, 0x86, 0x16, 0xf4, 0xc3, 0xdc, 0xe6,
+	0xbc, 0x0b, 0x9d, 0x5c, 0x94, 0x8d, 0x9d, 0x42, 0xf3, 0x31, 0x56, 0x49, 0x3e, 0x54, 0xda, 0x9e,
+	0xb6, 0x6a, 0x05, 0xff, 0xfd, 0xd8, 0xd1, 0x67, 0x15, 0xea, 0x4f, 0xba, 0x83, 0xb7, 0x50, 0xd3,
+	0x2c, 0x3c, 0xfc, 0x3d, 0x52, 0xb0, 0xd0, 0x3f, 0xda, 0xde, 0xcc, 0xfc, 0x56, 0x86, 0x0c, 0xaf,
+	0xa1, 0xa6, 0xf7, 0x5f, 0xc6, 0x14, 0x82, 0x2b, 0x63, 0x8a, 0x91, 0x05, 0x15, 0xbc, 0x83, 0xba,
+	0x59, 0x20, 0x96, 0x84, 0xc5, 0x64, 0xfa, 0xc7, 0x3b, 0xba, 0xdf, 0x9c, 0x07, 0x70, 0xed, 0x4a,
+	0xb1, 0x24, 0xdd, 0xc8, 0xa3, 0x7f, 0xb2, 0xab, 0x9d, 0xa3, 0x5e, 0x5c, 0xf3, 0x6f, 0x5f, 0x7e,
+	0x05, 0x00, 0x00, 0xff, 0xff, 0x30, 0x48, 0x25, 0x2d, 0x0d, 0x03, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -430,10 +430,10 @@ const _ = grpc.SupportPackageIsVersion4
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type StoreClient interface {
+	List(ctx context.Context, in *ListRequest, opts ...grpc.CallOption) (Store_ListClient, error)
 	Read(ctx context.Context, in *ReadRequest, opts ...grpc.CallOption) (*ReadResponse, error)
 	Write(ctx context.Context, in *WriteRequest, opts ...grpc.CallOption) (*WriteResponse, error)
 	Delete(ctx context.Context, in *DeleteRequest, opts ...grpc.CallOption) (*DeleteResponse, error)
-	Sync(ctx context.Context, in *SyncRequest, opts ...grpc.CallOption) (Store_SyncClient, error)
 }
 
 type storeClient struct {
@@ -442,6 +442,38 @@ type storeClient struct {
 
 func NewStoreClient(cc *grpc.ClientConn) StoreClient {
 	return &storeClient{cc}
+}
+
+func (c *storeClient) List(ctx context.Context, in *ListRequest, opts ...grpc.CallOption) (Store_ListClient, error) {
+	stream, err := c.cc.NewStream(ctx, &_Store_serviceDesc.Streams[0], "/go.micro.store.Store/List", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &storeListClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type Store_ListClient interface {
+	Recv() (*ListResponse, error)
+	grpc.ClientStream
+}
+
+type storeListClient struct {
+	grpc.ClientStream
+}
+
+func (x *storeListClient) Recv() (*ListResponse, error) {
+	m := new(ListResponse)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
 }
 
 func (c *storeClient) Read(ctx context.Context, in *ReadRequest, opts ...grpc.CallOption) (*ReadResponse, error) {
@@ -471,48 +503,37 @@ func (c *storeClient) Delete(ctx context.Context, in *DeleteRequest, opts ...grp
 	return out, nil
 }
 
-func (c *storeClient) Sync(ctx context.Context, in *SyncRequest, opts ...grpc.CallOption) (Store_SyncClient, error) {
-	stream, err := c.cc.NewStream(ctx, &_Store_serviceDesc.Streams[0], "/go.micro.store.Store/Sync", opts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &storeSyncClient{stream}
-	if err := x.ClientStream.SendMsg(in); err != nil {
-		return nil, err
-	}
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
-	return x, nil
-}
-
-type Store_SyncClient interface {
-	Recv() (*SyncResponse, error)
-	grpc.ClientStream
-}
-
-type storeSyncClient struct {
-	grpc.ClientStream
-}
-
-func (x *storeSyncClient) Recv() (*SyncResponse, error) {
-	m := new(SyncResponse)
-	if err := x.ClientStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
 // StoreServer is the server API for Store service.
 type StoreServer interface {
+	List(*ListRequest, Store_ListServer) error
 	Read(context.Context, *ReadRequest) (*ReadResponse, error)
 	Write(context.Context, *WriteRequest) (*WriteResponse, error)
 	Delete(context.Context, *DeleteRequest) (*DeleteResponse, error)
-	Sync(*SyncRequest, Store_SyncServer) error
 }
 
 func RegisterStoreServer(s *grpc.Server, srv StoreServer) {
 	s.RegisterService(&_Store_serviceDesc, srv)
+}
+
+func _Store_List_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(ListRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(StoreServer).List(m, &storeListServer{stream})
+}
+
+type Store_ListServer interface {
+	Send(*ListResponse) error
+	grpc.ServerStream
+}
+
+type storeListServer struct {
+	grpc.ServerStream
+}
+
+func (x *storeListServer) Send(m *ListResponse) error {
+	return x.ServerStream.SendMsg(m)
 }
 
 func _Store_Read_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -569,27 +590,6 @@ func _Store_Delete_Handler(srv interface{}, ctx context.Context, dec func(interf
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Store_Sync_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(SyncRequest)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
-	}
-	return srv.(StoreServer).Sync(m, &storeSyncServer{stream})
-}
-
-type Store_SyncServer interface {
-	Send(*SyncResponse) error
-	grpc.ServerStream
-}
-
-type storeSyncServer struct {
-	grpc.ServerStream
-}
-
-func (x *storeSyncServer) Send(m *SyncResponse) error {
-	return x.ServerStream.SendMsg(m)
-}
-
 var _Store_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "go.micro.store.Store",
 	HandlerType: (*StoreServer)(nil),
@@ -609,8 +609,8 @@ var _Store_serviceDesc = grpc.ServiceDesc{
 	},
 	Streams: []grpc.StreamDesc{
 		{
-			StreamName:    "Sync",
-			Handler:       _Store_Sync_Handler,
+			StreamName:    "List",
+			Handler:       _Store_List_Handler,
 			ServerStreams: true,
 		},
 	},

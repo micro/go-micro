@@ -34,10 +34,10 @@ var _ server.Option
 // Client API for Store service
 
 type StoreService interface {
+	List(ctx context.Context, in *ListRequest, opts ...client.CallOption) (Store_ListService, error)
 	Read(ctx context.Context, in *ReadRequest, opts ...client.CallOption) (*ReadResponse, error)
 	Write(ctx context.Context, in *WriteRequest, opts ...client.CallOption) (*WriteResponse, error)
 	Delete(ctx context.Context, in *DeleteRequest, opts ...client.CallOption) (*DeleteResponse, error)
-	Sync(ctx context.Context, in *SyncRequest, opts ...client.CallOption) (Store_SyncService, error)
 }
 
 type storeService struct {
@@ -56,6 +56,50 @@ func NewStoreService(name string, c client.Client) StoreService {
 		c:    c,
 		name: name,
 	}
+}
+
+func (c *storeService) List(ctx context.Context, in *ListRequest, opts ...client.CallOption) (Store_ListService, error) {
+	req := c.c.NewRequest(c.name, "Store.List", &ListRequest{})
+	stream, err := c.c.Stream(ctx, req, opts...)
+	if err != nil {
+		return nil, err
+	}
+	if err := stream.Send(in); err != nil {
+		return nil, err
+	}
+	return &storeServiceList{stream}, nil
+}
+
+type Store_ListService interface {
+	SendMsg(interface{}) error
+	RecvMsg(interface{}) error
+	Close() error
+	Recv() (*ListResponse, error)
+}
+
+type storeServiceList struct {
+	stream client.Stream
+}
+
+func (x *storeServiceList) Close() error {
+	return x.stream.Close()
+}
+
+func (x *storeServiceList) SendMsg(m interface{}) error {
+	return x.stream.Send(m)
+}
+
+func (x *storeServiceList) RecvMsg(m interface{}) error {
+	return x.stream.Recv(m)
+}
+
+func (x *storeServiceList) Recv() (*ListResponse, error) {
+	m := new(ListResponse)
+	err := x.stream.Recv(m)
+	if err != nil {
+		return nil, err
+	}
+	return m, nil
 }
 
 func (c *storeService) Read(ctx context.Context, in *ReadRequest, opts ...client.CallOption) (*ReadResponse, error) {
@@ -88,65 +132,21 @@ func (c *storeService) Delete(ctx context.Context, in *DeleteRequest, opts ...cl
 	return out, nil
 }
 
-func (c *storeService) Sync(ctx context.Context, in *SyncRequest, opts ...client.CallOption) (Store_SyncService, error) {
-	req := c.c.NewRequest(c.name, "Store.Sync", &SyncRequest{})
-	stream, err := c.c.Stream(ctx, req, opts...)
-	if err != nil {
-		return nil, err
-	}
-	if err := stream.Send(in); err != nil {
-		return nil, err
-	}
-	return &storeServiceSync{stream}, nil
-}
-
-type Store_SyncService interface {
-	SendMsg(interface{}) error
-	RecvMsg(interface{}) error
-	Close() error
-	Recv() (*SyncResponse, error)
-}
-
-type storeServiceSync struct {
-	stream client.Stream
-}
-
-func (x *storeServiceSync) Close() error {
-	return x.stream.Close()
-}
-
-func (x *storeServiceSync) SendMsg(m interface{}) error {
-	return x.stream.Send(m)
-}
-
-func (x *storeServiceSync) RecvMsg(m interface{}) error {
-	return x.stream.Recv(m)
-}
-
-func (x *storeServiceSync) Recv() (*SyncResponse, error) {
-	m := new(SyncResponse)
-	err := x.stream.Recv(m)
-	if err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
 // Server API for Store service
 
 type StoreHandler interface {
+	List(context.Context, *ListRequest, Store_ListStream) error
 	Read(context.Context, *ReadRequest, *ReadResponse) error
 	Write(context.Context, *WriteRequest, *WriteResponse) error
 	Delete(context.Context, *DeleteRequest, *DeleteResponse) error
-	Sync(context.Context, *SyncRequest, Store_SyncStream) error
 }
 
 func RegisterStoreHandler(s server.Server, hdlr StoreHandler, opts ...server.HandlerOption) error {
 	type store interface {
+		List(ctx context.Context, stream server.Stream) error
 		Read(ctx context.Context, in *ReadRequest, out *ReadResponse) error
 		Write(ctx context.Context, in *WriteRequest, out *WriteResponse) error
 		Delete(ctx context.Context, in *DeleteRequest, out *DeleteResponse) error
-		Sync(ctx context.Context, stream server.Stream) error
 	}
 	type Store struct {
 		store
@@ -159,6 +159,41 @@ type storeHandler struct {
 	StoreHandler
 }
 
+func (h *storeHandler) List(ctx context.Context, stream server.Stream) error {
+	m := new(ListRequest)
+	if err := stream.Recv(m); err != nil {
+		return err
+	}
+	return h.StoreHandler.List(ctx, m, &storeListStream{stream})
+}
+
+type Store_ListStream interface {
+	SendMsg(interface{}) error
+	RecvMsg(interface{}) error
+	Close() error
+	Send(*ListResponse) error
+}
+
+type storeListStream struct {
+	stream server.Stream
+}
+
+func (x *storeListStream) Close() error {
+	return x.stream.Close()
+}
+
+func (x *storeListStream) SendMsg(m interface{}) error {
+	return x.stream.Send(m)
+}
+
+func (x *storeListStream) RecvMsg(m interface{}) error {
+	return x.stream.Recv(m)
+}
+
+func (x *storeListStream) Send(m *ListResponse) error {
+	return x.stream.Send(m)
+}
+
 func (h *storeHandler) Read(ctx context.Context, in *ReadRequest, out *ReadResponse) error {
 	return h.StoreHandler.Read(ctx, in, out)
 }
@@ -169,39 +204,4 @@ func (h *storeHandler) Write(ctx context.Context, in *WriteRequest, out *WriteRe
 
 func (h *storeHandler) Delete(ctx context.Context, in *DeleteRequest, out *DeleteResponse) error {
 	return h.StoreHandler.Delete(ctx, in, out)
-}
-
-func (h *storeHandler) Sync(ctx context.Context, stream server.Stream) error {
-	m := new(SyncRequest)
-	if err := stream.Recv(m); err != nil {
-		return err
-	}
-	return h.StoreHandler.Sync(ctx, m, &storeSyncStream{stream})
-}
-
-type Store_SyncStream interface {
-	SendMsg(interface{}) error
-	RecvMsg(interface{}) error
-	Close() error
-	Send(*SyncResponse) error
-}
-
-type storeSyncStream struct {
-	stream server.Stream
-}
-
-func (x *storeSyncStream) Close() error {
-	return x.stream.Close()
-}
-
-func (x *storeSyncStream) SendMsg(m interface{}) error {
-	return x.stream.Send(m)
-}
-
-func (x *storeSyncStream) RecvMsg(m interface{}) error {
-	return x.stream.Recv(m)
-}
-
-func (x *storeSyncStream) Send(m *SyncResponse) error {
-	return x.stream.Send(m)
 }

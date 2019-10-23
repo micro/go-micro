@@ -66,9 +66,9 @@ func New(opts ...options.Option) (store.Store, error) {
 	}, nil
 }
 
-// In the cloudflare workers KV implemention, Sync() doesn't guarantee
+// In the cloudflare workers KV implemention, List() doesn't guarantee
 // anything as the workers API is eventually consistent.
-func (w *workersKV) Sync() ([]*store.Record, error) {
+func (w *workersKV) List() ([]*store.Record, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 

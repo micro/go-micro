@@ -23,8 +23,8 @@ type serviceStore struct {
 }
 
 // Sync all the known records
-func (s *serviceStore) Sync() ([]*store.Record, error) {
-	stream, err := s.Client.Sync(context.Background(), &pb.SyncRequest{}, client.WithAddress(s.Nodes...))
+func (s *serviceStore) List() ([]*store.Record, error) {
+	stream, err := s.Client.List(context.Background(), &pb.ListRequest{}, client.WithAddress(s.Nodes...))
 	if err != nil {
 		return nil, err
 	}

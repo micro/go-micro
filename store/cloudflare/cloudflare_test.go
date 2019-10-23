@@ -31,11 +31,11 @@ func TestCloudflare(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	records, err := wkv.Sync()
+	records, err := wkv.List()
 	if err != nil {
-		t.Fatalf("Sync: %s\n", err.Error())
+		t.Fatalf("List: %s\n", err.Error())
 	} else {
-		t.Log("Synced " + strconv.Itoa(len(records)) + " records")
+		t.Log("Listed " + strconv.Itoa(len(records)) + " records")
 	}
 
 	err = wkv.Write(

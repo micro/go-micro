@@ -3,10 +3,10 @@ syntax = "proto3";
 package go.micro.store;
 
 service Store {
+	rpc List(ListRequest) returns (stream ListResponse) {};
 	rpc Read(ReadRequest) returns (ReadResponse) {};
 	rpc Write(WriteRequest) returns (WriteResponse) {};
 	rpc Delete(DeleteRequest) returns (DeleteResponse) {};
-	rpc Sync(SyncRequest) returns (stream SyncResponse) {};
 }
 
 message Record {
@@ -38,11 +38,11 @@ message DeleteRequest {
 
 message DeleteResponse {}
 
-message SyncRequest {
+message ListRequest {
 	// optional key
 	string key = 1;
 }
 
-message SyncResponse {
+message ListResponse {
 	repeated Record records = 1;
 }
