@@ -206,6 +206,9 @@ func (l *link) Id() string {
 }
 
 func (l *link) Close() error {
+	l.Lock()
+	defer l.Unlock()
+
 	select {
 	case <-l.closed:
 		return nil
