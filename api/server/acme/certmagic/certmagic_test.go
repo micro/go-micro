@@ -56,8 +56,8 @@ func TestStorageImplementation(t *testing.T) {
 
 	var s certmagic.Storage
 	st := cfstore.NewStore(
-		cfstore.ApiToken(apiToken),
-		cfstore.AccountID(accountID),
+		cfstore.Token(apiToken),
+		cfstore.Account(accountID),
 		cfstore.Namespace(kvID),
 	)
 	s = &storage{
@@ -193,8 +193,8 @@ func TestE2e(t *testing.T) {
 
 	testLock := memory.NewLock()
 	testStore := cfstore.NewStore(
-		cfstore.ApiToken(apiToken),
-		cfstore.AccountID(accountID),
+		cfstore.Token(apiToken),
+		cfstore.Account(accountID),
 		cfstore.Namespace(kvID),
 	)
 	testStorage := NewStorage(testLock, testStore)

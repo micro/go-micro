@@ -5,13 +5,13 @@ import (
 )
 
 // Token sets the cloudflare api token
-func ApiToken(t string) options.Option {
+func Token(t string) options.Option {
 	// TODO: change to store.cf.api_token
 	return options.WithValue("CF_API_TOKEN", t)
 }
 
-// AccountID sets the cloudflare account id
-func AccountID(id string) options.Option {
+// Account sets the cloudflare account id
+func Account(id string) options.Option {
 	// TODO: change to store.cf.account_id
 	return options.WithValue("CF_ACCOUNT_ID", id)
 }

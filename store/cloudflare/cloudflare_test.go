@@ -21,8 +21,8 @@ func TestCloudflare(t *testing.T) {
 	randomV := strconv.Itoa(rand.Int())
 
 	wkv := NewStore(
-		ApiToken(apiToken),
-		AccountID(accountID),
+		Token(apiToken),
+		Account(accountID),
 		Namespace(kvID),
 	)
 
