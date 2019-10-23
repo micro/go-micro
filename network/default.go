@@ -859,7 +859,7 @@ func (n *network) advertise(advertChan <-chan *router.Advert) {
 					address = fmt.Sprintf("%d", hasher.Sum64())
 				}
 				// calculate route metric to advertise
-				metric := n.getRouteMetric(event.Route.Router, event.Route.Gateway, DefaultLink)
+				metric := n.getRouteMetric(event.Route.Router, event.Route.Gateway, event.Route.Link)
 				// NOTE: we override Gateway, Link and Address here
 				route := &pbRtr.Route{
 					Service: event.Route.Service,
