@@ -132,7 +132,7 @@ func (s *svc) advertiseEvents(advertChan chan *router.Advert, stream pb.Router_A
 				Gateway: event.Route.Gateway,
 				Network: event.Route.Network,
 				Link:    event.Route.Link,
-				Metric:  int(event.Route.Metric),
+				Metric:  event.Route.Metric,
 			}
 
 			events[i] = &router.Event{
@@ -196,7 +196,7 @@ func (s *svc) Process(advert *router.Advert) error {
 			Gateway: event.Route.Gateway,
 			Network: event.Route.Network,
 			Link:    event.Route.Link,
-			Metric:  int64(event.Route.Metric),
+			Metric:  event.Route.Metric,
 		}
 		e := &pb.Event{
 			Type:      pb.EventType(event.Type),
@@ -346,7 +346,7 @@ func (s *svc) Lookup(q ...router.QueryOption) ([]router.Route, error) {
 			Gateway: route.Gateway,
 			Network: route.Network,
 			Link:    route.Link,
-			Metric:  int(route.Metric),
+			Metric:  route.Metric,
 		}
 	}
 

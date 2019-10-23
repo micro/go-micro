@@ -61,7 +61,7 @@ func (w *watcher) watch(stream pb.Router_WatchService) error {
 			Gateway: resp.Route.Gateway,
 			Network: resp.Route.Network,
 			Link:    resp.Route.Link,
-			Metric:  int(resp.Route.Metric),
+			Metric:  resp.Route.Metric,
 		}
 
 		event := &router.Event{

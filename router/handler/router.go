@@ -31,7 +31,7 @@ func (r *Router) Lookup(ctx context.Context, req *pb.LookupRequest, resp *pb.Loo
 			Network: route.Network,
 			Router:  route.Router,
 			Link:    route.Link,
-			Metric:  int64(route.Metric),
+			Metric:  route.Metric,
 		}
 		respRoutes = append(respRoutes, respRoute)
 	}
@@ -67,7 +67,7 @@ func (r *Router) Advertise(ctx context.Context, req *pb.Request, stream pb.Route
 				Network: event.Route.Network,
 				Router:  event.Route.Router,
 				Link:    event.Route.Link,
-				Metric:  int64(event.Route.Metric),
+				Metric:  event.Route.Metric,
 			}
 			e := &pb.Event{
 				Type:      pb.EventType(event.Type),
@@ -108,7 +108,7 @@ func (r *Router) Process(ctx context.Context, req *pb.Advert, rsp *pb.ProcessRes
 			Network: event.Route.Network,
 			Router:  event.Route.Router,
 			Link:    event.Route.Link,
-			Metric:  int(event.Route.Metric),
+			Metric:  event.Route.Metric,
 		}
 
 		events[i] = &router.Event{
@@ -174,7 +174,7 @@ func (r *Router) Watch(ctx context.Context, req *pb.WatchRequest, stream pb.Rout
 			Network: event.Route.Network,
 			Router:  event.Route.Router,
 			Link:    event.Route.Link,
-			Metric:  int64(event.Route.Metric),
+			Metric:  event.Route.Metric,
 		}
 
 		tableEvent := &pb.Event{

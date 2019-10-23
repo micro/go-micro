@@ -20,7 +20,7 @@ func (t *Table) Create(ctx context.Context, route *pb.Route, resp *pb.CreateResp
 		Network: route.Network,
 		Router:  route.Router,
 		Link:    route.Link,
-		Metric:  int(route.Metric),
+		Metric:  route.Metric,
 	})
 	if err != nil {
 		return errors.InternalServerError("go.micro.router", "failed to create route: %s", err)
@@ -37,7 +37,7 @@ func (t *Table) Update(ctx context.Context, route *pb.Route, resp *pb.UpdateResp
 		Network: route.Network,
 		Router:  route.Router,
 		Link:    route.Link,
-		Metric:  int(route.Metric),
+		Metric:  route.Metric,
 	})
 	if err != nil {
 		return errors.InternalServerError("go.micro.router", "failed to update route: %s", err)
@@ -54,7 +54,7 @@ func (t *Table) Delete(ctx context.Context, route *pb.Route, resp *pb.DeleteResp
 		Network: route.Network,
 		Router:  route.Router,
 		Link:    route.Link,
-		Metric:  int(route.Metric),
+		Metric:  route.Metric,
 	})
 	if err != nil {
 		return errors.InternalServerError("go.micro.router", "failed to delete route: %s", err)
@@ -79,7 +79,7 @@ func (t *Table) List(ctx context.Context, req *pb.Request, resp *pb.ListResponse
 			Network: route.Network,
 			Router:  route.Router,
 			Link:    route.Link,
-			Metric:  int64(route.Metric),
+			Metric:  route.Metric,
 		}
 		respRoutes = append(respRoutes, respRoute)
 	}
@@ -104,7 +104,7 @@ func (t *Table) Query(ctx context.Context, req *pb.QueryRequest, resp *pb.QueryR
 			Network: route.Network,
 			Router:  route.Router,
 			Link:    route.Link,
-			Metric:  int64(route.Metric),
+			Metric:  route.Metric,
 		}
 		respRoutes = append(respRoutes, respRoute)
 	}
