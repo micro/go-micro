@@ -173,7 +173,7 @@ func (l *link) Send(m *transport.Message) error {
 		// rate of send in bits per nanosecond
 		rate := float64(bits) / float64(delta.Nanoseconds())
 
-		//
+		// default the rate if its zero
 		if l.rate == 0 {
 			// rate per second
 			l.rate = rate * 1e9
