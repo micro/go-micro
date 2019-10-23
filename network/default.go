@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"hash/fnv"
+	"math"
 	"sync"
 	"time"
 
@@ -675,7 +676,7 @@ func (n *network) getRouteMetric(router string, gateway string) int64 {
 		}
 		return (delay * length * int64(hops)) / 10e9
 	}
-	return 0
+	return math.MaxInt64
 }
 
 // getHopCount queries network graph and returns hop count for given router
