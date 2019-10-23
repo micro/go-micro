@@ -700,7 +700,7 @@ func (n *network) getRouteMetric(router string, gateway string, link string) int
 	defer n.RUnlock()
 
 	if link == "local" && gateway == "" {
-		log.Debugf("Network link: %s, gateway: blank", link, gateway)
+		log.Debugf("Network link: %s, gateway: blank", link)
 		return 1
 	}
 
