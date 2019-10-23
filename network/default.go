@@ -252,7 +252,7 @@ func (n *network) resolve() {
 }
 
 // handleNetConn handles network announcement messages
-func (n *network) handleNetConn(s tunnel.Session, msg chan *Message) {
+func (n *network) handleNetConn(s tunnel.Session, msg chan *message) {
 	for {
 		m := new(transport.Message)
 		if err := s.Recv(m); err != nil {
@@ -264,7 +264,7 @@ func (n *network) handleNetConn(s tunnel.Session, msg chan *Message) {
 		}
 
 		select {
-		case msg <- &Message{
+		case msg <- &message{
 			msg:     m,
 			session: s,
 		}:
@@ -275,7 +275,7 @@ func (n *network) handleNetConn(s tunnel.Session, msg chan *Message) {
 }
 
 // acceptNetConn accepts connections from NetworkChannel
-func (n *network) acceptNetConn(l tunnel.Listener, recv chan *Message) {
+func (n *network) acceptNetConn(l tunnel.Listener, recv chan *message) {
 	var i int
 	for {
 		// accept a connection
@@ -337,7 +337,7 @@ func (n *network) updatePeerLinks(peerAddr string, linkId string) error {
 // processNetChan processes messages received on NetworkChannel
 func (n *network) processNetChan(listener tunnel.Listener) {
 	// receive network message queue
-	recv := make(chan *Message, 128)
+	recv := make(chan *message, 128)
 
 	// accept NetworkChannel connections
 	go n.acceptNetConn(listener, recv)
@@ -604,7 +604,7 @@ func (n *network) prune() {
 }
 
 // handleCtrlConn handles ControlChannel connections
-func (n *network) handleCtrlConn(s tunnel.Session, msg chan *Message) {
+func (n *network) handleCtrlConn(s tunnel.Session, msg chan *message) {
 	for {
 		m := new(transport.Message)
 		if err := s.Recv(m); err != nil {
@@ -616,7 +616,7 @@ func (n *network) handleCtrlConn(s tunnel.Session, msg chan *Message) {
 		}
 
 		select {
-		case msg <- &Message{
+		case msg <- &message{
 			msg:     m,
 			session: s,
 		}:
@@ -627,7 +627,7 @@ func (n *network) handleCtrlConn(s tunnel.Session, msg chan *Message) {
 }
 
 // acceptCtrlConn accepts connections from ControlChannel
-func (n *network) acceptCtrlConn(l tunnel.Listener, recv chan *Message) {
+func (n *network) acceptCtrlConn(l tunnel.Listener, recv chan *message) {
 	var i int
 	for {
 		// accept a connection
@@ -717,7 +717,7 @@ func (n *network) getRouteMetric(router string, gateway string) int64 {
 // processCtrlChan processes messages received on ControlChannel
 func (n *network) processCtrlChan(listener tunnel.Listener) {
 	// receive control message queue
-	recv := make(chan *Message, 128)
+	recv := make(chan *message, 128)
 
 	// accept ControlChannel cconnections
 	go n.acceptCtrlConn(listener, recv)

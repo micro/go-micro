@@ -56,8 +56,8 @@ type Network interface {
 	Server() server.Server
 }
 
-// Message is network message
-type Message struct {
+// message is network message
+type message struct {
 	// msg is transport message
 	msg *transport.Message
 	// session is tunnel session
