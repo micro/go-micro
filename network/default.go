@@ -304,6 +304,7 @@ func (n *network) acceptNetConn(l tunnel.Listener, recv chan *message) {
 	}
 }
 
+// updatePeerLinks updates link for a given peer
 func (n *network) updatePeerLinks(peerAddr string, linkId string) error {
 	n.Lock()
 	defer n.Unlock()
@@ -367,6 +368,7 @@ func (n *network) processNetChan(listener tunnel.Listener) {
 					lastSeen: now,
 				}
 				// update peer links
+				log.Debugf("Network updating peer link %s for peer: %s", m.session.Link(), pbNetConnect.Node.Address)
 				if err := n.updatePeerLinks(pbNetConnect.Node.Address, m.session.Link()); err != nil {
 					log.Debugf("Network failed updating peer links: %s", err)
 				}
@@ -409,6 +411,7 @@ func (n *network) processNetChan(listener tunnel.Listener) {
 					lastSeen: now,
 				}
 				// update peer links
+				log.Debugf("Network updating peer link %s for peer: %s", m.session.Link(), pbNetPeer.Node.Address)
 				if err := n.updatePeerLinks(pbNetPeer.Node.Address, m.session.Link()); err != nil {
 					log.Debugf("Network failed updating peer links: %s", err)
 				}
@@ -691,11 +694,22 @@ func (n *network) getHopCount(rtr string) int {
 
 // getRouteMetric calculates router metric and returns it
 // Route metric is calculated based on link status and route hopd count
-func (n *network) getRouteMetric(router string, gateway string) int64 {
+func (n *network) getRouteMetric(router string, gateway string, link string) int64 {
 	// set the route metric
 	n.RLock()
 	defer n.RUnlock()
 
+	if link == "local" && gateway == "" {
+		log.Debugf("Network link: %s, gateway: blank", link, gateway)
+		return 1
+	}
+
+	if link == "local" && gateway != "" {
+		log.Debugf("Network link: %s, gateway: %s", link, gateway)
+		return 2
+	}
+
+	log.Debugf("Network looking up %s link to gateway: %s", link, gateway)
 	if link, ok := n.peerLinks[gateway]; ok {
 		// maka sure delay is non-zero
 		delay := link.Delay()
@@ -711,6 +725,7 @@ func (n *network) getRouteMetric(router string, gateway string) int64 {
 		}
 		return (delay * length * int64(hops)) / 10e9
 	}
+	log.Debugf("Network failed to find a link to gateway: %s", gateway)
 	return math.MaxInt64
 }
 
@@ -768,8 +783,9 @@ func (n *network) processCtrlChan(listener tunnel.Listener) {
 					}
 					// calculate route metric and add to the advertised metric
 					// we need to make sure we do not overflow math.MaxInt64
-					if metric := n.getRouteMetric(event.Route.Router, event.Route.Gateway); metric != math.MaxInt64 {
-						route.Metric += n.getRouteMetric(event.Route.Router, event.Route.Gateway)
+					log.Debugf("Network metric for router %s and gateway %s", event.Route.Router, event.Route.Gateway)
+					if metric := n.getRouteMetric(event.Route.Router, event.Route.Gateway, event.Route.Link); metric != math.MaxInt64 {
+						route.Metric += metric
 					} else {
 						route.Metric = metric
 					}
@@ -843,7 +859,7 @@ func (n *network) advertise(advertChan <-chan *router.Advert) {
 					address = fmt.Sprintf("%d", hasher.Sum64())
 				}
 				// calculate route metric to advertise
-				metric := n.getRouteMetric(event.Route.Router, event.Route.Gateway)
+				metric := n.getRouteMetric(event.Route.Router, event.Route.Gateway, DefaultLink)
 				// NOTE: we override Gateway, Link and Address here
 				route := &pbRtr.Route{
 					Service: event.Route.Service,
