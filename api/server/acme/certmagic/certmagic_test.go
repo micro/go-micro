@@ -11,8 +11,7 @@ import (
 	"github.com/go-acme/lego/v3/providers/dns/cloudflare"
 	"github.com/mholt/certmagic"
 	"github.com/micro/go-micro/api/server/acme"
-	"github.com/micro/go-micro/config/options"
-	cloudflarestorage "github.com/micro/go-micro/store/cloudflare"
+	cfstore "github.com/micro/go-micro/store/cloudflare"
 	"github.com/micro/go-micro/sync/lock/memory"
 )
 
@@ -22,7 +21,7 @@ func TestCertMagic(t *testing.T) {
 	}
 	l, err := New().NewListener()
 	if err != nil {
-		t.Error(err.Error())
+		t.Fatal(err.Error())
 	}
 	l.Close()
 
@@ -34,7 +33,7 @@ func TestCertMagic(t *testing.T) {
 
 	p, err := cloudflare.NewDNSProviderConfig(c)
 	if err != nil {
-		t.Error(err.Error())
+		t.Fatal(err.Error())
 	}
 
 	l, err = New(acme.AcceptToS(true),
@@ -43,7 +42,7 @@ func TestCertMagic(t *testing.T) {
 	).NewListener()
 
 	if err != nil {
-		t.Error(err.Error())
+		t.Fatal(err.Error())
 	}
 	l.Close()
 }
@@ -56,10 +55,10 @@ func TestStorageImplementation(t *testing.T) {
 	}
 
 	var s certmagic.Storage
-	st, err := cloudflarestorage.New(
-		options.WithValue("CF_API_TOKEN", apiToken),
-		options.WithValue("CF_ACCOUNT_ID", accountID),
-		options.WithValue("KV_NAMESPACE_ID", kvID),
+	st, err := cfstore.NewStore(
+		cfstore.ApiToken(apiToken),
+		cfstore.AccountID(accountID),
+		cfstore.Namespace(kvID),
 	)
 	if err != nil {
 		t.Fatalf("Couldn't initialise cloudflare storage: %s\n", err.Error())
@@ -71,12 +70,12 @@ func TestStorageImplementation(t *testing.T) {
 
 	// Test Lock
 	if err := s.Lock("test"); err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	// Test Unlock
 	if err := s.Unlock("test"); err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	// Test data
@@ -107,17 +106,17 @@ func TestStorageImplementation(t *testing.T) {
 	// Test Store
 	for _, d := range testdata {
 		if err := s.Store(d.key, d.value); err != nil {
-			t.Error(err.Error())
+			t.Fatal(err.Error())
 		}
 	}
 
 	// Test Load
 	for _, d := range testdata {
 		if value, err := s.Load(d.key); err != nil {
-			t.Error(err.Error())
+			t.Fatal(err.Error())
 		} else {
 			if !reflect.DeepEqual(value, d.value) {
-				t.Errorf("Load %s: expected %v, got %v", d.key, d.value, value)
+				t.Fatalf("Load %s: expected %v, got %v", d.key, d.value, value)
 			}
 		}
 	}
@@ -125,13 +124,13 @@ func TestStorageImplementation(t *testing.T) {
 	// Test Exists
 	for _, d := range testdata {
 		if !s.Exists(d.key) {
-			t.Errorf("%s should exist, but doesn't\n", d.key)
+			t.Fatalf("%s should exist, but doesn't\n", d.key)
 		}
 	}
 
 	// Test List
 	if list, err := s.List("/", true); err != nil {
-		t.Error(err.Error())
+		t.Fatal(err.Error())
 	} else {
 		var expected []string
 		for i, d := range testdata {
@@ -143,16 +142,16 @@ func TestStorageImplementation(t *testing.T) {
 		sort.Strings(expected)
 		sort.Strings(list)
 		if !reflect.DeepEqual(expected, list) {
-			t.Errorf("List: Expected %v, got %v\n", expected, list)
+			t.Fatalf("List: Expected %v, got %v\n", expected, list)
 		}
 	}
 	if list, err := s.List("/foo", false); err != nil {
-		t.Error(err.Error())
+		t.Fatal(err.Error())
 	} else {
 		sort.Strings(list)
 		expected := []string{"/foo/a", "/foo/b", "/foo/bar", "/foo/c", "/foo/d"}
 		if !reflect.DeepEqual(expected, list) {
-			t.Errorf("List: expected %s, got %s\n", expected, list)
+			t.Fatalf("List: expected %s, got %s\n", expected, list)
 		}
 	}
 
@@ -160,16 +159,16 @@ func TestStorageImplementation(t *testing.T) {
 	for _, d := range testdata {
 		info, err := s.Stat(d.key)
 		if err != nil {
-			t.Error(err.Error())
+			t.Fatal(err.Error())
 		} else {
 			if info.Key != d.key {
-				t.Errorf("Stat().Key: expected %s, got %s\n", d.key, info.Key)
+				t.Fatalf("Stat().Key: expected %s, got %s\n", d.key, info.Key)
 			}
 			if info.Size != int64(len(d.value)) {
-				t.Errorf("Stat().Size: expected %d, got %d\n", len(d.value), info.Size)
+				t.Fatalf("Stat().Size: expected %d, got %d\n", len(d.value), info.Size)
 			}
 			if time.Since(info.Modified) > time.Minute {
-				t.Errorf("Stat().Modified: expected time since last modified to be < 1 minute, got %v\n", time.Since(info.Modified))
+				t.Fatalf("Stat().Modified: expected time since last modified to be < 1 minute, got %v\n", time.Since(info.Modified))
 			}
 		}
 
@@ -178,7 +177,7 @@ func TestStorageImplementation(t *testing.T) {
 	// Test Delete
 	for _, d := range testdata {
 		if err := s.Delete(d.key); err != nil {
-			t.Error(err.Error())
+			t.Fatal(err.Error())
 		}
 	}
 
@@ -196,10 +195,10 @@ func TestE2e(t *testing.T) {
 	}
 
 	testLock := memory.NewLock()
-	testStore, err := cloudflarestorage.New(
-		options.WithValue("CF_API_TOKEN", apiToken),
-		options.WithValue("CF_ACCOUNT_ID", accountID),
-		options.WithValue("KV_NAMESPACE_ID", kvID),
+	testStore, err := cfstore.NewStore(
+		cfstore.ApiToken(apiToken),
+		cfstore.AccountID(accountID),
+		cfstore.Namespace(kvID),
 	)
 	if err != nil {
 		t.Fatal(err.Error())

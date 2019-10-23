@@ -32,7 +32,7 @@ type workersKV struct {
 // Options expects CF_API_TOKEN to a cloudflare API token scoped to Workers KV,
 // CF_ACCOUNT_ID to contain a string with your cloudflare account ID and
 // KV_NAMESPACE_ID to contain the namespace UUID for your KV storage.
-func New(opts ...options.Option) (store.Store, error) {
+func NewStore(opts ...options.Option) (store.Store, error) {
 	// Validate Options
 	options := options.NewOptions(opts...)
 	apiToken, ok := options.Values().Get("CF_API_TOKEN")

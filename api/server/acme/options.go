@@ -67,7 +67,7 @@ func Cache(c interface{}) Option {
 func DefaultOptions() Options {
 	return Options{
 		AcceptToS: true,
-		CA: LetsEncryptProductionCA,
-		OnDemand: true,
+		CA:        LetsEncryptProductionCA,
+		OnDemand:  true,
 	}
 }

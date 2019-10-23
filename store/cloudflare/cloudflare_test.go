@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/micro/go-micro/config/options"
 	"github.com/micro/go-micro/store"
 )
 
@@ -21,10 +20,10 @@ func TestCloudflare(t *testing.T) {
 	randomK := strconv.Itoa(rand.Int())
 	randomV := strconv.Itoa(rand.Int())
 
-	wkv, err := New(
-		options.WithValue("CF_API_TOKEN", apiToken),
-		options.WithValue("CF_ACCOUNT_ID", accountID),
-		options.WithValue("KV_NAMESPACE_ID", kvID),
+	wkv, err := NewStore(
+		ApiToken(apiToken),
+		AccountID(accountID),
+		Namespace(kvID),
 	)
 
 	if err != nil {
