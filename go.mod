@@ -8,7 +8,6 @@ require (
 	github.com/bitly/go-simplejson v0.5.0
 	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
 	github.com/bwmarrin/discordgo v0.19.0
-	github.com/cloudflare/cloudflare-go v0.10.4
 	github.com/coreos/bbolt v1.3.3 // indirect
 	github.com/coreos/etcd v3.3.17+incompatible
 	github.com/coreos/go-semver v0.3.0 // indirect
@@ -30,7 +29,6 @@ require (
 	github.com/gorilla/websocket v1.4.1
 	github.com/grpc-ecosystem/go-grpc-middleware v1.1.0 // indirect
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0 // indirect
-	github.com/hashicorp/consul/api v1.2.0
 	github.com/hashicorp/hcl v1.0.0
 	github.com/imdario/mergo v0.3.8
 	github.com/jonboulle/clockwork v0.1.0 // indirect
