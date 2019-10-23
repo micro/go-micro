@@ -767,7 +767,12 @@ func (n *network) processCtrlChan(listener tunnel.Listener) {
 						Metric:  event.Route.Metric,
 					}
 					// calculate route metric and add to the advertised metric
-					route.Metric += n.getRouteMetric(event.Route.Router, event.Route.Gateway)
+					// we need to make sure we do not overflow math.MaxInt64
+					if metric := n.getRouteMetric(event.Route.Router, event.Route.Gateway); metric != math.MaxInt64 {
+						route.Metric += n.getRouteMetric(event.Route.Router, event.Route.Gateway)
+					} else {
+						route.Metric = metric
+					}
 					// create router event
 					e := &router.Event{
 						Type:      router.EventType(event.Type),
