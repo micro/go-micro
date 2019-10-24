@@ -746,8 +746,13 @@ func (t *tun) setupLink(node string) (*link, error) {
 	}
 	log.Debugf("Tunnel connected to %s", node)
 
+	// create a new link
+	link := newLink(c)
+	// set link id to remote side
+	link.id = c.Remote()
+
 	// send the first connect message
-	if err := c.Send(&transport.Message{
+	if err := link.Send(&transport.Message{
 		Header: map[string]string{
 			"Micro-Tunnel":       "connect",
 			"Micro-Tunnel-Id":    t.id,
@@ -757,10 +762,6 @@ func (t *tun) setupLink(node string) (*link, error) {
 		return nil, err
 	}
 
-	// create a new link
-	link := newLink(c)
-	// set link id to remote side
-	link.id = c.Remote()
 	// we made the outbound connection
 	// and sent the connect message
 	link.connected = true

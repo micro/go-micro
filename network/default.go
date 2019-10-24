@@ -677,19 +677,19 @@ func (n *network) getHopCount(rtr string) int {
 
 	// the route origin is our peer
 	if _, ok := n.peers[rtr]; ok {
-		return 2
+		return 10
 	}
 
 	// the route origin is the peer of our peer
 	for _, peer := range n.peers {
 		for id := range peer.peers {
 			if rtr == id {
-				return 3
+				return 100
 			}
 		}
 	}
 	// otherwise we are three hops away
-	return 4
+	return 1000
 }
 
 // getRouteMetric calculates router metric and returns it
@@ -721,11 +721,15 @@ func (n *network) getRouteMetric(router string, gateway string, link string) int
 		// make sure length is non-zero
 		length := link.Length()
 		if length == 0 {
-			length = 10e10
+			log.Debugf("Link length is 0 %v %v", link, link.Length())
+			length = 10e9
 		}
-		return (delay * length * int64(hops)) / 10e9
+		log.Debugf("Network calculated metric %v delay %v length %v distance %v", (delay*length*int64(hops))/10e6, delay, length, hops)
+		return (delay * length * int64(hops)) / 10e6
 	}
+
 	log.Debugf("Network failed to find a link to gateway: %s", gateway)
+
 	return math.MaxInt64
 }
 
@@ -783,12 +787,18 @@ func (n *network) processCtrlChan(listener tunnel.Listener) {
 					}
 					// calculate route metric and add to the advertised metric
 					// we need to make sure we do not overflow math.MaxInt64
-					log.Debugf("Network metric for router %s and gateway %s", event.Route.Router, event.Route.Gateway)
-					if metric := n.getRouteMetric(event.Route.Router, event.Route.Gateway, event.Route.Link); metric != math.MaxInt64 {
-						route.Metric += metric
+					metric := n.getRouteMetric(event.Route.Router, event.Route.Gateway, event.Route.Link)
+					log.Debugf("Network metric for router %s and gateway %s: %v", event.Route.Router, event.Route.Gateway, metric)
+
+					// check we don't overflow max int 64
+					if d := route.Metric + metric; d > math.MaxInt64 || d <= 0 {
+						// set to max int64 if we overflow
+						route.Metric = math.MaxInt64
 					} else {
-						route.Metric = metric
+						// set the combined value of metrics otherwise
+						route.Metric = d
 					}
+
 					// create router event
 					e := &router.Event{
 						Type:      router.EventType(event.Type),
