@@ -984,32 +984,30 @@ func (t *tun) Dial(channel string, opts ...DialOption) (Session, error) {
 	var measured bool
 
 	// non multicast so we need to find the link
-	if id := options.Link; id != "" {
-		t.RLock()
-		for _, link := range t.links {
-			// use the link specified it its available
-			if link.id != id {
-				continue
-			}
-
-			link.RLock()
-			_, ok := link.channels[channel]
-			link.RUnlock()
-
-			// we have at least one channel mapping
-			if ok {
-				c.discovered = true
-				links = append(links, link.id)
-			}
-		}
-		t.RUnlock()
-		// link not found
-		if len(links) == 0 {
-			// delete session and return error
-			t.delSession(c.channel, c.session)
-			return nil, ErrLinkNotFound
+	t.RLock()
+	for _, link := range t.links {
+		// use the link specified it its available
+		if id := options.Link; len(id) > 0 && link.id != id {
+			continue
 		}
 
+		link.RLock()
+		_, ok := link.channels[channel]
+		link.RUnlock()
+
+		// we have at least one channel mapping
+		if ok {
+			c.discovered = true
+			links = append(links, link.id)
+		}
+	}
+	t.RUnlock()
+	// link not found
+	if len(links) == 0 && len(options.Link) > 0 {
+		// delete session and return error
+		t.delSession(c.channel, c.session)
+		log.Debugf("Tunnel deleting session %s %s: %v", c.session, c.channel, ErrLinkNotFound)
+		return nil, ErrLinkNotFound
 	}
 
 	// discovered so set the link if not multicast
@@ -1038,10 +1036,12 @@ func (t *tun) Dial(channel string, opts ...DialOption) (Session, error) {
 		select {
 		case <-time.After(after()):
 			t.delSession(c.channel, c.session)
+			log.Debugf("Tunnel deleting session %s %s: %v", c.session, c.channel, ErrDialTimeout)
 			return nil, ErrDialTimeout
 		case err := <-c.errChan:
 			if err != nil {
 				t.delSession(c.channel, c.session)
+				log.Debugf("Tunnel deleting session %s %s: %v", c.session, c.channel, err)
 				return nil, err
 			}
 		}
@@ -1077,6 +1077,7 @@ func (t *tun) Dial(channel string, opts ...DialOption) (Session, error) {
 		// otherwise return an error
 		if err != nil {
 			t.delSession(c.channel, c.session)
+			log.Debugf("Tunnel deleting session %s %s: %v", c.session, c.channel, err)
 			return nil, err
 		}
 
@@ -1109,6 +1110,7 @@ func (t *tun) Dial(channel string, opts ...DialOption) (Session, error) {
 	if err != nil {
 		// delete the session
 		t.delSession(c.channel, c.session)
+		log.Debugf("Tunnel deleting session %s %s: %v", c.session, c.channel, err)
 		return nil, err
 	}
 
