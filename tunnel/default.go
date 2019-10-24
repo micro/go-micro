@@ -524,12 +524,17 @@ func (t *tun) listen(link *link) {
 			s, exists := t.getSession(channel, sessionId)
 			// we don't need this
 			if exists && s.mode > Unicast {
+				s.Lock()
 				s.accepted = true
+				s.Unlock()
 				continue
 			}
+			s.RLock()
 			if exists && s.accepted {
+				s.RUnlock()
 				continue
 			}
+			s.RUnlock()
 		// a continued session
 		case "session":
 			// process message
@@ -555,9 +560,12 @@ func (t *tun) listen(link *link) {
 			s, exists := t.getSession(channel, sessionId)
 			if exists {
 				// don't bother it's already discovered
+				s.RLock()
 				if s.discovered {
+					s.RUnlock()
 					continue
 				}
+				s.RUnlock()
 
 				// send the announce back to the caller
 				s.recv <- &message{
@@ -605,9 +613,12 @@ func (t *tun) listen(link *link) {
 		case mtype == "accept":
 			log.Debugf("Received accept message for %s %s", channel, sessionId)
 			s, exists = t.getSession(channel, sessionId)
+			s.RLock()
 			if exists && s.accepted {
+				s.RUnlock()
 				continue
 			}
+			s.RUnlock()
 		default:
 			// get the session based on the tunnel id and session
 			// this could be something we dialed in which case
@@ -997,7 +1008,9 @@ func (t *tun) Dial(channel string, opts ...DialOption) (Session, error) {
 
 		// we have at least one channel mapping
 		if ok {
+			c.Lock()
 			c.discovered = true
+			c.Unlock()
 			links = append(links, link.id)
 		}
 	}
@@ -1013,12 +1026,16 @@ func (t *tun) Dial(channel string, opts ...DialOption) (Session, error) {
 	// discovered so set the link if not multicast
 	// TODO: pick the link efficiently based
 	// on link status and saturation.
+	c.RLock()
 	if c.discovered && c.mode == Unicast {
 		// set the link
 		i := rand.Intn(len(links))
 		c.link = links[i]
 	}
+	c.RUnlock()
 
+	// we Write-Lock here as we might modify c.discovered within the if condition
+	c.Lock()
 	// shit fuck
 	if !c.discovered {
 		// piggy back roundtrip
@@ -1037,11 +1054,13 @@ func (t *tun) Dial(channel string, opts ...DialOption) (Session, error) {
 		case <-time.After(after()):
 			t.delSession(c.channel, c.session)
 			log.Debugf("Tunnel deleting session %s %s: %v", c.session, c.channel, ErrDialTimeout)
+			c.Unlock()
 			return nil, ErrDialTimeout
 		case err := <-c.errChan:
 			if err != nil {
 				t.delSession(c.channel, c.session)
 				log.Debugf("Tunnel deleting session %s %s: %v", c.session, c.channel, err)
+				c.Unlock()
 				return nil, err
 			}
 		}
@@ -1071,6 +1090,7 @@ func (t *tun) Dial(channel string, opts ...DialOption) (Session, error) {
 		if c.mode != Unicast {
 			c.discovered = true
 			c.accepted = true
+			c.Unlock()
 			return c, nil
 		}
 
@@ -1078,6 +1098,7 @@ func (t *tun) Dial(channel string, opts ...DialOption) (Session, error) {
 		if err != nil {
 			t.delSession(c.channel, c.session)
 			log.Debugf("Tunnel deleting session %s %s: %v", c.session, c.channel, err)
+			c.Unlock()
 			return nil, err
 		}
 
@@ -1099,6 +1120,7 @@ func (t *tun) Dial(channel string, opts ...DialOption) (Session, error) {
 		// set discovered to true
 		c.discovered = true
 	}
+	c.Unlock()
 
 	// a unicast session so we call "open" and wait for an "accept"
 

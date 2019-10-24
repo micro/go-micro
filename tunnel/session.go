@@ -3,6 +3,7 @@ package tunnel
 import (
 	"errors"
 	"io"
+	"sync"
 	"time"
 
 	"github.com/micro/go-micro/transport"
@@ -11,6 +12,7 @@ import (
 
 // session is our pseudo session for transport.Socket
 type session struct {
+	sync.RWMutex
 	// the tunnel id
 	tunnel string
 	// the channel name
@@ -130,24 +132,33 @@ func (s *session) Open() error {
 		return nil
 	}
 
-	// now wait for the accept
-	select {
-	case msg = <-s.recv:
-		if msg.typ != "accept" {
-			log.Debugf("Received non accept message in Open %s", msg.typ)
-			return errors.New("failed to connect")
+	for {
+		// now wait for the accept
+		select {
+		case msg = <-s.recv:
+			switch msg.typ {
+			case "accept":
+				// set to accepted
+				s.Lock()
+				s.accepted = true
+				// set link
+				s.link = msg.link
+				s.Unlock()
+				return nil
+			case "announce":
+				s.Lock()
+				s.discovered = true
+				s.Unlock()
+				continue
+			default:
+				return errors.New("failed to connect")
+			}
+		case <-time.After(s.timeout):
+			return ErrDialTimeout
+		case <-s.closed:
+			return io.EOF
 		}
-		// set to accepted
-		s.accepted = true
-		// set link
-		s.link = msg.link
-	case <-time.After(s.timeout):
-		return ErrDialTimeout
-	case <-s.closed:
-		return io.EOF
 	}
-
-	return nil
 }
 
 // Accept sends the accept response to an open message from a dialled connection
