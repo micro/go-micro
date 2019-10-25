@@ -865,7 +865,10 @@ func (n *network) advertise(advertChan <-chan *router.Advert) {
 				if event.Route.Router == advert.Id {
 					// hash the service before advertising it
 					hasher.Reset()
-					hasher.Write([]byte(event.Route.Address + n.node.id))
+					// routes for multiple instances of a service will be collapsed here.
+					// TODO: once we store labels in the table this may need to change
+					// to include the labels in case they differ but highly unlikely
+					hasher.Write([]byte(event.Route.Service + n.node.Address()))
 					address = fmt.Sprintf("%d", hasher.Sum64())
 				}
 				// calculate route metric to advertise
