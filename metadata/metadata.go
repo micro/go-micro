@@ -29,15 +29,18 @@ func NewContext(ctx context.Context, md Metadata) context.Context {
 	return context.WithValue(ctx, metaKey{}, md)
 }
 
-// PatchContext : will add/replace source metadata fields with given patch metadata fields
-func PatchContext(ctx context.Context, patchMd Metadata) context.Context {
+func AppendContext(ctx context.Context, patchMd Metadata, overwrite bool) context.Context {
 	md, _ := ctx.Value(metaKey{}).(Metadata)
 	cmd := make(Metadata)
 	for k, v := range md {
 		cmd[k] = v
 	}
 	for k, v := range patchMd {
-		cmd[k] = v
+		if _, ok := cmd[k]; ok && !overwrite {
+			// skip
+		} else {
+			cmd[k] = v
+		}
 	}
 	return context.WithValue(ctx, metaKey{}, cmd)
 

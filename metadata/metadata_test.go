@@ -2,6 +2,7 @@ package metadata
 
 import (
 	"context"
+	"reflect"
 	"testing"
 )
 
@@ -40,28 +41,42 @@ func TestMetadataContext(t *testing.T) {
 		t.Errorf("Expected metadata length 1 got %d", i)
 	}
 }
-func TestPatchContext(t *testing.T) {
 
-	original := Metadata{
-		"foo": "bar",
+func TestAppendContext(t *testing.T) {
+	type args struct {
+		existing  Metadata
+		append    Metadata
+		overwrite bool
 	}
-
-	patch := Metadata{
-		"sumo": "demo",
+	tests := []struct {
+		name string
+		args args
+		want Metadata
+	}{
+		{
+			name: "matching key, overwrite false",
+			args: args{
+				existing:  Metadata{"foo": "bar", "sumo": "demo"},
+				append:    Metadata{"sumo": "demo2"},
+				overwrite: false,
+			},
+			want: Metadata{"foo": "bar", "sumo": "demo"},
+		},
+		{
+			name: "matching key, overwrite true",
+			args: args{
+				existing:  Metadata{"foo": "bar", "sumo": "demo"},
+				append:    Metadata{"sumo": "demo2"},
+				overwrite: true,
+			},
+			want: Metadata{"foo": "bar", "sumo": "demo2"},
+		},
 	}
-	ctx := NewContext(context.TODO(), original)
-
-	patchedCtx := PatchContext(ctx, patch)
-
-	patchedMd, ok := FromContext(patchedCtx)
-	if !ok {
-		t.Errorf("Unexpected error retrieving metadata, got %t", ok)
-	}
-
-	if patchedMd["sumo"] != patch["sumo"] {
-		t.Errorf("Expected key: %s val: %s, got key: %s val: %s", "sumo", patch["sumo"], "sumo", patchedMd["sumo"])
-	}
-	if patchedMd["foo"] != original["foo"] {
-		t.Errorf("Expected key: %s val: %s, got key: %s val: %s", "foo", original["foo"], "foo", patchedMd["foo"])
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got, _ := FromContext(AppendContext(NewContext(context.TODO(), tt.args.existing), tt.args.append, tt.args.overwrite)); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("AppendContext() = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }
