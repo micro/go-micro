@@ -1,12 +1,14 @@
 package tunnel
 
 import (
+	"bytes"
 	"io"
 	"sync"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/micro/go-micro/transport"
+	"github.com/micro/go-micro/util/log"
 )
 
 type link struct {
@@ -15,9 +17,11 @@ type link struct {
 	sync.RWMutex
 	// stops the link
 	closed chan bool
-	// send queue
+	// link state channel for testing link
+	state chan *packet
+	// send queue for sending packets
 	sendQueue chan *packet
-	// receive queue
+	// receive queue for receiving packets
 	recvQueue chan *packet
 	// unique id of this link e.g uuid
 	// which we define for ourselves
@@ -56,21 +60,49 @@ type packet struct {
 	err error
 }
 
+var (
+	// the 4 byte 0 packet sent to determine the link state
+	linkRequest = []byte{0, 0, 0, 0}
+	// the 4 byte 1 filled packet sent to determine link state
+	linkResponse = []byte{1, 1, 1, 1}
+)
+
 func newLink(s transport.Socket) *link {
 	l := &link{
 		Socket:        s,
 		id:            uuid.New().String(),
 		lastKeepAlive: time.Now(),
-		closed:        make(chan bool),
 		channels:      make(map[string]time.Time),
+		closed:        make(chan bool),
+		state:         make(chan *packet, 64),
 		sendQueue:     make(chan *packet, 128),
 		recvQueue:     make(chan *packet, 128),
 	}
+
+	// process inbound/outbound packets
 	go l.process()
-	go l.expiry()
+	// manage the link state
+	go l.manage()
+
 	return l
 }
 
+// setRate sets the bits per second rate as a float64
+func (l *link) setRate(bits int64, delta time.Duration) {
+	// rate of send in bits per nanosecond
+	rate := float64(bits) / float64(delta.Nanoseconds())
+
+	// default the rate if its zero
+	if l.rate == 0 {
+		// rate per second
+		l.rate = rate * 1e9
+	} else {
+		// set new rate per second
+		l.rate = 0.8*l.rate + 0.2*(rate*1e9)
+	}
+}
+
+// setRTT sets a nanosecond based moving average roundtrip time for the link
 func (l *link) setRTT(d time.Duration) {
 	l.Lock()
 	defer l.Unlock()
@@ -84,6 +116,33 @@ func (l *link) setRTT(d time.Duration) {
 	length := 0.8*float64(l.length) + 0.2*float64(d.Nanoseconds())
 	// set new length
 	l.length = int64(length)
+}
+
+func (l *link) delChannel(ch string) {
+	l.Lock()
+	delete(l.channels, ch)
+	l.Unlock()
+}
+
+func (l *link) getChannel(ch string) time.Time {
+	l.RLock()
+	defer l.RUnlock()
+	return l.channels[ch]
+}
+
+func (l *link) setChannel(channels ...string) {
+	l.Lock()
+	for _, ch := range channels {
+		l.channels[ch] = time.Now()
+	}
+	l.Unlock()
+}
+
+// set the keepalive time
+func (l *link) keepalive() {
+	l.Lock()
+	l.lastKeepAlive = time.Now()
+	l.Unlock()
 }
 
 // process deals with the send queue
@@ -101,8 +160,22 @@ func (l *link) process() {
 
 			// process new received message
 
+			pk := &packet{message: m, err: err}
+
+			// this is our link state packet
+			if m.Header["Micro-Method"] == "link" {
+				// process link state message
+				select {
+				case l.state <- pk:
+				default:
+				}
+				continue
+			}
+
+			// process all messages as is
+
 			select {
-			case l.recvQueue <- &packet{message: m, err: err}:
+			case l.recvQueue <- pk:
 			case <-l.closed:
 				return
 			}
@@ -122,15 +195,53 @@ func (l *link) process() {
 	}
 }
 
-// watches the channel expiry
-func (l *link) expiry() {
+// manage manages the link state including rtt packets and channel mapping expiry
+func (l *link) manage() {
+	// tick over every minute to expire and fire rtt packets
 	t := time.NewTicker(time.Minute)
 	defer t.Stop()
 
+	// used to send link state packets
+	send := func(b []byte) error {
+		return l.Send(&transport.Message{
+			Header: map[string]string{
+				"Micro-Method": "link",
+			}, Body: b,
+		})
+	}
+
+	// set time now
+	now := time.Now()
+
+	// send the initial rtt request packet
+	send(linkRequest)
+
 	for {
 		select {
+		// exit if closed
 		case <-l.closed:
 			return
+		// process link state rtt packets
+		case p := <-l.state:
+			if p.err != nil {
+				continue
+			}
+			// check the type of message
+			switch {
+			case bytes.Compare(p.message.Body, linkRequest) == 0:
+				log.Tracef("Link %s received link request %v", l.id, p.message.Body)
+				// send response
+				if err := send(linkResponse); err != nil {
+					l.Lock()
+					l.errCount++
+					l.Unlock()
+				}
+			case bytes.Compare(p.message.Body, linkResponse) == 0:
+				// set round trip time
+				d := time.Since(now)
+				log.Tracef("Link %s received link response in %v", p.message.Body, d)
+				l.setRTT(d)
+			}
 		case <-t.C:
 			// drop any channel mappings older than 2 minutes
 			var kill []string
@@ -155,6 +266,10 @@ func (l *link) expiry() {
 				delete(l.channels, ch)
 			}
 			l.Unlock()
+
+			// fire off a link state rtt packet
+			now = time.Now()
+			send(linkRequest)
 		}
 	}
 }
@@ -185,7 +300,6 @@ func (l *link) Delay() int64 {
 func (l *link) Rate() float64 {
 	l.RLock()
 	defer l.RUnlock()
-
 	return l.rate
 }
 
@@ -194,7 +308,6 @@ func (l *link) Rate() float64 {
 func (l *link) Length() int64 {
 	l.RLock()
 	defer l.RUnlock()
-
 	return l.length
 }
 
@@ -278,23 +391,11 @@ func (l *link) Send(m *transport.Message) error {
 
 	// calculate based on data
 	if dataSent > 0 {
-		// measure time taken
-		delta := time.Since(now)
-
 		// bit sent
 		bits := dataSent * 1024
 
-		// rate of send in bits per nanosecond
-		rate := float64(bits) / float64(delta.Nanoseconds())
-
-		// default the rate if its zero
-		if l.rate == 0 {
-			// rate per second
-			l.rate = rate * 1e9
-		} else {
-			// set new rate per second
-			l.rate = 0.8*l.rate + 0.2*(rate*1e9)
-		}
+		// set the rate
+		l.setRate(int64(bits), time.Since(now))
 	}
 
 	return nil
@@ -325,8 +426,8 @@ func (l *link) Recv(m *transport.Message) error {
 	return nil
 }
 
-// Status can return connected, closed, error
-func (l *link) Status() string {
+// State can return connected, closed, error
+func (l *link) State() string {
 	select {
 	case <-l.closed:
 		return "closed"

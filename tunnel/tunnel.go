@@ -63,8 +63,8 @@ type Link interface {
 	Length() int64
 	// Current transfer rate as bits per second (lower is better)
 	Rate() float64
-	// Status of the link e.g connected/closed
-	Status() string
+	// State of the link e.g connected/closed
+	State() string
 	// honours transport socket
 	transport.Socket
 }

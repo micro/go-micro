@@ -19,6 +19,7 @@ import (
 	"github.com/micro/go-micro/proxy"
 	"github.com/micro/go-micro/router"
 	"github.com/micro/go-micro/server"
+	"github.com/micro/go-micro/util/log"
 )
 
 // Proxy will transparently proxy requests to an endpoint.
@@ -293,6 +294,8 @@ func (p *Proxy) ServeRequest(ctx context.Context, req server.Request, rsp server
 			gerr = err
 			continue
 		}
+
+		log.Debugf("Proxy using route %+v\n", route)
 
 		// set the address to call
 		addresses := toNodes([]router.Route{route})

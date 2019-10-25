@@ -106,6 +106,109 @@ func (s *session) newMessage(typ string) *message {
 	}
 }
 
+// waitFor waits for the message type required until the timeout specified
+func (s *session) waitFor(msgType string, timeout time.Duration) (*message, error) {
+	now := time.Now()
+
+	after := func() time.Duration {
+		d := time.Since(now)
+		// dial timeout minus time since
+		wait := timeout - d
+
+		if wait < time.Duration(0) {
+			return time.Duration(0)
+		}
+
+		return wait
+	}
+
+	// wait for the message type
+	for {
+		select {
+		case msg := <-s.recv:
+			// ignore what we don't want
+			if msg.typ != msgType {
+				log.Debugf("Tunnel received non %s message in waiting for %s", msg.typ, msgType)
+				continue
+			}
+			// got the message
+			return msg, nil
+		case <-time.After(after()):
+			return nil, ErrDialTimeout
+		case <-s.closed:
+			return nil, io.EOF
+		}
+	}
+}
+
+// Discover attempts to discover the link for a specific channel
+func (s *session) Discover() error {
+	// create a new discovery message for this channel
+	msg := s.newMessage("discover")
+	msg.mode = Broadcast
+	msg.outbound = true
+	msg.link = ""
+
+	// send the discovery message
+	s.send <- msg
+
+	// set time now
+	now := time.Now()
+
+	after := func() time.Duration {
+		d := time.Since(now)
+		// dial timeout minus time since
+		wait := s.timeout - d
+		if wait < time.Duration(0) {
+			return time.Duration(0)
+		}
+		return wait
+	}
+
+	// wait to hear back about the sent message
+	select {
+	case <-time.After(after()):
+		return ErrDialTimeout
+	case err := <-s.errChan:
+		if err != nil {
+			return err
+		}
+	}
+
+	var err error
+
+	// set a new dialTimeout
+	dialTimeout := after()
+
+	// set a shorter delay for multicast
+	if s.mode != Unicast {
+		// shorten this
+		dialTimeout = time.Millisecond * 500
+	}
+
+	// wait for announce
+	_, err = s.waitFor("announce", dialTimeout)
+	if err != nil {
+		return err
+	}
+
+	// if its multicast just go ahead because this is best effort
+	if s.mode != Unicast {
+		s.discovered = true
+		s.accepted = true
+		return nil
+	}
+
+	if err != nil {
+		return err
+	}
+
+	// set discovered
+	s.discovered = true
+
+	return nil
+}
+
 // Open will fire the open message for the session. This is called by the dialler.
 func (s *session) Open() error {
 	// create a new message
@@ -131,21 +234,15 @@ func (s *session) Open() error {
 	}
 
 	// now wait for the accept
-	select {
-	case msg = <-s.recv:
-		if msg.typ != "accept" {
-			log.Debugf("Received non accept message in Open %s", msg.typ)
-			return errors.New("failed to connect")
-		}
-		// set to accepted
-		s.accepted = true
-		// set link
-		s.link = msg.link
-	case <-time.After(s.timeout):
-		return ErrDialTimeout
-	case <-s.closed:
-		return io.EOF
+	msg, err := s.waitFor("accept", s.timeout)
+	if err != nil {
+		return err
 	}
+
+	// set to accepted
+	s.accepted = true
+	// set link
+	s.link = msg.link
 
 	return nil
 }
