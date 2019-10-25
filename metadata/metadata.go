@@ -12,6 +12,7 @@ type metaKey struct{}
 // from Transport headers.
 type Metadata map[string]string
 
+// Copy makes a copy of the metadata
 func Copy(md Metadata) Metadata {
 	cmd := make(Metadata)
 	for k, v := range md {
@@ -20,16 +21,19 @@ func Copy(md Metadata) Metadata {
 	return cmd
 }
 
+// FromContext returns metadata from the given context
 func FromContext(ctx context.Context) (Metadata, bool) {
 	md, ok := ctx.Value(metaKey{}).(Metadata)
 	return md, ok
 }
 
+// NewContext creates a new context with the given metadata
 func NewContext(ctx context.Context, md Metadata) context.Context {
 	return context.WithValue(ctx, metaKey{}, md)
 }
 
-func AppendContext(ctx context.Context, patchMd Metadata, overwrite bool) context.Context {
+// MergeContext merges metadata to existing metadata, overwriting if specified
+func MergeContext(ctx context.Context, patchMd Metadata, overwrite bool) context.Context {
 	md, _ := ctx.Value(metaKey{}).(Metadata)
 	cmd := make(Metadata)
 	for k, v := range md {
