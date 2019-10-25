@@ -124,18 +124,18 @@ func (l *link) delChannel(ch string) {
 	l.Unlock()
 }
 
+func (l *link) getChannel(ch string) time.Time {
+	l.RLock()
+	defer l.RUnlock()
+	return l.channels[ch]
+}
+
 func (l *link) setChannel(channels ...string) {
 	l.Lock()
 	for _, ch := range channels {
 		l.channels[ch] = time.Now()
 	}
 	l.Unlock()
-}
-
-func (l *link) getChannel(ch string) time.Time {
-	l.RLock()
-	defer l.RUnlock()
-	return l.channels[ch]
 }
 
 // set the keepalive time
