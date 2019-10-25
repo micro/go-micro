@@ -107,7 +107,7 @@ func (s *session) newMessage(typ string) *message {
 }
 
 // waitFor waits for the message type required until the timeout specified
-func (s *session) waitFor(msgType string, timeout time.Duration) error {
+func (s *session) waitFor(msgType string, timeout time.Duration) (*message, error) {
 	now := time.Now()
 
 	after := func() time.Duration {
@@ -123,7 +123,6 @@ func (s *session) waitFor(msgType string, timeout time.Duration) error {
 	}
 
 	// wait for the message type
-loop:
 	for {
 		select {
 		case msg := <-s.recv:
@@ -132,17 +131,14 @@ loop:
 				log.Debugf("Tunnel received non %s message in waiting for %s", msg.typ, msgType)
 				continue
 			}
-
 			// got the message
-			break loop
+			return msg, nil
 		case <-time.After(after()):
-			return ErrDialTimeout
+			return nil, ErrDialTimeout
 		case <-s.closed:
-			return io.EOF
+			return nil, io.EOF
 		}
 	}
-
-	return nil
 }
 
 // Discover attempts to discover the link for a specific channel
@@ -191,7 +187,8 @@ func (s *session) Discover() error {
 	}
 
 	// wait for announce
-	if err := s.waitFor("announce", dialTimeout); err != nil {
+	_, err = s.waitFor("announce", dialTimeout)
+	if err != nil {
 		return err
 	}
 
@@ -237,7 +234,8 @@ func (s *session) Open() error {
 	}
 
 	// now wait for the accept
-	if err := s.waitFor("accept", s.timeout); err != nil {
+	msg, err := s.waitFor("accept", s.timeout)
+	if err != nil {
 		return err
 	}
 
