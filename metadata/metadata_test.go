@@ -42,7 +42,7 @@ func TestMetadataContext(t *testing.T) {
 	}
 }
 
-func TestAppendContext(t *testing.T) {
+func TestMergeContext(t *testing.T) {
 	type args struct {
 		existing  Metadata
 		append    Metadata
@@ -74,8 +74,8 @@ func TestAppendContext(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got, _ := FromContext(AppendContext(NewContext(context.TODO(), tt.args.existing), tt.args.append, tt.args.overwrite)); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("AppendContext() = %v, want %v", got, tt.want)
+			if got, _ := FromContext(MergeContext(NewContext(context.TODO(), tt.args.existing), tt.args.append, tt.args.overwrite)); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("MergeContext() = %v, want %v", got, tt.want)
 			}
 		})
 	}
