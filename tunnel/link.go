@@ -17,9 +17,11 @@ type link struct {
 	sync.RWMutex
 	// stops the link
 	closed chan bool
-	// send queue
+	// link state channel for testing link
+	state chan *packet
+	// send queue for sending packets
 	sendQueue chan *packet
-	// receive queue
+	// receive queue for receiving packets
 	recvQueue chan *packet
 	// unique id of this link e.g uuid
 	// which we define for ourselves
@@ -44,9 +46,6 @@ type link struct {
 	rate float64
 	// keep an error count on the link
 	errCount int
-
-	// link state channel
-	state chan *packet
 }
 
 // packet send over link
@@ -73,9 +72,9 @@ func newLink(s transport.Socket) *link {
 		Socket:        s,
 		id:            uuid.New().String(),
 		lastKeepAlive: time.Now(),
+		channels:      make(map[string]time.Time),
 		closed:        make(chan bool),
 		state:         make(chan *packet, 64),
-		channels:      make(map[string]time.Time),
 		sendQueue:     make(chan *packet, 128),
 		recvQueue:     make(chan *packet, 128),
 	}
@@ -117,6 +116,33 @@ func (l *link) setRTT(d time.Duration) {
 	length := 0.8*float64(l.length) + 0.2*float64(d.Nanoseconds())
 	// set new length
 	l.length = int64(length)
+}
+
+func (l *link) delChannel(ch string) {
+	l.Lock()
+	delete(l.channels, ch)
+	l.Unlock()
+}
+
+func (l *link) setChannel(channels ...string) {
+	l.Lock()
+	for _, ch := range channels {
+		l.channels[ch] = time.Now()
+	}
+	l.Unlock()
+}
+
+func (l *link) getChannel(ch string) time.Time {
+	l.RLock()
+	defer l.RUnlock()
+	return l.channels[ch]
+}
+
+// set the keepalive time
+func (l *link) keepalive() {
+	l.Lock()
+	l.lastKeepAlive = time.Now()
+	l.Unlock()
 }
 
 // process deals with the send queue
@@ -176,8 +202,8 @@ func (l *link) manage() {
 	defer t.Stop()
 
 	// used to send link state packets
-	send := func(b []byte) {
-		l.Send(&transport.Message{
+	send := func(b []byte) error {
+		return l.Send(&transport.Message{
 			Header: map[string]string{
 				"Micro-Method": "link",
 			}, Body: b,
@@ -205,7 +231,11 @@ func (l *link) manage() {
 			case bytes.Compare(p.message.Body, linkRequest) == 0:
 				log.Tracef("Link %s received link request %v", l.id, p.message.Body)
 				// send response
-				send(linkResponse)
+				if err := send(linkResponse); err != nil {
+					l.Lock()
+					l.errCount++
+					l.Unlock()
+				}
 			case bytes.Compare(p.message.Body, linkResponse) == 0:
 				// set round trip time
 				d := time.Since(now)
@@ -270,7 +300,6 @@ func (l *link) Delay() int64 {
 func (l *link) Rate() float64 {
 	l.RLock()
 	defer l.RUnlock()
-
 	return l.rate
 }
 
@@ -279,7 +308,6 @@ func (l *link) Rate() float64 {
 func (l *link) Length() int64 {
 	l.RLock()
 	defer l.RUnlock()
-
 	return l.length
 }
 
@@ -398,8 +426,8 @@ func (l *link) Recv(m *transport.Message) error {
 	return nil
 }
 
-// Status can return connected, closed, error
-func (l *link) Status() string {
+// State can return connected, closed, error
+func (l *link) State() string {
 	select {
 	case <-l.closed:
 		return "closed"
