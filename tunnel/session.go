@@ -110,7 +110,7 @@ func (s *session) newMessage(typ string) *message {
 func (s *session) waitFor(msgType string, timeout time.Duration) (*message, error) {
 	now := time.Now()
 
-	after := func() time.Duration {
+	after := func(timeout time.Duration) time.Duration {
 		d := time.Since(now)
 		// dial timeout minus time since
 		wait := timeout - d
@@ -133,7 +133,7 @@ func (s *session) waitFor(msgType string, timeout time.Duration) (*message, erro
 			}
 			// got the message
 			return msg, nil
-		case <-time.After(after()):
+		case <-time.After(after(timeout)):
 			return nil, ErrDialTimeout
 		case <-s.closed:
 			return nil, io.EOF
@@ -188,9 +188,6 @@ func (s *session) Discover() error {
 
 	// wait for announce
 	_, err = s.waitFor("announce", dialTimeout)
-	if err != nil {
-		return err
-	}
 
 	// if its multicast just go ahead because this is best effort
 	if s.mode != Unicast {
