@@ -18,6 +18,7 @@ service Table {
         rpc Update(Route) returns (UpdateResponse) {};
         rpc List(Request) returns (ListResponse) {};
 	rpc Query(QueryRequest) returns (QueryResponse) {};
+        rpc Watch(WatchRequest) returns (stream Event) {};
 }
 
 // Empty request

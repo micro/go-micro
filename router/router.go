@@ -44,20 +44,6 @@ type Router interface {
 	String() string
 }
 
-// Table is an interface for routing table
-type Table interface {
-	// Create new route in the routing table
-	Create(Route) error
-	// Delete existing route from the routing table
-	Delete(Route) error
-	// Update route in the routing table
-	Update(Route) error
-	// List all routes in the table
-	List() ([]Route, error)
-	// Query routes in the routing table
-	Query(...QueryOption) ([]Route, error)
-}
-
 // Option used by the router
 type Option func(*Options)
 

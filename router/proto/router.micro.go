@@ -313,6 +313,7 @@ type TableService interface {
 	Update(ctx context.Context, in *Route, opts ...client.CallOption) (*UpdateResponse, error)
 	List(ctx context.Context, in *Request, opts ...client.CallOption) (*ListResponse, error)
 	Query(ctx context.Context, in *QueryRequest, opts ...client.CallOption) (*QueryResponse, error)
+	Watch(ctx context.Context, in *WatchRequest, opts ...client.CallOption) (Table_WatchService, error)
 }
 
 type tableService struct {
@@ -383,6 +384,50 @@ func (c *tableService) Query(ctx context.Context, in *QueryRequest, opts ...clie
 	return out, nil
 }
 
+func (c *tableService) Watch(ctx context.Context, in *WatchRequest, opts ...client.CallOption) (Table_WatchService, error) {
+	req := c.c.NewRequest(c.name, "Table.Watch", &WatchRequest{})
+	stream, err := c.c.Stream(ctx, req, opts...)
+	if err != nil {
+		return nil, err
+	}
+	if err := stream.Send(in); err != nil {
+		return nil, err
+	}
+	return &tableServiceWatch{stream}, nil
+}
+
+type Table_WatchService interface {
+	SendMsg(interface{}) error
+	RecvMsg(interface{}) error
+	Close() error
+	Recv() (*Event, error)
+}
+
+type tableServiceWatch struct {
+	stream client.Stream
+}
+
+func (x *tableServiceWatch) Close() error {
+	return x.stream.Close()
+}
+
+func (x *tableServiceWatch) SendMsg(m interface{}) error {
+	return x.stream.Send(m)
+}
+
+func (x *tableServiceWatch) RecvMsg(m interface{}) error {
+	return x.stream.Recv(m)
+}
+
+func (x *tableServiceWatch) Recv() (*Event, error) {
+	m := new(Event)
+	err := x.stream.Recv(m)
+	if err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // Server API for Table service
 
 type TableHandler interface {
@@ -391,6 +436,7 @@ type TableHandler interface {
 	Update(context.Context, *Route, *UpdateResponse) error
 	List(context.Context, *Request, *ListResponse) error
 	Query(context.Context, *QueryRequest, *QueryResponse) error
+	Watch(context.Context, *WatchRequest, Table_WatchStream) error
 }
 
 func RegisterTableHandler(s server.Server, hdlr TableHandler, opts ...server.HandlerOption) error {
@@ -400,6 +446,7 @@ func RegisterTableHandler(s server.Server, hdlr TableHandler, opts ...server.Han
 		Update(ctx context.Context, in *Route, out *UpdateResponse) error
 		List(ctx context.Context, in *Request, out *ListResponse) error
 		Query(ctx context.Context, in *QueryRequest, out *QueryResponse) error
+		Watch(ctx context.Context, stream server.Stream) error
 	}
 	type Table struct {
 		table
@@ -430,4 +477,39 @@ func (h *tableHandler) List(ctx context.Context, in *Request, out *ListResponse)
 
 func (h *tableHandler) Query(ctx context.Context, in *QueryRequest, out *QueryResponse) error {
 	return h.TableHandler.Query(ctx, in, out)
+}
+
+func (h *tableHandler) Watch(ctx context.Context, stream server.Stream) error {
+	m := new(WatchRequest)
+	if err := stream.Recv(m); err != nil {
+		return err
+	}
+	return h.TableHandler.Watch(ctx, m, &tableWatchStream{stream})
+}
+
+type Table_WatchStream interface {
+	SendMsg(interface{}) error
+	RecvMsg(interface{}) error
+	Close() error
+	Send(*Event) error
+}
+
+type tableWatchStream struct {
+	stream server.Stream
+}
+
+func (x *tableWatchStream) Close() error {
+	return x.stream.Close()
+}
+
+func (x *tableWatchStream) SendMsg(m interface{}) error {
+	return x.stream.Send(m)
+}
+
+func (x *tableWatchStream) RecvMsg(m interface{}) error {
+	return x.stream.Recv(m)
+}
+
+func (x *tableWatchStream) Send(m *Event) error {
+	return x.stream.Send(m)
 }

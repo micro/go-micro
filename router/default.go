@@ -46,7 +46,7 @@ type router struct {
 	sync.RWMutex
 	options   Options
 	status    Status
-	table     *table
+	table     Table
 	exit      chan struct{}
 	errChan   chan error
 	eventChan chan *Event
@@ -73,7 +73,7 @@ func newRouter(opts ...Option) Router {
 	return &router{
 		options:     options,
 		status:      status,
-		table:       newTable(),
+		table:       options.Table,
 		advertWg:    &sync.WaitGroup{},
 		wg:          &sync.WaitGroup{},
 		subscribers: make(map[string]chan *Advert),

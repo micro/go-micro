@@ -2,8 +2,8 @@ package router
 
 import "testing"
 
-func testSetup() (*table, Route) {
-	table := newTable()
+func testMapTableSetup() (*mapTable, Route) {
+	table := NewMapTable()
 
 	route := Route{
 		Service: "dest.svc",
@@ -18,7 +18,7 @@ func testSetup() (*table, Route) {
 }
 
 func TestCreate(t *testing.T) {
-	table, route := testSetup()
+	table, route := testMapTableSetup()
 
 	if err := table.Create(route); err != nil {
 		t.Errorf("error adding route: %s", err)
@@ -38,7 +38,7 @@ func TestCreate(t *testing.T) {
 }
 
 func TestDelete(t *testing.T) {
-	table, route := testSetup()
+	table, route := testMapTableSetup()
 
 	if err := table.Create(route); err != nil {
 		t.Errorf("error adding route: %s", err)
@@ -61,7 +61,7 @@ func TestDelete(t *testing.T) {
 }
 
 func TestUpdate(t *testing.T) {
-	table, route := testSetup()
+	table, route := testMapTableSetup()
 
 	if err := table.Create(route); err != nil {
 		t.Errorf("error adding route: %s", err)
@@ -83,7 +83,7 @@ func TestUpdate(t *testing.T) {
 }
 
 func TestList(t *testing.T) {
-	table, route := testSetup()
+	table, route := testMapTableSetup()
 
 	svc := []string{"one.svc", "two.svc", "three.svc"}
 
@@ -105,7 +105,7 @@ func TestList(t *testing.T) {
 }
 
 func TestQuery(t *testing.T) {
-	table, route := testSetup()
+	table, route := testMapTableSetup()
 
 	svc := []string{"svc1", "svc2", "svc3"}
 	net := []string{"net1", "net2", "net1"}

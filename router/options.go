@@ -22,6 +22,8 @@ type Options struct {
 	Advertise Strategy
 	// Client for calling router
 	Client client.Client
+	// Table stores routes to services
+	Table Table
 }
 
 // Id sets Router Id
@@ -73,6 +75,13 @@ func Advertise(a Strategy) Option {
 	}
 }
 
+// RoutingTable is routing table
+func RoutingTable(t Table) Option {
+	return func(o *Options) {
+		o.Table = t
+	}
+}
+
 // DefaultOptions returns router default options
 func DefaultOptions() Options {
 	return Options{
@@ -81,5 +90,6 @@ func DefaultOptions() Options {
 		Network:   DefaultNetwork,
 		Registry:  registry.DefaultRegistry,
 		Advertise: AdvertiseBest,
+		Table:     DefaultTable,
 	}
 }

@@ -121,3 +121,18 @@ func (t *table) Query(q ...router.QueryOption) ([]router.Route, error) {
 
 	return routes, nil
 }
+
+// Watch returns table watcher
+func (t *table) Watch(opts ...router.WatchOption) (router.Watcher, error) {
+	rsp, err := t.table.Watch(context.Background(), &pb.WatchRequest{}, t.callOpts...)
+	if err != nil {
+		return nil, err
+	}
+	options := router.WatchOptions{
+		Service: "*",
+	}
+	for _, o := range opts {
+		o(&options)
+	}
+	return newWatcher(rsp, options)
+}
