@@ -113,3 +113,43 @@ func (t *Table) Query(ctx context.Context, req *pb.QueryRequest, resp *pb.QueryR
 
 	return nil
 }
+
+func (r *Table) Watch(ctx context.Context, req *pb.WatchRequest, stream pb.Table_WatchStream) error {
+	watcher, err := r.Router.Table().Watch()
+	if err != nil {
+		return errors.InternalServerError("go.micro.router", "failed creating event watcher: %v", err)
+	}
+
+	defer stream.Close()
+
+	for {
+		event, err := watcher.Next()
+		if err == router.ErrWatcherStopped {
+			return errors.InternalServerError("go.micro.router", "watcher stopped")
+		}
+
+		if err != nil {
+			return errors.InternalServerError("go.micro.router", "error watching events: %v", err)
+		}
+
+		route := &pb.Route{
+			Service: event.Route.Service,
+			Address: event.Route.Address,
+			Gateway: event.Route.Gateway,
+			Network: event.Route.Network,
+			Router:  event.Route.Router,
+			Link:    event.Route.Link,
+			Metric:  event.Route.Metric,
+		}
+
+		tableEvent := &pb.Event{
+			Type:      pb.EventType(event.Type),
+			Timestamp: event.Timestamp.UnixNano(),
+			Route:     route,
+		}
+
+		if err := stream.Send(tableEvent); err != nil {
+			return err
+		}
+	}
+}

@@ -187,6 +187,4 @@ func (r *Router) Watch(ctx context.Context, req *pb.WatchRequest, stream pb.Rout
 			return err
 		}
 	}
-
-	return nil
 }

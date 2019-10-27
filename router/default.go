@@ -142,7 +142,7 @@ func (r *router) manageServiceRoutes(service *registry.Service, action string) e
 		route := Route{
 			Service: service.Name,
 			Address: node.Address,
-			Gateway: "",
+			Gateway: "*",
 			Network: r.options.Network,
 			Router:  r.options.Id,
 			Link:    DefaultLink,
@@ -290,7 +290,7 @@ func (r *router) publishAdvert(advType AdvertType, events []*Event) {
 		Events:    events,
 	}
 
-	log.Debugf("Router publishing advert; %+v", a)
+	log.Debugf("Router publishing advert: %+v", a)
 	r.RLock()
 	for _, sub := range r.subscribers {
 		// check the exit chan first

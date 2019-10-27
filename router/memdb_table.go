@@ -256,6 +256,10 @@ func (t *memDBTable) Watch(opts ...WatchOption) (Watcher, error) {
 	return w, nil
 }
 
+func (t *memDBTable) String() string {
+	return "memdb"
+}
+
 func tableSchema() *memdb.DBSchema {
 	return &memdb.DBSchema{
 		Tables: map[string]*memdb.TableSchema{
