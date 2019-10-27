@@ -7,6 +7,7 @@ func testMapTableSetup() (*mapTable, Route) {
 
 	route := Route{
 		Service: "dest.svc",
+		Address: "dest.addr",
 		Gateway: "dest.gw",
 		Network: "dest.network",
 		Router:  "src.router",
@@ -17,7 +18,7 @@ func testMapTableSetup() (*mapTable, Route) {
 	return table, route
 }
 
-func TestCreate(t *testing.T) {
+func TestMapTable_Create(t *testing.T) {
 	table, route := testMapTableSetup()
 
 	if err := table.Create(route); err != nil {
@@ -37,7 +38,7 @@ func TestCreate(t *testing.T) {
 	}
 }
 
-func TestDelete(t *testing.T) {
+func TestMapTable_Delete(t *testing.T) {
 	table, route := testMapTableSetup()
 
 	if err := table.Create(route); err != nil {
@@ -60,7 +61,7 @@ func TestDelete(t *testing.T) {
 	}
 }
 
-func TestUpdate(t *testing.T) {
+func TestMapTable_Update(t *testing.T) {
 	table, route := testMapTableSetup()
 
 	if err := table.Create(route); err != nil {
@@ -82,7 +83,7 @@ func TestUpdate(t *testing.T) {
 	}
 }
 
-func TestList(t *testing.T) {
+func TestMapTable_List(t *testing.T) {
 	table, route := testMapTableSetup()
 
 	svc := []string{"one.svc", "two.svc", "three.svc"}
@@ -104,7 +105,7 @@ func TestList(t *testing.T) {
 	}
 }
 
-func TestQuery(t *testing.T) {
+func TestMapTable_Query(t *testing.T) {
 	table, route := testMapTableSetup()
 
 	svc := []string{"svc1", "svc2", "svc3"}
