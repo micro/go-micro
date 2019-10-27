@@ -82,7 +82,7 @@ func (t *memDBTable) Create(r Route) error {
 	// Commit the transaction
 	txn.Commit()
 
-	log.Debugf("Router emitting MemDB %s for route: %s", Create, r.Address)
+	log.Debugf("Router MemDB emitting %s for route: %s", Create, r.Address)
 	go t.sendEvent(&Event{Type: Create, Timestamp: time.Now(), Route: r})
 
 	return nil
@@ -103,7 +103,7 @@ func (t *memDBTable) Delete(r Route) error {
 	// Commit the transaction
 	txn.Commit()
 
-	log.Debugf("Router emitting %s for route: %s", Delete, r.Address)
+	log.Debugf("Router MemDB emitting %s for route: %s", Delete, r.Address)
 	go t.sendEvent(&Event{Type: Delete, Timestamp: time.Now(), Route: r})
 
 	return nil
@@ -127,7 +127,7 @@ func (t *memDBTable) Update(r Route) error {
 
 	// Only emit the event if the route never existed
 	if err != ErrDuplicateRoute {
-		log.Debugf("Router emitting %s for route: %s", Update, r.Address)
+		log.Debugf("Router MemDB emitting %s for route: %s", Update, r.Address)
 		go t.sendEvent(&Event{Type: Update, Timestamp: time.Now(), Route: r})
 	}
 
