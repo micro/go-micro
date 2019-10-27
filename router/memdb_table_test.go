@@ -104,115 +104,115 @@ func TestMemDBTable_List(t *testing.T) {
 	}
 }
 
-//func TestMemDBTable_Query(t *testing.T) {
-//	table, route := testMemDBTableSetup()
-//
-//	svc := []string{"svc1", "svc2", "svc3"}
-//	net := []string{"net1", "net2", "net1"}
-//	gw := []string{"gw1", "gw2", "gw3"}
-//	rtr := []string{"rtr1", "rt2", "rt3"}
-//
-//	for i := 0; i < len(svc); i++ {
-//		route.Service = svc[i]
-//		route.Network = net[i]
-//		route.Gateway = gw[i]
-//		route.Router = rtr[i]
-//		if err := table.Create(route); err != nil {
-//			t.Errorf("error adding route: %s", err)
-//		}
-//	}
-//
-//	// return all routes
-//	routes, err := table.Query()
-//	if err != nil {
-//		t.Errorf("error looking up routes: %s", err)
-//	}
-//
-//	// query routes particular network
-//	network := "net1"
-//
-//	routes, err = table.Query(QueryNetwork(network))
-//	if err != nil {
-//		t.Errorf("error looking up routes: %s", err)
-//	}
-//
-//	if len(routes) != 2 {
-//		t.Errorf("incorrect number of routes returned. Expected: %d, found: %d", 2, len(routes))
-//	}
-//
-//	for _, route := range routes {
-//		if route.Network != network {
-//			t.Errorf("incorrect route returned. Expected network: %s, found: %s", network, route.Network)
-//		}
-//	}
-//
-//	// query routes for particular gateway
-//	gateway := "gw1"
-//
-//	routes, err = table.Query(QueryGateway(gateway))
-//	if err != nil {
-//		t.Errorf("error looking up routes: %s", err)
-//	}
-//
-//	if len(routes) != 1 {
-//		t.Errorf("incorrect number of routes returned. Expected: %d, found: %d", 1, len(routes))
-//	}
-//
-//	if routes[0].Gateway != gateway {
-//		t.Errorf("incorrect route returned. Expected gateway: %s, found: %s", gateway, routes[0].Gateway)
-//	}
-//
-//	// query routes for particular router
-//	router := "rtr1"
-//
-//	routes, err = table.Query(QueryRouter(router))
-//	if err != nil {
-//		t.Errorf("error looking up routes: %s", err)
-//	}
-//
-//	if len(routes) != 1 {
-//		t.Errorf("incorrect number of routes returned. Expected: %d, found: %d", 1, len(routes))
-//	}
-//
-//	if routes[0].Router != router {
-//		t.Errorf("incorrect route returned. Expected router: %s, found: %s", router, routes[0].Router)
-//	}
-//
-//	// query particular gateway and network
-//	query := []QueryOption{
-//		QueryGateway(gateway),
-//		QueryNetwork(network),
-//		QueryRouter(router),
-//	}
-//
-//	routes, err = table.Query(query...)
-//	if err != nil {
-//		t.Errorf("error looking up routes: %s", err)
-//	}
-//
-//	if len(routes) != 1 {
-//		t.Errorf("incorrect number of routes returned. Expected: %d, found: %d", 1, len(routes))
-//	}
-//
-//	if routes[0].Gateway != gateway {
-//		t.Errorf("incorrect route returned. Expected gateway: %s, found: %s", gateway, routes[0].Gateway)
-//	}
-//
-//	if routes[0].Network != network {
-//		t.Errorf("incorrect network returned. Expected network: %s, found: %s", network, routes[0].Network)
-//	}
-//
-//	if routes[0].Router != router {
-//		t.Errorf("incorrect route returned. Expected router: %s, found: %s", router, routes[0].Router)
-//	}
-//
-//	// non-existen route query
-//	routes, err = table.Query(QueryService("foobar"))
-//	if err != ErrRouteNotFound {
-//		t.Errorf("error looking up routes. Expected: %s, found: %s", ErrRouteNotFound, err)
-//	}
-//
-//	if len(routes) != 0 {
-//		t.Errorf("incorrect number of routes returned. Expected: %d, found: %d", 0, len(routes))
-//	}
-//}
+func TestMemDBTable_Query(t *testing.T) {
+	table, route := testMemDBTableSetup()
+
+	svc := []string{"svc1", "svc2", "svc3"}
+	net := []string{"net1", "net2", "net1"}
+	gw := []string{"gw1", "gw2", "gw3"}
+	rtr := []string{"rtr1", "rt2", "rt3"}
+
+	for i := 0; i < len(svc); i++ {
+		route.Service = svc[i]
+		route.Network = net[i]
+		route.Gateway = gw[i]
+		route.Router = rtr[i]
+		if err := table.Create(route); err != nil {
+			t.Errorf("error adding route: %s", err)
+		}
+	}
+
+	// return all routes
+	routes, err := table.Query()
+	if err != nil {
+		t.Errorf("error looking up routes: %s", err)
+	}
+
+	// query routes particular network
+	network := "net1"
+
+	routes, err = table.Query(QueryNetwork(network))
+	if err != nil {
+		t.Errorf("error looking up routes: %s", err)
+	}
+
+	if len(routes) != 2 {
+		t.Errorf("incorrect number of routes returned. Expected: %d, found: %d", 2, len(routes))
+	}
+
+	for _, route := range routes {
+		if route.Network != network {
+			t.Errorf("incorrect route returned. Expected network: %s, found: %s", network, route.Network)
+		}
+	}
+
+	// query routes for particular gateway
+	gateway := "gw1"
+
+	routes, err = table.Query(QueryGateway(gateway))
+	if err != nil {
+		t.Errorf("error looking up routes: %s", err)
+	}
+
+	if len(routes) != 1 {
+		t.Errorf("incorrect number of routes returned. Expected: %d, found: %d", 1, len(routes))
+	}
+
+	if routes[0].Gateway != gateway {
+		t.Errorf("incorrect route returned. Expected gateway: %s, found: %s", gateway, routes[0].Gateway)
+	}
+
+	// query routes for particular router
+	router := "rtr1"
+
+	routes, err = table.Query(QueryRouter(router))
+	if err != nil {
+		t.Errorf("error looking up routes: %s", err)
+	}
+
+	if len(routes) != 1 {
+		t.Errorf("incorrect number of routes returned. Expected: %d, found: %d", 1, len(routes))
+	}
+
+	if routes[0].Router != router {
+		t.Errorf("incorrect route returned. Expected router: %s, found: %s", router, routes[0].Router)
+	}
+
+	// query particular gateway and network
+	query := []QueryOption{
+		QueryGateway(gateway),
+		QueryNetwork(network),
+		QueryRouter(router),
+	}
+
+	routes, err = table.Query(query...)
+	if err != nil {
+		t.Errorf("error looking up routes: %s", err)
+	}
+
+	if len(routes) != 1 {
+		t.Errorf("incorrect number of routes returned. Expected: %d, found: %d", 1, len(routes))
+	}
+
+	if routes[0].Gateway != gateway {
+		t.Errorf("incorrect route returned. Expected gateway: %s, found: %s", gateway, routes[0].Gateway)
+	}
+
+	if routes[0].Network != network {
+		t.Errorf("incorrect network returned. Expected network: %s, found: %s", network, routes[0].Network)
+	}
+
+	if routes[0].Router != router {
+		t.Errorf("incorrect route returned. Expected router: %s, found: %s", router, routes[0].Router)
+	}
+
+	// non-existen route query
+	routes, err = table.Query(QueryService("foobar"))
+	if err != ErrRouteNotFound {
+		t.Errorf("error looking up routes. Expected: %s, found: %s", ErrRouteNotFound, err)
+	}
+
+	if len(routes) != 0 {
+		t.Errorf("incorrect number of routes returned. Expected: %d, found: %d", 0, len(routes))
+	}
+}

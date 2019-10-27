@@ -4,6 +4,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/hashicorp/go-memdb"
 	"github.com/micro/go-micro/util/log"
 )
@@ -50,16 +51,16 @@ func (t *memDBTable) sendEvent(e *Event) {
 	}
 }
 
-func (t *memDBTable) serviceIdQuery(r Route) error {
+func (t *memDBTable) queryExactRoute(r Route) error {
 	txn := t.db.Txn(false)
 	defer txn.Abort()
 
-	service, err := txn.First("route", "id", r.Service, r.Address, r.Gateway, r.Network, r.Router, r.Link)
+	route, err := txn.First("route", "id", r.Service, r.Address, r.Gateway, r.Network, r.Router, r.Link)
 	if err != nil {
 		return err
 	}
 
-	if service != nil {
+	if route != nil {
 		return ErrDuplicateRoute
 	}
 
@@ -68,7 +69,7 @@ func (t *memDBTable) serviceIdQuery(r Route) error {
 
 // Create creates new route in the routing table
 func (t *memDBTable) Create(r Route) error {
-	if err := t.serviceIdQuery(r); err != nil {
+	if err := t.queryExactRoute(r); err != nil {
 		return err
 	}
 
@@ -110,7 +111,7 @@ func (t *memDBTable) Delete(r Route) error {
 
 // Update updates routing table with the new route
 func (t *memDBTable) Update(r Route) error {
-	err := t.serviceIdQuery(r)
+	err := t.queryExactRoute(r)
 	if err != nil && err != ErrDuplicateRoute {
 		return err
 	}
@@ -153,14 +154,106 @@ func (t *memDBTable) List() ([]Route, error) {
 	return routes, nil
 }
 
+func matchedRoutes(res memdb.ResultIterator, opts QueryOptions) []Route {
+	match := func(a, b string) bool {
+		if a == "*" || a == b {
+			return true
+		}
+		return false
+	}
+
+	var routes []Route
+	for obj := res.Next(); obj != nil; obj = res.Next() {
+		route := obj.(Route)
+		values := []struct {
+			a string
+			b string
+		}{
+			{opts.Gateway, route.Gateway},
+			{opts.Network, route.Network},
+			{opts.Router, route.Router},
+			{opts.Address, route.Address},
+		}
+
+		found := true
+		for _, v := range values {
+			// attempt to match each value
+			if !match(v.a, v.b) {
+				found = false
+				break
+			}
+		}
+		if found {
+			routes = append(routes, route)
+		}
+	}
+
+	return routes
+}
+
 // Query routes in the routing table
 func (t *memDBTable) Query(q ...QueryOption) ([]Route, error) {
-	return nil, nil
+	// create new query options
+	opts := NewQuery(q...)
+
+	txn := t.db.Txn(false)
+	defer txn.Abort()
+
+	var res memdb.ResultIterator
+	var err error
+
+	switch opts.Service {
+	case "*":
+		res, err = txn.Get("route", "id")
+	default:
+		res, err = txn.Get("route", "service", opts.Service)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	routes := matchedRoutes(res, opts)
+
+	if len(routes) == 0 {
+		return nil, ErrRouteNotFound
+	}
+
+	return routes, nil
 }
 
 // Watch wates routes in the routing table
 func (t *memDBTable) Watch(opts ...WatchOption) (Watcher, error) {
-	return nil, nil
+	// by default watch everything
+	wopts := WatchOptions{
+		Service: "*",
+	}
+
+	for _, o := range opts {
+		o(&wopts)
+	}
+
+	w := &tableWatcher{
+		id:      uuid.New().String(),
+		opts:    wopts,
+		resChan: make(chan *Event, 10),
+		done:    make(chan struct{}),
+	}
+
+	// when the watcher is stopped delete it
+	go func() {
+		<-w.done
+		t.Lock()
+		delete(t.watchers, w.id)
+		t.Unlock()
+	}()
+
+	// save the watcher
+	t.Lock()
+	t.watchers[w.id] = w
+	t.Unlock()
+
+	return w, nil
 }
 
 func tableSchema() *memdb.DBSchema {
