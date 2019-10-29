@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/micro/go-micro/runtime/package"
+	packager "github.com/micro/go-micro/runtime/package"
 	"github.com/micro/go-micro/runtime/process"
 	proc "github.com/micro/go-micro/runtime/process/os"
 	"github.com/micro/go-micro/util/log"
@@ -150,8 +150,6 @@ func (s *service) Stop() error {
 		}
 		return s.Process.Kill(s.PID)
 	}
-
-	return nil
 }
 
 func (s *service) Error() error {
