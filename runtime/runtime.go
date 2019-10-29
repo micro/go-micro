@@ -7,6 +7,10 @@ type Runtime interface {
 	Create(*Service, ...CreateOption) error
 	// Remove a service
 	Delete(*Service) error
+	// Update the service in place
+	Update(*Service) error
+	// List the managed services
+	List() ([]*Service, error)
 	// starts the runtime
 	Start() error
 	// Shutdown the runtime
@@ -34,6 +38,14 @@ func Create(s *Service, opts ...CreateOption) error {
 
 func Delete(s *Service) error {
 	return DefaultRuntime.Delete(s)
+}
+
+func Update(s *Service) error {
+	return DefaultRuntime.Update(s)
+}
+
+func List() ([]*Service, error) {
+	return DefaultRuntime.List()
 }
 
 func Start() error {

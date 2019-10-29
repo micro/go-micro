@@ -252,6 +252,28 @@ func (r *runtime) Delete(s *Service) error {
 	return nil
 }
 
+func (r *runtime) Update(s *Service) error {
+	// delete the service
+	if err := r.Delete(s); err != nil {
+		return err
+	}
+
+	// create new service
+	return r.Create(s)
+}
+
+func (r *runtime) List() ([]*Service, error) {
+	var services []*Service
+	r.RLock()
+	defer r.RUnlock()
+
+	for _, service := range r.services {
+		services = append(services, service.Service)
+	}
+
+	return services, nil
+}
+
 func (r *runtime) Start() error {
 	r.Lock()
 	defer r.Unlock()
