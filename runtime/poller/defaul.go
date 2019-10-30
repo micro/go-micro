@@ -21,28 +21,28 @@ var (
 // HTTP is http poller
 type HTTP struct {
 	// url to poll for updates
-	url *url.URL
+	url string
 	// poll time to check for updates
 	poll time.Duration
 }
 
 // NewHTTP creates HTTP poller and returns it
-func NewHTTP(u string, poll time.Duration) (*HTTP, error) {
-	// this should not return error, but lets make sure
-	url, err := url.Parse(u)
-	if err != nil {
-		return nil, err
-	}
-
+func NewHTTP(url string, poll time.Duration) *HTTP {
 	return &HTTP{
 		url:  url,
 		poll: poll,
-	}, nil
+	}
 }
 
 // Poll polls for updates and returns results
 func (h *HTTP) Poll() (*build.Build, error) {
-	rsp, err := http.Get(h.url.String())
+	// this should not return error, but lets make sure
+	url, err := url.Parse(h.url)
+	if err != nil {
+		return nil, err
+	}
+
+	rsp, err := http.Get(url.String())
 	if err != nil {
 		log.Debugf("error polling updates: %v", err)
 		return nil, err

@@ -1,12 +1,6 @@
 // Package runtime is a service runtime manager
 package runtime
 
-import (
-	"time"
-
-	"github.com/micro/go-micro/runtime/build"
-)
-
 var (
 	// DefaultRuntime is default micro runtime
 	DefaultRuntime = newRuntime()
@@ -26,14 +20,6 @@ type Runtime interface {
 	Start() error
 	// Shutdown the runtime
 	Stop() error
-}
-
-// Poller periodically poll for updates and returns the results
-type Poller interface {
-	// Poll polls for updates and returns results
-	Poll() (*build.Build, error)
-	// Tick returns poller tick time
-	Tick() time.Duration
 }
 
 // Service is runtime service
@@ -76,6 +62,20 @@ func Stop() error {
 
 // NewRuntime returns new runtime
 func NewRuntime(opts ...Option) Runtime {
-	// TODO: return default runtime for the time being
+	options := Options{}
+	// apply requested options
+	for _, o := range opts {
+		o(&options)
+	}
+
+	switch options.Type {
+	case "local":
+		return newRuntime(opts...)
+	case "k8s":
+		// TODO: do this
+	default:
+		return newRuntime(opts...)
+	}
+
 	return newRuntime(opts...)
 }
