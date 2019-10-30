@@ -15,6 +15,7 @@ import (
 
 type runtime struct {
 	sync.RWMutex
+	options Options
 	// used to stop the runtime
 	closed chan bool
 	// used to start new services
@@ -45,8 +46,17 @@ type service struct {
 	PID *process.PID
 }
 
-func newRuntime() *runtime {
+func newRuntime(opts ...Option) *runtime {
+	// get default options
+	options := Options{}
+
+	// apply requested options
+	for _, o := range opts {
+		o(&options)
+	}
+
 	return &runtime{
+		options:  options,
 		closed:   make(chan bool),
 		start:    make(chan *service, 128),
 		services: make(map[string]*service),
@@ -216,6 +226,55 @@ func (r *runtime) run() {
 	}
 }
 
+// poll polls for updates and updates services when new update has been detected
+func (r *runtime) poll() {
+	t := time.NewTicker(r.options.Poller.Tick())
+	defer t.Stop()
+
+	for {
+		select {
+		case <-r.closed:
+			return
+		case <-t.C:
+			// poll remote endpoint for updates
+			resp, err := r.options.Poller.Poll()
+			if err != nil {
+				log.Debugf("error polling for updates: %v", err)
+				continue
+			}
+
+			// parse returned response to timestamp
+			build, err := time.Parse(time.RFC3339, resp)
+			if err != nil {
+				log.Debugf("error parsing build time: %v", err)
+				continue
+			}
+			// TODO: update services
+			r.Lock()
+			for name, service := range r.services {
+				if service.Version == "" {
+					// TODO: figure this one out
+					log.Debugf("Could not parse service build; unknown")
+					continue
+				}
+				svcBuild, err := time.Parse(time.RFC3339, service.Version)
+				if err != nil {
+					log.Debugf("Could not parse %s service build: %v", name, err)
+					continue
+				}
+				if build.After(svcBuild) {
+					if err := r.Update(service.Service); err != nil {
+						log.Debugf("error updating service %s: %v", name, err)
+						continue
+					}
+					service.Version = resp
+				}
+			}
+			r.Unlock()
+		}
+	}
+}
+
 func (r *runtime) Create(s *Service, opts ...CreateOption) error {
 	r.Lock()
 	defer r.Unlock()
@@ -290,6 +349,10 @@ func (r *runtime) Start() error {
 	r.closed = make(chan bool)
 
 	go r.run()
+
+	if r.options.Poller != nil {
+		go r.poll()
+	}
 
 	return nil
 }

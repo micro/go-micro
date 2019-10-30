@@ -4,6 +4,22 @@ import (
 	"io"
 )
 
+// Options define runtime options
+type Option func(o *Options)
+
+// Option is runtime option
+type Options struct {
+	// Poller polls updates
+	Poller Poller
+}
+
+// WithAutoUpdate enables micro auto-updates
+func WithAutoUpdate(p Poller) Option {
+	return func(o *Options) {
+		o.Poller = p
+	}
+}
+
 type CreateOption func(o *CreateOptions)
 
 type CreateOptions struct {
@@ -25,7 +41,7 @@ func WithCommand(c string, args ...string) CreateOption {
 	}
 }
 
-// WithEnv sets the created service env
+// WithEnv sets the created service environment
 func WithEnv(env []string) CreateOption {
 	return func(o *CreateOptions) {
 		o.Env = env

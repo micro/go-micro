@@ -1,6 +1,13 @@
 // Package runtime is a service runtime manager
 package runtime
 
+import "time"
+
+var (
+	// DefaultRuntime is default micro runtime
+	DefaultRuntime = newRuntime()
+)
+
 // Runtime is a service runtime manager
 type Runtime interface {
 	// Registers a service
@@ -17,20 +24,27 @@ type Runtime interface {
 	Stop() error
 }
 
+// Poller periodically poll for updates and returns the results
+type Poller interface {
+	// Poll polls for updates and returns results
+	Poll() (string, error)
+	// Tick returns poller tick time
+	Tick() time.Duration
+}
+
+// Service is runtime service
 type Service struct {
-	// name of the service
+	// Name of the service
 	Name string
 	// url location of source
 	Source string
-	// path to store source
+	// Path to store source
 	Path string
-	// exec command
+	// Exec command
 	Exec string
+	// Version of the service
+	Version string
 }
-
-var (
-	DefaultRuntime = newRuntime()
-)
 
 func Create(s *Service, opts ...CreateOption) error {
 	return DefaultRuntime.Create(s, opts...)

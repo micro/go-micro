@@ -1,9 +1,13 @@
 // package kubernetes implements kubernetes micro runtime
 package kubernetes
 
-import "github.com/micro/go-micro/runtime"
+import (
+	"github.com/micro/go-micro/runtime"
+	//"github.com/micro/go-plugins/registry/kubernetes/client"
+)
 
 type kubernetes struct {
+	//client client.Kubernetes
 }
 
 // Registers a service
