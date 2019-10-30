@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/micro/go-micro/runtime/build"
 	"github.com/micro/go-micro/util/log"
 )
 
@@ -16,16 +17,6 @@ var (
 	// DefaultURL defines url to poll for updates
 	DefaultURL = "https://micro.m/update"
 )
-
-// Response is used to deserialise response returned by remote endpoint
-type Response struct {
-	// Commit is git commit sha
-	Commit string `json:"commit,omitempty"`
-	// Image is Docker build timestamp
-	Image string `json:"image"`
-	// Release is micro release tag
-	Release string `json:"release,omitempty"`
-}
 
 // HTTP is http poller
 type HTTP struct {
@@ -50,33 +41,33 @@ func NewHTTP(u string, poll time.Duration) (*HTTP, error) {
 }
 
 // Poll polls for updates and returns results
-func (h *HTTP) Poll() (string, error) {
+func (h *HTTP) Poll() (*build.Build, error) {
 	rsp, err := http.Get(h.url.String())
 	if err != nil {
 		log.Debugf("error polling updates: %v", err)
-		return "", err
+		return nil, err
 	}
 	defer rsp.Body.Close()
 
 	if rsp.StatusCode != 200 {
 		log.Debugf("error: unexpected http response: %v", rsp.StatusCode)
-		return "", err
+		return nil, err
 	}
 
 	b, err := ioutil.ReadAll(rsp.Body)
 	if err != nil {
 		log.Debugf("error reading http response: %v", err)
-		return "", err
+		return nil, err
 	}
 
 	// encoding format is assumed to be json
-	var response *Response
-	if err := json.Unmarshal(b, &response); err != nil {
+	var build *build.Build
+	if err := json.Unmarshal(b, &build); err != nil {
 		log.Debugf("error unmarshalling response: %v", err)
-		return "", err
+		return nil, err
 	}
 
-	return response.Image, nil
+	return build, nil
 }
 
 // Tick returns poller tick time

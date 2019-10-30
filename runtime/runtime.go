@@ -1,7 +1,11 @@
 // Package runtime is a service runtime manager
 package runtime
 
-import "time"
+import (
+	"time"
+
+	"github.com/micro/go-micro/runtime/build"
+)
 
 var (
 	// DefaultRuntime is default micro runtime
@@ -27,7 +31,7 @@ type Runtime interface {
 // Poller periodically poll for updates and returns the results
 type Poller interface {
 	// Poll polls for updates and returns results
-	Poll() (string, error)
+	Poll() (*build.Build, error)
 	// Tick returns poller tick time
 	Tick() time.Duration
 }

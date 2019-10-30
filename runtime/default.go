@@ -13,19 +13,6 @@ import (
 	"github.com/micro/go-micro/util/log"
 )
 
-type runtime struct {
-	sync.RWMutex
-	options Options
-	// used to stop the runtime
-	closed chan bool
-	// used to start new services
-	start chan *service
-	// indicates if we're running
-	running bool
-	// the service map
-	services map[string]*service
-}
-
 type service struct {
 	sync.RWMutex
 
@@ -44,23 +31,6 @@ type service struct {
 	Exec *process.Executable
 	// process pid
 	PID *process.PID
-}
-
-func newRuntime(opts ...Option) *runtime {
-	// get default options
-	options := Options{}
-
-	// apply requested options
-	for _, o := range opts {
-		o(&options)
-	}
-
-	return &runtime{
-		options:  options,
-		closed:   make(chan bool),
-		start:    make(chan *service, 128),
-		services: make(map[string]*service),
-	}
 }
 
 func newService(s *Service, c CreateOptions) *service {
@@ -184,6 +154,36 @@ func (s *service) Wait() {
 	s.running = false
 }
 
+type runtime struct {
+	sync.RWMutex
+	options Options
+	// used to stop the runtime
+	closed chan bool
+	// used to start new services
+	start chan *service
+	// indicates if we're running
+	running bool
+	// the service map
+	services map[string]*service
+}
+
+func newRuntime(opts ...Option) *runtime {
+	// get default options
+	options := Options{}
+
+	// apply requested options
+	for _, o := range opts {
+		o(&options)
+	}
+
+	return &runtime{
+		options:  options,
+		closed:   make(chan bool),
+		start:    make(chan *service, 128),
+		services: make(map[string]*service),
+	}
+}
+
 func (r *runtime) run() {
 	r.RLock()
 	closed := r.closed
@@ -220,7 +220,13 @@ func (r *runtime) run() {
 				log.Debugf("Runtime error starting %s: %v", service.Name, err)
 			}
 		case <-closed:
-			// TODO: stop all the things
+			log.Debugf("Runtime stopped. Attempting to stop all services.")
+			for name, service := range r.services {
+				// TODO: handle this error
+				if err := r.Delete(service.Service); err != nil {
+					log.Debugf("Runtime failed to stop service %s: %v", name, err)
+				}
+			}
 			return
 		}
 	}
@@ -244,12 +250,11 @@ func (r *runtime) poll() {
 			}
 
 			// parse returned response to timestamp
-			build, err := time.Parse(time.RFC3339, resp)
+			buildTime, err := time.Parse(time.RFC3339, resp.Image)
 			if err != nil {
 				log.Debugf("error parsing build time: %v", err)
 				continue
 			}
-			// TODO: update services
 			r.Lock()
 			for name, service := range r.services {
 				if service.Version == "" {
@@ -257,17 +262,17 @@ func (r *runtime) poll() {
 					log.Debugf("Could not parse service build; unknown")
 					continue
 				}
-				svcBuild, err := time.Parse(time.RFC3339, service.Version)
+				muBuild, err := time.Parse(time.RFC3339, service.Version)
 				if err != nil {
 					log.Debugf("Could not parse %s service build: %v", name, err)
 					continue
 				}
-				if build.After(svcBuild) {
+				if buildTime.After(muBuild) {
 					if err := r.Update(service.Service); err != nil {
 						log.Debugf("error updating service %s: %v", name, err)
 						continue
 					}
-					service.Version = resp
+					service.Version = resp.Image
 				}
 			}
 			r.Unlock()
