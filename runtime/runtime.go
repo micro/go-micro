@@ -73,3 +73,9 @@ func Start() error {
 func Stop() error {
 	return DefaultRuntime.Stop()
 }
+
+// NewRuntime returns new runtime
+func NewRuntime(opts ...Option) Runtime {
+	// TODO: return default runtime for the time being
+	return newRuntime(opts...)
+}

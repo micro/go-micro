@@ -75,12 +75,14 @@ func (s *service) streamOutput() {
 	go io.Copy(s.output, s.PID.Error)
 }
 
+// Running returns true is the service is running
 func (s *service) Running() bool {
 	s.RLock()
 	defer s.RUnlock()
 	return s.running
 }
 
+// Start stars the service
 func (s *service) Start() error {
 	s.Lock()
 	defer s.Unlock()
@@ -115,6 +117,7 @@ func (s *service) Start() error {
 	return nil
 }
 
+// Stop stops the service
 func (s *service) Stop() error {
 	s.Lock()
 	defer s.Unlock()
@@ -132,12 +135,14 @@ func (s *service) Stop() error {
 	}
 }
 
+// Error returns the last error service has returned
 func (s *service) Error() error {
 	s.RLock()
 	defer s.RUnlock()
 	return s.err
 }
 
+// Wait waits for the service to finish running
 func (s *service) Wait() {
 	// wait for process to exit
 	err := s.Process.Wait(s.PID)
@@ -184,6 +189,7 @@ func newRuntime(opts ...Option) *runtime {
 	}
 }
 
+// run runs the runtime management loop
 func (r *runtime) run() {
 	r.RLock()
 	closed := r.closed
@@ -280,6 +286,7 @@ func (r *runtime) poll() {
 	}
 }
 
+// Create creates a new service which is then started by runtime
 func (r *runtime) Create(s *Service, opts ...CreateOption) error {
 	r.Lock()
 	defer r.Unlock()
@@ -306,6 +313,7 @@ func (r *runtime) Create(s *Service, opts ...CreateOption) error {
 	return nil
 }
 
+// Delete removes the service from the runtime and stops it
 func (r *runtime) Delete(s *Service) error {
 	r.Lock()
 	defer r.Unlock()
@@ -318,6 +326,7 @@ func (r *runtime) Delete(s *Service) error {
 	return nil
 }
 
+// Update attemps to update the service
 func (r *runtime) Update(s *Service) error {
 	// delete the service
 	if err := r.Delete(s); err != nil {
@@ -328,6 +337,7 @@ func (r *runtime) Update(s *Service) error {
 	return r.Create(s)
 }
 
+// List returns a slice of all services tracked by the runtime
 func (r *runtime) List() ([]*Service, error) {
 	var services []*Service
 	r.RLock()
@@ -340,6 +350,7 @@ func (r *runtime) List() ([]*Service, error) {
 	return services, nil
 }
 
+// Start starts the runtime
 func (r *runtime) Start() error {
 	r.Lock()
 	defer r.Unlock()
@@ -362,6 +373,7 @@ func (r *runtime) Start() error {
 	return nil
 }
 
+// Stop stops the runtime
 func (r *runtime) Stop() error {
 	r.Lock()
 	defer r.Unlock()
