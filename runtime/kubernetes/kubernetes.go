@@ -51,6 +51,11 @@ func (k *kubernetes) Create(s *runtime.Service, opts ...runtime.CreateOption) er
 	k.Lock()
 	defer k.Unlock()
 
+	// TODO:
+	// * create service
+	// * create dpeloyment
+
+	// NOTE: we are tracking this in memory for now
 	if _, ok := k.services[s.Name]; ok {
 		return errors.New("service already registered")
 	}
@@ -59,10 +64,6 @@ func (k *kubernetes) Create(s *runtime.Service, opts ...runtime.CreateOption) er
 	for _, o := range opts {
 		o(&options)
 	}
-
-	// TODO:
-	// * create service
-	// * create dpeloyment
 
 	// save service
 	k.services[s.Name] = s
@@ -81,6 +82,7 @@ func (k *kubernetes) Delete(s *runtime.Service) error {
 	// * delete service
 	// * delete dpeloyment
 
+	// NOTE: we are tracking this in memory for now
 	if s, ok := k.services[s.Name]; ok {
 		delete(k.services, s.Name)
 		return nil
@@ -113,7 +115,6 @@ func (k *kubernetes) List() ([]*runtime.Service, error) {
 	}
 
 	return services, nil
-
 }
 
 // run runs the runtime management loop
