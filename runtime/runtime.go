@@ -72,10 +72,8 @@ func NewRuntime(opts ...Option) Runtime {
 	case "local":
 		return newRuntime(opts...)
 	case "k8s":
-		// TODO: do this
+		return NewK8sRuntime(opts...)
 	default:
 		return newRuntime(opts...)
 	}
-
-	return newRuntime(opts...)
 }

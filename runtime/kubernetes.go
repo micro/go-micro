@@ -1,34 +1,33 @@
 // package kubernetes implements kubernetes micro runtime
-package kubernetes
+package runtime
 
 import (
 	"errors"
 	"sync"
 	"time"
 
-	"github.com/micro/go-micro/runtime"
 	"github.com/micro/go-micro/runtime/kubernetes/client"
 	"github.com/micro/go-micro/util/log"
 )
 
 type kubernetes struct {
 	sync.RWMutex
-	options runtime.Options
+	options Options
 	// indicates if we're running
 	running bool
 	// used to start new services
-	start chan *runtime.Service
+	start chan *Service
 	// used to stop the runtime
 	closed chan bool
 	// service tracks deployed services
-	services map[string]*runtime.Service
+	services map[string]*Service
 	// client is kubernetes client
 	client client.Kubernetes
 }
 
-// NewRuntime creates new kubernetes runtime
-func NewRuntime(opts ...runtime.Option) *kubernetes {
-	options := runtime.Options{}
+// NewK8sRuntime creates new kubernetes runtime
+func NewK8sRuntime(opts ...Option) *kubernetes {
+	options := Options{}
 
 	// apply requested options
 	for _, o := range opts {
@@ -41,13 +40,13 @@ func NewRuntime(opts ...runtime.Option) *kubernetes {
 	return &kubernetes{
 		options: options,
 		closed:  make(chan bool),
-		start:   make(chan *runtime.Service, 128),
+		start:   make(chan *Service, 128),
 		client:  client,
 	}
 }
 
 // Registers a service
-func (k *kubernetes) Create(s *runtime.Service, opts ...runtime.CreateOption) error {
+func (k *kubernetes) Create(s *Service, opts ...CreateOption) error {
 	k.Lock()
 	defer k.Unlock()
 
@@ -63,7 +62,7 @@ func (k *kubernetes) Create(s *runtime.Service, opts ...runtime.CreateOption) er
 		return errors.New("service already registered")
 	}
 
-	var options runtime.CreateOptions
+	var options CreateOptions
 	for _, o := range opts {
 		o(&options)
 	}
@@ -77,7 +76,7 @@ func (k *kubernetes) Create(s *runtime.Service, opts ...runtime.CreateOption) er
 }
 
 // Remove a service
-func (k *kubernetes) Delete(s *runtime.Service) error {
+func (k *kubernetes) Delete(s *Service) error {
 	k.Lock()
 	defer k.Unlock()
 
@@ -95,7 +94,7 @@ func (k *kubernetes) Delete(s *runtime.Service) error {
 }
 
 // Update the service in place
-func (k *kubernetes) Update(s *runtime.Service) error {
+func (k *kubernetes) Update(s *Service) error {
 	// metada which we will PATCH deployment with
 	metadata := &client.Metadata{
 		Annotations: map[string]string{
@@ -106,10 +105,10 @@ func (k *kubernetes) Update(s *runtime.Service) error {
 }
 
 // List the managed services
-func (k *kubernetes) List() ([]*runtime.Service, error) {
+func (k *kubernetes) List() ([]*Service, error) {
 	// TODO: this should list the k8s deployments
 	// but for now we return in-memory tracked services
-	var services []*runtime.Service
+	var services []*Service
 	k.RLock()
 	defer k.RUnlock()
 
@@ -190,7 +189,7 @@ func (k *kubernetes) poll() {
 					continue
 				}
 				if buildTime.After(muBuild) {
-					muService := &runtime.Service{
+					muService := &Service{
 						Name:    service.Name,
 						Source:  service.Source,
 						Path:    service.Path,
