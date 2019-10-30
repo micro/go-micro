@@ -55,6 +55,9 @@ func (k *kubernetes) Create(s *runtime.Service, opts ...runtime.CreateOption) er
 	// * create service
 	// * create dpeloyment
 
+	// NOTE: our services have micro- prefix
+	s.Name = "micro-" + s.Name
+
 	// NOTE: we are tracking this in memory for now
 	if _, ok := k.services[s.Name]; ok {
 		return errors.New("service already registered")
@@ -175,7 +178,7 @@ func (k *kubernetes) poll() {
 			}
 
 			k.Lock()
-			for name, service := range k.services {
+			for _, service := range k.services {
 				if service.Version == "" {
 					// TODO: figure this one out
 					log.Debugf("Could not parse service build; unknown")
@@ -183,19 +186,19 @@ func (k *kubernetes) poll() {
 				}
 				muBuild, err := time.Parse(time.RFC3339, service.Version)
 				if err != nil {
-					log.Debugf("Could not parse %s service build: %v", name, err)
+					log.Debugf("Could not parse %s service build: %v", service.Name, err)
 					continue
 				}
 				if buildTime.After(muBuild) {
 					muService := &runtime.Service{
-						Name:    name,
+						Name:    service.Name,
 						Source:  service.Source,
 						Path:    service.Path,
 						Exec:    service.Exec,
 						Version: resp.Image,
 					}
 					if err := k.Update(muService); err != nil {
-						log.Debugf("error updating service %s: %v", name, err)
+						log.Debugf("error updating service %s: %v", service.Name, err)
 						continue
 					}
 					service.Version = resp.Image
