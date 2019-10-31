@@ -188,7 +188,7 @@ func (s *svc) Advertise() (<-chan *router.Advert, error) {
 
 // Process processes incoming adverts
 func (s *svc) Process(advert *router.Advert) error {
-  events := make([]*pb.Event, 0, len(advert.Events))
+	events := make([]*pb.Event, 0, len(advert.Events))
 	for _, event := range advert.Events {
 		route := &pb.Route{
 			Service: event.Route.Service,
@@ -230,7 +230,7 @@ func (s *svc) Solicit() error {
 
 	// build events to advertise
 	events := make([]*router.Event, len(routes))
-	for i, _ := range events {
+	for i := range events {
 		events[i] = &router.Event{
 			Type:      router.Update,
 			Timestamp: time.Now(),

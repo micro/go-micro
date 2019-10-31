@@ -580,7 +580,7 @@ func (g *grpcServer) Register() error {
 		return subscriberList[i].topic > subscriberList[j].topic
 	})
 
-  endpoints := make([]*registry.Endpoint, 0, len(handlerList)+len(subscriberList))
+	endpoints := make([]*registry.Endpoint, 0, len(handlerList)+len(subscriberList))
 	for _, n := range handlerList {
 		endpoints = append(endpoints, g.handlers[n].Endpoints()...)
 	}
@@ -621,7 +621,7 @@ func (g *grpcServer) Register() error {
 
 	g.registered = true
 
-	for sb, _ := range g.subscribers {
+	for sb := range g.subscribers {
 		handler := g.createSubHandler(sb, g.opts)
 		var opts []broker.SubscribeOption
 		if queue := sb.Options().Queue; len(queue) > 0 {

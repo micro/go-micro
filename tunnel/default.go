@@ -589,7 +589,7 @@ func (t *tun) listen(link *link) {
 		}
 
 		// strip tunnel message header
-		for k, _ := range msg.Header {
+		for k := range msg.Header {
 			if strings.HasPrefix(k, "Micro-Tunnel") {
 				delete(msg.Header, k)
 			}
@@ -1185,7 +1185,7 @@ func (t *tun) Links() []Link {
 	t.RLock()
 	defer t.RUnlock()
 
-  links := make([]Link, 0, len(t.links))
+	links := make([]Link, 0, len(t.links))
 
 	for _, link := range t.links {
 		links = append(links, link)

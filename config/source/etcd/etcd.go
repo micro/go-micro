@@ -38,7 +38,7 @@ func (c *etcd) Read() (*source.ChangeSet, error) {
 		return nil, fmt.Errorf("source not found: %s", c.prefix)
 	}
 
-  kvs := make([]*mvccpb.KeyValue, 0, len(rsp.Kvs))
+	kvs := make([]*mvccpb.KeyValue, 0, len(rsp.Kvs))
 	for _, v := range rsp.Kvs {
 		kvs = append(kvs, (*mvccpb.KeyValue)(v))
 	}

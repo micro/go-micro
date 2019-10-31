@@ -82,7 +82,7 @@ func readLoop(r server.Request, s client.Stream) error {
 
 // toNodes returns a list of node addresses from given routes
 func toNodes(routes []router.Route) []string {
-  nodes := make([]string, 0, len(routes))
+	nodes := make([]string, 0, len(routes))
 	for _, node := range routes {
 		address := node.Address
 		if len(node.Gateway) > 0 {
@@ -94,7 +94,7 @@ func toNodes(routes []router.Route) []string {
 }
 
 func toSlice(r map[uint64]router.Route) []router.Route {
-  routes := make([]router.Route, 0, len(r))
+	routes := make([]router.Route, 0, len(r))
 	for _, v := range r {
 		routes = append(routes, v)
 	}
@@ -165,11 +165,11 @@ func (p *Proxy) cacheRoutes(service string) ([]router.Route, error) {
 // refreshMetrics will refresh any metrics for our local cached routes.
 // we may not receive new watch events for these as they change.
 func (p *Proxy) refreshMetrics() {
-  services := make([]string, 0, len(p.Routes))
+	services := make([]string, 0, len(p.Routes))
 
 	// get a list of services to update
 	p.RLock()
-	for service, _ := range p.Routes {
+	for service := range p.Routes {
 		services = append(services, service)
 	}
 	p.RUnlock()

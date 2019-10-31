@@ -82,7 +82,7 @@ func (s *service) genSrv() *registry.Service {
 	return &registry.Service{
 		Name:    s.opts.Name,
 		Version: s.opts.Version,
-		Nodes: []*registry.Node{&registry.Node{
+		Nodes: []*registry.Node{{
 			Id:       s.opts.Id,
 			Address:  fmt.Sprintf("%s:%d", addr, port),
 			Metadata: s.opts.Metadata,

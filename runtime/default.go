@@ -263,7 +263,7 @@ func (r *runtime) Update(s *Service) error {
 }
 
 func (r *runtime) List() ([]*Service, error) {
-  services := make([]*Service, 0, len(r.services))
+	services := make([]*Service, 0, len(r.services))
 	r.RLock()
 	defer r.RUnlock()
 

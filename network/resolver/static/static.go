@@ -21,7 +21,7 @@ func (r *Resolver) Resolve(name string) ([]*resolver.Record, error) {
 		}, nil
 	}
 
-  records := make([]*resolver.Record, 0, len(r.Nodes))
+	records := make([]*resolver.Record, 0, len(r.Nodes))
 
 	for _, node := range r.Nodes {
 		records = append(records, &resolver.Record{

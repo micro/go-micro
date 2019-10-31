@@ -27,7 +27,7 @@ func testHttp(t *testing.T, path, service, ns string) {
 	s := &registry.Service{
 		Name: service,
 		Nodes: []*registry.Node{
-			&registry.Node{
+			{
 				Id:      service + "-1",
 				Address: l.Addr().String(),
 			},

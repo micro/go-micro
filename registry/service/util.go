@@ -10,7 +10,7 @@ func values(v []*registry.Value) []*pb.Value {
 		return []*pb.Value{}
 	}
 
-  vs := make([]*pb.Value, 0, len(v))
+	vs := make([]*pb.Value, 0, len(v))
 	for _, vi := range v {
 		vs = append(vs, &pb.Value{
 			Name:   vi.Name,
@@ -26,7 +26,7 @@ func toValues(v []*pb.Value) []*registry.Value {
 		return []*registry.Value{}
 	}
 
-  vs := make([]*registry.Value, 0, len(v))
+	vs := make([]*registry.Value, 0, len(v))
 	for _, vi := range v {
 		vs = append(vs, &registry.Value{
 			Name:   vi.Name,
@@ -38,8 +38,8 @@ func toValues(v []*pb.Value) []*registry.Value {
 }
 
 func ToProto(s *registry.Service) *pb.Service {
-  endpoints := make([]*pb.Endpoint, 0, len(s.Endpoints))
-  for _, ep := range s.Endpoints {
+	endpoints := make([]*pb.Endpoint, 0, len(s.Endpoints))
+	for _, ep := range s.Endpoints {
 		var request, response *pb.Value
 
 		if ep.Request != nil {
@@ -66,7 +66,7 @@ func ToProto(s *registry.Service) *pb.Service {
 		})
 	}
 
-  nodes := make([]*pb.Node, 0, len(s.Nodes))
+	nodes := make([]*pb.Node, 0, len(s.Nodes))
 
 	for _, node := range s.Nodes {
 		nodes = append(nodes, &pb.Node{
@@ -86,7 +86,7 @@ func ToProto(s *registry.Service) *pb.Service {
 }
 
 func ToService(s *pb.Service) *registry.Service {
-  endpoints := make([]*registry.Endpoint, 0, len(s.Endpoints))
+	endpoints := make([]*registry.Endpoint, 0, len(s.Endpoints))
 	for _, ep := range s.Endpoints {
 		var request, response *registry.Value
 
@@ -114,7 +114,7 @@ func ToService(s *pb.Service) *registry.Service {
 		})
 	}
 
-  nodes := make([]*registry.Node, 0, len(s.Nodes))
+	nodes := make([]*registry.Node, 0, len(s.Nodes))
 	for _, node := range s.Nodes {
 		nodes = append(nodes, &registry.Node{
 			Id:       node.Id,
