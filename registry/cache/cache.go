@@ -81,7 +81,7 @@ func (c *cache) isValid(services []*registry.Service, ttl time.Time) bool {
 	}
 
 	// time since ttl is longer than timeout
-	if time.Since(ttl) > c.opts.TTL {
+	if time.Since(ttl) > 0 {
 		return false
 	}
 
