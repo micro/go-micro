@@ -113,7 +113,7 @@ func (s *service) Start() error {
 	s.closed = make(chan bool)
 
 	// TODO: pull source & build binary
-	log.Debugf("Runtime service %s forking new process\n")
+	log.Debugf("Runtime service %s forking new process\n", s.Service.Name)
 	p, err := s.Process.Fork(s.Exec)
 	if err != nil {
 		return err
@@ -144,6 +144,9 @@ func (s *service) Stop() error {
 	default:
 		close(s.closed)
 		s.running = false
+		if s.PID == nil {
+			return nil
+		}
 		return s.Process.Kill(s.PID)
 	}
 
