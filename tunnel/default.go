@@ -225,9 +225,10 @@ func (t *tun) monitor() {
 				t.Lock()
 				for _, node := range delLinks {
 					log.Debugf("Tunnel deleting dead link for %s", node)
-					link := t.links[node]
-					link.Close()
-					delete(t.links, node)
+					if link, ok := t.links[node]; ok {
+						link.Close()
+						delete(t.links, node)
+					}
 				}
 				t.Unlock()
 			}
