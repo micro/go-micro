@@ -580,7 +580,7 @@ func (g *grpcServer) Register() error {
 		return subscriberList[i].topic > subscriberList[j].topic
 	})
 
-  endpoints := make([]*registry.Endpoint, 0, len(handlerList))
+  endpoints := make([]*registry.Endpoint, 0, len(handlerList)+len(subscriberList))
 	for _, n := range handlerList {
 		endpoints = append(endpoints, g.handlers[n].Endpoints()...)
 	}
