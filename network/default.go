@@ -79,21 +79,6 @@ func newNetwork(opts ...Option) Network {
 		o(&options)
 	}
 
-	// init tunnel address to the network bind address
-	options.Tunnel.Init(
-		tunnel.Address(options.Address),
-	)
-
-	// init router Id to the network id
-	options.Router.Init(
-		router.Id(options.Id),
-	)
-
-	// create tunnel client with tunnel transport
-	tunTransport := tun.NewTransport(
-		tun.WithTunnel(options.Tunnel),
-	)
-
 	// set the address to a hashed address
 	hasher := fnv.New64()
 	hasher.Write([]byte(options.Address + options.Id))
@@ -110,6 +95,22 @@ func newNetwork(opts ...Option) Network {
 		advertise = options.Address
 		peerAddress = address
 	}
+
+	// init tunnel address to the network bind address
+	options.Tunnel.Init(
+		tunnel.Address(options.Address),
+	)
+
+	// init router Id to the network id
+	options.Router.Init(
+		router.Id(options.Id),
+		router.Address(peerAddress),
+	)
+
+	// create tunnel client with tunnel transport
+	tunTransport := tun.NewTransport(
+		tun.WithTunnel(options.Tunnel),
+	)
 
 	// server is network server
 	server := server.NewServer(
