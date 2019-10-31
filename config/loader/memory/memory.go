@@ -153,7 +153,7 @@ func (m *memory) reload() error {
 }
 
 func (m *memory) update() {
-	var watchers []*watcher
+  watchers := make([]*watcher, 0, len(m.watchers))
 
 	m.RLock()
 	for _, w := range m.watchers {

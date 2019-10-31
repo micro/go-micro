@@ -101,7 +101,7 @@ func (r *routerSelector) getRoutes(service string) ([]router.Route, error) {
 		return nil, selector.ErrNoneAvailable
 	}
 
-	var routes []router.Route
+  routes := make([]router.Route, 0, len(pbRoutes.Routes))
 
 	// convert from pb to []*router.Route
 	for _, r := range pbRoutes.Routes {

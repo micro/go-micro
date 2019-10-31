@@ -111,7 +111,7 @@ func (m *Registry) ttlPrune() {
 }
 
 func (m *Registry) sendEvent(r *registry.Result) {
-	var watchers []*Watcher
+  watchers := make([]*Watcher, 0, len(m.Watchers))
 
 	m.RLock()
 	for _, w := range m.Watchers {
@@ -165,7 +165,7 @@ func (m *Registry) GetService(name string) ([]*registry.Service, error) {
 }
 
 func (m *Registry) ListServices() ([]*registry.Service, error) {
-	var services []*registry.Service
+  services := make([]*registry.Service, 0, len(m.Services))
 	m.RLock()
 	for _, service := range m.Services {
 		services = append(services, service...)

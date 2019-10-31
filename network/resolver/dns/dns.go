@@ -27,7 +27,7 @@ func (r *Resolver) Resolve(name string) ([]*resolver.Record, error) {
 		return nil, err
 	}
 
-	var records []*resolver.Record
+  records := make([]*resolver.Record, 0, len(addrs))
 
 	for _, addr := range addrs {
 		// join resolved record with port

@@ -32,7 +32,7 @@ func (e *ekv) Read(keys ...string) ([]*store.Record, error) {
 		values = append(values, keyval.Kvs...)
 	}
 
-	var records []*store.Record
+  records := make([]*store.Record, 0, len(values))
 
 	for _, kv := range values {
 		records = append(records, &store.Record{

@@ -188,7 +188,7 @@ func (s *svc) Advertise() (<-chan *router.Advert, error) {
 
 // Process processes incoming adverts
 func (s *svc) Process(advert *router.Advert) error {
-	var events []*pb.Event
+  events := make([]*pb.Event, 0, len(advert.Events))
 	for _, event := range advert.Events {
 		route := &pb.Route{
 			Service: event.Route.Service,

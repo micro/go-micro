@@ -158,8 +158,8 @@ func (n *node) Nodes() []Node {
 
 	visited := n.walk(untilNoMorePeers, justWalk)
 
-	var nodes []Node
-	// collect all the nodes and return them
+  nodes := make([]Node, 0, len(visited))
+  // collect all the nodes and return them
 	for _, node := range visited {
 		nodes = append(nodes, node)
 	}
@@ -282,8 +282,9 @@ func (n *node) Peers() []Node {
 	n.RLock()
 	defer n.RUnlock()
 
-	var peers []Node
-	for _, nodePeer := range n.peers {
+  peers := make([]Node, 0, len(n.peers))
+
+  for _, nodePeer := range n.peers {
 		peer := nodePeer.getTopology(MaxDepth)
 		peers = append(peers, peer)
 	}

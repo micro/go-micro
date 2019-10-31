@@ -30,7 +30,7 @@ func (s *Store) Read(ctx context.Context, req *pb.ReadRequest, rsp *pb.ReadRespo
 }
 
 func (s *Store) Write(ctx context.Context, req *pb.WriteRequest, rsp *pb.WriteResponse) error {
-	var records []*store.Record
+  records := make([]*store.Record, 0, len(req.Records))
 
 	for _, record := range req.Records {
 		records = append(records, &store.Record{

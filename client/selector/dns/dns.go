@@ -63,7 +63,7 @@ func (d *dnsSelector) Select(service string, opts ...selector.SelectOption) (sel
 		}
 	}
 
-	var nodes []*registry.Node
+  nodes := make([]*registry.Node, 0, len(srv))
 	for _, node := range srv {
 		nodes = append(nodes, &registry.Node{
 			Id:      node.Target,

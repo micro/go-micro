@@ -29,7 +29,7 @@ func flatten(n network.Node, visited map[string]bool) []network.Node {
 	}
 
 	// create new list of nodes
-	var nodes []network.Node
+  nodes := make([]network.Node, 0, len(n.Peers()))
 
 	// check if already visited
 	if visited[n.Id()] == false {
@@ -171,7 +171,7 @@ func (n *Network) Routes(ctx context.Context, req *pbNet.RoutesRequest, resp *pb
 		return errors.InternalServerError("go.micro.network", "failed to list routes: %s", err)
 	}
 
-	var respRoutes []*pbRtr.Route
+  respRoutes := make([]*pbRtr.Route, 0, len(routes))
 	for _, route := range routes {
 		respRoute := &pbRtr.Route{
 			Service: route.Service,

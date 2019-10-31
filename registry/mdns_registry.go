@@ -282,7 +282,7 @@ func (m *mdnsRegistry) GetService(service string) ([]*Service, error) {
 	<-done
 
 	// create list and return
-	var services []*Service
+  services := make([]*Service, 0, len(serviceMap))
 
 	for _, service := range serviceMap {
 		services = append(services, service)
