@@ -2,37 +2,26 @@ package runtime
 
 import (
 	"io"
-
-	"github.com/micro/go-micro/runtime/poller"
 )
 
-// Options define runtime options
 type Option func(o *Options)
 
-// Option is runtime option
+// Options configure runtime
 type Options struct {
-	// Type defines type of runtime
-	Type string
-	// Poller polls updates
-	Poller poller.Poller
-}
-
-// Type defines type of runtime
-func Type(t string) Option {
-	return func(o *Options) {
-		o.Type = t
-	}
+	// Notifier for updates
+	Notifier Notifier
 }
 
 // AutoUpdate enables micro auto-updates
-func AutoUpdate(p poller.Poller) Option {
+func WithNotifier(n Notifier) Option {
 	return func(o *Options) {
-		o.Poller = p
+		o.Notifier = n
 	}
 }
 
 type CreateOption func(o *CreateOptions)
 
+// CreateOptions configure runtime services
 type CreateOptions struct {
 	// command to execute including args
 	Command []string

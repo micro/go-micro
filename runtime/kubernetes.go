@@ -12,6 +12,7 @@ import (
 
 type kubernetes struct {
 	sync.RWMutex
+	// options configure runtime
 	options Options
 	// indicates if we're running
 	running bool
@@ -27,6 +28,7 @@ type kubernetes struct {
 
 // NewK8sRuntime creates new kubernetes runtime
 func NewK8sRuntime(opts ...Option) *kubernetes {
+	// get default options
 	options := Options{}
 
 	// apply requested options
@@ -120,90 +122,60 @@ func (k *kubernetes) List() ([]*Service, error) {
 }
 
 // run runs the runtime management loop
-func (k *kubernetes) run() {
-	k.RLock()
-	closed := k.closed
-	k.RUnlock()
-
+func (k *kubernetes) run(events <-chan Event) {
 	t := time.NewTicker(time.Second * 5)
 	defer t.Stop()
 
 	for {
 		select {
 		case <-t.C:
+			// TODO: noop for now
 			// check running services
-			// TODO: noop for now, but might have to check if
 			// * deployments exist
 			// * service is exposed
 		case service := <-k.start:
 			// TODO: following might have to be done
 			// * create a deployment
 			// * expose a service
-			log.Debugf("Starting service: %s", service.Name)
-		case <-closed:
-			log.Debugf("Runtime stopped. Attempting to stop all services.")
-			for name, service := range k.services {
-				// TODO: handle this error
-				if err := k.Delete(service); err != nil {
-					log.Debugf("Runtime failed to stop service %s: %v", name, err)
-				}
-			}
-			return
-		}
-	}
-}
-
-// poll polls for updates and updates services when new update has been detected
-func (k *kubernetes) poll() {
-	t := time.NewTicker(k.options.Poller.Tick())
-	defer t.Stop()
-
-	for {
-		select {
-		case <-k.closed:
-			return
-		case <-t.C:
-			// poll remote endpoint for updates
-			resp, err := k.options.Poller.Poll()
-			if err != nil {
-				log.Debugf("error polling for updates: %v", err)
-				continue
-			}
-			// parse returned response to timestamp
-			buildTime, err := time.Parse(time.RFC3339, resp.Image)
-			if err != nil {
-				log.Debugf("error parsing build time: %v", err)
-				continue
-			}
-
-			k.Lock()
-			for _, service := range k.services {
-				if service.Version == "" {
-					// TODO: figure this one out
-					log.Debugf("Could not parse service build; unknown")
-					continue
-				}
-				muBuild, err := time.Parse(time.RFC3339, service.Version)
+			log.Debugf("Runtime starting service: %s", service.Name)
+		case event := <-events:
+			// NOTE: we only handle Update events for now
+			log.Debugf("Runtime received notification event: %v", event)
+			switch event.Type {
+			case Update:
+				// parse returned response to timestamp
+				buildTime, err := time.Parse(time.RFC3339, event.Version)
 				if err != nil {
-					log.Debugf("Could not parse %s service build: %v", service.Name, err)
+					log.Debugf("Runtime error parsing build time: %v", err)
 					continue
 				}
-				if buildTime.After(muBuild) {
-					muService := &Service{
-						Name:    service.Name,
-						Source:  service.Source,
-						Path:    service.Path,
-						Exec:    service.Exec,
-						Version: resp.Image,
-					}
-					if err := k.Update(muService); err != nil {
-						log.Debugf("error updating service %s: %v", service.Name, err)
+				k.Lock()
+				for _, service := range k.services {
+					muBuild, err := time.Parse(time.RFC3339, service.Version)
+					if err != nil {
+						log.Debugf("Runtime could not parse %s service build: %v", service.Name, err)
 						continue
 					}
-					service.Version = resp.Image
+					if buildTime.After(muBuild) {
+						muService := &Service{
+							Name:    service.Name,
+							Source:  service.Source,
+							Path:    service.Path,
+							Exec:    service.Exec,
+							Version: event.Version,
+						}
+						if err := k.Update(muService); err != nil {
+							log.Debugf("Runtime error updating service %s: %v", service.Name, err)
+							continue
+						}
+						service.Version = event.Version
+					}
 				}
+				k.Unlock()
 			}
-			k.Unlock()
+		case <-k.closed:
+			log.Debugf("Runtime stopped")
+			return
 		}
 	}
 }
@@ -222,11 +194,17 @@ func (k *kubernetes) Start() error {
 	k.running = true
 	k.closed = make(chan bool)
 
-	go k.run()
-
-	if k.options.Poller != nil {
-		go k.poll()
+	var events <-chan Event
+	if k.options.Notifier != nil {
+		var err error
+		events, err = k.options.Notifier.Notify()
+		if err != nil {
+			// TODO: should we bail here?
+			log.Debugf("Runtime failed to start update notifier")
+		}
 	}
+
+	go k.run(events)
 
 	return nil
 }
@@ -247,7 +225,16 @@ func (k *kubernetes) Stop() error {
 		close(k.closed)
 		// set not running
 		k.running = false
+		// stop the notifier too
+		if k.options.Notifier != nil {
+			return k.options.Notifier.Close()
+		}
 	}
 
 	return nil
+}
+
+// String implements stringer interface
+func (k *kubernetes) String() string {
+	return "kubernetes"
 }

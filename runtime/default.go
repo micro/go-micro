@@ -2,165 +2,15 @@ package runtime
 
 import (
 	"errors"
-	"io"
-	"strings"
 	"sync"
 	"time"
 
-	packager "github.com/micro/go-micro/runtime/package"
-	"github.com/micro/go-micro/runtime/process"
-	proc "github.com/micro/go-micro/runtime/process/os"
 	"github.com/micro/go-micro/util/log"
 )
 
-type service struct {
-	sync.RWMutex
-
-	running bool
-	closed  chan bool
-	err     error
-
-	// output for logs
-	output io.Writer
-
-	// service to manage
-	*Service
-	// process creator
-	Process *proc.Process
-	// Exec
-	Exec *process.Executable
-	// process pid
-	PID *process.PID
-}
-
-func newService(s *Service, c CreateOptions) *service {
-	var exec string
-	var args []string
-
-	if len(s.Exec) > 0 {
-		parts := strings.Split(s.Exec, " ")
-		exec = parts[0]
-		args = []string{}
-
-		if len(parts) > 1 {
-			args = parts[1:]
-		}
-	} else {
-		// set command
-		exec = c.Command[0]
-		// set args
-		if len(c.Command) > 1 {
-			args = c.Command[1:]
-		}
-	}
-
-	return &service{
-		Service: s,
-		Process: new(proc.Process),
-		Exec: &process.Executable{
-			Binary: &packager.Binary{
-				Name: s.Name,
-				Path: exec,
-			},
-			Env:  c.Env,
-			Args: args,
-		},
-		closed: make(chan bool),
-		output: c.Output,
-	}
-}
-
-func (s *service) streamOutput() {
-	go io.Copy(s.output, s.PID.Output)
-	go io.Copy(s.output, s.PID.Error)
-}
-
-// Running returns true is the service is running
-func (s *service) Running() bool {
-	s.RLock()
-	defer s.RUnlock()
-	return s.running
-}
-
-// Start stars the service
-func (s *service) Start() error {
-	s.Lock()
-	defer s.Unlock()
-
-	if s.running {
-		return nil
-	}
-
-	// reset
-	s.err = nil
-	s.closed = make(chan bool)
-
-	// TODO: pull source & build binary
-	log.Debugf("Runtime service %s forking new process\n", s.Service.Name)
-	p, err := s.Process.Fork(s.Exec)
-	if err != nil {
-		return err
-	}
-
-	// set the pid
-	s.PID = p
-	// set to running
-	s.running = true
-
-	if s.output != nil {
-		s.streamOutput()
-	}
-
-	// wait and watch
-	go s.Wait()
-
-	return nil
-}
-
-// Stop stops the service
-func (s *service) Stop() error {
-	s.Lock()
-	defer s.Unlock()
-
-	select {
-	case <-s.closed:
-		return nil
-	default:
-		close(s.closed)
-		s.running = false
-		if s.PID == nil {
-			return nil
-		}
-		return s.Process.Kill(s.PID)
-	}
-}
-
-// Error returns the last error service has returned
-func (s *service) Error() error {
-	s.RLock()
-	defer s.RUnlock()
-	return s.err
-}
-
-// Wait waits for the service to finish running
-func (s *service) Wait() {
-	// wait for process to exit
-	err := s.Process.Wait(s.PID)
-
-	s.Lock()
-	defer s.Unlock()
-
-	// save the error
-	if err != nil {
-		s.err = err
-	}
-
-	// no longer running
-	s.running = false
-}
-
 type runtime struct {
 	sync.RWMutex
+	// options configure runtime
 	options Options
 	// used to stop the runtime
 	closed chan bool
@@ -190,11 +40,7 @@ func newRuntime(opts ...Option) *runtime {
 }
 
 // run runs the runtime management loop
-func (r *runtime) run() {
-	r.RLock()
-	closed := r.closed
-	r.RUnlock()
-
+func (r *runtime) run(events <-chan Event) {
 	t := time.NewTicker(time.Second * 5)
 	defer t.Stop()
 
@@ -219,13 +65,40 @@ func (r *runtime) run() {
 			if service.Running() {
 				continue
 			}
-
 			// TODO: check service error
-			log.Debugf("Starting %s", service.Name)
+			log.Debugf("Runtime starting service %s", service.Name)
 			if err := service.Start(); err != nil {
-				log.Debugf("Runtime error starting %s: %v", service.Name, err)
+				log.Debugf("Runtime error starting service %s: %v", service.Name, err)
 			}
-		case <-closed:
+		case event := <-events:
+			log.Debugf("Runtime received notification event: %v", event)
+			// NOTE: we only handle Update events for now
+			switch event.Type {
+			case Update:
+				// parse returned response to timestamp
+				buildTime, err := time.Parse(time.RFC3339, event.Version)
+				if err != nil {
+					log.Debugf("Runtime error parsing build time: %v", err)
+					continue
+				}
+				r.Lock()
+				for _, service := range r.services {
+					muBuild, err := time.Parse(time.RFC3339, service.Version)
+					if err != nil {
+						log.Debugf("Runtime could not parse %s service build: %v", service.Name, err)
+						continue
+					}
+					if buildTime.After(muBuild) {
+						if err := r.Update(service.Service); err != nil {
+							log.Debugf("Runtime error updating service %s: %v", service.Name, err)
+							continue
+						}
+						service.Version = event.Version
+					}
+				}
+				r.Unlock()
+			}
+		case <-r.closed:
 			log.Debugf("Runtime stopped. Attempting to stop all services.")
 			for name, service := range r.services {
 				// TODO: handle this error
@@ -234,54 +107,6 @@ func (r *runtime) run() {
 				}
 			}
 			return
-		}
-	}
-}
-
-// poll polls for updates and updates services when new update has been detected
-func (r *runtime) poll() {
-	t := time.NewTicker(r.options.Poller.Tick())
-	defer t.Stop()
-
-	for {
-		select {
-		case <-r.closed:
-			return
-		case <-t.C:
-			// poll remote endpoint for updates
-			resp, err := r.options.Poller.Poll()
-			if err != nil {
-				log.Debugf("error polling for updates: %v", err)
-				continue
-			}
-
-			// parse returned response to timestamp
-			buildTime, err := time.Parse(time.RFC3339, resp.Image)
-			if err != nil {
-				log.Debugf("error parsing build time: %v", err)
-				continue
-			}
-			r.Lock()
-			for name, service := range r.services {
-				if service.Version == "" {
-					// TODO: figure this one out
-					log.Debugf("Could not parse service build; unknown")
-					continue
-				}
-				muBuild, err := time.Parse(time.RFC3339, service.Version)
-				if err != nil {
-					log.Debugf("Could not parse %s service build: %v", name, err)
-					continue
-				}
-				if buildTime.After(muBuild) {
-					if err := r.Update(service.Service); err != nil {
-						log.Debugf("error updating service %s: %v", name, err)
-						continue
-					}
-					service.Version = resp.Image
-				}
-			}
-			r.Unlock()
 		}
 	}
 }
@@ -364,11 +189,17 @@ func (r *runtime) Start() error {
 	r.running = true
 	r.closed = make(chan bool)
 
-	go r.run()
-
-	if r.options.Poller != nil {
-		go r.poll()
+	var events <-chan Event
+	if r.options.Notifier != nil {
+		var err error
+		events, err = r.options.Notifier.Notify()
+		if err != nil {
+			// TODO: should we bail here?
+			log.Debugf("Runtime failed to start update notifier")
+		}
 	}
+
+	go r.run(events)
 
 	return nil
 }
@@ -396,7 +227,16 @@ func (r *runtime) Stop() error {
 			log.Debugf("Runtime stopping %s", service.Name)
 			service.Stop()
 		}
+		// stop the notifier too
+		if r.options.Notifier != nil {
+			return r.options.Notifier.Close()
+		}
 	}
 
 	return nil
+}
+
+// String implements stringer interface
+func (r *runtime) String() string {
+	return "local"
 }
