@@ -2,6 +2,8 @@ package runtime
 
 import (
 	"errors"
+	"fmt"
+	"strconv"
 	"sync"
 	"time"
 
@@ -89,21 +91,23 @@ func (r *runtime) run(events <-chan Event) {
 			switch event.Type {
 			case Update:
 				// parse returned response to timestamp
-				buildTime, err := time.Parse(time.RFC3339, event.Version)
+				updateTimeStamp, err := strconv.ParseInt(event.Version, 10, 64)
 				if err != nil {
-					log.Debugf("Runtime error parsing build time: %v", err)
+					log.Debugf("Runtime error parsing update build time: %v", err)
 					continue
 				}
+				buildTime := time.Unix(updateTimeStamp, 0)
 				processEvent := func(event Event, service *Service) error {
-					muBuild, err := time.Parse(time.RFC3339, service.Version)
+					buildTimeStamp, err := strconv.ParseInt(service.Version, 10, 64)
 					if err != nil {
 						return err
 					}
+					muBuild := time.Unix(buildTimeStamp, 0)
 					if buildTime.After(muBuild) {
 						if err := r.Update(service); err != nil {
 							return err
 						}
-						service.Version = event.Version
+						service.Version = fmt.Sprintf("%d", buildTime.Unix())
 					}
 					return nil
 				}
@@ -124,7 +128,7 @@ func (r *runtime) run(events <-chan Event) {
 				// if blank service was received we update all services
 				for _, service := range r.services {
 					if err := processEvent(event, service.Service); err != nil {
-						log.Debugf("Runtime error updating service %s: %v", event.Service, err)
+						log.Debugf("Runtime error updating service %s: %v", service.Name, err)
 					}
 				}
 				r.Unlock()

@@ -3,6 +3,8 @@ package kubernetes
 
 import (
 	"errors"
+	"fmt"
+	"strconv"
 	"sync"
 	"time"
 
@@ -158,28 +160,31 @@ func (k *kubernetes) run(events <-chan runtime.Event) {
 			switch event.Type {
 			case runtime.Update:
 				// parse returned response to timestamp
-				buildTime, err := time.Parse(time.RFC3339, event.Version)
+				updateTimeStamp, err := strconv.ParseInt(event.Version, 10, 64)
 				if err != nil {
-					log.Debugf("Runtime error parsing build time: %v", err)
+					log.Debugf("Runtime error parsing update build time: %v", err)
 					continue
 				}
+				buildTime := time.Unix(updateTimeStamp, 0)
 				processEvent := func(event runtime.Event, service *runtime.Service) error {
-					muBuild, err := time.Parse(time.RFC3339, service.Version)
+					buildTimeStamp, err := strconv.ParseInt(service.Version, 10, 64)
 					if err != nil {
 						return err
 					}
+					muBuild := time.Unix(buildTimeStamp, 0)
 					if buildTime.After(muBuild) {
+						version := fmt.Sprintf("%d", buildTime.Unix())
 						muService := &runtime.Service{
 							Name:    service.Name,
 							Source:  service.Source,
 							Path:    service.Path,
 							Exec:    service.Exec,
-							Version: event.Version,
+							Version: version,
 						}
 						if err := k.Update(muService); err != nil {
 							return err
 						}
-						service.Version = event.Version
+						service.Version = version
 					}
 					return nil
 				}
@@ -200,7 +205,7 @@ func (k *kubernetes) run(events <-chan runtime.Event) {
 				// if blank service was received we update all services
 				for _, service := range k.services {
 					if err := processEvent(event, service); err != nil {
-						log.Debugf("Runtime error updating service %s: %v", event.Service, err)
+						log.Debugf("Runtime error updating service %s: %v", service.Name, err)
 					}
 				}
 				k.Unlock()
