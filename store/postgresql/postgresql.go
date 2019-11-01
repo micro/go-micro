@@ -4,6 +4,7 @@ package postgresql
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 	"unicode"
 
@@ -191,6 +192,9 @@ func New(opts ...options.Option) (store.Store, error) {
 	driver, dataSourceName, err := validateOptions(options)
 	if err != nil {
 		return nil, err
+	}
+	if !strings.Contains(dataSourceName, " ") {
+		dataSourceName = fmt.Sprintf("host=%s", dataSourceName)
 	}
 	db, err := sql.Open(driver, dataSourceName)
 	if err != nil {
