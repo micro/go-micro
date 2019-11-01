@@ -67,7 +67,7 @@ func (k *kubernetes) Create(s *runtime.Service, opts ...runtime.CreateOption) er
 
 	// TODO:
 	// * create service
-	// * create dpeloyment
+	// * create deployment
 
 	// NOTE: our services have micro- prefix
 	s.Name = "micro-" + s.Name
