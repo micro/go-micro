@@ -232,8 +232,8 @@ var (
 	}
 
 	DefaultRuntimes = map[string]func(...runtime.Option) runtime.Runtime{
-		"local":       runtime.NewRuntime,
-		"kubernetess": kubernetes.NewRuntime,
+		"local":      runtime.NewRuntime,
+		"kubernetes": kubernetes.NewRuntime,
 	}
 
 	// used for default selection as the fall back
