@@ -130,13 +130,7 @@ func (r *runtime) run(events <-chan Event) {
 				r.Unlock()
 			}
 		case <-r.closed:
-			log.Debugf("Runtime stopped. Attempting to stop all services.")
-			for name, service := range r.services {
-				// TODO: handle this error
-				if err := r.Delete(service.Service); err != nil {
-					log.Debugf("Runtime failed to stop service %s: %v", name, err)
-				}
-			}
+			log.Debugf("Runtime stopped.")
 			return
 		}
 	}
