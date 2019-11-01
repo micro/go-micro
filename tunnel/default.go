@@ -1186,7 +1186,7 @@ func (t *tun) Links() []Link {
 	t.RLock()
 	defer t.RUnlock()
 
-	var links []Link
+  links := make([]Link, 0, len(t.links))
 
 	for _, link := range t.links {
 		links = append(links, link)

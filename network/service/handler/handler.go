@@ -171,7 +171,7 @@ func (n *Network) Routes(ctx context.Context, req *pbNet.RoutesRequest, resp *pb
 		return errors.InternalServerError("go.micro.network", "failed to list routes: %s", err)
 	}
 
-	var respRoutes []*pbRtr.Route
+  respRoutes := make([]*pbRtr.Route, 0, len(routes))
 	for _, route := range routes {
 		respRoute := &pbRtr.Route{
 			Service: route.Service,
