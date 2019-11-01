@@ -85,6 +85,7 @@ func newService(s *Service, c CreateOptions) *service {
 			Env:  c.Env,
 			Args: args,
 		},
+		closed: make(chan bool),
 		output: c.Output,
 	}
 }
