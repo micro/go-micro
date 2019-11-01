@@ -41,10 +41,11 @@ func NewRuntime(opts ...runtime.Option) runtime.Runtime {
 	client := client.NewClientInCluster()
 
 	return &kubernetes{
-		options: options,
-		closed:  make(chan bool),
-		start:   make(chan *runtime.Service, 128),
-		client:  client,
+		options:  options,
+		closed:   make(chan bool),
+		start:    make(chan *runtime.Service, 128),
+		services: make(map[string]*runtime.Service),
+		client:   client,
 	}
 }
 
