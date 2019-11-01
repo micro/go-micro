@@ -7,6 +7,7 @@ import (
 )
 
 var (
+	// ErrNotFound is returned when a Read key doesn't exist
 	ErrNotFound = errors.New("not found")
 )
 
@@ -14,11 +15,11 @@ var (
 type Store interface {
 	// List all the known records
 	List() ([]*Record, error)
-	// Read a record with key
+	// Read records with keys
 	Read(key ...string) ([]*Record, error)
-	// Write a record
+	// Write records
 	Write(rec ...*Record) error
-	// Delete a record with key
+	// Delete records with keys
 	Delete(key ...string) error
 }
 

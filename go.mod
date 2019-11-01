@@ -34,7 +34,9 @@ require (
 	github.com/jonboulle/clockwork v0.1.0 // indirect
 	github.com/joncalhoun/qson v0.0.0-20170526102502-8a9cab3a62b1
 	github.com/json-iterator/go v1.1.7
+	github.com/kr/pretty v0.1.0
 	github.com/leodido/go-urn v1.1.0 // indirect
+	github.com/lib/pq v1.2.0
 	github.com/lucas-clemente/quic-go v0.12.1
 	github.com/mholt/certmagic v0.7.5
 	github.com/micro/cli v0.2.0
