@@ -22,8 +22,8 @@ type runtime struct {
 	services map[string]*service
 }
 
-// NewLocalRuntime creates new local runtime and returns it
-func NewLocalRuntime(opts ...Option) Runtime {
+// NewRuntime creates new local runtime and returns it
+func NewRuntime(opts ...Option) Runtime {
 	// get default options
 	options := Options{}
 
@@ -94,19 +94,37 @@ func (r *runtime) run(events <-chan Event) {
 					log.Debugf("Runtime error parsing build time: %v", err)
 					continue
 				}
-				r.Lock()
-				for _, service := range r.services {
+				processEvent := func(event Event, service *Service) error {
 					muBuild, err := time.Parse(time.RFC3339, service.Version)
 					if err != nil {
-						log.Debugf("Runtime could not parse %s service build: %v", service.Name, err)
-						continue
+						return err
 					}
 					if buildTime.After(muBuild) {
-						if err := r.Update(service.Service); err != nil {
-							log.Debugf("Runtime error updating service %s: %v", service.Name, err)
-							continue
+						if err := r.Update(service); err != nil {
+							return err
 						}
 						service.Version = event.Version
+					}
+					return nil
+				}
+				r.Lock()
+				if len(event.Service) > 0 {
+					service, ok := r.services[event.Service]
+					if !ok {
+						log.Debugf("Runtime unknown service: %s", event.Service)
+						r.Unlock()
+						continue
+					}
+					if err := processEvent(event, service.Service); err != nil {
+						log.Debugf("Runtime error updating service %s: %v", event.Service, err)
+					}
+					r.Unlock()
+					continue
+				}
+				// if blank service was received we update all services
+				for _, service := range r.services {
+					if err := processEvent(event, service.Service); err != nil {
+						log.Debugf("Runtime error updating service %s: %v", event.Service, err)
 					}
 				}
 				r.Unlock()

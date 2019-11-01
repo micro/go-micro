@@ -47,6 +47,7 @@ import (
 
 	// runtimes
 	"github.com/micro/go-micro/runtime"
+	"github.com/micro/go-micro/runtime/kubernetes"
 )
 
 type Cmd interface {
@@ -231,8 +232,8 @@ var (
 	}
 
 	DefaultRuntimes = map[string]func(...runtime.Option) runtime.Runtime{
-		"local": runtime.NewLocalRuntime,
-		"k8s":   runtime.NewK8sRuntime,
+		"local":       runtime.NewRuntime,
+		"kubernetess": kubernetes.NewRuntime,
 	}
 
 	// used for default selection as the fall back

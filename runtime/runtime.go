@@ -5,7 +5,7 @@ import "time"
 
 var (
 	// DefaultRuntime is default micro runtime
-	DefaultRuntime Runtime = NewLocalRuntime()
+	DefaultRuntime Runtime = NewRuntime()
 )
 
 // Runtime is a service runtime manager

@@ -1,11 +1,12 @@
-// package kubernetes implements kubernetes micro runtime
-package runtime
+// Package kubernetes implements kubernetes micro runtime
+package kubernetes
 
 import (
 	"errors"
 	"sync"
 	"time"
 
+	"github.com/micro/go-micro/runtime"
 	"github.com/micro/go-micro/runtime/kubernetes/client"
 	"github.com/micro/go-micro/util/log"
 )
@@ -13,23 +14,23 @@ import (
 type kubernetes struct {
 	sync.RWMutex
 	// options configure runtime
-	options Options
+	options runtime.Options
 	// indicates if we're running
 	running bool
 	// used to start new services
-	start chan *Service
+	start chan *runtime.Service
 	// used to stop the runtime
 	closed chan bool
 	// service tracks deployed services
-	services map[string]*Service
+	services map[string]*runtime.Service
 	// client is kubernetes client
 	client client.Kubernetes
 }
 
-// NewK8sRuntime creates new kubernetes runtime
-func NewK8sRuntime(opts ...Option) Runtime {
+// NewRuntime creates new kubernetes runtime
+func NewRuntime(opts ...runtime.Option) runtime.Runtime {
 	// get default options
-	options := Options{}
+	options := runtime.Options{}
 
 	// apply requested options
 	for _, o := range opts {
@@ -42,13 +43,13 @@ func NewK8sRuntime(opts ...Option) Runtime {
 	return &kubernetes{
 		options: options,
 		closed:  make(chan bool),
-		start:   make(chan *Service, 128),
+		start:   make(chan *runtime.Service, 128),
 		client:  client,
 	}
 }
 
 // Init initializes runtime options
-func (k *kubernetes) Init(opts ...Option) error {
+func (k *kubernetes) Init(opts ...runtime.Option) error {
 	k.Lock()
 	defer k.Unlock()
 
@@ -60,7 +61,7 @@ func (k *kubernetes) Init(opts ...Option) error {
 }
 
 // Registers a service
-func (k *kubernetes) Create(s *Service, opts ...CreateOption) error {
+func (k *kubernetes) Create(s *runtime.Service, opts ...runtime.CreateOption) error {
 	k.Lock()
 	defer k.Unlock()
 
@@ -76,7 +77,7 @@ func (k *kubernetes) Create(s *Service, opts ...CreateOption) error {
 		return errors.New("service already registered")
 	}
 
-	var options CreateOptions
+	var options runtime.CreateOptions
 	for _, o := range opts {
 		o(&options)
 	}
@@ -90,7 +91,7 @@ func (k *kubernetes) Create(s *Service, opts ...CreateOption) error {
 }
 
 // Remove a service
-func (k *kubernetes) Delete(s *Service) error {
+func (k *kubernetes) Delete(s *runtime.Service) error {
 	k.Lock()
 	defer k.Unlock()
 
@@ -108,7 +109,7 @@ func (k *kubernetes) Delete(s *Service) error {
 }
 
 // Update the service in place
-func (k *kubernetes) Update(s *Service) error {
+func (k *kubernetes) Update(s *runtime.Service) error {
 	// metada which we will PATCH deployment with
 	metadata := &client.Metadata{
 		Annotations: map[string]string{
@@ -119,10 +120,10 @@ func (k *kubernetes) Update(s *Service) error {
 }
 
 // List the managed services
-func (k *kubernetes) List() ([]*Service, error) {
+func (k *kubernetes) List() ([]*runtime.Service, error) {
 	// TODO: this should list the k8s deployments
 	// but for now we return in-memory tracked services
-	var services []*Service
+	var services []*runtime.Service
 	k.RLock()
 	defer k.RUnlock()
 
@@ -134,7 +135,7 @@ func (k *kubernetes) List() ([]*Service, error) {
 }
 
 // run runs the runtime management loop
-func (k *kubernetes) run(events <-chan Event) {
+func (k *kubernetes) run(events <-chan runtime.Event) {
 	t := time.NewTicker(time.Second * 5)
 	defer t.Stop()
 
@@ -154,22 +155,20 @@ func (k *kubernetes) run(events <-chan Event) {
 			// NOTE: we only handle Update events for now
 			log.Debugf("Runtime received notification event: %v", event)
 			switch event.Type {
-			case Update:
+			case runtime.Update:
 				// parse returned response to timestamp
 				buildTime, err := time.Parse(time.RFC3339, event.Version)
 				if err != nil {
 					log.Debugf("Runtime error parsing build time: %v", err)
 					continue
 				}
-				k.Lock()
-				for _, service := range k.services {
+				processEvent := func(event runtime.Event, service *runtime.Service) error {
 					muBuild, err := time.Parse(time.RFC3339, service.Version)
 					if err != nil {
-						log.Debugf("Runtime could not parse %s service build: %v", service.Name, err)
-						continue
+						return err
 					}
 					if buildTime.After(muBuild) {
-						muService := &Service{
+						muService := &runtime.Service{
 							Name:    service.Name,
 							Source:  service.Source,
 							Path:    service.Path,
@@ -177,10 +176,30 @@ func (k *kubernetes) run(events <-chan Event) {
 							Version: event.Version,
 						}
 						if err := k.Update(muService); err != nil {
-							log.Debugf("Runtime error updating service %s: %v", service.Name, err)
-							continue
+							return err
 						}
 						service.Version = event.Version
+					}
+					return nil
+				}
+				k.Lock()
+				if len(event.Service) > 0 {
+					service, ok := k.services[event.Service]
+					if !ok {
+						log.Debugf("Runtime unknown service: %s", event.Service)
+						k.Unlock()
+						continue
+					}
+					if err := processEvent(event, service); err != nil {
+						log.Debugf("Runtime error updating service %s: %v", event.Service, err)
+					}
+					k.Unlock()
+					continue
+				}
+				// if blank service was received we update all services
+				for _, service := range k.services {
+					if err := processEvent(event, service); err != nil {
+						log.Debugf("Runtime error updating service %s: %v", event.Service, err)
 					}
 				}
 				k.Unlock()
@@ -206,7 +225,7 @@ func (k *kubernetes) Start() error {
 	k.running = true
 	k.closed = make(chan bool)
 
-	var events <-chan Event
+	var events <-chan runtime.Event
 	if k.options.Notifier != nil {
 		var err error
 		events, err = k.options.Notifier.Notify()
