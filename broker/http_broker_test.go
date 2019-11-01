@@ -125,7 +125,7 @@ func pub(be *testing.B, c int) {
 
 	for i := 0; i < c; i++ {
 		go func() {
-			for _ = range ch {
+			for range ch {
 				if err := b.Publish(topic, msg); err != nil {
 					be.Fatalf("Unexpected publish error: %v", err)
 				}

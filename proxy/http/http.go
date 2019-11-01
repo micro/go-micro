@@ -113,7 +113,7 @@ func (p *Proxy) ServeRequest(ctx context.Context, req server.Request, rsp server
 
 		// set response headers
 		hdr = map[string]string{}
-		for k, _ := range hrsp.Header {
+		for k := range hrsp.Header {
 			hdr[k] = hrsp.Header.Get(k)
 		}
 		// write the header

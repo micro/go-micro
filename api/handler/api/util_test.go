@@ -8,7 +8,7 @@ import (
 
 func TestRequestToProto(t *testing.T) {
 	testData := []*http.Request{
-		&http.Request{
+		{
 			Method: "GET",
 			Header: http.Header{
 				"Header": []string{"test"},

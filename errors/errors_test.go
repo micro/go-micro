@@ -7,7 +7,7 @@ import (
 
 func TestErrors(t *testing.T) {
 	testData := []*Error{
-		&Error{
+		{
 			Id:     "test",
 			Code:   500,
 			Detail: "Internal server error",
