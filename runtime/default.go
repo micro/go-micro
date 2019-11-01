@@ -22,7 +22,8 @@ type runtime struct {
 	services map[string]*service
 }
 
-func newRuntime(opts ...Option) *runtime {
+// NewLocalRuntime creates new local runtime and returns it
+func NewLocalRuntime(opts ...Option) Runtime {
 	// get default options
 	options := Options{}
 
@@ -37,6 +38,18 @@ func newRuntime(opts ...Option) *runtime {
 		start:    make(chan *service, 128),
 		services: make(map[string]*service),
 	}
+}
+
+// Init initializes runtime options
+func (r *runtime) Init(opts ...Option) error {
+	r.Lock()
+	defer r.Unlock()
+
+	for _, o := range opts {
+		o(&r.options)
+	}
+
+	return nil
 }
 
 // run runs the runtime management loop

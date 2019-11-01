@@ -27,7 +27,7 @@ type kubernetes struct {
 }
 
 // NewK8sRuntime creates new kubernetes runtime
-func NewK8sRuntime(opts ...Option) *kubernetes {
+func NewK8sRuntime(opts ...Option) Runtime {
 	// get default options
 	options := Options{}
 
@@ -45,6 +45,18 @@ func NewK8sRuntime(opts ...Option) *kubernetes {
 		start:   make(chan *Service, 128),
 		client:  client,
 	}
+}
+
+// Init initializes runtime options
+func (k *kubernetes) Init(opts ...Option) error {
+	k.Lock()
+	defer k.Unlock()
+
+	for _, o := range opts {
+		o(&k.options)
+	}
+
+	return nil
 }
 
 // Registers a service

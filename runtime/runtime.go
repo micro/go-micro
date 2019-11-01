@@ -5,11 +5,13 @@ import "time"
 
 var (
 	// DefaultRuntime is default micro runtime
-	DefaultRuntime = newRuntime()
+	DefaultRuntime Runtime = NewLocalRuntime()
 )
 
 // Runtime is a service runtime manager
 type Runtime interface {
+	// Init initializes runtime
+	Init(...Option) error
 	// Registers a service
 	Create(*Service, ...CreateOption) error
 	// Remove a service
