@@ -62,7 +62,7 @@ func TestStructArray(t *testing.T) {
 		{
 			[]byte(`[{"foo": "bar"}]`),
 			emptyTSlice,
-			[]T{T{Foo: "bar"}},
+			[]T{{Foo: "bar"}},
 		},
 	}
 

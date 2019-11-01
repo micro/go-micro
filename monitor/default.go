@@ -140,7 +140,7 @@ func (m *monitor) reap() {
 	defer m.Unlock()
 
 	// range over our watched services
-	for service, _ := range m.services {
+	for service := range m.services {
 		// check if the service exists in the registry
 		if !serviceMap[service] {
 			// if not, delete it in our status map
@@ -195,14 +195,14 @@ func (m *monitor) run() {
 			serviceMap := make(map[string]bool)
 
 			m.RLock()
-			for service, _ := range m.services {
+			for service := range m.services {
 				serviceMap[service] = true
 			}
 			m.RUnlock()
 
 			go func() {
 				// check the status of all watched services
-				for service, _ := range serviceMap {
+				for service := range serviceMap {
 					select {
 					case <-m.exit:
 						return
@@ -307,7 +307,7 @@ func (m *monitor) Stop() error {
 		return nil
 	default:
 		close(m.exit)
-		for s, _ := range m.services {
+		for s := range m.services {
 			delete(m.services, s)
 		}
 		m.registry.Stop()

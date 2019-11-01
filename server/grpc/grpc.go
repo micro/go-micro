@@ -621,7 +621,7 @@ func (g *grpcServer) Register() error {
 
 	g.registered = true
 
-	for sb, _ := range g.subscribers {
+	for sb := range g.subscribers {
 		handler := g.createSubHandler(sb, g.opts)
 		var opts []broker.SubscribeOption
 		if queue := sb.Options().Queue; len(queue) > 0 {

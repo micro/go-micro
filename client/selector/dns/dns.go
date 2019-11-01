@@ -72,7 +72,7 @@ func (d *dnsSelector) Select(service string, opts ...selector.SelectOption) (sel
 	}
 
 	services := []*registry.Service{
-		&registry.Service{
+		{
 			Name:  service,
 			Nodes: nodes,
 		},

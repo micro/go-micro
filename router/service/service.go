@@ -230,7 +230,7 @@ func (s *svc) Solicit() error {
 
 	// build events to advertise
 	events := make([]*router.Event, len(routes))
-	for i, _ := range events {
+	for i := range events {
 		events[i] = &router.Event{
 			Type:      router.Update,
 			Timestamp: time.Now(),

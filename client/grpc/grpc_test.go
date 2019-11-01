@@ -42,7 +42,7 @@ func TestGRPCClient(t *testing.T) {
 		Name:    "helloworld",
 		Version: "test",
 		Nodes: []*registry.Node{
-			&registry.Node{
+			{
 				Id:      "test-1",
 				Address: l.Addr().String(),
 			},

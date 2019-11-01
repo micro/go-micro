@@ -228,7 +228,7 @@ func (p *Proxy) refreshMetrics() {
 
 	// get a list of services to update
 	p.RLock()
-	for service, _ := range p.Routes {
+	for service := range p.Routes {
 		services = append(services, service)
 	}
 	p.RUnlock()

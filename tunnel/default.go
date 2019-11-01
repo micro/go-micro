@@ -590,7 +590,7 @@ func (t *tun) listen(link *link) {
 		}
 
 		// strip tunnel message header
-		for k, _ := range msg.Header {
+		for k := range msg.Header {
 			if strings.HasPrefix(k, "Micro-Tunnel") {
 				delete(msg.Header, k)
 			}
