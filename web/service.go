@@ -118,6 +118,11 @@ func (s *service) register() error {
 	if s.opts.Registry != nil {
 		r = s.opts.Registry
 	}
+
+	// service node need modify, node address maybe changed
+	srv := s.genSrv()
+	srv.Endpoints = s.srv.Endpoints
+	s.srv = srv
 	return r.Register(s.srv, registry.RegisterTTL(s.opts.RegisterTTL))
 }
 
