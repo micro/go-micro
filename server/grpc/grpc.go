@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net"
 	"reflect"
+	"runtime/debug"
 	"sort"
 	"strconv"
 	"strings"
@@ -340,7 +341,8 @@ func (g *grpcServer) processRequest(stream grpc.ServerStream, service *service, 
 		fn := func(ctx context.Context, req server.Request, rsp interface{}) error {
 			defer func() {
 				if r := recover(); r != nil {
-					log.Logf("handler %s panic recovered, err: %s", mtype.method.Name, r)
+					log.Log("panic recovered: ", r)
+					log.Logf(string(debug.Stack()))
 				}
 			}()
 			returnValues = function.Call([]reflect.Value{service.rcvr, mtype.prepareContext(ctx), reflect.ValueOf(argv.Interface()), reflect.ValueOf(rsp)})
