@@ -78,13 +78,6 @@ func (m *monitor) check(service string) (*Status, error) {
 				client.WithRetries(3),
 			)
 			if err != nil {
-				// reap the dead node
-				m.registry.Deregister(&registry.Service{
-					Name:    service.Name,
-					Version: service.Version,
-					Nodes:   []*registry.Node{node},
-				})
-
 				// save the error
 				gerr = err
 				continue
