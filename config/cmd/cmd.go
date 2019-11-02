@@ -44,6 +44,10 @@ import (
 	thttp "github.com/micro/go-micro/transport/http"
 	tmem "github.com/micro/go-micro/transport/memory"
 	"github.com/micro/go-micro/transport/quic"
+
+	// runtimes
+	"github.com/micro/go-micro/runtime"
+	"github.com/micro/go-micro/runtime/kubernetes"
 )
 
 type Cmd interface {
@@ -67,6 +71,12 @@ var (
 	DefaultCmd = newCmd()
 
 	DefaultFlags = []cli.Flag{
+		cli.StringFlag{
+			Name:   "runtime",
+			Usage:  "Micro runtime",
+			EnvVar: "MICRO_RUNTIME",
+			Value:  "local",
+		},
 		cli.StringFlag{
 			Name:   "client",
 			EnvVar: "MICRO_CLIENT",
@@ -221,6 +231,11 @@ var (
 		"quic":   quic.NewTransport,
 	}
 
+	DefaultRuntimes = map[string]func(...runtime.Option) runtime.Runtime{
+		"local":      runtime.NewRuntime,
+		"kubernetes": kubernetes.NewRuntime,
+	}
+
 	// used for default selection as the fall back
 	defaultClient    = "rpc"
 	defaultServer    = "rpc"
@@ -228,6 +243,7 @@ var (
 	defaultRegistry  = "mdns"
 	defaultSelector  = "registry"
 	defaultTransport = "http"
+	defaultRuntime   = "local"
 )
 
 func init() {
@@ -247,6 +263,7 @@ func newCmd(opts ...Option) Cmd {
 		Server:    &server.DefaultServer,
 		Selector:  &selector.DefaultSelector,
 		Transport: &transport.DefaultTransport,
+		Runtime:   &runtime.DefaultRuntime,
 
 		Brokers:    DefaultBrokers,
 		Clients:    DefaultClients,
@@ -254,6 +271,7 @@ func newCmd(opts ...Option) Cmd {
 		Selectors:  DefaultSelectors,
 		Servers:    DefaultServers,
 		Transports: DefaultTransports,
+		Runtimes:   DefaultRuntimes,
 	}
 
 	for _, o := range opts {
@@ -293,6 +311,16 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	// If flags are set then use them otherwise do nothing
 	var serverOpts []server.Option
 	var clientOpts []client.Option
+
+	// Set the runtime
+	if name := ctx.String("runtime"); len(name) > 0 {
+		r, ok := c.opts.Runtimes[name]
+		if !ok {
+			return fmt.Errorf("Unsupported runtime: %s", name)
+		}
+
+		*c.opts.Runtime = r()
+	}
 
 	// Set the client
 	if name := ctx.String("client"); len(name) > 0 {

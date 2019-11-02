@@ -1,8 +1,17 @@
 // Package runtime is a service runtime manager
 package runtime
 
+import "time"
+
+var (
+	// DefaultRuntime is default micro runtime
+	DefaultRuntime Runtime = NewRuntime()
+)
+
 // Runtime is a service runtime manager
 type Runtime interface {
+	// Init initializes runtime
+	Init(...Option) error
 	// Registers a service
 	Create(*Service, ...CreateOption) error
 	// Remove a service
@@ -17,41 +26,62 @@ type Runtime interface {
 	Stop() error
 }
 
+// Notifier is an update notifier
+type Notifier interface {
+	// Notify publishes notification events
+	Notify() (<-chan Event, error)
+	// Close stops the notifier
+	Close() error
+}
+
+// EventType defines notification event
+type EventType int
+
+const (
+	// Create is emitted when a new build has been craeted
+	Create EventType = iota
+	// Update is emitted when a new update become available
+	Update
+	// Delete is emitted when a build has been deleted
+	Delete
+)
+
+// String returns human readable event type
+func (t EventType) String() string {
+	switch t {
+	case Create:
+		return "create"
+	case Delete:
+		return "delete"
+	case Update:
+		return "update"
+	default:
+		return "unknown"
+	}
+}
+
+// Event is notification event
+type Event struct {
+	// Type is event type
+	Type EventType
+	// Timestamp is event timestamp
+	Timestamp time.Time
+	// Service is the name of the service
+	Service string
+	// Version of the build
+	Version string
+}
+
+// Service is runtime service
 type Service struct {
-	// name of the service
+	// Name of the service
 	Name string
 	// url location of source
 	Source string
-	// path to store source
+	// Path to store source
 	Path string
-	// exec command
+	// Exec command
 	Exec string
-}
-
-var (
-	DefaultRuntime = newRuntime()
-)
-
-func Create(s *Service, opts ...CreateOption) error {
-	return DefaultRuntime.Create(s, opts...)
-}
-
-func Delete(s *Service) error {
-	return DefaultRuntime.Delete(s)
-}
-
-func Update(s *Service) error {
-	return DefaultRuntime.Update(s)
-}
-
-func List() ([]*Service, error) {
-	return DefaultRuntime.List()
-}
-
-func Start() error {
-	return DefaultRuntime.Start()
-}
-
-func Stop() error {
-	return DefaultRuntime.Stop()
+	// Version of the service
+	Version string
 }
