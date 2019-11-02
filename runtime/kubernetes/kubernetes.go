@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -73,7 +74,8 @@ func (k *kubernetes) Create(s *runtime.Service, opts ...runtime.CreateOption) er
 	// * create deployment
 
 	// NOTE: our services have micro- prefix
-	s.Name = "micro-" + s.Name
+	muName := strings.Split(s.Name, ".")
+	s.Name = "micro-" + muName[len(muName)-1]
 
 	// NOTE: we are tracking this in memory for now
 	if _, ok := k.services[s.Name]; ok {
@@ -113,13 +115,24 @@ func (k *kubernetes) Delete(s *runtime.Service) error {
 
 // Update the service in place
 func (k *kubernetes) Update(s *runtime.Service) error {
+	type body struct {
+		Metadata *client.Metadata `json:"metadata"`
+	}
+	// parse version into human readable timestamp
+	updateTimeStamp, err := strconv.ParseInt(s.Version, 10, 64)
+	if err != nil {
+		return err
+	}
+	unixTimeUTC := time.Unix(updateTimeStamp, 0)
 	// metada which we will PATCH deployment with
-	metadata := &client.Metadata{
-		Annotations: map[string]string{
-			"build": s.Version,
+	reqBody := body{
+		Metadata: &client.Metadata{
+			Annotations: map[string]string{
+				"build": unixTimeUTC.Format(time.RFC3339),
+			},
 		},
 	}
-	return k.client.UpdateDeployment(s.Name, metadata)
+	return k.client.UpdateDeployment(s.Name, reqBody)
 }
 
 // List the managed services

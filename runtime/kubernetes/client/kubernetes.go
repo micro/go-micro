@@ -3,7 +3,7 @@ package client
 // Kubernetes client
 type Kubernetes interface {
 	// UpdateDeployment patches deployment annotations with new metadata
-	UpdateDeployment(string, *Metadata) error
+	UpdateDeployment(string, interface{}) error
 }
 
 // Metadata defines api request metadata

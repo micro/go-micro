@@ -91,11 +91,12 @@ func detectNamespace() (string, error) {
 }
 
 // UpdateDeployment
-func (c *client) UpdateDeployment(name string, b *Metadata) error {
-	return api.NewRequest(c.opts).Patch().
-		Resource("deployment").
+func (c *client) UpdateDeployment(name string, body interface{}) error {
+	return api.NewRequest(c.opts).
+		Patch().
+		Resource("deployments").
 		Name(name).
-		Body(b).
+		Body(body).
 		Do().
 		Error()
 }
