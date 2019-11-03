@@ -1,4 +1,4 @@
-// Package memoy provides a sync.Mutex implementation of the lock for local use
+// Package memory provides a sync.Mutex implementation of the lock for local use
 package memory
 
 import (
