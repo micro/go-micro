@@ -23,15 +23,13 @@ const (
 	// AdvertSuppress is advert suppression threshold
 	AdvertSuppress = 2000.0
 	// AdvertRecover is advert recovery threshold
-	AdvertRecover = 750.0
+	AdvertRecover = 1000.0
 	// DefaultAdvertTTL is default advertisement TTL
 	DefaultAdvertTTL = 1 * time.Minute
-	// DeletePenalty penalises route deletion
-	DeletePenalty = 1000.0
-	// UpdatePenalty penalises route updates
-	UpdatePenalty = 500.0
+	// Penalty for routes processed multiple times
+	Penalty = 2000.0
 	// PenaltyHalfLife is the time the advert penalty decays to half its value
-	PenaltyHalfLife = 2.0
+	PenaltyHalfLife = 2.5
 	// MaxSuppressTime defines time after which the suppressed advert is deleted
 	MaxSuppressTime = 5 * time.Minute
 )
@@ -385,15 +383,16 @@ func (r *router) advertiseEvents() error {
 				// decay the event penalty
 				delta := time.Since(advert.lastUpdate).Seconds()
 				advert.penalty = advert.penalty * math.Exp(-delta*PenaltyDecay)
-
+				service := advert.event.Route.Service
+				address := advert.event.Route.Address
 				// suppress/recover the event based on its penalty level
 				switch {
 				case advert.penalty > AdvertSuppress && !advert.isSuppressed:
-					log.Debugf("Router supressing advert %d for route %s", key, advert.event.Route.Address)
+					log.Debugf("Router suppressing advert %d %.2f for route %s %s", key, advert.penalty, service, address)
 					advert.isSuppressed = true
 					advert.suppressTime = time.Now()
 				case advert.penalty < AdvertRecover && advert.isSuppressed:
-					log.Debugf("Router recovering advert %d for route %s", key, advert.event.Route.Address)
+					log.Debugf("Router recovering advert %d %.2f for route %s %s", key, advert.penalty, service, address)
 					advert.isSuppressed = false
 				}
 
@@ -425,15 +424,11 @@ func (r *router) advertiseEvents() error {
 			if e == nil {
 				continue
 			}
-			log.Debugf("Router processing table event %s for service %s", e.Type, e.Route.Address)
+			log.Debugf("Router processing table event %s for service %s %s", e.Type, e.Route.Service, e.Route.Address)
+
 			// determine the event penalty
-			var penalty float64
-			switch e.Type {
-			case Update:
-				penalty = UpdatePenalty
-			case Delete:
-				penalty = DeletePenalty
-			}
+			// TODO: should there be any difference in penalty for different event types
+			penalty := Penalty
 
 			// check if we have already registered the route
 			hash := e.Route.Hash()
@@ -456,7 +451,7 @@ func (r *router) advertiseEvents() error {
 			// update event penalty and timestamp
 			advert.lastUpdate = time.Now()
 			advert.penalty += penalty
-			log.Debugf("Router advert %d for route %s event penalty: %f", hash, advert.event.Route.Address, advert.penalty)
+			log.Debugf("Router advert %d for route %s %s event penalty: %f", hash, advert.event.Route.Service, advert.event.Route.Address, advert.penalty)
 		case <-r.exit:
 			// first wait for the advertiser to finish
 			r.advertWg.Wait()
@@ -665,7 +660,7 @@ func (r *router) Process(a *Advert) error {
 		// create a copy of the route
 		route := event.Route
 		action := event.Type
-		log.Debugf("Router %s applying %s from router %s for address: %s", r.options.Id, action, route.Router, route.Address)
+		log.Debugf("Router %s applying %s from router %s for service %s %s", r.options.Id, action, route.Router, route.Service, route.Address)
 		if err := r.manageRoute(route, fmt.Sprintf("%s", action)); err != nil {
 			return fmt.Errorf("failed applying action %s to routing table: %s", action, err)
 		}
