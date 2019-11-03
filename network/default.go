@@ -309,7 +309,7 @@ func (n *network) acceptNetConn(l tunnel.Listener, recv chan *message) {
 func (n *network) updatePeerLinks(peerAddr string, linkId string) error {
 	n.Lock()
 	defer n.Unlock()
-	log.Debugf("Network looking up link %s in the peer links", linkId)
+	log.Tracef("Network looking up link %s in the peer links", linkId)
 	// lookup the peer link
 	var peerLink tunnel.Link
 	for _, link := range n.tunnel.Links() {
@@ -322,7 +322,7 @@ func (n *network) updatePeerLinks(peerAddr string, linkId string) error {
 		return ErrPeerLinkNotFound
 	}
 	// if the peerLink is found in the returned links update peerLinks
-	log.Debugf("Network updating peer links for peer %s", peerAddr)
+	log.Tracef("Network updating peer links for peer %s", peerAddr)
 	// add peerLink to the peerLinks map
 	if link, ok := n.peerLinks[peerAddr]; ok {
 		// if the existing has better Length then the new, replace it
@@ -369,7 +369,7 @@ func (n *network) processNetChan(listener tunnel.Listener) {
 					lastSeen: now,
 				}
 				// update peer links
-				log.Debugf("Network updating peer link %s for peer: %s", m.session.Link(), pbNetConnect.Node.Address)
+				log.Tracef("Network updating peer link %s for peer: %s", m.session.Link(), pbNetConnect.Node.Address)
 				if err := n.updatePeerLinks(pbNetConnect.Node.Address, m.session.Link()); err != nil {
 					log.Debugf("Network failed updating peer links: %s", err)
 				}
@@ -412,7 +412,7 @@ func (n *network) processNetChan(listener tunnel.Listener) {
 					lastSeen: now,
 				}
 				// update peer links
-				log.Debugf("Network updating peer link %s for peer: %s", m.session.Link(), pbNetPeer.Node.Address)
+				log.Tracef("Network updating peer link %s for peer: %s", m.session.Link(), pbNetPeer.Node.Address)
 				if err := n.updatePeerLinks(pbNetPeer.Node.Address, m.session.Link()); err != nil {
 					log.Debugf("Network failed updating peer links: %s", err)
 				}
@@ -439,7 +439,7 @@ func (n *network) processNetChan(listener tunnel.Listener) {
 
 				// NOTE: we don't unpack MaxDepth toplogy
 				peer = UnpackPeerTopology(pbNetPeer, now, MaxDepth-1)
-				log.Debugf("Network updating topology of node: %s", n.node.id)
+				log.Tracef("Network updating topology of node: %s", n.node.id)
 				if err := n.node.UpdatePeer(peer); err != nil {
 					log.Debugf("Network failed to update peers: %v", err)
 				}
@@ -701,16 +701,14 @@ func (n *network) getRouteMetric(router string, gateway string, link string) int
 	defer n.RUnlock()
 
 	if link == "local" && gateway == "" {
-		log.Debugf("Network link: %s, gateway: blank", link)
 		return 1
 	}
 
 	if link == "local" && gateway != "" {
-		log.Debugf("Network link: %s, gateway: %s", link, gateway)
 		return 2
 	}
 
-	log.Debugf("Network looking up %s link to gateway: %s", link, gateway)
+	log.Tracef("Network looking up %s link to gateway: %s", link, gateway)
 	if link, ok := n.peerLinks[gateway]; ok {
 		// maka sure delay is non-zero
 		delay := link.Delay()
@@ -725,7 +723,7 @@ func (n *network) getRouteMetric(router string, gateway string, link string) int
 			log.Debugf("Link length is 0 %v %v", link, link.Length())
 			length = 10e9
 		}
-		log.Debugf("Network calculated metric %v delay %v length %v distance %v", (delay*length*int64(hops))/10e6, delay, length, hops)
+		log.Tracef("Network calculated metric %v delay %v length %v distance %v", (delay*length*int64(hops))/10e6, delay, length, hops)
 		return (delay * length * int64(hops)) / 10e6
 	}
 
@@ -789,7 +787,7 @@ func (n *network) processCtrlChan(listener tunnel.Listener) {
 					// calculate route metric and add to the advertised metric
 					// we need to make sure we do not overflow math.MaxInt64
 					metric := n.getRouteMetric(event.Route.Router, event.Route.Gateway, event.Route.Link)
-					log.Debugf("Network metric for router %s and gateway %s: %v", event.Route.Router, event.Route.Gateway, metric)
+					log.Tracef("Network metric for router %s and gateway %s: %v", event.Route.Router, event.Route.Gateway, metric)
 
 					// check we don't overflow max int 64
 					if d := route.Metric + metric; d > math.MaxInt64 || d <= 0 {
@@ -810,7 +808,7 @@ func (n *network) processCtrlChan(listener tunnel.Listener) {
 				}
 				// if no events are eligible for processing continue
 				if len(events) == 0 {
-					log.Debugf("Network no events to be processed by router: %s", n.options.Id)
+					log.Tracef("Network no events to be processed by router: %s", n.options.Id)
 					continue
 				}
 				// create an advert and process it

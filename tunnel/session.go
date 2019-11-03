@@ -321,7 +321,7 @@ func (s *session) Send(m *transport.Message) error {
 		msg.link = ""
 	}
 
-	log.Debugf("Appending %+v to send backlog", msg)
+	log.Tracef("Appending %+v to send backlog", msg)
 	// send the actual message
 	s.send <- msg
 
@@ -352,7 +352,7 @@ func (s *session) Recv(m *transport.Message) error {
 	default:
 	}
 
-	log.Debugf("Received %+v from recv backlog", msg)
+	log.Tracef("Received %+v from recv backlog", msg)
 	// set message
 	*m = *msg.data
 	// return nil
