@@ -23,7 +23,7 @@ const (
 	// AdvertSuppress is advert suppression threshold
 	AdvertSuppress = 2000.0
 	// AdvertRecover is advert recovery threshold
-	AdvertRecover = 500.0
+	AdvertRecover = 1000.0
 	// DefaultAdvertTTL is default advertisement TTL
 	DefaultAdvertTTL = 1 * time.Minute
 	// Penalty for routes processed multiple times
