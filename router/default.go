@@ -29,7 +29,7 @@ const (
 	// Penalty for routes processed multiple times
 	Penalty = 100.0
 	// PenaltyHalfLife is the time the advert penalty decays to half its value
-	PenaltyHalfLife = 30
+	PenaltyHalfLife = 30.0
 	// MaxSuppressTime defines time after which the suppressed advert is deleted
 	MaxSuppressTime = 5 * time.Minute
 )
