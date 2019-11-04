@@ -21,15 +21,15 @@ const (
 	// AdvertiseFlushTick is time the yet unconsumed advertisements are flush i.e. discarded
 	AdvertiseFlushTick = 15 * time.Second
 	// AdvertSuppress is advert suppression threshold
-	AdvertSuppress = 2000.0
+	AdvertSuppress = 200.0
 	// AdvertRecover is advert recovery threshold
-	AdvertRecover = 500.0
+	AdvertRecover = 120.0
 	// DefaultAdvertTTL is default advertisement TTL
 	DefaultAdvertTTL = 1 * time.Minute
 	// Penalty for routes processed multiple times
-	Penalty = 2000.0
+	Penalty = 100.0
 	// PenaltyHalfLife is the time the advert penalty decays to half its value
-	PenaltyHalfLife = 2.5
+	PenaltyHalfLife = 30.0
 	// MaxSuppressTime defines time after which the suppressed advert is deleted
 	MaxSuppressTime = 5 * time.Minute
 )
@@ -396,21 +396,24 @@ func (r *router) advertiseEvents() error {
 					advert.isSuppressed = false
 				}
 
-				// max suppression time threshold has been reached, delete the advert
 				if advert.isSuppressed {
+					// max suppression time threshold has been reached, delete the advert
 					if time.Since(advert.suppressTime) > MaxSuppressTime {
 						delete(advertMap, key)
 						continue
 					}
+					// process next advert
+					continue
 				}
 
-				if !advert.isSuppressed {
-					e := new(Event)
-					*e = *(advert.event)
-					events = append(events, e)
-					// delete the advert from the advertMap
-					delete(advertMap, key)
-				}
+				// copy the event and append
+				e := new(Event)
+				// this is ok, because router.Event only contains builtin types
+				// and no references so this creates a deep struct copy of Event
+				*e = *(advert.event)
+				events = append(events, e)
+				// delete the advert from the advertMap
+				delete(advertMap, key)
 			}
 
 			// advertise all Update events to subscribers
