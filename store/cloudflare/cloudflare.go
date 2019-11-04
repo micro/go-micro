@@ -123,7 +123,7 @@ func (w *workersKV) List() ([]*store.Record, error) {
 		return nil, errors.New(messages)
 	}
 
-  keys := make([]string, 0, len(a.Result))
+	keys := make([]string, 0, len(a.Result))
 
 	for _, r := range a.Result {
 		keys = append(keys, r.Name)
