@@ -89,7 +89,7 @@ func (s *serviceRegistry) GetService(name string) ([]*registry.Service, error) {
 		return nil, err
 	}
 
-	var services []*registry.Service
+	services := make([]*registry.Service, 0, len(rsp.Services))
 	for _, service := range rsp.Services {
 		services = append(services, ToService(service))
 	}
@@ -102,7 +102,7 @@ func (s *serviceRegistry) ListServices() ([]*registry.Service, error) {
 		return nil, err
 	}
 
-	var services []*registry.Service
+	services := make([]*registry.Service, 0, len(rsp.Services))
 	for _, service := range rsp.Services {
 		services = append(services, ToService(service))
 	}

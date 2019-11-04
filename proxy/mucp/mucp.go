@@ -95,7 +95,7 @@ func toNodes(routes []router.Route) []string {
 }
 
 func toSlice(r map[uint64]router.Route) []router.Route {
-	var routes []router.Route
+	routes := make([]router.Route, 0, len(r))
 	for _, v := range r {
 		routes = append(routes, v)
 	}
@@ -224,7 +224,7 @@ func (p *Proxy) cacheRoutes(service string) ([]router.Route, error) {
 // refreshMetrics will refresh any metrics for our local cached routes.
 // we may not receive new watch events for these as they change.
 func (p *Proxy) refreshMetrics() {
-	var services []string
+	services := make([]string, 0, len(p.Routes))
 
 	// get a list of services to update
 	p.RLock()
