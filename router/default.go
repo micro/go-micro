@@ -21,7 +21,7 @@ const (
 	// AdvertiseFlushTick is time the yet unconsumed advertisements are flush i.e. discarded
 	AdvertiseFlushTick = 15 * time.Second
 	// AdvertSuppress is advert suppression threshold
-	AdvertSuppress = 250.0
+	AdvertSuppress = 200.0
 	// AdvertRecover is advert recovery threshold
 	AdvertRecover = 120.0
 	// DefaultAdvertTTL is default advertisement TTL
