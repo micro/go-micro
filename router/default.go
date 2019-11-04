@@ -335,8 +335,8 @@ func (r *router) advertiseTable() error {
 	}
 }
 
-// routeAdvert contains a route event to be advertised
-type routeAdvert struct {
+// advert contains a route event to be advertised
+type advert struct {
 	// event received from routing table
 	event *Event
 	// lastUpdate records the time of the last advert update
@@ -349,6 +349,50 @@ type routeAdvert struct {
 	suppressTime time.Time
 }
 
+// adverts maintains a map of router adverts
+type adverts map[uint64]*advert
+
+// process processes route advert
+// It updates the adverts timestamp, increments its penalty score and
+// marks the advert as supressed or recovered if it breaches router thresholds
+func (m adverts) process(a *advert) error {
+	// lookup advert in adverts
+	hash := a.event.Route.Hash()
+	a, ok := m[hash]
+	if !ok {
+		return fmt.Errorf("advert not found")
+	}
+
+	// decay the event penalty
+	delta := time.Since(a.lastUpdate).Seconds()
+	// decay advert penalty
+	a.penalty = a.penalty * math.Exp(-delta*PenaltyDecay)
+	service := a.event.Route.Service
+	address := a.event.Route.Address
+
+	// suppress/recover the event based on its penalty level
+	switch {
+	case a.penalty > AdvertSuppress && !a.isSuppressed:
+		log.Debugf("Router suppressing advert %d %.2f for route %s %s", hash, a.penalty, service, address)
+		a.isSuppressed = true
+		a.suppressTime = time.Now()
+	case a.penalty < AdvertRecover && a.isSuppressed:
+		log.Debugf("Router recovering advert %d %.2f for route %s %s", hash, a.penalty, service, address)
+		a.isSuppressed = false
+	}
+
+	// if suppressed, checked how long has it been suppressed for
+	if a.isSuppressed {
+		// max suppression time threshold has been reached, delete the advert
+		if time.Since(a.suppressTime) > MaxSuppressTime {
+			delete(m, hash)
+			return nil
+		}
+	}
+
+	return nil
+}
+
 // advertiseEvents advertises routing table events
 // It suppresses unhealthy flapping events and advertises healthy events upstream.
 func (r *router) advertiseEvents() error {
@@ -357,7 +401,7 @@ func (r *router) advertiseEvents() error {
 	defer ticker.Stop()
 
 	// advertMap is a map of advert events
-	advertMap := make(map[uint64]*routeAdvert)
+	adverts := make(adverts)
 
 	// routing table watcher
 	tableWatcher, err := r.Watch()
@@ -379,30 +423,14 @@ func (r *router) advertiseEvents() error {
 		case <-ticker.C:
 			var events []*Event
 			// collect all events which are not flapping
-			for key, advert := range advertMap {
-				// decay the event penalty
-				delta := time.Since(advert.lastUpdate).Seconds()
-				advert.penalty = advert.penalty * math.Exp(-delta*PenaltyDecay)
-				service := advert.event.Route.Service
-				address := advert.event.Route.Address
-				// suppress/recover the event based on its penalty level
-				switch {
-				case advert.penalty > AdvertSuppress && !advert.isSuppressed:
-					log.Debugf("Router suppressing advert %d %.2f for route %s %s", key, advert.penalty, service, address)
-					advert.isSuppressed = true
-					advert.suppressTime = time.Now()
-				case advert.penalty < AdvertRecover && advert.isSuppressed:
-					log.Debugf("Router recovering advert %d %.2f for route %s %s", key, advert.penalty, service, address)
-					advert.isSuppressed = false
+			for key, advert := range adverts {
+				// process the advert
+				if err := adverts.process(advert); err != nil {
+					log.Debugf("Router failed processing advert %d: %v", key, err)
+					continue
 				}
-
+				// if suppressed, checked how long has it been suppressed for
 				if advert.isSuppressed {
-					// max suppression time threshold has been reached, delete the advert
-					if time.Since(advert.suppressTime) > MaxSuppressTime {
-						delete(advertMap, key)
-						continue
-					}
-					// process next advert
 					continue
 				}
 
@@ -413,7 +441,7 @@ func (r *router) advertiseEvents() error {
 				*e = *(advert.event)
 				events = append(events, e)
 				// delete the advert from the advertMap
-				delete(advertMap, key)
+				delete(adverts, key)
 			}
 
 			// advertise all Update events to subscribers
@@ -427,34 +455,36 @@ func (r *router) advertiseEvents() error {
 			if e == nil {
 				continue
 			}
-			log.Debugf("Router processing table event %s for service %s %s", e.Type, e.Route.Service, e.Route.Address)
 
-			// determine the event penalty
-			// TODO: should there be any difference in penalty for different event types
-			penalty := Penalty
+			log.Debugf("Router processing table event %s for service %s %s", e.Type, e.Route.Service, e.Route.Address)
 
 			// check if we have already registered the route
 			hash := e.Route.Hash()
-			advert, ok := advertMap[hash]
+			a, ok := adverts[e.Route.Hash()]
 			if !ok {
-				advert = &routeAdvert{
+				a = &advert{
 					event:      e,
-					penalty:    penalty,
+					penalty:    Penalty,
 					lastUpdate: time.Now(),
 				}
-				advertMap[hash] = advert
+				adverts[hash] = a
 				continue
 			}
 
-			// override the route event only if the last event was different
-			if advert.event.Type != e.Type {
-				advert.event = e
+			// override the route event only if the previous event was different
+			if a.event.Type != e.Type {
+				a.event = e
+			}
+
+			// process the advert
+			if err := adverts.process(a); err != nil {
+				log.Debugf("Router error processing advert  %d: %v", hash, err)
 			}
 
 			// update event penalty and timestamp
-			advert.lastUpdate = time.Now()
-			advert.penalty += penalty
-			log.Debugf("Router advert %d for route %s %s event penalty: %f", hash, advert.event.Route.Service, advert.event.Route.Address, advert.penalty)
+			a.lastUpdate = time.Now()
+			a.penalty += Penalty
+			log.Debugf("Router advert %d for route %s %s event penalty: %f", hash, a.event.Route.Service, a.event.Route.Address, a.penalty)
 		case <-r.exit:
 			// first wait for the advertiser to finish
 			r.advertWg.Wait()
