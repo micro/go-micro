@@ -20,12 +20,12 @@ const (
 	AdvertiseTableTick = 1 * time.Minute
 	// AdvertiseFlushTick is time the yet unconsumed advertisements are flush i.e. discarded
 	AdvertiseFlushTick = 15 * time.Second
+	// DefaultAdvertTTL is default advertisement TTL
+	DefaultAdvertTTL = 1 * time.Minute
 	// AdvertSuppress is advert suppression threshold
 	AdvertSuppress = 200.0
 	// AdvertRecover is advert recovery threshold
 	AdvertRecover = 120.0
-	// DefaultAdvertTTL is default advertisement TTL
-	DefaultAdvertTTL = 1 * time.Minute
 	// Penalty for routes processed multiple times
 	Penalty = 100.0
 	// PenaltyHalfLife is the time the advert penalty decays to half its value
@@ -352,9 +352,9 @@ type advert struct {
 // adverts maintains a map of router adverts
 type adverts map[uint64]*advert
 
-// process processes route advert
-// It updates the adverts timestamp, increments its penalty score and
-// marks the advert as supressed or recovered if it breaches router thresholds
+// process processes advert
+// It updates advert timestamp, increments its penalty and
+// marks upresses or recovers it if it reaches configured thresholds
 func (m adverts) process(a *advert) error {
 	// lookup advert in adverts
 	hash := a.event.Route.Hash()
@@ -400,7 +400,7 @@ func (r *router) advertiseEvents() error {
 	ticker := time.NewTicker(AdvertiseEventsTick)
 	defer ticker.Stop()
 
-	// advertMap is a map of advert events
+	// adverts is a map of advert events
 	adverts := make(adverts)
 
 	// routing table watcher
@@ -429,7 +429,7 @@ func (r *router) advertiseEvents() error {
 					log.Debugf("Router failed processing advert %d: %v", key, err)
 					continue
 				}
-				// if suppressed, checked how long has it been suppressed for
+				// if suppressed go to the next advert
 				if advert.isSuppressed {
 					continue
 				}
@@ -437,14 +437,14 @@ func (r *router) advertiseEvents() error {
 				// copy the event and append
 				e := new(Event)
 				// this is ok, because router.Event only contains builtin types
-				// and no references so this creates a deep struct copy of Event
+				// and no references so this creates a deep copy of struct Event
 				*e = *(advert.event)
 				events = append(events, e)
-				// delete the advert from the advertMap
+				// delete the advert from adverts
 				delete(adverts, key)
 			}
 
-			// advertise all Update events to subscribers
+			// advertise events to subscribers
 			if len(events) > 0 {
 				r.advertWg.Add(1)
 				log.Debugf("Router publishing %d events", len(events))
@@ -460,7 +460,7 @@ func (r *router) advertiseEvents() error {
 
 			// check if we have already registered the route
 			hash := e.Route.Hash()
-			a, ok := adverts[e.Route.Hash()]
+			a, ok := adverts[hash]
 			if !ok {
 				a = &advert{
 					event:      e,
@@ -479,6 +479,7 @@ func (r *router) advertiseEvents() error {
 			// process the advert
 			if err := adverts.process(a); err != nil {
 				log.Debugf("Router error processing advert  %d: %v", hash, err)
+				continue
 			}
 
 			// update event penalty and timestamp
