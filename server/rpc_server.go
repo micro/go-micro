@@ -490,7 +490,7 @@ func (s *rpcServer) Register() error {
 		return subscriberList[i].topic > subscriberList[j].topic
 	})
 
-	var endpoints []*registry.Endpoint
+	endpoints := make([]*registry.Endpoint, 0, len(handlerList)+len(subscriberList))
 	for _, n := range handlerList {
 		endpoints = append(endpoints, s.handlers[n].Endpoints()...)
 	}

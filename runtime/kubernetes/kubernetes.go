@@ -139,7 +139,7 @@ func (k *kubernetes) Update(s *runtime.Service) error {
 func (k *kubernetes) List() ([]*runtime.Service, error) {
 	// TODO: this should list the k8s deployments
 	// but for now we return in-memory tracked services
-	var services []*runtime.Service
+	services := make([]*runtime.Service, 0, len(k.services))
 	k.RLock()
 	defer k.RUnlock()
 

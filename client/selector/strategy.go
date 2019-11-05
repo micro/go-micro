@@ -14,7 +14,7 @@ func init() {
 
 // Random is a random strategy algorithm for node selection
 func Random(services []*registry.Service) Next {
-	var nodes []*registry.Node
+	nodes := make([]*registry.Node, 0, len(services))
 
 	for _, service := range services {
 		nodes = append(nodes, service.Nodes...)
