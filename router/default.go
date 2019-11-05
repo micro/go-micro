@@ -13,7 +13,7 @@ import (
 	"github.com/micro/go-micro/util/log"
 )
 
-const (
+var (
 	// AdvertiseEventsTick is time interval in which the router advertises route updates
 	AdvertiseEventsTick = 5 * time.Second
 	// AdvertiseTableTick is time interval in which router advertises all routes found in routing table
@@ -32,9 +32,6 @@ const (
 	PenaltyHalfLife = 30.0
 	// MaxSuppressTime defines time after which the suppressed advert is deleted
 	MaxSuppressTime = 5 * time.Minute
-)
-
-var (
 	// PenaltyDecay is a coefficient which controls the speed the advert penalty decays
 	PenaltyDecay = math.Log(2) / PenaltyHalfLife
 )
@@ -52,6 +49,7 @@ type router struct {
 	wg        *sync.WaitGroup
 
 	// advert subscribers
+	sub         sync.RWMutex
 	subscribers map[string]chan *Advert
 }
 
@@ -189,7 +187,6 @@ func (r *router) watchRegistry(w registry.Watcher) error {
 	defer func() {
 		// close the exit channel when the go routine finishes
 		close(exit)
-		r.wg.Done()
 	}()
 
 	// wait in the background for the router to stop
@@ -197,6 +194,7 @@ func (r *router) watchRegistry(w registry.Watcher) error {
 	r.wg.Add(1)
 	go func() {
 		defer w.Stop()
+		defer r.wg.Done()
 
 		select {
 		case <-r.exit:
@@ -233,7 +231,6 @@ func (r *router) watchTable(w Watcher) error {
 	defer func() {
 		// close the exit channel when the go routine finishes
 		close(exit)
-		r.wg.Done()
 	}()
 
 	// wait in the background for the router to stop
@@ -241,6 +238,7 @@ func (r *router) watchTable(w Watcher) error {
 	r.wg.Add(1)
 	go func() {
 		defer w.Stop()
+		defer r.wg.Done()
 
 		select {
 		case <-r.exit:
@@ -276,10 +274,7 @@ func (r *router) watchTable(w Watcher) error {
 }
 
 // publishAdvert publishes router advert to advert channel
-// NOTE: this might cease to be a dedicated method in the future
 func (r *router) publishAdvert(advType AdvertType, events []*Event) {
-	defer r.advertWg.Done()
-
 	a := &Advert{
 		Id:        r.options.Id,
 		Type:      advType,
@@ -288,24 +283,17 @@ func (r *router) publishAdvert(advType AdvertType, events []*Event) {
 		Events:    events,
 	}
 
-	log.Debugf("Router publishing advert; %+v", a)
-	r.RLock()
+	r.sub.RLock()
 	for _, sub := range r.subscribers {
-		// check the exit chan first
-		select {
-		case <-r.exit:
-			r.RUnlock()
-			return
-		default:
-		}
-
 		// now send the message
 		select {
 		case sub <- a:
-		default:
+		case <-r.exit:
+			r.sub.RUnlock()
+			return
 		}
 	}
-	r.RUnlock()
+	r.sub.RUnlock()
 }
 
 // advertiseTable advertises the whole routing table to the network
@@ -327,7 +315,10 @@ func (r *router) advertiseTable() error {
 			if len(events) > 0 {
 				log.Debugf("Router flushing table with %d events: %s", len(events), r.options.Id)
 				r.advertWg.Add(1)
-				go r.publishAdvert(RouteUpdate, events)
+				go func() {
+					defer r.advertWg.Done()
+					r.publishAdvert(RouteUpdate, events)
+				}()
 			}
 		case <-r.exit:
 			return nil
@@ -447,9 +438,12 @@ func (r *router) advertiseEvents() error {
 
 			// advertise events to subscribers
 			if len(events) > 0 {
-				r.advertWg.Add(1)
 				log.Debugf("Router publishing %d events", len(events))
-				go r.publishAdvert(RouteUpdate, events)
+				r.advertWg.Add(1)
+				go func() {
+					defer r.advertWg.Done()
+					r.publishAdvert(RouteUpdate, events)
+				}()
 			}
 		case e := <-r.eventChan:
 			// if event is nil, continue
@@ -508,6 +502,7 @@ func (r *router) close() {
 		for range r.eventChan {
 		}
 
+		r.sub.RLock()
 		// close advert subscribers
 		for id, sub := range r.subscribers {
 			// close the channel
@@ -516,6 +511,7 @@ func (r *router) close() {
 			// delete the subscriber
 			delete(r.subscribers, id)
 		}
+		r.sub.RUnlock()
 	}
 
 	// mark the router as Stopped and set its Error to nil
@@ -637,9 +633,16 @@ func (r *router) Advertise() (<-chan *Advert, error) {
 		// create event channels
 		r.eventChan = make(chan *Event)
 
+		// create advert channel
+		advertChan := make(chan *Advert, 128)
+		r.subscribers[uuid.New().String()] = advertChan
+
 		// advertise your presence
 		r.advertWg.Add(1)
-		go r.publishAdvert(Announce, events)
+		go func() {
+			defer r.advertWg.Done()
+			r.publishAdvert(Announce, events)
+		}()
 
 		r.wg.Add(1)
 		go func() {
@@ -663,10 +666,7 @@ func (r *router) Advertise() (<-chan *Advert, error) {
 		// mark router as Running and set its Error to nil
 		r.status = Status{Code: Advertising, Error: nil}
 
-		// create advert channel
-		advertChan := make(chan *Advert, 128)
-		r.subscribers[uuid.New().String()] = advertChan
-
+		log.Debugf("Router starting to advertise")
 		return advertChan, nil
 	case Stopped:
 		return nil, fmt.Errorf("not running")
@@ -781,7 +781,10 @@ func (r *router) Solicit() error {
 
 	// advertise the routes
 	r.advertWg.Add(1)
-	go r.publishAdvert(RouteUpdate, events)
+	go func() {
+		defer r.advertWg.Done()
+		r.publishAdvert(RouteUpdate, events)
+	}()
 
 	return nil
 }
@@ -810,18 +813,26 @@ func (r *router) Status() Status {
 // Stop stops the router
 func (r *router) Stop() error {
 	r.Lock()
-	defer r.Unlock()
+
+	log.Debugf("Router shutting down")
 
 	switch r.status.Code {
 	case Stopped, Error:
+		r.Unlock()
 		return r.status.Error
 	case Running, Advertising:
 		// close all the channels
+		// NOTE: close marks the router status as Stopped
 		r.close()
 	}
+	r.Unlock()
+
+	log.Debugf("Router waiting for all goroutines to finish")
 
 	// wait for all goroutines to finish
 	r.wg.Wait()
+
+	log.Debugf("Router successfully stopped")
 
 	return nil
 }
