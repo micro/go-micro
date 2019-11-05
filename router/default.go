@@ -339,8 +339,8 @@ func (r *router) advertiseTable() error {
 type advert struct {
 	// event received from routing table
 	event *Event
-	// lastUpdate records the time of the last advert update
-	lastUpdate time.Time
+	// lastSeen records the time of the last advert update
+	lastSeen time.Time
 	// penalty is current advert penalty
 	penalty float64
 	// isSuppressed flags the advert suppression
@@ -364,7 +364,8 @@ func (m adverts) process(a *advert) error {
 	}
 
 	// decay the event penalty
-	delta := time.Since(a.lastUpdate).Seconds()
+	delta := time.Since(a.lastSeen).Seconds()
+
 	// decay advert penalty
 	a.penalty = a.penalty * math.Exp(-delta*PenaltyDecay)
 	service := a.event.Route.Service
@@ -455,6 +456,7 @@ func (r *router) advertiseEvents() error {
 			if e == nil {
 				continue
 			}
+			now := time.Now()
 
 			log.Debugf("Router processing table event %s for service %s %s", e.Type, e.Route.Service, e.Route.Address)
 
@@ -463,9 +465,9 @@ func (r *router) advertiseEvents() error {
 			a, ok := adverts[hash]
 			if !ok {
 				a = &advert{
-					event:      e,
-					penalty:    Penalty,
-					lastUpdate: time.Now(),
+					event:    e,
+					penalty:  Penalty,
+					lastSeen: now,
 				}
 				adverts[hash] = a
 				continue
@@ -483,7 +485,8 @@ func (r *router) advertiseEvents() error {
 			}
 
 			// update event penalty and timestamp
-			a.lastUpdate = time.Now()
+			a.lastSeen = now
+			// increment the penalty
 			a.penalty += Penalty
 			log.Debugf("Router advert %d for route %s %s event penalty: %f", hash, a.event.Route.Service, a.event.Route.Address, a.penalty)
 		case <-r.exit:
