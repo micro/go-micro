@@ -194,7 +194,7 @@ func (t *table) Query(q ...QueryOption) ([]Route, error) {
 		return findRoutes(t.routes[opts.Service], opts.Address, opts.Gateway, opts.Network, opts.Router), nil
 	}
 
-	var results []Route
+	results := make([]Route, 0, len(t.routes))
 	// search through all destinations
 	for _, routes := range t.routes {
 		results = append(results, findRoutes(routes, opts.Address, opts.Gateway, opts.Network, opts.Router)...)

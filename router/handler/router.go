@@ -22,7 +22,7 @@ func (r *Router) Lookup(ctx context.Context, req *pb.LookupRequest, resp *pb.Loo
 		return errors.InternalServerError("go.micro.router", "failed to lookup routes: %v", err)
 	}
 
-	var respRoutes []*pb.Route
+	respRoutes := make([]*pb.Route, 0, len(routes))
 	for _, route := range routes {
 		respRoute := &pb.Route{
 			Service: route.Service,

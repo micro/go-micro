@@ -282,7 +282,7 @@ func (n *node) Peers() []Node {
 	n.RLock()
 	defer n.RUnlock()
 
-	var peers []Node
+	peers := make([]Node, 0, len(n.peers))
 	for _, nodePeer := range n.peers {
 		peer := nodePeer.getTopology(MaxDepth)
 		peers = append(peers, peer)
