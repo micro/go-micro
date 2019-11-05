@@ -7,6 +7,7 @@ func testSetup() (*table, Route) {
 
 	route := Route{
 		Service: "dest.svc",
+		Address: "dest.addr",
 		Gateway: "dest.gw",
 		Network: "dest.network",
 		Router:  "src.router",
