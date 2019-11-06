@@ -72,12 +72,6 @@ var (
 
 	DefaultFlags = []cli.Flag{
 		cli.StringFlag{
-			Name:   "runtime",
-			Usage:  "Micro runtime",
-			EnvVar: "MICRO_RUNTIME",
-			Value:  "local",
-		},
-		cli.StringFlag{
 			Name:   "client",
 			EnvVar: "MICRO_CLIENT",
 			Usage:  "Client for go-micro; rpc",
@@ -162,6 +156,11 @@ var (
 			Usage:  "Comma-separated list of broker addresses",
 		},
 		cli.StringFlag{
+			Name:   "profile",
+			Usage:  "Debug profiler for cpu and memory stats",
+			EnvVar: "MICRO_DEBUG_PROFILE",
+		},
+		cli.StringFlag{
 			Name:   "registry",
 			EnvVar: "MICRO_REGISTRY",
 			Usage:  "Registry for discovery. etcd, mdns",
@@ -170,6 +169,12 @@ var (
 			Name:   "registry_address",
 			EnvVar: "MICRO_REGISTRY_ADDRESS",
 			Usage:  "Comma-separated list of registry addresses",
+		},
+		cli.StringFlag{
+			Name:   "runtime",
+			Usage:  "Runtime for building and running services e.g local, kubernetes",
+			EnvVar: "MICRO_RUNTIME",
+			Value:  "local",
 		},
 		cli.StringFlag{
 			Name:   "selector",
