@@ -39,6 +39,8 @@ type cache struct {
 	// used to stop the cache
 	exit chan bool
 
+	// indicate whether its running
+	running bool
 	// status of the registry
 	// used to hold onto the cache
 	// in failure state
@@ -157,12 +159,25 @@ func (c *cache) get(service string) ([]*registry.Service, error) {
 	}
 
 	// watch service if not watched
-	if _, ok := c.watched[service]; !ok {
-		go c.run(service)
-	}
+	_, ok := c.watched[service]
 
 	// unlock the read lock
 	c.RUnlock()
+
+	// check if its being watched
+	if !ok {
+		c.Lock()
+
+		// set to watched
+		c.watched[service] = true
+
+		// only kick it off if not running
+		if !c.running {
+			go c.run()
+		}
+
+		c.Unlock()
+	}
 
 	// get and return services
 	return get(service, cp)
@@ -180,6 +195,11 @@ func (c *cache) update(res *registry.Result) {
 
 	c.Lock()
 	defer c.Unlock()
+
+	// only save watched services
+	if _, ok := c.watched[res.Service.Name]; !ok {
+		return
+	}
 
 	services, ok := c.cache[res.Service.Name]
 	if !ok {
@@ -283,16 +303,16 @@ func (c *cache) update(res *registry.Result) {
 
 // run starts the cache watcher loop
 // it creates a new watcher if there's a problem
-func (c *cache) run(service string) {
-	// set watcher
+func (c *cache) run() {
 	c.Lock()
-	c.watched[service] = true
+	c.running = true
 	c.Unlock()
 
-	// delete watcher on exit
+	// reset watcher on exit
 	defer func() {
 		c.Lock()
-		delete(c.watched, service)
+		c.watched = make(map[string]bool)
+		c.running = false
 		c.Unlock()
 	}()
 
@@ -309,10 +329,7 @@ func (c *cache) run(service string) {
 		time.Sleep(time.Duration(j) * time.Millisecond)
 
 		// create new watcher
-		w, err := c.Registry.Watch(
-			registry.WatchService(service),
-		)
-
+		w, err := c.Registry.Watch()
 		if err != nil {
 			if c.quit() {
 				return
@@ -414,6 +431,9 @@ func (c *cache) GetService(service string) ([]*registry.Service, error) {
 }
 
 func (c *cache) Stop() {
+	c.Lock()
+	defer c.Unlock()
+
 	select {
 	case <-c.exit:
 		return
