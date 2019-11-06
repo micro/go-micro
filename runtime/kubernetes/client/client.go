@@ -100,3 +100,8 @@ func (c *client) UpdateDeployment(name string, body interface{}) error {
 		Do().
 		Error()
 }
+
+// ListDeployments
+func (c *client) ListDeployments() (*DeploymentList, error) {
+	return nil, nil
+}
