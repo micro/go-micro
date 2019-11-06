@@ -5,11 +5,13 @@ type Kubernetes interface {
 	// UpdateDeployment patches deployment annotations with new metadata
 	UpdateDeployment(string, interface{}) error
 	// ListDeployments lists all micro deployments
-	ListDeployments() (*DeploymentList, error)
+	ListDeployments(labels map[string]string) (*DeploymentList, error)
 }
 
 // Metadata defines api request metadata
 type Metadata struct {
+	Name        string            `json:"name,omitempty"`
+	Labels      map[string]string `json:"labels,omitempty"`
 	Annotations map[string]string `json:"annotations,omitempty"`
 }
 
@@ -20,8 +22,8 @@ type DeploymentList struct {
 
 // Deployment is Kubernetes deployment
 type Deployment struct {
-	Name   string  `json:"name"`
-	Status *Status `json:"status"`
+	Metadata *Metadata `json:"metadata"`
+	Status   *Status   `json:"status"`
 }
 
 // Status is Kubernetes deployment status
