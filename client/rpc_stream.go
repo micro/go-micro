@@ -130,11 +130,15 @@ func (r *rpcStream) Error() error {
 }
 
 func (r *rpcStream) Close() error {
+	r.RLock()
+
 	select {
 	case <-r.closed:
+		r.RUnlock()
 		return nil
 	default:
 		close(r.closed)
+		r.RUnlock()
 
 		// send the end of stream message
 		if r.sendEOS {
