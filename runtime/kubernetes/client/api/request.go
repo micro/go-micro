@@ -103,7 +103,7 @@ func (r *Request) Body(in interface{}) *Request {
 // Params isused to set paramters on a request
 func (r *Request) Params(p *Params) *Request {
 	for k, v := range p.LabelSelector {
-		r.params.Add("labelSelectors", k+"="+v)
+		r.params.Add("labelSelector", k+"="+v)
 	}
 
 	return r

@@ -90,7 +90,7 @@ func detectNamespace() (string, error) {
 	}
 }
 
-// UpdateDeployment
+// UpdateDeployment patches kubernetes deployment with metadata provided in body
 func (c *client) UpdateDeployment(name string, body interface{}) error {
 	return api.NewRequest(c.opts).
 		Patch().
@@ -99,4 +99,17 @@ func (c *client) UpdateDeployment(name string, body interface{}) error {
 		Body(body).
 		Do().
 		Error()
+}
+
+// ListDeployments lists all kubernetes deployments with given labels
+func (c *client) ListDeployments(labels map[string]string) (*DeploymentList, error) {
+	var deployments DeploymentList
+	err := api.NewRequest(c.opts).
+		Get().
+		Resource("deployments").
+		Params(&api.Params{LabelSelector: labels}).
+		Do().
+		Into(&deployments)
+
+	return &deployments, err
 }

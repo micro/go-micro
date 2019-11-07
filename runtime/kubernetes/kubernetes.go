@@ -137,14 +137,31 @@ func (k *kubernetes) Update(s *runtime.Service) error {
 
 // List the managed services
 func (k *kubernetes) List() ([]*runtime.Service, error) {
-	// TODO: this should list the k8s deployments
-	// but for now we return in-memory tracked services
-	services := make([]*runtime.Service, 0, len(k.services))
-	k.RLock()
-	defer k.RUnlock()
+	labels := map[string]string{
+		"micro": "service",
+	}
+	// list all micro core deployments
+	deployments, err := k.client.ListDeployments(labels)
+	if err != nil {
+		return nil, err
+	}
 
-	for _, service := range k.services {
-		services = append(services, service)
+	log.Debugf("Runtime found %d micro deployments with labels %v", len(deployments.Items), labels)
+
+	services := make([]*runtime.Service, 0, len(deployments.Items))
+
+	for _, service := range deployments.Items {
+		buildTime, err := time.Parse(time.RFC3339, service.Metadata.Annotations["build"])
+		if err != nil {
+			log.Debugf("Runtime error parsing build time: %v", err)
+			continue
+		}
+		// add the service to the list of services
+		svc := &runtime.Service{
+			Name:    service.Metadata.Name,
+			Version: fmt.Sprintf("%d", buildTime.Unix()),
+		}
+		services = append(services, svc)
 	}
 
 	return services, nil
@@ -152,18 +169,26 @@ func (k *kubernetes) List() ([]*runtime.Service, error) {
 
 // run runs the runtime management loop
 func (k *kubernetes) run(events <-chan runtime.Event) {
-	t := time.NewTicker(time.Second * 5)
+	t := time.NewTicker(time.Second * 10)
 	defer t.Stop()
 
 	for {
 		select {
 		case <-t.C:
-			// TODO: noop for now
 			// check running services
-			// * deployments exist
-			// * service is exposed
+			services, err := k.List()
+			if err != nil {
+				log.Debugf("Runtime failed listing running services: %v", err)
+				continue
+			}
+			// TODO: for now we just log the running services
+			// * make sure all core deployments exist
+			// * make sure all core services are exposed
+			for _, service := range services {
+				log.Debugf("Runtime found running service: %v", service)
+			}
 		case service := <-k.start:
-			// TODO: following might have to be done
+			// TODO: this is a noop for now
 			// * create a deployment
 			// * expose a service
 			log.Debugf("Runtime starting service: %s", service.Name)
