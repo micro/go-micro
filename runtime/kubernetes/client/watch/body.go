@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"encoding/json"
 	"net/http"
-	"time"
 )
 
 // bodyWatcher scans the body of a request for chunks
@@ -34,43 +33,26 @@ func (wr *bodyWatcher) Stop() {
 func (wr *bodyWatcher) stream() {
 	reader := bufio.NewReader(wr.res.Body)
 
-	// ignore first few messages from stream,
-	// as they are usually old.
-	ignore := true
+	// stop the watcher
+	defer wr.Stop()
 
-	go func() {
-		<-time.After(time.Second)
-		ignore = false
-	}()
-
-	go func() {
-		// stop the watcher
-		defer wr.Stop()
-
-		for {
-			// read a line
-			b, err := reader.ReadBytes('\n')
-			if err != nil {
-				return
-			}
-
-			// ignore for the first second
-			if ignore {
-				continue
-			}
-
-			// send the event
-			var event Event
-			if err := json.Unmarshal(b, &event); err != nil {
-				continue
-			}
-			wr.results <- event
+	for {
+		// read a line
+		b, err := reader.ReadBytes('\n')
+		if err != nil {
+			return
 		}
-	}()
+
+		// send the event
+		var event Event
+		if err := json.Unmarshal(b, &event); err != nil {
+			continue
+		}
+		wr.results <- event
+	}
 }
 
-// NewBodyWatcher creates a k8s body watcher for
-// a given http request
+// NewBodyWatcher creates a k8s body watcher for a given http request
 func NewBodyWatcher(req *http.Request, client *http.Client) (Watch, error) {
 	stop := make(chan struct{})
 	req.Cancel = stop
