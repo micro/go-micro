@@ -157,7 +157,7 @@ func (k *kubernetes) List() ([]*runtime.Service, error) {
 	for _, service := range deployments.Items {
 		buildTime, err := time.Parse(time.RFC3339, service.Metadata.Annotations["build"])
 		if err != nil {
-			log.Debugf("Runtime error parsing build time: %v", err)
+			log.Debugf("Runtime error parsing build time for %s: %v", service.Metadata.Name, err)
 			continue
 		}
 		// add the service to the list of services
