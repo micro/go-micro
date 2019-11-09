@@ -44,5 +44,5 @@ are pluggable and allows Go Micro to be runtime agnostic. You can plugin any und
 
 ## Getting Started
 
-See the [docs](https://micro.mu/docs/go-micro.html) for detailed information on the architecture, installation and use of go-micro.
+See the [docs](https://micro.mu/docs/framework.html) for detailed information on the architecture, installation and use of go-micro.
 
