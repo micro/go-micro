@@ -70,7 +70,7 @@ func (t *Table) List(ctx context.Context, req *pb.Request, resp *pb.ListResponse
 		return errors.InternalServerError("go.micro.router", "failed to list routes: %s", err)
 	}
 
-	var respRoutes []*pb.Route
+	respRoutes := make([]*pb.Route, 0, len(routes))
 	for _, route := range routes {
 		respRoute := &pb.Route{
 			Service: route.Service,
@@ -95,7 +95,7 @@ func (t *Table) Query(ctx context.Context, req *pb.QueryRequest, resp *pb.QueryR
 		return errors.InternalServerError("go.micro.router", "failed to lookup routes: %s", err)
 	}
 
-	var respRoutes []*pb.Route
+	respRoutes := make([]*pb.Route, 0, len(routes))
 	for _, route := range routes {
 		respRoute := &pb.Route{
 			Service: route.Service,
