@@ -147,6 +147,10 @@ const (
 	AdvertiseAll Strategy = iota
 	// AdvertiseBest advertises optimal routes to the network
 	AdvertiseBest
+	// AdvertiseLocal will only advertise the local routes
+	AdvertiseLocal
+	// AdvertiseNone will not advertise any routes
+	AdvertiseNone
 )
 
 // String returns human readable Strategy
@@ -156,6 +160,10 @@ func (s Strategy) String() string {
 		return "all"
 	case AdvertiseBest:
 		return "best"
+	case AdvertiseLocal:
+		return "local"
+	case AdvertiseNone:
+		return "none"
 	default:
 		return "unknown"
 	}
