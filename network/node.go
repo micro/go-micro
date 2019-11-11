@@ -158,7 +158,7 @@ func (n *node) Nodes() []Node {
 
 	visited := n.walk(untilNoMorePeers, justWalk)
 
-	var nodes []Node
+	nodes := make([]Node, 0, len(visited))
 	// collect all the nodes and return them
 	for _, node := range visited {
 		nodes = append(nodes, node)

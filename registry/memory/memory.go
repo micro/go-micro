@@ -111,7 +111,7 @@ func (m *Registry) ttlPrune() {
 }
 
 func (m *Registry) sendEvent(r *registry.Result) {
-	var watchers []*Watcher
+	watchers := make([]*Watcher, 0, len(m.Watchers))
 
 	m.RLock()
 	for _, w := range m.Watchers {
