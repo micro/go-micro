@@ -413,8 +413,10 @@ func (r *router) advertiseEvents() error {
 	for {
 		select {
 		case <-ticker.C:
-			// We may only be advertising local routes
-			local := r.options.Advertise == AdvertiseLocal
+			// If we're not advertising any events then sip processing them entirely
+			if r.options.Advertise == AdvertiseNone {
+				continue
+			}
 
 			var events []*Event
 
@@ -430,9 +432,8 @@ func (r *router) advertiseEvents() error {
 					continue
 				}
 
-				// if we only advertise local routes delete and bail out
-				if local && advert.event.Route.Link != "local" {
-					delete(adverts, key)
+				// if we only advertise local routes skip processing anything not link local
+				if r.options.Advertise == AdvertiseLocal && advert.event.Route.Link != "local" {
 					continue
 				}
 
@@ -444,12 +445,6 @@ func (r *router) advertiseEvents() error {
 				events = append(events, e)
 				// delete the advert from adverts
 				delete(adverts, key)
-			}
-
-			// If we're not advertising any events then throw them away.
-			// We do this here because someone may change the strategy at any time.
-			if r.options.Advertise == AdvertiseNone {
-				continue
 			}
 
 			// advertise events to subscribers
@@ -466,6 +461,17 @@ func (r *router) advertiseEvents() error {
 			if e == nil {
 				continue
 			}
+
+			// If we're not advertising any events then skip processing them entirely
+			if r.options.Advertise == AdvertiseNone {
+				continue
+			}
+
+			// if we only advertise local routes skip processing anything not link local
+			if r.options.Advertise == AdvertiseLocal && e.Route.Link != "local" {
+				continue
+			}
+
 			now := time.Now()
 
 			log.Debugf("Router processing table event %s for service %s %s", e.Type, e.Route.Service, e.Route.Address)
@@ -724,15 +730,15 @@ func (r *router) Process(a *Advert) error {
 
 // flushRouteEvents returns a slice of events, one per each route in the routing table
 func (r *router) flushRouteEvents(evType EventType) ([]*Event, error) {
+	// Do not advertise anything
+	if r.options.Advertise == AdvertiseNone {
+		return []*Event{}, nil
+	}
+
 	// list all routes
 	routes, err := r.table.List()
 	if err != nil {
 		return nil, fmt.Errorf("failed listing routes: %s", err)
-	}
-
-	// Do not advertise anything
-	if r.options.Advertise == AdvertiseNone {
-		return []*Event{}, nil
 	}
 
 	// Return all the routes
@@ -754,12 +760,12 @@ func (r *router) flushRouteEvents(evType EventType) ([]*Event, error) {
 	bestRoutes := make(map[string]Route)
 
 	// set whether we're advertising only local
-	local := r.options.Advertise == AdvertiseLocal
+	advertiseLocal := r.options.Advertise == AdvertiseLocal
 
 	// go through all routes found in the routing table and collapse them to optimal routes
 	for _, route := range routes {
 		// if we're only advertising local routes
-		if local && route.Link != "local" {
+		if advertiseLocal && route.Link != "local" {
 			continue
 		}
 
@@ -785,7 +791,7 @@ func (r *router) flushRouteEvents(evType EventType) ([]*Event, error) {
 		}
 	}
 
-	log.Debugf("Router advertising %d %s routes out of %d", len(bestRoutes), r.options.Advertise.String(), len(routes))
+	log.Debugf("Router advertising %d %s routes out of %d", len(bestRoutes), r.options.Advertise, len(routes))
 
 	// build a list of events to advertise
 	events := make([]*Event, len(bestRoutes))
