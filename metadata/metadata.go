@@ -21,6 +21,16 @@ func Copy(md Metadata) Metadata {
 	return cmd
 }
 
+// Get returns a single value from metadata in the context
+func Get(ctx context.Context, key string) (string, bool) {
+	md, ok := FromContext(ctx)
+	if !ok {
+		return "", ok
+	}
+	val, ok := md[key]
+	return val, ok
+}
+
 // FromContext returns metadata from the given context
 func FromContext(ctx context.Context) (Metadata, bool) {
 	md, ok := ctx.Value(metaKey{}).(Metadata)
