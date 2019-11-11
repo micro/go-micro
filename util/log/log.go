@@ -39,11 +39,11 @@ func init() {
 	case "debug":
 		level = LevelDebug
 	case "warn":
-		level = LevelError
+		level = LevelWarn
 	case "info":
 		level = LevelInfo
 	case "error":
-		level = LevelInfo
+		level = LevelError
 	case "fatal":
 		level = LevelFatal
 	}
