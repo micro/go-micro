@@ -8,6 +8,16 @@ type Kubernetes interface {
 	ListDeployments(labels map[string]string) (*DeploymentList, error)
 }
 
+// Template is micro deployment template
+type Template struct {
+	Metadata *Metadata `json:"metadata,omitempty"`
+}
+
+// Spec defines micro deployment spec
+type Spec struct {
+	Template *Template `json:"template,omitempty"`
+}
+
 // Metadata defines api request metadata
 type Metadata struct {
 	Name        string            `json:"name,omitempty"`

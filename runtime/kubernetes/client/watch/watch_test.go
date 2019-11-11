@@ -37,16 +37,14 @@ func TestBodyWatcher(t *testing.T) {
 
 	req, err := http.NewRequest("GET", ts.URL, nil)
 	if err != nil {
-		t.Fatalf("did not expect NewRequest to return err: %v", err)
+		t.Fatalf("failed to create new request: %v", err)
 	}
 
 	// setup body watcher
 	w, err := NewBodyWatcher(req, http.DefaultClient)
 	if err != nil {
-		t.Fatalf("did not expect NewBodyWatcher to return %v", err)
+		t.Fatalf("failed to create new BodyWatcher %v", err)
 	}
-
-	<-time.After(time.Second)
 
 	// send action strings in, and expect result back
 	ch <- actions[0]

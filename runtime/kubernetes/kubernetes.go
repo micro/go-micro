@@ -116,7 +116,7 @@ func (k *kubernetes) Delete(s *runtime.Service) error {
 // Update the service in place
 func (k *kubernetes) Update(s *runtime.Service) error {
 	type body struct {
-		Metadata *client.Metadata `json:"metadata"`
+		Spec *client.Spec `json:"spec"`
 	}
 	// parse version into human readable timestamp
 	updateTimeStamp, err := strconv.ParseInt(s.Version, 10, 64)
@@ -126,9 +126,13 @@ func (k *kubernetes) Update(s *runtime.Service) error {
 	unixTimeUTC := time.Unix(updateTimeStamp, 0)
 	// metada which we will PATCH deployment with
 	reqBody := body{
-		Metadata: &client.Metadata{
-			Annotations: map[string]string{
-				"build": unixTimeUTC.Format(time.RFC3339),
+		Spec: &client.Spec{
+			Template: &client.Template{
+				Metadata: &client.Metadata{
+					Annotations: map[string]string{
+						"build": unixTimeUTC.Format(time.RFC3339),
+					},
+				},
 			},
 		},
 	}
@@ -153,7 +157,7 @@ func (k *kubernetes) List() ([]*runtime.Service, error) {
 	for _, service := range deployments.Items {
 		buildTime, err := time.Parse(time.RFC3339, service.Metadata.Annotations["build"])
 		if err != nil {
-			log.Debugf("Runtime error parsing build time: %v", err)
+			log.Debugf("Runtime error parsing build time for %s: %v", service.Metadata.Name, err)
 			continue
 		}
 		// add the service to the list of services

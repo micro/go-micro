@@ -252,6 +252,10 @@ func (w *workersKV) request(ctx context.Context, method, path string, body inter
 	}
 
 	req, err := http.NewRequestWithContext(ctx, method, apiBaseURL+path, reqBody)
+	if err != nil {
+		return nil, nil, 0, errors.Wrap(err, "error creating new request")
+	}
+
 	for key, value := range headers {
 		req.Header[key] = value
 	}

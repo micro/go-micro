@@ -112,8 +112,12 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 		wg.Add(1)
 
 		// add to wait group if "wait" is opt-in
-		if s.wg != nil {
-			s.wg.Add(1)
+		s.Lock()
+		swg := s.wg
+		s.Unlock()
+
+		if swg != nil {
+			swg.Add(1)
 		}
 
 		// check we have an existing socket
@@ -132,8 +136,8 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 			}
 
 			// done(1)
-			if s.wg != nil {
-				s.wg.Done()
+			if swg != nil {
+				swg.Done()
 			}
 
 			wg.Done()
@@ -203,8 +207,8 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 					Body: []byte(err.Error()),
 				})
 
-				if s.wg != nil {
-					s.wg.Done()
+				if swg != nil {
+					swg.Done()
 				}
 
 				wg.Done()
@@ -324,8 +328,8 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 			mtx.Unlock()
 
 			// signal we're done
-			if s.wg != nil {
-				s.wg.Done()
+			if swg != nil {
+				swg.Done()
 			}
 
 			// done with this socket
@@ -744,9 +748,13 @@ func (s *rpcServer) Start() error {
 			log.Logf("Server %s-%s deregister error: %s", config.Name, config.Id, err)
 		}
 
+		s.Lock()
+		swg := s.wg
+		s.Unlock()
+
 		// wait for requests to finish
-		if s.wg != nil {
-			s.wg.Wait()
+		if swg != nil {
+			swg.Wait()
 		}
 
 		// close transport listener

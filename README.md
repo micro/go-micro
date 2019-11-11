@@ -12,7 +12,7 @@ but everything can be easily swapped out.
 
 Plugins are available at [github.com/micro/go-plugins](https://github.com/micro/go-plugins).
 
-Follow us on [Twitter](https://twitter.com/microhq) or join the [Slack](http://slack.micro.mu/) community.
+Follow us on [Twitter](https://twitter.com/microhq) or join the [Slack](https://micro.mu/slack) community.
 
 ## Features
 
@@ -44,5 +44,5 @@ are pluggable and allows Go Micro to be runtime agnostic. You can plugin any und
 
 ## Getting Started
 
-See the [docs](https://micro.mu/docs/go-micro.html) for detailed information on the architecture, installation and use of go-micro.
+See the [docs](https://micro.mu/docs/framework.html) for detailed information on the architecture, installation and use of go-micro.
 

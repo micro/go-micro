@@ -341,7 +341,7 @@ func (e *etcdRegistry) GetService(name string) ([]*registry.Service, error) {
 		}
 	}
 
-	var services []*registry.Service
+	services := make([]*registry.Service, 0, len(serviceMap))
 	for _, service := range serviceMap {
 		services = append(services, service)
 	}
@@ -350,7 +350,6 @@ func (e *etcdRegistry) GetService(name string) ([]*registry.Service, error) {
 }
 
 func (e *etcdRegistry) ListServices() ([]*registry.Service, error) {
-	var services []*registry.Service
 	versions := make(map[string]*registry.Service)
 
 	ctx, cancel := context.WithTimeout(context.Background(), e.options.Timeout)
@@ -379,6 +378,7 @@ func (e *etcdRegistry) ListServices() ([]*registry.Service, error) {
 		v.Nodes = append(v.Nodes, sn.Nodes...)
 	}
 
+	services := make([]*registry.Service, 0, len(versions))
 	for _, service := range versions {
 		services = append(services, service)
 	}

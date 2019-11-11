@@ -154,8 +154,9 @@ func (s *service) Run() error {
 	if prof := os.Getenv("MICRO_DEBUG_PROFILE"); len(prof) > 0 {
 		service := s.opts.Server.Options().Name
 		version := s.opts.Server.Options().Version
+		id := s.opts.Server.Options().Id
 		profiler := pprof.NewProfile(
-			profile.Name(service + "." + version),
+			profile.Name(service + "." + version + "." + id),
 		)
 		if err := profiler.Start(); err != nil {
 			return err

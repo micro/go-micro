@@ -93,7 +93,7 @@ func (r *runtime) run(events <-chan Event) {
 				// parse returned response to timestamp
 				updateTimeStamp, err := strconv.ParseInt(event.Version, 10, 64)
 				if err != nil {
-					log.Debugf("Runtime error parsing update build time: %v", err)
+					log.Debugf("Runtime error parsing build time for %s: %v", event.Service, err)
 					continue
 				}
 				buildTime := time.Unix(updateTimeStamp, 0)
