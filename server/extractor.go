@@ -99,6 +99,7 @@ func extractEndpoint(method reflect.Method) *registry.Endpoint {
 		Name:     method.Name,
 		Request:  request,
 		Response: response,
+		Metadata: make(map[string]string),
 	}
 
 	// set endpoint metadata for stream
