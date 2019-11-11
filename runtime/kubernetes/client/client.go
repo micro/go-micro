@@ -90,19 +90,34 @@ func detectNamespace() (string, error) {
 	}
 }
 
+// CreateDeployment creates kubernetes deployment
+func (c *client) CreateDeployment(d *Deployment) error {
+	return nil
+}
+
+// GetDeployment queries deployments with given labels and returns them
+func (c *client) GetDeployment(labels map[string]string) (*DeploymentList, error) {
+	return nil, nil
+}
+
 // UpdateDeployment patches kubernetes deployment with metadata provided in body
-func (c *client) UpdateDeployment(name string, body interface{}) error {
+func (c *client) UpdateDeployment(d *Deployment) error {
 	return api.NewRequest(c.opts).
 		Patch().
 		Resource("deployments").
-		Name(name).
-		Body(body).
+		Name(d.Metadata.Name).
+		Body(d.Spec).
 		Do().
 		Error()
 }
 
 // ListDeployments lists all kubernetes deployments with given labels
-func (c *client) ListDeployments(labels map[string]string) (*DeploymentList, error) {
+func (c *client) ListDeployments() (*DeploymentList, error) {
+	// TODO: this list all micro services
+	labels := map[string]string{
+		"micro": "service",
+	}
+
 	var deployments DeploymentList
 	err := api.NewRequest(c.opts).
 		Get().
@@ -112,4 +127,34 @@ func (c *client) ListDeployments(labels map[string]string) (*DeploymentList, err
 		Into(&deployments)
 
 	return &deployments, err
+}
+
+// DeleteDeployment deletes kubernetes deployment
+func (c *client) DeleteDeployment(d *Deployment) error {
+	return nil
+}
+
+// CreateService creates kubernetes services
+func (c *client) CreateService(s *Service) error {
+	return nil
+}
+
+// GetService queries kubernetes services and returns them
+func (c *client) GetService(labels map[string]string) (*ServiceList, error) {
+	return nil, nil
+}
+
+// UpdateService updates kubernetes service
+func (c *client) UpdateService(s *Service) error {
+	return nil
+}
+
+// DeleteService deletes kubernetes service
+func (c *client) DeleteService(s *Service) error {
+	return nil
+}
+
+// ListServices lists kubernetes services and returns them
+func (c *client) ListServices() (*ServiceList, error) {
+	return nil, nil
 }

@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Metadata.Name }}
+  namespace: {{ .Metadata.Namespace }}
+  labels:
+    name: {{ .Metadata.Name }}
+    version: {{ .Metadata.Version }}
+    micro: service
+spec:
+  replicas: {{ .Spec.Replicas }}
+  selector:
+    matchLabels:
+      name: {{ .Metadata.Name }}
+      version: {{ .Metadata.Version }}
+      micro: service
+  template:
+    metadata:
+      labels:
+        name: {{ .Metadata.Name }}
+        version: {{ .Metadata.Version }}
+        micro: service
+    spec:
+      containers:
+      {{ with .Spec.Template.PodSpec.Containers }}
+      - name: {{ .Name }}
+        env:
+        {{ with .Env }}
+        {{ range . }}
+        - name: {{ .Name }}
+          value: {{ .Value }}
+        {{ end }}
+        {{ end }}
+        command: go
+        args:
+        - run
+        - main.go
+        image: {{ .Image }}
+        imagePullPolicy: Always
+        ports:
+        {{ with .ContainerPort }}
+        {{ range . }}
+        - containerPort: {{ .ContainerPort }}
+          protocol: {{ .Protocol }}
+          name: {{ .Name }}
+        {{ end }}
+        {{ end }}
+      {{ end }}

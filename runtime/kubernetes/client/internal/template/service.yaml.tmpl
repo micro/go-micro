@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Name }}
+  namespace: {{ .Namespace }}
+  labels:
+    name: {{ .Name }}
+    version: {{ .Version }}
+    micro: service
+spec:
+  selector:
+    name: {{ .Name }}
+    version: {{ .Version }}
+    micro: service
+  ports:
+  {{ with .Ports }}
+  {{ range . }}
+  - name: {{ .Name }}
+    port: {{ .Port }}
+    protocol: TCP
+  {{ end }}
+  {{ end }}

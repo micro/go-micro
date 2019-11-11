@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/micro/go-micro/runtime/kubernetes/client/watch"
 	"github.com/micro/go-micro/util/log"
 )
 
@@ -33,7 +32,6 @@ type Request struct {
 type Params struct {
 	LabelSelector map[string]string
 	Annotations   map[string]string
-	Watch         bool
 }
 
 // verb sets method
@@ -49,6 +47,7 @@ func (r *Request) Get() *Request {
 
 // Post request
 func (r *Request) Post() *Request {
+	// TODO: allow to specify Content-Type: application/yaml or application/json
 	return r.verb("POST")
 }
 
@@ -90,12 +89,13 @@ func (r *Request) Name(s string) *Request {
 // Body pass in a body to set, this is for POST, PUT
 // and PATCH requests
 func (r *Request) Body(in interface{}) *Request {
+	// TODO: based on the content type do the encoding
 	b := new(bytes.Buffer)
 	if err := json.NewEncoder(b).Encode(&in); err != nil {
 		r.err = err
 		return r
 	}
-	log.Debugf("Patch body: %v", b)
+	log.Debugf("Request body: %v", b)
 	r.body = b
 	return r
 }
@@ -177,24 +177,6 @@ func (r *Request) Do() *Response {
 
 	// return res, err
 	return newResponse(res, err)
-}
-
-// Watch builds and triggers the request, but
-// will watch instead of return an object
-func (r *Request) Watch() (watch.Watch, error) {
-	if r.err != nil {
-		return nil, r.err
-	}
-
-	r.params.Set("watch", "true")
-
-	req, err := r.request()
-	if err != nil {
-		return nil, err
-	}
-
-	w, err := watch.NewBodyWatcher(req, r.client)
-	return w, err
 }
 
 // Options ...

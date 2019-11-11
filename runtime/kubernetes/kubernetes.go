@@ -103,18 +103,15 @@ func (k *kubernetes) Get(opts ...runtime.GetOption) ([]*runtime.Service, error) 
 
 // Update the service in place
 func (k *kubernetes) Update(s *runtime.Service) error {
-	type body struct {
-		Spec *client.Spec `json:"spec"`
-	}
 	// parse version into human readable timestamp
 	updateTimeStamp, err := strconv.ParseInt(s.Version, 10, 64)
 	if err != nil {
 		return err
 	}
 	unixTimeUTC := time.Unix(updateTimeStamp, 0)
-	// metada which we will PATCH deployment with
-	reqBody := body{
-		Spec: &client.Spec{
+
+	d := &client.Deployment{
+		Spec: &client.DeploymentSpec{
 			Template: &client.Template{
 				Metadata: &client.Metadata{
 					Annotations: map[string]string{
@@ -124,7 +121,8 @@ func (k *kubernetes) Update(s *runtime.Service) error {
 			},
 		},
 	}
-	return k.client.UpdateDeployment(s.Name, reqBody)
+
+	return k.client.UpdateDeployment(d)
 }
 
 // Remove a service
@@ -147,16 +145,13 @@ func (k *kubernetes) Delete(s *runtime.Service) error {
 
 // List the managed services
 func (k *kubernetes) List() ([]*runtime.Service, error) {
-	labels := map[string]string{
-		"micro": "service",
-	}
 	// list all micro core deployments
-	deployments, err := k.client.ListDeployments(labels)
+	deployments, err := k.client.ListDeployments()
 	if err != nil {
 		return nil, err
 	}
 
-	log.Debugf("Runtime found %d micro deployments with labels %v", len(deployments.Items), labels)
+	log.Debugf("Runtime found %d micro deployment", len(deployments.Items))
 
 	services := make([]*runtime.Service, 0, len(deployments.Items))
 
