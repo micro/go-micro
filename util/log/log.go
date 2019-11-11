@@ -14,8 +14,9 @@ type Level int
 
 const (
 	LevelFatal Level = iota
-	LevelInfo
 	LevelError
+	LevelInfo
+	LevelWarn
 	LevelDebug
 	LevelTrace
 )
@@ -37,6 +38,8 @@ func init() {
 		level = LevelTrace
 	case "debug":
 		level = LevelDebug
+	case "warn":
+		level = LevelWarn
 	case "info":
 		level = LevelInfo
 	case "error":
@@ -97,6 +100,16 @@ func Debug(v ...interface{}) {
 // Debugf provides debug level logging
 func Debugf(format string, v ...interface{}) {
 	WithLevelf(LevelDebug, format, v...)
+}
+
+// Warn provides warn level logging
+func Warn(v ...interface{}) {
+	WithLevel(LevelWarn, v...)
+}
+
+// Warnf provides warn level logging
+func Warnf(format string, v ...interface{}) {
+	WithLevelf(LevelWarn, format, v...)
 }
 
 // Info provides info level logging
