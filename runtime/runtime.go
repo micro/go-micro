@@ -12,17 +12,19 @@ var (
 type Runtime interface {
 	// Init initializes runtime
 	Init(...Option) error
-	// Registers a service
+	// Create registers a service
 	Create(*Service, ...CreateOption) error
-	// Remove a service
-	Delete(*Service) error
+	// Get returns service or fails with error
+	Get(...GetOption) ([]*Service, error)
 	// Update the service in place
 	Update(*Service) error
+	// Remove a service
+	Delete(*Service) error
 	// List the managed services
 	List() ([]*Service, error)
-	// starts the runtime
+	// Start starts the runtime
 	Start() error
-	// Shutdown the runtime
+	// Stop shuts down the runtime
 	Stop() error
 }
 

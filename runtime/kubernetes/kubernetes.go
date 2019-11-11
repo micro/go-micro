@@ -95,22 +95,10 @@ func (k *kubernetes) Create(s *runtime.Service, opts ...runtime.CreateOption) er
 	return nil
 }
 
-// Remove a service
-func (k *kubernetes) Delete(s *runtime.Service) error {
-	k.Lock()
-	defer k.Unlock()
-
-	// TODO:
-	// * delete service
-	// * delete dpeloyment
-
-	// NOTE: we are tracking this in memory for now
-	if s, ok := k.services[s.Name]; ok {
-		delete(k.services, s.Name)
-		return nil
-	}
-
-	return nil
+// Get returns all instances of given service
+func (k *kubernetes) Get(opts ...runtime.GetOption) ([]*runtime.Service, error) {
+	// TODO: implement this
+	return nil, nil
 }
 
 // Update the service in place
@@ -137,6 +125,24 @@ func (k *kubernetes) Update(s *runtime.Service) error {
 		},
 	}
 	return k.client.UpdateDeployment(s.Name, reqBody)
+}
+
+// Remove a service
+func (k *kubernetes) Delete(s *runtime.Service) error {
+	k.Lock()
+	defer k.Unlock()
+
+	// TODO:
+	// * delete service
+	// * delete dpeloyment
+
+	// NOTE: we are tracking this in memory for now
+	if s, ok := k.services[s.Name]; ok {
+		delete(k.services, s.Name)
+		return nil
+	}
+
+	return nil
 }
 
 // List the managed services
