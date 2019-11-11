@@ -413,7 +413,13 @@ func (r *router) advertiseEvents() error {
 	for {
 		select {
 		case <-ticker.C:
+			// If we're not advertising any events then sip processing them entirely
+			if r.options.Advertise == AdvertiseNone {
+				continue
+			}
+
 			var events []*Event
+
 			// collect all events which are not flapping
 			for key, advert := range adverts {
 				// process the advert
@@ -423,6 +429,11 @@ func (r *router) advertiseEvents() error {
 				}
 				// if suppressed go to the next advert
 				if advert.isSuppressed {
+					continue
+				}
+
+				// if we only advertise local routes skip processing anything not link local
+				if r.options.Advertise == AdvertiseLocal && advert.event.Route.Link != "local" {
 					continue
 				}
 
@@ -450,6 +461,17 @@ func (r *router) advertiseEvents() error {
 			if e == nil {
 				continue
 			}
+
+			// If we're not advertising any events then skip processing them entirely
+			if r.options.Advertise == AdvertiseNone {
+				continue
+			}
+
+			// if we only advertise local routes skip processing anything not link local
+			if r.options.Advertise == AdvertiseLocal && e.Route.Link != "local" {
+				continue
+			}
+
 			now := time.Now()
 
 			log.Debugf("Router processing table event %s for service %s %s", e.Type, e.Route.Service, e.Route.Address)
@@ -708,12 +730,18 @@ func (r *router) Process(a *Advert) error {
 
 // flushRouteEvents returns a slice of events, one per each route in the routing table
 func (r *router) flushRouteEvents(evType EventType) ([]*Event, error) {
+	// Do not advertise anything
+	if r.options.Advertise == AdvertiseNone {
+		return []*Event{}, nil
+	}
+
 	// list all routes
 	routes, err := r.table.List()
 	if err != nil {
 		return nil, fmt.Errorf("failed listing routes: %s", err)
 	}
 
+	// Return all the routes
 	if r.options.Advertise == AdvertiseAll {
 		// build a list of events to advertise
 		events := make([]*Event, len(routes))
@@ -728,24 +756,34 @@ func (r *router) flushRouteEvents(evType EventType) ([]*Event, error) {
 		return events, nil
 	}
 
-	// routeMap stores optimal routes per service
+	// routeMap stores the routes we're going to advertise
 	bestRoutes := make(map[string]Route)
+
+	// set whether we're advertising only local
+	advertiseLocal := r.options.Advertise == AdvertiseLocal
 
 	// go through all routes found in the routing table and collapse them to optimal routes
 	for _, route := range routes {
+		// if we're only advertising local routes
+		if advertiseLocal && route.Link != "local" {
+			continue
+		}
+
+		// now we're going to find the best routes
+
 		routeKey := route.Service + "@" + route.Network
-		optimal, ok := bestRoutes[routeKey]
+		current, ok := bestRoutes[routeKey]
 		if !ok {
 			bestRoutes[routeKey] = route
 			continue
 		}
 		// if the current optimal route metric is higher than routing table route, replace it
-		if optimal.Metric > route.Metric {
+		if current.Metric > route.Metric {
 			bestRoutes[routeKey] = route
 			continue
 		}
 		// if the metrics are the same, prefer advertising your own route
-		if optimal.Metric == route.Metric {
+		if current.Metric == route.Metric {
 			if route.Router == r.options.Id {
 				bestRoutes[routeKey] = route
 				continue
@@ -753,7 +791,7 @@ func (r *router) flushRouteEvents(evType EventType) ([]*Event, error) {
 		}
 	}
 
-	log.Debugf("Router advertising %d best routes out of %d", len(bestRoutes), len(routes))
+	log.Debugf("Router advertising %d %s routes out of %d", len(bestRoutes), r.options.Advertise, len(routes))
 
 	// build a list of events to advertise
 	events := make([]*Event, len(bestRoutes))
