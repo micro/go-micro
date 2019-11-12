@@ -173,7 +173,7 @@ func (g *grpcServer) handler(srv interface{}, stream grpc.ServerStream) error {
 
 	fullMethod, ok := grpc.MethodFromServerStream(stream)
 	if !ok {
-		return grpc.Errorf(codes.Internal, "method does not exist in context")
+		return status.Errorf(codes.Internal, "method does not exist in context")
 	}
 
 	serviceName, methodName, err := mgrpc.ServiceMethod(fullMethod)
@@ -292,96 +292,94 @@ func (g *grpcServer) handler(srv interface{}, stream grpc.ServerStream) error {
 }
 
 func (g *grpcServer) processRequest(stream grpc.ServerStream, service *service, mtype *methodType, ct string, ctx context.Context) error {
-	for {
-		var argv, replyv reflect.Value
+	var argv, replyv reflect.Value
 
-		// Decode the argument value.
-		argIsValue := false // if true, need to indirect before calling.
-		if mtype.ArgType.Kind() == reflect.Ptr {
-			argv = reflect.New(mtype.ArgType.Elem())
+	// Decode the argument value.
+	argIsValue := false // if true, need to indirect before calling.
+	if mtype.ArgType.Kind() == reflect.Ptr {
+		argv = reflect.New(mtype.ArgType.Elem())
+	} else {
+		argv = reflect.New(mtype.ArgType)
+		argIsValue = true
+	}
+
+	// Unmarshal request
+	if err := stream.RecvMsg(argv.Interface()); err != nil {
+		return err
+	}
+
+	if argIsValue {
+		argv = argv.Elem()
+	}
+
+	// reply value
+	replyv = reflect.New(mtype.ReplyType.Elem())
+
+	function := mtype.method.Func
+	var returnValues []reflect.Value
+
+	cc, err := g.newGRPCCodec(ct)
+	if err != nil {
+		return errors.InternalServerError("go.micro.server", err.Error())
+	}
+	b, err := cc.Marshal(argv.Interface())
+	if err != nil {
+		return err
+	}
+
+	// create a client.Request
+	r := &rpcRequest{
+		service:     g.opts.Name,
+		contentType: ct,
+		method:      fmt.Sprintf("%s.%s", service.name, mtype.method.Name),
+		body:        b,
+		payload:     argv.Interface(),
+	}
+
+	// define the handler func
+	fn := func(ctx context.Context, req server.Request, rsp interface{}) error {
+		defer func() {
+			if r := recover(); r != nil {
+				log.Log("panic recovered: ", r)
+				log.Logf(string(debug.Stack()))
+			}
+		}()
+		returnValues = function.Call([]reflect.Value{service.rcvr, mtype.prepareContext(ctx), reflect.ValueOf(argv.Interface()), reflect.ValueOf(rsp)})
+
+		// The return value for the method is an error.
+		if err := returnValues[0].Interface(); err != nil {
+			return err.(error)
+		}
+
+		return nil
+	}
+
+	// wrap the handler func
+	for i := len(g.opts.HdlrWrappers); i > 0; i-- {
+		fn = g.opts.HdlrWrappers[i-1](fn)
+	}
+
+	statusCode := codes.OK
+	statusDesc := ""
+
+	// execute the handler
+	if appErr := fn(ctx, r, replyv.Interface()); appErr != nil {
+		if err, ok := appErr.(*rpcError); ok {
+			statusCode = err.code
+			statusDesc = err.desc
+		} else if err, ok := appErr.(*errors.Error); ok {
+			statusCode = microError(err)
+			statusDesc = appErr.Error()
 		} else {
-			argv = reflect.New(mtype.ArgType)
-			argIsValue = true
-		}
-
-		// Unmarshal request
-		if err := stream.RecvMsg(argv.Interface()); err != nil {
-			return err
-		}
-
-		if argIsValue {
-			argv = argv.Elem()
-		}
-
-		// reply value
-		replyv = reflect.New(mtype.ReplyType.Elem())
-
-		function := mtype.method.Func
-		var returnValues []reflect.Value
-
-		cc, err := g.newGRPCCodec(ct)
-		if err != nil {
-			return errors.InternalServerError("go.micro.server", err.Error())
-		}
-		b, err := cc.Marshal(argv.Interface())
-		if err != nil {
-			return err
-		}
-
-		// create a client.Request
-		r := &rpcRequest{
-			service:     g.opts.Name,
-			contentType: ct,
-			method:      fmt.Sprintf("%s.%s", service.name, mtype.method.Name),
-			body:        b,
-			payload:     argv.Interface(),
-		}
-
-		// define the handler func
-		fn := func(ctx context.Context, req server.Request, rsp interface{}) error {
-			defer func() {
-				if r := recover(); r != nil {
-					log.Log("panic recovered: ", r)
-					log.Logf(string(debug.Stack()))
-				}
-			}()
-			returnValues = function.Call([]reflect.Value{service.rcvr, mtype.prepareContext(ctx), reflect.ValueOf(argv.Interface()), reflect.ValueOf(rsp)})
-
-			// The return value for the method is an error.
-			if err := returnValues[0].Interface(); err != nil {
-				return err.(error)
-			}
-
-			return nil
-		}
-
-		// wrap the handler func
-		for i := len(g.opts.HdlrWrappers); i > 0; i-- {
-			fn = g.opts.HdlrWrappers[i-1](fn)
-		}
-
-		statusCode := codes.OK
-		statusDesc := ""
-
-		// execute the handler
-		if appErr := fn(ctx, r, replyv.Interface()); appErr != nil {
-			if err, ok := appErr.(*rpcError); ok {
-				statusCode = err.code
-				statusDesc = err.desc
-			} else if err, ok := appErr.(*errors.Error); ok {
-				statusCode = microError(err)
-				statusDesc = appErr.Error()
-			} else {
-				statusCode = convertCode(appErr)
-				statusDesc = appErr.Error()
-			}
-			return status.New(statusCode, statusDesc).Err()
-		}
-		if err := stream.SendMsg(replyv.Interface()); err != nil {
-			return err
+			statusCode = convertCode(appErr)
+			statusDesc = appErr.Error()
 		}
 		return status.New(statusCode, statusDesc).Err()
 	}
+	if err := stream.SendMsg(replyv.Interface()); err != nil {
+		return err
+	}
+	return status.New(statusCode, statusDesc).Err()
 }
 
 func (g *grpcServer) processStream(stream grpc.ServerStream, service *service, mtype *methodType, ct string, ctx context.Context) error {

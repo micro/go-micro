@@ -1,6 +1,8 @@
 package grpc
 
 import (
+	"context"
+	"github.com/micro/go-micro/client"
 	"sync"
 	"time"
 
@@ -28,7 +30,7 @@ func newPool(size int, ttl time.Duration) *pool {
 	}
 }
 
-func (p *pool) getConn(addr string, opts ...grpc.DialOption) (*poolConn, error) {
+func (p *pool) getConn(addr string, opts client.CallOptions, gRPCopts ...grpc.DialOption) (*poolConn, error) {
 	p.Lock()
 	conns := p.conns[addr]
 	now := time.Now().Unix()
@@ -54,8 +56,11 @@ func (p *pool) getConn(addr string, opts ...grpc.DialOption) (*poolConn, error) 
 
 	p.Unlock()
 
+	ctx, cancel := context.WithTimeout(context.Background(), opts.DialTimeout)
+	defer cancel()
+
 	// create new conn
-	cc, err := grpc.Dial(addr, opts...)
+	cc, err := grpc.DialContext(ctx, addr, gRPCopts...)
 	if err != nil {
 		return nil, err
 	}
