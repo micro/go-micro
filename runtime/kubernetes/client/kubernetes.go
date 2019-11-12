@@ -14,10 +14,10 @@ type Kubernetes interface {
 	GetDeployment(map[string]string) (*DeploymentList, error)
 	// UpdateDeployment patches deployment annotations with new metadata
 	UpdateDeployment(*Deployment) error
-	// ListDeployments lists all micro service deployments
-	ListDeployments() (*DeploymentList, error)
 	// DeleteDeployment deletes kubernetes deployment
 	DeleteDeployment(*Deployment) error
+	// ListDeployments lists all micro service deployments
+	ListDeployments() (*DeploymentList, error)
 	// CreateService creates new kubernetes service
 	CreateService(*Service) error
 	// GetService queries kubernetes services and returns the matches

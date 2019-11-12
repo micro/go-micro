@@ -1,12 +1,14 @@
 package client
 
 import (
+	"bytes"
 	"crypto/tls"
 	"errors"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"path"
+	"path/filepath"
 
 	"github.com/micro/go-micro/runtime/kubernetes/client/api"
 	"github.com/micro/go-micro/util/log"
@@ -91,12 +93,32 @@ func detectNamespace() (string, error) {
 
 // CreateDeployment creates kubernetes deployment
 func (c *client) CreateDeployment(d *Deployment) error {
-	return nil
+	b := new(bytes.Buffer)
+	path := filepath.Join("internal", "templates", "deployment.yaml.tmpl")
+	if err := renderTemplateFile(path, b, d); err != nil {
+		return err
+	}
+
+	return api.NewRequest(c.opts).
+		Post().
+		SetHeader("Content-Type", "application/yaml").
+		Resource("deployments").
+		Body(b).
+		Do().
+		Error()
 }
 
 // GetDeployment queries deployments with given labels and returns them
 func (c *client) GetDeployment(labels map[string]string) (*DeploymentList, error) {
-	return nil, nil
+	var deployments DeploymentList
+	err := api.NewRequest(c.opts).
+		Get().
+		Resource("deployments").
+		Params(&api.Params{LabelSelector: labels}).
+		Do().
+		Into(&deployments)
+
+	return &deployments, err
 }
 
 // UpdateDeployment patches kubernetes deployment with metadata provided in body
@@ -107,6 +129,16 @@ func (c *client) UpdateDeployment(d *Deployment) error {
 		Resource("deployments").
 		Name(d.Metadata.Name).
 		Body(d.Spec).
+		Do().
+		Error()
+}
+
+// DeleteDeployment deletes kubernetes deployment
+func (c *client) DeleteDeployment(d *Deployment) error {
+	return api.NewRequest(c.opts).
+		Delete().
+		Resource("deployments").
+		Name(d.Metadata.Name).
 		Do().
 		Error()
 }
@@ -129,32 +161,72 @@ func (c *client) ListDeployments() (*DeploymentList, error) {
 	return &deployments, err
 }
 
-// DeleteDeployment deletes kubernetes deployment
-func (c *client) DeleteDeployment(d *Deployment) error {
-	return nil
-}
-
 // CreateService creates kubernetes services
 func (c *client) CreateService(s *Service) error {
-	return nil
+	b := new(bytes.Buffer)
+	path := filepath.Join("internal", "templates", "service.yaml.tmpl")
+	if err := renderTemplateFile(path, b, s); err != nil {
+		return err
+	}
+
+	return api.NewRequest(c.opts).
+		Post().
+		SetHeader("Content-Type", "application/yaml").
+		Resource("services").
+		Body(b).
+		Do().
+		Error()
 }
 
 // GetService queries kubernetes services and returns them
 func (c *client) GetService(labels map[string]string) (*ServiceList, error) {
-	return nil, nil
+	var services ServiceList
+	err := api.NewRequest(c.opts).
+		Get().
+		Resource("services").
+		Params(&api.Params{LabelSelector: labels}).
+		Do().
+		Into(&services)
+
+	return &services, err
 }
 
 // UpdateService updates kubernetes service
 func (c *client) UpdateService(s *Service) error {
-	return nil
+	return api.NewRequest(c.opts).
+		Patch().
+		SetHeader("Content-Type", "application/strategic-merge-patch+json").
+		Resource("services").
+		Name(s.Metadata.Name).
+		Body(s.Spec).
+		Do().
+		Error()
 }
 
 // DeleteService deletes kubernetes service
 func (c *client) DeleteService(s *Service) error {
-	return nil
+	return api.NewRequest(c.opts).
+		Delete().
+		Resource("services").
+		Name(s.Metadata.Name).
+		Do().
+		Error()
 }
 
 // ListServices lists kubernetes services and returns them
 func (c *client) ListServices() (*ServiceList, error) {
-	return nil, nil
+	// NOTE: this lists all micro services
+	labels := map[string]string{
+		"micro": "service",
+	}
+
+	var services ServiceList
+	err := api.NewRequest(c.opts).
+		Get().
+		Resource("services").
+		Params(&api.Params{LabelSelector: labels}).
+		Do().
+		Into(&services)
+
+	return &services, err
 }

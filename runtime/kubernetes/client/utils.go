@@ -5,7 +5,9 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
+	"text/template"
 )
 
 // DefaultService returns default micro kubernetes service definition
@@ -86,6 +88,19 @@ func DefaultDeployment(name, version string) *Deployment {
 		Metadata: Metadata,
 		Spec:     Spec,
 	}
+}
+
+func renderTemplateFile(path string, w io.Writer, data interface{}) error {
+	t, err := template.ParseFiles(path)
+	if err != nil {
+		return err
+	}
+
+	if err := t.Execute(w, data); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // COPIED FROM
