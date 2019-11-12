@@ -178,6 +178,9 @@ func (s *sqlStore) initDB(options options.Options) error {
 		expiry timestamp with time zone,
 		CONSTRAINT %s_pkey PRIMARY KEY (key)
 	);`, s.table, s.table))
+	if err != nil {
+		return errors.Wrap(err, "SQL statement preparation failed")
+	}
 	_, err = tableq.Exec()
 	if err != nil {
 		return errors.Wrap(err, "Couldn't create table")
