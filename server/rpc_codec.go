@@ -2,6 +2,7 @@ package server
 
 import (
 	"bytes"
+	"sync"
 
 	"github.com/micro/go-micro/codec"
 	raw "github.com/micro/go-micro/codec/bytes"
@@ -22,10 +23,13 @@ type rpcCodec struct {
 
 	req *transport.Message
 	buf *readWriteCloser
+	sync.RWMutex
 }
 
 type readWriteCloser struct {
+	wmu  sync.RWMutex
 	wbuf *bytes.Buffer
+	rmu  sync.RWMutex
 	rbuf *bytes.Buffer
 }
 
@@ -54,16 +58,24 @@ var (
 )
 
 func (rwc *readWriteCloser) Read(p []byte) (n int, err error) {
+	rwc.rmu.RLock()
+	defer rwc.rmu.RUnlock()
 	return rwc.rbuf.Read(p)
 }
 
 func (rwc *readWriteCloser) Write(p []byte) (n int, err error) {
+	rwc.wmu.Lock()
+	defer rwc.wmu.Unlock()
 	return rwc.wbuf.Write(p)
 }
 
 func (rwc *readWriteCloser) Close() error {
+	rwc.rmu.Lock()
 	rwc.rbuf.Reset()
+	rwc.rmu.Unlock()
+	rwc.wmu.Lock()
 	rwc.wbuf.Reset()
+	rwc.wmu.Unlock()
 	return nil
 }
 
@@ -189,21 +201,28 @@ func (c *rpcCodec) ReadHeader(r *codec.Message, t codec.MessageType) error {
 		Body:   c.req.Body,
 	}
 
+	c.RLock()
+	first := c.first
+	c.RUnlock()
+
 	// first message could be pre-loaded
-	if !c.first {
+	if !first {
 		var tm transport.Message
 
 		// read off the socket
 		if err := c.socket.Recv(&tm); err != nil {
 			return err
 		}
+		c.buf.rmu.Lock()
 		// reset the read buffer
 		c.buf.rbuf.Reset()
 
 		// write the body to the buffer
 		if _, err := c.buf.rbuf.Write(tm.Body); err != nil {
+			c.buf.rmu.Unlock()
 			return err
 		}
+		c.buf.rmu.Unlock()
 
 		// set the message header
 		m.Header = tm.Header
@@ -214,8 +233,10 @@ func (c *rpcCodec) ReadHeader(r *codec.Message, t codec.MessageType) error {
 		c.req = &tm
 	}
 
+	c.Lock()
 	// disable first
 	c.first = false
+	c.Unlock()
 
 	// set some internal things
 	getHeaders(&m)
@@ -251,7 +272,9 @@ func (c *rpcCodec) ReadBody(b interface{}) error {
 }
 
 func (c *rpcCodec) Write(r *codec.Message, b interface{}) error {
+	c.buf.wmu.Lock()
 	c.buf.wbuf.Reset()
+	c.buf.wmu.Unlock()
 
 	// create a new message
 	m := &codec.Message{
@@ -281,7 +304,9 @@ func (c *rpcCodec) Write(r *codec.Message, b interface{}) error {
 		body = r.Body
 		// write the body to codec
 	} else if err := c.codec.Write(m, b); err != nil {
+		c.buf.wmu.Lock()
 		c.buf.wbuf.Reset()
+		c.buf.wmu.Unlock()
 
 		// write an error if it failed
 		m.Error = errors.Wrapf(err, "Unable to encode body").Error()
@@ -293,7 +318,9 @@ func (c *rpcCodec) Write(r *codec.Message, b interface{}) error {
 		}
 	} else {
 		// set the body
+		c.buf.wmu.RLock()
 		body = c.buf.wbuf.Bytes()
+		c.buf.wmu.RUnlock()
 	}
 
 	// Set content type if theres content
