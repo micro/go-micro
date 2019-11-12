@@ -103,6 +103,7 @@ func (c *client) GetDeployment(labels map[string]string) (*DeploymentList, error
 func (c *client) UpdateDeployment(d *Deployment) error {
 	return api.NewRequest(c.opts).
 		Patch().
+		SetHeader("Content-Type", "application/strategic-merge-patch+json").
 		Resource("deployments").
 		Name(d.Metadata.Name).
 		Body(d.Spec).
@@ -112,7 +113,7 @@ func (c *client) UpdateDeployment(d *Deployment) error {
 
 // ListDeployments lists all kubernetes deployments with given labels
 func (c *client) ListDeployments() (*DeploymentList, error) {
-	// TODO: this lists all micro services
+	// NOTE: this lists all micro services
 	labels := map[string]string{
 		"micro": "service",
 	}

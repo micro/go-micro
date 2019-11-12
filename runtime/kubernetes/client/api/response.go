@@ -11,9 +11,9 @@ import (
 
 // Errors ...
 var (
-	ErrNotFound = errors.New("kubernetes: not found")
+	ErrNotFound = errors.New("kubernetes: resource not found")
 	ErrDecode   = errors.New("kubernetes: error decoding")
-	ErrOther    = errors.New("kubernetes: unknown error")
+	ErrUnknown  = errors.New("kubernetes: unknown error")
 )
 
 // Status is an object that is returned when a request
@@ -89,6 +89,7 @@ func newResponse(res *http.Response, err error) *Response {
 		log.Log("kubernetes: request failed with body:")
 		log.Log(string(b))
 	}
-	r.err = ErrOther
+	r.err = ErrUnknown
+
 	return r
 }

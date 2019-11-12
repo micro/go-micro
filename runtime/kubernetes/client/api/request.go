@@ -3,6 +3,7 @@ package api
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -47,7 +48,6 @@ func (r *Request) Get() *Request {
 
 // Post request
 func (r *Request) Post() *Request {
-	// TODO: allow to specify Content-Type: application/yaml or application/json
 	return r.verb("POST")
 }
 
@@ -57,9 +57,8 @@ func (r *Request) Put() *Request {
 }
 
 // Patch request
-// https://github.com/kubernetes/kubernetes/blob/master/docs/devel/api-conventions.md#patch-operations
 func (r *Request) Patch() *Request {
-	return r.verb("PATCH").SetHeader("Content-Type", "application/strategic-merge-patch+json")
+	return r.verb("PATCH")
 }
 
 // Delete request
@@ -86,15 +85,32 @@ func (r *Request) Name(s string) *Request {
 	return r
 }
 
-// Body pass in a body to set, this is for POST, PUT
-// and PATCH requests
+// Body pass in a body to set, this is for POST, PUT and PATCH requests
 func (r *Request) Body(in interface{}) *Request {
-	// TODO: based on the content type do the encoding
 	b := new(bytes.Buffer)
-	if err := json.NewEncoder(b).Encode(&in); err != nil {
+	// if we're not sending YAML request, we encode to JSON
+	if r.header.Get("Content-Type") != "application/yaml" {
+		if err := json.NewEncoder(b).Encode(&in); err != nil {
+			r.err = err
+			return r
+		}
+		log.Debugf("Request body: %v", b)
+		r.body = b
+		return r
+	}
+
+	// if application/yaml is set, we assume we get a raw bytes so we just copy over
+	body, ok := in.(io.Reader)
+	if !ok {
+		r.err = errors.New("invalid data")
+		return r
+	}
+	// copy over data to the bytes buffer
+	if _, err := io.Copy(b, body); err != nil {
 		r.err = err
 		return r
 	}
+
 	log.Debugf("Request body: %v", b)
 	r.body = b
 	return r
@@ -120,7 +136,7 @@ func (r *Request) SetHeader(key, value string) *Request {
 func (r *Request) request() (*http.Request, error) {
 	var url string
 	switch r.resource {
-	case "pods":
+	case "pods", "services", "endpoints":
 		// /api/v1/namespaces/{namespace}/pods
 		url = fmt.Sprintf("%s/api/v1/namespaces/%s/%s/", r.host, r.namespace, r.resource)
 	case "deployments":
