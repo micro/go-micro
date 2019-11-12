@@ -1,6 +1,11 @@
 // Package client provides an implementation of a restricted subset of kubernetes API client
 package client
 
+var (
+	// DefaultImage is default micro image
+	DefaultImage = "micro/micro"
+)
+
 // Kubernetes client
 type Kubernetes interface {
 	// CreateDeployment creates new kubernetes deployment
@@ -17,7 +22,7 @@ type Kubernetes interface {
 	CreateService(*Service) error
 	// GetService queries kubernetes services and returns the matches
 	GetService(map[string]string) (*ServiceList, error)
-	// UpdateService updates kubernetes service
+	// UpdateService patches kubernetes service
 	UpdateService(*Service) error
 	// DeleteService deletes kubernetes service
 	DeleteService(*Service) error
@@ -25,21 +30,42 @@ type Kubernetes interface {
 	ListServices() (*ServiceList, error)
 }
 
+// Metadata defines api object metadata
+type Metadata struct {
+	Name        string            `json:"name,omitempty"`
+	Namespace   string            `json:"namespace,omitempty"`
+	Version     string            `json:"version,omitempty"`
+	Labels      map[string]string `json:"labels,omitempty"`
+	Annotations map[string]string `json:"annotations,omitempty"`
+}
+
 // ServicePort configures service ports
 type ServicePort struct {
-	Name string `json:"name,omitempty"`
-	Port int    `json:"port"`
+	Name     string `json:"name,omitempty"`
+	Port     int    `json:"port"`
+	Protocol string `json:"protocol,omitempty"`
 }
 
 // ServiceSpec provides service configuration
 type ServiceSpec struct {
-	Ports    []ServicePort     `json:"ports,omitempty"`
-	Selector map[string]string `json:"selector,omitempty"`
 	Type     string            `json:"type,omitempty"`
+	Selector map[string]string `json:"selector,omitempty"`
+	Ports    []ServicePort     `json:"ports,omitempty"`
+}
+
+type LoadBalancerIngress struct {
+	IP       string `json:"ip,omitempty"`
+	Hostname string `json:"hostname,omitempty"`
+}
+
+type LoadBalancerStatus struct {
+	Ingress []LoadBalancerIngress `json:"ingress,omitempty"`
 }
 
 // ServiceStatus
-type ServiceStatus struct{}
+type ServiceStatus struct {
+	LoadBalancer LoadBalancerStatus `json:"loadBalancer,omitempty"`
+}
 
 // Service is kubernetes service
 type Service struct {
@@ -53,15 +79,7 @@ type ServiceList struct {
 	Items []Service `json:"items"`
 }
 
-// Metadata defines api request metadata
-type Metadata struct {
-	Name        string            `json:"name,omitempty"`
-	Namespace   string            `json:"namespace,omitempty"`
-	Version     string            `json:"version,omitempty"`
-	Labels      map[string]string `json:"labels,omitempty"`
-	Annotations map[string]string `json:"annotations,omitempty"`
-}
-
+// ContainerPort
 type ContainerPort struct {
 	Name          string `json:"name,omitempty"`
 	HostPort      int    `json:"hostPort,omitempty"`
@@ -69,14 +87,16 @@ type ContainerPort struct {
 	Protocol      string `json:"protocol,omitempty"`
 }
 
+// EnvVar is environment variable
 type EnvVar struct {
 	Name  string `json:"name"`
 	Value string `json:"value,omitempty"`
 }
 
+// Container defined container runtime values
 type Container struct {
 	Name  string          `json:"name"`
-	Image string          `json:"image,omitempty"`
+	Image string          `json:"image"`
 	Env   []EnvVar        `json:"env,omitempty"`
 	Ports []ContainerPort `json:"ports,omitempty"`
 }

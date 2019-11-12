@@ -13,6 +13,7 @@ import (
 )
 
 var (
+	// path to kubernetes service account token
 	serviceAccountPath = "/var/run/secrets/kubernetes.io/serviceaccount"
 	// ErrReadNamespace is returned when the names could not be read from service account
 	ErrReadNamespace = errors.New("Could not read namespace from service account secret")
@@ -23,9 +24,7 @@ type client struct {
 	opts *api.Options
 }
 
-// NewClientInCluster should work similarily to the official api
-// NewInClient by setting up a client configuration for use within
-// a k8s pod.
+// NewClientInCluster creates a Kubernetes client for use from within a k8s pod.
 func NewClientInCluster() *client {
 	host := "https://" + os.Getenv("KUBERNETES_SERVICE_HOST") + ":" + os.Getenv("KUBERNETES_SERVICE_PORT")
 
@@ -34,7 +33,7 @@ func NewClientInCluster() *client {
 		log.Fatal(err)
 	}
 	if s == nil || !s.IsDir() {
-		log.Fatal(errors.New("no k8s service account found"))
+		log.Fatal(errors.New("service account not found"))
 	}
 
 	token, err := ioutil.ReadFile(path.Join(serviceAccountPath, "token"))
@@ -113,7 +112,7 @@ func (c *client) UpdateDeployment(d *Deployment) error {
 
 // ListDeployments lists all kubernetes deployments with given labels
 func (c *client) ListDeployments() (*DeploymentList, error) {
-	// TODO: this list all micro services
+	// TODO: this lists all micro services
 	labels := map[string]string{
 		"micro": "service",
 	}

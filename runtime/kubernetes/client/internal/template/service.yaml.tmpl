@@ -1,22 +1,26 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ .Name }}
-  namespace: {{ .Namespace }}
+  name: "{{ .Metadata.Name }}"
+  namespace: "{{ .Metadata.Namespace }}"
   labels:
-    name: {{ .Name }}
-    version: {{ .Version }}
-    micro: service
+    {{- with .Metadata.Labels }}
+    {{- range $key, $value := . }}
+    {{ $key }}: "{{ $value }}"
+    {{- end }}
+    {{- end }}
 spec:
   selector:
-    name: {{ .Name }}
-    version: {{ .Version }}
-    micro: service
+    {{- with .Spec.Selector }}
+    {{- range $key, $value := . }}
+    {{ $key }}: "{{ $value }}"
+    {{- end }}
+    {{- end }}
   ports:
-  {{ with .Ports }}
-  {{ range . }}
-  - name: {{ .Name }}
+  {{- with .Spec.Ports }}
+  {{- range . }}
+  - name: "{{ .Name }}"
     port: {{ .Port }}
-    protocol: TCP
-  {{ end }}
-  {{ end }}
+    protocol: {{ .Protocol }}
+  {{- end }}
+  {{- end }}

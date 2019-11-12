@@ -8,6 +8,86 @@ import (
 	"io/ioutil"
 )
 
+// DefaultService returns default micro kubernetes service definition
+func DefaultService(name, version string) *Service {
+	Labels := map[string]string{
+		"name":    name,
+		"micro":   "service",
+		"version": version,
+	}
+
+	Metadata := &Metadata{
+		Name:      name,
+		Namespace: "default",
+		Version:   version,
+		Labels:    Labels,
+	}
+
+	Spec := &ServiceSpec{
+		Type:     "ClusterIP",
+		Selector: Labels,
+		Ports: []ServicePort{{
+			name + "-port", 9090, "",
+		}},
+	}
+
+	return &Service{
+		Metadata: Metadata,
+		Spec:     Spec,
+	}
+}
+
+// DefaultService returns default micro kubernetes deployment definition
+func DefaultDeployment(name, version string) *Deployment {
+	Labels := map[string]string{
+		"name":    name,
+		"micro":   "service",
+		"version": version,
+	}
+
+	Metadata := &Metadata{
+		Name:      name,
+		Namespace: "default",
+		Version:   version,
+		Labels:    Labels,
+	}
+
+	Env := []EnvVar{
+		{"MICRO_BROKER", "nats"},
+		{"MICRO_BROKER_ADDRESS", "nats-cluster"},
+		{"MICRO_REGISTRY", "etcd"},
+		{"MICRO_REGISTRY_ADDRESS", "etcd-cluster"},
+		{"MICRO_PROXY", "go.micro.proxy"},
+	}
+
+	// TODO: change the image name here
+	Spec := &DeploymentSpec{
+		Replicas: 1,
+		Selector: &LabelSelector{
+			MatchLabels: Labels,
+		},
+		Template: &Template{
+			Metadata: Metadata,
+			PodSpec: &PodSpec{
+				Containers: []Container{{
+					Name:  name,
+					Image: DefaultImage,
+					Env:   Env,
+					Ports: []ContainerPort{{
+						Name:          name + "-port",
+						ContainerPort: 8080,
+					}},
+				}},
+			},
+		},
+	}
+
+	return &Deployment{
+		Metadata: Metadata,
+		Spec:     Spec,
+	}
+}
+
 // COPIED FROM
 // https://github.com/kubernetes/kubernetes/blob/7a725418af4661067b56506faabc2d44c6d7703a/pkg/util/crypto/crypto.go
 
