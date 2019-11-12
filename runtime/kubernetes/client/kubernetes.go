@@ -30,118 +30,82 @@ type Kubernetes interface {
 	ListServices() (*ServiceList, error)
 }
 
-// Metadata defines api object metadata
-type Metadata struct {
-	Name        string            `json:"name,omitempty"`
-	Namespace   string            `json:"namespace,omitempty"`
-	Version     string            `json:"version,omitempty"`
-	Labels      map[string]string `json:"labels,omitempty"`
-	Annotations map[string]string `json:"annotations,omitempty"`
+// DefaultService returns default micro kubernetes service definition
+func DefaultService(name, version string) *Service {
+	Labels := map[string]string{
+		"name":    name,
+		"micro":   "service",
+		"version": version,
+	}
+
+	Metadata := &Metadata{
+		Name:      name,
+		Namespace: "default",
+		Version:   version,
+		Labels:    Labels,
+	}
+
+	Spec := &ServiceSpec{
+		Type:     "ClusterIP",
+		Selector: Labels,
+		Ports: []ServicePort{{
+			name + "-port", 9090, "",
+		}},
+	}
+
+	return &Service{
+		Metadata: Metadata,
+		Spec:     Spec,
+	}
 }
 
-// ServicePort configures service ports
-type ServicePort struct {
-	Name     string `json:"name,omitempty"`
-	Port     int    `json:"port"`
-	Protocol string `json:"protocol,omitempty"`
-}
+// DefaultService returns default micro kubernetes deployment definition
+func DefaultDeployment(name, version string) *Deployment {
+	Labels := map[string]string{
+		"name":    name,
+		"micro":   "service",
+		"version": version,
+	}
 
-// ServiceSpec provides service configuration
-type ServiceSpec struct {
-	Type     string            `json:"type,omitempty"`
-	Selector map[string]string `json:"selector,omitempty"`
-	Ports    []ServicePort     `json:"ports,omitempty"`
-}
+	Metadata := &Metadata{
+		Name:      name,
+		Namespace: "default",
+		Version:   version,
+		Labels:    Labels,
+	}
 
-type LoadBalancerIngress struct {
-	IP       string `json:"ip,omitempty"`
-	Hostname string `json:"hostname,omitempty"`
-}
+	Env := []EnvVar{
+		{"MICRO_BROKER", "nats"},
+		{"MICRO_BROKER_ADDRESS", "nats-cluster"},
+		{"MICRO_REGISTRY", "etcd"},
+		{"MICRO_REGISTRY_ADDRESS", "etcd-cluster"},
+		{"MICRO_PROXY", "go.micro.proxy"},
+	}
 
-type LoadBalancerStatus struct {
-	Ingress []LoadBalancerIngress `json:"ingress,omitempty"`
-}
+	// TODO: change the image name here
+	Spec := &DeploymentSpec{
+		Replicas: 1,
+		Selector: &LabelSelector{
+			MatchLabels: Labels,
+		},
+		Template: &Template{
+			Metadata: Metadata,
+			PodSpec: &PodSpec{
+				Containers: []Container{{
+					Name:  name,
+					Image: DefaultImage,
+					Env:   Env,
+					Ports: []ContainerPort{{
+						Name:          name + "-port",
+						ContainerPort: 8080,
+					}},
+				}},
+			},
+		},
+	}
 
-// ServiceStatus
-type ServiceStatus struct {
-	LoadBalancer LoadBalancerStatus `json:"loadBalancer,omitempty"`
-}
-
-// Service is kubernetes service
-type Service struct {
-	Metadata *Metadata      `json:"metadata"`
-	Spec     *ServiceSpec   `json:"spec,omitempty"`
-	Status   *ServiceStatus `json:"status,omitempty"`
-}
-
-// ServiceList
-type ServiceList struct {
-	Items []Service `json:"items"`
-}
-
-// ContainerPort
-type ContainerPort struct {
-	Name          string `json:"name,omitempty"`
-	HostPort      int    `json:"hostPort,omitempty"`
-	ContainerPort int    `json:"containerPort"`
-	Protocol      string `json:"protocol,omitempty"`
-}
-
-// EnvVar is environment variable
-type EnvVar struct {
-	Name  string `json:"name"`
-	Value string `json:"value,omitempty"`
-}
-
-// Container defined container runtime values
-type Container struct {
-	Name  string          `json:"name"`
-	Image string          `json:"image"`
-	Env   []EnvVar        `json:"env,omitempty"`
-	Ports []ContainerPort `json:"ports,omitempty"`
-}
-
-// PodSpec
-type PodSpec struct {
-	Containers []Container `json:"containers"`
-}
-
-// Template is micro deployment template
-type Template struct {
-	Metadata *Metadata `json:"metadata,omitempty"`
-	PodSpec  *PodSpec  `json:"spec,omitempty"`
-}
-
-// LabelSelector is a label query over a set of resources
-// NOTE: we do not support MatchExpressions at the moment
-type LabelSelector struct {
-	MatchLabels map[string]string `json:"matchLabels,omitempty"`
-}
-
-// DeploymentSpec defines micro deployment spec
-type DeploymentSpec struct {
-	Replicas int            `json:"replicas,omitempty"`
-	Selector *LabelSelector `json:"selector"`
-	Template *Template      `json:"template,omitempty"`
-}
-
-// DeploymentStatus is returned when querying deployment
-type DeploymentStatus struct {
-	Replicas            int `json:"replicas,omitempty"`
-	UpdatedReplicas     int `json:"updatedReplicas,omitempty"`
-	ReadyReplicas       int `json:"readyReplicas,omitempty"`
-	AvailableReplicas   int `json:"availableReplicas,omitempty"`
-	UnavailableReplicas int `json:"unavailableReplicas,omitempty"`
-}
-
-// Deployment is Kubernetes deployment
-type Deployment struct {
-	Metadata *Metadata         `json:"metadata"`
-	Spec     *DeploymentSpec   `json:"spec,omitempty"`
-	Status   *DeploymentStatus `json:"status,omitempty"`
-}
-
-// DeploymentList
-type DeploymentList struct {
-	Items []Deployment `json:"items"`
+	return &Deployment{
+		Metadata: Metadata,
+		Spec:     Spec,
+	}
 }
