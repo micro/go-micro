@@ -1,6 +1,13 @@
 // Package client provides an implementation of a restricted subset of kubernetes API client
 package client
 
+import (
+	"strconv"
+	"time"
+
+	"github.com/micro/go-micro/util/log"
+)
+
 var (
 	// DefaultImage is default micro image
 	DefaultImage = "micro/micro"
@@ -72,6 +79,17 @@ func DefaultDeployment(name, version string) *Deployment {
 		Namespace: "default",
 		Version:   version,
 		Labels:    Labels,
+	}
+
+	// TODO: we need to figure out this version stuff; might need to add Build to runtime.Service
+	buildTime, err := strconv.ParseInt(version, 10, 64)
+	if err == nil {
+		buildUnixTimeUTC := time.Unix(buildTime, 0)
+		Metadata.Annotations = map[string]string{
+			"build": buildUnixTimeUTC.Format(time.RFC3339),
+		}
+	} else {
+		log.Debugf("Runtime could not parse build: %v", err)
 	}
 
 	Env := []EnvVar{

@@ -205,10 +205,17 @@ func (c *client) UpdateService(s *Service) error {
 
 // DeleteService deletes kubernetes service
 func (c *client) DeleteService(s *Service) error {
+	// set the default label
+	labels := map[string]string{
+		"micro":   "service",
+		"name":    s.Metadata.Name,
+		"version": s.Metadata.Version,
+	}
+
 	return api.NewRequest(c.opts).
 		Delete().
 		Resource("services").
-		Name(s.Metadata.Name).
+		Params(&api.Params{LabelSelector: labels}).
 		Do().
 		Error()
 }
