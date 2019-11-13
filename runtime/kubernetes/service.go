@@ -1,9 +1,7 @@
 package kubernetes
 
 import (
-	"io"
 	"strings"
-	"sync"
 
 	"github.com/micro/go-micro/runtime"
 	"github.com/micro/go-micro/runtime/kubernetes/client"
@@ -11,11 +9,8 @@ import (
 )
 
 type service struct {
-	sync.RWMutex
 	// service to manage
 	*runtime.Service
-	// output for logs
-	output io.Writer
 	// Kubernetes service
 	kservice *client.Service
 	// Kubernetes deployment
@@ -46,7 +41,6 @@ func newService(s *runtime.Service, c runtime.CreateOptions) *service {
 		Service:  s,
 		kservice: kservice,
 		kdeploy:  kdeploy,
-		output:   c.Output,
 	}
 }
 
