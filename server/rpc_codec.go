@@ -63,8 +63,8 @@ var (
 )
 
 func (rwc *readWriteCloser) Read(p []byte) (n int, err error) {
-	rwc.Lock()
-	defer rwc.Unlock()
+	rwc.RLock()
+	defer rwc.RUnlock()
 	return rwc.rbuf.Read(p)
 }
 
