@@ -1,7 +1,9 @@
 package memory
 
 import (
+	"fmt"
 	"testing"
+	"time"
 
 	"github.com/micro/go-micro/registry"
 )
@@ -159,6 +161,83 @@ func TestMemoryRegistry(t *testing.T) {
 			if len(services) != 0 {
 				t.Errorf("Expected %d services for %s, got %d", 0, service.Name, len(services))
 			}
+		}
+	}
+}
+
+func TestMemoryRegistryTTL(t *testing.T) {
+	m := NewRegistry()
+
+	for _, v := range testData {
+		for _, service := range v {
+			if err := m.Register(service, registry.RegisterTTL(time.Millisecond)); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+
+	time.Sleep(time.Millisecond)
+
+	for name := range testData {
+		svcs, err := m.GetService(name)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		for _, svc := range svcs {
+			if len(svc.Nodes) > 0 {
+				t.Fatalf("Service %q still has nodes registered", name)
+			}
+		}
+	}
+}
+
+func TestMemoryRegistryTTLConcurrent(t *testing.T) {
+	concurrency := 1000
+	waitTime := time.Second
+	m := NewRegistry()
+
+	for _, v := range testData {
+		for _, service := range v {
+			if err := m.Register(service, registry.RegisterTTL(waitTime)); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+
+	t.Logf("test will wait %v, then check TTL timeouts", waitTime)
+
+	errChan := make(chan error, concurrency)
+	syncChan := make(chan struct{})
+
+	for i := 0; i < concurrency; i++ {
+		go func() {
+			<-syncChan
+			for name := range testData {
+				svcs, err := m.GetService(name)
+				if err != nil {
+					errChan <- err
+					return
+				}
+
+				for _, svc := range svcs {
+					if len(svc.Nodes) > 0 {
+						errChan <- fmt.Errorf("Service %q still has nodes registered", name)
+						return
+					}
+				}
+			}
+
+			errChan <- nil
+		}()
+	}
+
+	time.Sleep(waitTime)
+	close(syncChan)
+
+	for i := 0; i < concurrency; i++ {
+		if err := <-errChan; err != nil {
+			t.Fatal(err)
 		}
 	}
 }
