@@ -19,7 +19,7 @@ type kubernetes struct {
 	// indicates if we're running
 	running bool
 	// used to start new services
-	start chan *runtime.Service
+	start chan *service
 	// used to stop the runtime
 	closed chan bool
 	// client is kubernetes client
@@ -42,7 +42,7 @@ func NewRuntime(opts ...runtime.Option) runtime.Runtime {
 	return &kubernetes{
 		options: options,
 		closed:  make(chan bool),
-		start:   make(chan *runtime.Service, 128),
+		start:   make(chan *service, 128),
 		client:  client,
 	}
 }
@@ -69,8 +69,11 @@ func (k *kubernetes) Create(s *runtime.Service, opts ...runtime.CreateOption) er
 		o(&options)
 	}
 
+	// create new kubernetes micro service
+	service := newService(s, options)
+
 	// push into start queue
-	k.start <- s
+	k.start <- service
 
 	return nil
 }
@@ -167,10 +170,16 @@ func (k *kubernetes) run(events <-chan runtime.Event) {
 				log.Debugf("Runtime found running service: %v", service)
 			}
 		case service := <-k.start:
-			// TODO: this is a noop for now
-			// * create a deployment
-			// * expose a service
 			log.Debugf("Runtime starting service: %s", service.Name)
+			// create deployment first; if we fail, we dont create service
+			if err := k.client.CreateDeployment(service.kdeploy); err != nil {
+				log.Debugf("Runtime failed to create deployment: %v", err)
+				continue
+			}
+			// create service now that the deployment has been created
+			if err := k.client.CreateService(service.kservice); err != nil {
+				log.Debugf("Runtime failed to create service: %v", err)
+			}
 		case event := <-events:
 			// NOTE: we only handle Update events for now
 			log.Debugf("Runtime received notification event: %v", event)

@@ -32,6 +32,7 @@ require (
 	github.com/mholt/certmagic v0.8.3
 	github.com/micro/cli v0.2.0
 	github.com/micro/mdns v0.3.0
+	github.com/miekg/dns v1.1.15
 	github.com/mitchellh/hashstructure v1.0.0
 	github.com/nats-io/nats.go v1.9.1
 	github.com/nlopes/slack v0.6.0

@@ -39,10 +39,9 @@ spec:
           {{- end }}
           {{- end }}
           command:
-          - "go"
-          args:
-          - "run"
-          - "main.go"
+          {{- range .Command }}
+          - {{.}}
+          {{- end }}
           image: {{ .Image }}
           imagePullPolicy: Always
           ports:

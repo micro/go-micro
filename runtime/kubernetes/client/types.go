@@ -65,10 +65,11 @@ type EnvVar struct {
 
 // Container defined container runtime values
 type Container struct {
-	Name  string          `json:"name"`
-	Image string          `json:"image"`
-	Env   []EnvVar        `json:"env,omitempty"`
-	Ports []ContainerPort `json:"ports,omitempty"`
+	Name    string          `json:"name"`
+	Image   string          `json:"image"`
+	Env     []EnvVar        `json:"env,omitempty"`
+	Command []string        `json:"command,omitempty"`
+	Ports   []ContainerPort `json:"ports,omitempty"`
 }
 
 // PodSpec

@@ -92,9 +92,10 @@ func DefaultDeployment(name, version string) *Deployment {
 			Metadata: Metadata,
 			PodSpec: &PodSpec{
 				Containers: []Container{{
-					Name:  name,
-					Image: DefaultImage,
-					Env:   Env,
+					Name:    name,
+					Image:   DefaultImage,
+					Env:     Env,
+					Command: []string{"go", "run", "main.go"},
 					Ports: []ContainerPort{{
 						Name:          name + "-port",
 						ContainerPort: 8080,
