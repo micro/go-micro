@@ -2,6 +2,7 @@ package memory
 
 import (
 	"testing"
+	"time"
 
 	"github.com/micro/go-micro/registry"
 )
@@ -119,6 +120,33 @@ func TestMemoryRegistry(t *testing.T) {
 		for _, service := range v {
 			if err := m.Deregister(service); err != nil {
 				t.Errorf("Unexpected deregister error: %v", err)
+			}
+		}
+	}
+}
+
+func TestMemoryRegistryTTL(t *testing.T) {
+	m := NewRegistry()
+
+	for _, v := range testData {
+		for _, service := range v {
+			if err := m.Register(service, registry.RegisterTTL(time.Millisecond)); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+
+	time.Sleep(time.Millisecond) // JIC
+
+	for name := range testData {
+		svcs, err := m.GetService(name)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		for _, svc := range svcs {
+			if len(svc.Nodes) > 0 {
+				t.Fatalf("Service %q still has nodes registered", name)
 			}
 		}
 	}
