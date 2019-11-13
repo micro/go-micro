@@ -1,6 +1,7 @@
 package memory
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -126,7 +127,7 @@ func TestMemoryRegistry(t *testing.T) {
 }
 
 func TestMemoryRegistryTTL(t *testing.T) {
-	m := NewRegistry()
+	m := NewContextRegistry()
 
 	for _, v := range testData {
 		for _, service := range v {
@@ -136,7 +137,7 @@ func TestMemoryRegistryTTL(t *testing.T) {
 		}
 	}
 
-	time.Sleep(time.Millisecond) // JIC
+	time.Sleep(time.Millisecond)
 
 	for name := range testData {
 		svcs, err := m.GetService(name)
@@ -148,6 +149,56 @@ func TestMemoryRegistryTTL(t *testing.T) {
 			if len(svc.Nodes) > 0 {
 				t.Fatalf("Service %q still has nodes registered", name)
 			}
+		}
+	}
+}
+
+func TestMemoryRegistryTTLConcurrent(t *testing.T) {
+	concurrency := 1000
+	waitTime := time.Second
+	m := NewContextRegistry()
+
+	for _, v := range testData {
+		for _, service := range v {
+			if err := m.Register(service, registry.RegisterTTL(waitTime)); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+
+	t.Logf("test will wait %v, then check TTL timeouts", waitTime)
+
+	errChan := make(chan error, concurrency)
+	syncChan := make(chan struct{})
+
+	for i := 0; i < concurrency; i++ {
+		go func() {
+			<-syncChan
+			for name := range testData {
+				svcs, err := m.GetService(name)
+				if err != nil {
+					errChan <- err
+					return
+				}
+
+				for _, svc := range svcs {
+					if len(svc.Nodes) > 0 {
+						errChan <- fmt.Errorf("Service %q still has nodes registered", name)
+						return
+					}
+				}
+			}
+
+			errChan <- nil
+		}()
+	}
+
+	time.Sleep(waitTime)
+	close(syncChan)
+
+	for i := 0; i < concurrency; i++ {
+		if err := <-errChan; err != nil {
+			t.Fatal(err)
 		}
 	}
 }
