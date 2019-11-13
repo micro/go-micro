@@ -98,6 +98,7 @@ func DefaultDeployment(name, version string) *Deployment {
 		{"MICRO_REGISTRY", "etcd"},
 		{"MICRO_REGISTRY_ADDRESS", "etcd-cluster"},
 		{"MICRO_PROXY", "go.micro.proxy"},
+		{"MICRO_RUNTIME", "kubernetes"},
 	}
 
 	// TODO: change the image name here
