@@ -3,6 +3,7 @@ package client
 
 import (
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/micro/go-micro/util/log"
@@ -41,12 +42,15 @@ type Kubernetes interface {
 func DefaultService(name, version string) *Service {
 	Labels := map[string]string{
 		"name":    name,
-		"micro":   "service",
 		"version": version,
+		"micro":   "service",
 	}
 
+	// API service object name joins name and version over "-"
+	svcName := strings.Join([]string{name, version}, "-")
+
 	Metadata := &Metadata{
-		Name:      name,
+		Name:      svcName,
 		Namespace: "default",
 		Version:   version,
 		Labels:    Labels,
@@ -74,8 +78,11 @@ func DefaultDeployment(name, version string) *Deployment {
 		"version": version,
 	}
 
+	// API deployment object name joins name and version over "="
+	depName := strings.Join([]string{name, version}, "-")
+
 	Metadata := &Metadata{
-		Name:      name,
+		Name:      depName,
 		Namespace: "default",
 		Version:   version,
 		Labels:    Labels,

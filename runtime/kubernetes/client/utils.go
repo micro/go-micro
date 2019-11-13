@@ -10,7 +10,7 @@ import (
 	"text/template"
 )
 
-// renderTemplateFile renders template file in path into writer w
+// renderTemplateFile renders template file in path into writer w with supplied data
 func renderTemplateFile(path string, w io.Writer, data interface{}) error {
 	t, err := template.ParseFiles(path)
 	if err != nil {
