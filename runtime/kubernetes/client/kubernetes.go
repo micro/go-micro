@@ -100,11 +100,10 @@ func DefaultDeployment(name, version string) *Deployment {
 	}
 
 	Env := []EnvVar{
-		{"MICRO_BROKER", "nats"},
-		{"MICRO_BROKER_ADDRESS", "nats-cluster"},
 		{"MICRO_REGISTRY", "etcd"},
 		{"MICRO_REGISTRY_ADDRESS", "etcd-cluster"},
-		{"MICRO_PROXY", "go.micro.proxy"},
+		{"MICRO_BROKER", "nats"},
+		{"MICRO_BROKER_ADDRESS", "nats-cluster"},
 		{"MICRO_RUNTIME", "kubernetes"},
 	}
 
