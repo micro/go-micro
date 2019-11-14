@@ -231,9 +231,20 @@ func (r *runtime) Delete(s *Service) error {
 	r.Lock()
 	defer r.Unlock()
 
+	log.Debugf("Runtime deleting service %s", s.Name)
 	if s, ok := r.services[s.Name]; ok {
+		// check if running
+		if !s.Running() {
+			delete(r.services, s.Name)
+			return nil
+		}
+		// otherwise stop it
+		if err := s.Stop(); err != nil {
+			return err
+		}
+		// delete it
 		delete(r.services, s.Name)
-		return s.Stop()
+		return nil
 	}
 
 	return nil
