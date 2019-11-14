@@ -168,8 +168,14 @@ func (s *service) Run() error {
 		return err
 	}
 
-	ch := make(chan os.Signal, 1)
-	signal.Notify(ch, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
+	var ch chan os.Signal
+
+	if s.opts.SignalChan != nil {
+		ch = s.opts.SignalChan
+	} else {
+		ch = make(chan os.Signal, 1)
+		signal.Notify(ch, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
+	}
 
 	select {
 	// wait on kill signal
