@@ -59,17 +59,8 @@ type GetOption func(o *GetOptions)
 
 // GetOptions queries runtime services
 type GetOptions struct {
-	// Name queries services with given name
-	Name string
 	// Version queries services with given version
 	Version string
-}
-
-// WithName confifgures service name
-func WithName(name string) GetOption {
-	return func(o *GetOptions) {
-		o.Name = name
-	}
 }
 
 // WithVersion confifgures service version

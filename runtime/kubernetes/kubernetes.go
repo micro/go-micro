@@ -2,6 +2,7 @@
 package kubernetes
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"sync"
@@ -97,23 +98,25 @@ func (k *kubernetes) Create(s *runtime.Service, opts ...runtime.CreateOption) er
 }
 
 // Get returns all instances of given service
-func (k *kubernetes) Get(opts ...runtime.GetOption) ([]*runtime.Service, error) {
+func (k *kubernetes) Get(name string, opts ...runtime.GetOption) ([]*runtime.Service, error) {
 	k.Lock()
 	defer k.Unlock()
 
-	var options runtime.GetOptions
-	for _, o := range opts {
-		o(&options)
+	// if no name has been passed in, return error
+	if len(name) == 0 {
+		return nil, errors.New("missing service name")
 	}
 
 	// set the default label
 	labels := map[string]string{
 		"micro": "service",
+		"name":  name,
 	}
-	// add name to labels if a name has been supplied
-	if len(options.Name) > 0 {
-		labels["name"] = options.Name
+	var options runtime.GetOptions
+	for _, o := range opts {
+		o(&options)
 	}
+
 	// add version to labels if a version has been supplied
 	if len(options.Version) > 0 {
 		labels["version"] = options.Version

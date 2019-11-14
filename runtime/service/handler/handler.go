@@ -54,10 +54,6 @@ func toCreateOptions(opts *pb.CreateOptions) []runtime.CreateOption {
 
 func toGetOptions(opts *pb.GetOptions) []runtime.GetOption {
 	options := []runtime.GetOption{}
-	// name options
-	if len(opts.Name) > 0 {
-		options = append(options, runtime.WithName(opts.Name))
-	}
 	// version options
 	if len(opts.Version) > 0 {
 		options = append(options, runtime.WithVersion(opts.Version))
@@ -86,12 +82,16 @@ func (r *Runtime) Create(ctx context.Context, req *pb.CreateRequest, rsp *pb.Cre
 }
 
 func (r *Runtime) Get(ctx context.Context, req *pb.GetRequest, rsp *pb.GetResponse) error {
+	if len(req.Name) == 0 {
+		return errors.BadRequest("go.micro.runtime", "blank service")
+	}
+
 	var options []runtime.GetOption
 	if req.Options != nil {
 		options = toGetOptions(req.Options)
 	}
 
-	services, err := r.Runtime.Get(options...)
+	services, err := r.Runtime.Get(req.Name, options...)
 	if err != nil {
 		return errors.InternalServerError("go.micro.runtime", err.Error())
 	}
