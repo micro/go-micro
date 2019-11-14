@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -83,6 +84,15 @@ func (k *kubernetes) Create(s *runtime.Service, opts ...runtime.CreateOption) er
 	var options runtime.CreateOptions
 	for _, o := range opts {
 		o(&options)
+	}
+
+	svcName := s.Name
+	if len(s.Version) > 0 {
+		svcName = strings.Join([]string{s.Name, s.Version}, "-")
+	}
+
+	if !client.ServiceRegexp.MatchString(svcName) {
+		return fmt.Errorf("invalid service name: %s", svcName)
 	}
 
 	// create new kubernetes micro service

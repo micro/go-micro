@@ -2,6 +2,7 @@
 package client
 
 import (
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -9,9 +10,16 @@ import (
 	"github.com/micro/go-micro/util/log"
 )
 
+const (
+	// https://github.com/kubernetes/apimachinery/blob/master/pkg/util/validation/validation.go#L134
+	dns1123LabelFmt string = "[a-z0-9]([-a-z0-9]*[a-z0-9])?"
+)
+
 var (
 	// DefaultImage is default micro image
 	DefaultImage = "micro/micro"
+	// ServiceRegexp is used to validate service name
+	ServiceRegexp = regexp.MustCompile("^" + dns1123LabelFmt + "$")
 )
 
 // Kubernetes client
@@ -46,8 +54,12 @@ func DefaultService(name, version string) *Service {
 		"micro":   "service",
 	}
 
-	// API service object name joins name and version over "-"
-	svcName := strings.Join([]string{name, version}, "-")
+	svcName := name
+	if len(version) > 0 {
+		// API service object name joins name and version over "-"
+		svcName = strings.Join([]string{name, version}, "-")
+
+	}
 
 	Metadata := &Metadata{
 		Name:      svcName,
