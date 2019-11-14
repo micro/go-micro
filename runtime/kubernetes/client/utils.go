@@ -11,11 +11,8 @@ import (
 )
 
 // renderTemplateFile renders template file in path into writer w with supplied data
-func renderTemplateFile(path string, w io.Writer, data interface{}) error {
-	t, err := template.ParseFiles(path)
-	if err != nil {
-		return err
-	}
+func renderTemplate(text string, w io.Writer, data interface{}) error {
+	t := template.Must(template.New("kubernetes").Parse(text))
 
 	if err := t.Execute(w, data); err != nil {
 		return err

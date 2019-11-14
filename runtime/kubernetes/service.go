@@ -27,6 +27,7 @@ func newService(s *runtime.Service, c runtime.CreateOptions) *service {
 		env = append(env, client.EnvVar{Name: evarPair[0], Value: evarPair[1]})
 	}
 
+	// TODO: should we append instead of overriding?
 	// if environment has been supplied update deployment
 	if len(env) > 0 {
 		kdeploy.Spec.Template.PodSpec.Containers[0].Env = env

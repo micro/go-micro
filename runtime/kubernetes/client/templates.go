@@ -1,3 +1,6 @@
+package client
+
+var deploymentTmpl = `
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -53,3 +56,33 @@ spec:
           {{- end}}
       {{- end }}
       {{- end}}
+`
+
+var serviceTmpl = `
+apiVersion: v1
+kind: Service
+metadata:
+  name: "{{ .Metadata.Name }}"
+  namespace: "{{ .Metadata.Namespace }}"
+  labels:
+    {{- with .Metadata.Labels }}
+    {{- range $key, $value := . }}
+    {{ $key }}: "{{ $value }}"
+    {{- end }}
+    {{- end }}
+spec:
+  selector:
+    {{- with .Spec.Selector }}
+    {{- range $key, $value := . }}
+    {{ $key }}: "{{ $value }}"
+    {{- end }}
+    {{- end }}
+  ports:
+  {{- with .Spec.Ports }}
+  {{- range . }}
+  - name: "{{ .Name }}"
+    port: {{ .Port }}
+    protocol: {{ .Protocol }}
+  {{- end }}
+  {{- end }}
+`

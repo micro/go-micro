@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"os"
 	"path"
-	"path/filepath"
 
 	"github.com/micro/go-micro/runtime/kubernetes/client/api"
 	"github.com/micro/go-micro/util/log"
@@ -94,8 +93,7 @@ func detectNamespace() (string, error) {
 // CreateDeployment creates kubernetes deployment
 func (c *client) CreateDeployment(d *Deployment) error {
 	b := new(bytes.Buffer)
-	path := filepath.Join("internal", "templates", "deployment.yaml.tmpl")
-	if err := renderTemplateFile(path, b, d); err != nil {
+	if err := renderTemplate(deploymentTmpl, b, d); err != nil {
 		return err
 	}
 
@@ -164,8 +162,7 @@ func (c *client) ListDeployments() (*DeploymentList, error) {
 // CreateService creates kubernetes services
 func (c *client) CreateService(s *Service) error {
 	b := new(bytes.Buffer)
-	path := filepath.Join("internal", "templates", "service.yaml.tmpl")
-	if err := renderTemplateFile(path, b, s); err != nil {
+	if err := renderTemplate(serviceTmpl, b, s); err != nil {
 		return err
 	}
 

@@ -88,6 +88,8 @@ func (k *kubernetes) Create(s *runtime.Service, opts ...runtime.CreateOption) er
 	// create new kubernetes micro service
 	service := newService(s, options)
 
+	log.Debugf("Runtime queueing service %s for start action", service.Name)
+
 	// push into start queue
 	k.queue <- &task{
 		action:  start,
@@ -122,6 +124,8 @@ func (k *kubernetes) Get(name string, opts ...runtime.GetOption) ([]*runtime.Ser
 		labels["version"] = options.Version
 	}
 
+	log.Debugf("Runtime querying service %s", name)
+
 	serviceList, err := k.client.GetService(labels)
 	if err != nil {
 		return nil, err
@@ -154,6 +158,8 @@ func (k *kubernetes) Update(s *runtime.Service) error {
 	// update build time annotation
 	service.kdeploy.Spec.Template.Metadata.Annotations["build"] = unixTimeUTC.Format(time.RFC3339)
 
+	log.Debugf("Runtime queueing service %s for update action", service.Name)
+
 	// queue service for removal
 	k.queue <- &task{
 		action:  update,
@@ -170,6 +176,8 @@ func (k *kubernetes) Delete(s *runtime.Service) error {
 
 	// create new kubernetes micro service
 	service := newService(s, runtime.CreateOptions{})
+
+	log.Debugf("Runtime queueing service %s for delete action", service.Name)
 
 	// queue service for removal
 	k.queue <- &task{
