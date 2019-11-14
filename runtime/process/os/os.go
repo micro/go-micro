@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"strconv"
+	"syscall"
 
 	"github.com/micro/go-micro/runtime/process"
 )
@@ -23,6 +24,9 @@ func (p *Process) Fork(exe *process.Executable) (*process.PID, error) {
 	cmd := exec.Command(exe.Binary.Path, exe.Args...)
 	// set env vars
 	cmd.Env = append(cmd.Env, exe.Env...)
+
+	// create process group
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 
 	in, err := cmd.StdinPipe()
 	if err != nil {
@@ -61,7 +65,16 @@ func (p *Process) Kill(pid *process.PID) error {
 		return err
 	}
 
-	return pr.Kill()
+	// now kill it
+	err = pr.Kill()
+
+	// kill the group
+	if pgid, err := syscall.Getpgid(id); err == nil {
+		syscall.Kill(-pgid, syscall.SIGKILL)
+	}
+
+	// return the kill error
+	return err
 }
 
 func (p *Process) Wait(pid *process.PID) error {
