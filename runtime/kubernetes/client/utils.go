@@ -5,8 +5,21 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
+	"text/template"
 )
+
+// renderTemplateFile renders template file in path into writer w with supplied data
+func renderTemplate(text string, w io.Writer, data interface{}) error {
+	t := template.Must(template.New("kubernetes").Parse(text))
+
+	if err := t.Execute(w, data); err != nil {
+		return err
+	}
+
+	return nil
+}
 
 // COPIED FROM
 // https://github.com/kubernetes/kubernetes/blob/7a725418af4661067b56506faabc2d44c6d7703a/pkg/util/crypto/crypto.go

@@ -21,6 +21,7 @@ type runtime struct {
 	// indicates if we're running
 	running bool
 	// the service map
+	// TODO: track different versions of the same service
 	services map[string]*service
 }
 
@@ -175,6 +176,56 @@ func (r *runtime) Create(s *Service, opts ...CreateOption) error {
 	return nil
 }
 
+// Get returns all instances of requested service
+// If no service name is provided we return all the track services.
+func (r *runtime) Get(name string, opts ...GetOption) ([]*Service, error) {
+	r.Lock()
+	defer r.Unlock()
+
+	if len(name) == 0 {
+		return nil, errors.New("missing service name")
+	}
+
+	gopts := GetOptions{}
+	for _, o := range opts {
+		o(&gopts)
+	}
+
+	var services []*Service
+	// if we track the service check if the version is provided
+	if s, ok := r.services[name]; ok {
+		if len(gopts.Version) > 0 {
+			if s.Version == gopts.Version {
+				services = append(services, s.Service)
+			}
+			return services, nil
+		}
+		// no version has sbeen requested, just append the service
+		services = append(services, s.Service)
+	}
+	return services, nil
+}
+
+// Update attemps to update the service
+func (r *runtime) Update(s *Service) error {
+	var opts []CreateOption
+
+	// check if the service already exists
+	r.RLock()
+	if service, ok := r.services[s.Name]; ok {
+		opts = append(opts, WithOutput(service.output))
+	}
+	r.RUnlock()
+
+	// delete the service
+	if err := r.Delete(s); err != nil {
+		return err
+	}
+
+	// create new service
+	return r.Create(s, opts...)
+}
+
 // Delete removes the service from the runtime and stops it
 func (r *runtime) Delete(s *Service) error {
 	r.Lock()
@@ -197,26 +248,6 @@ func (r *runtime) Delete(s *Service) error {
 	}
 
 	return nil
-}
-
-// Update attemps to update the service
-func (r *runtime) Update(s *Service) error {
-	var opts []CreateOption
-
-	// check if the service already exists
-	r.RLock()
-	if service, ok := r.services[s.Name]; ok {
-		opts = append(opts, WithOutput(service.output))
-	}
-	r.RUnlock()
-
-	// delete the service
-	if err := r.Delete(s); err != nil {
-		return err
-	}
-
-	// create new service
-	return r.Create(s, opts...)
 }
 
 // List returns a slice of all services tracked by the runtime

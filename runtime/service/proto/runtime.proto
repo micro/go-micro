@@ -4,6 +4,7 @@ package go.micro.runtime;
 
 service Runtime {
 	rpc Create(CreateRequest) returns (CreateResponse) {};
+	rpc Get(GetRequest) returns (GetResponse) {};
 	rpc Delete(DeleteRequest) returns (DeleteResponse) {};
 	rpc Update(UpdateRequest) returns (UpdateResponse) {};
 	rpc List(ListRequest) returns (ListResponse) {};
@@ -22,9 +23,9 @@ message Service {
 	string exec = 5;
 }
 
-message Options {
+message CreateOptions {
 	// command to pass in
-	string command = 1;
+	repeated string command = 1;
 	// environment to pass in
 	repeated string env = 2;
 	// output to send to
@@ -33,10 +34,24 @@ message Options {
 
 message CreateRequest {
 	Service service = 1;
-	Options options = 2;
+	CreateOptions options = 2;
 }
 
 message CreateResponse {}
+
+message GetOptions {
+        // version of the service
+        string version = 2;
+}
+
+message GetRequest {
+        string name = 1;
+        GetOptions options = 2;
+}
+
+message GetResponse {
+        repeated Service services = 1;
+}
 
 message DeleteRequest {
 	Service service = 1;
