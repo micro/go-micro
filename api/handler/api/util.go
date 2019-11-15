@@ -27,17 +27,19 @@ func requestToProto(r *http.Request) (*api.Request, error) {
 		Url:    r.URL.String(),
 	}
 
-	if _, ok := r.Header.Get("Content-Type"); ok {
-		ct, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
-		if err != nil {
-			ct = "application/x-www-form-urlencoded"
-			r.Header.Set("Content-Type", ct)
-		}
+	ct, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
+	if err != nil {
+		ct = "text/plain; charset=UTF-8" //default CT is text/plain
+		r.Header.Set("Content-Type", ct)
 	}
 
-	//set req.body independant of the ContentType
-	data, _ := ioutil.ReadAll(r.Body)
-	req.Body = string(data)
+	switch ct {
+	case "application/x-www-form-urlencoded":
+		// expect form vals in Post data
+	default:
+		data, _ := ioutil.ReadAll(r.Body)
+		req.Body = string(data)
+	}
 
 	// Set X-Forwarded-For if it does not exist
 	if ip, _, err := net.SplitHostPort(r.RemoteAddr); err == nil {
