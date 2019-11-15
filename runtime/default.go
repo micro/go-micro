@@ -200,7 +200,7 @@ func (r *runtime) Get(name string, opts ...GetOption) ([]*Service, error) {
 			}
 			return services, nil
 		}
-		// no version ha sbeen requested, just append the service
+		// no version has sbeen requested, just append the service
 		services = append(services, s.Service)
 	}
 	return services, nil

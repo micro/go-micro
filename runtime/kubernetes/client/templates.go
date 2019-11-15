@@ -1,5 +1,10 @@
 package client
 
+var templates = map[string]string{
+	"deployments": deploymentTmpl,
+	"services":    serviceTmpl,
+}
+
 var deploymentTmpl = `
 apiVersion: apps/v1
 kind: Deployment

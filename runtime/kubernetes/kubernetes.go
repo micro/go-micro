@@ -136,8 +136,8 @@ func (k *kubernetes) Get(name string, opts ...runtime.GetOption) ([]*runtime.Ser
 
 	log.Debugf("Runtime querying service %s", name)
 
-	serviceList, err := k.client.GetService(labels)
-	if err != nil {
+	var serviceList client.ServiceList
+	if err := k.client.Get(&serviceList, labels); err != nil {
 		return nil, err
 	}
 
@@ -201,8 +201,8 @@ func (k *kubernetes) Delete(s *runtime.Service) error {
 // List the managed services
 func (k *kubernetes) List() ([]*runtime.Service, error) {
 	// list all micro core deployments
-	deployments, err := k.client.ListDeployments()
-	if err != nil {
+	var deployments client.DeploymentList
+	if err := k.client.List(&deployments); err != nil {
 		return nil, err
 	}
 

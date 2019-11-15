@@ -90,140 +90,99 @@ func detectNamespace() (string, error) {
 	}
 }
 
-// CreateDeployment creates kubernetes deployment
-func (c *client) CreateDeployment(d *Deployment) error {
+// Create creates new API object
+func (c *client) Create(r interface{}) error {
+	attr, err := getResourceAttrs(r)
+	if err != nil {
+		return err
+	}
+
 	b := new(bytes.Buffer)
-	if err := renderTemplate(deploymentTmpl, b, d); err != nil {
+	if err := renderTemplate(templates[attr.kind], b, r); err != nil {
 		return err
 	}
 
 	return api.NewRequest(c.opts).
 		Post().
 		SetHeader("Content-Type", "application/yaml").
-		Resource("deployments").
+		Resource(attr.kind).
 		Body(b).
 		Do().
 		Error()
 }
 
-// GetDeployment queries deployments with given labels and returns them
-func (c *client) GetDeployment(labels map[string]string) (*DeploymentList, error) {
-	var deployments DeploymentList
-	err := api.NewRequest(c.opts).
-		Get().
-		Resource("deployments").
-		Params(&api.Params{LabelSelector: labels}).
-		Do().
-		Into(&deployments)
-
-	return &deployments, err
-}
-
-// UpdateDeployment patches kubernetes deployment with metadata provided in body
-func (c *client) UpdateDeployment(d *Deployment) error {
-	return api.NewRequest(c.opts).
-		Patch().
-		SetHeader("Content-Type", "application/strategic-merge-patch+json").
-		Resource("deployments").
-		Name(d.Metadata.Name).
-		Body(d.Spec).
-		Do().
-		Error()
-}
-
-// DeleteDeployment deletes kubernetes deployment
-func (c *client) DeleteDeployment(d *Deployment) error {
-	return api.NewRequest(c.opts).
-		Delete().
-		Resource("deployments").
-		Name(d.Metadata.Name).
-		Do().
-		Error()
-}
-
-// ListDeployments lists all kubernetes deployments with given labels
-func (c *client) ListDeployments() (*DeploymentList, error) {
-	// NOTE: this lists all micro services
-	labels := map[string]string{
-		"micro": "service",
+// Get queries API objects and stores the result in r
+func (c *client) Get(r interface{}, labels map[string]string) error {
+	attr, err := getResourceAttrs(r)
+	if err != nil {
+		return err
 	}
 
-	var deployments DeploymentList
-	err := api.NewRequest(c.opts).
+	err = api.NewRequest(c.opts).
 		Get().
-		Resource("deployments").
+		Resource(attr.kind).
 		Params(&api.Params{LabelSelector: labels}).
 		Do().
-		Into(&deployments)
+		Into(r)
 
-	return &deployments, err
+	return err
 }
 
-// CreateService creates kubernetes services
-func (c *client) CreateService(s *Service) error {
-	b := new(bytes.Buffer)
-	if err := renderTemplate(serviceTmpl, b, s); err != nil {
+// Update updates API object
+func (c *client) Update(r interface{}) error {
+	attr, err := getResourceAttrs(r)
+	if err != nil {
+		return err
+	}
+
+	req := api.NewRequest(c.opts).
+		Patch().
+		SetHeader("Content-Type", "application/strategic-merge-patch+json").
+		Resource(attr.kind).
+		Name(attr.name)
+
+	switch attr.kind {
+	case "services":
+		req.Body(r.(*Service).Spec)
+	case "deployments":
+		req.Body(r.(*Deployment).Spec)
+	}
+
+	return req.Do().Error()
+}
+
+// Delete removes API object
+func (c *client) Delete(r interface{}) error {
+	attr, err := getResourceAttrs(r)
+	if err != nil {
 		return err
 	}
 
 	return api.NewRequest(c.opts).
-		Post().
-		SetHeader("Content-Type", "application/yaml").
-		Resource("services").
-		Body(b).
-		Do().
-		Error()
-}
-
-// GetService queries kubernetes services and returns them
-func (c *client) GetService(labels map[string]string) (*ServiceList, error) {
-	var services ServiceList
-	err := api.NewRequest(c.opts).
-		Get().
-		Resource("services").
-		Params(&api.Params{LabelSelector: labels}).
-		Do().
-		Into(&services)
-
-	return &services, err
-}
-
-// UpdateService updates kubernetes service
-func (c *client) UpdateService(s *Service) error {
-	return api.NewRequest(c.opts).
-		Patch().
-		SetHeader("Content-Type", "application/strategic-merge-patch+json").
-		Resource("services").
-		Name(s.Metadata.Name).
-		Body(s.Spec).
-		Do().
-		Error()
-}
-
-// DeleteService deletes kubernetes service
-func (c *client) DeleteService(s *Service) error {
-	return api.NewRequest(c.opts).
 		Delete().
-		Resource("services").
-		Name(s.Metadata.Name).
+		Resource(attr.kind).
+		Name(attr.name).
 		Do().
 		Error()
 }
 
-// ListServices lists kubernetes services and returns them
-func (c *client) ListServices() (*ServiceList, error) {
-	// NOTE: this lists all micro services
+// List lists API objects and stores the result in r
+func (c *client) List(r interface{}) error {
+	attr, err := getResourceAttrs(r)
+	if err != nil {
+		return err
+	}
+
 	labels := map[string]string{
 		"micro": "service",
 	}
 
-	var services ServiceList
-	err := api.NewRequest(c.opts).
+	err = api.NewRequest(c.opts).
 		Get().
-		Resource("services").
+		Resource(attr.kind).
 		Params(&api.Params{LabelSelector: labels}).
 		Do().
-		Into(&services)
+		Into(r)
 
-	return &services, err
+	return err
 }

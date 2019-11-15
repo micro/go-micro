@@ -10,6 +10,39 @@ import (
 	"text/template"
 )
 
+// attr provides kubernetes resource attributes
+type attr struct {
+	name string
+	kind string
+}
+
+// getResourceAttrs inspects the passed in resource and returns its name and type attributes
+// It returns error if an unsupported resource type has been passed in
+func getResourceAttrs(r interface{}) (*attr, error) {
+	var kind string
+	var name string
+
+	switch r.(type) {
+	case *Service, *ServiceList:
+		kind = "services"
+		if s, ok := r.(*Service); ok {
+			name = s.Metadata.Name
+		}
+	case *Deployment, *DeploymentList:
+		kind = "deployments"
+		if d, ok := r.(*Deployment); ok {
+			name = d.Metadata.Name
+		}
+	default:
+		return nil, errors.New("unknown kubernetes resource")
+	}
+
+	return &attr{
+		name: name,
+		kind: kind,
+	}, nil
+}
+
 // renderTemplateFile renders template file in path into writer w with supplied data
 func renderTemplate(text string, w io.Writer, data interface{}) error {
 	t := template.Must(template.New("kubernetes").Parse(text))

@@ -24,26 +24,16 @@ var (
 
 // Kubernetes client
 type Kubernetes interface {
-	// CreateDeployment creates new kubernetes deployment
-	CreateDeployment(*Deployment) error
-	// GetDeployment queries kubernetes deployments and returns the matches
-	GetDeployment(map[string]string) (*DeploymentList, error)
-	// UpdateDeployment patches deployment annotations with new metadata
-	UpdateDeployment(*Deployment) error
-	// DeleteDeployment deletes kubernetes deployment
-	DeleteDeployment(*Deployment) error
-	// ListDeployments lists all micro service deployments
-	ListDeployments() (*DeploymentList, error)
-	// CreateService creates new kubernetes service
-	CreateService(*Service) error
-	// GetService queries kubernetes services and returns the matches
-	GetService(map[string]string) (*ServiceList, error)
-	// UpdateService patches kubernetes service
-	UpdateService(*Service) error
-	// DeleteService deletes kubernetes service
-	DeleteService(*Service) error
-	// ListServices lists all micro services running in Kubernetes
-	ListServices() (*ServiceList, error)
+	// Create creates new API object
+	Create(interface{}) error
+	// Get queries API objects
+	Get(interface{}, map[string]string) error
+	// Update patches existing API object
+	Update(interface{}) error
+	// Delete deletes API object
+	Delete(interface{}) error
+	// List lists API objects
+	List(interface{}) error
 }
 
 // DefaultService returns default micro kubernetes service definition
@@ -86,8 +76,8 @@ func DefaultService(name, version string) *Service {
 func DefaultDeployment(name, version string) *Deployment {
 	Labels := map[string]string{
 		"name":    name,
-		"micro":   "service",
 		"version": version,
+		"micro":   "service",
 	}
 
 	// API deployment object name joins name and version over "="
@@ -100,7 +90,8 @@ func DefaultDeployment(name, version string) *Deployment {
 		Labels:    Labels,
 	}
 
-	// TODO: we need to figure out this version stuff; might need to add Build to runtime.Service
+	// TODO: we need to figure out this version stuff
+	// might be worth adding Build to runtime.Service
 	buildTime, err := strconv.ParseInt(version, 10, 64)
 	if err == nil {
 		buildUnixTimeUTC := time.Unix(buildTime, 0)
@@ -109,14 +100,6 @@ func DefaultDeployment(name, version string) *Deployment {
 		}
 	} else {
 		log.Debugf("Runtime could not parse build: %v", err)
-	}
-
-	Env := []EnvVar{
-		{"MICRO_REGISTRY", "etcd"},
-		{"MICRO_REGISTRY_ADDRESS", "etcd-cluster"},
-		{"MICRO_BROKER", "nats"},
-		{"MICRO_BROKER_ADDRESS", "nats-cluster"},
-		{"MICRO_RUNTIME", "kubernetes"},
 	}
 
 	// TODO: change the image name here
@@ -131,7 +114,7 @@ func DefaultDeployment(name, version string) *Deployment {
 				Containers: []Container{{
 					Name:    name,
 					Image:   DefaultImage,
-					Env:     Env,
+					Env:     []EnvVar{},
 					Command: []string{"go", "run", "main.go"},
 					Ports: []ContainerPort{{
 						Name:          name + "-port",
