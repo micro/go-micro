@@ -136,8 +136,12 @@ func (k *kubernetes) Get(name string, opts ...runtime.GetOption) ([]*runtime.Ser
 
 	log.Debugf("Runtime querying service %s", name)
 
-	var serviceList client.ServiceList
-	if err := k.client.Get(&serviceList, labels); err != nil {
+	serviceList := new(client.ServiceList)
+	r := &client.Resource{
+		Kind:  "service",
+		Value: serviceList,
+	}
+	if err := k.client.Get(r, labels); err != nil {
 		return nil, err
 	}
 
@@ -200,17 +204,21 @@ func (k *kubernetes) Delete(s *runtime.Service) error {
 
 // List the managed services
 func (k *kubernetes) List() ([]*runtime.Service, error) {
-	// list all micro core deployments
-	var deployments client.DeploymentList
-	if err := k.client.List(&deployments); err != nil {
+	serviceList := new(client.ServiceList)
+	r := &client.Resource{
+		Kind:  "service",
+		Value: serviceList,
+	}
+
+	if err := k.client.List(r); err != nil {
 		return nil, err
 	}
 
-	log.Debugf("Runtime found %d micro deployments", len(deployments.Items))
+	log.Debugf("Runtime found %d micro services", len(serviceList.Items))
 
-	services := make([]*runtime.Service, 0, len(deployments.Items))
+	services := make([]*runtime.Service, 0, len(serviceList.Items))
 
-	for _, service := range deployments.Items {
+	for _, service := range serviceList.Items {
 		buildTime, err := time.Parse(time.RFC3339, service.Metadata.Annotations["build"])
 		if err != nil {
 			log.Debugf("Runtime error parsing build time for %s: %v", service.Metadata.Name, err)

@@ -136,12 +136,12 @@ func (r *Request) SetHeader(key, value string) *Request {
 func (r *Request) request() (*http.Request, error) {
 	var url string
 	switch r.resource {
-	case "pods", "services", "endpoints":
+	case "pod", "service", "endpoint":
 		// /api/v1/namespaces/{namespace}/pods
-		url = fmt.Sprintf("%s/api/v1/namespaces/%s/%s/", r.host, r.namespace, r.resource)
-	case "deployments":
+		url = fmt.Sprintf("%s/api/v1/namespaces/%s/%ss/", r.host, r.namespace, r.resource)
+	case "deployment":
 		// /apis/apps/v1/namespaces/{namespace}/deployments/{name}
-		url = fmt.Sprintf("%s/apis/apps/v1/namespaces/%s/%s/", r.host, r.namespace, r.resource)
+		url = fmt.Sprintf("%s/apis/apps/v1/namespaces/%s/%ss/", r.host, r.namespace, r.resource)
 	}
 
 	// append resourceName if it is present

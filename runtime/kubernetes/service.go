@@ -45,14 +45,31 @@ func newService(s *runtime.Service, c runtime.CreateOptions) *service {
 	}
 }
 
+func deploymentResource(d *client.Deployment) *client.Resource {
+	return &client.Resource{
+		Name:  d.Metadata.Name,
+		Kind:  "deployment",
+		Value: d,
+	}
+}
+
+func serviceResource(s *client.Service) *client.Resource {
+	return &client.Resource{
+		Name:  s.Metadata.Name,
+		Kind:  "service",
+		Value: s,
+	}
+}
+
+// Start starts the Kubernetes service. It creates new kubernetes deployment and service API objects
 func (s *service) Start(k client.Kubernetes) error {
 	// create deployment first; if we fail, we dont create service
-	if err := k.Create(s.kdeploy); err != nil {
+	if err := k.Create(deploymentResource(s.kdeploy)); err != nil {
 		log.Debugf("Runtime failed to create deployment: %v", err)
 		return err
 	}
 	// create service now that the deployment has been created
-	if err := k.Create(s.kservice); err != nil {
+	if err := k.Create(serviceResource(s.kservice)); err != nil {
 		log.Debugf("Runtime failed to create service: %v", err)
 		return err
 	}
@@ -62,12 +79,12 @@ func (s *service) Start(k client.Kubernetes) error {
 
 func (s *service) Stop(k client.Kubernetes) error {
 	// first attempt to delete service
-	if err := k.Delete(s.kservice); err != nil {
+	if err := k.Delete(serviceResource(s.kservice)); err != nil {
 		log.Debugf("Runtime failed to delete service: %v", err)
 		return err
 	}
 	// delete deployment once the service has been deleted
-	if err := k.Delete(s.kdeploy); err != nil {
+	if err := k.Delete(deploymentResource(s.kdeploy)); err != nil {
 		log.Debugf("Runtime failed to delete deployment: %v", err)
 		return err
 	}
@@ -76,11 +93,11 @@ func (s *service) Stop(k client.Kubernetes) error {
 }
 
 func (s *service) Update(k client.Kubernetes) error {
-	if err := k.Update(s.kdeploy); err != nil {
+	if err := k.Update(deploymentResource(s.kdeploy)); err != nil {
 		log.Debugf("Runtime failed to update deployment: %v", err)
 		return err
 	}
-	if err := k.Update(s.kservice); err != nil {
+	if err := k.Update(serviceResource(s.kservice)); err != nil {
 		log.Debugf("Runtime failed to update service: %v", err)
 		return err
 	}

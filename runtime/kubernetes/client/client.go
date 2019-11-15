@@ -91,98 +91,71 @@ func detectNamespace() (string, error) {
 }
 
 // Create creates new API object
-func (c *client) Create(r interface{}) error {
-	attr, err := getResourceAttrs(r)
-	if err != nil {
-		return err
-	}
-
+func (c *client) Create(r *Resource) error {
 	b := new(bytes.Buffer)
-	if err := renderTemplate(templates[attr.kind], b, r); err != nil {
+	if err := renderTemplate(r.Kind, b, r.Value); err != nil {
 		return err
 	}
 
 	return api.NewRequest(c.opts).
 		Post().
 		SetHeader("Content-Type", "application/yaml").
-		Resource(attr.kind).
+		Resource(r.Kind).
 		Body(b).
 		Do().
 		Error()
 }
 
 // Get queries API objects and stores the result in r
-func (c *client) Get(r interface{}, labels map[string]string) error {
-	attr, err := getResourceAttrs(r)
-	if err != nil {
-		return err
-	}
-
-	err = api.NewRequest(c.opts).
+func (c *client) Get(r *Resource, labels map[string]string) error {
+	return api.NewRequest(c.opts).
 		Get().
-		Resource(attr.kind).
+		Resource(r.Kind).
 		Params(&api.Params{LabelSelector: labels}).
 		Do().
-		Into(r)
-
-	return err
+		Into(r.Value)
 }
 
 // Update updates API object
-func (c *client) Update(r interface{}) error {
-	attr, err := getResourceAttrs(r)
-	if err != nil {
-		return err
-	}
-
+func (c *client) Update(r *Resource) error {
 	req := api.NewRequest(c.opts).
 		Patch().
 		SetHeader("Content-Type", "application/strategic-merge-patch+json").
-		Resource(attr.kind).
-		Name(attr.name)
+		Resource(r.Kind).
+		Name(r.Name)
 
-	switch attr.kind {
-	case "services":
-		req.Body(r.(*Service).Spec)
-	case "deployments":
-		req.Body(r.(*Deployment).Spec)
+	switch r.Kind {
+	case "service":
+		req.Body(r.Value.(*Service).Spec)
+	case "deployment":
+		req.Body(r.Value.(*Deployment).Spec)
+	default:
+		return errors.New("unsupported resource")
 	}
 
 	return req.Do().Error()
 }
 
 // Delete removes API object
-func (c *client) Delete(r interface{}) error {
-	attr, err := getResourceAttrs(r)
-	if err != nil {
-		return err
-	}
-
+func (c *client) Delete(r *Resource) error {
 	return api.NewRequest(c.opts).
 		Delete().
-		Resource(attr.kind).
-		Name(attr.name).
+		Resource(r.Kind).
+		Name(r.Name).
 		Do().
 		Error()
 }
 
 // List lists API objects and stores the result in r
-func (c *client) List(r interface{}) error {
-	attr, err := getResourceAttrs(r)
-	if err != nil {
-		return err
-	}
-
+func (c *client) List(r *Resource) error {
 	labels := map[string]string{
 		"micro": "service",
 	}
 
-	err = api.NewRequest(c.opts).
+	return api.NewRequest(c.opts).
 		Get().
-		Resource(attr.kind).
+		Resource(r.Kind).
 		Params(&api.Params{LabelSelector: labels}).
 		Do().
-		Into(r)
-
-	return err
+		Into(r.Value)
 }

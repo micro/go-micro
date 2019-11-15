@@ -1,5 +1,12 @@
 package client
 
+// Resource is API resource
+type Resource struct {
+	Name  string
+	Kind  string
+	Value interface{}
+}
+
 // Metadata defines api object metadata
 type Metadata struct {
 	Name        string            `json:"name,omitempty"`

@@ -23,49 +23,49 @@ type assertFn func(req *http.Request) bool
 var tests = []testcase{
 	testcase{
 		ReqFn: func(opts *Options) *Request {
-			return NewRequest(opts).Get().Resource("services")
+			return NewRequest(opts).Get().Resource("service")
 		},
 		Method: "GET",
 		URI:    "/api/v1/namespaces/default/services/",
 	},
 	testcase{
 		ReqFn: func(opts *Options) *Request {
-			return NewRequest(opts).Get().Resource("services").Name("foo")
+			return NewRequest(opts).Get().Resource("service").Name("foo")
 		},
 		Method: "GET",
 		URI:    "/api/v1/namespaces/default/services/foo",
 	},
 	testcase{
 		ReqFn: func(opts *Options) *Request {
-			return NewRequest(opts).Get().Resource("services").Namespace("test").Name("bar")
+			return NewRequest(opts).Get().Resource("service").Namespace("test").Name("bar")
 		},
 		Method: "GET",
 		URI:    "/api/v1/namespaces/test/services/bar",
 	},
 	testcase{
 		ReqFn: func(opts *Options) *Request {
-			return NewRequest(opts).Get().Resource("deployments").Name("foo")
+			return NewRequest(opts).Get().Resource("deployment").Name("foo")
 		},
 		Method: "GET",
 		URI:    "/apis/apps/v1/namespaces/default/deployments/foo",
 	},
 	testcase{
 		ReqFn: func(opts *Options) *Request {
-			return NewRequest(opts).Get().Resource("deployments").Namespace("test").Name("foo")
+			return NewRequest(opts).Get().Resource("deployment").Namespace("test").Name("foo")
 		},
 		Method: "GET",
 		URI:    "/apis/apps/v1/namespaces/test/deployments/foo",
 	},
 	testcase{
 		ReqFn: func(opts *Options) *Request {
-			return NewRequest(opts).Get().Resource("pods").Params(&Params{LabelSelector: map[string]string{"foo": "bar"}})
+			return NewRequest(opts).Get().Resource("pod").Params(&Params{LabelSelector: map[string]string{"foo": "bar"}})
 		},
 		Method: "GET",
 		URI:    "/api/v1/namespaces/default/pods/?labelSelector=foo%3Dbar",
 	},
 	testcase{
 		ReqFn: func(opts *Options) *Request {
-			return NewRequest(opts).Post().Resource("services").Name("foo").Body(map[string]string{"foo": "bar"})
+			return NewRequest(opts).Post().Resource("service").Name("foo").Body(map[string]string{"foo": "bar"})
 		},
 		Method: "POST",
 		URI:    "/api/v1/namespaces/default/services/foo",
@@ -73,7 +73,7 @@ var tests = []testcase{
 	},
 	testcase{
 		ReqFn: func(opts *Options) *Request {
-			return NewRequest(opts).Post().Resource("deployments").Namespace("test").Name("foo").Body(map[string]string{"foo": "bar"})
+			return NewRequest(opts).Post().Resource("deployment").Namespace("test").Name("foo").Body(map[string]string{"foo": "bar"})
 		},
 		Method: "POST",
 		URI:    "/apis/apps/v1/namespaces/test/deployments/foo",
@@ -81,7 +81,7 @@ var tests = []testcase{
 	},
 	testcase{
 		ReqFn: func(opts *Options) *Request {
-			return NewRequest(opts).Put().Resource("endpoints").Name("baz").Body(map[string]string{"bam": "bar"})
+			return NewRequest(opts).Put().Resource("endpoint").Name("baz").Body(map[string]string{"bam": "bar"})
 		},
 		Method: "PUT",
 		URI:    "/api/v1/namespaces/default/endpoints/baz",
@@ -89,7 +89,7 @@ var tests = []testcase{
 	},
 	testcase{
 		ReqFn: func(opts *Options) *Request {
-			return NewRequest(opts).Patch().Resource("endpoints").Name("baz").Body(map[string]string{"bam": "bar"})
+			return NewRequest(opts).Patch().Resource("endpoint").Name("baz").Body(map[string]string{"bam": "bar"})
 		},
 		Method: "PATCH",
 		URI:    "/api/v1/namespaces/default/endpoints/baz",
@@ -97,7 +97,7 @@ var tests = []testcase{
 	},
 	testcase{
 		ReqFn: func(opts *Options) *Request {
-			return NewRequest(opts).Patch().Resource("endpoints").Name("baz").SetHeader("foo", "bar")
+			return NewRequest(opts).Patch().Resource("endpoint").Name("baz").SetHeader("foo", "bar")
 		},
 		Method: "PATCH",
 		URI:    "/api/v1/namespaces/default/endpoints/baz",
@@ -105,7 +105,7 @@ var tests = []testcase{
 	},
 	testcase{
 		ReqFn: func(opts *Options) *Request {
-			return NewRequest(opts).Patch().Resource("deployments").Name("baz").SetHeader("foo", "bar")
+			return NewRequest(opts).Patch().Resource("deployment").Name("baz").SetHeader("foo", "bar")
 		},
 		Method: "PATCH",
 		URI:    "/apis/apps/v1/namespaces/default/deployments/baz",

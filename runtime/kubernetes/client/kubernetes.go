@@ -24,16 +24,16 @@ var (
 
 // Kubernetes client
 type Kubernetes interface {
-	// Create creates new API object
-	Create(interface{}) error
-	// Get queries API objects
-	Get(interface{}, map[string]string) error
+	// Create creates new API resource
+	Create(*Resource) error
+	// Get queries API resrouces
+	Get(*Resource, map[string]string) error
 	// Update patches existing API object
-	Update(interface{}) error
-	// Delete deletes API object
-	Delete(interface{}) error
-	// List lists API objects
-	List(interface{}) error
+	Update(*Resource) error
+	// Delete deletes API resource
+	Delete(*Resource) error
+	// List lists API resources
+	List(*Resource) error
 }
 
 // DefaultService returns default micro kubernetes service definition
