@@ -176,7 +176,7 @@ func TestMemoryRegistryTTL(t *testing.T) {
 		}
 	}
 
-	time.Sleep(time.Millisecond)
+	time.Sleep(ttlPruneTime * 2)
 
 	for name := range testData {
 		svcs, err := m.GetService(name)
@@ -194,7 +194,7 @@ func TestMemoryRegistryTTL(t *testing.T) {
 
 func TestMemoryRegistryTTLConcurrent(t *testing.T) {
 	concurrency := 1000
-	waitTime := time.Second
+	waitTime := ttlPruneTime * 2
 	m := NewRegistry()
 
 	for _, v := range testData {

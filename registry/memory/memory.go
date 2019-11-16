@@ -13,8 +13,7 @@ import (
 
 var (
 	sendEventTime = 10 * time.Millisecond
-	ttlPruneTime  = 1 * time.Minute
-	DefaultTTL    = 1 * time.Minute
+	ttlPruneTime  = time.Second
 )
 
 type node struct {
@@ -75,7 +74,7 @@ func (m *Registry) ttlPrune() {
 			for name, records := range m.records {
 				for version, record := range records {
 					for id, n := range record.Nodes {
-						if time.Since(n.LastSeen) > n.TTL {
+						if n.TTL != 0 && time.Since(n.LastSeen) > n.TTL {
 							log.Debugf("Registry TTL expired for node %s of service %s", n.Id, name)
 							delete(m.records[name][version].Nodes, id)
 						}
@@ -152,12 +151,7 @@ func (m *Registry) Register(s *registry.Service, opts ...registry.RegisterOption
 		o(&options)
 	}
 
-	// if no TTL has been set, set it to DefaultTTL
-	if options.TTL.Seconds() == 0.0 {
-		options.TTL = DefaultTTL
-	}
-
-	r := serviceToRecord(s)
+	r := serviceToRecord(s, options.TTL)
 
 	if _, ok := m.records[s.Name]; !ok {
 		m.records[s.Name] = make(map[string]*record)

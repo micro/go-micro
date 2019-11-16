@@ -6,7 +6,7 @@ import (
 	"github.com/micro/go-micro/registry"
 )
 
-func serviceToRecord(s *registry.Service) *record {
+func serviceToRecord(s *registry.Service, ttl time.Duration) *record {
 	metadata := make(map[string]string)
 	for k, v := range s.Metadata {
 		metadata[k] = v
@@ -16,7 +16,7 @@ func serviceToRecord(s *registry.Service) *record {
 	for _, n := range s.Nodes {
 		nodes[n.Id] = &node{
 			Node:     n,
-			TTL:      DefaultTTL,
+			TTL:      ttl,
 			LastSeen: time.Now(),
 		}
 	}

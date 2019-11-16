@@ -22,7 +22,7 @@ func getServiceRecords(ctx context.Context) map[string]map[string]*record {
 		}
 		// go through every version of the service
 		for _, s := range svc {
-			services[s.Name][s.Version] = serviceToRecord(s)
+			services[s.Name][s.Version] = serviceToRecord(s, 0)
 		}
 	}
 
