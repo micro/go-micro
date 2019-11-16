@@ -194,12 +194,12 @@ func TestMemoryRegistryTTL(t *testing.T) {
 
 func TestMemoryRegistryTTLConcurrent(t *testing.T) {
 	concurrency := 1000
-	waitTime := ttlPruneTime * 4
+	waitTime := ttlPruneTime * 2
 	m := NewRegistry()
 
 	for _, v := range testData {
 		for _, service := range v {
-			if err := m.Register(service, registry.RegisterTTL(waitTime)); err != nil {
+			if err := m.Register(service, registry.RegisterTTL(waitTime/2)); err != nil {
 				t.Fatal(err)
 			}
 		}
