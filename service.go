@@ -14,8 +14,8 @@ import (
 	"github.com/micro/go-micro/debug/profile/pprof"
 	"github.com/micro/go-micro/plugin"
 	"github.com/micro/go-micro/server"
-	"github.com/micro/go-micro/util/wrapper"
 	"github.com/micro/go-micro/util/log"
+	"github.com/micro/go-micro/util/wrapper"
 )
 
 type service struct {

@@ -1,12 +1,12 @@
-package micro
+package test
 
 import (
 	"github.com/micro/go-micro/registry"
 )
 
 var (
-	// mock data
-	testData = map[string][]*registry.Service{
+	// mock registry data
+	Data = map[string][]*registry.Service{
 		"foo": {
 			{
 				Name:    "foo",
