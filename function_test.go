@@ -13,8 +13,7 @@ func TestFunction(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(1)
 
-	r := memory.NewRegistry()
-	r.(*memory.Registry).Services = testData
+	r := memory.NewRegistry(memory.Services(testData))
 
 	// create service
 	fn := NewFunction(
