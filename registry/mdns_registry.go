@@ -51,7 +51,7 @@ type mdnsRegistry struct {
 func newRegistry(opts ...Option) Registry {
 	options := Options{
 		Context: context.Background(),
-		Timeout: time.Millisecond * 100,
+		Timeout: time.Millisecond * 10,
 	}
 
 	for _, o := range opts {
