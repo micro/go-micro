@@ -2,6 +2,7 @@
 package event
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -91,12 +92,17 @@ func (e *event) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// set body
-	b, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		http.Error(w, err.Error(), 500)
-		return
+	if r.Method == "GET" {
+		bytes, _ := json.Marshal(r.URL.Query())
+		ev.Data = string(bytes)
+	} else {
+		b, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+		ev.Data = string(b)
 	}
-	ev.Data = string(b)
 
 	// get client
 	c := e.options.Service.Client()
