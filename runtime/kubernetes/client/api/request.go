@@ -3,12 +3,12 @@ package api
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 
-	"github.com/micro/go-micro/runtime/kubernetes/client/watch"
 	"github.com/micro/go-micro/util/log"
 )
 
@@ -33,7 +33,6 @@ type Request struct {
 type Params struct {
 	LabelSelector map[string]string
 	Annotations   map[string]string
-	Watch         bool
 }
 
 // verb sets method
@@ -58,9 +57,8 @@ func (r *Request) Put() *Request {
 }
 
 // Patch request
-// https://github.com/kubernetes/kubernetes/blob/master/docs/devel/api-conventions.md#patch-operations
 func (r *Request) Patch() *Request {
-	return r.verb("PATCH").SetHeader("Content-Type", "application/strategic-merge-patch+json")
+	return r.verb("PATCH")
 }
 
 // Delete request
@@ -87,15 +85,33 @@ func (r *Request) Name(s string) *Request {
 	return r
 }
 
-// Body pass in a body to set, this is for POST, PUT
-// and PATCH requests
+// Body pass in a body to set, this is for POST, PUT and PATCH requests
 func (r *Request) Body(in interface{}) *Request {
 	b := new(bytes.Buffer)
-	if err := json.NewEncoder(b).Encode(&in); err != nil {
+	// if we're not sending YAML request, we encode to JSON
+	if r.header.Get("Content-Type") != "application/yaml" {
+		if err := json.NewEncoder(b).Encode(&in); err != nil {
+			r.err = err
+			return r
+		}
+		log.Debugf("Request body: %v", b)
+		r.body = b
+		return r
+	}
+
+	// if application/yaml is set, we assume we get a raw bytes so we just copy over
+	body, ok := in.(io.Reader)
+	if !ok {
+		r.err = errors.New("invalid data")
+		return r
+	}
+	// copy over data to the bytes buffer
+	if _, err := io.Copy(b, body); err != nil {
 		r.err = err
 		return r
 	}
-	log.Debugf("Patch body: %v", b)
+
+	log.Debugf("Request body: %v", b)
 	r.body = b
 	return r
 }
@@ -120,12 +136,12 @@ func (r *Request) SetHeader(key, value string) *Request {
 func (r *Request) request() (*http.Request, error) {
 	var url string
 	switch r.resource {
-	case "pods":
+	case "pod", "service", "endpoint":
 		// /api/v1/namespaces/{namespace}/pods
-		url = fmt.Sprintf("%s/api/v1/namespaces/%s/%s/", r.host, r.namespace, r.resource)
-	case "deployments":
+		url = fmt.Sprintf("%s/api/v1/namespaces/%s/%ss/", r.host, r.namespace, r.resource)
+	case "deployment":
 		// /apis/apps/v1/namespaces/{namespace}/deployments/{name}
-		url = fmt.Sprintf("%s/apis/apps/v1/namespaces/%s/%s/", r.host, r.namespace, r.resource)
+		url = fmt.Sprintf("%s/apis/apps/v1/namespaces/%s/%ss/", r.host, r.namespace, r.resource)
 	}
 
 	// append resourceName if it is present
@@ -177,24 +193,6 @@ func (r *Request) Do() *Response {
 
 	// return res, err
 	return newResponse(res, err)
-}
-
-// Watch builds and triggers the request, but
-// will watch instead of return an object
-func (r *Request) Watch() (watch.Watch, error) {
-	if r.err != nil {
-		return nil, r.err
-	}
-
-	r.params.Set("watch", "true")
-
-	req, err := r.request()
-	if err != nil {
-		return nil, err
-	}
-
-	w, err := watch.NewBodyWatcher(req, r.client)
-	return w, err
 }
 
 // Options ...

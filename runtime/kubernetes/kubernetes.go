@@ -14,18 +14,31 @@ import (
 	"github.com/micro/go-micro/util/log"
 )
 
+// action to take on runtime service
+type action int
+
+const (
+	start action = iota
+	update
+	stop
+)
+
+// task is queued into runtime queue
+type task struct {
+	action  action
+	service *service
+}
+
 type kubernetes struct {
 	sync.RWMutex
 	// options configure runtime
 	options runtime.Options
 	// indicates if we're running
 	running bool
-	// used to start new services
-	start chan *runtime.Service
+	// task queue for kubernetes services
+	queue chan *task
 	// used to stop the runtime
 	closed chan bool
-	// service tracks deployed services
-	services map[string]*runtime.Service
 	// client is kubernetes client
 	client client.Kubernetes
 }
@@ -44,11 +57,10 @@ func NewRuntime(opts ...runtime.Option) runtime.Runtime {
 	client := client.NewClientInCluster()
 
 	return &kubernetes{
-		options:  options,
-		closed:   make(chan bool),
-		start:    make(chan *runtime.Service, 128),
-		services: make(map[string]*runtime.Service),
-		client:   client,
+		options: options,
+		closed:  make(chan bool),
+		queue:   make(chan *task, 128),
+		client:  client,
 	}
 }
 
@@ -64,33 +76,109 @@ func (k *kubernetes) Init(opts ...runtime.Option) error {
 	return nil
 }
 
-// Registers a service
+// Creates a service
 func (k *kubernetes) Create(s *runtime.Service, opts ...runtime.CreateOption) error {
 	k.Lock()
 	defer k.Unlock()
-
-	// TODO:
-	// * create service
-	// * create deployment
-
-	// NOTE: our services have micro- prefix
-	muName := strings.Split(s.Name, ".")
-	s.Name = "micro-" + muName[len(muName)-1]
-
-	// NOTE: we are tracking this in memory for now
-	if _, ok := k.services[s.Name]; ok {
-		return errors.New("service already registered")
-	}
 
 	var options runtime.CreateOptions
 	for _, o := range opts {
 		o(&options)
 	}
 
-	// save service
-	k.services[s.Name] = s
+	svcName := s.Name
+	if len(s.Version) > 0 {
+		svcName = strings.Join([]string{s.Name, s.Version}, "-")
+	}
+
+	if !client.ServiceRegexp.MatchString(svcName) {
+		return fmt.Errorf("invalid service name: %s", svcName)
+	}
+
+	// create new kubernetes micro service
+	service := newService(s, options)
+
+	log.Debugf("Runtime queueing service %s for start action", service.Name)
+
 	// push into start queue
-	k.start <- k.services[s.Name]
+	k.queue <- &task{
+		action:  start,
+		service: service,
+	}
+
+	return nil
+}
+
+// Get returns all instances of given service
+func (k *kubernetes) Get(name string, opts ...runtime.GetOption) ([]*runtime.Service, error) {
+	k.Lock()
+	defer k.Unlock()
+
+	// if no name has been passed in, return error
+	if len(name) == 0 {
+		return nil, errors.New("missing service name")
+	}
+
+	// set the default label
+	labels := map[string]string{
+		"micro": "service",
+		"name":  name,
+	}
+	var options runtime.GetOptions
+	for _, o := range opts {
+		o(&options)
+	}
+
+	// add version to labels if a version has been supplied
+	if len(options.Version) > 0 {
+		labels["version"] = options.Version
+	}
+
+	log.Debugf("Runtime querying service %s", name)
+
+	serviceList := new(client.ServiceList)
+	r := &client.Resource{
+		Kind:  "service",
+		Value: serviceList,
+	}
+	if err := k.client.Get(r, labels); err != nil {
+		return nil, err
+	}
+
+	services := make([]*runtime.Service, 0, len(serviceList.Items))
+	for _, kservice := range serviceList.Items {
+		service := &runtime.Service{
+			Name:    kservice.Metadata.Name,
+			Version: kservice.Metadata.Version,
+		}
+		services = append(services, service)
+	}
+
+	return services, nil
+}
+
+// Update the service in place
+func (k *kubernetes) Update(s *runtime.Service) error {
+	// parse version into human readable timestamp
+	updateTimeStamp, err := strconv.ParseInt(s.Version, 10, 64)
+	if err != nil {
+		return err
+	}
+	unixTimeUTC := time.Unix(updateTimeStamp, 0)
+
+	// create new kubernetes micro service
+	service := newService(s, runtime.CreateOptions{})
+
+	// update build time annotation
+	service.kdeploy.Spec.Template.Metadata.Annotations["build"] = unixTimeUTC.Format(time.RFC3339)
+
+	log.Debugf("Runtime queueing service %s for update action", service.Name)
+
+	// queue service for removal
+	k.queue <- &task{
+		action:  update,
+		service: service,
+	}
 
 	return nil
 }
@@ -100,61 +188,37 @@ func (k *kubernetes) Delete(s *runtime.Service) error {
 	k.Lock()
 	defer k.Unlock()
 
-	// TODO:
-	// * delete service
-	// * delete dpeloyment
+	// create new kubernetes micro service
+	service := newService(s, runtime.CreateOptions{})
 
-	// NOTE: we are tracking this in memory for now
-	if s, ok := k.services[s.Name]; ok {
-		delete(k.services, s.Name)
-		return nil
+	log.Debugf("Runtime queueing service %s for delete action", service.Name)
+
+	// queue service for removal
+	k.queue <- &task{
+		action:  stop,
+		service: service,
 	}
 
 	return nil
 }
 
-// Update the service in place
-func (k *kubernetes) Update(s *runtime.Service) error {
-	type body struct {
-		Spec *client.Spec `json:"spec"`
-	}
-	// parse version into human readable timestamp
-	updateTimeStamp, err := strconv.ParseInt(s.Version, 10, 64)
-	if err != nil {
-		return err
-	}
-	unixTimeUTC := time.Unix(updateTimeStamp, 0)
-	// metada which we will PATCH deployment with
-	reqBody := body{
-		Spec: &client.Spec{
-			Template: &client.Template{
-				Metadata: &client.Metadata{
-					Annotations: map[string]string{
-						"build": unixTimeUTC.Format(time.RFC3339),
-					},
-				},
-			},
-		},
-	}
-	return k.client.UpdateDeployment(s.Name, reqBody)
-}
-
 // List the managed services
 func (k *kubernetes) List() ([]*runtime.Service, error) {
-	labels := map[string]string{
-		"micro": "service",
+	serviceList := new(client.ServiceList)
+	r := &client.Resource{
+		Kind:  "service",
+		Value: serviceList,
 	}
-	// list all micro core deployments
-	deployments, err := k.client.ListDeployments(labels)
-	if err != nil {
+
+	if err := k.client.List(r); err != nil {
 		return nil, err
 	}
 
-	log.Debugf("Runtime found %d micro deployments with labels %v", len(deployments.Items), labels)
+	log.Debugf("Runtime found %d micro services", len(serviceList.Items))
 
-	services := make([]*runtime.Service, 0, len(deployments.Items))
+	services := make([]*runtime.Service, 0, len(serviceList.Items))
 
-	for _, service := range deployments.Items {
+	for _, service := range serviceList.Items {
 		buildTime, err := time.Parse(time.RFC3339, service.Metadata.Annotations["build"])
 		if err != nil {
 			log.Debugf("Runtime error parsing build time for %s: %v", service.Metadata.Name, err)
@@ -179,23 +243,31 @@ func (k *kubernetes) run(events <-chan runtime.Event) {
 	for {
 		select {
 		case <-t.C:
-			// check running services
-			services, err := k.List()
-			if err != nil {
-				log.Debugf("Runtime failed listing running services: %v", err)
-				continue
+			// TODO: figure out what to do here
+			// - do we even need the ticker for k8s services?
+		case task := <-k.queue:
+			switch task.action {
+			case start:
+				log.Debugf("Runtime starting new service: %s", task.service.Name)
+				if err := task.service.Start(k.client); err != nil {
+					log.Debugf("Runtime failed to start service %s: %v", task.service.Name, err)
+					continue
+				}
+			case stop:
+				log.Debugf("Runtime stopping service: %s", task.service.Name)
+				if err := task.service.Stop(k.client); err != nil {
+					log.Debugf("Runtime failed to stop service %s: %v", task.service.Name, err)
+					continue
+				}
+			case update:
+				log.Debugf("Runtime updating service: %s", task.service.Name)
+				if err := task.service.Update(k.client); err != nil {
+					log.Debugf("Runtime failed to update service %s: %v", task.service.Name, err)
+					continue
+				}
+			default:
+				log.Debugf("Runtime received unknown action for service: %s", task.service.Name)
 			}
-			// TODO: for now we just log the running services
-			// * make sure all core deployments exist
-			// * make sure all core services are exposed
-			for _, service := range services {
-				log.Debugf("Runtime found running service: %v", service)
-			}
-		case service := <-k.start:
-			// TODO: this is a noop for now
-			// * create a deployment
-			// * expose a service
-			log.Debugf("Runtime starting service: %s", service.Name)
 		case event := <-events:
 			// NOTE: we only handle Update events for now
 			log.Debugf("Runtime received notification event: %v", event)
@@ -207,50 +279,23 @@ func (k *kubernetes) run(events <-chan runtime.Event) {
 					log.Debugf("Runtime error parsing update build time: %v", err)
 					continue
 				}
-				buildTime := time.Unix(updateTimeStamp, 0)
-				processEvent := func(event runtime.Event, service *runtime.Service) error {
-					buildTimeStamp, err := strconv.ParseInt(service.Version, 10, 64)
-					if err != nil {
-						return err
-					}
-					muBuild := time.Unix(buildTimeStamp, 0)
-					if buildTime.After(muBuild) {
-						version := fmt.Sprintf("%d", buildTime.Unix())
-						muService := &runtime.Service{
-							Name:    service.Name,
-							Source:  service.Source,
-							Path:    service.Path,
-							Exec:    service.Exec,
-							Version: version,
-						}
-						if err := k.Update(muService); err != nil {
-							return err
-						}
-						service.Version = version
-					}
-					return nil
-				}
-				k.Lock()
+				unixTimeUTC := time.Unix(updateTimeStamp, 0)
 				if len(event.Service) > 0 {
-					service, ok := k.services[event.Service]
-					if !ok {
-						log.Debugf("Runtime unknown service: %s", event.Service)
-						k.Unlock()
+					s := &runtime.Service{
+						Name:    event.Service,
+						Version: event.Version,
+					}
+					// create new kubernetes micro service
+					service := newService(s, runtime.CreateOptions{})
+					// update build time annotation
+					service.kdeploy.Spec.Template.Metadata.Annotations["build"] = unixTimeUTC.Format(time.RFC3339)
+
+					log.Debugf("Runtime updating service: %s", service.Name)
+					if err := service.Update(k.client); err != nil {
+						log.Debugf("Runtime failed to update service %s: %v", service.Name, err)
 						continue
 					}
-					if err := processEvent(event, service); err != nil {
-						log.Debugf("Runtime error updating service %s: %v", event.Service, err)
-					}
-					k.Unlock()
-					continue
 				}
-				// if blank service was received we update all services
-				for _, service := range k.services {
-					if err := processEvent(event, service); err != nil {
-						log.Debugf("Runtime error updating service %s: %v", service.Name, err)
-					}
-				}
-				k.Unlock()
 			}
 		case <-k.closed:
 			log.Debugf("Runtime stopped")

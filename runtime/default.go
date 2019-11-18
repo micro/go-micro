@@ -21,6 +21,7 @@ type runtime struct {
 	// indicates if we're running
 	running bool
 	// the service map
+	// TODO: track different versions of the same service
 	services map[string]*service
 }
 
@@ -98,31 +99,39 @@ func (r *runtime) run(events <-chan Event) {
 				}
 				buildTime := time.Unix(updateTimeStamp, 0)
 				processEvent := func(event Event, service *Service) error {
-					buildTimeStamp, err := strconv.ParseInt(service.Version, 10, 64)
+					r.RLock()
+					name := service.Name
+					version := service.Version
+					r.RUnlock()
+
+					buildTimeStamp, err := strconv.ParseInt(version, 10, 64)
 					if err != nil {
 						return err
 					}
 					muBuild := time.Unix(buildTimeStamp, 0)
 					if buildTime.After(muBuild) {
+						log.Debugf("Runtime updating service %s", name)
 						if err := r.Update(service); err != nil {
 							return err
 						}
+						r.Lock()
 						service.Version = fmt.Sprintf("%d", buildTime.Unix())
+						r.Unlock()
 					}
 					return nil
 				}
-				r.Lock()
+
 				if len(event.Service) > 0 {
+					r.RLock()
 					service, ok := r.services[event.Service]
+					r.RUnlock()
 					if !ok {
 						log.Debugf("Runtime unknown service: %s", event.Service)
-						r.Unlock()
 						continue
 					}
 					if err := processEvent(event, service.Service); err != nil {
 						log.Debugf("Runtime error updating service %s: %v", event.Service, err)
 					}
-					r.Unlock()
 					continue
 				}
 				// if blank service was received we update all services
@@ -131,7 +140,6 @@ func (r *runtime) run(events <-chan Event) {
 						log.Debugf("Runtime error updating service %s: %v", service.Name, err)
 					}
 				}
-				r.Unlock()
 			}
 		case <-r.closed:
 			log.Debugf("Runtime stopped.")
@@ -162,9 +170,60 @@ func (r *runtime) Create(s *Service, opts ...CreateOption) error {
 	r.services[s.Name] = newService(s, options)
 
 	// push into start queue
+	log.Debugf("Runtime creating service %s", s.Name)
 	r.start <- r.services[s.Name]
 
 	return nil
+}
+
+// Get returns all instances of requested service
+// If no service name is provided we return all the track services.
+func (r *runtime) Get(name string, opts ...GetOption) ([]*Service, error) {
+	r.Lock()
+	defer r.Unlock()
+
+	if len(name) == 0 {
+		return nil, errors.New("missing service name")
+	}
+
+	gopts := GetOptions{}
+	for _, o := range opts {
+		o(&gopts)
+	}
+
+	var services []*Service
+	// if we track the service check if the version is provided
+	if s, ok := r.services[name]; ok {
+		if len(gopts.Version) > 0 {
+			if s.Version == gopts.Version {
+				services = append(services, s.Service)
+			}
+			return services, nil
+		}
+		// no version has sbeen requested, just append the service
+		services = append(services, s.Service)
+	}
+	return services, nil
+}
+
+// Update attemps to update the service
+func (r *runtime) Update(s *Service) error {
+	var opts []CreateOption
+
+	// check if the service already exists
+	r.RLock()
+	if service, ok := r.services[s.Name]; ok {
+		opts = append(opts, WithOutput(service.output))
+	}
+	r.RUnlock()
+
+	// delete the service
+	if err := r.Delete(s); err != nil {
+		return err
+	}
+
+	// create new service
+	return r.Create(s, opts...)
 }
 
 // Delete removes the service from the runtime and stops it
@@ -172,23 +231,23 @@ func (r *runtime) Delete(s *Service) error {
 	r.Lock()
 	defer r.Unlock()
 
+	log.Debugf("Runtime deleting service %s", s.Name)
 	if s, ok := r.services[s.Name]; ok {
+		// check if running
+		if !s.Running() {
+			delete(r.services, s.Name)
+			return nil
+		}
+		// otherwise stop it
+		if err := s.Stop(); err != nil {
+			return err
+		}
+		// delete it
 		delete(r.services, s.Name)
-		return s.Stop()
+		return nil
 	}
 
 	return nil
-}
-
-// Update attemps to update the service
-func (r *runtime) Update(s *Service) error {
-	// delete the service
-	if err := r.Delete(s); err != nil {
-		return err
-	}
-
-	// create new service
-	return r.Create(s)
 }
 
 // List returns a slice of all services tracked by the runtime

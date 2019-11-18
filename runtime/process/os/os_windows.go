@@ -25,9 +25,6 @@ func (p *Process) Fork(exe *process.Executable) (*process.PID, error) {
 	// set env vars
 	cmd.Env = append(cmd.Env, exe.Env...)
 
-	// create process group
-	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
-
 	in, err := cmd.StdinPipe()
 	if err != nil {
 		return nil, err
@@ -67,11 +64,6 @@ func (p *Process) Kill(pid *process.PID) error {
 
 	// now kill it
 	err = pr.Kill()
-
-	// kill the group
-	if pgid, err := syscall.Getpgid(id); err == nil {
-		syscall.Kill(-pgid, syscall.SIGKILL)
-	}
 
 	// return the kill error
 	return err

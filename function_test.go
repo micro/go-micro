@@ -7,14 +7,14 @@ import (
 
 	proto "github.com/micro/go-micro/debug/proto"
 	"github.com/micro/go-micro/registry/memory"
+	"github.com/micro/go-micro/util/test"
 )
 
 func TestFunction(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(1)
 
-	r := memory.NewRegistry()
-	r.(*memory.Registry).Services = testData
+	r := memory.NewRegistry(memory.Services(test.Data))
 
 	// create service
 	fn := NewFunction(

@@ -1,6 +1,7 @@
 package client
 
 import (
+	"bytes"
 	"crypto/tls"
 	"errors"
 	"io/ioutil"
@@ -13,6 +14,7 @@ import (
 )
 
 var (
+	// path to kubernetes service account token
 	serviceAccountPath = "/var/run/secrets/kubernetes.io/serviceaccount"
 	// ErrReadNamespace is returned when the names could not be read from service account
 	ErrReadNamespace = errors.New("Could not read namespace from service account secret")
@@ -23,9 +25,7 @@ type client struct {
 	opts *api.Options
 }
 
-// NewClientInCluster should work similarily to the official api
-// NewInClient by setting up a client configuration for use within
-// a k8s pod.
+// NewClientInCluster creates a Kubernetes client for use from within a k8s pod.
 func NewClientInCluster() *client {
 	host := "https://" + os.Getenv("KUBERNETES_SERVICE_HOST") + ":" + os.Getenv("KUBERNETES_SERVICE_PORT")
 
@@ -34,7 +34,7 @@ func NewClientInCluster() *client {
 		log.Fatal(err)
 	}
 	if s == nil || !s.IsDir() {
-		log.Fatal(errors.New("no k8s service account found"))
+		log.Fatal(errors.New("service account not found"))
 	}
 
 	token, err := ioutil.ReadFile(path.Join(serviceAccountPath, "token"))
@@ -90,26 +90,72 @@ func detectNamespace() (string, error) {
 	}
 }
 
-// UpdateDeployment patches kubernetes deployment with metadata provided in body
-func (c *client) UpdateDeployment(name string, body interface{}) error {
+// Create creates new API object
+func (c *client) Create(r *Resource) error {
+	b := new(bytes.Buffer)
+	if err := renderTemplate(r.Kind, b, r.Value); err != nil {
+		return err
+	}
+
 	return api.NewRequest(c.opts).
-		Patch().
-		Resource("deployments").
-		Name(name).
-		Body(body).
+		Post().
+		SetHeader("Content-Type", "application/yaml").
+		Resource(r.Kind).
+		Body(b).
 		Do().
 		Error()
 }
 
-// ListDeployments lists all kubernetes deployments with given labels
-func (c *client) ListDeployments(labels map[string]string) (*DeploymentList, error) {
-	var deployments DeploymentList
-	err := api.NewRequest(c.opts).
+// Get queries API objects and stores the result in r
+func (c *client) Get(r *Resource, labels map[string]string) error {
+	return api.NewRequest(c.opts).
 		Get().
-		Resource("deployments").
+		Resource(r.Kind).
 		Params(&api.Params{LabelSelector: labels}).
 		Do().
-		Into(&deployments)
+		Into(r.Value)
+}
 
-	return &deployments, err
+// Update updates API object
+func (c *client) Update(r *Resource) error {
+	req := api.NewRequest(c.opts).
+		Patch().
+		SetHeader("Content-Type", "application/strategic-merge-patch+json").
+		Resource(r.Kind).
+		Name(r.Name)
+
+	switch r.Kind {
+	case "service":
+		req.Body(r.Value.(*Service).Spec)
+	case "deployment":
+		req.Body(r.Value.(*Deployment).Spec)
+	default:
+		return errors.New("unsupported resource")
+	}
+
+	return req.Do().Error()
+}
+
+// Delete removes API object
+func (c *client) Delete(r *Resource) error {
+	return api.NewRequest(c.opts).
+		Delete().
+		Resource(r.Kind).
+		Name(r.Name).
+		Do().
+		Error()
+}
+
+// List lists API objects and stores the result in r
+func (c *client) List(r *Resource) error {
+	labels := map[string]string{
+		"micro": "service",
+	}
+
+	return api.NewRequest(c.opts).
+		Get().
+		Resource(r.Kind).
+		Params(&api.Params{LabelSelector: labels}).
+		Do().
+		Into(r.Value)
 }

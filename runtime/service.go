@@ -129,7 +129,12 @@ func (s *service) Stop() error {
 		if s.PID == nil {
 			return nil
 		}
-		return s.Process.Kill(s.PID)
+		// kill the process
+		err := s.Process.Kill(s.PID)
+		// wait for it to exit
+		s.Process.Wait(s.PID)
+		// return the kill error
+		return err
 	}
 }
 

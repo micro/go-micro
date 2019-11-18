@@ -3,7 +3,6 @@ package memory
 
 import (
 	"context"
-	"strings"
 	"sync"
 	"time"
 
@@ -14,23 +13,29 @@ import (
 
 var (
 	sendEventTime = 10 * time.Millisecond
-	ttlPruneTime  = 1 * time.Minute
-	DefaultTTL    = 1 * time.Minute
+	ttlPruneTime  = time.Second
 )
 
-// node tracks node registration timestamp and TTL
 type node struct {
-	lastSeen time.Time
-	ttl      time.Duration
+	*registry.Node
+	TTL      time.Duration
+	LastSeen time.Time
+}
+
+type record struct {
+	Name      string
+	Version   string
+	Metadata  map[string]string
+	Nodes     map[string]*node
+	Endpoints []*registry.Endpoint
 }
 
 type Registry struct {
 	options registry.Options
 
 	sync.RWMutex
-	Services map[string][]*registry.Service
-	nodes    map[string]*node
-	Watchers map[string]*Watcher
+	records  map[string]map[string]*record
+	watchers map[string]*Watcher
 }
 
 func NewRegistry(opts ...registry.Option) registry.Registry {
@@ -42,26 +47,20 @@ func NewRegistry(opts ...registry.Option) registry.Registry {
 		o(&options)
 	}
 
-	services := getServices(options.Context)
-	if services == nil {
-		services = make(map[string][]*registry.Service)
+	records := getServiceRecords(options.Context)
+	if records == nil {
+		records = make(map[string]map[string]*record)
 	}
 
 	reg := &Registry{
 		options:  options,
-		Services: services,
-		nodes:    make(map[string]*node),
-		Watchers: make(map[string]*Watcher),
+		records:  records,
+		watchers: make(map[string]*Watcher),
 	}
 
 	go reg.ttlPrune()
 
 	return reg
-}
-
-// nodeTrackId returns a string we use to track a node of a given service
-func nodeTrackId(svcName, svcVersion, nodeId string) string {
-	return svcName + "+" + svcVersion + "+" + nodeId
 }
 
 func (m *Registry) ttlPrune() {
@@ -72,49 +71,26 @@ func (m *Registry) ttlPrune() {
 		select {
 		case <-prune.C:
 			m.Lock()
-			for nodeTrackId, node := range m.nodes {
-				// if the TTL has been set and we exceed the hresholdset by it we stop tracking the node
-				if node.ttl.Seconds() != 0.0 && time.Since(node.lastSeen) > node.ttl {
-					// split nodeTrackID into service Name, Version and Node Id
-					trackIdSplit := strings.Split(nodeTrackId, "+")
-					svcName, svcVersion, nodeId := trackIdSplit[0], trackIdSplit[1], trackIdSplit[2]
-					log.Debugf("[memory] Registry TTL expired for service %s, node %s", svcName, nodeId)
-					// we need to find a node that expired and delete it from service nodes
-					if _, ok := m.Services[svcName]; ok {
-						for _, service := range m.Services[svcName] {
-							if service.Version != svcVersion {
-								continue
-							}
-							// find expired service node and delete it
-							var nodes []*registry.Node
-							for _, n := range service.Nodes {
-								var del bool
-								if n.Id == nodeId {
-									del = true
-								}
-								if !del {
-									nodes = append(nodes, n)
-								}
-							}
-							service.Nodes = nodes
+			for name, records := range m.records {
+				for version, record := range records {
+					for id, n := range record.Nodes {
+						if n.TTL != 0 && time.Since(n.LastSeen) > n.TTL {
+							log.Debugf("Registry TTL expired for node %s of service %s", n.Id, name)
+							delete(m.records[name][version].Nodes, id)
 						}
 					}
-					// stop tracking the node
-					delete(m.nodes, nodeTrackId)
 				}
 			}
 			m.Unlock()
 		}
 	}
-
-	return
 }
 
 func (m *Registry) sendEvent(r *registry.Result) {
-	watchers := make([]*Watcher, 0, len(m.Watchers))
+	watchers := make([]*Watcher, 0, len(m.watchers))
 
 	m.RLock()
-	for _, w := range m.Watchers {
+	for _, w := range m.watchers {
 		watchers = append(watchers, w)
 	}
 	m.RUnlock()
@@ -123,7 +99,7 @@ func (m *Registry) sendEvent(r *registry.Result) {
 		select {
 		case <-w.exit:
 			m.Lock()
-			delete(m.Watchers, w.id)
+			delete(m.watchers, w.id)
 			m.Unlock()
 		default:
 			select {
@@ -141,11 +117,24 @@ func (m *Registry) Init(opts ...registry.Option) error {
 
 	// add services
 	m.Lock()
-	for k, v := range getServices(m.options.Context) {
-		s := m.Services[k]
-		m.Services[k] = registry.Merge(s, v)
+	defer m.Unlock()
+
+	records := getServiceRecords(m.options.Context)
+	for name, record := range records {
+		// add a whole new service including all of its versions
+		if _, ok := m.records[name]; !ok {
+			m.records[name] = record
+			continue
+		}
+		// add the versions of the service we dont track yet
+		for version, r := range record {
+			if _, ok := m.records[name][version]; !ok {
+				m.records[name][version] = r
+				continue
+			}
+		}
 	}
-	m.Unlock()
+
 	return nil
 }
 
@@ -153,102 +142,59 @@ func (m *Registry) Options() registry.Options {
 	return m.options
 }
 
-func (m *Registry) GetService(name string) ([]*registry.Service, error) {
-	m.RLock()
-	service, ok := m.Services[name]
-	m.RUnlock()
-	if !ok {
-		return nil, registry.ErrNotFound
-	}
-
-	return service, nil
-}
-
-func (m *Registry) ListServices() ([]*registry.Service, error) {
-	var services []*registry.Service
-	m.RLock()
-	for _, service := range m.Services {
-		services = append(services, service...)
-	}
-	m.RUnlock()
-	return services, nil
-}
-
 func (m *Registry) Register(s *registry.Service, opts ...registry.RegisterOption) error {
 	m.Lock()
 	defer m.Unlock()
-
-	log.Debugf("[memory] Registry registering service: %s", s.Name)
 
 	var options registry.RegisterOptions
 	for _, o := range opts {
 		o(&options)
 	}
 
-	if service, ok := m.Services[s.Name]; !ok {
-		m.Services[s.Name] = []*registry.Service{s}
-		// add all nodes into nodes map to track their TTL
-		for _, n := range s.Nodes {
-			log.Debugf("[memory] Registry tracking new service: %s, node %s", s.Name, n.Id)
-			m.nodes[nodeTrackId(s.Name, s.Version, n.Id)] = &node{
-				lastSeen: time.Now(),
-				ttl:      options.TTL,
-			}
-		}
+	r := serviceToRecord(s, options.TTL)
+
+	if _, ok := m.records[s.Name]; !ok {
+		m.records[s.Name] = make(map[string]*record)
+	}
+
+	if _, ok := m.records[s.Name][s.Version]; !ok {
+		m.records[s.Name][s.Version] = r
+		log.Debugf("Registry added new service: %s, version: %s", s.Name, s.Version)
 		go m.sendEvent(&registry.Result{Action: "update", Service: s})
 		return nil
-	} else {
-		// svcCount keeps the count of all versions of particular service
-		//svcCount := len(service)
-		// svcNodes maintains a list of node Ids per particular service version
-		svcNodes := make(map[string]map[string][]string)
-		// collect all service ids for all service versions
-		for _, s := range service {
-			if _, ok := svcNodes[s.Name]; !ok {
-				svcNodes[s.Name] = make(map[string][]string)
-			}
-			if _, ok := svcNodes[s.Name][s.Version]; !ok {
-				for _, n := range s.Nodes {
-					svcNodes[s.Name][s.Version] = append(svcNodes[s.Name][s.Version], n.Id)
+	}
+
+	addedNodes := false
+	for _, n := range s.Nodes {
+		if _, ok := m.records[s.Name][s.Version].Nodes[n.Id]; !ok {
+			addedNodes = true
+			metadata := make(map[string]string)
+			for k, v := range n.Metadata {
+				metadata[k] = v
+				m.records[s.Name][s.Version].Nodes[n.Id] = &node{
+					Node: &registry.Node{
+						Id:       n.Id,
+						Address:  n.Address,
+						Metadata: metadata,
+					},
+					TTL:      options.TTL,
+					LastSeen: time.Now(),
 				}
 			}
 		}
-		// if merged count and original service counts changed we know we are adding a new version of the service
-		merged := registry.Merge(service, []*registry.Service{s})
-		// if the node count of any service [version] changed we know we are adding a new node to the service
-		for _, s := range merged {
-			// we know that if the node counts have changed we need to track new nodes
-			if len(s.Nodes) != len(svcNodes[s.Name][s.Version]) {
-				for _, n := range s.Nodes {
-					var found bool
-					for _, id := range svcNodes[s.Name][s.Version] {
-						if n.Id == id {
-							found = true
-							break
-						}
-					}
-					if !found {
-						log.Debugf("[memory] Registry tracking new node: %s for service %s", n.Id, s.Name)
-						m.nodes[nodeTrackId(s.Name, s.Version, n.Id)] = &node{
-							lastSeen: time.Now(),
-							ttl:      options.TTL,
-						}
-					}
-				}
-				m.Services[s.Name] = merged
-				go m.sendEvent(&registry.Result{Action: "update", Service: s})
-				return nil
-			}
-			// refresh the timestamp and TTL of the service node
-			for _, n := range s.Nodes {
-				trackId := nodeTrackId(s.Name, s.Version, n.Id)
-				log.Debugf("[memory] Registry refreshing TTL for node %s for service %s", n.Id, s.Name)
-				if trackedNode, ok := m.nodes[trackId]; ok {
-					trackedNode.lastSeen = time.Now()
-					trackedNode.ttl = options.TTL
-				}
-			}
-		}
+	}
+
+	if addedNodes {
+		log.Debugf("Registry added new node to service: %s, version: %s", s.Name, s.Version)
+		go m.sendEvent(&registry.Result{Action: "update", Service: s})
+		return nil
+	}
+
+	// refresh TTL and timestamp
+	for _, n := range s.Nodes {
+		log.Debugf("Updated registration for service: %s, version: %s", s.Name, s.Version)
+		m.records[s.Name][s.Version].Nodes[n.Id].TTL = options.TTL
+		m.records[s.Name][s.Version].Nodes[n.Id].LastSeen = time.Now()
 	}
 
 	return nil
@@ -258,55 +204,60 @@ func (m *Registry) Deregister(s *registry.Service) error {
 	m.Lock()
 	defer m.Unlock()
 
-	log.Debugf("[memory] Registry deregistering service: %s", s.Name)
-
-	if service, ok := m.Services[s.Name]; ok {
-		// svcNodes collects the list of all node Ids for each service version
-		svcNodes := make(map[string]map[string][]string)
-		// collect all service node ids for all service versions
-		for _, svc := range service {
-			if _, ok := svcNodes[svc.Name]; !ok {
-				svcNodes[svc.Name] = make(map[string][]string)
-			}
-			if _, ok := svcNodes[svc.Name][svc.Version]; !ok {
-				for _, n := range svc.Nodes {
-					svcNodes[svc.Name][svc.Version] = append(svcNodes[svc.Name][svc.Version], n.Id)
+	if _, ok := m.records[s.Name]; ok {
+		if _, ok := m.records[s.Name][s.Version]; ok {
+			for _, n := range s.Nodes {
+				if _, ok := m.records[s.Name][s.Version].Nodes[n.Id]; ok {
+					log.Debugf("Registry removed node from service: %s, version: %s", s.Name, s.Version)
+					delete(m.records[s.Name][s.Version].Nodes, n.Id)
 				}
 			}
-		}
-		// if there are no more services we know we have either removed all nodes or there were no nodes
-		if updatedService := registry.Remove(service, []*registry.Service{s}); len(updatedService) == 0 {
-			for _, id := range svcNodes[s.Name][s.Version] {
-				log.Debugf("[memory] Registry stopped tracking node %s for service %s", id, s.Name)
-				delete(m.nodes, nodeTrackId(s.Name, s.Version, id))
-				go m.sendEvent(&registry.Result{Action: "delete", Service: s})
-			}
-			log.Debugf("[memory] Registry deleting service %s: no service nodes", s.Name)
-			delete(m.Services, s.Name)
-			return nil
-		} else {
-			// find out which nodes have been removed
-			for _, id := range svcNodes[s.Name][s.Version] {
-				for _, svc := range updatedService {
-					var found bool
-					for _, n := range svc.Nodes {
-						if id == n.Id {
-							found = true
-							break
-						}
-					}
-					if !found {
-						log.Debugf("[memory] Registry stopped tracking node %s for service %s", id, s.Name)
-						delete(m.nodes, nodeTrackId(s.Name, s.Version, id))
-						go m.sendEvent(&registry.Result{Action: "delete", Service: s})
-					}
-				}
-				m.Services[s.Name] = updatedService
+			if len(m.records[s.Name][s.Version].Nodes) == 0 {
+				delete(m.records[s.Name], s.Version)
+				log.Debugf("Registry removed service: %s, version: %s", s.Name, s.Version)
 			}
 		}
+		if len(m.records[s.Name]) == 0 {
+			delete(m.records, s.Name)
+			log.Debugf("Registry removed service: %s", s.Name)
+		}
+		go m.sendEvent(&registry.Result{Action: "delete", Service: s})
 	}
 
 	return nil
+}
+
+func (m *Registry) GetService(name string) ([]*registry.Service, error) {
+	m.RLock()
+	defer m.RUnlock()
+
+	records, ok := m.records[name]
+	if !ok {
+		return nil, registry.ErrNotFound
+	}
+
+	services := make([]*registry.Service, len(m.records[name]))
+	i := 0
+	for _, record := range records {
+		services[i] = recordToService(record)
+		i++
+	}
+
+	return services, nil
+}
+
+func (m *Registry) ListServices() ([]*registry.Service, error) {
+	m.RLock()
+	defer m.RUnlock()
+
+	var services []*registry.Service
+	for _, records := range m.records {
+		for _, record := range records {
+			services = append(services, recordToService(record))
+		}
+	}
+
+	return services, nil
 }
 
 func (m *Registry) Watch(opts ...registry.WatchOption) (registry.Watcher, error) {
@@ -323,8 +274,9 @@ func (m *Registry) Watch(opts ...registry.WatchOption) (registry.Watcher, error)
 	}
 
 	m.Lock()
-	m.Watchers[w.id] = w
+	m.watchers[w.id] = w
 	m.Unlock()
+
 	return w, nil
 }
 
