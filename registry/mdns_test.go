@@ -1,6 +1,7 @@
 package registry
 
 import (
+	"os"
 	"testing"
 	"time"
 )
