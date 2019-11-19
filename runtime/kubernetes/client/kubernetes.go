@@ -17,7 +17,7 @@ const (
 
 var (
 	// DefaultImage is default micro image
-	DefaultImage = "micro/micro"
+	DefaultImage = "micro/go-micro"
 	// ServiceRegexp is used to validate service name
 	ServiceRegexp = regexp.MustCompile("^" + dns1123LabelFmt + "$")
 )
