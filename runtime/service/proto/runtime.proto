@@ -20,7 +20,7 @@ message Service {
 	// local path of the source
 	string path = 4;
 	// command to execute
-	string exec = 5;
+	repeated string exec = 5;
 }
 
 message CreateOptions {

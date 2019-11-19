@@ -2,7 +2,6 @@ package runtime
 
 import (
 	"io"
-	"strings"
 	"sync"
 
 	"github.com/micro/go-micro/runtime/build"
@@ -37,12 +36,13 @@ func newService(s *Service, c CreateOptions) *service {
 	var args []string
 
 	if len(s.Exec) > 0 {
-		parts := strings.Split(s.Exec, " ")
-		exec = parts[0]
+		if len(s.Exec) > 0 {
+			exec = s.Exec[0]
+		}
 		args = []string{}
 
-		if len(parts) > 1 {
-			args = parts[1:]
+		if len(s.Exec) > 1 {
+			args = s.Exec[1:]
 		}
 	} else {
 		// set command
