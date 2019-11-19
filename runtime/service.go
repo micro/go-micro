@@ -5,7 +5,8 @@ import (
 	"strings"
 	"sync"
 
-	packager "github.com/micro/go-micro/runtime/package"
+	"github.com/micro/go-micro/runtime/build"
+
 	"github.com/micro/go-micro/runtime/process"
 	proc "github.com/micro/go-micro/runtime/process/os"
 	"github.com/micro/go-micro/util/log"
@@ -56,7 +57,7 @@ func newService(s *Service, c CreateOptions) *service {
 		Service: s,
 		Process: new(proc.Process),
 		Exec: &process.Executable{
-			Binary: &packager.Binary{
+			Package: &build.Package{
 				Name: s.Name,
 				Path: exec,
 			},

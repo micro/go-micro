@@ -8,17 +8,17 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/fsouza/go-dockerclient"
-	"github.com/micro/go-micro/runtime/package"
+	docker "github.com/fsouza/go-dockerclient"
+	"github.com/micro/go-micro/runtime/build"
 	"github.com/micro/go-micro/util/log"
 )
 
-type Packager struct {
-	Options packager.Options
+type Builder struct {
+	Options build.Options
 	Client  *docker.Client
 }
 
-func (d *Packager) Compile(s *packager.Source) (*packager.Binary, error) {
+func (d *Builder) Build(s *build.Source) (*build.Package, error) {
 	image := filepath.Join(s.Repository.Path, s.Repository.Name)
 
 	buf := new(bytes.Buffer)
@@ -63,7 +63,7 @@ func (d *Packager) Compile(s *packager.Source) (*packager.Binary, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &packager.Binary{
+	return &build.Package{
 		Name:   image,
 		Path:   image,
 		Type:   "docker",
@@ -71,13 +71,13 @@ func (d *Packager) Compile(s *packager.Source) (*packager.Binary, error) {
 	}, nil
 }
 
-func (d *Packager) Delete(b *packager.Binary) error {
+func (d *Builder) Clean(b *build.Package) error {
 	image := filepath.Join(b.Path, b.Name)
 	return d.Client.RemoveImage(image)
 }
 
-func NewPackager(opts ...packager.Option) packager.Packager {
-	options := packager.Options{}
+func NewBuilder(opts ...build.Option) build.Builder {
+	options := build.Options{}
 	for _, o := range opts {
 		o(&options)
 	}
@@ -86,7 +86,7 @@ func NewPackager(opts ...packager.Option) packager.Packager {
 	if err != nil {
 		log.Fatal(err)
 	}
-	return &Packager{
+	return &Builder{
 		Options: options,
 		Client:  client,
 	}

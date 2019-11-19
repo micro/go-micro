@@ -1,4 +1,4 @@
-package packager
+package build
 
 type Options struct {
 	// local path to download source

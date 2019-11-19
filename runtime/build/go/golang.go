@@ -6,11 +6,11 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"github.com/micro/go-micro/runtime/package"
+	"github.com/micro/go-micro/runtime/build"
 )
 
-type Packager struct {
-	Options packager.Options
+type Builder struct {
+	Options build.Options
 	Cmd     string
 	Path    string
 }
@@ -34,7 +34,7 @@ func whichGo() string {
 	return "go"
 }
 
-func (g *Packager) Compile(s *packager.Source) (*packager.Binary, error) {
+func (g *Builder) Build(s *build.Source) (*build.Package, error) {
 	binary := filepath.Join(g.Path, s.Repository.Name)
 	source := filepath.Join(s.Repository.Path, s.Repository.Name)
 
@@ -42,7 +42,7 @@ func (g *Packager) Compile(s *packager.Source) (*packager.Binary, error) {
 	if err := cmd.Run(); err != nil {
 		return nil, err
 	}
-	return &packager.Binary{
+	return &build.Package{
 		Name:   s.Repository.Name,
 		Path:   binary,
 		Type:   "go",
@@ -50,19 +50,19 @@ func (g *Packager) Compile(s *packager.Source) (*packager.Binary, error) {
 	}, nil
 }
 
-func (g *Packager) Delete(b *packager.Binary) error {
+func (g *Builder) Clean(b *build.Package) error {
 	binary := filepath.Join(b.Path, b.Name)
 	return os.Remove(binary)
 }
 
-func NewPackager(opts ...packager.Option) packager.Packager {
-	options := packager.Options{
+func NewBuild(opts ...build.Option) build.Builder {
+	options := build.Options{
 		Path: os.TempDir(),
 	}
 	for _, o := range opts {
 		o(&options)
 	}
-	return &Packager{
+	return &Builder{
 		Options: options,
 		Cmd:     whichGo(),
 		Path:    options.Path,

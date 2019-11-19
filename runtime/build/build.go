@@ -1,16 +1,16 @@
-// Package packager creates a binary image. Due to package being a reserved keyword we use packager.
-package packager
+// Package build builds a micro runtime package
+package build
 
 import (
 	"github.com/micro/go-micro/runtime/source"
 )
 
-// Package builds binaries
-type Packager interface {
-	// Compile builds a binary
-	Compile(*Source) (*Binary, error)
-	// Deletes the binary
-	Delete(*Binary) error
+// Builder builds binaries
+type Builder interface {
+	// Build builds a package
+	Build(*Source) (*Package, error)
+	// Clean deletes the package
+	Clean(*Package) error
 }
 
 // Source is the source of a build
@@ -21,8 +21,8 @@ type Source struct {
 	Repository *source.Repository
 }
 
-// Binary is the representation of a binary
-type Binary struct {
+// Package is micro service package
+type Package struct {
 	// Name of the binary
 	Name string
 	// Location of the binary
