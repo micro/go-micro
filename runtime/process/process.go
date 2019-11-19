@@ -4,7 +4,7 @@ package process
 import (
 	"io"
 
-	"github.com/micro/go-micro/runtime/package"
+	"github.com/micro/go-micro/runtime/build"
 )
 
 // Process manages a running process
@@ -20,8 +20,8 @@ type Process interface {
 }
 
 type Executable struct {
-	// The executable binary
-	Binary *packager.Binary
+	// Package containing executable
+	Package *build.Package
 	// The env variables
 	Env []string
 	// Args to pass
