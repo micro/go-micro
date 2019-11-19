@@ -83,7 +83,7 @@ type Service struct {
 	// Path to store source
 	Path string
 	// Exec command
-	Exec string
+	Exec []string
 	// Version of the service
 	Version string
 }

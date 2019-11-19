@@ -15,7 +15,7 @@ message Service {
 	// local path of the source
 	string path = 3;
 	// command to execute
-	string exec = 4;
+	repeated string exec = 4;
 }
 
 message CreateRequest {
