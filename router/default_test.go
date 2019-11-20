@@ -75,12 +75,14 @@ func TestRouterAdvertise(t *testing.T) {
 
 	var advertErr error
 
+	createDone := make(chan bool)
 	errChan := make(chan error)
 
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
 		wg.Done()
+		defer close(createDone)
 		for _, route := range routes {
 			log.Debugf("Creating route %v", route)
 			if err := r.Table().Create(route); err != nil {
@@ -92,13 +94,13 @@ func TestRouterAdvertise(t *testing.T) {
 	}()
 
 	var adverts int
-	doneChan := make(chan bool)
+	readDone := make(chan bool)
 
 	wg.Add(1)
 	go func() {
 		defer func() {
 			wg.Done()
-			doneChan <- true
+			readDone <- true
 		}()
 		for advert := range ch {
 			select {
@@ -113,7 +115,10 @@ func TestRouterAdvertise(t *testing.T) {
 		}
 	}()
 
-	<-doneChan
+	// done adding routes to routing table
+	<-createDone
+	// done reading adverts from the routing table
+	<-readDone
 
 	if adverts != nrRoutes {
 		t.Errorf("Expected %d adverts, received: %d", nrRoutes, adverts)
