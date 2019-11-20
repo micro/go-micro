@@ -6,6 +6,8 @@ import "time"
 var (
 	// DefaultRuntime is default micro runtime
 	DefaultRuntime Runtime = NewRuntime()
+	// DefaultName is default runtime service name
+	DefaultName = "go.micro.runtime"
 )
 
 // Runtime is a service runtime manager
