@@ -339,20 +339,26 @@ func (g *grpcServer) processRequest(stream grpc.ServerStream, service *service, 
 
 		// define the handler func
 		fn := func(ctx context.Context, req server.Request, rsp interface{}) error {
+			ch := make(chan error, 1)
+			defer close(ch)
+
 			defer func() {
 				if r := recover(); r != nil {
 					log.Log("panic recovered: ", r)
 					log.Logf(string(debug.Stack()))
+					ch <- errors.InternalServerError("go.micro.server", "panic recovered: %v", r)
 				}
 			}()
 			returnValues = function.Call([]reflect.Value{service.rcvr, mtype.prepareContext(ctx), reflect.ValueOf(argv.Interface()), reflect.ValueOf(rsp)})
 
 			// The return value for the method is an error.
 			if err := returnValues[0].Interface(); err != nil {
-				return err.(error)
+				ch <- err.(error)
 			}
 
-			return nil
+			ch <- nil
+
+			return <-ch
 		}
 
 		// wrap the handler func
