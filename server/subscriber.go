@@ -169,6 +169,11 @@ func (s *rpcServer) createSubHandler(sb *subscriber, opts Options) broker.Handle
 	return func(p broker.Event) error {
 		msg := p.Message()
 
+		if msg.Header == nil {
+			// create empty map in case of headers empty to avoid panic later
+			msg.Header = make(map[string]string)
+		}
+
 		// get codec
 		ct := msg.Header["Content-Type"]
 
