@@ -73,10 +73,11 @@ func DefaultService(name, version string) *Service {
 }
 
 // DefaultService returns default micro kubernetes deployment definition
-func DefaultDeployment(name, version string) *Deployment {
+func DefaultDeployment(name, version, source string) *Deployment {
 	Labels := map[string]string{
 		"name":    name,
 		"version": version,
+		"source":  source,
 		"micro":   "service",
 	}
 
@@ -115,7 +116,7 @@ func DefaultDeployment(name, version string) *Deployment {
 					Name:    name,
 					Image:   DefaultImage,
 					Env:     []EnvVar{},
-					Command: []string{"go", "run", "main.go"},
+					Command: []string{"go", "run", source},
 					Ports: []ContainerPort{{
 						Name:          name + "-port",
 						ContainerPort: 8080,

@@ -19,7 +19,7 @@ type service struct {
 
 func newService(s *runtime.Service, c runtime.CreateOptions) *service {
 	kservice := client.DefaultService(s.Name, s.Version)
-	kdeploy := client.DefaultDeployment(s.Name, s.Version)
+	kdeploy := client.DefaultDeployment(s.Name, s.Version, s.Source)
 
 	env := make([]client.EnvVar, 0, len(c.Env))
 	for _, evar := range c.Env {
