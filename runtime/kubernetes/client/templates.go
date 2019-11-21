@@ -1,8 +1,8 @@
 package client
 
 var templates = map[string]string{
-	"deployments": deploymentTmpl,
-	"services":    serviceTmpl,
+	"deployment": deploymentTmpl,
+	"service":    serviceTmpl,
 }
 
 var deploymentTmpl = `

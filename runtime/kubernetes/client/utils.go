@@ -10,9 +10,9 @@ import (
 	"text/template"
 )
 
-// renderTemplateFile renders template file in path into writer w with supplied data
-func renderTemplate(text string, w io.Writer, data interface{}) error {
-	t := template.Must(template.New("kubernetes").Parse(text))
+// renderTemplateFile renders template for a given resource into writer w
+func renderTemplate(resource string, w io.Writer, data interface{}) error {
+	t := template.Must(template.New("kubernetes").Parse(templates[resource]))
 
 	if err := t.Execute(w, data); err != nil {
 		return err

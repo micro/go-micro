@@ -4,4 +4,4 @@ RUN apk --no-cache add make git gcc libtool musl-dev
 WORKDIR /
 COPY go.mod .
 COPY go.sum .
-RUN go mod download
+RUN go mod download && rm go.mod go.sum
