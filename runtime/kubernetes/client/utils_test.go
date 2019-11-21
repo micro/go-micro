@@ -7,7 +7,7 @@ import (
 
 func TestTemplates(t *testing.T) {
 	name := "foo"
-	version := "1.2.3"
+	version := "123"
 	source := "github.com/foo/bar"
 
 	// Render default service

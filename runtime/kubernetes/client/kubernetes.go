@@ -38,6 +38,8 @@ type Kubernetes interface {
 
 // DefaultService returns default micro kubernetes service definition
 func DefaultService(name, version string) *Service {
+	log.Debugf("kubernetes default service: name: %s, version: %s", name, version)
+
 	Labels := map[string]string{
 		"name":    name,
 		"version": version,
@@ -74,10 +76,11 @@ func DefaultService(name, version string) *Service {
 
 // DefaultService returns default micro kubernetes deployment definition
 func DefaultDeployment(name, version, source string) *Deployment {
+	log.Debugf("kubernetes default deployment: name: %s, version: %s, source: %s", name, version, source)
+
 	Labels := map[string]string{
 		"name":    name,
 		"version": version,
-		"source":  source,
 		"micro":   "service",
 	}
 
@@ -103,7 +106,12 @@ func DefaultDeployment(name, version, source string) *Deployment {
 		log.Debugf("Runtime could not parse build: %v", err)
 	}
 
-	// TODO: change the image name here
+	// enable go modules by default
+	env := EnvVar{
+		Name:  "GO111MODULE",
+		Value: "on",
+	}
+
 	Spec := &DeploymentSpec{
 		Replicas: 1,
 		Selector: &LabelSelector{
@@ -115,7 +123,7 @@ func DefaultDeployment(name, version, source string) *Deployment {
 				Containers: []Container{{
 					Name:    name,
 					Image:   DefaultImage,
-					Env:     []EnvVar{},
+					Env:     []EnvVar{env},
 					Command: []string{"go", "run", source},
 					Ports: []ContainerPort{{
 						Name:          name + "-port",

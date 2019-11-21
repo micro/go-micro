@@ -27,15 +27,18 @@ func newService(s *runtime.Service, c runtime.CreateOptions) *service {
 		env = append(env, client.EnvVar{Name: evarPair[0], Value: evarPair[1]})
 	}
 
-	// TODO: should we append instead of overriding?
-	// if environment has been supplied update deployment
+	// if environment has been supplied update deployment default environment
 	if len(env) > 0 {
-		kdeploy.Spec.Template.PodSpec.Containers[0].Env = env
+		kdeploy.Spec.Template.PodSpec.Containers[0].Env = append(kdeploy.Spec.Template.PodSpec.Containers[0].Env, env...)
 	}
 
-	// if Command has been supplied override the default command
-	if len(c.Command) > 0 {
-		kdeploy.Spec.Template.PodSpec.Containers[0].Command = c.Command
+	// if Exec/Command has been supplied override the default command
+	if len(s.Exec) > 0 {
+		kdeploy.Spec.Template.PodSpec.Containers[0].Command = s.Exec
+	} else {
+		if len(c.Command) > 0 {
+			kdeploy.Spec.Template.PodSpec.Containers[0].Command = c.Command
+		}
 	}
 
 	return &service{
