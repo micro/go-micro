@@ -96,6 +96,8 @@ func DefaultDeployment(name, version, source string) *Deployment {
 		Labels:    Labels,
 		Annotations: map[string]string{
 			"source": source,
+			"owner":  "micro",
+			"group":  "micro",
 		},
 	}
 
