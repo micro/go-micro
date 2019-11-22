@@ -156,6 +156,10 @@ func (k *kubernetes) getMicroService(labels map[string]string) ([]*runtime.Servi
 		if svc, ok := svcMap[name]; ok {
 			// set the service source
 			svc.Source = kdep.Metadata.Annotations["source"]
+			// copy all annotations metadata into service metadata
+			for k, v := range kdep.Metadata.Annotations {
+				svc.Metadata[k] = v
+			}
 
 			// parse out deployment status
 			if len(kdep.Status.Conditions) > 0 {
