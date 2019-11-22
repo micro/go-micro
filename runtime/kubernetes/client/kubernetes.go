@@ -85,7 +85,7 @@ func DefaultDeployment(name, version, source string) *Deployment {
 
 	depName := name
 	if len(version) > 0 {
-		// API deployment object name joins name and version over "="
+		// API deployment object name joins name and version over "-"
 		depName = strings.Join([]string{name, version}, "-")
 	}
 
