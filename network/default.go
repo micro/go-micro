@@ -19,6 +19,7 @@ import (
 	"github.com/micro/go-micro/server"
 	"github.com/micro/go-micro/transport"
 	"github.com/micro/go-micro/tunnel"
+	bun "github.com/micro/go-micro/tunnel/broker"
 	tun "github.com/micro/go-micro/tunnel/transport"
 	"github.com/micro/go-micro/util/backoff"
 	"github.com/micro/go-micro/util/log"
@@ -112,6 +113,11 @@ func newNetwork(opts ...Option) Network {
 		tun.WithTunnel(options.Tunnel),
 	)
 
+	// create the tunnel broker
+	tunBroker := bun.NewBroker(
+		bun.WithTunnel(options.Tunnel),
+	)
+
 	// server is network server
 	server := server.NewServer(
 		server.Id(options.Id),
@@ -119,10 +125,12 @@ func newNetwork(opts ...Option) Network {
 		server.Advertise(advertise),
 		server.Name(options.Name),
 		server.Transport(tunTransport),
+		server.Broker(tunBroker),
 	)
 
 	// client is network client
 	client := client.NewClient(
+		client.Broker(tunBroker),
 		client.Transport(tunTransport),
 		client.Selector(
 			rtr.NewSelector(
