@@ -472,7 +472,7 @@ func (h *httpBroker) Init(opts ...Option) error {
 	}
 
 	if len(h.id) == 0 {
-		h.id = uuid.New().String()
+		h.id = "go.micro.http.broker-" + uuid.New().String()
 	}
 
 	// get registry
