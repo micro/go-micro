@@ -100,7 +100,7 @@ func DefaultDeployment(name, version, source string) *Deployment {
 	}
 
 	// TODO: we need to figure out this version stuff
-	// might be worth adding Build to runtime.Service
+	// might have to add Build to runtime.Service
 	buildTime, err := strconv.ParseInt(version, 10, 64)
 	if err == nil {
 		buildUnixTimeUTC := time.Unix(buildTime, 0)

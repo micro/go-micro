@@ -57,9 +57,10 @@ func (s *svc) Create(svc *runtime.Service, opts ...runtime.CreateOption) error {
 	// runtime service create request
 	req := &pb.CreateRequest{
 		Service: &pb.Service{
-			Name:    svc.Name,
-			Version: svc.Version,
-			Source:  svc.Source,
+			Name:     svc.Name,
+			Version:  svc.Version,
+			Source:   svc.Source,
+			Metadata: svc.Metadata,
 		},
 		Options: &pb.CreateOptions{
 			Command: options.Command,
@@ -98,11 +99,12 @@ func (s *svc) Get(name string, opts ...runtime.GetOption) ([]*runtime.Service, e
 	services := make([]*runtime.Service, 0, len(resp.Services))
 	for _, service := range resp.Services {
 		svc := &runtime.Service{
-			Name:    service.Name,
-			Version: service.Version,
-			Source:  service.Source,
-			Path:    service.Path,
-			Exec:    service.Exec,
+			Name:     service.Name,
+			Version:  service.Version,
+			Source:   service.Source,
+			Path:     service.Path,
+			Exec:     service.Exec,
+			Metadata: service.Metadata,
 		}
 		services = append(services, svc)
 	}
@@ -155,11 +157,12 @@ func (s *svc) List() ([]*runtime.Service, error) {
 	services := make([]*runtime.Service, 0, len(resp.Services))
 	for _, service := range resp.Services {
 		svc := &runtime.Service{
-			Name:    service.Name,
-			Version: service.Version,
-			Source:  service.Source,
-			Path:    service.Path,
-			Exec:    service.Exec,
+			Name:     service.Name,
+			Version:  service.Version,
+			Source:   service.Source,
+			Path:     service.Path,
+			Exec:     service.Exec,
+			Metadata: service.Metadata,
 		}
 		services = append(services, svc)
 	}
