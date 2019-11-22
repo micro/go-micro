@@ -10,7 +10,6 @@ import (
 	"github.com/micro/go-micro/client/grpc"
 	"github.com/micro/go-micro/codec"
 	"github.com/micro/go-micro/config/options"
-	"github.com/micro/go-micro/errors"
 	"github.com/micro/go-micro/proxy"
 	"github.com/micro/go-micro/server"
 )
@@ -62,8 +61,14 @@ func readLoop(r server.Request, s client.Stream) error {
 	}
 }
 
-func (p *Proxy) SendRequest(ctx context.Context, req client.Request, rsp client.Response) error {
-	return errors.InternalServerError("go.micro.proxy.grpc", "SendRequest is unsupported")
+// ProcessMessage acts as a message exchange and forwards messages to ongoing topics
+// TODO: should we look at p.Endpoint and only send to the local endpoint? probably
+func (p *Proxy) ProcessMessage(ctx context.Context, msg server.Message) error {
+	// TODO: check that we're not broadcast storming by sending to the same topic
+	// that we're actually subscribed to
+
+	// directly publish to the local client
+	return p.Client.Publish(ctx, msg)
 }
 
 // ServeRequest honours the server.Proxy interface

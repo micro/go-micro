@@ -281,8 +281,34 @@ func (p *Proxy) watchRoutes() {
 	}
 }
 
-func (p *Proxy) SendRequest(ctx context.Context, req client.Request, rsp client.Response) error {
-	return errors.InternalServerError("go.micro.proxy", "SendRequest is unsupported")
+// ProcessMessage acts as a message exchange and forwards messages to ongoing topics
+// TODO: should we look at p.Endpoint and only send to the local endpoint? probably
+func (p *Proxy) ProcessMessage(ctx context.Context, msg server.Message) error {
+	// TODO: check that we're not broadcast storming by sending to the same topic
+	// that we're actually subscribed to
+
+	log.Tracef("Received message for %s", msg.Topic())
+
+	var errors []string
+
+	// directly publish to the local client
+	if err := p.Client.Publish(ctx, msg); err != nil {
+		errors = append(errors, err.Error())
+	}
+
+	// publish to all links
+	for _, client := range p.Links {
+		if err := client.Publish(ctx, msg); err != nil {
+			errors = append(errors, err.Error())
+		}
+	}
+
+	if len(errors) == 0 {
+		return nil
+	}
+
+	// there is no error...muahaha
+	return fmt.Errorf("Message processing error: %s", strings.Join(errors, "\n"))
 }
 
 // ServeRequest honours the server.Router interface
@@ -301,6 +327,8 @@ func (p *Proxy) ServeRequest(ctx context.Context, req server.Request, rsp server
 	if len(service) == 0 {
 		return errors.BadRequest("go.micro.proxy", "service name is blank")
 	}
+
+	log.Tracef("Received request for %s", service)
 
 	// are we network routing or local routing
 	if len(p.Links) == 0 {

@@ -145,6 +145,11 @@ func setupProtocol(msg *transport.Message, node *registry.Node) codec.NewCodec {
 		return nil
 	}
 
+	// processing topic publishing
+	if len(msg.Header["Micro-Topic"]) > 0 {
+		return nil
+	}
+
 	// no protocol use old codecs
 	switch msg.Header["Content-Type"] {
 	case "application/json":

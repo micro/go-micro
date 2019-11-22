@@ -9,6 +9,7 @@ package server
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"reflect"
 	"strings"
@@ -60,19 +61,30 @@ type response struct {
 
 // router represents an RPC router.
 type router struct {
-	name         string
-	mu           sync.Mutex // protects the serviceMap
-	serviceMap   map[string]*service
-	reqLock      sync.Mutex // protects freeReq
-	freeReq      *request
-	respLock     sync.Mutex // protects freeResp
-	freeResp     *response
+	name string
+
+	mu         sync.Mutex // protects the serviceMap
+	serviceMap map[string]*service
+
+	reqLock sync.Mutex // protects freeReq
+	freeReq *request
+
+	respLock sync.Mutex // protects freeResp
+	freeResp *response
+
+	// handler wrappers
 	hdlrWrappers []HandlerWrapper
+	// subscriber wrappers
+	subWrappers []SubscriberWrapper
+
+	su          sync.RWMutex
+	subscribers map[string][]*subscriber
 }
 
 func newRpcRouter() *router {
 	return &router{
-		serviceMap: make(map[string]*service),
+		serviceMap:  make(map[string]*service),
+		subscribers: make(map[string][]*subscriber),
 	}
 }
 
@@ -448,4 +460,145 @@ func (router *router) ServeRequest(ctx context.Context, r Request, rsp Response)
 		return err
 	}
 	return service.call(ctx, router, sending, mtype, req, argv, replyv, rsp.Codec())
+}
+
+func (router *router) NewSubscriber(topic string, handler interface{}, opts ...SubscriberOption) Subscriber {
+	return newSubscriber(topic, handler, opts...)
+}
+
+func (router *router) Subscribe(s Subscriber) error {
+	sub, ok := s.(*subscriber)
+	if !ok {
+		return fmt.Errorf("invalid subscriber: expected *subscriber")
+	}
+	if len(sub.handlers) == 0 {
+		return fmt.Errorf("invalid subscriber: no handler functions")
+	}
+
+	if err := validateSubscriber(sub); err != nil {
+		return err
+	}
+
+	router.su.Lock()
+	defer router.su.Unlock()
+
+	// append to subscribers
+	subs := router.subscribers[sub.Topic()]
+	subs = append(subs, sub)
+	router.subscribers[sub.Topic()] = subs
+
+	return nil
+}
+
+func (router *router) ProcessMessage(ctx context.Context, msg Message) error {
+	router.su.RLock()
+
+	// get the subscribers by topic
+	subs, ok := router.subscribers[msg.Topic()]
+	if !ok {
+		router.su.RUnlock()
+		return nil
+	}
+
+	// unlock since we only need to get the subs
+	router.su.RUnlock()
+
+	var results []string
+
+	// we may have multiple subscribers for the topic
+	for _, sub := range subs {
+		// we may have multiple handlers per subscriber
+		for i := 0; i < len(sub.handlers); i++ {
+			// get the handler
+			handler := sub.handlers[i]
+
+			var isVal bool
+			var req reflect.Value
+
+			// check whether the handler is a pointer
+			if handler.reqType.Kind() == reflect.Ptr {
+				req = reflect.New(handler.reqType.Elem())
+			} else {
+				req = reflect.New(handler.reqType)
+				isVal = true
+			}
+
+			// if its a value get the element
+			if isVal {
+				req = req.Elem()
+			}
+
+			if handler.reqType.Kind() == reflect.Ptr {
+				req = reflect.New(handler.reqType.Elem())
+			} else {
+				req = reflect.New(handler.reqType)
+				isVal = true
+			}
+
+			// if its a value get the element
+			if isVal {
+				req = req.Elem()
+			}
+
+			cc := msg.Codec()
+
+			// read the header. mostly a noop
+			if err := cc.ReadHeader(&codec.Message{}, codec.Event); err != nil {
+				return err
+			}
+
+			// read the body into the handler request value
+			if err := cc.ReadBody(req.Interface()); err != nil {
+				return err
+			}
+
+			// create the handler which will honour the SubscriberFunc type
+			fn := func(ctx context.Context, msg Message) error {
+				var vals []reflect.Value
+				if sub.typ.Kind() != reflect.Func {
+					vals = append(vals, sub.rcvr)
+				}
+				if handler.ctxType != nil {
+					vals = append(vals, reflect.ValueOf(ctx))
+				}
+
+				// values to pass the handler
+				vals = append(vals, reflect.ValueOf(msg.Payload()))
+
+				// execute the actuall call of the handler
+				returnValues := handler.method.Call(vals)
+				if err := returnValues[0].Interface(); err != nil {
+					return err.(error)
+				}
+				return nil
+			}
+
+			// wrap with subscriber wrappers
+			for i := len(router.subWrappers); i > 0; i-- {
+				fn = router.subWrappers[i-1](fn)
+			}
+
+			// create new rpc message
+			rpcMsg := &rpcMessage{
+				topic:       msg.Topic(),
+				contentType: msg.ContentType(),
+				payload:     req.Interface(),
+				codec:       msg.(*rpcMessage).codec,
+				header:      msg.Header(),
+				body:        msg.Body(),
+			}
+
+			// execute the message handler
+			if err := fn(ctx, rpcMsg); err != nil {
+				results = append(results, err.Error())
+			}
+		}
+	}
+
+	// if no errors just return
+	if len(results) == 0 {
+		return nil
+	}
+
+	return errors.New("subscriber error: " + strings.Join(results, "\n"))
 }

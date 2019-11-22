@@ -143,6 +143,9 @@ func TestCallWrapper(t *testing.T) {
 			{
 				Id:      id,
 				Address: address,
+				Metadata: map[string]string{
+					"protocol": "mucp",
+				},
 			},
 		},
 	})
