@@ -77,7 +77,7 @@ func (g *grpcClient) next(request client.Request, opts client.CallOptions) (sele
 	))
 
 	// get next nodes from the selector
-	next, err := g.opts.Selector.Select(service, opts.SelectOptions...)
+	next, err := g.opts.Selector.Select(service, selectOptions...)
 	if err != nil {
 		if err == selector.ErrNotFound {
 			return nil, errors.InternalServerError("go.micro.client", "service %s: %s", service, err.Error())
