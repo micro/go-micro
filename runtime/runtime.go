@@ -88,4 +88,6 @@ type Service struct {
 	Exec []string
 	// Version of the service
 	Version string
+	// Metadata stores metadata
+	Metadata map[string]string
 }

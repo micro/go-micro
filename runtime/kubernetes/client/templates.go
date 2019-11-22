@@ -17,6 +17,12 @@ metadata:
     {{ $key }}: "{{ $value }}"
     {{- end }}
     {{- end }}
+  annotations:
+    {{- with .Metadata.Annotations }}
+    {{- range $key, $value := . }}
+    {{ $key }}: "{{ $value }}"
+    {{- end }}
+    {{- end }}
 spec:
   replicas: {{ .Spec.Replicas }}
   selector:

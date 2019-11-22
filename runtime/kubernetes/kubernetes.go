@@ -109,6 +109,90 @@ func (k *kubernetes) Create(s *runtime.Service, opts ...runtime.CreateOption) er
 	return nil
 }
 
+// getMicroService queries kubernetes for micro service
+// NOTE: this function is not thread-safe
+func (k *kubernetes) getMicroService(labels map[string]string) ([]*runtime.Service, error) {
+	// get the service status
+	serviceList := new(client.ServiceList)
+	r := &client.Resource{
+		Kind:  "service",
+		Value: serviceList,
+	}
+	if err := k.client.Get(r, labels); err != nil {
+		return nil, err
+	}
+
+	// get the deployment status
+	depList := new(client.DeploymentList)
+	d := &client.Resource{
+		Kind:  "deployment",
+		Value: depList,
+	}
+	if err := k.client.Get(d, labels); err != nil {
+		return nil, err
+	}
+
+	// service map
+	svcMap := make(map[string]*runtime.Service)
+
+	// collect info from kubernetes service
+	for _, kservice := range serviceList.Items {
+		name := kservice.Metadata.Labels["name"]
+		version := kservice.Metadata.Labels["version"]
+		svcMap[name] = &runtime.Service{
+			Name:     name,
+			Version:  version,
+			Metadata: make(map[string]string),
+		}
+		// copy annotations metadata into service metadata
+		for k, v := range kservice.Metadata.Annotations {
+			svcMap[name].Metadata[k] = v
+		}
+	}
+
+	// collect additional info from kubernetes deployment
+	for _, kdep := range depList.Items {
+		name := kdep.Metadata.Labels["name"]
+		if svc, ok := svcMap[name]; ok {
+			// set the service source
+			svc.Source = kdep.Metadata.Annotations["source"]
+			// copy all annotations metadata into service metadata
+			for k, v := range kdep.Metadata.Annotations {
+				svc.Metadata[k] = v
+			}
+
+			// parse out deployment status
+			if len(kdep.Status.Conditions) > 0 {
+				status := kdep.Status.Conditions[0].Type
+				// pick the last known condition type and mark the service status with it
+				log.Debugf("Runtime setting %s service deployment status: %v", name, status)
+				svc.Metadata["status"] = status
+			}
+
+			// parse out deployment build
+			if build, ok := kdep.Metadata.Annotations["build"]; ok {
+				buildTime, err := time.Parse(time.RFC3339, build)
+				if err != nil {
+					log.Debugf("Runtime failed parsing build time for %s: %v", name, err)
+					continue
+				}
+				svc.Metadata["build"] = fmt.Sprintf("%d", buildTime.Unix())
+				continue
+			}
+			// if no build annotation is found, set it to current time
+			svc.Metadata["build"] = fmt.Sprintf("%d", time.Now().Unix())
+		}
+	}
+
+	// collect all the services and return
+	services := make([]*runtime.Service, 0, len(serviceList.Items))
+	for _, service := range svcMap {
+		services = append(services, service)
+	}
+
+	return services, nil
+}
+
 // Get returns all instances of given service
 func (k *kubernetes) Get(name string, opts ...runtime.GetOption) ([]*runtime.Service, error) {
 	k.Lock()
@@ -119,11 +203,12 @@ func (k *kubernetes) Get(name string, opts ...runtime.GetOption) ([]*runtime.Ser
 		return nil, errors.New("missing service name")
 	}
 
-	// set the default label
+	// set the default labels
 	labels := map[string]string{
 		"micro": "service",
 		"name":  name,
 	}
+
 	var options runtime.GetOptions
 	for _, o := range opts {
 		o(&options)
@@ -136,25 +221,21 @@ func (k *kubernetes) Get(name string, opts ...runtime.GetOption) ([]*runtime.Ser
 
 	log.Debugf("Runtime querying service %s", name)
 
-	serviceList := new(client.ServiceList)
-	r := &client.Resource{
-		Kind:  "service",
-		Value: serviceList,
-	}
-	if err := k.client.Get(r, labels); err != nil {
-		return nil, err
+	return k.getMicroService(labels)
+}
+
+// List the managed services
+func (k *kubernetes) List() ([]*runtime.Service, error) {
+	k.Lock()
+	defer k.Unlock()
+
+	labels := map[string]string{
+		"micro": "service",
 	}
 
-	services := make([]*runtime.Service, 0, len(serviceList.Items))
-	for _, kservice := range serviceList.Items {
-		service := &runtime.Service{
-			Name:    kservice.Metadata.Name,
-			Version: kservice.Metadata.Version,
-		}
-		services = append(services, service)
-	}
+	log.Debugf("Runtime listing all micro services")
 
-	return services, nil
+	return k.getMicroService(labels)
 }
 
 // Update the service in place
@@ -200,39 +281,6 @@ func (k *kubernetes) Delete(s *runtime.Service) error {
 	}
 
 	return nil
-}
-
-// List the managed services
-func (k *kubernetes) List() ([]*runtime.Service, error) {
-	serviceList := new(client.ServiceList)
-	r := &client.Resource{
-		Kind:  "service",
-		Value: serviceList,
-	}
-
-	if err := k.client.List(r); err != nil {
-		return nil, err
-	}
-
-	log.Debugf("Runtime found %d micro services", len(serviceList.Items))
-
-	services := make([]*runtime.Service, 0, len(serviceList.Items))
-
-	for _, service := range serviceList.Items {
-		buildTime, err := time.Parse(time.RFC3339, service.Metadata.Annotations["build"])
-		if err != nil {
-			log.Debugf("Runtime error parsing build time for %s: %v", service.Metadata.Name, err)
-			continue
-		}
-		// add the service to the list of services
-		svc := &runtime.Service{
-			Name:    service.Metadata.Name,
-			Version: fmt.Sprintf("%d", buildTime.Unix()),
-		}
-		services = append(services, svc)
-	}
-
-	return services, nil
 }
 
 // run runs the runtime management loop

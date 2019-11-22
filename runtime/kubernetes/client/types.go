@@ -103,13 +103,21 @@ type DeploymentSpec struct {
 	Template *Template      `json:"template,omitempty"`
 }
 
+// DeploymentCondition describes the state of deployment
+type DeploymentCondition struct {
+	Type    string `json:"type"`
+	Reason  string `json:"reason,omitempty"`
+	Message string `json:"message,omitempty"`
+}
+
 // DeploymentStatus is returned when querying deployment
 type DeploymentStatus struct {
-	Replicas            int `json:"replicas,omitempty"`
-	UpdatedReplicas     int `json:"updatedReplicas,omitempty"`
-	ReadyReplicas       int `json:"readyReplicas,omitempty"`
-	AvailableReplicas   int `json:"availableReplicas,omitempty"`
-	UnavailableReplicas int `json:"unavailableReplicas,omitempty"`
+	Replicas            int                   `json:"replicas,omitempty"`
+	UpdatedReplicas     int                   `json:"updatedReplicas,omitempty"`
+	ReadyReplicas       int                   `json:"readyReplicas,omitempty"`
+	AvailableReplicas   int                   `json:"availableReplicas,omitempty"`
+	UnavailableReplicas int                   `json:"unavailableReplicas,omitempty"`
+	Conditions          []DeploymentCondition `json:"conditions,omitempty"`
 }
 
 // Deployment is Kubernetes deployment

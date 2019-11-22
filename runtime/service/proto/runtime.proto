@@ -21,6 +21,8 @@ message Service {
 	string path = 4;
 	// command to execute
 	repeated string exec = 5;
+        // service metadata
+        map<string,string> metadata = 6;
 }
 
 message CreateOptions {

@@ -14,21 +14,23 @@ type Runtime struct {
 
 func toProto(s *runtime.Service) *pb.Service {
 	return &pb.Service{
-		Name:    s.Name,
-		Version: s.Version,
-		Source:  s.Source,
-		Path:    s.Path,
-		Exec:    s.Exec,
+		Name:     s.Name,
+		Version:  s.Version,
+		Source:   s.Source,
+		Path:     s.Path,
+		Exec:     s.Exec,
+		Metadata: s.Metadata,
 	}
 }
 
 func toService(s *pb.Service) *runtime.Service {
 	return &runtime.Service{
-		Name:    s.Name,
-		Version: s.Version,
-		Source:  s.Source,
-		Path:    s.Path,
-		Exec:    s.Exec,
+		Name:     s.Name,
+		Version:  s.Version,
+		Source:   s.Source,
+		Path:     s.Path,
+		Exec:     s.Exec,
+		Metadata: s.Metadata,
 	}
 }
 
