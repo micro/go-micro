@@ -152,10 +152,5 @@ func (c *client) List(r *Resource) error {
 		"micro": "service",
 	}
 
-	return api.NewRequest(c.opts).
-		Get().
-		Resource(r.Kind).
-		Params(&api.Params{LabelSelector: labels}).
-		Do().
-		Into(r.Value)
+	return c.Get(r, labels)
 }

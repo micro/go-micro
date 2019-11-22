@@ -50,7 +50,6 @@ func DefaultService(name, version string) *Service {
 	if len(version) > 0 {
 		// API service object name joins name and version over "-"
 		svcName = strings.Join([]string{name, version}, "-")
-
 	}
 
 	Metadata := &Metadata{
@@ -84,14 +83,20 @@ func DefaultDeployment(name, version, source string) *Deployment {
 		"micro":   "service",
 	}
 
-	// API deployment object name joins name and version over "="
-	depName := strings.Join([]string{name, version}, "-")
+	depName := name
+	if len(version) > 0 {
+		// API deployment object name joins name and version over "="
+		depName = strings.Join([]string{name, version}, "-")
+	}
 
 	Metadata := &Metadata{
 		Name:      depName,
 		Namespace: "default",
 		Version:   version,
 		Labels:    Labels,
+		Annotations: map[string]string{
+			"source": source,
+		},
 	}
 
 	// TODO: we need to figure out this version stuff
@@ -99,11 +104,9 @@ func DefaultDeployment(name, version, source string) *Deployment {
 	buildTime, err := strconv.ParseInt(version, 10, 64)
 	if err == nil {
 		buildUnixTimeUTC := time.Unix(buildTime, 0)
-		Metadata.Annotations = map[string]string{
-			"build": buildUnixTimeUTC.Format(time.RFC3339),
-		}
+		Metadata.Annotations["build"] = buildUnixTimeUTC.Format(time.RFC3339)
 	} else {
-		log.Debugf("Runtime could not parse build: %v", err)
+		log.Debugf("could not parse build: %v", err)
 	}
 
 	// enable go modules by default
