@@ -71,6 +71,11 @@ func (g *grpcClient) next(request client.Request, opts client.CallOptions) (sele
 		}, nil
 	}
 
+	// only get the things that are of grpc protocol
+	selectOptions := append(opts.SelectOptions, selector.WithFilter(
+		selector.FilterLabel("protocol", "grpc"),
+	))
+
 	// get next nodes from the selector
 	next, err := g.opts.Selector.Select(service, opts.SelectOptions...)
 	if err != nil {

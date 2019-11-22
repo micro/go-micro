@@ -569,7 +569,7 @@ func (g *grpcServer) Register() error {
 	node.Metadata["registry"] = config.Registry.String()
 	node.Metadata["server"] = g.String()
 	node.Metadata["transport"] = g.String()
-	// node.Metadata["transport"] = config.Transport.String()
+	node.Metadata["protocol"] = "grpc"
 
 	g.RLock()
 	// Maps are ordered randomly, sort the keys for consistency
