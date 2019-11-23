@@ -80,14 +80,14 @@ type Event struct {
 type Service struct {
 	// Name of the service
 	Name string
+	// Version of the service
+	Version string
 	// url location of source
 	Source string
 	// Path to store source
 	Path string
 	// Exec command
 	Exec []string
-	// Version of the service
-	Version string
 	// Metadata stores metadata
 	Metadata map[string]string
 }
