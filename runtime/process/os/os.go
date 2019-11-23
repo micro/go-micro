@@ -1,3 +1,5 @@
+// +build !windows
+
 // Package os runs processes locally
 package os
 
@@ -10,9 +12,6 @@ import (
 
 	"github.com/micro/go-micro/runtime/process"
 )
-
-type Process struct {
-}
 
 func (p *Process) Exec(exe *process.Executable) error {
 	cmd := exec.Command(exe.Package.Path)
@@ -98,8 +97,4 @@ func (p *Process) Wait(pid *process.PID) error {
 	}
 
 	return fmt.Errorf(ps.String())
-}
-
-func NewProcess(opts ...process.Option) process.Process {
-	return &Process{}
 }
