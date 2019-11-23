@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	store "github.com/micro/go-micro/store"
-	mocks "github.com/micro/go-micro/store/mocks"
+	"github.com/micro/go-micro/store"
+	store_mock "github.com/micro/go-micro/store/mock"
 	mem_lock "github.com/micro/go-micro/sync/lock/memory"
 	"github.com/stretchr/testify/mock"
 )
@@ -19,8 +19,8 @@ func TestIterate(t *testing.T) {
 		Key:   "B",
 		Value: nil,
 	}
-	s1 := &mocks.Store{}
-	s2 := &mocks.Store{}
+	s1 := &store_mock.Store{}
+	s2 := &store_mock.Store{}
 	s1.On("List").Return([]*store.Record{recA, recB}, nil)
 	s2.On("List").Return([]*store.Record{recB, recA}, nil)
 	s1.On("Write", mock.Anything).Return(nil)
