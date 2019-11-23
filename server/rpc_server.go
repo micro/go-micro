@@ -289,22 +289,29 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 			ct = DefaultContentType
 		}
 
-		// TODO: needs better error handling
-		cf, err := s.newCodec(ct)
-		if err != nil {
-			sock.Send(&transport.Message{
-				Header: map[string]string{
-					"Content-Type": "text/plain",
-				},
-				Body: []byte(err.Error()),
-			})
+		// setup old protocol
+		cf := setupProtocol(&msg)
 
-			if swg != nil {
-				swg.Done()
+		// no old codec
+		if cf == nil {
+			// TODO: needs better error handling
+			var err error
+			if cf, err = s.newCodec(ct); err != nil {
+				sock.Send(&transport.Message{
+					Header: map[string]string{
+						"Content-Type": "text/plain",
+					},
+					Body: []byte(err.Error()),
+				})
+
+				if swg != nil {
+					swg.Done()
+				}
+
+				wg.Done()
+
+				return
 			}
-
-			wg.Done()
-			return
 		}
 
 		rcodec := newRpcCodec(&msg, psock, cf)
