@@ -4,14 +4,13 @@ import (
 	"testing"
 	"time"
 
-	store "github.com/micro/go-micro/store"
-	mem_store "github.com/micro/go-micro/store/memory"
+	"github.com/micro/go-micro/store"
+	store_mock "github.com/micro/go-micro/store/mock"
 	mem_lock "github.com/micro/go-micro/sync/lock/memory"
+	"github.com/stretchr/testify/mock"
 )
 
 func TestIterate(t *testing.T) {
-	s1 := mem_store.NewStore()
-	s2 := mem_store.NewStore()
 	recA := &store.Record{
 		Key:   "A",
 		Value: nil,
@@ -20,10 +19,12 @@ func TestIterate(t *testing.T) {
 		Key:   "B",
 		Value: nil,
 	}
-	s1.Write(recA)
-	s1.Write(recB)
-	s2.Write(recB)
-	s2.Write(recA)
+	s1 := &store_mock.Store{}
+	s2 := &store_mock.Store{}
+	s1.On("List").Return([]*store.Record{recA, recB}, nil)
+	s2.On("List").Return([]*store.Record{recB, recA}, nil)
+	s1.On("Write", mock.Anything).Return(nil)
+	s2.On("Write", mock.Anything).Return(nil)
 
 	f := func(key, val interface{}) error {
 		time.Sleep(1 * time.Millisecond)
