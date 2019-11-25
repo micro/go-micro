@@ -30,7 +30,7 @@ type tun struct {
 	// the unique id for this tunnel
 	id string
 
-	// tunnel token for authentication
+	// tunnel token for session encryption
 	token string
 
 	// to indicate if we're connected or not
@@ -119,6 +119,7 @@ func (t *tun) newSession(channel, sessionId string) (*session, bool) {
 		tunnel:  t.id,
 		channel: channel,
 		session: sessionId,
+		token:   t.token,
 		closed:  make(chan bool),
 		recv:    make(chan *message, 128),
 		send:    t.send,
@@ -159,7 +160,6 @@ func (t *tun) announce(channel, session string, link *link) {
 			"Micro-Tunnel-Channel": channel,
 			"Micro-Tunnel-Session": session,
 			"Micro-Tunnel-Link":    link.id,
-			"Micro-Tunnel-Token":   t.token,
 		},
 	}
 
@@ -291,9 +291,6 @@ func (t *tun) process() {
 
 			// set the session id
 			newMsg.Header["Micro-Tunnel-Session"] = msg.session
-
-			// set the tunnel token
-			newMsg.Header["Micro-Tunnel-Token"] = t.token
 
 			// send the message via the interface
 			t.RLock()
@@ -447,14 +444,11 @@ func (t *tun) listen(link *link) {
 			return
 		}
 
-		// always ensure we have the correct auth token
-		// TODO: segment the tunnel based on token
-		// e.g use it as the basis
-		token := msg.Header["Micro-Tunnel-Token"]
-		if token != t.token {
-			log.Debugf("Tunnel link %s received invalid token %s", token)
-			return
-		}
+		// TODO: figure out network authentication
+		// for now we use tunnel token to encrypt/decrypt
+		// session communication, but we will probably need
+		// some sort of network authentication (token) to avoid
+		// having rogue actors spamming the network
 
 		// message type
 		mtype := msg.Header["Micro-Tunnel"]
@@ -702,9 +696,8 @@ func (t *tun) discover(link *link) {
 			// send a discovery message to all links
 			if err := link.Send(&transport.Message{
 				Header: map[string]string{
-					"Micro-Tunnel":       "discover",
-					"Micro-Tunnel-Id":    t.id,
-					"Micro-Tunnel-Token": t.token,
+					"Micro-Tunnel":    "discover",
+					"Micro-Tunnel-Id": t.id,
 				},
 			}); err != nil {
 				log.Debugf("Tunnel failed to send discover to link %s: %v", link.id, err)
@@ -733,9 +726,8 @@ func (t *tun) keepalive(link *link) {
 			log.Debugf("Tunnel sending keepalive to link: %v", link.Remote())
 			if err := link.Send(&transport.Message{
 				Header: map[string]string{
-					"Micro-Tunnel":       "keepalive",
-					"Micro-Tunnel-Id":    t.id,
-					"Micro-Tunnel-Token": t.token,
+					"Micro-Tunnel":    "keepalive",
+					"Micro-Tunnel-Id": t.id,
 				},
 			}); err != nil {
 				log.Debugf("Error sending keepalive to link %v: %v", link.Remote(), err)
@@ -765,9 +757,8 @@ func (t *tun) setupLink(node string) (*link, error) {
 	// send the first connect message
 	if err := link.Send(&transport.Message{
 		Header: map[string]string{
-			"Micro-Tunnel":       "connect",
-			"Micro-Tunnel-Id":    t.id,
-			"Micro-Tunnel-Token": t.token,
+			"Micro-Tunnel":    "connect",
+			"Micro-Tunnel-Id": t.id,
 		},
 	}); err != nil {
 		return nil, err
@@ -901,9 +892,8 @@ func (t *tun) close() error {
 	for node, link := range t.links {
 		link.Send(&transport.Message{
 			Header: map[string]string{
-				"Micro-Tunnel":       "close",
-				"Micro-Tunnel-Id":    t.id,
-				"Micro-Tunnel-Token": t.token,
+				"Micro-Tunnel":    "close",
+				"Micro-Tunnel-Id": t.id,
 			},
 		})
 		link.Close()
@@ -1157,6 +1147,8 @@ func (t *tun) Listen(channel string, opts ...ListenOption) (Listener, error) {
 
 	tl := &tunListener{
 		channel: channel,
+		// tunnel token
+		token: t.token,
 		// the accept channel
 		accept: make(chan *session, 128),
 		// the channel to close

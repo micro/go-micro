@@ -10,6 +10,8 @@ import (
 type tunListener struct {
 	// address of the listener
 	channel string
+	// token is the tunnel token
+	token string
 	// the accept channel
 	accept chan *session
 	// the channel to close
@@ -78,6 +80,8 @@ func (t *tunListener) process() {
 					channel: m.channel,
 					// the session id
 					session: m.session,
+					// tunnel token
+					token: t.token,
 					// is loopback conn
 					loopback: m.loopback,
 					// the link the message was received on
