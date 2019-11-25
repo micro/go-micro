@@ -8,7 +8,7 @@ import (
 	"io"
 )
 
-// Encrypt encrypts data and returns encrypted payload
+// Encrypt encrypts data and returns the encrypted data
 func Encrypt(data []byte, key string) ([]byte, error) {
 	// generate a new AES cipher using our 32 byte key
 	c, err := aes.NewCipher(hash(key))
@@ -37,7 +37,7 @@ func Encrypt(data []byte, key string) ([]byte, error) {
 	return gcm.Seal(nonce, nonce, data, nil), nil
 }
 
-// Decrypt decrypts the payload and returns decrypted data
+// Decrypt decrypts the payload and returns the decrypted data
 func Decrypt(data []byte, key string) ([]byte, error) {
 	// generate AES cipher for decrypting the message
 	c, err := aes.NewCipher(hash(key))
@@ -64,7 +64,7 @@ func Decrypt(data []byte, key string) ([]byte, error) {
 }
 
 // hash hahes the data into 32 bytes key and returns it
-// hash uses sha256 to hash the passed in string.
+// hash uses sha256 underneath to hash the supplied key
 func hash(key string) []byte {
 	hasher := sha256.New()
 	hasher.Write([]byte(key))

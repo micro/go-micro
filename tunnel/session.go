@@ -301,13 +301,27 @@ func (s *session) Send(m *transport.Message) error {
 		// no op
 	}
 
+	// get the token
+	token, ok := m.Header["Micro-Tunnel-Token"]
+	if !ok {
+		// TODO: should we continue or return error
+		log.Debugf("no token found, insecure channel")
+	}
+
+	// encrypt the transport message payload
+	body, err := Encrypt(m.Body, token+s.channel+s.session)
+	if err != nil {
+		return err
+	}
+
 	// make copy
 	data := &transport.Message{
 		Header: make(map[string]string),
-		Body:   m.Body,
+		Body:   body,
 	}
 
 	for k, v := range m.Header {
+		// TODO: should we also encrypt headers?
 		data.Header[k] = v
 	}
 
@@ -352,7 +366,22 @@ func (s *session) Recv(m *transport.Message) error {
 	default:
 	}
 
+	// TODO: if we encrypt headers we will have to decrypt them here
+	token, ok := msg.data.Header["Micro-Tunnel-Token"]
+	if !ok {
+		// TODO: should we continue or return error
+		log.Debugf("no token found, insecure channel")
+	}
+
 	log.Tracef("Received %+v from recv backlog", msg)
+
+	// decrypt the received payload using the token
+	body, err := Decrypt(msg.data.Body, token+s.channel+s.session)
+	if err != nil {
+		return err
+	}
+	msg.data.Body = body
+
 	// set message
 	*m = *msg.data
 	// return nil
