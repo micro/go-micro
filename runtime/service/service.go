@@ -75,23 +75,23 @@ func (s *svc) Create(svc *runtime.Service, opts ...runtime.CreateOption) error {
 	return nil
 }
 
-// Get returns the service with the given name from the runtime
-func (s *svc) Get(name string, opts ...runtime.GetOption) ([]*runtime.Service, error) {
-	options := runtime.GetOptions{}
+// Read returns the service with the given name from the runtime
+func (s *svc) Read(name string, opts ...runtime.ReadOption) ([]*runtime.Service, error) {
+	options := runtime.ReadOptions{}
 	// apply requested options
 	for _, o := range opts {
 		o(&options)
 	}
 
 	// runtime service create request
-	req := &pb.GetRequest{
+	req := &pb.ReadRequest{
 		Name: name,
-		Options: &pb.GetOptions{
+		Options: &pb.ReadOptions{
 			Version: options.Version,
 		},
 	}
 
-	resp, err := s.runtime.Get(context.Background(), req)
+	resp, err := s.runtime.Read(context.Background(), req)
 	if err != nil {
 		return nil, err
 	}

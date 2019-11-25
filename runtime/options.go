@@ -55,17 +55,17 @@ func WithOutput(out io.Writer) CreateOption {
 	}
 }
 
-type GetOption func(o *GetOptions)
+type ReadOption func(o *ReadOptions)
 
-// GetOptions queries runtime services
-type GetOptions struct {
+// ReadOptions queries runtime services
+type ReadOptions struct {
 	// Version queries services with given version
 	Version string
 }
 
 // WithVersion confifgures service version
-func WithVersion(version string) GetOption {
-	return func(o *GetOptions) {
+func WithVersion(version string) ReadOption {
+	return func(o *ReadOptions) {
 		o.Version = version
 	}
 }

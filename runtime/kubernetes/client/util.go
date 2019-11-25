@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"strings"
 	"text/template"
 )
 
@@ -84,4 +85,18 @@ func CertsFromPEM(pemCerts []byte) ([]*x509.Certificate, error) {
 		return certs, errors.New("could not read any certificates")
 	}
 	return certs, nil
+}
+
+// Format is used to format a string value into a k8s valid name
+func Format(v string) string {
+	// to lower case
+	v = strings.ToLower(v)
+	// dots to dashes
+	v = strings.ReplaceAll(v, ".", "-")
+	// limit to 253 chars
+	if len(v) > 253 {
+		v = v[:253]
+	}
+	// return new name
+	return v
 }
