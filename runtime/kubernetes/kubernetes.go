@@ -94,11 +94,6 @@ func (k *kubernetes) Create(s *runtime.Service, opts ...runtime.CreateOption) er
 	// format as we'll format in the deployment
 	name = client.Format(name)
 
-	// check the name to ensure what we pass into metadata will be validated
-	if !client.ServiceRegexp.MatchString(name) {
-		return fmt.Errorf("invalid formatted service name: %s", name)
-	}
-
 	// create new kubernetes micro service
 	service := newService(s, options)
 

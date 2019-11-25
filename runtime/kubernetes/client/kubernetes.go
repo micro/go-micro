@@ -2,7 +2,6 @@
 package client
 
 import (
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -18,8 +17,6 @@ const (
 var (
 	// DefaultImage is default micro image
 	DefaultImage = "micro/go-micro"
-	// ServiceRegexp is used to validate service name
-	ServiceRegexp = regexp.MustCompile("^" + dns1123LabelFmt + "$")
 )
 
 // Kubernetes client
