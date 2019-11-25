@@ -8,6 +8,14 @@ import (
 	"io"
 )
 
+// hash hahes the data into 32 bytes key and returns it
+// hash uses sha256 underneath to hash the supplied key
+func hash(key string) []byte {
+	hasher := sha256.New()
+	hasher.Write([]byte(key))
+	return hasher.Sum(nil)
+}
+
 // Encrypt encrypts data and returns the encrypted data
 func Encrypt(data []byte, key string) ([]byte, error) {
 	// generate a new AES cipher using our 32 byte key
@@ -61,12 +69,4 @@ func Decrypt(data []byte, key string) ([]byte, error) {
 	}
 
 	return plaintext, nil
-}
-
-// hash hahes the data into 32 bytes key and returns it
-// hash uses sha256 underneath to hash the supplied key
-func hash(key string) []byte {
-	hasher := sha256.New()
-	hasher.Write([]byte(key))
-	return hasher.Sum(nil)
 }

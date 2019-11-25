@@ -1,6 +1,7 @@
 package tunnel
 
 import (
+	"encoding/hex"
 	"errors"
 	"io"
 	"time"
@@ -17,6 +18,8 @@ type session struct {
 	channel string
 	// the session id based on Micro.Tunnel-Session
 	session string
+	// token is the session token
+	token string
 	// closed
 	closed chan bool
 	// remote addr
@@ -301,16 +304,10 @@ func (s *session) Send(m *transport.Message) error {
 		// no op
 	}
 
-	// get the token
-	token, ok := m.Header["Micro-Tunnel-Token"]
-	if !ok {
-		// TODO: should we continue or return error
-		log.Debugf("no token found, insecure channel")
-	}
-
 	// encrypt the transport message payload
-	body, err := Encrypt(m.Body, token+s.channel+s.session)
+	body, err := Encrypt(m.Body, s.token+s.channel+s.session)
 	if err != nil {
+		log.Debugf("failed to encrypt message body: %v", err)
 		return err
 	}
 
@@ -320,9 +317,16 @@ func (s *session) Send(m *transport.Message) error {
 		Body:   body,
 	}
 
+	// encrypt all the headers
 	for k, v := range m.Header {
-		// TODO: should we also encrypt headers?
-		data.Header[k] = v
+		// encrypt the transport message payload
+		val, err := Encrypt([]byte(v), s.token+s.channel+s.session)
+		if err != nil {
+			log.Debugf("failed to encrypt message header %s: %v", k, err)
+			return err
+		}
+		// hex encode the encrypted header value
+		data.Header[k] = hex.EncodeToString(val)
 	}
 
 	// create a new message
@@ -366,21 +370,34 @@ func (s *session) Recv(m *transport.Message) error {
 	default:
 	}
 
-	// TODO: if we encrypt headers we will have to decrypt them here
-	token, ok := msg.data.Header["Micro-Tunnel-Token"]
-	if !ok {
-		// TODO: should we continue or return error
-		log.Debugf("no token found, insecure channel")
-	}
-
-	log.Tracef("Received %+v from recv backlog", msg)
+	//log.Tracef("Received %+v from recv backlog", msg)
+	log.Debugf("Received %+v from recv backlog", msg)
 
 	// decrypt the received payload using the token
-	body, err := Decrypt(msg.data.Body, token+s.channel+s.session)
+	body, err := Decrypt(msg.data.Body, s.token+s.channel+s.session)
 	if err != nil {
+		log.Debugf("failed to decrypt message body: %v", err)
 		return err
 	}
 	msg.data.Body = body
+
+	// encrypt all the headers
+	for k, v := range msg.data.Header {
+		// hex decode the header values
+		h, err := hex.DecodeString(v)
+		if err != nil {
+			log.Debugf("failed to decode message header %s: %v", k, err)
+			return err
+		}
+		// encrypt the transport message payload
+		val, err := Decrypt([]byte(h), s.token+s.channel+s.session)
+		if err != nil {
+			log.Debugf("failed to decrypt message header %s: %v", k, err)
+			return err
+		}
+		// hex encode the encrypted header value
+		msg.data.Header[k] = string(val)
+	}
 
 	// set message
 	*m = *msg.data
