@@ -54,8 +54,8 @@ func toCreateOptions(opts *pb.CreateOptions) []runtime.CreateOption {
 	return options
 }
 
-func toGetOptions(opts *pb.GetOptions) []runtime.GetOption {
-	options := []runtime.GetOption{}
+func toReadOptions(opts *pb.ReadOptions) []runtime.ReadOption {
+	options := []runtime.ReadOption{}
 	// version options
 	if len(opts.Version) > 0 {
 		options = append(options, runtime.WithVersion(opts.Version))
@@ -83,17 +83,17 @@ func (r *Runtime) Create(ctx context.Context, req *pb.CreateRequest, rsp *pb.Cre
 	return nil
 }
 
-func (r *Runtime) Get(ctx context.Context, req *pb.GetRequest, rsp *pb.GetResponse) error {
+func (r *Runtime) Read(ctx context.Context, req *pb.ReadRequest, rsp *pb.ReadResponse) error {
 	if len(req.Name) == 0 {
 		return errors.BadRequest("go.micro.runtime", "blank service")
 	}
 
-	var options []runtime.GetOption
+	var options []runtime.ReadOption
 	if req.Options != nil {
-		options = toGetOptions(req.Options)
+		options = toReadOptions(req.Options)
 	}
 
-	services, err := r.Runtime.Get(req.Name, options...)
+	services, err := r.Runtime.Read(req.Name, options...)
 	if err != nil {
 		return errors.InternalServerError("go.micro.runtime", err.Error())
 	}

@@ -18,9 +18,23 @@ type service struct {
 }
 
 func newService(s *runtime.Service, c runtime.CreateOptions) *service {
-	kservice := client.DefaultService(s.Name, s.Version)
-	kdeploy := client.DefaultDeployment(s.Name, s.Version, s.Source)
+	// use pre-formatted name/version
+	name := client.Format(s.Name)
+	version := client.Format(s.Version)
 
+	kservice := client.NewService(name, version)
+	kdeploy := client.NewDeployment(name, version)
+
+	// attach our values to the deployment; name, version, source
+	kdeploy.Metadata.Annotations["name"] = s.Name
+	kdeploy.Metadata.Annotations["version"] = s.Version
+	kdeploy.Metadata.Annotations["source"] = s.Source
+
+	// associate owner:group to be later augmented
+	kdeploy.Metadata.Annotations["owner"] = "micro"
+	kdeploy.Metadata.Annotations["group"] = "micro"
+
+	// define the environment values used by the container
 	env := make([]client.EnvVar, 0, len(c.Env))
 	for _, evar := range c.Env {
 		evarPair := strings.Split(evar, "=")
@@ -35,10 +49,11 @@ func newService(s *runtime.Service, c runtime.CreateOptions) *service {
 	// if Exec/Command has been supplied override the default command
 	if len(s.Exec) > 0 {
 		kdeploy.Spec.Template.PodSpec.Containers[0].Command = s.Exec
-	} else {
-		if len(c.Command) > 0 {
-			kdeploy.Spec.Template.PodSpec.Containers[0].Command = c.Command
-		}
+	} else if len(c.Command) > 0 {
+		kdeploy.Spec.Template.PodSpec.Containers[0].Command = c.Command
+	} else if len(s.Source) > 0 {
+		// default command for our k8s service should be source
+		kdeploy.Spec.Template.PodSpec.Containers[0].Command = []string{"go", "run", s.Source}
 	}
 
 	return &service{

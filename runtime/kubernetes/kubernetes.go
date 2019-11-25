@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 
@@ -86,19 +85,19 @@ func (k *kubernetes) Create(s *runtime.Service, opts ...runtime.CreateOption) er
 		o(&options)
 	}
 
-	svcName := s.Name
+	// quickly prevalidate the name and version
+	name := s.Name
 	if len(s.Version) > 0 {
-		svcName = strings.Join([]string{s.Name, s.Version}, "-")
+		name = name + "-" + s.Version
 	}
 
-	if !client.ServiceRegexp.MatchString(svcName) {
-		return fmt.Errorf("invalid service name: %s", svcName)
-	}
+	// format as we'll format in the deployment
+	name = client.Format(name)
 
 	// create new kubernetes micro service
 	service := newService(s, options)
 
-	log.Debugf("Runtime queueing service %s for start action", service.Name)
+	log.Debugf("Runtime queueing service %s version %s for start action", service.Name, service.Version)
 
 	// push into start queue
 	k.queue <- &task{
@@ -109,9 +108,9 @@ func (k *kubernetes) Create(s *runtime.Service, opts ...runtime.CreateOption) er
 	return nil
 }
 
-// getMicroService queries kubernetes for micro service
+// getService queries kubernetes for micro service
 // NOTE: this function is not thread-safe
-func (k *kubernetes) getMicroService(labels map[string]string) ([]*runtime.Service, error) {
+func (k *kubernetes) getService(labels map[string]string) ([]*runtime.Service, error) {
 	// get the service status
 	serviceList := new(client.ServiceList)
 	r := &client.Resource{
@@ -137,31 +136,55 @@ func (k *kubernetes) getMicroService(labels map[string]string) ([]*runtime.Servi
 
 	// collect info from kubernetes service
 	for _, kservice := range serviceList.Items {
+		// name of the service
 		name := kservice.Metadata.Labels["name"]
+		// version of the service
 		version := kservice.Metadata.Labels["version"]
-		svcMap[name] = &runtime.Service{
+
+		// save as service
+		svcMap[name+version] = &runtime.Service{
 			Name:     name,
 			Version:  version,
 			Metadata: make(map[string]string),
 		}
+
 		// copy annotations metadata into service metadata
 		for k, v := range kservice.Metadata.Annotations {
-			svcMap[name].Metadata[k] = v
+			svcMap[name+version].Metadata[k] = v
 		}
 	}
 
 	// collect additional info from kubernetes deployment
 	for _, kdep := range depList.Items {
+		// name of the service
 		name := kdep.Metadata.Labels["name"]
-		if svc, ok := svcMap[name]; ok {
-			// set the service source
+		// versio of the service
+		version := kdep.Metadata.Labels["version"]
+
+		// access existing service map based on name + version
+		if svc, ok := svcMap[name+version]; ok {
+			// we're expecting our own service name in metadata
+			if _, ok := kdep.Metadata.Annotations["name"]; !ok {
+				continue
+			}
+
+			// set the service name, version and source
+			// based on existing annotations we stored
+			svc.Name = kdep.Metadata.Annotations["name"]
+			svc.Version = kdep.Metadata.Annotations["version"]
 			svc.Source = kdep.Metadata.Annotations["source"]
+
+			// delete from metadata
+			delete(kdep.Metadata.Annotations, "name")
+			delete(kdep.Metadata.Annotations, "version")
+			delete(kdep.Metadata.Annotations, "source")
+
 			// copy all annotations metadata into service metadata
 			for k, v := range kdep.Metadata.Annotations {
 				svc.Metadata[k] = v
 			}
 
-			// parse out deployment status
+			// parse out deployment status and inject into service metadata
 			if len(kdep.Status.Conditions) > 0 {
 				status := kdep.Status.Conditions[0].Type
 				// pick the last known condition type and mark the service status with it
@@ -186,6 +209,7 @@ func (k *kubernetes) getMicroService(labels map[string]string) ([]*runtime.Servi
 
 	// collect all the services and return
 	services := make([]*runtime.Service, 0, len(serviceList.Items))
+
 	for _, service := range svcMap {
 		services = append(services, service)
 	}
@@ -193,8 +217,8 @@ func (k *kubernetes) getMicroService(labels map[string]string) ([]*runtime.Servi
 	return services, nil
 }
 
-// Get returns all instances of given service
-func (k *kubernetes) Get(name string, opts ...runtime.GetOption) ([]*runtime.Service, error) {
+// Read returns all instances of given service
+func (k *kubernetes) Read(name string, opts ...runtime.ReadOption) ([]*runtime.Service, error) {
 	k.Lock()
 	defer k.Unlock()
 
@@ -203,13 +227,16 @@ func (k *kubernetes) Get(name string, opts ...runtime.GetOption) ([]*runtime.Ser
 		return nil, errors.New("missing service name")
 	}
 
+	// format the name
+	name = client.Format(name)
+
 	// set the default labels
 	labels := map[string]string{
 		"micro": "service",
 		"name":  name,
 	}
 
-	var options runtime.GetOptions
+	var options runtime.ReadOptions
 	for _, o := range opts {
 		o(&options)
 	}
@@ -221,7 +248,7 @@ func (k *kubernetes) Get(name string, opts ...runtime.GetOption) ([]*runtime.Ser
 
 	log.Debugf("Runtime querying service %s", name)
 
-	return k.getMicroService(labels)
+	return k.getService(labels)
 }
 
 // List the managed services
@@ -235,7 +262,7 @@ func (k *kubernetes) List() ([]*runtime.Service, error) {
 
 	log.Debugf("Runtime listing all micro services")
 
-	return k.getMicroService(labels)
+	return k.getService(labels)
 }
 
 // Update the service in place

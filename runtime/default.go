@@ -176,9 +176,9 @@ func (r *runtime) Create(s *Service, opts ...CreateOption) error {
 	return nil
 }
 
-// Get returns all instances of requested service
+// Read returns all instances of requested service
 // If no service name is provided we return all the track services.
-func (r *runtime) Get(name string, opts ...GetOption) ([]*Service, error) {
+func (r *runtime) Read(name string, opts ...ReadOption) ([]*Service, error) {
 	r.Lock()
 	defer r.Unlock()
 
@@ -186,7 +186,7 @@ func (r *runtime) Get(name string, opts ...GetOption) ([]*Service, error) {
 		return nil, errors.New("missing service name")
 	}
 
-	gopts := GetOptions{}
+	gopts := ReadOptions{}
 	for _, o := range opts {
 		o(&gopts)
 	}

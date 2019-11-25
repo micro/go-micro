@@ -16,8 +16,8 @@ type Runtime interface {
 	Init(...Option) error
 	// Create registers a service
 	Create(*Service, ...CreateOption) error
-	// Get returns service or fails with error
-	Get(string, ...GetOption) ([]*Service, error)
+	// Read returns the service
+	Read(string, ...ReadOption) ([]*Service, error)
 	// Update the service in place
 	Update(*Service) error
 	// Remove a service

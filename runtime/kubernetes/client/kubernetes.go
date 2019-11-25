@@ -2,7 +2,6 @@
 package client
 
 import (
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -18,8 +17,6 @@ const (
 var (
 	// DefaultImage is default micro image
 	DefaultImage = "micro/go-micro"
-	// ServiceRegexp is used to validate service name
-	ServiceRegexp = regexp.MustCompile("^" + dns1123LabelFmt + "$")
 )
 
 // Kubernetes client
@@ -36,9 +33,9 @@ type Kubernetes interface {
 	List(*Resource) error
 }
 
-// DefaultService returns default micro kubernetes service definition
-func DefaultService(name, version string) *Service {
-	log.Debugf("kubernetes default service: name: %s, version: %s", name, version)
+// NewService returns default micro kubernetes service definition
+func NewService(name, version string) *Service {
+	log.Tracef("kubernetes default service: name: %s, version: %s", name, version)
 
 	Labels := map[string]string{
 		"name":    name,
@@ -73,9 +70,9 @@ func DefaultService(name, version string) *Service {
 	}
 }
 
-// DefaultService returns default micro kubernetes deployment definition
-func DefaultDeployment(name, version, source string) *Deployment {
-	log.Debugf("kubernetes default deployment: name: %s, version: %s, source: %s", name, version, source)
+// NewService returns default micro kubernetes deployment definition
+func NewDeployment(name, version string) *Deployment {
+	log.Tracef("kubernetes default deployment: name: %s, version: %s", name, version)
 
 	Labels := map[string]string{
 		"name":    name,
@@ -90,15 +87,11 @@ func DefaultDeployment(name, version, source string) *Deployment {
 	}
 
 	Metadata := &Metadata{
-		Name:      depName,
-		Namespace: "default",
-		Version:   version,
-		Labels:    Labels,
-		Annotations: map[string]string{
-			"source": source,
-			"owner":  "micro",
-			"group":  "micro",
-		},
+		Name:        depName,
+		Namespace:   "default",
+		Version:     version,
+		Labels:      Labels,
+		Annotations: map[string]string{},
 	}
 
 	// TODO: we need to figure out this version stuff
@@ -108,7 +101,7 @@ func DefaultDeployment(name, version, source string) *Deployment {
 		buildUnixTimeUTC := time.Unix(buildTime, 0)
 		Metadata.Annotations["build"] = buildUnixTimeUTC.Format(time.RFC3339)
 	} else {
-		log.Debugf("could not parse build: %v", err)
+		log.Tracef("could not parse build: %v", err)
 	}
 
 	// enable go modules by default
@@ -129,7 +122,7 @@ func DefaultDeployment(name, version, source string) *Deployment {
 					Name:    name,
 					Image:   DefaultImage,
 					Env:     []EnvVar{env},
-					Command: []string{"go", "run", source},
+					Command: []string{"go", "run", "main.go"},
 					Ports: []ContainerPort{{
 						Name:          name + "-port",
 						ContainerPort: 8080,
