@@ -13,6 +13,7 @@ import (
 	"github.com/micro/go-micro/client/pool"
 	"github.com/micro/go-micro/client/selector"
 	"github.com/micro/go-micro/codec"
+	raw "github.com/micro/go-micro/codec/bytes"
 	"github.com/micro/go-micro/errors"
 	"github.com/micro/go-micro/metadata"
 	"github.com/micro/go-micro/registry"
@@ -349,8 +350,13 @@ func (r *rpcClient) next(request Request, opts CallOptions) (selector.Next, erro
 		}, nil
 	}
 
+	// only get the things that are of mucp protocol
+	selectOptions := append(opts.SelectOptions, selector.WithFilter(
+		selector.FilterLabel("protocol", "mucp"),
+	))
+
 	// get next nodes from the selector
-	next, err := r.opts.Selector.Select(service, opts.SelectOptions...)
+	next, err := r.opts.Selector.Select(service, selectOptions...)
 	if err != nil {
 		if err == selector.ErrNotFound {
 			return nil, errors.InternalServerError("go.micro.client", "service %s: %s", service, err.Error())
@@ -583,26 +589,37 @@ func (r *rpcClient) Publish(ctx context.Context, msg Message, opts ...PublishOpt
 		return errors.InternalServerError("go.micro.client", err.Error())
 	}
 
-	// new buffer
-	b := buf.New(nil)
+	var body []byte
 
-	if err := cf(b).Write(&codec.Message{
-		Target: topic,
-		Type:   codec.Event,
-		Header: map[string]string{
-			"Micro-Id":    id,
-			"Micro-Topic": msg.Topic(),
-		},
-	}, msg.Payload()); err != nil {
-		return errors.InternalServerError("go.micro.client", err.Error())
+	// passed in raw data
+	if d, ok := msg.Payload().(*raw.Frame); ok {
+		body = d.Data
+	} else {
+		// new buffer
+		b := buf.New(nil)
+
+		if err := cf(b).Write(&codec.Message{
+			Target: topic,
+			Type:   codec.Event,
+			Header: map[string]string{
+				"Micro-Id":    id,
+				"Micro-Topic": msg.Topic(),
+			},
+		}, msg.Payload()); err != nil {
+			return errors.InternalServerError("go.micro.client", err.Error())
+		}
+
+		// set the body
+		body = b.Bytes()
 	}
+
 	r.once.Do(func() {
 		r.opts.Broker.Connect()
 	})
 
 	return r.opts.Broker.Publish(topic, &broker.Message{
 		Header: md,
-		Body:   b.Bytes(),
+		Body:   body,
 	})
 }
 

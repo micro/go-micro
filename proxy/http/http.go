@@ -10,7 +10,6 @@ import (
 	"net/url"
 	"path"
 
-	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/config/options"
 	"github.com/micro/go-micro/errors"
 	"github.com/micro/go-micro/proxy"
@@ -45,8 +44,69 @@ func getEndpoint(hdr map[string]string) string {
 	return ""
 }
 
-func (p *Proxy) SendRequest(ctx context.Context, req client.Request, rsp client.Response) error {
-	return errors.InternalServerError("go.micro.proxy.http", "SendRequest is unsupported")
+func getTopic(hdr map[string]string) string {
+	ep := hdr["Micro-Topic"]
+	if len(ep) > 0 && ep[0] == '/' {
+		return ep
+	}
+	return "/" + hdr["Micro-Topic"]
+}
+
+// ProcessMessage handles incoming asynchronous messages
+func (p *Proxy) ProcessMessage(ctx context.Context, msg server.Message) error {
+	if p.Endpoint == "" {
+		p.Endpoint = proxy.DefaultEndpoint
+	}
+
+	// get the header
+	hdr := msg.Header()
+
+	// get topic
+	// use /topic as endpoint
+	endpoint := getTopic(hdr)
+
+	// set the endpoint
+	if len(endpoint) == 0 {
+		endpoint = p.Endpoint
+	} else {
+		// add endpoint to backend
+		u, err := url.Parse(p.Endpoint)
+		if err != nil {
+			return errors.InternalServerError(msg.Topic(), err.Error())
+		}
+		u.Path = path.Join(u.Path, endpoint)
+		endpoint = u.String()
+	}
+
+	// send to backend
+	hreq, err := http.NewRequest("POST", endpoint, bytes.NewReader(msg.Body()))
+	if err != nil {
+		return errors.InternalServerError(msg.Topic(), err.Error())
+	}
+
+	// set the headers
+	for k, v := range hdr {
+		hreq.Header.Set(k, v)
+	}
+
+	// make the call
+	hrsp, err := http.DefaultClient.Do(hreq)
+	if err != nil {
+		return errors.InternalServerError(msg.Topic(), err.Error())
+	}
+
+	// read body
+	b, err := ioutil.ReadAll(hrsp.Body)
+	hrsp.Body.Close()
+	if err != nil {
+		return errors.InternalServerError(msg.Topic(), err.Error())
+	}
+
+	if hrsp.StatusCode != 200 {
+		return errors.New(msg.Topic(), string(b), int32(hrsp.StatusCode))
+	}
+
+	return nil
 }
 
 // ServeRequest honours the server.Router interface

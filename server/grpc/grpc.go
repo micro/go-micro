@@ -89,6 +89,11 @@ func newGRPCServer(opts ...server.Option) server.Server {
 
 type grpcRouter struct {
 	h func(context.Context, server.Request, interface{}) error
+	m func(context.Context, server.Message) error
+}
+
+func (r grpcRouter) ProcessMessage(ctx context.Context, msg server.Message) error {
+	return r.m(ctx, msg)
 }
 
 func (r grpcRouter) ServeRequest(ctx context.Context, req server.Request, rsp server.Response) error {
@@ -258,7 +263,7 @@ func (g *grpcServer) handler(srv interface{}, stream grpc.ServerStream) error {
 			handler = g.opts.HdlrWrappers[i-1](handler)
 		}
 
-		r := grpcRouter{handler}
+		r := grpcRouter{h: handler}
 
 		// serve the actual request using the request router
 		if err := r.ServeRequest(ctx, request, response); err != nil {
@@ -564,7 +569,7 @@ func (g *grpcServer) Register() error {
 	node.Metadata["registry"] = config.Registry.String()
 	node.Metadata["server"] = g.String()
 	node.Metadata["transport"] = g.String()
-	// node.Metadata["transport"] = config.Transport.String()
+	node.Metadata["protocol"] = "grpc"
 
 	g.RLock()
 	// Maps are ordered randomly, sort the keys for consistency

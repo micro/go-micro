@@ -33,7 +33,6 @@ type subscriber struct {
 }
 
 func newSubscriber(topic string, sub interface{}, opts ...server.SubscriberOption) server.Subscriber {
-
 	options := server.SubscriberOptions{
 		AutoAck: true,
 	}
@@ -239,6 +238,8 @@ func (g *grpcServer) createSubHandler(sb *subscriber, opts server.Options) broke
 					topic:       sb.topic,
 					contentType: ct,
 					payload:     req.Interface(),
+					header:      msg.Header,
+					body:        msg.Body,
 				})
 			}()
 		}

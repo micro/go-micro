@@ -135,9 +135,15 @@ func setupProtocol(msg *transport.Message) codec.NewCodec {
 	endpoint := getHeader("Micro-Endpoint", msg.Header)
 	protocol := getHeader("Micro-Protocol", msg.Header)
 	target := getHeader("Micro-Target", msg.Header)
+	topic := getHeader("Micro-Topic", msg.Header)
 
 	// if the protocol exists (mucp) do nothing
 	if len(protocol) > 0 {
+		return nil
+	}
+
+	// newer method of processing messages over transport
+	if len(topic) > 0 {
 		return nil
 	}
 

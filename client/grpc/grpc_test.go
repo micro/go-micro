@@ -45,6 +45,9 @@ func TestGRPCClient(t *testing.T) {
 			{
 				Id:      "test-1",
 				Address: l.Addr().String(),
+				Metadata: map[string]string{
+					"protocol": "grpc",
+				},
 			},
 		},
 	})

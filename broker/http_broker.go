@@ -126,7 +126,7 @@ func newHttpBroker(opts ...Option) Broker {
 	}
 
 	h := &httpBroker{
-		id:          "broker-" + uuid.New().String(),
+		id:          "go.micro.http.broker-" + uuid.New().String(),
 		address:     addr,
 		opts:        options,
 		r:           reg,
@@ -472,7 +472,7 @@ func (h *httpBroker) Init(opts ...Option) error {
 	}
 
 	if len(h.id) == 0 {
-		h.id = "broker-" + uuid.New().String()
+		h.id = "go.micro.http.broker-" + uuid.New().String()
 	}
 
 	// get registry
@@ -648,9 +648,6 @@ func (h *httpBroker) Subscribe(topic string, handler Handler, opts ...SubscribeO
 		return nil, err
 	}
 
-	// create unique id
-	id := h.id + "." + uuid.New().String()
-
 	var secure bool
 
 	if h.opts.Secure || h.opts.TLSConfig != nil {
@@ -659,7 +656,7 @@ func (h *httpBroker) Subscribe(topic string, handler Handler, opts ...SubscribeO
 
 	// register service
 	node := &registry.Node{
-		Id:      id,
+		Id:      h.id,
 		Address: mnet.HostPort(addr, port),
 		Metadata: map[string]string{
 			"secure": fmt.Sprintf("%t", secure),
@@ -684,7 +681,7 @@ func (h *httpBroker) Subscribe(topic string, handler Handler, opts ...SubscribeO
 	subscriber := &httpSubscriber{
 		opts:  options,
 		hb:    h,
-		id:    id,
+		id:    h.id,
 		topic: topic,
 		fn:    handler,
 		svc:   service,

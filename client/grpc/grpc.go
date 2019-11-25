@@ -13,6 +13,7 @@ import (
 	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/client/selector"
 	"github.com/micro/go-micro/codec"
+	raw "github.com/micro/go-micro/codec/bytes"
 	"github.com/micro/go-micro/errors"
 	"github.com/micro/go-micro/metadata"
 	"github.com/micro/go-micro/registry"
@@ -70,8 +71,13 @@ func (g *grpcClient) next(request client.Request, opts client.CallOptions) (sele
 		}, nil
 	}
 
+	// only get the things that are of grpc protocol
+	selectOptions := append(opts.SelectOptions, selector.WithFilter(
+		selector.FilterLabel("protocol", "grpc"),
+	))
+
 	// get next nodes from the selector
-	next, err := g.opts.Selector.Select(service, opts.SelectOptions...)
+	next, err := g.opts.Selector.Select(service, selectOptions...)
 	if err != nil {
 		if err == selector.ErrNotFound {
 			return nil, errors.InternalServerError("go.micro.client", "service %s: %s", service, err.Error())
@@ -510,29 +516,56 @@ func (g *grpcClient) Stream(ctx context.Context, req client.Request, opts ...cli
 }
 
 func (g *grpcClient) Publish(ctx context.Context, p client.Message, opts ...client.PublishOption) error {
+	var options client.PublishOptions
+	for _, o := range opts {
+		o(&options)
+	}
+
 	md, ok := metadata.FromContext(ctx)
 	if !ok {
 		md = make(map[string]string)
 	}
 	md["Content-Type"] = p.ContentType()
+	md["Micro-Topic"] = p.Topic()
 
 	cf, err := g.newGRPCCodec(p.ContentType())
 	if err != nil {
 		return errors.InternalServerError("go.micro.client", err.Error())
 	}
 
-	b, err := cf.Marshal(p.Payload())
-	if err != nil {
-		return errors.InternalServerError("go.micro.client", err.Error())
+	var body []byte
+
+	// passed in raw data
+	if d, ok := p.Payload().(*raw.Frame); ok {
+		body = d.Data
+	} else {
+		// set the body
+		b, err := cf.Marshal(p.Payload())
+		if err != nil {
+			return errors.InternalServerError("go.micro.client", err.Error())
+		}
+		body = b
 	}
 
 	g.once.Do(func() {
 		g.opts.Broker.Connect()
 	})
 
-	return g.opts.Broker.Publish(p.Topic(), &broker.Message{
+	topic := p.Topic()
+
+	// get proxy topic
+	if prx := os.Getenv("MICRO_PROXY"); len(prx) > 0 {
+		options.Exchange = prx
+	}
+
+	// get the exchange
+	if len(options.Exchange) > 0 {
+		topic = options.Exchange
+	}
+
+	return g.opts.Broker.Publish(topic, &broker.Message{
 		Header: md,
-		Body:   b,
+		Body:   body,
 	})
 }
 
