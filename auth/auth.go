@@ -1,6 +1,10 @@
 // Package auth provides authentication and authorization capability
 package auth
 
+import (
+	"time"
+)
+
 // Auth providers authentication and authorization
 type Auth interface {
 	// Generate a new authorization token
