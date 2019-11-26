@@ -8,14 +8,14 @@ import (
 	proto "github.com/micro/go-micro/debug/proto"
 )
 
-type Debug struct {
-	proto.DebugHandler
-	started int64
-}
-
 var (
+	// DefaultHandler is default debug handler
 	DefaultHandler = newDebug()
 )
+
+type Debug struct {
+	started int64
+}
 
 func newDebug() *Debug {
 	return &Debug{
@@ -40,6 +40,6 @@ func (d *Debug) Stats(ctx context.Context, req *proto.StatsRequest, rsp *proto.S
 	return nil
 }
 
-func (d *Debug) Log(ctx context.Context, req *proto.LogRequest, rsp *proto.Debug_LogStream) error {
+func (d *Debug) Log(ctx context.Context, req *proto.LogRequest, rsp proto.Debug_LogStream) error {
 	return nil
 }
