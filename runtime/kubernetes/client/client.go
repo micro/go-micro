@@ -126,9 +126,9 @@ func (c *client) Update(r *Resource) error {
 
 	switch r.Kind {
 	case "service":
-		req.Body(r.Value.(*Service).Spec)
+		req.Body(r.Value.(*Service))
 	case "deployment":
-		req.Body(r.Value.(*Deployment).Spec)
+		req.Body(r.Value.(*Deployment))
 	default:
 		return errors.New("unsupported resource")
 	}
@@ -151,6 +151,5 @@ func (c *client) List(r *Resource) error {
 	labels := map[string]string{
 		"micro": "service",
 	}
-
 	return c.Get(r, labels)
 }

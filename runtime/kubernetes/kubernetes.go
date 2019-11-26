@@ -199,10 +199,13 @@ func (k *kubernetes) run(events <-chan runtime.Event) {
 					continue
 				}
 
+				// format the name
+				name := client.Format(event.Service)
+
 				// set the default labels
 				labels := map[string]string{
 					"micro": "service",
-					"name":  event.Service,
+					"name":  name,
 				}
 
 				if len(event.Version) > 0 {
@@ -225,6 +228,11 @@ func (k *kubernetes) run(events <-chan runtime.Event) {
 
 				// technically we should not receive multiple versions but hey ho
 				for _, service := range deployed.Items {
+					// check the name matches
+					if service.Metadata.Name != name {
+						continue
+					}
+
 					// update build time annotation
 					if service.Spec.Template.Metadata.Annotations == nil {
 						service.Spec.Template.Metadata.Annotations = make(map[string]string)
@@ -242,7 +250,7 @@ func (k *kubernetes) run(events <-chan runtime.Event) {
 					// update the build time
 					service.Spec.Template.Metadata.Annotations["build"] = event.Timestamp.Format(time.RFC3339)
 
-					log.Debugf("Runtime updating service: %s", event.Service)
+					log.Debugf("Runtime updating service: %s deployment: %s", event.Service, service.Metadata.Name)
 					if err := k.client.Update(deploymentResource(&service)); err != nil {
 						log.Debugf("Runtime failed to update service %s: %v", event.Service, err)
 						continue
