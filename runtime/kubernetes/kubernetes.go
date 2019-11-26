@@ -226,6 +226,9 @@ func (k *kubernetes) run(events <-chan runtime.Event) {
 				// technically we should not receive multiple versions but hey ho
 				for _, service := range deployed.Items {
 					// update build time annotation
+					if service.Spec.Template.Metadata.Annotations == nil {
+						service.Spec.Template.Metadata.Annotations = make(map[string]string)
+					}
 					service.Spec.Template.Metadata.Annotations["build"] = event.Timestamp.Format(time.RFC3339)
 
 					log.Debugf("Runtime updating service: %s", event.Service)
