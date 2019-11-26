@@ -40,6 +40,12 @@ spec:
         {{ $key }}: "{{ $value }}"
         {{- end }}
         {{- end }}
+      annotations:
+        {{- with .Spec.Template.Metadata.Annotations }}
+        {{- range $key, $value := . }}
+        {{ $key }}: "{{ $value }}"
+        {{- end }}
+        {{- end }}
     spec:
       containers:
       {{- with .Spec.Template.PodSpec.Containers }}
