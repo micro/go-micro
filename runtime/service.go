@@ -3,6 +3,7 @@ package runtime
 import (
 	"io"
 	"sync"
+	"time"
 
 	"github.com/micro/go-micro/runtime/build"
 
@@ -17,6 +18,7 @@ type service struct {
 	running bool
 	closed  chan bool
 	err     error
+	updated time.Time
 
 	// output for logs
 	output io.Writer
@@ -64,8 +66,9 @@ func newService(s *Service, c CreateOptions) *service {
 			Env:  c.Env,
 			Args: args,
 		},
-		closed: make(chan bool),
-		output: c.Output,
+		closed:  make(chan bool),
+		output:  c.Output,
+		updated: time.Now(),
 	}
 }
 

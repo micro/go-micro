@@ -130,7 +130,7 @@ func (k *kubernetes) getService(labels map[string]string) ([]*runtime.Service, e
 			}
 
 			// parse out deployment build
-			if build, ok := kdep.Metadata.Annotations["build"]; ok {
+			if build, ok := kdep.Spec.Template.Metadata.Annotations["build"]; ok {
 				buildTime, err := time.Parse(time.RFC3339, build)
 				if err != nil {
 					log.Debugf("Runtime failed parsing build time for %s: %v", name, err)
@@ -228,7 +228,18 @@ func (k *kubernetes) run(events <-chan runtime.Event) {
 					// update build time annotation
 					if service.Spec.Template.Metadata.Annotations == nil {
 						service.Spec.Template.Metadata.Annotations = make(map[string]string)
+
 					}
+
+					// check the existing build timestamp
+					if build, ok := service.Spec.Template.Metadata.Annotations["build"]; ok {
+						buildTime, err := time.Parse(time.RFC3339, build)
+						if err == nil && !event.Timestamp.After(buildTime) {
+							continue
+						}
+					}
+
+					// update the build time
 					service.Spec.Template.Metadata.Annotations["build"] = event.Timestamp.Format(time.RFC3339)
 
 					log.Debugf("Runtime updating service: %s", event.Service)
