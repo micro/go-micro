@@ -39,3 +39,7 @@ func (d *Debug) Stats(ctx context.Context, req *proto.StatsRequest, rsp *proto.S
 	rsp.Threads = uint64(runtime.NumGoroutine())
 	return nil
 }
+
+func (d *Debug) Log(ctx context.Context, req *proto.LogRequest, rsp *proto.Debug_LogStream) error {
+	return nil
+}
