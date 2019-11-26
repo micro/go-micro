@@ -7,11 +7,6 @@ import (
 	"github.com/micro/go-micro/util/log"
 )
 
-const (
-	// https://github.com/kubernetes/apimachinery/blob/master/pkg/util/validation/validation.go#L134
-	dns1123LabelFmt string = "[a-z0-9]([-a-z0-9]*[a-z0-9])?"
-)
-
 var (
 	// DefaultImage is default micro image
 	DefaultImage = "micro/go-micro"
