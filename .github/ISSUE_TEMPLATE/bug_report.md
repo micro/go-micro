@@ -18,7 +18,7 @@ assignees: ''
 If possible, please include a minimal code snippet here.
 
 **Environment:**
-Go Version: `please paste `go version` output here`
+Go Version: please paste `go version` output here
 ```
 please paste `go env` output here
 ```
