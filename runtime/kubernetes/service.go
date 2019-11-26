@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"strings"
+	"time"
 
 	"github.com/micro/go-micro/runtime"
 	"github.com/micro/go-micro/runtime/kubernetes/client"
@@ -33,6 +34,9 @@ func newService(s *runtime.Service, c runtime.CreateOptions) *service {
 	// associate owner:group to be later augmented
 	kdeploy.Metadata.Annotations["owner"] = "micro"
 	kdeploy.Metadata.Annotations["group"] = "micro"
+
+	// set a build timestamp to the current time
+	kdeploy.Metadata.Annotations["build"] = time.Now().Format(time.RFC3339)
 
 	// define the environment values used by the container
 	env := make([]client.EnvVar, 0, len(c.Env))

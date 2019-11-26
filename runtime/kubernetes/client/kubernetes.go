@@ -2,9 +2,7 @@
 package client
 
 import (
-	"strconv"
 	"strings"
-	"time"
 
 	"github.com/micro/go-micro/util/log"
 )
@@ -92,16 +90,6 @@ func NewDeployment(name, version string) *Deployment {
 		Version:     version,
 		Labels:      Labels,
 		Annotations: map[string]string{},
-	}
-
-	// TODO: we need to figure out this version stuff
-	// might have to add Build to runtime.Service
-	buildTime, err := strconv.ParseInt(version, 10, 64)
-	if err == nil {
-		buildUnixTimeUTC := time.Unix(buildTime, 0)
-		Metadata.Annotations["build"] = buildUnixTimeUTC.Format(time.RFC3339)
-	} else {
-		log.Tracef("could not parse build: %v", err)
 	}
 
 	// enable go modules by default
