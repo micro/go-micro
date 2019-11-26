@@ -36,7 +36,10 @@ func newService(s *runtime.Service, c runtime.CreateOptions) *service {
 	kdeploy.Metadata.Annotations["group"] = "micro"
 
 	// set a build timestamp to the current time
-	kdeploy.Metadata.Annotations["build"] = time.Now().Format(time.RFC3339)
+	if kdeploy.Spec.Template.Metadata.Annotations == nil {
+		kdeploy.Spec.Template.Metadata.Annotations = make(map[string]string)
+	}
+	kdeploy.Spec.Template.Metadata.Annotations["build"] = time.Now().Format(time.RFC3339)
 
 	// define the environment values used by the container
 	env := make([]client.EnvVar, 0, len(c.Env))
