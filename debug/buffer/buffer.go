@@ -17,6 +17,14 @@ type Entry struct {
 	Timestamp time.Time
 }
 
+// New returns a new buffer of the given size
+func New(i int) *Buffer {
+	return &Buffer{
+		size: i,
+	}
+}
+
+// Put adds a new value to ring buffer
 func (b *Buffer) Put(v interface{}) {
 	b.Lock()
 	defer b.Unlock()
@@ -83,13 +91,7 @@ func (b *Buffer) Since(t time.Time) []*Entry {
 	return nil
 }
 
+// Size returns the size of the ring buffer
 func (b *Buffer) Size() int {
 	return b.size
-}
-
-// New returns a new buffer of the given size
-func New(i int) *Buffer {
-	return &Buffer{
-		size: i,
-	}
 }
