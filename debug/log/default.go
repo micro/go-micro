@@ -12,13 +12,13 @@ var (
 	DefaultSize = 1000
 )
 
-// defaultLogger is default micro logger
-type defaultLogger struct {
+// defaultLog is default micro log
+type defaultLog struct {
 	*buffer.Buffer
 }
 
-// NewLogger returns default Logger with
-func NewLogger(opts ...Option) Logger {
+// NewLog returns default Logger with
+func NewLog(opts ...Option) Log {
 	// get default options
 	options := DefaultOptions()
 
@@ -27,27 +27,43 @@ func NewLogger(opts ...Option) Logger {
 		o(&options)
 	}
 
-	return &defaultLogger{
+	return &defaultLog{
 		Buffer: buffer.New(options.Size),
 	}
 }
 
 // Write writes log into logger
-func (l *defaultLogger) Write(v ...interface{}) {
-	l.log(fmt.Sprint(v...))
+func (l *defaultLog) Write(v ...interface{}) {
+	l.Buffer.Put(fmt.Sprint(v...))
 	golog.Print(v...)
 }
 
 // Read reads logs from the logger
-func (l *defaultLogger) Read(n int) []interface{} {
-	entries := l.Get(n)
-	vals := make([]interface{}, 0, len(entries))
-	for _, val := range entries {
-		vals = append(vals, val)
+func (l *defaultLog) Read(opts ...ReadOption) []Record {
+	options := ReadOptions{}
+	// initialize the read options
+	for _, o := range opts {
+		o(&options)
 	}
-	return vals
-}
 
-func (l *defaultLogger) log(entry string) {
-	l.Buffer.Put(entry)
+	var entries []*buffer.Entry
+	// if Since options ha sbeen specified we honor it
+	if !options.Since.IsZero() {
+		entries = l.Buffer.Since(options.Since)
+	} else {
+		// otherwie return last count entries
+		entries = l.Buffer.Get(options.Count)
+	}
+
+	// TODO: if both Since and Count are set should we return
+	// last Count from the returned time scoped entries?
+	records := make([]Record, 0, len(entries))
+	for _, entry := range entries {
+		record := Record{
+			Timestamp: entry.Timestamp,
+			Value:     entry.Value,
+		}
+		records = append(records, record)
+	}
+	return records
 }

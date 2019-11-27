@@ -4,23 +4,34 @@ package log
 import (
 	"fmt"
 	"os"
+	"time"
 )
 
 var (
 	// logger is default Logger
-	logger Logger = NewLogger()
+	logger Log = NewLog()
 	// default log level is info
 	level = LevelInfo
 	// prefix for all messages
 	prefix string
 )
 
-// Logger is event logger
-type Logger interface {
-	// Read reads specified number of log entries
-	Read(int) []interface{}
+// Log is event log
+type Log interface {
+	// Read reads log entries from the logger
+	Read(...ReadOption) []Record
 	// Write writes logs to logger
 	Write(...interface{})
+}
+
+// Record is log record entry
+type Record struct {
+	// Timestamp of logged event
+	Timestamp time.Time
+	// Value contains log entry
+	Value interface{}
+	// Metadata to enrich log record
+	Metadata map[string]string
 }
 
 // level is a log level
@@ -52,7 +63,7 @@ func init() {
 	}
 }
 
-func Log(v ...interface{}) {
+func log(v ...interface{}) {
 	if len(prefix) > 0 {
 		logger.Write(fmt.Sprint(append([]interface{}{prefix, " "}, v...)...))
 		return
@@ -60,7 +71,7 @@ func Log(v ...interface{}) {
 	logger.Write(fmt.Sprint(v...))
 }
 
-func Logf(format string, v ...interface{}) {
+func logf(format string, v ...interface{}) {
 	if len(prefix) > 0 {
 		format = prefix + " " + format
 	}
@@ -72,7 +83,7 @@ func WithLevel(l Level, v ...interface{}) {
 	if l > level {
 		return
 	}
-	Log(v...)
+	log(v...)
 }
 
 // WithLevel logs with the level specified
@@ -80,7 +91,7 @@ func WithLevelf(l Level, format string, v ...interface{}) {
 	if l > level {
 		return
 	}
-	Logf(format, v...)
+	logf(format, v...)
 }
 
 // Trace provides trace level logging
@@ -143,11 +154,6 @@ func Fatal(v ...interface{}) {
 func Fatalf(format string, v ...interface{}) {
 	WithLevelf(LevelFatal, format, v...)
 	os.Exit(1)
-}
-
-// GetLogger returns the local logger
-func GetLogger() Logger {
-	return logger
 }
 
 // SetLevel sets the log level

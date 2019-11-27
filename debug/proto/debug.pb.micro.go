@@ -36,7 +36,7 @@ var _ server.Option
 type DebugService interface {
 	Health(ctx context.Context, in *HealthRequest, opts ...client.CallOption) (*HealthResponse, error)
 	Stats(ctx context.Context, in *StatsRequest, opts ...client.CallOption) (*StatsResponse, error)
-	Log(ctx context.Context, in *LogRequest, opts ...client.CallOption) (Debug_LogService, error)
+	Logs(ctx context.Context, in *LogRequest, opts ...client.CallOption) (Debug_LogsService, error)
 }
 
 type debugService struct {
@@ -77,8 +77,8 @@ func (c *debugService) Stats(ctx context.Context, in *StatsRequest, opts ...clie
 	return out, nil
 }
 
-func (c *debugService) Log(ctx context.Context, in *LogRequest, opts ...client.CallOption) (Debug_LogService, error) {
-	req := c.c.NewRequest(c.name, "Debug.Log", &LogRequest{})
+func (c *debugService) Logs(ctx context.Context, in *LogRequest, opts ...client.CallOption) (Debug_LogsService, error) {
+	req := c.c.NewRequest(c.name, "Debug.Logs", &LogRequest{})
 	stream, err := c.c.Stream(ctx, req, opts...)
 	if err != nil {
 		return nil, err
@@ -86,34 +86,34 @@ func (c *debugService) Log(ctx context.Context, in *LogRequest, opts ...client.C
 	if err := stream.Send(in); err != nil {
 		return nil, err
 	}
-	return &debugServiceLog{stream}, nil
+	return &debugServiceLogs{stream}, nil
 }
 
-type Debug_LogService interface {
+type Debug_LogsService interface {
 	SendMsg(interface{}) error
 	RecvMsg(interface{}) error
 	Close() error
-	Recv() (*LogEvent, error)
+	Recv() (*Log, error)
 }
 
-type debugServiceLog struct {
+type debugServiceLogs struct {
 	stream client.Stream
 }
 
-func (x *debugServiceLog) Close() error {
+func (x *debugServiceLogs) Close() error {
 	return x.stream.Close()
 }
 
-func (x *debugServiceLog) SendMsg(m interface{}) error {
+func (x *debugServiceLogs) SendMsg(m interface{}) error {
 	return x.stream.Send(m)
 }
 
-func (x *debugServiceLog) RecvMsg(m interface{}) error {
+func (x *debugServiceLogs) RecvMsg(m interface{}) error {
 	return x.stream.Recv(m)
 }
 
-func (x *debugServiceLog) Recv() (*LogEvent, error) {
-	m := new(LogEvent)
+func (x *debugServiceLogs) Recv() (*Log, error) {
+	m := new(Log)
 	err := x.stream.Recv(m)
 	if err != nil {
 		return nil, err
@@ -126,14 +126,14 @@ func (x *debugServiceLog) Recv() (*LogEvent, error) {
 type DebugHandler interface {
 	Health(context.Context, *HealthRequest, *HealthResponse) error
 	Stats(context.Context, *StatsRequest, *StatsResponse) error
-	Log(context.Context, *LogRequest, Debug_LogStream) error
+	Logs(context.Context, *LogRequest, Debug_LogsStream) error
 }
 
 func RegisterDebugHandler(s server.Server, hdlr DebugHandler, opts ...server.HandlerOption) error {
 	type debug interface {
 		Health(ctx context.Context, in *HealthRequest, out *HealthResponse) error
 		Stats(ctx context.Context, in *StatsRequest, out *StatsResponse) error
-		Log(ctx context.Context, stream server.Stream) error
+		Logs(ctx context.Context, stream server.Stream) error
 	}
 	type Debug struct {
 		debug
@@ -154,37 +154,37 @@ func (h *debugHandler) Stats(ctx context.Context, in *StatsRequest, out *StatsRe
 	return h.DebugHandler.Stats(ctx, in, out)
 }
 
-func (h *debugHandler) Log(ctx context.Context, stream server.Stream) error {
+func (h *debugHandler) Logs(ctx context.Context, stream server.Stream) error {
 	m := new(LogRequest)
 	if err := stream.Recv(m); err != nil {
 		return err
 	}
-	return h.DebugHandler.Log(ctx, m, &debugLogStream{stream})
+	return h.DebugHandler.Logs(ctx, m, &debugLogsStream{stream})
 }
 
-type Debug_LogStream interface {
+type Debug_LogsStream interface {
 	SendMsg(interface{}) error
 	RecvMsg(interface{}) error
 	Close() error
-	Send(*LogEvent) error
+	Send(*Log) error
 }
 
-type debugLogStream struct {
+type debugLogsStream struct {
 	stream server.Stream
 }
 
-func (x *debugLogStream) Close() error {
+func (x *debugLogsStream) Close() error {
 	return x.stream.Close()
 }
 
-func (x *debugLogStream) SendMsg(m interface{}) error {
+func (x *debugLogsStream) SendMsg(m interface{}) error {
 	return x.stream.Send(m)
 }
 
-func (x *debugLogStream) RecvMsg(m interface{}) error {
+func (x *debugLogsStream) RecvMsg(m interface{}) error {
 	return x.stream.Recv(m)
 }
 
-func (x *debugLogStream) Send(m *LogEvent) error {
+func (x *debugLogsStream) Send(m *Log) error {
 	return x.stream.Send(m)
 }

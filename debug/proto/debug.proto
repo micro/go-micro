@@ -3,7 +3,7 @@ syntax = "proto3";
 service Debug {
  	rpc Health(HealthRequest) returns (HealthResponse) {};
  	rpc Stats(StatsRequest) returns (StatsResponse) {};
-        rpc Log(LogRequest) returns (stream LogEvent) {};
+        rpc Logs(LogRequest) returns (stream Log) {};
 }
 
 message HealthRequest {}
@@ -40,9 +40,12 @@ message LogRequest {
         bool stream = 3;
 }
 
-// LogEvent is service log event
-message LogEvent {
-        // event log record
-        // TODO: change this
-        string record = 1;
+// Log is service log record
+message Log {
+        // timestamp of log event
+        int64 timestamp = 1;
+        // log value
+        string value = 2;
+        // metadata
+        map<string,string> metadata = 3;
 }

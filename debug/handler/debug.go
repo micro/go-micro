@@ -17,7 +17,7 @@ var (
 
 type Debug struct {
 	started int64
-	log.Logger
+	log.Log
 }
 
 func newDebug() *Debug {
@@ -43,6 +43,6 @@ func (d *Debug) Stats(ctx context.Context, req *proto.StatsRequest, rsp *proto.S
 	return nil
 }
 
-func (d *Debug) Log(ctx context.Context, req *proto.LogRequest, rsp proto.Debug_LogStream) error {
+func (d *Debug) Logs(ctx context.Context, req *proto.LogRequest, rsp proto.Debug_LogsStream) error {
 	return nil
 }
