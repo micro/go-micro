@@ -5,6 +5,8 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/micro/go-micro/debug/log"
+
 	proto "github.com/micro/go-micro/debug/proto"
 )
 
@@ -15,6 +17,7 @@ var (
 
 type Debug struct {
 	started int64
+	log.Logger
 }
 
 func newDebug() *Debug {

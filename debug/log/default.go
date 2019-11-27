@@ -40,7 +40,12 @@ func (l *defaultLogger) Write(v ...interface{}) {
 
 // Read reads logs from the logger
 func (l *defaultLogger) Read(n int) []interface{} {
-	return l.Get(n)
+	entries := l.Get(n)
+	vals := make([]interface{}, 0, len(entries))
+	for _, val := range entries {
+		vals = append(vals, val)
+	}
+	return vals
 }
 
 func (l *defaultLogger) log(entry string) {
