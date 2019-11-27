@@ -81,6 +81,20 @@ type router struct {
 	subscribers map[string][]*subscriber
 }
 
+// rpcRouter encapsulates functions that become a server.Router
+type rpcRouter struct {
+	h func(context.Context, Request, interface{}) error
+	m func(context.Context, Message) error
+}
+
+func (r rpcRouter) ProcessMessage(ctx context.Context, msg Message) error {
+	return r.m(ctx, msg)
+}
+
+func (r rpcRouter) ServeRequest(ctx context.Context, req Request, rsp Response) error {
+	return r.h(ctx, req, rsp)
+}
+
 func newRpcRouter() *router {
 	return &router{
 		serviceMap:  make(map[string]*service),
