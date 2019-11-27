@@ -43,6 +43,35 @@ func (d *Debug) Stats(ctx context.Context, req *proto.StatsRequest, rsp *proto.S
 	return nil
 }
 
-func (d *Debug) Logs(ctx context.Context, req *proto.LogRequest, rsp proto.Debug_LogsStream) error {
+func (d *Debug) Logs(ctx context.Context, req *proto.LogRequest, stream proto.Debug_LogsStream) error {
+	var records []log.Record
+	since := time.Unix(0, req.Since)
+	if !since.IsZero() {
+		records = d.Log.Read(log.Since(since))
+	} else {
+		records = d.Log.Read(log.Count(int(req.Count)))
+	}
+
+	defer stream.Close()
+
+	// TODO: figure out the stream later on
+	// stream the logs
+	for _, record := range records {
+		metadata := make(map[string]string)
+		for k, v := range record.Metadata {
+			metadata[k] = v
+		}
+
+		recLog := &proto.Log{
+			Timestamp: record.Timestamp.UnixNano(),
+			Value:     record.Value.(string),
+			Metadata:  metadata,
+		}
+
+		if err := stream.Send(recLog); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }

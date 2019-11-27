@@ -31,11 +31,11 @@ message StatsResponse {
 // LogRequest queries service for logs
 message LogRequest {
         // count is the count of events
-        uint64 count = 1;
+        int64 count = 1;
         // relative time in seconds
         // before the current time
         // from which to show logs
-        uint64 since = 2;
+        int64 since = 2;
         // stream logs continuously
         bool stream = 3;
 }
