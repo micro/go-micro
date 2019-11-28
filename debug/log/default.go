@@ -50,13 +50,24 @@ func (l *defaultLog) Read(opts ...ReadOption) []Record {
 	// if Since options ha sbeen specified we honor it
 	if !options.Since.IsZero() {
 		entries = l.Buffer.Since(options.Since)
-	} else {
-		// otherwie return last count entries
-		entries = l.Buffer.Get(options.Count)
 	}
 
-	// TODO: if both Since and Count are set should we return?
-	// last Count from the returned time scoped entries?
+	// only if we specified valid count constraint
+	// do we do some serious if-else kung-fu
+	// if since has been given we return *count* number of
+	// logs since the requested timestamp;
+	// otherwise we retourn last count number of logs
+	if options.Count > 0 {
+		switch len(entries) > 0 {
+		case true:
+			// if we request fewer logs than what since constraint gives us
+			if options.Count < len(entries) {
+				entries = entries[0:options.Count]
+			}
+		default:
+			entries = l.Buffer.Get(options.Count)
+		}
+	}
 
 	records := make([]Record, 0, len(entries))
 	for _, entry := range entries {
@@ -66,5 +77,6 @@ func (l *defaultLog) Read(opts ...ReadOption) []Record {
 		}
 		records = append(records, record)
 	}
+
 	return records
 }

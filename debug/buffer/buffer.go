@@ -6,12 +6,14 @@ import (
 	"time"
 )
 
+// Buffer is ring buffer
 type Buffer struct {
 	size int
 	sync.RWMutex
 	vals []*Entry
 }
 
+// Entry is ring buffer data entry
 type Entry struct {
 	Value     interface{}
 	Timestamp time.Time
@@ -43,13 +45,13 @@ func (b *Buffer) Put(v interface{}) {
 
 // Get returns the last n entries
 func (b *Buffer) Get(n int) []*Entry {
+	b.RLock()
+	defer b.RUnlock()
+
 	// reset any invalid values
 	if n > b.size || n < 0 {
 		n = b.size
 	}
-
-	b.RLock()
-	defer b.RUnlock()
 
 	// create a delta
 	delta := b.size - n

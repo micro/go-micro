@@ -31,6 +31,8 @@ type ReadOptions struct {
 	Since time.Time
 	// Count specifies number of logs to return
 	Count int
+	// Stream requests continuous log stream
+	Stream bool
 }
 
 // ReadOption used for reading the logs
@@ -47,5 +49,12 @@ func Since(s time.Time) ReadOption {
 func Count(c int) ReadOption {
 	return func(o *ReadOptions) {
 		o.Count = c
+	}
+}
+
+// Stream requests continuous log stream
+func Stream(s bool) ReadOption {
+	return func(o *ReadOptions) {
+		o.Stream = s
 	}
 }

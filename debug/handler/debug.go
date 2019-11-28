@@ -1,3 +1,4 @@
+// Pacjage handler implements service debug handler
 package handler
 
 import (
@@ -46,15 +47,23 @@ func (d *Debug) Stats(ctx context.Context, req *proto.StatsRequest, rsp *proto.S
 }
 
 func (d *Debug) Logs(ctx context.Context, req *proto.LogRequest, stream proto.Debug_LogsStream) error {
-	var records []log.Record
+	var options []log.ReadOption
+
 	since := time.Unix(0, req.Since)
 	if !since.IsZero() {
-		records = d.log.Read(log.Since(since))
-	} else {
-		records = d.log.Read(log.Count(int(req.Count)))
+		options = append(options, log.Since(since))
 	}
 
-	// TODO: figure out the stream later on
+	count := int(req.Count)
+	if count > 0 {
+		options = append(options, log.Count(count))
+	}
+
+	// get the log records
+	records := d.log.Read(options...)
+
+	// TODO: figure out the stream
+
 	for _, record := range records {
 		metadata := make(map[string]string)
 		for k, v := range record.Metadata {
