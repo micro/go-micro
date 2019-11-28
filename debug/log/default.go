@@ -32,13 +32,13 @@ func NewLog(opts ...Option) Log {
 	}
 }
 
-// Write writes log into logger
+// Write writes logs into logger
 func (l *defaultLog) Write(v ...interface{}) {
 	l.Buffer.Put(fmt.Sprint(v...))
 	golog.Print(v...)
 }
 
-// Read reads logs from the logger
+// Read reads logs and returns them
 func (l *defaultLog) Read(opts ...ReadOption) []Record {
 	options := ReadOptions{}
 	// initialize the read options
@@ -55,8 +55,9 @@ func (l *defaultLog) Read(opts ...ReadOption) []Record {
 		entries = l.Buffer.Get(options.Count)
 	}
 
-	// TODO: if both Since and Count are set should we return
+	// TODO: if both Since and Count are set should we return?
 	// last Count from the returned time scoped entries?
+
 	records := make([]Record, 0, len(entries))
 	for _, entry := range entries {
 		record := Record{

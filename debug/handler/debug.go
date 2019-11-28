@@ -17,6 +17,7 @@ var (
 
 type Debug struct {
 	started int64
+	proto.DebugHandler
 	log.Log
 }
 
@@ -55,7 +56,6 @@ func (d *Debug) Logs(ctx context.Context, req *proto.LogRequest, stream proto.De
 	defer stream.Close()
 
 	// TODO: figure out the stream later on
-	// stream the logs
 	for _, record := range records {
 		metadata := make(map[string]string)
 		for k, v := range record.Metadata {
