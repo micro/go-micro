@@ -8,10 +8,10 @@ import (
 )
 
 var (
-	// logger is default Logger
-	logger Log = NewLog()
-	// default log level is info
-	level = LevelInfo
+	// DefaultLog logger
+	DefaultLog = NewLog()
+	// DefaultLevel is default log level
+	DefaultLevel = LevelInfo
 	// prefix for all messages
 	prefix string
 )
@@ -49,38 +49,38 @@ const (
 func init() {
 	switch os.Getenv("MICRO_LOG_LEVEL") {
 	case "trace":
-		level = LevelTrace
+		DefaultLevel = LevelTrace
 	case "debug":
-		level = LevelDebug
+		DefaultLevel = LevelDebug
 	case "warn":
-		level = LevelWarn
+		DefaultLevel = LevelWarn
 	case "info":
-		level = LevelInfo
+		DefaultLevel = LevelInfo
 	case "error":
-		level = LevelError
+		DefaultLevel = LevelError
 	case "fatal":
-		level = LevelFatal
+		DefaultLevel = LevelFatal
 	}
 }
 
 func log(v ...interface{}) {
 	if len(prefix) > 0 {
-		logger.Write(fmt.Sprint(append([]interface{}{prefix, " "}, v...)...))
+		DefaultLog.Write(fmt.Sprint(append([]interface{}{prefix, " "}, v...)...))
 		return
 	}
-	logger.Write(fmt.Sprint(v...))
+	DefaultLog.Write(fmt.Sprint(v...))
 }
 
 func logf(format string, v ...interface{}) {
 	if len(prefix) > 0 {
 		format = prefix + " " + format
 	}
-	logger.Write(fmt.Sprintf(format, v...))
+	DefaultLog.Write(fmt.Sprintf(format, v...))
 }
 
 // WithLevel logs with the level specified
 func WithLevel(l Level, v ...interface{}) {
-	if l > level {
+	if l > DefaultLevel {
 		return
 	}
 	log(v...)
@@ -88,7 +88,7 @@ func WithLevel(l Level, v ...interface{}) {
 
 // WithLevel logs with the level specified
 func WithLevelf(l Level, format string, v ...interface{}) {
-	if l > level {
+	if l > DefaultLevel {
 		return
 	}
 	logf(format, v...)
@@ -158,12 +158,12 @@ func Fatalf(format string, v ...interface{}) {
 
 // SetLevel sets the log level
 func SetLevel(l Level) {
-	level = l
+	DefaultLevel = l
 }
 
 // GetLevel returns the current level
 func GetLevel() Level {
-	return level
+	return DefaultLevel
 }
 
 // Set a prefix for the logger

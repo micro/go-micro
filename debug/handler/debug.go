@@ -18,12 +18,13 @@ var (
 type Debug struct {
 	started int64
 	proto.DebugHandler
-	log.Log
+	log log.Log
 }
 
 func newDebug() *Debug {
 	return &Debug{
 		started: time.Now().Unix(),
+		log:     log.DefaultLog,
 	}
 }
 
@@ -48,9 +49,9 @@ func (d *Debug) Logs(ctx context.Context, req *proto.LogRequest, stream proto.De
 	var records []log.Record
 	since := time.Unix(0, req.Since)
 	if !since.IsZero() {
-		records = d.Log.Read(log.Since(since))
+		records = d.log.Read(log.Since(since))
 	} else {
-		records = d.Log.Read(log.Count(int(req.Count)))
+		records = d.log.Read(log.Count(int(req.Count)))
 	}
 
 	defer stream.Close()
