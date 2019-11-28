@@ -54,8 +54,6 @@ func (d *Debug) Logs(ctx context.Context, req *proto.LogRequest, stream proto.De
 		records = d.log.Read(log.Count(int(req.Count)))
 	}
 
-	defer stream.Close()
-
 	// TODO: figure out the stream later on
 	for _, record := range records {
 		metadata := make(map[string]string)
