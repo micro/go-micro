@@ -643,6 +643,12 @@ func (h *httpBroker) Subscribe(topic string, handler Handler, opts ...SubscribeO
 		return nil, err
 	}
 
+	// if zero port then randomly assign one
+	if len(port) > 0 && port == "0" {
+		i := rand.Intn(20000)
+		port = fmt.Sprintf("%d", 10000+i)
+	}
+
 	addr, err := maddr.Extract(host)
 	if err != nil {
 		return nil, err
