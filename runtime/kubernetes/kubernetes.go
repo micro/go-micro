@@ -335,7 +335,7 @@ func (k *kubernetes) Read(opts ...runtime.ReadOption) ([]*runtime.Service, error
 	}
 
 	if len(options.Type) > 0 {
-		labels["type"] = options.Type
+		labels["micro"] = options.Type
 	}
 
 	return k.getService(labels)
