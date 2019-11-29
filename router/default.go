@@ -21,17 +21,17 @@ var (
 	// AdvertiseFlushTick is time the yet unconsumed advertisements are flush i.e. discarded
 	AdvertiseFlushTick = 15 * time.Second
 	// DefaultAdvertTTL is default advertisement TTL
-	DefaultAdvertTTL = 1 * time.Minute
+	DefaultAdvertTTL = 2 * time.Minute
 	// AdvertSuppress is advert suppression threshold
 	AdvertSuppress = 200.0
 	// AdvertRecover is advert recovery threshold
-	AdvertRecover = 120.0
+	AdvertRecover = 20.0
 	// Penalty for routes processed multiple times
 	Penalty = 100.0
 	// PenaltyHalfLife is the time the advert penalty decays to half its value
 	PenaltyHalfLife = 30.0
 	// MaxSuppressTime defines time after which the suppressed advert is deleted
-	MaxSuppressTime = 5 * time.Minute
+	MaxSuppressTime = time.Second * 30
 	// PenaltyDecay is a coefficient which controls the speed the advert penalty decays
 	PenaltyDecay = math.Log(2) / PenaltyHalfLife
 )
