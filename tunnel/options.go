@@ -12,7 +12,7 @@ var (
 	// DefaultAddress is default tunnel bind address
 	DefaultAddress = ":0"
 	// The shared default token
-	DefaultToken = "micro"
+	DefaultToken = "go.micro.tunnel"
 )
 
 type Option func(*Options)
