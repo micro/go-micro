@@ -163,7 +163,7 @@ func (r *runtime) Create(s *Service, opts ...CreateOption) error {
 		o(&options)
 	}
 
-	if len(s.Exec) == 0 && len(options.Command) == 0 {
+	if len(options.Command) == 0 {
 		return errors.New("missing exec command")
 	}
 
@@ -179,31 +179,36 @@ func (r *runtime) Create(s *Service, opts ...CreateOption) error {
 
 // Read returns all instances of requested service
 // If no service name is provided we return all the track services.
-func (r *runtime) Read(name string, opts ...ReadOption) ([]*Service, error) {
+func (r *runtime) Read(opts ...ReadOption) ([]*Service, error) {
 	r.Lock()
 	defer r.Unlock()
-
-	if len(name) == 0 {
-		return nil, errors.New("missing service name")
-	}
 
 	gopts := ReadOptions{}
 	for _, o := range opts {
 		o(&gopts)
 	}
 
-	var services []*Service
-	// if we track the service check if the version is provided
-	if s, ok := r.services[name]; ok {
-		if len(gopts.Version) > 0 {
-			if s.Version == gopts.Version {
-				services = append(services, s.Service)
-			}
-			return services, nil
+	save := func(k, v string) bool {
+		if len(k) == 0 {
+			return true
 		}
-		// no version has sbeen requested, just append the service
-		services = append(services, s.Service)
+		return k == v
 	}
+
+	var services []*Service
+
+	for _, service := range r.services {
+		if !save(gopts.Service, service.Name) {
+			continue
+		}
+		if !save(gopts.Version, service.Version) {
+			continue
+		}
+		// TODO deal with service type
+		// no version has sbeen requested, just append the service
+		services = append(services, service.Service)
+	}
+
 	return services, nil
 }
 

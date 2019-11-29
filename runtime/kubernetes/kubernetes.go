@@ -2,7 +2,6 @@
 package kubernetes
 
 import (
-	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -204,7 +203,7 @@ func (k *kubernetes) run(events <-chan runtime.Event) {
 
 				// set the default labels
 				labels := map[string]string{
-					"micro": "service",
+					"micro": k.options.Type,
 					"name":  name,
 				}
 
@@ -281,7 +280,9 @@ func (k *kubernetes) Create(s *runtime.Service, opts ...runtime.CreateOption) er
 	k.Lock()
 	defer k.Unlock()
 
-	var options runtime.CreateOptions
+	options := runtime.CreateOptions{
+		Type: k.options.Type,
+	}
 	for _, o := range opts {
 		o(&options)
 	}
@@ -310,22 +311,13 @@ func (k *kubernetes) Create(s *runtime.Service, opts ...runtime.CreateOption) er
 }
 
 // Read returns all instances of given service
-func (k *kubernetes) Read(name string, opts ...runtime.ReadOption) ([]*runtime.Service, error) {
+func (k *kubernetes) Read(opts ...runtime.ReadOption) ([]*runtime.Service, error) {
 	k.Lock()
 	defer k.Unlock()
 
-	// if no name has been passed in, return error
-	if len(name) == 0 {
-		return nil, errors.New("missing service name")
-	}
-
-	// format the name
-	name = client.Format(name)
-
 	// set the default labels
 	labels := map[string]string{
-		"micro": "service",
-		"name":  name,
+		"micro": k.options.Type,
 	}
 
 	var options runtime.ReadOptions
@@ -333,12 +325,18 @@ func (k *kubernetes) Read(name string, opts ...runtime.ReadOption) ([]*runtime.S
 		o(&options)
 	}
 
+	if len(options.Service) > 0 {
+		labels["name"] = client.Format(options.Service)
+	}
+
 	// add version to labels if a version has been supplied
 	if len(options.Version) > 0 {
 		labels["version"] = options.Version
 	}
 
-	log.Debugf("Runtime querying service %s", name)
+	if len(options.Type) > 0 {
+		labels["type"] = options.Type
+	}
 
 	return k.getService(labels)
 }
@@ -349,7 +347,7 @@ func (k *kubernetes) List() ([]*runtime.Service, error) {
 	defer k.Unlock()
 
 	labels := map[string]string{
-		"micro": "service",
+		"micro": k.options.Type,
 	}
 
 	log.Debugf("Runtime listing all micro services")
@@ -360,7 +358,9 @@ func (k *kubernetes) List() ([]*runtime.Service, error) {
 // Update the service in place
 func (k *kubernetes) Update(s *runtime.Service) error {
 	// create new kubernetes micro service
-	service := newService(s, runtime.CreateOptions{})
+	service := newService(s, runtime.CreateOptions{
+		Type: k.options.Type,
+	})
 
 	// update build time annotation
 	service.kdeploy.Spec.Template.Metadata.Annotations["build"] = time.Now().Format(time.RFC3339)
@@ -382,7 +382,9 @@ func (k *kubernetes) Delete(s *runtime.Service) error {
 	defer k.Unlock()
 
 	// create new kubernetes micro service
-	service := newService(s, runtime.CreateOptions{})
+	service := newService(s, runtime.CreateOptions{
+		Type: k.options.Type,
+	})
 
 	log.Debugf("Runtime queueing service %s for delete action", service.Name)
 
@@ -457,7 +459,10 @@ func (k *kubernetes) String() string {
 // NewRuntime creates new kubernetes runtime
 func NewRuntime(opts ...runtime.Option) runtime.Runtime {
 	// get default options
-	options := runtime.Options{}
+	options := runtime.Options{
+		// Create labels with type "micro": "service"
+		Type: "service",
+	}
 
 	// apply requested options
 	for _, o := range opts {

@@ -17,7 +17,7 @@ type Runtime interface {
 	// Create registers a service
 	Create(*Service, ...CreateOption) error
 	// Read returns the service
-	Read(string, ...ReadOption) ([]*Service, error)
+	Read(...ReadOption) ([]*Service, error)
 	// Update the service in place
 	Update(*Service) error
 	// Remove a service
@@ -84,10 +84,6 @@ type Service struct {
 	Version string
 	// url location of source
 	Source string
-	// Path to store source
-	Path string
-	// Exec command
-	Exec []string
 	// Metadata stores metadata
 	Metadata map[string]string
 }

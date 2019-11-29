@@ -23,8 +23,8 @@ func newService(s *runtime.Service, c runtime.CreateOptions) *service {
 	name := client.Format(s.Name)
 	version := client.Format(s.Version)
 
-	kservice := client.NewService(name, version)
-	kdeploy := client.NewDeployment(name, version)
+	kservice := client.NewService(name, version, c.Type)
+	kdeploy := client.NewDeployment(name, version, c.Type)
 
 	// attach our values to the deployment; name, version, source
 	kdeploy.Metadata.Annotations["name"] = s.Name
@@ -53,10 +53,8 @@ func newService(s *runtime.Service, c runtime.CreateOptions) *service {
 		kdeploy.Spec.Template.PodSpec.Containers[0].Env = append(kdeploy.Spec.Template.PodSpec.Containers[0].Env, env...)
 	}
 
-	// if Exec/Command has been supplied override the default command
-	if len(s.Exec) > 0 {
-		kdeploy.Spec.Template.PodSpec.Containers[0].Command = s.Exec
-	} else if len(c.Command) > 0 {
+	// specify the command to exec
+	if len(c.Command) > 0 {
 		kdeploy.Spec.Template.PodSpec.Containers[0].Command = c.Command
 	} else if len(s.Source) > 0 {
 		// default command for our k8s service should be source

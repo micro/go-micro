@@ -8,16 +8,17 @@ import (
 func TestTemplates(t *testing.T) {
 	name := "foo"
 	version := "123"
+	typ := "service"
 
 	// Render default service
-	s := NewService(name, version)
+	s := NewService(name, version, typ)
 	bs := new(bytes.Buffer)
 	if err := renderTemplate(templates["service"], bs, s); err != nil {
 		t.Errorf("Failed to render kubernetes service: %v", err)
 	}
 
 	// Render default deployment
-	d := NewDeployment(name, version)
+	d := NewDeployment(name, version, typ)
 	bd := new(bytes.Buffer)
 	if err := renderTemplate(templates["deployment"], bd, d); err != nil {
 		t.Errorf("Failed to render kubernetes deployment: %v", err)
