@@ -76,7 +76,7 @@ func (s *svc) Create(svc *runtime.Service, opts ...runtime.CreateOption) error {
 }
 
 // Read returns the service with the given name from the runtime
-func (s *svc) Read(name string, opts ...runtime.ReadOption) ([]*runtime.Service, error) {
+func (s *svc) Read(opts ...runtime.ReadOption) ([]*runtime.Service, error) {
 	options := runtime.ReadOptions{}
 	// apply requested options
 	for _, o := range opts {
@@ -85,9 +85,10 @@ func (s *svc) Read(name string, opts ...runtime.ReadOption) ([]*runtime.Service,
 
 	// runtime service create request
 	req := &pb.ReadRequest{
-		Name: name,
 		Options: &pb.ReadOptions{
+			Service: options.Service,
 			Version: options.Version,
+			Type:    options.Type,
 		},
 	}
 
@@ -102,8 +103,6 @@ func (s *svc) Read(name string, opts ...runtime.ReadOption) ([]*runtime.Service,
 			Name:     service.Name,
 			Version:  service.Version,
 			Source:   service.Source,
-			Path:     service.Path,
-			Exec:     service.Exec,
 			Metadata: service.Metadata,
 		}
 		services = append(services, svc)
@@ -160,8 +159,6 @@ func (s *svc) List() ([]*runtime.Service, error) {
 			Name:     service.Name,
 			Version:  service.Version,
 			Source:   service.Source,
-			Path:     service.Path,
-			Exec:     service.Exec,
 			Metadata: service.Metadata,
 		}
 		services = append(services, svc)

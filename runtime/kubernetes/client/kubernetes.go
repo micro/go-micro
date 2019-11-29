@@ -27,13 +27,13 @@ type Kubernetes interface {
 }
 
 // NewService returns default micro kubernetes service definition
-func NewService(name, version string) *Service {
+func NewService(name, version, typ string) *Service {
 	log.Tracef("kubernetes default service: name: %s, version: %s", name, version)
 
 	Labels := map[string]string{
 		"name":    name,
 		"version": version,
-		"micro":   "service",
+		"micro":   typ,
 	}
 
 	svcName := name
@@ -64,13 +64,13 @@ func NewService(name, version string) *Service {
 }
 
 // NewService returns default micro kubernetes deployment definition
-func NewDeployment(name, version string) *Deployment {
+func NewDeployment(name, version, typ string) *Deployment {
 	log.Tracef("kubernetes default deployment: name: %s, version: %s", name, version)
 
 	Labels := map[string]string{
 		"name":    name,
 		"version": version,
-		"micro":   "service",
+		"micro":   typ,
 	}
 
 	depName := name

@@ -37,22 +37,11 @@ func newService(s *Service, c CreateOptions) *service {
 	var exec string
 	var args []string
 
-	if len(s.Exec) > 0 {
-		if len(s.Exec) > 0 {
-			exec = s.Exec[0]
-		}
-		args = []string{}
-
-		if len(s.Exec) > 1 {
-			args = s.Exec[1:]
-		}
-	} else {
-		// set command
-		exec = c.Command[0]
-		// set args
-		if len(c.Command) > 1 {
-			args = c.Command[1:]
-		}
+	// set command
+	exec = c.Command[0]
+	// set args
+	if len(c.Command) > 1 {
+		args = c.Command[1:]
 	}
 
 	return &service{
