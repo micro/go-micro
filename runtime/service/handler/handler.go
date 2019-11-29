@@ -33,12 +33,8 @@ func toService(s *pb.Service) *runtime.Service {
 func toCreateOptions(opts *pb.CreateOptions) []runtime.CreateOption {
 	options := []runtime.CreateOption{}
 	// command options
-	l := len(opts.Command)
-	if l == 1 {
-		options = append(options, runtime.WithCommand(opts.Command[0]))
-	}
-	if l > 1 {
-		options = append(options, runtime.WithCommand(opts.Command[0], opts.Command[1:]...))
+	if len(opts.Command) > 0 {
+		options = append(options, runtime.WithCommand(opts.Command...))
 	}
 	// env options
 	if len(opts.Env) > 0 {

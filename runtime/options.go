@@ -55,12 +55,10 @@ type ReadOptions struct {
 }
 
 // WithCommand specifies the command to execute
-func WithCommand(c string, args ...string) CreateOption {
+func WithCommand(args ...string) CreateOption {
 	return func(o *CreateOptions) {
 		// set command
-		o.Command = []string{c}
-		// set args
-		o.Command = append(o.Command, args...)
+		o.Command = args
 	}
 }
 
