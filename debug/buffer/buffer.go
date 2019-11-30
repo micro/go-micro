@@ -4,13 +4,22 @@ package buffer
 import (
 	"sync"
 	"time"
+
+	"github.com/google/uuid"
 )
+
+type stream struct {
+	id      string
+	entries chan *Entry
+	stop    chan bool
+}
 
 // Buffer is ring buffer
 type Buffer struct {
 	size int
 	sync.RWMutex
-	vals []*Entry
+	vals    []*Entry
+	streams map[string]stream
 }
 
 // Entry is ring buffer data entry
@@ -22,7 +31,8 @@ type Entry struct {
 // New returns a new buffer of the given size
 func New(i int) *Buffer {
 	return &Buffer{
-		size: i,
+		size:    i,
+		streams: make(map[string]stream),
 	}
 }
 
@@ -32,14 +42,25 @@ func (b *Buffer) Put(v interface{}) {
 	defer b.Unlock()
 
 	// append to values
-	b.vals = append(b.vals, &Entry{
+	entry := &Entry{
 		Value:     v,
 		Timestamp: time.Now(),
-	})
+	}
+	b.vals = append(b.vals, entry)
 
 	// trim if bigger than size required
 	if len(b.vals) > b.size {
 		b.vals = b.vals[1:]
+	}
+
+	// TODO: this is fucking ugly
+	for _, stream := range b.streams {
+		select {
+		case <-stream.stop:
+			delete(b.streams, stream.id)
+			close(stream.entries)
+		case stream.entries <- entry:
+		}
 	}
 }
 
@@ -91,6 +112,22 @@ func (b *Buffer) Since(t time.Time) []*Entry {
 	}
 
 	return nil
+}
+
+// Stream logs from the buffer
+func (b *Buffer) Stream(stop chan bool) <-chan *Entry {
+	b.Lock()
+	defer b.Unlock()
+
+	entries := make(chan *Entry, 128)
+	id := uuid.New().String()
+	b.streams[id] = stream{
+		id:      id,
+		entries: entries,
+		stop:    stop,
+	}
+
+	return entries
 }
 
 // Size returns the size of the ring buffer

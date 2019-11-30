@@ -59,26 +59,51 @@ func (d *Debug) Logs(ctx context.Context, req *proto.LogRequest, stream proto.De
 		options = append(options, log.Count(count))
 	}
 
+	if req.Stream {
+		stop := make(chan bool)
+		defer close(stop)
+
+		// TODO: figure out how to close log stream
+		// It seems when the client disconnects,
+		// the connection stays open until some timeout expires
+		// or something like that; that means the map of streams
+		// might end up bloating if not cleaned up properly
+		records := d.log.Stream(stop)
+		for record := range records {
+			if err := d.sendRecord(record, stream); err != nil {
+				return err
+			}
+		}
+		// done streaming, return
+		return nil
+	}
+
 	// get the log records
 	records := d.log.Read(options...)
-
-	// TODO: figure out the stream
-
+	// send all the logs downstream
 	for _, record := range records {
-		metadata := make(map[string]string)
-		for k, v := range record.Metadata {
-			metadata[k] = v
-		}
-
-		recLog := &proto.Log{
-			Timestamp: record.Timestamp.UnixNano(),
-			Value:     record.Value.(string),
-			Metadata:  metadata,
-		}
-
-		if err := stream.Send(recLog); err != nil {
+		if err := d.sendRecord(record, stream); err != nil {
 			return err
 		}
+	}
+
+	return nil
+}
+
+func (d *Debug) sendRecord(record log.Record, stream proto.Debug_LogsStream) error {
+	metadata := make(map[string]string)
+	for k, v := range record.Metadata {
+		metadata[k] = v
+	}
+
+	recLog := &proto.Log{
+		Timestamp: record.Timestamp.UnixNano(),
+		Value:     record.Value.(string),
+		Metadata:  metadata,
+	}
+
+	if err := stream.Send(recLog); err != nil {
+		return err
 	}
 
 	return nil

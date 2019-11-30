@@ -34,8 +34,8 @@ func NewLog(opts ...Option) Log {
 
 // Write writes logs into logger
 func (l *defaultLog) Write(v ...interface{}) {
-	l.Buffer.Put(fmt.Sprint(v...))
 	golog.Print(v...)
+	l.Buffer.Put(fmt.Sprint(v...))
 }
 
 // Read reads logs and returns them
@@ -53,10 +53,10 @@ func (l *defaultLog) Read(opts ...ReadOption) []Record {
 	}
 
 	// only if we specified valid count constraint
-	// do we do some serious if-else kung-fu
-	// if since has been given we return *count* number of
-	// logs since the requested timestamp;
-	// otherwise we retourn last count number of logs
+	// do we end up doing some serious if-else kung-fu
+	// if since constraint has been provided
+	// we return *count* number of logs since the given timestamp;
+	// otherwise we return last count number of logs
 	if options.Count > 0 {
 		switch len(entries) > 0 {
 		case true:
@@ -77,6 +77,28 @@ func (l *defaultLog) Read(opts ...ReadOption) []Record {
 		}
 		records = append(records, record)
 	}
+
+	return records
+}
+
+// Stream returns channel for reading log records
+func (l *defaultLog) Stream(stop chan bool) <-chan Record {
+	// get stream channel from ring buffer
+	stream := l.Buffer.Stream(stop)
+	records := make(chan Record)
+
+	fmt.Println("requested log stream")
+
+	// stream the log records
+	go func() {
+		for entry := range stream {
+			records <- Record{
+				Timestamp: entry.Timestamp,
+				Value:     entry.Value,
+				Metadata:  make(map[string]string),
+			}
+		}
+	}()
 
 	return records
 }

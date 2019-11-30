@@ -43,6 +43,8 @@ func (d *Debug) Logs(opts ...log.ReadOption) (<-chan log.Record, error) {
 		req.Count = int64(options.Count)
 	}
 
+	req.Stream = options.Stream
+
 	// get the log stream
 	stream, err := d.dbg.Logs(context.Background(), req)
 	if err != nil {

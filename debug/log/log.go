@@ -22,6 +22,8 @@ type Log interface {
 	Read(...ReadOption) []Record
 	// Write writes logs to logger
 	Write(...interface{})
+	// Stream logs
+	Stream(chan bool) <-chan Record
 }
 
 // Record is log record entry
