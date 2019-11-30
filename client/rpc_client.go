@@ -350,13 +350,8 @@ func (r *rpcClient) next(request Request, opts CallOptions) (selector.Next, erro
 		}, nil
 	}
 
-	// only get the things that are of mucp protocol
-	selectOptions := append(opts.SelectOptions, selector.WithFilter(
-		selector.FilterLabel("protocol", "mucp"),
-	))
-
 	// get next nodes from the selector
-	next, err := r.opts.Selector.Select(service, selectOptions...)
+	next, err := r.opts.Selector.Select(service, opts.SelectOptions...)
 	if err != nil {
 		if err == selector.ErrNotFound {
 			return nil, errors.InternalServerError("go.micro.client", "service %s: %s", service, err.Error())
