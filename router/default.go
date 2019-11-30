@@ -18,10 +18,8 @@ var (
 	AdvertiseEventsTick = 5 * time.Second
 	// AdvertiseTableTick is time interval in which router advertises all routes found in routing table
 	AdvertiseTableTick = 1 * time.Minute
-	// AdvertiseFlushTick is time the yet unconsumed advertisements are flush i.e. discarded
-	AdvertiseFlushTick = 15 * time.Second
 	// DefaultAdvertTTL is default advertisement TTL
-	DefaultAdvertTTL = 2 * time.Minute
+	DefaultAdvertTTL = 1 * time.Minute
 	// AdvertSuppress is advert suppression threshold
 	AdvertSuppress = 200.0
 	// AdvertRecover is advert recovery threshold
