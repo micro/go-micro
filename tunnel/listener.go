@@ -66,6 +66,7 @@ func (t *tunListener) process() {
 			sess, ok := conns[m.session]
 			log.Debugf("Tunnel listener received channel %s session %s exists: %t", m.channel, m.session, ok)
 			if !ok {
+				// we only process open and session types
 				switch m.typ {
 				case "open", "session":
 				default:
@@ -87,7 +88,7 @@ func (t *tunListener) process() {
 					// the link the message was received on
 					link: m.link,
 					// set the connection mode
-					mode: m.mode,
+					mode: t.session.mode,
 					// close chan
 					closed: make(chan bool),
 					// recv called by the acceptor
