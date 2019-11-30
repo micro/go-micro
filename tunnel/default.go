@@ -93,6 +93,9 @@ func (t *tun) getSession(channel, session string) (*session, bool) {
 // delSession deletes a session if it exists
 func (t *tun) delSession(channel, session string) {
 	t.Lock()
+	if s, ok := t.sessions[channel+session]; ok {
+		s.Close()
+	}
 	delete(t.sessions, channel+session)
 	t.Unlock()
 }
@@ -512,10 +515,10 @@ func (t *tun) listen(link *link) {
 			}
 
 			// try get the dialing socket
-			s, exists := t.getSession(channel, sessionId)
+			_, exists := t.getSession(channel, sessionId)
 			if exists {
-				// close and continue
-				s.Close()
+				// delete and continue
+				t.delSession(channel, sessionId)
 				continue
 			}
 			// otherwise its a session mapping of sorts
