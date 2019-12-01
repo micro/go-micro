@@ -939,16 +939,16 @@ func (n *network) Connect() error {
 		log.Debugf("Network failed to resolve nodes: %v", err)
 	}
 
-	// initialize the tunnel to resolved nodes
-	n.tunnel.Init(
-		tunnel.Nodes(nodes...),
-	)
-
 	// connect network tunnel
 	if err := n.tunnel.Connect(); err != nil {
 		n.Unlock()
 		return err
 	}
+
+	// initialize the tunnel to resolved nodes
+	n.tunnel.Init(
+		tunnel.Nodes(nodes...),
+	)
 
 	// return if already connected
 	if n.connected {

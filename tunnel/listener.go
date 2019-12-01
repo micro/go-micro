@@ -88,7 +88,7 @@ func (t *tunListener) process() {
 					// the link the message was received on
 					link: m.link,
 					// set the connection mode
-					mode: t.session.mode,
+					mode: m.mode,
 					// close chan
 					closed: make(chan bool),
 					// recv called by the acceptor

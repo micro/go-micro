@@ -413,11 +413,6 @@ func (s *session) Close() error {
 	default:
 		close(s.closed)
 
-		// don't broadcast the close for multicast
-		if s.mode != Unicast {
-			return nil
-		}
-
 		// append to backlog
 		msg := s.newMessage("close")
 		// no error response on close

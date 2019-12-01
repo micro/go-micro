@@ -502,22 +502,26 @@ func (t *tun) listen(link *link) {
 			// TODO: handle the close message
 			// maybe report io.EOF or kill the link
 
-			// close the link entirely
+			// if there is no channel then we close the link
+			// as its a signal from the other side to close the connection
 			if len(channel) == 0 {
 				log.Debugf("Tunnel link %s received close message", link.Remote())
 				return
 			}
 
-			// the entire listener was closed so remove it from the mapping
+			// the entire listener was closed by the remote side so we need to
+			// remove the channel mapping for it. should we also close sessions?
 			if sessionId == "listener" {
 				link.delChannel(channel)
 				continue
 			}
 
+			// assuming there's a channel and session
 			// try get the dialing socket
-			_, exists := t.getSession(channel, sessionId)
-			if exists {
-				// delete and continue
+			s, exists := t.getSession(channel, sessionId)
+			if exists && s.mode == Unicast && !loopback {
+				// only delete this if its unicast
+				// but not if its a loopback conn
 				t.delSession(channel, sessionId)
 				continue
 			}
@@ -673,6 +677,7 @@ func (t *tun) listen(link *link) {
 			typ:      mtype,
 			channel:  channel,
 			session:  sessionId,
+			mode:     s.mode,
 			data:     tmsg,
 			link:     link.id,
 			loopback: loopback,
@@ -703,7 +708,7 @@ func (t *tun) discover(link *link) {
 					"Micro-Tunnel-Id": t.id,
 				},
 			}); err != nil {
-				log.Debugf("Tunnel failed to send discover to link %s: %v", link.id, err)
+				log.Debugf("Tunnel failed to send discover to link %s: %v", link.Remote(), err)
 			}
 		case <-link.closed:
 			return
