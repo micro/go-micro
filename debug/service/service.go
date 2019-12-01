@@ -36,7 +36,7 @@ func (d *Debug) Logs(opts ...log.ReadOption) (<-chan log.Record, error) {
 
 	req := &pb.LogRequest{}
 	if !options.Since.IsZero() {
-		req.Since = options.Since.UnixNano()
+		req.Since = options.Since.Unix()
 	}
 
 	if options.Count > 0 {
