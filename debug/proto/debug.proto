@@ -1,9 +1,9 @@
 syntax = "proto3";
 
 service Debug {
- 	rpc Health(HealthRequest) returns (HealthResponse) {};
- 	rpc Stats(StatsRequest) returns (StatsResponse) {};
-        rpc Logs(LogRequest) returns (stream Log) {};
+        rpc Health(HealthRequest) returns (HealthResponse) {};
+        rpc Stats(StatsRequest) returns (StatsResponse) {};
+        rpc Logs(LogRequest) returns (stream Record) {};
 }
 
 message HealthRequest {}
@@ -28,24 +28,24 @@ message StatsResponse {
 	uint64 gc = 5;
 }
 
-// LogRequest queries service for logs
+// LogRequest requests service logs
 message LogRequest {
-        // count is the count of events
+        // count of records to request
         int64 count = 1;
         // relative time in seconds
         // before the current time
         // from which to show logs
         int64 since = 2;
-        // stream logs continuously
+        // stream records continuously
         bool stream = 3;
 }
 
-// Log is service log record
-message Log {
-        // timestamp of log event
+// Record is service log record
+message Record {
+        // timestamp of log record
         int64 timestamp = 1;
-        // log value
+        // record value
         string value = 2;
-        // metadata
+        // record metadata
         map<string,string> metadata = 3;
 }

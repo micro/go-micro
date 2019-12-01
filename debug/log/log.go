@@ -20,9 +20,9 @@ var (
 type Log interface {
 	// Read reads log entries from the logger
 	Read(...ReadOption) []Record
-	// Write writes logs to logger
-	Write(...interface{})
-	// Stream logs
+	// Write writes records to log
+	Write(Record)
+	// Stream log records
 	Stream(chan bool) <-chan Record
 }
 
@@ -67,17 +67,17 @@ func init() {
 
 func log(v ...interface{}) {
 	if len(prefix) > 0 {
-		DefaultLog.Write(fmt.Sprint(append([]interface{}{prefix, " "}, v...)...))
+		DefaultLog.Write(Record{Value: fmt.Sprint(append([]interface{}{prefix, " "}, v...)...)})
 		return
 	}
-	DefaultLog.Write(fmt.Sprint(v...))
+	DefaultLog.Write(Record{Value: fmt.Sprint(v...)})
 }
 
 func logf(format string, v ...interface{}) {
 	if len(prefix) > 0 {
 		format = prefix + " " + format
 	}
-	DefaultLog.Write(fmt.Sprintf(format, v...))
+	DefaultLog.Write(Record{Value: fmt.Sprintf(format, v...)})
 }
 
 // WithLevel logs with the level specified

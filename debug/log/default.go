@@ -33,9 +33,9 @@ func NewLog(opts ...Option) Log {
 }
 
 // Write writes logs into logger
-func (l *defaultLog) Write(v ...interface{}) {
-	golog.Print(v...)
-	l.Buffer.Put(fmt.Sprint(v...))
+func (l *defaultLog) Write(r Record) {
+	golog.Print(r.Value)
+	l.Buffer.Put(fmt.Sprint(r.Value))
 }
 
 // Read reads logs and returns them
@@ -85,12 +85,22 @@ func (l *defaultLog) Read(opts ...ReadOption) []Record {
 func (l *defaultLog) Stream(stop chan bool) <-chan Record {
 	// get stream channel from ring buffer
 	stream := l.Buffer.Stream(stop)
-	records := make(chan Record)
-
-	fmt.Println("requested log stream")
+	// make a buffered channel
+	records := make(chan Record, 128)
+	// get last 10 records
+	last10 := l.Buffer.Get(10)
 
 	// stream the log records
 	go func() {
+		// first send last 10 records
+		for _, entry := range last10 {
+			records <- Record{
+				Timestamp: entry.Timestamp,
+				Value:     entry.Value,
+				Metadata:  make(map[string]string),
+			}
+		}
+		// now stream continuously
 		for entry := range stream {
 			records <- Record{
 				Timestamp: entry.Timestamp,

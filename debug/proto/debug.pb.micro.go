@@ -93,7 +93,7 @@ type Debug_LogsService interface {
 	SendMsg(interface{}) error
 	RecvMsg(interface{}) error
 	Close() error
-	Recv() (*Log, error)
+	Recv() (*Record, error)
 }
 
 type debugServiceLogs struct {
@@ -112,8 +112,8 @@ func (x *debugServiceLogs) RecvMsg(m interface{}) error {
 	return x.stream.Recv(m)
 }
 
-func (x *debugServiceLogs) Recv() (*Log, error) {
-	m := new(Log)
+func (x *debugServiceLogs) Recv() (*Record, error) {
+	m := new(Record)
 	err := x.stream.Recv(m)
 	if err != nil {
 		return nil, err
@@ -166,7 +166,7 @@ type Debug_LogsStream interface {
 	SendMsg(interface{}) error
 	RecvMsg(interface{}) error
 	Close() error
-	Send(*Log) error
+	Send(*Record) error
 }
 
 type debugLogsStream struct {
@@ -185,6 +185,6 @@ func (x *debugLogsStream) RecvMsg(m interface{}) error {
 	return x.stream.Recv(m)
 }
 
-func (x *debugLogsStream) Send(m *Log) error {
+func (x *debugLogsStream) Send(m *Record) error {
 	return x.stream.Send(m)
 }

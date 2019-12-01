@@ -49,7 +49,7 @@ func (d *Debug) Stats(ctx context.Context, req *proto.StatsRequest, rsp *proto.S
 func (d *Debug) Logs(ctx context.Context, req *proto.LogRequest, stream proto.Debug_LogsStream) error {
 	var options []log.ReadOption
 
-	since := time.Unix(0, req.Since)
+	since := time.Unix(req.Since, 0)
 	if !since.IsZero() {
 		options = append(options, log.Since(since))
 	}
@@ -63,11 +63,11 @@ func (d *Debug) Logs(ctx context.Context, req *proto.LogRequest, stream proto.De
 		stop := make(chan bool)
 		defer close(stop)
 
-		// TODO: figure out how to close log stream
-		// It seems when the client disconnects,
+		// TODO: we need to figure out how to close ithe log stream
+		// It seems like when a client disconnects,
 		// the connection stays open until some timeout expires
 		// or something like that; that means the map of streams
-		// might end up bloating if not cleaned up properly
+		// might end up leaking memory if not cleaned up properly
 		records := d.log.Stream(stop)
 		for record := range records {
 			if err := d.sendRecord(record, stream); err != nil {
@@ -96,13 +96,13 @@ func (d *Debug) sendRecord(record log.Record, stream proto.Debug_LogsStream) err
 		metadata[k] = v
 	}
 
-	recLog := &proto.Log{
-		Timestamp: record.Timestamp.UnixNano(),
+	pbRecord := &proto.Record{
+		Timestamp: record.Timestamp.Unix(),
 		Value:     record.Value.(string),
 		Metadata:  metadata,
 	}
 
-	if err := stream.Send(recLog); err != nil {
+	if err := stream.Send(pbRecord); err != nil {
 		return err
 	}
 
