@@ -519,11 +519,13 @@ func (t *tun) listen(link *link) {
 			// assuming there's a channel and session
 			// try get the dialing socket
 			s, exists := t.getSession(channel, sessionId)
-			if exists && s.mode == Unicast && !loopback {
-				// only delete this if its unicast
-				// but not if its a loopback conn
-				t.delSession(channel, sessionId)
-				continue
+			if exists && !loopback {
+				if s.mode == Unicast {
+					// only delete this if its unicast
+					// but not if its a loopback conn
+					t.delSession(channel, sessionId)
+					continue
+				}
 			}
 			// otherwise its a session mapping of sorts
 		case "keepalive":
