@@ -5,7 +5,6 @@ import (
 	"context"
 	"sync"
 
-	proto "github.com/micro/go-micro/debug/proto"
 	"github.com/micro/go-micro/debug/handler"
 	"github.com/micro/go-micro/proxy"
 	"github.com/micro/go-micro/server"
@@ -40,10 +39,11 @@ func (s *Server) ServeRequest(ctx context.Context, req server.Request, rsp serve
 func New(name string, p proxy.Proxy) *Server {
 	// only register this once
 	once.Do(func() {
-		proto.RegisterDebugHandler(
-			server.DefaultServer,
-			handler.DefaultHandler,
-			server.InternalHandler(true),
+		server.DefaultRouter.Handle(
+			server.DefaultRouter.NewHandler(
+				handler.DefaultHandler,
+				server.InternalHandler(true),
+			),
 		)
 	})
 
