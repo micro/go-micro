@@ -80,6 +80,6 @@ func DefaultOptions() Options {
 		Address:   DefaultAddress,
 		Network:   DefaultNetwork,
 		Registry:  registry.DefaultRegistry,
-		Advertise: AdvertiseBest,
+		Advertise: AdvertiseLocal,
 	}
 }

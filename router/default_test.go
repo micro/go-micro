@@ -63,7 +63,7 @@ func TestRouterAdvertise(t *testing.T) {
 		Gateway: "dest.gw",
 		Network: "dest.network",
 		Router:  "src.router",
-		Link:    "det.link",
+		Link:    "local",
 		Metric:  10,
 	}
 
