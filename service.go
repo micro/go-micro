@@ -16,8 +16,6 @@ import (
 	"github.com/micro/go-micro/server"
 	"github.com/micro/go-micro/util/log"
 	"github.com/micro/go-micro/util/wrapper"
-
-	pb "github.com/micro/go-micro/debug/proto"
 )
 
 type service struct {
@@ -143,9 +141,12 @@ func (s *service) Stop() error {
 
 func (s *service) Run() error {
 	// register the debug handler
-	pb.RegisterDebugHandler(s.opts.Server,
-		handler.DefaultHandler,
-		server.InternalHandler(true))
+	s.opts.Server.Handle(
+		s.opts.Server.NewHandler(
+			handler.DefaultHandler,
+			server.InternalHandler(true),
+		),
+	)
 
 	// start the profiler
 	// TODO: set as an option to the service, don't just use pprof

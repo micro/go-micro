@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/micro/go-micro/debug/log"
-
 	proto "github.com/micro/go-micro/debug/proto"
+	"github.com/micro/go-micro/server"
 )
 
 var (
@@ -46,7 +46,12 @@ func (d *Debug) Stats(ctx context.Context, req *proto.StatsRequest, rsp *proto.S
 	return nil
 }
 
-func (d *Debug) Logs(ctx context.Context, req *proto.LogRequest, stream proto.Debug_LogsStream) error {
+func (d *Debug) Logs(ctx context.Context, stream server.Stream) error {
+	req := new(proto.LogRequest)
+	if err := stream.Recv(req); err != nil {
+		return err
+	}
+
 	var options []log.ReadOption
 
 	since := time.Unix(req.Since, 0)
@@ -90,7 +95,7 @@ func (d *Debug) Logs(ctx context.Context, req *proto.LogRequest, stream proto.De
 	return nil
 }
 
-func (d *Debug) sendRecord(record log.Record, stream proto.Debug_LogsStream) error {
+func (d *Debug) sendRecord(record log.Record, stream server.Stream) error {
 	metadata := make(map[string]string)
 	for k, v := range record.Metadata {
 		metadata[k] = v
