@@ -63,7 +63,9 @@ func (s Schedule) Run() <-chan time.Time {
 		}
 
 		// start ticker
-		for t := range time.Tick(s.Interval) {
+		ticker := time.NewTicker(s.Interval)
+		defer ticker.Stop()
+		for t := range ticker.C {
 			ch <- t
 		}
 	}()

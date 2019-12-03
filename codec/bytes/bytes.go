@@ -29,12 +29,10 @@ func (c *Codec) ReadBody(b interface{}) error {
 		return err
 	}
 
-	switch b.(type) {
+	switch v := b.(type) {
 	case *[]byte:
-		v := b.(*[]byte)
 		*v = buf
 	case *Frame:
-		v := b.(*Frame)
 		v.Data = buf
 	default:
 		return fmt.Errorf("failed to read body: %v is not type of *[]byte", b)
@@ -45,14 +43,13 @@ func (c *Codec) ReadBody(b interface{}) error {
 
 func (c *Codec) Write(m *codec.Message, b interface{}) error {
 	var v []byte
-	switch b.(type) {
+	switch vb := b.(type) {
 	case *Frame:
-		v = b.(*Frame).Data
+		v = vb.Data
 	case *[]byte:
-		ve := b.(*[]byte)
-		v = *ve
+		v = *vb
 	case []byte:
-		v = b.([]byte)
+		v = vb
 	default:
 		return fmt.Errorf("failed to write: %v is not type of *[]byte or []byte", b)
 	}
