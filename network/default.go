@@ -798,7 +798,7 @@ func (n *network) processCtrlChan(listener tunnel.Listener) {
 					log.Tracef("Network metric for router %s and gateway %s: %v", event.Route.Router, event.Route.Gateway, metric)
 
 					// check we don't overflow max int 64
-					if d := route.Metric + metric; d > math.MaxInt64 || d <= 0 {
+					if d := route.Metric + metric; d <= 0 {
 						// set to max int64 if we overflow
 						route.Metric = math.MaxInt64
 					} else {

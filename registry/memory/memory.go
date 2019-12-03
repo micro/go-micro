@@ -87,9 +87,8 @@ func (m *Registry) ttlPrune() {
 }
 
 func (m *Registry) sendEvent(r *registry.Result) {
-	watchers := make([]*Watcher, 0, len(m.watchers))
-
 	m.RLock()
+	watchers := make([]*Watcher, 0, len(m.watchers))
 	for _, w := range m.watchers {
 		watchers = append(watchers, w)
 	}

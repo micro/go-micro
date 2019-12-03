@@ -274,7 +274,7 @@ func (p *Proxy) watchRoutes() {
 			return
 		}
 
-		if err := p.manageRoutes(event.Route, fmt.Sprintf("%s", event.Type)); err != nil {
+		if err := p.manageRoutes(event.Route, event.Type.String()); err != nil {
 			// TODO: should we bail here?
 			continue
 		}
@@ -562,12 +562,9 @@ func NewProxy(opts ...options.Option) proxy.Proxy {
 		defer t.Stop()
 
 		// we must refresh route metrics since they do not trigger new events
-		for {
-			select {
-			case <-t.C:
-				// refresh route metrics
-				p.refreshMetrics()
-			}
+		for range t.C {
+			// refresh route metrics
+			p.refreshMetrics()
 		}
 	}()
 

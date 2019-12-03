@@ -49,9 +49,7 @@ func (e *etcdLock) Acquire(id string, opts ...lock.AcquireOption) error {
 
 	m := cc.NewMutex(s, path)
 
-	ctx, _ := context.WithCancel(context.Background())
-
-	if err := m.Lock(ctx); err != nil {
+	if err := m.Lock(context.TODO()); err != nil {
 		return err
 	}
 

@@ -277,7 +277,9 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 		// set the timeout from the header if we have it
 		if len(to) > 0 {
 			if n, err := strconv.ParseUint(to, 10, 64); err == nil {
-				ctx, _ = context.WithTimeout(ctx, time.Duration(n))
+				var cancel context.CancelFunc
+				ctx, cancel = context.WithTimeout(ctx, time.Duration(n))
+				defer cancel()
 			}
 		}
 

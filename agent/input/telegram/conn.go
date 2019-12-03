@@ -44,11 +44,9 @@ func (tc *telegramConn) run() {
 	tc.recv = updates
 	tc.syncCond.Signal()
 
-	for {
-		select {
-		case <-tc.exit:
-			return
-		}
+	select {
+	case <-tc.exit:
+		return
 	}
 }
 

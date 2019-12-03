@@ -513,25 +513,28 @@ func (r *router) advertiseEvents() error {
 
 // close closes exit channels
 func (r *router) close() {
-	// notify all goroutines to finish
-	close(r.exit)
-
+	log.Debugf("Router closing remaining channels")
 	// drain the advertise channel only if advertising
 	if r.status.Code == Advertising {
 		// drain the event channel
 		for range r.eventChan {
 		}
 
-		r.sub.RLock()
 		// close advert subscribers
 		for id, sub := range r.subscribers {
+			select {
+			case <-sub:
+			default:
+			}
+
 			// close the channel
 			close(sub)
 
 			// delete the subscriber
+			r.sub.Lock()
 			delete(r.subscribers, id)
+			r.sub.Unlock()
 		}
-		r.sub.RUnlock()
 	}
 
 	// mark the router as Stopped and set its Error to nil
@@ -552,6 +555,9 @@ func (r *router) watchErrors() {
 	defer r.Unlock()
 	// if the router is not stopped, stop it
 	if r.status.Code != Stopped {
+		// notify all goroutines to finish
+		close(r.exit)
+
 		// close all the channels
 		r.close()
 		// set the status error
@@ -718,7 +724,7 @@ func (r *router) Process(a *Advert) error {
 		route := event.Route
 		action := event.Type
 		log.Debugf("Router %s applying %s from router %s for service %s %s", r.options.Id, action, route.Router, route.Service, route.Address)
-		if err := r.manageRoute(route, fmt.Sprintf("%s", action)); err != nil {
+		if err := r.manageRoute(route, action.String()); err != nil {
 			return fmt.Errorf("failed applying action %s to routing table: %s", action, err)
 		}
 	}
@@ -857,6 +863,9 @@ func (r *router) Stop() error {
 		r.Unlock()
 		return r.status.Error
 	case Running, Advertising:
+		// notify all goroutines to finish
+		close(r.exit)
+
 		// close all the channels
 		// NOTE: close marks the router status as Stopped
 		r.close()
