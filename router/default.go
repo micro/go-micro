@@ -718,7 +718,7 @@ func (r *router) Process(a *Advert) error {
 		route := event.Route
 		action := event.Type
 		log.Debugf("Router %s applying %s from router %s for service %s %s", r.options.Id, action, route.Router, route.Service, route.Address)
-		if err := r.manageRoute(route, fmt.Sprintf("%s", action)); err != nil {
+		if err := r.manageRoute(route, action.String()); err != nil {
 			return fmt.Errorf("failed applying action %s to routing table: %s", action, err)
 		}
 	}

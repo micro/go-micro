@@ -11,24 +11,22 @@ type serviceWatcher struct {
 }
 
 func (s *serviceWatcher) Next() (*registry.Result, error) {
-	for {
-		// check if closed
-		select {
-		case <-s.closed:
-			return nil, registry.ErrWatcherStopped
-		default:
-		}
-
-		r, err := s.stream.Recv()
-		if err != nil {
-			return nil, err
-		}
-
-		return &registry.Result{
-			Action:  r.Action,
-			Service: ToService(r.Service),
-		}, nil
+	// check if closed
+	select {
+	case <-s.closed:
+		return nil, registry.ErrWatcherStopped
+	default:
 	}
+
+	r, err := s.stream.Recv()
+	if err != nil {
+		return nil, err
+	}
+
+	return &registry.Result{
+		Action:  r.Action,
+		Service: ToService(r.Service),
+	}, nil
 }
 
 func (s *serviceWatcher) Stop() {

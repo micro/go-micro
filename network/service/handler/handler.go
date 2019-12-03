@@ -94,11 +94,6 @@ func (n *Network) Connect(ctx context.Context, req *pbNet.ConnectRequest, resp *
 
 // Nodes returns the list of nodes
 func (n *Network) Nodes(ctx context.Context, req *pbNet.NodesRequest, resp *pbNet.NodesResponse) error {
-	depth := uint(req.Depth)
-	if depth <= 0 || depth > network.MaxDepth {
-		depth = network.MaxDepth
-	}
-
 	// root node
 	nodes := map[string]network.Node{}
 

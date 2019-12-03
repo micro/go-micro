@@ -39,9 +39,7 @@ func (e *etcdLeader) Elect(id string, opts ...leader.ElectOption) (leader.Electe
 
 	l := cc.NewElection(s, path)
 
-	ctx, _ := context.WithCancel(context.Background())
-
-	if err := l.Campaign(ctx, id); err != nil {
+	if err := l.Campaign(context.TODO(), id); err != nil {
 		return nil, err
 	}
 
@@ -63,14 +61,8 @@ func (e *etcdLeader) Follow() chan string {
 	ech := l.Observe(context.Background())
 
 	go func() {
-		for {
-			select {
-			case r, ok := <-ech:
-				if !ok {
-					return
-				}
-				ch <- string(r.Kvs[0].Value)
-			}
+		for r := range ech {
+			ch <- string(r.Kvs[0].Value)
 		}
 	}()
 
@@ -82,8 +74,7 @@ func (e *etcdLeader) String() string {
 }
 
 func (e *etcdElected) Reelect() error {
-	ctx, _ := context.WithCancel(context.Background())
-	return e.e.Campaign(ctx, e.id)
+	return e.e.Campaign(context.TODO(), e.id)
 }
 
 func (e *etcdElected) Revoked() chan bool {

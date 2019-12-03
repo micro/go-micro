@@ -12,25 +12,22 @@ type Message struct {
 }
 
 func (n Marshaler) Marshal(v interface{}) ([]byte, error) {
-	switch v.(type) {
+	switch ve := v.(type) {
 	case *[]byte:
-		ve := v.(*[]byte)
 		return *ve, nil
 	case []byte:
-		return v.([]byte), nil
+		return ve, nil
 	case *Message:
-		return v.(*Message).Body, nil
+		return ve.Body, nil
 	}
 	return nil, errors.New("invalid message")
 }
 
 func (n Marshaler) Unmarshal(d []byte, v interface{}) error {
-	switch v.(type) {
+	switch ve := v.(type) {
 	case *[]byte:
-		ve := v.(*[]byte)
 		*ve = d
 	case *Message:
-		ve := v.(*Message)
 		ve.Body = d
 	}
 	return errors.New("invalid message")
