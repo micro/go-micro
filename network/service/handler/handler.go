@@ -29,10 +29,11 @@ func flatten(n network.Node, visited map[string]bool) []network.Node {
 	}
 
 	// create new list of nodes
+	//nolint:prealloc
 	var nodes []network.Node
 
 	// check if already visited
-	if visited[n.Id()] == false {
+	if !visited[n.Id()] {
 		// append the current node
 		nodes = append(nodes, n)
 	}

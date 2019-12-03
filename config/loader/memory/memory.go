@@ -193,6 +193,7 @@ func (m *memory) Snapshot() (*loader.Snapshot, error) {
 
 // Sync loads all the sources, calls the parser and updates the config
 func (m *memory) Sync() error {
+	//nolint:prealloc
 	var sets []*source.ChangeSet
 
 	m.Lock()

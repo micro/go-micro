@@ -70,6 +70,7 @@ func (n *natsBroker) Address() string {
 }
 
 func setAddrs(addrs []string) []string {
+	//nolint:prealloc
 	var cAddrs []string
 	for _, addr := range addrs {
 		if len(addr) == 0 {

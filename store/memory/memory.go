@@ -25,6 +25,7 @@ func (m *memoryStore) List() ([]*store.Record, error) {
 	m.RLock()
 	defer m.RUnlock()
 
+	//nolint:prealloc
 	var values []*store.Record
 
 	for _, v := range m.values {
@@ -52,6 +53,7 @@ func (m *memoryStore) Read(keys ...string) ([]*store.Record, error) {
 	m.RLock()
 	defer m.RUnlock()
 
+	//nolint:prealloc
 	var records []*store.Record
 
 	for _, key := range keys {

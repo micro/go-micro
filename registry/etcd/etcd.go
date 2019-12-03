@@ -335,9 +335,7 @@ func (e *etcdRegistry) GetService(name string) ([]*registry.Service, error) {
 				serviceMap[s.Version] = s
 			}
 
-			for _, node := range sn.Nodes {
-				s.Nodes = append(s.Nodes, node)
-			}
+			s.Nodes = append(s.Nodes, sn.Nodes...)
 		}
 	}
 

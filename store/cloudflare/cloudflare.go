@@ -136,6 +136,7 @@ func (w *workersKV) Read(keys ...string) ([]*store.Record, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
+	//nolint:prealloc
 	var records []*store.Record
 
 	for _, k := range keys {

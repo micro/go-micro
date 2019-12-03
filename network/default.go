@@ -195,6 +195,7 @@ func (n *network) resolveNodes() ([]string, error) {
 	nodeMap := make(map[string]bool)
 
 	// collect network node addresses
+	//nolint:prealloc
 	var nodes []string
 	var i int
 

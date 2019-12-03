@@ -282,16 +282,6 @@ func (g *grpcClient) newGRPCCodec(contentType string) (encoding.Codec, error) {
 	return nil, fmt.Errorf("Unsupported Content-Type: %s", contentType)
 }
 
-func (g *grpcClient) newCodec(contentType string) (codec.NewCodec, error) {
-	if c, ok := g.opts.Codecs[contentType]; ok {
-		return c, nil
-	}
-	if cf, ok := defaultRPCCodecs[contentType]; ok {
-		return cf, nil
-	}
-	return nil, fmt.Errorf("Unsupported Content-Type: %s", contentType)
-}
-
 func (g *grpcClient) Init(opts ...client.Option) error {
 	size := g.opts.PoolSize
 	ttl := g.opts.PoolTTL

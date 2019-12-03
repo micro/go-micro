@@ -2,6 +2,7 @@
 package options
 
 import (
+	"log"
 	"sync"
 )
 
@@ -68,6 +69,8 @@ func WithString(s string) Option {
 // NewOptions returns a new initialiser
 func NewOptions(opts ...Option) Options {
 	o := new(defaultOptions)
-	o.Init(opts...)
+	if err := o.Init(opts...); err != nil {
+		log.Fatal(err)
+	}
 	return o
 }

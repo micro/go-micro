@@ -32,7 +32,7 @@ func Random(services []*registry.Service) Next {
 
 // RoundRobin is a roundrobin strategy algorithm for node selection
 func RoundRobin(services []*registry.Service) Next {
-	var nodes []*registry.Node
+	nodes := make([]*registry.Node, 0, len(services))
 
 	for _, service := range services {
 		nodes = append(nodes, service.Nodes...)

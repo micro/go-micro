@@ -11,8 +11,6 @@ import (
 	jsoniter "github.com/json-iterator/go"
 	"github.com/micro/go-micro/codec"
 	"github.com/micro/go-micro/codec/bytes"
-	"github.com/micro/go-micro/codec/jsonrpc"
-	"github.com/micro/go-micro/codec/protorpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/encoding"
 )
@@ -34,14 +32,6 @@ var (
 		"application/grpc+json":    jsonCodec{},
 		"application/grpc+proto":   protoCodec{},
 		"application/grpc+bytes":   bytesCodec{},
-	}
-
-	defaultRPCCodecs = map[string]codec.NewCodec{
-		"application/json":         jsonrpc.NewCodec,
-		"application/json-rpc":     jsonrpc.NewCodec,
-		"application/protobuf":     protorpc.NewCodec,
-		"application/proto-rpc":    protorpc.NewCodec,
-		"application/octet-stream": protorpc.NewCodec,
 	}
 
 	json = jsoniter.ConfigCompatibleWithStandardLibrary

@@ -3,6 +3,7 @@ package selector
 
 import (
 	"errors"
+
 	"github.com/micro/go-micro/registry"
 )
 

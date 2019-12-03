@@ -237,6 +237,7 @@ func (h *httpBroker) unsubscribe(s *httpSubscriber) error {
 	h.Lock()
 	defer h.Unlock()
 
+	//nolint:prealloc
 	var subscribers []*httpSubscriber
 
 	// look for subscriber
@@ -325,6 +326,7 @@ func (h *httpBroker) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	p := &httpEvent{m: m, t: topic}
 	id := req.Form.Get("id")
 
+	//nolint:prealloc
 	var subs []Handler
 
 	h.RLock()

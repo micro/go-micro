@@ -76,20 +76,20 @@ func TestSQL(t *testing.T) {
 	records, err = sqlStore.Read("test")
 	if err != nil {
 		t.Error(err)
-	} else {
-		t.Logf("%# v\n", pretty.Formatter(records))
-		if string(records[0].Value) != "bar" {
-			t.Error("Expected bar, got ", string(records[0].Value))
-		}
+	}
+	t.Logf("%# v\n", pretty.Formatter(records))
+	if string(records[0].Value) != "bar" {
+		t.Error("Expected bar, got ", string(records[0].Value))
 	}
 
 	time.Sleep(61 * time.Second)
-	records, err = sqlStore.Read("test")
-	if err == nil {
+	_, err = sqlStore.Read("test")
+	switch err {
+	case nil:
 		t.Error("Key test should have expired")
-	} else {
-		if err != store.ErrNotFound {
-			t.Error(err)
-		}
+	default:
+		t.Error(err)
+	case store.ErrNotFound:
+		break
 	}
 }
