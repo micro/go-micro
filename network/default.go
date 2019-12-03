@@ -1060,6 +1060,8 @@ func (n *network) Connect() error {
 
 			// send the connect message
 			n.sendConnect()
+			// most importantly
+			break
 		}
 	}()
 

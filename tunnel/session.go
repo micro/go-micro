@@ -354,14 +354,14 @@ func (s *session) Send(m *transport.Message) error {
 
 // Recv is used to receive a message
 func (s *session) Recv(m *transport.Message) error {
+	var msg *message
+
 	select {
 	case <-s.closed:
 		return errors.New("session is closed")
-	default:
-		// no op
-	}
 	// recv from backlog
-	msg := <-s.recv
+	case msg = <-s.recv:
+	}
 
 	// check the error if one exists
 	select {
