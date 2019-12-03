@@ -476,24 +476,6 @@ func (n *network) processNetChan(listener tunnel.Listener) {
 				n.Lock()
 				delete(n.peerLinks, pbNetClose.Node.Address)
 				n.Unlock()
-			case "solicit":
-				// received a peer solicit message
-				pbRtrSolicit := &pbRtr.Solicit{}
-				if err := proto.Unmarshal(m.msg.Body, pbRtrSolicit); err != nil {
-					log.Debugf("Network fail to unmarshal solicit message: %v", err)
-					continue
-				}
-				log.Debugf("Network received peer solicit message from: %s", pbRtrSolicit.Id)
-				// ignore solicitation when requested by you
-				if pbRtrSolicit.Id == n.options.Id {
-					continue
-				}
-				// get node peers down to MaxDepth encoded in protobuf
-				msg := PeersToProto(n.node, MaxDepth)
-				// advertise yourself to the network
-				if err := n.sendMsg("peer", msg, NetworkChannel); err != nil {
-					log.Debugf("Network failed to advertise peers: %v", err)
-				}
 			}
 		case <-n.closed:
 			return
@@ -785,13 +767,6 @@ func (n *network) processCtrlChan(listener tunnel.Listener) {
 				// loookup advertising node in our peer topology
 				advertNode := n.node.GetPeerNode(pbRtrAdvert.Id)
 				if advertNode == nil {
-					msg := &pbRtr.Solicit{
-						Id: pbRtrAdvert.Id,
-					}
-					// go solicit the peer
-					if err := n.sendMsg("solicit", msg, NetworkChannel); err != nil {
-						log.Debugf("Network failed to send solicit message: %s", err)
-					}
 					// if we can't find the node in our topology (MaxDepth) we skipp prcessing adverts
 					log.Debugf("Network skipping advert message from unknown peer: %s", pbRtrAdvert.Id)
 					continue
