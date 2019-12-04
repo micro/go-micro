@@ -47,7 +47,7 @@ func (d *Debug) Stats(ctx context.Context, req *proto.StatsRequest, rsp *proto.S
 	return nil
 }
 
-func (d *Debug) Logs(ctx context.Context, stream server.Stream) error {
+func (d *Debug) Log(ctx context.Context, stream server.Stream) error {
 	req := new(proto.LogRequest)
 	if err := stream.Recv(req); err != nil {
 		return err

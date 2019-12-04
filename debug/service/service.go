@@ -46,7 +46,7 @@ func (d *Debug) Logs(opts ...log.ReadOption) (<-chan log.Record, error) {
 	req.Stream = options.Stream
 
 	// get the log stream
-	stream, err := d.dbg.Logs(context.Background(), req)
+	stream, err := d.dbg.Log(context.Background(), req)
 	if err != nil {
 		return nil, fmt.Errorf("failed getting log stream: %s", err)
 	}
@@ -59,7 +59,7 @@ func (d *Debug) Logs(opts ...log.ReadOption) (<-chan log.Record, error) {
 	return logChan, nil
 }
 
-func (d *Debug) streamLogs(logChan chan log.Record, stream pb.Debug_LogsService) {
+func (d *Debug) streamLogs(logChan chan log.Record, stream pb.Debug_LogService) {
 	defer stream.Close()
 
 	for {

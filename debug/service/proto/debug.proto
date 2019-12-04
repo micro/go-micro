@@ -3,7 +3,7 @@ syntax = "proto3";
 service Debug {
         rpc Health(HealthRequest) returns (HealthResponse) {};
         rpc Stats(StatsRequest) returns (StatsResponse) {};
-        rpc Logs(LogRequest) returns (stream Record) {};
+        rpc Log(LogRequest) returns (stream Record) {};
 }
 
 message HealthRequest {
