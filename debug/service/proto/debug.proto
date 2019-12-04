@@ -38,14 +38,14 @@ message StatsResponse {
 message LogRequest {
 	// service to request logs for
 	string service = 1;
-        // stream records continuously
-        bool stream = 2;
-        // count of records to request
-        int64 count = 3;
-        // relative time in seconds
-        // before the current time
-        // from which to show logs
-        int64 since = 4;
+	// stream records continuously
+	bool stream = 2;
+	// count of records to request
+	int64 count = 3;
+	// relative time in seconds
+	// before the current time
+	// from which to show logs
+	int64 since = 4;
 }
 
 // Record is service log record
