@@ -38,6 +38,7 @@ func (d *Debug) Stats(ctx context.Context, req *proto.StatsRequest, rsp *proto.S
 	var mstat runtime.MemStats
 	runtime.ReadMemStats(&mstat)
 
+	rsp.Timestamp = uint64(time.Now().Unix())
 	rsp.Started = uint64(d.started)
 	rsp.Uptime = uint64(time.Now().Unix() - d.started)
 	rsp.Memory = mstat.Alloc

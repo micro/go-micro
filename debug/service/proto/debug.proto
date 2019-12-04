@@ -22,16 +22,18 @@ message StatsRequest {
 }
 
 message StatsResponse {
+	// timestamp of recording
+	uint64 timestamp = 1;
 	// unix timestamp
-	uint64 started = 1;
+	uint64 started = 2;
 	// in seconds
-	uint64 uptime = 2;
+	uint64 uptime = 3;
 	// in bytes
-	uint64 memory = 3;
+	uint64 memory = 4;
 	// num threads
-	uint64 threads = 4;
+	uint64 threads = 5;
 	// total gc in nanoseconds
-	uint64 gc = 5;
+	uint64 gc = 6;
 }
 
 // LogRequest requests service logs
