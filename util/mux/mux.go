@@ -5,7 +5,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/micro/go-micro/debug/handler"
+	"github.com/micro/go-micro/debug/service/handler"
 	"github.com/micro/go-micro/proxy"
 	"github.com/micro/go-micro/server"
 )

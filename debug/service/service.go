@@ -8,7 +8,7 @@ import (
 	"github.com/micro/go-micro/client"
 
 	"github.com/micro/go-micro/debug/log"
-	pb "github.com/micro/go-micro/debug/proto"
+	pb "github.com/micro/go-micro/debug/service/proto"
 )
 
 // Debug provides debug service client

@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/micro/go-micro/debug/log"
-	proto "github.com/micro/go-micro/debug/proto"
+	proto "github.com/micro/go-micro/debug/service/proto"
 	"github.com/micro/go-micro/server"
 )
 
