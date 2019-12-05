@@ -195,6 +195,7 @@ func (r *runtime) Read(opts ...ReadOption) ([]*Service, error) {
 		return k == v
 	}
 
+	//nolint:prealloc
 	var services []*Service
 
 	for _, service := range r.services {
@@ -258,9 +259,10 @@ func (r *runtime) Delete(s *Service) error {
 
 // List returns a slice of all services tracked by the runtime
 func (r *runtime) List() ([]*Service, error) {
-	var services []*Service
 	r.RLock()
 	defer r.RUnlock()
+
+	services := make([]*Service, 0, len(r.services))
 
 	for _, service := range r.services {
 		services = append(services, service.Service)

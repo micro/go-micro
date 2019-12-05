@@ -63,7 +63,7 @@ func (d *dnsSelector) Select(service string, opts ...selector.SelectOption) (sel
 		}
 	}
 
-	var nodes []*registry.Node
+	nodes := make([]*registry.Node, 0, len(srv))
 	for _, node := range srv {
 		nodes = append(nodes, &registry.Node{
 			Id:      node.Target,
@@ -99,13 +99,9 @@ func (d *dnsSelector) Select(service string, opts ...selector.SelectOption) (sel
 	return sopts.Strategy(services), nil
 }
 
-func (d *dnsSelector) Mark(service string, node *registry.Node, err error) {
-	return
-}
+func (d *dnsSelector) Mark(service string, node *registry.Node, err error) {}
 
-func (d *dnsSelector) Reset(service string) {
-	return
-}
+func (d *dnsSelector) Reset(service string) {}
 
 func (d *dnsSelector) Close() error {
 	return nil

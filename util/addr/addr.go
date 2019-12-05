@@ -39,6 +39,7 @@ func Extract(addr string) (string, error) {
 		return "", fmt.Errorf("Failed to get interfaces! Err: %v", err)
 	}
 
+	//nolint:prealloc
 	var addrs []net.Addr
 	var loAddrs []net.Addr
 	for _, iface := range ifaces {

@@ -176,12 +176,10 @@ func (r *routerSelector) Select(service string, opts ...selector.SelectOption) (
 
 func (r *routerSelector) Mark(service string, node *registry.Node, err error) {
 	// TODO: pass back metrics or information to the router
-	return
 }
 
 func (r *routerSelector) Reset(service string) {
 	// TODO: reset the metrics or information at the router
-	return
 }
 
 func (r *routerSelector) Close() error {

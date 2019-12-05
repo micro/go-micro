@@ -81,8 +81,7 @@ func (s *storage) Delete(key string) error {
 }
 
 func (s *storage) Exists(key string) bool {
-	_, err := s.store.Read(key)
-	if err != nil {
+	if _, err := s.store.Read(key); err != nil {
 		return false
 	}
 	return true
@@ -93,6 +92,8 @@ func (s *storage) List(prefix string, recursive bool) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	//nolint:prealloc
 	var results []string
 	for _, r := range records {
 		if strings.HasPrefix(r.Key, prefix) {

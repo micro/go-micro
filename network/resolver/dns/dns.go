@@ -38,6 +38,7 @@ func (r *Resolver) Resolve(name string) ([]*resolver.Record, error) {
 		return nil, err
 	}
 
+	//nolint:prealloc
 	var records []*resolver.Record
 
 	for _, answer := range rec.Answer {

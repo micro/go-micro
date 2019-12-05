@@ -178,7 +178,7 @@ func (g *grpcServer) handler(srv interface{}, stream grpc.ServerStream) error {
 
 	fullMethod, ok := grpc.MethodFromServerStream(stream)
 	if !ok {
-		return grpc.Errorf(codes.Internal, "method does not exist in context")
+		return status.Errorf(codes.Internal, "method does not exist in context")
 	}
 
 	serviceName, methodName, err := mgrpc.ServiceMethod(fullMethod)

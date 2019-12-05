@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/micro/go-micro/runtime/source"
-	"gopkg.in/src-d/go-git.v4"
+	git "gopkg.in/src-d/go-git.v4"
 )
 
 // Source retrieves source code

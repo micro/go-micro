@@ -880,13 +880,10 @@ func (s *rpcServer) Stop() error {
 	ch := make(chan error)
 	s.exit <- ch
 
-	var err error
-	select {
-	case err = <-ch:
-		s.Lock()
-		s.started = false
-		s.Unlock()
-	}
+	err := <-ch
+	s.Lock()
+	s.started = false
+	s.Unlock()
 
 	return err
 }

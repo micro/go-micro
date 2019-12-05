@@ -17,6 +17,7 @@ type ekv struct {
 }
 
 func (e *ekv) Read(keys ...string) ([]*store.Record, error) {
+	//nolint:prealloc
 	var values []*mvccpb.KeyValue
 
 	for _, key := range keys {
@@ -73,10 +74,10 @@ func (e *ekv) List() ([]*store.Record, error) {
 	if err != nil {
 		return nil, err
 	}
-	var vals []*store.Record
 	if keyval == nil || len(keyval.Kvs) == 0 {
-		return vals, nil
+		return nil, nil
 	}
+	vals := make([]*store.Record, 0, len(keyval.Kvs))
 	for _, keyv := range keyval.Kvs {
 		vals = append(vals, &store.Record{
 			Key:   string(keyv.Key),

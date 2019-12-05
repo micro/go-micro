@@ -127,6 +127,8 @@ func TestQuery(t *testing.T) {
 	routes, err := table.Query()
 	if err != nil {
 		t.Errorf("error looking up routes: %s", err)
+	} else if len(routes) == 0 {
+		t.Errorf("error looking up routes: not found")
 	}
 
 	// query routes particular network

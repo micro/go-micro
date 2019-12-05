@@ -60,7 +60,8 @@ func (s *serviceStore) Read(keys ...string) ([]*store.Record, error) {
 	if err != nil {
 		return nil, err
 	}
-	var records []*store.Record
+
+	records := make([]*store.Record, 0, len(rsp.Records))
 	for _, val := range rsp.Records {
 		records = append(records, &store.Record{
 			Key:    val.Key,
@@ -73,7 +74,7 @@ func (s *serviceStore) Read(keys ...string) ([]*store.Record, error) {
 
 // Write a record
 func (s *serviceStore) Write(recs ...*store.Record) error {
-	var records []*pb.Record
+	records := make([]*pb.Record, 0, len(recs))
 
 	for _, record := range recs {
 		records = append(records, &pb.Record{

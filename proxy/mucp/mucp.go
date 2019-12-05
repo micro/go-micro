@@ -83,7 +83,7 @@ func readLoop(r server.Request, s client.Stream) error {
 
 // toNodes returns a list of node addresses from given routes
 func toNodes(routes []router.Route) []string {
-	var nodes []string
+	nodes := make([]string, len(routes))
 	for _, node := range routes {
 		address := node.Address
 		if len(node.Gateway) > 0 {
@@ -112,6 +112,7 @@ func (p *Proxy) filterRoutes(ctx context.Context, routes []router.Route) []route
 		return routes
 	}
 
+	//nolint:prealloc
 	var filteredRoutes []router.Route
 
 	// filter the routes based on our headers
@@ -361,6 +362,7 @@ func (p *Proxy) ServeRequest(ctx context.Context, req server.Request, rsp server
 		routes = addr
 	}
 
+	//nolint:prealloc
 	var opts []client.CallOption
 
 	// set strategy to round robin

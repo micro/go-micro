@@ -44,9 +44,13 @@ func recordToService(r *record) *registry.Service {
 	endpoints := make([]*registry.Endpoint, len(r.Endpoints))
 	for i, e := range r.Endpoints {
 		request := new(registry.Value)
-		request = e.Request
+		if e.Request != nil {
+			*request = *e.Request
+		}
 		response := new(registry.Value)
-		response = e.Response
+		if e.Response != nil {
+			*response = *e.Response
+		}
 
 		metadata := make(map[string]string)
 		for k, v := range e.Metadata {

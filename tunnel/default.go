@@ -105,6 +105,7 @@ func (t *tun) listChannels() []string {
 	t.RLock()
 	defer t.RUnlock()
 
+	//nolint:prealloc
 	var channels []string
 	for _, session := range t.sessions {
 		if session.session != "listener" {
