@@ -127,7 +127,6 @@ func (t *tun) newSession(channel, sessionId string) (*session, bool) {
 		closed:  make(chan bool),
 		recv:    make(chan *message, 128),
 		send:    t.send,
-		wait:    make(chan bool),
 		errChan: make(chan error, 1),
 	}
 
@@ -470,6 +469,9 @@ func (t *tun) listen(link *link) {
 			return
 		}
 
+		// this state machine block handles the only message types
+		// that we know or care about; connect, close, open, accept,
+		// discover, announce, session, keepalive
 		switch mtype {
 		case "connect":
 			log.Debugf("Tunnel link %s received connect message", link.Remote())
@@ -500,9 +502,6 @@ func (t *tun) listen(link *link) {
 			// nothing more to do
 			continue
 		case "close":
-			// TODO: handle the close message
-			// maybe report io.EOF or kill the link
-
 			// if there is no channel then we close the link
 			// as its a signal from the other side to close the connection
 			if len(channel) == 0 {
@@ -521,6 +520,8 @@ func (t *tun) listen(link *link) {
 			// try get the dialing socket
 			s, exists := t.getSession(channel, sessionId)
 			if exists && !loopback {
+				// only delete the session if its unicast
+				// otherwise ignore close on the multicast
 				if s.mode == Unicast {
 					// only delete this if its unicast
 					// but not if its a loopback conn
@@ -541,14 +542,16 @@ func (t *tun) listen(link *link) {
 		// an accept returned by the listener
 		case "accept":
 			s, exists := t.getSession(channel, sessionId)
-			// we don't need this
+			// just set accepted on anything not unicast
 			if exists && s.mode > Unicast {
 				s.accepted = true
 				continue
 			}
+			// if its already accepted move on
 			if exists && s.accepted {
 				continue
 			}
+			// otherwise we're going to process to accept
 		// a continued session
 		case "session":
 			// process message
@@ -562,7 +565,10 @@ func (t *tun) listen(link *link) {
 			link.setChannel(channels...)
 
 			// this was an announcement not intended for anything
-			if sessionId == "listener" || sessionId == "" {
+			// if the dialing side sent "discover" then a session
+			// id would be present. We skip in case of multicast.
+			switch sessionId {
+			case "listener", "multicast", "":
 				continue
 			}
 
@@ -574,13 +580,18 @@ func (t *tun) listen(link *link) {
 					continue
 				}
 
-				// send the announce back to the caller
-				s.recv <- &message{
+				msg := &message{
 					typ:     "announce",
 					tunnel:  id,
 					channel: channel,
 					session: sessionId,
 					link:    link.id,
+				}
+
+				// send the announce back to the caller
+				select {
+				case <-s.closed:
+				case s.recv <- msg:
 				}
 			}
 			continue
@@ -651,22 +662,10 @@ func (t *tun) listen(link *link) {
 			delete(t.sessions, channel)
 			continue
 		default:
-			// process
+			// otherwise process
 		}
 
-		log.Debugf("Tunnel using channel %s session %s", s.channel, s.session)
-
-		// is the session new?
-		select {
-		// if its new the session is actually blocked waiting
-		// for a connection. so we check if its waiting.
-		case <-s.wait:
-		// if its waiting e.g its new then we close it
-		default:
-			// set remote address of the session
-			s.remote = msg.Header["Remote"]
-			close(s.wait)
-		}
+		log.Debugf("Tunnel using channel %s session %s type %s", s.channel, s.session, mtype)
 
 		// construct a new transport message
 		tmsg := &transport.Message{
@@ -1052,7 +1051,7 @@ func (t *tun) Dial(channel string, opts ...DialOption) (Session, error) {
 
 	t.RUnlock()
 
-	// link not found
+	// link not found and one was specified so error out
 	if len(links) == 0 && len(options.Link) > 0 {
 		// delete session and return error
 		t.delSession(c.channel, c.session)
@@ -1061,15 +1060,14 @@ func (t *tun) Dial(channel string, opts ...DialOption) (Session, error) {
 	}
 
 	// discovered so set the link if not multicast
-	// TODO: pick the link efficiently based
-	// on link status and saturation.
 	if c.discovered && c.mode == Unicast {
 		// pickLink will pick the best link
 		link := t.pickLink(links)
+		// set the link
 		c.link = link.id
 	}
 
-	// shit fuck
+	// if its not already discovered we need to attempt to do so
 	if !c.discovered {
 		// piggy back roundtrip
 		nowRTT := time.Now()
@@ -1098,7 +1096,15 @@ func (t *tun) Dial(channel string, opts ...DialOption) (Session, error) {
 		}
 	}
 
-	// a unicast session so we call "open" and wait for an "accept"
+	// return early if its not unicast
+	// we will not call "open" for multicast
+	if c.mode != Unicast {
+		return c, nil
+	}
+
+	// Note: we go no further for multicast or broadcast.
+	// This is a unicast session so we call "open" and wait
+	// for an "accept"
 
 	// reset now in case we use it
 	now := time.Now()
@@ -1115,7 +1121,7 @@ func (t *tun) Dial(channel string, opts ...DialOption) (Session, error) {
 	d := time.Since(now)
 
 	// if we haven't measured the roundtrip do it now
-	if !measured && c.mode == Unicast {
+	if !measured {
 		// set the link time
 		t.RLock()
 		link, ok := t.links[c.link]
@@ -1145,6 +1151,7 @@ func (t *tun) Listen(channel string, opts ...ListenOption) (Listener, error) {
 		return nil, errors.New("already listening on " + channel)
 	}
 
+	// delete function removes the session when closed
 	delFunc := func() {
 		t.delSession(channel, "listener")
 	}
