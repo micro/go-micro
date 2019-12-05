@@ -15,9 +15,9 @@ import (
 
 var (
 	// AdvertiseEventsTick is time interval in which the router advertises route updates
-	AdvertiseEventsTick = 5 * time.Second
+	AdvertiseEventsTick = 10 * time.Second
 	// AdvertiseTableTick is time interval in which router advertises all routes found in routing table
-	AdvertiseTableTick = 1 * time.Minute
+	AdvertiseTableTick = 2 * time.Minute
 	// DefaultAdvertTTL is default advertisement TTL
 	DefaultAdvertTTL = 1 * time.Minute
 	// AdvertSuppress is advert suppression threshold
@@ -29,7 +29,7 @@ var (
 	// PenaltyHalfLife is the time the advert penalty decays to half its value
 	PenaltyHalfLife = 30.0
 	// MaxSuppressTime defines time after which the suppressed advert is deleted
-	MaxSuppressTime = time.Second * 30
+	MaxSuppressTime = 90 * time.Second
 	// PenaltyDecay is a coefficient which controls the speed the advert penalty decays
 	PenaltyDecay = math.Log(2) / PenaltyHalfLife
 )
