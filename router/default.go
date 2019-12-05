@@ -19,7 +19,7 @@ var (
 	// AdvertiseTableTick is time interval in which router advertises all routes found in routing table
 	AdvertiseTableTick = 2 * time.Minute
 	// DefaultAdvertTTL is default advertisement TTL
-	DefaultAdvertTTL = 1 * time.Minute
+	DefaultAdvertTTL = 2 * time.Minute
 	// AdvertSuppress is advert suppression threshold
 	AdvertSuppress = 200.0
 	// AdvertRecover is advert recovery threshold
