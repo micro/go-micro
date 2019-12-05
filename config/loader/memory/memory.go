@@ -2,6 +2,7 @@ package memory
 
 import (
 	"bytes"
+	"container/list"
 	"errors"
 	"fmt"
 	"strings"
@@ -28,8 +29,7 @@ type memory struct {
 	// all the sources
 	sources []source.Source
 
-	idx      int
-	watchers map[int]*watcher
+	watchers *list.List
 }
 
 type watcher struct {
@@ -153,11 +153,11 @@ func (m *memory) reload() error {
 }
 
 func (m *memory) update() {
-	watchers := make([]*watcher, 0, len(m.watchers))
+	watchers := make([]*watcher, 0, m.watchers.Len())
 
 	m.RLock()
-	for _, w := range m.watchers {
-		watchers = append(watchers, w)
+	for e := m.watchers.Front(); e != nil; e = e.Next() {
+		watchers = append(watchers, e.Value.(*watcher))
 	}
 	m.RUnlock()
 
@@ -336,16 +336,14 @@ func (m *memory) Watch(path ...string) (loader.Watcher, error) {
 		updates: make(chan reader.Value, 1),
 	}
 
-	id := m.idx
-	m.watchers[id] = w
-	m.idx++
+	e := m.watchers.PushBack(w)
 
 	m.Unlock()
 
 	go func() {
 		<-w.exit
 		m.Lock()
-		delete(m.watchers, id)
+		m.watchers.Remove(e)
 		m.Unlock()
 	}()
 
@@ -404,7 +402,7 @@ func NewLoader(opts ...loader.Option) loader.Loader {
 	m := &memory{
 		exit:     make(chan bool),
 		opts:     options,
-		watchers: make(map[int]*watcher),
+		watchers: list.New(),
 		sources:  options.Source,
 	}
 
