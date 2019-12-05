@@ -27,7 +27,7 @@ func NewDebug(name string) *Debug {
 }
 
 // Logs queries the service logs and returns a channel to read the logs from
-func (d *Debug) Logs(opts ...log.ReadOption) (<-chan log.Record, error) {
+func (d *Debug) Log(opts ...log.ReadOption) (<-chan log.Record, error) {
 	options := log.ReadOptions{}
 	// initialize the read options
 	for _, o := range opts {
