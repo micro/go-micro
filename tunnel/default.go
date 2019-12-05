@@ -854,16 +854,6 @@ func (t *tun) connect() error {
 		}
 	}()
 
-	// setup links
-	t.setupLinks()
-
-	// process outbound messages to be sent
-	// process sends to all links
-	go t.process()
-
-	// monitor links
-	go t.monitor()
-
 	return nil
 }
 
@@ -888,6 +878,16 @@ func (t *tun) Connect() error {
 	t.connected = true
 	// create new close channel
 	t.closed = make(chan bool)
+
+	// setup links
+	t.setupLinks()
+
+	// process outbound messages to be sent
+	// process sends to all links
+	go t.process()
+
+	// monitor links
+	go t.monitor()
 
 	return nil
 }
