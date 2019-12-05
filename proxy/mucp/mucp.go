@@ -437,7 +437,7 @@ func (p *Proxy) serveRequest(ctx context.Context, link client.Client, service, e
 	}
 
 	// create new request with raw bytes body
-	creq := link.NewRequest(service, endpoint, &bytes.Frame{body}, client.WithContentType(req.ContentType()))
+	creq := link.NewRequest(service, endpoint, &bytes.Frame{Data: body}, client.WithContentType(req.ContentType()))
 
 	// not a stream so make a client.Call request
 	if !req.Stream() {
@@ -493,8 +493,6 @@ func (p *Proxy) serveRequest(ctx context.Context, link client.Client, service, e
 			return err
 		}
 	}
-
-	return nil
 }
 
 // NewSingleHostProxy returns a proxy which sends requests to a single backend

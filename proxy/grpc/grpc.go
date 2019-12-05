@@ -135,8 +135,6 @@ func (p *Proxy) ServeRequest(ctx context.Context, req server.Request, rsp server
 			return err
 		}
 	}
-
-	return nil
 }
 
 // NewProxy returns a new grpc proxy server

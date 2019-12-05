@@ -38,7 +38,6 @@ func (s *Socket) Accept(m *transport.Message) error {
 	case <-s.closed:
 		return io.EOF
 	}
-	return nil
 }
 
 // Process takes the next message off the send queue created by a call to Send

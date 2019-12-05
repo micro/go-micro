@@ -105,7 +105,7 @@ func (m *mdnsRegistry) Register(service *Service, opts ...RegisterOption) error 
 			return err
 		}
 
-		srv, err := mdns.NewServer(&mdns.Config{Zone: &mdns.DNSSDService{s}})
+		srv, err := mdns.NewServer(&mdns.Config{Zone: &mdns.DNSSDService{MDNSService: s}})
 		if err != nil {
 			return err
 		}

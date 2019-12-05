@@ -307,8 +307,6 @@ func (m *monitor) Stop() error {
 		m.running = false
 		return nil
 	}
-
-	return nil
 }
 
 func newMonitor(opts ...Option) Monitor {
