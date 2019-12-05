@@ -36,26 +36,27 @@ type Mode uint8
 // and Micro-Tunnel-Session header. The tunnel id is a hash of
 // the address being requested.
 type Tunnel interface {
+	// Init initializes tunnel with options
 	Init(opts ...Option) error
-	// Address the tunnel is listening on
+	// Address returns the address the tunnel is listening on
 	Address() string
 	// Connect connects the tunnel
 	Connect() error
 	// Close closes the tunnel
 	Close() error
-	// All the links the tunnel is connected to
+	// Links returns all the links the tunnel is connected to
 	Links() []Link
-	// Connect to a channel
+	// Dial allows a client to connect to a channel
 	Dial(channel string, opts ...DialOption) (Session, error)
-	// Accept connections on a channel
+	// Listen allows to accept connections on a channel
 	Listen(channel string, opts ...ListenOption) (Listener, error)
-	// Name of the tunnel implementation
+	// String returns the name of the tunnel implementation
 	String() string
 }
 
 // Link represents internal links to the tunnel
 type Link interface {
-	// The id of the link
+	// Id returns the link unique Id
 	Id() string
 	// Delay is the current load on the link (lower is better)
 	Delay() int64

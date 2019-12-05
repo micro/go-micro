@@ -229,7 +229,10 @@ func (l *link) manage() {
 			// check the type of message
 			switch {
 			case bytes.Equal(p.message.Body, linkRequest):
+				l.RLock()
 				log.Tracef("Link %s received link request %v", l.id, p.message.Body)
+				l.RUnlock()
+
 				// send response
 				if err := send(linkResponse); err != nil {
 					l.Lock()
@@ -239,7 +242,10 @@ func (l *link) manage() {
 			case bytes.Equal(p.message.Body, linkResponse):
 				// set round trip time
 				d := time.Since(now)
+				l.RLock()
 				log.Tracef("Link %s received link response in %v", p.message.Body, d)
+				l.RUnlock()
+				// set the RTT
 				l.setRTT(d)
 			}
 		case <-t.C:
