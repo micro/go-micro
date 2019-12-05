@@ -169,7 +169,7 @@ func (g *grpcCodec) Write(m *codec.Message, v interface{}) error {
 		m.Body = b
 	}
 	// write the body using the framing codec
-	return g.s.SendMsg(&bytes.Frame{m.Body})
+	return g.s.SendMsg(&bytes.Frame{Data: m.Body})
 }
 
 func (g *grpcCodec) Close() error {

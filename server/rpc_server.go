@@ -100,7 +100,7 @@ func (s *rpcServer) HandleEvent(e broker.Event) error {
 	rpcMsg := &rpcMessage{
 		topic:       msg.Header["Micro-Topic"],
 		contentType: ct,
-		payload:     &raw.Frame{msg.Body},
+		payload:     &raw.Frame{Data: msg.Body},
 		codec:       cf,
 		header:      msg.Header,
 		body:        msg.Body,

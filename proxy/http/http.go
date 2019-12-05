@@ -187,8 +187,6 @@ func (p *Proxy) ServeRequest(ctx context.Context, req server.Request, rsp server
 			return errors.InternalServerError(req.Service(), err.Error())
 		}
 	}
-
-	return nil
 }
 
 // NewSingleHostProxy returns a router which sends requests to a single http backend

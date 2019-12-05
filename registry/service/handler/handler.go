@@ -79,6 +79,4 @@ func (r *Registry) Watch(ctx context.Context, req *pb.WatchRequest, rsp pb.Regis
 			return errors.InternalServerError("go.micro.registry", err.Error())
 		}
 	}
-
-	return nil
 }
