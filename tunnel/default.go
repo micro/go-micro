@@ -629,7 +629,7 @@ func (t *tun) listen(link *link) {
 			s, exists = t.getSession(channel, "listener")
 		// only return accept to the session
 		case mtype == "accept":
-			log.Debugf("Received accept message for %s %s", channel, sessionId)
+			log.Debugf("Received accept message for channel: %s session: %s", channel, sessionId)
 			s, exists = t.getSession(channel, sessionId)
 			if exists && s.accepted {
 				continue
@@ -649,7 +649,7 @@ func (t *tun) listen(link *link) {
 
 		// bail if no session or listener has been found
 		if !exists {
-			log.Debugf("Tunnel skipping no session %s %s exists", channel, sessionId)
+			log.Debugf("Tunnel skipping no channel: %s session: %s exists", channel, sessionId)
 			// drop it, we don't care about
 			// messages we don't know about
 			continue
@@ -665,7 +665,7 @@ func (t *tun) listen(link *link) {
 			// otherwise process
 		}
 
-		log.Debugf("Tunnel using channel %s session %s type %s", s.channel, s.session, mtype)
+		log.Debugf("Tunnel using channel: %s session: %s type: %s", s.channel, s.session, mtype)
 
 		// construct a new transport message
 		tmsg := &transport.Message{

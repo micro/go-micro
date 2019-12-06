@@ -71,7 +71,7 @@ func (t *tunListener) process() {
 			switch m.mode {
 			case Multicast, Broadcast:
 				// use channel name if multicast/broadcast
-				sessionId = m.channel
+				sessionId = "multicast"
 				log.Tracef("Tunnel listener using session %s for real session %s", sessionId, m.session)
 			default:
 				// use session id if unicast
@@ -197,6 +197,10 @@ func (t *tunListener) Accept() (Session, error) {
 		// check if the accept chan is closed
 		if !ok {
 			return nil, io.EOF
+		}
+		// return without accept
+		if c.mode != Unicast {
+			return c, nil
 		}
 		// send back the accept
 		if err := c.Accept(); err != nil {

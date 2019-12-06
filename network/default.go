@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"hash/fnv"
+	"io"
 	"math"
 	"sync"
 	"time"
@@ -70,6 +71,9 @@ type network struct {
 	connected bool
 	// closed closes the network
 	closed chan bool
+	// whether we've announced the first connect successfully
+	// and received back some sort of peer message
+	announced chan bool
 }
 
 // newNetwork returns a new network node
@@ -267,10 +271,11 @@ func (n *network) handleNetConn(s tunnel.Session, msg chan *message) {
 		m := new(transport.Message)
 		if err := s.Recv(m); err != nil {
 			log.Debugf("Network tunnel [%s] receive error: %v", NetworkChannel, err)
-			if sessionErr := s.Close(); sessionErr != nil {
-				log.Debugf("Network tunnel [%s] closing connection error: %v", NetworkChannel, sessionErr)
+			if err == io.EOF {
+				s.Close()
+				return
 			}
-			return
+			continue
 		}
 
 		select {
@@ -452,6 +457,14 @@ func (n *network) processNetChan(listener tunnel.Listener) {
 				if err := n.node.UpdatePeer(peer); err != nil {
 					log.Debugf("Network failed to update peers: %v", err)
 				}
+
+				// check if we announced and were discovered
+				select {
+				case <-n.announced:
+					// we've sent the connect and received this response
+				default:
+					close(n.announced)
+				}
 			case "close":
 				pbNetClose := &pbNet.Close{}
 				if err := proto.Unmarshal(m.msg.Body, pbNetClose); err != nil {
@@ -622,10 +635,11 @@ func (n *network) handleCtrlConn(s tunnel.Session, msg chan *message) {
 		m := new(transport.Message)
 		if err := s.Recv(m); err != nil {
 			log.Debugf("Network tunnel [%s] receive error: %v", ControlChannel, err)
-			if sessionErr := s.Close(); sessionErr != nil {
-				log.Debugf("Network tunnel [%s] closing connection error: %v", ControlChannel, sessionErr)
+			if err == io.EOF {
+				s.Close()
+				return
 			}
-			return
+			continue
 		}
 
 		select {
@@ -930,6 +944,40 @@ func (n *network) sendConnect() {
 	}
 }
 
+// connect will wait for a link to be established
+func (n *network) connect() {
+	// wait for connected state
+	var connected bool
+
+	for {
+		// check the links
+		for _, link := range n.tunnel.Links() {
+			if link.State() == "connected" {
+				connected = true
+				break
+			}
+		}
+
+		// if we're not conencted wait
+		if !connected {
+			time.Sleep(time.Second)
+			continue
+		}
+
+		// send the connect message
+		n.sendConnect()
+
+		// check the announce channel
+		select {
+		case <-n.announced:
+			return
+		default:
+			time.Sleep(time.Second)
+			// we have to go again
+		}
+	}
+}
+
 // Connect connects the network
 func (n *network) Connect() error {
 	n.Lock()
@@ -1000,6 +1048,8 @@ func (n *network) Connect() error {
 
 	// create closed channel
 	n.closed = make(chan bool)
+	// create new announced channel
+	n.announced = make(chan bool)
 
 	// start the router
 	if err := n.options.Router.Start(); err != nil {
@@ -1022,25 +1072,7 @@ func (n *network) Connect() error {
 	n.Unlock()
 
 	// send connect after there's a link established
-	go func() {
-		// wait for 30 ticks e.g 30 seconds
-		for i := 0; i < 30; i++ {
-			// get the current links
-			links := n.tunnel.Links()
-
-			// if there are no links wait until we have one
-			if len(links) == 0 {
-				time.Sleep(time.Second)
-				continue
-			}
-
-			// send the connect message
-			n.sendConnect()
-			// most importantly
-			break
-		}
-	}()
-
+	go n.connect()
 	// go resolving network nodes
 	go n.resolve()
 	// broadcast peers

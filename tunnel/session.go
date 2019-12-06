@@ -2,7 +2,6 @@ package tunnel
 
 import (
 	"encoding/hex"
-	"errors"
 	"io"
 	"time"
 
@@ -344,7 +343,7 @@ func (s *session) Recv(m *transport.Message) error {
 
 	select {
 	case <-s.closed:
-		return errors.New("session is closed")
+		return io.EOF
 	// recv from backlog
 	case msg = <-s.recv:
 	}
@@ -360,7 +359,10 @@ func (s *session) Recv(m *transport.Message) error {
 	log.Debugf("Received %+v from recv backlog", msg)
 
 	// decrypt the received payload using the token
-	body, err := Decrypt(msg.data.Body, s.token+s.channel+s.session)
+	// we have to used msg.session because multicast has a shared
+	// session id of "multicast" in this session struct on 
+	// the listener side
+	body, err := Decrypt(msg.data.Body, s.token+s.channel+msg.session)
 	if err != nil {
 		log.Debugf("failed to decrypt message body: %v", err)
 		return err
@@ -376,7 +378,7 @@ func (s *session) Recv(m *transport.Message) error {
 			return err
 		}
 		// encrypt the transport message payload
-		val, err := Decrypt([]byte(h), s.token+s.channel+s.session)
+		val, err := Decrypt([]byte(h), s.token+s.channel+msg.session)
 		if err != nil {
 			log.Debugf("failed to decrypt message header %s: %v", k, err)
 			return err
