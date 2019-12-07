@@ -356,11 +356,11 @@ func (s *session) Recv(m *transport.Message) error {
 	}
 
 	//log.Tracef("Received %+v from recv backlog", msg)
-	log.Debugf("Received %+v from recv backlog", msg)
+	log.Tracef("Received %+v from recv backlog", msg)
 
 	// decrypt the received payload using the token
 	// we have to used msg.session because multicast has a shared
-	// session id of "multicast" in this session struct on 
+	// session id of "multicast" in this session struct on
 	// the listener side
 	body, err := Decrypt(msg.data.Body, s.token+s.channel+msg.session)
 	if err != nil {

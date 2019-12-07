@@ -225,7 +225,7 @@ func TestPruneStalePeerNodes(t *testing.T) {
 	time.Sleep(pruneTime)
 
 	// should delete all nodes besides node
-	pruned := node.PruneStalePeerNodes(pruneTime)
+	pruned := node.PruneStalePeers(pruneTime)
 
 	if len(pruned) != len(nodes)-1 {
 		t.Errorf("Expected pruned node count: %d, got: %d", len(nodes)-1, len(pruned))

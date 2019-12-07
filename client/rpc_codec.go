@@ -88,32 +88,24 @@ func (rwc *readWriteCloser) Close() error {
 }
 
 func getHeaders(m *codec.Message) {
-	get := func(hdr string) string {
-		if hd := m.Header[hdr]; len(hd) > 0 {
-			return hd
+	set := func(v, hdr string) string {
+		if len(v) > 0 {
+			return v
 		}
-		// old
-		return m.Header["X-"+hdr]
+		return m.Header[hdr]
 	}
 
 	// check error in header
-	if len(m.Error) == 0 {
-		m.Error = get("Micro-Error")
-	}
+	m.Error = set(m.Error, "Micro-Error")
 
 	// check endpoint in header
-	if len(m.Endpoint) == 0 {
-		m.Endpoint = get("Micro-Endpoint")
-	}
+	m.Endpoint = set(m.Endpoint, "Micro-Endpoint")
 
 	// check method in header
-	if len(m.Method) == 0 {
-		m.Method = get("Micro-Method")
-	}
+	m.Method = set(m.Method, "Micro-Method")
 
-	if len(m.Id) == 0 {
-		m.Id = get("Micro-Id")
-	}
+	// set the request id
+	m.Id = set(m.Id, "Micro-Id")
 }
 
 func setHeaders(m *codec.Message, stream string) {
@@ -122,7 +114,6 @@ func setHeaders(m *codec.Message, stream string) {
 			return
 		}
 		m.Header[hdr] = v
-		m.Header["X-"+hdr] = v
 	}
 
 	set("Micro-Id", m.Id)

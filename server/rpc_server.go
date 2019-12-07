@@ -549,6 +549,7 @@ func (s *rpcServer) Register() error {
 	node.Metadata["protocol"] = "mucp"
 
 	s.RLock()
+
 	// Maps are ordered randomly, sort the keys for consistency
 	var handlerList []string
 	for n, e := range s.handlers {
@@ -557,6 +558,7 @@ func (s *rpcServer) Register() error {
 			handlerList = append(handlerList, n)
 		}
 	}
+
 	sort.Strings(handlerList)
 
 	var subscriberList []Subscriber
@@ -566,18 +568,20 @@ func (s *rpcServer) Register() error {
 			subscriberList = append(subscriberList, e)
 		}
 	}
+
 	sort.Slice(subscriberList, func(i, j int) bool {
 		return subscriberList[i].Topic() > subscriberList[j].Topic()
 	})
 
 	endpoints := make([]*registry.Endpoint, 0, len(handlerList)+len(subscriberList))
+
 	for _, n := range handlerList {
 		endpoints = append(endpoints, s.handlers[n].Endpoints()...)
 	}
+
 	for _, e := range subscriberList {
 		endpoints = append(endpoints, e.Endpoints()...)
 	}
-	s.RUnlock()
 
 	service := &registry.Service{
 		Name:      config.Name,
@@ -586,9 +590,10 @@ func (s *rpcServer) Register() error {
 		Endpoints: endpoints,
 	}
 
-	s.Lock()
+	// get registered value
 	registered := s.registered
-	s.Unlock()
+
+	s.RUnlock()
 
 	if !registered {
 		log.Logf("Registry [%s] Registering node: %s", config.Registry.String(), node.Id)
@@ -610,6 +615,8 @@ func (s *rpcServer) Register() error {
 	defer s.Unlock()
 
 	s.registered = true
+	// set what we're advertising
+	s.opts.Advertise = addr
 
 	// subscribe to the topic with own name
 	sub, err := s.opts.Broker.Subscribe(config.Name, s.HandleEvent)

@@ -327,6 +327,7 @@ func (t *tun) process() {
 				// and the message is being sent outbound via
 				// a dialled connection don't use this link
 				if loopback && msg.outbound {
+					log.Tracef("Link for node %s is loopback", node)
 					err = errors.New("link is loopback")
 					continue
 				}
@@ -334,6 +335,7 @@ func (t *tun) process() {
 				// if the message was being returned by the loopback listener
 				// send it back up the loopback link only
 				if msg.loopback && !loopback {
+					log.Tracef("Link for message %s is loopback", node)
 					err = errors.New("link is not loopback")
 					continue
 				}
@@ -363,7 +365,7 @@ func (t *tun) process() {
 			// send the message
 			for _, link := range sendTo {
 				// send the message via the current link
-				log.Tracef("Sending %+v to %s", newMsg.Header, link.Remote())
+				log.Tracef("Tunnel sending %+v to %s", newMsg.Header, link.Remote())
 
 				if errr := link.Send(newMsg); errr != nil {
 					log.Debugf("Tunnel error sending %+v to %s: %v", newMsg.Header, link.Remote(), errr)
@@ -502,6 +504,7 @@ func (t *tun) listen(link *link) {
 			// nothing more to do
 			continue
 		case "close":
+			log.Debugf("Tunnel link %s received close message", link.Remote())
 			// if there is no channel then we close the link
 			// as its a signal from the other side to close the connection
 			if len(channel) == 0 {
@@ -555,9 +558,11 @@ func (t *tun) listen(link *link) {
 		// a continued session
 		case "session":
 			// process message
-			log.Tracef("Received %+v from %s", msg.Header, link.Remote())
+			log.Tracef("Tunnel received %+v from %s", msg.Header, link.Remote())
 		// an announcement of a channel listener
 		case "announce":
+			log.Tracef("Tunnel received %+v from %s", msg.Header, link.Remote())
+
 			// process the announcement
 			channels := strings.Split(channel, ",")
 
@@ -629,7 +634,7 @@ func (t *tun) listen(link *link) {
 			s, exists = t.getSession(channel, "listener")
 		// only return accept to the session
 		case mtype == "accept":
-			log.Debugf("Received accept message for channel: %s session: %s", channel, sessionId)
+			log.Debugf("Tunnel received accept message for channel: %s session: %s", channel, sessionId)
 			s, exists = t.getSession(channel, sessionId)
 			if exists && s.accepted {
 				continue
@@ -649,7 +654,7 @@ func (t *tun) listen(link *link) {
 
 		// bail if no session or listener has been found
 		if !exists {
-			log.Debugf("Tunnel skipping no channel: %s session: %s exists", channel, sessionId)
+			log.Tracef("Tunnel skipping no channel: %s session: %s exists", channel, sessionId)
 			// drop it, we don't care about
 			// messages we don't know about
 			continue
@@ -665,7 +670,7 @@ func (t *tun) listen(link *link) {
 			// otherwise process
 		}
 
-		log.Debugf("Tunnel using channel: %s session: %s type: %s", s.channel, s.session, mtype)
+		log.Tracef("Tunnel using channel: %s session: %s type: %s", s.channel, s.session, mtype)
 
 		// construct a new transport message
 		tmsg := &transport.Message{
@@ -740,7 +745,7 @@ func (t *tun) keepalive(link *link) {
 					"Micro-Tunnel-Id": t.id,
 				},
 			}); err != nil {
-				log.Debugf("Error sending keepalive to link %v: %v", link.Remote(), err)
+				log.Debugf("Tunnel error sending keepalive to link %v: %v", link.Remote(), err)
 				t.delLink(link.Remote())
 				return
 			}

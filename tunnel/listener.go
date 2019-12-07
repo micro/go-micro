@@ -80,7 +80,7 @@ func (t *tunListener) process() {
 
 			// get a session
 			sess, ok := conns[sessionId]
-			log.Debugf("Tunnel listener received channel %s session %s type %s exists: %t", m.channel, sessionId, m.typ, ok)
+			log.Tracef("Tunnel listener received channel %s session %s type %s exists: %t", m.channel, sessionId, m.typ, ok)
 			if !ok {
 				// we only process open and session types
 				switch m.typ {
@@ -159,7 +159,7 @@ func (t *tunListener) process() {
 			case <-sess.closed:
 				delete(conns, sessionId)
 			case sess.recv <- m:
-				log.Debugf("Tunnel listener sent to recv chan channel %s session %s type %s", m.channel, sessionId, m.typ)
+				log.Tracef("Tunnel listener sent to recv chan channel %s session %s type %s", m.channel, sessionId, m.typ)
 			}
 		}
 	}

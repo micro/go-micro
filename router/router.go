@@ -111,6 +111,8 @@ const (
 	Announce AdvertType = iota
 	// RouteUpdate advertises route updates
 	RouteUpdate
+	// Solicitation indicates routes were solicited
+	Solicitation
 )
 
 // String returns human readable advertisement type
@@ -120,6 +122,8 @@ func (t AdvertType) String() string {
 		return "announce"
 	case RouteUpdate:
 		return "update"
+	case Solicitation:
+		return "solicitation"
 	default:
 		return "unknown"
 	}

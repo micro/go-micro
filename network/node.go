@@ -216,7 +216,7 @@ func (n *node) DeletePeerNode(id string) error {
 
 // PruneStalePeerNodes prune the peers that have not been seen for longer than given time
 // It returns a map of the the nodes that got pruned
-func (n *node) PruneStalePeerNodes(pruneTime time.Duration) map[string]*node {
+func (n *node) PruneStalePeers(pruneTime time.Duration) map[string]*node {
 	n.Lock()
 	defer n.Unlock()
 

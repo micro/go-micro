@@ -56,14 +56,6 @@ type Network interface {
 	Server() server.Server
 }
 
-// message is network message
-type message struct {
-	// msg is transport message
-	msg *transport.Message
-	// session is tunnel session
-	session tunnel.Session
-}
-
 // NewNetwork returns a new network interface
 func NewNetwork(opts ...Option) Network {
 	return newNetwork(opts...)

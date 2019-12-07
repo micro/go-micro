@@ -799,7 +799,8 @@ func (r *router) flushRouteEvents(evType EventType) ([]*Event, error) {
 
 	// build a list of events to advertise
 	events := make([]*Event, len(bestRoutes))
-	i := 0
+	var i int
+
 	for _, route := range bestRoutes {
 		event := &Event{
 			Type:      evType,
@@ -823,9 +824,10 @@ func (r *router) Solicit() error {
 
 	// advertise the routes
 	r.advertWg.Add(1)
+
 	go func() {
-		defer r.advertWg.Done()
-		r.publishAdvert(RouteUpdate, events)
+		r.publishAdvert(Solicitation, events)
+		r.advertWg.Done()
 	}()
 
 	return nil

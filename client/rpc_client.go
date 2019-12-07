@@ -316,6 +316,22 @@ func (r *rpcClient) Options() Options {
 	return r.opts
 }
 
+// hasProxy checks if we have proxy set in the environment
+func (r *rpcClient) hasProxy() bool {
+	// get proxy
+	if prx := os.Getenv("MICRO_PROXY"); len(prx) > 0 {
+		return true
+	}
+
+	// get proxy address
+	if prx := os.Getenv("MICRO_PROXY_ADDRESS"); len(prx) > 0 {
+		return true
+	}
+
+	return false
+}
+
+// next returns an iterator for the next nodes to call
 func (r *rpcClient) next(request Request, opts CallOptions) (selector.Next, error) {
 	service := request.Service()
 
@@ -431,10 +447,18 @@ func (r *rpcClient) Call(ctx context.Context, request Request, response interfac
 		return err
 	}
 
-	ch := make(chan error, callOpts.Retries+1)
+	// get the retries
+	retries := callOpts.Retries
+
+	// disable retries when using a proxy
+	if r.hasProxy() {
+		retries = 0
+	}
+
+	ch := make(chan error, retries+1)
 	var gerr error
 
-	for i := 0; i <= callOpts.Retries; i++ {
+	for i := 0; i <= retries; i++ {
 		go func(i int) {
 			ch <- call(i)
 		}(i)
@@ -514,10 +538,18 @@ func (r *rpcClient) Stream(ctx context.Context, request Request, opts ...CallOpt
 		err    error
 	}
 
-	ch := make(chan response, callOpts.Retries+1)
+	// get the retries
+	retries := callOpts.Retries
+
+	// disable retries when using a proxy
+	if r.hasProxy() {
+		retries = 0
+	}
+
+	ch := make(chan response, retries+1)
 	var grr error
 
-	for i := 0; i <= callOpts.Retries; i++ {
+	for i := 0; i <= retries; i++ {
 		go func(i int) {
 			s, err := call(i)
 			ch <- response{s, err}
