@@ -65,18 +65,8 @@ func (t *tunListener) process() {
 			return
 		// receive a new message
 		case m := <-t.session.recv:
-			var sessionId string
-
-			// get the session id
-			switch m.mode {
-			case Multicast, Broadcast:
-				// use channel name if multicast/broadcast
-				sessionId = "multicast"
-				log.Tracef("Tunnel listener using session %s for real session %s", sessionId, m.session)
-			default:
-				// use session id if unicast
-				sessionId = m.session
-			}
+			// session id
+			sessionId := m.session
 
 			// get a session
 			sess, ok := conns[sessionId]
@@ -113,6 +103,8 @@ func (t *tunListener) process() {
 					send: t.session.send,
 					// error channel
 					errChan: make(chan error, 1),
+					// set the read timeout
+					readTimeout: t.session.readTimeout,
 				}
 
 				// save the session
@@ -137,12 +129,10 @@ func (t *tunListener) process() {
 					// no op
 					delete(conns, sessionId)
 				default:
-					if sess.mode == Unicast {
-						// only close if unicast session
-						// close and delete session
-						close(sess.closed)
-						delete(conns, sessionId)
-					}
+					// only close if unicast session
+					// close and delete session
+					close(sess.closed)
+					delete(conns, sessionId)
 				}
 
 				// continue

@@ -26,6 +26,8 @@ var (
 	ErrDiscoverChan = errors.New("failed to discover channel")
 	// ErrLinkNotFound is returned when a link is specified at dial time and does not exist
 	ErrLinkNotFound = errors.New("link not found")
+	// ErrReadTimeout is a timeout on session.Recv
+	ErrReadTimeout = errors.New("read timeout")
 )
 
 // Mode of the session

@@ -39,8 +39,10 @@ type session struct {
 	loopback bool
 	// mode of the connection
 	mode Mode
-	// the timeout
-	timeout time.Duration
+	// the dial timeout
+	dialTimeout time.Duration
+	// the read timeout
+	readTimeout time.Duration
 	// the link on which this message was received
 	link string
 	// the error response
@@ -133,31 +135,43 @@ func (s *session) wait(msg *message) error {
 func (s *session) waitFor(msgType string, timeout time.Duration) (*message, error) {
 	now := time.Now()
 
-	after := func(timeout time.Duration) time.Duration {
+	after := func(timeout time.Duration) <-chan time.Time {
+		if timeout < time.Duration(0) {
+			return nil
+		}
+
+		// get the delta
 		d := time.Since(now)
+
 		// dial timeout minus time since
 		wait := timeout - d
 
 		if wait < time.Duration(0) {
-			return time.Duration(0)
+			wait = time.Duration(0)
 		}
 
-		return wait
+		return time.After(wait)
 	}
 
 	// wait for the message type
 	for {
 		select {
 		case msg := <-s.recv:
+			// there may be no message type
+			if len(msgType) == 0 {
+				return msg, nil
+			}
+
 			// ignore what we don't want
 			if msg.typ != msgType {
 				log.Debugf("Tunnel received non %s message in waiting for %s", msg.typ, msgType)
 				continue
 			}
+
 			// got the message
 			return msg, nil
-		case <-time.After(after(timeout)):
-			return nil, ErrDialTimeout
+		case <-after(timeout):
+			return nil, ErrReadTimeout
 		case <-s.closed:
 			return nil, io.EOF
 		}
@@ -193,7 +207,8 @@ func (s *session) Discover() error {
 	after := func() time.Duration {
 		d := time.Since(now)
 		// dial timeout minus time since
-		wait := s.timeout - d
+		wait := s.dialTimeout - d
+		// make sure its always > 0
 		if wait < time.Duration(0) {
 			return time.Duration(0)
 		}
@@ -248,7 +263,7 @@ func (s *session) Open() error {
 	}
 
 	// now wait for the accept message to be returned
-	msg, err := s.waitFor("accept", s.timeout)
+	msg, err := s.waitFor("accept", s.dialTimeout)
 	if err != nil {
 		return err
 	}
@@ -341,11 +356,9 @@ func (s *session) Send(m *transport.Message) error {
 func (s *session) Recv(m *transport.Message) error {
 	var msg *message
 
-	select {
-	case <-s.closed:
-		return io.EOF
-	// recv from backlog
-	case msg = <-s.recv:
+	msg, err := s.waitFor("", s.readTimeout)
+	if err != nil {
+		return err
 	}
 
 	// check the error if one exists

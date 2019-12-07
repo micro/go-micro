@@ -234,7 +234,7 @@ func (n *network) resolveNodes() ([]string, error) {
 	dns := &dns.Resolver{}
 
 	// append seed nodes if we have them
-	for _, node := range n.options.Peers {
+	for _, node := range n.options.Nodes {
 		// resolve anything that looks like a host name
 		records, err := dns.Resolve(node)
 		if err != nil {
@@ -282,7 +282,8 @@ func (n *network) handleNetConn(s tunnel.Session, msg chan *message) {
 		m := new(transport.Message)
 		if err := s.Recv(m); err != nil {
 			log.Debugf("Network tunnel [%s] receive error: %v", NetworkChannel, err)
-			if err == io.EOF {
+			switch err {
+			case io.EOF, tunnel.ErrReadTimeout:
 				s.Close()
 				return
 			}
@@ -338,39 +339,10 @@ func (n *network) acceptNetConn(l tunnel.Listener, recv chan *message) {
 	}
 }
 
-// updatePeerLinks updates link for a given peer
-func (n *network) updatePeerLinks(peerAddr string, linkId string) error {
-	n.Lock()
-	defer n.Unlock()
-	log.Tracef("Network looking up link %s in the peer links", linkId)
-	// lookup the peer link
-	var peerLink tunnel.Link
-	for _, link := range n.tunnel.Links() {
-		if link.Id() == linkId {
-			peerLink = link
-			break
-		}
-	}
-	if peerLink == nil {
-		return ErrPeerLinkNotFound
-	}
-	// if the peerLink is found in the returned links update peerLinks
-	log.Tracef("Network updating peer links for peer %s", peerAddr)
-	// add peerLink to the peerLinks map
-	if link, ok := n.peerLinks[peerAddr]; ok {
-		// if the existing has better Length then the new, replace it
-		if link.Length() < peerLink.Length() {
-			n.peerLinks[peerAddr] = peerLink
-		}
-	} else {
-		n.peerLinks[peerAddr] = peerLink
-	}
-
-	return nil
-}
-
 // processNetChan processes messages received on NetworkChannel
 func (n *network) processNetChan(listener tunnel.Listener) {
+	defer listener.Close()
+
 	// receive network message queue
 	recv := make(chan *message, 128)
 
@@ -707,13 +679,51 @@ func (n *network) sendMsg(method, channel string, msg proto.Message) error {
 	})
 }
 
+// updatePeerLinks updates link for a given peer
+func (n *network) updatePeerLinks(peerAddr string, linkId string) error {
+	n.Lock()
+	defer n.Unlock()
+
+	log.Tracef("Network looking up link %s in the peer links", linkId)
+
+	// lookup the peer link
+	var peerLink tunnel.Link
+
+	for _, link := range n.tunnel.Links() {
+		if link.Id() == linkId {
+			peerLink = link
+			break
+		}
+	}
+
+	if peerLink == nil {
+		return ErrPeerLinkNotFound
+	}
+
+	// if the peerLink is found in the returned links update peerLinks
+	log.Tracef("Network updating peer links for peer %s", peerAddr)
+
+	// add peerLink to the peerLinks map
+	if link, ok := n.peerLinks[peerAddr]; ok {
+		// if the existing has better Length then the new, replace it
+		if link.Length() < peerLink.Length() {
+			n.peerLinks[peerAddr] = peerLink
+		}
+	} else {
+		n.peerLinks[peerAddr] = peerLink
+	}
+
+	return nil
+}
+
 // handleCtrlConn handles ControlChannel connections
 func (n *network) handleCtrlConn(s tunnel.Session, msg chan *message) {
 	for {
 		m := new(transport.Message)
 		if err := s.Recv(m); err != nil {
 			log.Debugf("Network tunnel [%s] receive error: %v", ControlChannel, err)
-			if err == io.EOF {
+			switch err {
+			case io.EOF, tunnel.ErrReadTimeout:
 				s.Close()
 				return
 			}
@@ -843,6 +853,8 @@ func (n *network) getRouteMetric(router string, gateway string, link string) int
 
 // processCtrlChan processes messages received on ControlChannel
 func (n *network) processCtrlChan(listener tunnel.Listener) {
+	defer listener.Close()
+
 	// receive control message queue
 	recv := make(chan *message, 128)
 
@@ -1151,12 +1163,7 @@ func (n *network) connect() {
 // Connect connects the network
 func (n *network) Connect() error {
 	n.Lock()
-
-	// connect network tunnel
-	if err := n.tunnel.Connect(); err != nil {
-		n.Unlock()
-		return err
-	}
+	defer n.Unlock()
 
 	// try to resolve network nodes
 	nodes, err := n.resolveNodes()
@@ -1169,10 +1176,14 @@ func (n *network) Connect() error {
 		tunnel.Nodes(nodes...),
 	)
 
+	// connect network tunnel
+	if err := n.tunnel.Connect(); err != nil {
+		n.Unlock()
+		return err
+	}
+
 	// return if already connected
 	if n.connected {
-		// unlock first
-		n.Unlock()
 		// send the connect message
 		n.sendConnect()
 		return nil
@@ -1187,32 +1198,36 @@ func (n *network) Connect() error {
 	// dial into ControlChannel to send route adverts
 	ctrlClient, err := n.tunnel.Dial(ControlChannel, tunnel.DialMode(tunnel.Multicast))
 	if err != nil {
-		n.Unlock()
 		return err
 	}
 
 	n.tunClient[ControlChannel] = ctrlClient
 
 	// listen on ControlChannel
-	ctrlListener, err := n.tunnel.Listen(ControlChannel, tunnel.ListenMode(tunnel.Multicast))
+	ctrlListener, err := n.tunnel.Listen(
+		ControlChannel,
+		tunnel.ListenMode(tunnel.Multicast),
+		tunnel.ListenTimeout(router.AdvertiseTableTick*2),
+	)
 	if err != nil {
-		n.Unlock()
 		return err
 	}
 
 	// dial into NetworkChannel to send network messages
 	netClient, err := n.tunnel.Dial(NetworkChannel, tunnel.DialMode(tunnel.Multicast))
 	if err != nil {
-		n.Unlock()
 		return err
 	}
 
 	n.tunClient[NetworkChannel] = netClient
 
 	// listen on NetworkChannel
-	netListener, err := n.tunnel.Listen(NetworkChannel, tunnel.ListenMode(tunnel.Multicast))
+	netListener, err := n.tunnel.Listen(
+		NetworkChannel,
+		tunnel.ListenMode(tunnel.Multicast),
+		tunnel.ListenTimeout(AnnounceTime*2),
+	)
 	if err != nil {
-		n.Unlock()
 		return err
 	}
 
@@ -1221,23 +1236,19 @@ func (n *network) Connect() error {
 
 	// start the router
 	if err := n.options.Router.Start(); err != nil {
-		n.Unlock()
 		return err
 	}
 
 	// start advertising routes
 	advertChan, err := n.options.Router.Advertise()
 	if err != nil {
-		n.Unlock()
 		return err
 	}
 
 	// start the server
 	if err := n.server.Start(); err != nil {
-		n.Unlock()
 		return err
 	}
-	n.Unlock()
 
 	// send connect after there's a link established
 	go n.connect()
@@ -1252,9 +1263,8 @@ func (n *network) Connect() error {
 	// accept and process routes
 	go n.processCtrlChan(ctrlListener)
 
-	n.Lock()
+	// we're now connected
 	n.connected = true
-	n.Unlock()
 
 	return nil
 }
@@ -1340,6 +1350,7 @@ func (n *network) Close() error {
 				Address: n.node.address,
 			},
 		}
+
 		if err := n.sendMsg("close", NetworkChannel, msg); err != nil {
 			log.Debugf("Network failed to send close message: %s", err)
 		}

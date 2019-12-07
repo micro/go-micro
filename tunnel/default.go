@@ -197,71 +197,94 @@ func (t *tun) announce(channel, session string, link *link) {
 	}
 }
 
-// monitor monitors outbound links and attempts to reconnect to the failed ones
-func (t *tun) monitor() {
+// manage monitors outbound links and attempts to reconnect to the failed ones
+func (t *tun) manage() {
 	reconnect := time.NewTicker(ReconnectTime)
 	defer reconnect.Stop()
+
+	// do it immediately
+	t.manageLinks()
 
 	for {
 		select {
 		case <-t.closed:
 			return
 		case <-reconnect.C:
-			t.RLock()
-
-			var delLinks []string
-			// check the link status and purge dead links
-			for node, link := range t.links {
-				// check link status
-				switch link.State() {
-				case "closed":
-					delLinks = append(delLinks, node)
-				case "error":
-					delLinks = append(delLinks, node)
-				}
-			}
-
-			t.RUnlock()
-
-			// delete the dead links
-			if len(delLinks) > 0 {
-				t.Lock()
-				for _, node := range delLinks {
-					log.Debugf("Tunnel deleting dead link for %s", node)
-					if link, ok := t.links[node]; ok {
-						link.Close()
-						delete(t.links, node)
-					}
-				}
-				t.Unlock()
-			}
-
-			// check current link status
-			var connect []string
-
-			// build list of unknown nodes to connect to
-			t.RLock()
-			for _, node := range t.options.Nodes {
-				if _, ok := t.links[node]; !ok {
-					connect = append(connect, node)
-				}
-			}
-			t.RUnlock()
-
-			for _, node := range connect {
-				// create new link
-				link, err := t.setupLink(node)
-				if err != nil {
-					log.Debugf("Tunnel failed to setup node link to %s: %v", node, err)
-					continue
-				}
-				// save the link
-				t.Lock()
-				t.links[node] = link
-				t.Unlock()
-			}
+			t.manageLinks()
 		}
 	}
+}
+
+// manageLinks is a function that can be called to immediately to link setup
+func (t *tun) manageLinks() {
+	var delLinks []string
+
+	t.RLock()
+
+	// check the link status and purge dead links
+	for node, link := range t.links {
+		// check link status
+		switch link.State() {
+		case "closed":
+			delLinks = append(delLinks, node)
+		case "error":
+			delLinks = append(delLinks, node)
+		}
+	}
+
+	t.RUnlock()
+
+	// delete the dead links
+	if len(delLinks) > 0 {
+		t.Lock()
+		for _, node := range delLinks {
+			log.Debugf("Tunnel deleting dead link for %s", node)
+			if link, ok := t.links[node]; ok {
+				link.Close()
+				delete(t.links, node)
+			}
+		}
+		t.Unlock()
+	}
+
+	// check current link status
+	var connect []string
+
+	// build list of unknown nodes to connect to
+	t.RLock()
+
+	for _, node := range t.options.Nodes {
+		if _, ok := t.links[node]; !ok {
+			connect = append(connect, node)
+		}
+	}
+
+	t.RUnlock()
+
+	var wg sync.WaitGroup
+
+	for _, node := range connect {
+		wg.Add(1)
+
+		go func() {
+			defer wg.Done()
+
+			// create new link
+			link, err := t.setupLink(node)
+			if err != nil {
+				log.Debugf("Tunnel failed to setup node link to %s: %v", node, err)
+				return
+			}
+
+			// save the link
+			t.Lock()
+			t.links[node] = link
+			t.Unlock()
+		}()
+	}
+
+	// wait for all threads to finish
+	wg.Wait()
 }
 
 // process outgoing messages sent by all local sessions
@@ -757,11 +780,13 @@ func (t *tun) keepalive(link *link) {
 // It returns error if the link failed to be established
 func (t *tun) setupLink(node string) (*link, error) {
 	log.Debugf("Tunnel setting up link: %s", node)
+
 	c, err := t.options.Transport.Dial(node)
 	if err != nil {
 		log.Debugf("Tunnel failed to connect to %s: %v", node, err)
 		return nil, err
 	}
+
 	log.Debugf("Tunnel connected to %s", node)
 
 	// create a new link
@@ -793,30 +818,6 @@ func (t *tun) setupLink(node string) (*link, error) {
 	go t.discover(link)
 
 	return link, nil
-}
-
-func (t *tun) setupLinks() {
-	for _, node := range t.options.Nodes {
-		// skip zero length nodes
-		if len(node) == 0 {
-			continue
-		}
-
-		// link already exists
-		if _, ok := t.links[node]; ok {
-			continue
-		}
-
-		// connect to node and return link
-		link, err := t.setupLink(node)
-		if err != nil {
-			log.Debugf("Tunnel failed to establish node link to %s: %v", node, err)
-			continue
-		}
-
-		// save the link
-		t.links[node] = link
-	}
 }
 
 // connect the tunnel to all the nodes and listen for incoming tunnel connections
@@ -869,11 +870,10 @@ func (t *tun) Connect() error {
 	// already connected
 	if t.connected {
 		// setup links
-		t.setupLinks()
 		return nil
 	}
 
-	// send the connect message
+	// connect the tunnel: start the listener
 	if err := t.connect(); err != nil {
 		return err
 	}
@@ -883,15 +883,12 @@ func (t *tun) Connect() error {
 	// create new close channel
 	t.closed = make(chan bool)
 
-	// setup links
-	t.setupLinks()
+	// manage the links
+	go t.manage()
 
 	// process outbound messages to be sent
 	// process sends to all links
 	go t.process()
-
-	// monitor links
-	go t.monitor()
 
 	return nil
 }
@@ -1029,7 +1026,9 @@ func (t *tun) Dial(channel string, opts ...DialOption) (Session, error) {
 	// set the multicast option
 	c.mode = options.Mode
 	// set the dial timeout
-	c.timeout = options.Timeout
+	c.dialTimeout = options.Timeout
+	// set read timeout set to never
+	c.readTimeout = time.Duration(-1)
 
 	var links []*link
 	// did we measure the rtt
@@ -1145,7 +1144,11 @@ func (t *tun) Dial(channel string, opts ...DialOption) (Session, error) {
 func (t *tun) Listen(channel string, opts ...ListenOption) (Listener, error) {
 	log.Debugf("Tunnel listening on %s", channel)
 
-	var options ListenOptions
+	options := ListenOptions{
+		// Read timeout defaults to never
+		Timeout: time.Duration(-1),
+	}
+
 	for _, o := range opts {
 		o(&options)
 	}
@@ -1167,6 +1170,8 @@ func (t *tun) Listen(channel string, opts ...ListenOption) (Listener, error) {
 	c.local = channel
 	// set mode
 	c.mode = options.Mode
+	// set the timeout
+	c.readTimeout = options.Timeout
 
 	tl := &tunListener{
 		channel: channel,

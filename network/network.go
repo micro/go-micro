@@ -6,8 +6,6 @@ import (
 
 	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/server"
-	"github.com/micro/go-micro/transport"
-	"github.com/micro/go-micro/tunnel"
 )
 
 var (
