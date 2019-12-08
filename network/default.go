@@ -1172,7 +1172,7 @@ func (n *network) Connect() error {
 	// return if already connected
 	if n.connected {
 		// immediately resolve
-		initNodes()
+		n.initNodes()
 
 		// send the connect message
 		n.sendConnect()
