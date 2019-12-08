@@ -31,15 +31,23 @@ func (r *Resolver) Resolve(name string) ([]*resolver.Record, error) {
 		r.Address = "1.0.0.1:53"
 	}
 
+	//nolint:prealloc
+	var records []*resolver.Record
+
+	// parsed an actual ip
+	if v := net.ParseIP(host); v != nil {
+		records = append(records, &resolver.Record{
+			Address: net.JoinHostPort(host, port),
+		})
+		return records, nil
+	}
+
 	m := new(dns.Msg)
 	m.SetQuestion(dns.Fqdn(host), dns.TypeA)
 	rec, err := dns.ExchangeContext(context.Background(), m, r.Address)
 	if err != nil {
 		return nil, err
 	}
-
-	//nolint:prealloc
-	var records []*resolver.Record
 
 	for _, answer := range rec.Answer {
 		h := answer.Header()
@@ -56,6 +64,13 @@ func (r *Resolver) Resolve(name string) ([]*resolver.Record, error) {
 		// append to record set
 		records = append(records, &resolver.Record{
 			Address: address,
+		})
+	}
+
+	// no records returned so just best effort it
+	if len(records) == 0 {
+		records = append(records, &resolver.Record{
+			Address: net.JoinHostPort(host, port),
 		})
 	}
 

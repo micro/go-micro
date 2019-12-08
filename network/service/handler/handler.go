@@ -55,7 +55,7 @@ func (n *Network) Connect(ctx context.Context, req *pbNet.ConnectRequest, resp *
 	}
 
 	// get list of existing nodes
-	nodes := n.Network.Options().Peers
+	nodes := n.Network.Options().Nodes
 
 	// generate a node map
 	nodeMap := make(map[string]bool)
@@ -84,7 +84,7 @@ func (n *Network) Connect(ctx context.Context, req *pbNet.ConnectRequest, resp *
 
 	// reinitialise the peers
 	n.Network.Init(
-		network.Peers(nodes...),
+		network.Nodes(nodes...),
 	)
 
 	// call the connect method

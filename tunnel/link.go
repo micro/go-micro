@@ -2,6 +2,7 @@ package tunnel
 
 import (
 	"bytes"
+	"errors"
 	"io"
 	"sync"
 	"time"
@@ -14,7 +15,11 @@ import (
 type link struct {
 	transport.Socket
 
+	// transport to use for connections
+	transport transport.Transport
+
 	sync.RWMutex
+
 	// stops the link
 	closed chan bool
 	// link state channel for testing link
@@ -65,6 +70,8 @@ var (
 	linkRequest = []byte{0, 0, 0, 0}
 	// the 4 byte 1 filled packet sent to determine link state
 	linkResponse = []byte{1, 1, 1, 1}
+
+	ErrLinkConnectTimeout = errors.New("link connect timeout")
 )
 
 func newLink(s transport.Socket) *link {
@@ -72,8 +79,8 @@ func newLink(s transport.Socket) *link {
 		Socket:        s,
 		id:            uuid.New().String(),
 		lastKeepAlive: time.Now(),
-		channels:      make(map[string]time.Time),
 		closed:        make(chan bool),
+		channels:      make(map[string]time.Time),
 		state:         make(chan *packet, 64),
 		sendQueue:     make(chan *packet, 128),
 		recvQueue:     make(chan *packet, 128),
@@ -85,6 +92,32 @@ func newLink(s transport.Socket) *link {
 	go l.manage()
 
 	return l
+}
+
+func (l *link) connect(addr string) error {
+	c, err := l.transport.Dial(addr)
+	if err != nil {
+		return err
+	}
+
+	l.Lock()
+	l.Socket = c
+	l.Unlock()
+
+	return nil
+}
+
+func (l *link) accept(sock transport.Socket) error {
+	l.Lock()
+	l.Socket = sock
+	l.Unlock()
+	return nil
+}
+
+func (l *link) setLoopback(v bool) {
+	l.Lock()
+	l.loopback = v
+	l.Unlock()
 }
 
 // setRate sets the bits per second rate as a float64
@@ -167,6 +200,8 @@ func (l *link) process() {
 				// process link state message
 				select {
 				case l.state <- pk:
+				case <-l.closed:
+					return
 				default:
 				}
 				continue
@@ -188,7 +223,11 @@ func (l *link) process() {
 		select {
 		case pk := <-l.sendQueue:
 			// send the message
-			pk.status <- l.send(pk.message)
+			select {
+			case pk.status <- l.send(pk.message):
+			case <-l.closed:
+				return
+			}
 		case <-l.closed:
 			return
 		}
@@ -201,11 +240,15 @@ func (l *link) manage() {
 	t := time.NewTicker(time.Minute)
 	defer t.Stop()
 
+	// get link id
+	linkId := l.Id()
+
 	// used to send link state packets
 	send := func(b []byte) error {
 		return l.Send(&transport.Message{
 			Header: map[string]string{
-				"Micro-Method": "link",
+				"Micro-Method":  "link",
+				"Micro-Link-Id": linkId,
 			}, Body: b,
 		})
 	}
@@ -229,9 +272,7 @@ func (l *link) manage() {
 			// check the type of message
 			switch {
 			case bytes.Equal(p.message.Body, linkRequest):
-				l.RLock()
-				log.Tracef("Link %s received link request %v", l.id, p.message.Body)
-				l.RUnlock()
+				log.Tracef("Link %s received link request", linkId)
 
 				// send response
 				if err := send(linkResponse); err != nil {
@@ -242,9 +283,7 @@ func (l *link) manage() {
 			case bytes.Equal(p.message.Body, linkResponse):
 				// set round trip time
 				d := time.Since(now)
-				l.RLock()
-				log.Tracef("Link %s received link response in %v", p.message.Body, d)
-				l.RUnlock()
+				log.Tracef("Link %s received link response in %v", linkId, d)
 				// set the RTT
 				l.setRTT(d)
 			}
@@ -309,6 +348,12 @@ func (l *link) Rate() float64 {
 	return l.rate
 }
 
+func (l *link) Loopback() bool {
+	l.RLock()
+	defer l.RUnlock()
+	return l.loopback
+}
+
 // Length returns the roundtrip time as nanoseconds (lower is better).
 // Returns 0 where no measurement has been taken.
 func (l *link) Length() int64 {
@@ -320,7 +365,6 @@ func (l *link) Length() int64 {
 func (l *link) Id() string {
 	l.RLock()
 	defer l.RUnlock()
-
 	return l.id
 }
 
@@ -349,13 +393,6 @@ func (l *link) Send(m *transport.Message) error {
 
 	// get time now
 	now := time.Now()
-
-	// check if its closed first
-	select {
-	case <-l.closed:
-		return io.EOF
-	default:
-	}
 
 	// queue the message
 	select {

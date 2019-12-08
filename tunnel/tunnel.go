@@ -26,6 +26,8 @@ var (
 	ErrDiscoverChan = errors.New("failed to discover channel")
 	// ErrLinkNotFound is returned when a link is specified at dial time and does not exist
 	ErrLinkNotFound = errors.New("link not found")
+	// ErrReadTimeout is a timeout on session.Recv
+	ErrReadTimeout = errors.New("read timeout")
 )
 
 // Mode of the session
@@ -64,7 +66,9 @@ type Link interface {
 	Length() int64
 	// Current transfer rate as bits per second (lower is better)
 	Rate() float64
-	// State of the link e.g connected/closed
+	// Is this a loopback link
+	Loopback() bool
+	// State of the link: connected/closed/error
 	State() string
 	// honours transport socket
 	transport.Socket

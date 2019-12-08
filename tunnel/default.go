@@ -127,7 +127,6 @@ func (t *tun) newSession(channel, sessionId string) (*session, bool) {
 		closed:  make(chan bool),
 		recv:    make(chan *message, 128),
 		send:    t.send,
-		wait:    make(chan bool),
 		errChan: make(chan error, 1),
 	}
 
@@ -198,8 +197,8 @@ func (t *tun) announce(channel, session string, link *link) {
 	}
 }
 
-// monitor monitors outbound links and attempts to reconnect to the failed ones
-func (t *tun) monitor() {
+// manage monitors outbound links and attempts to reconnect to the failed ones
+func (t *tun) manage() {
 	reconnect := time.NewTicker(ReconnectTime)
 	defer reconnect.Stop()
 
@@ -208,61 +207,119 @@ func (t *tun) monitor() {
 		case <-t.closed:
 			return
 		case <-reconnect.C:
-			t.RLock()
+			t.manageLinks()
+		}
+	}
+}
 
-			var delLinks []string
-			// check the link status and purge dead links
-			for node, link := range t.links {
-				// check link status
-				switch link.State() {
-				case "closed":
-					delLinks = append(delLinks, node)
-				case "error":
-					delLinks = append(delLinks, node)
-				}
+// manageLink sends channel discover requests periodically and
+// keepalive messages to link
+func (t *tun) manageLink(link *link) {
+	keepalive := time.NewTicker(KeepAliveTime)
+	defer keepalive.Stop()
+	discover := time.NewTicker(DiscoverTime)
+	defer discover.Stop()
+
+	for {
+		select {
+		case <-t.closed:
+			return
+		case <-link.closed:
+			return
+		case <-discover.C:
+			// send a discovery message to all links
+			if err := t.sendMsg("discover", link); err != nil {
+				log.Debugf("Tunnel failed to send discover to link %s: %v", link.Remote(), err)
 			}
-
-			t.RUnlock()
-
-			// delete the dead links
-			if len(delLinks) > 0 {
-				t.Lock()
-				for _, node := range delLinks {
-					log.Debugf("Tunnel deleting dead link for %s", node)
-					if link, ok := t.links[node]; ok {
-						link.Close()
-						delete(t.links, node)
-					}
-				}
-				t.Unlock()
-			}
-
-			// check current link status
-			var connect []string
-
-			// build list of unknown nodes to connect to
-			t.RLock()
-			for _, node := range t.options.Nodes {
-				if _, ok := t.links[node]; !ok {
-					connect = append(connect, node)
-				}
-			}
-			t.RUnlock()
-
-			for _, node := range connect {
-				// create new link
-				link, err := t.setupLink(node)
-				if err != nil {
-					log.Debugf("Tunnel failed to setup node link to %s: %v", node, err)
-					continue
-				}
-				// save the link
-				t.Lock()
-				t.links[node] = link
-				t.Unlock()
+		case <-keepalive.C:
+			// send keepalive message
+			log.Debugf("Tunnel sending keepalive to link: %v", link.Remote())
+			if err := t.sendMsg("keepalive", link); err != nil {
+				log.Debugf("Tunnel error sending keepalive to link %v: %v", link.Remote(), err)
+				t.delLink(link.Remote())
+				return
 			}
 		}
 	}
+}
+
+// manageLinks is a function that can be called to immediately to link setup
+func (t *tun) manageLinks() {
+	var delLinks []string
+
+	t.RLock()
+
+	// check the link status and purge dead links
+	for node, link := range t.links {
+		// check link status
+		switch link.State() {
+		case "closed":
+			delLinks = append(delLinks, node)
+		case "error":
+			delLinks = append(delLinks, node)
+		}
+	}
+
+	t.RUnlock()
+
+	// delete the dead links
+	if len(delLinks) > 0 {
+		t.Lock()
+		for _, node := range delLinks {
+			log.Debugf("Tunnel deleting dead link for %s", node)
+			if link, ok := t.links[node]; ok {
+				link.Close()
+				delete(t.links, node)
+			}
+		}
+		t.Unlock()
+	}
+
+	// check current link status
+	var connect []string
+
+	// build list of unknown nodes to connect to
+	t.RLock()
+
+	for _, node := range t.options.Nodes {
+		if _, ok := t.links[node]; !ok {
+			connect = append(connect, node)
+		}
+	}
+
+	t.RUnlock()
+
+	var wg sync.WaitGroup
+
+	for _, node := range connect {
+		wg.Add(1)
+
+		go func(node string) {
+			defer wg.Done()
+
+			// create new link
+			link, err := t.setupLink(node)
+			if err != nil {
+				log.Debugf("Tunnel failed to setup node link to %s: %v", node, err)
+				return
+			}
+
+			// save the link
+			t.Lock()
+			defer t.Unlock()
+
+			// just check nothing else was setup in the interim
+			if _, ok := t.links[node]; ok {
+				link.Close()
+				return
+			}
+			// save the link
+			t.links[node] = link
+		}(node)
+	}
+
+	// wait for all threads to finish
+	wg.Wait()
 }
 
 // process outgoing messages sent by all local sessions
@@ -328,6 +385,7 @@ func (t *tun) process() {
 				// and the message is being sent outbound via
 				// a dialled connection don't use this link
 				if loopback && msg.outbound {
+					log.Tracef("Link for node %s is loopback", node)
 					err = errors.New("link is loopback")
 					continue
 				}
@@ -335,6 +393,7 @@ func (t *tun) process() {
 				// if the message was being returned by the loopback listener
 				// send it back up the loopback link only
 				if msg.loopback && !loopback {
+					log.Tracef("Link for message %s is loopback", node)
 					err = errors.New("link is not loopback")
 					continue
 				}
@@ -364,7 +423,7 @@ func (t *tun) process() {
 			// send the message
 			for _, link := range sendTo {
 				// send the message via the current link
-				log.Tracef("Sending %+v to %s", newMsg.Header, link.Remote())
+				log.Tracef("Tunnel sending %+v to %s", newMsg.Header, link.Remote())
 
 				if errr := link.Send(newMsg); errr != nil {
 					log.Debugf("Tunnel error sending %+v to %s: %v", newMsg.Header, link.Remote(), errr)
@@ -470,6 +529,9 @@ func (t *tun) listen(link *link) {
 			return
 		}
 
+		// this state machine block handles the only message types
+		// that we know or care about; connect, close, open, accept,
+		// discover, announce, session, keepalive
 		switch mtype {
 		case "connect":
 			log.Debugf("Tunnel link %s received connect message", link.Remote())
@@ -495,14 +557,14 @@ func (t *tun) listen(link *link) {
 			t.links[link.Remote()] = link
 			t.Unlock()
 
-			// send back a discovery
+			// send back an announcement of our channels discovery
 			go t.announce("", "", link)
+			// ask for the things on the other wise
+			go t.sendMsg("discover", link)
 			// nothing more to do
 			continue
 		case "close":
-			// TODO: handle the close message
-			// maybe report io.EOF or kill the link
-
+			log.Debugf("Tunnel link %s received close message", link.Remote())
 			// if there is no channel then we close the link
 			// as its a signal from the other side to close the connection
 			if len(channel) == 0 {
@@ -521,6 +583,8 @@ func (t *tun) listen(link *link) {
 			// try get the dialing socket
 			s, exists := t.getSession(channel, sessionId)
 			if exists && !loopback {
+				// only delete the session if its unicast
+				// otherwise ignore close on the multicast
 				if s.mode == Unicast {
 					// only delete this if its unicast
 					// but not if its a loopback conn
@@ -541,20 +605,24 @@ func (t *tun) listen(link *link) {
 		// an accept returned by the listener
 		case "accept":
 			s, exists := t.getSession(channel, sessionId)
-			// we don't need this
+			// just set accepted on anything not unicast
 			if exists && s.mode > Unicast {
 				s.accepted = true
 				continue
 			}
+			// if its already accepted move on
 			if exists && s.accepted {
 				continue
 			}
+			// otherwise we're going to process to accept
 		// a continued session
 		case "session":
 			// process message
-			log.Tracef("Received %+v from %s", msg.Header, link.Remote())
+			log.Tracef("Tunnel received %+v from %s", msg.Header, link.Remote())
 		// an announcement of a channel listener
 		case "announce":
+			log.Tracef("Tunnel received %+v from %s", msg.Header, link.Remote())
+
 			// process the announcement
 			channels := strings.Split(channel, ",")
 
@@ -562,7 +630,10 @@ func (t *tun) listen(link *link) {
 			link.setChannel(channels...)
 
 			// this was an announcement not intended for anything
-			if sessionId == "listener" || sessionId == "" {
+			// if the dialing side sent "discover" then a session
+			// id would be present. We skip in case of multicast.
+			switch sessionId {
+			case "listener", "multicast", "":
 				continue
 			}
 
@@ -574,13 +645,18 @@ func (t *tun) listen(link *link) {
 					continue
 				}
 
-				// send the announce back to the caller
-				s.recv <- &message{
+				msg := &message{
 					typ:     "announce",
 					tunnel:  id,
 					channel: channel,
 					session: sessionId,
 					link:    link.id,
+				}
+
+				// send the announce back to the caller
+				select {
+				case <-s.closed:
+				case s.recv <- msg:
 				}
 			}
 			continue
@@ -618,7 +694,7 @@ func (t *tun) listen(link *link) {
 			s, exists = t.getSession(channel, "listener")
 		// only return accept to the session
 		case mtype == "accept":
-			log.Debugf("Received accept message for %s %s", channel, sessionId)
+			log.Debugf("Tunnel received accept message for channel: %s session: %s", channel, sessionId)
 			s, exists = t.getSession(channel, sessionId)
 			if exists && s.accepted {
 				continue
@@ -638,7 +714,7 @@ func (t *tun) listen(link *link) {
 
 		// bail if no session or listener has been found
 		if !exists {
-			log.Debugf("Tunnel skipping no session %s %s exists", channel, sessionId)
+			log.Tracef("Tunnel skipping no channel: %s session: %s exists", channel, sessionId)
 			// drop it, we don't care about
 			// messages we don't know about
 			continue
@@ -651,22 +727,10 @@ func (t *tun) listen(link *link) {
 			delete(t.sessions, channel)
 			continue
 		default:
-			// process
+			// otherwise process
 		}
 
-		log.Debugf("Tunnel using channel %s session %s", s.channel, s.session)
-
-		// is the session new?
-		select {
-		// if its new the session is actually blocked waiting
-		// for a connection. so we check if its waiting.
-		case <-s.wait:
-		// if its waiting e.g its new then we close it
-		default:
-			// set remote address of the session
-			s.remote = msg.Header["Remote"]
-			close(s.wait)
-		}
+		log.Tracef("Tunnel using channel: %s session: %s type: %s", s.channel, s.session, mtype)
 
 		// construct a new transport message
 		tmsg := &transport.Message{
@@ -696,68 +760,26 @@ func (t *tun) listen(link *link) {
 	}
 }
 
-// discover sends channel discover requests periodically
-func (t *tun) discover(link *link) {
-	tick := time.NewTicker(DiscoverTime)
-	defer tick.Stop()
-
-	for {
-		select {
-		case <-tick.C:
-			// send a discovery message to all links
-			if err := link.Send(&transport.Message{
-				Header: map[string]string{
-					"Micro-Tunnel":    "discover",
-					"Micro-Tunnel-Id": t.id,
-				},
-			}); err != nil {
-				log.Debugf("Tunnel failed to send discover to link %s: %v", link.Remote(), err)
-			}
-		case <-link.closed:
-			return
-		case <-t.closed:
-			return
-		}
-	}
-}
-
-// keepalive periodically sends keepalive messages to link
-func (t *tun) keepalive(link *link) {
-	keepalive := time.NewTicker(KeepAliveTime)
-	defer keepalive.Stop()
-
-	for {
-		select {
-		case <-t.closed:
-			return
-		case <-link.closed:
-			return
-		case <-keepalive.C:
-			// send keepalive message
-			log.Debugf("Tunnel sending keepalive to link: %v", link.Remote())
-			if err := link.Send(&transport.Message{
-				Header: map[string]string{
-					"Micro-Tunnel":    "keepalive",
-					"Micro-Tunnel-Id": t.id,
-				},
-			}); err != nil {
-				log.Debugf("Error sending keepalive to link %v: %v", link.Remote(), err)
-				t.delLink(link.Remote())
-				return
-			}
-		}
-	}
+func (t *tun) sendMsg(method string, link *link) error {
+	return link.Send(&transport.Message{
+		Header: map[string]string{
+			"Micro-Tunnel":    method,
+			"Micro-Tunnel-Id": t.id,
+		},
+	})
 }
 
 // setupLink connects to node and returns link if successful
 // It returns error if the link failed to be established
 func (t *tun) setupLink(node string) (*link, error) {
 	log.Debugf("Tunnel setting up link: %s", node)
+
 	c, err := t.options.Transport.Dial(node)
 	if err != nil {
 		log.Debugf("Tunnel failed to connect to %s: %v", node, err)
 		return nil, err
 	}
+
 	log.Debugf("Tunnel connected to %s", node)
 
 	// create a new link
@@ -766,12 +788,8 @@ func (t *tun) setupLink(node string) (*link, error) {
 	link.id = c.Remote()
 
 	// send the first connect message
-	if err := link.Send(&transport.Message{
-		Header: map[string]string{
-			"Micro-Tunnel":    "connect",
-			"Micro-Tunnel-Id": t.id,
-		},
-	}); err != nil {
+	if err := t.sendMsg("connect", link); err != nil {
+		link.Close()
 		return nil, err
 	}
 
@@ -782,37 +800,40 @@ func (t *tun) setupLink(node string) (*link, error) {
 	// process incoming messages
 	go t.listen(link)
 
-	// start keepalive monitor
-	go t.keepalive(link)
-
-	// discover things on the remote side
-	go t.discover(link)
+	// manage keepalives and discovery messages
+	go t.manageLink(link)
 
 	return link, nil
 }
 
 func (t *tun) setupLinks() {
+	var wg sync.WaitGroup
+
 	for _, node := range t.options.Nodes {
-		// skip zero length nodes
-		if len(node) == 0 {
-			continue
-		}
+		wg.Add(1)
 
-		// link already exists
-		if _, ok := t.links[node]; ok {
-			continue
-		}
+		go func(node string) {
+			defer wg.Done()
 
-		// connect to node and return link
-		link, err := t.setupLink(node)
-		if err != nil {
-			log.Debugf("Tunnel failed to establish node link to %s: %v", node, err)
-			continue
-		}
+			// we're not trying to fix existing links
+			if _, ok := t.links[node]; ok {
+				return
+			}
 
-		// save the link
-		t.links[node] = link
+			// create new link
+			link, err := t.setupLink(node)
+			if err != nil {
+				log.Debugf("Tunnel failed to setup node link to %s: %v", node, err)
+				return
+			}
+
+			// save the link
+			t.links[node] = link
+		}(node)
 	}
+
+	// wait for all threads to finish
+	wg.Wait()
 }
 
 // connect the tunnel to all the nodes and listen for incoming tunnel connections
@@ -833,11 +854,8 @@ func (t *tun) connect() error {
 			// create a new link
 			link := newLink(sock)
 
-			// start keepalive monitor
-			go t.keepalive(link)
-
-			// discover things on the remote side
-			go t.discover(link)
+			// manage the link
+			go t.manageLink(link)
 
 			// listen for inbound messages.
 			// only save the link once connected.
@@ -864,12 +882,13 @@ func (t *tun) Connect() error {
 
 	// already connected
 	if t.connected {
-		// setup links
+		// do it immediately
 		t.setupLinks()
+		// setup links
 		return nil
 	}
 
-	// send the connect message
+	// connect the tunnel: start the listener
 	if err := t.connect(); err != nil {
 		return err
 	}
@@ -879,15 +898,15 @@ func (t *tun) Connect() error {
 	// create new close channel
 	t.closed = make(chan bool)
 
-	// setup links
-	t.setupLinks()
-
 	// process outbound messages to be sent
 	// process sends to all links
 	go t.process()
 
-	// monitor links
-	go t.monitor()
+	// call setup before managing them
+	t.setupLinks()
+
+	// manage the links
+	go t.manage()
 
 	return nil
 }
@@ -1025,7 +1044,9 @@ func (t *tun) Dial(channel string, opts ...DialOption) (Session, error) {
 	// set the multicast option
 	c.mode = options.Mode
 	// set the dial timeout
-	c.timeout = options.Timeout
+	c.dialTimeout = options.Timeout
+	// set read timeout set to never
+	c.readTimeout = time.Duration(-1)
 
 	var links []*link
 	// did we measure the rtt
@@ -1052,7 +1073,7 @@ func (t *tun) Dial(channel string, opts ...DialOption) (Session, error) {
 
 	t.RUnlock()
 
-	// link not found
+	// link not found and one was specified so error out
 	if len(links) == 0 && len(options.Link) > 0 {
 		// delete session and return error
 		t.delSession(c.channel, c.session)
@@ -1061,15 +1082,14 @@ func (t *tun) Dial(channel string, opts ...DialOption) (Session, error) {
 	}
 
 	// discovered so set the link if not multicast
-	// TODO: pick the link efficiently based
-	// on link status and saturation.
 	if c.discovered && c.mode == Unicast {
 		// pickLink will pick the best link
 		link := t.pickLink(links)
+		// set the link
 		c.link = link.id
 	}
 
-	// shit fuck
+	// if its not already discovered we need to attempt to do so
 	if !c.discovered {
 		// piggy back roundtrip
 		nowRTT := time.Now()
@@ -1098,7 +1118,15 @@ func (t *tun) Dial(channel string, opts ...DialOption) (Session, error) {
 		}
 	}
 
-	// a unicast session so we call "open" and wait for an "accept"
+	// return early if its not unicast
+	// we will not call "open" for multicast
+	if c.mode != Unicast {
+		return c, nil
+	}
+
+	// Note: we go no further for multicast or broadcast.
+	// This is a unicast session so we call "open" and wait
+	// for an "accept"
 
 	// reset now in case we use it
 	now := time.Now()
@@ -1115,7 +1143,7 @@ func (t *tun) Dial(channel string, opts ...DialOption) (Session, error) {
 	d := time.Since(now)
 
 	// if we haven't measured the roundtrip do it now
-	if !measured && c.mode == Unicast {
+	if !measured {
 		// set the link time
 		t.RLock()
 		link, ok := t.links[c.link]
@@ -1134,7 +1162,11 @@ func (t *tun) Dial(channel string, opts ...DialOption) (Session, error) {
 func (t *tun) Listen(channel string, opts ...ListenOption) (Listener, error) {
 	log.Debugf("Tunnel listening on %s", channel)
 
-	var options ListenOptions
+	options := ListenOptions{
+		// Read timeout defaults to never
+		Timeout: time.Duration(-1),
+	}
+
 	for _, o := range opts {
 		o(&options)
 	}
@@ -1145,6 +1177,7 @@ func (t *tun) Listen(channel string, opts ...ListenOption) (Listener, error) {
 		return nil, errors.New("already listening on " + channel)
 	}
 
+	// delete function removes the session when closed
 	delFunc := func() {
 		t.delSession(channel, "listener")
 	}
@@ -1155,6 +1188,8 @@ func (t *tun) Listen(channel string, opts ...ListenOption) (Listener, error) {
 	c.local = channel
 	// set mode
 	c.mode = options.Mode
+	// set the timeout
+	c.readTimeout = options.Timeout
 
 	tl := &tunListener{
 		channel: channel,

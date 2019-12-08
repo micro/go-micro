@@ -2,7 +2,6 @@ package tunnel
 
 import (
 	"encoding/hex"
-	"errors"
 	"io"
 	"time"
 
@@ -30,8 +29,6 @@ type session struct {
 	send chan *message
 	// recv chan
 	recv chan *message
-	// wait until we have a connection
-	wait chan bool
 	// if the discovery worked
 	discovered bool
 	// if the session was accepted
@@ -42,8 +39,10 @@ type session struct {
 	loopback bool
 	// mode of the connection
 	mode Mode
-	// the timeout
-	timeout time.Duration
+	// the dial timeout
+	dialTimeout time.Duration
+	// the read timeout
+	readTimeout time.Duration
 	// the link on which this message was received
 	link string
 	// the error response
@@ -109,65 +108,114 @@ func (s *session) newMessage(typ string) *message {
 	}
 }
 
+func (s *session) sendMsg(msg *message) error {
+	select {
+	case <-s.closed:
+		return io.EOF
+	case s.send <- msg:
+		return nil
+	}
+}
+
+func (s *session) wait(msg *message) error {
+	// wait for an error response
+	select {
+	case err := <-msg.errChan:
+		if err != nil {
+			return err
+		}
+	case <-s.closed:
+		return io.EOF
+	}
+
+	return nil
+}
+
 // waitFor waits for the message type required until the timeout specified
 func (s *session) waitFor(msgType string, timeout time.Duration) (*message, error) {
 	now := time.Now()
 
-	after := func(timeout time.Duration) time.Duration {
+	after := func(timeout time.Duration) <-chan time.Time {
+		if timeout < time.Duration(0) {
+			return nil
+		}
+
+		// get the delta
 		d := time.Since(now)
+
 		// dial timeout minus time since
 		wait := timeout - d
 
 		if wait < time.Duration(0) {
-			return time.Duration(0)
+			wait = time.Duration(0)
 		}
 
-		return wait
+		return time.After(wait)
 	}
 
 	// wait for the message type
 	for {
 		select {
 		case msg := <-s.recv:
+			// there may be no message type
+			if len(msgType) == 0 {
+				return msg, nil
+			}
+
 			// ignore what we don't want
 			if msg.typ != msgType {
 				log.Debugf("Tunnel received non %s message in waiting for %s", msg.typ, msgType)
 				continue
 			}
+
 			// got the message
 			return msg, nil
-		case <-time.After(after(timeout)):
-			return nil, ErrDialTimeout
+		case <-after(timeout):
+			return nil, ErrReadTimeout
 		case <-s.closed:
 			return nil, io.EOF
 		}
 	}
 }
 
-// Discover attempts to discover the link for a specific channel
+// Discover attempts to discover the link for a specific channel.
+// This is only used by the tunnel.Dial when first connecting.
 func (s *session) Discover() error {
 	// create a new discovery message for this channel
 	msg := s.newMessage("discover")
+	// broadcast the message to all links
 	msg.mode = Broadcast
+	// its an outbound connection since we're dialling
 	msg.outbound = true
+	// don't set the link since we don't know where it is
 	msg.link = ""
 
-	// send the discovery message
-	s.send <- msg
+	// if multicast then set that as session
+	if s.mode == Multicast {
+		msg.session = "multicast"
+	}
+
+	// send discover message
+	if err := s.sendMsg(msg); err != nil {
+		return err
+	}
 
 	// set time now
 	now := time.Now()
 
+	// after strips down the dial timeout
 	after := func() time.Duration {
 		d := time.Since(now)
 		// dial timeout minus time since
-		wait := s.timeout - d
+		wait := s.dialTimeout - d
+		// make sure its always > 0
 		if wait < time.Duration(0) {
 			return time.Duration(0)
 		}
 		return wait
 	}
 
+	// the discover message is sent out, now
 	// wait to hear back about the sent message
 	select {
 	case <-time.After(after()):
@@ -178,27 +226,16 @@ func (s *session) Discover() error {
 		}
 	}
 
-	var err error
-
-	// set a new dialTimeout
-	dialTimeout := after()
-
-	// set a shorter delay for multicast
-	if s.mode != Unicast {
-		// shorten this
-		dialTimeout = time.Millisecond * 500
-	}
-
-	// wait for announce
-	_, err = s.waitFor("announce", dialTimeout)
-
-	// if its multicast just go ahead because this is best effort
+	// bail early if its not unicast
+	// we don't need to wait for the announce
 	if s.mode != Unicast {
 		s.discovered = true
 		s.accepted = true
 		return nil
 	}
 
+	// wait for announce
+	_, err := s.waitFor("announce", after())
 	if err != nil {
 		return err
 	}
@@ -210,31 +247,23 @@ func (s *session) Discover() error {
 }
 
 // Open will fire the open message for the session. This is called by the dialler.
+// This is to indicate that we want to create a new session.
 func (s *session) Open() error {
 	// create a new message
 	msg := s.newMessage("open")
 
 	// send open message
-	s.send <- msg
+	if err := s.sendMsg(msg); err != nil {
+		return err
+	}
 
 	// wait for an error response for send
-	select {
-	case err := <-msg.errChan:
-		if err != nil {
-			return err
-		}
-	case <-s.closed:
-		return io.EOF
+	if err := s.wait(msg); err != nil {
+		return err
 	}
 
-	// don't wait on multicast/broadcast
-	if s.mode == Multicast {
-		s.accepted = true
-		return nil
-	}
-
-	// now wait for the accept
-	msg, err := s.waitFor("accept", s.timeout)
+	// now wait for the accept message to be returned
+	msg, err := s.waitFor("accept", s.dialTimeout)
 	if err != nil {
 		return err
 	}
@@ -252,32 +281,16 @@ func (s *session) Accept() error {
 	msg := s.newMessage("accept")
 
 	// send the accept message
-	select {
-	case <-s.closed:
-		return io.EOF
-	case s.send <- msg:
-		// no op here
-	}
-
-	// don't wait on multicast/broadcast
-	if s.mode == Multicast {
-		return nil
+	if err := s.sendMsg(msg); err != nil {
+		return err
 	}
 
 	// wait for send response
-	select {
-	case err := <-s.errChan:
-		if err != nil {
-			return err
-		}
-	case <-s.closed:
-		return io.EOF
-	}
-
-	return nil
+	return s.wait(msg)
 }
 
-// Announce sends an announcement to notify that this session exists. This is primarily used by the listener.
+// Announce sends an announcement to notify that this session exists.
+// This is primarily used by the listener.
 func (s *session) Announce() error {
 	msg := s.newMessage("announce")
 	// we don't need an error back
@@ -287,23 +300,12 @@ func (s *session) Announce() error {
 	// we don't need the link
 	msg.link = ""
 
-	select {
-	case s.send <- msg:
-		return nil
-	case <-s.closed:
-		return io.EOF
-	}
+	// send announce message
+	return s.sendMsg(msg)
 }
 
 // Send is used to send a message
 func (s *session) Send(m *transport.Message) error {
-	select {
-	case <-s.closed:
-		return io.EOF
-	default:
-		// no op
-	}
-
 	// encrypt the transport message payload
 	body, err := Encrypt(m.Body, s.token+s.channel+s.session)
 	if err != nil {
@@ -335,32 +337,28 @@ func (s *session) Send(m *transport.Message) error {
 	msg.data = data
 
 	// if multicast don't set the link
-	if s.mode == Multicast {
+	if s.mode != Unicast {
 		msg.link = ""
 	}
 
 	log.Tracef("Appending %+v to send backlog", msg)
+
 	// send the actual message
-	s.send <- msg
+	if err := s.sendMsg(msg); err != nil {
+		return err
+	}
 
 	// wait for an error response
-	select {
-	case err := <-msg.errChan:
-		return err
-	case <-s.closed:
-		return io.EOF
-	}
+	return s.wait(msg)
 }
 
 // Recv is used to receive a message
 func (s *session) Recv(m *transport.Message) error {
 	var msg *message
 
-	select {
-	case <-s.closed:
-		return errors.New("session is closed")
-	// recv from backlog
-	case msg = <-s.recv:
+	msg, err := s.waitFor("", s.readTimeout)
+	if err != nil {
+		return err
 	}
 
 	// check the error if one exists
@@ -371,10 +369,13 @@ func (s *session) Recv(m *transport.Message) error {
 	}
 
 	//log.Tracef("Received %+v from recv backlog", msg)
-	log.Debugf("Received %+v from recv backlog", msg)
+	log.Tracef("Received %+v from recv backlog", msg)
 
 	// decrypt the received payload using the token
-	body, err := Decrypt(msg.data.Body, s.token+s.channel+s.session)
+	// we have to used msg.session because multicast has a shared
+	// session id of "multicast" in this session struct on
+	// the listener side
+	body, err := Decrypt(msg.data.Body, s.token+s.channel+msg.session)
 	if err != nil {
 		log.Debugf("failed to decrypt message body: %v", err)
 		return err
@@ -390,7 +391,7 @@ func (s *session) Recv(m *transport.Message) error {
 			return err
 		}
 		// encrypt the transport message payload
-		val, err := Decrypt([]byte(h), s.token+s.channel+s.session)
+		val, err := Decrypt([]byte(h), s.token+s.channel+msg.session)
 		if err != nil {
 			log.Debugf("failed to decrypt message header %s: %v", k, err)
 			return err
@@ -398,6 +399,12 @@ func (s *session) Recv(m *transport.Message) error {
 		// hex encode the encrypted header value
 		msg.data.Header[k] = string(val)
 	}
+
+	// set the link
+	// TODO: decruft, this is only for multicast
+	// since the session is now a single session
+	// likely provide as part of message.Link()
+	msg.data.Header["Micro-Link"] = msg.link
 
 	// set message
 	*m = *msg.data
@@ -413,6 +420,11 @@ func (s *session) Close() error {
 	default:
 		close(s.closed)
 
+		// don't send close on multicast or broadcast
+		if s.mode != Unicast {
+			return nil
+		}
+
 		// append to backlog
 		msg := s.newMessage("close")
 		// no error response on close
@@ -421,7 +433,7 @@ func (s *session) Close() error {
 		// send the close message
 		select {
 		case s.send <- msg:
-		default:
+		case <-time.After(time.Millisecond * 10):
 		}
 	}
 
