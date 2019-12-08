@@ -3,6 +3,7 @@ package micro
 import (
 	"os"
 	"os/signal"
+	"runtime"
 	"strings"
 	"sync"
 	"syscall"
@@ -10,6 +11,7 @@ import (
 	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/config/cmd"
 	"github.com/micro/go-micro/debug/profile"
+	"github.com/micro/go-micro/debug/profile/http"
 	"github.com/micro/go-micro/debug/profile/pprof"
 	"github.com/micro/go-micro/debug/service/handler"
 	"github.com/micro/go-micro/plugin"
@@ -151,12 +153,25 @@ func (s *service) Run() error {
 	// start the profiler
 	// TODO: set as an option to the service, don't just use pprof
 	if prof := os.Getenv("MICRO_DEBUG_PROFILE"); len(prof) > 0 {
-		service := s.opts.Server.Options().Name
-		version := s.opts.Server.Options().Version
-		id := s.opts.Server.Options().Id
-		profiler := pprof.NewProfile(
-			profile.Name(service + "." + version + "." + id),
-		)
+		var profiler profile.Profile
+
+		// to view mutex contention
+		runtime.SetMutexProfileFraction(5)
+		// to view blocking profile
+		runtime.SetBlockProfileRate(1)
+
+		switch prof {
+		case "http":
+			profiler = http.NewProfile()
+		default:
+			service := s.opts.Server.Options().Name
+			version := s.opts.Server.Options().Version
+			id := s.opts.Server.Options().Id
+			profiler = pprof.NewProfile(
+				profile.Name(service + "." + version + "." + id),
+			)
+		}
+
 		if err := profiler.Start(); err != nil {
 			return err
 		}

@@ -107,6 +107,10 @@ func (p *profiler) Stop() error {
 	}
 }
 
+func (p *profiler) String() string {
+	return "pprof"
+}
+
 func NewProfile(opts ...profile.Option) profile.Profile {
 	var options profile.Options
 	for _, o := range opts {
