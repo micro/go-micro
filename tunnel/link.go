@@ -200,6 +200,8 @@ func (l *link) process() {
 				// process link state message
 				select {
 				case l.state <- pk:
+				case <-l.closed:
+					return
 				default:
 				}
 				continue
@@ -221,7 +223,11 @@ func (l *link) process() {
 		select {
 		case pk := <-l.sendQueue:
 			// send the message
-			pk.status <- l.send(pk.message)
+			select {
+			case pk.status <- l.send(pk.message):
+			case <-l.closed:
+				return
+			}
 		case <-l.closed:
 			return
 		}
@@ -387,13 +393,6 @@ func (l *link) Send(m *transport.Message) error {
 
 	// get time now
 	now := time.Now()
-
-	// check if its closed first
-	select {
-	case <-l.closed:
-		return io.EOF
-	default:
-	}
 
 	// queue the message
 	select {

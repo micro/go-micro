@@ -1145,8 +1145,6 @@ func (n *network) connect() {
 			n.sendConnect()
 		}
 
-		log.Tracef("connected %v discovered %v backoff %v\n", connected, discovered, backoff.Do(attempts))
-
 		// check if we've been discovered
 		select {
 		case <-n.discovered:
