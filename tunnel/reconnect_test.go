@@ -9,15 +9,19 @@ import (
 )
 
 func TestReconnectTunnel(t *testing.T) {
+	// we manually override the tunnel.ReconnectTime value here
+	// this is so that we make the reconnects faster than the default 5s
+	ReconnectTime = 100 * time.Millisecond
+
 	// create a new tunnel client
 	tunA := NewTunnel(
-		Address("127.0.0.1:9096"),
-		Nodes("127.0.0.1:9097"),
+		Address("127.0.0.1:9098"),
+		Nodes("127.0.0.1:9099"),
 	)
 
 	// create a new tunnel server
 	tunB := NewTunnel(
-		Address("127.0.0.1:9097"),
+		Address("127.0.0.1:9099"),
 	)
 
 	// start tunnel
@@ -26,10 +30,6 @@ func TestReconnectTunnel(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer tunB.Close()
-
-	// we manually override the tunnel.ReconnectTime value here
-	// this is so that we make the reconnects faster than the default 5s
-	ReconnectTime = 200 * time.Millisecond
 
 	// start tunnel
 	err = tunA.Connect()
@@ -48,7 +48,7 @@ func TestReconnectTunnel(t *testing.T) {
 
 	wg.Add(1)
 	// start tunnel sender
-	go testBrokenTunSend(t, tunA, wait, &wg)
+	go testBrokenTunSend(t, tunA, wait, &wg, ReconnectTime)
 
 	// wait until done
 	wg.Wait()

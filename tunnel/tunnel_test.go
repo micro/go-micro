@@ -206,7 +206,7 @@ func testBrokenTunAccept(t *testing.T, tun Tunnel, wait chan bool, wg *sync.Wait
 	wait <- true
 }
 
-func testBrokenTunSend(t *testing.T, tun Tunnel, wait chan bool, wg *sync.WaitGroup) {
+func testBrokenTunSend(t *testing.T, tun Tunnel, wait chan bool, wg *sync.WaitGroup, reconnect time.Duration) {
 	defer wg.Done()
 
 	// wait for the listener to get ready
@@ -234,7 +234,7 @@ func testBrokenTunSend(t *testing.T, tun Tunnel, wait chan bool, wg *sync.WaitGr
 	<-wait
 
 	// give it time to reconnect
-	time.Sleep(5 * ReconnectTime)
+	time.Sleep(10 * reconnect)
 
 	// send the message
 	if err := c.Send(&m); err != nil {

@@ -202,7 +202,7 @@ func (t *tun) manage() {
 	reconnect := time.NewTicker(ReconnectTime)
 	defer reconnect.Stop()
 
-	// do it immediately
+	// do immediately
 	t.manageLinks()
 
 	for {
@@ -211,6 +211,47 @@ func (t *tun) manage() {
 			return
 		case <-reconnect.C:
 			t.manageLinks()
+		}
+	}
+}
+
+// manageLink sends channel discover requests periodically and
+// keepalive messages to link
+func (t *tun) manageLink(link *link) {
+	keepalive := time.NewTicker(KeepAliveTime)
+	defer keepalive.Stop()
+	discover := time.NewTicker(DiscoverTime)
+	defer discover.Stop()
+
+	for {
+		select {
+		case <-t.closed:
+			return
+		case <-link.closed:
+			return
+		case <-discover.C:
+			// send a discovery message to all links
+			if err := link.Send(&transport.Message{
+				Header: map[string]string{
+					"Micro-Tunnel":    "discover",
+					"Micro-Tunnel-Id": t.id,
+				},
+			}); err != nil {
+				log.Debugf("Tunnel failed to send discover to link %s: %v", link.Remote(), err)
+			}
+		case <-keepalive.C:
+			// send keepalive message
+			log.Debugf("Tunnel sending keepalive to link: %v", link.Remote())
+			if err := link.Send(&transport.Message{
+				Header: map[string]string{
+					"Micro-Tunnel":    "keepalive",
+					"Micro-Tunnel-Id": t.id,
+				},
+			}); err != nil {
+				log.Debugf("Tunnel error sending keepalive to link %v: %v", link.Remote(), err)
+				t.delLink(link.Remote())
+				return
+			}
 		}
 	}
 }
@@ -278,8 +319,15 @@ func (t *tun) manageLinks() {
 
 			// save the link
 			t.Lock()
+			defer t.Unlock()
+
+			// just check nothing else was setup in the interim
+			if _, ok := t.links[node]; ok {
+				link.Close()
+				return
+			}
+			// save the link
 			t.links[node] = link
-			t.Unlock()
 		}(node)
 	}
 
@@ -723,59 +771,6 @@ func (t *tun) listen(link *link) {
 	}
 }
 
-// discover sends channel discover requests periodically
-func (t *tun) discover(link *link) {
-	tick := time.NewTicker(DiscoverTime)
-	defer tick.Stop()
-
-	for {
-		select {
-		case <-tick.C:
-			// send a discovery message to all links
-			if err := link.Send(&transport.Message{
-				Header: map[string]string{
-					"Micro-Tunnel":    "discover",
-					"Micro-Tunnel-Id": t.id,
-				},
-			}); err != nil {
-				log.Debugf("Tunnel failed to send discover to link %s: %v", link.Remote(), err)
-			}
-		case <-link.closed:
-			return
-		case <-t.closed:
-			return
-		}
-	}
-}
-
-// keepalive periodically sends keepalive messages to link
-func (t *tun) keepalive(link *link) {
-	keepalive := time.NewTicker(KeepAliveTime)
-	defer keepalive.Stop()
-
-	for {
-		select {
-		case <-t.closed:
-			return
-		case <-link.closed:
-			return
-		case <-keepalive.C:
-			// send keepalive message
-			log.Debugf("Tunnel sending keepalive to link: %v", link.Remote())
-			if err := link.Send(&transport.Message{
-				Header: map[string]string{
-					"Micro-Tunnel":    "keepalive",
-					"Micro-Tunnel-Id": t.id,
-				},
-			}); err != nil {
-				log.Debugf("Tunnel error sending keepalive to link %v: %v", link.Remote(), err)
-				t.delLink(link.Remote())
-				return
-			}
-		}
-	}
-}
-
 // setupLink connects to node and returns link if successful
 // It returns error if the link failed to be established
 func (t *tun) setupLink(node string) (*link, error) {
@@ -812,11 +807,8 @@ func (t *tun) setupLink(node string) (*link, error) {
 	// process incoming messages
 	go t.listen(link)
 
-	// start keepalive monitor
-	go t.keepalive(link)
-
-	// discover things on the remote side
-	go t.discover(link)
+	// manage keepalives and discovery messages
+	go t.manageLink(link)
 
 	return link, nil
 }
@@ -839,11 +831,8 @@ func (t *tun) connect() error {
 			// create a new link
 			link := newLink(sock)
 
-			// start keepalive monitor
-			go t.keepalive(link)
-
-			// discover things on the remote side
-			go t.discover(link)
+			// manage the link
+			go t.manageLink(link)
 
 			// listen for inbound messages.
 			// only save the link once connected.
@@ -870,6 +859,8 @@ func (t *tun) Connect() error {
 
 	// already connected
 	if t.connected {
+		// do it immediately
+		t.manageLinks()
 		// setup links
 		return nil
 	}
@@ -884,12 +875,12 @@ func (t *tun) Connect() error {
 	// create new close channel
 	t.closed = make(chan bool)
 
-	// manage the links
-	go t.manage()
-
 	// process outbound messages to be sent
 	// process sends to all links
 	go t.process()
+
+	// manage the links
+	go t.manage()
 
 	return nil
 }

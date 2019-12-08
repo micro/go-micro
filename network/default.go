@@ -202,6 +202,18 @@ func (n *network) Name() string {
 	return n.options.Name
 }
 
+func (n *network) initNodes() {
+	nodes, err := n.resolveNodes()
+	if err != nil {
+		log.Debugf("Network failed to resolve nodes: %v", err)
+		return
+	}
+	// initialize the tunnel
+	n.tunnel.Init(
+		tunnel.Nodes(nodes...),
+	)
+}
+
 // resolveNodes resolves network nodes to addresses
 func (n *network) resolveNodes() ([]string, error) {
 	// resolve the network address to network nodes
@@ -251,29 +263,6 @@ func (n *network) resolveNodes() ([]string, error) {
 	}
 
 	return nodes, err
-}
-
-// resolve continuously resolves network nodes and initializes network tunnel with resolved addresses
-func (n *network) resolve() {
-	resolve := time.NewTicker(ResolveTime)
-	defer resolve.Stop()
-
-	for {
-		select {
-		case <-n.closed:
-			return
-		case <-resolve.C:
-			nodes, err := n.resolveNodes()
-			if err != nil {
-				log.Debugf("Network failed to resolve nodes: %v", err)
-				continue
-			}
-			// initialize the tunnel
-			n.tunnel.Init(
-				tunnel.Nodes(nodes...),
-			)
-		}
-	}
 }
 
 // handleNetConn handles network announcement messages
@@ -565,12 +554,14 @@ func (n *network) prunePeerRoutes(peer *node) error {
 
 // manage the process of announcing to peers and prune any peer nodes that have not been
 // seen for a period of time. Also removes all the routes either originated by or routable
-//by the stale nodes
+//by the stale nodes. it also resolves nodes periodically and adds them to the tunnel
 func (n *network) manage() {
 	announce := time.NewTicker(AnnounceTime)
 	defer announce.Stop()
 	prune := time.NewTicker(PruneTime)
 	defer prune.Stop()
+	resolve := time.NewTicker(ResolveTime)
+	defer resolve.Stop()
 
 	for {
 		select {
@@ -584,11 +575,14 @@ func (n *network) manage() {
 			}
 		case <-prune.C:
 			pruned := n.PruneStalePeers(PruneTime)
+
 			for id, peer := range pruned {
 				log.Debugf("Network peer exceeded prune time: %s", id)
+
 				n.Lock()
 				delete(n.peerLinks, peer.address)
 				n.Unlock()
+
 				if err := n.prunePeerRoutes(peer); err != nil {
 					log.Debugf("Network failed pruning peer %s routes: %v", id, err)
 				}
@@ -622,6 +616,8 @@ func (n *network) manage() {
 					log.Debugf("Network failed deleting routes by %s: %v", route.Router, err)
 				}
 			}
+		case <-resolve.C:
+			n.initNodes()
 		}
 	}
 }
@@ -1165,25 +1161,19 @@ func (n *network) Connect() error {
 	n.Lock()
 	defer n.Unlock()
 
-	// try to resolve network nodes
-	nodes, err := n.resolveNodes()
-	if err != nil {
-		log.Debugf("Network failed to resolve nodes: %v", err)
-	}
-
-	// initialize the tunnel to resolved nodes
-	n.tunnel.Init(
-		tunnel.Nodes(nodes...),
-	)
-
 	// connect network tunnel
 	if err := n.tunnel.Connect(); err != nil {
-		n.Unlock()
 		return err
 	}
 
+	// initialise the nodes
+	n.initNodes()
+
 	// return if already connected
 	if n.connected {
+		// immediately resolve
+		initNodes()
+
 		// send the connect message
 		n.sendConnect()
 		return nil
@@ -1250,11 +1240,9 @@ func (n *network) Connect() error {
 		return err
 	}
 
-	// send connect after there's a link established
+	// manage connection once links are established
 	go n.connect()
-	// resolve network nodes and re-init the tunnel
-	go n.resolve()
-	// broadcast announcements and prune stale nodes
+	// resolve nodes, broadcast announcements and prune stale nodes
 	go n.manage()
 	// advertise service routes
 	go n.advertise(advertChan)

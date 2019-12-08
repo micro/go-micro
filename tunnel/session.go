@@ -420,7 +420,7 @@ func (s *session) Close() error {
 	default:
 		close(s.closed)
 
-		// don't send close on multicast
+		// don't send close on multicast or broadcast
 		if s.mode != Unicast {
 			return nil
 		}
