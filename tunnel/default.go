@@ -266,7 +266,7 @@ func (t *tun) manageLinks() {
 	for _, node := range connect {
 		wg.Add(1)
 
-		go func() {
+		go func(node string) {
 			defer wg.Done()
 
 			// create new link
@@ -280,7 +280,7 @@ func (t *tun) manageLinks() {
 			t.Lock()
 			t.links[node] = link
 			t.Unlock()
-		}()
+		}(node)
 	}
 
 	// wait for all threads to finish
@@ -801,6 +801,7 @@ func (t *tun) setupLink(node string) (*link, error) {
 			"Micro-Tunnel-Id": t.id,
 		},
 	}); err != nil {
+		link.Close()
 		return nil, err
 	}
 

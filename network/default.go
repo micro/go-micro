@@ -379,9 +379,8 @@ func (n *network) processNetChan(listener tunnel.Listener) {
 				}
 
 				// update peer links
-				log.Tracef("Network updating peer link %s for peer: %s", m.session.Link(), pbNetConnect.Node.Address)
 
-				if err := n.updatePeerLinks(pbNetConnect.Node.Address, m.session.Link()); err != nil {
+				if err := n.updatePeerLinks(pbNetConnect.Node.Address, m); err != nil {
 					log.Debugf("Network failed updating peer links: %s", err)
 				}
 
@@ -443,9 +442,8 @@ func (n *network) processNetChan(listener tunnel.Listener) {
 				}
 
 				// update peer links
-				log.Tracef("Network updating peer link %s for peer: %s", m.session.Link(), pbNetPeer.Node.Address)
 
-				if err := n.updatePeerLinks(pbNetPeer.Node.Address, m.session.Link()); err != nil {
+				if err := n.updatePeerLinks(pbNetPeer.Node.Address, m); err != nil {
 					log.Debugf("Network failed updating peer links: %s", err)
 				}
 
@@ -680,9 +678,11 @@ func (n *network) sendMsg(method, channel string, msg proto.Message) error {
 }
 
 // updatePeerLinks updates link for a given peer
-func (n *network) updatePeerLinks(peerAddr string, linkId string) error {
+func (n *network) updatePeerLinks(peerAddr string, m *message) error {
 	n.Lock()
 	defer n.Unlock()
+
+	linkId := m.msg.Header["Micro-Link"]
 
 	log.Tracef("Network looking up link %s in the peer links", linkId)
 

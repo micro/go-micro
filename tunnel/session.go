@@ -400,6 +400,12 @@ func (s *session) Recv(m *transport.Message) error {
 		msg.data.Header[k] = string(val)
 	}
 
+	// set the link
+	// TODO: decruft, this is only for multicast
+	// since the session is now a single session
+	// likely provide as part of message.Link()
+	msg.data.Header["Micro-Link"] = msg.link
+
 	// set message
 	*m = *msg.data
 	// return nil

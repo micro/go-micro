@@ -65,12 +65,24 @@ func (t *tunListener) process() {
 			return
 		// receive a new message
 		case m := <-t.session.recv:
-			// session id
-			sessionId := m.session
+			var sessionId string
+			var linkId string
+
+			switch m.mode {
+			case Multicast:
+				sessionId = "multicast"
+				linkId = "multicast"
+			case Broadcast:
+				sessionId = "broadcast"
+				linkId = "broadcast"
+			default:
+				sessionId = m.session
+				linkId = m.link
+			}
 
 			// get a session
 			sess, ok := conns[sessionId]
-			log.Tracef("Tunnel listener received channel %s session %s type %s exists: %t", m.channel, sessionId, m.typ, ok)
+			log.Tracef("Tunnel listener received channel %s session %s type %s exists: %t", m.channel, m.session, m.typ, ok)
 			if !ok {
 				// we only process open and session types
 				switch m.typ {
@@ -92,7 +104,7 @@ func (t *tunListener) process() {
 					// is loopback conn
 					loopback: m.loopback,
 					// the link the message was received on
-					link: m.link,
+					link: linkId,
 					// set the connection mode
 					mode: m.mode,
 					// close chan
