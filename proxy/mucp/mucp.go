@@ -164,7 +164,7 @@ func (p *Proxy) filterRoutes(ctx context.Context, routes []router.Route) []route
 		filteredRoutes = append(filteredRoutes, route)
 	}
 
-	log.Tracef("Proxy filtered routes %+v vs %+v\n", routes, filteredRoutes)
+	log.Tracef("Proxy filtered routes %+v\n", filteredRoutes)
 
 	return filteredRoutes
 }
