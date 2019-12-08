@@ -202,9 +202,6 @@ func (t *tun) manage() {
 	reconnect := time.NewTicker(ReconnectTime)
 	defer reconnect.Stop()
 
-	// do immediately
-	t.manageLinks()
-
 	for {
 		select {
 		case <-t.closed:
@@ -231,23 +228,13 @@ func (t *tun) manageLink(link *link) {
 			return
 		case <-discover.C:
 			// send a discovery message to all links
-			if err := link.Send(&transport.Message{
-				Header: map[string]string{
-					"Micro-Tunnel":    "discover",
-					"Micro-Tunnel-Id": t.id,
-				},
-			}); err != nil {
+			if err := t.sendMsg("discover", link); err != nil {
 				log.Debugf("Tunnel failed to send discover to link %s: %v", link.Remote(), err)
 			}
 		case <-keepalive.C:
 			// send keepalive message
 			log.Debugf("Tunnel sending keepalive to link: %v", link.Remote())
-			if err := link.Send(&transport.Message{
-				Header: map[string]string{
-					"Micro-Tunnel":    "keepalive",
-					"Micro-Tunnel-Id": t.id,
-				},
-			}); err != nil {
+			if err := t.sendMsg("keepalive", link); err != nil {
 				log.Debugf("Tunnel error sending keepalive to link %v: %v", link.Remote(), err)
 				t.delLink(link.Remote())
 				return
@@ -570,8 +557,10 @@ func (t *tun) listen(link *link) {
 			t.links[link.Remote()] = link
 			t.Unlock()
 
-			// send back a discovery
+			// send back an announcement of our channels discovery
 			go t.announce("", "", link)
+			// ask for the things on the other wise
+			go t.sendMsg("discover", link)
 			// nothing more to do
 			continue
 		case "close":
@@ -771,6 +760,15 @@ func (t *tun) listen(link *link) {
 	}
 }
 
+func (t *tun) sendMsg(method string, link *link) error {
+	return link.Send(&transport.Message{
+		Header: map[string]string{
+			"Micro-Tunnel":    method,
+			"Micro-Tunnel-Id": t.id,
+		},
+	})
+}
+
 // setupLink connects to node and returns link if successful
 // It returns error if the link failed to be established
 func (t *tun) setupLink(node string) (*link, error) {
@@ -790,12 +788,7 @@ func (t *tun) setupLink(node string) (*link, error) {
 	link.id = c.Remote()
 
 	// send the first connect message
-	if err := link.Send(&transport.Message{
-		Header: map[string]string{
-			"Micro-Tunnel":    "connect",
-			"Micro-Tunnel-Id": t.id,
-		},
-	}); err != nil {
+	if err := t.sendMsg("connect", link); err != nil {
 		link.Close()
 		return nil, err
 	}
@@ -811,6 +804,36 @@ func (t *tun) setupLink(node string) (*link, error) {
 	go t.manageLink(link)
 
 	return link, nil
+}
+
+func (t *tun) setupLinks() {
+	var wg sync.WaitGroup
+
+	for _, node := range t.options.Nodes {
+		wg.Add(1)
+
+		go func(node string) {
+			defer wg.Done()
+
+			// we're not trying to fix existing links
+			if _, ok := t.links[node]; ok {
+				return
+			}
+
+			// create new link
+			link, err := t.setupLink(node)
+			if err != nil {
+				log.Debugf("Tunnel failed to setup node link to %s: %v", node, err)
+				return
+			}
+
+			// save the link
+			t.links[node] = link
+		}(node)
+	}
+
+	// wait for all threads to finish
+	wg.Wait()
 }
 
 // connect the tunnel to all the nodes and listen for incoming tunnel connections
@@ -860,7 +883,7 @@ func (t *tun) Connect() error {
 	// already connected
 	if t.connected {
 		// do it immediately
-		t.manageLinks()
+		t.setupLinks()
 		// setup links
 		return nil
 	}
@@ -878,6 +901,9 @@ func (t *tun) Connect() error {
 	// process outbound messages to be sent
 	// process sends to all links
 	go t.process()
+
+	// call setup before managing them
+	t.setupLinks()
 
 	// manage the links
 	go t.manage()
