@@ -202,13 +202,16 @@ func (n *network) Name() string {
 	return n.options.Name
 }
 
-func (n *network) initNodes() {
+func (n *network) initNodes(startup bool) {
 	nodes, err := n.resolveNodes()
-	if err != nil {
+	if err != nil && !startup {
 		log.Debugf("Network failed to resolve nodes: %v", err)
 		return
 	}
+
 	// initialize the tunnel
+	log.Tracef("Network initialising nodes %+v\n", nodes)
+
 	n.tunnel.Init(
 		tunnel.Nodes(nodes...),
 	)
@@ -218,6 +221,11 @@ func (n *network) initNodes() {
 func (n *network) resolveNodes() ([]string, error) {
 	// resolve the network address to network nodes
 	records, err := n.options.Resolver.Resolve(n.options.Name)
+	if err != nil {
+		log.Debugf("Network failed to resolve nodes: %v", err)
+	}
+
+	// keep processing
 
 	nodeMap := make(map[string]bool)
 
@@ -262,7 +270,7 @@ func (n *network) resolveNodes() ([]string, error) {
 		}
 	}
 
-	return nodes, err
+	return nodes, nil
 }
 
 // handleNetConn handles network announcement messages
@@ -617,7 +625,7 @@ func (n *network) manage() {
 				}
 			}
 		case <-resolve.C:
-			n.initNodes()
+			n.initNodes(false)
 		}
 	}
 }
@@ -1137,6 +1145,8 @@ func (n *network) connect() {
 			n.sendConnect()
 		}
 
+		log.Tracef("connected %v discovered %v backoff %v\n", connected, discovered, backoff.Do(attempts))
+
 		// check if we've been discovered
 		select {
 		case <-n.discovered:
@@ -1166,18 +1176,17 @@ func (n *network) Connect() error {
 		return err
 	}
 
-	// initialise the nodes
-	n.initNodes()
-
 	// return if already connected
 	if n.connected {
-		// immediately resolve
-		n.initNodes()
-
+		// initialise the nodes
+		n.initNodes(false)
 		// send the connect message
-		n.sendConnect()
+		go n.sendConnect()
 		return nil
 	}
+
+	// initialise the nodes
+	n.initNodes(true)
 
 	// set our internal node address
 	// if advertise address is not set
@@ -1185,13 +1194,15 @@ func (n *network) Connect() error {
 		n.server.Init(server.Advertise(n.tunnel.Address()))
 	}
 
-	// dial into ControlChannel to send route adverts
-	ctrlClient, err := n.tunnel.Dial(ControlChannel, tunnel.DialMode(tunnel.Multicast))
+	// listen on NetworkChannel
+	netListener, err := n.tunnel.Listen(
+		NetworkChannel,
+		tunnel.ListenMode(tunnel.Multicast),
+		tunnel.ListenTimeout(AnnounceTime*2),
+	)
 	if err != nil {
 		return err
 	}
-
-	n.tunClient[ControlChannel] = ctrlClient
 
 	// listen on ControlChannel
 	ctrlListener, err := n.tunnel.Listen(
@@ -1203,6 +1214,14 @@ func (n *network) Connect() error {
 		return err
 	}
 
+	// dial into ControlChannel to send route adverts
+	ctrlClient, err := n.tunnel.Dial(ControlChannel, tunnel.DialMode(tunnel.Multicast))
+	if err != nil {
+		return err
+	}
+
+	n.tunClient[ControlChannel] = ctrlClient
+
 	// dial into NetworkChannel to send network messages
 	netClient, err := n.tunnel.Dial(NetworkChannel, tunnel.DialMode(tunnel.Multicast))
 	if err != nil {
@@ -1210,16 +1229,6 @@ func (n *network) Connect() error {
 	}
 
 	n.tunClient[NetworkChannel] = netClient
-
-	// listen on NetworkChannel
-	netListener, err := n.tunnel.Listen(
-		NetworkChannel,
-		tunnel.ListenMode(tunnel.Multicast),
-		tunnel.ListenTimeout(AnnounceTime*2),
-	)
-	if err != nil {
-		return err
-	}
 
 	// create closed channel
 	n.closed = make(chan bool)
@@ -1240,16 +1249,16 @@ func (n *network) Connect() error {
 		return err
 	}
 
-	// manage connection once links are established
-	go n.connect()
-	// resolve nodes, broadcast announcements and prune stale nodes
-	go n.manage()
 	// advertise service routes
 	go n.advertise(advertChan)
 	// listen to network messages
 	go n.processNetChan(netListener)
 	// accept and process routes
 	go n.processCtrlChan(ctrlListener)
+	// manage connection once links are established
+	go n.connect()
+	// resolve nodes, broadcast announcements and prune stale nodes
+	go n.manage()
 
 	// we're now connected
 	n.connected = true
