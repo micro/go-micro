@@ -506,8 +506,7 @@ func (router *router) Subscribe(s Subscriber) error {
 	return nil
 }
 
-func (router *router) ProcessMessage(ctx context.Context, msg Message) error {
-	var err error
+func (router *router) ProcessMessage(ctx context.Context, msg Message) (err error) {
 
 	defer func() {
 		// recover any panics
