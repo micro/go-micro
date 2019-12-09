@@ -57,10 +57,10 @@ func TestService(t *testing.T) {
 
 	service.HandleFunc("/", fn)
 
+	errCh := make(chan error, 1)
 	go func() {
-		if err := service.Run(); err != nil {
-			t.Fatal(err)
-		}
+		errCh <- service.Run()
+		close(errCh)
 	}()
 
 	var s []*registry.Service
@@ -104,11 +104,31 @@ func TestService(t *testing.T) {
 		}
 	}
 
+	select {
+	case err := <-errCh:
+		if err != nil {
+			t.Fatalf("service.Run():%v", err)
+		}
+	case <-time.After(time.Duration(time.Second)):
+		t.Logf("service.Run() survived a client request without an error")
+	}
+
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, syscall.SIGTERM)
 
 	syscall.Kill(syscall.Getpid(), syscall.SIGTERM)
 	<-ch
+
+	select {
+	case err := <-errCh:
+		if err != nil {
+			t.Fatalf("service.Run():%v", err)
+		} else {
+			t.Log("service.Run() nil return on syscall.SIGTERM")
+		}
+	case <-time.After(time.Duration(time.Second)):
+		t.Logf("service.Run() survived a client request without an error")
+	}
 
 	eventually(func() bool {
 		_, err := reg.GetService("go.micro.web.test")
@@ -128,6 +148,7 @@ func TestService(t *testing.T) {
 			t.Errorf("unexpected %s: want true, have false", tt.subject)
 		}
 	}
+
 }
 
 func TestOptions(t *testing.T) {
@@ -261,9 +282,10 @@ func TestTLS(t *testing.T) {
 	select {
 	case err := <-errCh:
 		if err != nil {
-			t.Fatalf("Run():%v", err)
+			t.Fatalf("service.Run():%v", err)
 		}
 	case <-time.After(time.Duration(time.Second)):
 		t.Logf("service.Run() survived a client request without an error")
 	}
+
 }
