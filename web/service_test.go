@@ -221,10 +221,10 @@ func TestTLS(t *testing.T) {
 
 	service.HandleFunc("/", fn)
 
+	errCh := make(chan error, 1)
 	go func() {
-		if err := service.Run(); err != nil {
-			t.Fatal(err)
-		}
+		errCh <- service.Run()
+		close(errCh)
 	}()
 
 	var s []*registry.Service
@@ -256,5 +256,14 @@ func TestTLS(t *testing.T) {
 
 	if string(b) != str {
 		t.Errorf("Expected %s got %s", str, string(b))
+	}
+
+	select {
+	case err := <-errCh:
+		if err != nil {
+			t.Fatalf("Run():%v", err)
+		}
+	case <-time.After(time.Duration(time.Second)):
+		t.Logf("service.Run() survived a client request without an error")
 	}
 }
