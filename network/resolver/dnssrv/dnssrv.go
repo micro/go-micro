@@ -17,7 +17,7 @@ func (r *Resolver) Resolve(name string) ([]*resolver.Record, error) {
 	if err != nil {
 		return nil, err
 	}
-	records := make([]*resolver.Record, len(addrs))
+	records := make([]*resolver.Record, 0, len(addrs))
 	for _, addr := range addrs {
 		address := addr.Target
 		if addr.Port > 0 {
