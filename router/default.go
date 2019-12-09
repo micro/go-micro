@@ -717,13 +717,15 @@ func (r *router) Process(a *Advert) error {
 	for _, event := range events {
 		// skip if the router is the origin of this route
 		if event.Route.Router == r.options.Id {
-			log.Debugf("Router skipping processing its own route: %s", r.options.Id)
+			log.Tracef("Router skipping processing its own route: %s", r.options.Id)
 			continue
 		}
 		// create a copy of the route
 		route := event.Route
 		action := event.Type
-		log.Debugf("Router %s applying %s from router %s for service %s %s", r.options.Id, action, route.Router, route.Service, route.Address)
+
+		log.Tracef("Router %s applying %s from router %s for service %s %s", r.options.Id, action, route.Router, route.Service, route.Address)
+
 		if err := r.manageRoute(route, action.String()); err != nil {
 			return fmt.Errorf("failed applying action %s to routing table: %s", action, err)
 		}
@@ -874,7 +876,7 @@ func (r *router) Stop() error {
 	}
 	r.Unlock()
 
-	log.Debugf("Router waiting for all goroutines to finish")
+	log.Tracef("Router waiting for all goroutines to finish")
 
 	// wait for all goroutines to finish
 	r.wg.Wait()
