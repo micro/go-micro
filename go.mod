@@ -34,7 +34,7 @@ require (
 	github.com/miekg/dns v1.1.22
 	github.com/mitchellh/hashstructure v1.0.0
 	github.com/nats-io/nats.go v1.9.1
-	github.com/nlopes/slack@d06c2a2b3249b44a9c5dee8485f5a87497beb9ea
+	github.com/nlopes/slack v0.6.1-0.20191106133607-d06c2a2b3249 // indirect
 	github.com/oxtoacart/bpool v0.0.0-20190530202638-03653db5a59c
 	github.com/pkg/errors v0.8.1
 	github.com/stretchr/testify v1.4.0
