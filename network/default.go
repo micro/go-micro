@@ -6,6 +6,7 @@ import (
 	"hash/fnv"
 	"io"
 	"math"
+	"sort"
 	"sync"
 	"time"
 
@@ -361,6 +362,11 @@ func (n *network) resolveNodes() ([]string, error) {
 	records, err := n.options.Resolver.Resolve(n.options.Name)
 	if err != nil {
 		log.Debugf("Network failed to resolve nodes: %v", err)
+	}
+
+	// sort by lowest priority
+	if err == nil {
+		sort.Slice(records, func(i, j int) bool { return records[i].Priority < records[j].Priority })
 	}
 
 	// keep processing
