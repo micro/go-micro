@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/micro/go-micro/router"
-	pb "github.com/micro/go-micro/router/proto"
+	pb "github.com/micro/go-micro/router/service/proto"
 )
 
 type watcher struct {
