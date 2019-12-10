@@ -10,7 +10,7 @@ import (
 
 	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/router"
-	pb "github.com/micro/go-micro/router/proto"
+	pb "github.com/micro/go-micro/router/service/proto"
 )
 
 type svc struct {
