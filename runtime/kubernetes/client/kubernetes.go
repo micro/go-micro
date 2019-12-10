@@ -53,7 +53,7 @@ func NewService(name, version, typ string) *Service {
 		Type:     "ClusterIP",
 		Selector: Labels,
 		Ports: []ServicePort{{
-			name + "-port", 9090, "",
+			"service-port", 9090, "",
 		}},
 	}
 
@@ -107,7 +107,7 @@ func NewDeployment(name, version, typ string) *Deployment {
 					Env:     []EnvVar{env},
 					Command: []string{"go", "run", "main.go"},
 					Ports: []ContainerPort{{
-						Name:          name + "-port",
+						Name:          "service-port",
 						ContainerPort: 8080,
 					}},
 				}},
