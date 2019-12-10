@@ -194,11 +194,10 @@ var (
 	}
 
 	DefaultBrokers = map[string]func(...broker.Option) broker.Broker{
-		"go.micro.broker": brokerSrv.NewBroker,
-		"service":         brokerSrv.NewBroker,
-		"http":            http.NewBroker,
-		"memory":          memory.NewBroker,
-		"nats":            nats.NewBroker,
+		"service": brokerSrv.NewBroker,
+		"http":    http.NewBroker,
+		"memory":  memory.NewBroker,
+		"nats":    nats.NewBroker,
 	}
 
 	DefaultClients = map[string]func(...client.Option) client.Client{
@@ -208,11 +207,10 @@ var (
 	}
 
 	DefaultRegistries = map[string]func(...registry.Option) registry.Registry{
-		"go.micro.registry": regSrv.NewRegistry,
-		"service":           regSrv.NewRegistry,
-		"etcd":              etcd.NewRegistry,
-		"mdns":              mdns.NewRegistry,
-		"memory":            rmem.NewRegistry,
+		"service": regSrv.NewRegistry,
+		"etcd":    etcd.NewRegistry,
+		"mdns":    mdns.NewRegistry,
+		"memory":  rmem.NewRegistry,
 	}
 
 	DefaultSelectors = map[string]func(...selector.Option) selector.Selector{
