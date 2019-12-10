@@ -656,7 +656,7 @@ func (n *network) processCtrlChan(listener tunnel.Listener) {
 					Events:    events,
 				}
 
-				log.Debugf("Network router %s processing advert: %s", n.Id(), advert.Id)
+				log.Tracef("Network router %s processing advert: %s", n.Id(), advert.Id)
 				if err := n.router.Process(advert); err != nil {
 					log.Debugf("Network failed to process advert %s: %v", advert.Id, err)
 				}
@@ -674,7 +674,7 @@ func (n *network) processCtrlChan(listener tunnel.Listener) {
 					continue
 				}
 
-				log.Debugf("Network router flushing routes for: %s", pbRtrSolicit.Id)
+				log.Tracef("Network router flushing routes for: %s", pbRtrSolicit.Id)
 
 				// advertise all the routes when a new node has connected
 				if err := n.router.Solicit(); err != nil {

@@ -712,7 +712,7 @@ func (r *router) Process(a *Advert) error {
 		return events[i].Timestamp.Before(events[j].Timestamp)
 	})
 
-	log.Debugf("Router %s processing advert from: %s", r.options.Id, a.Id)
+	log.Tracef("Router %s processing advert from: %s", r.options.Id, a.Id)
 
 	for _, event := range events {
 		// skip if the router is the origin of this route
