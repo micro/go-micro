@@ -747,7 +747,7 @@ func (n *network) processNetChan(listener tunnel.Listener) {
 
 				// add peer to the list of node peers
 				if err := n.node.AddPeer(peer); err == ErrPeerExists {
-					log.Debugf("Network peer exists, refreshing: %s", peer.id)
+					log.Tracef("Network peer exists, refreshing: %s", peer.id)
 					// update lastSeen time for the existing node
 					if err := n.RefreshPeer(peer.id, peer.link, now); err != nil {
 						log.Debugf("Network failed refreshing peer %s: %v", peer.id, err)
@@ -826,7 +826,7 @@ func (n *network) processNetChan(listener tunnel.Listener) {
 					continue
 				}
 
-				log.Debugf("Network peer exists, refreshing: %s", pbNetPeer.Node.Id)
+				log.Tracef("Network peer exists, refreshing: %s", pbNetPeer.Node.Id)
 
 				// update lastSeen time for the peer
 				if err := n.RefreshPeer(pbNetPeer.Node.Id, peer.link, now); err != nil {
