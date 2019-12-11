@@ -138,10 +138,10 @@ func (l *link) setRate(bits int64, delta time.Duration) {
 // setRTT sets a nanosecond based moving average roundtrip time for the link
 func (l *link) setRTT(d time.Duration) {
 	l.Lock()
-	defer l.Unlock()
 
 	if l.length <= 0 {
 		l.length = d.Nanoseconds()
+		l.Unlock()
 		return
 	}
 
@@ -149,6 +149,8 @@ func (l *link) setRTT(d time.Duration) {
 	length := 0.8*float64(l.length) + 0.2*float64(d.Nanoseconds())
 	// set new length
 	l.length = int64(length)
+
+	l.Unlock()
 }
 
 func (l *link) delChannel(ch string) {
@@ -159,8 +161,9 @@ func (l *link) delChannel(ch string) {
 
 func (l *link) getChannel(ch string) time.Time {
 	l.RLock()
-	defer l.RUnlock()
-	return l.channels[ch]
+	t := l.channels[ch]
+	l.RUnlock()
+	return t
 }
 
 func (l *link) setChannel(channels ...string) {
@@ -344,27 +347,31 @@ func (l *link) Delay() int64 {
 // Current transfer rate as bits per second (lower is better)
 func (l *link) Rate() float64 {
 	l.RLock()
-	defer l.RUnlock()
-	return l.rate
+	r := l.rate
+	l.RUnlock()
+	return r
 }
 
 func (l *link) Loopback() bool {
 	l.RLock()
-	defer l.RUnlock()
-	return l.loopback
+	lo := l.loopback
+	l.RUnlock()
+	return lo
 }
 
 // Length returns the roundtrip time as nanoseconds (lower is better).
 // Returns 0 where no measurement has been taken.
 func (l *link) Length() int64 {
 	l.RLock()
-	defer l.RUnlock()
-	return l.length
+	length := l.length
+	l.RUnlock()
+	return length
 }
 
 func (l *link) Id() string {
 	l.RLock()
-	defer l.RUnlock()
+	id := l.id
+	l.RUnlock()
 	return l.id
 }
 
@@ -413,11 +420,11 @@ func (l *link) Send(m *transport.Message) error {
 	}
 
 	l.Lock()
-	defer l.Unlock()
 
 	// there's an error increment the counter and bail
 	if err != nil {
 		l.errCount++
+		l.Unlock()
 		return err
 	}
 
@@ -440,6 +447,8 @@ func (l *link) Send(m *transport.Message) error {
 		// set the rate
 		l.setRate(int64(bits), time.Since(now))
 	}
+
+	l.Unlock()
 
 	return nil
 }
@@ -476,10 +485,13 @@ func (l *link) State() string {
 		return "closed"
 	default:
 		l.RLock()
-		defer l.RUnlock()
-		if l.errCount > 3 {
+		errCount := l.errCount
+		l.RUnlock()
+
+		if lerrCount > 3 {
 			return "error"
 		}
+
 		return "connected"
 	}
 }

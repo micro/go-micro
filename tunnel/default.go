@@ -73,10 +73,10 @@ func newTunnel(opts ...Option) *tun {
 // Init initializes tunnel options
 func (t *tun) Init(opts ...Option) error {
 	t.Lock()
-	defer t.Unlock()
 	for _, o := range opts {
 		o(&t.options)
 	}
+	t.Unlock()
 	return nil
 }
 
@@ -103,7 +103,6 @@ func (t *tun) delSession(channel, session string) {
 // listChannels returns a list of listening channels
 func (t *tun) listChannels() []string {
 	t.RLock()
-	defer t.RUnlock()
 
 	//nolint:prealloc
 	var channels []string
@@ -113,6 +112,9 @@ func (t *tun) listChannels() []string {
 		}
 		channels = append(channels, session.channel)
 	}
+
+	t.RUnlock()
+
 	return channels
 }
 
@@ -244,52 +246,70 @@ func (t *tun) manageLink(link *link) {
 }
 
 // manageLinks is a function that can be called to immediately to link setup
+// it purges dead links while generating new links for any nodes not connected
 func (t *tun) manageLinks() {
-	var delLinks []string
+	delLinks := make(map[*link]string)
+	connected := make(map[string]bool)
 
 	t.RLock()
+
+	// get list of nodes from options
+	nodes := t.options.Nodes
 
 	// check the link status and purge dead links
 	for node, link := range t.links {
 		// check link status
 		switch link.State() {
-		case "closed":
-			delLinks = append(delLinks, node)
-		case "error":
-			delLinks = append(delLinks, node)
+		case "closed", "error":
+			delLinks[link] = node
+		default:
+			connected[node] = true
 		}
 	}
 
 	t.RUnlock()
+
+	// build a list of links to connect to
+	var connect []string
+
+	for _, node := range nodes {
+		// check if we're connected
+		if _, ok := connected[node]; ok {
+			continue
+		}
+		// add nodes to connect o
+		connect = append(connect, node)
+	}
+
 
 	// delete the dead links
 	if len(delLinks) > 0 {
 		t.Lock()
-		for _, node := range delLinks {
+
+		for link, node := range delLinks {
 			log.Debugf("Tunnel deleting dead link for %s", node)
-			if link, ok := t.links[node]; ok {
-				link.Close()
+
+			// check if the link exists
+			l, ok := t.links[node]
+			if ok {
+				// close and delete
+				l.Close()
 				delete(t.links, node)
 			}
+
+			// if the link does not match our own
+			if l != link {
+				// close our link just in case
+				link.Close()
+			}
 		}
+
 		t.Unlock()
 	}
 
-	// check current link status
-	var connect []string
-
-	// build list of unknown nodes to connect to
-	t.RLock()
-
-	for _, node := range t.options.Nodes {
-		if _, ok := t.links[node]; !ok {
-			connect = append(connect, node)
-		}
-	}
-
-	t.RUnlock()
-
 	var wg sync.WaitGroup
+
+	// establish new links
 
 	for _, node := range connect {
 		wg.Add(1)
@@ -298,6 +318,7 @@ func (t *tun) manageLinks() {
 			defer wg.Done()
 
 			// create new link
+			// if we're using quic it should be a max 10 second handshake period
 			link, err := t.setupLink(node)
 			if err != nil {
 				log.Debugf("Tunnel failed to setup node link to %s: %v", node, err)
@@ -313,6 +334,7 @@ func (t *tun) manageLinks() {
 				link.Close()
 				return
 			}
+
 			// save the link
 			t.links[node] = link
 		}(node)
@@ -469,7 +491,6 @@ func (t *tun) process() {
 
 func (t *tun) delLink(remote string) {
 	t.Lock()
-	defer t.Unlock()
 
 	// get the link
 	for id, link := range t.links {
@@ -481,6 +502,8 @@ func (t *tun) delLink(remote string) {
 		link.Close()
 		delete(t.links, id)
 	}
+
+	t.Unlock()
 }
 
 // process incoming messages
@@ -1035,6 +1058,7 @@ func (t *tun) Dial(channel string, opts ...DialOption) (Session, error) {
 	// get opts
 	options := DialOptions{
 		Timeout: DefaultDialTimeout,
+		Wait:    true,
 	}
 
 	for _, o := range opts {
@@ -1119,8 +1143,13 @@ func (t *tun) Dial(channel string, opts ...DialOption) (Session, error) {
 	}
 
 	// return early if its not unicast
-	// we will not call "open" for multicast
+	// we will not wait for "open" for multicast
 	if c.mode != Unicast {
+		return c, nil
+	}
+
+	// if we're not told to wait
+	if !options.Wait {
 		return c, nil
 	}
 
@@ -1221,14 +1250,15 @@ func (t *tun) Listen(channel string, opts ...ListenOption) (Listener, error) {
 }
 
 func (t *tun) Links() []Link {
-	t.RLock()
-	defer t.RUnlock()
-
 	links := make([]Link, 0, len(t.links))
+
+	t.RLock()
 
 	for _, link := range t.links {
 		links = append(links, link)
 	}
+
+	t.RUnlock()
 
 	return links
 }

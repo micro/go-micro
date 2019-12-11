@@ -1023,7 +1023,8 @@ func (n *network) sendTo(method, channel string, peer *node, msg proto.Message) 
 	if err != nil {
 		return err
 	}
-	c, err := n.tunnel.Dial(channel, tunnel.DialMode(tunnel.Multicast), tunnel.DialLink(peer.link))
+	// Create a unicast connection to the peer but don't do the open/accept flow
+	c, err := n.tunnel.Dial(channel, tunnel.DialWait(false), tunnel.DialLink(peer.link))
 	if err != nil {
 		return err
 	}

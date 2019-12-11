@@ -38,6 +38,8 @@ type DialOptions struct {
 	Link string
 	// specify mode of the session
 	Mode Mode
+	// Wait for connection to be accepted
+	Wait bool
 	// the dial timeout
 	Timeout time.Duration
 }
@@ -121,6 +123,14 @@ func DialTimeout(t time.Duration) DialOption {
 func DialLink(id string) DialOption {
 	return func(o *DialOptions) {
 		o.Link = id
+	}
+}
+
+// DialWait specifies whether to wait for the connection
+// to be accepted before returning the session
+func DialWait(b bool) DialOption {
+	return func(o *DialOptions) {
+		o.Wait = b
 	}
 }
 
