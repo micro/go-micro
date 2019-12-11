@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/micro/go-micro"
 	"github.com/micro/go-micro/registry/memory"
@@ -44,10 +45,10 @@ func TestGRPCService(t *testing.T) {
 	hello.RegisterTestHandler(service.Server(), &testHandler{})
 
 	// run service
+	errCh := make(chan error, 1)
 	go func() {
-		if err := service.Run(); err != nil {
-			t.Fatal(err)
-		}
+		defer close(errCh)
+		errCh <- service.Run()
 	}()
 
 	// wait for start
@@ -57,11 +58,21 @@ func TestGRPCService(t *testing.T) {
 	test := hello.NewTestService("test.service", service.Client())
 
 	// call service
-	rsp, err := test.Call(context.Background(), &hello.Request{
+	ctx2, cancel2 := context.WithTimeout(context.Background(), time.Duration(time.Second))
+	defer cancel2()
+	rsp, err := test.Call(ctx2, &hello.Request{
 		Name: "John",
 	})
 	if err != nil {
 		t.Fatal(err)
+	}
+
+	// check server
+	select {
+	case err := <-errCh:
+		t.Fatal(err)
+	case <-time.After(time.Second):
+		break
 	}
 
 	// check message
