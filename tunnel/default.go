@@ -281,7 +281,6 @@ func (t *tun) manageLinks() {
 		connect = append(connect, node)
 	}
 
-
 	// delete the dead links
 	if len(delLinks) > 0 {
 		t.Lock()
