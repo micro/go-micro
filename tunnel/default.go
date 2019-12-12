@@ -433,7 +433,7 @@ func (t *tun) process() {
 				// if the message was being returned by the loopback listener
 				// send it back up the loopback link only
 				if msg.loopback && !loopback {
-					log.Tracef("Link for message %s is loopback", id)
+					log.Tracef("Link for message from %s is loopback", id)
 					err = errors.New("link is not loopback")
 					continue
 				}
@@ -460,6 +460,7 @@ func (t *tun) process() {
 
 			// no links to send to
 			if len(sendTo) == 0 {
+				log.Log("no links")
 				t.respond(msg, err)
 				continue
 			}
@@ -683,6 +684,8 @@ func (t *tun) listen(link *link) {
 			t.links[link.Remote()] = link
 			t.Unlock()
 
+			// notify of link change
+			go t.notify()
 			// send back an announcement of our channels discovery
 			go t.announce("", "", link)
 			// ask for the things on the other wise
@@ -1073,6 +1076,11 @@ func (t *tun) pickLink(links []*link) *link {
 	for i, link := range links {
 		// don't use disconnected or errored links
 		if link.State() != "connected" {
+			continue
+		}
+
+		// skip the loopback
+		if link.Loopback() {
 			continue
 		}
 
