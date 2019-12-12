@@ -60,6 +60,11 @@ func Decrypt(data []byte, key string) ([]byte, error) {
 	}
 
 	nonceSize := gcm.NonceSize()
+
+	if len(data) < nonceSize {
+		return nil, ErrDecryptingData
+	}
+
 	// NOTE: we need to parse out nonce from the payload
 	// we prepend the nonce to every encrypted payload
 	nonce, ciphertext := data[:nonceSize], data[nonceSize:]

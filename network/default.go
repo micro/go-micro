@@ -331,7 +331,9 @@ func (n *network) advertise(advertChan <-chan *router.Advert) {
 				// someone requested the route
 				n.sendTo("advert", ControlChannel, peer, msg)
 			default:
-				// no one to send to
+				if err := n.sendMsg("advert", ControlChannel, msg); err != nil {
+					log.Debugf("Network failed to advertise routes: %v", err)
+				}
 			}
 		case <-n.closed:
 			return
@@ -958,7 +960,7 @@ func (n *network) manage() {
 			return
 		case <-announce.C:
 			// jitter
-			j := rand.Int63n(int64(AnnounceTime / 2))
+			j := rand.Int63n(int64(AnnounceTime.Seconds() / 2.0))
 			time.Sleep(time.Duration(j) * time.Second)
 
 			// TODO: intermittently flip between peer selection

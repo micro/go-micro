@@ -229,7 +229,7 @@ func (t *tun) manageLink(link *link) {
 
 	wait := func(d time.Duration) {
 		// jitter
-		j := rand.Int63n(int64(d / 2))
+		j := rand.Int63n(int64(d.Seconds() / 2.0))
 		time.Sleep(time.Duration(j) * time.Second)
 	}
 
@@ -387,15 +387,6 @@ func (t *tun) process() {
 	for {
 		select {
 		case msg := <-t.send:
-			// no links yet
-			if len(links) == 0 {
-				// TODO: should we block here rather than throwing away messages...
-				// Or should we return an error?
-				log.Debugf("No links to send message type: %s channel: %s", msg.typ, msg.channel)
-				time.Sleep(time.Millisecond * 100)
-				continue
-			}
-
 			// build a list of links to send to
 			var sendTo []*link
 			var err error
@@ -456,7 +447,7 @@ func (t *tun) process() {
 
 			// no links to send to
 			if len(sendTo) == 0 {
-				log.Log("no links")
+				log.Debugf("No links to send message type: %s channel: %s", msg.typ, msg.channel)
 				t.respond(msg, err)
 				continue
 			}
@@ -532,6 +523,7 @@ func (t *tun) sendTo(links []*link, msg *message) error {
 			// make a copy
 			m := &transport.Message{
 				Header: make(map[string]string),
+				Body:   make([]byte, len(newMsg.Body)),
 			}
 			copy(m.Body, newMsg.Body)
 			for k, v := range newMsg.Header {

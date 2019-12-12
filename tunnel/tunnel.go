@@ -28,6 +28,8 @@ var (
 	ErrLinkNotFound = errors.New("link not found")
 	// ErrReadTimeout is a timeout on session.Recv
 	ErrReadTimeout = errors.New("read timeout")
+	// ErrDecryptingData is for when theres a nonce error
+	ErrDecryptingData = errors.New("error decrypting data")
 )
 
 // Mode of the session
