@@ -240,29 +240,25 @@ func (t *tun) manageLink(link *link) {
 		case <-link.closed:
 			return
 		case <-discover.C:
-			go func() {
-				// wait half the discover time
-				wait(DiscoverTime)
+			// wait half the discover time
+			wait(DiscoverTime)
 
-				// send a discovery message to the link
-				log.Debugf("Tunnel sending discover to link: %v", link.Remote())
-				if err := t.sendMsg("discover", link); err != nil {
-					log.Debugf("Tunnel failed to send discover to link %s: %v", link.Remote(), err)
-				}
-			}()
+			// send a discovery message to the link
+			log.Debugf("Tunnel sending discover to link: %v", link.Remote())
+			if err := t.sendMsg("discover", link); err != nil {
+				log.Debugf("Tunnel failed to send discover to link %s: %v", link.Remote(), err)
+			}
 		case <-keepalive.C:
-			go func() {
-				// wait half the keepalive time
-				wait(KeepAliveTime)
+			// wait half the keepalive time
+			wait(KeepAliveTime)
 
-				// send keepalive message
-				log.Debugf("Tunnel sending keepalive to link: %v", link.Remote())
-				if err := t.sendMsg("keepalive", link); err != nil {
-					log.Debugf("Tunnel error sending keepalive to link %v: %v", link.Remote(), err)
-					t.delLink(link.Remote())
-					return
-				}
-			}()
+			// send keepalive message
+			log.Debugf("Tunnel sending keepalive to link: %v", link.Remote())
+			if err := t.sendMsg("keepalive", link); err != nil {
+				log.Debugf("Tunnel error sending keepalive to link %v: %v", link.Remote(), err)
+				t.delLink(link.Remote())
+				return
+			}
 		}
 	}
 }

@@ -765,22 +765,27 @@ func (n *network) processNetChan(listener tunnel.Listener) {
 				// get node peers down to MaxDepth encoded in protobuf
 				msg := PeersToProto(n.node, MaxDepth)
 
-				// advertise yourself to the network
-				if err := n.sendTo("peer", NetworkChannel, peer, msg); err != nil {
-					log.Debugf("Network failed to advertise peers: %v", err)
-				}
+				go func() {
+					// advertise yourself to the network
+					if err := n.sendTo("peer", NetworkChannel, peer, msg); err != nil {
+						log.Debugf("Network failed to advertise peers: %v", err)
+					}
 
-				// advertise all the routes when a new node has connected
-				if err := n.router.Solicit(); err != nil {
-					log.Debugf("Network failed to solicit routes: %s", err)
-				}
+					// wait for a second
+					<-time.After(time.Second)
 
-				// specify that we're soliciting
-				select {
-				case n.solicited <- peer:
-				default:
-					// don't block
-				}
+					// advertise all the routes when a new node has connected
+					if err := n.router.Solicit(); err != nil {
+						log.Debugf("Network failed to solicit routes: %s", err)
+					}
+
+					// specify that we're soliciting
+					select {
+					case n.solicited <- peer:
+					default:
+						// don't block
+					}
+				}()
 			case "peer":
 				// mark the time the message has been received
 				now := time.Now()
@@ -818,10 +823,20 @@ func (n *network) processNetChan(listener tunnel.Listener) {
 						Id: n.options.Id,
 					}
 
-					// only solicit this peer
-					if err := n.sendTo("solicit", ControlChannel, peer, msg); err != nil {
-						log.Debugf("Network failed to send solicit message: %s", err)
-					}
+					go func() {
+						// advertise yourself to the peer
+						if err := n.sendTo("peer", NetworkChannel, peer, msg); err != nil {
+							log.Debugf("Network failed to advertise peers: %v", err)
+						}
+
+						// wait for a second
+						<-time.After(time.Second)
+
+						// then solicit this peer
+						if err := n.sendTo("solicit", ControlChannel, peer, msg); err != nil {
+							log.Debugf("Network failed to send solicit message: %s", err)
+						}
+					}()
 
 					continue
 					// we're expecting any error to be ErrPeerExists
@@ -943,7 +958,7 @@ func (n *network) manage() {
 			return
 		case <-announce.C:
 			// jitter
-			j := rand.Int63n(30)
+			j := rand.Int63n(int64(AnnounceTime / 2))
 			time.Sleep(time.Duration(j) * time.Second)
 
 			// TODO: intermittently flip between peer selection
