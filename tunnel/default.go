@@ -66,7 +66,6 @@ func newTunnel(opts ...Option) *tun {
 		token:    options.Token,
 		send:     make(chan *message, 128),
 		closed:   make(chan bool),
-		updated:  make(chan bool, 3),
 		sessions: make(map[string]*session),
 		links:    make(map[string]*link),
 	}
