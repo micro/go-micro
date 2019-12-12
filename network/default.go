@@ -773,9 +773,6 @@ func (n *network) processNetChan(listener tunnel.Listener) {
 						log.Debugf("Network failed to advertise peers: %v", err)
 					}
 
-					// wait for a second
-					<-time.After(time.Second)
-
 					// advertise all the routes when a new node has connected
 					if err := n.router.Solicit(); err != nil {
 						log.Debugf("Network failed to solicit routes: %s", err)

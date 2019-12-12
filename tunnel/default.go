@@ -375,8 +375,8 @@ func (t *tun) process() {
 	<-t.updated
 
 	// get the list of links
-	t.RLock()
 	var links []*link
+	t.RLock()
 	for _, link := range t.links {
 		links = append(links, link)
 	}
@@ -412,7 +412,6 @@ func (t *tun) process() {
 				// and the message is being sent outbound via
 				// a dialled connection don't use this link
 				if loopback && msg.outbound {
-					log.Tracef("Link for node %s is loopback", id)
 					err = errors.New("link is loopback")
 					continue
 				}
@@ -420,7 +419,6 @@ func (t *tun) process() {
 				// if the message was being returned by the loopback listener
 				// send it back up the loopback link only
 				if msg.loopback && !loopback {
-					log.Tracef("Link for message from %s is loopback", id)
 					err = errors.New("link is not loopback")
 					continue
 				}
@@ -458,7 +456,7 @@ func (t *tun) process() {
 			t.RLock()
 			var newLinks []*link
 			for _, link := range t.links {
-				newLinks = append(links, link)
+				newLinks = append(newLinks, link)
 			}
 			t.RUnlock()
 			// links were updated
@@ -583,10 +581,10 @@ func (t *tun) delLink(remote string) {
 		delete(t.links, id)
 	}
 
+	t.Unlock()
+
 	// let ourselves know of a link change
 	go t.notify()
-
-	t.Unlock()
 }
 
 // notify ourselves of a link change
@@ -681,7 +679,6 @@ func (t *tun) listen(link *link) {
 			// nothing more to do
 			continue
 		case "close":
-			log.Debugf("Tunnel link %s received close message", link.Remote())
 			// if there is no channel then we close the link
 			// as its a signal from the other side to close the connection
 			if len(channel) == 0 {
@@ -689,6 +686,7 @@ func (t *tun) listen(link *link) {
 				return
 			}
 
+			log.Debugf("Tunnel link %s received close message for %s", link.Remote(), channel)
 			// the entire listener was closed by the remote side so we need to
 			// remove the channel mapping for it. should we also close sessions?
 			if sessionId == "listener" {
@@ -1365,9 +1363,8 @@ func (t *tun) Listen(channel string, opts ...ListenOption) (Listener, error) {
 }
 
 func (t *tun) Links() []Link {
-	links := make([]Link, 0, len(t.links))
-
 	t.RLock()
+	links := make([]Link, 0, len(t.links))
 
 	for _, link := range t.links {
 		links = append(links, link)
