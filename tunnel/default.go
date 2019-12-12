@@ -42,9 +42,6 @@ type tun struct {
 	// close channel
 	closed chan bool
 
-	// control channel to indicate link change
-	updated chan bool
-
 	// a map of sessions based on Micro-Tunnel-Channel
 	sessions map[string]*session
 
@@ -266,7 +263,6 @@ func (t *tun) manageLink(link *link) {
 // manageLinks is a function that can be called to immediately to link setup
 // it purges dead links while generating new links for any nodes not connected
 func (t *tun) manageLinks() {
-	// if we need to notify of updates
 	delLinks := make(map[*link]string)
 	connected := make(map[string]bool)
 
@@ -323,9 +319,6 @@ func (t *tun) manageLinks() {
 		}
 
 		t.Unlock()
-
-		// links were deleted so notify
-		go t.notify()
 	}
 
 	var wg sync.WaitGroup
@@ -359,9 +352,6 @@ func (t *tun) manageLinks() {
 			t.links[node] = link
 
 			t.Unlock()
-
-			// notify ourselves of the change
-			go t.notify()
 		}(node)
 	}
 
@@ -371,17 +361,6 @@ func (t *tun) manageLinks() {
 
 // process outgoing messages sent by all local sessions
 func (t *tun) process() {
-	// wait for the first update
-	<-t.updated
-
-	// get the list of links
-	var links []*link
-	t.RLock()
-	for _, link := range t.links {
-		links = append(links, link)
-	}
-	t.RUnlock()
-
 	// manage the send buffer
 	// all pseudo sessions throw everything down this
 	for {
@@ -391,8 +370,10 @@ func (t *tun) process() {
 			var sendTo []*link
 			var err error
 
+			t.RLock()
+
 			// build the list of links ot send to
-			for _, link := range links {
+			for _, link := range t.links {
 				// get the values we need
 				link.RLock()
 				id := link.id
@@ -443,6 +424,8 @@ func (t *tun) process() {
 				sendTo = append(sendTo, link)
 			}
 
+			t.RUnlock()
+
 			// no links to send to
 			if len(sendTo) == 0 {
 				log.Debugf("No links to send message type: %s channel: %s", msg.typ, msg.channel)
@@ -452,15 +435,6 @@ func (t *tun) process() {
 
 			// send the message
 			t.sendTo(sendTo, msg)
-		case <-t.updated:
-			t.RLock()
-			var newLinks []*link
-			for _, link := range t.links {
-				newLinks = append(newLinks, link)
-			}
-			t.RUnlock()
-			// links were updated
-			links = newLinks
 		case <-t.closed:
 			return
 		}
@@ -582,18 +556,6 @@ func (t *tun) delLink(remote string) {
 	}
 
 	t.Unlock()
-
-	// let ourselves know of a link change
-	go t.notify()
-}
-
-// notify ourselves of a link change
-func (t *tun) notify() {
-	select {
-	case t.updated <- true:
-	// unblock after a second
-	case <-time.After(time.Second):
-	}
 }
 
 // process incoming messages
@@ -670,8 +632,6 @@ func (t *tun) listen(link *link) {
 			t.links[link.Remote()] = link
 			t.Unlock()
 
-			// notify of link change
-			go t.notify()
 			// send back an announcement of our channels discovery
 			go t.announce("", "", link)
 			// ask for the things on the other wise
@@ -691,6 +651,8 @@ func (t *tun) listen(link *link) {
 			// remove the channel mapping for it. should we also close sessions?
 			if sessionId == "listener" {
 				link.delChannel(channel)
+				// TODO: find all the non listener unicast sessions
+				// and close them. think aboud edge cases first
 				continue
 			}
 
@@ -949,9 +911,6 @@ func (t *tun) setupLinks() {
 
 	// wait for all threads to finish
 	wg.Wait()
-
-	// notify ourselves of the update
-	t.notify()
 }
 
 // connect the tunnel to all the nodes and listen for incoming tunnel connections

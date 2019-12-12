@@ -682,11 +682,6 @@ func (n *network) processCtrlChan(listener tunnel.Listener) {
 
 				log.Tracef("Network router flushing routes for: %s", pbRtrSolicit.Id)
 
-				// advertise all the routes when a new node has connected
-				if err := n.router.Solicit(); err != nil {
-					log.Debugf("Network failed to solicit routes: %s", err)
-				}
-
 				peer := &node{
 					id:   pbRtrSolicit.Id,
 					link: m.msg.Header["Micro-Link"],
@@ -697,6 +692,11 @@ func (n *network) processCtrlChan(listener tunnel.Listener) {
 				case n.solicited <- peer:
 				default:
 					// don't block
+				}
+
+				// advertise all the routes when a new node has connected
+				if err := n.router.Solicit(); err != nil {
+					log.Debugf("Network failed to solicit routes: %s", err)
 				}
 			}
 		case <-n.closed:
@@ -773,10 +773,7 @@ func (n *network) processNetChan(listener tunnel.Listener) {
 						log.Debugf("Network failed to advertise peers: %v", err)
 					}
 
-					// advertise all the routes when a new node has connected
-					if err := n.router.Solicit(); err != nil {
-						log.Debugf("Network failed to solicit routes: %s", err)
-					}
+					<-time.After(time.Millisecond * 100)
 
 					// specify that we're soliciting
 					select {
@@ -784,6 +781,12 @@ func (n *network) processNetChan(listener tunnel.Listener) {
 					default:
 						// don't block
 					}
+
+					// advertise all the routes when a new node has connected
+					if err := n.router.Solicit(); err != nil {
+						log.Debugf("Network failed to solicit routes: %s", err)
+					}
+
 				}()
 			case "peer":
 				// mark the time the message has been received
@@ -829,7 +832,7 @@ func (n *network) processNetChan(listener tunnel.Listener) {
 						}
 
 						// wait for a second
-						<-time.After(time.Second)
+						<-time.After(time.Millisecond * 100)
 
 						// then solicit this peer
 						if err := n.sendTo("solicit", ControlChannel, peer, msg); err != nil {
@@ -1373,6 +1376,7 @@ func (n *network) Close() error {
 	default:
 		// TODO: send close message to the network channel
 		close(n.closed)
+
 		// set connected to false
 		n.connected = false
 
@@ -1389,6 +1393,7 @@ func (n *network) Close() error {
 		if err := n.sendMsg("close", NetworkChannel, msg); err != nil {
 			log.Debugf("Network failed to send close message: %s", err)
 		}
+		<-time.After(time.Millisecond * 100)
 	}
 
 	return n.close()
