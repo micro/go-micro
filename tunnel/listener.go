@@ -2,7 +2,6 @@ package tunnel
 
 import (
 	"io"
-	"time"
 
 	"github.com/micro/go-micro/util/log"
 )
@@ -22,24 +21,6 @@ type tunListener struct {
 	session *session
 	// del func to kill listener
 	delFunc func()
-}
-
-// periodically announce self the channel being listened on
-func (t *tunListener) announce() {
-	tick := time.NewTicker(time.Second * 30)
-	defer tick.Stop()
-
-	// first announcement
-	t.session.Announce()
-
-	for {
-		select {
-		case <-tick.C:
-			t.session.Announce()
-		case <-t.closed:
-			return
-		}
-	}
 }
 
 func (t *tunListener) process() {

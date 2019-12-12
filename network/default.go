@@ -6,6 +6,7 @@ import (
 	"hash/fnv"
 	"io"
 	"math"
+	"math/rand"
 	"sort"
 	"sync"
 	"time"
@@ -88,6 +89,7 @@ type message struct {
 
 // newNetwork returns a new network node
 func newNetwork(opts ...Option) Network {
+	rand.Seed(time.Now().UnixNano())
 	options := DefaultOptions()
 
 	for _, o := range opts {
@@ -178,12 +180,11 @@ func newNetwork(opts ...Option) Network {
 
 func (n *network) Init(opts ...Option) error {
 	n.Lock()
-	defer n.Unlock()
-
 	// TODO: maybe only allow reinit of certain opts
 	for _, o := range opts {
 		o(&n.options)
 	}
+	n.Unlock()
 
 	return nil
 }
@@ -191,10 +192,8 @@ func (n *network) Init(opts ...Option) error {
 // Options returns network options
 func (n *network) Options() Options {
 	n.RLock()
-	defer n.RUnlock()
-
 	options := n.options
-
+	n.RUnlock()
 	return options
 }
 
@@ -332,8 +331,7 @@ func (n *network) advertise(advertChan <-chan *router.Advert) {
 				// someone requested the route
 				n.sendTo("advert", ControlChannel, peer, msg)
 			default:
-				// send to all since we can't get anything
-				n.sendMsg("advert", ControlChannel, msg)
+				// no one to send to
 			}
 		case <-n.closed:
 			return
@@ -498,12 +496,12 @@ func (n *network) getHopCount(rtr string) int {
 	}
 
 	// the route origin is our peer
-	if _, ok := n.peers[rtr]; ok {
+	if _, ok := n.node.peers[rtr]; ok {
 		return 10
 	}
 
 	// the route origin is the peer of our peer
-	for _, peer := range n.peers {
+	for _, peer := range n.node.peers {
 		for id := range peer.peers {
 			if rtr == id {
 				return 100
@@ -944,6 +942,13 @@ func (n *network) manage() {
 		case <-n.closed:
 			return
 		case <-announce.C:
+			// jitter
+			j := rand.Int63n(30)
+			time.Sleep(time.Duration(j) * time.Second)
+
+			// TODO: intermittently flip between peer selection
+			// and full broadcast pick a random set of peers
+
 			msg := PeersToProto(n.node, MaxDepth)
 			// advertise yourself to the network
 			if err := n.sendMsg("peer", NetworkChannel, msg); err != nil {
