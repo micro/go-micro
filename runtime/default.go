@@ -143,7 +143,7 @@ func (r *runtime) run(events <-chan Event) {
 				}
 			}
 		case <-r.closed:
-			log.Debugf("Runtime stopped.")
+			log.Debugf("Runtime stopped")
 			return
 		}
 	}

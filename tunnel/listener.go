@@ -2,7 +2,7 @@ package tunnel
 
 import (
 	"io"
-	"time"
+	"sync"
 
 	"github.com/micro/go-micro/util/log"
 )
@@ -14,32 +14,16 @@ type tunListener struct {
 	token string
 	// the accept channel
 	accept chan *session
-	// the channel to close
-	closed chan bool
 	// the tunnel closed channel
 	tunClosed chan bool
 	// the listener session
 	session *session
 	// del func to kill listener
 	delFunc func()
-}
 
-// periodically announce self the channel being listened on
-func (t *tunListener) announce() {
-	tick := time.NewTicker(time.Second * 30)
-	defer tick.Stop()
-
-	// first announcement
-	t.session.Announce()
-
-	for {
-		select {
-		case <-tick.C:
-			t.session.Announce()
-		case <-t.closed:
-			return
-		}
-	}
+	sync.RWMutex
+	// the channel to close
+	closed chan bool
 }
 
 func (t *tunListener) process() {
@@ -68,7 +52,7 @@ func (t *tunListener) process() {
 			var sessionId string
 			var linkId string
 
-			switch m.mode {
+			switch t.session.mode {
 			case Multicast:
 				sessionId = "multicast"
 				linkId = "multicast"
@@ -106,7 +90,7 @@ func (t *tunListener) process() {
 					// the link the message was received on
 					link: linkId,
 					// set the connection mode
-					mode: m.mode,
+					mode: t.session.mode,
 					// close chan
 					closed: make(chan bool),
 					// recv called by the acceptor
@@ -134,6 +118,11 @@ func (t *tunListener) process() {
 
 			switch m.typ {
 			case "close":
+				// don't close multicast sessions
+				if sess.mode > Unicast {
+					continue
+				}
+
 				// received a close message
 				select {
 				// check if the session is closed
@@ -173,6 +162,9 @@ func (t *tunListener) Channel() string {
 
 // Close closes tunnel listener
 func (t *tunListener) Close() error {
+	t.Lock()
+	defer t.Unlock()
+
 	select {
 	case <-t.closed:
 		return nil

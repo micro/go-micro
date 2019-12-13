@@ -140,10 +140,8 @@ func (n *node) RefreshPeer(id, link string, now time.Time) error {
 
 	// set peer link
 	peer.link = link
-
-	if peer.lastSeen.Before(now) {
-		peer.lastSeen = now
-	}
+	// set last seen
+	peer.lastSeen = now
 
 	return nil
 }
