@@ -11,7 +11,7 @@ import (
 	"github.com/micro/go-micro/client/selector"
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/router"
-	pb "github.com/micro/go-micro/router/proto"
+	pb "github.com/micro/go-micro/router/service/proto"
 )
 
 type routerSelector struct {
@@ -43,9 +43,9 @@ type routerKey struct{}
 func (r *routerSelector) getRoutes(service string) ([]router.Route, error) {
 	if !r.remote {
 		// lookup router for routes for the service
-		return r.r.Lookup(router.NewQuery(
+		return r.r.Lookup(
 			router.QueryService(service),
-		))
+		)
 	}
 
 	// lookup the remote router
@@ -101,7 +101,7 @@ func (r *routerSelector) getRoutes(service string) ([]router.Route, error) {
 		return nil, selector.ErrNoneAvailable
 	}
 
-	var routes []router.Route
+	routes := make([]router.Route, 0, len(pbRoutes.Routes))
 
 	// convert from pb to []*router.Route
 	for _, r := range pbRoutes.Routes {
@@ -111,7 +111,7 @@ func (r *routerSelector) getRoutes(service string) ([]router.Route, error) {
 			Gateway: r.Gateway,
 			Network: r.Network,
 			Link:    r.Link,
-			Metric:  int(r.Metric),
+			Metric:  r.Metric,
 		})
 	}
 
@@ -176,12 +176,10 @@ func (r *routerSelector) Select(service string, opts ...selector.SelectOption) (
 
 func (r *routerSelector) Mark(service string, node *registry.Node, err error) {
 	// TODO: pass back metrics or information to the router
-	return
 }
 
 func (r *routerSelector) Reset(service string) {
 	// TODO: reset the metrics or information at the router
-	return
 }
 
 func (r *routerSelector) Close() error {

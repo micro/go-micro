@@ -121,5 +121,7 @@ func (p *plugin) Build(path string, c *Config) error {
 		return fmt.Errorf("Failed to create dir %s: %v", filepath.Dir(path), err)
 	}
 	cmd := exec.Command("go", "build", "-buildmode=plugin", "-o", path+".so", goFile)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 	return cmd.Run()
 }

@@ -2,6 +2,7 @@
 package log
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/go-log/log"
@@ -13,8 +14,9 @@ type Level int
 
 const (
 	LevelFatal Level = iota
-	LevelInfo
 	LevelError
+	LevelInfo
+	LevelWarn
 	LevelDebug
 	LevelTrace
 )
@@ -25,6 +27,9 @@ var (
 
 	// default log level is info
 	level = LevelInfo
+
+	// prefix for all messages
+	prefix string
 )
 
 func init() {
@@ -33,6 +38,8 @@ func init() {
 		level = LevelTrace
 	case "debug":
 		level = LevelDebug
+	case "warn":
+		level = LevelWarn
 	case "info":
 		level = LevelInfo
 	case "error":
@@ -44,11 +51,18 @@ func init() {
 
 // Log makes use of github.com/go-log/log.Log
 func Log(v ...interface{}) {
+	if len(prefix) > 0 {
+		logger.Log(append([]interface{}{prefix, " "}, v...)...)
+		return
+	}
 	logger.Log(v...)
 }
 
 // Logf makes use of github.com/go-log/log.Logf
 func Logf(format string, v ...interface{}) {
+	if len(prefix) > 0 {
+		format = prefix + " " + format
+	}
 	logger.Logf(format, v...)
 }
 
@@ -86,6 +100,16 @@ func Debug(v ...interface{}) {
 // Debugf provides debug level logging
 func Debugf(format string, v ...interface{}) {
 	WithLevelf(LevelDebug, format, v...)
+}
+
+// Warn provides warn level logging
+func Warn(v ...interface{}) {
+	WithLevel(LevelWarn, v...)
+}
+
+// Warnf provides warn level logging
+func Warnf(format string, v ...interface{}) {
+	WithLevelf(LevelWarn, format, v...)
 }
 
 // Info provides info level logging
@@ -138,4 +162,14 @@ func SetLevel(l Level) {
 // GetLevel returns the current level
 func GetLevel() Level {
 	return level
+}
+
+// Set a prefix for the logger
+func SetPrefix(p string) {
+	prefix = p
+}
+
+// Set service name
+func Name(name string) {
+	prefix = fmt.Sprintf("[%s]", name)
 }

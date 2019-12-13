@@ -11,13 +11,16 @@ import (
 	"time"
 
 	"github.com/micro/go-micro/client"
+	"github.com/micro/go-micro/client/selector"
 	"github.com/micro/go-micro/codec"
 	"github.com/micro/go-micro/codec/bytes"
 	"github.com/micro/go-micro/config/options"
 	"github.com/micro/go-micro/errors"
+	"github.com/micro/go-micro/metadata"
 	"github.com/micro/go-micro/proxy"
 	"github.com/micro/go-micro/router"
 	"github.com/micro/go-micro/server"
+	"github.com/micro/go-micro/util/log"
 )
 
 // Proxy will transparently proxy requests to an endpoint.
@@ -41,9 +44,6 @@ type Proxy struct {
 	// A fib of routes service:address
 	sync.RWMutex
 	Routes map[string]map[uint64]router.Route
-
-	// The channel to monitor watcher errors
-	errChan chan error
 }
 
 // read client request and write to server
@@ -83,7 +83,8 @@ func readLoop(r server.Request, s client.Stream) error {
 
 // toNodes returns a list of node addresses from given routes
 func toNodes(routes []router.Route) []string {
-	var nodes []string
+	nodes := make([]string, 0, len(routes))
+
 	for _, node := range routes {
 		address := node.Address
 		if len(node.Gateway) > 0 {
@@ -91,7 +92,81 @@ func toNodes(routes []router.Route) []string {
 		}
 		nodes = append(nodes, address)
 	}
+
 	return nodes
+}
+
+func toSlice(r map[uint64]router.Route) []router.Route {
+	routes := make([]router.Route, 0, len(r))
+
+	for _, v := range r {
+		routes = append(routes, v)
+	}
+
+	// sort the routes in order of metric
+	sort.Slice(routes, func(i, j int) bool { return routes[i].Metric < routes[j].Metric })
+
+	return routes
+}
+
+func (p *Proxy) filterRoutes(ctx context.Context, routes []router.Route) []router.Route {
+	md, ok := metadata.FromContext(ctx)
+	if !ok {
+		return routes
+	}
+
+	//nolint:prealloc
+	var filteredRoutes []router.Route
+
+	// filter the routes based on our headers
+	for _, route := range routes {
+		// process only routes for this id
+		if id := md["Micro-Router"]; len(id) > 0 {
+			if route.Router != id {
+				// skip routes that don't mwatch
+				continue
+			}
+		}
+
+		// only process routes with this network
+		if net := md["Micro-Network"]; len(net) > 0 {
+			if route.Network != net {
+				// skip routes that don't mwatch
+				continue
+			}
+		}
+
+		// process only this gateway
+		if gw := md["Micro-Gateway"]; len(gw) > 0 {
+			// if the gateway matches our address
+			// special case, take the routes with no gateway
+			// TODO: should we strip the gateway from the context?
+			if gw == p.Router.Options().Address {
+				if len(route.Gateway) > 0 && route.Gateway != gw {
+					continue
+				}
+				// otherwise its a local route and we're keeping it
+			} else {
+				// gateway does not match our own
+				if route.Gateway != gw {
+					continue
+				}
+			}
+		}
+
+		// TODO: address based filtering
+		// address := md["Micro-Address"]
+
+		// TODO: label based filtering
+		// requires new field in routing table : route.Labels
+
+		// passed the filter checks
+		filteredRoutes = append(filteredRoutes, route)
+	}
+
+	log.Tracef("Proxy filtered routes %+v\n", filteredRoutes)
+
+	return filteredRoutes
 }
 
 func (p *Proxy) getLink(r router.Route) (client.Client, error) {
@@ -105,30 +180,29 @@ func (p *Proxy) getLink(r router.Route) (client.Client, error) {
 	return l, nil
 }
 
-func (p *Proxy) getRoute(service string) ([]router.Route, error) {
-	toSlice := func(r map[uint64]router.Route) []router.Route {
-		var routes []router.Route
-		for _, v := range r {
-			routes = append(routes, v)
-		}
-
-		// sort the routes in order of metric
-		sort.Slice(routes, func(i, j int) bool { return routes[i].Metric < routes[j].Metric })
-
-		return routes
-	}
-
+func (p *Proxy) getRoute(ctx context.Context, service string) ([]router.Route, error) {
 	// lookup the route cache first
 	p.Lock()
-	routes, ok := p.Routes[service]
+	cached, ok := p.Routes[service]
 	if ok {
 		p.Unlock()
-		return toSlice(routes), nil
+		routes := toSlice(cached)
+		return p.filterRoutes(ctx, routes), nil
 	}
 	p.Unlock()
 
+	// cache routes for the service
+	routes, err := p.cacheRoutes(service)
+	if err != nil {
+		return nil, err
+	}
+
+	return p.filterRoutes(ctx, routes), nil
+}
+
+func (p *Proxy) cacheRoutes(service string) ([]router.Route, error) {
 	// lookup the routes in the router
-	results, err := p.Router.Lookup(router.NewQuery(router.QueryService(service)))
+	results, err := p.Router.Lookup(router.QueryService(service))
 	if err != nil {
 		// check the status of the router
 		if status := p.Router.Status(); status.Code == router.Error {
@@ -147,22 +221,53 @@ func (p *Proxy) getRoute(service string) ([]router.Route, error) {
 		}
 		p.Routes[service][route.Hash()] = route
 	}
-	routes = p.Routes[service]
+	routes := p.Routes[service]
 	p.Unlock()
 
 	return toSlice(routes), nil
 }
 
-// manageRouteCache applies action on a given route to Proxy route cache
-func (p *Proxy) manageRouteCache(route router.Route, action string) error {
+// refreshMetrics will refresh any metrics for our local cached routes.
+// we may not receive new watch events for these as they change.
+func (p *Proxy) refreshMetrics() {
+	// get a list of services to update
+	p.RLock()
+
+	services := make([]string, 0, len(p.Routes))
+
+	for service := range p.Routes {
+		services = append(services, service)
+	}
+
+	p.RUnlock()
+
+	// get and cache the routes for the service
+	for _, service := range services {
+		p.cacheRoutes(service)
+	}
+}
+
+// manageRoutes applies action on a given route to Proxy route cache
+func (p *Proxy) manageRoutes(route router.Route, action string) error {
+	// we only cache what we are actually concerned with
+	p.Lock()
+	defer p.Unlock()
+
+	log.Tracef("Proxy taking route action %v %+v\n", action, route)
+
 	switch action {
 	case "create", "update":
 		if _, ok := p.Routes[route.Service]; !ok {
-			p.Routes[route.Service] = make(map[uint64]router.Route)
+			return fmt.Errorf("not called %s", route.Service)
 		}
 		p.Routes[route.Service][route.Hash()] = route
 	case "delete":
+		// delete that specific route
 		delete(p.Routes[route.Service], route.Hash())
+		// clean up the cache entirely
+		if len(p.Routes[route.Service]) == 0 {
+			delete(p.Routes, route.Service)
+		}
 	default:
 		return fmt.Errorf("unknown action: %s", action)
 	}
@@ -172,36 +277,53 @@ func (p *Proxy) manageRouteCache(route router.Route, action string) error {
 
 // watchRoutes watches service routes and updates proxy cache
 func (p *Proxy) watchRoutes() {
-	// this is safe to do as the only way watchRoutes returns is
-	// when some error is written into error channel - we want to bail then
-	defer close(p.errChan)
-
 	// route watcher
 	w, err := p.Router.Watch()
 	if err != nil {
-		p.errChan <- err
 		return
 	}
 
 	for {
 		event, err := w.Next()
 		if err != nil {
-			p.errChan <- err
 			return
 		}
 
-		p.Lock()
-		if err := p.manageRouteCache(event.Route, fmt.Sprintf("%s", event.Type)); err != nil {
+		if err := p.manageRoutes(event.Route, event.Type.String()); err != nil {
 			// TODO: should we bail here?
-			p.Unlock()
 			continue
 		}
-		p.Unlock()
 	}
 }
 
-func (p *Proxy) SendRequest(ctx context.Context, req client.Request, rsp client.Response) error {
-	return errors.InternalServerError("go.micro.proxy", "SendRequest is unsupported")
+// ProcessMessage acts as a message exchange and forwards messages to ongoing topics
+// TODO: should we look at p.Endpoint and only send to the local endpoint? probably
+func (p *Proxy) ProcessMessage(ctx context.Context, msg server.Message) error {
+	// TODO: check that we're not broadcast storming by sending to the same topic
+	// that we're actually subscribed to
+
+	log.Tracef("Proxy received message for %s", msg.Topic())
+
+	var errors []string
+
+	// directly publish to the local client
+	if err := p.Client.Publish(ctx, msg); err != nil {
+		errors = append(errors, err.Error())
+	}
+
+	// publish to all links
+	for _, client := range p.Links {
+		if err := client.Publish(ctx, msg); err != nil {
+			errors = append(errors, err.Error())
+		}
+	}
+
+	if len(errors) == 0 {
+		return nil
+	}
+
+	// there is no error...muahaha
+	return fmt.Errorf("Message processing error: %s", strings.Join(errors, "\n"))
 }
 
 // ServeRequest honours the server.Router interface
@@ -221,6 +343,8 @@ func (p *Proxy) ServeRequest(ctx context.Context, req server.Request, rsp server
 		return errors.BadRequest("go.micro.proxy", "service name is blank")
 	}
 
+	log.Tracef("Proxy received request for %s", service)
+
 	// are we network routing or local routing
 	if len(p.Links) == 0 {
 		local = true
@@ -233,7 +357,7 @@ func (p *Proxy) ServeRequest(ctx context.Context, req server.Request, rsp server
 			addresses = []string{p.Endpoint}
 		} else {
 			// get route for endpoint from router
-			addr, err := p.getRoute(p.Endpoint)
+			addr, err := p.getRoute(ctx, p.Endpoint)
 			if err != nil {
 				return err
 			}
@@ -245,18 +369,28 @@ func (p *Proxy) ServeRequest(ctx context.Context, req server.Request, rsp server
 	} else {
 		// no endpoint was specified just lookup the route
 		// get route for endpoint from router
-		addr, err := p.getRoute(service)
+		addr, err := p.getRoute(ctx, service)
 		if err != nil {
 			return err
 		}
 		routes = addr
 	}
 
+	//nolint:prealloc
+	opts := []client.CallOption{
+		// set strategy to round robin
+		client.WithSelectOption(selector.WithStrategy(selector.RoundRobin)),
+	}
+
 	// if the address is already set just serve it
 	// TODO: figure it out if we should know to pick a link
 	if len(addresses) > 0 {
+		opts = append(opts,
+			client.WithAddress(addresses...),
+		)
+
 		// serve the normal way
-		return p.serveRequest(ctx, p.Client, service, endpoint, req, rsp, client.WithAddress(addresses...))
+		return p.serveRequest(ctx, p.Client, service, endpoint, req, rsp, opts...)
 	}
 
 	// there's no links e.g we're local routing then just serve it with addresses
@@ -269,8 +403,14 @@ func (p *Proxy) ServeRequest(ctx context.Context, req server.Request, rsp server
 			opts = append(opts, client.WithAddress(addresses...))
 		}
 
+		log.Tracef("Proxy calling %+v\n", addresses)
 		// serve the normal way
 		return p.serveRequest(ctx, p.Client, service, endpoint, req, rsp, opts...)
+	}
+
+	// we're assuming we need routes to operate on
+	if len(routes) == 0 {
+		return errors.InternalServerError("go.micro.proxy", "route not found")
 	}
 
 	var gerr error
@@ -286,11 +426,19 @@ func (p *Proxy) ServeRequest(ctx context.Context, req server.Request, rsp server
 			continue
 		}
 
+		log.Tracef("Proxy using route %+v\n", route)
+
 		// set the address to call
 		addresses := toNodes([]router.Route{route})
+		// set the address in the options
+		// disable retries since its one route processing
+		opts = append(opts,
+			client.WithAddress(addresses...),
+			client.WithRetries(0),
+		)
 
 		// do the request with the link
-		gerr = p.serveRequest(ctx, link, service, endpoint, req, rsp, client.WithAddress(addresses...))
+		gerr = p.serveRequest(ctx, link, service, endpoint, req, rsp, opts...)
 		// return on no error since we succeeded
 		if gerr == nil {
 			return nil
@@ -316,7 +464,7 @@ func (p *Proxy) serveRequest(ctx context.Context, link client.Client, service, e
 	}
 
 	// create new request with raw bytes body
-	creq := link.NewRequest(service, endpoint, &bytes.Frame{body}, client.WithContentType(req.ContentType()))
+	creq := link.NewRequest(service, endpoint, &bytes.Frame{Data: body}, client.WithContentType(req.ContentType()))
 
 	// not a stream so make a client.Call request
 	if !req.Stream() {
@@ -348,43 +496,30 @@ func (p *Proxy) serveRequest(ctx context.Context, link client.Client, service, e
 	// get raw response
 	resp := stream.Response()
 
-	// route watcher error
-	var watchErr error
-
 	// create server response write loop
 	for {
-		select {
-		case err := <-p.errChan:
-			if err != nil {
-				watchErr = err
-			}
-			return watchErr
-		default:
-			// read backend response body
-			body, err := resp.Read()
-			if err == io.EOF {
-				return nil
-			} else if err != nil {
-				return err
-			}
+		// read backend response body
+		body, err := resp.Read()
+		if err == io.EOF {
+			return nil
+		} else if err != nil {
+			return err
+		}
 
-			// read backend response header
-			hdr := resp.Header()
+		// read backend response header
+		hdr := resp.Header()
 
-			// write raw response header to client
-			rsp.WriteHeader(hdr)
+		// write raw response header to client
+		rsp.WriteHeader(hdr)
 
-			// write raw response body to client
-			err = rsp.Write(body)
-			if err == io.EOF {
-				return nil
-			} else if err != nil {
-				return err
-			}
+		// write raw response body to client
+		err = rsp.Write(body)
+		if err == io.EOF {
+			return nil
+		} else if err != nil {
+			return err
 		}
 	}
-
-	return nil
 }
 
 // NewSingleHostProxy returns a proxy which sends requests to a single backend
@@ -439,9 +574,6 @@ func NewProxy(opts ...options.Option) proxy.Proxy {
 	// routes cache
 	p.Routes = make(map[string]map[uint64]router.Route)
 
-	// watch router service routes
-	p.errChan = make(chan error, 1)
-
 	go func() {
 		// continuously attempt to watch routes
 		for {
@@ -449,6 +581,19 @@ func NewProxy(opts ...options.Option) proxy.Proxy {
 			p.watchRoutes()
 			// in case of failure just wait a second
 			time.Sleep(time.Second)
+		}
+	}()
+
+	go func() {
+		// TODO: speed up refreshing of metrics
+		// without this ticking effort e.g stream
+		t := time.NewTicker(time.Second * 10)
+		defer t.Stop()
+
+		// we must refresh route metrics since they do not trigger new events
+		for range t.C {
+			// refresh route metrics
+			p.refreshMetrics()
 		}
 	}()
 

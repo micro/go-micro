@@ -82,7 +82,7 @@ func (s *service) genSrv() *registry.Service {
 	return &registry.Service{
 		Name:    s.opts.Name,
 		Version: s.opts.Version,
-		Nodes: []*registry.Node{&registry.Node{
+		Nodes: []*registry.Node{{
 			Id:       s.opts.Id,
 			Address:  fmt.Sprintf("%s:%d", addr, port),
 			Metadata: s.opts.Metadata,
@@ -118,6 +118,11 @@ func (s *service) register() error {
 	if s.opts.Registry != nil {
 		r = s.opts.Registry
 	}
+
+	// service node need modify, node address maybe changed
+	srv := s.genSrv()
+	srv.Endpoints = s.srv.Endpoints
+	s.srv = srv
 	return r.Register(s.srv, registry.RegisterTTL(s.opts.RegisterTTL))
 }
 
@@ -211,7 +216,7 @@ func (s *service) start() error {
 		ch <- l.Close()
 	}()
 
-	log.Logf("Listening on %v\n", l.Addr().String())
+	log.Logf("Listening on %v", l.Addr().String())
 	return nil
 }
 
@@ -371,12 +376,12 @@ func (s *service) Run() error {
 	go s.run(ex)
 
 	ch := make(chan os.Signal, 1)
-	signal.Notify(ch, syscall.SIGTERM, syscall.SIGINT, syscall.SIGKILL)
+	signal.Notify(ch, syscall.SIGTERM, syscall.SIGINT)
 
 	select {
 	// wait on kill signal
 	case sig := <-ch:
-		log.Logf("Received signal %s\n", sig)
+		log.Logf("Received signal %s", sig)
 	// wait on context cancel
 	case <-s.opts.Context.Done():
 		log.Logf("Received context shutdown")

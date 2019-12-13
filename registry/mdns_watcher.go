@@ -8,11 +8,14 @@ import (
 )
 
 type mdnsWatcher struct {
+	id   string
 	wo   WatchOptions
 	ch   chan *mdns.ServiceEntry
 	exit chan struct{}
 	// the mdns domain
 	domain string
+	// the registry
+	registry *mdnsRegistry
 }
 
 func (m *mdnsWatcher) Next() (*Result, error) {
@@ -76,5 +79,9 @@ func (m *mdnsWatcher) Stop() {
 		return
 	default:
 		close(m.exit)
+		// remove self from the registry
+		m.registry.mtx.Lock()
+		delete(m.registry.watchers, m.id)
+		m.registry.mtx.Unlock()
 	}
 }

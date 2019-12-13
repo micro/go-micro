@@ -95,14 +95,21 @@ func extractEndpoint(method reflect.Method) *registry.Endpoint {
 	request := extractValue(reqType, 0)
 	response := extractValue(rspType, 0)
 
-	return &registry.Endpoint{
+	ep := &registry.Endpoint{
 		Name:     method.Name,
 		Request:  request,
 		Response: response,
-		Metadata: map[string]string{
-			"stream": fmt.Sprintf("%v", stream),
-		},
+		Metadata: make(map[string]string),
 	}
+
+	// set endpoint metadata for stream
+	if stream {
+		ep.Metadata = map[string]string{
+			"stream": fmt.Sprintf("%v", stream),
+		}
+	}
+
+	return ep
 }
 
 func extractSubValue(typ reflect.Type) *registry.Value {

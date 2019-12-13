@@ -8,9 +8,7 @@ var (
 	// DefaultLink is default network link
 	DefaultLink = "local"
 	// DefaultLocalMetric is default route cost for a local route
-	DefaultLocalMetric = 1
-	// DefaultNetworkMetric is default route cost for a network route
-	DefaultNetworkMetric = 10
+	DefaultLocalMetric int64 = 1
 )
 
 // Route is network route
@@ -28,7 +26,7 @@ type Route struct {
 	// Link is network link
 	Link string
 	// Metric is the route cost metric
-	Metric int
+	Metric int64
 }
 
 // Hash returns route hash sum.

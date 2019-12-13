@@ -13,10 +13,8 @@ type memoryWatcher struct {
 
 func (m *memoryWatcher) Next() (*registry.Result, error) {
 	// not implement so we just block until exit
-	select {
-	case <-m.exit:
-		return nil, errors.New("watcher stopped")
-	}
+	<-m.exit
+	return nil, errors.New("watcher stopped")
 }
 
 func (m *memoryWatcher) Stop() {

@@ -13,30 +13,23 @@ import (
 	"github.com/micro/go-micro/util/log"
 )
 
-const (
-	// AdvertiseEventsTick is time interval in which the router advertises route updates
-	AdvertiseEventsTick = 5 * time.Second
-	// AdvertiseTableTick is time interval in which router advertises all routes found in routing table
-	AdvertiseTableTick = 1 * time.Minute
-	// AdvertiseFlushTick is time the yet unconsumed advertisements are flush i.e. discarded
-	AdvertiseFlushTick = 15 * time.Second
-	// AdvertSuppress is advert suppression threshold
-	AdvertSuppress = 2000.0
-	// AdvertRecover is advert recovery threshold
-	AdvertRecover = 750.0
-	// DefaultAdvertTTL is default advertisement TTL
-	DefaultAdvertTTL = 1 * time.Minute
-	// DeletePenalty penalises route deletion
-	DeletePenalty = 1000.0
-	// UpdatePenalty penalises route updates
-	UpdatePenalty = 500.0
-	// PenaltyHalfLife is the time the advert penalty decays to half its value
-	PenaltyHalfLife = 2.0
-	// MaxSuppressTime defines time after which the suppressed advert is deleted
-	MaxSuppressTime = 5 * time.Minute
-)
-
 var (
+	// AdvertiseEventsTick is time interval in which the router advertises route updates
+	AdvertiseEventsTick = 10 * time.Second
+	// AdvertiseTableTick is time interval in which router advertises all routes found in routing table
+	AdvertiseTableTick = 2 * time.Minute
+	// DefaultAdvertTTL is default advertisement TTL
+	DefaultAdvertTTL = 2 * time.Minute
+	// AdvertSuppress is advert suppression threshold
+	AdvertSuppress = 200.0
+	// AdvertRecover is advert recovery threshold
+	AdvertRecover = 20.0
+	// Penalty for routes processed multiple times
+	Penalty = 100.0
+	// PenaltyHalfLife is the time the advert penalty decays to half its value
+	PenaltyHalfLife = 30.0
+	// MaxSuppressTime defines time after which the suppressed advert is deleted
+	MaxSuppressTime = 90 * time.Second
 	// PenaltyDecay is a coefficient which controls the speed the advert penalty decays
 	PenaltyDecay = math.Log(2) / PenaltyHalfLife
 )
@@ -54,6 +47,7 @@ type router struct {
 	wg        *sync.WaitGroup
 
 	// advert subscribers
+	sub         sync.RWMutex
 	subscribers map[string]chan *Advert
 }
 
@@ -191,7 +185,6 @@ func (r *router) watchRegistry(w registry.Watcher) error {
 	defer func() {
 		// close the exit channel when the go routine finishes
 		close(exit)
-		r.wg.Done()
 	}()
 
 	// wait in the background for the router to stop
@@ -199,6 +192,7 @@ func (r *router) watchRegistry(w registry.Watcher) error {
 	r.wg.Add(1)
 	go func() {
 		defer w.Stop()
+		defer r.wg.Done()
 
 		select {
 		case <-r.exit:
@@ -235,7 +229,6 @@ func (r *router) watchTable(w Watcher) error {
 	defer func() {
 		// close the exit channel when the go routine finishes
 		close(exit)
-		r.wg.Done()
 	}()
 
 	// wait in the background for the router to stop
@@ -243,6 +236,7 @@ func (r *router) watchTable(w Watcher) error {
 	r.wg.Add(1)
 	go func() {
 		defer w.Stop()
+		defer r.wg.Done()
 
 		select {
 		case <-r.exit:
@@ -278,10 +272,7 @@ func (r *router) watchTable(w Watcher) error {
 }
 
 // publishAdvert publishes router advert to advert channel
-// NOTE: this might cease to be a dedicated method in the future
 func (r *router) publishAdvert(advType AdvertType, events []*Event) {
-	defer r.advertWg.Done()
-
 	a := &Advert{
 		Id:        r.options.Id,
 		Type:      advType,
@@ -290,24 +281,17 @@ func (r *router) publishAdvert(advType AdvertType, events []*Event) {
 		Events:    events,
 	}
 
-	log.Debugf("Router publishing advert; %+v", a)
-	r.RLock()
+	r.sub.RLock()
 	for _, sub := range r.subscribers {
-		// check the exit chan first
-		select {
-		case <-r.exit:
-			r.RUnlock()
-			return
-		default:
-		}
-
 		// now send the message
 		select {
 		case sub <- a:
-		default:
+		case <-r.exit:
+			r.sub.RUnlock()
+			return
 		}
 	}
-	r.RUnlock()
+	r.sub.RUnlock()
 }
 
 // advertiseTable advertises the whole routing table to the network
@@ -319,27 +303,20 @@ func (r *router) advertiseTable() error {
 	for {
 		select {
 		case <-ticker.C:
-			// list routing table routes to announce
-			routes, err := r.table.List()
+			// do full table flush
+			events, err := r.flushRouteEvents(Update)
 			if err != nil {
-				return fmt.Errorf("failed listing routes: %s", err)
-			}
-			// collect all the added routes before we attempt to add default gateway
-			events := make([]*Event, len(routes))
-			for i, route := range routes {
-				event := &Event{
-					Type:      Update,
-					Timestamp: time.Now(),
-					Route:     route,
-				}
-				events[i] = event
+				return fmt.Errorf("failed flushing routes: %s", err)
 			}
 
-			// advertise all routes as Update events to subscribers
+			// advertise routes to subscribers
 			if len(events) > 0 {
 				log.Debugf("Router flushing table with %d events: %s", len(events), r.options.Id)
 				r.advertWg.Add(1)
-				go r.publishAdvert(RouteUpdate, events)
+				go func() {
+					defer r.advertWg.Done()
+					r.publishAdvert(RouteUpdate, events)
+				}()
 			}
 		case <-r.exit:
 			return nil
@@ -347,18 +324,63 @@ func (r *router) advertiseTable() error {
 	}
 }
 
-// routeAdvert contains a route event to be advertised
-type routeAdvert struct {
+// advert contains a route event to be advertised
+type advert struct {
 	// event received from routing table
 	event *Event
-	// lastUpdate records the time of the last advert update
-	lastUpdate time.Time
+	// lastSeen records the time of the last advert update
+	lastSeen time.Time
 	// penalty is current advert penalty
 	penalty float64
 	// isSuppressed flags the advert suppression
 	isSuppressed bool
 	// suppressTime records the time interval the advert has been suppressed for
 	suppressTime time.Time
+}
+
+// adverts maintains a map of router adverts
+type adverts map[uint64]*advert
+
+// process processes advert
+// It updates advert timestamp, increments its penalty and
+// marks upresses or recovers it if it reaches configured thresholds
+func (m adverts) process(a *advert) error {
+	// lookup advert in adverts
+	hash := a.event.Route.Hash()
+	a, ok := m[hash]
+	if !ok {
+		return fmt.Errorf("advert not found")
+	}
+
+	// decay the event penalty
+	delta := time.Since(a.lastSeen).Seconds()
+
+	// decay advert penalty
+	a.penalty = a.penalty * math.Exp(-delta*PenaltyDecay)
+	service := a.event.Route.Service
+	address := a.event.Route.Address
+
+	// suppress/recover the event based on its penalty level
+	switch {
+	case a.penalty > AdvertSuppress && !a.isSuppressed:
+		log.Debugf("Router suppressing advert %d %.2f for route %s %s", hash, a.penalty, service, address)
+		a.isSuppressed = true
+		a.suppressTime = time.Now()
+	case a.penalty < AdvertRecover && a.isSuppressed:
+		log.Debugf("Router recovering advert %d %.2f for route %s %s", hash, a.penalty, service, address)
+		a.isSuppressed = false
+	}
+
+	// if suppressed, checked how long has it been suppressed for
+	if a.isSuppressed {
+		// max suppression time threshold has been reached, delete the advert
+		if time.Since(a.suppressTime) > MaxSuppressTime {
+			delete(m, hash)
+			return nil
+		}
+	}
+
+	return nil
 }
 
 // advertiseEvents advertises routing table events
@@ -368,8 +390,8 @@ func (r *router) advertiseEvents() error {
 	ticker := time.NewTicker(AdvertiseEventsTick)
 	defer ticker.Stop()
 
-	// advertMap is a map of advert events
-	advertMap := make(map[uint64]*routeAdvert)
+	// adverts is a map of advert events
+	adverts := make(adverts)
 
 	// routing table watcher
 	tableWatcher, err := r.Watch()
@@ -389,84 +411,98 @@ func (r *router) advertiseEvents() error {
 	for {
 		select {
 		case <-ticker.C:
-			var events []*Event
-			// collect all events which are not flapping
-			for key, advert := range advertMap {
-				// decay the event penalty
-				delta := time.Since(advert.lastUpdate).Seconds()
-				advert.penalty = advert.penalty * math.Exp(-delta*PenaltyDecay)
-
-				// suppress/recover the event based on its penalty level
-				switch {
-				case advert.penalty > AdvertSuppress && !advert.isSuppressed:
-					log.Debugf("Router supressing advert %d for route %s", key, advert.event.Route.Address)
-					advert.isSuppressed = true
-					advert.suppressTime = time.Now()
-				case advert.penalty < AdvertRecover && advert.isSuppressed:
-					log.Debugf("Router recovering advert %d for route %s", key, advert.event.Route.Address)
-					advert.isSuppressed = false
-				}
-
-				// max suppression time threshold has been reached, delete the advert
-				if advert.isSuppressed {
-					if time.Since(advert.suppressTime) > MaxSuppressTime {
-						delete(advertMap, key)
-						continue
-					}
-				}
-
-				if !advert.isSuppressed {
-					e := new(Event)
-					*e = *(advert.event)
-					events = append(events, e)
-					// delete the advert from the advertMap
-					delete(advertMap, key)
-				}
+			// If we're not advertising any events then sip processing them entirely
+			if r.options.Advertise == AdvertiseNone {
+				continue
 			}
 
-			// advertise all Update events to subscribers
+			var events []*Event
+
+			// collect all events which are not flapping
+			for key, advert := range adverts {
+				// process the advert
+				if err := adverts.process(advert); err != nil {
+					log.Debugf("Router failed processing advert %d: %v", key, err)
+					continue
+				}
+				// if suppressed go to the next advert
+				if advert.isSuppressed {
+					continue
+				}
+
+				// if we only advertise local routes skip processing anything not link local
+				if r.options.Advertise == AdvertiseLocal && advert.event.Route.Link != "local" {
+					continue
+				}
+
+				// copy the event and append
+				e := new(Event)
+				// this is ok, because router.Event only contains builtin types
+				// and no references so this creates a deep copy of struct Event
+				*e = *(advert.event)
+				events = append(events, e)
+				// delete the advert from adverts
+				delete(adverts, key)
+			}
+
+			// advertise events to subscribers
 			if len(events) > 0 {
-				r.advertWg.Add(1)
 				log.Debugf("Router publishing %d events", len(events))
-				go r.publishAdvert(RouteUpdate, events)
+				r.advertWg.Add(1)
+				go func() {
+					defer r.advertWg.Done()
+					r.publishAdvert(RouteUpdate, events)
+				}()
 			}
 		case e := <-r.eventChan:
 			// if event is nil, continue
 			if e == nil {
 				continue
 			}
-			log.Debugf("Router processing table event %s for service %s", e.Type, e.Route.Address)
-			// determine the event penalty
-			var penalty float64
-			switch e.Type {
-			case Update:
-				penalty = UpdatePenalty
-			case Delete:
-				penalty = DeletePenalty
-			}
 
-			// check if we have already registered the route
-			hash := e.Route.Hash()
-			advert, ok := advertMap[hash]
-			if !ok {
-				advert = &routeAdvert{
-					event:      e,
-					penalty:    penalty,
-					lastUpdate: time.Now(),
-				}
-				advertMap[hash] = advert
+			// If we're not advertising any events then skip processing them entirely
+			if r.options.Advertise == AdvertiseNone {
 				continue
 			}
 
-			// override the route event only if the last event was different
-			if advert.event.Type != e.Type {
-				advert.event = e
+			// if we only advertise local routes skip processing anything not link local
+			if r.options.Advertise == AdvertiseLocal && e.Route.Link != "local" {
+				continue
+			}
+
+			now := time.Now()
+
+			log.Debugf("Router processing table event %s for service %s %s", e.Type, e.Route.Service, e.Route.Address)
+
+			// check if we have already registered the route
+			hash := e.Route.Hash()
+			a, ok := adverts[hash]
+			if !ok {
+				a = &advert{
+					event:    e,
+					penalty:  Penalty,
+					lastSeen: now,
+				}
+				adverts[hash] = a
+				continue
+			}
+
+			// override the route event only if the previous event was different
+			if a.event.Type != e.Type {
+				a.event = e
+			}
+
+			// process the advert
+			if err := adverts.process(a); err != nil {
+				log.Debugf("Router error processing advert  %d: %v", hash, err)
+				continue
 			}
 
 			// update event penalty and timestamp
-			advert.lastUpdate = time.Now()
-			advert.penalty += penalty
-			log.Debugf("Router advert %d for route %s event penalty: %f", hash, advert.event.Route.Address, advert.penalty)
+			a.lastSeen = now
+			// increment the penalty
+			a.penalty += Penalty
+			log.Debugf("Router advert %d for route %s %s event penalty: %f", hash, a.event.Route.Service, a.event.Route.Address, a.penalty)
 		case <-r.exit:
 			// first wait for the advertiser to finish
 			r.advertWg.Wait()
@@ -477,9 +513,7 @@ func (r *router) advertiseEvents() error {
 
 // close closes exit channels
 func (r *router) close() {
-	// notify all goroutines to finish
-	close(r.exit)
-
+	log.Debugf("Router closing remaining channels")
 	// drain the advertise channel only if advertising
 	if r.status.Code == Advertising {
 		// drain the event channel
@@ -488,11 +522,18 @@ func (r *router) close() {
 
 		// close advert subscribers
 		for id, sub := range r.subscribers {
+			select {
+			case <-sub:
+			default:
+			}
+
 			// close the channel
 			close(sub)
 
 			// delete the subscriber
+			r.sub.Lock()
 			delete(r.subscribers, id)
+			r.sub.Unlock()
 		}
 	}
 
@@ -514,6 +555,9 @@ func (r *router) watchErrors() {
 	defer r.Unlock()
 	// if the router is not stopped, stop it
 	if r.status.Code != Stopped {
+		// notify all goroutines to finish
+		close(r.exit)
+
 		// close all the channels
 		r.close()
 		// set the status error
@@ -615,9 +659,16 @@ func (r *router) Advertise() (<-chan *Advert, error) {
 		// create event channels
 		r.eventChan = make(chan *Event)
 
+		// create advert channel
+		advertChan := make(chan *Advert, 128)
+		r.subscribers[uuid.New().String()] = advertChan
+
 		// advertise your presence
 		r.advertWg.Add(1)
-		go r.publishAdvert(Announce, events)
+		go func() {
+			defer r.advertWg.Done()
+			r.publishAdvert(Announce, events)
+		}()
 
 		r.wg.Add(1)
 		go func() {
@@ -641,10 +692,7 @@ func (r *router) Advertise() (<-chan *Advert, error) {
 		// mark router as Running and set its Error to nil
 		r.status = Status{Code: Advertising, Error: nil}
 
-		// create advert channel
-		advertChan := make(chan *Advert, 128)
-		r.subscribers[uuid.New().String()] = advertChan
-
+		log.Debugf("Router starting to advertise")
 		return advertChan, nil
 	case Stopped:
 		return nil, fmt.Errorf("not running")
@@ -664,19 +712,21 @@ func (r *router) Process(a *Advert) error {
 		return events[i].Timestamp.Before(events[j].Timestamp)
 	})
 
-	log.Debugf("Router %s processing advert from: %s", r.options.Id, a.Id)
+	log.Tracef("Router %s processing advert from: %s", r.options.Id, a.Id)
 
 	for _, event := range events {
 		// skip if the router is the origin of this route
 		if event.Route.Router == r.options.Id {
-			log.Debugf("Router skipping processing its own route: %s", r.options.Id)
+			log.Tracef("Router skipping processing its own route: %s", r.options.Id)
 			continue
 		}
 		// create a copy of the route
 		route := event.Route
 		action := event.Type
-		log.Debugf("Router %s applying %s from router %s for address: %s", r.options.Id, action, route.Router, route.Address)
-		if err := r.manageRoute(route, fmt.Sprintf("%s", action)); err != nil {
+
+		log.Tracef("Router %s applying %s from router %s for service %s %s", r.options.Id, action, route.Router, route.Service, route.Address)
+
+		if err := r.manageRoute(route, action.String()); err != nil {
 			return fmt.Errorf("failed applying action %s to routing table: %s", action, err)
 		}
 	}
@@ -686,21 +736,81 @@ func (r *router) Process(a *Advert) error {
 
 // flushRouteEvents returns a slice of events, one per each route in the routing table
 func (r *router) flushRouteEvents(evType EventType) ([]*Event, error) {
+	// Do not advertise anything
+	if r.options.Advertise == AdvertiseNone {
+		return []*Event{}, nil
+	}
+
 	// list all routes
 	routes, err := r.table.List()
 	if err != nil {
 		return nil, fmt.Errorf("failed listing routes: %s", err)
 	}
 
+	// Return all the routes
+	if r.options.Advertise == AdvertiseAll {
+		// build a list of events to advertise
+		events := make([]*Event, len(routes))
+		for i, route := range routes {
+			event := &Event{
+				Type:      evType,
+				Timestamp: time.Now(),
+				Route:     route,
+			}
+			events[i] = event
+		}
+		return events, nil
+	}
+
+	// routeMap stores the routes we're going to advertise
+	bestRoutes := make(map[string]Route)
+
+	// set whether we're advertising only local
+	advertiseLocal := r.options.Advertise == AdvertiseLocal
+
+	// go through all routes found in the routing table and collapse them to optimal routes
+	for _, route := range routes {
+		// if we're only advertising local routes
+		if advertiseLocal && route.Link != "local" {
+			continue
+		}
+
+		// now we're going to find the best routes
+
+		routeKey := route.Service + "@" + route.Network
+		current, ok := bestRoutes[routeKey]
+		if !ok {
+			bestRoutes[routeKey] = route
+			continue
+		}
+		// if the current optimal route metric is higher than routing table route, replace it
+		if current.Metric > route.Metric {
+			bestRoutes[routeKey] = route
+			continue
+		}
+		// if the metrics are the same, prefer advertising your own route
+		if current.Metric == route.Metric {
+			if route.Router == r.options.Id {
+				bestRoutes[routeKey] = route
+				continue
+			}
+		}
+	}
+
+	log.Debugf("Router advertising %d %s routes out of %d", len(bestRoutes), r.options.Advertise, len(routes))
+
 	// build a list of events to advertise
-	events := make([]*Event, len(routes))
-	for i, route := range routes {
+	events := make([]*Event, len(bestRoutes))
+	var i int
+
+	for _, route := range bestRoutes {
 		event := &Event{
 			Type:      evType,
 			Timestamp: time.Now(),
 			Route:     route,
 		}
 		events[i] = event
+		i++
 	}
 
 	return events, nil
@@ -716,14 +826,18 @@ func (r *router) Solicit() error {
 
 	// advertise the routes
 	r.advertWg.Add(1)
-	go r.publishAdvert(RouteUpdate, events)
+
+	go func() {
+		r.publishAdvert(Solicitation, events)
+		r.advertWg.Done()
+	}()
 
 	return nil
 }
 
 // Lookup routes in the routing table
-func (r *router) Lookup(q Query) ([]Route, error) {
-	return r.table.Query(q)
+func (r *router) Lookup(q ...QueryOption) ([]Route, error) {
+	return r.table.Query(q...)
 }
 
 // Watch routes
@@ -745,18 +859,29 @@ func (r *router) Status() Status {
 // Stop stops the router
 func (r *router) Stop() error {
 	r.Lock()
-	defer r.Unlock()
+
+	log.Debugf("Router shutting down")
 
 	switch r.status.Code {
 	case Stopped, Error:
+		r.Unlock()
 		return r.status.Error
 	case Running, Advertising:
+		// notify all goroutines to finish
+		close(r.exit)
+
 		// close all the channels
+		// NOTE: close marks the router status as Stopped
 		r.close()
 	}
+	r.Unlock()
+
+	log.Tracef("Router waiting for all goroutines to finish")
 
 	// wait for all goroutines to finish
 	r.wg.Wait()
+
+	log.Debugf("Router successfully stopped")
 
 	return nil
 }

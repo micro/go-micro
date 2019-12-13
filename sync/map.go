@@ -5,10 +5,11 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"sort"
 
-	"github.com/micro/go-micro/data/store"
-	ckv "github.com/micro/go-micro/data/store/consul"
-	lock "github.com/micro/go-micro/sync/lock/consul"
+	"github.com/micro/go-micro/store"
+	ckv "github.com/micro/go-micro/store/etcd"
+	lock "github.com/micro/go-micro/sync/lock/etcd"
 )
 
 type syncMap struct {
@@ -39,8 +40,12 @@ func (m *syncMap) Read(key, val interface{}) error {
 		return err
 	}
 
+	if len(kval) == 0 {
+		return store.ErrNotFound
+	}
+
 	// decode value
-	return json.Unmarshal(kval.Value, val)
+	return json.Unmarshal(kval[0].Value, val)
 }
 
 func (m *syncMap) Write(key, val interface{}) error {
@@ -85,10 +90,14 @@ func (m *syncMap) Delete(key interface{}) error {
 }
 
 func (m *syncMap) Iterate(fn func(key, val interface{}) error) error {
-	keyvals, err := m.opts.Store.Dump()
+	keyvals, err := m.opts.Store.List()
 	if err != nil {
 		return err
 	}
+
+	sort.Slice(keyvals, func(i, j int) bool {
+		return keyvals[i].Key < keyvals[j].Key
+	})
 
 	for _, keyval := range keyvals {
 		// lock

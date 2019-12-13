@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	pb "github.com/micro/go-micro/network/proto"
+	pb "github.com/micro/go-micro/network/service/proto"
 )
 
 var (
@@ -28,6 +28,8 @@ type node struct {
 	id string
 	// address is node address
 	address string
+	// link on which we communicate with the peer
+	link string
 	// peers are nodes with direct link to this node
 	peers map[string]*node
 	// network returns the node network
@@ -127,7 +129,7 @@ func (n *node) UpdatePeer(peer *node) error {
 
 // RefreshPeer updates node timestamp
 // It returns false if the peer has not been found.
-func (n *node) RefreshPeer(id string, now time.Time) error {
+func (n *node) RefreshPeer(id, link string, now time.Time) error {
 	n.Lock()
 	defer n.Unlock()
 
@@ -135,6 +137,9 @@ func (n *node) RefreshPeer(id string, now time.Time) error {
 	if !ok {
 		return ErrPeerNotFound
 	}
+
+	// set peer link
+	peer.link = link
 
 	if peer.lastSeen.Before(now) {
 		peer.lastSeen = now
@@ -158,7 +163,7 @@ func (n *node) Nodes() []Node {
 
 	visited := n.walk(untilNoMorePeers, justWalk)
 
-	var nodes []Node
+	nodes := make([]Node, 0, len(visited))
 	// collect all the nodes and return them
 	for _, node := range visited {
 		nodes = append(nodes, node)
@@ -170,9 +175,6 @@ func (n *node) Nodes() []Node {
 // GetPeerNode returns a node from node MaxDepth topology
 // It returns nil if the peer was not found
 func (n *node) GetPeerNode(id string) *node {
-	n.RLock()
-	defer n.RUnlock()
-
 	// get node topology up to MaxDepth
 	top := n.Topology(MaxDepth)
 
@@ -219,7 +221,7 @@ func (n *node) DeletePeerNode(id string) error {
 
 // PruneStalePeerNodes prune the peers that have not been seen for longer than given time
 // It returns a map of the the nodes that got pruned
-func (n *node) PruneStalePeerNodes(pruneTime time.Duration) map[string]*node {
+func (n *node) PruneStalePeers(pruneTime time.Duration) map[string]*node {
 	n.Lock()
 	defer n.Unlock()
 
@@ -240,12 +242,9 @@ func (n *node) PruneStalePeerNodes(pruneTime time.Duration) map[string]*node {
 	return pruned
 }
 
-// Topology returns a copy of the node topology down to given depth
-// NOTE: the returned node is a node graph - not a single node
-func (n *node) Topology(depth uint) *node {
-	n.RLock()
-	defer n.RUnlock()
-
+// getTopology traverses node graph and builds node topology
+// NOTE: this function is not thread safe
+func (n *node) getTopology(depth uint) *node {
 	// make a copy of yourself
 	node := &node{
 		id:       n.id,
@@ -265,7 +264,7 @@ func (n *node) Topology(depth uint) *node {
 
 	// iterate through our peers and update the node peers
 	for _, peer := range n.peers {
-		nodePeer := peer.Topology(depth)
+		nodePeer := peer.getTopology(depth)
 		if _, ok := node.peers[nodePeer.id]; !ok {
 			node.peers[nodePeer.id] = nodePeer
 		}
@@ -274,14 +273,23 @@ func (n *node) Topology(depth uint) *node {
 	return node
 }
 
+// Topology returns a copy of the node topology down to given depth
+// NOTE: the returned node is a node graph - not a single node
+func (n *node) Topology(depth uint) *node {
+	n.RLock()
+	defer n.RUnlock()
+
+	return n.getTopology(depth)
+}
+
 // Peers returns node peers up to MaxDepth
 func (n *node) Peers() []Node {
 	n.RLock()
 	defer n.RUnlock()
 
-	var peers []Node
+	peers := make([]Node, 0, len(n.peers))
 	for _, nodePeer := range n.peers {
-		peer := nodePeer.Topology(MaxDepth)
+		peer := nodePeer.getTopology(MaxDepth)
 		peers = append(peers, peer)
 	}
 
@@ -322,6 +330,11 @@ func peerProtoTopology(peer Node, depth uint) *pb.Peer {
 		Address: peer.Address(),
 	}
 
+	// set the network name if network is not nil
+	if peer.Network() != nil {
+		node.Network = peer.Network().Name()
+	}
+
 	pbPeers := &pb.Peer{
 		Node:  node,
 		Peers: make([]*pb.Peer, 0),
@@ -351,6 +364,12 @@ func PeersToProto(node Node, depth uint) *pb.Peer {
 		Id:      node.Id(),
 		Address: node.Address(),
 	}
+
+	// set the network name if network is not nil
+	if node.Network() != nil {
+		pbNode.Network = node.Network().Name()
+	}
+
 	// we will build proto topology into this
 	pbPeers := &pb.Peer{
 		Node:  pbNode,

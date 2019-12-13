@@ -8,7 +8,7 @@ import (
 	"github.com/forestgiant/sliceutil"
 	"github.com/micro/go-micro/agent/input"
 	"github.com/micro/go-micro/util/log"
-	"gopkg.in/telegram-bot-api.v4"
+	tgbotapi "gopkg.in/telegram-bot-api.v4"
 )
 
 type telegramConn struct {
@@ -44,11 +44,9 @@ func (tc *telegramConn) run() {
 	tc.recv = updates
 	tc.syncCond.Signal()
 
-	for {
-		select {
-		case <-tc.exit:
-			return
-		}
+	select {
+	case <-tc.exit:
+		return
 	}
 }
 

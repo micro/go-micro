@@ -13,6 +13,7 @@ import (
 	"github.com/micro/go-micro/client/pool"
 	"github.com/micro/go-micro/client/selector"
 	"github.com/micro/go-micro/codec"
+	raw "github.com/micro/go-micro/codec/bytes"
 	"github.com/micro/go-micro/errors"
 	"github.com/micro/go-micro/metadata"
 	"github.com/micro/go-micro/registry"
@@ -161,7 +162,6 @@ func (r *rpcClient) call(ctx context.Context, node *registry.Node, req Request, 
 
 	select {
 	case err := <-ch:
-		grr = err
 		return err
 	case <-ctx.Done():
 		grr = errors.Timeout("go.micro.client", fmt.Sprintf("%v", ctx.Err()))
@@ -316,6 +316,22 @@ func (r *rpcClient) Options() Options {
 	return r.opts
 }
 
+// hasProxy checks if we have proxy set in the environment
+func (r *rpcClient) hasProxy() bool {
+	// get proxy
+	if prx := os.Getenv("MICRO_PROXY"); len(prx) > 0 {
+		return true
+	}
+
+	// get proxy address
+	if prx := os.Getenv("MICRO_PROXY_ADDRESS"); len(prx) > 0 {
+		return true
+	}
+
+	return false
+}
+
+// next returns an iterator for the next nodes to call
 func (r *rpcClient) next(request Request, opts CallOptions) (selector.Next, error) {
 	service := request.Service()
 
@@ -377,7 +393,9 @@ func (r *rpcClient) Call(ctx context.Context, request Request, response interfac
 	d, ok := ctx.Deadline()
 	if !ok {
 		// no deadline so we create a new one
-		ctx, _ = context.WithTimeout(ctx, callOpts.RequestTimeout)
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, callOpts.RequestTimeout)
+		defer cancel()
 	} else {
 		// got a deadline so no need to setup context
 		// but we need to set the timeout we pass along
@@ -429,10 +447,18 @@ func (r *rpcClient) Call(ctx context.Context, request Request, response interfac
 		return err
 	}
 
-	ch := make(chan error, callOpts.Retries+1)
+	// get the retries
+	retries := callOpts.Retries
+
+	// disable retries when using a proxy
+	if r.hasProxy() {
+		retries = 0
+	}
+
+	ch := make(chan error, retries+1)
 	var gerr error
 
-	for i := 0; i <= callOpts.Retries; i++ {
+	for i := 0; i <= retries; i++ {
 		go func(i int) {
 			ch <- call(i)
 		}(i)
@@ -512,10 +538,18 @@ func (r *rpcClient) Stream(ctx context.Context, request Request, opts ...CallOpt
 		err    error
 	}
 
-	ch := make(chan response, callOpts.Retries+1)
+	// get the retries
+	retries := callOpts.Retries
+
+	// disable retries when using a proxy
+	if r.hasProxy() {
+		retries = 0
+	}
+
+	ch := make(chan response, retries+1)
 	var grr error
 
-	for i := 0; i <= callOpts.Retries; i++ {
+	for i := 0; i <= retries; i++ {
 		go func(i int) {
 			s, err := call(i)
 			ch <- response{s, err}
@@ -583,26 +617,37 @@ func (r *rpcClient) Publish(ctx context.Context, msg Message, opts ...PublishOpt
 		return errors.InternalServerError("go.micro.client", err.Error())
 	}
 
-	// new buffer
-	b := buf.New(nil)
+	var body []byte
 
-	if err := cf(b).Write(&codec.Message{
-		Target: topic,
-		Type:   codec.Event,
-		Header: map[string]string{
-			"Micro-Id":    id,
-			"Micro-Topic": msg.Topic(),
-		},
-	}, msg.Payload()); err != nil {
-		return errors.InternalServerError("go.micro.client", err.Error())
+	// passed in raw data
+	if d, ok := msg.Payload().(*raw.Frame); ok {
+		body = d.Data
+	} else {
+		// new buffer
+		b := buf.New(nil)
+
+		if err := cf(b).Write(&codec.Message{
+			Target: topic,
+			Type:   codec.Event,
+			Header: map[string]string{
+				"Micro-Id":    id,
+				"Micro-Topic": msg.Topic(),
+			},
+		}, msg.Payload()); err != nil {
+			return errors.InternalServerError("go.micro.client", err.Error())
+		}
+
+		// set the body
+		body = b.Bytes()
 	}
+
 	r.once.Do(func() {
 		r.opts.Broker.Connect()
 	})
 
 	return r.opts.Broker.Publish(topic, &broker.Message{
 		Header: md,
-		Body:   b.Bytes(),
+		Body:   body,
 	})
 }
 

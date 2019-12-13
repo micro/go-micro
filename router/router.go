@@ -31,7 +31,7 @@ type Router interface {
 	// Solicit advertises the whole routing table to the network
 	Solicit() error
 	// Lookup queries routes in the routing table
-	Lookup(Query) ([]Route, error)
+	Lookup(...QueryOption) ([]Route, error)
 	// Watch returns a watcher which tracks updates to the routing table
 	Watch(opts ...WatchOption) (Watcher, error)
 	// Start starts the router
@@ -55,7 +55,7 @@ type Table interface {
 	// List all routes in the table
 	List() ([]Route, error)
 	// Query routes in the routing table
-	Query(Query) ([]Route, error)
+	Query(...QueryOption) ([]Route, error)
 }
 
 // Option used by the router
@@ -111,6 +111,8 @@ const (
 	Announce AdvertType = iota
 	// RouteUpdate advertises route updates
 	RouteUpdate
+	// Solicitation indicates routes were solicited
+	Solicitation
 )
 
 // String returns human readable advertisement type
@@ -120,6 +122,8 @@ func (t AdvertType) String() string {
 		return "announce"
 	case RouteUpdate:
 		return "update"
+	case Solicitation:
+		return "solicitation"
 	default:
 		return "unknown"
 	}
@@ -137,6 +141,36 @@ type Advert struct {
 	TTL time.Duration
 	// Events is a list of routing table events to advertise
 	Events []*Event
+}
+
+// Strategy is route advertisement strategy
+type Strategy int
+
+const (
+	// AdvertiseAll advertises all routes to the network
+	AdvertiseAll Strategy = iota
+	// AdvertiseBest advertises optimal routes to the network
+	AdvertiseBest
+	// AdvertiseLocal will only advertise the local routes
+	AdvertiseLocal
+	// AdvertiseNone will not advertise any routes
+	AdvertiseNone
+)
+
+// String returns human readable Strategy
+func (s Strategy) String() string {
+	switch s {
+	case AdvertiseAll:
+		return "all"
+	case AdvertiseBest:
+		return "best"
+	case AdvertiseLocal:
+		return "local"
+	case AdvertiseNone:
+		return "none"
+	default:
+		return "unknown"
+	}
 }
 
 // NewRouter creates new Router and returns it

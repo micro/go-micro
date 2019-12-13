@@ -1,17 +1,10 @@
 package server
 
 import (
-	"bytes"
-	"context"
 	"fmt"
 	"reflect"
-	"strings"
 
-	"github.com/micro/go-micro/broker"
-	"github.com/micro/go-micro/codec"
-	"github.com/micro/go-micro/metadata"
 	"github.com/micro/go-micro/registry"
-	"github.com/micro/go-micro/util/buf"
 )
 
 const (
@@ -163,119 +156,6 @@ func validateSubscriber(sub Subscriber) error {
 	}
 
 	return nil
-}
-
-func (s *rpcServer) createSubHandler(sb *subscriber, opts Options) broker.Handler {
-	return func(p broker.Event) error {
-		msg := p.Message()
-
-		// get codec
-		ct := msg.Header["Content-Type"]
-
-		// default content type
-		if len(ct) == 0 {
-			msg.Header["Content-Type"] = DefaultContentType
-			ct = DefaultContentType
-		}
-
-		// get codec
-		cf, err := s.newCodec(ct)
-		if err != nil {
-			return err
-		}
-
-		// copy headers
-		hdr := make(map[string]string)
-		for k, v := range msg.Header {
-			hdr[k] = v
-		}
-
-		// create context
-		ctx := metadata.NewContext(context.Background(), hdr)
-
-		results := make(chan error, len(sb.handlers))
-
-		for i := 0; i < len(sb.handlers); i++ {
-			handler := sb.handlers[i]
-
-			var isVal bool
-			var req reflect.Value
-
-			if handler.reqType.Kind() == reflect.Ptr {
-				req = reflect.New(handler.reqType.Elem())
-			} else {
-				req = reflect.New(handler.reqType)
-				isVal = true
-			}
-			if isVal {
-				req = req.Elem()
-			}
-
-			b := buf.New(bytes.NewBuffer(msg.Body))
-			co := cf(b)
-			defer co.Close()
-
-			if err := co.ReadHeader(&codec.Message{}, codec.Event); err != nil {
-				return err
-			}
-
-			if err := co.ReadBody(req.Interface()); err != nil {
-				return err
-			}
-
-			fn := func(ctx context.Context, msg Message) error {
-				var vals []reflect.Value
-				if sb.typ.Kind() != reflect.Func {
-					vals = append(vals, sb.rcvr)
-				}
-				if handler.ctxType != nil {
-					vals = append(vals, reflect.ValueOf(ctx))
-				}
-
-				vals = append(vals, reflect.ValueOf(msg.Payload()))
-
-				returnValues := handler.method.Call(vals)
-				if err := returnValues[0].Interface(); err != nil {
-					return err.(error)
-				}
-				return nil
-			}
-
-			for i := len(opts.SubWrappers); i > 0; i-- {
-				fn = opts.SubWrappers[i-1](fn)
-			}
-
-			if s.wg != nil {
-				s.wg.Add(1)
-			}
-
-			go func() {
-				if s.wg != nil {
-					defer s.wg.Done()
-				}
-
-				results <- fn(ctx, &rpcMessage{
-					topic:       sb.topic,
-					contentType: ct,
-					payload:     req.Interface(),
-				})
-			}()
-		}
-
-		var errors []string
-
-		for i := 0; i < len(sb.handlers); i++ {
-			if err := <-results; err != nil {
-				errors = append(errors, err.Error())
-			}
-		}
-
-		if len(errors) > 0 {
-			return fmt.Errorf("subscriber error: %s", strings.Join(errors, "\n"))
-		}
-
-		return nil
-	}
 }
 
 func (s *subscriber) Topic() string {

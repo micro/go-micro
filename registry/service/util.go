@@ -2,7 +2,7 @@ package service
 
 import (
 	"github.com/micro/go-micro/registry"
-	pb "github.com/micro/go-micro/registry/proto"
+	pb "github.com/micro/go-micro/registry/service/proto"
 )
 
 func values(v []*registry.Value) []*pb.Value {
@@ -10,7 +10,7 @@ func values(v []*registry.Value) []*pb.Value {
 		return []*pb.Value{}
 	}
 
-	var vs []*pb.Value
+	vs := make([]*pb.Value, 0, len(v))
 	for _, vi := range v {
 		vs = append(vs, &pb.Value{
 			Name:   vi.Name,
@@ -26,7 +26,7 @@ func toValues(v []*pb.Value) []*registry.Value {
 		return []*registry.Value{}
 	}
 
-	var vs []*registry.Value
+	vs := make([]*registry.Value, 0, len(v))
 	for _, vi := range v {
 		vs = append(vs, &registry.Value{
 			Name:   vi.Name,
@@ -38,7 +38,7 @@ func toValues(v []*pb.Value) []*registry.Value {
 }
 
 func ToProto(s *registry.Service) *pb.Service {
-	var endpoints []*pb.Endpoint
+	endpoints := make([]*pb.Endpoint, 0, len(s.Endpoints))
 	for _, ep := range s.Endpoints {
 		var request, response *pb.Value
 
@@ -66,7 +66,7 @@ func ToProto(s *registry.Service) *pb.Service {
 		})
 	}
 
-	var nodes []*pb.Node
+	nodes := make([]*pb.Node, 0, len(s.Nodes))
 
 	for _, node := range s.Nodes {
 		nodes = append(nodes, &pb.Node{
@@ -86,7 +86,7 @@ func ToProto(s *registry.Service) *pb.Service {
 }
 
 func ToService(s *pb.Service) *registry.Service {
-	var endpoints []*registry.Endpoint
+	endpoints := make([]*registry.Endpoint, 0, len(s.Endpoints))
 	for _, ep := range s.Endpoints {
 		var request, response *registry.Value
 
@@ -114,7 +114,7 @@ func ToService(s *pb.Service) *registry.Service {
 		})
 	}
 
-	var nodes []*registry.Node
+	nodes := make([]*registry.Node, 0, len(s.Nodes))
 	for _, node := range s.Nodes {
 		nodes = append(nodes, &registry.Node{
 			Id:       node.Id,

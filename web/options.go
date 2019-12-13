@@ -72,6 +72,16 @@ func Name(n string) Option {
 	}
 }
 
+// Icon specifies an icon url to load in the UI
+func Icon(ico string) Option {
+	return func(o *Options) {
+		if o.Metadata == nil {
+			o.Metadata = make(map[string]string)
+		}
+		o.Metadata["icon"] = ico
+	}
+}
+
 // Unique server id
 func Id(id string) Option {
 	return func(o *Options) {

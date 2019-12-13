@@ -10,6 +10,8 @@ import (
 type tunListener struct {
 	// address of the listener
 	channel string
+	// token is the tunnel token
+	token string
 	// the accept channel
 	accept chan *session
 	// the channel to close
@@ -22,7 +24,7 @@ type tunListener struct {
 	delFunc func()
 }
 
-// periodically announce self
+// periodically announce self the channel being listened on
 func (t *tunListener) announce() {
 	tick := time.NewTicker(time.Second * 30)
 	defer tick.Stop()
@@ -46,9 +48,12 @@ func (t *tunListener) process() {
 
 	defer func() {
 		// close the sessions
-		for _, conn := range conns {
+		for id, conn := range conns {
 			conn.Close()
+			delete(conns, id)
 		}
+		// unassign
+		conns = nil
 	}()
 
 	for {
@@ -60,10 +65,26 @@ func (t *tunListener) process() {
 			return
 		// receive a new message
 		case m := <-t.session.recv:
+			var sessionId string
+			var linkId string
+
+			switch m.mode {
+			case Multicast:
+				sessionId = "multicast"
+				linkId = "multicast"
+			case Broadcast:
+				sessionId = "broadcast"
+				linkId = "broadcast"
+			default:
+				sessionId = m.session
+				linkId = m.link
+			}
+
 			// get a session
-			sess, ok := conns[m.session]
-			log.Debugf("Tunnel listener received channel %s session %s exists: %t", m.channel, m.session, ok)
+			sess, ok := conns[sessionId]
+			log.Tracef("Tunnel listener received channel %s session %s type %s exists: %t", m.channel, m.session, m.typ, ok)
 			if !ok {
+				// we only process open and session types
 				switch m.typ {
 				case "open", "session":
 				default:
@@ -77,27 +98,29 @@ func (t *tunListener) process() {
 					// the channel
 					channel: m.channel,
 					// the session id
-					session: m.session,
+					session: sessionId,
+					// tunnel token
+					token: t.token,
 					// is loopback conn
 					loopback: m.loopback,
 					// the link the message was received on
-					link: m.link,
-					// set multicast
-					multicast: m.multicast,
+					link: linkId,
+					// set the connection mode
+					mode: m.mode,
 					// close chan
 					closed: make(chan bool),
 					// recv called by the acceptor
 					recv: make(chan *message, 128),
 					// use the internal send buffer
 					send: t.session.send,
-					// wait
-					wait: make(chan bool),
 					// error channel
 					errChan: make(chan error, 1),
+					// set the read timeout
+					readTimeout: t.session.readTimeout,
 				}
 
 				// save the session
-				conns[m.session] = sess
+				conns[sessionId] = sess
 
 				select {
 				case <-t.closed:
@@ -109,17 +132,19 @@ func (t *tunListener) process() {
 
 			// an existing session was found
 
-			// received a close message
 			switch m.typ {
 			case "close":
+				// received a close message
 				select {
+				// check if the session is closed
 				case <-sess.closed:
 					// no op
-					delete(conns, m.session)
+					delete(conns, sessionId)
 				default:
+					// only close if unicast session
 					// close and delete session
 					close(sess.closed)
-					delete(conns, m.session)
+					delete(conns, sessionId)
 				}
 
 				// continue
@@ -134,9 +159,9 @@ func (t *tunListener) process() {
 			// send this to the accept chan
 			select {
 			case <-sess.closed:
-				delete(conns, m.session)
+				delete(conns, sessionId)
 			case sess.recv <- m:
-				log.Debugf("Tunnel listener sent to recv chan channel %s session %s", m.channel, m.session)
+				log.Tracef("Tunnel listener sent to recv chan channel %s session %s type %s", m.channel, sessionId, m.typ)
 			}
 		}
 	}
@@ -175,11 +200,14 @@ func (t *tunListener) Accept() (Session, error) {
 		if !ok {
 			return nil, io.EOF
 		}
+		// return without accept
+		if c.mode != Unicast {
+			return c, nil
+		}
 		// send back the accept
 		if err := c.Accept(); err != nil {
 			return nil, err
 		}
 		return c, nil
 	}
-	return nil, nil
 }

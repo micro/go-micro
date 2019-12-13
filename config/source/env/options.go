@@ -35,6 +35,7 @@ func WithPrefix(p ...string) source.Option {
 }
 
 func appendUnderscore(prefixes []string) []string {
+	//nolint:prealloc
 	var result []string
 	for _, p := range prefixes {
 		if !strings.HasSuffix(p, "_") {

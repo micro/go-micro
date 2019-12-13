@@ -11,5 +11,6 @@ type Resolver interface {
 
 // A resolved record
 type Record struct {
-	Address string `json:"address"`
+	Address  string `json:"address"`
+	Priority int64  `json:"priority"`
 }

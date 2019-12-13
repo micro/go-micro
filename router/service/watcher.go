@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/micro/go-micro/router"
-	pb "github.com/micro/go-micro/router/proto"
+	pb "github.com/micro/go-micro/router/service/proto"
 )
 
 type watcher struct {
@@ -61,7 +61,7 @@ func (w *watcher) watch(stream pb.Router_WatchService) error {
 			Gateway: resp.Route.Gateway,
 			Network: resp.Route.Network,
 			Link:    resp.Route.Link,
-			Metric:  int(resp.Route.Metric),
+			Metric:  resp.Route.Metric,
 		}
 
 		event := &router.Event{

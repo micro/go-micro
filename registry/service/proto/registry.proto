@@ -1,0 +1,98 @@
+syntax = "proto3";
+
+package go.micro.registry;
+
+service Registry {
+	rpc GetService(GetRequest) returns (GetResponse) {};
+	rpc Register(Service) returns (EmptyResponse) {};
+	rpc Deregister(Service) returns (EmptyResponse) {};
+	rpc ListServices(ListRequest) returns (ListResponse) {};
+	rpc Watch(WatchRequest) returns (stream Result) {};
+}
+
+// Service represents a go-micro service
+message Service {
+        string name = 1;
+        string version = 2;
+        map<string,string> metadata = 3;
+        repeated Endpoint endpoints = 4;
+        repeated Node nodes = 5;
+        Options options = 6;
+}
+
+// Node represents the node the service is on
+message Node {
+	string id = 1;
+	string address = 2;
+	int64 port = 3;
+	map<string,string> metadata = 4;
+}
+
+// Endpoint is a endpoint provided by a service
+message Endpoint {
+	string name = 1;
+	Value request = 2;
+	Value response = 3;
+	map<string, string> metadata = 4;
+}
+
+// Value is an opaque value for a request or response
+message Value {
+	string name = 1;
+	string type = 2;
+	repeated Value values = 3;
+}
+
+// Options are registry options
+message Options {
+        int64 ttl = 1;
+}
+
+// Result is returns by the watcher
+message Result {
+	string action = 1; // create, update, delete
+	Service service = 2;
+	int64 timestamp = 3; // unix timestamp
+}
+
+message EmptyResponse {}
+
+message GetRequest {
+	string service = 1;
+}
+
+message GetResponse {
+	repeated Service services = 1;
+}
+
+message ListRequest {
+	// TODO: filtering
+}
+
+message ListResponse {
+	repeated Service services = 1;
+}
+
+message WatchRequest {
+	// service is optional
+	string service = 1;
+}
+
+// EventType defines the type of event
+enum EventType {
+        Create = 0;
+        Delete = 1;
+        Update = 2;
+}
+
+// Event is registry event
+message Event {
+        // Event Id
+        string id = 1;
+        // type of event
+        EventType type = 2;
+        // unix timestamp of event
+        int64 timestamp = 3;
+        // service entry
+        Service service = 4;
+}

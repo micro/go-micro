@@ -1,3 +1,5 @@
+// +build !windows
+
 // Package os runs processes locally
 package os
 
@@ -6,23 +8,24 @@ import (
 	"os"
 	"os/exec"
 	"strconv"
+	"syscall"
 
 	"github.com/micro/go-micro/runtime/process"
 )
 
-type Process struct {
-}
-
 func (p *Process) Exec(exe *process.Executable) error {
-	cmd := exec.Command(exe.Binary.Path)
+	cmd := exec.Command(exe.Package.Path)
 	return cmd.Run()
 }
 
 func (p *Process) Fork(exe *process.Executable) (*process.PID, error) {
 	// create command
-	cmd := exec.Command(exe.Binary.Path, exe.Args...)
+	cmd := exec.Command(exe.Package.Path, exe.Args...)
 	// set env vars
 	cmd.Env = append(cmd.Env, exe.Env...)
+
+	// create process group
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 
 	in, err := cmd.StdinPipe()
 	if err != nil {
@@ -61,7 +64,16 @@ func (p *Process) Kill(pid *process.PID) error {
 		return err
 	}
 
-	return pr.Kill()
+	// now kill it
+	err = pr.Kill()
+
+	// kill the group
+	if pgid, err := syscall.Getpgid(id); err == nil {
+		syscall.Kill(-pgid, syscall.SIGKILL)
+	}
+
+	// return the kill error
+	return err
 }
 
 func (p *Process) Wait(pid *process.PID) error {
@@ -85,8 +97,4 @@ func (p *Process) Wait(pid *process.PID) error {
 	}
 
 	return fmt.Errorf(ps.String())
-}
-
-func NewProcess(opts ...process.Option) process.Process {
-	return &Process{}
 }

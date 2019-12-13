@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/micro/go-micro/client"
-	pb "github.com/micro/go-micro/debug/proto"
+	pb "github.com/micro/go-micro/debug/service/proto"
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/registry/cache"
 )
@@ -78,13 +78,6 @@ func (m *monitor) check(service string) (*Status, error) {
 				client.WithRetries(3),
 			)
 			if err != nil {
-				// reap the dead node
-				m.registry.Deregister(&registry.Service{
-					Name:    service.Name,
-					Version: service.Version,
-					Nodes:   []*registry.Node{node},
-				})
-
 				// save the error
 				gerr = err
 				continue
@@ -140,7 +133,7 @@ func (m *monitor) reap() {
 	defer m.Unlock()
 
 	// range over our watched services
-	for service, _ := range m.services {
+	for service := range m.services {
 		// check if the service exists in the registry
 		if !serviceMap[service] {
 			// if not, delete it in our status map
@@ -195,14 +188,14 @@ func (m *monitor) run() {
 			serviceMap := make(map[string]bool)
 
 			m.RLock()
-			for service, _ := range m.services {
+			for service := range m.services {
 				serviceMap[service] = true
 			}
 			m.RUnlock()
 
 			go func() {
 				// check the status of all watched services
-				for service, _ := range serviceMap {
+				for service := range serviceMap {
 					select {
 					case <-m.exit:
 						return
@@ -307,15 +300,13 @@ func (m *monitor) Stop() error {
 		return nil
 	default:
 		close(m.exit)
-		for s, _ := range m.services {
+		for s := range m.services {
 			delete(m.services, s)
 		}
 		m.registry.Stop()
 		m.running = false
 		return nil
 	}
-
-	return nil
 }
 
 func newMonitor(opts ...Option) Monitor {

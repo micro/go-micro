@@ -7,7 +7,7 @@ import (
 
 	"github.com/micro/cli"
 	"github.com/micro/go-micro/agent/input"
-	"gopkg.in/telegram-bot-api.v4"
+	tgbotapi "gopkg.in/telegram-bot-api.v4"
 )
 
 type telegramInput struct {

@@ -7,7 +7,7 @@ import (
 
 	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/registry"
-	pb "github.com/micro/go-micro/registry/proto"
+	pb "github.com/micro/go-micro/registry/service/proto"
 )
 
 var (
@@ -58,8 +58,12 @@ func (s *serviceRegistry) Register(srv *registry.Service, opts ...registry.Regis
 		o(&options)
 	}
 
+	// encode srv into protobuf and pack Register TTL into it
+	pbSrv := ToProto(srv)
+	pbSrv.Options.Ttl = int64(options.TTL.Seconds())
+
 	// register the service
-	_, err := s.client.Register(context.TODO(), ToProto(srv), s.callOpts()...)
+	_, err := s.client.Register(context.TODO(), pbSrv, s.callOpts()...)
 	if err != nil {
 		return err
 	}
@@ -85,7 +89,7 @@ func (s *serviceRegistry) GetService(name string) ([]*registry.Service, error) {
 		return nil, err
 	}
 
-	var services []*registry.Service
+	services := make([]*registry.Service, 0, len(rsp.Services))
 	for _, service := range rsp.Services {
 		services = append(services, ToService(service))
 	}
@@ -98,7 +102,7 @@ func (s *serviceRegistry) ListServices() ([]*registry.Service, error) {
 		return nil, err
 	}
 
-	var services []*registry.Service
+	services := make([]*registry.Service, 0, len(rsp.Services))
 	for _, service := range rsp.Services {
 		services = append(services, ToService(service))
 	}

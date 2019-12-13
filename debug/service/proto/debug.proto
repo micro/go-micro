@@ -1,0 +1,61 @@
+syntax = "proto3";
+
+service Debug {
+        rpc Health(HealthRequest) returns (HealthResponse) {};
+        rpc Stats(StatsRequest) returns (StatsResponse) {};
+        rpc Log(LogRequest) returns (stream Record) {};
+}
+
+message HealthRequest {
+	// optional service name
+	string service = 1;
+}
+
+message HealthResponse {
+	// default: ok
+	string status = 1;
+}
+
+message StatsRequest {
+	// optional service name
+	string service = 1;
+}
+
+message StatsResponse {
+	// timestamp of recording
+	uint64 timestamp = 1;
+	// unix timestamp
+	uint64 started = 2;
+	// in seconds
+	uint64 uptime = 3;
+	// in bytes
+	uint64 memory = 4;
+	// num threads
+	uint64 threads = 5;
+	// total gc in nanoseconds
+	uint64 gc = 6;
+}
+
+// LogRequest requests service logs
+message LogRequest {
+	// service to request logs for
+	string service = 1;
+	// stream records continuously
+	bool stream = 2;
+	// count of records to request
+	int64 count = 3;
+	// relative time in seconds
+	// before the current time
+	// from which to show logs
+	int64 since = 4;
+}
+
+// Record is service log record
+message Record {
+        // timestamp of log record
+        int64 timestamp = 1;
+        // record value
+        string value = 2;
+        // record metadata
+        map<string,string> metadata = 3;
+}

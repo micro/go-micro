@@ -13,9 +13,9 @@ import (
 // Proxy can be used as a proxy server for go-micro services
 type Proxy interface {
 	options.Options
-	// SendRequest honours the client.Router interface
-	SendRequest(context.Context, client.Request, client.Response) error
-	// ServeRequest honours the server.Router interface
+	// ProcessMessage handles inbound messages
+	ProcessMessage(context.Context, server.Message) error
+	// ServeRequest handles inbound requests
 	ServeRequest(context.Context, server.Request, server.Response) error
 }
 

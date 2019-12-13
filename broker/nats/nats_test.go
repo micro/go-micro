@@ -94,6 +94,5 @@ func TestInitAddrs(t *testing.T) {
 				}
 			}
 		})
-
 	}
 }

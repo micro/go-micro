@@ -5,7 +5,7 @@ import (
 
 	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/router"
-	pb "github.com/micro/go-micro/router/proto"
+	pb "github.com/micro/go-micro/router/service/proto"
 )
 
 type table struct {
@@ -21,7 +21,7 @@ func (t *table) Create(r router.Route) error {
 		Gateway: r.Gateway,
 		Network: r.Network,
 		Link:    r.Link,
-		Metric:  int64(r.Metric),
+		Metric:  r.Metric,
 	}
 
 	if _, err := t.table.Create(context.Background(), route, t.callOpts...); err != nil {
@@ -39,7 +39,7 @@ func (t *table) Delete(r router.Route) error {
 		Gateway: r.Gateway,
 		Network: r.Network,
 		Link:    r.Link,
-		Metric:  int64(r.Metric),
+		Metric:  r.Metric,
 	}
 
 	if _, err := t.table.Delete(context.Background(), route, t.callOpts...); err != nil {
@@ -57,7 +57,7 @@ func (t *table) Update(r router.Route) error {
 		Gateway: r.Gateway,
 		Network: r.Network,
 		Link:    r.Link,
-		Metric:  int64(r.Metric),
+		Metric:  r.Metric,
 	}
 
 	if _, err := t.table.Update(context.Background(), route, t.callOpts...); err != nil {
@@ -82,7 +82,7 @@ func (t *table) List() ([]router.Route, error) {
 			Gateway: route.Gateway,
 			Network: route.Network,
 			Link:    route.Link,
-			Metric:  int(route.Metric),
+			Metric:  route.Metric,
 		}
 	}
 
@@ -90,13 +90,15 @@ func (t *table) List() ([]router.Route, error) {
 }
 
 // Lookup looks up routes in the routing table and returns them
-func (t *table) Query(q router.Query) ([]router.Route, error) {
+func (t *table) Query(q ...router.QueryOption) ([]router.Route, error) {
+	query := router.NewQuery(q...)
+
 	// call the router
 	resp, err := t.table.Query(context.Background(), &pb.QueryRequest{
 		Query: &pb.Query{
-			Service: q.Options().Service,
-			Gateway: q.Options().Gateway,
-			Network: q.Options().Network,
+			Service: query.Service,
+			Gateway: query.Gateway,
+			Network: query.Network,
 		},
 	}, t.callOpts...)
 
@@ -113,7 +115,7 @@ func (t *table) Query(q router.Query) ([]router.Route, error) {
 			Gateway: route.Gateway,
 			Network: route.Network,
 			Link:    route.Link,
-			Metric:  int(route.Metric),
+			Metric:  route.Metric,
 		}
 	}
 

@@ -32,7 +32,7 @@ import (
 	"unicode"
 
 	"github.com/google/uuid"
-	"gopkg.in/go-playground/validator.v9"
+	validator "gopkg.in/go-playground/validator.v9"
 )
 
 const (

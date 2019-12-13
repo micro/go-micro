@@ -8,6 +8,15 @@ import (
 	"github.com/micro/go-micro/transport"
 )
 
+const (
+	// send over one link
+	Unicast Mode = iota
+	// send to all channel listeners
+	Multicast
+	// send to all links
+	Broadcast
+)
+
 var (
 	// DefaultDialTimeout is the dial timeout if none is specified
 	DefaultDialTimeout = time.Second * 5
@@ -17,36 +26,50 @@ var (
 	ErrDiscoverChan = errors.New("failed to discover channel")
 	// ErrLinkNotFound is returned when a link is specified at dial time and does not exist
 	ErrLinkNotFound = errors.New("link not found")
+	// ErrReadTimeout is a timeout on session.Recv
+	ErrReadTimeout = errors.New("read timeout")
 )
+
+// Mode of the session
+type Mode uint8
 
 // Tunnel creates a gre tunnel on top of the go-micro/transport.
 // It establishes multiple streams using the Micro-Tunnel-Channel header
 // and Micro-Tunnel-Session header. The tunnel id is a hash of
 // the address being requested.
 type Tunnel interface {
+	// Init initializes tunnel with options
 	Init(opts ...Option) error
-	// Address the tunnel is listening on
+	// Address returns the address the tunnel is listening on
 	Address() string
 	// Connect connects the tunnel
 	Connect() error
 	// Close closes the tunnel
 	Close() error
-	// All the links the tunnel is connected to
+	// Links returns all the links the tunnel is connected to
 	Links() []Link
-	// Connect to a channel
+	// Dial allows a client to connect to a channel
 	Dial(channel string, opts ...DialOption) (Session, error)
-	// Accept connections on a channel
-	Listen(channel string) (Listener, error)
-	// Name of the tunnel implementation
+	// Listen allows to accept connections on a channel
+	Listen(channel string, opts ...ListenOption) (Listener, error)
+	// String returns the name of the tunnel implementation
 	String() string
 }
 
 // Link represents internal links to the tunnel
 type Link interface {
-	// The id of the link
+	// Id returns the link unique Id
 	Id() string
-	// Status of the link e.g connected/closed
-	Status() string
+	// Delay is the current load on the link (lower is better)
+	Delay() int64
+	// Length returns the roundtrip time as nanoseconds (lower is better)
+	Length() int64
+	// Current transfer rate as bits per second (lower is better)
+	Rate() float64
+	// Is this a loopback link
+	Loopback() bool
+	// State of the link: connected/closed/error
+	State() string
 	// honours transport socket
 	transport.Socket
 }

@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package go.micro.broker;
+
+service Broker {
+	rpc Publish(PublishRequest) returns (Empty) {};
+	rpc Subscribe(SubscribeRequest) returns (stream Message) {};
+}
+
+message Empty {}
+
+message PublishRequest {
+	string topic = 1;
+	Message message = 2;
+}
+
+message SubscribeRequest {
+	string topic = 1;
+	string queue = 2;
+}
+
+message Message {
+	map<string,string> header = 1;
+	bytes body = 2;
+}

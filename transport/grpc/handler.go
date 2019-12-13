@@ -3,6 +3,7 @@ package grpc
 import (
 	"runtime/debug"
 
+	"github.com/micro/go-micro/errors"
 	"github.com/micro/go-micro/transport"
 	pb "github.com/micro/go-micro/transport/grpc/proto"
 	"github.com/micro/go-micro/util/log"
@@ -16,6 +17,8 @@ type microTransport struct {
 }
 
 func (m *microTransport) Stream(ts pb.Transport_StreamServer) error {
+	var err error
+
 	sock := &grpcTransportSocket{
 		stream: ts,
 		local:  m.addr,
@@ -30,10 +33,12 @@ func (m *microTransport) Stream(ts pb.Transport_StreamServer) error {
 		if r := recover(); r != nil {
 			log.Log(r, string(debug.Stack()))
 			sock.Close()
+			err = errors.InternalServerError("go.micro.transport", "panic recovered: %v", r)
 		}
 	}()
 
 	// execute socket func
 	m.fn(sock)
-	return nil
+
+	return err
 }
