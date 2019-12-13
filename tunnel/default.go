@@ -484,6 +484,11 @@ func (t *tun) sendTo(links []*link, msg *message) error {
 	// error channel for call
 	errChan := make(chan error, len(links))
 
+	// execute in parallel
+	sendTo := func(l *link, m *transport.Message, errChan chan error) {
+		errChan <- send(l, m)
+	}
+
 	// send the message
 	for _, link := range links {
 		// send the message via the current link
@@ -501,10 +506,7 @@ func (t *tun) sendTo(links []*link, msg *message) error {
 				m.Header[k] = v
 			}
 
-			// execute in parallel
-			go func() {
-				errChan <- send(link, m)
-			}()
+			go sendTo(link, m, errChan)
 
 			continue
 		}
