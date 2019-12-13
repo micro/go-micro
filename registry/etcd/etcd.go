@@ -18,6 +18,7 @@ import (
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/util/log"
 	hash "github.com/mitchellh/hashstructure"
+	"go.uber.org/zap"
 )
 
 var (
@@ -72,6 +73,10 @@ func configure(e *etcdRegistry, opts ...registry.Option) error {
 		if ok {
 			config.Username = u.Username
 			config.Password = u.Password
+		}
+		cfg, ok := e.options.Context.Value(logConfigKey{}).(*zap.Config)
+		if ok && cfg != nil {
+			config.LogConfig = cfg
 		}
 	}
 
