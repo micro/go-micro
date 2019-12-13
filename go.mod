@@ -38,7 +38,7 @@ require (
 	github.com/oxtoacart/bpool v0.0.0-20190530202638-03653db5a59c
 	github.com/pkg/errors v0.8.1
 	github.com/stretchr/testify v1.4.0
-	go.uber.org/zap v1.12.0 // indirect
+	go.uber.org/zap v1.12.0
 	golang.org/x/crypto v0.0.0-20191108234033-bd318be0434a
 	golang.org/x/net v0.0.0-20191109021931-daa7c04131f5
 	google.golang.org/grpc v1.25.1
