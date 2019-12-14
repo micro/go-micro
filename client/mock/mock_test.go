@@ -2,6 +2,7 @@ package mock
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/micro/go-micro/errors"
@@ -24,6 +25,12 @@ func TestClient(t *testing.T) {
 			}
 			return "wrong"
 		}},
+		{Endpoint: "Foo.FuncWithRequestContextAndResponse", Response: func(ctx context.Context, req interface{}) string {
+			return "something"
+		}},
+		{Endpoint: "Foo.FuncWithRequestContextAndResponseError", Response: func(ctx context.Context, req interface{}) (string, error) {
+			return "something", fmt.Errorf("mock error")
+		}},
 	}
 
 	c := NewClient(Response("go.mock", response))
@@ -35,7 +42,9 @@ func TestClient(t *testing.T) {
 		err := c.Call(context.TODO(), req, &rsp)
 
 		if err != r.Error {
-			t.Fatalf("Expecter error %v got %v", r.Error, err)
+			if r.Endpoint != "Foo.FuncWithRequestContextAndResponseError" {
+				t.Fatalf("Expecter error %v got %v", r.Error, err)
+			}
 		}
 
 		t.Log(rsp)
