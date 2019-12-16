@@ -7,14 +7,13 @@ import (
 	"time"
 
 	"github.com/micro/go-micro/client"
-	"github.com/micro/go-micro/config/options"
 	"github.com/micro/go-micro/metadata"
 	"github.com/micro/go-micro/store"
 	pb "github.com/micro/go-micro/store/service/proto"
 )
 
 type serviceStore struct {
-	options.Options
+	options store.Options
 
 	// Namespace to use
 	Namespace string
@@ -123,33 +122,17 @@ func (s *serviceStore) Delete(keys ...string) error {
 }
 
 // NewStore returns a new store service implementation
-func NewStore(opts ...options.Option) store.Store {
-	options := options.NewOptions(opts...)
-
-	var nodes []string
-	var namespace string
-	var prefix string
-
-	n, ok := options.Values().Get("store.nodes")
-	if ok {
-		nodes = n.([]string)
-	}
-
-	ns, ok := options.Values().Get("store.namespace")
-	if ok {
-		namespace = ns.(string)
-	}
-
-	prx, ok := options.Values().Get("store.prefix")
-	if ok {
-		prefix = prx.(string)
+func NewStore(opts ...store.Option) store.Store {
+	var options store.Options
+	for _, o := range opts {
+		o(&options)
 	}
 
 	service := &serviceStore{
-		Options:   options,
-		Namespace: namespace,
-		Prefix:    prefix,
-		Nodes:     nodes,
+		options:   options,
+		Namespace: options.Namespace,
+		Prefix:    options.Prefix,
+		Nodes:     options.Nodes,
 		Client:    pb.NewStoreService("go.micro.store", client.DefaultClient),
 	}
 
