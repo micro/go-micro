@@ -32,13 +32,9 @@ type sqlStore struct {
 
 // List all the known records
 func (s *sqlStore) List() ([]*store.Record, error) {
-	q, err := s.db.Prepare(fmt.Sprintf("SELECT key, value, expiry FROM %s.%s;", s.database, s.table))
-	if err != nil {
-		return nil, err
-	}
+	rows, err := s.db.Query(fmt.Sprintf("SELECT key, value, expiry FROM %s.%s;", s.database, s.table))
 	var records []*store.Record
 	var timehelper pq.NullTime
-	rows, err := q.Query()
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return records, nil
@@ -47,6 +43,7 @@ func (s *sqlStore) List() ([]*store.Record, error) {
 	}
 	defer rows.Close()
 	for rows.Next() {
+		println("next!")
 		record := &store.Record{}
 		if err := rows.Scan(&record.Key, &record.Value, &timehelper); err != nil {
 			return records, err
@@ -152,30 +149,25 @@ func (s *sqlStore) Delete(keys ...string) error {
 }
 
 func (s *sqlStore) initDB() {
-	// Create "micro" schema
-	schema, err := s.db.Prepare(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s ;", s.database))
+	// Create the namespace's database
+	_, err := s.db.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s ;", s.database))
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	_, err = schema.Exec()
+	_, err = s.db.Exec(fmt.Sprintf("SET DATABASE = %s ;", s.database))
 	if err != nil {
-		log.Fatal(errors.Wrap(err, "Couldn't create database"))
+		log.Fatal(errors.Wrap(err, "Couldn't set database"))
 	}
 
-	// Create a table for the Store namespace
-	tableq, err := s.db.Prepare(fmt.Sprintf(`CREATE TABLE IF NOT EXISTS %s.%s
+	// Create a table for the namespace's prefix
+	_, err = s.db.Exec(fmt.Sprintf(`CREATE TABLE IF NOT EXISTS %s
 	(
-		key text COLLATE "default" NOT NULL,
+		key text NOT NULL,
 		value bytea,
 		expiry timestamp with time zone,
 		CONSTRAINT %s_pkey PRIMARY KEY (key)
-	);`, s.database, s.table, s.table))
-	if err != nil {
-		log.Fatal(errors.Wrap(err, "SQL statement preparation failed"))
-	}
-
-	_, err = tableq.Exec()
+	);`, s.table, s.table))
 	if err != nil {
 		log.Fatal(errors.Wrap(err, "Couldn't create table"))
 	}
@@ -228,6 +220,6 @@ func New(opts ...store.Option) store.Store {
 		database: namespace,
 		table:    prefix,
 	}
-
+	s.initDB()
 	return s
 }
