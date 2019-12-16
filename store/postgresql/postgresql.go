@@ -17,18 +17,22 @@ import (
 
 // DefaultNamespace is the namespace that the sql store
 // will use if no namespace is provided.
-const DefaultNamespace = "micro"
+var (
+	DefaultNamespace = "micro"
+	DefaultPrefix    = "micro"
+)
 
 type sqlStore struct {
 	db *sql.DB
 
-	table string
+	database string
+	table    string
 	options.Options
 }
 
 // List all the known records
 func (s *sqlStore) List() ([]*store.Record, error) {
-	q, err := s.db.Prepare(fmt.Sprintf("SELECT key, value, expiry FROM micro.%s;", s.table))
+	q, err := s.db.Prepare(fmt.Sprintf("SELECT key, value, expiry FROM %s.%s;", s.database, s.table))
 	if err != nil {
 		return nil, err
 	}
@@ -73,7 +77,7 @@ func (s *sqlStore) List() ([]*store.Record, error) {
 
 // Read all records with keys
 func (s *sqlStore) Read(keys ...string) ([]*store.Record, error) {
-	q, err := s.db.Prepare(fmt.Sprintf("SELECT key, value, expiry FROM micro.%s WHERE key = $1;", s.table))
+	q, err := s.db.Prepare(fmt.Sprintf("SELECT key, value, expiry FROM %s.%s WHERE key = $1;", s.database, s.table))
 	if err != nil {
 		return nil, err
 	}
@@ -105,11 +109,11 @@ func (s *sqlStore) Read(keys ...string) ([]*store.Record, error) {
 
 // Write records
 func (s *sqlStore) Write(rec ...*store.Record) error {
-	q, err := s.db.Prepare(fmt.Sprintf(`INSERT INTO micro.%s(key, value, expiry)
+	q, err := s.db.Prepare(fmt.Sprintf(`INSERT INTO %s.%s(key, value, expiry)
 		VALUES ($1, $2::bytea, $3)
 		ON CONFLICT (key)
 		DO UPDATE
-		SET value = EXCLUDED.value, expiry = EXCLUDED.expiry;`, s.table))
+		SET value = EXCLUDED.value, expiry = EXCLUDED.expiry;`, s.database, s.table))
 	if err != nil {
 		return err
 	}
@@ -130,7 +134,7 @@ func (s *sqlStore) Write(rec ...*store.Record) error {
 
 // Delete records with keys
 func (s *sqlStore) Delete(keys ...string) error {
-	q, err := s.db.Prepare(fmt.Sprintf("DELETE FROM micro.%s WHERE key = $1;", s.table))
+	q, err := s.db.Prepare(fmt.Sprintf("DELETE FROM %s.%s WHERE key = $1;", s.database, s.table))
 	if err != nil {
 		return err
 	}
@@ -151,10 +155,21 @@ func (s *sqlStore) initDB(options options.Options) error {
 	// Get the store.namespace option, or use sql.DefaultNamespace
 	namespaceOpt, found := options.Values().Get("store.namespace")
 	if !found {
-		s.table = DefaultNamespace
+		s.database = DefaultNamespace
 	} else {
 		if namespace, ok := namespaceOpt.(string); ok {
-			s.table = namespace
+			s.database = namespace
+		} else {
+			return errors.New("store.namespace option must be a string")
+		}
+	}
+	// Get the store.namespace option, or use sql.DefaultNamespace
+	prefixOpt, found := options.Values().Get("store.prefix")
+	if !found {
+		s.table = DefaultPrefix
+	} else {
+		if prefix, ok := prefixOpt.(string); ok {
+			s.table = prefix
 		} else {
 			return errors.New("store.namespace option must be a string")
 		}
@@ -171,13 +186,13 @@ func (s *sqlStore) initDB(options options.Options) error {
 	}
 
 	// Create a table for the Store namespace
-	tableq, err := s.db.Prepare(fmt.Sprintf(`CREATE TABLE IF NOT EXISTS micro.%s
+	tableq, err := s.db.Prepare(fmt.Sprintf(`CREATE TABLE IF NOT EXISTS %s.%s
 	(
 		key text COLLATE "default" NOT NULL,
 		value bytea,
 		expiry timestamp with time zone,
 		CONSTRAINT %s_pkey PRIMARY KEY (key)
-	);`, s.table, s.table))
+	);`, s.database, s.table, s.table))
 	if err != nil {
 		return errors.Wrap(err, "SQL statement preparation failed")
 	}
