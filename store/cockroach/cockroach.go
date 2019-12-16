@@ -1,9 +1,10 @@
-// Package postgresql implements a micro Store backed by sql
-package postgresql
+// Package cockroach implements the cockroach store
+package cockroach
 
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 	"unicode"
 
@@ -208,9 +209,12 @@ func New(opts ...store.Option) store.Store {
 		}
 	}
 
+	source := nodes[0]
+	if !strings.Contains(source, " ") {
+		source = fmt.Sprintf("host=%s", source)
+	}
 	// create source from first node
-	source := fmt.Sprintf("host=%s", nodes[0])
-	db, err := sql.Open("pq", source)
+	db, err := sql.Open("postgres", source)
 	if err != nil {
 		log.Fatal(err)
 	}

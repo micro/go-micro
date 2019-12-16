@@ -1,4 +1,4 @@
-package postgresql
+package cockroach
 
 import (
 	"database/sql"
