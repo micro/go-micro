@@ -43,7 +43,6 @@ func (s *sqlStore) List() ([]*store.Record, error) {
 	}
 	defer rows.Close()
 	for rows.Next() {
-		println("next!")
 		record := &store.Record{}
 		if err := rows.Scan(&record.Key, &record.Value, &timehelper); err != nil {
 			return records, err
