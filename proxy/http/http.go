@@ -189,7 +189,7 @@ func (p *Proxy) ServeRequest(ctx context.Context, req server.Request, rsp server
 }
 
 func (p *Proxy) String() string {
-        return "http"
+	return "http"
 }
 
 // NewSingleHostProxy returns a router which sends requests to a single http backend
