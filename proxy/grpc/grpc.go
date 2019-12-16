@@ -136,6 +136,10 @@ func (p *Proxy) ServeRequest(ctx context.Context, req server.Request, rsp server
 	}
 }
 
+func (p *Proxy) String() string {
+        return "grpc"
+}
+
 // NewProxy returns a new grpc proxy server
 func NewProxy(opts ...proxy.Option) proxy.Proxy {
 	var options proxy.Options

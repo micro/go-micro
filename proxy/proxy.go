@@ -13,6 +13,8 @@ type Proxy interface {
 	ProcessMessage(context.Context, server.Message) error
 	// ServeRequest handles inbound requests
 	ServeRequest(context.Context, server.Request, server.Response) error
+	// Name of the proxy protocol
+	String() string
 }
 
 var (

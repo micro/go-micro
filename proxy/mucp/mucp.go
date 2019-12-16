@@ -521,6 +521,10 @@ func (p *Proxy) serveRequest(ctx context.Context, link client.Client, service, e
 	}
 }
 
+func (p *Proxy) String() string {
+	return "mucp"
+}
+
 // NewSingleHostProxy returns a proxy which sends requests to a single backend
 func NewSingleHostProxy(endpoint string) *Proxy {
 	return &Proxy{
