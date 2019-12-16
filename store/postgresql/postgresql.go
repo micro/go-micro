@@ -176,13 +176,13 @@ func (s *sqlStore) initDB(options options.Options) error {
 	}
 
 	// Create "micro" schema
-	schema, err := s.db.Prepare("CREATE SCHEMA IF NOT EXISTS micro ;")
+	schema, err := s.db.Prepare(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s ;", s.database))
 	if err != nil {
 		return err
 	}
 	_, err = schema.Exec()
 	if err != nil {
-		return errors.Wrap(err, "Couldn't create Schema")
+		return errors.Wrap(err, "Couldn't create database")
 	}
 
 	// Create a table for the Store namespace
