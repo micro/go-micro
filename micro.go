@@ -42,8 +42,29 @@ type Function interface {
 	Subscribe(topic string, v interface{}) error
 }
 
-// Publisher is syntactic sugar for publishing
+/*
+// Type Event is a future type for acting on asynchronous events
+type Event interface {
+	// Publish publishes a message to the event topic
+	Publish(ctx context.Context, msg interface{}, opts ...client.PublishOption) error
+	// Subscribe to the event
+	Subscribe(ctx context.Context, v in
+}
+
+// Resource is a future type for defining dependencies
+type Resource interface {
+	// Name of the resource
+	Name() string
+	// Type of resource
+	Type() string
+	// Method of creation
+	Create() error
+}
+*/
+
+// Publisher is uses to publish messages to a topic
 type Publisher interface {
+	// Publish publishes a message to the event topic
 	Publish(ctx context.Context, msg interface{}, opts ...client.PublishOption) error
 }
 
