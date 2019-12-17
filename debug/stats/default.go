@@ -1,11 +1,11 @@
 package stats
 
 import (
-	"github.com/micro/go-micro/debug/buffer"
+	"github.com/micro/go-micro/util/ring"
 )
 
 type stats struct {
-	buffer *buffer.Buffer
+	buffer *ring.Buffer
 }
 
 func (s *stats) Read() ([]*Stat, error) {
@@ -33,6 +33,6 @@ func (s *stats) Write(stat *Stat) error {
 // TODO add options
 func NewStats() Stats {
 	return &stats{
-		buffer: buffer.New(1024),
+		buffer: ring.New(1024),
 	}
 }
