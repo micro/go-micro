@@ -27,42 +27,40 @@ func NewClient(name string) *debugClient {
 	}
 }
 
-// Logs queries the service logs and returns a channel to read the logs from
-func (d *debugClient) Log(opts ...log.ReadOption) (<-chan log.Record, error) {
-	var options log.ReadOptions
-	// initialize the read options
-	for _, o := range opts {
-		o(&options)
-	}
-
+// Logs queries the services logs and returns a channel to read the logs from
+func (d *debugClient) Log(since time.Time, count int, stream bool) (log.Stream, error) {
 	req := &pb.LogRequest{}
-	if !options.Since.IsZero() {
-		req.Since = options.Since.Unix()
+	if !since.IsZero() {
+		req.Since = since.Unix()
 	}
 
-	if options.Count > 0 {
-		req.Count = int64(options.Count)
+	if count > 0 {
+		req.Count = int64(count)
 	}
 
-	req.Stream = options.Stream
+	// set whether to stream
+	req.Stream = stream
 
 	// get the log stream
-	stream, err := d.Client.Log(context.Background(), req)
+	serverStream, err := d.Client.Log(context.Background(), req)
 	if err != nil {
 		return nil, fmt.Errorf("failed getting log stream: %s", err)
 	}
 
-	// log channel for streaming logs
-	logChan := make(chan log.Record)
+	lg := &logStream{
+		stream: make(chan log.Record),
+		stop:   make(chan bool),
+	}
 
 	// go stream logs
-	go d.streamLogs(logChan, stream)
+	go d.streamLogs(lg, serverStream)
 
-	return logChan, nil
+	return lg, nil
 }
 
-func (d *debugClient) streamLogs(logChan chan log.Record, stream pb.Debug_LogService) {
+func (d *debugClient) streamLogs(lg *logStream, stream pb.Debug_LogService) {
 	defer stream.Close()
+	defer lg.Stop()
 
 	for {
 		resp, err := stream.Recv()
@@ -81,8 +79,10 @@ func (d *debugClient) streamLogs(logChan chan log.Record, stream pb.Debug_LogSer
 			Metadata:  metadata,
 		}
 
-		logChan <- record
+		select {
+		case <-lg.stop:
+			return
+		case lg.stream <- record:
+		}
 	}
-
-	close(logChan)
 }

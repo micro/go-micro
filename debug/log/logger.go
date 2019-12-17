@@ -2,67 +2,9 @@
 package log
 
 import (
-	"time"
+	"fmt"
+	"os"
 )
-
-var (
-	// DefaultLog logger
-	DefaultLog = NewLog()
-	// DefaultLevel is default log level
-	DefaultLevel = LevelInfo
-	// prefix for all messages
-	prefix string
-)
-
-// Log is event log
-type Log interface {
-	// Read reads log entries from the logger
-	Read(...ReadOption) ([]Record, error)
-	// Write writes records to log
-	Write(Record) error
-	// Stream log records
-	Stream() (Stream, error)
-}
-
-// Record is log record entry
-type Record struct {
-	// Timestamp of logged event
-	Timestamp time.Time `json:"time"`
-	// Value contains log entry
-	Value interface{} `json:"value"`
-	// Metadata to enrich log record
-	Metadata map[string]string `json:"metadata"`
-}
-
-<<<<<<< HEAD
-// Level is a log level
-type Level int
-
-const (
-	LevelFatal Level = iota
-	LevelError
-	LevelInfo
-	LevelWarn
-	LevelDebug
-	LevelTrace
-)
-
-func init() {
-	switch os.Getenv("MICRO_LOG_LEVEL") {
-	case "trace":
-		DefaultLevel = LevelTrace
-	case "debug":
-		DefaultLevel = LevelDebug
-	case "warn":
-		DefaultLevel = LevelWarn
-	case "info":
-		DefaultLevel = LevelInfo
-	case "error":
-		DefaultLevel = LevelError
-	case "fatal":
-		DefaultLevel = LevelFatal
-	}
-}
 
 func log(v ...interface{}) {
 	if len(prefix) > 0 {
@@ -175,9 +117,4 @@ func SetPrefix(p string) {
 // Set service name
 func SetName(name string) {
 	prefix = fmt.Sprintf("[%s]", name)
-=======
-type Stream interface {
-	Chan() <-chan Record
-	Stop() error
->>>>>>> 50d5c6402b1e2bea64476a969b613b7c685d6f8e
 }
