@@ -2,21 +2,23 @@
 package kubernetes
 
 import (
+	"errors"
+
 	"github.com/micro/go-micro/debug/log"
 )
 
 type klog struct{}
 
-func (k *klog) Read(...log.ReadOption) []log.Record { return nil }
-
-func (k *klog) Write(l log.Record) {
-	write(l)
+func (k *klog) Read(...log.ReadOption) ([]log.Record, error) {
+	return nil, errors.New("not implemented")
 }
 
-func (k *klog) Stream() (<-chan log.Record, chan bool) {
-	c, s := make(chan log.Record), make(chan bool)
-	go close(c)
-	return c, s
+func (k *klog) Write(l log.Record) error {
+	return write(l)
+}
+
+func (k *klog) Stream() (log.Stream, error) {
+	return &klogStreamer{}, nil
 }
 
 // New returns a configured Kubernetes logger

@@ -39,14 +39,18 @@ func TestKubernetes(t *testing.T) {
 	}
 	assert.Equal(t, write, read, "Write was not equal")
 
-	assert.Nil(t, k.Read(), "Read should be unimplemented")
+	_, err = k.Read()
+	assert.Error(t, err, "Read should be unimplemented")
 
-	stream, stop := k.Stream()
+	stream, err := k.Stream()
+	if err != nil {
+		t.Error(err)
+	}
 	records := []log.Record{}
-	for s := range stream {
+	go stream.Stop()
+	for s := range stream.Chan() {
 		records = append(records, s)
 	}
-	close(stop)
-	assert.Equal(t, 0, len(records), "Stream should be unimplemented")
+	assert.Equal(t, 0, len(records), "Stream should return nothing")
 
 }
