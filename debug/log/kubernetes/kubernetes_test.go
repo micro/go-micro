@@ -41,11 +41,12 @@ func TestKubernetes(t *testing.T) {
 
 	assert.Nil(t, k.Read(), "Read should be unimplemented")
 
-	stream := k.Stream(make(chan bool))
+	stream, stop := k.Stream()
 	records := []log.Record{}
 	for s := range stream {
 		records = append(records, s)
 	}
+	close(stop)
 	assert.Equal(t, 0, len(records), "Stream should be unimplemented")
 
 }

@@ -13,10 +13,10 @@ func (k *klog) Write(l log.Record) {
 	write(l)
 }
 
-func (k *klog) Stream(stop chan bool) <-chan log.Record {
-	c := make(chan log.Record)
+func (k *klog) Stream() (<-chan log.Record, chan bool) {
+	c, s := make(chan log.Record), make(chan bool)
 	go close(c)
-	return c
+	return c, s
 }
 
 // New returns a configured Kubernetes logger
