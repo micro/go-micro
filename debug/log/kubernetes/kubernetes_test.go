@@ -23,7 +23,7 @@ func TestKubernetes(t *testing.T) {
 	os.Stderr = w
 	meta := make(map[string]string)
 	write := log.Record{
-		Timestamp: time.Unix(0, 0),
+		Timestamp: time.Unix(0, 0).UTC(),
 		Value:     "Test log entry",
 		Metadata:  meta,
 	}
