@@ -6,17 +6,13 @@ import (
 )
 
 var (
-	// DefaultLog logger
-	DefaultLog = NewLog()
-	// DefaultLevel is default log level
-	DefaultLevel = LevelInfo
 	// Default buffer size if any
 	DefaultSize = 1024
-	// prefix for all messages
-	prefix string
+	// DefaultLog logger
+	DefaultLog = NewLog()
 )
 
-// Log is event log
+// Log is debug log interface for reading and writing logs
 type Log interface {
 	// Read reads log entries from the logger
 	Read(...ReadOption) ([]Record, error)
@@ -36,6 +32,7 @@ type Record struct {
 	Metadata map[string]string `json:"metadata"`
 }
 
+// Stream returns a log stream
 type Stream interface {
 	Chan() <-chan Record
 	Stop() error

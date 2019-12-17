@@ -18,17 +18,23 @@ func write(l log.Record) error {
 }
 
 type klogStreamer struct {
+	// the k8s log stream
 	streamChan chan log.Record
+	// the stop chan
+	stop chan bool
 }
 
 func (k *klogStreamer) Chan() <-chan log.Record {
-	if k.streamChan == nil {
-		k.streamChan = make(chan log.Record)
-	}
 	return k.streamChan
 }
 
 func (k *klogStreamer) Stop() error {
-	close(k.streamChan)
+	select {
+	case <-k.stop:
+		return nil
+	default:
+		close(k.stop)
+		close(k.streamChan)
+	}
 	return nil
 }

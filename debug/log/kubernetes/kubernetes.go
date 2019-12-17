@@ -18,7 +18,10 @@ func (k *klog) Write(l log.Record) error {
 }
 
 func (k *klog) Stream() (log.Stream, error) {
-	return &klogStreamer{}, nil
+	return &klogStreamer{
+		streamChan: make(chan log.Record),
+		stop:       make(chan bool),
+	}, nil
 }
 
 // New returns a configured Kubernetes logger
