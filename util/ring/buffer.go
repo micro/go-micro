@@ -26,11 +26,11 @@ type Entry struct {
 // Stream is used to stream the buffer
 type Stream struct {
 	// Id of the stream
-	Id      string
+	Id string
 	// Buffered entries
 	Entries chan *Entry
 	// Stop channel
-	Stop    chan bool
+	Stop chan bool
 }
 
 // Put adds a new value to ring buffer
@@ -142,4 +142,3 @@ func New(i int) *Buffer {
 		streams: make(map[string]*Stream),
 	}
 }
-

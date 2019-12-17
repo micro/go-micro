@@ -17,16 +17,6 @@ type debugClient struct {
 	Client pb.DebugService
 }
 
-// NewClient provides a debug client
-func NewClient(name string) *debugClient {
-	// create default client
-	cli := client.DefaultClient
-
-	return &debugClient{
-		Client: pb.NewDebugService(name, cli),
-	}
-}
-
 // Logs queries the services logs and returns a channel to read the logs from
 func (d *debugClient) Log(since time.Time, count int, stream bool) (log.Stream, error) {
 	req := &pb.LogRequest{}
@@ -84,5 +74,15 @@ func (d *debugClient) streamLogs(lg *logStream, stream pb.Debug_LogService) {
 			return
 		case lg.stream <- record:
 		}
+	}
+}
+
+// NewClient provides a debug client
+func NewClient(name string) *debugClient {
+	// create default client
+	cli := client.DefaultClient
+
+	return &debugClient{
+		Client: pb.NewDebugService(name, cli),
 	}
 }
