@@ -33,13 +33,14 @@ func NewLog(opts ...Option) Log {
 }
 
 // Write writes logs into logger
-func (l *defaultLog) Write(r Record) {
+func (l *defaultLog) Write(r Record) error {
 	golog.Print(r.Value)
 	l.Buffer.Put(fmt.Sprint(r.Value))
+	return nil
 }
 
 // Read reads logs and returns them
-func (l *defaultLog) Read(opts ...ReadOption) []Record {
+func (l *defaultLog) Read(opts ...ReadOption) ([]Record, error) {
 	options := ReadOptions{}
 	// initialize the read options
 	for _, o := range opts {
@@ -78,12 +79,12 @@ func (l *defaultLog) Read(opts ...ReadOption) []Record {
 		records = append(records, record)
 	}
 
-	return records
+	return records, nil
 }
 
 // Stream returns channel for reading log records
 // along with a stop channel, close it when done
-func (l *defaultLog) Stream() (<-chan Record, chan bool) {
+func (l *defaultLog) Stream() (Stream, error) {
 	// get stream channel from ring buffer
 	stream, stop := l.Buffer.Stream()
 	// make a buffered channel
@@ -111,5 +112,8 @@ func (l *defaultLog) Stream() (<-chan Record, chan bool) {
 		}
 	}()
 
-	return records, stop
+	return &logStream{
+		stream: records,
+		stop:   stop,
+	}, nil
 }

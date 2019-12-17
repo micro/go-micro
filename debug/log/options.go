@@ -60,10 +60,3 @@ func Count(c int) ReadOption {
 		o.Count = c
 	}
 }
-
-// Stream requests continuous log stream
-func Stream(s bool) ReadOption {
-	return func(o *ReadOptions) {
-		o.Stream = s
-	}
-}

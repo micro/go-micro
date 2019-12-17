@@ -23,7 +23,7 @@ func TestLogger(t *testing.T) {
 
 	// Check if the logs are stored in the logger ring buffer
 	expected := []string{"foobar", "foo bar"}
-	entries := DefaultLog.Read(Count(len(expected)))
+	entries, _ := DefaultLog.Read(Count(len(expected)))
 	for i, entry := range entries {
 		if !reflect.DeepEqual(entry.Value, expected[i]) {
 			t.Errorf("expected %s, got %s", expected[i], entry.Value)
