@@ -1,13 +1,8 @@
 package service
 
 import (
-	"context"
-	"fmt"
-	"time"
-
-	"github.com/micro/go-micro/client"
+	"github.com/micro/go-micro/debug"
 	"github.com/micro/go-micro/debug/log"
-	pb "github.com/micro/go-micro/debug/service/proto"
 )
 
 type serviceLog struct {
@@ -23,7 +18,7 @@ func (s *serviceLog) Read(opts ...log.ReadOption) []log.Record {
 	}
 	// stream the records until nothing is left
 	var records []log.Record
-	for _, record := range stream {
+	for record := range stream {
 		records = append(records, record)
 	}
 	return records
@@ -35,30 +30,30 @@ func (s *serviceLog) Write(r log.Record) {
 }
 
 // Stream log records
-func (s *serviceLog) Stream(ch chan bool) (<-chan log.Record, chan bool) {
+func (s *serviceLog) Stream() (<-chan log.Record, chan bool) {
 	stop := make(chan bool)
 	stream, err := s.Client.Log(log.Stream(true))
 	if err != nil {
 		// return a closed stream
-		stream = make(chan log.Record)
-		close(stream)
-		return stream, stop
+		deadStream := make(chan log.Record)
+		close(deadStream)
+		return deadStream, stop
 	}
 
-	// stream the records until nothing is left
+	newStream := make(chan log.Record, 128)
+
 	go func() {
-		var records []log.Record
-		for _, record := range stream {
+		for {
 			select {
-			case stream <- record:
+			case rec := <-stream:
+				newStream <- rec
 			case <-stop:
 				return
 			}
 		}
 	}()
 
-	// return the stream
-	return stream, stop
+	return newStream, stop
 }
 
 // NewLog returns a new log interface
@@ -75,7 +70,7 @@ func NewLog(opts ...log.Option) log.Log {
 		name = debug.DefaultName
 	}
 
-	return serviceLog{
+	return &serviceLog{
 		Client: newDebugClient(name),
 	}
 }

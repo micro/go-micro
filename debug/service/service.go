@@ -18,7 +18,7 @@ type debugClient struct {
 }
 
 // NewDebug provides Debug service implementation
-func newDebugClient(name string) *debug {
+func newDebugClient(name string) *debugClient {
 	// create default client
 	cli := client.DefaultClient
 
