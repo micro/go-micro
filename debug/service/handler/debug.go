@@ -71,10 +71,13 @@ func (d *Debug) Log(ctx context.Context, stream server.Stream) error {
 		// the connection stays open until some timeout expires
 		// or something like that; that means the map of streams
 		// might end up leaking memory if not cleaned up properly
-		records, stop := d.log.Stream()
-		defer close(stop)
+		lgStream, err := d.log.Stream()
+		if err != nil {
+			return err
+		}
+		defer lgStream.Stop()
 
-		for record := range records {
+		for record := range lgStream.Chan() {
 			if err := d.sendRecord(record, stream); err != nil {
 				return err
 			}
@@ -85,7 +88,10 @@ func (d *Debug) Log(ctx context.Context, stream server.Stream) error {
 	}
 
 	// get the log records
-	records := d.log.Read(options...)
+	records, err := d.log.Read(options...)
+	if err != nil {
+		return err
+	}
 
 	// send all the logs downstream
 	for _, record := range records {

@@ -1,6 +1,8 @@
 package service
 
 import (
+	"time"
+
 	"github.com/micro/go-micro/debug"
 	"github.com/micro/go-micro/debug/log"
 )
@@ -10,50 +12,36 @@ type serviceLog struct {
 }
 
 // Read reads log entries from the logger
-func (s *serviceLog) Read(opts ...log.ReadOption) []log.Record {
-	// TODO: parse opts
-	stream, err := s.Client.Log(opts...)
-	if err != nil {
-		return nil
+func (s *serviceLog) Read(opts ...log.ReadOption) ([]log.Record, error) {
+	var options log.ReadOptions
+	for _, o := range opts {
+		o(&options)
 	}
+
+	stream, err := s.Client.Log(options.Since, options.Count, false)
+	if err != nil {
+		return nil, err
+	}
+	defer stream.Stop()
+
 	// stream the records until nothing is left
 	var records []log.Record
-	for record := range stream {
+
+	for record := range stream.Chan() {
 		records = append(records, record)
 	}
-	return records
+
+	return records, nil
 }
 
 // There is no write support
-func (s *serviceLog) Write(r log.Record) {
-	return
+func (s *serviceLog) Write(r log.Record) error {
+	return nil
 }
 
 // Stream log records
-func (s *serviceLog) Stream() (<-chan log.Record, chan bool) {
-	stop := make(chan bool)
-	stream, err := s.Client.Log(log.Stream(true))
-	if err != nil {
-		// return a closed stream
-		deadStream := make(chan log.Record)
-		close(deadStream)
-		return deadStream, stop
-	}
-
-	newStream := make(chan log.Record, 128)
-
-	go func() {
-		for {
-			select {
-			case rec := <-stream:
-				newStream <- rec
-			case <-stop:
-				return
-			}
-		}
-	}()
-
-	return newStream, stop
+func (s *serviceLog) Stream() (log.Stream, error) {
+	return s.Client.Log(time.Time{}, 0, true)
 }
 
 // NewLog returns a new log interface
