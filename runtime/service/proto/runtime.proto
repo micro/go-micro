@@ -21,6 +21,13 @@ message Service {
         map<string,string> metadata = 4;
 }
 
+message Event {
+	string type = 1;
+	int64 timestamp = 2;
+	string service = 3;
+	string version = 4;
+}
+
 message CreateOptions {
 	// command to pass in
 	repeated string command = 1;
