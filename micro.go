@@ -62,11 +62,14 @@ type Resource interface {
 }
 */
 
-// Publisher is uses to publish messages to a topic
-type Publisher interface {
+// Event is used to publish messages to a topic
+type Event interface {
 	// Publish publishes a message to the event topic
 	Publish(ctx context.Context, msg interface{}, opts ...client.PublishOption) error
 }
+
+// Type alias to satisfy the deprecation
+type Publisher = Event
 
 type Option func(*Options)
 
@@ -95,12 +98,17 @@ func NewFunction(opts ...Option) Function {
 	return newFunction(opts...)
 }
 
-// NewPublisher returns a new Publisher
-func NewPublisher(topic string, c client.Client) Publisher {
+// NewEvent creates a new event publisher
+func NewEvent(topic string, c client.Client) Event {
 	if c == nil {
 		c = client.NewClient()
 	}
-	return &publisher{c, topic}
+	return &event{c, topic}
+}
+
+// Deprecated: NewPublisher returns a new Publisher
+func NewPublisher(topic string, c client.Client) Event {
+	return NewEvent(topic, c)
 }
 
 // RegisterHandler is syntactic sugar for registering a handler
