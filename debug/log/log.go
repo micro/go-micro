@@ -10,6 +10,8 @@ var (
 	DefaultLog = NewLog()
 	// DefaultLevel is default log level
 	DefaultLevel = LevelInfo
+	// Default buffer size if any
+	DefaultSize = 1024
 	// prefix for all messages
 	prefix string
 )

@@ -1,9 +1,10 @@
-package log
+// Package memory provides an in memory log buffer
+package memory
 
 import (
 	"fmt"
-	golog "log"
 
+	"github.com/micro/go-micro/debug/log"
 	"github.com/micro/go-micro/util/ring"
 )
 
@@ -12,36 +13,35 @@ var (
 	DefaultSize = 1024
 )
 
-// defaultLog is default micro log
-type defaultLog struct {
+// memoryLog is default micro log
+type memoryLog struct {
 	*ring.Buffer
 }
 
 // NewLog returns default Logger with
-func NewLog(opts ...Option) Log {
+func NewLog(opts ...log.Option) log.Log {
 	// get default options
-	options := DefaultOptions()
+	options := log.DefaultOptions()
 
 	// apply requested options
 	for _, o := range opts {
 		o(&options)
 	}
 
-	return &defaultLog{
+	return &memoryLog{
 		Buffer: ring.New(options.Size),
 	}
 }
 
 // Write writes logs into logger
-func (l *defaultLog) Write(r Record) error {
-	golog.Print(r.Value)
+func (l *memoryLog) Write(r log.Record) error {
 	l.Buffer.Put(fmt.Sprint(r.Value))
 	return nil
 }
 
 // Read reads logs and returns them
-func (l *defaultLog) Read(opts ...ReadOption) ([]Record, error) {
-	options := ReadOptions{}
+func (l *memoryLog) Read(opts ...log.ReadOption) ([]log.Record, error) {
+	options := log.ReadOptions{}
 	// initialize the read options
 	for _, o := range opts {
 		o(&options)
@@ -70,9 +70,9 @@ func (l *defaultLog) Read(opts ...ReadOption) ([]Record, error) {
 		}
 	}
 
-	records := make([]Record, 0, len(entries))
+	records := make([]log.Record, 0, len(entries))
 	for _, entry := range entries {
-		record := Record{
+		record := log.Record{
 			Timestamp: entry.Timestamp,
 			Value:     entry.Value,
 		}
@@ -84,11 +84,11 @@ func (l *defaultLog) Read(opts ...ReadOption) ([]Record, error) {
 
 // Stream returns channel for reading log records
 // along with a stop channel, close it when done
-func (l *defaultLog) Stream() (Stream, error) {
+func (l *memoryLog) Stream() (log.Stream, error) {
 	// get stream channel from ring buffer
 	stream, stop := l.Buffer.Stream()
 	// make a buffered channel
-	records := make(chan Record, 128)
+	records := make(chan log.Record, 128)
 	// get last 10 records
 	last10 := l.Buffer.Get(10)
 
@@ -96,7 +96,7 @@ func (l *defaultLog) Stream() (Stream, error) {
 	go func() {
 		// first send last 10 records
 		for _, entry := range last10 {
-			records <- Record{
+			records <- log.Record{
 				Timestamp: entry.Timestamp,
 				Value:     entry.Value,
 				Metadata:  make(map[string]string),
@@ -104,7 +104,7 @@ func (l *defaultLog) Stream() (Stream, error) {
 		}
 		// now stream continuously
 		for entry := range stream {
-			records <- Record{
+			records <- log.Record{
 				Timestamp: entry.Timestamp,
 				Value:     entry.Value,
 				Metadata:  make(map[string]string),
