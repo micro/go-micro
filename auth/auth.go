@@ -7,12 +7,20 @@ import (
 
 // Auth providers authentication and authorization
 type Auth interface {
-	// Generate a new authorization token
-	Generate(u string) (*Token, error)
+	// Generate a new auth token
+	Generate(string) (*Token, error)
 	// Revoke an authorization token
-	Revoke(t *Token) error
-	// Verify a token
-	Verify(t *Token) error
+	Revoke(*Token) error
+	// Grant access to a resource
+	Grant(*Token, *Resource) error
+	// Verify a token can access a resource
+	Verify(*Token, *Resource) error
+}
+
+// Resource is some thing to provide access to
+type Resource struct {
+	// Name of the resource
+	Name string
 }
 
 // Token providers by an auth provider
