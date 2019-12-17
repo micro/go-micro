@@ -9,7 +9,9 @@ type klog struct{}
 
 func (k *klog) Read(...log.ReadOption) []log.Record { return nil }
 
-func (k *klog) Write(log.Record) {}
+func (k *klog) Write(l log.Record) {
+	write(l)
+}
 
 func (k *klog) Stream(stop chan bool) <-chan log.Record {
 	c := make(chan log.Record)

@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"bytes"
+	"encoding/json"
 	"io"
 	"os"
 	"testing"
@@ -13,6 +14,7 @@ import (
 
 func TestKubernetes(t *testing.T) {
 	k := New()
+
 	r, w, err := os.Pipe()
 	if err != nil {
 		t.Fatal(err)
@@ -20,17 +22,22 @@ func TestKubernetes(t *testing.T) {
 	s := os.Stderr
 	os.Stderr = w
 	meta := make(map[string]string)
-	meta["foo"] = "bar"
-	k.Write(log.Record{
+	write := log.Record{
 		Timestamp: time.Unix(0, 0),
 		Value:     "Test log entry",
 		Metadata:  meta,
-	})
+	}
+	meta["foo"] = "bar"
+	k.Write(write)
 	b := &bytes.Buffer{}
 	w.Close()
 	io.Copy(b, r)
 	os.Stderr = s
-	assert.Equal(t, "Test log entry", b.String(), "Write was not equal")
+	var read log.Record
+	if err := json.Unmarshal(b.Bytes(), &read); err != nil {
+		t.Fatalf("json.Unmarshal failed: %s", err.Error())
+	}
+	assert.Equal(t, write, read, "Write was not equal")
 
 	assert.Nil(t, k.Read(), "Read should be unimplemented")
 

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/tls"
 	"errors"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -114,6 +115,21 @@ func (c *client) Get(r *Resource, labels map[string]string) error {
 		Params(&api.Params{LabelSelector: labels}).
 		Do().
 		Into(r.Value)
+}
+
+// Logs returns logs for a pod
+func (c *client) Logs(podName string) (io.ReadCloser, error) {
+	req := api.NewRequest(c.opts).
+		Get().
+		Resource("pod").
+		SubResource("log").
+		Name(podName)
+
+	resp, err := req.Raw()
+	if err != nil {
+		return nil, err
+	}
+	return resp.Body, nil
 }
 
 // Update updates API object
