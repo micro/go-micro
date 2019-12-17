@@ -1,88 +1,64 @@
-// Package service provides the service log
 package service
 
 import (
-	"context"
-	"fmt"
 	"time"
 
-	"github.com/micro/go-micro/client"
-
+	"github.com/micro/go-micro/debug"
 	"github.com/micro/go-micro/debug/log"
-	pb "github.com/micro/go-micro/debug/service/proto"
 )
 
-// Debug provides debug service client
-type debugClient struct {
-	Client pb.DebugService
+type serviceLog struct {
+	Client *debugClient
 }
 
-// NewClient provides a debug client
-func NewClient(name string) *debugClient {
-	// create default client
-	cli := client.DefaultClient
-
-	return &debugClient{
-		Client: pb.NewDebugService(name, cli),
-	}
-}
-
-// Logs queries the services logs and returns a channel to read the logs from
-func (d *debugClient) Log(since time.Time, count int, stream bool) (log.Stream, error) {
-	req := &pb.LogRequest{}
-	if !since.IsZero() {
-		req.Since = since.Unix()
+// Read reads log entries from the logger
+func (s *serviceLog) Read(opts ...log.ReadOption) ([]log.Record, error) {
+	var options log.ReadOptions
+	for _, o := range opts {
+		o(&options)
 	}
 
-	if count > 0 {
-		req.Count = int64(count)
-	}
-
-	// set whether to stream
-	req.Stream = stream
-
-	// get the log stream
-	serverStream, err := d.Client.Log(context.Background(), req)
+	stream, err := s.Client.Log(options.Since, options.Count, false)
 	if err != nil {
-		return nil, fmt.Errorf("failed getting log stream: %s", err)
+		return nil, err
+	}
+	defer stream.Stop()
+
+	// stream the records until nothing is left
+	var records []log.Record
+
+	for record := range stream.Chan() {
+		records = append(records, record)
 	}
 
-	lg := &logStream{
-		stream: make(chan log.Record),
-		stop:   make(chan bool),
-	}
-
-	// go stream logs
-	go d.streamLogs(lg, serverStream)
-
-	return lg, nil
+	return records, nil
 }
 
-func (d *debugClient) streamLogs(lg *logStream, stream pb.Debug_LogService) {
-	defer stream.Close()
-	defer lg.Stop()
+// There is no write support
+func (s *serviceLog) Write(r log.Record) error {
+	return nil
+}
 
-	for {
-		resp, err := stream.Recv()
-		if err != nil {
-			break
-		}
+// Stream log records
+func (s *serviceLog) Stream() (log.Stream, error) {
+	return s.Client.Log(time.Time{}, 0, true)
+}
 
-		metadata := make(map[string]string)
-		for k, v := range resp.Metadata {
-			metadata[k] = v
-		}
+// NewLog returns a new log interface
+func NewLog(opts ...log.Option) log.Log {
+	var options log.Options
+	for _, o := range opts {
+		o(&options)
+	}
 
-		record := log.Record{
-			Timestamp: time.Unix(resp.Timestamp, 0),
-			Value:     resp.Value,
-			Metadata:  metadata,
-		}
+	name := options.Name
 
-		select {
-		case <-lg.stop:
-			return
-		case lg.stream <- record:
-		}
+	// set the default name
+	if len(name) == 0 {
+		name = debug.DefaultName
+	}
+
+	return &serviceLog{
+		Client: NewClient(name),
 	}
 }
