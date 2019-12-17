@@ -71,6 +71,6 @@ func NewLog(opts ...log.Option) log.Log {
 	}
 
 	return &serviceLog{
-		Client: newDebugClient(name),
+		Client: NewClient(name),
 	}
 }
