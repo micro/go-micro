@@ -24,11 +24,11 @@ type Router interface {
 	Options() Options
 	// The routing table
 	Table() Table
-	// Advertise advertises routes to the network
+	// Advertise advertises routes
 	Advertise() (<-chan *Advert, error)
 	// Process processes incoming adverts
 	Process(*Advert) error
-	// Solicit advertises the whole routing table to the network
+	// Solicit advertises the whole routing table
 	Solicit() error
 	// Lookup queries routes in the routing table
 	Lookup(...QueryOption) ([]Route, error)
