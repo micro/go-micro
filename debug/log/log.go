@@ -23,7 +23,7 @@ type Log interface {
 	// Write writes records to log
 	Write(Record)
 	// Stream log records
-	Stream(chan bool) <-chan Record
+	Stream() (<-chan Record, chan bool)
 }
 
 // Record is log record entry

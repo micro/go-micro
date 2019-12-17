@@ -4,17 +4,17 @@ import (
 	"fmt"
 	golog "log"
 
-	"github.com/micro/go-micro/debug/buffer"
+	"github.com/micro/go-micro/util/ring"
 )
 
 var (
 	// DefaultSize of the logger buffer
-	DefaultSize = 1000
+	DefaultSize = 1024
 )
 
 // defaultLog is default micro log
 type defaultLog struct {
-	*buffer.Buffer
+	*ring.Buffer
 }
 
 // NewLog returns default Logger with
@@ -28,7 +28,7 @@ func NewLog(opts ...Option) Log {
 	}
 
 	return &defaultLog{
-		Buffer: buffer.New(options.Size),
+		Buffer: ring.New(options.Size),
 	}
 }
 
@@ -46,7 +46,7 @@ func (l *defaultLog) Read(opts ...ReadOption) []Record {
 		o(&options)
 	}
 
-	var entries []*buffer.Entry
+	var entries []*ring.Entry
 	// if Since options ha sbeen specified we honor it
 	if !options.Since.IsZero() {
 		entries = l.Buffer.Since(options.Since)
@@ -82,9 +82,10 @@ func (l *defaultLog) Read(opts ...ReadOption) []Record {
 }
 
 // Stream returns channel for reading log records
-func (l *defaultLog) Stream(stop chan bool) <-chan Record {
+// along with a stop channel, close it when done
+func (l *defaultLog) Stream() (<-chan Record, chan bool) {
 	// get stream channel from ring buffer
-	stream := l.Buffer.Stream(stop)
+	stream, stop := l.Buffer.Stream()
 	// make a buffered channel
 	records := make(chan Record, 128)
 	// get last 10 records
@@ -110,5 +111,5 @@ func (l *defaultLog) Stream(stop chan bool) <-chan Record {
 		}
 	}()
 
-	return records
+	return records, stop
 }

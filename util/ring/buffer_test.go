@@ -1,4 +1,4 @@
-package buffer
+package ring
 
 import (
 	"testing"
