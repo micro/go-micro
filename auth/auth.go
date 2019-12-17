@@ -12,15 +12,17 @@ type Auth interface {
 	// Revoke an authorization token
 	Revoke(*Token) error
 	// Grant access to a resource
-	Grant(*Token, *Resource) error
+	Grant(*Token, *Service) error
 	// Verify a token can access a resource
-	Verify(*Token, *Resource) error
+	Verify(*Token, *Service) error
 }
 
-// Resource is some thing to provide access to
-type Resource struct {
+// Service is some thing to provide access to
+type Service struct {
 	// Name of the resource
 	Name string
+	// Endpoint is the specific endpoint 
+	Endpoint string
 }
 
 // Token providers by an auth provider
