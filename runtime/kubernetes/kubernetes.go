@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/micro/go-micro/runtime"
-	"github.com/micro/go-micro/runtime/kubernetes/client"
+	"github.com/micro/go-micro/util/kubernetes/client"
 	"github.com/micro/go-micro/util/log"
 )
 

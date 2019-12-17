@@ -9,7 +9,7 @@ import (
 	"os"
 	"path"
 
-	"github.com/micro/go-micro/runtime/kubernetes/client/api"
+	"github.com/micro/go-micro/util/kubernetes/client/api"
 	"github.com/micro/go-micro/util/log"
 )
 
