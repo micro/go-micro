@@ -27,11 +27,11 @@ type Log interface {
 // Record is log record entry
 type Record struct {
 	// Timestamp of logged event
-	Timestamp time.Time
+	Timestamp time.Time `json:"time"`
 	// Value contains log entry
-	Value interface{}
+	Value interface{} `json:"value"`
 	// Metadata to enrich log record
-	Metadata map[string]string
+	Metadata map[string]string `json:"metadata"`
 }
 
 type Stream interface {

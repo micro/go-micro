@@ -2,6 +2,7 @@
 package client
 
 import (
+	"io"
 	"strings"
 
 	"github.com/micro/go-micro/util/log"
@@ -24,6 +25,8 @@ type Kubernetes interface {
 	Delete(*Resource) error
 	// List lists API resources
 	List(*Resource) error
+	// Logs gets logs from a pod
+	Logs(string) (io.ReadCloser, error)
 }
 
 // NewService returns default micro kubernetes service definition
