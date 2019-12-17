@@ -1,3 +1,4 @@
+// Package service provides the service log
 package service
 
 import (
@@ -12,23 +13,23 @@ import (
 )
 
 // Debug provides debug service client
-type Debug struct {
-	dbg pb.DebugService
+type debugClient struct {
+	Client pb.DebugService
 }
 
-// NewDebug provides Debug service implementation
-func NewDebug(name string) *Debug {
+// NewClient provides a debug client
+func NewClient(name string) *debugClient {
 	// create default client
 	cli := client.DefaultClient
 
-	return &Debug{
-		dbg: pb.NewDebugService(name, cli),
+	return &debugClient{
+		Client: pb.NewDebugService(name, cli),
 	}
 }
 
 // Logs queries the service logs and returns a channel to read the logs from
-func (d *Debug) Log(opts ...log.ReadOption) (<-chan log.Record, error) {
-	options := log.ReadOptions{}
+func (d *debugClient) Log(opts ...log.ReadOption) (<-chan log.Record, error) {
+	var options log.ReadOptions
 	// initialize the read options
 	for _, o := range opts {
 		o(&options)
@@ -46,20 +47,21 @@ func (d *Debug) Log(opts ...log.ReadOption) (<-chan log.Record, error) {
 	req.Stream = options.Stream
 
 	// get the log stream
-	stream, err := d.dbg.Log(context.Background(), req)
+	stream, err := d.Client.Log(context.Background(), req)
 	if err != nil {
 		return nil, fmt.Errorf("failed getting log stream: %s", err)
 	}
 
 	// log channel for streaming logs
 	logChan := make(chan log.Record)
+
 	// go stream logs
 	go d.streamLogs(logChan, stream)
 
 	return logChan, nil
 }
 
-func (d *Debug) streamLogs(logChan chan log.Record, stream pb.Debug_LogService) {
+func (d *debugClient) streamLogs(logChan chan log.Record, stream pb.Debug_LogService) {
 	defer stream.Close()
 
 	for {

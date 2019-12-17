@@ -7,8 +7,17 @@ type Option func(*Options)
 
 // Options are logger options
 type Options struct {
+	// Name of the log
+	Name string
 	// Size is the size of ring buffer
 	Size int
+}
+
+// Name of the log
+func Name(n string) Option {
+	return func(o *Options) {
+		o.Name = n
+	}
 }
 
 // Size sets the size of the ring buffer

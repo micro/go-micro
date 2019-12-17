@@ -23,7 +23,7 @@ type Log interface {
 	// Write writes records to log
 	Write(Record)
 	// Stream log records
-	Stream(chan bool) <-chan Record
+	Stream() (<-chan Record, chan bool)
 }
 
 // Record is log record entry
@@ -174,6 +174,6 @@ func SetPrefix(p string) {
 }
 
 // Set service name
-func Name(name string) {
+func SetName(name string) {
 	prefix = fmt.Sprintf("[%s]", name)
 }

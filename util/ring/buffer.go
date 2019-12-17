@@ -1,5 +1,5 @@
-// Package buffer provides a simple ring buffer for storing local data
-package buffer
+// Package ring provides a simple ring buffer for storing local data
+package ring
 
 import (
 	"sync"
@@ -8,18 +8,13 @@ import (
 	"github.com/google/uuid"
 )
 
-type stream struct {
-	id      string
-	entries chan *Entry
-	stop    chan bool
-}
-
 // Buffer is ring buffer
 type Buffer struct {
 	size int
+
 	sync.RWMutex
 	vals    []*Entry
-	streams map[string]stream
+	streams map[string]*Stream
 }
 
 // Entry is ring buffer data entry
@@ -28,12 +23,14 @@ type Entry struct {
 	Timestamp time.Time
 }
 
-// New returns a new buffer of the given size
-func New(i int) *Buffer {
-	return &Buffer{
-		size:    i,
-		streams: make(map[string]stream),
-	}
+// Stream is used to stream the buffer
+type Stream struct {
+	// Id of the stream
+	Id      string
+	// Buffered entries
+	Entries chan *Entry
+	// Stop channel
+	Stop    chan bool
 }
 
 // Put adds a new value to ring buffer
@@ -53,13 +50,13 @@ func (b *Buffer) Put(v interface{}) {
 		b.vals = b.vals[1:]
 	}
 
-	// TODO: this is fucking ugly
+	// send to every stream
 	for _, stream := range b.streams {
 		select {
-		case <-stream.stop:
-			delete(b.streams, stream.id)
-			close(stream.entries)
-		case stream.entries <- entry:
+		case <-stream.Stop:
+			delete(b.streams, stream.Id)
+			close(stream.Entries)
+		case stream.Entries <- entry:
 		}
 	}
 }
@@ -115,22 +112,34 @@ func (b *Buffer) Since(t time.Time) []*Entry {
 }
 
 // Stream logs from the buffer
-func (b *Buffer) Stream(stop chan bool) <-chan *Entry {
+// Close the channel when you want to stop
+func (b *Buffer) Stream() (<-chan *Entry, chan bool) {
 	b.Lock()
 	defer b.Unlock()
 
 	entries := make(chan *Entry, 128)
 	id := uuid.New().String()
-	b.streams[id] = stream{
-		id:      id,
-		entries: entries,
-		stop:    stop,
+	stop := make(chan bool)
+
+	b.streams[id] = &Stream{
+		Id:      id,
+		Entries: entries,
+		Stop:    stop,
 	}
 
-	return entries
+	return entries, stop
 }
 
 // Size returns the size of the ring buffer
 func (b *Buffer) Size() int {
 	return b.size
 }
+
+// New returns a new buffer of the given size
+func New(i int) *Buffer {
+	return &Buffer{
+		size:    i,
+		streams: make(map[string]*Stream),
+	}
+}
+
