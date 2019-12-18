@@ -6,8 +6,8 @@ import (
 	"sync"
 	"testing"
 
-	glog "github.com/go-log/log"
 	"github.com/micro/go-micro/client"
+	"github.com/micro/go-micro/debug/log/noop"
 	proto "github.com/micro/go-micro/debug/service/proto"
 	"github.com/micro/go-micro/registry/memory"
 	"github.com/micro/go-micro/util/log"
@@ -25,7 +25,7 @@ func testShutdown(wg *sync.WaitGroup, cancel func()) {
 
 func testService(ctx context.Context, wg *sync.WaitGroup, name string) Service {
 	// set no op logger
-	log.SetLogger(glog.DefaultLogger)
+	log.SetLogger(noop.NewLog())
 
 	// add self
 	wg.Add(1)

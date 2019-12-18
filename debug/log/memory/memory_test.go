@@ -18,15 +18,15 @@ func TestLogger(t *testing.T) {
 	}
 
 	// Log some cruft
-	lg.Write(log.Record{Value: "foobar"})
-	lg.Write(log.Record{Value: "foo bar"})
+	lg.Write(log.Record{Message: "foobar"})
+	lg.Write(log.Record{Message: "foo bar"})
 
 	// Check if the logs are stored in the logger ring buffer
 	expected := []string{"foobar", "foo bar"}
 	entries, _ := lg.Read(log.Count(len(expected)))
 	for i, entry := range entries {
-		if !reflect.DeepEqual(entry.Value, expected[i]) {
-			t.Errorf("expected %s, got %s", expected[i], entry.Value)
+		if !reflect.DeepEqual(entry.Message, expected[i]) {
+			t.Errorf("expected %s, got %s", expected[i], entry.Message)
 		}
 	}
 }
