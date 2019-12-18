@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"io"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -86,7 +87,7 @@ func (o *osLog) run() {
 		} else {
 			r = Record{
 				Timestamp: time.Now(),
-				Value:     line,
+				Value:     strings.TrimSuffix(line, "\n"),
 				Metadata:  make(map[string]string),
 			}
 		}
