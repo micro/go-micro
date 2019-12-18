@@ -7,6 +7,8 @@ type Stats interface {
 	Read() ([]*Stat, error)
 	// Write a stat snapshot
 	Write(*Stat) error
+	// Record a request
+	Record(error) error
 }
 
 // A runtime stat
@@ -23,4 +25,12 @@ type Stat struct {
 	Threads uint64
 	// Garbage collection in nanoseconds
 	GC uint64
+	// Total requests
+	Requests uint64
+	// Total errors
+	Errors uint64
 }
+
+var (
+	DefaultStats = NewStats()
+)
