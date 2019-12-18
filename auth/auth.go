@@ -21,7 +21,7 @@ type Auth interface {
 type Service struct {
 	// Name of the resource
 	Name string
-	// Endpoint is the specific endpoint 
+	// Endpoint is the specific endpoint
 	Endpoint string
 }
 
