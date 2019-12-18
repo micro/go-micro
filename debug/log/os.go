@@ -10,12 +10,14 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/micro/go-micro/util/ring"
 )
 
 // Should stream from OS
 type osLog struct {
 	sync.RWMutex
-	subs map[string]*osStream
+	buffer *ring.Buffer
+	subs   map[string]*osStream
 }
 
 type osStream struct {
@@ -94,11 +96,8 @@ func (o *osLog) run() {
 
 		o.Lock()
 
-		// bail if there's no subscribers
-		if len(o.subs) == 0 {
-			o.Unlock()
-			return
-		}
+		// write to the buffer
+		o.buffer.Put(r)
 
 		// check subs and send to stream
 		for id, sub := range o.subs {
@@ -119,7 +118,14 @@ func (o *osLog) run() {
 
 // Read reads log entries from the logger
 func (o *osLog) Read(...ReadOption) ([]Record, error) {
-	return []Record{}, nil
+	var records []Record
+
+	// read the last 100 records
+	for _, v := range o.buffer.Get(100) {
+		records = append(records, v.Value.(Record))
+	}
+
+	return records, nil
 }
 
 // Write writes records to log
@@ -133,11 +139,6 @@ func (o *osLog) Write(r Record) error {
 func (o *osLog) Stream() (Stream, error) {
 	o.Lock()
 	defer o.Unlock()
-
-	// start stream watcher
-	if len(o.subs) == 0 {
-		go o.run()
-	}
 
 	// create stream
 	st := &osStream{
@@ -166,7 +167,12 @@ func (o *osStream) Stop() error {
 }
 
 func NewLog(opts ...Option) Log {
-	return &osLog{
-		subs: make(map[string]*osStream),
+	l := &osLog{
+		buffer: ring.New(1024),
+		subs:   make(map[string]*osStream),
 	}
+
+	go l.run()
+
+	return l
 }
