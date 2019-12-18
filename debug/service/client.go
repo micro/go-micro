@@ -65,7 +65,7 @@ func (d *debugClient) streamLogs(lg *logStream, stream pb.Debug_LogService) {
 
 		record := log.Record{
 			Timestamp: time.Unix(resp.Timestamp, 0),
-			Value:     resp.Value,
+			Message:   resp.Message,
 			Metadata:  metadata,
 		}
 

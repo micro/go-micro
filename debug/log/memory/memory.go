@@ -35,7 +35,7 @@ func NewLog(opts ...log.Option) log.Log {
 
 // Write writes logs into logger
 func (l *memoryLog) Write(r log.Record) error {
-	l.Buffer.Put(fmt.Sprint(r.Value))
+	l.Buffer.Put(fmt.Sprint(r.Message))
 	return nil
 }
 
@@ -74,7 +74,7 @@ func (l *memoryLog) Read(opts ...log.ReadOption) ([]log.Record, error) {
 	for _, entry := range entries {
 		record := log.Record{
 			Timestamp: entry.Timestamp,
-			Value:     entry.Value,
+			Message:   entry.Value,
 		}
 		records = append(records, record)
 	}
@@ -98,7 +98,7 @@ func (l *memoryLog) Stream() (log.Stream, error) {
 		for _, entry := range last10 {
 			records <- log.Record{
 				Timestamp: entry.Timestamp,
-				Value:     entry.Value,
+				Message:   entry.Value,
 				Metadata:  make(map[string]string),
 			}
 		}
@@ -106,7 +106,7 @@ func (l *memoryLog) Stream() (log.Stream, error) {
 		for entry := range stream {
 			records <- log.Record{
 				Timestamp: entry.Timestamp,
-				Value:     entry.Value,
+				Message:   entry.Value,
 				Metadata:  make(map[string]string),
 			}
 		}

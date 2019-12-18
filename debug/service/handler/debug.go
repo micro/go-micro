@@ -111,7 +111,7 @@ func (d *Debug) sendRecord(record log.Record, stream server.Stream) error {
 
 	return stream.Send(&proto.Record{
 		Timestamp: record.Timestamp.Unix(),
-		Value:     record.Value.(string),
+		Message:   record.Message.(string),
 		Metadata:  metadata,
 	})
 }

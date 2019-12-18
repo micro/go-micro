@@ -87,7 +87,7 @@ func (o *osLog) run() {
 		} else {
 			r = Record{
 				Timestamp: time.Now(),
-				Value:     strings.TrimSuffix(line, "\n"),
+				Message:   strings.TrimSuffix(line, "\n"),
 				Metadata:  make(map[string]string),
 			}
 		}
@@ -125,7 +125,7 @@ func (o *osLog) Read(...ReadOption) ([]Record, error) {
 // Write writes records to log
 func (o *osLog) Write(r Record) error {
 	b, _ := json.Marshal(r)
-	_, err := os.Stderr.Write(b)
+	_, err := os.Stderr.Write(append(b, byte('\n')))
 	return err
 }
 
