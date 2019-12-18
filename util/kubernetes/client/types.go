@@ -79,7 +79,7 @@ type Container struct {
 	Ports   []ContainerPort `json:"ports,omitempty"`
 }
 
-// PodSpec
+// PodSpec is a pod
 type PodSpec struct {
 	Containers []Container `json:"containers"`
 }
@@ -130,4 +130,8 @@ type Deployment struct {
 // DeploymentList
 type DeploymentList struct {
 	Items []Deployment `json:"items"`
+}
+
+type PodList struct {
+	Items []Template `json:"items"`
 }

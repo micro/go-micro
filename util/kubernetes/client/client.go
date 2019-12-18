@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"strconv"
 
 	"github.com/micro/go-micro/util/kubernetes/client/api"
 	"github.com/micro/go-micro/util/log"
@@ -24,6 +25,26 @@ var (
 // Client ...
 type client struct {
 	opts *api.Options
+}
+
+// NewLocalDevClient returns a client that can be used with `kubectl proxy` on an optional port
+func NewLocalDevClient(port ...int) *client {
+	var p int
+	if len(port) > 1 {
+		log.Fatal("Expected 0 or 1 port parameters")
+	}
+	if len(port) == 0 {
+		p = 8001
+	} else {
+		p = port[0]
+	}
+	return &client{
+		opts: &api.Options{
+			Client:    http.DefaultClient,
+			Host:      "http://localhost:" + strconv.Itoa(p),
+			Namespace: "default",
+		},
+	}
 }
 
 // NewClientInCluster creates a Kubernetes client for use from within a k8s pod.
@@ -128,6 +149,10 @@ func (c *client) Logs(podName string) (io.ReadCloser, error) {
 	resp, err := req.Raw()
 	if err != nil {
 		return nil, err
+	}
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		resp.Body.Close()
+		return nil, errors.New(resp.Request.URL.String() + ": " + resp.Status)
 	}
 	return resp.Body, nil
 }
