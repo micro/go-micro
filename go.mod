@@ -13,7 +13,7 @@ require (
 	github.com/fsouza/go-dockerclient v1.6.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-acme/lego/v3 v3.1.0
-	github.com/go-log/log v0.1.0
+	github.com/go-log/log v0.2.0
 	github.com/go-playground/locales v0.13.0 // indirect
 	github.com/golang/protobuf v1.3.2
 	github.com/google/uuid v1.1.1
