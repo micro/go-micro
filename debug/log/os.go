@@ -15,7 +15,8 @@ import (
 
 // Should stream from OS
 type osLog struct {
-	once sync.Once
+	format FormatFunc
+	once   sync.Once
 
 	sync.RWMutex
 	buffer *ring.Buffer
@@ -140,8 +141,9 @@ func (o *osLog) Write(r Record) error {
 		go o.run()
 	})
 
-	b, _ := json.Marshal(r)
-	_, err := os.Stderr.Write(append(b, byte('\n')))
+	// generate output
+	out := o.format(r) + "\n"
+	_, err := os.Stderr.Write([]byte(out))
 	return err
 }
 
@@ -181,7 +183,15 @@ func (o *osStream) Stop() error {
 }
 
 func NewLog(opts ...Option) Log {
+	options := Options{
+		Format: DefaultFormat,
+	}
+	for _, o := range opts {
+		o(&options)
+	}
+
 	l := &osLog{
+		format: options.Format,
 		buffer: ring.New(1024),
 		subs:   make(map[string]*osStream),
 	}

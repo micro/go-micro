@@ -11,6 +11,8 @@ type Options struct {
 	Name string
 	// Size is the size of ring buffer
 	Size int
+	// Format specifies the output format
+	Format FormatFunc
 }
 
 // Name of the log
@@ -24,6 +26,12 @@ func Name(n string) Option {
 func Size(s int) Option {
 	return func(o *Options) {
 		o.Size = s
+	}
+}
+
+func Format(f FormatFunc) Option {
+	return func(o *Options) {
+		o.Format = f
 	}
 }
 

@@ -10,6 +10,8 @@ var (
 	DefaultSize = 1024
 	// DefaultLog logger
 	DefaultLog = NewLog()
+	// Default formatter
+	DefaultFormat = func(r Record) string { return r.Message.(string) }
 )
 
 // Log is debug log interface for reading and writing logs
@@ -37,3 +39,6 @@ type Stream interface {
 	Chan() <-chan Record
 	Stop() error
 }
+
+// Format is a function which formats the output
+type FormatFunc func(Record) string
