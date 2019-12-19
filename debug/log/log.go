@@ -2,6 +2,7 @@
 package log
 
 import (
+	"encoding/json"
 	"time"
 )
 
@@ -11,7 +12,7 @@ var (
 	// DefaultLog logger
 	DefaultLog = NewLog()
 	// Default formatter
-	DefaultFormat = func(r Record) string { return r.Message.(string) }
+	DefaultFormat = TextFormat
 )
 
 // Log is debug log interface for reading and writing logs
@@ -42,3 +43,14 @@ type Stream interface {
 
 // Format is a function which formats the output
 type FormatFunc func(Record) string
+
+// TextFormat returns text format
+func TextFormat(r Record) string {
+	return r.Message.(string)
+}
+
+// JSONFormat is a json Format func
+func JSONFormat(r Record) string {
+	b, _ := json.Marshal(r)
+	return string(b)
+}
