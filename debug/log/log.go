@@ -3,6 +3,7 @@ package log
 
 import (
 	"encoding/json"
+	"fmt"
 	"time"
 )
 
@@ -46,7 +47,8 @@ type FormatFunc func(Record) string
 
 // TextFormat returns text format
 func TextFormat(r Record) string {
-	return r.Message.(string)
+	t := r.Timestamp.Format("2006-01-02 15:04:05")
+	return fmt.Sprintf("%s %v", t, r.Message)
 }
 
 // JSONFormat is a json Format func
