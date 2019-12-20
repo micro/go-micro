@@ -1,11 +1,11 @@
 package kubernetes
 
-import "github.com/micro/go-micro/debug/log"
-
 import (
 	"encoding/json"
 	"fmt"
 	"os"
+
+	"github.com/micro/go-micro/debug/log"
 )
 
 func write(l log.Record) error {
@@ -17,24 +17,24 @@ func write(l log.Record) error {
 	return err
 }
 
-type klogStreamer struct {
+type kubeStream struct {
 	// the k8s log stream
-	streamChan chan log.Record
+	stream chan log.Record
 	// the stop chan
 	stop chan bool
 }
 
-func (k *klogStreamer) Chan() <-chan log.Record {
-	return k.streamChan
+func (k *kubeStream) Chan() <-chan log.Record {
+	return k.stream
 }
 
-func (k *klogStreamer) Stop() error {
+func (k *kubeStream) Stop() error {
 	select {
 	case <-k.stop:
 		return nil
 	default:
 		close(k.stop)
-		close(k.streamChan)
+		close(k.stream)
 	}
 	return nil
 }
