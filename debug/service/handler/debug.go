@@ -3,11 +3,11 @@ package handler
 
 import (
 	"context"
-	"runtime"
 	"time"
 
 	"github.com/micro/go-micro/debug/log"
 	proto "github.com/micro/go-micro/debug/service/proto"
+	"github.com/micro/go-micro/debug/stats"
 	"github.com/micro/go-micro/server"
 )
 
@@ -17,15 +17,18 @@ var (
 )
 
 type Debug struct {
-	started int64
+	// must honour the debug handler
 	proto.DebugHandler
+	// the logger for retrieving logs
 	log log.Log
+	// the stats collector
+	stats stats.Stats
 }
 
 func newDebug() *Debug {
 	return &Debug{
-		started: time.Now().Unix(),
-		log:     log.DefaultLog,
+		log:   log.DefaultLog,
+		stats: stats.DefaultStats,
 	}
 }
 
@@ -35,15 +38,25 @@ func (d *Debug) Health(ctx context.Context, req *proto.HealthRequest, rsp *proto
 }
 
 func (d *Debug) Stats(ctx context.Context, req *proto.StatsRequest, rsp *proto.StatsResponse) error {
-	var mstat runtime.MemStats
-	runtime.ReadMemStats(&mstat)
+	stats, err := d.stats.Read()
+	if err != nil {
+		return err
+	}
 
-	rsp.Timestamp = uint64(time.Now().Unix())
-	rsp.Started = uint64(d.started)
-	rsp.Uptime = uint64(time.Now().Unix() - d.started)
-	rsp.Memory = mstat.Alloc
-	rsp.Gc = mstat.PauseTotalNs
-	rsp.Threads = uint64(runtime.NumGoroutine())
+	if len(stats) == 0 {
+		return nil
+	}
+
+	// write the response values
+	rsp.Timestamp = uint64(stats[0].Timestamp)
+	rsp.Started = uint64(stats[0].Started)
+	rsp.Uptime = uint64(stats[0].Uptime)
+	rsp.Memory = stats[0].Memory
+	rsp.Gc = stats[0].GC
+	rsp.Threads = stats[0].Threads
+	rsp.Requests = stats[0].Requests
+	rsp.Errors = stats[0].Errors
+
 	return nil
 }
 
@@ -78,7 +91,17 @@ func (d *Debug) Log(ctx context.Context, stream server.Stream) error {
 		defer lgStream.Stop()
 
 		for record := range lgStream.Chan() {
-			if err := d.sendRecord(record, stream); err != nil {
+			// copy metadata
+			metadata := make(map[string]string)
+			for k, v := range record.Metadata {
+				metadata[k] = v
+			}
+			// send record
+			if err := stream.Send(&proto.Record{
+				Timestamp: record.Timestamp.Unix(),
+				Message:   record.Message.(string),
+				Metadata:  metadata,
+			}); err != nil {
 				return err
 			}
 		}
@@ -95,23 +118,20 @@ func (d *Debug) Log(ctx context.Context, stream server.Stream) error {
 
 	// send all the logs downstream
 	for _, record := range records {
-		if err := d.sendRecord(record, stream); err != nil {
+		// copy metadata
+		metadata := make(map[string]string)
+		for k, v := range record.Metadata {
+			metadata[k] = v
+		}
+		// send record
+		if err := stream.Send(&proto.Record{
+			Timestamp: record.Timestamp.Unix(),
+			Message:   record.Message.(string),
+			Metadata:  metadata,
+		}); err != nil {
 			return err
 		}
 	}
 
 	return nil
-}
-
-func (d *Debug) sendRecord(record log.Record, stream server.Stream) error {
-	metadata := make(map[string]string)
-	for k, v := range record.Metadata {
-		metadata[k] = v
-	}
-
-	return stream.Send(&proto.Record{
-		Timestamp: record.Timestamp.Unix(),
-		Message:   record.Message.(string),
-		Metadata:  metadata,
-	})
 }

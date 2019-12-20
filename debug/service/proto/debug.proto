@@ -34,6 +34,10 @@ message StatsResponse {
 	uint64 threads = 5;
 	// total gc in nanoseconds
 	uint64 gc = 6;
+	// total number of requests
+	uint64 requests = 7;
+	// total number of errors
+	uint64 errors = 8;
 }
 
 // LogRequest requests service logs

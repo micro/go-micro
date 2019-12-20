@@ -15,6 +15,9 @@ import (
 
 // Should stream from OS
 type osLog struct {
+	format FormatFunc
+	once   sync.Once
+
 	sync.RWMutex
 	buffer *ring.Buffer
 	subs   map[string]*osStream
@@ -118,6 +121,10 @@ func (o *osLog) run() {
 
 // Read reads log entries from the logger
 func (o *osLog) Read(...ReadOption) ([]Record, error) {
+	o.once.Do(func() {
+		go o.run()
+	})
+
 	var records []Record
 
 	// read the last 100 records
@@ -130,13 +137,22 @@ func (o *osLog) Read(...ReadOption) ([]Record, error) {
 
 // Write writes records to log
 func (o *osLog) Write(r Record) error {
-	b, _ := json.Marshal(r)
-	_, err := os.Stderr.Write(append(b, byte('\n')))
+	o.once.Do(func() {
+		go o.run()
+	})
+
+	// generate output
+	out := o.format(r) + "\n"
+	_, err := os.Stderr.Write([]byte(out))
 	return err
 }
 
 // Stream log records
 func (o *osLog) Stream() (Stream, error) {
+	o.once.Do(func() {
+		go o.run()
+	})
+
 	o.Lock()
 	defer o.Unlock()
 
@@ -167,12 +183,18 @@ func (o *osStream) Stop() error {
 }
 
 func NewLog(opts ...Option) Log {
+	options := Options{
+		Format: DefaultFormat,
+	}
+	for _, o := range opts {
+		o(&options)
+	}
+
 	l := &osLog{
+		format: options.Format,
 		buffer: ring.New(1024),
 		subs:   make(map[string]*osStream),
 	}
-
-	go l.run()
 
 	return l
 }

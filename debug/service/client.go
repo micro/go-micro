@@ -3,7 +3,6 @@ package service
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/micro/go-micro/client"
@@ -34,7 +33,7 @@ func (d *debugClient) Log(since time.Time, count int, stream bool) (log.Stream, 
 	// get the log stream
 	serverStream, err := d.Client.Log(context.Background(), req)
 	if err != nil {
-		return nil, fmt.Errorf("failed getting log stream: %s", err)
+		return nil, err
 	}
 
 	lg := &logStream{

@@ -2,6 +2,8 @@
 package log
 
 import (
+	"encoding/json"
+	"fmt"
 	"time"
 )
 
@@ -10,6 +12,8 @@ var (
 	DefaultSize = 1024
 	// DefaultLog logger
 	DefaultLog = NewLog()
+	// Default formatter
+	DefaultFormat = TextFormat
 )
 
 // Log is debug log interface for reading and writing logs
@@ -36,4 +40,19 @@ type Record struct {
 type Stream interface {
 	Chan() <-chan Record
 	Stop() error
+}
+
+// Format is a function which formats the output
+type FormatFunc func(Record) string
+
+// TextFormat returns text format
+func TextFormat(r Record) string {
+	t := r.Timestamp.Format("2006-01-02 15:04:05")
+	return fmt.Sprintf("%s %v", t, r.Message)
+}
+
+// JSONFormat is a json Format func
+func JSONFormat(r Record) string {
+	b, _ := json.Marshal(r)
+	return string(b)
 }
