@@ -34,6 +34,7 @@ type Request struct {
 type Params struct {
 	LabelSelector map[string]string
 	Annotations   map[string]string
+	Additional    map[string]string
 }
 
 // verb sets method
@@ -135,6 +136,9 @@ func (r *Request) Params(p *Params) *Request {
 		}
 		// set and overwrite the value
 		r.params.Set("labelSelector", value)
+	}
+	for k, v := range p.Additional {
+		r.params.Set(k, v)
 	}
 
 	return r
