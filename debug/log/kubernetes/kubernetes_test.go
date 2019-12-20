@@ -20,7 +20,7 @@ func TestKubernetes(t *testing.T) {
 		t.Skip("In Travis CI")
 	}
 
-	k := New(log.Name("micro-network"))
+	k := NewLog(log.Name("micro-network"))
 
 	r, w, err := os.Pipe()
 	if err != nil {

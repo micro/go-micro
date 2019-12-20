@@ -165,8 +165,8 @@ func (k *klog) Stream() (log.Stream, error) {
 	return stream, nil
 }
 
-// New returns a configured Kubernetes logger
-func New(opts ...log.Option) log.Log {
+// NewLog returns a configured Kubernetes logger
+func NewLog(opts ...log.Option) log.Log {
 	klog := &klog{}
 	for _, o := range opts {
 		o(&klog.Options)
