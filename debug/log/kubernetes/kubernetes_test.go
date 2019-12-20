@@ -13,7 +13,10 @@ import (
 )
 
 func TestKubernetes(t *testing.T) {
-	k := New()
+	if os.Getenv("IN_TRAVIS_CI") == "yes" {
+		t.Skip("In Travis CI")
+	}
+	k := New(log.Name("micro-network"))
 
 	r, w, err := os.Pipe()
 	if err != nil {
@@ -39,14 +42,15 @@ func TestKubernetes(t *testing.T) {
 	}
 	assert.Equal(t, write, read, "Write was not equal")
 
-	_, err = k.Read()
-	assert.Error(t, err, "Read should be unimplemented")
+	records, err := k.Read()
+	assert.Nil(t, err, "Read should not error")
+	assert.NotNil(t, records, "Read should return records")
 
 	stream, err := k.Stream()
 	if err != nil {
 		t.Error(err)
 	}
-	records := []log.Record{}
+	records = []log.Record{}
 	go stream.Stop()
 	for s := range stream.Chan() {
 		records = append(records, s)
