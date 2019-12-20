@@ -6,10 +6,10 @@ import "github.com/micro/go-micro/debug/log"
 type byTimestamp []log.Record
 
 // Len returns the number of Log records (implements Sort.Sort)
-func (b ByTimestamp) Len() int { return len(b) }
+func (b byTimestamp) Len() int { return len(b) }
 
 // Swap swaps 2 Log records (implements Sort.Sort)
-func (b ByTimestamp) Swap(i, j int) { b[i], b[j] = b[j], b[i] }
+func (b byTimestamp) Swap(i, j int) { b[i], b[j] = b[j], b[i] }
 
 // Less checks if a record was before another record (implements Sort.Sort)
-func (b ByTimestamp) Less(i, j int) bool { return b[i].Timestamp.Before(b[j].Timestamp) }
+func (b byTimestamp) Less(i, j int) bool { return b[i].Timestamp.Before(b[j].Timestamp) }
