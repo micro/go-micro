@@ -19,6 +19,7 @@ import (
 	"github.com/micro/go-micro/util/log"
 	hash "github.com/mitchellh/hashstructure"
 	"go.uber.org/zap"
+	"google.golang.org/grpc/grpclog"
 )
 
 var (
@@ -77,6 +78,10 @@ func configure(e *etcdRegistry, opts ...registry.Option) error {
 		cfg, ok := e.options.Context.Value(logConfigKey{}).(*zap.Config)
 		if ok && cfg != nil {
 			config.LogConfig = cfg
+		}
+		grpclog, ok := e.options.Context.Value(logSetKey{}).(grpclog.LoggerV2)
+		if ok && grpclog != nil {
+			clientv3.SetLogger(grpclog)
 		}
 	}
 

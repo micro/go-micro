@@ -5,11 +5,14 @@ import (
 
 	"github.com/micro/go-micro/registry"
 	"go.uber.org/zap"
+	"google.golang.org/grpc/grpclog"
 )
 
 type authKey struct{}
 
 type logConfigKey struct{}
+
+type logSetKey struct{}
 
 type authCreds struct {
 	Username string
@@ -32,6 +35,18 @@ func LogConfig(config *zap.Config) registry.Option {
 		if o.Context == nil {
 			o.Context = context.Background()
 		}
-		o.Context = context.WithValue(o.Context, authKey{}, config)
+		o.Context = context.WithValue(o.Context, logConfigKey{}, config)
+	}
+}
+
+// LogSet allows you to set etcd grpc log config
+// LogSet is different from LogConfig. LogSet set the grpc communicate log between etcd client and server.
+// LogConfig set the log in etcd client
+func LogSet(l grpclog.LoggerV2) registry.Option {
+	return func(o *registry.Options) {
+		if o.Context == nil {
+			o.Context = context.Background()
+		}
+		o.Context = context.WithValue(o.Context, logSetKey{}, l)
 	}
 }
