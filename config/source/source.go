@@ -15,6 +15,7 @@ var (
 type Source interface {
 	Read() (*ChangeSet, error)
 	Watch() (Watcher, error)
+	Write(*ChangeSet) error
 	String() string
 }
 

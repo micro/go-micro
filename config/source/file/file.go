@@ -54,6 +54,10 @@ func (f *file) Watch() (source.Watcher, error) {
 	return newWatcher(f)
 }
 
+func (f *file) Write(cs *source.ChangeSet) error {
+	return nil
+}
+
 func NewSource(opts ...source.Option) source.Source {
 	options := source.NewOptions(opts...)
 	path := DefaultPath
