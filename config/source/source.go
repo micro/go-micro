@@ -14,8 +14,8 @@ var (
 // Source is the source from which config is loaded
 type Source interface {
 	Read() (*ChangeSet, error)
-	Watch() (Watcher, error)
 	Write(*ChangeSet) error
+	Watch() (Watcher, error)
 	String() string
 }
 
