@@ -11,7 +11,7 @@ import (
 	"path"
 	"strconv"
 
-	"github.com/micro/go-micro/util/kubernetes/client/api"
+	"github.com/micro/go-micro/util/kubernetes/api"
 	"github.com/micro/go-micro/util/log"
 )
 

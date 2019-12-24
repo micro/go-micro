@@ -8,8 +8,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-
-	"github.com/micro/go-micro/util/log"
 )
 
 // Request is used to construct a http request for the k8s API.
@@ -103,7 +101,6 @@ func (r *Request) Body(in interface{}) *Request {
 			r.err = err
 			return r
 		}
-		log.Debugf("Request body: %v", b)
 		r.body = b
 		return r
 	}
@@ -120,7 +117,6 @@ func (r *Request) Body(in interface{}) *Request {
 		return r
 	}
 
-	log.Debugf("Request body: %v", b)
 	r.body = b
 	return r
 }
@@ -202,16 +198,12 @@ func (r *Request) Do() *Response {
 		}
 	}
 
-	log.Debugf("kubernetes api request: %v", req)
-
 	res, err := r.client.Do(req)
 	if err != nil {
 		return &Response{
 			err: err,
 		}
 	}
-
-	log.Debugf("kubernetes api response: %v", res)
 
 	// return res, err
 	return newResponse(res, err)
