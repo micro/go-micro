@@ -71,19 +71,19 @@ func (r *rpcClient) call(ctx context.Context, node *registry.Node, req Request, 
 		Header: make(map[string]string),
 	}
 
-	md, ok := metadata.FromContext(ctx)
-	if ok {
-		for k, v := range md {
-			msg.Header[k] = v
-		}
-	}
-
 	// set timeout in nanoseconds
 	msg.Header["Timeout"] = fmt.Sprintf("%d", opts.RequestTimeout)
 	// set the content type for the request
 	msg.Header["Content-Type"] = req.ContentType()
 	// set the accept header
 	msg.Header["Accept"] = req.ContentType()
+
+	md, ok := metadata.FromContext(ctx)
+	if ok {
+		for k, v := range md {
+			msg.Header[k] = v
+		}
+	}
 
 	// setup old protocol
 	cf := setupProtocol(msg, node)
@@ -186,19 +186,19 @@ func (r *rpcClient) stream(ctx context.Context, node *registry.Node, req Request
 		Header: make(map[string]string),
 	}
 
-	md, ok := metadata.FromContext(ctx)
-	if ok {
-		for k, v := range md {
-			msg.Header[k] = v
-		}
-	}
-
 	// set timeout in nanoseconds
 	msg.Header["Timeout"] = fmt.Sprintf("%d", opts.RequestTimeout)
 	// set the content type for the request
 	msg.Header["Content-Type"] = req.ContentType()
 	// set the accept header
 	msg.Header["Accept"] = req.ContentType()
+
+	md, ok := metadata.FromContext(ctx)
+	if ok {
+		for k, v := range md {
+			msg.Header[k] = v
+		}
+	}
 
 	// set old codecs
 	cf := setupProtocol(msg, node)

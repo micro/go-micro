@@ -87,16 +87,17 @@ func (g *grpcClient) call(ctx context.Context, node *registry.Node, req client.R
 	address := node.Address
 
 	header := make(map[string]string)
-	if md, ok := metadata.FromContext(ctx); ok {
-		for k, v := range md {
-			header[k] = v
-		}
-	}
 
 	// set timeout in nanoseconds
 	header["timeout"] = fmt.Sprintf("%d", opts.RequestTimeout)
 	// set the content type for the request
 	header["x-content-type"] = req.ContentType()
+
+	if md, ok := metadata.FromContext(ctx); ok {
+		for k, v := range md {
+			header[k] = v
+		}
+	}
 
 	md := gmetadata.New(header)
 	ctx = gmetadata.NewOutgoingContext(ctx, md)
@@ -159,16 +160,17 @@ func (g *grpcClient) stream(ctx context.Context, node *registry.Node, req client
 	address := node.Address
 
 	header := make(map[string]string)
-	if md, ok := metadata.FromContext(ctx); ok {
-		for k, v := range md {
-			header[k] = v
-		}
-	}
 
 	// set timeout in nanoseconds
 	header["timeout"] = fmt.Sprintf("%d", opts.RequestTimeout)
 	// set the content type for the request
 	header["x-content-type"] = req.ContentType()
+
+	if md, ok := metadata.FromContext(ctx); ok {
+		for k, v := range md {
+			header[k] = v
+		}
+	}
 
 	md := gmetadata.New(header)
 	ctx = gmetadata.NewOutgoingContext(ctx, md)
