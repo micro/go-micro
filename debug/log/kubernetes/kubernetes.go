@@ -15,7 +15,7 @@ import (
 )
 
 type klog struct {
-	client client.Kubernetes
+	client client.Client
 
 	log.Options
 }
