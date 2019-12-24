@@ -24,7 +24,12 @@ func (k *klog) podLogStream(podName string, stream *kubeStream) {
 	p := make(map[string]string)
 	p["follow"] = "true"
 
-	body, err := k.client.Logs(podName, client.AdditionalParams(p))
+	// get the logs for the pod
+	body, err := k.client.Log(&client.Resource{
+		Name: podName,
+		Kind: "pod",
+	}, client.LogParams(p))
+
 	if err != nil {
 		fmt.Fprintf(os.Stderr, err.Error())
 		return
@@ -98,14 +103,14 @@ func (k *klog) Read(options ...log.ReadOption) ([]log.Record, error) {
 		o(opts)
 	}
 
-	logsToGet, err := k.getMatchingPods()
+	pods, err := k.getMatchingPods()
 	if err != nil {
 		return nil, err
 	}
 
 	var records []log.Record
 
-	for _, l := range logsToGet {
+	for _, pod := range pods {
 		logParams := make(map[string]string)
 
 		if !opts.Since.Equal(time.Time{}) {
@@ -120,7 +125,11 @@ func (k *klog) Read(options ...log.ReadOption) ([]log.Record, error) {
 			logParams["follow"] = "true"
 		}
 
-		logs, err := k.client.Logs(l, client.AdditionalParams(logParams))
+		logs, err := k.client.Log(&client.Resource{
+			Name: pod,
+			Kind: "pod",
+		}, client.LogParams(logParams))
+
 		if err != nil {
 			return nil, err
 		}
@@ -130,7 +139,7 @@ func (k *klog) Read(options ...log.ReadOption) ([]log.Record, error) {
 
 		for s.Scan() {
 			record := k.parse(s.Text())
-			record.Metadata["pod"] = l
+			record.Metadata["pod"] = pod
 			records = append(records, record)
 		}
 	}

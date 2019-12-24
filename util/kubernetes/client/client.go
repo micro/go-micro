@@ -138,20 +138,21 @@ func (c *client) Get(r *Resource, labels map[string]string) error {
 		Into(r.Value)
 }
 
-// Logs returns logs for a pod
-func (c *client) Logs(podName string, options ...LogOption) (io.ReadCloser, error) {
-	opts := &LogOptions{}
-	for _, o := range options {
-		o(opts)
+// Log returns logs for a pod
+func (c *client) Log(r *Resource, opts ...LogOption) (io.ReadCloser, error) {
+	var options LogOptions
+	for _, o := range opts {
+		o(&options)
 	}
+
 	req := api.NewRequest(c.opts).
 		Get().
-		Resource("pod").
+		Resource(r.Kind).
 		SubResource("log").
-		Name(podName)
+		Name(r.Name)
 
-	if opts.AdditionalParams != nil {
-		req.Params(&api.Params{Additional: opts.AdditionalParams})
+	if options.Params != nil {
+		req.Params(&api.Params{Additional: options.Params})
 	}
 
 	resp, err := req.Raw()

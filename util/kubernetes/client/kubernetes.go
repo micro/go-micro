@@ -25,8 +25,8 @@ type Kubernetes interface {
 	Delete(*Resource) error
 	// List lists API resources
 	List(*Resource) error
-	// Logs gets logs from a pod
-	Logs(string, ...LogOption) (io.ReadCloser, error)
+	// Log gets log for a pod
+	Log(*Resource, ...LogOption) (io.ReadCloser, error)
 }
 
 // NewService returns default micro kubernetes service definition
