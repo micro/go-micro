@@ -15,7 +15,7 @@ var (
 	// (20)
 	DefaultPoolMaxStreams = 20
 
-	// DefaultPoolMaxIdle maximum idle of a connection
+	// DefaultPoolMaxIdle maximum idle conns of a pool
 	// (50)
 	DefaultPoolMaxIdle = 50
 
@@ -47,7 +47,7 @@ func PoolMaxStreams(n int) client.Option {
 	}
 }
 
-// maximum idle of a connectioin
+// maximum idle conns of a pool
 func PoolMaxIdle(d int) client.Option {
 	return func(o *client.Options) {
 		if o.Context == nil {
