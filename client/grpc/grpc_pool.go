@@ -46,15 +46,18 @@ type poolConn struct {
 	in      bool
 }
 
-func newPool(size int, ttl time.Duration, idle time.Duration, ms int) *pool {
+func newPool(size int, ttl time.Duration, idle int, ms int) *pool {
 	if ms <= 0 {
 		ms = 1
+	}
+	if idle < 0 {
+		idle = 0
 	}
 	return &pool{
 		size:  size,
 		ttl:   int64(ttl.Seconds()),
 		maxStreams: ms,
-		maxIdle: int(idle),
+		maxIdle: idle,
 		conns: make(map[string]*streamsPool),
 	}
 }

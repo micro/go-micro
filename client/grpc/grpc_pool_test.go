@@ -11,7 +11,7 @@ import (
 	pb "google.golang.org/grpc/examples/helloworld/helloworld"
 )
 
-func testPool(t *testing.T, size int, ttl time.Duration, idle time.Duration, ms int) {
+func testPool(t *testing.T, size int, ttl time.Duration, idle int, ms int) {
 	// setup server
 	l, err := net.Listen("tcp", ":0")
 	if err != nil {
@@ -59,6 +59,6 @@ func testPool(t *testing.T, size int, ttl time.Duration, idle time.Duration, ms 
 }
 
 func TestGRPCPool(t *testing.T) {
-	testPool(t, 0, time.Minute, time.Minute, 2)
-	testPool(t, 2, time.Minute, time.Minute, 1)
+	testPool(t, 0, time.Minute, 10, 2)
+	testPool(t, 2, time.Minute, 10, 1)
 }

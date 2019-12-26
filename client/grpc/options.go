@@ -4,7 +4,6 @@ package grpc
 import (
 	"context"
 	"crypto/tls"
-	"time"
 
 	"github.com/micro/go-micro/client"
 	"google.golang.org/grpc"
@@ -17,7 +16,7 @@ var (
 	DefaultPoolMaxStreams = 20
 	// DefaultPoolMaxIdle maximum idle of a connection
 	// (1h)
-	DefaultPoolMaxIdle = 1*time.Hour
+	DefaultPoolMaxIdle = 50
 	// DefaultMaxRecvMsgSize maximum message that client can receive
 	// (4 MB).
 	DefaultMaxRecvMsgSize = 1024 * 1024 * 4
@@ -47,7 +46,7 @@ func PoolMaxStreams(n int) client.Option {
 }
 
 // maximum idle of a connectioin
-func PoolMaxIdle(d time.Duration) client.Option {
+func PoolMaxIdle(d int) client.Option {
 	return func(o *client.Options) {
 		if o.Context == nil {
 			o.Context = context.Background()

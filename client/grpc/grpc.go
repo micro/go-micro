@@ -255,7 +255,7 @@ func (g *grpcClient) poolMaxStreams() int {
 	return v.(int)
 }
 
-func (g *grpcClient) poolMaxIdle() time.Duration {
+func (g *grpcClient) poolMaxIdle() int {
 	if g.opts.Context == nil {
 		return DefaultPoolMaxIdle
 	}
@@ -263,7 +263,7 @@ func (g *grpcClient) poolMaxIdle() time.Duration {
 	if v == nil {
 		return DefaultPoolMaxIdle
 	}
-	return v.(time.Duration)
+	return v.(int)
 }
 
 func (g *grpcClient) maxRecvMsgSizeValue() int {
