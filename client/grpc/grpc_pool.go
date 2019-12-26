@@ -74,14 +74,18 @@ func (p *pool) getConn(addr string, opts ...grpc.DialOption) (*poolConn, error) 
 	// otherwise we'll create a new conn
 	conn := sp.head.next
 	for conn != nil {
-		// too many streams or too old
-		if conn.streams >= p.maxStreams || now-conn.created > p.ttl {
+		// too many streams
+		if conn.streams >= p.maxStreams {
 			conn = conn.next
 			continue
 		}
-		// a idle conn
-		if conn.streams == 0 {
-			sp.idle--
+		// too old
+		if conn.streams == 0 && now-conn.created > p.ttl {
+			next := conn.next
+			removeConn(conn)
+			conn.ClientConn.Close()
+			conn = next
+			continue
 		}
 		// we got a good conn, lets unlock and return it
 		conn.streams++
@@ -129,9 +133,8 @@ func (p *pool) release(addr string, conn *poolConn, err error) {
 	}
 	// it has errored or
 	// too many idle conn or
-	// too many conn
 	// conn is too old
-	if  err != nil || sp.idle > p.maxIdle || sp.count > p.size || now-created > p.ttl {
+	if  err != nil || sp.idle > p.maxIdle || now-created > p.ttl {
 		removeConn(conn)
 		p.Unlock()
 		conn.ClientConn.Close()
