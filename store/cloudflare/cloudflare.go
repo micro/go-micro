@@ -17,7 +17,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/micro/go-micro/config/options"
 	"github.com/micro/go-micro/store"
 	"github.com/pkg/errors"
 )
@@ -27,7 +26,7 @@ const (
 )
 
 type workersKV struct {
-	options.Options
+	options store.Options
 	// cf account id
 	account string
 	// cf api token
@@ -291,38 +290,25 @@ func (w *workersKV) request(ctx context.Context, method, path string, body inter
 // CF_API_TOKEN to a cloudflare API token scoped to Workers KV.
 // CF_ACCOUNT_ID to contain a string with your cloudflare account ID.
 // KV_NAMESPACE_ID to contain the namespace UUID for your KV storage.
-func NewStore(opts ...options.Option) store.Store {
-	// create new Options
-	options := options.NewOptions(opts...)
+func NewStore(opts ...store.Option) store.Store {
+	var options store.Options
+	for _, o := range opts {
+		o(&options)
+	}
 
-	// get values from the environment
+	// get options from environment
 	account, token, namespace := getOptions()
 
-	// set api token from options if exists
-	if apiToken, ok := options.Values().Get("CF_API_TOKEN"); ok {
-		tk, ok := apiToken.(string)
-		if !ok {
-			log.Fatal("Store: Option CF_API_TOKEN contains a non-string")
-		}
-		token = tk
+	if len(account) == 0 {
+		account = getAccount(options.Context)
 	}
 
-	// set account id from options if exists
-	if accountID, ok := options.Values().Get("CF_ACCOUNT_ID"); ok {
-		id, ok := accountID.(string)
-		if !ok {
-			log.Fatal("Store: Option CF_ACCOUNT_ID contains a non-string")
-		}
-		account = id
+	if len(token) == 0 {
+		token = getToken(options.Context)
 	}
 
-	// set namespace from options if exists
-	if uuid, ok := options.Values().Get("KV_NAMESPACE_ID"); ok {
-		ns, ok := uuid.(string)
-		if !ok {
-			log.Fatal("Store: Option KV_NAMESPACE_ID contains a non-string")
-		}
-		namespace = ns
+	if len(namespace) == 0 {
+		namespace = getNamespace(options.Context)
 	}
 
 	// validate options are not blank or log.Fatal
@@ -332,7 +318,7 @@ func NewStore(opts ...options.Option) store.Store {
 		account:    account,
 		namespace:  namespace,
 		token:      token,
-		Options:    options,
+		options:    options,
 		httpClient: &http.Client{},
 	}
 }

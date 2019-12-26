@@ -41,6 +41,10 @@ func (s *memory) Watch() (source.Watcher, error) {
 	return w, nil
 }
 
+func (m *memory) Write(cs *source.ChangeSet) error {
+	return nil
+}
+
 // Update allows manual updates of the config data.
 func (s *memory) Update(c *source.ChangeSet) {
 	// don't process nil

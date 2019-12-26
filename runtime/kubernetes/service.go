@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/micro/go-micro/runtime"
-	"github.com/micro/go-micro/runtime/kubernetes/client"
+	"github.com/micro/go-micro/util/kubernetes/client"
 	"github.com/micro/go-micro/util/log"
 )
 
@@ -85,7 +85,7 @@ func serviceResource(s *client.Service) *client.Resource {
 }
 
 // Start starts the Kubernetes service. It creates new kubernetes deployment and service API objects
-func (s *service) Start(k client.Kubernetes) error {
+func (s *service) Start(k client.Client) error {
 	// create deployment first; if we fail, we dont create service
 	if err := k.Create(deploymentResource(s.kdeploy)); err != nil {
 		log.Debugf("Runtime failed to create deployment: %v", err)
@@ -100,7 +100,7 @@ func (s *service) Start(k client.Kubernetes) error {
 	return nil
 }
 
-func (s *service) Stop(k client.Kubernetes) error {
+func (s *service) Stop(k client.Client) error {
 	// first attempt to delete service
 	if err := k.Delete(serviceResource(s.kservice)); err != nil {
 		log.Debugf("Runtime failed to delete service: %v", err)
@@ -115,7 +115,7 @@ func (s *service) Stop(k client.Kubernetes) error {
 	return nil
 }
 
-func (s *service) Update(k client.Kubernetes) error {
+func (s *service) Update(k client.Client) error {
 	if err := k.Update(deploymentResource(s.kdeploy)); err != nil {
 		log.Debugf("Runtime failed to update deployment: %v", err)
 		return err

@@ -8,8 +8,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-
-	"github.com/micro/go-micro/util/log"
 )
 
 // Request is used to construct a http request for the k8s API.
@@ -23,6 +21,7 @@ type Request struct {
 
 	resource     string
 	resourceName *string
+	subResource  *string
 	body         io.Reader
 
 	err error
@@ -33,6 +32,7 @@ type Request struct {
 type Params struct {
 	LabelSelector map[string]string
 	Annotations   map[string]string
+	Additional    map[string]string
 }
 
 // verb sets method
@@ -79,6 +79,13 @@ func (r *Request) Resource(s string) *Request {
 	return r
 }
 
+// SubResource sets a subresource on a resource,
+// e.g. pods/log for pod logs
+func (r *Request) SubResource(s string) *Request {
+	r.subResource = &s
+	return r
+}
+
 // Name is for targeting a specific resource by id
 func (r *Request) Name(s string) *Request {
 	r.resourceName = &s
@@ -94,7 +101,6 @@ func (r *Request) Body(in interface{}) *Request {
 			r.err = err
 			return r
 		}
-		log.Debugf("Request body: %v", b)
 		r.body = b
 		return r
 	}
@@ -111,7 +117,6 @@ func (r *Request) Body(in interface{}) *Request {
 		return r
 	}
 
-	log.Debugf("Request body: %v", b)
 	r.body = b
 	return r
 }
@@ -127,6 +132,9 @@ func (r *Request) Params(p *Params) *Request {
 		}
 		// set and overwrite the value
 		r.params.Set("labelSelector", value)
+	}
+	for k, v := range p.Additional {
+		r.params.Set(k, v)
 	}
 
 	return r
@@ -154,6 +162,9 @@ func (r *Request) request() (*http.Request, error) {
 	// append resourceName if it is present
 	if r.resourceName != nil {
 		url += *r.resourceName
+		if r.subResource != nil {
+			url += "/" + *r.subResource
+		}
 	}
 
 	// append any query params
@@ -187,8 +198,6 @@ func (r *Request) Do() *Response {
 		}
 	}
 
-	log.Debugf("kubernetes api request: %v", req)
-
 	res, err := r.client.Do(req)
 	if err != nil {
 		return &Response{
@@ -196,10 +205,22 @@ func (r *Request) Do() *Response {
 		}
 	}
 
-	log.Debugf("kubernetes api response: %v", res)
-
 	// return res, err
 	return newResponse(res, err)
+}
+
+// Raw performs a Raw HTTP request to the Kubernetes API
+func (r *Request) Raw() (*http.Response, error) {
+	req, err := r.request()
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := r.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
 }
 
 // Options ...

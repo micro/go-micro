@@ -2,6 +2,7 @@
 package web
 
 import (
+	"context"
 	"net/http"
 	"time"
 
@@ -32,7 +33,8 @@ var (
 	DefaultRegisterInterval = time.Second * 30
 
 	// static directory
-	DefaultStaticDir = "html"
+	DefaultStaticDir     = "html"
+	DefaultRegisterCheck = func(context.Context) error { return nil }
 )
 
 // NewService returns a new web.Service

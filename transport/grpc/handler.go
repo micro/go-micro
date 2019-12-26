@@ -16,8 +16,7 @@ type microTransport struct {
 	fn   func(transport.Socket)
 }
 
-func (m *microTransport) Stream(ts pb.Transport_StreamServer) error {
-	var err error
+func (m *microTransport) Stream(ts pb.Transport_StreamServer) (err error) {
 
 	sock := &grpcTransportSocket{
 		stream: ts,

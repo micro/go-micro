@@ -4,9 +4,9 @@ package log
 import (
 	"fmt"
 	"os"
+	"time"
 
-	"github.com/go-log/log"
-	golog "github.com/go-log/log/log"
+	"github.com/micro/go-micro/debug/log"
 )
 
 // level is a log level
@@ -23,7 +23,7 @@ const (
 
 var (
 	// the local logger
-	logger log.Logger = golog.New()
+	logger log.Log = log.DefaultLog
 
 	// default log level is info
 	level = LevelInfo
@@ -49,21 +49,51 @@ func init() {
 	}
 }
 
-// Log makes use of github.com/go-log/log.Log
-func Log(v ...interface{}) {
-	if len(prefix) > 0 {
-		logger.Log(append([]interface{}{prefix, " "}, v...)...)
-		return
+func (l Level) String() string {
+	switch l {
+	case LevelTrace:
+		return "trace"
+	case LevelDebug:
+		return "debug"
+	case LevelWarn:
+		return "warn"
+	case LevelInfo:
+		return "info"
+	case LevelError:
+		return "error"
+	case LevelFatal:
+		return "fatal"
+	default:
+		return "unknown"
 	}
-	logger.Log(v...)
 }
 
-// Logf makes use of github.com/go-log/log.Logf
+// Log makes use of github.com/micro/debug/log
+func Log(v ...interface{}) {
+	if len(prefix) > 0 {
+		v = append([]interface{}{prefix, " "}, v...)
+	}
+	logger.Write(log.Record{
+		Timestamp: time.Now(),
+		Message:   fmt.Sprint(v...),
+		Metadata: map[string]string{
+			"level": level.String(),
+		},
+	})
+}
+
+// Logf makes use of github.com/micro/debug/log
 func Logf(format string, v ...interface{}) {
 	if len(prefix) > 0 {
 		format = prefix + " " + format
 	}
-	logger.Logf(format, v...)
+	logger.Write(log.Record{
+		Timestamp: time.Now(),
+		Message:   fmt.Sprintf(format, v...),
+		Metadata: map[string]string{
+			"level": level.String(),
+		},
+	})
 }
 
 // WithLevel logs with the level specified
@@ -145,12 +175,12 @@ func Fatalf(format string, v ...interface{}) {
 }
 
 // SetLogger sets the local logger
-func SetLogger(l log.Logger) {
+func SetLogger(l log.Log) {
 	logger = l
 }
 
 // GetLogger returns the local logger
-func GetLogger() log.Logger {
+func GetLogger() log.Log {
 	return logger
 }
 

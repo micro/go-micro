@@ -9,7 +9,6 @@ import (
 	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/client/grpc"
 	"github.com/micro/go-micro/codec"
-	"github.com/micro/go-micro/config/options"
 	"github.com/micro/go-micro/proxy"
 	"github.com/micro/go-micro/server"
 )
@@ -19,7 +18,7 @@ import (
 // If the service matches the Name it will use the server.DefaultRouter.
 type Proxy struct {
 	// The proxy options
-	options.Options
+	options proxy.Options
 
 	// Endpoint specified the fixed endpoint to call.
 	Endpoint string
@@ -137,23 +136,20 @@ func (p *Proxy) ServeRequest(ctx context.Context, req server.Request, rsp server
 	}
 }
 
+func (p *Proxy) String() string {
+	return "grpc"
+}
+
 // NewProxy returns a new grpc proxy server
-func NewProxy(opts ...options.Option) proxy.Proxy {
+func NewProxy(opts ...proxy.Option) proxy.Proxy {
+	var options proxy.Options
+	for _, o := range opts {
+		o(&options)
+	}
+
 	p := new(Proxy)
-	p.Options = options.NewOptions(opts...)
-	p.Options.Init(options.WithString("grpc"))
-
-	// get endpoint
-	ep, ok := p.Options.Values().Get("proxy.endpoint")
-	if ok {
-		p.Endpoint = ep.(string)
-	}
-
-	// get client
-	c, ok := p.Options.Values().Get("proxy.client")
-	if ok {
-		p.Client = c.(client.Client)
-	}
+	p.Endpoint = options.Endpoint
+	p.Client = options.Client
 
 	return p
 }

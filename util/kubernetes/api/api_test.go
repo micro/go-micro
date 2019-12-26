@@ -111,6 +111,17 @@ var tests = []testcase{
 		URI:    "/apis/apps/v1/namespaces/default/deployments/baz",
 		Header: map[string]string{"foo": "bar"},
 	},
+	testcase{
+		ReqFn: func(opts *Options) *Request {
+			return NewRequest(opts).
+				Get().
+				Resource("pod").
+				SubResource("log").
+				Name("foolog")
+		},
+		Method: "GET",
+		URI:    "/api/v1/namespaces/default/pods/foolog/log",
+	},
 }
 
 var wrappedHandler = func(test *testcase, t *testing.T) http.HandlerFunc {

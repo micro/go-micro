@@ -1,4 +1,4 @@
-package postgresql
+package cockroach
 
 import (
 	"database/sql"
@@ -27,13 +27,10 @@ func TestSQL(t *testing.T) {
 	}
 	db.Close()
 
-	sqlStore, err := New(
+	sqlStore := New(
 		store.Namespace("testsql"),
 		store.Nodes(connection),
 	)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
 
 	records, err := sqlStore.List()
 	if err != nil {

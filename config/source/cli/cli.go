@@ -78,6 +78,11 @@ func (c *cliSource) Watch() (source.Watcher, error) {
 	return source.NewNoopWatcher()
 }
 
+// Write is unsupported
+func (c *cliSource) Write(cs *source.ChangeSet) error {
+	return nil
+}
+
 func (c *cliSource) String() string {
 	return "cli"
 }

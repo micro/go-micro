@@ -84,10 +84,24 @@ func (m *MockClient) Call(ctx context.Context, req client.Request, rsp interface
 		response := r.Response
 		if t := reflect.TypeOf(r.Response); t.Kind() == reflect.Func {
 			var request []reflect.Value
-			if t.NumIn() == 1 {
+			switch t.NumIn() {
+			case 1:
+				// one input params: (req)
 				request = append(request, reflect.ValueOf(req.Body()))
+			case 2:
+				// two input params: (ctx, req)
+				request = append(request, reflect.ValueOf(ctx), reflect.ValueOf(req.Body()))
 			}
-			response = reflect.ValueOf(r.Response).Call(request)[0].Interface()
+
+			responseValue := reflect.ValueOf(r.Response).Call(request)
+			response = responseValue[0].Interface()
+			if len(responseValue) == 2 {
+				// make it possible to return error in response function
+				respErr, ok := responseValue[1].Interface().(error)
+				if ok && respErr != nil {
+					return respErr
+				}
+			}
 		}
 
 		v.Set(reflect.ValueOf(response))

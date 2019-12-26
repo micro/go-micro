@@ -123,6 +123,13 @@ func (s *service) register() error {
 	srv := s.genSrv()
 	srv.Endpoints = s.srv.Endpoints
 	s.srv = srv
+
+	// use RegisterCheck func before register
+	if err := s.opts.RegisterCheck(s.opts.Context); err != nil {
+		log.Logf("Server %s-%s register check error: %s", s.opts.Name, s.opts.Id, err)
+		return err
+	}
+
 	return r.Register(s.srv, registry.RegisterTTL(s.opts.RegisterTTL))
 }
 

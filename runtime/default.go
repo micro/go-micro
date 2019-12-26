@@ -167,12 +167,16 @@ func (r *runtime) Create(s *Service, opts ...CreateOption) error {
 		return errors.New("missing exec command")
 	}
 
-	// save service
-	r.services[s.Name] = newService(s, options)
+	// create new service
+	service := newService(s, options)
 
-	// push into start queue
-	log.Debugf("Runtime creating service %s", s.Name)
-	r.start <- r.services[s.Name]
+	// start the service
+	if err := service.Start(); err != nil {
+		return err
+	}
+
+	// save service
+	r.services[s.Name] = service
 
 	return nil
 }

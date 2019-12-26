@@ -10,7 +10,6 @@ import (
 	"net/url"
 	"path"
 
-	"github.com/micro/go-micro/config/options"
 	"github.com/micro/go-micro/errors"
 	"github.com/micro/go-micro/proxy"
 	"github.com/micro/go-micro/server"
@@ -18,7 +17,7 @@ import (
 
 // Proxy will proxy rpc requests as http POST requests. It is a server.Proxy
 type Proxy struct {
-	options.Options
+	options proxy.Options
 
 	// The http backend to call
 	Endpoint string
@@ -189,6 +188,10 @@ func (p *Proxy) ServeRequest(ctx context.Context, req server.Request, rsp server
 	}
 }
 
+func (p *Proxy) String() string {
+	return "http"
+}
+
 // NewSingleHostProxy returns a router which sends requests to a single http backend
 func NewSingleHostProxy(url string) proxy.Proxy {
 	return &Proxy{
@@ -197,16 +200,15 @@ func NewSingleHostProxy(url string) proxy.Proxy {
 }
 
 // NewProxy returns a new proxy which will route using a http client
-func NewProxy(opts ...options.Option) proxy.Proxy {
-	p := new(Proxy)
-	p.Options = options.NewOptions(opts...)
-	p.Options.Init(options.WithString("http"))
-
-	// get endpoint
-	ep, ok := p.Options.Values().Get("proxy.endpoint")
-	if ok {
-		p.Endpoint = ep.(string)
+func NewProxy(opts ...proxy.Option) proxy.Proxy {
+	var options proxy.Options
+	for _, o := range opts {
+		o(&options)
 	}
+
+	p := new(Proxy)
+	p.Endpoint = options.Endpoint
+	p.options = options
 
 	return p
 }
