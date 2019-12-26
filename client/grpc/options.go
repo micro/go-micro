@@ -15,7 +15,7 @@ var (
 	// (20)
 	DefaultPoolMaxStreams = 20
 	// DefaultPoolMaxIdle maximum idle of a connection
-	// (1h)
+	// (50)
 	DefaultPoolMaxIdle = 50
 	// DefaultMaxRecvMsgSize maximum message that client can receive
 	// (4 MB).
