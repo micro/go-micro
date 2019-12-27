@@ -29,6 +29,7 @@ import (
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/registry/etcd"
 	"github.com/micro/go-micro/registry/mdns"
+	kreg "github.com/micro/go-micro/registry/kubernetes"
 	rmem "github.com/micro/go-micro/registry/memory"
 	regSrv "github.com/micro/go-micro/registry/service"
 
@@ -211,6 +212,7 @@ var (
 		"etcd":    etcd.NewRegistry,
 		"mdns":    mdns.NewRegistry,
 		"memory":  rmem.NewRegistry,
+		"kubernetes": kreg.NewRegistry,
 	}
 
 	DefaultSelectors = map[string]func(...selector.Option) selector.Selector{
