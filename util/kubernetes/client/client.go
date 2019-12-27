@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"os"
 	"path"
-	"strconv"
 	"strings"
 
 	"github.com/micro/go-micro/util/kubernetes/api"
@@ -45,6 +44,8 @@ type Client interface {
 	List(*Resource) error
 	// Log gets log for a pod
 	Log(*Resource, ...LogOption) (io.ReadCloser, error)
+	// Watch for events
+	Watch(*Resource, ...WatchOption) (Watcher, error)
 }
 
 func detectNamespace() (string, error) {
@@ -132,6 +133,8 @@ func (c *client) Update(r *Resource) error {
 		req.Body(r.Value.(*Service))
 	case "deployment":
 		req.Body(r.Value.(*Deployment))
+	case "pod":
+		req.Body(r.Value.(*Pod))
 	default:
 		return errors.New("unsupported resource")
 	}
@@ -155,6 +158,34 @@ func (c *client) List(r *Resource) error {
 		"micro": "service",
 	}
 	return c.Get(r, labels)
+}
+
+// Watch returns an event stream
+func (c *client) Watch(r *Resource, opts ...WatchOption) (Watcher, error) {
+	var options WatchOptions
+	for _, o := range opts {
+		o(&options)
+	}
+
+	// set the watch param
+	params := &api.Params{Additional: map[string]string{
+		"watch": "true",
+	}}
+
+	// get options params
+	if options.Params != nil {
+		for k, v := range options.Params {
+			params.Additional[k] = v
+		}
+	}
+
+	req := api.NewRequest(c.opts).
+		Get().
+		Resource(r.Kind).
+		Name(r.Name).
+		Params(params)
+
+	return newWatcher(req)
 }
 
 // NewService returns default micro kubernetes service definition
@@ -252,28 +283,22 @@ func NewDeployment(name, version, typ string) *Deployment {
 	}
 }
 
-// NewLocalDevClient returns a client that can be used with `kubectl proxy` on an optional port
-func NewLocalDevClient(port ...int) *client {
-	var p int
-	if len(port) > 1 {
-		log.Fatal("Expected 0 or 1 port parameters")
-	}
-	if len(port) == 0 {
-		p = 8001
-	} else {
-		p = port[0]
+// NewLocalClient returns a client that can be used with `kubectl proxy`
+func NewLocalClient(hosts ...string) *client {
+	if len(hosts) == 0 {
+		hosts[0] = "http://localhost:8001"
 	}
 	return &client{
 		opts: &api.Options{
 			Client:    http.DefaultClient,
-			Host:      "http://localhost:" + strconv.Itoa(p),
+			Host:      hosts[0],
 			Namespace: "default",
 		},
 	}
 }
 
-// NewClientInCluster creates a Kubernetes client for use from within a k8s pod.
-func NewClientInCluster() *client {
+// NewClusterClient creates a Kubernetes client for use from within a k8s pod.
+func NewClusterClient() *client {
 	host := "https://" + os.Getenv("KUBERNETES_SERVICE_HOST") + ":" + os.Getenv("KUBERNETES_SERVICE_PORT")
 
 	s, err := os.Stat(serviceAccountPath)
