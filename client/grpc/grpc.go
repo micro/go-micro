@@ -244,6 +244,28 @@ func (g *grpcClient) stream(ctx context.Context, node *registry.Node, req client
 	}, nil
 }
 
+func (g *grpcClient) poolMaxStreams() int {
+	if g.opts.Context == nil {
+		return DefaultPoolMaxStreams
+	}
+	v := g.opts.Context.Value(poolMaxStreams{})
+	if v == nil {
+		return DefaultPoolMaxStreams
+	}
+	return v.(int)
+}
+
+func (g *grpcClient) poolMaxIdle() int {
+	if g.opts.Context == nil {
+		return DefaultPoolMaxIdle
+	}
+	v := g.opts.Context.Value(poolMaxIdle{})
+	if v == nil {
+		return DefaultPoolMaxIdle
+	}
+	return v.(int)
+}
+
 func (g *grpcClient) maxRecvMsgSizeValue() int {
 	if g.opts.Context == nil {
 		return DefaultMaxRecvMsgSize
@@ -639,8 +661,8 @@ func newClient(opts ...client.Option) client.Client {
 	rc := &grpcClient{
 		once: sync.Once{},
 		opts: options,
-		pool: newPool(options.PoolSize, options.PoolTTL),
 	}
+	rc.pool = newPool(options.PoolSize, options.PoolTTL, rc.poolMaxIdle(), rc.poolMaxStreams())
 
 	c := client.Client(rc)
 
