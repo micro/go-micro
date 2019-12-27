@@ -73,11 +73,11 @@ func (p *pool) getConn(addr string, opts ...grpc.DialOption) (*poolConn, error) 
 		sp = &streamsPool{head:&poolConn{}, busy:&poolConn{}, count:0, idle:0}
 		p.conns[addr] = sp
 	}
-	// while we have conns check streams and then return one
-	// otherwise we'll create a new conn
+	//  while we have conns check streams and then return one
+	//  otherwise we'll create a new conn
 	conn := sp.head.next
 	for conn != nil {
-		// a old conn
+		//  a old conn
 		if now-conn.created > p.ttl {
 			next := conn.next
 			if conn.streams == 0 {
@@ -88,36 +88,35 @@ func (p *pool) getConn(addr string, opts ...grpc.DialOption) (*poolConn, error) 
 			conn = next
 			continue
 		}
-		// a busy conn
+		//  a busy conn
 		if conn.streams >= p.maxStreams {
-			next := conn.next
-                        removeConn(conn)
-                        addConnAfter(conn, sp.busy)
-                        conn = next
+				next := conn.next
+				removeConn(conn)
+				addConnAfter(conn, sp.busy)
+				conn = next
 	           	continue
 		}
-		// a idle conn
+		//  a idle conn
 		if conn.streams == 0 {
 			sp.idle--
 		}
-		// a good conn
+		//  a good conn
 		conn.streams++
 		p.Unlock()
 		return conn, nil
 	}
 	p.Unlock()
 
-	// create new conn
+	//  create new conn
 	cc, err := grpc.Dial(addr, opts...)
 	if err != nil {
 		return nil, err
 	}
 	conn = &poolConn{cc,nil,addr,p,sp,1,time.Now().Unix(), nil, nil, false}
 
-	// add conn to streams pool
+	//  add conn to streams pool
 	p.Lock()
 	if sp.count < p.size {
-		conn.in = true
 		addConnAfter(conn, sp.head)
 	}
 	p.Unlock()
@@ -128,19 +127,8 @@ func (p *pool) getConn(addr string, opts ...grpc.DialOption) (*poolConn, error) 
 func (p *pool) release(addr string, conn *poolConn, err error) {
 	p.Lock()
 	p, sp, created := conn.pool, conn.sp, conn.created
-	//  a busy conn
-        if conn.streams >= p.maxStreams {
-                removeConn(conn)
-                addConnAfter(conn, sp.head)
-	}
-	conn.streams--
-	if conn.streams > 0 {
-		p.Unlock()
-		return
-	}
-	//  add conn to streams pool
+	//  try to add conn
 	if !conn.in && sp.count < p.size {
-		conn.in = true
 		addConnAfter(conn, sp.head)
 	}
 	if !conn.in {
@@ -148,17 +136,26 @@ func (p *pool) release(addr string, conn *poolConn, err error) {
 		conn.ClientConn.Close()
 		return
 	}
-	// it has errored or
-	// too many idle conn or
-	// conn is too old
-	now := time.Now().Unix()
-	if  err != nil || sp.idle > p.maxIdle || now-created > p.ttl {
+	//  a busy conn
+	if conn.streams >= p.maxStreams {
 		removeConn(conn)
-		p.Unlock()
-		conn.ClientConn.Close()
-		return
+		addConnAfter(conn, sp.head)
 	}
-	sp.idle++
+	conn.streams--
+	//  if streams == 0, we can do something
+	if conn.streams == 0 {
+		//  1. it has errored
+		//  2. too many idle conn or
+		//  3. conn is too old
+		now := time.Now().Unix()
+		if  err != nil || sp.idle >= p.maxIdle || now-created > p.ttl {
+			removeConn(conn)
+			p.Unlock()
+			conn.ClientConn.Close()
+			return
+		}
+		sp.idle++
+	}
 	p.Unlock()
 	return
 }
@@ -176,6 +173,7 @@ func removeConn(conn *poolConn)  {
 	}
 	conn.pre = nil
 	conn.next = nil
+	conn.in = false
 	conn.sp.count--
 	return
 }
@@ -187,6 +185,7 @@ func addConnAfter(conn *poolConn, after *poolConn)  {
 		after.next.pre = conn
 	}
 	after.next = conn
+	conn.in = true
 	conn.sp.count++
 	return
 }
