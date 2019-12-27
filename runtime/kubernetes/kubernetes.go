@@ -415,7 +415,7 @@ func NewRuntime(opts ...runtime.Option) runtime.Runtime {
 	}
 
 	// kubernetes client
-	client := client.NewClientInCluster()
+	client := client.NewClusterClient()
 
 	return &kubernetes{
 		options: options,

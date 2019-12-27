@@ -2,6 +2,7 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -12,6 +13,8 @@ import (
 
 // Request is used to construct a http request for the k8s API.
 type Request struct {
+	// the request context
+	context   context.Context
 	client    *http.Client
 	header    http.Header
 	params    url.Values
@@ -39,6 +42,10 @@ type Params struct {
 func (r *Request) verb(method string) *Request {
 	r.method = method
 	return r
+}
+
+func (r *Request) Context(ctx context.Context) {
+	r.context = ctx
 }
 
 // Get request
@@ -172,8 +179,15 @@ func (r *Request) request() (*http.Request, error) {
 		url += "?" + r.params.Encode()
 	}
 
+	var req *http.Request
+	var err error
+
 	// build request
-	req, err := http.NewRequest(r.method, url, r.body)
+	if r.context != nil {
+		req, err = http.NewRequestWithContext(r.context, r.method, url, r.body)
+	} else {
+		req, err = http.NewRequest(r.method, url, r.body)
+	}
 	if err != nil {
 		return nil, err
 	}

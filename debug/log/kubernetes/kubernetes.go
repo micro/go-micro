@@ -182,9 +182,9 @@ func NewLog(opts ...log.Option) log.Log {
 	}
 
 	if len(os.Getenv("KUBERNETES_SERVICE_HOST")) > 0 {
-		klog.client = client.NewClientInCluster()
+		klog.client = client.NewClusterClient()
 	} else {
-		klog.client = client.NewLocalDevClient()
+		klog.client = client.NewLocalClient()
 	}
 	return klog
 }
