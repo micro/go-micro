@@ -374,6 +374,12 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 				pool.Release(psock)
 				// signal we're done
 				wg.Done()
+
+				// recover any panics for outbound process
+				if r := recover(); r != nil {
+					log.Log("panic recovered: ", r)
+					log.Log(string(debug.Stack()))
+				}
 			}()
 
 			for {
@@ -400,6 +406,12 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 				pool.Release(psock)
 				// signal we're done
 				wg.Done()
+
+				// recover any panics for call handler
+				if r := recover(); r != nil {
+					log.Log("panic recovered: ", r)
+					log.Log(string(debug.Stack()))
+				}
 			}()
 
 			// serve the actual request using the request router
