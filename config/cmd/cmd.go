@@ -202,7 +202,6 @@ var (
 	}
 
 	DefaultClients = map[string]func(...client.Option) client.Client{
-		"rpc":  client.NewClient,
 		"mucp": cmucp.NewClient,
 		"grpc": cgrpc.NewClient,
 	}
@@ -224,7 +223,6 @@ var (
 	}
 
 	DefaultServers = map[string]func(...server.Option) server.Server{
-		"rpc":  server.NewServer,
 		"mucp": smucp.NewServer,
 		"grpc": sgrpc.NewServer,
 	}
@@ -242,8 +240,8 @@ var (
 	}
 
 	// used for default selection as the fall back
-	defaultClient    = "rpc"
-	defaultServer    = "rpc"
+	defaultClient    = "grpc"
+	defaultServer    = "grpc"
 	defaultBroker    = "http"
 	defaultRegistry  = "mdns"
 	defaultSelector  = "registry"

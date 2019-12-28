@@ -171,6 +171,8 @@ func PoolTTL(d time.Duration) Option {
 func Registry(r registry.Registry) Option {
 	return func(o *Options) {
 		o.Registry = r
+		// set in the selector
+		o.Selector.Init(selector.Registry(r))
 	}
 }
 

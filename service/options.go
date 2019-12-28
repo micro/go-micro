@@ -31,7 +31,7 @@ type Options struct {
 
 type Option func(*Options)
 
-func newOptions(opts ...Option) Options {
+func NewOptions(opts ...Option) Options {
 	opt := Options{
 		Broker:    broker.DefaultBroker,
 		Client:    client.DefaultClient,
