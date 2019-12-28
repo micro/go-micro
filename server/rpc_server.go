@@ -835,16 +835,19 @@ func (s *rpcServer) Start() error {
 				s.RLock()
 				registered := s.registered
 				s.RUnlock()
-				if err = s.opts.RegisterCheck(s.opts.Context); err != nil && registered {
+				rerr := s.opts.RegisterCheck(s.opts.Context)
+				if rerr != nil && registered {
 					log.Logf("Server %s-%s register check error: %s, deregister it", config.Name, config.Id, err)
 					// deregister self in case of error
 					if err := s.Deregister(); err != nil {
 						log.Logf("Server %s-%s deregister error: %s", config.Name, config.Id, err)
 					}
-				} else {
-					if err := s.Register(); err != nil {
-						log.Logf("Server %s-%s register error: %s", config.Name, config.Id, err)
-					}
+				} else if rerr != nil && !registered {
+					log.Logf("Server %s-%s register check error: %s", config.Name, config.Id, err)
+					continue
+				}
+				if err := s.Register(); err != nil {
+					log.Logf("Server %s-%s register error: %s", config.Name, config.Id, err)
 				}
 			// wait for exit
 			case ch = <-s.exit:
@@ -854,9 +857,14 @@ func (s *rpcServer) Start() error {
 			}
 		}
 
-		// deregister self
-		if err := s.Deregister(); err != nil {
-			log.Logf("Server %s-%s deregister error: %s", config.Name, config.Id, err)
+		s.RLock()
+		registered := s.registered
+		s.RUnlock()
+		if registered {
+			// deregister self
+			if err := s.Deregister(); err != nil {
+				log.Logf("Server %s-%s deregister error: %s", config.Name, config.Id, err)
+			}
 		}
 
 		s.Lock()
