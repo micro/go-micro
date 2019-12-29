@@ -12,12 +12,10 @@ import (
 	"github.com/micro/go-micro/broker"
 	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/client/selector"
-	"github.com/micro/go-micro/codec"
 	raw "github.com/micro/go-micro/codec/bytes"
 	"github.com/micro/go-micro/errors"
 	"github.com/micro/go-micro/metadata"
 	"github.com/micro/go-micro/registry"
-	"github.com/micro/go-micro/transport"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -623,45 +621,19 @@ func (g *grpcClient) getGrpcCallOptions() []grpc.CallOption {
 }
 
 func newClient(opts ...client.Option) client.Client {
-	options := client.Options{
-		Codecs: make(map[string]codec.NewCodec),
-		CallOptions: client.CallOptions{
-			Backoff:        client.DefaultBackoff,
-			Retry:          client.DefaultRetry,
-			Retries:        client.DefaultRetries,
-			RequestTimeout: client.DefaultRequestTimeout,
-			DialTimeout:    transport.DefaultDialTimeout,
-		},
-		PoolSize: client.DefaultPoolSize,
-		PoolTTL:  client.DefaultPoolTTL,
-	}
+	options := client.NewOptions()
+	// default content type for grpc
+	options.ContentType = "application/grpc+proto"
 
 	for _, o := range opts {
 		o(&options)
-	}
-
-	if len(options.ContentType) == 0 {
-		options.ContentType = "application/grpc+proto"
-	}
-
-	if options.Broker == nil {
-		options.Broker = broker.DefaultBroker
-	}
-
-	if options.Registry == nil {
-		options.Registry = registry.DefaultRegistry
-	}
-
-	if options.Selector == nil {
-		options.Selector = selector.NewSelector(
-			selector.Registry(options.Registry),
-		)
 	}
 
 	rc := &grpcClient{
 		once: sync.Once{},
 		opts: options,
 	}
+
 	rc.pool = newPool(options.PoolSize, options.PoolTTL, rc.poolMaxIdle(), rc.poolMaxStreams())
 
 	c := client.Client(rc)
