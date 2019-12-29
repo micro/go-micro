@@ -29,7 +29,7 @@ type rpcClient struct {
 }
 
 func newRpcClient(opt ...Option) Client {
-	opts := newOptions(opt...)
+	opts := NewOptions(opt...)
 
 	p := pool.NewPool(
 		pool.Size(opts.PoolSize),
