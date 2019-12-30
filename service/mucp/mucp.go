@@ -3,8 +3,8 @@ package mucp
 
 import (
 	"github.com/micro/go-micro/client"
-	"github.com/micro/go-micro/server"
 	cmucp "github.com/micro/go-micro/client/mucp"
+	"github.com/micro/go-micro/server"
 	smucp "github.com/micro/go-micro/server/mucp"
 	"github.com/micro/go-micro/service"
 )
