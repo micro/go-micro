@@ -55,6 +55,7 @@ func testHttp(t *testing.T, path, service, ns string) {
 	rt := regRouter.NewRouter(
 		router.WithHandler("http"),
 		router.WithNamespace(ns),
+		router.WithRegistry(r),
 	)
 
 	p := NewHandler(handler.WithRouter(rt))
