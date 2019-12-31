@@ -126,6 +126,10 @@ func (c *Codec) Write(m *codec.Message, b interface{}) error {
 		return err
 	}
 
+	if len(buf) == 0 {
+		return nil
+	}
+
 	return encode(0, buf, c.Conn)
 }
 
