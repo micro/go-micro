@@ -16,16 +16,16 @@ func TestWrapper(t *testing.T) {
 		{
 			existing: metadata.Metadata{},
 			headers: metadata.Metadata{
-				"foo": "bar",
+				"Foo": "bar",
 			},
 			overwrite: true,
 		},
 		{
 			existing: metadata.Metadata{
-				"foo": "bar",
+				"Foo": "bar",
 			},
 			headers: metadata.Metadata{
-				"foo": "baz",
+				"Foo": "baz",
 			},
 			overwrite: false,
 		},
