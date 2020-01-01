@@ -64,6 +64,9 @@ func (w wrapCodec) Unmarshal(data []byte, v interface{}) error {
 		b.Data = data
 		return nil
 	}
+	if v == nil {
+		return nil
+	}
 	return w.Codec.Unmarshal(data, v)
 }
 
