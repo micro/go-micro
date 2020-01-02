@@ -261,9 +261,6 @@ func (k *kubernetes) Create(s *runtime.Service, opts ...runtime.CreateOption) er
 		name = name + "-" + s.Version
 	}
 
-	// format as we'll format in the deployment
-	name = client.Format(name)
-
 	// create new kubernetes micro service
 	service := newService(s, options)
 
