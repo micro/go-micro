@@ -346,7 +346,9 @@ func (router *router) readRequest(r Request) (service *service, mtype *methodTyp
 	}
 	// is it a streaming request? then we don't read the body
 	if mtype.stream {
-		cc.ReadBody(nil)
+		if cc.(codec.Codec).String() != "grpc" {
+			cc.ReadBody(nil)
+		}
 		return
 	}
 

@@ -248,6 +248,7 @@ func (g *grpcServer) handler(srv interface{}, stream grpc.ServerStream) error {
 			contentType: ct,
 			method:      fmt.Sprintf("%s.%s", serviceName, methodName),
 			codec:       codec,
+			stream:      true,
 		}
 
 		response := &rpcResponse{
@@ -385,9 +386,11 @@ func (g *grpcServer) processRequest(stream grpc.ServerStream, service *service, 
 			}
 			return status.New(statusCode, statusDesc).Err()
 		}
+
 		if err := stream.SendMsg(replyv.Interface()); err != nil {
 			return err
 		}
+
 		return status.New(statusCode, statusDesc).Err()
 	}
 }

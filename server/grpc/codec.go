@@ -180,5 +180,5 @@ func (g *grpcCodec) Close() error {
 }
 
 func (g *grpcCodec) String() string {
-	return g.c.Name()
+	return "grpc"
 }
