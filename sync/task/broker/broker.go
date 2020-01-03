@@ -99,14 +99,22 @@ func (t *Task) Run(c task.Command) error {
 
 	// subscribe for the pool size
 	for i := 0; i < t.Options.Pool; i++ {
-		// subscribe to work
-		subWork, err := t.Broker.Subscribe(topic, workFn, broker.Queue(fmt.Sprintf("work.%d", i)))
+		err := func() error {
+			// subscribe to work
+			subWork, err := t.Broker.Subscribe(topic, workFn, broker.Queue(fmt.Sprintf("work.%d", i)))
+			if err != nil {
+				return err
+			}
+
+			// unsubscribe on completion
+			defer subWork.Unsubscribe()
+
+			return nil
+		}()
+
 		if err != nil {
 			return err
 		}
-
-		// unsubscribe on completion
-		defer subWork.Unsubscribe()
 	}
 
 	// subscribe to all status messages
