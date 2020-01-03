@@ -533,8 +533,7 @@ func (h *httpBroker) Publish(topic string, msg *Message, opts ...PublishOption) 
 	s, err := h.r.GetService(serviceName)
 	if err != nil {
 		h.RUnlock()
-		// ignore error
-		return nil
+		return err
 	}
 	h.RUnlock()
 
