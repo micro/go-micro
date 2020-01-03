@@ -490,7 +490,8 @@ func (p *Proxy) serveRequest(ctx context.Context, link client.Client, service, e
 	defer stream.Close()
 
 	// if we receive a grpc stream we have to refire the initial request
-	if c, ok := req.Codec().(codec.Codec); ok && c.String() == "grpc" {
+	c, ok := req.Codec().(codec.Codec)
+	if ok && c.String() == "grpc" && link.String() == "grpc" {
 		// get the header from client
 		hdr := req.Header()
 		msg := &codec.Message{
