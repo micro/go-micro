@@ -173,6 +173,25 @@ func (s *session) waitFor(msgType string, timeout time.Duration) (*message, erro
 		case <-after(timeout):
 			return nil, ErrReadTimeout
 		case <-s.closed:
+			// check pending message queue
+			select {
+			case msg := <-s.recv:
+				// there may be no message type
+				if len(msgType) == 0 {
+					return msg, nil
+				}
+
+				// ignore what we don't want
+				if msg.typ != msgType {
+					log.Debugf("Tunnel received non %s message in waiting for %s", msg.typ, msgType)
+					continue
+				}
+
+				// got the message
+				return msg, nil
+			default:
+				// non blocking
+			}
 			return nil, io.EOF
 		}
 	}
