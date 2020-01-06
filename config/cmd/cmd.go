@@ -49,6 +49,14 @@ import (
 	// runtimes
 	"github.com/micro/go-micro/runtime"
 	"github.com/micro/go-micro/runtime/kubernetes"
+
+	// stores
+	"github.com/micro/go-micro/store"
+	cfStore "github.com/micro/go-micro/store/cloudflare"
+	ckStore "github.com/micro/go-micro/store/cockroach"
+	etcdStore "github.com/micro/go-micro/store/etcd"
+	memStore "github.com/micro/go-micro/store/memory"
+	svcStore "github.com/micro/go-micro/store/service"
 )
 
 type Cmd interface {
@@ -239,6 +247,14 @@ var (
 		"kubernetes": kubernetes.NewRuntime,
 	}
 
+	DefaultStores = map[string]func(...store.Option) store.Store{
+		"memory":     memStore.NewStore,
+		"cockroach":  ckStore.NewStore,
+		"etcd":       etcdStore.NewStore,
+		"cloudflare": cfStore.NewStore,
+		"service":    svcStore.NewStore,
+	}
+
 	// used for default selection as the fall back
 	defaultClient    = "grpc"
 	defaultServer    = "grpc"
@@ -267,6 +283,7 @@ func newCmd(opts ...Option) Cmd {
 		Selector:  &selector.DefaultSelector,
 		Transport: &transport.DefaultTransport,
 		Runtime:   &runtime.DefaultRuntime,
+		Store:     &store.DefaultStore,
 
 		Brokers:    DefaultBrokers,
 		Clients:    DefaultClients,
@@ -275,6 +292,7 @@ func newCmd(opts ...Option) Cmd {
 		Servers:    DefaultServers,
 		Transports: DefaultTransports,
 		Runtimes:   DefaultRuntimes,
+		Stores:     DefaultStores,
 	}
 
 	for _, o := range opts {
@@ -314,6 +332,16 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	// If flags are set then use them otherwise do nothing
 	var serverOpts []server.Option
 	var clientOpts []client.Option
+
+	// Set the runtime
+	if name := ctx.String("store"); len(name) > 0 {
+		s, ok := c.opts.Stores[name]
+		if !ok {
+			return fmt.Errorf("Unsupported store: %s", name)
+		}
+
+		*c.opts.Store = s()
+	}
 
 	// Set the runtime
 	if name := ctx.String("runtime"); len(name) > 0 {
