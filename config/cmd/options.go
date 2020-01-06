@@ -9,6 +9,7 @@ import (
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/runtime"
 	"github.com/micro/go-micro/server"
+	"github.com/micro/go-micro/store"
 	"github.com/micro/go-micro/transport"
 )
 
@@ -26,6 +27,7 @@ type Options struct {
 	Client    *client.Client
 	Server    *server.Server
 	Runtime   *runtime.Runtime
+	Store     *store.Store
 
 	Brokers    map[string]func(...broker.Option) broker.Broker
 	Clients    map[string]func(...client.Option) client.Client
@@ -34,6 +36,7 @@ type Options struct {
 	Servers    map[string]func(...server.Option) server.Server
 	Transports map[string]func(...transport.Option) transport.Transport
 	Runtimes   map[string]func(...runtime.Option) runtime.Runtime
+	Stores     map[string]func(...store.Option) store.Store
 
 	// Other options for implementations of the interface
 	// can be stored in a context

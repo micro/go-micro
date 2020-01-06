@@ -9,6 +9,8 @@ import (
 var (
 	// ErrNotFound is returned when a Read key doesn't exist
 	ErrNotFound = errors.New("not found")
+	// Default store
+	DefaultStore Store = new(noop)
 )
 
 // Store is a data storage interface
@@ -28,4 +30,22 @@ type Record struct {
 	Key    string
 	Value  []byte
 	Expiry time.Duration
+}
+
+type noop struct{}
+
+func (n *noop) List() ([]*Record, error) {
+	return nil, nil
+}
+
+func (n *noop) Read(key ...string) ([]*Record, error) {
+	return nil, nil
+}
+
+func (n *noop) Write(rec ...*Record) error {
+	return nil
+}
+
+func (n *noop) Delete(key ...string) error {
+	return nil
 }
