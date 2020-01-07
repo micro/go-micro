@@ -207,7 +207,7 @@ func (g *grpcClient) stream(ctx context.Context, node *registry.Node, req client
 		ServerStreams: true,
 	}
 
-	grpcCallOptions := []grpc.CallOption{}
+	grpcCallOptions := []grpc.CallOption{grpc.CallContentSubtype(cf.Name())}
 	if opts := g.getGrpcCallOptions(); opts != nil {
 		grpcCallOptions = append(grpcCallOptions, opts...)
 	}

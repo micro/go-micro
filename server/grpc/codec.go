@@ -93,10 +93,12 @@ func (jsonCodec) Marshal(v interface{}) ([]byte, error) {
 }
 
 func (jsonCodec) Unmarshal(data []byte, v interface{}) error {
+	if len(data) == 0 {
+		return nil
+	}
 	if pb, ok := v.(proto.Message); ok {
 		return jsonpb.Unmarshal(b.NewReader(data), pb)
 	}
-
 	return json.Unmarshal(data, v)
 }
 
