@@ -203,7 +203,11 @@ func (g *grpcServer) handler(srv interface{}, stream grpc.ServerStream) error {
 
 	// get content type
 	ct := defaultContentType
+
 	if ctype, ok := md["x-content-type"]; ok {
+		ct = ctype
+	}
+	if ctype, ok := md["content-type"]; ok {
 		ct = ctype
 	}
 
