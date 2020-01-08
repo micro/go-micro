@@ -6,7 +6,6 @@ import (
 	"hash/fnv"
 	"io"
 	"math"
-	"math/rand"
 	"sort"
 	"sync"
 	"time"
@@ -54,16 +53,16 @@ type network struct {
 	options Options
 	// rtr is network router
 	router router.Router
-	// prx is network proxy
+	// proxy is network proxy
 	proxy proxy.Proxy
-	// tun is network tunnel
+	// tunnel is network tunnel
 	tunnel tunnel.Tunnel
 	// server is network server
 	server server.Server
 	// client is network client
 	client client.Client
 
-	// tunClient is a map of tunnel clients keyed over tunnel channel names
+	// tunClient is a map of tunnel channel clients
 	tunClient map[string]transport.Client
 	// peerLinks is a map of links for each peer
 	peerLinks map[string]tunnel.Link
@@ -89,9 +88,9 @@ type message struct {
 
 // newNetwork returns a new network node
 func newNetwork(opts ...Option) Network {
-	rand.Seed(time.Now().UnixNano())
+	// create default options
 	options := DefaultOptions()
-
+	// initialize network options
 	for _, o := range opts {
 		o(&options)
 	}
@@ -180,11 +179,12 @@ func newNetwork(opts ...Option) Network {
 
 func (n *network) Init(opts ...Option) error {
 	n.Lock()
+	defer n.Unlock()
+
 	// TODO: maybe only allow reinit of certain opts
 	for _, o := range opts {
 		o(&n.options)
 	}
-	n.Unlock()
 
 	return nil
 }
@@ -192,14 +192,21 @@ func (n *network) Init(opts ...Option) error {
 // Options returns network options
 func (n *network) Options() Options {
 	n.RLock()
+	defer n.RUnlock()
+
 	options := n.options
-	n.RUnlock()
+
 	return options
 }
 
 // Name returns network name
 func (n *network) Name() string {
-	return n.options.Name
+	n.RLock()
+	defer n.RUnlock()
+
+	name := n.options.Name
+
+	return name
 }
 
 // acceptNetConn accepts connections from NetworkChannel
@@ -341,8 +348,11 @@ func (n *network) advertise(advertChan <-chan *router.Advert) {
 	}
 }
 
+// initNodes initializes tunnel with a list of resolved nodes
 func (n *network) initNodes(startup bool) {
 	nodes, err := n.resolveNodes()
+	// NOTE: this condition never fires
+	// as resolveNodes() never returns error
 	if err != nil && !startup {
 		log.Debugf("Network failed to resolve nodes: %v", err)
 		return
@@ -394,7 +404,7 @@ func (n *network) resolveNodes() ([]string, error) {
 		}
 	}
 
-	// use the dns resolver to expand peers
+	// use the DNS resolver to expand peers
 	dns := &dns.Resolver{}
 
 	// append seed nodes if we have them
@@ -964,7 +974,7 @@ func (n *network) prunePeerRoutes(peer *node) error {
 
 // manage the process of announcing to peers and prune any peer nodes that have not been
 // seen for a period of time. Also removes all the routes either originated by or routable
-//by the stale nodes. it also resolves nodes periodically and adds them to the tunnel
+// by the stale nodes. it also resolves nodes periodically and adds them to the tunnel
 func (n *network) manage() {
 	announce := time.NewTicker(AnnounceTime)
 	defer announce.Stop()
@@ -1046,7 +1056,6 @@ func (n *network) manage() {
 
 			// we're only going to send to max 3 peers at any given tick
 			for _, peer := range peers {
-
 				// advertise yourself to the network
 				if err := n.sendTo("peer", NetworkChannel, peer, msg); err != nil {
 					log.Debugf("Network failed to advertise peer %s: %v", peer.id, err)
@@ -1060,7 +1069,7 @@ func (n *network) manage() {
 			// now look at links we may not have sent to. this may occur
 			// where a connect message was lost
 			for link, lastSent := range links {
-				if !lastSent.IsZero() {
+				if !lastSent.IsZero() || time.Since(lastSent) < KeepAliveTime {
 					continue
 				}
 
@@ -1111,11 +1120,11 @@ func (n *network) manage() {
 				// mark as processed
 				routers[route.Router] = true
 
-				// if the router is NOT in our peer graph, delete all routes originated by it
+				// if the router is in our peer graph do NOT delete routes originated by it
 				if peer := n.node.GetPeerNode(route.Router); peer != nil {
 					continue
 				}
-
+				// otherwise delete all the routes originated by it
 				if err := n.pruneRoutes(router.QueryRouter(route.Router)); err != nil {
 					log.Debugf("Network failed deleting routes by %s: %v", route.Router, err)
 				}
@@ -1233,30 +1242,32 @@ func (n *network) updatePeerLinks(peer *node) error {
 	// if the peerLink is found in the returned links update peerLinks
 	log.Tracef("Network updating peer links for peer %s", peer.address)
 
-	// add peerLink to the peerLinks map
+	// lookup a link and update it if better link is available
 	if link, ok := n.peerLinks[peer.address]; ok {
 		// if the existing has better Length then the new, replace it
 		if link.Length() < peerLink.Length() {
 			n.peerLinks[peer.address] = peerLink
 		}
-	} else {
-		n.peerLinks[peer.address] = peerLink
+		return nil
 	}
+
+	// add peerLink to the peerLinks map
+	n.peerLinks[peer.address] = peerLink
 
 	return nil
 }
 
 // isLoopback checks if a link is a loopback to ourselves
 func (n *network) isLoopback(link tunnel.Link) bool {
-	// our advertise address
-	loopback := n.server.Options().Advertise
-	// actual address
-	address := n.tunnel.Address()
-
 	// skip loopback
 	if link.Loopback() {
 		return true
 	}
+
+	// our advertise address
+	loopback := n.server.Options().Advertise
+	// actual address
+	address := n.tunnel.Address()
 
 	// if remote is ourselves
 	switch link.Remote() {
@@ -1382,7 +1393,10 @@ func (n *network) Connect() error {
 	}
 
 	// dial into ControlChannel to send route adverts
-	ctrlClient, err := n.tunnel.Dial(ControlChannel, tunnel.DialMode(tunnel.Multicast))
+	ctrlClient, err := n.tunnel.Dial(
+		ControlChannel,
+		tunnel.DialMode(tunnel.Multicast),
+	)
 	if err != nil {
 		return err
 	}
@@ -1390,7 +1404,10 @@ func (n *network) Connect() error {
 	n.tunClient[ControlChannel] = ctrlClient
 
 	// dial into NetworkChannel to send network messages
-	netClient, err := n.tunnel.Dial(NetworkChannel, tunnel.DialMode(tunnel.Multicast))
+	netClient, err := n.tunnel.Dial(
+		NetworkChannel,
+		tunnel.DialMode(tunnel.Multicast),
+	)
 	if err != nil {
 		return err
 	}
