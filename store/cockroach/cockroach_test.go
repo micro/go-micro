@@ -44,10 +44,20 @@ func TestSQL(t *testing.T) {
 			Key:   "test",
 			Value: []byte("foo"),
 		},
+	)
+	if err != nil {
+		t.Error(err)
+	}
+	err = sqlStore.Write(
 		&store.Record{
 			Key:   "bar",
 			Value: []byte("baz"),
 		},
+	)
+	if err != nil {
+		t.Error(err)
+	}
+	err = sqlStore.Write(
 		&store.Record{
 			Key:   "qux",
 			Value: []byte("aasad"),

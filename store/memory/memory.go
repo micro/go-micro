@@ -2,6 +2,7 @@
 package memory
 
 import (
+	"strings"
 	"sync"
 	"time"
 
@@ -55,19 +56,37 @@ func (m *memoryStore) List() ([]*store.Record, error) {
 	return values, nil
 }
 
-func (m *memoryStore) Read(keys ...string) ([]*store.Record, error) {
+func (m *memoryStore) Read(key string, opts ...store.ReadOption) ([]*store.Record, error) {
 	m.RLock()
 	defer m.RUnlock()
 
-	//nolint:prealloc
-	var records []*store.Record
+	var options store.ReadOptions
 
-	for _, key := range keys {
+	for _, o := range opts {
+		o(&options)
+	}
+
+	var vals []*memoryRecord
+
+	if !options.Prefix {
 		v, ok := m.values[key]
 		if !ok {
 			return nil, store.ErrNotFound
 		}
+		vals = []*memoryRecord{v}
+	} else {
+		for _, v := range m.values {
+			if !strings.HasPrefix(v.r.Key, key) {
+				continue
+			}
+			vals = append(vals, v)
+		}
+	}
 
+	//nolint:prealloc
+	var records []*store.Record
+
+	for _, v := range vals {
 		// get expiry
 		d := v.r.Expiry
 		t := time.Since(v.c)
@@ -88,29 +107,25 @@ func (m *memoryStore) Read(keys ...string) ([]*store.Record, error) {
 	return records, nil
 }
 
-func (m *memoryStore) Write(records ...*store.Record) error {
+func (m *memoryStore) Write(r *store.Record) error {
 	m.Lock()
 	defer m.Unlock()
 
-	for _, r := range records {
-		// set the record
-		m.values[r.Key] = &memoryRecord{
-			r: r,
-			c: time.Now(),
-		}
+	// set the record
+	m.values[r.Key] = &memoryRecord{
+		r: r,
+		c: time.Now(),
 	}
 
 	return nil
 }
 
-func (m *memoryStore) Delete(keys ...string) error {
+func (m *memoryStore) Delete(key string) error {
 	m.Lock()
 	defer m.Unlock()
 
-	for _, key := range keys {
-		// delete the value
-		delete(m.values, key)
-	}
+	// delete the value
+	delete(m.values, key)
 
 	return nil
 }

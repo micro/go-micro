@@ -18,8 +18,13 @@ message Record {
 	int64 expiry = 3;
 }
 
+message ReadOptions {
+	bool prefix = 1;
+}
+
 message ReadRequest {
-	repeated string keys = 1;
+	string key = 1;
+	ReadOptions options = 2;
 }
 
 message ReadResponse {
@@ -27,21 +32,18 @@ message ReadResponse {
 }
 
 message WriteRequest {
-	repeated Record records = 2;
+	Record record = 1;
 }
 
 message WriteResponse {}
 
 message DeleteRequest {
-	repeated string keys = 1;
+	string key = 1;
 }
 
 message DeleteResponse {}
 
-message ListRequest {
-	// optional key
-	string key = 1;
-}
+message ListRequest {}
 
 message ListResponse {
 	repeated Record records = 1;
