@@ -96,6 +96,16 @@ func validateOptions(account, token, namespace string) {
 	}
 }
 
+func (w *workersKV) Init(opts ...store.Option) error {
+	for _, o := range opts {
+		o(&w.options)
+	}
+	if len(w.options.Namespace) > 0 {
+		w.namespace = w.options.Namespace
+	}
+	return nil
+}
+
 // In the cloudflare workers KV implemention, List() doesn't guarantee
 // anything as the workers API is eventually consistent.
 func (w *workersKV) List() ([]*store.Record, error) {
@@ -308,7 +318,7 @@ func NewStore(opts ...store.Option) store.Store {
 	}
 
 	if len(namespace) == 0 {
-		namespace = getNamespace(options.Context)
+		namespace = options.Namespace
 	}
 
 	// validate options are not blank or log.Fatal

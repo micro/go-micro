@@ -15,6 +15,8 @@ var (
 
 // Store is a data storage interface
 type Store interface {
+	// Initialise store options
+	Init(...Option) error
 	// List all the known records
 	List() ([]*Record, error)
 	// Read records with keys
@@ -33,6 +35,10 @@ type Record struct {
 }
 
 type noop struct{}
+
+func (n *noop) Init(...Option) error {
+	return nil
+}
 
 func (n *noop) List() ([]*Record, error) {
 	return nil, nil
