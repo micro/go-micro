@@ -201,15 +201,15 @@ func (t *tun) announce(channel, session string, link *link) {
 }
 
 // manage monitors outbound links and attempts to reconnect to the failed ones
-func (t *tun) manage() {
-	reconnect := time.NewTicker(ReconnectTime)
-	defer reconnect.Stop()
+func (t *tun) manage(reconnect time.Duration) {
+	r := time.NewTicker(reconnect)
+	defer r.Stop()
 
 	for {
 		select {
 		case <-t.closed:
 			return
-		case <-reconnect.C:
+		case <-r.C:
 			t.manageLinks()
 		}
 	}
@@ -862,8 +862,11 @@ func (t *tun) setupLink(node string) (*link, error) {
 
 	// create a new link
 	link := newLink(c)
+
 	// set link id to remote side
+	link.Lock()
 	link.id = c.Remote()
+	link.Unlock()
 
 	// send the first connect message
 	if err := t.sendMsg("connect", link); err != nil {
@@ -984,7 +987,7 @@ func (t *tun) Connect() error {
 	t.setupLinks()
 
 	// manage the links
-	go t.manage()
+	go t.manage(ReconnectTime)
 
 	return nil
 }
