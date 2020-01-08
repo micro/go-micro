@@ -80,39 +80,47 @@ func (s *sqlStore) List() ([]*store.Record, error) {
 }
 
 // Read all records with keys
-func (s *sqlStore) Read(keys ...string) ([]*store.Record, error) {
+func (s *sqlStore) Read(key string, opts ...store.ReadOption) ([]*store.Record, error) {
+	var options store.ReadOptions
+	for _, o := range opts {
+		o(&options)
+	}
+
+	// TODO: make use of options.Prefix using WHERE key LIKE = ?
+
 	q, err := s.db.Prepare(fmt.Sprintf("SELECT key, value, expiry FROM %s.%s WHERE key = $1;", s.database, s.table))
 	if err != nil {
 		return nil, err
 	}
+
 	var records []*store.Record
 	var timehelper pq.NullTime
-	for _, key := range keys {
-		row := q.QueryRow(key)
-		record := &store.Record{}
-		if err := row.Scan(&record.Key, &record.Value, &timehelper); err != nil {
-			if err == sql.ErrNoRows {
-				return records, store.ErrNotFound
-			}
-			return records, err
+
+	row := q.QueryRow(key)
+	record := &store.Record{}
+	if err := row.Scan(&record.Key, &record.Value, &timehelper); err != nil {
+		if err == sql.ErrNoRows {
+			return records, store.ErrNotFound
 		}
-		if timehelper.Valid {
-			if timehelper.Time.Before(time.Now()) {
-				// record has expired
-				go s.Delete(key)
-				return records, store.ErrNotFound
-			}
-			record.Expiry = time.Until(timehelper.Time)
-			records = append(records, record)
-		} else {
-			records = append(records, record)
-		}
+		return records, err
 	}
+	if timehelper.Valid {
+		if timehelper.Time.Before(time.Now()) {
+			// record has expired
+			go s.Delete(key)
+			return records, store.ErrNotFound
+		}
+		record.Expiry = time.Until(timehelper.Time)
+		records = append(records, record)
+	} else {
+		records = append(records, record)
+	}
+
 	return records, nil
 }
 
 // Write records
-func (s *sqlStore) Write(rec ...*store.Record) error {
+func (s *sqlStore) Write(r *store.Record) error {
 	q, err := s.db.Prepare(fmt.Sprintf(`INSERT INTO %s.%s(key, value, expiry)
 		VALUES ($1, $2::bytea, $3)
 		ON CONFLICT (key)
@@ -121,37 +129,36 @@ func (s *sqlStore) Write(rec ...*store.Record) error {
 	if err != nil {
 		return err
 	}
-	for _, r := range rec {
-		var err error
-		if r.Expiry != 0 {
-			_, err = q.Exec(r.Key, r.Value, time.Now().Add(r.Expiry))
-		} else {
-			_, err = q.Exec(r.Key, r.Value, nil)
-		}
-		if err != nil {
-			return errors.Wrap(err, "Couldn't insert record "+r.Key)
-		}
+
+	if r.Expiry != 0 {
+		_, err = q.Exec(r.Key, r.Value, time.Now().Add(r.Expiry))
+	} else {
+		_, err = q.Exec(r.Key, r.Value, nil)
+	}
+
+	if err != nil {
+		return errors.Wrap(err, "Couldn't insert record "+r.Key)
 	}
 
 	return nil
 }
 
 // Delete records with keys
-func (s *sqlStore) Delete(keys ...string) error {
+func (s *sqlStore) Delete(key string) error {
 	q, err := s.db.Prepare(fmt.Sprintf("DELETE FROM %s.%s WHERE key = $1;", s.database, s.table))
 	if err != nil {
 		return err
 	}
-	for _, key := range keys {
-		result, err := q.Exec(key)
-		if err != nil {
-			return err
-		}
-		_, err = result.RowsAffected()
-		if err != nil {
-			return err
-		}
+
+	result, err := q.Exec(key)
+	if err != nil {
+		return err
 	}
+	_, err = result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
