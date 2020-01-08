@@ -15,6 +15,13 @@ type ekv struct {
 	kv      client.KV
 }
 
+func (e *ekv) Init(opts ...store.Option) error {
+	for _, o := range opts {
+		o(&e.options)
+	}
+	return nil
+}
+
 func (e *ekv) Read(keys ...string) ([]*store.Record, error) {
 	//nolint:prealloc
 	var values []*mvccpb.KeyValue

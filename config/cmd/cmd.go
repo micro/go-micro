@@ -191,6 +191,21 @@ var (
 			Usage:  "Selector used to pick nodes for querying",
 		},
 		cli.StringFlag{
+			Name:   "store",
+			EnvVar: "MICRO_STORE",
+			Usage:  "Store used for key-value storage",
+		},
+		cli.StringFlag{
+			Name:   "store_address",
+			EnvVar: "MICRO_STORE_ADDRESS",
+			Usage:  "Comma-separated list of store addresses",
+		},
+		cli.StringFlag{
+			Name:   "store_namespace",
+			EnvVar: "MICRO_STORE_NAMESPACE",
+			Usage:  "Namespace for store data",
+		},
+		cli.StringFlag{
 			Name:   "transport",
 			EnvVar: "MICRO_TRANSPORT",
 			Usage:  "Transport mechanism used; http",
@@ -459,6 +474,18 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	if len(ctx.String("transport_address")) > 0 {
 		if err := (*c.opts.Transport).Init(transport.Addrs(strings.Split(ctx.String("transport_address"), ",")...)); err != nil {
 			log.Fatalf("Error configuring transport: %v", err)
+		}
+	}
+
+	if len(ctx.String("store_address")) > 0 {
+		if err := (*c.opts.Store).Init(store.Nodes(strings.Split(ctx.String("store_address"), ",")...)); err != nil {
+			log.Fatalf("Error configuring store: %v", err)
+		}
+	}
+
+	if len(ctx.String("store_namespace")) > 0 {
+		if err := (*c.opts.Store).Init(store.Namespace(ctx.String("store_address"))); err != nil {
+			log.Fatalf("Error configuring store: %v", err)
 		}
 	}
 

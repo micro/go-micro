@@ -30,6 +30,14 @@ type sqlStore struct {
 	options store.Options
 }
 
+func (s *sqlStore) Init(opts ...store.Option) error {
+	for _, o := range opts {
+		o(&s.options)
+	}
+	// reconfigure
+	return s.configure()
+}
+
 // List all the known records
 func (s *sqlStore) List() ([]*store.Record, error) {
 	rows, err := s.db.Query(fmt.Sprintf("SELECT key, value, expiry FROM %s.%s;", s.database, s.table))
@@ -147,16 +155,16 @@ func (s *sqlStore) Delete(keys ...string) error {
 	return nil
 }
 
-func (s *sqlStore) initDB() {
+func (s *sqlStore) initDB() error {
 	// Create the namespace's database
 	_, err := s.db.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s ;", s.database))
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	_, err = s.db.Exec(fmt.Sprintf("SET DATABASE = %s ;", s.database))
 	if err != nil {
-		log.Fatal(errors.Wrap(err, "Couldn't set database"))
+		return errors.Wrap(err, "Couldn't set database")
 	}
 
 	// Create a table for the namespace's prefix
@@ -168,8 +176,60 @@ func (s *sqlStore) initDB() {
 		CONSTRAINT %s_pkey PRIMARY KEY (key)
 	);`, s.table, s.table))
 	if err != nil {
-		log.Fatal(errors.Wrap(err, "Couldn't create table"))
+		return errors.Wrap(err, "Couldn't create table")
 	}
+
+	return nil
+}
+
+func (s *sqlStore) configure() error {
+	nodes := s.options.Nodes
+	if len(nodes) == 0 {
+		nodes = []string{"localhost:26257"}
+	}
+
+	namespace := s.options.Namespace
+	if len(namespace) == 0 {
+		namespace = DefaultNamespace
+	}
+
+	prefix := s.options.Prefix
+	if len(prefix) == 0 {
+		prefix = DefaultPrefix
+	}
+
+	for _, r := range namespace {
+		if !unicode.IsLetter(r) {
+			return errors.New("store.namespace must only contain letters")
+		}
+	}
+
+	source := nodes[0]
+	if !strings.Contains(source, " ") {
+		source = fmt.Sprintf("host=%s", source)
+	}
+
+	// create source from first node
+	db, err := sql.Open("postgres", source)
+	if err != nil {
+		return err
+	}
+
+	if err := db.Ping(); err != nil {
+		return err
+	}
+
+	if s.db != nil {
+		s.db.Close()
+	}
+
+	// save the values
+	s.db = db
+	s.database = namespace
+	s.table = prefix
+
+	// initialise the database
+	return s.initDB()
 }
 
 // New returns a new micro Store backed by sql
@@ -179,46 +239,14 @@ func NewStore(opts ...store.Option) store.Store {
 		o(&options)
 	}
 
-	nodes := options.Nodes
-	if len(nodes) == 0 {
-		nodes = []string{"localhost:26257"}
-	}
+	// new store
+	s := new(sqlStore)
 
-	namespace := options.Namespace
-	if len(namespace) == 0 {
-		namespace = DefaultNamespace
-	}
-
-	prefix := options.Prefix
-	if len(prefix) == 0 {
-		prefix = DefaultPrefix
-	}
-
-	for _, r := range namespace {
-		if !unicode.IsLetter(r) {
-			log.Fatal("store.namespace must only contain letters")
-		}
-	}
-
-	source := nodes[0]
-	if !strings.Contains(source, " ") {
-		source = fmt.Sprintf("host=%s", source)
-	}
-	// create source from first node
-	db, err := sql.Open("postgres", source)
-	if err != nil {
+	// configure the store
+	if err := s.configure(); err != nil {
 		log.Fatal(err)
 	}
 
-	if err := db.Ping(); err != nil {
-		log.Fatal(err)
-	}
-
-	s := &sqlStore{
-		db:       db,
-		database: namespace,
-		table:    prefix,
-	}
-	s.initDB()
+	// return store
 	return s
 }

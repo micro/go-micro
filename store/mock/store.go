@@ -10,6 +10,10 @@ type Store struct {
 	mock.Mock
 }
 
+func (_m *Store) Init(...store.Option) error {
+	return nil
+}
+
 // Delete provides a mock function with given fields: key
 func (_m *Store) Delete(key ...string) error {
 	_va := make([]interface{}, len(key))

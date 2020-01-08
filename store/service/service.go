@@ -28,6 +28,17 @@ type serviceStore struct {
 	Client pb.StoreService
 }
 
+func (s *serviceStore) Init(opts ...store.Option) error {
+	for _, o := range opts {
+		o(&s.options)
+	}
+	s.Namespace = s.options.Namespace
+	s.Prefix = s.options.Prefix
+	s.Nodes = s.options.Nodes
+
+	return nil
+}
+
 func (s *serviceStore) Context() context.Context {
 	ctx := context.Background()
 

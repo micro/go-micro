@@ -20,6 +20,13 @@ type memoryRecord struct {
 	c time.Time
 }
 
+func (m *memoryStore) Init(opts ...store.Option) error {
+	for _, o := range opts {
+		o(&m.options)
+	}
+	return nil
+}
+
 func (m *memoryStore) List() ([]*store.Record, error) {
 	m.RLock()
 	defer m.RUnlock()
