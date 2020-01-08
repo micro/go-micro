@@ -76,6 +76,10 @@ func (c *etcd) Watch() (source.Watcher, error) {
 	return newWatcher(c.prefix, c.stripPrefix, c.client.Watcher, cs, c.opts)
 }
 
+func (c *etcd) Write(cs *source.ChangeSet) error {
+	return nil
+}
+
 func NewSource(opts ...source.Option) source.Source {
 	options := source.NewOptions(opts...)
 

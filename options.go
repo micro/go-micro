@@ -107,8 +107,6 @@ func Registry(r registry.Registry) Option {
 		// Update Client and Server
 		o.Client.Init(client.Registry(r))
 		o.Server.Init(server.Registry(r))
-		// Update Selector
-		o.Client.Options().Selector.Init(selector.Registry(r))
 		// Update Broker
 		o.Broker.Init(broker.Registry(r))
 	}

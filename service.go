@@ -182,6 +182,8 @@ func (s *service) Run() error {
 		defer profiler.Stop()
 	}
 
+	log.Logf("Starting [service] %s", s.Name())
+
 	if err := s.Start(); err != nil {
 		return err
 	}

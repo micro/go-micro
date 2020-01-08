@@ -1,3 +1,4 @@
+// Package client provides an implementation of a restricted subset of kubernetes API client
 package client
 
 import (
@@ -9,8 +10,9 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"strings"
 
-	"github.com/micro/go-micro/util/kubernetes/client/api"
+	"github.com/micro/go-micro/util/kubernetes/api"
 	"github.com/micro/go-micro/util/log"
 )
 
@@ -19,6 +21,8 @@ var (
 	serviceAccountPath = "/var/run/secrets/kubernetes.io/serviceaccount"
 	// ErrReadNamespace is returned when the names could not be read from service account
 	ErrReadNamespace = errors.New("Could not read namespace from service account secret")
+	// DefaultImage is default micro image
+	DefaultImage = "micro/go-micro"
 )
 
 // Client ...
@@ -26,51 +30,22 @@ type client struct {
 	opts *api.Options
 }
 
-// NewClientInCluster creates a Kubernetes client for use from within a k8s pod.
-func NewClientInCluster() *client {
-	host := "https://" + os.Getenv("KUBERNETES_SERVICE_HOST") + ":" + os.Getenv("KUBERNETES_SERVICE_PORT")
-
-	s, err := os.Stat(serviceAccountPath)
-	if err != nil {
-		log.Fatal(err)
-	}
-	if s == nil || !s.IsDir() {
-		log.Fatal(errors.New("service account not found"))
-	}
-
-	token, err := ioutil.ReadFile(path.Join(serviceAccountPath, "token"))
-	if err != nil {
-		log.Fatal(err)
-	}
-	t := string(token)
-
-	ns, err := detectNamespace()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	crt, err := CertPoolFromFile(path.Join(serviceAccountPath, "ca.crt"))
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	c := &http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{
-				RootCAs: crt,
-			},
-			DisableCompression: true,
-		},
-	}
-
-	return &client{
-		opts: &api.Options{
-			Client:      c,
-			Host:        host,
-			Namespace:   ns,
-			BearerToken: &t,
-		},
-	}
+// Kubernetes client
+type Client interface {
+	// Create creates new API resource
+	Create(*Resource) error
+	// Get queries API resrouces
+	Get(*Resource, map[string]string) error
+	// Update patches existing API object
+	Update(*Resource) error
+	// Delete deletes API resource
+	Delete(*Resource) error
+	// List lists API resources
+	List(*Resource) error
+	// Log gets log for a pod
+	Log(*Resource, ...LogOption) (io.ReadCloser, error)
+	// Watch for events
+	Watch(*Resource, ...WatchOption) (Watcher, error)
 }
 
 func detectNamespace() (string, error) {
@@ -117,17 +92,30 @@ func (c *client) Get(r *Resource, labels map[string]string) error {
 		Into(r.Value)
 }
 
-// Logs returns logs for a pod
-func (c *client) Logs(podName string) (io.ReadCloser, error) {
+// Log returns logs for a pod
+func (c *client) Log(r *Resource, opts ...LogOption) (io.ReadCloser, error) {
+	var options LogOptions
+	for _, o := range opts {
+		o(&options)
+	}
+
 	req := api.NewRequest(c.opts).
 		Get().
-		Resource("pod").
+		Resource(r.Kind).
 		SubResource("log").
-		Name(podName)
+		Name(r.Name)
+
+	if options.Params != nil {
+		req.Params(&api.Params{Additional: options.Params})
+	}
 
 	resp, err := req.Raw()
 	if err != nil {
 		return nil, err
+	}
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		resp.Body.Close()
+		return nil, errors.New(resp.Request.URL.String() + ": " + resp.Status)
 	}
 	return resp.Body, nil
 }
@@ -145,6 +133,8 @@ func (c *client) Update(r *Resource) error {
 		req.Body(r.Value.(*Service))
 	case "deployment":
 		req.Body(r.Value.(*Deployment))
+	case "pod":
+		req.Body(r.Value.(*Pod))
 	default:
 		return errors.New("unsupported resource")
 	}
@@ -168,4 +158,188 @@ func (c *client) List(r *Resource) error {
 		"micro": "service",
 	}
 	return c.Get(r, labels)
+}
+
+// Watch returns an event stream
+func (c *client) Watch(r *Resource, opts ...WatchOption) (Watcher, error) {
+	var options WatchOptions
+	for _, o := range opts {
+		o(&options)
+	}
+
+	// set the watch param
+	params := &api.Params{Additional: map[string]string{
+		"watch": "true",
+	}}
+
+	// get options params
+	if options.Params != nil {
+		for k, v := range options.Params {
+			params.Additional[k] = v
+		}
+	}
+
+	req := api.NewRequest(c.opts).
+		Get().
+		Resource(r.Kind).
+		Name(r.Name).
+		Params(params)
+
+	return newWatcher(req)
+}
+
+// NewService returns default micro kubernetes service definition
+func NewService(name, version, typ string) *Service {
+	log.Tracef("kubernetes default service: name: %s, version: %s", name, version)
+
+	Labels := map[string]string{
+		"name":    name,
+		"version": version,
+		"micro":   typ,
+	}
+
+	svcName := name
+	if len(version) > 0 {
+		// API service object name joins name and version over "-"
+		svcName = strings.Join([]string{name, version}, "-")
+	}
+
+	Metadata := &Metadata{
+		Name:      svcName,
+		Namespace: "default",
+		Version:   version,
+		Labels:    Labels,
+	}
+
+	Spec := &ServiceSpec{
+		Type:     "ClusterIP",
+		Selector: Labels,
+		Ports: []ServicePort{{
+			"service-port", 9090, "",
+		}},
+	}
+
+	return &Service{
+		Metadata: Metadata,
+		Spec:     Spec,
+	}
+}
+
+// NewService returns default micro kubernetes deployment definition
+func NewDeployment(name, version, typ string) *Deployment {
+	log.Tracef("kubernetes default deployment: name: %s, version: %s", name, version)
+
+	Labels := map[string]string{
+		"name":    name,
+		"version": version,
+		"micro":   typ,
+	}
+
+	depName := name
+	if len(version) > 0 {
+		// API deployment object name joins name and version over "-"
+		depName = strings.Join([]string{name, version}, "-")
+	}
+
+	Metadata := &Metadata{
+		Name:        depName,
+		Namespace:   "default",
+		Version:     version,
+		Labels:      Labels,
+		Annotations: map[string]string{},
+	}
+
+	// enable go modules by default
+	env := EnvVar{
+		Name:  "GO111MODULE",
+		Value: "on",
+	}
+
+	Spec := &DeploymentSpec{
+		Replicas: 1,
+		Selector: &LabelSelector{
+			MatchLabels: Labels,
+		},
+		Template: &Template{
+			Metadata: Metadata,
+			PodSpec: &PodSpec{
+				Containers: []Container{{
+					Name:    name,
+					Image:   DefaultImage,
+					Env:     []EnvVar{env},
+					Command: []string{"go", "run", "main.go"},
+					Ports: []ContainerPort{{
+						Name:          "service-port",
+						ContainerPort: 8080,
+					}},
+				}},
+			},
+		},
+	}
+
+	return &Deployment{
+		Metadata: Metadata,
+		Spec:     Spec,
+	}
+}
+
+// NewLocalClient returns a client that can be used with `kubectl proxy`
+func NewLocalClient(hosts ...string) *client {
+	if len(hosts) == 0 {
+		hosts[0] = "http://localhost:8001"
+	}
+	return &client{
+		opts: &api.Options{
+			Client:    http.DefaultClient,
+			Host:      hosts[0],
+			Namespace: "default",
+		},
+	}
+}
+
+// NewClusterClient creates a Kubernetes client for use from within a k8s pod.
+func NewClusterClient() *client {
+	host := "https://" + os.Getenv("KUBERNETES_SERVICE_HOST") + ":" + os.Getenv("KUBERNETES_SERVICE_PORT")
+
+	s, err := os.Stat(serviceAccountPath)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if s == nil || !s.IsDir() {
+		log.Fatal(errors.New("service account not found"))
+	}
+
+	token, err := ioutil.ReadFile(path.Join(serviceAccountPath, "token"))
+	if err != nil {
+		log.Fatal(err)
+	}
+	t := string(token)
+
+	ns, err := detectNamespace()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	crt, err := CertPoolFromFile(path.Join(serviceAccountPath, "ca.crt"))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	c := &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				RootCAs: crt,
+			},
+			DisableCompression: true,
+		},
+	}
+
+	return &client{
+		opts: &api.Options{
+			Client:      c,
+			Host:        host,
+			Namespace:   ns,
+			BearerToken: &t,
+		},
+	}
 }

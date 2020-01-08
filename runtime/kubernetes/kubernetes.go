@@ -20,24 +20,16 @@ const (
 	stop
 )
 
-// task is queued into runtime queue
-type task struct {
-	action  action
-	service *service
-}
-
 type kubernetes struct {
 	sync.RWMutex
 	// options configure runtime
 	options runtime.Options
 	// indicates if we're running
 	running bool
-	// task queue for kubernetes services
-	queue chan *task
 	// used to stop the runtime
 	closed chan bool
 	// client is kubernetes client
-	client client.Kubernetes
+	client client.Client
 }
 
 // getService queries kubernetes for micro service
@@ -163,30 +155,6 @@ func (k *kubernetes) run(events <-chan runtime.Event) {
 		case <-t.C:
 			// TODO: figure out what to do here
 			// - do we even need the ticker for k8s services?
-		case task := <-k.queue:
-			// The task queue is used to take actions e.g (CRUD - R)
-			switch task.action {
-			case start:
-				log.Debugf("Runtime starting new service: %s", task.service.Name)
-				if err := task.service.Start(k.client); err != nil {
-					log.Debugf("Runtime failed to start service %s: %v", task.service.Name, err)
-					continue
-				}
-			case stop:
-				log.Debugf("Runtime stopping service: %s", task.service.Name)
-				if err := task.service.Stop(k.client); err != nil {
-					log.Debugf("Runtime failed to stop service %s: %v", task.service.Name, err)
-					continue
-				}
-			case update:
-				log.Debugf("Runtime updating service: %s", task.service.Name)
-				if err := task.service.Update(k.client); err != nil {
-					log.Debugf("Runtime failed to update service %s: %v", task.service.Name, err)
-					continue
-				}
-			default:
-				log.Debugf("Runtime received unknown action for service: %s", task.service.Name)
-			}
 		case event := <-events:
 			// NOTE: we only handle Update events for now
 			log.Debugf("Runtime received notification event: %v", event)
@@ -293,21 +261,11 @@ func (k *kubernetes) Create(s *runtime.Service, opts ...runtime.CreateOption) er
 		name = name + "-" + s.Version
 	}
 
-	// format as we'll format in the deployment
-	name = client.Format(name)
-
 	// create new kubernetes micro service
 	service := newService(s, options)
 
-	log.Debugf("Runtime queueing service %s version %s for start action", service.Name, service.Version)
-
-	// push into start queue
-	k.queue <- &task{
-		action:  start,
-		service: service,
-	}
-
-	return nil
+	// start the service
+	return service.Start(k.client)
 }
 
 // Read returns all instances of given service
@@ -365,15 +323,7 @@ func (k *kubernetes) Update(s *runtime.Service) error {
 	// update build time annotation
 	service.kdeploy.Spec.Template.Metadata.Annotations["build"] = time.Now().Format(time.RFC3339)
 
-	log.Debugf("Runtime queueing service %s for update action", service.Name)
-
-	// queue service for removal
-	k.queue <- &task{
-		action:  update,
-		service: service,
-	}
-
-	return nil
+	return service.Update(k.client)
 }
 
 // Delete removes a service
@@ -386,15 +336,7 @@ func (k *kubernetes) Delete(s *runtime.Service) error {
 		Type: k.options.Type,
 	})
 
-	log.Debugf("Runtime queueing service %s for delete action", service.Name)
-
-	// queue service for removal
-	k.queue <- &task{
-		action:  stop,
-		service: service,
-	}
-
-	return nil
+	return service.Stop(k.client)
 }
 
 // Start starts the runtime
@@ -470,12 +412,11 @@ func NewRuntime(opts ...runtime.Option) runtime.Runtime {
 	}
 
 	// kubernetes client
-	client := client.NewClientInCluster()
+	client := client.NewClusterClient()
 
 	return &kubernetes{
 		options: options,
 		closed:  make(chan bool),
-		queue:   make(chan *task, 128),
 		client:  client,
 	}
 }

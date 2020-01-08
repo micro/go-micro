@@ -23,7 +23,7 @@ func TestCallOptions(t *testing.T) {
 		var cl Client
 
 		if d.set {
-			opts = newOptions(
+			opts = NewOptions(
 				Retries(d.retries),
 				RequestTimeout(d.rtimeout),
 				DialTimeout(d.dtimeout),
@@ -35,7 +35,7 @@ func TestCallOptions(t *testing.T) {
 				DialTimeout(d.dtimeout),
 			)
 		} else {
-			opts = newOptions()
+			opts = NewOptions()
 			cl = NewClient()
 		}
 

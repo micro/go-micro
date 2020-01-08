@@ -3,6 +3,7 @@ package metadata
 
 import (
 	"context"
+	"strings"
 )
 
 type metaKey struct{}
@@ -27,14 +28,32 @@ func Get(ctx context.Context, key string) (string, bool) {
 	if !ok {
 		return "", ok
 	}
+	// attempt to get as is
 	val, ok := md[key]
+	if ok {
+		return val, ok
+	}
+
+	// attempt to get lower case
+	val, ok = md[strings.Title(key)]
+
 	return val, ok
 }
 
 // FromContext returns metadata from the given context
 func FromContext(ctx context.Context) (Metadata, bool) {
 	md, ok := ctx.Value(metaKey{}).(Metadata)
-	return md, ok
+	if !ok {
+		return nil, ok
+	}
+
+	// capitalise all values
+	newMD := make(map[string]string)
+	for k, v := range md {
+		newMD[strings.Title(k)] = v
+	}
+
+	return newMD, ok
 }
 
 // NewContext creates a new context with the given metadata
@@ -57,5 +76,4 @@ func MergeContext(ctx context.Context, patchMd Metadata, overwrite bool) context
 		}
 	}
 	return context.WithValue(ctx, metaKey{}, cmd)
-
 }

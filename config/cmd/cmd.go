@@ -28,6 +28,7 @@ import (
 	// registries
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/registry/etcd"
+	kreg "github.com/micro/go-micro/registry/kubernetes"
 	"github.com/micro/go-micro/registry/mdns"
 	rmem "github.com/micro/go-micro/registry/memory"
 	regSrv "github.com/micro/go-micro/registry/service"
@@ -48,6 +49,14 @@ import (
 	// runtimes
 	"github.com/micro/go-micro/runtime"
 	"github.com/micro/go-micro/runtime/kubernetes"
+
+	// stores
+	"github.com/micro/go-micro/store"
+	cfStore "github.com/micro/go-micro/store/cloudflare"
+	ckStore "github.com/micro/go-micro/store/cockroach"
+	etcdStore "github.com/micro/go-micro/store/etcd"
+	memStore "github.com/micro/go-micro/store/memory"
+	svcStore "github.com/micro/go-micro/store/service"
 )
 
 type Cmd interface {
@@ -201,16 +210,16 @@ var (
 	}
 
 	DefaultClients = map[string]func(...client.Option) client.Client{
-		"rpc":  client.NewClient,
 		"mucp": cmucp.NewClient,
 		"grpc": cgrpc.NewClient,
 	}
 
 	DefaultRegistries = map[string]func(...registry.Option) registry.Registry{
-		"service": regSrv.NewRegistry,
-		"etcd":    etcd.NewRegistry,
-		"mdns":    mdns.NewRegistry,
-		"memory":  rmem.NewRegistry,
+		"service":    regSrv.NewRegistry,
+		"etcd":       etcd.NewRegistry,
+		"mdns":       mdns.NewRegistry,
+		"memory":     rmem.NewRegistry,
+		"kubernetes": kreg.NewRegistry,
 	}
 
 	DefaultSelectors = map[string]func(...selector.Option) selector.Selector{
@@ -222,7 +231,6 @@ var (
 	}
 
 	DefaultServers = map[string]func(...server.Option) server.Server{
-		"rpc":  server.NewServer,
 		"mucp": smucp.NewServer,
 		"grpc": sgrpc.NewServer,
 	}
@@ -239,9 +247,17 @@ var (
 		"kubernetes": kubernetes.NewRuntime,
 	}
 
+	DefaultStores = map[string]func(...store.Option) store.Store{
+		"memory":     memStore.NewStore,
+		"cockroach":  ckStore.NewStore,
+		"etcd":       etcdStore.NewStore,
+		"cloudflare": cfStore.NewStore,
+		"service":    svcStore.NewStore,
+	}
+
 	// used for default selection as the fall back
-	defaultClient    = "rpc"
-	defaultServer    = "rpc"
+	defaultClient    = "grpc"
+	defaultServer    = "grpc"
 	defaultBroker    = "http"
 	defaultRegistry  = "mdns"
 	defaultSelector  = "registry"
@@ -267,6 +283,7 @@ func newCmd(opts ...Option) Cmd {
 		Selector:  &selector.DefaultSelector,
 		Transport: &transport.DefaultTransport,
 		Runtime:   &runtime.DefaultRuntime,
+		Store:     &store.DefaultStore,
 
 		Brokers:    DefaultBrokers,
 		Clients:    DefaultClients,
@@ -275,6 +292,7 @@ func newCmd(opts ...Option) Cmd {
 		Servers:    DefaultServers,
 		Transports: DefaultTransports,
 		Runtimes:   DefaultRuntimes,
+		Stores:     DefaultStores,
 	}
 
 	for _, o := range opts {
@@ -314,6 +332,16 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	// If flags are set then use them otherwise do nothing
 	var serverOpts []server.Option
 	var clientOpts []client.Option
+
+	// Set the runtime
+	if name := ctx.String("store"); len(name) > 0 {
+		s, ok := c.opts.Stores[name]
+		if !ok {
+			return fmt.Errorf("Unsupported store: %s", name)
+		}
+
+		*c.opts.Store = s()
+	}
 
 	// Set the runtime
 	if name := ctx.String("runtime"); len(name) > 0 {

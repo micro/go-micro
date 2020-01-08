@@ -5,8 +5,6 @@ import (
 	"errors"
 	"io/ioutil"
 	"net/http"
-
-	"github.com/micro/go-micro/util/log"
 )
 
 // Errors ...
@@ -60,6 +58,10 @@ func (r *Response) Into(data interface{}) error {
 	return r.err
 }
 
+func (r *Response) Close() error {
+	return r.res.Body.Close()
+}
+
 func newResponse(res *http.Response, err error) *Response {
 	r := &Response{
 		res: res,
@@ -82,13 +84,12 @@ func newResponse(res *http.Response, err error) *Response {
 		return r
 	}
 
-	log.Logf("kubernetes: request failed with code %v", r.res.StatusCode)
-
 	b, err := ioutil.ReadAll(r.res.Body)
 	if err == nil {
-		log.Log("kubernetes: request failed with body:")
-		log.Log(string(b))
+		r.err = errors.New(string(b))
+		return r
 	}
+
 	r.err = ErrUnknown
 
 	return r

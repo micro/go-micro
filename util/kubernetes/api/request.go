@@ -2,18 +2,19 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
-
-	"github.com/micro/go-micro/util/log"
 )
 
 // Request is used to construct a http request for the k8s API.
 type Request struct {
+	// the request context
+	context   context.Context
 	client    *http.Client
 	header    http.Header
 	params    url.Values
@@ -34,12 +35,17 @@ type Request struct {
 type Params struct {
 	LabelSelector map[string]string
 	Annotations   map[string]string
+	Additional    map[string]string
 }
 
 // verb sets method
 func (r *Request) verb(method string) *Request {
 	r.method = method
 	return r
+}
+
+func (r *Request) Context(ctx context.Context) {
+	r.context = ctx
 }
 
 // Get request
@@ -102,7 +108,6 @@ func (r *Request) Body(in interface{}) *Request {
 			r.err = err
 			return r
 		}
-		log.Debugf("Request body: %v", b)
 		r.body = b
 		return r
 	}
@@ -119,7 +124,6 @@ func (r *Request) Body(in interface{}) *Request {
 		return r
 	}
 
-	log.Debugf("Request body: %v", b)
 	r.body = b
 	return r
 }
@@ -135,6 +139,9 @@ func (r *Request) Params(p *Params) *Request {
 		}
 		// set and overwrite the value
 		r.params.Set("labelSelector", value)
+	}
+	for k, v := range p.Additional {
+		r.params.Set(k, v)
 	}
 
 	return r
@@ -172,8 +179,15 @@ func (r *Request) request() (*http.Request, error) {
 		url += "?" + r.params.Encode()
 	}
 
+	var req *http.Request
+	var err error
+
 	// build request
-	req, err := http.NewRequest(r.method, url, r.body)
+	if r.context != nil {
+		req, err = http.NewRequestWithContext(r.context, r.method, url, r.body)
+	} else {
+		req, err = http.NewRequest(r.method, url, r.body)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -198,16 +212,12 @@ func (r *Request) Do() *Response {
 		}
 	}
 
-	log.Debugf("kubernetes api request: %v", req)
-
 	res, err := r.client.Do(req)
 	if err != nil {
 		return &Response{
 			err: err,
 		}
 	}
-
-	log.Debugf("kubernetes api response: %v", res)
 
 	// return res, err
 	return newResponse(res, err)

@@ -203,7 +203,11 @@ func (g *grpcServer) handler(srv interface{}, stream grpc.ServerStream) error {
 
 	// get content type
 	ct := defaultContentType
+
 	if ctype, ok := md["x-content-type"]; ok {
+		ct = ctype
+	}
+	if ctype, ok := md["content-type"]; ok {
 		ct = ctype
 	}
 
@@ -248,6 +252,7 @@ func (g *grpcServer) handler(srv interface{}, stream grpc.ServerStream) error {
 			contentType: ct,
 			method:      fmt.Sprintf("%s.%s", serviceName, methodName),
 			codec:       codec,
+			stream:      true,
 		}
 
 		response := &rpcResponse{
@@ -385,9 +390,11 @@ func (g *grpcServer) processRequest(stream grpc.ServerStream, service *service, 
 			}
 			return status.New(statusCode, statusDesc).Err()
 		}
+
 		if err := stream.SendMsg(replyv.Interface()); err != nil {
 			return err
 		}
+
 		return status.New(statusCode, statusDesc).Err()
 	}
 }
@@ -611,7 +618,7 @@ func (g *grpcServer) Register() error {
 	g.Unlock()
 
 	if !registered {
-		log.Logf("Registering node: %s", node.Id)
+		log.Logf("Registry [%s] Registering node: %s", config.Registry.String(), node.Id)
 	}
 
 	// create registry options

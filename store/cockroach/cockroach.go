@@ -173,7 +173,7 @@ func (s *sqlStore) initDB() {
 }
 
 // New returns a new micro Store backed by sql
-func New(opts ...store.Option) store.Store {
+func NewStore(opts ...store.Option) store.Store {
 	var options store.Options
 	for _, o := range opts {
 		o(&options)
