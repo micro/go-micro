@@ -54,7 +54,7 @@ message GraphResponse {
 	Peer root = 1;
 }
 
-message RoutesRequest {	
+message RoutesRequest {
 	// filter based on
 	Query query = 1;
 }
@@ -99,4 +99,14 @@ message Peer {
         Node node = 1;
         // node peers
         repeated Peer peers = 2;
+}
+
+// Sync is network sync message
+message Sync {
+        // node address
+        string address = 1;
+        // node peers
+        repeated Peer peers = 2;
+        // node routes
+        repeated go.micro.router.Route routes = 3;
 }
