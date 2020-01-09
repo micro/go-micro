@@ -211,7 +211,10 @@ func (g *grpcClient) stream(ctx context.Context, node *registry.Node, req client
 	if opts := g.getGrpcCallOptions(); opts != nil {
 		grpcCallOptions = append(grpcCallOptions, opts...)
 	}
-	st, err := cc.NewStream(ctx, desc, methodToGRPC(req.Service(), req.Endpoint()), grpcCallOptions...)
+
+	newCtx, cancel := context.WithCancel(ctx)
+
+	st, err := cc.NewStream(newCtx, desc, methodToGRPC(req.Service(), req.Endpoint()), grpcCallOptions...)
 	if err != nil {
 		return nil, errors.InternalServerError("go.micro.client", fmt.Sprintf("Error creating stream: %v", err))
 	}
@@ -239,6 +242,7 @@ func (g *grpcClient) stream(ctx context.Context, node *registry.Node, req client
 		response: rsp,
 		stream:   st,
 		conn:     cc,
+		cancel:   cancel,
 	}, nil
 }
 

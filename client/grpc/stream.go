@@ -11,6 +11,7 @@ import (
 
 // Implements the streamer interface
 type grpcStream struct {
+	once sync.Once
 	sync.RWMutex
 	err      error
 	conn     *grpc.ClientConn
@@ -18,6 +19,7 @@ type grpcStream struct {
 	request  client.Request
 	response client.Response
 	context  context.Context
+	cancel   func()
 }
 
 func (g *grpcStream) Context() context.Context {
@@ -72,5 +74,9 @@ func (g *grpcStream) setError(e error) {
 // stream should still be able to receive after this function call
 // TODO: should the conn be closed in another way?
 func (g *grpcStream) Close() error {
-	return g.stream.CloseSend()
+	g.once.Do(func() {
+		g.cancel()
+	})
+	g.stream.CloseSend()
+	return g.conn.Close()
 }
