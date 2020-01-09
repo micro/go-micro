@@ -774,10 +774,10 @@ func (n *network) processNetChan(listener tunnel.Listener) {
 				// and wants to know what's on the network. The faster we
 				// respond the faster we start to converge
 
-				// get node peers down to MaxDepth encoded in protobuf
-				msg := PeersToProto(n.node, MaxDepth)
-
 				go func() {
+					// get node peers down to MaxDepth encoded in protobuf
+					msg := PeersToProto(n.node, MaxDepth)
+
 					// advertise yourself to the new node
 					if err := n.sendTo("peer", NetworkChannel, peer, msg); err != nil {
 						log.Debugf("Network failed to advertise peers: %v", err)
@@ -785,8 +785,13 @@ func (n *network) processNetChan(listener tunnel.Listener) {
 
 					<-time.After(time.Millisecond * 100)
 
+					// send a solicit message when discovering new peer
+					solicit := &pbRtr.Solicit{
+						Id: n.options.Id,
+					}
+
 					// ask for the new nodes routes
-					if err := n.sendTo("solicit", ControlChannel, peer, msg); err != nil {
+					if err := n.sendTo("solicit", ControlChannel, peer, solicit); err != nil {
 						log.Debugf("Network failed to send solicit message: %s", err)
 					}
 
@@ -798,6 +803,8 @@ func (n *network) processNetChan(listener tunnel.Listener) {
 					}
 
 					// advertise all the routes when a new node has connected
+					// NOTE: this might unnecessarily flood network with advertisements
+					// every time a node's connection is flakey and it keeps reconnecting
 					if err := n.router.Solicit(); err != nil {
 						log.Debugf("Network failed to solicit routes: %s", err)
 					}
@@ -834,22 +841,23 @@ func (n *network) processNetChan(listener tunnel.Listener) {
 				}
 
 				if err := n.node.AddPeer(peer); err == nil {
-					// send a solicit message when discovering new peer
-					msg := &pbRtr.Solicit{
-						Id: n.options.Id,
-					}
-
 					go func() {
+						msg := PeersToProto(n.node, MaxDepth)
+
 						// advertise yourself to the peer
 						if err := n.sendTo("peer", NetworkChannel, peer, msg); err != nil {
 							log.Debugf("Network failed to advertise peers: %v", err)
 						}
 
-						// wait for a second
 						<-time.After(time.Millisecond * 100)
 
+						// send a solicit message when discovering new peer
+						solicit := &pbRtr.Solicit{
+							Id: n.options.Id,
+						}
+
 						// then solicit this peer
-						if err := n.sendTo("solicit", ControlChannel, peer, msg); err != nil {
+						if err := n.sendTo("solicit", ControlChannel, peer, solicit); err != nil {
 							log.Debugf("Network failed to send solicit message: %s", err)
 						}
 
@@ -1318,6 +1326,9 @@ func (n *network) connect() {
 		if !discovered {
 			// recreate the clients because all the tunnel links are gone
 			// so we haven't send discovery beneath
+			// NOTE: when starting the tunnel for the first time we might be recreating potentially
+			// well functioning tunnel clients as "discovered" will be false until the
+			// n.discovered channel is read at some point later on.
 			if err := n.createClients(); err != nil {
 				log.Debugf("Failed to recreate network/control clients: %v", err)
 				continue
