@@ -12,6 +12,7 @@ import (
 // Implements the streamer interface
 type grpcStream struct {
 	sync.RWMutex
+	closed   bool
 	err      error
 	conn     *grpc.ClientConn
 	stream   grpc.ClientStream
@@ -46,7 +47,7 @@ func (g *grpcStream) Recv(msg interface{}) (err error) {
 		// #202 - inconsistent gRPC stream behavior
 		// the only way to tell if the stream is done is when we get a EOF on the Recv
 		// here we should close the underlying gRPC ClientConn
-		closeErr := g.conn.Close()
+		closeErr := g.Close()
 		if err == io.EOF && closeErr != nil {
 			err = closeErr
 		}
@@ -72,5 +73,14 @@ func (g *grpcStream) setError(e error) {
 // stream should still be able to receive after this function call
 // TODO: should the conn be closed in another way?
 func (g *grpcStream) Close() error {
-	return g.stream.CloseSend()
+	g.Lock()
+	defer g.Unlock()
+
+	if g.closed {
+		return nil
+	}
+
+	g.closed = true
+	g.stream.CloseSend()
+	return g.conn.Close()
 }
