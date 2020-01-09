@@ -11,15 +11,14 @@ import (
 
 // Implements the streamer interface
 type grpcStream struct {
-	once sync.Once
 	sync.RWMutex
+	closed   bool
 	err      error
 	conn     *grpc.ClientConn
 	stream   grpc.ClientStream
 	request  client.Request
 	response client.Response
 	context  context.Context
-	cancel   func()
 }
 
 func (g *grpcStream) Context() context.Context {
@@ -74,9 +73,14 @@ func (g *grpcStream) setError(e error) {
 // stream should still be able to receive after this function call
 // TODO: should the conn be closed in another way?
 func (g *grpcStream) Close() error {
-	g.once.Do(func() {
-		g.cancel()
-	})
+	g.Lock()
+	defer g.Unlock()
+
+	if g.closed {
+		return nil
+	}
+
+	g.closed = true
 	g.stream.CloseSend()
 	return g.conn.Close()
 }
