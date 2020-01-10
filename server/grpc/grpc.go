@@ -645,6 +645,10 @@ func (g *grpcServer) Register() error {
 			opts = append(opts, broker.Queue(queue))
 		}
 
+		if cx := sb.Options().Context; cx != nil {
+			opts = append(opts, broker.SubscribeContext(cx))
+		}
+
 		if !sb.Options().AutoAck {
 			opts = append(opts, broker.DisableAutoAck())
 		}
