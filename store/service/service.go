@@ -137,6 +137,10 @@ func (s *serviceStore) Delete(key string) error {
 	return err
 }
 
+func (s *serviceStore) String() string {
+	return "service"
+}
+
 // NewStore returns a new store service implementation
 func NewStore(opts ...store.Option) store.Store {
 	var options store.Options

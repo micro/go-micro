@@ -130,6 +130,10 @@ func (m *memoryStore) Delete(key string) error {
 	return nil
 }
 
+func (m *memoryStore) String() string {
+	return "memory"
+}
+
 // NewStore returns a new store.Store
 func NewStore(opts ...store.Option) store.Store {
 	var options store.Options

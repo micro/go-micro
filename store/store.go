@@ -25,6 +25,8 @@ type Store interface {
 	Write(*Record) error
 	// Delete records with keys
 	Delete(key string) error
+	// Name of the store
+	String() string
 }
 
 // Record represents a data record
@@ -61,4 +63,8 @@ func (n *noop) Write(rec *Record) error {
 
 func (n *noop) Delete(key string) error {
 	return nil
+}
+
+func (n *noop) String() string {
+	return "noop"
 }

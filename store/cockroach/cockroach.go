@@ -239,6 +239,10 @@ func (s *sqlStore) configure() error {
 	return s.initDB()
 }
 
+func (s *sqlStore) String() string {
+	return "cockroach"
+}
+
 // New returns a new micro Store backed by sql
 func NewStore(opts ...store.Option) store.Store {
 	var options store.Options
@@ -248,6 +252,8 @@ func NewStore(opts ...store.Option) store.Store {
 
 	// new store
 	s := new(sqlStore)
+	// set the options
+	s.options = options
 
 	// configure the store
 	if err := s.configure(); err != nil {

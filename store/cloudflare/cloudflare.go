@@ -332,6 +332,10 @@ func (w *workersKV) request(ctx context.Context, method, path string, body inter
 	return respBody, resp.Header, resp.StatusCode, nil
 }
 
+func (w *workersKV) String() string {
+	return "cloudflare"
+}
+
 // New returns a cloudflare Store implementation.
 // Account ID, Token and Namespace must either be passed as options or
 // environment variables. If set as env vars we expect the following;
