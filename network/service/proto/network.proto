@@ -103,10 +103,8 @@ message Peer {
 
 // Sync is network sync message
 message Sync {
-        // node address
-        string address = 1;
-        // node peers
-        repeated Peer peers = 2;
+        // peer origin
+        Peer peer = 1;
         // node routes
-        repeated go.micro.router.Route routes = 3;
+        repeated go.micro.router.Route routes = 2;
 }

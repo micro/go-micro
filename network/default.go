@@ -6,6 +6,7 @@ import (
 	"hash/fnv"
 	"io"
 	"math"
+	"math/rand"
 	"sort"
 	"sync"
 	"time"
@@ -25,6 +26,7 @@ import (
 	tun "github.com/micro/go-micro/tunnel/transport"
 	"github.com/micro/go-micro/util/backoff"
 	"github.com/micro/go-micro/util/log"
+	pbUtil "github.com/micro/go-micro/util/proto"
 )
 
 var (
@@ -270,9 +272,9 @@ func (n *network) acceptCtrlConn(l tunnel.Listener, recv chan *message) {
 	}
 }
 
-// handleCtrlConn handles ControlChannel connections
 // advertise advertises routes to the network
 func (n *network) advertise(advertChan <-chan *router.Advert) {
+	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
 	hasher := fnv.New64()
 	for {
 		select {
@@ -322,11 +324,22 @@ func (n *network) advertise(advertChan <-chan *router.Advert) {
 				Events:    events,
 			}
 
-			// send the advert to all on the control channel
-			// since its not a solicitation
+			// send the advert to a select number of random peers
 			if advert.Type != router.Solicitation {
-				if err := n.sendMsg("advert", ControlChannel, msg); err != nil {
-					log.Debugf("Network failed to advertise routes: %v", err)
+				// get a list of node peers
+				peers := n.Peers()
+
+				// advertise to max 3 peers
+				max := len(peers)
+				if max > 3 {
+					max = 3
+				}
+				for i := 0; i < max; i++ {
+					if peer := n.node.GetPeerNode(peers[rnd.Intn(len(peers))].Id()); peer != nil {
+						if err := n.sendTo("advert", ControlChannel, peer, msg); err != nil {
+							log.Debugf("Network failed to advertise routes: %v", err)
+						}
+					}
 				}
 				continue
 			}
@@ -338,8 +351,16 @@ func (n *network) advertise(advertChan <-chan *router.Advert) {
 				// someone requested the route
 				n.sendTo("advert", ControlChannel, peer, msg)
 			default:
-				if err := n.sendMsg("advert", ControlChannel, msg); err != nil {
-					log.Debugf("Network failed to advertise routes: %v", err)
+				// get a list of node peers
+				peers := n.Peers()
+				// pick a random peer from the list of peers
+				peer := n.node.GetPeerNode(peers[rnd.Intn(len(peers))].Id())
+				if err := n.sendTo("advert", ControlChannel, peer, msg); err != nil {
+					log.Debugf("Network failed to advertise routes to %s: %v, sending multicast", err, peer.Id())
+					// send a multicast message if we fail to send Unicast message
+					if err := n.sendMsg("advert", ControlChannel, msg); err != nil {
+						log.Debugf("Network failed to advertise routes: %v", err)
+					}
 				}
 			}
 		case <-n.closed:
@@ -460,6 +481,7 @@ func (n *network) handleNetConn(s tunnel.Session, msg chan *message) {
 	}
 }
 
+// handleCtrlConn handles ControlChannel connections
 func (n *network) handleCtrlConn(s tunnel.Session, msg chan *message) {
 	for {
 		m := new(transport.Message)
@@ -733,8 +755,8 @@ func (n *network) processNetChan(listener tunnel.Listener) {
 			case "connect":
 				// mark the time the message has been received
 				now := time.Now()
-				pbNetConnect := &pbNet.Connect{}
 
+				pbNetConnect := &pbNet.Connect{}
 				if err := proto.Unmarshal(m.msg.Body, pbNetConnect); err != nil {
 					log.Debugf("Network tunnel [%s] connect unmarshal error: %v", NetworkChannel, err)
 					continue
@@ -757,35 +779,61 @@ func (n *network) processNetChan(listener tunnel.Listener) {
 
 				// update peer links
 
+				// TODO: should we do this only if we manage to add a peer
+				// What should we do if the peer links failed to be updated?
 				if err := n.updatePeerLinks(peer); err != nil {
 					log.Debugf("Network failed updating peer links: %s", err)
 				}
 
 				// add peer to the list of node peers
-				if err := n.node.AddPeer(peer); err == ErrPeerExists {
+				if err := n.AddPeer(peer); err == ErrPeerExists {
 					log.Tracef("Network peer exists, refreshing: %s", peer.id)
-					// update lastSeen time for the existing node
+					// update lastSeen time for the peer
 					if err := n.RefreshPeer(peer.id, peer.link, now); err != nil {
 						log.Debugf("Network failed refreshing peer %s: %v", peer.id, err)
 					}
 				}
 
-				// we send the peer message because someone has sent connect
-				// and wants to know what's on the network. The faster we
-				// respond the faster we start to converge
+				// we send the sync message because someone has sent connect
+				// and wants to either connect or reconnect to the network
+				// The faster it gets the network config (routes and peer graph)
+				// the faster the network converges to a stable state
 
 				go func() {
-					// get node peers down to MaxDepth encoded in protobuf
-					msg := PeersToProto(n.node, MaxDepth)
+					// get node peer graph to send back to the connecting node
+					node := PeersToProto(n.node, MaxDepth)
 
-					// advertise yourself to the new node
-					if err := n.sendTo("peer", NetworkChannel, peer, msg); err != nil {
-						log.Debugf("Network failed to advertise peers: %v", err)
+					msg := &pbNet.Sync{
+						Peer: node,
 					}
 
+					// get a list of all of our routes
+					routes, err := n.options.Router.Table().List()
+					switch err {
+					case nil:
+						// encode the routes to protobuf
+						pbRoutes := make([]*pbRtr.Route, 0, len(routes))
+						for _, route := range routes {
+							pbRoute := pbUtil.RouteToProto(route)
+							pbRoutes = append(pbRoutes, pbRoute)
+						}
+						// pack the routes into the sync message
+						msg.Routes = pbRoutes
+					default:
+						// we can't list the routes
+						log.Debugf("Network node %s failed listing routes: %v", n.id, err)
+					}
+
+					// send sync message to the newly connected peer
+					if err := n.sendTo("sync", NetworkChannel, peer, msg); err != nil {
+						log.Debugf("Network failed to send sync message: %v", err)
+					}
+					// wait for a short period of time before sending a solicit message
 					<-time.After(time.Millisecond * 100)
 
 					// send a solicit message when discovering new peer
+					// this triggers the node to flush its routing table to the network
+					// and leads to faster convergence of the network
 					solicit := &pbRtr.Solicit{
 						Id: n.options.Id,
 					}
@@ -800,13 +848,6 @@ func (n *network) processNetChan(listener tunnel.Listener) {
 					case n.solicited <- peer:
 					default:
 						// don't block
-					}
-
-					// advertise all the routes when a new node has connected
-					// NOTE: this might unnecessarily flood network with advertisements
-					// every time a node's connection is flakey and it keeps reconnecting
-					if err := n.router.Solicit(); err != nil {
-						log.Debugf("Network failed to solicit routes: %s", err)
 					}
 				}()
 			case "peer":
@@ -836,10 +877,13 @@ func (n *network) processNetChan(listener tunnel.Listener) {
 
 				// update peer links
 
+				// TODO: should we do this only if we manage to add a peer
+				// What should we do if the peer links failed to be updated?
 				if err := n.updatePeerLinks(peer); err != nil {
 					log.Debugf("Network failed updating peer links: %s", err)
 				}
 
+				// if it's a new peer i.e. we do not have it in our graph, we solicit its routes
 				if err := n.node.AddPeer(peer); err == nil {
 					go func() {
 						msg := PeersToProto(n.node, MaxDepth)
@@ -875,7 +919,7 @@ func (n *network) processNetChan(listener tunnel.Listener) {
 					}()
 
 					continue
-					// we're expecting any error to be ErrPeerExists
+					// if we already have the peer in our graph, skip further steps
 				} else if err != ErrPeerExists {
 					log.Debugf("Network got error adding peer %v", err)
 					continue
@@ -905,6 +949,75 @@ func (n *network) processNetChan(listener tunnel.Listener) {
 				default:
 					// don't block here
 				}
+			case "sync":
+				// record the timestamp of the message receipt
+				now := time.Now()
+
+				pbNetSync := &pbNet.Sync{}
+				if err := proto.Unmarshal(m.msg.Body, pbNetSync); err != nil {
+					log.Debugf("Network tunnel [%s] sync unmarshal error: %v", NetworkChannel, err)
+					continue
+				}
+
+				// don't process your own messages
+				if pbNetSync.Peer.Node.Id == n.options.Id {
+					continue
+				}
+
+				log.Debugf("Network received sync message from: %s", pbNetSync.Peer.Node.Id)
+
+				peer := &node{
+					id:       pbNetSync.Peer.Node.Id,
+					address:  pbNetSync.Peer.Node.Address,
+					link:     m.msg.Header["Micro-Link"],
+					peers:    make(map[string]*node),
+					lastSeen: now,
+				}
+
+				// update peer links
+
+				// TODO: should we do this only if we manage to add a peer
+				// What should we do if the peer links failed to be updated?
+				if err := n.updatePeerLinks(peer); err != nil {
+					log.Debugf("Network failed updating peer links: %s", err)
+				}
+
+				// add peer to the list of node peers
+				if err := n.node.AddPeer(peer); err == ErrPeerExists {
+					log.Tracef("Network peer exists, refreshing: %s", peer.id)
+					// update lastSeen time for the existing node
+					if err := n.RefreshPeer(peer.id, peer.link, now); err != nil {
+						log.Debugf("Network failed refreshing peer %s: %v", peer.id, err)
+					}
+				}
+
+				// when we receive a sync message we update our routing table
+				// and send a peer message back to the network to announce our presence
+				// we consequently flush our table to the network too to make the convergence faster
+
+				go func() {
+					// add all the routes we have received in the sync message
+					for _, pbRoute := range pbNetSync.Routes {
+						route := pbUtil.ProtoToRoute(pbRoute)
+						if err := n.router.Table().Create(route); err != nil && err != router.ErrDuplicateRoute {
+							log.Debugf("Network node %s failed to add route: %v", n.id, err)
+						}
+					}
+
+					// update your sync timestamp
+					// NOTE: this might go away as we will be doing full table advert to random peer
+					if err := n.RefreshSync(now); err != nil {
+						log.Debugf("Network failed refreshing sync time: %v", err)
+					}
+
+					// get node peer graph to send back to the syncing node
+					msg := PeersToProto(n.node, MaxDepth)
+
+					// advertise yourself to the new node
+					if err := n.sendTo("peer", NetworkChannel, peer, msg); err != nil {
+						log.Debugf("Network failed to advertise peers: %v", err)
+					}
+				}()
 			case "close":
 				pbNetClose := &pbNet.Close{}
 				if err := proto.Unmarshal(m.msg.Body, pbNetClose); err != nil {
@@ -931,6 +1044,9 @@ func (n *network) processNetChan(listener tunnel.Listener) {
 				if err := n.prunePeerRoutes(peer); err != nil {
 					log.Debugf("Network failed pruning peer %s routes: %v", peer.id, err)
 				}
+
+				// NOTE: we should maybe advertise this to the network so we converge faster on closed nodes
+				// as opposed to our waiting until the node eventually gets pruned; something to think about
 
 				// delete peer from the peerLinks
 				n.Lock()
