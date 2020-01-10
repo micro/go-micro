@@ -278,7 +278,7 @@ var (
 	defaultSelector  = "registry"
 	defaultTransport = "http"
 	defaultRuntime   = "local"
-	defaultStore = "memory"
+	defaultStore     = "memory"
 )
 
 func init() {
