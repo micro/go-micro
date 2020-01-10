@@ -19,6 +19,8 @@ var (
 	AnnounceTime = 1 * time.Second
 	// KeepAliveTime is the time in which we want to have sent a message to a peer
 	KeepAliveTime = 30 * time.Second
+	// SyncTime is the time a network node requests full sync from the network
+	SyncTime = 5 * time.Minute
 	// PruneTime defines time interval to periodically check nodes that need to be pruned
 	// due to their not announcing their presence within this time interval
 	PruneTime = 90 * time.Second

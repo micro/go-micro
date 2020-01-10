@@ -354,12 +354,13 @@ func (n *network) advertise(advertChan <-chan *router.Advert) {
 				// get a list of node peers
 				peers := n.Peers()
 				// pick a random peer from the list of peers
-				peer := n.node.GetPeerNode(peers[rnd.Intn(len(peers))].Id())
-				if err := n.sendTo("advert", ControlChannel, peer, msg); err != nil {
-					log.Debugf("Network failed to advertise routes to %s: %v, sending multicast", err, peer.Id())
-					// send a multicast message if we fail to send Unicast message
-					if err := n.sendMsg("advert", ControlChannel, msg); err != nil {
-						log.Debugf("Network failed to advertise routes: %v", err)
+				if peer := n.node.GetPeerNode(peers[rnd.Intn(len(peers))].Id()); peer != nil {
+					if err := n.sendTo("advert", ControlChannel, peer, msg); err != nil {
+						log.Debugf("Network failed to advertise routes to %s: %v, sending multicast", peer.Id(), err)
+						// send a multicast message if we fail to send Unicast message
+						if err := n.sendMsg("advert", ControlChannel, msg); err != nil {
+							log.Debugf("Network failed to advertise routes: %v", err)
+						}
 					}
 				}
 			}
@@ -993,23 +994,22 @@ func (n *network) processNetChan(listener tunnel.Listener) {
 
 				// when we receive a sync message we update our routing table
 				// and send a peer message back to the network to announce our presence
-				// we consequently flush our table to the network too to make the convergence faster
+
+				// add all the routes we have received in the sync message
+				for _, pbRoute := range pbNetSync.Routes {
+					route := pbUtil.ProtoToRoute(pbRoute)
+					if err := n.router.Table().Create(route); err != nil && err != router.ErrDuplicateRoute {
+						log.Debugf("Network node %s failed to add route: %v", n.id, err)
+					}
+				}
+
+				// update your sync timestamp
+				// NOTE: this might go away as we will be doing full table advert to random peer
+				if err := n.RefreshSync(now); err != nil {
+					log.Debugf("Network failed refreshing sync time: %v", err)
+				}
 
 				go func() {
-					// add all the routes we have received in the sync message
-					for _, pbRoute := range pbNetSync.Routes {
-						route := pbUtil.ProtoToRoute(pbRoute)
-						if err := n.router.Table().Create(route); err != nil && err != router.ErrDuplicateRoute {
-							log.Debugf("Network node %s failed to add route: %v", n.id, err)
-						}
-					}
-
-					// update your sync timestamp
-					// NOTE: this might go away as we will be doing full table advert to random peer
-					if err := n.RefreshSync(now); err != nil {
-						log.Debugf("Network failed refreshing sync time: %v", err)
-					}
-
 					// get node peer graph to send back to the syncing node
 					msg := PeersToProto(n.node, MaxDepth)
 
@@ -1100,12 +1100,15 @@ func (n *network) prunePeerRoutes(peer *node) error {
 // seen for a period of time. Also removes all the routes either originated by or routable
 // by the stale nodes. it also resolves nodes periodically and adds them to the tunnel
 func (n *network) manage() {
+	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
 	announce := time.NewTicker(AnnounceTime)
 	defer announce.Stop()
 	prune := time.NewTicker(PruneTime)
 	defer prune.Stop()
 	resolve := time.NewTicker(ResolveTime)
 	defer resolve.Stop()
+	netsync := time.NewTicker(SyncTime)
+	defer netsync.Stop()
 
 	// list of links we've sent to
 	links := make(map[string]time.Time)
@@ -1252,6 +1255,42 @@ func (n *network) manage() {
 				if err := n.pruneRoutes(router.QueryRouter(route.Router)); err != nil {
 					log.Debugf("Network failed deleting routes by %s: %v", route.Router, err)
 				}
+			}
+		case <-netsync.C:
+			// get a list of node peers
+			peers := n.Peers()
+			// pick a random peer from the list of peers and request full sync
+			if peer := n.node.GetPeerNode(peers[rnd.Intn(len(peers))].Id()); peer != nil {
+				go func() {
+					// get node peer graph to send back to the connecting node
+					node := PeersToProto(n.node, MaxDepth)
+
+					msg := &pbNet.Sync{
+						Peer: node,
+					}
+
+					// get a list of all of our routes
+					routes, err := n.options.Router.Table().List()
+					switch err {
+					case nil:
+						// encode the routes to protobuf
+						pbRoutes := make([]*pbRtr.Route, 0, len(routes))
+						for _, route := range routes {
+							pbRoute := pbUtil.RouteToProto(route)
+							pbRoutes = append(pbRoutes, pbRoute)
+						}
+						// pack the routes into the sync message
+						msg.Routes = pbRoutes
+					default:
+						// we can't list the routes
+						log.Debugf("Network node %s failed listing routes: %v", n.id, err)
+					}
+
+					// send sync message to the newly connected peer
+					if err := n.sendTo("sync", NetworkChannel, peer, msg); err != nil {
+						log.Debugf("Network failed to send sync message: %v", err)
+					}
+				}()
 			}
 		case <-resolve.C:
 			n.initNodes(false)
