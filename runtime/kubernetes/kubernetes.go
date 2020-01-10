@@ -114,7 +114,18 @@ func (k *kubernetes) getService(labels map[string]string) ([]*runtime.Service, e
 
 			// parse out deployment status and inject into service metadata
 			if len(kdep.Status.Conditions) > 0 {
-				status := kdep.Status.Conditions[0].Type
+				var status string
+				switch kdep.Status.Conditions[0].Type {
+				case "Available":
+					status = "running"
+					delete(svc.Metadata, "error")
+				case "Progressing":
+					status = "starting"
+					delete(svc.Metadata, "error")
+				default:
+					status = "error"
+					svc.Metadata["error"] = kdep.Status.Conditions[0].Message
+				}
 				// pick the last known condition type and mark the service status with it
 				log.Debugf("Runtime setting %s service deployment status: %v", name, status)
 				svc.Metadata["status"] = status

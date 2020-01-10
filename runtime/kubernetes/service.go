@@ -89,13 +89,17 @@ func (s *service) Start(k client.Client) error {
 	// create deployment first; if we fail, we dont create service
 	if err := k.Create(deploymentResource(s.kdeploy)); err != nil {
 		log.Debugf("Runtime failed to create deployment: %v", err)
+		s.Status("error", err)
 		return err
 	}
 	// create service now that the deployment has been created
 	if err := k.Create(serviceResource(s.kservice)); err != nil {
 		log.Debugf("Runtime failed to create service: %v", err)
+		s.Status("error", err)
 		return err
 	}
+
+	s.Status("started", nil)
 
 	return nil
 }
@@ -104,13 +108,17 @@ func (s *service) Stop(k client.Client) error {
 	// first attempt to delete service
 	if err := k.Delete(serviceResource(s.kservice)); err != nil {
 		log.Debugf("Runtime failed to delete service: %v", err)
+		s.Status("error", err)
 		return err
 	}
 	// delete deployment once the service has been deleted
 	if err := k.Delete(deploymentResource(s.kdeploy)); err != nil {
 		log.Debugf("Runtime failed to delete deployment: %v", err)
+		s.Status("error", err)
 		return err
 	}
+
+	s.Status("stopped", nil)
 
 	return nil
 }
@@ -118,6 +126,7 @@ func (s *service) Stop(k client.Client) error {
 func (s *service) Update(k client.Client) error {
 	if err := k.Update(deploymentResource(s.kdeploy)); err != nil {
 		log.Debugf("Runtime failed to update deployment: %v", err)
+		s.Status("error", err)
 		return err
 	}
 	if err := k.Update(serviceResource(s.kservice)); err != nil {
@@ -126,4 +135,13 @@ func (s *service) Update(k client.Client) error {
 	}
 
 	return nil
+}
+
+func (s *service) Status(status string, err error) {
+	if err == nil {
+		s.Metadata["status"] = status
+		return
+	}
+	s.Metadata["status"] = "error"
+	s.Metadata["error"] = err.Error()
 }
