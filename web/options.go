@@ -46,6 +46,8 @@ type Options struct {
 
 	// Static directory
 	StaticDir string
+
+	Signal bool
 }
 
 func newOptions(opts ...Option) Options {
@@ -59,6 +61,7 @@ func newOptions(opts ...Option) Options {
 		StaticDir:        DefaultStaticDir,
 		Service:          micro.NewService(),
 		Context:          context.TODO(),
+		Signal:           true,
 	}
 
 	for _, o := range opts {
@@ -240,5 +243,14 @@ func StaticDir(d string) Option {
 func RegisterCheck(fn func(context.Context) error) Option {
 	return func(o *Options) {
 		o.RegisterCheck = fn
+	}
+}
+
+// HandleSignal toggles automatic installation of the signal handler that
+// traps TERM, INT, and QUIT.  Users of this feature to disable the signal
+// handler, should control liveness of the service through the context.
+func HandleSignal(b bool) Option {
+	return func(o *Options) {
+		o.Signal = b
 	}
 }
