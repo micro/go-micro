@@ -172,6 +172,17 @@ func (c *config) Get(path ...string) reader.Value {
 	return newValue()
 }
 
+func (c *config) Set(val interface{}, path ...string) {
+	c.Lock()
+	defer c.Unlock()
+
+	if c.vals != nil {
+		c.vals.Set(val, path...)
+	}
+
+	return
+}
+
 func (c *config) Bytes() []byte {
 	c.RLock()
 	defer c.RUnlock()
