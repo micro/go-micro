@@ -375,7 +375,7 @@ func (n *network) initNodes(startup bool) {
 	// NOTE: this condition never fires
 	// as resolveNodes() never returns error
 	if err != nil && !startup {
-		log.Debugf("Network failed to resolve nodes: %v", err)
+		log.Debugf("Network failed to init nodes: %v", err)
 		return
 	}
 
