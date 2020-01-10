@@ -36,6 +36,8 @@ type node struct {
 	network Network
 	// lastSeen keeps track of node lifetime and updates
 	lastSeen time.Time
+	// lastSync keeps track of node last sync request
+	lastSync time.Time
 }
 
 // Id is node ide
@@ -127,7 +129,7 @@ func (n *node) UpdatePeer(peer *node) error {
 	return ErrPeerNotFound
 }
 
-// RefreshPeer updates node timestamp
+// RefreshPeer updates node last seen timestamp
 // It returns false if the peer has not been found.
 func (n *node) RefreshPeer(id, link string, now time.Time) error {
 	n.Lock()
@@ -142,6 +144,16 @@ func (n *node) RefreshPeer(id, link string, now time.Time) error {
 	peer.link = link
 	// set last seen
 	peer.lastSeen = now
+
+	return nil
+}
+
+// RefreshSync refreshes nodes sync time
+func (n *node) RefreshSync(now time.Time) error {
+	n.Lock()
+	defer n.Unlock()
+
+	n.lastSync = now
 
 	return nil
 }
