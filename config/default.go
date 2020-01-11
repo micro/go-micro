@@ -183,6 +183,17 @@ func (c *config) Set(val interface{}, path ...string) {
 	return
 }
 
+func (c *config) Del(path ...string) {
+	c.Lock()
+	defer c.Unlock()
+
+	if c.vals != nil {
+		c.vals.Del(path...)
+	}
+
+	return
+}
+
 func (c *config) Bytes() []byte {
 	c.RLock()
 	defer c.RUnlock()
