@@ -38,6 +38,8 @@ type node struct {
 	lastSeen time.Time
 	// lastSync keeps track of node last sync request
 	lastSync time.Time
+	// errCount tracks error count when communicating with peer
+	errCount int
 }
 
 // Id is node ide
@@ -71,15 +73,17 @@ func (n *node) walk(until func(peer *node) bool, action func(parent, peer *node)
 	for queue.Len() > 0 {
 		// pop the node from the front of the queue
 		qnode := queue.Front()
+		//fmt.Printf("qnodeValue: %v\n", qnode.Value.(*node))
 		if until(qnode.Value.(*node)) {
 			return visited
 		}
 		// iterate through all of the node peers
 		// mark the visited nodes; enqueue the non-visted
 		for id, peer := range qnode.Value.(*node).peers {
+			action(qnode.Value.(*node), peer)
 			if _, ok := visited[id]; !ok {
 				visited[id] = peer
-				action(qnode.Value.(*node), peer)
+				//action(qnode.Value.(*node), peer)
 				queue.PushBack(peer)
 			}
 		}
@@ -229,7 +233,25 @@ func (n *node) DeletePeerNode(id string) error {
 	return nil
 }
 
-// PruneStalePeerNodes prune the peers that have not been seen for longer than given time
+// PrunePeer prunes the peers with the given id
+func (n *node) PrunePeer(id string) {
+	n.Lock()
+	defer n.Unlock()
+
+	untilNoMorePeers := func(node *node) bool {
+		return node == nil
+	}
+
+	prunePeer := func(parent, node *node) {
+		if node.id != n.id && node.id == id {
+			delete(parent.peers, node.id)
+		}
+	}
+
+	n.walk(untilNoMorePeers, prunePeer)
+}
+
+// PruneStalePeerNodes prunes the peers that have not been seen for longer than pruneTime
 // It returns a map of the the nodes that got pruned
 func (n *node) PruneStalePeers(pruneTime time.Duration) map[string]*node {
 	n.Lock()
@@ -250,6 +272,30 @@ func (n *node) PruneStalePeers(pruneTime time.Duration) map[string]*node {
 	n.walk(untilNoMorePeers, pruneStalePeer)
 
 	return pruned
+}
+
+// IncErrCount increments node error count
+func (n *node) IncErrCount() {
+	n.Lock()
+	defer n.Unlock()
+
+	n.errCount++
+}
+
+// ResetErrCount reset node error count
+func (n *node) ResetErrCount() {
+	n.Lock()
+	defer n.Unlock()
+
+	n.errCount = 0
+}
+
+// ErrCount returns node error count
+func (n *node) ErrCount() int {
+	n.RLock()
+	defer n.RUnlock()
+
+	return n.errCount
 }
 
 // getTopology traverses node graph and builds node topology
