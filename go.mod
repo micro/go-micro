@@ -8,18 +8,19 @@ require (
 	github.com/bitly/go-simplejson v0.5.0
 	github.com/bwmarrin/discordgo v0.20.2
 	github.com/coreos/etcd v3.3.18+incompatible
-	github.com/coreos/pkg v0.0.0-20180928190104-399ea9e2e55f // indirect
 	github.com/forestgiant/sliceutil v0.0.0-20160425183142-94783f95db6c
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/fsouza/go-dockerclient v1.6.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-acme/lego/v3 v3.2.0
 	github.com/go-playground/universal-translator v0.17.0 // indirect
+	github.com/gogo/protobuf v1.2.1
 	github.com/golang/protobuf v1.3.2
 	github.com/google/uuid v1.1.1
 	github.com/gorilla/handlers v1.4.2
 	github.com/gorilla/websocket v1.4.1
 	github.com/hashicorp/hcl v1.0.0
+	github.com/hashicorp/terraform v0.12.19
 	github.com/imdario/mergo v0.3.8
 	github.com/joncalhoun/qson v0.0.0-20170526102502-8a9cab3a62b1
 	github.com/json-iterator/go v1.1.9
@@ -35,6 +36,7 @@ require (
 	github.com/nats-io/nats.go v1.9.1
 	github.com/nlopes/slack v0.6.0
 	github.com/oxtoacart/bpool v0.0.0-20190530202638-03653db5a59c
+	github.com/panjf2000/ants/v2 v2.2.2
 	github.com/pkg/errors v0.8.1
 	github.com/stretchr/testify v1.4.0
 	github.com/technoweenie/multipartstreamer v1.0.1 // indirect
