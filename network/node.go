@@ -21,6 +21,35 @@ var (
 	ErrPeerNotFound = errors.New("peer not found")
 )
 
+type nodeError struct {
+	sync.RWMutex
+	count int
+}
+
+// Increment increments node error count
+func (n *nodeError) Increment() {
+	n.Lock()
+	defer n.Unlock()
+
+	n.count++
+}
+
+// Reset reset node error count
+func (n *nodeError) Reset() {
+	n.Lock()
+	defer n.Unlock()
+
+	n.count = 0
+}
+
+// GetCount returns node error count
+func (n *nodeError) GetCount() int {
+	n.RLock()
+	defer n.RUnlock()
+
+	return n.count
+}
+
 // node is network node
 type node struct {
 	sync.RWMutex
@@ -38,8 +67,8 @@ type node struct {
 	lastSeen time.Time
 	// lastSync keeps track of node last sync request
 	lastSync time.Time
-	// errCount tracks error count when communicating with peer
-	errCount int
+	// err tracks node errors
+	err nodeError
 }
 
 // Id is node ide
@@ -272,30 +301,6 @@ func (n *node) PruneStalePeers(pruneTime time.Duration) map[string]*node {
 	n.walk(untilNoMorePeers, pruneStalePeer)
 
 	return pruned
-}
-
-// IncErrCount increments node error count
-func (n *node) IncErrCount() {
-	n.Lock()
-	defer n.Unlock()
-
-	n.errCount++
-}
-
-// ResetErrCount reset node error count
-func (n *node) ResetErrCount() {
-	n.Lock()
-	defer n.Unlock()
-
-	n.errCount = 0
-}
-
-// ErrCount returns node error count
-func (n *node) ErrCount() int {
-	n.RLock()
-	defer n.RUnlock()
-
-	return n.errCount
 }
 
 // getTopology traverses node graph and builds node topology

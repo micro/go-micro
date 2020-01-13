@@ -38,6 +38,8 @@ var (
 	DefaultLink = "network"
 	// MaxConnections is the max number of network client connections
 	MaxConnections = 3
+	// MaxPeerErrors is the max number of peer errors before we remove it from network graph
+	MaxPeerErrors = 3
 )
 
 var (
@@ -45,6 +47,8 @@ var (
 	ErrClientNotFound = errors.New("client not found")
 	// ErrPeerLinkNotFound is returned when peer link could not be found in tunnel Links
 	ErrPeerLinkNotFound = errors.New("peer link not found")
+	// ErrPeerMaxExceeded is returned when peer has reached its max error count limit
+	ErrPeerMaxExceeded = errors.New("peer max errors exceeded")
 )
 
 // network implements Network interface
@@ -1327,6 +1331,11 @@ func (n *network) sendTo(method, channel string, peer *node, msg proto.Message) 
 	// Create a unicast connection to the peer but don't do the open/accept flow
 	c, err := n.tunnel.Dial(channel, tunnel.DialWait(false), tunnel.DialLink(peer.link))
 	if err != nil {
+		// increment the peer error count; prune peer if we exceed MaxPeerErrors
+		peer.err.Increment()
+		if count := peer.err.GetCount(); count == MaxPeerErrors {
+			n.PrunePeer(peer.id)
+		}
 		return err
 	}
 	defer c.Close()
@@ -1351,7 +1360,16 @@ func (n *network) sendTo(method, channel string, peer *node, msg proto.Message) 
 		tmsg.Header["Micro-Peer"] = peer.id
 	}
 
-	return c.Send(tmsg)
+	if err := c.Send(tmsg); err != nil {
+		// increment the peer error count; prune peer if we exceed MaxPeerErrors
+		peer.err.Increment()
+		if count := peer.err.GetCount(); count == MaxPeerErrors {
+			n.PrunePeer(peer.id)
+		}
+		return err
+	}
+
+	return nil
 }
 
 // sendMsg sends a message to the tunnel channel
