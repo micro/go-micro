@@ -337,7 +337,7 @@ func (n *network) advertise(advertChan <-chan *router.Advert) {
 				for i := 0; i < max; i++ {
 					if peer := n.node.GetPeerNode(peers[rnd.Intn(len(peers))].Id()); peer != nil {
 						if err := n.sendTo("advert", ControlChannel, peer, msg); err != nil {
-							log.Debugf("Network failed to advertise routes: %v", err)
+							log.Debugf("Network failed to advertise routes to %s: %v", peer.Id(), err)
 						}
 					}
 				}
@@ -359,7 +359,7 @@ func (n *network) advertise(advertChan <-chan *router.Advert) {
 						log.Debugf("Network failed to advertise routes to %s: %v, sending multicast", peer.Id(), err)
 						// send a multicast message if we fail to send Unicast message
 						if err := n.sendMsg("advert", ControlChannel, msg); err != nil {
-							log.Debugf("Network failed to advertise routes: %v", err)
+							log.Debugf("Network failed to advertise routes to %s: %v", peer.Id(), err)
 						}
 					}
 				}
@@ -516,10 +516,11 @@ func (n *network) handleCtrlConn(s tunnel.Session, msg chan *message) {
 }
 
 // getHopCount queries network graph and returns hop count for given router
+// NOTE: this should be called getHopeMetric
 // - Routes for local services have hop count 1
-// - Routes with ID of adjacent nodes have hop count 2
-// - Routes by peers of the advertiser have hop count 3
-// - Routes beyond node neighbourhood have hop count 4
+// - Routes with ID of adjacent nodes have hop count 10
+// - Routes by peers of the advertiser have hop count 100
+// - Routes beyond node neighbourhood have hop count 1000
 func (n *network) getHopCount(rtr string) int {
 	// make sure node.peers are not modified
 	n.node.RLock()
@@ -1207,7 +1208,7 @@ func (n *network) manage() {
 
 				// unknown link and peer so lets do the connect flow
 				if err := n.sendTo("connect", NetworkChannel, peer, msg); err != nil {
-					log.Debugf("Network failed to advertise peer %s: %v", peer.id, err)
+					log.Debugf("Network failed to connect %s: %v", peer.id, err)
 					continue
 				}
 
