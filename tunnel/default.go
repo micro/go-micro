@@ -384,7 +384,7 @@ func (t *tun) process() {
 				// if the link is not connected skip it
 				if !connected {
 					log.Debugf("Link for node %s not connected", id)
-					err = errors.New("link not connected")
+					err = ErrLinkDisconnected
 					continue
 				}
 
@@ -392,14 +392,14 @@ func (t *tun) process() {
 				// and the message is being sent outbound via
 				// a dialled connection don't use this link
 				if loopback && msg.outbound {
-					err = errors.New("link is loopback")
+					err = ErrLinkLoopback
 					continue
 				}
 
 				// if the message was being returned by the loopback listener
 				// send it back up the loopback link only
 				if msg.loopback && !loopback {
-					err = errors.New("link is not loopback")
+					err = ErrLinkRemote
 					continue
 				}
 
@@ -414,7 +414,7 @@ func (t *tun) process() {
 					// this is where we explicitly set the link
 					// in a message received via the listen method
 					if len(msg.link) > 0 && id != msg.link {
-						err = errors.New("link not found")
+						err = ErrLinkNotFound
 						continue
 					}
 				}
