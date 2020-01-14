@@ -8,26 +8,47 @@ import (
 	"github.com/micro/go-micro/client"
 )
 
-// Executor run flows and control it exection
-type Executor interface {
-	// Execuute specific flow execution with data
+type Flow interface {
+	// Init flow with options
+	Init(...Option) error
+	// Get flow options
+	Options() Options
+	// Create step in flow
+	CreateStep(flow string, step *Step) error
+	// Remove step from flow
+	RemoveStep(flow string, step *Step) error
+	// Execute specific flow execution and returns reqID and error
 	Execute(ctx context.Context, flow string, req interface{}, rsp interface{}, opts ...ExecuteOption) (string, error)
 	// Resume suspended flow execution
-	Resume(ctx context.Context, flow, rid string) error
+	Resume(ctx context.Context, flow string, reqID string) error
 	// Pause flow execution
-	Pause(ctx context.Context, flow, rid string) error
+	Pause(ctx context.Context, flow string, reqID string) error
 	// Abort flow execution
-	Abort(ctx context.Context, flow, rid string) error
-	// Init Executor
-	Init(...ExecutorOption) error
+	Abort(ctx context.Context, flow string, reqID string) error
 	// Stop executor and drain active workers
 	Stop() error
-	// Return options for executor
-	Options() ExecutorOptions
 }
 
-// Executor options
-type ExecutorOptions struct {
+type Step struct {
+	// name of step
+	Name string
+	// operations for step
+	Operations []Operation
+	// steps that are required for this step
+	Requires []string
+	// steps for which this step required
+	Required []string
+}
+
+type Option func(*Options)
+
+func FlowStore(s FlowStore) Option {
+	return func(o *Options) {
+		o.FlowStore = s
+	}
+}
+
+type Options struct {
 	// Number of worker goroutines
 	Concurrency int
 	// Preallocate worker goroutines
@@ -36,12 +57,6 @@ type ExecutorOptions struct {
 	Nonblock bool
 	// Wait completiong before stop
 	Wait bool
-	// Maximum Timeout for full flow operations
-	Timeout time.Duration
-	// Client to use for communication
-	Client client.Client
-	// Broker to use for communication
-	Broker broker.Broker
 	// StateStore is used for flow state marking
 	StateStore StateStore
 	// DataStore is used for intermediate data passed between flow nodes
@@ -59,6 +74,10 @@ type ExecutorOptions struct {
 }
 
 type ExecuteOptions struct {
+	// Client to use for communication
+	Client client.Client
+	// Broker to use for communication
+	Broker broker.Broker
 	// Timeout for currenct execition
 	Timeout time.Duration
 	// Async execution run
@@ -76,99 +95,99 @@ type ExecuteOption func(*ExecuteOptions)
 type ExecutorOption func(*ExecutorOptions)
 
 // Wait for flow completion before stop
-func ExecutorWait(b bool) ExecutorOption {
-	return func(o *ExecutorOptions) {
+func WithWait(b bool) Option {
+	return func(o *Options) {
 		o.Wait = b
 	}
 }
 
-// Nonnblocking submission
-func ExecutorNonblock(b bool) ExecutorOption {
-	return func(o *ExecutorOptions) {
+// Nonblocking submission
+func WithNonblock(b bool) Option {
+	return func(o *Options) {
 		o.Nonblock = b
 	}
 }
 
 // Panic handler
-func ExecutorPanicHandler(h func(interface{})) ExecutorOption {
-	return func(o *ExecutorOptions) {
+func WithPanicHandler(h func(interface{})) Option {
+	return func(o *Options) {
 		o.PanicHandler = h
 	}
 }
 
-// Preallocate goroutine pool
-func ExecutorPrealloc(b bool) ExecutorOption {
-	return func(o *ExecutorOptions) {
+// WithPrealloc preallocates goroutine pool
+func WithPrealloc(b bool) Option {
+	return func(o *Options) {
 		o.Prealloc = b
 	}
 }
 
 // Size of goroutine pool
-func ExecutorConcurrency(c int) ExecutorOption {
-	return func(o *ExecutorOptions) {
+func WithConcurrency(c int) Option {
+	return func(o *Options) {
 		o.Concurrency = c
 	}
 }
 
 // Client for communication
-func ExecutorClient(c client.Client) ExecutorOption {
-	return func(o *ExecutorOptions) {
+func ExecuteClient(c client.Client) ExecuteOption {
+	return func(o *ExecuteOptions) {
 		o.Client = c
 	}
 }
 
 // Broker for communication
-func ExecutorBroker(b broker.Broker) ExecutorOption {
-	return func(o *ExecutorOptions) {
+func ExecuteBroker(b broker.Broker) ExecuteOption {
+	return func(o *ExecuteOptions) {
 		o.Broker = b
 	}
 }
 
 // State store implementation
-func ExecutorStateStore(s StateStore) ExecutorOption {
-	return func(o *ExecutorOptions) {
+func WithStateStore(s Store) Option {
+	return func(o *Options) {
 		o.StateStore = s
 	}
 }
 
 // Data store implementation
-func ExecutorDataStore(s DataStore) ExecutorOption {
-	return func(o *ExecutorOptions) {
+func WithDataStore(s Store) Option {
+	return func(o *Options) {
 		o.DataStore = s
 	}
 }
 
 // Flow store implementation
-func ExecutorFlowStore(s FlowStore) ExecutorOption {
-	return func(o *ExecutorOptions) {
+func WithFlowStore(s Store) ExecutorOption {
+	return func(o *Options) {
 		o.FlowStore = s
 	}
 }
 
 // Event handler for flow execution
-func ExecutorEventHandler(h EventHandler) ExecutorOption {
-	return func(o *ExecutorOptions) {
+func WithEventHandler(h EventHandler) Option {
+	return func(o *Options) {
 		o.EventHandler = h
 	}
 }
 
 // Logger
-func ExecutorLogger(l Logger) ExecutorOption {
-	return func(o *ExecutorOptions) {
+func WithLogger(l Logger) Option {
+	return func(o *Options) {
 		o.Logger = l
 	}
 }
 
 // Default Timeout for flows
-func ExecutorTimeout(td time.Duration) ExecutorOption {
-	return func(o *ExecutorOptions) {
+func WithTimeout(td time.Duration) Option {
+	return func(o *Options) {
 		o.Timeout = td
 	}
 }
 
 // Context store for executor options
-func ExecutorContext(ctx context.Context) ExecutorOption {
-	return func(o *ExecutorOptions) {
+func WithContext(ctx context.Context) Option {
+	return func(o *Options) {
 		o.Context = ctx
 	}
 }

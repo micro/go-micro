@@ -22,6 +22,11 @@ func NewManager(opts ...ManagerOption) Manager {
 }
 
 func (mgr *defaultManager) Register(flow *Flow, opts ...RegisterOption) error {
+	buf, err := mgr.options.FlowStore.Read(mgr.options.Context, flow.Name)
+	if err != nil {
+		return err
+	}
+	_ = buf
 	return nil
 }
 

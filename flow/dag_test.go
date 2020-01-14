@@ -37,6 +37,7 @@ func getVertex(g *dag.AcyclicGraph, name string) (dag.Vertex, error) {
 }
 
 func TestExecutor(t *testing.T) {
+	var err error
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -45,7 +46,14 @@ func TestExecutor(t *testing.T) {
 	fStore := memory.DefaultFlowStore()
 
 	mgr := NewManager(ManagerFlowStore(fStore))
-	_ = mgr
+
+	if err = mgr.Init(); err != nil {
+		t.Fatal(err)
+	}
+
+	if err = mgr.Register(&Flow{Name: "forward"}); err != nil {
+		t.Fatal(err)
+	}
 
 	exc := NewExecutor(
 		ExecutorStateStore(sStore),
@@ -53,14 +61,14 @@ func TestExecutor(t *testing.T) {
 		ExecutorFlowStore(fStore),
 	)
 
-	if err := exc.Init(); err != nil {
+	if err = exc.Init(); err != nil {
 		t.Fatal(err)
 	}
 
 	req := &proto.Test{Name: "req"}
 	rsp := &proto.Test{}
 
-	rid, err := exc.Execute(ctx, "default", req, rsp, ExecuteAsync(false))
+	rid, err := exc.Execute(ctx, "forward", req, rsp, ExecuteAsync(false))
 	if err != nil {
 		t.Fatal(err)
 	}

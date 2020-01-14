@@ -1,19 +1,9 @@
-package flow
+package memory
 
 import (
 	"context"
 	"fmt"
 )
-
-/*
-type FlowStore interface {
-	Init() error
-	Save(flow string, services []*FlowOperation) error
-	Load(flow string) ([]*FlowOperation, error)
-	Append(flow string, service *FlowOperation) error
-	Delete(flow string, service *FlowOperation) error
-}
-*/
 
 type flowStore struct {
 	store map[string][]byte
@@ -31,15 +21,15 @@ func (s *flowStore) Init() error {
 	return nil
 }
 
-func (s *flowStore) Write(ctx context.Context, flow string, data []byte) error {
-	s.store[flow] = data
+func (s *flowStore) Write(ctx context.Context, name string, data []byte) error {
+	s.store[name] = data
 	return nil
 }
 
-func (s *flowStore) Read(ctx context.Context, flow string) ([]byte, error) {
-	buf, ok := s.store[flow]
+func (s *flowStore) Read(ctx context.Context, name string) ([]byte, error) {
+	buf, ok := s.store[name]
 	if !ok {
-		return nil, fmt.Errorf("flow %s not found", flow)
+		return nil, fmt.Errorf("flow %s not found", name)
 	}
 
 	return buf, nil
