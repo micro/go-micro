@@ -152,7 +152,7 @@ func WithDataStore(s Store) Option {
 }
 
 // Flow store implementation
-func WithFlowStore(s Store) ExecutorOption {
+func WithFlowStore(s Store) Option {
 	return func(o *Options) {
 		o.FlowStore = s
 	}
