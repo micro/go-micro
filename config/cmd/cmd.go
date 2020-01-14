@@ -3,9 +3,7 @@ package cmd
 
 import (
 	"fmt"
-	"io"
 	"math/rand"
-	"os"
 	"strings"
 	"time"
 
@@ -283,11 +281,6 @@ var (
 
 func init() {
 	rand.Seed(time.Now().Unix())
-	help := cli.HelpPrinter
-	cli.HelpPrinter = func(writer io.Writer, templ string, data interface{}) {
-		help(writer, templ, data)
-		os.Exit(0)
-	}
 }
 
 func newCmd(opts ...Option) Cmd {
