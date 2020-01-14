@@ -106,8 +106,9 @@ func newTransport(config *tls.Config) *http.Transport {
 
 func newHttpBroker(opts ...Option) Broker {
 	options := Options{
-		Codec:   json.Marshaler{},
-		Context: context.TODO(),
+		Codec:    json.Marshaler{},
+		Context:  context.TODO(),
+		Registry: registry.DefaultRegistry,
 	}
 
 	for _, o := range opts {
@@ -120,17 +121,11 @@ func newHttpBroker(opts ...Option) Broker {
 		addr = options.Addrs[0]
 	}
 
-	// get registry
-	reg, ok := options.Context.Value(registryKey).(registry.Registry)
-	if !ok {
-		reg = registry.DefaultRegistry
-	}
-
 	h := &httpBroker{
 		id:          uuid.New().String(),
 		address:     addr,
 		opts:        options,
-		r:           reg,
+		r:           options.Registry,
 		c:           &http.Client{Transport: newTransport(options.TLSConfig)},
 		subscribers: make(map[string][]*httpSubscriber),
 		exit:        make(chan chan error),

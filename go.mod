@@ -32,6 +32,9 @@ require (
 	github.com/micro/mdns v0.3.0
 	github.com/miekg/dns v1.1.26
 	github.com/mitchellh/hashstructure v1.0.0
+	github.com/nats-io/gnatsd v1.4.1 // indirect
+	github.com/nats-io/nats-server v1.4.1
+	github.com/nats-io/nats-server/v2 v2.1.2
 	github.com/nats-io/nats.go v1.9.1
 	github.com/nlopes/slack v0.6.0
 	github.com/oxtoacart/bpool v0.0.0-20190530202638-03653db5a59c
