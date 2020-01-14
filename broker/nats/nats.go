@@ -112,7 +112,7 @@ func (n *natsBroker) setAddrs(addrs []string) []string {
 }
 
 // serve stats a local nats server if needed
-func (n *natsBroker) serve(exit chan bool) {
+func (n *natsBroker) serve(exit chan bool) error {
 	var host string
 	var port int
 	var local bool
@@ -142,7 +142,7 @@ func (n *natsBroker) serve(exit chan bool) {
 
 	// we only setup a server for local things
 	if !local {
-		return
+		return nil
 	}
 
 	// 1. create new server
@@ -199,7 +199,7 @@ func (n *natsBroker) serve(exit chan bool) {
 			TLSConfig:      n.opts.TLSConfig,
 		})
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 
 		// save the server
@@ -209,11 +209,18 @@ func (n *natsBroker) serve(exit chan bool) {
 	// start the server
 	go s.Start()
 
+	var ready bool
+
 	// wait till its ready for connections
 	for i := 0; i < 3; i++ {
 		if s.ReadyForConnections(time.Second) {
+			ready = true
 			break
 		}
+	}
+
+	if !ready {
+		return errors.New("server not ready")
 	}
 
 	// set the client address
@@ -247,6 +254,8 @@ func (n *natsBroker) serve(exit chan bool) {
 			}
 		}
 	}()
+
+	return nil
 }
 
 func (n *natsBroker) Connect() error {
@@ -258,7 +267,9 @@ func (n *natsBroker) Connect() error {
 		n.exit = make(chan bool)
 
 		// start the server if needed
-		n.serve(n.exit)
+		if err := n.serve(n.exit); err != nil {
+			return err
+		}
 
 		// set to connected
 		n.connected = true
