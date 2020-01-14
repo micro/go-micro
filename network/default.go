@@ -1270,7 +1270,8 @@ func (n *network) manage() {
 			peers := n.Peers()
 			// pick a random peer from the list of peers and request full sync
 			peer := n.node.GetPeerNode(peers[rnd.Intn(len(peers))].Id())
-			if peer != nil {
+			// skip if we can't find randmly selected peer
+			if peer == nil {
 				continue
 			}
 
