@@ -6,16 +6,16 @@ import "github.com/micro/go-micro/router/service/proto/router.proto";
 
 // Network service is usesd to gain visibility into networks
 service Network {
-	// Connect to the network
-	rpc Connect(ConnectRequest) returns (ConnectResponse) {};
-	// Returns the entire network graph
-	rpc Graph(GraphRequest) returns (GraphResponse) {};
-	// Returns a list of known nodes in the network
+        // Connect to the network
+        rpc Connect(ConnectRequest) returns (ConnectResponse) {};
+        // Returns the entire network graph
+        rpc Graph(GraphRequest) returns (GraphResponse) {};
+        // Returns a list of known nodes in the network
         rpc Nodes(NodesRequest) returns (NodesResponse) {};
-	// Returns a list of known routes in the network
+        // Returns a list of known routes in the network
         rpc Routes(RoutesRequest) returns (RoutesResponse) {};
-	// Returns a list of known services based on routes
-	rpc Services(ServicesRequest) returns (ServicesResponse) {};
+        // Returns a list of known services based on routes
+        rpc Services(ServicesRequest) returns (ServicesResponse) {};
         // Status returns network status
         rpc Status(StatusRequest) returns (StatusResponse) {};
 }

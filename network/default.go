@@ -876,16 +876,11 @@ func (n *network) processNetChan(listener tunnel.Listener) {
 				log.Debugf("Network received peer message from: %s %s", pbNetPeer.Node.Id, pbNetPeer.Node.Address)
 
 				peer := &node{
-					id:      pbNetPeer.Node.Id,
-					address: pbNetPeer.Node.Address,
-					link:    m.msg.Header["Micro-Link"],
-					peers:   make(map[string]*node),
-					status: &status{
-						err: &nerr{
-							count: int(pbNetPeer.Node.Status.Error.Count),
-							msg:   errors.New(pbNetPeer.Node.Status.Error.Msg),
-						},
-					},
+					id:       pbNetPeer.Node.Id,
+					address:  pbNetPeer.Node.Address,
+					link:     m.msg.Header["Micro-Link"],
+					peers:    make(map[string]*node),
+					status:   newPeerStatus(pbNetPeer),
 					lastSeen: now,
 				}
 
@@ -981,16 +976,11 @@ func (n *network) processNetChan(listener tunnel.Listener) {
 				log.Debugf("Network received sync message from: %s", pbNetSync.Peer.Node.Id)
 
 				peer := &node{
-					id:      pbNetSync.Peer.Node.Id,
-					address: pbNetSync.Peer.Node.Address,
-					link:    m.msg.Header["Micro-Link"],
-					peers:   make(map[string]*node),
-					status: &status{
-						err: &nerr{
-							count: int(pbNetSync.Peer.Node.Status.Error.Count),
-							msg:   errors.New(pbNetSync.Peer.Node.Status.Error.Msg),
-						},
-					},
+					id:       pbNetSync.Peer.Node.Id,
+					address:  pbNetSync.Peer.Node.Address,
+					link:     m.msg.Header["Micro-Link"],
+					peers:    make(map[string]*node),
+					status:   newPeerStatus(pbNetSync.Peer),
 					lastSeen: now,
 				}
 
@@ -1279,38 +1269,41 @@ func (n *network) manage() {
 			// get a list of node peers
 			peers := n.Peers()
 			// pick a random peer from the list of peers and request full sync
-			if peer := n.node.GetPeerNode(peers[rnd.Intn(len(peers))].Id()); peer != nil {
-				go func() {
-					// get node peer graph to send back to the connecting node
-					node := PeersToProto(n.node, MaxDepth)
-
-					msg := &pbNet.Sync{
-						Peer: node,
-					}
-
-					// get a list of all of our routes
-					routes, err := n.options.Router.Table().List()
-					switch err {
-					case nil:
-						// encode the routes to protobuf
-						pbRoutes := make([]*pbRtr.Route, 0, len(routes))
-						for _, route := range routes {
-							pbRoute := pbUtil.RouteToProto(route)
-							pbRoutes = append(pbRoutes, pbRoute)
-						}
-						// pack the routes into the sync message
-						msg.Routes = pbRoutes
-					default:
-						// we can't list the routes
-						log.Debugf("Network node %s failed listing routes: %v", n.id, err)
-					}
-
-					// send sync message to the newly connected peer
-					if err := n.sendTo("sync", NetworkChannel, peer, msg); err != nil {
-						log.Debugf("Network failed to send sync message: %v", err)
-					}
-				}()
+			peer := n.node.GetPeerNode(peers[rnd.Intn(len(peers))].Id())
+			if peer != nil {
+				continue
 			}
+
+			go func() {
+				// get node peer graph to send back to the connecting node
+				node := PeersToProto(n.node, MaxDepth)
+
+				msg := &pbNet.Sync{
+					Peer: node,
+				}
+
+				// get a list of all of our routes
+				routes, err := n.options.Router.Table().List()
+				switch err {
+				case nil:
+					// encode the routes to protobuf
+					pbRoutes := make([]*pbRtr.Route, 0, len(routes))
+					for _, route := range routes {
+						pbRoute := pbUtil.RouteToProto(route)
+						pbRoutes = append(pbRoutes, pbRoute)
+					}
+					// pack the routes into the sync message
+					msg.Routes = pbRoutes
+				default:
+					// we can't list the routes
+					log.Debugf("Network node %s failed listing routes: %v", n.id, err)
+				}
+
+				// send sync message to the newly connected peer
+				if err := n.sendTo("sync", NetworkChannel, peer, msg); err != nil {
+					log.Debugf("Network failed to send sync message: %v", err)
+				}
+			}()
 		case <-resolve.C:
 			n.initNodes(false)
 		}

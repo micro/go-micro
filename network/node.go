@@ -69,6 +69,15 @@ func newStatus() *status {
 	}
 }
 
+func newPeerStatus(peer *pb.Peer) *status {
+	return &status{
+		err: &nerr{
+			count: int(peer.Node.Status.Error.Count),
+			msg:   errors.New(peer.Node.Status.Error.Msg),
+		},
+	}
+}
+
 func (s *status) Error() Error {
 	s.RLock()
 	defer s.RUnlock()
