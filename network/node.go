@@ -21,33 +21,62 @@ var (
 	ErrPeerNotFound = errors.New("peer not found")
 )
 
-type nodeError struct {
+// nerr tracks node errors
+type nerr struct {
 	sync.RWMutex
 	count int
+	msg   error
 }
 
 // Increment increments node error count
-func (n *nodeError) Increment() {
-	n.Lock()
-	defer n.Unlock()
+func (e *nerr) Update(err error) {
+	e.Lock()
+	defer e.Unlock()
 
-	n.count++
+	e.count++
+	e.msg = err
 }
 
-// Reset reset node error count
-func (n *nodeError) Reset() {
-	n.Lock()
-	defer n.Unlock()
+// Count returns node error count
+func (e *nerr) Count() int {
+	e.RLock()
+	defer e.RUnlock()
 
-	n.count = 0
+	return e.count
 }
 
-// GetCount returns node error count
-func (n *nodeError) GetCount() int {
-	n.RLock()
-	defer n.RUnlock()
+func (e *nerr) Msg() string {
+	e.RLock()
+	defer e.RUnlock()
 
-	return n.count
+	if e.msg != nil {
+		return e.msg.Error()
+	}
+
+	return ""
+}
+
+// status returns node status
+type status struct {
+	sync.RWMutex
+	err *nerr
+}
+
+// newStatus creates
+func newStatus() *status {
+	return &status{
+		err: new(nerr),
+	}
+}
+
+func (s *status) Error() Error {
+	s.RLock()
+	defer s.RUnlock()
+
+	return &nerr{
+		count: s.err.count,
+		msg:   s.err.msg,
+	}
 }
 
 // node is network node
@@ -67,8 +96,8 @@ type node struct {
 	lastSeen time.Time
 	// lastSync keeps track of node last sync request
 	lastSync time.Time
-	// err tracks node errors
-	err nodeError
+	// err tracks node status
+	status *status
 }
 
 // Id is node ide
@@ -84,6 +113,19 @@ func (n *node) Address() string {
 // Network returns node network
 func (n *node) Network() Network {
 	return n.network
+}
+
+// Status returns node status
+func (n *node) Status() Status {
+	n.RLock()
+	defer n.RUnlock()
+
+	return &status{
+		err: &nerr{
+			count: n.status.err.count,
+			msg:   n.status.err.msg,
+		},
+	}
 }
 
 // walk walks the node graph until some condition is met
@@ -127,7 +169,28 @@ func (n *node) AddPeer(peer *node) error {
 	n.Lock()
 	defer n.Unlock()
 
+	// get node topology: we need to check if the peer
+	// we are trying to add is already in our graph
+	top := n.getTopology(MaxDepth)
+
+	untilFoundPeer := func(n *node) bool {
+		return n.id == peer.id
+	}
+
+	justWalk := func(paent, node *node) {}
+
+	visited := top.walk(untilFoundPeer, justWalk)
+
+	peerNode, inTop := visited[peer.id]
+
 	if _, ok := n.peers[peer.id]; !ok {
+		if inTop {
+			// just create a new edge to the existing peer
+			// but make sure you update the peer link
+			peerNode.link = peer.link
+			n.peers[peer.id] = peerNode
+			return nil
+		}
 		n.peers[peer.id] = peer
 		return nil
 	}
@@ -310,6 +373,7 @@ func (n *node) getTopology(depth uint) *node {
 		address:  n.address,
 		peers:    make(map[string]*node),
 		network:  n.network,
+		status:   n.status,
 		lastSeen: n.lastSeen,
 	}
 
@@ -358,9 +422,15 @@ func (n *node) Peers() []Node {
 // UnpackPeerTopology unpacks pb.Peer into node topology of given depth
 func UnpackPeerTopology(pbPeer *pb.Peer, lastSeen time.Time, depth uint) *node {
 	peerNode := &node{
-		id:       pbPeer.Node.Id,
-		address:  pbPeer.Node.Address,
-		peers:    make(map[string]*node),
+		id:      pbPeer.Node.Id,
+		address: pbPeer.Node.Address,
+		peers:   make(map[string]*node),
+		status: &status{
+			err: &nerr{
+				count: int(pbPeer.Node.Status.Error.Count),
+				msg:   errors.New(pbPeer.Node.Status.Error.Msg),
+			},
+		},
 		lastSeen: lastSeen,
 	}
 
@@ -387,6 +457,12 @@ func peerProtoTopology(peer Node, depth uint) *pb.Peer {
 	node := &pb.Node{
 		Id:      peer.Id(),
 		Address: peer.Address(),
+		Status: &pb.Status{
+			Error: &pb.Error{
+				Count: uint32(peer.Status().Error().Count()),
+				Msg:   peer.Status().Error().Msg(),
+			},
+		},
 	}
 
 	// set the network name if network is not nil
@@ -422,6 +498,12 @@ func PeersToProto(node Node, depth uint) *pb.Peer {
 	pbNode := &pb.Node{
 		Id:      node.Id(),
 		Address: node.Address(),
+		Status: &pb.Status{
+			Error: &pb.Error{
+				Count: uint32(node.Status().Error().Count()),
+				Msg:   node.Status().Error().Msg(),
+			},
+		},
 	}
 
 	// set the network name if network is not nil

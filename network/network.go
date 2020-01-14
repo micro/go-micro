@@ -26,6 +26,20 @@ var (
 	PruneTime = 90 * time.Second
 )
 
+// Error is network node errors
+type Error interface {
+	// Count is current count of errors
+	Count() int
+	// Msg is last error message
+	Msg() string
+}
+
+// Status is node status
+type Status interface {
+	// Error reports error status
+	Error() Error
+}
+
 // Node is network node
 type Node interface {
 	// Id is node id
@@ -36,6 +50,8 @@ type Node interface {
 	Peers() []Node
 	// Network is the network node is in
 	Network() Network
+	// Status returns node status
+	Status() Status
 }
 
 // Network is micro network

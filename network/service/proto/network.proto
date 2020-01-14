@@ -16,6 +16,8 @@ service Network {
         rpc Routes(RoutesRequest) returns (RoutesResponse) {};
 	// Returns a list of known services based on routes
 	rpc Services(ServicesRequest) returns (ServicesResponse) {};
+        // Status returns network status
+        rpc Status(StatusRequest) returns (StatusResponse) {};
 }
 
 // Query is passed in a LookupRequest
@@ -69,6 +71,23 @@ message ServicesResponse {
 	repeated string services = 1;
 }
 
+message StatusRequest {}
+
+message StatusResponse {
+        Status status = 1;
+}
+
+// Error tracks network errors
+message Error {
+        uint32 count = 1;
+        string msg = 2;
+}
+
+// Status is node status
+message Status {
+        Error error = 1;
+}
+
 // Node is network node
 message Node {
         // node id
@@ -79,6 +98,8 @@ message Node {
         string network = 3;
         // associated metadata
         map<string,string> metadata = 4;
+        // node status
+        Status status = 5;
 }
 
 // Connect is sent when the node connects to the network

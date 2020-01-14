@@ -45,6 +45,8 @@ type NetworkService interface {
 	Routes(ctx context.Context, in *RoutesRequest, opts ...client.CallOption) (*RoutesResponse, error)
 	// Returns a list of known services based on routes
 	Services(ctx context.Context, in *ServicesRequest, opts ...client.CallOption) (*ServicesResponse, error)
+	// Status returns network status
+	Status(ctx context.Context, in *StatusRequest, opts ...client.CallOption) (*StatusResponse, error)
 }
 
 type networkService struct {
@@ -115,6 +117,16 @@ func (c *networkService) Services(ctx context.Context, in *ServicesRequest, opts
 	return out, nil
 }
 
+func (c *networkService) Status(ctx context.Context, in *StatusRequest, opts ...client.CallOption) (*StatusResponse, error) {
+	req := c.c.NewRequest(c.name, "Network.Status", in)
+	out := new(StatusResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Server API for Network service
 
 type NetworkHandler interface {
@@ -128,6 +140,8 @@ type NetworkHandler interface {
 	Routes(context.Context, *RoutesRequest, *RoutesResponse) error
 	// Returns a list of known services based on routes
 	Services(context.Context, *ServicesRequest, *ServicesResponse) error
+	// Status returns network status
+	Status(context.Context, *StatusRequest, *StatusResponse) error
 }
 
 func RegisterNetworkHandler(s server.Server, hdlr NetworkHandler, opts ...server.HandlerOption) error {
@@ -137,6 +151,7 @@ func RegisterNetworkHandler(s server.Server, hdlr NetworkHandler, opts ...server
 		Nodes(ctx context.Context, in *NodesRequest, out *NodesResponse) error
 		Routes(ctx context.Context, in *RoutesRequest, out *RoutesResponse) error
 		Services(ctx context.Context, in *ServicesRequest, out *ServicesResponse) error
+		Status(ctx context.Context, in *StatusRequest, out *StatusResponse) error
 	}
 	type Network struct {
 		network
@@ -167,4 +182,8 @@ func (h *networkHandler) Routes(ctx context.Context, in *RoutesRequest, out *Rou
 
 func (h *networkHandler) Services(ctx context.Context, in *ServicesRequest, out *ServicesResponse) error {
 	return h.NetworkHandler.Services(ctx, in, out)
+}
+
+func (h *networkHandler) Status(ctx context.Context, in *StatusRequest, out *StatusResponse) error {
+	return h.NetworkHandler.Status(ctx, in, out)
 }

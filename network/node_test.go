@@ -21,6 +21,7 @@ func testSetup() *node {
 		address: testNodeAddress,
 		peers:   make(map[string]*node),
 		network: newNetwork(Name(testNodeNetName)),
+		err:     new(nodeError),
 	}
 
 	// add some peers to the node
@@ -30,6 +31,7 @@ func testSetup() *node {
 			address: testNode.address + "-" + id,
 			peers:   make(map[string]*node),
 			network: testNode.network,
+			err:     new(nodeError),
 		}
 	}
 
@@ -41,6 +43,7 @@ func testSetup() *node {
 			address: testNode.address + "-" + id,
 			peers:   make(map[string]*node),
 			network: testNode.network,
+			err:     new(nodeError),
 		}
 	}
 
@@ -269,6 +272,7 @@ func TestUnpackPeerTopology(t *testing.T) {
 		Node: &pb.Node{
 			Id:      "newPeer",
 			Address: "newPeerAddress",
+			Err:     &pb.NodeError{},
 		},
 		Peers: make([]*pb.Peer, 0),
 	}
@@ -284,12 +288,14 @@ func TestUnpackPeerTopology(t *testing.T) {
 	pbPeer1Node := &pb.Node{
 		Id:      peer1.id,
 		Address: peer1.address,
+		Err:     &pb.NodeError{},
 	}
 
 	pbPeer111 := &pb.Peer{
 		Node: &pb.Node{
 			Id:      "peer111",
 			Address: "peer111Address",
+			Err:     &pb.NodeError{},
 		},
 		Peers: make([]*pb.Peer, 0),
 	}
@@ -298,6 +304,7 @@ func TestUnpackPeerTopology(t *testing.T) {
 		Node: &pb.Node{
 			Id:      "peer121",
 			Address: "peer121Address",
+			Err:     &pb.NodeError{},
 		},
 		Peers: make([]*pb.Peer, 0),
 	}
@@ -324,6 +331,7 @@ func TestPeersToProto(t *testing.T) {
 		address: testNodeAddress,
 		peers:   make(map[string]*node),
 		network: newNetwork(Name(testNodeNetName)),
+		err:     &nodeError{},
 	}
 	topCount := 0
 

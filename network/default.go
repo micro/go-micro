@@ -165,6 +165,7 @@ func newNetwork(opts ...Option) Network {
 			id:      options.Id,
 			address: peerAddress,
 			peers:   make(map[string]*node),
+			status:  newStatus(),
 		},
 		options:    options,
 		router:     options.Router,
@@ -780,6 +781,7 @@ func (n *network) processNetChan(listener tunnel.Listener) {
 					address:  pbNetConnect.Node.Address,
 					link:     m.msg.Header["Micro-Link"],
 					peers:    make(map[string]*node),
+					status:   newStatus(),
 					lastSeen: now,
 				}
 
@@ -874,10 +876,16 @@ func (n *network) processNetChan(listener tunnel.Listener) {
 				log.Debugf("Network received peer message from: %s %s", pbNetPeer.Node.Id, pbNetPeer.Node.Address)
 
 				peer := &node{
-					id:       pbNetPeer.Node.Id,
-					address:  pbNetPeer.Node.Address,
-					link:     m.msg.Header["Micro-Link"],
-					peers:    make(map[string]*node),
+					id:      pbNetPeer.Node.Id,
+					address: pbNetPeer.Node.Address,
+					link:    m.msg.Header["Micro-Link"],
+					peers:   make(map[string]*node),
+					status: &status{
+						err: &nerr{
+							count: int(pbNetPeer.Node.Status.Error.Count),
+							msg:   errors.New(pbNetPeer.Node.Status.Error.Msg),
+						},
+					},
 					lastSeen: now,
 				}
 
@@ -973,10 +981,16 @@ func (n *network) processNetChan(listener tunnel.Listener) {
 				log.Debugf("Network received sync message from: %s", pbNetSync.Peer.Node.Id)
 
 				peer := &node{
-					id:       pbNetSync.Peer.Node.Id,
-					address:  pbNetSync.Peer.Node.Address,
-					link:     m.msg.Header["Micro-Link"],
-					peers:    make(map[string]*node),
+					id:      pbNetSync.Peer.Node.Id,
+					address: pbNetSync.Peer.Node.Address,
+					link:    m.msg.Header["Micro-Link"],
+					peers:   make(map[string]*node),
+					status: &status{
+						err: &nerr{
+							count: int(pbNetSync.Peer.Node.Status.Error.Count),
+							msg:   errors.New(pbNetSync.Peer.Node.Status.Error.Msg),
+						},
+					},
 					lastSeen: now,
 				}
 
@@ -1328,13 +1342,19 @@ func (n *network) sendTo(method, channel string, peer *node, msg proto.Message) 
 	if err != nil {
 		return err
 	}
+
 	// Create a unicast connection to the peer but don't do the open/accept flow
 	c, err := n.tunnel.Dial(channel, tunnel.DialWait(false), tunnel.DialLink(peer.link))
 	if err != nil {
-		// increment the peer error count; prune peer if we exceed MaxPeerErrors
-		peer.err.Increment()
-		if count := peer.err.GetCount(); count == MaxPeerErrors {
-			n.PrunePeer(peer.id)
+		if peerNode := n.GetPeerNode(peer.id); peerNode != nil {
+			log.Debugf("Network found peer %s: %v", peer.id, peerNode)
+			// update node status when error happens
+			peerNode.status.err.Update(err)
+			log.Debugf("Network increment node peer %p %v count to: %d", peerNode, peerNode, peerNode.status.Error().Count())
+			if count := peerNode.status.Error().Count(); count == MaxPeerErrors {
+				log.Debugf("Network node peer %v count exceeded %d: %d", peerNode, MaxPeerErrors, peerNode.status.Error().Count())
+				n.PrunePeer(peerNode.id)
+			}
 		}
 		return err
 	}
@@ -1361,10 +1381,16 @@ func (n *network) sendTo(method, channel string, peer *node, msg proto.Message) 
 	}
 
 	if err := c.Send(tmsg); err != nil {
-		// increment the peer error count; prune peer if we exceed MaxPeerErrors
-		peer.err.Increment()
-		if count := peer.err.GetCount(); count == MaxPeerErrors {
-			n.PrunePeer(peer.id)
+		// TODO: Lookup peer in our graph
+		if peerNode := n.GetPeerNode(peer.id); peerNode != nil {
+			log.Debugf("Network found peer %s: %v", peer.id, peerNode)
+			// update node status when error happens
+			peerNode.status.err.Update(err)
+			log.Debugf("Network increment node peer %p %v count to: %d", peerNode, peerNode, peerNode.status.Error().Count())
+			if count := peerNode.status.Error().Count(); count == MaxPeerErrors {
+				log.Debugf("Network node peer %v count exceeded %d: %d", peerNode, MaxPeerErrors, peerNode.status.Error().Count())
+				n.PrunePeer(peerNode.id)
+			}
 		}
 		return err
 	}
