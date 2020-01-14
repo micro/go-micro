@@ -286,7 +286,7 @@ func (n *network) advertise(advertChan <-chan *router.Advert) {
 				address := event.Route.Address
 
 				// only hash the address if we're advertising our own local routes
-				if event.Route.Router == advert.Id {
+				if event.Route.Router == advert.Id && event.Route.Address != "*" {
 					// hash the service before advertising it
 					hasher.Reset()
 					// routes for multiple instances of a service will be collapsed here.
