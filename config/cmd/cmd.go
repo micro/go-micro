@@ -273,7 +273,7 @@ var (
 	// used for default selection as the fall back
 	defaultClient    = "grpc"
 	defaultServer    = "grpc"
-	defaultBroker    = "http"
+	defaultBroker    = "nats"
 	defaultRegistry  = "mdns"
 	defaultSelector  = "registry"
 	defaultTransport = "http"

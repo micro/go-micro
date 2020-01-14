@@ -13,6 +13,8 @@ type Options struct {
 	Secure    bool
 	Codec     codec.Marshaler
 	TLSConfig *tls.Config
+	// Registry used for clustering
+	Registry registry.Registry
 	// Other options for implementations of the interface
 	// can be stored in a context
 	Context context.Context
@@ -92,7 +94,7 @@ func Queue(name string) SubscribeOption {
 
 func Registry(r registry.Registry) Option {
 	return func(o *Options) {
-		o.Context = context.WithValue(o.Context, registryKey, r)
+		o.Registry = r
 	}
 }
 
