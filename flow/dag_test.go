@@ -60,7 +60,7 @@ func TestExecutor(t *testing.T) {
 	req := &proto.Test{Name: "req"}
 	rsp := &proto.Test{}
 
-	rid, err := exc.FlowExecute(ctx, "default", req, rsp, ExecuteAsync(false))
+	rid, err := exc.Execute(ctx, "default", req, rsp, ExecuteAsync(false))
 	if err != nil {
 		t.Fatal(err)
 	}

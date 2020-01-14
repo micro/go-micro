@@ -50,19 +50,19 @@ func NewExecutor(opts ...ExecutorOption) Executor {
 	return exc
 }
 
-func (exc *defaultExecutor) FlowAbort(ctx context.Context, flow string, rid string) error {
+func (exc *defaultExecutor) Abort(ctx context.Context, flow string, rid string) error {
 	return nil
 }
 
-func (exc *defaultExecutor) FlowPause(ctx context.Context, flow string, rid string) error {
+func (exc *defaultExecutor) Pause(ctx context.Context, flow string, rid string) error {
 	return nil
 }
 
-func (exc *defaultExecutor) FlowResume(ctx context.Context, flow string, rid string) error {
+func (exc *defaultExecutor) Resume(ctx context.Context, flow string, rid string) error {
 	return nil
 }
 
-func (exc *defaultExecutor) FlowExecute(ctx context.Context, flow string, req interface{}, rsp interface{}, opts ...ExecuteOption) (string, error) {
+func (exc *defaultExecutor) Execute(ctx context.Context, flow string, req interface{}, rsp interface{}, opts ...ExecuteOption) (string, error) {
 
 	if exc.pool == nil {
 		return "", fmt.Errorf("executor not initialized")

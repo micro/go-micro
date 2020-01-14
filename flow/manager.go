@@ -3,8 +3,6 @@ package flow
 type Manager interface {
 	Init(...ManagerOption) error
 	Options() ManagerOptions
-	Load(name string) (*Flow, error)
-	Save(flow *Flow) error
 	Register(*Flow, ...RegisterOption) error
 	Deregister(*Flow, ...DeregisterOption) error
 }

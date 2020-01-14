@@ -21,26 +21,22 @@ func NewManager(opts ...ManagerOption) Manager {
 	return mgr
 }
 
-func (m *defaultManager) Register(*Flow, ...RegisterOption) error {
+func (mgr *defaultManager) Register(flow *Flow, opts ...RegisterOption) error {
 	return nil
 }
 
-func (m *defaultManager) Deregister(flow *Flow, opts ...DeregisterOption) error {
+func (mgr *defaultManager) Deregister(flow *Flow, opts ...DeregisterOption) error {
 	return nil
 }
 
-func (m *defaultManager) Init(opts ...ManagerOption) error {
+func (mgr *defaultManager) Init(opts ...ManagerOption) error {
+	for _, opt := range opts {
+		opt(&mgr.options)
+	}
+
 	return nil
 }
 
-func (m *defaultManager) Options() ManagerOptions {
-	return m.options
-}
-
-func (m *defaultManager) Load(flow string) (*Flow, error) {
-	return nil, nil
-}
-
-func (m *defaultManager) Save(flow *Flow) error {
-	return nil
+func (mgr *defaultManager) Options() ManagerOptions {
+	return mgr.options
 }

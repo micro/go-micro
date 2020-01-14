@@ -11,13 +11,13 @@ import (
 // Executor run flows and control it exection
 type Executor interface {
 	// Execuute specific flow execution with data
-	FlowExecute(ctx context.Context, flow string, req interface{}, rsp interface{}, opts ...ExecuteOption) (string, error)
+	Execute(ctx context.Context, flow string, req interface{}, rsp interface{}, opts ...ExecuteOption) (string, error)
 	// Resume suspended flow execution
-	FlowResume(ctx context.Context, flow, rid string) error
+	Resume(ctx context.Context, flow, rid string) error
 	// Pause flow execution
-	FlowPause(ctx context.Context, flow, rid string) error
+	Pause(ctx context.Context, flow, rid string) error
 	// Abort flow execution
-	FlowAbort(ctx context.Context, flow, rid string) error
+	Abort(ctx context.Context, flow, rid string) error
 	// Init Executor
 	Init(...ExecutorOption) error
 	// Stop executor and drain active workers
