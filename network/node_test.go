@@ -233,9 +233,8 @@ func TestPrunePeer(t *testing.T) {
 func TestPruneStalePeers(t *testing.T) {
 	// complicated node graph
 	node := testSetup()
-
 	nodes := node.Nodes()
-
+	// this will delete all nodes besides the root node
 	pruneTime := 10 * time.Millisecond
 	time.Sleep(pruneTime)
 
@@ -244,6 +243,24 @@ func TestPruneStalePeers(t *testing.T) {
 
 	if len(pruned) != len(nodes)-1 {
 		t.Errorf("Expected pruned node count: %d, got: %d", len(nodes)-1, len(pruned))
+	}
+
+	// complicated node graph
+	node = testSetup()
+	nodes = node.Nodes()
+
+	// set prune time to 100ms and wait for half of it
+	pruneTime = 100 * time.Millisecond
+	time.Sleep(pruneTime)
+
+	// update the time of peer1
+	node.peers["peer1"].lastSeen = time.Now()
+
+	// should prune all but the root nodes and peer1
+	pruned = node.PruneStalePeers(pruneTime)
+
+	if len(pruned) != len(nodes)-2 {
+		t.Errorf("Expected pruned node count: %d, got: %d", len(nodes)-2, len(pruned))
 	}
 }
 

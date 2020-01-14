@@ -102,7 +102,6 @@ func (n *node) walk(until func(peer *node) bool, action func(parent, peer *node)
 	for queue.Len() > 0 {
 		// pop the node from the front of the queue
 		qnode := queue.Front()
-		//fmt.Printf("qnodeValue: %v\n", qnode.Value.(*node))
 		if until(qnode.Value.(*node)) {
 			return visited
 		}
@@ -112,7 +111,6 @@ func (n *node) walk(until func(peer *node) bool, action func(parent, peer *node)
 			action(qnode.Value.(*node), peer)
 			if _, ok := visited[id]; !ok {
 				visited[id] = peer
-				//action(qnode.Value.(*node), peer)
 				queue.PushBack(peer)
 			}
 		}
