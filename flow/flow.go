@@ -42,12 +42,6 @@ type Step struct {
 
 type Option func(*Options)
 
-func FlowStore(s FlowStore) Option {
-	return func(o *Options) {
-		o.FlowStore = s
-	}
-}
-
 type Options struct {
 	// Number of worker goroutines
 	Concurrency int
