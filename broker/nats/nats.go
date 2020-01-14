@@ -156,8 +156,9 @@ func (n *natsBroker) serve(exit chan bool) {
 	if err == nil {
 		for _, service := range services {
 			for _, node := range service.Nodes {
-				u, err := url.Parse(node.Address)
+				u, err := url.Parse("nats://" + node.Address)
 				if err != nil {
+					log.Log(err)
 					continue
 				}
 				// append to the cluster routes
@@ -169,9 +170,15 @@ func (n *natsBroker) serve(exit chan bool) {
 	// try get existing server
 	s := n.server
 
+	// get a host address
+	caddr, err := addr.Extract("")
+	if err != nil {
+		caddr = "0.0.0.0"
+	}
+
 	// set cluster opts
 	cOpts = server.ClusterOpts{
-		Host: "0.0.0.0",
+		Host: caddr,
 		Port: -1,
 	}
 
