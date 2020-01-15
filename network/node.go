@@ -70,12 +70,22 @@ func newStatus() *status {
 }
 
 func newPeerStatus(peer *pb.Peer) *status {
-	return &status{
-		err: &nerr{
-			count: int(peer.Node.Status.Error.Count),
-			msg:   errors.New(peer.Node.Status.Error.Msg),
-		},
+	status := &status{
+		err: new(nerr),
 	}
+
+	// if Node.Status is nil, return empty status
+	if peer.Node.Status == nil {
+		return status
+	}
+
+	// if peer.Node.Status.Error is NOT nil, update status fields
+	if err := peer.Node.Status.GetError(); err != nil {
+		status.err.count = int(peer.Node.Status.Error.Count)
+		status.err.msg = errors.New(peer.Node.Status.Error.Msg)
+	}
+
+	return status
 }
 
 func (s *status) Error() Error {
