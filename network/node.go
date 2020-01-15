@@ -21,15 +21,15 @@ var (
 	ErrPeerNotFound = errors.New("peer not found")
 )
 
-// nerr tracks node errors
-type nerr struct {
+// nodeError tracks node errors
+type nodeError struct {
 	sync.RWMutex
 	count int
 	msg   error
 }
 
 // Increment increments node error count
-func (e *nerr) Update(err error) {
+func (e *nodeError) Update(err error) {
 	e.Lock()
 	defer e.Unlock()
 
@@ -38,14 +38,14 @@ func (e *nerr) Update(err error) {
 }
 
 // Count returns node error count
-func (e *nerr) Count() int {
+func (e *nodeError) Count() int {
 	e.RLock()
 	defer e.RUnlock()
 
 	return e.count
 }
 
-func (e *nerr) Msg() string {
+func (e *nodeError) Msg() string {
 	e.RLock()
 	defer e.RUnlock()
 
@@ -59,19 +59,19 @@ func (e *nerr) Msg() string {
 // status returns node status
 type status struct {
 	sync.RWMutex
-	err *nerr
+	err *nodeError
 }
 
 // newStatus creates
 func newStatus() *status {
 	return &status{
-		err: new(nerr),
+		err: new(nodeError),
 	}
 }
 
 func newPeerStatus(peer *pb.Peer) *status {
 	status := &status{
-		err: new(nerr),
+		err: new(nodeError),
 	}
 
 	// if Node.Status is nil, return empty status
@@ -92,7 +92,7 @@ func (s *status) Error() Error {
 	s.RLock()
 	defer s.RUnlock()
 
-	return &nerr{
+	return &nodeError{
 		count: s.err.count,
 		msg:   s.err.msg,
 	}
@@ -140,7 +140,7 @@ func (n *node) Status() Status {
 	defer n.RUnlock()
 
 	return &status{
-		err: &nerr{
+		err: &nodeError{
 			count: n.status.err.count,
 			msg:   n.status.err.msg,
 		},
@@ -441,15 +441,10 @@ func (n *node) Peers() []Node {
 // UnpackPeerTopology unpacks pb.Peer into node topology of given depth
 func UnpackPeerTopology(pbPeer *pb.Peer, lastSeen time.Time, depth uint) *node {
 	peerNode := &node{
-		id:      pbPeer.Node.Id,
-		address: pbPeer.Node.Address,
-		peers:   make(map[string]*node),
-		status: &status{
-			err: &nerr{
-				count: int(pbPeer.Node.Status.Error.Count),
-				msg:   errors.New(pbPeer.Node.Status.Error.Msg),
-			},
-		},
+		id:       pbPeer.Node.Id,
+		address:  pbPeer.Node.Address,
+		peers:    make(map[string]*node),
+		status:   newPeerStatus(pbPeer),
 		lastSeen: lastSeen,
 	}
 
