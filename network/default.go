@@ -277,10 +277,37 @@ func (n *network) acceptCtrlConn(l tunnel.Listener, recv chan *message) {
 	}
 }
 
+// maskRoute will mask the route so that we apply the right values
+func (n *network) maskRoute(r *pbRtr.Route) {
+	hasher := fnv.New64()
+	// the routes service address
+	address := r.Address
+
+	// only hash the address if we're advertising our own local routes
+	// avoid hashing * based routes
+	if r.Router == n.Id() && r.Address != "*" {
+		// hash the service before advertising it
+		hasher.Reset()
+		// routes for multiple instances of a service will be collapsed here.
+		// TODO: once we store labels in the table this may need to change
+		// to include the labels in case they differ but highly unlikely
+		hasher.Write([]byte(r.Service + n.Address()))
+		address = fmt.Sprintf("%d", hasher.Sum64())
+	}
+
+	// calculate route metric to advertise
+	metric := n.getRouteMetric(r.Router, r.Gateway, r.Link)
+
+	// NOTE: we override Gateway, Link and Address here
+	r.Address = address
+	r.Gateway = n.Address()
+	r.Link = DefaultLink
+	r.Metric = metric
+}
+
 // advertise advertises routes to the network
 func (n *network) advertise(advertChan <-chan *router.Advert) {
 	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
-	hasher := fnv.New64()
 	for {
 		select {
 		// process local adverts and randomly fire them at other nodes
@@ -289,36 +316,26 @@ func (n *network) advertise(advertChan <-chan *router.Advert) {
 			var events []*pbRtr.Event
 
 			for _, event := range advert.Events {
-				// the routes service address
-				address := event.Route.Address
-
-				// only hash the address if we're advertising our own local routes
-				if event.Route.Router == advert.Id && event.Route.Address != "*" {
-					// hash the service before advertising it
-					hasher.Reset()
-					// routes for multiple instances of a service will be collapsed here.
-					// TODO: once we store labels in the table this may need to change
-					// to include the labels in case they differ but highly unlikely
-					hasher.Write([]byte(event.Route.Service + n.node.Address()))
-					address = fmt.Sprintf("%d", hasher.Sum64())
-				}
-				// calculate route metric to advertise
-				metric := n.getRouteMetric(event.Route.Router, event.Route.Gateway, event.Route.Link)
-				// NOTE: we override Gateway, Link and Address here
+				// make a copy of the route
 				route := &pbRtr.Route{
 					Service: event.Route.Service,
-					Address: address,
-					Gateway: n.node.Address(),
+					Address: event.Route.Address,
+					Gateway: event.Route.Gateway,
 					Network: event.Route.Network,
 					Router:  event.Route.Router,
-					Link:    DefaultLink,
-					Metric:  metric,
+					Link:    event.Route.Link,
+					Metric:  event.Route.Metric,
 				}
+
+				// override the various values
+				n.maskRoute(route)
+
 				e := &pbRtr.Event{
 					Type:      pbRtr.EventType(event.Type),
 					Timestamp: event.Timestamp.UnixNano(),
 					Route:     route,
 				}
+
 				events = append(events, e)
 			}
 
@@ -365,14 +382,25 @@ func (n *network) advertise(advertChan <-chan *router.Advert) {
 			default:
 				// get a list of node peers
 				peers := n.Peers()
+
+				// only proceed if we have a peer
+				if len(peers) == 0 {
+					continue
+				}
+
 				// pick a random peer from the list of peers
-				if peer := n.node.GetPeerNode(peers[rnd.Intn(len(peers))].Id()); peer != nil {
-					if err := n.sendTo("advert", ControlChannel, peer, msg); err != nil {
-						log.Debugf("Network failed to advertise routes to %s: %v, sending multicast", peer.Id(), err)
-						// send a multicast message if we fail to send Unicast message
-						if err := n.sendMsg("advert", ControlChannel, msg); err != nil {
-							log.Debugf("Network failed to advertise routes to %s: %v", peer.Id(), err)
-						}
+				peer := n.node.GetPeerNode(peers[rnd.Intn(len(peers))].Id())
+				// only proceed with a peer
+				if peer == nil {
+					continue
+				}
+
+				// attempt to send the advert to the peer
+				if err := n.sendTo("advert", ControlChannel, peer, msg); err != nil {
+					log.Debugf("Network failed to advertise routes to %s: %v, sending multicast", peer.Id(), err)
+					// send a multicast message if we fail to send Unicast message
+					if err := n.sendMsg("advert", ControlChannel, msg); err != nil {
+						log.Debugf("Network failed to advertise routes to %s: %v", peer.Id(), err)
 					}
 				}
 			}
@@ -829,7 +857,11 @@ func (n *network) processNetChan(listener tunnel.Listener) {
 						// encode the routes to protobuf
 						pbRoutes := make([]*pbRtr.Route, 0, len(routes))
 						for _, route := range routes {
+							// generate new route proto
 							pbRoute := pbUtil.RouteToProto(route)
+							// mask the route before outbounding
+							n.maskRoute(pbRoute)
+							// add to list of routes
 							pbRoutes = append(pbRoutes, pbRoute)
 						}
 						// pack the routes into the sync message
