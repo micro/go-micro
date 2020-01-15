@@ -334,11 +334,17 @@ func (n *network) advertise(advertChan <-chan *router.Advert) {
 				// get a list of node peers
 				peers := n.Peers()
 
+				// there is no one to send to
+				if len(peers) == 0 {
+					continue
+				}
+
 				// advertise to max 3 peers
 				max := len(peers)
 				if max > 3 {
 					max = 3
 				}
+
 				for i := 0; i < max; i++ {
 					if peer := n.node.GetPeerNode(peers[rnd.Intn(len(peers))].Id()); peer != nil {
 						if err := n.sendTo("advert", ControlChannel, peer, msg); err != nil {
@@ -346,6 +352,7 @@ func (n *network) advertise(advertChan <-chan *router.Advert) {
 						}
 					}
 				}
+
 				continue
 			}
 
@@ -1268,6 +1275,12 @@ func (n *network) manage() {
 		case <-netsync.C:
 			// get a list of node peers
 			peers := n.Peers()
+
+			// skip when there are no peers
+			if len(peers) == 0 {
+				continue
+			}
+
 			// pick a random peer from the list of peers and request full sync
 			peer := n.node.GetPeerNode(peers[rnd.Intn(len(peers))].Id())
 			// skip if we can't find randmly selected peer
