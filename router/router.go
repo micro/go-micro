@@ -146,6 +146,7 @@ type Advert struct {
 // Strategy is route advertisement strategy
 type Strategy int
 
+// TODO: remove the "Advertise" prefix from these
 const (
 	// AdvertiseAll advertises all routes to the network
 	AdvertiseAll Strategy = iota

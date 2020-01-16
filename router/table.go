@@ -135,7 +135,7 @@ func (t *table) List() ([]Route, error) {
 }
 
 // isMatch checks if the route matches given query options
-func isMatch(route Route, address, gateway, network, router string) bool {
+func isMatch(route Route, address, gateway, network, router string, strategy Strategy) bool {
 	// matches the values provided
 	match := func(a, b string) bool {
 		if a == "*" || a == b {
@@ -150,12 +150,20 @@ func isMatch(route Route, address, gateway, network, router string) bool {
 		b string
 	}
 
+	// by default assume we are querying all routes
+	link := "*"
+	// if AdvertiseLocal change the link query accordingly
+	if strategy == AdvertiseLocal {
+		link = "local"
+	}
+
 	// compare the following values
 	values := []compare{
 		{gateway, route.Gateway},
 		{network, route.Network},
 		{router, route.Router},
 		{address, route.Address},
+		{link, route.Link},
 	}
 
 	for _, v := range values {
@@ -169,13 +177,46 @@ func isMatch(route Route, address, gateway, network, router string) bool {
 }
 
 // findRoutes finds all the routes for given network and router and returns them
-func findRoutes(routes map[uint64]Route, address, gateway, network, router string) []Route {
-	var results []Route
+func findRoutes(routes map[uint64]Route, address, gateway, network, router string, strategy Strategy) []Route {
+	// routeMap stores the routes we're going to advertise
+	routeMap := make(map[string][]Route)
+
 	for _, route := range routes {
-		if isMatch(route, address, gateway, network, router) {
-			results = append(results, route)
+		if isMatch(route, address, gateway, network, router, strategy) {
+			// add matchihg route to the routeMap
+			routeKey := route.Service + "@" + route.Network
+			// append the first found route to routeMap
+			_, ok := routeMap[routeKey]
+			if !ok {
+				routeMap[routeKey] = append(routeMap[routeKey], route)
+				continue
+			}
+
+			// if AdvertiseAll, keep appending
+			if strategy == AdvertiseAll || strategy == AdvertiseLocal {
+				routeMap[routeKey] = append(routeMap[routeKey], route)
+				continue
+			}
+
+			// now we're going to find the best routes
+			if strategy == AdvertiseBest {
+				// if the current optimal route metric is higher than routing table route, replace it
+				if len(routeMap[routeKey]) > 0 {
+					// NOTE: we know that when AdvertiseBest is set, we only ever have one item in current
+					if routeMap[routeKey][0].Metric > route.Metric {
+						routeMap[routeKey][0] = route
+						continue
+					}
+				}
+			}
 		}
 	}
+
+	var results []Route
+	for _, route := range routeMap {
+		results = append(results, route...)
+	}
+
 	return results
 }
 
@@ -187,17 +228,24 @@ func (t *table) Query(q ...QueryOption) ([]Route, error) {
 	// create new query options
 	opts := NewQuery(q...)
 
+	// create a cwslicelist of query results
+	results := make([]Route, 0, len(t.routes))
+
+	// if No routes are queried, return early
+	if opts.Strategy == AdvertiseNone {
+		return results, nil
+	}
+
 	if opts.Service != "*" {
 		if _, ok := t.routes[opts.Service]; !ok {
 			return nil, ErrRouteNotFound
 		}
-		return findRoutes(t.routes[opts.Service], opts.Address, opts.Gateway, opts.Network, opts.Router), nil
+		return findRoutes(t.routes[opts.Service], opts.Address, opts.Gateway, opts.Network, opts.Router, opts.Strategy), nil
 	}
 
-	results := make([]Route, 0, len(t.routes))
 	// search through all destinations
 	for _, routes := range t.routes {
-		results = append(results, findRoutes(routes, opts.Address, opts.Gateway, opts.Network, opts.Router)...)
+		results = append(results, findRoutes(routes, opts.Address, opts.Gateway, opts.Network, opts.Router, opts.Strategy)...)
 	}
 
 	return results, nil

@@ -15,6 +15,8 @@ type QueryOptions struct {
 	Network string
 	// Router is router id
 	Router string
+	// Strategy is routing strategy
+	Strategy Strategy
 }
 
 // QueryService sets service to query
@@ -52,15 +54,23 @@ func QueryRouter(r string) QueryOption {
 	}
 }
 
+// QueryStrategy sets strategy to query
+func QueryStrategy(s Strategy) QueryOption {
+	return func(o *QueryOptions) {
+		o.Strategy = s
+	}
+}
+
 // NewQuery creates new query and returns it
 func NewQuery(opts ...QueryOption) QueryOptions {
 	// default options
 	qopts := QueryOptions{
-		Service: "*",
-		Address: "*",
-		Gateway: "*",
-		Network: "*",
-		Router:  "*",
+		Service:  "*",
+		Address:  "*",
+		Gateway:  "*",
+		Network:  "*",
+		Router:   "*",
+		Strategy: AdvertiseAll,
 	}
 
 	for _, o := range opts {
