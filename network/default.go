@@ -1070,10 +1070,8 @@ func (n *network) processNetChan(listener tunnel.Listener) {
 					// we found no routes for the given service
 					// create the new route we have just received
 					if len(routes) == 0 {
-						// add routes to the routing table
 						if err := n.router.Table().Create(route); err != nil && err != router.ErrDuplicateRoute {
 							log.Debugf("Network node %s failed to add route: %v", n.id, err)
-							continue
 						}
 						continue
 					}
