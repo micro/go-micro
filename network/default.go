@@ -850,8 +850,11 @@ func (n *network) processNetChan(listener tunnel.Listener) {
 						Peer: node,
 					}
 
-					// get a list of all of our routes
-					routes, err := n.options.Router.Table().List()
+					// get a list of the best routes for each service in our routing table
+					q := []router.QueryOption{
+						router.QueryStrategy(n.router.Options().Advertise),
+					}
+					routes, err := n.router.Table().Query(q...)
 					switch err {
 					case nil:
 						// encode the routes to protobuf
@@ -1045,7 +1048,52 @@ func (n *network) processNetChan(listener tunnel.Listener) {
 
 				// add all the routes we have received in the sync message
 				for _, pbRoute := range pbNetSync.Routes {
+					// unmarshal the routes received from remote peer
 					route := pbUtil.ProtoToRoute(pbRoute)
+					// continue if we are the originator of the route
+					if route.Router == n.router.Options().Id {
+						log.Debugf("Network node %s skipping route addition: route already present", n.id)
+						continue
+					}
+					// lookup best routes for the services in the just received route
+					q := []router.QueryOption{
+						router.QueryService(route.Service),
+						router.QueryStrategy(n.router.Options().Advertise),
+					}
+
+					routes, err := n.router.Table().Query(q...)
+					if err != nil {
+						log.Debugf("Network node %s failed listing best routes for %s: %v", n.id, route.Service, err)
+						continue
+					}
+
+					// we found no routes for the given service
+					// create the new route we have just received
+					if len(routes) == 0 {
+						if err := n.router.Table().Create(route); err != nil && err != router.ErrDuplicateRoute {
+							log.Debugf("Network node %s failed to add route: %v", n.id, err)
+						}
+						continue
+					}
+
+					// find the best route for the given service
+					// from the routes that we would advertise
+					bestRoute := routes[0]
+					for _, r := range routes[0:] {
+						if bestRoute.Metric > r.Metric {
+							bestRoute = r
+						}
+					}
+
+					// Take the best route to given service and:
+					// only add new routes if the metric is better
+					// than the metric of our best route
+
+					if bestRoute.Metric <= route.Metric {
+						continue
+					}
+
+					// add route to the routing table
 					if err := n.router.Table().Create(route); err != nil && err != router.ErrDuplicateRoute {
 						log.Debugf("Network node %s failed to add route: %v", n.id, err)
 					}
@@ -1328,8 +1376,11 @@ func (n *network) manage() {
 					Peer: node,
 				}
 
-				// get a list of all of our routes
-				routes, err := n.options.Router.Table().List()
+				// get a list of the best routes for each service in our routing table
+				q := []router.QueryOption{
+					router.QueryStrategy(n.router.Options().Advertise),
+				}
+				routes, err := n.router.Table().Query(q...)
 				switch err {
 				case nil:
 					// encode the routes to protobuf
