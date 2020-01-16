@@ -3,9 +3,6 @@ package flow
 import (
 	"context"
 	"time"
-
-	"github.com/micro/go-micro/broker"
-	"github.com/micro/go-micro/client"
 )
 
 type Flow interface {
@@ -14,9 +11,9 @@ type Flow interface {
 	// Get flow options
 	Options() Options
 	// Create step in flow
-	CreateStep(flow string, step *Step) error
-	// Remove step from flow
-	RemoveStep(flow string, step *Step) error
+	CreateStep(ctx context.Context, flow string, step *Step) error
+	// Delete step from flow
+	DeleteStep(ctx context.Context, flow string, step *Step) error
 	// Execute specific flow execution and returns reqID and error
 	Execute(ctx context.Context, flow string, req interface{}, rsp interface{}, opts ...ExecuteOption) (string, error)
 	// Resume suspended flow execution
@@ -52,7 +49,7 @@ type Options struct {
 	// Wait completiong before stop
 	Wait bool
 	// StateStore is used for flow state marking
-	StateStore StateStore
+	StateStore DataStore
 	// DataStore is used for intermediate data passed between flow nodes
 	DataStore DataStore
 	// FlowStore is used for storing flows
@@ -68,10 +65,6 @@ type Options struct {
 }
 
 type ExecuteOptions struct {
-	// Client to use for communication
-	Client client.Client
-	// Broker to use for communication
-	Broker broker.Broker
 	// Timeout for currenct execition
 	Timeout time.Duration
 	// Async execution run
@@ -85,8 +78,6 @@ type ExecuteOptions struct {
 }
 
 type ExecuteOption func(*ExecuteOptions)
-
-type ExecutorOption func(*ExecutorOptions)
 
 // Wait for flow completion before stop
 func WithWait(b bool) Option {
@@ -123,36 +114,22 @@ func WithConcurrency(c int) Option {
 	}
 }
 
-// Client for communication
-func ExecuteClient(c client.Client) ExecuteOption {
-	return func(o *ExecuteOptions) {
-		o.Client = c
-	}
-}
-
-// Broker for communication
-func ExecuteBroker(b broker.Broker) ExecuteOption {
-	return func(o *ExecuteOptions) {
-		o.Broker = b
-	}
-}
-
 // State store implementation
-func WithStateStore(s Store) Option {
+func WithStateStore(s DataStore) Option {
 	return func(o *Options) {
 		o.StateStore = s
 	}
 }
 
 // Data store implementation
-func WithDataStore(s Store) Option {
+func WithDataStore(s DataStore) Option {
 	return func(o *Options) {
 		o.DataStore = s
 	}
 }
 
 // Flow store implementation
-func WithFlowStore(s Store) Option {
+func WithFlowStore(s FlowStore) Option {
 	return func(o *Options) {
 		o.FlowStore = s
 	}
@@ -169,13 +146,6 @@ func WithEventHandler(h EventHandler) Option {
 func WithLogger(l Logger) Option {
 	return func(o *Options) {
 		o.Logger = l
-	}
-}
-
-// Default Timeout for flows
-func WithTimeout(td time.Duration) Option {
-	return func(o *Options) {
-		o.Timeout = td
 	}
 }
 

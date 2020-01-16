@@ -2,9 +2,23 @@ package flow
 
 import (
 	"context"
+	"errors"
 )
 
-type Store interface {
+var (
+	// Not found error when flow is not found
+	ErrFlowNotFound = errors.New("flow not found")
+)
+
+type FlowStore interface {
+	Init() error
+	Read(ctx context.Context, flow string) ([]byte, error)
+	Write(ctx context.Context, flow string, data []byte) error
+	String() string
+	Close(ctx context.Context) error
+}
+
+type DataStore interface {
 	Init() error
 	Read(ctx context.Context, flow, rid string, key []byte) ([]byte, error)
 	Write(ctx context.Context, flow, rid string, key []byte, val []byte) error

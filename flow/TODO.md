@@ -1,3 +1,5 @@
+if Requires == []string{"all"} service requires all, add all services to deps exclude that have requires all
+
 1) create manager
 2) create flow
 3) subscribe service handler to flow

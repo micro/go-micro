@@ -1,5 +1,24 @@
 syntax = "proto3";
 
+package proto;
+
 message Test {
   string name = 1;
+};
+
+message Steps {
+  repeated Step steps = 1;
+};
+
+message Step {
+  string name = 1;
+  repeated string requires = 2;
+  repeated string required = 3;
+  repeated Operation operations = 4;
+};
+
+message Operation {
+  string name = 1;
+  string type = 2;
+  map<string,string> options = 3;
 };

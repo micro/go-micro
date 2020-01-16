@@ -7,8 +7,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gogo/protobuf/proto"
+	"github.com/golang/protobuf/proto"
 	"github.com/google/uuid"
+	pbFlow "github.com/micro/go-micro/flow/proto"
 	"github.com/panjf2000/ants/v2"
 )
 
@@ -26,46 +27,82 @@ type flowJob struct {
 }
 
 var (
-	DefaultExecutorConcurrency = 100
-	DefaultExecuteConcurrency  = 10
+	DefaultConcurrency        = 100
+	DefaultExecuteConcurrency = 10
 )
 
-type defaultExecutor struct {
+type microFlow struct {
 	sync.RWMutex
-	options ExecutorOptions
+	options Options
 	pool    *ants.PoolWithFunc
 }
 
 // Create default executor
-func NewExecutor(opts ...ExecutorOption) Executor {
-	options := ExecutorOptions{}
+func NewFlow(opts ...Option) Flow {
+	options := Options{}
 	for _, opt := range opts {
 		opt(&options)
 	}
 
-	exc := &defaultExecutor{
+	fl := &microFlow{
 		options: options,
 	}
 
-	return exc
+	return fl
 }
 
-func (exc *defaultExecutor) Abort(ctx context.Context, flow string, rid string) error {
+func (fl *microFlow) CreateStep(ctx context.Context, name string, step *Step) error {
+	var err error
+	var buf []byte
+
+	steps := &pbFlow.Steps{}
+
+	buf, err = fl.options.FlowStore.Read(ctx, name)
+	switch err {
+	case nil:
+		if err := proto.Unmarshal(buf, steps); err != nil {
+			return err
+		}
+	case ErrFlowNotFound:
+		steps.Steps = make([]*pbFlow.Step, 0, 0)
+		break
+	default:
+		return err
+	}
+
+	steps.Steps = append(steps.Steps, stepToProto(step))
+	log.Printf("%#+v\n", steps.Steps)
+	if buf, err = proto.Marshal(steps); err != nil {
+		return err
+	}
+
+	if err = fl.options.FlowStore.Write(ctx, name, buf); err != nil {
+		return err
+	}
+
 	return nil
 }
 
-func (exc *defaultExecutor) Pause(ctx context.Context, flow string, rid string) error {
+func (fl *microFlow) DeleteStep(ctx context.Context, name string, step *Step) error {
 	return nil
 }
 
-func (exc *defaultExecutor) Resume(ctx context.Context, flow string, rid string) error {
+func (fl *microFlow) Abort(ctx context.Context, name string, reqID string) error {
 	return nil
 }
 
-func (exc *defaultExecutor) Execute(ctx context.Context, flow string, req interface{}, rsp interface{}, opts ...ExecuteOption) (string, error) {
+func (fl *microFlow) Pause(ctx context.Context, flow string, rid string) error {
+	return nil
+}
 
-	if exc.pool == nil {
-		return "", fmt.Errorf("executor not initialized")
+func (fl *microFlow) Resume(ctx context.Context, flow string, rid string) error {
+	return nil
+}
+
+func (fl *microFlow) Execute(ctx context.Context, flow string, req interface{}, rsp interface{}, opts ...ExecuteOption) (string, error) {
+
+	if fl.pool == nil {
+		return "", fmt.Errorf("initialize flow first")
 	}
 
 	options := ExecuteOptions{}
@@ -101,7 +138,7 @@ func (exc *defaultExecutor) Execute(ctx context.Context, flow string, req interf
 		job.done = make(chan struct{})
 	}
 
-	err = exc.pool.Invoke(job)
+	err = fl.pool.Invoke(job)
 	if err != nil {
 		return "", err
 	}
@@ -121,39 +158,39 @@ func (exc *defaultExecutor) Execute(ctx context.Context, flow string, req interf
 	return uid.String(), nil
 }
 
-func (exc *defaultExecutor) Init(opts ...ExecutorOption) error {
+func (fl *microFlow) Init(opts ...Option) error {
 	for _, opt := range opts {
-		opt(&exc.options)
+		opt(&fl.options)
 	}
 
-	if exc.options.Concurrency < 1 {
-		exc.options.Concurrency = DefaultExecutorConcurrency
+	if fl.options.Concurrency < 1 {
+		fl.options.Concurrency = DefaultConcurrency
 	}
 	pool, err := ants.NewPoolWithFunc(
-		exc.options.Concurrency,
-		exc.handler,
-		ants.WithNonblocking(exc.options.Nonblock),
-		ants.WithPanicHandler(exc.options.PanicHandler),
-		ants.WithPreAlloc(exc.options.Prealloc),
+		fl.options.Concurrency,
+		fl.handler,
+		ants.WithNonblocking(fl.options.Nonblock),
+		ants.WithPanicHandler(fl.options.PanicHandler),
+		ants.WithPreAlloc(fl.options.Prealloc),
 	)
 	if err != nil {
 		return err
 	}
 
-	exc.Lock()
-	exc.pool = pool
-	exc.Unlock()
+	fl.Lock()
+	fl.pool = pool
+	fl.Unlock()
 
 	return nil
 }
 
-func (exc *defaultExecutor) handler(r interface{}) {
+func (fl *microFlow) handler(r interface{}) {
 	req := r.(*flowJob)
 	if req.done != nil {
 		defer close(req.done)
 	}
 
-	buf, err := exc.options.FlowStore.Read(req.options.Context, req.flow)
+	buf, err := fl.options.FlowStore.Read(req.options.Context, req.flow)
 	if err != nil {
 		//	panic(err)
 		(*req).err = err
@@ -163,24 +200,24 @@ func (exc *defaultExecutor) handler(r interface{}) {
 	log.Printf("%#+v\n", req)
 }
 
-func (exc *defaultExecutor) Options() ExecutorOptions {
-	return exc.options
+func (fl *microFlow) Options() Options {
+	return fl.options
 }
 
-func (exc *defaultExecutor) Stop() error {
-	exc.Lock()
-	exc.pool.Release()
-	exc.Unlock()
-	if exc.options.Wait {
+func (fl *microFlow) Stop() error {
+	fl.Lock()
+	fl.pool.Release()
+	fl.Unlock()
+	if fl.options.Wait {
 		ticker := time.NewTicker(1 * time.Second)
 		defer ticker.Stop()
 	loop:
 		for {
 			select {
-			case <-exc.options.Context.Done():
+			case <-fl.options.Context.Done():
 				break loop
 			case <-ticker.C:
-				if exc.pool.Running() == 0 {
+				if fl.pool.Running() == 0 {
 					break loop
 				}
 			}

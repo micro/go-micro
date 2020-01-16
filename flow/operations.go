@@ -4,6 +4,10 @@ import (
 	"context"
 	"fmt"
 	"time"
+
+	"github.com/micro/go-micro/broker"
+	"github.com/micro/go-micro/client"
+	pbFlow "github.com/micro/go-micro/flow/proto"
 )
 
 type sagaOperation struct {
@@ -29,12 +33,11 @@ func (op *sagaOperation) String() string {
 	return op.name
 }
 
-func (op *sagaOperation) Encode() ([]byte, error) {
-	return nil, nil
+func (op *sagaOperation) Encode() *pbFlow.Operation {
+	return nil
 }
 
-func (op *sagaOperation) Decode(data []byte) error {
-	return nil
+func (op *sagaOperation) Decode(pb *pbFlow.Operation) {
 }
 
 func (op *sagaOperation) Options() OperationOptions {
@@ -74,12 +77,15 @@ func (op *clientCallOperation) String() string {
 	return op.name
 }
 
-func (op *clientCallOperation) Encode() ([]byte, error) {
-	return nil, nil
+func (op *clientCallOperation) Encode() *pbFlow.Operation {
+	pb := &pbFlow.Operation{
+		Name: op.name,
+	}
+
+	return pb
 }
 
-func (op *clientCallOperation) Decode(data []byte) error {
-	return nil
+func (op *clientCallOperation) Decode(pb *pbFlow.Operation) {
 }
 
 func (op *clientCallOperation) Options() OperationOptions {
@@ -112,12 +118,11 @@ func (op *emptyOperation) String() string {
 	return op.name
 }
 
-func (op *emptyOperation) Encode() ([]byte, error) {
-	return nil, nil
+func (op *emptyOperation) Encode() *pbFlow.Operation {
+	return nil
 }
 
-func (op *emptyOperation) Decode([]byte) error {
-	return nil
+func (op *emptyOperation) Decode(pb *pbFlow.Operation) {
 }
 
 func (op *emptyOperation) Options() OperationOptions {
@@ -141,12 +146,11 @@ func (op *aggregateOperation) String() string {
 	return op.name
 }
 
-func (op *aggregateOperation) Encode() ([]byte, error) {
-	return nil, nil
+func (op *aggregateOperation) Encode() *pbFlow.Operation {
+	return nil
 }
 
-func (op *aggregateOperation) Decode([]byte) error {
-	return nil
+func (op *aggregateOperation) Decode(pb *pbFlow.Operation) {
 }
 
 func (op *aggregateOperation) Execute(context.Context, []byte, ...ExecuteOption) ([]byte, error) {
@@ -175,12 +179,11 @@ func (op *modifyOperation) String() string {
 	return op.name
 }
 
-func (op *modifyOperation) Encode() ([]byte, error) {
-	return nil, nil
+func (op *modifyOperation) Encode() *pbFlow.Operation {
+	return nil
 }
 
-func (op *modifyOperation) Decode([]byte) error {
-	return nil
+func (op *modifyOperation) Decode(pb *pbFlow.Operation) {
 }
 
 func (op *modifyOperation) Execute(context.Context, []byte, ...ExecuteOption) ([]byte, error) {
@@ -194,13 +197,15 @@ func (op *modifyOperation) Options() OperationOptions {
 type Operation interface {
 	Name() string
 	String() string
-	Decode([]byte) error
-	Encode() ([]byte, error)
+	Decode(*pbFlow.Operation)
+	Encode() *pbFlow.Operation
 	Execute(context.Context, []byte, ...ExecuteOption) ([]byte, error)
 	Options() OperationOptions
 }
 
 type OperationOptions struct {
+	Client    client.Client
+	Broker    broker.Broker
 	Timeout   time.Duration
 	Retries   int
 	AllowFail bool
@@ -230,5 +235,19 @@ func OperationAllowFail(b bool) OperationOption {
 func OperationContext(ctx context.Context) OperationOption {
 	return func(o *OperationOptions) {
 		o.Context = ctx
+	}
+}
+
+// Client for communication
+func OperationClient(c client.Client) OperationOption {
+	return func(o *OperationOptions) {
+		o.Client = c
+	}
+}
+
+// Broker for communication
+func OperationBroker(b broker.Broker) OperationOption {
+	return func(o *OperationOptions) {
+		o.Broker = b
 	}
 }

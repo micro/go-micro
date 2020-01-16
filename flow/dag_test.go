@@ -1,4 +1,4 @@
-package flow
+package flow_test
 
 import (
 	"context"
@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform/dag"
+	flow "github.com/micro/go-micro/flow"
 	proto "github.com/micro/go-micro/flow/proto"
 	memory "github.com/micro/go-micro/flow/store/memory"
 )
@@ -41,34 +42,73 @@ func TestExecutor(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	sStore := memory.DefaultStateStore()
-	dStore := memory.DefaultDataStore()
-	fStore := memory.DefaultFlowStore()
+	sStore := memory.NewDataStore()
+	dStore := memory.NewDataStore()
+	fStore := memory.NewFlowStore()
 
-	mgr := NewManager(ManagerFlowStore(fStore))
-
-	if err = mgr.Init(); err != nil {
-		t.Fatal(err)
-	}
-
-	if err = mgr.Register(&Flow{Name: "forward"}); err != nil {
-		t.Fatal(err)
-	}
-
-	exc := NewExecutor(
-		ExecutorStateStore(sStore),
-		ExecutorDataStore(dStore),
-		ExecutorFlowStore(fStore),
+	fl := flow.NewFlow(
+		flow.WithStateStore(sStore),
+		flow.WithDataStore(dStore),
+		flow.WithFlowStore(fStore),
 	)
 
-	if err = exc.Init(); err != nil {
+	if err = fl.Init(); err != nil {
+		t.Fatal(err)
+	}
+	if err = fl.CreateStep(ctx, "forward", &flow.Step{
+		Name:       "AccountCreate",
+		Operations: []flow.Operation{flow.ClientCallOperation("cms_account", "AccountService.AccountCreate")},
+		Requires:   nil,
+		Required:   nil,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err = fl.CreateStep(ctx, "forward", &flow.Step{
+		Name:       "ContactCreate",
+		Operations: []flow.Operation{flow.ClientCallOperation("cms_contact", "ContactService.ContactCreate")},
+		Requires:   []string{"AccountCreate"},
+		Required:   nil,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err = fl.CreateStep(ctx, "forward", &flow.Step{
+		Name:       "ProjectCreate",
+		Operations: []flow.Operation{flow.ClientCallOperation("cms_project", "ProjectService.ProjectCreate")},
+		Requires:   []string{"AccountCreate"},
+		Required:   nil,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err = fl.CreateStep(ctx, "forward", &flow.Step{
+		Name:       "NetworkCreate",
+		Operations: []flow.Operation{flow.ClientCallOperation("cms_network", "NetworkService.NetworkCreate")},
+		Requires:   []string{"AccountCreate"},
+		Required:   nil,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err = fl.CreateStep(ctx, "forward", &flow.Step{
+		Name:       "AuthzCreate",
+		Operations: []flow.Operation{flow.ClientCallOperation("cms_authz", "AuthzService.AuthzCreate")},
+		Requires:   []string{"AccountCreate"},
+		Required:   nil,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err = fl.CreateStep(ctx, "forward", &flow.Step{
+		Name:       "MailSend",
+		Operations: []flow.Operation{flow.ClientCallOperation("cms_mailer", "MailService.MailSend")},
+		Requires:   []string{"all"},
+		Required:   nil,
+	}); err != nil {
 		t.Fatal(err)
 	}
 
 	req := &proto.Test{Name: "req"}
 	rsp := &proto.Test{}
 
-	rid, err := exc.Execute(ctx, "forward", req, rsp, ExecuteAsync(false))
+	//	err  = fl.
+	rid, err := fl.Execute(ctx, "forward", req, rsp, flow.ExecuteAsync(false))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -78,27 +118,30 @@ func TestExecutor(t *testing.T) {
 func TestDag(t *testing.T) {
 	t.Skip()
 	g := &dag.AcyclicGraph{}
-	n1 := g.Add(ClientCallOperation("cms_account", "AccountService.AccountCreate"))
-	n2 := g.Add(ClientCallOperation("cms_contact", "ContactService.ContactCreate"))
-	n3 := g.Add(ClientCallOperation("cms_project", "ProjectService.ProjectCreate"))
-	n4 := g.Add(ClientCallOperation("cms_network", "NetworkService.NetworkCreate"))
-	n5 := g.Add(ClientCallOperation("cms_authz", "AuthzService.AuthzCreate"))
-	n6 := g.Add(AggregateOperation())
-	n7 := g.Add(ClientCallOperation("cms_mailer", "MailerService.MailSend"))
+
+	n1 := g.Add(flow.ClientCallOperation("cms_account", "AccountService.AccountCreate"))
+	n2 := g.Add(flow.ClientCallOperation("cms_contact", "ContactService.ContactCreate"))
+	n3 := g.Add(flow.ClientCallOperation("cms_project", "ProjectService.ProjectCreate"))
+	n4 := g.Add(flow.ClientCallOperation("cms_network", "NetworkService.NetworkCreate"))
+	n5 := g.Add(flow.ClientCallOperation("cms_authz", "AuthzService.AuthzCreate"))
+	n6 := g.Add(flow.ClientCallOperation("cms_mailer", "MailerService.MailSend"))
+
 	g.Connect(dag.BasicEdge(n1, n2))
 	g.Connect(dag.BasicEdge(n1, n3))
 	g.Connect(dag.BasicEdge(n1, n4))
 	g.Connect(dag.BasicEdge(n1, n5))
+	g.Connect(dag.BasicEdge(n1, n6))
 
 	g.Connect(dag.BasicEdge(n2, n6))
 	g.Connect(dag.BasicEdge(n3, n6))
 	g.Connect(dag.BasicEdge(n4, n6))
 	g.Connect(dag.BasicEdge(n5, n6))
-	g.Connect(dag.BasicEdge(n6, n7))
 
 	if err := g.Validate(); err != nil {
 		t.Fatal(err)
 	}
+
+	g.TransitiveReduction()
 
 	r, err := g.Root()
 	if err != nil {
@@ -132,7 +175,7 @@ func TestDag(t *testing.T) {
 		fmt.Printf("node: %v pos: %d\n", n.item, n.pos)
 	}
 
-	vs, err := getVertex(g, ClientCallOperation("cms_mailer", "MailerService.MailSend").String())
+	vs, err := getVertex(g, flow.ClientCallOperation("cms_mailer", "MailerService.MailSend").String())
 	if err != nil {
 		t.Fatal(err)
 	}

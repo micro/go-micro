@@ -1,6 +1,7 @@
 package memory
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 )
@@ -9,14 +10,28 @@ type dataStore struct {
 	store map[string]map[string][]byte
 }
 
-// Create default in memory data store
-func DefaultDataStore() *dataStore {
+// Create default in memory state store
+func NewDataStore() *dataStore {
 	return &dataStore{
 		store: make(map[string]map[string][]byte),
 	}
 }
 
 func (s *dataStore) Init() error {
+	return nil
+}
+
+// Update update a value (implement StateStore)
+func (s *dataStore) Update(ctx context.Context, flow string, rid string, key []byte, oldval []byte, newval []byte) error {
+	val, ok := s.store[fmt.Sprintf("%s-%s", flow, rid)][string(key)]
+	if !ok {
+		return fmt.Errorf("key not found %s", key)
+	}
+	if !bytes.Equal(val, oldval) {
+		return fmt.Errorf("val in store not equal to provided")
+	}
+
+	s.store[fmt.Sprintf("%s-%s", flow, rid)][string(key)] = newval
 	return nil
 }
 
@@ -38,13 +53,13 @@ func (s *dataStore) Delete(ctx context.Context, flow string, rid string, key []b
 	return nil
 }
 
+func (s *dataStore) String() string {
+	return "memory"
+}
+
 func (s *dataStore) Clean(ctx context.Context, flow string, rid string) error {
 	delete(s.store, fmt.Sprintf("%s-%s", flow, rid))
 	return nil
-}
-
-func (s *dataStore) String() string {
-	return "memory"
 }
 
 func (s *dataStore) Close(ctx context.Context) error {
