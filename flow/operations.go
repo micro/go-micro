@@ -10,6 +10,26 @@ import (
 	pbFlow "github.com/micro/go-micro/flow/proto"
 )
 
+var (
+	operations map[string]Operation
+)
+
+func init() {
+	operations = make(map[string]Operation)
+	RegisterOperation(&sagaOperation{})
+	RegisterOperation(&clientCallOperation{})
+	RegisterOperation(&emptyOperation{})
+	RegisterOperation(&aggregateOperation{})
+	RegisterOperation(&modifyOperation{})
+}
+
+func RegisterOperation(op Operation) {
+	if _, ok := operations[op.Type()]; ok {
+		return
+	}
+	operations[op.Type()] = op
+}
+
 type sagaOperation struct {
 	name    string
 	forward Operation
@@ -27,6 +47,10 @@ func (op *sagaOperation) Execute(ctx context.Context, req []byte, opts ...Execut
 
 func (op *sagaOperation) Name() string {
 	return op.name
+}
+
+func (op *sagaOperation) Type() string {
+	return "saga_operation"
 }
 
 func (op *sagaOperation) String() string {
@@ -73,6 +97,10 @@ func (op *clientCallOperation) Name() string {
 	return op.name
 }
 
+func (op *clientCallOperation) Type() string {
+	return "client_call_operation"
+}
+
 func (op *clientCallOperation) String() string {
 	return op.name
 }
@@ -80,6 +108,7 @@ func (op *clientCallOperation) String() string {
 func (op *clientCallOperation) Encode() *pbFlow.Operation {
 	pb := &pbFlow.Operation{
 		Name: op.name,
+		Type: op.Type(),
 	}
 
 	return pb
@@ -114,6 +143,10 @@ func (op *emptyOperation) Name() string {
 	return op.name
 }
 
+func (op *emptyOperation) Type() string {
+	return "empty_operation"
+}
+
 func (op *emptyOperation) String() string {
 	return op.name
 }
@@ -140,6 +173,10 @@ func AggregateOperation() Operation {
 
 func (op *aggregateOperation) Name() string {
 	return op.name
+}
+
+func (op *aggregateOperation) Type() string {
+	return "aggregate_operation"
 }
 
 func (op *aggregateOperation) String() string {
@@ -175,6 +212,10 @@ func (op *modifyOperation) Name() string {
 	return op.name
 }
 
+func (op *modifyOperation) Type() string {
+	return "modify_operation"
+}
+
 func (op *modifyOperation) String() string {
 	return op.name
 }
@@ -197,6 +238,7 @@ func (op *modifyOperation) Options() OperationOptions {
 type Operation interface {
 	Name() string
 	String() string
+	Type() string
 	Decode(*pbFlow.Operation)
 	Encode() *pbFlow.Operation
 	Execute(context.Context, []byte, ...ExecuteOption) ([]byte, error)

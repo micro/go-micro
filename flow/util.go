@@ -1,6 +1,8 @@
 package flow
 
 import (
+	"log"
+
 	pbFlow "github.com/micro/go-micro/flow/proto"
 )
 
@@ -21,5 +23,23 @@ func stepToProto(step *Step) *pbFlow.Step {
 }
 
 func protoToStep(pb *pbFlow.Step) *Step {
-	return nil
+	ops := make([]Operation, 0, len(pb.Operations))
+	for _, pbop := range pb.Operations {
+		op, ok := operations[pbop.Type]
+		if !ok {
+			log.Printf("unknown op %v\n", pbop)
+			continue
+		}
+		op.Decode(pbop)
+		ops = append(ops, op)
+	}
+
+	st := &Step{
+		Name:       pb.Name,
+		Requires:   pb.Requires,
+		Required:   pb.Required,
+		Operations: ops,
+	}
+
+	return st
 }

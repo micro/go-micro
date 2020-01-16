@@ -75,7 +75,6 @@ func (fl *microFlow) CreateStep(ctx context.Context, name string, step *Step) er
 	}
 
 	steps.Steps = append(steps.Steps, stepToProto(step))
-	log.Printf("%#+v\n", steps.Steps)
 	if buf, err = proto.Marshal(steps); err != nil {
 		return err
 	}
@@ -196,12 +195,24 @@ func (fl *microFlow) handler(r interface{}) {
 
 	buf, err := fl.options.FlowStore.Read(req.options.Context, req.flow)
 	if err != nil {
-		//	panic(err)
 		(*req).err = err
 		return
 	}
-	_ = buf
-	log.Printf("%#+v\n", req)
+
+	pbSteps := &pbFlow.Steps{}
+	if err = proto.Unmarshal(buf, pbSteps); err != nil {
+		(*req).err = err
+		return
+	}
+
+	steps := make([]*Step, 0, len(pbSteps.Steps))
+	for _, step := range pbSteps.Steps {
+		steps = append(steps, protoToStep(step))
+	}
+
+	for _, s := range steps {
+		log.Printf("%#+v\n", s)
+	}
 }
 
 func (fl *microFlow) Options() Options {
