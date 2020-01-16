@@ -19,17 +19,17 @@ import (
 
 ////go:generate protoc --go_out=paths=source_relative:. --micro_out=paths=source_relative:. proto/message.proto
 
-type node struct {
-	item interface{}
+type walkerStep struct {
+	step *Step
 	pos  int
 }
 
-type walk struct {
-	nodes []node
+type walker struct {
+	steps []walkerStep
 }
 
-func (w *walk) Walk(n dag.Vertex, pos int) error {
-	w.nodes = append(w.nodes, node{item: n, pos: pos})
+func (w *walker) Walk(n dag.Vertex, pos int) error {
+	w.steps = append(w.steps, walkerStep{step: n.(*Step), pos: pos})
 	return nil
 }
 
@@ -39,7 +39,7 @@ type flowJob struct {
 	rsp     []byte
 	err     error
 	done    chan struct{}
-	options ExecuteOptions
+	options []ExecuteOption
 }
 
 var (
@@ -152,7 +152,7 @@ func (fl *microFlow) Execute(ctx context.Context, flow string, req interface{}, 
 		return "", err
 	}
 
-	job := &flowJob{flow: flow, req: reqbuf, options: options}
+	job := &flowJob{flow: flow, req: reqbuf, options: opts}
 	if !options.Async {
 		job.done = make(chan struct{})
 	}
@@ -212,23 +212,25 @@ func include(slice []string, f string) bool {
 	return false
 }
 
-func (fl *microFlow) handler(r interface{}) {
+func (fl *microFlow) handler(req interface{}) {
 	var err error
 	var buf []byte
 
-	req := r.(*flowJob)
+	job := req.(*flowJob)
 	defer func() {
-		if err != nil {
-			panic(err)
-		}
-		(*req).err = err
+		(*job).err = err
 	}()
 
-	if req.done != nil {
-		defer close(req.done)
+	if job.done != nil {
+		defer close(job.done)
 	}
 
-	if buf, err = fl.options.FlowStore.Read(req.options.Context, req.flow); err != nil {
+	options := ExecuteOptions{}
+	for _, opt := range job.options {
+		opt(&options)
+	}
+
+	if buf, err = fl.options.FlowStore.Read(options.Context, job.flow); err != nil {
 		return
 	}
 
@@ -292,32 +294,37 @@ func (fl *microFlow) handler(r interface{}) {
 	g.TransitiveReduction()
 
 	var root dag.Vertex
-	root, err = g.Root()
-
-	if err != nil {
+	if root, err = g.Root(); err != nil {
 		return
 	}
 
-	tr := &walk{}
-	err = g.DepthFirstWalk([]dag.Vertex{root}, tr.Walk)
+	w := &walker{}
+	err = g.DepthFirstWalk([]dag.Vertex{root}, w.Walk)
 	if err != nil {
 		return
 	}
 
 	log.Printf("forward execution")
-	sort.Slice(tr.nodes, func(i, j int) bool {
-		return tr.nodes[i].pos < tr.nodes[j].pos
+	sort.Slice(w.steps, func(i, j int) bool {
+		return w.steps[i].pos < w.steps[j].pos
 	})
-	for _, n := range tr.nodes {
-		fmt.Printf("node: %s pos: %d\n", n.item, n.pos)
-	}
+	//	for _, n := range w.steps {
+	//		fmt.Printf("node: %s pos: %d\n", n.step, n.pos)
+	//	}
+	/*
+		log.Printf("backward execution")
+		sort.Slice(tr.nodes, func(i, j int) bool {
+			return tr.nodes[i].pos > tr.nodes[j].pos
+		})
+		for _, n := range tr.nodes {
+			fmt.Printf("node: %s pos: %d\n", n.item, n.pos)
+		}
+	*/
 
-	log.Printf("backward execution")
-	sort.Slice(tr.nodes, func(i, j int) bool {
-		return tr.nodes[i].pos > tr.nodes[j].pos
-	})
-	for _, n := range tr.nodes {
-		fmt.Printf("node: %s pos: %d\n", n.item, n.pos)
+	for _, wstep := range w.steps {
+		for _, op := range wstep.step.Operations {
+			buf, err = op.Execute(options.Context, job.req)
+		}
 	}
 
 }

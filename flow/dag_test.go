@@ -76,6 +76,14 @@ func TestExecutor(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
+	if err = fl.CreateStep(ctx, "forward", &flow.Step{
+		ID:         "Mail2Send",
+		Operations: []flow.Operation{flow.ClientCallOperation("cms_mailer", "MailService.Mail2Send")},
+		Requires:   []string{"all"},
+		Required:   nil,
+	}); err != nil {
+		t.Fatal(err)
+	}
 
 	req := &proto.Test{Name: "req"}
 	rsp := &proto.Test{}

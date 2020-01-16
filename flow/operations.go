@@ -3,6 +3,7 @@ package flow
 import (
 	"context"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -110,6 +111,7 @@ func (op *clientCallOperation) New() Operation {
 }
 
 func (op *clientCallOperation) Execute(ctx context.Context, req []byte, opts ...ExecuteOption) ([]byte, error) {
+	log.Printf("%s", op)
 	return nil, nil
 }
 
