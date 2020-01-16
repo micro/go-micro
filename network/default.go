@@ -1058,17 +1058,18 @@ func (n *network) processNetChan(listener tunnel.Listener) {
 					// lookup best routes for the services in the just received route
 					q := []router.QueryOption{
 						router.QueryService(route.Service),
-						router.QueryStrategy(router.AdvertiseBest),
+						router.QueryStrategy(n.router.Options().Advertise),
 					}
-					bestRoutes, err := n.options.Router.Table().Query(q...)
+
+					routes, err := n.options.Router.Table().Query(q...)
 					if err != nil {
 						log.Debugf("Network node %s failed listing best routes for %s: %v", n.id, route.Service, err)
 						continue
 					}
 
-					// we found no route for the given service
-					// create new route we have just received
-					if len(bestRoutes) == 0 {
+					// we found no routes for the given service
+					// create the new route we have just received
+					if len(routes) == 0 {
 						// add routes to the routing table
 						if err := n.router.Table().Create(route); err != nil && err != router.ErrDuplicateRoute {
 							log.Debugf("Network node %s failed to add route: %v", n.id, err)
@@ -1076,10 +1077,18 @@ func (n *network) processNetChan(listener tunnel.Listener) {
 						}
 					}
 
+					// find the best route for the given service
+					// from the routes that we would advertise
+					bestRoute := routes[0]
+					for _, r := range routes[0:] {
+						if bestRoute.Metric > r.Metric {
+							bestRoute = r
+						}
+					}
+
 					// Take the best route to given service and:
-					// * prefer our own routes if metric is the same
-					// * only add new routes if the metric is better than the metric of our best route
-					bestRoute := bestRoutes[0]
+					// only add new routes if the metric is better
+					// than the metric of our best route
 
 					if bestRoute.Metric <= route.Metric {
 						continue
