@@ -1335,7 +1335,11 @@ func (n *network) manage() {
 					// encode the routes to protobuf
 					pbRoutes := make([]*pbRtr.Route, 0, len(routes))
 					for _, route := range routes {
+						// generate new route proto
 						pbRoute := pbUtil.RouteToProto(route)
+						// mask the route before outbounding
+						n.maskRoute(pbRoute)
+						// add to list of routes
 						pbRoutes = append(pbRoutes, pbRoute)
 					}
 					// pack the routes into the sync message
