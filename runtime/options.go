@@ -8,16 +8,16 @@ type Option func(o *Options)
 
 // Options configure runtime
 type Options struct {
-	// Notifier for updates
-	Notifier Notifier
+	// Scheduler for updates
+	Scheduler Scheduler
 	// Service type to manage
 	Type string
 }
 
-// WithNotifier specifies a notifier for updates
-func WithNotifier(n Notifier) Option {
+// WithScheduler specifies a scheduler for updates
+func WithScheduler(n Scheduler) Option {
 	return func(o *Options) {
-		o.Notifier = n
+		o.Scheduler = n
 	}
 }
 

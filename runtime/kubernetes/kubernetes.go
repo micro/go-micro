@@ -365,9 +365,9 @@ func (k *kubernetes) Start() error {
 	k.closed = make(chan bool)
 
 	var events <-chan runtime.Event
-	if k.options.Notifier != nil {
+	if k.options.Scheduler != nil {
 		var err error
-		events, err = k.options.Notifier.Notify()
+		events, err = k.options.Scheduler.Notify()
 		if err != nil {
 			// TODO: should we bail here?
 			log.Debugf("Runtime failed to start update notifier")
@@ -395,9 +395,9 @@ func (k *kubernetes) Stop() error {
 		close(k.closed)
 		// set not running
 		k.running = false
-		// stop the notifier too
-		if k.options.Notifier != nil {
-			return k.options.Notifier.Close()
+		// stop the scheduler
+		if k.options.Scheduler != nil {
+			return k.options.Scheduler.Close()
 		}
 	}
 
