@@ -28,8 +28,6 @@ type Router interface {
 	Advertise() (<-chan *Advert, error)
 	// Process processes incoming adverts
 	Process(*Advert) error
-	// Solicit advertises the whole routing table
-	Solicit() error
 	// Lookup queries routes in the routing table
 	Lookup(...QueryOption) ([]Route, error)
 	// Watch returns a watcher which tracks updates to the routing table
@@ -111,8 +109,6 @@ const (
 	Announce AdvertType = iota
 	// RouteUpdate advertises route updates
 	RouteUpdate
-	// Solicitation indicates routes were solicited
-	Solicitation
 )
 
 // String returns human readable advertisement type
@@ -122,8 +118,6 @@ func (t AdvertType) String() string {
 		return "announce"
 	case RouteUpdate:
 		return "update"
-	case Solicitation:
-		return "solicitation"
 	default:
 		return "unknown"
 	}

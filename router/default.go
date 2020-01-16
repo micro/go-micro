@@ -115,9 +115,6 @@ func (r *router) manageRoute(route Route, action string) error {
 		if err := r.table.Update(route); err != nil {
 			return fmt.Errorf("failed updating route for service %s: %s", route.Service, err)
 		}
-	case "solicit":
-		// nothing to do here
-		return nil
 	default:
 		return fmt.Errorf("failed to manage route for service %s: unknown action %s", route.Service, action)
 	}
@@ -814,25 +811,6 @@ func (r *router) flushRouteEvents(evType EventType) ([]*Event, error) {
 	}
 
 	return events, nil
-}
-
-// Solicit advertises all of its routes to the network
-// It returns error if the router fails to list the routes
-func (r *router) Solicit() error {
-	events, err := r.flushRouteEvents(Update)
-	if err != nil {
-		return fmt.Errorf("failed solicit routes: %s", err)
-	}
-
-	// advertise the routes
-	r.advertWg.Add(1)
-
-	go func() {
-		r.publishAdvert(Solicitation, events)
-		r.advertWg.Done()
-	}()
-
-	return nil
 }
 
 // Lookup routes in the routing table
