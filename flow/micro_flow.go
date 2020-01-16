@@ -51,6 +51,10 @@ func NewFlow(opts ...Option) Flow {
 	return fl
 }
 
+func (fl *microFlow) UpdateStep(ctx context.Context, name string, oldstep *Step, newstep *Step) error {
+	return nil
+}
+
 func (fl *microFlow) CreateStep(ctx context.Context, name string, step *Step) error {
 	var err error
 	var buf []byte

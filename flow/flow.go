@@ -10,17 +10,19 @@ type Flow interface {
 	Init(...Option) error
 	// Get flow options
 	Options() Options
-	// Create step in flow
+	// Create step in specific flow
 	CreateStep(ctx context.Context, flow string, step *Step) error
-	// Delete step from flow
+	// Delete step from specific flow
 	DeleteStep(ctx context.Context, flow string, step *Step) error
-	// Execute specific flow execution and returns reqID and error
+	// Update step in specific flow
+	UpdateStep(ctx context.Context, flow string, oldstep *Step, newstep *Step) error
+	// Execute specific flow and returns request id and error, optionally fills rsp
 	Execute(ctx context.Context, flow string, req interface{}, rsp interface{}, opts ...ExecuteOption) (string, error)
-	// Resume suspended flow execution
+	// Resume specific paused flow execution by request id
 	Resume(ctx context.Context, flow string, reqID string) error
-	// Pause flow execution
+	// Pause specific flow execution by request id
 	Pause(ctx context.Context, flow string, reqID string) error
-	// Abort flow execution
+	// Abort specific flow execution by request id
 	Abort(ctx context.Context, flow string, reqID string) error
 	// Stop executor and drain active workers
 	Stop() error
