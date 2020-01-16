@@ -854,7 +854,7 @@ func (n *network) processNetChan(listener tunnel.Listener) {
 					q := []router.QueryOption{
 						router.QueryStrategy(n.router.Options().Advertise),
 					}
-					routes, err := n.options.Router.Table().Query(q...)
+					routes, err := n.router.Table().Query(q...)
 					switch err {
 					case nil:
 						// encode the routes to protobuf
@@ -1051,7 +1051,7 @@ func (n *network) processNetChan(listener tunnel.Listener) {
 					// unmarshal the routes received from remote peer
 					route := pbUtil.ProtoToRoute(pbRoute)
 					// continue if we are the originator of the route
-					if route.Router == n.options.Router.Options().Id {
+					if route.Router == n.router.Options().Id {
 						log.Debugf("Network node %s skipping route addition: route already present", n.id)
 						continue
 					}
@@ -1061,7 +1061,7 @@ func (n *network) processNetChan(listener tunnel.Listener) {
 						router.QueryStrategy(n.router.Options().Advertise),
 					}
 
-					routes, err := n.options.Router.Table().Query(q...)
+					routes, err := n.router.Table().Query(q...)
 					if err != nil {
 						log.Debugf("Network node %s failed listing best routes for %s: %v", n.id, route.Service, err)
 						continue
@@ -1075,6 +1075,7 @@ func (n *network) processNetChan(listener tunnel.Listener) {
 							log.Debugf("Network node %s failed to add route: %v", n.id, err)
 							continue
 						}
+						continue
 					}
 
 					// find the best route for the given service
@@ -1381,7 +1382,7 @@ func (n *network) manage() {
 				q := []router.QueryOption{
 					router.QueryStrategy(n.router.Options().Advertise),
 				}
-				routes, err := n.options.Router.Table().Query(q...)
+				routes, err := n.router.Table().Query(q...)
 				switch err {
 				case nil:
 					// encode the routes to protobuf
