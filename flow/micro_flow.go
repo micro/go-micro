@@ -3,6 +3,7 @@ package flow
 import (
 	"context"
 	"fmt"
+	"log"
 	"sort"
 	"sync"
 	"time"
@@ -303,10 +304,18 @@ func (fl *microFlow) handler(r interface{}) {
 		return
 	}
 
+	log.Printf("forward execution")
 	sort.Slice(tr.nodes, func(i, j int) bool {
 		return tr.nodes[i].pos < tr.nodes[j].pos
 	})
+	for _, n := range tr.nodes {
+		fmt.Printf("node: %s pos: %d\n", n.item, n.pos)
+	}
 
+	log.Printf("backward execution")
+	sort.Slice(tr.nodes, func(i, j int) bool {
+		return tr.nodes[i].pos > tr.nodes[j].pos
+	})
 	for _, n := range tr.nodes {
 		fmt.Printf("node: %s pos: %d\n", n.item, n.pos)
 	}
