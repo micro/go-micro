@@ -69,7 +69,7 @@ type network struct {
 	client client.Client
 
 	// tunClient is a map of tunnel channel clients
-	tunClient map[string]transport.Client
+	tunClient map[string]tunnel.Session
 	// peerLinks is a map of links for each peer
 	peerLinks map[string]tunnel.Link
 
@@ -173,7 +173,7 @@ func newNetwork(opts ...Option) Network {
 		tunnel:     options.Tunnel,
 		server:     server,
 		client:     client,
-		tunClient:  make(map[string]transport.Client),
+		tunClient:  make(map[string]tunnel.Session),
 		peerLinks:  make(map[string]tunnel.Link),
 		discovered: make(chan bool, 1),
 		solicited:  make(chan *node, 32),
