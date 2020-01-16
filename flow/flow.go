@@ -2,6 +2,7 @@ package flow
 
 import (
 	"context"
+	"fmt"
 	"time"
 )
 
@@ -30,13 +31,21 @@ type Flow interface {
 
 type Step struct {
 	// name of step
-	Name string
+	ID string
 	// operations for step
-	Operations []Operation
+	Operations Operations
 	// steps that are required for this step
 	Requires []string
 	// steps for which this step required
 	Required []string
+}
+
+func (s *Step) Name() string {
+	return s.ID
+}
+
+func (s *Step) String() string {
+	return fmt.Sprintf("step %s, ops: %s, requires: %v, required: %v", s.ID, s.Operations, s.Requires, s.Required)
 }
 
 type Option func(*Options)

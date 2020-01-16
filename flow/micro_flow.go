@@ -3,12 +3,13 @@ package flow
 import (
 	"context"
 	"fmt"
-	"log"
+	"sort"
 	"sync"
 	"time"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/google/uuid"
+	dag "github.com/hashicorp/terraform/dag"
 	pbFlow "github.com/micro/go-micro/flow/proto"
 	"github.com/panjf2000/ants/v2"
 )
@@ -16,6 +17,20 @@ import (
 //go:generate protoc --go_out=paths=source_relative:. proto/message.proto
 
 ////go:generate protoc --go_out=paths=source_relative:. --micro_out=paths=source_relative:. proto/message.proto
+
+type node struct {
+	item interface{}
+	pos  int
+}
+
+type walk struct {
+	nodes []node
+}
+
+func (w *walk) Walk(n dag.Vertex, pos int) error {
+	w.nodes = append(w.nodes, node{item: n, pos: pos})
+	return nil
+}
 
 type flowJob struct {
 	flow    string
@@ -187,32 +202,115 @@ func (fl *microFlow) Init(opts ...Option) error {
 	return nil
 }
 
+func include(slice []string, f string) bool {
+	for _, s := range slice {
+		if s == f {
+			return true
+		}
+	}
+	return false
+}
+
 func (fl *microFlow) handler(r interface{}) {
+	var err error
+	var buf []byte
+
 	req := r.(*flowJob)
+	defer func() {
+		if err != nil {
+			panic(err)
+		}
+		(*req).err = err
+	}()
+
 	if req.done != nil {
 		defer close(req.done)
 	}
 
-	buf, err := fl.options.FlowStore.Read(req.options.Context, req.flow)
-	if err != nil {
-		(*req).err = err
+	if buf, err = fl.options.FlowStore.Read(req.options.Context, req.flow); err != nil {
 		return
 	}
 
 	pbSteps := &pbFlow.Steps{}
 	if err = proto.Unmarshal(buf, pbSteps); err != nil {
-		(*req).err = err
 		return
 	}
 
-	steps := make([]*Step, 0, len(pbSteps.Steps))
+	steps := make(map[string]*Step)
 	for _, step := range pbSteps.Steps {
-		steps = append(steps, protoToStep(step))
+		s := protoToStep(step)
+		steps[s.Name()] = s
 	}
 
+	g := &dag.AcyclicGraph{}
 	for _, s := range steps {
-		log.Printf("%#+v\n", s)
+		g.Add(s)
 	}
+
+	for _, vs := range steps {
+	requiresLoop:
+		for _, req := range vs.Requires {
+			if req == "all" {
+				for _, ve := range steps {
+					if ve.Name() != vs.Name() && !include(ve.Requires, "all") {
+						g.Connect(dag.BasicEdge(ve, vs))
+					}
+				}
+				break requiresLoop
+			}
+			ve, ok := steps[req]
+			if !ok {
+				err = fmt.Errorf("requires unknown step %v", vs)
+				return
+			}
+			g.Connect(dag.BasicEdge(ve, vs))
+		}
+	requiredLoop:
+		for _, req := range vs.Required {
+			if req == "all" {
+				for _, ve := range steps {
+					if ve.Name() != vs.Name() && !include(ve.Required, "all") {
+						g.Connect(dag.BasicEdge(vs, ve))
+					}
+				}
+				break requiredLoop
+			}
+			ve, ok := steps[req]
+			if !ok {
+				err = fmt.Errorf("required unknown step %v", vs)
+				return
+			}
+			g.Connect(dag.BasicEdge(vs, ve))
+		}
+
+	}
+	if err = g.Validate(); err != nil {
+		return
+	}
+
+	g.TransitiveReduction()
+
+	var root dag.Vertex
+	root, err = g.Root()
+
+	if err != nil {
+		return
+	}
+
+	tr := &walk{}
+	err = g.DepthFirstWalk([]dag.Vertex{root}, tr.Walk)
+	if err != nil {
+		return
+	}
+
+	sort.Slice(tr.nodes, func(i, j int) bool {
+		return tr.nodes[i].pos < tr.nodes[j].pos
+	})
+
+	for _, n := range tr.nodes {
+		fmt.Printf("node: %s pos: %d\n", n.item, n.pos)
+	}
+
 }
 
 func (fl *microFlow) Options() Options {

@@ -13,7 +13,7 @@ func stepToProto(step *Step) *pbFlow.Step {
 	}
 
 	pb := &pbFlow.Step{
-		Name:       step.Name,
+		Name:       step.ID,
 		Requires:   step.Requires,
 		Required:   step.Required,
 		Operations: operations,
@@ -30,12 +30,13 @@ func protoToStep(pb *pbFlow.Step) *Step {
 			log.Printf("unknown op %v\n", pbop)
 			continue
 		}
-		op.Decode(pbop)
-		ops = append(ops, op)
+		nop := op.New()
+		nop.Decode(pbop)
+		ops = append(ops, nop)
 	}
 
 	st := &Step{
-		Name:       pb.Name,
+		ID:         pb.Name,
 		Requires:   pb.Requires,
 		Required:   pb.Required,
 		Operations: ops,
