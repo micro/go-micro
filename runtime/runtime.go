@@ -30,15 +30,15 @@ type Runtime interface {
 	Stop() error
 }
 
-// Notifier is an update notifier
-type Notifier interface {
-	// Notify publishes notification events
+// Scheduler is a runtime service scheduler
+type Scheduler interface {
+	// Notify publishes schedule events
 	Notify() (<-chan Event, error)
-	// Close stops the notifier
+	// Close stops the scheduler
 	Close() error
 }
 
-// EventType defines notification event
+// EventType defines schedule event
 type EventType int
 
 const (
