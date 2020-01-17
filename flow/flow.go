@@ -21,6 +21,8 @@ type Flow interface {
 	DeleteStep(flow string, step *Step) error
 	// Replace step in specific flow
 	ReplaceStep(flow string, oldstep *Step, newstep *Step) error
+	// Lookup specific flow
+	Lookup(flow string) ([]*Step, error)
 	// Execute specific flow and returns request id and error, optionally fills rsp
 	Execute(flow string, req interface{}, rsp interface{}, opts ...ExecuteOption) (string, error)
 	// Resume specific paused flow execution by request id

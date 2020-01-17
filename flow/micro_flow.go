@@ -124,6 +124,27 @@ func (fl *microFlow) CreateStep(name string, step *Step) error {
 	return nil
 }
 
+func (fl *microFlow) Lookup(name string) ([]*Step, error) {
+	var err error
+	var buf []byte
+
+	if buf, err = fl.options.FlowStore.Read(fl.options.Context, name); err != nil {
+		return nil, err
+	}
+
+	pbSteps := &pbFlow.Steps{}
+	if err = proto.Unmarshal(buf, pbSteps); err != nil {
+		return nil, err
+	}
+
+	steps := make([]*Step, 0, len(pbSteps.Steps))
+	for _, step := range pbSteps.Steps {
+		steps = append(steps, protoToStep(step))
+	}
+
+	return steps, nil
+}
+
 func (fl *microFlow) DeleteStep(name string, step *Step) error {
 	var err error
 	var buf []byte
