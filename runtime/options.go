@@ -54,6 +54,13 @@ type ReadOptions struct {
 	Type string
 }
 
+// CreateType sets the type of service to create
+func CreateType(t string) CreateOption {
+	return func(o *CreateOptions) {
+		o.Type = t
+	}
+}
+
 // WithCommand specifies the command to execute
 func WithCommand(args ...string) CreateOption {
 	return func(o *CreateOptions) {
