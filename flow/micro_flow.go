@@ -1,7 +1,6 @@
 package flow
 
 import (
-	"context"
 	"fmt"
 	"sort"
 	"sync"
@@ -13,10 +12,6 @@ import (
 	pbFlow "github.com/micro/go-micro/flow/service/proto"
 	"github.com/panjf2000/ants/v2"
 )
-
-//go:generate protoc --go_out=paths=source_relative:. proto/message.proto
-
-////go:generate protoc --go_out=paths=source_relative:. --micro_out=paths=source_relative:. proto/message.proto
 
 type walkerStep struct {
 	step *Step
@@ -66,17 +61,17 @@ func NewFlow(opts ...Option) Flow {
 	return fl
 }
 
-func (fl *microFlow) UpdateStep(ctx context.Context, name string, oldstep *Step, newstep *Step) error {
+func (fl *microFlow) UpdateStep(name string, oldstep *Step, newstep *Step) error {
 	return nil
 }
 
-func (fl *microFlow) CreateStep(ctx context.Context, name string, step *Step) error {
+func (fl *microFlow) CreateStep(name string, step *Step) error {
 	var err error
 	var buf []byte
 
 	steps := &pbFlow.Steps{}
 
-	buf, err = fl.options.FlowStore.Read(ctx, name)
+	buf, err = fl.options.FlowStore.Read(fl.options.Context, name)
 	switch err {
 	case nil:
 		if err := proto.Unmarshal(buf, steps); err != nil {
@@ -94,30 +89,30 @@ func (fl *microFlow) CreateStep(ctx context.Context, name string, step *Step) er
 		return err
 	}
 
-	if err = fl.options.FlowStore.Write(ctx, name, buf); err != nil {
+	if err = fl.options.FlowStore.Write(fl.options.Context, name, buf); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (fl *microFlow) DeleteStep(ctx context.Context, name string, step *Step) error {
+func (fl *microFlow) DeleteStep(name string, step *Step) error {
 	return nil
 }
 
-func (fl *microFlow) Abort(ctx context.Context, name string, reqID string) error {
+func (fl *microFlow) Abort(name string, reqID string) error {
 	return nil
 }
 
-func (fl *microFlow) Pause(ctx context.Context, flow string, rid string) error {
+func (fl *microFlow) Pause(flow string, rid string) error {
 	return nil
 }
 
-func (fl *microFlow) Resume(ctx context.Context, flow string, rid string) error {
+func (fl *microFlow) Resume(flow string, rid string) error {
 	return nil
 }
 
-func (fl *microFlow) Execute(ctx context.Context, flow string, req interface{}, rsp interface{}, opts ...ExecuteOption) (string, error) {
+func (fl *microFlow) Execute(flow string, req interface{}, rsp interface{}, opts ...ExecuteOption) (string, error) {
 
 	if fl.pool == nil {
 		return "", fmt.Errorf("initialize flow first")
@@ -240,7 +235,7 @@ func (fl *microFlow) flowHandler(req interface{}) {
 
 	steps := make(map[string]*Step)
 	for _, step := range pbSteps.Steps {
-		s := protoToStep(options, step)
+		s := protoToStep(step)
 		steps[s.Name()] = s
 	}
 
@@ -310,7 +305,7 @@ func (fl *microFlow) flowHandler(req interface{}) {
 
 	for _, wstep := range w.steps {
 		for _, op := range wstep.step.Operations {
-			buf, err = op.Execute(options.Context, job.req)
+			buf, err = op.Execute(options.Context, job.req, job.options...)
 			if err != nil {
 				return
 			}

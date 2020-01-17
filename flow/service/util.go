@@ -1,12 +1,13 @@
-package flow
+package service
 
 import (
 	"log"
 
+	"github.com/micro/go-micro/flow"
 	pbFlow "github.com/micro/go-micro/flow/service/proto"
 )
 
-func stepToProto(step *Step) *pbFlow.Step {
+func stepToProto(step *flow.Step) *pbFlow.Step {
 	operations := make([]*pbFlow.Operation, 0, len(step.Operations))
 	for _, op := range step.Operations {
 		operations = append(operations, op.Encode())
@@ -22,10 +23,10 @@ func stepToProto(step *Step) *pbFlow.Step {
 	return pb
 }
 
-func protoToStep(pb *pbFlow.Step) *Step {
-	ops := make([]Operation, 0, len(pb.Operations))
+func protoToStep(pb *pbFlow.Step) *flow.Step {
+	ops := make([]flow.Operation, 0, len(pb.Operations))
 	for _, pbop := range pb.Operations {
-		op, ok := Operations[pbop.Type]
+		op, ok := flow.Operations[pbop.Type]
 		if !ok {
 			log.Printf("unknown op %v\n", pbop)
 			continue
@@ -35,7 +36,7 @@ func protoToStep(pb *pbFlow.Step) *Step {
 		ops = append(ops, nop)
 	}
 
-	st := &Step{
+	st := &flow.Step{
 		ID:         pb.Name,
 		Requires:   pb.Requires,
 		Required:   pb.Required,

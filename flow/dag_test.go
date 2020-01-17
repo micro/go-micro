@@ -31,7 +31,7 @@ func TestExecutor(t *testing.T) {
 	if err = fl.Init(); err != nil {
 		t.Fatal(err)
 	}
-	if err = fl.CreateStep(ctx, "forward", &flow.Step{
+	if err = fl.CreateStep("forward", &flow.Step{
 		ID: "AccountCreate",
 		Operations: []flow.Operation{
 			flow.ClientCallOperation("cms_account", "AccountService.AccountCreate"),
@@ -41,7 +41,7 @@ func TestExecutor(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	if err = fl.CreateStep(ctx, "forward", &flow.Step{
+	if err = fl.CreateStep("forward", &flow.Step{
 		ID: "ContactCreate",
 		Operations: []flow.Operation{
 			flow.ClientCallOperation("cms_contact", "ContactService.ContactCreate"),
@@ -51,7 +51,7 @@ func TestExecutor(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	if err = fl.CreateStep(ctx, "forward", &flow.Step{
+	if err = fl.CreateStep("forward", &flow.Step{
 		ID: "ProjectCreate",
 		Operations: []flow.Operation{
 			flow.ClientCallOperation("cms_project", "ProjectService.ProjectCreate"),
@@ -61,7 +61,7 @@ func TestExecutor(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	if err = fl.CreateStep(ctx, "forward", &flow.Step{
+	if err = fl.CreateStep("forward", &flow.Step{
 		ID: "NetworkCreate",
 		Operations: []flow.Operation{
 			flow.ClientCallOperation("cms_network", "NetworkService.NetworkCreate"),
@@ -71,7 +71,7 @@ func TestExecutor(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	if err = fl.CreateStep(ctx, "forward", &flow.Step{
+	if err = fl.CreateStep("forward", &flow.Step{
 		ID: "AuthzCreate",
 		Operations: []flow.Operation{
 			flow.ClientCallOperation("cms_authz", "AuthzService.AuthzCreate"),
@@ -81,7 +81,7 @@ func TestExecutor(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	if err = fl.CreateStep(ctx, "forward", &flow.Step{
+	if err = fl.CreateStep("forward", &flow.Step{
 		ID: "MailSend",
 		Operations: []flow.Operation{
 			flow.ClientCallOperation("cms_mailer", "MailService.MailSend"),
@@ -96,7 +96,8 @@ func TestExecutor(t *testing.T) {
 	rsp := &proto.Test{}
 
 	//	err  = fl.
-	rid, err := fl.Execute(ctx, "forward", req, rsp,
+	rid, err := fl.Execute("forward", req, rsp,
+		flow.ExecuteContext(ctx),
 		flow.ExecuteAsync(false),
 		flow.ExecuteClient(client.DefaultClient),
 		flow.ExecuteBroker(broker.DefaultBroker),

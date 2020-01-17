@@ -16,19 +16,19 @@ type Flow interface {
 	// Get flow options
 	Options() Options
 	// Create step in specific flow
-	CreateStep(ctx context.Context, flow string, step *Step) error
+	CreateStep(flow string, step *Step) error
 	// Delete step from specific flow
-	DeleteStep(ctx context.Context, flow string, step *Step) error
+	DeleteStep(flow string, step *Step) error
 	// Update step in specific flow
-	UpdateStep(ctx context.Context, flow string, oldstep *Step, newstep *Step) error
+	UpdateStep(flow string, oldstep *Step, newstep *Step) error
 	// Execute specific flow and returns request id and error, optionally fills rsp
-	Execute(ctx context.Context, flow string, req interface{}, rsp interface{}, opts ...ExecuteOption) (string, error)
+	Execute(flow string, req interface{}, rsp interface{}, opts ...ExecuteOption) (string, error)
 	// Resume specific paused flow execution by request id
-	Resume(ctx context.Context, flow string, reqID string) error
+	Resume(flow string, reqID string) error
 	// Pause specific flow execution by request id
-	Pause(ctx context.Context, flow string, reqID string) error
+	Pause(flow string, reqID string) error
 	// Abort specific flow execution by request id
-	Abort(ctx context.Context, flow string, reqID string) error
+	Abort(flow string, reqID string) error
 	// Stop executor and drain active workers
 	Stop() error
 }
@@ -37,7 +37,7 @@ type Step struct {
 	// name of step
 	ID string
 	// operations for step
-	Operations Operations
+	Operations []Operation
 	// steps that are required for this step
 	Requires []string
 	// steps for which this step required
@@ -202,6 +202,16 @@ func ExecuteRetries(c int) ExecuteOption {
 func ExecuteAsync(b bool) ExecuteOption {
 	return func(o *ExecuteOptions) {
 		o.Async = b
+	}
+}
+
+// Client Call options
+func ExecuteClientCallOption(opts ...client.CallOption) ExecuteOption {
+	return func(o *ExecuteOptions) {
+		if o.Context == nil {
+			o.Context = context.Background()
+		}
+		o.Context = context.WithValue(o.Context, clientCallOperation{}, opts)
 	}
 }
 

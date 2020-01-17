@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+package go.micro.flow;
+
+service Flow {
+  rpc CreateStep(CreateStepRequest) returns (Empty) {};
+  rpc DeleteStep(DeleteStepRequest) returns (Empty) {};
+  rpc UpdateStep(UpdateStepRequest) returns (Empty) {};
+  rpc Execute(Empty) returns (Empty) {};
+}
+
+message Empty {}
+
+message CreateStepRequest {
+  string flow = 1;
+  Step step = 2;
+}
+
+message DeleteStepRequest {
+  string flow = 1;
+  Step step = 2;
+}
+
+message UpdateStepRequest {
+  string flow = 1;
+  Step step = 2;
+}
+
+message Test {
+  string name = 1;
+};
+
+message Steps {
+  repeated Step steps = 1;
+};
+
+message Step {
+  string name = 1;
+  repeated string requires = 2;
+  repeated string required = 3;
+  repeated Operation operations = 4;
+};
+
+message Operation {
+  string name = 1;
+  string type = 2;
+  map<string,string> options = 3;
+};

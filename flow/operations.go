@@ -3,7 +3,6 @@ package flow
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/micro/go-micro/broker"
@@ -14,11 +13,11 @@ import (
 )
 
 var (
-	operations map[string]Operation
+	Operations map[string]Operation
 )
 
-type Operations []Operation
-
+//type Operations []Operation
+/*
 func (ops Operations) String() string {
 	rops := make([]string, 0, len(ops))
 	for _, op := range ops {
@@ -27,9 +26,9 @@ func (ops Operations) String() string {
 
 	return strings.Join(rops, ",")
 }
-
+*/
 func init() {
-	operations = make(map[string]Operation)
+	Operations = make(map[string]Operation)
 	RegisterOperation(&sagaOperation{})
 	RegisterOperation(&clientCallOperation{})
 	RegisterOperation(&emptyOperation{})
@@ -38,10 +37,10 @@ func init() {
 }
 
 func RegisterOperation(op Operation) {
-	if _, ok := operations[op.Type()]; ok {
+	if _, ok := Operations[op.Type()]; ok {
 		return
 	}
-	operations[op.Type()] = op
+	Operations[op.Type()] = op
 }
 
 type sagaOperation struct {
@@ -118,7 +117,12 @@ func (op *clientCallOperation) New() Operation {
 func (op *clientCallOperation) Execute(ctx context.Context, data []byte, opts ...ExecuteOption) ([]byte, error) {
 	var err error
 
-	options := ExecuteOptions{}
+	options := ExecuteOptions{
+		Client:   client.DefaultClient,
+		Broker:   broker.DefaultBroker,
+		Registry: registry.DefaultRegistry,
+		Context:  context.Background(),
+	}
 	for _, opt := range opts {
 		opt(&options)
 	}
@@ -126,27 +130,12 @@ func (op *clientCallOperation) Execute(ctx context.Context, data []byte, opts ..
 	req := client.NewRequest(op.service, op.endpoint, &bytes.Frame{Data: data})
 	rsp := &bytes.Frame{}
 
-	callOpts := []client.CallOption{}
+	copts := []client.CallOption{}
+	if opts, ok := options.Context.Value(clientCallOperation{}).([]client.CallOption); ok {
+		copts = opts
+	}
 
-	//moptions, ok := op.options.Context.Value()
-	/*
-		if len(op.options.SelectOptions) > 0 {
-			callOpts = append(callOpts, client.WithSelectOption(op.options.SelectOptions...))
-		}
-		if len(op.options.Address) > 0 {
-			callOpts = append(callOpts, client.WithAddress(op.options.Address...))
-		}
-		if len(op.options.CallWrappers) > 0 {
-			callOpts = append(callOpts, client.WithCallWrapper(op.options.CallWrappers...))
-		}
-		if op.options.DialTimeout > 0 {
-			callOpts = append(callOpts, client.WithDialTimeout(op.options.DialTimeout))
-		}
-		if op.options.RequestTimeout > 0 {
-			callOpts = append(callOpts, client.WithRequestTimeout(op.options.RequestTimeout))
-		}
-	*/
-	if err = op.options.Client.Call(ctx, req, rsp, callOpts...); err != nil {
+	if err = options.Client.Call(ctx, req, rsp, copts...); err != nil {
 		return nil, err
 	}
 
@@ -341,9 +330,6 @@ type Operation interface {
 }
 
 type OperationOptions struct {
-	Client    client.Client
-	Broker    broker.Broker
-	Registry  registry.Registry
 	Timeout   time.Duration
 	Retries   int
 	AllowFail bool
