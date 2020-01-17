@@ -42,6 +42,8 @@ func (t *table) sendEvent(e *Event) {
 		select {
 		case w.resChan <- e:
 		case <-w.done:
+		// don't block forever
+		case <-time.After(time.Second):
 		}
 	}
 }
