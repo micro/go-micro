@@ -3,7 +3,7 @@ package mucp
 import (
 	"context"
 
-	"github.com/micro/go-micro/config/cmd"
+	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/config/source"
 	proto "github.com/micro/go-micro/config/source/mucp/proto"
 	"github.com/micro/go-micro/util/log"
@@ -11,6 +11,7 @@ import (
 
 var (
 	DefaultServiceName = "go.micro.config"
+	DefaultClient      = client.DefaultClient
 )
 
 type mucpSource struct {
@@ -65,7 +66,7 @@ func NewSource(opts ...source.Option) source.Source {
 	s := &mucpSource{
 		serviceName: addr,
 		opts:        options,
-		client:      proto.NewSourceService(addr, *cmd.DefaultOptions().Client),
+		client:      proto.NewSourceService(addr, DefaultClient),
 	}
 
 	return s
