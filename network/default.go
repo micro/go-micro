@@ -295,11 +295,19 @@ func (n *network) maskRoute(r *pbRtr.Route) {
 	// calculate route metric to advertise
 	metric := n.getRouteMetric(r.Router, r.Gateway, r.Link)
 
+	// check we don't overflow max int 64
+	if d := r.Metric + metric; d <= 0 {
+		// set to max int64 if we overflow
+		r.Metric = math.MaxInt64
+	} else {
+		// set the combined value of metrics otherwise
+		r.Metric = d
+	}
+
 	// NOTE: we override Gateway, Link and Address here
 	r.Address = address
 	r.Gateway = n.Address()
 	r.Link = DefaultLink
-	r.Metric = metric
 }
 
 // advertise advertises routes to the network
@@ -935,6 +943,10 @@ func (n *network) processNetChan(listener tunnel.Listener) {
 						log.Debugf("Network node %s skipping route addition: route already present", n.id)
 						continue
 					}
+
+					/////////////////////////////////////////////////////////////////////
+					//          maybe we should not be this clever ¯\_(ツ)_/¯          //
+					/////////////////////////////////////////////////////////////////////
 					// lookup best routes for the services in the just received route
 					q := []router.QueryOption{
 						router.QueryService(route.Service),
@@ -972,6 +984,8 @@ func (n *network) processNetChan(listener tunnel.Listener) {
 					if bestRoute.Metric <= route.Metric {
 						continue
 					}
+					///////////////////////////////////////////////////////////////////////
+					///////////////////////////////////////////////////////////////////////
 
 					// add route to the routing table
 					if err := n.router.Table().Create(route); err != nil && err != router.ErrDuplicateRoute {
@@ -1293,20 +1307,6 @@ func (n *network) getProtoRoutes() ([]*pbRtr.Route, error) {
 	// encode the routes to protobuf
 	pbRoutes := make([]*pbRtr.Route, 0, len(routes))
 	for _, route := range routes {
-		// calculate route metric and add to the advertised metric
-		// we need to make sure we do not overflow math.MaxInt64
-		metric := n.getRouteMetric(route.Router, route.Gateway, route.Link)
-		log.Tracef("Network metric for router %s and gateway %s: %v", route.Router, route.Gateway, metric)
-
-		// check we don't overflow max int 64
-		if d := route.Metric + metric; d <= 0 {
-			// set to max int64 if we overflow
-			route.Metric = math.MaxInt64
-		} else {
-			// set the combined value of metrics otherwise
-			route.Metric = d
-		}
-
 		// generate new route proto
 		pbRoute := pbUtil.RouteToProto(route)
 		// mask the route before outbounding
@@ -1314,6 +1314,7 @@ func (n *network) getProtoRoutes() ([]*pbRtr.Route, error) {
 		// add to list of routes
 		pbRoutes = append(pbRoutes, pbRoute)
 	}
+
 	return pbRoutes, nil
 }
 
