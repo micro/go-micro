@@ -942,7 +942,7 @@ func (n *network) processNetChan(listener tunnel.Listener) {
 					}
 
 					routes, err := n.router.Table().Query(q...)
-					if err != nil {
+					if err != nil && err != router.ErrRouteNotFound {
 						log.Debugf("Network node %s failed listing best routes for %s: %v", n.id, route.Service, err)
 						continue
 					}
@@ -1286,7 +1286,7 @@ func (n *network) getProtoRoutes() ([]*pbRtr.Route, error) {
 	}
 
 	routes, err := n.router.Table().Query(q...)
-	if err != nil {
+	if err != nil && err != router.ErrRouteNotFound {
 		return nil, err
 	}
 
