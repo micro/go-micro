@@ -22,6 +22,14 @@ func stepToProto(step *Step) *pbFlow.Step {
 	return pb
 }
 
+func stepEqual(ostep *pbFlow.Step, nstep *pbFlow.Step) bool {
+	if ostep.Name == nstep.Name {
+		return true
+	}
+
+	return false
+}
+
 func protoToStep(pb *pbFlow.Step) *Step {
 	ops := make([]Operation, 0, len(pb.Operations))
 	for _, pbop := range pb.Operations {

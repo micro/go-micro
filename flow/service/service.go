@@ -61,7 +61,7 @@ func (s *serviceFlow) Execute(fname string, req interface{}, rsp interface{}, op
 	return "", nil
 }
 
-func (s *serviceFlow) UpdateStep(fname string, oldstep *flow.Step, newstep *flow.Step) error {
+func (s *serviceFlow) ReplaceStep(fname string, oldstep *flow.Step, newstep *flow.Step) error {
 	return nil
 }
 

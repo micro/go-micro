@@ -61,7 +61,35 @@ func NewFlow(opts ...Option) Flow {
 	return fl
 }
 
-func (fl *microFlow) UpdateStep(name string, oldstep *Step, newstep *Step) error {
+func (fl *microFlow) ReplaceStep(name string, oldstep *Step, newstep *Step) error {
+	var err error
+	var buf []byte
+
+	if buf, err = fl.options.FlowStore.Read(fl.options.Context, name); err != nil {
+		return err
+	}
+
+	steps := &pbFlow.Steps{}
+	if err = proto.Unmarshal(buf, steps); err != nil {
+		return err
+	}
+
+	st := stepToProto(oldstep)
+	for idx, pbst := range steps.Steps {
+		if stepEqual(pbst, st) {
+			steps.Steps = append(steps.Steps[:idx], steps.Steps[idx+1:]...)
+		}
+	}
+
+	steps.Steps = append(steps.Steps, stepToProto(newstep))
+	if buf, err = proto.Marshal(steps); err != nil {
+		return err
+	}
+
+	if err = fl.options.FlowStore.Write(fl.options.Context, name, buf); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -97,6 +125,34 @@ func (fl *microFlow) CreateStep(name string, step *Step) error {
 }
 
 func (fl *microFlow) DeleteStep(name string, step *Step) error {
+	var err error
+	var buf []byte
+
+	if buf, err = fl.options.FlowStore.Read(fl.options.Context, name); err != nil {
+		return err
+	}
+
+	steps := &pbFlow.Steps{}
+	if err = proto.Unmarshal(buf, steps); err != nil {
+		return err
+	}
+
+	st := stepToProto(step)
+
+	for idx, pbst := range steps.Steps {
+		if stepEqual(pbst, st) {
+			steps.Steps = append(steps.Steps[:idx], steps.Steps[idx+1:]...)
+		}
+	}
+
+	if buf, err = proto.Marshal(steps); err != nil {
+		return err
+	}
+
+	if err = fl.options.FlowStore.Write(fl.options.Context, name, buf); err != nil {
+		return err
+	}
+
 	return nil
 }
 
