@@ -14,14 +14,14 @@ var (
 	DefaultClient      = client.DefaultClient
 )
 
-type mucpSource struct {
+type service struct {
 	serviceName string
 	key         string
 	opts        source.Options
-	client      proto.SourceService
+	client      proto.Service
 }
 
-func (m *mucpSource) Read() (set *source.ChangeSet, err error) {
+func (m *service) Read() (set *source.ChangeSet, err error) {
 	req, err := m.client.Read(context.Background(), &proto.ReadRequest{Path: m.key})
 	if err != nil {
 		return nil, err
@@ -30,7 +30,7 @@ func (m *mucpSource) Read() (set *source.ChangeSet, err error) {
 	return toChangeSet(req.Change.ChangeSet), nil
 }
 
-func (m *mucpSource) Watch() (w source.Watcher, err error) {
+func (m *service) Watch() (w source.Watcher, err error) {
 	stream, err := m.client.Watch(context.Background(), &proto.WatchRequest{Key: m.key})
 	if err != nil {
 		log.Error("watch err: ", err)
@@ -40,11 +40,11 @@ func (m *mucpSource) Watch() (w source.Watcher, err error) {
 }
 
 // Write is unsupported
-func (m *mucpSource) Write(cs *source.ChangeSet) error {
+func (m *service) Write(cs *source.ChangeSet) error {
 	return nil
 }
 
-func (m *mucpSource) String() string {
+func (m *service) String() string {
 	return "mucp"
 }
 
@@ -63,10 +63,10 @@ func NewSource(opts ...source.Option) source.Source {
 		}
 	}
 
-	s := &mucpSource{
+	s := &service{
 		serviceName: addr,
 		opts:        options,
-		client:      proto.NewSourceService(addr, DefaultClient),
+		client:      proto.NewService(addr, DefaultClient),
 	}
 
 	return s

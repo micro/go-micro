@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-service Source {
+service Service {
     rpc Create (CreateRequest) returns (CreateResponse) {
     }
     rpc Update (UpdateRequest) returns (UpdateResponse) {

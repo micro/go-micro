@@ -31,37 +31,37 @@ var _ context.Context
 var _ client.Option
 var _ server.Option
 
-// Client API for Source service
+// Client API for Service service
 
-type SourceService interface {
+type Service interface {
 	Create(ctx context.Context, in *CreateRequest, opts ...client.CallOption) (*CreateResponse, error)
 	Update(ctx context.Context, in *UpdateRequest, opts ...client.CallOption) (*UpdateResponse, error)
 	Delete(ctx context.Context, in *DeleteRequest, opts ...client.CallOption) (*DeleteResponse, error)
 	List(ctx context.Context, in *ListRequest, opts ...client.CallOption) (*ListResponse, error)
 	Read(ctx context.Context, in *ReadRequest, opts ...client.CallOption) (*ReadResponse, error)
-	Watch(ctx context.Context, in *WatchRequest, opts ...client.CallOption) (Source_WatchService, error)
+	Watch(ctx context.Context, in *WatchRequest, opts ...client.CallOption) (Service_WatchService, error)
 }
 
-type sourceService struct {
+type service struct {
 	c    client.Client
 	name string
 }
 
-func NewSourceService(name string, c client.Client) SourceService {
+func NewService(name string, c client.Client) Service {
 	if c == nil {
 		c = client.NewClient()
 	}
 	if len(name) == 0 {
-		name = "source"
+		name = "service"
 	}
-	return &sourceService{
+	return &service{
 		c:    c,
 		name: name,
 	}
 }
 
-func (c *sourceService) Create(ctx context.Context, in *CreateRequest, opts ...client.CallOption) (*CreateResponse, error) {
-	req := c.c.NewRequest(c.name, "Source.Create", in)
+func (c *service) Create(ctx context.Context, in *CreateRequest, opts ...client.CallOption) (*CreateResponse, error) {
+	req := c.c.NewRequest(c.name, "Service.Create", in)
 	out := new(CreateResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
@@ -70,8 +70,8 @@ func (c *sourceService) Create(ctx context.Context, in *CreateRequest, opts ...c
 	return out, nil
 }
 
-func (c *sourceService) Update(ctx context.Context, in *UpdateRequest, opts ...client.CallOption) (*UpdateResponse, error) {
-	req := c.c.NewRequest(c.name, "Source.Update", in)
+func (c *service) Update(ctx context.Context, in *UpdateRequest, opts ...client.CallOption) (*UpdateResponse, error) {
+	req := c.c.NewRequest(c.name, "Service.Update", in)
 	out := new(UpdateResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
@@ -80,8 +80,8 @@ func (c *sourceService) Update(ctx context.Context, in *UpdateRequest, opts ...c
 	return out, nil
 }
 
-func (c *sourceService) Delete(ctx context.Context, in *DeleteRequest, opts ...client.CallOption) (*DeleteResponse, error) {
-	req := c.c.NewRequest(c.name, "Source.Delete", in)
+func (c *service) Delete(ctx context.Context, in *DeleteRequest, opts ...client.CallOption) (*DeleteResponse, error) {
+	req := c.c.NewRequest(c.name, "Service.Delete", in)
 	out := new(DeleteResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
@@ -90,8 +90,8 @@ func (c *sourceService) Delete(ctx context.Context, in *DeleteRequest, opts ...c
 	return out, nil
 }
 
-func (c *sourceService) List(ctx context.Context, in *ListRequest, opts ...client.CallOption) (*ListResponse, error) {
-	req := c.c.NewRequest(c.name, "Source.List", in)
+func (c *service) List(ctx context.Context, in *ListRequest, opts ...client.CallOption) (*ListResponse, error) {
+	req := c.c.NewRequest(c.name, "Service.List", in)
 	out := new(ListResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
@@ -100,8 +100,8 @@ func (c *sourceService) List(ctx context.Context, in *ListRequest, opts ...clien
 	return out, nil
 }
 
-func (c *sourceService) Read(ctx context.Context, in *ReadRequest, opts ...client.CallOption) (*ReadResponse, error) {
-	req := c.c.NewRequest(c.name, "Source.Read", in)
+func (c *service) Read(ctx context.Context, in *ReadRequest, opts ...client.CallOption) (*ReadResponse, error) {
+	req := c.c.NewRequest(c.name, "Service.Read", in)
 	out := new(ReadResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
@@ -110,8 +110,8 @@ func (c *sourceService) Read(ctx context.Context, in *ReadRequest, opts ...clien
 	return out, nil
 }
 
-func (c *sourceService) Watch(ctx context.Context, in *WatchRequest, opts ...client.CallOption) (Source_WatchService, error) {
-	req := c.c.NewRequest(c.name, "Source.Watch", &WatchRequest{})
+func (c *service) Watch(ctx context.Context, in *WatchRequest, opts ...client.CallOption) (Service_WatchService, error) {
+	req := c.c.NewRequest(c.name, "Service.Watch", &WatchRequest{})
 	stream, err := c.c.Stream(ctx, req, opts...)
 	if err != nil {
 		return nil, err
@@ -119,33 +119,33 @@ func (c *sourceService) Watch(ctx context.Context, in *WatchRequest, opts ...cli
 	if err := stream.Send(in); err != nil {
 		return nil, err
 	}
-	return &sourceServiceWatch{stream}, nil
+	return &serviceWatch{stream}, nil
 }
 
-type Source_WatchService interface {
+type Service_WatchService interface {
 	SendMsg(interface{}) error
 	RecvMsg(interface{}) error
 	Close() error
 	Recv() (*WatchResponse, error)
 }
 
-type sourceServiceWatch struct {
+type serviceWatch struct {
 	stream client.Stream
 }
 
-func (x *sourceServiceWatch) Close() error {
+func (x *serviceWatch) Close() error {
 	return x.stream.Close()
 }
 
-func (x *sourceServiceWatch) SendMsg(m interface{}) error {
+func (x *serviceWatch) SendMsg(m interface{}) error {
 	return x.stream.Send(m)
 }
 
-func (x *sourceServiceWatch) RecvMsg(m interface{}) error {
+func (x *serviceWatch) RecvMsg(m interface{}) error {
 	return x.stream.Recv(m)
 }
 
-func (x *sourceServiceWatch) Recv() (*WatchResponse, error) {
+func (x *serviceWatch) Recv() (*WatchResponse, error) {
 	m := new(WatchResponse)
 	err := x.stream.Recv(m)
 	if err != nil {
@@ -154,19 +154,19 @@ func (x *sourceServiceWatch) Recv() (*WatchResponse, error) {
 	return m, nil
 }
 
-// Server API for Source service
+// Server API for Service service
 
-type SourceHandler interface {
+type ServiceHandler interface {
 	Create(context.Context, *CreateRequest, *CreateResponse) error
 	Update(context.Context, *UpdateRequest, *UpdateResponse) error
 	Delete(context.Context, *DeleteRequest, *DeleteResponse) error
 	List(context.Context, *ListRequest, *ListResponse) error
 	Read(context.Context, *ReadRequest, *ReadResponse) error
-	Watch(context.Context, *WatchRequest, Source_WatchStream) error
+	Watch(context.Context, *WatchRequest, Service_WatchStream) error
 }
 
-func RegisterSourceHandler(s server.Server, hdlr SourceHandler, opts ...server.HandlerOption) error {
-	type source interface {
+func RegisterServiceHandler(s server.Server, hdlr ServiceHandler, opts ...server.HandlerOption) error {
+	type service interface {
 		Create(ctx context.Context, in *CreateRequest, out *CreateResponse) error
 		Update(ctx context.Context, in *UpdateRequest, out *UpdateResponse) error
 		Delete(ctx context.Context, in *DeleteRequest, out *DeleteResponse) error
@@ -174,68 +174,68 @@ func RegisterSourceHandler(s server.Server, hdlr SourceHandler, opts ...server.H
 		Read(ctx context.Context, in *ReadRequest, out *ReadResponse) error
 		Watch(ctx context.Context, stream server.Stream) error
 	}
-	type Source struct {
-		source
+	type Service struct {
+		service
 	}
-	h := &sourceHandler{hdlr}
-	return s.Handle(s.NewHandler(&Source{h}, opts...))
+	h := &serviceHandler{hdlr}
+	return s.Handle(s.NewHandler(&Service{h}, opts...))
 }
 
-type sourceHandler struct {
-	SourceHandler
+type serviceHandler struct {
+	ServiceHandler
 }
 
-func (h *sourceHandler) Create(ctx context.Context, in *CreateRequest, out *CreateResponse) error {
-	return h.SourceHandler.Create(ctx, in, out)
+func (h *serviceHandler) Create(ctx context.Context, in *CreateRequest, out *CreateResponse) error {
+	return h.ServiceHandler.Create(ctx, in, out)
 }
 
-func (h *sourceHandler) Update(ctx context.Context, in *UpdateRequest, out *UpdateResponse) error {
-	return h.SourceHandler.Update(ctx, in, out)
+func (h *serviceHandler) Update(ctx context.Context, in *UpdateRequest, out *UpdateResponse) error {
+	return h.ServiceHandler.Update(ctx, in, out)
 }
 
-func (h *sourceHandler) Delete(ctx context.Context, in *DeleteRequest, out *DeleteResponse) error {
-	return h.SourceHandler.Delete(ctx, in, out)
+func (h *serviceHandler) Delete(ctx context.Context, in *DeleteRequest, out *DeleteResponse) error {
+	return h.ServiceHandler.Delete(ctx, in, out)
 }
 
-func (h *sourceHandler) List(ctx context.Context, in *ListRequest, out *ListResponse) error {
-	return h.SourceHandler.List(ctx, in, out)
+func (h *serviceHandler) List(ctx context.Context, in *ListRequest, out *ListResponse) error {
+	return h.ServiceHandler.List(ctx, in, out)
 }
 
-func (h *sourceHandler) Read(ctx context.Context, in *ReadRequest, out *ReadResponse) error {
-	return h.SourceHandler.Read(ctx, in, out)
+func (h *serviceHandler) Read(ctx context.Context, in *ReadRequest, out *ReadResponse) error {
+	return h.ServiceHandler.Read(ctx, in, out)
 }
 
-func (h *sourceHandler) Watch(ctx context.Context, stream server.Stream) error {
+func (h *serviceHandler) Watch(ctx context.Context, stream server.Stream) error {
 	m := new(WatchRequest)
 	if err := stream.Recv(m); err != nil {
 		return err
 	}
-	return h.SourceHandler.Watch(ctx, m, &sourceWatchStream{stream})
+	return h.ServiceHandler.Watch(ctx, m, &serviceWatchStream{stream})
 }
 
-type Source_WatchStream interface {
+type Service_WatchStream interface {
 	SendMsg(interface{}) error
 	RecvMsg(interface{}) error
 	Close() error
 	Send(*WatchResponse) error
 }
 
-type sourceWatchStream struct {
+type serviceWatchStream struct {
 	stream server.Stream
 }
 
-func (x *sourceWatchStream) Close() error {
+func (x *serviceWatchStream) Close() error {
 	return x.stream.Close()
 }
 
-func (x *sourceWatchStream) SendMsg(m interface{}) error {
+func (x *serviceWatchStream) SendMsg(m interface{}) error {
 	return x.stream.Send(m)
 }
 
-func (x *sourceWatchStream) RecvMsg(m interface{}) error {
+func (x *serviceWatchStream) RecvMsg(m interface{}) error {
 	return x.stream.Recv(m)
 }
 
-func (x *sourceWatchStream) Send(m *WatchResponse) error {
+func (x *serviceWatchStream) Send(m *WatchResponse) error {
 	return x.stream.Send(m)
 }
