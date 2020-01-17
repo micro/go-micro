@@ -3,7 +3,6 @@ package flow
 import (
 	"context"
 	"fmt"
-	"log"
 	"sort"
 	"sync"
 	"time"
@@ -11,7 +10,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/google/uuid"
 	dag "github.com/hashicorp/terraform/dag"
-	pbFlow "github.com/micro/go-micro/flow/proto"
+	pbFlow "github.com/micro/go-micro/flow/service/proto"
 	"github.com/panjf2000/ants/v2"
 )
 
@@ -187,7 +186,7 @@ func (fl *microFlow) Init(opts ...Option) error {
 	}
 	pool, err := ants.NewPoolWithFunc(
 		fl.options.Concurrency,
-		fl.handler,
+		fl.flowHandler,
 		ants.WithNonblocking(fl.options.Nonblock),
 		ants.WithPanicHandler(fl.options.PanicHandler),
 		ants.WithPreAlloc(fl.options.Prealloc),
@@ -212,7 +211,7 @@ func include(slice []string, f string) bool {
 	return false
 }
 
-func (fl *microFlow) handler(req interface{}) {
+func (fl *microFlow) flowHandler(req interface{}) {
 	var err error
 	var buf []byte
 
@@ -241,7 +240,7 @@ func (fl *microFlow) handler(req interface{}) {
 
 	steps := make(map[string]*Step)
 	for _, step := range pbSteps.Steps {
-		s := protoToStep(step)
+		s := protoToStep(options, step)
 		steps[s.Name()] = s
 	}
 
@@ -304,26 +303,17 @@ func (fl *microFlow) handler(req interface{}) {
 		return
 	}
 
-	log.Printf("forward execution")
+	// sort steps for forward execution
 	sort.Slice(w.steps, func(i, j int) bool {
 		return w.steps[i].pos < w.steps[j].pos
 	})
-	//	for _, n := range w.steps {
-	//		fmt.Printf("node: %s pos: %d\n", n.step, n.pos)
-	//	}
-	/*
-		log.Printf("backward execution")
-		sort.Slice(tr.nodes, func(i, j int) bool {
-			return tr.nodes[i].pos > tr.nodes[j].pos
-		})
-		for _, n := range tr.nodes {
-			fmt.Printf("node: %s pos: %d\n", n.item, n.pos)
-		}
-	*/
 
 	for _, wstep := range w.steps {
 		for _, op := range wstep.step.Operations {
 			buf, err = op.Execute(options.Context, job.req)
+			if err != nil {
+				return
+			}
 		}
 	}
 

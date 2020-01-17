@@ -4,6 +4,10 @@ import (
 	"context"
 	"fmt"
 	"time"
+
+	"github.com/micro/go-micro/broker"
+	"github.com/micro/go-micro/client"
+	"github.com/micro/go-micro/registry"
 )
 
 type Flow interface {
@@ -86,6 +90,12 @@ type ExecuteOptions struct {
 	Retries int
 	// Context is used for storing non default options
 	Context context.Context
+	// Client for communication
+	Client client.Client
+	// Broker for communication
+	Broker broker.Broker
+	// Registry
+	Registry registry.Registry
 }
 
 type ExecuteOption func(*ExecuteOptions)
@@ -199,5 +209,26 @@ func ExecuteAsync(b bool) ExecuteOption {
 func ExecuteContext(ctx context.Context) ExecuteOption {
 	return func(o *ExecuteOptions) {
 		o.Context = ctx
+	}
+}
+
+// Client for communication
+func ExecuteClient(c client.Client) ExecuteOption {
+	return func(o *ExecuteOptions) {
+		o.Client = c
+	}
+}
+
+// Broker for communication
+func ExecuteBroker(b broker.Broker) ExecuteOption {
+	return func(o *ExecuteOptions) {
+		o.Broker = b
+	}
+}
+
+// Registry for communication
+func ExecuteRegistry(r registry.Registry) ExecuteOption {
+	return func(o *ExecuteOptions) {
+		o.Registry = r
 	}
 }

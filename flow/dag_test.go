@@ -5,9 +5,12 @@ import (
 	"testing"
 	"time"
 
-	flow "github.com/micro/go-micro/flow"
-	proto "github.com/micro/go-micro/flow/proto"
+	"github.com/micro/go-micro/broker"
+	"github.com/micro/go-micro/client"
+	"github.com/micro/go-micro/flow"
+	proto "github.com/micro/go-micro/flow/service/proto"
 	memory "github.com/micro/go-micro/flow/store/memory"
+	"github.com/micro/go-micro/registry"
 )
 
 func TestExecutor(t *testing.T) {
@@ -29,58 +32,62 @@ func TestExecutor(t *testing.T) {
 		t.Fatal(err)
 	}
 	if err = fl.CreateStep(ctx, "forward", &flow.Step{
-		ID:         "AccountCreate",
-		Operations: []flow.Operation{flow.ClientCallOperation("cms_account", "AccountService.AccountCreate")},
-		Requires:   nil,
-		Required:   nil,
+		ID: "AccountCreate",
+		Operations: []flow.Operation{
+			flow.ClientCallOperation("cms_account", "AccountService.AccountCreate"),
+		},
+		Requires: nil,
+		Required: nil,
 	}); err != nil {
 		t.Fatal(err)
 	}
 	if err = fl.CreateStep(ctx, "forward", &flow.Step{
-		ID:         "ContactCreate",
-		Operations: []flow.Operation{flow.ClientCallOperation("cms_contact", "ContactService.ContactCreate")},
-		Requires:   []string{"AccountCreate"},
-		Required:   nil,
+		ID: "ContactCreate",
+		Operations: []flow.Operation{
+			flow.ClientCallOperation("cms_contact", "ContactService.ContactCreate"),
+		},
+		Requires: []string{"AccountCreate"},
+		Required: nil,
 	}); err != nil {
 		t.Fatal(err)
 	}
 	if err = fl.CreateStep(ctx, "forward", &flow.Step{
-		ID:         "ProjectCreate",
-		Operations: []flow.Operation{flow.ClientCallOperation("cms_project", "ProjectService.ProjectCreate")},
-		Requires:   []string{"AccountCreate"},
-		Required:   nil,
+		ID: "ProjectCreate",
+		Operations: []flow.Operation{
+			flow.ClientCallOperation("cms_project", "ProjectService.ProjectCreate"),
+		},
+		Requires: []string{"AccountCreate"},
+		Required: nil,
 	}); err != nil {
 		t.Fatal(err)
 	}
 	if err = fl.CreateStep(ctx, "forward", &flow.Step{
-		ID:         "NetworkCreate",
-		Operations: []flow.Operation{flow.ClientCallOperation("cms_network", "NetworkService.NetworkCreate")},
-		Requires:   []string{"AccountCreate"},
-		Required:   nil,
+		ID: "NetworkCreate",
+		Operations: []flow.Operation{
+			flow.ClientCallOperation("cms_network", "NetworkService.NetworkCreate"),
+		},
+		Requires: []string{"AccountCreate"},
+		Required: nil,
 	}); err != nil {
 		t.Fatal(err)
 	}
 	if err = fl.CreateStep(ctx, "forward", &flow.Step{
-		ID:         "AuthzCreate",
-		Operations: []flow.Operation{flow.ClientCallOperation("cms_authz", "AuthzService.AuthzCreate")},
-		Requires:   []string{"AccountCreate"},
-		Required:   nil,
+		ID: "AuthzCreate",
+		Operations: []flow.Operation{
+			flow.ClientCallOperation("cms_authz", "AuthzService.AuthzCreate"),
+		},
+		Requires: []string{"AccountCreate"},
+		Required: nil,
 	}); err != nil {
 		t.Fatal(err)
 	}
 	if err = fl.CreateStep(ctx, "forward", &flow.Step{
-		ID:         "MailSend",
-		Operations: []flow.Operation{flow.ClientCallOperation("cms_mailer", "MailService.MailSend")},
-		Requires:   []string{"all"},
-		Required:   nil,
-	}); err != nil {
-		t.Fatal(err)
-	}
-	if err = fl.CreateStep(ctx, "forward", &flow.Step{
-		ID:         "Mail2Send",
-		Operations: []flow.Operation{flow.ClientCallOperation("cms_mailer", "MailService.Mail2Send")},
-		Requires:   []string{"all"},
-		Required:   nil,
+		ID: "MailSend",
+		Operations: []flow.Operation{
+			flow.ClientCallOperation("cms_mailer", "MailService.MailSend"),
+		},
+		Requires: []string{"all"},
+		Required: nil,
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -89,7 +96,12 @@ func TestExecutor(t *testing.T) {
 	rsp := &proto.Test{}
 
 	//	err  = fl.
-	rid, err := fl.Execute(ctx, "forward", req, rsp, flow.ExecuteAsync(false))
+	rid, err := fl.Execute(ctx, "forward", req, rsp,
+		flow.ExecuteAsync(false),
+		flow.ExecuteClient(client.DefaultClient),
+		flow.ExecuteBroker(broker.DefaultBroker),
+		flow.ExecuteRegistry(registry.DefaultRegistry),
+	)
 	if err != nil {
 		t.Fatal(err)
 	}

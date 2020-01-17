@@ -3,13 +3,14 @@ package flow
 import (
 	"context"
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
 	"github.com/micro/go-micro/broker"
 	"github.com/micro/go-micro/client"
-	pbFlow "github.com/micro/go-micro/flow/proto"
+	"github.com/micro/go-micro/codec/bytes"
+	pbFlow "github.com/micro/go-micro/flow/service/proto"
+	"github.com/micro/go-micro/registry"
 )
 
 var (
@@ -50,7 +51,7 @@ type sagaOperation struct {
 	options OperationOptions
 }
 
-func SagaOperation(fwd Operation, rev Operation) Operation {
+func SagaOperation(fwd Operation, rev Operation) *sagaOperation {
 	return &sagaOperation{forward: fwd, reverse: rev, name: "saga_operation"}
 }
 
@@ -85,6 +86,10 @@ func (op *sagaOperation) Options() OperationOptions {
 	return op.options
 }
 
+func (op *sagaOperation) SetOptions(opts OperationOptions) {
+	op.options = opts
+}
+
 type clientCallOperation struct {
 	name     string
 	service  string
@@ -92,7 +97,7 @@ type clientCallOperation struct {
 	options  OperationOptions
 }
 
-func ClientCallOperation(service, endpoint string, opts ...OperationOption) Operation {
+func ClientCallOperation(service, endpoint string, opts ...OperationOption) *clientCallOperation {
 	options := OperationOptions{}
 	for _, opt := range opts {
 		opt(&options)
@@ -110,9 +115,42 @@ func (op *clientCallOperation) New() Operation {
 	return &clientCallOperation{}
 }
 
-func (op *clientCallOperation) Execute(ctx context.Context, req []byte, opts ...ExecuteOption) ([]byte, error) {
-	log.Printf("%s", op)
-	return nil, nil
+func (op *clientCallOperation) Execute(ctx context.Context, data []byte, opts ...ExecuteOption) ([]byte, error) {
+	var err error
+
+	options := ExecuteOptions{}
+	for _, opt := range opts {
+		opt(&options)
+	}
+
+	req := client.NewRequest(op.service, op.endpoint, &bytes.Frame{Data: data})
+	rsp := &bytes.Frame{}
+
+	callOpts := []client.CallOption{}
+
+	//moptions, ok := op.options.Context.Value()
+	/*
+		if len(op.options.SelectOptions) > 0 {
+			callOpts = append(callOpts, client.WithSelectOption(op.options.SelectOptions...))
+		}
+		if len(op.options.Address) > 0 {
+			callOpts = append(callOpts, client.WithAddress(op.options.Address...))
+		}
+		if len(op.options.CallWrappers) > 0 {
+			callOpts = append(callOpts, client.WithCallWrapper(op.options.CallWrappers...))
+		}
+		if op.options.DialTimeout > 0 {
+			callOpts = append(callOpts, client.WithDialTimeout(op.options.DialTimeout))
+		}
+		if op.options.RequestTimeout > 0 {
+			callOpts = append(callOpts, client.WithRequestTimeout(op.options.RequestTimeout))
+		}
+	*/
+	if err = op.options.Client.Call(ctx, req, rsp, callOpts...); err != nil {
+		return nil, err
+	}
+
+	return rsp.Data, nil
 }
 
 func (op *clientCallOperation) Name() string {
@@ -129,19 +167,27 @@ func (op *clientCallOperation) String() string {
 
 func (op *clientCallOperation) Encode() *pbFlow.Operation {
 	pb := &pbFlow.Operation{
-		Name: op.name,
-		Type: op.Type(),
+		Name:    op.name,
+		Type:    op.Type(),
+		Options: make(map[string]string),
 	}
-
+	pb.Options["service"] = op.service
+	pb.Options["endpoint"] = op.endpoint
 	return pb
 }
 
 func (op *clientCallOperation) Decode(pb *pbFlow.Operation) {
 	op.name = pb.Name
+	op.service = pb.Options["service"]
+	op.endpoint = pb.Options["endpoint"]
 }
 
 func (op *clientCallOperation) Options() OperationOptions {
 	return op.options
+}
+
+func (op *clientCallOperation) SetOptions(opts OperationOptions) {
+	op.options = opts
 }
 
 type emptyOperation struct {
@@ -149,7 +195,7 @@ type emptyOperation struct {
 	options OperationOptions
 }
 
-func EmptyOperation(opts ...OperationOption) Operation {
+func EmptyOperation(opts ...OperationOption) *emptyOperation {
 	options := OperationOptions{}
 	for _, opt := range opts {
 		opt(&options)
@@ -189,12 +235,16 @@ func (op *emptyOperation) Options() OperationOptions {
 	return op.options
 }
 
+func (op *emptyOperation) SetOptions(opts OperationOptions) {
+	op.options = opts
+}
+
 type aggregateOperation struct {
 	name    string
 	options OperationOptions
 }
 
-func AggregateOperation() Operation {
+func AggregateOperation() *aggregateOperation {
 	return &aggregateOperation{name: "aggregate_operation"}
 }
 
@@ -229,13 +279,17 @@ func (op *aggregateOperation) Options() OperationOptions {
 	return op.options
 }
 
+func (op *aggregateOperation) SetOptions(opts OperationOptions) {
+	op.options = opts
+}
+
 type modifyOperation struct {
 	name    string
 	options OperationOptions
 	fn      func([]byte) ([]byte, error)
 }
 
-func ModifyOperation(fn func([]byte) ([]byte, error)) Operation {
+func ModifyOperation(fn func([]byte) ([]byte, error)) *modifyOperation {
 	return &modifyOperation{name: "modify_operation"}
 }
 
@@ -270,6 +324,10 @@ func (op *modifyOperation) Options() OperationOptions {
 	return op.options
 }
 
+func (op *modifyOperation) SetOptions(opts OperationOptions) {
+	op.options = opts
+}
+
 type Operation interface {
 	Name() string
 	String() string
@@ -279,11 +337,13 @@ type Operation interface {
 	Encode() *pbFlow.Operation
 	Execute(context.Context, []byte, ...ExecuteOption) ([]byte, error)
 	Options() OperationOptions
+	SetOptions(OperationOptions)
 }
 
 type OperationOptions struct {
 	Client    client.Client
 	Broker    broker.Broker
+	Registry  registry.Registry
 	Timeout   time.Duration
 	Retries   int
 	AllowFail bool
@@ -313,19 +373,5 @@ func OperationAllowFail(b bool) OperationOption {
 func OperationContext(ctx context.Context) OperationOption {
 	return func(o *OperationOptions) {
 		o.Context = ctx
-	}
-}
-
-// Client for communication
-func OperationClient(c client.Client) OperationOption {
-	return func(o *OperationOptions) {
-		o.Client = c
-	}
-}
-
-// Broker for communication
-func OperationBroker(b broker.Broker) OperationOption {
-	return func(o *OperationOptions) {
-		o.Broker = b
 	}
 }

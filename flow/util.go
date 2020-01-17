@@ -3,7 +3,7 @@ package flow
 import (
 	"log"
 
-	pbFlow "github.com/micro/go-micro/flow/proto"
+	pbFlow "github.com/micro/go-micro/flow/service/proto"
 )
 
 func stepToProto(step *Step) *pbFlow.Step {
@@ -19,10 +19,12 @@ func stepToProto(step *Step) *pbFlow.Step {
 		Operations: operations,
 	}
 
+	//pb.Options = make(map[string]string)
+	//	pb.Options["service"]
 	return pb
 }
 
-func protoToStep(pb *pbFlow.Step) *Step {
+func protoToStep(options ExecuteOptions, pb *pbFlow.Step) *Step {
 	ops := make([]Operation, 0, len(pb.Operations))
 	for _, pbop := range pb.Operations {
 		op, ok := operations[pbop.Type]
@@ -32,6 +34,13 @@ func protoToStep(pb *pbFlow.Step) *Step {
 		}
 		nop := op.New()
 		nop.Decode(pbop)
+		opts := nop.Options()
+
+		opts.Registry = options.Registry
+		opts.Client = options.Client
+		opts.Broker = options.Broker
+		opts.Context = options.Context
+		nop.SetOptions(opts)
 		ops = append(ops, nop)
 	}
 
