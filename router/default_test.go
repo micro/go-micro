@@ -18,7 +18,6 @@ func routerTestSetup() Router {
 func TestRouterStartStop(t *testing.T) {
 	r := routerTestSetup()
 
-	log.Debugf("TestRouterStartStop STARTING")
 	if err := r.Start(); err != nil {
 		t.Errorf("failed to start router: %v", err)
 	}
