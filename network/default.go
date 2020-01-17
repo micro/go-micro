@@ -1190,6 +1190,7 @@ func (n *network) manage() {
 				links[peer.link] = time.Now()
 			}
 		case <-prune.C:
+			log.Debugf("Network node %s pruning stale peers", n.id)
 			pruned := n.PruneStalePeers(PruneTime)
 
 			for id, peer := range pruned {
@@ -1332,12 +1333,11 @@ func (n *network) sendTo(method, channel string, peer *node, msg proto.Message) 
 	c, err := n.tunnel.Dial(channel, tunnel.DialWait(false), tunnel.DialLink(peer.link))
 	if err != nil {
 		if peerNode := n.GetPeerNode(peer.id); peerNode != nil {
-			log.Debugf("Network found peer %s: %v", peer.id, peerNode)
 			// update node status when error happens
 			peerNode.status.err.Update(err)
-			log.Debugf("Network increment node peer %p %v count to: %d", peerNode, peerNode, peerNode.status.Error().Count())
+			log.Debugf("Network increment peer %v error count to: %d", peerNode, peerNode, peerNode.status.Error().Count())
 			if count := peerNode.status.Error().Count(); count == MaxPeerErrors {
-				log.Debugf("Network node peer %v count exceeded %d: %d", peerNode, MaxPeerErrors, peerNode.status.Error().Count())
+				log.Debugf("Network peer %v error count exceeded %d. Prunning.", peerNode, MaxPeerErrors)
 				n.PrunePeer(peerNode.id)
 			}
 		}
