@@ -1,11 +1,11 @@
-package mucp
+package service
 
 import (
 	"context"
 
 	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/config/source"
-	proto "github.com/micro/go-micro/config/source/mucp/proto"
+	proto "github.com/micro/go-micro/config/source/service/proto"
 	"github.com/micro/go-micro/util/log"
 )
 

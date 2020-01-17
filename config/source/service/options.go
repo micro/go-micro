@@ -1,4 +1,4 @@
-package mucp
+package service
 
 import (
 	"context"
