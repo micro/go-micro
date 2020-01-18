@@ -119,17 +119,17 @@ func (n *natsBroker) serve(exit chan bool) error {
 
 	// with no address we just default it
 	// this is a local client address
-	if len(n.addrs) == 0 || n.local {
+	if len(n.addrs) == 0 {
 		host = "127.0.0.1"
 		port = -1
 		local = true
-		// with a local address we parse it
 	} else {
 		address := n.addrs[0]
 		if strings.HasPrefix(address, "nats://") {
 			address = strings.TrimPrefix(address, "nats://")
 		}
 
+		// check if its a local address and only then embed
 		if addr.IsLocal(address) {
 			h, p, err := net.SplitHostPort(address)
 			if err == nil {
@@ -266,9 +266,11 @@ func (n *natsBroker) Connect() error {
 		// create exit chan
 		n.exit = make(chan bool)
 
-		// start the server if needed
-		if err := n.serve(n.exit); err != nil {
-			return err
+		// start embedded server if asked to
+		if n.local {
+			if err := n.serve(n.exit); err != nil {
+				return err
+			}
 		}
 
 		// set to connected
