@@ -810,7 +810,18 @@ func (g *grpcServer) Start() error {
 		}
 
 		// stop the grpc server
-		g.srv.Stop()
+		exit := make(chan bool)
+
+		go func() {
+			g.srv.GracefulStop()
+			close(exit)
+		}()
+
+		select {
+		case <-exit:
+		case <-time.After(time.Second):
+			g.srv.Stop()
+		}
 
 		// close transport
 		ch <- nil
