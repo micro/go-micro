@@ -10,8 +10,8 @@ import (
 )
 
 var (
-	DefaultServiceName = "go.micro.config"
-	DefaultClient      = client.DefaultClient
+	DefaultName   = "go.micro.config"
+	DefaultClient = client.DefaultClient
 )
 
 type service struct {
@@ -45,7 +45,7 @@ func (m *service) Write(cs *source.ChangeSet) error {
 }
 
 func (m *service) String() string {
-	return "mucp"
+	return "service"
 }
 
 func NewSource(opts ...source.Option) source.Source {
@@ -54,7 +54,7 @@ func NewSource(opts ...source.Option) source.Source {
 		o(&options)
 	}
 
-	addr := DefaultServiceName
+	addr := DefaultName
 
 	if options.Context != nil {
 		a, ok := options.Context.Value(serviceNameKey{}).(string)

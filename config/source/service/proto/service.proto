@@ -1,18 +1,12 @@
 syntax = "proto3";
 
 service Service {
-    rpc Create (CreateRequest) returns (CreateResponse) {
-    }
-    rpc Update (UpdateRequest) returns (UpdateResponse) {
-    }
-    rpc Delete (DeleteRequest) returns (DeleteResponse) {
-    }
-    rpc List (ListRequest) returns (ListResponse) {
-    }
-    rpc Read (ReadRequest) returns (ReadResponse) {
-    }
-    rpc Watch (WatchRequest) returns (stream WatchResponse) {
-    }
+    rpc Create (CreateRequest) returns (CreateResponse) {}
+    rpc Update (UpdateRequest) returns (UpdateResponse) {}
+    rpc Delete (DeleteRequest) returns (DeleteResponse) {}
+    rpc List (ListRequest) returns (ListResponse) {}
+    rpc Read (ReadRequest) returns (ReadResponse) {}
+    rpc Watch (WatchRequest) returns (stream WatchResponse) {}
 }
 
 message ChangeSet {
@@ -33,28 +27,24 @@ message CreateRequest {
     Change change = 1;
 }
 
-message CreateResponse {
-}
+message CreateResponse {}
 
 message UpdateRequest {
     Change change = 1;
 }
 
-message UpdateResponse {
-}
+message UpdateResponse {}
 
 message DeleteRequest {
     Change change = 1;
 }
 
-message DeleteResponse {
-}
+message DeleteResponse {}
 
-message ListRequest {
-}
+message ListRequest {}
 
 message ListResponse {
-    repeated Change configs = 1;
+    repeated Change values = 1;
 }
 
 message ReadRequest {
