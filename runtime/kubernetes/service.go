@@ -1,10 +1,12 @@
 package kubernetes
 
 import (
+	"encoding/json"
 	"strings"
 	"time"
 
 	"github.com/micro/go-micro/runtime"
+	"github.com/micro/go-micro/util/kubernetes/api"
 	"github.com/micro/go-micro/util/kubernetes/client"
 	"github.com/micro/go-micro/util/log"
 )
@@ -16,6 +18,12 @@ type service struct {
 	kservice *client.Service
 	// Kubernetes deployment
 	kdeploy *client.Deployment
+}
+
+func parseError(err error) *api.Status {
+	status := new(api.Status)
+	json.Unmarshal([]byte(err.Error()), &status)
+	return status
 }
 
 func newService(s *runtime.Service, c runtime.CreateOptions) *service {
@@ -90,12 +98,20 @@ func (s *service) Start(k client.Client) error {
 	if err := k.Create(deploymentResource(s.kdeploy)); err != nil {
 		log.Debugf("Runtime failed to create deployment: %v", err)
 		s.Status("error", err)
+		v := parseError(err)
+		if v.Reason == "AlreadyExists" {
+			return runtime.ErrAlreadyExists
+		}
 		return err
 	}
 	// create service now that the deployment has been created
 	if err := k.Create(serviceResource(s.kservice)); err != nil {
 		log.Debugf("Runtime failed to create service: %v", err)
 		s.Status("error", err)
+		v := parseError(err)
+		if v.Reason == "AlreadyExists" {
+			return runtime.ErrAlreadyExists
+		}
 		return err
 	}
 
