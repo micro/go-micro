@@ -120,7 +120,13 @@ func (n *natsBroker) serve(exit chan bool) error {
 	// with no address we just default it
 	// this is a local client address
 	if len(n.addrs) == 0 {
-		host = "127.0.0.1"
+		// find an advertiseable ip
+		if h, err := addr.Extract(""); err != nil {
+			host = "127.0.0.1"
+		} else {
+			host = h
+		}
+
 		port = -1
 		local = true
 	} else {
