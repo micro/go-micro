@@ -810,7 +810,7 @@ func (g *grpcServer) Start() error {
 		}
 
 		// stop the grpc server
-		g.srv.GracefulStop()
+		g.srv.Stop()
 
 		// close transport
 		ch <- nil
