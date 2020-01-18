@@ -19,6 +19,10 @@ func init() {
 		// embedded nats server
 		nats.LocalServer(),
 	)
+	// new client initialisation
+	client.NewClient = gcli.NewClient
+	// new server initialisation
+	server.NewServer = gsrv.NewServer
 	// default client
 	client.DefaultClient = gcli.NewClient()
 	// default server

@@ -12,7 +12,7 @@ import (
 
 var (
 	// The default service name
-	DefaultService = "go.micro.service"
+	DefaultService = "go.micro.registry"
 )
 
 type serviceRegistry struct {
@@ -128,7 +128,7 @@ func (s *serviceRegistry) Watch(opts ...registry.WatchOption) (registry.Watcher,
 }
 
 func (s *serviceRegistry) String() string {
-	return s.name
+	return "service"
 }
 
 // NewRegistry returns a new registry service client

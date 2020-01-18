@@ -82,6 +82,7 @@ func ToProto(s *registry.Service) *pb.Service {
 		Metadata:  s.Metadata,
 		Endpoints: endpoints,
 		Nodes:     nodes,
+		Options:   new(pb.Options),
 	}
 }
 

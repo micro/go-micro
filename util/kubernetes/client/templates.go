@@ -5,7 +5,6 @@ var templates = map[string]string{
 	"service":    serviceTmpl,
 }
 
-
 // stripped image pull policy always
 // imagePullPolicy: Always
 var deploymentTmpl = `
