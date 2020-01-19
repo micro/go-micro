@@ -265,7 +265,7 @@ var (
 	// used for default selection as the fall back
 	defaultClient    = "grpc"
 	defaultServer    = "grpc"
-	defaultBroker    = "enats"
+	defaultBroker    = "nats-e"
 	defaultRegistry  = "mdns"
 	defaultSelector  = "registry"
 	defaultTransport = "http"
