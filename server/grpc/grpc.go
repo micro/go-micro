@@ -752,15 +752,18 @@ func (g *grpcServer) Start() error {
 	g.opts.Address = ts.Addr().String()
 	g.Unlock()
 
-	// connect to the broker
-	if err := config.Broker.Connect(); err != nil {
-		return err
+	// only connect if we're subscribed
+	if len(g.subscribers) > 0 {
+		// connect to the broker
+		if err := config.Broker.Connect(); err != nil {
+			return err
+		}
+
+		baddr := config.Broker.Address()
+		bname := config.Broker.String()
+
+		log.Logf("Broker [%s] Connected to %s", bname, baddr)
 	}
-
-	baddr := config.Broker.Address()
-	bname := config.Broker.String()
-
-	log.Logf("Broker [%s] Connected to %s", bname, baddr)
 
 	// announce self to the world
 	if err := g.Register(); err != nil {
