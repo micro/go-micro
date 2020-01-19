@@ -10,7 +10,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/micro/go-micro/broker"
-	"github.com/micro/go-micro/client/pool"
+	"github.com/micro/go-micro/util/pool"
 	"github.com/micro/go-micro/client/selector"
 	"github.com/micro/go-micro/codec"
 	raw "github.com/micro/go-micro/codec/bytes"
