@@ -43,11 +43,11 @@ type Option func(o *Options)
 
 var (
 	// Default Config Manager
-	DefaultConfig = NewConfig()
+	DefaultConfig, _ = NewConfig()
 )
 
 // NewConfig returns new config
-func NewConfig(opts ...Option) Config {
+func NewConfig(opts ...Option) (Config, error) {
 	return newConfig(opts...)
 }
 
