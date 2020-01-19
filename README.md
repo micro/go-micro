@@ -32,11 +32,11 @@ and server handle this by default. This includes protobuf and json by default.
 
 - **Request/Response** - RPC based request/response with support for bidirectional streaming. We provide an abstraction for synchronous 
 communication. A request made to a service will be automatically resolved, load balanced, dialled and streamed. The default 
-transport is http/1.1 or http2 when tls is enabled.
+transport is [gRPC](https://grpc.io/).
 
 - **Async Messaging** - PubSub is built in as a first class citizen for asynchronous communication and event driven architectures. 
-Event notifications are a core pattern in micro service development. The default messaging is point-to-point http/1.1 or http2 when tls 
-is enabled.
+Event notifications are a core pattern in micro service development. The default messaging system is an embedded [NATS](https://nats.io/) 
+server.
 
 - **Pluggable Interfaces** - Go Micro makes use of Go interfaces for each distributed system abstraction. Because of this these interfaces 
 are pluggable and allows Go Micro to be runtime agnostic. You can plugin any underlying technology. Find plugins in 
