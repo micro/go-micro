@@ -402,7 +402,7 @@ func (n *natsBroker) Subscribe(topic string, handler Handler, opts ...SubscribeO
 }
 
 func (n *natsBroker) String() string {
-	return "nats"
+	return "nats-e"
 }
 
 func (n *natsBroker) setOption(opts ...Option) {
