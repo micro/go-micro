@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 
 	docker "github.com/fsouza/go-dockerclient"
-	"github.com/micro/go-micro/runtime/build"
+	"github.com/micro/go-micro/runtime/local/build"
 	"github.com/micro/go-micro/util/log"
 )
 
