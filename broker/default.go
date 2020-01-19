@@ -12,8 +12,8 @@ import (
 
 	"github.com/micro/go-micro/codec/json"
 	"github.com/micro/go-micro/registry"
-	"github.com/micro/go-micro/util/log"
 	"github.com/micro/go-micro/util/addr"
+	"github.com/micro/go-micro/util/log"
 	"github.com/nats-io/nats-server/v2/server"
 	nats "github.com/nats-io/nats.go"
 )

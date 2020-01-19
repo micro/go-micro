@@ -20,6 +20,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/micro/go-micro/broker"
 	"github.com/micro/go-micro/codec/json"
+	"github.com/micro/go-micro/config/cmd"
 	merr "github.com/micro/go-micro/errors"
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/registry/cache"
@@ -28,6 +29,10 @@ import (
 	mls "github.com/micro/go-micro/util/tls"
 	"golang.org/x/net/http2"
 )
+
+func init() {
+	cmd.DefaultBrokers["http"] = NewBroker
+}
 
 // HTTP Broker is a point to point async broker
 type httpBroker struct {
