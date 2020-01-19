@@ -42,8 +42,6 @@ func newWatcher(rsp pb.Router_WatchService, opts router.WatchOptions) (*watcher,
 
 // watchRouter watches router and send events to all registered watchers
 func (w *watcher) watch(stream pb.Router_WatchService) error {
-	defer stream.Close()
-
 	var watchErr error
 
 	for {
@@ -110,6 +108,7 @@ func (w *watcher) Stop() {
 	case <-w.done:
 		return
 	default:
+		w.stream.Close()
 		close(w.done)
 	}
 }
