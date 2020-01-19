@@ -9,14 +9,14 @@ import (
 
 	"github.com/micro/cli"
 	"github.com/micro/go-micro/broker"
+	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/client/selector"
 	"github.com/micro/go-micro/registry"
-	"github.com/micro/go-micro/client"
+	"github.com/micro/go-micro/runtime"
 	"github.com/micro/go-micro/server"
 	"github.com/micro/go-micro/store"
-	"github.com/micro/go-micro/util/log"
-	"github.com/micro/go-micro/runtime"
 	"github.com/micro/go-micro/transport"
+	"github.com/micro/go-micro/util/log"
 
 	// clients
 	cgrpc "github.com/micro/go-micro/client/grpc"
@@ -235,9 +235,9 @@ var (
 	}
 
 	DefaultSelectors = map[string]func(...selector.Option) selector.Selector{
-		"dns":     dns.NewSelector,
-		"router":  router.NewSelector,
-		"static":  static.NewSelector,
+		"dns":    dns.NewSelector,
+		"router": router.NewSelector,
+		"static": static.NewSelector,
 	}
 
 	DefaultServers = map[string]func(...server.Option) server.Server{
