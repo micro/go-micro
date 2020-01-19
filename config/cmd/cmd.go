@@ -47,12 +47,7 @@ import (
 	thttp "github.com/micro/go-micro/transport/http"
 	tmem "github.com/micro/go-micro/transport/memory"
 
-	// runtimes
-	"github.com/micro/go-micro/runtime/kubernetes"
-
 	// stores
-	cfStore "github.com/micro/go-micro/store/cloudflare"
-	ckStore "github.com/micro/go-micro/store/cockroach"
 	memStore "github.com/micro/go-micro/store/memory"
 	svcStore "github.com/micro/go-micro/store/service"
 )
@@ -252,13 +247,10 @@ var (
 
 	DefaultRuntimes = map[string]func(...runtime.Option) runtime.Runtime{
 		"local":      runtime.NewRuntime,
-		"kubernetes": kubernetes.NewRuntime,
 	}
 
 	DefaultStores = map[string]func(...store.Option) store.Store{
 		"memory":     memStore.NewStore,
-		"cockroach":  ckStore.NewStore,
-		"cloudflare": cfStore.NewStore,
 		"service":    svcStore.NewStore,
 	}
 
