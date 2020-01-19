@@ -44,8 +44,14 @@ func newConfig(opts ...Option) (Config, error) {
 		return nil, err
 	}
 
-	snap, _ := options.Loader.Snapshot()
-	vals, _ := options.Reader.Values(snap.ChangeSet)
+	snap, err := options.Loader.Snapshot()
+	if err != nil {
+		return nil, err
+	}
+	vals, err := options.Reader.Values(snap.ChangeSet)
+	if err != nil {
+		return nil, err
+	}
 
 	c := &config{
 		exit: make(chan bool),
