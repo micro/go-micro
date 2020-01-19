@@ -19,6 +19,7 @@ type grpcStream struct {
 	request  client.Request
 	response client.Response
 	context  context.Context
+	cancel   func()
 }
 
 func (g *grpcStream) Context() context.Context {
@@ -79,7 +80,8 @@ func (g *grpcStream) Close() error {
 	if g.closed {
 		return nil
 	}
-
+	// cancel the context
+	g.cancel()
 	g.closed = true
 	g.stream.CloseSend()
 	return g.conn.Close()
