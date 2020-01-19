@@ -76,6 +76,11 @@ func (s *service) Init(opts ...Option) {
 			}
 		}
 
+		// set cmd name
+		if len(s.opts.Cmd.App().Name) == 0 {
+			s.opts.Cmd.App().Name = s.Server().Options().Name
+		}
+
 		// Initialise the command flags, overriding new service
 		_ = s.opts.Cmd.Init(
 			cmd.Broker(&s.opts.Broker),

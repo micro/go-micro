@@ -1,4 +1,4 @@
-package broker
+package http
 
 import (
 	"sync"
@@ -6,10 +6,53 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/micro/go-micro/broker"
 	"github.com/micro/go-micro/debug/log/noop"
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/registry/memory"
 	"github.com/micro/go-micro/util/log"
+)
+
+var (
+	// mock data
+	testData = map[string][]*registry.Service{
+		"foo": {
+			{
+				Name:    "foo",
+				Version: "1.0.0",
+				Nodes: []*registry.Node{
+					{
+						Id:      "foo-1.0.0-123",
+						Address: "localhost:9999",
+					},
+					{
+						Id:      "foo-1.0.0-321",
+						Address: "localhost:9999",
+					},
+				},
+			},
+			{
+				Name:    "foo",
+				Version: "1.0.1",
+				Nodes: []*registry.Node{
+					{
+						Id:      "foo-1.0.1-321",
+						Address: "localhost:6666",
+					},
+				},
+			},
+			{
+				Name:    "foo",
+				Version: "1.0.3",
+				Nodes: []*registry.Node{
+					{
+						Id:      "foo-1.0.3-345",
+						Address: "localhost:8888",
+					},
+				},
+			},
+		},
+	}
 )
 
 func newTestRegistry() registry.Registry {
@@ -23,7 +66,7 @@ func sub(be *testing.B, c int) {
 	be.StopTimer()
 	m := newTestRegistry()
 
-	b := NewBroker(Registry(m))
+	b := NewBroker(broker.Registry(m))
 	topic := uuid.New().String()
 
 	if err := b.Init(); err != nil {
@@ -34,18 +77,18 @@ func sub(be *testing.B, c int) {
 		be.Fatalf("Unexpected connect error: %v", err)
 	}
 
-	msg := &Message{
+	msg := &broker.Message{
 		Header: map[string]string{
 			"Content-Type": "application/json",
 		},
 		Body: []byte(`{"message": "Hello World"}`),
 	}
 
-	var subs []Subscriber
+	var subs []broker.Subscriber
 	done := make(chan bool, c)
 
 	for i := 0; i < c; i++ {
-		sub, err := b.Subscribe(topic, func(p Event) error {
+		sub, err := b.Subscribe(topic, func(p broker.Event) error {
 			done <- true
 			m := p.Message()
 
@@ -54,7 +97,7 @@ func sub(be *testing.B, c int) {
 			}
 
 			return nil
-		}, Queue("shared"))
+		}, broker.Queue("shared"))
 		if err != nil {
 			be.Fatalf("Unexpected subscribe error: %v", err)
 		}
@@ -85,7 +128,7 @@ func pub(be *testing.B, c int) {
 
 	be.StopTimer()
 	m := newTestRegistry()
-	b := NewBroker(Registry(m))
+	b := NewBroker(broker.Registry(m))
 	topic := uuid.New().String()
 
 	if err := b.Init(); err != nil {
@@ -96,7 +139,7 @@ func pub(be *testing.B, c int) {
 		be.Fatalf("Unexpected connect error: %v", err)
 	}
 
-	msg := &Message{
+	msg := &broker.Message{
 		Header: map[string]string{
 			"Content-Type": "application/json",
 		},
@@ -105,14 +148,14 @@ func pub(be *testing.B, c int) {
 
 	done := make(chan bool, c*4)
 
-	sub, err := b.Subscribe(topic, func(p Event) error {
+	sub, err := b.Subscribe(topic, func(p broker.Event) error {
 		done <- true
 		m := p.Message()
 		if string(m.Body) != string(msg.Body) {
 			be.Fatalf("Unexpected msg %s, expected %s", string(m.Body), string(msg.Body))
 		}
 		return nil
-	}, Queue("shared"))
+	}, broker.Queue("shared"))
 	if err != nil {
 		be.Fatalf("Unexpected subscribe error: %v", err)
 	}
@@ -154,7 +197,7 @@ func pub(be *testing.B, c int) {
 
 func TestBroker(t *testing.T) {
 	m := newTestRegistry()
-	b := NewBroker(Registry(m))
+	b := NewBroker(broker.Registry(m))
 
 	if err := b.Init(); err != nil {
 		t.Fatalf("Unexpected init error: %v", err)
@@ -164,7 +207,7 @@ func TestBroker(t *testing.T) {
 		t.Fatalf("Unexpected connect error: %v", err)
 	}
 
-	msg := &Message{
+	msg := &broker.Message{
 		Header: map[string]string{
 			"Content-Type": "application/json",
 		},
@@ -173,7 +216,7 @@ func TestBroker(t *testing.T) {
 
 	done := make(chan bool)
 
-	sub, err := b.Subscribe("test", func(p Event) error {
+	sub, err := b.Subscribe("test", func(p broker.Event) error {
 		m := p.Message()
 
 		if string(m.Body) != string(msg.Body) {
@@ -201,7 +244,7 @@ func TestBroker(t *testing.T) {
 
 func TestConcurrentSubBroker(t *testing.T) {
 	m := newTestRegistry()
-	b := NewBroker(Registry(m))
+	b := NewBroker(broker.Registry(m))
 
 	if err := b.Init(); err != nil {
 		t.Fatalf("Unexpected init error: %v", err)
@@ -211,18 +254,18 @@ func TestConcurrentSubBroker(t *testing.T) {
 		t.Fatalf("Unexpected connect error: %v", err)
 	}
 
-	msg := &Message{
+	msg := &broker.Message{
 		Header: map[string]string{
 			"Content-Type": "application/json",
 		},
 		Body: []byte(`{"message": "Hello World"}`),
 	}
 
-	var subs []Subscriber
+	var subs []broker.Subscriber
 	var wg sync.WaitGroup
 
 	for i := 0; i < 10; i++ {
-		sub, err := b.Subscribe("test", func(p Event) error {
+		sub, err := b.Subscribe("test", func(p broker.Event) error {
 			defer wg.Done()
 
 			m := p.Message()
@@ -258,7 +301,7 @@ func TestConcurrentSubBroker(t *testing.T) {
 
 func TestConcurrentPubBroker(t *testing.T) {
 	m := newTestRegistry()
-	b := NewBroker(Registry(m))
+	b := NewBroker(broker.Registry(m))
 
 	if err := b.Init(); err != nil {
 		t.Fatalf("Unexpected init error: %v", err)
@@ -268,7 +311,7 @@ func TestConcurrentPubBroker(t *testing.T) {
 		t.Fatalf("Unexpected connect error: %v", err)
 	}
 
-	msg := &Message{
+	msg := &broker.Message{
 		Header: map[string]string{
 			"Content-Type": "application/json",
 		},
@@ -277,7 +320,7 @@ func TestConcurrentPubBroker(t *testing.T) {
 
 	var wg sync.WaitGroup
 
-	sub, err := b.Subscribe("test", func(p Event) error {
+	sub, err := b.Subscribe("test", func(p broker.Event) error {
 		defer wg.Done()
 
 		m := p.Message()

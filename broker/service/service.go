@@ -124,9 +124,11 @@ func NewBroker(opts ...broker.Option) broker.Broker {
 		addrs = []string{"127.0.0.1:8001"}
 	}
 
+	cli := client.DefaultClient
+
 	return &serviceBroker{
 		Addrs:   addrs,
-		Client:  pb.NewBrokerService(DefaultName, client.DefaultClient),
+		Client:  pb.NewBrokerService(DefaultName, cli),
 		options: options,
 	}
 }
