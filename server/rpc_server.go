@@ -654,7 +654,7 @@ func (s *rpcServer) Register() error {
 			opts = append(opts, broker.DisableAutoAck())
 		}
 
-		log.Logf("Broker [%s] Subscribing to topic: %s", config.Broker.String(), sub.Topic())
+		log.Logf("Subscribing to topic: %s", sub.Topic())
 		sub, err := config.Broker.Subscribe(sb.Topic(), s.HandleEvent, opts...)
 		if err != nil {
 			return err
