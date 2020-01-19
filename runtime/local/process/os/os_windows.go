@@ -7,7 +7,7 @@ import (
 	"os/exec"
 	"strconv"
 
-	"github.com/micro/go-micro/runtime/process"
+	"github.com/micro/go-micro/runtime/local/process"
 )
 
 func (p *Process) Exec(exe *process.Executable) error {
