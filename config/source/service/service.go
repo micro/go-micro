@@ -11,18 +11,21 @@ import (
 
 var (
 	DefaultName   = "go.micro.config"
+	DefaultKey    = "NAMESPACE:CONFIG"
+	DefaultPath   = ""
 	DefaultClient = client.DefaultClient
 )
 
 type service struct {
 	serviceName string
 	key         string
+	path        string
 	opts        source.Options
 	client      proto.Service
 }
 
 func (m *service) Read() (set *source.ChangeSet, err error) {
-	req, err := m.client.Read(context.Background(), &proto.ReadRequest{Path: m.key})
+	req, err := m.client.Read(context.Background(), &proto.ReadRequest{Key: m.key, Path: m.path})
 	if err != nil {
 		return nil, err
 	}
@@ -31,7 +34,7 @@ func (m *service) Read() (set *source.ChangeSet, err error) {
 }
 
 func (m *service) Watch() (w source.Watcher, err error) {
-	stream, err := m.client.Watch(context.Background(), &proto.WatchRequest{Key: m.key})
+	stream, err := m.client.Watch(context.Background(), &proto.WatchRequest{Key: m.key, Path: m.path})
 	if err != nil {
 		log.Error("watch err: ", err)
 		return
@@ -55,17 +58,31 @@ func NewSource(opts ...source.Option) source.Source {
 	}
 
 	addr := DefaultName
+	key := DefaultKey
+	path := DefaultPath
 
 	if options.Context != nil {
 		a, ok := options.Context.Value(serviceNameKey{}).(string)
 		if ok {
 			addr = a
 		}
+
+		k, ok := options.Context.Value(keyKey{}).(string)
+		if ok {
+			key = k
+		}
+
+		p, ok := options.Context.Value(pathKey{}).(string)
+		if ok {
+			path = p
+		}
 	}
 
 	s := &service{
 		serviceName: addr,
 		opts:        options,
+		key:         key,
+		path:        path,
 		client:      proto.NewService(addr, DefaultClient),
 	}
 

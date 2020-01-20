@@ -58,6 +58,7 @@ message ReadResponse {
 
 message WatchRequest {
     string key = 1;
+    string path = 2;
 }
 
 message WatchResponse {
