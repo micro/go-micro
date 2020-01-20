@@ -5,10 +5,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/micro/go-micro/runtime/build"
-
-	"github.com/micro/go-micro/runtime/process"
-	proc "github.com/micro/go-micro/runtime/process/os"
+	"github.com/micro/go-micro/runtime/local/build"
+	"github.com/micro/go-micro/runtime/local/process"
+	proc "github.com/micro/go-micro/runtime/local/process/os"
 	"github.com/micro/go-micro/util/log"
 )
 

@@ -9,14 +9,14 @@ import (
 
 	"github.com/micro/cli"
 	"github.com/micro/go-micro/broker"
+	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/client/selector"
 	"github.com/micro/go-micro/registry"
-	"github.com/micro/go-micro/client"
+	"github.com/micro/go-micro/runtime"
 	"github.com/micro/go-micro/server"
 	"github.com/micro/go-micro/store"
-	"github.com/micro/go-micro/util/log"
-	"github.com/micro/go-micro/runtime"
 	"github.com/micro/go-micro/transport"
+	"github.com/micro/go-micro/util/log"
 
 	// clients
 	cgrpc "github.com/micro/go-micro/client/grpc"
@@ -47,12 +47,7 @@ import (
 	thttp "github.com/micro/go-micro/transport/http"
 	tmem "github.com/micro/go-micro/transport/memory"
 
-	// runtimes
-	"github.com/micro/go-micro/runtime/kubernetes"
-
 	// stores
-	cfStore "github.com/micro/go-micro/store/cloudflare"
-	ckStore "github.com/micro/go-micro/store/cockroach"
 	memStore "github.com/micro/go-micro/store/memory"
 	svcStore "github.com/micro/go-micro/store/service"
 )
@@ -235,9 +230,9 @@ var (
 	}
 
 	DefaultSelectors = map[string]func(...selector.Option) selector.Selector{
-		"dns":     dns.NewSelector,
-		"router":  router.NewSelector,
-		"static":  static.NewSelector,
+		"dns":    dns.NewSelector,
+		"router": router.NewSelector,
+		"static": static.NewSelector,
 	}
 
 	DefaultServers = map[string]func(...server.Option) server.Server{
@@ -252,13 +247,10 @@ var (
 
 	DefaultRuntimes = map[string]func(...runtime.Option) runtime.Runtime{
 		"local":      runtime.NewRuntime,
-		"kubernetes": kubernetes.NewRuntime,
 	}
 
 	DefaultStores = map[string]func(...store.Option) store.Store{
 		"memory":     memStore.NewStore,
-		"cockroach":  ckStore.NewStore,
-		"cloudflare": cfStore.NewStore,
 		"service":    svcStore.NewStore,
 	}
 

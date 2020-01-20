@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/micro/go-micro/runtime/source"
+	"github.com/micro/go-micro/runtime/local/source"
 )
 
 type Source struct {
