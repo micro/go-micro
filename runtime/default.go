@@ -155,7 +155,7 @@ func (r *runtime) Create(s *Service, opts ...CreateOption) error {
 	defer r.Unlock()
 
 	if _, ok := r.services[s.Name]; ok {
-		return errors.New("service already registered")
+		return errors.New("service already running")
 	}
 
 	var options CreateOptions

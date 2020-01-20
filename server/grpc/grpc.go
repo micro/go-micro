@@ -653,6 +653,7 @@ func (g *grpcServer) Register() error {
 			opts = append(opts, broker.DisableAutoAck())
 		}
 
+		log.Logf("Subscribing to topic: %s", sb.Topic())
 		sub, err := config.Broker.Subscribe(sb.Topic(), handler, opts...)
 		if err != nil {
 			return err
@@ -751,15 +752,18 @@ func (g *grpcServer) Start() error {
 	g.opts.Address = ts.Addr().String()
 	g.Unlock()
 
-	// connect to the broker
-	if err := config.Broker.Connect(); err != nil {
-		return err
+	// only connect if we're subscribed
+	if len(g.subscribers) > 0 {
+		// connect to the broker
+		if err := config.Broker.Connect(); err != nil {
+			return err
+		}
+
+		baddr := config.Broker.Address()
+		bname := config.Broker.String()
+
+		log.Logf("Broker [%s] Connected to %s", bname, baddr)
 	}
-
-	baddr := config.Broker.Address()
-	bname := config.Broker.String()
-
-	log.Logf("Broker [%s] Connected to %s", bname, baddr)
 
 	// announce self to the world
 	if err := g.Register(); err != nil {
@@ -810,7 +814,18 @@ func (g *grpcServer) Start() error {
 		}
 
 		// stop the grpc server
-		g.srv.GracefulStop()
+		exit := make(chan bool)
+
+		go func() {
+			g.srv.GracefulStop()
+			close(exit)
+		}()
+
+		select {
+		case <-exit:
+		case <-time.After(time.Second):
+			g.srv.Stop()
+		}
 
 		// close transport
 		ch <- nil

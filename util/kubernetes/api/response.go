@@ -16,13 +16,13 @@ var (
 
 // Status is an object that is returned when a request
 // failed or delete succeeded.
-// type Status struct {
-// 	Kind    string `json:"kind"`
-// 	Status  string `json:"status"`
-// 	Message string `json:"message"`
-// 	Reason  string `json:"reason"`
-// 	Code    int    `json:"code"`
-// }
+type Status struct {
+	Kind    string `json:"kind"`
+	Status  string `json:"status"`
+	Message string `json:"message"`
+	Reason  string `json:"reason"`
+	Code    int    `json:"code"`
+}
 
 // Response ...
 type Response struct {

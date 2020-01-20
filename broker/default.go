@@ -1,5 +1,4 @@
-// Package nats provides a NATS broker
-package nats
+package broker
 
 import (
 	"context"
@@ -11,7 +10,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/micro/go-micro/broker"
 	"github.com/micro/go-micro/codec/json"
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/util/addr"
@@ -27,9 +25,14 @@ type natsBroker struct {
 	// indicate if we're connected
 	connected bool
 
+	// address to bind routes to
 	addrs []string
+	// servers for the client
+	servers []string
+
+	// client connection and nats opts
 	conn  *nats.Conn
-	opts  broker.Options
+	opts  Options
 	nopts nats.Options
 
 	// should we drain the connection
@@ -46,19 +49,19 @@ type natsBroker struct {
 
 type subscriber struct {
 	s    *nats.Subscription
-	opts broker.SubscribeOptions
+	opts SubscribeOptions
 }
 
 type publication struct {
 	t string
-	m *broker.Message
+	m *Message
 }
 
 func (p *publication) Topic() string {
 	return p.t
 }
 
-func (p *publication) Message() *broker.Message {
+func (p *publication) Message() *Message {
 	return p.m
 }
 
@@ -67,7 +70,7 @@ func (p *publication) Ack() error {
 	return nil
 }
 
-func (s *subscriber) Options() broker.SubscribeOptions {
+func (s *subscriber) Options() SubscribeOptions {
 	return s.opts
 }
 
@@ -80,6 +83,13 @@ func (s *subscriber) Unsubscribe() error {
 }
 
 func (n *natsBroker) Address() string {
+	n.RLock()
+	defer n.RUnlock()
+
+	if n.server != nil {
+		return n.server.ClusterAddr().String()
+	}
+
 	if n.conn != nil && n.conn.IsConnected() {
 		return n.conn.ConnectedUrl()
 	}
@@ -88,7 +98,7 @@ func (n *natsBroker) Address() string {
 		return n.addrs[0]
 	}
 
-	return ""
+	return "127.0.0.1:-1"
 }
 
 func (n *natsBroker) setAddrs(addrs []string) []string {
@@ -113,48 +123,41 @@ func (n *natsBroker) setAddrs(addrs []string) []string {
 
 // serve stats a local nats server if needed
 func (n *natsBroker) serve(exit chan bool) error {
-	var host string
-	var port int
-	var local bool
+	// local server address
+	host := "127.0.0.1"
+	port := -1
+
+	// cluster address
+	caddr := "0.0.0.0"
+	cport := -1
 
 	// with no address we just default it
 	// this is a local client address
-	if len(n.addrs) == 0 {
-		// find an advertiseable ip
-		if h, err := addr.Extract(""); err != nil {
-			host = "127.0.0.1"
-		} else {
-			host = h
-		}
-
-		port = -1
-		local = true
-	} else {
+	if len(n.addrs) > 0 {
 		address := n.addrs[0]
 		if strings.HasPrefix(address, "nats://") {
 			address = strings.TrimPrefix(address, "nats://")
 		}
 
-		// check if its a local address and only then embed
-		if addr.IsLocal(address) {
-			h, p, err := net.SplitHostPort(address)
-			if err == nil {
-				host = h
-				port, _ = strconv.Atoi(p)
-				local = true
-			}
+		// parse out the address
+		h, p, err := net.SplitHostPort(address)
+		if err == nil {
+			caddr = h
+			cport, _ = strconv.Atoi(p)
 		}
-	}
-
-	// we only setup a server for local things
-	if !local {
-		return nil
 	}
 
 	// 1. create new server
 	// 2. register the server
 	// 3. connect to other servers
-	var cOpts server.ClusterOpts
+
+	// set cluster opts
+	cOpts := server.ClusterOpts{
+		Host: caddr,
+		Port: cport,
+	}
+
+	// get the routes for other nodes
 	var routes []*url.URL
 
 	// get existing nats servers to connect to
@@ -176,41 +179,31 @@ func (n *natsBroker) serve(exit chan bool) error {
 	// try get existing server
 	s := n.server
 
-	// get a host address
-	caddr, err := addr.Extract("")
+	if s != nil {
+		// stop the existing server
+		s.Shutdown()
+	}
+
+	s, err = server.NewServer(&server.Options{
+		// Specify the host
+		Host: host,
+		// Use a random port
+		Port: port,
+		// Set the cluster ops
+		Cluster: cOpts,
+		// Set the routes
+		Routes:         routes,
+		NoLog:          true,
+		NoSigs:         true,
+		MaxControlLine: 2048,
+		TLSConfig:      n.opts.TLSConfig,
+	})
 	if err != nil {
-		caddr = "0.0.0.0"
+		return err
 	}
 
-	// set cluster opts
-	cOpts = server.ClusterOpts{
-		Host: caddr,
-		Port: -1,
-	}
-
-	if s == nil {
-		var err error
-		s, err = server.NewServer(&server.Options{
-			// Specify the host
-			Host: host,
-			// Use a random port
-			Port: port,
-			// Set the cluster ops
-			Cluster: cOpts,
-			// Set the routes
-			Routes:         routes,
-			NoLog:          true,
-			NoSigs:         true,
-			MaxControlLine: 2048,
-			TLSConfig:      n.opts.TLSConfig,
-		})
-		if err != nil {
-			return err
-		}
-
-		// save the server
-		n.server = s
-	}
+	// save the server
+	n.server = s
 
 	// start the server
 	go s.Start()
@@ -230,9 +223,20 @@ func (n *natsBroker) serve(exit chan bool) error {
 	}
 
 	// set the client address
-	n.addrs = []string{s.ClientURL()}
+	n.servers = []string{s.ClientURL()}
 
 	go func() {
+		var advertise string
+
+		// parse out the address
+		_, port, err := net.SplitHostPort(s.ClusterAddr().String())
+		if err == nil {
+			addr, _ := addr.Extract("")
+			advertise = net.JoinHostPort(addr, port)
+		} else {
+			s.ClusterAddr().String()
+		}
+
 		// register the cluster address
 		for {
 			select {
@@ -242,7 +246,7 @@ func (n *natsBroker) serve(exit chan bool) error {
 					Name:    "go.micro.nats.broker",
 					Version: "v2",
 					Nodes: []*registry.Node{
-						{Id: s.ID(), Address: s.ClusterAddr().String()},
+						{Id: s.ID(), Address: advertise},
 					},
 				})
 				s.Shutdown()
@@ -253,7 +257,7 @@ func (n *natsBroker) serve(exit chan bool) error {
 					Name:    "go.micro.nats.broker",
 					Version: "v2",
 					Nodes: []*registry.Node{
-						{Id: s.ID(), Address: s.ClusterAddr().String()},
+						{Id: s.ID(), Address: advertise},
 					},
 				}, registry.RegisterTTL(time.Minute))
 				time.Sleep(time.Minute)
@@ -272,11 +276,9 @@ func (n *natsBroker) Connect() error {
 		// create exit chan
 		n.exit = make(chan bool)
 
-		// start embedded server if asked to
-		if n.local {
-			if err := n.serve(n.exit); err != nil {
-				return err
-			}
+		// start the local server
+		if err := n.serve(n.exit); err != nil {
+			return err
 		}
 
 		// set to connected
@@ -293,7 +295,7 @@ func (n *natsBroker) Connect() error {
 		return nil
 	default: // DISCONNECTED or CLOSED or DRAINING
 		opts := n.nopts
-		opts.Servers = n.addrs
+		opts.Servers = n.servers
 		opts.Secure = n.opts.Secure
 		opts.TLSConfig = n.opts.TLSConfig
 
@@ -315,6 +317,10 @@ func (n *natsBroker) Disconnect() error {
 	n.RLock()
 	defer n.RUnlock()
 
+	if !n.connected {
+		return nil
+	}
+
 	// drain the connection if specified
 	if n.drain {
 		n.conn.Drain()
@@ -326,12 +332,10 @@ func (n *natsBroker) Disconnect() error {
 
 	// shutdown the local server
 	// and deregister
-	if n.server != nil {
-		select {
-		case <-n.exit:
-		default:
-			close(n.exit)
-		}
+	select {
+	case <-n.exit:
+	default:
+		close(n.exit)
 	}
 
 	// set not connected
@@ -340,16 +344,16 @@ func (n *natsBroker) Disconnect() error {
 	return nil
 }
 
-func (n *natsBroker) Init(opts ...broker.Option) error {
+func (n *natsBroker) Init(opts ...Option) error {
 	n.setOption(opts...)
 	return nil
 }
 
-func (n *natsBroker) Options() broker.Options {
+func (n *natsBroker) Options() Options {
 	return n.opts
 }
 
-func (n *natsBroker) Publish(topic string, msg *broker.Message, opts ...broker.PublishOption) error {
+func (n *natsBroker) Publish(topic string, msg *Message, opts ...PublishOption) error {
 	b, err := n.opts.Codec.Marshal(msg)
 	if err != nil {
 		return err
@@ -359,12 +363,12 @@ func (n *natsBroker) Publish(topic string, msg *broker.Message, opts ...broker.P
 	return n.conn.Publish(topic, b)
 }
 
-func (n *natsBroker) Subscribe(topic string, handler broker.Handler, opts ...broker.SubscribeOption) (broker.Subscriber, error) {
+func (n *natsBroker) Subscribe(topic string, handler Handler, opts ...SubscribeOption) (Subscriber, error) {
 	if n.conn == nil {
 		return nil, errors.New("not connected")
 	}
 
-	opt := broker.SubscribeOptions{
+	opt := SubscribeOptions{
 		AutoAck: true,
 		Context: context.Background(),
 	}
@@ -374,7 +378,7 @@ func (n *natsBroker) Subscribe(topic string, handler broker.Handler, opts ...bro
 	}
 
 	fn := func(msg *nats.Msg) {
-		var m broker.Message
+		var m Message
 		if err := n.opts.Codec.Unmarshal(msg.Data, &m); err != nil {
 			return
 		}
@@ -398,10 +402,10 @@ func (n *natsBroker) Subscribe(topic string, handler broker.Handler, opts ...bro
 }
 
 func (n *natsBroker) String() string {
-	return "nats"
+	return "nats-e"
 }
 
-func (n *natsBroker) setOption(opts ...broker.Option) {
+func (n *natsBroker) setOption(opts ...Option) {
 	for _, o := range opts {
 		o(&n.opts)
 	}
@@ -410,21 +414,10 @@ func (n *natsBroker) setOption(opts ...broker.Option) {
 		n.nopts = nats.GetDefaultOptions()
 	})
 
-	if nopts, ok := n.opts.Context.Value(optionsKey{}).(nats.Options); ok {
-		n.nopts = nopts
-	}
-
-	local, ok := n.opts.Context.Value(localServerKey{}).(bool)
-	if ok {
-		n.local = local
-	}
-
-	// broker.Options have higher priority than nats.Options
-	// only if Addrs, Secure or TLSConfig were not set through a broker.Option
-	// we read them from nats.Option
-	if len(n.opts.Addrs) == 0 && !n.local {
-		n.opts.Addrs = n.nopts.Servers
-	}
+	// local embedded server
+	n.local = true
+	// set to drain
+	n.drain = true
 
 	if !n.opts.Secure {
 		n.opts.Secure = n.nopts.Secure
@@ -433,14 +426,8 @@ func (n *natsBroker) setOption(opts ...broker.Option) {
 	if n.opts.TLSConfig == nil {
 		n.opts.TLSConfig = n.nopts.TLSConfig
 	}
-	n.addrs = n.setAddrs(n.opts.Addrs)
 
-	if n.opts.Context.Value(drainConnectionKey{}) != nil {
-		n.drain = true
-		n.closeCh = make(chan error)
-		n.nopts.ClosedCB = n.onClose
-		n.nopts.AsyncErrorCB = n.onAsyncError
-	}
+	n.addrs = n.setAddrs(n.opts.Addrs)
 }
 
 func (n *natsBroker) onClose(conn *nats.Conn) {
@@ -455,8 +442,8 @@ func (n *natsBroker) onAsyncError(conn *nats.Conn, sub *nats.Subscription, err e
 	}
 }
 
-func NewBroker(opts ...broker.Option) broker.Broker {
-	options := broker.Options{
+func NewBroker(opts ...Option) Broker {
+	options := Options{
 		// Default codec
 		Codec:    json.Marshaler{},
 		Context:  context.Background(),

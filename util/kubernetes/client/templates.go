@@ -5,6 +5,8 @@ var templates = map[string]string{
 	"service":    serviceTmpl,
 }
 
+// stripped image pull policy always
+// imagePullPolicy: Always
 var deploymentTmpl = `
 apiVersion: apps/v1
 kind: Deployment
@@ -63,7 +65,6 @@ spec:
           - {{.}}
           {{- end }}
           image: {{ .Image }}
-          imagePullPolicy: Always
           ports:
           {{- with .Ports }}
           {{- range . }}

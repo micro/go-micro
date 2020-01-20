@@ -1,13 +1,18 @@
 // Package runtime is a service runtime manager
 package runtime
 
-import "time"
+import (
+	"errors"
+	"time"
+)
 
 var (
 	// DefaultRuntime is default micro runtime
 	DefaultRuntime Runtime = NewRuntime()
 	// DefaultName is default runtime service name
 	DefaultName = "go.micro.runtime"
+
+	ErrAlreadyExists = errors.New("already exists")
 )
 
 // Runtime is a service runtime manager

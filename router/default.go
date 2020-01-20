@@ -88,9 +88,10 @@ func (r *router) Init(opts ...Option) error {
 
 // Options returns router options
 func (r *router) Options() Options {
-	r.Lock()
+	r.RLock()
+	defer r.RUnlock()
+
 	options := r.options
-	r.Unlock()
 
 	return options
 }
@@ -115,9 +116,6 @@ func (r *router) manageRoute(route Route, action string) error {
 		if err := r.table.Update(route); err != nil {
 			return fmt.Errorf("failed updating route for service %s: %s", route.Service, err)
 		}
-	case "solicit":
-		// nothing to do here
-		return nil
 	default:
 		return fmt.Errorf("failed to manage route for service %s: unknown action %s", route.Service, action)
 	}
@@ -736,74 +734,24 @@ func (r *router) Process(a *Advert) error {
 
 // flushRouteEvents returns a slice of events, one per each route in the routing table
 func (r *router) flushRouteEvents(evType EventType) ([]*Event, error) {
-	// Do not advertise anything
-	if r.options.Advertise == AdvertiseNone {
-		return []*Event{}, nil
+	// get a list of routes for each service in our routing table
+	// for the configured advertising strategy
+	q := []QueryOption{
+		QueryStrategy(r.options.Advertise),
 	}
 
-	// list all routes
-	routes, err := r.table.List()
-	if err != nil {
-		return nil, fmt.Errorf("failed listing routes: %s", err)
+	routes, err := r.Table().Query(q...)
+	if err != nil && err != ErrRouteNotFound {
+		return nil, err
 	}
 
-	// Return all the routes
-	if r.options.Advertise == AdvertiseAll {
-		// build a list of events to advertise
-		events := make([]*Event, len(routes))
-		for i, route := range routes {
-			event := &Event{
-				Type:      evType,
-				Timestamp: time.Now(),
-				Route:     route,
-			}
-			events[i] = event
-		}
-		return events, nil
-	}
-
-	// routeMap stores the routes we're going to advertise
-	bestRoutes := make(map[string]Route)
-
-	// set whether we're advertising only local
-	advertiseLocal := r.options.Advertise == AdvertiseLocal
-
-	// go through all routes found in the routing table and collapse them to optimal routes
-	for _, route := range routes {
-		// if we're only advertising local routes
-		if advertiseLocal && route.Link != "local" {
-			continue
-		}
-
-		// now we're going to find the best routes
-
-		routeKey := route.Service + "@" + route.Network
-		current, ok := bestRoutes[routeKey]
-		if !ok {
-			bestRoutes[routeKey] = route
-			continue
-		}
-		// if the current optimal route metric is higher than routing table route, replace it
-		if current.Metric > route.Metric {
-			bestRoutes[routeKey] = route
-			continue
-		}
-		// if the metrics are the same, prefer advertising your own route
-		if current.Metric == route.Metric {
-			if route.Router == r.options.Id {
-				bestRoutes[routeKey] = route
-				continue
-			}
-		}
-	}
-
-	log.Debugf("Router advertising %d %s routes out of %d", len(bestRoutes), r.options.Advertise, len(routes))
+	log.Debugf("Router advertising %d routes with strategy %s", len(routes), r.options.Advertise)
 
 	// build a list of events to advertise
-	events := make([]*Event, len(bestRoutes))
+	events := make([]*Event, len(routes))
 	var i int
 
-	for _, route := range bestRoutes {
+	for _, route := range routes {
 		event := &Event{
 			Type:      evType,
 			Timestamp: time.Now(),
@@ -814,25 +762,6 @@ func (r *router) flushRouteEvents(evType EventType) ([]*Event, error) {
 	}
 
 	return events, nil
-}
-
-// Solicit advertises all of its routes to the network
-// It returns error if the router fails to list the routes
-func (r *router) Solicit() error {
-	events, err := r.flushRouteEvents(Update)
-	if err != nil {
-		return fmt.Errorf("failed solicit routes: %s", err)
-	}
-
-	// advertise the routes
-	r.advertWg.Add(1)
-
-	go func() {
-		r.publishAdvert(Solicitation, events)
-		r.advertWg.Done()
-	}()
-
-	return nil
 }
 
 // Lookup routes in the routing table

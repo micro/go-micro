@@ -136,6 +136,9 @@ var (
 	DefaultRegisterCheck           = func(context.Context) error { return nil }
 	DefaultRegisterInterval        = time.Second * 30
 	DefaultRegisterTTL             = time.Minute
+
+	// NewServer creates a new server
+	NewServer func(...Option) Server = newRpcServer
 )
 
 // DefaultOptions returns config options for the default service
@@ -149,11 +152,6 @@ func Init(opt ...Option) {
 		DefaultServer = newRpcServer(opt...)
 	}
 	DefaultServer.Init(opt...)
-}
-
-// NewServer returns a new server with options passed in
-func NewServer(opt ...Option) Server {
-	return newRpcServer(opt...)
 }
 
 // NewRouter returns a new router

@@ -266,6 +266,11 @@ func (k *kubernetes) Create(s *runtime.Service, opts ...runtime.CreateOption) er
 		o(&options)
 	}
 
+	// hackish
+	if len(options.Type) == 0 {
+		options.Type = k.options.Type
+	}
+
 	// quickly prevalidate the name and version
 	name := s.Name
 	if len(s.Version) > 0 {

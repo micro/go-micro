@@ -8,23 +8,30 @@ import (
 	"time"
 
 	"github.com/micro/cli"
+	"github.com/micro/go-micro/broker"
 	"github.com/micro/go-micro/client"
-	cgrpc "github.com/micro/go-micro/client/grpc"
-	cmucp "github.com/micro/go-micro/client/mucp"
+	"github.com/micro/go-micro/client/selector"
+	"github.com/micro/go-micro/registry"
+	"github.com/micro/go-micro/runtime"
 	"github.com/micro/go-micro/server"
-	sgrpc "github.com/micro/go-micro/server/grpc"
-	smucp "github.com/micro/go-micro/server/mucp"
+	"github.com/micro/go-micro/store"
+	"github.com/micro/go-micro/transport"
 	"github.com/micro/go-micro/util/log"
 
+	// clients
+	cgrpc "github.com/micro/go-micro/client/grpc"
+	cmucp "github.com/micro/go-micro/client/mucp"
+
+	// servers
+	sgrpc "github.com/micro/go-micro/server/grpc"
+	smucp "github.com/micro/go-micro/server/mucp"
+
 	// brokers
-	"github.com/micro/go-micro/broker"
-	"github.com/micro/go-micro/broker/http"
 	"github.com/micro/go-micro/broker/memory"
 	"github.com/micro/go-micro/broker/nats"
 	brokerSrv "github.com/micro/go-micro/broker/service"
 
 	// registries
-	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/registry/etcd"
 	kreg "github.com/micro/go-micro/registry/kubernetes"
 	"github.com/micro/go-micro/registry/mdns"
@@ -32,27 +39,15 @@ import (
 	regSrv "github.com/micro/go-micro/registry/service"
 
 	// selectors
-	"github.com/micro/go-micro/client/selector"
 	"github.com/micro/go-micro/client/selector/dns"
 	"github.com/micro/go-micro/client/selector/router"
 	"github.com/micro/go-micro/client/selector/static"
 
 	// transports
-	"github.com/micro/go-micro/transport"
-	tgrpc "github.com/micro/go-micro/transport/grpc"
 	thttp "github.com/micro/go-micro/transport/http"
 	tmem "github.com/micro/go-micro/transport/memory"
-	"github.com/micro/go-micro/transport/quic"
-
-	// runtimes
-	"github.com/micro/go-micro/runtime"
-	"github.com/micro/go-micro/runtime/kubernetes"
 
 	// stores
-	"github.com/micro/go-micro/store"
-	cfStore "github.com/micro/go-micro/store/cloudflare"
-	ckStore "github.com/micro/go-micro/store/cockroach"
-	etcdStore "github.com/micro/go-micro/store/etcd"
 	memStore "github.com/micro/go-micro/store/memory"
 	svcStore "github.com/micro/go-micro/store/service"
 )
@@ -217,7 +212,6 @@ var (
 
 	DefaultBrokers = map[string]func(...broker.Option) broker.Broker{
 		"service": brokerSrv.NewBroker,
-		"http":    http.NewBroker,
 		"memory":  memory.NewBroker,
 		"nats":    nats.NewBroker,
 	}
@@ -236,11 +230,9 @@ var (
 	}
 
 	DefaultSelectors = map[string]func(...selector.Option) selector.Selector{
-		"default": selector.NewSelector,
-		"dns":     dns.NewSelector,
-		"cache":   selector.NewSelector,
-		"router":  router.NewSelector,
-		"static":  static.NewSelector,
+		"dns":    dns.NewSelector,
+		"router": router.NewSelector,
+		"static": static.NewSelector,
 	}
 
 	DefaultServers = map[string]func(...server.Option) server.Server{
@@ -251,27 +243,21 @@ var (
 	DefaultTransports = map[string]func(...transport.Option) transport.Transport{
 		"memory": tmem.NewTransport,
 		"http":   thttp.NewTransport,
-		"grpc":   tgrpc.NewTransport,
-		"quic":   quic.NewTransport,
 	}
 
 	DefaultRuntimes = map[string]func(...runtime.Option) runtime.Runtime{
 		"local":      runtime.NewRuntime,
-		"kubernetes": kubernetes.NewRuntime,
 	}
 
 	DefaultStores = map[string]func(...store.Option) store.Store{
 		"memory":     memStore.NewStore,
-		"cockroach":  ckStore.NewStore,
-		"etcd":       etcdStore.NewStore,
-		"cloudflare": cfStore.NewStore,
 		"service":    svcStore.NewStore,
 	}
 
 	// used for default selection as the fall back
 	defaultClient    = "grpc"
 	defaultServer    = "grpc"
-	defaultBroker    = "nats"
+	defaultBroker    = "nats-e"
 	defaultRegistry  = "mdns"
 	defaultSelector  = "registry"
 	defaultTransport = "http"
@@ -558,8 +544,12 @@ func (c *cmd) Init(opts ...Option) error {
 	for _, o := range opts {
 		o(&c.opts)
 	}
-	c.app.Name = c.opts.Name
-	c.app.Version = c.opts.Version
+	if len(c.opts.Name) > 0 {
+		c.app.Name = c.opts.Name
+	}
+	if len(c.opts.Version) > 0 {
+		c.app.Version = c.opts.Version
+	}
 	c.app.HideVersion = len(c.opts.Version) == 0
 	c.app.Usage = c.opts.Description
 	c.app.RunAndExitOnError()

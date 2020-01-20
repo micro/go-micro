@@ -281,6 +281,7 @@ func (p *Proxy) watchRoutes() {
 	if err != nil {
 		return
 	}
+	defer w.Stop()
 
 	for {
 		event, err := w.Next()

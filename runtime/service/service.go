@@ -15,25 +15,6 @@ type svc struct {
 	runtime pb.RuntimeService
 }
 
-// NewRuntime creates new service runtime and returns it
-func NewRuntime(opts ...runtime.Option) runtime.Runtime {
-	// get default options
-	options := runtime.Options{}
-
-	// apply requested options
-	for _, o := range opts {
-		o(&options)
-	}
-
-	// create default client
-	cli := client.DefaultClient
-
-	return &svc{
-		options: options,
-		runtime: pb.NewRuntimeService(runtime.DefaultName, cli),
-	}
-}
-
 // Init initializes runtime with given options
 func (s *svc) Init(opts ...runtime.Option) error {
 	s.Lock()
@@ -182,4 +163,23 @@ func (s *svc) Stop() error {
 // Returns the runtime service implementation
 func (s *svc) String() string {
 	return "service"
+}
+
+// NewRuntime creates new service runtime and returns it
+func NewRuntime(opts ...runtime.Option) runtime.Runtime {
+	// get default options
+	options := runtime.Options{}
+
+	// apply requested options
+	for _, o := range opts {
+		o(&options)
+	}
+
+	// create default client
+	cli := client.DefaultClient
+
+	return &svc{
+		options: options,
+		runtime: pb.NewRuntimeService(runtime.DefaultName, cli),
+	}
 }
