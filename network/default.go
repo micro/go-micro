@@ -382,8 +382,23 @@ func (n *network) initNodes(startup bool) {
 		return
 	}
 
+	// strip self
+	var init []string
+
+	// our current address
+	advertised := n.server.Options().Advertise
+
+	for _, node := range nodes {
+		// skip self
+		if node == advertised {
+			continue
+		}
+		// add the node
+		init = append(init, node)
+	}
+
 	// initialize the tunnel
-	log.Tracef("Network initialising nodes %+v\n", nodes)
+	log.Tracef("Network initialising nodes %+v\n", init)
 
 	n.tunnel.Init(
 		tunnel.Nodes(nodes...),
