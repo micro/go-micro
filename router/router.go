@@ -34,8 +34,6 @@ type Router interface {
 	Watch(opts ...WatchOption) (Watcher, error)
 	// Start starts the router
 	Start() error
-	// Status returns router status
-	Status() Status
 	// Stop stops the router
 	Stop() error
 	// Returns the router implementation
@@ -72,34 +70,6 @@ const (
 	// Error means the router has encountered error
 	Error
 )
-
-func (s StatusCode) String() string {
-	switch s {
-	case Running:
-		return "running"
-	case Advertising:
-		return "advertising"
-	case Stopped:
-		return "stopped"
-	case Error:
-		return "error"
-	default:
-		return "unknown"
-	}
-}
-
-// Status is router status
-type Status struct {
-	// Code defines router status
-	Code StatusCode
-	// Error contains error description
-	Error error
-}
-
-// String returns human readable status
-func (s Status) String() string {
-	return s.Code.String()
-}
 
 // AdvertType is route advertisement type
 type AdvertType int

@@ -8,7 +8,6 @@ service Router {
         rpc Watch(WatchRequest) returns (stream Event) {};
         rpc Advertise(Request) returns (stream Advert) {};
         rpc Process(Advert) returns (ProcessResponse) {};
-	rpc Status(Request) returns (StatusResponse) {};
 }
 
 service Table {
@@ -128,13 +127,4 @@ message Route {
 	string link = 6;
 	// the metric / score of this route
 	int64 metric = 7;
-}
-
-message Status {
-	string code = 1;
-	string error = 2;
-}
-
-message StatusResponse {
-	Status status = 1;
 }
