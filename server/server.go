@@ -129,7 +129,7 @@ type Option func(*Options)
 var (
 	DefaultAddress                 = ":0"
 	DefaultName                    = "go.micro.server"
-	DefaultVersion                 = "latest",
+	DefaultVersion                 = "latest"
 	DefaultId                      = uuid.New().String()
 	DefaultServer           Server = newRpcServer()
 	DefaultRouter                  = newRpcRouter()
