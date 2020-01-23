@@ -121,6 +121,7 @@ func (s *svc) advertiseEvents(advertChan chan *router.Advert, stream pb.Router_A
 			}
 
 			events[i] = &router.Event{
+				Id:        event.Id,
 				Type:      router.EventType(event.Type),
 				Timestamp: time.Unix(0, event.Timestamp),
 				Route:     route,
@@ -179,6 +180,7 @@ func (s *svc) Process(advert *router.Advert) error {
 			Metric:  event.Route.Metric,
 		}
 		e := &pb.Event{
+			Id:        event.Id,
 			Type:      pb.EventType(event.Type),
 			Timestamp: event.Timestamp.UnixNano(),
 			Route:     route,

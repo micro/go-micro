@@ -93,12 +93,14 @@ enum EventType {
 
 // Event is routing table event
 message Event {
+	// the unique event id
+	string id = 1;
         // type of event
-        EventType type = 1;
+        EventType type = 2;
         // unix timestamp of event
-        int64 timestamp = 2;
+        int64 timestamp = 3;
         // service route
-	Route route = 3;
+	Route route = 4;
 }
 
 // Query is passed in a LookupRequest
