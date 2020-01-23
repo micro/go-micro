@@ -65,6 +65,7 @@ func (w *watcher) watch(stream pb.Router_WatchService) error {
 		}
 
 		event := &router.Event{
+			Id:        resp.Id,
 			Type:      router.EventType(resp.Type),
 			Timestamp: time.Unix(0, resp.Timestamp),
 			Route:     route,

@@ -8,7 +8,6 @@ service Router {
         rpc Watch(WatchRequest) returns (stream Event) {};
         rpc Advertise(Request) returns (stream Advert) {};
         rpc Process(Advert) returns (ProcessResponse) {};
-	rpc Status(Request) returns (StatusResponse) {};
 }
 
 service Table {
@@ -94,12 +93,14 @@ enum EventType {
 
 // Event is routing table event
 message Event {
+	// the unique event id
+	string id = 1;
         // type of event
-        EventType type = 1;
+        EventType type = 2;
         // unix timestamp of event
-        int64 timestamp = 2;
+        int64 timestamp = 3;
         // service route
-	Route route = 3;
+	Route route = 4;
 }
 
 // Query is passed in a LookupRequest
@@ -128,13 +129,4 @@ message Route {
 	string link = 6;
 	// the metric / score of this route
 	int64 metric = 7;
-}
-
-message Status {
-	string code = 1;
-	string error = 2;
-}
-
-message StatusResponse {
-	Status status = 1;
 }

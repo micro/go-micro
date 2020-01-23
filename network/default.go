@@ -382,8 +382,23 @@ func (n *network) initNodes(startup bool) {
 		return
 	}
 
+	// strip self
+	var init []string
+
+	// our current address
+	advertised := n.server.Options().Advertise
+
+	for _, node := range nodes {
+		// skip self
+		if node == advertised {
+			continue
+		}
+		// add the node
+		init = append(init, node)
+	}
+
 	// initialize the tunnel
-	log.Tracef("Network initialising nodes %+v\n", nodes)
+	log.Tracef("Network initialising nodes %+v\n", init)
 
 	n.tunnel.Init(
 		tunnel.Nodes(nodes...),
@@ -640,6 +655,11 @@ func (n *network) processCtrlChan(listener tunnel.Listener) {
 				var events []*router.Event
 
 				for _, event := range pbRtrAdvert.Events {
+					// for backwards compatibility reasons
+					if event == nil || event.Route == nil {
+						continue
+					}
+
 					// we know the advertising node is not the origin of the route
 					if pbRtrAdvert.Id != event.Route.Router {
 						// if the origin router is not the advertising node peer

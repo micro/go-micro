@@ -38,6 +38,10 @@ func (t *table) sendEvent(e *Event) {
 	t.RLock()
 	defer t.RUnlock()
 
+	if len(e.Id) == 0 {
+		e.Id = uuid.New().String()
+	}
+
 	for _, w := range t.watchers {
 		select {
 		case w.resChan <- e:

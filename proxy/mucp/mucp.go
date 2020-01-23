@@ -203,10 +203,6 @@ func (p *Proxy) cacheRoutes(service string) ([]router.Route, error) {
 	// lookup the routes in the router
 	results, err := p.Router.Lookup(router.QueryService(service))
 	if err != nil {
-		// check the status of the router
-		if status := p.Router.Status(); status.Code == router.Error {
-			return nil, status.Error
-		}
 		// otherwise return the error
 		return nil, err
 	}

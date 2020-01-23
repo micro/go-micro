@@ -6,10 +6,10 @@ import (
 )
 
 type watcher struct {
-	stream proto.Service_WatchService
+	stream proto.Config_WatchService
 }
 
-func newWatcher(stream proto.Service_WatchService) (source.Watcher, error) {
+func newWatcher(stream proto.Config_WatchService) (source.Watcher, error) {
 	return &watcher{stream: stream}, nil
 }
 

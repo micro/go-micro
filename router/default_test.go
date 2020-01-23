@@ -38,7 +38,6 @@ func TestRouterAdvertise(t *testing.T) {
 
 	// lower the advertise interval
 	AdvertiseEventsTick = 500 * time.Millisecond
-	AdvertiseTableTick = 1 * time.Second
 
 	if err := r.Start(); err != nil {
 		t.Errorf("failed to start router: %v", err)
