@@ -21,7 +21,7 @@ type service struct {
 	key         string
 	path        string
 	opts        source.Options
-	client      proto.Service
+	client      proto.ConfigService
 }
 
 func (m *service) Read() (set *source.ChangeSet, err error) {
@@ -83,7 +83,7 @@ func NewSource(opts ...source.Option) source.Source {
 		opts:        options,
 		key:         key,
 		path:        path,
-		client:      proto.NewService(addr, DefaultClient),
+		client:      proto.NewConfigService(addr, DefaultClient),
 	}
 
 	return s
