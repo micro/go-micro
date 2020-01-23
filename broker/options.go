@@ -46,10 +46,6 @@ type PublishOption func(*PublishOptions)
 
 type SubscribeOption func(*SubscribeOptions)
 
-var (
-	registryKey = "github.com/micro/go-micro/registry"
-)
-
 func NewSubscribeOptions(opts ...SubscribeOption) SubscribeOptions {
 	opt := SubscribeOptions{
 		AutoAck: true,
