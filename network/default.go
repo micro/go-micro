@@ -655,6 +655,11 @@ func (n *network) processCtrlChan(listener tunnel.Listener) {
 				var events []*router.Event
 
 				for _, event := range pbRtrAdvert.Events {
+					// for backwards compatibility reasons
+					if event == nil || event.Route == nil {
+						continue
+					}
+
 					// we know the advertising node is not the origin of the route
 					if pbRtrAdvert.Id != event.Route.Router {
 						// if the origin router is not the advertising node peer
