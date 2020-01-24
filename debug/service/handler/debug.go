@@ -32,6 +32,7 @@ func newDebug() *Debug {
 	return &Debug{
 		log:   log.DefaultLog,
 		stats: stats.DefaultStats,
+		trace: trace.DefaultTrace,
 	}
 }
 
