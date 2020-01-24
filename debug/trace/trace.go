@@ -28,8 +28,8 @@ type Span struct {
 	Parent string
 	// Start time
 	Started time.Time
-	// Finish time
-	Finished time.Time
+	// Duration in nano seconds
+	Duration time.Duration
 	// associated data
 	Metadata map[string]string
 }
