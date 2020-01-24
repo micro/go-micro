@@ -37,6 +37,7 @@ type DebugService interface {
 	Health(ctx context.Context, in *HealthRequest, opts ...client.CallOption) (*HealthResponse, error)
 	Stats(ctx context.Context, in *StatsRequest, opts ...client.CallOption) (*StatsResponse, error)
 	Log(ctx context.Context, in *LogRequest, opts ...client.CallOption) (Debug_LogService, error)
+	Trace(ctx context.Context, in *TraceRequest, opts ...client.CallOption) (*TraceResponse, error)
 }
 
 type debugService struct {
@@ -121,12 +122,23 @@ func (x *debugServiceLog) Recv() (*Record, error) {
 	return m, nil
 }
 
+func (c *debugService) Trace(ctx context.Context, in *TraceRequest, opts ...client.CallOption) (*TraceResponse, error) {
+	req := c.c.NewRequest(c.name, "Debug.Trace", in)
+	out := new(TraceResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Server API for Debug service
 
 type DebugHandler interface {
 	Health(context.Context, *HealthRequest, *HealthResponse) error
 	Stats(context.Context, *StatsRequest, *StatsResponse) error
 	Log(context.Context, *LogRequest, Debug_LogStream) error
+	Trace(context.Context, *TraceRequest, *TraceResponse) error
 }
 
 func RegisterDebugHandler(s server.Server, hdlr DebugHandler, opts ...server.HandlerOption) error {
@@ -134,6 +146,7 @@ func RegisterDebugHandler(s server.Server, hdlr DebugHandler, opts ...server.Han
 		Health(ctx context.Context, in *HealthRequest, out *HealthResponse) error
 		Stats(ctx context.Context, in *StatsRequest, out *StatsResponse) error
 		Log(ctx context.Context, stream server.Stream) error
+		Trace(ctx context.Context, in *TraceRequest, out *TraceResponse) error
 	}
 	type Debug struct {
 		debug
@@ -187,4 +200,8 @@ func (x *debugLogStream) RecvMsg(m interface{}) error {
 
 func (x *debugLogStream) Send(m *Record) error {
 	return x.stream.Send(m)
+}
+
+func (h *debugHandler) Trace(ctx context.Context, in *TraceRequest, out *TraceResponse) error {
+	return h.DebugHandler.Trace(ctx, in, out)
 }
