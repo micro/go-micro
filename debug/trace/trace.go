@@ -36,6 +36,11 @@ type Span struct {
 
 type spanKey struct{}
 
+var (
+	// Default tracer
+	DefaultTrace = NewTrace()
+)
+
 // FromContext returns a span from context
 func FromContext(ctx context.Context) (*Span, bool) {
 	s, ok := ctx.Value(spanKey{}).(*Span)

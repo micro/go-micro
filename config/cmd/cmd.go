@@ -246,12 +246,12 @@ var (
 	}
 
 	DefaultRuntimes = map[string]func(...runtime.Option) runtime.Runtime{
-		"local":      runtime.NewRuntime,
+		"local": runtime.NewRuntime,
 	}
 
 	DefaultStores = map[string]func(...store.Option) store.Store{
-		"memory":     memStore.NewStore,
-		"service":    svcStore.NewStore,
+		"memory":  memStore.NewStore,
+		"service": svcStore.NewStore,
 	}
 
 	// used for default selection as the fall back
