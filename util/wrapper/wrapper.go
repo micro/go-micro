@@ -5,6 +5,7 @@ import (
 
 	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/debug/stats"
+	"github.com/micro/go-micro/debug/trace"
 	"github.com/micro/go-micro/metadata"
 	"github.com/micro/go-micro/server"
 )
@@ -12,6 +13,13 @@ import (
 type clientWrapper struct {
 	client.Client
 	headers metadata.Metadata
+}
+
+type traceWrapper struct {
+	client.Client
+
+	name  string
+	trace trace.Trace
 }
 
 var (
@@ -48,6 +56,20 @@ func (c *clientWrapper) Publish(ctx context.Context, p client.Message, opts ...c
 	return c.Client.Publish(ctx, p, opts...)
 }
 
+func (c *traceWrapper) Call(ctx context.Context, req client.Request, rsp interface{}, opts ...client.CallOption) error {
+	newCtx, s := c.trace.Start(ctx, req.Service()+"."+req.Endpoint())
+
+	err := c.Client.Call(newCtx, req, rsp, opts...)
+	if err != nil {
+		s.Metadata["error"] = err.Error()
+	}
+
+	// finish the trace
+	c.trace.Finish(s)
+
+	return err
+}
+
 // FromService wraps a client to inject From-Service header into metadata
 func FromService(name string, c client.Client) client.Client {
 	return &clientWrapper{
@@ -69,6 +91,37 @@ func HandlerStats(stats stats.Stats) server.HandlerWrapper {
 			// record the stats
 			stats.Record(err)
 			// return the error
+			return err
+		}
+	}
+}
+
+// TraceCall is a call tracing wrapper
+func TraceCall(name string, t trace.Trace, c client.Client) client.Client {
+	return &traceWrapper{
+		name:   name,
+		trace:  t,
+		Client: c,
+	}
+}
+
+// TraceHandler wraps a server handler to perform tracing
+func TraceHandler(t trace.Trace) server.HandlerWrapper {
+	// return a handler wrapper
+	return func(h server.HandlerFunc) server.HandlerFunc {
+		// return a function that returns a function
+		return func(ctx context.Context, req server.Request, rsp interface{}) error {
+			// get the span
+			newCtx, s := t.Start(ctx, req.Service()+"."+req.Endpoint())
+
+			err := h(newCtx, req, rsp)
+			if err != nil {
+				s.Metadata["error"] = err.Error()
+			}
+
+			// finish
+			t.Finish(s)
+
 			return err
 		}
 	}
