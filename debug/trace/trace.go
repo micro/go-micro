@@ -9,7 +9,7 @@ import (
 // Trace is an interface for distributed tracing
 type Trace interface {
 	// Start a trace
-	Start(ctx context.Context, name string) *Span
+	Start(ctx context.Context, name string) (context.Context, *Span)
 	// Finish the trace
 	Finish(*Span) error
 	// Read the traces
