@@ -96,7 +96,7 @@ func TestExecutor(t *testing.T) {
 	rsp := &proto.Test{}
 
 	//	err  = fl.
-	rid, err := fl.Execute("forward", req, rsp,
+	rid, err := fl.Execute("forward", "AccountCreate", req, rsp,
 		flow.ExecuteContext(ctx),
 		flow.ExecuteAsync(false),
 		flow.ExecuteClient(client.DefaultClient),

@@ -2,7 +2,6 @@ package flow
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/micro/go-micro/broker"
@@ -24,7 +23,7 @@ type Flow interface {
 	// Lookup specific flow
 	Lookup(flow string) ([]*Step, error)
 	// Execute specific flow and returns request id and error, optionally fills rsp
-	Execute(flow string, req interface{}, rsp interface{}, opts ...ExecuteOption) (string, error)
+	Execute(flow string, step string, req interface{}, rsp interface{}, opts ...ExecuteOption) (string, error)
 	// Resume specific paused flow execution by request id
 	Resume(flow string, reqID string) error
 	// Pause specific flow execution by request id
@@ -44,14 +43,21 @@ type Step struct {
 	Requires []string
 	// steps for which this step required
 	Required []string
+	// in case of error, operation to execute
+	Fallback []Operation
 }
 
 func (s *Step) Name() string {
 	return s.ID
 }
 
+func (s *Step) Id() string {
+	return s.ID
+}
+
 func (s *Step) String() string {
-	return fmt.Sprintf("step %s, ops: %s, requires: %v, required: %v", s.ID, s.Operations, s.Requires, s.Required)
+	return s.ID
+	//return fmt.Sprintf("step %s, ops: %s, requires: %v, required: %v", s.ID, s.Operations, s.Requires, s.Required)
 }
 
 type Option func(*Options)

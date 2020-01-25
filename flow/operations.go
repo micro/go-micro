@@ -3,6 +3,7 @@ package flow
 import (
 	"context"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/micro/go-micro/broker"
@@ -41,6 +42,55 @@ func RegisterOperation(op Operation) {
 		return
 	}
 	Operations[op.Type()] = op
+}
+
+type conditionOperation struct {
+	name      string
+	options   OperationOptions
+	condition map[string]Operation
+}
+
+func ConditionOperation(cond map[string]Operation) *conditionOperation {
+	op := &conditionOperation{
+		name: "condition_operation",
+	}
+	op.condition = make(map[string]Operation)
+	for k, v := range cond {
+		op.condition[k] = v
+	}
+	return op
+}
+
+func (op *conditionOperation) New() Operation {
+	return &conditionOperation{}
+}
+
+func (op *conditionOperation) Name() string {
+	return op.name
+}
+
+func (op *conditionOperation) String() string {
+	return op.name
+}
+
+func (op *conditionOperation) Type() string {
+	return "condition_operation"
+}
+
+func (op *conditionOperation) Encode() *pbFlow.Operation {
+	return nil
+}
+
+func (op *conditionOperation) Decode(pb *pbFlow.Operation) {
+}
+
+func (op *conditionOperation) Options() OperationOptions {
+	return op.options
+}
+
+func (op *conditionOperation) Execute(ctx context.Context, req []byte, opts ...ExecuteOption) ([]byte, error) {
+	log.Printf("SSS %#+v\n", op)
+	return nil, nil
 }
 
 type sagaOperation struct {
@@ -83,10 +133,6 @@ func (op *sagaOperation) Decode(pb *pbFlow.Operation) {
 
 func (op *sagaOperation) Options() OperationOptions {
 	return op.options
-}
-
-func (op *sagaOperation) SetOptions(opts OperationOptions) {
-	op.options = opts
 }
 
 type clientCallOperation struct {
@@ -136,6 +182,7 @@ func (op *clientCallOperation) Execute(ctx context.Context, data []byte, opts ..
 	}
 
 	if err = options.Client.Call(ctx, req, rsp, copts...); err != nil {
+		return nil, nil
 		return nil, err
 	}
 
@@ -173,10 +220,6 @@ func (op *clientCallOperation) Decode(pb *pbFlow.Operation) {
 
 func (op *clientCallOperation) Options() OperationOptions {
 	return op.options
-}
-
-func (op *clientCallOperation) SetOptions(opts OperationOptions) {
-	op.options = opts
 }
 
 type emptyOperation struct {
@@ -224,10 +267,6 @@ func (op *emptyOperation) Options() OperationOptions {
 	return op.options
 }
 
-func (op *emptyOperation) SetOptions(opts OperationOptions) {
-	op.options = opts
-}
-
 type aggregateOperation struct {
 	name    string
 	options OperationOptions
@@ -266,10 +305,6 @@ func (op *aggregateOperation) Execute(context.Context, []byte, ...ExecuteOption)
 
 func (op *aggregateOperation) Options() OperationOptions {
 	return op.options
-}
-
-func (op *aggregateOperation) SetOptions(opts OperationOptions) {
-	op.options = opts
 }
 
 type modifyOperation struct {
@@ -313,10 +348,6 @@ func (op *modifyOperation) Options() OperationOptions {
 	return op.options
 }
 
-func (op *modifyOperation) SetOptions(opts OperationOptions) {
-	op.options = opts
-}
-
 type Operation interface {
 	Name() string
 	String() string
@@ -326,7 +357,6 @@ type Operation interface {
 	Encode() *pbFlow.Operation
 	Execute(context.Context, []byte, ...ExecuteOption) ([]byte, error)
 	Options() OperationOptions
-	SetOptions(OperationOptions)
 }
 
 type OperationOptions struct {

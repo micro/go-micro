@@ -1,7 +1,10 @@
+// +build ignore
+
 package flow
 
 import (
 	"fmt"
+	"log"
 	"sort"
 	"sync"
 	"time"
@@ -29,6 +32,7 @@ func (w *walker) Walk(n dag.Vertex, pos int) error {
 
 type flowJob struct {
 	flow    string
+	step    string
 	req     []byte
 	rsp     []byte
 	err     error
@@ -189,7 +193,7 @@ func (fl *microFlow) Resume(flow string, rid string) error {
 	return nil
 }
 
-func (fl *microFlow) Execute(flow string, req interface{}, rsp interface{}, opts ...ExecuteOption) (string, error) {
+func (fl *microFlow) Execute(flow string, step string, req interface{}, rsp interface{}, opts ...ExecuteOption) (string, error) {
 
 	if fl.pool == nil {
 		return "", fmt.Errorf("initialize flow first")
@@ -223,7 +227,7 @@ func (fl *microFlow) Execute(flow string, req interface{}, rsp interface{}, opts
 		return "", err
 	}
 
-	job := &flowJob{flow: flow, req: reqbuf, options: opts}
+	job := &flowJob{flow: flow, step: step, req: reqbuf, options: opts}
 	if !options.Async {
 		job.done = make(chan struct{})
 	}
@@ -381,7 +385,9 @@ func (fl *microFlow) flowHandler(req interface{}) {
 	})
 
 	for _, wstep := range w.steps {
+		log.Printf("step %s\n", wstep.step.Name())
 		for _, op := range wstep.step.Operations {
+			log.Printf("op %s\n", op.Name())
 			buf, err = op.Execute(options.Context, job.req, job.options...)
 			if err != nil {
 				return
