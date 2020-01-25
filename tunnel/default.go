@@ -433,7 +433,7 @@ func (t *tun) process() {
 			}
 
 			// send the message
-			t.sendTo(sendTo, msg)
+			go t.sendTo(sendTo, msg)
 		case <-t.closed:
 			return
 		}
