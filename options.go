@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/micro/cli"
 	"github.com/micro/go-micro/broker"
 	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/client/selector"
@@ -12,6 +11,7 @@ import (
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/server"
 	"github.com/micro/go-micro/transport"
+	"github.com/micro/cli/v2"
 )
 
 type Options struct {
@@ -166,7 +166,7 @@ func Flags(flags ...cli.Flag) Option {
 	}
 }
 
-func Action(a func(*cli.Context)) Option {
+func Action(a func(*cli.Context) error) Option {
 	return func(o *Options) {
 		o.Cmd.App().Action = a
 	}

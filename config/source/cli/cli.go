@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/imdario/mergo"
-	"github.com/micro/cli"
 	"github.com/micro/go-micro/config/cmd"
 	"github.com/micro/go-micro/config/source"
+	"github.com/micro/cli/v2"
 )
 
 type cliSource struct {
@@ -20,11 +20,6 @@ type cliSource struct {
 
 func (c *cliSource) Read() (*source.ChangeSet, error) {
 	var changes map[string]interface{}
-
-	for _, name := range c.ctx.GlobalFlagNames() {
-		tmp := toEntry(name, c.ctx.GlobalGeneric(name))
-		mergo.Map(&changes, tmp) // need to sort error handling
-	}
 
 	for _, name := range c.ctx.FlagNames() {
 		tmp := toEntry(name, c.ctx.Generic(name))

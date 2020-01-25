@@ -4,9 +4,9 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/micro/cli"
 	"github.com/micro/go-micro/agent/input"
 	"github.com/nlopes/slack"
+	"github.com/micro/cli/v2"
 )
 
 type slackInput struct {
@@ -26,15 +26,15 @@ func init() {
 
 func (p *slackInput) Flags() []cli.Flag {
 	return []cli.Flag{
-		cli.BoolFlag{
-			Name:   "slack_debug",
-			Usage:  "Slack debug output",
-			EnvVar: "MICRO_SLACK_DEBUG",
+		&cli.BoolFlag{
+			Name:    "slack_debug",
+			Usage:   "Slack debug output",
+			EnvVars: []string{"MICRO_SLACK_DEBUG"},
 		},
-		cli.StringFlag{
-			Name:   "slack_token",
-			Usage:  "Slack token",
-			EnvVar: "MICRO_SLACK_TOKEN",
+		&cli.StringFlag{
+			Name:    "slack_token",
+			Usage:   "Slack token",
+			EnvVars: []string{"MICRO_SLACK_TOKEN"},
 		},
 	}
 }

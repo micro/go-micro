@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/micro/cli"
 	"github.com/micro/go-micro/broker"
 	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/client/selector"
@@ -25,6 +24,7 @@ import (
 	// servers
 	sgrpc "github.com/micro/go-micro/server/grpc"
 	smucp "github.com/micro/go-micro/server/mucp"
+	"github.com/micro/cli/v2"
 
 	// brokers
 	"github.com/micro/go-micro/broker/memory"
@@ -73,140 +73,140 @@ var (
 	DefaultCmd = newCmd()
 
 	DefaultFlags = []cli.Flag{
-		cli.StringFlag{
-			Name:   "client",
-			EnvVar: "MICRO_CLIENT",
-			Usage:  "Client for go-micro; rpc",
+		&cli.StringFlag{
+			Name:    "client",
+			EnvVars: []string{"MICRO_CLIENT"},
+			Usage:   "Client for go-micro; rpc",
 		},
-		cli.StringFlag{
-			Name:   "client_request_timeout",
-			EnvVar: "MICRO_CLIENT_REQUEST_TIMEOUT",
-			Usage:  "Sets the client request timeout. e.g 500ms, 5s, 1m. Default: 5s",
+		&cli.StringFlag{
+			Name:    "client_request_timeout",
+			EnvVars: []string{"MICRO_CLIENT_REQUEST_TIMEOUT"},
+			Usage:   "Sets the client request timeout. e.g 500ms, 5s, 1m. Default: 5s",
 		},
-		cli.IntFlag{
-			Name:   "client_retries",
-			EnvVar: "MICRO_CLIENT_RETRIES",
-			Value:  client.DefaultRetries,
-			Usage:  "Sets the client retries. Default: 1",
+		&cli.IntFlag{
+			Name:    "client_retries",
+			EnvVars: []string{"MICRO_CLIENT_RETRIES"},
+			Value:   client.DefaultRetries,
+			Usage:   "Sets the client retries. Default: 1",
 		},
-		cli.IntFlag{
-			Name:   "client_pool_size",
-			EnvVar: "MICRO_CLIENT_POOL_SIZE",
-			Usage:  "Sets the client connection pool size. Default: 1",
+		&cli.IntFlag{
+			Name:    "client_pool_size",
+			EnvVars: []string{"MICRO_CLIENT_POOL_SIZE"},
+			Usage:   "Sets the client connection pool size. Default: 1",
 		},
-		cli.StringFlag{
-			Name:   "client_pool_ttl",
-			EnvVar: "MICRO_CLIENT_POOL_TTL",
-			Usage:  "Sets the client connection pool ttl. e.g 500ms, 5s, 1m. Default: 1m",
+		&cli.StringFlag{
+			Name:    "client_pool_ttl",
+			EnvVars: []string{"MICRO_CLIENT_POOL_TTL"},
+			Usage:   "Sets the client connection pool ttl. e.g 500ms, 5s, 1m. Default: 1m",
 		},
-		cli.IntFlag{
-			Name:   "register_ttl",
-			EnvVar: "MICRO_REGISTER_TTL",
-			Value:  60,
-			Usage:  "Register TTL in seconds",
+		&cli.IntFlag{
+			Name:    "register_ttl",
+			EnvVars: []string{"MICRO_REGISTER_TTL"},
+			Value:   60,
+			Usage:   "Register TTL in seconds",
 		},
-		cli.IntFlag{
-			Name:   "register_interval",
-			EnvVar: "MICRO_REGISTER_INTERVAL",
-			Value:  30,
-			Usage:  "Register interval in seconds",
+		&cli.IntFlag{
+			Name:    "register_interval",
+			EnvVars: []string{"MICRO_REGISTER_INTERVAL"},
+			Value:   30,
+			Usage:   "Register interval in seconds",
 		},
-		cli.StringFlag{
-			Name:   "server",
-			EnvVar: "MICRO_SERVER",
-			Usage:  "Server for go-micro; rpc",
+		&cli.StringFlag{
+			Name:    "server",
+			EnvVars: []string{"MICRO_SERVER"},
+			Usage:   "Server for go-micro; rpc",
 		},
-		cli.StringFlag{
-			Name:   "server_name",
-			EnvVar: "MICRO_SERVER_NAME",
-			Usage:  "Name of the server. go.micro.srv.example",
+		&cli.StringFlag{
+			Name:    "server_name",
+			EnvVars: []string{"MICRO_SERVER_NAME"},
+			Usage:   "Name of the server. go.micro.srv.example",
 		},
-		cli.StringFlag{
-			Name:   "server_version",
-			EnvVar: "MICRO_SERVER_VERSION",
-			Usage:  "Version of the server. 1.1.0",
+		&cli.StringFlag{
+			Name:    "server_version",
+			EnvVars: []string{"MICRO_SERVER_VERSION"},
+			Usage:   "Version of the server. 1.1.0",
 		},
-		cli.StringFlag{
-			Name:   "server_id",
-			EnvVar: "MICRO_SERVER_ID",
-			Usage:  "Id of the server. Auto-generated if not specified",
+		&cli.StringFlag{
+			Name:    "server_id",
+			EnvVars: []string{"MICRO_SERVER_ID"},
+			Usage:   "Id of the server. Auto-generated if not specified",
 		},
-		cli.StringFlag{
-			Name:   "server_address",
-			EnvVar: "MICRO_SERVER_ADDRESS",
-			Usage:  "Bind address for the server. 127.0.0.1:8080",
+		&cli.StringFlag{
+			Name:    "server_address",
+			EnvVars: []string{"MICRO_SERVER_ADDRESS"},
+			Usage:   "Bind address for the server. 127.0.0.1:8080",
 		},
-		cli.StringFlag{
-			Name:   "server_advertise",
-			EnvVar: "MICRO_SERVER_ADVERTISE",
-			Usage:  "Used instead of the server_address when registering with discovery. 127.0.0.1:8080",
+		&cli.StringFlag{
+			Name:    "server_advertise",
+			EnvVars: []string{"MICRO_SERVER_ADVERTISE"},
+			Usage:   "Used instead of the server_address when registering with discovery. 127.0.0.1:8080",
 		},
-		cli.StringSliceFlag{
-			Name:   "server_metadata",
-			EnvVar: "MICRO_SERVER_METADATA",
-			Value:  &cli.StringSlice{},
-			Usage:  "A list of key-value pairs defining metadata. version=1.0.0",
+		&cli.StringSliceFlag{
+			Name:    "server_metadata",
+			EnvVars: []string{"MICRO_SERVER_METADATA"},
+			Value:   &cli.StringSlice{},
+			Usage:   "A list of key-value pairs defining metadata. version=1.0.0",
 		},
-		cli.StringFlag{
-			Name:   "broker",
-			EnvVar: "MICRO_BROKER",
-			Usage:  "Broker for pub/sub. http, nats, rabbitmq",
+		&cli.StringFlag{
+			Name:    "broker",
+			EnvVars: []string{"MICRO_BROKER"},
+			Usage:   "Broker for pub/sub. http, nats, rabbitmq",
 		},
-		cli.StringFlag{
-			Name:   "broker_address",
-			EnvVar: "MICRO_BROKER_ADDRESS",
-			Usage:  "Comma-separated list of broker addresses",
+		&cli.StringFlag{
+			Name:    "broker_address",
+			EnvVars: []string{"MICRO_BROKER_ADDRESS"},
+			Usage:   "Comma-separated list of broker addresses",
 		},
-		cli.StringFlag{
-			Name:   "profile",
-			Usage:  "Debug profiler for cpu and memory stats",
-			EnvVar: "MICRO_DEBUG_PROFILE",
+		&cli.StringFlag{
+			Name:    "profile",
+			Usage:   "Debug profiler for cpu and memory stats",
+			EnvVars: []string{"MICRO_DEBUG_PROFILE"},
 		},
-		cli.StringFlag{
-			Name:   "registry",
-			EnvVar: "MICRO_REGISTRY",
-			Usage:  "Registry for discovery. etcd, mdns",
+		&cli.StringFlag{
+			Name:    "registry",
+			EnvVars: []string{"MICRO_REGISTRY"},
+			Usage:   "Registry for discovery. etcd, mdns",
 		},
-		cli.StringFlag{
-			Name:   "registry_address",
-			EnvVar: "MICRO_REGISTRY_ADDRESS",
-			Usage:  "Comma-separated list of registry addresses",
+		&cli.StringFlag{
+			Name:    "registry_address",
+			EnvVars: []string{"MICRO_REGISTRY_ADDRESS"},
+			Usage:   "Comma-separated list of registry addresses",
 		},
-		cli.StringFlag{
-			Name:   "runtime",
-			Usage:  "Runtime for building and running services e.g local, kubernetes",
-			EnvVar: "MICRO_RUNTIME",
-			Value:  "local",
+		&cli.StringFlag{
+			Name:    "runtime",
+			Usage:   "Runtime for building and running services e.g local, kubernetes",
+			EnvVars: []string{"MICRO_RUNTIME"},
+			Value:   "local",
 		},
-		cli.StringFlag{
-			Name:   "selector",
-			EnvVar: "MICRO_SELECTOR",
-			Usage:  "Selector used to pick nodes for querying",
+		&cli.StringFlag{
+			Name:    "selector",
+			EnvVars: []string{"MICRO_SELECTOR"},
+			Usage:   "Selector used to pick nodes for querying",
 		},
-		cli.StringFlag{
-			Name:   "store",
-			EnvVar: "MICRO_STORE",
-			Usage:  "Store used for key-value storage",
+		&cli.StringFlag{
+			Name:    "store",
+			EnvVars: []string{"MICRO_STORE"},
+			Usage:   "Store used for key-value storage",
 		},
-		cli.StringFlag{
-			Name:   "store_address",
-			EnvVar: "MICRO_STORE_ADDRESS",
-			Usage:  "Comma-separated list of store addresses",
+		&cli.StringFlag{
+			Name:    "store_address",
+			EnvVars: []string{"MICRO_STORE_ADDRESS"},
+			Usage:   "Comma-separated list of store addresses",
 		},
-		cli.StringFlag{
-			Name:   "store_namespace",
-			EnvVar: "MICRO_STORE_NAMESPACE",
-			Usage:  "Namespace for store data",
+		&cli.StringFlag{
+			Name:    "store_namespace",
+			EnvVars: []string{"MICRO_STORE_NAMESPACE"},
+			Usage:   "Namespace for store data",
 		},
-		cli.StringFlag{
-			Name:   "transport",
-			EnvVar: "MICRO_TRANSPORT",
-			Usage:  "Transport mechanism used; http",
+		&cli.StringFlag{
+			Name:    "transport",
+			EnvVars: []string{"MICRO_TRANSPORT"},
+			Usage:   "Transport mechanism used; http",
 		},
-		cli.StringFlag{
-			Name:   "transport_address",
-			EnvVar: "MICRO_TRANSPORT_ADDRESS",
-			Usage:  "Comma-separated list of transport addresses",
+		&cli.StringFlag{
+			Name:    "transport_address",
+			EnvVars: []string{"MICRO_TRANSPORT_ADDRESS"},
+			Usage:   "Comma-separated list of transport addresses",
 		},
 	}
 
@@ -306,7 +306,9 @@ func newCmd(opts ...Option) Cmd {
 	cmd.app.Usage = cmd.opts.Description
 	cmd.app.Before = cmd.Before
 	cmd.app.Flags = DefaultFlags
-	cmd.app.Action = func(c *cli.Context) {}
+	cmd.app.Action = func(c *cli.Context) error {
+		return nil
+	}
 
 	if len(options.Version) == 0 {
 		cmd.app.HideVersion = true
@@ -489,11 +491,11 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		serverOpts = append(serverOpts, server.Advertise(ctx.String("server_advertise")))
 	}
 
-	if ttl := time.Duration(ctx.GlobalInt("register_ttl")); ttl >= 0 {
+	if ttl := time.Duration(ctx.Int("register_ttl")); ttl >= 0 {
 		serverOpts = append(serverOpts, server.RegisterTTL(ttl*time.Second))
 	}
 
-	if val := time.Duration(ctx.GlobalInt("register_interval")); val >= 0 {
+	if val := time.Duration(ctx.Int("register_interval")); val >= 0 {
 		serverOpts = append(serverOpts, server.RegisterInterval(val*time.Second))
 	}
 
