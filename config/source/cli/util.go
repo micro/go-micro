@@ -5,7 +5,7 @@ import (
 	"flag"
 	"strings"
 
-	"github.com/micro/cli"
+	"github.com/micro/cli/v2"
 )
 
 func copyFlag(name string, ff *flag.Flag, set *flag.FlagSet) {
@@ -22,7 +22,7 @@ func normalizeFlags(flags []cli.Flag, set *flag.FlagSet) error {
 		visited[f.Name] = true
 	})
 	for _, f := range flags {
-		parts := strings.Split(f.GetName(), ",")
+		parts := f.Names()
 		if len(parts) == 1 {
 			continue
 		}
