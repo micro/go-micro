@@ -4,6 +4,7 @@ package cockroach
 import (
 	"database/sql"
 	"fmt"
+	"net/url"
 	"strings"
 	"time"
 	"unicode"
@@ -212,8 +213,13 @@ func (s *sqlStore) configure() error {
 	}
 
 	source := nodes[0]
-	if !strings.Contains(source, " ") {
-		source = fmt.Sprintf("host=%s", source)
+	// check if it is a standard connection string eg: host=%s port=%d user=%s password=%s dbname=%s sslmode=disable
+	// if err is nil which means it would be a URL like postgre://xxxx?yy=zz
+	_, err := url.Parse(source)
+	if err != nil {
+		if !strings.Contains(source, " ") {
+			source = fmt.Sprintf("host=%s", source)
+		}
 	}
 
 	// create source from first node
