@@ -28,6 +28,7 @@ func (ops Operations) String() string {
 }
 */
 func init() {
+	log.SetFlags(log.LstdFlags | log.Lmicroseconds)
 	Operations = make(map[string]Operation)
 	RegisterOperation(&sagaOperation{})
 	RegisterOperation(&clientCallOperation{})
@@ -229,7 +230,7 @@ func (op *clientCallOperation) Execute(ctx context.Context, data []byte, opts ..
 
 	log.Printf("execute %s", op.name)
 
-	if op.name == "cms_contact.ContactService.ContactCreate" {
+	if op.name == "acms_contact.ContactService.ContactCreate" {
 		return nil, fmt.Errorf("fail")
 	}
 

@@ -287,6 +287,8 @@ github.com/hashicorp/vault v0.10.4/go.mod h1:KfSyffbKxoVyspOdlaGVjIuwLobi07qD1bA
 github.com/hashicorp/yamux v0.0.0-20180604194846-3520598351bb/go.mod h1:+NfK9FKeTrX5uv1uIXGdwYDTeHna2qgaIlx54MXqjAM=
 github.com/heimdalr/dag v0.9.10 h1:twYeNjg7fe/tz6k2763O5/LYi5YC3jPKEeIHR+omUQc=
 github.com/heimdalr/dag v0.9.10/go.mod h1:99tRaYxh7Omgj7A2kOkcx94Eu3iZnQ3myi9KZ5vuTfI=
+github.com/heimdalr/dag v0.9.11 h1:sjpRgE2sRauDNultPKJG7D+hrS9kb/f6cnMvPe3o6Gw=
+github.com/heimdalr/dag v0.9.11/go.mod h1:99tRaYxh7Omgj7A2kOkcx94Eu3iZnQ3myi9KZ5vuTfI=
 github.com/hpcloud/tail v1.0.0/go.mod h1:ab1qPbhIpdTxEkNHXyeSf5vhxWSCs/tWer42PpOxQnU=
 github.com/iij/doapi v0.0.0-20190504054126-0bbf12d6d7df/go.mod h1:QMZY7/J/KSQEhKWFeDesPjMj+wCHReeknARU3wqlyN4=
 github.com/imdario/mergo v0.3.8 h1:CGgOkSJeqMRmt0D9XLWExdT4m4F1vd3FV3VPt+0VxkQ=

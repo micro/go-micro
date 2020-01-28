@@ -85,7 +85,7 @@ func (g *heimdalrDag) Validate() error {
 }
 
 func (g *heimdalrDag) TransitiveReduction() {
-
+	g.dag.ReduceTransitively()
 }
 
 func (g *heimdalrDag) GetVertex(name string) (interface{}, error) {

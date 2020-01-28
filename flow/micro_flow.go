@@ -345,8 +345,8 @@ func (fl *microFlow) flowHandler(req interface{}) {
 		stepsMap[s.Name()] = s
 	}
 
-	g := NewTerraformDag()
-	//g := NewHeimdalrDag()
+	//g := NewTerraformDag()
+	g := NewHeimdalrDag()
 	for _, s := range stepsMap {
 		g.AddVertex(s)
 	}
