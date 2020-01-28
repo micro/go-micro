@@ -9,7 +9,7 @@ import (
 // Trace is an interface for distributed tracing
 type Trace interface {
 	// Start a trace
-	Start(ctx context.Context, name string) *Span
+	Start(ctx context.Context, name string) (context.Context, *Span)
 	// Finish the trace
 	Finish(*Span) error
 	// Read the traces
@@ -28,13 +28,18 @@ type Span struct {
 	Parent string
 	// Start time
 	Started time.Time
-	// Finish time
-	Finished time.Time
+	// Duration in nano seconds
+	Duration time.Duration
 	// associated data
 	Metadata map[string]string
 }
 
 type spanKey struct{}
+
+var (
+	// Default tracer
+	DefaultTrace = NewTrace()
+)
 
 // FromContext returns a span from context
 func FromContext(ctx context.Context) (*Span, bool) {

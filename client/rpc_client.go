@@ -10,7 +10,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/micro/go-micro/broker"
-	"github.com/micro/go-micro/util/pool"
 	"github.com/micro/go-micro/client/selector"
 	"github.com/micro/go-micro/codec"
 	raw "github.com/micro/go-micro/codec/bytes"
@@ -19,6 +18,7 @@ import (
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/transport"
 	"github.com/micro/go-micro/util/buf"
+	"github.com/micro/go-micro/util/pool"
 )
 
 type rpcClient struct {
