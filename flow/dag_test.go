@@ -50,6 +50,16 @@ func TestExecutor(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
+	if err = fl.CreateStep("reverse", &flow.Step{
+		ID: "cms_account.AccountService.AccountDelete",
+		Operations: []flow.Operation{
+			flow.ClientCallOperation("cms_account", "AccountService.AccountDelete"),
+		},
+		Requires: nil,
+		Required: nil,
+	}); err != nil {
+		t.Fatal(err)
+	}
 	if err = fl.CreateStep("forward", &flow.Step{
 		ID: "cms_contact.ContactService.ContactCreate",
 		Operations: []flow.Operation{
@@ -58,7 +68,7 @@ func TestExecutor(t *testing.T) {
 		Requires: []string{"cms_account.AccountService.AccountCreate"},
 		Required: nil,
 		Fallback: []flow.Operation{
-			flow.FlowExecuteOperation("forward",
+			flow.FlowExecuteOperation("reverse",
 				flow.ClientCallOperation("cms_account", "AccountService.AccountDelete").Name(),
 			),
 		},
@@ -100,7 +110,7 @@ func TestExecutor(t *testing.T) {
 		Operations: []flow.Operation{
 			flow.ClientCallOperation("cms_mailer", "MailService.MailSend"),
 		},
-		Requires: []string{"all"},
+		Requires: []string{"all"}, //[]string{"cms_account.AccountService.AccountCreate"},
 		Required: nil,
 	}); err != nil {
 		t.Fatal(err)
@@ -108,10 +118,9 @@ func TestExecutor(t *testing.T) {
 
 	req := &proto.Test{Name: "req"}
 	rsp := &proto.Test{}
-	_ = ctx
 	//	err  = fl.
 	rid, err := fl.Execute("forward", "cms_account.AccountService.AccountCreate", req, rsp,
-		//flow.ExecuteContext(ctx),
+		flow.ExecuteContext(ctx),
 		flow.ExecuteAsync(false),
 		flow.ExecuteClient(client.DefaultClient),
 		flow.ExecuteBroker(broker.DefaultBroker),

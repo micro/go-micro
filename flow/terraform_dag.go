@@ -89,7 +89,9 @@ func (g *terraformDag) OrderedDescendants(v interface{}) ([]*Step, error) {
 }
 
 func (g *terraformDag) Validate() error {
-	return g.dag.Validate()
+	return nil
+	// don't validate as dag can have multiple roots
+	// return g.dag.Validate()
 }
 
 func (g *terraformDag) TransitiveReduction() {
