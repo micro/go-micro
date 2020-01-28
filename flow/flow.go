@@ -2,11 +2,11 @@ package flow
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/micro/go-micro/broker"
 	"github.com/micro/go-micro/client"
-	"github.com/micro/go-micro/registry"
 )
 
 type Flow interface {
@@ -37,13 +37,13 @@ type Flow interface {
 type Step struct {
 	// name of step
 	ID string
-	// operations for step
+	// operations for execute
 	Operations []Operation
 	// steps that are required for this step
 	Requires []string
 	// steps for which this step required
 	Required []string
-	// in case of error, operation to execute
+	// in case of error, operaions to execute
 	Fallback []Operation
 }
 
@@ -87,6 +87,26 @@ type Options struct {
 	Context context.Context
 }
 
+type flowKey struct{}
+
+func FlowToContext(ctx context.Context, fl Flow) context.Context {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	return context.WithValue(ctx, flowKey{}, fl)
+}
+
+func FlowFromContext(ctx context.Context) (Flow, error) {
+	if ctx == nil {
+		return nil, fmt.Errorf("invalid context")
+	}
+	flow, ok := ctx.Value(flowKey{}).(Flow)
+	if !ok {
+		return nil, fmt.Errorf("invalid context")
+	}
+	return flow, nil
+}
+
 type ExecuteOptions struct {
 	// Timeout for currenct execition
 	Timeout time.Duration
@@ -102,8 +122,6 @@ type ExecuteOptions struct {
 	Client client.Client
 	// Broker for communication
 	Broker broker.Broker
-	// Registry
-	Registry registry.Registry
 }
 
 type ExecuteOption func(*ExecuteOptions)
@@ -241,12 +259,5 @@ func ExecuteClient(c client.Client) ExecuteOption {
 func ExecuteBroker(b broker.Broker) ExecuteOption {
 	return func(o *ExecuteOptions) {
 		o.Broker = b
-	}
-}
-
-// Registry for communication
-func ExecuteRegistry(r registry.Registry) ExecuteOption {
-	return func(o *ExecuteOptions) {
-		o.Registry = r
 	}
 }

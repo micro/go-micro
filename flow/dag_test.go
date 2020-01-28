@@ -10,7 +10,6 @@ import (
 	"github.com/micro/go-micro/flow"
 	proto "github.com/micro/go-micro/flow/service/proto"
 	memory "github.com/micro/go-micro/flow/store/memory"
-	"github.com/micro/go-micro/registry"
 )
 
 func TestExecutor(t *testing.T) {
@@ -32,7 +31,7 @@ func TestExecutor(t *testing.T) {
 		t.Fatal(err)
 	}
 	if err = fl.CreateStep("forward", &flow.Step{
-		ID: "AccountCreate",
+		ID: "cms_account.AccountService.AccountCreate",
 		Operations: []flow.Operation{
 			flow.ClientCallOperation("cms_account", "AccountService.AccountCreate"),
 		},
@@ -42,47 +41,62 @@ func TestExecutor(t *testing.T) {
 		t.Fatal(err)
 	}
 	if err = fl.CreateStep("forward", &flow.Step{
-		ID: "ContactCreate",
+		ID: "cms_account.AccountService.AccountDelete",
+		Operations: []flow.Operation{
+			flow.ClientCallOperation("cms_account", "AccountService.AccountDelete"),
+		},
+		Requires: nil,
+		Required: nil,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err = fl.CreateStep("forward", &flow.Step{
+		ID: "cms_contact.ContactService.ContactCreate",
 		Operations: []flow.Operation{
 			flow.ClientCallOperation("cms_contact", "ContactService.ContactCreate"),
 		},
-		Requires: []string{"AccountCreate"},
+		Requires: []string{"cms_account.AccountService.AccountCreate"},
 		Required: nil,
+		Fallback: []flow.Operation{
+			flow.FlowExecuteOperation("forward",
+				flow.ClientCallOperation("cms_account", "AccountService.AccountDelete").Name(),
+			),
+		},
 	}); err != nil {
 		t.Fatal(err)
 	}
 	if err = fl.CreateStep("forward", &flow.Step{
-		ID: "ProjectCreate",
+		ID: "cms_project.ProjectService.ProjectCreate",
 		Operations: []flow.Operation{
 			flow.ClientCallOperation("cms_project", "ProjectService.ProjectCreate"),
 		},
-		Requires: []string{"AccountCreate"},
+		Requires: []string{"cms_account.AccountService.AccountCreate"},
 		Required: nil,
 	}); err != nil {
 		t.Fatal(err)
 	}
 	if err = fl.CreateStep("forward", &flow.Step{
-		ID: "NetworkCreate",
+		ID: "cms_network.NetworkService.NetworkCreate",
 		Operations: []flow.Operation{
 			flow.ClientCallOperation("cms_network", "NetworkService.NetworkCreate"),
 		},
-		Requires: []string{"AccountCreate"},
+		Requires: []string{"cms_account.AccountService.AccountCreate"},
 		Required: nil,
 	}); err != nil {
 		t.Fatal(err)
 	}
 	if err = fl.CreateStep("forward", &flow.Step{
-		ID: "AuthzCreate",
+		ID: "cms_authz.AuthzService.AuthzCreate",
 		Operations: []flow.Operation{
 			flow.ClientCallOperation("cms_authz", "AuthzService.AuthzCreate"),
 		},
-		Requires: []string{"AccountCreate"},
+		Requires: []string{"cms_account.AccountService.AccountCreate"},
 		Required: nil,
 	}); err != nil {
 		t.Fatal(err)
 	}
 	if err = fl.CreateStep("forward", &flow.Step{
-		ID: "MailSend",
+		ID: "cms_mailer.MailService.MailSend",
 		Operations: []flow.Operation{
 			flow.ClientCallOperation("cms_mailer", "MailService.MailSend"),
 		},
@@ -94,14 +108,13 @@ func TestExecutor(t *testing.T) {
 
 	req := &proto.Test{Name: "req"}
 	rsp := &proto.Test{}
-
+	_ = ctx
 	//	err  = fl.
-	rid, err := fl.Execute("forward", "AccountCreate", req, rsp,
-		flow.ExecuteContext(ctx),
+	rid, err := fl.Execute("forward", "cms_account.AccountService.AccountCreate", req, rsp,
+		//flow.ExecuteContext(ctx),
 		flow.ExecuteAsync(false),
 		flow.ExecuteClient(client.DefaultClient),
 		flow.ExecuteBroker(broker.DefaultBroker),
-		flow.ExecuteRegistry(registry.DefaultRegistry),
 	)
 	if err != nil {
 		t.Fatal(err)

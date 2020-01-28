@@ -1,43 +1,36 @@
-// +build ignore
-
 package flow
 
 import (
+	"context"
 	"fmt"
-	"log"
-	"sort"
 	"sync"
 	"time"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/google/uuid"
-	dag "github.com/hashicorp/terraform/dag"
 	pbFlow "github.com/micro/go-micro/flow/service/proto"
 	"github.com/panjf2000/ants/v2"
 )
 
-type walkerStep struct {
-	step *Step
-	pos  int
-}
+type Status int
 
-type walker struct {
-	steps []walkerStep
-}
-
-func (w *walker) Walk(n dag.Vertex, pos int) error {
-	w.steps = append(w.steps, walkerStep{step: n.(*Step), pos: pos})
-	return nil
-}
+const (
+	StatusUnknown Status = iota
+	StatusPaused
+	StatusAborted
+	StatusStopped
+)
 
 type flowJob struct {
 	flow    string
+	rid     string
 	step    string
 	req     []byte
 	rsp     []byte
 	err     error
 	done    chan struct{}
 	options []ExecuteOption
+	wg      sync.WaitGroup
 }
 
 var (
@@ -128,6 +121,7 @@ func (fl *microFlow) CreateStep(name string, step *Step) error {
 	return nil
 }
 
+// Lookup flow
 func (fl *microFlow) Lookup(name string) ([]*Step, error) {
 	var err error
 	var buf []byte
@@ -181,16 +175,35 @@ func (fl *microFlow) DeleteStep(name string, step *Step) error {
 	return nil
 }
 
-func (fl *microFlow) Abort(name string, reqID string) error {
-	return nil
+func (fl *microFlow) Status(flow string, rid string) (Status, error) {
+	state := StatusUnknown
+	buf, err := fl.options.StateStore.Read(fl.options.Context, flow, rid, []byte("status"))
+	if err != nil {
+		return state, err
+	}
+
+	switch string(buf) {
+	case "aborted":
+		state = StatusAborted
+	case "paused":
+		state = StatusPaused
+	case "stopped":
+		state = StatusAborted
+	}
+
+	return state, nil
+}
+
+func (fl *microFlow) Abort(flow string, rid string) error {
+	return fl.options.StateStore.Write(fl.options.Context, flow, rid, []byte("status"), []byte("aborted"))
 }
 
 func (fl *microFlow) Pause(flow string, rid string) error {
-	return nil
+	return fl.options.StateStore.Write(fl.options.Context, flow, rid, []byte("status"), []byte("suspend"))
 }
 
 func (fl *microFlow) Resume(flow string, rid string) error {
-	return nil
+	return fl.options.StateStore.Write(fl.options.Context, flow, rid, []byte("status"), []byte("running"))
 }
 
 func (fl *microFlow) Execute(flow string, step string, req interface{}, rsp interface{}, opts ...ExecuteOption) (string, error) {
@@ -212,22 +225,22 @@ func (fl *microFlow) Execute(flow string, step string, req interface{}, rsp inte
 		return "", err
 	}
 
-	reqmsg, ok := req.(proto.Message)
-	if !ok {
-		return "", fmt.Errorf("req invalid, flow only works with proto.Message now")
+	var reqbuf []byte
+	switch v := req.(type) {
+	case proto.Message:
+		reqbuf, err = proto.Marshal(v)
+	case []byte:
+		reqbuf = v
+	default:
+		return "", fmt.Errorf("req invalid, flow only works with proto.Message and []byte")
 	}
 
 	rspmsg, ok := rsp.(proto.Message)
-	if !ok {
-		return "", fmt.Errorf("rsp invalid, flow only works with proto.Message now")
+	if !ok && rsp != nil {
+		return "", fmt.Errorf("rsp invalid, flow only works with proto.Message and []byte")
 	}
 
-	reqbuf, err := proto.Marshal(reqmsg)
-	if err != nil {
-		return "", err
-	}
-
-	job := &flowJob{flow: flow, step: step, req: reqbuf, options: opts}
+	job := &flowJob{flow: flow, step: step, req: reqbuf, options: opts, rid: uid.String()}
 	if !options.Async {
 		job.done = make(chan struct{})
 	}
@@ -242,7 +255,7 @@ func (fl *microFlow) Execute(flow string, step string, req interface{}, rsp inte
 		if job.err != nil {
 			return "", job.err
 		}
-		if job.rsp != nil {
+		if job.rsp != nil && rspmsg != nil {
 			if err = proto.Unmarshal(job.rsp, rspmsg); err != nil {
 				return "", err
 			}
@@ -256,6 +269,12 @@ func (fl *microFlow) Init(opts ...Option) error {
 	for _, opt := range opts {
 		opt(&fl.options)
 	}
+
+	if fl.options.Context == nil {
+		fl.options.Context = context.Background()
+	}
+
+	fl.options.Context = FlowToContext(fl.options.Context, fl)
 
 	if fl.options.Concurrency < 1 {
 		fl.options.Concurrency = DefaultConcurrency
@@ -305,6 +324,12 @@ func (fl *microFlow) flowHandler(req interface{}) {
 		opt(&options)
 	}
 
+	if options.Context == nil {
+		options.Context = fl.options.Context
+	} else {
+		options.Context = context.WithValue(options.Context, flowKey{}, fl)
+	}
+
 	if buf, err = fl.options.FlowStore.Read(options.Context, job.flow); err != nil {
 		return
 	}
@@ -314,51 +339,52 @@ func (fl *microFlow) flowHandler(req interface{}) {
 		return
 	}
 
-	steps := make(map[string]*Step)
+	stepsMap := make(map[string]*Step)
 	for _, step := range pbSteps.Steps {
 		s := protoToStep(step)
-		steps[s.Name()] = s
+		stepsMap[s.Name()] = s
 	}
 
-	g := &dag.AcyclicGraph{}
-	for _, s := range steps {
-		g.Add(s)
+	//g := NewTerraformDag()
+	g := NewHeimdalrDag()
+	for _, s := range stepsMap {
+		g.AddVertex(s)
 	}
 
-	for _, vs := range steps {
+	for _, vs := range stepsMap {
 	requiresLoop:
 		for _, req := range vs.Requires {
 			if req == "all" {
-				for _, ve := range steps {
+				for _, ve := range stepsMap {
 					if ve.Name() != vs.Name() && !include(ve.Requires, "all") {
-						g.Connect(dag.BasicEdge(ve, vs))
+						g.AddEdge(ve, vs)
 					}
 				}
 				break requiresLoop
 			}
-			ve, ok := steps[req]
+			ve, ok := stepsMap[req]
 			if !ok {
 				err = fmt.Errorf("requires unknown step %v", vs)
 				return
 			}
-			g.Connect(dag.BasicEdge(ve, vs))
+			g.AddEdge(ve, vs)
 		}
 	requiredLoop:
 		for _, req := range vs.Required {
 			if req == "all" {
-				for _, ve := range steps {
+				for _, ve := range stepsMap {
 					if ve.Name() != vs.Name() && !include(ve.Required, "all") {
-						g.Connect(dag.BasicEdge(vs, ve))
+						g.AddEdge(vs, ve)
 					}
 				}
 				break requiredLoop
 			}
-			ve, ok := steps[req]
+			ve, ok := stepsMap[req]
 			if !ok {
 				err = fmt.Errorf("required unknown step %v", vs)
 				return
 			}
-			g.Connect(dag.BasicEdge(vs, ve))
+			g.AddEdge(vs, ve)
 		}
 
 	}
@@ -368,33 +394,55 @@ func (fl *microFlow) flowHandler(req interface{}) {
 
 	g.TransitiveReduction()
 
-	var root dag.Vertex
-	if root, err = g.Root(); err != nil {
+	var root interface{}
+	if root, err = g.GetVertex(job.step); err != nil {
 		return
 	}
 
-	w := &walker{}
-	err = g.DepthFirstWalk([]dag.Vertex{root}, w.Walk)
-	if err != nil {
+	var steps []*Step
+	if steps, err = g.OrderedDescendants(root); err != nil {
 		return
 	}
 
-	// sort steps for forward execution
-	sort.Slice(w.steps, func(i, j int) bool {
-		return w.steps[i].pos < w.steps[j].pos
-	})
-
-	for _, wstep := range w.steps {
-		log.Printf("step %s\n", wstep.step.Name())
-		for _, op := range wstep.step.Operations {
-			log.Printf("op %s\n", op.Name())
-			buf, err = op.Execute(options.Context, job.req, job.options...)
-			if err != nil {
-				return
+stepsLoop:
+	for _, step := range steps {
+		for _, op := range step.Operations {
+			if err = fl.operationHandler(options.Context, step, op, job); err != nil {
+				for _, op = range step.Fallback {
+					fl.operationHandler(options.Context, step, op, job)
+				}
+				break stepsLoop
 			}
 		}
 	}
+}
 
+func (fl *microFlow) operationHandler(ctx context.Context, step *Step, op Operation, job *flowJob) error {
+	var err error
+	var opErr error
+	var buf []byte
+
+	stateName := fmt.Sprintf("%s-%s", step.Name(), op.Name())
+	if err = fl.options.StateStore.Write(ctx, job.flow, job.rid, []byte(stateName), []byte("pending")); err != nil {
+		return err
+	}
+	// operation handles retries, timeouts and so
+	buf, opErr = op.Execute(ctx, job.req, job.options...)
+	if opErr == nil {
+		if err = fl.options.StateStore.Write(ctx, job.flow, job.rid, []byte(stateName), []byte("complete")); err != nil {
+			return err
+		}
+		if err = fl.options.DataStore.Write(ctx, job.flow, job.rid, []byte(stateName), buf); err != nil {
+			return err
+		}
+		return nil
+	}
+
+	if err = fl.options.StateStore.Write(ctx, job.flow, job.rid, []byte(stateName), []byte("failure")); err != nil {
+		return err
+	}
+
+	return opErr
 }
 
 func (fl *microFlow) Options() Options {

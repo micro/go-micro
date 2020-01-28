@@ -10,7 +10,6 @@ import (
 	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/codec/bytes"
 	pbFlow "github.com/micro/go-micro/flow/service/proto"
-	"github.com/micro/go-micro/registry"
 )
 
 var (
@@ -32,9 +31,11 @@ func init() {
 	Operations = make(map[string]Operation)
 	RegisterOperation(&sagaOperation{})
 	RegisterOperation(&clientCallOperation{})
+	RegisterOperation(&flowExecuteOperation{})
 	RegisterOperation(&emptyOperation{})
 	RegisterOperation(&aggregateOperation{})
 	RegisterOperation(&modifyOperation{})
+
 }
 
 func RegisterOperation(op Operation) {
@@ -42,6 +43,69 @@ func RegisterOperation(op Operation) {
 		return
 	}
 	Operations[op.Type()] = op
+}
+
+type flowExecuteOperation struct {
+	name      string
+	flow      string
+	operation string
+	options   OperationOptions
+}
+
+func FlowExecuteOperation(flow string, op string) *flowExecuteOperation {
+	return &flowExecuteOperation{name: "flow_execute_operation", flow: flow, operation: op}
+}
+
+func (op *flowExecuteOperation) New() Operation {
+	return &flowExecuteOperation{}
+}
+
+func (op *flowExecuteOperation) Name() string {
+	return op.name
+}
+
+func (op *flowExecuteOperation) String() string {
+	return op.name
+}
+
+func (op *flowExecuteOperation) Type() string {
+	return "flow_execute_operation"
+}
+
+func (op *flowExecuteOperation) Encode() *pbFlow.Operation {
+	pb := &pbFlow.Operation{
+		Name:    op.name,
+		Type:    op.Type(),
+		Options: make(map[string]string),
+	}
+	pb.Options["flow"] = op.flow
+	pb.Options["op"] = op.operation
+	return pb
+}
+
+func (op *flowExecuteOperation) Decode(pb *pbFlow.Operation) {
+	op.name = pb.Name
+	op.flow = pb.Options["flow"]
+	op.operation = pb.Options["op"]
+}
+
+func (op *flowExecuteOperation) Options() OperationOptions {
+	return op.options
+}
+
+func (op *flowExecuteOperation) Execute(ctx context.Context, req []byte, opts ...ExecuteOption) ([]byte, error) {
+	fl, err := FlowFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	log.Printf("recovery %#+v\n", op)
+
+	_, err = fl.Execute(op.flow, op.operation, req, nil, opts...)
+	if err != nil {
+		panic(err)
+	}
+
+	return nil, err
 }
 
 type conditionOperation struct {
@@ -163,11 +227,16 @@ func (op *clientCallOperation) New() Operation {
 func (op *clientCallOperation) Execute(ctx context.Context, data []byte, opts ...ExecuteOption) ([]byte, error) {
 	var err error
 
+	log.Printf("execute %s", op.name)
+
+	if op.name == "cms_contact.ContactService.ContactCreate" {
+		return nil, fmt.Errorf("fail")
+	}
+
 	options := ExecuteOptions{
-		Client:   client.DefaultClient,
-		Broker:   broker.DefaultBroker,
-		Registry: registry.DefaultRegistry,
-		Context:  context.Background(),
+		Client:  client.DefaultClient,
+		Broker:  broker.DefaultBroker,
+		Context: context.Background(),
 	}
 	for _, opt := range opts {
 		opt(&options)

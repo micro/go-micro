@@ -39,6 +39,7 @@ message Step {
   repeated string requires = 2;
   repeated string required = 3;
   repeated Operation operations = 4;
+  repeated Operation fallback = 5;
 };
 
 message Operation {
