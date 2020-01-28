@@ -30,13 +30,6 @@ func newValues(ch *source.ChangeSet) (reader.Values, error) {
 	return &jsonValues{ch, sj}, nil
 }
 
-func newValue(s *simple.Json) reader.Value {
-	if s == nil {
-		s = simple.New()
-	}
-	return &jsonValue{s}
-}
-
 func (j *jsonValues) Get(path ...string) reader.Value {
 	return &jsonValue{j.sj.GetPath(path...)}
 }
