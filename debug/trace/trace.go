@@ -6,8 +6,8 @@ import (
 	"time"
 )
 
-// Trace is an interface for distributed tracing
-type Trace interface {
+// Tracer is an interface for distributed tracing
+type Tracer interface {
 	// Start a trace
 	Start(ctx context.Context, name string) (context.Context, *Span)
 	// Finish the trace
@@ -36,11 +36,6 @@ type Span struct {
 
 type spanKey struct{}
 
-var (
-	// Default tracer
-	DefaultTrace = NewTrace()
-)
-
 // FromContext returns a span from context
 func FromContext(ctx context.Context) (*Span, bool) {
 	s, ok := ctx.Value(spanKey{}).(*Span)
@@ -50,4 +45,26 @@ func FromContext(ctx context.Context) (*Span, bool) {
 // NewContext creates a new context with the span
 func NewContext(ctx context.Context, s *Span) context.Context {
 	return context.WithValue(ctx, spanKey{}, s)
+}
+
+var (
+	DefaultTracer Tracer = new(noop)
+)
+
+type noop struct{}
+
+func (n *noop) Init(...Option) error {
+	return nil
+}
+
+func (n *noop) Start(ctx context.Context, name string) (context.Context, *Span) {
+	return nil, nil
+}
+
+func (n *noop) Finish(*Span) error {
+	return nil
+}
+
+func (n *noop) Read(...ReadOption) ([]*Span, error) {
+	return nil, nil
 }

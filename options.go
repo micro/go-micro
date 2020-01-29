@@ -4,14 +4,15 @@ import (
 	"context"
 	"time"
 
+	"github.com/micro/cli/v2"
 	"github.com/micro/go-micro/broker"
 	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/client/selector"
 	"github.com/micro/go-micro/config/cmd"
+	"github.com/micro/go-micro/debug/trace"
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/server"
 	"github.com/micro/go-micro/transport"
-	"github.com/micro/cli/v2"
 )
 
 type Options struct {
@@ -109,6 +110,13 @@ func Registry(r registry.Registry) Option {
 		o.Server.Init(server.Registry(r))
 		// Update Broker
 		o.Broker.Init(broker.Registry(r))
+	}
+}
+
+// Tracer sets the tracer for the service
+func Tracer(t trace.Tracer) Option {
+	return func(o *Options) {
+		o.Server.Init(server.Tracer(t))
 	}
 }
 

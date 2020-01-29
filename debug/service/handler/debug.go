@@ -25,14 +25,14 @@ type Debug struct {
 	// the stats collector
 	stats stats.Stats
 	// the tracer
-	trace trace.Trace
+	trace trace.Tracer
 }
 
 func newDebug() *Debug {
 	return &Debug{
 		log:   log.DefaultLog,
 		stats: stats.DefaultStats,
-		trace: trace.DefaultTrace,
+		trace: trace.DefaultTracer,
 	}
 }
 
