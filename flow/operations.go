@@ -227,13 +227,7 @@ func (op *clientCallOperation) New() Operation {
 
 func (op *clientCallOperation) Execute(ctx context.Context, data []byte, opts ...ExecuteOption) ([]byte, error) {
 	var err error
-
-	log.Printf("execute %s", op.name)
-
-	if op.name == "acms_contact.ContactService.ContactCreate" {
-		return nil, fmt.Errorf("fail")
-	}
-
+	return nil, nil
 	options := ExecuteOptions{
 		Client:  client.DefaultClient,
 		Broker:  broker.DefaultBroker,

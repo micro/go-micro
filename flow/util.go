@@ -7,28 +7,19 @@ import (
 )
 
 func stepToProto(step *Step) *pbFlow.Step {
-	ops := make([]*pbFlow.Operation, 0, len(step.Operations))
-	for _, op := range step.Operations {
-		ops = append(ops, op.Encode())
-	}
-	fops := make([]*pbFlow.Operation, 0, len(step.Fallback))
-	for _, op := range step.Fallback {
-		fops = append(fops, op.Encode())
-	}
-
 	pb := &pbFlow.Step{
-		Name:       step.ID,
-		Requires:   step.Requires,
-		Required:   step.Required,
-		Operations: ops,
-		Fallback:   fops,
+		Name:      step.ID,
+		Requires:  step.Requires,
+		Required:  step.Required,
+		Operation: step.Operation.Encode(),
+		Fallback:  step.Fallback.Encode(),
 	}
 
 	return pb
 }
 
-func stepEqual(ostep *pbFlow.Step, nstep *pbFlow.Step) bool {
-	if ostep.Name == nstep.Name {
+func stepEqual(ostep *Step, nstep *Step) bool {
+	if ostep.Name() == nstep.Name() {
 		return true
 	}
 
@@ -36,36 +27,35 @@ func stepEqual(ostep *pbFlow.Step, nstep *pbFlow.Step) bool {
 }
 
 func protoToStep(pb *pbFlow.Step) *Step {
-	ops := make([]Operation, 0, len(pb.Operations))
-	for _, pbop := range pb.Operations {
-		op, ok := Operations[pbop.Type]
+	var nop Operation
+	var fop Operation
+
+	if pb.Operation != nil {
+		op, ok := Operations[pb.Operation.Type]
 		if !ok {
-			log.Printf("unknown op %v\n", pbop)
-			continue
+			log.Printf("unknown op %v\n", pb.Operation)
+			return nil
 		}
-		nop := op.New()
-		nop.Decode(pbop)
-		ops = append(ops, nop)
+		nop = op.New()
+		nop.Decode(pb.Operation)
 	}
 
-	fops := make([]Operation, 0, len(pb.Fallback))
-	for _, pbop := range pb.Fallback {
-		op, ok := Operations[pbop.Type]
+	if pb.Fallback != nil {
+		op, ok := Operations[pb.Fallback.Type]
 		if !ok {
-			log.Printf("unknown op %v\n", pbop)
-			continue
+			log.Printf("unknown op %v\n", pb.Fallback)
+			return nil
 		}
-		nop := op.New()
-		nop.Decode(pbop)
-		fops = append(fops, nop)
+		fop = op.New()
+		fop.Decode(pb.Fallback)
 	}
 
 	st := &Step{
-		ID:         pb.Name,
-		Requires:   pb.Requires,
-		Required:   pb.Required,
-		Fallback:   fops,
-		Operations: ops,
+		ID:        pb.Name,
+		Requires:  pb.Requires,
+		Required:  pb.Required,
+		Fallback:  fop,
+		Operation: nop,
 	}
 
 	return st

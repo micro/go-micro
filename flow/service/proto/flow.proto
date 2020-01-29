@@ -38,8 +38,8 @@ message Step {
   string name = 1;
   repeated string requires = 2;
   repeated string required = 3;
-  repeated Operation operations = 4;
-  repeated Operation fallback = 5;
+  Operation operation = 4;
+  Operation fallback = 5;
 };
 
 message Operation {

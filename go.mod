@@ -19,9 +19,10 @@ require (
 	github.com/google/uuid v1.1.1
 	github.com/gorilla/handlers v1.4.2
 	github.com/gorilla/websocket v1.4.1
+	github.com/hashicorp/golang-lru v0.5.3
 	github.com/hashicorp/hcl v1.0.0
 	github.com/hashicorp/terraform v0.12.19
-	github.com/heimdalr/dag v0.9.11
+	github.com/heimdalr/dag v0.9.12
 	github.com/imdario/mergo v0.3.8
 	github.com/joncalhoun/qson v0.0.0-20170526102502-8a9cab3a62b1
 	github.com/json-iterator/go v1.1.9

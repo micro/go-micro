@@ -38,13 +38,13 @@ type Step struct {
 	// name of step
 	ID string
 	// operations for execute
-	Operations []Operation
+	Operation Operation
 	// steps that are required for this step
 	Requires []string
 	// steps for which this step required
 	Required []string
 	// in case of error, operaions to execute
-	Fallback []Operation
+	Fallback Operation
 }
 
 func (s *Step) Name() string {

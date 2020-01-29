@@ -12,8 +12,9 @@ var (
 
 type FlowStore interface {
 	Init() error
-	Read(ctx context.Context, flow string) ([]byte, error)
-	Write(ctx context.Context, flow string, data []byte) error
+	Load(ctx context.Context, flow string) ([]*Step, error)
+	Save(ctx context.Context, flow string, steps []*Step) error
+	Modified(ctx context.Context, flow string) int64
 	String() string
 	Close(ctx context.Context) error
 }

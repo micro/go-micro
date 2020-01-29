@@ -8,7 +8,7 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/google/uuid"
-	pbFlow "github.com/micro/go-micro/flow/service/proto"
+	lru "github.com/hashicorp/golang-lru"
 	"github.com/panjf2000/ants/v2"
 )
 
@@ -38,10 +38,17 @@ var (
 	DefaultExecuteConcurrency = 10
 )
 
+type cacheDag struct {
+	dag       dag
+	timestamp int64
+}
+
 type microFlow struct {
 	sync.RWMutex
-	options Options
-	pool    *ants.PoolWithFunc
+	options     Options
+	pool        *ants.PoolWithFunc
+	cache       *lru.TwoQueueCache
+	initialized bool
 }
 
 // Create default executor
@@ -58,63 +65,34 @@ func NewFlow(opts ...Option) Flow {
 	return fl
 }
 
-func (fl *microFlow) ReplaceStep(name string, oldstep *Step, newstep *Step) error {
-	var err error
-	var buf []byte
-
-	if buf, err = fl.options.FlowStore.Read(fl.options.Context, name); err != nil {
+func (fl *microFlow) ReplaceStep(flow string, oldstep *Step, newstep *Step) error {
+	steps, err := fl.options.FlowStore.Load(fl.options.Context, flow)
+	if err != nil {
 		return err
 	}
 
-	steps := &pbFlow.Steps{}
-	if err = proto.Unmarshal(buf, steps); err != nil {
-		return err
-	}
-
-	st := stepToProto(oldstep)
-	for idx, pbst := range steps.Steps {
-		if stepEqual(pbst, st) {
-			steps.Steps = append(steps.Steps[:idx], steps.Steps[idx+1:]...)
+	for idx, step := range steps {
+		if stepEqual(step, oldstep) {
+			steps[idx] = newstep
 		}
 	}
 
-	steps.Steps = append(steps.Steps, stepToProto(newstep))
-	if buf, err = proto.Marshal(steps); err != nil {
-		return err
-	}
-
-	if err = fl.options.FlowStore.Write(fl.options.Context, name, buf); err != nil {
+	if err = fl.options.FlowStore.Save(fl.options.Context, flow, steps); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (fl *microFlow) CreateStep(name string, step *Step) error {
-	var err error
-	var buf []byte
-
-	steps := &pbFlow.Steps{}
-
-	buf, err = fl.options.FlowStore.Read(fl.options.Context, name)
-	switch err {
-	case nil:
-		if err := proto.Unmarshal(buf, steps); err != nil {
-			return err
-		}
-	case ErrFlowNotFound:
-		steps.Steps = make([]*pbFlow.Step, 0, 0)
-		break
-	default:
+func (fl *microFlow) CreateStep(flow string, step *Step) error {
+	steps, err := fl.options.FlowStore.Load(fl.options.Context, flow)
+	if err != nil && err != ErrFlowNotFound {
 		return err
 	}
 
-	steps.Steps = append(steps.Steps, stepToProto(step))
-	if buf, err = proto.Marshal(steps); err != nil {
-		return err
-	}
+	steps = append(steps, step)
 
-	if err = fl.options.FlowStore.Write(fl.options.Context, name, buf); err != nil {
+	if err = fl.options.FlowStore.Save(fl.options.Context, flow, steps); err != nil {
 		return err
 	}
 
@@ -122,53 +100,28 @@ func (fl *microFlow) CreateStep(name string, step *Step) error {
 }
 
 // Lookup flow
-func (fl *microFlow) Lookup(name string) ([]*Step, error) {
-	var err error
-	var buf []byte
-
-	if buf, err = fl.options.FlowStore.Read(fl.options.Context, name); err != nil {
+func (fl *microFlow) Lookup(flow string) ([]*Step, error) {
+	steps, err := fl.options.FlowStore.Load(fl.options.Context, flow)
+	if err != nil {
 		return nil, err
-	}
-
-	pbSteps := &pbFlow.Steps{}
-	if err = proto.Unmarshal(buf, pbSteps); err != nil {
-		return nil, err
-	}
-
-	steps := make([]*Step, 0, len(pbSteps.Steps))
-	for _, step := range pbSteps.Steps {
-		steps = append(steps, protoToStep(step))
 	}
 
 	return steps, nil
 }
 
-func (fl *microFlow) DeleteStep(name string, step *Step) error {
-	var err error
-	var buf []byte
-
-	if buf, err = fl.options.FlowStore.Read(fl.options.Context, name); err != nil {
+func (fl *microFlow) DeleteStep(flow string, step *Step) error {
+	steps, err := fl.options.FlowStore.Load(fl.options.Context, flow)
+	if err != nil {
 		return err
 	}
 
-	steps := &pbFlow.Steps{}
-	if err = proto.Unmarshal(buf, steps); err != nil {
-		return err
-	}
-
-	st := stepToProto(step)
-
-	for idx, pbst := range steps.Steps {
-		if stepEqual(pbst, st) {
-			steps.Steps = append(steps.Steps[:idx], steps.Steps[idx+1:]...)
+	for idx, curstep := range steps {
+		if stepEqual(curstep, step) {
+			steps = append(steps[:idx], steps[idx+1:]...)
 		}
 	}
 
-	if buf, err = proto.Marshal(steps); err != nil {
-		return err
-	}
-
-	if err = fl.options.FlowStore.Write(fl.options.Context, name, buf); err != nil {
+	if err = fl.options.FlowStore.Save(fl.options.Context, flow, steps); err != nil {
 		return err
 	}
 
@@ -207,8 +160,7 @@ func (fl *microFlow) Resume(flow string, rid string) error {
 }
 
 func (fl *microFlow) Execute(flow string, step string, req interface{}, rsp interface{}, opts ...ExecuteOption) (string, error) {
-
-	if fl.pool == nil {
+	if !fl.initialized {
 		return "", fmt.Errorf("initialize flow first")
 	}
 
@@ -290,8 +242,15 @@ func (fl *microFlow) Init(opts ...Option) error {
 		return err
 	}
 
+	cache, err := lru.New2Q(100)
+	if err != nil {
+		return err
+	}
+
 	fl.Lock()
 	fl.pool = pool
+	fl.cache = cache
+	fl.initialized = true
 	fl.Unlock()
 
 	return nil
@@ -306,9 +265,78 @@ func include(slice []string, f string) bool {
 	return false
 }
 
+func (fl *microFlow) loadDag(ctx context.Context, flow string) (dag, error) {
+	var modtime int64
+	cdag, ok := fl.cache.Get(flow)
+	if ok {
+		cached := cdag.(*cacheDag)
+		modtime = fl.options.FlowStore.Modified(ctx, flow)
+		if modtime <= cached.timestamp {
+			return cached.dag, nil
+		}
+	}
+
+	steps, err := fl.options.FlowStore.Load(ctx, flow)
+	if err != nil {
+		return nil, err
+	}
+
+	g := NewHeimdalrDag()
+	stepsMap := make(map[string]*Step)
+	for _, s := range steps {
+		stepsMap[s.Name()] = s
+		g.AddVertex(s)
+	}
+
+	for _, vs := range steps {
+	requiresLoop:
+		for _, req := range vs.Requires {
+			if req == "all" {
+				for _, ve := range steps {
+					if ve.Name() != vs.Name() && !include(ve.Requires, "all") {
+						g.AddEdge(ve, vs)
+					}
+				}
+				break requiresLoop
+			}
+			ve, ok := stepsMap[req]
+			if !ok {
+				err = fmt.Errorf("requires unknown step %v", vs)
+				return nil, err
+			}
+			g.AddEdge(ve, vs)
+		}
+	requiredLoop:
+		for _, req := range vs.Required {
+			if req == "all" {
+				for _, ve := range steps {
+					if ve.Name() != vs.Name() && !include(ve.Required, "all") {
+						g.AddEdge(vs, ve)
+					}
+				}
+				break requiredLoop
+			}
+			ve, ok := stepsMap[req]
+			if !ok {
+				err = fmt.Errorf("required unknown step %v", vs)
+				return nil, err
+			}
+			g.AddEdge(vs, ve)
+		}
+
+	}
+	if err = g.Validate(); err != nil {
+		return nil, err
+	}
+
+	g.TransitiveReduction()
+	fl.cache.Add(flow, &cacheDag{dag: g, timestamp: modtime})
+
+	return g, nil
+}
+
 func (fl *microFlow) flowHandler(req interface{}) {
 	var err error
-	var buf []byte
 
 	job := req.(*flowJob)
 	defer func() {
@@ -330,69 +358,10 @@ func (fl *microFlow) flowHandler(req interface{}) {
 		options.Context = context.WithValue(options.Context, flowKey{}, fl)
 	}
 
-	if buf, err = fl.options.FlowStore.Read(options.Context, job.flow); err != nil {
+	g, err := fl.loadDag(options.Context, job.flow)
+	if err != nil {
 		return
 	}
-
-	pbSteps := &pbFlow.Steps{}
-	if err = proto.Unmarshal(buf, pbSteps); err != nil {
-		return
-	}
-
-	stepsMap := make(map[string]*Step)
-	for _, step := range pbSteps.Steps {
-		s := protoToStep(step)
-		stepsMap[s.Name()] = s
-	}
-
-	//g := NewTerraformDag()
-	g := NewHeimdalrDag()
-	for _, s := range stepsMap {
-		g.AddVertex(s)
-	}
-
-	for _, vs := range stepsMap {
-	requiresLoop:
-		for _, req := range vs.Requires {
-			if req == "all" {
-				for _, ve := range stepsMap {
-					if ve.Name() != vs.Name() && !include(ve.Requires, "all") {
-						g.AddEdge(ve, vs)
-					}
-				}
-				break requiresLoop
-			}
-			ve, ok := stepsMap[req]
-			if !ok {
-				err = fmt.Errorf("requires unknown step %v", vs)
-				return
-			}
-			g.AddEdge(ve, vs)
-		}
-	requiredLoop:
-		for _, req := range vs.Required {
-			if req == "all" {
-				for _, ve := range stepsMap {
-					if ve.Name() != vs.Name() && !include(ve.Required, "all") {
-						g.AddEdge(vs, ve)
-					}
-				}
-				break requiredLoop
-			}
-			ve, ok := stepsMap[req]
-			if !ok {
-				err = fmt.Errorf("required unknown step %v", vs)
-				return
-			}
-			g.AddEdge(vs, ve)
-		}
-
-	}
-	if err = g.Validate(); err != nil {
-		return
-	}
-
-	g.TransitiveReduction()
 
 	var root interface{}
 	if root, err = g.GetVertex(job.step); err != nil {
@@ -406,28 +375,26 @@ func (fl *microFlow) flowHandler(req interface{}) {
 
 stepsLoop:
 	for _, step := range steps {
-		for _, op := range step.Operations {
-			if err = fl.operationHandler(options.Context, step, op, job); err != nil {
-				for _, op = range step.Fallback {
-					fl.operationHandler(options.Context, step, op, job)
-				}
-				break stepsLoop
+		if err = fl.stepHandler(options.Context, step, job); err != nil {
+			if step.Fallback != nil {
+				fl.stepHandler(options.Context, step, job)
 			}
+			break stepsLoop
 		}
 	}
 }
 
-func (fl *microFlow) operationHandler(ctx context.Context, step *Step, op Operation, job *flowJob) error {
+func (fl *microFlow) stepHandler(ctx context.Context, step *Step, job *flowJob) error {
 	var err error
 	var opErr error
 	var buf []byte
 
-	stateName := fmt.Sprintf("%s-%s", step.Name(), op.Name())
+	stateName := fmt.Sprintf("%s-%s", step.Name(), step.Operation.Name())
 	if err = fl.options.StateStore.Write(ctx, job.flow, job.rid, []byte(stateName), []byte("pending")); err != nil {
 		return err
 	}
 	// operation handles retries, timeouts and so
-	buf, opErr = op.Execute(ctx, job.req, job.options...)
+	buf, opErr = step.Operation.Execute(ctx, job.req, job.options...)
 	if opErr == nil {
 		if err = fl.options.StateStore.Write(ctx, job.flow, job.rid, []byte(stateName), []byte("complete")); err != nil {
 			return err

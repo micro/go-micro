@@ -1,96 +1,218 @@
-// +build ignore
-
-package flow
+package flow_test
 
 import (
-	"math/rand"
+	"context"
 	"testing"
 	"time"
 
-	log "github.com/micro/go-micro/util/log"
+	"github.com/micro/go-micro/broker"
+	"github.com/micro/go-micro/client"
+	"github.com/micro/go-micro/flow"
+	proto "github.com/micro/go-micro/flow/service/proto"
+	memory "github.com/micro/go-micro/flow/store/memory"
 )
 
-func TestFlow(t *testing.T) {
-	rand.Seed(time.Now().UnixNano())
+func TestExecutor(t *testing.T) {
+	var err error
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 
-	log.SetLevel(log.LevelError)
-	//failHandler :=
-	exc := NewExecutor(
-		ExecutorStateStore(NewStateStore()),
-		ExecutorDataStore(NewDataStore()),
-		ExecutorFlowStore(NewFlowStore()),
-		ExecutorLogger(NewLogger(log.LevelError)),
-		ExecutorTimeout(5*time.Second),
-		ExecutorConcurrency(100),
-		//		ExecutorFailHandler(failHandler),
-		//		ExecutorEventHandler(&microEvent{db: db}),
-		//ExecutorStateChan(stateChan),
+	sStore := memory.NewDataStore()
+	dStore := memory.NewDataStore()
+	fStore := memory.NewFlowStore()
+
+	fl := flow.NewFlow(
+		flow.WithStateStore(sStore),
+		flow.WithDataStore(dStore),
+		flow.WithFlowStore(fStore),
 	)
 
-	flowStore, err := exc.GetFlowStore()
+	if err = fl.Init(); err != nil {
+		t.Fatal(err)
+	}
+	if err = fl.CreateStep("forward", &flow.Step{
+		ID:        "cms_account.AccountService.AccountCreate",
+		Operation: flow.ClientCallOperation("cms_account", "AccountService.AccountCreate"),
+		Requires:  nil,
+		Required:  nil,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err = fl.CreateStep("forward", &flow.Step{
+		ID:        "cms_account.AccountService.AccountDelete",
+		Operation: flow.ClientCallOperation("cms_account", "AccountService.AccountDelete"),
+		Requires:  nil,
+		Required:  nil,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err = fl.CreateStep("reverse", &flow.Step{
+		ID:        "cms_account.AccountService.AccountDelete",
+		Operation: flow.ClientCallOperation("cms_account", "AccountService.AccountDelete"),
+		Requires:  nil,
+		Required:  nil,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err = fl.CreateStep("forward", &flow.Step{
+		ID:        "cms_contact.ContactService.ContactCreate",
+		Operation: flow.ClientCallOperation("cms_contact", "ContactService.ContactCreate"),
+		Requires:  []string{"cms_account.AccountService.AccountCreate"},
+		Required:  nil,
+		Fallback: flow.FlowExecuteOperation("reverse",
+			flow.ClientCallOperation("cms_account", "AccountService.AccountDelete").Name(),
+		),
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err = fl.CreateStep("forward", &flow.Step{
+		ID:        "cms_project.ProjectService.ProjectCreate",
+		Operation: flow.ClientCallOperation("cms_project", "ProjectService.ProjectCreate"),
+		Requires:  []string{"cms_account.AccountService.AccountCreate"},
+		Required:  nil,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err = fl.CreateStep("forward", &flow.Step{
+		ID:        "cms_network.NetworkService.NetworkCreate",
+		Operation: flow.ClientCallOperation("cms_network", "NetworkService.NetworkCreate"),
+		Requires:  []string{"cms_account.AccountService.AccountCreate"},
+		Required:  nil,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err = fl.CreateStep("forward", &flow.Step{
+		ID:        "cms_authz.AuthzService.AuthzCreate",
+		Operation: flow.ClientCallOperation("cms_authz", "AuthzService.AuthzCreate"),
+		Requires:  []string{"cms_account.AccountService.AccountCreate"},
+		Required:  nil,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err = fl.CreateStep("forward", &flow.Step{
+		ID:        "cms_mailer.MailService.MailSend",
+		Operation: flow.ClientCallOperation("cms_mailer", "MailService.MailSend"),
+		Requires:  []string{"all"}, //[]string{"cms_account.AccountService.AccountCreate"},
+		Required:  nil,
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	req := &proto.Test{Name: "req"}
+	rsp := &proto.Test{}
+	//	err  = fl.
+	rid, err := fl.Execute("forward", "cms_account.AccountService.AccountCreate", req, rsp,
+		flow.ExecuteContext(ctx),
+		flow.ExecuteAsync(false),
+		flow.ExecuteClient(client.DefaultClient),
+		flow.ExecuteBroker(broker.DefaultBroker),
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
+	_ = rid
+	//	t.Logf("rid %s", rid)
+}
 
-	operations := []*SagaOperation{
-		&SagaOperation{
-			Forward: &FlowOperation{
-				Node:     "unistack_cms_account",
-				Service:  "AccountService",
-				Endpoint: "AccountCreate",
-			}},
-		&SagaOperation{
-			Forward: &FlowOperation{
-				Node:     "unistack_cms_authz",
-				Service:  "AuthzService",
-				Endpoint: "AuthzCreate",
-				//Recovery: "AuthzDelete",
-				Requires: []string{"unistack_cms_account.AccountService.AccountCreate"},
-			}},
-		&SagaOperation{
-			Forward: &FlowOperation{
-				Node:     "unistack_cms_contact",
-				Service:  "ContactService",
-				Endpoint: "ContactCreate",
-				//Recovery: "ContactDelete",
-				Requires: []string{"unistack_cms_account.AccountService.AccountCreate"},
-			}},
-		&SagaOperation{
-			Forward: &FlowOperation{
-				Node:     "unistack_cms_network",
-				Service:  "NetworkService",
-				Endpoint: "NetworkCreate",
-				Requires: []string{"unistack_cms_account.AccountService.AccountCreate"},
-			}},
-		&SagaOperation{
-			Forward: &FlowOperation{
-				Node:     "unistack_cms_project",
-				Service:  "ProjectService",
-				Endpoint: "ProjectCreate",
-				Requires: []string{"unistack_cms_account.AccountService.AccountCreate"},
-			},
-			Reverse:  &FlowOperation{},
-			Node:     "unistack_cms_project",
-			Service:  "ProjectService",
-			Endpoint: "ProjectDelete",
-			Requires: []string{"unistack_cms_account.AccountService.AccountCreate"},
-		},
-		&SagaOperation{
-			Forward: &FlowOperation{
-				Node:      "unistack_cms_mailer",
-				Service:   "MailerService",
-				Endpoint:  "MailerSend",
-				Aggregate: true,
-			}},
+func BenchmarkFlowExecution(b *testing.B) {
+	var err error
+	ctx := context.Background()
+
+	sStore := memory.NewDataStore()
+	dStore := memory.NewDataStore()
+	fStore := memory.NewFlowStore()
+
+	fl := flow.NewFlow(
+		flow.WithStateStore(sStore),
+		flow.WithDataStore(dStore),
+		flow.WithFlowStore(fStore),
+	)
+
+	if err = fl.Init(); err != nil {
+		b.Fatal(err)
+	}
+	if err = fl.CreateStep("forward", &flow.Step{
+		ID:        "cms_account.AccountService.AccountCreate",
+		Operation: flow.ClientCallOperation("cms_account", "AccountService.AccountCreate"),
+		Requires:  nil,
+		Required:  nil,
+	}); err != nil {
+		b.Fatal(err)
+	}
+	if err = fl.CreateStep("forward", &flow.Step{
+		ID:        "cms_account.AccountService.AccountDelete",
+		Operation: flow.ClientCallOperation("cms_account", "AccountService.AccountDelete"),
+		Requires:  nil,
+		Required:  nil,
+	}); err != nil {
+		b.Fatal(err)
+	}
+	if err = fl.CreateStep("reverse", &flow.Step{
+		ID:        "cms_account.AccountService.AccountDelete",
+		Operation: flow.ClientCallOperation("cms_account", "AccountService.AccountDelete"),
+		Requires:  nil,
+		Required:  nil,
+	}); err != nil {
+		b.Fatal(err)
+	}
+	if err = fl.CreateStep("forward", &flow.Step{
+		ID:        "cms_contact.ContactService.ContactCreate",
+		Operation: flow.ClientCallOperation("cms_contact", "ContactService.ContactCreate"),
+		Requires:  []string{"cms_account.AccountService.AccountCreate"},
+		Required:  nil,
+		Fallback: flow.FlowExecuteOperation("reverse",
+			flow.ClientCallOperation("cms_account", "AccountService.AccountDelete").Name(),
+		),
+	}); err != nil {
+		b.Fatal(err)
+	}
+	if err = fl.CreateStep("forward", &flow.Step{
+		ID:        "cms_project.ProjectService.ProjectCreate",
+		Operation: flow.ClientCallOperation("cms_project", "ProjectService.ProjectCreate"),
+		Requires:  []string{"cms_account.AccountService.AccountCreate"},
+		Required:  nil,
+	}); err != nil {
+		b.Fatal(err)
+	}
+	if err = fl.CreateStep("forward", &flow.Step{
+		ID:        "cms_network.NetworkService.NetworkCreate",
+		Operation: flow.ClientCallOperation("cms_network", "NetworkService.NetworkCreate"),
+		Requires:  []string{"cms_account.AccountService.AccountCreate"},
+		Required:  nil,
+	}); err != nil {
+		b.Fatal(err)
+	}
+	if err = fl.CreateStep("forward", &flow.Step{
+		ID:        "cms_authz.AuthzService.AuthzCreate",
+		Operation: flow.ClientCallOperation("cms_authz", "AuthzService.AuthzCreate"),
+		Requires:  []string{"cms_account.AccountService.AccountCreate"},
+		Required:  nil,
+	}); err != nil {
+		b.Fatal(err)
+	}
+	if err = fl.CreateStep("forward", &flow.Step{
+		ID:        "cms_mailer.MailService.MailSend",
+		Operation: flow.ClientCallOperation("cms_mailer", "MailService.MailSend"),
+		Requires:  []string{"all"}, //[]string{"cms_account.AccountService.AccountCreate"},
+		Required:  nil,
+	}); err != nil {
+		b.Fatal(err)
 	}
 
-	err = flowStore.Save("forward", operations)
-	if err != nil {
-		t.Fatal(err)
+	req := &proto.Test{Name: "req"}
+	rsp := &proto.Test{}
+	//	err  = fl.
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		rid, err := fl.Execute("forward", "cms_account.AccountService.AccountCreate", req, rsp,
+			flow.ExecuteContext(ctx),
+			flow.ExecuteAsync(false),
+			flow.ExecuteClient(client.DefaultClient),
+			flow.ExecuteBroker(broker.DefaultBroker),
+		)
+		if err != nil {
+			b.Fatal(err)
+		}
+		_ = rid
 	}
-
-	if _, _, err = exc.Execute("forward", []byte("test req1")); err != nil {
-		t.Fatal(err)
-	}
-
 }
