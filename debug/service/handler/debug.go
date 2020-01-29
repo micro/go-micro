@@ -12,10 +12,14 @@ import (
 	"github.com/micro/go-micro/server"
 )
 
-var (
-	// DefaultHandler is default debug handler
-	DefaultHandler = newDebug()
-)
+// NewHandler returns an instance of the Debug Handler
+func NewHandler(srv server.Server) *Debug {
+	return &Debug{
+		log:   log.DefaultLog,
+		stats: stats.DefaultStats,
+		trace: srv.Options().Tracer,
+	}
+}
 
 type Debug struct {
 	// must honour the debug handler
@@ -25,15 +29,7 @@ type Debug struct {
 	// the stats collector
 	stats stats.Stats
 	// the tracer
-	trace trace.Trace
-}
-
-func newDebug() *Debug {
-	return &Debug{
-		log:   log.DefaultLog,
-		stats: stats.DefaultStats,
-		trace: trace.DefaultTrace,
-	}
+	trace trace.Tracer
 }
 
 func (d *Debug) Health(ctx context.Context, req *proto.HealthRequest, rsp *proto.HealthResponse) error {

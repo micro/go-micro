@@ -1,6 +1,9 @@
 package trace
 
-type Options struct{}
+type Options struct {
+	// Size is the size of ring buffer
+	Size int
+}
 
 type Option func(o *Options)
 
@@ -15,5 +18,17 @@ type ReadOption func(o *ReadOptions)
 func ReadTrace(t string) ReadOption {
 	return func(o *ReadOptions) {
 		o.Trace = t
+	}
+}
+
+const (
+	// DefaultSize of the buffer
+	DefaultSize = 64
+)
+
+// DefaultOptions returns default options
+func DefaultOptions() Options {
+	return Options{
+		Size: DefaultSize,
 	}
 }

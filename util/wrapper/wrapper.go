@@ -19,7 +19,7 @@ type traceWrapper struct {
 	client.Client
 
 	name  string
-	trace trace.Trace
+	trace trace.Tracer
 }
 
 var (
@@ -97,7 +97,7 @@ func HandlerStats(stats stats.Stats) server.HandlerWrapper {
 }
 
 // TraceCall is a call tracing wrapper
-func TraceCall(name string, t trace.Trace, c client.Client) client.Client {
+func TraceCall(name string, t trace.Tracer, c client.Client) client.Client {
 	return &traceWrapper{
 		name:   name,
 		trace:  t,
@@ -106,7 +106,7 @@ func TraceCall(name string, t trace.Trace, c client.Client) client.Client {
 }
 
 // TraceHandler wraps a server handler to perform tracing
-func TraceHandler(t trace.Trace) server.HandlerWrapper {
+func TraceHandler(t trace.Tracer) server.HandlerWrapper {
 	// return a handler wrapper
 	return func(h server.HandlerFunc) server.HandlerFunc {
 		// return a function that returns a function

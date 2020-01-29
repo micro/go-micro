@@ -10,6 +10,7 @@ import (
 	"github.com/micro/go-micro/broker"
 	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/client/selector"
+	"github.com/micro/go-micro/debug/trace"
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/runtime"
 	"github.com/micro/go-micro/server"
@@ -22,9 +23,9 @@ import (
 	cmucp "github.com/micro/go-micro/client/mucp"
 
 	// servers
+	"github.com/micro/cli/v2"
 	sgrpc "github.com/micro/go-micro/server/grpc"
 	smucp "github.com/micro/go-micro/server/mucp"
-	"github.com/micro/cli/v2"
 
 	// brokers
 	"github.com/micro/go-micro/broker/memory"
@@ -50,6 +51,10 @@ import (
 	// stores
 	memStore "github.com/micro/go-micro/store/memory"
 	svcStore "github.com/micro/go-micro/store/service"
+
+	// tracers
+	// jTracer "github.com/micro/go-micro/debug/trace/jaeger"
+	memTracer "github.com/micro/go-micro/debug/trace/memory"
 )
 
 type Cmd interface {
@@ -208,6 +213,16 @@ var (
 			EnvVars: []string{"MICRO_TRANSPORT_ADDRESS"},
 			Usage:   "Comma-separated list of transport addresses",
 		},
+		&cli.StringFlag{
+			Name:    "tracer",
+			EnvVars: []string{"MICRO_TRACER"},
+			Usage:   "Tracer for distributed tracing, e.g. memory, jaeger",
+		},
+		&cli.StringFlag{
+			Name:    "tracer_address",
+			EnvVars: []string{"MICRO_TRACER_ADDRESS"},
+			Usage:   "Comma-separated list of tracer addresses",
+		},
 	}
 
 	DefaultBrokers = map[string]func(...broker.Option) broker.Broker{
@@ -254,6 +269,11 @@ var (
 		"service": svcStore.NewStore,
 	}
 
+	DefaultTracers = map[string]func(...trace.Option) trace.Tracer{
+		"memory": memTracer.NewTracer,
+		// "jaeger": jTracer.NewTracer,
+	}
+
 	// used for default selection as the fall back
 	defaultClient    = "grpc"
 	defaultServer    = "grpc"
@@ -279,6 +299,7 @@ func newCmd(opts ...Option) Cmd {
 		Transport: &transport.DefaultTransport,
 		Runtime:   &runtime.DefaultRuntime,
 		Store:     &store.DefaultStore,
+		Tracer:    &trace.DefaultTracer,
 
 		Brokers:    DefaultBrokers,
 		Clients:    DefaultClients,
@@ -288,6 +309,7 @@ func newCmd(opts ...Option) Cmd {
 		Transports: DefaultTransports,
 		Runtimes:   DefaultRuntimes,
 		Stores:     DefaultStores,
+		Tracers:    DefaultTracers,
 	}
 
 	for _, o := range opts {
@@ -330,7 +352,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	var serverOpts []server.Option
 	var clientOpts []client.Option
 
-	// Set the runtime
+	// Set the store
 	if name := ctx.String("store"); len(name) > 0 {
 		s, ok := c.opts.Stores[name]
 		if !ok {
@@ -348,6 +370,16 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		}
 
 		*c.opts.Runtime = r()
+	}
+
+	// Set the tracer
+	if name := ctx.String("tracer"); len(name) > 0 {
+		r, ok := c.opts.Tracers[name]
+		if !ok {
+			return fmt.Errorf("Unsupported tracer: %s", name)
+		}
+
+		*c.opts.Tracer = r()
 	}
 
 	// Set the client
