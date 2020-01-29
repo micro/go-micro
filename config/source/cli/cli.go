@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/imdario/mergo"
+	"github.com/micro/cli/v2"
 	"github.com/micro/go-micro/config/cmd"
 	"github.com/micro/go-micro/config/source"
-	"github.com/micro/cli/v2"
 )
 
 type cliSource struct {

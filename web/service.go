@@ -14,6 +14,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/micro/cli/v2"
 	"github.com/micro/go-micro"
 	"github.com/micro/go-micro/registry"
 	maddr "github.com/micro/go-micro/util/addr"
@@ -21,7 +22,6 @@ import (
 	"github.com/micro/go-micro/util/log"
 	mnet "github.com/micro/go-micro/util/net"
 	mls "github.com/micro/go-micro/util/tls"
-	"github.com/micro/cli/v2"
 )
 
 type service struct {

@@ -13,11 +13,11 @@ import (
 )
 
 // NewHandler returns an instance of the Debug Handler
-func NewHandler(srv server.Server) *Debug {
+func NewHandler() *Debug {
 	return &Debug{
 		log:   log.DefaultLog,
 		stats: stats.DefaultStats,
-		trace: srv.Options().Tracer,
+		trace: trace.DefaultTracer,
 	}
 }
 
