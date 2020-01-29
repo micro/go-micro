@@ -30,7 +30,7 @@ type watcher struct {
 	value reader.Value
 }
 
-func newConfig(opts ...Option) Config {
+func newConfig(opts ...Option) (Config, error) {
 	options := Options{
 		Loader: memory.NewLoader(),
 		Reader: json.NewReader(),
@@ -40,9 +40,18 @@ func newConfig(opts ...Option) Config {
 		o(&options)
 	}
 
-	options.Loader.Load(options.Source...)
-	snap, _ := options.Loader.Snapshot()
-	vals, _ := options.Reader.Values(snap.ChangeSet)
+	if err := options.Loader.Load(options.Source...); err != nil {
+		return nil, err
+	}
+
+	snap, err := options.Loader.Snapshot()
+	if err != nil {
+		return nil, err
+	}
+	vals, err := options.Reader.Values(snap.ChangeSet)
+	if err != nil {
+		return nil, err
+	}
 
 	c := &config{
 		exit: make(chan bool),
@@ -53,7 +62,7 @@ func newConfig(opts ...Option) Config {
 
 	go c.run()
 
-	return c
+	return c, nil
 }
 
 func (c *config) run() {
