@@ -227,7 +227,7 @@ func (op *clientCallOperation) New() Operation {
 
 func (op *clientCallOperation) Execute(ctx context.Context, data []byte, opts ...ExecuteOption) ([]byte, error) {
 	var err error
-	return nil, nil
+
 	options := ExecuteOptions{
 		Client:  client.DefaultClient,
 		Broker:  broker.DefaultBroker,
