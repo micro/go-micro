@@ -40,8 +40,9 @@ func New(name string, p proxy.Proxy) *Server {
 	// only register this once
 	once.Do(func() {
 		server.DefaultRouter.Handle(
+			// inject the debug handler
 			server.DefaultRouter.NewHandler(
-				handler.DefaultHandler,
+				handler.NewHandler(),
 				server.InternalHandler(true),
 			),
 		)
