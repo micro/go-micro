@@ -158,7 +158,7 @@ func (s *service) Run() error {
 	// register the debug handler
 	s.opts.Server.Handle(
 		s.opts.Server.NewHandler(
-			handler.DefaultHandler,
+			handler.NewHandler(s.Options().Server),
 			server.InternalHandler(true),
 		),
 	)
