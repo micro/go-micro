@@ -15,6 +15,7 @@ import (
 	"github.com/micro/go-micro/debug/profile/pprof"
 	"github.com/micro/go-micro/debug/service/handler"
 	"github.com/micro/go-micro/debug/stats"
+	"github.com/micro/go-micro/debug/trace"
 	"github.com/micro/go-micro/plugin"
 	"github.com/micro/go-micro/server"
 	"github.com/micro/go-micro/util/log"
@@ -35,12 +36,12 @@ func newService(opts ...Option) Service {
 
 	// wrap client to inject From-Service header on any calls
 	options.Client = wrapper.FromService(serviceName, options.Client)
-	options.Client = wrapper.TraceCall(serviceName, options.Server.Options().Tracer, options.Client)
+	options.Client = wrapper.TraceCall(serviceName, trace.DefaultTracer, options.Client)
 
 	// wrap the server to provide handler stats
 	options.Server.Init(
 		server.WrapHandler(wrapper.HandlerStats(stats.DefaultStats)),
-		server.WrapHandler(wrapper.TraceHandler(options.Server.Options().Tracer)),
+		server.WrapHandler(wrapper.TraceHandler(trace.DefaultTracer)),
 	)
 
 	return &service{
