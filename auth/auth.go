@@ -8,7 +8,7 @@ import (
 // Auth providers authentication and authorization
 type Auth interface {
 	// Generate a new auth ServiceAccount
-	Generate(string) (*ServiceAccount, error)
+	Generate(*ServiceAccount) (*ServiceAccount, error)
 	// Revoke an authorization ServiceAccount
 	Revoke(*ServiceAccount) error
 	// AddRole to the service account
