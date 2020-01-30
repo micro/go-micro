@@ -7,7 +7,14 @@ import (
 )
 
 func TestBackoff(t *testing.T) {
-	results := []time.Duration{0 * time.Second, 100 * time.Millisecond, 600 * time.Millisecond, 1900 * time.Millisecond, 4300 * time.Millisecond, 7900 * time.Millisecond}
+	results := []time.Duration{
+		0 * time.Second,
+		100 * time.Millisecond,
+		600 * time.Millisecond,
+		1900 * time.Millisecond,
+		4300 * time.Millisecond,
+		7900 * time.Millisecond,
+	}
 
 	c := NewClient()
 
