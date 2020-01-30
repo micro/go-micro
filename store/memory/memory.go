@@ -68,19 +68,26 @@ func (m *memoryStore) Read(key string, opts ...store.ReadOption) ([]*store.Recor
 
 	var vals []*memoryRecord
 
-	if !options.Prefix {
-		v, ok := m.values[key]
-		if !ok {
-			return nil, store.ErrNotFound
-		}
-		vals = []*memoryRecord{v}
-	} else {
+	if options.Prefix {
 		for _, v := range m.values {
 			if !strings.HasPrefix(v.r.Key, key) {
 				continue
 			}
 			vals = append(vals, v)
 		}
+	} else if options.Suffix {
+		for _, v := range m.values {
+			if !strings.HasSuffix(v.r.Key, key) {
+				continue
+			}
+			vals = append(vals, v)
+		}
+	} else {
+		v, ok := m.values[key]
+		if !ok {
+			return nil, store.ErrNotFound
+		}
+		vals = []*memoryRecord{v}
 	}
 
 	//nolint:prealloc

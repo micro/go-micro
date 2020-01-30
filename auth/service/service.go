@@ -26,7 +26,7 @@ func (s *svc) Generate(sa *auth.ServiceAccount) (*auth.ServiceAccount, error) {
 
 		if r.Resource != nil {
 			roles[i].Resource = &pb.Resource{
-				Name: r.Resource.Name,
+				Id:   r.Resource.Id,
 				Type: r.Resource.Type,
 			}
 		}
@@ -37,6 +37,10 @@ func (s *svc) Generate(sa *auth.ServiceAccount) (*auth.ServiceAccount, error) {
 		ServiceAccount: &pb.ServiceAccount{
 			Roles:    roles,
 			Metadata: sa.Metadata,
+			Parent: &pb.Resource{
+				Id:   sa.Parent.Id,
+				Type: sa.Parent.Type,
+			},
 		},
 	}
 
@@ -54,6 +58,13 @@ func (s *svc) Generate(sa *auth.ServiceAccount) (*auth.ServiceAccount, error) {
 		Expiry:   time.Unix(resp.ServiceAccount.Expiry, 0),
 		Metadata: resp.ServiceAccount.Metadata,
 	}
+	if resp.ServiceAccount.Parent != nil {
+		sa.Parent = &auth.Resource{
+			Id:   resp.ServiceAccount.Parent.Id,
+			Type: resp.ServiceAccount.Parent.Type,
+		}
+	}
+
 	sa.Roles = make([]*auth.Role, len(resp.ServiceAccount.Roles))
 	for i, r := range resp.ServiceAccount.Roles {
 		sa.Roles[i] = &auth.Role{
@@ -62,7 +73,7 @@ func (s *svc) Generate(sa *auth.ServiceAccount) (*auth.ServiceAccount, error) {
 
 		if r.Resource != nil {
 			sa.Roles[i].Resource = &auth.Resource{
-				Name: r.Resource.Name,
+				Id:   r.Resource.Id,
 				Type: r.Resource.Type,
 			}
 		}
@@ -92,7 +103,7 @@ func (s *svc) AddRole(sa *auth.ServiceAccount, r *auth.Role) error {
 	}
 	if r.Resource != nil {
 		req.Role.Resource = &pb.Resource{
-			Name: r.Resource.Name,
+			Id:   r.Resource.Id,
 			Type: r.Resource.Type,
 		}
 	}
@@ -111,7 +122,7 @@ func (s *svc) RemoveRole(sa *auth.ServiceAccount, r *auth.Role) error {
 	}
 	if r.Resource != nil {
 		req.Role.Resource = &pb.Resource{
-			Name: r.Resource.Name,
+			Id:   r.Resource.Id,
 			Type: r.Resource.Type,
 		}
 	}

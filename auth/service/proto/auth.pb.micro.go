@@ -35,6 +35,7 @@ var _ server.Option
 
 type AuthService interface {
 	Generate(ctx context.Context, in *GenerateRequest, opts ...client.CallOption) (*GenerateResponse, error)
+	Validate(ctx context.Context, in *ValidateRequest, opts ...client.CallOption) (*ValidateResponse, error)
 	Revoke(ctx context.Context, in *RevokeRequest, opts ...client.CallOption) (*RevokeResponse, error)
 	AddRole(ctx context.Context, in *AddRoleRequest, opts ...client.CallOption) (*AddRoleResponse, error)
 	RemoveRole(ctx context.Context, in *RemoveRoleRequest, opts ...client.CallOption) (*RemoveRoleResponse, error)
@@ -61,6 +62,16 @@ func NewAuthService(name string, c client.Client) AuthService {
 func (c *authService) Generate(ctx context.Context, in *GenerateRequest, opts ...client.CallOption) (*GenerateResponse, error) {
 	req := c.c.NewRequest(c.name, "Auth.Generate", in)
 	out := new(GenerateResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authService) Validate(ctx context.Context, in *ValidateRequest, opts ...client.CallOption) (*ValidateResponse, error) {
+	req := c.c.NewRequest(c.name, "Auth.Validate", in)
+	out := new(ValidateResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -102,6 +113,7 @@ func (c *authService) RemoveRole(ctx context.Context, in *RemoveRoleRequest, opt
 
 type AuthHandler interface {
 	Generate(context.Context, *GenerateRequest, *GenerateResponse) error
+	Validate(context.Context, *ValidateRequest, *ValidateResponse) error
 	Revoke(context.Context, *RevokeRequest, *RevokeResponse) error
 	AddRole(context.Context, *AddRoleRequest, *AddRoleResponse) error
 	RemoveRole(context.Context, *RemoveRoleRequest, *RemoveRoleResponse) error
@@ -110,6 +122,7 @@ type AuthHandler interface {
 func RegisterAuthHandler(s server.Server, hdlr AuthHandler, opts ...server.HandlerOption) error {
 	type auth interface {
 		Generate(ctx context.Context, in *GenerateRequest, out *GenerateResponse) error
+		Validate(ctx context.Context, in *ValidateRequest, out *ValidateResponse) error
 		Revoke(ctx context.Context, in *RevokeRequest, out *RevokeResponse) error
 		AddRole(ctx context.Context, in *AddRoleRequest, out *AddRoleResponse) error
 		RemoveRole(ctx context.Context, in *RemoveRoleRequest, out *RemoveRoleResponse) error
@@ -127,6 +140,10 @@ type authHandler struct {
 
 func (h *authHandler) Generate(ctx context.Context, in *GenerateRequest, out *GenerateResponse) error {
 	return h.AuthHandler.Generate(ctx, in, out)
+}
+
+func (h *authHandler) Validate(ctx context.Context, in *ValidateRequest, out *ValidateResponse) error {
+	return h.AuthHandler.Validate(ctx, in, out)
 }
 
 func (h *authHandler) Revoke(ctx context.Context, in *RevokeRequest, out *RevokeResponse) error {

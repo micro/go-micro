@@ -17,10 +17,10 @@ type Auth interface {
 	RemoveRole(*ServiceAccount, *Role) error
 }
 
-// Resource is some thing to provide access to
+// Resource is an entity such as a user or service
 type Resource struct {
-	// Name of the resource
-	Name string
+	// Id of the resource
+	Id string
 	// Type of resource, e.g. Service
 	Type string
 }
@@ -33,6 +33,8 @@ type Role struct {
 
 // ServiceAccount providers by an auth provider
 type ServiceAccount struct {
+	// The parent of the service account, e.g. a user
+	Parent *Resource `json: "parent"`
 	// Unique ServiceAccount id
 	Id string `json: "id"`
 	// Token used to authenticate

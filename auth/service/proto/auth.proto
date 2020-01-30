@@ -4,18 +4,20 @@ package go.micro.auth;
 
 service Auth {
     rpc Generate(GenerateRequest) returns (GenerateResponse) {};
+    rpc Validate(ValidateRequest) returns (ValidateResponse) {};
     rpc Revoke(RevokeRequest)  returns (RevokeResponse) {};
     rpc AddRole(AddRoleRequest)  returns (AddRoleResponse) {};
     rpc RemoveRole(RemoveRoleRequest)  returns (RemoveRoleResponse) {};
 }
 
 message ServiceAccount{
-    string id = 1;
-    string token = 2;
-    int64 created = 3;
-    int64 expiry = 4;
-    repeated Role roles = 5;
-	map<string, string> metadata = 6;
+    Resource parent = 1;
+    string id = 2;
+    string token = 3;
+    int64 created = 4;
+    int64 expiry = 5;
+    repeated Role roles = 6;
+	map<string, string> metadata = 7;
 }
 
 message Role {
@@ -24,12 +26,16 @@ message Role {
 }
 
 message Resource{
-    string name = 1;
+    string id = 1;
     string type = 2;
 }
 
 message GenerateRequest {
     ServiceAccount service_account = 1;
+}
+
+message ValidateRequest {
+    string token = 1;
 }
 
 message RevokeRequest {
@@ -47,6 +53,10 @@ message RemoveRoleRequest {
 }
 
 message GenerateResponse {
+    ServiceAccount service_account = 1;
+}
+
+message ValidateResponse {
     ServiceAccount service_account = 1;
 }
 
