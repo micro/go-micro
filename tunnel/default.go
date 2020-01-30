@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/micro/go-micro/transport"
-	"github.com/micro/go-micro/util/log"
+	"github.com/micro/go-micro/v2/transport"
+	"github.com/micro/go-micro/v2/util/log"
 )
 
 var (
@@ -201,15 +201,15 @@ func (t *tun) announce(channel, session string, link *link) {
 }
 
 // manage monitors outbound links and attempts to reconnect to the failed ones
-func (t *tun) manage() {
-	reconnect := time.NewTicker(ReconnectTime)
-	defer reconnect.Stop()
+func (t *tun) manage(reconnect time.Duration) {
+	r := time.NewTicker(reconnect)
+	defer r.Stop()
 
 	for {
 		select {
 		case <-t.closed:
 			return
-		case <-reconnect.C:
+		case <-r.C:
 			t.manageLinks()
 		}
 	}
@@ -384,7 +384,7 @@ func (t *tun) process() {
 				// if the link is not connected skip it
 				if !connected {
 					log.Debugf("Link for node %s not connected", id)
-					err = errors.New("link not connected")
+					err = ErrLinkDisconnected
 					continue
 				}
 
@@ -392,14 +392,14 @@ func (t *tun) process() {
 				// and the message is being sent outbound via
 				// a dialled connection don't use this link
 				if loopback && msg.outbound {
-					err = errors.New("link is loopback")
+					err = ErrLinkLoopback
 					continue
 				}
 
 				// if the message was being returned by the loopback listener
 				// send it back up the loopback link only
 				if msg.loopback && !loopback {
-					err = errors.New("link is not loopback")
+					err = ErrLinkRemote
 					continue
 				}
 
@@ -414,7 +414,7 @@ func (t *tun) process() {
 					// this is where we explicitly set the link
 					// in a message received via the listen method
 					if len(msg.link) > 0 && id != msg.link {
-						err = errors.New("link not found")
+						err = ErrLinkNotFound
 						continue
 					}
 				}
@@ -433,7 +433,7 @@ func (t *tun) process() {
 			}
 
 			// send the message
-			t.sendTo(sendTo, msg)
+			go t.sendTo(sendTo, msg)
 		case <-t.closed:
 			return
 		}
@@ -862,8 +862,11 @@ func (t *tun) setupLink(node string) (*link, error) {
 
 	// create a new link
 	link := newLink(c)
+
 	// set link id to remote side
+	link.Lock()
 	link.id = c.Remote()
+	link.Unlock()
 
 	// send the first connect message
 	if err := t.sendMsg("connect", link); err != nil {
@@ -984,7 +987,7 @@ func (t *tun) Connect() error {
 	t.setupLinks()
 
 	// manage the links
-	go t.manage()
+	go t.manage(ReconnectTime)
 
 	return nil
 }

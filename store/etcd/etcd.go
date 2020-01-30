@@ -6,8 +6,7 @@ import (
 	"log"
 
 	client "github.com/coreos/etcd/clientv3"
-	"github.com/coreos/etcd/mvcc/mvccpb"
-	"github.com/micro/go-micro/store"
+	"github.com/micro/go-micro/v2/store"
 )
 
 type ekv struct {
@@ -15,26 +14,38 @@ type ekv struct {
 	kv      client.KV
 }
 
-func (e *ekv) Read(keys ...string) ([]*store.Record, error) {
-	//nolint:prealloc
-	var values []*mvccpb.KeyValue
+func (e *ekv) Init(opts ...store.Option) error {
+	for _, o := range opts {
+		o(&e.options)
+	}
+	return nil
+}
 
-	for _, key := range keys {
-		keyval, err := e.kv.Get(context.Background(), key)
-		if err != nil {
-			return nil, err
-		}
-
-		if keyval == nil || len(keyval.Kvs) == 0 {
-			return nil, store.ErrNotFound
-		}
-
-		values = append(values, keyval.Kvs...)
+func (e *ekv) Read(key string, opts ...store.ReadOption) ([]*store.Record, error) {
+	var options store.ReadOptions
+	for _, o := range opts {
+		o(&options)
 	}
 
-	records := make([]*store.Record, 0, len(values))
+	var etcdOpts []client.OpOption
 
-	for _, kv := range values {
+	// set options prefix
+	if options.Prefix {
+		etcdOpts = append(etcdOpts, client.WithPrefix())
+	}
+
+	keyval, err := e.kv.Get(context.Background(), key, etcdOpts...)
+	if err != nil {
+		return nil, err
+	}
+
+	if keyval == nil || len(keyval.Kvs) == 0 {
+		return nil, store.ErrNotFound
+	}
+
+	records := make([]*store.Record, 0, len(keyval.Kvs))
+
+	for _, kv := range keyval.Kvs {
 		records = append(records, &store.Record{
 			Key:   string(kv.Key),
 			Value: kv.Value,
@@ -45,27 +56,15 @@ func (e *ekv) Read(keys ...string) ([]*store.Record, error) {
 	return records, nil
 }
 
-func (e *ekv) Delete(keys ...string) error {
-	var gerr error
-	for _, key := range keys {
-		_, err := e.kv.Delete(context.Background(), key)
-		if err != nil {
-			gerr = err
-		}
-	}
-	return gerr
+func (e *ekv) Delete(key string) error {
+	_, err := e.kv.Delete(context.Background(), key)
+	return err
 }
 
-func (e *ekv) Write(records ...*store.Record) error {
-	var gerr error
-	for _, record := range records {
-		// TODO create lease to expire keys
-		_, err := e.kv.Put(context.Background(), record.Key, string(record.Value))
-		if err != nil {
-			gerr = err
-		}
-	}
-	return gerr
+func (e *ekv) Write(record *store.Record) error {
+	// TODO create lease to expire keys
+	_, err := e.kv.Put(context.Background(), record.Key, string(record.Value))
+	return err
 }
 
 func (e *ekv) List() ([]*store.Record, error) {

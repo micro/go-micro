@@ -5,16 +5,21 @@ import (
 	"context"
 	"time"
 
-	"github.com/micro/go-micro/debug/log"
-	proto "github.com/micro/go-micro/debug/service/proto"
-	"github.com/micro/go-micro/debug/stats"
-	"github.com/micro/go-micro/server"
+	"github.com/micro/go-micro/v2/debug/log"
+	proto "github.com/micro/go-micro/v2/debug/service/proto"
+	"github.com/micro/go-micro/v2/debug/stats"
+	"github.com/micro/go-micro/v2/debug/trace"
+	"github.com/micro/go-micro/v2/server"
 )
 
-var (
-	// DefaultHandler is default debug handler
-	DefaultHandler = newDebug()
-)
+// NewHandler returns an instance of the Debug Handler
+func NewHandler() *Debug {
+	return &Debug{
+		log:   log.DefaultLog,
+		stats: stats.DefaultStats,
+		trace: trace.DefaultTracer,
+	}
+}
 
 type Debug struct {
 	// must honour the debug handler
@@ -23,13 +28,8 @@ type Debug struct {
 	log log.Log
 	// the stats collector
 	stats stats.Stats
-}
-
-func newDebug() *Debug {
-	return &Debug{
-		log:   log.DefaultLog,
-		stats: stats.DefaultStats,
-	}
+	// the tracer
+	trace trace.Tracer
 }
 
 func (d *Debug) Health(ctx context.Context, req *proto.HealthRequest, rsp *proto.HealthResponse) error {
@@ -56,6 +56,27 @@ func (d *Debug) Stats(ctx context.Context, req *proto.StatsRequest, rsp *proto.S
 	rsp.Threads = stats[0].Threads
 	rsp.Requests = stats[0].Requests
 	rsp.Errors = stats[0].Errors
+
+	return nil
+}
+
+func (d *Debug) Trace(ctx context.Context, req *proto.TraceRequest, rsp *proto.TraceResponse) error {
+	traces, err := d.trace.Read(trace.ReadTrace(req.Id))
+	if err != nil {
+		return err
+	}
+
+	for _, trace := range traces {
+		rsp.Spans = append(rsp.Spans, &proto.Span{
+			Trace:    trace.Trace,
+			Id:       trace.Id,
+			Parent:   trace.Parent,
+			Name:     trace.Name,
+			Started:  uint64(trace.Started.UnixNano()),
+			Duration: uint64(trace.Duration.Nanoseconds()),
+			Metadata: trace.Metadata,
+		})
+	}
 
 	return nil
 }

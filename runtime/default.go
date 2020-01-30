@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/micro/go-micro/util/log"
+	"github.com/micro/go-micro/v2/util/log"
 )
 
 type runtime struct {
@@ -155,7 +155,7 @@ func (r *runtime) Create(s *Service, opts ...CreateOption) error {
 	defer r.Unlock()
 
 	if _, ok := r.services[s.Name]; ok {
-		return errors.New("service already registered")
+		return errors.New("service already running")
 	}
 
 	var options CreateOptions
@@ -290,9 +290,9 @@ func (r *runtime) Start() error {
 	r.closed = make(chan bool)
 
 	var events <-chan Event
-	if r.options.Notifier != nil {
+	if r.options.Scheduler != nil {
 		var err error
-		events, err = r.options.Notifier.Notify()
+		events, err = r.options.Scheduler.Notify()
 		if err != nil {
 			// TODO: should we bail here?
 			log.Debugf("Runtime failed to start update notifier")
@@ -327,9 +327,9 @@ func (r *runtime) Stop() error {
 			log.Debugf("Runtime stopping %s", service.Name)
 			service.Stop()
 		}
-		// stop the notifier too
-		if r.options.Notifier != nil {
-			return r.options.Notifier.Close()
+		// stop the scheduler
+		if r.options.Scheduler != nil {
+			return r.options.Scheduler.Close()
 		}
 	}
 

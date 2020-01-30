@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/micro/go-micro/store"
+	"github.com/micro/go-micro/v2/store"
 )
 
 func TestCloudflare(t *testing.T) {
@@ -33,17 +33,18 @@ func TestCloudflare(t *testing.T) {
 		t.Log("Listed " + strconv.Itoa(len(records)) + " records")
 	}
 
-	err = wkv.Write(
-		&store.Record{
-			Key:   randomK,
-			Value: []byte(randomV),
-		},
-		&store.Record{
-			Key:    "expirationtest",
-			Value:  []byte("This message will self destruct"),
-			Expiry: 75 * time.Second,
-		},
-	)
+	err = wkv.Write(&store.Record{
+		Key:   randomK,
+		Value: []byte(randomV),
+	})
+	if err != nil {
+		t.Errorf("Write: %s", err.Error())
+	}
+	err = wkv.Write(&store.Record{
+		Key:    "expirationtest",
+		Value:  []byte("This message will self destruct"),
+		Expiry: 75 * time.Second,
+	})
 	if err != nil {
 		t.Errorf("Write: %s", err.Error())
 	}

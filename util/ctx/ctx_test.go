@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/micro/go-micro/metadata"
+	"github.com/micro/go-micro/v2/metadata"
 )
 
 func TestRequestToContext(t *testing.T) {
@@ -15,13 +15,13 @@ func TestRequestToContext(t *testing.T) {
 		{
 			&http.Request{
 				Header: http.Header{
-					"foo1": []string{"bar"},
-					"foo2": []string{"bar", "baz"},
+					"Foo1": []string{"bar"},
+					"Foo2": []string{"bar", "baz"},
 				},
 			},
 			metadata.Metadata{
-				"foo1": "bar",
-				"foo2": "bar,baz",
+				"Foo1": "bar",
+				"Foo2": "bar,baz",
 			},
 		},
 	}

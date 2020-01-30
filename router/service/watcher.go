@@ -5,8 +5,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/micro/go-micro/router"
-	pb "github.com/micro/go-micro/router/service/proto"
+	"github.com/micro/go-micro/v2/router"
+	pb "github.com/micro/go-micro/v2/router/service/proto"
 )
 
 type watcher struct {
@@ -14,6 +14,7 @@ type watcher struct {
 	opts    router.WatchOptions
 	resChan chan *router.Event
 	done    chan struct{}
+	stream  pb.Router_WatchService
 }
 
 func newWatcher(rsp pb.Router_WatchService, opts router.WatchOptions) (*watcher, error) {
@@ -21,6 +22,7 @@ func newWatcher(rsp pb.Router_WatchService, opts router.WatchOptions) (*watcher,
 		opts:    opts,
 		resChan: make(chan *router.Event),
 		done:    make(chan struct{}),
+		stream:  rsp,
 	}
 
 	go func() {
@@ -42,8 +44,6 @@ func newWatcher(rsp pb.Router_WatchService, opts router.WatchOptions) (*watcher,
 
 // watchRouter watches router and send events to all registered watchers
 func (w *watcher) watch(stream pb.Router_WatchService) error {
-	defer stream.Close()
-
 	var watchErr error
 
 	for {
@@ -65,6 +65,7 @@ func (w *watcher) watch(stream pb.Router_WatchService) error {
 		}
 
 		event := &router.Event{
+			Id:        resp.Id,
 			Type:      router.EventType(resp.Type),
 			Timestamp: time.Unix(0, resp.Timestamp),
 			Route:     route,
@@ -110,6 +111,7 @@ func (w *watcher) Stop() {
 	case <-w.done:
 		return
 	default:
+		w.stream.Close()
 		close(w.done)
 	}
 }

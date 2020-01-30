@@ -5,7 +5,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/micro/go-micro/transport"
+	"github.com/micro/go-micro/v2/transport"
 )
 
 const (
@@ -26,6 +26,12 @@ var (
 	ErrDiscoverChan = errors.New("failed to discover channel")
 	// ErrLinkNotFound is returned when a link is specified at dial time and does not exist
 	ErrLinkNotFound = errors.New("link not found")
+	// ErrLinkDisconnected is returned when a link we attempt to send to is disconnected
+	ErrLinkDisconnected = errors.New("link not connected")
+	// ErrLinkLoppback is returned when attempting to send an outbound message over loopback link
+	ErrLinkLoopback = errors.New("link is loopback")
+	// ErrLinkRemote is returned when attempting to send a loopback message over remote link
+	ErrLinkRemote = errors.New("link is remote")
 	// ErrReadTimeout is a timeout on session.Recv
 	ErrReadTimeout = errors.New("read timeout")
 	// ErrDecryptingData is for when theres a nonce error

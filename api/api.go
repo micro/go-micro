@@ -5,8 +5,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/micro/go-micro/registry"
-	"github.com/micro/go-micro/server"
+	"github.com/micro/go-micro/v2/registry"
+	"github.com/micro/go-micro/v2/server"
 )
 
 // Endpoint is a mapping between an RPC method and HTTP endpoint
@@ -57,14 +57,25 @@ func Encode(e *Endpoint) map[string]string {
 		return nil
 	}
 
-	return map[string]string{
-		"endpoint":    e.Name,
-		"description": e.Description,
-		"method":      strings.Join(e.Method, ","),
-		"path":        strings.Join(e.Path, ","),
-		"host":        strings.Join(e.Host, ","),
-		"handler":     e.Handler,
+	// endpoint map
+	ep := make(map[string]string)
+
+	// set vals only if they exist
+	set := func(k, v string) {
+		if len(v) == 0 {
+			return
+		}
+		ep[k] = v
 	}
+
+	set("endpoint", e.Name)
+	set("description", e.Description)
+	set("handler", e.Handler)
+	set("method", strings.Join(e.Method, ","))
+	set("path", strings.Join(e.Path, ","))
+	set("host", strings.Join(e.Host, ","))
+
+	return ep
 }
 
 // Decode decodes endpoint metadata into an endpoint

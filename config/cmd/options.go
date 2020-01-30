@@ -3,13 +3,15 @@ package cmd
 import (
 	"context"
 
-	"github.com/micro/go-micro/broker"
-	"github.com/micro/go-micro/client"
-	"github.com/micro/go-micro/client/selector"
-	"github.com/micro/go-micro/registry"
-	"github.com/micro/go-micro/runtime"
-	"github.com/micro/go-micro/server"
-	"github.com/micro/go-micro/transport"
+	"github.com/micro/go-micro/v2/broker"
+	"github.com/micro/go-micro/v2/client"
+	"github.com/micro/go-micro/v2/client/selector"
+	"github.com/micro/go-micro/v2/debug/trace"
+	"github.com/micro/go-micro/v2/registry"
+	"github.com/micro/go-micro/v2/runtime"
+	"github.com/micro/go-micro/v2/server"
+	"github.com/micro/go-micro/v2/store"
+	"github.com/micro/go-micro/v2/transport"
 )
 
 type Options struct {
@@ -26,6 +28,8 @@ type Options struct {
 	Client    *client.Client
 	Server    *server.Server
 	Runtime   *runtime.Runtime
+	Store     *store.Store
+	Tracer    *trace.Tracer
 
 	Brokers    map[string]func(...broker.Option) broker.Broker
 	Clients    map[string]func(...client.Option) client.Client
@@ -34,6 +38,8 @@ type Options struct {
 	Servers    map[string]func(...server.Option) server.Server
 	Transports map[string]func(...transport.Option) transport.Transport
 	Runtimes   map[string]func(...runtime.Option) runtime.Runtime
+	Stores     map[string]func(...store.Option) store.Store
+	Tracers    map[string]func(...trace.Option) trace.Tracer
 
 	// Other options for implementations of the interface
 	// can be stored in a context
@@ -97,6 +103,12 @@ func Server(s *server.Server) Option {
 	}
 }
 
+func Tracer(t *trace.Tracer) Option {
+	return func(o *Options) {
+		o.Tracer = t
+	}
+}
+
 // New broker func
 func NewBroker(name string, b func(...broker.Option) broker.Broker) Option {
 	return func(o *Options) {
@@ -143,5 +155,12 @@ func NewTransport(name string, t func(...transport.Option) transport.Transport) 
 func NewRuntime(name string, r func(...runtime.Option) runtime.Runtime) Option {
 	return func(o *Options) {
 		o.Runtimes[name] = r
+	}
+}
+
+// New tracer func
+func NewTracer(name string, t func(...trace.Option) trace.Tracer) Option {
+	return func(o *Options) {
+		o.Tracers[name] = t
 	}
 }

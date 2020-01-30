@@ -8,8 +8,8 @@ import (
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/micro/cli"
-	"github.com/micro/go-micro/agent/input"
+	"github.com/micro/cli/v2"
+	"github.com/micro/go-micro/v2/agent/input"
 )
 
 func init() {
@@ -36,21 +36,21 @@ type discordInput struct {
 
 func (d *discordInput) Flags() []cli.Flag {
 	return []cli.Flag{
-		cli.StringFlag{
-			Name:   "discord_token",
-			EnvVar: "MICRO_DISCORD_TOKEN",
-			Usage:  "Discord token (prefix with Bot if it's for bot account)",
+		&cli.StringFlag{
+			Name:    "discord_token",
+			EnvVars: []string{"MICRO_DISCORD_TOKEN"},
+			Usage:   "Discord token (prefix with Bot if it's for bot account)",
 		},
-		cli.StringFlag{
-			Name:   "discord_whitelist",
-			EnvVar: "MICRO_DISCORD_WHITELIST",
-			Usage:  "Discord Whitelist (seperated by ,)",
+		&cli.StringFlag{
+			Name:    "discord_whitelist",
+			EnvVars: []string{"MICRO_DISCORD_WHITELIST"},
+			Usage:   "Discord Whitelist (seperated by ,)",
 		},
-		cli.StringFlag{
-			Name:   "discord_prefix",
-			Usage:  "Discord Prefix",
-			EnvVar: "MICRO_DISCORD_PREFIX",
-			Value:  "Micro ",
+		&cli.StringFlag{
+			Name:    "discord_prefix",
+			Usage:   "Discord Prefix",
+			EnvVars: []string{"MICRO_DISCORD_PREFIX"},
+			Value:   "Micro ",
 		},
 	}
 }

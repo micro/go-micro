@@ -9,10 +9,10 @@ import (
 
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
-	"github.com/micro/go-micro/codec"
-	"github.com/micro/go-micro/codec/bytes"
-	"github.com/micro/go-micro/codec/jsonrpc"
-	"github.com/micro/go-micro/codec/protorpc"
+	"github.com/micro/go-micro/v2/codec"
+	"github.com/micro/go-micro/v2/codec/bytes"
+	"github.com/micro/go-micro/v2/codec/jsonrpc"
+	"github.com/micro/go-micro/v2/codec/protorpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/encoding"
 	"google.golang.org/grpc/metadata"
@@ -64,6 +64,9 @@ func (w wrapCodec) Unmarshal(data []byte, v interface{}) error {
 		b.Data = data
 		return nil
 	}
+	if v == nil {
+		return nil
+	}
 	return w.Codec.Unmarshal(data, v)
 }
 
@@ -90,10 +93,12 @@ func (jsonCodec) Marshal(v interface{}) ([]byte, error) {
 }
 
 func (jsonCodec) Unmarshal(data []byte, v interface{}) error {
+	if len(data) == 0 {
+		return nil
+	}
 	if pb, ok := v.(proto.Message); ok {
 		return jsonpb.Unmarshal(b.NewReader(data), pb)
 	}
-
 	return json.Unmarshal(data, v)
 }
 
@@ -177,5 +182,5 @@ func (g *grpcCodec) Close() error {
 }
 
 func (g *grpcCodec) String() string {
-	return g.c.Name()
+	return "grpc"
 }

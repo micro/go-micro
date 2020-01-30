@@ -5,14 +5,15 @@ import (
 	"context"
 	"time"
 
-	"github.com/micro/go-micro/client"
-	"github.com/micro/go-micro/registry"
-	pb "github.com/micro/go-micro/registry/service/proto"
+	"github.com/micro/go-micro/v2/client"
+	"github.com/micro/go-micro/v2/client/grpc"
+	"github.com/micro/go-micro/v2/registry"
+	pb "github.com/micro/go-micro/v2/registry/service/proto"
 )
 
 var (
 	// The default service name
-	DefaultService = "go.micro.service"
+	DefaultService = "go.micro.registry"
 )
 
 type serviceRegistry struct {
@@ -128,7 +129,7 @@ func (s *serviceRegistry) Watch(opts ...registry.WatchOption) (registry.Watcher,
 }
 
 func (s *serviceRegistry) String() string {
-	return s.name
+	return "service"
 }
 
 // NewRegistry returns a new registry service client
@@ -149,7 +150,7 @@ func NewRegistry(opts ...registry.Option) registry.Registry {
 	mReg := registry.NewRegistry()
 
 	// create new client with mdns
-	cli := client.NewClient(
+	cli := grpc.NewClient(
 		client.Registry(mReg),
 	)
 

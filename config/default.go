@@ -5,11 +5,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/micro/go-micro/config/loader"
-	"github.com/micro/go-micro/config/loader/memory"
-	"github.com/micro/go-micro/config/reader"
-	"github.com/micro/go-micro/config/reader/json"
-	"github.com/micro/go-micro/config/source"
+	"github.com/micro/go-micro/v2/config/loader"
+	"github.com/micro/go-micro/v2/config/loader/memory"
+	"github.com/micro/go-micro/v2/config/reader"
+	"github.com/micro/go-micro/v2/config/reader/json"
+	"github.com/micro/go-micro/v2/config/source"
 )
 
 type config struct {
@@ -30,7 +30,7 @@ type watcher struct {
 	value reader.Value
 }
 
-func newConfig(opts ...Option) Config {
+func newConfig(opts ...Option) (Config, error) {
 	options := Options{
 		Loader: memory.NewLoader(),
 		Reader: json.NewReader(),
@@ -40,9 +40,18 @@ func newConfig(opts ...Option) Config {
 		o(&options)
 	}
 
-	options.Loader.Load(options.Source...)
-	snap, _ := options.Loader.Snapshot()
-	vals, _ := options.Reader.Values(snap.ChangeSet)
+	if err := options.Loader.Load(options.Source...); err != nil {
+		return nil, err
+	}
+
+	snap, err := options.Loader.Snapshot()
+	if err != nil {
+		return nil, err
+	}
+	vals, err := options.Reader.Values(snap.ChangeSet)
+	if err != nil {
+		return nil, err
+	}
 
 	c := &config{
 		exit: make(chan bool),
@@ -53,7 +62,7 @@ func newConfig(opts ...Option) Config {
 
 	go c.run()
 
-	return c
+	return c, nil
 }
 
 func (c *config) run() {
@@ -170,6 +179,28 @@ func (c *config) Get(path ...string) reader.Value {
 
 	// no value
 	return newValue()
+}
+
+func (c *config) Set(val interface{}, path ...string) {
+	c.Lock()
+	defer c.Unlock()
+
+	if c.vals != nil {
+		c.vals.Set(val, path...)
+	}
+
+	return
+}
+
+func (c *config) Del(path ...string) {
+	c.Lock()
+	defer c.Unlock()
+
+	if c.vals != nil {
+		c.vals.Del(path...)
+	}
+
+	return
 }
 
 func (c *config) Bytes() []byte {

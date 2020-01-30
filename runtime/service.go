@@ -5,11 +5,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/micro/go-micro/runtime/build"
-
-	"github.com/micro/go-micro/runtime/process"
-	proc "github.com/micro/go-micro/runtime/process/os"
-	"github.com/micro/go-micro/util/log"
+	"github.com/micro/go-micro/v2/runtime/local/build"
+	"github.com/micro/go-micro/v2/runtime/local/process"
+	proc "github.com/micro/go-micro/v2/runtime/local/process/os"
+	"github.com/micro/go-micro/v2/util/log"
 )
 
 type service struct {
@@ -86,10 +85,20 @@ func (s *service) Start() error {
 	s.err = nil
 	s.closed = make(chan bool)
 
+	if s.Metadata == nil {
+		s.Metadata = make(map[string]string)
+	}
+
+	s.Metadata["status"] = "starting"
+	// delete any existing error
+	delete(s.Metadata, "error")
+
 	// TODO: pull source & build binary
 	log.Debugf("Runtime service %s forking new process", s.Service.Name)
 	p, err := s.Process.Fork(s.Exec)
 	if err != nil {
+		s.Metadata["status"] = "error"
+		s.Metadata["error"] = err.Error()
 		return err
 	}
 
@@ -97,6 +106,8 @@ func (s *service) Start() error {
 	s.PID = p
 	// set to running
 	s.running = true
+	// set status
+	s.Metadata["status"] = "running"
 
 	if s.output != nil {
 		s.streamOutput()
@@ -122,10 +133,18 @@ func (s *service) Stop() error {
 		if s.PID == nil {
 			return nil
 		}
+
+		// set status
+		s.Metadata["status"] = "stopping"
+
 		// kill the process
 		err := s.Process.Kill(s.PID)
 		// wait for it to exit
 		s.Process.Wait(s.PID)
+
+		// set status
+		s.Metadata["status"] = "stopped"
+
 		// return the kill error
 		return err
 	}
@@ -148,6 +167,8 @@ func (s *service) Wait() {
 
 	// save the error
 	if err != nil {
+		s.Metadata["status"] = "error"
+		s.Metadata["error"] = err.Error()
 		s.err = err
 	}
 

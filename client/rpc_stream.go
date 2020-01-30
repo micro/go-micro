@@ -5,7 +5,7 @@ import (
 	"io"
 	"sync"
 
-	"github.com/micro/go-micro/codec"
+	"github.com/micro/go-micro/v2/codec"
 )
 
 // Implements the streamer interface
@@ -83,7 +83,10 @@ func (r *rpcStream) Recv(msg interface{}) error {
 
 	var resp codec.Message
 
-	if err := r.codec.ReadHeader(&resp, codec.Response); err != nil {
+	r.Unlock()
+	err := r.codec.ReadHeader(&resp, codec.Response)
+	r.Lock()
+	if err != nil {
 		if err == io.EOF && !r.isClosed() {
 			r.err = io.ErrUnexpectedEOF
 			return io.ErrUnexpectedEOF
@@ -102,11 +105,17 @@ func (r *rpcStream) Recv(msg interface{}) error {
 		} else {
 			r.err = io.EOF
 		}
-		if err := r.codec.ReadBody(nil); err != nil {
+		r.Unlock()
+		err = r.codec.ReadBody(nil)
+		r.Lock()
+		if err != nil {
 			r.err = err
 		}
 	default:
-		if err := r.codec.ReadBody(msg); err != nil {
+		r.Unlock()
+		err = r.codec.ReadBody(msg)
+		r.Lock()
+		if err != nil {
 			r.err = err
 		}
 	}
@@ -121,11 +130,15 @@ func (r *rpcStream) Error() error {
 }
 
 func (r *rpcStream) Close() error {
+	r.RLock()
+
 	select {
 	case <-r.closed:
+		r.RUnlock()
 		return nil
 	default:
 		close(r.closed)
+		r.RUnlock()
 
 		// send the end of stream message
 		if r.sendEOS {

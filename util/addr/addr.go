@@ -27,6 +27,29 @@ func isPrivateIP(ipAddr string) bool {
 	return false
 }
 
+// IsLocal tells us whether an ip is local
+func IsLocal(addr string) bool {
+	// extract the host
+	host, _, err := net.SplitHostPort(addr)
+	if err == nil {
+		addr = host
+	}
+
+	// check if its localhost
+	if addr == "localhost" {
+		return true
+	}
+
+	// check against all local ips
+	for _, ip := range IPs() {
+		if addr == ip {
+			return true
+		}
+	}
+
+	return false
+}
+
 // Extract returns a real ip
 func Extract(addr string) (string, error) {
 	// if addr specified then its returned

@@ -18,17 +18,13 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/micro/go-micro/codec"
-	merrors "github.com/micro/go-micro/errors"
-	"github.com/micro/go-micro/util/log"
+	"github.com/micro/go-micro/v2/codec"
+	merrors "github.com/micro/go-micro/v2/errors"
+	"github.com/micro/go-micro/v2/util/log"
 )
 
 var (
 	lastStreamResponseError = errors.New("EOS")
-	// A value sent as a placeholder for the server's response value when the server
-	// receives an invalid request. It is never decoded by the client since the Response
-	// contains an error when it is used.
-	invalidRequest = struct{}{}
 
 	// Precompute the reflect type for error. Can't use error directly
 	// because Typeof takes an empty interface value. This is annoying.
@@ -346,7 +342,9 @@ func (router *router) readRequest(r Request) (service *service, mtype *methodTyp
 	}
 	// is it a streaming request? then we don't read the body
 	if mtype.stream {
-		cc.ReadBody(nil)
+		if cc.(codec.Codec).String() != "grpc" {
+			cc.ReadBody(nil)
+		}
 		return
 	}
 

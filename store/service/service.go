@@ -6,10 +6,10 @@ import (
 	"io"
 	"time"
 
-	"github.com/micro/go-micro/client"
-	"github.com/micro/go-micro/metadata"
-	"github.com/micro/go-micro/store"
-	pb "github.com/micro/go-micro/store/service/proto"
+	"github.com/micro/go-micro/v2/client"
+	"github.com/micro/go-micro/v2/metadata"
+	"github.com/micro/go-micro/v2/store"
+	pb "github.com/micro/go-micro/v2/store/service/proto"
 )
 
 type serviceStore struct {
@@ -26,6 +26,17 @@ type serviceStore struct {
 
 	// store service client
 	Client pb.StoreService
+}
+
+func (s *serviceStore) Init(opts ...store.Option) error {
+	for _, o := range opts {
+		o(&s.options)
+	}
+	s.Namespace = s.options.Namespace
+	s.Prefix = s.options.Prefix
+	s.Nodes = s.options.Nodes
+
+	return nil
 }
 
 func (s *serviceStore) Context() context.Context {
@@ -62,6 +73,7 @@ func (s *serviceStore) List() ([]*store.Record, error) {
 		if err != nil {
 			return records, err
 		}
+
 		for _, record := range rsp.Records {
 			records = append(records, &store.Record{
 				Key:    record.Key,
@@ -75,15 +87,24 @@ func (s *serviceStore) List() ([]*store.Record, error) {
 }
 
 // Read a record with key
-func (s *serviceStore) Read(keys ...string) ([]*store.Record, error) {
+func (s *serviceStore) Read(key string, opts ...store.ReadOption) ([]*store.Record, error) {
+	var options store.ReadOptions
+	for _, o := range opts {
+		o(&options)
+	}
+
 	rsp, err := s.Client.Read(s.Context(), &pb.ReadRequest{
-		Keys: keys,
+		Key: key,
+		Options: &pb.ReadOptions{
+			Prefix: options.Prefix,
+		},
 	}, client.WithAddress(s.Nodes...))
 	if err != nil {
 		return nil, err
 	}
 
 	records := make([]*store.Record, 0, len(rsp.Records))
+
 	for _, val := range rsp.Records {
 		records = append(records, &store.Record{
 			Key:    val.Key,
@@ -91,34 +112,33 @@ func (s *serviceStore) Read(keys ...string) ([]*store.Record, error) {
 			Expiry: time.Duration(val.Expiry) * time.Second,
 		})
 	}
+
 	return records, nil
 }
 
 // Write a record
-func (s *serviceStore) Write(recs ...*store.Record) error {
-	records := make([]*pb.Record, 0, len(recs))
-
-	for _, record := range recs {
-		records = append(records, &pb.Record{
+func (s *serviceStore) Write(record *store.Record) error {
+	_, err := s.Client.Write(s.Context(), &pb.WriteRequest{
+		Record: &pb.Record{
 			Key:    record.Key,
 			Value:  record.Value,
 			Expiry: int64(record.Expiry.Seconds()),
-		})
-	}
-
-	_, err := s.Client.Write(s.Context(), &pb.WriteRequest{
-		Records: records,
+		},
 	}, client.WithAddress(s.Nodes...))
 
 	return err
 }
 
 // Delete a record with key
-func (s *serviceStore) Delete(keys ...string) error {
+func (s *serviceStore) Delete(key string) error {
 	_, err := s.Client.Delete(s.Context(), &pb.DeleteRequest{
-		Keys: keys,
+		Key: key,
 	}, client.WithAddress(s.Nodes...))
 	return err
+}
+
+func (s *serviceStore) String() string {
+	return "service"
 }
 
 // NewStore returns a new store service implementation

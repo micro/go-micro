@@ -10,16 +10,16 @@ import (
 	"sync"
 	"time"
 
-	"github.com/micro/go-micro/client"
-	"github.com/micro/go-micro/client/selector"
-	"github.com/micro/go-micro/codec"
-	"github.com/micro/go-micro/codec/bytes"
-	"github.com/micro/go-micro/errors"
-	"github.com/micro/go-micro/metadata"
-	"github.com/micro/go-micro/proxy"
-	"github.com/micro/go-micro/router"
-	"github.com/micro/go-micro/server"
-	"github.com/micro/go-micro/util/log"
+	"github.com/micro/go-micro/v2/client"
+	"github.com/micro/go-micro/v2/client/selector"
+	"github.com/micro/go-micro/v2/codec"
+	"github.com/micro/go-micro/v2/codec/bytes"
+	"github.com/micro/go-micro/v2/errors"
+	"github.com/micro/go-micro/v2/metadata"
+	"github.com/micro/go-micro/v2/proxy"
+	"github.com/micro/go-micro/v2/router"
+	"github.com/micro/go-micro/v2/server"
+	"github.com/micro/go-micro/v2/util/log"
 )
 
 // Proxy will transparently proxy requests to an endpoint.
@@ -203,10 +203,6 @@ func (p *Proxy) cacheRoutes(service string) ([]router.Route, error) {
 	// lookup the routes in the router
 	results, err := p.Router.Lookup(router.QueryService(service))
 	if err != nil {
-		// check the status of the router
-		if status := p.Router.Status(); status.Code == router.Error {
-			return nil, status.Error
-		}
 		// otherwise return the error
 		return nil, err
 	}
@@ -281,6 +277,7 @@ func (p *Proxy) watchRoutes() {
 	if err != nil {
 		return
 	}
+	defer w.Stop()
 
 	for {
 		event, err := w.Next()
@@ -398,7 +395,7 @@ func (p *Proxy) ServeRequest(ctx context.Context, req server.Request, rsp server
 
 		// set address if available via routes or specific endpoint
 		if len(routes) > 0 {
-			addresses := toNodes(routes)
+			addresses = toNodes(routes)
 			opts = append(opts, client.WithAddress(addresses...))
 		}
 
@@ -488,6 +485,26 @@ func (p *Proxy) serveRequest(ctx context.Context, link client.Client, service, e
 		return err
 	}
 	defer stream.Close()
+
+	// if we receive a grpc stream we have to refire the initial request
+	c, ok := req.Codec().(codec.Codec)
+	if ok && c.String() == "grpc" && link.String() == "grpc" {
+		// get the header from client
+		hdr := req.Header()
+		msg := &codec.Message{
+			Type:   codec.Request,
+			Header: hdr,
+			Body:   body,
+		}
+
+		// write the raw request
+		err = stream.Request().Codec().Write(msg, nil)
+		if err == io.EOF {
+			return nil
+		} else if err != nil {
+			return err
+		}
+	}
 
 	// create client request read loop if streaming
 	go readLoop(req, stream)

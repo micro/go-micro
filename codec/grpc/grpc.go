@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/micro/go-micro/codec"
+	"github.com/micro/go-micro/v2/codec"
 )
 
 type Codec struct {
@@ -124,6 +124,10 @@ func (c *Codec) Write(m *codec.Message, b interface{}) error {
 		m.Header["grpc-status"] = "8"
 		m.Header["grpc-message"] = err.Error()
 		return err
+	}
+
+	if len(buf) == 0 {
+		return nil
 	}
 
 	return encode(0, buf, c.Conn)

@@ -6,9 +6,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/micro/go-micro/runtime"
-	"github.com/micro/go-micro/util/kubernetes/client"
-	"github.com/micro/go-micro/util/log"
+	"github.com/micro/go-micro/v2/runtime"
+	"github.com/micro/go-micro/v2/util/kubernetes/client"
+	"github.com/micro/go-micro/v2/util/log"
 )
 
 // action to take on runtime service
@@ -114,7 +114,18 @@ func (k *kubernetes) getService(labels map[string]string) ([]*runtime.Service, e
 
 			// parse out deployment status and inject into service metadata
 			if len(kdep.Status.Conditions) > 0 {
-				status := kdep.Status.Conditions[0].Type
+				var status string
+				switch kdep.Status.Conditions[0].Type {
+				case "Available":
+					status = "running"
+					delete(svc.Metadata, "error")
+				case "Progressing":
+					status = "starting"
+					delete(svc.Metadata, "error")
+				default:
+					status = "error"
+					svc.Metadata["error"] = kdep.Status.Conditions[0].Message
+				}
 				// pick the last known condition type and mark the service status with it
 				log.Debugf("Runtime setting %s service deployment status: %v", name, status)
 				svc.Metadata["status"] = status
@@ -255,14 +266,10 @@ func (k *kubernetes) Create(s *runtime.Service, opts ...runtime.CreateOption) er
 		o(&options)
 	}
 
-	// quickly prevalidate the name and version
-	name := s.Name
-	if len(s.Version) > 0 {
-		name = name + "-" + s.Version
+	// hackish
+	if len(options.Type) == 0 {
+		options.Type = k.options.Type
 	}
-
-	// format as we'll format in the deployment
-	name = client.Format(name)
 
 	// create new kubernetes micro service
 	service := newService(s, options)
@@ -357,9 +364,9 @@ func (k *kubernetes) Start() error {
 	k.closed = make(chan bool)
 
 	var events <-chan runtime.Event
-	if k.options.Notifier != nil {
+	if k.options.Scheduler != nil {
 		var err error
-		events, err = k.options.Notifier.Notify()
+		events, err = k.options.Scheduler.Notify()
 		if err != nil {
 			// TODO: should we bail here?
 			log.Debugf("Runtime failed to start update notifier")
@@ -387,9 +394,9 @@ func (k *kubernetes) Stop() error {
 		close(k.closed)
 		// set not running
 		k.running = false
-		// stop the notifier too
-		if k.options.Notifier != nil {
-			return k.options.Notifier.Close()
+		// stop the scheduler
+		if k.options.Scheduler != nil {
+			return k.options.Scheduler.Close()
 		}
 	}
 

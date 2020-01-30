@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/micro/go-micro/registry"
-	"github.com/micro/go-micro/util/kubernetes/client"
+	"github.com/micro/go-micro/v2/registry"
+	"github.com/micro/go-micro/v2/util/kubernetes/client"
 )
 
 type kregistry struct {
@@ -23,7 +23,7 @@ type kregistry struct {
 var (
 	// used on pods as labels & services to select
 	// eg: svcSelectorPrefix+"svc.name"
-	servicePrefix = "micro/service/"
+	servicePrefix = "go.micro/"
 	serviceValue  = "service"
 
 	labelTypeKey   = "micro"
@@ -31,7 +31,7 @@ var (
 
 	// used on k8s services to scope a serialised
 	// micro service by pod name
-	annotationPrefix = "micro/service/"
+	annotationPrefix = "go.micro/"
 
 	// Pod status
 	podRunning = "Running"

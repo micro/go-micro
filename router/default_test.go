@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/micro/go-micro/registry/memory"
-	"github.com/micro/go-micro/util/log"
+	"github.com/micro/go-micro/v2/registry/memory"
+	"github.com/micro/go-micro/v2/util/log"
 )
 
 func routerTestSetup() Router {
@@ -18,7 +18,6 @@ func routerTestSetup() Router {
 func TestRouterStartStop(t *testing.T) {
 	r := routerTestSetup()
 
-	log.Debugf("TestRouterStartStop STARTING")
 	if err := r.Start(); err != nil {
 		t.Errorf("failed to start router: %v", err)
 	}
@@ -39,7 +38,6 @@ func TestRouterAdvertise(t *testing.T) {
 
 	// lower the advertise interval
 	AdvertiseEventsTick = 500 * time.Millisecond
-	AdvertiseTableTick = 1 * time.Second
 
 	if err := r.Start(); err != nil {
 		t.Errorf("failed to start router: %v", err)

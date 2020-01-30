@@ -38,3 +38,10 @@ func Namespace(ns string) Option {
 		o.Namespace = ns
 	}
 }
+
+// ReadPrefix uses the key as a prefix
+func ReadPrefix() ReadOption {
+	return func(o *ReadOptions) {
+		o.Prefix = true
+	}
+}

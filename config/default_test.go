@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/micro/go-micro/config/source/env"
-	"github.com/micro/go-micro/config/source/file"
+	"github.com/micro/go-micro/v2/config/source/env"
+	"github.com/micro/go-micro/v2/config/source/file"
 )
 
 var (
@@ -55,7 +55,10 @@ func TestConfigLoadWithGoodFile(t *testing.T) {
 	}()
 
 	// Create new config
-	conf := NewConfig()
+	conf, err := NewConfig()
+	if err != nil {
+		t.Fatalf("Expected no error but got %v", err)
+	}
 	// Load file source
 	if err := conf.Load(file.NewSource(
 		file.WithPath(path),
@@ -73,9 +76,12 @@ func TestConfigLoadWithInvalidFile(t *testing.T) {
 	}()
 
 	// Create new config
-	conf := NewConfig()
+	conf, err := NewConfig()
+	if err != nil {
+		t.Fatalf("Expected no error but got %v", err)
+	}
 	// Load file source
-	err := conf.Load(file.NewSource(
+	err = conf.Load(file.NewSource(
 		file.WithPath(path),
 		file.WithPath("/i/do/not/exists.json"),
 	))
@@ -105,13 +111,18 @@ func TestConfigMerge(t *testing.T) {
 	}()
 	os.Setenv("AMQP_HOST", "rabbit.testing.com")
 
-	conf := NewConfig()
-	conf.Load(
+	conf, err := NewConfig()
+	if err != nil {
+		t.Fatalf("Expected no error but got %v", err)
+	}
+	if err := conf.Load(
 		file.NewSource(
 			file.WithPath(path),
 		),
 		env.NewSource(),
-	)
+	); err != nil {
+		t.Fatalf("Expected no error but got %v", err)
+	}
 
 	actualHost := conf.Get("amqp", "host").String("backup")
 	if actualHost != "rabbit.testing.com" {

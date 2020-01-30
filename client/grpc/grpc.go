@@ -9,13 +9,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/micro/go-micro/broker"
-	"github.com/micro/go-micro/client"
-	"github.com/micro/go-micro/client/selector"
-	raw "github.com/micro/go-micro/codec/bytes"
-	"github.com/micro/go-micro/errors"
-	"github.com/micro/go-micro/metadata"
-	"github.com/micro/go-micro/registry"
+	"github.com/micro/go-micro/v2/broker"
+	"github.com/micro/go-micro/v2/client"
+	"github.com/micro/go-micro/v2/client/selector"
+	raw "github.com/micro/go-micro/v2/codec/bytes"
+	"github.com/micro/go-micro/v2/errors"
+	"github.com/micro/go-micro/v2/metadata"
+	"github.com/micro/go-micro/v2/registry"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -207,11 +207,15 @@ func (g *grpcClient) stream(ctx context.Context, node *registry.Node, req client
 		ServerStreams: true,
 	}
 
-	grpcCallOptions := []grpc.CallOption{}
+	grpcCallOptions := []grpc.CallOption{grpc.CallContentSubtype(cf.Name())}
 	if opts := g.getGrpcCallOptions(); opts != nil {
 		grpcCallOptions = append(grpcCallOptions, opts...)
 	}
-	st, err := cc.NewStream(ctx, desc, methodToGRPC(req.Service(), req.Endpoint()), grpcCallOptions...)
+
+	// create a new cancelling context
+	newCtx, cancel := context.WithCancel(ctx)
+
+	st, err := cc.NewStream(newCtx, desc, methodToGRPC(req.Service(), req.Endpoint()), grpcCallOptions...)
 	if err != nil {
 		return nil, errors.InternalServerError("go.micro.client", fmt.Sprintf("Error creating stream: %v", err))
 	}
@@ -239,6 +243,7 @@ func (g *grpcClient) stream(ctx context.Context, node *registry.Node, req client
 		response: rsp,
 		stream:   st,
 		conn:     cc,
+		cancel:   cancel,
 	}, nil
 }
 

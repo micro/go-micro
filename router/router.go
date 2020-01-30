@@ -28,16 +28,12 @@ type Router interface {
 	Advertise() (<-chan *Advert, error)
 	// Process processes incoming adverts
 	Process(*Advert) error
-	// Solicit advertises the whole routing table
-	Solicit() error
 	// Lookup queries routes in the routing table
 	Lookup(...QueryOption) ([]Route, error)
 	// Watch returns a watcher which tracks updates to the routing table
 	Watch(opts ...WatchOption) (Watcher, error)
 	// Start starts the router
 	Start() error
-	// Status returns router status
-	Status() Status
 	// Stop stops the router
 	Stop() error
 	// Returns the router implementation
@@ -75,34 +71,6 @@ const (
 	Error
 )
 
-func (s StatusCode) String() string {
-	switch s {
-	case Running:
-		return "running"
-	case Advertising:
-		return "advertising"
-	case Stopped:
-		return "stopped"
-	case Error:
-		return "error"
-	default:
-		return "unknown"
-	}
-}
-
-// Status is router status
-type Status struct {
-	// Code defines router status
-	Code StatusCode
-	// Error contains error description
-	Error error
-}
-
-// String returns human readable status
-func (s Status) String() string {
-	return s.Code.String()
-}
-
 // AdvertType is route advertisement type
 type AdvertType int
 
@@ -111,8 +79,6 @@ const (
 	Announce AdvertType = iota
 	// RouteUpdate advertises route updates
 	RouteUpdate
-	// Solicitation indicates routes were solicited
-	Solicitation
 )
 
 // String returns human readable advertisement type
@@ -122,8 +88,6 @@ func (t AdvertType) String() string {
 		return "announce"
 	case RouteUpdate:
 		return "update"
-	case Solicitation:
-		return "solicitation"
 	default:
 		return "unknown"
 	}
@@ -146,6 +110,7 @@ type Advert struct {
 // Strategy is route advertisement strategy
 type Strategy int
 
+// TODO: remove the "Advertise" prefix from these
 const (
 	// AdvertiseAll advertises all routes to the network
 	AdvertiseAll Strategy = iota

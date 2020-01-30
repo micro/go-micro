@@ -6,16 +6,18 @@ import "github.com/micro/go-micro/router/service/proto/router.proto";
 
 // Network service is usesd to gain visibility into networks
 service Network {
-	// Connect to the network
-	rpc Connect(ConnectRequest) returns (ConnectResponse) {};
-	// Returns the entire network graph
-	rpc Graph(GraphRequest) returns (GraphResponse) {};
-	// Returns a list of known nodes in the network
+        // Connect to the network
+        rpc Connect(ConnectRequest) returns (ConnectResponse) {};
+        // Returns the entire network graph
+        rpc Graph(GraphRequest) returns (GraphResponse) {};
+        // Returns a list of known nodes in the network
         rpc Nodes(NodesRequest) returns (NodesResponse) {};
-	// Returns a list of known routes in the network
+        // Returns a list of known routes in the network
         rpc Routes(RoutesRequest) returns (RoutesResponse) {};
-	// Returns a list of known services based on routes
-	rpc Services(ServicesRequest) returns (ServicesResponse) {};
+        // Returns a list of known services based on routes
+        rpc Services(ServicesRequest) returns (ServicesResponse) {};
+        // Status returns network status
+        rpc Status(StatusRequest) returns (StatusResponse) {};
 }
 
 // Query is passed in a LookupRequest
@@ -54,7 +56,7 @@ message GraphResponse {
 	Peer root = 1;
 }
 
-message RoutesRequest {	
+message RoutesRequest {
 	// filter based on
 	Query query = 1;
 }
@@ -69,6 +71,23 @@ message ServicesResponse {
 	repeated string services = 1;
 }
 
+message StatusRequest {}
+
+message StatusResponse {
+        Status status = 1;
+}
+
+// Error tracks network errors
+message Error {
+        uint32 count = 1;
+        string msg = 2;
+}
+
+// Status is node status
+message Status {
+        Error error = 1;
+}
+
 // Node is network node
 message Node {
         // node id
@@ -79,6 +98,8 @@ message Node {
         string network = 3;
         // associated metadata
         map<string,string> metadata = 4;
+        // node status
+        Status status = 5;
 }
 
 // Connect is sent when the node connects to the network
@@ -99,4 +120,12 @@ message Peer {
         Node node = 1;
         // node peers
         repeated Peer peers = 2;
+}
+
+// Sync is network sync message
+message Sync {
+        // peer origin
+        Peer peer = 1;
+        // node routes
+        repeated go.micro.router.Route routes = 2;
 }

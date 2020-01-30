@@ -4,14 +4,15 @@ import (
 	"context"
 	"time"
 
-	"github.com/micro/cli"
-	"github.com/micro/go-micro/broker"
-	"github.com/micro/go-micro/client"
-	"github.com/micro/go-micro/client/selector"
-	"github.com/micro/go-micro/config/cmd"
-	"github.com/micro/go-micro/registry"
-	"github.com/micro/go-micro/server"
-	"github.com/micro/go-micro/transport"
+	"github.com/micro/cli/v2"
+	"github.com/micro/go-micro/v2/broker"
+	"github.com/micro/go-micro/v2/client"
+	"github.com/micro/go-micro/v2/client/selector"
+	"github.com/micro/go-micro/v2/config/cmd"
+	"github.com/micro/go-micro/v2/debug/trace"
+	"github.com/micro/go-micro/v2/registry"
+	"github.com/micro/go-micro/v2/server"
+	"github.com/micro/go-micro/v2/transport"
 )
 
 type Options struct {
@@ -112,6 +113,13 @@ func Registry(r registry.Registry) Option {
 	}
 }
 
+// Tracer sets the tracer for the service
+func Tracer(t trace.Tracer) Option {
+	return func(o *Options) {
+		o.Server.Init(server.Tracer(t))
+	}
+}
+
 // Selector sets the selector for the service client
 func Selector(s selector.Selector) Option {
 	return func(o *Options) {
@@ -166,7 +174,7 @@ func Flags(flags ...cli.Flag) Option {
 	}
 }
 
-func Action(a func(*cli.Context)) Option {
+func Action(a func(*cli.Context) error) Option {
 	return func(o *Options) {
 		o.Cmd.App().Action = a
 	}

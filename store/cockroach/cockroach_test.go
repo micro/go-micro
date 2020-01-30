@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/kr/pretty"
-	"github.com/micro/go-micro/store"
+	"github.com/micro/go-micro/v2/store"
 )
 
 func TestSQL(t *testing.T) {
@@ -27,7 +27,7 @@ func TestSQL(t *testing.T) {
 	}
 	db.Close()
 
-	sqlStore := New(
+	sqlStore := NewStore(
 		store.Namespace("testsql"),
 		store.Nodes(connection),
 	)
@@ -44,10 +44,20 @@ func TestSQL(t *testing.T) {
 			Key:   "test",
 			Value: []byte("foo"),
 		},
+	)
+	if err != nil {
+		t.Error(err)
+	}
+	err = sqlStore.Write(
 		&store.Record{
 			Key:   "bar",
 			Value: []byte("baz"),
 		},
+	)
+	if err != nil {
+		t.Error(err)
+	}
+	err = sqlStore.Write(
 		&store.Record{
 			Key:   "qux",
 			Value: []byte("aasad"),

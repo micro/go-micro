@@ -5,16 +5,18 @@ import (
 	"sync"
 	"time"
 
-	"github.com/micro/go-micro/broker"
-	"github.com/micro/go-micro/codec"
-	"github.com/micro/go-micro/registry"
-	"github.com/micro/go-micro/transport"
+	"github.com/micro/go-micro/v2/broker"
+	"github.com/micro/go-micro/v2/codec"
+	"github.com/micro/go-micro/v2/debug/trace"
+	"github.com/micro/go-micro/v2/registry"
+	"github.com/micro/go-micro/v2/transport"
 )
 
 type Options struct {
 	Codecs       map[string]codec.NewCodec
 	Broker       broker.Broker
 	Registry     registry.Registry
+	Tracer       trace.Tracer
 	Transport    transport.Transport
 	Metadata     map[string]string
 	Name         string
@@ -149,6 +151,13 @@ func Context(ctx context.Context) Option {
 func Registry(r registry.Registry) Option {
 	return func(o *Options) {
 		o.Registry = r
+	}
+}
+
+// Tracer mechanism for distributed tracking
+func Tracer(t trace.Tracer) Option {
+	return func(o *Options) {
+		o.Tracer = t
 	}
 }
 

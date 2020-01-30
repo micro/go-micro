@@ -4,34 +4,15 @@ import (
 	"context"
 	"sync"
 
-	"github.com/micro/go-micro/client"
-	"github.com/micro/go-micro/runtime"
-	pb "github.com/micro/go-micro/runtime/service/proto"
+	"github.com/micro/go-micro/v2/client"
+	"github.com/micro/go-micro/v2/runtime"
+	pb "github.com/micro/go-micro/v2/runtime/service/proto"
 )
 
 type svc struct {
 	sync.RWMutex
 	options runtime.Options
 	runtime pb.RuntimeService
-}
-
-// NewRuntime creates new service runtime and returns it
-func NewRuntime(opts ...runtime.Option) runtime.Runtime {
-	// get default options
-	options := runtime.Options{}
-
-	// apply requested options
-	for _, o := range opts {
-		o(&options)
-	}
-
-	// create default client
-	cli := client.DefaultClient
-
-	return &svc{
-		options: options,
-		runtime: pb.NewRuntimeService(runtime.DefaultName, cli),
-	}
 }
 
 // Init initializes runtime with given options
@@ -182,4 +163,23 @@ func (s *svc) Stop() error {
 // Returns the runtime service implementation
 func (s *svc) String() string {
 	return "service"
+}
+
+// NewRuntime creates new service runtime and returns it
+func NewRuntime(opts ...runtime.Option) runtime.Runtime {
+	// get default options
+	options := runtime.Options{}
+
+	// apply requested options
+	for _, o := range opts {
+		o(&options)
+	}
+
+	// create default client
+	cli := client.DefaultClient
+
+	return &svc{
+		options: options,
+		runtime: pb.NewRuntimeService(runtime.DefaultName, cli),
+	}
 }

@@ -5,10 +5,10 @@ import (
 	"context"
 	"time"
 
-	"github.com/micro/go-micro/broker"
-	pb "github.com/micro/go-micro/broker/service/proto"
-	"github.com/micro/go-micro/client"
-	"github.com/micro/go-micro/util/log"
+	"github.com/micro/go-micro/v2/broker"
+	pb "github.com/micro/go-micro/v2/broker/service/proto"
+	"github.com/micro/go-micro/v2/client"
+	"github.com/micro/go-micro/v2/util/log"
 )
 
 type serviceBroker struct {
@@ -124,9 +124,11 @@ func NewBroker(opts ...broker.Option) broker.Broker {
 		addrs = []string{"127.0.0.1:8001"}
 	}
 
+	cli := client.DefaultClient
+
 	return &serviceBroker{
 		Addrs:   addrs,
-		Client:  pb.NewBrokerService(DefaultName, client.DefaultClient),
+		Client:  pb.NewBrokerService(DefaultName, cli),
 		options: options,
 	}
 }

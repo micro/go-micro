@@ -5,9 +5,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/micro/cli"
-	"github.com/micro/go-micro/config/cmd"
-	"github.com/micro/go-micro/config/source"
+	"github.com/micro/cli/v2"
+	"github.com/micro/go-micro/v2/config/cmd"
+	"github.com/micro/go-micro/v2/config/source"
 )
 
 func test(t *testing.T, withContext bool) {
@@ -17,14 +17,15 @@ func test(t *testing.T, withContext bool) {
 	app := cmd.App()
 	app.Name = "testapp"
 	app.Flags = []cli.Flag{
-		cli.StringFlag{Name: "db-host"},
+		&cli.StringFlag{Name: "db-host"},
 	}
 
 	// with context
 	if withContext {
 		// set action
-		app.Action = func(c *cli.Context) {
+		app.Action = func(c *cli.Context) error {
 			src = WithContext(c)
+			return nil
 		}
 
 		// run app

@@ -4,8 +4,8 @@ import (
 	"context"
 	"crypto/tls"
 
-	"github.com/micro/go-micro/codec"
-	"github.com/micro/go-micro/registry"
+	"github.com/micro/go-micro/v2/codec"
+	"github.com/micro/go-micro/v2/registry"
 )
 
 type Options struct {
@@ -13,6 +13,8 @@ type Options struct {
 	Secure    bool
 	Codec     codec.Marshaler
 	TLSConfig *tls.Config
+	// Registry used for clustering
+	Registry registry.Registry
 	// Other options for implementations of the interface
 	// can be stored in a context
 	Context context.Context
@@ -43,10 +45,6 @@ type Option func(*Options)
 type PublishOption func(*PublishOptions)
 
 type SubscribeOption func(*SubscribeOptions)
-
-var (
-	registryKey = "github.com/micro/go-micro/registry"
-)
 
 func NewSubscribeOptions(opts ...SubscribeOption) SubscribeOptions {
 	opt := SubscribeOptions{
@@ -92,7 +90,7 @@ func Queue(name string) SubscribeOption {
 
 func Registry(r registry.Registry) Option {
 	return func(o *Options) {
-		o.Context = context.WithValue(o.Context, registryKey, r)
+		o.Registry = r
 	}
 }
 

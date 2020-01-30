@@ -4,6 +4,7 @@ service Debug {
         rpc Health(HealthRequest) returns (HealthResponse) {};
         rpc Stats(StatsRequest) returns (StatsResponse) {};
         rpc Log(LogRequest) returns (stream Record) {};
+	rpc Trace(TraceRequest) returns (TraceResponse) {};
 }
 
 message HealthRequest {
@@ -62,4 +63,31 @@ message Record {
         map<string,string> metadata = 2;
         // message
         string message = 3;
+}
+
+message TraceRequest {
+	// trace id to retrieve
+	string id = 1;
+}
+
+message TraceResponse {
+	repeated Span spans = 1;
+}
+
+
+message Span {
+	// the trace id
+	string trace = 1;
+	// id of the span
+	string id = 2;
+	// parent span
+	string parent = 3;
+	// name of the resource
+	string name = 4;
+	// time of start in nanoseconds
+	uint64 started = 5;
+	// duration of the execution in nanoseconds
+	uint64 duration = 6;
+	// associated metadata
+	map<string,string> metadata = 7;
 }

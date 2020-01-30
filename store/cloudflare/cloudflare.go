@@ -17,7 +17,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/micro/go-micro/store"
+	"github.com/micro/go-micro/v2/store"
 	"github.com/pkg/errors"
 )
 
@@ -96,15 +96,29 @@ func validateOptions(account, token, namespace string) {
 	}
 }
 
-// In the cloudflare workers KV implemention, List() doesn't guarantee
-// anything as the workers API is eventually consistent.
-func (w *workersKV) List() ([]*store.Record, error) {
+func (w *workersKV) Init(opts ...store.Option) error {
+	for _, o := range opts {
+		o(&w.options)
+	}
+	if len(w.options.Namespace) > 0 {
+		w.namespace = w.options.Namespace
+	}
+	return nil
+}
+
+func (w *workersKV) list(prefix string) ([]string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	path := fmt.Sprintf("accounts/%s/storage/kv/namespaces/%s/keys", w.account, w.namespace)
 
-	response, _, _, err := w.request(ctx, http.MethodGet, path, nil, make(http.Header))
+	body := make(map[string]string)
+
+	if len(prefix) > 0 {
+		body["prefix"] = prefix
+	}
+
+	response, _, _, err := w.request(ctx, http.MethodGet, path, body, make(http.Header))
 	if err != nil {
 		return nil, err
 	}
@@ -128,12 +142,50 @@ func (w *workersKV) List() ([]*store.Record, error) {
 		keys = append(keys, r.Name)
 	}
 
-	return w.Read(keys...)
+	return keys, nil
 }
 
-func (w *workersKV) Read(keys ...string) ([]*store.Record, error) {
+// In the cloudflare workers KV implemention, List() doesn't guarantee
+// anything as the workers API is eventually consistent.
+func (w *workersKV) List() ([]*store.Record, error) {
+	keys, err := w.list("")
+	if err != nil {
+		return nil, err
+	}
+
+	var gerr error
+	var records []*store.Record
+
+	for _, key := range keys {
+		r, err := w.Read(key)
+		if err != nil {
+			gerr = err
+			continue
+		}
+		records = append(records, r...)
+	}
+
+	return records, gerr
+}
+
+func (w *workersKV) Read(key string, opts ...store.ReadOption) ([]*store.Record, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
+
+	var options store.ReadOptions
+	for _, o := range opts {
+		o(&options)
+	}
+
+	keys := []string{key}
+
+	if options.Prefix {
+		k, err := w.list(key)
+		if err != nil {
+			return nil, err
+		}
+		keys = k
+	}
 
 	//nolint:prealloc
 	var records []*store.Record
@@ -164,65 +216,61 @@ func (w *workersKV) Read(keys ...string) ([]*store.Record, error) {
 	return records, nil
 }
 
-func (w *workersKV) Write(records ...*store.Record) error {
+func (w *workersKV) Write(r *store.Record) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	for _, r := range records {
-		path := fmt.Sprintf("accounts/%s/storage/kv/namespaces/%s/values/%s", w.account, w.namespace, url.PathEscape(r.Key))
-		if r.Expiry != 0 {
-			// Minimum cloudflare TTL is 60 Seconds
-			exp := int(math.Max(60, math.Round(r.Expiry.Seconds())))
-			path = path + "?expiration_ttl=" + strconv.Itoa(exp)
-		}
+	path := fmt.Sprintf("accounts/%s/storage/kv/namespaces/%s/values/%s", w.account, w.namespace, url.PathEscape(r.Key))
+	if r.Expiry != 0 {
+		// Minimum cloudflare TTL is 60 Seconds
+		exp := int(math.Max(60, math.Round(r.Expiry.Seconds())))
+		path = path + "?expiration_ttl=" + strconv.Itoa(exp)
+	}
 
-		headers := make(http.Header)
+	headers := make(http.Header)
 
-		resp, _, _, err := w.request(ctx, http.MethodPut, path, r.Value, headers)
-		if err != nil {
-			return err
-		}
+	resp, _, _, err := w.request(ctx, http.MethodPut, path, r.Value, headers)
+	if err != nil {
+		return err
+	}
 
-		a := &apiResponse{}
-		if err := json.Unmarshal(resp, a); err != nil {
-			return err
-		}
+	a := &apiResponse{}
+	if err := json.Unmarshal(resp, a); err != nil {
+		return err
+	}
 
-		if !a.Success {
-			messages := ""
-			for _, m := range a.Errors {
-				messages += strconv.Itoa(m.Code) + " " + m.Message + "\n"
-			}
-			return errors.New(messages)
+	if !a.Success {
+		messages := ""
+		for _, m := range a.Errors {
+			messages += strconv.Itoa(m.Code) + " " + m.Message + "\n"
 		}
+		return errors.New(messages)
 	}
 
 	return nil
 }
 
-func (w *workersKV) Delete(keys ...string) error {
+func (w *workersKV) Delete(key string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	for _, k := range keys {
-		path := fmt.Sprintf("accounts/%s/storage/kv/namespaces/%s/values/%s", w.account, w.namespace, url.PathEscape(k))
-		resp, _, _, err := w.request(ctx, http.MethodDelete, path, nil, make(http.Header))
-		if err != nil {
-			return err
-		}
+	path := fmt.Sprintf("accounts/%s/storage/kv/namespaces/%s/values/%s", w.account, w.namespace, url.PathEscape(key))
+	resp, _, _, err := w.request(ctx, http.MethodDelete, path, nil, make(http.Header))
+	if err != nil {
+		return err
+	}
 
-		a := &apiResponse{}
-		if err := json.Unmarshal(resp, a); err != nil {
-			return err
-		}
+	a := &apiResponse{}
+	if err := json.Unmarshal(resp, a); err != nil {
+		return err
+	}
 
-		if !a.Success {
-			messages := ""
-			for _, m := range a.Errors {
-				messages += strconv.Itoa(m.Code) + " " + m.Message + "\n"
-			}
-			return errors.New(messages)
+	if !a.Success {
+		messages := ""
+		for _, m := range a.Errors {
+			messages += strconv.Itoa(m.Code) + " " + m.Message + "\n"
 		}
+		return errors.New(messages)
 	}
 
 	return nil
@@ -284,6 +332,10 @@ func (w *workersKV) request(ctx context.Context, method, path string, body inter
 	return respBody, resp.Header, resp.StatusCode, nil
 }
 
+func (w *workersKV) String() string {
+	return "cloudflare"
+}
+
 // New returns a cloudflare Store implementation.
 // Account ID, Token and Namespace must either be passed as options or
 // environment variables. If set as env vars we expect the following;
@@ -308,7 +360,7 @@ func NewStore(opts ...store.Option) store.Store {
 	}
 
 	if len(namespace) == 0 {
-		namespace = getNamespace(options.Context)
+		namespace = options.Namespace
 	}
 
 	// validate options are not blank or log.Fatal

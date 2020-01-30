@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/micro/go-micro/debug/log"
+	"github.com/micro/go-micro/v2/debug/log"
 )
 
 func write(l log.Record) error {
