@@ -35,6 +35,8 @@ type Role struct {
 type ServiceAccount struct {
 	// Unique ServiceAccount id
 	Id string `json: "id"`
+	// Token used to authenticate
+	Token string `json: "token"`
 	// Time of ServiceAccount creation
 	Created time.Time `json:"created"`
 	// Time of ServiceAccount expiry

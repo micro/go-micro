@@ -11,10 +11,11 @@ service Auth {
 
 message ServiceAccount{
     string id = 1;
-    int64 created = 2;
-    int64 expiry = 3;
-    repeated Role roles = 4;
-	map<string, string> metadata = 5;
+    string token = 2;
+    int64 created = 3;
+    int64 expiry = 4;
+    repeated Role roles = 5;
+	map<string, string> metadata = 6;
 }
 
 message Role {
