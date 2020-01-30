@@ -37,7 +37,7 @@ import (
 var (
 	// DefaultMaxMsgSize define maximum message size that server can send
 	// or receive.  Default value is 4MB.
-	DefaultMaxMsgSize = 1024 * 1024 * 4
+	DefaultMaxMsgSize = 1024 * 1024 * 16
 )
 
 const (
@@ -111,7 +111,9 @@ func (g *grpcServer) configure(opts ...server.Option) {
 	}
 
 	maxMsgSize := g.getMaxMsgSize()
-
+	fmt.Printf("orig size %d\n", maxMsgSize)
+	maxMsgSize = 16 * 1024 * 1024
+	fmt.Printf("new size %d\n", maxMsgSize)
 	gopts := []grpc.ServerOption{
 		grpc.MaxRecvMsgSize(maxMsgSize),
 		grpc.MaxSendMsgSize(maxMsgSize),

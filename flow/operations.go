@@ -6,7 +6,6 @@ import (
 	"log"
 	"time"
 
-	"github.com/micro/go-micro/broker"
 	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/codec/bytes"
 	pbFlow "github.com/micro/go-micro/flow/service/proto"
@@ -228,11 +227,10 @@ func (op *clientCallOperation) New() Operation {
 func (op *clientCallOperation) Execute(ctx context.Context, data []byte, opts ...ExecuteOption) ([]byte, error) {
 	var err error
 
-	options := ExecuteOptions{
-		Client:  client.DefaultClient,
-		Broker:  broker.DefaultBroker,
-		Context: context.Background(),
-	}
+	options := ExecuteOptions{}
+	//Client:  client.DefaultClient,
+	//Broker:  broker.DefaultBroker,
+	//Context: context.Background(),
 	for _, opt := range opts {
 		opt(&options)
 	}

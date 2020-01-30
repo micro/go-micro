@@ -169,6 +169,7 @@ func (fl *microFlow) Execute(flow string, step string, req interface{}, rsp inte
 	for _, opt := range opts {
 		opt(&options)
 	}
+
 	if options.Concurrency < 1 {
 		options.Concurrency = DefaultExecuteConcurrency
 	}
@@ -378,18 +379,23 @@ func (fl *microFlow) flowHandler(req interface{}) {
 		return
 	}
 
+	initial := true
 stepsLoop:
 	for _, step := range steps {
-		if err = fl.stepHandler(options.Context, step, job); err != nil {
+		if err = fl.stepHandler(options.Context, step, job, initial); err != nil {
+			initial = false
 			if step.Fallback != nil {
-				fl.stepHandler(options.Context, step, job)
+				fl.stepHandler(options.Context, step, job, initial)
 			}
 			break stepsLoop
+		}
+		if initial {
+			initial = false
 		}
 	}
 }
 
-func (fl *microFlow) stepHandler(ctx context.Context, step *Step, job *flowJob) error {
+func (fl *microFlow) stepHandler(ctx context.Context, step *Step, job *flowJob, initial bool) error {
 	var err error
 	var opErr error
 	var buf []byte
@@ -398,6 +404,7 @@ func (fl *microFlow) stepHandler(ctx context.Context, step *Step, job *flowJob) 
 	if err = fl.options.StateStore.Write(ctx, job.flow, job.rid, []byte(stateName), []byte("pending")); err != nil {
 		return err
 	}
+
 	// operation handles retries, timeouts and so
 	buf, opErr = step.Operation.Execute(ctx, job.req, job.options...)
 	if opErr == nil {
@@ -406,6 +413,9 @@ func (fl *microFlow) stepHandler(ctx context.Context, step *Step, job *flowJob) 
 		}
 		if err = fl.options.DataStore.Write(ctx, job.flow, job.rid, []byte(stateName), buf); err != nil {
 			return err
+		}
+		if initial {
+			job.rsp = buf
 		}
 		return nil
 	}
