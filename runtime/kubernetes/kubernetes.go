@@ -271,12 +271,6 @@ func (k *kubernetes) Create(s *runtime.Service, opts ...runtime.CreateOption) er
 		options.Type = k.options.Type
 	}
 
-	// quickly prevalidate the name and version
-	name := s.Name
-	if len(s.Version) > 0 {
-		name = name + "-" + s.Version
-	}
-
 	// create new kubernetes micro service
 	service := newService(s, options)
 
