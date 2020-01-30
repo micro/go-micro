@@ -3,8 +3,8 @@ package service
 import (
 	"log"
 
-	"github.com/micro/go-micro/flow"
-	pbFlow "github.com/micro/go-micro/flow/service/proto"
+	"github.com/micro/go-micro/v2/flow"
+	pbFlow "github.com/micro/go-micro/v2/flow/service/proto"
 )
 
 func stepToProto(step *flow.Step) *pbFlow.Step {

@@ -3,7 +3,7 @@ package flow
 import (
 	"log"
 
-	pbFlow "github.com/micro/go-micro/flow/service/proto"
+	pbFlow "github.com/micro/go-micro/v2/flow/service/proto"
 )
 
 func stepToProto(step *Step) *pbFlow.Step {

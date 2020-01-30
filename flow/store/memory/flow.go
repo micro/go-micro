@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/micro/go-micro/flow"
+	"github.com/micro/go-micro/v2/flow"
 )
 
 type flowStore struct {

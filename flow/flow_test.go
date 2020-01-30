@@ -5,11 +5,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/micro/go-micro/broker"
-	"github.com/micro/go-micro/client"
-	"github.com/micro/go-micro/flow"
-	proto "github.com/micro/go-micro/flow/service/proto"
-	memory "github.com/micro/go-micro/flow/store/memory"
+	"github.com/micro/go-micro/v2/broker"
+	"github.com/micro/go-micro/v2/client"
+	"github.com/micro/go-micro/v2/flow"
+	proto "github.com/micro/go-micro/v2/flow/service/proto"
+	memory "github.com/micro/go-micro/v2/flow/store/memory"
 )
 
 func TestExecutor(t *testing.T) {

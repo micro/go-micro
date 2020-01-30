@@ -4,9 +4,9 @@ package service
 import (
 	"context"
 
-	"github.com/micro/go-micro/client"
-	"github.com/micro/go-micro/flow"
-	pb "github.com/micro/go-micro/flow/service/proto"
+	"github.com/micro/go-micro/v2/client"
+	"github.com/micro/go-micro/v2/flow"
+	pb "github.com/micro/go-micro/v2/flow/service/proto"
 )
 
 var (

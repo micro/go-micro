@@ -6,9 +6,9 @@ import (
 	"log"
 	"time"
 
-	"github.com/micro/go-micro/client"
-	"github.com/micro/go-micro/codec/bytes"
-	pbFlow "github.com/micro/go-micro/flow/service/proto"
+	"github.com/micro/go-micro/v2/client"
+	"github.com/micro/go-micro/v2/codec/bytes"
+	pbFlow "github.com/micro/go-micro/v2/flow/service/proto"
 )
 
 var (
