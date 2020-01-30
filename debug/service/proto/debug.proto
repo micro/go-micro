@@ -1,9 +1,9 @@
 syntax = "proto3";
 
 service Debug {
+        rpc Log(LogRequest) returns (stream Record) {};
         rpc Health(HealthRequest) returns (HealthResponse) {};
         rpc Stats(StatsRequest) returns (StatsResponse) {};
-        rpc Log(LogRequest) returns (stream Record) {};
 	rpc Trace(TraceRequest) returns (TraceResponse) {};
 }
 
