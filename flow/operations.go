@@ -246,7 +246,6 @@ func (op *clientCallOperation) Execute(ctx context.Context, data []byte, opts ..
 	}
 
 	if err = options.Client.Call(ctx, req, rsp, copts...); err != nil {
-		return nil, nil
 		return nil, err
 	}
 

@@ -31,6 +31,7 @@ type flowJob struct {
 	done    chan struct{}
 	options []ExecuteOption
 	wg      sync.WaitGroup
+	mu      sync.RWMutex
 }
 
 var (
@@ -202,6 +203,8 @@ func (fl *microFlow) Execute(flow string, step string, req interface{}, rsp inte
 		return "", err
 	}
 
+	job.mu.Lock()
+	defer job.mu.Unlock()
 	if !options.Async {
 		<-job.done
 		if job.err != nil {
@@ -339,6 +342,8 @@ func (fl *microFlow) flowHandler(req interface{}) {
 	var err error
 
 	job := req.(*flowJob)
+	//job.mu.Lock()
+	//defer job.mu.Unlock()
 	defer func() {
 		(*job).err = err
 	}()
