@@ -6,7 +6,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/micro/go-micro/debug/log"
+	"github.com/micro/go-micro/v2/debug/log"
 )
 
 // level is a log level

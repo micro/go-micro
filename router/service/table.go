@@ -3,9 +3,9 @@ package service
 import (
 	"context"
 
-	"github.com/micro/go-micro/client"
-	"github.com/micro/go-micro/router"
-	pb "github.com/micro/go-micro/router/service/proto"
+	"github.com/micro/go-micro/v2/client"
+	"github.com/micro/go-micro/v2/router"
+	pb "github.com/micro/go-micro/v2/router/service/proto"
 )
 
 type table struct {

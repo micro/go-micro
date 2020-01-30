@@ -4,7 +4,7 @@ package selector
 import (
 	"errors"
 
-	"github.com/micro/go-micro/registry"
+	"github.com/micro/go-micro/v2/registry"
 )
 
 // Selector builds on the registry as a mechanism to pick nodes

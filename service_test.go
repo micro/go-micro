@@ -6,12 +6,12 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/micro/go-micro/client"
-	"github.com/micro/go-micro/debug/log/noop"
-	proto "github.com/micro/go-micro/debug/service/proto"
-	"github.com/micro/go-micro/registry/memory"
-	"github.com/micro/go-micro/util/log"
-	"github.com/micro/go-micro/util/test"
+	"github.com/micro/go-micro/v2/client"
+	"github.com/micro/go-micro/v2/debug/log/noop"
+	proto "github.com/micro/go-micro/v2/debug/service/proto"
+	"github.com/micro/go-micro/v2/registry/memory"
+	"github.com/micro/go-micro/v2/util/log"
+	"github.com/micro/go-micro/v2/util/test"
 )
 
 func testShutdown(wg *sync.WaitGroup, cancel func()) {

@@ -5,10 +5,10 @@ import (
 	"math"
 	"time"
 
-	"github.com/micro/go-micro/sync/leader/etcd"
-	"github.com/micro/go-micro/sync/task"
-	"github.com/micro/go-micro/sync/task/local"
-	"github.com/micro/go-micro/util/log"
+	"github.com/micro/go-micro/v2/sync/leader/etcd"
+	"github.com/micro/go-micro/v2/sync/task"
+	"github.com/micro/go-micro/v2/sync/task/local"
+	"github.com/micro/go-micro/v2/util/log"
 )
 
 type syncCron struct {

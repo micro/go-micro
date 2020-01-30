@@ -8,7 +8,7 @@ import (
 
 	client "github.com/coreos/etcd/clientv3"
 	cc "github.com/coreos/etcd/clientv3/concurrency"
-	"github.com/micro/go-micro/sync/leader"
+	"github.com/micro/go-micro/v2/sync/leader"
 )
 
 type etcdLeader struct {

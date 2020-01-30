@@ -6,15 +6,15 @@ import (
 	"crypto/tls"
 	"net"
 
-	"github.com/micro/go-micro/transport"
-	maddr "github.com/micro/go-micro/util/addr"
-	mnet "github.com/micro/go-micro/util/net"
-	mls "github.com/micro/go-micro/util/tls"
+	"github.com/micro/go-micro/v2/transport"
+	maddr "github.com/micro/go-micro/v2/util/addr"
+	mnet "github.com/micro/go-micro/v2/util/net"
+	mls "github.com/micro/go-micro/v2/util/tls"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 
-	pb "github.com/micro/go-micro/transport/grpc/proto"
+	pb "github.com/micro/go-micro/v2/transport/grpc/proto"
 )
 
 type grpcTransport struct {
