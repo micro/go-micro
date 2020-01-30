@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/micro/go-micro/codec"
-	"github.com/micro/go-micro/registry"
-	log "github.com/micro/go-micro/util/log"
+	"github.com/micro/go-micro/v2/codec"
+	"github.com/micro/go-micro/v2/registry"
+	log "github.com/micro/go-micro/v2/util/log"
 )
 
 // Server is a simple micro server abstraction

@@ -17,7 +17,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/micro/go-micro/store"
+	"github.com/micro/go-micro/v2/store"
 	"github.com/pkg/errors"
 )
 

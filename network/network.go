@@ -4,8 +4,8 @@ package network
 import (
 	"time"
 
-	"github.com/micro/go-micro/client"
-	"github.com/micro/go-micro/server"
+	"github.com/micro/go-micro/v2/client"
+	"github.com/micro/go-micro/v2/server"
 )
 
 var (

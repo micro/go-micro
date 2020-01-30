@@ -3,11 +3,11 @@ package wrapper
 import (
 	"context"
 
-	"github.com/micro/go-micro/client"
-	"github.com/micro/go-micro/debug/stats"
-	"github.com/micro/go-micro/debug/trace"
-	"github.com/micro/go-micro/metadata"
-	"github.com/micro/go-micro/server"
+	"github.com/micro/go-micro/v2/client"
+	"github.com/micro/go-micro/v2/debug/stats"
+	"github.com/micro/go-micro/v2/debug/trace"
+	"github.com/micro/go-micro/v2/metadata"
+	"github.com/micro/go-micro/v2/server"
 )
 
 type clientWrapper struct {

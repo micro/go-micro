@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	pb "github.com/micro/go-micro/network/service/proto"
+	pb "github.com/micro/go-micro/v2/network/service/proto"
 )
 
 var (
