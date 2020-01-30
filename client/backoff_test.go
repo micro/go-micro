@@ -2,13 +2,12 @@ package client
 
 import (
 	"context"
-	"math"
 	"testing"
 	"time"
 )
 
 func TestBackoff(t *testing.T) {
-	delta := time.Duration(0)
+	results := []time.Duration{0 * time.Second, 100 * time.Millisecond, 600 * time.Millisecond, 1900 * time.Millisecond, 4300 * time.Millisecond, 7900 * time.Millisecond}
 
 	c := NewClient()
 
@@ -18,10 +17,8 @@ func TestBackoff(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		if d < delta {
-			t.Fatalf("Expected greater than %v, got %v", delta, d)
+		if d != results[i] {
+			t.Fatalf("Expected equal than %v, got %v", results[i], d)
 		}
-
-		delta = time.Millisecond * 100 * time.Duration(math.Pow(math.E, float64(i)))
 	}
 }
