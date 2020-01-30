@@ -1,0 +1,56 @@
+syntax = "proto3";
+
+package go.micro.auth;
+
+service Auth {
+    rpc Generate(GenerateRequest) returns (GenerateResponse) {};
+    rpc Revoke(RevokeRequest)  returns (RevokeResponse) {};
+    rpc AddRole(AddRoleRequest)  returns (AddRoleResponse) {};
+    rpc RemoveRole(RemoveRoleRequest)  returns (RemoveRoleResponse) {};
+}
+
+message ServiceAccount{
+    string id = 1;
+    int64 created = 2;
+    int64 expiry = 3;
+    repeated Role roles = 4;
+	map<string, string> metadata = 5;
+}
+
+message Role {
+    string name = 1;
+    Resource resource = 2;
+}
+
+message Resource{
+    string name = 1;
+    string type = 2;
+}
+
+message GenerateRequest {
+    ServiceAccount service_account = 1;
+}
+
+message RevokeRequest {
+    ServiceAccount service_account = 1;
+}
+
+message AddRoleRequest {
+    ServiceAccount service_account = 1;
+    Role role = 2;
+}
+
+message RemoveRoleRequest {
+    ServiceAccount service_account = 1;
+    Role role = 2;
+}
+
+message GenerateResponse {
+    ServiceAccount service_account = 1;
+}
+
+message RevokeResponse {}
+
+message AddRoleResponse {}
+
+message RemoveRoleResponse {}
