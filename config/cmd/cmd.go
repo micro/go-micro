@@ -217,6 +217,7 @@ var (
 			Name:    "tracer",
 			EnvVars: []string{"MICRO_TRACER"},
 			Usage:   "Tracer for distributed tracing, e.g. memory, jaeger",
+			Value:   "memory",
 		},
 		&cli.StringFlag{
 			Name:    "tracer_address",
