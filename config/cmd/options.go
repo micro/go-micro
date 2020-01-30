@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 
+	"github.com/micro/go-micro/auth"
 	"github.com/micro/go-micro/broker"
 	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/client/selector"
@@ -30,6 +31,7 @@ type Options struct {
 	Runtime   *runtime.Runtime
 	Store     *store.Store
 	Tracer    *trace.Tracer
+	Auth      *auth.Auth
 
 	Brokers    map[string]func(...broker.Option) broker.Broker
 	Clients    map[string]func(...client.Option) client.Client
@@ -40,6 +42,7 @@ type Options struct {
 	Runtimes   map[string]func(...runtime.Option) runtime.Runtime
 	Stores     map[string]func(...store.Option) store.Store
 	Tracers    map[string]func(...trace.Option) trace.Tracer
+	Auths      map[string]func(...auth.Option) auth.Auth
 
 	// Other options for implementations of the interface
 	// can be stored in a context
@@ -109,6 +112,12 @@ func Tracer(t *trace.Tracer) Option {
 	}
 }
 
+func Auth(a *auth.Auth) Option {
+	return func(o *Options) {
+		o.Auth = a
+	}
+}
+
 // New broker func
 func NewBroker(name string, b func(...broker.Option) broker.Broker) Option {
 	return func(o *Options) {
@@ -162,5 +171,12 @@ func NewRuntime(name string, r func(...runtime.Option) runtime.Runtime) Option {
 func NewTracer(name string, t func(...trace.Option) trace.Tracer) Option {
 	return func(o *Options) {
 		o.Tracers[name] = t
+	}
+}
+
+// New auth func
+func NewAuth(name string, t func(...auth.Option) auth.Auth) Option {
+	return func(o *Options) {
+		o.Auths[name] = t
 	}
 }

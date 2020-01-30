@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/micro/go-micro/auth"
 	"github.com/micro/go-micro/broker"
 	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/client/selector"
@@ -55,6 +56,9 @@ import (
 	// tracers
 	// jTracer "github.com/micro/go-micro/debug/trace/jaeger"
 	memTracer "github.com/micro/go-micro/debug/trace/memory"
+
+	// auth
+	sAuth "github.com/micro/go-micro/auth/service"
 )
 
 type Cmd interface {
@@ -224,6 +228,11 @@ var (
 			EnvVars: []string{"MICRO_TRACER_ADDRESS"},
 			Usage:   "Comma-separated list of tracer addresses",
 		},
+		&cli.StringFlag{
+			Name:    "auth",
+			EnvVars: []string{"MICRO_AUTH"},
+			Usage:   "Auth for role based access control, e.g. service",
+		},
 	}
 
 	DefaultBrokers = map[string]func(...broker.Option) broker.Broker{
@@ -275,6 +284,10 @@ var (
 		// "jaeger": jTracer.NewTracer,
 	}
 
+	DefaultAuths = map[string]func(...auth.Option) auth.Auth{
+		"service": sAuth.NewAuth,
+	}
+
 	// used for default selection as the fall back
 	defaultClient    = "grpc"
 	defaultServer    = "grpc"
@@ -301,6 +314,7 @@ func newCmd(opts ...Option) Cmd {
 		Runtime:   &runtime.DefaultRuntime,
 		Store:     &store.DefaultStore,
 		Tracer:    &trace.DefaultTracer,
+		Auth:      &auth.DefaultAuth,
 
 		Brokers:    DefaultBrokers,
 		Clients:    DefaultClients,
@@ -311,6 +325,7 @@ func newCmd(opts ...Option) Cmd {
 		Runtimes:   DefaultRuntimes,
 		Stores:     DefaultStores,
 		Tracers:    DefaultTracers,
+		Auths:      DefaultAuths,
 	}
 
 	for _, o := range opts {
@@ -381,6 +396,16 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		}
 
 		*c.opts.Tracer = r()
+	}
+
+	// Set the auth
+	if name := ctx.String("auth"); len(name) > 0 {
+		r, ok := c.opts.Auths[name]
+		if !ok {
+			return fmt.Errorf("Unsupported auth: %s", name)
+		}
+
+		*c.opts.Auth = r()
 	}
 
 	// Set the client
