@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes/any"
 	"github.com/google/uuid"
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/panjf2000/ants/v2"
@@ -100,7 +101,21 @@ func (fl *microFlow) CreateStep(flow string, step *Step) error {
 	return nil
 }
 
-// Lookup flow
+// Result of the step flow
+func (fl *microFlow) Result(flow string, rid string, step *Step) ([]byte, error) {
+	return nil, nil
+}
+
+// State flow request
+func (fl *microFlow) State(flow string, rid string) (string, error) {
+	buf, err := fl.options.StateStore.Read(fl.options.Context, flow, rid, []byte("flow"))
+	if err != nil {
+		return "", err
+	}
+	return string(buf), nil
+}
+
+// Lookup flow steps
 func (fl *microFlow) Lookup(flow string) ([]*Step, error) {
 	steps, err := fl.options.FlowStore.Load(fl.options.Context, flow)
 	if err != nil {
@@ -181,8 +196,12 @@ func (fl *microFlow) Execute(flow string, step string, req interface{}, rsp inte
 
 	var reqbuf []byte
 	switch v := req.(type) {
+	case *any.Any:
+		reqbuf = v.Value
 	case proto.Message:
-		reqbuf, err = proto.Marshal(v)
+		if reqbuf, err = proto.Marshal(v); err != nil {
+			return "", err
+		}
 	case []byte:
 		reqbuf = v
 	default:
@@ -379,6 +398,10 @@ func (fl *microFlow) flowHandler(req interface{}) {
 		return
 	}
 
+	if err = fl.options.StateStore.Write(options.Context, job.flow, job.rid, []byte("flow"), []byte("pending")); err != nil {
+		return
+	}
+
 	initial := true
 stepsLoop:
 	for _, step := range steps {
@@ -393,6 +416,18 @@ stepsLoop:
 			initial = false
 		}
 	}
+
+	if err != nil {
+		if serr := fl.options.StateStore.Write(options.Context, job.flow, job.rid, []byte("flow"), []byte("failure")); serr != nil {
+			return
+		}
+		return
+	}
+
+	if err = fl.options.StateStore.Write(options.Context, job.flow, job.rid, []byte("flow"), []byte("success")); err != nil {
+		return
+	}
+
 }
 
 func (fl *microFlow) stepHandler(ctx context.Context, step *Step, job *flowJob, initial bool) error {

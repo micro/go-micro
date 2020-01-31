@@ -37,7 +37,7 @@ import (
 var (
 	// DefaultMaxMsgSize define maximum message size that server can send
 	// or receive.  Default value is 4MB.
-	DefaultMaxMsgSize = 1024 * 1024 * 16
+	DefaultMaxMsgSize = 1024 * 1024 * 4
 )
 
 const (
@@ -111,9 +111,7 @@ func (g *grpcServer) configure(opts ...server.Option) {
 	}
 
 	maxMsgSize := g.getMaxMsgSize()
-	fmt.Printf("orig size %d\n", maxMsgSize)
-	maxMsgSize = 16 * 1024 * 1024
-	fmt.Printf("new size %d\n", maxMsgSize)
+
 	gopts := []grpc.ServerOption{
 		grpc.MaxRecvMsgSize(maxMsgSize),
 		grpc.MaxSendMsgSize(maxMsgSize),
@@ -564,6 +562,7 @@ func (g *grpcServer) Register() error {
 		return err
 	}
 
+	g.Lock()
 	// register service
 	node := &registry.Node{
 		Id:       config.Name + "-" + config.Id,
@@ -576,6 +575,7 @@ func (g *grpcServer) Register() error {
 	node.Metadata["server"] = g.String()
 	node.Metadata["transport"] = g.String()
 	node.Metadata["protocol"] = "grpc"
+	g.Unlock()
 
 	g.RLock()
 	// Maps are ordered randomly, sort the keys for consistency

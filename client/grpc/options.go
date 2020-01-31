@@ -25,7 +25,7 @@ var (
 
 	// DefaultMaxSendMsgSize maximum message that client can send
 	// (4 MB).
-	DefaultMaxSendMsgSize = 1024 * 1024 * 16
+	DefaultMaxSendMsgSize = 1024 * 1024 * 4
 )
 
 type poolMaxStreams struct{}

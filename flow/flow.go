@@ -30,6 +30,10 @@ type Flow interface {
 	Pause(flow string, reqID string) error
 	// Abort specific flow execution by request id
 	Abort(flow string, reqID string) error
+	// State show state specific flow execution by request id
+	State(flow string, reqID string) (string, error)
+	// Result get result of the flow step
+	Result(flow string, reqID string, step *Step) ([]byte, error)
 	// Stop executor and drain active workers
 	Stop() error
 }
