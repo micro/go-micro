@@ -84,9 +84,7 @@ func (s *svc) Generate(sa *auth.ServiceAccount) (*auth.ServiceAccount, error) {
 // Revoke an authorization ServiceAccount
 func (s *svc) Revoke(sa *auth.ServiceAccount) error {
 	// contruct the request
-	req := &pb.RevokeRequest{
-		ServiceAccount: &pb.ServiceAccount{Token: sa.Token},
-	}
+	req := &pb.RevokeRequest{Token: sa.Token}
 
 	// execute the request
 	_, err := s.auth.Revoke(context.Background(), req)

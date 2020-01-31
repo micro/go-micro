@@ -44,7 +44,7 @@ message ValidateResponse {
 }
 
 message RevokeRequest {
-    ServiceAccount service_account = 1;
+    string token = 1;
 }
 
 message RevokeResponse {}
