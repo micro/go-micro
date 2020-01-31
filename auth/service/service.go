@@ -11,22 +11,26 @@ import (
 
 // NewAuth returns a new instance of the Auth service
 func NewAuth(opts ...auth.Option) auth.Auth {
-	options := auth.Options{}
-
-	for _, o := range opts {
-		o(&options)
-	}
-
-	client := client.DefaultClient
-	srv := pb.NewAuthService("go.micro.auth", client)
-
-	return &svc{options, srv}
+	svc := new(svc)
+	svc.Init(opts...)
+	return svc
 }
 
-// svc is the implementation of the Auth interface
+// svc is the service implementation of the Auth interface
 type svc struct {
 	options auth.Options
 	auth    pb.AuthService
+}
+
+func (s *svc) Init(opts ...auth.Option) error {
+	for _, o := range opts {
+		o(&s.options)
+	}
+
+	dc := client.DefaultClient
+	s.auth = pb.NewAuthService("go.micro.auth", dc)
+
+	return nil
 }
 
 // Generate a new auth ServiceAccount

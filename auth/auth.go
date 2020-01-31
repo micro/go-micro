@@ -7,6 +7,8 @@ import (
 
 // Auth providers authentication and authorization
 type Auth interface {
+	// Init the auth package
+	Init(opts ...Option) error
 	// Generate a new auth ServiceAccount
 	Generate(*ServiceAccount) (*ServiceAccount, error)
 	// Revoke an authorization ServiceAccount

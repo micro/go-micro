@@ -58,6 +58,7 @@ import (
 	memTracer "github.com/micro/go-micro/debug/trace/memory"
 
 	// auth
+	jwtAuth "github.com/micro/go-micro/auth/jwt"
 	sAuth "github.com/micro/go-micro/auth/service"
 )
 
@@ -233,6 +234,11 @@ var (
 			EnvVars: []string{"MICRO_AUTH"},
 			Usage:   "Auth for role based access control, e.g. service",
 		},
+		&cli.StringFlag{
+			Name:    "jwt_public_key",
+			EnvVars: []string{"MICRO_AUTH_PUBLIC_KEY"},
+			Usage:   "Public key for JWT auth",
+		},
 	}
 
 	DefaultBrokers = map[string]func(...broker.Option) broker.Broker{
@@ -286,6 +292,7 @@ var (
 
 	DefaultAuths = map[string]func(...auth.Option) auth.Auth{
 		"service": sAuth.NewAuth,
+		"jwt":     jwtAuth.NewAuth,
 	}
 
 	// used for default selection as the fall back
@@ -555,6 +562,12 @@ func (c *cmd) Before(ctx *cli.Context) error {
 
 	if val := time.Duration(ctx.Int("register_interval")); val >= 0 {
 		serverOpts = append(serverOpts, server.RegisterInterval(val*time.Second))
+	}
+
+	if key := ctx.String("jtw_public_key"); key != "" {
+		if err := (*c.opts.Auth).Init(auth.PublicKey(key)); err != nil {
+			log.Fatalf("Error configuring registry: %v", err)
+		}
 	}
 
 	// client opts

@@ -8,6 +8,11 @@ type noop struct {
 	options Options
 }
 
+// Init the svc
+func (a *noop) Init(...Option) error {
+	return nil
+}
+
 // Generate a new auth ServiceAccount
 func (a *noop) Generate(sa *ServiceAccount) (*ServiceAccount, error) {
 	return nil, nil
