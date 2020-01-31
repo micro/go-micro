@@ -10,7 +10,7 @@ type Auth interface {
 	// Generate a new auth ServiceAccount
 	Generate(*ServiceAccount) (*ServiceAccount, error)
 	// Revoke an authorization ServiceAccount
-	Revoke(*ServiceAccount) error
+	Revoke(string) error
 	// Validate a service account token
 	Validate(string) (*ServiceAccount, error)
 }

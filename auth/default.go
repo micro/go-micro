@@ -14,7 +14,7 @@ func (a *noop) Generate(sa *ServiceAccount) (*ServiceAccount, error) {
 }
 
 // Revoke an authorization ServiceAccount
-func (a *noop) Revoke(sa *ServiceAccount) error {
+func (a *noop) Revoke(token string) error {
 	return nil
 }
 

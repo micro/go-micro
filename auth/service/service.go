@@ -18,7 +18,7 @@ func NewAuth(opts ...auth.Option) auth.Auth {
 	}
 
 	client := client.DefaultClient
-	srv := pb.NewAuthService("go.micro.srv.auth", client)
+	srv := pb.NewAuthService("go.micro.auth", client)
 
 	return &svc{options, srv}
 }
@@ -45,9 +45,9 @@ func (s *svc) Generate(sa *auth.ServiceAccount) (*auth.ServiceAccount, error) {
 }
 
 // Revoke an authorization ServiceAccount
-func (s *svc) Revoke(sa *auth.ServiceAccount) error {
+func (s *svc) Revoke(token string) error {
 	// contruct the request
-	req := &pb.RevokeRequest{Token: sa.Token}
+	req := &pb.RevokeRequest{Token: token}
 
 	// execute the request
 	_, err := s.auth.Revoke(context.Background(), req)
