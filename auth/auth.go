@@ -11,10 +11,8 @@ type Auth interface {
 	Generate(*ServiceAccount) (*ServiceAccount, error)
 	// Revoke an authorization ServiceAccount
 	Revoke(*ServiceAccount) error
-	// AddRole to the service account
-	AddRole(*ServiceAccount, *Role) error
-	// RemoveRole from a service account
-	RemoveRole(*ServiceAccount, *Role) error
+	// Validate a service account token
+	Validate(string) (*ServiceAccount, error)
 }
 
 // Resource is an entity such as a user or service
@@ -35,8 +33,6 @@ type Role struct {
 type ServiceAccount struct {
 	// The parent of the service account, e.g. a user
 	Parent *Resource `json: "parent"`
-	// Unique ServiceAccount id
-	Id string `json: "id"`
 	// Token used to authenticate
 	Token string `json: "token"`
 	// Time of ServiceAccount creation

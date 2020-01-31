@@ -22,12 +22,11 @@ const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
 type ServiceAccount struct {
 	Parent               *Resource         `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
-	Id                   string            `protobuf:"bytes,2,opt,name=id,proto3" json:"id,omitempty"`
-	Token                string            `protobuf:"bytes,3,opt,name=token,proto3" json:"token,omitempty"`
-	Created              int64             `protobuf:"varint,4,opt,name=created,proto3" json:"created,omitempty"`
-	Expiry               int64             `protobuf:"varint,5,opt,name=expiry,proto3" json:"expiry,omitempty"`
-	Roles                []*Role           `protobuf:"bytes,6,rep,name=roles,proto3" json:"roles,omitempty"`
-	Metadata             map[string]string `protobuf:"bytes,7,rep,name=metadata,proto3" json:"metadata,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+	Token                string            `protobuf:"bytes,2,opt,name=token,proto3" json:"token,omitempty"`
+	Created              int64             `protobuf:"varint,3,opt,name=created,proto3" json:"created,omitempty"`
+	Expiry               int64             `protobuf:"varint,4,opt,name=expiry,proto3" json:"expiry,omitempty"`
+	Roles                []*Role           `protobuf:"bytes,5,rep,name=roles,proto3" json:"roles,omitempty"`
+	Metadata             map[string]string `protobuf:"bytes,6,rep,name=metadata,proto3" json:"metadata,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
 	XXX_unrecognized     []byte            `json:"-"`
 	XXX_sizecache        int32             `json:"-"`
@@ -63,13 +62,6 @@ func (m *ServiceAccount) GetParent() *Resource {
 		return m.Parent
 	}
 	return nil
-}
-
-func (m *ServiceAccount) GetId() string {
-	if m != nil {
-		return m.Id
-	}
-	return ""
 }
 
 func (m *ServiceAccount) GetToken() string {
@@ -240,178 +232,6 @@ func (m *GenerateRequest) GetServiceAccount() *ServiceAccount {
 	return nil
 }
 
-type ValidateRequest struct {
-	Token                string   `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
-}
-
-func (m *ValidateRequest) Reset()         { *m = ValidateRequest{} }
-func (m *ValidateRequest) String() string { return proto.CompactTextString(m) }
-func (*ValidateRequest) ProtoMessage()    {}
-func (*ValidateRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_21300bfacc51fc2a, []int{4}
-}
-
-func (m *ValidateRequest) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_ValidateRequest.Unmarshal(m, b)
-}
-func (m *ValidateRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_ValidateRequest.Marshal(b, m, deterministic)
-}
-func (m *ValidateRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ValidateRequest.Merge(m, src)
-}
-func (m *ValidateRequest) XXX_Size() int {
-	return xxx_messageInfo_ValidateRequest.Size(m)
-}
-func (m *ValidateRequest) XXX_DiscardUnknown() {
-	xxx_messageInfo_ValidateRequest.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_ValidateRequest proto.InternalMessageInfo
-
-func (m *ValidateRequest) GetToken() string {
-	if m != nil {
-		return m.Token
-	}
-	return ""
-}
-
-type RevokeRequest struct {
-	ServiceAccount       *ServiceAccount `protobuf:"bytes,1,opt,name=service_account,json=serviceAccount,proto3" json:"service_account,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}        `json:"-"`
-	XXX_unrecognized     []byte          `json:"-"`
-	XXX_sizecache        int32           `json:"-"`
-}
-
-func (m *RevokeRequest) Reset()         { *m = RevokeRequest{} }
-func (m *RevokeRequest) String() string { return proto.CompactTextString(m) }
-func (*RevokeRequest) ProtoMessage()    {}
-func (*RevokeRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_21300bfacc51fc2a, []int{5}
-}
-
-func (m *RevokeRequest) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_RevokeRequest.Unmarshal(m, b)
-}
-func (m *RevokeRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_RevokeRequest.Marshal(b, m, deterministic)
-}
-func (m *RevokeRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_RevokeRequest.Merge(m, src)
-}
-func (m *RevokeRequest) XXX_Size() int {
-	return xxx_messageInfo_RevokeRequest.Size(m)
-}
-func (m *RevokeRequest) XXX_DiscardUnknown() {
-	xxx_messageInfo_RevokeRequest.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_RevokeRequest proto.InternalMessageInfo
-
-func (m *RevokeRequest) GetServiceAccount() *ServiceAccount {
-	if m != nil {
-		return m.ServiceAccount
-	}
-	return nil
-}
-
-type AddRoleRequest struct {
-	ServiceAccount       *ServiceAccount `protobuf:"bytes,1,opt,name=service_account,json=serviceAccount,proto3" json:"service_account,omitempty"`
-	Role                 *Role           `protobuf:"bytes,2,opt,name=role,proto3" json:"role,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}        `json:"-"`
-	XXX_unrecognized     []byte          `json:"-"`
-	XXX_sizecache        int32           `json:"-"`
-}
-
-func (m *AddRoleRequest) Reset()         { *m = AddRoleRequest{} }
-func (m *AddRoleRequest) String() string { return proto.CompactTextString(m) }
-func (*AddRoleRequest) ProtoMessage()    {}
-func (*AddRoleRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_21300bfacc51fc2a, []int{6}
-}
-
-func (m *AddRoleRequest) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_AddRoleRequest.Unmarshal(m, b)
-}
-func (m *AddRoleRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_AddRoleRequest.Marshal(b, m, deterministic)
-}
-func (m *AddRoleRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_AddRoleRequest.Merge(m, src)
-}
-func (m *AddRoleRequest) XXX_Size() int {
-	return xxx_messageInfo_AddRoleRequest.Size(m)
-}
-func (m *AddRoleRequest) XXX_DiscardUnknown() {
-	xxx_messageInfo_AddRoleRequest.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_AddRoleRequest proto.InternalMessageInfo
-
-func (m *AddRoleRequest) GetServiceAccount() *ServiceAccount {
-	if m != nil {
-		return m.ServiceAccount
-	}
-	return nil
-}
-
-func (m *AddRoleRequest) GetRole() *Role {
-	if m != nil {
-		return m.Role
-	}
-	return nil
-}
-
-type RemoveRoleRequest struct {
-	ServiceAccount       *ServiceAccount `protobuf:"bytes,1,opt,name=service_account,json=serviceAccount,proto3" json:"service_account,omitempty"`
-	Role                 *Role           `protobuf:"bytes,2,opt,name=role,proto3" json:"role,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}        `json:"-"`
-	XXX_unrecognized     []byte          `json:"-"`
-	XXX_sizecache        int32           `json:"-"`
-}
-
-func (m *RemoveRoleRequest) Reset()         { *m = RemoveRoleRequest{} }
-func (m *RemoveRoleRequest) String() string { return proto.CompactTextString(m) }
-func (*RemoveRoleRequest) ProtoMessage()    {}
-func (*RemoveRoleRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_21300bfacc51fc2a, []int{7}
-}
-
-func (m *RemoveRoleRequest) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_RemoveRoleRequest.Unmarshal(m, b)
-}
-func (m *RemoveRoleRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_RemoveRoleRequest.Marshal(b, m, deterministic)
-}
-func (m *RemoveRoleRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_RemoveRoleRequest.Merge(m, src)
-}
-func (m *RemoveRoleRequest) XXX_Size() int {
-	return xxx_messageInfo_RemoveRoleRequest.Size(m)
-}
-func (m *RemoveRoleRequest) XXX_DiscardUnknown() {
-	xxx_messageInfo_RemoveRoleRequest.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_RemoveRoleRequest proto.InternalMessageInfo
-
-func (m *RemoveRoleRequest) GetServiceAccount() *ServiceAccount {
-	if m != nil {
-		return m.ServiceAccount
-	}
-	return nil
-}
-
-func (m *RemoveRoleRequest) GetRole() *Role {
-	if m != nil {
-		return m.Role
-	}
-	return nil
-}
-
 type GenerateResponse struct {
 	ServiceAccount       *ServiceAccount `protobuf:"bytes,1,opt,name=service_account,json=serviceAccount,proto3" json:"service_account,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}        `json:"-"`
@@ -423,7 +243,7 @@ func (m *GenerateResponse) Reset()         { *m = GenerateResponse{} }
 func (m *GenerateResponse) String() string { return proto.CompactTextString(m) }
 func (*GenerateResponse) ProtoMessage()    {}
 func (*GenerateResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_21300bfacc51fc2a, []int{8}
+	return fileDescriptor_21300bfacc51fc2a, []int{4}
 }
 
 func (m *GenerateResponse) XXX_Unmarshal(b []byte) error {
@@ -451,6 +271,45 @@ func (m *GenerateResponse) GetServiceAccount() *ServiceAccount {
 	return nil
 }
 
+type ValidateRequest struct {
+	Token                string   `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *ValidateRequest) Reset()         { *m = ValidateRequest{} }
+func (m *ValidateRequest) String() string { return proto.CompactTextString(m) }
+func (*ValidateRequest) ProtoMessage()    {}
+func (*ValidateRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_21300bfacc51fc2a, []int{5}
+}
+
+func (m *ValidateRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_ValidateRequest.Unmarshal(m, b)
+}
+func (m *ValidateRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_ValidateRequest.Marshal(b, m, deterministic)
+}
+func (m *ValidateRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ValidateRequest.Merge(m, src)
+}
+func (m *ValidateRequest) XXX_Size() int {
+	return xxx_messageInfo_ValidateRequest.Size(m)
+}
+func (m *ValidateRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_ValidateRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ValidateRequest proto.InternalMessageInfo
+
+func (m *ValidateRequest) GetToken() string {
+	if m != nil {
+		return m.Token
+	}
+	return ""
+}
+
 type ValidateResponse struct {
 	ServiceAccount       *ServiceAccount `protobuf:"bytes,1,opt,name=service_account,json=serviceAccount,proto3" json:"service_account,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}        `json:"-"`
@@ -462,7 +321,7 @@ func (m *ValidateResponse) Reset()         { *m = ValidateResponse{} }
 func (m *ValidateResponse) String() string { return proto.CompactTextString(m) }
 func (*ValidateResponse) ProtoMessage()    {}
 func (*ValidateResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_21300bfacc51fc2a, []int{9}
+	return fileDescriptor_21300bfacc51fc2a, []int{6}
 }
 
 func (m *ValidateResponse) XXX_Unmarshal(b []byte) error {
@@ -490,6 +349,45 @@ func (m *ValidateResponse) GetServiceAccount() *ServiceAccount {
 	return nil
 }
 
+type RevokeRequest struct {
+	ServiceAccount       *ServiceAccount `protobuf:"bytes,1,opt,name=service_account,json=serviceAccount,proto3" json:"service_account,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}        `json:"-"`
+	XXX_unrecognized     []byte          `json:"-"`
+	XXX_sizecache        int32           `json:"-"`
+}
+
+func (m *RevokeRequest) Reset()         { *m = RevokeRequest{} }
+func (m *RevokeRequest) String() string { return proto.CompactTextString(m) }
+func (*RevokeRequest) ProtoMessage()    {}
+func (*RevokeRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_21300bfacc51fc2a, []int{7}
+}
+
+func (m *RevokeRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_RevokeRequest.Unmarshal(m, b)
+}
+func (m *RevokeRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_RevokeRequest.Marshal(b, m, deterministic)
+}
+func (m *RevokeRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RevokeRequest.Merge(m, src)
+}
+func (m *RevokeRequest) XXX_Size() int {
+	return xxx_messageInfo_RevokeRequest.Size(m)
+}
+func (m *RevokeRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_RevokeRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_RevokeRequest proto.InternalMessageInfo
+
+func (m *RevokeRequest) GetServiceAccount() *ServiceAccount {
+	if m != nil {
+		return m.ServiceAccount
+	}
+	return nil
+}
+
 type RevokeResponse struct {
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
@@ -500,7 +398,7 @@ func (m *RevokeResponse) Reset()         { *m = RevokeResponse{} }
 func (m *RevokeResponse) String() string { return proto.CompactTextString(m) }
 func (*RevokeResponse) ProtoMessage()    {}
 func (*RevokeResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_21300bfacc51fc2a, []int{10}
+	return fileDescriptor_21300bfacc51fc2a, []int{8}
 }
 
 func (m *RevokeResponse) XXX_Unmarshal(b []byte) error {
@@ -521,121 +419,50 @@ func (m *RevokeResponse) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_RevokeResponse proto.InternalMessageInfo
 
-type AddRoleResponse struct {
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
-}
-
-func (m *AddRoleResponse) Reset()         { *m = AddRoleResponse{} }
-func (m *AddRoleResponse) String() string { return proto.CompactTextString(m) }
-func (*AddRoleResponse) ProtoMessage()    {}
-func (*AddRoleResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_21300bfacc51fc2a, []int{11}
-}
-
-func (m *AddRoleResponse) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_AddRoleResponse.Unmarshal(m, b)
-}
-func (m *AddRoleResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_AddRoleResponse.Marshal(b, m, deterministic)
-}
-func (m *AddRoleResponse) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_AddRoleResponse.Merge(m, src)
-}
-func (m *AddRoleResponse) XXX_Size() int {
-	return xxx_messageInfo_AddRoleResponse.Size(m)
-}
-func (m *AddRoleResponse) XXX_DiscardUnknown() {
-	xxx_messageInfo_AddRoleResponse.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_AddRoleResponse proto.InternalMessageInfo
-
-type RemoveRoleResponse struct {
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
-}
-
-func (m *RemoveRoleResponse) Reset()         { *m = RemoveRoleResponse{} }
-func (m *RemoveRoleResponse) String() string { return proto.CompactTextString(m) }
-func (*RemoveRoleResponse) ProtoMessage()    {}
-func (*RemoveRoleResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_21300bfacc51fc2a, []int{12}
-}
-
-func (m *RemoveRoleResponse) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_RemoveRoleResponse.Unmarshal(m, b)
-}
-func (m *RemoveRoleResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_RemoveRoleResponse.Marshal(b, m, deterministic)
-}
-func (m *RemoveRoleResponse) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_RemoveRoleResponse.Merge(m, src)
-}
-func (m *RemoveRoleResponse) XXX_Size() int {
-	return xxx_messageInfo_RemoveRoleResponse.Size(m)
-}
-func (m *RemoveRoleResponse) XXX_DiscardUnknown() {
-	xxx_messageInfo_RemoveRoleResponse.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_RemoveRoleResponse proto.InternalMessageInfo
-
 func init() {
 	proto.RegisterType((*ServiceAccount)(nil), "go.micro.auth.ServiceAccount")
 	proto.RegisterMapType((map[string]string)(nil), "go.micro.auth.ServiceAccount.MetadataEntry")
 	proto.RegisterType((*Role)(nil), "go.micro.auth.Role")
 	proto.RegisterType((*Resource)(nil), "go.micro.auth.Resource")
 	proto.RegisterType((*GenerateRequest)(nil), "go.micro.auth.GenerateRequest")
-	proto.RegisterType((*ValidateRequest)(nil), "go.micro.auth.ValidateRequest")
-	proto.RegisterType((*RevokeRequest)(nil), "go.micro.auth.RevokeRequest")
-	proto.RegisterType((*AddRoleRequest)(nil), "go.micro.auth.AddRoleRequest")
-	proto.RegisterType((*RemoveRoleRequest)(nil), "go.micro.auth.RemoveRoleRequest")
 	proto.RegisterType((*GenerateResponse)(nil), "go.micro.auth.GenerateResponse")
+	proto.RegisterType((*ValidateRequest)(nil), "go.micro.auth.ValidateRequest")
 	proto.RegisterType((*ValidateResponse)(nil), "go.micro.auth.ValidateResponse")
+	proto.RegisterType((*RevokeRequest)(nil), "go.micro.auth.RevokeRequest")
 	proto.RegisterType((*RevokeResponse)(nil), "go.micro.auth.RevokeResponse")
-	proto.RegisterType((*AddRoleResponse)(nil), "go.micro.auth.AddRoleResponse")
-	proto.RegisterType((*RemoveRoleResponse)(nil), "go.micro.auth.RemoveRoleResponse")
 }
 
 func init() { proto.RegisterFile("auth/service/proto/auth.proto", fileDescriptor_21300bfacc51fc2a) }
 
 var fileDescriptor_21300bfacc51fc2a = []byte{
-	// 543 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xc4, 0x55, 0xcf, 0x8b, 0xd3, 0x40,
-	0x14, 0xde, 0xb4, 0xd9, 0xb6, 0xfb, 0x96, 0xfe, 0xd8, 0xe7, 0xa2, 0xa1, 0xd8, 0xb5, 0xe6, 0xb2,
-	0x15, 0x21, 0x85, 0xee, 0x45, 0xf4, 0xd4, 0x83, 0x16, 0x84, 0x45, 0x98, 0x05, 0xc5, 0xbd, 0xc8,
-	0x98, 0x3c, 0xdc, 0xd0, 0x36, 0x53, 0x27, 0x93, 0x62, 0x8f, 0x82, 0x67, 0xff, 0x30, 0xff, 0x2a,
-	0xc9, 0x64, 0x92, 0xb6, 0xa9, 0xed, 0xa9, 0xe0, 0x6d, 0xde, 0x7b, 0xdf, 0x7c, 0x79, 0xef, 0xfb,
-	0xde, 0x10, 0xe8, 0xf1, 0x44, 0x3d, 0x0c, 0x63, 0x92, 0xcb, 0xd0, 0xa7, 0xe1, 0x42, 0x0a, 0x25,
-	0x86, 0x69, 0xca, 0xd3, 0x47, 0x6c, 0x7e, 0x13, 0xde, 0x3c, 0xf4, 0xa5, 0xf0, 0xd2, 0xa4, 0xfb,
-	0xa7, 0x02, 0xad, 0xbb, 0x0c, 0x3b, 0xf6, 0x7d, 0x91, 0x44, 0x0a, 0x87, 0x50, 0x5b, 0x70, 0x49,
-	0x91, 0x72, 0xac, 0xbe, 0x35, 0x38, 0x1f, 0x3d, 0xf1, 0xb6, 0xae, 0x78, 0x8c, 0x62, 0x91, 0x48,
-	0x9f, 0x98, 0x81, 0x61, 0x0b, 0x2a, 0x61, 0xe0, 0x54, 0xfa, 0xd6, 0xe0, 0x8c, 0x55, 0xc2, 0x00,
-	0x2f, 0xe1, 0x54, 0x89, 0x29, 0x45, 0x4e, 0x55, 0xa7, 0xb2, 0x00, 0x1d, 0xa8, 0xfb, 0x92, 0xb8,
-	0xa2, 0xc0, 0xb1, 0xfb, 0xd6, 0xa0, 0xca, 0xf2, 0x10, 0x1f, 0x43, 0x8d, 0x7e, 0x2c, 0x42, 0xb9,
-	0x72, 0x4e, 0x75, 0xc1, 0x44, 0xf8, 0x02, 0x4e, 0xa5, 0x98, 0x51, 0xec, 0xd4, 0xfa, 0xd5, 0xc1,
-	0xf9, 0xe8, 0x51, 0xb9, 0x0f, 0x31, 0x23, 0x96, 0x21, 0x70, 0x02, 0x8d, 0x39, 0x29, 0x1e, 0x70,
-	0xc5, 0x9d, 0xba, 0x46, 0xbf, 0x2c, 0xa1, 0xb7, 0x87, 0xf4, 0x6e, 0x0d, 0xfa, 0x6d, 0xa4, 0xe4,
-	0x8a, 0x15, 0x97, 0xbb, 0x6f, 0xa0, 0xb9, 0x55, 0xc2, 0x0e, 0x54, 0xa7, 0xb4, 0xd2, 0x52, 0x9c,
-	0xb1, 0xf4, 0x98, 0x8e, 0xb7, 0xe4, 0xb3, 0x84, 0xcc, 0xc4, 0x59, 0xf0, 0xba, 0xf2, 0xca, 0x72,
-	0x3f, 0x80, 0x9d, 0x36, 0x85, 0x08, 0x76, 0xc4, 0xe7, 0x64, 0x2e, 0xe9, 0x33, 0xde, 0x40, 0x43,
-	0x1a, 0xe1, 0xf4, 0xc5, 0x03, 0xba, 0x16, 0x40, 0xd7, 0x83, 0x46, 0x9e, 0x35, 0x2a, 0x5b, 0x85,
-	0xca, 0x08, 0xb6, 0x5a, 0x2d, 0xf2, 0x2e, 0xf4, 0xd9, 0xfd, 0x0c, 0xed, 0x09, 0x45, 0x24, 0xb9,
-	0x22, 0x46, 0xdf, 0x13, 0x8a, 0x15, 0xbe, 0x83, 0xb6, 0xd9, 0x85, 0x2f, 0x3c, 0x9b, 0xdd, 0xd8,
-	0xda, 0x3b, 0x28, 0x10, 0x6b, 0xc5, 0x5b, 0xb1, 0x7b, 0x0d, 0xed, 0x8f, 0x7c, 0x16, 0x06, 0x1b,
-	0xd4, 0x85, 0xcf, 0xd6, 0x86, 0xcf, 0xee, 0x27, 0x68, 0x32, 0x5a, 0x8a, 0xe9, 0xd1, 0x3b, 0xf8,
-	0x69, 0x41, 0x6b, 0x1c, 0x04, 0xda, 0xf6, 0xe3, 0x52, 0xe3, 0x35, 0xd8, 0xe9, 0x1e, 0x19, 0x63,
-	0xfe, 0xb9, 0x68, 0x1a, 0xe0, 0xfe, 0xb2, 0xe0, 0x82, 0xd1, 0x5c, 0x2c, 0xe9, 0xbf, 0xb6, 0x71,
-	0x0f, 0x9d, 0xb5, 0xcf, 0xf1, 0x42, 0x44, 0x31, 0x1d, 0x4d, 0xe6, 0x7b, 0xe8, 0xac, 0x8d, 0x3e,
-	0x32, 0x77, 0x07, 0x5a, 0xf9, 0x6e, 0x64, 0xcc, 0xee, 0x05, 0xb4, 0x0b, 0x4f, 0x4d, 0xea, 0x12,
-	0x70, 0x53, 0xe2, 0x2c, 0x3b, 0xfa, 0x5d, 0x05, 0x7b, 0x9c, 0xa8, 0x07, 0xbc, 0x85, 0x46, 0x3e,
-	0x3b, 0x5e, 0x95, 0x3e, 0x5f, 0x5a, 0xfe, 0xee, 0xb3, 0xbd, 0x75, 0xf3, 0xad, 0x93, 0x94, 0x2e,
-	0x1f, 0x77, 0x87, 0xae, 0xb4, 0xf0, 0x3b, 0x74, 0x65, 0x9d, 0xdc, 0x13, 0x9c, 0x40, 0x2d, 0x9b,
-	0x10, 0x9f, 0xee, 0x3c, 0xef, 0x8d, 0x47, 0xd1, 0xed, 0xed, 0xa9, 0x16, 0x44, 0xef, 0xa1, 0x6e,
-	0x84, 0xc1, 0x32, 0x76, 0xfb, 0x11, 0x74, 0xaf, 0xf6, 0x95, 0x0b, 0xae, 0x3b, 0x80, 0xb5, 0xa2,
-	0xd8, 0xdf, 0xf9, 0x74, 0x69, 0x9f, 0xbb, 0xcf, 0x0f, 0x20, 0x72, 0xd2, 0xaf, 0x35, 0xfd, 0x3f,
-	0xb9, 0xf9, 0x1b, 0x00, 0x00, 0xff, 0xff, 0xc0, 0xe8, 0xe5, 0xe1, 0x70, 0x06, 0x00, 0x00,
+	// 453 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x54, 0x4d, 0x8f, 0xd3, 0x30,
+	0x10, 0xdd, 0xa4, 0x6d, 0xe8, 0xce, 0xaa, 0x1f, 0x1a, 0x10, 0x44, 0x15, 0x85, 0x2a, 0x17, 0x8a,
+	0x90, 0x52, 0xa9, 0x7b, 0x41, 0x70, 0xda, 0x03, 0xf4, 0xb4, 0x42, 0x32, 0x12, 0x08, 0x2e, 0xc8,
+	0x24, 0x23, 0x36, 0x6a, 0x1b, 0x07, 0xc7, 0xa9, 0xe8, 0x5f, 0xe3, 0x3f, 0xf1, 0x1f, 0x90, 0x1d,
+	0xbb, 0xdb, 0xa6, 0xda, 0x9e, 0x7a, 0x9b, 0xf1, 0xbc, 0x79, 0x79, 0xf3, 0x66, 0x14, 0x18, 0xf3,
+	0x4a, 0xdd, 0xcd, 0x4a, 0x92, 0x9b, 0x2c, 0xa1, 0x59, 0x21, 0x85, 0x12, 0x33, 0xfd, 0x14, 0x9b,
+	0x10, 0x7b, 0xbf, 0x44, 0xbc, 0xce, 0x12, 0x29, 0x62, 0xfd, 0x18, 0xfd, 0xf5, 0xa1, 0xff, 0xb9,
+	0xc6, 0xde, 0x24, 0x89, 0xa8, 0x72, 0x85, 0x33, 0x08, 0x0a, 0x2e, 0x29, 0x57, 0xa1, 0x37, 0xf1,
+	0xa6, 0x57, 0xf3, 0x67, 0xf1, 0x41, 0x4b, 0xcc, 0xa8, 0x14, 0x95, 0x4c, 0x88, 0x59, 0x18, 0x3e,
+	0x81, 0x8e, 0x12, 0x4b, 0xca, 0x43, 0x7f, 0xe2, 0x4d, 0x2f, 0x59, 0x9d, 0x60, 0x08, 0x8f, 0x12,
+	0x49, 0x5c, 0x51, 0x1a, 0xb6, 0x26, 0xde, 0xb4, 0xc5, 0x5c, 0x8a, 0x4f, 0x21, 0xa0, 0x3f, 0x45,
+	0x26, 0xb7, 0x61, 0xdb, 0x14, 0x6c, 0x86, 0xaf, 0xa1, 0x23, 0xc5, 0x8a, 0xca, 0xb0, 0x33, 0x69,
+	0x4d, 0xaf, 0xe6, 0x8f, 0x9b, 0xdf, 0x15, 0x2b, 0x62, 0x35, 0x02, 0x17, 0xd0, 0x5d, 0x93, 0xe2,
+	0x29, 0x57, 0x3c, 0x0c, 0x0c, 0xfa, 0x4d, 0x03, 0x7d, 0x38, 0x54, 0x7c, 0x6b, 0xd1, 0x1f, 0x72,
+	0x25, 0xb7, 0x6c, 0xd7, 0x3c, 0x7a, 0x0f, 0xbd, 0x83, 0x12, 0x0e, 0xa1, 0xb5, 0xa4, 0xad, 0x19,
+	0xfd, 0x92, 0xe9, 0x50, 0x8f, 0xb7, 0xe1, 0xab, 0x8a, 0xdc, 0x78, 0x26, 0x79, 0xe7, 0xbf, 0xf5,
+	0xa2, 0x4f, 0xd0, 0xd6, 0xa2, 0x10, 0xa1, 0x9d, 0xf3, 0x35, 0xd9, 0x26, 0x13, 0xe3, 0x35, 0x74,
+	0xa5, 0x35, 0xca, 0x34, 0x9e, 0xf0, 0x71, 0x07, 0x8c, 0x62, 0xe8, 0xba, 0x57, 0xec, 0x83, 0x9f,
+	0xa5, 0x96, 0xd2, 0xcf, 0x52, 0xfd, 0x11, 0xb5, 0x2d, 0x9c, 0x0a, 0x13, 0x47, 0xdf, 0x60, 0xb0,
+	0xa0, 0x9c, 0x24, 0x57, 0xc4, 0xe8, 0x77, 0x45, 0xa5, 0xc2, 0x8f, 0x30, 0xb0, 0xbb, 0xff, 0xc1,
+	0xeb, 0xd9, 0xed, 0x1a, 0xc7, 0x27, 0x0d, 0x62, 0xfd, 0xf2, 0x20, 0x8f, 0xbe, 0xc3, 0xf0, 0x9e,
+	0xba, 0x2c, 0x44, 0x5e, 0xd2, 0xd9, 0xb8, 0x5f, 0xc1, 0xe0, 0x0b, 0x5f, 0x65, 0xe9, 0x9e, 0xec,
+	0xdd, 0x0d, 0x79, 0x7b, 0x37, 0xa4, 0x45, 0xdc, 0x03, 0xcf, 0x2c, 0xe2, 0x2b, 0xf4, 0x18, 0x6d,
+	0xc4, 0xf2, 0xec, 0xce, 0x0d, 0xa1, 0xef, 0x88, 0x6b, 0xc9, 0xf3, 0x7f, 0x1e, 0xb4, 0x6f, 0x2a,
+	0x75, 0x87, 0xb7, 0xd0, 0x75, 0xa6, 0xe2, 0x8b, 0x06, 0x6b, 0x63, 0x91, 0xa3, 0x97, 0x0f, 0xd6,
+	0x6b, 0xd6, 0xe8, 0x42, 0xd3, 0x39, 0x7b, 0x8e, 0xe8, 0x1a, 0x06, 0x1f, 0xd1, 0x35, 0x7d, 0x8d,
+	0x2e, 0x70, 0x01, 0x41, 0x2d, 0x1c, 0x9f, 0x1f, 0x9d, 0xea, 0x9e, 0x51, 0xa3, 0xf1, 0x03, 0x55,
+	0x47, 0xf4, 0x33, 0x30, 0xbf, 0x9a, 0xeb, 0xff, 0x01, 0x00, 0x00, 0xff, 0xff, 0x85, 0x6a, 0x97,
+	0x09, 0x8b, 0x04, 0x00, 0x00,
 }

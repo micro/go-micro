@@ -6,18 +6,15 @@ service Auth {
     rpc Generate(GenerateRequest) returns (GenerateResponse) {};
     rpc Validate(ValidateRequest) returns (ValidateResponse) {};
     rpc Revoke(RevokeRequest)  returns (RevokeResponse) {};
-    rpc AddRole(AddRoleRequest)  returns (AddRoleResponse) {};
-    rpc RemoveRole(RemoveRoleRequest)  returns (RemoveRoleResponse) {};
 }
 
 message ServiceAccount{
     Resource parent = 1;
-    string id = 2;
-    string token = 3;
-    int64 created = 4;
-    int64 expiry = 5;
-    repeated Role roles = 6;
-	map<string, string> metadata = 7;
+    string token = 2;
+    int64 created = 3;
+    int64 expiry = 4;
+    repeated Role roles = 5;
+	map<string, string> metadata = 6;
 }
 
 message Role {
@@ -34,34 +31,20 @@ message GenerateRequest {
     ServiceAccount service_account = 1;
 }
 
-message ValidateRequest {
-    string token = 1;
-}
-
-message RevokeRequest {
-    ServiceAccount service_account = 1;
-}
-
-message AddRoleRequest {
-    ServiceAccount service_account = 1;
-    Role role = 2;
-}
-
-message RemoveRoleRequest {
-    ServiceAccount service_account = 1;
-    Role role = 2;
-}
-
 message GenerateResponse {
     ServiceAccount service_account = 1;
+}
+
+message ValidateRequest {
+    string token = 1;
 }
 
 message ValidateResponse {
     ServiceAccount service_account = 1;
 }
 
+message RevokeRequest {
+    ServiceAccount service_account = 1;
+}
+
 message RevokeResponse {}
-
-message AddRoleResponse {}
-
-message RemoveRoleResponse {}

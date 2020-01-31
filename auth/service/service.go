@@ -52,7 +52,6 @@ func (s *svc) Generate(sa *auth.ServiceAccount) (*auth.ServiceAccount, error) {
 
 	// format the response
 	sa = &auth.ServiceAccount{
-		Id:       resp.ServiceAccount.Id,
 		Token:    resp.ServiceAccount.Token,
 		Created:  time.Unix(resp.ServiceAccount.Created, 0),
 		Expiry:   time.Unix(resp.ServiceAccount.Expiry, 0),
@@ -86,7 +85,7 @@ func (s *svc) Generate(sa *auth.ServiceAccount) (*auth.ServiceAccount, error) {
 func (s *svc) Revoke(sa *auth.ServiceAccount) error {
 	// contruct the request
 	req := &pb.RevokeRequest{
-		ServiceAccount: &pb.ServiceAccount{Id: sa.Id},
+		ServiceAccount: &pb.ServiceAccount{Token: sa.Token},
 	}
 
 	// execute the request
@@ -94,42 +93,9 @@ func (s *svc) Revoke(sa *auth.ServiceAccount) error {
 	return err
 }
 
-// AddRole to the service account
-func (s *svc) AddRole(sa *auth.ServiceAccount, r *auth.Role) error {
-	// construct the request
-	req := &pb.AddRoleRequest{
-		ServiceAccount: &pb.ServiceAccount{Id: sa.Id},
-		Role:           &pb.Role{Name: r.Name},
-	}
-	if r.Resource != nil {
-		req.Role.Resource = &pb.Resource{
-			Id:   r.Resource.Id,
-			Type: r.Resource.Type,
-		}
-	}
-
-	// execute the request
-	_, err := s.auth.AddRole(context.Background(), req)
-	return err
-}
-
-// RemoveRole from a service account
-func (s *svc) RemoveRole(sa *auth.ServiceAccount, r *auth.Role) error {
-	// construct the request
-	req := &pb.RemoveRoleRequest{
-		ServiceAccount: &pb.ServiceAccount{Id: sa.Id},
-		Role:           &pb.Role{Name: r.Name},
-	}
-	if r.Resource != nil {
-		req.Role.Resource = &pb.Resource{
-			Id:   r.Resource.Id,
-			Type: r.Resource.Type,
-		}
-	}
-
-	// execute the request
-	_, err := s.auth.RemoveRole(context.Background(), req)
-	return err
+// Validate a service account token
+func (s *svc) Validate(token string) (*auth.ServiceAccount, error) {
+	return nil, nil
 }
 
 // NewAuth returns a new instance of the Auth service

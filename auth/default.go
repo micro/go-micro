@@ -18,12 +18,7 @@ func (a *noop) Revoke(sa *ServiceAccount) error {
 	return nil
 }
 
-// AddRole to the service account
-func (a *noop) AddRole(sa *ServiceAccount, r *Role) error {
-	return nil
-}
-
-// RemoveRole from a service account
-func (a *noop) RemoveRole(sa *ServiceAccount, r *Role) error {
-	return nil
+// Validate a service account token
+func (a *noop) Validate(token string) (*ServiceAccount, error) {
+	return nil, nil
 }
