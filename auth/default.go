@@ -14,7 +14,7 @@ func (a *noop) Init(...Option) error {
 }
 
 // Generate a new auth Account
-func (a *noop) Generate(sa *Account) (*Account, error) {
+func (a *noop) Generate(id string, ops ...GenerateOption) (*Account, error) {
 	return nil, nil
 }
 

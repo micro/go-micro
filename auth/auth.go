@@ -10,11 +10,11 @@ type Auth interface {
 	// Init the auth package
 	Init(opts ...Option) error
 	// Generate a new auth Account
-	Generate(*Account) (*Account, error)
+	Generate(id string, opts ...GenerateOption) (*Account, error)
 	// Revoke an authorization Account
-	Revoke(string) error
+	Revoke(token string) error
 	// Validate an account token
-	Validate(string) (*Account, error)
+	Validate(token string) (*Account, error)
 }
 
 // Resource is an entity such as a user or
@@ -33,8 +33,8 @@ type Role struct {
 
 // Account provided by an auth provider
 type Account struct {
-	// The parent of the account, e.g. a user
-	Parent *Resource `json: "parent"`
+	// ID of the account (UUID or email)
+	Id string `json: "id"`
 	// Token used to authenticate
 	Token string `json: "token"`
 	// Time of Account creation

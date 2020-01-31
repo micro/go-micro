@@ -34,8 +34,14 @@ func (s *svc) Init(opts ...auth.Option) error {
 }
 
 // Generate a new auth account
-func (s *svc) Generate(sa *auth.Account) (*auth.Account, error) {
+func (s *svc) Generate(id string, opts ...auth.GenerateOption) (*auth.Account, error) {
 	// construct the request
+	options := auth.NewGenerateOptions(opts...)
+	sa := &auth.Account{
+		Id:       id,
+		Roles:    options.Roles,
+		Metadata: options.Metadata,
+	}
 	req := &pb.GenerateRequest{Account: serializeAccount(sa)}
 
 	// execute the request
@@ -84,28 +90,20 @@ func serializeAccount(sa *auth.Account) *pb.Account {
 	}
 
 	return &pb.Account{
+		Id:       sa.Id,
 		Roles:    roles,
 		Metadata: sa.Metadata,
-		Parent: &pb.Resource{
-			Name: sa.Parent.Name,
-			Type: sa.Parent.Type,
-		},
 	}
 }
 
 func deserializeAccount(a *pb.Account) *auth.Account {
 	// format the response
 	sa := &auth.Account{
+		Id:       a.Id,
 		Token:    a.Token,
 		Created:  time.Unix(a.Created, 0),
 		Expiry:   time.Unix(a.Expiry, 0),
 		Metadata: a.Metadata,
-	}
-	if a.Parent != nil {
-		sa.Parent = &auth.Resource{
-			Name: a.Parent.Name,
-			Type: a.Parent.Type,
-		}
 	}
 
 	sa.Roles = make([]*auth.Role, len(a.Roles))

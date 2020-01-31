@@ -9,7 +9,7 @@ service Auth {
 }
 
 message Account{
-    Resource parent = 1;
+    string id = 1;
     string token = 2;
     int64 created = 3;
     int64 expiry = 4;

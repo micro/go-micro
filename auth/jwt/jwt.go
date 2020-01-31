@@ -39,6 +39,7 @@ func (s *svc) Init(opts ...auth.Option) error {
 
 // AuthClaims to be encoded in the JWT
 type AuthClaims struct {
+	Id       string            `json:"id"`
 	Roles    []*auth.Role      `json:"roles"`
 	Metadata map[string]string `json:"metadata"`
 
@@ -46,25 +47,31 @@ type AuthClaims struct {
 }
 
 // Generate a new JWT
-func (s *svc) Generate(sa *auth.Account) (*auth.Account, error) {
+func (s *svc) Generate(id string, ops ...auth.GenerateOption) (*auth.Account, error) {
 	key, err := jwt.ParseRSAPrivateKeyFromPEM(s.options.PrivateKey)
 	if err != nil {
 		return nil, ErrEncodingToken
 	}
 
+	options := auth.NewGenerateOptions(ops...)
 	account := jwt.NewWithClaims(jwt.SigningMethodRS256, AuthClaims{
-		sa.Roles, sa.Metadata, jwt.StandardClaims{
+		id, options.Roles, options.Metadata, jwt.StandardClaims{
 			Subject:   "TODO",
 			ExpiresAt: time.Now().Add(time.Hour * 24).Unix(),
 		},
 	})
 
-	sa.Token, err = account.SignedString(key)
+	token, err := account.SignedString(key)
 	if err != nil {
 		return nil, err
 	}
 
-	return sa, nil
+	return &auth.Account{
+		Id:       id,
+		Token:    token,
+		Roles:    options.Roles,
+		Metadata: options.Metadata,
+	}, nil
 }
 
 // Revoke an authorization account
@@ -88,6 +95,7 @@ func (s *svc) Validate(token string) (*auth.Account, error) {
 	claims := res.Claims.(*AuthClaims)
 
 	return &auth.Account{
+		Id:       claims.Id,
 		Metadata: claims.Metadata,
 		Roles:    claims.Roles,
 	}, nil
