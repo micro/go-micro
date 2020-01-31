@@ -562,12 +562,17 @@ func (g *grpcServer) Register() error {
 		return err
 	}
 
-	g.Lock()
+	// make copy of metadata
+	md := make(meta.Metadata)
+	for k, v := range config.Metadata {
+		md[k] = v
+	}
+
 	// register service
 	node := &registry.Node{
 		Id:       config.Name + "-" + config.Id,
 		Address:  mnet.HostPort(addr, port),
-		Metadata: config.Metadata,
+		Metadata: md,
 	}
 
 	node.Metadata["broker"] = config.Broker.String()
@@ -575,7 +580,6 @@ func (g *grpcServer) Register() error {
 	node.Metadata["server"] = g.String()
 	node.Metadata["transport"] = g.String()
 	node.Metadata["protocol"] = "grpc"
-	g.Unlock()
 
 	g.RLock()
 	// Maps are ordered randomly, sort the keys for consistency
