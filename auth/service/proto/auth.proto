@@ -8,7 +8,7 @@ service Auth {
     rpc Revoke(RevokeRequest)  returns (RevokeResponse) {};
 }
 
-message ServiceAccount{
+message Account{
     Resource parent = 1;
     string token = 2;
     int64 created = 3;
@@ -23,16 +23,16 @@ message Role {
 }
 
 message Resource{
-    string id = 1;
+    string name = 1;
     string type = 2;
 }
 
 message GenerateRequest {
-    ServiceAccount service_account = 1;
+    Account account = 1;
 }
 
 message GenerateResponse {
-    ServiceAccount service_account = 1;
+    Account account = 1;
 }
 
 message ValidateRequest {
@@ -40,7 +40,7 @@ message ValidateRequest {
 }
 
 message ValidateResponse {
-    ServiceAccount service_account = 1;
+    Account account = 1;
 }
 
 message RevokeRequest {

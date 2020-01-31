@@ -13,17 +13,17 @@ func (a *noop) Init(...Option) error {
 	return nil
 }
 
-// Generate a new auth ServiceAccount
-func (a *noop) Generate(sa *ServiceAccount) (*ServiceAccount, error) {
+// Generate a new auth Account
+func (a *noop) Generate(sa *Account) (*Account, error) {
 	return nil, nil
 }
 
-// Revoke an authorization ServiceAccount
+// Revoke an authorization Account
 func (a *noop) Revoke(token string) error {
 	return nil
 }
 
-// Validate a service account token
-func (a *noop) Validate(token string) (*ServiceAccount, error) {
+// Validate a  account token
+func (a *noop) Validate(token string) (*Account, error) {
 	return nil, nil
 }

@@ -9,39 +9,39 @@ import (
 type Auth interface {
 	// Init the auth package
 	Init(opts ...Option) error
-	// Generate a new auth ServiceAccount
-	Generate(*ServiceAccount) (*ServiceAccount, error)
-	// Revoke an authorization ServiceAccount
+	// Generate a new auth Account
+	Generate(*Account) (*Account, error)
+	// Revoke an authorization Account
 	Revoke(string) error
-	// Validate a service account token
-	Validate(string) (*ServiceAccount, error)
+	// Validate an account token
+	Validate(string) (*Account, error)
 }
 
-// Resource is an entity such as a user or service
+// Resource is an entity such as a user or
 type Resource struct {
-	// Id of the resource
-	Id string
-	// Type of resource, e.g. Service
+	// Name of the resource
+	Name string
+	// Type of resource, e.g.
 	Type string
 }
 
-// Role a service account has
+// Role an account has
 type Role struct {
 	Name     string
 	Resource *Resource
 }
 
-// ServiceAccount providers by an auth provider
-type ServiceAccount struct {
-	// The parent of the service account, e.g. a user
+// Account provided by an auth provider
+type Account struct {
+	// The parent of the account, e.g. a user
 	Parent *Resource `json: "parent"`
 	// Token used to authenticate
 	Token string `json: "token"`
-	// Time of ServiceAccount creation
+	// Time of Account creation
 	Created time.Time `json:"created"`
-	// Time of ServiceAccount expiry
+	// Time of Account expiry
 	Expiry time.Time `json:"expiry"`
-	// Roles associated with the ServiceAccount
+	// Roles associated with the Account
 	Roles []*Role `json:"roles"`
 	// Any other associated metadata
 	Metadata map[string]string `json:"metadata"`

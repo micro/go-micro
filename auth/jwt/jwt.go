@@ -30,17 +30,17 @@ func (s *svc) Init(opts ...auth.Option) error {
 	return nil
 }
 
-// Generate a new auth ServiceAccount
-func (s *svc) Generate(sa *auth.ServiceAccount) (*auth.ServiceAccount, error) {
+// Generate a new auth account
+func (s *svc) Generate(sa *auth.Account) (*auth.Account, error) {
 	return nil, nil
 }
 
-// Revoke an authorization ServiceAccount
+// Revoke an authorization account
 func (s *svc) Revoke(token string) error {
 	return nil
 }
 
-// Validate a service account token
-func (s *svc) Validate(token string) (*auth.ServiceAccount, error) {
+// Validate an account token
+func (s *svc) Validate(token string) (*auth.Account, error) {
 	return nil, nil
 }
