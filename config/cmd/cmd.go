@@ -235,9 +235,14 @@ var (
 			Usage:   "Auth for role based access control, e.g. service",
 		},
 		&cli.StringFlag{
-			Name:    "jwt_public_key",
+			Name:    "auth_public_key",
 			EnvVars: []string{"MICRO_AUTH_PUBLIC_KEY"},
-			Usage:   "Public key for JWT auth",
+			Usage:   "Public key for JWT auth (base64 encoded PEM)",
+		},
+		&cli.StringFlag{
+			Name:    "auth_private_key",
+			EnvVars: []string{"MICRO_AUTH_PRIVATE_KEY"},
+			Usage:   "Private key for JWT auth (base64 encoded PEM)",
 		},
 	}
 
@@ -564,9 +569,15 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		serverOpts = append(serverOpts, server.RegisterInterval(val*time.Second))
 	}
 
-	if key := ctx.String("jtw_public_key"); key != "" {
-		if err := (*c.opts.Auth).Init(auth.PublicKey(key)); err != nil {
-			log.Fatalf("Error configuring registry: %v", err)
+	if len(ctx.String("auth_public_key")) > 0 {
+		if err := (*c.opts.Auth).Init(auth.PublicKey(ctx.String("auth_public_key"))); err != nil {
+			log.Fatalf("Error configuring auth: %v", err)
+		}
+	}
+
+	if len(ctx.String("auth_private_key")) > 0 {
+		if err := (*c.opts.Auth).Init(auth.PrivateKey(ctx.String("auth_private_key"))); err != nil {
+			log.Fatalf("Error configuring auth: %v", err)
 		}
 	}
 
