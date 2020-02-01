@@ -7,8 +7,8 @@ import (
 )
 
 func Do(attempts int) time.Duration {
-	if attempts == 0 {
-		return time.Duration(0)
+	if attempts > 13 {
+		return 2 * time.Minute
 	}
-	return time.Duration(math.Pow(10, float64(attempts))) * time.Millisecond
+	return time.Duration(math.Pow(float64(attempts), math.E)) * time.Millisecond * 100
 }
