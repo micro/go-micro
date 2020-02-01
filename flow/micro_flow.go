@@ -208,8 +208,10 @@ func (fl *microFlow) Execute(flow string, step string, req interface{}, rsp inte
 		return "", fmt.Errorf("req invalid, flow only works with proto.Message and []byte")
 	}
 
-	rspmsg, ok := rsp.(proto.Message)
-	if !ok && rsp != nil {
+	switch rsp.(type) {
+	case *any.Any, proto.Message, []byte:
+		break
+	default:
 		return "", fmt.Errorf("rsp invalid, flow only works with proto.Message and []byte")
 	}
 
@@ -230,9 +232,16 @@ func (fl *microFlow) Execute(flow string, step string, req interface{}, rsp inte
 		if job.err != nil {
 			return "", job.err
 		}
-		if job.rsp != nil && rspmsg != nil {
-			if err = proto.Unmarshal(job.rsp, rspmsg); err != nil {
-				return "", err
+		if job.rsp != nil {
+			switch v := rsp.(type) {
+			case *any.Any:
+				v.Value = job.rsp
+			case proto.Message:
+				if err = proto.Unmarshal(job.rsp, v); err != nil {
+					return "", err
+				}
+			case []byte:
+				v = job.rsp
 			}
 		}
 	}
