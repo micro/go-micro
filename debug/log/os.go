@@ -28,11 +28,24 @@ type osStream struct {
 	stop   chan bool
 }
 
+func (o *osLog) copyStd() (Stdout, Stderr os.File) {
+	o.Lock()
+	defer o.Unlock()
+	return *os.Stdout, *os.Stderr
+}
+
+func (o *osLog) setStd(stdout, stderr *os.File) {
+	o.Lock()
+	defer o.Unlock()
+
+	*os.Stdout = *stdout
+	*os.Stderr = *stderr
+}
+
 // watch io stream
 func (o *osLog) run() {
 	// save outputs
-	stdout := *os.Stdout
-	stderr := *os.Stderr
+	stdout, stderr := o.copyStd()
 
 	// new os pipe
 	r, w := io.Pipe()
@@ -53,15 +66,12 @@ func (o *osLog) run() {
 	//log.SetOutput(w2)
 
 	// replace os stdout and os stderr
-	*os.Stdout = *w1
-	*os.Stderr = *w2
+	o.setStd(w1, w2)
 
 	// this should short circuit everything
 	defer func() {
 		// reset stdout and stderr
-		*os.Stdout = stdout
-		*os.Stderr = stderr
-		//log.SetOutput(stderr)
+		o.setStd(&stdout, &stderr)
 
 		// close all the outputs
 		r.Close()
@@ -140,6 +150,9 @@ func (o *osLog) Write(r Record) error {
 	o.once.Do(func() {
 		go o.run()
 	})
+
+	o.Lock()
+	defer o.Unlock()
 
 	// generate output
 	out := o.format(r) + "\n"

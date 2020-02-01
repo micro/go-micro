@@ -23,14 +23,17 @@ type traceWrapper struct {
 }
 
 var (
+	// HeaderPrefix is the default prefix
 	HeaderPrefix = "Micro-"
 )
 
 func (c *clientWrapper) setHeaders(ctx context.Context) context.Context {
 	// copy metadata
-	mda, _ := metadata.FromContext(ctx)
-	md := metadata.Copy(mda)
+	md, ok := metadata.FromContext(ctx)
+	if !ok {
+		md = make(map[string]string)
 
+	}
 	// set headers
 	for k, v := range c.headers {
 		if _, ok := md[k]; !ok {

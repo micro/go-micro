@@ -9,6 +9,7 @@ import (
 	proto "github.com/micro/go-micro/v2/debug/service/proto"
 	"github.com/micro/go-micro/v2/debug/stats"
 	"github.com/micro/go-micro/v2/debug/trace"
+	"github.com/micro/go-micro/v2/metadata"
 	"github.com/micro/go-micro/v2/server"
 )
 
@@ -74,7 +75,7 @@ func (d *Debug) Trace(ctx context.Context, req *proto.TraceRequest, rsp *proto.T
 			Name:     trace.Name,
 			Started:  uint64(trace.Started.UnixNano()),
 			Duration: uint64(trace.Duration.Nanoseconds()),
-			Metadata: trace.Metadata,
+			Metadata: metadata.Copy(trace.Metadata),
 		})
 	}
 
@@ -112,16 +113,11 @@ func (d *Debug) Log(ctx context.Context, stream server.Stream) error {
 		defer lgStream.Stop()
 
 		for record := range lgStream.Chan() {
-			// copy metadata
-			metadata := make(map[string]string)
-			for k, v := range record.Metadata {
-				metadata[k] = v
-			}
 			// send record
 			if err := stream.Send(&proto.Record{
 				Timestamp: record.Timestamp.Unix(),
 				Message:   record.Message.(string),
-				Metadata:  metadata,
+				Metadata:  metadata.Copy(record.Metadata),
 			}); err != nil {
 				return err
 			}
@@ -139,16 +135,11 @@ func (d *Debug) Log(ctx context.Context, stream server.Stream) error {
 
 	// send all the logs downstream
 	for _, record := range records {
-		// copy metadata
-		metadata := make(map[string]string)
-		for k, v := range record.Metadata {
-			metadata[k] = v
-		}
 		// send record
 		if err := stream.Send(&proto.Record{
 			Timestamp: record.Timestamp.Unix(),
 			Message:   record.Message.(string),
-			Metadata:  metadata,
+			Metadata:  metadata.Copy(record.Metadata),
 		}); err != nil {
 			return err
 		}
