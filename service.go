@@ -87,13 +87,15 @@ func (s *service) Init(opts ...Option) {
 		}
 
 		// Initialise the command flags, overriding new service
-		_ = s.opts.Cmd.Init(
+		if err := s.opts.Cmd.Init(
 			cmd.Broker(&s.opts.Broker),
 			cmd.Registry(&s.opts.Registry),
 			cmd.Transport(&s.opts.Transport),
 			cmd.Client(&s.opts.Client),
 			cmd.Server(&s.opts.Server),
-		)
+		); err != nil {
+			log.Fatal(err)
+		}
 	})
 }
 
