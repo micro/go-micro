@@ -748,7 +748,13 @@ func (g *grpcServer) Start() error {
 	config := g.Options()
 
 	// micro: config.Transport.Listen(config.Address)
-	ts, err := net.Listen("tcp", config.Address)
+	var ts net.Listener
+	var err error
+	if strings.HasPrefix(config.Address, "unix://") {
+		ts, err = net.Listen("unix", strings.TrimPrefix(config.Address, "unix://"))
+	} else {
+		ts, err = net.Listen("tcp", config.Address)
+	}
 	if err != nil {
 		return err
 	}
