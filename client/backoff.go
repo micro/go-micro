@@ -2,8 +2,9 @@ package client
 
 import (
 	"context"
-	"github.com/micro/go-micro/v2/util/backoff"
 	"time"
+
+	"github.com/micro/go-micro/v2/util/backoff"
 )
 
 type BackoffFunc func(ctx context.Context, req Request, attempts int) (time.Duration, error)
