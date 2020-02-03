@@ -17,6 +17,8 @@ var (
 
 // Runtime is a service runtime manager
 type Runtime interface {
+	// String describes runtime
+	String() string
 	// Init initializes runtime
 	Init(...Option) error
 	// Create registers a service

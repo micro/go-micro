@@ -170,6 +170,8 @@ func (s *service) Wait() {
 		s.Metadata["status"] = "error"
 		s.Metadata["error"] = err.Error()
 		s.err = err
+	} else {
+		s.Metadata["status"] = "done"
 	}
 
 	// no longer running
