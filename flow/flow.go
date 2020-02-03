@@ -41,13 +41,17 @@ type Flow interface {
 type Step struct {
 	// name of step
 	ID string
-	// operations for execute
+	// Retry count for step
+	Retry int
+	// Timeout for step
+	Timeout int
+	// Step operation to execute
 	Operation Operation
 	// steps that are required for this step
 	Requires []string
 	// steps for which this step required
 	Required []string
-	// in case of error, operaions to execute
+	// Step operation to execute in case of error
 	Fallback Operation
 }
 
