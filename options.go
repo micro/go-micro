@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/micro/cli/v2"
+	"github.com/micro/go-micro/v2/auth"
 	"github.com/micro/go-micro/v2/broker"
 	"github.com/micro/go-micro/v2/client"
 	"github.com/micro/go-micro/v2/client/selector"
@@ -117,6 +118,13 @@ func Registry(r registry.Registry) Option {
 func Tracer(t trace.Tracer) Option {
 	return func(o *Options) {
 		o.Server.Init(server.Tracer(t))
+	}
+}
+
+// Auth sets the auth for the service
+func Auth(a auth.Auth) Option {
+	return func(o *Options) {
+		o.Server.Init(server.Auth(a))
 	}
 }
 
