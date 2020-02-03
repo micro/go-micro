@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/micro/go-micro/v2/auth"
 	"github.com/micro/go-micro/v2/broker"
 	"github.com/micro/go-micro/v2/client"
 	"github.com/micro/go-micro/v2/client/selector"
@@ -55,6 +56,10 @@ import (
 	// tracers
 	// jTracer "github.com/micro/go-micro/v2/debug/trace/jaeger"
 	memTracer "github.com/micro/go-micro/v2/debug/trace/memory"
+
+	// auth
+	jwtAuth "github.com/micro/go-micro/v2/auth/jwt"
+	sAuth "github.com/micro/go-micro/v2/auth/service"
 )
 
 type Cmd interface {
@@ -223,6 +228,21 @@ var (
 			EnvVars: []string{"MICRO_TRACER_ADDRESS"},
 			Usage:   "Comma-separated list of tracer addresses",
 		},
+		&cli.StringFlag{
+			Name:    "auth",
+			EnvVars: []string{"MICRO_AUTH"},
+			Usage:   "Auth for role based access control, e.g. service",
+		},
+		&cli.StringFlag{
+			Name:    "auth_public_key",
+			EnvVars: []string{"MICRO_AUTH_PUBLIC_KEY"},
+			Usage:   "Public key for JWT auth (base64 encoded PEM)",
+		},
+		&cli.StringFlag{
+			Name:    "auth_private_key",
+			EnvVars: []string{"MICRO_AUTH_PRIVATE_KEY"},
+			Usage:   "Private key for JWT auth (base64 encoded PEM)",
+		},
 	}
 
 	DefaultBrokers = map[string]func(...broker.Option) broker.Broker{
@@ -274,6 +294,11 @@ var (
 		// "jaeger": jTracer.NewTracer,
 	}
 
+	DefaultAuths = map[string]func(...auth.Option) auth.Auth{
+		"service": sAuth.NewAuth,
+		"jwt":     jwtAuth.NewAuth,
+	}
+
 	// used for default selection as the fall back
 	defaultClient    = "grpc"
 	defaultServer    = "grpc"
@@ -300,6 +325,7 @@ func newCmd(opts ...Option) Cmd {
 		Runtime:   &runtime.DefaultRuntime,
 		Store:     &store.DefaultStore,
 		Tracer:    &trace.DefaultTracer,
+		Auth:      &auth.DefaultAuth,
 
 		Brokers:    DefaultBrokers,
 		Clients:    DefaultClients,
@@ -310,6 +336,7 @@ func newCmd(opts ...Option) Cmd {
 		Runtimes:   DefaultRuntimes,
 		Stores:     DefaultStores,
 		Tracers:    DefaultTracers,
+		Auths:      DefaultAuths,
 	}
 
 	for _, o := range opts {
@@ -380,6 +407,16 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		}
 
 		*c.opts.Tracer = r()
+	}
+
+	// Set the auth
+	if name := ctx.String("auth"); len(name) > 0 {
+		r, ok := c.opts.Auths[name]
+		if !ok {
+			return fmt.Errorf("Unsupported auth: %s", name)
+		}
+
+		*c.opts.Auth = r()
 	}
 
 	// Set the client
@@ -529,6 +566,18 @@ func (c *cmd) Before(ctx *cli.Context) error {
 
 	if val := time.Duration(ctx.Int("register_interval")); val >= 0 {
 		serverOpts = append(serverOpts, server.RegisterInterval(val*time.Second))
+	}
+
+	if len(ctx.String("auth_public_key")) > 0 {
+		if err := (*c.opts.Auth).Init(auth.PublicKey(ctx.String("auth_public_key"))); err != nil {
+			log.Fatalf("Error configuring auth: %v", err)
+		}
+	}
+
+	if len(ctx.String("auth_private_key")) > 0 {
+		if err := (*c.opts.Auth).Init(auth.PrivateKey(ctx.String("auth_private_key"))); err != nil {
+			log.Fatalf("Error configuring auth: %v", err)
+		}
 	}
 
 	// client opts
