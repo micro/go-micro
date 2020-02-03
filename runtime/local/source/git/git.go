@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/micro/go-micro/runtime/local/source"
+	"github.com/micro/go-micro/v2/runtime/local/source"
 	git "gopkg.in/src-d/go-git.v4"
 )
 

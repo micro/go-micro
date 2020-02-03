@@ -5,15 +5,22 @@ import (
 	"context"
 	"time"
 
-	"github.com/micro/go-micro/client"
-
-	"github.com/micro/go-micro/debug/log"
-	pb "github.com/micro/go-micro/debug/service/proto"
+	"github.com/micro/go-micro/v2/client"
+	"github.com/micro/go-micro/v2/debug/log"
+	pb "github.com/micro/go-micro/v2/debug/service/proto"
 )
 
 // Debug provides debug service client
 type debugClient struct {
 	Client pb.DebugService
+}
+
+func (d *debugClient) Trace() ([]*pb.Span, error) {
+	rsp, err := d.Client.Trace(context.Background(), &pb.TraceRequest{})
+	if err != nil {
+		return nil, err
+	}
+	return rsp.Spans, nil
 }
 
 // Logs queries the services logs and returns a channel to read the logs from

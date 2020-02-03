@@ -6,7 +6,7 @@ package go_micro_network
 import (
 	fmt "fmt"
 	proto "github.com/golang/protobuf/proto"
-	proto1 "github.com/micro/go-micro/router/service/proto"
+	proto1 "github.com/micro/go-micro/v2/router/service/proto"
 	math "math"
 )
 

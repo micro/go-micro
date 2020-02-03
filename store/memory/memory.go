@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/micro/go-micro/store"
+	"github.com/micro/go-micro/v2/store"
 )
 
 type memoryStore struct {

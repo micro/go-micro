@@ -10,8 +10,8 @@ import (
 	"unicode"
 
 	"github.com/lib/pq"
-	"github.com/micro/go-micro/store"
-	"github.com/micro/go-micro/util/log"
+	"github.com/micro/go-micro/v2/store"
+	"github.com/micro/go-micro/v2/util/log"
 	"github.com/pkg/errors"
 )
 

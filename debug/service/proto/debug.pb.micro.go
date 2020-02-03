@@ -11,8 +11,8 @@ import (
 
 import (
 	context "context"
-	client "github.com/micro/go-micro/client"
-	server "github.com/micro/go-micro/server"
+	client "github.com/micro/go-micro/v2/client"
+	server "github.com/micro/go-micro/v2/server"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -34,9 +34,9 @@ var _ server.Option
 // Client API for Debug service
 
 type DebugService interface {
+	Log(ctx context.Context, in *LogRequest, opts ...client.CallOption) (Debug_LogService, error)
 	Health(ctx context.Context, in *HealthRequest, opts ...client.CallOption) (*HealthResponse, error)
 	Stats(ctx context.Context, in *StatsRequest, opts ...client.CallOption) (*StatsResponse, error)
-	Log(ctx context.Context, in *LogRequest, opts ...client.CallOption) (Debug_LogService, error)
 	Trace(ctx context.Context, in *TraceRequest, opts ...client.CallOption) (*TraceResponse, error)
 }
 
@@ -46,16 +46,59 @@ type debugService struct {
 }
 
 func NewDebugService(name string, c client.Client) DebugService {
-	if c == nil {
-		c = client.NewClient()
-	}
-	if len(name) == 0 {
-		name = "debug"
-	}
 	return &debugService{
 		c:    c,
 		name: name,
 	}
+}
+
+func (c *debugService) Log(ctx context.Context, in *LogRequest, opts ...client.CallOption) (Debug_LogService, error) {
+	req := c.c.NewRequest(c.name, "Debug.Log", &LogRequest{})
+	stream, err := c.c.Stream(ctx, req, opts...)
+	if err != nil {
+		return nil, err
+	}
+	if err := stream.Send(in); err != nil {
+		return nil, err
+	}
+	return &debugServiceLog{stream}, nil
+}
+
+type Debug_LogService interface {
+	Context() context.Context
+	SendMsg(interface{}) error
+	RecvMsg(interface{}) error
+	Close() error
+	Recv() (*Record, error)
+}
+
+type debugServiceLog struct {
+	stream client.Stream
+}
+
+func (x *debugServiceLog) Close() error {
+	return x.stream.Close()
+}
+
+func (x *debugServiceLog) Context() context.Context {
+	return x.stream.Context()
+}
+
+func (x *debugServiceLog) SendMsg(m interface{}) error {
+	return x.stream.Send(m)
+}
+
+func (x *debugServiceLog) RecvMsg(m interface{}) error {
+	return x.stream.Recv(m)
+}
+
+func (x *debugServiceLog) Recv() (*Record, error) {
+	m := new(Record)
+	err := x.stream.Recv(m)
+	if err != nil {
+		return nil, err
+	}
+	return m, nil
 }
 
 func (c *debugService) Health(ctx context.Context, in *HealthRequest, opts ...client.CallOption) (*HealthResponse, error) {
@@ -78,50 +121,6 @@ func (c *debugService) Stats(ctx context.Context, in *StatsRequest, opts ...clie
 	return out, nil
 }
 
-func (c *debugService) Log(ctx context.Context, in *LogRequest, opts ...client.CallOption) (Debug_LogService, error) {
-	req := c.c.NewRequest(c.name, "Debug.Log", &LogRequest{})
-	stream, err := c.c.Stream(ctx, req, opts...)
-	if err != nil {
-		return nil, err
-	}
-	if err := stream.Send(in); err != nil {
-		return nil, err
-	}
-	return &debugServiceLog{stream}, nil
-}
-
-type Debug_LogService interface {
-	SendMsg(interface{}) error
-	RecvMsg(interface{}) error
-	Close() error
-	Recv() (*Record, error)
-}
-
-type debugServiceLog struct {
-	stream client.Stream
-}
-
-func (x *debugServiceLog) Close() error {
-	return x.stream.Close()
-}
-
-func (x *debugServiceLog) SendMsg(m interface{}) error {
-	return x.stream.Send(m)
-}
-
-func (x *debugServiceLog) RecvMsg(m interface{}) error {
-	return x.stream.Recv(m)
-}
-
-func (x *debugServiceLog) Recv() (*Record, error) {
-	m := new(Record)
-	err := x.stream.Recv(m)
-	if err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
 func (c *debugService) Trace(ctx context.Context, in *TraceRequest, opts ...client.CallOption) (*TraceResponse, error) {
 	req := c.c.NewRequest(c.name, "Debug.Trace", in)
 	out := new(TraceResponse)
@@ -135,17 +134,17 @@ func (c *debugService) Trace(ctx context.Context, in *TraceRequest, opts ...clie
 // Server API for Debug service
 
 type DebugHandler interface {
+	Log(context.Context, *LogRequest, Debug_LogStream) error
 	Health(context.Context, *HealthRequest, *HealthResponse) error
 	Stats(context.Context, *StatsRequest, *StatsResponse) error
-	Log(context.Context, *LogRequest, Debug_LogStream) error
 	Trace(context.Context, *TraceRequest, *TraceResponse) error
 }
 
 func RegisterDebugHandler(s server.Server, hdlr DebugHandler, opts ...server.HandlerOption) error {
 	type debug interface {
+		Log(ctx context.Context, stream server.Stream) error
 		Health(ctx context.Context, in *HealthRequest, out *HealthResponse) error
 		Stats(ctx context.Context, in *StatsRequest, out *StatsResponse) error
-		Log(ctx context.Context, stream server.Stream) error
 		Trace(ctx context.Context, in *TraceRequest, out *TraceResponse) error
 	}
 	type Debug struct {
@@ -159,14 +158,6 @@ type debugHandler struct {
 	DebugHandler
 }
 
-func (h *debugHandler) Health(ctx context.Context, in *HealthRequest, out *HealthResponse) error {
-	return h.DebugHandler.Health(ctx, in, out)
-}
-
-func (h *debugHandler) Stats(ctx context.Context, in *StatsRequest, out *StatsResponse) error {
-	return h.DebugHandler.Stats(ctx, in, out)
-}
-
 func (h *debugHandler) Log(ctx context.Context, stream server.Stream) error {
 	m := new(LogRequest)
 	if err := stream.Recv(m); err != nil {
@@ -176,6 +167,7 @@ func (h *debugHandler) Log(ctx context.Context, stream server.Stream) error {
 }
 
 type Debug_LogStream interface {
+	Context() context.Context
 	SendMsg(interface{}) error
 	RecvMsg(interface{}) error
 	Close() error
@@ -190,6 +182,10 @@ func (x *debugLogStream) Close() error {
 	return x.stream.Close()
 }
 
+func (x *debugLogStream) Context() context.Context {
+	return x.stream.Context()
+}
+
 func (x *debugLogStream) SendMsg(m interface{}) error {
 	return x.stream.Send(m)
 }
@@ -200,6 +196,14 @@ func (x *debugLogStream) RecvMsg(m interface{}) error {
 
 func (x *debugLogStream) Send(m *Record) error {
 	return x.stream.Send(m)
+}
+
+func (h *debugHandler) Health(ctx context.Context, in *HealthRequest, out *HealthResponse) error {
+	return h.DebugHandler.Health(ctx, in, out)
+}
+
+func (h *debugHandler) Stats(ctx context.Context, in *StatsRequest, out *StatsResponse) error {
+	return h.DebugHandler.Stats(ctx, in, out)
 }
 
 func (h *debugHandler) Trace(ctx context.Context, in *TraceRequest, out *TraceResponse) error {

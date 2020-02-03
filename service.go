@@ -8,18 +8,18 @@ import (
 	"sync"
 	"syscall"
 
-	"github.com/micro/go-micro/client"
-	"github.com/micro/go-micro/config/cmd"
-	"github.com/micro/go-micro/debug/profile"
-	"github.com/micro/go-micro/debug/profile/http"
-	"github.com/micro/go-micro/debug/profile/pprof"
-	"github.com/micro/go-micro/debug/service/handler"
-	"github.com/micro/go-micro/debug/stats"
-	"github.com/micro/go-micro/debug/trace"
-	"github.com/micro/go-micro/plugin"
-	"github.com/micro/go-micro/server"
-	"github.com/micro/go-micro/util/log"
-	"github.com/micro/go-micro/util/wrapper"
+	"github.com/micro/go-micro/v2/client"
+	"github.com/micro/go-micro/v2/config/cmd"
+	"github.com/micro/go-micro/v2/debug/profile"
+	"github.com/micro/go-micro/v2/debug/profile/http"
+	"github.com/micro/go-micro/v2/debug/profile/pprof"
+	"github.com/micro/go-micro/v2/debug/service/handler"
+	"github.com/micro/go-micro/v2/debug/stats"
+	"github.com/micro/go-micro/v2/debug/trace"
+	"github.com/micro/go-micro/v2/plugin"
+	"github.com/micro/go-micro/v2/server"
+	"github.com/micro/go-micro/v2/util/log"
+	"github.com/micro/go-micro/v2/util/wrapper"
 )
 
 type service struct {
@@ -87,13 +87,15 @@ func (s *service) Init(opts ...Option) {
 		}
 
 		// Initialise the command flags, overriding new service
-		_ = s.opts.Cmd.Init(
+		if err := s.opts.Cmd.Init(
 			cmd.Broker(&s.opts.Broker),
 			cmd.Registry(&s.opts.Registry),
 			cmd.Transport(&s.opts.Transport),
 			cmd.Client(&s.opts.Client),
 			cmd.Server(&s.opts.Server),
-		)
+		); err != nil {
+			log.Fatal(err)
+		}
 	})
 }
 

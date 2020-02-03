@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/micro/go-micro/registry"
-	"github.com/micro/go-micro/util/log"
+	"github.com/micro/go-micro/v2/registry"
+	"github.com/micro/go-micro/v2/util/log"
 )
 
 var (

@@ -1,8 +1,8 @@
 package service
 
 import (
-	"github.com/micro/go-micro/registry"
-	pb "github.com/micro/go-micro/registry/service/proto"
+	"github.com/micro/go-micro/v2/registry"
+	pb "github.com/micro/go-micro/v2/registry/service/proto"
 )
 
 type serviceWatcher struct {

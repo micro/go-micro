@@ -7,59 +7,59 @@ import (
 	"strings"
 	"time"
 
-	"github.com/micro/go-micro/auth"
-	"github.com/micro/go-micro/broker"
-	"github.com/micro/go-micro/client"
-	"github.com/micro/go-micro/client/selector"
-	"github.com/micro/go-micro/debug/trace"
-	"github.com/micro/go-micro/registry"
-	"github.com/micro/go-micro/runtime"
-	"github.com/micro/go-micro/server"
-	"github.com/micro/go-micro/store"
-	"github.com/micro/go-micro/transport"
-	"github.com/micro/go-micro/util/log"
+	"github.com/micro/go-micro/v2/auth"
+	"github.com/micro/go-micro/v2/broker"
+	"github.com/micro/go-micro/v2/client"
+	"github.com/micro/go-micro/v2/client/selector"
+	"github.com/micro/go-micro/v2/debug/trace"
+	"github.com/micro/go-micro/v2/registry"
+	"github.com/micro/go-micro/v2/runtime"
+	"github.com/micro/go-micro/v2/server"
+	"github.com/micro/go-micro/v2/store"
+	"github.com/micro/go-micro/v2/transport"
+	"github.com/micro/go-micro/v2/util/log"
 
 	// clients
-	cgrpc "github.com/micro/go-micro/client/grpc"
-	cmucp "github.com/micro/go-micro/client/mucp"
+	cgrpc "github.com/micro/go-micro/v2/client/grpc"
+	cmucp "github.com/micro/go-micro/v2/client/mucp"
 
 	// servers
 	"github.com/micro/cli/v2"
-	sgrpc "github.com/micro/go-micro/server/grpc"
-	smucp "github.com/micro/go-micro/server/mucp"
+	sgrpc "github.com/micro/go-micro/v2/server/grpc"
+	smucp "github.com/micro/go-micro/v2/server/mucp"
 
 	// brokers
-	"github.com/micro/go-micro/broker/memory"
-	"github.com/micro/go-micro/broker/nats"
-	brokerSrv "github.com/micro/go-micro/broker/service"
+	"github.com/micro/go-micro/v2/broker/memory"
+	"github.com/micro/go-micro/v2/broker/nats"
+	brokerSrv "github.com/micro/go-micro/v2/broker/service"
 
 	// registries
-	"github.com/micro/go-micro/registry/etcd"
-	kreg "github.com/micro/go-micro/registry/kubernetes"
-	"github.com/micro/go-micro/registry/mdns"
-	rmem "github.com/micro/go-micro/registry/memory"
-	regSrv "github.com/micro/go-micro/registry/service"
+	"github.com/micro/go-micro/v2/registry/etcd"
+	kreg "github.com/micro/go-micro/v2/registry/kubernetes"
+	"github.com/micro/go-micro/v2/registry/mdns"
+	rmem "github.com/micro/go-micro/v2/registry/memory"
+	regSrv "github.com/micro/go-micro/v2/registry/service"
 
 	// selectors
-	"github.com/micro/go-micro/client/selector/dns"
-	"github.com/micro/go-micro/client/selector/router"
-	"github.com/micro/go-micro/client/selector/static"
+	"github.com/micro/go-micro/v2/client/selector/dns"
+	"github.com/micro/go-micro/v2/client/selector/router"
+	"github.com/micro/go-micro/v2/client/selector/static"
 
 	// transports
-	thttp "github.com/micro/go-micro/transport/http"
-	tmem "github.com/micro/go-micro/transport/memory"
+	thttp "github.com/micro/go-micro/v2/transport/http"
+	tmem "github.com/micro/go-micro/v2/transport/memory"
 
 	// stores
-	memStore "github.com/micro/go-micro/store/memory"
-	svcStore "github.com/micro/go-micro/store/service"
+	memStore "github.com/micro/go-micro/v2/store/memory"
+	svcStore "github.com/micro/go-micro/v2/store/service"
 
 	// tracers
-	// jTracer "github.com/micro/go-micro/debug/trace/jaeger"
-	memTracer "github.com/micro/go-micro/debug/trace/memory"
+	// jTracer "github.com/micro/go-micro/v2/debug/trace/jaeger"
+	memTracer "github.com/micro/go-micro/v2/debug/trace/memory"
 
 	// auth
-	jwtAuth "github.com/micro/go-micro/auth/jwt"
-	sAuth "github.com/micro/go-micro/auth/service"
+	jwtAuth "github.com/micro/go-micro/v2/auth/jwt"
+	sAuth "github.com/micro/go-micro/v2/auth/service"
 )
 
 type Cmd interface {
@@ -222,7 +222,6 @@ var (
 			Name:    "tracer",
 			EnvVars: []string{"MICRO_TRACER"},
 			Usage:   "Tracer for distributed tracing, e.g. memory, jaeger",
-			Value:   "memory",
 		},
 		&cli.StringFlag{
 			Name:    "tracer_address",

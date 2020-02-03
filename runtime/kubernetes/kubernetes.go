@@ -6,9 +6,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/micro/go-micro/runtime"
-	"github.com/micro/go-micro/util/kubernetes/client"
-	"github.com/micro/go-micro/util/log"
+	"github.com/micro/go-micro/v2/runtime"
+	"github.com/micro/go-micro/v2/util/kubernetes/client"
+	"github.com/micro/go-micro/v2/util/log"
 )
 
 // action to take on runtime service
@@ -269,12 +269,6 @@ func (k *kubernetes) Create(s *runtime.Service, opts ...runtime.CreateOption) er
 	// hackish
 	if len(options.Type) == 0 {
 		options.Type = k.options.Type
-	}
-
-	// quickly prevalidate the name and version
-	name := s.Name
-	if len(s.Version) > 0 {
-		name = name + "-" + s.Version
 	}
 
 	// create new kubernetes micro service

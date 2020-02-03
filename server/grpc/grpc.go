@@ -14,16 +14,16 @@ import (
 	"sync"
 	"time"
 
-	"github.com/micro/go-micro/broker"
-	"github.com/micro/go-micro/codec"
-	"github.com/micro/go-micro/errors"
-	meta "github.com/micro/go-micro/metadata"
-	"github.com/micro/go-micro/registry"
-	"github.com/micro/go-micro/server"
-	"github.com/micro/go-micro/util/addr"
-	mgrpc "github.com/micro/go-micro/util/grpc"
-	"github.com/micro/go-micro/util/log"
-	mnet "github.com/micro/go-micro/util/net"
+	"github.com/micro/go-micro/v2/broker"
+	"github.com/micro/go-micro/v2/codec"
+	"github.com/micro/go-micro/v2/errors"
+	meta "github.com/micro/go-micro/v2/metadata"
+	"github.com/micro/go-micro/v2/registry"
+	"github.com/micro/go-micro/v2/server"
+	"github.com/micro/go-micro/v2/util/addr"
+	mgrpc "github.com/micro/go-micro/v2/util/grpc"
+	"github.com/micro/go-micro/v2/util/log"
+	mnet "github.com/micro/go-micro/v2/util/net"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -562,11 +562,17 @@ func (g *grpcServer) Register() error {
 		return err
 	}
 
+	// make copy of metadata
+	md := make(meta.Metadata)
+	for k, v := range config.Metadata {
+		md[k] = v
+	}
+
 	// register service
 	node := &registry.Node{
 		Id:       config.Name + "-" + config.Id,
 		Address:  mnet.HostPort(addr, port),
-		Metadata: config.Metadata,
+		Metadata: md,
 	}
 
 	node.Metadata["broker"] = config.Broker.String()

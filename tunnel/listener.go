@@ -4,7 +4,7 @@ import (
 	"io"
 	"sync"
 
-	"github.com/micro/go-micro/util/log"
+	"github.com/micro/go-micro/v2/util/log"
 )
 
 type tunListener struct {

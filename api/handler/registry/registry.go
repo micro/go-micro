@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/micro/go-micro/api/handler"
-	"github.com/micro/go-micro/registry"
+	"github.com/micro/go-micro/v2/api/handler"
+	"github.com/micro/go-micro/v2/registry"
 )
 
 const (
