@@ -4,9 +4,9 @@ import (
 	"context"
 	"time"
 
-	"github.com/micro/go-micro/auth"
-	pb "github.com/micro/go-micro/auth/service/proto"
 	"github.com/micro/go-micro/client"
+	"github.com/micro/go-micro/v2/auth"
+	pb "github.com/micro/go-micro/v2/auth/service/proto"
 )
 
 // NewAuth returns a new instance of the Auth service
@@ -20,6 +20,10 @@ func NewAuth(opts ...auth.Option) auth.Auth {
 type svc struct {
 	options auth.Options
 	auth    pb.AuthService
+}
+
+func (s *svc) String() string {
+	return "service"
 }
 
 func (s *svc) Init(opts ...auth.Option) error {

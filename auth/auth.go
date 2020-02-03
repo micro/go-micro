@@ -7,6 +7,8 @@ import (
 
 // Auth providers authentication and authorization
 type Auth interface {
+	// String to identify the package
+	String() string
 	// Init the auth package
 	Init(opts ...Option) error
 	// Generate a new auth Account

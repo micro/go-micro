@@ -8,6 +8,11 @@ type noop struct {
 	options Options
 }
 
+// String name of implementation
+func (a *noop) String() string {
+	return "noop"
+}
+
 // Init the svc
 func (a *noop) Init(...Option) error {
 	return nil

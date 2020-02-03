@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
-	"github.com/micro/go-micro/auth"
+	"github.com/micro/go-micro/v2/auth"
 )
 
 // ErrInvalidPrivateKey is returned when the service provided an invalid private key
@@ -27,6 +27,10 @@ func NewAuth(opts ...auth.Option) auth.Auth {
 // svc is the JWT implementation of the Auth interface
 type svc struct {
 	options auth.Options
+}
+
+func (s *svc) String() string {
+	return "jwt"
 }
 
 func (s *svc) Init(opts ...auth.Option) error {
