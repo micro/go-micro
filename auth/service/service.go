@@ -4,9 +4,9 @@ import (
 	"context"
 	"time"
 
-	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/v2/auth"
 	pb "github.com/micro/go-micro/v2/auth/service/proto"
+	"github.com/micro/go-micro/v2/client"
 )
 
 // NewAuth returns a new instance of the Auth service
