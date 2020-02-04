@@ -101,9 +101,10 @@ func TestExecutor(t *testing.T) {
 	req := &proto.Test{Name: "req"}
 	rsp := &proto.Test{}
 	//	err  = fl.
-	rid, err := fl.Execute("forward", "cms_account.AccountService.AccountCreate", req, rsp,
+	rid, err := fl.Execute("forward", req, rsp,
 		flow.ExecuteContext(ctx),
 		flow.ExecuteAsync(false),
+		flow.ExecuteStep("cms_account.AccountService.AccountCreate"),
 		flow.ExecuteClient(client.DefaultClient),
 		flow.ExecuteBroker(broker.DefaultBroker),
 	)
@@ -204,8 +205,9 @@ func BenchmarkFlowExecution(b *testing.B) {
 	//	err  = fl.
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		rid, err := fl.Execute("forward", "cms_account.AccountService.AccountCreate", req, rsp,
+		rid, err := fl.Execute("forward", req, rsp,
 			flow.ExecuteContext(ctx),
+			flow.ExecuteStep("cms_account.AccountService.AccountCreate"),
 			flow.ExecuteAsync(false),
 			flow.ExecuteClient(client.DefaultClient),
 			flow.ExecuteBroker(broker.DefaultBroker),

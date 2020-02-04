@@ -2,6 +2,7 @@ package flow
 
 import (
 	"errors"
+	"fmt"
 
 	hdag "github.com/heimdalr/dag"
 )
@@ -13,6 +14,7 @@ var (
 type dag interface {
 	AddVertex(interface{}) error
 	AddEdge(interface{}, interface{}) error
+	GetRoot() (interface{}, error)
 	GetVertex(string) (interface{}, error)
 	OrderedDescendants(interface{}) ([]*Step, error)
 	OrderedAncestors(interface{}) ([]*Step, error)
@@ -100,4 +102,15 @@ func (g *heimdalrDag) TransitiveReduction() {
 
 func (g *heimdalrDag) GetVertex(name string) (interface{}, error) {
 	return g.dag.GetVertex(name)
+}
+
+func (g *heimdalrDag) GetRoot() (interface{}, error) {
+	roots := g.dag.GetRoots()
+	if len(roots) != 1 {
+		return nil, fmt.Errorf("dag have no or multiple roots")
+	}
+	for v, _ := range roots {
+		return v, nil
+	}
+	return nil, fmt.Errorf("dag have no or multiple roots")
 }

@@ -23,7 +23,7 @@ type Flow interface {
 	// Lookup specific flow
 	Lookup(flow string) ([]*Step, error)
 	// Execute specific flow and returns request id and error, optionally fills rsp
-	Execute(flow string, step string, req interface{}, rsp interface{}, opts ...ExecuteOption) (string, error)
+	Execute(flow string, req interface{}, rsp interface{}, opts ...ExecuteOption) (string, error)
 	// Resume specific paused flow execution by request id
 	Resume(flow string, reqID string) error
 	// Pause specific flow execution by request id
@@ -116,6 +116,10 @@ func FlowFromContext(ctx context.Context) (Flow, error) {
 }
 
 type ExecuteOptions struct {
+	// Passed request id
+	ID string
+	// Passed step to start swafrom
+	Step string
 	// Timeout for currenct execition
 	Timeout time.Duration
 	// Async execution run
@@ -208,6 +212,20 @@ func WithLogger(l Logger) Option {
 func WithContext(ctx context.Context) Option {
 	return func(o *Options) {
 		o.Context = ctx
+	}
+}
+
+// Step of execution
+func ExecuteStep(step string) ExecuteOption {
+	return func(o *ExecuteOptions) {
+		o.Step = step
+	}
+}
+
+// ID of execution
+func ExecuteID(id string) ExecuteOption {
+	return func(o *ExecuteOptions) {
+		o.ID = id
 	}
 }
 

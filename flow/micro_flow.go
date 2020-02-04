@@ -175,7 +175,9 @@ func (fl *microFlow) Resume(flow string, rid string) error {
 	return fl.options.StateStore.Write(fl.options.Context, flow, rid, []byte("status"), []byte("running"))
 }
 
-func (fl *microFlow) Execute(flow string, step string, req interface{}, rsp interface{}, opts ...ExecuteOption) (string, error) {
+func (fl *microFlow) Execute(flow string, req interface{}, rsp interface{}, opts ...ExecuteOption) (string, error) {
+	var err error
+
 	if !fl.initialized {
 		return "", fmt.Errorf("initialize flow first")
 	}
@@ -189,9 +191,12 @@ func (fl *microFlow) Execute(flow string, step string, req interface{}, rsp inte
 		options.Concurrency = DefaultExecuteConcurrency
 	}
 
-	uid, err := uuid.NewRandom()
-	if err != nil {
-		return "", err
+	if len(options.ID) == 0 {
+		uid, err := uuid.NewRandom()
+		if err != nil {
+			return "", err
+		}
+		options.ID = uid.String()
 	}
 
 	var reqbuf []byte
@@ -215,7 +220,7 @@ func (fl *microFlow) Execute(flow string, step string, req interface{}, rsp inte
 		return "", fmt.Errorf("rsp invalid, flow only works with proto.Message and []byte")
 	}
 
-	job := &flowJob{flow: flow, step: step, req: reqbuf, options: opts, rid: uid.String()}
+	job := &flowJob{flow: flow, req: reqbuf, options: opts, rid: options.ID}
 	if !options.Async {
 		job.done = make(chan struct{})
 	}
@@ -246,7 +251,7 @@ func (fl *microFlow) Execute(flow string, step string, req interface{}, rsp inte
 		}
 	}
 
-	return uid.String(), nil
+	return options.ID, nil
 }
 
 func (fl *microFlow) Init(opts ...Option) error {
@@ -398,8 +403,15 @@ func (fl *microFlow) flowHandler(req interface{}) {
 	}
 
 	var root interface{}
-	if root, err = g.GetVertex(job.step); err != nil {
-		return
+	if len(options.Step) > 0 {
+		if root, err = g.GetVertex(options.Step); err != nil {
+			return
+		}
+	} else {
+		root, err = g.GetRoot()
+		if err != nil {
+			return
+		}
 	}
 
 	var steps []*Step
@@ -497,109 +509,3 @@ func (fl *microFlow) Stop() error {
 
 	return nil
 }
-
-/*
-type FlowOperation struct {
-	Node     string   `json:"node"`
-	Service  string   `json:"service"`
-	Endpoint string   `json:"endpoint"`
-	Requires []string `json:"requires"`
-	Required []string `json:"required"`
-
-	Options   []client.CallOption `json:"options"`
-	Aggregate bool                `json:"aggregate"`
-}
-
-func (f *flowManager) Init(opts ...ManagerOption) error {
-	options := ManagerOptions{}
-	for _, opt := range opts {
-		opt(&options)
-	}
-
-	f.opts = options
-	/*
-	   pool, err := ants.NewPoolWithFunc(
-	     f.opts.Concurrency,
-	     w.Handle,
-	     ants.WithPreAlloc(true),
-	   )
-	   if err != nil {
-	   return err
-	   }
-	   f.pool = pool
-*/
-
-/*
-	return nil
-}
-
-func (f *flowManager) Options() ManagerOptions {
-	return f.opts
-}
-
-func (f *flowManager) Subscribe(flow string, service *FlowOperation) error {
-	// uuid1 AccountCreate TokenCreate
-	// uuid2 AccountCreate ContactCreate
-	// uuid3 AccountCreate NetworkCreate
-	if err := f.opts.FlowStore.Append(flow, service); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (f *flowManager) Unsubscribe(flow string, service *FlowOperation) error {
-	// uuid1 AccountCreate TokenCreate
-	// uuid2 AccountCreate ContactCreate
-	// uuid3 AccountCreate NetworkCreate
-	if err := f.opts.FlowStore.Delete(flow, service); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (f *flowManager) Execute(flow string, req proto.Message, rsp proto.Message, opts ...ExecuteOption) (string, error) {
-	reqbuf, err := proto.Marshal(req)
-	if err != nil {
-		return "", err
-	}
-
-	rspbuf, rid, err := f.opts.Executor.Execute(flow, reqbuf, opts...)
-	if err != nil {
-		return "", err
-	}
-
-	if rspbuf != nil {
-		if err = proto.Unmarshal(rspbuf, rsp); err != nil {
-			return "", err
-		}
-	}
-
-	return rid, nil
-}
-
-func (f *flowManager) Pause(flow string, rid string) error {
-	return f.opts.Executor.Pause(flow, rid)
-}
-
-func (f *flowManager) Resume(flow string, rid string) error {
-	return f.opts.Executor.Resume(flow, rid)
-}
-
-func (f *flowManager) Stop(flow string, rid string) error {
-	return f.opts.Executor.Stop(flow, rid)
-}
-
-func (f *flowManager) Lookup(flow string, rid string, rsp interface{}) error {
-	return nil
-}
-
-func (f *flowManager) Export(flow string) ([]byte, error) {
-	return nil, nil
-}
-
-func (f *flowManager) Import(flow string, data []byte) error {
-	return nil
-}
-*/
