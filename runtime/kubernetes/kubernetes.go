@@ -14,12 +14,6 @@ import (
 // action to take on runtime service
 type action int
 
-const (
-	start action = iota
-	update
-	stop
-)
-
 type kubernetes struct {
 	sync.RWMutex
 	// options configure runtime
