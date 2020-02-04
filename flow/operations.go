@@ -98,11 +98,8 @@ func (op *flowExecuteOperation) Execute(ctx context.Context, req []byte, opts ..
 	if err != nil {
 		return nil, err
 	}
-	log.Printf("recovery %#+v\n", op)
 	opts = append(opts, ExecuteStep(op.operation))
-
 	_, err = fl.Execute(op.flow, req, nil, opts...)
-
 	return nil, err
 }
 

@@ -197,6 +197,7 @@ func (fl *microFlow) Execute(flow string, req interface{}, rsp interface{}, opts
 			return "", err
 		}
 		options.ID = uid.String()
+		opts = append(opts, ExecuteID(options.ID))
 	}
 
 	var reqbuf []byte
