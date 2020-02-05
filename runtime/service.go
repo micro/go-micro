@@ -1,7 +1,6 @@
 package runtime
 
 import (
-	"fmt"
 	"io"
 	"sync"
 	"time"
@@ -82,8 +81,6 @@ func (s *service) Failed() bool {
 
 // Start stars the service
 func (s *service) Start() error {
-	fmt.Printf("Starting %v\n", s.Retries)
-
 	s.Lock()
 	defer s.Unlock()
 
