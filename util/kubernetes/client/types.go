@@ -86,6 +86,7 @@ type Metadata struct {
 // PodSpec is a pod
 type PodSpec struct {
 	Containers []Container `json:"containers"`
+	MaxRetries int32       `json:"maxRetries"`
 }
 
 // PodList

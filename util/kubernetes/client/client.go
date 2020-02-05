@@ -263,6 +263,7 @@ func NewDeployment(name, version, typ string) *Deployment {
 		Template: &Template{
 			Metadata: Metadata,
 			PodSpec: &PodSpec{
+				MaxRetries: 3,
 				Containers: []Container{{
 					Name:    name,
 					Image:   DefaultImage,

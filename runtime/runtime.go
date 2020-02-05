@@ -93,4 +93,6 @@ type Service struct {
 	Source string
 	// Metadata stores metadata
 	Metadata map[string]string
+	// Retries which have occured
+	Retries int32
 }

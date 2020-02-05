@@ -92,7 +92,7 @@ func (r *runtime) run(events <-chan Event) {
 			// check running services
 			r.RLock()
 			for _, service := range r.services {
-				if service.Running() {
+				if service.Running() || service.Failed() {
 					continue
 				}
 

@@ -1,6 +1,7 @@
 package runtime
 
 import (
+	"fmt"
 	"io"
 	"sync"
 	"time"
@@ -72,12 +73,21 @@ func (s *service) Running() bool {
 	return s.running
 }
 
+// Failed returns true is the service has failed to run
+func (s *service) Failed() bool {
+	s.RLock()
+	defer s.RUnlock()
+	return s.Retries >= 3
+}
+
 // Start stars the service
 func (s *service) Start() error {
+	fmt.Printf("Starting %v\n", s.Retries)
+
 	s.Lock()
 	defer s.Unlock()
 
-	if s.running {
+	if s.running || s.Retries >= 3 {
 		return nil
 	}
 
@@ -169,6 +179,7 @@ func (s *service) Wait() {
 	if err != nil {
 		s.Metadata["status"] = "error"
 		s.Metadata["error"] = err.Error()
+		s.Service.Retries++
 		s.err = err
 	} else {
 		s.Metadata["status"] = "done"

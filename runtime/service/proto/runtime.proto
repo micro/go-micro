@@ -17,8 +17,10 @@ message Service {
 	string version = 2;
 	// git url of the source
 	string source = 3;
-        // service metadata
-        map<string,string> metadata = 4;
+	// service metadata
+	map<string,string> metadata = 4;
+	// retries which have occured
+	int32 retries = 5;
 }
 
 message Event {
