@@ -1,5 +1,7 @@
 package logger
 
+import "context"
+
 // Option for load profiles maybe
 // eg. yml
 // micro:
@@ -13,11 +15,5 @@ package logger
 type Option func(*Options)
 
 type Options struct {
-	Environment    string
-	Dir            string
-	FileMaxSize    int
-	FileMaxBackups int
-	FileMaxAge     int
-	FileCompress   bool
-	// more options
+	Context context.Context
 }
