@@ -1,4 +1,4 @@
-package log
+package logger
 
 type FieldType uint8
 

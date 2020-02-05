@@ -1,4 +1,4 @@
-package log
+package logger
 
 // Option for load profiles maybe
 // eg. yml

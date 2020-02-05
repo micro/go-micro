@@ -1,5 +1,5 @@
 // Package log provides a log interface
-package log
+package logger
 
 import (
 	"fmt"
