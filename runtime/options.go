@@ -12,6 +12,15 @@ type Options struct {
 	Scheduler Scheduler
 	// Service type to manage
 	Type string
+	// Source of the services repository
+	Source string
+}
+
+// WithSource sets the host addresses to be used by the broker
+func WithSource(src string) Option {
+	return func(o *Options) {
+		o.Source = src
+	}
 }
 
 // WithScheduler specifies a scheduler for updates

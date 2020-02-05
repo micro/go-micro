@@ -40,6 +40,11 @@ import (
 	rmem "github.com/micro/go-micro/v2/registry/memory"
 	regSrv "github.com/micro/go-micro/v2/registry/service"
 
+	// runtimes
+	kRuntime "github.com/micro/go-micro/v2/runtime/kubernetes"
+	lRuntime "github.com/micro/go-micro/v2/runtime/local"
+	srvRuntime "github.com/micro/go-micro/v2/runtime/service"
+
 	// selectors
 	"github.com/micro/go-micro/v2/client/selector/dns"
 	"github.com/micro/go-micro/v2/client/selector/router"
@@ -189,6 +194,12 @@ var (
 			Value:   "local",
 		},
 		&cli.StringFlag{
+			Name:    "runtime_source",
+			Usage:   "Runtime source for building and running services e.g github.com/micro/service",
+			EnvVars: []string{"MICRO_RUNTIME_SOURCE"},
+			Value:   "github.com/micro/services",
+		},
+		&cli.StringFlag{
 			Name:    "selector",
 			EnvVars: []string{"MICRO_SELECTOR"},
 			Usage:   "Selector used to pick nodes for querying",
@@ -281,7 +292,9 @@ var (
 	}
 
 	DefaultRuntimes = map[string]func(...runtime.Option) runtime.Runtime{
-		"local": runtime.NewRuntime,
+		"local":      lRuntime.NewRuntime,
+		"service":    srvRuntime.NewRuntime,
+		"kubernetes": kRuntime.NewRuntime,
 	}
 
 	DefaultStores = map[string]func(...store.Option) store.Store{
@@ -577,6 +590,12 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	if len(ctx.String("auth_private_key")) > 0 {
 		if err := (*c.opts.Auth).Init(auth.PrivateKey(ctx.String("auth_private_key"))); err != nil {
 			log.Fatalf("Error configuring auth: %v", err)
+		}
+	}
+
+	if len(ctx.String("runtime_source")) > 0 {
+		if err := (*c.opts.Runtime).Init(runtime.WithSource(ctx.String("runtime_source"))); err != nil {
+			log.Fatalf("Error configuring runtime: %v", err)
 		}
 	}
 
