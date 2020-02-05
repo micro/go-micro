@@ -2,10 +2,12 @@ package flow
 
 import (
 	"context"
+	"fmt"
+	"log"
 
-	//"github.com/micro/go-micro/v2/broker"
-	"github.com/micro/go-micro/v2/codec/bytes"
+	"github.com/micro/go-micro/v2/broker"
 	pbFlow "github.com/micro/go-micro/v2/flow/service/proto"
+	"github.com/micro/go-micro/v2/metadata"
 )
 
 type clientPublishOperation struct {
@@ -39,7 +41,37 @@ func (op *clientPublishOperation) Execute(ctx context.Context, data []byte, opts
 		opt(&options)
 	}
 
-	err = options.Client.Publish(ctx, options.Client.NewMessage(op.topic, &bytes.Frame{Data: data}))
+	fl, err := FlowFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	_ = fl
+	//_, err = fl.Execute(op.flow, req, nil, opts...)
+
+	md, ok := metadata.FromContext(ctx)
+	if !ok {
+		md = make(map[string]string)
+	}
+
+	// standard micro headers
+	md["Content-Type"] = options.Client.Options().ContentType
+	md["Micro-Topic"] = op.topic
+	md["Micro-Id"] = options.ID
+	// header to send reply back
+	md["Micro-Response"] = fmt.Sprintf("%s-%s", op.topic, options.ID)
+
+	sub, err := options.Broker.Subscribe(md["Micro-Response"], func(evt broker.Event) error {
+		log.Printf("RSP %#+v\n")
+		return evt.Ack()
+	}, broker.SubscribeContext(ctx))
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		_ = sub.Unsubscribe()
+	}()
+
+	err = options.Broker.Publish(op.topic, &broker.Message{Header: md, Body: data})
 	if err != nil {
 		return nil, err
 	}
