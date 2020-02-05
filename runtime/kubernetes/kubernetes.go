@@ -2,7 +2,9 @@
 package kubernetes
 
 import (
+	"errors"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -13,12 +15,6 @@ import (
 
 // action to take on runtime service
 type action int
-
-const (
-	start action = iota
-	update
-	stop
-)
 
 type kubernetes struct {
 	sync.RWMutex
@@ -249,6 +245,10 @@ func (k *kubernetes) Init(opts ...runtime.Option) error {
 
 	for _, o := range opts {
 		o(&k.options)
+	}
+
+	if strings.HasPrefix(k.options.Source, "github.com") {
+		return errors.New("invalid source provided to kubernetes runtime, expected docker image")
 	}
 
 	return nil
