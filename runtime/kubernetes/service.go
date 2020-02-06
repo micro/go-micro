@@ -34,6 +34,13 @@ func newService(s *runtime.Service, c runtime.CreateOptions) *service {
 	kservice := client.NewService(name, version, c.Type)
 	kdeploy := client.NewDeployment(name, version, c.Type)
 
+	if len(s.Source) > 0 {
+		for _, c := range kdeploy.Spec.Template.PodSpec.Containers {
+			c.Image = s.Source
+			c.Command = []string{name}
+		}
+	}
+
 	// attach our values to the deployment; name, version, source
 	kdeploy.Metadata.Annotations["name"] = s.Name
 	kdeploy.Metadata.Annotations["version"] = s.Version
