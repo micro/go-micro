@@ -85,7 +85,6 @@ func (s *svc) Read(opts ...runtime.ReadOption) ([]*runtime.Service, error) {
 			Version:  service.Version,
 			Source:   service.Source,
 			Metadata: service.Metadata,
-			Retries:  service.Retries,
 		}
 		services = append(services, svc)
 	}
@@ -142,7 +141,6 @@ func (s *svc) List() ([]*runtime.Service, error) {
 			Version:  service.Version,
 			Source:   service.Source,
 			Metadata: service.Metadata,
-			Retries:  service.Retries,
 		}
 		services = append(services, svc)
 	}

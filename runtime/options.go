@@ -14,6 +14,8 @@ type Options struct {
 	Type string
 	// Source of the services repository
 	Source string
+	// MaxRetries before failing deploy
+	MaxRetries int
 }
 
 // WithSource sets the host addresses to be used by the broker
@@ -34,6 +36,13 @@ func WithScheduler(n Scheduler) Option {
 func WithType(t string) Option {
 	return func(o *Options) {
 		o.Type = t
+	}
+}
+
+// WithMaxRetries sets the arg MaxRetries
+func WithMaxRetries(max int) Option {
+	return func(o *Options) {
+		o.MaxRetries = max
 	}
 }
 
@@ -99,7 +108,7 @@ func ReadService(service string) ReadOption {
 	}
 }
 
-// WithVersion confifgures service version
+// ReadVersion confifgures service version
 func ReadVersion(version string) ReadOption {
 	return func(o *ReadOptions) {
 		o.Version = version
