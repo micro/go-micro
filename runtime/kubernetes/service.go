@@ -35,9 +35,9 @@ func newService(s *runtime.Service, c runtime.CreateOptions) *service {
 	kdeploy := client.NewDeployment(name, version, c.Type)
 
 	if len(s.Source) > 0 {
-		for _, c := range kdeploy.Spec.Template.PodSpec.Containers {
-			c.Image = s.Source
-			c.Command = []string{name}
+		for i := range kdeploy.Spec.Template.PodSpec.Containers {
+			kdeploy.Spec.Template.PodSpec.Containers[i].Image = s.Source
+			kdeploy.Spec.Template.PodSpec.Containers[i].Command = []string{name}
 		}
 	}
 
@@ -98,9 +98,6 @@ func serviceResource(s *client.Service) *client.Resource {
 
 // Start starts the Kubernetes service. It creates new kubernetes deployment and service API objects
 func (s *service) Start(k client.Client) error {
-	bytes, _ := json.Marshal(s.kdeploy)
-	log.Debug("kdeploy", string(bytes))
-
 	// create deployment first; if we fail, we dont create service
 	if err := k.Create(deploymentResource(s.kdeploy)); err != nil {
 		log.Debugf("Runtime failed to create deployment: %v", err)
