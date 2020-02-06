@@ -41,6 +41,8 @@ func newService(s *runtime.Service, c runtime.CreateOptions) *service {
 			c.Command = []string{name}
 		}
 	}
+	log.Debugf("kdeploy: %v", kdeploy)
+	log.Debugf("options: %v", c)
 
 	// attach our values to the deployment; name, version, source
 	kdeploy.Metadata.Annotations["name"] = s.Name
