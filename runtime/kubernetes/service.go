@@ -38,7 +38,6 @@ func newService(s *runtime.Service, c runtime.CreateOptions) *service {
 		for _, c := range kdeploy.Spec.Template.PodSpec.Containers {
 			c.Image = s.Source
 			c.Command = []string{name}
-			log.Debugf("Setting name to %v", c.Command)
 		}
 	}
 
@@ -70,7 +69,6 @@ func newService(s *runtime.Service, c runtime.CreateOptions) *service {
 	}
 
 	// specify the command to exec
-	log.Debug("c.Command: ", c.Command)
 	if len(c.Command) > 0 {
 		kdeploy.Spec.Template.PodSpec.Containers[0].Command = c.Command
 	}
