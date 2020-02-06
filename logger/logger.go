@@ -28,13 +28,13 @@ type Logger interface {
 }
 
 var (
-	mux       sync.Mutex
+	mtx       sync.Mutex
 	loggerMap = map[string]Logger{}
 )
 
 func Register(logger Logger) {
-	mux.Lock()
-	defer mux.Unlock()
+	mtx.Lock()
+	defer mtx.Unlock()
 
 	loggerMap[logger.String()] = logger
 }
