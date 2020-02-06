@@ -15,6 +15,7 @@ func (f *Field) GetValue() interface{} {
 	if f.Encode != nil {
 		return f.Encode(f.Value)
 	}
+
 	return f.Value
 }
 
@@ -22,7 +23,19 @@ func (f *Field) GetValue() interface{} {
 const (
 	UnknownType FieldType = iota
 	BoolType
-	// todo more types
+	DurationType
+	Float64Type
+	Float32Type
+	Int64Type
+	Int32Type
+	Int16Type
+	Int8Type
+	Uint64Type
+	Uint32Type
+	Uint16Type
+	Uint8Type
+	StringType
+	TimeType
 )
 
 func Bool(key string, val bool) Field {
