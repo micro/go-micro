@@ -2,7 +2,6 @@
 package kubernetes
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -276,9 +275,6 @@ func (k *kubernetes) Create(s *runtime.Service, opts ...runtime.CreateOption) er
 	}
 
 	service := newService(s, options)
-
-	bytes, _ := json.Marshal(service)
-	log.Debug(string(bytes))
 
 	// start the service
 	return service.Start(k.client)

@@ -267,8 +267,8 @@ func NewDeployment(name, version, typ string) *Deployment {
 					Name:    name,
 					Image:   DefaultImage,
 					Env:     []EnvVar{env},
-					Command: []string{"go", "run", "mainx.go"},
-					Ports: []ContainerPort{{
+					Command: []string{"go", "run", "main.go"},
+					Ports: []ContainerPort{
 						Name:          "service-port",
 						ContainerPort: 8080,
 					}},
