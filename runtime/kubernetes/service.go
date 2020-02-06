@@ -2,7 +2,6 @@ package kubernetes
 
 import (
 	"encoding/json"
-	"fmt"
 	"strings"
 	"time"
 
@@ -35,7 +34,7 @@ func newService(s *runtime.Service, c runtime.CreateOptions) *service {
 	kservice := client.NewService(name, version, c.Type)
 	kdeploy := client.NewDeployment(name, version, c.Type)
 
-	fmt.Printf("Source is %v", s.Source)
+	log.Debugf("newService Source: %v", s.Source)
 	if len(s.Source) > 0 {
 		for _, c := range kdeploy.Spec.Template.PodSpec.Containers {
 			c.Image = s.Source
