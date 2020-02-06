@@ -71,9 +71,6 @@ func newService(s *runtime.Service, c runtime.CreateOptions) *service {
 	// specify the command to exec
 	if len(c.Command) > 0 {
 		kdeploy.Spec.Template.PodSpec.Containers[0].Command = c.Command
-	} else if len(s.Source) > 0 {
-		// default command for our k8s service should be source
-		kdeploy.Spec.Template.PodSpec.Containers[0].Command = []string{"go", "run", s.Source}
 	}
 
 	return &service{

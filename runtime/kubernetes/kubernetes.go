@@ -327,8 +327,7 @@ func (k *kubernetes) List() ([]*runtime.Service, error) {
 func (k *kubernetes) Update(s *runtime.Service) error {
 	// create new kubernetes micro service
 	service := newService(s, runtime.CreateOptions{
-		Type:   k.options.Type,
-		Source: k.options.Source,
+		Type: k.options.Type,
 	})
 
 	// update build time annotation
@@ -344,8 +343,7 @@ func (k *kubernetes) Delete(s *runtime.Service) error {
 
 	// create new kubernetes micro service
 	service := newService(s, runtime.CreateOptions{
-		Type:   k.options.Type,
-		Source: k.options.Source,
+		Type: k.options.Type,
 	})
 
 	return service.Stop(k.client)

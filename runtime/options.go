@@ -51,8 +51,6 @@ type CreateOptions struct {
 	Output io.Writer
 	// Type of service to create
 	Type string
-	// Source of the code
-	Source string
 }
 
 // ReadOptions queries runtime services
