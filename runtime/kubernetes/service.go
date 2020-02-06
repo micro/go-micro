@@ -37,7 +37,8 @@ func newService(s *runtime.Service, c runtime.CreateOptions) *service {
 	if len(s.Source) > 0 {
 		for i := range kdeploy.Spec.Template.PodSpec.Containers {
 			kdeploy.Spec.Template.PodSpec.Containers[i].Image = s.Source
-			kdeploy.Spec.Template.PodSpec.Containers[i].Command = []string{"./entrypoint.sh", name}
+			kdeploy.Spec.Template.PodSpec.Containers[i].Command = []string{}
+			kdeploy.Spec.Template.PodSpec.Containers[i].Arg = []string{name}
 		}
 	}
 
