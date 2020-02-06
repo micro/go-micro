@@ -2,10 +2,20 @@ package logger
 
 type FieldType uint8
 
+type FieldEncode func(interface{}) string
+
 type Field struct {
-	Key   string
-	Type  FieldType
-	Value interface{}
+	Key    string
+	Type   FieldType
+	Value  interface{}
+	Encode FieldEncode
+}
+
+func (f *Field) GetValue() interface{} {
+	if f.Encode != nil {
+		return f.Encode(f.Value)
+	}
+	return f.Value
 }
 
 // preset common types for choosing encoder faster
