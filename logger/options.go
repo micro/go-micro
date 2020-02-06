@@ -1,6 +1,8 @@
 package logger
 
-import "context"
+import (
+	"context"
+)
 
 // Option for load profiles maybe
 // eg. yml
