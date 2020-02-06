@@ -2,7 +2,6 @@
 package kubernetes
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 	"sync"
