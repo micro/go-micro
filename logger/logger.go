@@ -8,8 +8,8 @@ import (
 
 // Logger is a generic logging interface
 type Logger interface {
-	Init(option ...Option) error
-	// String return the name of logger
+	Init(options ...Option) error
+	// String returns the name of logger
 	String() string
 	// SetLevel updates the logging level.
 	SetLevel(Level)
@@ -24,6 +24,8 @@ type Logger interface {
 	Logf(level Level, format string, v ...interface{})
 	// Logfi prints fields using JSON or KV.
 	Logfi(level Level, msg string, fields ...Field)
+	// Set fields to always be logged
+	Fields(fields ...Field) Logger
 }
 
 var (
