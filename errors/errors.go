@@ -8,13 +8,7 @@ import (
 	"net/http"
 )
 
-// Error implements the error interface.
-type Error struct {
-	Id     string `json:"id"`
-	Code   int32  `json:"code"`
-	Detail string `json:"detail"`
-	Status string `json:"status"`
-}
+//go:generate protoc -I. --go_out=paths=source_relative:. errors.proto
 
 func (e *Error) Error() string {
 	b, _ := json.Marshal(e)

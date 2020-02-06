@@ -226,8 +226,10 @@ func NewService(name, version, typ string) *Service {
 }
 
 // NewService returns default micro kubernetes deployment definition
-func NewDeployment(name, version, typ string) *Deployment {
+func NewDeployment(name, version, typ string, opts ...DeploymentOption) *Deployment {
 	log.Tracef("kubernetes default deployment: name: %s, version: %s", name, version)
+
+	options := NewDeploymentOptions(opts)
 
 	Labels := map[string]string{
 		"name":    name,
@@ -265,7 +267,7 @@ func NewDeployment(name, version, typ string) *Deployment {
 			PodSpec: &PodSpec{
 				Containers: []Container{{
 					Name:    name,
-					Image:   DefaultImage,
+					Image:   options.BaseImage,
 					Env:     []EnvVar{env},
 					Command: []string{"go", "run", "main.go"},
 					Ports: []ContainerPort{{

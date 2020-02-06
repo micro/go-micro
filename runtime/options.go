@@ -16,7 +16,7 @@ type Options struct {
 	Source string
 }
 
-// WithSource sets the host addresses to be used by the broker
+// WithSource sets the base image / repository
 func WithSource(src string) Option {
 	return func(o *Options) {
 		o.Source = src
@@ -51,6 +51,8 @@ type CreateOptions struct {
 	Output io.Writer
 	// Type of service to create
 	Type string
+	// Base image for docker
+	BaseImage string
 }
 
 // ReadOptions queries runtime services
@@ -89,6 +91,13 @@ func WithEnv(env []string) CreateOption {
 func WithOutput(out io.Writer) CreateOption {
 	return func(o *CreateOptions) {
 		o.Output = out
+	}
+}
+
+// WithBaseImage sets the docker img
+func WithBaseImage(img string) CreateOption {
+	return func(o *CreateOptions) {
+		o.BaseImage = img
 	}
 }
 
