@@ -247,8 +247,9 @@ func (k *kubernetes) Init(opts ...runtime.Option) error {
 		o(&k.options)
 	}
 
+	// trim the source prefix if its a git url
 	if strings.HasPrefix(k.options.Source, "github.com") {
-		return errors.New("invalid source provided to kubernetes runtime, expected docker image")
+		k.options.Source = strings.TrimPrefix(k.options.Source, "github.com/")
 	}
 
 	return nil
