@@ -243,13 +243,14 @@ func (k *kubernetes) Init(opts ...runtime.Option) error {
 	k.Lock()
 	defer k.Unlock()
 
+	for _, o := range opts {
+		o(&k.options)
+	}
+
 	if strings.HasPrefix(k.options.Source, "github.com") {
 		return errors.New("invalid source provided to kubernetes runtime, expected docker image")
 	}
 
-	for _, o := range opts {
-		o(&k.options)
-	}
 	return nil
 }
 
