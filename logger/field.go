@@ -2,18 +2,18 @@ package logger
 
 type FieldType uint8
 
-type FieldEncode func(interface{}) string
+type Encode func(*Field) string
 
 type Field struct {
 	Key    string
 	Type   FieldType
 	Value  interface{}
-	Encode FieldEncode
+	Encode Encode
 }
 
 func (f *Field) GetValue() interface{} {
 	if f.Encode != nil {
-		return f.Encode(f.Value)
+		return f.Encode(f)
 	}
 
 	return f.Value
