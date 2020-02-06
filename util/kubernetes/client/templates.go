@@ -60,6 +60,10 @@ spec:
             value: "{{ .Value }}"
           {{- end }}
           {{- end }}
+          args:
+          {{- range .Args }}
+          - {{.}}
+          {{- end }}
           command:
           {{- range .Command }}
           - {{.}}

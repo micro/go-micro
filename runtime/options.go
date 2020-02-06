@@ -51,8 +51,6 @@ type CreateOptions struct {
 	Output io.Writer
 	// Type of service to create
 	Type string
-	// Base image for docker
-	BaseImage string
 }
 
 // ReadOptions queries runtime services
@@ -91,13 +89,6 @@ func WithEnv(env []string) CreateOption {
 func WithOutput(out io.Writer) CreateOption {
 	return func(o *CreateOptions) {
 		o.Output = out
-	}
-}
-
-// WithBaseImage sets the docker img
-func WithBaseImage(img string) CreateOption {
-	return func(o *CreateOptions) {
-		o.BaseImage = img
 	}
 }
 
