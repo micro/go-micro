@@ -22,9 +22,7 @@ type Logger interface {
 	// Logf insets a log entry.  Arguments are handled in the manner of
 	// fmt.Printf.
 	Logf(level Level, format string, v ...interface{})
-	// Logfi prints fields using JSON or KV.
-	Logfi(level Level, msg string, fields ...Field)
-	// Set fields to always be logged
+	// Fields set fields to always be logged
 	Fields(fields ...Field) Logger
 }
 
