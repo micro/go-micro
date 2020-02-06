@@ -63,6 +63,9 @@ func NewContext(ctx context.Context, md Metadata) context.Context {
 
 // MergeContext merges metadata to existing metadata, overwriting if specified
 func MergeContext(ctx context.Context, patchMd Metadata, overwrite bool) context.Context {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	md, _ := ctx.Value(metaKey{}).(Metadata)
 	cmd := make(Metadata)
 	for k, v := range md {
