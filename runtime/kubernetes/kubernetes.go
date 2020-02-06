@@ -2,9 +2,7 @@
 package kubernetes
 
 import (
-	"errors"
 	"fmt"
-	"strings"
 	"sync"
 	"time"
 
@@ -246,11 +244,6 @@ func (k *kubernetes) Init(opts ...runtime.Option) error {
 	for _, o := range opts {
 		o(&k.options)
 	}
-
-	if strings.HasPrefix(k.options.Source, "github.com") {
-		return errors.New("invalid source provided to kubernetes runtime, expected docker image")
-	}
-
 	return nil
 }
 
@@ -343,7 +336,8 @@ func (k *kubernetes) Delete(s *runtime.Service) error {
 
 	// create new kubernetes micro service
 	service := newService(s, runtime.CreateOptions{
-		Type: k.options.Type,
+		Type:      k.options.Type,
+		BaseImage: k.options.Source,
 	})
 
 	return service.Stop(k.client)
