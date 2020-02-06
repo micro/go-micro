@@ -38,7 +38,7 @@ func newService(s *runtime.Service, c runtime.CreateOptions) *service {
 		for i := range kdeploy.Spec.Template.PodSpec.Containers {
 			kdeploy.Spec.Template.PodSpec.Containers[i].Image = s.Source
 			kdeploy.Spec.Template.PodSpec.Containers[i].Command = []string{}
-			kdeploy.Spec.Template.PodSpec.Containers[i].Arg = []string{name}
+			kdeploy.Spec.Template.PodSpec.Containers[i].Args = []string{name}
 		}
 	}
 

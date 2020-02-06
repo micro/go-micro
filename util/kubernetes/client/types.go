@@ -20,7 +20,7 @@ type Container struct {
 	Image   string          `json:"image"`
 	Env     []EnvVar        `json:"env,omitempty"`
 	Command []string        `json:"command,omitempty"`
-	Arg     []string        `json:"arg,omitempty"`
+	Args    []string        `json:"args,omitempty"`
 	Ports   []ContainerPort `json:"ports,omitempty"`
 }
 
