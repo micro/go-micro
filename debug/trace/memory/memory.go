@@ -84,7 +84,7 @@ func NewTracer(opts ...trace.Option) trace.Tracer {
 
 	return &Tracer{
 		opts: options,
-		// the last 64 requests
-		buffer: ring.New(640),
+		// the last 256 requests
+		buffer: ring.New(256),
 	}
 }
