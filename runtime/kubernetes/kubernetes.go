@@ -270,8 +270,10 @@ func (k *kubernetes) Create(s *runtime.Service, opts ...runtime.CreateOption) er
 	if len(options.Type) == 0 {
 		options.Type = k.options.Type
 	}
+	if len(k.options.Source) > 0 {
+		s.Source = k.options.Source
+	}
 
-	// create new kubernetes micro service
 	service := newService(s, options)
 
 	// start the service
