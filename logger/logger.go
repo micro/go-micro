@@ -8,11 +8,8 @@ import (
 
 // Logger is a generic logging interface
 type Logger interface {
+	// Init initialises options
 	Init(options ...Option) error
-	// String returns the name of logger
-	String() string
-	// SetLevel updates the logging level.
-	SetLevel(Level)
 	// Level returns the logging level
 	Level() Level
 	// Log inserts a log entry.  Arguments may be handled in the manner
@@ -24,6 +21,10 @@ type Logger interface {
 	Logf(level Level, format string, v ...interface{})
 	// Fields set fields to always be logged
 	Fields(fields ...Field) Logger
+	// SetLevel updates the logging level.
+	SetLevel(Level)
+	// String returns the name of logger
+	String() string
 }
 
 var (
