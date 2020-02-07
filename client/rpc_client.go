@@ -74,6 +74,11 @@ func (r *rpcClient) call(ctx context.Context, node *registry.Node, req Request, 
 	md, ok := metadata.FromContext(ctx)
 	if ok {
 		for k, v := range md {
+			// don't copy Micro-Topic header, that used for pub/sub
+			// this fix case then client uses the same context that received in subscriber
+			if k == "Micro-Topic" {
+				continue
+			}
 			msg.Header[k] = v
 		}
 	}
