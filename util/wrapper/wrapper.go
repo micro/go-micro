@@ -132,9 +132,12 @@ func TraceHandler(t trace.Tracer) server.HandlerWrapper {
 }
 
 // AuthHandler wraps a server handler to perform auth
-func AuthHandler(a auth.Auth) server.HandlerWrapper {
+func AuthHandler(fn func() auth.Auth) server.HandlerWrapper {
 	return func(h server.HandlerFunc) server.HandlerFunc {
 		return func(ctx context.Context, req server.Request, rsp interface{}) error {
+			// get the auth.Auth interface
+			a := fn()
+
 			// Extract endpoint and remove service name prefix
 			// (e.g. Platform.ListServices => ListServices)
 			var endpoint string

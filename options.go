@@ -17,6 +17,7 @@ import (
 )
 
 type Options struct {
+	Auth      auth.Auth
 	Broker    broker.Broker
 	Cmd       cmd.Cmd
 	Client    client.Client
@@ -39,6 +40,7 @@ type Options struct {
 
 func newOptions(opts ...Option) Options {
 	opt := Options{
+		Auth:      auth.DefaultAuth,
 		Broker:    broker.DefaultBroker,
 		Cmd:       cmd.DefaultCmd,
 		Client:    client.DefaultClient,
@@ -124,6 +126,7 @@ func Tracer(t trace.Tracer) Option {
 // Auth sets the auth for the service
 func Auth(a auth.Auth) Option {
 	return func(o *Options) {
+		o.Auth = a
 		o.Server.Init(server.Auth(a))
 	}
 }
