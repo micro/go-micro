@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package go.micro.api.auth;
+
+service Auth {
+    rpc Validate(ValidateRequest) returns (ValidateResponse) {};
+}
+
+message ValidateRequest {
+    string token = 1;
+}
+
+message ValidateResponse {}
