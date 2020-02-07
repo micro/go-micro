@@ -255,8 +255,8 @@ var (
 			Usage:   "Private key for JWT auth (base64 encoded PEM)",
 		},
 		&cli.StringSliceFlag{
-			Name:    "auth_excludes",
-			EnvVars: []string{"MICRO_AUTH_EXCLUDES"},
+			Name:    "auth_exclude",
+			EnvVars: []string{"MICRO_AUTH_EXCLUDE"},
 			Usage:   "Comma-separated list of endpoints excluded from authentication",
 		},
 	}
@@ -598,8 +598,8 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		}
 	}
 
-	if len(ctx.StringSlice("auth_excludes")) > 0 {
-		if err := (*c.opts.Auth).Init(auth.Excludes(ctx.StringSlice("auth_excludes"))); err != nil {
+	if len(ctx.StringSlice("auth_exclude")) > 0 {
+		if err := (*c.opts.Auth).Init(auth.Excludes(ctx.StringSlice("auth_exclude"))); err != nil {
 			log.Fatalf("Error configuring auth: %v", err)
 		}
 	}
