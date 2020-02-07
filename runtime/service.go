@@ -2,6 +2,7 @@ package runtime
 
 import (
 	"io"
+	"strconv"
 	"sync"
 	"time"
 
@@ -18,6 +19,9 @@ type service struct {
 	closed  chan bool
 	err     error
 	updated time.Time
+
+	retries    int
+	maxRetries int
 
 	// output for logs
 	output io.Writer
@@ -54,9 +58,10 @@ func newService(s *Service, c CreateOptions) *service {
 			Env:  c.Env,
 			Args: args,
 		},
-		closed:  make(chan bool),
-		output:  c.Output,
-		updated: time.Now(),
+		closed:     make(chan bool),
+		output:     c.Output,
+		updated:    time.Now(),
+		maxRetries: c.Retries,
 	}
 }
 
@@ -65,7 +70,17 @@ func (s *service) streamOutput() {
 	go io.Copy(s.output, s.PID.Error)
 }
 
-// Running returns true is the service is running
+func (s *service) ShouldStart() bool {
+	s.RLock()
+	defer s.RUnlock()
+
+	if s.running {
+		return false
+	}
+
+	return s.maxRetries < s.retries
+}
+
 func (s *service) Running() bool {
 	s.RLock()
 	defer s.RUnlock()
@@ -77,7 +92,7 @@ func (s *service) Start() error {
 	s.Lock()
 	defer s.Unlock()
 
-	if s.running {
+	if !s.ShouldStart() {
 		return nil
 	}
 
@@ -167,9 +182,11 @@ func (s *service) Wait() {
 
 	// save the error
 	if err != nil {
-		log.Debugf("Error running service (%v): %v", s.Name, err)
+		s.retries++
 		s.Metadata["status"] = "error"
 		s.Metadata["error"] = err.Error()
+		s.Metadata["retries"] = strconv.Itoa(s.retries)
+
 		s.err = err
 	} else {
 		s.Metadata["status"] = "done"
