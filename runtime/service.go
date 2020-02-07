@@ -167,6 +167,7 @@ func (s *service) Wait() {
 
 	// save the error
 	if err != nil {
+		log.Debugf("Error running service (%v): %v", s.Name, err)
 		s.Metadata["status"] = "error"
 		s.Metadata["error"] = err.Error()
 		s.err = err
