@@ -7,9 +7,17 @@ import (
 type Options struct {
 	PublicKey  []byte
 	PrivateKey []byte
+	Excludes   []string
 }
 
 type Option func(o *Options)
+
+// Excludes endpoints from auth
+func Excludes(excludes []string) Option {
+	return func(o *Options) {
+		o.Excludes = excludes
+	}
+}
 
 // PublicKey is the JWT public key
 func PublicKey(key string) Option {

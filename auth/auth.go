@@ -11,6 +11,8 @@ type Auth interface {
 	String() string
 	// Init the auth package
 	Init(opts ...Option) error
+	// Options returns the options set
+	Options() Options
 	// Generate a new auth Account
 	Generate(id string, opts ...GenerateOption) (*Account, error)
 	// Revoke an authorization Account

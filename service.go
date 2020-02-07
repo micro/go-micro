@@ -8,6 +8,7 @@ import (
 	"sync"
 	"syscall"
 
+	"github.com/micro/go-micro/v2/auth"
 	"github.com/micro/go-micro/v2/client"
 	"github.com/micro/go-micro/v2/config/cmd"
 	"github.com/micro/go-micro/v2/debug/profile"
@@ -38,10 +39,14 @@ func newService(opts ...Option) Service {
 	options.Client = wrapper.FromService(serviceName, options.Client)
 	options.Client = wrapper.TraceCall(serviceName, trace.DefaultTracer, options.Client)
 
+	// parse command line flags
+	cmd.Init()
+
 	// wrap the server to provide handler stats
 	options.Server.Init(
 		server.WrapHandler(wrapper.HandlerStats(stats.DefaultStats)),
 		server.WrapHandler(wrapper.TraceHandler(trace.DefaultTracer)),
+		server.WrapHandler(wrapper.AuthHandler(auth.DefaultAuth)),
 	)
 
 	return &service{
