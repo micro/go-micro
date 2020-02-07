@@ -17,7 +17,7 @@ func TestCliSourceDefault(t *testing.T) {
 
 	service := micro.NewService(
 		micro.Flags(
-			// to be able to run insude go test
+			// to be able to run inside go test
 			&cli.StringFlag{
 				Name: "test.timeout",
 			},
@@ -26,6 +26,9 @@ func TestCliSourceDefault(t *testing.T) {
 			},
 			&cli.StringFlag{
 				Name: "test.run",
+			},
+			&cli.StringFlag{
+				Name: "test.testlogfile",
 			},
 			&cli.StringFlag{
 				Name:    "flag",
