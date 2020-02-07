@@ -80,8 +80,8 @@ func WithCommand(args ...string) CreateOption {
 	}
 }
 
-// WithRetires sets the max retries attemps
-func WithRetires(retries int) CreateOption {
+// WithRetries sets the max retries attemps
+func WithRetries(retries int) CreateOption {
 	return func(o *CreateOptions) {
 		o.Retries = retries
 	}
