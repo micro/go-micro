@@ -13,7 +13,7 @@ type Options struct {
 type Option func(o *Options)
 
 // Excludes endpoints from auth
-func Excludes(excludes []string) Option {
+func Excludes(excludes ...string) Option {
 	return func(o *Options) {
 		o.Excludes = excludes
 	}

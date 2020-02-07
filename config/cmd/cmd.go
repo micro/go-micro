@@ -599,7 +599,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	}
 
 	if len(ctx.StringSlice("auth_exclude")) > 0 {
-		if err := (*c.opts.Auth).Init(auth.Excludes(ctx.StringSlice("auth_exclude"))); err != nil {
+		if err := (*c.opts.Auth).Init(auth.Excludes(ctx.StringSlice("auth_exclude")...)); err != nil {
 			log.Fatalf("Error configuring auth: %v", err)
 		}
 	}
