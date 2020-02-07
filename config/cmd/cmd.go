@@ -311,16 +311,6 @@ var (
 		"service": sAuth.NewAuth,
 		"jwt":     jwtAuth.NewAuth,
 	}
-
-	// used for default selection as the fall back
-	defaultClient    = "grpc"
-	defaultServer    = "grpc"
-	defaultBroker    = "eats"
-	defaultRegistry  = "mdns"
-	defaultSelector  = "registry"
-	defaultTransport = "http"
-	defaultRuntime   = "local"
-	defaultStore     = "memory"
 )
 
 func init() {
