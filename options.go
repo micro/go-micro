@@ -16,6 +16,7 @@ import (
 	"github.com/micro/go-micro/v2/transport"
 )
 
+// Options for micro service
 type Options struct {
 	Broker    broker.Broker
 	Cmd       cmd.Cmd
@@ -56,6 +57,7 @@ func newOptions(opts ...Option) Options {
 	return opt
 }
 
+// Broker to be used for service
 func Broker(b broker.Broker) Option {
 	return func(o *Options) {
 		o.Broker = b
@@ -71,6 +73,7 @@ func Cmd(c cmd.Cmd) Option {
 	}
 }
 
+// Client to be used for service
 func Client(c client.Client) Option {
 	return func(o *Options) {
 		o.Client = c
@@ -78,8 +81,7 @@ func Client(c client.Client) Option {
 }
 
 // Context specifies a context for the service.
-// Can be used to signal shutdown of the service.
-// Can be used for extra option values.
+// Can be used to signal shutdown of the service and for extra option values.
 func Context(ctx context.Context) Option {
 	return func(o *Options) {
 		o.Context = ctx
@@ -95,6 +97,7 @@ func HandleSignal(b bool) Option {
 	}
 }
 
+// Server to be used for service
 func Server(s server.Server) Option {
 	return func(o *Options) {
 		o.Server = s
@@ -176,12 +179,14 @@ func Metadata(md map[string]string) Option {
 	}
 }
 
+// Flags that can be passed to service
 func Flags(flags ...cli.Flag) Option {
 	return func(o *Options) {
 		o.Cmd.App().Flags = append(o.Cmd.App().Flags, flags...)
 	}
 }
 
+// Action can be used to parse user provided cli options
 func Action(a func(*cli.Context) error) Option {
 	return func(o *Options) {
 		o.Cmd.App().Action = a
@@ -251,24 +256,28 @@ func WrapSubscriber(w ...server.SubscriberWrapper) Option {
 
 // Before and Afters
 
+// BeforeStart run funcs before service starts
 func BeforeStart(fn func() error) Option {
 	return func(o *Options) {
 		o.BeforeStart = append(o.BeforeStart, fn)
 	}
 }
 
+// BeforeStop run funcs before service stops
 func BeforeStop(fn func() error) Option {
 	return func(o *Options) {
 		o.BeforeStop = append(o.BeforeStop, fn)
 	}
 }
 
+// AfterStart run funcs after service starts
 func AfterStart(fn func() error) Option {
 	return func(o *Options) {
 		o.AfterStart = append(o.AfterStart, fn)
 	}
 }
 
+// AfterStop run funcs after service stops
 func AfterStop(fn func() error) Option {
 	return func(o *Options) {
 		o.AfterStop = append(o.AfterStop, fn)
