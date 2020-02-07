@@ -74,7 +74,7 @@ func (s *service) shouldStart() bool {
 	if s.running {
 		return false
 	}
-	return s.maxRetries < s.retries
+	return s.maxRetries <= s.retries
 }
 
 func (s *service) ShouldStart() bool {
