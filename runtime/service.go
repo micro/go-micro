@@ -58,9 +58,10 @@ func newService(s *Service, c CreateOptions) *service {
 			Env:  c.Env,
 			Args: args,
 		},
-		closed:  make(chan bool),
-		output:  c.Output,
-		updated: time.Now(),
+		closed:     make(chan bool),
+		output:     c.Output,
+		updated:    time.Now(),
+		maxRetries: c.Retries,
 	}
 }
 

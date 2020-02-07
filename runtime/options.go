@@ -14,8 +14,6 @@ type Options struct {
 	Type string
 	// Source of the services repository
 	Source string
-	// MaxRetries before failing deploy
-	MaxRetries int
 }
 
 // WithSource sets the host addresses to be used by the broker
@@ -39,13 +37,6 @@ func WithType(t string) Option {
 	}
 }
 
-// WithMaxRetries sets the arg MaxRetries
-func WithMaxRetries(max int) Option {
-	return func(o *Options) {
-		o.MaxRetries = max
-	}
-}
-
 type CreateOption func(o *CreateOptions)
 
 type ReadOption func(o *ReadOptions)
@@ -60,6 +51,8 @@ type CreateOptions struct {
 	Output io.Writer
 	// Type of service to create
 	Type string
+	// Retries before failing deploy
+	Retries int
 }
 
 // ReadOptions queries runtime services
@@ -84,6 +77,13 @@ func WithCommand(args ...string) CreateOption {
 	return func(o *CreateOptions) {
 		// set command
 		o.Command = args
+	}
+}
+
+// WithRetires sets the max retries attemps
+func WithRetires(retries int) CreateOption {
+	return func(o *CreateOptions) {
+		o.Retries = retries
 	}
 }
 
