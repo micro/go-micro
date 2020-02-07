@@ -2,6 +2,7 @@ package wrapper
 
 import (
 	"context"
+	"strings"
 
 	"github.com/micro/go-micro/v2/client"
 	"github.com/micro/go-micro/v2/debug/stats"
@@ -111,6 +112,11 @@ func TraceHandler(t trace.Tracer) server.HandlerWrapper {
 	return func(h server.HandlerFunc) server.HandlerFunc {
 		// return a function that returns a function
 		return func(ctx context.Context, req server.Request, rsp interface{}) error {
+			// don't store traces for debug
+			if strings.HasPrefix(req.Endpoint(), "Debug.") {
+				return h(ctx, req, rsp)
+			}
+
 			// get the span
 			newCtx, s := t.Start(ctx, req.Service()+"."+req.Endpoint())
 
