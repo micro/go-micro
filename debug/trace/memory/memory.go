@@ -49,27 +49,27 @@ func (t *Tracer) Start(ctx context.Context, name string) (context.Context, *trac
 
 	// return span if no context
 	if ctx == nil {
-		return context.Background(), span
+		return trace.ToContext(context.Background(), span.Trace, span.Id), span
 	}
-
-	s, ok := trace.FromContext(ctx)
+	traceID, parentSpanID, ok := trace.FromContext(ctx)
+	// If the trace can not be found in the header,
+	// that means this is where the trace is created.
 	if !ok {
-		return ctx, span
+		return trace.ToContext(ctx, span.Trace, span.Id), span
 	}
 
 	// set trace id
-	span.Trace = s.Trace
+	span.Trace = traceID
 	// set parent
-	span.Parent = s.Id
+	span.Parent = parentSpanID
 
-	// return the sapn
-	return ctx, span
+	// return the span
+	return trace.ToContext(ctx, span.Trace, span.Id), span
 }
 
 func (t *Tracer) Finish(s *trace.Span) error {
 	// set finished time
 	s.Duration = time.Since(s.Started)
-
 	// save the span
 	t.buffer.Put(s)
 
@@ -84,7 +84,7 @@ func NewTracer(opts ...trace.Option) trace.Tracer {
 
 	return &Tracer{
 		opts: options,
-		// the last 64 requests
-		buffer: ring.New(64),
+		// the last 256 requests
+		buffer: ring.New(256),
 	}
 }

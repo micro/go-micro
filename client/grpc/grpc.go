@@ -147,7 +147,7 @@ func (g *grpcClient) call(ctx context.Context, node *registry.Node, req client.R
 	case err := <-ch:
 		grr = err
 	case <-ctx.Done():
-		grr = ctx.Err()
+		grr = errors.Timeout("go.micro.client", "%v", ctx.Err())
 	}
 
 	return grr

@@ -16,7 +16,7 @@ type Options struct {
 	Source string
 }
 
-// WithSource sets the host addresses to be used by the broker
+// WithSource sets the base image / repository
 func WithSource(src string) Option {
 	return func(o *Options) {
 		o.Source = src

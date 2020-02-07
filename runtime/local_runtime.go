@@ -164,7 +164,7 @@ func (r *runtime) Create(s *Service, opts ...CreateOption) error {
 	}
 
 	if len(options.Command) == 0 {
-		return errors.New("missing exec command")
+		options.Command = []string{"go", "run", "."}
 	}
 
 	// create new service

@@ -183,7 +183,6 @@ func (s *service) Wait() {
 	// save the error
 	if err != nil {
 		s.retries++
-
 		s.Metadata["status"] = "error"
 		s.Metadata["error"] = err.Error()
 		s.Metadata["retries"] = strconv.Itoa(s.retries)
