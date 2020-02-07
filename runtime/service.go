@@ -70,15 +70,17 @@ func (s *service) streamOutput() {
 	go io.Copy(s.output, s.PID.Error)
 }
 
-func (s *service) ShouldStart() bool {
-	s.RLock()
-	defer s.RUnlock()
-
+func (s *service) shouldStart() bool {
 	if s.running {
 		return false
 	}
-
 	return s.maxRetries < s.retries
+}
+
+func (s *service) ShouldStart() bool {
+	s.RLock()
+	defer s.RUnlock()
+	return s.shouldStart()
 }
 
 func (s *service) Running() bool {
@@ -92,7 +94,7 @@ func (s *service) Start() error {
 	s.Lock()
 	defer s.Unlock()
 
-	if !s.ShouldStart() {
+	if !s.shouldStart() {
 		return nil
 	}
 
