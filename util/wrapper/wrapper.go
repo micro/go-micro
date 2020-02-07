@@ -150,23 +150,16 @@ func AuthHandler(a auth.Auth) server.HandlerWrapper {
 				}
 			}
 
-			// Extract the Authorization header
-			md, ok := metadata.FromContext(ctx)
-			if !ok {
-				md = metadata.Metadata{}
-			}
-			authHeader := md["Authorization"]
-
 			// Extract the token if present. Note: if noop is being used
 			// then the token can be blank without erroring
 			var token string
-			if len(authHeader) > 0 {
+			if header, ok := metadata.Get(ctx, "Authorization"); ok {
 				// Ensure the correct scheme is being used
-				if !strings.HasPrefix(authHeader, BearerSchema) {
+				if !strings.HasPrefix(header, BearerSchema) {
 					return errors.Unauthorized("go.micro.auth", "invalid authorization header. expected Bearer schema")
 				}
 
-				token = authHeader[len(BearerSchema):]
+				token = header[len(BearerSchema):]
 			}
 
 			// Validate the token
