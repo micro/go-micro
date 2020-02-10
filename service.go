@@ -8,6 +8,7 @@ import (
 	"sync"
 	"syscall"
 
+	"github.com/micro/go-micro/v2/auth"
 	"github.com/micro/go-micro/v2/client"
 	"github.com/micro/go-micro/v2/config/cmd"
 	"github.com/micro/go-micro/v2/debug/profile"
@@ -29,10 +30,14 @@ type service struct {
 }
 
 func newService(opts ...Option) Service {
+	service := new(service)
 	options := newOptions(opts...)
 
 	// service name
 	serviceName := options.Server.Options().Name
+
+	// TODO: better accessors
+	authFn := func() auth.Auth { return service.opts.Auth }
 
 	// wrap client to inject From-Service header on any calls
 	options.Client = wrapper.FromService(serviceName, options.Client)
@@ -42,11 +47,13 @@ func newService(opts ...Option) Service {
 	options.Server.Init(
 		server.WrapHandler(wrapper.HandlerStats(stats.DefaultStats)),
 		server.WrapHandler(wrapper.TraceHandler(trace.DefaultTracer)),
+		server.WrapHandler(wrapper.AuthHandler(authFn)),
 	)
 
-	return &service{
-		opts: options,
-	}
+	// set opts
+	service.opts = options
+
+	return service
 }
 
 func (s *service) Name() string {
@@ -88,6 +95,7 @@ func (s *service) Init(opts ...Option) {
 
 		// Initialise the command flags, overriding new service
 		if err := s.opts.Cmd.Init(
+			cmd.Auth(&s.opts.Auth),
 			cmd.Broker(&s.opts.Broker),
 			cmd.Registry(&s.opts.Registry),
 			cmd.Transport(&s.opts.Transport),

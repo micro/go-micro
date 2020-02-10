@@ -37,6 +37,10 @@ func (s *svc) Init(opts ...auth.Option) error {
 	return nil
 }
 
+func (s *svc) Options() auth.Options {
+	return s.options
+}
+
 // Generate a new auth account
 func (s *svc) Generate(id string, opts ...auth.GenerateOption) (*auth.Account, error) {
 	// construct the request

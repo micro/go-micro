@@ -254,6 +254,11 @@ var (
 			EnvVars: []string{"MICRO_AUTH_PRIVATE_KEY"},
 			Usage:   "Private key for JWT auth (base64 encoded PEM)",
 		},
+		&cli.StringSliceFlag{
+			Name:    "auth_exclude",
+			EnvVars: []string{"MICRO_AUTH_EXCLUDE"},
+			Usage:   "Comma-separated list of endpoints excluded from authentication",
+		},
 	}
 
 	DefaultBrokers = map[string]func(...broker.Option) broker.Broker{
@@ -319,6 +324,7 @@ func init() {
 
 func newCmd(opts ...Option) Cmd {
 	options := Options{
+		Auth:      &auth.DefaultAuth,
 		Broker:    &broker.DefaultBroker,
 		Client:    &client.DefaultClient,
 		Registry:  &registry.DefaultRegistry,
@@ -328,7 +334,6 @@ func newCmd(opts ...Option) Cmd {
 		Runtime:   &runtime.DefaultRuntime,
 		Store:     &store.DefaultStore,
 		Tracer:    &trace.DefaultTracer,
-		Auth:      &auth.DefaultAuth,
 
 		Brokers:    DefaultBrokers,
 		Clients:    DefaultClients,
@@ -379,6 +384,7 @@ func (c *cmd) Options() Options {
 
 func (c *cmd) Before(ctx *cli.Context) error {
 	// If flags are set then use them otherwise do nothing
+	var authOpts []auth.Option
 	var serverOpts []server.Option
 	var clientOpts []client.Option
 
@@ -414,12 +420,12 @@ func (c *cmd) Before(ctx *cli.Context) error {
 
 	// Set the auth
 	if name := ctx.String("auth"); len(name) > 0 {
-		r, ok := c.opts.Auths[name]
+		a, ok := c.opts.Auths[name]
 		if !ok {
 			return fmt.Errorf("Unsupported auth: %s", name)
 		}
 
-		*c.opts.Auth = r()
+		*c.opts.Auth = a()
 	}
 
 	// Set the client
@@ -571,21 +577,27 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		serverOpts = append(serverOpts, server.RegisterInterval(val*time.Second))
 	}
 
-	if len(ctx.String("auth_public_key")) > 0 {
-		if err := (*c.opts.Auth).Init(auth.PublicKey(ctx.String("auth_public_key"))); err != nil {
-			log.Fatalf("Error configuring auth: %v", err)
-		}
-	}
-
-	if len(ctx.String("auth_private_key")) > 0 {
-		if err := (*c.opts.Auth).Init(auth.PrivateKey(ctx.String("auth_private_key"))); err != nil {
-			log.Fatalf("Error configuring auth: %v", err)
-		}
-	}
-
 	if len(ctx.String("runtime_source")) > 0 {
 		if err := (*c.opts.Runtime).Init(runtime.WithSource(ctx.String("runtime_source"))); err != nil {
 			log.Fatalf("Error configuring runtime: %v", err)
+		}
+	}
+
+	if len(ctx.String("auth_public_key")) > 0 {
+		authOpts = append(authOpts, auth.PublicKey(ctx.String("auth_public_key")))
+	}
+
+	if len(ctx.String("auth_private_key")) > 0 {
+		authOpts = append(authOpts, auth.PrivateKey(ctx.String("auth_private_key")))
+	}
+
+	if len(ctx.StringSlice("auth_exclude")) > 0 {
+		authOpts = append(authOpts, auth.Excludes(ctx.StringSlice("auth_exclude")...))
+	}
+
+	if len(authOpts) > 0 {
+		if err := (*c.opts.Auth).Init(authOpts...); err != nil {
+			log.Fatalf("Error configuring auth: %v", err)
 		}
 	}
 

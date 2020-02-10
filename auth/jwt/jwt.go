@@ -33,6 +33,10 @@ func (s *svc) String() string {
 	return "jwt"
 }
 
+func (s *svc) Options() auth.Options {
+	return s.options
+}
+
 func (s *svc) Init(opts ...auth.Option) error {
 	for _, o := range opts {
 		o(&s.options)
