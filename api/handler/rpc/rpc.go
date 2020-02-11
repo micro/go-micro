@@ -256,8 +256,6 @@ func requestPayload(r *http.Request) ([]byte, error) {
 			return qson.ToJSON(r.URL.RawQuery)
 		}
 	case "PATCH", "POST":
-		// check con
-
 		return ioutil.ReadAll(r.Body)
 	}
 
