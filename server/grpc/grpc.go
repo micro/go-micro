@@ -805,10 +805,7 @@ func (g *grpcServer) Start() error {
 			return err
 		}
 
-		baddr := config.Broker.Address()
-		bname := config.Broker.String()
-
-		log.Logf("Broker [%s] Connected to %s", bname, config.Broker.Address())
+		log.Logf("Broker [%s] Connected to %s", config.Broker.String(), config.Broker.Address())
 	}
 
 	// announce self to the world
