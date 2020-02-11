@@ -172,7 +172,7 @@ func AuthHandler(fn func() auth.Auth) server.HandlerWrapper {
 
 			// Validate the token
 			if _, err := a.Validate(token); err != nil {
-				return err
+				return errors.Unauthorized("go.micro.auth", err.Error())
 			}
 
 			return h(ctx, req, rsp)
