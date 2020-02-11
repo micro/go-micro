@@ -240,6 +240,10 @@ func (n *natsBroker) serve(exit chan bool) error {
 		// register the cluster address
 		for {
 			select {
+			case err := <-n.closeCh:
+				if err != nil {
+					log.Log(err)
+				}
 			case <-exit:
 				// deregister on exit
 				n.opts.Registry.Deregister(&registry.Service{
@@ -282,7 +286,6 @@ func (n *natsBroker) Connect() error {
 		}
 
 		// set to connected
-		n.connected = true
 	}
 
 	status := nats.CLOSED
@@ -313,6 +316,9 @@ func (n *natsBroker) Connect() error {
 			return err
 		}
 		n.conn = c
+
+		n.connected = true
+
 		return nil
 	}
 }
@@ -328,7 +334,6 @@ func (n *natsBroker) Disconnect() error {
 	// drain the connection if specified
 	if n.drain {
 		n.conn.Drain()
-		n.closeCh <- nil
 	}
 
 	// close the client connection
@@ -336,10 +341,12 @@ func (n *natsBroker) Disconnect() error {
 
 	// shutdown the local server
 	// and deregister
-	select {
-	case <-n.exit:
-	default:
-		close(n.exit)
+	if n.server != nil {
+		select {
+		case <-n.exit:
+		default:
+			close(n.exit)
+		}
 	}
 
 	// set not connected
@@ -439,7 +446,7 @@ func (n *natsBroker) onClose(conn *nats.Conn) {
 }
 
 func (n *natsBroker) onDisconnectedError(conn *nats.Conn, err error) {
-	n.closeCh <- nil
+	n.closeCh <- err
 }
 
 func (n *natsBroker) onAsyncError(conn *nats.Conn, sub *nats.Subscription, err error) {
@@ -459,7 +466,8 @@ func NewBroker(opts ...Option) Broker {
 	}
 
 	n := &natsBroker{
-		opts: options,
+		opts:    options,
+		closeCh: make(chan error),
 	}
 	n.setOption(opts...)
 

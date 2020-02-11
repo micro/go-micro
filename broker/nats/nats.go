@@ -457,7 +457,7 @@ func (n *natsBroker) onAsyncError(conn *nats.Conn, sub *nats.Subscription, err e
 }
 
 func (n *natsBroker) onDisconnectedError(conn *nats.Conn, err error) {
-	n.closeCh <- nil
+	n.closeCh <- err
 }
 
 func NewBroker(opts ...broker.Option) broker.Broker {
