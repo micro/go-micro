@@ -39,6 +39,8 @@ type Record struct {
 type ReadOptions struct {
 	// Read key as a prefix
 	Prefix bool
+	// Read key as a suffix
+	Suffix bool
 }
 
 type ReadOption func(o *ReadOptions)

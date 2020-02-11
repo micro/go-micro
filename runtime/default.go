@@ -92,7 +92,7 @@ func (r *runtime) run(events <-chan Event) {
 			// check running services
 			r.RLock()
 			for _, service := range r.services {
-				if service.Running() {
+				if !service.ShouldStart() {
 					continue
 				}
 
@@ -104,7 +104,7 @@ func (r *runtime) run(events <-chan Event) {
 			}
 			r.RUnlock()
 		case service := <-r.start:
-			if service.Running() {
+			if !service.ShouldStart() {
 				continue
 			}
 			// TODO: check service error
@@ -164,7 +164,7 @@ func (r *runtime) Create(s *Service, opts ...CreateOption) error {
 	}
 
 	if len(options.Command) == 0 {
-		return errors.New("missing exec command")
+		options.Command = []string{"go", "run", "."}
 	}
 
 	// create new service
@@ -245,7 +245,7 @@ func (r *runtime) Delete(s *Service) error {
 	log.Debugf("Runtime deleting service %s", s.Name)
 	if s, ok := r.services[s.Name]; ok {
 		// check if running
-		if !s.Running() {
+		if s.Running() {
 			delete(r.services, s.Name)
 			return nil
 		}

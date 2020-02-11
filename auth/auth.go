@@ -7,34 +7,46 @@ import (
 
 // Auth providers authentication and authorization
 type Auth interface {
-	// Generate a new auth token
-	Generate(string) (*Token, error)
-	// Revoke an authorization token
-	Revoke(*Token) error
-	// Grant access to a resource
-	Grant(*Token, *Service) error
-	// Verify a token can access a resource
-	Verify(*Token, *Service) error
+	// String to identify the package
+	String() string
+	// Init the auth package
+	Init(opts ...Option) error
+	// Options returns the options set
+	Options() Options
+	// Generate a new auth Account
+	Generate(id string, opts ...GenerateOption) (*Account, error)
+	// Revoke an authorization Account
+	Revoke(token string) error
+	// Validate an account token
+	Validate(token string) (*Account, error)
 }
 
-// Service is some thing to provide access to
-type Service struct {
+// Resource is an entity such as a user or
+type Resource struct {
 	// Name of the resource
 	Name string
-	// Endpoint is the specific endpoint
-	Endpoint string
+	// Type of resource, e.g.
+	Type string
 }
 
-// Token providers by an auth provider
-type Token struct {
-	// Unique token id
+// Role an account has
+type Role struct {
+	Name     string
+	Resource *Resource
+}
+
+// Account provided by an auth provider
+type Account struct {
+	// ID of the account (UUID or email)
 	Id string `json: "id"`
-	// Time of token creation
+	// Token used to authenticate
+	Token string `json: "token"`
+	// Time of Account creation
 	Created time.Time `json:"created"`
-	// Time of token expiry
+	// Time of Account expiry
 	Expiry time.Time `json:"expiry"`
-	// Roles associated with the token
-	Roles []string `json:"roles"`
+	// Roles associated with the Account
+	Roles []*Role `json:"roles"`
 	// Any other associated metadata
 	Metadata map[string]string `json:"metadata"`
 }

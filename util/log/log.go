@@ -4,19 +4,20 @@ package log
 import (
 	"fmt"
 	"os"
+	"sync/atomic"
 	"time"
 
 	"github.com/micro/go-micro/v2/debug/log"
 )
 
 // level is a log level
-type Level int
+type Level int32
 
 const (
 	LevelFatal Level = iota
 	LevelError
-	LevelInfo
 	LevelWarn
+	LevelInfo
 	LevelDebug
 	LevelTrace
 )
@@ -186,7 +187,7 @@ func GetLogger() log.Log {
 
 // SetLevel sets the log level
 func SetLevel(l Level) {
-	level = l
+	atomic.StoreInt32((*int32)(&level), int32(l))
 }
 
 // GetLevel returns the current level

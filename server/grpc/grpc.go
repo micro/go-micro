@@ -14,6 +14,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/golang/protobuf/proto"
 	"github.com/micro/go-micro/v2/broker"
 	"github.com/micro/go-micro/v2/codec"
 	"github.com/micro/go-micro/v2/errors"
@@ -375,20 +376,38 @@ func (g *grpcServer) processRequest(stream grpc.ServerStream, service *service, 
 
 		statusCode := codes.OK
 		statusDesc := ""
-
 		// execute the handler
 		if appErr := fn(ctx, r, replyv.Interface()); appErr != nil {
-			if err, ok := appErr.(*rpcError); ok {
-				statusCode = err.code
-				statusDesc = err.desc
-			} else if err, ok := appErr.(*errors.Error); ok {
-				statusCode = microError(err)
-				statusDesc = appErr.Error()
-			} else {
+			var errStatus *status.Status
+			switch verr := appErr.(type) {
+			case *errors.Error:
+				// micro.Error now proto based and we can attach it to grpc status
+				statusCode = microError(verr)
+				statusDesc = verr.Error()
+				errStatus, err = status.New(statusCode, statusDesc).WithDetails(verr)
+				if err != nil {
+					return err
+				}
+			case proto.Message:
+				// user defined error that proto based we can attach it to grpc status
 				statusCode = convertCode(appErr)
 				statusDesc = appErr.Error()
+				errStatus, err = status.New(statusCode, statusDesc).WithDetails(verr)
+				if err != nil {
+					return err
+				}
+			case *rpcError:
+				// rpcError handling may be we have ability to attach it to details?
+				statusCode = verr.code
+				statusDesc = verr.desc
+				errStatus = status.New(statusCode, statusDesc)
+			default:
+				// default case user pass own error type that not proto based
+				statusCode = convertCode(verr)
+				statusDesc = verr.Error()
+				errStatus = status.New(statusCode, statusDesc)
 			}
-			return status.New(statusCode, statusDesc).Err()
+			return errStatus.Err()
 		}
 
 		if err := stream.SendMsg(replyv.Interface()); err != nil {
@@ -436,16 +455,37 @@ func (g *grpcServer) processStream(stream grpc.ServerStream, service *service, m
 
 	appErr := fn(ctx, r, ss)
 	if appErr != nil {
-		if err, ok := appErr.(*rpcError); ok {
-			statusCode = err.code
-			statusDesc = err.desc
-		} else if err, ok := appErr.(*errors.Error); ok {
-			statusCode = microError(err)
-			statusDesc = appErr.Error()
-		} else {
+		var err error
+		var errStatus *status.Status
+		switch verr := appErr.(type) {
+		case *errors.Error:
+			// micro.Error now proto based and we can attach it to grpc status
+			statusCode = microError(verr)
+			statusDesc = verr.Error()
+			errStatus, err = status.New(statusCode, statusDesc).WithDetails(verr)
+			if err != nil {
+				return err
+			}
+		case proto.Message:
+			// user defined error that proto based we can attach it to grpc status
 			statusCode = convertCode(appErr)
 			statusDesc = appErr.Error()
+			errStatus, err = status.New(statusCode, statusDesc).WithDetails(verr)
+			if err != nil {
+				return err
+			}
+		case *rpcError:
+			// rpcError handling may be we have ability to attach it to details?
+			statusCode = verr.code
+			statusDesc = verr.desc
+			errStatus = status.New(statusCode, statusDesc)
+		default:
+			// default case user pass own error type that not proto based
+			statusCode = convertCode(verr)
+			statusDesc = verr.Error()
+			errStatus = status.New(statusCode, statusDesc)
 		}
+		return errStatus.Err()
 	}
 
 	return status.New(statusCode, statusDesc).Err()
@@ -771,10 +811,7 @@ func (g *grpcServer) Start() error {
 			return err
 		}
 
-		baddr := config.Broker.Address()
-		bname := config.Broker.String()
-
-		log.Logf("Broker [%s] Connected to %s", bname, baddr)
+		log.Logf("Broker [%s] Connected to %s", config.Broker.String(), config.Broker.Address())
 	}
 
 	// announce self to the world
@@ -842,6 +879,7 @@ func (g *grpcServer) Start() error {
 		// close transport
 		ch <- nil
 
+		log.Logf("Broker [%s] Disconnected from %s", config.Broker.String(), config.Broker.Address())
 		// disconnect broker
 		config.Broker.Disconnect()
 	}()

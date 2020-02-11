@@ -7,6 +7,11 @@ import (
 )
 
 func TestMDNS(t *testing.T) {
+	// skip test in travis because of sendto: operation not permitted error
+	if travis := os.Getenv("TRAVIS"); travis == "true" {
+		t.Skip()
+	}
+
 	testData := []*Service{
 		{
 			Name:    "test1",

@@ -21,7 +21,9 @@ type cliSource struct {
 func (c *cliSource) Read() (*source.ChangeSet, error) {
 	var changes map[string]interface{}
 
-	for _, name := range c.ctx.FlagNames() {
+	// directly using app cli flags, to access default values of not specified options
+	for _, f := range c.ctx.App.Flags {
+		name := f.Names()[0]
 		tmp := toEntry(name, c.ctx.Generic(name))
 		mergo.Map(&changes, tmp) // need to sort error handling
 	}
@@ -100,13 +102,10 @@ func NewSource(opts ...source.Option) source.Source {
 
 	var ctx *cli.Context
 
-	c, ok := options.Context.Value(contextKey{}).(*cli.Context)
-	if ok {
+	if c, ok := options.Context.Value(contextKey{}).(*cli.Context); ok {
 		ctx = c
-	}
-
-	// no context
-	if ctx == nil {
+	} else {
+		// no context
 		// get the default app/flags
 		app := cmd.App()
 		flags := app.Flags

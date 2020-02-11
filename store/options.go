@@ -11,6 +11,8 @@ type Options struct {
 	Namespace string
 	// Prefix of the keys used
 	Prefix string
+	// Suffix of the keys used
+	Suffix string
 	// Alternative options
 	Context context.Context
 }
@@ -43,5 +45,12 @@ func Namespace(ns string) Option {
 func ReadPrefix() ReadOption {
 	return func(o *ReadOptions) {
 		o.Prefix = true
+	}
+}
+
+// ReadSuffix uses the key as a suffix
+func ReadSuffix() ReadOption {
+	return func(o *ReadOptions) {
+		o.Suffix = true
 	}
 }

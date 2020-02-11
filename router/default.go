@@ -530,7 +530,9 @@ func (r *router) Start() error {
 		for {
 			select {
 			case <-r.exit:
-				w.Stop()
+				if w != nil {
+					w.Stop()
+				}
 				return
 			default:
 				if w == nil {
@@ -547,8 +549,10 @@ func (r *router) Start() error {
 					time.Sleep(time.Second)
 				}
 
-				w.Stop()
-				w = nil
+				if w != nil {
+					w.Stop()
+					w = nil
+				}
 			}
 		}
 	}()
