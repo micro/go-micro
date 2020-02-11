@@ -808,7 +808,7 @@ func (g *grpcServer) Start() error {
 		baddr := config.Broker.Address()
 		bname := config.Broker.String()
 
-		log.Logf("Broker [%s] Connected to %s", bname, baddr)
+		log.Logf("Broker [%s] Connected to %s", bname, config.Broker.Address())
 	}
 
 	// announce self to the world
@@ -876,6 +876,7 @@ func (g *grpcServer) Start() error {
 		// close transport
 		ch <- nil
 
+		log.Logf("Broker [%s] Disconnected from %s", config.Broker.String(), config.Broker.Address())
 		// disconnect broker
 		config.Broker.Disconnect()
 	}()
