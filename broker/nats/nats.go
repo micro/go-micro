@@ -318,7 +318,7 @@ func (n *natsBroker) Disconnect() error {
 	// drain the connection if specified
 	if n.drain {
 		n.conn.Drain()
-		return <-n.closeCh
+		n.closeCh <- nil
 	}
 
 	// close the client connection
@@ -440,6 +440,7 @@ func (n *natsBroker) setOption(opts ...broker.Option) {
 		n.closeCh = make(chan error)
 		n.nopts.ClosedCB = n.onClose
 		n.nopts.AsyncErrorCB = n.onAsyncError
+		n.nopts.DisconnectedErrCB = n.onDisconnectedError
 	}
 }
 
@@ -453,6 +454,10 @@ func (n *natsBroker) onAsyncError(conn *nats.Conn, sub *nats.Subscription, err e
 	if err == nats.ErrDrainTimeout {
 		n.closeCh <- err
 	}
+}
+
+func (n *natsBroker) onDisconnectedError(conn *nats.Conn, err error) {
+	n.closeCh <- nil
 }
 
 func NewBroker(opts ...broker.Option) broker.Broker {
