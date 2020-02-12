@@ -63,6 +63,7 @@ func (c *clientWrapper) Publish(ctx context.Context, p client.Message, opts ...c
 func (c *traceWrapper) Call(ctx context.Context, req client.Request, rsp interface{}, opts ...client.CallOption) error {
 	newCtx, s := c.trace.Start(ctx, req.Service()+"."+req.Endpoint())
 
+	s.Type = trace.SpanTypeRequestOutbound
 	err := c.Client.Call(newCtx, req, rsp, opts...)
 	if err != nil {
 		s.Metadata["error"] = err.Error()
@@ -122,6 +123,7 @@ func TraceHandler(t trace.Tracer) server.HandlerWrapper {
 
 			// get the span
 			newCtx, s := t.Start(ctx, req.Service()+"."+req.Endpoint())
+			s.Type = trace.SpanTypeRequestInbound
 
 			err := h(newCtx, req, rsp)
 			if err != nil {
