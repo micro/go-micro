@@ -295,6 +295,10 @@ func (n *natsBroker) Connect() error {
 		return nil
 	default: // DISCONNECTED or CLOSED or DRAINING
 		opts := n.nopts
+		opts.DrainTimeout = 1 * time.Second
+		opts.AsyncErrorCB = n.onAsyncError
+		opts.DisconnectedErrCB = n.onDisconnectedError
+		opts.ClosedCB = n.onClose
 		opts.Servers = n.servers
 		opts.Secure = n.opts.Secure
 		opts.TLSConfig = n.opts.TLSConfig
@@ -324,7 +328,7 @@ func (n *natsBroker) Disconnect() error {
 	// drain the connection if specified
 	if n.drain {
 		n.conn.Drain()
-		return <-n.closeCh
+		n.closeCh <- nil
 	}
 
 	// close the client connection
@@ -431,6 +435,10 @@ func (n *natsBroker) setOption(opts ...Option) {
 }
 
 func (n *natsBroker) onClose(conn *nats.Conn) {
+	n.closeCh <- nil
+}
+
+func (n *natsBroker) onDisconnectedError(conn *nats.Conn, err error) {
 	n.closeCh <- nil
 }
 

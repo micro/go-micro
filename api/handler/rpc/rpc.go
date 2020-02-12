@@ -202,8 +202,9 @@ func hasCodec(ct string, codecs []string) bool {
 func requestPayload(r *http.Request) ([]byte, error) {
 	// we have to decode json-rpc and proto-rpc because we suck
 	// well actually because there's no proxy codec right now
-	switch r.Header.Get("Content-Type") {
-	case "application/json-rpc":
+	ct := r.Header.Get("Content-Type")
+	switch {
+	case strings.Contains(ct, "application/json-rpc"):
 		msg := codec.Message{
 			Type:   codec.Request,
 			Header: make(map[string]string),
@@ -217,7 +218,7 @@ func requestPayload(r *http.Request) ([]byte, error) {
 			return nil, err
 		}
 		return ([]byte)(raw), nil
-	case "application/proto-rpc", "application/octet-stream":
+	case strings.Contains(ct, "application/proto-rpc"), strings.Contains(ct, "application/octet-stream"):
 		msg := codec.Message{
 			Type:   codec.Request,
 			Header: make(map[string]string),
@@ -232,6 +233,19 @@ func requestPayload(r *http.Request) ([]byte, error) {
 		}
 		b, _ := raw.Marshal()
 		return b, nil
+	case strings.Contains(ct, "application/www-x-form-urlencoded"):
+		r.ParseForm()
+
+		// generate a new set of values from the form
+		vals := make(map[string]string)
+		for k, v := range r.Form {
+			vals[k] = strings.Join(v, ",")
+		}
+
+		// marshal
+		b, _ := json.Marshal(vals)
+		return b, nil
+		// TODO: application/grpc
 	}
 
 	// otherwise as per usual

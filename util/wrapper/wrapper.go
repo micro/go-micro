@@ -2,10 +2,13 @@ package wrapper
 
 import (
 	"context"
+	"strings"
 
+	"github.com/micro/go-micro/v2/auth"
 	"github.com/micro/go-micro/v2/client"
 	"github.com/micro/go-micro/v2/debug/stats"
 	"github.com/micro/go-micro/v2/debug/trace"
+	"github.com/micro/go-micro/v2/errors"
 	"github.com/micro/go-micro/v2/metadata"
 	"github.com/micro/go-micro/v2/server"
 )
@@ -24,6 +27,7 @@ type traceWrapper struct {
 
 var (
 	HeaderPrefix = "Micro-"
+	BearerSchema = "Bearer "
 )
 
 func (c *clientWrapper) setHeaders(ctx context.Context) context.Context {
@@ -111,6 +115,11 @@ func TraceHandler(t trace.Tracer) server.HandlerWrapper {
 	return func(h server.HandlerFunc) server.HandlerFunc {
 		// return a function that returns a function
 		return func(ctx context.Context, req server.Request, rsp interface{}) error {
+			// don't store traces for debug
+			if strings.HasPrefix(req.Endpoint(), "Debug.") {
+				return h(ctx, req, rsp)
+			}
+
 			// get the span
 			newCtx, s := t.Start(ctx, req.Service()+"."+req.Endpoint())
 
@@ -123,6 +132,50 @@ func TraceHandler(t trace.Tracer) server.HandlerWrapper {
 			t.Finish(s)
 
 			return err
+		}
+	}
+}
+
+// AuthHandler wraps a server handler to perform auth
+func AuthHandler(fn func() auth.Auth) server.HandlerWrapper {
+	return func(h server.HandlerFunc) server.HandlerFunc {
+		return func(ctx context.Context, req server.Request, rsp interface{}) error {
+			// get the auth.Auth interface
+			a := fn()
+
+			// Extract endpoint and remove service name prefix
+			// (e.g. Platform.ListServices => ListServices)
+			var endpoint string
+			if ec := strings.Split(req.Endpoint(), "."); len(ec) == 2 {
+				endpoint = ec[1]
+			}
+
+			// Check for endpoints excluded from auth. If the endpoint
+			// matches, execute the handler and return
+			for _, e := range a.Options().Excludes {
+				if e == endpoint {
+					return h(ctx, req, rsp)
+				}
+			}
+
+			// Extract the token if present. Note: if noop is being used
+			// then the token can be blank without erroring
+			var token string
+			if header, ok := metadata.Get(ctx, "Authorization"); ok {
+				// Ensure the correct scheme is being used
+				if !strings.HasPrefix(header, BearerSchema) {
+					return errors.Unauthorized("go.micro.auth", "invalid authorization header. expected Bearer schema")
+				}
+
+				token = header[len(BearerSchema):]
+			}
+
+			// Validate the token
+			if _, err := a.Validate(token); err != nil {
+				return errors.Unauthorized("go.micro.auth", err.Error())
+			}
+
+			return h(ctx, req, rsp)
 		}
 	}
 }

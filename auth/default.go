@@ -18,6 +18,11 @@ func (a *noop) Init(...Option) error {
 	return nil
 }
 
+// Options set in init
+func (a *noop) Options() Options {
+	return a.options
+}
+
 // Generate a new auth Account
 func (a *noop) Generate(id string, ops ...GenerateOption) (*Account, error) {
 	return nil, nil

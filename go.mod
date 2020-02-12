@@ -40,7 +40,7 @@ require (
 	github.com/lib/pq v1.3.0
 	github.com/lucas-clemente/quic-go v0.14.1
 	github.com/mholt/certmagic v0.9.1
-	github.com/micro/cli/v2 v2.1.1
+	github.com/micro/cli/v2 v2.1.2-0.20200203150404-894195727d9c
 	github.com/micro/mdns v0.3.0
 	github.com/miekg/dns v1.1.27
 	github.com/mitchellh/hashstructure v1.0.0
