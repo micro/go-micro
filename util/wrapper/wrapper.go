@@ -144,17 +144,20 @@ func AuthHandler(fn func() auth.Auth) server.HandlerWrapper {
 			a := fn()
 
 			// Extract endpoint and remove service name prefix
-			// (e.g. Platform.ListServices => ListServices)
+			// (e.g. Platform.Stats => Stats)
 			var endpoint string
 			if ec := strings.Split(req.Endpoint(), "."); len(ec) == 2 {
 				endpoint = ec[1]
 			}
 
-			// Check for endpoints excluded from auth. If the endpoint
-			// matches, execute the handler and return
-			excludes := append(a.Options().Excludes, "Stats", "Trace")
-			for _, e := range excludes {
-				if e == endpoint {
+			// Check for debug endpoints which should be excluded from auth
+			if endpoint == "Stats" || endpoint == "Trace" {
+				return h(ctx, req, rsp)
+			}
+
+			// Exclude any user excluded endpoints
+			for _, e := range a.Options().Excludes {
+				if e == req.Endpoint() {
 					return h(ctx, req, rsp)
 				}
 			}
