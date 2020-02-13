@@ -152,7 +152,8 @@ func AuthHandler(fn func() auth.Auth) server.HandlerWrapper {
 
 			// Check for endpoints excluded from auth. If the endpoint
 			// matches, execute the handler and return
-			for _, e := range a.Options().Excludes {
+			excludes := append(a.Options().Excludes, "Stats", "Trace")
+			for _, e := range excludes {
 				if e == endpoint {
 					return h(ctx, req, rsp)
 				}
