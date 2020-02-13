@@ -143,15 +143,8 @@ func AuthHandler(fn func() auth.Auth) server.HandlerWrapper {
 			// get the auth.Auth interface
 			a := fn()
 
-			// Extract endpoint and remove service name prefix
-			// (e.g. Platform.Stats => Stats)
-			var endpoint string
-			if ec := strings.Split(req.Endpoint(), "."); len(ec) == 2 {
-				endpoint = ec[1]
-			}
-
 			// Check for debug endpoints which should be excluded from auth
-			if endpoint == "Stats" || endpoint == "Trace" {
+			if strings.HasPrefix(req.Endpoint(), "Debug.") {
 				return h(ctx, req, rsp)
 			}
 
