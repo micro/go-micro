@@ -57,12 +57,12 @@ message LogRequest {
 
 // Record is service log record
 message Record {
-        // timestamp of log record
-        int64 timestamp = 1;
-        // record metadata
-        map<string,string> metadata = 2;
-        // message
-        string message = 3;
+    // timestamp of log record
+    int64 timestamp = 1;
+    // record metadata
+    map<string,string> metadata = 2;
+    // message
+    string message = 3;
 }
 
 message TraceRequest {
@@ -74,6 +74,11 @@ message TraceResponse {
 	repeated Span spans = 1;
 }
 
+
+enum SpanType {
+    INBOUND = 0;
+    OUTBOUND = 1;
+}
 
 message Span {
 	// the trace id
@@ -90,4 +95,5 @@ message Span {
 	uint64 duration = 6;
 	// associated metadata
 	map<string,string> metadata = 7;
+	SpanType type = 8;
 }

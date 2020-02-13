@@ -6,8 +6,8 @@ env:
 before_script:
   - go install github.com/golangci/golangci-lint/cmd/golangci-lint
 script:
-  - golangci-lint run || true
-  - go test -v -race ./... || true
+  #  - golangci-lint run || true
+    #  - go test -v -race ./... || true
   - go test -v ./...
 notifications:
   slack:

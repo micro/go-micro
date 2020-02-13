@@ -240,6 +240,10 @@ func (n *natsBroker) serve(exit chan bool) error {
 		// register the cluster address
 		for {
 			select {
+			case err := <-n.closeCh:
+				if err != nil {
+					log.Log(err)
+				}
 			case <-exit:
 				// deregister on exit
 				n.opts.Registry.Deregister(&registry.Service{
@@ -282,7 +286,6 @@ func (n *natsBroker) Connect() error {
 		}
 
 		// set to connected
-		n.connected = true
 	}
 
 	status := nats.CLOSED
@@ -295,6 +298,10 @@ func (n *natsBroker) Connect() error {
 		return nil
 	default: // DISCONNECTED or CLOSED or DRAINING
 		opts := n.nopts
+		opts.DrainTimeout = 1 * time.Second
+		opts.AsyncErrorCB = n.onAsyncError
+		opts.DisconnectedErrCB = n.onDisconnectedError
+		opts.ClosedCB = n.onClose
 		opts.Servers = n.servers
 		opts.Secure = n.opts.Secure
 		opts.TLSConfig = n.opts.TLSConfig
@@ -309,6 +316,9 @@ func (n *natsBroker) Connect() error {
 			return err
 		}
 		n.conn = c
+
+		n.connected = true
+
 		return nil
 	}
 }
@@ -324,7 +334,6 @@ func (n *natsBroker) Disconnect() error {
 	// drain the connection if specified
 	if n.drain {
 		n.conn.Drain()
-		return <-n.closeCh
 	}
 
 	// close the client connection
@@ -332,10 +341,12 @@ func (n *natsBroker) Disconnect() error {
 
 	// shutdown the local server
 	// and deregister
-	select {
-	case <-n.exit:
-	default:
-		close(n.exit)
+	if n.server != nil {
+		select {
+		case <-n.exit:
+		default:
+			close(n.exit)
+		}
 	}
 
 	// set not connected
@@ -434,6 +445,10 @@ func (n *natsBroker) onClose(conn *nats.Conn) {
 	n.closeCh <- nil
 }
 
+func (n *natsBroker) onDisconnectedError(conn *nats.Conn, err error) {
+	n.closeCh <- err
+}
+
 func (n *natsBroker) onAsyncError(conn *nats.Conn, sub *nats.Subscription, err error) {
 	// There are kinds of different async error nats might callback, but we are interested
 	// in ErrDrainTimeout only here.
@@ -451,7 +466,8 @@ func NewBroker(opts ...Option) Broker {
 	}
 
 	n := &natsBroker{
-		opts: options,
+		opts:    options,
+		closeCh: make(chan error),
 	}
 	n.setOption(opts...)
 

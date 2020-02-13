@@ -66,15 +66,23 @@ func (d *Debug) Trace(ctx context.Context, req *proto.TraceRequest, rsp *proto.T
 		return err
 	}
 
-	for _, trace := range traces {
+	for _, t := range traces {
+		var typ proto.SpanType
+		switch t.Type {
+		case trace.SpanTypeRequestInbound:
+			typ = proto.SpanType_INBOUND
+		case trace.SpanTypeRequestOutbound:
+			typ = proto.SpanType_OUTBOUND
+		}
 		rsp.Spans = append(rsp.Spans, &proto.Span{
-			Trace:    trace.Trace,
-			Id:       trace.Id,
-			Parent:   trace.Parent,
-			Name:     trace.Name,
-			Started:  uint64(trace.Started.UnixNano()),
-			Duration: uint64(trace.Duration.Nanoseconds()),
-			Metadata: trace.Metadata,
+			Trace:    t.Trace,
+			Id:       t.Id,
+			Parent:   t.Parent,
+			Name:     t.Name,
+			Started:  uint64(t.Started.UnixNano()),
+			Duration: uint64(t.Duration.Nanoseconds()),
+			Type:     typ,
+			Metadata: t.Metadata,
 		})
 	}
 
