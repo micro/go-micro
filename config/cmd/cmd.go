@@ -257,7 +257,7 @@ var (
 		&cli.StringSliceFlag{
 			Name:    "auth_exclude",
 			EnvVars: []string{"MICRO_AUTH_EXCLUDE"},
-			Usage:   "Comma-separated list of endpoints excluded from authentication",
+			Usage:   "Comma-separated list of endpoints excluded from authentication, e.g. Users.ListUsers",
 		},
 	}
 
