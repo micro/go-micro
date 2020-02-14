@@ -787,8 +787,17 @@ func (g *grpcServer) Start() error {
 
 	config := g.Options()
 
-	// micro: config.Transport.Listen(config.Address)
-	ts, err := net.Listen("tcp", config.Address)
+	var ts net.Listener
+	var err error
+	if config.EnableACME && config.ACMEProvider != nil {
+		// should we check the address to make sure its using :443?
+		ts, err = config.ACMEProvider.NewListener(config.ACMEHosts...)
+	} else if config.EnableTLS && config.TLSConfig != nil {
+		ts, err = tls.Listen("tcp", config.Address, config.TLSConfig)
+	} else {
+		// otherwise plain listen
+		ts, err = net.Listen("tcp", config.Address)
+	}
 	if err != nil {
 		return err
 	}
