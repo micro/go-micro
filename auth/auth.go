@@ -38,9 +38,9 @@ type Role struct {
 // Account provided by an auth provider
 type Account struct {
 	// ID of the account (UUID or email)
-	Id string `json: "id"`
+	Id string `json:"id"`
 	// Token used to authenticate
-	Token string `json: "token"`
+	Token string `json:"token"`
 	// Time of Account creation
 	Created time.Time `json:"created"`
 	// Time of Account expiry
