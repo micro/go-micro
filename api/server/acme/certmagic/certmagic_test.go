@@ -19,7 +19,7 @@ func TestCertMagic(t *testing.T) {
 	if len(os.Getenv("IN_TRAVIS_CI")) != 0 {
 		t.Skip("Travis doesn't let us bind :443")
 	}
-	l, err := New().NewListener()
+	l, err := NewProvider().Listen()
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -36,10 +36,10 @@ func TestCertMagic(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	l, err = New(acme.AcceptToS(true),
+	l, err = NewProvider(acme.AcceptToS(true),
 		acme.CA(acme.LetsEncryptStagingCA),
 		acme.ChallengeProvider(p),
-	).NewListener()
+	).Listen()
 
 	if err != nil {
 		t.Fatal(err.Error())
@@ -180,7 +180,7 @@ func TestStorageImplementation(t *testing.T) {
 
 	// New interface doesn't return an error, so call it in case any log.Fatal
 	// happens
-	New(acme.Cache(s))
+	NewProvider(acme.Cache(s))
 }
 
 // Full test with a real zone, with  against LE staging
@@ -207,7 +207,7 @@ func TestE2e(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	testProvider := New(
+	testProvider := NewProvider(
 		acme.AcceptToS(true),
 		acme.Cache(testStorage),
 		acme.CA(acme.LetsEncryptStagingCA),
@@ -215,7 +215,7 @@ func TestE2e(t *testing.T) {
 		acme.OnDemand(false),
 	)
 
-	listener, err := testProvider.NewListener("*.micro.mu", "micro.mu")
+	listener, err := testProvider.Listen("*.micro.mu", "micro.mu")
 	if err != nil {
 		t.Fatal(err.Error())
 	}
