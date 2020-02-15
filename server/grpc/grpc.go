@@ -171,6 +171,17 @@ func (g *grpcServer) getGrpcOptions() []grpc.ServerOption {
 	return opts
 }
 
+func (g *grpcServer) getListener() net.Listener {
+	if g.opts.Context != nil {
+		if v := g.opts.Context.Value(netListener{}); v != nil {
+			if l, ok := v.(net.Listener); ok {
+				return l
+			}
+		}
+	}
+	return nil
+}
+
 func (g *grpcServer) handler(srv interface{}, stream grpc.ServerStream) error {
 	if g.wg != nil {
 		g.wg.Add(1)
@@ -789,14 +800,22 @@ func (g *grpcServer) Start() error {
 
 	// micro: config.Transport.Listen(config.Address)
 	var ts net.Listener
-	var err error
-	if strings.HasPrefix(config.Address, "unix://") {
-		ts, err = net.Listen("unix", strings.TrimPrefix(config.Address, "unix://"))
+
+	if l := g.getListener(); l != nil {
+		ts = l
 	} else {
-		ts, err = net.Listen("tcp", config.Address)
-	}
-	if err != nil {
-		return err
+		var err error
+
+		// check the tls config for secure connect
+		if tc := config.TLSConfig; tc != nil {
+			ts, err = tls.Listen("tcp", config.Address, tc)
+			// otherwise just plain tcp listener
+		} else {
+			ts, err = net.Listen("tcp", config.Address)
+		}
+		if err != nil {
+			return err
+		}
 	}
 
 	log.Logf("Server [grpc] Listening on %s", ts.Addr().String())
