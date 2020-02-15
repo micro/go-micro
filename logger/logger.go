@@ -20,7 +20,9 @@ type Logger interface {
 	// fmt.Printf.
 	Logf(level Level, format string, v ...interface{})
 	// Fields set fields to always be logged
-	Fields(fields ...Field) Logger
+	Fields(fields map[string]interface{}) Logger
+	// Error set `error` field to be logged
+	Error(err error) Logger
 	// SetLevel updates the logging level.
 	SetLevel(Level)
 	// String returns the name of logger
@@ -47,3 +49,9 @@ func GetLogger(name string) (Logger, error) {
 
 	return l, nil
 }
+
+// ParseLevel converts a level string into a logger Level value.
+// returns an error if the input string does not match known values.
+// func ParseLevel(levelStr string) (Level, error) {
+//  TODO
+// }
