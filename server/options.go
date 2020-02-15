@@ -4,6 +4,7 @@ import (
 	"context"
 	"sync"
 	"time"
+	"crypto/tls"
 
 	"github.com/micro/go-micro/v2/auth"
 	"github.com/micro/go-micro/v2/broker"
@@ -38,6 +39,9 @@ type Options struct {
 
 	// The router for requests
 	Router Router
+
+	// TLSConfig specifies tls.Config for secure serving
+	TLSConfig *tls.Config
 
 	// Other options for implementations of the interface
 	// can be stored in a context
@@ -202,6 +206,19 @@ func RegisterTTL(t time.Duration) Option {
 func RegisterInterval(t time.Duration) Option {
 	return func(o *Options) {
 		o.RegisterInterval = t
+	}
+}
+
+// TLSConfig specifies a *tls.Config
+func TLSConfig(t *tls.Config) Option {
+	return func(o *Options) {
+		// set the internal tls
+		o.TLSConfig = t
+		// set the transport tls
+		o.Transport.Init(
+			transport.Secure(true),
+			transport.TLSConfig(t),
+		)
 	}
 }
 

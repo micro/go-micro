@@ -805,7 +805,14 @@ func (g *grpcServer) Start() error {
 		ts = l
 	} else {
 		var err error
-		ts, err = net.Listen("tcp", config.Address)
+
+		// check the tls config for secure connect
+		if tc := config.TLSConfig; tc != nil {
+			ts, err = tls.Listen("tcp", config.Address, tc)
+			// otherwise just plain tcp listener
+		} else {
+			ts, err = net.Listen("tcp", config.Address)
+		}
 		if err != nil {
 			return err
 		}
