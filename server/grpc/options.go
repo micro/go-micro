@@ -3,6 +3,7 @@ package grpc
 import (
 	"context"
 	"crypto/tls"
+	"net"
 
 	"github.com/micro/go-micro/v2/broker"
 	"github.com/micro/go-micro/v2/codec"
@@ -14,9 +15,10 @@ import (
 )
 
 type codecsKey struct{}
-type tlsAuth struct{}
-type maxMsgSizeKey struct{}
 type grpcOptions struct{}
+type netListener struct{}
+type maxMsgSizeKey struct{}
+type tlsAuth struct{}
 
 // gRPC Codec to be used to encode/decode requests for a given content type
 func Codec(contentType string, c encoding.Codec) server.Option {
@@ -40,6 +42,16 @@ func AuthTLS(t *tls.Config) server.Option {
 			o.Context = context.Background()
 		}
 		o.Context = context.WithValue(o.Context, tlsAuth{}, t)
+	}
+}
+
+// Listener specifies the net.Listener to use instead of the default
+func Listener(l net.Listener) server.Option {
+	return func(o *server.Options) {
+		if o.Context == nil {
+			o.Context = context.Background()
+		}
+		o.Context = context.WithValue(o.Context, netListener{}, l)
 	}
 }
 
