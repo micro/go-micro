@@ -52,6 +52,22 @@ func GetLogger(name string) (Logger, error) {
 
 // ParseLevel converts a level string into a logger Level value.
 // returns an error if the input string does not match known values.
-// func ParseLevel(levelStr string) (Level, error) {
-//  TODO
-// }
+func ParseLevel(levelStr string) (Level, error) {
+	switch levelStr {
+	case TraceLevel.String():
+		return TraceLevel, nil
+	case DebugLevel.String():
+		return DebugLevel, nil
+	case InfoLevel.String():
+		return InfoLevel, nil
+	case WarnLevel.String():
+		return WarnLevel, nil
+	case ErrorLevel.String():
+		return ErrorLevel, nil
+	case FatalLevel.String():
+		return FatalLevel, nil
+	case PanicLevel.String():
+		return PanicLevel, nil
+	}
+	return InfoLevel, fmt.Errorf("Unknown Level String: '%s', defaulting to NoLevel", levelStr)
+}
