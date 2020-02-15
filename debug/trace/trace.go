@@ -3,8 +3,9 @@ package trace
 
 import (
 	"context"
-	"github.com/micro/go-micro/v2/metadata"
 	"time"
+
+	"github.com/micro/go-micro/v2/metadata"
 )
 
 // Tracer is an interface for distributed tracing
@@ -16,6 +17,16 @@ type Tracer interface {
 	// Read the traces
 	Read(...ReadOption) ([]*Span, error)
 }
+
+// SpanType describe the nature of the trace span
+type SpanType int
+
+const (
+	// SpanTypeRequestInbound is a span created when serving a request
+	SpanTypeRequestInbound SpanType = iota
+	// SpanTypeRequestOutbound is a span created when making a service call
+	SpanTypeRequestOutbound
+)
 
 // Span is used to record an entry
 type Span struct {
@@ -33,6 +44,8 @@ type Span struct {
 	Duration time.Duration
 	// associated data
 	Metadata map[string]string
+	// Type
+	Type SpanType
 }
 
 const (

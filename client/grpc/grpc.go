@@ -189,6 +189,7 @@ func (g *grpcClient) stream(ctx context.Context, node *registry.Node, req client
 
 	grpcDialOptions := []grpc.DialOption{
 		grpc.WithDefaultCallOptions(grpc.ForceCodec(wc)),
+		grpc.WithTimeout(opts.DialTimeout),
 		g.secure(),
 	}
 
