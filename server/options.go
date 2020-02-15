@@ -2,9 +2,9 @@ package server
 
 import (
 	"context"
+	"crypto/tls"
 	"sync"
 	"time"
-	"crypto/tls"
 
 	"github.com/micro/go-micro/v2/auth"
 	"github.com/micro/go-micro/v2/broker"
