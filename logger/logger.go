@@ -50,9 +50,9 @@ func GetLogger(name string) (Logger, error) {
 	return l, nil
 }
 
-// ParseLevel converts a level string into a logger Level value.
+// GetLevel converts a level string into a logger Level value.
 // returns an error if the input string does not match known values.
-func ParseLevel(levelStr string) (Level, error) {
+func GetLevel(levelStr string) (Level, error) {
 	switch levelStr {
 	case TraceLevel.String():
 		return TraceLevel, nil
