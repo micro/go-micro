@@ -565,11 +565,6 @@ func (g *grpcClient) Publish(ctx context.Context, p client.Message, opts ...clie
 
 	topic := p.Topic()
 
-	// get proxy topic
-	if prx := os.Getenv("MICRO_PROXY"); len(prx) > 0 {
-		options.Exchange = prx
-	}
-
 	// get the exchange
 	if len(options.Exchange) > 0 {
 		topic = options.Exchange
