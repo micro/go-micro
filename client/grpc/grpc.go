@@ -52,6 +52,10 @@ func (g *grpcClient) next(request client.Request, opts client.CallOptions) (sele
 
 	// get proxy
 	if prx := os.Getenv("MICRO_PROXY"); len(prx) > 0 {
+		// default name
+		if prx == "service" {
+			prx = "go.micro.proxy"
+		}
 		service = prx
 	}
 
@@ -189,6 +193,7 @@ func (g *grpcClient) stream(ctx context.Context, node *registry.Node, req client
 
 	grpcDialOptions := []grpc.DialOption{
 		grpc.WithDefaultCallOptions(grpc.ForceCodec(wc)),
+		grpc.WithTimeout(opts.DialTimeout),
 		g.secure(),
 	}
 
@@ -217,6 +222,12 @@ func (g *grpcClient) stream(ctx context.Context, node *registry.Node, req client
 
 	st, err := cc.NewStream(newCtx, desc, methodToGRPC(req.Service(), req.Endpoint()), grpcCallOptions...)
 	if err != nil {
+		// we need to cleanup as we dialled and created a context
+		// cancel the context
+		cancel()
+		// close the connection
+		cc.Close()
+		// now return the error
 		return nil, errors.InternalServerError("go.micro.client", fmt.Sprintf("Error creating stream: %v", err))
 	}
 
