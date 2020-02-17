@@ -46,6 +46,8 @@ type Options struct {
 	// Other options for implementations of the interface
 	// can be stored in a context
 	Context context.Context
+
+	RPCErrorCB func(Server, error)
 }
 
 func newOptions(opt ...Option) Options {

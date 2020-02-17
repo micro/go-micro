@@ -804,6 +804,11 @@ func (s *rpcServer) Start() error {
 			// check the error and backoff
 			default:
 				if err != nil {
+					if s.opts.RPCErrorCB != nil {
+						s.opts.RPCErrorCB(s, err)
+						continue
+					}
+
 					log.Logf("Accept error: %v", err)
 					time.Sleep(time.Second)
 					continue
