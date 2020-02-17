@@ -7,8 +7,6 @@ import (
 
 // Auth providers authentication and authorization
 type Auth interface {
-	// String to identify the package
-	String() string
 	// Init the auth package
 	Init(opts ...Option) error
 	// Options returns the options set
@@ -19,6 +17,8 @@ type Auth interface {
 	Revoke(token string) error
 	// Validate an account token
 	Validate(token string) (*Account, error)
+	// String returns the implementation
+	String() string
 }
 
 // Resource is an entity such as a user or
@@ -38,9 +38,9 @@ type Role struct {
 // Account provided by an auth provider
 type Account struct {
 	// ID of the account (UUID or email)
-	Id string `json: "id"`
+	Id string `json:"id"`
 	// Token used to authenticate
-	Token string `json: "token"`
+	Token string `json:"token"`
 	// Time of Account creation
 	Created time.Time `json:"created"`
 	// Time of Account expiry

@@ -203,22 +203,33 @@ func (p *Proxy) cacheRoutes(service string) ([]router.Route, error) {
 	// lookup the routes in the router
 	results, err := p.Router.Lookup(router.QueryService(service))
 	if err != nil {
+		// assumption that we're ok with stale routes
+
 		// otherwise return the error
 		return nil, err
 	}
 
 	// update the proxy cache
 	p.Lock()
+
+	// delete the existing reference to the service
+	delete(p.Routes, service)
+
 	for _, route := range results {
 		// create if does not exist
 		if _, ok := p.Routes[service]; !ok {
 			p.Routes[service] = make(map[uint64]router.Route)
 		}
+		// cache the route based on its unique hash
 		p.Routes[service][route.Hash()] = route
 	}
+
+	// make a copy of the service routes
 	routes := p.Routes[service]
+
 	p.Unlock()
 
+	// return routes to the caller
 	return toSlice(routes), nil
 }
 
