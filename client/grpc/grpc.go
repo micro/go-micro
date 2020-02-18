@@ -36,14 +36,36 @@ func init() {
 }
 
 // secure returns the dial option for whether its a secure or insecure connection
-func (g *grpcClient) secure() grpc.DialOption {
+func (g *grpcClient) secure(addr string) grpc.DialOption {
+	// first we check if theres'a  tls config
 	if g.opts.Context != nil {
 		if v := g.opts.Context.Value(tlsAuth{}); v != nil {
 			tls := v.(*tls.Config)
 			creds := credentials.NewTLS(tls)
+			// return tls config if it exists
 			return grpc.WithTransportCredentials(creds)
 		}
 	}
+
+	tlsConfig := &tls.Config{}
+	// default config
+	defaultCreds := grpc.WithTransportCredentials(credentials.NewTLS(config))
+
+	// check if the address is prepended with https
+	if strings.HasPrefix(addr, "https://") {
+		return defaultCreds
+	}
+
+	// if no port is specified or port is 443 default to tls
+	host, port, err := net.SplitHostPort(addr)
+	// assuming with no port its going to be secured
+	if port == 443 {
+		return defaultCreds
+	} else if err != nil && strings.Contains(err.Error(), "missing port in address") {
+		return defaultCreds
+	}
+
+	// other fallback to insecure
 	return grpc.WithInsecure()
 }
 
@@ -116,7 +138,7 @@ func (g *grpcClient) call(ctx context.Context, node *registry.Node, req client.R
 	grpcDialOptions := []grpc.DialOption{
 		grpc.WithDefaultCallOptions(grpc.ForceCodec(cf)),
 		grpc.WithTimeout(opts.DialTimeout),
-		g.secure(),
+		g.secure(address),
 		grpc.WithDefaultCallOptions(
 			grpc.MaxCallRecvMsgSize(maxRecvMsgSize),
 			grpc.MaxCallSendMsgSize(maxSendMsgSize),
@@ -194,7 +216,7 @@ func (g *grpcClient) stream(ctx context.Context, node *registry.Node, req client
 	grpcDialOptions := []grpc.DialOption{
 		grpc.WithDefaultCallOptions(grpc.ForceCodec(wc)),
 		grpc.WithTimeout(opts.DialTimeout),
-		g.secure(),
+		g.secure(address),
 	}
 
 	if opts := g.getGrpcDialOptions(); opts != nil {
