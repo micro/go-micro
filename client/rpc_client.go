@@ -342,6 +342,10 @@ func (r *rpcClient) next(request Request, opts CallOptions) (selector.Next, erro
 
 	// get proxy
 	if prx := os.Getenv("MICRO_PROXY"); len(prx) > 0 {
+		// default name
+		if prx == "service" {
+			prx = "go.micro.proxy"
+		}
 		service = prx
 	}
 
@@ -605,11 +609,6 @@ func (r *rpcClient) Publish(ctx context.Context, msg Message, opts ...PublishOpt
 
 	// set the topic
 	topic := msg.Topic()
-
-	// get proxy
-	if prx := os.Getenv("MICRO_PROXY"); len(prx) > 0 {
-		options.Exchange = prx
-	}
 
 	// get the exchange
 	if len(options.Exchange) > 0 {

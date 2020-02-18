@@ -52,6 +52,10 @@ func (g *grpcClient) next(request client.Request, opts client.CallOptions) (sele
 
 	// get proxy
 	if prx := os.Getenv("MICRO_PROXY"); len(prx) > 0 {
+		// default name
+		if prx == "service" {
+			prx = "go.micro.proxy"
+		}
 		service = prx
 	}
 
@@ -571,11 +575,6 @@ func (g *grpcClient) Publish(ctx context.Context, p client.Message, opts ...clie
 	})
 
 	topic := p.Topic()
-
-	// get proxy topic
-	if prx := os.Getenv("MICRO_PROXY"); len(prx) > 0 {
-		options.Exchange = prx
-	}
 
 	// get the exchange
 	if len(options.Exchange) > 0 {
