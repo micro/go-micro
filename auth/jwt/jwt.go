@@ -100,7 +100,10 @@ func (s *svc) Validate(token string) (*auth.Account, error) {
 		return nil, ErrInvalidToken
 	}
 
-	claims := res.Claims.(*AuthClaims)
+	claims, ok := res.Claims.(*AuthClaims)
+	if !ok {
+		return nil, ErrInvalidToken
+	}
 
 	return &auth.Account{
 		Id:       claims.Id,
