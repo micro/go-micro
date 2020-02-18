@@ -291,6 +291,12 @@ func WithDialTimeout(d time.Duration) CallOption {
 	}
 }
 
+func WithMessageContentType(ct string) MessageOption {
+	return func(o *MessageOptions) {
+		o.ContentType = ct
+	}
+}
+
 // Request Options
 
 func WithContentType(ct string) RequestOption {
