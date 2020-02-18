@@ -328,10 +328,10 @@ func (fl *microFlow) loadDag(ctx context.Context, flow string) (dag, error) {
 
 	for _, vs := range steps {
 	requiresLoop:
-		for _, req := range vs.Requires {
+		for _, req := range vs.After {
 			if req == "all" {
 				for _, ve := range steps {
-					if ve.Name() != vs.Name() && !include(ve.Requires, "all") {
+					if ve.Name() != vs.Name() && !include(ve.After, "all") {
 						g.AddEdge(ve, vs)
 					}
 				}
@@ -345,10 +345,10 @@ func (fl *microFlow) loadDag(ctx context.Context, flow string) (dag, error) {
 			g.AddEdge(ve, vs)
 		}
 	requiredLoop:
-		for _, req := range vs.Required {
+		for _, req := range vs.Before {
 			if req == "all" {
 				for _, ve := range steps {
-					if ve.Name() != vs.Name() && !include(ve.Required, "all") {
+					if ve.Name() != vs.Name() && !include(ve.Before, "all") {
 						g.AddEdge(vs, ve)
 					}
 				}

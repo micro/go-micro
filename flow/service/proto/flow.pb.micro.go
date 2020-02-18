@@ -46,12 +46,6 @@ type flowService struct {
 }
 
 func NewFlowService(name string, c client.Client) FlowService {
-	if c == nil {
-		c = client.NewClient()
-	}
-	if len(name) == 0 {
-		name = "go.micro.flow"
-	}
 	return &flowService{
 		c:    c,
 		name: name,

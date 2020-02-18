@@ -33,32 +33,32 @@ func TestExecutor(t *testing.T) {
 	if err = fl.CreateStep("forward", &flow.Step{
 		ID:        "cms_account.AccountService.AccountCreate",
 		Operation: flow.ClientCallOperation("cms_account", "AccountService.AccountCreate"),
-		Requires:  nil,
-		Required:  nil,
+		After:     nil,
+		Before:    nil,
 	}); err != nil {
 		t.Fatal(err)
 	}
 	if err = fl.CreateStep("forward", &flow.Step{
 		ID:        "cms_account.AccountService.AccountDelete",
 		Operation: flow.ClientCallOperation("cms_account", "AccountService.AccountDelete"),
-		Requires:  nil,
-		Required:  nil,
+		After:     nil,
+		Before:    nil,
 	}); err != nil {
 		t.Fatal(err)
 	}
 	if err = fl.CreateStep("reverse", &flow.Step{
 		ID:        "cms_account.AccountService.AccountDelete",
 		Operation: flow.ClientCallOperation("cms_account", "AccountService.AccountDelete"),
-		Requires:  nil,
-		Required:  nil,
+		After:     nil,
+		Before:    nil,
 	}); err != nil {
 		t.Fatal(err)
 	}
 	if err = fl.CreateStep("forward", &flow.Step{
 		ID:        "cms_contact.ContactService.ContactCreate",
 		Operation: flow.ClientCallOperation("cms_contact", "ContactService.ContactCreate"),
-		Requires:  []string{"cms_account.AccountService.AccountCreate"},
-		Required:  nil,
+		After:     []string{"cms_account.AccountService.AccountCreate"},
+		Before:    nil,
 		Fallback: flow.FlowExecuteOperation("reverse",
 			flow.ClientCallOperation("cms_account", "AccountService.AccountDelete").Name(),
 		),
@@ -68,32 +68,32 @@ func TestExecutor(t *testing.T) {
 	if err = fl.CreateStep("forward", &flow.Step{
 		ID:        "cms_project.ProjectService.ProjectCreate",
 		Operation: flow.ClientCallOperation("cms_project", "ProjectService.ProjectCreate"),
-		Requires:  []string{"cms_account.AccountService.AccountCreate"},
-		Required:  nil,
+		After:     []string{"cms_account.AccountService.AccountCreate"},
+		Before:    nil,
 	}); err != nil {
 		t.Fatal(err)
 	}
 	if err = fl.CreateStep("forward", &flow.Step{
 		ID:        "cms_network.NetworkService.NetworkCreate",
 		Operation: flow.ClientCallOperation("cms_network", "NetworkService.NetworkCreate"),
-		Requires:  []string{"cms_account.AccountService.AccountCreate"},
-		Required:  nil,
+		After:     []string{"cms_account.AccountService.AccountCreate"},
+		Before:    nil,
 	}); err != nil {
 		t.Fatal(err)
 	}
 	if err = fl.CreateStep("forward", &flow.Step{
 		ID:        "cms_authz.AuthzService.AuthzCreate",
 		Operation: flow.ClientCallOperation("cms_authz", "AuthzService.AuthzCreate"),
-		Requires:  []string{"cms_account.AccountService.AccountCreate"},
-		Required:  nil,
+		After:     []string{"cms_account.AccountService.AccountCreate"},
+		Before:    nil,
 	}); err != nil {
 		t.Fatal(err)
 	}
 	if err = fl.CreateStep("forward", &flow.Step{
 		ID:        "cms_mailer.MailService.MailSend",
 		Operation: flow.ClientCallOperation("cms_mailer", "MailService.MailSend"),
-		Requires:  []string{"all"}, //[]string{"cms_account.AccountService.AccountCreate"},
-		Required:  nil,
+		After:     []string{"all"}, //[]string{"cms_account.AccountService.AccountCreate"},
+		Before:    nil,
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -135,32 +135,32 @@ func BenchmarkFlowExecution(b *testing.B) {
 	if err = fl.CreateStep("forward", &flow.Step{
 		ID:        "cms_account.AccountService.AccountCreate",
 		Operation: flow.ClientCallOperation("cms_account", "AccountService.AccountCreate"),
-		Requires:  nil,
-		Required:  nil,
+		After:     nil,
+		Before:    nil,
 	}); err != nil {
 		b.Fatal(err)
 	}
 	if err = fl.CreateStep("forward", &flow.Step{
 		ID:        "cms_account.AccountService.AccountDelete",
 		Operation: flow.ClientCallOperation("cms_account", "AccountService.AccountDelete"),
-		Requires:  nil,
-		Required:  nil,
+		After:     nil,
+		Before:    nil,
 	}); err != nil {
 		b.Fatal(err)
 	}
 	if err = fl.CreateStep("reverse", &flow.Step{
 		ID:        "cms_account.AccountService.AccountDelete",
 		Operation: flow.ClientCallOperation("cms_account", "AccountService.AccountDelete"),
-		Requires:  nil,
-		Required:  nil,
+		After:     nil,
+		Before:    nil,
 	}); err != nil {
 		b.Fatal(err)
 	}
 	if err = fl.CreateStep("forward", &flow.Step{
 		ID:        "cms_contact.ContactService.ContactCreate",
 		Operation: flow.ClientCallOperation("cms_contact", "ContactService.ContactCreate"),
-		Requires:  []string{"cms_account.AccountService.AccountCreate"},
-		Required:  nil,
+		After:     []string{"cms_account.AccountService.AccountCreate"},
+		Before:    nil,
 		Fallback: flow.FlowExecuteOperation("reverse",
 			flow.ClientCallOperation("cms_account", "AccountService.AccountDelete").Name(),
 		),
@@ -170,32 +170,32 @@ func BenchmarkFlowExecution(b *testing.B) {
 	if err = fl.CreateStep("forward", &flow.Step{
 		ID:        "cms_project.ProjectService.ProjectCreate",
 		Operation: flow.ClientCallOperation("cms_project", "ProjectService.ProjectCreate"),
-		Requires:  []string{"cms_account.AccountService.AccountCreate"},
-		Required:  nil,
+		After:     []string{"cms_account.AccountService.AccountCreate"},
+		Before:    nil,
 	}); err != nil {
 		b.Fatal(err)
 	}
 	if err = fl.CreateStep("forward", &flow.Step{
 		ID:        "cms_network.NetworkService.NetworkCreate",
 		Operation: flow.ClientCallOperation("cms_network", "NetworkService.NetworkCreate"),
-		Requires:  []string{"cms_account.AccountService.AccountCreate"},
-		Required:  nil,
+		After:     []string{"cms_account.AccountService.AccountCreate"},
+		Before:    nil,
 	}); err != nil {
 		b.Fatal(err)
 	}
 	if err = fl.CreateStep("forward", &flow.Step{
 		ID:        "cms_authz.AuthzService.AuthzCreate",
 		Operation: flow.ClientCallOperation("cms_authz", "AuthzService.AuthzCreate"),
-		Requires:  []string{"cms_account.AccountService.AccountCreate"},
-		Required:  nil,
+		After:     []string{"cms_account.AccountService.AccountCreate"},
+		Before:    nil,
 	}); err != nil {
 		b.Fatal(err)
 	}
 	if err = fl.CreateStep("forward", &flow.Step{
 		ID:        "cms_mailer.MailService.MailSend",
 		Operation: flow.ClientCallOperation("cms_mailer", "MailService.MailSend"),
-		Requires:  []string{"all"}, //[]string{"cms_account.AccountService.AccountCreate"},
-		Required:  nil,
+		After:     []string{"all"}, //[]string{"cms_account.AccountService.AccountCreate"},
+		Before:    nil,
 	}); err != nil {
 		b.Fatal(err)
 	}

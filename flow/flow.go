@@ -48,9 +48,9 @@ type Step struct {
 	// Step operation to execute
 	Operation Operation
 	// steps that are required for this step
-	Requires []string
+	After []string
 	// steps for which this step required
-	Required []string
+	Before []string
 	// Step operation to execute in case of error
 	Fallback Operation
 }

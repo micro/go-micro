@@ -3,7 +3,6 @@ package flow
 import (
 	"context"
 	"fmt"
-	"log"
 
 	"github.com/micro/go-micro/v2/broker"
 	pbFlow "github.com/micro/go-micro/v2/flow/service/proto"
@@ -61,7 +60,6 @@ func (op *clientPublishOperation) Execute(ctx context.Context, data []byte, opts
 	md["Micro-Response"] = fmt.Sprintf("%s-%s", op.topic, options.ID)
 
 	sub, err := options.Broker.Subscribe(md["Micro-Response"], func(evt broker.Event) error {
-		log.Printf("RSP %#+v\n")
 		return evt.Ack()
 	}, broker.SubscribeContext(ctx))
 	if err != nil {

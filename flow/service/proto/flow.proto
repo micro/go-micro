@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package go.micro.flow;
 
-import "google/protobuf/any.proto";
+//import "google/protobuf/any.proto";
 
 service Flow {
   rpc CreateStep(CreateStepRequest) returns (Empty) {};
@@ -38,8 +38,8 @@ message Steps {
 
 message Step {
   string name = 1;
-  repeated string requires = 2;
-  repeated string required = 3;
+  repeated string after = 2;
+  repeated string before = 3;
   Operation operation = 4;
   Operation fallback = 5;
 };

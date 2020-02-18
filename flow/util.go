@@ -9,8 +9,8 @@ import (
 func stepToProto(step *Step) *pbFlow.Step {
 	pb := &pbFlow.Step{
 		Name:      step.ID,
-		Requires:  step.Requires,
-		Required:  step.Required,
+		After:     step.After,
+		Before:    step.Before,
 		Operation: step.Operation.Encode(),
 		Fallback:  step.Fallback.Encode(),
 	}
@@ -52,8 +52,8 @@ func protoToStep(pb *pbFlow.Step) *Step {
 
 	st := &Step{
 		ID:        pb.Name,
-		Requires:  pb.Requires,
-		Required:  pb.Required,
+		After:     pb.After,
+		Before:    pb.Before,
 		Fallback:  fop,
 		Operation: nop,
 	}
