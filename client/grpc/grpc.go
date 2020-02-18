@@ -5,7 +5,9 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"net"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -49,7 +51,7 @@ func (g *grpcClient) secure(addr string) grpc.DialOption {
 
 	tlsConfig := &tls.Config{}
 	// default config
-	defaultCreds := grpc.WithTransportCredentials(credentials.NewTLS(config))
+	defaultCreds := grpc.WithTransportCredentials(credentials.NewTLS(tlsConfig))
 
 	// check if the address is prepended with https
 	if strings.HasPrefix(addr, "https://") {
@@ -57,9 +59,9 @@ func (g *grpcClient) secure(addr string) grpc.DialOption {
 	}
 
 	// if no port is specified or port is 443 default to tls
-	host, port, err := net.SplitHostPort(addr)
+	_, port, err := net.SplitHostPort(addr)
 	// assuming with no port its going to be secured
-	if port == 443 {
+	if port == "443" {
 		return defaultCreds
 	} else if err != nil && strings.Contains(err.Error(), "missing port in address") {
 		return defaultCreds
