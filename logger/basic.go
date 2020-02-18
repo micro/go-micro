@@ -1,4 +1,4 @@
-package basic
+package logger
 
 import (
 	"context"
@@ -7,20 +7,18 @@ import (
 	"io"
 	"log"
 	"os"
-
-	"github.com/micro/go-micro/v2/logger"
 )
 
 type basicLogger struct {
-	level  logger.Level
-	fields logger.Fields
+	level  Level
+	fields Fields
 	out    io.Writer
 }
 
-func (l *basicLogger) Init(opts ...logger.Option) error {
-	options := &Options{logger.Options{Context: context.Background()}}
+func (l *basicLogger) Init(opts ...Option) error {
+	options := &Options{Context: context.Background()}
 	for _, o := range opts {
-		o(&options.Options)
+		o(options)
 	}
 
 	if o, ok := options.Context.Value(outputKey{}).(io.Writer); ok {
@@ -29,26 +27,26 @@ func (l *basicLogger) Init(opts ...logger.Option) error {
 		l.out = os.Stderr
 	}
 
-	if flds, ok := options.Context.Value(fieldsKey{}).(logger.Fields); ok {
+	if flds, ok := options.Context.Value(fieldsKey{}).(Fields); ok {
 		l.fields = flds
 	} else {
 		l.fields = make(map[string]interface{})
 	}
 
-	if lvl, ok := options.Context.Value(levelKey{}).(logger.Level); ok {
+	if lvl, ok := options.Context.Value(levelKey{}).(Level); ok {
 		l.level = lvl
 	} else {
-		l.level = logger.InfoLevel
+		l.level = InfoLevel
 	}
 
 	return nil
 }
 
-func (l *basicLogger) SetLevel(level logger.Level) {
+func (l *basicLogger) SetLevel(level Level) {
 	l.level = level
 }
 
-func (l *basicLogger) Level() logger.Level {
+func (l *basicLogger) Level() Level {
 	return l.level
 }
 
@@ -56,7 +54,7 @@ func (l *basicLogger) String() string {
 	return "basic"
 }
 
-func (l *basicLogger) Log(level logger.Level, template string, fmtArgs []interface{}, fields logger.Fields) {
+func (l *basicLogger) Log(level Level, template string, fmtArgs []interface{}, fields Fields) {
 	if level < l.level {
 		return
 	}
@@ -78,7 +76,7 @@ func (l *basicLogger) Log(level logger.Level, template string, fmtArgs []interfa
 	}
 }
 
-func (l *basicLogger) Error(level logger.Level, template string, fmtArgs []interface{}, err error) {
+func (l *basicLogger) Error(level Level, template string, fmtArgs []interface{}, err error) {
 	if level < l.level {
 		return
 	}
@@ -104,7 +102,7 @@ func (l *basicLogger) Error(level logger.Level, template string, fmtArgs []inter
 }
 
 // NewLogger builds a new logger based on options
-func NewLogger(opts ...logger.Option) logger.Logger {
+func NewLogger(opts ...Option) Logger {
 	l := &basicLogger{}
 	_ = l.Init(opts...)
 	return l
