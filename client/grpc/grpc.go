@@ -49,7 +49,7 @@ func (g *grpcClient) secure(addr string) grpc.DialOption {
 		}
 	}
 
-	// // default config
+	// default config
 	tlsConfig := &tls.Config{}
 	defaultCreds := grpc.WithTransportCredentials(credentials.NewTLS(tlsConfig))
 
