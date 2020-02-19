@@ -319,7 +319,7 @@ func (fl *microFlow) loadDag(ctx context.Context, flow string) (dag, error) {
 		return nil, err
 	}
 
-	g := NewHeimdalrDag()
+	g := newHeimdalrDag()
 	stepsMap := make(map[string]*Step)
 	for _, s := range steps {
 		stepsMap[s.Name()] = s

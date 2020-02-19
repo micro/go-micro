@@ -8,7 +8,7 @@ import (
 )
 
 var (
-	ErrVertex = errors.New("vertex must have Name() method")
+	errVertex = errors.New("vertex must have Name() method")
 )
 
 type dag interface {
@@ -25,7 +25,7 @@ type heimdalrDag struct {
 	dag *hdag.DAG
 }
 
-func NewHeimdalrDag() *heimdalrDag {
+func newHeimdalrDag() *heimdalrDag {
 	return &heimdalrDag{
 		dag: hdag.NewDAG(),
 	}
@@ -34,7 +34,7 @@ func NewHeimdalrDag() *heimdalrDag {
 func (g *heimdalrDag) AddVertex(v interface{}) error {
 	vn, ok := v.(hdag.Vertex)
 	if !ok {
-		return ErrVertex
+		return errVertex
 	}
 	return g.dag.AddVertex(vn)
 }
@@ -42,11 +42,11 @@ func (g *heimdalrDag) AddVertex(v interface{}) error {
 func (g *heimdalrDag) AddEdge(src interface{}, dst interface{}) error {
 	vsrc, ok := src.(hdag.Vertex)
 	if !ok {
-		return ErrVertex
+		return errVertex
 	}
 	vdst, ok := dst.(hdag.Vertex)
 	if !ok {
-		return ErrVertex
+		return errVertex
 	}
 
 	return g.dag.AddEdge(vsrc, vdst)
@@ -55,7 +55,7 @@ func (g *heimdalrDag) AddEdge(src interface{}, dst interface{}) error {
 func (g *heimdalrDag) OrderedAncestors(v interface{}) ([]*Step, error) {
 	vn, ok := v.(hdag.Vertex)
 	if !ok {
-		return nil, ErrVertex
+		return nil, errVertex
 	}
 
 	hvcs, err := g.dag.GetOrderedAncestors(vn)
@@ -75,7 +75,7 @@ func (g *heimdalrDag) OrderedAncestors(v interface{}) ([]*Step, error) {
 func (g *heimdalrDag) OrderedDescendants(v interface{}) ([]*Step, error) {
 	vn, ok := v.(hdag.Vertex)
 	if !ok {
-		return nil, ErrVertex
+		return nil, errVertex
 	}
 
 	hvcs, err := g.dag.GetOrderedDescendants(vn)
