@@ -8,6 +8,7 @@ service Runtime {
 	rpc Delete(DeleteRequest) returns (DeleteResponse) {};
 	rpc Update(UpdateRequest) returns (UpdateResponse) {};
 	rpc List(ListRequest) returns (ListResponse) {};
+	rpc RecordEvent(RecordEventRequest) returns (RecordEventResponse) {};
 }
 
 message Service {
@@ -19,14 +20,42 @@ message Service {
 	string source = 3;
 	// service metadata
 	map<string,string> metadata = 4;
+	// service status
+	Status status = 5;
 }
 
+// Status of the service
+enum Status {
+	Starting = 0;
+	Building = 1;
+	Deploying = 2;
+	Running = 3;
+	Error = 4;
+}
+
+// EventType for the events published via the broker
+enum EventType {
+	BuildStarted = 0;
+	BuildCompleted = 1;
+	BuildError = 2;
+	DeploymentStarted = 3;
+	DeploymentCompleted = 4;
+	DeploymentError = 5;
+}
+
+// Event published via the broker
 message Event {
-	string type = 1;
+	EventType type = 1;
 	int64 timestamp = 2;
 	string service = 3;
 	string version = 4;
 }
+
+message RecordEventRequest {
+	Event event = 1;
+}
+
+message RecordEventResponse {}
 
 message CreateOptions {
 	// command to pass in
@@ -54,11 +83,11 @@ message ReadOptions {
 }
 
 message ReadRequest {
-        ReadOptions options = 1;
+	ReadOptions options = 1;
 }
 
 message ReadResponse {
-        repeated Service services = 1;
+	repeated Service services = 1;
 }
 
 message DeleteRequest {

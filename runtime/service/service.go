@@ -85,6 +85,7 @@ func (s *svc) Read(opts ...runtime.ReadOption) ([]*runtime.Service, error) {
 			Version:  service.Version,
 			Source:   service.Source,
 			Metadata: service.Metadata,
+			Status:   mapStatus(service.Status),
 		}
 		services = append(services, svc)
 	}
@@ -141,11 +142,37 @@ func (s *svc) List() ([]*runtime.Service, error) {
 			Version:  service.Version,
 			Source:   service.Source,
 			Metadata: service.Metadata,
+			Status:   mapStatus(service.Status),
 		}
 		services = append(services, svc)
 	}
 
 	return services, nil
+}
+
+func mapStatus(s pb.Status) runtime.StatusType {
+	switch s {
+	case pb.Status_Starting:
+		return runtime.Starting
+	case pb.Status_Building:
+		return runtime.Building
+	case pb.Status_Deploying:
+		return runtime.Deploying
+	case pb.Status_Running:
+		return runtime.Running
+	case pb.Status_Error:
+		return runtime.Error
+	default:
+		return runtime.Unknown
+	}
+}
+
+// RecordEvent records an event for the service, e.g. build completed
+func (s *svc) RecordEvent(event *pb.Event) error {
+	_, err := s.runtime.RecordEvent(context.Background(), &pb.RecordEventRequest{
+		Event: event,
+	})
+	return err
 }
 
 // Start starts the runtime

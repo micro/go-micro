@@ -39,6 +39,7 @@ type RuntimeService interface {
 	Delete(ctx context.Context, in *DeleteRequest, opts ...client.CallOption) (*DeleteResponse, error)
 	Update(ctx context.Context, in *UpdateRequest, opts ...client.CallOption) (*UpdateResponse, error)
 	List(ctx context.Context, in *ListRequest, opts ...client.CallOption) (*ListResponse, error)
+	RecordEvent(ctx context.Context, in *RecordEventRequest, opts ...client.CallOption) (*RecordEventResponse, error)
 }
 
 type runtimeService struct {
@@ -103,6 +104,16 @@ func (c *runtimeService) List(ctx context.Context, in *ListRequest, opts ...clie
 	return out, nil
 }
 
+func (c *runtimeService) RecordEvent(ctx context.Context, in *RecordEventRequest, opts ...client.CallOption) (*RecordEventResponse, error) {
+	req := c.c.NewRequest(c.name, "Runtime.RecordEvent", in)
+	out := new(RecordEventResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Server API for Runtime service
 
 type RuntimeHandler interface {
@@ -111,6 +122,7 @@ type RuntimeHandler interface {
 	Delete(context.Context, *DeleteRequest, *DeleteResponse) error
 	Update(context.Context, *UpdateRequest, *UpdateResponse) error
 	List(context.Context, *ListRequest, *ListResponse) error
+	RecordEvent(context.Context, *RecordEventRequest, *RecordEventResponse) error
 }
 
 func RegisterRuntimeHandler(s server.Server, hdlr RuntimeHandler, opts ...server.HandlerOption) error {
@@ -120,6 +132,7 @@ func RegisterRuntimeHandler(s server.Server, hdlr RuntimeHandler, opts ...server
 		Delete(ctx context.Context, in *DeleteRequest, out *DeleteResponse) error
 		Update(ctx context.Context, in *UpdateRequest, out *UpdateResponse) error
 		List(ctx context.Context, in *ListRequest, out *ListResponse) error
+		RecordEvent(ctx context.Context, in *RecordEventRequest, out *RecordEventResponse) error
 	}
 	type Runtime struct {
 		runtime
@@ -150,4 +163,8 @@ func (h *runtimeHandler) Update(ctx context.Context, in *UpdateRequest, out *Upd
 
 func (h *runtimeHandler) List(ctx context.Context, in *ListRequest, out *ListResponse) error {
 	return h.RuntimeHandler.List(ctx, in, out)
+}
+
+func (h *runtimeHandler) RecordEvent(ctx context.Context, in *RecordEventRequest, out *RecordEventResponse) error {
+	return h.RuntimeHandler.RecordEvent(ctx, in, out)
 }

@@ -49,11 +49,11 @@ type Scheduler interface {
 type EventType int
 
 const (
-	// Create is emitted when a new build has been craeted
+	// Create is emitted when a new deployment has been craeted
 	Create EventType = iota
 	// Update is emitted when a new update become available
 	Update
-	// Delete is emitted when a build has been deleted
+	// Delete is emitted when a deployment has been deleted
 	Delete
 )
 
@@ -83,6 +83,41 @@ type Event struct {
 	Version string
 }
 
+// StatusType defines the status of a service
+type StatusType int
+
+const (
+	// Starting means the service has been created
+	Starting StatusType = iota
+	// Building means the service is building prior to deployment
+	Building
+	// Deploying means the service is being deployed
+	Deploying
+	// Running means the service is running and ready
+	Running
+	// Error means something went wrong
+	Error
+	// Unknown means the status is unknown
+	Unknown
+)
+
+func (s StatusType) String() string {
+	switch s {
+	case Starting:
+		return "starting"
+	case Building:
+		return "building"
+	case Deploying:
+		return "deploying"
+	case Running:
+		return "running"
+	case Error:
+		return "error"
+	default:
+		return "unknown"
+	}
+}
+
 // Service is runtime service
 type Service struct {
 	// Name of the service
@@ -93,4 +128,6 @@ type Service struct {
 	Source string
 	// Metadata stores metadata
 	Metadata map[string]string
+	// Status of the service
+	Status StatusType
 }
