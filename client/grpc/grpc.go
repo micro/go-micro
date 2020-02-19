@@ -4,9 +4,7 @@ package grpc
 import (
 	"context"
 	"crypto/tls"
-	"crypto/x509"
 	"fmt"
-	"log"
 	"net"
 	"os"
 	"strings"
@@ -51,15 +49,9 @@ func (g *grpcClient) secure(addr string) grpc.DialOption {
 		}
 	}
 
-	// default config
-	systemRoots, err := x509.SystemCertPool()
-	if err != nil {
-		log.Fatal("failed to load system root CA cert pool")
-	}
-	tlsConfig := credentials.NewTLS(&tls.Config{
-		RootCAs: systemRoots,
-	})
-	defaultCreds := grpc.WithTransportCredentials(tlsConfig)
+	// // default config
+	tlsConfig := &tls.Config{}
+	defaultCreds := grpc.WithTransportCredentials(credentials.NewTLS(tlsConfig))
 
 	// check if the address is prepended with https
 	if strings.HasPrefix(addr, "https://") {
