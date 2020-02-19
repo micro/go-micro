@@ -9,6 +9,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/micro/go-micro/v2/broker"
@@ -26,9 +27,9 @@ import (
 )
 
 type grpcClient struct {
-	once sync.Once
 	opts client.Options
 	pool *pool
+	once atomic.Value
 }
 
 func init() {
@@ -594,9 +595,12 @@ func (g *grpcClient) Publish(ctx context.Context, p client.Message, opts ...clie
 		body = b
 	}
 
-	g.once.Do(func() {
-		g.opts.Broker.Connect()
-	})
+	if !g.once.Load().(bool) {
+		if err = g.opts.Broker.Connect(); err != nil {
+			return errors.InternalServerError("go.micro.client", err.Error())
+		}
+		g.once.Store(true)
+	}
 
 	topic := p.Topic()
 
@@ -665,9 +669,9 @@ func newClient(opts ...client.Option) client.Client {
 	}
 
 	rc := &grpcClient{
-		once: sync.Once{},
 		opts: options,
 	}
+	rc.once.Store(false)
 
 	rc.pool = newPool(options.PoolSize, options.PoolTTL, rc.poolMaxIdle(), rc.poolMaxStreams())
 
