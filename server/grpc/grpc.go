@@ -143,9 +143,8 @@ func (g *grpcServer) getMaxMsgSize() int {
 
 func (g *grpcServer) getCredentials() credentials.TransportCredentials {
 	if g.opts.Context != nil {
-		if v := g.opts.Context.Value(tlsAuth{}); v != nil {
-			tls := v.(*tls.Config)
-			return credentials.NewTLS(tls)
+		if v, ok := g.opts.Context.Value(tlsAuth{}).(*tls.Config); ok && v != nil {
+			return credentials.NewTLS(v)
 		}
 	}
 	return nil
@@ -156,15 +155,8 @@ func (g *grpcServer) getGrpcOptions() []grpc.ServerOption {
 		return nil
 	}
 
-	v := g.opts.Context.Value(grpcOptions{})
-
-	if v == nil {
-		return nil
-	}
-
-	opts, ok := v.([]grpc.ServerOption)
-
-	if !ok {
+	opts, ok := g.opts.Context.Value(grpcOptions{}).([]grpc.ServerOption)
+	if !ok || opts == nil {
 		return nil
 	}
 
@@ -505,8 +497,8 @@ func (g *grpcServer) processStream(stream grpc.ServerStream, service *service, m
 func (g *grpcServer) newGRPCCodec(contentType string) (encoding.Codec, error) {
 	codecs := make(map[string]encoding.Codec)
 	if g.opts.Context != nil {
-		if v := g.opts.Context.Value(codecsKey{}); v != nil {
-			codecs = v.(map[string]encoding.Codec)
+		if v, ok := g.opts.Context.Value(codecsKey{}).(map[string]encoding.Codec); ok && v != nil {
+			codecs = v
 		}
 	}
 	if c, ok := codecs[contentType]; ok {
@@ -573,10 +565,10 @@ func (g *grpcServer) Subscribe(sb server.Subscriber) error {
 
 	g.Lock()
 
-	_, ok = g.subscribers[sub]
-	if ok {
+	if _, ok = g.subscribers[sub]; ok {
 		return fmt.Errorf("subscriber %v already exists", sub)
 	}
+
 	g.subscribers[sub] = nil
 	g.Unlock()
 	return nil

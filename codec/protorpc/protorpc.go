@@ -56,8 +56,12 @@ func (c *protoCodec) Write(m *codec.Message, b interface{}) error {
 		if err != nil {
 			return err
 		}
-		// Of course this is a protobuf! Trust me or detonate the program.
-		data, err = proto.Marshal(b.(proto.Message))
+		// dont trust or incoming message
+		m, ok := b.(proto.Message)
+		if !ok {
+			return codec.ErrInvalidMessage
+		}
+		data, err = proto.Marshal(m)
 		if err != nil {
 			return err
 		}
@@ -100,7 +104,11 @@ func (c *protoCodec) Write(m *codec.Message, b interface{}) error {
 			}
 		}
 	case codec.Event:
-		data, err := proto.Marshal(b.(proto.Message))
+		m, ok := b.(proto.Message)
+		if !ok {
+			return codec.ErrInvalidMessage
+		}
+		data, err := proto.Marshal(m)
 		if err != nil {
 			return err
 		}
