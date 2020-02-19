@@ -16,7 +16,6 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/micro/go-micro/v2/broker"
-	"github.com/micro/go-micro/v2/codec"
 	"github.com/micro/go-micro/v2/errors"
 	meta "github.com/micro/go-micro/v2/metadata"
 	"github.com/micro/go-micro/v2/registry"
@@ -506,16 +505,6 @@ func (g *grpcServer) newGRPCCodec(contentType string) (encoding.Codec, error) {
 	}
 	if c, ok := defaultGRPCCodecs[contentType]; ok {
 		return c, nil
-	}
-	return nil, fmt.Errorf("Unsupported Content-Type: %s", contentType)
-}
-
-func (g *grpcServer) newCodec(contentType string) (codec.NewCodec, error) {
-	if cf, ok := g.opts.Codecs[contentType]; ok {
-		return cf, nil
-	}
-	if cf, ok := defaultRPCCodecs[contentType]; ok {
-		return cf, nil
 	}
 	return nil, fmt.Errorf("Unsupported Content-Type: %s", contentType)
 }
