@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"sync"
 	"sync/atomic"
 	"time"
 
@@ -22,7 +21,7 @@ import (
 )
 
 type rpcClient struct {
-	once sync.Once
+	once atomic.Value
 	opts Options
 	pool pool.Pool
 	seq  uint64
@@ -38,11 +37,11 @@ func newRpcClient(opt ...Option) Client {
 	)
 
 	rc := &rpcClient{
-		once: sync.Once{},
 		opts: opts,
 		pool: p,
 		seq:  0,
 	}
+	rc.once.Store(false)
 
 	c := Client(rc)
 
@@ -645,9 +644,12 @@ func (r *rpcClient) Publish(ctx context.Context, msg Message, opts ...PublishOpt
 		body = b.Bytes()
 	}
 
-	r.once.Do(func() {
-		r.opts.Broker.Connect()
-	})
+	if !r.once.Load().(bool) {
+		if err = r.opts.Broker.Connect(); err != nil {
+			return errors.InternalServerError("go.micro.client", err.Error())
+		}
+		r.once.Store(true)
+	}
 
 	return r.opts.Broker.Publish(topic, &broker.Message{
 		Header: md,
