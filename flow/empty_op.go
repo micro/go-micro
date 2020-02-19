@@ -2,6 +2,7 @@ package flow
 
 import (
 	"context"
+	"fmt"
 
 	pbFlow "github.com/micro/go-micro/v2/flow/service/proto"
 )
@@ -11,13 +12,13 @@ type emptyOperation struct {
 	options OperationOptions
 }
 
-func EmptyOperation(opts ...OperationOption) *emptyOperation {
+func EmptyOperation(name string, opts ...OperationOption) *emptyOperation {
 	options := OperationOptions{}
 	for _, opt := range opts {
 		opt(&options)
 	}
 
-	return &emptyOperation{name: "empty_operation", options: options}
+	return &emptyOperation{name: name, options: options}
 }
 
 func (op *emptyOperation) New() Operation {
@@ -25,6 +26,7 @@ func (op *emptyOperation) New() Operation {
 }
 
 func (op *emptyOperation) Execute(ctx context.Context, req []byte, opts ...ExecuteOption) ([]byte, error) {
+	fmt.Printf("execute %s\n", op.name)
 	return nil, nil
 }
 
