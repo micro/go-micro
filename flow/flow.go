@@ -47,9 +47,13 @@ type Step struct {
 	Timeout int
 	// Step operation to execute
 	Operation Operation
-	// steps that are required for this step
+	// Which step use as input
+	Input string
+	// Where to place output
+	Output string
+	// Steps that are required for this step
 	After []string
-	// steps for which this step required
+	// Steps for which this step required
 	Before []string
 	// Step operation to execute in case of error
 	Fallback Operation

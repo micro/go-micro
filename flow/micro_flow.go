@@ -339,7 +339,7 @@ func (fl *microFlow) loadDag(ctx context.Context, flow string) (dag, error) {
 			}
 			ve, ok := stepsMap[req]
 			if !ok {
-				err = fmt.Errorf("requires unknown step %v", vs)
+				err = fmt.Errorf("%v after unknown step %v", vs, req)
 				return nil, err
 			}
 			g.AddEdge(ve, vs)
@@ -356,7 +356,7 @@ func (fl *microFlow) loadDag(ctx context.Context, flow string) (dag, error) {
 			}
 			ve, ok := stepsMap[req]
 			if !ok {
-				err = fmt.Errorf("required unknown step %v", vs)
+				err = fmt.Errorf("%v before unknown step %v", vs, req)
 				return nil, err
 			}
 			g.AddEdge(vs, ve)
@@ -457,18 +457,26 @@ func (fl *microFlow) stepHandler(ctx context.Context, step *Step, job *flowJob, 
 	var opErr error
 	var buf []byte
 
-	stateName := fmt.Sprintf("%s-%s", step.Name(), step.Operation.Name())
-	if err = fl.options.StateStore.Write(ctx, job.flow, job.rid, []byte(stateName), []byte("pending")); err != nil {
+	if err = fl.options.StateStore.Write(ctx, job.flow, job.rid, []byte(step.Name()), []byte("pending")); err != nil {
 		return err
 	}
 
-	// operation handles retries, timeouts and so
-	buf, opErr = step.Operation.Execute(ctx, job.req, job.options...)
-	if opErr == nil {
-		if err = fl.options.StateStore.Write(ctx, job.flow, job.rid, []byte(stateName), []byte("complete")); err != nil {
+	var req []byte
+	if len(step.Input) > 0 {
+		if req, err = fl.options.DataStore.Read(ctx, job.flow, job.rid, []byte(step.Input)); err != nil {
 			return err
 		}
-		if err = fl.options.DataStore.Write(ctx, job.flow, job.rid, []byte(stateName), buf); err != nil {
+	} else {
+		req = job.req
+	}
+
+	// operation handles retries, timeouts and so
+	buf, opErr = step.Operation.Execute(ctx, req, job.options...)
+	if opErr == nil {
+		if err = fl.options.StateStore.Write(ctx, job.flow, job.rid, []byte(step.Name()), []byte("complete")); err != nil {
+			return err
+		}
+		if err = fl.options.DataStore.Write(ctx, job.flow, job.rid, []byte(step.Name()), buf); err != nil {
 			return err
 		}
 		if initial {
@@ -477,7 +485,7 @@ func (fl *microFlow) stepHandler(ctx context.Context, step *Step, job *flowJob, 
 		return nil
 	}
 
-	if err = fl.options.StateStore.Write(ctx, job.flow, job.rid, []byte(stateName), []byte("failure")); err != nil {
+	if err = fl.options.StateStore.Write(ctx, job.flow, job.rid, []byte(step.Name()), []byte("failure")); err != nil {
 		return err
 	}
 

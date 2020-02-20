@@ -40,8 +40,10 @@ message Step {
   string name = 1;
   repeated string after = 2;
   repeated string before = 3;
-  Operation operation = 4;
-  Operation fallback = 5;
+  string input = 4;
+  string output = 5;
+  Operation operation = 6;
+  Operation fallback = 7;
 };
 
 message Operation {

@@ -51,6 +51,7 @@ func (op *clientCallOperation) Execute(ctx context.Context, data []byte, opts ..
 	}
 
 	if err = options.Client.Call(ctx, req, rsp, copts...); err != nil {
+		fmt.Printf("%s.%s: %v\n", op.service, op.endpoint, err)
 		return nil, err
 	}
 
