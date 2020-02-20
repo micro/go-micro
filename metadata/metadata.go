@@ -3,7 +3,9 @@ package metadata
 
 import (
 	"context"
+	"encoding/base32"
 	"strings"
+	"unicode"
 )
 
 type metaKey struct{}
@@ -20,6 +22,28 @@ func Copy(md Metadata) Metadata {
 		cmd[k] = v
 	}
 	return cmd
+}
+
+func Set(ctx context.Context, key, val string) {
+	md, ok := FromContext(ctx)
+	if !ok {
+		md = make(Metadata)
+	}
+	cnt := 0
+
+	for _, r := range key {
+		if unicode.IsUpper(r) {
+			if cnt++; cnt > 1 {
+				break
+			}
+		}
+	}
+
+	if cnt > 1 {
+		md[base32.StdEncoding.EncodeToString([]byte(key))] = val
+	} else {
+		md[key] = val
+	}
 }
 
 // Get returns a single value from metadata in the context
@@ -49,7 +73,12 @@ func FromContext(ctx context.Context) (Metadata, bool) {
 
 	// capitalise all values
 	newMD := make(map[string]string)
+
 	for k, v := range md {
+		if key, err := base32.StdEncoding.DecodeString(k); err == nil {
+			newMD[string(key)] = v
+			continue
+		}
 		newMD[strings.Title(k)] = v
 	}
 
