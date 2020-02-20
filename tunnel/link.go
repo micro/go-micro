@@ -120,13 +120,6 @@ func (l *link) connect(addr string) error {
 	return nil
 }
 
-func (l *link) accept(sock transport.Socket) error {
-	l.Lock()
-	l.Socket = sock
-	l.Unlock()
-	return nil
-}
-
 // setRate sets the bits per second rate as a float64
 func (l *link) setRate(bits int64, delta time.Duration) {
 	// rate of send in bits per nanosecond
