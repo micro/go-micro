@@ -17,5 +17,15 @@ import (
 type Option func(*Options)
 
 type Options struct {
+	// The Log Level
+	Level Level
+	// Other opts
 	Context context.Context
+}
+
+// WithLevel sets the log level
+func WithLevel(l Level) Option {
+	return func(o *Options) {
+		o.Level = l
+	}
 }

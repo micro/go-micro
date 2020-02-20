@@ -10,21 +10,16 @@ import (
 type Logger interface {
 	// Init initialises options
 	Init(options ...Option) error
-	// Level returns the logging level
-	Level() Level
-	// Log inserts a log entry.  Arguments may be handled in the manner
-	// of fmt.Print, but the underlying logger may also decide to handle
-	// them differently.
-	Log(level Level, v ...interface{})
-	// Logf insets a log entry.  Arguments are handled in the manner of
-	// fmt.Printf.
-	Logf(level Level, format string, v ...interface{})
-	// Fields set fields to always be logged
-	Fields(fields map[string]interface{}) Logger
+	// The Logger options
+	Options() Options
 	// Error set `error` field to be logged
 	Error(err error) Logger
-	// SetLevel updates the logging level.
-	SetLevel(Level)
+	// Fields set fields to always be logged
+	Fields(fields map[string]interface{}) Logger
+	// Log writes a log entry
+	Log(level Level, v ...interface{})
+	// Logf writes a formatted log entry
+	Logf(level Level, format string, v ...interface{})
 	// String returns the name of logger
 	String() string
 }
