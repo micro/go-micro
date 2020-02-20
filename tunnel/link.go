@@ -127,12 +127,6 @@ func (l *link) accept(sock transport.Socket) error {
 	return nil
 }
 
-func (l *link) setLoopback(v bool) {
-	l.Lock()
-	l.loopback = v
-	l.Unlock()
-}
-
 // setRate sets the bits per second rate as a float64
 func (l *link) setRate(bits int64, delta time.Duration) {
 	// rate of send in bits per nanosecond
