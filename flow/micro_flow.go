@@ -470,13 +470,18 @@ func (fl *microFlow) stepHandler(ctx context.Context, step *Step, job *flowJob, 
 		req = job.req
 	}
 
+	output := step.Name()
+	if len(step.Output) > 0 {
+		output = step.Output
+	}
+
 	// operation handles retries, timeouts and so
 	buf, opErr = step.Operation.Execute(ctx, req, job.options...)
 	if opErr == nil {
 		if err = fl.options.StateStore.Write(ctx, job.flow, job.rid, []byte(step.Name()), []byte("complete")); err != nil {
 			return err
 		}
-		if err = fl.options.DataStore.Write(ctx, job.flow, job.rid, []byte(step.Name()), buf); err != nil {
+		if err = fl.options.DataStore.Write(ctx, job.flow, job.rid, []byte(output), buf); err != nil {
 			return err
 		}
 		if initial {
