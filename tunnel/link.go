@@ -107,19 +107,6 @@ func newLink(s transport.Socket) *link {
 	return l
 }
 
-func (l *link) connect(addr string) error {
-	c, err := l.transport.Dial(addr)
-	if err != nil {
-		return err
-	}
-
-	l.Lock()
-	l.Socket = c
-	l.Unlock()
-
-	return nil
-}
-
 // setRate sets the bits per second rate as a float64
 func (l *link) setRate(bits int64, delta time.Duration) {
 	// rate of send in bits per nanosecond
