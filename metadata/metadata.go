@@ -56,7 +56,6 @@ func FromContext(ctx context.Context) (Metadata, bool) {
 	for k, v := range md {
 		key, err := base32.StdEncoding.DecodeString(k)
 		if err != nil {
-			panic(err)
 			return nil, false
 		}
 		newMD[string(key)] = v
