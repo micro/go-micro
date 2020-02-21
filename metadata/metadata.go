@@ -4,8 +4,6 @@ package metadata
 import (
 	"context"
 	"encoding/base32"
-	"strings"
-	"unicode"
 )
 
 type metaKey struct{}
@@ -24,26 +22,14 @@ func Copy(md Metadata) Metadata {
 	return cmd
 }
 
-func Set(ctx context.Context, key, val string) {
+// Set add key with val to metadata
+func Set(ctx context.Context, k, v string) context.Context {
 	md, ok := FromContext(ctx)
 	if !ok {
 		md = make(Metadata)
 	}
-	cnt := 0
-
-	for _, r := range key {
-		if unicode.IsUpper(r) {
-			if cnt++; cnt > 1 {
-				break
-			}
-		}
-	}
-
-	if cnt > 1 {
-		md[base32.StdEncoding.EncodeToString([]byte(key))] = val
-	} else {
-		md[key] = val
-	}
+	md[base32.StdEncoding.EncodeToString([]byte(k))] = v
+	return context.WithValue(ctx, metaKey{}, md)
 }
 
 // Get returns a single value from metadata in the context
@@ -52,14 +38,8 @@ func Get(ctx context.Context, key string) (string, bool) {
 	if !ok {
 		return "", ok
 	}
-	// attempt to get as is
-	val, ok := md[key]
-	if ok {
-		return val, ok
-	}
 
-	// attempt to get lower case
-	val, ok = md[strings.Title(key)]
+	val, ok := md[key]
 
 	return val, ok
 }
@@ -71,15 +51,15 @@ func FromContext(ctx context.Context) (Metadata, bool) {
 		return nil, ok
 	}
 
-	// capitalise all values
-	newMD := make(map[string]string)
+	newMD := make(Metadata)
 
 	for k, v := range md {
-		if key, err := base32.StdEncoding.DecodeString(k); err == nil {
-			newMD[string(key)] = v
-			continue
+		key, err := base32.StdEncoding.DecodeString(k)
+		if err != nil {
+			panic(err)
+			return nil, false
 		}
-		newMD[strings.Title(k)] = v
+		newMD[string(key)] = v
 	}
 
 	return newMD, ok
@@ -87,7 +67,14 @@ func FromContext(ctx context.Context) (Metadata, bool) {
 
 // NewContext creates a new context with the given metadata
 func NewContext(ctx context.Context, md Metadata) context.Context {
-	return context.WithValue(ctx, metaKey{}, md)
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	newMD := make(Metadata)
+	for k, v := range md {
+		newMD[base32.StdEncoding.EncodeToString([]byte(k))] = v
+	}
+	return context.WithValue(ctx, metaKey{}, newMD)
 }
 
 // MergeContext merges metadata to existing metadata, overwriting if specified
@@ -101,10 +88,11 @@ func MergeContext(ctx context.Context, patchMd Metadata, overwrite bool) context
 		cmd[k] = v
 	}
 	for k, v := range patchMd {
-		if _, ok := cmd[k]; ok && !overwrite {
+		nk := base32.StdEncoding.EncodeToString([]byte(k))
+		if _, ok := cmd[nk]; ok && !overwrite {
 			// skip
 		} else {
-			cmd[k] = v
+			cmd[nk] = v
 		}
 	}
 	return context.WithValue(ctx, metaKey{}, cmd)
