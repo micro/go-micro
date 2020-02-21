@@ -28,10 +28,6 @@ func Init(opts ...Option) error {
 	return DefaultLogger.Init(opts...)
 }
 
-func Error(err error) Logger {
-	return DefaultLogger.Error(err)
-}
-
 func Fields(fields map[string]interface{}) Logger {
 	return DefaultLogger.Fields(fields)
 }
@@ -46,4 +42,8 @@ func Logf(level Level, format string, v ...interface{}) {
 
 func String() string {
 	return DefaultLogger.String()
+}
+
+func WithError(err error) Logger {
+	return DefaultLogger.Error(err)
 }
