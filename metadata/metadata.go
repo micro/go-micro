@@ -57,7 +57,8 @@ func FromContext(ctx context.Context) (Metadata, bool) {
 	for k, v := range md {
 		key, err := base32.StdEncoding.DecodeString(strings.ToUpper(k))
 		if err != nil {
-			return nil, false
+			// try to be compatible with older micro versions
+			newMD[strings.Title(k)] = v
 		}
 		newMD[string(key)] = v
 	}
