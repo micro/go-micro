@@ -7,8 +7,8 @@ import (
 	"github.com/micro/go-micro/v2/errors"
 )
 
-// newRegistry returns an instance of memory auth
-func newRegistry(opts ...Option) Auth {
+// newAuth returns an instance of memory auth
+func newAuth(opts ...Option) Auth {
 	options := Options{}
 	for _, o := range opts {
 		o(&options)

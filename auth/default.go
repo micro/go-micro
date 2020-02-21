@@ -6,5 +6,5 @@ var (
 
 // NewAuth returns a new default registry which is memory
 func NewAuth(opts ...Option) Auth {
-	return newRegistry(opts...)
+	return newAuth(opts...)
 }
