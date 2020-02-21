@@ -4,6 +4,7 @@ package metadata
 import (
 	"context"
 	"encoding/base32"
+	"strings"
 )
 
 type metaKey struct{}
@@ -54,7 +55,7 @@ func FromContext(ctx context.Context) (Metadata, bool) {
 	newMD := make(Metadata)
 
 	for k, v := range md {
-		key, err := base32.StdEncoding.DecodeString(k)
+		key, err := base32.StdEncoding.DecodeString(strings.ToUpper(k))
 		if err != nil {
 			return nil, false
 		}
