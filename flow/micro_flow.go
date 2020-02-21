@@ -424,9 +424,16 @@ func (fl *microFlow) flowHandler(req interface{}) {
 		return
 	}
 
-	initial := true
+	var initial bool
+	if len(options.Output) == 0 {
+		initial = true
+	}
+
 stepsLoop:
 	for _, step := range steps {
+		if !initial && options.Output == step.Name() {
+			initial = true
+		}
 		if err = fl.stepHandler(options.Context, step, job, initial); err != nil {
 			initial = false
 			if step.Fallback != nil {

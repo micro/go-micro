@@ -124,6 +124,8 @@ type ExecuteOptions struct {
 	ID string
 	// Passed step to start swafrom
 	Step string
+	// Output which step output returns
+	Output string
 	// Timeout for currenct execition
 	Timeout time.Duration
 	// Async execution run
@@ -216,6 +218,13 @@ func WithLogger(l Logger) Option {
 func WithContext(ctx context.Context) Option {
 	return func(o *Options) {
 		o.Context = ctx
+	}
+}
+
+// Which step output return from flow
+func ExecuteOutput(output string) ExecuteOption {
+	return func(o *ExecuteOptions) {
+		o.Output = output
 	}
 }
 
