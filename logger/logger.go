@@ -11,10 +11,16 @@ type Fields map[string]interface{}
 type Logger interface {
 	// Init initialises options
 	Init(options ...Option) error
-	// Level returns the logging level
-	Level() Level
-	// SetLevel updates the logging level.
-	SetLevel(Level)
+	// The Logger options
+	Options() Options
+	// Error set `error` field to be logged
+	Error(err error) Logger
+	// Fields set fields to always be logged
+	Fields(fields map[string]interface{}) Logger
+	// Log writes a log entry
+	Log(level Level, v ...interface{})
+	// Logf writes a formatted log entry
+	Logf(level Level, format string, v ...interface{})
 	// String returns the name of logger
 	String() string
 	// log at given level with message, fmtArgs and context fields

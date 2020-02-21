@@ -8,6 +8,9 @@ import (
 type Option func(*Options)
 
 type Options struct {
+	// The Log Level
+	Level Level
+	// Other opts
 	Context context.Context
 }
 

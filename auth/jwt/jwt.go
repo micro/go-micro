@@ -17,6 +17,9 @@ var ErrEncodingToken = errors.New("An error occured while encoding the JWT")
 // ErrInvalidToken is returned when the token provided is not valid
 var ErrInvalidToken = errors.New("An invalid token was provided")
 
+// ErrMissingToken is returned when no token is provided
+var ErrMissingToken = errors.New("A valid JWT is required")
+
 // NewAuth returns a new instance of the Auth service
 func NewAuth(opts ...auth.Option) auth.Auth {
 	svc := new(svc)
@@ -64,7 +67,7 @@ func (s *svc) Generate(id string, ops ...auth.GenerateOption) (*auth.Account, er
 	options := auth.NewGenerateOptions(ops...)
 	account := jwt.NewWithClaims(jwt.SigningMethodRS256, AuthClaims{
 		id, options.Roles, options.Metadata, jwt.StandardClaims{
-			Subject:   "TODO",
+			Subject:   id,
 			ExpiresAt: time.Now().Add(time.Hour * 24).Unix(),
 		},
 	})
@@ -89,6 +92,10 @@ func (s *svc) Revoke(token string) error {
 
 // Validate a JWT
 func (s *svc) Validate(token string) (*auth.Account, error) {
+	if token == "" {
+		return nil, ErrMissingToken
+	}
+
 	res, err := jwt.ParseWithClaims(token, &AuthClaims{}, func(token *jwt.Token) (interface{}, error) {
 		return jwt.ParseRSAPublicKeyFromPEM(s.options.PublicKey)
 	})
