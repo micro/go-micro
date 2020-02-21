@@ -31,7 +31,7 @@ jobs:
       uses: rtCamp/action-slack-notify@v2.0.0
       env:
         SLACK_CHANNEL: builds
-        SLACK_COLOR: '#3278BD'
+        SLACK_COLOR: '#BF280A'
         SLACK_ICON: https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png
         SLACK_MESSAGE: ':x: Build ${{ github.ref }} of ${{ github.repository }} by ${{ github.actor}} failed tests'
         SLACK_TITLE: Tests Failed
@@ -43,7 +43,7 @@ jobs:
       uses: rtCamp/action-slack-notify@v2.0.0
       env:
         SLACK_CHANNEL: builds
-        SLACK_COLOR: '#BF280A'
+        SLACK_COLOR: '#1FAD2B'
         SLACK_ICON: https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png
         SLACK_MESSAGE: ':heavy_check_mark:  Build ${{ github.ref }} of ${{ github.repository }} by ${{ github.actor}} passed tests'
         SLACK_TITLE: Tests Passed
