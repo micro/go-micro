@@ -22,6 +22,8 @@ jobs:
 
     - name: Run tests
       id: tests
+      env:
+        IN_TRAVIS_CI: yes
       run: go test -v ./...
   
     - name: Notify of test failure
