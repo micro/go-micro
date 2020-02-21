@@ -30,7 +30,7 @@ jobs:
       if: failure()
       uses: rtCamp/action-slack-notify@v2.0.0
       env:
-        SLACK_CHANNEL: builds
+        SLACK_CHANNEL: build
         SLACK_COLOR: '#BF280A'
         SLACK_ICON: https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png
         SLACK_TITLE: Tests Failed
@@ -41,7 +41,7 @@ jobs:
       if: success()
       uses: rtCamp/action-slack-notify@v2.0.0
       env:
-        SLACK_CHANNEL: builds
+        SLACK_CHANNEL: build
         SLACK_COLOR: '#1FAD2B'
         SLACK_ICON: https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png
         SLACK_TITLE: Tests Passed
