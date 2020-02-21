@@ -879,6 +879,7 @@ func (s *rpcServer) Start() error {
 		// close transport listener
 		ch <- ts.Close()
 
+		log.Logf("Broker [%s] Disconnected from %s", bname, config.Broker.Address())
 		// disconnect the broker
 		config.Broker.Disconnect()
 

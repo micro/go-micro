@@ -6,6 +6,18 @@ import (
 	"testing"
 )
 
+func TestMetadataSet(t *testing.T) {
+	ctx := Set(context.TODO(), "Key", "val")
+
+	val, ok := Get(ctx, "Key")
+	if !ok {
+		t.Fatal("key Key not found")
+	}
+	if val != "val" {
+		t.Errorf("key Key with value val != %v", val)
+	}
+}
+
 func TestMetadataCopy(t *testing.T) {
 	md := Metadata{
 		"Foo": "bar",

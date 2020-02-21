@@ -63,6 +63,7 @@ func (c *clientWrapper) Publish(ctx context.Context, p client.Message, opts ...c
 func (c *traceWrapper) Call(ctx context.Context, req client.Request, rsp interface{}, opts ...client.CallOption) error {
 	newCtx, s := c.trace.Start(ctx, req.Service()+"."+req.Endpoint())
 
+	s.Type = trace.SpanTypeRequestOutbound
 	err := c.Client.Call(newCtx, req, rsp, opts...)
 	if err != nil {
 		s.Metadata["error"] = err.Error()
@@ -122,6 +123,7 @@ func TraceHandler(t trace.Tracer) server.HandlerWrapper {
 
 			// get the span
 			newCtx, s := t.Start(ctx, req.Service()+"."+req.Endpoint())
+			s.Type = trace.SpanTypeRequestInbound
 
 			err := h(newCtx, req, rsp)
 			if err != nil {
@@ -143,17 +145,14 @@ func AuthHandler(fn func() auth.Auth) server.HandlerWrapper {
 			// get the auth.Auth interface
 			a := fn()
 
-			// Extract endpoint and remove service name prefix
-			// (e.g. Platform.ListServices => ListServices)
-			var endpoint string
-			if ec := strings.Split(req.Endpoint(), "."); len(ec) == 2 {
-				endpoint = ec[1]
+			// Check for debug endpoints which should be excluded from auth
+			if strings.HasPrefix(req.Endpoint(), "Debug.") {
+				return h(ctx, req, rsp)
 			}
 
-			// Check for endpoints excluded from auth. If the endpoint
-			// matches, execute the handler and return
+			// Exclude any user excluded endpoints
 			for _, e := range a.Options().Excludes {
-				if e == endpoint {
+				if e == req.Endpoint() {
 					return h(ctx, req, rsp)
 				}
 			}

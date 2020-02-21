@@ -16,7 +16,6 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/micro/go-micro/v2/broker"
-	"github.com/micro/go-micro/v2/codec"
 	"github.com/micro/go-micro/v2/errors"
 	meta "github.com/micro/go-micro/v2/metadata"
 	"github.com/micro/go-micro/v2/registry"
@@ -143,9 +142,8 @@ func (g *grpcServer) getMaxMsgSize() int {
 
 func (g *grpcServer) getCredentials() credentials.TransportCredentials {
 	if g.opts.Context != nil {
-		if v := g.opts.Context.Value(tlsAuth{}); v != nil {
-			tls := v.(*tls.Config)
-			return credentials.NewTLS(tls)
+		if v, ok := g.opts.Context.Value(tlsAuth{}).(*tls.Config); ok && v != nil {
+			return credentials.NewTLS(v)
 		}
 	}
 	return nil
@@ -156,19 +154,23 @@ func (g *grpcServer) getGrpcOptions() []grpc.ServerOption {
 		return nil
 	}
 
-	v := g.opts.Context.Value(grpcOptions{})
-
-	if v == nil {
-		return nil
-	}
-
-	opts, ok := v.([]grpc.ServerOption)
-
-	if !ok {
+	opts, ok := g.opts.Context.Value(grpcOptions{}).([]grpc.ServerOption)
+	if !ok || opts == nil {
 		return nil
 	}
 
 	return opts
+}
+
+func (g *grpcServer) getListener() net.Listener {
+	if g.opts.Context != nil {
+		if v := g.opts.Context.Value(netListener{}); v != nil {
+			if l, ok := v.(net.Listener); ok {
+				return l
+			}
+		}
+	}
+	return nil
 }
 
 func (g *grpcServer) handler(srv interface{}, stream grpc.ServerStream) error {
@@ -494,8 +496,8 @@ func (g *grpcServer) processStream(stream grpc.ServerStream, service *service, m
 func (g *grpcServer) newGRPCCodec(contentType string) (encoding.Codec, error) {
 	codecs := make(map[string]encoding.Codec)
 	if g.opts.Context != nil {
-		if v := g.opts.Context.Value(codecsKey{}); v != nil {
-			codecs = v.(map[string]encoding.Codec)
+		if v, ok := g.opts.Context.Value(codecsKey{}).(map[string]encoding.Codec); ok && v != nil {
+			codecs = v
 		}
 	}
 	if c, ok := codecs[contentType]; ok {
@@ -503,16 +505,6 @@ func (g *grpcServer) newGRPCCodec(contentType string) (encoding.Codec, error) {
 	}
 	if c, ok := defaultGRPCCodecs[contentType]; ok {
 		return c, nil
-	}
-	return nil, fmt.Errorf("Unsupported Content-Type: %s", contentType)
-}
-
-func (g *grpcServer) newCodec(contentType string) (codec.NewCodec, error) {
-	if cf, ok := g.opts.Codecs[contentType]; ok {
-		return cf, nil
-	}
-	if cf, ok := defaultRPCCodecs[contentType]; ok {
-		return cf, nil
 	}
 	return nil, fmt.Errorf("Unsupported Content-Type: %s", contentType)
 }
@@ -562,10 +554,10 @@ func (g *grpcServer) Subscribe(sb server.Subscriber) error {
 
 	g.Lock()
 
-	_, ok = g.subscribers[sub]
-	if ok {
+	if _, ok = g.subscribers[sub]; ok {
 		return fmt.Errorf("subscriber %v already exists", sub)
 	}
+
 	g.subscribers[sub] = nil
 	g.Unlock()
 	return nil
@@ -788,9 +780,23 @@ func (g *grpcServer) Start() error {
 	config := g.Options()
 
 	// micro: config.Transport.Listen(config.Address)
-	ts, err := net.Listen("tcp", config.Address)
-	if err != nil {
-		return err
+	var ts net.Listener
+
+	if l := g.getListener(); l != nil {
+		ts = l
+	} else {
+		var err error
+
+		// check the tls config for secure connect
+		if tc := config.TLSConfig; tc != nil {
+			ts, err = tls.Listen("tcp", config.Address, tc)
+			// otherwise just plain tcp listener
+		} else {
+			ts, err = net.Listen("tcp", config.Address)
+		}
+		if err != nil {
+			return err
+		}
 	}
 
 	log.Logf("Server [grpc] Listening on %s", ts.Addr().String())
@@ -805,10 +811,7 @@ func (g *grpcServer) Start() error {
 			return err
 		}
 
-		baddr := config.Broker.Address()
-		bname := config.Broker.String()
-
-		log.Logf("Broker [%s] Connected to %s", bname, baddr)
+		log.Logf("Broker [%s] Connected to %s", config.Broker.String(), config.Broker.Address())
 	}
 
 	// announce self to the world
@@ -876,6 +879,7 @@ func (g *grpcServer) Start() error {
 		// close transport
 		ch <- nil
 
+		log.Logf("Broker [%s] Disconnected from %s", config.Broker.String(), config.Broker.Address())
 		// disconnect broker
 		config.Broker.Disconnect()
 	}()

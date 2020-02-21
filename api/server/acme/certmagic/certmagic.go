@@ -2,6 +2,7 @@
 package certmagic
 
 import (
+	"crypto/tls"
 	"log"
 	"math/rand"
 	"net"
@@ -16,7 +17,8 @@ type certmagicProvider struct {
 	opts acme.Options
 }
 
-func (c *certmagicProvider) NewListener(ACMEHosts ...string) (net.Listener, error) {
+// TODO: set self-contained options
+func (c *certmagicProvider) setup() {
 	certmagic.Default.CA = c.opts.CA
 	if c.opts.ChallengeProvider != nil {
 		// Enabling DNS Challenge disables the other challenges
@@ -34,12 +36,20 @@ func (c *certmagicProvider) NewListener(ACMEHosts ...string) (net.Listener, erro
 	rand.Seed(time.Now().UnixNano())
 	randomDuration := (7 * 24 * time.Hour) + (time.Duration(rand.Intn(504)) * time.Hour)
 	certmagic.Default.RenewDurationBefore = randomDuration
+}
 
-	return certmagic.Listen(ACMEHosts)
+func (c *certmagicProvider) Listen(hosts ...string) (net.Listener, error) {
+	c.setup()
+	return certmagic.Listen(hosts)
+}
+
+func (c *certmagicProvider) TLSConfig(hosts ...string) (*tls.Config, error) {
+	c.setup()
+	return certmagic.TLS(hosts)
 }
 
 // New returns a certmagic provider
-func New(options ...acme.Option) acme.Provider {
+func NewProvider(options ...acme.Option) acme.Provider {
 	opts := acme.DefaultOptions()
 
 	for _, o := range options {

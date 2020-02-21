@@ -2,7 +2,6 @@ package grpc
 
 import (
 	"encoding/json"
-	"fmt"
 	"strings"
 
 	b "bytes"
@@ -11,8 +10,6 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/micro/go-micro/v2/codec"
 	"github.com/micro/go-micro/v2/codec/bytes"
-	"github.com/micro/go-micro/v2/codec/jsonrpc"
-	"github.com/micro/go-micro/v2/codec/protorpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/encoding"
 	"google.golang.org/grpc/metadata"
@@ -35,14 +32,6 @@ var (
 		"application/grpc+json":    jsonCodec{},
 		"application/grpc+proto":   protoCodec{},
 		"application/grpc+bytes":   bytesCodec{},
-	}
-
-	defaultRPCCodecs = map[string]codec.NewCodec{
-		"application/json":         jsonrpc.NewCodec,
-		"application/json-rpc":     jsonrpc.NewCodec,
-		"application/protobuf":     protorpc.NewCodec,
-		"application/proto-rpc":    protorpc.NewCodec,
-		"application/octet-stream": protorpc.NewCodec,
 	}
 )
 
@@ -71,11 +60,19 @@ func (w wrapCodec) Unmarshal(data []byte, v interface{}) error {
 }
 
 func (protoCodec) Marshal(v interface{}) ([]byte, error) {
-	return proto.Marshal(v.(proto.Message))
+	m, ok := v.(proto.Message)
+	if !ok {
+		return nil, codec.ErrInvalidMessage
+	}
+	return proto.Marshal(m)
 }
 
 func (protoCodec) Unmarshal(data []byte, v interface{}) error {
-	return proto.Unmarshal(data, v.(proto.Message))
+	m, ok := v.(proto.Message)
+	if !ok {
+		return codec.ErrInvalidMessage
+	}
+	return proto.Unmarshal(data, m)
 }
 
 func (protoCodec) Name() string {
@@ -85,7 +82,6 @@ func (protoCodec) Name() string {
 func (jsonCodec) Marshal(v interface{}) ([]byte, error) {
 	if pb, ok := v.(proto.Message); ok {
 		s, err := jsonpbMarshaler.MarshalToString(pb)
-
 		return []byte(s), err
 	}
 
@@ -109,7 +105,7 @@ func (jsonCodec) Name() string {
 func (bytesCodec) Marshal(v interface{}) ([]byte, error) {
 	b, ok := v.(*[]byte)
 	if !ok {
-		return nil, fmt.Errorf("failed to marshal: %v is not type of *[]byte", v)
+		return nil, codec.ErrInvalidMessage
 	}
 	return *b, nil
 }
@@ -117,7 +113,7 @@ func (bytesCodec) Marshal(v interface{}) ([]byte, error) {
 func (bytesCodec) Unmarshal(data []byte, v interface{}) error {
 	b, ok := v.(*[]byte)
 	if !ok {
-		return fmt.Errorf("failed to unmarshal: %v is not type of *[]byte", v)
+		return codec.ErrInvalidMessage
 	}
 	*b = data
 	return nil

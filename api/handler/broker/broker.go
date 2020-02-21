@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -26,6 +27,7 @@ const (
 )
 
 type brokerHandler struct {
+	once atomic.Value
 	opts handler.Options
 	u    websocket.Upgrader
 }
@@ -42,7 +44,6 @@ type conn struct {
 }
 
 var (
-	once        sync.Once
 	contentType = "text/plain"
 )
 
@@ -155,10 +156,15 @@ func (b *brokerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	br := b.opts.Service.Client().Options().Broker
 
 	// Setup the broker
-	once.Do(func() {
-		br.Init()
-		br.Connect()
-	})
+	if !b.once.Load().(bool) {
+		if err := br.Init(); err != nil {
+			http.Error(w, err.Error(), 500)
+		}
+		if err := br.Connect(); err != nil {
+			http.Error(w, err.Error(), 500)
+		}
+		b.once.Store(true)
+	}
 
 	// Parse
 	r.ParseForm()
@@ -235,7 +241,7 @@ func (b *brokerHandler) String() string {
 }
 
 func NewHandler(opts ...handler.Option) handler.Handler {
-	return &brokerHandler{
+	h := &brokerHandler{
 		u: websocket.Upgrader{
 			CheckOrigin: func(r *http.Request) bool {
 				return true
@@ -245,6 +251,8 @@ func NewHandler(opts ...handler.Option) handler.Handler {
 		},
 		opts: handler.NewOptions(opts...),
 	}
+	h.once.Store(true)
+	return h
 }
 
 func WithCors(cors map[string]bool, opts ...handler.Option) handler.Handler {

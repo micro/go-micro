@@ -5,8 +5,10 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"net"
 	"os"
-	"sync"
+	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/micro/go-micro/v2/broker"
@@ -24,9 +26,9 @@ import (
 )
 
 type grpcClient struct {
-	once sync.Once
 	opts client.Options
 	pool *pool
+	once atomic.Value
 }
 
 func init() {
@@ -36,14 +38,36 @@ func init() {
 }
 
 // secure returns the dial option for whether its a secure or insecure connection
-func (g *grpcClient) secure() grpc.DialOption {
+func (g *grpcClient) secure(addr string) grpc.DialOption {
+	// first we check if theres'a  tls config
 	if g.opts.Context != nil {
 		if v := g.opts.Context.Value(tlsAuth{}); v != nil {
 			tls := v.(*tls.Config)
 			creds := credentials.NewTLS(tls)
+			// return tls config if it exists
 			return grpc.WithTransportCredentials(creds)
 		}
 	}
+
+	// default config
+	tlsConfig := &tls.Config{}
+	defaultCreds := grpc.WithTransportCredentials(credentials.NewTLS(tlsConfig))
+
+	// check if the address is prepended with https
+	if strings.HasPrefix(addr, "https://") {
+		return defaultCreds
+	}
+
+	// if no port is specified or port is 443 default to tls
+	_, port, err := net.SplitHostPort(addr)
+	// assuming with no port its going to be secured
+	if port == "443" {
+		return defaultCreds
+	} else if err != nil && strings.Contains(err.Error(), "missing port in address") {
+		return defaultCreds
+	}
+
+	// other fallback to insecure
 	return grpc.WithInsecure()
 }
 
@@ -52,6 +76,10 @@ func (g *grpcClient) next(request client.Request, opts client.CallOptions) (sele
 
 	// get proxy
 	if prx := os.Getenv("MICRO_PROXY"); len(prx) > 0 {
+		// default name
+		if prx == "service" {
+			prx = "go.micro.proxy"
+		}
 		service = prx
 	}
 
@@ -112,7 +140,7 @@ func (g *grpcClient) call(ctx context.Context, node *registry.Node, req client.R
 	grpcDialOptions := []grpc.DialOption{
 		grpc.WithDefaultCallOptions(grpc.ForceCodec(cf)),
 		grpc.WithTimeout(opts.DialTimeout),
-		g.secure(),
+		g.secure(address),
 		grpc.WithDefaultCallOptions(
 			grpc.MaxCallRecvMsgSize(maxRecvMsgSize),
 			grpc.MaxCallSendMsgSize(maxSendMsgSize),
@@ -189,7 +217,8 @@ func (g *grpcClient) stream(ctx context.Context, node *registry.Node, req client
 
 	grpcDialOptions := []grpc.DialOption{
 		grpc.WithDefaultCallOptions(grpc.ForceCodec(wc)),
-		g.secure(),
+		grpc.WithTimeout(opts.DialTimeout),
+		g.secure(address),
 	}
 
 	if opts := g.getGrpcDialOptions(); opts != nil {
@@ -217,6 +246,12 @@ func (g *grpcClient) stream(ctx context.Context, node *registry.Node, req client
 
 	st, err := cc.NewStream(newCtx, desc, methodToGRPC(req.Service(), req.Endpoint()), grpcCallOptions...)
 	if err != nil {
+		// we need to cleanup as we dialled and created a context
+		// cancel the context
+		cancel()
+		// close the connection
+		cc.Close()
+		// now return the error
 		return nil, errors.InternalServerError("go.micro.client", fmt.Sprintf("Error creating stream: %v", err))
 	}
 
@@ -560,16 +595,14 @@ func (g *grpcClient) Publish(ctx context.Context, p client.Message, opts ...clie
 		body = b
 	}
 
-	g.once.Do(func() {
-		g.opts.Broker.Connect()
-	})
+	if !g.once.Load().(bool) {
+		if err = g.opts.Broker.Connect(); err != nil {
+			return errors.InternalServerError("go.micro.client", err.Error())
+		}
+		g.once.Store(true)
+	}
 
 	topic := p.Topic()
-
-	// get proxy topic
-	if prx := os.Getenv("MICRO_PROXY"); len(prx) > 0 {
-		options.Exchange = prx
-	}
 
 	// get the exchange
 	if len(options.Exchange) > 0 {
@@ -636,9 +669,9 @@ func newClient(opts ...client.Option) client.Client {
 	}
 
 	rc := &grpcClient{
-		once: sync.Once{},
 		opts: options,
 	}
+	rc.once.Store(false)
 
 	rc.pool = newPool(options.PoolSize, options.PoolTTL, rc.poolMaxIdle(), rc.poolMaxStreams())
 
