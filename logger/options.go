@@ -8,31 +8,38 @@ import (
 type Option func(*Options)
 
 type Options struct {
-	// The Log Level
+	// The logging level the logger should log at. default is `InfoLevel`
 	Level Level
-	// Other opts
+	// fields to always be logged
+	Fields map[string]interface{}
+	// It's common to set this to a file, or leave it default which is `os.Stderr`
+	Out io.Writer
+	// Alternative options
 	Context context.Context
 }
 
-type fieldsKey struct{}
-
-func WithFields(fields Fields) Option {
-	return setOption(fieldsKey{}, fields)
+// WithFields set default fields for the logger
+func WithFields(fields map[string]interface{}) Option {
+	return func(args *Options) {
+		args.Fields = fields
+	}
 }
 
-type levelKey struct{}
-
-func WithLevel(lvl Level) Option {
-	return setOption(levelKey{}, lvl)
+// WithLevel set default level for the logger
+func WithLevel(level Level) Option {
+	return func(args *Options) {
+		args.Level = level
+	}
 }
 
-type outputKey struct{}
-
+// WithOutput set default output writer for the logger
 func WithOutput(out io.Writer) Option {
-	return setOption(outputKey{}, out)
+	return func(args *Options) {
+		args.Out = out
+	}
 }
 
-func setOption(k, v interface{}) Option {
+func SetOption(k, v interface{}) Option {
 	return func(o *Options) {
 		if o.Context == nil {
 			o.Context = context.Background()
