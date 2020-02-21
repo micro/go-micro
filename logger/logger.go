@@ -44,12 +44,6 @@ func Logf(level Level, format string, v ...interface{}) {
 	DefaultLogger.Logf(level, format, v...)
 }
 
-func SetGlobalLevel(lvl Level) {
-	if err := Init(WithLevel(lvl)); err != nil {
-		print(err)
-	}
-}
-
 func String() string {
 	return DefaultLogger.String()
 }
