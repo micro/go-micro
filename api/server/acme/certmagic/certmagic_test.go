@@ -1,6 +1,7 @@
 package certmagic
 
 import (
+	"net"
 	"net/http"
 	"os"
 	"reflect"
@@ -21,6 +22,9 @@ func TestCertMagic(t *testing.T) {
 	}
 	l, err := NewProvider().Listen()
 	if err != nil {
+		if _, ok := err.(*net.OpError); ok {
+			t.Skip("not able to bind :443")
+		}
 		t.Fatal(err.Error())
 	}
 	l.Close()
