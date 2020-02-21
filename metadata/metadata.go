@@ -59,6 +59,7 @@ func FromContext(ctx context.Context) (Metadata, bool) {
 		if err != nil {
 			// try to be compatible with older micro versions
 			newMD[strings.Title(k)] = v
+			continue
 		}
 		newMD[string(key)] = v
 	}
