@@ -1,9 +1,9 @@
 // Package log provides a log interface
 package logger
 
-import (
-	"fmt"
-	"sync"
+var (
+	// Default logger
+	DefaultLogger Logger = NewLogger()
 )
 
 // Logger is a generic logging interface
@@ -24,45 +24,32 @@ type Logger interface {
 	String() string
 }
 
-var (
-	mtx       sync.Mutex
-	loggerMap = map[string]Logger{}
-)
-
-func Register(logger Logger) {
-	mtx.Lock()
-	defer mtx.Unlock()
-
-	loggerMap[logger.String()] = logger
+func Init(opts ...Option) error {
+	return DefaultLogger.Init(opts...)
 }
 
-func GetLogger(name string) (Logger, error) {
-	l := loggerMap[name]
-	if l == nil {
-		return nil, fmt.Errorf("no such name logger found %s", name)
-	}
-
-	return l, nil
+func Error(err error) Logger {
+	return DefaultLogger.Error(err)
 }
 
-// GetLevel converts a level string into a logger Level value.
-// returns an error if the input string does not match known values.
-func GetLevel(levelStr string) (Level, error) {
-	switch levelStr {
-	case TraceLevel.String():
-		return TraceLevel, nil
-	case DebugLevel.String():
-		return DebugLevel, nil
-	case InfoLevel.String():
-		return InfoLevel, nil
-	case WarnLevel.String():
-		return WarnLevel, nil
-	case ErrorLevel.String():
-		return ErrorLevel, nil
-	case FatalLevel.String():
-		return FatalLevel, nil
-	case PanicLevel.String():
-		return PanicLevel, nil
+func Fields(fields map[string]interface{}) Logger {
+	return DefaultLogger.Fields(fields)
+}
+
+func Log(level Level, v ...interface{}) {
+	DefaultLogger.Log(level, v...)
+}
+
+func Logf(level Level, format string, v ...interface{}) {
+	DefaultLogger.Logf(level, format, v...)
+}
+
+func SetGlobalLevel(lvl Level) {
+	if err := Init(WithLevel(lvl)); err != nil {
+		print(err)
 	}
-	return InfoLevel, fmt.Errorf("Unknown Level String: '%s', defaulting to NoLevel", levelStr)
+}
+
+func String() string {
+	return DefaultLogger.String()
 }
