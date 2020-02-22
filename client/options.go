@@ -152,6 +152,9 @@ func Registry(r registry.Registry) Option {
 	return func(o *Options) {
 		o.Registry = r
 		// set in the selector
+		if o.Selector == nil {
+			o.Selector = selector.DefaultSelector
+		}
 		o.Selector.Init(selector.Registry(r))
 	}
 }
