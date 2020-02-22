@@ -7,6 +7,7 @@ import (
 
 	"github.com/micro/go-micro/v2/broker"
 	"github.com/micro/go-micro/v2/client"
+	"github.com/micro/go-micro/v2/logger"
 )
 
 type Flow interface {
@@ -94,7 +95,7 @@ type Options struct {
 	// PanicHandler is used for recovery panics
 	PanicHandler func(interface{})
 	// Logger is used internally to provide messages
-	Logger Logger
+	Logger logger.Logger
 	// Context is used for storing non default options
 	Context context.Context
 }
@@ -208,7 +209,7 @@ func WithEventHandler(h EventHandler) Option {
 }
 
 // Logger
-func WithLogger(l Logger) Option {
+func WithLogger(l logger.Logger) Option {
 	return func(o *Options) {
 		o.Logger = l
 	}
