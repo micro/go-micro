@@ -20,7 +20,7 @@ import (
 
 	"github.com/micro/go-micro/v2/codec"
 	merrors "github.com/micro/go-micro/v2/errors"
-	"github.com/micro/go-micro/v2/util/log"
+	log "github.com/micro/go-micro/v2/logger"
 )
 
 var (
@@ -141,7 +141,7 @@ func prepareMethod(method reflect.Method) *methodType {
 		replyType = mtype.In(3)
 		contextType = mtype.In(1)
 	default:
-		log.Log("method", mname, "of", mtype, "has wrong number of ins:", mtype.NumIn())
+		log.Error("method", mname, "of", mtype, "has wrong number of ins:", mtype.NumIn())
 		return nil
 	}
 
@@ -149,7 +149,7 @@ func prepareMethod(method reflect.Method) *methodType {
 		// check stream type
 		streamType := reflect.TypeOf((*Stream)(nil)).Elem()
 		if !argType.Implements(streamType) {
-			log.Log(mname, "argument does not implement Stream interface:", argType)
+			log.Error(mname, "argument does not implement Stream interface:", argType)
 			return nil
 		}
 	} else {
@@ -157,30 +157,30 @@ func prepareMethod(method reflect.Method) *methodType {
 
 		// First arg need not be a pointer.
 		if !isExportedOrBuiltinType(argType) {
-			log.Log(mname, "argument type not exported:", argType)
+			log.Error(mname, "argument type not exported:", argType)
 			return nil
 		}
 
 		if replyType.Kind() != reflect.Ptr {
-			log.Log("method", mname, "reply type not a pointer:", replyType)
+			log.Error("method", mname, "reply type not a pointer:", replyType)
 			return nil
 		}
 
 		// Reply type must be exported.
 		if !isExportedOrBuiltinType(replyType) {
-			log.Log("method", mname, "reply type not exported:", replyType)
+			log.Error("method", mname, "reply type not exported:", replyType)
 			return nil
 		}
 	}
 
 	// Method needs one out.
 	if mtype.NumOut() != 1 {
-		log.Log("method", mname, "has wrong number of outs:", mtype.NumOut())
+		log.Error("method", mname, "has wrong number of outs:", mtype.NumOut())
 		return nil
 	}
 	// The return type of the method must be error.
 	if returnType := mtype.Out(0); returnType != typeOfError {
-		log.Log("method", mname, "returns", returnType.String(), "not error")
+		log.Error("method", mname, "returns", returnType.String(), "not error")
 		return nil
 	}
 	return &methodType{method: method, ArgType: argType, ReplyType: replyType, ContextType: contextType, stream: stream}
@@ -509,8 +509,8 @@ func (router *router) ProcessMessage(ctx context.Context, msg Message) (err erro
 	defer func() {
 		// recover any panics
 		if r := recover(); r != nil {
-			log.Log("panic recovered: ", r)
-			log.Log(string(debug.Stack()))
+			log.Error("panic recovered: ", r)
+			log.Error(string(debug.Stack()))
 			err = merrors.InternalServerError("go.micro.server", "panic recovered: %v", r)
 		}
 	}()

@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
+	log "github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/registry"
-	log "github.com/micro/go-micro/v2/util/log"
 )
 
 // Cache is the registry cache interface
@@ -339,7 +339,7 @@ func (c *cache) run() {
 			c.setStatus(err)
 
 			if a > 3 {
-				log.Log("rcache: ", err, " backing off ", d)
+				log.Info("rcache: ", err, " backing off ", d)
 				a = 0
 			}
 
@@ -362,7 +362,7 @@ func (c *cache) run() {
 			c.setStatus(err)
 
 			if b > 3 {
-				log.Log("rcache: ", err, " backing off ", d)
+				log.Info("rcache: ", err, " backing off ", d)
 				b = 0
 			}
 

@@ -15,6 +15,7 @@ import (
 	"github.com/micro/go-micro/v2/client"
 	cmucp "github.com/micro/go-micro/v2/client/mucp"
 	rtr "github.com/micro/go-micro/v2/client/selector/router"
+	log "github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/network/resolver/dns"
 	pbNet "github.com/micro/go-micro/v2/network/service/proto"
 	"github.com/micro/go-micro/v2/proxy"
@@ -27,7 +28,6 @@ import (
 	bun "github.com/micro/go-micro/v2/tunnel/broker"
 	tun "github.com/micro/go-micro/v2/tunnel/transport"
 	"github.com/micro/go-micro/v2/util/backoff"
-	"github.com/micro/go-micro/v2/util/log"
 	pbUtil "github.com/micro/go-micro/v2/util/proto"
 )
 

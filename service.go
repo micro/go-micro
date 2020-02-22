@@ -17,9 +17,9 @@ import (
 	"github.com/micro/go-micro/v2/debug/service/handler"
 	"github.com/micro/go-micro/v2/debug/stats"
 	"github.com/micro/go-micro/v2/debug/trace"
+	log "github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/plugin"
 	"github.com/micro/go-micro/v2/server"
-	"github.com/micro/go-micro/v2/util/log"
 	"github.com/micro/go-micro/v2/util/wrapper"
 )
 
@@ -202,7 +202,7 @@ func (s *service) Run() error {
 		defer profiler.Stop()
 	}
 
-	log.Logf("Starting [service] %s", s.Name())
+	log.Infof("Starting [service] %s", s.Name())
 
 	if err := s.Start(); err != nil {
 		return err

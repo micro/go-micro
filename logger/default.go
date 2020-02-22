@@ -6,6 +6,9 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
+
+	dlog "github.com/micro/go-micro/v2/debug/log"
 )
 
 type defaultLogger struct {
@@ -36,44 +39,65 @@ func (l *defaultLogger) Error(err error) Logger {
 }
 
 func (l *defaultLogger) Log(level Level, v ...interface{}) {
+	// TODO decide does we need to write message if log level not used?
 	if !l.opts.Level.Enabled(level) {
 		return
 	}
+
 	msg := fmt.Sprint(v...)
 
 	fields := l.opts.Fields
 	fields["level"] = level.String()
-	fields["message"] = msg
 	if l.err != nil {
 		fields["error"] = l.err.Error()
 	}
 
-	enc := json.NewEncoder(l.opts.Out)
+	rec := dlog.Record{
+		Timestamp: time.Now(),
+		Message:   msg,
+	}
+	rec.Metadata = make(map[string]string)
+	for k, v := range fields {
+		rec.Metadata[k] = fmt.Sprintf("%v", v)
+	}
 
-	if err := enc.Encode(fields); err != nil {
+	dlog.DefaultLog.Write(rec)
+
+	fields["message"] = msg
+	if err := json.NewEncoder(l.opts.Out).Encode(fields); err != nil {
 		log.Fatal(err)
 	}
 }
 
 func (l *defaultLogger) Logf(level Level, format string, v ...interface{}) {
+	//	 TODO decide does we need to write message if log level not used?
 	if level < l.opts.Level {
 		return
 	}
+
 	msg := fmt.Sprintf(format, v...)
 
 	fields := l.opts.Fields
 	fields["level"] = level.String()
-	fields["message"] = msg
 	if l.err != nil {
 		fields["error"] = l.err.Error()
 	}
 
-	enc := json.NewEncoder(l.opts.Out)
-
-	if err := enc.Encode(fields); err != nil {
-		log.Fatal(err)
+	rec := dlog.Record{
+		Timestamp: time.Now(),
+		Message:   msg,
+	}
+	rec.Metadata = make(map[string]string)
+	for k, v := range fields {
+		rec.Metadata[k] = fmt.Sprintf("%v", v)
 	}
 
+	dlog.DefaultLog.Write(rec)
+
+	fields["message"] = msg
+	if err := json.NewEncoder(l.opts.Out).Encode(fields); err != nil {
+		log.Fatal(err)
+	}
 }
 
 func (n *defaultLogger) Options() Options {
