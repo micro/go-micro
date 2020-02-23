@@ -47,6 +47,8 @@ type session struct {
 	link string
 	// the error response
 	errChan chan error
+	// key for session encryption
+	key string
 }
 
 // message is sent over the send channel
@@ -325,11 +327,8 @@ func (s *session) Announce() error {
 
 // Send is used to send a message
 func (s *session) Send(m *transport.Message) error {
-	// allocate string once and reuse it
-	key := s.token + s.channel + s.session
-
 	// encrypt the transport message payload
-	body, err := Encrypt(m.Body, key)
+	body, err := Encrypt(m.Body, s.key)
 	if err != nil {
 		log.Debugf("failed to encrypt message body: %v", err)
 		return err
@@ -344,7 +343,7 @@ func (s *session) Send(m *transport.Message) error {
 	// encrypt all the headers
 	for k, v := range m.Header {
 		// encrypt the transport message payload
-		val, err := Encrypt([]byte(v), key)
+		val, err := Encrypt([]byte(v), s.key)
 		if err != nil {
 			log.Debugf("failed to encrypt message header %s: %v", k, err)
 			return err
@@ -392,9 +391,7 @@ func (s *session) Recv(m *transport.Message) error {
 
 	log.Tracef("Received %+v from recv backlog", msg)
 
-	// allocate string once and reuse it
 	key := s.token + s.channel + msg.session
-
 	// decrypt the received payload using the token
 	// we have to used msg.session because multicast has a shared
 	// session id of "multicast" in this session struct on
