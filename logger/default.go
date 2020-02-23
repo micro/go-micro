@@ -2,9 +2,7 @@ package logger
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"log"
 	"os"
 	"time"
 
@@ -44,8 +42,6 @@ func (l *defaultLogger) Log(level Level, v ...interface{}) {
 		return
 	}
 
-	msg := fmt.Sprint(v...)
-
 	fields := l.opts.Fields
 	fields["level"] = level.String()
 	if l.err != nil {
@@ -54,19 +50,17 @@ func (l *defaultLogger) Log(level Level, v ...interface{}) {
 
 	rec := dlog.Record{
 		Timestamp: time.Now(),
-		Message:   msg,
+		Message:   fmt.Sprint(v...),
+		Metadata:  make(map[string]string),
 	}
-	rec.Metadata = make(map[string]string)
 	for k, v := range fields {
 		rec.Metadata[k] = fmt.Sprintf("%v", v)
 	}
 
 	dlog.DefaultLog.Write(rec)
 
-	fields["message"] = msg
-	if err := json.NewEncoder(l.opts.Out).Encode(fields); err != nil {
-		log.Fatal(err)
-	}
+	t := rec.Timestamp.Format("2006-01-02 15:04:05")
+	fmt.Printf("%s %v", t, rec.Message)
 }
 
 func (l *defaultLogger) Logf(level Level, format string, v ...interface{}) {
@@ -75,8 +69,6 @@ func (l *defaultLogger) Logf(level Level, format string, v ...interface{}) {
 		return
 	}
 
-	msg := fmt.Sprintf(format, v...)
-
 	fields := l.opts.Fields
 	fields["level"] = level.String()
 	if l.err != nil {
@@ -85,19 +77,17 @@ func (l *defaultLogger) Logf(level Level, format string, v ...interface{}) {
 
 	rec := dlog.Record{
 		Timestamp: time.Now(),
-		Message:   msg,
+		Message:   fmt.Sprintf(format, v...),
+		Metadata:  make(map[string]string),
 	}
-	rec.Metadata = make(map[string]string)
 	for k, v := range fields {
 		rec.Metadata[k] = fmt.Sprintf("%v", v)
 	}
 
 	dlog.DefaultLog.Write(rec)
 
-	fields["message"] = msg
-	if err := json.NewEncoder(l.opts.Out).Encode(fields); err != nil {
-		log.Fatal(err)
-	}
+	t := rec.Timestamp.Format("2006-01-02 15:04:05")
+	fmt.Printf("%s %v", t, rec.Message)
 }
 
 func (n *defaultLogger) Options() Options {
