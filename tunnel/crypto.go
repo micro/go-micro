@@ -6,6 +6,15 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"io"
+
+	"github.com/oxtoacart/bpool"
+)
+
+var (
+	// the local buffer pool
+	// gcmStandardNonceSize from crypto/cipher/gcm.go is 12 bytes
+	// 100 - is max size of pool
+	bytePool = bpool.NewBytePool(100, 12)
 )
 
 // hash hahes the data into 32 bytes key and returns it
@@ -32,12 +41,13 @@ func Encrypt(data []byte, key string) ([]byte, error) {
 		return nil, err
 	}
 
-	// create a new byte array the size of the nonce
+	// get new byte array the size of the nonce from pool
 	// NOTE: we might use smaller nonce size in the future
-	nonce := make([]byte, gcm.NonceSize())
+	nonce := bytePool.Get()
 	if _, err = io.ReadFull(rand.Reader, nonce); err != nil {
 		return nil, err
 	}
+	defer bytePool.Put(nonce)
 
 	// NOTE: we prepend the nonce to the payload
 	// we need to do this as we need the same nonce
