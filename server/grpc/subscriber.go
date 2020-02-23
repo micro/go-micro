@@ -9,10 +9,10 @@ import (
 
 	"github.com/micro/go-micro/v2/broker"
 	"github.com/micro/go-micro/v2/errors"
+	log "github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/metadata"
 	"github.com/micro/go-micro/v2/registry"
 	"github.com/micro/go-micro/v2/server"
-	"github.com/micro/go-micro/v2/util/log"
 )
 
 const (
@@ -171,8 +171,8 @@ func (g *grpcServer) createSubHandler(sb *subscriber, opts server.Options) broke
 
 		defer func() {
 			if r := recover(); r != nil {
-				log.Log("panic recovered: ", r)
-				log.Logf(string(debug.Stack()))
+				log.Error("panic recovered: ", r)
+				log.Error(string(debug.Stack()))
 				err = errors.InternalServerError("go.micro.server", "panic recovered: %v", r)
 			}
 		}()

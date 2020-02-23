@@ -17,12 +17,12 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/micro/go-micro/v2/broker"
 	"github.com/micro/go-micro/v2/errors"
+	log "github.com/micro/go-micro/v2/logger"
 	meta "github.com/micro/go-micro/v2/metadata"
 	"github.com/micro/go-micro/v2/registry"
 	"github.com/micro/go-micro/v2/server"
 	"github.com/micro/go-micro/v2/util/addr"
 	mgrpc "github.com/micro/go-micro/v2/util/grpc"
-	"github.com/micro/go-micro/v2/util/log"
 	mnet "github.com/micro/go-micro/v2/util/net"
 
 	"google.golang.org/grpc"
@@ -356,8 +356,8 @@ func (g *grpcServer) processRequest(stream grpc.ServerStream, service *service, 
 		fn := func(ctx context.Context, req server.Request, rsp interface{}) (err error) {
 			defer func() {
 				if r := recover(); r != nil {
-					log.Log("panic recovered: ", r)
-					log.Logf(string(debug.Stack()))
+					log.Error("panic recovered: ", r)
+					log.Error(string(debug.Stack()))
 					err = errors.InternalServerError("go.micro.server", "panic recovered: %v", r)
 				}
 			}()
@@ -656,7 +656,7 @@ func (g *grpcServer) Register() error {
 	g.Unlock()
 
 	if !registered {
-		log.Logf("Registry [%s] Registering node: %s", config.Registry.String(), node.Id)
+		log.Infof("Registry [%s] Registering node: %s", config.Registry.String(), node.Id)
 	}
 
 	// create registry options
@@ -691,7 +691,7 @@ func (g *grpcServer) Register() error {
 			opts = append(opts, broker.DisableAutoAck())
 		}
 
-		log.Logf("Subscribing to topic: %s", sb.Topic())
+		log.Infof("Subscribing to topic: %s", sb.Topic())
 		sub, err := config.Broker.Subscribe(sb.Topic(), handler, opts...)
 		if err != nil {
 			return err
@@ -743,7 +743,7 @@ func (g *grpcServer) Deregister() error {
 		Nodes:   []*registry.Node{node},
 	}
 
-	log.Logf("Deregistering node: %s", node.Id)
+	log.Infof("Deregistering node: %s", node.Id)
 	if err := config.Registry.Deregister(service); err != nil {
 		return err
 	}
@@ -759,7 +759,7 @@ func (g *grpcServer) Deregister() error {
 
 	for sb, subs := range g.subscribers {
 		for _, sub := range subs {
-			log.Logf("Unsubscribing from topic: %s", sub.Topic())
+			log.Infof("Unsubscribing from topic: %s", sub.Topic())
 			sub.Unsubscribe()
 		}
 		g.subscribers[sb] = nil
@@ -799,7 +799,7 @@ func (g *grpcServer) Start() error {
 		}
 	}
 
-	log.Logf("Server [grpc] Listening on %s", ts.Addr().String())
+	log.Infof("Server [grpc] Listening on %s", ts.Addr().String())
 	g.Lock()
 	g.opts.Address = ts.Addr().String()
 	g.Unlock()
@@ -811,18 +811,18 @@ func (g *grpcServer) Start() error {
 			return err
 		}
 
-		log.Logf("Broker [%s] Connected to %s", config.Broker.String(), config.Broker.Address())
+		log.Infof("Broker [%s] Connected to %s", config.Broker.String(), config.Broker.Address())
 	}
 
 	// announce self to the world
 	if err := g.Register(); err != nil {
-		log.Log("Server register error: ", err)
+		log.Errorf("Server register error: ", err)
 	}
 
 	// micro: go ts.Accept(s.accept)
 	go func() {
 		if err := g.srv.Serve(ts); err != nil {
-			log.Log("gRPC Server start error: ", err)
+			log.Errorf("gRPC Server start error: ", err)
 		}
 	}()
 
@@ -844,7 +844,7 @@ func (g *grpcServer) Start() error {
 			// register self on interval
 			case <-t.C:
 				if err := g.Register(); err != nil {
-					log.Log("Server register error: ", err)
+					log.Error("Server register error: ", err)
 				}
 			// wait for exit
 			case ch = <-g.exit:
@@ -854,7 +854,7 @@ func (g *grpcServer) Start() error {
 
 		// deregister self
 		if err := g.Deregister(); err != nil {
-			log.Log("Server deregister error: ", err)
+			log.Error("Server deregister error: ", err)
 		}
 
 		// wait for waitgroup
@@ -879,7 +879,7 @@ func (g *grpcServer) Start() error {
 		// close transport
 		ch <- nil
 
-		log.Logf("Broker [%s] Disconnected from %s", config.Broker.String(), config.Broker.Address())
+		log.Infof("Broker [%s] Disconnected from %s", config.Broker.String(), config.Broker.Address())
 		// disconnect broker
 		config.Broker.Disconnect()
 	}()

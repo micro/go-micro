@@ -15,11 +15,11 @@ import (
 	"github.com/micro/go-micro/v2/broker"
 	"github.com/micro/go-micro/v2/codec"
 	raw "github.com/micro/go-micro/v2/codec/bytes"
+	log "github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/metadata"
 	"github.com/micro/go-micro/v2/registry"
 	"github.com/micro/go-micro/v2/transport"
 	"github.com/micro/go-micro/v2/util/addr"
-	log "github.com/micro/go-micro/v2/util/log"
 	mnet "github.com/micro/go-micro/v2/util/net"
 	"github.com/micro/go-micro/v2/util/socket"
 )
@@ -158,8 +158,8 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 
 		// recover any panics
 		if r := recover(); r != nil {
-			log.Log("panic recovered: ", r)
-			log.Log(string(debug.Stack()))
+			log.Error("panic recovered: ", r)
+			log.Error(string(debug.Stack()))
 		}
 	}()
 
@@ -377,8 +377,8 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 
 				// recover any panics for outbound process
 				if r := recover(); r != nil {
-					log.Log("panic recovered: ", r)
-					log.Log(string(debug.Stack()))
+					log.Error("panic recovered: ", r)
+					log.Error(string(debug.Stack()))
 				}
 			}()
 
@@ -409,8 +409,8 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 
 				// recover any panics for call handler
 				if r := recover(); r != nil {
-					log.Log("panic recovered: ", r)
-					log.Log(string(debug.Stack()))
+					log.Error("panic recovered: ", r)
+					log.Error(string(debug.Stack()))
 				}
 			}()
 
@@ -608,7 +608,7 @@ func (s *rpcServer) Register() error {
 	s.RUnlock()
 
 	if !registered {
-		log.Logf("Registry [%s] Registering node: %s", config.Registry.String(), node.Id)
+		log.Infof("Registry [%s] Registering node: %s", config.Registry.String(), node.Id)
 	}
 
 	// create registry options
@@ -654,7 +654,7 @@ func (s *rpcServer) Register() error {
 			opts = append(opts, broker.DisableAutoAck())
 		}
 
-		log.Logf("Subscribing to topic: %s", sub.Topic())
+		log.Infof("Subscribing to topic: %s", sub.Topic())
 		sub, err := config.Broker.Subscribe(sb.Topic(), s.HandleEvent, opts...)
 		if err != nil {
 			return err
@@ -712,7 +712,7 @@ func (s *rpcServer) Deregister() error {
 		Nodes:   []*registry.Node{node},
 	}
 
-	log.Logf("Registry [%s] Deregistering node: %s", config.Registry.String(), node.Id)
+	log.Infof("Registry [%s] Deregistering node: %s", config.Registry.String(), node.Id)
 	if err := config.Registry.Deregister(service); err != nil {
 		return err
 	}
@@ -734,7 +734,7 @@ func (s *rpcServer) Deregister() error {
 
 	for sb, subs := range s.subscribers {
 		for _, sub := range subs {
-			log.Logf("Unsubscribing %s from topic: %s", node.Id, sub.Topic())
+			log.Infof("Unsubscribing %s from topic: %s", node.Id, sub.Topic())
 			sub.Unsubscribe()
 		}
 		s.subscribers[sb] = nil
@@ -760,7 +760,7 @@ func (s *rpcServer) Start() error {
 		return err
 	}
 
-	log.Logf("Transport [%s] Listening on %s", config.Transport.String(), ts.Addr())
+	log.Infof("Transport [%s] Listening on %s", config.Transport.String(), ts.Addr())
 
 	// swap address
 	s.Lock()
@@ -775,15 +775,15 @@ func (s *rpcServer) Start() error {
 
 	bname := config.Broker.String()
 
-	log.Logf("Broker [%s] Connected to %s", bname, config.Broker.Address())
+	log.Infof("Broker [%s] Connected to %s", bname, config.Broker.Address())
 
 	// use RegisterCheck func before register
 	if err = s.opts.RegisterCheck(s.opts.Context); err != nil {
-		log.Logf("Server %s-%s register check error: %s", config.Name, config.Id, err)
+		log.Errorf("Server %s-%s register check error: %s", config.Name, config.Id, err)
 	} else {
 		// announce self to the world
 		if err = s.Register(); err != nil {
-			log.Logf("Server %s-%s register error: %s", config.Name, config.Id, err)
+			log.Errorf("Server %s-%s register error: %s", config.Name, config.Id, err)
 		}
 	}
 
@@ -804,7 +804,7 @@ func (s *rpcServer) Start() error {
 			// check the error and backoff
 			default:
 				if err != nil {
-					log.Logf("Accept error: %v", err)
+					log.Errorf("Accept error: %v", err)
 					time.Sleep(time.Second)
 					continue
 				}
@@ -837,17 +837,17 @@ func (s *rpcServer) Start() error {
 				s.RUnlock()
 				rerr := s.opts.RegisterCheck(s.opts.Context)
 				if rerr != nil && registered {
-					log.Logf("Server %s-%s register check error: %s, deregister it", config.Name, config.Id, err)
+					log.Errorf("Server %s-%s register check error: %s, deregister it", config.Name, config.Id, err)
 					// deregister self in case of error
 					if err := s.Deregister(); err != nil {
-						log.Logf("Server %s-%s deregister error: %s", config.Name, config.Id, err)
+						log.Errorf("Server %s-%s deregister error: %s", config.Name, config.Id, err)
 					}
 				} else if rerr != nil && !registered {
-					log.Logf("Server %s-%s register check error: %s", config.Name, config.Id, err)
+					log.Errorf("Server %s-%s register check error: %s", config.Name, config.Id, err)
 					continue
 				}
 				if err := s.Register(); err != nil {
-					log.Logf("Server %s-%s register error: %s", config.Name, config.Id, err)
+					log.Errorf("Server %s-%s register error: %s", config.Name, config.Id, err)
 				}
 			// wait for exit
 			case ch = <-s.exit:
@@ -863,7 +863,7 @@ func (s *rpcServer) Start() error {
 		if registered {
 			// deregister self
 			if err := s.Deregister(); err != nil {
-				log.Logf("Server %s-%s deregister error: %s", config.Name, config.Id, err)
+				log.Errorf("Server %s-%s deregister error: %s", config.Name, config.Id, err)
 			}
 		}
 
@@ -879,7 +879,7 @@ func (s *rpcServer) Start() error {
 		// close transport listener
 		ch <- ts.Close()
 
-		log.Logf("Broker [%s] Disconnected from %s", bname, config.Broker.Address())
+		log.Infof("Broker [%s] Disconnected from %s", bname, config.Broker.Address())
 		// disconnect the broker
 		config.Broker.Disconnect()
 

@@ -10,7 +10,7 @@ import (
 
 	"github.com/gorilla/handlers"
 	"github.com/micro/go-micro/v2/api/server"
-	"github.com/micro/go-micro/v2/util/log"
+	log "github.com/micro/go-micro/v2/logger"
 )
 
 type httpServer struct {
@@ -65,7 +65,7 @@ func (s *httpServer) Start() error {
 		return err
 	}
 
-	log.Logf("HTTP API Listening on %s", l.Addr().String())
+	log.Infof("HTTP API Listening on %s", l.Addr().String())
 
 	s.mtx.Lock()
 	s.address = l.Addr().String()
