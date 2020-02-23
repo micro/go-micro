@@ -335,9 +335,9 @@ func (s *session) Send(m *transport.Message) error {
 		return err
 	}
 
-	// make copy
+	// make copy, without rehash and realloc
 	data := &transport.Message{
-		Header: make(map[string]string),
+		Header: make(map[string]string, len(m.Header)),
 		Body:   body,
 	}
 
