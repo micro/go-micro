@@ -51,7 +51,7 @@ func (l *defaultLogger) Log(level Level, v ...interface{}) {
 	rec := dlog.Record{
 		Timestamp: time.Now(),
 		Message:   fmt.Sprint(v...),
-		Metadata:  make(map[string]string),
+		Metadata:  make(map[string]string, len(fields)),
 	}
 	for k, v := range fields {
 		rec.Metadata[k] = fmt.Sprintf("%v", v)
@@ -78,7 +78,7 @@ func (l *defaultLogger) Logf(level Level, format string, v ...interface{}) {
 	rec := dlog.Record{
 		Timestamp: time.Now(),
 		Message:   fmt.Sprintf(format, v...),
-		Metadata:  make(map[string]string),
+		Metadata:  make(map[string]string, len(fields)),
 	}
 	for k, v := range fields {
 		rec.Metadata[k] = fmt.Sprintf("%v", v)
