@@ -91,6 +91,8 @@ func CertsFromPEM(pemCerts []byte) ([]*x509.Certificate, error) {
 func Format(v string) string {
 	// to lower case
 	v = strings.ToLower(v)
+	// / to dashes
+	v = strings.ReplaceAll(v, "/", "-")
 	// dots to dashes
 	v = strings.ReplaceAll(v, ".", "-")
 	// limit to 253 chars

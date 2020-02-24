@@ -53,6 +53,8 @@ type CreateOptions struct {
 	Type string
 	// Retries before failing deploy
 	Retries int
+	// Source of the service
+	Source string
 }
 
 // ReadOptions queries runtime services
@@ -69,6 +71,13 @@ type ReadOptions struct {
 func CreateType(t string) CreateOption {
 	return func(o *CreateOptions) {
 		o.Type = t
+	}
+}
+
+// CreateSource sets the source of service to create
+func CreateSource(t string) CreateOption {
+	return func(o *CreateOptions) {
+		o.Source = t
 	}
 }
 
