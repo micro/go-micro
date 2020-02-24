@@ -4,12 +4,14 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"sync"
 	"time"
 
 	dlog "github.com/micro/go-micro/v2/debug/log"
 )
 
 type defaultLogger struct {
+	sync.RWMutex
 	opts Options
 	err  error
 }
@@ -27,13 +29,25 @@ func (l *defaultLogger) String() string {
 }
 
 func (l *defaultLogger) Fields(fields map[string]interface{}) Logger {
-	l.opts.Fields = fields
+	l.Lock()
+	l.opts.Fields = copyFields(fields)
+	l.Unlock()
 	return l
 }
 
 func (l *defaultLogger) Error(err error) Logger {
+	l.Lock()
 	l.err = err
+	l.Unlock()
 	return l
+}
+
+func copyFields(src map[string]interface{}) map[string]interface{} {
+	dst := make(map[string]interface{}, len(src))
+	for k, v := range src {
+		dst[k] = v
+	}
+	return dst
 }
 
 func (l *defaultLogger) Log(level Level, v ...interface{}) {
@@ -42,16 +56,19 @@ func (l *defaultLogger) Log(level Level, v ...interface{}) {
 		return
 	}
 
-	fields := l.opts.Fields
-	fields["level"] = level.String()
+	l.RLock()
+	fields := copyFields(l.opts.Fields)
 	if l.err != nil {
 		fields["error"] = l.err.Error()
 	}
+	l.RUnlock()
+
+	fields["level"] = level.String()
 
 	rec := dlog.Record{
 		Timestamp: time.Now(),
 		Message:   fmt.Sprint(v...),
-		Metadata:  make(map[string]string),
+		Metadata:  make(map[string]string, len(fields)),
 	}
 	for k, v := range fields {
 		rec.Metadata[k] = fmt.Sprintf("%v", v)
@@ -69,16 +86,19 @@ func (l *defaultLogger) Logf(level Level, format string, v ...interface{}) {
 		return
 	}
 
-	fields := l.opts.Fields
-	fields["level"] = level.String()
+	l.RLock()
+	fields := copyFields(l.opts.Fields)
 	if l.err != nil {
 		fields["error"] = l.err.Error()
 	}
+	l.RUnlock()
+
+	fields["level"] = level.String()
 
 	rec := dlog.Record{
 		Timestamp: time.Now(),
 		Message:   fmt.Sprintf(format, v...),
-		Metadata:  make(map[string]string),
+		Metadata:  make(map[string]string, len(fields)),
 	}
 	for k, v := range fields {
 		rec.Metadata[k] = fmt.Sprintf("%v", v)
@@ -105,6 +125,9 @@ func NewLogger(opts ...Option) Logger {
 	}
 
 	l := &defaultLogger{opts: options}
-	_ = l.Init(opts...)
+	if err := l.Init(opts...); err != nil {
+		l.Log(FatalLevel, err)
+	}
+
 	return l
 }

@@ -27,7 +27,7 @@ func (r *response) Header() map[string]string {
 	if err != nil {
 		return map[string]string{}
 	}
-	hdr := make(map[string]string)
+	hdr := make(map[string]string, len(md))
 	for k, v := range md {
 		hdr[k] = strings.Join(v, ",")
 	}
