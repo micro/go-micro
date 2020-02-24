@@ -6,7 +6,7 @@ import (
 	"os/user"
 	"path/filepath"
 
-	"github.com/micro/go-micro/v2/config"
+	conf "github.com/micro/go-micro/v2/config"
 	"github.com/micro/go-micro/v2/config/source/file"
 )
 
@@ -22,8 +22,8 @@ func Get(key string) (string, error) {
 	}
 
 	// create a new config
-	conf, err := config.NewConfig(
-		config.WithSource(
+	c, err := conf.NewConfig(
+		conf.WithSource(
 			file.NewSource(
 				file.WithPath(fp),
 			),
@@ -31,12 +31,12 @@ func Get(key string) (string, error) {
 	)
 
 	// load the config
-	if err := conf.Load(); err != nil {
+	if err := c.Load(); err != nil {
 		return "", err
 	}
 
 	// set a value
-	return conf.Get(key).String(""), nil
+	return c.Get(key).String(""), nil
 }
 
 // Set a value in the .micro file
@@ -53,8 +53,8 @@ func Set(key, value string) error {
 	}
 
 	// create a new config
-	conf, err := config.NewConfig(
-		config.WithSource(
+	c, err := conf.NewConfig(
+		conf.WithSource(
 			file.NewSource(
 				file.WithPath(fp),
 			),
@@ -62,15 +62,15 @@ func Set(key, value string) error {
 	)
 
 	// load the config
-	if err := conf.Load(); err != nil {
+	if err := c.Load(); err != nil {
 		return err
 	}
 
 	// set a value
-	conf.Set(value, key)
+	c.Set(value, key)
 
 	// write the file
-	return ioutil.WriteFile(fp, conf.Bytes(), 0644)
+	return ioutil.WriteFile(fp, c.Bytes(), 0644)
 }
 
 func filePath() (string, error) {
