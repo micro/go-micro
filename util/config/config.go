@@ -53,6 +53,8 @@ func Set(key, value string) error {
 	// write the file if it does not exist
 	if _, err := os.Stat(fp); os.IsNotExist(err) {
 		ioutil.WriteFile(fp, []byte{}, 0644)
+	} else if err != nil {
+		return err
 	}
 
 	// create a new config
