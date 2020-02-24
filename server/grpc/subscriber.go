@@ -188,7 +188,7 @@ func (g *grpcServer) createSubHandler(sb *subscriber, opts server.Options) broke
 			return err
 		}
 
-		hdr := make(map[string]string)
+		hdr := make(map[string]string, len(msg.Header))
 		for k, v := range msg.Header {
 			hdr[k] = v
 		}
