@@ -29,6 +29,9 @@ func Get(key string) (string, error) {
 			),
 		),
 	)
+	if err != nil {
+		return "", err
+	}
 
 	// load the config
 	if err := c.Load(); err != nil {
@@ -60,6 +63,9 @@ func Set(key, value string) error {
 			),
 		),
 	)
+	if err != nil {
+		return err
+	}
 
 	// load the config
 	if err := c.Load(); err != nil {
