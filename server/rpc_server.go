@@ -85,7 +85,7 @@ func (s *rpcServer) HandleEvent(e broker.Event) error {
 	}
 
 	// copy headers
-	hdr := make(map[string]string)
+	hdr := make(map[string]string, len(msg.Header))
 	for k, v := range msg.Header {
 		hdr[k] = v
 	}
@@ -262,7 +262,7 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 		ct := msg.Header["Content-Type"]
 
 		// copy the message headers
-		hdr := make(map[string]string)
+		hdr := make(map[string]string, len(msg.Header))
 		for k, v := range msg.Header {
 			hdr[k] = v
 		}
