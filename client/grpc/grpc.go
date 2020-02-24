@@ -130,7 +130,7 @@ func (g *grpcClient) call(ctx context.Context, node *registry.Node, req client.R
 	// set the content type for the request
 	header["x-content-type"] = req.ContentType()
 	// set the authorization token if one is saved locally
-	if token, err := config.Get("token"); err != nil && len(token) > 0 {
+	if token, err := config.Get("token"); err == nil && len(token) > 0 {
 		header["authorization"] = fmt.Sprintf("Bearer %v", token)
 	}
 
