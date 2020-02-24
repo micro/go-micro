@@ -24,6 +24,7 @@ import (
 	"github.com/micro/go-micro/v2/util/addr"
 	mgrpc "github.com/micro/go-micro/v2/util/grpc"
 	mnet "github.com/micro/go-micro/v2/util/net"
+	"golang.org/x/net/netutil"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -163,13 +164,14 @@ func (g *grpcServer) getGrpcOptions() []grpc.ServerOption {
 }
 
 func (g *grpcServer) getListener() net.Listener {
-	if g.opts.Context != nil {
-		if v := g.opts.Context.Value(netListener{}); v != nil {
-			if l, ok := v.(net.Listener); ok {
-				return l
-			}
-		}
+	if g.opts.Context == nil {
+		return nil
 	}
+
+	if l, ok := g.opts.Context.Value(netListener{}).(net.Listener); ok && l != nil {
+		return l
+	}
+
 	return nil
 }
 
@@ -797,6 +799,10 @@ func (g *grpcServer) Start() error {
 		if err != nil {
 			return err
 		}
+	}
+
+	if c, ok := g.opts.Context.Value(maxConnKey{}).(int); ok && c > 0 {
+		ts = netutil.LimitListener(ts, c)
 	}
 
 	log.Infof("Server [grpc] Listening on %s", ts.Addr().String())
