@@ -3,7 +3,6 @@ package kubernetes
 
 import (
 	"fmt"
-	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -273,11 +272,7 @@ func (k *kubernetes) Create(s *runtime.Service, opts ...runtime.CreateOption) er
 	}
 
 	// determine the full source for this service
-	src, err := k.sourceForService(s.Name)
-	if err != nil {
-		return err
-	}
-	options.Source = src
+	options.Source = k.sourceForService(s.Name)
 
 	service := newService(s, options)
 
@@ -332,15 +327,10 @@ func (k *kubernetes) List() ([]*runtime.Service, error) {
 
 // Update the service in place
 func (k *kubernetes) Update(s *runtime.Service) error {
-	src, err := k.sourceForService(s.Name)
-	if err != nil {
-		return err
-	}
-
 	// create new kubernetes micro service
 	service := newService(s, runtime.CreateOptions{
 		Type:   k.options.Type,
-		Source: src,
+		Source: k.sourceForService(s.Name),
 	})
 
 	// update build time annotation
@@ -447,16 +437,11 @@ func NewRuntime(opts ...runtime.Option) runtime.Runtime {
 // sourceForService determines the nested package name for github
 // e.g src: docker.pkg.github.com/micro/services an srv: users/api
 // would become docker.pkg.github.com/micro/services/users-api
-func (k *kubernetes) sourceForService(name string) (string, error) {
+func (k *kubernetes) sourceForService(name string) string {
 	if !strings.HasPrefix(k.options.Source, "docker.pkg.github.com") {
-		return k.options.Source, nil
+		return k.options.Source
 	}
 
-	reg, err := regexp.Compile("[^a-zA-Z0-9]+")
-	if err != nil {
-		return "", err
-	}
-
-	formattedName := reg.ReplaceAllString(name, "-")
-	return fmt.Sprintf("%v/%v", k.options.Source, formattedName), nil
+	formattedName := strings.ReplaceAll(name, "/", "-")
+	return fmt.Sprintf("%v/%v", k.options.Source, formattedName)
 }
