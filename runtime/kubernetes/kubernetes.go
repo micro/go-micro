@@ -3,6 +3,7 @@ package kubernetes
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -246,11 +247,6 @@ func (k *kubernetes) Init(opts ...runtime.Option) error {
 		o(&k.options)
 	}
 
-	// trim the source prefix if its a git url
-	if strings.HasPrefix(k.options.Source, "github.com") {
-		k.options.Source = strings.TrimPrefix(k.options.Source, "github.com/")
-	}
-
 	return nil
 }
 
@@ -270,9 +266,13 @@ func (k *kubernetes) Create(s *runtime.Service, opts ...runtime.CreateOption) er
 	if len(options.Type) == 0 {
 		options.Type = k.options.Type
 	}
-	if len(k.options.Source) > 0 {
-		s.Source = k.options.Source
+
+	// determine the full source for this service
+	src, err := k.sourceForService(s.Name)
+	if err != nil {
+		return err
 	}
+	options.Source = src
 
 	service := newService(s, options)
 
@@ -327,9 +327,15 @@ func (k *kubernetes) List() ([]*runtime.Service, error) {
 
 // Update the service in place
 func (k *kubernetes) Update(s *runtime.Service) error {
+	src, err := k.sourceForService(s.Name)
+	if err != nil {
+		return err
+	}
+
 	// create new kubernetes micro service
 	service := newService(s, runtime.CreateOptions{
-		Type: k.options.Type,
+		Type:   k.options.Type,
+		Source: src,
 	})
 
 	// update build time annotation
@@ -431,4 +437,21 @@ func NewRuntime(opts ...runtime.Option) runtime.Runtime {
 		closed:  make(chan bool),
 		client:  client,
 	}
+}
+
+// sourceForService determines the nested package name for github
+// e.g src: github.com/micro/services an srv: users/api would become
+// github.com/micro/services/users-api
+func (k *kubernetes) sourceForService(name string) (string, error) {
+	if !strings.HasPrefix(k.options.Source, "github.com") {
+		return k.options.Source, nil
+	}
+
+	reg, err := regexp.Compile("[^a-zA-Z0-9]+")
+	if err != nil {
+		return "", err
+	}
+
+	formattedName := reg.ReplaceAllString(name, "-")
+	return fmt.Sprintf("docker.pkg.%v/%v", k.options.Source, formattedName), nil
 }
