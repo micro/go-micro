@@ -65,6 +65,7 @@ import (
 	// auth
 	jwtAuth "github.com/micro/go-micro/v2/auth/jwt"
 	sAuth "github.com/micro/go-micro/v2/auth/service"
+	storeAuth "github.com/micro/go-micro/v2/auth/store"
 )
 
 type Cmd interface {
@@ -314,6 +315,7 @@ var (
 
 	DefaultAuths = map[string]func(...auth.Option) auth.Auth{
 		"service": sAuth.NewAuth,
+		"store":   storeAuth.NewAuth,
 		"jwt":     jwtAuth.NewAuth,
 	}
 )
