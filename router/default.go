@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	log "github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/registry"
-	"github.com/micro/go-micro/v2/util/log"
 )
 
 var (
@@ -357,14 +357,14 @@ func (r *router) advertiseEvents() error {
 					// routing table watcher
 					w, err = r.Watch()
 					if err != nil {
-						log.Logf("Error creating watcher: %v", err)
+						log.Errorf("Error creating watcher: %v", err)
 						time.Sleep(time.Second)
 						continue
 					}
 				}
 
 				if err := r.watchTable(w); err != nil {
-					log.Logf("Error watching table: %v", err)
+					log.Errorf("Error watching table: %v", err)
 					time.Sleep(time.Second)
 				}
 
@@ -538,14 +538,14 @@ func (r *router) Start() error {
 				if w == nil {
 					w, err = r.options.Registry.Watch()
 					if err != nil {
-						log.Logf("failed creating registry watcher: %v", err)
+						log.Errorf("failed creating registry watcher: %v", err)
 						time.Sleep(time.Second)
 						continue
 					}
 				}
 
 				if err := r.watchRegistry(w); err != nil {
-					log.Logf("Error watching the registry: %v", err)
+					log.Errorf("Error watching the registry: %v", err)
 					time.Sleep(time.Second)
 				}
 
@@ -602,7 +602,7 @@ func (r *router) Advertise() (<-chan *Advert, error) {
 			return
 		default:
 			if err := r.advertiseEvents(); err != nil {
-				log.Logf("Error adveritising events: %v", err)
+				log.Errorf("Error adveritising events: %v", err)
 			}
 		}
 	}()
