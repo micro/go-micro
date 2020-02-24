@@ -247,6 +247,11 @@ func (k *kubernetes) Init(opts ...runtime.Option) error {
 		o(&k.options)
 	}
 
+	// trim the source prefix if its a git url
+	if strings.HasPrefix(k.options.Source, "github.com") {
+		k.options.Source = strings.TrimPrefix(k.options.Source, "github.com/")
+	}
+
 	return nil
 }
 
@@ -440,10 +445,10 @@ func NewRuntime(opts ...runtime.Option) runtime.Runtime {
 }
 
 // sourceForService determines the nested package name for github
-// e.g src: github.com/micro/services an srv: users/api would become
-// github.com/micro/services/users-api
+// e.g src: docker.pkg.github.com/micro/services an srv: users/api
+// would become docker.pkg.github.com/micro/services/users-api
 func (k *kubernetes) sourceForService(name string) (string, error) {
-	if !strings.HasPrefix(k.options.Source, "github.com") {
+	if !strings.HasPrefix(k.options.Source, "docker.pkg.github.com") {
 		return k.options.Source, nil
 	}
 
@@ -453,5 +458,5 @@ func (k *kubernetes) sourceForService(name string) (string, error) {
 	}
 
 	formattedName := reg.ReplaceAllString(name, "-")
-	return fmt.Sprintf("docker.pkg.%v/%v", k.options.Source, formattedName), nil
+	return fmt.Sprintf("%v/%v", k.options.Source, formattedName), nil
 }
