@@ -11,9 +11,6 @@ import (
 	"github.com/micro/go-micro/v2/auth"
 	"github.com/micro/go-micro/v2/client"
 	"github.com/micro/go-micro/v2/config/cmd"
-	"github.com/micro/go-micro/v2/debug/profile"
-	"github.com/micro/go-micro/v2/debug/profile/http"
-	"github.com/micro/go-micro/v2/debug/profile/pprof"
 	"github.com/micro/go-micro/v2/debug/service/handler"
 	"github.com/micro/go-micro/v2/debug/stats"
 	"github.com/micro/go-micro/v2/debug/trace"
@@ -101,6 +98,7 @@ func (s *service) Init(opts ...Option) {
 			cmd.Transport(&s.opts.Transport),
 			cmd.Client(&s.opts.Client),
 			cmd.Server(&s.opts.Server),
+			cmd.Profile(&s.opts.Profile),
 		); err != nil {
 			log.Fatal(err)
 		}
@@ -175,31 +173,16 @@ func (s *service) Run() error {
 	)
 
 	// start the profiler
-	// TODO: set as an option to the service, don't just use pprof
-	if prof := os.Getenv("MICRO_DEBUG_PROFILE"); len(prof) > 0 {
-		var profiler profile.Profile
-
+	if s.opts.Profile != nil {
 		// to view mutex contention
 		runtime.SetMutexProfileFraction(5)
 		// to view blocking profile
 		runtime.SetBlockProfileRate(1)
 
-		switch prof {
-		case "http":
-			profiler = http.NewProfile()
-		default:
-			service := s.opts.Server.Options().Name
-			version := s.opts.Server.Options().Version
-			id := s.opts.Server.Options().Id
-			profiler = pprof.NewProfile(
-				profile.Name(service + "." + version + "." + id),
-			)
-		}
-
-		if err := profiler.Start(); err != nil {
+		if err := s.opts.Profile.Start(); err != nil {
 			return err
 		}
-		defer profiler.Stop()
+		defer s.opts.Profile.Stop()
 	}
 
 	log.Infof("Starting [service] %s", s.Name())

@@ -10,6 +10,24 @@ type Profile interface {
 	String() string
 }
 
+var (
+	DefaultProfile Profile = new(noop)
+)
+
+type noop struct{}
+
+func (p *noop) Start() error {
+	return nil
+}
+
+func (p *noop) Stop() error {
+	return nil
+}
+
+func (p *noop) String() string {
+	return "noop"
+}
+
 type Options struct {
 	// Name to use for the profile
 	Name string
