@@ -2,6 +2,7 @@ package runtime
 
 import (
 	"errors"
+	"strings"
 	"sync"
 	"time"
 
@@ -163,7 +164,7 @@ func (r *runtime) Create(s *Service, opts ...CreateOption) error {
 		o(&options)
 	}
 
-	if len(options.Command) == 0 {
+	if strings.HasPrefix(options.Source, "github.com") && len(options.Command) == 0 {
 		options.Command = []string{"go", "run", "."}
 	}
 
