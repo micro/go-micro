@@ -15,8 +15,8 @@ type Auth interface {
 	Generate(id string, opts ...GenerateOption) (*Account, error)
 	// Revoke an authorization Account
 	Revoke(token string) error
-	// Validate an account token
-	Validate(token string) (*Account, error)
+	// Verify an account token
+	Verify(token string) (*Account, error)
 	// String returns the implementation
 	String() string
 }
@@ -31,7 +31,10 @@ type Resource struct {
 
 // Role an account has
 type Role struct {
-	Name     string
+	// Name of the role
+	Name string
+	// The resource it has access
+	// TODO: potentially remove
 	Resource *Resource
 }
 

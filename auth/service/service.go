@@ -72,9 +72,9 @@ func (s *svc) Revoke(token string) error {
 	return err
 }
 
-// Validate an account token
-func (s *svc) Validate(token string) (*auth.Account, error) {
-	resp, err := s.auth.Validate(context.Background(), &pb.ValidateRequest{Token: token})
+// Verify an account token
+func (s *svc) Verify(token string) (*auth.Account, error) {
+	resp, err := s.auth.Verify(context.Background(), &pb.VerifyRequest{Token: token})
 	if err != nil {
 		return nil, err
 	}

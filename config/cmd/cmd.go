@@ -250,6 +250,11 @@ var (
 			Usage:   "Auth for role based access control, e.g. service",
 		},
 		&cli.StringFlag{
+			Name:    "auth_token",
+			EnvVars: []string{"MICRO_AUTH_TOKEN"},
+			Usage:   "Auth token used for client authentication",
+		},
+		&cli.StringFlag{
 			Name:    "auth_public_key",
 			EnvVars: []string{"MICRO_AUTH_PUBLIC_KEY"},
 			Usage:   "Public key for JWT auth (base64 encoded PEM)",
@@ -606,6 +611,10 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		}
 	}
 
+	if len(ctx.String("auth_token")) > 0 {
+		authOpts = append(authOpts, auth.Token(ctx.String("auth_token")))
+	}
+
 	if len(ctx.String("auth_public_key")) > 0 {
 		authOpts = append(authOpts, auth.PublicKey(ctx.String("auth_public_key")))
 	}
@@ -615,7 +624,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	}
 
 	if len(ctx.StringSlice("auth_exclude")) > 0 {
-		authOpts = append(authOpts, auth.Excludes(ctx.StringSlice("auth_exclude")...))
+		authOpts = append(authOpts, auth.Exclude(ctx.StringSlice("auth_exclude")...))
 	}
 
 	if len(authOpts) > 0 {

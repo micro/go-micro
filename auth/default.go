@@ -6,31 +6,42 @@ var (
 
 // NewAuth returns a new default registry which is noop
 func NewAuth(opts ...Option) Auth {
-	return noop{}
+	var options Options
+	for _, o := range opts {
+		o(&options)
+	}
+	return &noop{
+		opts: options,
+	}
 }
 
-type noop struct{}
+type noop struct {
+	opts Options
+}
 
-func (noop) Init(opts ...Option) error {
+func (n *noop) Init(opts ...Option) error {
+	for _, o := range opts {
+		o(&n.opts)
+	}
 	return nil
 }
 
-func (noop) Options() Options {
-	return Options{}
+func (n *noop) Options() Options {
+	return n.opts
 }
 
-func (noop) Generate(id string, opts ...GenerateOption) (*Account, error) {
+func (n *noop) Generate(id string, opts ...GenerateOption) (*Account, error) {
 	return nil, nil
 }
 
-func (noop) Revoke(token string) error {
+func (n *noop) Revoke(token string) error {
 	return nil
 }
 
-func (noop) Validate(token string) (*Account, error) {
+func (n *noop) Verify(token string) (*Account, error) {
 	return nil, nil
 }
 
-func (noop) String() string {
+func (n *noop) String() string {
 	return "noop"
 }

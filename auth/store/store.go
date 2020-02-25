@@ -7,14 +7,19 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/micro/go-micro/v2/auth"
-
 	"github.com/micro/go-micro/v2/errors"
 	"github.com/micro/go-micro/v2/store"
 )
 
+type Auth struct {
+	store store.Store
+	opts  auth.Options
+}
+
 // NewAuth returns an instance of store auth
 func NewAuth(opts ...auth.Option) auth.Auth {
-	options := auth.Options{}
+	var options auth.Options
+
 	for _, o := range opts {
 		o(&options)
 	}
@@ -23,11 +28,6 @@ func NewAuth(opts ...auth.Option) auth.Auth {
 		store: store.DefaultStore,
 		opts:  options,
 	}
-}
-
-type Auth struct {
-	store store.Store
-	opts  auth.Options
 }
 
 // Init the auth package
@@ -64,6 +64,7 @@ func (a *Auth) Generate(id string, opts ...auth.GenerateOption) (*auth.Account, 
 	}
 
 	// encode the data to bytes
+	// TODO: replace with json
 	buf := &bytes.Buffer{}
 	e := gob.NewEncoder(buf)
 	if err := e.Encode(sa); err != nil {
@@ -102,8 +103,8 @@ func (a *Auth) Revoke(token string) error {
 	return nil
 }
 
-// Validate an account token
-func (a *Auth) Validate(token string) (*auth.Account, error) {
+// Verify an account token
+func (a *Auth) Verify(token string) (*auth.Account, error) {
 	// lookup the record by token
 	records, err := a.store.Read(token, store.ReadSuffix())
 	if err == store.ErrNotFound || len(records) == 0 {
@@ -113,6 +114,7 @@ func (a *Auth) Validate(token string) (*auth.Account, error) {
 	}
 
 	// decode the result
+	// TODO: replace with json
 	b := bytes.NewBuffer(records[0].Value)
 	decoder := gob.NewDecoder(b)
 	var sa auth.Account
