@@ -270,9 +270,9 @@ func (k *kubernetes) Create(s *runtime.Service, opts ...runtime.CreateOption) er
 	if len(options.Type) == 0 {
 		options.Type = k.options.Type
 	}
-	if len(k.options.Source) > 0 {
-		s.Source = k.options.Source
-	}
+
+	// determine the full source for this service
+	options.Source = k.sourceForService(s.Name)
 
 	service := newService(s, options)
 
@@ -329,7 +329,8 @@ func (k *kubernetes) List() ([]*runtime.Service, error) {
 func (k *kubernetes) Update(s *runtime.Service) error {
 	// create new kubernetes micro service
 	service := newService(s, runtime.CreateOptions{
-		Type: k.options.Type,
+		Type:   k.options.Type,
+		Source: k.sourceForService(s.Name),
 	})
 
 	// update build time annotation
@@ -431,4 +432,16 @@ func NewRuntime(opts ...runtime.Option) runtime.Runtime {
 		closed:  make(chan bool),
 		client:  client,
 	}
+}
+
+// sourceForService determines the nested package name for github
+// e.g src: docker.pkg.github.com/micro/services an srv: users/api
+// would become docker.pkg.github.com/micro/services/users-api
+func (k *kubernetes) sourceForService(name string) string {
+	if !strings.HasPrefix(k.options.Source, "docker.pkg.github.com") {
+		return k.options.Source
+	}
+
+	formattedName := strings.ReplaceAll(name, "/", "-")
+	return fmt.Sprintf("%v/%v", k.options.Source, formattedName)
 }

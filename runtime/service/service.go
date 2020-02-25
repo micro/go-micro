@@ -35,6 +35,11 @@ func (s *svc) Create(svc *runtime.Service, opts ...runtime.CreateOption) error {
 		o(&options)
 	}
 
+	// set the default source from MICRO_RUNTIME_SOURCE
+	if len(svc.Source) == 0 {
+		svc.Source = s.options.Source
+	}
+
 	// runtime service create request
 	req := &pb.CreateRequest{
 		Service: &pb.Service{
