@@ -17,6 +17,7 @@ import (
 	log "github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/plugin"
 	"github.com/micro/go-micro/v2/server"
+	"github.com/micro/go-micro/v2/util/config"
 	"github.com/micro/go-micro/v2/util/wrapper"
 )
 
@@ -37,7 +38,7 @@ func newService(opts ...Option) Service {
 	authFn := func() auth.Auth { return service.opts.Auth }
 
 	// wrap client to inject From-Service header on any calls
-	options.Client = wrapper.FromService(serviceName, options.Client)
+	options.Client = wrapper.FromService(serviceName, options.Client, authFn)
 	options.Client = wrapper.TraceCall(serviceName, trace.DefaultTracer, options.Client)
 
 	// wrap the server to provide handler stats
@@ -101,6 +102,14 @@ func (s *service) Init(opts ...Option) {
 			cmd.Profile(&s.opts.Profile),
 		); err != nil {
 			log.Fatal(err)
+		}
+
+		// TODO: replace Cmd.Init with config.Load
+		// Right now we're just going to load a token
+		// May need to re-read value on change
+		// TODO: should be scoped to micro/auth/token
+		if tk, _ := config.Get("token"); len(tk) > 0 {
+			s.opts.Auth.Init(auth.Token(tk))
 		}
 	})
 }

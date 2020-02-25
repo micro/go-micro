@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/micro/go-micro/v2/auth"
 	"github.com/micro/go-micro/v2/metadata"
 )
 
@@ -33,6 +34,7 @@ func TestWrapper(t *testing.T) {
 
 	for _, d := range testData {
 		c := &clientWrapper{
+			auth:    func() auth.Auth { return nil },
 			headers: d.headers,
 		}
 
