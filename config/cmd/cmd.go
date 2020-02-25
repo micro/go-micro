@@ -11,6 +11,9 @@ import (
 	"github.com/micro/go-micro/v2/broker"
 	"github.com/micro/go-micro/v2/client"
 	"github.com/micro/go-micro/v2/client/selector"
+	"github.com/micro/go-micro/v2/debug/profile"
+	"github.com/micro/go-micro/v2/debug/profile/http"
+	"github.com/micro/go-micro/v2/debug/profile/pprof"
 	"github.com/micro/go-micro/v2/debug/trace"
 	log "github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/registry"
@@ -25,6 +28,7 @@ import (
 
 	// servers
 	"github.com/micro/cli/v2"
+
 	sgrpc "github.com/micro/go-micro/v2/server/grpc"
 	smucp "github.com/micro/go-micro/v2/server/mucp"
 
@@ -318,6 +322,11 @@ var (
 		"store":   storeAuth.NewAuth,
 		"jwt":     jwtAuth.NewAuth,
 	}
+
+	DefaultProfiles = map[string]func(...profile.Option) profile.Profile{
+		"http":  http.NewProfile,
+		"pprof": pprof.NewProfile,
+	}
 )
 
 func init() {
@@ -336,6 +345,7 @@ func newCmd(opts ...Option) Cmd {
 		Runtime:   &runtime.DefaultRuntime,
 		Store:     &store.DefaultStore,
 		Tracer:    &trace.DefaultTracer,
+		Profile:   &profile.DefaultProfile,
 
 		Brokers:    DefaultBrokers,
 		Clients:    DefaultClients,
@@ -347,6 +357,7 @@ func newCmd(opts ...Option) Cmd {
 		Stores:     DefaultStores,
 		Tracers:    DefaultTracers,
 		Auths:      DefaultAuths,
+		Profiles:   DefaultProfiles,
 	}
 
 	for _, o := range opts {
@@ -428,6 +439,16 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		}
 
 		*c.opts.Auth = a()
+	}
+
+	// Set the profile
+	if name := ctx.String("profile"); len(name) > 0 {
+		p, ok := c.opts.Profiles[name]
+		if !ok {
+			return fmt.Errorf("Unsupported profile: %s", name)
+		}
+
+		*c.opts.Profile = p()
 	}
 
 	// Set the client
