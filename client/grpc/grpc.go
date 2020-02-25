@@ -129,9 +129,12 @@ func (g *grpcClient) call(ctx context.Context, node *registry.Node, req client.R
 	header["timeout"] = fmt.Sprintf("%d", opts.RequestTimeout)
 	// set the content type for the request
 	header["x-content-type"] = req.ContentType()
-	// set the authorization token if one is saved locally
+	// set the authorization token if one is saved locally or povided
+	// as a service account
 	if token, err := config.Get("token"); err == nil && len(token) > 0 {
 		header["authorization"] = fmt.Sprintf("Bearer %v", token)
+	} else if sa := g.opts.ServiceAccount; len(sa) > 0 {
+		header["authorization"] = fmt.Sprintf("Bearer %v", sa)
 	}
 
 	md := gmetadata.New(header)

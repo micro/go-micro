@@ -260,6 +260,11 @@ var (
 			EnvVars: []string{"MICRO_AUTH_EXCLUDE"},
 			Usage:   "Comma-separated list of endpoints excluded from authentication, e.g. Users.ListUsers",
 		},
+		&cli.StringFlag{
+			Name:    "auth_service_account",
+			EnvVars: []string{"MICRO_AUTH_SERVICE_ACCOUNT"},
+			Usage:   "Service account to be sent with each request",
+		},
 	}
 
 	DefaultBrokers = map[string]func(...broker.Option) broker.Broker{
@@ -626,6 +631,10 @@ func (c *cmd) Before(ctx *cli.Context) error {
 			return fmt.Errorf("failed to parse client_pool_ttl: %v", t)
 		}
 		clientOpts = append(clientOpts, client.PoolTTL(d))
+	}
+
+	if sa := ctx.String("auth_service_account"); len(sa) > 0 {
+		clientOpts = append(clientOpts, client.ServiceAccount(sa))
 	}
 
 	// We have some command line opts for the server.

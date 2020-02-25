@@ -88,6 +88,10 @@ func (r *rpcClient) call(ctx context.Context, node *registry.Node, req Request, 
 	msg.Header["Content-Type"] = req.ContentType()
 	// set the accept header
 	msg.Header["Accept"] = req.ContentType()
+	// set the auth service account
+	if sa := r.opts.ServiceAccount; len(sa) > 0 {
+		msg.Header["Authorization"] = fmt.Sprintf("Bearer %v", sa)
+	}
 
 	// setup old protocol
 	cf := setupProtocol(msg, node)

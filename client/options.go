@@ -38,6 +38,9 @@ type Options struct {
 	// Other options for implementations of the interface
 	// can be stored in a context
 	Context context.Context
+
+	// Service account is used to authenticate requests
+	ServiceAccount string
 }
 
 type CallOptions struct {
@@ -153,6 +156,13 @@ func Registry(r registry.Registry) Option {
 		o.Registry = r
 		// set in the selector
 		o.Selector.Init(selector.Registry(r))
+	}
+}
+
+// ServiceAccount to be used when making requests
+func ServiceAccount(sa string) Option {
+	return func(o *Options) {
+		o.ServiceAccount = sa
 	}
 }
 
