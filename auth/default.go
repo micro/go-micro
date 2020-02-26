@@ -92,7 +92,8 @@ func (n *memory) Verify(token string) (*Account, error) {
 	defer n.RUnlock()
 
 	if len(token) == 0 {
-		return &Account{}, nil
+		// pseudo account?
+		return genAccount(""), nil
 	}
 
 	// try get the local account if it exists
@@ -108,10 +109,10 @@ func (n *memory) Verify(token string) (*Account, error) {
 
 	// return a pseudo account based on token/id
 	return &Account{
-		Id: string(b),
-		Token: token,
-		Created: time.Now(),
-		Expiry: time.Now().Add(time.Hour * 24),
+		Id:       string(b),
+		Token:    token,
+		Created:  time.Now(),
+		Expiry:   time.Now().Add(time.Hour * 24),
 		Metadata: make(map[string]string),
 	}, nil
 }
