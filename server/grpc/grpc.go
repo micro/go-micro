@@ -555,8 +555,8 @@ func (g *grpcServer) Subscribe(sb server.Subscriber) error {
 	}
 
 	g.Lock()
-
 	if _, ok = g.subscribers[sub]; ok {
+		g.Unlock()
 		return fmt.Errorf("subscriber %v already exists", sub)
 	}
 
