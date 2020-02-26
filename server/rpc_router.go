@@ -505,7 +505,6 @@ func (router *router) Subscribe(s Subscriber) error {
 }
 
 func (router *router) ProcessMessage(ctx context.Context, msg Message) (err error) {
-
 	defer func() {
 		// recover any panics
 		if r := recover(); r != nil {
@@ -516,16 +515,13 @@ func (router *router) ProcessMessage(ctx context.Context, msg Message) (err erro
 	}()
 
 	router.su.RLock()
-
 	// get the subscribers by topic
 	subs, ok := router.subscribers[msg.Topic()]
-	if !ok {
-		router.su.RUnlock()
-		return nil
-	}
-
 	// unlock since we only need to get the subs
 	router.su.RUnlock()
+	if !ok {
+		return nil
+	}
 
 	var errResults []string
 
