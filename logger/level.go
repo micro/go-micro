@@ -109,6 +109,14 @@ func Errorf(template string, args ...interface{}) {
 	DefaultLogger.Logf(ErrorLevel, template, args...)
 }
 
+func Panic(args ...interface{}) {
+	DefaultLogger.Log(PanicLevel, args...)
+}
+
+func Panicf(template string, args ...interface{}) {
+	DefaultLogger.Logf(PanicLevel, template, args...)
+}
+
 func Fatal(args ...interface{}) {
 	DefaultLogger.Log(FatalLevel, args...)
 }

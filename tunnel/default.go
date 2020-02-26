@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	log "github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/transport"
-	"github.com/micro/go-micro/v2/util/log"
 )
 
 var (
@@ -131,6 +131,7 @@ func (t *tun) newSession(channel, sessionId string) (*session, bool) {
 		recv:    make(chan *message, 128),
 		send:    t.send,
 		errChan: make(chan error, 1),
+		key:     t.token + channel + sessionId,
 	}
 
 	// save session
@@ -949,7 +950,7 @@ func (t *tun) connect() error {
 
 		// still connected but the tunnel died
 		if err != nil && t.connected {
-			log.Logf("Tunnel listener died: %v", err)
+			log.Errorf("Tunnel listener died: %v", err)
 		}
 	}()
 

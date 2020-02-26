@@ -156,7 +156,7 @@ func (h *httpTransportClient) Recv(m *Message) error {
 	m.Body = b
 
 	if m.Header == nil {
-		m.Header = make(map[string]string)
+		m.Header = make(map[string]string, len(rsp.Header))
 	}
 
 	for k, v := range rsp.Header {
@@ -193,10 +193,6 @@ func (h *httpTransportSocket) Recv(m *Message) error {
 		return errors.New("message passed in is nil")
 	}
 
-	if m.Header == nil {
-		m.Header = make(map[string]string)
-	}
-
 	// process http 1
 	if h.r.ProtoMajor == 1 {
 		// set timeout if its greater than 0
@@ -227,6 +223,10 @@ func (h *httpTransportSocket) Recv(m *Message) error {
 		// set body
 		r.Body.Close()
 		m.Body = b
+
+		if m.Header == nil {
+			m.Header = make(map[string]string, len(r.Header))
+		}
 
 		// set headers
 		for k, v := range r.Header {
