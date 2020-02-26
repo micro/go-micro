@@ -1,12 +1,19 @@
-package grpc
+package grpc_test
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
+	"github.com/micro/go-micro/v2"
+	bmemory "github.com/micro/go-micro/v2/broker/memory"
+	"github.com/micro/go-micro/v2/client"
+	gcli "github.com/micro/go-micro/v2/client/grpc"
 	"github.com/micro/go-micro/v2/errors"
-	"github.com/micro/go-micro/v2/registry/memory"
+	rmemory "github.com/micro/go-micro/v2/registry/memory"
 	"github.com/micro/go-micro/v2/server"
+	gsrv "github.com/micro/go-micro/v2/server/grpc"
+	tgrpc "github.com/micro/go-micro/v2/transport/grpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/status"
 
@@ -14,7 +21,14 @@ import (
 )
 
 // server is used to implement helloworld.GreeterServer.
-type testServer struct{}
+type testServer struct {
+	msgCount int
+}
+
+func (s *testServer) Handle(ctx context.Context, msg *pb.Request) error {
+	s.msgCount++
+	return nil
+}
 
 // TestHello implements helloworld.GreeterServer
 func (s *testServer) Call(ctx context.Context, req *pb.Request, rsp *pb.Response) error {
@@ -27,14 +41,30 @@ func (s *testServer) Call(ctx context.Context, req *pb.Request, rsp *pb.Response
 }
 
 func TestGRPCServer(t *testing.T) {
-	r := memory.NewRegistry()
-	s := NewServer(
+	r := rmemory.NewRegistry()
+	b := bmemory.NewBroker()
+	tr := tgrpc.NewTransport()
+	s := gsrv.NewServer(
+		server.Broker(b),
 		server.Name("foo"),
 		server.Registry(r),
+		server.Transport(tr),
 	)
+	c := gcli.NewClient(
+		client.Registry(r),
+		client.Broker(b),
+		client.Transport(tr),
+	)
+	ctx := context.TODO()
 
-	pb.RegisterTestHandler(s, &testServer{})
+	h := &testServer{}
+	pb.RegisterTestHandler(s, h)
 
+	if err := micro.RegisterSubscriber("test_topic", s, h.Handle,
+		server.SubscriberQueue("test_queue1"),
+	); err != nil {
+		t.Fatal(err)
+	}
 	if err := s.Start(); err != nil {
 		t.Fatalf("failed to start: %v", err)
 	}
@@ -50,6 +80,18 @@ func TestGRPCServer(t *testing.T) {
 			t.Fatalf("failed to stop: %v", err)
 		}
 	}()
+
+	pub := micro.NewEvent("test_topic", c)
+	cnt := 4
+	for i := 0; i < cnt; i++ {
+		if err = pub.Publish(ctx, &pb.Request{Name: fmt.Sprintf("msg %d", i)}); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	if h.msgCount != cnt {
+		t.Fatalf("pub/sub not work, or invalid message count %d", h.msgCount)
+	}
 
 	cc, err := grpc.Dial(s.Options().Address, grpc.WithInsecure())
 	if err != nil {
