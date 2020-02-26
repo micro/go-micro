@@ -154,6 +154,12 @@ func (s *service) start() error {
 		return nil
 	}
 
+	for _, fn := range s.opts.BeforeStart {
+		if err := fn(); err != nil {
+			return err
+		}
+	}
+
 	l, err := s.listen("tcp", s.opts.Address)
 	if err != nil {
 		return err
@@ -190,12 +196,6 @@ func (s *service) start() error {
 				}
 			}
 		})
-	}
-
-	for _, fn := range s.opts.BeforeStart {
-		if err := fn(); err != nil {
-			return err
-		}
 	}
 
 	var httpSrv *http.Server
