@@ -1,16 +1,25 @@
 package auth
 
 import (
-	"errors"
+	"encoding/base32"
 	"sync"
 	"time"
-
-	"github.com/google/uuid"
 )
 
 var (
 	DefaultAuth = NewAuth()
 )
+
+func genAccount(id string) *Account {
+	// return a pseudo account
+	return &Account{
+		Id:       id,
+		Token:    base32.StdEncoding.EncodeToString([]byte(id)),
+		Created:  time.Now(),
+		Expiry:   time.Now().Add(time.Hour * 24),
+		Metadata: make(map[string]string),
+	}
+}
 
 // NewAuth returns a new default registry which is memory
 func NewAuth(opts ...Option) Auth {
@@ -18,6 +27,7 @@ func NewAuth(opts ...Option) Auth {
 	for _, o := range opts {
 		o(&options)
 	}
+
 	return &memory{
 		accounts: make(map[string]*Account),
 		opts:     options,
@@ -51,13 +61,7 @@ func (n *memory) Generate(id string, opts ...GenerateOption) (*Account, error) {
 	}
 
 	// return a pseudo account
-	acc := &Account{
-		Id:       id,
-		Token:    uuid.New().String(),
-		Created:  time.Now(),
-		Expiry:   time.Now().Add(time.Hour * 24),
-		Metadata: make(map[string]string),
-	}
+	acc := genAccount(id)
 
 	// set opts
 	if len(options.Roles) > 0 {
@@ -86,10 +90,30 @@ func (n *memory) Revoke(token string) error {
 func (n *memory) Verify(token string) (*Account, error) {
 	n.RLock()
 	defer n.RUnlock()
+
+	if len(token) == 0 {
+		return &Account{}, nil
+	}
+
+	// try get the local account if it exists
 	if acc, ok := n.accounts[token]; ok {
 		return acc, nil
 	}
-	return nil, errors.New("account not found")
+
+	// decode the token otherwise
+	b, err := base32.StdEncoding.DecodeString(token)
+	if err != nil {
+		return nil, err
+	}
+
+	// return a pseudo account based on token/id
+	return &Account{
+		Id: string(b),
+		Token: token,
+		Created: time.Now(),
+		Expiry: time.Now().Add(time.Hour * 24),
+		Metadata: make(map[string]string),
+	}, nil
 }
 
 func (n *memory) String() string {

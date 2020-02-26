@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
+	"strings"
 
 	conf "github.com/micro/go-micro/v2/config"
 	"github.com/micro/go-micro/v2/config/source/file"
@@ -39,7 +40,9 @@ func Get(key string) (string, error) {
 	}
 
 	// set a value
-	return c.Get(key).String(""), nil
+	tk := c.Get(key).String("")
+
+	return strings.TrimSpace(tk), nil
 }
 
 // Set a value in the .micro file
