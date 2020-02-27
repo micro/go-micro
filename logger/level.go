@@ -16,8 +16,6 @@ const (
 	WarnLevel
 	// ErrorLevel level. Logs. Used for errors that should definitely be noted.
 	ErrorLevel
-	// PanicLevel level, logs the message and then panics.
-	PanicLevel
 	// FatalLevel level. Logs and then calls `logger.Exit(1)`. highest level of severity.
 	FatalLevel
 )
@@ -34,8 +32,6 @@ func (l Level) String() string {
 		return "warn"
 	case ErrorLevel:
 		return "error"
-	case PanicLevel:
-		return "panic"
 	case FatalLevel:
 		return "fatal"
 	}
@@ -61,12 +57,10 @@ func GetLevel(levelStr string) (Level, error) {
 		return WarnLevel, nil
 	case ErrorLevel.String():
 		return ErrorLevel, nil
-	case PanicLevel.String():
-		return PanicLevel, nil
 	case FatalLevel.String():
 		return FatalLevel, nil
 	}
-	return InfoLevel, fmt.Errorf("Unknown Level String: '%s', defaulting to NoLevel", levelStr)
+	return InfoLevel, fmt.Errorf("Unknown Level String: '%s', defaulting to InfoLevel", levelStr)
 }
 
 func Info(args ...interface{}) {
@@ -107,14 +101,6 @@ func Error(args ...interface{}) {
 
 func Errorf(template string, args ...interface{}) {
 	DefaultLogger.Logf(ErrorLevel, template, args...)
-}
-
-func Panic(args ...interface{}) {
-	DefaultLogger.Log(PanicLevel, args...)
-}
-
-func Panicf(template string, args ...interface{}) {
-	DefaultLogger.Logf(PanicLevel, template, args...)
 }
 
 func Fatal(args ...interface{}) {
