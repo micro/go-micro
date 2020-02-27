@@ -22,7 +22,7 @@ var config = newConfig()
 
 // Get a value from the .micro file
 func Get(key string) (string, error) {
-  tk := c.Get(key).String("")
+	tk := config.Get(key).String("")
 	return strings.TrimSpace(tk), nil
 }
 
