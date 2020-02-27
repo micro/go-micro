@@ -1,60 +1,46 @@
 package flow
 
 import (
-	"log"
-
-	pbFlow "github.com/micro/go-micro/v2/flow/service/proto"
+	pb "github.com/micro/go-micro/v2/flow/service/proto"
 )
 
-func stepToProto(step *Step) *pbFlow.Step {
-	pb := &pbFlow.Step{
+func stepEqual(oldStep, newStep *Step) bool {
+	if oldStep.Name() == newStep.Name() {
+		return true
+	}
+	return false
+}
+
+func StepsToProto(steps Steps) *pb.Steps {
+	return nil
+}
+
+func ProtoToSteps(p *pb.Steps) Steps {
+	return nil
+}
+
+func StepToProto(step *Step) *pb.Step {
+	p := &pb.Step{
 		Name:      step.ID,
 		After:     step.After,
 		Before:    step.Before,
 		Operation: step.Operation.Encode(),
-		Fallback:  step.Fallback.Encode(),
 	}
-
-	return pb
+	return p
 }
 
-func stepEqual(ostep *Step, nstep *Step) bool {
-	if ostep.Name() == nstep.Name() {
-		return true
+func ProtoToStep(p *pb.Step) *Step {
+	op, ok := Operations[p.Operation.Type]
+	if !ok {
+		return nil
 	}
-
-	return false
-}
-
-func protoToStep(pb *pbFlow.Step) *Step {
-	var nop Operation
-	var fop Operation
-
-	if pb.Operation != nil {
-		op, ok := Operations[pb.Operation.Type]
-		if !ok {
-			log.Printf("unknown op %v\n", pb.Operation)
-			return nil
-		}
-		nop = op.New()
-		nop.Decode(pb.Operation)
-	}
-
-	if pb.Fallback != nil {
-		op, ok := Operations[pb.Fallback.Type]
-		if !ok {
-			log.Printf("unknown op %v\n", pb.Fallback)
-			return nil
-		}
-		fop = op.New()
-		fop.Decode(pb.Fallback)
-	}
+	nop := op.New()
+	nop.Decode(p.Operation)
 
 	st := &Step{
-		ID:        pb.Name,
-		After:     pb.After,
-		Before:    pb.Before,
-		Fallback:  fop,
+		ID:        p.Name,
+		After:     p.After,
+		Before:    p.Before,
 		Operation: nop,
 	}
 

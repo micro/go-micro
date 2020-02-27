@@ -10,6 +10,8 @@ import (
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/google/uuid"
 	lru "github.com/hashicorp/golang-lru"
+	pb "github.com/micro/go-micro/v2/flow/service/proto"
+	"github.com/micro/go-micro/v2/store"
 	"github.com/panjf2000/ants/v2"
 )
 
@@ -17,6 +19,9 @@ type Status int
 
 const (
 	StatusUnknown Status = iota
+	StatusPending
+	StatusFailure
+	StatusSuccess
 	StatusPaused
 	StatusAborted
 	StatusStopped
@@ -67,19 +72,48 @@ func NewFlow(opts ...Option) Flow {
 	return fl
 }
 
-func (fl *microFlow) ReplaceStep(flow string, oldstep *Step, newstep *Step) error {
-	steps, err := fl.options.FlowStore.Load(fl.options.Context, flow)
+func (fl *microFlow) readFlow(name string) ([]*pb.Step, error) {
+	records, err := fl.options.FlowStore.Read(name)
+	if err != nil {
+		return nil, err
+	}
+
+	rec := records[0]
+
+	pbsteps := &pb.Steps{}
+	if err = proto.Unmarshal(rec.Value, pbsteps); err != nil {
+		return nil, err
+	}
+
+	return pbsteps.Steps, nil
+}
+
+func (fl *microFlow) writeFlow(name string, pbsteps []*pb.Step) error {
+	buf, err := proto.Marshal(&pb.Steps{Steps: pbsteps})
 	if err != nil {
 		return err
 	}
 
-	for idx, step := range steps {
-		if stepEqual(step, oldstep) {
-			steps[idx] = newstep
+	if err = fl.options.FlowStore.Write(&store.Record{Key: name, Value: buf}); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (fl *microFlow) ReplaceStep(flow string, oldstep *Step, newstep *Step) error {
+	pbsteps, err := fl.readFlow(flow)
+	if err != nil {
+		return err
+	}
+
+	for idx, pbstep := range pbsteps {
+		if pbstep.Name == oldstep.Name() {
+			pbsteps[idx] = StepToProto(newstep)
 		}
 	}
 
-	if err = fl.options.FlowStore.Save(fl.options.Context, flow, steps); err != nil {
+	if err = fl.writeFlow(flow, pbsteps); err != nil {
 		return err
 	}
 
@@ -87,14 +121,14 @@ func (fl *microFlow) ReplaceStep(flow string, oldstep *Step, newstep *Step) erro
 }
 
 func (fl *microFlow) CreateStep(flow string, step *Step) error {
-	steps, err := fl.options.FlowStore.Load(fl.options.Context, flow)
-	if err != nil && err != ErrFlowNotFound {
+	pbsteps, err := fl.readFlow(flow)
+	if err != nil && err != store.ErrNotFound {
 		return err
 	}
 
-	steps = append(steps, step)
+	pbsteps = append(pbsteps, StepToProto(step))
 
-	if err = fl.options.FlowStore.Save(fl.options.Context, flow, steps); err != nil {
+	if err = fl.writeFlow(flow, pbsteps); err != nil {
 		return err
 	}
 
@@ -106,38 +140,35 @@ func (fl *microFlow) Result(flow string, rid string, step *Step) ([]byte, error)
 	return nil, nil
 }
 
-// State flow request
-func (fl *microFlow) State(flow string, rid string) (string, error) {
-	buf, err := fl.options.StateStore.Read(fl.options.Context, flow, rid, []byte("flow"))
-	if err != nil {
-		return "", err
-	}
-	return string(buf), nil
-}
-
 // Lookup flow steps
 func (fl *microFlow) Lookup(flow string) ([]*Step, error) {
-	steps, err := fl.options.FlowStore.Load(fl.options.Context, flow)
+	pbsteps, err := fl.readFlow(flow)
 	if err != nil {
 		return nil, err
+	}
+
+	steps := make([]*Step, 0, len(pbsteps))
+	for _, pbstep := range pbsteps {
+		steps = append(steps, ProtoToStep(pbstep))
 	}
 
 	return steps, nil
 }
 
 func (fl *microFlow) DeleteStep(flow string, step *Step) error {
-	steps, err := fl.options.FlowStore.Load(fl.options.Context, flow)
+	pbsteps, err := fl.readFlow(flow)
 	if err != nil {
 		return err
 	}
 
-	for idx, curstep := range steps {
-		if stepEqual(curstep, step) {
-			steps = append(steps[:idx], steps[idx+1:]...)
+	for idx, pbstep := range pbsteps {
+		step := ProtoToStep(pbstep)
+		if pbstep.Name == step.Name() {
+			pbsteps = append(pbsteps[:idx], pbsteps[idx+1:]...)
 		}
 	}
 
-	if err = fl.options.FlowStore.Save(fl.options.Context, flow, steps); err != nil {
+	if err = fl.writeFlow(flow, pbsteps); err != nil {
 		return err
 	}
 
@@ -146,12 +177,18 @@ func (fl *microFlow) DeleteStep(flow string, step *Step) error {
 
 func (fl *microFlow) Status(flow string, rid string) (Status, error) {
 	state := StatusUnknown
-	buf, err := fl.options.StateStore.Read(fl.options.Context, flow, rid, []byte("status"))
+	records, err := fl.options.StateStore.Read(fmt.Sprintf("%s-%s-%s", flow, rid, "status"))
 	if err != nil {
 		return state, err
 	}
 
-	switch string(buf) {
+	switch string(records[0].Value) {
+	case "pending":
+		state = StatusPending
+	case "failure":
+		state = StatusFailure
+	case "success":
+		state = StatusSuccess
 	case "aborted":
 		state = StatusAborted
 	case "paused":
@@ -164,15 +201,26 @@ func (fl *microFlow) Status(flow string, rid string) (Status, error) {
 }
 
 func (fl *microFlow) Abort(flow string, rid string) error {
-	return fl.options.StateStore.Write(fl.options.Context, flow, rid, []byte("status"), []byte("aborted"))
+	return fl.options.StateStore.Write(&store.Record{
+		Key:   fmt.Sprintf("%s-%s-%s", flow, rid, "status"),
+		Value: []byte("aborted"),
+	})
 }
 
 func (fl *microFlow) Pause(flow string, rid string) error {
-	return fl.options.StateStore.Write(fl.options.Context, flow, rid, []byte("status"), []byte("suspend"))
+	return fl.options.StateStore.Write(
+		&store.Record{
+			Key:   fmt.Sprintf("%s-%s-%s", flow, rid, "status"),
+			Value: []byte("suspend"),
+		})
 }
 
 func (fl *microFlow) Resume(flow string, rid string) error {
-	return fl.options.StateStore.Write(fl.options.Context, flow, rid, []byte("status"), []byte("running"))
+	return fl.options.StateStore.Write(
+		&store.Record{
+			Key:   fmt.Sprintf("%s-%s-%s", flow, rid, "status"),
+			Value: []byte("running"),
+		})
 }
 
 func (fl *microFlow) Execute(flow string, req interface{}, rsp interface{}, opts ...ExecuteOption) (string, error) {
@@ -308,13 +356,14 @@ func (fl *microFlow) loadDag(ctx context.Context, flow string) (dag, error) {
 	cdag, ok := fl.cache.Get(flow)
 	if ok {
 		cached := cdag.(*cacheDag)
-		modtime = fl.options.FlowStore.Modified(ctx, flow)
-		if modtime <= cached.timestamp {
-			return cached.dag, nil
-		}
+		_ = cached
+		//modtime = fl.options.FlowStore.Modified(ctx, flow)
+		//if modtime <= cached.timestamp {
+		//	return cached.dag, nil
+		//}
 	}
 
-	steps, err := fl.options.FlowStore.Load(ctx, flow)
+	steps, err := fl.Lookup(flow)
 	if err != nil {
 		return nil, err
 	}
@@ -420,7 +469,8 @@ func (fl *microFlow) flowHandler(req interface{}) {
 		return
 	}
 
-	if err = fl.options.StateStore.Write(options.Context, job.flow, job.rid, []byte("flow"), []byte("pending")); err != nil {
+	stateKey := fmt.Sprintf("%s-%s", job.flow, job.rid)
+	if err = fl.options.StateStore.Write(&store.Record{Key: stateKey, Value: []byte("pending")}); err != nil {
 		return
 	}
 
@@ -447,13 +497,13 @@ stepsLoop:
 	}
 
 	if err != nil {
-		if serr := fl.options.StateStore.Write(options.Context, job.flow, job.rid, []byte("flow"), []byte("failure")); serr != nil {
+		if serr := fl.options.StateStore.Write(&store.Record{Key: stateKey, Value: []byte("failure")}); serr != nil {
 			return
 		}
 		return
 	}
 
-	if err = fl.options.StateStore.Write(options.Context, job.flow, job.rid, []byte("flow"), []byte("success")); err != nil {
+	if err = fl.options.StateStore.Write(&store.Record{Key: stateKey, Value: []byte("success")}); err != nil {
 		return
 	}
 
@@ -464,15 +514,18 @@ func (fl *microFlow) stepHandler(ctx context.Context, step *Step, job *flowJob, 
 	var opErr error
 	var buf []byte
 
-	if err = fl.options.StateStore.Write(ctx, job.flow, job.rid, []byte(step.Name()), []byte("pending")); err != nil {
+	stateKey := fmt.Sprintf("%s-%s-%s", job.flow, job.rid, step.Name())
+	if err = fl.options.StateStore.Write(&store.Record{Key: stateKey, Value: []byte("pending")}); err != nil {
 		return err
 	}
 
 	var req []byte
 	if len(step.Input) > 0 {
-		if req, err = fl.options.DataStore.Read(ctx, job.flow, job.rid, []byte(step.Input)); err != nil {
+		rec, err := fl.options.DataStore.Read(fmt.Sprintf("%s-%s-%s", job.flow, job.rid, step.Input))
+		if err != nil {
 			return err
 		}
+		req = rec[0].Value
 	} else {
 		req = job.req
 	}
@@ -482,13 +535,14 @@ func (fl *microFlow) stepHandler(ctx context.Context, step *Step, job *flowJob, 
 		output = step.Output
 	}
 
+	dataKey := fmt.Sprintf("%s-%s-%s", job.flow, job.rid, output)
 	// operation handles retries, timeouts and so
 	buf, opErr = step.Operation.Execute(ctx, req, job.options...)
 	if opErr == nil {
-		if err = fl.options.StateStore.Write(ctx, job.flow, job.rid, []byte(step.Name()), []byte("complete")); err != nil {
+		if err = fl.options.StateStore.Write(&store.Record{Key: stateKey, Value: []byte("success")}); err != nil {
 			return err
 		}
-		if err = fl.options.DataStore.Write(ctx, job.flow, job.rid, []byte(output), buf); err != nil {
+		if err = fl.options.DataStore.Write(&store.Record{Key: dataKey, Value: buf}); err != nil {
 			return err
 		}
 		if initial {
@@ -497,7 +551,7 @@ func (fl *microFlow) stepHandler(ctx context.Context, step *Step, job *flowJob, 
 		return nil
 	}
 
-	if err = fl.options.StateStore.Write(ctx, job.flow, job.rid, []byte(step.Name()), []byte("failure")); err != nil {
+	if err = fl.options.StateStore.Write(&store.Record{Key: stateKey, Value: []byte("failure")}); err != nil {
 		return err
 	}
 

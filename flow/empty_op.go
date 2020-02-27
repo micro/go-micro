@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	pbFlow "github.com/micro/go-micro/v2/flow/service/proto"
+	pb "github.com/micro/go-micro/v2/flow/service/proto"
 )
 
 type emptyOperation struct {
@@ -42,11 +42,12 @@ func (op *emptyOperation) String() string {
 	return op.name
 }
 
-func (op *emptyOperation) Encode() *pbFlow.Operation {
-	return nil
+func (op *emptyOperation) Encode() *pb.Operation {
+	return &pb.Operation{Name: op.Name(), Type: op.Type()}
 }
 
-func (op *emptyOperation) Decode(pb *pbFlow.Operation) {
+func (op *emptyOperation) Decode(p *pb.Operation) {
+	op.name = p.Name
 }
 
 func (op *emptyOperation) Options() OperationOptions {

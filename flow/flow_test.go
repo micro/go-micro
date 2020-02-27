@@ -9,7 +9,8 @@ import (
 	"github.com/micro/go-micro/v2/client"
 	"github.com/micro/go-micro/v2/flow"
 	proto "github.com/micro/go-micro/v2/flow/service/proto"
-	memory "github.com/micro/go-micro/v2/flow/store/memory"
+	"github.com/micro/go-micro/v2/store"
+	smemory "github.com/micro/go-micro/v2/store/memory"
 )
 
 func TestExecutor(t *testing.T) {
@@ -17,14 +18,10 @@ func TestExecutor(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	sStore := memory.NewDataStore()
-	dStore := memory.NewDataStore()
-	fStore := memory.NewFlowStore()
-
 	fl := flow.NewFlow(
-		flow.WithStateStore(sStore),
-		flow.WithDataStore(dStore),
-		flow.WithFlowStore(fStore),
+		flow.WithStateStore(smemory.NewStore(store.Namespace("state"))),
+		flow.WithDataStore(smemory.NewStore(store.Namespace("data"))),
+		flow.WithFlowStore(smemory.NewStore(store.Namespace("flow"))),
 	)
 
 	if err = fl.Init(); err != nil {

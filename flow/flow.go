@@ -8,6 +8,7 @@ import (
 	"github.com/micro/go-micro/v2/broker"
 	"github.com/micro/go-micro/v2/client"
 	"github.com/micro/go-micro/v2/logger"
+	"github.com/micro/go-micro/v2/store"
 )
 
 type Flow interface {
@@ -31,8 +32,8 @@ type Flow interface {
 	Pause(flow string, reqID string) error
 	// Abort specific flow execution by request id
 	Abort(flow string, reqID string) error
-	// State show state specific flow execution by request id
-	State(flow string, reqID string) (string, error)
+	// Status show status specific flow execution by request id
+	Status(flow string, reqID string) (Status, error)
 	// Result get result of the flow step
 	Result(flow string, reqID string, step *Step) ([]byte, error)
 	// Stop executor and drain active workers
@@ -73,6 +74,8 @@ func (s *Step) String() string {
 	//return fmt.Sprintf("step %s, ops: %s, requires: %v, required: %v", s.ID, s.Operations, s.Requires, s.Required)
 }
 
+type Steps []*Step
+
 type Option func(*Options)
 
 type Options struct {
@@ -85,11 +88,11 @@ type Options struct {
 	// Wait completiong before stop
 	Wait bool
 	// StateStore is used for flow state marking
-	StateStore DataStore
+	StateStore store.Store
 	// DataStore is used for intermediate data passed between flow nodes
-	DataStore DataStore
+	DataStore store.Store
 	// FlowStore is used for storing flows
-	FlowStore FlowStore
+	FlowStore store.Store
 	// EventHandler is used to notification about flow progress
 	EventHandler EventHandler
 	// PanicHandler is used for recovery panics
@@ -181,21 +184,21 @@ func WithConcurrency(c int) Option {
 }
 
 // State store implementation
-func WithStateStore(s DataStore) Option {
+func WithStateStore(s store.Store) Option {
 	return func(o *Options) {
 		o.StateStore = s
 	}
 }
 
 // Data store implementation
-func WithDataStore(s DataStore) Option {
+func WithDataStore(s store.Store) Option {
 	return func(o *Options) {
 		o.DataStore = s
 	}
 }
 
 // Flow store implementation
-func WithFlowStore(s FlowStore) Option {
+func WithFlowStore(s store.Store) Option {
 	return func(o *Options) {
 		o.FlowStore = s
 	}
