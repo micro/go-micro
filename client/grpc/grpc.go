@@ -26,6 +26,10 @@ import (
 	gmetadata "google.golang.org/grpc/metadata"
 )
 
+var (
+	BearerScheme = "Bearer "
+)
+
 type grpcClient struct {
 	opts client.Options
 	pool *pool
@@ -131,7 +135,7 @@ func (g *grpcClient) call(ctx context.Context, node *registry.Node, req client.R
 	header["x-content-type"] = req.ContentType()
 	// set the authorization token if one is saved locally
 	if token, err := config.Get("token"); err == nil && len(token) > 0 {
-		header["authorization"] = fmt.Sprintf("Bearer %v", token)
+		header["authorization"] = BearerScheme + token
 	}
 
 	md := gmetadata.New(header)
