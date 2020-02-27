@@ -104,7 +104,7 @@ func (n *memory) Verify(token string) (*Account, error) {
 	// decode the token otherwise
 	b, err := base32.StdEncoding.DecodeString(token)
 	if err != nil {
-		return nil, err
+		return genAccount(""), nil
 	}
 
 	// return a pseudo account based on token/id
