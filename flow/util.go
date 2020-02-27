@@ -24,6 +24,8 @@ func StepToProto(step *Step) *pb.Step {
 		Name:      step.ID,
 		After:     step.After,
 		Before:    step.Before,
+		Input:     step.Input,
+		Output:    step.Output,
 		Operation: step.Operation.Encode(),
 	}
 	return p
@@ -39,6 +41,8 @@ func ProtoToStep(p *pb.Step) *Step {
 
 	st := &Step{
 		ID:        p.Name,
+		Input:     p.Input,
+		Output:    p.Output,
 		After:     p.After,
 		Before:    p.Before,
 		Operation: nop,
