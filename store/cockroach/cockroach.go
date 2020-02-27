@@ -5,9 +5,9 @@ import (
 	"database/sql"
 	"fmt"
 	"net/url"
+	"regexp"
 	"strings"
 	"time"
-	"unicode"
 
 	"github.com/lib/pq"
 	log "github.com/micro/go-micro/v2/logger"
@@ -206,16 +206,17 @@ func (s *sqlStore) configure() error {
 		prefix = DefaultPrefix
 	}
 
-	for _, r := range namespace {
-		if !unicode.IsLetter(r) {
-			return errors.New("store.namespace must only contain letters")
-		}
+	// store.namespace must only contain letters
+	reg, err := regexp.Compile("[^a-zA-Z0-9]+")
+	if err != nil {
+		return errors.New("error compiling regex for namespace")
 	}
+	namespace = reg.ReplaceAllString(namespace, "")
 
 	source := nodes[0]
 	// check if it is a standard connection string eg: host=%s port=%d user=%s password=%s dbname=%s sslmode=disable
 	// if err is nil which means it would be a URL like postgre://xxxx?yy=zz
-	_, err := url.Parse(source)
+	_, err = url.Parse(source)
 	if err != nil {
 		if !strings.Contains(source, " ") {
 			source = fmt.Sprintf("host=%s", source)
