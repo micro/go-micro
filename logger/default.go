@@ -28,14 +28,14 @@ func (l *defaultLogger) String() string {
 	return "default"
 }
 
-func (l *defaultLogger) Fields(fields map[string]interface{}) Logger {
+func (l *defaultLogger) WithFields(fields map[string]interface{}) Logger {
 	l.Lock()
 	l.opts.Fields = copyFields(fields)
 	l.Unlock()
 	return l
 }
 
-func (l *defaultLogger) Error(err error) Logger {
+func (l *defaultLogger) WithError(err error) Logger {
 	l.Lock()
 	l.err = err
 	l.Unlock()
