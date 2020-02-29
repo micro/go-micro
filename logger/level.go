@@ -16,8 +16,6 @@ const (
 	WarnLevel
 	// ErrorLevel level. Logs. Used for errors that should definitely be noted.
 	ErrorLevel
-	// PanicLevel level, logs the message and then panics.
-	PanicLevel
 	// FatalLevel level. Logs and then calls `logger.Exit(1)`. highest level of severity.
 	FatalLevel
 )
@@ -34,8 +32,6 @@ func (l Level) String() string {
 		return "warn"
 	case ErrorLevel:
 		return "error"
-	case PanicLevel:
-		return "panic"
 	case FatalLevel:
 		return "fatal"
 	}
@@ -61,10 +57,56 @@ func GetLevel(levelStr string) (Level, error) {
 		return WarnLevel, nil
 	case ErrorLevel.String():
 		return ErrorLevel, nil
-	case PanicLevel.String():
-		return PanicLevel, nil
 	case FatalLevel.String():
 		return FatalLevel, nil
 	}
-	return InfoLevel, fmt.Errorf("Unknown Level String: '%s', defaulting to NoLevel", levelStr)
+	return InfoLevel, fmt.Errorf("Unknown Level String: '%s', defaulting to InfoLevel", levelStr)
+}
+
+func Info(args ...interface{}) {
+	DefaultLogger.Log(InfoLevel, args...)
+}
+
+func Infof(template string, args ...interface{}) {
+	DefaultLogger.Logf(InfoLevel, template, args...)
+}
+
+func Trace(args ...interface{}) {
+	DefaultLogger.Log(TraceLevel, args...)
+}
+
+func Tracef(template string, args ...interface{}) {
+	DefaultLogger.Logf(TraceLevel, template, args...)
+}
+
+func Debug(args ...interface{}) {
+	DefaultLogger.Log(DebugLevel, args...)
+}
+
+func Debugf(template string, args ...interface{}) {
+	DefaultLogger.Logf(DebugLevel, template, args...)
+}
+
+func Warn(args ...interface{}) {
+	DefaultLogger.Log(WarnLevel, args...)
+}
+
+func Warnf(template string, args ...interface{}) {
+	DefaultLogger.Logf(WarnLevel, template, args...)
+}
+
+func Error(args ...interface{}) {
+	DefaultLogger.Log(ErrorLevel, args...)
+}
+
+func Errorf(template string, args ...interface{}) {
+	DefaultLogger.Logf(ErrorLevel, template, args...)
+}
+
+func Fatal(args ...interface{}) {
+	DefaultLogger.Log(FatalLevel, args...)
+}
+
+func Fatalf(template string, args ...interface{}) {
+	DefaultLogger.Logf(FatalLevel, template, args...)
 }

@@ -7,6 +7,7 @@ import (
 	"github.com/micro/go-micro/v2/broker"
 	"github.com/micro/go-micro/v2/client"
 	"github.com/micro/go-micro/v2/client/selector"
+	"github.com/micro/go-micro/v2/debug/profile"
 	"github.com/micro/go-micro/v2/debug/trace"
 	"github.com/micro/go-micro/v2/registry"
 	"github.com/micro/go-micro/v2/runtime"
@@ -32,6 +33,7 @@ type Options struct {
 	Store     *store.Store
 	Tracer    *trace.Tracer
 	Auth      *auth.Auth
+	Profile   *profile.Profile
 
 	Brokers    map[string]func(...broker.Option) broker.Broker
 	Clients    map[string]func(...client.Option) client.Client
@@ -43,6 +45,7 @@ type Options struct {
 	Stores     map[string]func(...store.Option) store.Store
 	Tracers    map[string]func(...trace.Option) trace.Tracer
 	Auths      map[string]func(...auth.Option) auth.Auth
+	Profiles   map[string]func(...profile.Option) profile.Profile
 
 	// Other options for implementations of the interface
 	// can be stored in a context
@@ -115,6 +118,12 @@ func Tracer(t *trace.Tracer) Option {
 func Auth(a *auth.Auth) Option {
 	return func(o *Options) {
 		o.Auth = a
+	}
+}
+
+func Profile(p *profile.Profile) Option {
+	return func(o *Options) {
+		o.Profile = p
 	}
 }
 

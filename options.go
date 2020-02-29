@@ -10,6 +10,7 @@ import (
 	"github.com/micro/go-micro/v2/client"
 	"github.com/micro/go-micro/v2/client/selector"
 	"github.com/micro/go-micro/v2/config/cmd"
+	"github.com/micro/go-micro/v2/debug/profile"
 	"github.com/micro/go-micro/v2/debug/trace"
 	"github.com/micro/go-micro/v2/registry"
 	"github.com/micro/go-micro/v2/server"
@@ -25,6 +26,7 @@ type Options struct {
 	Server    server.Server
 	Registry  registry.Registry
 	Transport transport.Transport
+	Profile   profile.Profile
 
 	// Before and After funcs
 	BeforeStart []func() error
@@ -96,6 +98,13 @@ func Context(ctx context.Context) Option {
 func HandleSignal(b bool) Option {
 	return func(o *Options) {
 		o.Signal = b
+	}
+}
+
+// Profile to be used for debug profile
+func Profile(p profile.Profile) Option {
+	return func(o *Options) {
+		o.Profile = p
 	}
 }
 

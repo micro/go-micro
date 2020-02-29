@@ -5,10 +5,10 @@ import (
 	"math"
 	"time"
 
+	log "github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/sync/leader/etcd"
 	"github.com/micro/go-micro/v2/sync/task"
 	"github.com/micro/go-micro/v2/sync/task/local"
-	"github.com/micro/go-micro/v2/util/log"
 )
 
 type syncCron struct {
@@ -35,7 +35,7 @@ func (c *syncCron) Schedule(s task.Schedule, t task.Command) error {
 			// leader election
 			e, err := c.opts.Leader.Elect(id)
 			if err != nil {
-				log.Logf("[cron] leader election error: %v", err)
+				log.Errorf("[cron] leader election error: %v", err)
 				time.Sleep(backoff(i))
 				i++
 				continue
@@ -55,9 +55,9 @@ func (c *syncCron) Schedule(s task.Schedule, t task.Command) error {
 						break Tick
 					}
 
-					log.Logf("[cron] executing command %s", t.Name)
+					log.Infof("[cron] executing command %s", t.Name)
 					if err := c.opts.Task.Run(t); err != nil {
-						log.Logf("[cron] error executing command %s: %v", t.Name, err)
+						log.Errorf("[cron] error executing command %s: %v", t.Name, err)
 					}
 				// leader revoked
 				case <-r:

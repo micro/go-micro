@@ -2,15 +2,17 @@ package logger
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"log"
 	"os"
+	"sync"
+	"time"
+
+	dlog "github.com/micro/go-micro/v2/debug/log"
 )
 
 type defaultLogger struct {
+	sync.RWMutex
 	opts Options
-	err  error
 }
 
 // Init(opts...) should only overwrite provided options
@@ -26,54 +28,72 @@ func (l *defaultLogger) String() string {
 }
 
 func (l *defaultLogger) Fields(fields map[string]interface{}) Logger {
-	l.opts.Fields = fields
+	l.Lock()
+	l.opts.Fields = copyFields(fields)
+	l.Unlock()
 	return l
 }
 
-func (l *defaultLogger) Error(err error) Logger {
-	l.err = err
-	return l
+func copyFields(src map[string]interface{}) map[string]interface{} {
+	dst := make(map[string]interface{}, len(src))
+	for k, v := range src {
+		dst[k] = v
+	}
+	return dst
 }
 
 func (l *defaultLogger) Log(level Level, v ...interface{}) {
+	// TODO decide does we need to write message if log level not used?
 	if !l.opts.Level.Enabled(level) {
 		return
 	}
-	msg := fmt.Sprint(v...)
 
-	fields := l.opts.Fields
+	l.RLock()
+	fields := copyFields(l.opts.Fields)
+	l.RUnlock()
+
 	fields["level"] = level.String()
-	fields["message"] = msg
-	if l.err != nil {
-		fields["error"] = l.err.Error()
+
+	rec := dlog.Record{
+		Timestamp: time.Now(),
+		Message:   fmt.Sprint(v...),
+		Metadata:  make(map[string]string, len(fields)),
+	}
+	for k, v := range fields {
+		rec.Metadata[k] = fmt.Sprintf("%v", v)
 	}
 
-	enc := json.NewEncoder(l.opts.Out)
+	dlog.DefaultLog.Write(rec)
 
-	if err := enc.Encode(fields); err != nil {
-		log.Fatal(err)
-	}
+	t := rec.Timestamp.Format("2006-01-02 15:04:05")
+	fmt.Printf("%s %v\n", t, rec.Message)
 }
 
 func (l *defaultLogger) Logf(level Level, format string, v ...interface{}) {
+	//	 TODO decide does we need to write message if log level not used?
 	if level < l.opts.Level {
 		return
 	}
-	msg := fmt.Sprintf(format, v...)
 
-	fields := l.opts.Fields
+	l.RLock()
+	fields := copyFields(l.opts.Fields)
+	l.RUnlock()
+
 	fields["level"] = level.String()
-	fields["message"] = msg
-	if l.err != nil {
-		fields["error"] = l.err.Error()
+
+	rec := dlog.Record{
+		Timestamp: time.Now(),
+		Message:   fmt.Sprintf(format, v...),
+		Metadata:  make(map[string]string, len(fields)),
+	}
+	for k, v := range fields {
+		rec.Metadata[k] = fmt.Sprintf("%v", v)
 	}
 
-	enc := json.NewEncoder(l.opts.Out)
+	dlog.DefaultLog.Write(rec)
 
-	if err := enc.Encode(fields); err != nil {
-		log.Fatal(err)
-	}
-
+	t := rec.Timestamp.Format("2006-01-02 15:04:05")
+	fmt.Printf("%s %v\n", t, rec.Message)
 }
 
 func (n *defaultLogger) Options() Options {
@@ -91,6 +111,9 @@ func NewLogger(opts ...Option) Logger {
 	}
 
 	l := &defaultLogger{opts: options}
-	_ = l.Init(opts...)
+	if err := l.Init(opts...); err != nil {
+		l.Log(FatalLevel, err)
+	}
+
 	return l
 }
