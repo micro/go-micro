@@ -51,9 +51,6 @@ func (l *defaultLogger) Log(level Level, v ...interface{}) {
 
 	l.RLock()
 	fields := copyFields(l.opts.Fields)
-	if l.err != nil {
-		fields["error"] = l.err.Error()
-	}
 	l.RUnlock()
 
 	fields["level"] = level.String()
