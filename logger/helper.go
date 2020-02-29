@@ -55,3 +55,7 @@ func (h *Helper) Fatal(args ...interface{}) {
 func (h *Helper) Fatalf(template string, args ...interface{}) {
 	h.Logger.Logf(ErrorLevel, template, args...)
 }
+
+func (h *Helper) WithError(err error) *Helper {
+	return &Helper{h.Logger.Fields(map[string]interface{}{"err": err})}
+}
