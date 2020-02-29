@@ -13,9 +13,18 @@ type Options struct {
 
 	// for alternative data
 	Context context.Context
+
+	//Disable Watcher
+	DisableUpdates bool
 }
 
 type Option func(o *Options)
+
+func DisableUpdates() Option {
+	return func(args *Options) {
+		args.DisableUpdates = true
+	}
+}
 
 func NewOptions(opts ...Option) Options {
 	options := Options{

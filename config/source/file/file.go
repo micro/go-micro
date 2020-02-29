@@ -48,6 +48,9 @@ func (f *file) String() string {
 }
 
 func (f *file) Watch() (source.Watcher, error) {
+	if f.opts.DisableUpdates {
+		return source.NewNoopWatcher()
+	}
 	if _, err := os.Stat(f.path); err != nil {
 		return nil, err
 	}
