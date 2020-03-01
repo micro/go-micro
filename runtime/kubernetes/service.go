@@ -3,7 +3,6 @@ package kubernetes
 import (
 	"encoding/json"
 	"strings"
-	"time"
 
 	log "github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/runtime"
@@ -34,12 +33,15 @@ func newService(s *runtime.Service, c runtime.CreateOptions) *service {
 	kservice := client.NewService(name, version, c.Type)
 	kdeploy := client.NewDeployment(name, version, c.Type)
 
-	if len(c.Source) > 0 {
-		for i := range kdeploy.Spec.Template.PodSpec.Containers {
-			kdeploy.Spec.Template.PodSpec.Containers[i].Image = c.Source
-			kdeploy.Spec.Template.PodSpec.Containers[i].Command = []string{}
-			kdeploy.Spec.Template.PodSpec.Containers[i].Args = []string{name}
-		}
+	// ensure the metadata is set
+	if kdeploy.Spec.Template.Metadata.Annotations == nil {
+		kdeploy.Spec.Template.Metadata.Annotations = make(map[string]string)
+	}
+
+	// add the service metadata to the k8s labels, do this first so we
+	// don't override any labels used by the runtime, e.g. name
+	for k, v := range s.Metadata {
+		kdeploy.Metadata.Annotations[k] = v
 	}
 
 	// attach our values to the deployment; name, version, source
@@ -51,11 +53,16 @@ func newService(s *runtime.Service, c runtime.CreateOptions) *service {
 	kdeploy.Metadata.Annotations["owner"] = "micro"
 	kdeploy.Metadata.Annotations["group"] = "micro"
 
-	// set a build timestamp to the current time
-	if kdeploy.Spec.Template.Metadata.Annotations == nil {
-		kdeploy.Spec.Template.Metadata.Annotations = make(map[string]string)
+	// update the deployment is a custom source is provided
+	if len(c.Source) > 0 {
+		for i := range kdeploy.Spec.Template.PodSpec.Containers {
+			kdeploy.Spec.Template.PodSpec.Containers[i].Image = c.Source
+			kdeploy.Spec.Template.PodSpec.Containers[i].Command = []string{}
+			kdeploy.Spec.Template.PodSpec.Containers[i].Args = []string{name}
+		}
+
+		kdeploy.Metadata.Annotations["source"] = c.Source
 	}
-	kdeploy.Spec.Template.Metadata.Annotations["build"] = time.Now().Format(time.RFC3339)
 
 	// define the environment values used by the container
 	env := make([]client.EnvVar, 0, len(c.Env))

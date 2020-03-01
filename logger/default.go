@@ -13,7 +13,6 @@ import (
 type defaultLogger struct {
 	sync.RWMutex
 	opts Options
-	err  error
 }
 
 // Init(opts...) should only overwrite provided options
@@ -35,13 +34,6 @@ func (l *defaultLogger) Fields(fields map[string]interface{}) Logger {
 	return l
 }
 
-func (l *defaultLogger) Error(err error) Logger {
-	l.Lock()
-	l.err = err
-	l.Unlock()
-	return l
-}
-
 func copyFields(src map[string]interface{}) map[string]interface{} {
 	dst := make(map[string]interface{}, len(src))
 	for k, v := range src {
@@ -58,9 +50,6 @@ func (l *defaultLogger) Log(level Level, v ...interface{}) {
 
 	l.RLock()
 	fields := copyFields(l.opts.Fields)
-	if l.err != nil {
-		fields["error"] = l.err.Error()
-	}
 	l.RUnlock()
 
 	fields["level"] = level.String()
@@ -88,9 +77,6 @@ func (l *defaultLogger) Logf(level Level, format string, v ...interface{}) {
 
 	l.RLock()
 	fields := copyFields(l.opts.Fields)
-	if l.err != nil {
-		fields["error"] = l.err.Error()
-	}
 	l.RUnlock()
 
 	fields["level"] = level.String()

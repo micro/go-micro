@@ -3,7 +3,7 @@ package logger
 
 var (
 	// Default logger
-	DefaultLogger Logger = NewLogger()
+	DefaultLogger Logger = NewHelper(NewLogger())
 )
 
 // Logger is a generic logging interface
@@ -12,8 +12,6 @@ type Logger interface {
 	Init(options ...Option) error
 	// The Logger options
 	Options() Options
-	// Error set `error` field to be logged
-	Error(err error) Logger
 	// Fields set fields to always be logged
 	Fields(fields map[string]interface{}) Logger
 	// Log writes a log entry
@@ -42,8 +40,4 @@ func Logf(level Level, format string, v ...interface{}) {
 
 func String() string {
 	return DefaultLogger.String()
-}
-
-func WithError(err error) Logger {
-	return DefaultLogger.Error(err)
 }
