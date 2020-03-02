@@ -59,7 +59,7 @@ func (op *clientPublishOperation) Execute(ctx context.Context, data []byte, opts
 	// header to send reply back
 	md["Micro-Response"] = fmt.Sprintf("%s-%s", op.topic, options.ID)
 
-	sub, err := options.Broker.Subscribe(md["Micro-Response"], func(evt broker.Event) error {
+	sub, err := options.Client.Options().Broker.Subscribe(md["Micro-Response"], func(evt broker.Event) error {
 		return evt.Ack()
 	}, broker.SubscribeContext(ctx))
 	if err != nil {
@@ -69,7 +69,7 @@ func (op *clientPublishOperation) Execute(ctx context.Context, data []byte, opts
 		_ = sub.Unsubscribe()
 	}()
 
-	err = options.Broker.Publish(op.topic, &broker.Message{Header: md, Body: data})
+	err = options.Client.Options().Broker.Publish(op.topic, &broker.Message{Header: md, Body: data})
 	if err != nil {
 		return nil, err
 	}

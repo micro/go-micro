@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/micro/go-micro/v2/broker"
 	"github.com/micro/go-micro/v2/client"
 	"github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/store"
@@ -142,8 +141,6 @@ type ExecuteOptions struct {
 	Context context.Context
 	// Client for communication
 	Client client.Client
-	// Broker for communication
-	Broker broker.Broker
 }
 
 type ExecuteOption func(*ExecuteOptions)
@@ -295,12 +292,5 @@ func ExecuteContext(ctx context.Context) ExecuteOption {
 func ExecuteClient(c client.Client) ExecuteOption {
 	return func(o *ExecuteOptions) {
 		o.Client = c
-	}
-}
-
-// Broker for communication
-func ExecuteBroker(b broker.Broker) ExecuteOption {
-	return func(o *ExecuteOptions) {
-		o.Broker = b
 	}
 }

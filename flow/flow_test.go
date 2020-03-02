@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/micro/go-micro/v2/broker"
 	"github.com/micro/go-micro/v2/client"
 	"github.com/micro/go-micro/v2/flow"
 	proto "github.com/micro/go-micro/v2/flow/service/proto"
@@ -103,7 +102,6 @@ func TestExecutor(t *testing.T) {
 		flow.ExecuteAsync(false),
 		flow.ExecuteStep("cms_account.AccountService.AccountCreate"),
 		flow.ExecuteClient(client.DefaultClient),
-		flow.ExecuteBroker(broker.DefaultBroker),
 	)
 	if err != nil {
 		t.Fatal(err)
