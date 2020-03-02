@@ -333,7 +333,7 @@ func (fl *microFlow) Init(opts ...Option) error {
 		fl.options.Concurrency,
 		fl.flowHandler,
 		ants.WithNonblocking(fl.options.Nonblock),
-		ants.WithPanicHandler(fl.options.PanicHandler),
+		ants.WithPanicHandler(fl.options.ErrorHandler),
 		ants.WithPreAlloc(fl.options.Prealloc),
 	)
 	if err != nil {

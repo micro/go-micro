@@ -94,8 +94,8 @@ type Options struct {
 	FlowStore store.Store
 	// EventHandler is used to notification about flow progress
 	EventHandler EventHandler
-	// PanicHandler is used for recovery panics
-	PanicHandler func(interface{})
+	// ErrorHandler is used for recovery panics
+	ErrorHandler func(interface{})
 	// Logger is used internally to provide messages
 	Logger logger.Logger
 	// Context is used for storing non default options
@@ -160,9 +160,9 @@ func WithNonblock(b bool) Option {
 }
 
 // Panic handler
-func WithPanicHandler(h func(interface{})) Option {
+func WithErrorHandler(h func(interface{})) Option {
 	return func(o *Options) {
-		o.PanicHandler = h
+		o.ErrorHandler = h
 	}
 }
 
