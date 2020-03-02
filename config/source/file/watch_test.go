@@ -33,21 +33,24 @@ func TestWatch(t *testing.T) {
 		file.WithPath(path),
 	))
 
+	w, err := config.Watch()
+	if err != nil {
+		t.Error(err)
+	}
+
 	go func() {
-		_, err := config.Watch("foo")
-		if err != nil {
-			t.Error(err)
-		}
+		time.Sleep(50 * time.Millisecond)
+		w.Stop()
 	}()
 
 	t.Log(config.Get("foo").String("no_foo"))
 
-	time.Sleep(1 * time.Second)
+	time.Sleep(50 * time.Millisecond)
 	_, err = fh.WriteAt([]byte(`{"foo": "bar2"}`), 0)
 	if err != nil {
 		t.Error(err)
 	}
-	time.Sleep(1 * time.Second)
+	time.Sleep(50 * time.Millisecond)
 	t.Log(config.Get("foo").String("no_foo"))
 }
 
@@ -73,20 +76,23 @@ func TestDisableUpdates(t *testing.T) {
 		source.DisableUpdates(),
 	))
 
+	w, err := config.Watch()
+	if err != nil {
+		t.Error(err)
+	}
+
 	go func() {
-		_, err := config.Watch("foo")
-		if err != nil {
-			t.Error(err)
-		}
+		time.Sleep(100 * time.Millisecond)
+		w.Stop()
 	}()
 
 	t.Log(config.Get("foo").String("no_foo"))
 
-	time.Sleep(1 * time.Second)
+	time.Sleep(50 * time.Millisecond)
 	_, err = fh.WriteAt([]byte(`{"foo": "bar2"}`), 0)
 	if err != nil {
 		t.Error(err)
 	}
-	time.Sleep(1 * time.Second)
+	time.Sleep(50 * time.Millisecond)
 	t.Log(config.Get("foo").String("no_foo"))
 }
