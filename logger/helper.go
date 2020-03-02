@@ -61,5 +61,5 @@ func (h *Helper) WithError(err error) *Helper {
 }
 
 func (h *Helper) WithFields(fields map[string]interface{}) *Helper {
-	return &Helper{h.Logger.Fields(fields)}
+	return &Helper{h.Logger.Fields(copyFields(fields))}
 }
