@@ -48,9 +48,17 @@ func (k *kubernetes) getService(labels map[string]string) ([]*runtime.Service, e
 		Kind:  "deployment",
 		Value: depList,
 	}
-
-	// get the deployment from k8s
 	if err := k.client.Get(d, labels); err != nil {
+		return nil, err
+	}
+
+	// get the pods from k8s
+	podList := new(client.PodList)
+	p := &client.Resource{
+		Kind:  "pod",
+		Value: podList,
+	}
+	if err := k.client.Get(p, labels); err != nil {
 		return nil, err
 	}
 
@@ -107,37 +115,22 @@ func (k *kubernetes) getService(labels map[string]string) ([]*runtime.Service, e
 				svc.Metadata[k] = v
 			}
 
-			// parse out deployment status and inject into service metadata
-			if len(kdep.Status.Conditions) > 0 {
-				var status string
-				switch kdep.Status.Conditions[0].Type {
-				case "Available":
-					status = "running"
-					delete(svc.Metadata, "error")
-				case "Progressing":
+			// get the status from the pods
+			status := "unknown"
+			if len(podList.Items) > 0 {
+				switch podList.Items[0].Status.Conditions[0].Type {
+				case "PodScheduled":
 					status = "starting"
-					delete(svc.Metadata, "error")
-				default:
-					status = "error"
-					svc.Metadata["error"] = kdep.Status.Conditions[0].Message
+				case "Initialized":
+					status = "starting"
+				case "Ready":
+					status = "ready"
+				case "ContainersReady":
+					status = "ready"
 				}
-				// pick the last known condition type and mark the service status with it
-				log.Debugf("Runtime setting %s service deployment status: %v", name, status)
-				svc.Metadata["status"] = status
 			}
-
-			// parse out deployment build
-			if build, ok := kdep.Spec.Template.Metadata.Annotations["build"]; ok {
-				buildTime, err := time.Parse(time.RFC3339, build)
-				if err != nil {
-					log.Debugf("Runtime failed parsing build time for %s: %v", name, err)
-					continue
-				}
-				svc.Metadata["build"] = fmt.Sprintf("%d", buildTime.Unix())
-				continue
-			}
-			// if no build annotation is found, set it to current time
-			svc.Metadata["build"] = fmt.Sprintf("%d", time.Now().Unix())
+			log.Debugf("Runtime setting %s service deployment status: %v", name, status)
+			svc.Metadata["status"] = status
 		}
 	}
 
