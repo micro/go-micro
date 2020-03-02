@@ -192,6 +192,9 @@ func (h *httpTransportSocket) Recv(m *Message) error {
 	if m == nil {
 		return errors.New("message passed in is nil")
 	}
+	if m.Header == nil {
+		m.Header = make(map[string]string, len(h.r.Header))
+	}
 
 	// process http 1
 	if h.r.ProtoMajor == 1 {
@@ -223,10 +226,6 @@ func (h *httpTransportSocket) Recv(m *Message) error {
 		// set body
 		r.Body.Close()
 		m.Body = b
-
-		if m.Header == nil {
-			m.Header = make(map[string]string, len(r.Header))
-		}
 
 		// set headers
 		for k, v := range r.Header {
