@@ -102,6 +102,9 @@ func (fl *microFlow) writeFlow(name string, pbsteps []*pb.Step) error {
 }
 
 func (fl *microFlow) ReplaceStep(flow string, oldstep *Step, newstep *Step) error {
+	fl.Lock()
+	defer fl.Unlock()
+
 	pbsteps, err := fl.readFlow(flow)
 	if err != nil {
 		return err
@@ -121,6 +124,9 @@ func (fl *microFlow) ReplaceStep(flow string, oldstep *Step, newstep *Step) erro
 }
 
 func (fl *microFlow) CreateStep(flow string, step *Step) error {
+	fl.Lock()
+	defer fl.Unlock()
+
 	pbsteps, err := fl.readFlow(flow)
 	if err != nil && err != store.ErrNotFound {
 		return err
@@ -142,6 +148,9 @@ func (fl *microFlow) Result(flow string, rid string, step *Step) ([]byte, error)
 
 // Lookup flow steps
 func (fl *microFlow) Lookup(flow string) ([]*Step, error) {
+	fl.RLock()
+	defer fl.RUnlock()
+
 	pbsteps, err := fl.readFlow(flow)
 	if err != nil {
 		return nil, err
@@ -156,6 +165,9 @@ func (fl *microFlow) Lookup(flow string) ([]*Step, error) {
 }
 
 func (fl *microFlow) DeleteStep(flow string, step *Step) error {
+	fl.Lock()
+	defer fl.Unlock()
+
 	pbsteps, err := fl.readFlow(flow)
 	if err != nil {
 		return err
