@@ -2,10 +2,10 @@ package flow_test
 
 import (
 	"context"
-	"fmt"
 	"testing"
 	"time"
 
+	micro "github.com/micro/go-micro/v2"
 	"github.com/micro/go-micro/v2/broker"
 	mbroker "github.com/micro/go-micro/v2/broker/memory"
 	"github.com/micro/go-micro/v2/client"
@@ -21,14 +21,35 @@ import (
 )
 
 type handler struct {
+	ctx context.Context
+	brk broker.Broker
+	cli client.Client
 }
 
-func (h *handler) AccountCreate(ctx context.Context, evt broker.Event) {
-	fmt.Printf("AccountCreate %#+v\n", evt)
+func (h *handler) AccountCreate(evt broker.Event) error {
+	topic, sendRsp := evt.Message().Header["Micro-Response"]
+
+	if sendRsp {
+		pub := micro.NewEvent(topic, h.cli)
+		if err := pub.Publish(h.ctx, &proto.Test{Name: "AccountCreate"}); err != nil {
+			return err
+		}
+	}
+
+	return evt.Ack()
 }
 
-func (h *handler) ContactCreate(ctx context.Context, evt broker.Event) {
-	fmt.Printf("ContactCreate %#+v\n", evt)
+func (h *handler) ContactCreate(evt broker.Event) error {
+	topic, sendRsp := evt.Message().Header["Micro-Response"]
+
+	if sendRsp {
+		pub := micro.NewEvent(topic, h.cli)
+		if err := pub.Publish(h.ctx, &proto.Test{Name: "ContactCreate"}); err != nil {
+			return err
+		}
+	}
+
+	return evt.Ack()
 }
 
 func TestClientCall(t *testing.T) {
@@ -125,8 +146,8 @@ func TestClientCall(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_ = rid
-	//	t.Logf("rid %s", rid)
+	t.Logf("rid %s rsp: %#+v\n", rid, rsp)
+
 }
 
 func TestClientPubsub(t *testing.T) {
@@ -160,22 +181,40 @@ func TestClientPubsub(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	brk := mbroker.NewBroker()
-	tr := tmemory.NewTransport()
 	reg := rmemory.NewRegistry()
+	brk := mbroker.NewBroker(broker.Registry(reg))
+	brk.Connect()
+	tr := tmemory.NewTransport()
 	cli := client.NewClient(
 		client.Selector(rselector.NewSelector(selector.Registry(reg))),
 		client.Registry(reg), client.Transport(tr), client.Broker(brk))
 
 	srv1 := server.NewServer(server.Name("cms_account"), server.Registry(reg), server.Transport(tr), server.Broker(brk))
-	h1 := &handler{}
-	srv1.NewSubscriber("cms_account.AccountService.AccountCreate", h1.AccountCreate, server.InternalSubscriber(true))
+	h1 := &handler{ctx: ctx, cli: cli, brk: brk}
+	sub1, err := cli.Options().Broker.Subscribe("cms_account.AccountService.AccountCreate", h1.AccountCreate)
+	if err != nil {
+		t.Fatalf("failed to sub1: %v", err)
+	}
+	defer func() {
+		if err := sub1.Unsubscribe(); err != nil {
+			t.Fatal(err)
+		}
+	}()
 	if err := srv1.Start(); err != nil {
 		t.Fatalf("failed to start: %v", err)
 	}
+
 	srv2 := server.NewServer(server.Name("cms_contact"), server.Registry(reg), server.Transport(tr), server.Broker(brk))
-	h2 := &handler{}
-	srv2.NewSubscriber("cms_contact.ContactService.ContactCreate", h2.ContactCreate, server.InternalSubscriber(true))
+	h2 := &handler{ctx: ctx, cli: cli, brk: brk}
+	sub2, err := cli.Options().Broker.Subscribe("cms_contact.ContactService.ContactCreate", h2.ContactCreate)
+	if err != nil {
+		t.Fatalf("failed to sub1: %v", err)
+	}
+	defer func() {
+		if err := sub2.Unsubscribe(); err != nil {
+			t.Fatal(err)
+		}
+	}()
 	if err := srv2.Start(); err != nil {
 		t.Fatalf("failed to start: %v", err)
 	}
@@ -192,9 +231,8 @@ func TestClientPubsub(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_ = rid
-	//	t.Logf("rid %s", rid)
-	time.Sleep(5 * time.Second)
+	t.Logf("rid %s rsp %#+v\n", rid, rsp)
+	//	time.Sleep(5 * time.Second)
 }
 
 /*

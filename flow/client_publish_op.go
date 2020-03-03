@@ -34,6 +34,7 @@ func (op *clientPublishOperation) New() Operation {
 
 func (op *clientPublishOperation) Execute(ctx context.Context, data []byte, opts ...ExecuteOption) ([]byte, error) {
 	var err error
+	var rsp []byte
 
 	options := ExecuteOptions{}
 	for _, opt := range opts {
@@ -60,7 +61,8 @@ func (op *clientPublishOperation) Execute(ctx context.Context, data []byte, opts
 	md["Micro-Response"] = fmt.Sprintf("%s-%s", op.topic, options.ID)
 
 	sub, err := options.Client.Options().Broker.Subscribe(md["Micro-Response"], func(evt broker.Event) error {
-		fmt.Printf("RSP %#+v\n", evt)
+		rsp = make([]byte, len(evt.Message().Body))
+		copy(rsp, evt.Message().Body)
 		return evt.Ack()
 	}, broker.SubscribeContext(ctx))
 	if err != nil {
@@ -69,14 +71,13 @@ func (op *clientPublishOperation) Execute(ctx context.Context, data []byte, opts
 	defer func() {
 		_ = sub.Unsubscribe()
 	}()
-	fmt.Printf("REQ topic:%s data:%s\n", op.topic, data)
-	fmt.Printf("%#+v\n", options.Client.Options())
+
 	err = options.Client.Options().Broker.Publish(op.topic, &broker.Message{Header: md, Body: data})
 	if err != nil {
 		return nil, err
 	}
 
-	return nil, nil
+	return rsp, nil
 }
 
 func (op *clientPublishOperation) Name() string {
