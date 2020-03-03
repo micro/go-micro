@@ -2,17 +2,36 @@ package flow_test
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
+	"github.com/micro/go-micro/v2/broker"
+	mbroker "github.com/micro/go-micro/v2/broker/memory"
 	"github.com/micro/go-micro/v2/client"
+	"github.com/micro/go-micro/v2/client/selector"
+	rselector "github.com/micro/go-micro/v2/client/selector/registry"
 	"github.com/micro/go-micro/v2/flow"
 	proto "github.com/micro/go-micro/v2/flow/service/proto"
+	rmemory "github.com/micro/go-micro/v2/registry/memory"
+	"github.com/micro/go-micro/v2/server"
 	"github.com/micro/go-micro/v2/store"
 	smemory "github.com/micro/go-micro/v2/store/memory"
+	tmemory "github.com/micro/go-micro/v2/transport/memory"
 )
 
-func TestExecutor(t *testing.T) {
+type handler struct {
+}
+
+func (h *handler) AccountCreate(ctx context.Context, evt broker.Event) {
+	fmt.Printf("AccountCreate %#+v\n", evt)
+}
+
+func (h *handler) ContactCreate(ctx context.Context, evt broker.Event) {
+	fmt.Printf("ContactCreate %#+v\n", evt)
+}
+
+func TestClientCall(t *testing.T) {
 	var err error
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -108,6 +127,74 @@ func TestExecutor(t *testing.T) {
 	}
 	_ = rid
 	//	t.Logf("rid %s", rid)
+}
+
+func TestClientPubsub(t *testing.T) {
+	var err error
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	fl := flow.NewFlow(
+		flow.WithStateStore(smemory.NewStore(store.Namespace("state"))),
+		flow.WithDataStore(smemory.NewStore(store.Namespace("data"))),
+		flow.WithFlowStore(smemory.NewStore(store.Namespace("flow"))),
+	)
+
+	if err = fl.Init(); err != nil {
+		t.Fatal(err)
+	}
+	if err = fl.CreateStep("forward", &flow.Step{
+		ID:        "cms_account.AccountService.AccountCreate",
+		Operation: flow.ClientPublishOperation("cms_account.AccountService.AccountCreate"),
+		After:     nil,
+		Before:    nil,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err = fl.CreateStep("forward", &flow.Step{
+		ID:        "cms_contact.ContactService.ContactCreate",
+		Operation: flow.ClientPublishOperation("cms_contact.ContactService.ContactCreate"),
+		After:     []string{"cms_account.AccountService.AccountCreate"},
+		Before:    nil,
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	brk := mbroker.NewBroker()
+	tr := tmemory.NewTransport()
+	reg := rmemory.NewRegistry()
+	cli := client.NewClient(
+		client.Selector(rselector.NewSelector(selector.Registry(reg))),
+		client.Registry(reg), client.Transport(tr), client.Broker(brk))
+
+	srv1 := server.NewServer(server.Name("cms_account"), server.Registry(reg), server.Transport(tr), server.Broker(brk))
+	h1 := &handler{}
+	srv1.NewSubscriber("cms_account.AccountService.AccountCreate", h1.AccountCreate, server.InternalSubscriber(true))
+	if err := srv1.Start(); err != nil {
+		t.Fatalf("failed to start: %v", err)
+	}
+	srv2 := server.NewServer(server.Name("cms_contact"), server.Registry(reg), server.Transport(tr), server.Broker(brk))
+	h2 := &handler{}
+	srv2.NewSubscriber("cms_contact.ContactService.ContactCreate", h2.ContactCreate, server.InternalSubscriber(true))
+	if err := srv2.Start(); err != nil {
+		t.Fatalf("failed to start: %v", err)
+	}
+
+	req := &proto.Test{Name: "req"}
+	rsp := &proto.Test{}
+	//	err  = fl.
+	rid, err := fl.Execute("forward", req, rsp,
+		flow.ExecuteContext(ctx),
+		flow.ExecuteAsync(false),
+		flow.ExecuteStep("cms_account.AccountService.AccountCreate"),
+		flow.ExecuteClient(cli),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = rid
+	//	t.Logf("rid %s", rid)
+	time.Sleep(5 * time.Second)
 }
 
 /*
