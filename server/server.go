@@ -10,8 +10,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/micro/go-micro/v2/codec"
+	log "github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/registry"
-	log "github.com/micro/go-micro/v2/util/log"
 )
 
 // Server is a simple micro server abstraction
@@ -200,7 +200,7 @@ func Run() error {
 
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, syscall.SIGTERM, syscall.SIGINT)
-	log.Logf("Received signal %s", <-ch)
+	log.Infof("Received signal %s", <-ch)
 
 	return Stop()
 }
@@ -208,13 +208,13 @@ func Run() error {
 // Start starts the default server
 func Start() error {
 	config := DefaultServer.Options()
-	log.Logf("Starting server %s id %s", config.Name, config.Id)
+	log.Infof("Starting server %s id %s", config.Name, config.Id)
 	return DefaultServer.Start()
 }
 
 // Stop stops the default server
 func Stop() error {
-	log.Logf("Stopping server")
+	log.Infof("Stopping server")
 	return DefaultServer.Stop()
 }
 

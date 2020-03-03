@@ -4,9 +4,9 @@ import (
 	"runtime/debug"
 
 	"github.com/micro/go-micro/v2/errors"
+	log "github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/transport"
 	pb "github.com/micro/go-micro/v2/transport/grpc/proto"
-	"github.com/micro/go-micro/v2/util/log"
 	"google.golang.org/grpc/peer"
 )
 
@@ -30,7 +30,7 @@ func (m *microTransport) Stream(ts pb.Transport_StreamServer) (err error) {
 
 	defer func() {
 		if r := recover(); r != nil {
-			log.Log(r, string(debug.Stack()))
+			log.Error(r, string(debug.Stack()))
 			sock.Close()
 			err = errors.InternalServerError("go.micro.transport", "panic recovered: %v", r)
 		}

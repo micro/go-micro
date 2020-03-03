@@ -7,9 +7,9 @@ import (
 	"sync"
 	"time"
 
+	log "github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/runtime"
 	"github.com/micro/go-micro/v2/util/kubernetes/client"
-	"github.com/micro/go-micro/v2/util/log"
 )
 
 // action to take on runtime service
@@ -48,9 +48,17 @@ func (k *kubernetes) getService(labels map[string]string) ([]*runtime.Service, e
 		Kind:  "deployment",
 		Value: depList,
 	}
-
-	// get the deployment from k8s
 	if err := k.client.Get(d, labels); err != nil {
+		return nil, err
+	}
+
+	// get the pods from k8s
+	podList := new(client.PodList)
+	p := &client.Resource{
+		Kind:  "pod",
+		Value: podList,
+	}
+	if err := k.client.Get(p, labels); err != nil {
 		return nil, err
 	}
 
@@ -107,37 +115,22 @@ func (k *kubernetes) getService(labels map[string]string) ([]*runtime.Service, e
 				svc.Metadata[k] = v
 			}
 
-			// parse out deployment status and inject into service metadata
-			if len(kdep.Status.Conditions) > 0 {
-				var status string
-				switch kdep.Status.Conditions[0].Type {
-				case "Available":
-					status = "running"
-					delete(svc.Metadata, "error")
-				case "Progressing":
+			// get the status from the pods
+			status := "unknown"
+			if len(podList.Items) > 0 {
+				switch podList.Items[0].Status.Conditions[0].Type {
+				case "PodScheduled":
 					status = "starting"
-					delete(svc.Metadata, "error")
-				default:
-					status = "error"
-					svc.Metadata["error"] = kdep.Status.Conditions[0].Message
+				case "Initialized":
+					status = "starting"
+				case "Ready":
+					status = "ready"
+				case "ContainersReady":
+					status = "ready"
 				}
-				// pick the last known condition type and mark the service status with it
-				log.Debugf("Runtime setting %s service deployment status: %v", name, status)
-				svc.Metadata["status"] = status
 			}
-
-			// parse out deployment build
-			if build, ok := kdep.Spec.Template.Metadata.Annotations["build"]; ok {
-				buildTime, err := time.Parse(time.RFC3339, build)
-				if err != nil {
-					log.Debugf("Runtime failed parsing build time for %s: %v", name, err)
-					continue
-				}
-				svc.Metadata["build"] = fmt.Sprintf("%d", buildTime.Unix())
-				continue
-			}
-			// if no build annotation is found, set it to current time
-			svc.Metadata["build"] = fmt.Sprintf("%d", time.Now().Unix())
+			log.Debugf("Runtime setting %s service deployment status: %v", name, status)
+			svc.Metadata["status"] = status
 		}
 	}
 
@@ -270,9 +263,9 @@ func (k *kubernetes) Create(s *runtime.Service, opts ...runtime.CreateOption) er
 	if len(options.Type) == 0 {
 		options.Type = k.options.Type
 	}
-	if len(k.options.Source) > 0 {
-		s.Source = k.options.Source
-	}
+
+	// determine the full source for this service
+	options.Source = k.sourceForService(s.Name)
 
 	service := newService(s, options)
 
@@ -329,7 +322,8 @@ func (k *kubernetes) List() ([]*runtime.Service, error) {
 func (k *kubernetes) Update(s *runtime.Service) error {
 	// create new kubernetes micro service
 	service := newService(s, runtime.CreateOptions{
-		Type: k.options.Type,
+		Type:   k.options.Type,
+		Source: k.sourceForService(s.Name),
 	})
 
 	// update build time annotation
@@ -431,4 +425,16 @@ func NewRuntime(opts ...runtime.Option) runtime.Runtime {
 		closed:  make(chan bool),
 		client:  client,
 	}
+}
+
+// sourceForService determines the nested package name for github
+// e.g src: docker.pkg.github.com/micro/services an srv: users/api
+// would become docker.pkg.github.com/micro/services/users-api
+func (k *kubernetes) sourceForService(name string) string {
+	if !strings.HasPrefix(k.options.Source, "docker.pkg.github.com") {
+		return k.options.Source
+	}
+
+	formattedName := strings.ReplaceAll(name, "/", "-")
+	return fmt.Sprintf("%v/%v", k.options.Source, formattedName)
 }

@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	log "github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/registry"
-	"github.com/micro/go-micro/v2/util/log"
 )
 
 var (
@@ -357,20 +357,22 @@ func (r *router) advertiseEvents() error {
 					// routing table watcher
 					w, err = r.Watch()
 					if err != nil {
-						log.Logf("Error creating watcher: %v", err)
+						log.Errorf("Error creating watcher: %v", err)
 						time.Sleep(time.Second)
 						continue
 					}
 				}
 
 				if err := r.watchTable(w); err != nil {
-					log.Logf("Error watching table: %v", err)
+					log.Errorf("Error watching table: %v", err)
 					time.Sleep(time.Second)
 				}
 
-				// reset
-				w.Stop()
-				w = nil
+				if w != nil {
+					// reset
+					w.Stop()
+					w = nil
+				}
 			}
 		}
 	}()
@@ -467,7 +469,9 @@ func (r *router) advertiseEvents() error {
 			a.penalty += Penalty
 			log.Debugf("Router advert %d for route %s %s event penalty: %f", hash, a.event.Route.Service, a.event.Route.Address, a.penalty)
 		case <-r.exit:
-			w.Stop()
+			if w != nil {
+				w.Stop()
+			}
 			return nil
 		}
 	}
@@ -538,14 +542,14 @@ func (r *router) Start() error {
 				if w == nil {
 					w, err = r.options.Registry.Watch()
 					if err != nil {
-						log.Logf("failed creating registry watcher: %v", err)
+						log.Errorf("failed creating registry watcher: %v", err)
 						time.Sleep(time.Second)
 						continue
 					}
 				}
 
 				if err := r.watchRegistry(w); err != nil {
-					log.Logf("Error watching the registry: %v", err)
+					log.Errorf("Error watching the registry: %v", err)
 					time.Sleep(time.Second)
 				}
 
@@ -602,7 +606,7 @@ func (r *router) Advertise() (<-chan *Advert, error) {
 			return
 		default:
 			if err := r.advertiseEvents(); err != nil {
-				log.Logf("Error adveritising events: %v", err)
+				log.Errorf("Error adveritising events: %v", err)
 			}
 		}
 	}()
@@ -700,16 +704,15 @@ func (r *router) Stop() error {
 		// extract the events
 		r.drain()
 
+		r.sub.Lock()
 		// close advert subscribers
 		for id, sub := range r.subscribers {
 			// close the channel
 			close(sub)
-
 			// delete the subscriber
-			r.sub.Lock()
 			delete(r.subscribers, id)
-			r.sub.Unlock()
 		}
+		r.sub.Unlock()
 	}
 
 	// remove event chan

@@ -11,13 +11,16 @@ import (
 	"github.com/micro/go-micro/v2/broker"
 	"github.com/micro/go-micro/v2/client"
 	"github.com/micro/go-micro/v2/client/selector"
+	"github.com/micro/go-micro/v2/debug/profile"
+	"github.com/micro/go-micro/v2/debug/profile/http"
+	"github.com/micro/go-micro/v2/debug/profile/pprof"
 	"github.com/micro/go-micro/v2/debug/trace"
+	log "github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/registry"
 	"github.com/micro/go-micro/v2/runtime"
 	"github.com/micro/go-micro/v2/server"
 	"github.com/micro/go-micro/v2/store"
 	"github.com/micro/go-micro/v2/transport"
-	"github.com/micro/go-micro/v2/util/log"
 
 	// clients
 	cgrpc "github.com/micro/go-micro/v2/client/grpc"
@@ -25,6 +28,7 @@ import (
 
 	// servers
 	"github.com/micro/cli/v2"
+
 	sgrpc "github.com/micro/go-micro/v2/server/grpc"
 	smucp "github.com/micro/go-micro/v2/server/mucp"
 
@@ -65,6 +69,7 @@ import (
 	// auth
 	jwtAuth "github.com/micro/go-micro/v2/auth/jwt"
 	sAuth "github.com/micro/go-micro/v2/auth/service"
+	storeAuth "github.com/micro/go-micro/v2/auth/store"
 )
 
 type Cmd interface {
@@ -245,6 +250,11 @@ var (
 			Usage:   "Auth for role based access control, e.g. service",
 		},
 		&cli.StringFlag{
+			Name:    "auth_token",
+			EnvVars: []string{"MICRO_AUTH_TOKEN"},
+			Usage:   "Auth token used for client authentication",
+		},
+		&cli.StringFlag{
 			Name:    "auth_public_key",
 			EnvVars: []string{"MICRO_AUTH_PUBLIC_KEY"},
 			Usage:   "Public key for JWT auth (base64 encoded PEM)",
@@ -314,7 +324,13 @@ var (
 
 	DefaultAuths = map[string]func(...auth.Option) auth.Auth{
 		"service": sAuth.NewAuth,
+		"store":   storeAuth.NewAuth,
 		"jwt":     jwtAuth.NewAuth,
+	}
+
+	DefaultProfiles = map[string]func(...profile.Option) profile.Profile{
+		"http":  http.NewProfile,
+		"pprof": pprof.NewProfile,
 	}
 )
 
@@ -334,6 +350,7 @@ func newCmd(opts ...Option) Cmd {
 		Runtime:   &runtime.DefaultRuntime,
 		Store:     &store.DefaultStore,
 		Tracer:    &trace.DefaultTracer,
+		Profile:   &profile.DefaultProfile,
 
 		Brokers:    DefaultBrokers,
 		Clients:    DefaultClients,
@@ -345,6 +362,7 @@ func newCmd(opts ...Option) Cmd {
 		Stores:     DefaultStores,
 		Tracers:    DefaultTracers,
 		Auths:      DefaultAuths,
+		Profiles:   DefaultProfiles,
 	}
 
 	for _, o := range opts {
@@ -426,6 +444,16 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		}
 
 		*c.opts.Auth = a()
+	}
+
+	// Set the profile
+	if name := ctx.String("profile"); len(name) > 0 {
+		p, ok := c.opts.Profiles[name]
+		if !ok {
+			return fmt.Errorf("Unsupported profile: %s", name)
+		}
+
+		*c.opts.Profile = p()
 	}
 
 	// Set the client
@@ -583,6 +611,10 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		}
 	}
 
+	if len(ctx.String("auth_token")) > 0 {
+		authOpts = append(authOpts, auth.Token(ctx.String("auth_token")))
+	}
+
 	if len(ctx.String("auth_public_key")) > 0 {
 		authOpts = append(authOpts, auth.PublicKey(ctx.String("auth_public_key")))
 	}
@@ -592,7 +624,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	}
 
 	if len(ctx.StringSlice("auth_exclude")) > 0 {
-		authOpts = append(authOpts, auth.Excludes(ctx.StringSlice("auth_exclude")...))
+		authOpts = append(authOpts, auth.Exclude(ctx.StringSlice("auth_exclude")...))
 	}
 
 	if len(authOpts) > 0 {

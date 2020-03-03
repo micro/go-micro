@@ -18,11 +18,16 @@ import (
 	"github.com/micro/go-micro/v2/errors"
 	"github.com/micro/go-micro/v2/metadata"
 	"github.com/micro/go-micro/v2/registry"
+	"github.com/micro/go-micro/v2/util/config"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/encoding"
 	gmetadata "google.golang.org/grpc/metadata"
+)
+
+var (
+	BearerScheme = "Bearer "
 )
 
 type grpcClient struct {
@@ -110,19 +115,28 @@ func (g *grpcClient) next(request client.Request, opts client.CallOptions) (sele
 }
 
 func (g *grpcClient) call(ctx context.Context, node *registry.Node, req client.Request, rsp interface{}, opts client.CallOptions) error {
+	var header map[string]string
+
 	address := node.Address
 
-	header := make(map[string]string)
+	header = make(map[string]string)
 	if md, ok := metadata.FromContext(ctx); ok {
+		header = make(map[string]string, len(md))
 		for k, v := range md {
 			header[k] = v
 		}
+	} else {
+		header = make(map[string]string)
 	}
 
 	// set timeout in nanoseconds
 	header["timeout"] = fmt.Sprintf("%d", opts.RequestTimeout)
 	// set the content type for the request
 	header["x-content-type"] = req.ContentType()
+	// set the authorization token if one is saved locally
+	if token, err := config.Get("token"); err == nil && len(token) > 0 {
+		header["authorization"] = BearerScheme + token
+	}
 
 	md := gmetadata.New(header)
 	ctx = gmetadata.NewOutgoingContext(ctx, md)
@@ -182,13 +196,17 @@ func (g *grpcClient) call(ctx context.Context, node *registry.Node, req client.R
 }
 
 func (g *grpcClient) stream(ctx context.Context, node *registry.Node, req client.Request, opts client.CallOptions) (client.Stream, error) {
+	var header map[string]string
+
 	address := node.Address
 
-	header := make(map[string]string)
 	if md, ok := metadata.FromContext(ctx); ok {
+		header = make(map[string]string, len(md))
 		for k, v := range md {
 			header[k] = v
 		}
+	} else {
+		header = make(map[string]string)
 	}
 
 	// set timeout in nanoseconds
@@ -374,6 +392,11 @@ func (g *grpcClient) NewRequest(service, method string, req interface{}, reqOpts
 }
 
 func (g *grpcClient) Call(ctx context.Context, req client.Request, rsp interface{}, opts ...client.CallOption) error {
+	if req == nil {
+		return errors.InternalServerError("go.micro.client", "req is nil")
+	} else if rsp == nil {
+		return errors.InternalServerError("go.micro.client", "rsp is nil")
+	}
 	// make a copy of call opts
 	callOpts := g.opts.CallOptions
 

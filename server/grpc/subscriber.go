@@ -9,10 +9,10 @@ import (
 
 	"github.com/micro/go-micro/v2/broker"
 	"github.com/micro/go-micro/v2/errors"
+	log "github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/metadata"
 	"github.com/micro/go-micro/v2/registry"
 	"github.com/micro/go-micro/v2/server"
-	"github.com/micro/go-micro/v2/util/log"
 )
 
 const (
@@ -171,8 +171,8 @@ func (g *grpcServer) createSubHandler(sb *subscriber, opts server.Options) broke
 
 		defer func() {
 			if r := recover(); r != nil {
-				log.Log("panic recovered: ", r)
-				log.Logf(string(debug.Stack()))
+				log.Error("panic recovered: ", r)
+				log.Error(string(debug.Stack()))
 				err = errors.InternalServerError("go.micro.server", "panic recovered: %v", r)
 			}
 		}()
@@ -188,7 +188,7 @@ func (g *grpcServer) createSubHandler(sb *subscriber, opts server.Options) broke
 			return err
 		}
 
-		hdr := make(map[string]string)
+		hdr := make(map[string]string, len(msg.Header))
 		for k, v := range msg.Header {
 			hdr[k] = v
 		}
@@ -246,18 +246,19 @@ func (g *grpcServer) createSubHandler(sb *subscriber, opts server.Options) broke
 				if g.wg != nil {
 					defer g.wg.Done()
 				}
-				results <- fn(ctx, &rpcMessage{
+				err := fn(ctx, &rpcMessage{
 					topic:       sb.topic,
 					contentType: ct,
 					payload:     req.Interface(),
 					header:      msg.Header,
 					body:        msg.Body,
 				})
+				results <- err
 			}()
 		}
 		var errors []string
 		for i := 0; i < len(sb.handlers); i++ {
-			if rerr := <-results; err != nil {
+			if rerr := <-results; rerr != nil {
 				errors = append(errors, rerr.Error())
 			}
 		}

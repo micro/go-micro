@@ -4,7 +4,7 @@ import (
 	"io"
 	"sync"
 
-	"github.com/micro/go-micro/v2/util/log"
+	log "github.com/micro/go-micro/v2/logger"
 )
 
 type tunListener struct {
@@ -77,6 +77,8 @@ func (t *tunListener) process() {
 
 				// create a new session session
 				sess = &session{
+					// the session key
+					key: t.token + m.channel + sessionId,
 					// the id of the remote side
 					tunnel: m.tunnel,
 					// the channel

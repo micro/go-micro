@@ -156,7 +156,7 @@ func (h *httpTransportClient) Recv(m *Message) error {
 	m.Body = b
 
 	if m.Header == nil {
-		m.Header = make(map[string]string)
+		m.Header = make(map[string]string, len(rsp.Header))
 	}
 
 	for k, v := range rsp.Header {
@@ -192,9 +192,8 @@ func (h *httpTransportSocket) Recv(m *Message) error {
 	if m == nil {
 		return errors.New("message passed in is nil")
 	}
-
 	if m.Header == nil {
-		m.Header = make(map[string]string)
+		m.Header = make(map[string]string, len(h.r.Header))
 	}
 
 	// process http 1

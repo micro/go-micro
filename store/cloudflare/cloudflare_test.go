@@ -24,6 +24,7 @@ func TestCloudflare(t *testing.T) {
 		Token(apiToken),
 		Account(accountID),
 		Namespace(kvID),
+		CacheTTL(60000000000),
 	)
 
 	records, err := wkv.List()

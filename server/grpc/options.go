@@ -18,6 +18,7 @@ type codecsKey struct{}
 type grpcOptions struct{}
 type netListener struct{}
 type maxMsgSizeKey struct{}
+type maxConnKey struct{}
 type tlsAuth struct{}
 
 // gRPC Codec to be used to encode/decode requests for a given content type
@@ -38,6 +39,11 @@ func Codec(contentType string, c encoding.Codec) server.Option {
 // AuthTLS should be used to setup a secure authentication using TLS
 func AuthTLS(t *tls.Config) server.Option {
 	return setServerOption(tlsAuth{}, t)
+}
+
+// MaxConn specifies maximum number of max simultaneous connections to server
+func MaxConn(n int) server.Option {
+	return setServerOption(maxConnKey{}, n)
 }
 
 // Listener specifies the net.Listener to use instead of the default

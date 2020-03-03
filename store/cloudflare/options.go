@@ -51,3 +51,13 @@ func Namespace(ns string) store.Option {
 		o.Namespace = ns
 	}
 }
+
+// CacheTTL sets the timeout in nanoseconds of the read/write cache
+func CacheTTL(ttl int64) store.Option {
+	return func(o *store.Options) {
+		if o.Context == nil {
+			o.Context = context.Background()
+		}
+		o.Context = context.WithValue(o.Context, "STORE_CACHE_TTL", ttl)
+	}
+}

@@ -140,7 +140,7 @@ func (g *grpcCodec) ReadHeader(m *codec.Message, mt codec.MessageType) error {
 		m = new(codec.Message)
 	}
 	if m.Header == nil {
-		m.Header = make(map[string]string)
+		m.Header = make(map[string]string, len(md))
 	}
 	for k, v := range md {
 		m.Header[k] = strings.Join(v, ",")
