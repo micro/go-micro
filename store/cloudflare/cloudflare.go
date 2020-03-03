@@ -47,7 +47,7 @@ type apiResponse struct {
 		ID         string    `json:"id"`
 		Type       string    `json:"type"`
 		Name       string    `json:"name"`
-		Expiration string    `json:"expiration"`
+		Expiration int       `json:"expiration"`
 		Content    string    `json:"content"`
 		Proxiable  bool      `json:"proxiable"`
 		Proxied    bool      `json:"proxied"`
