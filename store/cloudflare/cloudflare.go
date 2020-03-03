@@ -109,12 +109,12 @@ func (w *workersKV) Init(opts ...store.Option) error {
 	}
 	ttl := w.options.Context.Value("STORE_CACHE_TTL")
 	if ttl != nil {
-		ttlint64, ok := ttl.(int64)
+		ttlduration, ok := ttl.(time.Duration)
 		if !ok {
 			log.Fatal("STORE_CACHE_TTL from context must be type int64")
 		}
 		w.cache = ttlcache.NewCache()
-		w.cache.SetTTL(time.Duration(ttlint64))
+		w.cache.SetTTL(ttlduration)
 		w.cache.SkipTtlExtensionOnHit(true)
 	}
 	return nil
@@ -279,6 +279,9 @@ func (w *workersKV) Write(r *store.Record) error {
 }
 
 func (w *workersKV) Delete(key string) error {
+	if w.cache != nil {
+		w.cache.Remove(key)
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
