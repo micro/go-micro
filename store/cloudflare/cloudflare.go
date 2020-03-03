@@ -47,12 +47,12 @@ type apiResponse struct {
 		ID         string    `json:"id"`
 		Type       string    `json:"type"`
 		Name       string    `json:"name"`
-		Expiration int       `json:"expiration"`
+		Expiration int64     `json:"expiration"`
 		Content    string    `json:"content"`
 		Proxiable  bool      `json:"proxiable"`
 		Proxied    bool      `json:"proxied"`
-		TTL        int       `json:"ttl"`
-		Priority   int       `json:"priority"`
+		TTL        int64     `json:"ttl"`
+		Priority   int64     `json:"priority"`
 		Locked     bool      `json:"locked"`
 		ZoneID     string    `json:"zone_id"`
 		ZoneName   string    `json:"zone_name"`
