@@ -20,7 +20,7 @@ import (
 	"github.com/micro/go-micro/v2/store"
 	"github.com/pkg/errors"
 
-	"github.com/ReneKroon/ttlcache"
+	"github.com/patrickmn/go-cache"
 )
 
 const (
@@ -38,7 +38,7 @@ type workersKV struct {
 	// http client to use
 	httpClient *http.Client
 	// cache
-	cache *ttlcache.Cache
+	cache *cache.Cache
 }
 
 // apiResponse is a cloudflare v4 api response
@@ -113,9 +113,7 @@ func (w *workersKV) Init(opts ...store.Option) error {
 		if !ok {
 			log.Fatal("STORE_CACHE_TTL from context must be type int64")
 		}
-		w.cache = ttlcache.NewCache()
-		w.cache.SetTTL(ttlduration)
-		w.cache.SkipTtlExtensionOnHit(true)
+		w.cache = cache.New(ttlduration, 3*ttlduration)
 	}
 	return nil
 }
@@ -233,7 +231,7 @@ func (w *workersKV) Read(key string, opts ...store.ReadOption) ([]*store.Record,
 			}
 			record.Expiry = time.Until(time.Unix(expiryUnix, 0))
 		}
-		w.cache.Set(record.Key, record)
+		w.cache.Set(record.Key, record, cache.DefaultExpiration)
 		records = append(records, record)
 	}
 
@@ -243,7 +241,7 @@ func (w *workersKV) Read(key string, opts ...store.ReadOption) ([]*store.Record,
 func (w *workersKV) Write(r *store.Record) error {
 	// Set it in local cache, with the global TTL from options
 	if w.cache != nil {
-		w.cache.Set(r.Key, r)
+		w.cache.Set(r.Key, r, cache.DefaultExpiration)
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
@@ -280,7 +278,7 @@ func (w *workersKV) Write(r *store.Record) error {
 
 func (w *workersKV) Delete(key string) error {
 	if w.cache != nil {
-		w.cache.Remove(key)
+		w.cache.Delete(key)
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
