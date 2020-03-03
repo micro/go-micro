@@ -18,6 +18,11 @@ func apiRoute(p string) (string, string) {
 	p = strings.TrimPrefix(p, "/")
 	parts := strings.Split(p, "/")
 
+	// if we have 1 part assume name Name.Call
+	if len(parts) == 1 && len(parts[0]) > 0 {
+		return parts[0], methodName(append(parts, "Call"))
+	}
+
 	// If we've got two or less parts
 	// Use first part as service
 	// Use all parts as method
