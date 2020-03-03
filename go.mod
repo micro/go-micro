@@ -4,7 +4,6 @@ go 1.13
 
 require (
 	github.com/BurntSushi/toml v0.3.1
-	github.com/ReneKroon/ttlcache v1.6.0
 	github.com/beevik/ntp v0.2.0
 	github.com/bitly/go-simplejson v0.5.0
 	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
@@ -47,6 +46,7 @@ require (
 	github.com/nats-io/nats.go v1.9.1
 	github.com/nlopes/slack v0.6.1-0.20191106133607-d06c2a2b3249
 	github.com/oxtoacart/bpool v0.0.0-20190530202638-03653db5a59c
+	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pkg/errors v0.9.1
 	github.com/soheilhy/cmux v0.1.4 // indirect
 	github.com/stretchr/testify v1.4.0
