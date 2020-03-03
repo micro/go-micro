@@ -58,11 +58,13 @@ func (op *clientPublishOperation) Execute(ctx context.Context, data []byte, opts
 	md["Micro-Topic"] = op.topic
 	md["Micro-Id"] = options.ID
 	// header to send reply back
-	md["Micro-Response"] = fmt.Sprintf("%s-%s", op.topic, options.ID)
+	md["Micro-Callback"] = fmt.Sprintf("%s-%s", op.topic, options.ID)
 
-	sub, err := options.Client.Options().Broker.Subscribe(md["Micro-Response"], func(evt broker.Event) error {
+	done := make(chan struct{})
+	sub, err := options.Client.Options().Broker.Subscribe(md["Micro-Callback"], func(evt broker.Event) error {
 		rsp = make([]byte, len(evt.Message().Body))
 		copy(rsp, evt.Message().Body)
+		defer close(done)
 		return evt.Ack()
 	}, broker.SubscribeContext(ctx))
 	if err != nil {
@@ -72,11 +74,12 @@ func (op *clientPublishOperation) Execute(ctx context.Context, data []byte, opts
 		_ = sub.Unsubscribe()
 	}()
 
+	fmt.Printf("wait for %s\n", op.topic)
 	err = options.Client.Options().Broker.Publish(op.topic, &broker.Message{Header: md, Body: data})
 	if err != nil {
 		return nil, err
 	}
-
+	<-done
 	return rsp, nil
 }
 
