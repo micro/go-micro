@@ -231,7 +231,9 @@ func (w *workersKV) Read(key string, opts ...store.ReadOption) ([]*store.Record,
 			}
 			record.Expiry = time.Until(time.Unix(expiryUnix, 0))
 		}
-		w.cache.Set(record.Key, record, cache.DefaultExpiration)
+		if w.cache != nil {
+			w.cache.Set(record.Key, record, cache.DefaultExpiration)
+		}
 		records = append(records, record)
 	}
 
