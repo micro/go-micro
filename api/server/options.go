@@ -10,10 +10,17 @@ type Option func(o *Options)
 
 type Options struct {
 	EnableACME   bool
+	EnableCORS   bool
 	ACMEProvider acme.Provider
 	EnableTLS    bool
 	ACMEHosts    []string
 	TLSConfig    *tls.Config
+}
+
+func EnableCORS(b bool) Option {
+	return func(o *Options) {
+		o.EnableCORS = b
+	}
 }
 
 func EnableACME(b bool) Option {
