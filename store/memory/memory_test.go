@@ -7,31 +7,72 @@ import (
 	"github.com/micro/go-micro/v2/store"
 )
 
-func TestReadRecordExpire(t *testing.T) {
+func TestMemoryBasic(t *testing.T) {
 	s := NewStore()
+	s.Init()
+	basictest(s, t)
+}
 
-	var (
-		key    = "foo"
-		expire = 100 * time.Millisecond
-	)
-	rec := &store.Record{
-		Key:    key,
-		Value:  nil,
-		Expiry: expire,
+func TestMemoryPrefix(t *testing.T) {
+	s := NewStore()
+	s.Init(store.Prefix("some-prefix"))
+	basictest(s, t)
+}
+
+func basictest(s store.Store, t *testing.T) {
+	// Read and Write an expiring Record
+	if err := s.Write(&store.Record{
+		Key:    "Hello",
+		Value:  []byte("World"),
+		Expiry: time.Second,
+	}); err != nil {
+		t.Error(err)
 	}
-	s.Write(rec)
-
-	rrec, err := s.Read(key)
-	if err != nil {
-		t.Fatal(err)
+	if r, err := s.Read("Hello"); err != nil {
+		t.Error(err)
+	} else {
+		if len(r) != 1 {
+			t.Error("Read returned multiple records")
+		}
+		if r[0].Key != "Hello" {
+			t.Errorf("Expected %s, got %v", "Hello", r[0].Key)
+		}
+		if string(r[0].Value) != "World" {
+			t.Errorf("Expected %s, got %v", "World", r[0].Value)
+		}
 	}
-	if rrec[0].Expiry >= expire {
-		t.Fatal("expiry of read record is not changed")
+	time.Sleep(time.Second * 2)
+	if _, err := s.Read("Hello"); err != store.ErrNotFound {
+		t.Errorf("Expected %v, got %v", store.ErrNotFound, err)
 	}
 
-	time.Sleep(expire)
-
-	if _, err := s.Read(key); err != store.ErrNotFound {
-		t.Fatal("expire elapsed, but key still accessable")
+	// Write 3 records with various expiry and get with prefix
+	records := []*store.Record{
+		&store.Record{
+			Key:   "foo",
+			Value: []byte("foofoo"),
+		},
+		&store.Record{
+			Key:    "foobar",
+			Value:  []byte("foobarfoobar"),
+			Expiry: time.Second,
+		},
+		&store.Record{
+			Key:    "foobarbaz",
+			Value:  []byte("foobarbazfoobarbaz"),
+			Expiry: 2 * time.Second,
+		},
+	}
+	for _, r := range records {
+		if err := s.Write(r); err != nil {
+			t.Error(err)
+		}
+	}
+	if results, err := s.Read("foo", store.ReadPrefix()); err != nil {
+		t.Error(err)
+	} else {
+		if len(results) != 3 {
+			t.Errorf("Expected 3 items, got %d", len(results))
+		}
 	}
 }
