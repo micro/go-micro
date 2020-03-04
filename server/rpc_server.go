@@ -630,16 +630,17 @@ func (s *rpcServer) Register() error {
 	// set what we're advertising
 	s.opts.Advertise = addr
 
-	/* disable now
-	// subscribe to the topic with own name
-	sub, err := s.opts.Broker.Subscribe(config.Name, s.HandleEvent)
-	if err != nil {
-		return err
-	}
+	// router can exchange messages
+	if s.opts.Router != nil {
+		// subscribe to the topic with own name
+		sub, err := s.opts.Broker.Subscribe(config.Name, s.HandleEvent)
+		if err != nil {
+			return err
+		}
 
-	// save the subscriber
-	s.subscriber = sub
-	*/
+		// save the subscriber
+		s.subscriber = sub
+	}
 
 	// subscribe for all of the subscribers
 	for sb := range s.subscribers {
