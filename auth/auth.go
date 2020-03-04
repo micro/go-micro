@@ -2,7 +2,11 @@
 package auth
 
 import (
+	"context"
+	"encoding/json"
 	"time"
+
+	"github.com/micro/go-micro/v2/metadata"
 )
 
 // Auth providers authentication and authorization
@@ -52,4 +56,42 @@ type Account struct {
 	Roles []*Role `json:"roles"`
 	// Any other associated metadata
 	Metadata map[string]string `json:"metadata"`
+}
+
+const (
+	// MetadataKey is the key used when storing the account
+	// in metadata
+	MetadataKey = "auth-account"
+)
+
+// AccountFromContext gets the account from the context, which
+// is set by the auth wrapper at the start of a call. If the account
+// is not set, a nil account will be returned. The error is only returned
+// when there was a problem retrieving an account
+func AccountFromContext(ctx context.Context) (*Account, error) {
+	str, ok := metadata.Get(ctx, MetadataKey)
+	// there was no account set
+	if !ok {
+		return nil, nil
+	}
+
+	var acc *Account
+	// metadata is stored as a string, so unmarshal to an account
+	if err := json.Unmarshal([]byte(str), &acc); err != nil {
+		return nil, err
+	}
+
+	return acc, nil
+}
+
+// ContextWithAccount sets the account in the context
+func ContextWithAccount(ctx context.Context, account *Account) (context.Context, error) {
+	// metadata is stored as a string, so marshal to bytes
+	bytes, err := json.Marshal(account)
+	if err != nil {
+		return ctx, err
+	}
+
+	// generate a new context with the MetadataKey set
+	return metadata.Set(ctx, MetadataKey, string(bytes)), nil
 }
