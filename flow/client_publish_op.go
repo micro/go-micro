@@ -79,7 +79,12 @@ func (op *clientPublishOperation) Execute(ctx context.Context, data []byte, opts
 	if err != nil {
 		return nil, err
 	}
-	<-done
+	select {
+	case <-ctx.Done():
+		close(done)
+		return nil, fmt.Errorf("timeout")
+	case <-done:
+	}
 	return rsp, nil
 }
 
