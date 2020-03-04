@@ -390,10 +390,22 @@ func (n *natsBroker) Subscribe(topic string, handler Handler, opts ...SubscribeO
 
 	fn := func(msg *nats.Msg) {
 		var m Message
+		pub := &publication{t: msg.Subject}
+		fn := n.opts.ErrorHandler
 		if err := n.opts.Codec.Unmarshal(msg.Data, &m); err != nil {
+			log.Error(err)
+			if fn != nil {
+				fn(pub, err)
+			}
 			return
 		}
-		handler(&publication{m: &m, t: msg.Subject})
+		pub.m = &m
+		if err := handler(pub); err != nil {
+			log.Error(err)
+			if fn := n.opts.ErrorHandler; fn != nil {
+				fn(pub, err)
+			}
+		}
 	}
 
 	var sub *nats.Subscription

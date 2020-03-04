@@ -9,9 +9,14 @@ import (
 )
 
 type Options struct {
-	Addrs     []string
-	Secure    bool
-	Codec     codec.Marshaler
+	Addrs  []string
+	Secure bool
+	Codec  codec.Marshaler
+
+	// Handler executed when error happens in broker mesage
+	// processing
+	ErrorHandler func(Event, error)
+
 	TLSConfig *tls.Config
 	// Registry used for clustering
 	Registry registry.Registry
@@ -78,6 +83,14 @@ func Codec(c codec.Marshaler) Option {
 func DisableAutoAck() SubscribeOption {
 	return func(o *SubscribeOptions) {
 		o.AutoAck = false
+	}
+}
+
+// ErrorHandler will catch all broker errors that cant be handled
+// in normal way, for example Codec errors
+func ErrorHandler(h func(Event, error)) Option {
+	return func(o *Options) {
+		o.ErrorHandler = h
 	}
 }
 

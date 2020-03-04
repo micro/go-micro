@@ -120,6 +120,10 @@ func (m *memoryBroker) Publish(topic string, msg *broker.Message, opts ...broker
 
 	for _, sub := range subs {
 		if err := sub.handler(p); err != nil {
+			if fn := m.opts.ErrorHandler; fn != nil {
+				fn(p, err)
+				continue
+			}
 			return err
 		}
 	}
