@@ -1,5 +1,7 @@
 package logger
 
+import "os"
+
 type Helper struct {
 	Logger
 	fields map[string]interface{}
@@ -51,10 +53,12 @@ func (h *Helper) Errorf(template string, args ...interface{}) {
 
 func (h *Helper) Fatal(args ...interface{}) {
 	h.Logger.Fields(h.fields).Log(ErrorLevel, args...)
+	os.Exit(1)
 }
 
 func (h *Helper) Fatalf(template string, args ...interface{}) {
 	h.Logger.Fields(h.fields).Logf(ErrorLevel, template, args...)
+	os.Exit(1)
 }
 
 func (h *Helper) WithError(err error) *Helper {
