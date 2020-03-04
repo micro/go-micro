@@ -19,6 +19,8 @@ import (
 
 	"github.com/micro/go-micro/v2/store"
 	"github.com/pkg/errors"
+
+	"github.com/patrickmn/go-cache"
 )
 
 const (
@@ -35,6 +37,8 @@ type workersKV struct {
 	namespace string
 	// http client to use
 	httpClient *http.Client
+	// cache
+	cache *cache.Cache
 }
 
 // apiResponse is a cloudflare v4 api response
@@ -43,12 +47,12 @@ type apiResponse struct {
 		ID         string    `json:"id"`
 		Type       string    `json:"type"`
 		Name       string    `json:"name"`
-		Expiration string    `json:"expiration"`
+		Expiration int64     `json:"expiration"`
 		Content    string    `json:"content"`
 		Proxiable  bool      `json:"proxiable"`
 		Proxied    bool      `json:"proxied"`
-		TTL        int       `json:"ttl"`
-		Priority   int       `json:"priority"`
+		TTL        int64     `json:"ttl"`
+		Priority   int64     `json:"priority"`
 		Locked     bool      `json:"locked"`
 		ZoneID     string    `json:"zone_id"`
 		ZoneName   string    `json:"zone_name"`
@@ -102,6 +106,14 @@ func (w *workersKV) Init(opts ...store.Option) error {
 	}
 	if len(w.options.Namespace) > 0 {
 		w.namespace = w.options.Namespace
+	}
+	ttl := w.options.Context.Value("STORE_CACHE_TTL")
+	if ttl != nil {
+		ttlduration, ok := ttl.(time.Duration)
+		if !ok {
+			log.Fatal("STORE_CACHE_TTL from context must be type int64")
+		}
+		w.cache = cache.New(ttlduration, 3*ttlduration)
 	}
 	return nil
 }
@@ -191,6 +203,15 @@ func (w *workersKV) Read(key string, opts ...store.ReadOption) ([]*store.Record,
 	var records []*store.Record
 
 	for _, k := range keys {
+		if w.cache != nil {
+			if resp, hit := w.cache.Get(k); hit {
+				if record, ok := resp.(*store.Record); ok {
+					records = append(records, record)
+					continue
+				}
+			}
+		}
+
 		path := fmt.Sprintf("accounts/%s/storage/kv/namespaces/%s/values/%s", w.account, w.namespace, url.PathEscape(k))
 		response, headers, status, err := w.request(ctx, http.MethodGet, path, nil, make(http.Header))
 		if err != nil {
@@ -210,6 +231,9 @@ func (w *workersKV) Read(key string, opts ...store.ReadOption) ([]*store.Record,
 			}
 			record.Expiry = time.Until(time.Unix(expiryUnix, 0))
 		}
+		if w.cache != nil {
+			w.cache.Set(record.Key, record, cache.DefaultExpiration)
+		}
 		records = append(records, record)
 	}
 
@@ -217,6 +241,10 @@ func (w *workersKV) Read(key string, opts ...store.ReadOption) ([]*store.Record,
 }
 
 func (w *workersKV) Write(r *store.Record) error {
+	// Set it in local cache, with the global TTL from options
+	if w.cache != nil {
+		w.cache.Set(r.Key, r, cache.DefaultExpiration)
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
@@ -251,6 +279,9 @@ func (w *workersKV) Write(r *store.Record) error {
 }
 
 func (w *workersKV) Delete(key string) error {
+	if w.cache != nil {
+		w.cache.Delete(key)
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
@@ -336,7 +367,7 @@ func (w *workersKV) String() string {
 	return "cloudflare"
 }
 
-// New returns a cloudflare Store implementation.
+// NewStore returns a cloudflare Store implementation.
 // Account ID, Token and Namespace must either be passed as options or
 // environment variables. If set as env vars we expect the following;
 // CF_API_TOKEN to a cloudflare API token scoped to Workers KV.
