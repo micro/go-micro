@@ -12,7 +12,7 @@ type Options struct {
 	// Endpoints to exclude
 	Exclude []string
 	// Provider is an auth provider
-	Provider *provider.Provider
+	Provider provider.Provider
 }
 
 type Option func(o *Options)
@@ -46,7 +46,7 @@ func Token(t string) Option {
 }
 
 // Provider set the auth provider
-func Provider(p *provider.Provider) Option {
+func Provider(p provider.Provider) Option {
 	return func(o *Options) {
 		o.Provider = p
 	}

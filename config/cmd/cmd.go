@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/micro/go-micro/v2/auth/provider"
+
 	"github.com/micro/go-micro/v2/auth"
 	"github.com/micro/go-micro/v2/broker"
 	"github.com/micro/go-micro/v2/client"
@@ -70,6 +72,9 @@ import (
 	jwtAuth "github.com/micro/go-micro/v2/auth/jwt"
 	sAuth "github.com/micro/go-micro/v2/auth/service"
 	storeAuth "github.com/micro/go-micro/v2/auth/store"
+
+	// auth providers
+	testProvider "github.com/micro/go-micro/v2/auth/provider/test"
 )
 
 type Cmd interface {
@@ -269,6 +274,11 @@ var (
 			EnvVars: []string{"MICRO_AUTH_EXCLUDE"},
 			Usage:   "Comma-separated list of endpoints excluded from authentication, e.g. Users.ListUsers",
 		},
+		&cli.StringFlag{
+			Name:    "auth_provider",
+			EnvVars: []string{"MICRO_AUTH_PROVIDER"},
+			Usage:   "Auth provider used to login user",
+		},
 	}
 
 	DefaultBrokers = map[string]func(...broker.Option) broker.Broker{
@@ -326,6 +336,10 @@ var (
 		"service": sAuth.NewAuth,
 		"store":   storeAuth.NewAuth,
 		"jwt":     jwtAuth.NewAuth,
+	}
+
+	DefaultAuthProviders = map[string]func(...provider.Option) provider.Provider{
+		"test": testProvider.NewProvider,
 	}
 
 	DefaultProfiles = map[string]func(...profile.Option) profile.Profile{
@@ -625,6 +639,18 @@ func (c *cmd) Before(ctx *cli.Context) error {
 
 	if len(ctx.StringSlice("auth_exclude")) > 0 {
 		authOpts = append(authOpts, auth.Exclude(ctx.StringSlice("auth_exclude")...))
+	}
+
+	if name := ctx.String("auth_provider"); len(name) > 0 {
+		p, ok := DefaultAuthProviders[name]
+		if !ok {
+			return fmt.Errorf("AuthProvider %s not found", name)
+		}
+
+		// TODO: SET AUTH PROVIDER
+		pOpts := make([]provider.Option, 0)
+		provider := p(pOpts...)
+		authOpts = append(authOpts, auth.Provider(provider))
 	}
 
 	if len(authOpts) > 0 {

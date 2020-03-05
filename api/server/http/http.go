@@ -8,6 +8,8 @@ import (
 	"os"
 	"sync"
 
+	"github.com/micro/go-micro/v2/api/server/auth"
+
 	"github.com/gorilla/handlers"
 	"github.com/micro/go-micro/v2/api/server"
 	"github.com/micro/go-micro/v2/api/server/cors"
@@ -47,6 +49,7 @@ func (s *httpServer) Init(opts ...server.Option) error {
 
 func (s *httpServer) Handle(path string, handler http.Handler) {
 	h := handlers.CombinedLoggingHandler(os.Stdout, handler)
+	h = auth.CombinedAuthHandler(handler)
 
 	if s.opts.EnableCORS {
 		h = cors.CombinedCORSHandler(h)
