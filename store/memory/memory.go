@@ -90,21 +90,21 @@ func (m *memoryStore) get(k string) (*store.Record, error) {
 	if len(m.options.Namespace) > 0 {
 		k = m.options.Namespace + "/" + k
 	}
-	var storedRecord *store.Record
+	var storedRecord *internalRecord
 	r, found := m.store.Get(k)
 	if !found {
 		return nil, store.ErrNotFound
 	}
-	storedRecord, ok := r.(*store.Record)
+	storedRecord, ok := r.(*internalRecord)
 	if !ok {
-		return nil, errors.New("Retrieved a non *store.Record from the cache")
+		return nil, errors.New("Retrieved a non *internalRecord from the cache")
 	}
 	// Copy the record on the way out
 	newRecord := &store.Record{}
-	newRecord.Key = storedRecord.Key
-	newRecord.Value = make([]byte, len(storedRecord.Value))
-	copy(newRecord.Value, storedRecord.Value)
-	newRecord.Expiry = storedRecord.Expiry
+	newRecord.Key = storedRecord.key
+	newRecord.Value = make([]byte, len(storedRecord.value))
+	copy(newRecord.Value, storedRecord.value)
+	newRecord.Expiry = time.Until(storedRecord.expiresAt)
 
 	return newRecord, nil
 }
@@ -115,21 +115,24 @@ func (m *memoryStore) Write(r *store.Record, opts ...store.WriteOption) error {
 		o(&writeOpts)
 	}
 
-	// Copy the incoming record and store it
-	newRecord := store.Record{}
-	newRecord.Key = r.Key
-	newRecord.Value = make([]byte, len(r.Value))
-	copy(newRecord.Value, r.Value)
-	newRecord.Expiry = r.Expiry
+	if len(opts) > 0 {
+		// Copy the record before applying options, or the incoming record will be mutated
+		newRecord := store.Record{}
+		newRecord.Key = r.Key
+		newRecord.Value = make([]byte, len(r.Value))
+		copy(newRecord.Value, r.Value)
+		newRecord.Expiry = r.Expiry
 
-	if !writeOpts.Expiry.IsZero() {
-		newRecord.Expiry = time.Until(writeOpts.Expiry)
+		if !writeOpts.Expiry.IsZero() {
+			newRecord.Expiry = time.Until(writeOpts.Expiry)
+		}
+		if writeOpts.TTL != 0 {
+			newRecord.Expiry = writeOpts.TTL
+		}
+		m.set(&newRecord)
+	} else {
+		m.set(r)
 	}
-	if writeOpts.TTL != 0 {
-		newRecord.Expiry = writeOpts.TTL
-	}
-
-	m.set(&newRecord)
 	return nil
 }
 
@@ -141,7 +144,16 @@ func (m *memoryStore) set(r *store.Record) {
 	if len(m.options.Namespace) > 0 {
 		key = m.options.Namespace + "/" + key
 	}
-	m.store.Set(key, r, r.Expiry)
+
+	// copy the incoming record and then
+	// convert the expiry in to a hard timestamp
+	i := &internalRecord{}
+	i.key = r.Key
+	i.value = make([]byte, len(r.Value))
+	copy(i.value, r.Value)
+	i.expiresAt = time.Now().Add(r.Expiry)
+
+	m.store.Set(key, i, r.Expiry)
 }
 
 func (m *memoryStore) Delete(key string, opts ...store.DeleteOption) error {
@@ -208,4 +220,10 @@ func (m *memoryStore) list() []string {
 		i++
 	}
 	return allKeys
+}
+
+type internalRecord struct {
+	key       string
+	value     []byte
+	expiresAt time.Time
 }
