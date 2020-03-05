@@ -2,6 +2,7 @@
 package memory
 
 import (
+	"sort"
 	"strings"
 	"time"
 
@@ -62,6 +63,8 @@ func (m *memoryStore) Read(key string, opts ...store.ReadOption) ([]*store.Recor
 		if readOpts.Suffix {
 			opts = append(opts, store.ListSuffix(key))
 		}
+		opts = append(opts, store.ListLimit(readOpts.Limit))
+		opts = append(opts, store.ListOffset(readOpts.Offset))
 		k, err := m.List(opts...)
 		if err != nil {
 			return nil, errors.Wrap(err, "Memory: Read couldn't List()")
@@ -180,7 +183,7 @@ func (m *memoryStore) List(opts ...store.ListOption) ([]string, error) {
 	for _, o := range opts {
 		o(&listOptions)
 	}
-	allKeys := m.list()
+	allKeys := m.list(listOptions.Limit, listOptions.Offset)
 
 	if len(listOptions.Prefix) > 0 {
 		var prefixKeys []string
@@ -204,7 +207,7 @@ func (m *memoryStore) List(opts ...store.ListOption) ([]string, error) {
 	return allKeys, nil
 }
 
-func (m *memoryStore) list() []string {
+func (m *memoryStore) list(limit, offset uint) []string {
 	allItems := m.store.Items()
 	allKeys := make([]string, len(allItems))
 	i := 0
@@ -218,6 +221,16 @@ func (m *memoryStore) list() []string {
 		}
 		allKeys[i] = k
 		i++
+	}
+	if limit != 0 || offset != 0 {
+		sort.Slice(allKeys, func(i, j int) bool { return allKeys[i] < allKeys[j] })
+		min := func(i, j uint) uint {
+			if i < j {
+				return i
+			}
+			return j
+		}
+		return allKeys[offset:min(limit, uint(len(allKeys)))]
 	}
 	return allKeys
 }

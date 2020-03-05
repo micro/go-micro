@@ -62,6 +62,10 @@ type ReadOptions struct {
 	Prefix bool
 	// Suffix returns all records that have the suffix key
 	Suffix bool
+	// Limit limits the number of returned records
+	Limit uint
+	// Offset when combined with Limit supports pagination
+	Offset uint
 }
 
 // ReadOption sets values in ReadOptions
@@ -78,6 +82,20 @@ func ReadPrefix() ReadOption {
 func ReadSuffix() ReadOption {
 	return func(r *ReadOptions) {
 		r.Suffix = true
+	}
+}
+
+// ReadLimit limits the number of responses to l
+func ReadLimit(l uint) ReadOption {
+	return func(r *ReadOptions) {
+		r.Limit = l
+	}
+}
+
+// ReadOffset starts returning responses from o. Use in conjunction with Limit for pagination
+func ReadOffset(o uint) ReadOption {
+	return func(r *ReadOptions) {
+		r.Offset = o
 	}
 }
 
@@ -119,6 +137,10 @@ type ListOptions struct {
 	Prefix string
 	// Suffix returns all keys that end with key
 	Suffix string
+	// Limit limits the number of returned keys
+	Limit uint
+	// Offset when combined with Limit supports pagination
+	Offset uint
 }
 
 // ListOption sets values in ListOptions
@@ -135,5 +157,19 @@ func ListPrefix(p string) ListOption {
 func ListSuffix(s string) ListOption {
 	return func(l *ListOptions) {
 		l.Suffix = s
+	}
+}
+
+// ListLimit limits the number of returned keys to l
+func ListLimit(l uint) ListOption {
+	return func(lo *ListOptions) {
+		lo.Limit = l
+	}
+}
+
+// ListOffset starts returning responses from o. Use in conjunction with Limit for pagination.
+func ListOffset(o uint) ListOption {
+	return func(l *ListOptions) {
+		l.Offset = o
 	}
 }
