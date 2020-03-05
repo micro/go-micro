@@ -56,7 +56,7 @@ func Suffix(s string) Option {
 	}
 }
 
-// ReadOptions configure an individual Read operation
+// ReadOptions configures an individual Read operation
 type ReadOptions struct {
 	// Prefix returns all records that are prefixed with key
 	Prefix bool
@@ -81,7 +81,7 @@ func ReadSuffix() ReadOption {
 	}
 }
 
-// WriteOptions configure an individual Write operation
+// WriteOptions configures an individual Write operation
 // If Expiry and TTL are set TTL takes precedence
 type WriteOptions struct {
 	// Expiry is the time the record expires
@@ -107,13 +107,13 @@ func WriteTTL(d time.Duration) WriteOption {
 	}
 }
 
-// DeleteOptions configure an individual Delete operation
+// DeleteOptions configures an individual Delete operation
 type DeleteOptions struct{}
 
 // DeleteOption sets values in DeleteOptions
 type DeleteOption func(d *DeleteOptions)
 
-// ListOptions configure an individual List operation
+// ListOptions configures an individual List operation
 type ListOptions struct {
 	// Prefix returns all keys that are prefixed with key
 	Prefix string
