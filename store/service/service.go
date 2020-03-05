@@ -56,14 +56,14 @@ func (s *serviceStore) Context() context.Context {
 }
 
 // Sync all the known records
-func (s *serviceStore) List() ([]*store.Record, error) {
+func (s *serviceStore) List() ([]string, error) {
 	stream, err := s.Client.List(s.Context(), &pb.ListRequest{}, client.WithAddress(s.Nodes...))
 	if err != nil {
 		return nil, err
 	}
 	defer stream.Close()
 
-	var records []*store.Record
+	var keys []string
 
 	for {
 		rsp, err := stream.Recv()
@@ -71,19 +71,15 @@ func (s *serviceStore) List() ([]*store.Record, error) {
 			break
 		}
 		if err != nil {
-			return records, err
+			return keys, err
 		}
 
-		for _, record := range rsp.Records {
-			records = append(records, &store.Record{
-				Key:    record.Key,
-				Value:  record.Value,
-				Expiry: time.Duration(record.Expiry) * time.Second,
-			})
+		for _, key := range rsp.Keys {
+			keys = append(keys, key)
 		}
 	}
 
-	return records, nil
+	return keys, nil
 }
 
 // Read a record with key
