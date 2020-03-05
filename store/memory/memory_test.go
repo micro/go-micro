@@ -29,6 +29,18 @@ func TestMemoryPrefix(t *testing.T) {
 	basictest(s, t)
 }
 
+func TestMemorySuffix(t *testing.T) {
+	s := NewStore()
+	s.Init(store.Suffix("some-suffix"))
+	basictest(s, t)
+}
+
+func TestMemoryPrefixSuffix(t *testing.T) {
+	s := NewStore()
+	s.Init(store.Prefix("some-prefix"), store.Prefix("some-suffix"))
+	basictest(s, t)
+}
+
 func TestMemoryNamespace(t *testing.T) {
 	s := NewStore()
 	s.Init(store.Namespace("some-namespace"))
@@ -117,7 +129,7 @@ func basictest(s store.Store, t *testing.T) {
 		}
 		t.Logf("Prefix test: %# v\n", pretty.Formatter(results))
 	}
-	if err := s.Delete("foo"); err != nil {
+	if err := s.Delete("foo", func(d *store.DeleteOptions) {}); err != nil {
 		t.Errorf("Delete failed (%v)", err)
 	}
 	if results, err := s.Read("foo", store.ReadPrefix()); err != nil {

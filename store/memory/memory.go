@@ -87,6 +87,9 @@ func (m *memoryStore) Read(key string, opts ...store.ReadOption) ([]*store.Recor
 }
 
 func (m *memoryStore) get(k string) (*store.Record, error) {
+	if len(m.options.Suffix) > 0 {
+		k = k + m.options.Suffix
+	}
 	if len(m.options.Prefix) > 0 {
 		k = m.options.Prefix + "/" + k
 	}
@@ -141,6 +144,9 @@ func (m *memoryStore) Write(r *store.Record, opts ...store.WriteOption) error {
 
 func (m *memoryStore) set(r *store.Record) {
 	key := r.Key
+	if len(m.options.Suffix) > 0 {
+		key = key + m.options.Suffix
+	}
 	if len(m.options.Prefix) > 0 {
 		key = m.options.Prefix + "/" + key
 	}
@@ -169,6 +175,9 @@ func (m *memoryStore) Delete(key string, opts ...store.DeleteOption) error {
 }
 
 func (m *memoryStore) delete(key string) {
+	if len(m.options.Suffix) > 0 {
+		key = key + m.options.Suffix
+	}
 	if len(m.options.Prefix) > 0 {
 		key = m.options.Prefix + "/" + key
 	}
@@ -212,12 +221,14 @@ func (m *memoryStore) list(limit, offset uint) []string {
 	allKeys := make([]string, len(allItems))
 	i := 0
 	for k := range allItems {
+		if len(m.options.Suffix) > 0 {
+			k = strings.TrimSuffix(k, m.options.Suffix)
+		}
 		if len(m.options.Namespace) > 0 {
 			k = strings.TrimPrefix(k, m.options.Namespace+"/")
 		}
 		if len(m.options.Prefix) > 0 {
 			k = strings.TrimPrefix(k, m.options.Prefix+"/")
-
 		}
 		allKeys[i] = k
 		i++
