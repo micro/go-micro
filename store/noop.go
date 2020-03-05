@@ -11,11 +11,11 @@ func (n *noopStore) Options() Options {
 }
 
 func (n *noopStore) String() string {
-	return "memory"
+	return "noop"
 }
 
 func (n *noopStore) Read(key string, opts ...ReadOption) ([]*Record, error) {
-	return nil, nil
+	return []*Record{}, nil
 }
 
 func (n *noopStore) Write(r *Record, opts ...WriteOption) error {
@@ -27,5 +27,5 @@ func (n *noopStore) Delete(key string, opts ...DeleteOption) error {
 }
 
 func (n *noopStore) List(opts ...ListOption) ([]string, error) {
-	return nil, nil
+	return []string{}, nil
 }
