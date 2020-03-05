@@ -238,19 +238,14 @@ func TestClientPubsub(t *testing.T) {
 	//	time.Sleep(5 * time.Second)
 }
 
-/*
 func BenchmarkFlowExecution(b *testing.B) {
 	var err error
 	ctx := context.Background()
 
-	sStore := memory.NewDataStore()
-	dStore := memory.NewDataStore()
-	fStore := memory.NewFlowStore()
-
 	fl := flow.NewFlow(
-		flow.WithStateStore(sStore),
-		flow.WithDataStore(dStore),
-		flow.WithFlowStore(fStore),
+		flow.WithStateStore(smemory.NewStore(store.Namespace("state"))),
+		flow.WithDataStore(smemory.NewStore(store.Namespace("data"))),
+		flow.WithFlowStore(smemory.NewStore(store.Namespace("flow"))),
 	)
 
 	if err = fl.Init(); err != nil {
@@ -258,7 +253,7 @@ func BenchmarkFlowExecution(b *testing.B) {
 	}
 	if err = fl.CreateStep("test_flow", &flow.Step{
 		ID:        "cms_account.AccountService.AccountCreate",
-		Operation: flow.ClientCallOperation("cms_account", "AccountService.AccountCreate"),
+		Operation: flow.EmptyOperation("cms_account.AccountService.AccountCreate"),
 		After:     nil,
 		Before:    nil,
 	}); err != nil {
@@ -266,7 +261,7 @@ func BenchmarkFlowExecution(b *testing.B) {
 	}
 	if err = fl.CreateStep("test_flow", &flow.Step{
 		ID:        "cms_account.AccountService.AccountDelete",
-		Operation: flow.ClientCallOperation("cms_account", "AccountService.AccountDelete"),
+		Operation: flow.EmptyOperation("cms_account.AccountService.AccountDelete"),
 		After:     nil,
 		Before:    nil,
 	}); err != nil {
@@ -274,7 +269,7 @@ func BenchmarkFlowExecution(b *testing.B) {
 	}
 	if err = fl.CreateStep("reverse", &flow.Step{
 		ID:        "cms_account.AccountService.AccountDelete",
-		Operation: flow.ClientCallOperation("cms_account", "AccountService.AccountDelete"),
+		Operation: flow.EmptyOperation("cms_account.AccountService.AccountDelete"),
 		After:     nil,
 		Before:    nil,
 	}); err != nil {
@@ -282,18 +277,18 @@ func BenchmarkFlowExecution(b *testing.B) {
 	}
 	if err = fl.CreateStep("test_flow", &flow.Step{
 		ID:        "cms_contact.ContactService.ContactCreate",
-		Operation: flow.ClientCallOperation("cms_contact", "ContactService.ContactCreate"),
+		Operation: flow.EmptyOperation("cms_contact.ContactService.ContactCreate"),
 		After:     []string{"cms_account.AccountService.AccountCreate"},
 		Before:    nil,
 		Fallback: flow.FlowExecuteOperation("reverse",
-			flow.ClientCallOperation("cms_account", "AccountService.AccountDelete").Name(),
+			flow.EmptyOperation("cms_account.AccountService.AccountDelete").Name(),
 		),
 	}); err != nil {
 		b.Fatal(err)
 	}
 	if err = fl.CreateStep("test_flow", &flow.Step{
 		ID:        "cms_project.ProjectService.ProjectCreate",
-		Operation: flow.ClientCallOperation("cms_project", "ProjectService.ProjectCreate"),
+		Operation: flow.EmptyOperation("cms_project.ProjectService.ProjectCreate"),
 		After:     []string{"cms_account.AccountService.AccountCreate"},
 		Before:    nil,
 	}); err != nil {
@@ -301,7 +296,7 @@ func BenchmarkFlowExecution(b *testing.B) {
 	}
 	if err = fl.CreateStep("test_flow", &flow.Step{
 		ID:        "cms_network.NetworkService.NetworkCreate",
-		Operation: flow.ClientCallOperation("cms_network", "NetworkService.NetworkCreate"),
+		Operation: flow.EmptyOperation("cms_network.NetworkService.NetworkCreate"),
 		After:     []string{"cms_account.AccountService.AccountCreate"},
 		Before:    nil,
 	}); err != nil {
@@ -309,7 +304,7 @@ func BenchmarkFlowExecution(b *testing.B) {
 	}
 	if err = fl.CreateStep("test_flow", &flow.Step{
 		ID:        "cms_authz.AuthzService.AuthzCreate",
-		Operation: flow.ClientCallOperation("cms_authz", "AuthzService.AuthzCreate"),
+		Operation: flow.EmptyOperation("cms_authz.AuthzService.AuthzCreate"),
 		After:     []string{"cms_account.AccountService.AccountCreate"},
 		Before:    nil,
 	}); err != nil {
@@ -317,7 +312,7 @@ func BenchmarkFlowExecution(b *testing.B) {
 	}
 	if err = fl.CreateStep("test_flow", &flow.Step{
 		ID:        "cms_mailer.MailService.MailSend",
-		Operation: flow.ClientCallOperation("cms_mailer", "MailService.MailSend"),
+		Operation: flow.EmptyOperation("cms_mailer.MailService.MailSend"),
 		After:     []string{"all"}, //[]string{"cms_account.AccountService.AccountCreate"},
 		Before:    nil,
 	}); err != nil {
@@ -334,7 +329,6 @@ func BenchmarkFlowExecution(b *testing.B) {
 			flow.ExecuteStep("cms_account.AccountService.AccountCreate"),
 			flow.ExecuteAsync(false),
 			flow.ExecuteClient(client.DefaultClient),
-			flow.ExecuteBroker(broker.DefaultBroker),
 		)
 		if err != nil {
 			b.Fatal(err)
@@ -342,4 +336,3 @@ func BenchmarkFlowExecution(b *testing.B) {
 		_ = rid
 	}
 }
-*/
