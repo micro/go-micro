@@ -27,7 +27,7 @@ type handler struct {
 }
 
 func (h *handler) AccountCreate(evt broker.Event) error {
-	topic, sendRsp := evt.Message().Header["Micro-Response"]
+	topic, sendRsp := evt.Message().Header["Micro-Callback"]
 
 	if sendRsp {
 		pub := micro.NewEvent(topic, h.cli)
@@ -40,7 +40,7 @@ func (h *handler) AccountCreate(evt broker.Event) error {
 }
 
 func (h *handler) ContactCreate(evt broker.Event) error {
-	topic, sendRsp := evt.Message().Header["Micro-Response"]
+	topic, sendRsp := evt.Message().Header["Micro-Callback"]
 
 	if sendRsp {
 		pub := micro.NewEvent(topic, h.cli)
@@ -66,7 +66,7 @@ func TestClientCall(t *testing.T) {
 	if err = fl.Init(); err != nil {
 		t.Fatal(err)
 	}
-	if err = fl.CreateStep("forward", &flow.Step{
+	if err = fl.CreateStep("test_flow", &flow.Step{
 		ID:        "cms_account.AccountService.AccountCreate",
 		Operation: flow.EmptyOperation("cms_account.AccountService.AccountCreate"),
 		After:     nil,
@@ -74,7 +74,7 @@ func TestClientCall(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	if err = fl.CreateStep("forward", &flow.Step{
+	if err = fl.CreateStep("test_flow", &flow.Step{
 		ID:        "cms_account.AccountService.AccountDelete",
 		Operation: flow.EmptyOperation("cms_account.AccountService.AccountDelete"),
 		After:     nil,
@@ -90,7 +90,7 @@ func TestClientCall(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	if err = fl.CreateStep("forward", &flow.Step{
+	if err = fl.CreateStep("test_flow", &flow.Step{
 		ID:        "cms_contact.ContactService.ContactCreate",
 		Operation: flow.EmptyOperation("cms_contact.ContactService.ContactCreate"),
 		After:     []string{"cms_account.AccountService.AccountCreate"},
@@ -101,7 +101,7 @@ func TestClientCall(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	if err = fl.CreateStep("forward", &flow.Step{
+	if err = fl.CreateStep("test_flow", &flow.Step{
 		ID:        "cms_project.ProjectService.ProjectCreate",
 		Operation: flow.EmptyOperation("cms_project.ProjectService.ProjectCreate"),
 		After:     []string{"cms_account.AccountService.AccountCreate"},
@@ -109,7 +109,7 @@ func TestClientCall(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	if err = fl.CreateStep("forward", &flow.Step{
+	if err = fl.CreateStep("test_flow", &flow.Step{
 		ID:        "cms_network.NetworkService.NetworkCreate",
 		Operation: flow.EmptyOperation("cms_network.NetworkService.NetworkCreate"),
 		After:     []string{"cms_account.AccountService.AccountCreate"},
@@ -117,7 +117,7 @@ func TestClientCall(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	if err = fl.CreateStep("forward", &flow.Step{
+	if err = fl.CreateStep("test_flow", &flow.Step{
 		ID:        "cms_authz.AuthzService.AuthzCreate",
 		Operation: flow.EmptyOperation("cms_authz.AuthzService.AuthzCreate"),
 		After:     []string{"cms_account.AccountService.AccountCreate"},
@@ -125,7 +125,7 @@ func TestClientCall(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	if err = fl.CreateStep("forward", &flow.Step{
+	if err = fl.CreateStep("test_flow", &flow.Step{
 		ID:        "cms_mailer.MailService.MailSend",
 		Operation: flow.EmptyOperation("cms_mailer.MailService.MailSend"),
 		After:     []string{"all"}, //[]string{"cms_account.AccountService.AccountCreate"},
@@ -134,10 +134,10 @@ func TestClientCall(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	req := &proto.Test{Name: "req"}
+	req := &proto.Test{Name: "client call test req"}
 	rsp := &proto.Test{}
 	//	err  = fl.
-	rid, err := fl.Execute("forward", req, rsp,
+	rid, err := fl.Execute("test_flow", req, rsp,
 		flow.ExecuteContext(ctx),
 		flow.ExecuteAsync(false),
 		flow.ExecuteStep("cms_account.AccountService.AccountCreate"),
@@ -164,7 +164,7 @@ func TestClientPubsub(t *testing.T) {
 	if err = fl.Init(); err != nil {
 		t.Fatal(err)
 	}
-	if err = fl.CreateStep("forward", &flow.Step{
+	if err = fl.CreateStep("test_flow", &flow.Step{
 		ID:        "cms_account.AccountService.AccountCreate",
 		Operation: flow.ClientPublishOperation("cms_account.AccountService.AccountCreate"),
 		After:     nil,
@@ -172,7 +172,7 @@ func TestClientPubsub(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	if err = fl.CreateStep("forward", &flow.Step{
+	if err = fl.CreateStep("test_flow", &flow.Step{
 		ID:        "cms_contact.ContactService.ContactCreate",
 		Operation: flow.ClientPublishOperation("cms_contact.ContactService.ContactCreate"),
 		After:     []string{"cms_account.AccountService.AccountCreate"},
@@ -222,7 +222,7 @@ func TestClientPubsub(t *testing.T) {
 	req := &proto.Test{Name: "req"}
 	rsp := &proto.Test{}
 	//	err  = fl.
-	rid, err := fl.Execute("forward", req, rsp,
+	rid, err := fl.Execute("test_flow", req, rsp,
 		flow.ExecuteContext(ctx),
 		flow.ExecuteAsync(false),
 		flow.ExecuteStep("cms_account.AccountService.AccountCreate"),
@@ -253,7 +253,7 @@ func BenchmarkFlowExecution(b *testing.B) {
 	if err = fl.Init(); err != nil {
 		b.Fatal(err)
 	}
-	if err = fl.CreateStep("forward", &flow.Step{
+	if err = fl.CreateStep("test_flow", &flow.Step{
 		ID:        "cms_account.AccountService.AccountCreate",
 		Operation: flow.ClientCallOperation("cms_account", "AccountService.AccountCreate"),
 		After:     nil,
@@ -261,7 +261,7 @@ func BenchmarkFlowExecution(b *testing.B) {
 	}); err != nil {
 		b.Fatal(err)
 	}
-	if err = fl.CreateStep("forward", &flow.Step{
+	if err = fl.CreateStep("test_flow", &flow.Step{
 		ID:        "cms_account.AccountService.AccountDelete",
 		Operation: flow.ClientCallOperation("cms_account", "AccountService.AccountDelete"),
 		After:     nil,
@@ -277,7 +277,7 @@ func BenchmarkFlowExecution(b *testing.B) {
 	}); err != nil {
 		b.Fatal(err)
 	}
-	if err = fl.CreateStep("forward", &flow.Step{
+	if err = fl.CreateStep("test_flow", &flow.Step{
 		ID:        "cms_contact.ContactService.ContactCreate",
 		Operation: flow.ClientCallOperation("cms_contact", "ContactService.ContactCreate"),
 		After:     []string{"cms_account.AccountService.AccountCreate"},
@@ -288,7 +288,7 @@ func BenchmarkFlowExecution(b *testing.B) {
 	}); err != nil {
 		b.Fatal(err)
 	}
-	if err = fl.CreateStep("forward", &flow.Step{
+	if err = fl.CreateStep("test_flow", &flow.Step{
 		ID:        "cms_project.ProjectService.ProjectCreate",
 		Operation: flow.ClientCallOperation("cms_project", "ProjectService.ProjectCreate"),
 		After:     []string{"cms_account.AccountService.AccountCreate"},
@@ -296,7 +296,7 @@ func BenchmarkFlowExecution(b *testing.B) {
 	}); err != nil {
 		b.Fatal(err)
 	}
-	if err = fl.CreateStep("forward", &flow.Step{
+	if err = fl.CreateStep("test_flow", &flow.Step{
 		ID:        "cms_network.NetworkService.NetworkCreate",
 		Operation: flow.ClientCallOperation("cms_network", "NetworkService.NetworkCreate"),
 		After:     []string{"cms_account.AccountService.AccountCreate"},
@@ -304,7 +304,7 @@ func BenchmarkFlowExecution(b *testing.B) {
 	}); err != nil {
 		b.Fatal(err)
 	}
-	if err = fl.CreateStep("forward", &flow.Step{
+	if err = fl.CreateStep("test_flow", &flow.Step{
 		ID:        "cms_authz.AuthzService.AuthzCreate",
 		Operation: flow.ClientCallOperation("cms_authz", "AuthzService.AuthzCreate"),
 		After:     []string{"cms_account.AccountService.AccountCreate"},
@@ -312,7 +312,7 @@ func BenchmarkFlowExecution(b *testing.B) {
 	}); err != nil {
 		b.Fatal(err)
 	}
-	if err = fl.CreateStep("forward", &flow.Step{
+	if err = fl.CreateStep("test_flow", &flow.Step{
 		ID:        "cms_mailer.MailService.MailSend",
 		Operation: flow.ClientCallOperation("cms_mailer", "MailService.MailSend"),
 		After:     []string{"all"}, //[]string{"cms_account.AccountService.AccountCreate"},
@@ -326,7 +326,7 @@ func BenchmarkFlowExecution(b *testing.B) {
 	//	err  = fl.
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		rid, err := fl.Execute("forward", req, rsp,
+		rid, err := fl.Execute("test_flow", req, rsp,
 			flow.ExecuteContext(ctx),
 			flow.ExecuteStep("cms_account.AccountService.AccountCreate"),
 			flow.ExecuteAsync(false),

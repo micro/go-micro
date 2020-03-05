@@ -27,7 +27,7 @@ func (op *emptyOperation) New() Operation {
 
 func (op *emptyOperation) Execute(ctx context.Context, req []byte, opts ...ExecuteOption) ([]byte, error) {
 	fmt.Printf("execute %s\n", op.name)
-	return nil, nil
+	return req, nil
 }
 
 func (op *emptyOperation) Name() string {

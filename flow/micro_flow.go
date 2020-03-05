@@ -10,7 +10,9 @@ import (
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/google/uuid"
 	lru "github.com/hashicorp/golang-lru"
+	"github.com/micro/go-micro/v2/errors"
 	pb "github.com/micro/go-micro/v2/flow/service/proto"
+	"github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/store"
 	"github.com/panjf2000/ants/v2"
 )
@@ -481,30 +483,33 @@ func (fl *microFlow) flowHandler(req interface{}) {
 		return
 	}
 
-	stateKey := fmt.Sprintf("%s-%s", job.flow, job.rid)
+	stateKey := fmt.Sprintf("%s-%s-flow", job.flow, job.rid)
 	if err = fl.options.StateStore.Write(&store.Record{Key: stateKey, Value: []byte("pending")}); err != nil {
 		return
 	}
+	logger.Infof("state %s %s", stateKey, "pending")
 
-	var initial bool
-	if len(options.Output) == 0 {
-		initial = true
+	dataKey := fmt.Sprintf("%s-%s-%s", job.flow, job.rid, steps[0].Name())
+	if serr := fl.options.DataStore.Write(&store.Record{Key: dataKey, Value: job.req}); serr != nil {
+		return
 	}
+	logger.Infof("data %s %s", dataKey, job.req)
+	steps[0].Input = steps[0].Name()
 
 stepsLoop:
-	for _, step := range steps {
-		if !initial && options.Output == step.Name() {
-			initial = true
+	for idx, step := range steps {
+		if len(step.Input) == 0 {
+			step.Input = steps[idx-1].Output
 		}
-		if err = fl.stepHandler(options.Context, step, job, initial); err != nil {
-			initial = false
+		if len(step.Output) == 0 {
+			step.Output = step.Name()
+		}
+		logger.Infof("%#+v\n", step)
+		if err = fl.stepHandler(options.Context, step, job); err != nil {
 			if step.Fallback != nil {
-				fl.stepHandler(options.Context, step, job, initial)
+				fl.stepHandler(options.Context, step, job)
 			}
 			break stepsLoop
-		}
-		if initial {
-			initial = false
 		}
 	}
 
@@ -512,62 +517,81 @@ stepsLoop:
 		if serr := fl.options.StateStore.Write(&store.Record{Key: stateKey, Value: []byte("failure")}); serr != nil {
 			return
 		}
+		logger.Infof("state %s %s", stateKey, "failure")
 		return
 	}
 
 	if err = fl.options.StateStore.Write(&store.Record{Key: stateKey, Value: []byte("success")}); err != nil {
 		return
 	}
+	logger.Infof("state %s %s", stateKey, "success")
 
+	output := steps[0].Output
+	if len(options.Output) > 0 {
+		output = options.Output
+	}
+
+	dataKey = fmt.Sprintf("%s-%s-%s", job.flow, job.rid, output)
+	rec, serr := fl.options.DataStore.Read(dataKey)
+	if serr != nil {
+		return
+	} else {
+		job.rsp = rec[0].Value
+	}
+	logger.Infof("data %s %s", dataKey, job.rsp)
+
+	return
 }
 
-func (fl *microFlow) stepHandler(ctx context.Context, step *Step, job *flowJob, initial bool) error {
+func (fl *microFlow) stepHandler(ctx context.Context, step *Step, job *flowJob) error {
 	var err error
-	var opErr error
+	var serr error
 	var buf []byte
 
 	stateKey := fmt.Sprintf("%s-%s-%s", job.flow, job.rid, step.Name())
 	if err = fl.options.StateStore.Write(&store.Record{Key: stateKey, Value: []byte("pending")}); err != nil {
 		return err
 	}
+	logger.Infof("state %s %s", stateKey, "pending")
 
+	var rec []*store.Record
 	var req []byte
-	if len(step.Input) > 0 {
-		rec, err := fl.options.DataStore.Read(fmt.Sprintf("%s-%s-%s", job.flow, job.rid, step.Input))
-		if err != nil {
-			return err
-		}
-		req = rec[0].Value
-	} else {
-		req = job.req
+	dataKey := fmt.Sprintf("%s-%s-%s", job.flow, job.rid, step.Input)
+	rec, serr = fl.options.DataStore.Read(dataKey)
+	if serr != nil {
+		return serr
 	}
+	req = rec[0].Value
+	logger.Infof("data %s %s", dataKey, req)
 
-	output := step.Name()
-	if len(step.Output) > 0 {
-		output = step.Output
-	}
-
-	dataKey := fmt.Sprintf("%s-%s-%s", job.flow, job.rid, output)
+	dataKey = fmt.Sprintf("%s-%s-%s", job.flow, job.rid, step.Output)
 	// operation handles retries, timeouts and so
-	buf, opErr = step.Operation.Execute(ctx, req, job.options...)
-	if opErr == nil {
-		if err = fl.options.StateStore.Write(&store.Record{Key: stateKey, Value: []byte("success")}); err != nil {
-			return err
+	buf, err = step.Operation.Execute(ctx, req, job.options...)
+	if err == nil {
+		if serr := fl.options.StateStore.Write(&store.Record{Key: stateKey, Value: []byte("success")}); serr != nil {
+			return serr
 		}
-		if err = fl.options.DataStore.Write(&store.Record{Key: dataKey, Value: buf}); err != nil {
-			return err
+		logger.Infof("state %s %s", stateKey, "success")
+	} else {
+		if serr = fl.options.StateStore.Write(&store.Record{Key: stateKey, Value: []byte("failure")}); serr != nil {
+			return serr
 		}
-		if initial {
-			job.rsp = buf
+		logger.Infof("state %s %s", stateKey, "failure")
+		if m, ok := err.(*errors.Error); ok {
+			buf, serr = proto.Marshal(m)
+			if serr != nil {
+				return serr
+			}
+		} else {
+			buf = []byte(err.Error())
 		}
-		return nil
 	}
 
-	if err = fl.options.StateStore.Write(&store.Record{Key: stateKey, Value: []byte("failure")}); err != nil {
-		return err
+	if serr = fl.options.DataStore.Write(&store.Record{Key: dataKey, Value: buf}); serr != nil {
+		return serr
 	}
-
-	return opErr
+	logger.Infof("data %s %s", dataKey, buf)
+	return err
 }
 
 func (fl *microFlow) Options() Options {
