@@ -293,10 +293,13 @@ func (fl *microFlow) Execute(flow string, req interface{}, rsp interface{}, opts
 		return "", err
 	}
 
-	job.mu.Lock()
-	defer job.mu.Unlock()
 	if !options.Async {
-		<-job.done
+		job.mu.RLock()
+		done := job.done
+		job.mu.RUnlock()
+		<-done
+		job.mu.RLock()
+		defer job.mu.RUnlock()
 		if job.err != nil {
 			return "", job.err
 		}
@@ -440,8 +443,8 @@ func (fl *microFlow) flowHandler(req interface{}) {
 	var err error
 
 	job := req.(*flowJob)
-	//job.mu.Lock()
-	//defer job.mu.Unlock()
+	job.mu.Lock()
+	defer job.mu.Unlock()
 	defer func() {
 		(*job).err = err
 	}()
@@ -487,13 +490,13 @@ func (fl *microFlow) flowHandler(req interface{}) {
 	if err = fl.options.StateStore.Write(&store.Record{Key: stateKey, Value: []byte("pending")}); err != nil {
 		return
 	}
-	logger.Infof("state %s %s", stateKey, "pending")
+	logger.Tracef("state %s %s", stateKey, "pending")
 
 	dataKey := fmt.Sprintf("%s-%s-%s", job.flow, job.rid, steps[0].Name())
 	if serr := fl.options.DataStore.Write(&store.Record{Key: dataKey, Value: job.req}); serr != nil {
 		return
 	}
-	logger.Infof("data %s %s", dataKey, job.req)
+	logger.Tracef("data %s %s", dataKey, job.req)
 	steps[0].Input = steps[0].Name()
 
 stepsLoop:
@@ -504,7 +507,6 @@ stepsLoop:
 		if len(step.Output) == 0 {
 			step.Output = step.Name()
 		}
-		logger.Infof("%#+v\n", step)
 		if err = fl.stepHandler(options.Context, step, job); err != nil {
 			if step.Fallback != nil {
 				fl.stepHandler(options.Context, step, job)
@@ -517,14 +519,14 @@ stepsLoop:
 		if serr := fl.options.StateStore.Write(&store.Record{Key: stateKey, Value: []byte("failure")}); serr != nil {
 			return
 		}
-		logger.Infof("state %s %s", stateKey, "failure")
+		logger.Tracef("state %s %s", stateKey, "failure")
 		return
 	}
 
 	if err = fl.options.StateStore.Write(&store.Record{Key: stateKey, Value: []byte("success")}); err != nil {
 		return
 	}
-	logger.Infof("state %s %s", stateKey, "success")
+	logger.Tracef("state %s %s", stateKey, "success")
 
 	output := steps[0].Output
 	if len(options.Output) > 0 {
@@ -538,7 +540,7 @@ stepsLoop:
 	} else {
 		job.rsp = rec[0].Value
 	}
-	logger.Infof("data %s %s", dataKey, job.rsp)
+	logger.Tracef("data %s %s", dataKey, job.rsp)
 
 	return
 }
@@ -552,7 +554,7 @@ func (fl *microFlow) stepHandler(ctx context.Context, step *Step, job *flowJob) 
 	if err = fl.options.StateStore.Write(&store.Record{Key: stateKey, Value: []byte("pending")}); err != nil {
 		return err
 	}
-	logger.Infof("state %s %s", stateKey, "pending")
+	logger.Tracef("state %s %s", stateKey, "pending")
 
 	var rec []*store.Record
 	var req []byte
@@ -562,7 +564,7 @@ func (fl *microFlow) stepHandler(ctx context.Context, step *Step, job *flowJob) 
 		return serr
 	}
 	req = rec[0].Value
-	logger.Infof("data %s %s", dataKey, req)
+	logger.Tracef("data %s %s", dataKey, req)
 
 	dataKey = fmt.Sprintf("%s-%s-%s", job.flow, job.rid, step.Output)
 	// operation handles retries, timeouts and so
@@ -571,12 +573,12 @@ func (fl *microFlow) stepHandler(ctx context.Context, step *Step, job *flowJob) 
 		if serr := fl.options.StateStore.Write(&store.Record{Key: stateKey, Value: []byte("success")}); serr != nil {
 			return serr
 		}
-		logger.Infof("state %s %s", stateKey, "success")
+		logger.Tracef("state %s %s", stateKey, "success")
 	} else {
 		if serr = fl.options.StateStore.Write(&store.Record{Key: stateKey, Value: []byte("failure")}); serr != nil {
 			return serr
 		}
-		logger.Infof("state %s %s", stateKey, "failure")
+		logger.Tracef("state %s %s", stateKey, "failure")
 		if m, ok := err.(*errors.Error); ok {
 			buf, serr = proto.Marshal(m)
 			if serr != nil {
@@ -590,7 +592,7 @@ func (fl *microFlow) stepHandler(ctx context.Context, step *Step, job *flowJob) 
 	if serr = fl.options.DataStore.Write(&store.Record{Key: dataKey, Value: buf}); serr != nil {
 		return serr
 	}
-	logger.Infof("data %s %s", dataKey, buf)
+	logger.Tracef("data %s %s", dataKey, buf)
 	return err
 }
 

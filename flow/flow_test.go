@@ -13,6 +13,7 @@ import (
 	rselector "github.com/micro/go-micro/v2/client/selector/registry"
 	"github.com/micro/go-micro/v2/flow"
 	proto "github.com/micro/go-micro/v2/flow/service/proto"
+	"github.com/micro/go-micro/v2/logger"
 	rmemory "github.com/micro/go-micro/v2/registry/memory"
 	"github.com/micro/go-micro/v2/server"
 	"github.com/micro/go-micro/v2/store"
@@ -53,6 +54,7 @@ func (h *handler) ContactCreate(evt broker.Event) error {
 }
 
 func TestClientCall(t *testing.T) {
+	logger.DefaultLogger = logger.NewLogger(logger.WithLevel(logger.TraceLevel))
 	var err error
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -151,6 +153,7 @@ func TestClientCall(t *testing.T) {
 }
 
 func TestClientPubsub(t *testing.T) {
+	logger.DefaultLogger = logger.NewLogger(logger.WithLevel(logger.TraceLevel))
 	var err error
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
