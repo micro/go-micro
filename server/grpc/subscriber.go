@@ -178,7 +178,7 @@ func (g *grpcServer) createSubHandler(sb *subscriber, opts server.Options) broke
 		}()
 
 		msg := p.Message()
-		// if we don't ave headers, create empty map
+		// if we don't have headers, create empty map
 		if msg.Header == nil {
 			msg.Header = make(map[string]string)
 		}
