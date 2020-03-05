@@ -90,7 +90,7 @@ func (m *syncMap) Delete(key interface{}) error {
 }
 
 func (m *syncMap) Iterate(fn func(key, val interface{}) error) error {
-	keyvals, err := m.opts.Store.List()
+	keyvals, err := m.opts.Store.Read("", store.ReadPrefix())
 	if err != nil {
 		return err
 	}
