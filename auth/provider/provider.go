@@ -1,19 +1,18 @@
-// Provider is an external auth provider e.g oauth
+// Package provider is an external auth provider e.g oauth
 package provider
 
 import (
-	"context"
 	"time"
 )
 
-// Provider is an external auth provider
+// Provider is an auth provider
 type Provider interface {
+	// Options returns the options of a provider
+	Options() Options
 	// Endpoint for the provider
 	Endpoint() string
 	// Redirect url incase of UI
 	Redirect() string
-	// Login to the provider using id and secret
-	Login(ctx context.Context, id, secret string) (*Grant, error)
 }
 
 // Grant is a granted authorisation

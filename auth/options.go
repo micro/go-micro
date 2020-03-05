@@ -1,5 +1,7 @@
 package auth
 
+import "github.com/micro/go-micro/v2/auth/provider"
+
 type Options struct {
 	// Token is an auth token
 	Token string
@@ -9,6 +11,8 @@ type Options struct {
 	PrivateKey string
 	// Endpoints to exclude
 	Exclude []string
+	// Provider is an auth provider
+	Provider *provider.Provider
 }
 
 type Option func(o *Options)
@@ -38,6 +42,13 @@ func PrivateKey(key string) Option {
 func Token(t string) Option {
 	return func(o *Options) {
 		o.Token = t
+	}
+}
+
+// Provider set the auth provider
+func Provider(p *provider.Provider) Option {
+	return func(o *Options) {
+		o.Provider = p
 	}
 }
 

@@ -44,7 +44,7 @@ type Role struct {
 
 // Account provided by an auth provider
 type Account struct {
-	// ID of the account (UUID or email)
+	// ID of the account (UUIDV4, email or username)
 	Id string `json:"id"`
 	// Token used to authenticate
 	Token string `json:"token"`
