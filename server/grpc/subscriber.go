@@ -178,6 +178,11 @@ func (g *grpcServer) createSubHandler(sb *subscriber, opts server.Options) broke
 		}()
 
 		msg := p.Message()
+		// if we don't ave headers, create empty map
+		if msg.Header == nil {
+			msg.Header = make(map[string]string)
+		}
+
 		ct := msg.Header["Content-Type"]
 		if len(ct) == 0 {
 			msg.Header["Content-Type"] = defaultContentType
