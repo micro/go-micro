@@ -202,7 +202,8 @@ func basictest(s store.Store, t *testing.T) {
 	if err := s.Write(&store.Record{
 		Key:   "barbar",
 		Value: []byte("something"),
-	}); err != nil {
+		// TTL has higher precedence than expiry
+	}, store.WriteExpiry(time.Now().Add(time.Hour)), store.WriteTTL(time.Millisecond*100)); err != nil {
 		t.Error(err)
 	}
 	if results, err := s.Read("foo", store.ReadPrefix(), store.ReadSuffix()); err != nil {
@@ -216,7 +217,7 @@ func basictest(s store.Store, t *testing.T) {
 	if results, err := s.List(); err != nil {
 		t.Errorf("List failed: %s", err)
 	} else {
-		if len(results) != 1 {
+		if len(results) != 0 {
 			t.Error("Expiry options were not effective")
 		}
 	}
