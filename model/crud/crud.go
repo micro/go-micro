@@ -5,21 +5,21 @@ type CRUD interface {
 	// Read values
 	Read(...ReadOption) ([]Record, error)
 	// Write a value
-	Write(id string, v interface{}, ...WriteOption) error
+	Write(id string, v interface{}) error
 	// Update a record
-	Update(id string, v interface{}, ...UpdateOption) error
+	Update(id string, v interface{}) error
 	// Delete a record
-	Delete(id string, ...DeleteOption) error
+	Delete(id string) error
 }
 
 type Record interface {
-	// Value
-	Value() []byte
 	// Scan the value into an interface
-	Scan(v interface{}) error
+	Scan(...interface{}) error
 }
 
-type ReadOption struct {
+type ReadOption func(o *ReadOptions)
+
+type ReadOptions struct {
 	// Id to read
 	Id string
 	// Limit number of returns records
