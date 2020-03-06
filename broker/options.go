@@ -15,7 +15,7 @@ type Options struct {
 
 	// Handler executed when error happens in broker mesage
 	// processing
-	ErrorHandler func(Event)
+	ErrorHandler Handler
 
 	TLSConfig *tls.Config
 	// Registry used for clustering
@@ -88,7 +88,7 @@ func DisableAutoAck() SubscribeOption {
 
 // ErrorHandler will catch all broker errors that cant be handled
 // in normal way, for example Codec errors
-func ErrorHandler(h func(Event)) Option {
+func ErrorHandler(h Handler) Option {
 	return func(o *Options) {
 		o.ErrorHandler = h
 	}
