@@ -53,8 +53,9 @@ type subscriber struct {
 }
 
 type publication struct {
-	t string
-	m *Message
+	t   string
+	err error
+	m   *Message
 }
 
 func (p *publication) Topic() string {
@@ -68,6 +69,10 @@ func (p *publication) Message() *Message {
 func (p *publication) Ack() error {
 	// nats does not support acking
 	return nil
+}
+
+func (p *publication) Error() error {
+	return p.err
 }
 
 func (s *subscriber) Options() SubscribeOptions {
@@ -391,19 +396,23 @@ func (n *natsBroker) Subscribe(topic string, handler Handler, opts ...SubscribeO
 	fn := func(msg *nats.Msg) {
 		var m Message
 		pub := &publication{t: msg.Subject}
-		fn := n.opts.ErrorHandler
-		if err := n.opts.Codec.Unmarshal(msg.Data, &m); err != nil {
+		eh := n.opts.ErrorHandler
+		err := n.opts.Codec.Unmarshal(msg.Data, &m)
+		pub.err = err
+		pub.m = &m
+		if err != nil {
+			m.Body = msg.Data
 			log.Error(err)
-			if fn != nil {
-				fn(pub, err)
+			if eh != nil {
+				eh(pub)
 			}
 			return
 		}
-		pub.m = &m
 		if err := handler(pub); err != nil {
+			pub.err = err
 			log.Error(err)
-			if fn := n.opts.ErrorHandler; fn != nil {
-				fn(pub, err)
+			if eh != nil {
+				eh(pub)
 			}
 		}
 	}
