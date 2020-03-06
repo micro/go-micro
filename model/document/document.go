@@ -1,7 +1,7 @@
-// Package crud provides a crud interface
-package crud
+// Package document provides a document-oriented crud interface
+package document
 
-type CRUD interface {
+type Document interface {
 	// Read values
 	Read(...ReadOption) ([]Record, error)
 	// Write a value
