@@ -9,6 +9,10 @@ type Options struct {
 	ClientID string
 	// ClientSecret is the application's secret.
 	ClientSecret string
+	// Endpoint for the provider
+	Endpoint string
+	// Redirect url incase of UI
+	Redirect string
 }
 
 // Credentials is an option which sets the client id and secret
@@ -16,5 +20,19 @@ func Credentials(id, secret string) Option {
 	return func(o *Options) {
 		o.ClientID = id
 		o.ClientSecret = secret
+	}
+}
+
+// Endpoint sets the endpoint option
+func Endpoint(e string) Option {
+	return func(o *Options) {
+		o.Endpoint = e
+	}
+}
+
+// Redirect sets the Redirect option
+func Redirect(r string) Option {
+	return func(o *Options) {
+		o.Redirect = r
 	}
 }

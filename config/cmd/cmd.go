@@ -74,7 +74,7 @@ import (
 	storeAuth "github.com/micro/go-micro/v2/auth/store"
 
 	// auth providers
-	testProvider "github.com/micro/go-micro/v2/auth/provider/test"
+	"github.com/micro/go-micro/v2/auth/provider/oauth"
 )
 
 type Cmd interface {
@@ -275,15 +275,35 @@ var (
 			Usage:   "Comma-separated list of endpoints excluded from authentication, e.g. Users.ListUsers",
 		},
 		&cli.StringFlag{
+			Name:    "auth_login_url",
+			EnvVars: []string{"MICRO_AUTH_LOGIN_URL"},
+			Usage:   "The relative URL where a user can login",
+			Value:   "/login",
+		},
+		&cli.StringFlag{
 			Name:    "auth_provider",
 			EnvVars: []string{"MICRO_AUTH_PROVIDER"},
 			Usage:   "Auth provider used to login user",
 		},
 		&cli.StringFlag{
-			Name:    "auth_login_url",
-			EnvVars: []string{"MICRO_AUTH_LOGIN_URL"},
-			Usage:   "The relative URL where a user can login",
-			Value:   "/login",
+			Name:    "auth_provider_client_id",
+			EnvVars: []string{"MICRO_AUTH_PROVIDER_CLIENT_ID"},
+			Usage:   "The client id to be used for oauth",
+		},
+		&cli.StringFlag{
+			Name:    "auth_provider_client_secret",
+			EnvVars: []string{"MICRO_AUTH_PROVIDER_CLIENT_SECRET"},
+			Usage:   "The client secret to be used for oauth",
+		},
+		&cli.StringFlag{
+			Name:    "auth_provider_endpoint",
+			EnvVars: []string{"MICRO_AUTH_PROVIDER_ENDPOINT"},
+			Usage:   "The enpoint to be used for oauth",
+		},
+		&cli.StringFlag{
+			Name:    "auth_provider_redirect",
+			EnvVars: []string{"MICRO_AUTH_PROVIDER_REDIRECT"},
+			Usage:   "The redirect to be used for oauth",
 		},
 	}
 
@@ -345,7 +365,7 @@ var (
 	}
 
 	DefaultAuthProviders = map[string]func(...provider.Option) provider.Provider{
-		"test": testProvider.NewProvider,
+		"oauth": oauth.NewProvider,
 	}
 
 	DefaultProfiles = map[string]func(...profile.Option) profile.Profile{
@@ -657,7 +677,21 @@ func (c *cmd) Before(ctx *cli.Context) error {
 			return fmt.Errorf("AuthProvider %s not found", name)
 		}
 
-		authOpts = append(authOpts, auth.Provider(p()))
+		var provOpts []provider.Option
+
+		clientID := ctx.String("auth_provider_client_id")
+		clientSecret := ctx.String("auth_provider_client_secret")
+		if len(clientID) > 0 && len(clientSecret) > 0 {
+			provOpts = append(provOpts, provider.Credentials(clientID, clientSecret))
+		}
+		if e := ctx.String("auth_provider_endpoint"); len(e) > 0 {
+			provOpts = append(provOpts, provider.Endpoint(e))
+		}
+		if r := ctx.String("auth_provider_redirect"); len(r) > 0 {
+			provOpts = append(provOpts, provider.Redirect(r))
+		}
+
+		authOpts = append(authOpts, auth.Provider(p(provOpts...)))
 	}
 
 	if len(authOpts) > 0 {
