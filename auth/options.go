@@ -13,6 +13,8 @@ type Options struct {
 	Exclude []string
 	// Provider is an auth provider
 	Provider provider.Provider
+	// LoginURL is the relative url path where a user can login
+	LoginURL string
 }
 
 type Option func(o *Options)
@@ -49,6 +51,13 @@ func Token(t string) Option {
 func Provider(p provider.Provider) Option {
 	return func(o *Options) {
 		o.Provider = p
+	}
+}
+
+// LoginURL sets the auth LoginURL
+func LoginURL(url string) Option {
+	return func(o *Options) {
+		o.LoginURL = url
 	}
 }
 

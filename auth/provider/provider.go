@@ -7,8 +7,8 @@ import (
 
 // Provider is an auth provider
 type Provider interface {
-	// Type of the provider
-	Type() string
+	// String returns the name of the provider
+	String() string
 	// Options returns the options of a provider
 	Options() Options
 	// Endpoint for the provider

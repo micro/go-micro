@@ -24,13 +24,16 @@ type authHandler struct {
 const (
 	// BearerScheme is the prefix in the auth header
 	BearerScheme = "Bearer "
-	// LoginPath is the path of the login page
-	LoginPath = "/login"
 )
 
 func (h authHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	loginURL := h.auth.Options().LoginURL
+
 	// Return if the user disabled auth on this endpoint
-	excludes := append(h.auth.Options().Exclude, LoginPath)
+	excludes := h.auth.Options().Exclude
+	if len(loginURL) > 0 {
+		excludes = append(excludes, loginURL)
+	}
 	for _, e := range excludes {
 		if e == req.URL.Path {
 			h.handler.ServeHTTP(w, req)
@@ -52,11 +55,11 @@ func (h authHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	// If there is no auth provider set, 401
-	if h.auth.Options().Provider == nil {
+	// If there is no auth login url set, 401
+	if loginURL == "" {
 		w.WriteHeader(401)
 	}
 
 	// Redirect to the login path
-	http.Redirect(w, req, LoginPath, http.StatusTemporaryRedirect)
+	http.Redirect(w, req, loginURL, http.StatusTemporaryRedirect)
 }

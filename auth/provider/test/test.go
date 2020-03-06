@@ -10,7 +10,7 @@ func NewProvider(opts ...provider.Option) provider.Provider {
 
 type test struct{}
 
-func (t *test) Type() string {
+func (t *test) String() string {
 	return "test"
 }
 

@@ -279,6 +279,12 @@ var (
 			EnvVars: []string{"MICRO_AUTH_PROVIDER"},
 			Usage:   "Auth provider used to login user",
 		},
+		&cli.StringFlag{
+			Name:    "auth_login_url",
+			EnvVars: []string{"MICRO_AUTH_LOGIN_URL"},
+			Usage:   "The relative URL where a user can login",
+			Value:   "/login",
+		},
 	}
 
 	DefaultBrokers = map[string]func(...broker.Option) broker.Broker{
@@ -641,16 +647,17 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		authOpts = append(authOpts, auth.Exclude(ctx.StringSlice("auth_exclude")...))
 	}
 
+	if len(ctx.String("auth_login_url")) > 0 {
+		authOpts = append(authOpts, auth.LoginURL(ctx.String("auth_login_url")))
+	}
+
 	if name := ctx.String("auth_provider"); len(name) > 0 {
 		p, ok := DefaultAuthProviders[name]
 		if !ok {
 			return fmt.Errorf("AuthProvider %s not found", name)
 		}
 
-		// TODO: SET AUTH PROVIDER
-		pOpts := make([]provider.Option, 0)
-		provider := p(pOpts...)
-		authOpts = append(authOpts, auth.Provider(provider))
+		authOpts = append(authOpts, auth.Provider(p()))
 	}
 
 	if len(authOpts) > 0 {
