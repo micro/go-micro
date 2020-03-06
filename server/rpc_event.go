@@ -7,6 +7,7 @@ import (
 
 // event is a broker event we handle on the server transport
 type event struct {
+	err     error
 	message *broker.Message
 }
 
@@ -17,6 +18,10 @@ func (e *event) Ack() error {
 
 func (e *event) Message() *broker.Message {
 	return e.message
+}
+
+func (e *event) Error() error {
+	return e.err
 }
 
 func (e *event) Topic() string {

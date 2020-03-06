@@ -28,6 +28,7 @@ type Event interface {
 	Topic() string
 	Message() *Message
 	Ack() error
+	Error() error
 }
 
 // Subscriber is a convenience return type for the Subscribe method
