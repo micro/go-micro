@@ -8,7 +8,6 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -48,35 +47,35 @@ func newService(opts ...Option) Service {
 }
 
 func (s *service) genSrv() *registry.Service {
+	var host string
+	var port string
+	var err error
+
 	// default host:port
-	parts := strings.Split(s.opts.Address, ":")
-	host := strings.Join(parts[:len(parts)-1], ":")
-	port, _ := strconv.Atoi(parts[len(parts)-1])
+	if len(s.opts.Address) > 0 {
+		host, port, err = net.SplitHostPort(s.opts.Address)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
 
 	// check the advertise address first
 	// if it exists then use it, otherwise
 	// use the address
 	if len(s.opts.Advertise) > 0 {
-		parts = strings.Split(s.opts.Advertise, ":")
-
-		// we have host:port
-		if len(parts) > 1 {
-			// set the host
-			host = strings.Join(parts[:len(parts)-1], ":")
-
-			// get the port
-			if aport, _ := strconv.Atoi(parts[len(parts)-1]); aport > 0 {
-				port = aport
-			}
-		} else {
-			host = parts[0]
+		host, port, err = net.SplitHostPort(s.opts.Address)
+		if err != nil {
+			log.Fatal(err)
 		}
 	}
 
 	addr, err := maddr.Extract(host)
 	if err != nil {
-		// best effort localhost
-		addr = "127.0.0.1"
+		log.Fatal(err)
+	}
+
+	if strings.Count(addr, ":") > 0 {
+		addr = "[" + addr + "]"
 	}
 
 	return &registry.Service{
@@ -84,7 +83,7 @@ func (s *service) genSrv() *registry.Service {
 		Version: s.opts.Version,
 		Nodes: []*registry.Node{{
 			Id:       s.opts.Id,
-			Address:  fmt.Sprintf("%s:%d", addr, port),
+			Address:  fmt.Sprintf("%s:%s", addr, port),
 			Metadata: s.opts.Metadata,
 		}},
 	}
