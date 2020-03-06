@@ -5,11 +5,11 @@ type CRUD interface {
 	// Read values
 	Read(...ReadOption) ([]Record, error)
 	// Write a value
-	Write(id string, v interface{}) error
+	Write(id string, v interface{}, ...WriteOption) error
 	// Update a record
-	Update(id string, v interface{}) error
+	Update(id string, v interface{}, ...UpdateOption) error
 	// Delete a record
-	Delete(id string) error
+	Delete(id string, ...DeleteOption) error
 }
 
 type Record interface {
