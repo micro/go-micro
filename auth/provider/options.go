@@ -13,6 +13,8 @@ type Options struct {
 	Endpoint string
 	// Redirect url incase of UI
 	Redirect string
+	// Scope of the oauth request
+	Scope string
 }
 
 // Credentials is an option which sets the client id and secret
@@ -34,5 +36,12 @@ func Endpoint(e string) Option {
 func Redirect(r string) Option {
 	return func(o *Options) {
 		o.Redirect = r
+	}
+}
+
+// Scope sets the oauth scope
+func Scope(s string) Option {
+	return func(o *Options) {
+		o.Scope = s
 	}
 }

@@ -1,6 +1,8 @@
 package oauth
 
 import (
+	"fmt"
+
 	"github.com/micro/go-micro/v2/auth/provider"
 )
 
@@ -26,7 +28,13 @@ func (o *oauth) Options() provider.Options {
 }
 
 func (o *oauth) Endpoint() string {
-	return o.opts.Endpoint
+	s := fmt.Sprintf("%v?client_id=%v", o.opts.Endpoint, o.opts.ClientID)
+
+	if scope := o.opts.Scope; len(scope) > 0 {
+		s = fmt.Sprintf("%v&scope=%v", s, scope)
+	}
+
+	return s
 }
 
 func (o *oauth) Redirect() string {

@@ -41,11 +41,16 @@ func (h authHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	// Extract the auth token from the request
 	var token string
 	if header, ok := metadata.Get(req.Context(), "Authorization"); ok {
+		// Extract the auth token from the request
 		if strings.HasPrefix(header, BearerScheme) {
 			token = header[len(BearerScheme):]
+		}
+	} else {
+		// Get the token out the cookies if not provided in headers
+		if c, err := req.Cookie(auth.CookieName); err != nil && c != nil {
+			token = c.Value
 		}
 	}
 

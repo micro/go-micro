@@ -62,6 +62,9 @@ const (
 	// MetadataKey is the key used when storing the account
 	// in metadata
 	MetadataKey = "auth-account"
+	// CookieName is the name of the cookie which stores the
+	// auth token
+	CookieName = "micro-token"
 )
 
 // AccountFromContext gets the account from the context, which

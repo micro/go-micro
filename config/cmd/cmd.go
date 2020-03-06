@@ -74,6 +74,7 @@ import (
 	storeAuth "github.com/micro/go-micro/v2/auth/store"
 
 	// auth providers
+	"github.com/micro/go-micro/v2/auth/provider/basic"
 	"github.com/micro/go-micro/v2/auth/provider/oauth"
 )
 
@@ -305,6 +306,11 @@ var (
 			EnvVars: []string{"MICRO_AUTH_PROVIDER_REDIRECT"},
 			Usage:   "The redirect to be used for oauth",
 		},
+		&cli.StringFlag{
+			Name:    "auth_provider_scope",
+			EnvVars: []string{"MICRO_AUTH_PROVIDER_SCOPE"},
+			Usage:   "The scope to be used for oauth",
+		},
 	}
 
 	DefaultBrokers = map[string]func(...broker.Option) broker.Broker{
@@ -366,6 +372,7 @@ var (
 
 	DefaultAuthProviders = map[string]func(...provider.Option) provider.Provider{
 		"oauth": oauth.NewProvider,
+		"basic": basic.NewProvider,
 	}
 
 	DefaultProfiles = map[string]func(...profile.Option) profile.Profile{
@@ -681,7 +688,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 
 		clientID := ctx.String("auth_provider_client_id")
 		clientSecret := ctx.String("auth_provider_client_secret")
-		if len(clientID) > 0 && len(clientSecret) > 0 {
+		if len(clientID) > 0 || len(clientSecret) > 0 {
 			provOpts = append(provOpts, provider.Credentials(clientID, clientSecret))
 		}
 		if e := ctx.String("auth_provider_endpoint"); len(e) > 0 {
@@ -689,6 +696,9 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		}
 		if r := ctx.String("auth_provider_redirect"); len(r) > 0 {
 			provOpts = append(provOpts, provider.Redirect(r))
+		}
+		if s := ctx.String("auth_provider_scope"); len(s) > 0 {
+			provOpts = append(provOpts, provider.Scope(s))
 		}
 
 		authOpts = append(authOpts, auth.Provider(p(provOpts...)))
