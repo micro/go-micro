@@ -17,6 +17,7 @@ type serviceSub struct {
 
 type serviceEvent struct {
 	topic   string
+	err     error
 	message *broker.Message
 }
 
@@ -30,6 +31,10 @@ func (s *serviceEvent) Message() *broker.Message {
 
 func (s *serviceEvent) Ack() error {
 	return nil
+}
+
+func (s *serviceEvent) Error() error {
+	return s.err
 }
 
 func (s *serviceSub) isClosed() bool {
@@ -71,14 +76,14 @@ func (s *serviceSub) run() error {
 			return err
 		}
 
-		// TODO: handle error
-		s.handler(&serviceEvent{
+		p := &serviceEvent{
 			topic: s.topic,
 			message: &broker.Message{
 				Header: msg.Header,
 				Body:   msg.Body,
 			},
-		})
+		}
+		p.err = s.handler(p)
 	}
 }
 
