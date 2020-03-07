@@ -163,6 +163,10 @@ func (t *tunEvent) Ack() error {
 	return nil
 }
 
+func (t *tunEvent) Error() error {
+	return nil
+}
+
 func NewBroker(opts ...broker.Option) broker.Broker {
 	options := broker.Options{
 		Context: context.Background(),
