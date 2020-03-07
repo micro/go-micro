@@ -112,10 +112,16 @@ func (fl *microFlow) ReplaceStep(flow string, oldstep *Step, newstep *Step) erro
 		return err
 	}
 
+	var found bool
 	for idx, pbstep := range pbsteps {
 		if pbstep.Name == oldstep.Name() {
 			pbsteps[idx] = StepToProto(newstep)
+			found = true
 		}
+	}
+
+	if !found {
+		return fmt.Errorf("step %s not found", oldstep.Name())
 	}
 
 	if err = fl.writeFlow(flow, pbsteps); err != nil {
@@ -132,6 +138,12 @@ func (fl *microFlow) CreateStep(flow string, step *Step) error {
 	pbsteps, err := fl.readFlow(flow)
 	if err != nil && err != store.ErrNotFound {
 		return err
+	}
+
+	for _, pbstep := range pbsteps {
+		if pbstep.Name == step.Name() {
+			return fmt.Errorf("step %s already exists", step.Name())
+		}
 	}
 
 	pbsteps = append(pbsteps, StepToProto(step))
@@ -175,11 +187,17 @@ func (fl *microFlow) DeleteStep(flow string, step *Step) error {
 		return err
 	}
 
+	var found bool
 	for idx, pbstep := range pbsteps {
 		step := ProtoToStep(pbstep)
 		if pbstep.Name == step.Name() {
 			pbsteps = append(pbsteps[:idx], pbsteps[idx+1:]...)
+			found = true
 		}
+	}
+
+	if !found {
+		return fmt.Errorf("step %s not found", step.Name())
 	}
 
 	if err = fl.writeFlow(flow, pbsteps); err != nil {
@@ -481,7 +499,7 @@ func (fl *microFlow) flowHandler(req interface{}) {
 		return
 	}
 
-	var root interface{}
+	var root *Step
 	if len(options.Step) > 0 {
 		if root, err = g.GetVertex(options.Step); err != nil {
 			return
@@ -494,6 +512,17 @@ func (fl *microFlow) flowHandler(req interface{}) {
 	}
 
 	var steps []*Step
+
+	if len(root.After) > 0 {
+		if steps, err = g.OrderedAncestors(root); err != nil {
+			return
+		}
+	}
+
+	for _, s := range steps {
+		fmt.Printf("TTT %v\n", s)
+	}
+
 	if steps, err = g.OrderedDescendants(root); err != nil {
 		return
 	}
