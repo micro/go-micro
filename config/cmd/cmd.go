@@ -276,12 +276,6 @@ var (
 			Usage:   "Comma-separated list of endpoints excluded from authentication, e.g. Users.ListUsers",
 		},
 		&cli.StringFlag{
-			Name:    "auth_login_url",
-			EnvVars: []string{"MICRO_AUTH_LOGIN_URL"},
-			Usage:   "The relative URL where a user can login",
-			Value:   "/login",
-		},
-		&cli.StringFlag{
 			Name:    "auth_provider",
 			EnvVars: []string{"MICRO_AUTH_PROVIDER"},
 			Usage:   "Auth provider used to login user",
@@ -672,10 +666,6 @@ func (c *cmd) Before(ctx *cli.Context) error {
 
 	if len(ctx.StringSlice("auth_exclude")) > 0 {
 		authOpts = append(authOpts, auth.Exclude(ctx.StringSlice("auth_exclude")...))
-	}
-
-	if len(ctx.String("auth_login_url")) > 0 {
-		authOpts = append(authOpts, auth.LoginURL(ctx.String("auth_login_url")))
 	}
 
 	if name := ctx.String("auth_provider"); len(name) > 0 {
