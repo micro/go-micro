@@ -148,7 +148,7 @@ func (m *mdnsRegistry) Register(service *Service, opts ...RegisterOption) error 
 			continue
 		}
 
-		//
+		fmt.Printf("mdns advertise %s\n", node.Address)
 		host, pt, err := net.SplitHostPort(node.Address)
 		if err != nil {
 			gerr = err
@@ -278,6 +278,7 @@ func (m *mdnsRegistry) GetService(service string) ([]*Service, error) {
 				} else if e.AddrV6 != nil {
 					addr = e.AddrV4.String()
 				} else {
+					panic("mdns invalid addr received")
 					// broken endpoint
 					continue
 				}
