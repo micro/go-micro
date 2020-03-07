@@ -276,7 +276,7 @@ func (m *mdnsRegistry) GetService(service string) ([]*Service, error) {
 					addr = e.AddrV4.String()
 					// else use ipv6
 				} else if e.AddrV6 != nil {
-					addr = "x[" + e.AddrV4.String() + "]x"
+					addr = "x[" + e.AddrV6.String() + "]x"
 				} else {
 					panic("mdns invalid addr received")
 					// broken endpoint
