@@ -79,8 +79,8 @@ func Extract(addr string) (string, error) {
 	}
 	addrs = append(addrs, loAddrs...)
 
-	var ipAddr []byte
-	var publicIP []byte
+	var ipAddr string
+	var publicIP string
 
 	for _, rawAddr := range addrs {
 		var ip net.IP
@@ -94,16 +94,16 @@ func Extract(addr string) (string, error) {
 		}
 
 		if !isPrivateIP(ip.String()) {
-			publicIP = ip
+			publicIP = ip.String()
 			continue
 		}
 
-		ipAddr = ip
+		ipAddr = ip.String()
 		break
 	}
 
 	// return private ip
-	if ipAddr != nil {
+	if len(ipAddr) > 0 {
 		a := net.ParseIP(ipAddr)
 		if a == nil {
 			return "", fmt.Errorf("ip addr %s is invalid", ipAddr)
@@ -112,7 +112,7 @@ func Extract(addr string) (string, error) {
 	}
 
 	// return public or virtual ip
-	if publicIP != nil {
+	if len(publicIP) > 0 {
 		a := net.ParseIP(publicIP)
 		if a == nil {
 			return "", fmt.Errorf("ip addr %s is invalid", publicIP)
