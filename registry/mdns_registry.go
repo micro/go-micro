@@ -271,10 +271,12 @@ func (m *mdnsRegistry) GetService(service string) ([]*Service, error) {
 					}
 				}
 				addr := ""
-				if a := e.AddrV4.String(); len(a) > 0 {
-					addr = a
-				} else if a := e.AddrV6.String(); len(a) > 0 {
-					addr = a
+				// prefer ipv4 addrs
+				if e.AddrV4 != nil {
+					addr = e.AddrV4.String()
+					// else use ipv6
+				} else if e.AddrV6 != nil {
+					addr = e.AddrV4.String()
 				} else {
 					// broken endpoint
 					continue
