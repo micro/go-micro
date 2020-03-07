@@ -270,10 +270,18 @@ func (m *mdnsRegistry) GetService(service string) ([]*Service, error) {
 						Endpoints: txt.Endpoints,
 					}
 				}
-
+				addr := ""
+				if a := e.AddrV4.String(); len(a) > 0 {
+					addr = a
+				} else if a := e.AddrV6.String(); len(a) > 0 {
+					addr = a
+				} else {
+					// broken endpoint
+					continue
+				}
 				s.Nodes = append(s.Nodes, &Node{
 					Id:       strings.TrimSuffix(e.Name, "."+p.Service+"."+p.Domain+"."),
-					Address:  fmt.Sprintf("%s:%d", e.AddrV4.String(), e.Port),
+					Address:  fmt.Sprintf("%s:%d", addr, e.Port),
 					Metadata: txt.Metadata,
 				})
 
