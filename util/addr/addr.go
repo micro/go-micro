@@ -104,12 +104,20 @@ func Extract(addr string) (string, error) {
 
 	// return private ip
 	if ipAddr != nil {
-		return net.IP(ipAddr).String(), nil
+		a := net.ParseIP(ipAddr)
+		if a == nil {
+			return "", fmt.Errorf("ip addr %s is invalid", ipAddr)
+		}
+		return a.String(), nil
 	}
 
 	// return public or virtual ip
 	if publicIP != nil {
-		return net.IP(publicIP).String(), nil
+		a := net.ParseIP(publicIP)
+		if a == nil {
+			return "", fmt.Errorf("ip addr %s is invalid", publicIP)
+		}
+		return a.String(), nil
 	}
 
 	return "", fmt.Errorf("No IP address found, and explicit IP not provided")
