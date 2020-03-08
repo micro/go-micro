@@ -44,7 +44,7 @@ type Role struct {
 
 // Account provided by an auth provider
 type Account struct {
-	// ID of the account (UUID or email)
+	// ID of the account (UUIDV4, email or username)
 	Id string `json:"id"`
 	// Token used to authenticate
 	Token string `json:"token"`
@@ -62,6 +62,9 @@ const (
 	// MetadataKey is the key used when storing the account
 	// in metadata
 	MetadataKey = "auth-account"
+	// CookieName is the name of the cookie which stores the
+	// auth token
+	CookieName = "micro-token"
 )
 
 // AccountFromContext gets the account from the context, which

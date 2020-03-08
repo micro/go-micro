@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/micro/go-micro/v2/auth/provider"
+
 	"github.com/micro/go-micro/v2/auth"
 	"github.com/micro/go-micro/v2/broker"
 	"github.com/micro/go-micro/v2/client"
@@ -70,6 +72,10 @@ import (
 	jwtAuth "github.com/micro/go-micro/v2/auth/jwt"
 	sAuth "github.com/micro/go-micro/v2/auth/service"
 	storeAuth "github.com/micro/go-micro/v2/auth/store"
+
+	// auth providers
+	"github.com/micro/go-micro/v2/auth/provider/basic"
+	"github.com/micro/go-micro/v2/auth/provider/oauth"
 )
 
 type Cmd interface {
@@ -269,6 +275,36 @@ var (
 			EnvVars: []string{"MICRO_AUTH_EXCLUDE"},
 			Usage:   "Comma-separated list of endpoints excluded from authentication, e.g. Users.ListUsers",
 		},
+		&cli.StringFlag{
+			Name:    "auth_provider",
+			EnvVars: []string{"MICRO_AUTH_PROVIDER"},
+			Usage:   "Auth provider used to login user",
+		},
+		&cli.StringFlag{
+			Name:    "auth_provider_client_id",
+			EnvVars: []string{"MICRO_AUTH_PROVIDER_CLIENT_ID"},
+			Usage:   "The client id to be used for oauth",
+		},
+		&cli.StringFlag{
+			Name:    "auth_provider_client_secret",
+			EnvVars: []string{"MICRO_AUTH_PROVIDER_CLIENT_SECRET"},
+			Usage:   "The client secret to be used for oauth",
+		},
+		&cli.StringFlag{
+			Name:    "auth_provider_endpoint",
+			EnvVars: []string{"MICRO_AUTH_PROVIDER_ENDPOINT"},
+			Usage:   "The enpoint to be used for oauth",
+		},
+		&cli.StringFlag{
+			Name:    "auth_provider_redirect",
+			EnvVars: []string{"MICRO_AUTH_PROVIDER_REDIRECT"},
+			Usage:   "The redirect to be used for oauth",
+		},
+		&cli.StringFlag{
+			Name:    "auth_provider_scope",
+			EnvVars: []string{"MICRO_AUTH_PROVIDER_SCOPE"},
+			Usage:   "The scope to be used for oauth",
+		},
 	}
 
 	DefaultBrokers = map[string]func(...broker.Option) broker.Broker{
@@ -326,6 +362,11 @@ var (
 		"service": sAuth.NewAuth,
 		"store":   storeAuth.NewAuth,
 		"jwt":     jwtAuth.NewAuth,
+	}
+
+	DefaultAuthProviders = map[string]func(...provider.Option) provider.Provider{
+		"oauth": oauth.NewProvider,
+		"basic": basic.NewProvider,
 	}
 
 	DefaultProfiles = map[string]func(...profile.Option) profile.Profile{
@@ -625,6 +666,32 @@ func (c *cmd) Before(ctx *cli.Context) error {
 
 	if len(ctx.StringSlice("auth_exclude")) > 0 {
 		authOpts = append(authOpts, auth.Exclude(ctx.StringSlice("auth_exclude")...))
+	}
+
+	if name := ctx.String("auth_provider"); len(name) > 0 {
+		p, ok := DefaultAuthProviders[name]
+		if !ok {
+			return fmt.Errorf("AuthProvider %s not found", name)
+		}
+
+		var provOpts []provider.Option
+
+		clientID := ctx.String("auth_provider_client_id")
+		clientSecret := ctx.String("auth_provider_client_secret")
+		if len(clientID) > 0 || len(clientSecret) > 0 {
+			provOpts = append(provOpts, provider.Credentials(clientID, clientSecret))
+		}
+		if e := ctx.String("auth_provider_endpoint"); len(e) > 0 {
+			provOpts = append(provOpts, provider.Endpoint(e))
+		}
+		if r := ctx.String("auth_provider_redirect"); len(r) > 0 {
+			provOpts = append(provOpts, provider.Redirect(r))
+		}
+		if s := ctx.String("auth_provider_scope"); len(s) > 0 {
+			provOpts = append(provOpts, provider.Scope(s))
+		}
+
+		authOpts = append(authOpts, auth.Provider(p(provOpts...)))
 	}
 
 	if len(authOpts) > 0 {
