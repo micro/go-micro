@@ -1,7 +1,13 @@
 // Package document provides a document-oriented crud interface
 package document
 
+import (
+	"github.com/micro/go-micro/v2/model"
+)
+
 type Document interface {
+	// Document is a Model
+	model.Model
 	// Read values
 	Read(...ReadOption) ([]Record, error)
 	// Write a value
