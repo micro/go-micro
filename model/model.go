@@ -1,6 +1,10 @@
 // Package model provides data access models
 package model
 
+import (
+	"github.com/micro/go-micro/v2/codec"
+)
+
 type Model interface {
 	// Initialise the options
 	Init(...Option) error
@@ -10,6 +14,9 @@ type Model interface {
 	String() string
 }
 
-type Options struct{}
+type Options struct {
+	// The codec for encoding/decoding
+	Codec codec.Marshaler
+}
 
 type Option func(o *Options) error
