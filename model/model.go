@@ -3,6 +3,7 @@ package model
 
 import (
 	"github.com/micro/go-micro/v2/codec"
+	"github.com/micro/go-micro/v2/store"
 )
 
 type Model interface {
@@ -17,6 +18,8 @@ type Model interface {
 type Options struct {
 	// The codec for encoding/decoding
 	Codec codec.Marshaler
+	// The store used for underlying storage
+	Store store.Store
 }
 
 type Option func(o *Options) error
