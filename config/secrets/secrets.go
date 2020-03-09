@@ -8,8 +8,8 @@ type Codec interface {
 	Init(...Option) error
 	Options() Options
 	String() string
-	Decrypt([]byte) []byte
-	Encrypt([]byte) []byte
+	Decrypt([]byte, ...DecryptOption) ([]byte, error)
+	Encrypt([]byte, ...EncryptOption) ([]byte, error)
 }
 
 // Options is a codec's options
