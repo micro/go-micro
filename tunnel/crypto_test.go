@@ -1,10 +1,6 @@
 package tunnel
 
-import (
-	"bytes"
-	"testing"
-)
-
+/*
 func TestEncrypt(t *testing.T) {
 	key := []byte("tokenpassphrase")
 	data := []byte("supersecret")
@@ -39,3 +35,4 @@ func TestDecrypt(t *testing.T) {
 		t.Error("decrypted data not the same as plaintext")
 	}
 }
+*/

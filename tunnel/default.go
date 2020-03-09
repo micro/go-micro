@@ -1,6 +1,8 @@
 package tunnel
 
 import (
+	"crypto/aes"
+	"crypto/cipher"
 	"errors"
 	"math/rand"
 	"strings"
@@ -120,9 +122,20 @@ func (t *tun) listChannels() []string {
 }
 
 // newSession creates a new session and saves it
-func (t *tun) newSession(channel, sessionId string) (*session, bool) {
+func (t *tun) newSession(channel, sessionId string) (*session, bool, error) {
 	// new session
+	// try to create session block cipher
+	c, err := aes.NewCipher(hash([]byte(t.token + channel + sessionId)))
+	if err != nil {
+		return nil, false, err
+	}
+	gcm, err := cipher.NewGCM(c)
+	if err != nil {
+		return nil, false, err
+	}
+
 	s := &session{
+		cb:      gcm,
 		tunnel:  t.id,
 		channel: channel,
 		session: sessionId,
@@ -131,7 +144,7 @@ func (t *tun) newSession(channel, sessionId string) (*session, bool) {
 		recv:    make(chan *message, 128),
 		send:    t.send,
 		errChan: make(chan error, 1),
-		key:     []byte(t.token + channel + sessionId),
+		//	key:     []byte(t.token + channel + sessionId),
 	}
 
 	// save session
@@ -140,14 +153,14 @@ func (t *tun) newSession(channel, sessionId string) (*session, bool) {
 	if ok {
 		// session already exists
 		t.Unlock()
-		return nil, false
+		return nil, false, nil
 	}
 
 	t.sessions[channel+sessionId] = s
 	t.Unlock()
 
 	// return session
-	return s, true
+	return s, true, nil
 }
 
 // TODO: use tunnel id as part of the session
@@ -1173,8 +1186,10 @@ func (t *tun) Dial(channel string, opts ...DialOption) (Session, error) {
 	}
 
 	// create a new session
-	c, ok := t.newSession(channel, t.newSessionId())
-	if !ok {
+	c, ok, err := t.newSession(channel, t.newSessionId())
+	if err != nil {
+		return nil, err
+	} else if !ok {
 		return nil, errors.New("error dialing " + channel)
 	}
 
@@ -1341,8 +1356,10 @@ func (t *tun) Listen(channel string, opts ...ListenOption) (Listener, error) {
 	}
 
 	// create a new session by hashing the address
-	c, ok := t.newSession(channel, "listener")
-	if !ok {
+	c, ok, err := t.newSession(channel, "listener")
+	if err != nil {
+		return nil, err
+	} else if !ok {
 		return nil, errors.New("already listening on " + channel)
 	}
 

@@ -24,19 +24,24 @@ func hash(key []byte) []byte {
 }
 
 // Encrypt encrypts data and returns the encrypted data
-func Encrypt(data []byte, key []byte) ([]byte, error) {
-	// generate a new AES cipher using our 32 byte key
-	c, err := aes.NewCipher(hash(key))
-	if err != nil {
-		return nil, err
-	}
+func (s *session) Encrypt(data []byte, key []byte) ([]byte, error) {
+	var err error
 
-	// gcm or Galois/Counter Mode, is a mode of operation
-	// for symmetric key cryptographic block ciphers
-	// - https://en.wikipedia.org/wiki/Galois/Counter_Mode
-	gcm, err := cipher.NewGCM(c)
-	if err != nil {
-		return nil, err
+	gcm := s.cb
+	if gcm == nil {
+		// generate a new AES cipher using our 32 byte key
+		c, err := aes.NewCipher(hash(key))
+		if err != nil {
+			return nil, err
+		}
+
+		// gcm or Galois/Counter Mode, is a mode of operation
+		// for symmetric key cryptographic block ciphers
+		// - https://en.wikipedia.org/wiki/Galois/Counter_Mode
+		gcm, err = cipher.NewGCM(c)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// get new byte array the size of the nonce from pool
@@ -54,17 +59,24 @@ func Encrypt(data []byte, key []byte) ([]byte, error) {
 }
 
 // Decrypt decrypts the payload and returns the decrypted data
-func Decrypt(data []byte, key []byte) ([]byte, error) {
-	// generate AES cipher for decrypting the message
-	c, err := aes.NewCipher(hash(key))
-	if err != nil {
-		return nil, err
-	}
+func (s *session) Decrypt(data []byte, key []byte) ([]byte, error) {
+	var err error
 
-	// we use GCM to encrypt the payload
-	gcm, err := cipher.NewGCM(c)
-	if err != nil {
-		return nil, err
+	gcm := s.cb
+	if gcm == nil {
+		// generate a new AES cipher using our 32 byte key for decrypting the message
+		c, err := aes.NewCipher(hash(key))
+		if err != nil {
+			return nil, err
+		}
+
+		// gcm or Galois/Counter Mode, is a mode of operation
+		// for symmetric key cryptographic block ciphers
+		// - https://en.wikipedia.org/wiki/Galois/Counter_Mode
+		gcm, err = cipher.NewGCM(c)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	nonceSize := gcm.NonceSize()

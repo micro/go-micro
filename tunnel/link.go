@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/transport"
 )
 
@@ -267,8 +268,9 @@ func (l *link) manage() {
 			// check the type of message
 			switch {
 			case bytes.Equal(p.message.Body, linkRequest):
-				log.Tracef("Link %s received link request", linkId)
-
+				if logger.V(logger.TraceLevel, log) {
+					log.Tracef("Link %s received link request", linkId)
+				}
 				// send response
 				if err := send(linkResponse); err != nil {
 					l.Lock()
@@ -278,7 +280,9 @@ func (l *link) manage() {
 			case bytes.Equal(p.message.Body, linkResponse):
 				// set round trip time
 				d := time.Since(now)
-				log.Tracef("Link %s received link response in %v", linkId, d)
+				if logger.V(logger.TraceLevel, log) {
+					log.Tracef("Link %s received link response in %v", linkId, d)
+				}
 				// set the RTT
 				l.setRTT(d)
 			}
