@@ -334,8 +334,16 @@ func (s *session) Announce() error {
 
 // Send is used to send a message
 func (s *session) Send(m *transport.Message) error {
+	cipher, err := newCipher(s.key)
+	if err != nil {
+		if logger.V(logger.ErrorLevel, log) {
+			log.Errorf("unable to create cipher: %v", err)
+		}
+		return err
+	}
+
 	// encrypt the transport message payload
-	body, err := s.Encrypt(m.Body, s.key)
+	body, err := Encrypt(cipher, m.Body)
 	if err != nil {
 		log.Debugf("failed to encrypt message body: %v", err)
 		return err
@@ -350,7 +358,7 @@ func (s *session) Send(m *transport.Message) error {
 	// encrypt all the headers
 	for k, v := range m.Header {
 		// encrypt the transport message payload
-		val, err := s.Encrypt([]byte(v), s.key)
+		val, err := Encrypt(cipher, []byte(v))
 		if err != nil {
 			log.Debugf("failed to encrypt message header %s: %v", k, err)
 			return err
@@ -401,12 +409,19 @@ func (s *session) Recv(m *transport.Message) error {
 		log.Tracef("Received from recv backlog: %v", msg)
 	}
 
-	key := []byte(s.token + s.channel + msg.session)
+	cipher, err := newCipher([]byte(s.token + s.channel + msg.session))
+	if err != nil {
+		if logger.V(logger.ErrorLevel, log) {
+			log.Errorf("unable to create cipher: %v", err)
+		}
+		return err
+	}
+
 	// decrypt the received payload using the token
 	// we have to used msg.session because multicast has a shared
 	// session id of "multicast" in this session struct on
 	// the listener side
-	msg.data.Body, err = s.Decrypt(msg.data.Body, key)
+	msg.data.Body, err = Decrypt(cipher, msg.data.Body)
 	if err != nil {
 		if logger.V(logger.DebugLevel, log) {
 			log.Debugf("failed to decrypt message body: %v", err)
@@ -426,7 +441,7 @@ func (s *session) Recv(m *transport.Message) error {
 		}
 
 		// dencrypt the transport message payload
-		val, err := s.Decrypt(h, key)
+		val, err := Decrypt(cipher, h)
 		if err != nil {
 			if logger.V(logger.DebugLevel, log) {
 				log.Debugf("failed to decrypt message header %s: %v", k, err)

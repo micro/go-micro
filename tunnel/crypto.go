@@ -24,25 +24,8 @@ func hash(key []byte) []byte {
 }
 
 // Encrypt encrypts data and returns the encrypted data
-func (s *session) Encrypt(data []byte, key []byte) ([]byte, error) {
+func Encrypt(gcm cipher.AEAD, data []byte) ([]byte, error) {
 	var err error
-
-	gcm := s.cb
-	if gcm == nil {
-		// generate a new AES cipher using our 32 byte key
-		c, err := aes.NewCipher(hash(key))
-		if err != nil {
-			return nil, err
-		}
-
-		// gcm or Galois/Counter Mode, is a mode of operation
-		// for symmetric key cryptographic block ciphers
-		// - https://en.wikipedia.org/wiki/Galois/Counter_Mode
-		gcm, err = cipher.NewGCM(c)
-		if err != nil {
-			return nil, err
-		}
-	}
 
 	// get new byte array the size of the nonce from pool
 	// NOTE: we might use smaller nonce size in the future
@@ -59,25 +42,28 @@ func (s *session) Encrypt(data []byte, key []byte) ([]byte, error) {
 }
 
 // Decrypt decrypts the payload and returns the decrypted data
-func (s *session) Decrypt(data []byte, key []byte) ([]byte, error) {
+func newCipher(key []byte) (cipher.AEAD, error) {
 	var err error
 
-	gcm := s.cb
-	if gcm == nil {
-		// generate a new AES cipher using our 32 byte key for decrypting the message
-		c, err := aes.NewCipher(hash(key))
-		if err != nil {
-			return nil, err
-		}
-
-		// gcm or Galois/Counter Mode, is a mode of operation
-		// for symmetric key cryptographic block ciphers
-		// - https://en.wikipedia.org/wiki/Galois/Counter_Mode
-		gcm, err = cipher.NewGCM(c)
-		if err != nil {
-			return nil, err
-		}
+	// generate a new AES cipher using our 32 byte key for decrypting the message
+	c, err := aes.NewCipher(hash(key))
+	if err != nil {
+		return nil, err
 	}
+
+	// gcm or Galois/Counter Mode, is a mode of operation
+	// for symmetric key cryptographic block ciphers
+	// - https://en.wikipedia.org/wiki/Galois/Counter_Mode
+	gcm, err := cipher.NewGCM(c)
+	if err != nil {
+		return nil, err
+	}
+
+	return gcm, nil
+}
+
+func Decrypt(gcm cipher.AEAD, data []byte) ([]byte, error) {
+	var err error
 
 	nonceSize := gcm.NonceSize()
 

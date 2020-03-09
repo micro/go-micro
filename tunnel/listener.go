@@ -1,8 +1,6 @@
 package tunnel
 
 import (
-	"crypto/aes"
-	"crypto/cipher"
 	"io"
 	"sync"
 
@@ -79,28 +77,10 @@ func (t *tunListener) process() {
 					continue
 				}
 
-				// try to create session block cipher
-				c, err := aes.NewCipher(hash([]byte(t.token + m.channel + sessionId)))
-				if err != nil {
-					if logger.V(logger.ErrorLevel, log) {
-						log.Error(err)
-					}
-					continue
-				}
-				gcm, err := cipher.NewGCM(c)
-				if err != nil {
-					if logger.V(logger.ErrorLevel, log) {
-						log.Error(err)
-					}
-					continue
-				}
-
 				// create a new session session
 				sess = &session{
-					// cipher block
-					cb: gcm,
 					// the session key
-					//				key: []byte(t.token + m.channel + sessionId),
+					key: []byte(t.token + m.channel + sessionId),
 					// the id of the remote side
 					tunnel: m.tunnel,
 					// the channel
