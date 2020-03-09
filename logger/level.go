@@ -112,7 +112,7 @@ func Fatalf(template string, args ...interface{}) {
 }
 
 // Returns true if the given level is at or above the current logger level
-func V(log Logger, lvl Level) bool {
+func V(lvl Level, log Logger) bool {
 	l := DefaultLogger
 	if log != nil {
 		l = log
