@@ -15,7 +15,7 @@ import (
 	"github.com/micro/go-micro/v2/broker"
 	"github.com/micro/go-micro/v2/codec"
 	raw "github.com/micro/go-micro/v2/codec/bytes"
-	log "github.com/micro/go-micro/v2/logger"
+	"github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/metadata"
 	"github.com/micro/go-micro/v2/registry"
 	"github.com/micro/go-micro/v2/transport"
@@ -158,8 +158,10 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 
 		// recover any panics
 		if r := recover(); r != nil {
-			log.Error("panic recovered: ", r)
-			log.Error(string(debug.Stack()))
+			if logger.V(logger.ErrorLevel, log) {
+				log.Error("panic recovered: ", r)
+				log.Error(string(debug.Stack()))
+			}
 		}
 	}()
 
@@ -377,8 +379,10 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 
 				// recover any panics for outbound process
 				if r := recover(); r != nil {
-					log.Error("panic recovered: ", r)
-					log.Error(string(debug.Stack()))
+					if logger.V(logger.ErrorLevel, log) {
+						log.Error("panic recovered: ", r)
+						log.Error(string(debug.Stack()))
+					}
 				}
 			}()
 
