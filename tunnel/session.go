@@ -4,6 +4,7 @@ import (
 	"crypto/cipher"
 	"encoding/base32"
 	"io"
+	"sync"
 	"time"
 
 	"github.com/micro/go-micro/v2/logger"
@@ -51,7 +52,8 @@ type session struct {
 	// key for session encryption
 	key []byte
 	// cipher for session
-	cb cipher.AEAD
+	gcm cipher.AEAD
+	sync.RWMutex
 }
 
 // message is sent over the send channel
@@ -334,16 +336,23 @@ func (s *session) Announce() error {
 
 // Send is used to send a message
 func (s *session) Send(m *transport.Message) error {
-	cipher, err := newCipher(s.key)
-	if err != nil {
-		if logger.V(logger.ErrorLevel, log) {
-			log.Errorf("unable to create cipher: %v", err)
-		}
-		return err
-	}
+	var err error
 
+	s.RLock()
+	gcm := s.gcm
+	s.RUnlock()
+
+	if gcm == nil {
+		gcm, err = newCipher(s.key)
+		if err != nil {
+			return err
+		}
+		s.Lock()
+		s.gcm = gcm
+		s.Unlock()
+	}
 	// encrypt the transport message payload
-	body, err := Encrypt(cipher, m.Body)
+	body, err := Encrypt(gcm, m.Body)
 	if err != nil {
 		log.Debugf("failed to encrypt message body: %v", err)
 		return err
@@ -358,7 +367,7 @@ func (s *session) Send(m *transport.Message) error {
 	// encrypt all the headers
 	for k, v := range m.Header {
 		// encrypt the transport message payload
-		val, err := Encrypt(cipher, []byte(v))
+		val, err := Encrypt(s.gcm, []byte(v))
 		if err != nil {
 			log.Debugf("failed to encrypt message header %s: %v", k, err)
 			return err
@@ -409,7 +418,7 @@ func (s *session) Recv(m *transport.Message) error {
 		log.Tracef("Received from recv backlog: %v", msg)
 	}
 
-	cipher, err := newCipher([]byte(s.token + s.channel + msg.session))
+	gcm, err := newCipher([]byte(s.token + s.channel + msg.session))
 	if err != nil {
 		if logger.V(logger.ErrorLevel, log) {
 			log.Errorf("unable to create cipher: %v", err)
@@ -421,7 +430,7 @@ func (s *session) Recv(m *transport.Message) error {
 	// we have to used msg.session because multicast has a shared
 	// session id of "multicast" in this session struct on
 	// the listener side
-	msg.data.Body, err = Decrypt(cipher, msg.data.Body)
+	msg.data.Body, err = Decrypt(gcm, msg.data.Body)
 	if err != nil {
 		if logger.V(logger.DebugLevel, log) {
 			log.Debugf("failed to decrypt message body: %v", err)
@@ -441,7 +450,7 @@ func (s *session) Recv(m *transport.Message) error {
 		}
 
 		// dencrypt the transport message payload
-		val, err := Decrypt(cipher, h)
+		val, err := Decrypt(gcm, h)
 		if err != nil {
 			if logger.V(logger.DebugLevel, log) {
 				log.Debugf("failed to decrypt message header %s: %v", k, err)
