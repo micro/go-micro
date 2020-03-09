@@ -396,12 +396,11 @@ func (s *session) Recv(m *transport.Message) error {
 	// we have to used msg.session because multicast has a shared
 	// session id of "multicast" in this session struct on
 	// the listener side
-	body, err := Decrypt(msg.data.Body, key)
+	msg.data.Body, err = Decrypt(msg.data.Body, key)
 	if err != nil {
 		log.Debugf("failed to decrypt message body: %v", err)
 		return err
 	}
-	msg.data.Body = body
 
 	// dencrypt all the headers
 	for k, v := range msg.data.Header {
@@ -411,8 +410,9 @@ func (s *session) Recv(m *transport.Message) error {
 			log.Debugf("failed to decode message header %s: %v", k, err)
 			return err
 		}
+
 		// dencrypt the transport message payload
-		val, err := Decrypt([]byte(h), key)
+		val, err := Decrypt(h, key)
 		if err != nil {
 			log.Debugf("failed to decrypt message header %s: %v", k, err)
 			return err
