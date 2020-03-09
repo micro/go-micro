@@ -206,12 +206,12 @@ func (s *sqlStore) configure() error {
 		prefix = DefaultPrefix
 	}
 
-	// store.namespace must only contain letters
+	// store.namespace must only contain letters, numbers and underscores
 	reg, err := regexp.Compile("[^a-zA-Z0-9]+")
 	if err != nil {
 		return errors.New("error compiling regex for namespace")
 	}
-	namespace = reg.ReplaceAllString(namespace, "")
+	namespace = reg.ReplaceAllString(namespace, "_")
 
 	source := nodes[0]
 	// check if it is a standard connection string eg: host=%s port=%d user=%s password=%s dbname=%s sslmode=disable
@@ -248,6 +248,10 @@ func (s *sqlStore) configure() error {
 
 func (s *sqlStore) String() string {
 	return "cockroach"
+}
+
+func (s *sqlStore) Options() store.Options {
+	return s.options
 }
 
 // New returns a new micro Store backed by sql

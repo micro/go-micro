@@ -143,6 +143,10 @@ func (s *serviceStore) String() string {
 	return "service"
 }
 
+func (s *serviceStore) Options() store.Options {
+	return s.options
+}
+
 // NewStore returns a new store service implementation
 func NewStore(opts ...store.Option) store.Store {
 	var options store.Options

@@ -89,6 +89,10 @@ func (e *ekv) String() string {
 	return "etcd"
 }
 
+func (e *ekv) Options() store.Options {
+	return e.options
+}
+
 func NewStore(opts ...store.Option) store.Store {
 	var options store.Options
 	for _, o := range opts {

@@ -187,8 +187,13 @@ func (m *memoryStore) delete(key string) {
 	m.store.Delete(key)
 }
 
+func (m *memoryStore) Options() store.Options {
+	return m.options
+}
+
 func (m *memoryStore) List(opts ...store.ListOption) ([]string, error) {
 	listOptions := store.ListOptions{}
+
 	for _, o := range opts {
 		o(&listOptions)
 	}

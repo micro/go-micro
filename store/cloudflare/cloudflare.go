@@ -367,6 +367,10 @@ func (w *workersKV) String() string {
 	return "cloudflare"
 }
 
+func (w *workersKV) Options() store.Options {
+	return w.options
+}
+
 // NewStore returns a cloudflare Store implementation.
 // Account ID, Token and Namespace must either be passed as options or
 // environment variables. If set as env vars we expect the following;

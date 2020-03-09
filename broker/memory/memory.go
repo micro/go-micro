@@ -27,6 +27,7 @@ type memoryBroker struct {
 type memoryEvent struct {
 	opts    broker.Options
 	topic   string
+	err     error
 	message interface{}
 }
 
@@ -120,6 +121,11 @@ func (m *memoryBroker) Publish(topic string, msg *broker.Message, opts ...broker
 
 	for _, sub := range subs {
 		if err := sub.handler(p); err != nil {
+			p.err = err
+			if eh := m.opts.ErrorHandler; eh != nil {
+				eh(p)
+				continue
+			}
 			return err
 		}
 	}
@@ -195,6 +201,10 @@ func (m *memoryEvent) Message() *broker.Message {
 
 func (m *memoryEvent) Ack() error {
 	return nil
+}
+
+func (m *memoryEvent) Error() error {
+	return m.err
 }
 
 func (m *memorySubscriber) Options() broker.SubscribeOptions {
