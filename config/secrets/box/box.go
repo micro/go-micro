@@ -40,6 +40,6 @@ func (b *box) Encrypt(in []byte, opts ...secrets.EncryptOption) ([]byte, error) 
 }
 
 // Decrypt Decrypts
-func (b *box) Decrypt(in []byte, opts ...secrets.DecryptOption) ([]byte), error) {
+func (b *box) Decrypt(in []byte, opts ...secrets.DecryptOption) ([]byte, error) {
 	return nil, nil
 }
