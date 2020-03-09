@@ -76,10 +76,10 @@ func Decrypt(data []byte, key []byte) ([]byte, error) {
 	// NOTE: we need to parse out nonce from the payload
 	// we prepend the nonce to every encrypted payload
 	nonce, ciphertext := data[:nonceSize], data[nonceSize:]
-	plaintext, err := gcm.Open(nil, nonce, ciphertext, nil)
+	ciphertext, err = gcm.Open(ciphertext[:0], nonce, ciphertext, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	return plaintext, nil
+	return ciphertext, nil
 }
