@@ -250,6 +250,10 @@ func (s *sqlStore) String() string {
 	return "cockroach"
 }
 
+func (s *sqlStore) Options() store.Options {
+	return s.options
+}
+
 // New returns a new micro Store backed by sql
 func NewStore(opts ...store.Option) store.Store {
 	var options store.Options

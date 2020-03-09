@@ -141,6 +141,10 @@ func (m *memoryStore) String() string {
 	return "memory"
 }
 
+func (m *memoryStore) Options() store.Options {
+	return m.options
+}
+
 // NewStore returns a new store.Store
 func NewStore(opts ...store.Option) store.Store {
 	var options store.Options

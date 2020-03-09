@@ -27,6 +27,8 @@ type Store interface {
 	Delete(key string) error
 	// Name of the store
 	String() string
+	// Options of the store
+	Options() Options
 }
 
 // Record represents a data record
@@ -69,4 +71,8 @@ func (n *noop) Delete(key string) error {
 
 func (n *noop) String() string {
 	return "noop"
+}
+
+func (n *noop) Options() Options {
+	return Options{}
 }
