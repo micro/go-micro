@@ -1,6 +1,9 @@
 package logger
 
-import "fmt"
+import (
+	"fmt"
+	"os"
+)
 
 type Level int8
 
@@ -105,8 +108,10 @@ func Errorf(template string, args ...interface{}) {
 
 func Fatal(args ...interface{}) {
 	DefaultLogger.Log(FatalLevel, args...)
+	os.Exit(1)
 }
 
 func Fatalf(template string, args ...interface{}) {
 	DefaultLogger.Logf(FatalLevel, template, args...)
+	os.Exit(1)
 }
