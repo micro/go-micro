@@ -30,8 +30,6 @@ type Store interface {
 	Delete(key string, opts ...DeleteOption) error
 	// List returns any keys that match, or an empty list with no error if none matched.
 	List(opts ...ListOption) ([]string, error)
-	// Options of the store
-	Options() Options
 }
 
 // Record is an item stored or retrieved from a Store

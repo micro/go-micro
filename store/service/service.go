@@ -29,9 +29,6 @@ type serviceStore struct {
 
 	// store service client
 	Client pb.StoreService
-
-	// Additional opts
-	Context context.Context
 }
 
 func (s *serviceStore) Init(opts ...store.Option) error {
@@ -62,7 +59,7 @@ func (s *serviceStore) Context() context.Context {
 }
 
 // Sync all the known records
-func (s *serviceStore) List() ([]string, error) {
+func (s *serviceStore) List(opts ...store.ListOption) ([]string, error) {
 	stream, err := s.Client.List(s.Context(), &pb.ListRequest{}, client.WithAddress(s.Nodes...))
 	if err != nil {
 		return nil, err
@@ -119,7 +116,7 @@ func (s *serviceStore) Read(key string, opts ...store.ReadOption) ([]*store.Reco
 }
 
 // Write a record
-func (s *serviceStore) Write(record *store.Record) error {
+func (s *serviceStore) Write(record *store.Record, opts ...store.WriteOption) error {
 	_, err := s.Client.Write(s.Context(), &pb.WriteRequest{
 		Record: &pb.Record{
 			Key:    record.Key,
@@ -132,7 +129,7 @@ func (s *serviceStore) Write(record *store.Record) error {
 }
 
 // Delete a record with key
-func (s *serviceStore) Delete(key string) error {
+func (s *serviceStore) Delete(key string, opts ...store.DeleteOption) error {
 	_, err := s.Client.Delete(s.Context(), &pb.DeleteRequest{
 		Key: key,
 	}, client.WithAddress(s.Nodes...))

@@ -38,10 +38,6 @@ func (m *memoryStore) Init(opts ...store.Option) error {
 	return nil
 }
 
-func (m *memoryStore) Options() store.Options {
-	return m.options
-}
-
 func (m *memoryStore) String() string {
 	return "memory"
 }
