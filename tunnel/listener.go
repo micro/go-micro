@@ -3,8 +3,6 @@ package tunnel
 import (
 	"io"
 	"sync"
-
-	log "github.com/micro/go-micro/v2/logger"
 )
 
 type tunListener struct {
