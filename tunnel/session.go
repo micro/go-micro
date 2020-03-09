@@ -1,7 +1,7 @@
 package tunnel
 
 import (
-	"encoding/hex"
+	"encoding/base32"
 	"io"
 	"time"
 
@@ -348,8 +348,8 @@ func (s *session) Send(m *transport.Message) error {
 			log.Debugf("failed to encrypt message header %s: %v", k, err)
 			return err
 		}
-		// hex encode the encrypted header value
-		data.Header[k] = hex.EncodeToString(val)
+		// add the encrypted header value
+		data.Header[k] = base32.StdEncoding.EncodeToString(val)
 	}
 
 	// create a new message
@@ -404,8 +404,8 @@ func (s *session) Recv(m *transport.Message) error {
 
 	// dencrypt all the headers
 	for k, v := range msg.data.Header {
-		// hex decode the header values
-		h, err := hex.DecodeString(v)
+		// decode the header values
+		h, err := base32.StdEncoding.DecodeString(v)
 		if err != nil {
 			log.Debugf("failed to decode message header %s: %v", k, err)
 			return err
@@ -417,7 +417,7 @@ func (s *session) Recv(m *transport.Message) error {
 			log.Debugf("failed to decrypt message header %s: %v", k, err)
 			return err
 		}
-		// hex encode the encrypted header value
+		// add decrypted header value
 		msg.data.Header[k] = string(val)
 	}
 
