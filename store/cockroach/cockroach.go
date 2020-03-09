@@ -206,7 +206,7 @@ func (s *sqlStore) configure() error {
 		prefix = DefaultPrefix
 	}
 
-	// store.namespace must only contain letters
+	// store.namespace must only contain letters, numbers and underscores
 	reg, err := regexp.Compile("[^a-zA-Z0-9]+")
 	if err != nil {
 		return errors.New("error compiling regex for namespace")
