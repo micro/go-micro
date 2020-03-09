@@ -78,7 +78,7 @@ func (t *tunListener) process() {
 				// create a new session session
 				sess = &session{
 					// the session key
-					key: t.token + m.channel + sessionId,
+					key: []byte(t.token + m.channel + sessionId),
 					// the id of the remote side
 					tunnel: m.tunnel,
 					// the channel

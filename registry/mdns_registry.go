@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	log "github.com/micro/go-micro/v2/logger"
 	"github.com/micro/mdns"
 )
 
@@ -148,7 +149,6 @@ func (m *mdnsRegistry) Register(service *Service, opts ...RegisterOption) error 
 			continue
 		}
 
-		//
 		host, pt, err := net.SplitHostPort(node.Address)
 		if err != nil {
 			gerr = err
@@ -270,10 +270,20 @@ func (m *mdnsRegistry) GetService(service string) ([]*Service, error) {
 						Endpoints: txt.Endpoints,
 					}
 				}
-
+				addr := ""
+				// prefer ipv4 addrs
+				if e.AddrV4 != nil {
+					addr = e.AddrV4.String()
+					// else use ipv6
+				} else if e.AddrV6 != nil {
+					addr = "[" + e.AddrV6.String() + "]"
+				} else {
+					log.Infof("[mdns]: invalid endpoint received: %v", e)
+					continue
+				}
 				s.Nodes = append(s.Nodes, &Node{
 					Id:       strings.TrimSuffix(e.Name, "."+p.Service+"."+p.Domain+"."),
-					Address:  fmt.Sprintf("%s:%d", e.AddrV4.String(), e.Port),
+					Address:  fmt.Sprintf("%s:%d", addr, e.Port),
 					Metadata: txt.Metadata,
 				})
 

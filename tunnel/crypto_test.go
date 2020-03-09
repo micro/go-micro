@@ -6,7 +6,7 @@ import (
 )
 
 func TestEncrypt(t *testing.T) {
-	key := "tokenpassphrase"
+	key := []byte("tokenpassphrase")
 	data := []byte("supersecret")
 
 	cipherText, err := Encrypt(data, key)
@@ -21,7 +21,7 @@ func TestEncrypt(t *testing.T) {
 }
 
 func TestDecrypt(t *testing.T) {
-	key := "tokenpassphrase"
+	key := []byte("tokenpassphrase")
 	data := []byte("supersecret")
 
 	cipherText, err := Encrypt(data, key)

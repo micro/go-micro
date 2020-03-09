@@ -156,7 +156,7 @@ func TestOptions(t *testing.T) {
 		name             = "service-name"
 		id               = "service-id"
 		version          = "service-version"
-		address          = "service-addr"
+		address          = "service-addr:8080"
 		advertise        = "service-adv"
 		reg              = memory.NewRegistry()
 		registerTTL      = 123 * time.Second

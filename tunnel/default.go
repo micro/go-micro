@@ -131,7 +131,7 @@ func (t *tun) newSession(channel, sessionId string) (*session, bool) {
 		recv:    make(chan *message, 128),
 		send:    t.send,
 		errChan: make(chan error, 1),
-		key:     t.token + channel + sessionId,
+		key:     []byte(t.token + channel + sessionId),
 	}
 
 	// save session

@@ -1,7 +1,7 @@
 package tunnel
 
 import (
-	"encoding/hex"
+	"encoding/base32"
 	"io"
 	"time"
 
@@ -48,7 +48,7 @@ type session struct {
 	// the error response
 	errChan chan error
 	// key for session encryption
-	key string
+	key []byte
 }
 
 // message is sent over the send channel
@@ -348,8 +348,8 @@ func (s *session) Send(m *transport.Message) error {
 			log.Debugf("failed to encrypt message header %s: %v", k, err)
 			return err
 		}
-		// hex encode the encrypted header value
-		data.Header[k] = hex.EncodeToString(val)
+		// add the encrypted header value
+		data.Header[k] = base32.StdEncoding.EncodeToString(val)
 	}
 
 	// create a new message
@@ -391,33 +391,33 @@ func (s *session) Recv(m *transport.Message) error {
 
 	log.Tracef("Received %+v from recv backlog", msg)
 
-	key := s.token + s.channel + msg.session
+	key := []byte(s.token + s.channel + msg.session)
 	// decrypt the received payload using the token
 	// we have to used msg.session because multicast has a shared
 	// session id of "multicast" in this session struct on
 	// the listener side
-	body, err := Decrypt(msg.data.Body, key)
+	msg.data.Body, err = Decrypt(msg.data.Body, key)
 	if err != nil {
 		log.Debugf("failed to decrypt message body: %v", err)
 		return err
 	}
-	msg.data.Body = body
 
-	// encrypt all the headers
+	// dencrypt all the headers
 	for k, v := range msg.data.Header {
-		// hex decode the header values
-		h, err := hex.DecodeString(v)
+		// decode the header values
+		h, err := base32.StdEncoding.DecodeString(v)
 		if err != nil {
 			log.Debugf("failed to decode message header %s: %v", k, err)
 			return err
 		}
-		// encrypt the transport message payload
-		val, err := Decrypt([]byte(h), key)
+
+		// dencrypt the transport message payload
+		val, err := Decrypt(h, key)
 		if err != nil {
 			log.Debugf("failed to decrypt message header %s: %v", k, err)
 			return err
 		}
-		// hex encode the encrypted header value
+		// add decrypted header value
 		msg.data.Header[k] = string(val)
 	}
 
