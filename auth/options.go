@@ -1,6 +1,10 @@
 package auth
 
-import "github.com/micro/go-micro/v2/auth/provider"
+import (
+	"time"
+
+	"github.com/micro/go-micro/v2/auth/provider"
+)
 
 type Options struct {
 	// Token is an auth token
@@ -66,6 +70,8 @@ type GenerateOptions struct {
 	Metadata map[string]string
 	// Roles/scopes associated with the account
 	Roles []*Role
+	//Expiry of the token
+	Expiry time.Time
 }
 
 type GenerateOption func(o *GenerateOptions)
@@ -84,12 +90,22 @@ func Roles(rs []*Role) func(o *GenerateOptions) {
 	}
 }
 
+// Expiry for the generated account's token expires
+func Expiry(ex time.Time) func(o *GenerateOptions) {
+	return func(o *GenerateOptions) {
+		o.Expiry = ex
+	}
+}
+
 // NewGenerateOptions from a slice of options
 func NewGenerateOptions(opts ...GenerateOption) GenerateOptions {
 	var options GenerateOptions
 	for _, o := range opts {
 		o(&options)
 	}
-
+	//set defualt expiry of token
+	if options.Expiry.IsZero() {
+		options.Expiry = time.Now().Add(time.Hour * 24)
+	}
 	return options
 }
