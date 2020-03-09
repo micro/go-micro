@@ -48,7 +48,7 @@ type session struct {
 	// the error response
 	errChan chan error
 	// key for session encryption
-	key string
+	key []byte
 }
 
 // message is sent over the send channel
@@ -391,7 +391,7 @@ func (s *session) Recv(m *transport.Message) error {
 
 	log.Tracef("Received %+v from recv backlog", msg)
 
-	key := s.token + s.channel + msg.session
+	key := []byte(s.token + s.channel + msg.session)
 	// decrypt the received payload using the token
 	// we have to used msg.session because multicast has a shared
 	// session id of "multicast" in this session struct on
@@ -403,7 +403,7 @@ func (s *session) Recv(m *transport.Message) error {
 	}
 	msg.data.Body = body
 
-	// encrypt all the headers
+	// dencrypt all the headers
 	for k, v := range msg.data.Header {
 		// hex decode the header values
 		h, err := hex.DecodeString(v)
@@ -411,7 +411,7 @@ func (s *session) Recv(m *transport.Message) error {
 			log.Debugf("failed to decode message header %s: %v", k, err)
 			return err
 		}
-		// encrypt the transport message payload
+		// dencrypt the transport message payload
 		val, err := Decrypt([]byte(h), key)
 		if err != nil {
 			log.Debugf("failed to decrypt message header %s: %v", k, err)

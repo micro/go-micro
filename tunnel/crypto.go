@@ -14,22 +14,17 @@ var (
 	// gcmStandardNonceSize from crypto/cipher/gcm.go is 12 bytes
 	// 100 - is max size of pool
 	noncePool = bpool.NewBytePool(100, 12)
-	hashPool  = bpool.NewBytePool(1024*32, 32)
 )
 
 // hash hahes the data into 32 bytes key and returns it
 // hash uses sha256 underneath to hash the supplied key
-func hash(key string) []byte {
-	hasher := sha256.New()
-	hasher.Write([]byte(key))
-	out := hashPool.Get()
-	defer hashPool.Put(out[:0])
-	out = hasher.Sum(out[:0])
-	return out
+func hash(key []byte) []byte {
+	sum := sha256.Sum256(key)
+	return sum[:]
 }
 
 // Encrypt encrypts data and returns the encrypted data
-func Encrypt(data []byte, key string) ([]byte, error) {
+func Encrypt(data []byte, key []byte) ([]byte, error) {
 	// generate a new AES cipher using our 32 byte key
 	c, err := aes.NewCipher(hash(key))
 	if err != nil {
@@ -59,7 +54,7 @@ func Encrypt(data []byte, key string) ([]byte, error) {
 }
 
 // Decrypt decrypts the payload and returns the decrypted data
-func Decrypt(data []byte, key string) ([]byte, error) {
+func Decrypt(data []byte, key []byte) ([]byte, error) {
 	// generate AES cipher for decrypting the message
 	c, err := aes.NewCipher(hash(key))
 	if err != nil {
