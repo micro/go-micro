@@ -125,7 +125,9 @@ func (s *service) register() error {
 
 	// use RegisterCheck func before register
 	if err := s.opts.RegisterCheck(s.opts.Context); err != nil {
-		log.Errorf("Server %s-%s register check error: %s", s.opts.Name, s.opts.Id, err)
+		if logger.V(logger.ErrorLevel, log) {
+			log.Errorf("Server %s-%s register check error: %s", s.opts.Name, s.opts.Id, err)
+		}
 		return err
 	}
 
