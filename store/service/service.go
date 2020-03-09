@@ -24,8 +24,14 @@ type serviceStore struct {
 	// Prefix to use
 	Prefix string
 
+	// Suffix to use
+	Suffix string
+
 	// store service client
 	Client pb.StoreService
+
+	// Additional opts
+	Context context.Context
 }
 
 func (s *serviceStore) Init(opts ...store.Option) error {

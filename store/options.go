@@ -56,6 +56,13 @@ func Suffix(s string) Option {
 	}
 }
 
+// WithContext sets the stores context, for any extra configuration
+func WithContext(c context.Context) Option {
+	return func(o *Options) {
+		o.Context = c
+	}
+}
+
 // ReadOptions configures an individual Read operation
 type ReadOptions struct {
 	// Prefix returns all records that are prefixed with key
