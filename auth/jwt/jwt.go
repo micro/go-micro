@@ -1,7 +1,6 @@
 package jwt
 
 import (
-	"encoding/base64"
 	"errors"
 
 	"github.com/dgrijalva/jwt-go"
@@ -61,13 +60,7 @@ type AuthClaims struct {
 
 // Generate a new JWT
 func (s *svc) Generate(id string, ops ...auth.GenerateOption) (*auth.Account, error) {
-	// decode the private key
-	priv, err := base64.StdEncoding.DecodeString(s.options.PrivateKey)
-	if err != nil {
-		return nil, err
-	}
-
-	key, err := jwt.ParseRSAPrivateKeyFromPEM(priv)
+	key, err := jwt.ParseRSAPrivateKeyFromPEM([]byte(s.options.PrivateKey))
 	if err != nil {
 		return nil, ErrEncodingToken
 	}
@@ -104,14 +97,8 @@ func (s *svc) Verify(token string) (*auth.Account, error) {
 		return nil, ErrMissingToken
 	}
 
-	// decode the public key
-	pub, err := base64.StdEncoding.DecodeString(s.options.PublicKey)
-	if err != nil {
-		return nil, err
-	}
-
 	res, err := jwt.ParseWithClaims(token, &AuthClaims{}, func(token *jwt.Token) (interface{}, error) {
-		return jwt.ParseRSAPublicKeyFromPEM(pub)
+		return jwt.ParseRSAPublicKeyFromPEM([]byte(s.options.PublicKey))
 	})
 	if err != nil {
 		return nil, err
