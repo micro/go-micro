@@ -104,8 +104,19 @@ func (h *rpcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// micro client
 	c := h.opts.Service.Client()
 
+	// create context
+	cx := ctx.FromRequest(r)
+
+	// if stream we currently only support json
+	if isStream(r, service) {
+		serveWebsocket(cx, w, r, service, c)
+		return
+	}
+
 	// create strategy
 	so := selector.WithStrategy(strategy(service.Services))
+
+	// walk the standard call path
 
 	// get payload
 	br, err := requestPayload(r)
@@ -113,9 +124,6 @@ func (h *rpcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, err)
 		return
 	}
-
-	// create context
-	cx := ctx.FromRequest(r)
 
 	var rsp []byte
 
