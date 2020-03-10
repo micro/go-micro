@@ -117,12 +117,18 @@ func (jsonCodec) Marshal(v interface{}) ([]byte, error) {
 
 		return []byte(s), err
 	}
-
+	if b, ok := v.(*bytes.Frame); ok {
+		return b.Data, nil
+	}
 	return json.Marshal(v)
 }
 
 func (jsonCodec) Unmarshal(data []byte, v interface{}) error {
 	if len(data) == 0 {
+		return nil
+	}
+	if b, ok := v.(*bytes.Frame); ok {
+		b.Data = data
 		return nil
 	}
 	if pb, ok := v.(proto.Message); ok {
