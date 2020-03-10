@@ -10,6 +10,10 @@ import (
 	"github.com/micro/go-micro/v2/store"
 )
 
+var (
+	ErrStepExists = fmt.Errorf("step already exists")
+)
+
 type Flow interface {
 	// Init flow with options
 	Init(...Option) error
@@ -123,6 +127,8 @@ func FlowFromContext(ctx context.Context) (Flow, error) {
 }
 
 type ExecuteOptions struct {
+	// Passed flow name
+	Flow string
 	// Passed request id
 	ID string
 	// Passed step to start swafrom

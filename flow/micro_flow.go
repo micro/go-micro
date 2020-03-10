@@ -13,6 +13,7 @@ import (
 	"github.com/micro/go-micro/v2/errors"
 	pb "github.com/micro/go-micro/v2/flow/service/proto"
 	"github.com/micro/go-micro/v2/logger"
+	"github.com/micro/go-micro/v2/metadata"
 	"github.com/micro/go-micro/v2/store"
 	"github.com/panjf2000/ants/v2"
 )
@@ -142,7 +143,7 @@ func (fl *microFlow) CreateStep(flow string, step *Step) error {
 
 	for _, pbstep := range pbsteps {
 		if pbstep.Name == step.Name() {
-			return fmt.Errorf("step %s already exists", step.Name())
+			return ErrStepExists
 		}
 	}
 
@@ -274,7 +275,7 @@ func (fl *microFlow) Execute(flow string, req interface{}, rsp interface{}, opts
 		return "", fmt.Errorf("initialize flow first")
 	}
 
-	options := ExecuteOptions{}
+	options := ExecuteOptions{Flow: flow}
 	for _, opt := range opts {
 		opt(&options)
 	}
@@ -472,16 +473,19 @@ func (fl *microFlow) loadDag(ctx context.Context, flow string) (dag, error) {
 func (fl *microFlow) flowHandler(req interface{}) {
 	var err error
 	var serr error
+
 	job := req.(*flowJob)
-	job.mu.Lock()
-	defer job.mu.Unlock()
 	defer func() {
+		job.mu.Lock()
 		(*job).err = err
+		job.mu.Unlock()
 	}()
 
+	job.mu.RLock()
 	if job.done != nil {
 		defer close(job.done)
 	}
+	job.mu.RUnlock()
 
 	options := ExecuteOptions{}
 	for _, opt := range job.options {
@@ -494,7 +498,8 @@ func (fl *microFlow) flowHandler(req interface{}) {
 		options.Context = context.WithValue(options.Context, flowKey{}, fl)
 	}
 
-	g, err := fl.loadDag(options.Context, job.flow)
+	var g dag
+	g, err = fl.loadDag(options.Context, job.flow)
 	if err != nil {
 		return
 	}
@@ -519,9 +524,9 @@ func (fl *microFlow) flowHandler(req interface{}) {
 		}
 	}
 
-	for _, s := range steps {
-		fmt.Printf("TTT %v\n", s)
-	}
+	//	for _, s := range steps {
+	//		fmt.Printf("TTT %v\n", s)
+	//	}
 
 	if steps, err = g.OrderedDescendants(root); err != nil {
 		return
@@ -615,8 +620,14 @@ func (fl *microFlow) stepHandler(ctx context.Context, step *Step, job *flowJob) 
 	logger.Tracef("data %s %s", dataKey, req)
 
 	dataKey = fmt.Sprintf("%s-%s-%s", job.flow, job.rid, step.Output)
+
+	md, ok := metadata.FromContext(ctx)
+	if !ok {
+		md = make(metadata.Metadata)
+	}
+
 	// operation handles retries, timeouts and so
-	buf, err = step.Operation.Execute(ctx, req, job.options...)
+	buf, err = step.Operation.Execute(metadata.NewContext(ctx, md), req, job.options...)
 	if err == nil {
 		if serr := fl.options.StateStore.Write(&store.Record{Key: stateKey, Value: []byte("success")}); serr != nil {
 			err = fmt.Errorf("flow store error %v", serr)

@@ -59,6 +59,7 @@ func (op *clientPublishOperation) Execute(ctx context.Context, data []byte, opts
 	md["Micro-Id"] = options.ID
 	// header to send reply back
 	md["Micro-Callback"] = fmt.Sprintf("%s-%s", op.topic, options.ID)
+	md["Micro-Flow"] = options.Flow
 
 	done := make(chan struct{})
 	sub, err := options.Client.Options().Broker.Subscribe(md["Micro-Callback"], func(evt broker.Event) error {

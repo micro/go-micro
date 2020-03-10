@@ -7,6 +7,7 @@ import (
 	"github.com/micro/go-micro/v2/client"
 	"github.com/micro/go-micro/v2/codec/bytes"
 	pbFlow "github.com/micro/go-micro/v2/flow/service/proto"
+	"github.com/micro/go-micro/v2/metadata"
 )
 
 type clientCallOperation struct {
@@ -49,6 +50,16 @@ func (op *clientCallOperation) Execute(ctx context.Context, data []byte, opts ..
 	if opts, ok := options.Context.Value(clientCallOperation{}).([]client.CallOption); ok {
 		copts = opts
 	}
+
+	md, ok := metadata.FromContext(ctx)
+	if !ok {
+		md = make(map[string]string)
+	}
+
+	// standard micro headers
+	md["Content-Type"] = options.Client.Options().ContentType
+	md["Micro-Id"] = options.ID
+	md["Micro-Flow"] = options.Flow
 
 	if err = options.Client.Call(ctx, req, rsp, copts...); err != nil {
 		return nil, err
