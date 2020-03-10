@@ -28,21 +28,24 @@ type Option func(*Options)
 // SecretKey sets the symmetric secret key
 func SecretKey(key []byte) Option {
 	return func(o *Options) {
-		o.SecretKey = key
+		o.SecretKey = make([]byte, len(key))
+		copy(o.SecretKey, key)
 	}
 }
 
 // PublicKey sets the asymmetric Public Key of this codec
 func PublicKey(key []byte) Option {
 	return func(o *Options) {
-		o.PublicKey = key
+		o.PublicKey = make([]byte, len(key))
+		copy(o.PublicKey, key)
 	}
 }
 
 // PrivateKey sets the asymmetric Private Key of this codec
 func PrivateKey(key []byte) Option {
 	return func(o *Options) {
-		o.PrivateKey = key
+		o.PrivateKey = make([]byte, len(key))
+		copy(o.PrivateKey, key)
 	}
 }
 
@@ -57,7 +60,8 @@ type DecryptOption func(*DecryptOptions)
 // SenderPublicKey is the Public Key of the Codec that encrypted this message
 func SenderPublicKey(key []byte) DecryptOption {
 	return func(d *DecryptOptions) {
-		d.SenderPublicKey = key
+		d.SenderPublicKey = make([]byte, len(key))
+		copy(d.SenderPublicKey, key)
 	}
 }
 
@@ -72,6 +76,7 @@ type EncryptOption func(*EncryptOptions)
 // RecipientPublicKey is the Public Key of the Codec that will decrypt this message
 func RecipientPublicKey(key []byte) EncryptOption {
 	return func(e *EncryptOptions) {
-		e.RecipientPublicKey = key
+		e.RecipientPublicKey = make([]byte, len(key))
+		copy(e.RecipientPublicKey, key)
 	}
 }

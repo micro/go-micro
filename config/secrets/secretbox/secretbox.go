@@ -10,10 +10,12 @@ import (
 	"crypto/rand"
 )
 
+const keyLength = 32
+
 type secretBox struct {
 	options secrets.Options
 
-	secretKey [32]byte
+	secretKey [keyLength]byte
 }
 
 // NewCodec returns a secretbox codec
@@ -30,10 +32,10 @@ func (s *secretBox) Init(opts ...secrets.Option) error {
 		o(&s.options)
 	}
 	if len(s.options.SecretKey) == 0 {
-		return errors.New("No secret Key is defined")
+		return errors.New("no secret key is defined")
 	}
-	if len(s.options.SecretKey) != 32 {
-		return errors.New("Secret Key must be 32 bytes long")
+	if len(s.options.SecretKey) != keyLength {
+		return errors.Errorf("secret key must be %d bytes long", keyLength)
 	}
 	copy(s.secretKey[:], s.options.SecretKey)
 	return nil
@@ -53,7 +55,7 @@ func (s *secretBox) Encrypt(in []byte, opts ...secrets.EncryptOption) ([]byte, e
 	// there must be a unique nonce for each message
 	var nonce [24]byte
 	if _, err := rand.Reader.Read(nonce[:]); err != nil {
-		return []byte{}, errors.Wrap(err, "Couldn't obtain a random nonce from crypto/rand")
+		return []byte{}, errors.Wrap(err, "couldn't obtain a random nonce from crypto/rand")
 	}
 	return secretbox.Seal(nonce[:], in, &nonce, &s.secretKey), nil
 }
@@ -65,7 +67,7 @@ func (s *secretBox) Decrypt(in []byte, opts ...secrets.DecryptOption) ([]byte, e
 	copy(decryptNonce[:], in[:24])
 	decrypted, ok := secretbox.Open(nil, in[24:], &decryptNonce, &s.secretKey)
 	if !ok {
-		return []byte{}, errors.New("Decryption failed (is the key set correctly?)")
+		return []byte{}, errors.New("decryption failed (is the key set correctly?)")
 	}
 	return decrypted, nil
 }
