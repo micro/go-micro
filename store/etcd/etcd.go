@@ -1,121 +1,77 @@
-// Package etcd is an etcd v3 implementation of kv
+// Package etcd implements a go-micro/v2/store with etcd
 package etcd
 
 import (
 	"context"
-	"log"
 
-	client "github.com/coreos/etcd/clientv3"
 	"github.com/micro/go-micro/v2/store"
+	"go.etcd.io/etcd/clientv3"
 )
 
-type ekv struct {
+type etcdStore struct {
 	options store.Options
-	kv      client.KV
+
+	kv clientv3.KV
 }
 
-func (e *ekv) Init(opts ...store.Option) error {
+// NewStore returns a new etcd store
+func NewStore(opts ...store.Option) store.Store {
+	e := &etcdStore{}
 	for _, o := range opts {
 		o(&e.options)
 	}
+	e.init()
+	return e
+}
+
+func (e *etcdStore) Init(opts ...store.Option) error {
+	for _, o := range opts {
+		o(&e.options)
+	}
+	return e.init()
+}
+
+func (e *etcdStore) init() error {
+	// ensure context is non-nil
+	e.options.Context = context.Background()
+	// set up config
+	conf := clientv3.Config{}
+	e.applyConfig(&conf)
+	if len(e.options.Nodes) == 0 {
+		conf.Endpoints = []string{"http://127.0.0.1:2379"}
+	} else {
+		conf.Endpoints = make([]string, len(e.options.Nodes))
+		copy(conf.Endpoints, e.options.Nodes)
+	}
+	client, err := clientv3.New(conf)
+	if err != nil {
+		return err
+	}
+	e.kv = clientv3.NewKV(client)
+
 	return nil
 }
 
-func (e *ekv) Read(key string, opts ...store.ReadOption) ([]*store.Record, error) {
-	var options store.ReadOptions
-	for _, o := range opts {
-		o(&options)
-	}
-
-	var etcdOpts []client.OpOption
-
-	// set options prefix
-	if options.Prefix {
-		etcdOpts = append(etcdOpts, client.WithPrefix())
-	}
-
-	keyval, err := e.kv.Get(context.Background(), key, etcdOpts...)
-	if err != nil {
-		return nil, err
-	}
-
-	if keyval == nil || len(keyval.Kvs) == 0 {
-		return nil, store.ErrNotFound
-	}
-
-	records := make([]*store.Record, 0, len(keyval.Kvs))
-
-	for _, kv := range keyval.Kvs {
-		records = append(records, &store.Record{
-			Key:   string(kv.Key),
-			Value: kv.Value,
-			// TODO: implement expiry
-		})
-	}
-
-	return records, nil
-}
-
-func (e *ekv) Delete(key string) error {
-	_, err := e.kv.Delete(context.Background(), key)
-	return err
-}
-
-func (e *ekv) Write(record *store.Record) error {
-	// TODO create lease to expire keys
-	_, err := e.kv.Put(context.Background(), record.Key, string(record.Value))
-	return err
-}
-
-func (e *ekv) List() ([]*store.Record, error) {
-	keyval, err := e.kv.Get(context.Background(), "/", client.WithPrefix())
-	if err != nil {
-		return nil, err
-	}
-	if keyval == nil || len(keyval.Kvs) == 0 {
-		return nil, nil
-	}
-	vals := make([]*store.Record, 0, len(keyval.Kvs))
-	for _, keyv := range keyval.Kvs {
-		vals = append(vals, &store.Record{
-			Key:   string(keyv.Key),
-			Value: keyv.Value,
-		})
-	}
-	return vals, nil
-}
-
-func (e *ekv) String() string {
-	return "etcd"
-}
-
-func (e *ekv) Options() store.Options {
+func (e *etcdStore) Options() store.Options {
 	return e.options
 }
 
-func NewStore(opts ...store.Option) store.Store {
-	var options store.Options
-	for _, o := range opts {
-		o(&options)
-	}
+func (e *etcdStore) String() string {
+	return "etcd"
+}
 
-	// get the endpoints
-	endpoints := options.Nodes
+func (e *etcdStore) Read(key string, opts ...store.ReadOption) ([]*store.Record, error) {
+	return nil, nil
+}
 
-	if len(endpoints) == 0 {
-		endpoints = []string{"http://127.0.0.1:2379"}
-	}
+func (e *etcdStore) Write(r *store.Record, opts ...store.WriteOption) error {
+	return nil
+}
 
-	// TODO: parse addresses
-	c, err := client.New(client.Config{
-		Endpoints: endpoints,
-	})
-	if err != nil {
-		log.Fatal(err)
-	}
+func (e *etcdStore) Delete(key string, opts ...store.DeleteOption) error {
+	return nil
+}
 
-	return &ekv{
-		options: options,
-		kv:      client.NewKV(c),
-	}
+func (e *etcdStore) List(opts ...store.ListOption) ([]string, error) {
+	return nil, nil
 }
