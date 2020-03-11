@@ -8,8 +8,11 @@ import (
 	"os"
 	"sync"
 
+	"github.com/micro/go-micro/v2/api/server/auth"
+
 	"github.com/gorilla/handlers"
 	"github.com/micro/go-micro/v2/api/server"
+	"github.com/micro/go-micro/v2/api/server/cors"
 	log "github.com/micro/go-micro/v2/logger"
 )
 
@@ -45,7 +48,14 @@ func (s *httpServer) Init(opts ...server.Option) error {
 }
 
 func (s *httpServer) Handle(path string, handler http.Handler) {
-	s.mux.Handle(path, handlers.CombinedLoggingHandler(os.Stdout, handler))
+	h := handlers.CombinedLoggingHandler(os.Stdout, handler)
+	h = auth.CombinedAuthHandler(handler)
+
+	if s.opts.EnableCORS {
+		h = cors.CombinedCORSHandler(h)
+	}
+
+	s.mux.Handle(path, h)
 }
 
 func (s *httpServer) Start() error {
