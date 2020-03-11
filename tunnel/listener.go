@@ -4,7 +4,7 @@ import (
 	"io"
 	"sync"
 
-	log "github.com/micro/go-micro/v2/logger"
+	"github.com/micro/go-micro/v2/logger"
 )
 
 type tunListener struct {
@@ -66,7 +66,9 @@ func (t *tunListener) process() {
 
 			// get a session
 			sess, ok := conns[sessionId]
-			log.Tracef("Tunnel listener received channel %s session %s type %s exists: %t", m.channel, m.session, m.typ, ok)
+			if logger.V(logger.TraceLevel, log) {
+				log.Tracef("Tunnel listener received channel %s session %s type %s exists: %t", m.channel, m.session, m.typ, ok)
+			}
 			if !ok {
 				// we only process open and session types
 				switch m.typ {
@@ -152,7 +154,9 @@ func (t *tunListener) process() {
 			case <-sess.closed:
 				delete(conns, sessionId)
 			case sess.recv <- m:
-				log.Tracef("Tunnel listener sent to recv chan channel %s session %s type %s", m.channel, sessionId, m.typ)
+				if logger.V(logger.TraceLevel, log) {
+					log.Tracef("Tunnel listener sent to recv chan channel %s session %s type %s", m.channel, sessionId, m.typ)
+				}
 			}
 		}
 	}

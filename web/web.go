@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/micro/go-micro/v2/logger"
 )
 
 // Service is a web service with service discovery built in
@@ -35,6 +36,8 @@ var (
 	// static directory
 	DefaultStaticDir     = "html"
 	DefaultRegisterCheck = func(context.Context) error { return nil }
+
+	log = logger.NewHelper(logger.DefaultLogger).WithFields(map[string]interface{}{"service": "web"})
 )
 
 // NewService returns a new web.Service

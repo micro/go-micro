@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	log "github.com/micro/go-micro/v2/logger"
+	"github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/runtime/local/build"
 	"github.com/micro/go-micro/v2/runtime/local/process"
 	proc "github.com/micro/go-micro/v2/runtime/local/process/os"
@@ -111,7 +111,9 @@ func (s *service) Start() error {
 	delete(s.Metadata, "error")
 
 	// TODO: pull source & build binary
-	log.Debugf("Runtime service %s forking new process", s.Service.Name)
+	if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+		logger.Debugf("Runtime service %s forking new process", s.Service.Name)
+	}
 	p, err := s.Process.Fork(s.Exec)
 	if err != nil {
 		s.Metadata["status"] = "error"

@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/transport"
 	"github.com/micro/go-micro/v2/transport/quic"
 )
@@ -13,6 +14,7 @@ var (
 	DefaultAddress = ":0"
 	// The shared default token
 	DefaultToken = "go.micro.tunnel"
+	log          = logger.NewHelper(logger.DefaultLogger).WithFields(map[string]interface{}{"service": "tunnel"})
 )
 
 type Option func(*Options)

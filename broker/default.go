@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/micro/go-micro/v2/codec/json"
-	log "github.com/micro/go-micro/v2/logger"
+	"github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/registry"
 	"github.com/micro/go-micro/v2/util/addr"
 	"github.com/nats-io/nats-server/v2/server"
@@ -172,7 +172,9 @@ func (n *natsBroker) serve(exit chan bool) error {
 			for _, node := range service.Nodes {
 				u, err := url.Parse("nats://" + node.Address)
 				if err != nil {
-					log.Info(err)
+					if logger.V(logger.InfoLevel, logger.DefaultLogger) {
+						logger.Info(err)
+					}
 					continue
 				}
 				// append to the cluster routes
@@ -247,7 +249,9 @@ func (n *natsBroker) serve(exit chan bool) error {
 			select {
 			case err := <-n.closeCh:
 				if err != nil {
-					log.Info(err)
+					if logger.V(logger.InfoLevel, logger.DefaultLogger) {
+						logger.Info(err)
+					}
 				}
 			case <-exit:
 				// deregister on exit
@@ -402,7 +406,9 @@ func (n *natsBroker) Subscribe(topic string, handler Handler, opts ...SubscribeO
 		pub.m = &m
 		if err != nil {
 			m.Body = msg.Data
-			log.Error(err)
+			if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
+				logger.Error(err)
+			}
 			if eh != nil {
 				eh(pub)
 			}
@@ -410,7 +416,9 @@ func (n *natsBroker) Subscribe(topic string, handler Handler, opts ...SubscribeO
 		}
 		if err := handler(pub); err != nil {
 			pub.err = err
-			log.Error(err)
+			if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
+				logger.Error(err)
+			}
 			if eh != nil {
 				eh(pub)
 			}
