@@ -2,6 +2,7 @@ package flow
 
 import (
 	"context"
+	"fmt"
 
 	pbFlow "github.com/micro/go-micro/v2/flow/service/proto"
 )
@@ -14,7 +15,7 @@ type flowExecuteOperation struct {
 }
 
 func FlowExecuteOperation(flow string, op string) *flowExecuteOperation {
-	return &flowExecuteOperation{name: "flow_execute_operation", flow: flow, operation: op}
+	return &flowExecuteOperation{name: fmt.Sprintf("%s.%s", flow, op), flow: flow, operation: op}
 }
 
 func (op *flowExecuteOperation) New() Operation {
@@ -59,7 +60,8 @@ func (op *flowExecuteOperation) Execute(ctx context.Context, req []byte, opts ..
 	if err != nil {
 		return nil, err
 	}
+	var rsp []byte
 	opts = append(opts, ExecuteStep(op.operation))
-	_, err = fl.Execute(op.flow, req, nil, opts...)
-	return nil, err
+	_, err = fl.Execute(op.flow, req, rsp, opts...)
+	return rsp, err
 }

@@ -28,6 +28,9 @@ func StepToProto(step *Step) *pb.Step {
 		Output:    step.Output,
 		Operation: step.Operation.Encode(),
 	}
+	if step.Fallback != nil {
+		p.Fallback = step.Fallback.Encode()
+	}
 	return p
 }
 
@@ -46,6 +49,16 @@ func ProtoToStep(p *pb.Step) *Step {
 		After:     p.After,
 		Before:    p.Before,
 		Operation: nop,
+	}
+
+	if p.Fallback != nil {
+		op, ok = Operations[p.Fallback.Type]
+		if !ok {
+			return nil
+		}
+		fop := op.New()
+		fop.Decode(p.Fallback)
+		st.Fallback = fop
 	}
 
 	return st
