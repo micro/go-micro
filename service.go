@@ -14,7 +14,7 @@ import (
 	"github.com/micro/go-micro/v2/debug/service/handler"
 	"github.com/micro/go-micro/v2/debug/stats"
 	"github.com/micro/go-micro/v2/debug/trace"
-	log "github.com/micro/go-micro/v2/logger"
+	"github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/plugin"
 	"github.com/micro/go-micro/v2/server"
 	"github.com/micro/go-micro/v2/util/config"
@@ -77,12 +77,12 @@ func (s *service) Init(opts ...Option) {
 			// load the plugin
 			c, err := plugin.Load(p)
 			if err != nil {
-				log.Fatal(err)
+				logger.Fatal(err)
 			}
 
 			// initialise the plugin
 			if err := plugin.Init(c); err != nil {
-				log.Fatal(err)
+				logger.Fatal(err)
 			}
 		}
 
@@ -101,7 +101,7 @@ func (s *service) Init(opts ...Option) {
 			cmd.Server(&s.opts.Server),
 			cmd.Profile(&s.opts.Profile),
 		); err != nil {
-			log.Fatal(err)
+			logger.Fatal(err)
 		}
 
 		// TODO: replace Cmd.Init with config.Load
@@ -194,7 +194,9 @@ func (s *service) Run() error {
 		defer s.opts.Profile.Stop()
 	}
 
-	log.Infof("Starting [service] %s", s.Name())
+	if logger.V(logger.InfoLevel, logger.DefaultLogger) {
+		logger.Infof("Starting [service] %s", s.Name())
+	}
 
 	if err := s.Start(); err != nil {
 		return err

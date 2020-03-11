@@ -17,7 +17,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/micro/go-micro/v2/broker"
 	"github.com/micro/go-micro/v2/errors"
-	log "github.com/micro/go-micro/v2/logger"
+	"github.com/micro/go-micro/v2/logger"
 	meta "github.com/micro/go-micro/v2/metadata"
 	"github.com/micro/go-micro/v2/registry"
 	"github.com/micro/go-micro/v2/server"
@@ -358,8 +358,10 @@ func (g *grpcServer) processRequest(stream grpc.ServerStream, service *service, 
 		fn := func(ctx context.Context, req server.Request, rsp interface{}) (err error) {
 			defer func() {
 				if r := recover(); r != nil {
-					log.Error("panic recovered: ", r)
-					log.Error(string(debug.Stack()))
+					if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
+						logger.Error("panic recovered: ", r)
+						logger.Error(string(debug.Stack()))
+					}
 					err = errors.InternalServerError("go.micro.server", "panic recovered: %v", r)
 				}
 			}()
@@ -658,7 +660,9 @@ func (g *grpcServer) Register() error {
 	g.Unlock()
 
 	if !registered {
-		log.Infof("Registry [%s] Registering node: %s", config.Registry.String(), node.Id)
+		if logger.V(logger.InfoLevel, logger.DefaultLogger) {
+			logger.Infof("Registry [%s] Registering node: %s", config.Registry.String(), node.Id)
+		}
 	}
 
 	// create registry options
@@ -693,7 +697,9 @@ func (g *grpcServer) Register() error {
 			opts = append(opts, broker.DisableAutoAck())
 		}
 
-		log.Infof("Subscribing to topic: %s", sb.Topic())
+		if logger.V(logger.InfoLevel, logger.DefaultLogger) {
+			logger.Infof("Subscribing to topic: %s", sb.Topic())
+		}
 		sub, err := config.Broker.Subscribe(sb.Topic(), handler, opts...)
 		if err != nil {
 			return err
@@ -745,7 +751,9 @@ func (g *grpcServer) Deregister() error {
 		Nodes:   []*registry.Node{node},
 	}
 
-	log.Infof("Deregistering node: %s", node.Id)
+	if logger.V(logger.InfoLevel, logger.DefaultLogger) {
+		logger.Infof("Deregistering node: %s", node.Id)
+	}
 	if err := config.Registry.Deregister(service); err != nil {
 		return err
 	}
@@ -761,7 +769,9 @@ func (g *grpcServer) Deregister() error {
 
 	for sb, subs := range g.subscribers {
 		for _, sub := range subs {
-			log.Infof("Unsubscribing from topic: %s", sub.Topic())
+			if logger.V(logger.InfoLevel, logger.DefaultLogger) {
+				logger.Infof("Unsubscribing from topic: %s", sub.Topic())
+			}
 			sub.Unsubscribe()
 		}
 		g.subscribers[sb] = nil
@@ -807,7 +817,9 @@ func (g *grpcServer) Start() error {
 		}
 	}
 
-	log.Infof("Server [grpc] Listening on %s", ts.Addr().String())
+	if logger.V(logger.InfoLevel, logger.DefaultLogger) {
+		logger.Infof("Server [grpc] Listening on %s", ts.Addr().String())
+	}
 	g.Lock()
 	g.opts.Address = ts.Addr().String()
 	g.Unlock()
@@ -819,18 +831,24 @@ func (g *grpcServer) Start() error {
 			return err
 		}
 
-		log.Infof("Broker [%s] Connected to %s", config.Broker.String(), config.Broker.Address())
+		if logger.V(logger.InfoLevel, logger.DefaultLogger) {
+			logger.Infof("Broker [%s] Connected to %s", config.Broker.String(), config.Broker.Address())
+		}
 	}
 
 	// announce self to the world
 	if err := g.Register(); err != nil {
-		log.Errorf("Server register error: ", err)
+		if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
+			logger.Errorf("Server register error: ", err)
+		}
 	}
 
 	// micro: go ts.Accept(s.accept)
 	go func() {
 		if err := g.srv.Serve(ts); err != nil {
-			log.Errorf("gRPC Server start error: ", err)
+			if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
+				logger.Errorf("gRPC Server start error: ", err)
+			}
 		}
 	}()
 
@@ -852,7 +870,9 @@ func (g *grpcServer) Start() error {
 			// register self on interval
 			case <-t.C:
 				if err := g.Register(); err != nil {
-					log.Error("Server register error: ", err)
+					if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
+						logger.Error("Server register error: ", err)
+					}
 				}
 			// wait for exit
 			case ch = <-g.exit:
@@ -862,7 +882,9 @@ func (g *grpcServer) Start() error {
 
 		// deregister self
 		if err := g.Deregister(); err != nil {
-			log.Error("Server deregister error: ", err)
+			if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
+				logger.Error("Server deregister error: ", err)
+			}
 		}
 
 		// wait for waitgroup
@@ -887,7 +909,9 @@ func (g *grpcServer) Start() error {
 		// close transport
 		ch <- nil
 
-		log.Infof("Broker [%s] Disconnected from %s", config.Broker.String(), config.Broker.Address())
+		if logger.V(logger.InfoLevel, logger.DefaultLogger) {
+			logger.Infof("Broker [%s] Disconnected from %s", config.Broker.String(), config.Broker.Address())
+		}
 		// disconnect broker
 		config.Broker.Disconnect()
 	}()
