@@ -6,7 +6,7 @@ import (
 	"github.com/micro/go-micro/v2/client"
 	"github.com/micro/go-micro/v2/config/source"
 	proto "github.com/micro/go-micro/v2/config/source/service/proto"
-	log "github.com/micro/go-micro/v2/logger"
+	"github.com/micro/go-micro/v2/logger"
 )
 
 var (
@@ -42,7 +42,9 @@ func (m *service) Watch() (w source.Watcher, err error) {
 		Path:      m.path,
 	})
 	if err != nil {
-		log.Error("watch err: ", err)
+		if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
+			logger.Error("watch err: ", err)
+		}
 		return
 	}
 	return newWatcher(stream)

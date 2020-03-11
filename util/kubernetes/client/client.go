@@ -12,7 +12,7 @@ import (
 	"path"
 	"strings"
 
-	log "github.com/micro/go-micro/v2/logger"
+	"github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/util/kubernetes/api"
 )
 
@@ -190,7 +190,9 @@ func (c *client) Watch(r *Resource, opts ...WatchOption) (Watcher, error) {
 
 // NewService returns default micro kubernetes service definition
 func NewService(name, version, typ string) *Service {
-	log.Tracef("kubernetes default service: name: %s, version: %s", name, version)
+	if logger.V(logger.TraceLevel, logger.DefaultLogger) {
+		logger.Tracef("kubernetes default service: name: %s, version: %s", name, version)
+	}
 
 	Labels := map[string]string{
 		"name":    name,
@@ -227,7 +229,9 @@ func NewService(name, version, typ string) *Service {
 
 // NewService returns default micro kubernetes deployment definition
 func NewDeployment(name, version, typ string) *Deployment {
-	log.Tracef("kubernetes default deployment: name: %s, version: %s", name, version)
+	if logger.V(logger.TraceLevel, logger.DefaultLogger) {
+		logger.Tracef("kubernetes default deployment: name: %s, version: %s", name, version)
+	}
 
 	Labels := map[string]string{
 		"name":    name,
@@ -303,26 +307,26 @@ func NewClusterClient() *client {
 
 	s, err := os.Stat(serviceAccountPath)
 	if err != nil {
-		log.Fatal(err)
+		logger.Fatal(err)
 	}
 	if s == nil || !s.IsDir() {
-		log.Fatal(errors.New("service account not found"))
+		logger.Fatal(errors.New("service account not found"))
 	}
 
 	token, err := ioutil.ReadFile(path.Join(serviceAccountPath, "token"))
 	if err != nil {
-		log.Fatal(err)
+		logger.Fatal(err)
 	}
 	t := string(token)
 
 	ns, err := detectNamespace()
 	if err != nil {
-		log.Fatal(err)
+		logger.Fatal(err)
 	}
 
 	crt, err := CertPoolFromFile(path.Join(serviceAccountPath, "ca.crt"))
 	if err != nil {
-		log.Fatal(err)
+		logger.Fatal(err)
 	}
 
 	c := &http.Client{
