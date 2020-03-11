@@ -636,12 +636,11 @@ func (fl *microFlow) stepHandler(ctx context.Context, step *Step, job *flowJob) 
 	}
 
 	var fallback bool
-	if step.Fallback != nil {
-		fallback = true
-	}
+	var flowErr error
+
 	// operation handles retries, timeouts and so
-	buf, err = step.Operation.Execute(metadata.NewContext(ctx, md), req, job.options...)
-	if err == nil {
+	buf, flowErr = step.Operation.Execute(metadata.NewContext(ctx, md), req, job.options...)
+	if flowErr == nil {
 		if serr := fl.options.StateStore.Write(&store.Record{Key: stateKey, Value: []byte("success")}); serr != nil {
 			err = fmt.Errorf("flow store key %s error %v", stateKey, serr)
 			return err
@@ -650,6 +649,10 @@ func (fl *microFlow) stepHandler(ctx context.Context, step *Step, job *flowJob) 
 			logger.Tracef("state %s %s", stateKey, "success")
 		}
 	} else {
+		if step.Fallback != nil {
+			fallback = true
+		}
+
 		if serr = fl.options.StateStore.Write(&store.Record{Key: stateKey, Value: []byte("failure")}); serr != nil {
 			err = fmt.Errorf("flow store key %s error %v", stateKey, serr)
 			return err
@@ -657,13 +660,13 @@ func (fl *microFlow) stepHandler(ctx context.Context, step *Step, job *flowJob) 
 		if logger.V(logger.TraceLevel, logger.DefaultLogger) {
 			logger.Tracef("state %s %s", stateKey, "failure")
 		}
-		if m, ok := err.(*errors.Error); ok {
+		if m, ok := flowErr.(*errors.Error); ok {
 			buf, serr = proto.Marshal(m)
 			if serr != nil {
 				return serr
 			}
 		} else {
-			buf = []byte(err.Error())
+			buf = []byte(flowErr.Error())
 		}
 	}
 
@@ -715,7 +718,7 @@ func (fl *microFlow) stepHandler(ctx context.Context, step *Step, job *flowJob) 
 		}
 	}
 
-	return err
+	return flowErr
 }
 
 func (fl *microFlow) Options() Options {

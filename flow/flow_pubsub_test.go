@@ -233,12 +233,12 @@ func TestClientPubsub(t *testing.T) {
 		flow.ExecuteStep("AccountCreate"),
 		flow.ExecuteClient(cli),
 	)
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	for _, s := range h.steps {
 		t.Logf("steps in order %s\n", s)
+	}
+
+	if err != nil {
+		t.Fatal(err)
 	}
 
 	t.Logf("rid %s rsp %#+v\n", rid, rsp)
