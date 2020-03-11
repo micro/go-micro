@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	log "github.com/micro/go-micro/v2/logger"
+	"github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/runtime"
 	"github.com/micro/go-micro/v2/util/kubernetes/client"
 )
@@ -129,7 +129,9 @@ func (k *kubernetes) getService(labels map[string]string) ([]*runtime.Service, e
 					status = "ready"
 				}
 			}
-			log.Debugf("Runtime setting %s service deployment status: %v", name, status)
+			if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+				logger.Debugf("Runtime setting %s service deployment status: %v", name, status)
+			}
 			svc.Metadata["status"] = status
 		}
 	}
@@ -156,7 +158,9 @@ func (k *kubernetes) run(events <-chan runtime.Event) {
 			// - do we even need the ticker for k8s services?
 		case event := <-events:
 			// NOTE: we only handle Update events for now
-			log.Debugf("Runtime received notification event: %v", event)
+			if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+				logger.Debugf("Runtime received notification event: %v", event)
+			}
 			switch event.Type {
 			case runtime.Update:
 				// only process if there's an actual service
@@ -188,7 +192,9 @@ func (k *kubernetes) run(events <-chan runtime.Event) {
 				}, labels)
 
 				if err != nil {
-					log.Debugf("Runtime update failed to get service %s: %v", event.Service, err)
+					if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+						logger.Debugf("Runtime update failed to get service %s: %v", event.Service, err)
+					}
 					continue
 				}
 
@@ -215,16 +221,21 @@ func (k *kubernetes) run(events <-chan runtime.Event) {
 
 					// update the build time
 					service.Spec.Template.Metadata.Annotations["build"] = event.Timestamp.Format(time.RFC3339)
-
-					log.Debugf("Runtime updating service: %s deployment: %s", event.Service, service.Metadata.Name)
+					if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+						logger.Debugf("Runtime updating service: %s deployment: %s", event.Service, service.Metadata.Name)
+					}
 					if err := k.client.Update(deploymentResource(&service)); err != nil {
-						log.Debugf("Runtime failed to update service %s: %v", event.Service, err)
+						if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+							logger.Debugf("Runtime failed to update service %s: %v", event.Service, err)
+						}
 						continue
 					}
 				}
 			}
 		case <-k.closed:
-			log.Debugf("Runtime stopped")
+			if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+				logger.Debugf("Runtime stopped")
+			}
 			return
 		}
 	}
@@ -313,7 +324,9 @@ func (k *kubernetes) List() ([]*runtime.Service, error) {
 		"micro": k.options.Type,
 	}
 
-	log.Debugf("Runtime listing all micro services")
+	if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+		logger.Debugf("Runtime listing all micro services")
+	}
 
 	return k.getService(labels)
 }
@@ -365,7 +378,9 @@ func (k *kubernetes) Start() error {
 		events, err = k.options.Scheduler.Notify()
 		if err != nil {
 			// TODO: should we bail here?
-			log.Debugf("Runtime failed to start update notifier")
+			if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+				logger.Debugf("Runtime failed to start update notifier")
+			}
 		}
 	}
 

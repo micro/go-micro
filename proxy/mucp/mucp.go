@@ -15,7 +15,7 @@ import (
 	"github.com/micro/go-micro/v2/codec"
 	"github.com/micro/go-micro/v2/codec/bytes"
 	"github.com/micro/go-micro/v2/errors"
-	log "github.com/micro/go-micro/v2/logger"
+	"github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/metadata"
 	"github.com/micro/go-micro/v2/proxy"
 	"github.com/micro/go-micro/v2/router"
@@ -163,7 +163,9 @@ func (p *Proxy) filterRoutes(ctx context.Context, routes []router.Route) []route
 		filteredRoutes = append(filteredRoutes, route)
 	}
 
-	log.Tracef("Proxy filtered routes %+v\n", filteredRoutes)
+	if logger.V(logger.TraceLevel, logger.DefaultLogger) {
+		logger.Tracef("Proxy filtered routes %+v\n", filteredRoutes)
+	}
 
 	return filteredRoutes
 }
@@ -259,7 +261,9 @@ func (p *Proxy) manageRoutes(route router.Route, action string) error {
 	p.Lock()
 	defer p.Unlock()
 
-	log.Tracef("Proxy taking route action %v %+v\n", action, route)
+	if logger.V(logger.TraceLevel, logger.DefaultLogger) {
+		logger.Tracef("Proxy taking route action %v %+v\n", action, route)
+	}
 
 	switch action {
 	case "create", "update":
@@ -309,7 +313,9 @@ func (p *Proxy) ProcessMessage(ctx context.Context, msg server.Message) error {
 	// TODO: check that we're not broadcast storming by sending to the same topic
 	// that we're actually subscribed to
 
-	log.Tracef("Proxy received message for %s", msg.Topic())
+	if logger.V(logger.TraceLevel, logger.DefaultLogger) {
+		logger.Tracef("Proxy received message for %s", msg.Topic())
+	}
 
 	var errors []string
 
@@ -350,7 +356,9 @@ func (p *Proxy) ServeRequest(ctx context.Context, req server.Request, rsp server
 		return errors.BadRequest("go.micro.proxy", "service name is blank")
 	}
 
-	log.Tracef("Proxy received request for %s", service)
+	if logger.V(logger.TraceLevel, logger.DefaultLogger) {
+		logger.Tracef("Proxy received request for %s", service)
+	}
 
 	// are we network routing or local routing
 	if len(p.Links) == 0 {
@@ -410,7 +418,9 @@ func (p *Proxy) ServeRequest(ctx context.Context, req server.Request, rsp server
 			opts = append(opts, client.WithAddress(addresses...))
 		}
 
-		log.Tracef("Proxy calling %+v\n", addresses)
+		if logger.V(logger.TraceLevel, logger.DefaultLogger) {
+			logger.Tracef("Proxy calling %+v\n", addresses)
+		}
 		// serve the normal way
 		return p.serveRequest(ctx, p.Client, service, endpoint, req, rsp, opts...)
 	}
@@ -433,7 +443,9 @@ func (p *Proxy) ServeRequest(ctx context.Context, req server.Request, rsp server
 			continue
 		}
 
-		log.Tracef("Proxy using route %+v\n", route)
+		if logger.V(logger.TraceLevel, logger.DefaultLogger) {
+			logger.Tracef("Proxy using route %+v\n", route)
+		}
 
 		// set the address to call
 		addresses := toNodes([]router.Route{route})

@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	log "github.com/micro/go-micro/v2/logger"
+	"github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/registry"
 )
 
@@ -339,7 +339,9 @@ func (c *cache) run() {
 			c.setStatus(err)
 
 			if a > 3 {
-				log.Info("rcache: ", err, " backing off ", d)
+				if logger.V(logger.InfoLevel, logger.DefaultLogger) {
+					logger.Info("rcache: ", err, " backing off ", d)
+				}
 				a = 0
 			}
 
@@ -362,7 +364,9 @@ func (c *cache) run() {
 			c.setStatus(err)
 
 			if b > 3 {
-				log.Info("rcache: ", err, " backing off ", d)
+				if logger.V(logger.InfoLevel, logger.DefaultLogger) {
+					logger.Info("rcache: ", err, " backing off ", d)
+				}
 				b = 0
 			}
 

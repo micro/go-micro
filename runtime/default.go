@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	log "github.com/micro/go-micro/v2/logger"
+	"github.com/micro/go-micro/v2/logger"
 )
 
 type runtime struct {
@@ -71,7 +71,9 @@ func (r *runtime) run(events <-chan Event) {
 			return nil
 		}
 
-		log.Debugf("Runtime updating service %s", name)
+		if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+			logger.Debugf("Runtime updating service %s", name)
+		}
 
 		// this will cause a delete followed by created
 		if err := r.Update(service.Service); err != nil {
@@ -97,9 +99,13 @@ func (r *runtime) run(events <-chan Event) {
 				}
 
 				// TODO: check service error
-				log.Debugf("Runtime starting %s", service.Name)
+				if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+					logger.Debugf("Runtime starting %s", service.Name)
+				}
 				if err := service.Start(); err != nil {
-					log.Debugf("Runtime error starting %s: %v", service.Name, err)
+					if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+						logger.Debugf("Runtime error starting %s: %v", service.Name, err)
+					}
 				}
 			}
 			r.RUnlock()
@@ -108,12 +114,18 @@ func (r *runtime) run(events <-chan Event) {
 				continue
 			}
 			// TODO: check service error
-			log.Debugf("Runtime starting service %s", service.Name)
+			if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+				logger.Debugf("Runtime starting service %s", service.Name)
+			}
 			if err := service.Start(); err != nil {
-				log.Debugf("Runtime error starting service %s: %v", service.Name, err)
+				if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+					logger.Debugf("Runtime error starting service %s: %v", service.Name, err)
+				}
 			}
 		case event := <-events:
-			log.Debugf("Runtime received notification event: %v", event)
+			if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+				logger.Debugf("Runtime received notification event: %v", event)
+			}
 			// NOTE: we only handle Update events for now
 			switch event.Type {
 			case Update:
@@ -122,11 +134,15 @@ func (r *runtime) run(events <-chan Event) {
 					service, ok := r.services[event.Service]
 					r.RUnlock()
 					if !ok {
-						log.Debugf("Runtime unknown service: %s", event.Service)
+						if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+							logger.Debugf("Runtime unknown service: %s", event.Service)
+						}
 						continue
 					}
 					if err := processEvent(event, service); err != nil {
-						log.Debugf("Runtime error updating service %s: %v", event.Service, err)
+						if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+							logger.Debugf("Runtime error updating service %s: %v", event.Service, err)
+						}
 					}
 					continue
 				}
@@ -138,12 +154,16 @@ func (r *runtime) run(events <-chan Event) {
 				// if blank service was received we update all services
 				for _, service := range services {
 					if err := processEvent(event, service); err != nil {
-						log.Debugf("Runtime error updating service %s: %v", service.Name, err)
+						if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+							logger.Debugf("Runtime error updating service %s: %v", service.Name, err)
+						}
 					}
 				}
 			}
 		case <-r.closed:
-			log.Debugf("Runtime stopped")
+			if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+				logger.Debugf("Runtime stopped")
+			}
 			return
 		}
 	}
@@ -242,7 +262,9 @@ func (r *runtime) Delete(s *Service) error {
 	r.Lock()
 	defer r.Unlock()
 
-	log.Debugf("Runtime deleting service %s", s.Name)
+	if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+		logger.Debugf("Runtime deleting service %s", s.Name)
+	}
 	if s, ok := r.services[s.Name]; ok {
 		// check if running
 		if s.Running() {
@@ -295,7 +317,9 @@ func (r *runtime) Start() error {
 		events, err = r.options.Scheduler.Notify()
 		if err != nil {
 			// TODO: should we bail here?
-			log.Debugf("Runtime failed to start update notifier")
+			if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+				logger.Debugf("Runtime failed to start update notifier")
+			}
 		}
 	}
 
@@ -324,7 +348,9 @@ func (r *runtime) Stop() error {
 
 		// stop all the services
 		for _, service := range r.services {
-			log.Debugf("Runtime stopping %s", service.Name)
+			if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+				logger.Debugf("Runtime stopping %s", service.Name)
+			}
 			service.Stop()
 		}
 		// stop the scheduler

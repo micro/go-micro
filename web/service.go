@@ -15,7 +15,7 @@ import (
 
 	"github.com/micro/cli/v2"
 	"github.com/micro/go-micro/v2"
-	log "github.com/micro/go-micro/v2/logger"
+	"github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/registry"
 	maddr "github.com/micro/go-micro/v2/util/addr"
 	mhttp "github.com/micro/go-micro/v2/util/http"
@@ -125,7 +125,9 @@ func (s *service) register() error {
 
 	// use RegisterCheck func before register
 	if err := s.opts.RegisterCheck(s.opts.Context); err != nil {
-		log.Errorf("Server %s-%s register check error: %s", s.opts.Name, s.opts.Id, err)
+		if logger.V(logger.ErrorLevel, log) {
+			log.Errorf("Server %s-%s register check error: %s", s.opts.Name, s.opts.Id, err)
+		}
 		return err
 	}
 
@@ -190,7 +192,9 @@ func (s *service) start() error {
 			if s.static {
 				_, err := os.Stat(static)
 				if err == nil {
-					log.Infof("Enabling static file serving from %s", static)
+					if logger.V(logger.InfoLevel, log) {
+						log.Infof("Enabling static file serving from %s", static)
+					}
 					s.mux.Handle("/", http.FileServer(http.Dir(static)))
 				}
 			}
@@ -222,7 +226,9 @@ func (s *service) start() error {
 		ch <- l.Close()
 	}()
 
-	log.Infof("Listening on %v", l.Addr().String())
+	if logger.V(logger.InfoLevel, log) {
+		log.Infof("Listening on %v", l.Addr().String())
+	}
 	return nil
 }
 
@@ -244,7 +250,9 @@ func (s *service) stop() error {
 	s.exit <- ch
 	s.running = false
 
-	log.Info("Stopping")
+	if logger.V(logger.InfoLevel, log) {
+		log.Info("Stopping")
+	}
 
 	for _, fn := range s.opts.AfterStop {
 		if err := fn(); err != nil {
@@ -391,10 +399,14 @@ func (s *service) Run() error {
 	select {
 	// wait on kill signal
 	case sig := <-ch:
-		log.Infof("Received signal %s", sig)
+		if logger.V(logger.InfoLevel, log) {
+			log.Infof("Received signal %s", sig)
+		}
 	// wait on context cancel
 	case <-s.opts.Context.Done():
-		log.Info("Received context shutdown")
+		if logger.V(logger.InfoLevel, log) {
+			log.Info("Received context shutdown")
+		}
 	}
 
 	// exit reg loop

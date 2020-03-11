@@ -10,7 +10,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/micro/go-micro/v2/broker"
-	log "github.com/micro/go-micro/v2/logger"
+	"github.com/micro/go-micro/v2/logger"
 	maddr "github.com/micro/go-micro/v2/util/addr"
 	mnet "github.com/micro/go-micro/v2/util/net"
 )
@@ -190,7 +190,9 @@ func (m *memoryEvent) Message() *broker.Message {
 	case []byte:
 		msg := &broker.Message{}
 		if err := m.opts.Codec.Unmarshal(v, msg); err != nil {
-			log.Errorf("[memory]: failed to unmarshal: %v\n", err)
+			if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
+				logger.Errorf("[memory]: failed to unmarshal: %v\n", err)
+			}
 			return nil
 		}
 		return msg
