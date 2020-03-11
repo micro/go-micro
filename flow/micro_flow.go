@@ -424,7 +424,7 @@ func (fl *microFlow) loadDag(ctx context.Context, flow string) (dag, error) {
 	}
 
 	for _, vs := range steps {
-	requiresLoop:
+	afterLoop:
 		for _, req := range vs.After {
 			if req == "all" {
 				for _, ve := range steps {
@@ -432,7 +432,7 @@ func (fl *microFlow) loadDag(ctx context.Context, flow string) (dag, error) {
 						g.AddEdge(ve, vs)
 					}
 				}
-				break requiresLoop
+				break afterLoop
 			}
 			ve, ok := stepsMap[req]
 			if !ok {
@@ -441,7 +441,7 @@ func (fl *microFlow) loadDag(ctx context.Context, flow string) (dag, error) {
 			}
 			g.AddEdge(ve, vs)
 		}
-	requiredLoop:
+	beforeLoop:
 		for _, req := range vs.Before {
 			if req == "all" {
 				for _, ve := range steps {
@@ -449,7 +449,7 @@ func (fl *microFlow) loadDag(ctx context.Context, flow string) (dag, error) {
 						g.AddEdge(vs, ve)
 					}
 				}
-				break requiredLoop
+				break beforeLoop
 			}
 			ve, ok := stepsMap[req]
 			if !ok {
@@ -559,9 +559,6 @@ stepsLoop:
 			step.Output = step.Name()
 		}
 		if err = fl.stepHandler(options.Context, step, job); err != nil {
-			if step.Fallback != nil {
-				fl.stepHandler(options.Context, step, job)
-			}
 			break stepsLoop
 		}
 	}
@@ -638,6 +635,10 @@ func (fl *microFlow) stepHandler(ctx context.Context, step *Step, job *flowJob) 
 		md = make(metadata.Metadata)
 	}
 
+	var fallback bool
+	if step.Fallback != nil {
+		fallback = true
+	}
 	// operation handles retries, timeouts and so
 	buf, err = step.Operation.Execute(metadata.NewContext(ctx, md), req, job.options...)
 	if err == nil {
@@ -673,6 +674,47 @@ func (fl *microFlow) stepHandler(ctx context.Context, step *Step, job *flowJob) 
 	if logger.V(logger.TraceLevel, logger.DefaultLogger) {
 		logger.Tracef("data %s %s", dataKey, buf)
 	}
+
+	if fallback {
+		if logger.V(logger.TraceLevel, logger.DefaultLogger) {
+			logger.Tracef("fallback operation provided")
+		}
+		buf, err = step.Fallback.Execute(metadata.NewContext(ctx, md), req, job.options...)
+		if err == nil {
+			if serr := fl.options.StateStore.Write(&store.Record{Key: stateKey, Value: []byte("success")}); serr != nil {
+				err = fmt.Errorf("flow store key %s error %v", stateKey, serr)
+				return err
+			}
+			if logger.V(logger.TraceLevel, logger.DefaultLogger) {
+				logger.Tracef("state %s %s", stateKey, "success")
+			}
+		} else {
+			if serr = fl.options.StateStore.Write(&store.Record{Key: stateKey, Value: []byte("failure")}); serr != nil {
+				err = fmt.Errorf("flow store key %s error %v", stateKey, serr)
+				return err
+			}
+			if logger.V(logger.TraceLevel, logger.DefaultLogger) {
+				logger.Tracef("state %s %s", stateKey, "failure")
+			}
+			if m, ok := err.(*errors.Error); ok {
+				buf, serr = proto.Marshal(m)
+				if serr != nil {
+					return serr
+				}
+			} else {
+				buf = []byte(err.Error())
+			}
+		}
+
+		if serr = fl.options.DataStore.Write(&store.Record{Key: dataKey, Value: buf}); serr != nil {
+			err = fmt.Errorf("flow store key %s error %v", dataKey, serr)
+			return err
+		}
+		if logger.V(logger.TraceLevel, logger.DefaultLogger) {
+			logger.Tracef("data %s %s", dataKey, buf)
+		}
+	}
+
 	return err
 }
 

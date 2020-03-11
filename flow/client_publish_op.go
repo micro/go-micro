@@ -66,7 +66,8 @@ func (op *clientPublishOperation) Execute(ctx context.Context, data []byte, opts
 		rsp = make([]byte, len(evt.Message().Body))
 		copy(rsp, evt.Message().Body)
 		err := evt.Ack()
-		close(done)
+		done <- struct{}{}
+		//close(done)
 		return err
 	}, broker.SubscribeContext(ctx))
 	if err != nil {

@@ -73,7 +73,7 @@ func (h *handler) Failure(evt broker.Event) error {
 			return err
 		}
 	}
-	h.steps = append(h.steps, "NotifyEmail")
+	h.steps = append(h.steps, "Failure")
 	evt.Ack()
 	return fmt.Errorf("failure")
 }
@@ -86,8 +86,7 @@ func (h *handler) Fallback(evt broker.Event) error {
 		}
 	}
 	h.steps = append(h.steps, "Fallback")
-	evt.Ack()
-	return nil
+	return evt.Ack()
 }
 
 func TestClientPubsub(t *testing.T) {
@@ -152,6 +151,7 @@ func TestClientPubsub(t *testing.T) {
 	brk.Connect()
 	tr := tmemory.NewTransport()
 	cli := client.NewClient(
+		client.Retries(0),
 		client.Selector(rselector.NewSelector(selector.Registry(reg))),
 		client.Registry(reg), client.Transport(tr), client.Broker(brk))
 
@@ -236,6 +236,11 @@ func TestClientPubsub(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	for _, s := range h.steps {
+		t.Logf("steps in order %s\n", s)
+	}
+
 	t.Logf("rid %s rsp %#+v\n", rid, rsp)
 	//	time.Sleep(5 * time.Second)
 }

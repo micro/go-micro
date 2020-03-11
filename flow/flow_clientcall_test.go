@@ -108,6 +108,6 @@ func TestClientCall(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Logf("rid %s rsp: %#+v\n", rid, rsp)
 
+	t.Logf("rid %s rsp: %#+v\n", rid, rsp)
 }
