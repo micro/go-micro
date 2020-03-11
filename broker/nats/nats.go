@@ -13,7 +13,7 @@ import (
 
 	"github.com/micro/go-micro/v2/broker"
 	"github.com/micro/go-micro/v2/codec/json"
-	log "github.com/micro/go-micro/v2/logger"
+	"github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/registry"
 	"github.com/micro/go-micro/v2/util/addr"
 	"github.com/nats-io/nats-server/v2/server"
@@ -169,7 +169,9 @@ func (n *natsBroker) serve(exit chan bool) error {
 			for _, node := range service.Nodes {
 				u, err := url.Parse("nats://" + node.Address)
 				if err != nil {
-					log.Error(err)
+					if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
+						logger.Error(err)
+					}
 					continue
 				}
 				// append to the cluster routes
@@ -387,7 +389,9 @@ func (n *natsBroker) Subscribe(topic string, handler broker.Handler, opts ...bro
 		pub.m = &m
 		if err != nil {
 			m.Body = msg.Data
-			log.Error(err)
+			if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
+				logger.Error(err)
+			}
 			if eh != nil {
 				eh(pub)
 			}
@@ -395,7 +399,9 @@ func (n *natsBroker) Subscribe(topic string, handler broker.Handler, opts ...bro
 		}
 		if err := handler(pub); err != nil {
 			pub.err = err
-			log.Error(err)
+			if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
+				logger.Error(err)
+			}
 			if eh != nil {
 				eh(pub)
 			}
