@@ -537,14 +537,17 @@ func (fl *microFlow) flowHandler(req interface{}) {
 		err = fmt.Errorf("flow store key %s error %v", stateKey, serr)
 		return
 	}
-	logger.Tracef("state %s %s", stateKey, "pending")
-
+	if logger.V(logger.TraceLevel, logger.DefaultLogger) {
+		logger.Tracef("state %s %s", stateKey, "pending")
+	}
 	dataKey := fmt.Sprintf("%s-%s-%s", job.flow, job.rid, steps[0].Name())
 	if serr := fl.options.DataStore.Write(&store.Record{Key: dataKey, Value: job.req}); serr != nil {
 		err = fmt.Errorf("flow store key %s error %v", dataKey, serr)
 		return
 	}
-	logger.Tracef("data %s %s", dataKey, job.req)
+	if logger.V(logger.TraceLevel, logger.DefaultLogger) {
+		logger.Tracef("data %s %s", dataKey, job.req)
+	}
 	steps[0].Input = steps[0].Name()
 
 stepsLoop:
@@ -568,7 +571,9 @@ stepsLoop:
 			err = fmt.Errorf("flow store key %s error %v", stateKey, serr)
 			return
 		}
-		logger.Tracef("state %s %s", stateKey, "failure")
+		if logger.V(logger.TraceLevel, logger.DefaultLogger) {
+			logger.Tracef("state %s %s", stateKey, "failure")
+		}
 		return
 	}
 
@@ -576,7 +581,9 @@ stepsLoop:
 		err = fmt.Errorf("flow store key %s error %v", stateKey, serr)
 		return
 	}
-	logger.Tracef("state %s %s", stateKey, "success")
+	if logger.V(logger.TraceLevel, logger.DefaultLogger) {
+		logger.Tracef("state %s %s", stateKey, "success")
+	}
 
 	output := steps[0].Output
 	if len(options.Output) > 0 {
@@ -591,7 +598,9 @@ stepsLoop:
 	} else {
 		job.rsp = rec[0].Value
 	}
-	logger.Tracef("data %s %s", dataKey, job.rsp)
+	if logger.V(logger.TraceLevel, logger.DefaultLogger) {
+		logger.Tracef("data %s %s", dataKey, job.rsp)
+	}
 
 	return
 }
@@ -606,18 +615,21 @@ func (fl *microFlow) stepHandler(ctx context.Context, step *Step, job *flowJob) 
 		err = fmt.Errorf("flow store key %s error %v", stateKey, serr)
 		return err
 	}
-	logger.Tracef("state %s %s", stateKey, "pending")
-
+	if logger.V(logger.TraceLevel, logger.DefaultLogger) {
+		logger.Tracef("state %s %s", stateKey, "pending")
+	}
 	var rec []*store.Record
 	var req []byte
 	dataKey := fmt.Sprintf("%s-%s-%s", job.flow, job.rid, step.Input)
 	rec, serr = fl.options.DataStore.Read(dataKey)
 	if serr != nil {
-		err = fmt.Errorf("flow store error %v", serr)
+		err = fmt.Errorf("flow store key %s error %v", dataKey, serr)
 		return err
 	}
 	req = rec[0].Value
-	logger.Tracef("data %s %s", dataKey, req)
+	if logger.V(logger.TraceLevel, logger.DefaultLogger) {
+		logger.Tracef("data %s %s", dataKey, req)
+	}
 
 	dataKey = fmt.Sprintf("%s-%s-%s", job.flow, job.rid, step.Output)
 
@@ -633,13 +645,17 @@ func (fl *microFlow) stepHandler(ctx context.Context, step *Step, job *flowJob) 
 			err = fmt.Errorf("flow store key %s error %v", stateKey, serr)
 			return err
 		}
-		logger.Tracef("state %s %s", stateKey, "success")
+		if logger.V(logger.TraceLevel, logger.DefaultLogger) {
+			logger.Tracef("state %s %s", stateKey, "success")
+		}
 	} else {
 		if serr = fl.options.StateStore.Write(&store.Record{Key: stateKey, Value: []byte("failure")}); serr != nil {
 			err = fmt.Errorf("flow store key %s error %v", stateKey, serr)
 			return err
 		}
-		logger.Tracef("state %s %s", stateKey, "failure")
+		if logger.V(logger.TraceLevel, logger.DefaultLogger) {
+			logger.Tracef("state %s %s", stateKey, "failure")
+		}
 		if m, ok := err.(*errors.Error); ok {
 			buf, serr = proto.Marshal(m)
 			if serr != nil {
@@ -654,8 +670,9 @@ func (fl *microFlow) stepHandler(ctx context.Context, step *Step, job *flowJob) 
 		err = fmt.Errorf("flow store key %s error %v", dataKey, serr)
 		return err
 	}
-
-	logger.Tracef("data %s %s", dataKey, buf)
+	if logger.V(logger.TraceLevel, logger.DefaultLogger) {
+		logger.Tracef("data %s %s", dataKey, buf)
+	}
 	return err
 }
 
