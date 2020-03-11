@@ -87,17 +87,17 @@ func (b *serviceBroker) Subscribe(topic string, handler broker.Handler, opts ...
 		for {
 			select {
 			case <-sub.closed:
-				if logger.V(logger.DebugTraceLevel, logger.DefaultLogger) {
+				if logger.V(logger.DebugLevel, logger.DefaultLogger) {
 					logger.Debugf("Unsubscribed from topic %s", topic)
 				}
 				return
 			default:
-				if logger.V(logger.DebugTraceLevel, logger.DefaultLogger) {
+				if logger.V(logger.DebugLevel, logger.DefaultLogger) {
 					// run the subscriber
 					logger.Debugf("Streaming from broker %v to topic [%s] queue [%s]", b.Addrs, topic, options.Queue)
 				}
 				if err := sub.run(); err != nil {
-					if logger.V(logger.DebugTraceLevel, logger.DefaultLogger) {
+					if logger.V(logger.DebugLevel, logger.DefaultLogger) {
 						logger.Debugf("Resubscribing to topic %s broker %v", topic, b.Addrs)
 					}
 					stream, err := b.Client.Subscribe(context.TODO(), &pb.SubscribeRequest{
@@ -105,7 +105,7 @@ func (b *serviceBroker) Subscribe(topic string, handler broker.Handler, opts ...
 						Queue: options.Queue,
 					}, client.WithAddress(b.Addrs...), client.WithRequestTimeout(time.Hour))
 					if err != nil {
-						if logger.V(logger.DebugTraceLevel, logger.DefaultLogger) {
+						if logger.V(logger.DebugLevel, logger.DefaultLogger) {
 							logger.Debugf("Failed to resubscribe to topic %s: %v", topic, err)
 						}
 						time.Sleep(time.Second)
