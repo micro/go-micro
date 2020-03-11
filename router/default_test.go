@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	log "github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/registry/memory"
 )
 
@@ -30,7 +29,7 @@ func TestRouterStartStop(t *testing.T) {
 	if err := r.Stop(); err != nil {
 		t.Errorf("failed to stop router: %v", err)
 	}
-	log.Debugf("TestRouterStartStop STOPPED")
+	t.Logf("TestRouterStartStop STOPPED")
 }
 
 func TestRouterAdvertise(t *testing.T) {
@@ -50,7 +49,7 @@ func TestRouterAdvertise(t *testing.T) {
 
 	// receive announce event
 	ann := <-ch
-	log.Debugf("received announce advert: %v", ann)
+	t.Logf("received announce advert: %v", ann)
 
 	// Generate random unique routes
 	nrRoutes := 5
@@ -82,9 +81,9 @@ func TestRouterAdvertise(t *testing.T) {
 		wg.Done()
 		defer close(createDone)
 		for _, route := range routes {
-			log.Debugf("Creating route %v", route)
+			t.Logf("Creating route %v", route)
 			if err := r.Table().Create(route); err != nil {
-				log.Debugf("Failed to create route: %v", err)
+				t.Logf("Failed to create route: %v", err)
 				errChan <- err
 				return
 			}
@@ -106,7 +105,7 @@ func TestRouterAdvertise(t *testing.T) {
 				t.Errorf("failed advertising events: %v", advertErr)
 			default:
 				// do nothing for now
-				log.Debugf("Router advert received: %v", advert)
+				t.Logf("Router advert received: %v", advert)
 				adverts += len(advert.Events)
 			}
 			return
