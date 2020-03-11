@@ -14,7 +14,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/micro/go-micro/v2/api/handler"
 	"github.com/micro/go-micro/v2/broker"
-	log "github.com/micro/go-micro/v2/logger"
+	"github.com/micro/go-micro/v2/logger"
 )
 
 const (
@@ -136,7 +136,9 @@ func (c *conn) writeLoop() {
 	}()
 
 	if err != nil {
-		log.Error(err.Error())
+		if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
+			logger.Error(err.Error())
+		}
 		return
 	}
 
@@ -214,7 +216,9 @@ func (b *brokerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	ws, err := b.u.Upgrade(w, r, nil)
 	if err != nil {
-		log.Error(err.Error())
+		if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
+			logger.Error(err.Error())
+		}
 		return
 	}
 

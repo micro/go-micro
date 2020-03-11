@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	log "github.com/micro/go-micro/v2/logger"
+	"github.com/micro/go-micro/v2/logger"
 )
 
 var (
@@ -68,7 +68,9 @@ func (t *table) Create(r Route) error {
 	// add new route to the table for the route destination
 	if _, ok := t.routes[service][sum]; !ok {
 		t.routes[service][sum] = r
-		log.Debugf("Router emitting %s for route: %s", Create, r.Address)
+		if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+			logger.Debugf("Router emitting %s for route: %s", Create, r.Address)
+		}
 		go t.sendEvent(&Event{Type: Create, Timestamp: time.Now(), Route: r})
 		return nil
 	}
@@ -93,7 +95,9 @@ func (t *table) Delete(r Route) error {
 	}
 
 	delete(t.routes[service], sum)
-	log.Debugf("Router emitting %s for route: %s", Delete, r.Address)
+	if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+		logger.Debugf("Router emitting %s for route: %s", Delete, r.Address)
+	}
 	go t.sendEvent(&Event{Type: Delete, Timestamp: time.Now(), Route: r})
 
 	return nil
@@ -114,7 +118,9 @@ func (t *table) Update(r Route) error {
 
 	if _, ok := t.routes[service][sum]; !ok {
 		t.routes[service][sum] = r
-		log.Debugf("Router emitting %s for route: %s", Update, r.Address)
+		if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+			logger.Debugf("Router emitting %s for route: %s", Update, r.Address)
+		}
 		go t.sendEvent(&Event{Type: Update, Timestamp: time.Now(), Route: r})
 		return nil
 	}

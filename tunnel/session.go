@@ -1,11 +1,13 @@
 package tunnel
 
 import (
+	"crypto/cipher"
 	"encoding/base32"
 	"io"
+	"sync"
 	"time"
 
-	log "github.com/micro/go-micro/v2/logger"
+	"github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/transport"
 )
 
@@ -49,6 +51,9 @@ type session struct {
 	errChan chan error
 	// key for session encryption
 	key []byte
+	// cipher for session
+	gcm cipher.AEAD
+	sync.RWMutex
 }
 
 // message is sent over the send channel
@@ -166,7 +171,9 @@ func (s *session) waitFor(msgType string, timeout time.Duration) (*message, erro
 
 			// ignore what we don't want
 			if msg.typ != msgType {
-				log.Debugf("Tunnel received non %s message in waiting for %s", msg.typ, msgType)
+				if logger.V(logger.DebugLevel, log) {
+					log.Debugf("Tunnel received non %s message in waiting for %s", msg.typ, msgType)
+				}
 				continue
 			}
 
@@ -185,7 +192,9 @@ func (s *session) waitFor(msgType string, timeout time.Duration) (*message, erro
 
 				// ignore what we don't want
 				if msg.typ != msgType {
-					log.Debugf("Tunnel received non %s message in waiting for %s", msg.typ, msgType)
+					if logger.V(logger.DebugLevel, log) {
+						log.Debugf("Tunnel received non %s message in waiting for %s", msg.typ, msgType)
+					}
 					continue
 				}
 
@@ -327,8 +336,23 @@ func (s *session) Announce() error {
 
 // Send is used to send a message
 func (s *session) Send(m *transport.Message) error {
+	var err error
+
+	s.RLock()
+	gcm := s.gcm
+	s.RUnlock()
+
+	if gcm == nil {
+		gcm, err = newCipher(s.key)
+		if err != nil {
+			return err
+		}
+		s.Lock()
+		s.gcm = gcm
+		s.Unlock()
+	}
 	// encrypt the transport message payload
-	body, err := Encrypt(m.Body, s.key)
+	body, err := Encrypt(gcm, m.Body)
 	if err != nil {
 		log.Debugf("failed to encrypt message body: %v", err)
 		return err
@@ -343,7 +367,7 @@ func (s *session) Send(m *transport.Message) error {
 	// encrypt all the headers
 	for k, v := range m.Header {
 		// encrypt the transport message payload
-		val, err := Encrypt([]byte(v), s.key)
+		val, err := Encrypt(s.gcm, []byte(v))
 		if err != nil {
 			log.Debugf("failed to encrypt message header %s: %v", k, err)
 			return err
@@ -362,8 +386,9 @@ func (s *session) Send(m *transport.Message) error {
 		msg.link = ""
 	}
 
-	log.Tracef("Appending %+v to send backlog", msg)
-
+	if logger.V(logger.TraceLevel, log) {
+		log.Tracef("Appending to send backlog: %v", msg)
+	}
 	// send the actual message
 	if err := s.sendMsg(msg); err != nil {
 		return err
@@ -389,16 +414,27 @@ func (s *session) Recv(m *transport.Message) error {
 	default:
 	}
 
-	log.Tracef("Received %+v from recv backlog", msg)
+	if logger.V(logger.TraceLevel, log) {
+		log.Tracef("Received from recv backlog: %v", msg)
+	}
 
-	key := []byte(s.token + s.channel + msg.session)
+	gcm, err := newCipher([]byte(s.token + s.channel + msg.session))
+	if err != nil {
+		if logger.V(logger.ErrorLevel, log) {
+			log.Errorf("unable to create cipher: %v", err)
+		}
+		return err
+	}
+
 	// decrypt the received payload using the token
 	// we have to used msg.session because multicast has a shared
 	// session id of "multicast" in this session struct on
 	// the listener side
-	msg.data.Body, err = Decrypt(msg.data.Body, key)
+	msg.data.Body, err = Decrypt(gcm, msg.data.Body)
 	if err != nil {
-		log.Debugf("failed to decrypt message body: %v", err)
+		if logger.V(logger.DebugLevel, log) {
+			log.Debugf("failed to decrypt message body: %v", err)
+		}
 		return err
 	}
 
@@ -407,14 +443,18 @@ func (s *session) Recv(m *transport.Message) error {
 		// decode the header values
 		h, err := base32.StdEncoding.DecodeString(v)
 		if err != nil {
-			log.Debugf("failed to decode message header %s: %v", k, err)
+			if logger.V(logger.DebugLevel, log) {
+				log.Debugf("failed to decode message header %s: %v", k, err)
+			}
 			return err
 		}
 
 		// dencrypt the transport message payload
-		val, err := Decrypt(h, key)
+		val, err := Decrypt(gcm, h)
 		if err != nil {
-			log.Debugf("failed to decrypt message header %s: %v", k, err)
+			if logger.V(logger.DebugLevel, log) {
+				log.Debugf("failed to decrypt message header %s: %v", k, err)
+			}
 			return err
 		}
 		// add decrypted header value

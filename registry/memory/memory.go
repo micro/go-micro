@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	log "github.com/micro/go-micro/v2/logger"
+	"github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/registry"
 )
 
@@ -75,7 +75,9 @@ func (m *Registry) ttlPrune() {
 				for version, record := range records {
 					for id, n := range record.Nodes {
 						if n.TTL != 0 && time.Since(n.LastSeen) > n.TTL {
-							log.Debugf("Registry TTL expired for node %s of service %s", n.Id, name)
+							if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+								logger.Debugf("Registry TTL expired for node %s of service %s", n.Id, name)
+							}
 							delete(m.records[name][version].Nodes, id)
 						}
 					}
@@ -158,7 +160,9 @@ func (m *Registry) Register(s *registry.Service, opts ...registry.RegisterOption
 
 	if _, ok := m.records[s.Name][s.Version]; !ok {
 		m.records[s.Name][s.Version] = r
-		log.Debugf("Registry added new service: %s, version: %s", s.Name, s.Version)
+		if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+			logger.Debugf("Registry added new service: %s, version: %s", s.Name, s.Version)
+		}
 		go m.sendEvent(&registry.Result{Action: "update", Service: s})
 		return nil
 	}
@@ -184,14 +188,18 @@ func (m *Registry) Register(s *registry.Service, opts ...registry.RegisterOption
 	}
 
 	if addedNodes {
-		log.Debugf("Registry added new node to service: %s, version: %s", s.Name, s.Version)
+		if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+			logger.Debugf("Registry added new node to service: %s, version: %s", s.Name, s.Version)
+		}
 		go m.sendEvent(&registry.Result{Action: "update", Service: s})
 		return nil
 	}
 
 	// refresh TTL and timestamp
 	for _, n := range s.Nodes {
-		log.Debugf("Updated registration for service: %s, version: %s", s.Name, s.Version)
+		if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+			logger.Debugf("Updated registration for service: %s, version: %s", s.Name, s.Version)
+		}
 		m.records[s.Name][s.Version].Nodes[n.Id].TTL = options.TTL
 		m.records[s.Name][s.Version].Nodes[n.Id].LastSeen = time.Now()
 	}
@@ -207,18 +215,24 @@ func (m *Registry) Deregister(s *registry.Service) error {
 		if _, ok := m.records[s.Name][s.Version]; ok {
 			for _, n := range s.Nodes {
 				if _, ok := m.records[s.Name][s.Version].Nodes[n.Id]; ok {
-					log.Debugf("Registry removed node from service: %s, version: %s", s.Name, s.Version)
+					if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+						logger.Debugf("Registry removed node from service: %s, version: %s", s.Name, s.Version)
+					}
 					delete(m.records[s.Name][s.Version].Nodes, n.Id)
 				}
 			}
 			if len(m.records[s.Name][s.Version].Nodes) == 0 {
 				delete(m.records[s.Name], s.Version)
-				log.Debugf("Registry removed service: %s, version: %s", s.Name, s.Version)
+				if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+					logger.Debugf("Registry removed service: %s, version: %s", s.Name, s.Version)
+				}
 			}
 		}
 		if len(m.records[s.Name]) == 0 {
 			delete(m.records, s.Name)
-			log.Debugf("Registry removed service: %s", s.Name)
+			if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+				logger.Debugf("Registry removed service: %s", s.Name)
+			}
 		}
 		go m.sendEvent(&registry.Result{Action: "delete", Service: s})
 	}
