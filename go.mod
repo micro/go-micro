@@ -28,11 +28,8 @@ require (
 	github.com/gorilla/handlers v1.4.2
 	github.com/gorilla/websocket v1.4.1
 	github.com/grpc-ecosystem/go-grpc-middleware v1.1.0 // indirect
-	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0 // indirect
-	github.com/grpc-ecosystem/grpc-gateway v1.9.0 // indirect
 	github.com/hashicorp/hcl v1.0.0
 	github.com/imdario/mergo v0.3.8
-	github.com/jonboulle/clockwork v0.1.0 // indirect
 	github.com/joncalhoun/qson v0.0.0-20170526102502-8a9cab3a62b1
 	github.com/json-iterator/go v1.1.9
 	github.com/kr/pretty v0.1.0
@@ -50,13 +47,10 @@ require (
 	github.com/oxtoacart/bpool v0.0.0-20190530202638-03653db5a59c
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pkg/errors v0.9.1
-	github.com/soheilhy/cmux v0.1.4 // indirect
 	github.com/stretchr/testify v1.4.0
 	github.com/technoweenie/multipartstreamer v1.0.1 // indirect
 	github.com/tmc/grpc-websocket-proxy v0.0.0-20200122045848-3419fae592fc // indirect
-	github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2 // indirect
-	go.etcd.io/bbolt v1.3.3 // indirect
-	go.etcd.io/etcd v3.3.18+incompatible
+	go.etcd.io/etcd v0.5.0-alpha.5.0.20191031170918-4388404f56cb
 	go.uber.org/zap v1.13.0
 	golang.org/x/crypto v0.0.0-20200221231518-2aa609cf4a9d
 	golang.org/x/net v0.0.0-20200222125558-5a598a2470a0
@@ -66,5 +60,4 @@ require (
 	gopkg.in/go-playground/validator.v9 v9.31.0
 	gopkg.in/src-d/go-git.v4 v4.13.1
 	gopkg.in/telegram-bot-api.v4 v4.6.4
-	sigs.k8s.io/yaml v1.1.0 // indirect
 )

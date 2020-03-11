@@ -156,7 +156,9 @@ func (m *memoryStore) set(r *store.Record) {
 	i.key = r.Key
 	i.value = make([]byte, len(r.Value))
 	copy(i.value, r.Value)
-	i.expiresAt = time.Now().Add(r.Expiry)
+	if r.Expiry != 0 {
+		i.expiresAt = time.Now().Add(r.Expiry)
+	}
 
 	m.store.Set(key, i, r.Expiry)
 }
