@@ -28,6 +28,7 @@ type Options struct {
 	Registry  *registry.Registry
 	Selector  *selector.Selector
 	Transport *transport.Transport
+	Config    *config.Config
 	Client    *client.Client
 	Server    *server.Server
 	Runtime   *runtime.Runtime
@@ -35,9 +36,9 @@ type Options struct {
 	Tracer    *trace.Tracer
 	Auth      *auth.Auth
 	Profile   *profile.Profile
-	Config    *config.Config
 
 	Brokers    map[string]func(...broker.Option) broker.Broker
+	Configs    map[string]func(...config.Option) (config.Config, error)
 	Clients    map[string]func(...client.Option) client.Client
 	Registries map[string]func(...registry.Option) registry.Registry
 	Selectors  map[string]func(...selector.Option) selector.Selector
@@ -48,7 +49,6 @@ type Options struct {
 	Tracers    map[string]func(...trace.Option) trace.Tracer
 	Auths      map[string]func(...auth.Option) auth.Auth
 	Profiles   map[string]func(...profile.Option) profile.Profile
-	Configs    map[string]func(...config.Option) (config.Config, error)
 
 	// Other options for implementations of the interface
 	// can be stored in a context
@@ -79,6 +79,12 @@ func Version(v string) Option {
 func Broker(b *broker.Broker) Option {
 	return func(o *Options) {
 		o.Broker = b
+	}
+}
+
+func Config(c *config.Config) Option {
+	return func(o *Options) {
+		o.Config = c
 	}
 }
 
