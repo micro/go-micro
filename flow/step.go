@@ -4,6 +4,42 @@ import (
 	pb "github.com/micro/go-micro/v2/flow/service/proto"
 )
 
+type Step struct {
+	// name of step
+	ID string
+	// Retry count for step
+	Retry int
+	// Timeout for step
+	Timeout int
+	// Step operation to execute
+	Operation Operation
+	// Which step use as input
+	Input string
+	// Where to place output
+	Output string
+	// Steps that are required for this step
+	After []string
+	// Steps for which this step required
+	Before []string
+	// Step operation to execute in case of error
+	Fallback Operation
+}
+
+func (s *Step) Name() string {
+	return s.ID
+}
+
+func (s *Step) Id() string {
+	return s.ID
+}
+
+func (s *Step) String() string {
+	return s.ID
+	//return fmt.Sprintf("step %s, ops: %s, requires: %v, required: %v", s.ID, s.Operations, s.Requires, s.Required)
+}
+
+type Steps []*Step
+
 func stepEqual(oldStep, newStep *Step) bool {
 	if oldStep.Name() == newStep.Name() {
 		return true
