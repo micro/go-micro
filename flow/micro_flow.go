@@ -27,6 +27,11 @@ type microFlow struct {
 	flowStore  store.Store
 	stateStore store.Store
 	dataStore  store.Store
+
+	wait     bool
+	prealloc bool
+	nonblock bool
+	workers  int
 }
 
 // Create default executor
@@ -196,15 +201,15 @@ func (fl *microFlow) Init(opts ...Option) error {
 
 	fl.options.Context = FlowToContext(fl.options.Context, fl)
 
-	if fl.options.Concurrency < 1 {
-		fl.options.Concurrency = DefaultConcurrency
+	if fl.workers < 1 {
+		fl.workers = DefaultConcurrency
 	}
 	pool, err := ants.NewPoolWithFunc(
-		fl.options.Concurrency,
+		fl.workers,
 		fl.flowHandler,
-		ants.WithNonblocking(fl.options.Nonblock),
+		ants.WithNonblocking(fl.nonblock),
 		ants.WithPanicHandler(fl.options.ErrorHandler),
-		ants.WithPreAlloc(fl.options.Prealloc),
+		ants.WithPreAlloc(fl.prealloc),
 	)
 	if err != nil {
 		return err

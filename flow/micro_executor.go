@@ -45,12 +45,19 @@ var (
 	DefaultExecuteConcurrency = 10
 )
 
+type microExecutor struct {
+}
+
+func newMicroExecutor() Executor {
+	return &microExecutor{}
+}
+
 // Result of the step flow
-func (fl *microFlow) Result(flow string, rid string, step *Step) ([]byte, error) {
+func (fl *microExecutor) Result(flow string, rid string, step *Step) ([]byte, error) {
 	return nil, nil
 }
 
-func (fl *microFlow) Status(flow string, rid string) (Status, error) {
+func (fl *microExecutor) Status(flow string, rid string) (Status, error) {
 	state := StatusUnknown
 	records, err := fl.stateStore.Read(fmt.Sprintf("%s-%s-%s", flow, rid, "status"))
 	if err != nil {
@@ -75,7 +82,7 @@ func (fl *microFlow) Status(flow string, rid string) (Status, error) {
 	return state, nil
 }
 
-func (fl *microFlow) Abort(flow string, rid string) error {
+func (fl *microExecutor) Abort(flow string, rid string) error {
 	err := fl.stateStore.Write(&store.Record{
 		Key:   fmt.Sprintf("%s-%s-%s", flow, rid, "status"),
 		Value: []byte("aborted"),
@@ -86,7 +93,7 @@ func (fl *microFlow) Abort(flow string, rid string) error {
 	return nil
 }
 
-func (fl *microFlow) Pause(flow string, rid string) error {
+func (fl *microExecutor) Pause(flow string, rid string) error {
 	err := fl.stateStore.Write(
 		&store.Record{
 			Key:   fmt.Sprintf("%s-%s-%s", flow, rid, "status"),
@@ -98,7 +105,7 @@ func (fl *microFlow) Pause(flow string, rid string) error {
 	return nil
 }
 
-func (fl *microFlow) Resume(flow string, rid string) error {
+func (fl *microExecutor) Resume(flow string, rid string) error {
 	err := fl.stateStore.Write(
 		&store.Record{
 			Key:   fmt.Sprintf("%s-%s-%s", flow, rid, "status"),
@@ -110,7 +117,7 @@ func (fl *microFlow) Resume(flow string, rid string) error {
 	return nil
 }
 
-func (fl *microFlow) Execute(flow string, req interface{}, rsp interface{}, opts ...ExecuteOption) (string, error) {
+func (fl *microExecutor) Execute(flow string, req interface{}, rsp interface{}, opts ...ExecuteOption) (string, error) {
 	var err error
 
 	if !fl.initialized {
@@ -193,7 +200,7 @@ func (fl *microFlow) Execute(flow string, req interface{}, rsp interface{}, opts
 	return options.ID, nil
 }
 
-func (fl *microFlow) flowHandler(req interface{}) {
+func (fl *microExecutor) flowHandler(req interface{}) {
 	var err error
 	var serr error
 
@@ -321,7 +328,7 @@ stepsLoop:
 	return
 }
 
-func (fl *microFlow) stepHandler(ctx context.Context, step *Step, job *flowJob) error {
+func (fl *microExecutor) stepHandler(ctx context.Context, step *Step, job *flowJob) error {
 	var err error
 	var serr error
 	var buf []byte
@@ -440,11 +447,11 @@ func (fl *microFlow) stepHandler(ctx context.Context, step *Step, job *flowJob) 
 	return flowErr
 }
 
-func (fl *microFlow) Stop() error {
+func (fl *microExecutor) Stop() error {
 	fl.Lock()
 	fl.pool.Release()
 	fl.Unlock()
-	if fl.options.Wait {
+	if fl.wait {
 		ticker := time.NewTicker(1 * time.Second)
 		defer ticker.Stop()
 	loop:
