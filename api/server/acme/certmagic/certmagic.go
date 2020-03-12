@@ -48,7 +48,7 @@ func (c *certmagicProvider) TLSConfig(hosts ...string) (*tls.Config, error) {
 	return certmagic.TLS(hosts)
 }
 
-// New returns a certmagic provider
+// NewProvider returns a certmagic provider
 func NewProvider(options ...acme.Option) acme.Provider {
 	opts := acme.DefaultOptions()
 
