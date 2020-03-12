@@ -88,16 +88,16 @@ func (s *storage) Exists(key string) bool {
 }
 
 func (s *storage) List(prefix string, recursive bool) ([]string, error) {
-	records, err := s.store.List()
+	keys, err := s.store.List()
 	if err != nil {
 		return nil, err
 	}
 
 	//nolint:prealloc
 	var results []string
-	for _, r := range records {
-		if strings.HasPrefix(r.Key, prefix) {
-			results = append(results, r.Key)
+	for _, k := range keys {
+		if strings.HasPrefix(k, prefix) {
+			results = append(results, k)
 		}
 	}
 	if recursive {

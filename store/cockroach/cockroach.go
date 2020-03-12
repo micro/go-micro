@@ -28,6 +28,11 @@ type sqlStore struct {
 	database string
 	table    string
 
+	list    *sql.Stmt
+	readOne *sql.Stmt
+	write   *sql.Stmt
+	delete  *sql.Stmt
+
 	options store.Options
 }
 
@@ -40,13 +45,13 @@ func (s *sqlStore) Init(opts ...store.Option) error {
 }
 
 // List all the known records
-func (s *sqlStore) List() ([]*store.Record, error) {
-	rows, err := s.db.Query(fmt.Sprintf("SELECT key, value, expiry FROM %s.%s;", s.database, s.table))
-	var records []*store.Record
+func (s *sqlStore) List(opts ...store.ListOption) ([]string, error) {
+	rows, err := s.list.Query()
+	var keys []string
 	var timehelper pq.NullTime
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return records, nil
+			return keys, nil
 		}
 		return nil, err
 	}
@@ -54,7 +59,7 @@ func (s *sqlStore) List() ([]*store.Record, error) {
 	for rows.Next() {
 		record := &store.Record{}
 		if err := rows.Scan(&record.Key, &record.Value, &timehelper); err != nil {
-			return records, err
+			return keys, err
 		}
 		if timehelper.Valid {
 			if timehelper.Time.Before(time.Now()) {
@@ -62,25 +67,25 @@ func (s *sqlStore) List() ([]*store.Record, error) {
 				go s.Delete(record.Key)
 			} else {
 				record.Expiry = time.Until(timehelper.Time)
-				records = append(records, record)
+				keys = append(keys, record.Key)
 			}
 		} else {
-			records = append(records, record)
+			keys = append(keys, record.Key)
 		}
 
 	}
 	rowErr := rows.Close()
 	if rowErr != nil {
 		// transaction rollback or something
-		return records, rowErr
+		return keys, rowErr
 	}
 	if err := rows.Err(); err != nil {
-		return records, err
+		return keys, err
 	}
-	return records, nil
+	return keys, nil
 }
 
-// Read all records with keys
+// Read a single key
 func (s *sqlStore) Read(key string, opts ...store.ReadOption) ([]*store.Record, error) {
 	var options store.ReadOptions
 	for _, o := range opts {
@@ -89,15 +94,10 @@ func (s *sqlStore) Read(key string, opts ...store.ReadOption) ([]*store.Record, 
 
 	// TODO: make use of options.Prefix using WHERE key LIKE = ?
 
-	q, err := s.db.Prepare(fmt.Sprintf("SELECT key, value, expiry FROM %s.%s WHERE key = $1;", s.database, s.table))
-	if err != nil {
-		return nil, err
-	}
-
 	var records []*store.Record
 	var timehelper pq.NullTime
 
-	row := q.QueryRow(key)
+	row := s.readOne.QueryRow(key)
 	record := &store.Record{}
 	if err := row.Scan(&record.Key, &record.Value, &timehelper); err != nil {
 		if err == sql.ErrNoRows {
@@ -121,20 +121,12 @@ func (s *sqlStore) Read(key string, opts ...store.ReadOption) ([]*store.Record, 
 }
 
 // Write records
-func (s *sqlStore) Write(r *store.Record) error {
-	q, err := s.db.Prepare(fmt.Sprintf(`INSERT INTO %s.%s(key, value, expiry)
-		VALUES ($1, $2::bytea, $3)
-		ON CONFLICT (key)
-		DO UPDATE
-		SET value = EXCLUDED.value, expiry = EXCLUDED.expiry;`, s.database, s.table))
-	if err != nil {
-		return err
-	}
-
+func (s *sqlStore) Write(r *store.Record, opts ...store.WriteOption) error {
+	var err error
 	if r.Expiry != 0 {
-		_, err = q.Exec(r.Key, r.Value, time.Now().Add(r.Expiry))
+		_, err = s.write.Exec(r.Key, r.Value, time.Now().Add(r.Expiry))
 	} else {
-		_, err = q.Exec(r.Key, r.Value, nil)
+		_, err = s.write.Exec(r.Key, r.Value, nil)
 	}
 
 	if err != nil {
@@ -145,13 +137,8 @@ func (s *sqlStore) Write(r *store.Record) error {
 }
 
 // Delete records with keys
-func (s *sqlStore) Delete(key string) error {
-	q, err := s.db.Prepare(fmt.Sprintf("DELETE FROM %s.%s WHERE key = $1;", s.database, s.table))
-	if err != nil {
-		return err
-	}
-
-	result, err := q.Exec(key)
+func (s *sqlStore) Delete(key string, opts ...store.DeleteOption) error {
+	result, err := s.delete.Exec(key)
 	if err != nil {
 		return err
 	}
@@ -187,6 +174,31 @@ func (s *sqlStore) initDB() error {
 		return errors.Wrap(err, "Couldn't create table")
 	}
 
+	list, err := s.db.Prepare(fmt.Sprintf("SELECT key, value, expiry FROM %s.%s;", s.database, s.table))
+	if err != nil {
+		return errors.Wrap(err, "List statement couldn't be prepared")
+	}
+	s.list = list
+	readOne, err := s.db.Prepare(fmt.Sprintf("SELECT key, value, expiry FROM %s.%s WHERE key = $1;", s.database, s.table))
+	if err != nil {
+		return errors.Wrap(err, "ReadOne statement couldn't be prepared")
+	}
+	s.readOne = readOne
+	write, err := s.db.Prepare(fmt.Sprintf(`INSERT INTO %s.%s(key, value, expiry)
+		VALUES ($1, $2::bytea, $3)
+		ON CONFLICT (key)
+		DO UPDATE
+		SET value = EXCLUDED.value, expiry = EXCLUDED.expiry;`, s.database, s.table))
+	if err != nil {
+		return errors.Wrap(err, "Write statement couldn't be prepared")
+	}
+	s.write = write
+	delete, err := s.db.Prepare(fmt.Sprintf("DELETE FROM %s.%s WHERE key = $1;", s.database, s.table))
+	if err != nil {
+		return errors.Wrap(err, "Delete statement couldn't be prepared")
+	}
+	s.delete = delete
+
 	return nil
 }
 
@@ -206,12 +218,12 @@ func (s *sqlStore) configure() error {
 		prefix = DefaultPrefix
 	}
 
-	// store.namespace must only contain letters
+	// store.namespace must only contain letters, numbers and underscores
 	reg, err := regexp.Compile("[^a-zA-Z0-9]+")
 	if err != nil {
 		return errors.New("error compiling regex for namespace")
 	}
-	namespace = reg.ReplaceAllString(namespace, "")
+	namespace = reg.ReplaceAllString(namespace, "_")
 
 	source := nodes[0]
 	// check if it is a standard connection string eg: host=%s port=%d user=%s password=%s dbname=%s sslmode=disable
@@ -250,7 +262,11 @@ func (s *sqlStore) String() string {
 	return "cockroach"
 }
 
-// New returns a new micro Store backed by sql
+func (s *sqlStore) Options() store.Options {
+	return s.options
+}
+
+// NewStore returns a new micro Store backed by sql
 func NewStore(opts ...store.Option) store.Store {
 	var options store.Options
 	for _, o := range opts {

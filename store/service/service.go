@@ -24,6 +24,9 @@ type serviceStore struct {
 	// Prefix to use
 	Prefix string
 
+	// Suffix to use
+	Suffix string
+
 	// store service client
 	Client pb.StoreService
 }
@@ -56,14 +59,14 @@ func (s *serviceStore) Context() context.Context {
 }
 
 // Sync all the known records
-func (s *serviceStore) List() ([]*store.Record, error) {
+func (s *serviceStore) List(opts ...store.ListOption) ([]string, error) {
 	stream, err := s.Client.List(s.Context(), &pb.ListRequest{}, client.WithAddress(s.Nodes...))
 	if err != nil {
 		return nil, err
 	}
 	defer stream.Close()
 
-	var records []*store.Record
+	var keys []string
 
 	for {
 		rsp, err := stream.Recv()
@@ -71,19 +74,15 @@ func (s *serviceStore) List() ([]*store.Record, error) {
 			break
 		}
 		if err != nil {
-			return records, err
+			return keys, err
 		}
 
-		for _, record := range rsp.Records {
-			records = append(records, &store.Record{
-				Key:    record.Key,
-				Value:  record.Value,
-				Expiry: time.Duration(record.Expiry) * time.Second,
-			})
+		for _, key := range rsp.Keys {
+			keys = append(keys, key)
 		}
 	}
 
-	return records, nil
+	return keys, nil
 }
 
 // Read a record with key
@@ -117,7 +116,7 @@ func (s *serviceStore) Read(key string, opts ...store.ReadOption) ([]*store.Reco
 }
 
 // Write a record
-func (s *serviceStore) Write(record *store.Record) error {
+func (s *serviceStore) Write(record *store.Record, opts ...store.WriteOption) error {
 	_, err := s.Client.Write(s.Context(), &pb.WriteRequest{
 		Record: &pb.Record{
 			Key:    record.Key,
@@ -130,7 +129,7 @@ func (s *serviceStore) Write(record *store.Record) error {
 }
 
 // Delete a record with key
-func (s *serviceStore) Delete(key string) error {
+func (s *serviceStore) Delete(key string, opts ...store.DeleteOption) error {
 	_, err := s.Client.Delete(s.Context(), &pb.DeleteRequest{
 		Key: key,
 	}, client.WithAddress(s.Nodes...))
@@ -139,6 +138,10 @@ func (s *serviceStore) Delete(key string) error {
 
 func (s *serviceStore) String() string {
 	return "service"
+}
+
+func (s *serviceStore) Options() store.Options {
+	return s.options
 }
 
 // NewStore returns a new store service implementation

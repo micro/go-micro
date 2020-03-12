@@ -17,6 +17,7 @@ import (
 	"github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/plugin"
 	"github.com/micro/go-micro/v2/server"
+	"github.com/micro/go-micro/v2/store"
 	"github.com/micro/go-micro/v2/util/config"
 	"github.com/micro/go-micro/v2/util/wrapper"
 )
@@ -102,6 +103,13 @@ func (s *service) Init(opts ...Option) {
 			cmd.Profile(&s.opts.Profile),
 		); err != nil {
 			logger.Fatal(err)
+		}
+
+		// If the store has no namespace set, fallback to the
+		// services name
+		if len(store.DefaultStore.Options().Namespace) == 0 {
+			name := s.opts.Cmd.App().Name
+			store.DefaultStore.Init(store.Namespace(name))
 		}
 
 		// TODO: replace Cmd.Init with config.Load
