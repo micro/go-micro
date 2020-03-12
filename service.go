@@ -99,6 +99,7 @@ func (s *service) Init(opts ...Option) {
 			cmd.Registry(&s.opts.Registry),
 			cmd.Transport(&s.opts.Transport),
 			cmd.Client(&s.opts.Client),
+			cmd.Config(&s.opts.Config),
 			cmd.Server(&s.opts.Server),
 			cmd.Profile(&s.opts.Profile),
 		); err != nil {

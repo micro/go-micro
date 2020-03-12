@@ -23,12 +23,12 @@ type Options struct {
 	Auth      auth.Auth
 	Broker    broker.Broker
 	Cmd       cmd.Cmd
+	Config    config.Config
 	Client    client.Client
 	Server    server.Server
 	Registry  registry.Registry
 	Transport transport.Transport
 	Profile   profile.Profile
-	Config    config.Config
 
 	// Before and After funcs
 	BeforeStart []func() error
