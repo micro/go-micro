@@ -402,7 +402,6 @@ func (g *grpcClient) Call(ctx context.Context, req client.Request, rsp interface
 	}
 	// make a copy of call opts
 	callOpts := g.opts.CallOptions
-
 	for _, opt := range opts {
 		opt(&callOpts)
 	}

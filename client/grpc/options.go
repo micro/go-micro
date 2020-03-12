@@ -21,7 +21,7 @@ var (
 
 	// DefaultMaxRecvMsgSize maximum message that client can receive
 	// (4 MB).
-	DefaultMaxRecvMsgSize = 1024 * 1024 * 16
+	DefaultMaxRecvMsgSize = 1024 * 1024 * 4
 
 	// DefaultMaxSendMsgSize maximum message that client can send
 	// (4 MB).
