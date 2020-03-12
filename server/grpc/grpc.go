@@ -659,10 +659,12 @@ func (g *grpcServer) Register() error {
 	registered := g.registered
 	g.Unlock()
 
-	if !registered {
-		if logger.V(logger.InfoLevel, logger.DefaultLogger) {
-			logger.Infof("Registry [%s] Registering node: %s", config.Registry.String(), node.Id)
-		}
+	if registered {
+		return nil
+	}
+
+	if logger.V(logger.InfoLevel, logger.DefaultLogger) {
+		logger.Infof("Registry [%s] Registering node: %s", config.Registry.String(), node.Id)
 	}
 
 	// create registry options
@@ -670,11 +672,6 @@ func (g *grpcServer) Register() error {
 
 	if err := config.Registry.Register(service, rOpts...); err != nil {
 		return err
-	}
-
-	// already registered? don't need to register subscribers
-	if registered {
-		return nil
 	}
 
 	g.Lock()
@@ -787,9 +784,9 @@ func (g *grpcServer) Start() error {
 		g.RUnlock()
 		return nil
 	}
-	g.RUnlock()
-
 	config := g.Options()
+
+	g.RUnlock()
 
 	// micro: config.Transport.Listen(config.Address)
 	var ts net.Listener
@@ -822,10 +819,11 @@ func (g *grpcServer) Start() error {
 	}
 	g.Lock()
 	g.opts.Address = ts.Addr().String()
+	subscribes := g.subscribers
 	g.Unlock()
 
 	// only connect if we're subscribed
-	if len(g.subscribers) > 0 {
+	if len(subscribes) > 0 {
 		// connect to the broker
 		if err := config.Broker.Connect(); err != nil {
 			return err
