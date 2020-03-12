@@ -252,7 +252,7 @@ func (e *etcdRegistry) registerNode(s *registry.Service, node *registry.Node, op
 	}
 
 	if logger.V(logger.TraceLevel, logger.DefaultLogger) {
-		logger.Tracef("Registering %s id %s with lease %v and ttl %v", service.Name, node.Id, lgr, options.TTL)
+		logger.Tracef("Registering %s id %s with lease %v and leaseID %v and ttl %v", service.Name, node.Id, lgr, lgr.ID, options.TTL)
 	}
 	// create an entry for the node
 	if lgr != nil {
