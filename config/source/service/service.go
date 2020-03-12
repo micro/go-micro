@@ -13,7 +13,6 @@ var (
 	DefaultName      = "go.micro.config"
 	DefaultNamespace = "global"
 	DefaultPath      = ""
-	DefaultClient    = client.DefaultClient
 )
 
 type service struct {
@@ -25,7 +24,8 @@ type service struct {
 }
 
 func (m *service) Read() (set *source.ChangeSet, err error) {
-	req, err := m.client.Read(context.Background(), &proto.ReadRequest{
+	client := proto.NewConfigService(m.serviceName, client.DefaultClient)
+	req, err := client.Read(context.Background(), &proto.ReadRequest{
 		Namespace: m.namespace,
 		Path:      m.path,
 	})
@@ -37,7 +37,8 @@ func (m *service) Read() (set *source.ChangeSet, err error) {
 }
 
 func (m *service) Watch() (w source.Watcher, err error) {
-	stream, err := m.client.Watch(context.Background(), &proto.WatchRequest{
+	client := proto.NewConfigService(m.serviceName, client.DefaultClient)
+	stream, err := client.Watch(context.Background(), &proto.WatchRequest{
 		Namespace: m.namespace,
 		Path:      m.path,
 	})
@@ -91,7 +92,6 @@ func NewSource(opts ...source.Option) source.Source {
 		opts:        options,
 		namespace:   namespace,
 		path:        path,
-		client:      proto.NewConfigService(addr, DefaultClient),
 	}
 
 	return s
