@@ -3,6 +3,7 @@ package oauth
 import (
 	"fmt"
 	"net/url"
+	"strings"
 
 	"github.com/micro/go-micro/v2/auth/provider"
 )
@@ -29,13 +30,19 @@ func (o *oauth) Options() provider.Options {
 }
 
 func (o *oauth) Endpoint() string {
-	var params url.Values
+	params := make(url.Values)
+	params.Add("response_type", "code")
 
-	if scope := o.opts.Scope; len(scope) > 0 {
-		params.Add("scope", scope)
+	if clientID := o.opts.ClientID; len(clientID) > 0 {
+		params.Add("client_id", clientID)
 	}
 
-	if redir := o.opts.Redirect; len(redir) > 0 {
+	if scope := o.opts.Scope; len(scope) > 0 {
+		// spaces are url encoded since this cannot be passed in env vars
+		params.Add("scope", strings.ReplaceAll(scope, "%20", " "))
+	}
+
+	if redir := o.Redirect(); len(redir) > 0 {
 		params.Add("redirect_uri", redir)
 	}
 
