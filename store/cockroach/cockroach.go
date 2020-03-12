@@ -40,13 +40,13 @@ func (s *sqlStore) Init(opts ...store.Option) error {
 }
 
 // List all the known records
-func (s *sqlStore) List() ([]*store.Record, error) {
+func (s *sqlStore) List(opts ...store.ListOption) ([]string, error) {
 	rows, err := s.db.Query(fmt.Sprintf("SELECT key, value, expiry FROM %s.%s;", s.database, s.table))
-	var records []*store.Record
+	var keys []string
 	var timehelper pq.NullTime
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return records, nil
+			return keys, nil
 		}
 		return nil, err
 	}
@@ -54,7 +54,7 @@ func (s *sqlStore) List() ([]*store.Record, error) {
 	for rows.Next() {
 		record := &store.Record{}
 		if err := rows.Scan(&record.Key, &record.Value, &timehelper); err != nil {
-			return records, err
+			return keys, err
 		}
 		if timehelper.Valid {
 			if timehelper.Time.Before(time.Now()) {
@@ -62,22 +62,22 @@ func (s *sqlStore) List() ([]*store.Record, error) {
 				go s.Delete(record.Key)
 			} else {
 				record.Expiry = time.Until(timehelper.Time)
-				records = append(records, record)
+				keys = append(keys, record.Key)
 			}
 		} else {
-			records = append(records, record)
+			keys = append(keys, record.Key)
 		}
 
 	}
 	rowErr := rows.Close()
 	if rowErr != nil {
 		// transaction rollback or something
-		return records, rowErr
+		return keys, rowErr
 	}
 	if err := rows.Err(); err != nil {
-		return records, err
+		return keys, err
 	}
-	return records, nil
+	return keys, nil
 }
 
 // Read all records with keys
@@ -121,7 +121,7 @@ func (s *sqlStore) Read(key string, opts ...store.ReadOption) ([]*store.Record, 
 }
 
 // Write records
-func (s *sqlStore) Write(r *store.Record) error {
+func (s *sqlStore) Write(r *store.Record, opts ...store.WriteOption) error {
 	q, err := s.db.Prepare(fmt.Sprintf(`INSERT INTO %s.%s(key, value, expiry)
 		VALUES ($1, $2::bytea, $3)
 		ON CONFLICT (key)
@@ -145,7 +145,7 @@ func (s *sqlStore) Write(r *store.Record) error {
 }
 
 // Delete records with keys
-func (s *sqlStore) Delete(key string) error {
+func (s *sqlStore) Delete(key string, opts ...store.DeleteOption) error {
 	q, err := s.db.Prepare(fmt.Sprintf("DELETE FROM %s.%s WHERE key = $1;", s.database, s.table))
 	if err != nil {
 		return err
@@ -254,7 +254,7 @@ func (s *sqlStore) Options() store.Options {
 	return s.options
 }
 
-// New returns a new micro Store backed by sql
+// NewStore returns a new micro Store backed by sql
 func NewStore(opts ...store.Option) store.Store {
 	var options store.Options
 	for _, o := range opts {

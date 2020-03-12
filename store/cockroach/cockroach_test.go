@@ -32,11 +32,11 @@ func TestSQL(t *testing.T) {
 		store.Nodes(connection),
 	)
 
-	records, err := sqlStore.List()
+	keys, err := sqlStore.List()
 	if err != nil {
 		t.Error(err)
 	} else {
-		t.Logf("%# v\n", pretty.Formatter(records))
+		t.Logf("%# v\n", pretty.Formatter(keys))
 	}
 
 	err = sqlStore.Write(
@@ -80,7 +80,7 @@ func TestSQL(t *testing.T) {
 		t.Error(err)
 	}
 
-	records, err = sqlStore.Read("test")
+	records, err := sqlStore.Read("test")
 	if err != nil {
 		t.Error(err)
 	}
