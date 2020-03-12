@@ -13,7 +13,7 @@ import (
 	"github.com/gorilla/handlers"
 	"github.com/micro/go-micro/v2/api/server"
 	"github.com/micro/go-micro/v2/api/server/cors"
-	log "github.com/micro/go-micro/v2/logger"
+	"github.com/micro/go-micro/v2/logger"
 )
 
 type httpServer struct {
@@ -75,7 +75,9 @@ func (s *httpServer) Start() error {
 		return err
 	}
 
-	log.Infof("HTTP API Listening on %s", l.Addr().String())
+	if logger.V(logger.InfoLevel, logger.DefaultLogger) {
+		logger.Infof("HTTP API Listening on %s", l.Addr().String())
+	}
 
 	s.mtx.Lock()
 	s.address = l.Addr().String()
@@ -84,7 +86,7 @@ func (s *httpServer) Start() error {
 	go func() {
 		if err := http.Serve(l, s.mux); err != nil {
 			// temporary fix
-			//log.Fatal(err)
+			//logger.Fatal(err)
 		}
 	}()
 

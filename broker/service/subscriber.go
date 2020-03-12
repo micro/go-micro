@@ -3,7 +3,7 @@ package service
 import (
 	"github.com/micro/go-micro/v2/broker"
 	pb "github.com/micro/go-micro/v2/broker/service/proto"
-	log "github.com/micro/go-micro/v2/logger"
+	"github.com/micro/go-micro/v2/logger"
 )
 
 type serviceSub struct {
@@ -62,7 +62,9 @@ func (s *serviceSub) run() error {
 		// TODO: do not fail silently
 		msg, err := s.stream.Recv()
 		if err != nil {
-			log.Debugf("Streaming error for subcription to topic %s: %v", s.Topic(), err)
+			if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+				logger.Debugf("Streaming error for subcription to topic %s: %v", s.Topic(), err)
+			}
 
 			// close the exit channel
 			close(exit)

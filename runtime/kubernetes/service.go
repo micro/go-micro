@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"strings"
 
-	log "github.com/micro/go-micro/v2/logger"
+	"github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/runtime"
 	"github.com/micro/go-micro/v2/util/kubernetes/api"
 	"github.com/micro/go-micro/v2/util/kubernetes/client"
@@ -108,7 +108,9 @@ func serviceResource(s *client.Service) *client.Resource {
 func (s *service) Start(k client.Client) error {
 	// create deployment first; if we fail, we dont create service
 	if err := k.Create(deploymentResource(s.kdeploy)); err != nil {
-		log.Debugf("Runtime failed to create deployment: %v", err)
+		if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+			logger.Debugf("Runtime failed to create deployment: %v", err)
+		}
 		s.Status("error", err)
 		v := parseError(err)
 		if v.Reason == "AlreadyExists" {
@@ -118,7 +120,9 @@ func (s *service) Start(k client.Client) error {
 	}
 	// create service now that the deployment has been created
 	if err := k.Create(serviceResource(s.kservice)); err != nil {
-		log.Debugf("Runtime failed to create service: %v", err)
+		if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+			logger.Debugf("Runtime failed to create service: %v", err)
+		}
 		s.Status("error", err)
 		v := parseError(err)
 		if v.Reason == "AlreadyExists" {
@@ -135,13 +139,17 @@ func (s *service) Start(k client.Client) error {
 func (s *service) Stop(k client.Client) error {
 	// first attempt to delete service
 	if err := k.Delete(serviceResource(s.kservice)); err != nil {
-		log.Debugf("Runtime failed to delete service: %v", err)
+		if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+			logger.Debugf("Runtime failed to delete service: %v", err)
+		}
 		s.Status("error", err)
 		return err
 	}
 	// delete deployment once the service has been deleted
 	if err := k.Delete(deploymentResource(s.kdeploy)); err != nil {
-		log.Debugf("Runtime failed to delete deployment: %v", err)
+		if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+			logger.Debugf("Runtime failed to delete deployment: %v", err)
+		}
 		s.Status("error", err)
 		return err
 	}
@@ -153,12 +161,16 @@ func (s *service) Stop(k client.Client) error {
 
 func (s *service) Update(k client.Client) error {
 	if err := k.Update(deploymentResource(s.kdeploy)); err != nil {
-		log.Debugf("Runtime failed to update deployment: %v", err)
+		if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+			logger.Debugf("Runtime failed to update deployment: %v", err)
+		}
 		s.Status("error", err)
 		return err
 	}
 	if err := k.Update(serviceResource(s.kservice)); err != nil {
-		log.Debugf("Runtime failed to update service: %v", err)
+		if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+			logger.Debugf("Runtime failed to update service: %v", err)
+		}
 		return err
 	}
 

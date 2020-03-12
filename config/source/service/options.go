@@ -7,7 +7,7 @@ import (
 )
 
 type serviceNameKey struct{}
-type keyKey struct{}
+type namespaceKey struct{}
 type pathKey struct{}
 
 func ServiceName(name string) source.Option {
@@ -19,12 +19,12 @@ func ServiceName(name string) source.Option {
 	}
 }
 
-func Key(key string) source.Option {
+func Namespace(namespace string) source.Option {
 	return func(o *source.Options) {
 		if o.Context == nil {
 			o.Context = context.Background()
 		}
-		o.Context = context.WithValue(o.Context, keyKey{}, key)
+		o.Context = context.WithValue(o.Context, namespaceKey{}, namespace)
 	}
 }
 

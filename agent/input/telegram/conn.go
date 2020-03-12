@@ -7,7 +7,7 @@ import (
 
 	"github.com/forestgiant/sliceutil"
 	"github.com/micro/go-micro/v2/agent/input"
-	log "github.com/micro/go-micro/v2/logger"
+	"github.com/micro/go-micro/v2/logger"
 	tgbotapi "gopkg.in/telegram-bot-api.v4"
 )
 
@@ -104,7 +104,9 @@ func (tc *telegramConn) Send(event *input.Event) error {
 
 	if err != nil {
 		// probably it could be because of nested HTML tags -- telegram doesn't allow nested tags
-		log.Error("[telegram][Send] error:", err)
+		if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
+			logger.Error("[telegram][Send] error:", err)
+		}
 		msgConfig.Text = "This bot couldn't send the response (Internal error)"
 		tc.input.api.Send(msgConfig)
 	}

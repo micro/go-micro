@@ -10,7 +10,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/micro/go-micro/v2/codec"
-	log "github.com/micro/go-micro/v2/logger"
+	"github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/registry"
 )
 
@@ -139,6 +139,7 @@ var (
 
 	// NewServer creates a new server
 	NewServer func(...Option) Server = newRpcServer
+	log                              = logger.NewHelper(logger.DefaultLogger).WithFields(map[string]interface{}{"service": "server"})
 )
 
 // DefaultOptions returns config options for the default service
@@ -200,21 +201,26 @@ func Run() error {
 
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, syscall.SIGTERM, syscall.SIGINT)
-	log.Infof("Received signal %s", <-ch)
-
+	if logger.V(logger.InfoLevel, log) {
+		log.Infof("Received signal %s", <-ch)
+	}
 	return Stop()
 }
 
 // Start starts the default server
 func Start() error {
 	config := DefaultServer.Options()
-	log.Infof("Starting server %s id %s", config.Name, config.Id)
+	if logger.V(logger.InfoLevel, log) {
+		log.Infof("Starting server %s id %s", config.Name, config.Id)
+	}
 	return DefaultServer.Start()
 }
 
 // Stop stops the default server
 func Stop() error {
-	log.Infof("Stopping server")
+	if logger.V(logger.InfoLevel, log) {
+		log.Infof("Stopping server")
+	}
 	return DefaultServer.Stop()
 }
 

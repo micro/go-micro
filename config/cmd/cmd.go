@@ -17,7 +17,7 @@ import (
 	"github.com/micro/go-micro/v2/debug/profile/http"
 	"github.com/micro/go-micro/v2/debug/profile/pprof"
 	"github.com/micro/go-micro/v2/debug/trace"
-	log "github.com/micro/go-micro/v2/logger"
+	"github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/registry"
 	"github.com/micro/go-micro/v2/runtime"
 	"github.com/micro/go-micro/v2/server"
@@ -537,13 +537,13 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		clientOpts = append(clientOpts, client.Registry(*c.opts.Registry))
 
 		if err := (*c.opts.Selector).Init(selector.Registry(*c.opts.Registry)); err != nil {
-			log.Fatalf("Error configuring registry: %v", err)
+			logger.Fatalf("Error configuring registry: %v", err)
 		}
 
 		clientOpts = append(clientOpts, client.Selector(*c.opts.Selector))
 
 		if err := (*c.opts.Broker).Init(broker.Registry(*c.opts.Registry)); err != nil {
-			log.Fatalf("Error configuring broker: %v", err)
+			logger.Fatalf("Error configuring broker: %v", err)
 		}
 	}
 
@@ -590,31 +590,31 @@ func (c *cmd) Before(ctx *cli.Context) error {
 
 	if len(ctx.String("broker_address")) > 0 {
 		if err := (*c.opts.Broker).Init(broker.Addrs(strings.Split(ctx.String("broker_address"), ",")...)); err != nil {
-			log.Fatalf("Error configuring broker: %v", err)
+			logger.Fatalf("Error configuring broker: %v", err)
 		}
 	}
 
 	if len(ctx.String("registry_address")) > 0 {
 		if err := (*c.opts.Registry).Init(registry.Addrs(strings.Split(ctx.String("registry_address"), ",")...)); err != nil {
-			log.Fatalf("Error configuring registry: %v", err)
+			logger.Fatalf("Error configuring registry: %v", err)
 		}
 	}
 
 	if len(ctx.String("transport_address")) > 0 {
 		if err := (*c.opts.Transport).Init(transport.Addrs(strings.Split(ctx.String("transport_address"), ",")...)); err != nil {
-			log.Fatalf("Error configuring transport: %v", err)
+			logger.Fatalf("Error configuring transport: %v", err)
 		}
 	}
 
 	if len(ctx.String("store_address")) > 0 {
 		if err := (*c.opts.Store).Init(store.Nodes(strings.Split(ctx.String("store_address"), ",")...)); err != nil {
-			log.Fatalf("Error configuring store: %v", err)
+			logger.Fatalf("Error configuring store: %v", err)
 		}
 	}
 
 	if len(ctx.String("store_namespace")) > 0 {
 		if err := (*c.opts.Store).Init(store.Namespace(ctx.String("store_address"))); err != nil {
-			log.Fatalf("Error configuring store: %v", err)
+			logger.Fatalf("Error configuring store: %v", err)
 		}
 	}
 
@@ -648,7 +648,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 
 	if len(ctx.String("runtime_source")) > 0 {
 		if err := (*c.opts.Runtime).Init(runtime.WithSource(ctx.String("runtime_source"))); err != nil {
-			log.Fatalf("Error configuring runtime: %v", err)
+			logger.Fatalf("Error configuring runtime: %v", err)
 		}
 	}
 
@@ -696,7 +696,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 
 	if len(authOpts) > 0 {
 		if err := (*c.opts.Auth).Init(authOpts...); err != nil {
-			log.Fatalf("Error configuring auth: %v", err)
+			logger.Fatalf("Error configuring auth: %v", err)
 		}
 	}
 
@@ -729,14 +729,14 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	// Lets set it up
 	if len(serverOpts) > 0 {
 		if err := (*c.opts.Server).Init(serverOpts...); err != nil {
-			log.Fatalf("Error configuring server: %v", err)
+			logger.Fatalf("Error configuring server: %v", err)
 		}
 	}
 
 	// Use an init option?
 	if len(clientOpts) > 0 {
 		if err := (*c.opts.Client).Init(clientOpts...); err != nil {
-			log.Fatalf("Error configuring client: %v", err)
+			logger.Fatalf("Error configuring client: %v", err)
 		}
 	}
 

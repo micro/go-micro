@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	log "github.com/micro/go-micro/v2/logger"
+	"github.com/micro/go-micro/v2/logger"
 	"github.com/micro/mdns"
 )
 
@@ -278,7 +278,9 @@ func (m *mdnsRegistry) GetService(service string) ([]*Service, error) {
 				} else if e.AddrV6 != nil {
 					addr = "[" + e.AddrV6.String() + "]"
 				} else {
-					log.Infof("[mdns]: invalid endpoint received: %v", e)
+					if logger.V(logger.InfoLevel, logger.DefaultLogger) {
+						logger.Infof("[mdns]: invalid endpoint received: %v", e)
+					}
 					continue
 				}
 				s.Nodes = append(s.Nodes, &Node{
