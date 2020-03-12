@@ -10,22 +10,25 @@ import (
 )
 
 var (
-	DefaultName   = "go.micro.config"
-	DefaultKey    = "NAMESPACE:CONFIG"
-	DefaultPath   = ""
-	DefaultClient = client.DefaultClient
+	DefaultName      = "go.micro.config"
+	DefaultNamespace = "global"
+	DefaultPath      = ""
+	DefaultClient    = client.DefaultClient
 )
 
 type service struct {
 	serviceName string
-	key         string
+	namespace   string
 	path        string
 	opts        source.Options
 	client      proto.ConfigService
 }
 
 func (m *service) Read() (set *source.ChangeSet, err error) {
-	req, err := m.client.Read(context.Background(), &proto.ReadRequest{Key: m.key, Path: m.path})
+	req, err := m.client.Read(context.Background(), &proto.ReadRequest{
+		Namespace: m.namespace,
+		Path:      m.path,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -34,7 +37,10 @@ func (m *service) Read() (set *source.ChangeSet, err error) {
 }
 
 func (m *service) Watch() (w source.Watcher, err error) {
-	stream, err := m.client.Watch(context.Background(), &proto.WatchRequest{Key: m.key, Path: m.path})
+	stream, err := m.client.Watch(context.Background(), &proto.WatchRequest{
+		Namespace: m.namespace,
+		Path:      m.path,
+	})
 	if err != nil {
 		if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
 			logger.Error("watch err: ", err)
@@ -60,7 +66,7 @@ func NewSource(opts ...source.Option) source.Source {
 	}
 
 	addr := DefaultName
-	key := DefaultKey
+	namespace := DefaultNamespace
 	path := DefaultPath
 
 	if options.Context != nil {
@@ -69,9 +75,9 @@ func NewSource(opts ...source.Option) source.Source {
 			addr = a
 		}
 
-		k, ok := options.Context.Value(keyKey{}).(string)
+		k, ok := options.Context.Value(namespaceKey{}).(string)
 		if ok {
-			key = k
+			namespace = k
 		}
 
 		p, ok := options.Context.Value(pathKey{}).(string)
@@ -83,7 +89,7 @@ func NewSource(opts ...source.Option) source.Source {
 	s := &service{
 		serviceName: addr,
 		opts:        options,
-		key:         key,
+		namespace:   namespace,
 		path:        path,
 		client:      proto.NewConfigService(addr, DefaultClient),
 	}

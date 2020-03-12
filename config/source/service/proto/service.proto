@@ -18,7 +18,7 @@ message ChangeSet {
 }
 
 message Change {
-    string key = 1;
+    string namespace = 1;
     string path = 2;
     ChangeSet changeSet = 3;
 }
@@ -48,7 +48,7 @@ message ListResponse {
 }
 
 message ReadRequest {
-    string key = 1;
+    string namespace = 1;
     string path = 2;
 }
 
@@ -57,11 +57,11 @@ message ReadResponse {
 }
 
 message WatchRequest {
-    string key = 1;
+    string namespace = 1;
     string path = 2;
 }
 
 message WatchResponse {
-    string key = 1;
+    string namespace = 1;
     ChangeSet changeSet = 2;
 }
