@@ -159,25 +159,13 @@ func (w *workersKV) list(prefix string) ([]string, error) {
 
 // In the cloudflare workers KV implemention, List() doesn't guarantee
 // anything as the workers API is eventually consistent.
-func (w *workersKV) List() ([]*store.Record, error) {
+func (w *workersKV) List(opts ...store.ListOption) ([]string, error) {
 	keys, err := w.list("")
 	if err != nil {
 		return nil, err
 	}
 
-	var gerr error
-	var records []*store.Record
-
-	for _, key := range keys {
-		r, err := w.Read(key)
-		if err != nil {
-			gerr = err
-			continue
-		}
-		records = append(records, r...)
-	}
-
-	return records, gerr
+	return keys, nil
 }
 
 func (w *workersKV) Read(key string, opts ...store.ReadOption) ([]*store.Record, error) {
@@ -240,7 +228,7 @@ func (w *workersKV) Read(key string, opts ...store.ReadOption) ([]*store.Record,
 	return records, nil
 }
 
-func (w *workersKV) Write(r *store.Record) error {
+func (w *workersKV) Write(r *store.Record, opts ...store.WriteOption) error {
 	// Set it in local cache, with the global TTL from options
 	if w.cache != nil {
 		w.cache.Set(r.Key, r, cache.DefaultExpiration)
@@ -278,7 +266,7 @@ func (w *workersKV) Write(r *store.Record) error {
 	return nil
 }
 
-func (w *workersKV) Delete(key string) error {
+func (w *workersKV) Delete(key string, opts ...store.DeleteOption) error {
 	if w.cache != nil {
 		w.cache.Delete(key)
 	}
