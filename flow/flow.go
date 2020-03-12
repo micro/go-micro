@@ -92,14 +92,14 @@ type Options struct {
 	Wait bool
 	// Executor to run flow
 	Executor Executor
+	// Store generic store to use for all things
+	Store store.Store
 	// StateStore is used for flow state marking
 	StateStore store.Store
 	// DataStore is used for intermediate data passed between flow nodes
 	DataStore store.Store
 	// FlowStore is used for storing flows
 	FlowStore store.Store
-	// EventHandler is used to notification about flow progress
-	EventHandler EventHandler
 	// ErrorHandler is used for recovery panics
 	ErrorHandler func(interface{})
 	// Logger is used internally to provide messages
@@ -195,6 +195,13 @@ func WithConcurrency(c int) Option {
 	}
 }
 
+// Store to be used for all flow operations
+func WithStore(s store.Store) Option {
+	return func(o *Options) {
+		o.Store = s
+	}
+}
+
 // State store implementation
 func WithStateStore(s store.Store) Option {
 	return func(o *Options) {
@@ -213,13 +220,6 @@ func WithDataStore(s store.Store) Option {
 func WithFlowStore(s store.Store) Option {
 	return func(o *Options) {
 		o.FlowStore = s
-	}
-}
-
-// Event handler for flow execution
-func WithEventHandler(h EventHandler) Option {
-	return func(o *Options) {
-		o.EventHandler = h
 	}
 }
 
