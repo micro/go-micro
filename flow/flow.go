@@ -90,6 +90,8 @@ type Options struct {
 	Nonblock bool
 	// Wait completiong before stop
 	Wait bool
+	// Executor to run flow
+	Executor Executor
 	// StateStore is used for flow state marking
 	StateStore store.Store
 	// DataStore is used for intermediate data passed between flow nodes
@@ -150,6 +152,13 @@ type ExecuteOptions struct {
 }
 
 type ExecuteOption func(*ExecuteOptions)
+
+// Pass executor
+func WithExecutor(exe Executor) Option {
+	return func(o *Options) {
+		o.Executor = exe
+	}
+}
 
 // Wait for flow completion before stop
 func WithWait(b bool) Option {
