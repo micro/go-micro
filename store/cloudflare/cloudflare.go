@@ -218,6 +218,10 @@ func (w *workersKV) Read(key string, opts ...store.ReadOption) ([]*store.Record,
 			return records, err
 		}
 		if status < 200 || status >= 300 {
+			if status == 404 {
+				return nil, store.ErrNotFound
+			}
+
 			return records, errors.New("Received unexpected Status " + strconv.Itoa(status) + string(response))
 		}
 		record := &store.Record{
