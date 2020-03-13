@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/micro/go-micro/v2/store"
-	"go.etcd.io/etcd/clientv3"
+	"github.com/coreos/etcd/clientv3"
 	"google.golang.org/grpc"
 )
 
