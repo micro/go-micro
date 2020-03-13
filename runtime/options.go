@@ -14,6 +14,8 @@ type Options struct {
 	Type string
 	// Source of the services repository
 	Source string
+	// Base image to use
+	Image string
 }
 
 // WithSource sets the base image / repository
@@ -34,6 +36,13 @@ func WithScheduler(n Scheduler) Option {
 func WithType(t string) Option {
 	return func(o *Options) {
 		o.Type = t
+	}
+}
+
+// WithImage sets the image to use
+func WithImage(t string) Option {
+	return func(o *Options) {
+		o.Image = t
 	}
 }
 
@@ -76,8 +85,8 @@ func CreateType(t string) CreateOption {
 	}
 }
 
-// WithImage sets the image to use
-func WithImage(img string) CreateOption {
+// CreateImage sets the image to use
+func CreateImage(img string) CreateOption {
 	return func(o *CreateOptions) {
 		o.Image = img
 	}

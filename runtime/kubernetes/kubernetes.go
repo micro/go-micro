@@ -2,8 +2,6 @@
 package kubernetes
 
 import (
-	"fmt"
-	"strings"
 	"sync"
 	"time"
 
@@ -276,7 +274,7 @@ func (k *kubernetes) Create(s *runtime.Service, opts ...runtime.CreateOption) er
 	}
 
 	// determine the image from the source and options
-	options.Image = k.imageFromSource(s, options)
+	options.Image = k.getImage(s, options)
 
 	// create new service
 	service := newService(s, options)
@@ -340,7 +338,7 @@ func (k *kubernetes) Update(s *runtime.Service) error {
 	}
 
 	// set image
-	opts.Image = k.imageFromSource(s, opts)
+	opts.Image = k.getImage(s, opts)
 
 	// new pseudo service
 	service := newService(s, opts)
@@ -448,29 +446,15 @@ func NewRuntime(opts ...runtime.Option) runtime.Runtime {
 	}
 }
 
-// sourceForService determines the nested package name for github
-// e.g src: docker.pkg.github.com/micro/services an srv: users/api
-// would become docker.pkg.github.com/micro/services/users-api
-func (k *kubernetes) imageFromSource(s *runtime.Service, options runtime.CreateOptions) string {
+func (k *kubernetes) getImage(s *runtime.Service, options runtime.CreateOptions) string {
 	// use the image when its specified
 	if len(options.Image) > 0 {
 		return options.Image
 	}
 
-	// we have no image so we need to get one
-
-	// e.g github.com/micro/services becomes micro/services
-	if strings.HasPrefix(s.Source, "github.com/") {
-		// return a github equivalent
-		return strings.TrimPrefix(s.Source, "github.com/")
+	if len(k.options.Image) > 0 {
+		return k.options.Image
 	}
 
-	// return the private package images
-	if strings.HasPrefix(s.Source, "docker.pkg.github.com") {
-		formattedName := strings.ReplaceAll(s.Name, "/", "-")
-		return fmt.Sprintf("%v/%v", s.Source, formattedName)
-	}
-
-	// otherwise there is no image so use default
 	return ""
 }
