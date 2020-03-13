@@ -184,7 +184,8 @@ func (r *runtime) Create(s *Service, opts ...CreateOption) error {
 	}
 
 	if len(options.Command) == 0 {
-		options.Command = []string{"go", "run", "."}
+		options.Command = []string{"go", "run"}
+		options.Args = []string{"."}
 	}
 
 	// create new service
