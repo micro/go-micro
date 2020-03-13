@@ -10,7 +10,7 @@ service Config {
 }
 
 message ChangeSet {
-    bytes data = 1;
+    string data = 1;
     string checksum = 2;
     string format = 3;
     string source = 4;
