@@ -547,18 +547,6 @@ func (router *router) ProcessMessage(ctx context.Context, msg Message) (err erro
 				req = req.Elem()
 			}
 
-			if handler.reqType.Kind() == reflect.Ptr {
-				req = reflect.New(handler.reqType.Elem())
-			} else {
-				req = reflect.New(handler.reqType)
-				isVal = true
-			}
-
-			// if its a value get the element
-			if isVal {
-				req = req.Elem()
-			}
-
 			cc := msg.Codec()
 
 			// read the header. mostly a noop
