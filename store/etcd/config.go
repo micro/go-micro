@@ -5,8 +5,8 @@ import (
 	cryptotls "crypto/tls"
 	"time"
 
-	"github.com/micro/go-micro/v2/store"
 	"github.com/coreos/etcd/clientv3"
+	"github.com/micro/go-micro/v2/store"
 	"google.golang.org/grpc"
 )
 

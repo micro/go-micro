@@ -43,8 +43,10 @@ type ReadOption func(o *ReadOptions)
 
 // CreateOptions configure runtime services
 type CreateOptions struct {
-	// command to execute including args
+	// Command to execut
 	Command []string
+	// Args to pass into command
+	Args []string
 	// Environment to configure
 	Env []string
 	// Log output
@@ -53,8 +55,8 @@ type CreateOptions struct {
 	Type string
 	// Retries before failing deploy
 	Retries int
-	// Source of the service
-	Source string
+	// Specify the image to use
+	Image string
 }
 
 // ReadOptions queries runtime services
@@ -74,18 +76,26 @@ func CreateType(t string) CreateOption {
 	}
 }
 
-// CreateSource sets the source of service to create
-func CreateSource(t string) CreateOption {
+// WithImage sets the image to use
+func WithImage(img string) CreateOption {
 	return func(o *CreateOptions) {
-		o.Source = t
+		o.Image = img
 	}
 }
 
 // WithCommand specifies the command to execute
-func WithCommand(args ...string) CreateOption {
+func WithCommand(cmd ...string) CreateOption {
 	return func(o *CreateOptions) {
 		// set command
-		o.Command = args
+		o.Command = cmd
+	}
+}
+
+// WithArgs specifies the command to execute
+func WithArgs(args ...string) CreateOption {
+	return func(o *CreateOptions) {
+		// set command
+		o.Args = args
 	}
 }
 

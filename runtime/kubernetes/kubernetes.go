@@ -250,11 +250,6 @@ func (k *kubernetes) Init(opts ...runtime.Option) error {
 		o(&k.options)
 	}
 
-	// trim the source prefix if its a git url
-	if strings.HasPrefix(k.options.Source, "github.com") {
-		k.options.Source = strings.TrimPrefix(k.options.Source, "github.com/")
-	}
-
 	return nil
 }
 
@@ -270,14 +265,20 @@ func (k *kubernetes) Create(s *runtime.Service, opts ...runtime.CreateOption) er
 		o(&options)
 	}
 
-	// hackish
+	// default type if it doesn't exist
 	if len(options.Type) == 0 {
 		options.Type = k.options.Type
 	}
 
-	// determine the full source for this service
-	options.Source = k.sourceForService(s.Name)
+	// default the source if it doesn't exist
+	if len(s.Source) == 0 {
+		s.Source = k.options.Source
+	}
 
+	// determine the image from the source and options
+	options.Image = k.imageFromSource(s, options)
+
+	// create new service
 	service := newService(s, options)
 
 	// start the service
@@ -334,10 +335,15 @@ func (k *kubernetes) List() ([]*runtime.Service, error) {
 // Update the service in place
 func (k *kubernetes) Update(s *runtime.Service) error {
 	// create new kubernetes micro service
-	service := newService(s, runtime.CreateOptions{
-		Type:   k.options.Type,
-		Source: k.sourceForService(s.Name),
-	})
+	opts := runtime.CreateOptions{
+		Type: k.options.Type,
+	}
+
+	// set image
+	opts.Image = k.imageFromSource(s, opts)
+
+	// new pseudo service
+	service := newService(s, opts)
 
 	// update build time annotation
 	service.kdeploy.Spec.Template.Metadata.Annotations["build"] = time.Now().Format(time.RFC3339)
@@ -445,11 +451,26 @@ func NewRuntime(opts ...runtime.Option) runtime.Runtime {
 // sourceForService determines the nested package name for github
 // e.g src: docker.pkg.github.com/micro/services an srv: users/api
 // would become docker.pkg.github.com/micro/services/users-api
-func (k *kubernetes) sourceForService(name string) string {
-	if !strings.HasPrefix(k.options.Source, "docker.pkg.github.com") {
-		return k.options.Source
+func (k *kubernetes) imageFromSource(s *runtime.Service, options runtime.CreateOptions) string {
+	// use the image when its specified
+	if len(options.Image) > 0 {
+		return options.Image
 	}
 
-	formattedName := strings.ReplaceAll(name, "/", "-")
-	return fmt.Sprintf("%v/%v", k.options.Source, formattedName)
+	// we have no image so we need to get one
+
+	// e.g github.com/micro/services becomes micro/services
+	if strings.HasPrefix(s.Source, "github.com/") {
+		// return a github equivalent
+		return strings.TrimPrefix(s.Source, "github.com/")
+	}
+
+	// return the private package images
+	if strings.HasPrefix(s.Source, "docker.pkg.github.com") {
+		formattedName := strings.ReplaceAll(s.Name, "/", "-")
+		return fmt.Sprintf("%v/%v", s.Source, formattedName)
+	}
+
+	// otherwise there is no image so use default
+	return ""
 }
