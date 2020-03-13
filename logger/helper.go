@@ -1,6 +1,8 @@
 package logger
 
-import "os"
+import (
+	"os"
+)
 
 type Helper struct {
 	Logger
