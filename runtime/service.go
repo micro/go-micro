@@ -3,6 +3,7 @@ package runtime
 import (
 	"io"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -41,11 +42,8 @@ func newService(s *Service, c CreateOptions) *service {
 	var args []string
 
 	// set command
-	exec = c.Command[0]
-	// set args
-	if len(c.Command) > 1 {
-		args = c.Command[1:]
-	}
+	exec = strings.Join(c.Command, " ")
+	args = c.Args
 
 	return &service{
 		Service: s,

@@ -54,14 +54,12 @@ func newService(s *runtime.Service, c runtime.CreateOptions) *service {
 	kdeploy.Metadata.Annotations["group"] = "micro"
 
 	// update the deployment is a custom source is provided
-	if len(c.Source) > 0 {
+	if len(c.Image) > 0 {
 		for i := range kdeploy.Spec.Template.PodSpec.Containers {
-			kdeploy.Spec.Template.PodSpec.Containers[i].Image = c.Source
+			kdeploy.Spec.Template.PodSpec.Containers[i].Image = c.Image
 			kdeploy.Spec.Template.PodSpec.Containers[i].Command = []string{}
-			kdeploy.Spec.Template.PodSpec.Containers[i].Args = []string{name}
+			kdeploy.Spec.Template.PodSpec.Containers[i].Args = []string{}
 		}
-
-		kdeploy.Metadata.Annotations["source"] = c.Source
 	}
 
 	// define the environment values used by the container
@@ -76,9 +74,13 @@ func newService(s *runtime.Service, c runtime.CreateOptions) *service {
 		kdeploy.Spec.Template.PodSpec.Containers[0].Env = append(kdeploy.Spec.Template.PodSpec.Containers[0].Env, env...)
 	}
 
-	// specify the command to exec
-	if strings.HasPrefix(c.Source, "github.com") && len(c.Command) > 0 {
+	// set the command if specified
+	if len(c.Command) > 0 {
 		kdeploy.Spec.Template.PodSpec.Containers[0].Command = c.Command
+	}
+
+	if len(c.Args) > 0 {
+		kdeploy.Spec.Template.PodSpec.Containers[0].Args = c.Args
 	}
 
 	return &service{
