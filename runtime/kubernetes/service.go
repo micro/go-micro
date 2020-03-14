@@ -38,6 +38,11 @@ func newService(s *runtime.Service, c runtime.CreateOptions) *service {
 		kdeploy.Spec.Template.Metadata.Annotations = make(map[string]string)
 	}
 
+	// create if non existent
+	if s.Metadata == nil {
+		s.Metadata = make(map[string]string)
+	}
+
 	// add the service metadata to the k8s labels, do this first so we
 	// don't override any labels used by the runtime, e.g. name
 	for k, v := range s.Metadata {
