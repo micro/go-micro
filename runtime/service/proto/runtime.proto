@@ -31,10 +31,16 @@ message Event {
 message CreateOptions {
 	// command to pass in
 	repeated string command = 1;
+	// args to pass into command
+	repeated string args = 2;
 	// environment to pass in
-	repeated string env = 2;
+	repeated string env = 3;
 	// output to send to
-	string output = 3;
+	string output = 4;
+	// create type of service
+	string type = 5;
+	// image to use
+	string image = 6;
 }
 
 message CreateRequest {
