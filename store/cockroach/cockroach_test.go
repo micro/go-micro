@@ -14,8 +14,8 @@ func TestSQL(t *testing.T) {
 	connection := fmt.Sprintf(
 		"host=%s port=%d user=%s sslmode=disable dbname=%s",
 		"localhost",
-		5432,
-		"jake",
+		26257,
+		"root",
 		"test",
 	)
 	db, err := sql.Open("postgres", connection)
