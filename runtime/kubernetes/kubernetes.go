@@ -27,7 +27,7 @@ type kubernetes struct {
 
 // getService queries kubernetes for micro service
 // NOTE: this function is not thread-safe
-func (k *kubernetes) getService(labels map[string]string) ([]*runtime.Service, error) {
+func (k *kubernetes) getService(labels map[string]string) ([]*service, error) {
 	// get the service status
 	serviceList := new(client.ServiceList)
 	r := &client.Resource{
@@ -61,7 +61,7 @@ func (k *kubernetes) getService(labels map[string]string) ([]*runtime.Service, e
 	}
 
 	// service map
-	svcMap := make(map[string]*runtime.Service)
+	svcMap := make(map[string]*service)
 
 	// collect info from kubernetes service
 	for _, kservice := range serviceList.Items {
@@ -71,15 +71,18 @@ func (k *kubernetes) getService(labels map[string]string) ([]*runtime.Service, e
 		version := kservice.Metadata.Labels["version"]
 
 		// save as service
-		svcMap[name+version] = &runtime.Service{
-			Name:     name,
-			Version:  version,
-			Metadata: make(map[string]string),
+		svcMap[name+version] = &service{
+			Service: &runtime.Service{
+				Name:     name,
+				Version:  version,
+				Metadata: make(map[string]string),
+			},
+			kservice: &kservice,
 		}
 
 		// copy annotations metadata into service metadata
 		for k, v := range kservice.Metadata.Annotations {
-			svcMap[name+version].Metadata[k] = v
+			svcMap[name+version].Service.Metadata[k] = v
 		}
 	}
 
@@ -99,9 +102,9 @@ func (k *kubernetes) getService(labels map[string]string) ([]*runtime.Service, e
 
 			// set the service name, version and source
 			// based on existing annotations we stored
-			svc.Name = kdep.Metadata.Annotations["name"]
-			svc.Version = kdep.Metadata.Annotations["version"]
-			svc.Source = kdep.Metadata.Annotations["source"]
+			svc.Service.Name = kdep.Metadata.Annotations["name"]
+			svc.Service.Version = kdep.Metadata.Annotations["version"]
+			svc.Service.Source = kdep.Metadata.Annotations["source"]
 
 			// delete from metadata
 			delete(kdep.Metadata.Annotations, "name")
@@ -110,7 +113,7 @@ func (k *kubernetes) getService(labels map[string]string) ([]*runtime.Service, e
 
 			// copy all annotations metadata into service metadata
 			for k, v := range kdep.Metadata.Annotations {
-				svc.Metadata[k] = v
+				svc.Service.Metadata[k] = v
 			}
 
 			// get the status from the pods
@@ -130,12 +133,14 @@ func (k *kubernetes) getService(labels map[string]string) ([]*runtime.Service, e
 			if logger.V(logger.DebugLevel, logger.DefaultLogger) {
 				logger.Debugf("Runtime setting %s service deployment status: %v", name, status)
 			}
-			svc.Metadata["status"] = status
+			svc.Service.Metadata["status"] = status
+			// save deployment
+			svc.kdeploy = &kdep
 		}
 	}
 
 	// collect all the services and return
-	services := make([]*runtime.Service, 0, len(serviceList.Items))
+	services := make([]*service, 0, len(serviceList.Items))
 
 	for _, service := range svcMap {
 		services = append(services, service)
@@ -311,7 +316,17 @@ func (k *kubernetes) Read(opts ...runtime.ReadOption) ([]*runtime.Service, error
 		labels["micro"] = options.Type
 	}
 
-	return k.getService(labels)
+	srvs, err := k.getService(labels)
+	if err != nil {
+		return nil, err
+	}
+
+	var services []*runtime.Service
+	for _, service := range srvs {
+		services = append(services, service.Service)
+	}
+
+	return services, nil
 }
 
 // List the managed services
@@ -327,26 +342,64 @@ func (k *kubernetes) List() ([]*runtime.Service, error) {
 		logger.Debugf("Runtime listing all micro services")
 	}
 
-	return k.getService(labels)
+	srvs, err := k.getService(labels)
+	if err != nil {
+		return nil, err
+	}
+
+	var services []*runtime.Service
+	for _, service := range srvs {
+		services = append(services, service.Service)
+	}
+
+	return services, nil
 }
 
 // Update the service in place
 func (k *kubernetes) Update(s *runtime.Service) error {
-	// create new kubernetes micro service
-	opts := runtime.CreateOptions{
-		Type: k.options.Type,
+	// get the existing service
+	// set the default labels
+	labels := map[string]string{
+		"micro": k.options.Type,
 	}
 
-	// set image
-	opts.Image = k.getImage(s, opts)
+	if len(s.Name) > 0 {
+		labels["name"] = client.Format(s.Name)
+	}
 
-	// new pseudo service
-	service := newService(s, opts)
+	if len(s.Version) > 0 {
+		labels["version"] = s.Version
+	}
 
-	// update build time annotation
-	service.kdeploy.Spec.Template.Metadata.Annotations["build"] = time.Now().Format(time.RFC3339)
+	// get the existing service
+	services, err := k.getService(labels)
+	if err != nil {
+		return err
+	}
 
-	return service.Update(k.client)
+	// update the relevant services
+	for _, service := range services {
+		// nil check
+		if service.kdeploy.Metadata == nil || service.kdeploy.Metadata.Annotations == nil {
+			md := new(client.Metadata)
+			md.Annotations = make(map[string]string)
+			service.kdeploy.Metadata = md
+		}
+
+		// update metadata
+		for k, v := range s.Metadata {
+			service.kdeploy.Metadata.Annotations[k] = v
+		}
+		// update build time annotation
+		service.kdeploy.Spec.Template.Metadata.Annotations["build"] = time.Now().Format(time.RFC3339)
+
+		// update the service
+		if err := service.Update(k.client); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // Delete removes a service
