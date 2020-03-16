@@ -63,6 +63,7 @@ func (h authHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	// If there is no auth login url set, 401
 	if loginURL == "" {
 		w.WriteHeader(401)
+		return
 	}
 
 	// Redirect to the login path
