@@ -445,10 +445,6 @@ func (g *grpcClient) Call(ctx context.Context, req client.Request, rsp interface
 		// call backoff first. Someone may want an initial start delay
 		t, err := callOpts.Backoff(ctx, req, i)
 		if err != nil {
-			if verr, ok := err.(*errors.Error); ok {
-				return verr
-			}
-
 			return errors.InternalServerError("go.micro.client", err.Error())
 		}
 
@@ -469,6 +465,10 @@ func (g *grpcClient) Call(ctx context.Context, req client.Request, rsp interface
 
 		// make the call
 		err = gcall(ctx, node, req, rsp, callOpts)
+		if verr, ok := err.(*errors.Error); ok {
+			return verr
+		}
+
 		g.opts.Selector.Mark(service, node, err)
 		return err
 	}
