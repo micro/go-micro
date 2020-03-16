@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/micro/go-micro/v2/auth"
-	"github.com/micro/go-micro/v2/metadata"
 )
 
 // CombinedAuthHandler wraps a server and authenticates requests
@@ -42,15 +41,16 @@ func (h authHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 
 	var token string
-	if header, ok := metadata.Get(req.Context(), "Authorization"); ok {
+	if header := req.Header.Get("Authorization"); len(header) > 0 {
 		// Extract the auth token from the request
 		if strings.HasPrefix(header, BearerScheme) {
 			token = header[len(BearerScheme):]
 		}
 	} else {
 		// Get the token out the cookies if not provided in headers
-		if c, err := req.Cookie(auth.CookieName); err != nil && c != nil {
-			token = c.Value
+		if c, err := req.Cookie("micro-token"); err == nil && c != nil {
+			token = strings.TrimPrefix(c.Value, auth.CookieName+"=")
+			req.Header.Set("Authorization", BearerScheme+token)
 		}
 	}
 
