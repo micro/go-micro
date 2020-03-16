@@ -9,12 +9,18 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/google/uuid"
+	lru "github.com/hashicorp/golang-lru"
 	"github.com/micro/go-micro/v2/errors"
 	"github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/metadata"
 	"github.com/micro/go-micro/v2/store"
 	"github.com/panjf2000/ants/v2"
 )
+
+type cacheDag struct {
+	dag       dag
+	timestamp int64
+}
 
 type Status int
 
@@ -51,10 +57,12 @@ type microExecutor struct {
 	stateStore store.Store
 	options    ExecutorOptions
 	pool       *ants.PoolWithFunc
-	workers    int
-	wait       bool
-	nonblock   bool
-	prealloc   bool
+	cache      *lru.TwoQueueCache
+
+	workers  int
+	wait     bool
+	nonblock bool
+	prealloc bool
 	sync.RWMutex
 	initialized bool
 }
@@ -75,6 +83,11 @@ func (fl *microExecutor) Init(opts ...ExecutorOption) error {
 		fl.dataStore = s
 	}
 
+	cache, err := lru.New2Q(100)
+	if err != nil {
+		return err
+	}
+
 	if fl.workers < 1 {
 		fl.workers = DefaultConcurrency
 	}
@@ -89,7 +102,12 @@ func (fl *microExecutor) Init(opts ...ExecutorOption) error {
 		return err
 	}
 
+	fl.Lock()
+	fl.pool = pool
+	fl.cache = cache
 	fl.initialized = true
+	fl.Unlock()
+
 	return nil
 }
 
@@ -274,7 +292,7 @@ func (fl *microExecutor) flowHandler(req interface{}) {
 	}
 
 	var g dag
-	g, err = fl.loadDag(options.Context, job.flow)
+	g, err = fl.loadDag(job.flow)
 	if err != nil {
 		return
 	}
@@ -513,4 +531,72 @@ func (fl *microExecutor) Stop() error {
 	}
 
 	return nil
+}
+
+func include(slice []string, f string) bool {
+	for _, s := range slice {
+		if s == f {
+			return true
+		}
+	}
+	return false
+}
+
+func (fl *microExecutor) loadDag(flow string) (dag, error) {
+	steps, err := fl.options.Flow.Lookup(flow)
+	if err != nil {
+		return nil, err
+	}
+
+	g := newHeimdalrDag()
+	stepsMap := make(map[string]*Step)
+	for _, s := range steps {
+		stepsMap[s.Name()] = s
+		g.AddVertex(s)
+	}
+
+	for _, vs := range steps {
+	afterLoop:
+		for _, req := range vs.After {
+			if req == "all" {
+				for _, ve := range steps {
+					if ve.Name() != vs.Name() && !include(ve.After, "all") {
+						g.AddEdge(ve, vs)
+					}
+				}
+				break afterLoop
+			}
+			ve, ok := stepsMap[req]
+			if !ok {
+				err = fmt.Errorf("%v after unknown step %v", vs, req)
+				return nil, err
+			}
+			g.AddEdge(ve, vs)
+		}
+	beforeLoop:
+		for _, req := range vs.Before {
+			if req == "all" {
+				for _, ve := range steps {
+					if ve.Name() != vs.Name() && !include(ve.Before, "all") {
+						g.AddEdge(vs, ve)
+					}
+				}
+				break beforeLoop
+			}
+			ve, ok := stepsMap[req]
+			if !ok {
+				err = fmt.Errorf("%v before unknown step %v", vs, req)
+				return nil, err
+			}
+			g.AddEdge(vs, ve)
+		}
+
+	}
+	if err = g.Validate(); err != nil {
+		return nil, err
+	}
+
+	g.TransitiveReduction()
+
+	return g, nil
 }

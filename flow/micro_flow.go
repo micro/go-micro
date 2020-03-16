@@ -6,20 +6,13 @@ import (
 	"sync"
 
 	"github.com/golang/protobuf/proto"
-	lru "github.com/hashicorp/golang-lru"
 	pb "github.com/micro/go-micro/v2/flow/service/proto"
 	"github.com/micro/go-micro/v2/store"
 )
 
-type cacheDag struct {
-	dag       dag
-	timestamp int64
-}
-
 type microFlow struct {
 	sync.RWMutex
 	options     Options
-	cache       *lru.TwoQueueCache
 	initialized bool
 	flowStore   store.Store
 }
@@ -183,11 +176,6 @@ func (fl *microFlow) Init(opts ...Option) error {
 
 	fl.options.Context = FlowToContext(fl.options.Context, fl)
 
-	cache, err := lru.New2Q(100)
-	if err != nil {
-		return err
-	}
-
 	if fl.options.Executor == nil {
 		fl.options.Executor = newMicroExecutor()
 	}
@@ -196,92 +184,7 @@ func (fl *microFlow) Init(opts ...Option) error {
 		WithExecutorContext(fl.options.Context),
 	)
 
-	fl.Lock()
-	fl.cache = cache
-	fl.initialized = true
-	fl.Unlock()
-
 	return nil
-}
-
-func include(slice []string, f string) bool {
-	for _, s := range slice {
-		if s == f {
-			return true
-		}
-	}
-	return false
-}
-
-func (fl *microFlow) loadDag(ctx context.Context, flow string) (dag, error) {
-	var modtime int64
-	cdag, ok := fl.cache.Get(flow)
-	if ok {
-		cached := cdag.(*cacheDag)
-		_ = cached
-		//modtime = fl.flowStore.Modified(ctx, flow)
-		//if modtime <= cached.timestamp {
-		//	return cached.dag, nil
-		//}
-	}
-
-	steps, err := fl.Lookup(flow)
-	if err != nil {
-		return nil, err
-	}
-
-	g := newHeimdalrDag()
-	stepsMap := make(map[string]*Step)
-	for _, s := range steps {
-		stepsMap[s.Name()] = s
-		g.AddVertex(s)
-	}
-
-	for _, vs := range steps {
-	afterLoop:
-		for _, req := range vs.After {
-			if req == "all" {
-				for _, ve := range steps {
-					if ve.Name() != vs.Name() && !include(ve.After, "all") {
-						g.AddEdge(ve, vs)
-					}
-				}
-				break afterLoop
-			}
-			ve, ok := stepsMap[req]
-			if !ok {
-				err = fmt.Errorf("%v after unknown step %v", vs, req)
-				return nil, err
-			}
-			g.AddEdge(ve, vs)
-		}
-	beforeLoop:
-		for _, req := range vs.Before {
-			if req == "all" {
-				for _, ve := range steps {
-					if ve.Name() != vs.Name() && !include(ve.Before, "all") {
-						g.AddEdge(vs, ve)
-					}
-				}
-				break beforeLoop
-			}
-			ve, ok := stepsMap[req]
-			if !ok {
-				err = fmt.Errorf("%v before unknown step %v", vs, req)
-				return nil, err
-			}
-			g.AddEdge(vs, ve)
-		}
-
-	}
-	if err = g.Validate(); err != nil {
-		return nil, err
-	}
-
-	g.TransitiveReduction()
-	fl.cache.Add(flow, &cacheDag{dag: g, timestamp: modtime})
-
-	return g, nil
 }
 
 func (fl *microFlow) Options() Options {

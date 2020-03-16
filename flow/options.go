@@ -38,6 +38,7 @@ type Options struct {
 }
 
 type ExecutorOptions struct {
+	Flow Flow
 	// ErrorHandler is used for recovery panics
 	ErrorHandler func(interface{})
 	// Context is used for storing non default options
@@ -124,6 +125,13 @@ func WithErrorHandler(h func(interface{})) ExecutorOption {
 	return func(o *ExecutorOptions) {
 		o.ErrorHandler = h
 	}
+}
+
+type flowOptionKey struct{}
+
+// Flow interface passed to Executor
+func WithFlow(flow Flow) ExecutorOption {
+	return setExecutorOption(flowOptionKey{}, flow)
 }
 
 type storeOptionKey struct{}
