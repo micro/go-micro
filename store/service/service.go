@@ -62,9 +62,7 @@ func (s *serviceStore) Context() context.Context {
 // Sync all the known records
 func (s *serviceStore) List(opts ...store.ListOption) ([]string, error) {
 	stream, err := s.Client.List(s.Context(), &pb.ListRequest{}, client.WithAddress(s.Nodes...))
-	if verr, ok := err.(*errors.Error); ok && verr.Code == 404 {
-		return nil, store.ErrNotFound
-	} else if err != nil {
+	if err != nil {
 		return nil, err
 	}
 	defer stream.Close()
@@ -101,9 +99,7 @@ func (s *serviceStore) Read(key string, opts ...store.ReadOption) ([]*store.Reco
 			Prefix: options.Prefix,
 		},
 	}, client.WithAddress(s.Nodes...))
-	if verr, ok := err.(*errors.Error); ok && verr.Code == 404 {
-		return nil, store.ErrNotFound
-	} else if err != nil {
+	if err != nil {
 		return nil, err
 	}
 

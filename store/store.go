@@ -3,13 +3,14 @@
 package store
 
 import (
-	"errors"
 	"time"
+
+	"github.com/micro/go-micro/v2/errors"
 )
 
 var (
 	// ErrNotFound is returned when a key doesn't exist
-	ErrNotFound = errors.New("not found")
+	ErrNotFound = errors.NotFound("go.micro.store", "not found")
 	// DefaultStore is the memory store.
 	DefaultStore Store = new(noopStore)
 )
