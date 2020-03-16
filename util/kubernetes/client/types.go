@@ -103,9 +103,10 @@ type Pod struct {
 
 // PodStatus
 type PodStatus struct {
+	Conditions []PodCondition `json:"conditions,omitempty"`
 	PodIP      string         `json:"podIP"`
 	Phase      string         `json:"phase"`
-	Conditions []PodCondition `json:"conditions,omitempty"`
+	Reason     string         `json:"reason"`
 }
 
 // PodCondition describes the state of pod
