@@ -9,9 +9,13 @@ type Resource interface {
 	Init(...Option) error
 	// Get options
 	Options() Options
+	// Name of the resource
+	Name() string
+	// Type of resource
+	Type() string
 	// Run the resource
 	Run() error
-	// Name of the resource
+	// Resource implementation
 	String()
 }
 
