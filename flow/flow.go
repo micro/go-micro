@@ -26,5 +26,5 @@ type Flow interface {
 	// Lookup specific flow
 	Lookup(flow string) ([]*Step, error)
 	// Execute specific flow and returns request id and error, optionally fills rsp
-	Execute(flow string, req interface{}, rsp interface{}, opts ...ExecuteOption) (string, error)
+	Execute(req interface{}, rsp interface{}, opts ...ExecuteOption) (string, error)
 }

@@ -162,14 +162,14 @@ func (fl *microExecutor) Resume(flow string, rid string) error {
 	return nil
 }
 
-func (fl *microExecutor) Execute(flow string, req interface{}, rsp interface{}, opts ...ExecuteOption) (string, error) {
+func (fl *microExecutor) Execute(req interface{}, rsp interface{}, opts ...ExecuteOption) (string, error) {
 	var err error
 
 	if !fl.initialized {
 		return "", fmt.Errorf("initialize flow first")
 	}
 
-	options := ExecuteOptions{Flow: flow}
+	options := ExecuteOptions{}
 	for _, opt := range opts {
 		opt(&options)
 	}
@@ -208,7 +208,7 @@ func (fl *microExecutor) Execute(flow string, req interface{}, rsp interface{}, 
 		return "", fmt.Errorf("rsp invalid, flow only works with proto.Message and []byte")
 	}
 
-	job := &flowJob{flow: flow, req: reqbuf, options: opts, rid: options.ID}
+	job := &flowJob{flow: options.Flow, req: reqbuf, options: opts, rid: options.ID}
 	if !options.Async {
 		job.done = make(chan struct{})
 	}

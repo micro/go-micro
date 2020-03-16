@@ -61,7 +61,7 @@ func (op *flowExecuteOperation) Execute(ctx context.Context, req []byte, opts ..
 		return nil, err
 	}
 	var rsp []byte
-	opts = append(opts, ExecuteStep(op.operation))
-	_, err = fl.Execute(op.flow, req, rsp, opts...)
+	opts = append(opts, ExecuteStep(op.operation), ExecuteFlow(op.flow))
+	_, err = fl.Execute(req, rsp, opts...)
 	return rsp, err
 }

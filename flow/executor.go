@@ -6,7 +6,7 @@ type Executor interface {
 	// Get flow options
 	Options() ExecutorOptions
 	// Run execution
-	Execute(flow string, req interface{}, rsp interface{}, opts ...ExecuteOption) (string, error)
+	Execute(req interface{}, rsp interface{}, opts ...ExecuteOption) (string, error)
 	// Resume specific paused flow execution by request id
 	Resume(flow string, reqID string) error
 	// Pause specific flow execution by request id

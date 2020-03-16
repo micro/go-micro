@@ -196,7 +196,14 @@ func ExecuteOutput(output string) ExecuteOption {
 	}
 }
 
-// Step of execution
+// Flow to execute
+func ExecuteFlow(flow string) ExecuteOption {
+	return func(o *ExecuteOptions) {
+		o.Flow = flow
+	}
+}
+
+// Step to start execute
 func ExecuteStep(step string) ExecuteOption {
 	return func(o *ExecuteOptions) {
 		o.Step = step

@@ -288,6 +288,6 @@ func (fl *microFlow) Options() Options {
 	return fl.options
 }
 
-func (fl *microFlow) Execute(flow string, req interface{}, rsp interface{}, opts ...ExecuteOption) (string, error) {
-	return fl.options.Executor.Execute(flow, req, rsp, opts...)
+func (fl *microFlow) Execute(req interface{}, rsp interface{}, opts ...ExecuteOption) (string, error) {
+	return fl.options.Executor.Execute(req, rsp, opts...)
 }
