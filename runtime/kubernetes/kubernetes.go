@@ -117,19 +117,22 @@ func (k *kubernetes) getService(labels map[string]string) ([]*service, error) {
 			}
 
 			// get the status from the pods
-			status := "unknown"
-			if len(podList.Items) > 0 {
-				switch podList.Items[0].Status.Conditions[0].Type {
-				case "PodScheduled":
-					status = "starting"
-				case "Initialized":
-					status = "starting"
-				case "Ready":
-					status = "ready"
-				case "ContainersReady":
-					status = "ready"
+			var status string
+
+			for _, item := range podList.Items {
+				switch item.Status.Phase {
+				case "Failed":
+					status = item.Status.Reason
+				default:
+					status = item.Status.Phase
 				}
 			}
+
+			// unknown status
+			if len(status) == 0 {
+				status = "n/a"
+			}
+
 			if logger.V(logger.DebugLevel, logger.DefaultLogger) {
 				logger.Debugf("Runtime setting %s service deployment status: %v", name, status)
 			}
