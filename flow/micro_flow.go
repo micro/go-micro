@@ -9,7 +9,6 @@ import (
 	lru "github.com/hashicorp/golang-lru"
 	pb "github.com/micro/go-micro/v2/flow/service/proto"
 	"github.com/micro/go-micro/v2/store"
-	"github.com/panjf2000/ants/v2"
 )
 
 type cacheDag struct {
@@ -20,18 +19,9 @@ type cacheDag struct {
 type microFlow struct {
 	sync.RWMutex
 	options     Options
-	pool        *ants.PoolWithFunc
 	cache       *lru.TwoQueueCache
 	initialized bool
-
-	flowStore  store.Store
-	stateStore store.Store
-	dataStore  store.Store
-
-	wait     bool
-	prealloc bool
-	nonblock bool
-	workers  int
+	flowStore   store.Store
 }
 
 // Create default executor
@@ -46,17 +36,9 @@ func newMicroFlow(opts ...Option) Flow {
 		defstore = s
 	}
 	fl.flowStore = defstore
-	fl.stateStore = defstore
-	fl.dataStore = defstore
 
 	if s, ok := fl.options.Context.Value(flowStoreOptionKey{}).(store.Store); ok && s != nil {
 		fl.flowStore = s
-	}
-	if s, ok := fl.options.Context.Value(stateStoreOptionKey{}).(store.Store); ok && s != nil {
-		fl.stateStore = s
-	}
-	if s, ok := fl.options.Context.Value(dataStoreOptionKey{}).(store.Store); ok && s != nil {
-		fl.dataStore = s
 	}
 
 	return fl
@@ -201,27 +183,20 @@ func (fl *microFlow) Init(opts ...Option) error {
 
 	fl.options.Context = FlowToContext(fl.options.Context, fl)
 
-	if fl.workers < 1 {
-		fl.workers = DefaultConcurrency
-	}
-	pool, err := ants.NewPoolWithFunc(
-		fl.workers,
-		fl.flowHandler,
-		ants.WithNonblocking(fl.nonblock),
-		ants.WithPanicHandler(fl.options.ErrorHandler),
-		ants.WithPreAlloc(fl.prealloc),
-	)
-	if err != nil {
-		return err
-	}
-
 	cache, err := lru.New2Q(100)
 	if err != nil {
 		return err
 	}
 
+	if fl.options.Executor == nil {
+		fl.options.Executor = newMicroExecutor()
+	}
+
+	fl.options.Executor.Init(
+		WithExecutorContext(fl.options.Context),
+	)
+
 	fl.Lock()
-	fl.pool = pool
 	fl.cache = cache
 	fl.initialized = true
 	fl.Unlock()
@@ -311,4 +286,8 @@ func (fl *microFlow) loadDag(ctx context.Context, flow string) (dag, error) {
 
 func (fl *microFlow) Options() Options {
 	return fl.options
+}
+
+func (fl *microFlow) Execute(flow string, req interface{}, rsp interface{}, opts ...ExecuteOption) (string, error) {
+	return fl.options.Executor.Execute(flow, req, rsp, opts...)
 }

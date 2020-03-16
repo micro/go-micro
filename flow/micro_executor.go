@@ -13,6 +13,7 @@ import (
 	"github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/metadata"
 	"github.com/micro/go-micro/v2/store"
+	"github.com/panjf2000/ants/v2"
 )
 
 type Status int
@@ -46,14 +47,58 @@ var (
 )
 
 type microExecutor struct {
+	dataStore  store.Store
+	stateStore store.Store
+	options    ExecutorOptions
+	pool       *ants.PoolWithFunc
+	workers    int
+	wait       bool
+	nonblock   bool
+	prealloc   bool
+	sync.RWMutex
+	initialized bool
 }
 
 func newMicroExecutor() Executor {
 	return &microExecutor{}
 }
 
+func (fl *microExecutor) Init(opts ...ExecutorOption) error {
+	for _, o := range opts {
+		o(&fl.options)
+	}
+
+	if s, ok := fl.options.Context.Value(stateStoreOptionKey{}).(store.Store); ok && s != nil {
+		fl.stateStore = s
+	}
+	if s, ok := fl.options.Context.Value(dataStoreOptionKey{}).(store.Store); ok && s != nil {
+		fl.dataStore = s
+	}
+
+	if fl.workers < 1 {
+		fl.workers = DefaultConcurrency
+	}
+	pool, err := ants.NewPoolWithFunc(
+		fl.workers,
+		fl.flowHandler,
+		ants.WithNonblocking(fl.nonblock),
+		ants.WithPanicHandler(fl.options.ErrorHandler),
+		ants.WithPreAlloc(fl.prealloc),
+	)
+	if err != nil {
+		return err
+	}
+
+	fl.initialized = true
+	return nil
+}
+
+func (fl *microExecutor) Options() ExecutorOptions {
+	return fl.options
+}
+
 // Result of the step flow
-func (fl *microExecutor) Result(flow string, rid string, step *Step) ([]byte, error) {
+func (fl *microExecutor) Result(flow string, rid string, step string) ([]byte, error) {
 	return nil, nil
 }
 

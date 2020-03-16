@@ -31,10 +31,15 @@ type Options struct {
 	//DataStore store.Store
 	// FlowStore is used for storing flows
 	//FlowStore store.Store
-	// ErrorHandler is used for recovery panics
-	ErrorHandler func(interface{})
 	// Logger is used internally to provide messages
 	//Logger logger.Logger
+	// Context is used for storing non default options
+	Context context.Context
+}
+
+type ExecutorOptions struct {
+	// ErrorHandler is used for recovery panics
+	ErrorHandler func(interface{})
 	// Context is used for storing non default options
 	Context context.Context
 }
@@ -58,6 +63,8 @@ func FlowFromContext(ctx context.Context) (Flow, error) {
 	}
 	return flow, nil
 }
+
+type ExecutorOption func(*ExecutorOptions)
 
 type ExecuteOptions struct {
 	// Passed flow name
@@ -84,6 +91,13 @@ type ExecuteOptions struct {
 
 type ExecuteOption func(*ExecuteOptions)
 
+type executorContextKey struct{}
+
+// Pass context to executor
+func WithExecutorContext(ctx context.Context) ExecutorOption {
+	return setExecutorOption(executorContextKey{}, ctx)
+}
+
 // Pass executor
 func WithExecutor(exe Executor) Option {
 	return func(o *Options) {
@@ -94,36 +108,22 @@ func WithExecutor(exe Executor) Option {
 type waitOptionKey struct{}
 
 // Wait for flow completion before stop
-func WithWait(b bool) Option {
-	return setOption(waitOptionKey{}, b)
+func WithWait(b bool) ExecutorOption {
+	return setExecutorOption(waitOptionKey{}, b)
 }
 
 type nonblockOptionKey struct{}
 
 // Nonblocking submission
-func WithNonblock(b bool) Option {
-	return setOption(nonblockOptionKey{}, b)
+func WithNonblock(b bool) ExecutorOption {
+	return setExecutorOption(nonblockOptionKey{}, b)
 }
 
 // Panic handler
-func WithErrorHandler(h func(interface{})) Option {
-	return func(o *Options) {
+func WithErrorHandler(h func(interface{})) ExecutorOption {
+	return func(o *ExecutorOptions) {
 		o.ErrorHandler = h
 	}
-}
-
-type preallocOptionKey struct{}
-
-// WithPrealloc preallocates goroutine pool
-func WithPrealloc(b bool) Option {
-	return setOption(preallocOptionKey{}, b)
-}
-
-type concurrencyOptionKey struct{}
-
-// Size of goroutine pool
-func WithConcurrency(c int) Option {
-	return setOption(concurrencyOptionKey{}, c)
 }
 
 type storeOptionKey struct{}
@@ -133,24 +133,38 @@ func WithStore(s store.Store) Option {
 	return setOption(storeOptionKey{}, s)
 }
 
+type preallocOptionKey struct{}
+
+// WithPrealloc preallocates goroutine pool
+func WithPrealloc(b bool) ExecutorOption {
+	return setExecutorOption(preallocOptionKey{}, b)
+}
+
+type concurrencyOptionKey struct{}
+
+// Size of goroutine pool
+func WithConcurrency(c int) ExecutorOption {
+	return setExecutorOption(concurrencyOptionKey{}, c)
+}
+
 type stateStoreOptionKey struct{}
 
 // State store implementation
-func WithStateStore(s store.Store) Option {
-	return setOption(stateStoreOptionKey{}, s)
+func WithStateStore(s store.Store) ExecutorOption {
+	return setExecutorOption(stateStoreOptionKey{}, s)
 }
 
 type dataStoreOptionKey struct{}
 
 // Data store implementation
-func WithDataStore(s store.Store) Option {
-	return setOption(dataStoreOptionKey{}, s)
+func WithDataStore(s store.Store) ExecutorOption {
+	return setExecutorOption(dataStoreOptionKey{}, s)
 }
 
 type flowStoreOptionKey struct{}
 
 // Flow store implementation
-func WithFlowStore(s store.Store) Option {
+func FlowStore(s store.Store) Option {
 	return setOption(flowStoreOptionKey{}, s)
 }
 
@@ -162,8 +176,15 @@ func WithLogger(l logger.Logger) Option {
 }
 
 // Context store for executor options
-func WithContext(ctx context.Context) Option {
+func Context(ctx context.Context) Option {
 	return func(o *Options) {
+		o.Context = ctx
+	}
+}
+
+// Context store for executor options
+func WithContext(ctx context.Context) ExecutorOption {
+	return func(o *ExecutorOptions) {
 		o.Context = ctx
 	}
 }
