@@ -1,7 +1,9 @@
 package auth
 
 import (
+	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/micro/go-micro/v2/auth"
@@ -83,5 +85,7 @@ func (h authHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 
 	// Redirect to the login path
-	http.Redirect(w, req, loginURL, http.StatusTemporaryRedirect)
+	params := url.Values{"redirect_to": {req.URL.Path}}
+	loginWithRedirect := fmt.Sprintf("%v?%v", loginURL, params.Encode())
+	http.Redirect(w, req, loginWithRedirect, http.StatusTemporaryRedirect)
 }
