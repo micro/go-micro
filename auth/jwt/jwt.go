@@ -52,7 +52,6 @@ func (s *svc) Init(opts ...auth.Option) error {
 
 // AuthClaims to be encoded in the JWT
 type AuthClaims struct {
-	Id       string            `json:"id"`
 	Roles    []*auth.Role      `json:"roles"`
 	Metadata map[string]string `json:"metadata"`
 
@@ -74,7 +73,7 @@ func (s *svc) Generate(id string, ops ...auth.GenerateOption) (*auth.Account, er
 
 	options := auth.NewGenerateOptions(ops...)
 	account := jwt.NewWithClaims(jwt.SigningMethodRS256, AuthClaims{
-		id, options.Roles, options.Metadata, jwt.StandardClaims{
+		options.Roles, options.Metadata, jwt.StandardClaims{
 			Subject:   id,
 			ExpiresAt: options.Expiry.Unix(),
 		},
