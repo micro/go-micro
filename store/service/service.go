@@ -99,7 +99,9 @@ func (s *serviceStore) Read(key string, opts ...store.ReadOption) ([]*store.Reco
 			Prefix: options.Prefix,
 		},
 	}, client.WithAddress(s.Nodes...))
-	if err != nil {
+	if err != nil && errors.Equal(err, errors.NotFound("", "")) {
+		return nil, store.ErrNotFound
+	} else if err != nil {
 		return nil, err
 	}
 
