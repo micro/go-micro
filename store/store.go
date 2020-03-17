@@ -3,9 +3,8 @@
 package store
 
 import (
+	"errors"
 	"time"
-
-	"github.com/micro/go-micro/v2/errors"
 )
 
 var (
