@@ -234,6 +234,16 @@ func basictest(s store.Store, t *testing.T) {
 			t.Error("Expiry options were not effective")
 		}
 	}
+	s.Write(&store.Record{Key: "a", Value: []byte("a")})
+	s.Write(&store.Record{Key: "aa", Value: []byte("aa")})
+	s.Write(&store.Record{Key: "aaa", Value: []byte("aaa")})
+	if results, err := s.Read("b", store.ReadPrefix()); err != nil {
+		t.Error(err)
+	} else {
+		if len(results) != 0 {
+			t.Errorf("Expected 0 results, got %d", len(results))
+		}
+	}
 
 	s.Init()
 	for i := 0; i < 10; i++ {
