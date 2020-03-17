@@ -1,9 +1,25 @@
 package errors
 
 import (
+	er "errors"
 	"net/http"
 	"testing"
 )
+
+func TestEqual(t *testing.T) {
+	err1 := NotFound("myid1", "msg1")
+	err2 := NotFound("myid2", "msg2")
+
+	if !Equal(err1, err2) {
+		t.Fatal("errors must be equal")
+	}
+
+	err3 := er.New("my test err")
+	if Equal(err1, err3) {
+		t.Fatal("errors must be not equal")
+	}
+
+}
 
 func TestErrors(t *testing.T) {
 	testData := []*Error{
