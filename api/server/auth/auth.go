@@ -31,11 +31,26 @@ const (
 )
 
 func (h authHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	loginURL := h.auth.Options().LoginURL
+	// Extract the token from the request
+	var token string
+	if header := req.Header.Get("Authorization"); len(header) > 0 {
+		// Extract the auth token from the request
+		if strings.HasPrefix(header, BearerScheme) {
+			token = header[len(BearerScheme):]
+		}
+	} else {
+		// Get the token out the cookies if not provided in headers
+		if c, err := req.Cookie("micro-token"); err == nil && c != nil {
+			token = strings.TrimPrefix(c.Value, auth.CookieName+"=")
+			req.Header.Set("Authorization", BearerScheme+token)
+		}
+	}
 
 	// Return if the user disabled auth on this endpoint
 	excludes := h.auth.Options().Exclude
 	excludes = append(excludes, DefaultExcludes...)
+
+	loginURL := h.auth.Options().LoginURL
 	if len(loginURL) > 0 {
 		excludes = append(excludes, loginURL)
 	}
@@ -52,20 +67,6 @@ func (h authHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		if strings.HasSuffix(e, "*") && strings.HasPrefix(req.URL.Path, wildcard) {
 			h.handler.ServeHTTP(w, req)
 			return
-		}
-	}
-
-	var token string
-	if header := req.Header.Get("Authorization"); len(header) > 0 {
-		// Extract the auth token from the request
-		if strings.HasPrefix(header, BearerScheme) {
-			token = header[len(BearerScheme):]
-		}
-	} else {
-		// Get the token out the cookies if not provided in headers
-		if c, err := req.Cookie("micro-token"); err == nil && c != nil {
-			token = strings.TrimPrefix(c.Value, auth.CookieName+"=")
-			req.Header.Set("Authorization", BearerScheme+token)
 		}
 	}
 
