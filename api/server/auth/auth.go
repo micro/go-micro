@@ -7,6 +7,11 @@ import (
 	"github.com/micro/go-micro/v2/auth"
 )
 
+var (
+	// DefaultExcludes is the paths which are allowed by default
+	DefaultExcludes = []string{"/favicon.ico"}
+)
+
 // CombinedAuthHandler wraps a server and authenticates requests
 func CombinedAuthHandler(h http.Handler) http.Handler {
 	return authHandler{
@@ -30,11 +35,21 @@ func (h authHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	// Return if the user disabled auth on this endpoint
 	excludes := h.auth.Options().Exclude
+	excludes = append(excludes, DefaultExcludes...)
 	if len(loginURL) > 0 {
 		excludes = append(excludes, loginURL)
 	}
+
 	for _, e := range excludes {
+		// is a standard exclude, e.g. /rpc
 		if e == req.URL.Path {
+			h.handler.ServeHTTP(w, req)
+			return
+		}
+
+		// is a wildcard exclude, e.g. /services/*
+		wildcard := strings.Replace(e, "*", "", 1)
+		if strings.HasSuffix(e, "*") && strings.HasPrefix(req.URL.Path, wildcard) {
 			h.handler.ServeHTTP(w, req)
 			return
 		}
