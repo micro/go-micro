@@ -127,7 +127,7 @@ func (s *svc) Verify(token string) (*auth.Account, error) {
 	}
 
 	return &auth.Account{
-		Id:       claims.Id,
+		Id:       claims.Subject,
 		Metadata: claims.Metadata,
 		Roles:    claims.Roles,
 	}, nil
