@@ -1,5 +1,5 @@
-// Package cache implements a cache in front of go-micro stores
-package cache
+// Package store syncs multiple go-micro stores
+package store
 
 import (
 	"fmt"
@@ -16,7 +16,7 @@ type Cache interface {
 	store.Store
 
 	// Force a full sync
-	SyncNow() error
+	Sync() error
 }
 type cache struct {
 	sOptions            store.Options
@@ -99,7 +99,7 @@ func (c *cache) Delete(key string, opts ...store.DeleteOption) error {
 	return c.cOptions.Stores[0].Delete(key, opts...)
 }
 
-func (c *cache) SyncNow() error {
+func (c *cache) Sync() error {
 	return nil
 }
 
