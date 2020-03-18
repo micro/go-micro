@@ -152,6 +152,22 @@ func (k *kubernetes) getService(labels map[string]string) ([]*service, error) {
 					status = item.Status.Phase
 				}
 
+				// now try get a deeper status
+				state := item.Status.Containers[0].State
+
+				// set start time
+				if state.Running != nil {
+					svc.Metadata["started"] = state.Running.Started
+				}
+
+				// set status from waiting
+				if v := state.Waiting; v != nil {
+					if len(v.Reason) > 0 {
+						status = v.Reason
+					}
+				}
+				// TODO: set from terminated
+
 				svc.Metadata["status"] = status
 			}
 
