@@ -14,8 +14,8 @@ func TestSQL(t *testing.T) {
 	connection := fmt.Sprintf(
 		"host=%s port=%d user=%s sslmode=disable dbname=%s",
 		"localhost",
-		5432,
-		"jake",
+		26257,
+		"root",
 		"test",
 	)
 	db, err := sql.Open("postgres", connection)
@@ -31,6 +31,10 @@ func TestSQL(t *testing.T) {
 		store.Namespace("testsql"),
 		store.Nodes(connection),
 	)
+
+	if err := sqlStore.Init(); err != nil {
+		t.Fatal(err)
+	}
 
 	keys, err := sqlStore.List()
 	if err != nil {
@@ -74,7 +78,7 @@ func TestSQL(t *testing.T) {
 	err = sqlStore.Write(&store.Record{
 		Key:    "test",
 		Value:  []byte("bar"),
-		Expiry: time.Minute,
+		Expiry: time.Second * 10,
 	})
 	if err != nil {
 		t.Error(err)
@@ -89,7 +93,7 @@ func TestSQL(t *testing.T) {
 		t.Error("Expected bar, got ", string(records[0].Value))
 	}
 
-	time.Sleep(61 * time.Second)
+	time.Sleep(11 * time.Second)
 	_, err = sqlStore.Read("test")
 	switch err {
 	case nil:
@@ -98,5 +102,18 @@ func TestSQL(t *testing.T) {
 		t.Error(err)
 	case store.ErrNotFound:
 		break
+	}
+	sqlStore.Delete("bar")
+	sqlStore.Write(&store.Record{Key: "aaa", Value: []byte("bbb"), Expiry: 5 * time.Second})
+	sqlStore.Write(&store.Record{Key: "aaaa", Value: []byte("bbb"), Expiry: 5 * time.Second})
+	sqlStore.Write(&store.Record{Key: "aaaaa", Value: []byte("bbb"), Expiry: 5 * time.Second})
+	results, err := sqlStore.Read("a", store.ReadPrefix())
+	if len(results) != 3 {
+		t.Fatal("Results should have returned 3 records")
+	}
+	time.Sleep(6 * time.Second)
+	results, err = sqlStore.Read("a", store.ReadPrefix())
+	if len(results) != 0 {
+		t.Fatal("Results should have returned 0 records")
 	}
 }

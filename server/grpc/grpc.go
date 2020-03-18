@@ -279,6 +279,9 @@ func (g *grpcServer) handler(srv interface{}, stream grpc.ServerStream) error {
 
 		// serve the actual request using the request router
 		if err := r.ServeRequest(ctx, request, response); err != nil {
+			if _, ok := status.FromError(err); ok {
+				return err
+			}
 			return status.Errorf(codes.Internal, err.Error())
 		}
 
@@ -379,7 +382,6 @@ func (g *grpcServer) processRequest(stream grpc.ServerStream, service *service, 
 		for i := len(g.opts.HdlrWrappers); i > 0; i-- {
 			fn = g.opts.HdlrWrappers[i-1](fn)
 		}
-
 		statusCode := codes.OK
 		statusDesc := ""
 		// execute the handler
@@ -402,24 +404,19 @@ func (g *grpcServer) processRequest(stream grpc.ServerStream, service *service, 
 				if err != nil {
 					return err
 				}
-			case *rpcError:
-				// rpcError handling may be we have ability to attach it to details?
-				statusCode = verr.code
-				statusDesc = verr.desc
-				errStatus = status.New(statusCode, statusDesc)
 			default:
 				// default case user pass own error type that not proto based
 				statusCode = convertCode(verr)
 				statusDesc = verr.Error()
 				errStatus = status.New(statusCode, statusDesc)
 			}
+
 			return errStatus.Err()
 		}
 
 		if err := stream.SendMsg(replyv.Interface()); err != nil {
 			return err
 		}
-
 		return status.New(statusCode, statusDesc).Err()
 	}
 }
@@ -459,8 +456,7 @@ func (g *grpcServer) processStream(stream grpc.ServerStream, service *service, m
 	statusCode := codes.OK
 	statusDesc := ""
 
-	appErr := fn(ctx, r, ss)
-	if appErr != nil {
+	if appErr := fn(ctx, r, ss); appErr != nil {
 		var err error
 		var errStatus *status.Status
 		switch verr := appErr.(type) {
@@ -480,11 +476,6 @@ func (g *grpcServer) processStream(stream grpc.ServerStream, service *service, m
 			if err != nil {
 				return err
 			}
-		case *rpcError:
-			// rpcError handling may be we have ability to attach it to details?
-			statusCode = verr.code
-			statusDesc = verr.desc
-			errStatus = status.New(statusCode, statusDesc)
 		default:
 			// default case user pass own error type that not proto based
 			statusCode = convertCode(verr)

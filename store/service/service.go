@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/micro/go-micro/v2/client"
+	"github.com/micro/go-micro/v2/errors"
 	"github.com/micro/go-micro/v2/metadata"
 	"github.com/micro/go-micro/v2/store"
 	pb "github.com/micro/go-micro/v2/store/service/proto"
@@ -61,7 +62,9 @@ func (s *serviceStore) Context() context.Context {
 // Sync all the known records
 func (s *serviceStore) List(opts ...store.ListOption) ([]string, error) {
 	stream, err := s.Client.List(s.Context(), &pb.ListRequest{}, client.WithAddress(s.Nodes...))
-	if err != nil {
+	if err != nil && errors.Equal(err, errors.NotFound("", "")) {
+		return nil, store.ErrNotFound
+	} else if err != nil {
 		return nil, err
 	}
 	defer stream.Close()
@@ -98,7 +101,9 @@ func (s *serviceStore) Read(key string, opts ...store.ReadOption) ([]*store.Reco
 			Prefix: options.Prefix,
 		},
 	}, client.WithAddress(s.Nodes...))
-	if err != nil {
+	if err != nil && errors.Equal(err, errors.NotFound("", "")) {
+		return nil, store.ErrNotFound
+	} else if err != nil {
 		return nil, err
 	}
 
@@ -124,6 +129,9 @@ func (s *serviceStore) Write(record *store.Record, opts ...store.WriteOption) er
 			Expiry: int64(record.Expiry.Seconds()),
 		},
 	}, client.WithAddress(s.Nodes...))
+	if err != nil && errors.Equal(err, errors.NotFound("", "")) {
+		return store.ErrNotFound
+	}
 
 	return err
 }
@@ -133,6 +141,10 @@ func (s *serviceStore) Delete(key string, opts ...store.DeleteOption) error {
 	_, err := s.Client.Delete(s.Context(), &pb.DeleteRequest{
 		Key: key,
 	}, client.WithAddress(s.Nodes...))
+	if err != nil && errors.Equal(err, errors.NotFound("", "")) {
+		return store.ErrNotFound
+	}
+
 	return err
 }
 

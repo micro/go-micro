@@ -14,6 +14,8 @@ import (
 type Config interface {
 	// provide the reader.Values interface
 	reader.Values
+	// Init the config
+	Init(opts ...Option) error
 	// Stop the config loader/watcher
 	Close() error
 	// Load config sources

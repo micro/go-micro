@@ -9,7 +9,7 @@ import (
 
 func toChangeSet(c *proto.ChangeSet) *source.ChangeSet {
 	return &source.ChangeSet{
-		Data:      c.Data,
+		Data:      []byte(c.Data),
 		Checksum:  c.Checksum,
 		Format:    c.Format,
 		Timestamp: time.Unix(c.Timestamp, 0),

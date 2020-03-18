@@ -7,12 +7,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/micro/go-micro/v2/auth/provider"
-
 	"github.com/micro/go-micro/v2/auth"
+	"github.com/micro/go-micro/v2/auth/provider"
 	"github.com/micro/go-micro/v2/broker"
 	"github.com/micro/go-micro/v2/client"
 	"github.com/micro/go-micro/v2/client/selector"
+	"github.com/micro/go-micro/v2/config"
+	configSrv "github.com/micro/go-micro/v2/config/source/service"
 	"github.com/micro/go-micro/v2/debug/profile"
 	"github.com/micro/go-micro/v2/debug/profile/http"
 	"github.com/micro/go-micro/v2/debug/profile/pprof"
@@ -305,6 +306,11 @@ var (
 			EnvVars: []string{"MICRO_AUTH_PROVIDER_SCOPE"},
 			Usage:   "The scope to be used for oauth",
 		},
+		&cli.StringFlag{
+			Name:    "config",
+			EnvVars: []string{"MICRO_CONFIG"},
+			Usage:   "The source of the config to be used to get configuration",
+		},
 	}
 
 	DefaultBrokers = map[string]func(...broker.Option) broker.Broker{
@@ -373,6 +379,10 @@ var (
 		"http":  http.NewProfile,
 		"pprof": pprof.NewProfile,
 	}
+
+	DefaultConfigs = map[string]func(...config.Option) (config.Config, error){
+		"service": config.NewConfig,
+	}
 )
 
 func init() {
@@ -392,6 +402,7 @@ func newCmd(opts ...Option) Cmd {
 		Store:     &store.DefaultStore,
 		Tracer:    &trace.DefaultTracer,
 		Profile:   &profile.DefaultProfile,
+		Config:    &config.DefaultConfig,
 
 		Brokers:    DefaultBrokers,
 		Clients:    DefaultClients,
@@ -404,6 +415,7 @@ func newCmd(opts ...Option) Cmd {
 		Tracers:    DefaultTracers,
 		Auths:      DefaultAuths,
 		Profiles:   DefaultProfiles,
+		Configs:    DefaultConfigs,
 	}
 
 	for _, o := range opts {
@@ -697,6 +709,13 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	if len(authOpts) > 0 {
 		if err := (*c.opts.Auth).Init(authOpts...); err != nil {
 			logger.Fatalf("Error configuring auth: %v", err)
+		}
+	}
+
+	if ctx.String("config") == "service" {
+		opt := config.WithSource(configSrv.NewSource())
+		if err := (*c.opts.Config).Init(opt); err != nil {
+			logger.Fatalf("Error configuring config: %v", err)
 		}
 	}
 
