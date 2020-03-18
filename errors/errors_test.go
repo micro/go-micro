@@ -6,6 +6,20 @@ import (
 	"testing"
 )
 
+func TestFromError(t *testing.T) {
+	err := NotFound("go.micro.test", "%s", "example")
+	merr := FromError(err)
+	if merr.Id != "go.micro.test" || merr.Code != 404 {
+		t.Fatalf("invalid conversation %v != %v", err, merr)
+	}
+	err = er.New(err.Error())
+	merr = FromError(err)
+	if merr.Id != "go.micro.test" || merr.Code != 404 {
+		t.Fatalf("invalid conversation %v != %v", err, merr)
+	}
+
+}
+
 func TestEqual(t *testing.T) {
 	err1 := NotFound("myid1", "msg1")
 	err2 := NotFound("myid2", "msg2")
