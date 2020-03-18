@@ -136,8 +136,12 @@ func (k *kubernetes) getService(labels map[string]string) ([]*service, error) {
 			for _, item := range podList.Items {
 				var status string
 
-				// inspect the
-				if item.Metadata.Name != name {
+				// check the name
+				if item.Metadata.Labels["name"] != name {
+					continue
+				}
+				// check the version
+				if item.Metadata.Labels["version"] != version {
 					continue
 				}
 
