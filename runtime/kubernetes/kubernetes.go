@@ -124,27 +124,33 @@ func (k *kubernetes) getService(labels map[string]string) ([]*service, error) {
 				svc.Service.Metadata[k] = v
 			}
 
-			// get the status from the pods
-			var status string
+			// parse out deployment status and inject into service metadata
+			if len(kdep.Status.Conditions) > 0 {
+				svc.Metadata["status"] = kdep.Status.Conditions[0].Type
+				delete(svc.Metadata, "error")
+			} else {
+				svc.Metadata["status"] = "n/a"
+			}
 
+			// get the real status
 			for _, item := range podList.Items {
+				var status string
+
+				// inspect the
+				if item.Metadata.Name != name {
+					continue
+				}
+
 				switch item.Status.Phase {
 				case "Failed":
 					status = item.Status.Reason
 				default:
 					status = item.Status.Phase
 				}
+
+				svc.Metadata["status"] = status
 			}
 
-			// unknown status
-			if len(status) == 0 {
-				status = "n/a"
-			}
-
-			if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-				logger.Debugf("Runtime setting %s service deployment status: %v", name, status)
-			}
-			svc.Service.Metadata["status"] = status
 			// save deployment
 			svc.kdeploy = &kdep
 		}
