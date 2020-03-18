@@ -132,6 +132,7 @@ type ServicePort struct {
 
 // ServiceSpec provides service configuration
 type ServiceSpec struct {
+	ClusterIP string `json:"clusterIP"`
 	Type     string            `json:"type,omitempty"`
 	Selector map[string]string `json:"selector,omitempty"`
 	Ports    []ServicePort     `json:"ports,omitempty"`

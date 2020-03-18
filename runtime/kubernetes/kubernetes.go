@@ -2,6 +2,7 @@
 package kubernetes
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -70,8 +71,7 @@ func (k *kubernetes) getService(labels map[string]string) ([]*service, error) {
 		// version of the service
 		version := kservice.Metadata.Labels["version"]
 
-		// save as service
-		svcMap[name+version] = &service{
+		srv := &service{
 			Service: &runtime.Service{
 				Name:     name,
 				Version:  version,
@@ -80,10 +80,18 @@ func (k *kubernetes) getService(labels map[string]string) ([]*service, error) {
 			kservice: &kservice,
 		}
 
+		// set the address
+		address := kservice.Spec.ClusterIP
+		port := kservice.Spec.Ports[0]
+		srv.Service.Metadata["address"] = fmt.Sprintf("%s:%d", address, port.Port)
+
 		// copy annotations metadata into service metadata
 		for k, v := range kservice.Metadata.Annotations {
-			svcMap[name+version].Service.Metadata[k] = v
+			srv.Service.Metadata[k] = v
 		}
+
+		// save as service
+		svcMap[name+version] = srv
 	}
 
 	// collect additional info from kubernetes deployment
