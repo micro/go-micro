@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/micro/go-micro/v2/api"
+	_ "github.com/micro/go-micro/v2/profile"
 )
 
 func TestSetNamespace(t *testing.T) {

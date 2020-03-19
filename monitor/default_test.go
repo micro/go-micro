@@ -2,6 +2,8 @@ package monitor
 
 import (
 	"testing"
+
+	_ "github.com/micro/go-micro/v2/profile"
 )
 
 func TestMonitor(t *testing.T) {

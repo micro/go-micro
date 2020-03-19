@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	_ "github.com/micro/go-micro/v2/profile"
 	"github.com/micro/go-micro/v2/registry/memory"
 	"github.com/micro/go-micro/v2/service"
 	hello "github.com/micro/go-micro/v2/service/grpc/proto"
