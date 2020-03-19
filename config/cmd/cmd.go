@@ -276,6 +276,11 @@ var (
 			EnvVars: []string{"MICRO_AUTH_EXCLUDE"},
 			Usage:   "Comma-separated list of endpoints excluded from authentication, e.g. Users.ListUsers",
 		},
+		&cli.StringSliceFlag{
+			Name:    "auth_roles",
+			EnvVars: []string{"MICRO_AUTH_ROLES"},
+			Usage:   "Comma-separated list of roles required for authentication, e.g. admin",
+		},
 		&cli.StringFlag{
 			Name:    "auth_provider",
 			EnvVars: []string{"MICRO_AUTH_PROVIDER"},
@@ -678,6 +683,10 @@ func (c *cmd) Before(ctx *cli.Context) error {
 
 	if len(ctx.StringSlice("auth_exclude")) > 0 {
 		authOpts = append(authOpts, auth.Exclude(ctx.StringSlice("auth_exclude")...))
+	}
+
+	if len(ctx.StringSlice("auth_roles")) > 0 {
+		authOpts = append(authOpts, auth.Roles(ctx.StringSlice("auth_roles")...))
 	}
 
 	if name := ctx.String("auth_provider"); len(name) > 0 {
