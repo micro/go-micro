@@ -2,6 +2,7 @@
 package kubernetes
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -70,8 +71,7 @@ func (k *kubernetes) getService(labels map[string]string) ([]*service, error) {
 		// version of the service
 		version := kservice.Metadata.Labels["version"]
 
-		// save as service
-		svcMap[name+version] = &service{
+		srv := &service{
 			Service: &runtime.Service{
 				Name:     name,
 				Version:  version,
@@ -80,10 +80,18 @@ func (k *kubernetes) getService(labels map[string]string) ([]*service, error) {
 			kservice: &kservice,
 		}
 
+		// set the address
+		address := kservice.Spec.ClusterIP
+		port := kservice.Spec.Ports[0]
+		srv.Service.Metadata["address"] = fmt.Sprintf("%s:%d", address, port.Port)
+
 		// copy annotations metadata into service metadata
 		for k, v := range kservice.Metadata.Annotations {
-			svcMap[name+version].Service.Metadata[k] = v
+			srv.Service.Metadata[k] = v
 		}
+
+		// save as service
+		svcMap[name+version] = srv
 	}
 
 	// collect additional info from kubernetes deployment
@@ -116,27 +124,53 @@ func (k *kubernetes) getService(labels map[string]string) ([]*service, error) {
 				svc.Service.Metadata[k] = v
 			}
 
-			// get the status from the pods
-			var status string
+			// parse out deployment status and inject into service metadata
+			if len(kdep.Status.Conditions) > 0 {
+				svc.Metadata["status"] = kdep.Status.Conditions[0].Type
+				delete(svc.Metadata, "error")
+			} else {
+				svc.Metadata["status"] = "n/a"
+			}
 
+			// get the real status
 			for _, item := range podList.Items {
+				var status string
+
+				// check the name
+				if item.Metadata.Labels["name"] != name {
+					continue
+				}
+				// check the version
+				if item.Metadata.Labels["version"] != version {
+					continue
+				}
+
 				switch item.Status.Phase {
 				case "Failed":
 					status = item.Status.Reason
 				default:
 					status = item.Status.Phase
 				}
+
+				// now try get a deeper status
+				state := item.Status.Containers[0].State
+
+				// set start time
+				if state.Running != nil {
+					svc.Metadata["started"] = state.Running.Started
+				}
+
+				// set status from waiting
+				if v := state.Waiting; v != nil {
+					if len(v.Reason) > 0 {
+						status = v.Reason
+					}
+				}
+				// TODO: set from terminated
+
+				svc.Metadata["status"] = status
 			}
 
-			// unknown status
-			if len(status) == 0 {
-				status = "n/a"
-			}
-
-			if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-				logger.Debugf("Runtime setting %s service deployment status: %v", name, status)
-			}
-			svc.Service.Metadata["status"] = status
 			// save deployment
 			svc.kdeploy = &kdep
 		}
