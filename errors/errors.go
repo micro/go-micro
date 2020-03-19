@@ -116,6 +116,7 @@ func InternalServerError(id, format string, a ...interface{}) error {
 	}
 }
 
+// Equal tries to compare errors
 func Equal(err1 error, err2 error) bool {
 	verr1, ok1 := err1.(*Error)
 	verr2, ok2 := err2.(*Error)
@@ -133,4 +134,13 @@ func Equal(err1 error, err2 error) bool {
 	}
 
 	return true
+}
+
+// FromError try to convert go error to *Error
+func FromError(err error) *Error {
+	if verr, ok := err.(*Error); ok && verr != nil {
+		return verr
+	}
+
+	return Parse(err.Error())
 }
