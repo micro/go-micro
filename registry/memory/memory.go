@@ -11,6 +11,10 @@ import (
 	"github.com/micro/go-micro/v2/registry"
 )
 
+func init() {
+	registry.DefaultRegistries["memory"] = NewRegistry
+}
+
 var (
 	sendEventTime = 10 * time.Millisecond
 	ttlPruneTime  = time.Second

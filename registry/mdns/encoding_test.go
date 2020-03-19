@@ -1,7 +1,9 @@
-package registry
+package mdns
 
 import (
 	"testing"
+
+	"github.com/micro/go-micro/v2/registry"
 )
 
 func TestEncoding(t *testing.T) {
@@ -11,14 +13,14 @@ func TestEncoding(t *testing.T) {
 			Metadata: map[string]string{
 				"foo": "bar",
 			},
-			Endpoints: []*Endpoint{
+			Endpoints: []*registry.Endpoint{
 				{
 					Name: "endpoint1",
-					Request: &Value{
+					Request: &registry.Value{
 						Name: "request",
 						Type: "request",
 					},
-					Response: &Value{
+					Response: &registry.Value{
 						Name: "response",
 						Type: "response",
 					},

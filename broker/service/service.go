@@ -11,6 +11,10 @@ import (
 	"github.com/micro/go-micro/v2/logger"
 )
 
+func init() {
+	broker.DefaultBrokers["service"] = NewBroker
+}
+
 type serviceBroker struct {
 	Addrs   []string
 	Client  pb.BrokerService

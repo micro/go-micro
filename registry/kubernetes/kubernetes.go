@@ -14,6 +14,10 @@ import (
 	"github.com/micro/go-micro/v2/util/kubernetes/client"
 )
 
+func init() {
+	registry.DefaultRegistries["kubernetes"] = NewRegistry
+}
+
 type kregistry struct {
 	client  client.Client
 	timeout time.Duration

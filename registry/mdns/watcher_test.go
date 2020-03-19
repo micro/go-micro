@@ -1,9 +1,11 @@
-package registry
+package mdns
 
 import (
 	"os"
 	"testing"
 	"time"
+
+	"github.com/micro/go-micro/v2/registry"
 )
 
 func TestWatcher(t *testing.T) {
@@ -11,11 +13,11 @@ func TestWatcher(t *testing.T) {
 		t.Skip()
 	}
 
-	testData := []*Service{
+	testData := []*registry.Service{
 		{
 			Name:    "test1",
 			Version: "1.0.1",
-			Nodes: []*Node{
+			Nodes: []*registry.Node{
 				{
 					Id:      "test1-1",
 					Address: "10.0.0.1:10001",
@@ -28,7 +30,7 @@ func TestWatcher(t *testing.T) {
 		{
 			Name:    "test2",
 			Version: "1.0.2",
-			Nodes: []*Node{
+			Nodes: []*registry.Node{
 				{
 					Id:      "test2-1",
 					Address: "10.0.0.2:10002",
@@ -41,7 +43,7 @@ func TestWatcher(t *testing.T) {
 		{
 			Name:    "test3",
 			Version: "1.0.3",
-			Nodes: []*Node{
+			Nodes: []*registry.Node{
 				{
 					Id:      "test3-1",
 					Address: "10.0.0.3:10003",
@@ -53,7 +55,7 @@ func TestWatcher(t *testing.T) {
 		},
 	}
 
-	testFn := func(service, s *Service) {
+	testFn := func(service, s *registry.Service) {
 		if s == nil {
 			t.Fatalf("Expected one result for %s got nil", service.Name)
 
@@ -84,10 +86,10 @@ func TestWatcher(t *testing.T) {
 
 	travis := os.Getenv("TRAVIS")
 
-	var opts []Option
+	var opts []registry.Option
 
 	if travis == "true" {
-		opts = append(opts, Timeout(time.Millisecond*100))
+		opts = append(opts, registry.Timeout(time.Millisecond*100))
 	}
 
 	// new registry

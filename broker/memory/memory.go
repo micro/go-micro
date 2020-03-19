@@ -15,6 +15,10 @@ import (
 	mnet "github.com/micro/go-micro/v2/util/net"
 )
 
+func init() {
+	broker.DefaultBrokers["memory"] = NewBroker
+}
+
 type memoryBroker struct {
 	opts broker.Options
 

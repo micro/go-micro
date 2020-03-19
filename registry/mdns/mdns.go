@@ -7,9 +7,8 @@ import (
 	"github.com/micro/go-micro/v2/registry"
 )
 
-// NewRegistry returns a new mdns registry
-func NewRegistry(opts ...registry.Option) registry.Registry {
-	return registry.NewRegistry(opts...)
+func init() {
+	registry.DefaultRegistries["mdns"] = NewRegistry
 }
 
 // Domain sets the mdnsDomain

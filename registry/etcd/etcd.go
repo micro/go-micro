@@ -21,6 +21,10 @@ import (
 	"go.uber.org/zap"
 )
 
+func init() {
+	registry.DefaultRegistries["etcd"] = NewRegistry
+}
+
 var (
 	prefix = "/micro/registry/"
 )

@@ -8,6 +8,7 @@ import (
 	"github.com/micro/go-micro/v2/client"
 	"github.com/micro/go-micro/v2/client/grpc"
 	"github.com/micro/go-micro/v2/registry"
+	mregistry "github.com/micro/go-micro/v2/registry/mdns"
 	pb "github.com/micro/go-micro/v2/registry/service/proto"
 )
 
@@ -15,6 +16,10 @@ var (
 	// The default service name
 	DefaultService = "go.micro.registry"
 )
+
+func init() {
+	registry.DefaultRegistries["service"] = NewRegistry
+}
 
 type serviceRegistry struct {
 	opts registry.Options
@@ -147,7 +152,7 @@ func NewRegistry(opts ...registry.Option) registry.Registry {
 	}
 
 	// use mdns as a fall back in case its used
-	mReg := registry.NewRegistry()
+	mReg := mregistry.NewRegistry()
 
 	// create new client with mdns
 	cli := grpc.NewClient(

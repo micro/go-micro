@@ -20,6 +20,10 @@ import (
 	nats "github.com/nats-io/nats.go"
 )
 
+func init() {
+	broker.DefaultBrokers["nats"] = NewBroker
+}
+
 type natsBroker struct {
 	sync.Once
 	sync.RWMutex

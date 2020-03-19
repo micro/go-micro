@@ -1,15 +1,16 @@
-package registry
+package mdns
 
 import (
 	"fmt"
 	"strings"
 
+	"github.com/micro/go-micro/v2/registry"
 	"github.com/micro/mdns"
 )
 
 type mdnsWatcher struct {
 	id   string
-	wo   WatchOptions
+	wo   registry.WatchOptions
 	ch   chan *mdns.ServiceEntry
 	exit chan struct{}
 	// the mdns domain
@@ -18,7 +19,7 @@ type mdnsWatcher struct {
 	registry *mdnsRegistry
 }
 
-func (m *mdnsWatcher) Next() (*Result, error) {
+func (m *mdnsWatcher) Next() (*registry.Result, error) {
 	for {
 		select {
 		case e := <-m.ch:
@@ -45,7 +46,7 @@ func (m *mdnsWatcher) Next() (*Result, error) {
 				action = "create"
 			}
 
-			service := &Service{
+			service := &registry.Service{
 				Name:      txt.Service,
 				Version:   txt.Version,
 				Endpoints: txt.Endpoints,
@@ -57,18 +58,18 @@ func (m *mdnsWatcher) Next() (*Result, error) {
 				continue
 			}
 
-			service.Nodes = append(service.Nodes, &Node{
+			service.Nodes = append(service.Nodes, &registry.Node{
 				Id:       strings.TrimSuffix(e.Name, suffix),
 				Address:  fmt.Sprintf("%s:%d", e.AddrV4.String(), e.Port),
 				Metadata: txt.Metadata,
 			})
 
-			return &Result{
+			return &registry.Result{
 				Action:  action,
 				Service: service,
 			}, nil
 		case <-m.exit:
-			return nil, ErrWatcherStopped
+			return nil, registry.ErrWatcherStopped
 		}
 	}
 }

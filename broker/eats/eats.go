@@ -1,4 +1,4 @@
-package broker
+package eats
 
 import (
 	"context"
@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/micro/go-micro/v2/broker"
 	"github.com/micro/go-micro/v2/codec/json"
 	"github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/registry"
@@ -32,7 +33,7 @@ type natsBroker struct {
 
 	// client connection and nats opts
 	conn  *nats.Conn
-	opts  Options
+	opts  broker.Options
 	nopts nats.Options
 
 	// should we drain the connection
@@ -49,20 +50,20 @@ type natsBroker struct {
 
 type subscriber struct {
 	s    *nats.Subscription
-	opts SubscribeOptions
+	opts broker.SubscribeOptions
 }
 
 type publication struct {
 	t   string
 	err error
-	m   *Message
+	m   *broker.Message
 }
 
 func (p *publication) Topic() string {
 	return p.t
 }
 
-func (p *publication) Message() *Message {
+func (p *publication) Message() *broker.Message {
 	return p.m
 }
 
@@ -75,7 +76,7 @@ func (p *publication) Error() error {
 	return p.err
 }
 
-func (s *subscriber) Options() SubscribeOptions {
+func (s *subscriber) Options() broker.SubscribeOptions {
 	return s.opts
 }
 
@@ -364,16 +365,16 @@ func (n *natsBroker) Disconnect() error {
 	return nil
 }
 
-func (n *natsBroker) Init(opts ...Option) error {
+func (n *natsBroker) Init(opts ...broker.Option) error {
 	n.setOption(opts...)
 	return nil
 }
 
-func (n *natsBroker) Options() Options {
+func (n *natsBroker) Options() broker.Options {
 	return n.opts
 }
 
-func (n *natsBroker) Publish(topic string, msg *Message, opts ...PublishOption) error {
+func (n *natsBroker) Publish(topic string, msg *broker.Message, opts ...broker.PublishOption) error {
 	b, err := n.opts.Codec.Marshal(msg)
 	if err != nil {
 		return err
@@ -383,12 +384,12 @@ func (n *natsBroker) Publish(topic string, msg *Message, opts ...PublishOption) 
 	return n.conn.Publish(topic, b)
 }
 
-func (n *natsBroker) Subscribe(topic string, handler Handler, opts ...SubscribeOption) (Subscriber, error) {
+func (n *natsBroker) Subscribe(topic string, handler broker.Handler, opts ...broker.SubscribeOption) (broker.Subscriber, error) {
 	if n.conn == nil {
 		return nil, errors.New("not connected")
 	}
 
-	opt := SubscribeOptions{
+	opt := broker.SubscribeOptions{
 		AutoAck: true,
 		Context: context.Background(),
 	}
@@ -398,7 +399,7 @@ func (n *natsBroker) Subscribe(topic string, handler Handler, opts ...SubscribeO
 	}
 
 	fn := func(msg *nats.Msg) {
-		var m Message
+		var m broker.Message
 		pub := &publication{t: msg.Subject}
 		eh := n.opts.ErrorHandler
 		err := n.opts.Codec.Unmarshal(msg.Data, &m)
@@ -445,7 +446,7 @@ func (n *natsBroker) String() string {
 	return "eats"
 }
 
-func (n *natsBroker) setOption(opts ...Option) {
+func (n *natsBroker) setOption(opts ...broker.Option) {
 	for _, o := range opts {
 		o(&n.opts)
 	}
@@ -486,8 +487,8 @@ func (n *natsBroker) onAsyncError(conn *nats.Conn, sub *nats.Subscription, err e
 	}
 }
 
-func NewBroker(opts ...Option) Broker {
-	options := Options{
+func NewBroker(opts ...broker.Option) broker.Broker {
+	options := broker.Options{
 		// Default codec
 		Codec:    json.Marshaler{},
 		Context:  context.Background(),

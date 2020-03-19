@@ -6,8 +6,8 @@ import (
 )
 
 var (
-	DefaultRegistry = NewRegistry()
-
+	DefaultRegistry   Registry
+	DefaultRegistries = make(map[string]func(...Option) Registry)
 	// Not found error when GetService is called
 	ErrNotFound = errors.New("service not found")
 	// Watcher stopped error when watcher is stopped
