@@ -201,8 +201,23 @@ func AuthHandler(fn func() auth.Auth) server.HandlerWrapper {
 				return errors.Unauthorized("go.micro.auth", authErr.Error())
 			}
 
-			// The user is authorised, allow the call
-			return h(ctx, req, rsp)
+			// If there are no roles required, allow the call
+			roles := a.Options().Roles
+			if len(roles) == 0 {
+				return h(ctx, req, rsp)
+			}
+
+			// Check the user has at least one of the roles
+			for _, reqRole := range roles {
+				for _, accRole := range account.Roles {
+					if reqRole == accRole.Name {
+						return h(ctx, req, rsp)
+					}
+				}
+			}
+
+			// The user does not have the necessary role to make this call
+			return errors.Forbidden("go.micro.auth", "Roles required: %v", strings.Join(roles, ", "))
 		}
 	}
 }
