@@ -88,7 +88,8 @@ func (c *cache) Read(key string, opts ...store.ReadOption) ([]*store.Record, err
 
 func (c *cache) readOne(key string, opts ...store.ReadOption) (*store.Record, error) {
 	for i, s := range c.stores {
-		r, err := s.Read(key, opts...)
+		// ReadOne ignores all options
+		r, err := s.Read(key)
 		if err == nil {
 			if len(r) > 1 {
 				return nil, errors.Wrapf(err, "read from L%d cache (%s) returned multiple records", i, c.stores[i].String())
