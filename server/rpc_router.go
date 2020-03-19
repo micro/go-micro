@@ -526,6 +526,11 @@ func (router *router) ProcessMessage(ctx context.Context, msg Message) (err erro
 
 	// we may have multiple subscribers for the topic
 	for _, sub := range subs {
+		// Nsq one subscriber had multiple queue, one queue bind to one connection, skip repeat subscriber.
+		if sub.opts.Queue != msg.Header()["Queue"] {
+			continue
+		}
+
 		// we may have multiple handlers per subscriber
 		for i := 0; i < len(sub.handlers); i++ {
 			// get the handler
