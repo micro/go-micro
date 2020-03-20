@@ -25,8 +25,6 @@ var (
 
 // Auth providers authentication and authorization
 type Auth interface {
-	// String returns the name of the implementation
-	String() string
 	// Init the auth
 	Init(opts ...Option)
 	// Options set for auth
@@ -43,6 +41,8 @@ type Auth interface {
 	Inspect(token string) (*Account, error)
 	// Refresh an account using a secret
 	Refresh(secret string, opts ...RefreshOption) (*Token, error)
+	// String returns the name of the implementation
+	String() string
 }
 
 // Resource is an entity such as a user or
