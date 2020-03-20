@@ -22,7 +22,7 @@ type Auth interface {
 	// Inspect a token
 	Inspect(token string) (*Account, error)
 	// Renew an account using a secret
-	Renew(secret string) (*Account, error)
+	Renew(secret string) (*Token, error)
 }
 
 // Resource is an entity such as a user or
