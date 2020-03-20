@@ -84,6 +84,8 @@ func (k *kubernetes) getService(labels map[string]string) ([]*service, error) {
 		address := kservice.Spec.ClusterIP
 		port := kservice.Spec.Ports[0]
 		srv.Service.Metadata["address"] = fmt.Sprintf("%s:%d", address, port.Port)
+		// set the type of service
+		srv.Service.Metadata["type"] = kservice.Metadata.Labels["micro"]
 
 		// copy annotations metadata into service metadata
 		for k, v := range kservice.Metadata.Annotations {
