@@ -44,7 +44,7 @@ func (c *config) Init(opts ...Option) error {
 		Loader: memory.NewLoader(),
 		Reader: json.NewReader(),
 	}
-
+	c.exit = make(chan bool)
 	for _, o := range opts {
 		o(&c.opts)
 	}
