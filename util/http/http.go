@@ -1,12 +1,15 @@
 package http
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/micro/go-micro/v2/client/selector"
+	"github.com/micro/go-micro/v2/metadata"
 	"github.com/micro/go-micro/v2/registry"
 )
 
@@ -55,4 +58,15 @@ func NewRoundTripper(opts ...Option) http.RoundTripper {
 		st:   selector.Random,
 		opts: options,
 	}
+}
+
+// RequestToContext puts the `Authorization` header bearer token into context
+// so calls to services will be authorized.
+func RequestToContext(r *http.Request) context.Context {
+	ctx := context.Background()
+	md := make(metadata.Metadata)
+	for k, v := range r.Header {
+		md[k] = strings.Join(v, ",")
+	}
+	return metadata.NewContext(ctx, md)
 }
