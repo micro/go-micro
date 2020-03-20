@@ -125,6 +125,8 @@ func (s *service) Start() error {
 	s.running = true
 	// set status
 	s.Metadata["status"] = "running"
+	// set started
+	s.Metadata["started"] = time.Now().Format(time.RFC3339)
 
 	if s.output != nil {
 		s.streamOutput()
