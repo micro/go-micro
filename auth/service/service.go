@@ -2,10 +2,13 @@ package service
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/micro/go-micro/v2/auth"
 	pb "github.com/micro/go-micro/v2/auth/service/proto"
+	"github.com/micro/go-micro/v2/auth/token"
+	"github.com/micro/go-micro/v2/auth/token/jwt"
 	"github.com/micro/go-micro/v2/client"
 )
 
@@ -20,6 +23,7 @@ func NewAuth(opts ...auth.Option) auth.Auth {
 type svc struct {
 	options auth.Options
 	auth    pb.AuthService
+	jwt     token.Provider
 }
 
 func (s *svc) String() string {
@@ -33,6 +37,13 @@ func (s *svc) Init(opts ...auth.Option) {
 
 	dc := client.DefaultClient
 	s.auth = pb.NewAuthService("go.micro.auth", dc)
+
+	// if we have a JWT public key passed as an option,
+	// we can decode tokens with the type "JWT" locally
+	// and not have to make an RPC call
+	if key := s.options.PublicKey; len(key) > 0 {
+		s.jwt = jwt.NewTokenProvider(token.WithPublicKey(key))
+	}
 }
 
 func (s *svc) Options() auth.Options {
@@ -100,6 +111,20 @@ func (s *svc) Verify(acc *auth.Account, res *auth.Resource) error {
 
 // Inspect a token
 func (s *svc) Inspect(token string) (*auth.Account, error) {
+	// try to decode JWT locally and fall back to srv if an error
+	// occurs, TODO: find a better way of determining if the token
+	// is a JWT, possibly update the interface to take an auth.Token
+	// and not just the string
+	if len(strings.Split(token, ".")) == 3 && s.jwt != nil {
+		if tok, err := s.jwt.Inspect(token); err == nil {
+			return &auth.Account{
+				ID:       tok.Subject,
+				Roles:    tok.Roles,
+				Metadata: tok.Metadata,
+			}, nil
+		}
+	}
+
 	rsp, err := s.auth.Inspect(context.TODO(), &pb.InspectRequest{
 		Token: token,
 	})
