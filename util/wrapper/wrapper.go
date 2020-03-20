@@ -177,7 +177,7 @@ func AuthHandler(fn func() auth.Auth) server.HandlerWrapper {
 			}
 
 			// Verify the token
-			account, authErr := a.Verify(token)
+			account, authErr := a.Inspect(token)
 
 			// If there is an account, set it in the context
 			if authErr == nil {

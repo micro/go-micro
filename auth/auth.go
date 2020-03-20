@@ -4,13 +4,33 @@ package auth
 import (
 	"context"
 	"encoding/json"
-	"time"
+	"errors"
 
+	"github.com/micro/go-micro/v2/auth/token"
 	"github.com/micro/go-micro/v2/metadata"
+)
+
+var (
+	// ErrNotFound is returned when a resouce cannot be found
+	ErrNotFound = errors.New("not found")
+	// ErrEncodingToken is returned when the service encounters an error during encoding
+	ErrEncodingToken = errors.New("error encoding the token")
+	// ErrInvalidToken is returned when the token provided is not valid
+	ErrInvalidToken = errors.New("invalid token provided")
+	// ErrInvalidRole is returned when the role provided was invalid
+	ErrInvalidRole = errors.New("invalid role")
+	// ErrForbidden is returned when a user does not have the necessary roles to access a resource
+	ErrForbidden = errors.New("resource forbidden")
 )
 
 // Auth providers authentication and authorization
 type Auth interface {
+	// String returns the name of the implementation
+	String() string
+	// Init the auth
+	Init(opts ...Option)
+	// Options set for auth
+	Options() Options
 	// Generate a new account
 	Generate(id string, opts ...GenerateOption) (*Account, error)
 	// Grant access to a resource
@@ -22,7 +42,7 @@ type Auth interface {
 	// Inspect a token
 	Inspect(token string) (*Account, error)
 	// Refresh an account using a secret
-	Refresh(secret string) (*Token, error)
+	Refresh(secret string) (*token.Token, error)
 }
 
 // Resource is an entity such as a user or
@@ -35,26 +55,14 @@ type Resource struct {
 	Endpoint string
 }
 
-// Token can be short or long lived
-type Token struct {
-	// The token itself
-	Token string `json:"token"`
-	// Type of token, e.g. JWT
-	Type string `json:"type"`
-	// Time of token creation
-	Created time.Time `json:"created"`
-	// Time of token expiry
-	Expiry time.Time `json:"expiry"`
-}
-
 // Account provided by an auth provider
 type Account struct {
 	// ID of the account (UUIDV4, email or username)
 	ID string `json:"id"`
 	// Token used to authenticate
-	Token Token `json:"token"`
+	Token *token.Token `json:"token"`
 	// Secret used to renew the account
-	Secret Token `json:"secret"`
+	Secret *token.Token `json:"secret"`
 	// Roles associated with the Account
 	Roles []string `json:"roles"`
 	// Any other associated metadata

@@ -70,9 +70,8 @@ import (
 	memTracer "github.com/micro/go-micro/v2/debug/trace/memory"
 
 	// auth
-	jwtAuth "github.com/micro/go-micro/v2/auth/jwt"
-	sAuth "github.com/micro/go-micro/v2/auth/service"
-	storeAuth "github.com/micro/go-micro/v2/auth/store"
+	memAuth "github.com/micro/go-micro/v2/auth/memory"
+	svcAuth "github.com/micro/go-micro/v2/auth/service"
 
 	// auth providers
 	"github.com/micro/go-micro/v2/auth/provider/basic"
@@ -365,9 +364,8 @@ var (
 	}
 
 	DefaultAuths = map[string]func(...auth.Option) auth.Auth{
-		"service": sAuth.NewAuth,
-		"store":   storeAuth.NewAuth,
-		"jwt":     jwtAuth.NewAuth,
+		"service": svcAuth.NewAuth,
+		"memory":  memAuth.NewAuth,
 	}
 
 	DefaultAuthProviders = map[string]func(...provider.Option) provider.Provider{
@@ -707,9 +705,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	}
 
 	if len(authOpts) > 0 {
-		if err := (*c.opts.Auth).Init(authOpts...); err != nil {
-			logger.Fatalf("Error configuring auth: %v", err)
-		}
+		(*c.opts.Auth).Init(authOpts...)
 	}
 
 	if ctx.String("config") == "service" {

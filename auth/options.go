@@ -3,7 +3,10 @@ package auth
 import (
 	"time"
 
+	"github.com/micro/go-micro/v2/auth/token"
+
 	"github.com/micro/go-micro/v2/auth/provider"
+	"github.com/micro/go-micro/v2/store"
 )
 
 type Options struct {
@@ -19,6 +22,12 @@ type Options struct {
 	Provider provider.Provider
 	// LoginURL is the relative url path where a user can login
 	LoginURL string
+	// Store to back auth
+	Store store.Store
+	// TokenProvider manages tokens
+	TokenProvider token.Provider
+	// SecretProvider manages secrets
+	SecretProvider token.Provider
 }
 
 type Option func(o *Options)
@@ -27,6 +36,13 @@ type Option func(o *Options)
 func Exclude(e ...string) Option {
 	return func(o *Options) {
 		o.Exclude = e
+	}
+}
+
+// Store to back auth
+func Store(s store.Store) Option {
+	return func(o *Options) {
+		o.Store = s
 	}
 }
 
@@ -44,8 +60,8 @@ func PrivateKey(key string) Option {
 	}
 }
 
-// ServiceToken sets an auth token
-func ServiceToken(t string) Option {
+// Token sets an auth token
+func Token(t string) Option {
 	return func(o *Options) {
 		o.Token = t
 	}
@@ -65,13 +81,29 @@ func LoginURL(url string) Option {
 	}
 }
 
+// TokenProvider sets the auth TokenProvider
+func TokenProvider(p token.Provider) Option {
+	return func(o *Options) {
+		o.TokenProvider = p
+	}
+}
+
+// SecretProvider sets the auth SecretProvider
+func SecretProvider(p token.Provider) Option {
+	return func(o *Options) {
+		o.SecretProvider = p
+	}
+}
+
 type GenerateOptions struct {
 	// Metadata associated with the account
 	Metadata map[string]string
 	// Roles/scopes associated with the account
-	Roles []*Role
-	// Expiry of the token
-	Expiry time.Time
+	Roles []string
+	// TokenExpiry is the time the token should live for
+	TokenExpiry time.Duration
+	// SecretExpiry is the time the secret should live for
+	SecretExpiry time.Duration
 }
 
 type GenerateOption func(o *GenerateOptions)
@@ -84,16 +116,23 @@ func WithMetadata(md map[string]string) func(o *GenerateOptions) {
 }
 
 // WithRoles for the generated account
-func WithRoles(rs []*Role) func(o *GenerateOptions) {
+func WithRoles(rs []string) func(o *GenerateOptions) {
 	return func(o *GenerateOptions) {
 		o.Roles = rs
 	}
 }
 
-// WithExpiry for the generated account's token expires
-func WithExpiry(ex time.Time) func(o *GenerateOptions) {
+// WithTokenExpiry for the generated account's token expires
+func WithTokenExpiry(ex time.Duration) func(o *GenerateOptions) {
 	return func(o *GenerateOptions) {
-		o.Expiry = ex
+		o.TokenExpiry = ex
+	}
+}
+
+// WithSecretExpiry for the generated account's secret expires
+func WithSecretExpiry(ex time.Duration) func(o *GenerateOptions) {
+	return func(o *GenerateOptions) {
+		o.SecretExpiry = ex
 	}
 }
 
@@ -103,9 +142,16 @@ func NewGenerateOptions(opts ...GenerateOption) GenerateOptions {
 	for _, o := range opts {
 		o(&options)
 	}
-	//set defualt expiry of token
-	if options.Expiry.IsZero() {
-		options.Expiry = time.Now().Add(time.Hour * 24)
+
+	// set defualt expiry of token
+	if options.TokenExpiry == 0 {
+		options.TokenExpiry = time.Minute * 5
 	}
+
+	// set defualt expiry of secret
+	if options.SecretExpiry == 0 {
+		options.SecretExpiry = time.Hour * 24 * 7
+	}
+
 	return options
 }
