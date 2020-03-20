@@ -73,10 +73,11 @@ func (h authHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 
 	// If the token is valid, allow the request
-	if _, err := h.auth.Verify(token); err == nil {
-		h.handler.ServeHTTP(w, req)
-		return
-	}
+	// TOOD: UPDATE TO VERIFY AGAINST RESOURCE
+	// if _, err := h.auth.Verify(token); err == nil {
+	// 	h.handler.ServeHTTP(w, req)
+	// 	return
+	// }
 
 	// If there is no auth login url set, 401
 	if loginURL == "" {

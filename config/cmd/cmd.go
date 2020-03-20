@@ -70,8 +70,8 @@ import (
 	memTracer "github.com/micro/go-micro/v2/debug/trace/memory"
 
 	// auth
-	memAuth "github.com/micro/go-micro/v2/auth/memory"
 	svcAuth "github.com/micro/go-micro/v2/auth/service"
+	storeAuth "github.com/micro/go-micro/v2/auth/store"
 
 	// auth providers
 	"github.com/micro/go-micro/v2/auth/provider/basic"
@@ -365,7 +365,7 @@ var (
 
 	DefaultAuths = map[string]func(...auth.Option) auth.Auth{
 		"service": svcAuth.NewAuth,
-		"memory":  memAuth.NewAuth,
+		"store":   storeAuth.NewAuth,
 	}
 
 	DefaultAuthProviders = map[string]func(...provider.Option) provider.Provider{
