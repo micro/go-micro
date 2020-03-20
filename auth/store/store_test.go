@@ -1,11 +1,11 @@
-package auth
+package store
 
 import (
 	"log"
 	"testing"
 
+	"github.com/micro/go-micro/v2/auth"
 	"github.com/micro/go-micro/v2/auth/token"
-
 	"github.com/micro/go-micro/v2/auth/token/basic"
 	memStore "github.com/micro/go-micro/v2/store/memory"
 )
@@ -16,17 +16,17 @@ func TestGenerate(t *testing.T) {
 	)
 
 	mem := NewAuth(
-		TokenProvider(tokenProv),
-		SecretProvider(tokenProv),
+		auth.TokenProvider(tokenProv),
+		auth.SecretProvider(tokenProv),
 	)
 
 	id := "test"
 	roles := []string{"admin"}
 	metadata := map[string]string{"foo": "bar"}
 
-	opts := []GenerateOption{
-		WithRoles(roles),
-		WithMetadata(metadata),
+	opts := []auth.GenerateOption{
+		auth.WithRoles(roles),
+		auth.WithMetadata(metadata),
 	}
 
 	// generate the account
@@ -56,9 +56,9 @@ func TestGenerate(t *testing.T) {
 
 func TestGrant(t *testing.T) {
 	s := memStore.NewStore()
-	a := NewAuth(Store(s))
+	a := NewAuth(auth.Store(s))
 
-	res := &Resource{Type: "service", Name: "Test", Endpoint: "Foo.Bar"}
+	res := &auth.Resource{Type: "service", Name: "Test", Endpoint: "Foo.Bar"}
 	if err := a.Grant("users.*", res); err != nil {
 		t.Fatalf("Grant returned an error: %v, expected nil", err)
 	}
@@ -74,9 +74,9 @@ func TestGrant(t *testing.T) {
 
 func TestRevoke(t *testing.T) {
 	s := memStore.NewStore()
-	a := NewAuth(Store(s))
+	a := NewAuth(auth.Store(s))
 
-	res := &Resource{Type: "service", Name: "Test", Endpoint: "Foo.Bar"}
+	res := &auth.Resource{Type: "service", Name: "Test", Endpoint: "Foo.Bar"}
 	if err := a.Grant("users.*", res); err != nil {
 		t.Fatalf("Grant returned an error: %v, expected nil", err)
 	}
@@ -110,9 +110,9 @@ func TestInspect(t *testing.T) {
 		roles := []string{"admin"}
 		metadata := map[string]string{"foo": "bar"}
 
-		opts := []GenerateOption{
-			WithRoles(roles),
-			WithMetadata(metadata),
+		opts := []auth.GenerateOption{
+			auth.WithRoles(roles),
+			auth.WithMetadata(metadata),
 		}
 
 		// generate and inspect the token
@@ -139,8 +139,8 @@ func TestInspect(t *testing.T) {
 
 	t.Run("Invalid Token", func(t *testing.T) {
 		_, err := a.Inspect("invalid token")
-		if err != ErrInvalidToken {
-			t.Errorf("Inspect returned %v error, expected %v", err, ErrInvalidToken)
+		if err != auth.ErrInvalidToken {
+			t.Errorf("Inspect returned %v error, expected %v", err, auth.ErrInvalidToken)
 		}
 	})
 }
@@ -152,9 +152,9 @@ func TestRefresh(t *testing.T) {
 		roles := []string{"admin"}
 		metadata := map[string]string{"foo": "bar"}
 
-		opts := []GenerateOption{
-			WithRoles(roles),
-			WithMetadata(metadata),
+		opts := []auth.GenerateOption{
+			auth.WithRoles(roles),
+			auth.WithMetadata(metadata),
 		}
 
 		// generate the account
@@ -183,8 +183,8 @@ func TestRefresh(t *testing.T) {
 
 	t.Run("Invalid Secret", func(t *testing.T) {
 		_, err := a.Refresh("invalid secret")
-		if err != ErrInvalidToken {
-			t.Errorf("Inspect returned %v error, expected %v", err, ErrInvalidToken)
+		if err != auth.ErrInvalidToken {
+			t.Errorf("Inspect returned %v error, expected %v", err, auth.ErrInvalidToken)
 		}
 	})
 }
@@ -192,27 +192,27 @@ func TestRefresh(t *testing.T) {
 func TestVerify(t *testing.T) {
 	testRules := []struct {
 		Role     string
-		Resource *Resource
+		Resource *auth.Resource
 	}{
 		{
 			Role:     "*",
-			Resource: &Resource{Type: "service", Name: "go.micro.apps", Endpoint: "Apps.PublicList"},
+			Resource: &auth.Resource{Type: "service", Name: "go.micro.apps", Endpoint: "Apps.PublicList"},
 		},
 		{
 			Role:     "user.*",
-			Resource: &Resource{Type: "service", Name: "go.micro.apps", Endpoint: "Apps.List"},
+			Resource: &auth.Resource{Type: "service", Name: "go.micro.apps", Endpoint: "Apps.List"},
 		},
 		{
 			Role:     "user.developer",
-			Resource: &Resource{Type: "service", Name: "go.micro.apps", Endpoint: "Apps.Update"},
+			Resource: &auth.Resource{Type: "service", Name: "go.micro.apps", Endpoint: "Apps.Update"},
 		},
 		{
 			Role:     "admin",
-			Resource: &Resource{Type: "service", Name: "go.micro.apps", Endpoint: "Apps.Delete"},
+			Resource: &auth.Resource{Type: "service", Name: "go.micro.apps", Endpoint: "Apps.Delete"},
 		},
 		{
 			Role:     "admin",
-			Resource: &Resource{Type: "service", Name: "*", Endpoint: "*"},
+			Resource: &auth.Resource{Type: "service", Name: "*", Endpoint: "*"},
 		},
 	}
 
@@ -226,66 +226,66 @@ func TestVerify(t *testing.T) {
 	testTable := []struct {
 		Name     string
 		Roles    []string
-		Resource *Resource
+		Resource *auth.Resource
 		Error    error
 	}{
 		{
 			Name:     "An account with no roles accessing a public endpoint",
-			Resource: &Resource{Type: "service", Name: "go.micro.apps", Endpoint: "Apps.PublicList"},
+			Resource: &auth.Resource{Type: "service", Name: "go.micro.apps", Endpoint: "Apps.PublicList"},
 		},
 		{
 			Name:     "An account with no roles accessing a private endpoint",
-			Resource: &Resource{Type: "service", Name: "go.micro.apps", Endpoint: "Apps.Update"},
-			Error:    ErrForbidden,
+			Resource: &auth.Resource{Type: "service", Name: "go.micro.apps", Endpoint: "Apps.Update"},
+			Error:    auth.ErrForbidden,
 		},
 		{
 			Name:     "An account with the user role accessing a user* endpoint",
 			Roles:    []string{"user"},
-			Resource: &Resource{Type: "service", Name: "go.micro.apps", Endpoint: "Apps.List"},
+			Resource: &auth.Resource{Type: "service", Name: "go.micro.apps", Endpoint: "Apps.List"},
 		},
 		{
 			Name:     "An account with the user role accessing a user.admin endpoint",
 			Roles:    []string{"user"},
-			Resource: &Resource{Type: "service", Name: "go.micro.apps", Endpoint: "Apps.Delete"},
-			Error:    ErrForbidden,
+			Resource: &auth.Resource{Type: "service", Name: "go.micro.apps", Endpoint: "Apps.Delete"},
+			Error:    auth.ErrForbidden,
 		},
 		{
 			Name:     "An account with the developer role accessing a user.developer endpoint",
 			Roles:    []string{"user.developer"},
-			Resource: &Resource{Type: "service", Name: "go.micro.apps", Endpoint: "Apps.Update"},
+			Resource: &auth.Resource{Type: "service", Name: "go.micro.apps", Endpoint: "Apps.Update"},
 		},
 		{
 			Name:     "An account with the developer role accessing an admin endpoint",
 			Roles:    []string{"user.developer"},
-			Resource: &Resource{Type: "service", Name: "go.micro.apps", Endpoint: "Apps.Delete"},
-			Error:    ErrForbidden,
+			Resource: &auth.Resource{Type: "service", Name: "go.micro.apps", Endpoint: "Apps.Delete"},
+			Error:    auth.ErrForbidden,
 		},
 		{
 			Name:     "An admin account accessing an admin endpoint",
 			Roles:    []string{"admin"},
-			Resource: &Resource{Type: "service", Name: "go.micro.apps", Endpoint: "Apps.Delete"},
+			Resource: &auth.Resource{Type: "service", Name: "go.micro.apps", Endpoint: "Apps.Delete"},
 		},
 		{
 			Name:     "An admin account accessing a generic service endpoint",
 			Roles:    []string{"admin"},
-			Resource: &Resource{Type: "service", Name: "go.micro.foo", Endpoint: "Foo.Bar"},
+			Resource: &auth.Resource{Type: "service", Name: "go.micro.foo", Endpoint: "Foo.Bar"},
 		},
 		{
 			Name:     "An admin account accessing an unauthorised endpoint",
 			Roles:    []string{"admin"},
-			Resource: &Resource{Type: "infra", Name: "go.micro.foo", Endpoint: "Foo.Bar"},
-			Error:    ErrForbidden,
+			Resource: &auth.Resource{Type: "infra", Name: "go.micro.foo", Endpoint: "Foo.Bar"},
+			Error:    auth.ErrForbidden,
 		},
 		{
 			Name:     "A account with no roles accessing an unauthorised endpoint",
-			Resource: &Resource{Type: "infra", Name: "go.micro.foo", Endpoint: "Foo.Bar"},
-			Error:    ErrForbidden,
+			Resource: &auth.Resource{Type: "infra", Name: "go.micro.foo", Endpoint: "Foo.Bar"},
+			Error:    auth.ErrForbidden,
 		},
 	}
 
 	for _, tc := range testTable {
 		t.Run(tc.Name, func(t *testing.T) {
-			acc := &Account{Roles: tc.Roles}
+			acc := &auth.Account{Roles: tc.Roles}
 			if err := a.Verify(acc, tc.Resource); err != tc.Error {
 				t.Errorf("Verify returned %v error, expected %v", err, tc.Error)
 			}
