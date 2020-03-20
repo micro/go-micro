@@ -21,8 +21,8 @@ type Auth interface {
 	Verify(acc *Account, res *Resource) error
 	// Inspect a token
 	Inspect(token string) (*Account, error)
-	// Renew an account using a secret
-	Renew(secret string) (*Token, error)
+	// Refresh an account using a secret
+	Refresh(secret string) (*Token, error)
 }
 
 // Resource is an entity such as a user or
