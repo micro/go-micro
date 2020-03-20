@@ -19,6 +19,10 @@ type Basic struct {
 func NewTokenProvider(opts ...token.Option) token.Provider {
 	options := token.NewOptions(opts...)
 
+	if options.Store == nil {
+		options.Store = store.DefaultStore
+	}
+
 	return &Basic{
 		store: options.Store,
 	}

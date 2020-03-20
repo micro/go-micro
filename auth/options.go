@@ -80,8 +80,6 @@ type GenerateOptions struct {
 	Metadata map[string]string
 	// Roles/scopes associated with the account
 	Roles []string
-	// TokenExpiry is the time the token should live for
-	TokenExpiry time.Duration
 	// SecretExpiry is the time the secret should live for
 	SecretExpiry time.Duration
 }
@@ -89,28 +87,21 @@ type GenerateOptions struct {
 type GenerateOption func(o *GenerateOptions)
 
 // WithMetadata for the generated account
-func WithMetadata(md map[string]string) func(o *GenerateOptions) {
+func WithMetadata(md map[string]string) GenerateOption {
 	return func(o *GenerateOptions) {
 		o.Metadata = md
 	}
 }
 
 // WithRoles for the generated account
-func WithRoles(rs []string) func(o *GenerateOptions) {
+func WithRoles(rs []string) GenerateOption {
 	return func(o *GenerateOptions) {
 		o.Roles = rs
 	}
 }
 
-// WithTokenExpiry for the generated account's token expires
-func WithTokenExpiry(ex time.Duration) func(o *GenerateOptions) {
-	return func(o *GenerateOptions) {
-		o.TokenExpiry = ex
-	}
-}
-
 // WithSecretExpiry for the generated account's secret expires
-func WithSecretExpiry(ex time.Duration) func(o *GenerateOptions) {
+func WithSecretExpiry(ex time.Duration) GenerateOption {
 	return func(o *GenerateOptions) {
 		o.SecretExpiry = ex
 	}
@@ -123,14 +114,38 @@ func NewGenerateOptions(opts ...GenerateOption) GenerateOptions {
 		o(&options)
 	}
 
-	// set defualt expiry of token
-	if options.TokenExpiry == 0 {
-		options.TokenExpiry = time.Minute * 5
-	}
-
 	// set defualt expiry of secret
 	if options.SecretExpiry == 0 {
 		options.SecretExpiry = time.Hour * 24 * 7
+	}
+
+	return options
+}
+
+type RefreshOptions struct {
+	// TokenExpiry is the time the token should live for
+	TokenExpiry time.Duration
+}
+
+type RefreshOption func(o *RefreshOptions)
+
+// WithTokenExpiry for the token
+func WithTokenExpiry(ex time.Duration) RefreshOption {
+	return func(o *RefreshOptions) {
+		o.TokenExpiry = ex
+	}
+}
+
+// NewRefreshOptions from a slice of options
+func NewRefreshOptions(opts ...RefreshOption) RefreshOptions {
+	var options RefreshOptions
+	for _, o := range opts {
+		o(&options)
+	}
+
+	// set defualt expiry of token
+	if options.TokenExpiry == 0 {
+		options.TokenExpiry = time.Minute
 	}
 
 	return options

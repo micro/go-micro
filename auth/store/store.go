@@ -1,9 +1,6 @@
 package store
 
 import (
-	"encoding/json"
-	"strings"
-
 	"github.com/micro/go-micro/v2/auth"
 	"github.com/micro/go-micro/v2/auth/token"
 	"github.com/micro/go-micro/v2/auth/token/basic"
@@ -36,14 +33,16 @@ func (s *Store) Init(opts ...auth.Option) {
 		o(&s.opts)
 	}
 
-	// use a memory store
+	// use the default store as a fallback
 	if s.opts.Store == nil {
+		s.opts.Store = store.DefaultStore
+	}
+
+	// noop will not work for auth
+	if s.opts.Store.String() == "noop" {
 		s.opts.Store = memStore.NewStore()
 	}
 
-	// use the memory store as the default
-	// with a basic token provider, this is
-	// pluggable to enable better testing
 	if s.tokenProvider == nil {
 		s.tokenProvider = basic.NewTokenProvider(token.WithStore(s.opts.Store))
 	}
@@ -82,30 +81,15 @@ func (s *Store) Generate(id string, opts ...auth.GenerateOption) (*auth.Account,
 	}, nil
 }
 
-type rule struct {
-	Role     string         `json:"rule"`
-	Resource *auth.Resource `json:"resource"`
-}
-
-func (r *rule) Key() string {
-	comps := []string{r.Resource.Type, r.Resource.Name, r.Resource.Endpoint, r.Role}
-	return strings.Join(comps, "/")
-}
-
-func (r *rule) Bytes() []byte {
-	bytes, _ := json.Marshal(r)
-	return bytes
-}
-
 // Grant access to a resource
 func (s *Store) Grant(role string, res *auth.Resource) error {
-	r := rule{role, res}
+	r := Rule{role, res}
 	return s.opts.Store.Write(&store.Record{Key: r.Key(), Value: r.Bytes()})
 }
 
 // Revoke access to a resource
 func (s *Store) Revoke(role string, res *auth.Resource) error {
-	r := rule{role, res}
+	r := Rule{role, res}
 
 	err := s.opts.Store.Delete(r.Key())
 	if err == store.ErrNotFound {
@@ -140,47 +124,6 @@ func (s *Store) Verify(acc *auth.Account, res *auth.Resource) error {
 	return auth.ErrForbidden
 }
 
-func isValidRule(rule rule, acc *auth.Account, res *auth.Resource) bool {
-	if rule.Role == "*" {
-		return true
-	}
-
-	for _, role := range acc.Roles {
-		if rule.Role == role {
-			return true
-		}
-
-		// allow user.anything if role is user.*
-		if strings.HasSuffix(rule.Role, ".*") && strings.HasPrefix(rule.Role, role+".") {
-			return true
-		}
-	}
-
-	return false
-}
-
-func (s *Store) listRules(filters ...string) ([]rule, error) {
-	// get the records from the store
-	prefix := strings.Join(filters, "/")
-	recs, err := s.opts.Store.Read(prefix, store.ReadPrefix())
-	if err != nil {
-		return nil, err
-	}
-
-	// unmarshal the records
-	rules := make([]rule, 0, len(recs))
-	for _, rec := range recs {
-		var r rule
-		if err := json.Unmarshal(rec.Value, &r); err != nil {
-			return nil, err
-		}
-		rules = append(rules, r)
-	}
-
-	// return the rules
-	return rules, nil
-}
-
 // Inspect a token
 func (s *Store) Inspect(t string) (*auth.Account, error) {
 	tok, err := s.tokenProvider.Inspect(t)
@@ -198,7 +141,7 @@ func (s *Store) Inspect(t string) (*auth.Account, error) {
 }
 
 // Refresh an account using a secret
-func (s *Store) Refresh(secret string) (*auth.Token, error) {
+func (s *Store) Refresh(secret string, opts ...auth.RefreshOption) (*auth.Token, error) {
 	sec, err := s.secretProvider.Inspect(secret)
 	if err == token.ErrInvalidToken || err == token.ErrNotFound {
 		return nil, auth.ErrInvalidToken
@@ -206,10 +149,11 @@ func (s *Store) Refresh(secret string) (*auth.Token, error) {
 		return nil, err
 	}
 
-	opts := []token.GenerateOption{
+	options := auth.NewRefreshOptions(opts...)
+
+	return s.tokenProvider.Generate(sec.Subject,
+		token.WithExpiry(options.TokenExpiry),
 		token.WithMetadata(sec.Metadata),
 		token.WithRoles(sec.Roles),
-	}
-
-	return s.tokenProvider.Generate(sec.Subject, opts...)
+	)
 }
