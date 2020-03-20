@@ -18,11 +18,13 @@ type Auth interface {
 	// Revoke access to a resource
 	Revoke(role string, res *Resource) error
 	// Verify an account has access to a resource
-	Verify(*Account, *Resource) error
+	Verify(acc *Account, res *Resource) error
 	// Inspect a token
 	Inspect(token string) (*Account, error)
 	// Renew an account using a secret
 	Renew(secret string) (*Account, error)
+	// Load all the rules for the account
+	Load(res *Resource) (*Rule, error)
 }
 
 // Resource is an entity such as a user or
@@ -35,10 +37,10 @@ type Resource struct {
 	Endpoint string
 }
 
-// Role an account has
-type Role struct {
-	// Name of the role
-	Name string
+// Rule an account has
+type Rule struct {
+	// Role of the role
+	Role string
 	// Resource it has access to
 	Resource *Resource
 }
@@ -64,7 +66,7 @@ type Account struct {
 	// Secret used to renew the account
 	Secret Token `json:"secret"`
 	// Roles associated with the Account
-	Roles []*Role `json:"roles"`
+	Roles []string `json:"roles"`
 	// Any other associated metadata
 	Metadata map[string]string `json:"metadata"`
 }
