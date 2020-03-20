@@ -23,8 +23,6 @@ type Auth interface {
 	Inspect(token string) (*Account, error)
 	// Renew an account using a secret
 	Renew(secret string) (*Account, error)
-	// Load all the rules for the account
-	Load(res *Resource) (*Rule, error)
 }
 
 // Resource is an entity such as a user or
@@ -35,14 +33,6 @@ type Resource struct {
 	Type string
 	// Endpoint resource e.g NotesService.Create
 	Endpoint string
-}
-
-// Rule an account has
-type Rule struct {
-	// Role of the role
-	Role string
-	// Resource it has access to
-	Resource *Resource
 }
 
 // Token can be short or long lived
