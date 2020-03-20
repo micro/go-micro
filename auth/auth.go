@@ -23,24 +23,6 @@ var (
 	ErrForbidden = errors.New("resource forbidden")
 )
 
-// Token can be short or long lived
-type Token struct {
-	// The token itself
-	Token string `json:"token"`
-	// Type of token, e.g. JWT
-	Type string `json:"type"`
-	// Time of token creation
-	Created time.Time `json:"created"`
-	// Time of token expiry
-	Expiry time.Time `json:"expiry"`
-	// Subject of the token, e.g. the account ID
-	Subject string `json:"subject"`
-	// Roles granted to the token
-	Roles []string `json:"roles"`
-	// Metadata embedded in the token
-	Metadata map[string]string `json:"metadata"`
-}
-
 // Auth providers authentication and authorization
 type Auth interface {
 	// String returns the name of the implementation
@@ -77,13 +59,29 @@ type Resource struct {
 type Account struct {
 	// ID of the account (UUIDV4, email or username)
 	ID string `json:"id"`
-	// Token used to authenticate
-	Token *Token `json:"token"`
 	// Secret used to renew the account
 	Secret *Token `json:"secret"`
 	// Roles associated with the Account
 	Roles []string `json:"roles"`
 	// Any other associated metadata
+	Metadata map[string]string `json:"metadata"`
+}
+
+// Token can be short or long lived
+type Token struct {
+	// The token itself
+	Token string `json:"token"`
+	// Type of token, e.g. JWT
+	Type string `json:"type"`
+	// Time of token creation
+	Created time.Time `json:"created"`
+	// Time of token expiry
+	Expiry time.Time `json:"expiry"`
+	// Subject of the token, e.g. the account ID
+	Subject string `json:"subject"`
+	// Roles granted to the token
+	Roles []string `json:"roles"`
+	// Metadata embedded in the token
 	Metadata map[string]string `json:"metadata"`
 }
 

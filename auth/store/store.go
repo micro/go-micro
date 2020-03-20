@@ -73,24 +73,12 @@ func (s *Store) Generate(id string, opts ...auth.GenerateOption) (*auth.Account,
 		return nil, err
 	}
 
-	// Generate the short-lived token
-	tokenOpts := []token.GenerateOption{
-		token.WithExpiry(options.TokenExpiry),
-		token.WithMetadata(options.Metadata),
-		token.WithRoles(options.Roles),
-	}
-	token, err := s.tokenProvider.Generate(id, tokenOpts...)
-	if err != nil {
-		return nil, err
-	}
-
 	// return the account
 	return &auth.Account{
 		ID:       id,
 		Roles:    options.Roles,
 		Metadata: options.Metadata,
 		Secret:   secret,
-		Token:    token,
 	}, nil
 }
 

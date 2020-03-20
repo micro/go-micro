@@ -37,10 +37,7 @@ func TestGenerate(t *testing.T) {
 		t.Errorf("Generate returned %v as the metadata, expected %v", acc.Metadata, metadata)
 	}
 
-	// validate the token and secret are valid
-	if _, err := a.Inspect(acc.Token.Token); err != nil {
-		t.Errorf("Generate returned an invalid token, error: %v", err)
-	}
+	// validate the secret is valid
 	if _, err := a.Refresh(acc.Secret.Token); err != nil {
 		t.Errorf("Generate returned an invalid secret, error: %v", err)
 	}
@@ -108,23 +105,27 @@ func TestInspect(t *testing.T) {
 		}
 
 		// generate and inspect the token
-		tok, err := a.Generate("test", opts...)
+		acc, err := a.Generate("test", opts...)
 		if err != nil {
 			log.Fatalf("Generate returned an error: %v, expected nil", err)
 		}
-		acc, err := a.Inspect(tok.Token.Token)
+		tok, err := a.Refresh(acc.Secret.Token)
+		if err != nil {
+			log.Fatalf("Refresh returned an error: %v, expected nil", err)
+		}
+		acc2, err := a.Inspect(tok.Token)
 		if err != nil {
 			log.Fatalf("Inspect returned an error: %v, expected nil", err)
 		}
 
 		// validate the account attributes were retrieved correctly
-		if acc.ID != id {
+		if acc2.ID != id {
 			t.Errorf("Generate returned %v as the ID, expected %v", acc.ID, id)
 		}
-		if len(acc.Roles) != len(roles) {
+		if len(acc2.Roles) != len(roles) {
 			t.Errorf("Generate returned %v as the roles, expected %v", acc.Roles, roles)
 		}
-		if len(acc.Metadata) != len(metadata) {
+		if len(acc2.Metadata) != len(metadata) {
 			t.Errorf("Generate returned %v as the metadata, expected %v", acc.Metadata, metadata)
 		}
 	})
