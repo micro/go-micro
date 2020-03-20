@@ -3,8 +3,6 @@ package auth
 import (
 	"time"
 
-	"github.com/micro/go-micro/v2/auth/token"
-
 	"github.com/micro/go-micro/v2/auth/provider"
 	"github.com/micro/go-micro/v2/store"
 )
@@ -24,10 +22,6 @@ type Options struct {
 	LoginURL string
 	// Store to back auth
 	Store store.Store
-	// TokenProvider manages tokens
-	TokenProvider token.Provider
-	// SecretProvider manages secrets
-	SecretProvider token.Provider
 }
 
 type Option func(o *Options)
@@ -60,8 +54,8 @@ func PrivateKey(key string) Option {
 	}
 }
 
-// Token sets an auth token
-func Token(t string) Option {
+// ServiceToken sets an auth token
+func ServiceToken(t string) Option {
 	return func(o *Options) {
 		o.Token = t
 	}
@@ -78,20 +72,6 @@ func Provider(p provider.Provider) Option {
 func LoginURL(url string) Option {
 	return func(o *Options) {
 		o.LoginURL = url
-	}
-}
-
-// TokenProvider sets the auth TokenProvider
-func TokenProvider(p token.Provider) Option {
-	return func(o *Options) {
-		o.TokenProvider = p
-	}
-}
-
-// SecretProvider sets the auth SecretProvider
-func SecretProvider(p token.Provider) Option {
-	return func(o *Options) {
-		o.SecretProvider = p
 	}
 }
 

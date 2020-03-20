@@ -2,7 +2,6 @@ package auth
 
 import (
 	"github.com/google/uuid"
-	"github.com/micro/go-micro/v2/auth/token"
 )
 
 var (
@@ -66,6 +65,6 @@ func (n *noop) Inspect(token string) (*Account, error) {
 }
 
 // Refresh an account using a secret
-func (n *noop) Refresh(secret string) (*token.Token, error) {
-	return &token.Token{}, nil
+func (n *noop) Refresh(secret string) (*Token, error) {
+	return &Token{}, nil
 }

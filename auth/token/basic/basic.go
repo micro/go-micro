@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/micro/go-micro/v2/auth"
 	"github.com/micro/go-micro/v2/auth/token"
 	"github.com/micro/go-micro/v2/store"
 )
@@ -24,11 +25,11 @@ func NewTokenProvider(opts ...token.Option) token.Provider {
 }
 
 // Generate a token for an account
-func (b *Basic) Generate(subject string, opts ...token.GenerateOption) (*token.Token, error) {
+func (b *Basic) Generate(subject string, opts ...token.GenerateOption) (*auth.Token, error) {
 	options := token.NewGenerateOptions(opts...)
 
 	// construct the token
-	token := token.Token{
+	token := auth.Token{
 		Subject:  subject,
 		Type:     b.String(),
 		Token:    uuid.New().String(),
@@ -59,7 +60,7 @@ func (b *Basic) Generate(subject string, opts ...token.GenerateOption) (*token.T
 }
 
 // Inspect a token
-func (b *Basic) Inspect(t string) (*token.Token, error) {
+func (b *Basic) Inspect(t string) (*auth.Token, error) {
 	// lookup the token in the store
 	recs, err := b.store.Read(t)
 	if err == store.ErrNotFound {
@@ -70,7 +71,7 @@ func (b *Basic) Inspect(t string) (*token.Token, error) {
 	bytes := recs[0].Value
 
 	// unmarshal the bytes
-	var tok *token.Token
+	var tok *auth.Token
 	if err := json.Unmarshal(bytes, &tok); err != nil {
 		return nil, err
 	}

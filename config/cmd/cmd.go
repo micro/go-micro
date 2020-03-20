@@ -663,7 +663,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	}
 
 	if len(ctx.String("auth_token")) > 0 {
-		authOpts = append(authOpts, auth.Token(ctx.String("auth_token")))
+		authOpts = append(authOpts, auth.ServiceToken(ctx.String("auth_token")))
 	}
 
 	if len(ctx.String("auth_public_key")) > 0 {

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
+	"github.com/micro/go-micro/v2/auth"
 	"github.com/micro/go-micro/v2/auth/token"
 )
 
@@ -29,7 +30,7 @@ func NewTokenProvider(opts ...token.Option) token.Provider {
 }
 
 // Generate a new JWT
-func (j *JWT) Generate(subject string, opts ...token.GenerateOption) (*token.Token, error) {
+func (j *JWT) Generate(subject string, opts ...token.GenerateOption) (*auth.Token, error) {
 	// decode the private key
 	priv, err := base64.StdEncoding.DecodeString(j.opts.PrivateKey)
 	if err != nil {
@@ -59,7 +60,7 @@ func (j *JWT) Generate(subject string, opts ...token.GenerateOption) (*token.Tok
 	}
 
 	// return the token
-	return &token.Token{
+	return &auth.Token{
 		Subject:  subject,
 		Token:    tok,
 		Type:     j.String(),
@@ -71,7 +72,7 @@ func (j *JWT) Generate(subject string, opts ...token.GenerateOption) (*token.Tok
 }
 
 // Inspect a JWT
-func (j *JWT) Inspect(t string) (*token.Token, error) {
+func (j *JWT) Inspect(t string) (*auth.Token, error) {
 	// decode the public key
 	pub, err := base64.StdEncoding.DecodeString(j.opts.PublicKey)
 	if err != nil {
@@ -96,7 +97,7 @@ func (j *JWT) Inspect(t string) (*token.Token, error) {
 	}
 
 	// return the token
-	return &token.Token{
+	return &auth.Token{
 		Token:    t,
 		Subject:  claims.Subject,
 		Metadata: claims.Metadata,

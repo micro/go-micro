@@ -210,7 +210,7 @@ func (s *Store) Inspect(t string) (*auth.Account, error) {
 }
 
 // Refresh an account using a secret
-func (s *Store) Refresh(secret string) (*token.Token, error) {
+func (s *Store) Refresh(secret string) (*auth.Token, error) {
 	sec, err := s.secretProvider.Inspect(secret)
 	if err == token.ErrInvalidToken || err == token.ErrNotFound {
 		return nil, auth.ErrInvalidToken

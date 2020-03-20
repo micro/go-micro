@@ -5,20 +5,12 @@ import (
 	"testing"
 
 	"github.com/micro/go-micro/v2/auth"
-	"github.com/micro/go-micro/v2/auth/token"
-	"github.com/micro/go-micro/v2/auth/token/basic"
 	memStore "github.com/micro/go-micro/v2/store/memory"
 )
 
 func TestGenerate(t *testing.T) {
-	tokenProv := basic.NewTokenProvider(
-		token.WithStore(memStore.NewStore()),
-	)
-
-	mem := NewAuth(
-		auth.TokenProvider(tokenProv),
-		auth.SecretProvider(tokenProv),
-	)
+	s := memStore.NewStore()
+	a := NewAuth(auth.Store(s))
 
 	id := "test"
 	roles := []string{"admin"}
@@ -30,7 +22,7 @@ func TestGenerate(t *testing.T) {
 	}
 
 	// generate the account
-	acc, err := mem.Generate(id, opts...)
+	acc, err := a.Generate(id, opts...)
 	if err != nil {
 		t.Fatalf("Generate returned an error: %v, expected nil", err)
 	}
@@ -46,10 +38,10 @@ func TestGenerate(t *testing.T) {
 	}
 
 	// validate the token and secret are valid
-	if tokenProv.Inspect(acc.Token.Token); err != nil {
+	if _, err := a.Inspect(acc.Token.Token); err != nil {
 		t.Errorf("Generate returned an invalid token, error: %v", err)
 	}
-	if tokenProv.Inspect(acc.Secret.Token); err != nil {
+	if _, err := a.Refresh(acc.Secret.Token); err != nil {
 		t.Errorf("Generate returned an invalid secret, error: %v", err)
 	}
 }

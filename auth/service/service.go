@@ -3,7 +3,6 @@ package service
 import (
 	"github.com/micro/go-micro/v2/auth"
 	pb "github.com/micro/go-micro/v2/auth/service/proto"
-	"github.com/micro/go-micro/v2/auth/token"
 	"github.com/micro/go-micro/v2/client"
 )
 
@@ -63,6 +62,6 @@ func (s *svc) Inspect(token string) (*auth.Account, error) {
 }
 
 // Refresh an account using a secret
-func (s *svc) Refresh(secret string) (*token.Token, error) {
+func (s *svc) Refresh(secret string) (*auth.Token, error) {
 	return nil, nil
 }
