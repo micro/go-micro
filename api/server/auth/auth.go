@@ -43,7 +43,7 @@ func (h authHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	} else {
 		// Get the token out the cookies if not provided in headers
 		if c, err := req.Cookie("micro-token"); err == nil && c != nil {
-			token = strings.TrimPrefix(c.Value, auth.CookieName+"=")
+			token = strings.TrimPrefix(c.Value, auth.TokenCookieName+"=")
 			req.Header.Set("Authorization", BearerScheme+token)
 		}
 	}

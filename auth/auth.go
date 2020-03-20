@@ -86,12 +86,12 @@ type Token struct {
 }
 
 const (
-	// MetadataKey is the key used when storing the account
-	// in metadata
+	// MetadataKey is the key used when storing the account in metadata
 	MetadataKey = "auth-account"
-	// CookieName is the name of the cookie which stores the
-	// auth token
-	CookieName = "micro-token"
+	// TokenCookieName is the name of the cookie which stores the auth token
+	TokenCookieName = "micro-token"
+	// SecretCookieName is the name of the cookie which stores the auth secret
+	SecretCookieName = "micro-secret"
 )
 
 // AccountFromContext gets the account from the context, which

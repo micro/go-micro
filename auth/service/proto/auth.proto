@@ -3,12 +3,12 @@ syntax = "proto3";
 package go.micro.auth;
 
 service Auth {
-    rpc Generate(GenerateRequest) returns (GenerateResponse) {};
-		rpc Grant(GrantRequest) returns (GrantResponse) {};
-    rpc Verify(VerifyRequest) returns (VerifyResponse) {};
-    rpc Revoke(RevokeRequest)  returns (RevokeResponse) {};
-		rpc Inspect(InspectRequest)  returns (InspectResponse) {};		
-    rpc Refresh(RefreshRequest)  returns (RefreshResponse) {};
+	rpc Generate(GenerateRequest) returns (GenerateResponse) {};
+	rpc Grant(GrantRequest) returns (GrantResponse) {};
+	rpc Verify(VerifyRequest) returns (VerifyResponse) {};
+	rpc Revoke(RevokeRequest)  returns (RevokeResponse) {};
+	rpc Inspect(InspectRequest)  returns (InspectResponse) {};		
+	rpc Refresh(RefreshRequest)  returns (RefreshResponse) {};
 }
 
 message Token {
