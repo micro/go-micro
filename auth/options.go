@@ -44,8 +44,8 @@ func PrivateKey(key string) Option {
 	}
 }
 
-// Token sets an auth token
-func Token(t string) Option {
+// ServiceToken sets an auth token
+func ServiceToken(t string) Option {
 	return func(o *Options) {
 		o.Token = t
 	}
@@ -70,28 +70,28 @@ type GenerateOptions struct {
 	Metadata map[string]string
 	// Roles/scopes associated with the account
 	Roles []*Role
-	//Expiry of the token
+	// Expiry of the token
 	Expiry time.Time
 }
 
 type GenerateOption func(o *GenerateOptions)
 
-// Metadata for the generated account
-func Metadata(md map[string]string) func(o *GenerateOptions) {
+// WithMetadata for the generated account
+func WithMetadata(md map[string]string) func(o *GenerateOptions) {
 	return func(o *GenerateOptions) {
 		o.Metadata = md
 	}
 }
 
-// Roles for the generated account
-func Roles(rs []*Role) func(o *GenerateOptions) {
+// WithRoles for the generated account
+func WithRoles(rs []*Role) func(o *GenerateOptions) {
 	return func(o *GenerateOptions) {
 		o.Roles = rs
 	}
 }
 
-// Expiry for the generated account's token expires
-func Expiry(ex time.Time) func(o *GenerateOptions) {
+// WithExpiry for the generated account's token expires
+func WithExpiry(ex time.Time) func(o *GenerateOptions) {
 	return func(o *GenerateOptions) {
 		o.Expiry = ex
 	}
