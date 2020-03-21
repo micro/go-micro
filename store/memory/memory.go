@@ -106,7 +106,9 @@ func (m *memoryStore) get(k string) (*store.Record, error) {
 	newRecord.Key = storedRecord.key
 	newRecord.Value = make([]byte, len(storedRecord.value))
 	copy(newRecord.Value, storedRecord.value)
-	newRecord.Expiry = time.Until(storedRecord.expiresAt)
+	if !storedRecord.expiresAt.IsZero() {
+		newRecord.Expiry = time.Until(storedRecord.expiresAt)
+	}
 
 	return newRecord, nil
 }
