@@ -14,13 +14,11 @@ import (
 	"github.com/micro/go-micro/v2/api/handler"
 	proto "github.com/micro/go-micro/v2/api/internal/proto"
 	"github.com/micro/go-micro/v2/client"
-	"github.com/micro/go-micro/v2/client/selector"
 	"github.com/micro/go-micro/v2/codec"
 	"github.com/micro/go-micro/v2/codec/jsonrpc"
 	"github.com/micro/go-micro/v2/codec/protorpc"
 	"github.com/micro/go-micro/v2/errors"
 	"github.com/micro/go-micro/v2/logger"
-	"github.com/micro/go-micro/v2/registry"
 	"github.com/micro/go-micro/v2/util/ctx"
 )
 
@@ -58,14 +56,6 @@ type buffer struct {
 
 func (b *buffer) Write(_ []byte) (int, error) {
 	return 0, nil
-}
-
-// strategy is a hack for selection
-func strategy(services []*registry.Service) selector.Strategy {
-	return func(_ []*registry.Service) selector.Next {
-		// ignore input to this function, use services above
-		return selector.Random(services)
-	}
 }
 
 func (h *rpcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -114,9 +104,6 @@ func (h *rpcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// create strategy
-	so := selector.WithStrategy(strategy(service.Services))
-
 	// walk the standard call path
 
 	// get payload
@@ -148,7 +135,7 @@ func (h *rpcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		)
 
 		// make the call
-		if err := c.Call(cx, req, response, client.WithSelectOption(so)); err != nil {
+		if err := c.Call(cx, req, response); err != nil {
 			writeError(w, r, err)
 			return
 		}
@@ -179,7 +166,7 @@ func (h *rpcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		)
 
 		// make the call
-		if err := c.Call(cx, req, &response, client.WithSelectOption(so)); err != nil {
+		if err := c.Call(cx, req, &response); err != nil {
 			writeError(w, r, err)
 			return
 		}

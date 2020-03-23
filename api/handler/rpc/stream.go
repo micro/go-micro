@@ -9,7 +9,6 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/micro/go-micro/v2/api"
 	"github.com/micro/go-micro/v2/client"
-	"github.com/micro/go-micro/v2/client/selector"
 )
 
 var upgrader = websocket.Upgrader{
@@ -49,10 +48,8 @@ func serveWebsocket(ctx context.Context, w http.ResponseWriter, r *http.Request,
 		client.WithContentType("application/json"),
 	)
 
-	so := selector.WithStrategy(strategy(service.Services))
-
 	// create a new stream
-	stream, err := c.Stream(ctx, req, client.WithSelectOption(so))
+	stream, err := c.Stream(ctx, req)
 	if err != nil {
 		return
 	}
