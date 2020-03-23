@@ -1,6 +1,7 @@
 package grpc
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -8,7 +9,6 @@ import (
 
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
-	jsoniter "github.com/json-iterator/go"
 	"github.com/micro/go-micro/v2/codec"
 	"github.com/micro/go-micro/v2/codec/bytes"
 	"google.golang.org/grpc"
@@ -21,6 +21,7 @@ type bytesCodec struct{}
 type wrapCodec struct{ encoding.Codec }
 
 var jsonpbMarshaler = &jsonpb.Marshaler{}
+var useNumber bool
 
 var (
 	defaultGRPCCodecs = map[string]encoding.Codec{
@@ -33,18 +34,11 @@ var (
 		"application/grpc+proto":   protoCodec{},
 		"application/grpc+bytes":   bytesCodec{},
 	}
-
-	json = jsoniter.ConfigCompatibleWithStandardLibrary
 )
 
 // UseNumber fix unmarshal Number(8234567890123456789) to interface(8.234567890123457e+18)
 func UseNumber() {
-	json = jsoniter.Config{
-		UseNumber:              true,
-		EscapeHTML:             true,
-		SortMapKeys:            true,
-		ValidateJsonRawMessage: true,
-	}.Froze()
+	useNumber = true
 }
 
 func (w wrapCodec) String() string {
@@ -134,7 +128,12 @@ func (jsonCodec) Unmarshal(data []byte, v interface{}) error {
 	if pb, ok := v.(proto.Message); ok {
 		return jsonpb.Unmarshal(b.NewReader(data), pb)
 	}
-	return json.Unmarshal(data, v)
+
+	dec := json.NewDecoder(b.NewReader(data))
+	if useNumber {
+		dec.UseNumber()
+	}
+	return dec.Decode(v)
 }
 
 func (jsonCodec) Name() string {

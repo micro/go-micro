@@ -19,6 +19,7 @@ import (
 	"github.com/micro/go-micro/v2/codec/jsonrpc"
 	"github.com/micro/go-micro/v2/codec/protorpc"
 	"github.com/micro/go-micro/v2/errors"
+	"github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/registry"
 	"github.com/micro/go-micro/v2/util/ctx"
 )
@@ -90,7 +91,7 @@ func (h *rpcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// only allow post when we have the router
 	if r.Method != "GET" && (h.opts.Router != nil && r.Method != "POST") {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		writeError(w, r, errors.MethodNotAllowed("go.micro.api", "method not allowed"))
 		return
 	}
 
@@ -296,7 +297,12 @@ func writeError(w http.ResponseWriter, r *http.Request, err error) {
 		w.Header().Set("grpc-message", ce.Detail)
 	}
 
-	w.Write([]byte(ce.Error()))
+	_, werr := w.Write([]byte(ce.Error()))
+	if err != nil {
+		if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
+			logger.Error(werr)
+		}
+	}
 }
 
 func writeResponse(w http.ResponseWriter, r *http.Request, rsp []byte) {
@@ -312,7 +318,13 @@ func writeResponse(w http.ResponseWriter, r *http.Request, rsp []byte) {
 	}
 
 	// write response
-	w.Write(rsp)
+	_, err := w.Write(rsp)
+	if err != nil {
+		if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
+			logger.Error(err)
+		}
+	}
+
 }
 
 func NewHandler(opts ...handler.Option) handler.Handler {
