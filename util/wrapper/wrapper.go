@@ -164,6 +164,11 @@ func AuthHandler(fn func() auth.Auth) server.HandlerWrapper {
 				return h(ctx, req, rsp)
 			}
 
+			// Check for auth service endpoints which should be excluded from auth
+			if strings.HasPrefix(req.Endpoint(), "Auth.") {
+				return h(ctx, req, rsp)
+			}
+
 			// Extract the token if present. Note: if noop is being used
 			// then the token can be blank without erroring
 			var token string

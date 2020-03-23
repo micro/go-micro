@@ -48,17 +48,37 @@ func (h authHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	// If the token is valid, allow the request
-	// TOOD: UPDATE TO VERIFY AGAINST RESOURCE
-	// if _, err := h.auth.Verify(token); err == nil {
-	// 	h.handler.ServeHTTP(w, req)
-	// 	return
-	// }
+	// Get the account using the token, fallback to a blank account
+	// since some endpoints can be unauthenticated, so the lack of an
+	// account doesn't necesserially mean a forbidden request
+	acc, err := h.auth.Inspect(token)
+	if err != nil {
+		acc = &auth.Account{}
+	}
+	err = h.auth.Verify(acc, &auth.Resource{
+		Type:     "service",
+		Name:     "go.micro.web",
+		Endpoint: req.URL.Path,
+	})
+
+	// The account has the necessary permissions to access the
+	// resource
+	if err == nil {
+		h.handler.ServeHTTP(w, req)
+		return
+	}
+
+	// The account is set, but they don't have enough permissions,
+	// hence we 403.
+	if len(acc.ID) > 0 {
+		w.WriteHeader(http.StatusForbidden)
+		return
+	}
 
 	// If there is no auth login url set, 401
 	loginURL := h.auth.Options().LoginURL
 	if loginURL == "" {
-		w.WriteHeader(401)
+		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 
