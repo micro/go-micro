@@ -14,8 +14,6 @@ type Options struct {
 	PublicKey string
 	// Private key base64 encoded
 	PrivateKey string
-	// Endpoints to exclude
-	Exclude []string
 	// Provider is an auth provider
 	Provider provider.Provider
 	// LoginURL is the relative url path where a user can login
@@ -25,13 +23,6 @@ type Options struct {
 }
 
 type Option func(o *Options)
-
-// Exclude ecludes a set of endpoints from authorization
-func Exclude(e ...string) Option {
-	return func(o *Options) {
-		o.Exclude = e
-	}
-}
 
 // Store to back auth
 func Store(s store.Store) Option {

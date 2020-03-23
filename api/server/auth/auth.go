@@ -48,30 +48,6 @@ func (h authHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	// Return if the user disabled auth on this endpoint
-	excludes := h.auth.Options().Exclude
-	excludes = append(excludes, DefaultExcludes...)
-
-	loginURL := h.auth.Options().LoginURL
-	if len(loginURL) > 0 {
-		excludes = append(excludes, loginURL)
-	}
-
-	for _, e := range excludes {
-		// is a standard exclude, e.g. /rpc
-		if e == req.URL.Path {
-			h.handler.ServeHTTP(w, req)
-			return
-		}
-
-		// is a wildcard exclude, e.g. /services/*
-		wildcard := strings.Replace(e, "*", "", 1)
-		if strings.HasSuffix(e, "*") && strings.HasPrefix(req.URL.Path, wildcard) {
-			h.handler.ServeHTTP(w, req)
-			return
-		}
-	}
-
 	// If the token is valid, allow the request
 	// TOOD: UPDATE TO VERIFY AGAINST RESOURCE
 	// if _, err := h.auth.Verify(token); err == nil {
@@ -80,6 +56,7 @@ func (h authHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	// }
 
 	// If there is no auth login url set, 401
+	loginURL := h.auth.Options().LoginURL
 	if loginURL == "" {
 		w.WriteHeader(401)
 		return

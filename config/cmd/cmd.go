@@ -270,11 +270,6 @@ var (
 			EnvVars: []string{"MICRO_AUTH_PRIVATE_KEY"},
 			Usage:   "Private key for JWT auth (base64 encoded PEM)",
 		},
-		&cli.StringSliceFlag{
-			Name:    "auth_exclude",
-			EnvVars: []string{"MICRO_AUTH_EXCLUDE"},
-			Usage:   "Comma-separated list of endpoints excluded from authentication, e.g. Users.ListUsers",
-		},
 		&cli.StringFlag{
 			Name:    "auth_provider",
 			EnvVars: []string{"MICRO_AUTH_PROVIDER"},
@@ -672,10 +667,6 @@ func (c *cmd) Before(ctx *cli.Context) error {
 
 	if len(ctx.String("auth_private_key")) > 0 {
 		authOpts = append(authOpts, auth.PrivateKey(ctx.String("auth_private_key")))
-	}
-
-	if len(ctx.StringSlice("auth_exclude")) > 0 {
-		authOpts = append(authOpts, auth.Exclude(ctx.StringSlice("auth_exclude")...))
 	}
 
 	if name := ctx.String("auth_provider"); len(name) > 0 {
