@@ -118,7 +118,7 @@ func (s *service) Init(opts ...Option) {
 		// May need to re-read value on change
 		// TODO: should be scoped to micro/auth/token
 		if tk, _ := config.Get("token"); len(tk) > 0 {
-			s.opts.Auth.Init(auth.Token(tk))
+			s.opts.Auth.Init(auth.ServiceToken(tk))
 		}
 	})
 }

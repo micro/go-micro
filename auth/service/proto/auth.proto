@@ -3,48 +3,82 @@ syntax = "proto3";
 package go.micro.auth;
 
 service Auth {
-    rpc Generate(GenerateRequest) returns (GenerateResponse) {};
-    rpc Verify(VerifyRequest) returns (VerifyResponse) {};
-    rpc Revoke(RevokeRequest)  returns (RevokeResponse) {};
+	rpc Generate(GenerateRequest) returns (GenerateResponse) {};
+	rpc Grant(GrantRequest) returns (GrantResponse) {};
+	rpc Verify(VerifyRequest) returns (VerifyResponse) {};
+	rpc Revoke(RevokeRequest)  returns (RevokeResponse) {};
+	rpc Inspect(InspectRequest)  returns (InspectResponse) {};		
+	rpc Refresh(RefreshRequest)  returns (RefreshResponse) {};
 }
 
-message Account{
-	string id = 1;
-	string token = 2;
+message Token {
+	string token = 1;
+	string type = 2;
 	int64 created = 3;
 	int64 expiry = 4;
-	repeated Role roles = 5;
-	map<string, string> metadata = 6;
+	string subject = 5;
+	repeated string roles = 6;
+	map<string, string> metadata = 7;
 }
 
-message Role {
-	string name = 1;
-	Resource resource = 2;
+message Account {
+	string id = 1;
+	Token secret = 2;
+	repeated string roles = 3;
+	map<string, string> metadata = 4;
 }
 
 message Resource{
 	string name = 1;
 	string type = 2;
+	string endpoint = 3;
 }
 
 message GenerateRequest {
-	Account account = 1;
+	string id = 1;
+	repeated string roles = 2;
+	map<string, string> metadata = 3;
+	int64 secret_expiry = 4;
 }
 
 message GenerateResponse {
 	Account account = 1;
 }
 
-message VerifyRequest {
-	string token = 1;
+message GrantRequest {
+	string role = 1;
+	Resource resource = 2;
 }
 
-message VerifyResponse {
+message GrantResponse {}
+
+message VerifyRequest {
 	Account account = 1;
+	Resource resource = 2;
 }
+
+message VerifyResponse {}
 
 message RevokeRequest {
-	string token = 1;
+	string role = 1;
+	Resource resource = 2;
 }
 
 message RevokeResponse {}
+
+message InspectRequest {
+	string token = 1;
+}
+
+message InspectResponse {
+	Account account = 1;
+}
+
+message RefreshRequest {
+	string secret = 1;
+	int64 token_expiry = 2;
+}
+
+message RefreshResponse {
+	Token token = 1;
+}

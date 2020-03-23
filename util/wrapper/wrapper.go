@@ -164,6 +164,11 @@ func AuthHandler(fn func() auth.Auth) server.HandlerWrapper {
 				return h(ctx, req, rsp)
 			}
 
+			// Check for auth service endpoints which should be excluded from auth
+			if strings.HasPrefix(req.Endpoint(), "Auth.") {
+				return h(ctx, req, rsp)
+			}
+
 			// Extract the token if present. Note: if noop is being used
 			// then the token can be blank without erroring
 			var token string
@@ -177,28 +182,15 @@ func AuthHandler(fn func() auth.Auth) server.HandlerWrapper {
 			}
 
 			// Verify the token
-			account, authErr := a.Verify(token)
-
-			// If there is an account, set it in the context
-			if authErr == nil {
-				var err error
-				ctx, err = auth.ContextWithAccount(ctx, account)
-
-				if err != nil {
-					return err
-				}
+			account, err := a.Inspect(token)
+			if err != nil {
+				return errors.Unauthorized("go.micro.auth", err.Error())
 			}
 
-			// Return if the user disabled auth on this endpoint
-			for _, e := range a.Options().Exclude {
-				if e == req.Endpoint() {
-					return h(ctx, req, rsp)
-				}
-			}
-
-			// If the authErr is set, prevent the user from calling the endpoint
-			if authErr != nil {
-				return errors.Unauthorized("go.micro.auth", authErr.Error())
+			// There is an account, set it in the context
+			ctx, err = auth.ContextWithAccount(ctx, account)
+			if err != nil {
+				return err
 			}
 
 			// The user is authorised, allow the call

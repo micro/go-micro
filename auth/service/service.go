@@ -2,10 +2,13 @@ package service
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/micro/go-micro/v2/auth"
 	pb "github.com/micro/go-micro/v2/auth/service/proto"
+	"github.com/micro/go-micro/v2/auth/token"
+	"github.com/micro/go-micro/v2/auth/token/jwt"
 	"github.com/micro/go-micro/v2/client"
 )
 
@@ -20,13 +23,14 @@ func NewAuth(opts ...auth.Option) auth.Auth {
 type svc struct {
 	options auth.Options
 	auth    pb.AuthService
+	jwt     token.Provider
 }
 
 func (s *svc) String() string {
 	return "service"
 }
 
-func (s *svc) Init(opts ...auth.Option) error {
+func (s *svc) Init(opts ...auth.Option) {
 	for _, o := range opts {
 		o(&s.options)
 	}
@@ -34,99 +38,140 @@ func (s *svc) Init(opts ...auth.Option) error {
 	dc := client.DefaultClient
 	s.auth = pb.NewAuthService("go.micro.auth", dc)
 
-	return nil
+	// if we have a JWT public key passed as an option,
+	// we can decode tokens with the type "JWT" locally
+	// and not have to make an RPC call
+	if key := s.options.PublicKey; len(key) > 0 {
+		s.jwt = jwt.NewTokenProvider(token.WithPublicKey(key))
+	}
 }
 
 func (s *svc) Options() auth.Options {
 	return s.options
 }
 
-// Generate a new auth account
+// Generate a new account
 func (s *svc) Generate(id string, opts ...auth.GenerateOption) (*auth.Account, error) {
-	// construct the request
 	options := auth.NewGenerateOptions(opts...)
-	sa := &auth.Account{
-		Id:       id,
-		Roles:    options.Roles,
-		Metadata: options.Metadata,
-	}
-	req := &pb.GenerateRequest{Account: serializeAccount(sa)}
 
-	// execute the request
-	resp, err := s.auth.Generate(context.Background(), req)
+	rsp, err := s.auth.Generate(context.TODO(), &pb.GenerateRequest{
+		Id:           id,
+		Roles:        options.Roles,
+		Metadata:     options.Metadata,
+		SecretExpiry: int64(options.SecretExpiry.Seconds()),
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	// format the response
-	return deserializeAccount(resp.Account), nil
+	return serializeAccount(rsp.Account), nil
 }
 
-// Revoke an authorization account
-func (s *svc) Revoke(token string) error {
-	// contruct the request
-	req := &pb.RevokeRequest{Token: token}
-
-	// execute the request
-	_, err := s.auth.Revoke(context.Background(), req)
+// Grant access to a resource
+func (s *svc) Grant(role string, res *auth.Resource) error {
+	_, err := s.auth.Grant(context.TODO(), &pb.GrantRequest{
+		Role: role,
+		Resource: &pb.Resource{
+			Type:     res.Type,
+			Name:     res.Name,
+			Endpoint: res.Endpoint,
+		},
+	})
 	return err
 }
 
-// Verify an account token
-func (s *svc) Verify(token string) (*auth.Account, error) {
-	resp, err := s.auth.Verify(context.Background(), &pb.VerifyRequest{Token: token})
+// Revoke access to a resource
+func (s *svc) Revoke(role string, res *auth.Resource) error {
+	_, err := s.auth.Revoke(context.TODO(), &pb.RevokeRequest{
+		Role: role,
+		Resource: &pb.Resource{
+			Type:     res.Type,
+			Name:     res.Name,
+			Endpoint: res.Endpoint,
+		},
+	})
+	return err
+}
+
+// Verify an account has access to a resource
+func (s *svc) Verify(acc *auth.Account, res *auth.Resource) error {
+	_, err := s.auth.Verify(context.TODO(), &pb.VerifyRequest{
+		Account: &pb.Account{
+			Id:    acc.ID,
+			Roles: acc.Roles,
+		},
+		Resource: &pb.Resource{
+			Type:     res.Type,
+			Name:     res.Name,
+			Endpoint: res.Endpoint,
+		},
+	})
+	return err
+}
+
+// Inspect a token
+func (s *svc) Inspect(token string) (*auth.Account, error) {
+	// try to decode JWT locally and fall back to srv if an error
+	// occurs, TODO: find a better way of determining if the token
+	// is a JWT, possibly update the interface to take an auth.Token
+	// and not just the string
+	if len(strings.Split(token, ".")) == 3 && s.jwt != nil {
+		if tok, err := s.jwt.Inspect(token); err == nil {
+			return &auth.Account{
+				ID:       tok.Subject,
+				Roles:    tok.Roles,
+				Metadata: tok.Metadata,
+			}, nil
+		}
+	}
+
+	rsp, err := s.auth.Inspect(context.TODO(), &pb.InspectRequest{
+		Token: token,
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	return deserializeAccount(resp.Account), nil
+	return serializeAccount(rsp.Account), nil
 }
 
-func serializeAccount(sa *auth.Account) *pb.Account {
-	roles := make([]*pb.Role, len(sa.Roles))
-	for i, r := range sa.Roles {
-		roles[i] = &pb.Role{
-			Name: r.Name,
-		}
+// Refresh an account using a secret
+func (s *svc) Refresh(secret string, opts ...auth.RefreshOption) (*auth.Token, error) {
+	options := auth.NewRefreshOptions(opts...)
 
-		if r.Resource != nil {
-			roles[i].Resource = &pb.Resource{
-				Name: r.Resource.Name,
-				Type: r.Resource.Type,
-			}
-		}
+	rsp, err := s.auth.Refresh(context.Background(), &pb.RefreshRequest{
+		Secret:      secret,
+		TokenExpiry: int64(options.TokenExpiry.Seconds()),
+	})
+	if err != nil {
+		return nil, err
 	}
 
-	return &pb.Account{
-		Id:       sa.Id,
-		Roles:    roles,
-		Metadata: sa.Metadata,
+	return serializeToken(rsp.Token), nil
+}
+
+func serializeToken(t *pb.Token) *auth.Token {
+	return &auth.Token{
+		Token:    t.Token,
+		Type:     t.Type,
+		Created:  time.Unix(t.Created, 0),
+		Expiry:   time.Unix(t.Expiry, 0),
+		Subject:  t.Subject,
+		Roles:    t.Roles,
+		Metadata: t.Metadata,
 	}
 }
 
-func deserializeAccount(a *pb.Account) *auth.Account {
-	// format the response
-	sa := &auth.Account{
-		Id:       a.Id,
-		Token:    a.Token,
-		Created:  time.Unix(a.Created, 0),
-		Expiry:   time.Unix(a.Expiry, 0),
+func serializeAccount(a *pb.Account) *auth.Account {
+	var secret *auth.Token
+	if a.Secret != nil {
+		secret = serializeToken(a.Secret)
+	}
+
+	return &auth.Account{
+		ID:       a.Id,
+		Roles:    a.Roles,
 		Metadata: a.Metadata,
+		Secret:   secret,
 	}
-
-	sa.Roles = make([]*auth.Role, len(a.Roles))
-	for i, r := range a.Roles {
-		sa.Roles[i] = &auth.Role{
-			Name: r.Name,
-		}
-
-		if r.Resource != nil {
-			sa.Roles[i].Resource = &auth.Resource{
-				Name: r.Resource.Name,
-				Type: r.Resource.Type,
-			}
-		}
-	}
-
-	return sa
 }
