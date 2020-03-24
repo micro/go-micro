@@ -80,7 +80,14 @@ func (g *grpcClient) next(request client.Request, opts client.CallOptions) (sele
 	service := request.Service()
 
 	// get proxy
-	if prx := os.Getenv("MICRO_PROXY"); len(prx) > 0 {
+	prx := ""
+	if len(opts.Proxy) > 0 {
+		// call options first
+		prx = opts.Proxy
+	} else if prxEnv := os.Getenv("MICRO_PROXY"); len(prxEnv) > 0 {
+		prx = prxEnv
+	}
+	if len(prx) > 0 {
 		// default name
 		if prx == "service" {
 			prx = "go.micro.proxy"

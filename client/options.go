@@ -56,6 +56,9 @@ type CallOptions struct {
 	// Request/Response timeout
 	RequestTimeout time.Duration
 
+	// Proxy, if len>0 it's overrides MICRO_PROXY environment
+	Proxy string
+
 	// Middleware for low level call func
 	CallWrappers []CallWrapper
 
@@ -215,6 +218,13 @@ func RequestTimeout(d time.Duration) Option {
 	}
 }
 
+// Service proxy, overrides MICRO_PROXY environment
+func Proxy(prx string) Option {
+	return func(o *Options) {
+		o.CallOptions.Proxy = prx
+	}
+}
+
 // Transport dial timeout
 func DialTimeout(d time.Duration) Option {
 	return func(o *Options) {
@@ -280,6 +290,13 @@ func WithRetries(i int) CallOption {
 func WithRequestTimeout(d time.Duration) CallOption {
 	return func(o *CallOptions) {
 		o.RequestTimeout = d
+	}
+}
+
+// WithProxy is a CallOption, overrides MICRO_PROXY environment
+func WithProxy(prx string) CallOption {
+	return func(o *CallOptions) {
+		o.Proxy = prx
 	}
 }
 

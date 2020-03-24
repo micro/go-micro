@@ -340,7 +340,14 @@ func (r *rpcClient) next(request Request, opts CallOptions) (selector.Next, erro
 	service := request.Service()
 
 	// get proxy
-	if prx := os.Getenv("MICRO_PROXY"); len(prx) > 0 {
+	prx := ""
+	if len(opts.Proxy) > 0 {
+		// call options first
+		prx = opts.Proxy
+	} else if prxEnv := os.Getenv("MICRO_PROXY"); len(prxEnv) > 0 {
+		prx = prxEnv
+	}
+	if len(prx) > 0 {
 		// default name
 		if prx == "service" {
 			prx = "go.micro.proxy"
@@ -459,7 +466,7 @@ func (r *rpcClient) Call(ctx context.Context, request Request, response interfac
 	retries := callOpts.Retries
 
 	// disable retries when using a proxy
-	if r.hasProxy() {
+	if len(callOpts.Proxy) > 0 && r.hasProxy() {
 		retries = 0
 	}
 
@@ -550,7 +557,7 @@ func (r *rpcClient) Stream(ctx context.Context, request Request, opts ...CallOpt
 	retries := callOpts.Retries
 
 	// disable retries when using a proxy
-	if r.hasProxy() {
+	if len(callOpts.Proxy) > 0 && r.hasProxy() {
 		retries = 0
 	}
 
