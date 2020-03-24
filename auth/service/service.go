@@ -2,7 +2,9 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/micro/go-micro/v2/auth"
@@ -10,6 +12,7 @@ import (
 	"github.com/micro/go-micro/v2/auth/token"
 	"github.com/micro/go-micro/v2/auth/token/jwt"
 	"github.com/micro/go-micro/v2/client"
+	log "github.com/micro/go-micro/v2/logger"
 )
 
 // NewAuth returns a new instance of the Auth service
@@ -24,6 +27,9 @@ type svc struct {
 	options auth.Options
 	auth    pb.AuthService
 	jwt     token.Provider
+	rules   []*pb.Rule
+
+	sync.Mutex
 }
 
 func (s *svc) String() string {
@@ -44,6 +50,13 @@ func (s *svc) Init(opts ...auth.Option) {
 	if key := s.options.PublicKey; len(key) > 0 {
 		s.jwt = jwt.NewTokenProvider(token.WithPublicKey(key))
 	}
+
+	// load rules periodically from the auth service
+	timer := time.NewTimer(time.Second * 30)
+	go func() {
+		s.loadRules()
+		<-timer.C
+	}()
 }
 
 func (s *svc) Options() auth.Options {
@@ -95,18 +108,31 @@ func (s *svc) Revoke(role string, res *auth.Resource) error {
 
 // Verify an account has access to a resource
 func (s *svc) Verify(acc *auth.Account, res *auth.Resource) error {
-	_, err := s.auth.Verify(context.TODO(), &pb.VerifyRequest{
-		Account: &pb.Account{
-			Id:    acc.ID,
-			Roles: acc.Roles,
-		},
-		Resource: &pb.Resource{
-			Type:     res.Type,
-			Name:     res.Name,
-			Endpoint: res.Endpoint,
-		},
-	})
-	return err
+	queries := [][]string{
+		{res.Type, "*"},                         // check for wildcard resource type, e.g. service.*
+		{res.Type, res.Name, "*"},               // check for wildcard name, e.g. service.foo*
+		{res.Type, res.Name, res.Endpoint, "*"}, // check for wildcard endpoints, e.g. service.foo.ListFoo:*
+		{res.Type, res.Name, res.Endpoint},      // check for specific role, e.g. service.foo.ListFoo:admin
+	}
+
+	// endpoint is a url which can have wildcard excludes, e.g.
+	// "/foo/*" will allow "/foo/bar"
+	if comps := strings.Split(res.Endpoint, "/"); len(comps) > 1 {
+		for i := 1; i < len(comps); i++ {
+			wildcard := fmt.Sprintf("%v/*", strings.Join(comps[0:i], "/"))
+			queries = append(queries, []string{res.Type, res.Name, wildcard})
+		}
+	}
+
+	for _, q := range queries {
+		for _, rule := range s.listRules(q...) {
+			if isValidRule(rule, acc, res) {
+				return nil
+			}
+		}
+	}
+
+	return auth.ErrForbidden
 }
 
 // Inspect a token
@@ -148,6 +174,62 @@ func (s *svc) Refresh(secret string, opts ...auth.RefreshOption) (*auth.Token, e
 	}
 
 	return serializeToken(rsp.Token), nil
+}
+
+var ruleJoinKey = ":"
+
+// isValidRule returns a bool, indicating if a rule permits access to a
+// resource for a given account
+func isValidRule(rule *pb.Rule, acc *auth.Account, res *auth.Resource) bool {
+	if rule.Role == "*" {
+		return true
+	}
+
+	for _, role := range acc.Roles {
+		if rule.Role == role {
+			return true
+		}
+
+		// allow user.anything if role is user.*
+		if strings.HasSuffix(rule.Role, ".*") && strings.HasPrefix(rule.Role, role+".") {
+			return true
+		}
+	}
+
+	return false
+}
+
+// listRules gets all the rules from the store which have an id
+// prefix matching the filters
+func (s *svc) listRules(filters ...string) []*pb.Rule {
+	s.Lock()
+	defer s.Unlock()
+
+	prefix := strings.Join(filters, ruleJoinKey)
+
+	var rules []*pb.Rule
+	for _, r := range s.rules {
+		if strings.HasPrefix(r.Id, prefix) {
+			rules = append(rules, r)
+		}
+	}
+
+	return rules
+}
+
+// loadRules retrieves the rules from the auth service
+func (s *svc) loadRules() {
+	rsp, err := s.auth.ListRules(context.TODO(), &pb.ListRulesRequest{}, client.WithRetries(3))
+	s.Lock()
+	defer s.Unlock()
+
+	if err != nil {
+		log.Errorf("Error listing rules: %v", err)
+		s.rules = []*pb.Rule{}
+		return
+	}
+
+	s.rules = rsp.Rules
 }
 
 func serializeToken(t *pb.Token) *auth.Token {
