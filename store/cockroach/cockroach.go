@@ -233,7 +233,7 @@ func (s *sqlStore) initDB() error {
 	}
 
 	// Create Index
-	_, err = s.db.Exec(fmt.Sprintf(`CREATE INDEX IF NOT EXISTS "%s" ON %s.%s USING btree ("key")`, "key_index_"+s.table, s.database, s.table))
+	_, err = s.db.Exec(fmt.Sprintf(`CREATE INDEX IF NOT EXISTS "%s" ON %s.%s USING btree ("key");`, "key_index_"+s.table, s.database, s.table))
 	if err != nil {
 		return err
 	}
