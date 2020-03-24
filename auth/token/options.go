@@ -76,7 +76,7 @@ func WithMetadata(md map[string]string) func(o *GenerateOptions) {
 }
 
 // WithRoles for the token
-func WithRoles(rs []string) func(o *GenerateOptions) {
+func WithRoles(rs ...string) func(o *GenerateOptions) {
 	return func(o *GenerateOptions) {
 		o.Roles = rs
 	}

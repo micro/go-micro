@@ -17,7 +17,7 @@ func TestGenerate(t *testing.T) {
 	metadata := map[string]string{"foo": "bar"}
 
 	opts := []auth.GenerateOption{
-		auth.WithRoles(roles),
+		auth.WithRoles(roles...),
 		auth.WithMetadata(metadata),
 	}
 
@@ -100,7 +100,7 @@ func TestInspect(t *testing.T) {
 		metadata := map[string]string{"foo": "bar"}
 
 		opts := []auth.GenerateOption{
-			auth.WithRoles(roles),
+			auth.WithRoles(roles...),
 			auth.WithMetadata(metadata),
 		}
 
@@ -146,7 +146,7 @@ func TestRefresh(t *testing.T) {
 		metadata := map[string]string{"foo": "bar"}
 
 		opts := []auth.GenerateOption{
-			auth.WithRoles(roles),
+			auth.WithRoles(roles...),
 			auth.WithMetadata(metadata),
 		}
 

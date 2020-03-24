@@ -68,7 +68,7 @@ func (s *Store) Generate(id string, opts ...auth.GenerateOption) (*auth.Account,
 	secretOpts := []token.GenerateOption{
 		token.WithExpiry(options.SecretExpiry),
 		token.WithMetadata(options.Metadata),
-		token.WithRoles(options.Roles),
+		token.WithRoles(options.Roles...),
 	}
 	secret, err := s.secretProvider.Generate(id, secretOpts...)
 	if err != nil {
@@ -166,6 +166,6 @@ func (s *Store) Refresh(secret string, opts ...auth.RefreshOption) (*auth.Token,
 	return s.tokenProvider.Generate(sec.Subject,
 		token.WithExpiry(options.TokenExpiry),
 		token.WithMetadata(sec.Metadata),
-		token.WithRoles(sec.Roles),
+		token.WithRoles(sec.Roles...),
 	)
 }
