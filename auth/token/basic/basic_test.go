@@ -37,7 +37,7 @@ func TestInspect(t *testing.T) {
 
 		opts := []token.GenerateOption{
 			token.WithMetadata(md),
-			token.WithRoles(roles),
+			token.WithRoles(roles...),
 		}
 
 		tok, err := b.Generate(subject, opts...)

@@ -85,7 +85,7 @@ func WithMetadata(md map[string]string) GenerateOption {
 }
 
 // WithRoles for the generated account
-func WithRoles(rs []string) GenerateOption {
+func WithRoles(rs ...string) GenerateOption {
 	return func(o *GenerateOptions) {
 		o.Roles = rs
 	}
