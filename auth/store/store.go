@@ -1,6 +1,9 @@
 package store
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/micro/go-micro/v2/auth"
 	"github.com/micro/go-micro/v2/auth/token"
 	"github.com/micro/go-micro/v2/auth/token/basic"
@@ -106,6 +109,15 @@ func (s *Store) Verify(acc *auth.Account, res *auth.Resource) error {
 		{res.Type, res.Name, "*"},               // check for wildcard name, e.g. service.foo*
 		{res.Type, res.Name, res.Endpoint, "*"}, // check for wildcard endpoints, e.g. service.foo.ListFoo:*
 		{res.Type, res.Name, res.Endpoint},      // check for specific role, e.g. service.foo.ListFoo:admin
+	}
+
+	// endpoint is a url which can have wildcard excludes, e.g.
+	// "/foo/*" will allow "/foo/bar"
+	if comps := strings.Split(res.Endpoint, "/"); len(comps) > 1 {
+		for i := 1; i < len(comps); i++ {
+			wildcard := fmt.Sprintf("%v/*", strings.Join(comps[0:i], "/"))
+			queries = append(queries, []string{res.Type, res.Name, wildcard})
+		}
 	}
 
 	for _, q := range queries {
