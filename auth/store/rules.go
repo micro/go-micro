@@ -14,7 +14,7 @@ type Rule struct {
 	Resource *auth.Resource `json:"resource"`
 }
 
-var joinKey = "\\"
+var joinKey = ":"
 
 // Key to be used when written to the store
 func (r *Rule) Key() string {
