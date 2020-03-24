@@ -287,6 +287,11 @@ func TestVerify(t *testing.T) {
 			Resource: &auth.Resource{Type: "service", Name: "go.micro.web", Endpoint: "/foo"},
 		},
 		{
+			Name:     "Accessing a public web path with an invalid wildcard endpoint",
+			Resource: &auth.Resource{Type: "service", Name: "go.micro.web", Endpoint: "/foo/foo"},
+			Error:    auth.ErrForbidden,
+		},
+		{
 			Name:     "Accessing a public web path with wildcard endpoint",
 			Resource: &auth.Resource{Type: "service", Name: "go.micro.web", Endpoint: "/bar/foo"},
 		},
