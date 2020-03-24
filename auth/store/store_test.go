@@ -192,6 +192,14 @@ func TestVerify(t *testing.T) {
 			Resource: &auth.Resource{Type: "service", Name: "go.micro.apps", Endpoint: "Apps.PublicList"},
 		},
 		{
+			Role:     "*",
+			Resource: &auth.Resource{Type: "service", Name: "go.micro.web", Endpoint: "/foo"},
+		},
+		{
+			Role:     "*",
+			Resource: &auth.Resource{Type: "service", Name: "go.micro.web", Endpoint: "/bar/*"},
+		},
+		{
 			Role:     "user.*",
 			Resource: &auth.Resource{Type: "service", Name: "go.micro.apps", Endpoint: "Apps.List"},
 		},
@@ -273,6 +281,19 @@ func TestVerify(t *testing.T) {
 			Name:     "A account with no roles accessing an unauthorised endpoint",
 			Resource: &auth.Resource{Type: "infra", Name: "go.micro.foo", Endpoint: "Foo.Bar"},
 			Error:    auth.ErrForbidden,
+		},
+		{
+			Name:     "Accessing a public web path",
+			Resource: &auth.Resource{Type: "service", Name: "go.micro.web", Endpoint: "/foo"},
+		},
+		{
+			Name:     "Accessing a public web path with an invalid wildcard endpoint",
+			Resource: &auth.Resource{Type: "service", Name: "go.micro.web", Endpoint: "/foo/foo"},
+			Error:    auth.ErrForbidden,
+		},
+		{
+			Name:     "Accessing a public web path with wildcard endpoint",
+			Resource: &auth.Resource{Type: "service", Name: "go.micro.web", Endpoint: "/bar/foo"},
 		},
 	}
 

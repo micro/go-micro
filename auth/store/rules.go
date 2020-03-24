@@ -14,10 +14,12 @@ type Rule struct {
 	Resource *auth.Resource `json:"resource"`
 }
 
+var joinKey = ":"
+
 // Key to be used when written to the store
 func (r *Rule) Key() string {
 	comps := []string{r.Resource.Type, r.Resource.Name, r.Resource.Endpoint, r.Role}
-	return strings.Join(comps, "/")
+	return strings.Join(comps, joinKey)
 }
 
 // Bytes returns json encoded bytes
@@ -51,7 +53,7 @@ func isValidRule(rule Rule, acc *auth.Account, res *auth.Resource) bool {
 // prefix matching the filters
 func (s *Store) listRules(filters ...string) ([]Rule, error) {
 	// get the records from the store
-	prefix := strings.Join(filters, "/")
+	prefix := strings.Join(filters, joinKey)
 	recs, err := s.opts.Store.Read(prefix, store.ReadPrefix())
 	if err != nil {
 		return nil, err
