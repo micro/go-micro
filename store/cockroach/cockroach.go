@@ -295,9 +295,8 @@ func (s *sqlStore) initDB() error {
 }
 
 func (s *sqlStore) configure() error {
-	nodes := s.options.Nodes
-	if len(nodes) == 0 {
-		nodes = []string{"localhost:26257"}
+	if len(s.options.Nodes) == 0 {
+		s.options.Nodes = []string{"localhost:26257"}
 	}
 
 	namespace := s.options.Namespace
@@ -317,7 +316,7 @@ func (s *sqlStore) configure() error {
 	}
 	namespace = reg.ReplaceAllString(namespace, "_")
 
-	source := nodes[0]
+	source := s.options.Nodes[0]
 	// check if it is a standard connection string eg: host=%s port=%d user=%s password=%s dbname=%s sslmode=disable
 	// if err is nil which means it would be a URL like postgre://xxxx?yy=zz
 	_, err = url.Parse(source)
