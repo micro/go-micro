@@ -54,8 +54,10 @@ func (s *svc) Init(opts ...auth.Option) {
 	// load rules periodically from the auth service
 	timer := time.NewTicker(time.Second * 30)
 	go func() {
-		s.loadRules()
-		<-timer.C
+		for {
+			s.loadRules()
+			<-timer.C
+		}
 	}()
 }
 
