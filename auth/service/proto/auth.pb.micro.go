@@ -36,10 +36,10 @@ var _ server.Option
 type AuthService interface {
 	Generate(ctx context.Context, in *GenerateRequest, opts ...client.CallOption) (*GenerateResponse, error)
 	Grant(ctx context.Context, in *GrantRequest, opts ...client.CallOption) (*GrantResponse, error)
-	Verify(ctx context.Context, in *VerifyRequest, opts ...client.CallOption) (*VerifyResponse, error)
 	Revoke(ctx context.Context, in *RevokeRequest, opts ...client.CallOption) (*RevokeResponse, error)
 	Inspect(ctx context.Context, in *InspectRequest, opts ...client.CallOption) (*InspectResponse, error)
 	Refresh(ctx context.Context, in *RefreshRequest, opts ...client.CallOption) (*RefreshResponse, error)
+	ListRules(ctx context.Context, in *ListRulesRequest, opts ...client.CallOption) (*ListRulesResponse, error)
 }
 
 type authService struct {
@@ -67,16 +67,6 @@ func (c *authService) Generate(ctx context.Context, in *GenerateRequest, opts ..
 func (c *authService) Grant(ctx context.Context, in *GrantRequest, opts ...client.CallOption) (*GrantResponse, error) {
 	req := c.c.NewRequest(c.name, "Auth.Grant", in)
 	out := new(GrantResponse)
-	err := c.c.Call(ctx, req, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *authService) Verify(ctx context.Context, in *VerifyRequest, opts ...client.CallOption) (*VerifyResponse, error) {
-	req := c.c.NewRequest(c.name, "Auth.Verify", in)
-	out := new(VerifyResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -114,25 +104,35 @@ func (c *authService) Refresh(ctx context.Context, in *RefreshRequest, opts ...c
 	return out, nil
 }
 
+func (c *authService) ListRules(ctx context.Context, in *ListRulesRequest, opts ...client.CallOption) (*ListRulesResponse, error) {
+	req := c.c.NewRequest(c.name, "Auth.ListRules", in)
+	out := new(ListRulesResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Server API for Auth service
 
 type AuthHandler interface {
 	Generate(context.Context, *GenerateRequest, *GenerateResponse) error
 	Grant(context.Context, *GrantRequest, *GrantResponse) error
-	Verify(context.Context, *VerifyRequest, *VerifyResponse) error
 	Revoke(context.Context, *RevokeRequest, *RevokeResponse) error
 	Inspect(context.Context, *InspectRequest, *InspectResponse) error
 	Refresh(context.Context, *RefreshRequest, *RefreshResponse) error
+	ListRules(context.Context, *ListRulesRequest, *ListRulesResponse) error
 }
 
 func RegisterAuthHandler(s server.Server, hdlr AuthHandler, opts ...server.HandlerOption) error {
 	type auth interface {
 		Generate(ctx context.Context, in *GenerateRequest, out *GenerateResponse) error
 		Grant(ctx context.Context, in *GrantRequest, out *GrantResponse) error
-		Verify(ctx context.Context, in *VerifyRequest, out *VerifyResponse) error
 		Revoke(ctx context.Context, in *RevokeRequest, out *RevokeResponse) error
 		Inspect(ctx context.Context, in *InspectRequest, out *InspectResponse) error
 		Refresh(ctx context.Context, in *RefreshRequest, out *RefreshResponse) error
+		ListRules(ctx context.Context, in *ListRulesRequest, out *ListRulesResponse) error
 	}
 	type Auth struct {
 		auth
@@ -153,10 +153,6 @@ func (h *authHandler) Grant(ctx context.Context, in *GrantRequest, out *GrantRes
 	return h.AuthHandler.Grant(ctx, in, out)
 }
 
-func (h *authHandler) Verify(ctx context.Context, in *VerifyRequest, out *VerifyResponse) error {
-	return h.AuthHandler.Verify(ctx, in, out)
-}
-
 func (h *authHandler) Revoke(ctx context.Context, in *RevokeRequest, out *RevokeResponse) error {
 	return h.AuthHandler.Revoke(ctx, in, out)
 }
@@ -167,4 +163,8 @@ func (h *authHandler) Inspect(ctx context.Context, in *InspectRequest, out *Insp
 
 func (h *authHandler) Refresh(ctx context.Context, in *RefreshRequest, out *RefreshResponse) error {
 	return h.AuthHandler.Refresh(ctx, in, out)
+}
+
+func (h *authHandler) ListRules(ctx context.Context, in *ListRulesRequest, out *ListRulesResponse) error {
+	return h.AuthHandler.ListRules(ctx, in, out)
 }
