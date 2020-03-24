@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/lib/pq"
-	"github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/store"
 	"github.com/pkg/errors"
 )
@@ -371,10 +370,8 @@ func NewStore(opts ...store.Option) store.Store {
 	// set the options
 	s.options = options
 
-	// configure the store
-	if err := s.configure(); err != nil {
-		logger.Fatal(err)
-	}
+	// best-effort configure the store
+	s.configure()
 
 	// return store
 	return s
