@@ -4,11 +4,11 @@ package autocert
 
 import (
 	"crypto/tls"
-	"log"
 	"net"
 	"os"
 
 	"github.com/micro/go-micro/v2/api/server/acme"
+	"github.com/micro/go-micro/v2/logger"
 	"golang.org/x/crypto/acme/autocert"
 )
 
@@ -31,7 +31,9 @@ func (a *autocertProvider) TLSConfig(hosts ...string) (*tls.Config, error) {
 	}
 	dir := cacheDir()
 	if err := os.MkdirAll(dir, 0700); err != nil {
-		log.Printf("warning: autocert not using a cache: %v", err)
+		if logger.V(logger.InfoLevel, logger.DefaultLogger) {
+			logger.Infof("warning: autocert not using a cache: %v", err)
+		}
 	} else {
 		m.Cache = autocert.DirCache(dir)
 	}
