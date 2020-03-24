@@ -466,7 +466,7 @@ func (r *rpcClient) Call(ctx context.Context, request Request, response interfac
 	retries := callOpts.Retries
 
 	// disable retries when using a proxy
-	if len(callOpts.Proxy) > 0 && r.hasProxy() {
+	if len(callOpts.Proxy) > 0 || r.hasProxy() {
 		retries = 0
 	}
 
@@ -557,7 +557,7 @@ func (r *rpcClient) Stream(ctx context.Context, request Request, opts ...CallOpt
 	retries := callOpts.Retries
 
 	// disable retries when using a proxy
-	if len(callOpts.Proxy) > 0 && r.hasProxy() {
+	if len(callOpts.Proxy) > 0 || r.hasProxy() {
 		retries = 0
 	}
 
