@@ -70,8 +70,7 @@ import (
 	memTracer "github.com/micro/go-micro/v2/debug/trace/memory"
 
 	// auth
-	jwtAuth "github.com/micro/go-micro/v2/auth/jwt"
-	sAuth "github.com/micro/go-micro/v2/auth/service"
+	svcAuth "github.com/micro/go-micro/v2/auth/service"
 	storeAuth "github.com/micro/go-micro/v2/auth/store"
 
 	// auth providers
@@ -271,11 +270,6 @@ var (
 			EnvVars: []string{"MICRO_AUTH_PRIVATE_KEY"},
 			Usage:   "Private key for JWT auth (base64 encoded PEM)",
 		},
-		&cli.StringSliceFlag{
-			Name:    "auth_exclude",
-			EnvVars: []string{"MICRO_AUTH_EXCLUDE"},
-			Usage:   "Comma-separated list of endpoints excluded from authentication, e.g. Users.ListUsers",
-		},
 		&cli.StringFlag{
 			Name:    "auth_provider",
 			EnvVars: []string{"MICRO_AUTH_PROVIDER"},
@@ -365,9 +359,8 @@ var (
 	}
 
 	DefaultAuths = map[string]func(...auth.Option) auth.Auth{
-		"service": sAuth.NewAuth,
+		"service": svcAuth.NewAuth,
 		"store":   storeAuth.NewAuth,
-		"jwt":     jwtAuth.NewAuth,
 	}
 
 	DefaultAuthProviders = map[string]func(...provider.Option) provider.Provider{
@@ -665,7 +658,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	}
 
 	if len(ctx.String("auth_token")) > 0 {
-		authOpts = append(authOpts, auth.Token(ctx.String("auth_token")))
+		authOpts = append(authOpts, auth.ServiceToken(ctx.String("auth_token")))
 	}
 
 	if len(ctx.String("auth_public_key")) > 0 {
@@ -674,10 +667,6 @@ func (c *cmd) Before(ctx *cli.Context) error {
 
 	if len(ctx.String("auth_private_key")) > 0 {
 		authOpts = append(authOpts, auth.PrivateKey(ctx.String("auth_private_key")))
-	}
-
-	if len(ctx.StringSlice("auth_exclude")) > 0 {
-		authOpts = append(authOpts, auth.Exclude(ctx.StringSlice("auth_exclude")...))
 	}
 
 	if name := ctx.String("auth_provider"); len(name) > 0 {
@@ -707,9 +696,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	}
 
 	if len(authOpts) > 0 {
-		if err := (*c.opts.Auth).Init(authOpts...); err != nil {
-			logger.Fatalf("Error configuring auth: %v", err)
-		}
+		(*c.opts.Auth).Init(authOpts...)
 	}
 
 	if ctx.String("config") == "service" {
