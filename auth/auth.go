@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/micro/go-micro/v2/metadata"
@@ -21,6 +22,8 @@ var (
 	ErrInvalidRole = errors.New("invalid role")
 	// ErrForbidden is returned when a user does not have the necessary roles to access a resource
 	ErrForbidden = errors.New("resource forbidden")
+	// BearerScheme used for Authorization header
+	BearerScheme = "Bearer "
 )
 
 // Auth providers authentication and authorization
@@ -124,4 +127,9 @@ func ContextWithAccount(ctx context.Context, account *Account) (context.Context,
 
 	// generate a new context with the MetadataKey set
 	return metadata.Set(ctx, MetadataKey, string(bytes)), nil
+}
+
+// ContextWithToken sets the auth token in the context
+func ContextWithToken(ctx context.Context, token string) (context.Context, error) {
+	return metadata.Set(ctx, "Authorization", fmt.Sprintf("%v%v", BearerScheme, token)), nil
 }
