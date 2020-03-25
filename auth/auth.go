@@ -130,6 +130,6 @@ func ContextWithAccount(ctx context.Context, account *Account) (context.Context,
 }
 
 // ContextWithToken sets the auth token in the context
-func ContextWithToken(ctx context.Context, token string) (context.Context, error) {
-	return metadata.Set(ctx, "Authorization", fmt.Sprintf("%v%v", BearerScheme, token)), nil
+func ContextWithToken(ctx context.Context, token string) context.Context {
+	return metadata.Set(ctx, "Authorization", fmt.Sprintf("%v%v", BearerScheme, token))
 }
