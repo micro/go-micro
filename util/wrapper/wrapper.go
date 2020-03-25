@@ -184,13 +184,15 @@ func AuthHandler(fn func() auth.Auth, srvName string) server.HandlerWrapper {
 			// Inspect the token and get the account
 			account, err := a.Inspect(token)
 			if err != nil {
-				return errors.Unauthorized("go.micro.auth", "Unauthorised call made to %v", req.Endpoint())
+				account = &auth.Account{}
 			}
 
 			// Verify the caller has access to the resource
-			resource := &auth.Resource{Type: "service", Name: srvName, Endpoint: req.Endpoint()}
-			if err := a.Verify(account, resource); err != nil {
-				return errors.Forbidden("go.micro.auth", "Forbidden call made to %v %v by %v", srvName, req.Endpoint(), account.ID)
+			err = a.Verify(account, &auth.Resource{Type: "service", Name: srvName, Endpoint: req.Endpoint()})
+			if err != nil && len(account.ID) > 0 {
+				return errors.Forbidden("go.micro.auth", "Forbidden call made to %v:%v by %v", srvName, req.Endpoint(), account.ID)
+			} else if err != nil {
+				return errors.Unauthorized("go.micro.auth", "Unauthorised call made to %v:%v", srvName, req.Endpoint())
 			}
 
 			// There is an account, set it in the context
