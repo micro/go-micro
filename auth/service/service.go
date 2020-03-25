@@ -227,7 +227,6 @@ func (s *svc) loadRules() {
 
 	if err != nil {
 		log.Errorf("Error listing rules: %v", err)
-		s.rules = []*pb.Rule{}
 		return
 	}
 
