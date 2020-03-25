@@ -616,7 +616,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	}
 
 	if len(ctx.String("store_namespace")) > 0 {
-		if err := (*c.opts.Store).Init(store.Namespace(ctx.String("store_address"))); err != nil {
+		if err := (*c.opts.Store).Init(store.Namespace(ctx.String("store_namespace"))); err != nil {
 			logger.Fatalf("Error configuring store: %v", err)
 		}
 	}

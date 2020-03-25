@@ -15,6 +15,7 @@ import (
 	"net/url"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/micro/go-micro/v2/store"
@@ -79,9 +80,9 @@ type apiMessage struct {
 
 // getOptions returns account id, token and namespace
 func getOptions() (string, string, string) {
-	accountID := os.Getenv("CF_ACCOUNT_ID")
-	apiToken := os.Getenv("CF_API_TOKEN")
-	namespace := os.Getenv("KV_NAMESPACE_ID")
+	accountID := strings.TrimSpace(os.Getenv("CF_ACCOUNT_ID"))
+	apiToken := strings.TrimSpace(os.Getenv("CF_API_TOKEN"))
+	namespace := strings.TrimSpace(os.Getenv("KV_NAMESPACE_ID"))
 
 	return accountID, apiToken, namespace
 }
