@@ -11,6 +11,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/micro/go-micro/v2/auth"
 	"github.com/micro/go-micro/v2/broker"
 	"github.com/micro/go-micro/v2/client"
 	"github.com/micro/go-micro/v2/client/selector"
@@ -24,10 +25,6 @@ import (
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/encoding"
 	gmetadata "google.golang.org/grpc/metadata"
-)
-
-var (
-	BearerScheme = "Bearer "
 )
 
 type grpcClient struct {
@@ -137,7 +134,7 @@ func (g *grpcClient) call(ctx context.Context, node *registry.Node, req client.R
 	// set the authorization token if one is saved locally
 	if len(header["authorization"]) == 0 {
 		if token, err := config.Get("token"); err == nil && len(token) > 0 {
-			header["authorization"] = BearerScheme + token
+			header["authorization"] = auth.BearerScheme + token
 		}
 	}
 
