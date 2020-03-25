@@ -169,26 +169,35 @@ func AuthHandler(fn func() auth.Auth, srvName string) server.HandlerWrapper {
 				return h(ctx, req, rsp)
 			}
 
-			// Extract the token if present. Note: if noop is being used
-			// then the token can be blank without erroring
-			var token string
-			if header, ok := metadata.Get(ctx, "Authorization"); ok {
-				// Ensure the correct scheme is being used
-				if !strings.HasPrefix(header, BearerScheme) {
-					return errors.Unauthorized("go.micro.auth", "invalid authorization header. expected Bearer schema")
-				}
-
-				token = header[len(BearerScheme):]
+			// Check if the account can be extracted from the context (it may have been
+			// set by an upstream service)
+			var account *auth.Account
+			if acc, err := auth.AccountFromContext(ctx); err != nil {
+				return err
+			} else if acc != nil {
+				account = acc
 			}
 
-			// Inspect the token and get the account
-			account, err := a.Inspect(token)
-			if err != nil {
+			// Extract the account from the token if one is set
+			if account == nil {
+				if header, ok := metadata.Get(ctx, "Authorization"); ok {
+					// Ensure the correct scheme is being used
+					if !strings.HasPrefix(header, BearerScheme) {
+						return errors.Unauthorized("go.micro.auth", "invalid authorization header. expected Bearer schema")
+					}
+
+					// Inspect the token and get the account
+					account, _ = a.Inspect(header[len(BearerScheme):])
+				}
+			}
+
+			// Fallback to a blank account, indicating an unauthorised user
+			if account == nil {
 				account = &auth.Account{}
 			}
 
 			// Verify the caller has access to the resource
-			err = a.Verify(account, &auth.Resource{Type: "service", Name: srvName, Endpoint: req.Endpoint()})
+			err := a.Verify(account, &auth.Resource{Type: "service", Name: srvName, Endpoint: req.Endpoint()})
 			if err != nil && len(account.ID) > 0 {
 				return errors.Forbidden("go.micro.auth", "Forbidden call made to %v:%v by %v", srvName, req.Endpoint(), account.ID)
 			} else if err != nil {
