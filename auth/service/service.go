@@ -73,7 +73,7 @@ func (s *svc) Generate(id string, opts ...auth.GenerateOption) (*auth.Account, e
 		Id:           id,
 		Roles:        options.Roles,
 		Metadata:     options.Metadata,
-		SecretExpiry: int64(options.SecretExpiry.Nanoseconds()),
+		SecretExpiry: int64(options.SecretExpiry.Seconds()),
 	})
 	if err != nil {
 		return nil, err
