@@ -31,7 +31,6 @@ type traceWrapper struct {
 
 var (
 	HeaderPrefix = "Micro-"
-	BearerScheme = "Bearer "
 )
 
 func (c *clientWrapper) setHeaders(ctx context.Context) context.Context {
@@ -44,7 +43,7 @@ func (c *clientWrapper) setHeaders(ctx context.Context) context.Context {
 		tk := a.Options().Token
 		// if the token if exists and auth header isn't set then set it
 		if len(tk) > 0 && len(md["Authorization"]) == 0 {
-			md["Authorization"] = BearerScheme + tk
+			md["Authorization"] = auth.BearerScheme + tk
 		}
 	}
 
@@ -174,11 +173,11 @@ func AuthHandler(fn func() auth.Auth, srvName string) server.HandlerWrapper {
 			var token string
 			if header, ok := metadata.Get(ctx, "Authorization"); ok {
 				// Ensure the correct scheme is being used
-				if !strings.HasPrefix(header, BearerScheme) {
+				if !strings.HasPrefix(header, auth.BearerScheme) {
 					return errors.Unauthorized("go.micro.auth", "invalid authorization header. expected Bearer schema")
 				}
 
-				token = header[len(BearerScheme):]
+				token = header[len(auth.BearerScheme):]
 			}
 
 			// Inspect the token and get the account

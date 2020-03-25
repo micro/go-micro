@@ -9,11 +9,6 @@ import (
 	"github.com/micro/go-micro/v2/auth"
 )
 
-var (
-	// DefaultExcludes is the paths which are allowed by default
-	DefaultExcludes = []string{"/favicon.ico"}
-)
-
 // CombinedAuthHandler wraps a server and authenticates requests
 func CombinedAuthHandler(h http.Handler) http.Handler {
 	return authHandler{
@@ -27,24 +22,19 @@ type authHandler struct {
 	auth    auth.Auth
 }
 
-const (
-	// BearerScheme is the prefix in the auth header
-	BearerScheme = "Bearer "
-)
-
 func (h authHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	// Extract the token from the request
 	var token string
 	if header := req.Header.Get("Authorization"); len(header) > 0 {
 		// Extract the auth token from the request
-		if strings.HasPrefix(header, BearerScheme) {
-			token = header[len(BearerScheme):]
+		if strings.HasPrefix(header, auth.BearerScheme) {
+			token = header[len(auth.BearerScheme):]
 		}
 	} else {
 		// Get the token out the cookies if not provided in headers
 		if c, err := req.Cookie("micro-token"); err == nil && c != nil {
 			token = strings.TrimPrefix(c.Value, auth.TokenCookieName+"=")
-			req.Header.Set("Authorization", BearerScheme+token)
+			req.Header.Set("Authorization", auth.BearerScheme+token)
 		}
 	}
 
