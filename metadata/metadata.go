@@ -13,6 +13,18 @@ type metaKey struct{}
 // from Transport headers.
 type Metadata map[string]string
 
+func (md Metadata) Get(key string) (string, bool) {
+	// attempt to get as is
+	val, ok := md[key]
+	if ok {
+		return val, ok
+	}
+
+	// attempt to get lower case
+	val, ok = md[strings.Title(key)]
+	return val, ok
+}
+
 // Copy makes a copy of the metadata
 func Copy(md Metadata) Metadata {
 	cmd := make(Metadata)
