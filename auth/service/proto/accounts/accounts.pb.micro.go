@@ -35,7 +35,7 @@ var _ server.Option
 // Client API for Accounts service
 
 type AccountsService interface {
-	List(ctx context.Context, in *ListRequest, opts ...client.CallOption) (*ListResponse, error)
+	List(ctx context.Context, in *ListAccountsRequest, opts ...client.CallOption) (*ListAccountsResponse, error)
 }
 
 type accountsService struct {
@@ -50,9 +50,9 @@ func NewAccountsService(name string, c client.Client) AccountsService {
 	}
 }
 
-func (c *accountsService) List(ctx context.Context, in *ListRequest, opts ...client.CallOption) (*ListResponse, error) {
+func (c *accountsService) List(ctx context.Context, in *ListAccountsRequest, opts ...client.CallOption) (*ListAccountsResponse, error) {
 	req := c.c.NewRequest(c.name, "Accounts.List", in)
-	out := new(ListResponse)
+	out := new(ListAccountsResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -63,12 +63,12 @@ func (c *accountsService) List(ctx context.Context, in *ListRequest, opts ...cli
 // Server API for Accounts service
 
 type AccountsHandler interface {
-	List(context.Context, *ListRequest, *ListResponse) error
+	List(context.Context, *ListAccountsRequest, *ListAccountsResponse) error
 }
 
 func RegisterAccountsHandler(s server.Server, hdlr AccountsHandler, opts ...server.HandlerOption) error {
 	type accounts interface {
-		List(ctx context.Context, in *ListRequest, out *ListResponse) error
+		List(ctx context.Context, in *ListAccountsRequest, out *ListAccountsResponse) error
 	}
 	type Accounts struct {
 		accounts
@@ -81,6 +81,6 @@ type accountsHandler struct {
 	AccountsHandler
 }
 
-func (h *accountsHandler) List(ctx context.Context, in *ListRequest, out *ListResponse) error {
+func (h *accountsHandler) List(ctx context.Context, in *ListAccountsRequest, out *ListAccountsResponse) error {
 	return h.AccountsHandler.List(ctx, in, out)
 }

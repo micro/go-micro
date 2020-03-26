@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package go.micro.auth;
 
+import "github.com/micro/go-micro/auth/service/proto/auth/auth.proto";
+
 service Rules {
 	rpc Create(CreateRequest) returns (CreateResponse) {};
 	rpc Delete(DeleteRequest) returns (DeleteResponse) {};
@@ -19,12 +21,6 @@ message Rule {
 	string role = 2;
 	Resource resource = 3;
 	Access access = 4;
-}
-
-message Resource{
-	string name = 1;
-	string type = 2;
-	string endpoint = 3;
 }
 
 message CreateRequest {

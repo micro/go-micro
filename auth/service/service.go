@@ -99,7 +99,7 @@ func (s *svc) Grant(role string, res *auth.Resource) error {
 	_, err := s.rule.Create(context.TODO(), &rulePb.CreateRequest{
 		Role:   role,
 		Access: rulePb.Access_GRANTED,
-		Resource: &rulePb.Resource{
+		Resource: &authPb.Resource{
 			Type:     res.Type,
 			Name:     res.Name,
 			Endpoint: res.Endpoint,
@@ -113,7 +113,7 @@ func (s *svc) Revoke(role string, res *auth.Resource) error {
 	_, err := s.rule.Delete(context.TODO(), &rulePb.DeleteRequest{
 		Role:   role,
 		Access: rulePb.Access_GRANTED,
-		Resource: &rulePb.Resource{
+		Resource: &authPb.Resource{
 			Type:     res.Type,
 			Name:     res.Name,
 			Endpoint: res.Endpoint,
