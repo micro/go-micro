@@ -164,7 +164,7 @@ func (p *Proxy) filterRoutes(ctx context.Context, routes []router.Route) []route
 	}
 
 	if logger.V(logger.TraceLevel, logger.DefaultLogger) {
-		logger.Tracef("Proxy filtered routes %+v\n", filteredRoutes)
+		logger.Tracef("Proxy filtered routes %+v", filteredRoutes)
 	}
 
 	return filteredRoutes
@@ -357,7 +357,7 @@ func (p *Proxy) ServeRequest(ctx context.Context, req server.Request, rsp server
 	}
 
 	if logger.V(logger.TraceLevel, logger.DefaultLogger) {
-		logger.Tracef("Proxy received request for %s", service)
+		logger.Tracef("Proxy received request for %s %s", service, endpoint)
 	}
 
 	// are we network routing or local routing
