@@ -124,7 +124,7 @@ func (s *svc) Revoke(role string, res *auth.Resource) error {
 
 // Verify an account has access to a resource
 func (s *svc) Verify(acc *auth.Account, res *auth.Resource) error {
-	log.Infof("%v requesting acces to %v:%v:%v", acc.ID, res.Type, res.Name, res.Endpoint)
+	log.Infof("%v requesting access to %v:%v:%v", acc.ID, res.Type, res.Name, res.Endpoint)
 
 	queries := [][]string{
 		{res.Type, res.Name, res.Endpoint}, // check for specific role, e.g. service.foo.ListFoo:admin (role is checked in accessForRule)
@@ -148,16 +148,17 @@ func (s *svc) Verify(acc *auth.Account, res *auth.Resource) error {
 			case rulePb.Access_UNKNOWN:
 				continue // rule did not specify access, check the next rule
 			case rulePb.Access_GRANTED:
+				log.Infof("%v granted access to %v:%v:%v by rule %v", acc.ID, res.Type, res.Name, res.Endpoint, rule.Id)
 				return nil // rule grants the account access to the resource
 			case rulePb.Access_DENIED:
-				log.Infof("%v denied to %v:%v:%v by rule %v", acc.ID, res.Type, res.Name, res.Endpoint, rule.Id)
+				log.Infof("%v denied access to %v:%v:%v by rule %v", acc.ID, res.Type, res.Name, res.Endpoint, rule.Id)
 				return auth.ErrForbidden // rule denies access to the resource
 			}
 		}
 	}
 
 	// no rules were found for the resource, default to denying access
-	log.Infof("%v denied to %v:%v:%v by lack of rule", acc.ID, res.Type, res.Name, res.Endpoint)
+	log.Infof("%v denied access to %v:%v:%v by lack of rule", acc.ID, res.Type, res.Name, res.Endpoint)
 	return auth.ErrForbidden
 }
 
