@@ -69,6 +69,13 @@ func strategy(services []*registry.Service) selector.Strategy {
 }
 
 func (h *rpcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	bsize := handler.DefaultMaxRecvSize
+	if h.opts.MaxRecvSize > 0 {
+		bsize = h.opts.MaxRecvSize
+	}
+
+	r.Body = http.MaxBytesReader(w, r.Body, bsize)
+
 	defer r.Body.Close()
 	var service *api.Service
 

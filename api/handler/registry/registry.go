@@ -187,6 +187,13 @@ func watch(rw registry.Watcher, w http.ResponseWriter, r *http.Request) {
 }
 
 func (rh *registryHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	bsize := handler.DefaultMaxRecvSize
+	if rh.opts.MaxRecvSize > 0 {
+		bsize = rh.opts.MaxRecvSize
+	}
+
+	r.Body = http.MaxBytesReader(w, r.Body, bsize)
+
 	switch r.Method {
 	case "GET":
 		rh.get(w, r)

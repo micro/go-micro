@@ -18,7 +18,7 @@ import (
 )
 
 type event struct {
-	options handler.Options
+	opts handler.Options
 }
 
 var (
@@ -64,11 +64,18 @@ func evRoute(ns, p string) (string, string) {
 }
 
 func (e *event) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	bsize := handler.DefaultMaxRecvSize
+	if e.opts.MaxRecvSize > 0 {
+		bsize = e.opts.MaxRecvSize
+	}
+
+	r.Body = http.MaxBytesReader(w, r.Body, bsize)
+
 	// request to topic:event
 	// create event
 	// publish to topic
 
-	topic, action := evRoute(e.options.Namespace, r.URL.Path)
+	topic, action := evRoute(e.opts.Namespace, r.URL.Path)
 
 	// create event
 	ev := &proto.Event{
@@ -105,7 +112,7 @@ func (e *event) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// get client
-	c := e.options.Service.Client()
+	c := e.opts.Service.Client()
 
 	// create publication
 	p := c.NewMessage(topic, ev)
@@ -123,6 +130,6 @@ func (e *event) String() string {
 
 func NewHandler(opts ...handler.Option) handler.Handler {
 	return &event{
-		options: handler.NewOptions(opts...),
+		opts: handler.NewOptions(opts...),
 	}
 }

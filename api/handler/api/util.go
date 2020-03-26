@@ -13,7 +13,7 @@ import (
 	"github.com/micro/go-micro/v2/registry"
 )
 
-func requestToProto(r *http.Request) (*api.Request, error) {
+func (a *apiHandler) requestToProto(r *http.Request) (*api.Request, error) {
 	if err := r.ParseForm(); err != nil {
 		return nil, fmt.Errorf("Error parsing form: %v", err)
 	}
@@ -39,8 +39,10 @@ func requestToProto(r *http.Request) (*api.Request, error) {
 		case "application/x-www-form-urlencoded":
 			// expect form vals in Post data
 		default:
-
-			data, _ := ioutil.ReadAll(r.Body)
+			data, err := ioutil.ReadAll(r.Body)
+			if err != nil {
+				return nil, err
+			}
 			req.Body = string(data)
 		}
 	}

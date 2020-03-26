@@ -155,6 +155,13 @@ func (c *conn) writeLoop() {
 }
 
 func (b *brokerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	bsize := handler.DefaultMaxRecvSize
+	if b.opts.MaxRecvSize > 0 {
+		bsize = b.opts.MaxRecvSize
+	}
+
+	r.Body = http.MaxBytesReader(w, r.Body, bsize)
+
 	br := b.opts.Service.Client().Options().Broker
 
 	// Setup the broker
