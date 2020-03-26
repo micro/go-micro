@@ -24,7 +24,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"mime"
 	"net/http"
 	"strings"
@@ -32,7 +31,12 @@ import (
 	"unicode"
 
 	"github.com/google/uuid"
+	"github.com/oxtoacart/bpool"
 	validator "gopkg.in/go-playground/validator.v9"
+)
+
+var (
+	bufferPool = bpool.NewSizedBufferPool(1024, 8)
 )
 
 const (
@@ -97,10 +101,12 @@ func FromRequest(r *http.Request) (*Event, error) {
 	// Read request body
 	body := []byte{}
 	if r.Body != nil {
-		body, err = ioutil.ReadAll(r.Body)
-		if err != nil {
+		buf := bufferPool.Get()
+		defer bufferPool.Put(buf)
+		if _, err := buf.ReadFrom(r.Body); err != nil {
 			return nil, err
 		}
+		body = buf.Bytes()
 	}
 
 	var event *Event

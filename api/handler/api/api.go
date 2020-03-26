@@ -24,6 +24,12 @@ const (
 
 // API handler is the default handler which takes api.Request and returns api.Response
 func (a *apiHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	bsize := handler.DefaultMaxRecvSize
+	if a.opts.MaxRecvSize > 0 {
+		bsize = a.opts.MaxRecvSize
+	}
+
+	r.Body = http.MaxBytesReader(w, r.Body, bsize)
 	request, err := requestToProto(r)
 	if err != nil {
 		er := errors.InternalServerError("go.micro.api", err.Error())
