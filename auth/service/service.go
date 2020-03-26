@@ -144,6 +144,8 @@ func (s *svc) Verify(acc *auth.Account, res *auth.Resource) error {
 
 	for _, q := range queries {
 		for _, rule := range s.listRules(q...) {
+			log.Infof("Checking rule: %v for resource: %v:%v:%v", rule.Id, res.Type, res.Name, res.Endpoint)
+
 			switch accessForRule(rule, acc, res) {
 			case rulePb.Access_UNKNOWN:
 				continue // rule did not specify access, check the next rule
@@ -158,7 +160,7 @@ func (s *svc) Verify(acc *auth.Account, res *auth.Resource) error {
 	}
 
 	// no rules were found for the resource, default to denying access
-	log.Infof("%v denied access to %v:%v:%v by lack of rule", acc.ID, res.Type, res.Name, res.Endpoint)
+	log.Infof("%v denied access to %v:%v:%v by lack of rule (%v rules found)", acc.ID, res.Type, res.Name, res.Endpoint, len(s.rules))
 	return auth.ErrForbidden
 }
 
