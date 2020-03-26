@@ -124,6 +124,8 @@ func (s *svc) Revoke(role string, res *auth.Resource) error {
 
 // Verify an account has access to a resource
 func (s *svc) Verify(acc *auth.Account, res *auth.Resource) error {
+	log.Infof("%v requesting access to %v:%v:%v", acc.ID, res.Type, res.Name, res.Endpoint)
+
 	queries := [][]string{
 		{res.Type, res.Name, res.Endpoint}, // check for specific role, e.g. service.foo.ListFoo:admin (role is checked in accessForRule)
 		{res.Type, res.Name, "*"},          // check for wildcard endpoint, e.g. service.foo*
@@ -142,18 +144,23 @@ func (s *svc) Verify(acc *auth.Account, res *auth.Resource) error {
 
 	for _, q := range queries {
 		for _, rule := range s.listRules(q...) {
+			log.Infof("Checking rule: %v for resource: %v:%v:%v", rule.Id, res.Type, res.Name, res.Endpoint)
+
 			switch accessForRule(rule, acc, res) {
 			case rulePb.Access_UNKNOWN:
 				continue // rule did not specify access, check the next rule
 			case rulePb.Access_GRANTED:
+				log.Infof("%v granted access to %v:%v:%v by rule %v", acc.ID, res.Type, res.Name, res.Endpoint, rule.Id)
 				return nil // rule grants the account access to the resource
 			case rulePb.Access_DENIED:
-				return auth.ErrForbidden // reule denies access to the resource
+				log.Infof("%v denied access to %v:%v:%v by rule %v", acc.ID, res.Type, res.Name, res.Endpoint, rule.Id)
+				return auth.ErrForbidden // rule denies access to the resource
 			}
 		}
 	}
 
 	// no rules were found for the resource, default to denying access
+	log.Infof("%v denied access to %v:%v:%v by lack of rule (%v rules found)", acc.ID, res.Type, res.Name, res.Endpoint, len(s.rules))
 	return auth.ErrForbidden
 }
 
@@ -241,7 +248,7 @@ func (s *svc) listRules(filters ...string) []*rulePb.Rule {
 
 // loadRules retrieves the rules from the auth service
 func (s *svc) loadRules() {
-	log.Infof("Loading rules from auth service\n")
+	log.Infof("Loading rules from auth service")
 	rsp, err := s.rule.List(context.TODO(), &rulePb.ListRequest{})
 	s.Lock()
 	defer s.Unlock()
@@ -251,7 +258,7 @@ func (s *svc) loadRules() {
 		return
 	}
 
-	log.Infof("Loaded %v rules from the auth service\n", len(rsp.Rules))
+	log.Infof("Loaded %v rules from the auth service", len(rsp.Rules))
 	s.rules = rsp.Rules
 }
 
