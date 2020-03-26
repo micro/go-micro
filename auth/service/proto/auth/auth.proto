@@ -4,17 +4,8 @@ package go.micro.auth;
 
 service Auth {
 	rpc Generate(GenerateRequest) returns (GenerateResponse) {};
-	rpc Grant(GrantRequest) returns (GrantResponse) {};
-	rpc Revoke(RevokeRequest)  returns (RevokeResponse) {};
 	rpc Inspect(InspectRequest)  returns (InspectResponse) {};		
 	rpc Refresh(RefreshRequest)  returns (RefreshResponse) {};
-	rpc ListRules(ListRulesRequest) returns (ListRulesResponse) {};
-}
-
-message Rule {
-	string id = 1;
-	string role = 2;
-	Resource resource = 3;
 }
 
 message Token {
@@ -80,11 +71,4 @@ message RefreshRequest {
 
 message RefreshResponse {
 	Token token = 1;
-}
-
-message ListRulesRequest {
-}
-
-message ListRulesResponse {
-	repeated Rule rules = 1;
 }

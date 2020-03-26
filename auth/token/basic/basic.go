@@ -2,6 +2,7 @@ package basic
 
 import (
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -14,6 +15,11 @@ import (
 type Basic struct {
 	store store.Store
 }
+
+var (
+	// StorePrefix to isolate tokens
+	StorePrefix = "tokens/"
+)
 
 // NewTokenProvider returns an initialized basic provider
 func NewTokenProvider(opts ...token.Option) token.Provider {
@@ -51,7 +57,7 @@ func (b *Basic) Generate(subject string, opts ...token.GenerateOption) (*auth.To
 
 	// write to the store
 	err = b.store.Write(&store.Record{
-		Key:    token.Token,
+		Key:    fmt.Sprintf("%v%v", StorePrefix, token.Token),
 		Value:  bytes,
 		Expiry: options.Expiry,
 	})
@@ -66,7 +72,7 @@ func (b *Basic) Generate(subject string, opts ...token.GenerateOption) (*auth.To
 // Inspect a token
 func (b *Basic) Inspect(t string) (*auth.Token, error) {
 	// lookup the token in the store
-	recs, err := b.store.Read(t)
+	recs, err := b.store.Read(StorePrefix + t)
 	if err == store.ErrNotFound {
 		return nil, token.ErrInvalidToken
 	} else if err != nil {

@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+package go.micro.auth;
+
+import "github.com/micro/go-micro/auth/service/proto/auth/auth.proto";
+
+service Rules {
+	rpc Create(CreateRequest) returns (CreateResponse) {};
+	rpc Delete(DeleteRequest) returns (DeleteResponse) {};
+	rpc List(ListRequest) returns (ListResponse) {};
+}
+
+enum Access {
+	UNKNOWN = 0;
+	GRANTED = 1;
+	DENIED = 2;
+}
+
+message Rule {
+	string id = 1;
+	string role = 2;
+	Resource resource = 3;
+	Access access = 4;
+}
+
+message CreateRequest {
+	string role = 1;
+  Resource resource = 2;
+  Access access = 3;
+}
+
+message CreateResponse {}
+
+message DeleteRequest {
+	string role = 1;
+  Resource resource = 2;
+  Access access = 3;
+}
+
+message DeleteResponse {}
+
+message ListRequest {
+}
+
+message ListResponse {
+	repeated Rule rules = 1;
+}
