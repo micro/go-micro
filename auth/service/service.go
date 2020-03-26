@@ -219,7 +219,7 @@ func accessForRule(rule *rulePb.Rule, acc *auth.Account, res *auth.Resource) rul
 		}
 	}
 
-	return rulePb.Access_DENIED
+	return rulePb.Access_UNKNOWN
 }
 
 // listRules gets all the rules from the store which have an id
