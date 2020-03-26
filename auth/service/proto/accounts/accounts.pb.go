@@ -5,10 +5,9 @@ package go_micro_auth
 
 import (
 	fmt "fmt"
-	math "math"
-
 	proto "github.com/golang/protobuf/proto"
 	auth "github.com/micro/go-micro/v2/auth/service/proto/auth"
+	math "math"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
