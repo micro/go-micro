@@ -125,11 +125,10 @@ func (s *svc) Revoke(role string, res *auth.Resource) error {
 // Verify an account has access to a resource
 func (s *svc) Verify(acc *auth.Account, res *auth.Resource) error {
 	queries := [][]string{
-		{res.Type, res.Name, res.Endpoint},      // check for specific role, e.g. service.foo.ListFoo:admin (role is checked in accessForRule)
-		{res.Type, res.Name, res.Endpoint, "*"}, // check for wildcard role, e.g. service.foo.ListFoo:*
-		{res.Type, res.Name, "*"},               // check for wildcard endpoint, e.g. service.foo*
-		{res.Type, "*"},                         // check for wildcard name, e.g. service.*
-		{"*"},                                   // check for wildcard type, e.g. *
+		{res.Type, res.Name, res.Endpoint}, // check for specific role, e.g. service.foo.ListFoo:admin (role is checked in accessForRule)
+		{res.Type, res.Name, "*"},          // check for wildcard endpoint, e.g. service.foo*
+		{res.Type, "*"},                    // check for wildcard name, e.g. service.*
+		{"*"},                              // check for wildcard type, e.g. *
 	}
 
 	// endpoint is a url which can have wildcard excludes, e.g.
@@ -219,7 +218,7 @@ func accessForRule(rule *rulePb.Rule, acc *auth.Account, res *auth.Resource) rul
 		}
 	}
 
-	return rulePb.Access_DENIED
+	return rulePb.Access_UNKNOWN
 }
 
 // listRules gets all the rules from the store which have an id
@@ -242,6 +241,7 @@ func (s *svc) listRules(filters ...string) []*rulePb.Rule {
 
 // loadRules retrieves the rules from the auth service
 func (s *svc) loadRules() {
+	log.Infof("Loading rules from auth service\n")
 	rsp, err := s.rule.List(context.TODO(), &rulePb.ListRequest{})
 	s.Lock()
 	defer s.Unlock()
@@ -251,6 +251,7 @@ func (s *svc) loadRules() {
 		return
 	}
 
+	log.Infof("Loaded %v rules from the auth service\n", len(rsp.Rules))
 	s.rules = rsp.Rules
 }
 
