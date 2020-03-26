@@ -13,6 +13,7 @@ import (
 	"github.com/micro/go-micro/v2/auth/token/jwt"
 	"github.com/micro/go-micro/v2/client"
 	log "github.com/micro/go-micro/v2/logger"
+	"github.com/micro/go-micro/v2/util/jitter"
 )
 
 // NewAuth returns a new instance of the Auth service
@@ -54,9 +55,17 @@ func (s *svc) Init(opts ...auth.Option) {
 	// load rules periodically from the auth service
 	timer := time.NewTicker(time.Second * 30)
 	go func() {
+		// load rules immediately on startup
+		s.loadRules()
+
 		for {
-			s.loadRules()
 			<-timer.C
+
+			// jitter for up to 5 seconds, this stops
+			// all the services calling the auth service
+			// at the exact same time
+			time.Sleep(jitter.Do(time.Second * 5))
+			s.loadRules()
 		}
 	}()
 }
@@ -227,7 +236,6 @@ func (s *svc) loadRules() {
 
 	if err != nil {
 		log.Errorf("Error listing rules: %v", err)
-		s.rules = []*pb.Rule{}
 		return
 	}
 

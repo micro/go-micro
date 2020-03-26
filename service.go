@@ -46,7 +46,7 @@ func newService(opts ...Option) Service {
 	options.Server.Init(
 		server.WrapHandler(wrapper.HandlerStats(stats.DefaultStats)),
 		server.WrapHandler(wrapper.TraceHandler(trace.DefaultTracer)),
-		server.WrapHandler(wrapper.AuthHandler(authFn, serviceName)),
+		server.WrapHandler(wrapper.AuthHandler(authFn)),
 	)
 
 	// set opts

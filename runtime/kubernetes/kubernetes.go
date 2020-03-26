@@ -129,6 +129,7 @@ func (k *kubernetes) getService(labels map[string]string) ([]*service, error) {
 			// parse out deployment status and inject into service metadata
 			if len(kdep.Status.Conditions) > 0 {
 				svc.Metadata["status"] = kdep.Status.Conditions[0].Type
+				svc.Metadata["started"] = kdep.Status.Conditions[0].LastUpdate
 				delete(svc.Metadata, "error")
 			} else {
 				svc.Metadata["status"] = "n/a"
@@ -152,6 +153,11 @@ func (k *kubernetes) getService(labels map[string]string) ([]*service, error) {
 					status = item.Status.Reason
 				default:
 					status = item.Status.Phase
+				}
+
+				// skip if we can't get the container
+				if len(item.Status.Containers) == 0 {
+					continue
 				}
 
 				// now try get a deeper status

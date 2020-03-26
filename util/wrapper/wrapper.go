@@ -152,7 +152,7 @@ func TraceHandler(t trace.Tracer) server.HandlerWrapper {
 }
 
 // AuthHandler wraps a server handler to perform auth
-func AuthHandler(fn func() auth.Auth, srvName string) server.HandlerWrapper {
+func AuthHandler(fn func() auth.Auth) server.HandlerWrapper {
 	return func(h server.HandlerFunc) server.HandlerFunc {
 		return func(ctx context.Context, req server.Request, rsp interface{}) error {
 			// get the auth.Auth interface
@@ -187,11 +187,11 @@ func AuthHandler(fn func() auth.Auth, srvName string) server.HandlerWrapper {
 			}
 
 			// Verify the caller has access to the resource
-			err = a.Verify(account, &auth.Resource{Type: "service", Name: srvName, Endpoint: req.Endpoint()})
+			err = a.Verify(account, &auth.Resource{Type: "service", Name: req.Service(), Endpoint: req.Endpoint()})
 			if err != nil && len(account.ID) > 0 {
-				return errors.Forbidden("go.micro.auth", "Forbidden call made to %v:%v by %v", srvName, req.Endpoint(), account.ID)
+				return errors.Forbidden("go.micro.auth", "Forbidden call made to %v:%v by %v", req.Service(), req.Endpoint(), account.ID)
 			} else if err != nil {
-				return errors.Unauthorized("go.micro.auth", "Unauthorised call made to %v:%v", srvName, req.Endpoint())
+				return errors.Unauthorized("go.micro.auth", "Unauthorised call made to %v:%v", req.Service(), req.Endpoint())
 			}
 
 			// There is an account, set it in the context
