@@ -30,7 +30,7 @@ func (a *apiHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, bsize)
-	request, err := a.requestToProto(r)
+	request, err := requestToProto(r)
 	if err != nil {
 		er := errors.InternalServerError("go.micro.api", err.Error())
 		w.Header().Set("Content-Type", "application/json")

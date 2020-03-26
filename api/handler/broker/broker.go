@@ -3,7 +3,6 @@ package broker
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
@@ -15,6 +14,11 @@ import (
 	"github.com/micro/go-micro/v2/api/handler"
 	"github.com/micro/go-micro/v2/broker"
 	"github.com/micro/go-micro/v2/logger"
+	"github.com/oxtoacart/bpool"
+)
+
+var (
+	bufferPool = bpool.NewSizedBufferPool(1024, 8)
 )
 
 const (
@@ -198,14 +202,15 @@ func (b *brokerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Read body
-		b, err := ioutil.ReadAll(r.Body)
-		if err != nil {
+		buf := bufferPool.Get()
+		defer bufferPool.Put(buf)
+		if _, err := buf.ReadFrom(r.Body); err != nil {
 			http.Error(w, err.Error(), 500)
 			return
 		}
-
 		// Set body
-		msg.Body = b
+		msg.Body = buf.Bytes()
+		// Set body
 
 		// Publish
 		br.Publish(topic, msg)
