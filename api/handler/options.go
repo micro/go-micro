@@ -6,7 +6,7 @@ import (
 )
 
 var (
-	DefaultMaxRecvSize int64 = 1024 * 1024 * 10 // 4Mb
+	DefaultMaxRecvSize int64 = 1024 * 1024 * 10 // 10Mb
 )
 
 type Options struct {
