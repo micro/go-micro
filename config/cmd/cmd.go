@@ -692,10 +692,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 
 		authOpts = append(authOpts, auth.Provider(p(provOpts...)))
 	}
-
-	if len(authOpts) > 0 {
-		(*c.opts.Auth).Init(authOpts...)
-	}
+	(*c.opts.Auth).Init(authOpts...)
 
 	if ctx.String("config") == "service" {
 		opt := config.WithSource(configSrv.NewSource())
