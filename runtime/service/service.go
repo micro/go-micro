@@ -105,8 +105,10 @@ func (s *svc) Update(svc *runtime.Service) error {
 	// runtime service create request
 	req := &pb.UpdateRequest{
 		Service: &pb.Service{
-			Name:    svc.Name,
-			Version: svc.Version,
+			Name:     svc.Name,
+			Version:  svc.Version,
+			Source:   svc.Source,
+			Metadata: svc.Metadata,
 		},
 	}
 
@@ -122,8 +124,10 @@ func (s *svc) Delete(svc *runtime.Service) error {
 	// runtime service create request
 	req := &pb.DeleteRequest{
 		Service: &pb.Service{
-			Name:    svc.Name,
-			Version: svc.Version,
+			Name:     svc.Name,
+			Version:  svc.Version,
+			Source:   svc.Source,
+			Metadata: svc.Metadata,
 		},
 	}
 
