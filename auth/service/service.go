@@ -146,14 +146,17 @@ func (s *svc) Verify(acc *auth.Account, res *auth.Resource) error {
 			case rulePb.Access_UNKNOWN:
 				continue // rule did not specify access, check the next rule
 			case rulePb.Access_GRANTED:
+				log.Infof("%v granted access to %v:%v:%v by rule %v", acc.ID, res.Type, res.Name, res.Endpoint, rule.Id)
 				return nil // rule grants the account access to the resource
 			case rulePb.Access_DENIED:
-				return auth.ErrForbidden // reule denies access to the resource
+				log.Infof("%v denied access to %v:%v:%v by rule %v", acc.ID, res.Type, res.Name, res.Endpoint, rule.Id)
+				return auth.ErrForbidden // rule denies access to the resource
 			}
 		}
 	}
 
 	// no rules were found for the resource, default to denying access
+	log.Infof("%v denied access to %v:%v:%v by lack of rule (%v rules found)", acc.ID, res.Type, res.Name, res.Endpoint, len(s.rules))
 	return auth.ErrForbidden
 }
 
@@ -241,7 +244,6 @@ func (s *svc) listRules(filters ...string) []*rulePb.Rule {
 
 // loadRules retrieves the rules from the auth service
 func (s *svc) loadRules() {
-	log.Infof("Loading rules from auth service\n")
 	rsp, err := s.rule.List(context.TODO(), &rulePb.ListRequest{})
 	s.Lock()
 	defer s.Unlock()
@@ -251,7 +253,6 @@ func (s *svc) loadRules() {
 		return
 	}
 
-	log.Infof("Loaded %v rules from the auth service\n", len(rsp.Rules))
 	s.rules = rsp.Rules
 }
 
