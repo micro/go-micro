@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	jsonpatch "github.com/evanphx/json-patch/v5"
 	"github.com/joncalhoun/qson"
 	"github.com/micro/go-micro/v2/api"
 	"github.com/micro/go-micro/v2/api/handler"
@@ -273,13 +274,32 @@ func requestPayload(r *http.Request) ([]byte, error) {
 		if len(r.URL.RawQuery) > 0 {
 			return qson.ToJSON(r.URL.RawQuery)
 		}
-	case "PATCH", "POST":
+	case "PATCH", "POST", "PUT", "DELETE":
+		urlParams := []byte("{}")
+		bodyParams := []byte("{}")
+		var err error
+		if len(r.URL.RawQuery) > 0 {
+			if urlParams, err = qson.ToJSON(r.URL.RawQuery); err != nil {
+				return nil, err
+			}
+		}
+
 		buf := bufferPool.Get()
 		defer bufferPool.Put(buf)
 		if _, err := buf.ReadFrom(r.Body); err != nil {
 			return nil, err
 		}
+		if b := buf.Bytes(); len(b) > 0 {
+			bodyParams = b
+		}
+
+		if out, err := jsonpatch.MergeMergePatches(urlParams, bodyParams); err == nil {
+			return out, nil
+		}
+
+		//fallback to previous unknown behaviour
 		return buf.Bytes(), nil
+
 	}
 
 	return []byte{}, nil
