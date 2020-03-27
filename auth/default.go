@@ -41,6 +41,7 @@ func (n *noop) Generate(id string, opts ...GenerateOption) (*Account, error) {
 		ID:       id,
 		Roles:    options.Roles,
 		Metadata: options.Metadata,
+		Secret:   &Token{},
 	}, nil
 }
 
@@ -62,8 +63,7 @@ func (n *noop) Verify(acc *Account, res *Resource) error {
 // Inspect a token
 func (n *noop) Inspect(token string) (*Account, error) {
 	return &Account{
-		ID:     uuid.New().String(),
-		Secret: &Token{},
+		ID: uuid.New().String(),
 	}, nil
 }
 
