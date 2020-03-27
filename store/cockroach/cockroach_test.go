@@ -108,11 +108,17 @@ func TestSQL(t *testing.T) {
 	sqlStore.Write(&store.Record{Key: "aaaa", Value: []byte("bbb"), Expiry: 5 * time.Second})
 	sqlStore.Write(&store.Record{Key: "aaaaa", Value: []byte("bbb"), Expiry: 5 * time.Second})
 	results, err := sqlStore.Read("a", store.ReadPrefix())
+	if err != nil {
+		t.Error(err)
+	}
 	if len(results) != 3 {
 		t.Fatal("Results should have returned 3 records")
 	}
 	time.Sleep(6 * time.Second)
 	results, err = sqlStore.Read("a", store.ReadPrefix())
+	if err != nil {
+		t.Error(err)
+	}
 	if len(results) != 0 {
 		t.Fatal("Results should have returned 0 records")
 	}
