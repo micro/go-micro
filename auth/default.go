@@ -61,7 +61,10 @@ func (n *noop) Verify(acc *Account, res *Resource) error {
 
 // Inspect a token
 func (n *noop) Inspect(token string) (*Account, error) {
-	return &Account{ID: uuid.New().String()}, nil
+	return &Account{
+		ID:     uuid.New().String(),
+		Secret: &Token{},
+	}, nil
 }
 
 // Refresh an account using a secret
