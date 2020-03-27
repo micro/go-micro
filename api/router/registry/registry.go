@@ -144,8 +144,8 @@ func (r *registryRouter) store(services []*registry.Service) {
 
 			// if we got nothing skip
 			if err := api.Validate(end); err != nil {
-				if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
-					logger.Errorf("endpoint validation failed: %v", err)
+				if logger.V(logger.TraceLevel, logger.DefaultLogger) {
+					logger.Tracef("endpoint validation failed: %v", err)
 				}
 				continue
 			}
