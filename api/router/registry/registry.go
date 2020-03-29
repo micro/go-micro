@@ -250,6 +250,14 @@ func (r *registryRouter) Close() error {
 	return nil
 }
 
+func (r *registryRouter) Register(ep *api.Endpoint) error {
+	return nil
+}
+
+func (r *registryRouter) Deregister(ep *api.Endpoint) error {
+	return nil
+}
+
 func (r *registryRouter) Endpoint(req *http.Request) (*api.Service, error) {
 	if r.isClosed() {
 		return nil, errors.New("router closed")
