@@ -404,6 +404,11 @@ func writeResponse(w http.ResponseWriter, r *http.Request, rsp []byte) {
 		w.Header().Set("grpc-message", "")
 	}
 
+	// write 204 status if rsp is nil
+	if len(rsp) == 0 {
+		w.WriteHeader(http.StatusNoContent)
+	}
+
 	// write response
 	_, err := w.Write(rsp)
 	if err != nil {
