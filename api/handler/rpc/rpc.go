@@ -332,8 +332,15 @@ func requestPayload(r *http.Request) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	switch r.Method {
 	case "GET":
+		// empty response
+		if strings.Contains(ct, "application/json") && string(out) == "{}" {
+			return out, nil
+		} else if string(out) == "{}" && !strings.Contains(ct, "application/json") {
+			return []byte{}, nil
+		}
 		return out, nil
 	case "PATCH", "POST", "PUT", "DELETE":
 		bodybuf := []byte("{}")
@@ -344,6 +351,8 @@ func requestPayload(r *http.Request) ([]byte, error) {
 		}
 		if b := buf.Bytes(); len(b) > 0 {
 			bodybuf = b
+		} else {
+			return []byte{}, nil
 		}
 
 		if out, err = jsonpatch.MergeMergePatches(out, bodybuf); err == nil {
@@ -351,7 +360,7 @@ func requestPayload(r *http.Request) ([]byte, error) {
 		}
 
 		//fallback to previous unknown behaviour
-		return buf.Bytes(), nil
+		return bodybuf, nil
 
 	}
 
