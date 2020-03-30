@@ -4,8 +4,12 @@
 package go_micro_client
 
 import (
+	context "context"
 	fmt "fmt"
 	proto "github.com/golang/protobuf/proto"
+	grpc "google.golang.org/grpc"
+	codes "google.golang.org/grpc/codes"
+	status "google.golang.org/grpc/status"
 	math "math"
 )
 
@@ -183,9 +187,7 @@ func init() {
 	proto.RegisterType((*Message)(nil), "go.micro.client.Message")
 }
 
-func init() {
-	proto.RegisterFile("client/service/proto/client.proto", fileDescriptor_27c3d425ddd1a066)
-}
+func init() { proto.RegisterFile("client/service/proto/client.proto", fileDescriptor_27c3d425ddd1a066) }
 
 var fileDescriptor_27c3d425ddd1a066 = []byte{
 	// 267 bytes of a gzipped FileDescriptorProto
@@ -206,4 +208,195 @@ var fileDescriptor_27c3d425ddd1a066 = []byte{
 	0x51, 0xbd, 0xf9, 0x67, 0x40, 0xc6, 0xae, 0x19, 0xde, 0x43, 0xfc, 0xb8, 0x6d, 0x5a, 0x69, 0xdf,
 	0x0e, 0xa4, 0x84, 0x02, 0x92, 0xa3, 0x24, 0x1d, 0x35, 0x91, 0xff, 0xd7, 0xdb, 0xcf, 0x00, 0x00,
 	0x00, 0xff, 0xff, 0xd6, 0x3f, 0xc3, 0xa1, 0xfc, 0x01, 0x00, 0x00,
+}
+
+// Reference imports to suppress errors if they are not otherwise used.
+var _ context.Context
+var _ grpc.ClientConn
+
+// This is a compile-time assertion to ensure that this generated file
+// is compatible with the grpc package it is being compiled against.
+const _ = grpc.SupportPackageIsVersion4
+
+// ClientClient is the client API for Client service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
+type ClientClient interface {
+	// Call allows a single request to be made
+	Call(ctx context.Context, in *Request, opts ...grpc.CallOption) (*Response, error)
+	// Stream is a bidirectional stream
+	Stream(ctx context.Context, opts ...grpc.CallOption) (Client_StreamClient, error)
+	// Publish publishes a message and returns an empty Message
+	Publish(ctx context.Context, in *Message, opts ...grpc.CallOption) (*Message, error)
+}
+
+type clientClient struct {
+	cc *grpc.ClientConn
+}
+
+func NewClientClient(cc *grpc.ClientConn) ClientClient {
+	return &clientClient{cc}
+}
+
+func (c *clientClient) Call(ctx context.Context, in *Request, opts ...grpc.CallOption) (*Response, error) {
+	out := new(Response)
+	err := c.cc.Invoke(ctx, "/go.micro.client.Client/Call", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *clientClient) Stream(ctx context.Context, opts ...grpc.CallOption) (Client_StreamClient, error) {
+	stream, err := c.cc.NewStream(ctx, &_Client_serviceDesc.Streams[0], "/go.micro.client.Client/Stream", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &clientStreamClient{stream}
+	return x, nil
+}
+
+type Client_StreamClient interface {
+	Send(*Request) error
+	Recv() (*Response, error)
+	grpc.ClientStream
+}
+
+type clientStreamClient struct {
+	grpc.ClientStream
+}
+
+func (x *clientStreamClient) Send(m *Request) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *clientStreamClient) Recv() (*Response, error) {
+	m := new(Response)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (c *clientClient) Publish(ctx context.Context, in *Message, opts ...grpc.CallOption) (*Message, error) {
+	out := new(Message)
+	err := c.cc.Invoke(ctx, "/go.micro.client.Client/Publish", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// ClientServer is the server API for Client service.
+type ClientServer interface {
+	// Call allows a single request to be made
+	Call(context.Context, *Request) (*Response, error)
+	// Stream is a bidirectional stream
+	Stream(Client_StreamServer) error
+	// Publish publishes a message and returns an empty Message
+	Publish(context.Context, *Message) (*Message, error)
+}
+
+// UnimplementedClientServer can be embedded to have forward compatible implementations.
+type UnimplementedClientServer struct {
+}
+
+func (*UnimplementedClientServer) Call(ctx context.Context, req *Request) (*Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Call not implemented")
+}
+func (*UnimplementedClientServer) Stream(srv Client_StreamServer) error {
+	return status.Errorf(codes.Unimplemented, "method Stream not implemented")
+}
+func (*UnimplementedClientServer) Publish(ctx context.Context, req *Message) (*Message, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Publish not implemented")
+}
+
+func RegisterClientServer(s *grpc.Server, srv ClientServer) {
+	s.RegisterService(&_Client_serviceDesc, srv)
+}
+
+func _Client_Call_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Request)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ClientServer).Call(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/go.micro.client.Client/Call",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ClientServer).Call(ctx, req.(*Request))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Client_Stream_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(ClientServer).Stream(&clientStreamServer{stream})
+}
+
+type Client_StreamServer interface {
+	Send(*Response) error
+	Recv() (*Request, error)
+	grpc.ServerStream
+}
+
+type clientStreamServer struct {
+	grpc.ServerStream
+}
+
+func (x *clientStreamServer) Send(m *Response) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *clientStreamServer) Recv() (*Request, error) {
+	m := new(Request)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func _Client_Publish_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Message)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ClientServer).Publish(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/go.micro.client.Client/Publish",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ClientServer).Publish(ctx, req.(*Message))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+var _Client_serviceDesc = grpc.ServiceDesc{
+	ServiceName: "go.micro.client.Client",
+	HandlerType: (*ClientServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "Call",
+			Handler:    _Client_Call_Handler,
+		},
+		{
+			MethodName: "Publish",
+			Handler:    _Client_Publish_Handler,
+		},
+	},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "Stream",
+			Handler:       _Client_Stream_Handler,
+			ServerStreams: true,
+			ClientStreams: true,
+		},
+	},
+	Metadata: "client/service/proto/client.proto",
 }

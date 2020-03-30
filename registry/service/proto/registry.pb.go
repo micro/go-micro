@@ -4,8 +4,12 @@
 package go_micro_registry
 
 import (
+	context "context"
 	fmt "fmt"
 	proto "github.com/golang/protobuf/proto"
+	grpc "google.golang.org/grpc"
+	codes "google.golang.org/grpc/codes"
+	status "google.golang.org/grpc/status"
 	math "math"
 )
 
@@ -765,4 +769,256 @@ var fileDescriptor_3f5817c11f323eb6 = []byte{
 	0x3d, 0x84, 0x65, 0xd8, 0x65, 0x77, 0x05, 0xd7, 0x4b, 0x00, 0xc5, 0x5b, 0x0e, 0x2b, 0xfb, 0xce,
 	0xc7, 0xba, 0xfe, 0x4d, 0xdf, 0xff, 0x15, 0x00, 0x00, 0xff, 0xff, 0xc6, 0xa5, 0x5a, 0xc9, 0xcf,
 	0x07, 0x00, 0x00,
+}
+
+// Reference imports to suppress errors if they are not otherwise used.
+var _ context.Context
+var _ grpc.ClientConn
+
+// This is a compile-time assertion to ensure that this generated file
+// is compatible with the grpc package it is being compiled against.
+const _ = grpc.SupportPackageIsVersion4
+
+// RegistryClient is the client API for Registry service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
+type RegistryClient interface {
+	GetService(ctx context.Context, in *GetRequest, opts ...grpc.CallOption) (*GetResponse, error)
+	Register(ctx context.Context, in *Service, opts ...grpc.CallOption) (*EmptyResponse, error)
+	Deregister(ctx context.Context, in *Service, opts ...grpc.CallOption) (*EmptyResponse, error)
+	ListServices(ctx context.Context, in *ListRequest, opts ...grpc.CallOption) (*ListResponse, error)
+	Watch(ctx context.Context, in *WatchRequest, opts ...grpc.CallOption) (Registry_WatchClient, error)
+}
+
+type registryClient struct {
+	cc *grpc.ClientConn
+}
+
+func NewRegistryClient(cc *grpc.ClientConn) RegistryClient {
+	return &registryClient{cc}
+}
+
+func (c *registryClient) GetService(ctx context.Context, in *GetRequest, opts ...grpc.CallOption) (*GetResponse, error) {
+	out := new(GetResponse)
+	err := c.cc.Invoke(ctx, "/go.micro.registry.Registry/GetService", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *registryClient) Register(ctx context.Context, in *Service, opts ...grpc.CallOption) (*EmptyResponse, error) {
+	out := new(EmptyResponse)
+	err := c.cc.Invoke(ctx, "/go.micro.registry.Registry/Register", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *registryClient) Deregister(ctx context.Context, in *Service, opts ...grpc.CallOption) (*EmptyResponse, error) {
+	out := new(EmptyResponse)
+	err := c.cc.Invoke(ctx, "/go.micro.registry.Registry/Deregister", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *registryClient) ListServices(ctx context.Context, in *ListRequest, opts ...grpc.CallOption) (*ListResponse, error) {
+	out := new(ListResponse)
+	err := c.cc.Invoke(ctx, "/go.micro.registry.Registry/ListServices", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *registryClient) Watch(ctx context.Context, in *WatchRequest, opts ...grpc.CallOption) (Registry_WatchClient, error) {
+	stream, err := c.cc.NewStream(ctx, &_Registry_serviceDesc.Streams[0], "/go.micro.registry.Registry/Watch", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &registryWatchClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type Registry_WatchClient interface {
+	Recv() (*Result, error)
+	grpc.ClientStream
+}
+
+type registryWatchClient struct {
+	grpc.ClientStream
+}
+
+func (x *registryWatchClient) Recv() (*Result, error) {
+	m := new(Result)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+// RegistryServer is the server API for Registry service.
+type RegistryServer interface {
+	GetService(context.Context, *GetRequest) (*GetResponse, error)
+	Register(context.Context, *Service) (*EmptyResponse, error)
+	Deregister(context.Context, *Service) (*EmptyResponse, error)
+	ListServices(context.Context, *ListRequest) (*ListResponse, error)
+	Watch(*WatchRequest, Registry_WatchServer) error
+}
+
+// UnimplementedRegistryServer can be embedded to have forward compatible implementations.
+type UnimplementedRegistryServer struct {
+}
+
+func (*UnimplementedRegistryServer) GetService(ctx context.Context, req *GetRequest) (*GetResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetService not implemented")
+}
+func (*UnimplementedRegistryServer) Register(ctx context.Context, req *Service) (*EmptyResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Register not implemented")
+}
+func (*UnimplementedRegistryServer) Deregister(ctx context.Context, req *Service) (*EmptyResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Deregister not implemented")
+}
+func (*UnimplementedRegistryServer) ListServices(ctx context.Context, req *ListRequest) (*ListResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListServices not implemented")
+}
+func (*UnimplementedRegistryServer) Watch(req *WatchRequest, srv Registry_WatchServer) error {
+	return status.Errorf(codes.Unimplemented, "method Watch not implemented")
+}
+
+func RegisterRegistryServer(s *grpc.Server, srv RegistryServer) {
+	s.RegisterService(&_Registry_serviceDesc, srv)
+}
+
+func _Registry_GetService_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RegistryServer).GetService(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/go.micro.registry.Registry/GetService",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RegistryServer).GetService(ctx, req.(*GetRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Registry_Register_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Service)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RegistryServer).Register(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/go.micro.registry.Registry/Register",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RegistryServer).Register(ctx, req.(*Service))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Registry_Deregister_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Service)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RegistryServer).Deregister(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/go.micro.registry.Registry/Deregister",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RegistryServer).Deregister(ctx, req.(*Service))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Registry_ListServices_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RegistryServer).ListServices(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/go.micro.registry.Registry/ListServices",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RegistryServer).ListServices(ctx, req.(*ListRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Registry_Watch_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(WatchRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(RegistryServer).Watch(m, &registryWatchServer{stream})
+}
+
+type Registry_WatchServer interface {
+	Send(*Result) error
+	grpc.ServerStream
+}
+
+type registryWatchServer struct {
+	grpc.ServerStream
+}
+
+func (x *registryWatchServer) Send(m *Result) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+var _Registry_serviceDesc = grpc.ServiceDesc{
+	ServiceName: "go.micro.registry.Registry",
+	HandlerType: (*RegistryServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "GetService",
+			Handler:    _Registry_GetService_Handler,
+		},
+		{
+			MethodName: "Register",
+			Handler:    _Registry_Register_Handler,
+		},
+		{
+			MethodName: "Deregister",
+			Handler:    _Registry_Deregister_Handler,
+		},
+		{
+			MethodName: "ListServices",
+			Handler:    _Registry_ListServices_Handler,
+		},
+	},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "Watch",
+			Handler:       _Registry_Watch_Handler,
+			ServerStreams: true,
+		},
+	},
+	Metadata: "registry/service/proto/registry.proto",
 }

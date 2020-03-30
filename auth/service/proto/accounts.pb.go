@@ -4,8 +4,12 @@
 package go_micro_auth
 
 import (
+	context "context"
 	fmt "fmt"
 	proto "github.com/golang/protobuf/proto"
+	grpc "google.golang.org/grpc"
+	codes "google.golang.org/grpc/codes"
+	status "google.golang.org/grpc/status"
 	math "math"
 )
 
@@ -95,9 +99,7 @@ func init() {
 	proto.RegisterType((*ListAccountsResponse)(nil), "go.micro.auth.ListAccountsResponse")
 }
 
-func init() {
-	proto.RegisterFile("auth/service/proto/accounts.proto", fileDescriptor_fdbfb9fc95541122)
-}
+func init() { proto.RegisterFile("auth/service/proto/accounts.proto", fileDescriptor_fdbfb9fc95541122) }
 
 var fileDescriptor_fdbfb9fc95541122 = []byte{
 	// 164 bytes of a gzipped FileDescriptorProto
@@ -112,4 +114,84 @@ var fileDescriptor_fdbfb9fc95541122 = []byte{
 	0x20, 0x73, 0x85, 0x94, 0xd0, 0x74, 0x61, 0x71, 0x83, 0x94, 0x32, 0x5e, 0x35, 0x10, 0x07, 0x29,
 	0x31, 0x24, 0xb1, 0x81, 0x3d, 0x62, 0x0c, 0x08, 0x00, 0x00, 0xff, 0xff, 0x82, 0x00, 0x19, 0x2f,
 	0x1b, 0x01, 0x00, 0x00,
+}
+
+// Reference imports to suppress errors if they are not otherwise used.
+var _ context.Context
+var _ grpc.ClientConn
+
+// This is a compile-time assertion to ensure that this generated file
+// is compatible with the grpc package it is being compiled against.
+const _ = grpc.SupportPackageIsVersion4
+
+// AccountsClient is the client API for Accounts service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
+type AccountsClient interface {
+	List(ctx context.Context, in *ListAccountsRequest, opts ...grpc.CallOption) (*ListAccountsResponse, error)
+}
+
+type accountsClient struct {
+	cc *grpc.ClientConn
+}
+
+func NewAccountsClient(cc *grpc.ClientConn) AccountsClient {
+	return &accountsClient{cc}
+}
+
+func (c *accountsClient) List(ctx context.Context, in *ListAccountsRequest, opts ...grpc.CallOption) (*ListAccountsResponse, error) {
+	out := new(ListAccountsResponse)
+	err := c.cc.Invoke(ctx, "/go.micro.auth.Accounts/List", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// AccountsServer is the server API for Accounts service.
+type AccountsServer interface {
+	List(context.Context, *ListAccountsRequest) (*ListAccountsResponse, error)
+}
+
+// UnimplementedAccountsServer can be embedded to have forward compatible implementations.
+type UnimplementedAccountsServer struct {
+}
+
+func (*UnimplementedAccountsServer) List(ctx context.Context, req *ListAccountsRequest) (*ListAccountsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method List not implemented")
+}
+
+func RegisterAccountsServer(s *grpc.Server, srv AccountsServer) {
+	s.RegisterService(&_Accounts_serviceDesc, srv)
+}
+
+func _Accounts_List_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListAccountsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AccountsServer).List(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/go.micro.auth.Accounts/List",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AccountsServer).List(ctx, req.(*ListAccountsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+var _Accounts_serviceDesc = grpc.ServiceDesc{
+	ServiceName: "go.micro.auth.Accounts",
+	HandlerType: (*AccountsServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "List",
+			Handler:    _Accounts_List_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "auth/service/proto/accounts.proto",
 }

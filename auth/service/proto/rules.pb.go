@@ -4,8 +4,12 @@
 package go_micro_auth
 
 import (
+	context "context"
 	fmt "fmt"
 	proto "github.com/golang/protobuf/proto"
+	grpc "google.golang.org/grpc"
+	codes "google.golang.org/grpc/codes"
+	status "google.golang.org/grpc/status"
 	math "math"
 )
 
@@ -364,9 +368,7 @@ func init() {
 	proto.RegisterType((*ListResponse)(nil), "go.micro.auth.ListResponse")
 }
 
-func init() {
-	proto.RegisterFile("auth/service/proto/rules.proto", fileDescriptor_ce1ef0aa40cdd6dc)
-}
+func init() { proto.RegisterFile("auth/service/proto/rules.proto", fileDescriptor_ce1ef0aa40cdd6dc) }
 
 var fileDescriptor_ce1ef0aa40cdd6dc = []byte{
 	// 362 bytes of a gzipped FileDescriptorProto
@@ -393,4 +395,156 @@ var fileDescriptor_ce1ef0aa40cdd6dc = []byte{
 	0x5a, 0xab, 0x7f, 0x23, 0xa8, 0xd1, 0x49, 0x8b, 0x8e, 0xc1, 0xac, 0x6a, 0xa0, 0x5e, 0xc3, 0xf8,
 	0xa9, 0x2a, 0x6f, 0x7f, 0xab, 0xb6, 0x8c, 0xb8, 0xb3, 0xd4, 0x43, 0x19, 0x7d, 0x04, 0x00, 0x00,
 	0xff, 0xff, 0xd9, 0x7d, 0x25, 0xd9, 0x78, 0x03, 0x00, 0x00,
+}
+
+// Reference imports to suppress errors if they are not otherwise used.
+var _ context.Context
+var _ grpc.ClientConn
+
+// This is a compile-time assertion to ensure that this generated file
+// is compatible with the grpc package it is being compiled against.
+const _ = grpc.SupportPackageIsVersion4
+
+// RulesClient is the client API for Rules service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
+type RulesClient interface {
+	Create(ctx context.Context, in *CreateRequest, opts ...grpc.CallOption) (*CreateResponse, error)
+	Delete(ctx context.Context, in *DeleteRequest, opts ...grpc.CallOption) (*DeleteResponse, error)
+	List(ctx context.Context, in *ListRequest, opts ...grpc.CallOption) (*ListResponse, error)
+}
+
+type rulesClient struct {
+	cc *grpc.ClientConn
+}
+
+func NewRulesClient(cc *grpc.ClientConn) RulesClient {
+	return &rulesClient{cc}
+}
+
+func (c *rulesClient) Create(ctx context.Context, in *CreateRequest, opts ...grpc.CallOption) (*CreateResponse, error) {
+	out := new(CreateResponse)
+	err := c.cc.Invoke(ctx, "/go.micro.auth.Rules/Create", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *rulesClient) Delete(ctx context.Context, in *DeleteRequest, opts ...grpc.CallOption) (*DeleteResponse, error) {
+	out := new(DeleteResponse)
+	err := c.cc.Invoke(ctx, "/go.micro.auth.Rules/Delete", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *rulesClient) List(ctx context.Context, in *ListRequest, opts ...grpc.CallOption) (*ListResponse, error) {
+	out := new(ListResponse)
+	err := c.cc.Invoke(ctx, "/go.micro.auth.Rules/List", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// RulesServer is the server API for Rules service.
+type RulesServer interface {
+	Create(context.Context, *CreateRequest) (*CreateResponse, error)
+	Delete(context.Context, *DeleteRequest) (*DeleteResponse, error)
+	List(context.Context, *ListRequest) (*ListResponse, error)
+}
+
+// UnimplementedRulesServer can be embedded to have forward compatible implementations.
+type UnimplementedRulesServer struct {
+}
+
+func (*UnimplementedRulesServer) Create(ctx context.Context, req *CreateRequest) (*CreateResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Create not implemented")
+}
+func (*UnimplementedRulesServer) Delete(ctx context.Context, req *DeleteRequest) (*DeleteResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
+}
+func (*UnimplementedRulesServer) List(ctx context.Context, req *ListRequest) (*ListResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method List not implemented")
+}
+
+func RegisterRulesServer(s *grpc.Server, srv RulesServer) {
+	s.RegisterService(&_Rules_serviceDesc, srv)
+}
+
+func _Rules_Create_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RulesServer).Create(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/go.micro.auth.Rules/Create",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RulesServer).Create(ctx, req.(*CreateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Rules_Delete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RulesServer).Delete(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/go.micro.auth.Rules/Delete",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RulesServer).Delete(ctx, req.(*DeleteRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Rules_List_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RulesServer).List(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/go.micro.auth.Rules/List",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RulesServer).List(ctx, req.(*ListRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+var _Rules_serviceDesc = grpc.ServiceDesc{
+	ServiceName: "go.micro.auth.Rules",
+	HandlerType: (*RulesServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "Create",
+			Handler:    _Rules_Create_Handler,
+		},
+		{
+			MethodName: "Delete",
+			Handler:    _Rules_Delete_Handler,
+		},
+		{
+			MethodName: "List",
+			Handler:    _Rules_List_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "auth/service/proto/rules.proto",
 }

@@ -4,8 +4,12 @@
 package go_micro_server
 
 import (
+	context "context"
 	fmt "fmt"
 	proto "github.com/golang/protobuf/proto"
+	grpc "google.golang.org/grpc"
+	codes "google.golang.org/grpc/codes"
+	status "google.golang.org/grpc/status"
 	math "math"
 )
 
@@ -183,9 +187,7 @@ func init() {
 	proto.RegisterType((*SubscribeResponse)(nil), "go.micro.server.SubscribeResponse")
 }
 
-func init() {
-	proto.RegisterFile("server/proto/server.proto", fileDescriptor_1959cecd4d1121a1)
-}
+func init() { proto.RegisterFile("server/proto/server.proto", fileDescriptor_1959cecd4d1121a1) }
 
 var fileDescriptor_1959cecd4d1121a1 = []byte{
 	// 223 bytes of a gzipped FileDescriptorProto
@@ -203,4 +205,120 @@ var fileDescriptor_1959cecd4d1121a1 = []byte{
 	0xbf, 0xa4, 0xe4, 0x71, 0xca, 0x43, 0x1d, 0xc5, 0x20, 0x14, 0xc2, 0xc5, 0x09, 0xb7, 0x4c, 0x48,
 	0x11, 0x43, 0x3d, 0xba, 0x93, 0xa5, 0x94, 0xf0, 0x29, 0x81, 0x99, 0x9a, 0xc4, 0x06, 0x0e, 0x08,
 	0x63, 0x40, 0x00, 0x00, 0x00, 0xff, 0xff, 0xa4, 0x3f, 0x79, 0x80, 0x96, 0x01, 0x00, 0x00,
+}
+
+// Reference imports to suppress errors if they are not otherwise used.
+var _ context.Context
+var _ grpc.ClientConn
+
+// This is a compile-time assertion to ensure that this generated file
+// is compatible with the grpc package it is being compiled against.
+const _ = grpc.SupportPackageIsVersion4
+
+// ServerClient is the client API for Server service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
+type ServerClient interface {
+	Handle(ctx context.Context, in *HandleRequest, opts ...grpc.CallOption) (*HandleResponse, error)
+	Subscribe(ctx context.Context, in *SubscribeRequest, opts ...grpc.CallOption) (*SubscribeResponse, error)
+}
+
+type serverClient struct {
+	cc *grpc.ClientConn
+}
+
+func NewServerClient(cc *grpc.ClientConn) ServerClient {
+	return &serverClient{cc}
+}
+
+func (c *serverClient) Handle(ctx context.Context, in *HandleRequest, opts ...grpc.CallOption) (*HandleResponse, error) {
+	out := new(HandleResponse)
+	err := c.cc.Invoke(ctx, "/go.micro.server.Server/Handle", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *serverClient) Subscribe(ctx context.Context, in *SubscribeRequest, opts ...grpc.CallOption) (*SubscribeResponse, error) {
+	out := new(SubscribeResponse)
+	err := c.cc.Invoke(ctx, "/go.micro.server.Server/Subscribe", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// ServerServer is the server API for Server service.
+type ServerServer interface {
+	Handle(context.Context, *HandleRequest) (*HandleResponse, error)
+	Subscribe(context.Context, *SubscribeRequest) (*SubscribeResponse, error)
+}
+
+// UnimplementedServerServer can be embedded to have forward compatible implementations.
+type UnimplementedServerServer struct {
+}
+
+func (*UnimplementedServerServer) Handle(ctx context.Context, req *HandleRequest) (*HandleResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Handle not implemented")
+}
+func (*UnimplementedServerServer) Subscribe(ctx context.Context, req *SubscribeRequest) (*SubscribeResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Subscribe not implemented")
+}
+
+func RegisterServerServer(s *grpc.Server, srv ServerServer) {
+	s.RegisterService(&_Server_serviceDesc, srv)
+}
+
+func _Server_Handle_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(HandleRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ServerServer).Handle(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/go.micro.server.Server/Handle",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ServerServer).Handle(ctx, req.(*HandleRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Server_Subscribe_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SubscribeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ServerServer).Subscribe(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/go.micro.server.Server/Subscribe",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ServerServer).Subscribe(ctx, req.(*SubscribeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+var _Server_serviceDesc = grpc.ServiceDesc{
+	ServiceName: "go.micro.server.Server",
+	HandlerType: (*ServerServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "Handle",
+			Handler:    _Server_Handle_Handler,
+		},
+		{
+			MethodName: "Subscribe",
+			Handler:    _Server_Subscribe_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "server/proto/server.proto",
 }

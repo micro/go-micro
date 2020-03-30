@@ -4,10 +4,14 @@
 package go_micro_network
 
 import (
+	context "context"
 	fmt "fmt"
 	proto "github.com/golang/protobuf/proto"
+	proto1 "github.com/micro/go-micro/v2/router/service/proto"
+	grpc "google.golang.org/grpc"
+	codes "google.golang.org/grpc/codes"
+	status "google.golang.org/grpc/status"
 	math "math"
-	proto1 "router/service/proto"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -962,4 +966,276 @@ var fileDescriptor_1aab434177f140e0 = []byte{
 	0x86, 0x34, 0xf4, 0xe5, 0x89, 0x24, 0x05, 0x74, 0x1e, 0xa4, 0xfa, 0x8d, 0x28, 0x01, 0x5b, 0xad,
 	0x47, 0xd3, 0xfe, 0x8d, 0x75, 0xc9, 0xa2, 0x4b, 0x17, 0x5d, 0xfd, 0x47, 0xba, 0xff, 0x37, 0x00,
 	0x00, 0xff, 0xff, 0x13, 0x9f, 0x0c, 0xc2, 0xa4, 0x07, 0x00, 0x00,
+}
+
+// Reference imports to suppress errors if they are not otherwise used.
+var _ context.Context
+var _ grpc.ClientConn
+
+// This is a compile-time assertion to ensure that this generated file
+// is compatible with the grpc package it is being compiled against.
+const _ = grpc.SupportPackageIsVersion4
+
+// NetworkClient is the client API for Network service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
+type NetworkClient interface {
+	// Connect to the network
+	Connect(ctx context.Context, in *ConnectRequest, opts ...grpc.CallOption) (*ConnectResponse, error)
+	// Returns the entire network graph
+	Graph(ctx context.Context, in *GraphRequest, opts ...grpc.CallOption) (*GraphResponse, error)
+	// Returns a list of known nodes in the network
+	Nodes(ctx context.Context, in *NodesRequest, opts ...grpc.CallOption) (*NodesResponse, error)
+	// Returns a list of known routes in the network
+	Routes(ctx context.Context, in *RoutesRequest, opts ...grpc.CallOption) (*RoutesResponse, error)
+	// Returns a list of known services based on routes
+	Services(ctx context.Context, in *ServicesRequest, opts ...grpc.CallOption) (*ServicesResponse, error)
+	// Status returns network status
+	Status(ctx context.Context, in *StatusRequest, opts ...grpc.CallOption) (*StatusResponse, error)
+}
+
+type networkClient struct {
+	cc *grpc.ClientConn
+}
+
+func NewNetworkClient(cc *grpc.ClientConn) NetworkClient {
+	return &networkClient{cc}
+}
+
+func (c *networkClient) Connect(ctx context.Context, in *ConnectRequest, opts ...grpc.CallOption) (*ConnectResponse, error) {
+	out := new(ConnectResponse)
+	err := c.cc.Invoke(ctx, "/go.micro.network.Network/Connect", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *networkClient) Graph(ctx context.Context, in *GraphRequest, opts ...grpc.CallOption) (*GraphResponse, error) {
+	out := new(GraphResponse)
+	err := c.cc.Invoke(ctx, "/go.micro.network.Network/Graph", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *networkClient) Nodes(ctx context.Context, in *NodesRequest, opts ...grpc.CallOption) (*NodesResponse, error) {
+	out := new(NodesResponse)
+	err := c.cc.Invoke(ctx, "/go.micro.network.Network/Nodes", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *networkClient) Routes(ctx context.Context, in *RoutesRequest, opts ...grpc.CallOption) (*RoutesResponse, error) {
+	out := new(RoutesResponse)
+	err := c.cc.Invoke(ctx, "/go.micro.network.Network/Routes", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *networkClient) Services(ctx context.Context, in *ServicesRequest, opts ...grpc.CallOption) (*ServicesResponse, error) {
+	out := new(ServicesResponse)
+	err := c.cc.Invoke(ctx, "/go.micro.network.Network/Services", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *networkClient) Status(ctx context.Context, in *StatusRequest, opts ...grpc.CallOption) (*StatusResponse, error) {
+	out := new(StatusResponse)
+	err := c.cc.Invoke(ctx, "/go.micro.network.Network/Status", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// NetworkServer is the server API for Network service.
+type NetworkServer interface {
+	// Connect to the network
+	Connect(context.Context, *ConnectRequest) (*ConnectResponse, error)
+	// Returns the entire network graph
+	Graph(context.Context, *GraphRequest) (*GraphResponse, error)
+	// Returns a list of known nodes in the network
+	Nodes(context.Context, *NodesRequest) (*NodesResponse, error)
+	// Returns a list of known routes in the network
+	Routes(context.Context, *RoutesRequest) (*RoutesResponse, error)
+	// Returns a list of known services based on routes
+	Services(context.Context, *ServicesRequest) (*ServicesResponse, error)
+	// Status returns network status
+	Status(context.Context, *StatusRequest) (*StatusResponse, error)
+}
+
+// UnimplementedNetworkServer can be embedded to have forward compatible implementations.
+type UnimplementedNetworkServer struct {
+}
+
+func (*UnimplementedNetworkServer) Connect(ctx context.Context, req *ConnectRequest) (*ConnectResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Connect not implemented")
+}
+func (*UnimplementedNetworkServer) Graph(ctx context.Context, req *GraphRequest) (*GraphResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Graph not implemented")
+}
+func (*UnimplementedNetworkServer) Nodes(ctx context.Context, req *NodesRequest) (*NodesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Nodes not implemented")
+}
+func (*UnimplementedNetworkServer) Routes(ctx context.Context, req *RoutesRequest) (*RoutesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Routes not implemented")
+}
+func (*UnimplementedNetworkServer) Services(ctx context.Context, req *ServicesRequest) (*ServicesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Services not implemented")
+}
+func (*UnimplementedNetworkServer) Status(ctx context.Context, req *StatusRequest) (*StatusResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Status not implemented")
+}
+
+func RegisterNetworkServer(s *grpc.Server, srv NetworkServer) {
+	s.RegisterService(&_Network_serviceDesc, srv)
+}
+
+func _Network_Connect_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ConnectRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NetworkServer).Connect(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/go.micro.network.Network/Connect",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NetworkServer).Connect(ctx, req.(*ConnectRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Network_Graph_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GraphRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NetworkServer).Graph(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/go.micro.network.Network/Graph",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NetworkServer).Graph(ctx, req.(*GraphRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Network_Nodes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(NodesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NetworkServer).Nodes(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/go.micro.network.Network/Nodes",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NetworkServer).Nodes(ctx, req.(*NodesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Network_Routes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RoutesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NetworkServer).Routes(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/go.micro.network.Network/Routes",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NetworkServer).Routes(ctx, req.(*RoutesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Network_Services_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServicesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NetworkServer).Services(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/go.micro.network.Network/Services",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NetworkServer).Services(ctx, req.(*ServicesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Network_Status_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(StatusRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NetworkServer).Status(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/go.micro.network.Network/Status",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NetworkServer).Status(ctx, req.(*StatusRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+var _Network_serviceDesc = grpc.ServiceDesc{
+	ServiceName: "go.micro.network.Network",
+	HandlerType: (*NetworkServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "Connect",
+			Handler:    _Network_Connect_Handler,
+		},
+		{
+			MethodName: "Graph",
+			Handler:    _Network_Graph_Handler,
+		},
+		{
+			MethodName: "Nodes",
+			Handler:    _Network_Nodes_Handler,
+		},
+		{
+			MethodName: "Routes",
+			Handler:    _Network_Routes_Handler,
+		},
+		{
+			MethodName: "Services",
+			Handler:    _Network_Services_Handler,
+		},
+		{
+			MethodName: "Status",
+			Handler:    _Network_Status_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "network/service/proto/network.proto",
 }

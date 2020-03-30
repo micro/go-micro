@@ -303,9 +303,7 @@ func init() {
 	proto.RegisterMapType((map[string]*Pair)(nil), "go.api.Event.HeaderEntry")
 }
 
-func init() {
-	proto.RegisterFile("api/proto/api.proto", fileDescriptor_2df576b66d12087a)
-}
+func init() { proto.RegisterFile("api/proto/api.proto", fileDescriptor_2df576b66d12087a) }
 
 var fileDescriptor_2df576b66d12087a = []byte{
 	// 393 bytes of a gzipped FileDescriptorProto

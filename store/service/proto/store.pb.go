@@ -4,8 +4,12 @@
 package go_micro_store
 
 import (
+	context "context"
 	fmt "fmt"
 	proto "github.com/golang/protobuf/proto"
+	grpc "google.golang.org/grpc"
+	codes "google.golang.org/grpc/codes"
+	status "google.golang.org/grpc/status"
 	math "math"
 )
 
@@ -620,9 +624,7 @@ func init() {
 	proto.RegisterType((*ListResponse)(nil), "go.micro.store.ListResponse")
 }
 
-func init() {
-	proto.RegisterFile("store/service/proto/store.proto", fileDescriptor_1ba364858f5c3cdb)
-}
+func init() { proto.RegisterFile("store/service/proto/store.proto", fileDescriptor_1ba364858f5c3cdb) }
 
 var fileDescriptor_1ba364858f5c3cdb = []byte{
 	// 474 bytes of a gzipped FileDescriptorProto
@@ -656,4 +658,220 @@ var fileDescriptor_1ba364858f5c3cdb = []byte{
 	0xde, 0x2d, 0x22, 0x3d, 0xed, 0xba, 0xde, 0x41, 0xbd, 0x83, 0xd4, 0x7a, 0x41, 0x5b, 0x9d, 0xeb,
 	0xd4, 0x55, 0xb7, 0x8f, 0x1d, 0x5d, 0x92, 0x9f, 0x99, 0xfb, 0x5f, 0x3d, 0xff, 0x1b, 0x00, 0x00,
 	0xff, 0xff, 0xdd, 0xdb, 0x9c, 0x15, 0xd2, 0x04, 0x00, 0x00,
+}
+
+// Reference imports to suppress errors if they are not otherwise used.
+var _ context.Context
+var _ grpc.ClientConn
+
+// This is a compile-time assertion to ensure that this generated file
+// is compatible with the grpc package it is being compiled against.
+const _ = grpc.SupportPackageIsVersion4
+
+// StoreClient is the client API for Store service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
+type StoreClient interface {
+	Read(ctx context.Context, in *ReadRequest, opts ...grpc.CallOption) (*ReadResponse, error)
+	Write(ctx context.Context, in *WriteRequest, opts ...grpc.CallOption) (*WriteResponse, error)
+	Delete(ctx context.Context, in *DeleteRequest, opts ...grpc.CallOption) (*DeleteResponse, error)
+	List(ctx context.Context, in *ListRequest, opts ...grpc.CallOption) (Store_ListClient, error)
+}
+
+type storeClient struct {
+	cc *grpc.ClientConn
+}
+
+func NewStoreClient(cc *grpc.ClientConn) StoreClient {
+	return &storeClient{cc}
+}
+
+func (c *storeClient) Read(ctx context.Context, in *ReadRequest, opts ...grpc.CallOption) (*ReadResponse, error) {
+	out := new(ReadResponse)
+	err := c.cc.Invoke(ctx, "/go.micro.store.Store/Read", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeClient) Write(ctx context.Context, in *WriteRequest, opts ...grpc.CallOption) (*WriteResponse, error) {
+	out := new(WriteResponse)
+	err := c.cc.Invoke(ctx, "/go.micro.store.Store/Write", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeClient) Delete(ctx context.Context, in *DeleteRequest, opts ...grpc.CallOption) (*DeleteResponse, error) {
+	out := new(DeleteResponse)
+	err := c.cc.Invoke(ctx, "/go.micro.store.Store/Delete", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeClient) List(ctx context.Context, in *ListRequest, opts ...grpc.CallOption) (Store_ListClient, error) {
+	stream, err := c.cc.NewStream(ctx, &_Store_serviceDesc.Streams[0], "/go.micro.store.Store/List", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &storeListClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type Store_ListClient interface {
+	Recv() (*ListResponse, error)
+	grpc.ClientStream
+}
+
+type storeListClient struct {
+	grpc.ClientStream
+}
+
+func (x *storeListClient) Recv() (*ListResponse, error) {
+	m := new(ListResponse)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+// StoreServer is the server API for Store service.
+type StoreServer interface {
+	Read(context.Context, *ReadRequest) (*ReadResponse, error)
+	Write(context.Context, *WriteRequest) (*WriteResponse, error)
+	Delete(context.Context, *DeleteRequest) (*DeleteResponse, error)
+	List(*ListRequest, Store_ListServer) error
+}
+
+// UnimplementedStoreServer can be embedded to have forward compatible implementations.
+type UnimplementedStoreServer struct {
+}
+
+func (*UnimplementedStoreServer) Read(ctx context.Context, req *ReadRequest) (*ReadResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Read not implemented")
+}
+func (*UnimplementedStoreServer) Write(ctx context.Context, req *WriteRequest) (*WriteResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Write not implemented")
+}
+func (*UnimplementedStoreServer) Delete(ctx context.Context, req *DeleteRequest) (*DeleteResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
+}
+func (*UnimplementedStoreServer) List(req *ListRequest, srv Store_ListServer) error {
+	return status.Errorf(codes.Unimplemented, "method List not implemented")
+}
+
+func RegisterStoreServer(s *grpc.Server, srv StoreServer) {
+	s.RegisterService(&_Store_serviceDesc, srv)
+}
+
+func _Store_Read_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ReadRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServer).Read(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/go.micro.store.Store/Read",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServer).Read(ctx, req.(*ReadRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Store_Write_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(WriteRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServer).Write(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/go.micro.store.Store/Write",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServer).Write(ctx, req.(*WriteRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Store_Delete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServer).Delete(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/go.micro.store.Store/Delete",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServer).Delete(ctx, req.(*DeleteRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Store_List_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(ListRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(StoreServer).List(m, &storeListServer{stream})
+}
+
+type Store_ListServer interface {
+	Send(*ListResponse) error
+	grpc.ServerStream
+}
+
+type storeListServer struct {
+	grpc.ServerStream
+}
+
+func (x *storeListServer) Send(m *ListResponse) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+var _Store_serviceDesc = grpc.ServiceDesc{
+	ServiceName: "go.micro.store.Store",
+	HandlerType: (*StoreServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "Read",
+			Handler:    _Store_Read_Handler,
+		},
+		{
+			MethodName: "Write",
+			Handler:    _Store_Write_Handler,
+		},
+		{
+			MethodName: "Delete",
+			Handler:    _Store_Delete_Handler,
+		},
+	},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "List",
+			Handler:       _Store_List_Handler,
+			ServerStreams: true,
+		},
+	},
+	Metadata: "store/service/proto/store.proto",
 }

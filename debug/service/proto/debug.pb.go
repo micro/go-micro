@@ -4,8 +4,12 @@
 package debug
 
 import (
+	context "context"
 	fmt "fmt"
 	proto "github.com/golang/protobuf/proto"
+	grpc "google.golang.org/grpc"
+	codes "google.golang.org/grpc/codes"
+	status "google.golang.org/grpc/status"
 	math "math"
 )
 
@@ -593,9 +597,7 @@ func init() {
 	proto.RegisterMapType((map[string]string)(nil), "Span.MetadataEntry")
 }
 
-func init() {
-	proto.RegisterFile("debug/service/proto/debug.proto", fileDescriptor_df91f41a5db378e6)
-}
+func init() { proto.RegisterFile("debug/service/proto/debug.proto", fileDescriptor_df91f41a5db378e6) }
 
 var fileDescriptor_df91f41a5db378e6 = []byte{
 	// 594 bytes of a gzipped FileDescriptorProto
@@ -637,4 +639,220 @@ var fileDescriptor_df91f41a5db378e6 = []byte{
 	0x9b, 0x4a, 0xfd, 0xa7, 0x93, 0x45, 0xb6, 0x19, 0x8e, 0x24, 0xca, 0x46, 0x59, 0x48, 0x27, 0xe7,
 	0x33, 0xbd, 0xbb, 0xde, 0xfc, 0x09, 0x00, 0x00, 0xff, 0xff, 0x6e, 0x42, 0x7f, 0x05, 0xde, 0x04,
 	0x00, 0x00,
+}
+
+// Reference imports to suppress errors if they are not otherwise used.
+var _ context.Context
+var _ grpc.ClientConn
+
+// This is a compile-time assertion to ensure that this generated file
+// is compatible with the grpc package it is being compiled against.
+const _ = grpc.SupportPackageIsVersion4
+
+// DebugClient is the client API for Debug service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
+type DebugClient interface {
+	Log(ctx context.Context, in *LogRequest, opts ...grpc.CallOption) (Debug_LogClient, error)
+	Health(ctx context.Context, in *HealthRequest, opts ...grpc.CallOption) (*HealthResponse, error)
+	Stats(ctx context.Context, in *StatsRequest, opts ...grpc.CallOption) (*StatsResponse, error)
+	Trace(ctx context.Context, in *TraceRequest, opts ...grpc.CallOption) (*TraceResponse, error)
+}
+
+type debugClient struct {
+	cc *grpc.ClientConn
+}
+
+func NewDebugClient(cc *grpc.ClientConn) DebugClient {
+	return &debugClient{cc}
+}
+
+func (c *debugClient) Log(ctx context.Context, in *LogRequest, opts ...grpc.CallOption) (Debug_LogClient, error) {
+	stream, err := c.cc.NewStream(ctx, &_Debug_serviceDesc.Streams[0], "/Debug/Log", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &debugLogClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type Debug_LogClient interface {
+	Recv() (*Record, error)
+	grpc.ClientStream
+}
+
+type debugLogClient struct {
+	grpc.ClientStream
+}
+
+func (x *debugLogClient) Recv() (*Record, error) {
+	m := new(Record)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (c *debugClient) Health(ctx context.Context, in *HealthRequest, opts ...grpc.CallOption) (*HealthResponse, error) {
+	out := new(HealthResponse)
+	err := c.cc.Invoke(ctx, "/Debug/Health", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *debugClient) Stats(ctx context.Context, in *StatsRequest, opts ...grpc.CallOption) (*StatsResponse, error) {
+	out := new(StatsResponse)
+	err := c.cc.Invoke(ctx, "/Debug/Stats", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *debugClient) Trace(ctx context.Context, in *TraceRequest, opts ...grpc.CallOption) (*TraceResponse, error) {
+	out := new(TraceResponse)
+	err := c.cc.Invoke(ctx, "/Debug/Trace", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// DebugServer is the server API for Debug service.
+type DebugServer interface {
+	Log(*LogRequest, Debug_LogServer) error
+	Health(context.Context, *HealthRequest) (*HealthResponse, error)
+	Stats(context.Context, *StatsRequest) (*StatsResponse, error)
+	Trace(context.Context, *TraceRequest) (*TraceResponse, error)
+}
+
+// UnimplementedDebugServer can be embedded to have forward compatible implementations.
+type UnimplementedDebugServer struct {
+}
+
+func (*UnimplementedDebugServer) Log(req *LogRequest, srv Debug_LogServer) error {
+	return status.Errorf(codes.Unimplemented, "method Log not implemented")
+}
+func (*UnimplementedDebugServer) Health(ctx context.Context, req *HealthRequest) (*HealthResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Health not implemented")
+}
+func (*UnimplementedDebugServer) Stats(ctx context.Context, req *StatsRequest) (*StatsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Stats not implemented")
+}
+func (*UnimplementedDebugServer) Trace(ctx context.Context, req *TraceRequest) (*TraceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Trace not implemented")
+}
+
+func RegisterDebugServer(s *grpc.Server, srv DebugServer) {
+	s.RegisterService(&_Debug_serviceDesc, srv)
+}
+
+func _Debug_Log_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(LogRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(DebugServer).Log(m, &debugLogServer{stream})
+}
+
+type Debug_LogServer interface {
+	Send(*Record) error
+	grpc.ServerStream
+}
+
+type debugLogServer struct {
+	grpc.ServerStream
+}
+
+func (x *debugLogServer) Send(m *Record) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func _Debug_Health_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(HealthRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DebugServer).Health(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/Debug/Health",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DebugServer).Health(ctx, req.(*HealthRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Debug_Stats_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(StatsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DebugServer).Stats(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/Debug/Stats",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DebugServer).Stats(ctx, req.(*StatsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Debug_Trace_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TraceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DebugServer).Trace(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/Debug/Trace",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DebugServer).Trace(ctx, req.(*TraceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+var _Debug_serviceDesc = grpc.ServiceDesc{
+	ServiceName: "Debug",
+	HandlerType: (*DebugServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "Health",
+			Handler:    _Debug_Health_Handler,
+		},
+		{
+			MethodName: "Stats",
+			Handler:    _Debug_Stats_Handler,
+		},
+		{
+			MethodName: "Trace",
+			Handler:    _Debug_Trace_Handler,
+		},
+	},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "Log",
+			Handler:       _Debug_Log_Handler,
+			ServerStreams: true,
+		},
+	},
+	Metadata: "debug/service/proto/debug.proto",
 }

@@ -4,8 +4,12 @@
 package go_micro_api
 
 import (
+	context "context"
 	fmt "fmt"
 	proto "github.com/golang/protobuf/proto"
+	grpc "google.golang.org/grpc"
+	codes "google.golang.org/grpc/codes"
+	status "google.golang.org/grpc/status"
 	math "math"
 )
 
@@ -127,9 +131,7 @@ func init() {
 	proto.RegisterType((*EmptyResponse)(nil), "go.micro.api.EmptyResponse")
 }
 
-func init() {
-	proto.RegisterFile("api/service/proto/api.proto", fileDescriptor_c4a48b6b680b5c31)
-}
+func init() { proto.RegisterFile("api/service/proto/api.proto", fileDescriptor_c4a48b6b680b5c31) }
 
 var fileDescriptor_c4a48b6b680b5c31 = []byte{
 	// 212 bytes of a gzipped FileDescriptorProto
@@ -147,4 +149,120 @@ var fileDescriptor_c4a48b6b680b5c31 = []byte{
 	0x7e, 0x0f, 0x7d, 0xde, 0xfe, 0xf1, 0xe5, 0xa2, 0xe1, 0xc6, 0xbc, 0x01, 0xbc, 0x63, 0xfa, 0xdf,
 	0x92, 0x8f, 0x75, 0xfd, 0xd6, 0xeb, 0x77, 0x00, 0x00, 0x00, 0xff, 0xff, 0x46, 0x62, 0x67, 0x30,
 	0x4c, 0x01, 0x00, 0x00,
+}
+
+// Reference imports to suppress errors if they are not otherwise used.
+var _ context.Context
+var _ grpc.ClientConn
+
+// This is a compile-time assertion to ensure that this generated file
+// is compatible with the grpc package it is being compiled against.
+const _ = grpc.SupportPackageIsVersion4
+
+// ApiClient is the client API for Api service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
+type ApiClient interface {
+	Register(ctx context.Context, in *Endpoint, opts ...grpc.CallOption) (*EmptyResponse, error)
+	Deregister(ctx context.Context, in *Endpoint, opts ...grpc.CallOption) (*EmptyResponse, error)
+}
+
+type apiClient struct {
+	cc *grpc.ClientConn
+}
+
+func NewApiClient(cc *grpc.ClientConn) ApiClient {
+	return &apiClient{cc}
+}
+
+func (c *apiClient) Register(ctx context.Context, in *Endpoint, opts ...grpc.CallOption) (*EmptyResponse, error) {
+	out := new(EmptyResponse)
+	err := c.cc.Invoke(ctx, "/go.micro.api.Api/Register", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *apiClient) Deregister(ctx context.Context, in *Endpoint, opts ...grpc.CallOption) (*EmptyResponse, error) {
+	out := new(EmptyResponse)
+	err := c.cc.Invoke(ctx, "/go.micro.api.Api/Deregister", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// ApiServer is the server API for Api service.
+type ApiServer interface {
+	Register(context.Context, *Endpoint) (*EmptyResponse, error)
+	Deregister(context.Context, *Endpoint) (*EmptyResponse, error)
+}
+
+// UnimplementedApiServer can be embedded to have forward compatible implementations.
+type UnimplementedApiServer struct {
+}
+
+func (*UnimplementedApiServer) Register(ctx context.Context, req *Endpoint) (*EmptyResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Register not implemented")
+}
+func (*UnimplementedApiServer) Deregister(ctx context.Context, req *Endpoint) (*EmptyResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Deregister not implemented")
+}
+
+func RegisterApiServer(s *grpc.Server, srv ApiServer) {
+	s.RegisterService(&_Api_serviceDesc, srv)
+}
+
+func _Api_Register_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Endpoint)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ApiServer).Register(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/go.micro.api.Api/Register",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ApiServer).Register(ctx, req.(*Endpoint))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Api_Deregister_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Endpoint)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ApiServer).Deregister(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/go.micro.api.Api/Deregister",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ApiServer).Deregister(ctx, req.(*Endpoint))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+var _Api_serviceDesc = grpc.ServiceDesc{
+	ServiceName: "go.micro.api.Api",
+	HandlerType: (*ApiServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "Register",
+			Handler:    _Api_Register_Handler,
+		},
+		{
+			MethodName: "Deregister",
+			Handler:    _Api_Deregister_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "api/service/proto/api.proto",
 }

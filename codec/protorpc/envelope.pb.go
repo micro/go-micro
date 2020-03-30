@@ -127,9 +127,7 @@ func init() {
 	proto.RegisterType((*Response)(nil), "protorpc.Response")
 }
 
-func init() {
-	proto.RegisterFile("codec/protorpc/envelope.proto", fileDescriptor_12fd17ed7ee86a33)
-}
+func init() { proto.RegisterFile("codec/protorpc/envelope.proto", fileDescriptor_12fd17ed7ee86a33) }
 
 var fileDescriptor_12fd17ed7ee86a33 = []byte{
 	// 148 bytes of a gzipped FileDescriptorProto

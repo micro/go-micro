@@ -4,8 +4,12 @@
 package go_micro_broker
 
 import (
+	context "context"
 	fmt "fmt"
 	proto "github.com/golang/protobuf/proto"
+	grpc "google.golang.org/grpc"
+	codes "google.golang.org/grpc/codes"
+	status "google.golang.org/grpc/status"
 	math "math"
 )
 
@@ -200,9 +204,7 @@ func init() {
 	proto.RegisterMapType((map[string]string)(nil), "go.micro.broker.Message.HeaderEntry")
 }
 
-func init() {
-	proto.RegisterFile("broker/service/proto/broker.proto", fileDescriptor_df4d8f04292cf3fe)
-}
+func init() { proto.RegisterFile("broker/service/proto/broker.proto", fileDescriptor_df4d8f04292cf3fe) }
 
 var fileDescriptor_df4d8f04292cf3fe = []byte{
 	// 299 bytes of a gzipped FileDescriptorProto
@@ -225,4 +227,148 @@ var fileDescriptor_df4d8f04292cf3fe = []byte{
 	0x4d, 0x76, 0x7c, 0xd2, 0x20, 0xd8, 0x0e, 0x5a, 0xf4, 0x11, 0xfa, 0xdf, 0x49, 0xd1, 0x49, 0x83,
 	0xb6, 0x9b, 0xe2, 0x78, 0x6f, 0xf8, 0x7e, 0xeb, 0x9c, 0x88, 0x9e, 0x29, 0xfd, 0xe2, 0x33, 0x00,
 	0x00, 0xff, 0xff, 0x19, 0x9f, 0x10, 0x75, 0x19, 0x02, 0x00, 0x00,
+}
+
+// Reference imports to suppress errors if they are not otherwise used.
+var _ context.Context
+var _ grpc.ClientConn
+
+// This is a compile-time assertion to ensure that this generated file
+// is compatible with the grpc package it is being compiled against.
+const _ = grpc.SupportPackageIsVersion4
+
+// BrokerClient is the client API for Broker service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
+type BrokerClient interface {
+	Publish(ctx context.Context, in *PublishRequest, opts ...grpc.CallOption) (*Empty, error)
+	Subscribe(ctx context.Context, in *SubscribeRequest, opts ...grpc.CallOption) (Broker_SubscribeClient, error)
+}
+
+type brokerClient struct {
+	cc *grpc.ClientConn
+}
+
+func NewBrokerClient(cc *grpc.ClientConn) BrokerClient {
+	return &brokerClient{cc}
+}
+
+func (c *brokerClient) Publish(ctx context.Context, in *PublishRequest, opts ...grpc.CallOption) (*Empty, error) {
+	out := new(Empty)
+	err := c.cc.Invoke(ctx, "/go.micro.broker.Broker/Publish", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *brokerClient) Subscribe(ctx context.Context, in *SubscribeRequest, opts ...grpc.CallOption) (Broker_SubscribeClient, error) {
+	stream, err := c.cc.NewStream(ctx, &_Broker_serviceDesc.Streams[0], "/go.micro.broker.Broker/Subscribe", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &brokerSubscribeClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type Broker_SubscribeClient interface {
+	Recv() (*Message, error)
+	grpc.ClientStream
+}
+
+type brokerSubscribeClient struct {
+	grpc.ClientStream
+}
+
+func (x *brokerSubscribeClient) Recv() (*Message, error) {
+	m := new(Message)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+// BrokerServer is the server API for Broker service.
+type BrokerServer interface {
+	Publish(context.Context, *PublishRequest) (*Empty, error)
+	Subscribe(*SubscribeRequest, Broker_SubscribeServer) error
+}
+
+// UnimplementedBrokerServer can be embedded to have forward compatible implementations.
+type UnimplementedBrokerServer struct {
+}
+
+func (*UnimplementedBrokerServer) Publish(ctx context.Context, req *PublishRequest) (*Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Publish not implemented")
+}
+func (*UnimplementedBrokerServer) Subscribe(req *SubscribeRequest, srv Broker_SubscribeServer) error {
+	return status.Errorf(codes.Unimplemented, "method Subscribe not implemented")
+}
+
+func RegisterBrokerServer(s *grpc.Server, srv BrokerServer) {
+	s.RegisterService(&_Broker_serviceDesc, srv)
+}
+
+func _Broker_Publish_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PublishRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BrokerServer).Publish(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/go.micro.broker.Broker/Publish",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BrokerServer).Publish(ctx, req.(*PublishRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Broker_Subscribe_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(SubscribeRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(BrokerServer).Subscribe(m, &brokerSubscribeServer{stream})
+}
+
+type Broker_SubscribeServer interface {
+	Send(*Message) error
+	grpc.ServerStream
+}
+
+type brokerSubscribeServer struct {
+	grpc.ServerStream
+}
+
+func (x *brokerSubscribeServer) Send(m *Message) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+var _Broker_serviceDesc = grpc.ServiceDesc{
+	ServiceName: "go.micro.broker.Broker",
+	HandlerType: (*BrokerServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "Publish",
+			Handler:    _Broker_Publish_Handler,
+		},
+	},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "Subscribe",
+			Handler:       _Broker_Subscribe_Handler,
+			ServerStreams: true,
+		},
+	},
+	Metadata: "broker/service/proto/broker.proto",
 }
