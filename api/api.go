@@ -9,6 +9,20 @@ import (
 	"github.com/micro/go-micro/v2/server"
 )
 
+type Api interface {
+	// Register a http handler
+	Register(*Endpoint) error
+	// Register a route
+	Deregister(*Endpoint) error
+	// Init initialises the command line.
+	// It also parses further options.
+	//Init(...Option) error
+	// Options
+	//Options() Options
+	// String
+	String() string
+}
+
 // Endpoint is a mapping between an RPC method and HTTP endpoint
 type Endpoint struct {
 	// RPC Method e.g. Greeter.Hello
@@ -23,6 +37,8 @@ type Endpoint struct {
 	Method []string
 	// HTTP Path e.g /greeter. Expect POSIX regex
 	Path []string
+	// Stream flag
+	Stream bool
 }
 
 // Service represents an API service
