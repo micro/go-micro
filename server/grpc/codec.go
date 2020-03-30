@@ -20,7 +20,11 @@ type bytesCodec struct{}
 type protoCodec struct{}
 type wrapCodec struct{ encoding.Codec }
 
-var jsonpbMarshaler = &jsonpb.Marshaler{}
+var jsonpbMarshaler = &jsonpb.Marshaler{
+	EnumsAsInts:  false,
+	EmitDefaults: false,
+	OrigName:     true,
+}
 
 var (
 	defaultGRPCCodecs = map[string]encoding.Codec{

@@ -40,13 +40,14 @@ func (b *Basic) Generate(subject string, opts ...token.GenerateOption) (*auth.To
 
 	// construct the token
 	token := auth.Token{
-		Subject:  subject,
-		Type:     b.String(),
-		Token:    uuid.New().String(),
-		Created:  time.Now(),
-		Expiry:   time.Now().Add(options.Expiry),
-		Metadata: options.Metadata,
-		Roles:    options.Roles,
+		Subject:   subject,
+		Type:      b.String(),
+		Token:     uuid.New().String(),
+		Created:   time.Now(),
+		Expiry:    time.Now().Add(options.Expiry),
+		Metadata:  options.Metadata,
+		Roles:     options.Roles,
+		Namespace: options.Namespace,
 	}
 
 	// marshal the account to bytes
