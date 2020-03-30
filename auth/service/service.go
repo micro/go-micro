@@ -8,8 +8,7 @@ import (
 	"time"
 
 	"github.com/micro/go-micro/v2/auth"
-	authPb "github.com/micro/go-micro/v2/auth/service/proto/auth"
-	rulePb "github.com/micro/go-micro/v2/auth/service/proto/rules"
+	pb "github.com/micro/go-micro/v2/auth/service/proto"
 	"github.com/micro/go-micro/v2/auth/token"
 	"github.com/micro/go-micro/v2/auth/token/jwt"
 	"github.com/micro/go-micro/v2/client"
@@ -27,11 +26,11 @@ func NewAuth(opts ...auth.Option) auth.Auth {
 // svc is the service implementation of the Auth interface
 type svc struct {
 	options auth.Options
-	auth    authPb.AuthService
-	rule    rulePb.RulesService
+	auth    pb.AuthService
+	rule    pb.RulesService
 	jwt     token.Provider
 
-	rules []*rulePb.Rule
+	rules []*pb.Rule
 	sync.Mutex
 }
 
@@ -45,8 +44,8 @@ func (s *svc) Init(opts ...auth.Option) {
 	}
 
 	dc := client.DefaultClient
-	s.auth = authPb.NewAuthService("go.micro.auth", dc)
-	s.rule = rulePb.NewRulesService("go.micro.auth", dc)
+	s.auth = pb.NewAuthService("go.micro.auth", dc)
+	s.rule = pb.NewRulesService("go.micro.auth", dc)
 
 	// if we have a JWT public key passed as an option,
 	// we can decode tokens with the type "JWT" locally
@@ -81,7 +80,7 @@ func (s *svc) Options() auth.Options {
 func (s *svc) Generate(id string, opts ...auth.GenerateOption) (*auth.Account, error) {
 	options := auth.NewGenerateOptions(opts...)
 
-	rsp, err := s.auth.Generate(context.TODO(), &authPb.GenerateRequest{
+	rsp, err := s.auth.Generate(context.TODO(), &pb.GenerateRequest{
 		Id:           id,
 		Roles:        options.Roles,
 		Metadata:     options.Metadata,
@@ -97,10 +96,10 @@ func (s *svc) Generate(id string, opts ...auth.GenerateOption) (*auth.Account, e
 
 // Grant access to a resource
 func (s *svc) Grant(role string, res *auth.Resource) error {
-	_, err := s.rule.Create(context.TODO(), &rulePb.CreateRequest{
+	_, err := s.rule.Create(context.TODO(), &pb.CreateRequest{
 		Role:   role,
-		Access: rulePb.Access_GRANTED,
-		Resource: &authPb.Resource{
+		Access: pb.Access_GRANTED,
+		Resource: &pb.Resource{
 			Type:     res.Type,
 			Name:     res.Name,
 			Endpoint: res.Endpoint,
@@ -111,10 +110,10 @@ func (s *svc) Grant(role string, res *auth.Resource) error {
 
 // Revoke access to a resource
 func (s *svc) Revoke(role string, res *auth.Resource) error {
-	_, err := s.rule.Delete(context.TODO(), &rulePb.DeleteRequest{
+	_, err := s.rule.Delete(context.TODO(), &pb.DeleteRequest{
 		Role:   role,
-		Access: rulePb.Access_GRANTED,
-		Resource: &authPb.Resource{
+		Access: pb.Access_GRANTED,
+		Resource: &pb.Resource{
 			Type:     res.Type,
 			Name:     res.Name,
 			Endpoint: res.Endpoint,
@@ -144,12 +143,12 @@ func (s *svc) Verify(acc *auth.Account, res *auth.Resource) error {
 	for _, q := range queries {
 		for _, rule := range s.listRules(q...) {
 			switch accessForRule(rule, acc, res) {
-			case rulePb.Access_UNKNOWN:
+			case pb.Access_UNKNOWN:
 				continue // rule did not specify access, check the next rule
-			case rulePb.Access_GRANTED:
+			case pb.Access_GRANTED:
 				log.Infof("%v granted access to %v:%v:%v by rule %v", acc.ID, res.Type, res.Name, res.Endpoint, rule.Id)
 				return nil // rule grants the account access to the resource
-			case rulePb.Access_DENIED:
+			case pb.Access_DENIED:
 				log.Infof("%v denied access to %v:%v:%v by rule %v", acc.ID, res.Type, res.Name, res.Endpoint, rule.Id)
 				return auth.ErrForbidden // rule denies access to the resource
 			}
@@ -177,7 +176,7 @@ func (s *svc) Inspect(token string) (*auth.Account, error) {
 		}
 	}
 
-	rsp, err := s.auth.Inspect(context.TODO(), &authPb.InspectRequest{
+	rsp, err := s.auth.Inspect(context.TODO(), &pb.InspectRequest{
 		Token: token,
 	})
 	if err != nil {
@@ -191,7 +190,7 @@ func (s *svc) Inspect(token string) (*auth.Account, error) {
 func (s *svc) Refresh(secret string, opts ...auth.RefreshOption) (*auth.Token, error) {
 	options := auth.NewRefreshOptions(opts...)
 
-	rsp, err := s.auth.Refresh(context.Background(), &authPb.RefreshRequest{
+	rsp, err := s.auth.Refresh(context.Background(), &pb.RefreshRequest{
 		Secret:      secret,
 		TokenExpiry: int64(options.TokenExpiry.Seconds()),
 	})
@@ -206,7 +205,7 @@ var ruleJoinKey = ":"
 
 // accessForRule returns a rule status, indicating if a rule permits access to a
 // resource for a given account
-func accessForRule(rule *rulePb.Rule, acc *auth.Account, res *auth.Resource) rulePb.Access {
+func accessForRule(rule *pb.Rule, acc *auth.Account, res *auth.Resource) pb.Access {
 	if rule.Role == "*" {
 		return rule.Access
 	}
@@ -222,18 +221,18 @@ func accessForRule(rule *rulePb.Rule, acc *auth.Account, res *auth.Resource) rul
 		}
 	}
 
-	return rulePb.Access_UNKNOWN
+	return pb.Access_UNKNOWN
 }
 
 // listRules gets all the rules from the store which have an id
 // prefix matching the filters
-func (s *svc) listRules(filters ...string) []*rulePb.Rule {
+func (s *svc) listRules(filters ...string) []*pb.Rule {
 	s.Lock()
 	defer s.Unlock()
 
 	prefix := strings.Join(filters, ruleJoinKey)
 
-	var rules []*rulePb.Rule
+	var rules []*pb.Rule
 	for _, r := range s.rules {
 		if strings.HasPrefix(r.Id, prefix) {
 			rules = append(rules, r)
@@ -245,7 +244,7 @@ func (s *svc) listRules(filters ...string) []*rulePb.Rule {
 
 // loadRules retrieves the rules from the auth service
 func (s *svc) loadRules() {
-	rsp, err := s.rule.List(context.TODO(), &rulePb.ListRequest{})
+	rsp, err := s.rule.List(context.TODO(), &pb.ListRequest{})
 	s.Lock()
 	defer s.Unlock()
 
@@ -257,7 +256,7 @@ func (s *svc) loadRules() {
 	s.rules = rsp.Rules
 }
 
-func serializeToken(t *authPb.Token) *auth.Token {
+func serializeToken(t *pb.Token) *auth.Token {
 	return &auth.Token{
 		Token:    t.Token,
 		Type:     t.Type,
@@ -269,7 +268,7 @@ func serializeToken(t *authPb.Token) *auth.Token {
 	}
 }
 
-func serializeAccount(a *authPb.Account) *auth.Account {
+func serializeAccount(a *pb.Account) *auth.Account {
 	var secret *auth.Token
 	if a.Secret != nil {
 		secret = serializeToken(a.Secret)
