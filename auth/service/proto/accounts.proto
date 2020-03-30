@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package go.micro.auth;
 
-import "github.com/micro/go-micro/auth/service/proto/auth/auth.proto";
+import "auth.proto";
 
 service Accounts {
   rpc List(ListAccountsRequest) returns (ListAccountsResponse) {};
