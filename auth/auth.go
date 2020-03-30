@@ -68,6 +68,8 @@ type Account struct {
 	Roles []string `json:"roles"`
 	// Any other associated metadata
 	Metadata map[string]string `json:"metadata"`
+	// Namespace the account belongs to, default blank
+	Namespace string `json:"namespace"`
 }
 
 // Token can be short or long lived
@@ -86,6 +88,8 @@ type Token struct {
 	Roles []string `json:"roles"`
 	// Metadata embedded in the token
 	Metadata map[string]string `json:"metadata"`
+	// Namespace the token belongs to
+	Namespace string `json:"namespace"`
 }
 
 const (

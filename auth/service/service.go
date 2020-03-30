@@ -85,6 +85,7 @@ func (s *svc) Generate(id string, opts ...auth.GenerateOption) (*auth.Account, e
 		Id:           id,
 		Roles:        options.Roles,
 		Metadata:     options.Metadata,
+		Namespace:    options.Namespace,
 		SecretExpiry: int64(options.SecretExpiry.Seconds()),
 	})
 	if err != nil {
@@ -275,9 +276,10 @@ func serializeAccount(a *authPb.Account) *auth.Account {
 	}
 
 	return &auth.Account{
-		ID:       a.Id,
-		Roles:    a.Roles,
-		Metadata: a.Metadata,
-		Secret:   secret,
+		ID:        a.Id,
+		Roles:     a.Roles,
+		Metadata:  a.Metadata,
+		Namespace: a.Namespace,
+		Secret:    secret,
 	}
 }
