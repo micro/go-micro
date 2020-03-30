@@ -11,8 +11,9 @@ import (
 
 // authClaims to be encoded in the JWT
 type authClaims struct {
-	Roles    []string          `json:"roles"`
-	Metadata map[string]string `json:"metadata"`
+	Roles     []string          `json:"roles"`
+	Metadata  map[string]string `json:"metadata"`
+	Namespace string            `json:"namespace"`
 
 	jwt.StandardClaims
 }
@@ -49,7 +50,7 @@ func (j *JWT) Generate(subject string, opts ...token.GenerateOption) (*auth.Toke
 	// generate the JWT
 	expiry := time.Now().Add(options.Expiry)
 	t := jwt.NewWithClaims(jwt.SigningMethodRS256, authClaims{
-		options.Roles, options.Metadata, jwt.StandardClaims{
+		options.Roles, options.Metadata, options.Namespace, jwt.StandardClaims{
 			Subject:   subject,
 			ExpiresAt: expiry.Unix(),
 		},
@@ -61,13 +62,14 @@ func (j *JWT) Generate(subject string, opts ...token.GenerateOption) (*auth.Toke
 
 	// return the token
 	return &auth.Token{
-		Subject:  subject,
-		Token:    tok,
-		Type:     j.String(),
-		Created:  time.Now(),
-		Expiry:   expiry,
-		Roles:    options.Roles,
-		Metadata: options.Metadata,
+		Subject:   subject,
+		Token:     tok,
+		Type:      j.String(),
+		Created:   time.Now(),
+		Expiry:    expiry,
+		Roles:     options.Roles,
+		Metadata:  options.Metadata,
+		Namespace: options.Namespace,
 	}, nil
 }
 
@@ -98,10 +100,11 @@ func (j *JWT) Inspect(t string) (*auth.Token, error) {
 
 	// return the token
 	return &auth.Token{
-		Token:    t,
-		Subject:  claims.Subject,
-		Metadata: claims.Metadata,
-		Roles:    claims.Roles,
+		Token:     t,
+		Subject:   claims.Subject,
+		Metadata:  claims.Metadata,
+		Roles:     claims.Roles,
+		Namespace: claims.Namespace,
 	}, nil
 }
 

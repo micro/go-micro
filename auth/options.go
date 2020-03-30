@@ -73,6 +73,8 @@ type GenerateOptions struct {
 	Roles []string
 	// SecretExpiry is the time the secret should live for
 	SecretExpiry time.Duration
+	// Namespace the account belongs too
+	Namespace string
 }
 
 type GenerateOption func(o *GenerateOptions)
@@ -88,6 +90,13 @@ func WithMetadata(md map[string]string) GenerateOption {
 func WithRoles(rs ...string) GenerateOption {
 	return func(o *GenerateOptions) {
 		o.Roles = rs
+	}
+}
+
+// WithNamespace for the generated account
+func WithNamespace(n string) GenerateOption {
+	return func(o *GenerateOptions) {
+		o.Namespace = n
 	}
 }
 

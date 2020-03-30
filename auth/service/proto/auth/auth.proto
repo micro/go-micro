@@ -16,6 +16,7 @@ message Token {
 	string subject = 5;
 	repeated string roles = 6;
 	map<string, string> metadata = 7;
+	string namespace = 8;
 }
 
 message Account {
@@ -23,6 +24,7 @@ message Account {
 	Token secret = 2;
 	repeated string roles = 3;
 	map<string, string> metadata = 4;
+	string namespace = 5;
 }
 
 message Resource{
@@ -36,6 +38,7 @@ message GenerateRequest {
 	repeated string roles = 2;
 	map<string, string> metadata = 3;
 	int64 secret_expiry = 4;
+	string namespace = 5;
 }
 
 message GenerateResponse {

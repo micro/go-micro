@@ -57,6 +57,8 @@ type GenerateOptions struct {
 	Metadata map[string]string
 	// Roles/scopes associated with the account
 	Roles []string
+	// Namespace the account belongs too
+	Namespace string
 }
 
 type GenerateOption func(o *GenerateOptions)
@@ -79,6 +81,13 @@ func WithMetadata(md map[string]string) func(o *GenerateOptions) {
 func WithRoles(rs ...string) func(o *GenerateOptions) {
 	return func(o *GenerateOptions) {
 		o.Roles = rs
+	}
+}
+
+// WithNamespace for the token
+func WithNamespace(n string) func(o *GenerateOptions) {
+	return func(o *GenerateOptions) {
+		o.Namespace = n
 	}
 }
 
