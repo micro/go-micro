@@ -2,9 +2,11 @@ syntax = "proto3";
 
 package go.micro.auth;
 
+option go_package = "auth;auth";
+
 service Auth {
 	rpc Generate(GenerateRequest) returns (GenerateResponse) {};
-	rpc Inspect(InspectRequest)  returns (InspectResponse) {};		
+	rpc Inspect(InspectRequest)  returns (InspectResponse) {};
 	rpc Refresh(RefreshRequest)  returns (RefreshResponse) {};
 }
 
