@@ -28,8 +28,6 @@ type Status struct {
 type Response struct {
 	res *http.Response
 	err error
-
-	body []byte
 }
 
 // Error returns an error

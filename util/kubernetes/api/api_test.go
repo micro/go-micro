@@ -18,8 +18,6 @@ type testcase struct {
 	Assert func(req *http.Request) bool
 }
 
-type assertFn func(req *http.Request) bool
-
 var tests = []testcase{
 	testcase{
 		ReqFn: func(opts *Options) *Request {

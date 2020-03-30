@@ -41,8 +41,6 @@ type DeploymentSpec struct {
 type DeploymentCondition struct {
 	LastUpdate string `json:lastUpdateTime`
 	Type       string `json:"type"`
-	reason     string `json:"reason,omitempty"`
-	message    string `json:"message,omitempty"`
 }
 
 // DeploymentStatus is returned when querying deployment
