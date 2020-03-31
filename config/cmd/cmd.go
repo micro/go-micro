@@ -255,9 +255,14 @@ var (
 			Usage:   "Auth for role based access control, e.g. service",
 		},
 		&cli.StringFlag{
-			Name:    "auth_token",
-			EnvVars: []string{"MICRO_AUTH_TOKEN"},
-			Usage:   "Auth token used for client authentication",
+			Name:    "auth_id",
+			EnvVars: []string{"MICRO_AUTH_ID"},
+			Usage:   "Account ID used for client authentication",
+		},
+		&cli.StringFlag{
+			Name:    "auth_secret",
+			EnvVars: []string{"MICRO_AUTH_SECRET"},
+			Usage:   "Account secret used for client authentication",
 		},
 		&cli.StringFlag{
 			Name:    "auth_public_key",
@@ -488,6 +493,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		}
 
 		*c.opts.Auth = a()
+		clientOpts = append(clientOpts, client.Auth(*c.opts.Auth))
 	}
 
 	// Set the profile
@@ -655,8 +661,10 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		}
 	}
 
-	if len(ctx.String("auth_token")) > 0 {
-		authOpts = append(authOpts, auth.ServiceToken(ctx.String("auth_token")))
+	if len(ctx.String("auth_id")) > 0 || len(ctx.String("auth_secret")) > 0 {
+		authOpts = append(authOpts, auth.Credentials(
+			ctx.String("auth_id"), ctx.String("auth_secret"),
+		))
 	}
 
 	if len(ctx.String("auth_public_key")) > 0 {

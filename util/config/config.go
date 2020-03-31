@@ -21,13 +21,13 @@ const FileName = ".micro"
 var config = newConfig()
 
 // Get a value from the .micro file
-func Get(key string) (string, error) {
-	tk := config.Get(key).String("")
+func Get(path ...string) (string, error) {
+	tk := config.Get(path...).String("")
 	return strings.TrimSpace(tk), nil
 }
 
 // Set a value in the .micro file
-func Set(key, value string) error {
+func Set(value string, path ...string) error {
 	// get the filepath
 	fp, err := filePath()
 	if err != nil {
@@ -35,7 +35,7 @@ func Set(key, value string) error {
 	}
 
 	// set the value
-	config.Set(value, key)
+	config.Set(value, path...)
 
 	// write to the file
 	return ioutil.WriteFile(fp, config.Bytes(), 0644)
