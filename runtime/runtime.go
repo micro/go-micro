@@ -41,7 +41,7 @@ type Runtime interface {
 
 // Stream returns a log stream
 type LogStream interface {
-	Chan() <-chan LogRecord
+	Chan() chan LogRecord
 	Stop() error
 }
 

@@ -203,18 +203,24 @@ func (r *runtime) Create(s *Service, opts ...CreateOption) error {
 }
 
 func (r *runtime) Logs(s *Service) (LogStream, error) {
-	return &logStream{
+	ret := &logStream{
 		service: s.Name,
-	}, nil
+		stream:  make(chan LogRecord),
+		stop:    make(chan bool),
+	}
+	go func() {
+		ret.stream <- LogRecord{Log: "Hello 1"}
+	}()
+	return ret, nil
 }
 
 type logStream struct {
 	service string
-	stream  <-chan LogRecord
+	stream  chan LogRecord
 	stop    chan bool
 }
 
-func (l *logStream) Chan() <-chan LogRecord {
+func (l *logStream) Chan() chan LogRecord {
 	return l.stream
 }
 

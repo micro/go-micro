@@ -3,10 +3,12 @@ package service
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/micro/go-micro/v2/client"
 	"github.com/micro/go-micro/v2/runtime"
 	pb "github.com/micro/go-micro/v2/runtime/service/proto"
+	"github.com/micro/go-micro/v2/util/log"
 )
 
 type svc struct {
@@ -65,7 +67,51 @@ func (s *svc) Create(svc *runtime.Service, opts ...runtime.CreateOption) error {
 }
 
 func (s *svc) Logs(service *runtime.Service) (runtime.LogStream, error) {
-	return nil, nil
+	ls, err := s.runtime.Logs(context.Background(), &pb.LogsRequest{
+		Service: service.Name,
+		Stream:  true,
+		Count:   10, // @todo pass in actual options
+	})
+	if err != nil {
+		return nil, err
+	}
+	logStream := &serviceLogStream{
+		service: service.Name,
+		stream:  make(chan runtime.LogRecord),
+		stop:    make(chan bool),
+	}
+	go func() {
+		time.Sleep(100 * time.Millisecond)
+		for {
+			record := runtime.LogRecord{}
+			err := ls.RecvMsg(&record)
+			if err != nil {
+				log.Error(err)
+			}
+			logStream.stream <- record
+		}
+	}()
+	return logStream, nil
+}
+
+type serviceLogStream struct {
+	service string
+	stream  chan runtime.LogRecord
+	stop    chan bool
+}
+
+func (l *serviceLogStream) Chan() chan runtime.LogRecord {
+	return l.stream
+}
+
+func (l *serviceLogStream) Stop() error {
+	select {
+	case <-l.stop:
+		return nil
+	default:
+		close(l.stop)
+	}
+	return nil
 }
 
 // Read returns the service with the given name from the runtime
