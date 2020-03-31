@@ -38,15 +38,6 @@ func (c *clientWrapper) setHeaders(ctx context.Context) context.Context {
 	mda, _ := metadata.FromContext(ctx)
 	md := metadata.Copy(mda)
 
-	// get auth token
-	if a := c.auth(); a != nil {
-		tk := a.Options().Token
-		// if the token if exists and auth header isn't set then set it
-		if len(tk) > 0 && len(md["Authorization"]) == 0 {
-			md["Authorization"] = auth.BearerScheme + tk
-		}
-	}
-
 	// set headers
 	for k, v := range c.headers {
 		if _, ok := md[k]; !ok {

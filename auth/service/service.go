@@ -55,13 +55,13 @@ func (s *svc) Init(opts ...auth.Option) {
 	}
 
 	// load rules periodically from the auth service
-	timer := time.NewTicker(time.Second * 30)
+	ruleTimer := time.NewTicker(time.Second * 30)
 	go func() {
 		// load rules immediately on startup
 		s.loadRules()
 
 		for {
-			<-timer.C
+			<-ruleTimer.C
 
 			// jitter for up to 5 seconds, this stops
 			// all the services calling the auth service
@@ -70,9 +70,39 @@ func (s *svc) Init(opts ...auth.Option) {
 			s.loadRules()
 		}
 	}()
+
+	// we have client credentials and must load a new token
+	// periodically
+	if len(s.options.ID) > 0 || len(s.options.Secret) > 0 {
+		tokenTimer := time.NewTicker(time.Minute)
+
+		go func() {
+			s.loadToken()
+
+			for {
+				<-tokenTimer.C
+
+				// Do not get a new token if the current one has more than three
+				// minutes remaining. We do 3 minutes to allow multiple retires in
+				// the case one request fails
+				t := s.Options().Token
+				if t != nil && t.Expiry.Unix() > time.Now().Add(time.Minute*3).Unix() {
+					continue
+				}
+
+				// jitter for up to 5 seconds, this stops
+				// all the services calling the auth service
+				// at the exact same time
+				time.Sleep(jitter.Do(time.Second * 5))
+				s.loadToken()
+			}
+		}()
+	}
 }
 
 func (s *svc) Options() auth.Options {
+	s.Lock()
+	defer s.Unlock()
 	return s.options
 }
 
@@ -254,6 +284,24 @@ func (s *svc) loadRules() {
 	}
 
 	s.rules = rsp.Rules
+}
+
+// loadToken generates a new token for the service to use when making calls
+func (s *svc) loadToken() {
+	rsp, err := s.auth.Token(context.TODO(), &pb.TokenRequest{
+		Id:          s.Options().ID,
+		Secret:      s.Options().Secret,
+		TokenExpiry: int64((time.Minute * 15).Seconds()),
+	})
+	s.Lock()
+	defer s.Unlock()
+
+	if err != nil {
+		log.Errorf("Error generating token: %v", err)
+		return
+	}
+
+	s.options.Token = serializeToken(rsp.Token)
 }
 
 func serializeToken(t *pb.Token) *auth.Token {

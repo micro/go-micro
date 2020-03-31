@@ -8,8 +8,12 @@ import (
 )
 
 type Options struct {
-	// Token is an auth token
-	Token string
+	// ID is the services auth ID
+	ID string
+	// Secret is used to generate new tokens
+	Secret string
+	// Token is the services token used to authenticate itself
+	Token *Token
 	// Public key base64 encoded
 	PublicKey string
 	// Private key base64 encoded
@@ -45,10 +49,11 @@ func PrivateKey(key string) Option {
 	}
 }
 
-// ServiceToken sets an auth token
-func ServiceToken(t string) Option {
+// Credentials sets the auth credentials
+func Credentials(id, secret string) Option {
 	return func(o *Options) {
-		o.Token = t
+		o.ID = id
+		o.Secret = secret
 	}
 }
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/micro/go-micro/v2/auth"
 	"github.com/micro/go-micro/v2/broker"
 	"github.com/micro/go-micro/v2/client/selector"
 	"github.com/micro/go-micro/v2/codec"
@@ -16,6 +17,7 @@ type Options struct {
 	ContentType string
 
 	// Plugged interfaces
+	Auth      auth.Auth
 	Broker    broker.Broker
 	Codecs    map[string]codec.NewCodec
 	Registry  registry.Registry
@@ -55,6 +57,8 @@ type CallOptions struct {
 	Retries int
 	// Request/Response timeout
 	RequestTimeout time.Duration
+	// Use the services own auth token
+	ServiceToken bool
 
 	// Middleware for low level call func
 	CallWrappers []CallWrapper
@@ -99,6 +103,7 @@ func NewOptions(options ...Option) Options {
 		},
 		PoolSize:  DefaultPoolSize,
 		PoolTTL:   DefaultPoolTTL,
+		Auth:      auth.DefaultAuth,
 		Broker:    broker.DefaultBroker,
 		Selector:  selector.DefaultSelector,
 		Registry:  registry.DefaultRegistry,
@@ -116,6 +121,13 @@ func NewOptions(options ...Option) Options {
 func Broker(b broker.Broker) Option {
 	return func(o *Options) {
 		o.Broker = b
+	}
+}
+
+// Auth to be used when making a request
+func Auth(a auth.Auth) Option {
+	return func(o *Options) {
+		o.Auth = a
 	}
 }
 
@@ -288,6 +300,14 @@ func WithRequestTimeout(d time.Duration) CallOption {
 func WithDialTimeout(d time.Duration) CallOption {
 	return func(o *CallOptions) {
 		o.DialTimeout = d
+	}
+}
+
+// WithServiceToken is a CallOption which overrides the
+// authorization header with the services own auth token
+func WithServiceToken() CallOption {
+	return func(o *CallOptions) {
+		o.ServiceToken = true
 	}
 }
 
