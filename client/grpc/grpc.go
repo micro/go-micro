@@ -133,7 +133,7 @@ func (g *grpcClient) call(ctx context.Context, node *registry.Node, req client.R
 
 	// if the caller specifies using service privelages, and the client
 	// has auth set, override the authorization header
-	if opts.ServicePrivileges && g.opts.Auth != nil && g.opts.Auth.Options().Token != nil {
+	if opts.ServiceToken && g.opts.Auth != nil && g.opts.Auth.Options().Token != nil {
 		t := g.opts.Auth.Options().Token
 		header["authorization"] = auth.BearerScheme + t.Token
 	}

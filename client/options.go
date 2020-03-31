@@ -58,7 +58,7 @@ type CallOptions struct {
 	// Request/Response timeout
 	RequestTimeout time.Duration
 	// Use the services own auth token
-	ServicePrivileges bool
+	ServiceToken bool
 
 	// Middleware for low level call func
 	CallWrappers []CallWrapper
@@ -303,11 +303,11 @@ func WithDialTimeout(d time.Duration) CallOption {
 	}
 }
 
-// WithServicePrivileges is a CallOption which overrides the
+// WithServiceToken is a CallOption which overrides the
 // authorization header with the services own auth token
-func WithServicePrivileges() CallOption {
+func WithServiceToken() CallOption {
 	return func(o *CallOptions) {
-		o.ServicePrivileges = true
+		o.ServiceToken = true
 	}
 }
 
