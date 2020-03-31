@@ -25,7 +25,7 @@ func (md Metadata) Get(key string) (string, bool) {
 	return val, ok
 }
 
-func (md Metadata) Del(key string) {
+func (md Metadata) Delete(key string) {
 	// delete key as-is
 	delete(md, key)
 	// delete also Title key
@@ -41,8 +41,8 @@ func Copy(md Metadata) Metadata {
 	return cmd
 }
 
-// Del key from metadata
-func Del(ctx context.Context, k string) context.Context {
+// Delete key from metadata
+func Delete(ctx context.Context, k string) context.Context {
 	return Set(ctx, k, "")
 }
 
