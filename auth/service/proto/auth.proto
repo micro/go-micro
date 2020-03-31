@@ -23,7 +23,7 @@ message Token {
 
 message Account {
 	string id = 1;
-	Token secret = 2;
+	string secret = 2;
 	repeated string roles = 3;
 	map<string, string> metadata = 4;
 	string namespace = 5;
@@ -39,8 +39,7 @@ message GenerateRequest {
 	string id = 1;
 	repeated string roles = 2;
 	map<string, string> metadata = 3;
-	int64 secret_expiry = 4;
-	string namespace = 5;
+	string namespace = 4;
 }
 
 message GenerateResponse {

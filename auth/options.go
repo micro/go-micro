@@ -71,8 +71,6 @@ type GenerateOptions struct {
 	Metadata map[string]string
 	// Roles/scopes associated with the account
 	Roles []string
-	// SecretExpiry is the time the secret should live for
-	SecretExpiry time.Duration
 	// Namespace the account belongs too
 	Namespace string
 }
@@ -100,25 +98,12 @@ func WithNamespace(n string) GenerateOption {
 	}
 }
 
-// WithSecretExpiry for the generated account's secret expires
-func WithSecretExpiry(ex time.Duration) GenerateOption {
-	return func(o *GenerateOptions) {
-		o.SecretExpiry = ex
-	}
-}
-
 // NewGenerateOptions from a slice of options
 func NewGenerateOptions(opts ...GenerateOption) GenerateOptions {
 	var options GenerateOptions
 	for _, o := range opts {
 		o(&options)
 	}
-
-	// set defualt expiry of secret
-	if options.SecretExpiry == 0 {
-		options.SecretExpiry = time.Hour * 24 * 7
-	}
-
 	return options
 }
 

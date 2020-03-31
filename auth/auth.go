@@ -63,7 +63,7 @@ type Account struct {
 	// ID of the account (UUIDV4, email or username)
 	ID string `json:"id"`
 	// Secret used to renew the account
-	Secret *Token `json:"secret"`
+	Secret string `json:"secret"`
 	// Roles associated with the Account
 	Roles []string `json:"roles"`
 	// Any other associated metadata

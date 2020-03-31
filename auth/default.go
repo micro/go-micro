@@ -41,7 +41,7 @@ func (n *noop) Generate(id string, opts ...GenerateOption) (*Account, error) {
 		ID:       id,
 		Roles:    options.Roles,
 		Metadata: options.Metadata,
-		Secret:   &Token{},
+		Secret:   uuid.New().String(),
 	}, nil
 }
 

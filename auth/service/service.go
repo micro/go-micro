@@ -81,11 +81,10 @@ func (s *svc) Generate(id string, opts ...auth.GenerateOption) (*auth.Account, e
 	options := auth.NewGenerateOptions(opts...)
 
 	rsp, err := s.auth.Generate(context.TODO(), &pb.GenerateRequest{
-		Id:           id,
-		Roles:        options.Roles,
-		Metadata:     options.Metadata,
-		Namespace:    options.Namespace,
-		SecretExpiry: int64(options.SecretExpiry.Seconds()),
+		Id:        id,
+		Roles:     options.Roles,
+		Metadata:  options.Metadata,
+		Namespace: options.Namespace,
 	})
 	if err != nil {
 		return nil, err
@@ -270,16 +269,11 @@ func serializeToken(t *pb.Token) *auth.Token {
 }
 
 func serializeAccount(a *pb.Account) *auth.Account {
-	var secret *auth.Token
-	if a.Secret != nil {
-		secret = serializeToken(a.Secret)
-	}
-
 	return &auth.Account{
 		ID:        a.Id,
 		Roles:     a.Roles,
 		Metadata:  a.Metadata,
 		Namespace: a.Namespace,
-		Secret:    secret,
+		Secret:    a.Secret,
 	}
 }
