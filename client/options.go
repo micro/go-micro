@@ -305,7 +305,7 @@ func WithRequestTimeout(d time.Duration) CallOption {
 }
 
 // WithStreamTimeout sets the stream timeout
-func WithRequestTimeout(d time.Duration) CallOption {
+func WithStreamTimeout(d time.Duration) CallOption {
 	return func(o *CallOptions) {
 		o.StreamTimeout = d
 	}
