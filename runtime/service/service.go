@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"sync"
-	"time"
 
 	"github.com/micro/go-micro/v2/client"
 	"github.com/micro/go-micro/v2/runtime"
@@ -81,7 +80,6 @@ func (s *svc) Logs(service *runtime.Service) (runtime.LogStream, error) {
 		stop:    make(chan bool),
 	}
 	go func() {
-		time.Sleep(100 * time.Millisecond)
 		for {
 			record := runtime.LogRecord{}
 			err := ls.RecvMsg(&record)

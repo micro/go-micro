@@ -2,9 +2,16 @@ package runtime
 
 import (
 	"errors"
+	"fmt"
+	"io"
+	"log"
+	"os"
+	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
+	"github.com/hpcloud/tail"
 	"github.com/micro/go-micro/v2/logger"
 )
 
@@ -169,6 +176,11 @@ func (r *runtime) run(events <-chan Event) {
 	}
 }
 
+func logFile(serviceName string) string {
+	name := strings.Replace(serviceName, "/", "-", -1)
+	return filepath.Join(os.TempDir(), fmt.Sprintf("%v.log", name))
+}
+
 // Create creates a new service which is then started by runtime
 func (r *runtime) Create(s *Service, opts ...CreateOption) error {
 	r.Lock()
@@ -191,6 +203,17 @@ func (r *runtime) Create(s *Service, opts ...CreateOption) error {
 	// create new service
 	service := newService(s, options)
 
+	f, err := os.OpenFile(logFile(service.Name), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	logger.Info(f, err)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if service.output != nil {
+		service.output = io.MultiWriter(service.output, f)
+	} else {
+		service.output = f
+	}
 	// start the service
 	if err := service.Start(); err != nil {
 		return err
@@ -208,13 +231,22 @@ func (r *runtime) Logs(s *Service) (LogStream, error) {
 		stream:  make(chan LogRecord),
 		stop:    make(chan bool),
 	}
+	t, err := tail.TailFile(logFile(s.Name), tail.Config{Follow: true})
+	if err != nil {
+		return nil, err
+	}
+	ret.tail = t
 	go func() {
-		ret.stream <- LogRecord{Log: "Hello 1"}
+		for line := range t.Lines {
+			//logger.Infof("Line %v", line.Text)
+			ret.stream <- LogRecord{Log: line.Text}
+		}
 	}()
 	return ret, nil
 }
 
 type logStream struct {
+	tail    *tail.Tail
 	service string
 	stream  chan LogRecord
 	stop    chan bool
@@ -225,6 +257,10 @@ func (l *logStream) Chan() chan LogRecord {
 }
 
 func (l *logStream) Stop() error {
+	err := l.tail.Stop()
+	if err != nil {
+		return err
+	}
 	select {
 	case <-l.stop:
 		return nil
