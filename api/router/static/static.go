@@ -262,7 +262,7 @@ func (r *staticRouter) endpoint(req *http.Request) (*endpoint, error) {
 			for k, v := range matches {
 				md[fmt.Sprintf("x-api-field-%s", k)] = v
 			}
-			*req = *req.WithContext(context.WithValue(ctx, metadata.MetadataKey{}, md))
+			*req = *req.Clone(context.WithValue(ctx, metadata.MetadataKey{}, md))
 			break pathLoop
 		}
 		if !pMatch {

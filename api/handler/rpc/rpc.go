@@ -128,7 +128,7 @@ func (h *rpcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	cx = metadata.MergeContext(cx, md, true)
 
 	// set merged context to request
-	*r = *r.WithContext(cx)
+	*r = *r.Clone(cx)
 
 	// if stream we currently only support json
 	if isStream(r, service) {
@@ -324,7 +324,7 @@ func requestPayload(r *http.Request) ([]byte, error) {
 	}
 
 	// restore context without fields
-	*r = *r.WithContext(metadata.NewContext(ctx, md))
+	*r = *r.Clone(metadata.NewContext(ctx, md))
 
 	for k, v := range matches {
 		ps := strings.Split(k, ".")
