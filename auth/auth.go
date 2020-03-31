@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/micro/go-micro/v2/metadata"
@@ -137,9 +136,4 @@ func ContextWithAccount(ctx context.Context, account *Account) (context.Context,
 
 	// generate a new context with the MetadataKey set
 	return metadata.Set(ctx, MetadataKey, string(bytes)), nil
-}
-
-// ContextWithToken sets the auth token in the context
-func ContextWithToken(ctx context.Context, token string) context.Context {
-	return metadata.Set(ctx, "Authorization", fmt.Sprintf("%v%v", BearerScheme, token))
 }
