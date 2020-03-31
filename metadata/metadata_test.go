@@ -18,14 +18,14 @@ func TestMetadataSet(t *testing.T) {
 	}
 }
 
-func TestMetadataDel(t *testing.T) {
+func TestMetadataDelete(t *testing.T) {
 	md := Metadata{
 		"Foo": "bar",
 		"Baz": "empty",
 	}
 
 	ctx := NewContext(context.TODO(), md)
-	ctx = Set(ctx, "Baz", "")
+	ctx = Delete(ctx, "Baz")
 
 	emd, ok := FromContext(ctx)
 	if !ok {
