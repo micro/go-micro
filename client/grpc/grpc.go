@@ -131,11 +131,14 @@ func (g *grpcClient) call(ctx context.Context, node *registry.Node, req client.R
 	// set the content type for the request
 	header["x-content-type"] = req.ContentType()
 
-	// if the caller specifies using service privelages, and the client
-	// has auth set, override the authorization header
-	if opts.ServiceToken && g.opts.Auth != nil && g.opts.Auth.Options().Token != nil {
-		t := g.opts.Auth.Options().Token
-		header["authorization"] = auth.BearerScheme + t.Token
+	// if the caller specifies using service token or no token
+	// was passed with the request, set the service token
+	var srvToken string
+	if g.opts.Auth != nil && g.opts.Auth.Options().Token != nil {
+		srvToken = g.opts.Auth.Options().Token.Token
+	}
+	if (opts.ServiceToken || len(header["authorization"]) == 0) && len(srvToken) > 0 {
+		header["authorization"] = auth.BearerScheme + srvToken
 	}
 
 	// fall back to using the authorization token set in config,
