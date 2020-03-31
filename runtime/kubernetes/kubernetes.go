@@ -301,6 +301,32 @@ func (k *kubernetes) Init(opts ...runtime.Option) error {
 	return nil
 }
 
+func (k *kubernetes) Logs(s *runtime.Service) (runtime.LogStream, error) {
+	return nil, nil
+}
+
+type kubeStream struct {
+	// the k8s log stream
+	stream chan runtime.LogRecord
+	// the stop chan
+	stop chan bool
+}
+
+func (k *kubeStream) Chan() <-chan runtime.LogRecord {
+	return k.stream
+}
+
+func (k *kubeStream) Stop() error {
+	select {
+	case <-k.stop:
+		return nil
+	default:
+		close(k.stop)
+		close(k.stream)
+	}
+	return nil
+}
+
 // Creates a service
 func (k *kubernetes) Create(s *runtime.Service, opts ...runtime.CreateOption) error {
 	k.Lock()

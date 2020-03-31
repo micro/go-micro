@@ -64,6 +64,10 @@ func (s *svc) Create(svc *runtime.Service, opts ...runtime.CreateOption) error {
 	return nil
 }
 
+func (s *svc) Logs(service *runtime.Service) (runtime.LogStream, error) {
+	return nil, nil
+}
+
 // Read returns the service with the given name from the runtime
 func (s *svc) Read(opts ...runtime.ReadOption) ([]*runtime.Service, error) {
 	options := runtime.ReadOptions{}

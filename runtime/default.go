@@ -202,6 +202,32 @@ func (r *runtime) Create(s *Service, opts ...CreateOption) error {
 	return nil
 }
 
+func (r *runtime) Logs(s *Service) (LogStream, error) {
+	return &logStream{
+		service: s.Name,
+	}, nil
+}
+
+type logStream struct {
+	service string
+	stream  <-chan LogRecord
+	stop    chan bool
+}
+
+func (l *logStream) Chan() <-chan LogRecord {
+	return l.stream
+}
+
+func (l *logStream) Stop() error {
+	select {
+	case <-l.stop:
+		return nil
+	default:
+		close(l.stop)
+	}
+	return nil
+}
+
 // Read returns all instances of requested service
 // If no service name is provided we return all the track services.
 func (r *runtime) Read(opts ...ReadOption) ([]*Service, error) {
