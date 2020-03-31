@@ -295,8 +295,9 @@ func requestPayload(r *http.Request) ([]byte, error) {
 	if !ok {
 		md = make(map[string]string)
 	}
+
 	// allocate maximum
-	matches := make(map[string]string, len(md))
+	matches := make(map[string]interface{}, len(md))
 
 	// get fields from url path
 	for k, v := range md {
@@ -307,9 +308,12 @@ func requestPayload(r *http.Request) ([]byte, error) {
 		}
 	}
 
+	// map of all fields
+	req := make(map[string]interface{}, len(md))
+
 	// get fields from url values
 	if len(r.URL.RawQuery) > 0 {
-		umd := make(map[string]string)
+		umd := make(map[string]interface{})
 		err = qson.Unmarshal(&umd, r.URL.RawQuery)
 		if err != nil {
 			return nil, err
@@ -322,7 +326,6 @@ func requestPayload(r *http.Request) ([]byte, error) {
 	// restore context without fields
 	*r = *r.WithContext(metadata.NewContext(ctx, md))
 
-	req := make(map[string]interface{}, len(md))
 	for k, v := range matches {
 		ps := strings.Split(k, ".")
 		if len(ps) == 1 {
@@ -342,6 +345,7 @@ func requestPayload(r *http.Request) ([]byte, error) {
 			for vk, vv := range em {
 				nm[vk] = vv
 			}
+			req[ps[0]] = nm
 		} else {
 			req[ps[0]] = em
 		}
