@@ -78,9 +78,22 @@ type GenerateOptions struct {
 	Roles []string
 	// Namespace the account belongs too
 	Namespace string
+	// Secret to use with the account
+	Secret string
+	// Provider of the account, e.g. oauth
+	Provider string
+	// Type of the account, e.g. user
+	Type string
 }
 
 type GenerateOption func(o *GenerateOptions)
+
+// WithType for the generated account
+func WithType(t string) GenerateOption {
+	return func(o *GenerateOptions) {
+		o.Type = t
+	}
+}
 
 // WithMetadata for the generated account
 func WithMetadata(md map[string]string) GenerateOption {
@@ -103,9 +116,46 @@ func WithNamespace(n string) GenerateOption {
 	}
 }
 
+// WithSecret for the generated account
+func WithSecret(s string) GenerateOption {
+	return func(o *GenerateOptions) {
+		o.Secret = s
+	}
+}
+
+// WithProvider for the generated account
+func WithProvider(p string) GenerateOption {
+	return func(o *GenerateOptions) {
+		o.Provider = p
+	}
+}
+
 // NewGenerateOptions from a slice of options
 func NewGenerateOptions(opts ...GenerateOption) GenerateOptions {
 	var options GenerateOptions
+	for _, o := range opts {
+		o(&options)
+	}
+	return options
+}
+
+type LoginOptions struct {
+	// Secret to use for rlogin
+	Secret string
+}
+
+type LoginOption func(o *LoginOptions)
+
+// WithLoginSecret for the generated account
+func WithLoginSecret(s string) LoginOption {
+	return func(o *LoginOptions) {
+		o.Secret = s
+	}
+}
+
+// NewLoginOptions from a slice of options
+func NewLoginOptions(opts ...LoginOption) LoginOptions {
+	var options LoginOptions
 	for _, o := range opts {
 		o(&options)
 	}

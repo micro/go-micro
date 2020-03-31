@@ -39,11 +39,12 @@ message Token {
 
 message Account {
 	string id = 1;
+	string type = 2;
 	repeated string roles = 3;
 	map<string, string> metadata = 4;
 	string namespace = 5;
-	string type = 6;
-	string refresh_token = 7;
+	string refresh_token = 6;
+	string provider = 7;
 }
 
 message Resource{
@@ -68,6 +69,7 @@ message GenerateRequest {
 	string namespace = 4;
 	string secret = 5;
 	string type = 6;
+	string provider = 7;
 }
 
 message GenerateResponse {

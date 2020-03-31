@@ -32,9 +32,9 @@ type Auth interface {
 	// Options set for auth
 	Options() Options
 	// Generate a new account
-	Generate(id, secret string, opts ...GenerateOption) (*Account, error)
+	Generate(id string, opts ...GenerateOption) (*Account, error)
 	// Login to an existing account
-	Login(id, secret string) (*Account, error)
+	Login(id string, opts ...LoginOption) (*Account, error)
 	// Grant access to a resource
 	Grant(role string, res *Resource) error
 	// Revoke access to a resource
@@ -61,10 +61,12 @@ type Resource struct {
 
 // Account provided by an auth provider
 type Account struct {
-	// Type of the account, e.g. service
-	Type string `json:"type"`
 	// ID of the account e.g. email
 	ID string `json:"id"`
+	// Type of the account, e.g. service
+	Type string `json:"type"`
+	// Provider who issued the account
+	Provider string `json:"provider"`
 	// RefreshToken used to renew the account
 	RefreshToken string `json:"refresh_token"`
 	// Roles associated with the Account

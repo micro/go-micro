@@ -107,14 +107,16 @@ func (s *svc) Options() auth.Options {
 }
 
 // Generate a new account
-func (s *svc) Generate(id, secret string, opts ...auth.GenerateOption) (*auth.Account, error) {
+func (s *svc) Generate(id string, opts ...auth.GenerateOption) (*auth.Account, error) {
 	options := auth.NewGenerateOptions(opts...)
 
 	rsp, err := s.auth.Generate(context.TODO(), &pb.GenerateRequest{
 		Id:        id,
-		Secret:    secret,
+		Type:      options.Type,
 		Roles:     options.Roles,
+		Secret:    options.Secret,
 		Metadata:  options.Metadata,
+		Provider:  options.Provider,
 		Namespace: options.Namespace,
 	})
 	if err != nil {
@@ -125,8 +127,9 @@ func (s *svc) Generate(id, secret string, opts ...auth.GenerateOption) (*auth.Ac
 }
 
 // Login to an account
-func (s *svc) Login(id, secret string) (*auth.Account, error) {
-	rsp, err := s.auth.Login(context.TODO(), &pb.LoginRequest{Id: id, Secret: secret})
+func (s *svc) Login(id string, opts ...auth.LoginOption) (*auth.Account, error) {
+	options := auth.NewLoginOptions(opts...)
+	rsp, err := s.auth.Login(context.TODO(), &pb.LoginRequest{Id: id, Secret: options.Secret})
 	if err != nil {
 		return nil, err
 	}
@@ -331,6 +334,7 @@ func serializeAccount(a *pb.Account) *auth.Account {
 		ID:           a.Id,
 		Roles:        a.Roles,
 		Metadata:     a.Metadata,
+		Provider:     a.Provider,
 		Namespace:    a.Namespace,
 		RefreshToken: a.RefreshToken,
 	}

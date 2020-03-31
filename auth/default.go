@@ -34,7 +34,7 @@ func (n *noop) Options() Options {
 }
 
 // Generate a new account
-func (n *noop) Generate(id, secret string, opts ...GenerateOption) (*Account, error) {
+func (n *noop) Generate(id string, opts ...GenerateOption) (*Account, error) {
 	options := NewGenerateOptions(opts...)
 
 	return &Account{
@@ -46,7 +46,7 @@ func (n *noop) Generate(id, secret string, opts ...GenerateOption) (*Account, er
 }
 
 // Login to an existing account
-func (n *noop) Login(id, secret string) (*Account, error) {
+func (n *noop) Login(id string, opts ...LoginOption) (*Account, error) {
 	return &Account{ID: id}, nil
 }
 
