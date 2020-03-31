@@ -122,23 +122,23 @@ func NewGenerateOptions(opts ...GenerateOption) GenerateOptions {
 	return options
 }
 
-type RefreshOptions struct {
+type TokenOptions struct {
 	// TokenExpiry is the time the token should live for
 	TokenExpiry time.Duration
 }
 
-type RefreshOption func(o *RefreshOptions)
+type TokenOption func(o *TokenOptions)
 
 // WithTokenExpiry for the token
-func WithTokenExpiry(ex time.Duration) RefreshOption {
-	return func(o *RefreshOptions) {
+func WithTokenExpiry(ex time.Duration) TokenOption {
+	return func(o *TokenOptions) {
 		o.TokenExpiry = ex
 	}
 }
 
-// NewRefreshOptions from a slice of options
-func NewRefreshOptions(opts ...RefreshOption) RefreshOptions {
-	var options RefreshOptions
+// NewTokenOptions from a slice of options
+func NewTokenOptions(opts ...TokenOption) TokenOptions {
+	var options TokenOptions
 	for _, o := range opts {
 		o(&options)
 	}

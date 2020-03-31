@@ -187,11 +187,12 @@ func (s *svc) Inspect(token string) (*auth.Account, error) {
 	return serializeAccount(rsp.Account), nil
 }
 
-// Refresh an account using a secret
-func (s *svc) Refresh(secret string, opts ...auth.RefreshOption) (*auth.Token, error) {
-	options := auth.NewRefreshOptions(opts...)
+// Token generation using an account ID and secret
+func (s *svc) Token(id, secret string, opts ...auth.TokenOption) (*auth.Token, error) {
+	options := auth.NewTokenOptions(opts...)
 
-	rsp, err := s.auth.Refresh(context.Background(), &authPb.RefreshRequest{
+	rsp, err := s.auth.Token(context.Background(), &authPb.TokenRequest{
+		Id:          id,
 		Secret:      secret,
 		TokenExpiry: int64(options.TokenExpiry.Seconds()),
 	})

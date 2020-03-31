@@ -5,7 +5,7 @@ package go.micro.auth;
 service Auth {
 	rpc Generate(GenerateRequest) returns (GenerateResponse) {};
 	rpc Inspect(InspectRequest)  returns (InspectResponse) {};		
-	rpc Refresh(RefreshRequest)  returns (RefreshResponse) {};
+	rpc Token(TokenRequest)  returns (TokenResponse) {};
 }
 
 message Token {
@@ -67,11 +67,12 @@ message InspectResponse {
 	Account account = 1;
 }
 
-message RefreshRequest {
-	string secret = 1;
-	int64 token_expiry = 2;
+message TokenRequest {
+	string id = 1;
+	string secret = 2;
+	int64 token_expiry = 3;
 }
 
-message RefreshResponse {
+message TokenResponse {
 	Token token = 1;
 }

@@ -67,7 +67,7 @@ func (n *noop) Inspect(token string) (*Account, error) {
 	}, nil
 }
 
-// Refresh an account using a secret
-func (n *noop) Refresh(secret string, opts ...RefreshOption) (*Token, error) {
+// Token generation using an account id and secret
+func (n *noop) Token(id, secret string, opts ...TokenOption) (*Token, error) {
 	return &Token{}, nil
 }

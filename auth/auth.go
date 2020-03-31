@@ -42,8 +42,8 @@ type Auth interface {
 	Verify(acc *Account, res *Resource) error
 	// Inspect a token
 	Inspect(token string) (*Account, error)
-	// Refresh an account using a secret
-	Refresh(secret string, opts ...RefreshOption) (*Token, error)
+	// Token generated using an account ID and secret
+	Token(id, secret string, opts ...TokenOption) (*Token, error)
 	// String returns the name of the implementation
 	String() string
 }
