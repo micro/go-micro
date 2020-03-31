@@ -39,9 +39,10 @@ type DeploymentSpec struct {
 
 // DeploymentCondition describes the state of deployment
 type DeploymentCondition struct {
-	Type    string `json:"type"`
-	Reason  string `json:"reason,omitempty"`
-	Message string `json:"message,omitempty"`
+	LastUpdateTime string `json:"lastUpdateTime"`
+	Type           string `json:"type"`
+	Reason         string `json:"reason,omitempty"`
+	Message        string `json:"message,omitempty"`
 }
 
 // DeploymentStatus is returned when querying deployment
