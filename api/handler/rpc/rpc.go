@@ -289,8 +289,8 @@ func requestPayload(r *http.Request) ([]byte, error) {
 	for k, v := range md {
 		if strings.HasPrefix(k, "x-api-field-") {
 			matches[strings.TrimPrefix(k, "x-api-field-")] = v
+			delete(md, k)
 		}
-		delete(md, k)
 	}
 
 	// restore context without fields
