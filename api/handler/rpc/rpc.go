@@ -297,11 +297,25 @@ func requestPayload(r *http.Request) ([]byte, error) {
 	}
 	// allocate maximum
 	matches := make(map[string]string, len(md))
+
+	// get fields from url path
 	for k, v := range md {
 		// filter own keys
 		if strings.HasPrefix(k, "x-api-field-") {
 			matches[strings.TrimPrefix(k, "x-api-field-")] = v
 			delete(md, k)
+		}
+	}
+
+	// get fields from url values
+	if len(r.URL.RawQuery) > 0 {
+		umd := make(map[string]string)
+		err = qson.Unmarshal(&umd, r.URL.RawQuery)
+		if err != nil {
+			return nil, err
+		}
+		for k, v := range umd {
+			matches[k] = v
 		}
 	}
 
@@ -315,7 +329,6 @@ func requestPayload(r *http.Request) ([]byte, error) {
 			req[k] = v
 			continue
 		}
-
 		em := make(map[string]interface{})
 		em[ps[len(ps)-1]] = v
 		for i := len(ps) - 2; i > 0; i-- {
@@ -323,7 +336,15 @@ func requestPayload(r *http.Request) ([]byte, error) {
 			nm[ps[i]] = em
 			em = nm
 		}
-		req[ps[0]] = em
+		if vm, ok := req[ps[0]]; ok {
+			// nested map
+			nm := vm.(map[string]interface{})
+			for vk, vv := range em {
+				nm[vk] = vv
+			}
+		} else {
+			req[ps[0]] = em
+		}
 	}
 	pathbuf := []byte("{}")
 	if len(req) > 0 {
@@ -332,14 +353,8 @@ func requestPayload(r *http.Request) ([]byte, error) {
 			return nil, err
 		}
 	}
-	urlbuf := []byte("{}")
-	if len(r.URL.RawQuery) > 0 {
-		urlbuf, err = qson.ToJSON(r.URL.RawQuery)
-		if err != nil {
-			return nil, err
-		}
-	}
 
+	urlbuf := []byte("{}")
 	out, err := jsonpatch.MergeMergePatches(urlbuf, pathbuf)
 	if err != nil {
 		return nil, err
