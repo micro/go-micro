@@ -131,7 +131,15 @@ func (g *grpcClient) call(ctx context.Context, node *registry.Node, req client.R
 	// set the content type for the request
 	header["x-content-type"] = req.ContentType()
 
-	// set the authorization token if one is saved locally
+	// if the caller specifies using service privelages, and the client
+	// has auth set, override the authorization header
+	if opts.WithServicePrivileges && g.opts.Auth != nil && g.opts.Auth.Options().Token != nil {
+		t := g.opts.Auth.Options().Token
+		header["authorization"] = auth.BearerScheme + t.Token
+	}
+
+	// fall back to using the authorization token set in config,
+	// this enables the CLI to provide a token
 	if len(header["authorization"]) == 0 {
 		if token, err := config.Get("token"); err == nil && len(token) > 0 {
 			header["authorization"] = auth.BearerScheme + token
