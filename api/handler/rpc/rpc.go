@@ -118,6 +118,17 @@ func (h *rpcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// create context
 	cx := ctx.FromRequest(r)
+	// get context from http handler wrappers
+	md, ok := r.Context().Value(metadata.MetadataKey{}).(metadata.Metadata)
+	if !ok {
+		md = make(metadata.Metadata)
+	}
+
+	// merge context with overwrite
+	cx = metadata.MergeContext(cx, md, true)
+
+	// set merged context to request
+	*r = *r.WithContext(cx)
 
 	// if stream we currently only support json
 	if isStream(r, service) {
@@ -287,6 +298,7 @@ func requestPayload(r *http.Request) ([]byte, error) {
 	// allocate maximum
 	matches := make(map[string]string, len(md))
 	for k, v := range md {
+		// filter own keys
 		if strings.HasPrefix(k, "x-api-field-") {
 			matches[strings.TrimPrefix(k, "x-api-field-")] = v
 			delete(md, k)
@@ -294,8 +306,8 @@ func requestPayload(r *http.Request) ([]byte, error) {
 	}
 
 	// restore context without fields
-	ctx = metadata.NewContext(ctx, md)
-	*r = *r.WithContext(ctx)
+	*r = *r.WithContext(metadata.NewContext(ctx, md))
+
 	req := make(map[string]interface{}, len(md))
 	for k, v := range matches {
 		ps := strings.Split(k, ".")
