@@ -231,14 +231,16 @@ func (r *runtime) Logs(s *Service) (LogStream, error) {
 		stream:  make(chan LogRecord),
 		stop:    make(chan bool),
 	}
-	t, err := tail.TailFile(logFile(s.Name), tail.Config{Follow: true})
+	t, err := tail.TailFile(logFile(s.Name), tail.Config{Follow: true, Location: &tail.SeekInfo{
+		Whence: 2,
+		Offset: 0,
+	}, Logger: tail.DiscardingLogger})
 	if err != nil {
 		return nil, err
 	}
 	ret.tail = t
 	go func() {
 		for line := range t.Lines {
-			//logger.Infof("Line %v", line.Text)
 			ret.stream <- LogRecord{Log: line.Text}
 		}
 	}()
@@ -257,10 +259,11 @@ func (l *logStream) Chan() chan LogRecord {
 }
 
 func (l *logStream) Stop() error {
-	err := l.tail.Stop()
-	if err != nil {
-		return err
-	}
+	// @todo seems like this is causing a hangup
+	//err := l.tail.Stop()
+	//if err != nil {
+	//	return err
+	//}
 	select {
 	case <-l.stop:
 		return nil
