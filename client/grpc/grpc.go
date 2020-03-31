@@ -141,7 +141,7 @@ func (g *grpcClient) call(ctx context.Context, node *registry.Node, req client.R
 	// fall back to using the authorization token set in config,
 	// this enables the CLI to provide a token
 	if len(header["authorization"]) == 0 {
-		if token, err := config.Get("token"); err == nil && len(token) > 0 {
+		if token, err := config.Get("micro", "auth", "token"); err == nil && len(token) > 0 {
 			header["authorization"] = auth.BearerScheme + token
 		}
 	}
