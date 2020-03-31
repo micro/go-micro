@@ -74,6 +74,8 @@ type Account struct {
 	Metadata map[string]string `json:"metadata"`
 	// Namespace the account belongs to, default blank
 	Namespace string `json:"namespace"`
+	// Secret for the account, e.g. the password
+	Secret string `json:"secret"`
 }
 
 // Token can be short or long lived

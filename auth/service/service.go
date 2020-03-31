@@ -73,7 +73,7 @@ func (s *svc) Init(opts ...auth.Option) {
 
 	// we have client credentials and must load a new token
 	// periodically
-	if len(s.options.ID) > 0 || len(s.options.Secret) > 0 {
+	if len(s.options.ID) > 0 || len(s.options.RefreshToken) > 0 {
 		tokenTimer := time.NewTicker(time.Minute)
 
 		go func() {
@@ -107,11 +107,12 @@ func (s *svc) Options() auth.Options {
 }
 
 // Generate a new account
-func (s *svc) Generate(id string, opts ...auth.GenerateOption) (*auth.Account, error) {
+func (s *svc) Generate(id, secret string, opts ...auth.GenerateOption) (*auth.Account, error) {
 	options := auth.NewGenerateOptions(opts...)
 
 	rsp, err := s.auth.Generate(context.TODO(), &pb.GenerateRequest{
 		Id:        id,
+		Secret:    secret,
 		Roles:     options.Roles,
 		Metadata:  options.Metadata,
 		Namespace: options.Namespace,
@@ -120,6 +121,15 @@ func (s *svc) Generate(id string, opts ...auth.GenerateOption) (*auth.Account, e
 		return nil, err
 	}
 
+	return serializeAccount(rsp.Account), nil
+}
+
+// Login to an account
+func (s *svc) Login(id, secret string) (*auth.Account, error) {
+	rsp, err := s.auth.Login(context.TODO(), &pb.LoginRequest{Id: id, Secret: secret})
+	if err != nil {
+		return nil, err
+	}
 	return serializeAccount(rsp.Account), nil
 }
 
@@ -216,13 +226,13 @@ func (s *svc) Inspect(token string) (*auth.Account, error) {
 }
 
 // Token generation using an account ID and secret
-func (s *svc) Token(id, secret string, opts ...auth.TokenOption) (*auth.Token, error) {
+func (s *svc) Token(id, refresh string, opts ...auth.TokenOption) (*auth.Token, error) {
 	options := auth.NewTokenOptions(opts...)
 
 	rsp, err := s.auth.Token(context.Background(), &pb.TokenRequest{
-		Id:          id,
-		Secret:      secret,
-		TokenExpiry: int64(options.TokenExpiry.Seconds()),
+		Id:           id,
+		RefreshToken: refresh,
+		TokenExpiry:  int64(options.TokenExpiry.Seconds()),
 	})
 	if err != nil {
 		return nil, err
@@ -289,9 +299,9 @@ func (s *svc) loadRules() {
 // loadToken generates a new token for the service to use when making calls
 func (s *svc) loadToken() {
 	rsp, err := s.auth.Token(context.TODO(), &pb.TokenRequest{
-		Id:          s.Options().ID,
-		Secret:      s.Options().Secret,
-		TokenExpiry: int64((time.Minute * 15).Seconds()),
+		Id:           s.Options().ID,
+		RefreshToken: s.Options().RefreshToken,
+		TokenExpiry:  int64((time.Minute * 15).Seconds()),
 	})
 	s.Lock()
 	defer s.Unlock()
@@ -318,10 +328,10 @@ func serializeToken(t *pb.Token) *auth.Token {
 
 func serializeAccount(a *pb.Account) *auth.Account {
 	return &auth.Account{
-		ID:        a.Id,
-		Roles:     a.Roles,
-		Metadata:  a.Metadata,
-		Namespace: a.Namespace,
-		Secret:    a.Secret,
+		ID:           a.Id,
+		Roles:        a.Roles,
+		Metadata:     a.Metadata,
+		Namespace:    a.Namespace,
+		RefreshToken: a.RefreshToken,
 	}
 }
