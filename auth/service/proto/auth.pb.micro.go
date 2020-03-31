@@ -36,7 +36,7 @@ var _ server.Option
 type AuthService interface {
 	Generate(ctx context.Context, in *GenerateRequest, opts ...client.CallOption) (*GenerateResponse, error)
 	Inspect(ctx context.Context, in *InspectRequest, opts ...client.CallOption) (*InspectResponse, error)
-	Refresh(ctx context.Context, in *RefreshRequest, opts ...client.CallOption) (*RefreshResponse, error)
+	Token(ctx context.Context, in *TokenRequest, opts ...client.CallOption) (*TokenResponse, error)
 }
 
 type authService struct {
@@ -71,9 +71,9 @@ func (c *authService) Inspect(ctx context.Context, in *InspectRequest, opts ...c
 	return out, nil
 }
 
-func (c *authService) Refresh(ctx context.Context, in *RefreshRequest, opts ...client.CallOption) (*RefreshResponse, error) {
-	req := c.c.NewRequest(c.name, "Auth.Refresh", in)
-	out := new(RefreshResponse)
+func (c *authService) Token(ctx context.Context, in *TokenRequest, opts ...client.CallOption) (*TokenResponse, error) {
+	req := c.c.NewRequest(c.name, "Auth.Token", in)
+	out := new(TokenResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -86,14 +86,14 @@ func (c *authService) Refresh(ctx context.Context, in *RefreshRequest, opts ...c
 type AuthHandler interface {
 	Generate(context.Context, *GenerateRequest, *GenerateResponse) error
 	Inspect(context.Context, *InspectRequest, *InspectResponse) error
-	Refresh(context.Context, *RefreshRequest, *RefreshResponse) error
+	Token(context.Context, *TokenRequest, *TokenResponse) error
 }
 
 func RegisterAuthHandler(s server.Server, hdlr AuthHandler, opts ...server.HandlerOption) error {
 	type auth interface {
 		Generate(ctx context.Context, in *GenerateRequest, out *GenerateResponse) error
 		Inspect(ctx context.Context, in *InspectRequest, out *InspectResponse) error
-		Refresh(ctx context.Context, in *RefreshRequest, out *RefreshResponse) error
+		Token(ctx context.Context, in *TokenRequest, out *TokenResponse) error
 	}
 	type Auth struct {
 		auth
@@ -114,6 +114,6 @@ func (h *authHandler) Inspect(ctx context.Context, in *InspectRequest, out *Insp
 	return h.AuthHandler.Inspect(ctx, in, out)
 }
 
-func (h *authHandler) Refresh(ctx context.Context, in *RefreshRequest, out *RefreshResponse) error {
-	return h.AuthHandler.Refresh(ctx, in, out)
+func (h *authHandler) Token(ctx context.Context, in *TokenRequest, out *TokenResponse) error {
+	return h.AuthHandler.Token(ctx, in, out)
 }

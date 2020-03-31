@@ -81,11 +81,10 @@ func (s *svc) Generate(id string, opts ...auth.GenerateOption) (*auth.Account, e
 	options := auth.NewGenerateOptions(opts...)
 
 	rsp, err := s.auth.Generate(context.TODO(), &pb.GenerateRequest{
-		Id:           id,
-		Roles:        options.Roles,
-		Metadata:     options.Metadata,
-		Namespace:    options.Namespace,
-		SecretExpiry: int64(options.SecretExpiry.Seconds()),
+		Id:        id,
+		Roles:     options.Roles,
+		Metadata:  options.Metadata,
+		Namespace: options.Namespace,
 	})
 	if err != nil {
 		return nil, err
@@ -186,11 +185,12 @@ func (s *svc) Inspect(token string) (*auth.Account, error) {
 	return serializeAccount(rsp.Account), nil
 }
 
-// Refresh an account using a secret
-func (s *svc) Refresh(secret string, opts ...auth.RefreshOption) (*auth.Token, error) {
-	options := auth.NewRefreshOptions(opts...)
+// Token generation using an account ID and secret
+func (s *svc) Token(id, secret string, opts ...auth.TokenOption) (*auth.Token, error) {
+	options := auth.NewTokenOptions(opts...)
 
-	rsp, err := s.auth.Refresh(context.Background(), &pb.RefreshRequest{
+	rsp, err := s.auth.Token(context.Background(), &pb.TokenRequest{
+		Id:          id,
 		Secret:      secret,
 		TokenExpiry: int64(options.TokenExpiry.Seconds()),
 	})
@@ -269,16 +269,11 @@ func serializeToken(t *pb.Token) *auth.Token {
 }
 
 func serializeAccount(a *pb.Account) *auth.Account {
-	var secret *auth.Token
-	if a.Secret != nil {
-		secret = serializeToken(a.Secret)
-	}
-
 	return &auth.Account{
 		ID:        a.Id,
 		Roles:     a.Roles,
 		Metadata:  a.Metadata,
 		Namespace: a.Namespace,
-		Secret:    secret,
+		Secret:    a.Secret,
 	}
 }
