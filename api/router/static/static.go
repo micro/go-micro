@@ -255,7 +255,7 @@ func (r *staticRouter) endpoint(req *http.Request) (*endpoint, error) {
 			}
 			pMatch = true
 			ctx := req.Context()
-			md, ok := metadata.FromContext(ctx)
+			md, ok := ctx.Value(metadata.MetadataKey{}).(metadata.Metadata)
 			if !ok {
 				md = make(metadata.Metadata)
 			}
