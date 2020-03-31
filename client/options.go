@@ -57,6 +57,8 @@ type CallOptions struct {
 	Retries int
 	// Request/Response timeout
 	RequestTimeout time.Duration
+	// Stream timeout for the stream
+	StreamTimeout time.Duration
 	// Use the services own auth token
 	ServiceToken bool
 
@@ -227,6 +229,13 @@ func RequestTimeout(d time.Duration) Option {
 	}
 }
 
+// StreamTimeout sets the stream timeout
+func StreamTimeout(d time.Duration) Option {
+	return func(o *Options) {
+		o.CallOptions.StreamTimeout = d
+	}
+}
+
 // Transport dial timeout
 func DialTimeout(d time.Duration) Option {
 	return func(o *Options) {
@@ -292,6 +301,13 @@ func WithRetries(i int) CallOption {
 func WithRequestTimeout(d time.Duration) CallOption {
 	return func(o *CallOptions) {
 		o.RequestTimeout = d
+	}
+}
+
+// WithStreamTimeout sets the stream timeout
+func WithRequestTimeout(d time.Duration) CallOption {
+	return func(o *CallOptions) {
+		o.StreamTimeout = d
 	}
 }
 
