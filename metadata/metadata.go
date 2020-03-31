@@ -25,6 +25,13 @@ func (md Metadata) Get(key string) (string, bool) {
 	return val, ok
 }
 
+func (md Metadata) Del(key string) {
+	// delete key as-is
+	delete(md, key)
+	// delete also Title key
+	delete(md, strings.Title(key))
+}
+
 // Copy makes a copy of the metadata
 func Copy(md Metadata) Metadata {
 	cmd := make(Metadata)
@@ -34,13 +41,22 @@ func Copy(md Metadata) Metadata {
 	return cmd
 }
 
+// Del key from metadata
+func Del(ctx context.Context, k string) context.Context {
+	return Set(ctx, k, "")
+}
+
 // Set add key with val to metadata
 func Set(ctx context.Context, k, v string) context.Context {
 	md, ok := FromContext(ctx)
 	if !ok {
 		md = make(Metadata)
 	}
-	md[k] = v
+	if v == "" {
+		delete(md, k)
+	} else {
+		md[k] = v
+	}
 	return context.WithValue(ctx, MetadataKey{}, md)
 }
 
@@ -96,8 +112,10 @@ func MergeContext(ctx context.Context, patchMd Metadata, overwrite bool) context
 	for k, v := range patchMd {
 		if _, ok := cmd[k]; ok && !overwrite {
 			// skip
-		} else {
+		} else if v != "" {
 			cmd[k] = v
+		} else {
+			delete(cmd, k)
 		}
 	}
 	return context.WithValue(ctx, MetadataKey{}, cmd)

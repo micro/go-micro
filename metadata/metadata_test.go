@@ -18,6 +18,27 @@ func TestMetadataSet(t *testing.T) {
 	}
 }
 
+func TestMetadataDel(t *testing.T) {
+	md := Metadata{
+		"Foo": "bar",
+		"Baz": "empty",
+	}
+
+	ctx := NewContext(context.TODO(), md)
+	ctx = Set(ctx, "Baz", "")
+
+	emd, ok := FromContext(ctx)
+	if !ok {
+		t.Fatal("key Key not found")
+	}
+
+	_, ok = emd["Baz"]
+	if ok {
+		t.Fatal("key Baz not deleted")
+	}
+
+}
+
 func TestMetadataCopy(t *testing.T) {
 	md := Metadata{
 		"Foo": "bar",
