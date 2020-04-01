@@ -225,7 +225,15 @@ func (r *runtime) Create(s *Service, opts ...CreateOption) error {
 	return nil
 }
 
+// @todo: Getting existing lines is not supported yet.
+// The reason for this is because it's hard to calculate line offset
+// as opposed to character offset.
+// This logger streams by default and only supports the `StreamCount` option.
 func (r *runtime) Logs(s *Service, options ...LogsOption) (LogStream, error) {
+	lopts := LogsOptions{}
+	for _, o := range options {
+		o(&lopts)
+	}
 	ret := &logStream{
 		service: s.Name,
 		stream:  make(chan LogRecord),
@@ -240,8 +248,13 @@ func (r *runtime) Logs(s *Service, options ...LogsOption) (LogStream, error) {
 	}
 	ret.tail = t
 	go func() {
+		var counter int64 = 0
 		for line := range t.Lines {
 			ret.stream <- LogRecord{Log: line.Text}
+			counter++
+			if lopts.StreamCount != 0 && counter >= lopts.StreamCount {
+				break
+			}
 		}
 	}()
 	return ret, nil
