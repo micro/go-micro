@@ -77,7 +77,7 @@ func (s *svc) Init(opts ...auth.Option) {
 		tokenTimer := time.NewTicker(time.Minute)
 
 		go func() {
-			s.loadToken()
+			s.refreshToken()
 
 			for {
 				<-tokenTimer.C
@@ -94,7 +94,7 @@ func (s *svc) Init(opts ...auth.Option) {
 				// all the services calling the auth service
 				// at the exact same time
 				time.Sleep(jitter.Do(time.Second * 5))
-				s.loadToken()
+				s.refreshToken()
 			}
 		}()
 	}
@@ -112,8 +112,11 @@ func (s *svc) Generate(id string, opts ...auth.GenerateOption) (*auth.Account, e
 
 	rsp, err := s.auth.Generate(context.TODO(), &pb.GenerateRequest{
 		Id:        id,
+		Type:      options.Type,
+		Secret:    options.Secret,
 		Roles:     options.Roles,
 		Metadata:  options.Metadata,
+		Provider:  options.Provider,
 		Namespace: options.Namespace,
 	})
 	if err != nil {
@@ -191,23 +194,14 @@ func (s *svc) Verify(acc *auth.Account, res *auth.Resource) error {
 
 // Inspect a token
 func (s *svc) Inspect(token string) (*auth.Account, error) {
-	// try to decode JWT locally and fall back to srv if an error
-	// occurs, TODO: find a better way of determining if the token
-	// is a JWT, possibly update the interface to take an auth.Token
-	// and not just the string
+	// try to decode JWT locally and fall back to srv if an error occurs
 	if len(strings.Split(token, ".")) == 3 && s.jwt != nil {
-		if tok, err := s.jwt.Inspect(token); err == nil {
-			return &auth.Account{
-				ID:       tok.Subject,
-				Roles:    tok.Roles,
-				Metadata: tok.Metadata,
-			}, nil
+		if acc, err := s.jwt.Inspect(token); err == nil {
+			return acc, nil
 		}
 	}
 
-	rsp, err := s.auth.Inspect(context.TODO(), &pb.InspectRequest{
-		Token: token,
-	})
+	rsp, err := s.auth.Inspect(context.TODO(), &pb.InspectRequest{Token: token})
 	if err != nil {
 		return nil, err
 	}
@@ -216,13 +210,14 @@ func (s *svc) Inspect(token string) (*auth.Account, error) {
 }
 
 // Token generation using an account ID and secret
-func (s *svc) Token(id, secret string, opts ...auth.TokenOption) (*auth.Token, error) {
+func (s *svc) Token(opts ...auth.TokenOption) (*auth.Token, error) {
 	options := auth.NewTokenOptions(opts...)
 
 	rsp, err := s.auth.Token(context.Background(), &pb.TokenRequest{
-		Id:          id,
-		Secret:      secret,
-		TokenExpiry: int64(options.TokenExpiry.Seconds()),
+		Id:           options.ID,
+		Secret:       options.Secret,
+		RefreshToken: options.RefreshToken,
+		TokenExpiry:  int64(options.Expiry.Seconds()),
 	})
 	if err != nil {
 		return nil, err
@@ -286,13 +281,22 @@ func (s *svc) loadRules() {
 	s.rules = rsp.Rules
 }
 
-// loadToken generates a new token for the service to use when making calls
-func (s *svc) loadToken() {
-	rsp, err := s.auth.Token(context.TODO(), &pb.TokenRequest{
-		Id:          s.Options().ID,
-		Secret:      s.Options().Secret,
+// refreshToken generates a new token for the service to use when making calls
+func (s *svc) refreshToken() {
+	req := &pb.TokenRequest{
 		TokenExpiry: int64((time.Minute * 15).Seconds()),
-	})
+	}
+
+	if s.Options().Token == nil {
+		// we do not have a token, use the credentials to get one
+		req.Id = s.Options().ID
+		req.Secret = s.Options().Secret
+	} else {
+		// we have a token, refresh it
+		req.RefreshToken = s.Options().Token.RefreshToken
+	}
+
+	rsp, err := s.auth.Token(context.TODO(), req)
 	s.Lock()
 	defer s.Unlock()
 
@@ -306,13 +310,10 @@ func (s *svc) loadToken() {
 
 func serializeToken(t *pb.Token) *auth.Token {
 	return &auth.Token{
-		Token:    t.Token,
-		Type:     t.Type,
-		Created:  time.Unix(t.Created, 0),
-		Expiry:   time.Unix(t.Expiry, 0),
-		Subject:  t.Subject,
-		Roles:    t.Roles,
-		Metadata: t.Metadata,
+		AccessToken:  t.AccessToken,
+		RefreshToken: t.RefreshToken,
+		Created:      time.Unix(t.Created, 0),
+		Expiry:       time.Unix(t.Expiry, 0),
 	}
 }
 
@@ -320,8 +321,9 @@ func serializeAccount(a *pb.Account) *auth.Account {
 	return &auth.Account{
 		ID:        a.Id,
 		Roles:     a.Roles,
-		Metadata:  a.Metadata,
-		Namespace: a.Namespace,
 		Secret:    a.Secret,
+		Metadata:  a.Metadata,
+		Provider:  a.Provider,
+		Namespace: a.Namespace,
 	}
 }

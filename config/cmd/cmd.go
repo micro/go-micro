@@ -670,7 +670,6 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	if len(ctx.String("auth_public_key")) > 0 {
 		authOpts = append(authOpts, auth.PublicKey(ctx.String("auth_public_key")))
 	}
-
 	if len(ctx.String("auth_private_key")) > 0 {
 		authOpts = append(authOpts, auth.PrivateKey(ctx.String("auth_private_key")))
 	}

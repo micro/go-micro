@@ -135,7 +135,7 @@ func (g *grpcClient) call(ctx context.Context, node *registry.Node, req client.R
 	// was passed with the request, set the service token
 	var srvToken string
 	if g.opts.Auth != nil && g.opts.Auth.Options().Token != nil {
-		srvToken = g.opts.Auth.Options().Token.Token
+		srvToken = g.opts.Auth.Options().Token.AccessToken
 	}
 	if (opts.ServiceToken || len(header["authorization"]) == 0) && len(srvToken) > 0 {
 		header["authorization"] = auth.BearerScheme + srvToken
