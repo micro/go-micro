@@ -6,7 +6,6 @@ service Auth {
 	rpc Generate(GenerateRequest) returns (GenerateResponse) {};
 	rpc Inspect(InspectRequest)  returns (InspectResponse) {};		
 	rpc Token(TokenRequest)  returns (TokenResponse) {};
-	rpc Login(LoginRequest)  returns (LoginResponse) {};
 }
 
 service Accounts {
@@ -27,8 +26,8 @@ message ListAccountsResponse {
 }
 
 message Token {
-	string token = 1;
-	string type = 2;
+	string access_token = 1;
+	string refresh_token = 2;
 	int64 created = 3;
 	int64 expiry = 4;
 	string subject = 5;
@@ -43,23 +42,13 @@ message Account {
 	repeated string roles = 3;
 	map<string, string> metadata = 4;
 	string namespace = 5;
-	string refresh_token = 6;
-	string provider = 7;
+	string provider = 6;
 }
 
 message Resource{
 	string name = 1;
 	string type = 2;
 	string endpoint = 3;
-}
-
-message LoginRequest {
-	string id = 1;
-	string secret = 2;
-}
-
-message LoginResponse {
-	Account account = 1;
 }
 
 message GenerateRequest {
@@ -100,8 +89,9 @@ message InspectResponse {
 
 message TokenRequest {
 	string id = 1;
-	string refresh_token = 2;
-	int64 token_expiry = 3;
+	string secret = 2;
+	string refresh_token = 3;
+	int64 token_expiry = 4;
 }
 
 message TokenResponse {

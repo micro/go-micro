@@ -10,14 +10,12 @@ import (
 type Options struct {
 	// ID is the services auth ID
 	ID string
-	// RefreshToken is used to generate new tokens
-	RefreshToken string
+	// Secret is used to authenticate the service
+	Secret string
 	// Token is the services token used to authenticate itself
 	Token *Token
-	// Public key base64 encoded
+	// PublicKey for decoding JWTs
 	PublicKey string
-	// Private key base64 encoded
-	PrivateKey string
 	// Provider is an auth provider
 	Provider provider.Provider
 	// LoginURL is the relative url path where a user can login
@@ -42,18 +40,11 @@ func PublicKey(key string) Option {
 	}
 }
 
-// PrivateKey is the JWT private key
-func PrivateKey(key string) Option {
-	return func(o *Options) {
-		o.PrivateKey = key
-	}
-}
-
 // Credentials sets the auth credentials
-func Credentials(id, refresh string) Option {
+func Credentials(id, secret string) Option {
 	return func(o *Options) {
 		o.ID = id
-		o.RefreshToken = refresh
+		o.Secret = secret
 	}
 }
 
@@ -78,8 +69,6 @@ type GenerateOptions struct {
 	Roles []string
 	// Namespace the account belongs too
 	Namespace string
-	// Secret to use with the account
-	Secret string
 	// Provider of the account, e.g. oauth
 	Provider string
 	// Type of the account, e.g. user
@@ -113,13 +102,6 @@ func WithRoles(rs ...string) GenerateOption {
 func WithNamespace(n string) GenerateOption {
 	return func(o *GenerateOptions) {
 		o.Namespace = n
-	}
-}
-
-// WithSecret for the generated account
-func WithSecret(s string) GenerateOption {
-	return func(o *GenerateOptions) {
-		o.Secret = s
 	}
 }
 
@@ -163,16 +145,35 @@ func NewLoginOptions(opts ...LoginOption) LoginOptions {
 }
 
 type TokenOptions struct {
-	// TokenExpiry is the time the token should live for
-	TokenExpiry time.Duration
+	// ID for the account
+	ID string
+	// Secret for the account
+	Secret string
+	// RefreshToken is used to refesh a token
+	RefreshToken string
+	// Expiry is the time the token should live for
+	Expiry time.Duration
 }
 
 type TokenOption func(o *TokenOptions)
 
-// WithTokenExpiry for the token
-func WithTokenExpiry(ex time.Duration) TokenOption {
+// WithExpiry for the token
+func WithExpiry(ex time.Duration) TokenOption {
 	return func(o *TokenOptions) {
-		o.TokenExpiry = ex
+		o.Expiry = ex
+	}
+}
+
+func WithCredentials(id, secret string) TokenOption {
+	return func(o *TokenOptions) {
+		o.ID = id
+		o.Secret = secret
+	}
+}
+
+func WithToken(rt string) TokenOption {
+	return func(o *TokenOptions) {
+		o.RefreshToken = rt
 	}
 }
 
@@ -184,8 +185,8 @@ func NewTokenOptions(opts ...TokenOption) TokenOptions {
 	}
 
 	// set defualt expiry of token
-	if options.TokenExpiry == 0 {
-		options.TokenExpiry = time.Minute
+	if options.Expiry == 0 {
+		options.Expiry = time.Minute
 	}
 
 	return options

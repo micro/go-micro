@@ -32,9 +32,7 @@ type Auth interface {
 	// Options set for auth
 	Options() Options
 	// Generate a new account
-	Generate(id string, opts ...GenerateOption) (*Account, error)
-	// Login to an existing account
-	Login(id string, opts ...LoginOption) (*Account, error)
+	Generate(id, secret string, opts ...GenerateOption) (*Account, error)
 	// Grant access to a resource
 	Grant(role string, res *Resource) error
 	// Revoke access to a resource
@@ -44,7 +42,7 @@ type Auth interface {
 	// Inspect a token
 	Inspect(token string) (*Account, error)
 	// Token generated using refresh token
-	Token(id, refreshToken string, opts ...TokenOption) (*Token, error)
+	Token(opts ...TokenOption) (*Token, error)
 	// String returns the name of the implementation
 	String() string
 }
@@ -67,8 +65,6 @@ type Account struct {
 	Type string `json:"type"`
 	// Provider who issued the account
 	Provider string `json:"provider"`
-	// RefreshToken used to renew the account
-	RefreshToken string `json:"refresh_token"`
 	// Roles associated with the Account
 	Roles []string `json:"roles"`
 	// Any other associated metadata
@@ -81,22 +77,14 @@ type Account struct {
 
 // Token can be short or long lived
 type Token struct {
-	// The token itself
-	Token string `json:"token"`
-	// Type of token, e.g. JWT
-	Type string `json:"type"`
+	// The token to be used for accessing resources
+	AccessToken string `json:"access_token"`
+	// RefreshToken to be used to generate a new token
+	RefreshToken string `json:"refresh_token"`
 	// Time of token creation
 	Created time.Time `json:"created"`
 	// Time of token expiry
 	Expiry time.Time `json:"expiry"`
-	// Subject of the token, e.g. the account ID
-	Subject string `json:"subject"`
-	// Roles granted to the token
-	Roles []string `json:"roles"`
-	// Metadata embedded in the token
-	Metadata map[string]string `json:"metadata"`
-	// Namespace the token belongs to
-	Namespace string `json:"namespace"`
 }
 
 const (

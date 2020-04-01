@@ -2,6 +2,7 @@ package token
 
 import (
 	"errors"
+	"time"
 
 	"github.com/micro/go-micro/v2/auth"
 )
@@ -17,7 +18,16 @@ var (
 
 // Provider generates and inspects tokens
 type Provider interface {
-	Generate(subject string, opts ...GenerateOption) (*auth.Token, error)
-	Inspect(token string) (*auth.Token, error)
+	Generate(account *auth.Account, opts ...GenerateOption) (*Token, error)
+	Inspect(token string) (*auth.Account, error)
 	String() string
+}
+
+type Token struct {
+	// The actual token
+	Token string `json:"token"`
+	// Time of token creation
+	Created time.Time `json:"created"`
+	// Time of token expiry
+	Expiry time.Time `json:"expiry"`
 }
