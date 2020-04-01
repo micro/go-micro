@@ -331,6 +331,11 @@ type kubeStream struct {
 	stream chan runtime.LogRecord
 	// the stop chan
 	stop chan bool
+	err  error
+}
+
+func (k *kubeStream) Error() error {
+	return k.err
 }
 
 func (k *kubeStream) Chan() chan runtime.LogRecord {
