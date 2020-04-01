@@ -157,18 +157,14 @@ func (k *klog) Stream() (runtime.LogStream, error) {
 }
 
 // NewLog returns a configured Kubernetes logger
-func newLog(serviceName string, opts ...runtime.LogsOption) *klog {
+func newLog(client client.Client, serviceName string, opts ...runtime.LogsOption) *klog {
 	klog := &klog{
 		serviceName: serviceName,
+		client:      client,
 	}
 	for _, o := range opts {
 		o(&klog.options)
 	}
 
-	if len(os.Getenv("KUBERNETES_SERVICE_HOST")) > 0 {
-		klog.client = client.NewClusterClient()
-	} else {
-		klog.client = client.NewLocalClient()
-	}
 	return klog
 }
