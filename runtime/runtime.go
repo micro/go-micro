@@ -36,7 +36,7 @@ type Runtime interface {
 	// Stop shuts down the runtime
 	Stop() error
 	// Logs
-	Logs(*Service) (LogStream, error)
+	Logs(*Service, ...LogsOption) (LogStream, error)
 }
 
 // Stream returns a log stream

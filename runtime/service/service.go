@@ -65,7 +65,7 @@ func (s *svc) Create(svc *runtime.Service, opts ...runtime.CreateOption) error {
 	return nil
 }
 
-func (s *svc) Logs(service *runtime.Service) (runtime.LogStream, error) {
+func (s *svc) Logs(service *runtime.Service, options ...runtime.LogsOption) (runtime.LogStream, error) {
 	ls, err := s.runtime.Logs(context.Background(), &pb.LogsRequest{
 		Service: service.Name,
 		Stream:  true,

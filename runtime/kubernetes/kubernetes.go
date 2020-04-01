@@ -301,7 +301,7 @@ func (k *kubernetes) Init(opts ...runtime.Option) error {
 	return nil
 }
 
-func (k *kubernetes) Logs(s *runtime.Service) (runtime.LogStream, error) {
+func (k *kubernetes) Logs(s *runtime.Service, options ...runtime.LogsOption) (runtime.LogStream, error) {
 	return nil, nil
 }
 

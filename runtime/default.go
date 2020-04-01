@@ -225,7 +225,7 @@ func (r *runtime) Create(s *Service, opts ...CreateOption) error {
 	return nil
 }
 
-func (r *runtime) Logs(s *Service) (LogStream, error) {
+func (r *runtime) Logs(s *Service, options ...LogsOption) (LogStream, error) {
 	ret := &logStream{
 		service: s.Name,
 		stream:  make(chan LogRecord),
