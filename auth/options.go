@@ -121,29 +121,6 @@ func NewGenerateOptions(opts ...GenerateOption) GenerateOptions {
 	return options
 }
 
-type LoginOptions struct {
-	// Secret to use for rlogin
-	Secret string
-}
-
-type LoginOption func(o *LoginOptions)
-
-// WithLoginSecret for the generated account
-func WithLoginSecret(s string) LoginOption {
-	return func(o *LoginOptions) {
-		o.Secret = s
-	}
-}
-
-// NewLoginOptions from a slice of options
-func NewLoginOptions(opts ...LoginOption) LoginOptions {
-	var options LoginOptions
-	for _, o := range opts {
-		o(&options)
-	}
-	return options
-}
-
 type TokenOptions struct {
 	// ID for the account
 	ID string
