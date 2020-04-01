@@ -67,6 +67,10 @@ func (c *config) Init(opts ...Option) error {
 	return nil
 }
 
+func (c *config) Options() Options {
+	return c.opts
+}
+
 func (c *config) run() {
 	watch := func(w loader.Watcher) error {
 		for {

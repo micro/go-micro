@@ -8,8 +8,12 @@ import (
 )
 
 type Options struct {
-	// Token is an auth token
-	Token string
+	// ID is the services auth ID
+	ID string
+	// Secret is used to generate new tokens
+	Secret string
+	// Token is the services token used to authenticate itself
+	Token *Token
 	// Public key base64 encoded
 	PublicKey string
 	// Private key base64 encoded
@@ -45,10 +49,11 @@ func PrivateKey(key string) Option {
 	}
 }
 
-// ServiceToken sets an auth token
-func ServiceToken(t string) Option {
+// Credentials sets the auth credentials
+func Credentials(id, secret string) Option {
 	return func(o *Options) {
-		o.Token = t
+		o.ID = id
+		o.Secret = secret
 	}
 }
 
@@ -71,8 +76,6 @@ type GenerateOptions struct {
 	Metadata map[string]string
 	// Roles/scopes associated with the account
 	Roles []string
-	// SecretExpiry is the time the secret should live for
-	SecretExpiry time.Duration
 	// Namespace the account belongs too
 	Namespace string
 }
@@ -100,45 +103,32 @@ func WithNamespace(n string) GenerateOption {
 	}
 }
 
-// WithSecretExpiry for the generated account's secret expires
-func WithSecretExpiry(ex time.Duration) GenerateOption {
-	return func(o *GenerateOptions) {
-		o.SecretExpiry = ex
-	}
-}
-
 // NewGenerateOptions from a slice of options
 func NewGenerateOptions(opts ...GenerateOption) GenerateOptions {
 	var options GenerateOptions
 	for _, o := range opts {
 		o(&options)
 	}
-
-	// set defualt expiry of secret
-	if options.SecretExpiry == 0 {
-		options.SecretExpiry = time.Hour * 24 * 7
-	}
-
 	return options
 }
 
-type RefreshOptions struct {
+type TokenOptions struct {
 	// TokenExpiry is the time the token should live for
 	TokenExpiry time.Duration
 }
 
-type RefreshOption func(o *RefreshOptions)
+type TokenOption func(o *TokenOptions)
 
 // WithTokenExpiry for the token
-func WithTokenExpiry(ex time.Duration) RefreshOption {
-	return func(o *RefreshOptions) {
+func WithTokenExpiry(ex time.Duration) TokenOption {
+	return func(o *TokenOptions) {
 		o.TokenExpiry = ex
 	}
 }
 
-// NewRefreshOptions from a slice of options
-func NewRefreshOptions(opts ...RefreshOption) RefreshOptions {
-	var options RefreshOptions
+// NewTokenOptions from a slice of options
+func NewTokenOptions(opts ...TokenOption) TokenOptions {
+	var options TokenOptions
 	for _, o := range opts {
 		o(&options)
 	}

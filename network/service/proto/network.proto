@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package go.micro.network;
 
-import "github.com/micro/go-micro/router/service/proto/router.proto";
+import "router/service/proto/router.proto";
 
 // Network service is usesd to gain visibility into networks
 service Network {
