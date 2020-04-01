@@ -1,15 +1,16 @@
 // Package kubernetes taken from https://github.com/micro/go-micro/blob/master/debug/log/kubernetes/kubernetes.go
+// There are some modifications compared to the other files as
+// this package doesn't provide write functionality.
+// With the write functinality gone, structured logs also go away.
 package kubernetes
 
 import (
 	"bufio"
-	"encoding/json"
 	"fmt"
 	"os"
 	"strconv"
 	"time"
 
-	"github.com/micro/go-micro/v2/debug/log"
 	"github.com/micro/go-micro/v2/runtime"
 	"github.com/micro/go-micro/v2/util/kubernetes/client"
 )
@@ -44,7 +45,9 @@ func (k *klog) podLogStream(podName string, stream *kubeStream) {
 			return
 		default:
 			if s.Scan() {
-				record := k.parse(s.Text())
+				record := runtime.LogRecord{
+					Log: s.Text(),
+				}
 				stream.stream <- record
 			} else {
 				// TODO: is there a blocking call
@@ -81,16 +84,6 @@ func (k *klog) getMatchingPods() ([]string, error) {
 	}
 
 	return matches, nil
-}
-
-func (k *klog) parse(line string) runtime.LogRecord {
-	record := runtime.LogRecord{}
-
-	if err := json.Unmarshal([]byte(line), &record); err != nil {
-		record.Log = line
-	}
-
-	return record
 }
 
 func (k *klog) Read(options ...runtime.LogsOption) ([]runtime.LogRecord, error) {
@@ -134,7 +127,9 @@ func (k *klog) Read(options ...runtime.LogsOption) ([]runtime.LogRecord, error) 
 		s := bufio.NewScanner(logs)
 
 		for s.Scan() {
-			record := k.parse(s.Text())
+			record := runtime.LogRecord{
+				Log: s.Text(),
+			}
 			// record.Metadata["pod"] = pod
 			records = append(records, record)
 		}
@@ -144,10 +139,6 @@ func (k *klog) Read(options ...runtime.LogsOption) ([]runtime.LogRecord, error) 
 	// sort.Slice(records, func(i, j int) bool { return records[i].Timestamp.Before(records[j].Timestamp) })
 
 	return records, nil
-}
-
-func (k *klog) Write(l log.Record) error {
-	return write(l)
 }
 
 func (k *klog) Stream() (runtime.LogStream, error) {
@@ -171,8 +162,10 @@ func (k *klog) Stream() (runtime.LogStream, error) {
 }
 
 // NewLog returns a configured Kubernetes logger
-func NewLog(opts ...runtime.LogsOption) *klog {
-	klog := &klog{}
+func newLog(serviceName string, opts ...runtime.LogsOption) *klog {
+	klog := &klog{
+		serviceName: serviceName,
+	}
 	for _, o := range opts {
 		o(&klog.options)
 	}
@@ -183,13 +176,4 @@ func NewLog(opts ...runtime.LogsOption) *klog {
 		klog.client = client.NewLocalClient()
 	}
 	return klog
-}
-
-func write(l log.Record) error {
-	m, err := json.Marshal(l)
-	if err == nil {
-		_, err := fmt.Fprintf(os.Stderr, "%s", m)
-		return err
-	}
-	return err
 }

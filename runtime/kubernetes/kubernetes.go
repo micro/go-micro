@@ -302,7 +302,7 @@ func (k *kubernetes) Init(opts ...runtime.Option) error {
 }
 
 func (k *kubernetes) Logs(s *runtime.Service, options ...runtime.LogsOption) (runtime.LogStream, error) {
-	return nil, nil
+	return newLog(s.Name, options...).Stream()
 }
 
 type kubeStream struct {
