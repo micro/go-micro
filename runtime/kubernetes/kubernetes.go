@@ -312,7 +312,7 @@ type kubeStream struct {
 	stop chan bool
 }
 
-func (k *kubeStream) Chan() <-chan runtime.LogRecord {
+func (k *kubeStream) Chan() chan runtime.LogRecord {
 	return k.stream
 }
 
