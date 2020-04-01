@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/micro/go-micro/v2/auth"
 	"github.com/micro/go-micro/v2/auth/token"
 )
 
@@ -18,7 +19,7 @@ func TestGenerate(t *testing.T) {
 		token.WithPrivateKey(string(privKey)),
 	)
 
-	_, err = j.Generate("test")
+	_, err = j.Generate(&auth.Account{ID: "test"})
 	if err != nil {
 		t.Fatalf("Generate returned %v error, expected nil", err)
 	}
@@ -44,12 +45,8 @@ func TestInspect(t *testing.T) {
 		roles := []string{"admin"}
 		subject := "test"
 
-		opts := []token.GenerateOption{
-			token.WithMetadata(md),
-			token.WithRoles(roles...),
-		}
-
-		tok, err := j.Generate(subject, opts...)
+		acc := &auth.Account{ID: subject, Roles: roles, Metadata: md}
+		tok, err := j.Generate(acc)
 		if err != nil {
 			t.Fatalf("Generate returned %v error, expected nil", err)
 		}
@@ -58,8 +55,8 @@ func TestInspect(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Inspect returned %v error, expected nil", err)
 		}
-		if tok2.Subject != subject {
-			t.Errorf("Inspect returned %v as the token subject, expected %v", tok2.Subject, subject)
+		if acc.ID != subject {
+			t.Errorf("Inspect returned %v as the token subject, expected %v", acc.ID, subject)
 		}
 		if len(tok2.Roles) != len(roles) {
 			t.Errorf("Inspect returned %v roles, expected %v", len(tok2.Roles), len(roles))
@@ -70,7 +67,7 @@ func TestInspect(t *testing.T) {
 	})
 
 	t.Run("Expired token", func(t *testing.T) {
-		tok, err := j.Generate("foo", token.WithExpiry(-10*time.Second))
+		tok, err := j.Generate(&auth.Account{}, token.WithExpiry(-10*time.Second))
 		if err != nil {
 			t.Fatalf("Generate returned %v error, expected nil", err)
 		}
