@@ -1,7 +1,7 @@
 // Package kubernetes taken from https://github.com/micro/go-micro/blob/master/debug/log/kubernetes/kubernetes.go
 // There are some modifications compared to the other files as
 // this package doesn't provide write functionality.
-// With the write functinality gone, structured logs also go away.
+// With the write functionality gone, structured logs also go away.
 package kubernetes
 
 import (
