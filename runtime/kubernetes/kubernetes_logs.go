@@ -86,12 +86,7 @@ func (k *klog) getMatchingPods() ([]string, error) {
 	return matches, nil
 }
 
-func (k *klog) Read(options ...runtime.LogsOption) ([]runtime.LogRecord, error) {
-	opts := &runtime.LogsOptions{}
-	for _, o := range options {
-		o(opts)
-	}
-
+func (k *klog) Read() ([]runtime.LogRecord, error) {
 	pods, err := k.getMatchingPods()
 	if err != nil {
 		return nil, err
@@ -106,11 +101,11 @@ func (k *klog) Read(options ...runtime.LogsOption) ([]runtime.LogRecord, error) 
 		//	logParams["sinceSeconds"] = strconv.Itoa(int(time.Since(opts.Since).Seconds()))
 		//}
 
-		if opts.ExistingCount != 0 {
-			logParams["tailLines"] = strconv.Itoa(int(opts.ExistingCount))
+		if k.options.ExistingCount != 0 {
+			logParams["tailLines"] = strconv.Itoa(int(k.options.ExistingCount))
 		}
 
-		if opts.Stream == true {
+		if k.options.Stream == true {
 			logParams["follow"] = "true"
 		}
 
