@@ -96,6 +96,11 @@ type serviceLogStream struct {
 	service string
 	stream  chan runtime.LogRecord
 	stop    chan bool
+	err     error
+}
+
+func (l *serviceLogStream) Error() error {
+	return l.err
 }
 
 func (l *serviceLogStream) Chan() chan runtime.LogRecord {

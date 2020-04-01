@@ -6,13 +6,12 @@ package kubernetes
 
 import (
 	"bufio"
-	"fmt"
-	"os"
 	"strconv"
 	"time"
 
 	"github.com/micro/go-micro/v2/runtime"
 	"github.com/micro/go-micro/v2/util/kubernetes/client"
+	"github.com/micro/go-micro/v2/util/log"
 )
 
 type klog struct {
@@ -21,7 +20,7 @@ type klog struct {
 	options     runtime.LogsOptions
 }
 
-func (k *klog) podLogStream(podName string, stream *kubeStream) {
+func (k *klog) podLogStream(podName string, stream *kubeStream) error {
 	p := make(map[string]string)
 	p["follow"] = "true"
 
@@ -32,8 +31,8 @@ func (k *klog) podLogStream(podName string, stream *kubeStream) {
 	}, client.LogParams(p))
 
 	if err != nil {
-		fmt.Fprintf(os.Stderr, err.Error())
-		return
+		stream.err = err
+		return err
 	}
 
 	s := bufio.NewScanner(body)
@@ -42,7 +41,7 @@ func (k *klog) podLogStream(podName string, stream *kubeStream) {
 	for {
 		select {
 		case <-stream.stop:
-			return
+			return stream.Error()
 		default:
 			if s.Scan() {
 				record := runtime.LogRecord{
@@ -150,7 +149,12 @@ func (k *klog) Stream() (runtime.LogStream, error) {
 
 	// stream from the individual pods
 	for _, pod := range pods {
-		go k.podLogStream(pod, stream)
+		go func(podName string) {
+			err := k.podLogStream(podName, stream)
+			if err != nil {
+				log.Errorf("Error streaming from pod: %v", err)
+			}
+		}(pod)
 	}
 
 	return stream, nil
