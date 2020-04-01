@@ -31,6 +31,7 @@ func (k *klog) podLogStream(podName string, stream *kubeStream) error {
 	}, client.LogParams(p))
 
 	if err != nil {
+		stream.err = err
 		return err
 	}
 
@@ -40,7 +41,7 @@ func (k *klog) podLogStream(podName string, stream *kubeStream) error {
 	for {
 		select {
 		case <-stream.stop:
-			return nil
+			return stream.Error()
 		default:
 			if s.Scan() {
 				record := runtime.LogRecord{
