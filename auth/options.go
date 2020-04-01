@@ -82,9 +82,18 @@ type GenerateOptions struct {
 	Provider string
 	// Type of the account, e.g. user
 	Type string
+	// Secret used to authenticate the account
+	Secret string
 }
 
 type GenerateOption func(o *GenerateOptions)
+
+// WithSecret for the generated account
+func WithSecret(s string) GenerateOption {
+	return func(o *GenerateOptions) {
+		o.Secret = s
+	}
+}
 
 // WithType for the generated account
 func WithType(t string) GenerateOption {

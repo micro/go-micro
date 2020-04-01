@@ -32,7 +32,7 @@ type Auth interface {
 	// Options set for auth
 	Options() Options
 	// Generate a new account
-	Generate(id, secret string, opts ...GenerateOption) (*Account, error)
+	Generate(id string, opts ...GenerateOption) (*Account, error)
 	// Grant access to a resource
 	Grant(role string, res *Resource) error
 	// Revoke access to a resource

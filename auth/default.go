@@ -34,12 +34,13 @@ func (n *noop) Options() Options {
 }
 
 // Generate a new account
-func (n *noop) Generate(id, secret string, opts ...GenerateOption) (*Account, error) {
+func (n *noop) Generate(id string, opts ...GenerateOption) (*Account, error) {
 	options := NewGenerateOptions(opts...)
 
 	return &Account{
 		ID:       id,
 		Roles:    options.Roles,
+		Secret:   options.Secret,s
 		Metadata: options.Metadata,
 	}, nil
 }

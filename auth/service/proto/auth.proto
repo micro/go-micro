@@ -39,6 +39,7 @@ message Account {
 	map<string, string> metadata = 4;
 	string namespace = 5;
 	string provider = 6;
+	string secret = 7;
 }
 
 message Resource{

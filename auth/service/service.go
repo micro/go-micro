@@ -107,13 +107,13 @@ func (s *svc) Options() auth.Options {
 }
 
 // Generate a new account
-func (s *svc) Generate(id, secret string, opts ...auth.GenerateOption) (*auth.Account, error) {
+func (s *svc) Generate(id string, opts ...auth.GenerateOption) (*auth.Account, error) {
 	options := auth.NewGenerateOptions(opts...)
 
 	rsp, err := s.auth.Generate(context.TODO(), &pb.GenerateRequest{
 		Id:        id,
-		Secret:    secret,
 		Type:      options.Type,
+		Secret:    options.Secret,
 		Roles:     options.Roles,
 		Metadata:  options.Metadata,
 		Provider:  options.Provider,
@@ -321,6 +321,7 @@ func serializeAccount(a *pb.Account) *auth.Account {
 	return &auth.Account{
 		ID:        a.Id,
 		Roles:     a.Roles,
+		Secret:    a.Secret,
 		Metadata:  a.Metadata,
 		Provider:  a.Provider,
 		Namespace: a.Namespace,
