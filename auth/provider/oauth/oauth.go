@@ -37,8 +37,8 @@ func (o *oauth) Endpoint(opts ...provider.EndpointOption) string {
 	params := make(url.Values)
 	params.Add("response_type", "code")
 
-	if len(options.Code) > 0 {
-		params.Add("code", options.Code)
+	if len(options.State) > 0 {
+		params.Add("state", options.State)
 	}
 
 	if clientID := o.opts.ClientID; len(clientID) > 0 {

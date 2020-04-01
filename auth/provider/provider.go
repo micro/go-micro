@@ -28,13 +28,13 @@ type Grant struct {
 }
 
 type EndpointOptions struct {
-	Code string
+	State string
 }
 
 type EndpointOption func(*EndpointOptions)
 
-func WithCode(c string) EndpointOption {
+func WithState(c string) EndpointOption {
 	return func(o *EndpointOptions) {
-		o.Code = c
+		o.State = c
 	}
 }
