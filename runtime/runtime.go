@@ -46,8 +46,8 @@ type LogStream interface {
 }
 
 type LogRecord struct {
-	Log  string
-	Meta map[string]string
+	Message  string
+	Metadata map[string]string
 }
 
 // Scheduler is a runtime service scheduler

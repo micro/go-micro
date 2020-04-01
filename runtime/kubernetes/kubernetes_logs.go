@@ -46,7 +46,7 @@ func (k *klog) podLogStream(podName string, stream *kubeStream) {
 		default:
 			if s.Scan() {
 				record := runtime.LogRecord{
-					Log: s.Text(),
+					Message: s.Text(),
 				}
 				stream.stream <- record
 			} else {
@@ -123,7 +123,7 @@ func (k *klog) Read() ([]runtime.LogRecord, error) {
 
 		for s.Scan() {
 			record := runtime.LogRecord{
-				Log: s.Text(),
+				Message: s.Text(),
 			}
 			// record.Metadata["pod"] = pod
 			records = append(records, record)

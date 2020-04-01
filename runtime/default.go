@@ -249,7 +249,7 @@ func (r *runtime) Logs(s *Service, options ...LogsOption) (LogStream, error) {
 	ret.tail = t
 	go func() {
 		for line := range t.Lines {
-			ret.stream <- LogRecord{Log: line.Text}
+			ret.stream <- LogRecord{Message: line.Text}
 		}
 	}()
 	return ret, nil
