@@ -2,6 +2,7 @@
 package rpc
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -129,10 +130,11 @@ func (h *rpcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// set merged context to request
 	*r = *r.Clone(cx)
-
 	// if stream we currently only support json
 	if isStream(r, service) {
-		serveWebsocket(cx, w, r, service, c)
+		// drop older context as it can have timeouts and create new
+		//		md, _ := metadata.FromContext(cx)
+		serveWebsocket(context.TODO(), w, r, service, c)
 		return
 	}
 

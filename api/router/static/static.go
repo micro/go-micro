@@ -15,6 +15,7 @@ import (
 	"github.com/micro/go-micro/v2/api/router"
 	"github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/metadata"
+	"github.com/micro/go-micro/v2/registry"
 )
 
 type endpoint struct {
@@ -163,13 +164,23 @@ func (r *staticRouter) Endpoint(req *http.Request) (*api.Service, error) {
 
 	// hack for stream endpoint
 	if ep.apiep.Stream {
-		for _, svc := range services {
+		svcs := registry.Copy(services)
+		for _, svc := range svcs {
+			if len(svc.Endpoints) == 0 {
+				e := &registry.Endpoint{}
+				e.Name = strings.Join(epf[1:], ".")
+				e.Metadata = make(map[string]string)
+				e.Metadata["stream"] = "true"
+				svc.Endpoints = append(svc.Endpoints, e)
+			}
 			for _, e := range svc.Endpoints {
 				e.Name = strings.Join(epf[1:], ".")
 				e.Metadata = make(map[string]string)
 				e.Metadata["stream"] = "true"
 			}
 		}
+
+		services = svcs
 	}
 
 	svc := &api.Service{
@@ -180,6 +191,7 @@ func (r *staticRouter) Endpoint(req *http.Request) (*api.Service, error) {
 			Host:    ep.apiep.Host,
 			Method:  ep.apiep.Method,
 			Path:    ep.apiep.Path,
+			Stream:  ep.apiep.Stream,
 		},
 		Services: services,
 	}
