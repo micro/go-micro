@@ -101,8 +101,8 @@ func (k *klog) Read() ([]runtime.LogRecord, error) {
 		//	logParams["sinceSeconds"] = strconv.Itoa(int(time.Since(opts.Since).Seconds()))
 		//}
 
-		if k.options.ExistingCount != 0 {
-			logParams["tailLines"] = strconv.Itoa(int(k.options.ExistingCount))
+		if k.options.Count != 0 {
+			logParams["tailLines"] = strconv.Itoa(int(k.options.Count))
 		}
 
 		if k.options.Stream == true {

@@ -308,7 +308,7 @@ func (k *kubernetes) Logs(s *runtime.Service, options ...runtime.LogsOption) (ru
 		return nil, err
 	}
 	// If requested, also read existing records and stream those too
-	if klo.options.ExistingCount > 0 {
+	if klo.options.Count > 0 {
 		go func() {
 			records, err := klo.Read()
 			if err != nil {

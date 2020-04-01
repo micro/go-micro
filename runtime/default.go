@@ -248,13 +248,8 @@ func (r *runtime) Logs(s *Service, options ...LogsOption) (LogStream, error) {
 	}
 	ret.tail = t
 	go func() {
-		var counter int64 = 0
 		for line := range t.Lines {
 			ret.stream <- LogRecord{Log: line.Text}
-			counter++
-			if lopts.StreamCount != 0 && counter >= lopts.StreamCount {
-				break
-			}
 		}
 	}()
 	return ret, nil
