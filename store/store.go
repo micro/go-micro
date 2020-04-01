@@ -20,8 +20,6 @@ type Store interface {
 	Init(...Option) error
 	// Options allows you to view the current options.
 	Options() Options
-	// String returns the name of the implementation.
-	String() string
 	// Read takes a single key name and optional ReadOptions. It returns matching []*Record or an error.
 	Read(key string, opts ...ReadOption) ([]*Record, error)
 	// Write() writes a record to the store, and returns an error if the record was not written.
@@ -30,6 +28,8 @@ type Store interface {
 	Delete(key string, opts ...DeleteOption) error
 	// List returns any keys that match, or an empty list with no error if none matched.
 	List(opts ...ListOption) ([]string, error)
+	// String returns the name of the implementation.
+	String() string
 }
 
 // Record is an item stored or retrieved from a Store
