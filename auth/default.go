@@ -44,11 +44,6 @@ func (n *noop) Generate(id, secret string, opts ...GenerateOption) (*Account, er
 	}, nil
 }
 
-// Login to an existing account
-func (n *noop) Login(opts ...LoginOption) (*Account, error) {
-	return &Account{}, nil
-}
-
 // Grant access to a resource
 func (n *noop) Grant(role string, res *Resource) error {
 	return nil
