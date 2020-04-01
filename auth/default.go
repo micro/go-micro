@@ -40,7 +40,7 @@ func (n *noop) Generate(id string, opts ...GenerateOption) (*Account, error) {
 	return &Account{
 		ID:       id,
 		Roles:    options.Roles,
-		Secret:   options.Secret,s
+		Secret:   options.Secret,
 		Metadata: options.Metadata,
 	}, nil
 }
