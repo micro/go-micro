@@ -118,6 +118,17 @@ func (h *rpcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// create context
 	cx := ctx.FromRequest(r)
+	// get context from http handler wrappers
+	md, ok := r.Context().Value(metadata.MetadataKey{}).(metadata.Metadata)
+	if !ok {
+		md = make(metadata.Metadata)
+	}
+
+	// merge context with overwrite
+	cx = metadata.MergeContext(cx, md, true)
+
+	// set merged context to request
+	*r = *r.Clone(cx)
 
 	// if stream we currently only support json
 	if isStream(r, service) {
@@ -284,26 +295,43 @@ func requestPayload(r *http.Request) ([]byte, error) {
 	if !ok {
 		md = make(map[string]string)
 	}
+
 	// allocate maximum
-	matches := make(map[string]string, len(md))
+	matches := make(map[string]interface{}, len(md))
+
+	// get fields from url path
 	for k, v := range md {
+		// filter own keys
 		if strings.HasPrefix(k, "x-api-field-") {
 			matches[strings.TrimPrefix(k, "x-api-field-")] = v
+			delete(md, k)
 		}
-		delete(md, k)
+	}
+
+	// map of all fields
+	req := make(map[string]interface{}, len(md))
+
+	// get fields from url values
+	if len(r.URL.RawQuery) > 0 {
+		umd := make(map[string]interface{})
+		err = qson.Unmarshal(&umd, r.URL.RawQuery)
+		if err != nil {
+			return nil, err
+		}
+		for k, v := range umd {
+			matches[k] = v
+		}
 	}
 
 	// restore context without fields
-	ctx = metadata.NewContext(ctx, md)
-	*r = *r.WithContext(ctx)
-	req := make(map[string]interface{}, len(md))
+	*r = *r.Clone(metadata.NewContext(ctx, md))
+
 	for k, v := range matches {
 		ps := strings.Split(k, ".")
 		if len(ps) == 1 {
 			req[k] = v
 			continue
 		}
-
 		em := make(map[string]interface{})
 		em[ps[len(ps)-1]] = v
 		for i := len(ps) - 2; i > 0; i-- {
@@ -311,7 +339,16 @@ func requestPayload(r *http.Request) ([]byte, error) {
 			nm[ps[i]] = em
 			em = nm
 		}
-		req[ps[0]] = em
+		if vm, ok := req[ps[0]]; ok {
+			// nested map
+			nm := vm.(map[string]interface{})
+			for vk, vv := range em {
+				nm[vk] = vv
+			}
+			req[ps[0]] = nm
+		} else {
+			req[ps[0]] = em
+		}
 	}
 	pathbuf := []byte("{}")
 	if len(req) > 0 {
@@ -320,14 +357,8 @@ func requestPayload(r *http.Request) ([]byte, error) {
 			return nil, err
 		}
 	}
-	urlbuf := []byte("{}")
-	if len(r.URL.RawQuery) > 0 {
-		urlbuf, err = qson.ToJSON(r.URL.RawQuery)
-		if err != nil {
-			return nil, err
-		}
-	}
 
+	urlbuf := []byte("{}")
 	out, err := jsonpatch.MergeMergePatches(urlbuf, pathbuf)
 	if err != nil {
 		return nil, err

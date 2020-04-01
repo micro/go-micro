@@ -221,7 +221,9 @@ func (g *grpcClient) stream(ctx context.Context, node *registry.Node, req client
 	}
 
 	// set timeout in nanoseconds
-	header["timeout"] = fmt.Sprintf("%d", opts.RequestTimeout)
+	if opts.StreamTimeout > time.Duration(0) {
+		header["timeout"] = fmt.Sprintf("%d", opts.StreamTimeout)
+	}
 	// set the content type for the request
 	header["x-content-type"] = req.ContentType()
 
