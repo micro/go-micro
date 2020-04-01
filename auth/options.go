@@ -16,6 +16,8 @@ type Options struct {
 	Token *Token
 	// PublicKey for decoding JWTs
 	PublicKey string
+	// PrivateKey for encoding JWTs
+	PrivateKey string
 	// Provider is an auth provider
 	Provider provider.Provider
 	// LoginURL is the relative url path where a user can login
@@ -37,6 +39,13 @@ func Store(s store.Store) Option {
 func PublicKey(key string) Option {
 	return func(o *Options) {
 		o.PublicKey = key
+	}
+}
+
+// PrivateKey is the JWT private key
+func PrivateKey(key string) Option {
+	return func(o *Options) {
+		o.PrivateKey = key
 	}
 }
 
