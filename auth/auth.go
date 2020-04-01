@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/micro/go-micro/v2/metadata"
@@ -42,8 +41,8 @@ type Auth interface {
 	Verify(acc *Account, res *Resource) error
 	// Inspect a token
 	Inspect(token string) (*Account, error)
-	// Token generated using an account ID and secret
-	Token(id, secret string, opts ...TokenOption) (*Token, error)
+	// Token generated using refresh token
+	Token(opts ...TokenOption) (*Token, error)
 	// String returns the name of the implementation
 	String() string
 }
@@ -60,36 +59,32 @@ type Resource struct {
 
 // Account provided by an auth provider
 type Account struct {
-	// ID of the account (UUIDV4, email or username)
+	// ID of the account e.g. email
 	ID string `json:"id"`
-	// Secret used to renew the account
-	Secret string `json:"secret"`
+	// Type of the account, e.g. service
+	Type string `json:"type"`
+	// Provider who issued the account
+	Provider string `json:"provider"`
 	// Roles associated with the Account
 	Roles []string `json:"roles"`
 	// Any other associated metadata
 	Metadata map[string]string `json:"metadata"`
 	// Namespace the account belongs to, default blank
 	Namespace string `json:"namespace"`
+	// Secret for the account, e.g. the password
+	Secret string `json:"secret"`
 }
 
 // Token can be short or long lived
 type Token struct {
-	// The token itself
-	Token string `json:"token"`
-	// Type of token, e.g. JWT
-	Type string `json:"type"`
+	// The token to be used for accessing resources
+	AccessToken string `json:"access_token"`
+	// RefreshToken to be used to generate a new token
+	RefreshToken string `json:"refresh_token"`
 	// Time of token creation
 	Created time.Time `json:"created"`
 	// Time of token expiry
 	Expiry time.Time `json:"expiry"`
-	// Subject of the token, e.g. the account ID
-	Subject string `json:"subject"`
-	// Roles granted to the token
-	Roles []string `json:"roles"`
-	// Metadata embedded in the token
-	Metadata map[string]string `json:"metadata"`
-	// Namespace the token belongs to
-	Namespace string `json:"namespace"`
 }
 
 const (
@@ -131,9 +126,4 @@ func ContextWithAccount(ctx context.Context, account *Account) (context.Context,
 
 	// generate a new context with the MetadataKey set
 	return metadata.Set(ctx, MetadataKey, string(bytes)), nil
-}
-
-// ContextWithToken sets the auth token in the context
-func ContextWithToken(ctx context.Context, token string) context.Context {
-	return metadata.Set(ctx, "Authorization", fmt.Sprintf("%v%v", BearerScheme, token))
 }
