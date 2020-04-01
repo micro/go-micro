@@ -315,6 +315,7 @@ func (s *sqlStore) configure() error {
 		return errors.New("error compiling regex for namespace")
 	}
 	namespace = reg.ReplaceAllString(namespace, "_")
+	prefix = reg.ReplaceAllString(prefix, "_")
 
 	source := s.options.Nodes[0]
 	// check if it is a standard connection string eg: host=%s port=%d user=%s password=%s dbname=%s sslmode=disable

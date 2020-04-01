@@ -11,7 +11,9 @@ import (
 
 // authClaims to be encoded in the JWT
 type authClaims struct {
+	Type      string            `json:"type"`
 	Roles     []string          `json:"roles"`
+	Provider  string            `json:"provider"`
 	Metadata  map[string]string `json:"metadata"`
 	Namespace string            `json:"namespace"`
 
@@ -31,7 +33,7 @@ func NewTokenProvider(opts ...token.Option) token.Provider {
 }
 
 // Generate a new JWT
-func (j *JWT) Generate(subject string, opts ...token.GenerateOption) (*auth.Token, error) {
+func (j *JWT) Generate(acc *auth.Account, opts ...token.GenerateOption) (*token.Token, error) {
 	// decode the private key
 	priv, err := base64.StdEncoding.DecodeString(j.opts.PrivateKey)
 	if err != nil {
@@ -50,8 +52,8 @@ func (j *JWT) Generate(subject string, opts ...token.GenerateOption) (*auth.Toke
 	// generate the JWT
 	expiry := time.Now().Add(options.Expiry)
 	t := jwt.NewWithClaims(jwt.SigningMethodRS256, authClaims{
-		options.Roles, options.Metadata, options.Namespace, jwt.StandardClaims{
-			Subject:   subject,
+		acc.Type, acc.Roles, acc.Provider, acc.Metadata, acc.Namespace, jwt.StandardClaims{
+			Subject:   acc.ID,
 			ExpiresAt: expiry.Unix(),
 		},
 	})
@@ -61,20 +63,15 @@ func (j *JWT) Generate(subject string, opts ...token.GenerateOption) (*auth.Toke
 	}
 
 	// return the token
-	return &auth.Token{
-		Subject:   subject,
-		Token:     tok,
-		Type:      j.String(),
-		Created:   time.Now(),
-		Expiry:    expiry,
-		Roles:     options.Roles,
-		Metadata:  options.Metadata,
-		Namespace: options.Namespace,
+	return &token.Token{
+		Token:   tok,
+		Expiry:  expiry,
+		Created: time.Now(),
 	}, nil
 }
 
 // Inspect a JWT
-func (j *JWT) Inspect(t string) (*auth.Token, error) {
+func (j *JWT) Inspect(t string) (*auth.Account, error) {
 	// decode the public key
 	pub, err := base64.StdEncoding.DecodeString(j.opts.PublicKey)
 	if err != nil {
@@ -99,11 +96,12 @@ func (j *JWT) Inspect(t string) (*auth.Token, error) {
 	}
 
 	// return the token
-	return &auth.Token{
-		Token:     t,
-		Subject:   claims.Subject,
-		Metadata:  claims.Metadata,
+	return &auth.Account{
+		ID:        claims.Subject,
+		Type:      claims.Type,
 		Roles:     claims.Roles,
+		Provider:  claims.Provider,
+		Metadata:  claims.Metadata,
 		Namespace: claims.Namespace,
 	}, nil
 }
