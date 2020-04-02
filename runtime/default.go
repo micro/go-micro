@@ -260,10 +260,15 @@ type logStream struct {
 	service string
 	stream  chan LogRecord
 	stop    chan bool
+	err     error
 }
 
 func (l *logStream) Chan() chan LogRecord {
 	return l.stream
+}
+
+func (l *logStream) Error() error {
+	return l.err
 }
 
 func (l *logStream) Stop() error {
