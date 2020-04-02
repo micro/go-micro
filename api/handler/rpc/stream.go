@@ -21,8 +21,32 @@ import (
 
 // serveWebsocket will stream rpc back over websockets assuming json
 func serveWebsocket(ctx context.Context, w http.ResponseWriter, r *http.Request, service *api.Service, c client.Client) {
-	hdr := make(http.Header)
+	var op ws.OpCode
 
+	ct := r.Header.Get("Content-Type")
+	// Strip charset from Content-Type (like `application/json; charset=UTF-8`)
+	if idx := strings.IndexRune(ct, ';'); idx >= 0 {
+		ct = ct[:idx]
+	}
+
+	// check proto from request
+	switch ct {
+	case "application/json":
+		op = ws.OpText
+	default:
+		op = ws.OpBinary
+	}
+
+	hdr := make(http.Header)
+	if proto, ok := r.Header["Sec-WebSocket-Protocol"]; ok {
+		for _, p := range proto {
+			switch p {
+			case "binary":
+				hdr["Sec-WebSocket-Protocol"] = []string{"binary"}
+				op = ws.OpBinary
+			}
+		}
+	}
 	payload, err := requestPayload(r)
 	if err != nil {
 		if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
@@ -31,7 +55,7 @@ func serveWebsocket(ctx context.Context, w http.ResponseWriter, r *http.Request,
 		return
 	}
 
-	upgrader := &ws.HTTPUpgrader{Timeout: 5 * time.Second,
+	upgrader := ws.HTTPUpgrader{Timeout: 5 * time.Second,
 		Protocol: func(proto string) bool {
 			if strings.Contains(proto, "binary") {
 				return true
@@ -63,26 +87,10 @@ func serveWebsocket(ctx context.Context, w http.ResponseWriter, r *http.Request,
 		}
 	}()
 
-	ct := r.Header.Get("Content-Type")
-
-	// Strip charset from Content-Type (like `application/json; charset=UTF-8`)
-	if idx := strings.IndexRune(ct, ';'); idx >= 0 {
-		ct = ct[:idx]
-	}
-
-	// check proto from request
-	var op ws.OpCode
-	switch ct {
-	case "application/json":
-		op = ws.OpText
-	default:
-		op = ws.OpBinary
-	}
-
 	var request interface{}
 	if !bytes.Equal(payload, []byte(`{}`)) {
 		switch ct {
-		case "application/json":
+		case "application/json", "":
 			m := json.RawMessage(payload)
 			request = &m
 		default:
@@ -90,6 +98,10 @@ func serveWebsocket(ctx context.Context, w http.ResponseWriter, r *http.Request,
 		}
 	}
 
+	// we always need to set content type for message
+	if ct == "" {
+		ct = "application/json"
+	}
 	req := c.NewRequest(
 		service.Name,
 		service.Endpoint.Name,
@@ -106,6 +118,15 @@ func serveWebsocket(ctx context.Context, w http.ResponseWriter, r *http.Request,
 			logger.Error(err)
 		}
 		return
+	}
+
+	if request != nil {
+		if err = stream.Send(request); err != nil {
+			if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
+				logger.Error(err)
+			}
+			return
+		}
 	}
 
 	go writeLoop(rw, stream)
