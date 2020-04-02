@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/micro/go-micro/v2/api/resolver"
-	"github.com/micro/go-micro/v2/api/resolver/path"
 	"github.com/micro/go-micro/v2/auth"
 	"github.com/micro/go-micro/v2/logger"
 )
@@ -16,10 +15,8 @@ import (
 // CombinedAuthHandler wraps a server and authenticates requests
 func CombinedAuthHandler(h http.Handler) http.Handler {
 	return authHandler{
-		handler:  h,
-		auth:     auth.DefaultAuth,
-		resolver: path.NewResolver(),
-		// namespace:
+		handler: h,
+		auth:    auth.DefaultAuth,
 	}
 }
 
@@ -69,12 +66,6 @@ func (h authHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		logger.Warnf("Cross namespace request forbidden: account %v (%v) requested access to %v in the %v namespace", acc.ID, acc.Namespace, req.URL.Path, namespace)
 		w.WriteHeader(http.StatusForbidden)
 	}
-
-	// WIP: Determine the name of the service being requested
-	// endpoint, err := h.resolver.Resolve(req)
-	// fmt.Printf("EndpointName: %v\n", endpoint.Name)
-	// fmt.Printf("EndpointMethod: %v\n", endpoint.Method)
-	// fmt.Printf("EndpointPath: %v\n", endpoint.Path)
 
 	// Perform the verification check to see if the account has access to
 	// the resource they're requesting
