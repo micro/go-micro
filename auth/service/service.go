@@ -198,7 +198,6 @@ func (s *svc) Verify(acc *auth.Account, res *auth.Resource) error {
 
 	// no rules were found for the resource, default to denying access
 	log.Infof("%v:%v denied access to %v:%v:%v:%v by lack of rule (%v rules found for namespace)", acc.Namespace, logID, res.Namespace, res.Type, res.Name, res.Endpoint, len(s.listRules(res.Namespace)))
-	fmt.Println(s.rules)
 	return auth.ErrForbidden
 }
 
