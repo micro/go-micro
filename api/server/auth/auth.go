@@ -7,7 +7,6 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/micro/go-micro/v2/api/resolver"
 	"github.com/micro/go-micro/v2/auth"
 	"github.com/micro/go-micro/v2/logger"
 )
@@ -21,9 +20,8 @@ func CombinedAuthHandler(h http.Handler) http.Handler {
 }
 
 type authHandler struct {
-	handler  http.Handler
-	auth     auth.Auth
-	resolver resolver.Resolver
+	handler http.Handler
+	auth    auth.Auth
 }
 
 func (h authHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
