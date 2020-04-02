@@ -40,6 +40,8 @@ type rpcServer struct {
 	subscriber broker.Subscriber
 	// graceful exit
 	wg *sync.WaitGroup
+
+	rsvc *registry.Service
 }
 
 func newRpcServer(opts ...Option) Server {
@@ -510,11 +512,23 @@ func (s *rpcServer) Subscribe(sb Subscriber) error {
 }
 
 func (s *rpcServer) Register() error {
+
+	s.RLock()
+	rsvc := s.rsvc
+	config := s.Options()
+	s.RUnlock()
+
+	if rsvc != nil {
+		rOpts := []registry.RegisterOption{registry.RegisterTTL(config.RegisterTTL)}
+		if err := config.Registry.Register(rsvc, rOpts...); err != nil {
+			return err
+		}
+
+		return nil
+	}
+
 	var err error
 	var advt, host, port string
-
-	// parse address for host, port
-	config := s.Options()
 
 	// check the advertise address first
 	// if it exists then use it, otherwise
@@ -630,6 +644,7 @@ func (s *rpcServer) Register() error {
 	s.Lock()
 	defer s.Unlock()
 
+	s.rsvc = service
 	s.registered = true
 	// set what we're advertising
 	s.opts.Advertise = addr
@@ -677,7 +692,9 @@ func (s *rpcServer) Deregister() error {
 	var err error
 	var advt, host, port string
 
+	s.RLock()
 	config := s.Options()
+	s.RUnlock()
 
 	// check the advertise address first
 	// if it exists then use it, otherwise
@@ -725,6 +742,7 @@ func (s *rpcServer) Deregister() error {
 	}
 
 	s.Lock()
+	s.rsvc = nil
 
 	if !s.registered {
 		s.Unlock()

@@ -59,6 +59,9 @@ type grpcServer struct {
 	started bool
 	// used for first registration
 	registered bool
+
+	// registry service instance
+	rsvc *registry.Service
 }
 
 func init() {
@@ -559,11 +562,23 @@ func (g *grpcServer) Subscribe(sb server.Subscriber) error {
 }
 
 func (g *grpcServer) Register() error {
+
+	g.RLock()
+	rsvc := g.rsvc
+	config := g.opts
+	g.RUnlock()
+
+	// if service already filled, reuse it and return early
+	if rsvc != nil {
+		rOpts := []registry.RegisterOption{registry.RegisterTTL(config.RegisterTTL)}
+		if err := config.Registry.Register(rsvc, rOpts...); err != nil {
+			return err
+		}
+		return nil
+	}
+
 	var err error
 	var advt, host, port string
-
-	// parse address for host, port
-	config := g.opts
 
 	// check the advertise address first
 	// if it exists then use it, otherwise
@@ -646,9 +661,9 @@ func (g *grpcServer) Register() error {
 		Endpoints: endpoints,
 	}
 
-	g.Lock()
+	g.RLock()
 	registered := g.registered
-	g.Unlock()
+	g.RUnlock()
 
 	if !registered {
 		if logger.V(logger.InfoLevel, logger.DefaultLogger) {
@@ -671,6 +686,7 @@ func (g *grpcServer) Register() error {
 	g.Lock()
 	defer g.Unlock()
 
+	g.rsvc = service
 	g.registered = true
 
 	for sb := range g.subscribers {
@@ -705,7 +721,9 @@ func (g *grpcServer) Deregister() error {
 	var err error
 	var advt, host, port string
 
+	g.RLock()
 	config := g.opts
+	g.RUnlock()
 
 	// check the advertise address first
 	// if it exists then use it, otherwise
@@ -750,6 +768,7 @@ func (g *grpcServer) Deregister() error {
 	}
 
 	g.Lock()
+	g.rsvc = nil
 
 	if !g.registered {
 		g.Unlock()
