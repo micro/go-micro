@@ -1,7 +1,9 @@
 package rpc
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"io"
 	"net/http"
 	"strings"
@@ -19,18 +21,7 @@ import (
 
 // serveWebsocket will stream rpc back over websockets assuming json
 func serveWebsocket(ctx context.Context, w http.ResponseWriter, r *http.Request, service *api.Service, c client.Client) {
-
 	hdr := make(http.Header)
-	//proto := r.Header.Get("Sec-WebSocket-Protocol")
-	//fmt.Printf("%s\n", r.Header)
-	//var wsproto string
-
-	//	switch proto {
-	//	case "binary":
-	hdr["Sec-WebSocket-Protocol"] = []string{"binary"}
-	//	default:
-	// not allowed now
-	//	}
 
 	payload, err := requestPayload(r)
 	if err != nil {
@@ -42,15 +33,14 @@ func serveWebsocket(ctx context.Context, w http.ResponseWriter, r *http.Request,
 
 	upgrader := &ws.HTTPUpgrader{Timeout: 5 * time.Second,
 		Protocol: func(proto string) bool {
-			if strings.HasPrefix(proto, "Bearer") {
-				return true
-			}
 			if strings.Contains(proto, "binary") {
 				return true
 			}
+			// fallback to support all protocols now
 			return true
 		},
 		Extension: func(httphead.Option) bool {
+			// disable extensions for compatibility
 			return false
 		},
 		Header: hdr,
@@ -73,28 +63,40 @@ func serveWebsocket(ctx context.Context, w http.ResponseWriter, r *http.Request,
 		}
 	}()
 
-	// create stream before reading client data, because client
-	// may want to wait server message first
-	var req client.Request
-	if len(payload) > 0 {
-		//	request := json.RawMessage(payload)
-		// create a request to the backend
-		req = c.NewRequest(
-			service.Name,
-			service.Endpoint.Name,
-			//			&request,
-			&raw.Frame{},
-			client.WithContentType("application/json"),
-			client.StreamingRequest(),
-		)
-	} else {
-		req = c.NewRequest(
-			service.Name,
-			service.Endpoint.Name,
-			&raw.Frame{},
-			client.StreamingRequest(),
-		)
+	ct := r.Header.Get("Content-Type")
+
+	// Strip charset from Content-Type (like `application/json; charset=UTF-8`)
+	if idx := strings.IndexRune(ct, ';'); idx >= 0 {
+		ct = ct[:idx]
 	}
+
+	// check proto from request
+	var op ws.OpCode
+	switch ct {
+	case "application/json":
+		op = ws.OpText
+	default:
+		op = ws.OpBinary
+	}
+
+	var request interface{}
+	if !bytes.Equal(payload, []byte(`{}`)) {
+		switch ct {
+		case "application/json":
+			m := json.RawMessage(payload)
+			request = &m
+		default:
+			request = &raw.Frame{Data: payload}
+		}
+	}
+
+	req := c.NewRequest(
+		service.Name,
+		service.Endpoint.Name,
+		request,
+		client.WithContentType(ct),
+		client.StreamingRequest(),
+	)
 
 	so := selector.WithStrategy(strategy(service.Services))
 	// create a new stream
@@ -106,23 +108,9 @@ func serveWebsocket(ctx context.Context, w http.ResponseWriter, r *http.Request,
 		return
 	}
 
-	if len(payload) > 0 {
-		// create a request to the backend
-		request := &raw.Frame{Data: payload}
-		if err = stream.Send(request); err != nil {
-			if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
-				logger.Error(err)
-			}
-			return
-		}
-	}
-
 	go writeLoop(rw, stream)
 
 	rsp := stream.Response()
-
-	// check proto from request
-	op := ws.OpBinary
 
 	// receive from stream and send to client
 	for {
@@ -171,7 +159,6 @@ func writeLoop(rw io.ReadWriter, stream client.Stream) {
 		case ws.OpText, ws.OpBinary:
 			break
 		}
-
 		// send to backend
 		// default to trying json
 		// if the extracted payload isn't empty lets use it
