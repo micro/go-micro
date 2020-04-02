@@ -267,8 +267,15 @@ func (s *service) stop() error {
 }
 
 func (s *service) Client() *http.Client {
+
+	//set default registry
+	reg := registry.DefaultRegistry
+	// if we have a user's Registry from option, which means we should use it
+	if s.opts.Registry != nil {
+		reg = s.opts.Registry
+	}
 	rt := mhttp.NewRoundTripper(
-		mhttp.WithRegistry(s.opts.Registry),
+		mhttp.WithRegistry(reg),
 	)
 	return &http.Client{
 		Transport: rt,
