@@ -6,20 +6,25 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/micro/go-micro/v2/api/resolver"
 	"github.com/micro/go-micro/v2/auth"
 )
 
 // CombinedAuthHandler wraps a server and authenticates requests
-func CombinedAuthHandler(h http.Handler) http.Handler {
+func CombinedAuthHandler(namespace string, r resolver.Resolver, h http.Handler) http.Handler {
 	return authHandler{
-		handler: h,
-		auth:    auth.DefaultAuth,
+		handler:   h,
+		resolver:  r,
+		auth:      auth.DefaultAuth,
+		namespace: namespace,
 	}
 }
 
 type authHandler struct {
-	handler http.Handler
-	auth    auth.Auth
+	handler   http.Handler
+	auth      auth.Auth
+	resolver  resolver.Resolver
+	namespace string
 }
 
 func (h authHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
@@ -45,10 +50,21 @@ func (h authHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		acc = &auth.Account{}
 	}
+
+	// Determine the name of the service being requested
+	endpoint, err := h.resolver.Resolve(req)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	resName := h.namespace + "." + endpoint.Name
+
+	// Perform the verification check to see if the account has access to
+	// the resource they're requesting
 	err = h.auth.Verify(acc, &auth.Resource{
 		Type:     "service",
-		Name:     "go.micro.web",
-		Endpoint: req.URL.Path,
+		Name:     resName,
+		Endpoint: endpoint.Path,
 	})
 
 	// The account has the necessary permissions to access the
