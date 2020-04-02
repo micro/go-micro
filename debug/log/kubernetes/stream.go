@@ -21,9 +21,9 @@ func write(l log.Record) error {
 type kubeStream struct {
 	// the k8s log stream
 	stream chan log.Record
+	sync.Mutex
 	// the stop chan
 	stop chan bool
-	sync.Mutex
 }
 
 func (k *kubeStream) Chan() <-chan log.Record {
