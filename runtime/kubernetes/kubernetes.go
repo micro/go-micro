@@ -330,7 +330,13 @@ type kubeStream struct {
 	// the k8s log stream
 	stream chan runtime.LogRecord
 	// the stop chan
+	sync.Mutex
 	stop chan bool
+	err  error
+}
+
+func (k *kubeStream) Error() error {
+	return k.err
 }
 
 func (k *kubeStream) Chan() chan runtime.LogRecord {
@@ -338,6 +344,8 @@ func (k *kubeStream) Chan() chan runtime.LogRecord {
 }
 
 func (k *kubeStream) Stop() error {
+	k.Lock()
+	defer k.Unlock()
 	select {
 	case <-k.stop:
 		return nil
