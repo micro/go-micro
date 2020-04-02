@@ -32,6 +32,7 @@ func (k *klog) podLogStream(podName string, stream *kubeStream) error {
 
 	if err != nil {
 		stream.err = err
+		stream.Stop()
 		return err
 	}
 

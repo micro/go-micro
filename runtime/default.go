@@ -259,8 +259,9 @@ type logStream struct {
 	tail    *tail.Tail
 	service string
 	stream  chan LogRecord
-	stop    chan bool
-	err     error
+	sync.Mutex
+	stop chan bool
+	err  error
 }
 
 func (l *logStream) Chan() chan LogRecord {
@@ -272,6 +273,8 @@ func (l *logStream) Error() error {
 }
 
 func (l *logStream) Stop() error {
+	l.Lock()
+	defer l.Unlock()
 	// @todo seems like this is causing a hangup
 	//err := l.tail.Stop()
 	//if err != nil {
