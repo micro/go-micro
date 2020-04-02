@@ -46,6 +46,7 @@ message Resource{
 	string name = 1;
 	string type = 2;
 	string endpoint = 3;
+	string namespace = 4;
 }
 
 message GenerateRequest {

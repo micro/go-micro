@@ -132,9 +132,10 @@ func (s *svc) Grant(role string, res *auth.Resource) error {
 		Role:   role,
 		Access: pb.Access_GRANTED,
 		Resource: &pb.Resource{
-			Type:     res.Type,
-			Name:     res.Name,
-			Endpoint: res.Endpoint,
+			Namespace: res.Namespace,
+			Type:      res.Type,
+			Name:      res.Name,
+			Endpoint:  res.Endpoint,
 		},
 	})
 	return err
@@ -146,9 +147,10 @@ func (s *svc) Revoke(role string, res *auth.Resource) error {
 		Role:   role,
 		Access: pb.Access_GRANTED,
 		Resource: &pb.Resource{
-			Type:     res.Type,
-			Name:     res.Name,
-			Endpoint: res.Endpoint,
+			Namespace: res.Namespace,
+			Type:      res.Type,
+			Name:      res.Name,
+			Endpoint:  res.Endpoint,
 		},
 	})
 	return err
@@ -157,10 +159,11 @@ func (s *svc) Revoke(role string, res *auth.Resource) error {
 // Verify an account has access to a resource
 func (s *svc) Verify(acc *auth.Account, res *auth.Resource) error {
 	queries := [][]string{
-		{res.Type, res.Name, res.Endpoint}, // check for specific role, e.g. service.foo.ListFoo:admin (role is checked in accessForRule)
-		{res.Type, res.Name, "*"},          // check for wildcard endpoint, e.g. service.foo*
-		{res.Type, "*"},                    // check for wildcard name, e.g. service.*
-		{"*"},                              // check for wildcard type, e.g. *
+		{res.Namespace, res.Type, res.Name, res.Endpoint}, // check for specific role, e.g. service.foo.ListFoo:admin (role is checked in accessForRule)
+		{res.Namespace, res.Type, res.Name, "*"},          // check for wildcard endpoint, e.g. service.foo*
+		{res.Namespace, res.Type, "*"},                    // check for wildcard name, e.g. service.*
+		{res.Namespace, "*"},                              // check for wildcard type, e.g. *
+		{"*"},                                             // check for wildcard namespace
 	}
 
 	// endpoint is a url which can have wildcard excludes, e.g.
@@ -172,23 +175,30 @@ func (s *svc) Verify(acc *auth.Account, res *auth.Resource) error {
 		}
 	}
 
+	// set a default account id to log
+	logID := acc.ID
+	if len(logID) == 0 {
+		logID = "[no account]"
+	}
+
 	for _, q := range queries {
 		for _, rule := range s.listRules(q...) {
 			switch accessForRule(rule, acc, res) {
 			case pb.Access_UNKNOWN:
 				continue // rule did not specify access, check the next rule
 			case pb.Access_GRANTED:
-				log.Infof("%v granted access to %v:%v:%v by rule %v", acc.ID, res.Type, res.Name, res.Endpoint, rule.Id)
+				log.Infof("%v:%v granted access to %v:%v:%v:%v by rule %v", acc.Namespace, logID, res.Namespace, res.Type, res.Name, res.Endpoint, rule.Id)
 				return nil // rule grants the account access to the resource
 			case pb.Access_DENIED:
-				log.Infof("%v denied access to %v:%v:%v by rule %v", acc.ID, res.Type, res.Name, res.Endpoint, rule.Id)
+				log.Infof("%v:%v denied access to %v:%v:%v:%v by rule %v", acc.Namespace, logID, res.Namespace, res.Type, res.Name, res.Endpoint, rule.Id)
 				return auth.ErrForbidden // rule denies access to the resource
 			}
 		}
 	}
 
 	// no rules were found for the resource, default to denying access
-	log.Infof("%v denied access to %v:%v:%v by lack of rule (%v rules found)", acc.ID, res.Type, res.Name, res.Endpoint, len(s.rules))
+	log.Infof("%v:%v denied access to %v:%v:%v:%v by lack of rule (%v rules found for namespace)", acc.Namespace, logID, res.Namespace, res.Type, res.Name, res.Endpoint, len(s.listRules(res.Namespace)))
+	fmt.Println(s.rules)
 	return auth.ErrForbidden
 }
 
@@ -249,19 +259,28 @@ func accessForRule(rule *pb.Rule, acc *auth.Account, res *auth.Resource) pb.Acce
 	return pb.Access_UNKNOWN
 }
 
-// listRules gets all the rules from the store which have an id
-// prefix matching the filters
+// listRules gets all the rules from the store which match the filters.
+// filters are namespace, type, name and then endpoint.
 func (s *svc) listRules(filters ...string) []*pb.Rule {
 	s.Lock()
 	defer s.Unlock()
 
-	prefix := strings.Join(filters, ruleJoinKey)
-
 	var rules []*pb.Rule
 	for _, r := range s.rules {
-		if strings.HasPrefix(r.Id, prefix) {
-			rules = append(rules, r)
+		if len(filters) > 0 && r.Resource.Namespace != filters[0] {
+			continue
 		}
+		if len(filters) > 1 && r.Resource.Type != filters[1] {
+			continue
+		}
+		if len(filters) > 2 && r.Resource.Name != filters[2] {
+			continue
+		}
+		if len(filters) > 3 && r.Resource.Endpoint != filters[3] {
+			continue
+		}
+
+		rules = append(rules, r)
 	}
 
 	return rules

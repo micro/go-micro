@@ -21,8 +21,6 @@ var (
 	ErrInvalidRole = errors.New("invalid role")
 	// ErrForbidden is returned when a user does not have the necessary roles to access a resource
 	ErrForbidden = errors.New("resource forbidden")
-	// BearerScheme used for Authorization header
-	BearerScheme = "Bearer "
 )
 
 // Auth providers authentication and authorization
@@ -50,11 +48,13 @@ type Auth interface {
 // Resource is an entity such as a user or
 type Resource struct {
 	// Name of the resource
-	Name string
+	Name string `json:"name"`
 	// Type of resource, e.g.
-	Type string
+	Type string `json:"type"`
 	// Endpoint resource e.g NotesService.Create
-	Endpoint string
+	Endpoint string `json:"endpoint"`
+	// Namespace the resource belongs to
+	Namespace string `json:"namespace"`
 }
 
 // Account provided by an auth provider
@@ -69,7 +69,7 @@ type Account struct {
 	Roles []string `json:"roles"`
 	// Any other associated metadata
 	Metadata map[string]string `json:"metadata"`
-	// Namespace the account belongs to, default blank
+	// Namespace the account belongs to
 	Namespace string `json:"namespace"`
 	// Secret for the account, e.g. the password
 	Secret string `json:"secret"`
@@ -88,12 +88,18 @@ type Token struct {
 }
 
 const (
+	// DefaultNamespace used for auth
+	DefaultNamespace = "micro"
+	// NamespaceKey is the key used when storing the namespace in metadata
+	NamespaceKey = "Micro-Namespace"
 	// MetadataKey is the key used when storing the account in metadata
 	MetadataKey = "auth-account"
 	// TokenCookieName is the name of the cookie which stores the auth token
 	TokenCookieName = "micro-token"
 	// SecretCookieName is the name of the cookie which stores the auth secret
 	SecretCookieName = "micro-secret"
+	// BearerScheme used for Authorization header
+	BearerScheme = "Bearer "
 )
 
 // AccountFromContext gets the account from the context, which

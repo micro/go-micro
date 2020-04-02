@@ -2,27 +2,44 @@ package auth
 
 import (
 	"fmt"
+	"net"
 	"net/http"
 	"net/url"
 	"strings"
 
+	"github.com/micro/go-micro/v2/api/resolver"
+	"github.com/micro/go-micro/v2/api/resolver/path"
 	"github.com/micro/go-micro/v2/auth"
+	"github.com/micro/go-micro/v2/logger"
 )
 
 // CombinedAuthHandler wraps a server and authenticates requests
 func CombinedAuthHandler(h http.Handler) http.Handler {
 	return authHandler{
-		handler: h,
-		auth:    auth.DefaultAuth,
+		handler:  h,
+		auth:     auth.DefaultAuth,
+		resolver: path.NewResolver(),
+		// namespace:
 	}
 }
 
 type authHandler struct {
-	handler http.Handler
-	auth    auth.Auth
+	handler  http.Handler
+	auth     auth.Auth
+	resolver resolver.Resolver
 }
 
 func (h authHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	// Determine the namespace
+	namespace, err := namespaceFromRequest(req)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	// Set the namespace in the header
+	req.Header.Set(auth.NamespaceKey, namespace)
+
 	// Extract the token from the request
 	var token string
 	if header := req.Header.Get("Authorization"); len(header) > 0 {
@@ -43,23 +60,39 @@ func (h authHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	// account doesn't necesserially mean a forbidden request
 	acc, err := h.auth.Inspect(token)
 	if err != nil {
-		acc = &auth.Account{}
+		acc = &auth.Account{Namespace: namespace}
 	}
+
+	// Check the accounts namespace matches the namespace we're operating
+	// within. If not forbid the request and log the occurance.
+	if acc.Namespace != namespace {
+		logger.Warnf("Cross namespace request forbidden: account %v (%v) requested access to %v in the %v namespace", acc.ID, acc.Namespace, req.URL.Path, namespace)
+		w.WriteHeader(http.StatusForbidden)
+	}
+
+	// WIP: Determine the name of the service being requested
+	// endpoint, err := h.resolver.Resolve(req)
+	// fmt.Printf("EndpointName: %v\n", endpoint.Name)
+	// fmt.Printf("EndpointMethod: %v\n", endpoint.Method)
+	// fmt.Printf("EndpointPath: %v\n", endpoint.Path)
+
+	// Perform the verification check to see if the account has access to
+	// the resource they're requesting
 	err = h.auth.Verify(acc, &auth.Resource{
-		Type:     "service",
-		Name:     "go.micro.web",
-		Endpoint: req.URL.Path,
+		Type:      "service",
+		Name:      "go.micro.web",
+		Endpoint:  req.URL.Path,
+		Namespace: namespace,
 	})
 
-	// The account has the necessary permissions to access the
-	// resource
+	// The account has the necessary permissions to access the resource
 	if err == nil {
 		h.handler.ServeHTTP(w, req)
 		return
 	}
 
-	// The account is set, but they don't have enough permissions,
-	// hence we 403.
+	// The account is set, but they don't have enough permissions, hence
+	// we return a forbidden error.
 	if len(acc.ID) > 0 {
 		w.WriteHeader(http.StatusForbidden)
 		return
@@ -76,4 +109,37 @@ func (h authHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	params := url.Values{"redirect_to": {req.URL.Path}}
 	loginWithRedirect := fmt.Sprintf("%v?%v", loginURL, params.Encode())
 	http.Redirect(w, req, loginWithRedirect, http.StatusTemporaryRedirect)
+}
+
+func namespaceFromRequest(req *http.Request) (string, error) {
+	// check for an ip address
+	if net.ParseIP(req.Host) != nil {
+		return auth.DefaultNamespace, nil
+	}
+
+	// split the host to remove the port
+	host, _, err := net.SplitHostPort(req.Host)
+	if err != nil {
+		return "", err
+	}
+
+	// check for dev enviroment
+	if host == "localhost" || host == "127.0.0.1" {
+		return auth.DefaultNamespace, nil
+	}
+
+	// if host is not a subdomain, deturn default namespace
+	comps := strings.Split(host, ".")
+	if len(comps) != 3 {
+		return auth.DefaultNamespace, nil
+	}
+
+	// check for the micro.mu domain
+	domain := fmt.Sprintf("%v.%v", comps[1], comps[2])
+	if domain == "micro.mu" {
+		return auth.DefaultNamespace, nil
+	}
+
+	// return the subdomain as the host
+	return comps[0], nil
 }
