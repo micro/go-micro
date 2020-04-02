@@ -97,6 +97,7 @@ type serviceLogStream struct {
 	stream  chan runtime.LogRecord
 	stop    chan bool
 	err     error
+	sync.Mutex
 }
 
 func (l *serviceLogStream) Error() error {
@@ -108,6 +109,8 @@ func (l *serviceLogStream) Chan() chan runtime.LogRecord {
 }
 
 func (l *serviceLogStream) Stop() error {
+	l.Lock()
+	defer l.Unlock()
 	select {
 	case <-l.stop:
 		return nil

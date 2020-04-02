@@ -332,6 +332,7 @@ type kubeStream struct {
 	// the stop chan
 	stop chan bool
 	err  error
+	sync.Mutex
 }
 
 func (k *kubeStream) Error() error {
@@ -343,6 +344,8 @@ func (k *kubeStream) Chan() chan runtime.LogRecord {
 }
 
 func (k *kubeStream) Stop() error {
+	k.Lock()
+	defer k.Unlock()
 	select {
 	case <-k.stop:
 		return nil

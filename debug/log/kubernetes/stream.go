@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"sync"
 
 	"github.com/micro/go-micro/v2/debug/log"
 )
@@ -22,6 +23,7 @@ type kubeStream struct {
 	stream chan log.Record
 	// the stop chan
 	stop chan bool
+	sync.Mutex
 }
 
 func (k *kubeStream) Chan() <-chan log.Record {
@@ -29,6 +31,8 @@ func (k *kubeStream) Chan() <-chan log.Record {
 }
 
 func (k *kubeStream) Stop() error {
+	k.Lock()
+	defer k.Unlock()
 	select {
 	case <-k.stop:
 		return nil
