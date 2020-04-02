@@ -19,6 +19,9 @@ require (
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-acme/lego/v3 v3.3.0
 	github.com/go-playground/universal-translator v0.17.0 // indirect
+	github.com/gobwas/httphead v0.0.0-20180130184737-2c6c146eadee
+	github.com/gobwas/pool v0.2.0 // indirect
+	github.com/gobwas/ws v1.0.3
 	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e // indirect
 	github.com/golang/protobuf v1.3.2
 	github.com/google/go-cmp v0.4.0 // indirect
@@ -57,3 +60,5 @@ require (
 	gopkg.in/src-d/go-git.v4 v4.13.1
 	gopkg.in/telegram-bot-api.v4 v4.6.4
 )
+
+replace github.com/coreos/bbolt => go.etcd.io/bbolt v1.3.4
