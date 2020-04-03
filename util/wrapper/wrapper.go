@@ -2,7 +2,6 @@ package wrapper
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
 	"github.com/micro/go-micro/v2/auth"
@@ -179,7 +178,6 @@ func AuthHandler(fn func() auth.Auth) server.HandlerWrapper {
 				logger.Errorf("Missing request namespace")
 				namespace = auth.DefaultNamespace
 			}
-			fmt.Printf("Namespace is %v\n", namespace)
 
 			// Inspect the token and get the account
 			account, err := a.Inspect(token)
