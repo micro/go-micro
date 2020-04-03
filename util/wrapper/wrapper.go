@@ -182,7 +182,7 @@ func AuthHandler(fn func() auth.Auth) server.HandlerWrapper {
 			// Inspect the token and get the account
 			account, err := a.Inspect(token)
 			if err != nil {
-				account = &auth.Account{Namespace: auth.DefaultNamespace}
+				account = &auth.Account{Namespace: namespace}
 			}
 
 			// Check the accounts namespace matches the namespace we're operating
