@@ -101,8 +101,14 @@ func (h authHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 }
 
 func namespaceFromRequest(req *http.Request) (string, error) {
+	// determine the host, e.g. dev.micro.mu:8080
+	host := req.URL.Host
+	if len(host) == 0 {
+		host = req.Host
+	}
+
 	// check for an ip address
-	if net.ParseIP(req.Host) != nil {
+	if net.ParseIP(host) != nil {
 		return auth.DefaultNamespace, nil
 	}
 
