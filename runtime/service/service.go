@@ -95,8 +95,9 @@ func (s *svc) Logs(service *runtime.Service, options ...runtime.LogsOption) (run
 type serviceLogStream struct {
 	service string
 	stream  chan runtime.LogRecord
-	stop    chan bool
-	err     error
+	sync.Mutex
+	stop chan bool
+	err  error
 }
 
 func (l *serviceLogStream) Error() error {
@@ -108,6 +109,8 @@ func (l *serviceLogStream) Chan() chan runtime.LogRecord {
 }
 
 func (l *serviceLogStream) Stop() error {
+	l.Lock()
+	defer l.Unlock()
 	select {
 	case <-l.stop:
 		return nil
