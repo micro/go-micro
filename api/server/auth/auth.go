@@ -28,8 +28,8 @@ func (h authHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	// Determine the namespace
 	namespace, err := namespaceFromRequest(req)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+		logger.Error(err)
+		namespace = auth.DefaultNamespace
 	}
 
 	// Set the namespace in the header
