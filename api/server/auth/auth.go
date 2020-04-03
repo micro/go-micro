@@ -67,17 +67,19 @@ func (h authHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		resName = resName + "." + endpoint.Name
 	}
 
+	// determine the resource path. there is an inconsistency in how resolvers
+	// use method, some use it as Users.ReadUser (the rpc method), and others
+	// use it as the HTTP method, e.g GET. TODO: Refactor this to make it consistent.
+	resEndpoint := endpoint.Path
+	if len(endpoint.Path) == 0 {
+		resEndpoint = endpoint.Method
+	}
+
 	// Perform the verification check to see if the account has access to
 	// the resource they're requesting
-	err = h.auth.Verify(acc, &auth.Resource{
-		Type:     "service",
-		Name:     resName,
-		Endpoint: endpoint.Path,
-	})
-
-	// The account has the necessary permissions to access the
-	// resource
-	if err == nil {
+	res := &auth.Resource{Type: "service", Name: resName, Endpoint: resEndpoint}
+	if err := h.auth.Verify(acc, res); err == nil {
+		// The account has the necessary permissions to access the resource
 		h.handler.ServeHTTP(w, req)
 		return
 	}
