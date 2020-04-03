@@ -53,11 +53,19 @@ func (h authHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	// Determine the name of the service being requested
 	endpoint, err := h.resolver.Resolve(req)
-	if err != nil {
+	if err == resolver.ErrInvalidPath || err == resolver.ErrNotFound {
+		// a file not served by the resolver has been requested (e.g. favicon.ico)
+		endpoint = &resolver.Endpoint{Path: req.URL.Path}
+	} else if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	resName := h.namespace + "." + endpoint.Name
+
+	// construct the resource name, e.g. home => go.micro.web.home
+	resName := h.namespace
+	if len(endpoint.Name) > 0 {
+		resName = resName + "." + endpoint.Name
+	}
 
 	// Perform the verification check to see if the account has access to
 	// the resource they're requesting
