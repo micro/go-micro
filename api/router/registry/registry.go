@@ -325,7 +325,7 @@ func (r *registryRouter) Endpoint(req *http.Request) (*api.Service, error) {
 	}
 
 	// no match
-	return nil, registry.ErrNotFound
+	return nil, errors.New("not found")
 }
 
 func (r *registryRouter) Route(req *http.Request) (*api.Service, error) {
