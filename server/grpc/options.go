@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"net"
 
+	"github.com/micro/go-micro/v2/auth"
 	"github.com/micro/go-micro/v2/broker"
 	"github.com/micro/go-micro/v2/codec"
 	"github.com/micro/go-micro/v2/registry"
@@ -66,6 +67,7 @@ func MaxMsgSize(s int) server.Option {
 
 func newOptions(opt ...server.Option) server.Options {
 	opts := server.Options{
+		Auth:      auth.DefaultAuth,
 		Codecs:    make(map[string]codec.NewCodec),
 		Metadata:  map[string]string{},
 		Broker:    broker.DefaultBroker,
