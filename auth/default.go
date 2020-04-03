@@ -38,10 +38,11 @@ func (n *noop) Generate(id string, opts ...GenerateOption) (*Account, error) {
 	options := NewGenerateOptions(opts...)
 
 	return &Account{
-		ID:       id,
-		Roles:    options.Roles,
-		Secret:   options.Secret,
-		Metadata: options.Metadata,
+		ID:        id,
+		Roles:     options.Roles,
+		Secret:    options.Secret,
+		Metadata:  options.Metadata,
+		Namespace: DefaultNamespace,
 	}, nil
 }
 
@@ -63,7 +64,8 @@ func (n *noop) Verify(acc *Account, res *Resource) error {
 // Inspect a token
 func (n *noop) Inspect(token string) (*Account, error) {
 	return &Account{
-		ID: uuid.New().String(),
+		ID:        uuid.New().String(),
+		Namespace: DefaultNamespace,
 	}, nil
 }
 
