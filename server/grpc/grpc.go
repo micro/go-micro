@@ -516,6 +516,9 @@ func (g *grpcServer) Options() server.Options {
 }
 
 func (g *grpcServer) Init(opts ...server.Option) error {
+	if err := g.Stop(); err != nil {
+		return err
+	}
 	g.configure(opts...)
 	return nil
 }
@@ -949,6 +952,7 @@ func (g *grpcServer) Stop() error {
 	select {
 	case err = <-ch:
 		g.Lock()
+		g.rsvc = nil
 		g.started = false
 		g.Unlock()
 	}

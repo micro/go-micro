@@ -464,7 +464,9 @@ func (s *rpcServer) Init(opts ...Option) error {
 	for _, opt := range opts {
 		opt(&s.opts)
 	}
-
+	if err := s.Stop(); err != nil {
+		return err
+	}
 	// update router if its the default
 	if s.opts.Router == nil {
 		r := newRpcRouter()
