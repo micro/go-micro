@@ -494,6 +494,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 
 		*c.opts.Auth = a()
 		clientOpts = append(clientOpts, client.Auth(*c.opts.Auth))
+		serverOpts = append(serverOpts, server.Auth(*c.opts.Auth))
 	}
 
 	// Set the profile

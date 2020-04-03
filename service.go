@@ -34,8 +34,9 @@ func newService(opts ...Option) Service {
 	// service name
 	serviceName := options.Server.Options().Name
 
-	// TODO: better accessors
-	authFn := func() auth.Auth { return service.opts.Auth }
+	// authFn returns the auth, we pass as a function since auth
+	// has not yet been set at this point.
+	authFn := func() auth.Auth { return options.Server.Options().Auth }
 
 	// wrap client to inject From-Service header on any calls
 	options.Client = wrapper.FromService(serviceName, options.Client, authFn)
