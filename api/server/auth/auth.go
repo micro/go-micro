@@ -101,15 +101,18 @@ func (h authHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 }
 
 func namespaceFromRequest(req *http.Request) (string, error) {
-	// check for an ip address
-	if net.ParseIP(req.Host) != nil {
-		return auth.DefaultNamespace, nil
+	// determine the host, e.g. dev.micro.mu:8080
+	host := req.URL.Hostname()
+	if len(host) == 0 {
+		// fallback to req.Host
+		host, _, _ = net.SplitHostPort(req.Host)
 	}
 
-	// split the host to remove the port
-	host, _, err := net.SplitHostPort(req.Host)
-	if err != nil {
-		return "", err
+	logger.Infof("Host is %v", host)
+
+	// check for an ip address
+	if net.ParseIP(host) != nil {
+		return auth.DefaultNamespace, nil
 	}
 
 	// check for dev enviroment
