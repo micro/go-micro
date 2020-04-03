@@ -183,16 +183,16 @@ func writeLoop(rw io.ReadWriter, stream client.Stream) {
 		default:
 			buf, op, err := wsutil.ReadClientData(rw)
 			if err != nil {
-				wserr := err.(wsutil.ClosedError)
-				switch wserr.Code {
-				case ws.StatusNormalClosure, ws.StatusNoStatusRcvd:
-					return
-				default:
-					if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
-						logger.Error(err)
+				if wserr, ok := err.(wsutil.ClosedError); ok {
+					switch wserr.Code {
+					case ws.StatusNormalClosure, ws.StatusNoStatusRcvd:
+						return
 					}
-					return
 				}
+				if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
+					logger.Error(err)
+				}
+				return
 			}
 			switch op {
 			default:
