@@ -108,6 +108,8 @@ func namespaceFromRequest(req *http.Request) (string, error) {
 		host, _, _ = net.SplitHostPort(req.Host)
 	}
 
+	logger.Infof("Host is %v", host)
+
 	// check for an ip address
 	if net.ParseIP(host) != nil {
 		return auth.DefaultNamespace, nil
