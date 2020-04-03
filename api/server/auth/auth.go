@@ -7,11 +7,19 @@ import (
 	"strings"
 
 	"github.com/micro/go-micro/v2/api/resolver"
+	"github.com/micro/go-micro/v2/api/resolver/path"
 	"github.com/micro/go-micro/v2/auth"
 )
 
 // CombinedAuthHandler wraps a server and authenticates requests
 func CombinedAuthHandler(namespace string, r resolver.Resolver, h http.Handler) http.Handler {
+	if r == nil {
+		r = path.NewResolver()
+	}
+	if len(namespace) == 0 {
+		namespace = "go.micro"
+	}
+
 	return authHandler{
 		handler:   h,
 		resolver:  r,
