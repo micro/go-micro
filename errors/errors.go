@@ -15,6 +15,31 @@ func (e *Error) Error() string {
 	return string(b)
 }
 
+func (e *Error) BadRequest(format string, a ...interface{}) error {
+	return BadRequest(e.Id, format, a...)
+}
+func (e *Error) Unauthorized(format string, a ...interface{}) error {
+	return Unauthorized(e.Id, format, a...)
+}
+func (e *Error) Forbidden(format string, a ...interface{}) error {
+	return Forbidden(e.Id, format, a...)
+}
+func (e *Error) NotFound(format string, a ...interface{}) error {
+	return NotFound(e.Id, format, a...)
+}
+func (e *Error) MethodNotAllowed(format string, a ...interface{}) error {
+	return MethodNotAllowed(e.Id, format, a...)
+}
+func (e *Error) Timeout(format string, a ...interface{}) error {
+	return Timeout(e.Id, format, a...)
+}
+func (e *Error) Conflict(format string, a ...interface{}) error {
+	return Conflict(e.Id, format, a...)
+}
+func (e *Error) InternalServerError(format string, a ...interface{}) error {
+	return InternalServerError(e.Id, format, a...)
+}
+
 // New generates a custom error.
 func New(id, detail string, code int32) error {
 	return &Error{
