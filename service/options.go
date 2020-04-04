@@ -4,19 +4,27 @@ import (
 	"context"
 	"time"
 
+	"github.com/micro/go-micro/v2/auth"
 	"github.com/micro/go-micro/v2/broker"
 	"github.com/micro/go-micro/v2/client"
+	"github.com/micro/go-micro/v2/config"
+	"github.com/micro/go-micro/v2/config/cmd"
+	"github.com/micro/go-micro/v2/debug/profile"
 	"github.com/micro/go-micro/v2/registry"
 	"github.com/micro/go-micro/v2/server"
 	"github.com/micro/go-micro/v2/transport"
 )
 
 type Options struct {
+	Auth      auth.Auth
 	Broker    broker.Broker
+	Cmd       cmd.Cmd
+	Config    config.Config
 	Client    client.Client
 	Server    server.Server
 	Registry  registry.Registry
 	Transport transport.Transport
+	Profile   profile.Profile
 
 	// Before and After funcs
 	BeforeStart []func() error
@@ -27,6 +35,8 @@ type Options struct {
 	// Other options for implementations of the interface
 	// can be stored in a context
 	Context context.Context
+
+	Signal bool
 }
 
 type Option func(*Options)

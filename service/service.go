@@ -10,7 +10,7 @@ import (
 type Service interface {
 	// The service name
 	Name() string
-	// Init initialises options
+	// Init initialize options
 	Init(...Option)
 	// Options returns the current options
 	Options() Options
