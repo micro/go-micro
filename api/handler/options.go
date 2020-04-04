@@ -3,6 +3,7 @@ package handler
 import (
 	"github.com/micro/go-micro/v2"
 	"github.com/micro/go-micro/v2/api/router"
+	mservice "github.com/micro/go-micro/v2/service"
 )
 
 var (
@@ -13,7 +14,7 @@ type Options struct {
 	MaxRecvSize int64
 	Namespace   string
 	Router      router.Router
-	Service     micro.Service
+	Service     mservice.Service
 }
 
 type Option func(o *Options)
@@ -56,8 +57,8 @@ func WithRouter(r router.Router) Option {
 	}
 }
 
-// WithService specifies a micro.Service
-func WithService(s micro.Service) Option {
+// WithService specifies a micro Service mservice.Service
+func WithService(s mservice.Service) Option {
 	return func(o *Options) {
 		o.Service = s
 	}

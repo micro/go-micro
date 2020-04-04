@@ -17,18 +17,22 @@ import (
 	"github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/plugin"
 	"github.com/micro/go-micro/v2/server"
+	mservice "github.com/micro/go-micro/v2/service"
 	"github.com/micro/go-micro/v2/store"
 	"github.com/micro/go-micro/v2/util/wrapper"
 )
 
+//service means a micro service
 type service struct {
 	opts Options
 
 	once sync.Once
 }
 
-func newService(opts ...Option) Service {
+func newService(opts ...Option) mservice.Service {
+
 	service := new(service)
+
 	options := newOptions(opts...)
 
 	// service name
@@ -59,10 +63,10 @@ func (s *service) Name() string {
 	return s.opts.Server.Options().Name
 }
 
-// Init initialises options. Additionally it calls cmd.Init
+// Init initialize options. Additionally it calls cmd.Init
 // which parses command line flags. cmd.Init is only called
 // on first Init.
-func (s *service) Init(opts ...Option) {
+func (s *service) Init(opts ...mservice.Option) {
 	// process options
 	for _, o := range opts {
 		o(&s.opts)
@@ -81,7 +85,7 @@ func (s *service) Init(opts ...Option) {
 				logger.Fatal(err)
 			}
 
-			// initialise the plugin
+			// initialize the plugin
 			if err := plugin.Init(c); err != nil {
 				logger.Fatal(err)
 			}
@@ -92,7 +96,7 @@ func (s *service) Init(opts ...Option) {
 			s.opts.Cmd.App().Name = s.Server().Options().Name
 		}
 
-		// Initialise the command flags, overriding new service
+		// Initialize the command flags, overriding new service
 		if err := s.opts.Cmd.Init(
 			cmd.Auth(&s.opts.Auth),
 			cmd.Broker(&s.opts.Broker),
