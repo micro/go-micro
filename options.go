@@ -15,33 +15,12 @@ import (
 	"github.com/micro/go-micro/v2/debug/trace"
 	"github.com/micro/go-micro/v2/registry"
 	"github.com/micro/go-micro/v2/server"
+	mservice "github.com/micro/go-micro/v2/service"
 	"github.com/micro/go-micro/v2/transport"
 )
 
 // Options for micro service
-type Options struct {
-	Auth      auth.Auth
-	Broker    broker.Broker
-	Cmd       cmd.Cmd
-	Config    config.Config
-	Client    client.Client
-	Server    server.Server
-	Registry  registry.Registry
-	Transport transport.Transport
-	Profile   profile.Profile
-
-	// Before and After funcs
-	BeforeStart []func() error
-	BeforeStop  []func() error
-	AfterStart  []func() error
-	AfterStop   []func() error
-
-	// Other options for implementations of the interface
-	// can be stored in a context
-	Context context.Context
-
-	Signal bool
-}
+type Options = mservice.Options
 
 func newOptions(opts ...Option) Options {
 	opt := Options{

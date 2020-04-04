@@ -6,32 +6,17 @@ import (
 
 	"github.com/micro/go-micro/v2/client"
 	"github.com/micro/go-micro/v2/server"
+	mservice "github.com/micro/go-micro/v2/service"
 )
 
 type serviceKey struct{}
 
-// Service is an interface that wraps the lower level libraries
-// within go-micro. Its a convenience method for building
-// and initialising services.
-type Service interface {
-	// The service name
-	Name() string
-	// Init initialises options
-	Init(...Option)
-	// Options returns the current options
-	Options() Options
-	// Client is used to call services
-	Client() client.Client
-	// Server is for handling requests and events
-	Server() server.Server
-	// Run the service
-	Run() error
-	// The service implementation
-	String() string
-}
+//Service alias for compatible with other user's using
+type Service = mservice.Service
 
 // Function is a one time executing Service
 type Function interface {
+
 	// Inherits Service interface
 	Service
 	// Done signals to complete execution
@@ -42,26 +27,6 @@ type Function interface {
 	Subscribe(topic string, v interface{}) error
 }
 
-/*
-// Type Event is a future type for acting on asynchronous events
-type Event interface {
-	// Publish publishes a message to the event topic
-	Publish(ctx context.Context, msg interface{}, opts ...client.PublishOption) error
-	// Subscribe to the event
-	Subscribe(ctx context.Context, v in
-}
-
-// Resource is a future type for defining dependencies
-type Resource interface {
-	// Name of the resource
-	Name() string
-	// Type of resource
-	Type() string
-	// Method of creation
-	Create() error
-}
-*/
-
 // Event is used to publish messages to a topic
 type Event interface {
 	// Publish publishes a message to the event topic
@@ -71,7 +36,7 @@ type Event interface {
 // Type alias to satisfy the deprecation
 type Publisher = Event
 
-type Option func(*Options)
+type Option = mservice.Option
 
 var (
 	HeaderPrefix = "Micro-"
