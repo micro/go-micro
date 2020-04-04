@@ -105,6 +105,9 @@ func (r grpcRouter) ServeRequest(ctx context.Context, req server.Request, rsp se
 }
 
 func (g *grpcServer) configure(opts ...server.Option) {
+	g.Lock()
+	defer g.Unlock()
+
 	// Don't reprocess where there's no config
 	if len(opts) == 0 && g.srv != nil {
 		return
@@ -130,6 +133,7 @@ func (g *grpcServer) configure(opts ...server.Option) {
 		gopts = append(gopts, opts...)
 	}
 
+	g.rsvc = nil
 	g.srv = grpc.NewServer(gopts...)
 }
 
@@ -516,9 +520,6 @@ func (g *grpcServer) Options() server.Options {
 }
 
 func (g *grpcServer) Init(opts ...server.Option) error {
-	if err := g.Stop(); err != nil {
-		return err
-	}
 	g.configure(opts...)
 	return nil
 }

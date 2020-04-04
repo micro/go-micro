@@ -461,11 +461,10 @@ func (s *rpcServer) Options() Options {
 
 func (s *rpcServer) Init(opts ...Option) error {
 	s.Lock()
+	defer s.Unlock()
+
 	for _, opt := range opts {
 		opt(&s.opts)
-	}
-	if err := s.Stop(); err != nil {
-		return err
 	}
 	// update router if its the default
 	if s.opts.Router == nil {
@@ -476,7 +475,8 @@ func (s *rpcServer) Init(opts ...Option) error {
 		s.router = r
 	}
 
-	s.Unlock()
+	s.rsvc = nil
+
 	return nil
 }
 
