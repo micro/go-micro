@@ -68,9 +68,7 @@ func newOptions(opts ...Option) Options {
 	for _, o := range opts {
 		o(&opt)
 	}
-	if opt.Registry == nil {
-		opt.Registry = registry.DefaultRegistry
-	}
+
 	if opt.RegisterCheck == nil {
 		opt.RegisterCheck = DefaultRegisterCheck
 	}
