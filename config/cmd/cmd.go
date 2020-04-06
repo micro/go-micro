@@ -225,8 +225,8 @@ var (
 			Usage:   "Comma-separated list of store addresses",
 		},
 		&cli.StringFlag{
-			Name:    "store_namespace",
-			EnvVars: []string{"MICRO_STORE_NAMESPACE"},
+			Name:    "store_database",
+			EnvVars: []string{"MICRO_STORE_DATABASE"},
 			Usage:   "Namespace for store data",
 		},
 		&cli.StringFlag{
@@ -622,8 +622,8 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		}
 	}
 
-	if len(ctx.String("store_namespace")) > 0 {
-		if err := (*c.opts.Store).Init(store.Namespace(ctx.String("store_namespace"))); err != nil {
+	if len(ctx.String("store_database")) > 0 {
+		if err := (*c.opts.Store).Init(store.Database(ctx.String("store_database"))); err != nil {
 			logger.Fatalf("Error configuring store: %v", err)
 		}
 	}

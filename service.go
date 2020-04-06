@@ -110,7 +110,7 @@ func (s *service) Init(opts ...Option) {
 		// services name
 		if len(store.DefaultStore.Options().Database) == 0 {
 			name := s.opts.Cmd.App().Name
-			store.DefaultStore.Init(store.Namespace(name))
+			store.DefaultStore.Init(store.Database(name))
 		}
 
 		// TODO: replace Cmd.Init with config.Load
