@@ -92,7 +92,7 @@ func (h authHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		// set the endpoint in the context so it can be used to resolve
 		// the request later
 		ctx := context.WithValue(req.Context(), resolver.Endpoint{}, endpoint)
-		*req = *req.WithContext(ctx)
+		*req = *req.Clone(ctx)
 	}
 
 	// construct the resource name, e.g. home => go.micro.web.home
