@@ -60,5 +60,3 @@ require (
 	gopkg.in/src-d/go-git.v4 v4.13.1
 	gopkg.in/telegram-bot-api.v4 v4.6.4
 )
-
-replace github.com/coreos/bbolt => go.etcd.io/bbolt v1.3.4

@@ -11,13 +11,10 @@ type Options struct {
 	// For example, an etcd implementation would contain the nodes of the cluster.
 	// A SQL implementation could contain one or more connection strings.
 	Nodes []string
-	// Namespace allows multiple isolated stores to be kept in one backend, if supported.
-	// For example multiple tables in a SQL store.
-	Namespace string
-	// Prefix sets a global prefix on all keys
-	Prefix string
-	// Suffix sets a global suffix on all keys
-	Suffix string
+	// Database allows multiple isolated stores to be kept in one backend, if supported.
+	Database string
+	// Table is analagous to a table in database backends or a key prefix in KV backends
+	Table string
 	// Context should contain all implementation specific options, using context.WithValue.
 	Context context.Context
 }
@@ -34,25 +31,17 @@ func Nodes(a ...string) Option {
 	}
 }
 
-// Namespace allows multiple isolated stores to be kept in one backend, if supported.
-// For example multiple tables in a SQL store.
-func Namespace(ns string) Option {
+// Database allows multiple isolated stores to be kept in one backend, if supported.
+func Database(db string) Option {
 	return func(o *Options) {
-		o.Namespace = ns
+		o.Database = db
 	}
 }
 
-// Prefix sets a global prefix on all keys
-func Prefix(p string) Option {
+// Table is analagous to a table in database backends or a key prefix in KV backends
+func Table(t string) Option {
 	return func(o *Options) {
-		o.Prefix = p
-	}
-}
-
-// Suffix sets a global suffix on all keys
-func Suffix(s string) Option {
-	return func(o *Options) {
-		o.Suffix = s
+		o.Table = t
 	}
 }
 
