@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/micro/go-micro/v2/store"
+	micro_store "github.com/micro/go-micro/v2/store"
 	bolt "go.etcd.io/bbolt"
 
 	"github.com/pkg/errors"
@@ -28,8 +29,10 @@ func NewStore(opts ...store.Option) store.Store {
 }
 
 type localStore struct {
-	options store.Options
-	store   *bolt.DB
+	options      store.Options
+	dir          string
+	fileName     string
+	fullFilePath string
 }
 
 func (m *localStore) Init(opts ...store.Option) error {
@@ -42,23 +45,10 @@ func (m *localStore) Init(opts ...store.Option) error {
 	}
 	dir := filepath.Join(os.TempDir(), "micro")
 	fname := m.options.Namespace + ".db"
-	_ = os.Mkdir(dir, os.ModeDir)
-	store, err := bolt.Open(filepath.Join(dir, fname), 0666, &bolt.Options{Timeout: 1 * time.Second})
-	if err != nil {
-		fmt.Println(err)
-		return err
-	}
-	err = store.Update(func(tx *bolt.Tx) error {
-		_, err := tx.CreateBucket([]byte(m.options.Namespace))
-		if err != nil {
-			return err
-		}
-		return nil
-	})
-	if err != nil {
-		return err
-	}
-	m.store = store
+	_ = os.Mkdir(dir, 0700)
+	m.dir = dir
+	m.fileName = fname
+	m.fullFilePath = filepath.Join(dir, fname)
 	return nil
 }
 
@@ -116,22 +106,39 @@ func (m *localStore) get(k string) (*store.Record, error) {
 	if len(m.options.Namespace) > 0 {
 		k = m.options.Namespace + "/" + k
 	}
+	store, err := bolt.Open(m.fullFilePath, 0700, &bolt.Options{Timeout: 1 * time.Second})
+	if err != nil {
+		fmt.Println("Error creating file:", err)
+		return nil, err
+	}
+	defer store.Close()
+	err = store.Update(func(tx *bolt.Tx) error {
+		_, err := tx.CreateBucketIfNotExists([]byte(m.options.Namespace))
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		fmt.Println("Error creating bucket: ", err)
+		return nil, err
+	}
 	var value []byte
-	m.store.View(func(tx *bolt.Tx) error {
+	store.View(func(tx *bolt.Tx) error {
 		// @todo this is still very experimental...
 		bucket := tx.Bucket([]byte(m.Options().Namespace))
 		value = bucket.Get([]byte(k))
 		return nil
 	})
 	if value == nil {
-		return nil, store.ErrNotFound
+		return nil, micro_store.ErrNotFound
 	}
 	storedRecord := &internalRecord{}
-	err := json.Unmarshal(value, storedRecord)
+	err = json.Unmarshal(value, storedRecord)
 	if err != nil {
 		return nil, err
 	}
-	newRecord := &store.Record{}
+	newRecord := &micro_store.Record{}
 	newRecord.Key = storedRecord.Key
 	newRecord.Value = storedRecord.Value
 	if !storedRecord.ExpiresAt.IsZero() {
@@ -190,8 +197,15 @@ func (m *localStore) set(r *store.Record) {
 	}
 
 	iJSON, _ := json.Marshal(i)
-	m.store.Update(func(tx *bolt.Tx) error {
+
+	store, err := bolt.Open(m.fullFilePath, 0700, &bolt.Options{Timeout: 1 * time.Second})
+	if err != nil {
+		fmt.Println("Error creating file:", err)
+	}
+	defer store.Close()
+	store.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(m.options.Namespace))
+		fmt.Println("b", b)
 		err := b.Put([]byte(key), iJSON)
 		return err
 	})
@@ -216,7 +230,13 @@ func (m *localStore) delete(key string) {
 	if len(m.options.Namespace) > 0 {
 		key = m.options.Namespace + "/" + key
 	}
-	m.store.Update(func(tx *bolt.Tx) error {
+	store, err := bolt.Open(m.fullFilePath, 0700, &bolt.Options{Timeout: 1 * time.Second})
+	if err != nil {
+		fmt.Println("Error creating file:", err)
+		return
+	}
+	defer store.Close()
+	store.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(m.options.Namespace))
 		err := b.Delete([]byte(key))
 		return err
@@ -259,7 +279,12 @@ func (m *localStore) List(opts ...store.ListOption) ([]string, error) {
 
 func (m *localStore) list(limit, offset uint) []string {
 	allItems := []string{}
-	m.store.Update(func(tx *bolt.Tx) error {
+	store, err := bolt.Open(m.fullFilePath, 0700, &bolt.Options{Timeout: 1 * time.Second})
+	if err != nil {
+		fmt.Println("Error creating file:", err)
+	}
+	defer store.Close()
+	store.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(m.options.Namespace))
 		// Iterate over items in sorted key order.
 		if err := b.ForEach(func(k, v []byte) error {
