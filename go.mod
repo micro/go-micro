@@ -6,6 +6,7 @@ require (
 	github.com/BurntSushi/toml v0.3.1
 	github.com/beevik/ntp v0.2.0
 	github.com/bitly/go-simplejson v0.5.0
+	github.com/boltdb/bolt v1.3.1
 	github.com/bwmarrin/discordgo v0.20.2
 	github.com/coreos/etcd v3.3.18+incompatible
 	github.com/coreos/pkg v0.0.0-20180928190104-399ea9e2e55f // indirect
@@ -52,6 +53,7 @@ require (
 	github.com/stretchr/testify v1.4.0
 	github.com/technoweenie/multipartstreamer v1.0.1 // indirect
 	github.com/tmc/grpc-websocket-proxy v0.0.0-20200122045848-3419fae592fc // indirect
+	go.etcd.io/bbolt v1.3.4 // indirect
 	go.uber.org/zap v1.13.0
 	golang.org/x/crypto v0.0.0-20200221231518-2aa609cf4a9d
 	golang.org/x/net v0.0.0-20200222125558-5a598a2470a0
