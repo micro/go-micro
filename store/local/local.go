@@ -3,14 +3,15 @@ package local
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
 	"time"
 
-	"github.com/boltdb/bolt"
 	"github.com/micro/go-micro/v2/store"
+	bolt "go.etcd.io/bbolt"
 
 	"github.com/pkg/errors"
 )
@@ -36,7 +37,24 @@ func (m *localStore) Init(opts ...store.Option) error {
 	for _, o := range opts {
 		o(&m.options)
 	}
-	store, err := bolt.Open(filepath.Join(os.TempDir(), "micro", m.options.Namespace+".db"), 0666, &bolt.Options{Timeout: 1 * time.Second})
+	if m.options.Namespace == "" {
+		m.options.Namespace = "default"
+	}
+	dir := filepath.Join(os.TempDir(), "micro")
+	fname := m.options.Namespace + ".db"
+	_ = os.Mkdir(dir, os.ModeDir)
+	store, err := bolt.Open(filepath.Join(dir, fname), 0666, &bolt.Options{Timeout: 1 * time.Second})
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+	err = store.Update(func(tx *bolt.Tx) error {
+		_, err := tx.CreateBucket([]byte(m.options.Namespace))
+		if err != nil {
+			return err
+		}
+		return nil
+	})
 	if err != nil {
 		return err
 	}
@@ -102,7 +120,7 @@ func (m *localStore) get(k string) (*store.Record, error) {
 	m.store.View(func(tx *bolt.Tx) error {
 		// @todo this is still very experimental...
 		bucket := tx.Bucket([]byte(m.Options().Namespace))
-		value := bucket.Get([]byte(k))
+		value = bucket.Get([]byte(k))
 		return nil
 	})
 	if value == nil {
@@ -117,7 +135,7 @@ func (m *localStore) get(k string) (*store.Record, error) {
 	newRecord.Key = storedRecord.Key
 	newRecord.Value = storedRecord.Value
 	if !storedRecord.ExpiresAt.IsZero() {
-		newRecord.Expiry = time.Until(storedRecord.expiresAt)
+		newRecord.Expiry = time.Until(storedRecord.ExpiresAt)
 	}
 
 	return newRecord, nil
@@ -165,14 +183,18 @@ func (m *localStore) set(r *store.Record) {
 	// copy the incoming record and then
 	// convert the expiry in to a hard timestamp
 	i := &internalRecord{}
-	i.key = r.Key
-	i.value = make([]byte, len(r.Value))
-	copy(i.value, r.Value)
+	i.Key = r.Key
+	i.Value = r.Value
 	if r.Expiry != 0 {
-		i.expiresAt = time.Now().Add(r.Expiry)
+		i.ExpiresAt = time.Now().Add(r.Expiry)
 	}
 
-	m.store.Set(key, i, r.Expiry)
+	iJSON, _ := json.Marshal(i)
+	m.store.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte(m.options.Namespace))
+		err := b.Put([]byte(key), iJSON)
+		return err
+	})
 }
 
 func (m *localStore) Delete(key string, opts ...store.DeleteOption) error {
@@ -194,7 +216,11 @@ func (m *localStore) delete(key string) {
 	if len(m.options.Namespace) > 0 {
 		key = m.options.Namespace + "/" + key
 	}
-	m.store.Delete(key)
+	m.store.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte(m.options.Namespace))
+		err := b.Delete([]byte(key))
+		return err
+	})
 }
 
 func (m *localStore) Options() store.Options {
@@ -232,10 +258,22 @@ func (m *localStore) List(opts ...store.ListOption) ([]string, error) {
 }
 
 func (m *localStore) list(limit, offset uint) []string {
-	allItems := m.store.Items()
+	allItems := []string{}
+	m.store.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte(m.options.Namespace))
+		// Iterate over items in sorted key order.
+		if err := b.ForEach(func(k, v []byte) error {
+			allItems = append(allItems, string(k))
+			return nil
+		}); err != nil {
+			return err
+		}
+
+		return nil
+	})
 	allKeys := make([]string, len(allItems))
 	i := 0
-	for k := range allItems {
+	for _, k := range allItems {
 		if len(m.options.Suffix) > 0 {
 			k = strings.TrimSuffix(k, m.options.Suffix)
 		}
