@@ -7,21 +7,34 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/micro/go-micro/v2/api/resolver"
+	"github.com/micro/go-micro/v2/api/resolver/path"
 	"github.com/micro/go-micro/v2/auth"
 	"github.com/micro/go-micro/v2/logger"
 )
 
 // CombinedAuthHandler wraps a server and authenticates requests
-func CombinedAuthHandler(h http.Handler) http.Handler {
+func CombinedAuthHandler(namespace string, r resolver.Resolver, h http.Handler) http.Handler {
+	if r == nil {
+		r = path.NewResolver()
+	}
+	if len(namespace) == 0 {
+		namespace = "go.micro"
+	}
+
 	return authHandler{
-		handler: h,
-		auth:    auth.DefaultAuth,
+		handler:   h,
+		resolver:  r,
+		auth:      auth.DefaultAuth,
+		namespace: namespace,
 	}
 }
 
 type authHandler struct {
-	handler http.Handler
-	auth    auth.Auth
+	handler   http.Handler
+	auth      auth.Auth
+	resolver  resolver.Resolver
+	namespace string
 }
 
 func (h authHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
@@ -65,17 +78,35 @@ func (h authHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		w.WriteHeader(http.StatusForbidden)
 	}
 
+	// Determine the name of the service being requested
+	endpoint, err := h.resolver.Resolve(req)
+	if err == resolver.ErrInvalidPath || err == resolver.ErrNotFound {
+		// a file not served by the resolver has been requested (e.g. favicon.ico)
+		endpoint = &resolver.Endpoint{Path: req.URL.Path}
+	} else if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	// construct the resource name, e.g. home => go.micro.web.home
+	resName := h.namespace
+	if len(endpoint.Name) > 0 {
+		resName = resName + "." + endpoint.Name
+	}
+
+	// determine the resource path. there is an inconsistency in how resolvers
+	// use method, some use it as Users.ReadUser (the rpc method), and others
+	// use it as the HTTP method, e.g GET. TODO: Refactor this to make it consistent.
+	resEndpoint := endpoint.Path
+	if len(endpoint.Path) == 0 {
+		resEndpoint = endpoint.Method
+	}
+
 	// Perform the verification check to see if the account has access to
 	// the resource they're requesting
-	err = h.auth.Verify(acc, &auth.Resource{
-		Type:      "service",
-		Name:      "go.micro.web",
-		Endpoint:  req.URL.Path,
-		Namespace: namespace,
-	})
-
-	// The account has the necessary permissions to access the resource
-	if err == nil {
+	res := &auth.Resource{Type: "service", Name: resName, Endpoint: resEndpoint, Namespace: namespace}
+	if err := h.auth.Verify(acc, res); err == nil {
+		// The account has the necessary permissions to access the resource
 		h.handler.ServeHTTP(w, req)
 		return
 	}
