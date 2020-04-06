@@ -188,9 +188,9 @@ func AuthHandler(fn func() auth.Auth) server.HandlerWrapper {
 			// Check the accounts namespace matches the namespace we're operating
 			// within. If not forbid the request and log the occurance.
 			if account.Namespace != namespace {
-				logger.Warnf("Cross namespace request forbidden: account %v (%v) requested access to %v %v in the %v namespace",
+				logger.Debugf("Cross namespace request forbidden: account %v (%v) requested access to %v %v in the %v namespace",
 					account.ID, account.Namespace, req.Service(), req.Endpoint(), namespace)
-				return errors.Forbidden(req.Service(), "cross namespace request")
+				// return errors.Forbidden(req.Service(), "cross namespace request")
 			}
 
 			// construct the resource
