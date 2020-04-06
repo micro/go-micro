@@ -148,7 +148,7 @@ func namespaceFromRequest(req *http.Request) (string, error) {
 		// fallback to req.Host
 		var err error
 		host, _, err = net.SplitHostPort(req.Host)
-		if err != nil && err.Error() == "missing port in address" {
+		if err != nil && strings.Contains(err.Error(), "missing port in address") {
 			host = req.Host
 		}
 	}
