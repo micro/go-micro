@@ -76,7 +76,7 @@ func (h authHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	// within. If not forbid the request and log the occurance.
 	if acc.Namespace != namespace {
 		logger.Warnf("Cross namespace request forbidden: account %v (%v) requested access to %v in the %v namespace", acc.ID, acc.Namespace, req.URL.Path, namespace)
-		w.WriteHeader(http.StatusForbidden)
+		http.Error(w, "Forbidden namespace", 403)
 	}
 
 	// Determine the name of the service being requested
@@ -86,9 +86,9 @@ func (h authHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		endpoint = &resolver.Endpoint{Path: req.URL.Path}
 	} else if err != nil {
 		logger.Error(err)
-		w.WriteHeader(http.StatusInternalServerError)
+		http.Error(w, err.Error(), 500)
 		return
-	} else if err == nil {
+	} else {
 		// set the endpoint in the context so it can be used to resolve
 		// the request later
 		ctx := context.WithValue(req.Context(), resolver.Endpoint{}, endpoint)
@@ -121,14 +121,14 @@ func (h authHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	// The account is set, but they don't have enough permissions, hence
 	// we return a forbidden error.
 	if len(acc.ID) > 0 {
-		w.WriteHeader(http.StatusForbidden)
+		http.Error(w, "Forbidden request", 403)
 		return
 	}
 
 	// If there is no auth login url set, 401
 	loginURL := h.auth.Options().LoginURL
 	if loginURL == "" {
-		w.WriteHeader(http.StatusUnauthorized)
+		http.Error(w, "unauthorized request", 401)
 		return
 	}
 
@@ -159,6 +159,7 @@ func namespaceFromRequest(req *http.Request) (string, error) {
 		return auth.DefaultNamespace, nil
 	}
 
+	// TODO: this logic needs to be replaced with usage of publicsuffix
 	// if host is not a subdomain, deturn default namespace
 	comps := strings.Split(host, ".")
 	if len(comps) != 3 {
