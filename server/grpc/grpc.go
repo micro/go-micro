@@ -670,8 +670,8 @@ func (g *grpcServer) Register() error {
 	g.RUnlock()
 
 	if !registered {
-		if logger.V(logger.InfoLevel, logger.DefaultLogger) {
-			logger.Infof("Registry [%s] Registering node: %s", config.Registry.String(), node.Id)
+		if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+			logger.Debugf("Registry [%s] Registering node: %s", config.Registry.String(), node.Id)
 		}
 	}
 
@@ -708,8 +708,8 @@ func (g *grpcServer) Register() error {
 			opts = append(opts, broker.DisableAutoAck())
 		}
 
-		if logger.V(logger.InfoLevel, logger.DefaultLogger) {
-			logger.Infof("Subscribing to topic: %s", sb.Topic())
+		if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+			logger.Debug("Subscribing to topic: %s", sb.Topic())
 		}
 		sub, err := config.Broker.Subscribe(sb.Topic(), handler, opts...)
 		if err != nil {
@@ -764,8 +764,8 @@ func (g *grpcServer) Deregister() error {
 		Nodes:   []*registry.Node{node},
 	}
 
-	if logger.V(logger.InfoLevel, logger.DefaultLogger) {
-		logger.Infof("Deregistering node: %s", node.Id)
+	if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+		logger.Debugf("Deregistering node: %s", node.Id)
 	}
 	if err := config.Registry.Deregister(service); err != nil {
 		return err
@@ -783,8 +783,8 @@ func (g *grpcServer) Deregister() error {
 
 	for sb, subs := range g.subscribers {
 		for _, sub := range subs {
-			if logger.V(logger.InfoLevel, logger.DefaultLogger) {
-				logger.Infof("Unsubscribing from topic: %s", sub.Topic())
+			if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+				logger.Debugf("Unsubscribing from topic: %s", sub.Topic())
 			}
 			sub.Unsubscribe()
 		}
@@ -842,11 +842,14 @@ func (g *grpcServer) Start() error {
 	if len(g.subscribers) > 0 {
 		// connect to the broker
 		if err := config.Broker.Connect(); err != nil {
+			if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
+				logger.Errorf("Broker [%s] connect error: %v", config.Broker.String(), err)
+			}
 			return err
 		}
 
-		if logger.V(logger.InfoLevel, logger.DefaultLogger) {
-			logger.Infof("Broker [%s] Connected to %s", config.Broker.String(), config.Broker.Address())
+		if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+			logger.Debugf("Broker [%s] Connected to %s", config.Broker.String(), config.Broker.Address())
 		}
 	}
 
@@ -923,11 +926,15 @@ func (g *grpcServer) Start() error {
 		// close transport
 		ch <- nil
 
-		if logger.V(logger.InfoLevel, logger.DefaultLogger) {
-			logger.Infof("Broker [%s] Disconnected from %s", config.Broker.String(), config.Broker.Address())
+		if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+			logger.Debugf("Broker [%s] Disconnected from %s", config.Broker.String(), config.Broker.Address())
 		}
 		// disconnect broker
-		config.Broker.Disconnect()
+		if err := config.Broker.Disconnect(); err != nil {
+			if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
+				logger.Errorf("Broker [%s] disconnect error: %v", config.Broker.String(), err)
+			}
+		}
 	}()
 
 	// mark the server as started
