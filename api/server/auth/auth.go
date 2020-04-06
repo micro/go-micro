@@ -1,14 +1,12 @@
 package auth
 
 import (
-	"encoding/json"
+	"context"
 	"fmt"
 	"net"
 	"net/http"
 	"net/url"
 	"strings"
-
-	"github.com/micro/go-micro/v2/metadata"
 
 	"github.com/micro/go-micro/v2/api/resolver"
 	"github.com/micro/go-micro/v2/api/resolver/path"
@@ -93,10 +91,8 @@ func (h authHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	} else if err == nil {
 		// set the endpoint in the context so it can be used to resolve
 		// the request later
-		if bytes, err := json.Marshal(endpoint); err == nil {
-			ctx := metadata.Set(req.Context(), "endpoint", string(bytes))
-			*req = *req.WithContext(ctx)
-		}
+		ctx := context.WithValue(req.Context(), resolver.Endpoint{}, endpoint)
+		*req = *req.WithContext(ctx)
 	}
 
 	// construct the resource name, e.g. home => go.micro.web.home
