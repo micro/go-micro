@@ -60,11 +60,11 @@ func (e *etcdStore) init() error {
 	}
 	e.client = client
 	ns := ""
-	if len(e.options.Prefix) > 0 {
-		ns = e.options.Prefix
+	if len(e.options.Table) > 0 {
+		ns = e.options.Table
 	}
-	if len(e.options.Namespace) > 0 {
-		ns = e.options.Namespace + "/" + ns
+	if len(e.options.Database) > 0 {
+		ns = e.options.Database + "/" + ns
 	}
 	if len(ns) > 0 {
 		e.client.KV = namespace.NewKV(e.client.KV, ns)

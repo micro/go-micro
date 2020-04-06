@@ -12,7 +12,7 @@ import (
 func TestMemoryReInit(t *testing.T) {
 	s := NewStore(store.Prefix("aaa"))
 	s.Init(store.Prefix(""))
-	if len(s.Options().Prefix) > 0 {
+	if len(s.Options().Table) > 0 {
 		t.Error("Init didn't reinitialise the store")
 	}
 }
@@ -26,12 +26,6 @@ func TestMemoryBasic(t *testing.T) {
 func TestMemoryPrefix(t *testing.T) {
 	s := NewStore()
 	s.Init(store.Prefix("some-prefix"))
-	basictest(s, t)
-}
-
-func TestMemorySuffix(t *testing.T) {
-	s := NewStore()
-	s.Init(store.Suffix("some-suffix"))
 	basictest(s, t)
 }
 
