@@ -227,7 +227,12 @@ var (
 		&cli.StringFlag{
 			Name:    "store_database",
 			EnvVars: []string{"MICRO_STORE_DATABASE"},
-			Usage:   "Namespace for store data",
+			Usage:   "Database option for the underlying store",
+		},
+		&cli.StringFlag{
+			Name:    "store_table",
+			EnvVars: []string{"MICRO_STORE_Table"},
+			Usage:   "Table option for the underlying store",
 		},
 		&cli.StringFlag{
 			Name:    "transport",
@@ -624,7 +629,13 @@ func (c *cmd) Before(ctx *cli.Context) error {
 
 	if len(ctx.String("store_database")) > 0 {
 		if err := (*c.opts.Store).Init(store.Database(ctx.String("store_database"))); err != nil {
-			logger.Fatalf("Error configuring store: %v", err)
+			logger.Fatalf("Error configuring store database option: %v", err)
+		}
+	}
+
+	if len(ctx.String("store_table")) > 0 {
+		if err := (*c.opts.Store).Init(store.Table(ctx.String("store_table"))); err != nil {
+			logger.Fatalf("Error configuring store table option: %v", err)
 		}
 	}
 
