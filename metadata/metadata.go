@@ -34,7 +34,7 @@ func (md Metadata) Delete(key string) {
 
 // Copy makes a copy of the metadata
 func Copy(md Metadata) Metadata {
-	cmd := make(Metadata)
+	cmd := make(Metadata, len(md))
 	for k, v := range md {
 		cmd[k] = v
 	}
@@ -86,7 +86,7 @@ func FromContext(ctx context.Context) (Metadata, bool) {
 	}
 
 	// capitalise all values
-	newMD := make(map[string]string, len(md))
+	newMD := make(Metadata, len(md))
 	for k, v := range md {
 		newMD[strings.Title(k)] = v
 	}
@@ -105,7 +105,7 @@ func MergeContext(ctx context.Context, patchMd Metadata, overwrite bool) context
 		ctx = context.Background()
 	}
 	md, _ := ctx.Value(MetadataKey{}).(Metadata)
-	cmd := make(Metadata)
+	cmd := make(Metadata, len(md))
 	for k, v := range md {
 		cmd[k] = v
 	}
