@@ -2,7 +2,6 @@
 package path
 
 import (
-	"errors"
 	"net/http"
 	"strings"
 
@@ -13,7 +12,7 @@ type Resolver struct{}
 
 func (r *Resolver) Resolve(req *http.Request) (*resolver.Endpoint, error) {
 	if req.URL.Path == "/" {
-		return nil, errors.New("unknown name")
+		return nil, resolver.ErrNotFound
 	}
 	parts := strings.Split(req.URL.Path[1:], "/")
 	return &resolver.Endpoint{
