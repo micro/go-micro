@@ -133,20 +133,17 @@ func (h authHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 func namespaceFromRequest(req *http.Request) (string, error) {
 	// determine the host, e.g. dev.micro.mu:8080
-	host := req.URL.Host
+	host := req.URL.Hostname()
 	if len(host) == 0 {
-		host = req.Host
+		// fallback to req.Host
+		host, _, _ = net.SplitHostPort(req.Host)
 	}
+
+	logger.Infof("Host is %v", host)
 
 	// check for an ip address
 	if net.ParseIP(host) != nil {
 		return auth.DefaultNamespace, nil
-	}
-
-	// split the host to remove the port
-	host, _, err := net.SplitHostPort(req.Host)
-	if err != nil {
-		return "", err
 	}
 
 	// check for dev enviroment

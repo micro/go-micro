@@ -268,7 +268,7 @@ func (s *service) stop() error {
 
 func (s *service) Client() *http.Client {
 	rt := mhttp.NewRoundTripper(
-		mhttp.WithRegistry(registry.DefaultRegistry),
+		mhttp.WithRegistry(s.opts.Registry),
 	)
 	return &http.Client{
 		Transport: rt,
