@@ -1,11 +1,14 @@
 package auth
 
 import (
+	"encoding/json"
 	"fmt"
 	"net"
 	"net/http"
 	"net/url"
 	"strings"
+
+	"github.com/micro/go-micro/v2/metadata"
 
 	"github.com/micro/go-micro/v2/api/resolver"
 	"github.com/micro/go-micro/v2/api/resolver/path"
@@ -84,8 +87,16 @@ func (h authHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		// a file not served by the resolver has been requested (e.g. favicon.ico)
 		endpoint = &resolver.Endpoint{Path: req.URL.Path}
 	} else if err != nil {
+		logger.Error(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
+	} else if err == nil {
+		// set the endpoint in the context so it can be used to resolve
+		// the request later
+		if bytes, err := json.Marshal(endpoint); err == nil {
+			ctx := metadata.Set(req.Context(), "endpoint", string(bytes))
+			*req = *req.WithContext(ctx)
+		}
 	}
 
 	// construct the resource name, e.g. home => go.micro.web.home
@@ -132,14 +143,15 @@ func (h authHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 }
 
 func namespaceFromRequest(req *http.Request) (string, error) {
+	// needed to tmp debug host in prod. will be removed.
+	logger.Infof("Host is '%v'; URL Host is '%v'; URL Hostname is '%v'", req.Host, req.URL.Host, req.URL.Hostname())
+
 	// determine the host, e.g. dev.micro.mu:8080
 	host := req.URL.Hostname()
 	if len(host) == 0 {
 		// fallback to req.Host
 		host, _, _ = net.SplitHostPort(req.Host)
 	}
-
-	logger.Infof("Host is %v", host)
 
 	// check for an ip address
 	if net.ParseIP(host) != nil {
