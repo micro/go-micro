@@ -31,18 +31,17 @@ func Nodes(a ...string) Option {
 	}
 }
 
-// Namespace allows multiple isolated stores to be kept in one backend, if supported.
-// For example multiple tables in a SQL store.
-func Namespace(ns string) Option {
+// Database allows multiple isolated stores to be kept in one backend, if supported.
+func Database(db string) Option {
 	return func(o *Options) {
-		o.Database = ns
+		o.Database = db
 	}
 }
 
-// Prefix sets a global prefix on all keys
-func Prefix(p string) Option {
+// Table is analagous to a table in database backends or a key prefix in KV backends
+func Table(t string) Option {
 	return func(o *Options) {
-		o.Table = p
+		o.Table = t
 	}
 }
 
