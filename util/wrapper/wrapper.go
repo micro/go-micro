@@ -175,7 +175,7 @@ func AuthHandler(fn func() auth.Auth) server.HandlerWrapper {
 			// Get the namespace for the request
 			namespace, ok := metadata.Get(ctx, auth.NamespaceKey)
 			if !ok {
-				logger.Errorf("Missing request namespace")
+				logger.Debugf("Missing request namespace")
 				namespace = auth.DefaultNamespace
 			}
 
