@@ -20,8 +20,10 @@ type Service interface {
 	Run() error
 }
 
+//Option for web
 type Option func(o *Options)
 
+//Web basic Defaults
 var (
 	// For serving
 	DefaultName    = "go-web"
