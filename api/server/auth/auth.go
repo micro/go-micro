@@ -146,7 +146,11 @@ func namespaceFromRequest(req *http.Request) (string, error) {
 	host := req.URL.Hostname()
 	if len(host) == 0 {
 		// fallback to req.Host
-		host, _, _ = net.SplitHostPort(req.Host)
+		var err error
+		host, _, err = net.SplitHostPort(req.Host)
+		if err != nil && err.Error() == "missing port in address" {
+			host = req.Host
+		}
 	}
 
 	// check for an ip address
