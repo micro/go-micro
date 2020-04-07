@@ -44,7 +44,6 @@ type fileStore struct {
 }
 
 func (m *fileStore) Init(opts ...store.Option) error {
-	m.options = store.Options{}
 	return m.init(opts...)
 }
 
