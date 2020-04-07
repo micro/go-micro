@@ -10,7 +10,7 @@ import (
 	gcli "github.com/micro/go-micro/v2/client/grpc"
 	memTrace "github.com/micro/go-micro/v2/debug/trace/memory"
 	gsrv "github.com/micro/go-micro/v2/server/grpc"
-	memStore "github.com/micro/go-micro/v2/store/memory"
+	fileStore "github.com/micro/go-micro/v2/store/file"
 )
 
 func init() {
@@ -19,7 +19,7 @@ func init() {
 	// default server
 	server.DefaultServer = gsrv.NewServer()
 	// default store
-	store.DefaultStore = memStore.NewStore()
+	store.DefaultStore = fileStore.NewStore()
 	// set default trace
 	trace.DefaultTracer = memTrace.NewTracer()
 }
