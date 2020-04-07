@@ -1,27 +1,41 @@
 package auth
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"net/http"
 	"net/url"
 	"strings"
 
+	"github.com/micro/go-micro/v2/api/resolver"
+	"github.com/micro/go-micro/v2/api/resolver/path"
 	"github.com/micro/go-micro/v2/auth"
 	"github.com/micro/go-micro/v2/logger"
 )
 
 // CombinedAuthHandler wraps a server and authenticates requests
-func CombinedAuthHandler(h http.Handler) http.Handler {
+func CombinedAuthHandler(namespace string, r resolver.Resolver, h http.Handler) http.Handler {
+	if r == nil {
+		r = path.NewResolver()
+	}
+	if len(namespace) == 0 {
+		namespace = "go.micro"
+	}
+
 	return authHandler{
-		handler: h,
-		auth:    auth.DefaultAuth,
+		handler:   h,
+		resolver:  r,
+		auth:      auth.DefaultAuth,
+		namespace: namespace,
 	}
 }
 
 type authHandler struct {
-	handler http.Handler
-	auth    auth.Auth
+	handler   http.Handler
+	auth      auth.Auth
+	resolver  resolver.Resolver
+	namespace string
 }
 
 func (h authHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
@@ -61,21 +75,45 @@ func (h authHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	// Check the accounts namespace matches the namespace we're operating
 	// within. If not forbid the request and log the occurance.
 	if acc.Namespace != namespace {
-		logger.Warnf("Cross namespace request forbidden: account %v (%v) requested access to %v in the %v namespace", acc.ID, acc.Namespace, req.URL.Path, namespace)
-		w.WriteHeader(http.StatusForbidden)
+		logger.Debugf("Cross namespace request warning: account %v (%v) requested access to %v in the %v namespace", acc.ID, acc.Namespace, req.URL.Path, namespace)
+		// http.Error(w, "Forbidden namespace", 403)
+	}
+
+	// Determine the name of the service being requested
+	endpoint, err := h.resolver.Resolve(req)
+	if err == resolver.ErrInvalidPath || err == resolver.ErrNotFound {
+		// a file not served by the resolver has been requested (e.g. favicon.ico)
+		endpoint = &resolver.Endpoint{Path: req.URL.Path}
+	} else if err != nil {
+		logger.Error(err)
+		http.Error(w, err.Error(), 500)
+		return
+	} else {
+		// set the endpoint in the context so it can be used to resolve
+		// the request later
+		ctx := context.WithValue(req.Context(), resolver.Endpoint{}, endpoint)
+		*req = *req.Clone(ctx)
+	}
+
+	// construct the resource name, e.g. home => go.micro.web.home
+	resName := h.namespace
+	if len(endpoint.Name) > 0 {
+		resName = resName + "." + endpoint.Name
+	}
+
+	// determine the resource path. there is an inconsistency in how resolvers
+	// use method, some use it as Users.ReadUser (the rpc method), and others
+	// use it as the HTTP method, e.g GET. TODO: Refactor this to make it consistent.
+	resEndpoint := endpoint.Path
+	if len(endpoint.Path) == 0 {
+		resEndpoint = endpoint.Method
 	}
 
 	// Perform the verification check to see if the account has access to
 	// the resource they're requesting
-	err = h.auth.Verify(acc, &auth.Resource{
-		Type:      "service",
-		Name:      "go.micro.web",
-		Endpoint:  req.URL.Path,
-		Namespace: namespace,
-	})
-
-	// The account has the necessary permissions to access the resource
-	if err == nil {
+	res := &auth.Resource{Type: "service", Name: resName, Endpoint: resEndpoint, Namespace: namespace}
+	if err := h.auth.Verify(acc, res); err == nil {
+		// The account has the necessary permissions to access the resource
 		h.handler.ServeHTTP(w, req)
 		return
 	}
@@ -83,14 +121,14 @@ func (h authHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	// The account is set, but they don't have enough permissions, hence
 	// we return a forbidden error.
 	if len(acc.ID) > 0 {
-		w.WriteHeader(http.StatusForbidden)
+		http.Error(w, "Forbidden request", 403)
 		return
 	}
 
 	// If there is no auth login url set, 401
 	loginURL := h.auth.Options().LoginURL
 	if loginURL == "" {
-		w.WriteHeader(http.StatusUnauthorized)
+		http.Error(w, "unauthorized request", 401)
 		return
 	}
 
@@ -101,14 +139,19 @@ func (h authHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 }
 
 func namespaceFromRequest(req *http.Request) (string, error) {
+	// needed to tmp debug host in prod. will be removed.
+	logger.Infof("Host is '%v'; URL Host is '%v'; URL Hostname is '%v'", req.Host, req.URL.Host, req.URL.Hostname())
+
 	// determine the host, e.g. dev.micro.mu:8080
 	host := req.URL.Hostname()
 	if len(host) == 0 {
 		// fallback to req.Host
-		host, _, _ = net.SplitHostPort(req.Host)
+		var err error
+		host, _, err = net.SplitHostPort(req.Host)
+		if err != nil && strings.Contains(err.Error(), "missing port in address") {
+			host = req.Host
+		}
 	}
-
-	logger.Infof("Host is %v", host)
 
 	// check for an ip address
 	if net.ParseIP(host) != nil {
@@ -120,6 +163,7 @@ func namespaceFromRequest(req *http.Request) (string, error) {
 		return auth.DefaultNamespace, nil
 	}
 
+	// TODO: this logic needs to be replaced with usage of publicsuffix
 	// if host is not a subdomain, deturn default namespace
 	comps := strings.Split(host, ".")
 	if len(comps) != 3 {

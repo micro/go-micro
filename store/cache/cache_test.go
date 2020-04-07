@@ -10,7 +10,7 @@ import (
 )
 
 func TestCache(t *testing.T) {
-	l0, l1, l2 := memory.NewStore(store.Namespace("l0")), memory.NewStore(store.Prefix("l1")), memory.NewStore(store.Suffix("l2"))
+	l0, l1, l2 := memory.NewStore(store.Database("l0")), memory.NewStore(store.Table("l1")), memory.NewStore()
 	_, _, _ = l0.Init(), l1.Init(), l2.Init()
 
 	assert := assert.New(t)
