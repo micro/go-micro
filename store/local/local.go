@@ -77,7 +77,7 @@ func (m *localStore) Read(key string, opts ...store.ReadOption) ([]*store.Record
 		opts = append(opts, store.ListOffset(readOpts.Offset))
 		k, err := m.List(opts...)
 		if err != nil {
-			return nil, errors.Wrap(err, "Memory: Read couldn't List()")
+			return nil, errors.Wrap(err, "Local: Read couldn't List()")
 		}
 		keys = k
 	} else {
@@ -92,7 +92,6 @@ func (m *localStore) Read(key string, opts ...store.ReadOption) ([]*store.Record
 		}
 		results = append(results, r)
 	}
-
 	return results, nil
 }
 
@@ -108,7 +107,6 @@ func (m *localStore) get(k string) (*store.Record, error) {
 	}
 	store, err := bolt.Open(m.fullFilePath, 0700, &bolt.Options{Timeout: 1 * time.Second})
 	if err != nil {
-		fmt.Println("Error creating file:", err)
 		return nil, err
 	}
 	defer store.Close()
@@ -120,7 +118,6 @@ func (m *localStore) get(k string) (*store.Record, error) {
 		return nil
 	})
 	if err != nil {
-		fmt.Println("Error creating bucket: ", err)
 		return nil, err
 	}
 	var value []byte
@@ -142,6 +139,9 @@ func (m *localStore) get(k string) (*store.Record, error) {
 	newRecord.Key = storedRecord.Key
 	newRecord.Value = storedRecord.Value
 	if !storedRecord.ExpiresAt.IsZero() {
+		if storedRecord.ExpiresAt.Before(time.Now()) {
+			return nil, micro_store.ErrNotFound
+		}
 		newRecord.Expiry = time.Until(storedRecord.ExpiresAt)
 	}
 
@@ -158,8 +158,7 @@ func (m *localStore) Write(r *store.Record, opts ...store.WriteOption) error {
 		// Copy the record before applying options, or the incoming record will be mutated
 		newRecord := store.Record{}
 		newRecord.Key = r.Key
-		newRecord.Value = make([]byte, len(r.Value))
-		copy(newRecord.Value, r.Value)
+		newRecord.Value = r.Value
 		newRecord.Expiry = r.Expiry
 
 		if !writeOpts.Expiry.IsZero() {
@@ -168,14 +167,12 @@ func (m *localStore) Write(r *store.Record, opts ...store.WriteOption) error {
 		if writeOpts.TTL != 0 {
 			newRecord.Expiry = writeOpts.TTL
 		}
-		m.set(&newRecord)
-	} else {
-		m.set(r)
+		return m.set(&newRecord)
 	}
-	return nil
+	return m.set(r)
 }
 
-func (m *localStore) set(r *store.Record) {
+func (m *localStore) set(r *store.Record) error {
 	key := r.Key
 	if len(m.options.Suffix) > 0 {
 		key = key + m.options.Suffix
@@ -200,14 +197,19 @@ func (m *localStore) set(r *store.Record) {
 
 	store, err := bolt.Open(m.fullFilePath, 0700, &bolt.Options{Timeout: 1 * time.Second})
 	if err != nil {
-		fmt.Println("Error creating file:", err)
+		return err
 	}
 	defer store.Close()
-	store.Update(func(tx *bolt.Tx) error {
+	return store.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(m.options.Namespace))
-		fmt.Println("b", b)
-		err := b.Put([]byte(key), iJSON)
-		return err
+		if b == nil {
+			var err error
+			b, err = tx.CreateBucketIfNotExists([]byte(m.options.Namespace))
+			if err != nil {
+				return err
+			}
+		}
+		return b.Put([]byte(key), iJSON)
 	})
 }
 
@@ -216,11 +218,10 @@ func (m *localStore) Delete(key string, opts ...store.DeleteOption) error {
 	for _, o := range opts {
 		o(&deleteOptions)
 	}
-	m.delete(key)
-	return nil
+	return m.delete(key)
 }
 
-func (m *localStore) delete(key string) {
+func (m *localStore) delete(key string) error {
 	if len(m.options.Suffix) > 0 {
 		key = key + m.options.Suffix
 	}
@@ -232,15 +233,18 @@ func (m *localStore) delete(key string) {
 	}
 	store, err := bolt.Open(m.fullFilePath, 0700, &bolt.Options{Timeout: 1 * time.Second})
 	if err != nil {
-		fmt.Println("Error creating file:", err)
-		return
+		return err
 	}
 	defer store.Close()
-	store.Update(func(tx *bolt.Tx) error {
+	return store.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(m.options.Namespace))
 		err := b.Delete([]byte(key))
 		return err
 	})
+}
+
+func (m *localStore) deleteAll() error {
+	return os.Remove(m.fullFilePath)
 }
 
 func (m *localStore) Options() store.Options {
@@ -286,8 +290,18 @@ func (m *localStore) list(limit, offset uint) []string {
 	defer store.Close()
 	store.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(m.options.Namespace))
-		// Iterate over items in sorted key order.
+		// @todo very inefficient
 		if err := b.ForEach(func(k, v []byte) error {
+			storedRecord := &internalRecord{}
+			err := json.Unmarshal(v, storedRecord)
+			if err != nil {
+				return err
+			}
+			if !storedRecord.ExpiresAt.IsZero() {
+				if storedRecord.ExpiresAt.Before(time.Now()) {
+					return nil
+				}
+			}
 			allItems = append(allItems, string(k))
 			return nil
 		}); err != nil {
@@ -296,6 +310,7 @@ func (m *localStore) list(limit, offset uint) []string {
 
 		return nil
 	})
+	fmt.Println("allkeys", allItems)
 	allKeys := make([]string, len(allItems))
 	i := 0
 	for _, k := range allItems {
@@ -311,6 +326,7 @@ func (m *localStore) list(limit, offset uint) []string {
 		allKeys[i] = k
 		i++
 	}
+	fmt.Println("limit, offset", limit, offset)
 	if limit != 0 || offset != 0 {
 		sort.Slice(allKeys, func(i, j int) bool { return allKeys[i] < allKeys[j] })
 		min := func(i, j uint) uint {
