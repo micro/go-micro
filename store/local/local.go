@@ -40,11 +40,11 @@ func (m *localStore) Init(opts ...store.Option) error {
 	for _, o := range opts {
 		o(&m.options)
 	}
-	if m.options.Namespace == "" {
-		m.options.Namespace = "default"
+	if m.options.Database == "" {
+		m.options.Database = "default"
 	}
 	dir := filepath.Join(os.TempDir(), "micro")
-	fname := m.options.Namespace + ".db"
+	fname := m.options.Database + ".db"
 	_ = os.Mkdir(dir, 0700)
 	m.dir = dir
 	m.fileName = fname
@@ -64,14 +64,11 @@ func (m *localStore) Read(key string, opts ...store.ReadOption) ([]*store.Record
 
 	var keys []string
 
-	// Handle Prefix / suffix
-	if readOpts.Prefix || readOpts.Suffix {
+	// Handle Prefix
+	if readOpts.Prefix {
 		var opts []store.ListOption
 		if readOpts.Prefix {
 			opts = append(opts, store.ListPrefix(key))
-		}
-		if readOpts.Suffix {
-			opts = append(opts, store.ListSuffix(key))
 		}
 		opts = append(opts, store.ListLimit(readOpts.Limit))
 		opts = append(opts, store.ListOffset(readOpts.Offset))
@@ -96,14 +93,11 @@ func (m *localStore) Read(key string, opts ...store.ReadOption) ([]*store.Record
 }
 
 func (m *localStore) get(k string) (*store.Record, error) {
-	if len(m.options.Suffix) > 0 {
-		k = k + m.options.Suffix
+	if len(m.options.Table) > 0 {
+		k = m.options.Table + "/" + k
 	}
-	if len(m.options.Prefix) > 0 {
-		k = m.options.Prefix + "/" + k
-	}
-	if len(m.options.Namespace) > 0 {
-		k = m.options.Namespace + "/" + k
+	if len(m.options.Database) > 0 {
+		k = m.options.Database + "/" + k
 	}
 	store, err := bolt.Open(m.fullFilePath, 0700, &bolt.Options{Timeout: 1 * time.Second})
 	if err != nil {
@@ -111,7 +105,7 @@ func (m *localStore) get(k string) (*store.Record, error) {
 	}
 	defer store.Close()
 	err = store.Update(func(tx *bolt.Tx) error {
-		_, err := tx.CreateBucketIfNotExists([]byte(m.options.Namespace))
+		_, err := tx.CreateBucketIfNotExists([]byte(m.options.Database))
 		if err != nil {
 			return err
 		}
@@ -123,7 +117,7 @@ func (m *localStore) get(k string) (*store.Record, error) {
 	var value []byte
 	store.View(func(tx *bolt.Tx) error {
 		// @todo this is still very experimental...
-		bucket := tx.Bucket([]byte(m.Options().Namespace))
+		bucket := tx.Bucket([]byte(m.Options().Database))
 		value = bucket.Get([]byte(k))
 		return nil
 	})
@@ -174,14 +168,11 @@ func (m *localStore) Write(r *store.Record, opts ...store.WriteOption) error {
 
 func (m *localStore) set(r *store.Record) error {
 	key := r.Key
-	if len(m.options.Suffix) > 0 {
-		key = key + m.options.Suffix
+	if len(m.options.Table) > 0 {
+		key = m.options.Table + "/" + key
 	}
-	if len(m.options.Prefix) > 0 {
-		key = m.options.Prefix + "/" + key
-	}
-	if len(m.options.Namespace) > 0 {
-		key = m.options.Namespace + "/" + key
+	if len(m.options.Database) > 0 {
+		key = m.options.Database + "/" + key
 	}
 
 	// copy the incoming record and then
@@ -201,10 +192,10 @@ func (m *localStore) set(r *store.Record) error {
 	}
 	defer store.Close()
 	return store.Update(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte(m.options.Namespace))
+		b := tx.Bucket([]byte(m.options.Database))
 		if b == nil {
 			var err error
-			b, err = tx.CreateBucketIfNotExists([]byte(m.options.Namespace))
+			b, err = tx.CreateBucketIfNotExists([]byte(m.options.Database))
 			if err != nil {
 				return err
 			}
@@ -222,14 +213,11 @@ func (m *localStore) Delete(key string, opts ...store.DeleteOption) error {
 }
 
 func (m *localStore) delete(key string) error {
-	if len(m.options.Suffix) > 0 {
-		key = key + m.options.Suffix
+	if len(m.options.Table) > 0 {
+		key = m.options.Table + "/" + key
 	}
-	if len(m.options.Prefix) > 0 {
-		key = m.options.Prefix + "/" + key
-	}
-	if len(m.options.Namespace) > 0 {
-		key = m.options.Namespace + "/" + key
+	if len(m.options.Database) > 0 {
+		key = m.options.Database + "/" + key
 	}
 	store, err := bolt.Open(m.fullFilePath, 0700, &bolt.Options{Timeout: 1 * time.Second})
 	if err != nil {
@@ -237,7 +225,7 @@ func (m *localStore) delete(key string) error {
 	}
 	defer store.Close()
 	return store.Update(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte(m.options.Namespace))
+		b := tx.Bucket([]byte(m.options.Database))
 		err := b.Delete([]byte(key))
 		return err
 	})
@@ -260,22 +248,13 @@ func (m *localStore) List(opts ...store.ListOption) ([]string, error) {
 	allKeys := m.list(listOptions.Limit, listOptions.Offset)
 
 	if len(listOptions.Prefix) > 0 {
-		var prefixKeys []string
+		var TableKeys []string
 		for _, k := range allKeys {
 			if strings.HasPrefix(k, listOptions.Prefix) {
-				prefixKeys = append(prefixKeys, k)
+				TableKeys = append(TableKeys, k)
 			}
 		}
-		allKeys = prefixKeys
-	}
-	if len(listOptions.Suffix) > 0 {
-		var suffixKeys []string
-		for _, k := range allKeys {
-			if strings.HasSuffix(k, listOptions.Suffix) {
-				suffixKeys = append(suffixKeys, k)
-			}
-		}
-		allKeys = suffixKeys
+		allKeys = TableKeys
 	}
 
 	return allKeys, nil
@@ -289,7 +268,7 @@ func (m *localStore) list(limit, offset uint) []string {
 	}
 	defer store.Close()
 	store.Update(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte(m.options.Namespace))
+		b := tx.Bucket([]byte(m.options.Database))
 		// @todo very inefficient
 		if err := b.ForEach(func(k, v []byte) error {
 			storedRecord := &internalRecord{}
@@ -313,14 +292,11 @@ func (m *localStore) list(limit, offset uint) []string {
 	allKeys := make([]string, len(allItems))
 	i := 0
 	for _, k := range allItems {
-		if len(m.options.Suffix) > 0 {
-			k = strings.TrimSuffix(k, m.options.Suffix)
+		if len(m.options.Database) > 0 {
+			k = strings.TrimPrefix(k, m.options.Database+"/")
 		}
-		if len(m.options.Namespace) > 0 {
-			k = strings.TrimPrefix(k, m.options.Namespace+"/")
-		}
-		if len(m.options.Prefix) > 0 {
-			k = strings.TrimPrefix(k, m.options.Prefix+"/")
+		if len(m.options.Table) > 0 {
+			k = strings.TrimPrefix(k, m.options.Table+"/")
 		}
 		allKeys[i] = k
 		i++

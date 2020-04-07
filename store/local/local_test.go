@@ -11,9 +11,9 @@ import (
 )
 
 func TestLocalReInit(t *testing.T) {
-	s := NewStore(store.Prefix("aaa"))
-	s.Init(store.Prefix(""))
-	if len(s.Options().Prefix) > 0 {
+	s := NewStore(store.Table("aaa"))
+	s.Init(store.Table(""))
+	if len(s.Options().Table) > 0 {
 		t.Error("Init didn't reinitialise the store")
 	}
 }
@@ -27,45 +27,27 @@ func TestLocalBasic(t *testing.T) {
 	basictest(s, t)
 }
 
-func TestLocalPrefix(t *testing.T) {
+func TestLocalTable(t *testing.T) {
 	s := NewStore()
-	s.Init(store.Prefix("some-prefix"))
+	s.Init(store.Table("some-Table"))
 	if err := s.(*localStore).deleteAll(); err != nil {
 		t.Logf("Can't delete all: %v", err)
 	}
 	basictest(s, t)
 }
 
-func TestLocalSuffix(t *testing.T) {
+func TestLocalDatabase(t *testing.T) {
 	s := NewStore()
-	s.Init(store.Suffix("some-suffix"))
+	s.Init(store.Database("some-Database"))
 	if err := s.(*localStore).deleteAll(); err != nil {
 		t.Logf("Can't delete all: %v", err)
 	}
 	basictest(s, t)
 }
 
-func TestLocalPrefixSuffix(t *testing.T) {
+func TestLocalDatabaseTable(t *testing.T) {
 	s := NewStore()
-	s.Init(store.Prefix("some-prefix"), store.Prefix("some-suffix"))
-	if err := s.(*localStore).deleteAll(); err != nil {
-		t.Logf("Can't delete all: %v", err)
-	}
-	basictest(s, t)
-}
-
-func TestLocalNamespace(t *testing.T) {
-	s := NewStore()
-	s.Init(store.Namespace("some-namespace"))
-	if err := s.(*localStore).deleteAll(); err != nil {
-		t.Logf("Can't delete all: %v", err)
-	}
-	basictest(s, t)
-}
-
-func TestLocalNamespacePrefix(t *testing.T) {
-	s := NewStore()
-	s.Init(store.Prefix("some-prefix"), store.Namespace("some-namespace"))
+	s.Init(store.Table("some-Table"), store.Database("some-Database"))
 	if err := s.(*localStore).deleteAll(); err != nil {
 		t.Logf("Can't delete all: %v", err)
 	}
@@ -100,7 +82,7 @@ func basictest(s store.Store, t *testing.T) {
 		t.Errorf("Expected %# v, got %# v", store.ErrNotFound, err)
 	}
 
-	// Write 3 records with various expiry and get with prefix
+	// Write 3 records with various expiry and get with Table
 	records := []*store.Record{
 		&store.Record{
 			Key:   "foo",
@@ -127,7 +109,7 @@ func basictest(s store.Store, t *testing.T) {
 	} else {
 		if len(results) != 3 {
 			t.Errorf("Expected 3 items, got %d", len(results))
-			t.Logf("Prefix test: %v\n", spew.Sdump(results))
+			t.Logf("Table test: %v\n", spew.Sdump(results))
 		}
 	}
 	time.Sleep(time.Millisecond * 100)
@@ -136,7 +118,7 @@ func basictest(s store.Store, t *testing.T) {
 	} else {
 		if len(results) != 2 {
 			t.Errorf("Expected 2 items, got %d", len(results))
-			t.Logf("Prefix test: %v\n", spew.Sdump(results))
+			t.Logf("Table test: %v\n", spew.Sdump(results))
 		}
 	}
 	time.Sleep(time.Millisecond * 100)
@@ -145,7 +127,7 @@ func basictest(s store.Store, t *testing.T) {
 	} else {
 		if len(results) != 1 {
 			t.Errorf("Expected 1 item, got %d", len(results))
-			t.Logf("Prefix test: %# v\n", spew.Sdump(results))
+			t.Logf("Table test: %# v\n", spew.Sdump(results))
 		}
 	}
 	if err := s.Delete("foo", func(d *store.DeleteOptions) {}); err != nil {
@@ -186,7 +168,7 @@ func basictest(s store.Store, t *testing.T) {
 	} else {
 		if len(results) != 3 {
 			t.Errorf("Expected 3 items, got %d", len(results))
-			t.Logf("Prefix test: %v\n", spew.Sdump(results))
+			t.Logf("Table test: %v\n", spew.Sdump(results))
 		}
 
 	}
@@ -196,7 +178,7 @@ func basictest(s store.Store, t *testing.T) {
 	} else {
 		if len(results) != 2 {
 			t.Errorf("Expected 2 items, got %d", len(results))
-			t.Logf("Prefix test: %v\n", spew.Sdump(results))
+			t.Logf("Table test: %v\n", spew.Sdump(results))
 		}
 
 	}
@@ -206,7 +188,7 @@ func basictest(s store.Store, t *testing.T) {
 	} else {
 		if len(results) != 1 {
 			t.Errorf("Expected 1 item, got %d", len(results))
-			t.Logf("Prefix test: %# v\n", spew.Sdump(results))
+			t.Logf("Table test: %# v\n", spew.Sdump(results))
 		}
 	}
 	if err := s.Delete("foo"); err != nil {
@@ -220,7 +202,7 @@ func basictest(s store.Store, t *testing.T) {
 		}
 	}
 
-	// Test Prefix, Suffix and WriteOptions
+	// Test Table, Suffix and WriteOptions
 	if err := s.Write(&store.Record{
 		Key:   "foofoobarbar",
 		Value: []byte("something"),
