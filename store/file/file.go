@@ -17,6 +17,16 @@ import (
 	"github.com/pkg/errors"
 )
 
+var (
+	// DefaultDatabase is the namespace that the bbolt store
+	// will use if no namespace is provided.
+	DefaultDatabase = "micro"
+	// DefaultTable when none is specified
+	DefaultTable = "micro"
+	// DefaultDir is the default directory for bbolt files
+	DefaultDir = os.TempDir()
+)
+
 // NewStore returns a memory store
 func NewStore(opts ...store.Option) store.Store {
 	s := &fileStore{
@@ -36,18 +46,17 @@ type fileStore struct {
 }
 
 func (m *fileStore) Init(opts ...store.Option) error {
-	// m.store.Flush()
 	for _, o := range opts {
 		o(&m.options)
 	}
 	if m.options.Database == "" {
-		m.options.Database = "default"
+		m.options.Database = DefaultDatabase
 	}
 	if m.options.Table == "" {
 		// bbolt requires bucketname to not be empty
-		m.options.Table = "default"
+		m.options.Table = DefaultTable
 	}
-	dir := filepath.Join(os.TempDir(), "micro")
+	dir := filepath.Join(DefaultDir, "micro")
 	fname := m.options.Database + ".db"
 	_ = os.Mkdir(dir, 0700)
 	m.dir = dir
