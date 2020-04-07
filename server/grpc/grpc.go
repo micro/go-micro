@@ -614,10 +614,7 @@ func (g *grpcServer) Register() error {
 	}
 
 	// make copy of metadata
-	md := make(meta.Metadata)
-	for k, v := range config.Metadata {
-		md[k] = v
-	}
+	md := meta.Copy(config.Metadata)
 
 	// register service
 	node := &registry.Node{

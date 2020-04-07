@@ -562,10 +562,7 @@ func (s *rpcServer) Register() error {
 	}
 
 	// make copy of metadata
-	md := make(metadata.Metadata)
-	for k, v := range config.Metadata {
-		md[k] = v
-	}
+	md := metadata.Copy(config.Metadata)
 
 	// mq-rpc(eg. nats) doesn't need the port. its addr is queue name.
 	if port != "" {
