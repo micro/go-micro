@@ -1,5 +1,5 @@
 // Package local is a file system backed store
-package local
+package file
 
 import (
 	"encoding/json"
