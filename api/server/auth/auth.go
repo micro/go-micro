@@ -147,11 +147,6 @@ func (h authHandler) NamespaceFromRequest(req *http.Request) string {
 		host = req.Host // host does not contain a port
 	}
 
-	// check for the micro.mu domain
-	if strings.HasSuffix(host, "micro.mu") {
-		return auth.DefaultNamespace
-	}
-
 	// check for an ip address
 	if net.ParseIP(host) != nil {
 		return auth.DefaultNamespace
@@ -169,9 +164,9 @@ func (h authHandler) NamespaceFromRequest(req *http.Request) string {
 		return auth.DefaultNamespace
 	}
 
-	// check to see if the domain is the host, in this
-	// case we return the default namespace
-	if domain == host {
+	// check to see if the domain matches the host of micr.mu, in
+	// these casees we return the default namespace
+	if domain == host || domain == "micro.mu" {
 		return auth.DefaultNamespace
 	}
 
