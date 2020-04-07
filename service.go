@@ -106,11 +106,11 @@ func (s *service) Init(opts ...Option) {
 			logger.Fatal(err)
 		}
 
-		// If the store has no namespace set, fallback to the
+		// If the store has no Table set, fallback to the
 		// services name
-		if len(store.DefaultStore.Options().Namespace) == 0 {
+		if len(store.DefaultStore.Options().Table) == 0 {
 			name := s.opts.Cmd.App().Name
-			store.DefaultStore.Init(store.Namespace(name))
+			store.DefaultStore.Init(store.Table(name))
 		}
 
 		// TODO: replace Cmd.Init with config.Load

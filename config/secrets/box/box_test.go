@@ -57,6 +57,9 @@ func TestBox(t *testing.T) {
 		t.Error(err)
 	}
 	dec, err = alice.Decrypt(enc, secrets.SenderPublicKey(bob.Options().PublicKey))
+	if err != nil {
+		t.Error(err)
+	}
 	if !reflect.DeepEqual(dec, bobSecret) {
 		t.Errorf("Alice's decrypted message didn't match Bob's encrypted message %v != %v", bobSecret, dec)
 	}

@@ -19,7 +19,7 @@ func NewScope(s store.Store, prefix string) Scope {
 
 func (s *Scope) Options() store.Options {
 	o := s.Store.Options()
-	o.Prefix = s.prefix
+	o.Table = s.prefix
 	return o
 }
 

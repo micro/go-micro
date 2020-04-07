@@ -36,8 +36,8 @@ func (s *serviceStore) Init(opts ...store.Option) error {
 	for _, o := range opts {
 		o(&s.options)
 	}
-	s.Namespace = s.options.Namespace
-	s.Prefix = s.options.Prefix
+	s.Namespace = s.options.Database
+	s.Prefix = s.options.Table
 	s.Nodes = s.options.Nodes
 
 	return nil
@@ -165,8 +165,8 @@ func NewStore(opts ...store.Option) store.Store {
 
 	service := &serviceStore{
 		options:   options,
-		Namespace: options.Namespace,
-		Prefix:    options.Prefix,
+		Namespace: options.Database,
+		Prefix:    options.Table,
 		Nodes:     options.Nodes,
 		Client:    pb.NewStoreService("go.micro.store", client.DefaultClient),
 	}

@@ -49,7 +49,7 @@ func Account(id string) store.Option {
 // Namespace sets the KV namespace
 func Namespace(ns string) store.Option {
 	return func(o *store.Options) {
-		o.Namespace = ns
+		o.Database = ns
 	}
 }
 

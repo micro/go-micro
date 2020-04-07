@@ -299,12 +299,12 @@ func (s *sqlStore) configure() error {
 		s.options.Nodes = []string{"localhost:26257"}
 	}
 
-	namespace := s.options.Namespace
+	namespace := s.options.Database
 	if len(namespace) == 0 {
 		namespace = DefaultNamespace
 	}
 
-	prefix := s.options.Prefix
+	prefix := s.options.Table
 	if len(prefix) == 0 {
 		prefix = DefaultPrefix
 	}
