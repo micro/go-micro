@@ -105,8 +105,8 @@ func (w *workersKV) Init(opts ...store.Option) error {
 	for _, o := range opts {
 		o(&w.options)
 	}
-	if len(w.options.Namespace) > 0 {
-		w.namespace = w.options.Namespace
+	if len(w.options.Database) > 0 {
+		w.namespace = w.options.Database
 	}
 	ttl := w.options.Context.Value("STORE_CACHE_TTL")
 	if ttl != nil {
@@ -388,7 +388,7 @@ func NewStore(opts ...store.Option) store.Store {
 	}
 
 	if len(namespace) == 0 {
-		namespace = options.Namespace
+		namespace = options.Database
 	}
 
 	// validate options are not blank or log.Fatal

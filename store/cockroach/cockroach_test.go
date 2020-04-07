@@ -28,7 +28,7 @@ func TestSQL(t *testing.T) {
 	db.Close()
 
 	sqlStore := NewStore(
-		store.Namespace("testsql"),
+		store.Database("testsql"),
 		store.Nodes(connection),
 	)
 
