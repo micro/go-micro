@@ -2,6 +2,7 @@ package auth
 
 import (
 	"net/http"
+	"net/url"
 	"testing"
 
 	"github.com/micro/go-micro/v2/auth"
@@ -28,7 +29,7 @@ func TestNamespaceFromRequest(t *testing.T) {
 
 	for _, tc := range tt {
 		t.Run(tc.Host, func(t *testing.T) {
-			ns := h.NamespaceFromRequest(&http.Request{Host: tc.Host})
+			ns := h.NamespaceFromRequest(&http.Request{Host: tc.Host, URL: &url.URL{Host: tc.Host}})
 			if ns != tc.Namespace {
 				t.Errorf("Expected namespace %v for host %v, actually got %v", tc.Namespace, tc.Host, ns)
 			}
