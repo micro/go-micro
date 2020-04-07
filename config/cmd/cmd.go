@@ -314,6 +314,12 @@ var (
 			EnvVars: []string{"MICRO_CONFIG"},
 			Usage:   "The source of the config to be used to get configuration",
 		},
+		&cli.StringFlag{
+			Name:    "namespace",
+			EnvVars: []string{"MICRO_NAMESPACE"},
+			Usage:   "The namespace the service belongs to",
+			Value:   auth.DefaultNamespace,
+		},
 	}
 
 	DefaultBrokers = map[string]func(...broker.Option) broker.Broker{
@@ -677,6 +683,9 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		authOpts = append(authOpts, auth.Credentials(
 			ctx.String("auth_id"), ctx.String("auth_secret"),
 		))
+	}
+	if len(ctx.String("namespace")) > 0 {
+		authOpts = append(authOpts, auth.Namespace(ctx.String("namespace")))
 	}
 
 	if len(ctx.String("auth_public_key")) > 0 {
