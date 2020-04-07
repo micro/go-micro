@@ -40,7 +40,6 @@ type authHandler struct {
 func (h authHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	// Determine the namespace and set it in the header
 	namespace := h.namespaceFromRequest(req)
-	fmt.Printf("Namespace is %v\n", namespace)
 	req.Header.Set(auth.NamespaceKey, namespace)
 
 	// Extract the token from the request
