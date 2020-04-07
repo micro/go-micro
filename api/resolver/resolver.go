@@ -33,8 +33,6 @@ type Endpoint struct {
 	Method string
 	// HTTP Path e.g /greeter.
 	Path string
-	// Namespace, g.g. go.micro
-	Namespace string
 }
 
 type Options struct {
