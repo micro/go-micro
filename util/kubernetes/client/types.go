@@ -39,9 +39,10 @@ type DeploymentSpec struct {
 
 // DeploymentCondition describes the state of deployment
 type DeploymentCondition struct {
-	Type    string `json:"type"`
-	reason  string `json:"reason,omitempty"`
-	message string `json:"message,omitempty"`
+	LastUpdateTime string `json:"lastUpdateTime"`
+	Type           string `json:"type"`
+	Reason         string `json:"reason,omitempty"`
+	Message        string `json:"message,omitempty"`
 }
 
 // DeploymentStatus is returned when querying deployment
@@ -176,4 +177,9 @@ type ServiceList struct {
 type Template struct {
 	Metadata *Metadata `json:"metadata,omitempty"`
 	PodSpec  *PodSpec  `json:"spec,omitempty"`
+}
+
+// Namespace is a Kubernetes Namespace
+type Namespace struct {
+	Metadata *Metadata `json:"metadata,omitempty"`
 }

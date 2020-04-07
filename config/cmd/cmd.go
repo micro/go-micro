@@ -62,9 +62,7 @@ import (
 	memTracer "github.com/micro/go-micro/v2/debug/trace/memory"
 
 	// auth
-	jwtAuth "github.com/micro/go-micro/v2/auth/jwt"
-	sAuth "github.com/micro/go-micro/v2/auth/service"
-	storeAuth "github.com/micro/go-micro/v2/auth/store"
+	svcAuth "github.com/micro/go-micro/v2/auth/service"
 
 	// auth providers
 	"github.com/micro/go-micro/v2/auth/provider/basic"
@@ -249,9 +247,14 @@ var (
 			Usage:   "Auth for role based access control, e.g. service",
 		},
 		&cli.StringFlag{
-			Name:    "auth_token",
-			EnvVars: []string{"MICRO_AUTH_TOKEN"},
-			Usage:   "Auth token used for client authentication",
+			Name:    "auth_id",
+			EnvVars: []string{"MICRO_AUTH_ID"},
+			Usage:   "Account ID used for client authentication",
+		},
+		&cli.StringFlag{
+			Name:    "auth_secret",
+			EnvVars: []string{"MICRO_AUTH_SECRET"},
+			Usage:   "Account secret used for client authentication",
 		},
 		&cli.StringFlag{
 			Name:    "auth_public_key",
@@ -262,11 +265,6 @@ var (
 			Name:    "auth_private_key",
 			EnvVars: []string{"MICRO_AUTH_PRIVATE_KEY"},
 			Usage:   "Private key for JWT auth (base64 encoded PEM)",
-		},
-		&cli.StringSliceFlag{
-			Name:    "auth_exclude",
-			EnvVars: []string{"MICRO_AUTH_EXCLUDE"},
-			Usage:   "Comma-separated list of endpoints excluded from authentication, e.g. Users.ListUsers",
 		},
 		&cli.StringFlag{
 			Name:    "auth_provider",
@@ -347,9 +345,7 @@ var (
 	}
 
 	DefaultAuths = map[string]func(...auth.Option) auth.Auth{
-		"service": sAuth.NewAuth,
-		"store":   storeAuth.NewAuth,
-		"jwt":     jwtAuth.NewAuth,
+		"service": svcAuth.NewAuth,
 	}
 
 	DefaultAuthProviders = map[string]func(...provider.Option) provider.Provider{
@@ -479,6 +475,8 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		}
 
 		*c.opts.Auth = a()
+		clientOpts = append(clientOpts, client.Auth(*c.opts.Auth))
+		serverOpts = append(serverOpts, server.Auth(*c.opts.Auth))
 	}
 
 	// Set the profile
@@ -607,7 +605,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	}
 
 	if len(ctx.String("store_namespace")) > 0 {
-		if err := (*c.opts.Store).Init(store.Namespace(ctx.String("store_address"))); err != nil {
+		if err := (*c.opts.Store).Init(store.Namespace(ctx.String("store_namespace"))); err != nil {
 			logger.Fatalf("Error configuring store: %v", err)
 		}
 	}
@@ -646,20 +644,17 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		}
 	}
 
-	if len(ctx.String("auth_token")) > 0 {
-		authOpts = append(authOpts, auth.Token(ctx.String("auth_token")))
+	if len(ctx.String("auth_id")) > 0 || len(ctx.String("auth_secret")) > 0 {
+		authOpts = append(authOpts, auth.Credentials(
+			ctx.String("auth_id"), ctx.String("auth_secret"),
+		))
 	}
 
 	if len(ctx.String("auth_public_key")) > 0 {
 		authOpts = append(authOpts, auth.PublicKey(ctx.String("auth_public_key")))
 	}
-
 	if len(ctx.String("auth_private_key")) > 0 {
 		authOpts = append(authOpts, auth.PrivateKey(ctx.String("auth_private_key")))
-	}
-
-	if len(ctx.StringSlice("auth_exclude")) > 0 {
-		authOpts = append(authOpts, auth.Exclude(ctx.StringSlice("auth_exclude")...))
 	}
 
 	if name := ctx.String("auth_provider"); len(name) > 0 {
@@ -687,12 +682,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 
 		authOpts = append(authOpts, auth.Provider(p(provOpts...)))
 	}
-
-	if len(authOpts) > 0 {
-		if err := (*c.opts.Auth).Init(authOpts...); err != nil {
-			logger.Fatalf("Error configuring auth: %v", err)
-		}
-	}
+	(*c.opts.Auth).Init(authOpts...)
 
 	if ctx.String("config") == "service" {
 		opt := config.WithSource(configSrv.NewSource())

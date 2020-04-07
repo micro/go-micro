@@ -9,6 +9,23 @@ import (
 	"github.com/micro/go-micro/v2/server"
 )
 
+type Api interface {
+	// Initialise options
+	Init(...Option) error
+	// Get the options
+	Options() Options
+	// Register a http handler
+	Register(*Endpoint) error
+	// Register a route
+	Deregister(*Endpoint) error
+	// Implemenation of api
+	String() string
+}
+
+type Options struct {}
+
+type Option func(*Options) error
+
 // Endpoint is a mapping between an RPC method and HTTP endpoint
 type Endpoint struct {
 	// RPC Method e.g. Greeter.Hello
@@ -23,6 +40,8 @@ type Endpoint struct {
 	Method []string
 	// HTTP Path e.g /greeter. Expect POSIX regex
 	Path []string
+	// Stream flag
+	Stream bool
 }
 
 // Service represents an API service

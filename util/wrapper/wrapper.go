@@ -9,6 +9,7 @@ import (
 	"github.com/micro/go-micro/v2/debug/stats"
 	"github.com/micro/go-micro/v2/debug/trace"
 	"github.com/micro/go-micro/v2/errors"
+	"github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/metadata"
 	"github.com/micro/go-micro/v2/server"
 )
@@ -31,31 +32,11 @@ type traceWrapper struct {
 
 var (
 	HeaderPrefix = "Micro-"
-	BearerScheme = "Bearer "
 )
 
 func (c *clientWrapper) setHeaders(ctx context.Context) context.Context {
-	// copy metadata
-	mda, _ := metadata.FromContext(ctx)
-	md := metadata.Copy(mda)
-
-	// get auth token
-	if a := c.auth(); a != nil {
-		tk := a.Options().Token
-		// if the token if exists and auth header isn't set then set it
-		if len(tk) > 0 && len(md["Authorization"]) == 0 {
-			md["Authorization"] = BearerScheme + tk
-		}
-	}
-
-	// set headers
-	for k, v := range c.headers {
-		if _, ok := md[k]; !ok {
-			md[k] = v
-		}
-	}
-
-	return metadata.NewContext(ctx, md)
+	// don't overwrite keys
+	return metadata.MergeContext(ctx, c.headers, false)
 }
 
 func (c *clientWrapper) Call(ctx context.Context, req client.Request, rsp interface{}, opts ...client.CallOption) error {
@@ -164,41 +145,64 @@ func AuthHandler(fn func() auth.Auth) server.HandlerWrapper {
 				return h(ctx, req, rsp)
 			}
 
+			// Check for auth service endpoints which should be excluded from auth
+			if strings.HasPrefix(req.Endpoint(), "Auth.") {
+				return h(ctx, req, rsp)
+			}
+
 			// Extract the token if present. Note: if noop is being used
 			// then the token can be blank without erroring
 			var token string
 			if header, ok := metadata.Get(ctx, "Authorization"); ok {
 				// Ensure the correct scheme is being used
-				if !strings.HasPrefix(header, BearerScheme) {
-					return errors.Unauthorized("go.micro.auth", "invalid authorization header. expected Bearer schema")
+				if !strings.HasPrefix(header, auth.BearerScheme) {
+					return errors.Unauthorized(req.Service(), "invalid authorization header. expected Bearer schema")
 				}
 
-				token = header[len(BearerScheme):]
+				token = header[len(auth.BearerScheme):]
 			}
 
-			// Verify the token
-			account, authErr := a.Verify(token)
-
-			// If there is an account, set it in the context
-			if authErr == nil {
-				var err error
-				ctx, err = auth.ContextWithAccount(ctx, account)
-
-				if err != nil {
-					return err
-				}
+			// Get the namespace for the request
+			namespace, ok := metadata.Get(ctx, auth.NamespaceKey)
+			if !ok {
+				logger.Errorf("Missing request namespace")
+				namespace = auth.DefaultNamespace
 			}
 
-			// Return if the user disabled auth on this endpoint
-			for _, e := range a.Options().Exclude {
-				if e == req.Endpoint() {
-					return h(ctx, req, rsp)
-				}
+			// Inspect the token and get the account
+			account, err := a.Inspect(token)
+			if err != nil {
+				account = &auth.Account{Namespace: namespace}
 			}
 
-			// If the authErr is set, prevent the user from calling the endpoint
-			if authErr != nil {
-				return errors.Unauthorized("go.micro.auth", authErr.Error())
+			// Check the accounts namespace matches the namespace we're operating
+			// within. If not forbid the request and log the occurance.
+			if account.Namespace != namespace {
+				logger.Warnf("Cross namespace request forbidden: account %v (%v) requested access to %v %v in the %v namespace",
+					account.ID, account.Namespace, req.Service(), req.Endpoint(), namespace)
+				return errors.Forbidden(req.Service(), "cross namespace request")
+			}
+
+			// construct the resource
+			res := &auth.Resource{
+				Type:      "service",
+				Name:      req.Service(),
+				Endpoint:  req.Endpoint(),
+				Namespace: namespace,
+			}
+
+			// Verify the caller has access to the resource
+			err = a.Verify(account, res)
+			if err != nil && len(account.ID) > 0 {
+				return errors.Forbidden(req.Service(), "Forbidden call made to %v:%v by %v", req.Service(), req.Endpoint(), account.ID)
+			} else if err != nil {
+				return errors.Unauthorized(req.Service(), "Unauthorised call made to %v:%v", req.Service(), req.Endpoint())
+			}
+
+			// There is an account, set it in the context
+			ctx, err = auth.ContextWithAccount(ctx, account)
+			if err != nil {
+				return err
 			}
 
 			// The user is authorised, allow the call

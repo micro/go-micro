@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/lib/pq"
-	"github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/store"
 	"github.com/pkg/errors"
 )
@@ -234,7 +233,7 @@ func (s *sqlStore) initDB() error {
 	}
 
 	// Create Index
-	_, err = s.db.Exec(fmt.Sprintf(`CREATE INDEX IF NOT EXISTS "%s" ON %s.%s USING btree ("key")`, "key_index_"+s.table, s.database, s.table))
+	_, err = s.db.Exec(fmt.Sprintf(`CREATE INDEX IF NOT EXISTS "%s" ON %s.%s USING btree ("key");`, "key_index_"+s.table, s.database, s.table))
 	if err != nil {
 		return err
 	}
@@ -296,9 +295,8 @@ func (s *sqlStore) initDB() error {
 }
 
 func (s *sqlStore) configure() error {
-	nodes := s.options.Nodes
-	if len(nodes) == 0 {
-		nodes = []string{"localhost:26257"}
+	if len(s.options.Nodes) == 0 {
+		s.options.Nodes = []string{"localhost:26257"}
 	}
 
 	namespace := s.options.Namespace
@@ -317,8 +315,9 @@ func (s *sqlStore) configure() error {
 		return errors.New("error compiling regex for namespace")
 	}
 	namespace = reg.ReplaceAllString(namespace, "_")
+	prefix = reg.ReplaceAllString(prefix, "_")
 
-	source := nodes[0]
+	source := s.options.Nodes[0]
 	// check if it is a standard connection string eg: host=%s port=%d user=%s password=%s dbname=%s sslmode=disable
 	// if err is nil which means it would be a URL like postgre://xxxx?yy=zz
 	_, err = url.Parse(source)
@@ -371,10 +370,8 @@ func NewStore(opts ...store.Option) store.Store {
 	// set the options
 	s.options = options
 
-	// configure the store
-	if err := s.configure(); err != nil {
-		logger.Fatal(err)
-	}
+	// best-effort configure the store
+	s.configure()
 
 	// return store
 	return s

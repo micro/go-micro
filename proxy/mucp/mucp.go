@@ -120,7 +120,7 @@ func (p *Proxy) filterRoutes(ctx context.Context, routes []router.Route) []route
 	// filter the routes based on our headers
 	for _, route := range routes {
 		// process only routes for this id
-		if id := md["Micro-Router"]; len(id) > 0 {
+		if id, ok := md.Get("Micro-Router"); ok && len(id) > 0 {
 			if route.Router != id {
 				// skip routes that don't mwatch
 				continue
@@ -128,7 +128,7 @@ func (p *Proxy) filterRoutes(ctx context.Context, routes []router.Route) []route
 		}
 
 		// only process routes with this network
-		if net := md["Micro-Network"]; len(net) > 0 {
+		if net, ok := md.Get("Micro-Network"); ok && len(net) > 0 {
 			if route.Network != net {
 				// skip routes that don't mwatch
 				continue
@@ -136,7 +136,7 @@ func (p *Proxy) filterRoutes(ctx context.Context, routes []router.Route) []route
 		}
 
 		// process only this gateway
-		if gw := md["Micro-Gateway"]; len(gw) > 0 {
+		if gw, ok := md.Get("Micro-Gateway"); ok && len(gw) > 0 {
 			// if the gateway matches our address
 			// special case, take the routes with no gateway
 			// TODO: should we strip the gateway from the context?
@@ -164,7 +164,7 @@ func (p *Proxy) filterRoutes(ctx context.Context, routes []router.Route) []route
 	}
 
 	if logger.V(logger.TraceLevel, logger.DefaultLogger) {
-		logger.Tracef("Proxy filtered routes %+v\n", filteredRoutes)
+		logger.Tracef("Proxy filtered routes %+v", filteredRoutes)
 	}
 
 	return filteredRoutes
@@ -357,7 +357,7 @@ func (p *Proxy) ServeRequest(ctx context.Context, req server.Request, rsp server
 	}
 
 	if logger.V(logger.TraceLevel, logger.DefaultLogger) {
-		logger.Tracef("Proxy received request for %s", service)
+		logger.Tracef("Proxy received request for %s %s", service, endpoint)
 	}
 
 	// are we network routing or local routing

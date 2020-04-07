@@ -142,6 +142,7 @@ func Tracer(t trace.Tracer) Option {
 func Auth(a auth.Auth) Option {
 	return func(o *Options) {
 		o.Auth = a
+		o.Client.Init(client.Auth(a))
 		o.Server.Init(server.Auth(a))
 	}
 }

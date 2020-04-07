@@ -84,6 +84,8 @@ func (k *kubernetes) getService(labels map[string]string) ([]*service, error) {
 		address := kservice.Spec.ClusterIP
 		port := kservice.Spec.Ports[0]
 		srv.Service.Metadata["address"] = fmt.Sprintf("%s:%d", address, port.Port)
+		// set the type of service
+		srv.Service.Metadata["type"] = kservice.Metadata.Labels["micro"]
 
 		// copy annotations metadata into service metadata
 		for k, v := range kservice.Metadata.Annotations {
@@ -127,6 +129,7 @@ func (k *kubernetes) getService(labels map[string]string) ([]*service, error) {
 			// parse out deployment status and inject into service metadata
 			if len(kdep.Status.Conditions) > 0 {
 				svc.Metadata["status"] = kdep.Status.Conditions[0].Type
+				svc.Metadata["started"] = kdep.Status.Conditions[0].LastUpdateTime
 				delete(svc.Metadata, "error")
 			} else {
 				svc.Metadata["status"] = "n/a"
@@ -150,6 +153,11 @@ func (k *kubernetes) getService(labels map[string]string) ([]*service, error) {
 					status = item.Status.Reason
 				default:
 					status = item.Status.Phase
+				}
+
+				// skip if we can't get the container
+				if len(item.Status.Containers) == 0 {
+					continue
 				}
 
 				// now try get a deeper status
@@ -290,6 +298,61 @@ func (k *kubernetes) Init(opts ...runtime.Option) error {
 		o(&k.options)
 	}
 
+	return nil
+}
+
+func (k *kubernetes) Logs(s *runtime.Service, options ...runtime.LogsOption) (runtime.LogStream, error) {
+	klo := newLog(k.client, s.Name, options...)
+	stream, err := klo.Stream()
+	if err != nil {
+		return nil, err
+	}
+	// If requested, also read existing records and stream those too
+	if klo.options.Count > 0 {
+		go func() {
+			records, err := klo.Read()
+			if err != nil {
+				logger.Errorf("Failed to get logs for service '%v' from k8s: %v", err)
+				return
+			}
+			// @todo: this might actually not run before podLogStream starts
+			// and might cause out of order log retrieval at the receiving end.
+			// A better approach would probably to suppor this inside the `klog.Stream` method.
+			for _, record := range records {
+				stream.Chan() <- record
+			}
+		}()
+	}
+	return stream, nil
+}
+
+type kubeStream struct {
+	// the k8s log stream
+	stream chan runtime.LogRecord
+	// the stop chan
+	sync.Mutex
+	stop chan bool
+	err  error
+}
+
+func (k *kubeStream) Error() error {
+	return k.err
+}
+
+func (k *kubeStream) Chan() chan runtime.LogRecord {
+	return k.stream
+}
+
+func (k *kubeStream) Stop() error {
+	k.Lock()
+	defer k.Unlock()
+	select {
+	case <-k.stop:
+		return nil
+	default:
+		close(k.stop)
+		close(k.stream)
+	}
 	return nil
 }
 

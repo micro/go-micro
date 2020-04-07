@@ -830,7 +830,7 @@ func (g *grpcServer) Start() error {
 	// announce self to the world
 	if err := g.Register(); err != nil {
 		if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
-			logger.Errorf("Server register error: ", err)
+			logger.Errorf("Server register error: %v", err)
 		}
 	}
 
@@ -838,7 +838,7 @@ func (g *grpcServer) Start() error {
 	go func() {
 		if err := g.srv.Serve(ts); err != nil {
 			if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
-				logger.Errorf("gRPC Server start error: ", err)
+				logger.Errorf("gRPC Server start error: %v", err)
 			}
 		}
 	}()

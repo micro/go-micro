@@ -4,7 +4,6 @@ package registry
 import (
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"regexp"
 	"strings"
@@ -13,6 +12,7 @@ import (
 
 	"github.com/micro/go-micro/v2/api"
 	"github.com/micro/go-micro/v2/api/router"
+	"github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/registry"
 	"github.com/micro/go-micro/v2/registry/cache"
 )
@@ -68,7 +68,9 @@ func (r *registryRouter) refresh() {
 		services, err := r.opts.Registry.ListServices()
 		if err != nil {
 			attempts++
-			log.Println("Error listing endpoints", err)
+			if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
+				logger.Errorf("unable to list services: %v", err)
+			}
 			time.Sleep(time.Duration(attempts) * time.Second)
 			continue
 		}
@@ -83,6 +85,9 @@ func (r *registryRouter) refresh() {
 			}
 			service, err := r.rc.GetService(s.Name)
 			if err != nil {
+				if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
+					logger.Errorf("unable to get service: %v", err)
+				}
 				continue
 			}
 			r.store(service)
@@ -107,6 +112,9 @@ func (r *registryRouter) process(res *registry.Result) {
 	// get entry from cache
 	service, err := r.rc.GetService(res.Service.Name)
 	if err != nil {
+		if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
+			logger.Errorf("unable to get service: %v", err)
+		}
 		return
 	}
 
@@ -136,6 +144,9 @@ func (r *registryRouter) store(services []*registry.Service) {
 
 			// if we got nothing skip
 			if err := api.Validate(end); err != nil {
+				if logger.V(logger.TraceLevel, logger.DefaultLogger) {
+					logger.Tracef("endpoint validation failed: %v", err)
+				}
 				continue
 			}
 
@@ -188,7 +199,9 @@ func (r *registryRouter) watch() {
 		w, err := r.opts.Registry.Watch()
 		if err != nil {
 			attempts++
-			log.Println("Error watching endpoints", err)
+			if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
+				logger.Errorf("error watching endpoints: %v", err)
+			}
 			time.Sleep(time.Duration(attempts) * time.Second)
 			continue
 		}
@@ -211,7 +224,9 @@ func (r *registryRouter) watch() {
 			// process next event
 			res, err := w.Next()
 			if err != nil {
-				log.Println("Error getting next endpoint", err)
+				if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
+					logger.Errorf("error getting next endoint: %v", err)
+				}
 				close(ch)
 				break
 			}
@@ -232,6 +247,14 @@ func (r *registryRouter) Close() error {
 		close(r.exit)
 		r.rc.Stop()
 	}
+	return nil
+}
+
+func (r *registryRouter) Register(ep *api.Endpoint) error {
+	return nil
+}
+
+func (r *registryRouter) Deregister(ep *api.Endpoint) error {
 	return nil
 }
 

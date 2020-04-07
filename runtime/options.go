@@ -149,3 +149,28 @@ func ReadType(t string) ReadOption {
 		o.Type = t
 	}
 }
+
+// LogsOption configures runtime logging
+type LogsOption func(o *LogsOptions)
+
+// LogsOptions configure runtime logging
+type LogsOptions struct {
+	// How many existing lines to show
+	Count int64
+	// Stream new lines?
+	Stream bool
+}
+
+// LogsExistingCount confiures how many existing lines to show
+func LogsCount(count int64) LogsOption {
+	return func(l *LogsOptions) {
+		l.Count = count
+	}
+}
+
+// LogsStream configures whether to stream new lines
+func LogsStream(stream bool) LogsOption {
+	return func(l *LogsOptions) {
+		l.Stream = stream
+	}
+}

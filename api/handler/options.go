@@ -5,10 +5,15 @@ import (
 	"github.com/micro/go-micro/v2/api/router"
 )
 
+var (
+	DefaultMaxRecvSize int64 = 1024 * 1024 * 100 // 10Mb
+)
+
 type Options struct {
-	Namespace string
-	Router    router.Router
-	Service   micro.Service
+	MaxRecvSize int64
+	Namespace   string
+	Router      router.Router
+	Service     micro.Service
 }
 
 type Option func(o *Options)
@@ -28,6 +33,10 @@ func NewOptions(opts ...Option) Options {
 	// set namespace if blank
 	if len(options.Namespace) == 0 {
 		WithNamespace("go.micro.api")(&options)
+	}
+
+	if options.MaxRecvSize == 0 {
+		options.MaxRecvSize = DefaultMaxRecvSize
 	}
 
 	return options
@@ -51,5 +60,12 @@ func WithRouter(r router.Router) Option {
 func WithService(s micro.Service) Option {
 	return func(o *Options) {
 		o.Service = s
+	}
+}
+
+// WithmaxRecvSize specifies max body size
+func WithMaxRecvSize(size int64) Option {
+	return func(o *Options) {
+		o.MaxRecvSize = size
 	}
 }

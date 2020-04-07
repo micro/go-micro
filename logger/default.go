@@ -11,6 +11,15 @@ import (
 	dlog "github.com/micro/go-micro/v2/debug/log"
 )
 
+func init() {
+	lvl, err := GetLevel(os.Getenv("MICRO_LOG_LEVEL"))
+	if err != nil {
+		lvl = InfoLevel
+	}
+
+	DefaultLogger = NewHelper(NewLogger(WithLevel(lvl)))
+}
+
 type defaultLogger struct {
 	sync.RWMutex
 	opts Options

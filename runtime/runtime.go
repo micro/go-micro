@@ -35,6 +35,20 @@ type Runtime interface {
 	Start() error
 	// Stop shuts down the runtime
 	Stop() error
+	// Logs
+	Logs(*Service, ...LogsOption) (LogStream, error)
+}
+
+// Stream returns a log stream
+type LogStream interface {
+	Error() error
+	Chan() chan LogRecord
+	Stop() error
+}
+
+type LogRecord struct {
+	Message  string
+	Metadata map[string]string
 }
 
 // Scheduler is a runtime service scheduler

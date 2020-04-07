@@ -18,7 +18,6 @@ import (
 	"github.com/micro/go-micro/v2/plugin"
 	"github.com/micro/go-micro/v2/server"
 	"github.com/micro/go-micro/v2/store"
-	"github.com/micro/go-micro/v2/util/config"
 	"github.com/micro/go-micro/v2/util/wrapper"
 )
 
@@ -35,8 +34,9 @@ func newService(opts ...Option) Service {
 	// service name
 	serviceName := options.Server.Options().Name
 
-	// TODO: better accessors
-	authFn := func() auth.Auth { return service.opts.Auth }
+	// authFn returns the auth, we pass as a function since auth
+	// has not yet been set at this point.
+	authFn := func() auth.Auth { return options.Server.Options().Auth }
 
 	// wrap client to inject From-Service header on any calls
 	options.Client = wrapper.FromService(serviceName, options.Client, authFn)
@@ -117,9 +117,9 @@ func (s *service) Init(opts ...Option) {
 		// Right now we're just going to load a token
 		// May need to re-read value on change
 		// TODO: should be scoped to micro/auth/token
-		if tk, _ := config.Get("token"); len(tk) > 0 {
-			s.opts.Auth.Init(auth.Token(tk))
-		}
+		// if tk, _ := config.Get("token"); len(tk) > 0 {
+		// 	s.opts.Auth.Init(auth.ServiceToken(tk))
+		// }
 	})
 }
 

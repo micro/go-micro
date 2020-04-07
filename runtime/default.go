@@ -2,9 +2,16 @@ package runtime
 
 import (
 	"errors"
+	"fmt"
+	"io"
+	"log"
+	"os"
+	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
+	"github.com/hpcloud/tail"
 	"github.com/micro/go-micro/v2/logger"
 )
 
@@ -169,6 +176,11 @@ func (r *runtime) run(events <-chan Event) {
 	}
 }
 
+func logFile(serviceName string) string {
+	name := strings.Replace(serviceName, "/", "-", -1)
+	return filepath.Join(os.TempDir(), fmt.Sprintf("%v.log", name))
+}
+
 // Create creates a new service which is then started by runtime
 func (r *runtime) Create(s *Service, opts ...CreateOption) error {
 	r.Lock()
@@ -184,13 +196,24 @@ func (r *runtime) Create(s *Service, opts ...CreateOption) error {
 	}
 
 	if len(options.Command) == 0 {
-		options.Command = []string{"go", "run"}
-		options.Args = []string{"."}
+		options.Command = []string{"go"}
+		options.Args = []string{"run", "."}
 	}
 
 	// create new service
 	service := newService(s, options)
 
+	f, err := os.OpenFile(logFile(service.Name), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	logger.Info(f, err)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if service.output != nil {
+		service.output = io.MultiWriter(service.output, f)
+	} else {
+		service.output = f
+	}
 	// start the service
 	if err := service.Start(); err != nil {
 		return err
@@ -199,6 +222,70 @@ func (r *runtime) Create(s *Service, opts ...CreateOption) error {
 	// save service
 	r.services[s.Name] = service
 
+	return nil
+}
+
+// @todo: Getting existing lines is not supported yet.
+// The reason for this is because it's hard to calculate line offset
+// as opposed to character offset.
+// This logger streams by default and only supports the `StreamCount` option.
+func (r *runtime) Logs(s *Service, options ...LogsOption) (LogStream, error) {
+	lopts := LogsOptions{}
+	for _, o := range options {
+		o(&lopts)
+	}
+	ret := &logStream{
+		service: s.Name,
+		stream:  make(chan LogRecord),
+		stop:    make(chan bool),
+	}
+	t, err := tail.TailFile(logFile(s.Name), tail.Config{Follow: true, Location: &tail.SeekInfo{
+		Whence: 2,
+		Offset: 0,
+	}, Logger: tail.DiscardingLogger})
+	if err != nil {
+		return nil, err
+	}
+	ret.tail = t
+	go func() {
+		for line := range t.Lines {
+			ret.stream <- LogRecord{Message: line.Text}
+		}
+	}()
+	return ret, nil
+}
+
+type logStream struct {
+	tail    *tail.Tail
+	service string
+	stream  chan LogRecord
+	sync.Mutex
+	stop chan bool
+	err  error
+}
+
+func (l *logStream) Chan() chan LogRecord {
+	return l.stream
+}
+
+func (l *logStream) Error() error {
+	return l.err
+}
+
+func (l *logStream) Stop() error {
+	l.Lock()
+	defer l.Unlock()
+	// @todo seems like this is causing a hangup
+	//err := l.tail.Stop()
+	//if err != nil {
+	//	return err
+	//}
+	select {
+	case <-l.stop:
+		return nil
+	default:
+		close(l.stop)
+	}
 	return nil
 }
 
