@@ -21,6 +21,8 @@ var (
 	// DefaultDatabase is the namespace that the bbolt store
 	// will use if no namespace is provided.
 	DefaultDatabase = "micro"
+	// DefaultTable when none is specified
+	DefaultTable = "micro"
 	// DefaultDir is the default directory for bbolt files
 	DefaultDir = os.TempDir()
 )
@@ -52,7 +54,7 @@ func (m *fileStore) Init(opts ...store.Option) error {
 	}
 	if m.options.Table == "" {
 		// bbolt requires bucketname to not be empty
-		m.options.Table = "default"
+		m.options.Table = DefaultTable
 	}
 	dir := filepath.Join(DefaultDir, "micro")
 	fname := m.options.Database + ".db"
