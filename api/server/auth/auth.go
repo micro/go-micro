@@ -15,38 +15,32 @@ import (
 )
 
 // CombinedAuthHandler wraps a server and authenticates requests
-func CombinedAuthHandler(namespace string, r resolver.Resolver, h http.Handler) http.Handler {
+func CombinedAuthHandler(prefix, namespace string, r resolver.Resolver, h http.Handler) http.Handler {
 	if r == nil {
 		r = path.NewResolver()
 	}
-	if len(namespace) == 0 {
-		namespace = "go.micro"
-	}
 
 	return authHandler{
-		handler:   h,
-		resolver:  r,
-		auth:      auth.DefaultAuth,
-		namespace: namespace,
+		handler:       h,
+		resolver:      r,
+		auth:          auth.DefaultAuth,
+		servicePrefix: prefix,
+		namespace:     namespace,
 	}
 }
 
 type authHandler struct {
-	handler   http.Handler
-	auth      auth.Auth
-	resolver  resolver.Resolver
-	namespace string
+	handler       http.Handler
+	auth          auth.Auth
+	resolver      resolver.Resolver
+	namespace     string
+	servicePrefix string
 }
 
 func (h authHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	// Determine the namespace
-	namespace, err := namespaceFromRequest(req)
-	if err != nil {
-		logger.Error(err)
-		namespace = auth.DefaultNamespace
-	}
-
-	// Set the namespace in the header
+	// Determine the namespace and set it in the header
+	namespace := h.namespaceFromRequest(req)
+	fmt.Printf("Namespace is %v\n", namespace)
 	req.Header.Set(auth.NamespaceKey, namespace)
 
 	// Extract the token from the request
@@ -96,7 +90,7 @@ func (h authHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 
 	// construct the resource name, e.g. home => go.micro.web.home
-	resName := h.namespace
+	resName := h.servicePrefix
 	if len(endpoint.Name) > 0 {
 		resName = resName + "." + endpoint.Name
 	}
@@ -138,39 +132,47 @@ func (h authHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	http.Redirect(w, req, loginWithRedirect, http.StatusTemporaryRedirect)
 }
 
-func namespaceFromRequest(req *http.Request) (string, error) {
-	// needed to tmp debug host in prod. will be removed.
-	logger.Infof("Host is '%v'; URL Host is '%v'; URL Hostname is '%v'", req.Host, req.URL.Host, req.URL.Hostname())
+func (h authHandler) namespaceFromRequest(req *http.Request) string {
+	// check to see what the provided namespace is, we only do
+	// domain mapping if the namespace is set to 'domain'
+	if h.namespace != "domain" {
+		return h.namespace
+	}
 
 	// determine the host, e.g. dev.micro.mu:8080
-	host := req.URL.Hostname()
-	if len(host) == 0 {
-		// fallback to req.Host
-		host, _, _ = net.SplitHostPort(req.Host)
+	var host string
+	if h, _, err := net.SplitHostPort(req.Host); err == nil {
+		host = h // host does contain a port
+	} else {
+		host = req.Host // host does not contain a port
+	}
+
+	// check for the micro.mu domain
+	if strings.HasSuffix(host, "micro.mu") {
+		return auth.DefaultNamespace
 	}
 
 	// check for an ip address
 	if net.ParseIP(host) != nil {
-		return auth.DefaultNamespace, nil
+		return auth.DefaultNamespace
 	}
 
 	// check for dev enviroment
 	if host == "localhost" || host == "127.0.0.1" {
-		return auth.DefaultNamespace, nil
+		return auth.DefaultNamespace
 	}
 
 	// if host is not a subdomain, deturn default namespace
 	comps := strings.Split(host, ".")
-	if len(comps) != 3 {
-		return auth.DefaultNamespace, nil
+	if len(comps) < 3 {
+		return auth.DefaultNamespace
 	}
 
-	// check for the micro.mu domain
-	domain := fmt.Sprintf("%v.%v", comps[1], comps[2])
-	if domain == "micro.mu" {
-		return auth.DefaultNamespace, nil
+	// return the reversed subdomain as the namespace
+	nComps := comps[0 : len(comps)-2]
+	for i := len(nComps)/2 - 1; i >= 0; i-- {
+		opp := len(nComps) - 1 - i
+		nComps[i], nComps[opp] = nComps[opp], nComps[i]
 	}
-
-	// return the subdomain as the host
-	return comps[0], nil
+	return strings.Join(nComps, ".")
 }
