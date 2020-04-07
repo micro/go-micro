@@ -11,6 +11,12 @@ var (
 	ErrInvalidPath = errors.New("invalid path")
 )
 
+// NamespaceResolver resolves request to the namespace
+type NamespaceResolver interface {
+	Resolve(r *http.Request) string
+	String() string
+}
+
 // Resolver resolves requests to endpoints
 type Resolver interface {
 	Resolve(r *http.Request) (*Endpoint, error)
@@ -27,6 +33,8 @@ type Endpoint struct {
 	Method string
 	// HTTP Path e.g /greeter.
 	Path string
+	// Namespace, g.g. go.micro
+	Namespace string
 }
 
 type Options struct {

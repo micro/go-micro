@@ -10,15 +10,14 @@ import (
 type Option func(o *Options)
 
 type Options struct {
-	EnableACME    bool
-	EnableCORS    bool
-	ACMEProvider  acme.Provider
-	EnableTLS     bool
-	ACMEHosts     []string
-	TLSConfig     *tls.Config
-	Resolver      resolver.Resolver
-	Namespace     string
-	ServicePrefix string
+	EnableACME        bool
+	EnableCORS        bool
+	ACMEProvider      acme.Provider
+	EnableTLS         bool
+	ACMEHosts         []string
+	TLSConfig         *tls.Config
+	Resolver          resolver.Resolver
+	NamespaceResolver resolver.NamespaceResolver
 }
 
 func EnableCORS(b bool) Option {
@@ -57,20 +56,14 @@ func TLSConfig(t *tls.Config) Option {
 	}
 }
 
-func ServicePrefix(n string) Option {
-	return func(o *Options) {
-		o.ServicePrefix = n
-	}
-}
-
-func Namespace(n string) Option {
-	return func(o *Options) {
-		o.Namespace = n
-	}
-}
-
 func Resolver(r resolver.Resolver) Option {
 	return func(o *Options) {
 		o.Resolver = r
+	}
+}
+
+func NamespaceResolver(r resolver.NamespaceResolver) Option {
+	return func(o *Options) {
+		o.NamespaceResolver = r
 	}
 }

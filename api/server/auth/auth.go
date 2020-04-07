@@ -3,44 +3,35 @@ package auth
 import (
 	"context"
 	"fmt"
-	"net"
 	"net/http"
 	"net/url"
 	"strings"
 
 	"github.com/micro/go-micro/v2/api/resolver"
-	"github.com/micro/go-micro/v2/api/resolver/path"
 	"github.com/micro/go-micro/v2/auth"
 	"github.com/micro/go-micro/v2/logger"
-	"golang.org/x/net/publicsuffix"
 )
 
 // CombinedAuthHandler wraps a server and authenticates requests
-func CombinedAuthHandler(prefix, namespace string, r resolver.Resolver, h http.Handler) http.Handler {
-	if r == nil {
-		r = path.NewResolver()
-	}
-
+func CombinedAuthHandler(r resolver.Resolver, nr resolver.NamespaceResolver, h http.Handler) http.Handler {
 	return authHandler{
-		handler:       h,
-		resolver:      r,
-		auth:          auth.DefaultAuth,
-		servicePrefix: prefix,
-		namespace:     namespace,
+		handler:    h,
+		resolver:   r,
+		nsResolver: nr,
+		auth:       auth.DefaultAuth,
 	}
 }
 
 type authHandler struct {
-	handler       http.Handler
-	auth          auth.Auth
-	resolver      resolver.Resolver
-	namespace     string
-	servicePrefix string
+	handler    http.Handler
+	auth       auth.Auth
+	resolver   resolver.Resolver
+	nsResolver resolver.NamespaceResolver
 }
 
 func (h authHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	// Determine the namespace and set it in the header
-	namespace := h.NamespaceFromRequest(req)
+	namespace := h.nsResolver.Resolve(req)
 	req.Header.Set(auth.NamespaceKey, namespace)
 
 	// Extract the token from the request
@@ -63,14 +54,7 @@ func (h authHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	// account doesn't necesserially mean a forbidden request
 	acc, err := h.auth.Inspect(token)
 	if err != nil {
-		acc = &auth.Account{Namespace: namespace}
-	}
-
-	// Check the accounts namespace matches the namespace we're operating
-	// within. If not forbid the request and log the occurance.
-	if acc.Namespace != namespace {
-		logger.Debugf("Cross namespace request warning: account %v (%v) requested access to %v in the %v namespace", acc.ID, acc.Namespace, req.URL.Path, namespace)
-		// http.Error(w, "Forbidden namespace", 403)
+		acc = &auth.Account{}
 	}
 
 	// Determine the name of the service being requested
@@ -90,9 +74,9 @@ func (h authHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 
 	// construct the resource name, e.g. home => go.micro.web.home
-	resName := h.servicePrefix
+	resName := namespace
 	if len(endpoint.Name) > 0 {
-		resName = resName + "." + endpoint.Name
+		resName = namespace + "." + endpoint.Name
 	}
 
 	// determine the resource path. there is an inconsistency in how resolvers
@@ -127,59 +111,7 @@ func (h authHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 
 	// Redirect to the login path
-	params := url.Values{"redirect_to": {req.URL.Path}}
+	params := url.Values{"redirect_to": {req.URL.String()}}
 	loginWithRedirect := fmt.Sprintf("%v?%v", loginURL, params.Encode())
 	http.Redirect(w, req, loginWithRedirect, http.StatusTemporaryRedirect)
-}
-
-func (h authHandler) NamespaceFromRequest(req *http.Request) string {
-	// check to see what the provided namespace is, we only do
-	// domain mapping if the namespace is set to 'domain'
-	if h.namespace != "domain" {
-		return h.namespace
-	}
-
-	// determine the host, e.g. dev.micro.mu:8080
-	host := req.URL.Hostname()
-	if len(host) == 0 {
-		if h, _, err := net.SplitHostPort(req.Host); err == nil {
-			host = h // host does contain a port
-		} else if strings.Contains(err.Error(), "missing port in address") {
-			host = req.Host // host does not contain a port
-		}
-	}
-
-	// check for an ip address
-	if net.ParseIP(host) != nil {
-		return auth.DefaultNamespace
-	}
-
-	// check for dev enviroment
-	if host == "localhost" || host == "127.0.0.1" {
-		return auth.DefaultNamespace
-	}
-
-	// extract the top level domain plus one (e.g. 'myapp.com')
-	domain, err := publicsuffix.EffectiveTLDPlusOne(host)
-	if err != nil {
-		logger.Debugf("Unable to extract domain from %v", host)
-		return auth.DefaultNamespace
-	}
-
-	// check to see if the domain matches the host of micro.mu, in
-	// these cases we return the default namespace
-	if domain == host || domain == "micro.mu" {
-		return auth.DefaultNamespace
-	}
-
-	// remove the domain from the host, leaving the subdomain
-	subdomain := strings.TrimSuffix(host, "."+domain)
-
-	// return the reversed subdomain as the namespace
-	comps := strings.Split(subdomain, ".")
-	for i := len(comps)/2 - 1; i >= 0; i-- {
-		opp := len(comps) - 1 - i
-		comps[i], comps[opp] = comps[opp], comps[i]
-	}
-	return strings.Join(comps, ".")
 }

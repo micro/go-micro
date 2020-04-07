@@ -9,7 +9,6 @@ import (
 	"github.com/micro/go-micro/v2/debug/stats"
 	"github.com/micro/go-micro/v2/debug/trace"
 	"github.com/micro/go-micro/v2/errors"
-	"github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/metadata"
 	"github.com/micro/go-micro/v2/server"
 )
@@ -155,11 +154,6 @@ func AuthHandler(fn func() auth.Auth) server.HandlerWrapper {
 				return h(ctx, req, rsp)
 			}
 
-			// Check for auth service endpoints which should be excluded from auth
-			if strings.HasPrefix(req.Endpoint(), "Auth.") {
-				return h(ctx, req, rsp)
-			}
-
 			// Extract the token if present. Note: if noop is being used
 			// then the token can be blank without erroring
 			var token string
@@ -172,33 +166,17 @@ func AuthHandler(fn func() auth.Auth) server.HandlerWrapper {
 				token = header[len(auth.BearerScheme):]
 			}
 
-			// Get the namespace for the request
-			namespace, ok := metadata.Get(ctx, auth.NamespaceKey)
-			if !ok {
-				logger.Debugf("Missing request namespace")
-				namespace = auth.DefaultNamespace
-			}
-
 			// Inspect the token and get the account
 			account, err := a.Inspect(token)
 			if err != nil {
-				account = &auth.Account{Namespace: namespace}
-			}
-
-			// Check the accounts namespace matches the namespace we're operating
-			// within. If not forbid the request and log the occurance.
-			if account.Namespace != namespace {
-				logger.Debugf("Cross namespace request forbidden: account %v (%v) requested access to %v %v in the %v namespace",
-					account.ID, account.Namespace, req.Service(), req.Endpoint(), namespace)
-				// return errors.Forbidden(req.Service(), "cross namespace request")
+				account = &auth.Account{}
 			}
 
 			// construct the resource
 			res := &auth.Resource{
-				Type:      "service",
-				Name:      req.Service(),
-				Endpoint:  req.Endpoint(),
-				Namespace: namespace,
+				Type:     "service",
+				Name:     req.Service(),
+				Endpoint: req.Endpoint(),
 			}
 
 			// Verify the caller has access to the resource

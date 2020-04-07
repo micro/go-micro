@@ -158,6 +158,11 @@ func (s *svc) Revoke(role string, res *auth.Resource) error {
 
 // Verify an account has access to a resource
 func (s *svc) Verify(acc *auth.Account, res *auth.Resource) error {
+	// set the namespace on the resource
+	if len(res.Namespace) == 0 {
+		res.Namespace = s.Options().Namespace
+	}
+
 	queries := [][]string{
 		{res.Namespace, res.Type, res.Name, res.Endpoint}, // check for specific role, e.g. service.foo.ListFoo:admin (role is checked in accessForRule)
 		{res.Namespace, res.Type, res.Name, "*"},          // check for wildcard endpoint, e.g. service.foo*
@@ -205,16 +210,15 @@ func (s *svc) Verify(acc *auth.Account, res *auth.Resource) error {
 func (s *svc) Inspect(token string) (*auth.Account, error) {
 	// try to decode JWT locally and fall back to srv if an error occurs
 	if len(strings.Split(token, ".")) == 3 && s.jwt != nil {
-		if acc, err := s.jwt.Inspect(token); err == nil {
-			return acc, nil
-		}
+		return s.jwt.Inspect(token)
 	}
 
+	// the token is not a JWT or we do not have the keys to decode it,
+	// fall back to the auth service
 	rsp, err := s.auth.Inspect(context.TODO(), &pb.InspectRequest{Token: token})
 	if err != nil {
 		return nil, err
 	}
-
 	return serializeAccount(rsp.Account), nil
 }
 

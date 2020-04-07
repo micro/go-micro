@@ -53,7 +53,7 @@ func (s *httpServer) Init(opts ...server.Option) error {
 
 func (s *httpServer) Handle(path string, handler http.Handler) {
 	h := handlers.CombinedLoggingHandler(os.Stdout, handler)
-	h = auth.CombinedAuthHandler(s.opts.ServicePrefix, s.opts.Namespace, s.opts.Resolver, handler)
+	h = auth.CombinedAuthHandler(s.opts.Resolver, s.opts.NamespaceResolver, handler)
 
 	if s.opts.EnableCORS {
 		h = cors.CombinedCORSHandler(h)
