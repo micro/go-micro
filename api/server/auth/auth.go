@@ -141,10 +141,12 @@ func (h authHandler) NamespaceFromRequest(req *http.Request) string {
 
 	// determine the host, e.g. dev.micro.mu:8080
 	host := req.URL.Hostname()
-	if h, _, err := net.SplitHostPort(req.Host); err == nil {
-		host = h // host does contain a port
-	} else if strings.Contains(err.Error(), "missing port in address") {
-		host = req.Host // host does not contain a port
+	if len(host) == 0 {
+		if h, _, err := net.SplitHostPort(req.Host); err == nil {
+			host = h // host does contain a port
+		} else if strings.Contains(err.Error(), "missing port in address") {
+			host = req.Host // host does not contain a port
+		}
 	}
 
 	// check for an ip address
