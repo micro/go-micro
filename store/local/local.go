@@ -64,17 +64,21 @@ func (m *localStore) Read(key string, opts ...store.ReadOption) ([]*store.Record
 
 	var keys []string
 
-	// Handle Prefix
-	if readOpts.Prefix {
+	// Handle Prefix / suffix
+	// Handle Prefix / suffix
+	if readOpts.Prefix || readOpts.Suffix {
 		var opts []store.ListOption
 		if readOpts.Prefix {
 			opts = append(opts, store.ListPrefix(key))
+		}
+		if readOpts.Suffix {
+			opts = append(opts, store.ListSuffix(key))
 		}
 		opts = append(opts, store.ListLimit(readOpts.Limit))
 		opts = append(opts, store.ListOffset(readOpts.Offset))
 		k, err := m.List(opts...)
 		if err != nil {
-			return nil, errors.Wrap(err, "Local: Read couldn't List()")
+			return nil, errors.Wrap(err, "FileStore: Read couldn't List()")
 		}
 		keys = k
 	} else {
@@ -248,13 +252,22 @@ func (m *localStore) List(opts ...store.ListOption) ([]string, error) {
 	allKeys := m.list(listOptions.Limit, listOptions.Offset)
 
 	if len(listOptions.Prefix) > 0 {
-		var TableKeys []string
+		var prefixKeys []string
 		for _, k := range allKeys {
 			if strings.HasPrefix(k, listOptions.Prefix) {
-				TableKeys = append(TableKeys, k)
+				prefixKeys = append(prefixKeys, k)
 			}
 		}
-		allKeys = TableKeys
+		allKeys = prefixKeys
+	}
+	if len(listOptions.Suffix) > 0 {
+		var suffixKeys []string
+		for _, k := range allKeys {
+			if strings.HasSuffix(k, listOptions.Suffix) {
+				suffixKeys = append(suffixKeys, k)
+			}
+		}
+		allKeys = suffixKeys
 	}
 
 	return allKeys, nil
