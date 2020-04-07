@@ -531,6 +531,7 @@ func (s *rpcServer) Register() error {
 
 	var err error
 	var advt, host, port string
+	var cacheService bool
 
 	// check the advertise address first
 	// if it exists then use it, otherwise
@@ -549,6 +550,10 @@ func (s *rpcServer) Register() error {
 		}
 	} else {
 		host = advt
+	}
+
+	if ip := net.ParseIP(host); ip != nil {
+		cacheService = true
 	}
 
 	addr, err := addr.Extract(host)
@@ -648,7 +653,9 @@ func (s *rpcServer) Register() error {
 	s.Lock()
 	defer s.Unlock()
 
-	s.rsvc = service
+	if cacheService {
+		s.rsvc = service
+	}
 	s.registered = true
 	// set what we're advertising
 	s.opts.Advertise = addr

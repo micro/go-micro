@@ -583,6 +583,7 @@ func (g *grpcServer) Register() error {
 
 	var err error
 	var advt, host, port string
+	var cacheService bool
 
 	// check the advertise address first
 	// if it exists then use it, otherwise
@@ -601,6 +602,10 @@ func (g *grpcServer) Register() error {
 		}
 	} else {
 		host = advt
+	}
+
+	if ip := net.ParseIP(host); ip != nil {
+		cacheService = true
 	}
 
 	addr, err := addr.Extract(host)
@@ -690,7 +695,9 @@ func (g *grpcServer) Register() error {
 	g.Lock()
 	defer g.Unlock()
 
-	g.rsvc = service
+	if cacheService {
+		g.rsvc = service
+	}
 	g.registered = true
 
 	for sb := range g.subscribers {
