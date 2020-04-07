@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"net/http"
@@ -74,8 +75,8 @@ func (h authHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	// Check the accounts namespace matches the namespace we're operating
 	// within. If not forbid the request and log the occurance.
 	if acc.Namespace != namespace {
-		logger.Warnf("Cross namespace request forbidden: account %v (%v) requested access to %v in the %v namespace", acc.ID, acc.Namespace, req.URL.Path, namespace)
-		w.WriteHeader(http.StatusForbidden)
+		logger.Debugf("Cross namespace request warning: account %v (%v) requested access to %v in the %v namespace", acc.ID, acc.Namespace, req.URL.Path, namespace)
+		// http.Error(w, "Forbidden namespace", 403)
 	}
 
 	// Determine the name of the service being requested
@@ -84,8 +85,14 @@ func (h authHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		// a file not served by the resolver has been requested (e.g. favicon.ico)
 		endpoint = &resolver.Endpoint{Path: req.URL.Path}
 	} else if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
+		logger.Error(err)
+		http.Error(w, err.Error(), 500)
 		return
+	} else {
+		// set the endpoint in the context so it can be used to resolve
+		// the request later
+		ctx := context.WithValue(req.Context(), resolver.Endpoint{}, endpoint)
+		*req = *req.Clone(ctx)
 	}
 
 	// construct the resource name, e.g. home => go.micro.web.home
@@ -114,14 +121,14 @@ func (h authHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	// The account is set, but they don't have enough permissions, hence
 	// we return a forbidden error.
 	if len(acc.ID) > 0 {
-		w.WriteHeader(http.StatusForbidden)
+		http.Error(w, "Forbidden request", 403)
 		return
 	}
 
 	// If there is no auth login url set, 401
 	loginURL := h.auth.Options().LoginURL
 	if loginURL == "" {
-		w.WriteHeader(http.StatusUnauthorized)
+		http.Error(w, "unauthorized request", 401)
 		return
 	}
 
@@ -132,14 +139,19 @@ func (h authHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 }
 
 func namespaceFromRequest(req *http.Request) (string, error) {
+	// needed to tmp debug host in prod. will be removed.
+	logger.Infof("Host is '%v'; URL Host is '%v'; URL Hostname is '%v'", req.Host, req.URL.Host, req.URL.Hostname())
+
 	// determine the host, e.g. dev.micro.mu:8080
 	host := req.URL.Hostname()
 	if len(host) == 0 {
 		// fallback to req.Host
-		host, _, _ = net.SplitHostPort(req.Host)
+		var err error
+		host, _, err = net.SplitHostPort(req.Host)
+		if err != nil && strings.Contains(err.Error(), "missing port in address") {
+			host = req.Host
+		}
 	}
-
-	logger.Infof("Host is %v", host)
 
 	// check for an ip address
 	if net.ParseIP(host) != nil {
@@ -151,6 +163,7 @@ func namespaceFromRequest(req *http.Request) (string, error) {
 		return auth.DefaultNamespace, nil
 	}
 
+	// TODO: this logic needs to be replaced with usage of publicsuffix
 	// if host is not a subdomain, deturn default namespace
 	comps := strings.Split(host, ".")
 	if len(comps) != 3 {

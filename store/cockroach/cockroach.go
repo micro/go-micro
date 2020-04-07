@@ -14,11 +14,10 @@ import (
 	"github.com/pkg/errors"
 )
 
-// DefaultNamespace is the namespace that the sql store
+// DefaultDatabase is the namespace that the sql store
 // will use if no namespace is provided.
 var (
-	DefaultNamespace = "micro"
-	DefaultPrefix    = "micro"
+	DefaultDatabase = "micro"
 )
 
 type sqlStore struct {
@@ -296,26 +295,26 @@ func (s *sqlStore) initDB() error {
 
 func (s *sqlStore) configure() error {
 	if len(s.options.Nodes) == 0 {
-		s.options.Nodes = []string{"localhost:26257"}
+		s.options.Nodes = []string{"postgresql://root@localhost:26257"}
 	}
 
-	namespace := s.options.Namespace
-	if len(namespace) == 0 {
-		namespace = DefaultNamespace
+	database := s.options.Database
+	if len(database) == 0 {
+		database = DefaultDatabase
 	}
 
-	prefix := s.options.Prefix
-	if len(prefix) == 0 {
-		prefix = DefaultPrefix
+	if len(s.options.Table) == 0 {
+		return errors.New("no table set")
 	}
+	table := s.options.Table
 
 	// store.namespace must only contain letters, numbers and underscores
 	reg, err := regexp.Compile("[^a-zA-Z0-9]+")
 	if err != nil {
 		return errors.New("error compiling regex for namespace")
 	}
-	namespace = reg.ReplaceAllString(namespace, "_")
-	prefix = reg.ReplaceAllString(prefix, "_")
+	database = reg.ReplaceAllString(database, "_")
+	table = reg.ReplaceAllString(table, "_")
 
 	source := s.options.Nodes[0]
 	// check if it is a standard connection string eg: host=%s port=%d user=%s password=%s dbname=%s sslmode=disable
@@ -343,8 +342,8 @@ func (s *sqlStore) configure() error {
 
 	// save the values
 	s.db = db
-	s.database = namespace
-	s.table = prefix
+	s.database = database
+	s.table = table
 
 	// initialise the database
 	return s.initDB()
