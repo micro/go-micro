@@ -10,7 +10,6 @@ import (
 
 	"github.com/gorilla/handlers"
 	"github.com/micro/go-micro/v2/api/server"
-	"github.com/micro/go-micro/v2/api/server/auth"
 	"github.com/micro/go-micro/v2/api/server/cors"
 	"github.com/micro/go-micro/v2/logger"
 )
@@ -53,7 +52,11 @@ func (s *httpServer) Init(opts ...server.Option) error {
 
 func (s *httpServer) Handle(path string, handler http.Handler) {
 	h := handlers.CombinedLoggingHandler(os.Stdout, handler)
-	h = auth.CombinedAuthHandler(s.opts.Resolver, s.opts.NamespaceResolver, handler)
+
+	// apply the wrappers, e.g. auth
+	for _, wrapper := range s.opts.Wrappers {
+		h = wrapper(h)
+	}
 
 	if s.opts.EnableCORS {
 		h = cors.CombinedCORSHandler(h)

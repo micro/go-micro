@@ -11,12 +11,6 @@ var (
 	ErrInvalidPath = errors.New("invalid path")
 )
 
-// NamespaceResolver resolves request to the namespace
-type NamespaceResolver interface {
-	Resolve(r *http.Request) string
-	String() string
-}
-
 // Resolver resolves requests to endpoints
 type Resolver interface {
 	Resolve(r *http.Request) (*Endpoint, error)
