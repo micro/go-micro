@@ -32,9 +32,7 @@ func NewStore(opts ...store.Option) store.Store {
 	s := &fileStore{
 		options: store.Options{},
 	}
-	for _, o := range opts {
-		o(&s.options)
-	}
+	s.init(opts...)
 	return s
 }
 
@@ -46,6 +44,11 @@ type fileStore struct {
 }
 
 func (m *fileStore) Init(opts ...store.Option) error {
+	m.options = store.Options{}
+	return m.init(opts...)
+}
+
+func (m *fileStore) init(opts ...store.Option) error {
 	for _, o := range opts {
 		o(&m.options)
 	}
@@ -58,6 +61,9 @@ func (m *fileStore) Init(opts ...store.Option) error {
 	}
 	dir := filepath.Join(DefaultDir, "micro")
 	fname := m.options.Database + ".db"
+	// Ignoring this as the folder might exist.
+	// Reads/Writes updates will return with sensible error messages
+	// about the dir not existing in case this cannot create the path anyway
 	_ = os.Mkdir(dir, 0700)
 	m.dir = dir
 	m.fileName = fname
