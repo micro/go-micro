@@ -13,6 +13,7 @@ func TestNamespaceFromRequest(t *testing.T) {
 		Namespace string
 	}{
 		{Host: "micro.mu", Namespace: auth.DefaultNamespace},
+		{Host: "micro.com.au", Namespace: auth.DefaultNamespace},
 		{Host: "web.micro.mu", Namespace: auth.DefaultNamespace},
 		{Host: "api.micro.mu", Namespace: auth.DefaultNamespace},
 		{Host: "myapp.com", Namespace: auth.DefaultNamespace},
@@ -23,9 +24,11 @@ func TestNamespaceFromRequest(t *testing.T) {
 		{Host: "81.151.101.146", Namespace: auth.DefaultNamespace},
 	}
 
+	h := &authHandler{namespace: "domain"}
+
 	for _, tc := range tt {
 		t.Run(tc.Host, func(t *testing.T) {
-			ns := namespaceFromRequest(&http.Request{Host: tc.Host})
+			ns := h.NamespaceFromRequest(&http.Request{Host: tc.Host})
 			if ns != tc.Namespace {
 				t.Errorf("Expected namespace %v for host %v, actually got %v", tc.Namespace, tc.Host, ns)
 			}
