@@ -164,8 +164,8 @@ func (h authHandler) NamespaceFromRequest(req *http.Request) string {
 		return auth.DefaultNamespace
 	}
 
-	// check to see if the domain matches the host of micr.mu, in
-	// these casees we return the default namespace
+	// check to see if the domain matches the host of micro.mu, in
+	// these cases we return the default namespace
 	if domain == host || domain == "micro.mu" {
 		return auth.DefaultNamespace
 	}
