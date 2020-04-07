@@ -75,8 +75,8 @@ func (h authHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	// Check the accounts namespace matches the namespace we're operating
 	// within. If not forbid the request and log the occurance.
 	if acc.Namespace != namespace {
-		logger.Warnf("Cross namespace request forbidden: account %v (%v) requested access to %v in the %v namespace", acc.ID, acc.Namespace, req.URL.Path, namespace)
-		http.Error(w, "Forbidden namespace", 403)
+		logger.Debugf("Cross namespace request warning: account %v (%v) requested access to %v in the %v namespace", acc.ID, acc.Namespace, req.URL.Path, namespace)
+		// http.Error(w, "Forbidden namespace", 403)
 	}
 
 	// Determine the name of the service being requested
