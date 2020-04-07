@@ -2,7 +2,13 @@
 package resolver
 
 import (
+	"errors"
 	"net/http"
+)
+
+var (
+	ErrNotFound    = errors.New("not found")
+	ErrInvalidPath = errors.New("invalid path")
 )
 
 // Resolver resolves requests to endpoints

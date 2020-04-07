@@ -10,9 +10,9 @@ import (
 )
 
 func TestMemoryReInit(t *testing.T) {
-	s := NewStore(store.Prefix("aaa"))
-	s.Init(store.Prefix(""))
-	if len(s.Options().Prefix) > 0 {
+	s := NewStore(store.Table("aaa"))
+	s.Init(store.Table(""))
+	if len(s.Options().Table) > 0 {
 		t.Error("Init didn't reinitialise the store")
 	}
 }
@@ -25,31 +25,19 @@ func TestMemoryBasic(t *testing.T) {
 
 func TestMemoryPrefix(t *testing.T) {
 	s := NewStore()
-	s.Init(store.Prefix("some-prefix"))
-	basictest(s, t)
-}
-
-func TestMemorySuffix(t *testing.T) {
-	s := NewStore()
-	s.Init(store.Suffix("some-suffix"))
-	basictest(s, t)
-}
-
-func TestMemoryPrefixSuffix(t *testing.T) {
-	s := NewStore()
-	s.Init(store.Prefix("some-prefix"), store.Prefix("some-suffix"))
+	s.Init(store.Table("some-prefix"))
 	basictest(s, t)
 }
 
 func TestMemoryNamespace(t *testing.T) {
 	s := NewStore()
-	s.Init(store.Namespace("some-namespace"))
+	s.Init(store.Database("some-namespace"))
 	basictest(s, t)
 }
 
 func TestMemoryNamespacePrefix(t *testing.T) {
 	s := NewStore()
-	s.Init(store.Prefix("some-prefix"), store.Namespace("some-namespace"))
+	s.Init(store.Table("some-prefix"), store.Database("some-namespace"))
 	basictest(s, t)
 }
 
