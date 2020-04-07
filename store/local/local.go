@@ -310,7 +310,6 @@ func (m *localStore) list(limit, offset uint) []string {
 
 		return nil
 	})
-	fmt.Println("allkeys", allItems)
 	allKeys := make([]string, len(allItems))
 	i := 0
 	for _, k := range allItems {
@@ -326,7 +325,6 @@ func (m *localStore) list(limit, offset uint) []string {
 		allKeys[i] = k
 		i++
 	}
-	fmt.Println("limit, offset", limit, offset)
 	if limit != 0 || offset != 0 {
 		sort.Slice(allKeys, func(i, j int) bool { return allKeys[i] < allKeys[j] })
 		min := func(i, j uint) uint {

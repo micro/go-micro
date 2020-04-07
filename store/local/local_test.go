@@ -267,6 +267,9 @@ func basictest(s store.Store, t *testing.T) {
 	}
 
 	s.Init()
+	if err := s.(*localStore).deleteAll(); err != nil {
+		t.Logf("Can't delete all: %v", err)
+	}
 	for i := 0; i < 10; i++ {
 		s.Write(&store.Record{
 			Key:   fmt.Sprintf("a%d", i),
