@@ -7,10 +7,9 @@ import (
 )
 
 type Options struct {
-	Namespace string
-	Handler   string
-	Registry  registry.Registry
-	Resolver  resolver.Resolver
+	Handler  string
+	Registry registry.Registry
+	Resolver resolver.Resolver
 }
 
 type Option func(o *Options)
@@ -28,7 +27,6 @@ func NewOptions(opts ...Option) Options {
 	if options.Resolver == nil {
 		options.Resolver = micro.NewResolver(
 			resolver.WithHandler(options.Handler),
-			resolver.WithNamespace(options.Namespace),
 		)
 	}
 
@@ -38,12 +36,6 @@ func NewOptions(opts ...Option) Options {
 func WithHandler(h string) Option {
 	return func(o *Options) {
 		o.Handler = h
-	}
-}
-
-func WithNamespace(ns string) Option {
-	return func(o *Options) {
-		o.Namespace = ns
 	}
 }
 
