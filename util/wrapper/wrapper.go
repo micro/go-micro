@@ -35,18 +35,8 @@ var (
 )
 
 func (c *clientWrapper) setHeaders(ctx context.Context) context.Context {
-	// copy metadata
-	mda, _ := metadata.FromContext(ctx)
-	md := metadata.Copy(mda)
-
-	// set headers
-	for k, v := range c.headers {
-		if _, ok := md[k]; !ok {
-			md[k] = v
-		}
-	}
-
-	return metadata.NewContext(ctx, md)
+	// don't overwrite keys
+	return metadata.MergeContext(ctx, c.headers, false)
 }
 
 func (c *clientWrapper) Call(ctx context.Context, req client.Request, rsp interface{}, opts ...client.CallOption) error {
