@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
-	"strings"
 	"sync"
 	"time"
 
@@ -27,28 +26,6 @@ type registryRouter struct {
 
 	sync.RWMutex
 	eps map[string]*api.Service
-}
-
-func setNamespace(ns, name string) string {
-	ns = strings.TrimSpace(ns)
-	name = strings.TrimSpace(name)
-
-	// no namespace
-	if len(ns) == 0 {
-		return name
-	}
-
-	switch {
-	// has - suffix
-	case strings.HasSuffix(ns, "-"):
-		return strings.Replace(ns+name, ".", "-", -1)
-	// has . suffix
-	case strings.HasSuffix(ns, "."):
-		return ns + name
-	}
-
-	// default join .
-	return strings.Join([]string{ns, name}, ".")
 }
 
 func (r *registryRouter) isClosed() bool {
@@ -79,10 +56,6 @@ func (r *registryRouter) refresh() {
 
 		// for each service, get service and store endpoints
 		for _, s := range services {
-			// only get services for this namespace
-			if !strings.HasPrefix(s.Name, r.opts.Namespace) {
-				continue
-			}
 			service, err := r.rc.GetService(s.Name)
 			if err != nil {
 				if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
@@ -105,7 +78,7 @@ func (r *registryRouter) refresh() {
 // process watch event
 func (r *registryRouter) process(res *registry.Result) {
 	// skip these things
-	if res == nil || res.Service == nil || !strings.HasPrefix(res.Service.Name, r.opts.Namespace) {
+	if res == nil || res.Service == nil {
 		return
 	}
 
@@ -350,7 +323,7 @@ func (r *registryRouter) Route(req *http.Request) (*api.Service, error) {
 	}
 
 	// service name
-	name := setNamespace(r.opts.Namespace, rp.Name)
+	name := rp.Name
 
 	// get service
 	services, err := r.rc.GetService(name)

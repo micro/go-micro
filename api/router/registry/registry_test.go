@@ -9,51 +9,6 @@ import (
 	"github.com/micro/go-micro/v2/api"
 )
 
-func TestSetNamespace(t *testing.T) {
-	testCases := []struct {
-		namespace string
-		name      string
-		expected  string
-	}{
-		// default dotted path
-		{
-			"go.micro.api",
-			"foo",
-			"go.micro.api.foo",
-		},
-		// dotted end
-		{
-			"go.micro.api.",
-			"foo",
-			"go.micro.api.foo",
-		},
-		// dashed end
-		{
-			"go-micro-api-",
-			"foo",
-			"go-micro-api-foo",
-		},
-		// no namespace
-		{
-			"",
-			"foo",
-			"foo",
-		},
-		{
-			"go-micro-api-",
-			"v2.foo",
-			"go-micro-api-v2-foo",
-		},
-	}
-
-	for _, test := range testCases {
-		name := setNamespace(test.namespace, test.name)
-		if name != test.expected {
-			t.Fatalf("expected name %s got %s", test.expected, name)
-		}
-	}
-}
-
 func TestRouter(t *testing.T) {
 	r := newRouter()
 
