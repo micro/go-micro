@@ -101,6 +101,10 @@ func validateOptions(account, token, namespace string) {
 	}
 }
 
+func (w *workersKV) Close() error {
+	return nil
+}
+
 func (w *workersKV) Init(opts ...store.Option) error {
 	for _, o := range opts {
 		o(&w.options)

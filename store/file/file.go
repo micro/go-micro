@@ -72,13 +72,13 @@ func (m *fileStore) init(opts ...store.Option) error {
 	}
 
 	// create a directory /tmp/micro
-	dir := filepath.Join(DefaultDir, "micro")
+	dir := filepath.Join(DefaultDir, m.options.Database)
 	// create the database handle
-	fname := m.options.Database + ".db"
+	fname := m.options.Table + ".db"
 	// Ignoring this as the folder might exist.
 	// Reads/Writes updates will return with sensible error messages
 	// about the dir not existing in case this cannot create the path anyway
-	_ = os.Mkdir(dir, 0700)
+	os.MkdirAll(dir, 0700)
 
 	m.dir = dir
 	m.fileName = fname
@@ -221,6 +221,13 @@ func (m *fileStore) set(r *store.Record) error {
 		}
 		return b.Put([]byte(r.Key), data)
 	})
+}
+
+func (m *fileStore) Close() error {
+	if m.db != nil {
+		return m.db.Close()
+	}
+	return nil
 }
 
 func (m *fileStore) Init(opts ...store.Option) error {

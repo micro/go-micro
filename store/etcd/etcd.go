@@ -32,6 +32,10 @@ func NewStore(opts ...store.Option) store.Store {
 	return e
 }
 
+func (e *etcdStore) Close() error {
+	return e.client.Close()
+}
+
 func (e *etcdStore) Init(opts ...store.Option) error {
 	for _, o := range opts {
 		o(&e.options)

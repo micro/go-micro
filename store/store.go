@@ -28,6 +28,8 @@ type Store interface {
 	Delete(key string, opts ...DeleteOption) error
 	// List returns any keys that match, or an empty list with no error if none matched.
 	List(opts ...ListOption) ([]string, error)
+	// Close the store
+	Close() error
 	// String returns the name of the implementation.
 	String() string
 }

@@ -36,6 +36,13 @@ type sqlStore struct {
 	options store.Options
 }
 
+func (s *sqlStore) Close() error {
+	if s.db != nil {
+		return s.db.Close()
+	}
+	return nil
+}
+
 func (s *sqlStore) Init(opts ...store.Option) error {
 	for _, o := range opts {
 		o(&s.options)
