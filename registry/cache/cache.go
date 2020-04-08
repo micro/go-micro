@@ -339,8 +339,8 @@ func (c *cache) run() {
 			c.setStatus(err)
 
 			if a > 3 {
-				if logger.V(logger.InfoLevel, logger.DefaultLogger) {
-					logger.Info("rcache: ", err, " backing off ", d)
+				if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+					logger.Debug("rcache: ", err, " backing off ", d)
 				}
 				a = 0
 			}
@@ -364,8 +364,8 @@ func (c *cache) run() {
 			c.setStatus(err)
 
 			if b > 3 {
-				if logger.V(logger.InfoLevel, logger.DefaultLogger) {
-					logger.Info("rcache: ", err, " backing off ", d)
+				if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+					logger.Debug("rcache: ", err, " backing off ", d)
 				}
 				b = 0
 			}

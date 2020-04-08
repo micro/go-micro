@@ -115,8 +115,9 @@ func TestService(t *testing.T) {
 
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, syscall.SIGTERM)
+	p, _ := os.FindProcess(os.Getpid())
+	p.Signal(syscall.SIGTERM)
 
-	syscall.Kill(syscall.Getpid(), syscall.SIGTERM)
 	<-ch
 
 	select {

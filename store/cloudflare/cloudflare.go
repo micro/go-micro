@@ -101,12 +101,19 @@ func validateOptions(account, token, namespace string) {
 	}
 }
 
+func (w *workersKV) Close() error {
+	return nil
+}
+
 func (w *workersKV) Init(opts ...store.Option) error {
 	for _, o := range opts {
 		o(&w.options)
 	}
 	if len(w.options.Database) > 0 {
 		w.namespace = w.options.Database
+	}
+	if w.options.Context == nil {
+		w.options.Context = context.TODO()
 	}
 	ttl := w.options.Context.Value("STORE_CACHE_TTL")
 	if ttl != nil {

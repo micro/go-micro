@@ -29,3 +29,7 @@ func (n *noopStore) Delete(key string, opts ...DeleteOption) error {
 func (n *noopStore) List(opts ...ListOption) ([]string, error) {
 	return []string{}, nil
 }
+
+func (n *noopStore) Close() error {
+	return nil
+}

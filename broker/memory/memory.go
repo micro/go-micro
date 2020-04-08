@@ -55,7 +55,8 @@ func (m *memoryBroker) Connect() error {
 		return nil
 	}
 
-	addr, err := maddr.Extract("::")
+	// use 127.0.0.1 to avoid scan of all network interfaces
+	addr, err := maddr.Extract("127.0.0.1")
 	if err != nil {
 		return err
 	}

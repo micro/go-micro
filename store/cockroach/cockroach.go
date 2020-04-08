@@ -18,6 +18,7 @@ import (
 // will use if no namespace is provided.
 var (
 	DefaultDatabase = "micro"
+	DefaultTable    = "micro"
 )
 
 type sqlStore struct {
@@ -34,6 +35,19 @@ type sqlStore struct {
 	delete     *sql.Stmt
 
 	options store.Options
+}
+
+func (s *sqlStore) Close() error {
+	closeStmt(s.delete)
+	closeStmt(s.list)
+	closeStmt(s.readMany)
+	closeStmt(s.readOffset)
+	closeStmt(s.readOne)
+	closeStmt(s.write)
+	if s.db != nil {
+		return s.db.Close()
+	}
+	return nil
 }
 
 func (s *sqlStore) Init(opts ...store.Option) error {
@@ -241,33 +255,25 @@ func (s *sqlStore) initDB() error {
 	if err != nil {
 		return errors.Wrap(err, "List statement couldn't be prepared")
 	}
-	if s.list != nil {
-		s.list.Close()
-	}
+	closeStmt(s.list)
 	s.list = list
 	readOne, err := s.db.Prepare(fmt.Sprintf("SELECT key, value, expiry FROM %s.%s WHERE key = $1;", s.database, s.table))
 	if err != nil {
 		return errors.Wrap(err, "ReadOne statement couldn't be prepared")
 	}
-	if s.readOne != nil {
-		s.readOne.Close()
-	}
+	closeStmt(s.readOne)
 	s.readOne = readOne
 	readMany, err := s.db.Prepare(fmt.Sprintf("SELECT key, value, expiry FROM %s.%s WHERE key LIKE $1;", s.database, s.table))
 	if err != nil {
 		return errors.Wrap(err, "ReadMany statement couldn't be prepared")
 	}
-	if s.readMany != nil {
-		s.readMany.Close()
-	}
+	closeStmt(s.readMany)
 	s.readMany = readMany
 	readOffset, err := s.db.Prepare(fmt.Sprintf("SELECT key, value, expiry FROM %s.%s WHERE key LIKE $1 ORDER BY key DESC LIMIT $2 OFFSET $3;", s.database, s.table))
 	if err != nil {
 		return errors.Wrap(err, "ReadOffset statement couldn't be prepared")
 	}
-	if s.readOffset != nil {
-		s.readOffset.Close()
-	}
+	closeStmt(s.readOffset)
 	s.readOffset = readOffset
 	write, err := s.db.Prepare(fmt.Sprintf(`INSERT INTO %s.%s(key, value, expiry)
 		VALUES ($1, $2::bytea, $3)
@@ -277,17 +283,13 @@ func (s *sqlStore) initDB() error {
 	if err != nil {
 		return errors.Wrap(err, "Write statement couldn't be prepared")
 	}
-	if s.write != nil {
-		s.write.Close()
-	}
+	closeStmt(s.write)
 	s.write = write
 	delete, err := s.db.Prepare(fmt.Sprintf("DELETE FROM %s.%s WHERE key = $1;", s.database, s.table))
 	if err != nil {
 		return errors.Wrap(err, "Delete statement couldn't be prepared")
 	}
-	if s.delete != nil {
-		s.delete.Close()
-	}
+	closeStmt(s.delete)
 	s.delete = delete
 
 	return nil
@@ -295,7 +297,7 @@ func (s *sqlStore) initDB() error {
 
 func (s *sqlStore) configure() error {
 	if len(s.options.Nodes) == 0 {
-		s.options.Nodes = []string{"postgresql://root@localhost:26257"}
+		s.options.Nodes = []string{"postgresql://root@localhost:26257?sslmode=disable"}
 	}
 
 	database := s.options.Database
@@ -303,10 +305,10 @@ func (s *sqlStore) configure() error {
 		database = DefaultDatabase
 	}
 
-	if len(s.options.Table) == 0 {
-		return errors.New("no table set")
-	}
 	table := s.options.Table
+	if len(table) == 0 {
+		table = DefaultTable
+	}
 
 	// store.namespace must only contain letters, numbers and underscores
 	reg, err := regexp.Compile("[^a-zA-Z0-9]+")
@@ -374,4 +376,10 @@ func NewStore(opts ...store.Option) store.Store {
 
 	// return store
 	return s
+}
+
+func closeStmt(s *sql.Stmt) {
+	if s != nil {
+		s.Close()
+	}
 }

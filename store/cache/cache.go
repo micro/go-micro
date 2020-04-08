@@ -23,6 +23,10 @@ func NewCache(stores ...store.Store) store.Store {
 	return c
 }
 
+func (c *cache) Close() error {
+	return nil
+}
+
 func (c *cache) Init(...store.Option) error {
 	if len(c.stores) < 2 {
 		return errors.New("cache requires at least 2 stores")
