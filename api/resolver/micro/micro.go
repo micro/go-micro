@@ -27,6 +27,11 @@ func (r *Resolver) Resolve(req *http.Request) (*resolver.Endpoint, error) {
 		name = proxyRoute(req.URL.Path)
 	}
 
+	// set the namespace if it exists
+	if len(r.Options.Namespace) > 0 {
+		name = r.Options.Namespace + "." + name
+	}
+
 	return &resolver.Endpoint{
 		Name:   name,
 		Method: method,
