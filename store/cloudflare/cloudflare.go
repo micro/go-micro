@@ -112,6 +112,9 @@ func (w *workersKV) Init(opts ...store.Option) error {
 	if len(w.options.Database) > 0 {
 		w.namespace = w.options.Database
 	}
+	if w.options.Context == nil {
+		w.options.Context = context.TODO()
+	}
 	ttl := w.options.Context.Value("STORE_CACHE_TTL")
 	if ttl != nil {
 		ttlduration, ok := ttl.(time.Duration)
