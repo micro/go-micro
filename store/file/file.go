@@ -22,6 +22,9 @@ var (
 	DefaultTable = "micro"
 	// DefaultDir is the default directory for bbolt files
 	DefaultDir = os.TempDir()
+
+	// bucket used for data storage
+	dataBucket = "data"
 )
 
 // NewStore returns a memory store
@@ -49,7 +52,7 @@ type record struct {
 
 func (m *fileStore) delete(key string) error {
 	return m.db.Update(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte(m.options.Table))
+		b := tx.Bucket([]byte(dataBucket))
 		if b == nil {
 			return nil
 		}
@@ -100,7 +103,7 @@ func (m *fileStore) init(opts ...store.Option) error {
 
 	// create the table
 	return db.Update(func(tx *bolt.Tx) error {
-		_, err := tx.CreateBucketIfNotExists([]byte(m.options.Table))
+		_, err := tx.CreateBucketIfNotExists([]byte(dataBucket))
 		return err
 	})
 }
@@ -109,7 +112,7 @@ func (m *fileStore) list(limit, offset uint) []string {
 	var allItems []string
 
 	m.db.View(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte(m.options.Table))
+		b := tx.Bucket([]byte(dataBucket))
 		// nothing to read
 		if b == nil {
 			return nil
@@ -164,7 +167,7 @@ func (m *fileStore) get(k string) (*store.Record, error) {
 
 	m.db.View(func(tx *bolt.Tx) error {
 		// @todo this is still very experimental...
-		b := tx.Bucket([]byte(m.options.Table))
+		b := tx.Bucket([]byte(dataBucket))
 		if b == nil {
 			return nil
 		}
@@ -211,10 +214,10 @@ func (m *fileStore) set(r *store.Record) error {
 	data, _ := json.Marshal(item)
 
 	return m.db.Update(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte(m.options.Table))
+		b := tx.Bucket([]byte(dataBucket))
 		if b == nil {
 			var err error
-			b, err = tx.CreateBucketIfNotExists([]byte(m.options.Table))
+			b, err = tx.CreateBucketIfNotExists([]byte(dataBucket))
 			if err != nil {
 				return err
 			}

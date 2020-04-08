@@ -15,7 +15,7 @@ import (
 
 func cleanup(db string, s store.Store) {
 	s.Close()
-	dir := filepath.Join(DefaultDir, db + "/")
+	dir := filepath.Join(DefaultDir, db+"/")
 	os.RemoveAll(dir)
 }
 
@@ -249,19 +249,19 @@ func fileTest(s store.Store, t *testing.T) {
 		t.Error(err)
 	} else {
 		if len(results) != 5 {
-			t.Error("Expected 5 results, got ", len(results))
+			t.Fatal("Expected 5 results, got ", len(results))
 		}
 		if !strings.HasPrefix(results[0].Key, "a") {
-			t.Errorf("Expected a prefix, got %s", results[0].Key)
+			t.Fatalf("Expected a prefix, got %s", results[0].Key)
 		}
 	}
 
 	// read the rest back
 	if results, err := s.Read("a", store.ReadLimit(30), store.ReadOffset(5), store.ReadPrefix()); err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	} else {
 		if len(results) != 5 {
-			t.Error("Expected 5 results, got ", len(results))
+			t.Fatal("Expected 5 results, got ", len(results))
 		}
 	}
 }
