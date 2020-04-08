@@ -32,6 +32,10 @@ type serviceStore struct {
 	Client pb.StoreService
 }
 
+func (s *serviceStore) Close() error {
+	return nil
+}
+
 func (s *serviceStore) Init(opts ...store.Option) error {
 	for _, o := range opts {
 		o(&s.options)

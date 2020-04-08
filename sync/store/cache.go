@@ -41,6 +41,10 @@ func NewCache(opts ...Option) Cache {
 	return c
 }
 
+func (c *cache) Close() error {
+	return nil
+}
+
 // Init initialises the storeOptions
 func (c *cache) Init(opts ...store.Option) error {
 	for _, o := range opts {

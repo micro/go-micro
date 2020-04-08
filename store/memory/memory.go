@@ -30,6 +30,11 @@ type memoryStore struct {
 	store *cache.Cache
 }
 
+func (m *memoryStore) Close() error {
+	m.store.Flush()
+	return nil
+}
+
 func (m *memoryStore) Init(opts ...store.Option) error {
 	m.store.Flush()
 	for _, o := range opts {

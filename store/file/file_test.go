@@ -13,14 +13,15 @@ import (
 	"github.com/micro/go-micro/v2/store"
 )
 
-func cleanup() {
-	dir := filepath.Join(DefaultDir, "micro/")
+func cleanup(db string, s store.Store) {
+	s.Close()
+	dir := filepath.Join(DefaultDir, db + "/")
 	os.RemoveAll(dir)
 }
 
 func TestFileStoreReInit(t *testing.T) {
-	defer cleanup()
 	s := NewStore(store.Table("aaa"))
+	defer cleanup(DefaultDatabase, s)
 	s.Init(store.Table("bbb"))
 	if s.Options().Table != "bbb" {
 		t.Error("Init didn't reinitialise the store")
@@ -28,26 +29,26 @@ func TestFileStoreReInit(t *testing.T) {
 }
 
 func TestFileStoreBasic(t *testing.T) {
-	defer cleanup()
 	s := NewStore()
+	defer cleanup(DefaultDatabase, s)
 	fileTest(s, t)
 }
 
 func TestFileStoreTable(t *testing.T) {
-	defer cleanup()
 	s := NewStore(store.Table("testTable"))
+	defer cleanup(DefaultDatabase, s)
 	fileTest(s, t)
 }
 
 func TestFileStoreDatabase(t *testing.T) {
-	defer cleanup()
 	s := NewStore(store.Database("testdb"))
+	defer cleanup("testdb", s)
 	fileTest(s, t)
 }
 
 func TestFileStoreDatabaseTable(t *testing.T) {
-	defer cleanup()
 	s := NewStore(store.Table("testTable"), store.Database("testdb"))
+	defer cleanup("testdb", s)
 	fileTest(s, t)
 }
 
