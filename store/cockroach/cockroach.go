@@ -277,9 +277,9 @@ func (s *sqlStore) initDB() error {
 	s.readOffset = readOffset
 	write, err := s.db.Prepare(fmt.Sprintf(`INSERT INTO %s.%s(key, value, expiry)
 		VALUES ($1, $2::bytea, $3)
-		ON CONFLICT (key)
+		ON CONFLICT ON CONSTRAINT %s_pkey
 		DO UPDATE
-		SET value = EXCLUDED.value, expiry = EXCLUDED.expiry;`, s.database, s.table))
+		SET value = EXCLUDED.value, expiry = EXCLUDED.expiry;`, s.database, s.table, s.table))
 	if err != nil {
 		return errors.Wrap(err, "Write statement couldn't be prepared")
 	}
