@@ -8,6 +8,8 @@ import (
 )
 
 type Options struct {
+	// Namespace the service belongs to
+	Namespace string
 	// ID is the services auth ID
 	ID string
 	// Secret is used to authenticate the service
@@ -27,6 +29,13 @@ type Options struct {
 }
 
 type Option func(o *Options)
+
+// Namespace the service belongs to
+func Namespace(n string) Option {
+	return func(o *Options) {
+		o.Namespace = n
+	}
+}
 
 // Store to back auth
 func Store(s store.Store) Option {
