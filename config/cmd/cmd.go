@@ -231,7 +231,7 @@ var (
 		},
 		&cli.StringFlag{
 			Name:    "store_table",
-			EnvVars: []string{"MICRO_STORE_Table"},
+			EnvVars: []string{"MICRO_STORE_TABLE"},
 			Usage:   "Table option for the underlying store",
 		},
 		&cli.StringFlag{
