@@ -300,12 +300,16 @@ func requestPayload(r *http.Request) ([]byte, error) {
 
 	// allocate maximum
 	matches := make(map[string]interface{}, len(md))
+	bodydst := ""
 
 	// get fields from url path
 	for k, v := range md {
 		// filter own keys
 		if strings.HasPrefix(k, "x-api-field-") {
 			matches[strings.TrimPrefix(k, "x-api-field-")] = v
+			delete(md, k)
+		} else if k == "x-api-body" {
+			bodydst = v
 			delete(md, k)
 		}
 	}
@@ -387,8 +391,32 @@ func requestPayload(r *http.Request) ([]byte, error) {
 		} else {
 			return []byte{}, nil
 		}
+		if bodydst == "" || bodydst == "*" {
+			if out, err = jsonpatch.MergeMergePatches(out, bodybuf); err == nil {
+				return out, nil
+			}
+		}
+		dstmap := make(map[string]interface{})
+		ps := strings.Split(bodydst, ".")
+		if len(ps) == 1 {
+			dstmap[ps[0]] = bodybuf
+		} else {
+			em := make(map[string]interface{})
+			em[ps[len(ps)-1]] = bodybuf
+			for i := len(ps) - 2; i > 0; i-- {
+				nm := make(map[string]interface{})
+				nm[ps[i]] = em
+				em = nm
+			}
+			dstmap[ps[0]] = em
+		}
 
-		if out, err = jsonpatch.MergeMergePatches(out, bodybuf); err == nil {
+		bodyout, err := json.Marshal(dstmap)
+		if err != nil {
+			return nil, err
+		}
+
+		if out, err = jsonpatch.MergeMergePatches(out, bodyout); err == nil {
 			return out, nil
 		}
 

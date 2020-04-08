@@ -191,6 +191,7 @@ func (r *staticRouter) Endpoint(req *http.Request) (*api.Service, error) {
 			Host:    ep.apiep.Host,
 			Method:  ep.apiep.Method,
 			Path:    ep.apiep.Path,
+			Body:    ep.apiep.Body,
 			Stream:  ep.apiep.Stream,
 		},
 		Services: services,
@@ -274,6 +275,7 @@ func (r *staticRouter) endpoint(req *http.Request) (*endpoint, error) {
 			for k, v := range matches {
 				md[fmt.Sprintf("x-api-field-%s", k)] = v
 			}
+			md["x-api-body"] = ep.apiep.Body
 			*req = *req.Clone(context.WithValue(ctx, metadata.MetadataKey{}, md))
 			break pathLoop
 		}
@@ -285,6 +287,7 @@ func (r *staticRouter) endpoint(req *http.Request) (*endpoint, error) {
 		// we got here, so its a match
 		return ep, nil
 	}
+
 	// no match
 	return nil, fmt.Errorf("endpoint not found for %v", req)
 }
