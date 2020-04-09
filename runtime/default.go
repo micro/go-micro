@@ -200,7 +200,7 @@ func (r *runtime) Create(s *Service, opts ...CreateOption) error {
 		return err
 	}
 
-	options.WorkDir = filepath.Join(dir, os.Args[2])
+	options.WorkDir = filepath.Join(dir, s.Source)
 	if len(options.Command) == 0 {
 		options.Command = []string{"go"}
 		options.Args = []string{"run", "."}
