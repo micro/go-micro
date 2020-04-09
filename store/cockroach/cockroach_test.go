@@ -24,7 +24,8 @@ func TestSQL(t *testing.T) {
 		t.Fatal(err)
 	}
 	if err := db.Ping(); err != nil {
-		t.Skip(err)
+		t.Logf("Couldn't connect to cockroachdb: %s", err.Error())
+		t.Skip()
 	}
 	db.Close()
 
