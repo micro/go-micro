@@ -195,7 +195,6 @@ func (r *runtime) Create(s *Service, opts ...CreateOption) error {
 		o(&options)
 	}
 
-	options.WorkDir = s.Source
 	if len(options.Command) == 0 {
 		options.Command = []string{"go"}
 		options.Args = []string{"run", "."}

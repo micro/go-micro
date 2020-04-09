@@ -55,7 +55,7 @@ func newService(s *Service, c CreateOptions) *service {
 			},
 			Env:     c.Env,
 			Args:    args,
-			WorkDir: c.WorkDir,
+			WorkDir: s.Source,
 		},
 		closed:     make(chan bool),
 		output:     c.Output,

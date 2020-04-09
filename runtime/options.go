@@ -66,8 +66,6 @@ type CreateOptions struct {
 	Retries int
 	// Specify the image to use
 	Image string
-	// Initial working directory for command
-	WorkDir string
 }
 
 // ReadOptions queries runtime services
