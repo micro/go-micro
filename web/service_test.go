@@ -110,7 +110,9 @@ func TestService(t *testing.T) {
 			t.Fatalf("service.Run():%v", err)
 		}
 	case <-time.After(time.Duration(time.Second)):
-		t.Logf("service.Run() survived a client request without an error")
+		if len(os.Getenv("IN_TRAVIS_CI")) == 0 {
+			t.Logf("service.Run() survived a client request without an error")
+		}
 	}
 
 	ch := make(chan os.Signal, 1)
@@ -125,10 +127,14 @@ func TestService(t *testing.T) {
 		if err != nil {
 			t.Fatalf("service.Run():%v", err)
 		} else {
-			t.Log("service.Run() nil return on syscall.SIGTERM")
+			if len(os.Getenv("IN_TRAVIS_CI")) == 0 {
+				t.Log("service.Run() nil return on syscall.SIGTERM")
+			}
 		}
 	case <-time.After(time.Duration(time.Second)):
-		t.Logf("service.Run() survived a client request without an error")
+		if len(os.Getenv("IN_TRAVIS_CI")) == 0 {
+			t.Logf("service.Run() survived a client request without an error")
+		}
 	}
 
 	eventually(func() bool {
@@ -286,7 +292,9 @@ func TestTLS(t *testing.T) {
 			t.Fatalf("service.Run():%v", err)
 		}
 	case <-time.After(time.Duration(time.Second)):
-		t.Logf("service.Run() survived a client request without an error")
+		if len(os.Getenv("IN_TRAVIS_CI")) == 0 {
+			t.Logf("service.Run() survived a client request without an error")
+		}
 	}
 
 }
