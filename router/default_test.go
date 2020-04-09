@@ -2,6 +2,7 @@ package router
 
 import (
 	"fmt"
+	"os"
 	"sync"
 	"testing"
 	"time"
@@ -29,7 +30,9 @@ func TestRouterStartStop(t *testing.T) {
 	if err := r.Stop(); err != nil {
 		t.Errorf("failed to stop router: %v", err)
 	}
-	t.Logf("TestRouterStartStop STOPPED")
+	if len(os.Getenv("IN_TRAVIS_CI")) == 0 {
+		t.Logf("TestRouterStartStop STOPPED")
+	}
 }
 
 func TestRouterAdvertise(t *testing.T) {
@@ -49,7 +52,9 @@ func TestRouterAdvertise(t *testing.T) {
 
 	// receive announce event
 	ann := <-ch
-	t.Logf("received announce advert: %v", ann)
+	if len(os.Getenv("IN_TRAVIS_CI")) == 0 {
+		t.Logf("received announce advert: %v", ann)
+	}
 
 	// Generate random unique routes
 	nrRoutes := 5
@@ -81,9 +86,13 @@ func TestRouterAdvertise(t *testing.T) {
 		wg.Done()
 		defer close(createDone)
 		for _, route := range routes {
-			t.Logf("Creating route %v", route)
+			if len(os.Getenv("IN_TRAVIS_CI")) == 0 {
+				t.Logf("Creating route %v", route)
+			}
 			if err := r.Table().Create(route); err != nil {
-				t.Logf("Failed to create route: %v", err)
+				if len(os.Getenv("IN_TRAVIS_CI")) == 0 {
+					t.Logf("Failed to create route: %v", err)
+				}
 				errChan <- err
 				return
 			}
@@ -105,7 +114,9 @@ func TestRouterAdvertise(t *testing.T) {
 				t.Errorf("failed advertising events: %v", advertErr)
 			default:
 				// do nothing for now
-				t.Logf("Router advert received: %v", advert)
+				if len(os.Getenv("IN_TRAVIS_CI")) == 0 {
+					t.Logf("Router advert received: %v", advert)
+				}
 				adverts += len(advert.Events)
 			}
 			return

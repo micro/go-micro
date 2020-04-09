@@ -53,8 +53,9 @@ func TestFileStoreDatabaseTable(t *testing.T) {
 }
 
 func fileTest(s store.Store, t *testing.T) {
-	t.Logf("Options %s %v\n", s.String(), s.Options())
-
+	if len(os.Getenv("IN_TRAVIS_CI")) == 0 {
+		t.Logf("Options %s %v\n", s.String(), s.Options())
+	}
 	// Read and Write an expiring Record
 	if err := s.Write(&store.Record{
 		Key:    "Hello",
@@ -109,7 +110,7 @@ func fileTest(s store.Store, t *testing.T) {
 	} else {
 		if len(results) != 2 {
 			t.Errorf("Expected 2 items, got %d", len(results))
-			t.Logf("Table test: %v\n", spew.Sdump(results))
+			//t.Logf("Table test: %v\n", spew.Sdump(results))
 		}
 	}
 
@@ -120,7 +121,7 @@ func fileTest(s store.Store, t *testing.T) {
 		t.Errorf("Couldn't read all \"foo\" keys, got %# v (%s)", spew.Sdump(results), err)
 	} else if len(results) != 1 {
 		t.Errorf("Expected 1 item, got %d", len(results))
-		t.Logf("Table test: %v\n", spew.Sdump(results))
+		//t.Logf("Table test: %v\n", spew.Sdump(results))
 	}
 
 	if err := s.Delete("foo"); err != nil {
@@ -163,7 +164,7 @@ func fileTest(s store.Store, t *testing.T) {
 	} else {
 		if len(results) != 3 {
 			t.Errorf("Expected 3 items, got %d", len(results))
-			t.Logf("Table test: %v\n", spew.Sdump(results))
+			//t.Logf("Table test: %v\n", spew.Sdump(results))
 		}
 
 	}
@@ -173,7 +174,7 @@ func fileTest(s store.Store, t *testing.T) {
 	} else {
 		if len(results) != 2 {
 			t.Errorf("Expected 2 items, got %d", len(results))
-			t.Logf("Table test: %v\n", spew.Sdump(results))
+			//t.Logf("Table test: %v\n", spew.Sdump(results))
 		}
 
 	}
@@ -183,7 +184,7 @@ func fileTest(s store.Store, t *testing.T) {
 	} else {
 		if len(results) != 1 {
 			t.Errorf("Expected 1 item, got %d", len(results))
-			t.Logf("Table test: %# v\n", spew.Sdump(results))
+			//	t.Logf("Table test: %# v\n", spew.Sdump(results))
 		}
 	}
 	if err := s.Delete("foo"); err != nil {

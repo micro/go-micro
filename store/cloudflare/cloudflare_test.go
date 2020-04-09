@@ -11,6 +11,10 @@ import (
 )
 
 func TestCloudflare(t *testing.T) {
+	if len(os.Getenv("IN_TRAVIS_CI")) != 0 {
+		t.Skip()
+	}
+
 	apiToken, accountID := os.Getenv("CF_API_TOKEN"), os.Getenv("CF_ACCOUNT_ID")
 	kvID := os.Getenv("KV_NAMESPACE_ID")
 	if len(apiToken) == 0 || len(accountID) == 0 || len(kvID) == 0 {
@@ -31,7 +35,9 @@ func TestCloudflare(t *testing.T) {
 	if err != nil {
 		t.Fatalf("List: %s\n", err.Error())
 	} else {
-		t.Log("Listed " + strconv.Itoa(len(records)) + " records")
+		if len(os.Getenv("IN_TRAVIS_CI")) == 0 {
+			t.Log("Listed " + strconv.Itoa(len(records)) + " records")
+		}
 	}
 
 	err = wkv.Write(&store.Record{

@@ -1,6 +1,7 @@
 package memory
 
 import (
+	"os"
 	"testing"
 
 	"github.com/micro/go-micro/v2/transport"
@@ -24,7 +25,9 @@ func TestMemoryTransport(t *testing.T) {
 				if err := sock.Recv(&m); err != nil {
 					return
 				}
-				t.Logf("Server Received %s", string(m.Body))
+				if len(os.Getenv("IN_TRAVIS_CI")) == 0 {
+					t.Logf("Server Received %s", string(m.Body))
+				}
 				if err := sock.Send(&transport.Message{
 					Body: []byte(`pong`),
 				}); err != nil {
@@ -54,7 +57,9 @@ func TestMemoryTransport(t *testing.T) {
 		if err := c.Recv(&m); err != nil {
 			return
 		}
-		t.Logf("Client Received %s", string(m.Body))
+		if len(os.Getenv("IN_TRAVIS_CI")) == 0 {
+			t.Logf("Client Received %s", string(m.Body))
+		}
 	}
 
 }

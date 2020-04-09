@@ -226,8 +226,8 @@ func (s *service) start() error {
 		ch <- l.Close()
 	}()
 
-	if logger.V(logger.InfoLevel, log) {
-		log.Infof("Listening on %v", l.Addr().String())
+	if logger.V(logger.DebugLevel, log) {
+		log.Debugf("Listening on %v", l.Addr().String())
 	}
 	return nil
 }
