@@ -12,10 +12,6 @@ import (
 )
 
 func TestSQL(t *testing.T) {
-	if len(os.Getenv("IN_TRAVIS_CI")) != 0 {
-		t.Skip()
-	}
-
 	connection := fmt.Sprintf(
 		"host=%s port=%d user=%s sslmode=disable dbname=%s",
 		"localhost",
@@ -28,7 +24,7 @@ func TestSQL(t *testing.T) {
 		t.Fatal(err)
 	}
 	if err := db.Ping(); err != nil {
-		t.Fatal(err)
+		t.Skip(err)
 	}
 	db.Close()
 
