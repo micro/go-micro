@@ -193,6 +193,10 @@ func TestStorageImplementation(t *testing.T) {
 
 // Full test with a real zone, with  against LE staging
 func TestE2e(t *testing.T) {
+	if len(os.Getenv("IN_TRAVIS_CI")) != 0 {
+		t.Skip()
+	}
+
 	apiToken, accountID := os.Getenv("CF_API_TOKEN"), os.Getenv("CF_ACCOUNT_ID")
 	kvID := os.Getenv("KV_NAMESPACE_ID")
 	if len(apiToken) == 0 || len(accountID) == 0 || len(kvID) == 0 {
