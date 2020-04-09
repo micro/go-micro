@@ -279,7 +279,7 @@ func (s *sqlStore) initDB() error {
 		VALUES ($1, $2::bytea, $3)
 		ON CONFLICT (key)
 		DO UPDATE
-		SET value = EXCLUDED.value, expiry = EXCLUDED.expiry;`, s.database, s.table, s.table))
+		SET value = EXCLUDED.value, expiry = EXCLUDED.expiry;`, s.database, s.table))
 	if err != nil {
 		return errors.Wrap(err, "Write statement couldn't be prepared")
 	}
