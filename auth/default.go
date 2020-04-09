@@ -2,6 +2,7 @@ package auth
 
 import (
 	"github.com/google/uuid"
+	"github.com/micro/go-micro/v2/auth/provider/basic"
 )
 
 var (
@@ -9,7 +10,17 @@ var (
 )
 
 func NewAuth(opts ...Option) Auth {
-	return &noop{}
+	options := Options{
+		Provider: basic.NewProvider(),
+	}
+
+	for _, o := range opts {
+		o(&options)
+	}
+
+	return &noop{
+		opts: options,
+	}
 }
 
 type noop struct {
