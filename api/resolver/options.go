@@ -1,11 +1,22 @@
 package resolver
 
+import (
+	"net/http"
+
+	"github.com/micro/go-micro/v2/auth"
+)
+
 // NewOptions returns new initialised options
 func NewOptions(opts ...Option) Options {
 	var options Options
 	for _, o := range opts {
 		o(&options)
 	}
+
+	if options.Namespace == nil {
+		options.Namespace = StaticNamespace(auth.DefaultNamespace)
+	}
+
 	return options
 }
 
@@ -16,8 +27,8 @@ func WithHandler(h string) Option {
 	}
 }
 
-// WithNamespace sets the namespace being used
-func WithNamespace(n string) Option {
+// WithNamespace sets the function which determines the namespace for a request
+func WithNamespace(n func(*http.Request) string) Option {
 	return func(o *Options) {
 		o.Namespace = n
 	}
