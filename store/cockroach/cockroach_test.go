@@ -28,7 +28,7 @@ func TestSQL(t *testing.T) {
 		t.Fatal(err)
 	}
 	if err := db.Ping(); err != nil {
-		t.Fatal(err)
+		t.Skip("store/cockroach: can't connect to db")
 	}
 	db.Close()
 
