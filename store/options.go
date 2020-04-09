@@ -118,7 +118,7 @@ type WriteOptions struct {
 type WriteOption func(w *WriteOptions)
 
 // WriteTo the database and table
-func WriteTo(database, table string) ReadOption {
+func WriteTo(database, table string) WriteOption {
 	return func(w *WriteOptions) {
 		w.Database = database
 		w.Table = table
@@ -140,7 +140,7 @@ func WriteTTL(d time.Duration) WriteOption {
 }
 
 // DeleteOptions configures an individual Delete operation
-type DeleteOptions struct{
+type DeleteOptions struct {
 	Database, Table string
 }
 
@@ -148,7 +148,7 @@ type DeleteOptions struct{
 type DeleteOption func(d *DeleteOptions)
 
 // DeleteFrom the database and table
-func DeleteFrom(database, table string) ReadOption {
+func DeleteFrom(database, table string) DeleteOption {
 	return func(d *DeleteOptions) {
 		d.Database = database
 		d.Table = table
@@ -173,7 +173,7 @@ type ListOptions struct {
 type ListOption func(l *ListOptions)
 
 // ListFrom the database and table
-func ListFrom(database, table string) ReadOption {
+func ListFrom(database, table string) ListOption {
 	return func(l *ListOptions) {
 		l.Database = database
 		l.Table = table
