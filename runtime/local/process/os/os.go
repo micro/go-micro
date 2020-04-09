@@ -25,6 +25,7 @@ func (p *Process) Fork(exe *process.Executable) (*process.PID, error) {
 
 	cmd.Dir = exe.WorkDir
 	// set env vars
+	cmd.Env = append(cmd.Env, os.Environ()...)
 	cmd.Env = append(cmd.Env, exe.Env...)
 
 	// create process group
