@@ -2,6 +2,7 @@ package router
 
 import (
 	"github.com/micro/go-micro/v2/api/resolver"
+	"github.com/micro/go-micro/v2/api/resolver/vpath"
 	"github.com/micro/go-micro/v2/registry"
 )
 
@@ -21,6 +22,12 @@ func NewOptions(opts ...Option) Options {
 
 	for _, o := range opts {
 		o(&options)
+	}
+
+	if options.Resolver == nil {
+		options.Resolver = vpath.NewResolver(
+			resolver.WithHandler(options.Handler),
+		)
 	}
 
 	return options
