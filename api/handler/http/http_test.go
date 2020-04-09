@@ -7,13 +7,15 @@ import (
 	"testing"
 
 	"github.com/micro/go-micro/v2/api/handler"
+	"github.com/micro/go-micro/v2/api/resolver"
+	"github.com/micro/go-micro/v2/api/resolver/vpath"
 	"github.com/micro/go-micro/v2/api/router"
 	regRouter "github.com/micro/go-micro/v2/api/router/registry"
 	"github.com/micro/go-micro/v2/registry"
 	"github.com/micro/go-micro/v2/registry/memory"
 )
 
-func testHttp(t *testing.T, path, service string) {
+func testHttp(t *testing.T, path, service, ns string) {
 	r := memory.NewRegistry()
 
 	l, err := net.Listen("tcp", "127.0.0.1:0")
@@ -55,6 +57,9 @@ func testHttp(t *testing.T, path, service string) {
 	rt := regRouter.NewRouter(
 		router.WithHandler("http"),
 		router.WithRegistry(r),
+		router.WithResolver(vpath.NewResolver(
+			resolver.WithNamespace(resolver.StaticNamespace(ns)),
+		)),
 	)
 
 	p := NewHandler(handler.WithRouter(rt))
@@ -73,40 +78,50 @@ func testHttp(t *testing.T, path, service string) {
 
 func TestHttpHandler(t *testing.T) {
 	testData := []struct {
-		path    string
-		service string
+		path      string
+		service   string
+		namespace string
 	}{
 		{
 			"/test/foo",
-			"test",
+			"go.micro.api.test",
+			"go.micro.api",
 		},
 		{
 			"/test/foo/baz",
-			"test",
+			"go.micro.api.test",
+			"go.micro.api",
 		},
 		{
 			"/v1/foo",
-			"v1.foo",
+			"go.micro.api.v1.foo",
+			"go.micro.api",
 		},
 		{
 			"/v1/foo/bar",
-			"v1.foo",
+			"go.micro.api.v1.foo",
+			"go.micro.api",
 		},
 		{
 			"/v2/baz",
-			"v2.baz",
+			"go.micro.api.v2.baz",
+			"go.micro.api",
+		},
+		{
+			"/v2/baz/bar",
+			"go.micro.api.v2.baz",
+			"go.micro.api",
 		},
 		{
 			"/v2/baz/bar",
 			"v2.baz",
-		},
-		{
-			"/v2/baz/bar",
-			"v2.baz",
+			"",
 		},
 	}
 
 	for _, d := range testData {
-		testHttp(t, d.path, d.service)
+		t.Run(d.service, func(t *testing.T) {
+			testHttp(t, d.path, d.service, d.namespace)
+		})
 	}
 }

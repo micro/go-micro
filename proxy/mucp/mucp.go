@@ -206,7 +206,7 @@ func (p *Proxy) cacheRoutes(service string) ([]router.Route, error) {
 	results, err := p.Router.Lookup(router.QueryService(service))
 	if err != nil {
 		// assumption that we're ok with stale routes
-
+		logger.Debugf("Failed to lookup route for %s: %v", service, err)
 		// otherwise return the error
 		return nil, err
 	}
