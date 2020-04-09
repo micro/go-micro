@@ -370,6 +370,10 @@ func (s *service) Init(opts ...Option) error {
 		return nil
 	}))
 
+	// pass in own name and version
+	serviceOpts = append(serviceOpts, micro.Name(s.opts.Name))
+	serviceOpts = append(serviceOpts, micro.Version(s.opts.Version))
+
 	s.opts.Service.Init(serviceOpts...)
 	srv := s.genSrv()
 	srv.Endpoints = s.srv.Endpoints
