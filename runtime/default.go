@@ -204,7 +204,6 @@ func (r *runtime) Create(s *Service, opts ...CreateOption) error {
 	service := newService(s, options)
 
 	f, err := os.OpenFile(logFile(service.Name), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	logger.Info(f, err)
 	if err != nil {
 		log.Fatal(err)
 	}
