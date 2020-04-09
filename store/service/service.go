@@ -16,17 +16,14 @@ import (
 type serviceStore struct {
 	options store.Options
 
-	// Namespace to use
-	Namespace string
+	// The database to use
+	Database string
+
+	// The table to use
+	Table string
 
 	// Addresses of the nodes
 	Nodes []string
-
-	// Prefix to use
-	Prefix string
-
-	// Suffix to use
-	Suffix string
 
 	// store service client
 	Client pb.StoreService
@@ -40,8 +37,8 @@ func (s *serviceStore) Init(opts ...store.Option) error {
 	for _, o := range opts {
 		o(&s.options)
 	}
-	s.Namespace = s.options.Database
-	s.Prefix = s.options.Table
+	s.Database = s.options.Database
+	s.Table = s.options.Table
 	s.Nodes = s.options.Nodes
 
 	return nil
@@ -52,12 +49,12 @@ func (s *serviceStore) Context() context.Context {
 
 	md := make(metadata.Metadata)
 
-	if len(s.Namespace) > 0 {
-		md["Micro-Namespace"] = s.Namespace
+	if len(s.Database) > 0 {
+		md["Micro-Database"] = s.Database
 	}
 
-	if len(s.Prefix) > 0 {
-		md["Micro-Prefix"] = s.Prefix
+	if len(s.Table) > 0 {
+		md["Micro-Table"] = s.Table
 	}
 
 	return metadata.NewContext(ctx, md)
@@ -168,11 +165,11 @@ func NewStore(opts ...store.Option) store.Store {
 	}
 
 	service := &serviceStore{
-		options:   options,
-		Namespace: options.Database,
-		Prefix:    options.Table,
-		Nodes:     options.Nodes,
-		Client:    pb.NewStoreService("go.micro.store", client.DefaultClient),
+		options:  options,
+		Database: options.Database,
+		Table:    options.Table,
+		Nodes:    options.Nodes,
+		Client:   pb.NewStoreService("go.micro.store", client.DefaultClient),
 	}
 
 	return service

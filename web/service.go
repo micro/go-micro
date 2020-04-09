@@ -226,8 +226,8 @@ func (s *service) start() error {
 		ch <- l.Close()
 	}()
 
-	if logger.V(logger.InfoLevel, log) {
-		log.Infof("Listening on %v", l.Addr().String())
+	if logger.V(logger.DebugLevel, log) {
+		log.Debugf("Listening on %v", l.Addr().String())
 	}
 	return nil
 }
@@ -369,6 +369,10 @@ func (s *service) Init(opts ...Option) error {
 
 		return nil
 	}))
+
+	// pass in own name and version
+	serviceOpts = append(serviceOpts, micro.Name(s.opts.Name))
+	serviceOpts = append(serviceOpts, micro.Version(s.opts.Version))
 
 	s.opts.Service.Init(serviceOpts...)
 	srv := s.genSrv()

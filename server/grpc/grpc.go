@@ -713,7 +713,7 @@ func (g *grpcServer) Register() error {
 		}
 
 		if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-			logger.Debug("Subscribing to topic: %s", sb.Topic())
+			logger.Debugf("Subscribing to topic: %s", sb.Topic())
 		}
 		sub, err := config.Broker.Subscribe(sb.Topic(), handler, opts...)
 		if err != nil {
