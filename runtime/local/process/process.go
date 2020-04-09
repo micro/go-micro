@@ -26,6 +26,8 @@ type Executable struct {
 	Env []string
 	// Args to pass
 	Args []string
+	// Initial working directory
+	WorkDir string
 }
 
 // PID is the running process

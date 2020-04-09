@@ -195,6 +195,12 @@ func (r *runtime) Create(s *Service, opts ...CreateOption) error {
 		o(&options)
 	}
 
+	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+	if err != nil {
+		return err
+	}
+
+	options.WorkDir = filepath.Join(dir, os.Args[2])
 	if len(options.Command) == 0 {
 		options.Command = []string{"go"}
 		options.Args = []string{"run", "."}
