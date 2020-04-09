@@ -27,7 +27,7 @@ type Executable struct {
 	// Args to pass
 	Args []string
 	// Initial working directory
-	WorkDir string
+	Dir string
 }
 
 // PID is the running process

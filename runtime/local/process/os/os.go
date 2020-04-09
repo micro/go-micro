@@ -15,7 +15,7 @@ import (
 
 func (p *Process) Exec(exe *process.Executable) error {
 	cmd := exec.Command(exe.Package.Path)
-	cmd.Dir = exe.WorkDir
+	cmd.Dir = exe.Dir
 	return cmd.Run()
 }
 
@@ -23,7 +23,7 @@ func (p *Process) Fork(exe *process.Executable) (*process.PID, error) {
 	// create command
 	cmd := exec.Command(exe.Package.Path, exe.Args...)
 
-	cmd.Dir = exe.WorkDir
+	cmd.Dir = exe.Dir
 	// set env vars
 	cmd.Env = append(cmd.Env, os.Environ()...)
 	cmd.Env = append(cmd.Env, exe.Env...)
