@@ -78,11 +78,13 @@ message ListResponse {
 message DatabasesRequest {}
 
 message DatabasesResponse {
-	repeated string Databases = 1;
+	repeated string databases = 1;
 }
 
-message TablesRequest {}
+message TablesRequest {
+	string database = 1;
+}
 
 message TablesResponse {
-	repeated string Tables = 1;
+	repeated string tables = 1;
 }
