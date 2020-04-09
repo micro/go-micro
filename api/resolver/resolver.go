@@ -31,7 +31,14 @@ type Endpoint struct {
 
 type Options struct {
 	Handler   string
-	Namespace string
+	Namespace func(*http.Request) string
 }
 
 type Option func(o *Options)
+
+// StaticNamespace returns the same namespace for each request
+func StaticNamespace(ns string) func(*http.Request) string {
+	return func(*http.Request) string {
+		return ns
+	}
+}
