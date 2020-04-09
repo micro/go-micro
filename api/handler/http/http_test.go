@@ -58,7 +58,7 @@ func testHttp(t *testing.T, path, service, ns string) {
 		router.WithHandler("http"),
 		router.WithRegistry(r),
 		router.WithResolver(vpath.NewResolver(
-			resolver.WithNamespace(ns),
+			resolver.WithNamespace(resolver.StaticNamespace(ns)),
 		)),
 	)
 
