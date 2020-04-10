@@ -4,7 +4,7 @@ import (
 	"github.com/micro/go-micro/v2/registry"
 )
 
-func addregistryNodes(old, neu []*registry.Node) []*registry.Node {
+func addNodes(old, neu []*registry.Node) []*registry.Node {
 	nodes := make([]*registry.Node, len(neu))
 	// add all new nodes
 	for i, n := range neu {
@@ -35,7 +35,7 @@ func addregistryNodes(old, neu []*registry.Node) []*registry.Node {
 	return nodes
 }
 
-func delregistryNodes(old, del []*registry.Node) []*registry.Node {
+func delNodes(old, del []*registry.Node) []*registry.Node {
 	var nodes []*registry.Node
 	for _, o := range old {
 		var rem bool
@@ -99,7 +99,7 @@ func Merge(olist []*registry.Service, nlist []*registry.Service) []*registry.Ser
 				// make copy
 				*sp = *o
 				// set nodes
-				sp.Nodes = addregistryNodes(o.Nodes, n.Nodes)
+				sp.Nodes = addNodes(o.Nodes, n.Nodes)
 
 				// mark as seen
 				seen = true
@@ -131,7 +131,7 @@ func Remove(old, del []*registry.Service) []*registry.Service {
 
 		for _, s := range del {
 			if srv.Version == s.Version {
-				srv.Nodes = delregistryNodes(srv.Nodes, s.Nodes)
+				srv.Nodes = delNodes(srv.Nodes, s.Nodes)
 
 				if len(srv.Nodes) == 0 {
 					rem = true
