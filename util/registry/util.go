@@ -1,7 +1,11 @@
 package registry
 
-func addNodes(old, neu []*Node) []*Node {
-	nodes := make([]*Node, len(neu))
+import (
+	"github.com/micro/go-micro/v2/registry"
+)
+
+func addregistryNodes(old, neu []*registry.Node) []*registry.Node {
+	nodes := make([]*registry.Node, len(neu))
 	// add all new nodes
 	for i, n := range neu {
 		node := *n
@@ -31,8 +35,8 @@ func addNodes(old, neu []*Node) []*Node {
 	return nodes
 }
 
-func delNodes(old, del []*Node) []*Node {
-	var nodes []*Node
+func delregistryNodes(old, del []*registry.Node) []*registry.Node {
+	var nodes []*registry.Node
 	for _, o := range old {
 		var rem bool
 		for _, n := range del {
@@ -49,24 +53,24 @@ func delNodes(old, del []*Node) []*Node {
 }
 
 // CopyService make a copy of service
-func CopyService(service *Service) *Service {
+func CopyService(service *registry.Service) *registry.Service {
 	// copy service
-	s := new(Service)
+	s := new(registry.Service)
 	*s = *service
 
 	// copy nodes
-	nodes := make([]*Node, len(service.Nodes))
+	nodes := make([]*registry.Node, len(service.Nodes))
 	for j, node := range service.Nodes {
-		n := new(Node)
+		n := new(registry.Node)
 		*n = *node
 		nodes[j] = n
 	}
 	s.Nodes = nodes
 
 	// copy endpoints
-	eps := make([]*Endpoint, len(service.Endpoints))
+	eps := make([]*registry.Endpoint, len(service.Endpoints))
 	for j, ep := range service.Endpoints {
-		e := new(Endpoint)
+		e := new(registry.Endpoint)
 		*e = *ep
 		eps[j] = e
 	}
@@ -75,8 +79,8 @@ func CopyService(service *Service) *Service {
 }
 
 // Copy makes a copy of services
-func Copy(current []*Service) []*Service {
-	services := make([]*Service, len(current))
+func Copy(current []*registry.Service) []*registry.Service {
+	services := make([]*registry.Service, len(current))
 	for i, service := range current {
 		services[i] = CopyService(service)
 	}
@@ -84,50 +88,50 @@ func Copy(current []*Service) []*Service {
 }
 
 // Merge merges two lists of services and returns a new copy
-func Merge(olist []*Service, nlist []*Service) []*Service {
-	var srv []*Service
+func Merge(olist []*registry.Service, nlist []*registry.Service) []*registry.Service {
+	var srv []*registry.Service
 
 	for _, n := range nlist {
 		var seen bool
 		for _, o := range olist {
 			if o.Version == n.Version {
-				sp := new(Service)
+				sp := new(registry.Service)
 				// make copy
 				*sp = *o
 				// set nodes
-				sp.Nodes = addNodes(o.Nodes, n.Nodes)
+				sp.Nodes = addregistryNodes(o.Nodes, n.Nodes)
 
 				// mark as seen
 				seen = true
 				srv = append(srv, sp)
 				break
 			} else {
-				sp := new(Service)
+				sp := new(registry.Service)
 				// make copy
 				*sp = *o
 				srv = append(srv, sp)
 			}
 		}
 		if !seen {
-			srv = append(srv, Copy([]*Service{n})...)
+			srv = append(srv, Copy([]*registry.Service{n})...)
 		}
 	}
 	return srv
 }
 
 // Remove removes services and returns a new copy
-func Remove(old, del []*Service) []*Service {
-	var services []*Service
+func Remove(old, del []*registry.Service) []*registry.Service {
+	var services []*registry.Service
 
 	for _, o := range old {
-		srv := new(Service)
+		srv := new(registry.Service)
 		*srv = *o
 
 		var rem bool
 
 		for _, s := range del {
 			if srv.Version == s.Version {
-				srv.Nodes = delNodes(srv.Nodes, s.Nodes)
+				srv.Nodes = delregistryNodes(srv.Nodes, s.Nodes)
 
 				if len(srv.Nodes) == 0 {
 					rem = true
