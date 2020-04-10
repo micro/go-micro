@@ -8,8 +8,6 @@ import (
 	"sort"
 
 	"github.com/micro/go-micro/v2/store"
-	ckv "github.com/micro/go-micro/v2/store/etcd"
-	lock "github.com/micro/go-micro/v2/sync/lock/etcd"
 )
 
 type syncMap struct {
@@ -150,14 +148,6 @@ func NewMap(opts ...Option) Map {
 	var options Options
 	for _, o := range opts {
 		o(&options)
-	}
-
-	if options.Lock == nil {
-		options.Lock = lock.NewLock()
-	}
-
-	if options.Store == nil {
-		options.Store = ckv.NewStore()
 	}
 
 	return &syncMap{
