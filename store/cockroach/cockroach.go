@@ -347,7 +347,7 @@ func (s *sqlStore) configure() error {
 	s.database = database
 	s.table = table
 
-	// initialise the database
+	// initialize the database
 	return s.initDB()
 }
 

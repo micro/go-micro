@@ -1687,14 +1687,14 @@ func (n *network) Connect() error {
 
 	// return if already connected
 	if n.connected {
-		// initialise the nodes
+		// initialize the nodes
 		n.initNodes(false)
 		// send the connect message
 		go n.sendConnect()
 		return nil
 	}
 
-	// initialise the nodes
+	// initialize the nodes
 	n.initNodes(true)
 
 	// set our internal node address

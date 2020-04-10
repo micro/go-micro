@@ -181,12 +181,12 @@ func NewBroker(opts ...broker.Option) broker.Broker {
 
 	a, ok := options.Context.Value(tunnelAddr{}).(string)
 	if ok {
-		// initialise address
+		// initialize address
 		t.Init(tunnel.Address(a))
 	}
 
 	if len(options.Addrs) > 0 {
-		// initialise nodes
+		// initialize nodes
 		t.Init(tunnel.Nodes(options.Addrs...))
 	}
 

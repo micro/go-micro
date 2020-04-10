@@ -59,7 +59,7 @@ func (s *service) Name() string {
 	return s.opts.Server.Options().Name
 }
 
-// Init initialises options. Additionally it calls cmd.Init
+// Init initialize options. Additionally it calls cmd.Init
 // which parses command line flags. cmd.Init is only called
 // on first Init.
 func (s *service) Init(opts ...Option) {
@@ -81,7 +81,7 @@ func (s *service) Init(opts ...Option) {
 				logger.Fatal(err)
 			}
 
-			// initialise the plugin
+			// initialize the plugin
 			if err := plugin.Init(c); err != nil {
 				logger.Fatal(err)
 			}
@@ -92,7 +92,7 @@ func (s *service) Init(opts ...Option) {
 			s.opts.Cmd.App().Name = s.Server().Options().Name
 		}
 
-		// Initialise the command flags, overriding new service
+		// Initialize the command flags, overriding new service
 		if err := s.opts.Cmd.Init(
 			cmd.Auth(&s.opts.Auth),
 			cmd.Broker(&s.opts.Broker),

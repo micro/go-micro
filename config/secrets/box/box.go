@@ -27,7 +27,7 @@ func NewCodec(opts ...secrets.Option) secrets.Codec {
 	return b
 }
 
-// Init initialises a box
+// Init initializes a box
 func (b *box) Init(opts ...secrets.Option) error {
 	for _, o := range opts {
 		o(&b.options)

@@ -150,7 +150,7 @@ type Gateway interface {
 	Handle(pattern string, http.Handler)
 	// Register a route
 	RegisterRoute(r Route)
-	// Init initialises the command line.
+	// Init initializes the command line.
 	// It also parses further options.
 	Init(...Option) error
 	// Run the gateway

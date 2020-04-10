@@ -24,7 +24,7 @@ type SelectOptions struct {
 	Context context.Context
 }
 
-// Option used to initialise the selector
+// Option used to initialize the selector
 type Option func(*Options)
 
 // SelectOption used when making a select call

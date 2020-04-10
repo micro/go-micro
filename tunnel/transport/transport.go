@@ -86,7 +86,7 @@ func NewTransport(opts ...transport.Option) transport.Transport {
 		options: transport.Options{},
 	}
 
-	// initialise
+	// initialize
 	t.Init(opts...)
 
 	return t

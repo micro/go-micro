@@ -12,11 +12,11 @@ type serviceKey struct{}
 
 // Service is an interface that wraps the lower level libraries
 // within go-micro. Its a convenience method for building
-// and initialising services.
+// and initializing services.
 type Service interface {
 	// The service name
 	Name() string
-	// Init initialises options
+	// Init initializes options
 	Init(...Option)
 	// Options returns the current options
 	Options() Options

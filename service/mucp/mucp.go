@@ -1,4 +1,4 @@
-// Package mucp initialises a mucp service
+// Package mucp initializes a mucp service
 package mucp
 
 import (
@@ -25,7 +25,7 @@ func (s *mucpService) Name() string {
 	return s.opts.Server.Options().Name
 }
 
-// Init initialises options. Additionally it calls cmd.Init
+// Init initializes options. Additionally it calls cmd.Init
 // which parses command line flags. cmd.Init is only called
 // on first Init.
 func (s *mucpService) Init(opts ...service.Option) {

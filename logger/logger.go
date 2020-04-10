@@ -8,7 +8,7 @@ var (
 
 // Logger is a generic logging interface
 type Logger interface {
-	// Init initialises options
+	// Init initializes options
 	Init(options ...Option) error
 	// The Logger options
 	Options() Options

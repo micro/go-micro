@@ -36,7 +36,7 @@ func (t *tunListener) process() {
 			conn.Close()
 			delete(conns, id)
 		}
-		// unassign
+		// unassigned
 		conns = nil
 	}()
 

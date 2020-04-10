@@ -147,7 +147,7 @@ func DefaultOptions() Options {
 	return DefaultServer.Options()
 }
 
-// Init initialises the default server with options passed in
+// Init initializes the default server with options passed in
 func Init(opt ...Option) {
 	if DefaultServer == nil {
 		DefaultServer = newRpcServer(opt...)
