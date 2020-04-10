@@ -16,6 +16,7 @@ import (
 	"github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/metadata"
 	"github.com/micro/go-micro/v2/registry"
+	util "github.com/micro/go-micro/v2/util/registry"
 )
 
 type endpoint struct {
@@ -164,7 +165,7 @@ func (r *staticRouter) Endpoint(req *http.Request) (*api.Service, error) {
 
 	// hack for stream endpoint
 	if ep.apiep.Stream {
-		svcs := registry.Copy(services)
+		svcs := util.Copy(services)
 		for _, svc := range svcs {
 			if len(svc.Endpoints) == 0 {
 				e := &registry.Endpoint{}
