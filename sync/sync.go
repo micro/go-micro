@@ -1,4 +1,4 @@
-// Package sync is a distributed synchronization framework
+// Package sync is an interface for distributed synchronization
 package sync
 
 import (
@@ -10,7 +10,7 @@ var (
 	ErrLockTimeout = errors.New("lock timeout")
 )
 
-// Sync is an interface for synchronization
+// Sync is an interface for distributed synchronization
 type Sync interface {
 	// Initialise options
 	Init(...Option) error
