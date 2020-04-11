@@ -178,7 +178,7 @@ func (r *runtime) run(events <-chan Event) {
 
 func logFile(serviceName string) string {
 	name := strings.Replace(serviceName, "/", "-", -1)
-	return filepath.Join(os.TempDir(), fmt.Sprintf("%v.log", name))
+	return filepath.Join(os.TempDir(), "micro", "logs", fmt.Sprintf("%v.log", name))
 }
 
 // Create creates a new service which is then started by runtime
