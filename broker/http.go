@@ -518,7 +518,7 @@ func (h *httpBroker) Publish(topic string, msg *Message, opts ...PublishOption) 
 		m.Header[k] = v
 	}
 
-	m.Header[":topic"] = topic
+	m.Header["Micro-Topic"] = topic
 
 	// encode the message
 	b, err := h.opts.Codec.Marshal(m)
