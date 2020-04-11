@@ -35,8 +35,7 @@ communication. A request made to a service will be automatically resolved, load 
 transport is [gRPC](https://grpc.io/).
 
 - **Async Messaging** - PubSub is built in as a first class citizen for asynchronous communication and event driven architectures. 
-Event notifications are a core pattern in micro service development. The default messaging system is an embedded [NATS](https://nats.io/) 
-server.
+Event notifications are a core pattern in micro service development. The default messaging system is a HTTP event message broker.
 
 - **Pluggable Interfaces** - Go Micro makes use of Go interfaces for each distributed system abstraction. Because of this these interfaces 
 are pluggable and allows Go Micro to be runtime agnostic. You can plugin any underlying technology. Find plugins in 
