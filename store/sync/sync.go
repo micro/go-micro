@@ -18,6 +18,7 @@ type Sync interface {
 	// Force a full sync
 	Sync() error
 }
+
 type syncStore struct {
 	storeOpts           store.Options
 	syncOpts            Options
