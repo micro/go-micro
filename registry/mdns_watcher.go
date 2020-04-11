@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/micro/mdns"
+	"github.com/micro/go-micro/v2/util/mdns"
 )
 
 type mdnsWatcher struct {

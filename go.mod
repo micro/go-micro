@@ -4,7 +4,6 @@ go 1.13
 
 require (
 	github.com/BurntSushi/toml v0.3.1
-	github.com/beevik/ntp v0.2.0
 	github.com/bitly/go-simplejson v0.5.0
 	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
 	github.com/bwmarrin/discordgo v0.20.2
@@ -47,7 +46,6 @@ require (
 	github.com/lucas-clemente/quic-go v0.14.1
 	github.com/mholt/certmagic v0.9.3
 	github.com/micro/cli/v2 v2.1.2
-	github.com/micro/mdns v0.3.0
 	github.com/miekg/dns v1.1.27
 	github.com/mitchellh/hashstructure v1.0.0
 	github.com/nats-io/nats-server/v2 v2.1.6
