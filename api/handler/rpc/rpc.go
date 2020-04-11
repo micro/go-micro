@@ -100,8 +100,7 @@ func (h *rpcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// only allow post when we have the router
-	if r.Method != "GET" && (h.opts.Router != nil && r.Method != "POST") {
+	if h.opts.Router == nil && r.Method != "GET" {
 		writeError(w, r, errors.MethodNotAllowed("go.micro.api", "method not allowed"))
 		return
 	}
@@ -123,7 +122,8 @@ func (h *rpcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		md = make(metadata.Metadata)
 	}
-
+	// fill contex with http headers
+	md["Host"] = r.Host
 	// merge context with overwrite
 	cx = metadata.MergeContext(cx, md, true)
 
