@@ -48,7 +48,7 @@ require (
 	github.com/micro/cli/v2 v2.1.2
 	github.com/miekg/dns v1.1.27
 	github.com/mitchellh/hashstructure v1.0.0
-	github.com/nats-io/nats-server/v2 v2.1.6
+	github.com/nats-io/nats-server/v2 v2.1.6 // indirect
 	github.com/nats-io/nats.go v1.9.2
 	github.com/nlopes/slack v0.6.1-0.20191106133607-d06c2a2b3249
 	github.com/oxtoacart/bpool v0.0.0-20190530202638-03653db5a59c
