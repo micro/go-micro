@@ -21,7 +21,7 @@ var (
 	// DefaultTable when none is specified
 	DefaultTable = "micro"
 	// DefaultDir is the default directory for bbolt files
-	DefaultDir = os.TempDir()
+	DefaultDir = filepath.Join(os.TempDir(), "micro", "store")
 
 	// bucket used for data storage
 	dataBucket = "data"
