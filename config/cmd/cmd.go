@@ -36,6 +36,7 @@ import (
 	smucp "github.com/micro/go-micro/v2/server/mucp"
 
 	// brokers
+	brokerHttp "github.com/micro/go-micro/v2/broker/http"
 	"github.com/micro/go-micro/v2/broker/memory"
 	"github.com/micro/go-micro/v2/broker/nats"
 	brokerSrv "github.com/micro/go-micro/v2/broker/service"
@@ -319,6 +320,7 @@ var (
 		"service": brokerSrv.NewBroker,
 		"memory":  memory.NewBroker,
 		"nats":    nats.NewBroker,
+		"http":    brokerHttp.NewBroker,
 	}
 
 	DefaultClients = map[string]func(...client.Option) client.Client{
