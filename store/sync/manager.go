@@ -1,4 +1,4 @@
-package store
+package sync
 
 import (
 	"time"
@@ -25,7 +25,7 @@ const (
 	listOp
 )
 
-func (c *cache) cacheManager() {
+func (c *syncStore) syncManager() {
 	tickerAggregator := make(chan struct{ index int })
 	for i, ticker := range c.pendingWriteTickers {
 		go func(index int, c chan struct{ index int }, t *time.Ticker) {
@@ -43,18 +43,18 @@ func (c *cache) cacheManager() {
 	}
 }
 
-func (c *cache) processQueue(index int) {
+func (c *syncStore) processQueue(index int) {
 	c.Lock()
 	defer c.Unlock()
 	q := c.pendingWrites[index]
 	for i := 0; i < q.Len(); i++ {
 		r, ok := q.PopFront()
 		if !ok {
-			panic(errors.Errorf("retrieved an invalid value from the L%d cache queue", index+1))
+			panic(errors.Errorf("retrieved an invalid value from the L%d sync queue", index+1))
 		}
 		ir, ok := r.(*internalRecord)
 		if !ok {
-			panic(errors.Errorf("retrieved a non-internal record from the L%d cache queue", index+1))
+			panic(errors.Errorf("retrieved a non-internal record from the L%d sync queue", index+1))
 		}
 		if !ir.expiresAt.IsZero() && time.Now().After(ir.expiresAt) {
 			continue
@@ -68,7 +68,7 @@ func (c *cache) processQueue(index int) {
 			nr.Expiry = time.Until(ir.expiresAt)
 		}
 		// Todo = internal queue also has to hold the corresponding store.WriteOptions
-		if err := c.cOptions.Stores[index+1].Write(nr); err != nil {
+		if err := c.syncOpts.Stores[index+1].Write(nr); err != nil {
 			// some error, so queue for retry and bail
 			q.PushBack(ir)
 			return

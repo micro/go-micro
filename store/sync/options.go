@@ -1,4 +1,4 @@
-package store
+package sync
 
 import (
 	"time"
@@ -6,9 +6,9 @@ import (
 	"github.com/micro/go-micro/v2/store"
 )
 
-// Options represents Cache options
+// Options represents Sync options
 type Options struct {
-	// Stores represents layers in the cache in ascending order. L0, L1, L2, etc
+	// Stores represents layers in the sync in ascending order. L0, L1, L2, etc
 	Stores []store.Store
 	// SyncInterval is the duration between syncs from L0 to L1
 	SyncInterval time.Duration
@@ -16,10 +16,10 @@ type Options struct {
 	SyncMultiplier int64
 }
 
-// Option sets Cache Options
+// Option sets Sync Options
 type Option func(o *Options)
 
-// Stores sets the layers that make up the cache
+// Stores sets the layers that make up the sync
 func Stores(stores ...store.Store) Option {
 	return func(o *Options) {
 		o.Stores = make([]store.Store, len(stores))
@@ -36,7 +36,7 @@ func SyncInterval(d time.Duration) Option {
 	}
 }
 
-// SyncMultiplier sets the multiplication factor for time to wait each cache layer
+// SyncMultiplier sets the multiplication factor for time to wait each sync layer
 func SyncMultiplier(i int64) Option {
 	return func(o *Options) {
 		o.SyncMultiplier = i
