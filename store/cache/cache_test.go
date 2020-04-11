@@ -15,13 +15,12 @@ func TestCache(t *testing.T) {
 
 	assert := assert.New(t)
 
-	nonCache := NewCache(l0)
-	assert.NotNil(nonCache.Init(), "Expected a cache initialised with just 1 store to fail")
+	nonCache := NewCache(nil)
+	assert.Equal(len(nonCache.(*cache).stores), 1, "Expected a cache initialised with just 1 store to fail")
 
 	// Basic functionality
 	cachedStore := NewCache(l0, l1, l2)
-	assert.Nil(cachedStore.Init(), "Init should not error")
-	assert.Equal(cachedStore.Options(), store.Options{}, "Options on store/cache are nonsensical")
+	assert.Equal(cachedStore.Options(), l0.Options(), "Options on store/cache are nonsensical")
 	expectedString := "cache [memory memory memory]"
 	assert.Equal(cachedStore.String(), expectedString, "Cache couldn't describe itself as expected")
 
