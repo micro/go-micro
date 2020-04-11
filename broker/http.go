@@ -65,8 +65,8 @@ type httpEvent struct {
 }
 
 var (
-	DefaultSubPath   = "/_sub"
-	serviceName      = "go.micro.http.broker"
+	DefaultSubPath   = "/"
+	serviceName      = "micro.http.broker"
 	broadcastVersion = "ff.http.broadcast"
 	registerTTL      = time.Minute
 	registerInterval = time.Second * 30
@@ -314,8 +314,8 @@ func (h *httpBroker) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	topic := m.Header[":topic"]
-	delete(m.Header, ":topic")
+	topic := m.Header["Micro-Topic"]
+	//delete(m.Header, ":topic")
 
 	if len(topic) == 0 {
 		errr := merr.InternalServerError("go.micro.broker", "Topic not found")
