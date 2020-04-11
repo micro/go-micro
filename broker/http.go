@@ -65,7 +65,8 @@ type httpEvent struct {
 }
 
 var (
-	DefaultSubPath   = "/"
+	DefaultPath      = "/"
+	DefaultAddress   = "127.0.0.1:0"
 	serviceName      = "micro.http.broker"
 	broadcastVersion = "ff.http.broadcast"
 	registerTTL      = time.Minute
@@ -118,7 +119,8 @@ func newHttpBroker(opts ...Option) Broker {
 	}
 
 	// set address
-	addr := ":0"
+	addr := DefaultAddress
+
 	if len(options.Addrs) > 0 && len(options.Addrs[0]) > 0 {
 		addr = options.Addrs[0]
 	}
@@ -136,7 +138,7 @@ func newHttpBroker(opts ...Option) Broker {
 	}
 
 	// specify the message handler
-	h.mux.Handle(DefaultSubPath, h)
+	h.mux.Handle(DefaultPath, h)
 
 	// get optional handlers
 	if h.opts.Context != nil {
@@ -549,7 +551,7 @@ func (h *httpBroker) Publish(topic string, msg *Message, opts ...PublishOption) 
 		vals := url.Values{}
 		vals.Add("id", node.Id)
 
-		uri := fmt.Sprintf("%s://%s%s?%s", scheme, node.Address, DefaultSubPath, vals.Encode())
+		uri := fmt.Sprintf("%s://%s%s?%s", scheme, node.Address, DefaultPath, vals.Encode())
 		r, err := h.c.Post(uri, "application/json", bytes.NewReader(b))
 		if err != nil {
 			return err
