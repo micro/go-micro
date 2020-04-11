@@ -264,7 +264,9 @@ func (r *staticRouter) endpoint(req *http.Request) (*endpoint, error) {
 		for _, pathreg := range ep.pathregs {
 			matches, err := pathreg.Match(path, "")
 			if err != nil {
-				// TODO: log error
+				if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+					logger.Debugf("api path not match %s != %v", path, pathreg)
+				}
 				continue
 			}
 			pMatch = true
@@ -290,7 +292,7 @@ func (r *staticRouter) endpoint(req *http.Request) (*endpoint, error) {
 	}
 
 	// no match
-	return nil, fmt.Errorf("endpoint not found for %v", req)
+	return nil, fmt.Errorf("endpoint not found for %v", req.URL)
 }
 
 func (r *staticRouter) Route(req *http.Request) (*api.Service, error) {
