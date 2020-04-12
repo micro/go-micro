@@ -304,6 +304,7 @@ func requestPayload(r *http.Request) ([]byte, error) {
 
 	// get fields from url path
 	for k, v := range md {
+		k = strings.ToLower(k)
 		// filter own keys
 		if strings.HasPrefix(k, "x-api-field-") {
 			matches[strings.TrimPrefix(k, "x-api-field-")] = v
