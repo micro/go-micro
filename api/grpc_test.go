@@ -9,20 +9,16 @@ import (
 	"testing"
 	"time"
 
-	"github.com/micro/go-micro/v2"
 	"github.com/micro/go-micro/v2/api"
-	ahandler "github.com/micro/go-micro/v2/api/handler"
-	apirpc "github.com/micro/go-micro/v2/api/handler/rpc"
+	"github.com/micro/go-micro/v2/api/handler"
+	"github.com/micro/go-micro/v2/api/handler/rpc"
 	"github.com/micro/go-micro/v2/api/router"
 	rstatic "github.com/micro/go-micro/v2/api/router/static"
-	bmemory "github.com/micro/go-micro/v2/broker/memory"
 	"github.com/micro/go-micro/v2/client"
 	gcli "github.com/micro/go-micro/v2/client/grpc"
 	rmemory "github.com/micro/go-micro/v2/registry/memory"
 	"github.com/micro/go-micro/v2/server"
 	gsrv "github.com/micro/go-micro/v2/server/grpc"
-	tgrpc "github.com/micro/go-micro/v2/transport/grpc"
-
 	pb "github.com/micro/go-micro/v2/server/grpc/proto"
 )
 
@@ -39,49 +35,33 @@ func (s *testServer) Call(ctx context.Context, req *pb.Request, rsp *pb.Response
 
 func TestApiAndGRPC(t *testing.T) {
 	r := rmemory.NewRegistry()
-	b := bmemory.NewBroker()
-	tr := tgrpc.NewTransport()
+
+	// create a new client
 	s := gsrv.NewServer(
-		server.Broker(b),
 		server.Name("foo"),
 		server.Registry(r),
-		server.Transport(tr),
 	)
+
+	// create a new server
 	c := gcli.NewClient(
 		client.Registry(r),
-		client.Broker(b),
-		client.Transport(tr),
 	)
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
 
-	svc := micro.NewService(
-		micro.Server(s),
-		micro.Client(c),
-		micro.Broker(b),
-		micro.Registry(r),
-		micro.Transport(tr),
-		micro.Context(ctx))
 	h := &testServer{}
 	pb.RegisterTestHandler(s, h)
 
-	go func() {
-		if err := svc.Run(); err != nil {
-			t.Fatalf("failed to start: %v", err)
-		}
-	}()
-	time.Sleep(1 * time.Second)
-	// check registration
-	services, err := r.GetService("foo")
-	if err != nil || len(services) == 0 {
-		t.Fatalf("failed to get service: %v # %d", err, len(services))
+	if err := s.Start(); err != nil {
+		t.Fatalf("failed to start: %v", err)
 	}
+	defer s.Stop()
 
+	// create a new router
 	router := rstatic.NewRouter(
-		router.WithHandler(apirpc.Handler),
-		router.WithRegistry(svc.Server().Options().Registry),
+		router.WithHandler(rpc.Handler),
+		router.WithRegistry(r),
 	)
-	err = router.Register(&api.Endpoint{
+
+	err := router.Register(&api.Endpoint{
 		Name:    "foo.Test.Call",
 		Method:  []string{"GET"},
 		Path:    []string{"/api/v0/test/call/{name}"},
@@ -91,9 +71,9 @@ func TestApiAndGRPC(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	hrpc := apirpc.NewHandler(
-		ahandler.WithService(svc),
-		ahandler.WithRouter(router),
+	hrpc := rpc.NewHandler(
+		handler.WithClient(c),
+		handler.WithRouter(router),
 	)
 
 	hsrv := &http.Server{
@@ -115,6 +95,7 @@ func TestApiAndGRPC(t *testing.T) {
 		t.Fatalf("Failed to created http.Request: %v", err)
 	}
 	defer rsp.Body.Close()
+
 	buf, err := ioutil.ReadAll(rsp.Body)
 	if err != nil {
 		t.Fatal(err)
@@ -124,9 +105,4 @@ func TestApiAndGRPC(t *testing.T) {
 	if string(buf) != jsonMsg {
 		t.Fatalf("invalid message received, parsing error %s != %s", buf, jsonMsg)
 	}
-	select {
-	case <-ctx.Done():
-		return
-	}
-
 }

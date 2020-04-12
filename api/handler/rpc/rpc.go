@@ -113,7 +113,7 @@ func (h *rpcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// micro client
-	c := h.opts.Service.Client()
+	c := h.opts.Client
 
 	// create context
 	cx := ctx.FromRequest(r)
