@@ -17,8 +17,6 @@ var (
 
 // Runtime is a service runtime manager
 type Runtime interface {
-	// String describes runtime
-	String() string
 	// Init initializes runtime
 	Init(...Option) error
 	// Create registers a service
@@ -31,12 +29,14 @@ type Runtime interface {
 	Delete(*Service) error
 	// List the managed services
 	List() ([]*Service, error)
+	// Logs returns the logs for a service
+	Logs(*Service, ...LogsOption) (LogStream, error)
 	// Start starts the runtime
 	Start() error
 	// Stop shuts down the runtime
 	Stop() error
-	// Logs
-	Logs(*Service, ...LogsOption) (LogStream, error)
+	// String describes runtime
+	String() string
 }
 
 // Stream returns a log stream
