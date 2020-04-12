@@ -27,8 +27,6 @@ type Runtime interface {
 	Update(*Service) error
 	// Remove a service
 	Delete(*Service) error
-	// List the managed services
-	List() ([]*Service, error)
 	// Logs returns the logs for a service
 	Logs(*Service, ...LogsOption) (LogStream, error)
 	// Start starts the runtime

@@ -194,28 +194,6 @@ func (s *svc) Delete(svc *runtime.Service) error {
 	return nil
 }
 
-// List lists all services managed by the runtime
-func (s *svc) List() ([]*runtime.Service, error) {
-	// list all services managed by the runtime
-	resp, err := s.runtime.List(context.Background(), &pb.ListRequest{})
-	if err != nil {
-		return nil, err
-	}
-
-	services := make([]*runtime.Service, 0, len(resp.Services))
-	for _, service := range resp.Services {
-		svc := &runtime.Service{
-			Name:     service.Name,
-			Version:  service.Version,
-			Source:   service.Source,
-			Metadata: service.Metadata,
-		}
-		services = append(services, svc)
-	}
-
-	return services, nil
-}
-
 // Start starts the runtime
 func (s *svc) Start() error {
 	// NOTE: nothing to be done here
