@@ -118,7 +118,7 @@ func (h *rpcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// create context
 	cx := ctx.FromRequest(r)
 	// get context from http handler wrappers
-	md, ok := r.Context().Value(metadata.MetadataKey{}).(metadata.Metadata)
+	md, ok := metadata.FromContext(r.Context())
 	if !ok {
 		md = make(metadata.Metadata)
 	}
@@ -293,7 +293,7 @@ func requestPayload(r *http.Request) ([]byte, error) {
 	// otherwise as per usual
 	ctx := r.Context()
 	// dont user meadata.FromContext as it mangles names
-	md, ok := ctx.Value(metadata.MetadataKey{}).(metadata.Metadata)
+	md, ok := metadata.FromContext(ctx)
 	if !ok {
 		md = make(map[string]string)
 	}

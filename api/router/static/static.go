@@ -271,7 +271,7 @@ func (r *staticRouter) endpoint(req *http.Request) (*endpoint, error) {
 			}
 			pMatch = true
 			ctx := req.Context()
-			md, ok := ctx.Value(metadata.MetadataKey{}).(metadata.Metadata)
+			md, ok := metadata.FromContext(ctx)
 			if !ok {
 				md = make(metadata.Metadata)
 			}
@@ -279,7 +279,7 @@ func (r *staticRouter) endpoint(req *http.Request) (*endpoint, error) {
 				md[fmt.Sprintf("x-api-field-%s", k)] = v
 			}
 			md["x-api-body"] = ep.apiep.Body
-			*req = *req.Clone(context.WithValue(ctx, metadata.MetadataKey{}, md))
+			*req = *req.Clone(metadata.NewContext(ctx, md))
 			break pathLoop
 		}
 		if !pMatch {

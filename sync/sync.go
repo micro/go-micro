@@ -28,10 +28,10 @@ type Sync interface {
 
 // Leader provides leadership election
 type Leader interface {
-       // resign leadership
-        Resign() error
-        // status returns when leadership is lost
-        Status() chan bool
+	// resign leadership
+	Resign() error
+	// status returns when leadership is lost
+	Status() chan bool
 }
 
 type Options struct {
@@ -41,7 +41,7 @@ type Options struct {
 
 type Option func(o *Options)
 
-type LeaderOptions struct {}
+type LeaderOptions struct{}
 
 type LeaderOption func(o *LeaderOptions)
 
