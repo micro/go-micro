@@ -25,6 +25,10 @@ func (md Metadata) Get(key string) (string, bool) {
 	return val, ok
 }
 
+func (md Metadata) Set(key, val string) {
+	md[key] = val
+}
+
 func (md Metadata) Delete(key string) {
 	// delete key as-is
 	delete(md, key)
