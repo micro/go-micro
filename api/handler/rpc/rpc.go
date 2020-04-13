@@ -100,11 +100,6 @@ func (h *rpcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if h.opts.Router == nil && r.Method != "GET" {
-		writeError(w, r, errors.MethodNotAllowed("go.micro.api", "method not allowed"))
-		return
-	}
-
 	ct := r.Header.Get("Content-Type")
 
 	// Strip charset from Content-Type (like `application/json; charset=UTF-8`)
