@@ -18,9 +18,7 @@ import (
 
 // NewAuth returns a new instance of the Auth service
 func NewAuth(opts ...auth.Option) auth.Auth {
-	svc := new(svc)
-	svc.Init(opts...)
-	return svc
+	return &svc{options: auth.NewOptions(opts...)}
 }
 
 // svc is the service implementation of the Auth interface

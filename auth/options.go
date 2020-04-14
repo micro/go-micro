@@ -7,6 +7,19 @@ import (
 	"github.com/micro/go-micro/v2/store"
 )
 
+func NewOptions(opts ...Option) Options {
+	var options Options
+	for _, o := range opts {
+		o(&options)
+	}
+
+	if len(options.Namespace) == 0 {
+		options.Namespace = DefaultNamespace
+	}
+
+	return options
+}
+
 type Options struct {
 	// Namespace the service belongs to
 	Namespace string

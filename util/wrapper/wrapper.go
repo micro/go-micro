@@ -159,7 +159,7 @@ func AuthHandler(fn func() auth.Auth) server.HandlerWrapper {
 			// Inspect the token and get the account
 			account, err := a.Inspect(token)
 			if err != nil {
-				account = &auth.Account{}
+				account = &auth.Account{Namespace: a.Options().Namespace}
 			}
 
 			// construct the resource
@@ -181,6 +181,11 @@ func AuthHandler(fn func() auth.Auth) server.HandlerWrapper {
 			ctx, err = auth.ContextWithAccount(ctx, account)
 			if err != nil {
 				return err
+			}
+
+			// Set the namespace in the context
+			if _, ok := metadata.Get(ctx, auth.NamespaceKey); !ok {
+				ctx = metadata.Set(ctx, auth.NamespaceKey, a.Options().Namespace)
 			}
 
 			// The user is authorised, allow the call

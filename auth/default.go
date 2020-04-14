@@ -9,7 +9,7 @@ var (
 )
 
 func NewAuth(opts ...Option) Auth {
-	return &noop{}
+	return &noop{opts: NewOptions(opts...)}
 }
 
 type noop struct {
