@@ -200,7 +200,6 @@ func (h *rpcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			&request,
 			client.WithContentType(ct),
 		)
-
 		// make the call
 		if err := c.Call(cx, req, &response, client.WithSelectOption(so)); err != nil {
 			writeError(w, r, err)
@@ -385,7 +384,7 @@ func requestPayload(r *http.Request) ([]byte, error) {
 		if b := buf.Bytes(); len(b) > 0 {
 			bodybuf = b
 		} else {
-			return []byte{}, nil
+			return out, nil
 		}
 		if bodydst == "" || bodydst == "*" {
 			if out, err = jsonpatch.MergeMergePatches(out, bodybuf); err == nil {
