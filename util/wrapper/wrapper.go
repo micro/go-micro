@@ -183,11 +183,6 @@ func AuthHandler(fn func() auth.Auth) server.HandlerWrapper {
 				return err
 			}
 
-			// Set the namespace in the context
-			if _, ok := metadata.Get(ctx, auth.NamespaceKey); !ok {
-				ctx = metadata.Set(ctx, auth.NamespaceKey, a.Options().Namespace)
-			}
-
 			// The user is authorised, allow the call
 			return h(ctx, req, rsp)
 		}

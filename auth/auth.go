@@ -90,8 +90,6 @@ type Token struct {
 const (
 	// DefaultNamespace used for auth
 	DefaultNamespace = "go.micro"
-	// NamespaceKey is the key used when storing the namespace in metadata
-	NamespaceKey = "Micro-Namespace"
 	// MetadataKey is the key used when storing the account in metadata
 	MetadataKey = "auth-account"
 	// TokenCookieName is the name of the cookie which stores the auth token
@@ -132,12 +130,4 @@ func ContextWithAccount(ctx context.Context, account *Account) (context.Context,
 
 	// generate a new context with the MetadataKey set
 	return metadata.Set(ctx, MetadataKey, string(bytes)), nil
-}
-
-// NamespaceFromContext gets the namespace from the context
-func NamespaceFromContext(ctx context.Context) string {
-	if ns, ok := metadata.Get(ctx, NamespaceKey); ok {
-		return ns
-	}
-	return DefaultNamespace
 }
