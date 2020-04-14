@@ -90,8 +90,6 @@ type Token struct {
 const (
 	// DefaultNamespace used for auth
 	DefaultNamespace = "go.micro"
-	// NamespaceKey is the key used when storing the namespace in metadata
-	NamespaceKey = "Micro-Namespace"
 	// MetadataKey is the key used when storing the account in metadata
 	MetadataKey = "auth-account"
 	// TokenCookieName is the name of the cookie which stores the auth token
