@@ -4,6 +4,15 @@ type Message struct {
 	Data []byte
 }
 
+func (m Message) MarshalJSON() ([]byte, error) {
+	return m.Data, nil
+}
+
+func (m *Message) UnmarshalJSON(data []byte) error {
+	m.Data = data
+	return nil
+}
+
 func (m *Message) ProtoMessage() {}
 
 func (m *Message) Reset() {
