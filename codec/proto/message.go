@@ -4,7 +4,7 @@ type Message struct {
 	Data []byte
 }
 
-func (m Message) MarshalJSON() ([]byte, error) {
+func (m *Message) MarshalJSON() ([]byte, error) {
 	return m.Data, nil
 }
 
