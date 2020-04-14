@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"net/textproto"
 	"strconv"
 	"strings"
 
@@ -120,7 +121,11 @@ func (h *rpcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// fill contex with http headers
 	md["Host"] = r.Host
 	md["Method"] = r.Method
-	//for k , v := range
+	// get canonical headers
+	for k, _ := range r.Header {
+		// may be need to get all values for key like r.Header.Values() provide in go 1.14
+		md[textproto.CanonicalMIMEHeaderKey(k)] = r.Header.Get(k)
+	}
 
 	// merge context with overwrite
 	cx = metadata.MergeContext(cx, md, true)
