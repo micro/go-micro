@@ -119,6 +119,9 @@ func (h *rpcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	// fill contex with http headers
 	md["Host"] = r.Host
+	md["Method"] = r.Method
+	//for k , v := range
+
 	// merge context with overwrite
 	cx = metadata.MergeContext(cx, md, true)
 
@@ -384,8 +387,6 @@ func requestPayload(r *http.Request) ([]byte, error) {
 		}
 		if b := buf.Bytes(); len(b) > 0 {
 			bodybuf = b
-		} else {
-			return []byte{}, nil
 		}
 		if bodydst == "" || bodydst == "*" {
 			if out, err = jsonpatch.MergeMergePatches(out, bodybuf); err == nil {
