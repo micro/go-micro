@@ -36,13 +36,13 @@ import (
 	smucp "github.com/micro/go-micro/v2/server/mucp"
 
 	// brokers
+	brokerHttp "github.com/micro/go-micro/v2/broker/http"
 	"github.com/micro/go-micro/v2/broker/memory"
 	"github.com/micro/go-micro/v2/broker/nats"
 	brokerSrv "github.com/micro/go-micro/v2/broker/service"
 
 	// registries
 	"github.com/micro/go-micro/v2/registry/etcd"
-	kreg "github.com/micro/go-micro/v2/registry/kubernetes"
 	"github.com/micro/go-micro/v2/registry/mdns"
 	rmem "github.com/micro/go-micro/v2/registry/memory"
 	regSrv "github.com/micro/go-micro/v2/registry/service"
@@ -320,6 +320,7 @@ var (
 		"service": brokerSrv.NewBroker,
 		"memory":  memory.NewBroker,
 		"nats":    nats.NewBroker,
+		"http":    brokerHttp.NewBroker,
 	}
 
 	DefaultClients = map[string]func(...client.Option) client.Client{
@@ -328,11 +329,10 @@ var (
 	}
 
 	DefaultRegistries = map[string]func(...registry.Option) registry.Registry{
-		"service":    regSrv.NewRegistry,
-		"etcd":       etcd.NewRegistry,
-		"mdns":       mdns.NewRegistry,
-		"memory":     rmem.NewRegistry,
-		"kubernetes": kreg.NewRegistry,
+		"service": regSrv.NewRegistry,
+		"etcd":    etcd.NewRegistry,
+		"mdns":    mdns.NewRegistry,
+		"memory":  rmem.NewRegistry,
 	}
 
 	DefaultSelectors = map[string]func(...selector.Option) selector.Selector{

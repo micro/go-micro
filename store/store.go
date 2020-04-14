@@ -36,7 +36,7 @@ type Store interface {
 
 // Record is an item stored or retrieved from a Store
 type Record struct {
-	Key    string
-	Value  []byte
-	Expiry time.Duration
+	Key    string        `json:"key"`
+	Value  []byte        `json:"value"`
+	Expiry time.Duration `json:"expiry,omitempty"`
 }

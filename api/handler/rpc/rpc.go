@@ -100,12 +100,6 @@ func (h *rpcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// only allow post when we have the router
-	if r.Method != "GET" && (h.opts.Router != nil && r.Method != "POST") {
-		writeError(w, r, errors.MethodNotAllowed("go.micro.api", "method not allowed"))
-		return
-	}
-
 	ct := r.Header.Get("Content-Type")
 
 	// Strip charset from Content-Type (like `application/json; charset=UTF-8`)
@@ -114,16 +108,17 @@ func (h *rpcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// micro client
-	c := h.opts.Service.Client()
+	c := h.opts.Client
 
 	// create context
 	cx := ctx.FromRequest(r)
 	// get context from http handler wrappers
-	md, ok := r.Context().Value(metadata.MetadataKey{}).(metadata.Metadata)
+	md, ok := metadata.FromContext(r.Context())
 	if !ok {
 		md = make(metadata.Metadata)
 	}
-
+	// fill contex with http headers
+	md["Host"] = r.Host
 	// merge context with overwrite
 	cx = metadata.MergeContext(cx, md, true)
 
@@ -293,7 +288,7 @@ func requestPayload(r *http.Request) ([]byte, error) {
 	// otherwise as per usual
 	ctx := r.Context()
 	// dont user meadata.FromContext as it mangles names
-	md, ok := ctx.Value(metadata.MetadataKey{}).(metadata.Metadata)
+	md, ok := metadata.FromContext(ctx)
 	if !ok {
 		md = make(map[string]string)
 	}
@@ -304,6 +299,7 @@ func requestPayload(r *http.Request) ([]byte, error) {
 
 	// get fields from url path
 	for k, v := range md {
+		k = strings.ToLower(k)
 		// filter own keys
 		if strings.HasPrefix(k, "x-api-field-") {
 			matches[strings.TrimPrefix(k, "x-api-field-")] = v

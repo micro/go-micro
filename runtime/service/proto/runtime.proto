@@ -7,7 +7,6 @@ service Runtime {
 	rpc Read(ReadRequest) returns (ReadResponse) {};
 	rpc Delete(DeleteRequest) returns (DeleteResponse) {};
 	rpc Update(UpdateRequest) returns (UpdateResponse) {};
-	rpc List(ListRequest) returns (ListResponse) {};
 	rpc Logs(LogsRequest) returns (stream LogRecord) {};
 }
 

@@ -1,7 +1,6 @@
 package static
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -16,6 +15,7 @@ import (
 	"github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/metadata"
 	"github.com/micro/go-micro/v2/registry"
+	util "github.com/micro/go-micro/v2/util/registry"
 )
 
 type endpoint struct {
@@ -164,7 +164,7 @@ func (r *staticRouter) Endpoint(req *http.Request) (*api.Service, error) {
 
 	// hack for stream endpoint
 	if ep.apiep.Stream {
-		svcs := registry.Copy(services)
+		svcs := util.Copy(services)
 		for _, svc := range svcs {
 			if len(svc.Endpoints) == 0 {
 				e := &registry.Endpoint{}
@@ -263,12 +263,14 @@ func (r *staticRouter) endpoint(req *http.Request) (*endpoint, error) {
 		for _, pathreg := range ep.pathregs {
 			matches, err := pathreg.Match(path, "")
 			if err != nil {
-				// TODO: log error
+				if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+					logger.Debugf("api path not match %s != %v", path, pathreg)
+				}
 				continue
 			}
 			pMatch = true
 			ctx := req.Context()
-			md, ok := ctx.Value(metadata.MetadataKey{}).(metadata.Metadata)
+			md, ok := metadata.FromContext(ctx)
 			if !ok {
 				md = make(metadata.Metadata)
 			}
@@ -276,7 +278,7 @@ func (r *staticRouter) endpoint(req *http.Request) (*endpoint, error) {
 				md[fmt.Sprintf("x-api-field-%s", k)] = v
 			}
 			md["x-api-body"] = ep.apiep.Body
-			*req = *req.Clone(context.WithValue(ctx, metadata.MetadataKey{}, md))
+			*req = *req.Clone(metadata.NewContext(ctx, md))
 			break pathLoop
 		}
 		if !pMatch {
@@ -289,7 +291,7 @@ func (r *staticRouter) endpoint(req *http.Request) (*endpoint, error) {
 	}
 
 	// no match
-	return nil, fmt.Errorf("endpoint not found for %v", req)
+	return nil, fmt.Errorf("endpoint not found for %v", req.URL)
 }
 
 func (r *staticRouter) Route(req *http.Request) (*api.Service, error) {

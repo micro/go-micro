@@ -40,6 +40,10 @@ func NewRuntime(opts ...Option) Runtime {
 		o(&options)
 	}
 
+	// make the logs directory
+	path := filepath.Join(os.TempDir(), "micro", "logs")
+	_ = os.MkdirAll(path, 0755)
+
 	return &runtime{
 		options:  options,
 		closed:   make(chan bool),
@@ -177,8 +181,10 @@ func (r *runtime) run(events <-chan Event) {
 }
 
 func logFile(serviceName string) string {
+	// make the directory
 	name := strings.Replace(serviceName, "/", "-", -1)
-	return filepath.Join(os.TempDir(), fmt.Sprintf("%v.log", name))
+	path := filepath.Join(os.TempDir(), "micro", "logs")
+	return filepath.Join(path, fmt.Sprintf("%v.log", name))
 }
 
 // Create creates a new service which is then started by runtime

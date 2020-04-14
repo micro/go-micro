@@ -54,6 +54,7 @@ func WithContext(c context.Context) Option {
 
 // ReadOptions configures an individual Read operation
 type ReadOptions struct {
+	Database, Table string
 	// Prefix returns all records that are prefixed with key
 	Prefix bool
 	// Suffix returns all records that have the suffix key
@@ -66,6 +67,14 @@ type ReadOptions struct {
 
 // ReadOption sets values in ReadOptions
 type ReadOption func(r *ReadOptions)
+
+// ReadFrom the database and table
+func ReadFrom(database, table string) ReadOption {
+	return func(r *ReadOptions) {
+		r.Database = database
+		r.Table = table
+	}
+}
 
 // ReadPrefix returns all records that are prefixed with key
 func ReadPrefix() ReadOption {
@@ -98,6 +107,7 @@ func ReadOffset(o uint) ReadOption {
 // WriteOptions configures an individual Write operation
 // If Expiry and TTL are set TTL takes precedence
 type WriteOptions struct {
+	Database, Table string
 	// Expiry is the time the record expires
 	Expiry time.Time
 	// TTL is the time until the record expires
@@ -106,6 +116,14 @@ type WriteOptions struct {
 
 // WriteOption sets values in WriteOptions
 type WriteOption func(w *WriteOptions)
+
+// WriteTo the database and table
+func WriteTo(database, table string) WriteOption {
+	return func(w *WriteOptions) {
+		w.Database = database
+		w.Table = table
+	}
+}
 
 // WriteExpiry is the time the record expires
 func WriteExpiry(t time.Time) WriteOption {
@@ -122,13 +140,25 @@ func WriteTTL(d time.Duration) WriteOption {
 }
 
 // DeleteOptions configures an individual Delete operation
-type DeleteOptions struct{}
+type DeleteOptions struct {
+	Database, Table string
+}
 
 // DeleteOption sets values in DeleteOptions
 type DeleteOption func(d *DeleteOptions)
 
+// DeleteFrom the database and table
+func DeleteFrom(database, table string) DeleteOption {
+	return func(d *DeleteOptions) {
+		d.Database = database
+		d.Table = table
+	}
+}
+
 // ListOptions configures an individual List operation
 type ListOptions struct {
+	// List from the following
+	Database, Table string
 	// Prefix returns all keys that are prefixed with key
 	Prefix string
 	// Suffix returns all keys that end with key
@@ -141,6 +171,14 @@ type ListOptions struct {
 
 // ListOption sets values in ListOptions
 type ListOption func(l *ListOptions)
+
+// ListFrom the database and table
+func ListFrom(database, table string) ListOption {
+	return func(l *ListOptions) {
+		l.Database = database
+		l.Table = table
+	}
+}
 
 // ListPrefix returns all keys that are prefixed with key
 func ListPrefix(p string) ListOption {
