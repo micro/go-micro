@@ -42,6 +42,7 @@ func NewTestEndpoints() []*api.Endpoint {
 			Name:    "Test.Call",
 			Path:    []string{"/api/v0/test/call/{uuid}"},
 			Method:  []string{"POST"},
+			Body:    "*",
 			Handler: "rpc",
 		},
 	}
@@ -93,6 +94,7 @@ func RegisterTestHandler(s server.Server, hdlr TestHandler, opts ...server.Handl
 		Name:    "Test.Call",
 		Path:    []string{"/api/v0/test/call/{uuid}"},
 		Method:  []string{"POST"},
+		Body:    "*",
 		Handler: "rpc",
 	}))
 	return s.Handle(s.NewHandler(&Test{h}, opts...))
