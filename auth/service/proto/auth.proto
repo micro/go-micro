@@ -107,6 +107,7 @@ message Rule {
 	string role = 2;
 	Resource resource = 3;
 	Access access = 4;
+	int32 priority = 5;
 }
 
 message CreateRequest {

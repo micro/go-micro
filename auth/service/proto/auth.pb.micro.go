@@ -11,7 +11,6 @@ import (
 
 import (
 	context "context"
-	api "github.com/micro/go-micro/v2/api"
 	client "github.com/micro/go-micro/v2/client"
 	server "github.com/micro/go-micro/v2/server"
 )
@@ -28,16 +27,9 @@ var _ = math.Inf
 const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
 // Reference imports to suppress errors if they are not otherwise used.
-var _ api.Endpoint
 var _ context.Context
 var _ client.Option
 var _ server.Option
-
-// Api Endpoints for Auth service
-
-func NewAuthEndpoints() []*api.Endpoint {
-	return []*api.Endpoint{}
-}
 
 // Client API for Auth service
 
@@ -126,12 +118,6 @@ func (h *authHandler) Token(ctx context.Context, in *TokenRequest, out *TokenRes
 	return h.AuthHandler.Token(ctx, in, out)
 }
 
-// Api Endpoints for Accounts service
-
-func NewAccountsEndpoints() []*api.Endpoint {
-	return []*api.Endpoint{}
-}
-
 // Client API for Accounts service
 
 type AccountsService interface {
@@ -183,12 +169,6 @@ type accountsHandler struct {
 
 func (h *accountsHandler) List(ctx context.Context, in *ListAccountsRequest, out *ListAccountsResponse) error {
 	return h.AccountsHandler.List(ctx, in, out)
-}
-
-// Api Endpoints for Rules service
-
-func NewRulesEndpoints() []*api.Endpoint {
-	return []*api.Endpoint{}
 }
 
 // Client API for Rules service
