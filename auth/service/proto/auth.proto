@@ -4,10 +4,8 @@ package go.micro.auth;
 
 service Auth {
 	rpc Generate(GenerateRequest) returns (GenerateResponse) {};
-	rpc Inspect(InspectRequest)
-	returns (InspectResponse) {};		
-	rpc Token(TokenRequest)
-	returns (TokenResponse) {};
+	rpc Inspect(InspectRequest) returns (InspectResponse) {};		
+	rpc Token(TokenRequest) returns (TokenResponse) {};
 }
 
 service Accounts {
