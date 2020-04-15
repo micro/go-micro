@@ -4,12 +4,12 @@ package go.micro.auth;
 
 service Auth {
 	rpc Generate(GenerateRequest) returns (GenerateResponse) {};
-	rpc Inspect(InspectRequest)  returns (InspectResponse) {};		
-	rpc Token(TokenRequest)  returns (TokenResponse) {};
+	rpc Inspect(InspectRequest) returns (InspectResponse) {};		
+	rpc Token(TokenRequest) returns (TokenResponse) {};
 }
 
 service Accounts {
-  rpc List(ListAccountsRequest) returns (ListAccountsResponse) {};
+	rpc List(ListAccountsRequest) returns (ListAccountsResponse) {};
 }
 
 service Rules {
@@ -22,7 +22,7 @@ message ListAccountsRequest {
 }
 
 message ListAccountsResponse {
-  repeated Account accounts = 1;
+	repeated Account accounts = 1;
 }
 
 message Token {
@@ -112,16 +112,18 @@ message Rule {
 
 message CreateRequest {
 	string role = 1;
-  Resource resource = 2;
-  Access access = 3;
+	Resource resource = 2;
+	Access access = 3;
+	int32 priority = 4;
 }
 
 message CreateResponse {}
 
 message DeleteRequest {
 	string role = 1;
-  Resource resource = 2;
-  Access access = 3;
+	Resource resource = 2;
+	Access access = 3;
+	int32 priority = 4;
 }
 
 message DeleteResponse {}
