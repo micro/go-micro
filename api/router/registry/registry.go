@@ -10,10 +10,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway/httprule"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/micro/go-micro/v2/api"
 	"github.com/micro/go-micro/v2/api/router"
+	"github.com/micro/go-micro/v2/api/router/util"
 	"github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/metadata"
 	"github.com/micro/go-micro/v2/registry"
@@ -186,7 +186,7 @@ func (r *registryRouter) store(services []*registry.Service) {
 		}
 
 		for _, p := range ep.Endpoint.Path {
-			rule, err := httprule.Parse(p)
+			rule, err := util.Parse(p)
 			if err != nil {
 				if logger.V(logger.TraceLevel, logger.DefaultLogger) {
 					logger.Tracef("endpoint have invalid path pattern: %v", err)
