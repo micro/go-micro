@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -289,6 +290,11 @@ func (s *svc) listRules(filters ...string) []*pb.Rule {
 
 		rules = append(rules, r)
 	}
+
+	// sort rules by priority
+	sort.Slice(rules, func(i, j int) bool {
+		return rules[i].Priority < rules[j].Priority
+	})
 
 	return rules
 }
