@@ -419,7 +419,7 @@ func (c *cache) watch(w registry.Watcher) error {
 	}
 }
 
-func (c *cache) GetService(service string) ([]*registry.Service, error) {
+func (c *cache) GetService(service string, opts ...registry.GetOption) ([]*registry.Service, error) {
 	// get the service
 	services, err := c.get(service)
 	if err != nil {

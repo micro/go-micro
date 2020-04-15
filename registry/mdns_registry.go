@@ -269,7 +269,7 @@ func (m *mdnsRegistry) Register(service *Service, opts ...RegisterOption) error 
 	return gerr
 }
 
-func (m *mdnsRegistry) Deregister(service *Service) error {
+func (m *mdnsRegistry) Deregister(service *Service, opts ...DeregisterOption) error {
 	m.Lock()
 	defer m.Unlock()
 
@@ -304,7 +304,7 @@ func (m *mdnsRegistry) Deregister(service *Service) error {
 	return nil
 }
 
-func (m *mdnsRegistry) GetService(service string) ([]*Service, error) {
+func (m *mdnsRegistry) GetService(service string, opts ...GetOption) ([]*Service, error) {
 	serviceMap := make(map[string]*Service)
 	entries := make(chan *mdns.ServiceEntry, 10)
 	done := make(chan bool)
@@ -396,7 +396,7 @@ func (m *mdnsRegistry) GetService(service string) ([]*Service, error) {
 	return services, nil
 }
 
-func (m *mdnsRegistry) ListServices() ([]*Service, error) {
+func (m *mdnsRegistry) ListServices(opts ...ListOption) ([]*Service, error) {
 	serviceMap := make(map[string]bool)
 	entries := make(chan *mdns.ServiceEntry, 10)
 	done := make(chan bool)
