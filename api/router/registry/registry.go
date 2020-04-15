@@ -10,7 +10,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/micro/go-micro/v2/api"
 	"github.com/micro/go-micro/v2/api/router"
 	"github.com/micro/go-micro/v2/api/router/util"
@@ -23,7 +22,7 @@ import (
 // endpoint struct, that holds compiled pcre
 type endpoint struct {
 	hostregs []*regexp.Regexp
-	pathregs []runtime.Pattern
+	pathregs []util.Pattern
 }
 
 // router is the default router
@@ -194,7 +193,7 @@ func (r *registryRouter) store(services []*registry.Service) {
 				continue
 			}
 			tpl := rule.Compile()
-			pathreg, err := runtime.NewPattern(tpl.Version, tpl.OpCodes, tpl.Pool, "")
+			pathreg, err := util.NewPattern(tpl.Version, tpl.OpCodes, tpl.Pool, "")
 			if err != nil {
 				if logger.V(logger.TraceLevel, logger.DefaultLogger) {
 					logger.Tracef("endpoint have invalid path pattern: %v", err)

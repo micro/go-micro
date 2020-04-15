@@ -33,11 +33,11 @@ type op struct {
 	code OpCode
 
 	// str is a string operand of the code.
-	// num is ignored if str is not empty.
+	// operand is ignored if str is not empty.
 	str string
 
-	// num is a numeric operand of the code.
-	num int
+	// operand is a numeric operand of the code.
+	operand int
 }
 
 func (w wildcard) compile() []op {
@@ -67,8 +67,8 @@ func (v variable) compile() []op {
 		ops = append(ops, s.compile()...)
 	}
 	ops = append(ops, op{
-		code: OpConcatN,
-		num:  len(v.segments),
+		code:    OpConcatN,
+		operand: len(v.segments),
 	}, op{
 		code: OpCapture,
 		str:  v.path,
@@ -92,7 +92,7 @@ func (t template) Compile() Template {
 	for _, op := range rawOps {
 		ops = append(ops, int(op.code))
 		if op.str == "" {
-			ops = append(ops, op.num)
+			ops = append(ops, op.operand)
 		} else {
 			if _, ok := consts[op.str]; !ok {
 				consts[op.str] = len(pool)
