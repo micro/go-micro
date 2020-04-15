@@ -1,4 +1,4 @@
-package api_test
+package router_test
 
 import (
 	"context"
@@ -13,6 +13,7 @@ import (
 	"github.com/micro/go-micro/v2/api/handler"
 	"github.com/micro/go-micro/v2/api/handler/rpc"
 	"github.com/micro/go-micro/v2/api/router"
+	rregistry "github.com/micro/go-micro/v2/api/router/registry"
 	rstatic "github.com/micro/go-micro/v2/api/router/static"
 	"github.com/micro/go-micro/v2/client"
 	gcli "github.com/micro/go-micro/v2/client/grpc"
@@ -29,11 +30,11 @@ type testServer struct {
 
 // TestHello implements helloworld.GreeterServer
 func (s *testServer) Call(ctx context.Context, req *pb.Request, rsp *pb.Response) error {
-	rsp.Msg = "Hello " + req.Name
+	rsp.Msg = "Hello " + req.Uuid
 	return nil
 }
 
-func TestApiAndGRPC(t *testing.T) {
+func initial(t *testing.T) (server.Server, client.Client) {
 	r := rmemory.NewRegistry()
 
 	// create a new client
@@ -53,44 +54,17 @@ func TestApiAndGRPC(t *testing.T) {
 	if err := s.Start(); err != nil {
 		t.Fatalf("failed to start: %v", err)
 	}
-	defer s.Stop()
 
-	// create a new router
-	router := rstatic.NewRouter(
-		router.WithHandler(rpc.Handler),
-		router.WithRegistry(r),
-	)
+	return s, c
+}
 
-	err := router.Register(&api.Endpoint{
-		Name:    "foo.Test.Call",
-		Method:  []string{"GET"},
-		Path:    []string{"/api/v0/test/call/{name}"},
-		Handler: "rpc",
-	})
+func check(addr string, t *testing.T) {
+	req, err := http.NewRequest("POST", fmt.Sprintf("http://%s/api/v0/test/call/TEST", addr), nil)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("Failed to created http.Request: %v", err)
 	}
-
-	hrpc := rpc.NewHandler(
-		handler.WithClient(c),
-		handler.WithRouter(router),
-	)
-
-	hsrv := &http.Server{
-		Handler:        hrpc,
-		Addr:           "127.0.0.1:6543",
-		WriteTimeout:   15 * time.Second,
-		ReadTimeout:    15 * time.Second,
-		IdleTimeout:    20 * time.Second,
-		MaxHeaderBytes: 1024 * 1024 * 1, // 1Mb
-	}
-
-	go func() {
-		log.Println(hsrv.ListenAndServe())
-	}()
-
-	time.Sleep(1 * time.Second)
-	rsp, err := http.Get(fmt.Sprintf("http://%s/api/v0/test/call/TEST", hsrv.Addr))
+	req.Header.Set("Content-Type", "application/json")
+	rsp, err := (&http.Client{}).Do(req)
 	if err != nil {
 		t.Fatalf("Failed to created http.Request: %v", err)
 	}
@@ -105,4 +79,75 @@ func TestApiAndGRPC(t *testing.T) {
 	if string(buf) != jsonMsg {
 		t.Fatalf("invalid message received, parsing error %s != %s", buf, jsonMsg)
 	}
+}
+
+func TestRouterRegistry(t *testing.T) {
+	s, c := initial(t)
+	defer s.Stop()
+
+	router := rregistry.NewRouter(
+		router.WithHandler(rpc.Handler),
+		router.WithRegistry(s.Options().Registry),
+	)
+	hrpc := rpc.NewHandler(
+		handler.WithClient(c),
+		handler.WithRouter(router),
+	)
+	hsrv := &http.Server{
+		Handler:        hrpc,
+		Addr:           "127.0.0.1:6543",
+		WriteTimeout:   15 * time.Second,
+		ReadTimeout:    15 * time.Second,
+		IdleTimeout:    20 * time.Second,
+		MaxHeaderBytes: 1024 * 1024 * 1, // 1Mb
+	}
+
+	go func() {
+		log.Println(hsrv.ListenAndServe())
+	}()
+
+	defer hsrv.Close()
+	time.Sleep(1 * time.Second)
+	check(hsrv.Addr, t)
+}
+
+func TestRouterStatic(t *testing.T) {
+	s, c := initial(t)
+	defer s.Stop()
+
+	router := rstatic.NewRouter(
+		router.WithHandler(rpc.Handler),
+		router.WithRegistry(s.Options().Registry),
+	)
+
+	err := router.Register(&api.Endpoint{
+		Name:    "foo.Test.Call",
+		Method:  []string{"POST"},
+		Path:    []string{"/api/v0/test/call/{uuid}"},
+		Handler: "rpc",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	hrpc := rpc.NewHandler(
+		handler.WithClient(c),
+		handler.WithRouter(router),
+	)
+	hsrv := &http.Server{
+		Handler:        hrpc,
+		Addr:           "127.0.0.1:6543",
+		WriteTimeout:   15 * time.Second,
+		ReadTimeout:    15 * time.Second,
+		IdleTimeout:    20 * time.Second,
+		MaxHeaderBytes: 1024 * 1024 * 1, // 1Mb
+	}
+
+	go func() {
+		log.Println(hsrv.ListenAndServe())
+	}()
+	defer hsrv.Close()
+
+	time.Sleep(1 * time.Second)
+	check(hsrv.Addr, t)
 }
