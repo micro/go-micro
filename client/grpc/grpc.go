@@ -11,6 +11,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/micro/go-micro/v2/auth"
 	"github.com/micro/go-micro/v2/broker"
 	"github.com/micro/go-micro/v2/client"
 	"github.com/micro/go-micro/v2/client/selector"
@@ -24,10 +25,6 @@ import (
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/encoding"
 	gmetadata "google.golang.org/grpc/metadata"
-)
-
-var (
-	BearerScheme = "Bearer "
 )
 
 type grpcClient struct {
@@ -134,10 +131,21 @@ func (g *grpcClient) call(ctx context.Context, node *registry.Node, req client.R
 	// set the content type for the request
 	header["x-content-type"] = req.ContentType()
 
-	// set the authorization token if one is saved locally
+	// if the caller specifies using service token or no token
+	// was passed with the request, set the service token
+	var srvToken string
+	if g.opts.Auth != nil && g.opts.Auth.Options().Token != nil {
+		srvToken = g.opts.Auth.Options().Token.AccessToken
+	}
+	if (opts.ServiceToken || len(header["authorization"]) == 0) && len(srvToken) > 0 {
+		header["authorization"] = auth.BearerScheme + srvToken
+	}
+
+	// fall back to using the authorization token set in config,
+	// this enables the CLI to provide a token
 	if len(header["authorization"]) == 0 {
-		if token, err := config.Get("token"); err == nil && len(token) > 0 {
-			header["authorization"] = BearerScheme + token
+		if token, err := config.Get("micro", "auth", "token"); err == nil && len(token) > 0 {
+			header["authorization"] = auth.BearerScheme + token
 		}
 	}
 
@@ -213,7 +221,9 @@ func (g *grpcClient) stream(ctx context.Context, node *registry.Node, req client
 	}
 
 	// set timeout in nanoseconds
-	header["timeout"] = fmt.Sprintf("%d", opts.RequestTimeout)
+	if opts.StreamTimeout > time.Duration(0) {
+		header["timeout"] = fmt.Sprintf("%d", opts.StreamTimeout)
+	}
 	// set the content type for the request
 	header["x-content-type"] = req.ContentType()
 
@@ -466,6 +476,10 @@ func (g *grpcClient) Call(ctx context.Context, req client.Request, rsp interface
 		// make the call
 		err = gcall(ctx, node, req, rsp, callOpts)
 		g.opts.Selector.Mark(service, node, err)
+		if verr, ok := err.(*errors.Error); ok {
+			return verr
+		}
+
 		return err
 	}
 

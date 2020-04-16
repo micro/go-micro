@@ -252,7 +252,7 @@ func (e *etcdRegistry) registerNode(s *registry.Service, node *registry.Node, op
 	}
 
 	if logger.V(logger.TraceLevel, logger.DefaultLogger) {
-		logger.Tracef("Registering %s id %s with lease %v and ttl %v", service.Name, node.Id, lgr, options.TTL)
+		logger.Tracef("Registering %s id %s with lease %v and leaseID %v and ttl %v", service.Name, node.Id, lgr, lgr.ID, options.TTL)
 	}
 	// create an entry for the node
 	if lgr != nil {
@@ -276,7 +276,7 @@ func (e *etcdRegistry) registerNode(s *registry.Service, node *registry.Node, op
 	return nil
 }
 
-func (e *etcdRegistry) Deregister(s *registry.Service) error {
+func (e *etcdRegistry) Deregister(s *registry.Service, opts ...registry.DeregisterOption) error {
 	if len(s.Nodes) == 0 {
 		return errors.New("Require at least one node")
 	}
@@ -322,7 +322,7 @@ func (e *etcdRegistry) Register(s *registry.Service, opts ...registry.RegisterOp
 	return gerr
 }
 
-func (e *etcdRegistry) GetService(name string) ([]*registry.Service, error) {
+func (e *etcdRegistry) GetService(name string, opts ...registry.GetOption) ([]*registry.Service, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), e.options.Timeout)
 	defer cancel()
 
@@ -362,7 +362,7 @@ func (e *etcdRegistry) GetService(name string) ([]*registry.Service, error) {
 	return services, nil
 }
 
-func (e *etcdRegistry) ListServices() ([]*registry.Service, error) {
+func (e *etcdRegistry) ListServices(opts ...registry.ListOption) ([]*registry.Service, error) {
 	versions := make(map[string]*registry.Service)
 
 	ctx, cancel := context.WithTimeout(context.Background(), e.options.Timeout)

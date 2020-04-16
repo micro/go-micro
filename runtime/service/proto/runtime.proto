@@ -7,7 +7,7 @@ service Runtime {
 	rpc Read(ReadRequest) returns (ReadResponse) {};
 	rpc Delete(DeleteRequest) returns (DeleteResponse) {};
 	rpc Update(UpdateRequest) returns (UpdateResponse) {};
-	rpc List(ListRequest) returns (ListResponse) {};
+	rpc Logs(LogsRequest) returns (stream LogRecord) {};
 }
 
 message Service {
@@ -31,10 +31,16 @@ message Event {
 message CreateOptions {
 	// command to pass in
 	repeated string command = 1;
+	// args to pass into command
+	repeated string args = 2;
 	// environment to pass in
-	repeated string env = 2;
+	repeated string env = 3;
 	// output to send to
-	string output = 3;
+	string output = 4;
+	// create type of service
+	string type = 5;
+	// image to use
+	string image = 6;
 }
 
 message CreateRequest {
@@ -78,3 +84,26 @@ message ListRequest {}
 message ListResponse {
 	repeated Service services = 1;
 }
+
+message LogsRequest{
+	// service to request logs for
+	string service = 1;
+	// stream records continuously
+	bool stream = 2;
+	// count of records to request
+	int64 count = 3;
+	// relative time in seconds
+	// before the current time
+	// from which to show logs
+	int64 since = 4;
+}
+
+message LogRecord {
+	// timestamp of log record
+    int64 timestamp = 1;
+    // record metadata
+    map<string,string> metadata = 2;
+    // message
+    string message = 3;
+}
+

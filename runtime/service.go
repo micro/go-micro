@@ -3,6 +3,7 @@ package runtime
 import (
 	"io"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -41,11 +42,8 @@ func newService(s *Service, c CreateOptions) *service {
 	var args []string
 
 	// set command
-	exec = c.Command[0]
-	// set args
-	if len(c.Command) > 1 {
-		args = c.Command[1:]
-	}
+	exec = strings.Join(c.Command, " ")
+	args = c.Args
 
 	return &service{
 		Service: s,
@@ -57,6 +55,7 @@ func newService(s *Service, c CreateOptions) *service {
 			},
 			Env:  c.Env,
 			Args: args,
+			Dir:  s.Source,
 		},
 		closed:     make(chan bool),
 		output:     c.Output,
@@ -74,7 +73,7 @@ func (s *service) shouldStart() bool {
 	if s.running {
 		return false
 	}
-	return s.maxRetries <= s.retries
+	return s.retries <= s.maxRetries
 }
 
 func (s *service) ShouldStart() bool {
@@ -127,6 +126,8 @@ func (s *service) Start() error {
 	s.running = true
 	// set status
 	s.Metadata["status"] = "running"
+	// set started
+	s.Metadata["started"] = time.Now().Format(time.RFC3339)
 
 	if s.output != nil {
 		s.streamOutput()

@@ -4,23 +4,27 @@ package rpc
 import (
 	"encoding/json"
 	"io"
-	"io/ioutil"
 	"net/http"
+	"net/textproto"
 	"strconv"
 	"strings"
 
+	jsonpatch "github.com/evanphx/json-patch/v5"
 	"github.com/joncalhoun/qson"
 	"github.com/micro/go-micro/v2/api"
 	"github.com/micro/go-micro/v2/api/handler"
-	proto "github.com/micro/go-micro/v2/api/internal/proto"
+	"github.com/micro/go-micro/v2/api/internal/proto"
 	"github.com/micro/go-micro/v2/client"
 	"github.com/micro/go-micro/v2/client/selector"
 	"github.com/micro/go-micro/v2/codec"
 	"github.com/micro/go-micro/v2/codec/jsonrpc"
 	"github.com/micro/go-micro/v2/codec/protorpc"
 	"github.com/micro/go-micro/v2/errors"
+	"github.com/micro/go-micro/v2/logger"
+	"github.com/micro/go-micro/v2/metadata"
 	"github.com/micro/go-micro/v2/registry"
 	"github.com/micro/go-micro/v2/util/ctx"
+	"github.com/oxtoacart/bpool"
 )
 
 const (
@@ -44,6 +48,8 @@ var (
 		"application/proto-rpc",
 		"application/octet-stream",
 	}
+
+	bufferPool = bpool.NewSizedBufferPool(1024, 8)
 )
 
 type rpcHandler struct {
@@ -68,6 +74,13 @@ func strategy(services []*registry.Service) selector.Strategy {
 }
 
 func (h *rpcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	bsize := handler.DefaultMaxRecvSize
+	if h.opts.MaxRecvSize > 0 {
+		bsize = h.opts.MaxRecvSize
+	}
+
+	r.Body = http.MaxBytesReader(w, r.Body, bsize)
+
 	defer r.Body.Close()
 	var service *api.Service
 
@@ -88,12 +101,6 @@ func (h *rpcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// only allow post when we have the router
-	if r.Method != "GET" && (h.opts.Router != nil && r.Method != "POST") {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	ct := r.Header.Get("Content-Type")
 
 	// Strip charset from Content-Type (like `application/json; charset=UTF-8`)
@@ -102,13 +109,34 @@ func (h *rpcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// micro client
-	c := h.opts.Service.Client()
+	c := h.opts.Client
 
 	// create context
 	cx := ctx.FromRequest(r)
+	// get context from http handler wrappers
+	md, ok := metadata.FromContext(r.Context())
+	if !ok {
+		md = make(metadata.Metadata)
+	}
+	// fill contex with http headers
+	md["Host"] = r.Host
+	md["Method"] = r.Method
+	// get canonical headers
+	for k, _ := range r.Header {
+		// may be need to get all values for key like r.Header.Values() provide in go 1.14
+		md[textproto.CanonicalMIMEHeaderKey(k)] = r.Header.Get(k)
+	}
 
+	// merge context with overwrite
+	cx = metadata.MergeContext(cx, md, true)
+
+	// set merged context to request
+	*r = *r.Clone(cx)
 	// if stream we currently only support json
 	if isStream(r, service) {
+		// drop older context as it can have timeouts and create new
+		//		md, _ := metadata.FromContext(cx)
+		//serveWebsocket(context.TODO(), w, r, service, c)
 		serveWebsocket(cx, w, r, service, c)
 		return
 	}
@@ -117,7 +145,6 @@ func (h *rpcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	so := selector.WithStrategy(strategy(service.Services))
 
 	// walk the standard call path
-
 	// get payload
 	br, err := requestPayload(r)
 	if err != nil {
@@ -153,7 +180,12 @@ func (h *rpcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// marshall response
-		rsp, _ = response.Marshal()
+		rsp, err = response.Marshal()
+		if err != nil {
+			writeError(w, r, err)
+			return
+		}
+
 	default:
 		// if json codec is not present set to json
 		if !hasCodec(ct, jsonCodecs) {
@@ -176,7 +208,6 @@ func (h *rpcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			&request,
 			client.WithContentType(ct),
 		)
-
 		// make the call
 		if err := c.Call(cx, req, &response, client.WithSelectOption(so)); err != nil {
 			writeError(w, r, err)
@@ -184,7 +215,11 @@ func (h *rpcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// marshall response
-		rsp, _ = response.MarshalJSON()
+		rsp, err = response.MarshalJSON()
+		if err != nil {
+			writeError(w, r, err)
+			return
+		}
 	}
 
 	// write the response
@@ -208,8 +243,11 @@ func hasCodec(ct string, codecs []string) bool {
 // If the request is a GET the query string parameters are extracted and marshaled to JSON and the raw bytes are returned.
 // If the request method is a POST the request body is read and returned
 func requestPayload(r *http.Request) ([]byte, error) {
+	var err error
+
 	// we have to decode json-rpc and proto-rpc because we suck
 	// well actually because there's no proxy codec right now
+
 	ct := r.Header.Get("Content-Type")
 	switch {
 	case strings.Contains(ct, "application/json-rpc"):
@@ -218,11 +256,11 @@ func requestPayload(r *http.Request) ([]byte, error) {
 			Header: make(map[string]string),
 		}
 		c := jsonrpc.NewCodec(&buffer{r.Body})
-		if err := c.ReadHeader(&msg, codec.Request); err != nil {
+		if err = c.ReadHeader(&msg, codec.Request); err != nil {
 			return nil, err
 		}
 		var raw json.RawMessage
-		if err := c.ReadBody(&raw); err != nil {
+		if err = c.ReadBody(&raw); err != nil {
 			return nil, err
 		}
 		return ([]byte)(raw), nil
@@ -232,15 +270,14 @@ func requestPayload(r *http.Request) ([]byte, error) {
 			Header: make(map[string]string),
 		}
 		c := protorpc.NewCodec(&buffer{r.Body})
-		if err := c.ReadHeader(&msg, codec.Request); err != nil {
+		if err = c.ReadHeader(&msg, codec.Request); err != nil {
 			return nil, err
 		}
 		var raw proto.Message
-		if err := c.ReadBody(&raw); err != nil {
+		if err = c.ReadBody(&raw); err != nil {
 			return nil, err
 		}
-		b, _ := raw.Marshal()
-		return b, nil
+		return raw.Marshal()
 	case strings.Contains(ct, "application/www-x-form-urlencoded"):
 		r.ParseForm()
 
@@ -251,20 +288,142 @@ func requestPayload(r *http.Request) ([]byte, error) {
 		}
 
 		// marshal
-		b, _ := json.Marshal(vals)
-		return b, nil
+		return json.Marshal(vals)
 		// TODO: application/grpc
 	}
 
 	// otherwise as per usual
+	ctx := r.Context()
+	// dont user meadata.FromContext as it mangles names
+	md, ok := metadata.FromContext(ctx)
+	if !ok {
+		md = make(map[string]string)
+	}
+
+	// allocate maximum
+	matches := make(map[string]interface{}, len(md))
+	bodydst := ""
+
+	// get fields from url path
+	for k, v := range md {
+		k = strings.ToLower(k)
+		// filter own keys
+		if strings.HasPrefix(k, "x-api-field-") {
+			matches[strings.TrimPrefix(k, "x-api-field-")] = v
+			delete(md, k)
+		} else if k == "x-api-body" {
+			bodydst = v
+			delete(md, k)
+		}
+	}
+
+	// map of all fields
+	req := make(map[string]interface{}, len(md))
+
+	// get fields from url values
+	if len(r.URL.RawQuery) > 0 {
+		umd := make(map[string]interface{})
+		err = qson.Unmarshal(&umd, r.URL.RawQuery)
+		if err != nil {
+			return nil, err
+		}
+		for k, v := range umd {
+			matches[k] = v
+		}
+	}
+
+	// restore context without fields
+	*r = *r.Clone(metadata.NewContext(ctx, md))
+
+	for k, v := range matches {
+		ps := strings.Split(k, ".")
+		if len(ps) == 1 {
+			req[k] = v
+			continue
+		}
+		em := make(map[string]interface{})
+		em[ps[len(ps)-1]] = v
+		for i := len(ps) - 2; i > 0; i-- {
+			nm := make(map[string]interface{})
+			nm[ps[i]] = em
+			em = nm
+		}
+		if vm, ok := req[ps[0]]; ok {
+			// nested map
+			nm := vm.(map[string]interface{})
+			for vk, vv := range em {
+				nm[vk] = vv
+			}
+			req[ps[0]] = nm
+		} else {
+			req[ps[0]] = em
+		}
+	}
+	pathbuf := []byte("{}")
+	if len(req) > 0 {
+		pathbuf, err = json.Marshal(req)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	urlbuf := []byte("{}")
+	out, err := jsonpatch.MergeMergePatches(urlbuf, pathbuf)
+	if err != nil {
+		return nil, err
+	}
 
 	switch r.Method {
 	case "GET":
-		if len(r.URL.RawQuery) > 0 {
-			return qson.ToJSON(r.URL.RawQuery)
+		// empty response
+		if strings.Contains(ct, "application/json") && string(out) == "{}" {
+			return out, nil
+		} else if string(out) == "{}" && !strings.Contains(ct, "application/json") {
+			return []byte{}, nil
 		}
-	case "PATCH", "POST":
-		return ioutil.ReadAll(r.Body)
+		return out, nil
+	case "PATCH", "POST", "PUT", "DELETE":
+		bodybuf := []byte("{}")
+		buf := bufferPool.Get()
+		defer bufferPool.Put(buf)
+		if _, err := buf.ReadFrom(r.Body); err != nil {
+			return nil, err
+		}
+		if b := buf.Bytes(); len(b) > 0 {
+			bodybuf = b
+		}
+		if bodydst == "" || bodydst == "*" {
+			if out, err = jsonpatch.MergeMergePatches(out, bodybuf); err == nil {
+				return out, nil
+			}
+		}
+		dstmap := make(map[string]interface{})
+		ps := strings.Split(bodydst, ".")
+		if len(ps) == 1 {
+			dstmap[ps[0]] = bodybuf
+		} else {
+			em := make(map[string]interface{})
+			em[ps[len(ps)-1]] = bodybuf
+			for i := len(ps) - 2; i > 0; i-- {
+				nm := make(map[string]interface{})
+				nm[ps[i]] = em
+				em = nm
+			}
+			dstmap[ps[0]] = em
+		}
+
+		bodyout, err := json.Marshal(dstmap)
+		if err != nil {
+			return nil, err
+		}
+
+		if out, err = jsonpatch.MergeMergePatches(out, bodyout); err == nil {
+			return out, nil
+		}
+
+		//fallback to previous unknown behaviour
+		return bodybuf, nil
+
 	}
 
 	return []byte{}, nil
@@ -296,7 +455,12 @@ func writeError(w http.ResponseWriter, r *http.Request, err error) {
 		w.Header().Set("grpc-message", ce.Detail)
 	}
 
-	w.Write([]byte(ce.Error()))
+	_, werr := w.Write([]byte(ce.Error()))
+	if werr != nil {
+		if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
+			logger.Error(werr)
+		}
+	}
 }
 
 func writeResponse(w http.ResponseWriter, r *http.Request, rsp []byte) {
@@ -311,8 +475,19 @@ func writeResponse(w http.ResponseWriter, r *http.Request, rsp []byte) {
 		w.Header().Set("grpc-message", "")
 	}
 
+	// write 204 status if rsp is nil
+	if len(rsp) == 0 {
+		w.WriteHeader(http.StatusNoContent)
+	}
+
 	// write response
-	w.Write(rsp)
+	_, err := w.Write(rsp)
+	if err != nil {
+		if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
+			logger.Error(err)
+		}
+	}
+
 }
 
 func NewHandler(opts ...handler.Option) handler.Handler {

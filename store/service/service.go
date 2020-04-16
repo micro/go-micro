@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/micro/go-micro/v2/client"
+	"github.com/micro/go-micro/v2/errors"
 	"github.com/micro/go-micro/v2/metadata"
 	"github.com/micro/go-micro/v2/store"
 	pb "github.com/micro/go-micro/v2/store/service/proto"
@@ -15,25 +16,29 @@ import (
 type serviceStore struct {
 	options store.Options
 
-	// Namespace to use
-	Namespace string
+	// The database to use
+	Database string
+
+	// The table to use
+	Table string
 
 	// Addresses of the nodes
 	Nodes []string
 
-	// Prefix to use
-	Prefix string
-
 	// store service client
 	Client pb.StoreService
+}
+
+func (s *serviceStore) Close() error {
+	return nil
 }
 
 func (s *serviceStore) Init(opts ...store.Option) error {
 	for _, o := range opts {
 		o(&s.options)
 	}
-	s.Namespace = s.options.Namespace
-	s.Prefix = s.options.Prefix
+	s.Database = s.options.Database
+	s.Table = s.options.Table
 	s.Nodes = s.options.Nodes
 
 	return nil
@@ -44,26 +49,28 @@ func (s *serviceStore) Context() context.Context {
 
 	md := make(metadata.Metadata)
 
-	if len(s.Namespace) > 0 {
-		md["Micro-Namespace"] = s.Namespace
+	if len(s.Database) > 0 {
+		md["Micro-Database"] = s.Database
 	}
 
-	if len(s.Prefix) > 0 {
-		md["Micro-Prefix"] = s.Prefix
+	if len(s.Table) > 0 {
+		md["Micro-Table"] = s.Table
 	}
 
 	return metadata.NewContext(ctx, md)
 }
 
 // Sync all the known records
-func (s *serviceStore) List() ([]*store.Record, error) {
+func (s *serviceStore) List(opts ...store.ListOption) ([]string, error) {
 	stream, err := s.Client.List(s.Context(), &pb.ListRequest{}, client.WithAddress(s.Nodes...))
-	if err != nil {
+	if err != nil && errors.Equal(err, errors.NotFound("", "")) {
+		return nil, store.ErrNotFound
+	} else if err != nil {
 		return nil, err
 	}
 	defer stream.Close()
 
-	var records []*store.Record
+	var keys []string
 
 	for {
 		rsp, err := stream.Recv()
@@ -71,19 +78,15 @@ func (s *serviceStore) List() ([]*store.Record, error) {
 			break
 		}
 		if err != nil {
-			return records, err
+			return keys, err
 		}
 
-		for _, record := range rsp.Records {
-			records = append(records, &store.Record{
-				Key:    record.Key,
-				Value:  record.Value,
-				Expiry: time.Duration(record.Expiry) * time.Second,
-			})
+		for _, key := range rsp.Keys {
+			keys = append(keys, key)
 		}
 	}
 
-	return records, nil
+	return keys, nil
 }
 
 // Read a record with key
@@ -99,7 +102,9 @@ func (s *serviceStore) Read(key string, opts ...store.ReadOption) ([]*store.Reco
 			Prefix: options.Prefix,
 		},
 	}, client.WithAddress(s.Nodes...))
-	if err != nil {
+	if err != nil && errors.Equal(err, errors.NotFound("", "")) {
+		return nil, store.ErrNotFound
+	} else if err != nil {
 		return nil, err
 	}
 
@@ -117,7 +122,7 @@ func (s *serviceStore) Read(key string, opts ...store.ReadOption) ([]*store.Reco
 }
 
 // Write a record
-func (s *serviceStore) Write(record *store.Record) error {
+func (s *serviceStore) Write(record *store.Record, opts ...store.WriteOption) error {
 	_, err := s.Client.Write(s.Context(), &pb.WriteRequest{
 		Record: &pb.Record{
 			Key:    record.Key,
@@ -125,20 +130,31 @@ func (s *serviceStore) Write(record *store.Record) error {
 			Expiry: int64(record.Expiry.Seconds()),
 		},
 	}, client.WithAddress(s.Nodes...))
+	if err != nil && errors.Equal(err, errors.NotFound("", "")) {
+		return store.ErrNotFound
+	}
 
 	return err
 }
 
 // Delete a record with key
-func (s *serviceStore) Delete(key string) error {
+func (s *serviceStore) Delete(key string, opts ...store.DeleteOption) error {
 	_, err := s.Client.Delete(s.Context(), &pb.DeleteRequest{
 		Key: key,
 	}, client.WithAddress(s.Nodes...))
+	if err != nil && errors.Equal(err, errors.NotFound("", "")) {
+		return store.ErrNotFound
+	}
+
 	return err
 }
 
 func (s *serviceStore) String() string {
 	return "service"
+}
+
+func (s *serviceStore) Options() store.Options {
+	return s.options
 }
 
 // NewStore returns a new store service implementation
@@ -149,11 +165,11 @@ func NewStore(opts ...store.Option) store.Store {
 	}
 
 	service := &serviceStore{
-		options:   options,
-		Namespace: options.Namespace,
-		Prefix:    options.Prefix,
-		Nodes:     options.Nodes,
-		Client:    pb.NewStoreService("go.micro.store", client.DefaultClient),
+		options:  options,
+		Database: options.Database,
+		Table:    options.Table,
+		Nodes:    options.Nodes,
+		Client:   pb.NewStoreService("go.micro.store", client.DefaultClient),
 	}
 
 	return service

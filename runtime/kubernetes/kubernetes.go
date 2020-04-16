@@ -3,7 +3,6 @@ package kubernetes
 
 import (
 	"fmt"
-	"strings"
 	"sync"
 	"time"
 
@@ -29,7 +28,7 @@ type kubernetes struct {
 
 // getService queries kubernetes for micro service
 // NOTE: this function is not thread-safe
-func (k *kubernetes) getService(labels map[string]string) ([]*runtime.Service, error) {
+func (k *kubernetes) getService(labels map[string]string) ([]*service, error) {
 	// get the service status
 	serviceList := new(client.ServiceList)
 	r := &client.Resource{
@@ -63,7 +62,7 @@ func (k *kubernetes) getService(labels map[string]string) ([]*runtime.Service, e
 	}
 
 	// service map
-	svcMap := make(map[string]*runtime.Service)
+	svcMap := make(map[string]*service)
 
 	// collect info from kubernetes service
 	for _, kservice := range serviceList.Items {
@@ -72,17 +71,29 @@ func (k *kubernetes) getService(labels map[string]string) ([]*runtime.Service, e
 		// version of the service
 		version := kservice.Metadata.Labels["version"]
 
-		// save as service
-		svcMap[name+version] = &runtime.Service{
-			Name:     name,
-			Version:  version,
-			Metadata: make(map[string]string),
+		srv := &service{
+			Service: &runtime.Service{
+				Name:     name,
+				Version:  version,
+				Metadata: make(map[string]string),
+			},
+			kservice: &kservice,
 		}
+
+		// set the address
+		address := kservice.Spec.ClusterIP
+		port := kservice.Spec.Ports[0]
+		srv.Service.Metadata["address"] = fmt.Sprintf("%s:%d", address, port.Port)
+		// set the type of service
+		srv.Service.Metadata["type"] = kservice.Metadata.Labels["micro"]
 
 		// copy annotations metadata into service metadata
 		for k, v := range kservice.Metadata.Annotations {
-			svcMap[name+version].Metadata[k] = v
+			srv.Service.Metadata[k] = v
 		}
+
+		// save as service
+		svcMap[name+version] = srv
 	}
 
 	// collect additional info from kubernetes deployment
@@ -101,9 +112,9 @@ func (k *kubernetes) getService(labels map[string]string) ([]*runtime.Service, e
 
 			// set the service name, version and source
 			// based on existing annotations we stored
-			svc.Name = kdep.Metadata.Annotations["name"]
-			svc.Version = kdep.Metadata.Annotations["version"]
-			svc.Source = kdep.Metadata.Annotations["source"]
+			svc.Service.Name = kdep.Metadata.Annotations["name"]
+			svc.Service.Version = kdep.Metadata.Annotations["version"]
+			svc.Service.Source = kdep.Metadata.Annotations["source"]
 
 			// delete from metadata
 			delete(kdep.Metadata.Annotations, "name")
@@ -112,32 +123,69 @@ func (k *kubernetes) getService(labels map[string]string) ([]*runtime.Service, e
 
 			// copy all annotations metadata into service metadata
 			for k, v := range kdep.Metadata.Annotations {
-				svc.Metadata[k] = v
+				svc.Service.Metadata[k] = v
 			}
 
-			// get the status from the pods
-			status := "unknown"
-			if len(podList.Items) > 0 {
-				switch podList.Items[0].Status.Conditions[0].Type {
-				case "PodScheduled":
-					status = "starting"
-				case "Initialized":
-					status = "starting"
-				case "Ready":
-					status = "ready"
-				case "ContainersReady":
-					status = "ready"
+			// parse out deployment status and inject into service metadata
+			if len(kdep.Status.Conditions) > 0 {
+				svc.Metadata["status"] = kdep.Status.Conditions[0].Type
+				svc.Metadata["started"] = kdep.Status.Conditions[0].LastUpdateTime
+				delete(svc.Metadata, "error")
+			} else {
+				svc.Metadata["status"] = "n/a"
+			}
+
+			// get the real status
+			for _, item := range podList.Items {
+				var status string
+
+				// check the name
+				if item.Metadata.Labels["name"] != name {
+					continue
 				}
+				// check the version
+				if item.Metadata.Labels["version"] != version {
+					continue
+				}
+
+				switch item.Status.Phase {
+				case "Failed":
+					status = item.Status.Reason
+				default:
+					status = item.Status.Phase
+				}
+
+				// skip if we can't get the container
+				if len(item.Status.Containers) == 0 {
+					continue
+				}
+
+				// now try get a deeper status
+				state := item.Status.Containers[0].State
+
+				// set start time
+				if state.Running != nil {
+					svc.Metadata["started"] = state.Running.Started
+				}
+
+				// set status from waiting
+				if v := state.Waiting; v != nil {
+					if len(v.Reason) > 0 {
+						status = v.Reason
+					}
+				}
+				// TODO: set from terminated
+
+				svc.Metadata["status"] = status
 			}
-			if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-				logger.Debugf("Runtime setting %s service deployment status: %v", name, status)
-			}
-			svc.Metadata["status"] = status
+
+			// save deployment
+			svc.kdeploy = &kdep
 		}
 	}
 
 	// collect all the services and return
-	services := make([]*runtime.Service, 0, len(serviceList.Items))
+	services := make([]*service, 0, len(serviceList.Items))
 
 	for _, service := range svcMap {
 		services = append(services, service)
@@ -250,11 +298,61 @@ func (k *kubernetes) Init(opts ...runtime.Option) error {
 		o(&k.options)
 	}
 
-	// trim the source prefix if its a git url
-	if strings.HasPrefix(k.options.Source, "github.com") {
-		k.options.Source = strings.TrimPrefix(k.options.Source, "github.com/")
-	}
+	return nil
+}
 
+func (k *kubernetes) Logs(s *runtime.Service, options ...runtime.LogsOption) (runtime.LogStream, error) {
+	klo := newLog(k.client, s.Name, options...)
+	stream, err := klo.Stream()
+	if err != nil {
+		return nil, err
+	}
+	// If requested, also read existing records and stream those too
+	if klo.options.Count > 0 {
+		go func() {
+			records, err := klo.Read()
+			if err != nil {
+				logger.Errorf("Failed to get logs for service '%v' from k8s: %v", err)
+				return
+			}
+			// @todo: this might actually not run before podLogStream starts
+			// and might cause out of order log retrieval at the receiving end.
+			// A better approach would probably to suppor this inside the `klog.Stream` method.
+			for _, record := range records {
+				stream.Chan() <- record
+			}
+		}()
+	}
+	return stream, nil
+}
+
+type kubeStream struct {
+	// the k8s log stream
+	stream chan runtime.LogRecord
+	// the stop chan
+	sync.Mutex
+	stop chan bool
+	err  error
+}
+
+func (k *kubeStream) Error() error {
+	return k.err
+}
+
+func (k *kubeStream) Chan() chan runtime.LogRecord {
+	return k.stream
+}
+
+func (k *kubeStream) Stop() error {
+	k.Lock()
+	defer k.Unlock()
+	select {
+	case <-k.stop:
+		return nil
+	default:
+		close(k.stop)
+		close(k.stream)
+	}
 	return nil
 }
 
@@ -270,14 +368,20 @@ func (k *kubernetes) Create(s *runtime.Service, opts ...runtime.CreateOption) er
 		o(&options)
 	}
 
-	// hackish
+	// default type if it doesn't exist
 	if len(options.Type) == 0 {
 		options.Type = k.options.Type
 	}
 
-	// determine the full source for this service
-	options.Source = k.sourceForService(s.Name)
+	// default the source if it doesn't exist
+	if len(s.Source) == 0 {
+		s.Source = k.options.Source
+	}
 
+	// determine the image from the source and options
+	options.Image = k.getImage(s, options)
+
+	// create new service
 	service := newService(s, options)
 
 	// start the service
@@ -312,7 +416,17 @@ func (k *kubernetes) Read(opts ...runtime.ReadOption) ([]*runtime.Service, error
 		labels["micro"] = options.Type
 	}
 
-	return k.getService(labels)
+	srvs, err := k.getService(labels)
+	if err != nil {
+		return nil, err
+	}
+
+	var services []*runtime.Service
+	for _, service := range srvs {
+		services = append(services, service.Service)
+	}
+
+	return services, nil
 }
 
 // List the managed services
@@ -328,21 +442,64 @@ func (k *kubernetes) List() ([]*runtime.Service, error) {
 		logger.Debugf("Runtime listing all micro services")
 	}
 
-	return k.getService(labels)
+	srvs, err := k.getService(labels)
+	if err != nil {
+		return nil, err
+	}
+
+	var services []*runtime.Service
+	for _, service := range srvs {
+		services = append(services, service.Service)
+	}
+
+	return services, nil
 }
 
 // Update the service in place
 func (k *kubernetes) Update(s *runtime.Service) error {
-	// create new kubernetes micro service
-	service := newService(s, runtime.CreateOptions{
-		Type:   k.options.Type,
-		Source: k.sourceForService(s.Name),
-	})
+	// get the existing service
+	// set the default labels
+	labels := map[string]string{
+		"micro": k.options.Type,
+	}
 
-	// update build time annotation
-	service.kdeploy.Spec.Template.Metadata.Annotations["build"] = time.Now().Format(time.RFC3339)
+	if len(s.Name) > 0 {
+		labels["name"] = client.Format(s.Name)
+	}
 
-	return service.Update(k.client)
+	if len(s.Version) > 0 {
+		labels["version"] = s.Version
+	}
+
+	// get the existing service
+	services, err := k.getService(labels)
+	if err != nil {
+		return err
+	}
+
+	// update the relevant services
+	for _, service := range services {
+		// nil check
+		if service.kdeploy.Metadata == nil || service.kdeploy.Metadata.Annotations == nil {
+			md := new(client.Metadata)
+			md.Annotations = make(map[string]string)
+			service.kdeploy.Metadata = md
+		}
+
+		// update metadata
+		for k, v := range s.Metadata {
+			service.kdeploy.Metadata.Annotations[k] = v
+		}
+		// update build time annotation
+		service.kdeploy.Spec.Template.Metadata.Annotations["build"] = time.Now().Format(time.RFC3339)
+
+		// update the service
+		if err := service.Update(k.client); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // Delete removes a service
@@ -442,14 +599,15 @@ func NewRuntime(opts ...runtime.Option) runtime.Runtime {
 	}
 }
 
-// sourceForService determines the nested package name for github
-// e.g src: docker.pkg.github.com/micro/services an srv: users/api
-// would become docker.pkg.github.com/micro/services/users-api
-func (k *kubernetes) sourceForService(name string) string {
-	if !strings.HasPrefix(k.options.Source, "docker.pkg.github.com") {
-		return k.options.Source
+func (k *kubernetes) getImage(s *runtime.Service, options runtime.CreateOptions) string {
+	// use the image when its specified
+	if len(options.Image) > 0 {
+		return options.Image
 	}
 
-	formattedName := strings.ReplaceAll(name, "/", "-")
-	return fmt.Sprintf("%v/%v", k.options.Source, formattedName)
+	if len(k.options.Image) > 0 {
+		return k.options.Image
+	}
+
+	return ""
 }

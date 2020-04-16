@@ -211,6 +211,7 @@ func (s *service) call(ctx context.Context, router *router, sending *sync.Mutex,
 		method:      req.msg.Method,
 		endpoint:    req.msg.Endpoint,
 		body:        req.msg.Body,
+		header:      req.msg.Header,
 	}
 
 	// only set if not nil
@@ -535,18 +536,6 @@ func (router *router) ProcessMessage(ctx context.Context, msg Message) (err erro
 			var req reflect.Value
 
 			// check whether the handler is a pointer
-			if handler.reqType.Kind() == reflect.Ptr {
-				req = reflect.New(handler.reqType.Elem())
-			} else {
-				req = reflect.New(handler.reqType)
-				isVal = true
-			}
-
-			// if its a value get the element
-			if isVal {
-				req = req.Elem()
-			}
-
 			if handler.reqType.Kind() == reflect.Ptr {
 				req = reflect.New(handler.reqType.Elem())
 			} else {

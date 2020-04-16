@@ -25,7 +25,7 @@ func (b *basic) Options() provider.Options {
 	return b.opts
 }
 
-func (b *basic) Endpoint() string {
+func (b *basic) Endpoint(...provider.EndpointOption) string {
 	return ""
 }
 

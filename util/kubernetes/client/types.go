@@ -14,6 +14,12 @@ type EnvVar struct {
 	Value string `json:"value,omitempty"`
 }
 
+type Condition struct {
+	Started string `json:"startedAt,omitempty"`
+	Reason  string `json:"reason,omitempty"`
+	Message string `json:"message,omitempty"`
+}
+
 // Container defined container runtime values
 type Container struct {
 	Name    string          `json:"name"`
@@ -33,9 +39,10 @@ type DeploymentSpec struct {
 
 // DeploymentCondition describes the state of deployment
 type DeploymentCondition struct {
-	Type    string `json:"type"`
-	Reason  string `json:"reason,omitempty"`
-	Message string `json:"message,omitempty"`
+	LastUpdateTime string `json:"lastUpdateTime"`
+	Type           string `json:"type"`
+	Reason         string `json:"reason,omitempty"`
+	Message        string `json:"message,omitempty"`
 }
 
 // DeploymentStatus is returned when querying deployment
@@ -103,9 +110,11 @@ type Pod struct {
 
 // PodStatus
 type PodStatus struct {
-	PodIP      string         `json:"podIP"`
-	Phase      string         `json:"phase"`
-	Conditions []PodCondition `json:"conditions,omitempty"`
+	Conditions []PodCondition    `json:"conditions,omitempty"`
+	Containers []ContainerStatus `json:"containerStatuses"`
+	PodIP      string            `json:"podIP"`
+	Phase      string            `json:"phase"`
+	Reason     string            `json:"reason"`
 }
 
 // PodCondition describes the state of pod
@@ -113,6 +122,16 @@ type PodCondition struct {
 	Type    string `json:"type"`
 	Reason  string `json:"reason,omitempty"`
 	Message string `json:"message,omitempty"`
+}
+
+type ContainerStatus struct {
+	State ContainerState `json:"state"`
+}
+
+type ContainerState struct {
+	Running    *Condition `json:"running"`
+	Terminated *Condition `json:"terminated"`
+	Waiting    *Condition `json:"waiting"`
 }
 
 // Resource is API resource
@@ -131,9 +150,10 @@ type ServicePort struct {
 
 // ServiceSpec provides service configuration
 type ServiceSpec struct {
-	Type     string            `json:"type,omitempty"`
-	Selector map[string]string `json:"selector,omitempty"`
-	Ports    []ServicePort     `json:"ports,omitempty"`
+	ClusterIP string            `json:"clusterIP"`
+	Type      string            `json:"type,omitempty"`
+	Selector  map[string]string `json:"selector,omitempty"`
+	Ports     []ServicePort     `json:"ports,omitempty"`
 }
 
 // ServiceStatus
@@ -157,4 +177,9 @@ type ServiceList struct {
 type Template struct {
 	Metadata *Metadata `json:"metadata,omitempty"`
 	PodSpec  *PodSpec  `json:"spec,omitempty"`
+}
+
+// Namespace is a Kubernetes Namespace
+type Namespace struct {
+	Metadata *Metadata `json:"metadata,omitempty"`
 }

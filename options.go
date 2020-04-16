@@ -9,6 +9,7 @@ import (
 	"github.com/micro/go-micro/v2/broker"
 	"github.com/micro/go-micro/v2/client"
 	"github.com/micro/go-micro/v2/client/selector"
+	"github.com/micro/go-micro/v2/config"
 	"github.com/micro/go-micro/v2/config/cmd"
 	"github.com/micro/go-micro/v2/debug/profile"
 	"github.com/micro/go-micro/v2/debug/trace"
@@ -22,6 +23,7 @@ type Options struct {
 	Auth      auth.Auth
 	Broker    broker.Broker
 	Cmd       cmd.Cmd
+	Config    config.Config
 	Client    client.Client
 	Server    server.Server
 	Registry  registry.Registry
@@ -46,6 +48,7 @@ func newOptions(opts ...Option) Options {
 		Auth:      auth.DefaultAuth,
 		Broker:    broker.DefaultBroker,
 		Cmd:       cmd.DefaultCmd,
+		Config:    config.DefaultConfig,
 		Client:    client.DefaultClient,
 		Server:    server.DefaultServer,
 		Registry:  registry.DefaultRegistry,
@@ -139,7 +142,15 @@ func Tracer(t trace.Tracer) Option {
 func Auth(a auth.Auth) Option {
 	return func(o *Options) {
 		o.Auth = a
+		o.Client.Init(client.Auth(a))
 		o.Server.Init(server.Auth(a))
+	}
+}
+
+// Config sets the config for the service
+func Config(c config.Config) Option {
+	return func(o *Options) {
+		o.Config = c
 	}
 }
 

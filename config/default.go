@@ -31,38 +31,44 @@ type watcher struct {
 }
 
 func newConfig(opts ...Option) (Config, error) {
-	options := Options{
+	var c config
+
+	c.Init(opts...)
+	go c.run()
+
+	return &c, nil
+}
+
+func (c *config) Init(opts ...Option) error {
+	c.opts = Options{
 		Loader: memory.NewLoader(),
 		Reader: json.NewReader(),
 	}
-
+	c.exit = make(chan bool)
 	for _, o := range opts {
-		o(&options)
+		o(&c.opts)
 	}
 
-	if err := options.Loader.Load(options.Source...); err != nil {
-		return nil, err
-	}
-
-	snap, err := options.Loader.Snapshot()
+	err := c.opts.Loader.Load(c.opts.Source...)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	vals, err := options.Reader.Values(snap.ChangeSet)
+
+	c.snap, err = c.opts.Loader.Snapshot()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	c := &config{
-		exit: make(chan bool),
-		opts: options,
-		snap: snap,
-		vals: vals,
+	c.vals, err = c.opts.Reader.Values(c.snap.ChangeSet)
+	if err != nil {
+		return err
 	}
 
-	go c.run()
+	return nil
+}
 
-	return c, nil
+func (c *config) Options() Options {
+	return c.opts
 }
 
 func (c *config) run() {

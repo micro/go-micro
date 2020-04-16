@@ -4,67 +4,100 @@ package auth
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"time"
 
 	"github.com/micro/go-micro/v2/metadata"
 )
 
+var (
+	// ErrNotFound is returned when a resouce cannot be found
+	ErrNotFound = errors.New("not found")
+	// ErrEncodingToken is returned when the service encounters an error during encoding
+	ErrEncodingToken = errors.New("error encoding the token")
+	// ErrInvalidToken is returned when the token provided is not valid
+	ErrInvalidToken = errors.New("invalid token provided")
+	// ErrInvalidRole is returned when the role provided was invalid
+	ErrInvalidRole = errors.New("invalid role")
+	// ErrForbidden is returned when a user does not have the necessary roles to access a resource
+	ErrForbidden = errors.New("resource forbidden")
+)
+
 // Auth providers authentication and authorization
 type Auth interface {
-	// Init the auth package
-	Init(opts ...Option) error
-	// Options returns the options set
+	// Init the auth
+	Init(opts ...Option)
+	// Options set for auth
 	Options() Options
-	// Generate a new auth Account
+	// Generate a new account
 	Generate(id string, opts ...GenerateOption) (*Account, error)
-	// Revoke an authorization Account
-	Revoke(token string) error
-	// Verify an account token
-	Verify(token string) (*Account, error)
-	// String returns the implementation
+	// Grant access to a resource
+	Grant(role string, res *Resource) error
+	// Revoke access to a resource
+	Revoke(role string, res *Resource) error
+	// Verify an account has access to a resource
+	Verify(acc *Account, res *Resource) error
+	// Inspect a token
+	Inspect(token string) (*Account, error)
+	// Token generated using refresh token
+	Token(opts ...TokenOption) (*Token, error)
+	// String returns the name of the implementation
 	String() string
 }
 
 // Resource is an entity such as a user or
 type Resource struct {
 	// Name of the resource
-	Name string
+	Name string `json:"name"`
 	// Type of resource, e.g.
-	Type string
-}
-
-// Role an account has
-type Role struct {
-	// Name of the role
-	Name string
-	// The resource it has access
-	// TODO: potentially remove
-	Resource *Resource
+	Type string `json:"type"`
+	// Endpoint resource e.g NotesService.Create
+	Endpoint string `json:"endpoint"`
+	// Namespace the resource belongs to
+	Namespace string `json:"namespace"`
 }
 
 // Account provided by an auth provider
 type Account struct {
-	// ID of the account (UUIDV4, email or username)
-	Id string `json:"id"`
-	// Token used to authenticate
-	Token string `json:"token"`
-	// Time of Account creation
-	Created time.Time `json:"created"`
-	// Time of Account expiry
-	Expiry time.Time `json:"expiry"`
+	// ID of the account e.g. email
+	ID string `json:"id"`
+	// Type of the account, e.g. service
+	Type string `json:"type"`
+	// Provider who issued the account
+	Provider string `json:"provider"`
 	// Roles associated with the Account
-	Roles []*Role `json:"roles"`
+	Roles []string `json:"roles"`
 	// Any other associated metadata
 	Metadata map[string]string `json:"metadata"`
+	// Namespace the account belongs to
+	Namespace string `json:"namespace"`
+	// Secret for the account, e.g. the password
+	Secret string `json:"secret"`
+}
+
+// Token can be short or long lived
+type Token struct {
+	// The token to be used for accessing resources
+	AccessToken string `json:"access_token"`
+	// RefreshToken to be used to generate a new token
+	RefreshToken string `json:"refresh_token"`
+	// Time of token creation
+	Created time.Time `json:"created"`
+	// Time of token expiry
+	Expiry time.Time `json:"expiry"`
 }
 
 const (
-	// MetadataKey is the key used when storing the account
-	// in metadata
+	// DefaultNamespace used for auth
+	DefaultNamespace = "go.micro"
+	// MetadataKey is the key used when storing the account in metadata
 	MetadataKey = "auth-account"
-	// CookieName is the name of the cookie which stores the
-	// auth token
-	CookieName = "micro-token"
+	// TokenCookieName is the name of the cookie which stores the auth token
+	TokenCookieName = "micro-token"
+	// SecretCookieName is the name of the cookie which stores the auth secret
+	SecretCookieName = "micro-secret"
+	// BearerScheme used for Authorization header
+	BearerScheme = "Bearer "
 )
 
 // AccountFromContext gets the account from the context, which

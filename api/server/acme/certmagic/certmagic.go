@@ -3,14 +3,13 @@ package certmagic
 
 import (
 	"crypto/tls"
-	"log"
 	"math/rand"
 	"net"
 	"time"
 
 	"github.com/mholt/certmagic"
-
 	"github.com/micro/go-micro/v2/api/server/acme"
+	"github.com/micro/go-micro/v2/logger"
 )
 
 type certmagicProvider struct {
@@ -48,7 +47,7 @@ func (c *certmagicProvider) TLSConfig(hosts ...string) (*tls.Config, error) {
 	return certmagic.TLS(hosts)
 }
 
-// New returns a certmagic provider
+// NewProvider returns a certmagic provider
 func NewProvider(options ...acme.Option) acme.Provider {
 	opts := acme.DefaultOptions()
 
@@ -58,7 +57,7 @@ func NewProvider(options ...acme.Option) acme.Provider {
 
 	if opts.Cache != nil {
 		if _, ok := opts.Cache.(certmagic.Storage); !ok {
-			log.Fatal("ACME: cache provided doesn't implement certmagic's Storage interface")
+			logger.Fatal("ACME: cache provided doesn't implement certmagic's Storage interface")
 		}
 	}
 

@@ -207,7 +207,7 @@ func (m *Registry) Register(s *registry.Service, opts ...registry.RegisterOption
 	return nil
 }
 
-func (m *Registry) Deregister(s *registry.Service) error {
+func (m *Registry) Deregister(s *registry.Service, opts ...registry.DeregisterOption) error {
 	m.Lock()
 	defer m.Unlock()
 
@@ -240,7 +240,7 @@ func (m *Registry) Deregister(s *registry.Service) error {
 	return nil
 }
 
-func (m *Registry) GetService(name string) ([]*registry.Service, error) {
+func (m *Registry) GetService(name string, opts ...registry.GetOption) ([]*registry.Service, error) {
 	m.RLock()
 	defer m.RUnlock()
 
@@ -259,7 +259,7 @@ func (m *Registry) GetService(name string) ([]*registry.Service, error) {
 	return services, nil
 }
 
-func (m *Registry) ListServices() ([]*registry.Service, error) {
+func (m *Registry) ListServices(opts ...registry.ListOption) ([]*registry.Service, error) {
 	m.RLock()
 	defer m.RUnlock()
 
