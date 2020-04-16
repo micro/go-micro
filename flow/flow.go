@@ -1,17 +1,5 @@
 package flow
 
-import (
-	"fmt"
-
-	"github.com/micro/go-micro/v2/store/memory"
-)
-
-var (
-	ErrStepExists = fmt.Errorf("step already exists")
-	DefaultFlow   = newMicroFlow()
-	DefaultStore  = memory.NewStore()
-)
-
 type Flow interface {
 	// Init flow with options
 	Init(...Option) error

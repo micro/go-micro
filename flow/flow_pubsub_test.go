@@ -1,3 +1,5 @@
+// +build ignore
+
 package flow_test
 
 import (

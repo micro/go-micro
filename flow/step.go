@@ -75,7 +75,7 @@ func ProtoToStep(p *pb.Step) *Step {
 	if !ok {
 		return nil
 	}
-	nop := op.New()
+	nop := op.Clone()
 	nop.Decode(p.Operation)
 
 	st := &Step{
@@ -92,7 +92,7 @@ func ProtoToStep(p *pb.Step) *Step {
 		if !ok {
 			return nil
 		}
-		fop := op.New()
+		fop := op.Clone()
 		fop.Decode(p.Fallback)
 		st.Fallback = fop
 	}

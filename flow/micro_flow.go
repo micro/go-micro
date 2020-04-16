@@ -20,6 +20,7 @@ type microFlow struct {
 // Create default executor
 func newMicroFlow(opts ...Option) Flow {
 	fl := &microFlow{}
+	fl.options.Context = context.Background()
 	for _, opt := range opts {
 		opt(&fl.options)
 	}
@@ -191,6 +192,102 @@ func (fl *microFlow) Options() Options {
 	return fl.options
 }
 
+func (fl *microFlow) loadDag(flow string) (dag, error) {
+	steps, err := fl.Lookup(flow)
+	if err != nil {
+		return nil, err
+	}
+
+	g := newHeimdalrDag()
+	stepsMap := make(map[string]*Step)
+	for _, s := range steps {
+		stepsMap[s.Name()] = s
+		g.AddVertex(s)
+	}
+
+	for _, vs := range steps {
+	afterLoop:
+		for _, req := range vs.After {
+			if req == "all" {
+				for _, ve := range steps {
+					if ve.Name() != vs.Name() && !include(ve.After, "all") {
+						g.AddEdge(ve, vs)
+					}
+				}
+				break afterLoop
+			}
+			ve, ok := stepsMap[req]
+			if !ok {
+				err = fmt.Errorf("%v after unknown step %v", vs, req)
+				return nil, err
+			}
+			g.AddEdge(ve, vs)
+		}
+	beforeLoop:
+		for _, req := range vs.Before {
+			if req == "all" {
+				for _, ve := range steps {
+					if ve.Name() != vs.Name() && !include(ve.Before, "all") {
+						g.AddEdge(vs, ve)
+					}
+				}
+				break beforeLoop
+			}
+			ve, ok := stepsMap[req]
+			if !ok {
+				err = fmt.Errorf("%v before unknown step %v", vs, req)
+				return nil, err
+			}
+			g.AddEdge(vs, ve)
+		}
+
+	}
+	if err = g.Validate(); err != nil {
+		return nil, err
+	}
+
+	g.TransitiveReduction()
+
+	return g, nil
+}
+
 func (fl *microFlow) Execute(req interface{}, rsp interface{}, opts ...ExecuteOption) (string, error) {
-	return fl.options.Executor.Execute(req, rsp, opts...)
+	var err error
+	var g dag
+
+	options := ExecuteOptions{}
+	for _, opt := range opts {
+		opt(&options)
+	}
+
+	g, err = fl.loadDag(options.Flow)
+	if err != nil {
+		return "", err
+	}
+
+	var root *Step
+	if len(options.Step) > 0 {
+		if root, err = g.GetVertex(options.Step); err != nil {
+			return "", err
+		}
+	} else {
+		root, err = g.GetRoot()
+		if err != nil {
+			return "", err
+		}
+	}
+
+	var steps []*Step
+
+	if len(root.After) > 0 {
+		if steps, err = g.OrderedAncestors(root); err != nil {
+			return "", err
+		}
+	}
+
+	if steps, err = g.OrderedDescendants(root); err != nil {
+		return "", err
+	}
+
+	return fl.options.Executor.Execute(steps, req, rsp, opts...)
 }

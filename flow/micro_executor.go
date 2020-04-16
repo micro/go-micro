@@ -38,6 +38,7 @@ type flowJob struct {
 	flow    string
 	rid     string
 	step    string
+	steps   []*Step
 	req     []byte
 	rsp     []byte
 	err     error
@@ -68,7 +69,9 @@ type microExecutor struct {
 }
 
 func newMicroExecutor() Executor {
-	return &microExecutor{}
+	fl := &microExecutor{}
+	fl.options.Context = context.Background()
+	return fl
 }
 
 func (fl *microExecutor) Init(opts ...ExecutorOption) error {
@@ -180,7 +183,7 @@ func (fl *microExecutor) Resume(flow string, rid string) error {
 	return nil
 }
 
-func (fl *microExecutor) Execute(req interface{}, rsp interface{}, opts ...ExecuteOption) (string, error) {
+func (fl *microExecutor) Execute(steps []*Step, req interface{}, rsp interface{}, opts ...ExecuteOption) (string, error) {
 	var err error
 
 	if !fl.initialized {
@@ -226,7 +229,7 @@ func (fl *microExecutor) Execute(req interface{}, rsp interface{}, opts ...Execu
 		return "", fmt.Errorf("rsp invalid, flow only works with proto.Message and []byte")
 	}
 
-	job := &flowJob{flow: options.Flow, req: reqbuf, options: opts, rid: options.ID}
+	job := &flowJob{steps: steps, flow: options.Flow, req: reqbuf, options: opts, rid: options.ID}
 	if !options.Async {
 		job.done = make(chan struct{})
 	}
@@ -280,6 +283,8 @@ func (fl *microExecutor) flowHandler(req interface{}) {
 	}
 	job.mu.RUnlock()
 
+	steps := job.steps
+
 	options := ExecuteOptions{}
 	for _, opt := range job.options {
 		opt(&options)
@@ -289,36 +294,6 @@ func (fl *microExecutor) flowHandler(req interface{}) {
 		options.Context = fl.options.Context
 	} else {
 		options.Context = context.WithValue(options.Context, flowKey{}, fl)
-	}
-
-	var g dag
-	g, err = fl.loadDag(job.flow)
-	if err != nil {
-		return
-	}
-
-	var root *Step
-	if len(options.Step) > 0 {
-		if root, err = g.GetVertex(options.Step); err != nil {
-			return
-		}
-	} else {
-		root, err = g.GetRoot()
-		if err != nil {
-			return
-		}
-	}
-
-	var steps []*Step
-
-	if len(root.After) > 0 {
-		if steps, err = g.OrderedAncestors(root); err != nil {
-			return
-		}
-	}
-
-	if steps, err = g.OrderedDescendants(root); err != nil {
-		return
 	}
 
 	stateKey := fmt.Sprintf("%s-%s-flow", job.flow, job.rid)
@@ -531,72 +506,4 @@ func (fl *microExecutor) Stop() error {
 	}
 
 	return nil
-}
-
-func include(slice []string, f string) bool {
-	for _, s := range slice {
-		if s == f {
-			return true
-		}
-	}
-	return false
-}
-
-func (fl *microExecutor) loadDag(flow string) (dag, error) {
-	steps, err := fl.options.Flow.Lookup(flow)
-	if err != nil {
-		return nil, err
-	}
-
-	g := newHeimdalrDag()
-	stepsMap := make(map[string]*Step)
-	for _, s := range steps {
-		stepsMap[s.Name()] = s
-		g.AddVertex(s)
-	}
-
-	for _, vs := range steps {
-	afterLoop:
-		for _, req := range vs.After {
-			if req == "all" {
-				for _, ve := range steps {
-					if ve.Name() != vs.Name() && !include(ve.After, "all") {
-						g.AddEdge(ve, vs)
-					}
-				}
-				break afterLoop
-			}
-			ve, ok := stepsMap[req]
-			if !ok {
-				err = fmt.Errorf("%v after unknown step %v", vs, req)
-				return nil, err
-			}
-			g.AddEdge(ve, vs)
-		}
-	beforeLoop:
-		for _, req := range vs.Before {
-			if req == "all" {
-				for _, ve := range steps {
-					if ve.Name() != vs.Name() && !include(ve.Before, "all") {
-						g.AddEdge(vs, ve)
-					}
-				}
-				break beforeLoop
-			}
-			ve, ok := stepsMap[req]
-			if !ok {
-				err = fmt.Errorf("%v before unknown step %v", vs, req)
-				return nil, err
-			}
-			g.AddEdge(vs, ve)
-		}
-
-	}
-	if err = g.Validate(); err != nil {
-		return nil, err
-	}
-
-	g.TransitiveReduction()
-
-	return g, nil
 }

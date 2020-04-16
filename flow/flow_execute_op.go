@@ -18,7 +18,7 @@ func FlowExecuteOperation(flow string, op string) *flowExecuteOperation {
 	return &flowExecuteOperation{name: fmt.Sprintf("%s.%s", flow, op), flow: flow, operation: op}
 }
 
-func (op *flowExecuteOperation) New() Operation {
+func (op *flowExecuteOperation) Clone() Operation {
 	return &flowExecuteOperation{}
 }
 

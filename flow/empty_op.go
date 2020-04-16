@@ -21,7 +21,7 @@ func EmptyOperation(name string, opts ...OperationOption) *emptyOperation {
 	return &emptyOperation{name: name, options: options}
 }
 
-func (op *emptyOperation) New() Operation {
+func (op *emptyOperation) Clone() Operation {
 	return &emptyOperation{}
 }
 

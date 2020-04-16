@@ -19,15 +19,22 @@ func TestClientCall(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	fl := flow.NewFlow(
-		flow.WithStateStore(smemory.NewStore(store.Namespace("state"))),
-		flow.WithDataStore(smemory.NewStore(store.Namespace("data"))),
-		flow.WithFlowStore(smemory.NewStore(store.Namespace("flow"))),
-	)
-
-	if err = fl.Init(); err != nil {
+	if err = flow.DefaultFlow.Init(
+		flow.WithStore(smemory.NewStore(store.Namespace("flow"))),
+	); err != nil {
 		t.Fatal(err)
 	}
+
+	fl := flow.DefaultFlow
+
+	if err = flow.DefaultExecutor.Init(
+		flow.WithFlow(fl),
+		flow.WithStateStore(smemory.NewStore(store.Namespace("state"))),
+		flow.WithDataStore(smemory.NewStore(store.Namespace("data"))),
+	); err != nil {
+		t.Fatal(err)
+	}
+
 	if err = fl.CreateStep("test_flow", &flow.Step{
 		ID:        "cms_account.AccountService.AccountCreate",
 		Operation: flow.EmptyOperation("cms_account.AccountService.AccountCreate"),
@@ -99,11 +106,12 @@ func TestClientCall(t *testing.T) {
 	req := &proto.Test{Name: "client call test req"}
 	rsp := &proto.Test{}
 	//	err  = fl.
-	rid, err := fl.Execute("test_flow", req, rsp,
+	rid, err := fl.Execute(req, rsp,
 		flow.ExecuteContext(ctx),
 		flow.ExecuteAsync(false),
 		flow.ExecuteStep("cms_account.AccountService.AccountCreate"),
 		flow.ExecuteClient(client.DefaultClient),
+		flow.ExecuteFlow("test_flow"),
 	)
 	if err != nil {
 		t.Fatal(err)

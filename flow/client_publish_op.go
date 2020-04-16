@@ -28,7 +28,7 @@ func ClientPublishOperation(topic string, opts ...OperationOption) *clientPublis
 	}
 }
 
-func (op *clientPublishOperation) New() Operation {
+func (op *clientPublishOperation) Clone() Operation {
 	return &clientPublishOperation{}
 }
 

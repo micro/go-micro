@@ -31,7 +31,7 @@ func ClientCallOperation(service, endpoint string, opts ...OperationOption) *cli
 	}
 }
 
-func (op *clientCallOperation) New() Operation {
+func (op *clientCallOperation) Clone() Operation {
 	return &clientCallOperation{}
 }
 

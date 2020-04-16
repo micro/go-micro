@@ -8,6 +8,14 @@ import (
 	"github.com/micro/go-micro/v2/client"
 	"github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/store"
+	memory "github.com/micro/go-micro/v2/store/memory"
+)
+
+var (
+	ErrStepExists   = fmt.Errorf("step already exists")
+	DefaultFlow     = newMicroFlow()
+	DefaultStore    = memory.NewStore()
+	DefaultExecutor = newMicroExecutor()
 )
 
 type Option func(*Options)

@@ -30,7 +30,7 @@ type Operation interface {
 	Name() string
 	String() string
 	Type() string
-	New() Operation
+	Clone() Operation
 	Decode(*pbFlow.Operation)
 	Encode() *pbFlow.Operation
 	Execute(context.Context, []byte, ...ExecuteOption) ([]byte, error)
