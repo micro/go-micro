@@ -193,6 +193,16 @@ func (fl *microFlow) Options() Options {
 }
 
 func (fl *microFlow) loadDag(flow string) (dag, error) {
+
+	include := func(slice []string, f string) bool {
+		for _, s := range slice {
+			if s == f {
+				return true
+			}
+		}
+		return false
+	}
+
 	steps, err := fl.Lookup(flow)
 	if err != nil {
 		return nil, err
