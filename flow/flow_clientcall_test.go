@@ -20,7 +20,7 @@ func TestClientCall(t *testing.T) {
 	defer cancel()
 
 	if err = flow.DefaultFlow.Init(
-		flow.WithStore(smemory.NewStore(store.Namespace("flow"))),
+		flow.WithStore(smemory.NewStore(store.Table("flow"))),
 	); err != nil {
 		t.Fatal(err)
 	}
@@ -29,8 +29,8 @@ func TestClientCall(t *testing.T) {
 
 	if err = flow.DefaultExecutor.Init(
 		flow.WithFlow(fl),
-		flow.WithStateStore(smemory.NewStore(store.Namespace("state"))),
-		flow.WithDataStore(smemory.NewStore(store.Namespace("data"))),
+		flow.WithStateStore(smemory.NewStore(store.Table("state"))),
+		flow.WithDataStore(smemory.NewStore(store.Table("data"))),
 	); err != nil {
 		t.Fatal(err)
 	}
