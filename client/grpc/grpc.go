@@ -131,21 +131,10 @@ func (g *grpcClient) call(ctx context.Context, node *registry.Node, req client.R
 	// set the content type for the request
 	header["x-content-type"] = req.ContentType()
 
-	// if the caller specifies using service token or no token
-	// was passed with the request, set the service token
-	var srvToken string
-	if g.opts.Auth != nil && g.opts.Auth.Options().Token != nil {
-		srvToken = g.opts.Auth.Options().Token.AccessToken
-	}
-	if (opts.ServiceToken || len(header["authorization"]) == 0) && len(srvToken) > 0 {
-		header["authorization"] = auth.BearerScheme + srvToken
-	}
-
-	// fall back to using the authorization token set in config,
-	// this enables the CLI to provide a token
-	if len(header["authorization"]) == 0 {
-		if token, err := config.Get("micro", "auth", "token"); err == nil && len(token) > 0 {
-			header["authorization"] = auth.BearerScheme + token
+	// set the authorization header
+	if opts.ServiceToken || len(header["authorization"]) == 0 {
+		if h := g.authorizationHeader(); len(h) > 0 {
+			header["authorization"] = h
 		}
 	}
 
@@ -226,6 +215,13 @@ func (g *grpcClient) stream(ctx context.Context, node *registry.Node, req client
 	}
 	// set the content type for the request
 	header["x-content-type"] = req.ContentType()
+
+	// set the authorization header
+	if opts.ServiceToken || len(header["authorization"]) == 0 {
+		if h := g.authorizationHeader(); len(h) > 0 {
+			header["authorization"] = h
+		}
+	}
 
 	md := gmetadata.New(header)
 	ctx = gmetadata.NewOutgoingContext(ctx, md)
@@ -311,6 +307,26 @@ func (g *grpcClient) stream(ctx context.Context, node *registry.Node, req client
 		conn:     cc,
 		cancel:   cancel,
 	}, nil
+}
+
+func (g *grpcClient) authorizationHeader() string {
+	// if the caller specifies using service token or no token
+	// was passed with the request, set the service token
+	var srvToken string
+	if g.opts.Auth != nil && g.opts.Auth.Options().Token != nil {
+		srvToken = g.opts.Auth.Options().Token.AccessToken
+	}
+	if len(srvToken) > 0 {
+		return auth.BearerScheme + srvToken
+	}
+
+	// fall back to using the authorization token set in config,
+	// this enables the CLI to provide a token
+	if token, err := config.Get("micro", "auth", "token"); err == nil && len(token) > 0 {
+		return auth.BearerScheme + token
+	}
+
+	return ""
 }
 
 func (g *grpcClient) poolMaxStreams() int {
