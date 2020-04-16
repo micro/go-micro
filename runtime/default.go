@@ -332,22 +332,17 @@ func (r *runtime) Read(opts ...ReadOption) ([]*Service, error) {
 
 // Update attemps to update the service
 func (r *runtime) Update(s *Service) error {
-	var opts []CreateOption
-
-	// check if the service already exists
-	r.RLock()
-	if service, ok := r.services[s.Name]; ok {
-		opts = append(opts, WithOutput(service.output))
+	r.Lock()
+	service, ok := r.services[s.Name]
+	r.Unlock()
+	if !ok {
+		return errors.New("Service not found")
 	}
-	r.RUnlock()
-
-	// delete the service
-	if err := r.Delete(s); err != nil {
+	err := service.Stop()
+	if err != nil {
 		return err
 	}
-
-	// create new service
-	return r.Create(s, opts...)
+	return service.Start()
 }
 
 // Delete removes the service from the runtime and stops it
