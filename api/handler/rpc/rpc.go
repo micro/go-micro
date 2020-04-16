@@ -208,7 +208,6 @@ func (h *rpcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			&request,
 			client.WithContentType(ct),
 		)
-
 		// make the call
 		if err := c.Call(cx, req, &response, client.WithSelectOption(so)); err != nil {
 			writeError(w, r, err)

@@ -8,20 +8,19 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway/httprule"
-	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/micro/go-micro/v2/api"
 	"github.com/micro/go-micro/v2/api/router"
+	"github.com/micro/go-micro/v2/api/router/util"
 	"github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/metadata"
 	"github.com/micro/go-micro/v2/registry"
-	util "github.com/micro/go-micro/v2/util/registry"
+	rutil "github.com/micro/go-micro/v2/util/registry"
 )
 
 type endpoint struct {
 	apiep    *api.Endpoint
 	hostregs []*regexp.Regexp
-	pathregs []runtime.Pattern
+	pathregs []util.Pattern
 }
 
 // router is the default router
@@ -93,7 +92,7 @@ func (r *staticRouter) Register(ep *api.Endpoint) error {
 		return err
 	}
 
-	var pathregs []runtime.Pattern
+	var pathregs []util.Pattern
 	var hostregs []*regexp.Regexp
 
 	for _, h := range ep.Host {
@@ -108,12 +107,12 @@ func (r *staticRouter) Register(ep *api.Endpoint) error {
 	}
 
 	for _, p := range ep.Path {
-		rule, err := httprule.Parse(p)
+		rule, err := util.Parse(p)
 		if err != nil {
 			return err
 		}
 		tpl := rule.Compile()
-		pathreg, err := runtime.NewPattern(tpl.Version, tpl.OpCodes, tpl.Pool, "")
+		pathreg, err := util.NewPattern(tpl.Version, tpl.OpCodes, tpl.Pool, "")
 		if err != nil {
 			return err
 		}
@@ -164,7 +163,7 @@ func (r *staticRouter) Endpoint(req *http.Request) (*api.Service, error) {
 
 	// hack for stream endpoint
 	if ep.apiep.Stream {
-		svcs := util.Copy(services)
+		svcs := rutil.Copy(services)
 		for _, svc := range svcs {
 			if len(svc.Endpoints) == 0 {
 				e := &registry.Endpoint{}
