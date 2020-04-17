@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"crypto/tls"
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -57,19 +58,17 @@ func (c *client) Create(r *Resource, opts ...CreateOption) error {
 		o(&options)
 	}
 
-	reqOpts := *c.opts
-	if len(options.Namespace) > 0 {
-		reqOpts.Namespace = options.Namespace
-	}
+	fmt.Printf("Create Resource: %v in namespace %v\n", r.Name, options.Namespace)
 
 	b := new(bytes.Buffer)
 	if err := renderTemplate(r.Kind, b, r.Value); err != nil {
 		return err
 	}
 
-	return api.NewRequest(&reqOpts).
+	return api.NewRequest(c.opts).
 		Post().
 		SetHeader("Content-Type", "application/yaml").
+		Namespace(options.Namespace).
 		Resource(r.Kind).
 		Body(b).
 		Do().
