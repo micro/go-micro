@@ -6,10 +6,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/micro/go-micro/v2/logger"
+	log "github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/runtime"
 	"github.com/micro/go-micro/v2/util/kubernetes/client"
-	"github.com/micro/go-micro/v2/util/log"
 )
 
 // action to take on runtime service
@@ -26,29 +25,30 @@ type kubernetes struct {
 	// client is kubernetes client
 	client client.Client
 	// namespaces which exist
-	namespaces []string
+	namespaces []client.Namespace
 }
 
 // namespaceExists returns a boolean indicating if a namespace exists
 func (k *kubernetes) namespaceExists(name string) bool {
+	// populate the cache
+	if k.namespaces == nil {
+		namespaceList := new(client.NamespaceList)
+		resource := &client.Resource{Kind: "namespace", Value: namespaceList}
+		if err := k.client.List(resource); err != nil {
+			log.Warnf("Error listing namespaces: %v\n", err)
+			return false
+		}
+		k.namespaces = namespaceList.Items
+	}
+
 	// check if the namespace exists in the cache
-	for _, v := range k.namespaces {
-		if v == name {
+	for _, n := range k.namespaces {
+		if n.Metadata.Name == name {
 			return true
 		}
 	}
 
-	// fetch the service
-	namespaceList := new(client.NamespaceList)
-	resource := &client.Resource{Kind: "namespace", Name: name, Value: namespaceList}
-	if err := k.client.Get(resource); err != nil {
-		fmt.Println(err)
-		return false
-	}
-
-	// add to cache and return true
-	k.namespaces = append(k.namespaces, name)
-	return true
+	return false
 }
 
 // createNamespace creates a new k8s namespace
@@ -253,8 +253,8 @@ func (k *kubernetes) run(events <-chan runtime.Event) {
 			// - do we even need the ticker for k8s services?
 		case event := <-events:
 			// NOTE: we only handle Update events for now
-			if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-				logger.Debugf("Runtime received notification event: %v", event)
+			if log.V(log.DebugLevel, log.DefaultLogger) {
+				log.Debugf("Runtime received notification event: %v", event)
 			}
 			switch event.Type {
 			case runtime.Update:
@@ -287,8 +287,8 @@ func (k *kubernetes) run(events <-chan runtime.Event) {
 				}, client.GetLabels(labels))
 
 				if err != nil {
-					if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-						logger.Debugf("Runtime update failed to get service %s: %v", event.Service, err)
+					if log.V(log.DebugLevel, log.DefaultLogger) {
+						log.Debugf("Runtime update failed to get service %s: %v", event.Service, err)
 					}
 					continue
 				}
@@ -316,20 +316,20 @@ func (k *kubernetes) run(events <-chan runtime.Event) {
 
 					// update the build time
 					service.Spec.Template.Metadata.Annotations["build"] = event.Timestamp.Format(time.RFC3339)
-					if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-						logger.Debugf("Runtime updating service: %s deployment: %s", event.Service, service.Metadata.Name)
+					if log.V(log.DebugLevel, log.DefaultLogger) {
+						log.Debugf("Runtime updating service: %s deployment: %s", event.Service, service.Metadata.Name)
 					}
 					if err := k.client.Update(deploymentResource(&service)); err != nil {
-						if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-							logger.Debugf("Runtime failed to update service %s: %v", event.Service, err)
+						if log.V(log.DebugLevel, log.DefaultLogger) {
+							log.Debugf("Runtime failed to update service %s: %v", event.Service, err)
 						}
 						continue
 					}
 				}
 			}
 		case <-k.closed:
-			if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-				logger.Debugf("Runtime stopped")
+			if log.V(log.DebugLevel, log.DefaultLogger) {
+				log.Debugf("Runtime stopped")
 			}
 			return
 		}
@@ -359,7 +359,7 @@ func (k *kubernetes) Logs(s *runtime.Service, options ...runtime.LogsOption) (ru
 		go func() {
 			records, err := klo.Read()
 			if err != nil {
-				logger.Errorf("Failed to get logs for service '%v' from k8s: %v", err)
+				log.Errorf("Failed to get logs for service '%v' from k8s: %v", err)
 				return
 			}
 			// @todo: this might actually not run before podLogStream starts
@@ -492,8 +492,8 @@ func (k *kubernetes) List() ([]*runtime.Service, error) {
 		"micro": k.options.Type,
 	}
 
-	if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-		logger.Debugf("Runtime listing all micro services")
+	if log.V(log.DebugLevel, log.DefaultLogger) {
+		log.Debugf("Runtime listing all micro services")
 	}
 
 	srvs, err := k.getService(labels)
@@ -600,8 +600,8 @@ func (k *kubernetes) Start() error {
 		events, err = k.options.Scheduler.Notify()
 		if err != nil {
 			// TODO: should we bail here?
-			if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-				logger.Debugf("Runtime failed to start update notifier")
+			if log.V(log.DebugLevel, log.DefaultLogger) {
+				log.Debugf("Runtime failed to start update notifier")
 			}
 		}
 	}
@@ -658,10 +658,9 @@ func NewRuntime(opts ...runtime.Option) runtime.Runtime {
 	client := client.NewClusterClient()
 
 	return &kubernetes{
-		options:    options,
-		closed:     make(chan bool),
-		client:     client,
-		namespaces: make([]string, 0),
+		options: options,
+		closed:  make(chan bool),
+		client:  client,
 	}
 }
 
