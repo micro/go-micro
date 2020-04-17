@@ -162,7 +162,7 @@ func (r *Request) request() (*http.Request, error) {
 	switch r.resource {
 	case "namespace":
 		// /api/v1/namespaces/{name}
-		url = fmt.Sprintf("%s/api/v1/namespaces/%ss", r.host, r.resource)
+		url = fmt.Sprintf("%s/api/v1/namespaces/%s", r.host, r.resource)
 	case "pod", "service", "endpoint":
 		// /api/v1/namespaces/{namespace}/pods
 		url = fmt.Sprintf("%s/api/v1/namespaces/%s/%ss/", r.host, r.namespace, r.resource)
@@ -186,6 +186,8 @@ func (r *Request) request() (*http.Request, error) {
 
 	var req *http.Request
 	var err error
+
+	fmt.Println(url)
 
 	// build request
 	if r.context != nil {
