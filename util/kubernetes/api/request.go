@@ -160,6 +160,9 @@ func (r *Request) SetHeader(key, value string) *Request {
 func (r *Request) request() (*http.Request, error) {
 	var url string
 	switch r.resource {
+	case "namespace":
+		// /api/v1/namespaces/{name}
+		url = fmt.Sprintf("%s/api/v1/namespaces/%ss", r.host, r.resource)
 	case "pod", "service", "endpoint":
 		// /api/v1/namespaces/{namespace}/pods
 		url = fmt.Sprintf("%s/api/v1/namespaces/%s/%ss/", r.host, r.namespace, r.resource)

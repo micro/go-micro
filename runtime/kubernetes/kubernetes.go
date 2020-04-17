@@ -24,6 +24,53 @@ type kubernetes struct {
 	closed chan bool
 	// client is kubernetes client
 	client client.Client
+	// namespaces which exist
+	namespaces []string
+}
+
+// namespaceExists returns a boolean indicating if a namespace exists
+func (k *kubernetes) namespaceExists(namespace string) (bool, error) {
+	// populate cache if nil
+	if k.namespaces == nil {
+		namespaceList := new(client.NamespaceList)
+
+		if err := k.client.List(&client.Resource{Kind: "namespace", Value: namespaceList}); err != nil {
+			return false, err
+		}
+
+		k.namespaces = make([]string, 0, len(namespaceList.Items))
+		for _, n := range namespaceList.Items {
+			k.namespaces = append(k.namespaces, n.Metadata.Name)
+		}
+	}
+
+	// check if the namespace exists in the cache
+	for _, v := range k.namespaces {
+		if v == namespace {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
+// createNamespace creates a new k8s namespace
+func (k *kubernetes) createNamespace(namespace string) error {
+	err := k.client.Create(&client.Resource{
+		Kind: "namespace",
+		Value: client.Namespace{
+			Metadata: &client.Metadata{
+				Name: namespace,
+			},
+		},
+	})
+
+	// add to cache
+	if err == nil && k.namespaces != nil {
+		k.namespaces = append(k.namespaces, namespace)
+	}
+
+	return err
 }
 
 // getService queries kubernetes for micro service
@@ -378,6 +425,15 @@ func (k *kubernetes) Create(s *runtime.Service, opts ...runtime.CreateOption) er
 	// default the source if it doesn't exist
 	if len(s.Source) == 0 {
 		s.Source = k.options.Source
+	}
+
+	// ensure the namespace exists
+	if exists, err := k.namespaceExists(options.Namespace); err != nil {
+		return err
+	} else if !exists {
+		if err := k.createNamespace(options.Namespace); err != nil {
+			return err
+		}
 	}
 
 	// determine the image from the source and options
