@@ -259,16 +259,9 @@ func (k *kubernetes) run(events <-chan runtime.Event) {
 
 					}
 
-					// check the existing build timestamp
-					if build, ok := service.Spec.Template.Metadata.Annotations["build"]; ok {
-						buildTime, err := time.Parse(time.RFC3339, build)
-						if err == nil && !event.Timestamp.After(buildTime) {
-							continue
-						}
-					}
-
 					// update the build time
-					service.Spec.Template.Metadata.Annotations["build"] = event.Timestamp.Format(time.RFC3339)
+					service.Spec.Template.Metadata.Annotations["updated"] = fmt.Sprintf("%d", event.Timestamp.Unix())
+
 					if logger.V(logger.DebugLevel, logger.DefaultLogger) {
 						logger.Debugf("Runtime updating service: %s deployment: %s", event.Service, service.Metadata.Name)
 					}
@@ -490,8 +483,9 @@ func (k *kubernetes) Update(s *runtime.Service) error {
 		for k, v := range s.Metadata {
 			service.kdeploy.Metadata.Annotations[k] = v
 		}
+
 		// update build time annotation
-		service.kdeploy.Spec.Template.Metadata.Annotations["build"] = time.Now().Format(time.RFC3339)
+		service.kdeploy.Spec.Template.Metadata.Annotations["updated"] = fmt.Sprintf("%d", time.Now().Unix())
 
 		// update the service
 		if err := service.Update(k.client); err != nil {
