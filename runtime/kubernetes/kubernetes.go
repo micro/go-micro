@@ -29,14 +29,13 @@ type kubernetes struct {
 }
 
 // namespaceExists returns a boolean indicating if a namespace exists
-func (k *kubernetes) namespaceExists(name string) bool {
+func (k *kubernetes) namespaceExists(name string) (bool, error) {
 	// populate the cache
 	if k.namespaces == nil {
 		namespaceList := new(client.NamespaceList)
 		resource := &client.Resource{Kind: "namespace", Value: namespaceList}
 		if err := k.client.List(resource); err != nil {
-			log.Warnf("Error listing namespaces: %v\n", err)
-			return false
+			return false, err
 		}
 		k.namespaces = namespaceList.Items
 	}
@@ -44,11 +43,11 @@ func (k *kubernetes) namespaceExists(name string) bool {
 	// check if the namespace exists in the cache
 	for _, n := range k.namespaces {
 		if n.Metadata.Name == name {
-			return true
+			return true, nil
 		}
 	}
 
-	return false
+	return false, nil
 }
 
 // createNamespace creates a new k8s namespace
@@ -61,7 +60,6 @@ func (k *kubernetes) createNamespace(namespace string) error {
 		k.namespaces = append(k.namespaces, ns)
 	}
 
-	log.Warnf("Error creating kubernetes namespace '%v': %v\n", namespace, err)
 	return err
 }
 
@@ -420,10 +418,12 @@ func (k *kubernetes) Create(s *runtime.Service, opts ...runtime.CreateOption) er
 	}
 
 	// ensure the namespace exists
-	if !k.namespaceExists(options.Namespace) {
+	if exist, err := k.namespaceExists(options.Namespace); err == nil && !exist {
 		if err := k.createNamespace(options.Namespace); err != nil {
 			return err
 		}
+	} else if err != nil {
+		return err
 	}
 
 	// determine the image from the source and options

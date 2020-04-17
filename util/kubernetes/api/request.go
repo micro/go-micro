@@ -187,8 +187,6 @@ func (r *Request) request() (*http.Request, error) {
 	var req *http.Request
 	var err error
 
-	fmt.Printf("[%v] %v\n", r.method, url)
-
 	// build request
 	if r.context != nil {
 		req, err = http.NewRequestWithContext(r.context, r.method, url, r.body)
