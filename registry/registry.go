@@ -6,7 +6,7 @@ import (
 )
 
 var (
-	DefaultRegistry = NewRegistry()
+	DefaultRegistry Registry
 
 	// Not found error when GetService is called
 	ErrNotFound = errors.New("service not found")
