@@ -9,6 +9,7 @@ import (
 	"github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/runtime"
 	"github.com/micro/go-micro/v2/util/kubernetes/client"
+	"github.com/micro/go-micro/v2/util/log"
 )
 
 // action to take on runtime service
@@ -66,6 +67,7 @@ func (k *kubernetes) createNamespace(namespace string) error {
 		k.namespaces = append(k.namespaces, namespace)
 	}
 
+	log.Warnf("Error creating kubernetes namespace '%v': %v\n", namespace, err)
 	return err
 }
 
