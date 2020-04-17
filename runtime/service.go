@@ -78,7 +78,7 @@ func (s *service) shouldStart() bool {
 }
 
 func (s *service) key() string {
-	return fmt.Sprint("%v:%v", s.Name, s.Version)
+	return fmt.Sprintf("%v:%v", s.Name, s.Version)
 }
 
 func (s *service) ShouldStart() bool {
