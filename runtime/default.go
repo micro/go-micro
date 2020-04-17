@@ -142,7 +142,7 @@ func (r *runtime) run(events <-chan Event) {
 			case Update:
 				if len(event.Service) > 0 {
 					r.RLock()
-					service, ok := r.services[event.Service]
+					service, ok := r.services[fmt.Sprintf("%v:%v", event.Service, event.Version)]
 					r.RUnlock()
 					if !ok {
 						if logger.V(logger.DebugLevel, logger.DefaultLogger) {
@@ -187,12 +187,16 @@ func logFile(serviceName string) string {
 	return filepath.Join(path, fmt.Sprintf("%v.log", name))
 }
 
+func serviceKey(s *Service) string {
+	return fmt.Sprintf("%v:%v", s.Name, s.Version)
+}
+
 // Create creates a new service which is then started by runtime
 func (r *runtime) Create(s *Service, opts ...CreateOption) error {
 	r.Lock()
 	defer r.Unlock()
 
-	if _, ok := r.services[s.Name]; ok {
+	if _, ok := r.services[serviceKey(s)]; ok {
 		return errors.New("service already running")
 	}
 
@@ -225,7 +229,7 @@ func (r *runtime) Create(s *Service, opts ...CreateOption) error {
 	}
 
 	// save service
-	r.services[s.Name] = service
+	r.services[serviceKey(s)] = service
 
 	return nil
 }
@@ -333,7 +337,7 @@ func (r *runtime) Read(opts ...ReadOption) ([]*Service, error) {
 // Update attemps to update the service
 func (r *runtime) Update(s *Service) error {
 	r.Lock()
-	service, ok := r.services[s.Name]
+	service, ok := r.services[serviceKey(s)]
 	r.Unlock()
 	if !ok {
 		return errors.New("Service not found")
@@ -353,10 +357,10 @@ func (r *runtime) Delete(s *Service) error {
 	if logger.V(logger.DebugLevel, logger.DefaultLogger) {
 		logger.Debugf("Runtime deleting service %s", s.Name)
 	}
-	if s, ok := r.services[s.Name]; ok {
+	if s, ok := r.services[serviceKey(s)]; ok {
 		// check if running
 		if s.Running() {
-			delete(r.services, s.Name)
+			delete(r.services, s.key())
 			return nil
 		}
 		// otherwise stop it
@@ -364,7 +368,7 @@ func (r *runtime) Delete(s *Service) error {
 			return err
 		}
 		// delete it
-		delete(r.services, s.Name)
+		delete(r.services, s.key())
 		return nil
 	}
 
