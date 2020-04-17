@@ -29,29 +29,25 @@ type kubernetes struct {
 }
 
 // namespaceExists returns a boolean indicating if a namespace exists
-func (k *kubernetes) namespaceExists(namespace string) (bool, error) {
-	// populate cache if nil
-	if k.namespaces == nil {
-		namespaceList := new(client.NamespaceList)
-
-		if err := k.client.List(&client.Resource{Kind: "namespace", Value: namespaceList}); err != nil {
-			return false, err
-		}
-
-		k.namespaces = make([]string, 0, len(namespaceList.Items))
-		for _, n := range namespaceList.Items {
-			k.namespaces = append(k.namespaces, n.Metadata.Name)
-		}
-	}
-
+func (k *kubernetes) namespaceExists(name string) bool {
 	// check if the namespace exists in the cache
 	for _, v := range k.namespaces {
-		if v == namespace {
-			return true, nil
+		if v == name {
+			return true
 		}
 	}
 
-	return false, nil
+	// fetch the service
+	namespaceList := new(client.NamespaceList)
+	resource := &client.Resource{Kind: "namespace", Name: name, Value: namespaceList}
+	if err := k.client.Get(resource); err != nil {
+		fmt.Println(err)
+		return false
+	}
+
+	// add to cache and return true
+	k.namespaces = append(k.namespaces, name)
+	return true
 }
 
 // createNamespace creates a new k8s namespace
@@ -662,9 +658,10 @@ func NewRuntime(opts ...runtime.Option) runtime.Runtime {
 	client := client.NewClusterClient()
 
 	return &kubernetes{
-		options: options,
-		closed:  make(chan bool),
-		client:  client,
+		options:    options,
+		closed:     make(chan bool),
+		client:     client,
+		namespaces: make([]string, 0),
 	}
 }
 
