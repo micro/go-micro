@@ -301,8 +301,8 @@ func (k *kubernetes) run(events <-chan runtime.Event) {
 					// update the build time
 					service.Spec.Template.Metadata.Annotations["updated"] = fmt.Sprintf("%d", event.Timestamp.Unix())
 
-					if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-						logger.Debugf("Runtime updating service: %s deployment: %s", event.Service, service.Metadata.Name)
+					if log.V(log.DebugLevel, log.DefaultLogger) {
+						log.Debugf("Runtime updating service: %s deployment: %s", event.Service, service.Metadata.Name)
 					}
 					if err := k.client.Update(deploymentResource(&service)); err != nil {
 						if log.V(log.DebugLevel, log.DefaultLogger) {
@@ -477,6 +477,8 @@ func (k *kubernetes) Update(s *runtime.Service, opts ...runtime.UpdateOption) er
 		o(&options)
 	}
 
+	labels := map[string]string{}
+
 	if len(s.Name) > 0 {
 		labels["name"] = client.Format(s.Name)
 	}
@@ -486,8 +488,7 @@ func (k *kubernetes) Update(s *runtime.Service, opts ...runtime.UpdateOption) er
 	}
 
 	// get the existing service
-	labels := map[string]string{}
-  services, err := k.getService(labels)
+	services, err := k.getService(labels)
 	if err != nil {
 		return err
 	}
