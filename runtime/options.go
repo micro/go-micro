@@ -1,6 +1,7 @@
 package runtime
 
 import (
+	"context"
 	"io"
 )
 
@@ -66,6 +67,8 @@ type CreateOptions struct {
 	Retries int
 	// Specify the image to use
 	Image string
+	// Specify the context to use
+	Context context.Context
 }
 
 // ReadOptions queries runtime services
@@ -76,6 +79,8 @@ type ReadOptions struct {
 	Version string
 	// Type of service
 	Type string
+	// Specify the context to use
+	Context context.Context
 }
 
 // CreateType sets the type of service to create
@@ -89,6 +94,13 @@ func CreateType(t string) CreateOption {
 func CreateImage(img string) CreateOption {
 	return func(o *CreateOptions) {
 		o.Image = img
+	}
+}
+
+// CreateContext sets the context
+func CreateContext(ctx context.Context) CreateOption {
+	return func(o *CreateOptions) {
+		o.Context = ctx
 	}
 }
 
@@ -150,6 +162,41 @@ func ReadType(t string) ReadOption {
 	}
 }
 
+// ReadContext sets the context
+func ReadContext(ctx context.Context) ReadOption {
+	return func(o *ReadOptions) {
+		o.Context = ctx
+	}
+}
+
+type UpdateOption func(o *UpdateOptions)
+
+type UpdateOptions struct {
+	// Specify the context to use
+	Context context.Context
+}
+
+// UpdateContext sets the context
+func UpdateContext(ctx context.Context) UpdateOption {
+	return func(o *UpdateOptions) {
+		o.Context = ctx
+	}
+}
+
+type DeleteOption func(o *DeleteOptions)
+
+type DeleteOptions struct {
+	// Specify the context to use
+	Context context.Context
+}
+
+// DeleteContext sets the context
+func DeleteContext(ctx context.Context) DeleteOption {
+	return func(o *DeleteOptions) {
+		o.Context = ctx
+	}
+}
+
 // LogsOption configures runtime logging
 type LogsOption func(o *LogsOptions)
 
@@ -159,6 +206,8 @@ type LogsOptions struct {
 	Count int64
 	// Stream new lines?
 	Stream bool
+	// Specify the context to use
+	Context context.Context
 }
 
 // LogsExistingCount confiures how many existing lines to show

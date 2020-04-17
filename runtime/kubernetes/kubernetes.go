@@ -37,7 +37,7 @@ func (k *kubernetes) getService(labels map[string]string) ([]*service, error) {
 	}
 
 	// get the service from k8s
-	if err := k.client.Get(r, labels); err != nil {
+	if err := k.client.Get(r, client.GetLabels(labels)); err != nil {
 		return nil, err
 	}
 
@@ -47,7 +47,7 @@ func (k *kubernetes) getService(labels map[string]string) ([]*service, error) {
 		Kind:  "deployment",
 		Value: depList,
 	}
-	if err := k.client.Get(d, labels); err != nil {
+	if err := k.client.Get(d, client.GetLabels(labels)); err != nil {
 		return nil, err
 	}
 
@@ -57,7 +57,7 @@ func (k *kubernetes) getService(labels map[string]string) ([]*service, error) {
 		Kind:  "pod",
 		Value: podList,
 	}
-	if err := k.client.Get(p, labels); err != nil {
+	if err := k.client.Get(p, client.GetLabels(labels)); err != nil {
 		return nil, err
 	}
 
@@ -237,7 +237,7 @@ func (k *kubernetes) run(events <-chan runtime.Event) {
 				err := k.client.Get(&client.Resource{
 					Kind:  "deployment",
 					Value: deployed,
-				}, labels)
+				}, client.GetLabels(labels))
 
 				if err != nil {
 					if logger.V(logger.DebugLevel, logger.DefaultLogger) {
@@ -456,7 +456,7 @@ func (k *kubernetes) List() ([]*runtime.Service, error) {
 }
 
 // Update the service in place
-func (k *kubernetes) Update(s *runtime.Service) error {
+func (k *kubernetes) Update(s *runtime.Service, opts ...runtime.UpdateOption) error {
 	// get the existing service
 	// set the default labels
 	labels := map[string]string{
@@ -503,7 +503,7 @@ func (k *kubernetes) Update(s *runtime.Service) error {
 }
 
 // Delete removes a service
-func (k *kubernetes) Delete(s *runtime.Service) error {
+func (k *kubernetes) Delete(s *runtime.Service, opts ...runtime.DeleteOption) error {
 	k.Lock()
 	defer k.Unlock()
 

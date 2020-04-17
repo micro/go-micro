@@ -75,7 +75,9 @@ func (r *Request) Delete() *Request {
 
 // Namespace is to set the namespace to operate on
 func (r *Request) Namespace(s string) *Request {
-	r.namespace = s
+	if len(s) > 0 {
+		r.namespace = s
+	}
 	return r
 }
 
