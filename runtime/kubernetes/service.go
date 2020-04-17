@@ -2,7 +2,6 @@ package kubernetes
 
 import (
 	"encoding/json"
-	"fmt"
 	"strings"
 
 	"github.com/micro/go-micro/v2/logger"
@@ -145,8 +144,6 @@ func (s *service) Start(k client.Client, opts ...client.CreateOption) error {
 }
 
 func (s *service) Stop(k client.Client, opts ...client.DeleteOption) error {
-	fmt.Println("STOP")
-
 	// first attempt to delete service
 	if err := k.Delete(serviceResource(s.kservice), opts...); err != nil {
 		if logger.V(logger.DebugLevel, logger.DefaultLogger) {
