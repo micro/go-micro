@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"crypto/tls"
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -61,6 +62,8 @@ func (c *client) Create(r *Resource, opts ...CreateOption) error {
 	if err := renderTemplate(r.Kind, b, r.Value); err != nil {
 		return err
 	}
+
+	fmt.Printf("CREATE %v/%v in namespace %v\n", r.Kind, r.Name, options.Namespace)
 
 	return api.NewRequest(c.opts).
 		Post().
@@ -124,6 +127,8 @@ func (c *client) Update(r *Resource, opts ...UpdateOption) error {
 		o(&options)
 	}
 
+	fmt.Printf("UPDATE %v/%v in namespace %v\n", r.Kind, r.Name, options.Namespace)
+
 	req := api.NewRequest(c.opts).
 		Patch().
 		SetHeader("Content-Type", "application/strategic-merge-patch+json").
@@ -151,6 +156,8 @@ func (c *client) Delete(r *Resource, opts ...DeleteOption) error {
 	for _, o := range opts {
 		o(&options)
 	}
+
+	fmt.Printf("DELETE %v/%v in namespace %v\n", r.Kind, r.Name, options.Namespace)
 
 	return api.NewRequest(c.opts).
 		Delete().
