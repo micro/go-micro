@@ -521,7 +521,8 @@ func (k *kubernetes) Delete(s *runtime.Service, opts ...runtime.DeleteOption) er
 
 	// create new kubernetes micro service
 	service := newService(s, runtime.CreateOptions{
-		Type: k.options.Type,
+		Type:      k.options.Type,
+		Namespace: options.Namespace,
 	})
 
 	return service.Stop(k.client, client.DeleteNamespace(options.Namespace))

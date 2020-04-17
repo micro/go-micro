@@ -30,8 +30,8 @@ func newService(s *runtime.Service, c runtime.CreateOptions) *service {
 	name := client.Format(s.Name)
 	version := client.Format(s.Version)
 
-	kservice := client.NewService(name, version, c.Type)
-	kdeploy := client.NewDeployment(name, version, c.Type)
+	kservice := client.NewService(name, version, c.Type, c.Namespace)
+	kdeploy := client.NewDeployment(name, version, c.Type, c.Namespace)
 
 	// ensure the metadata is set
 	if kdeploy.Spec.Template.Metadata.Annotations == nil {

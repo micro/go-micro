@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"crypto/tls"
 	"errors"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -57,8 +56,6 @@ func (c *client) Create(r *Resource, opts ...CreateOption) error {
 	for _, o := range opts {
 		o(&options)
 	}
-
-	fmt.Printf("Create Resource: %v in namespace %v\n", r.Name, options.Namespace)
 
 	b := new(bytes.Buffer)
 	if err := renderTemplate(r.Kind, b, r.Value); err != nil {
@@ -207,7 +204,7 @@ func (c *client) Watch(r *Resource, opts ...WatchOption) (Watcher, error) {
 }
 
 // NewService returns default micro kubernetes service definition
-func NewService(name, version, typ string) *Service {
+func NewService(name, version, typ, namespace string) *Service {
 	if logger.V(logger.TraceLevel, logger.DefaultLogger) {
 		logger.Tracef("kubernetes default service: name: %s, version: %s", name, version)
 	}
@@ -226,7 +223,7 @@ func NewService(name, version, typ string) *Service {
 
 	Metadata := &Metadata{
 		Name:      svcName,
-		Namespace: "default",
+		Namespace: namespace,
 		Version:   version,
 		Labels:    Labels,
 	}
@@ -246,7 +243,7 @@ func NewService(name, version, typ string) *Service {
 }
 
 // NewService returns default micro kubernetes deployment definition
-func NewDeployment(name, version, typ string) *Deployment {
+func NewDeployment(name, version, typ, namespace string) *Deployment {
 	if logger.V(logger.TraceLevel, logger.DefaultLogger) {
 		logger.Tracef("kubernetes default deployment: name: %s, version: %s", name, version)
 	}
@@ -265,7 +262,7 @@ func NewDeployment(name, version, typ string) *Deployment {
 
 	Metadata := &Metadata{
 		Name:        depName,
-		Namespace:   "default",
+		Namespace:   namespace,
 		Version:     version,
 		Labels:      Labels,
 		Annotations: map[string]string{},
