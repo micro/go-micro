@@ -298,18 +298,11 @@ func (k *kubernetes) run(events <-chan runtime.Event) {
 
 					}
 
-					// check the existing build timestamp
-					if build, ok := service.Spec.Template.Metadata.Annotations["build"]; ok {
-						buildTime, err := time.Parse(time.RFC3339, build)
-						if err == nil && !event.Timestamp.After(buildTime) {
-							continue
-						}
-					}
-
 					// update the build time
-					service.Spec.Template.Metadata.Annotations["build"] = event.Timestamp.Format(time.RFC3339)
-					if log.V(log.DebugLevel, log.DefaultLogger) {
-						log.Debugf("Runtime updating service: %s deployment: %s", event.Service, service.Metadata.Name)
+					service.Spec.Template.Metadata.Annotations["updated"] = fmt.Sprintf("%d", event.Timestamp.Unix())
+
+					if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+						logger.Debugf("Runtime updating service: %s deployment: %s", event.Service, service.Metadata.Name)
 					}
 					if err := k.client.Update(deploymentResource(&service)); err != nil {
 						if log.V(log.DebugLevel, log.DefaultLogger) {
@@ -477,43 +470,11 @@ func (k *kubernetes) Read(opts ...runtime.ReadOption) ([]*runtime.Service, error
 	return services, nil
 }
 
-// List the managed services
-func (k *kubernetes) List() ([]*runtime.Service, error) {
-	k.Lock()
-	defer k.Unlock()
-
-	labels := map[string]string{
-		"micro": k.options.Type,
-	}
-
-	if log.V(log.DebugLevel, log.DefaultLogger) {
-		log.Debugf("Runtime listing all micro services")
-	}
-
-	srvs, err := k.getService(labels)
-	if err != nil {
-		return nil, err
-	}
-
-	var services []*runtime.Service
-	for _, service := range srvs {
-		services = append(services, service.Service)
-	}
-
-	return services, nil
-}
-
 // Update the service in place
 func (k *kubernetes) Update(s *runtime.Service, opts ...runtime.UpdateOption) error {
 	var options runtime.UpdateOptions
 	for _, o := range opts {
 		o(&options)
-	}
-
-	// get the existing service
-	// set the default labels
-	labels := map[string]string{
-		"micro": k.options.Type,
 	}
 
 	if len(s.Name) > 0 {
@@ -525,7 +486,8 @@ func (k *kubernetes) Update(s *runtime.Service, opts ...runtime.UpdateOption) er
 	}
 
 	// get the existing service
-	services, err := k.getService(labels)
+	labels := map[string]string{}
+  services, err := k.getService(labels)
 	if err != nil {
 		return err
 	}
@@ -543,8 +505,9 @@ func (k *kubernetes) Update(s *runtime.Service, opts ...runtime.UpdateOption) er
 		for k, v := range s.Metadata {
 			service.kdeploy.Metadata.Annotations[k] = v
 		}
+
 		// update build time annotation
-		service.kdeploy.Spec.Template.Metadata.Annotations["build"] = time.Now().Format(time.RFC3339)
+		service.kdeploy.Spec.Template.Metadata.Annotations["updated"] = fmt.Sprintf("%d", time.Now().Unix())
 
 		// update the service
 		if err := service.Update(k.client, client.UpdateNamespace(options.Namespace)); err != nil {
