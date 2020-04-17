@@ -112,9 +112,9 @@ func serviceResource(s *client.Service) *client.Resource {
 }
 
 // Start starts the Kubernetes service. It creates new kubernetes deployment and service API objects
-func (s *service) Start(k client.Client) error {
+func (s *service) Start(k client.Client, opts ...client.CreateOption) error {
 	// create deployment first; if we fail, we dont create service
-	if err := k.Create(deploymentResource(s.kdeploy)); err != nil {
+	if err := k.Create(deploymentResource(s.kdeploy), opts...); err != nil {
 		if logger.V(logger.DebugLevel, logger.DefaultLogger) {
 			logger.Debugf("Runtime failed to create deployment: %v", err)
 		}
@@ -126,7 +126,7 @@ func (s *service) Start(k client.Client) error {
 		return err
 	}
 	// create service now that the deployment has been created
-	if err := k.Create(serviceResource(s.kservice)); err != nil {
+	if err := k.Create(serviceResource(s.kservice), opts...); err != nil {
 		if logger.V(logger.DebugLevel, logger.DefaultLogger) {
 			logger.Debugf("Runtime failed to create service: %v", err)
 		}
@@ -143,9 +143,9 @@ func (s *service) Start(k client.Client) error {
 	return nil
 }
 
-func (s *service) Stop(k client.Client) error {
+func (s *service) Stop(k client.Client, opts ...client.DeleteOption) error {
 	// first attempt to delete service
-	if err := k.Delete(serviceResource(s.kservice)); err != nil {
+	if err := k.Delete(serviceResource(s.kservice), opts...); err != nil {
 		if logger.V(logger.DebugLevel, logger.DefaultLogger) {
 			logger.Debugf("Runtime failed to delete service: %v", err)
 		}
@@ -153,7 +153,7 @@ func (s *service) Stop(k client.Client) error {
 		return err
 	}
 	// delete deployment once the service has been deleted
-	if err := k.Delete(deploymentResource(s.kdeploy)); err != nil {
+	if err := k.Delete(deploymentResource(s.kdeploy), opts...); err != nil {
 		if logger.V(logger.DebugLevel, logger.DefaultLogger) {
 			logger.Debugf("Runtime failed to delete deployment: %v", err)
 		}
@@ -166,15 +166,15 @@ func (s *service) Stop(k client.Client) error {
 	return nil
 }
 
-func (s *service) Update(k client.Client) error {
-	if err := k.Update(deploymentResource(s.kdeploy)); err != nil {
+func (s *service) Update(k client.Client, opts ...client.UpdateOption) error {
+	if err := k.Update(deploymentResource(s.kdeploy), opts...); err != nil {
 		if logger.V(logger.DebugLevel, logger.DefaultLogger) {
 			logger.Debugf("Runtime failed to update deployment: %v", err)
 		}
 		s.Status("error", err)
 		return err
 	}
-	if err := k.Update(serviceResource(s.kservice)); err != nil {
+	if err := k.Update(serviceResource(s.kservice), opts...); err != nil {
 		if logger.V(logger.DebugLevel, logger.DefaultLogger) {
 			logger.Debugf("Runtime failed to update service: %v", err)
 		}

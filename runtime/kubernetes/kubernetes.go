@@ -28,7 +28,7 @@ type kubernetes struct {
 
 // getService queries kubernetes for micro service
 // NOTE: this function is not thread-safe
-func (k *kubernetes) getService(labels map[string]string) ([]*service, error) {
+func (k *kubernetes) getService(labels map[string]string, opts ...client.GetOption) ([]*service, error) {
 	// get the service status
 	serviceList := new(client.ServiceList)
 	r := &client.Resource{
@@ -36,8 +36,10 @@ func (k *kubernetes) getService(labels map[string]string) ([]*service, error) {
 		Value: serviceList,
 	}
 
+	opts = append(opts, client.GetLabels(labels))
+
 	// get the service from k8s
-	if err := k.client.Get(r, client.GetLabels(labels)); err != nil {
+	if err := k.client.Get(r, opts...); err != nil {
 		return nil, err
 	}
 
@@ -47,7 +49,7 @@ func (k *kubernetes) getService(labels map[string]string) ([]*service, error) {
 		Kind:  "deployment",
 		Value: depList,
 	}
-	if err := k.client.Get(d, client.GetLabels(labels)); err != nil {
+	if err := k.client.Get(d, opts...); err != nil {
 		return nil, err
 	}
 
@@ -57,7 +59,7 @@ func (k *kubernetes) getService(labels map[string]string) ([]*service, error) {
 		Kind:  "pod",
 		Value: podList,
 	}
-	if err := k.client.Get(p, client.GetLabels(labels)); err != nil {
+	if err := k.client.Get(p, opts...); err != nil {
 		return nil, err
 	}
 
@@ -385,7 +387,7 @@ func (k *kubernetes) Create(s *runtime.Service, opts ...runtime.CreateOption) er
 	service := newService(s, options)
 
 	// start the service
-	return service.Start(k.client)
+	return service.Start(k.client, client.CreateNamespace(options.Namespace))
 }
 
 // Read returns all instances of given service
@@ -457,6 +459,11 @@ func (k *kubernetes) List() ([]*runtime.Service, error) {
 
 // Update the service in place
 func (k *kubernetes) Update(s *runtime.Service, opts ...runtime.UpdateOption) error {
+	var options runtime.UpdateOptions
+	for _, o := range opts {
+		o(&options)
+	}
+
 	// get the existing service
 	// set the default labels
 	labels := map[string]string{
@@ -494,7 +501,7 @@ func (k *kubernetes) Update(s *runtime.Service, opts ...runtime.UpdateOption) er
 		service.kdeploy.Spec.Template.Metadata.Annotations["build"] = time.Now().Format(time.RFC3339)
 
 		// update the service
-		if err := service.Update(k.client); err != nil {
+		if err := service.Update(k.client, client.UpdateNamespace(options.Namespace)); err != nil {
 			return err
 		}
 	}
@@ -504,6 +511,11 @@ func (k *kubernetes) Update(s *runtime.Service, opts ...runtime.UpdateOption) er
 
 // Delete removes a service
 func (k *kubernetes) Delete(s *runtime.Service, opts ...runtime.DeleteOption) error {
+	var options runtime.DeleteOptions
+	for _, o := range opts {
+		o(&options)
+	}
+
 	k.Lock()
 	defer k.Unlock()
 
@@ -512,7 +524,7 @@ func (k *kubernetes) Delete(s *runtime.Service, opts ...runtime.DeleteOption) er
 		Type: k.options.Type,
 	})
 
-	return service.Stop(k.client)
+	return service.Stop(k.client, client.DeleteNamespace(options.Namespace))
 }
 
 // Start starts the runtime
