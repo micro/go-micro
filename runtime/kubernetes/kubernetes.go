@@ -53,18 +53,12 @@ func (k *kubernetes) namespaceExists(name string) bool {
 
 // createNamespace creates a new k8s namespace
 func (k *kubernetes) createNamespace(namespace string) error {
-	err := k.client.Create(&client.Resource{
-		Kind: "namespace",
-		Value: client.Namespace{
-			Metadata: &client.Metadata{
-				Name: namespace,
-			},
-		},
-	})
+	ns := client.Namespace{Metadata: &client.Metadata{Name: namespace}}
+	err := k.client.Create(&client.Resource{Kind: "namespace", Value: ns})
 
 	// add to cache
 	if err == nil && k.namespaces != nil {
-		k.namespaces = append(k.namespaces, namespace)
+		k.namespaces = append(k.namespaces, ns)
 	}
 
 	log.Warnf("Error creating kubernetes namespace '%v': %v\n", namespace, err)
