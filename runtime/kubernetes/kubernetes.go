@@ -424,9 +424,7 @@ func (k *kubernetes) Create(s *runtime.Service, opts ...runtime.CreateOption) er
 	}
 
 	// ensure the namespace exists
-	if exists, err := k.namespaceExists(options.Namespace); err != nil {
-		return err
-	} else if !exists {
+	if !k.namespaceExists(options.Namespace) {
 		if err := k.createNamespace(options.Namespace); err != nil {
 			return err
 		}
