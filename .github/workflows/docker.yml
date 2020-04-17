@@ -4,7 +4,9 @@ on:
   push:
     branches:
     - master
-
+    tags:
+    - v2.*
+    - v3.*
 jobs:
   build:
      runs-on: ubuntu-latest
