@@ -511,6 +511,8 @@ func (k *kubernetes) Update(s *runtime.Service, opts ...runtime.UpdateOption) er
 
 // Delete removes a service
 func (k *kubernetes) Delete(s *runtime.Service, opts ...runtime.DeleteOption) error {
+	fmt.Println("DELETE")
+
 	var options runtime.DeleteOptions
 	for _, o := range opts {
 		o(&options)
