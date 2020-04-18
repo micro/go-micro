@@ -227,7 +227,7 @@ func (s *service) start() error {
 	}()
 
 	if logger.V(logger.InfoLevel, log) {
-		log.Debugf("Listening on %v", l.Addr().String())
+		log.Infof("Listening on %v", l.Addr().String())
 	}
 	return nil
 }
