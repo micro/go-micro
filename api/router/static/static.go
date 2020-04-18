@@ -21,6 +21,7 @@ type endpoint struct {
 	apiep    *api.Endpoint
 	hostregs []*regexp.Regexp
 	pathregs []util.Pattern
+	pcreregs []*regexp.Regexp
 }
 
 // router is the default router
@@ -94,6 +95,7 @@ func (r *staticRouter) Register(ep *api.Endpoint) error {
 
 	var pathregs []util.Pattern
 	var hostregs []*regexp.Regexp
+	var pcreregs []*regexp.Regexp
 
 	for _, h := range ep.Host {
 		if h == "" || h == "*" {
@@ -107,9 +109,18 @@ func (r *staticRouter) Register(ep *api.Endpoint) error {
 	}
 
 	for _, p := range ep.Path {
+		var pcreok bool
+		pcrereg, err := regexp.CompilePOSIX(p)
+		if err == nil {
+			pcreregs = append(pcreregs, pcrereg)
+			pcreok = true
+		}
+
 		rule, err := util.Parse(p)
-		if err != nil {
+		if err != nil && !pcreok {
 			return err
+		} else if err != nil && pcreok {
+			continue
 		}
 		tpl := rule.Compile()
 		pathreg, err := util.NewPattern(tpl.Version, tpl.OpCodes, tpl.Pool, "")
@@ -120,7 +131,12 @@ func (r *staticRouter) Register(ep *api.Endpoint) error {
 	}
 
 	r.Lock()
-	r.eps[ep.Name] = &endpoint{apiep: ep, pathregs: pathregs, hostregs: hostregs}
+	r.eps[ep.Name] = &endpoint{
+		apiep:    ep,
+		pcreregs: pcreregs,
+		pathregs: pathregs,
+		hostregs: hostregs,
+	}
 	r.Unlock()
 	return nil
 }
@@ -257,15 +273,15 @@ func (r *staticRouter) endpoint(req *http.Request) (*endpoint, error) {
 			logger.Debugf("api host match %s", req.URL.Host)
 		}
 
-		// 3. try path
-	pathLoop:
+		// 3. try google.api path
+	gpathLoop:
 		for _, pathreg := range ep.pathregs {
 			matches, err := pathreg.Match(path, "")
 			if err != nil {
 				if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-					logger.Debugf("api path not match %s != %v", path, pathreg)
+					logger.Debugf("api gpath not match %s != %v", path, pathreg)
 				}
-				continue
+				continue gpathLoop
 			}
 			pMatch = true
 			ctx := req.Context()
@@ -278,8 +294,22 @@ func (r *staticRouter) endpoint(req *http.Request) (*endpoint, error) {
 			}
 			md["x-api-body"] = ep.apiep.Body
 			*req = *req.Clone(metadata.NewContext(ctx, md))
-			break pathLoop
+			break gpathLoop
 		}
+
+		// 4. try path via pcre path matching
+	ppathLoop:
+		for _, pathreg := range ep.pcreregs {
+			if !pathreg.MatchString(req.URL.Path) {
+				if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+					logger.Debugf("api pcre path not match %s != %v", req.URL.Path, pathreg)
+				}
+				continue ppathLoop
+			}
+			pMatch = true
+			break ppathLoop
+		}
+
 		if !pMatch {
 			continue
 		}

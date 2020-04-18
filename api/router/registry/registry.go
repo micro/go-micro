@@ -23,6 +23,7 @@ import (
 type endpoint struct {
 	hostregs []*regexp.Regexp
 	pathregs []util.Pattern
+	pcreregs []*regexp.Regexp
 }
 
 // router is the default router
@@ -185,13 +186,23 @@ func (r *registryRouter) store(services []*registry.Service) {
 		}
 
 		for _, p := range ep.Endpoint.Path {
+			var pcreok bool
+			pcrereg, err := regexp.CompilePOSIX(p)
+			if err == nil {
+				cep.pcreregs = append(cep.pcreregs, pcrereg)
+				pcreok = true
+			}
+
 			rule, err := util.Parse(p)
-			if err != nil {
+			if err != nil && !pcreok {
 				if logger.V(logger.TraceLevel, logger.DefaultLogger) {
 					logger.Tracef("endpoint have invalid path pattern: %v", err)
 				}
 				continue
+			} else if err != nil && pcreok {
+				continue
 			}
+
 			tpl := rule.Compile()
 			pathreg, err := util.NewPattern(tpl.Version, tpl.OpCodes, tpl.Pool, "")
 			if err != nil {
@@ -341,16 +352,15 @@ func (r *registryRouter) Endpoint(req *http.Request) (*api.Service, error) {
 			logger.Debugf("api host match %s", req.URL.Host)
 		}
 
-		// 3. try path
-		// 3. try path
-	pathLoop:
+		// 3. try path via google.api path matching
+	gpathLoop:
 		for _, pathreg := range cep.pathregs {
 			matches, err := pathreg.Match(path, "")
 			if err != nil {
 				if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-					logger.Debugf("api path not match %s != %v", path, pathreg)
+					logger.Debugf("api gpath not match %s != %v", path, pathreg)
 				}
-				continue
+				continue gpathLoop
 			}
 			pMatch = true
 			ctx := req.Context()
@@ -363,8 +373,22 @@ func (r *registryRouter) Endpoint(req *http.Request) (*api.Service, error) {
 			}
 			md["x-api-body"] = ep.Body
 			*req = *req.Clone(metadata.NewContext(ctx, md))
-			break pathLoop
+			break gpathLoop
 		}
+
+		// 4. try path via pcre path matching
+	ppathLoop:
+		for _, pathreg := range cep.pcreregs {
+			if !pathreg.MatchString(req.URL.Path) {
+				if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+					logger.Debugf("api pcre path not match %s != %v", path, pathreg)
+				}
+				continue ppathLoop
+			}
+			pMatch = true
+			break ppathLoop
+		}
+
 		if !pMatch {
 			continue
 		}
