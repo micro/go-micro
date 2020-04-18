@@ -31,7 +31,7 @@ type Response struct {
 func (r *Resolver) Resolve(name string) ([]*resolver.Record, error) {
 	proto := "https"
 	host := "api.micro.mu"
-	path := "/network"
+	path := "/network/nodes"
 
 	if len(r.Proto) > 0 {
 		proto = r.Proto
