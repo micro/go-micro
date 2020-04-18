@@ -314,11 +314,10 @@ func (r *registryRouter) Endpoint(req *http.Request) (*api.Service, error) {
 		ep := e.Endpoint
 		var mMatch, hMatch, pMatch bool
 		// 1. try method
-	methodLoop:
 		for _, m := range ep.Method {
 			if m == req.Method {
 				mMatch = true
-				break methodLoop
+				break
 			}
 		}
 		if !mMatch {
@@ -332,15 +331,14 @@ func (r *registryRouter) Endpoint(req *http.Request) (*api.Service, error) {
 		if len(ep.Host) == 0 {
 			hMatch = true
 		} else {
-		hostLoop:
 			for idx, h := range ep.Host {
 				if h == "" || h == "*" {
 					hMatch = true
-					break hostLoop
+					break
 				} else {
 					if cep.hostregs[idx].MatchString(req.URL.Host) {
 						hMatch = true
-						break hostLoop
+						break
 					}
 				}
 			}
@@ -353,14 +351,13 @@ func (r *registryRouter) Endpoint(req *http.Request) (*api.Service, error) {
 		}
 
 		// 3. try path via google.api path matching
-	gpathLoop:
 		for _, pathreg := range cep.pathregs {
 			matches, err := pathreg.Match(path, "")
 			if err != nil {
 				if logger.V(logger.DebugLevel, logger.DefaultLogger) {
 					logger.Debugf("api gpath not match %s != %v", path, pathreg)
 				}
-				continue gpathLoop
+				continue
 			}
 			pMatch = true
 			ctx := req.Context()
@@ -373,20 +370,19 @@ func (r *registryRouter) Endpoint(req *http.Request) (*api.Service, error) {
 			}
 			md["x-api-body"] = ep.Body
 			*req = *req.Clone(metadata.NewContext(ctx, md))
-			break gpathLoop
+			break
 		}
 
 		// 4. try path via pcre path matching
-	ppathLoop:
 		for _, pathreg := range cep.pcreregs {
 			if !pathreg.MatchString(req.URL.Path) {
 				if logger.V(logger.DebugLevel, logger.DefaultLogger) {
 					logger.Debugf("api pcre path not match %s != %v", path, pathreg)
 				}
-				continue ppathLoop
+				continue
 			}
 			pMatch = true
-			break ppathLoop
+			break
 		}
 
 		if !pMatch {
