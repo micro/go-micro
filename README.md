@@ -50,3 +50,8 @@ import "github.com/micro/go-micro/v2"
 ```
 
 See the [docs](https://micro.mu/docs/framework.html) for detailed information on the architecture, installation and use of go-micro.
+
+## License
+
+Go Micro is Apache 2.0 licensed
+
