@@ -43,4 +43,12 @@ are pluggable and allows Go Micro to be runtime agnostic. You can plugin any und
 
 ## Getting Started
 
+To make use of Go Micro
+
+```
+import "github.com/micro/go-micro/v2"
+
+service := micro.NewService()
+```
+
 See the [docs](https://micro.mu/docs/framework.html) for detailed information on the architecture, installation and use of go-micro.
