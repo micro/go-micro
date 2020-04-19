@@ -316,6 +316,13 @@ func (s *service) HandleFunc(pattern string, handler func(http.ResponseWriter, *
 		})
 	}
 
+	// disable static serving
+	if pattern == "/" {
+		s.Lock()
+		s.static = false
+		s.Unlock()
+	}
+
 	s.mux.HandleFunc(pattern, handler)
 }
 
