@@ -198,6 +198,7 @@ func (c *client) Watch(r *Resource, opts ...WatchOption) (Watcher, error) {
 		Get().
 		Resource(r.Kind).
 		Name(r.Name).
+		Namespace(options.Namespace).
 		Params(params)
 
 	return newWatcher(req)
