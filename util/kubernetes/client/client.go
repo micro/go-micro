@@ -223,7 +223,7 @@ func NewService(name, version, typ, namespace string) *Service {
 
 	Metadata := &Metadata{
 		Name:      svcName,
-		Namespace: namespace,
+		Namespace: serializeNamespace(namespace),
 		Version:   version,
 		Labels:    Labels,
 	}
@@ -262,7 +262,7 @@ func NewDeployment(name, version, typ, namespace string) *Deployment {
 
 	Metadata := &Metadata{
 		Name:        depName,
-		Namespace:   namespace,
+		Namespace:   serializeNamespace(namespace),
 		Version:     version,
 		Labels:      Labels,
 		Annotations: map[string]string{},
