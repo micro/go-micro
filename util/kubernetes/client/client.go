@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"regexp"
 	"strings"
 
 	"github.com/micro/go-micro/v2/logger"
@@ -70,6 +71,16 @@ func (c *client) Create(r *Resource, opts ...CreateOption) error {
 		Body(b).
 		Do().
 		Error()
+}
+
+var (
+	nameRegex = regexp.MustCompile("[^a-zA-Z0-9]+")
+)
+
+// SerializeResourceName removes all spacial chars from a string so it
+// can be used as a k8s resource name
+func SerializeResourceName(ns string) string {
+	return nameRegex.ReplaceAllString(ns, "-")
 }
 
 // Get queries API objects and stores the result in r
@@ -224,7 +235,7 @@ func NewService(name, version, typ, namespace string) *Service {
 
 	Metadata := &Metadata{
 		Name:      svcName,
-		Namespace: serializeNamespace(namespace),
+		Namespace: SerializeResourceName(namespace),
 		Version:   version,
 		Labels:    Labels,
 	}
@@ -263,7 +274,7 @@ func NewDeployment(name, version, typ, namespace string) *Deployment {
 
 	Metadata := &Metadata{
 		Name:        depName,
-		Namespace:   serializeNamespace(namespace),
+		Namespace:   SerializeResourceName(namespace),
 		Version:     version,
 		Labels:      Labels,
 		Annotations: map[string]string{},

@@ -1,7 +1,5 @@
 package client
 
-import "regexp"
-
 type CreateOptions struct {
 	Namespace string
 }
@@ -55,14 +53,14 @@ func WatchParams(p map[string]string) WatchOption {
 // CreateNamespace sets the namespace for creating a resource
 func CreateNamespace(ns string) CreateOption {
 	return func(o *CreateOptions) {
-		o.Namespace = serializeNamespace(ns)
+		o.Namespace = SerializeResourceName(ns)
 	}
 }
 
 // GetNamespace sets the namespace for getting a resource
 func GetNamespace(ns string) GetOption {
 	return func(o *GetOptions) {
-		o.Namespace = serializeNamespace(ns)
+		o.Namespace = SerializeResourceName(ns)
 	}
 }
 
@@ -76,42 +74,34 @@ func GetLabels(ls map[string]string) GetOption {
 // UpdateNamespace sets the namespace for updating a resource
 func UpdateNamespace(ns string) UpdateOption {
 	return func(o *UpdateOptions) {
-		o.Namespace = serializeNamespace(ns)
+		o.Namespace = SerializeResourceName(ns)
 	}
 }
 
 // DeleteNamespace sets the namespace for deleting a resource
 func DeleteNamespace(ns string) DeleteOption {
 	return func(o *DeleteOptions) {
-		o.Namespace = serializeNamespace(ns)
+		o.Namespace = SerializeResourceName(ns)
 	}
 }
 
 // ListNamespace sets the namespace for listing resources
 func ListNamespace(ns string) ListOption {
 	return func(o *ListOptions) {
-		o.Namespace = serializeNamespace(ns)
+		o.Namespace = SerializeResourceName(ns)
 	}
 }
 
 // LogNamespace sets the namespace for logging a resource
 func LogNamespace(ns string) LogOption {
 	return func(o *LogOptions) {
-		o.Namespace = serializeNamespace(ns)
+		o.Namespace = SerializeResourceName(ns)
 	}
 }
 
 // WatchNamespace sets the namespace for watching a resource
 func WatchNamespace(ns string) WatchOption {
 	return func(o *WatchOptions) {
-		o.Namespace = serializeNamespace(ns)
+		o.Namespace = SerializeResourceName(ns)
 	}
-}
-
-var (
-	namespaceRegex = regexp.MustCompile("[^a-zA-Z0-9]+")
-)
-
-func serializeNamespace(ns string) string {
-	return namespaceRegex.ReplaceAllString(ns, "-")
 }
