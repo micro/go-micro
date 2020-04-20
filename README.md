@@ -43,5 +43,15 @@ are pluggable and allows Go Micro to be runtime agnostic. You can plugin any und
 
 ## Getting Started
 
+To make use of Go Micro
+
+```golang
+import "github.com/micro/go-micro/v2"
+```
+
 See the [docs](https://micro.mu/docs/framework.html) for detailed information on the architecture, installation and use of go-micro.
+
+## License
+
+Go Micro is Apache 2.0 licensed
 

@@ -422,39 +422,10 @@ func (k *kubernetes) Read(opts ...runtime.ReadOption) ([]*runtime.Service, error
 	return services, nil
 }
 
-// List the managed services
-func (k *kubernetes) List() ([]*runtime.Service, error) {
-	k.Lock()
-	defer k.Unlock()
-
-	labels := map[string]string{
-		"micro": k.options.Type,
-	}
-
-	if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-		logger.Debugf("Runtime listing all micro services")
-	}
-
-	srvs, err := k.getService(labels)
-	if err != nil {
-		return nil, err
-	}
-
-	var services []*runtime.Service
-	for _, service := range srvs {
-		services = append(services, service.Service)
-	}
-
-	return services, nil
-}
-
 // Update the service in place
 func (k *kubernetes) Update(s *runtime.Service) error {
-	// get the existing service
-	// set the default labels
-	labels := map[string]string{
-		"micro": k.options.Type,
-	}
+	// TODO: set the type
+	labels := map[string]string{}
 
 	if len(s.Name) > 0 {
 		labels["name"] = client.Format(s.Name)

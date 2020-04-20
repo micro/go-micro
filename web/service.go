@@ -226,8 +226,8 @@ func (s *service) start() error {
 		ch <- l.Close()
 	}()
 
-	if logger.V(logger.DebugLevel, log) {
-		log.Debugf("Listening on %v", l.Addr().String())
+	if logger.V(logger.InfoLevel, log) {
+		log.Infof("Listening on %v", l.Addr().String())
 	}
 	return nil
 }
@@ -314,6 +314,13 @@ func (s *service) HandleFunc(pattern string, handler func(http.ResponseWriter, *
 		s.srv.Endpoints = append(s.srv.Endpoints, &registry.Endpoint{
 			Name: pattern,
 		})
+	}
+
+	// disable static serving
+	if pattern == "/" {
+		s.Lock()
+		s.static = false
+		s.Unlock()
 	}
 
 	s.mux.HandleFunc(pattern, handler)
