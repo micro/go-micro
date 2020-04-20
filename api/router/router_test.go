@@ -58,8 +58,8 @@ func initial(t *testing.T) (server.Server, client.Client) {
 	return s, c
 }
 
-func check(addr string, t *testing.T) {
-	req, err := http.NewRequest("POST", fmt.Sprintf("http://%s/api/v0/test/call/TEST", addr), nil)
+func check(t *testing.T, addr string, path string, expected string) {
+	req, err := http.NewRequest("POST", fmt.Sprintf(path, addr), nil)
 	if err != nil {
 		t.Fatalf("Failed to created http.Request: %v", err)
 	}
@@ -75,7 +75,7 @@ func check(addr string, t *testing.T) {
 		t.Fatal(err)
 	}
 
-	jsonMsg := `{"msg":"Hello TEST"}`
+	jsonMsg := expected
 	if string(buf) != jsonMsg {
 		t.Fatalf("invalid message received, parsing error %s != %s", buf, jsonMsg)
 	}
@@ -108,10 +108,51 @@ func TestRouterRegistry(t *testing.T) {
 
 	defer hsrv.Close()
 	time.Sleep(1 * time.Second)
-	check(hsrv.Addr, t)
+	check(t, hsrv.Addr, "http://%s/api/v0/test/call/TEST", `{"msg":"Hello TEST"}`)
 }
 
-func TestRouterStatic(t *testing.T) {
+func TestRouterStaticPcre(t *testing.T) {
+	s, c := initial(t)
+	defer s.Stop()
+
+	router := rstatic.NewRouter(
+		router.WithHandler(rpc.Handler),
+		router.WithRegistry(s.Options().Registry),
+	)
+
+	err := router.Register(&api.Endpoint{
+		Name:    "foo.Test.Call",
+		Method:  []string{"POST"},
+		Path:    []string{"^/api/v0/test/call/?$"},
+		Handler: "rpc",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	hrpc := rpc.NewHandler(
+		handler.WithClient(c),
+		handler.WithRouter(router),
+	)
+	hsrv := &http.Server{
+		Handler:        hrpc,
+		Addr:           "127.0.0.1:6543",
+		WriteTimeout:   15 * time.Second,
+		ReadTimeout:    15 * time.Second,
+		IdleTimeout:    20 * time.Second,
+		MaxHeaderBytes: 1024 * 1024 * 1, // 1Mb
+	}
+
+	go func() {
+		log.Println(hsrv.ListenAndServe())
+	}()
+	defer hsrv.Close()
+
+	time.Sleep(1 * time.Second)
+	check(t, hsrv.Addr, "http://%s/api/v0/test/call", `{"msg":"Hello "}`)
+}
+
+func TestRouterStaticG(t *testing.T) {
 	s, c := initial(t)
 	defer s.Stop()
 
@@ -149,5 +190,5 @@ func TestRouterStatic(t *testing.T) {
 	defer hsrv.Close()
 
 	time.Sleep(1 * time.Second)
-	check(hsrv.Addr, t)
+	check(t, hsrv.Addr, "http://%s/api/v0/test/call/TEST", `{"msg":"Hello TEST"}`)
 }

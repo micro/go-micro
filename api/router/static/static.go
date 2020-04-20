@@ -21,6 +21,7 @@ type endpoint struct {
 	apiep    *api.Endpoint
 	hostregs []*regexp.Regexp
 	pathregs []util.Pattern
+	pcreregs []*regexp.Regexp
 }
 
 // router is the default router
@@ -94,6 +95,7 @@ func (r *staticRouter) Register(ep *api.Endpoint) error {
 
 	var pathregs []util.Pattern
 	var hostregs []*regexp.Regexp
+	var pcreregs []*regexp.Regexp
 
 	for _, h := range ep.Host {
 		if h == "" || h == "*" {
@@ -107,9 +109,18 @@ func (r *staticRouter) Register(ep *api.Endpoint) error {
 	}
 
 	for _, p := range ep.Path {
+		var pcreok bool
+		pcrereg, err := regexp.CompilePOSIX(p)
+		if err == nil {
+			pcreregs = append(pcreregs, pcrereg)
+			pcreok = true
+		}
+
 		rule, err := util.Parse(p)
-		if err != nil {
+		if err != nil && !pcreok {
 			return err
+		} else if err != nil && pcreok {
+			continue
 		}
 		tpl := rule.Compile()
 		pathreg, err := util.NewPattern(tpl.Version, tpl.OpCodes, tpl.Pool, "")
@@ -120,7 +131,12 @@ func (r *staticRouter) Register(ep *api.Endpoint) error {
 	}
 
 	r.Lock()
-	r.eps[ep.Name] = &endpoint{apiep: ep, pathregs: pathregs, hostregs: hostregs}
+	r.eps[ep.Name] = &endpoint{
+		apiep:    ep,
+		pcreregs: pcreregs,
+		pathregs: pathregs,
+		hostregs: hostregs,
+	}
 	r.Unlock()
 	return nil
 }
@@ -219,11 +235,10 @@ func (r *staticRouter) endpoint(req *http.Request) (*endpoint, error) {
 		var mMatch, hMatch, pMatch bool
 
 		// 1. try method
-	methodLoop:
 		for _, m := range ep.apiep.Method {
 			if m == req.Method {
 				mMatch = true
-				break methodLoop
+				break
 			}
 		}
 		if !mMatch {
@@ -237,15 +252,14 @@ func (r *staticRouter) endpoint(req *http.Request) (*endpoint, error) {
 		if len(ep.apiep.Host) == 0 {
 			hMatch = true
 		} else {
-		hostLoop:
 			for idx, h := range ep.apiep.Host {
 				if h == "" || h == "*" {
 					hMatch = true
-					break hostLoop
+					break
 				} else {
 					if ep.hostregs[idx].MatchString(req.URL.Host) {
 						hMatch = true
-						break hostLoop
+						break
 					}
 				}
 			}
@@ -257,13 +271,12 @@ func (r *staticRouter) endpoint(req *http.Request) (*endpoint, error) {
 			logger.Debugf("api host match %s", req.URL.Host)
 		}
 
-		// 3. try path
-	pathLoop:
+		// 3. try google.api path
 		for _, pathreg := range ep.pathregs {
 			matches, err := pathreg.Match(path, "")
 			if err != nil {
 				if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-					logger.Debugf("api path not match %s != %v", path, pathreg)
+					logger.Debugf("api gpath not match %s != %v", path, pathreg)
 				}
 				continue
 			}
@@ -278,8 +291,21 @@ func (r *staticRouter) endpoint(req *http.Request) (*endpoint, error) {
 			}
 			md["x-api-body"] = ep.apiep.Body
 			*req = *req.Clone(metadata.NewContext(ctx, md))
-			break pathLoop
+			break
 		}
+
+		// 4. try path via pcre path matching
+		for _, pathreg := range ep.pcreregs {
+			if !pathreg.MatchString(req.URL.Path) {
+				if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+					logger.Debugf("api pcre path not match %s != %v", req.URL.Path, pathreg)
+				}
+				continue
+			}
+			pMatch = true
+			break
+		}
+
 		if !pMatch {
 			continue
 		}
