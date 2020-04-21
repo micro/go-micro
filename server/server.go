@@ -5,13 +5,13 @@ import (
 	"context"
 	"os"
 	"os/signal"
-	"syscall"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/micro/go-micro/v2/codec"
 	"github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/registry"
+	signalutil "github.com/micro/go-micro/v2/util/signal"
 )
 
 // Server is a simple micro server abstraction
@@ -200,7 +200,7 @@ func Run() error {
 	}
 
 	ch := make(chan os.Signal, 1)
-	signal.Notify(ch, syscall.SIGTERM, syscall.SIGINT)
+	signal.Notify(ch, signalutil.ShutdownSignals()...)
 	if logger.V(logger.InfoLevel, log) {
 		log.Infof("Received signal %s", <-ch)
 	}
