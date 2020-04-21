@@ -6,7 +6,6 @@ import (
 	"runtime"
 	"strings"
 	"sync"
-	"syscall"
 
 	"github.com/micro/go-micro/v2/auth"
 	"github.com/micro/go-micro/v2/client"
@@ -18,6 +17,7 @@ import (
 	"github.com/micro/go-micro/v2/plugin"
 	"github.com/micro/go-micro/v2/server"
 	"github.com/micro/go-micro/v2/store"
+	signalutil "github.com/micro/go-micro/v2/util/signal"
 	"github.com/micro/go-micro/v2/util/wrapper"
 )
 
@@ -210,7 +210,7 @@ func (s *service) Run() error {
 
 	ch := make(chan os.Signal, 1)
 	if s.opts.Signal {
-		signal.Notify(ch, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
+		signal.Notify(ch, signalutil.ShutdownSignals()...)
 	}
 
 	select {
