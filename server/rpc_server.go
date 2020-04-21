@@ -650,10 +650,6 @@ func (s *rpcServer) Register() error {
 	s.Lock()
 	defer s.Unlock()
 
-	if cacheService {
-		s.rsvc = service
-	}
-	s.registered = true
 	// set what we're advertising
 	s.opts.Advertise = addr
 
@@ -693,6 +689,10 @@ func (s *rpcServer) Register() error {
 		}
 		s.subscribers[sb] = []broker.Subscriber{sub}
 	}
+	if cacheService {
+		s.rsvc = service
+	}
+	s.registered = true
 
 	return nil
 }
