@@ -210,7 +210,7 @@ func (s *service) Run() error {
 
 	ch := make(chan os.Signal, 1)
 	if s.opts.Signal {
-		signal.Notify(ch, signalutil.ShutdownSignals()...)
+		signal.Notify(ch, signalutil.Shutdown()...)
 	}
 
 	select {

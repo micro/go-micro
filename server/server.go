@@ -200,7 +200,8 @@ func Run() error {
 	}
 
 	ch := make(chan os.Signal, 1)
-	signal.Notify(ch, signalutil.ShutdownSignals()...)
+	signal.Notify(ch, signalutil.Shutdown()...)
+
 	if logger.V(logger.InfoLevel, log) {
 		log.Infof("Received signal %s", <-ch)
 	}
