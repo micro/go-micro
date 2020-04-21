@@ -692,11 +692,6 @@ func (g *grpcServer) Register() error {
 	g.Lock()
 	defer g.Unlock()
 
-	if cacheService {
-		g.rsvc = service
-	}
-	g.registered = true
-
 	for sb := range g.subscribers {
 		handler := g.createSubHandler(sb, g.opts)
 		var opts []broker.SubscribeOption
@@ -720,6 +715,11 @@ func (g *grpcServer) Register() error {
 			return err
 		}
 		g.subscribers[sb] = []broker.Subscriber{sub}
+	}
+
+	g.registered = true
+	if cacheService {
+		g.rsvc = service
 	}
 
 	return nil
