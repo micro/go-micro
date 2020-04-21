@@ -83,35 +83,35 @@ func Listen(addr string, fn func(string) (net.Listener, error)) (net.Listener, e
 func Proxy(service string, address []string) (string, []string, bool) {
 	var hasProxy bool
 
-        // get proxy
-        if prx := os.Getenv("MICRO_PROXY"); len(prx) > 0 {
-                // default name
-                if prx == "service" {
-                        prx = "go.micro.proxy"
-                }
-                service = prx
+	// get proxy
+	if prx := os.Getenv("MICRO_PROXY"); len(prx) > 0 {
+		// default name
+		if prx == "service" {
+			prx = "go.micro.proxy"
+		}
+		service = prx
 		hasProxy = true
-        }
+	}
 
-        // get proxy address
-        if prx := os.Getenv("MICRO_PROXY_ADDRESS"); len(prx) > 0 {
+	// get proxy address
+	if prx := os.Getenv("MICRO_PROXY_ADDRESS"); len(prx) > 0 {
 		address = []string{prx}
 		hasProxy = true
-        }
+	}
 
-        if prx := os.Getenv("MICRO_NETWORK"); len(prx) > 0 {
-                // default name
-                if prx == "service" {
-                        prx = "go.micro.network"
-                }
-                service = prx
+	if prx := os.Getenv("MICRO_NETWORK"); len(prx) > 0 {
+		// default name
+		if prx == "service" {
+			prx = "go.micro.network"
+		}
+		service = prx
 		hasProxy = true
-        }
+	}
 
-        if prx := os.Getenv("MICRO_NEWORK_ADDRESS"); len(prx) > 0 {
-                address = []string{prx}
+	if prx := os.Getenv("MICRO_NEWORK_ADDRESS"); len(prx) > 0 {
+		address = []string{prx}
 		hasProxy = true
-        }
+	}
 
 	return service, address, hasProxy
 }
