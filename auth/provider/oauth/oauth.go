@@ -41,6 +41,10 @@ func (o *oauth) Endpoint(opts ...provider.EndpointOption) string {
 		params.Add("state", options.State)
 	}
 
+	if len(options.LoginHint) > 0 {
+		params.Add("login_hint", options.LoginHint)
+	}
+
 	if clientID := o.opts.ClientID; len(clientID) > 0 {
 		params.Add("client_id", clientID)
 	}
