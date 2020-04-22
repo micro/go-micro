@@ -108,7 +108,7 @@ func Proxy(service string, address []string) (string, []string, bool) {
 		hasProxy = true
 	}
 
-	if prx := os.Getenv("MICRO_NEWORK_ADDRESS"); len(prx) > 0 {
+	if prx := os.Getenv("MICRO_NETWORK_ADDRESS"); len(prx) > 0 {
 		address = []string{prx}
 		hasProxy = true
 	}
