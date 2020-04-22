@@ -3,7 +3,6 @@ package client
 import (
 	"context"
 	"fmt"
-	"os"
 	"sync/atomic"
 	"time"
 
@@ -17,6 +16,7 @@ import (
 	"github.com/micro/go-micro/v2/registry"
 	"github.com/micro/go-micro/v2/transport"
 	"github.com/micro/go-micro/v2/util/buf"
+	"github.com/micro/go-micro/v2/util/net"
 	"github.com/micro/go-micro/v2/util/pool"
 )
 
@@ -322,46 +322,18 @@ func (r *rpcClient) Options() Options {
 	return r.opts
 }
 
-// hasProxy checks if we have proxy set in the environment
-func (r *rpcClient) hasProxy() bool {
-	// get proxy
-	if prx := os.Getenv("MICRO_PROXY"); len(prx) > 0 {
-		return true
-	}
-
-	// get proxy address
-	if prx := os.Getenv("MICRO_PROXY_ADDRESS"); len(prx) > 0 {
-		return true
-	}
-
-	return false
-}
-
 // next returns an iterator for the next nodes to call
 func (r *rpcClient) next(request Request, opts CallOptions) (selector.Next, error) {
-	service := request.Service()
-
-	// get proxy
-	if prx := os.Getenv("MICRO_PROXY"); len(prx) > 0 {
-		// default name
-		if prx == "service" {
-			prx = "go.micro.proxy"
-		}
-		service = prx
-	}
-
-	// get proxy address
-	if prx := os.Getenv("MICRO_PROXY_ADDRESS"); len(prx) > 0 {
-		opts.Address = []string{prx}
-	}
+	// try get the proxy
+	service, address, _ := net.Proxy(request.Service(), opts.Address)
 
 	// return remote address
-	if len(opts.Address) > 0 {
-		nodes := make([]*registry.Node, len(opts.Address))
+	if len(address) > 0 {
+		nodes := make([]*registry.Node, len(address))
 
-		for i, address := range opts.Address {
+		for i, addr := range address {
 			nodes[i] = &registry.Node{
-				Address: address,
+				Address: addr,
 				// Set the protocol
 				Metadata: map[string]string{
 					"protocol": "mucp",
@@ -461,7 +433,7 @@ func (r *rpcClient) Call(ctx context.Context, request Request, response interfac
 	retries := callOpts.Retries
 
 	// disable retries when using a proxy
-	if r.hasProxy() {
+	if _, _, ok := net.Proxy(request.Service(), callOpts.Address); ok {
 		retries = 0
 	}
 
@@ -552,7 +524,7 @@ func (r *rpcClient) Stream(ctx context.Context, request Request, opts ...CallOpt
 	retries := callOpts.Retries
 
 	// disable retries when using a proxy
-	if r.hasProxy() {
+	if _, _, ok := net.Proxy(request.Service(), callOpts.Address); ok {
 		retries = 0
 	}
 

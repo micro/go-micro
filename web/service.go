@@ -10,7 +10,6 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
-	"syscall"
 	"time"
 
 	"github.com/micro/cli/v2"
@@ -20,6 +19,7 @@ import (
 	maddr "github.com/micro/go-micro/v2/util/addr"
 	mhttp "github.com/micro/go-micro/v2/util/http"
 	mnet "github.com/micro/go-micro/v2/util/net"
+	signalutil "github.com/micro/go-micro/v2/util/signal"
 	mls "github.com/micro/go-micro/v2/util/tls"
 )
 
@@ -404,7 +404,7 @@ func (s *service) Run() error {
 
 	ch := make(chan os.Signal, 1)
 	if s.opts.Signal {
-		signal.Notify(ch, syscall.SIGTERM, syscall.SIGINT)
+		signal.Notify(ch, signalutil.Shutdown()...)
 	}
 
 	select {
