@@ -41,6 +41,8 @@ message CreateOptions {
 	string type = 5;
 	// image to use
 	string image = 6;
+	// image secrets to use
+	repeated string image_pull_secrets = 7;
 }
 
 message CreateRequest {
