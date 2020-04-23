@@ -50,11 +50,12 @@ func (s *svc) Create(svc *runtime.Service, opts ...runtime.CreateOption) error {
 			Metadata: svc.Metadata,
 		},
 		Options: &pb.CreateOptions{
-			Command: options.Command,
-			Args:    options.Args,
-			Env:     options.Env,
-			Type:    options.Type,
-			Image:   options.Image,
+			Command:          options.Command,
+			Args:             options.Args,
+			Env:              options.Env,
+			Type:             options.Type,
+			Image:            options.Image,
+			ImagePullSecrets: options.ImagePullSecrets,
 		},
 	}
 
