@@ -393,7 +393,8 @@ func (k *kubernetes) Create(s *runtime.Service, opts ...runtime.CreateOption) er
 	defer k.Unlock()
 
 	options := runtime.CreateOptions{
-		Type: k.options.Type,
+		Type:      k.options.Type,
+		Namespace: client.DefaultNamespace,
 	}
 	for _, o := range opts {
 		o(&options)
@@ -439,7 +440,10 @@ func (k *kubernetes) Read(opts ...runtime.ReadOption) ([]*runtime.Service, error
 		"micro": k.options.Type,
 	}
 
-	var options runtime.ReadOptions
+	options := runtime.ReadOptions{
+		Namespace: client.DefaultNamespace,
+	}
+
 	for _, o := range opts {
 		o(&options)
 	}
@@ -457,7 +461,7 @@ func (k *kubernetes) Read(opts ...runtime.ReadOption) ([]*runtime.Service, error
 		labels["micro"] = options.Type
 	}
 
-	srvs, err := k.getService(labels)
+	srvs, err := k.getService(labels, client.GetNamespace(options.Namespace))
 	if err != nil {
 		return nil, err
 	}
@@ -472,7 +476,10 @@ func (k *kubernetes) Read(opts ...runtime.ReadOption) ([]*runtime.Service, error
 
 // Update the service in place
 func (k *kubernetes) Update(s *runtime.Service, opts ...runtime.UpdateOption) error {
-	var options runtime.UpdateOptions
+	options := runtime.UpdateOptions{
+		Namespace: client.DefaultNamespace,
+	}
+
 	for _, o := range opts {
 		o(&options)
 	}
@@ -521,7 +528,10 @@ func (k *kubernetes) Update(s *runtime.Service, opts ...runtime.UpdateOption) er
 
 // Delete removes a service
 func (k *kubernetes) Delete(s *runtime.Service, opts ...runtime.DeleteOption) error {
-	var options runtime.DeleteOptions
+	options := runtime.DeleteOptions{
+		Namespace: client.DefaultNamespace,
+	}
+
 	for _, o := range opts {
 		o(&options)
 	}
