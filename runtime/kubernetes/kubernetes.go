@@ -295,7 +295,6 @@ func (k *kubernetes) run(events <-chan runtime.Event) {
 					// update build time annotation
 					if service.Spec.Template.Metadata.Annotations == nil {
 						service.Spec.Template.Metadata.Annotations = make(map[string]string)
-
 					}
 
 					// update the build time

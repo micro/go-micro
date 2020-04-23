@@ -67,6 +67,8 @@ type CreateOptions struct {
 	Retries int
 	// Specify the image to use
 	Image string
+	// Specify secrets to use when pulling the image
+	ImagePullSecrets []string
 	// Namespace to create the service in
 	Namespace string
 	// Specify the context to use
@@ -101,6 +103,13 @@ func CreateImage(img string) CreateOption {
 	}
 }
 
+// CreateImagePullSecret sets a secret to use
+func CreateImagePullSecret(secrets ...string) CreateOption {
+	return func(o *CreateOptions) {
+		o.ImagePullSecrets = append(o.ImagePullSecrets, secrets...)
+  }
+}
+    
 // CreateNamespace sets the namespace
 func CreateNamespace(ns string) CreateOption {
 	return func(o *CreateOptions) {
