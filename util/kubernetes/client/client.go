@@ -85,7 +85,9 @@ func SerializeResourceName(ns string) string {
 
 // Get queries API objects and stores the result in r
 func (c *client) Get(r *Resource, opts ...GetOption) error {
-	var options GetOptions
+	options := GetOptions{
+		Namespace: c.opts.Namespace,
+	}
 	for _, o := range opts {
 		o(&options)
 	}
@@ -101,7 +103,9 @@ func (c *client) Get(r *Resource, opts ...GetOption) error {
 
 // Log returns logs for a pod
 func (c *client) Log(r *Resource, opts ...LogOption) (io.ReadCloser, error) {
-	var options LogOptions
+	options := LogOptions{
+		Namespace: c.opts.Namespace,
+	}
 	for _, o := range opts {
 		o(&options)
 	}
@@ -130,7 +134,9 @@ func (c *client) Log(r *Resource, opts ...LogOption) (io.ReadCloser, error) {
 
 // Update updates API object
 func (c *client) Update(r *Resource, opts ...UpdateOption) error {
-	var options UpdateOptions
+	options := UpdateOptions{
+		Namespace: c.opts.Namespace,
+	}
 	for _, o := range opts {
 		o(&options)
 	}
@@ -158,7 +164,9 @@ func (c *client) Update(r *Resource, opts ...UpdateOption) error {
 
 // Delete removes API object
 func (c *client) Delete(r *Resource, opts ...DeleteOption) error {
-	var options DeleteOptions
+	options := DeleteOptions{
+		Namespace: c.opts.Namespace,
+	}
 	for _, o := range opts {
 		o(&options)
 	}
@@ -174,7 +182,9 @@ func (c *client) Delete(r *Resource, opts ...DeleteOption) error {
 
 // List lists API objects and stores the result in r
 func (c *client) List(r *Resource, opts ...ListOption) error {
-	var options ListOptions
+	options := ListOptions{
+		Namespace: c.opts.Namespace,
+	}
 	for _, o := range opts {
 		o(&options)
 	}
@@ -188,7 +198,9 @@ func (c *client) List(r *Resource, opts ...ListOption) error {
 
 // Watch returns an event stream
 func (c *client) Watch(r *Resource, opts ...WatchOption) (Watcher, error) {
-	var options WatchOptions
+	options := WatchOptions{
+		Namespace: c.opts.Namespace,
+	}
 	for _, o := range opts {
 		o(&options)
 	}
@@ -233,6 +245,10 @@ func NewService(name, version, typ, namespace string) *Service {
 		svcName = strings.Join([]string{name, version}, "-")
 	}
 
+	if len(namespace) == 0 {
+		namespace = DefaultNamespace
+	}
+
 	Metadata := &Metadata{
 		Name:      svcName,
 		Namespace: SerializeResourceName(namespace),
@@ -270,6 +286,10 @@ func NewDeployment(name, version, typ, namespace string) *Deployment {
 	if len(version) > 0 {
 		// API deployment object name joins name and version over "-"
 		depName = strings.Join([]string{name, version}, "-")
+	}
+
+	if len(namespace) == 0 {
+		namespace = DefaultNamespace
 	}
 
 	Metadata := &Metadata{

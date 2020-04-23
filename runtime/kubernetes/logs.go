@@ -24,11 +24,16 @@ func (k *klog) podLogStream(podName string, stream *kubeStream) error {
 	p := make(map[string]string)
 	p["follow"] = "true"
 
+	opts := []client.LogOption{
+		client.LogParams(p),
+		client.LogNamespace(k.options.Namespace),
+	}
+
 	// get the logs for the pod
 	body, err := k.client.Log(&client.Resource{
 		Name: podName,
 		Kind: "pod",
-	}, client.LogParams(p))
+	}, opts...)
 
 	if err != nil {
 		stream.err = err
@@ -70,7 +75,12 @@ func (k *klog) getMatchingPods() ([]string, error) {
 	// TODO: specify micro:service
 	// l["micro"] = "service"
 
-	if err := k.client.Get(r, client.GetLabels(l)); err != nil {
+	opts := []client.GetOption{
+		client.GetLabels(l),
+		client.GetNamespace(k.options.Namespace),
+	}
+
+	if err := k.client.Get(r, opts...); err != nil {
 		return nil, err
 	}
 
@@ -109,10 +119,15 @@ func (k *klog) Read() ([]runtime.LogRecord, error) {
 			logParams["follow"] = "true"
 		}
 
+		opts := []client.LogOption{
+			client.LogParams(logParams),
+			client.LogNamespace(k.options.Namespace),
+		}
+
 		logs, err := k.client.Log(&client.Resource{
 			Name: pod,
 			Kind: "pod",
-		}, client.LogParams(logParams))
+		}, opts...)
 
 		if err != nil {
 			return nil, err
@@ -162,13 +177,18 @@ func (k *klog) Stream() (runtime.LogStream, error) {
 }
 
 // NewLog returns a configured Kubernetes logger
-func newLog(client client.Client, serviceName string, opts ...runtime.LogsOption) *klog {
-	klog := &klog{
-		serviceName: serviceName,
-		client:      client,
+func newLog(c client.Client, serviceName string, opts ...runtime.LogsOption) *klog {
+	options := runtime.LogsOptions{
+		Namespace: client.DefaultNamespace,
 	}
 	for _, o := range opts {
-		o(&klog.options)
+		o(&options)
+	}
+
+	klog := &klog{
+		serviceName: serviceName,
+		client:      c,
+		options:     options,
 	}
 
 	return klog
