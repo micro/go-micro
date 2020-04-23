@@ -2,7 +2,6 @@ package kubernetes
 
 import (
 	"encoding/json"
-	"fmt"
 	"strings"
 
 	"github.com/micro/go-micro/v2/logger"
@@ -27,8 +26,6 @@ func parseError(err error) *api.Status {
 }
 
 func newService(s *runtime.Service, c runtime.CreateOptions) *service {
-	fmt.Println("KUBECTL newService")
-
 	// use pre-formatted name/version
 	name := client.Format(s.Name)
 	version := client.Format(s.Version)
@@ -43,7 +40,6 @@ func newService(s *runtime.Service, c runtime.CreateOptions) *service {
 
 	// set the image pull secrets
 	kdeploy.Spec.Template.PodSpec.ImagePullSecrets = c.ImagePullSecrets
-	fmt.Printf("Setting ImagePullSecrets to %v\n", strings.Join(c.ImagePullSecrets, ", "))
 
 	// create if non existent
 	if s.Metadata == nil {
