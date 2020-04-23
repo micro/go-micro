@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"encoding/json"
+	"fmt"
 	"strings"
 
 	"github.com/micro/go-micro/v2/logger"
@@ -40,6 +41,7 @@ func newService(s *runtime.Service, c runtime.CreateOptions) *service {
 
 	// set the image pull secrets
 	kdeploy.Spec.Template.PodSpec.ImagePullSecrets = c.ImagePullSecrets
+	fmt.Printf("Setting ImagePullSecrets to %v\n", strings.Join(c.ImagePullSecrets, ", "))
 
 	// create if non existent
 	if s.Metadata == nil {
