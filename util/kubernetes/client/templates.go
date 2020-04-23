@@ -53,7 +53,7 @@ spec:
       imagePullSecrets:
       {{- with .Spec.Template.PodSpec.ImagePullSecrets }}
       {{- range . }}
-      - name: "{{.}}"
+      - name: "{{ .Name }}"
       {{- end }}
       {{- end }}
       containers:
