@@ -13,6 +13,7 @@ import (
 
 	"github.com/hpcloud/tail"
 	"github.com/micro/go-micro/v2/logger"
+	"github.com/micro/go-micro/v2/runtime/local/git"
 )
 
 type runtime struct {
@@ -50,6 +51,21 @@ func NewRuntime(opts ...Option) Runtime {
 		start:    make(chan *service, 128),
 		services: make(map[string]*service),
 	}
+}
+
+// @todo move this to runtime default
+func (r *runtime) checkoutSourceIfNeeded(s *Service) error {
+	source, err := git.ParseSourceLocal("", s.Source)
+	if err != nil {
+		return err
+	}
+	source.Ref = s.Version
+	err = git.CheckoutSource(os.TempDir(), source)
+	if err != nil {
+		return err
+	}
+	s.Source = source.FullPath
+	return nil
 }
 
 // Init initializes runtime options
@@ -193,6 +209,7 @@ func serviceKey(s *Service) string {
 
 // Create creates a new service which is then started by runtime
 func (r *runtime) Create(s *Service, opts ...CreateOption) error {
+	r.checkoutSourceIfNeeded(s)
 	r.Lock()
 	defer r.Unlock()
 
@@ -336,6 +353,7 @@ func (r *runtime) Read(opts ...ReadOption) ([]*Service, error) {
 
 // Update attemps to update the service
 func (r *runtime) Update(s *Service, opts ...UpdateOption) error {
+	r.checkoutSourceIfNeeded(s)
 	r.Lock()
 	service, ok := r.services[serviceKey(s)]
 	r.Unlock()
