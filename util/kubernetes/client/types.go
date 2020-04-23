@@ -93,7 +93,8 @@ type Metadata struct {
 
 // PodSpec is a pod
 type PodSpec struct {
-	Containers []Container `json:"containers"`
+	Containers       []Container `json:"containers"`
+	ImagePullSecrets []string    `json:"imagePullSecrets"`
 }
 
 // PodList
