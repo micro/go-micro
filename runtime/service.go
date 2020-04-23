@@ -1,6 +1,7 @@
 package runtime
 
 import (
+	"fmt"
 	"io"
 	"strconv"
 	"strings"
@@ -74,6 +75,10 @@ func (s *service) shouldStart() bool {
 		return false
 	}
 	return s.retries <= s.maxRetries
+}
+
+func (s *service) key() string {
+	return fmt.Sprintf("%v:%v", s.Name, s.Version)
 }
 
 func (s *service) ShouldStart() bool {
