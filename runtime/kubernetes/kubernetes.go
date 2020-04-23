@@ -461,7 +461,7 @@ func (k *kubernetes) Read(opts ...runtime.ReadOption) ([]*runtime.Service, error
 		labels["micro"] = options.Type
 	}
 
-	srvs, err := k.getService(labels)
+	srvs, err := k.getService(labels, client.GetNamespace(options.Namespace))
 	if err != nil {
 		return nil, err
 	}
