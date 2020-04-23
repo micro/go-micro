@@ -412,12 +412,15 @@ func (k *kubernetes) Create(s *runtime.Service, opts ...runtime.CreateOption) er
 
 	// ensure the namespace exists
 	namespace := client.SerializeResourceName(options.Namespace)
-	if exist, err := k.namespaceExists(namespace); err == nil && !exist {
-		if err := k.createNamespace(namespace); err != nil {
+	// only do this if the namespace is not default
+	if namespace != "default" {
+		if exist, err := k.namespaceExists(namespace); err == nil && !exist {
+			if err := k.createNamespace(namespace); err != nil {
+				return err
+			}
+		} else if err != nil {
 			return err
 		}
-	} else if err != nil {
-		return err
 	}
 
 	// determine the image from the source and options
