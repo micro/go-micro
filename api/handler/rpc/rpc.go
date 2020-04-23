@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	jsonpatch "github.com/evanphx/json-patch/v5"
-	"github.com/joncalhoun/qson"
 	"github.com/micro/go-micro/v2/api"
 	"github.com/micro/go-micro/v2/api/handler"
 	"github.com/micro/go-micro/v2/api/internal/proto"
@@ -24,6 +23,7 @@ import (
 	"github.com/micro/go-micro/v2/metadata"
 	"github.com/micro/go-micro/v2/registry"
 	"github.com/micro/go-micro/v2/util/ctx"
+	"github.com/micro/go-micro/v2/util/qson"
 	"github.com/oxtoacart/bpool"
 )
 
