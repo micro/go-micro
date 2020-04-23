@@ -95,9 +95,9 @@ func CreateImage(img string) CreateOption {
 }
 
 // CreateImagePullSecret sets a secret to use
-func CreateImagePullSecret(secret string) CreateOption {
+func CreateImagePullSecret(secrets ...string) CreateOption {
 	return func(o *CreateOptions) {
-		o.ImagePullSecrets = append(o.ImagePullSecrets, secret)
+		o.ImagePullSecrets = append(o.ImagePullSecrets, secrets...)
 	}
 }
 
