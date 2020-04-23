@@ -53,7 +53,9 @@ type Client interface {
 
 // Create creates new API object
 func (c *client) Create(r *Resource, opts ...CreateOption) error {
-	var options CreateOptions
+	options := CreateOptions{
+		Namespace: c.opts.Namespace,
+	}
 	for _, o := range opts {
 		o(&options)
 	}
