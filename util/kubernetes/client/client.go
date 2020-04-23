@@ -189,7 +189,7 @@ func (c *client) List(r *Resource, opts ...ListOption) error {
 		o(&options)
 	}
 
-	return c.Get(r, GetLabels(labels), GetNamespace(options.Namespace))
+	return c.Get(r, GetNamespace(options.Namespace))
 }
 
 // Watch returns an event stream
