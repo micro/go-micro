@@ -9,8 +9,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-
-	"github.com/micro/go-micro/v2/logger"
 )
 
 // Request is used to construct a http request for the k8s API.
@@ -219,7 +217,6 @@ func (r *Request) Do() *Response {
 		}
 	}
 
-	logger.Debugf("[%v] %v", req.Method, req.URL.String())
 	res, err := r.client.Do(req)
 	if err != nil {
 		return &Response{
