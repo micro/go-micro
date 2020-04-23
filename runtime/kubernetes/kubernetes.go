@@ -38,6 +38,8 @@ func (k *kubernetes) namespaceExists(name string) (bool, error) {
 			return false, err
 		}
 		k.namespaces = namespaceList.Items
+		fmt.Println("HERE")
+		fmt.Println(k.namespaces)
 	}
 
 	// check if the namespace exists in the cache

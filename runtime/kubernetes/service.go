@@ -39,7 +39,10 @@ func newService(s *runtime.Service, c runtime.CreateOptions) *service {
 	}
 
 	// set the image pull secrets
-	kdeploy.Spec.Template.PodSpec.ImagePullSecrets = c.ImagePullSecrets
+	kdeploy.Spec.Template.PodSpec.ImagePullSecrets = make([]client.ImagePullSecret, len(c.ImagePullSecrets))
+	for i, s := range c.ImagePullSecrets {
+		kdeploy.Spec.Template.PodSpec.ImagePullSecrets[i] = client.ImagePullSecret{Name: s}
+	}
 
 	// create if non existent
 	if s.Metadata == nil {
