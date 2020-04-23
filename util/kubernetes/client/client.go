@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"regexp"
 	"strings"
 
 	"github.com/micro/go-micro/v2/logger"
@@ -23,6 +24,8 @@ var (
 	ErrReadNamespace = errors.New("Could not read namespace from service account secret")
 	// DefaultImage is default micro image
 	DefaultImage = "micro/go-micro"
+	// DefaultNamespace is the default k8s namespace
+	DefaultNamespace = "default"
 )
 
 // Client ...
@@ -33,41 +36,28 @@ type client struct {
 // Kubernetes client
 type Client interface {
 	// Create creates new API resource
-	Create(*Resource) error
+	Create(*Resource, ...CreateOption) error
 	// Get queries API resrouces
-	Get(*Resource, map[string]string) error
+	Get(*Resource, ...GetOption) error
 	// Update patches existing API object
-	Update(*Resource) error
+	Update(*Resource, ...UpdateOption) error
 	// Delete deletes API resource
-	Delete(*Resource) error
+	Delete(*Resource, ...DeleteOption) error
 	// List lists API resources
-	List(*Resource) error
+	List(*Resource, ...ListOption) error
 	// Log gets log for a pod
 	Log(*Resource, ...LogOption) (io.ReadCloser, error)
 	// Watch for events
 	Watch(*Resource, ...WatchOption) (Watcher, error)
 }
 
-func detectNamespace() (string, error) {
-	nsPath := path.Join(serviceAccountPath, "namespace")
-
-	// Make sure it's a file and we can read it
-	if s, e := os.Stat(nsPath); e != nil {
-		return "", e
-	} else if s.IsDir() {
-		return "", ErrReadNamespace
-	}
-
-	// Read the file, and cast to a string
-	if ns, e := ioutil.ReadFile(nsPath); e != nil {
-		return string(ns), e
-	} else {
-		return string(ns), nil
-	}
-}
-
 // Create creates new API object
-func (c *client) Create(r *Resource) error {
+func (c *client) Create(r *Resource, opts ...CreateOption) error {
+	var options CreateOptions
+	for _, o := range opts {
+		o(&options)
+	}
+
 	b := new(bytes.Buffer)
 	if err := renderTemplate(r.Kind, b, r.Value); err != nil {
 		return err
@@ -76,18 +66,35 @@ func (c *client) Create(r *Resource) error {
 	return api.NewRequest(c.opts).
 		Post().
 		SetHeader("Content-Type", "application/yaml").
+		Namespace(options.Namespace).
 		Resource(r.Kind).
 		Body(b).
 		Do().
 		Error()
 }
 
+var (
+	nameRegex = regexp.MustCompile("[^a-zA-Z0-9]+")
+)
+
+// SerializeResourceName removes all spacial chars from a string so it
+// can be used as a k8s resource name
+func SerializeResourceName(ns string) string {
+	return nameRegex.ReplaceAllString(ns, "-")
+}
+
 // Get queries API objects and stores the result in r
-func (c *client) Get(r *Resource, labels map[string]string) error {
+func (c *client) Get(r *Resource, opts ...GetOption) error {
+	var options GetOptions
+	for _, o := range opts {
+		o(&options)
+	}
+
 	return api.NewRequest(c.opts).
 		Get().
 		Resource(r.Kind).
-		Params(&api.Params{LabelSelector: labels}).
+		Namespace(options.Namespace).
+		Params(&api.Params{LabelSelector: options.Labels}).
 		Do().
 		Into(r.Value)
 }
@@ -103,7 +110,8 @@ func (c *client) Log(r *Resource, opts ...LogOption) (io.ReadCloser, error) {
 		Get().
 		Resource(r.Kind).
 		SubResource("log").
-		Name(r.Name)
+		Name(r.Name).
+		Namespace(options.Namespace)
 
 	if options.Params != nil {
 		req.Params(&api.Params{Additional: options.Params})
@@ -121,12 +129,18 @@ func (c *client) Log(r *Resource, opts ...LogOption) (io.ReadCloser, error) {
 }
 
 // Update updates API object
-func (c *client) Update(r *Resource) error {
+func (c *client) Update(r *Resource, opts ...UpdateOption) error {
+	var options UpdateOptions
+	for _, o := range opts {
+		o(&options)
+	}
+
 	req := api.NewRequest(c.opts).
 		Patch().
 		SetHeader("Content-Type", "application/strategic-merge-patch+json").
 		Resource(r.Kind).
-		Name(r.Name)
+		Name(r.Name).
+		Namespace(options.Namespace)
 
 	switch r.Kind {
 	case "service":
@@ -143,21 +157,33 @@ func (c *client) Update(r *Resource) error {
 }
 
 // Delete removes API object
-func (c *client) Delete(r *Resource) error {
+func (c *client) Delete(r *Resource, opts ...DeleteOption) error {
+	var options DeleteOptions
+	for _, o := range opts {
+		o(&options)
+	}
+
 	return api.NewRequest(c.opts).
 		Delete().
 		Resource(r.Kind).
 		Name(r.Name).
+		Namespace(options.Namespace).
 		Do().
 		Error()
 }
 
 // List lists API objects and stores the result in r
-func (c *client) List(r *Resource) error {
+func (c *client) List(r *Resource, opts ...ListOption) error {
+	var options ListOptions
+	for _, o := range opts {
+		o(&options)
+	}
+
 	labels := map[string]string{
 		"micro": "service",
 	}
-	return c.Get(r, labels)
+
+	return c.Get(r, GetLabels(labels), GetNamespace(options.Namespace))
 }
 
 // Watch returns an event stream
@@ -183,13 +209,14 @@ func (c *client) Watch(r *Resource, opts ...WatchOption) (Watcher, error) {
 		Get().
 		Resource(r.Kind).
 		Name(r.Name).
+		Namespace(options.Namespace).
 		Params(params)
 
 	return newWatcher(req)
 }
 
 // NewService returns default micro kubernetes service definition
-func NewService(name, version, typ string) *Service {
+func NewService(name, version, typ, namespace string) *Service {
 	if logger.V(logger.TraceLevel, logger.DefaultLogger) {
 		logger.Tracef("kubernetes default service: name: %s, version: %s", name, version)
 	}
@@ -208,7 +235,7 @@ func NewService(name, version, typ string) *Service {
 
 	Metadata := &Metadata{
 		Name:      svcName,
-		Namespace: "default",
+		Namespace: SerializeResourceName(namespace),
 		Version:   version,
 		Labels:    Labels,
 	}
@@ -228,7 +255,7 @@ func NewService(name, version, typ string) *Service {
 }
 
 // NewService returns default micro kubernetes deployment definition
-func NewDeployment(name, version, typ string) *Deployment {
+func NewDeployment(name, version, typ, namespace string) *Deployment {
 	if logger.V(logger.TraceLevel, logger.DefaultLogger) {
 		logger.Tracef("kubernetes default deployment: name: %s, version: %s", name, version)
 	}
@@ -247,7 +274,7 @@ func NewDeployment(name, version, typ string) *Deployment {
 
 	Metadata := &Metadata{
 		Name:        depName,
-		Namespace:   "default",
+		Namespace:   SerializeResourceName(namespace),
 		Version:     version,
 		Labels:      Labels,
 		Annotations: map[string]string{},
@@ -319,11 +346,6 @@ func NewClusterClient() *client {
 	}
 	t := string(token)
 
-	ns, err := detectNamespace()
-	if err != nil {
-		logger.Fatal(err)
-	}
-
 	crt, err := CertPoolFromFile(path.Join(serviceAccountPath, "ca.crt"))
 	if err != nil {
 		logger.Fatal(err)
@@ -342,8 +364,8 @@ func NewClusterClient() *client {
 		opts: &api.Options{
 			Client:      c,
 			Host:        host,
-			Namespace:   ns,
 			BearerToken: &t,
+			Namespace:   DefaultNamespace,
 		},
 	}
 }
