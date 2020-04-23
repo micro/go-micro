@@ -27,6 +27,8 @@ func parseError(err error) *api.Status {
 }
 
 func newService(s *runtime.Service, c runtime.CreateOptions) *service {
+	fmt.Println("KUBECTL newService")
+
 	// use pre-formatted name/version
 	name := client.Format(s.Name)
 	version := client.Format(s.Version)
