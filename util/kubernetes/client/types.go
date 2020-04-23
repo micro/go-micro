@@ -183,3 +183,8 @@ type Template struct {
 type Namespace struct {
 	Metadata *Metadata `json:"metadata,omitempty"`
 }
+
+// NamespaceList
+type NamespaceList struct {
+	Items []Namespace `json:"items"`
+}

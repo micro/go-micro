@@ -335,7 +335,7 @@ func (r *runtime) Read(opts ...ReadOption) ([]*Service, error) {
 }
 
 // Update attemps to update the service
-func (r *runtime) Update(s *Service) error {
+func (r *runtime) Update(s *Service, opts ...UpdateOption) error {
 	r.Lock()
 	service, ok := r.services[serviceKey(s)]
 	r.Unlock()
@@ -350,7 +350,7 @@ func (r *runtime) Update(s *Service) error {
 }
 
 // Delete removes the service from the runtime and stops it
-func (r *runtime) Delete(s *Service) error {
+func (r *runtime) Delete(s *Service, opts ...DeleteOption) error {
 	r.Lock()
 	defer r.Unlock()
 
