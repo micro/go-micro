@@ -191,11 +191,7 @@ func (c *client) List(r *Resource, opts ...ListOption) error {
 		o(&options)
 	}
 
-	labels := map[string]string{
-		"micro": "service",
-	}
-
-	return c.Get(r, GetLabels(labels), GetNamespace(options.Namespace))
+	return c.Get(r, GetNamespace(options.Namespace))
 }
 
 // Watch returns an event stream
