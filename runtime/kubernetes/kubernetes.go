@@ -439,9 +439,7 @@ func (k *kubernetes) Read(opts ...runtime.ReadOption) ([]*runtime.Service, error
 	defer k.Unlock()
 
 	// set the default labels
-	labels := map[string]string{
-		"micro": k.options.Type,
-	}
+	labels := map[string]string{}
 
 	options := runtime.ReadOptions{
 		Namespace: client.DefaultNamespace,
