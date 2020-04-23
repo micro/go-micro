@@ -54,7 +54,8 @@ spec:
       {{- with .Spec.Template.PodSpec.ImagePullSecrets }}
       {{- range . }}
       - {{ . }}
-      {{ end }}
+      {{- end }}
+      {{- end }}
       containers:
       {{- with .Spec.Template.PodSpec.Containers }}
       {{- range . }}
