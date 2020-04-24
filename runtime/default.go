@@ -251,6 +251,18 @@ func (r *runtime) Create(s *Service, opts ...CreateOption) error {
 	return nil
 }
 
+// exists returns whether the given file or directory exists
+func exists(path string) (bool, error) {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true, nil
+	}
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	return true, err
+}
+
 // @todo: Getting existing lines is not supported yet.
 // The reason for this is because it's hard to calculate line offset
 // as opposed to character offset.
@@ -265,6 +277,13 @@ func (r *runtime) Logs(s *Service, options ...LogsOption) (LogStream, error) {
 		stream:  make(chan LogRecord),
 		stop:    make(chan bool),
 	}
+
+	fpath := logFile(s.Name)
+	if ex, err := exists(fpath); err != nil {
+		return nil, err
+	} else if !ex {
+		return nil, fmt.Errorf("Log file %v does not exists", fpath)
+	}
 	t, err := tail.TailFile(logFile(s.Name), tail.Config{Follow: true, Location: &tail.SeekInfo{
 		Whence: 2,
 		Offset: 0,
@@ -272,6 +291,7 @@ func (r *runtime) Logs(s *Service, options ...LogsOption) (LogStream, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	ret.tail = t
 	go func() {
 		for line := range t.Lines {
