@@ -107,9 +107,9 @@ func CreateImage(img string) CreateOption {
 func CreateImagePullSecret(secrets ...string) CreateOption {
 	return func(o *CreateOptions) {
 		o.ImagePullSecrets = append(o.ImagePullSecrets, secrets...)
-  }
+	}
 }
-    
+
 // CreateNamespace sets the namespace
 func CreateNamespace(ns string) CreateOption {
 	return func(o *CreateOptions) {

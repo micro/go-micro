@@ -393,20 +393,6 @@ func (r *runtime) Delete(s *Service, opts ...DeleteOption) error {
 	return nil
 }
 
-// List returns a slice of all services tracked by the runtime
-func (r *runtime) List() ([]*Service, error) {
-	r.RLock()
-	defer r.RUnlock()
-
-	services := make([]*Service, 0, len(r.services))
-
-	for _, service := range r.services {
-		services = append(services, service.Service)
-	}
-
-	return services, nil
-}
-
 // Start starts the runtime
 func (r *runtime) Start() error {
 	r.Lock()
