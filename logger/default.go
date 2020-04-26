@@ -136,7 +136,12 @@ func (l *defaultLogger) Logf(level Level, format string, v ...interface{}) {
 }
 
 func (n *defaultLogger) Options() Options {
-	return n.opts
+	// not guard against options Context values
+	n.RLock()
+	opts := n.opts
+	opts.Fields = copyFields(n.opts.Fields)
+	n.RUnlock()
+	return opts
 }
 
 // NewLogger builds a new logger based on options
