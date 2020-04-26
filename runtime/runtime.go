@@ -24,9 +24,9 @@ type Runtime interface {
 	// Read returns the service
 	Read(...ReadOption) ([]*Service, error)
 	// Update the service in place
-	Update(*Service) error
+	Update(*Service, ...UpdateOption) error
 	// Remove a service
-	Delete(*Service) error
+	Delete(*Service, ...DeleteOption) error
 	// Logs returns the logs for a service
 	Logs(*Service, ...LogsOption) (LogStream, error)
 	// Start starts the runtime

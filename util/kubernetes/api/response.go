@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 )
@@ -50,9 +51,8 @@ func (r *Response) Into(data interface{}) error {
 
 	defer r.res.Body.Close()
 	decoder := json.NewDecoder(r.res.Body)
-	err := decoder.Decode(&data)
-	if err != nil {
-		return ErrDecode
+	if err := decoder.Decode(&data); err != nil {
+		return fmt.Errorf("%v: %v", ErrDecode, err)
 	}
 
 	return r.err

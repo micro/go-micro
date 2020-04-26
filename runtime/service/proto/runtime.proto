@@ -41,6 +41,8 @@ message CreateOptions {
 	string type = 5;
 	// image to use
 	string image = 6;
+	// image secrets to use
+	repeated string image_pull_secrets = 7;
 }
 
 message CreateRequest {
@@ -60,11 +62,11 @@ message ReadOptions {
 }
 
 message ReadRequest {
-        ReadOptions options = 1;
+	ReadOptions options = 1;
 }
 
 message ReadResponse {
-        repeated Service services = 1;
+	repeated Service services = 1;
 }
 
 message DeleteRequest {
@@ -100,10 +102,10 @@ message LogsRequest{
 
 message LogRecord {
 	// timestamp of log record
-    int64 timestamp = 1;
-    // record metadata
-    map<string,string> metadata = 2;
-    // message
-    string message = 3;
+	int64 timestamp = 1;
+	// record metadata
+	map<string,string> metadata = 2;
+	// message
+	string message = 3;
 }
 
