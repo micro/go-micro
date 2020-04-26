@@ -55,7 +55,7 @@ func (s *service) genSrv() *registry.Service {
 	if len(s.opts.Address) > 0 {
 		host, port, err = net.SplitHostPort(s.opts.Address)
 		if err != nil {
-			log.Fatal(err)
+			logger.Fatal(err)
 		}
 	}
 
@@ -65,13 +65,13 @@ func (s *service) genSrv() *registry.Service {
 	if len(s.opts.Advertise) > 0 {
 		host, port, err = net.SplitHostPort(s.opts.Address)
 		if err != nil {
-			log.Fatal(err)
+			logger.Fatal(err)
 		}
 	}
 
 	addr, err := maddr.Extract(host)
 	if err != nil {
-		log.Fatal(err)
+		logger.Fatal(err)
 	}
 
 	if strings.Count(addr, ":") > 0 {
@@ -128,8 +128,8 @@ func (s *service) register() error {
 
 	// use RegisterCheck func before register
 	if err := s.opts.RegisterCheck(s.opts.Context); err != nil {
-		if logger.V(logger.ErrorLevel, log) {
-			log.Errorf("Server %s-%s register check error: %s", s.opts.Name, s.opts.Id, err)
+		if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
+			logger.Errorf("Server %s-%s register check error: %s", s.opts.Name, s.opts.Id, err)
 		}
 		return err
 	}
@@ -195,8 +195,8 @@ func (s *service) start() error {
 			if s.static {
 				_, err := os.Stat(static)
 				if err == nil {
-					if logger.V(logger.InfoLevel, log) {
-						log.Infof("Enabling static file serving from %s", static)
+					if logger.V(logger.InfoLevel, logger.DefaultLogger) {
+						logger.Infof("Enabling static file serving from %s", static)
 					}
 					s.mux.Handle("/", http.FileServer(http.Dir(static)))
 				}
@@ -229,8 +229,8 @@ func (s *service) start() error {
 		ch <- l.Close()
 	}()
 
-	if logger.V(logger.InfoLevel, log) {
-		log.Infof("Listening on %v", l.Addr().String())
+	if logger.V(logger.InfoLevel, logger.DefaultLogger) {
+		logger.Infof("Listening on %v", l.Addr().String())
 	}
 	return nil
 }
@@ -253,8 +253,8 @@ func (s *service) stop() error {
 	s.exit <- ch
 	s.running = false
 
-	if logger.V(logger.InfoLevel, log) {
-		log.Info("Stopping")
+	if logger.V(logger.InfoLevel, logger.DefaultLogger) {
+		logger.Info("Stopping")
 	}
 
 	for _, fn := range s.opts.AfterStop {
@@ -419,13 +419,13 @@ func (s *service) Run() error {
 	select {
 	// wait on kill signal
 	case sig := <-ch:
-		if logger.V(logger.InfoLevel, log) {
-			log.Infof("Received signal %s", sig)
+		if logger.V(logger.InfoLevel, logger.DefaultLogger) {
+			logger.Infof("Received signal %s", sig)
 		}
 	// wait on context cancel
 	case <-s.opts.Context.Done():
-		if logger.V(logger.InfoLevel, log) {
-			log.Info("Received context shutdown")
+		if logger.V(logger.InfoLevel, logger.DefaultLogger) {
+			logger.Info("Received context shutdown")
 		}
 	}
 
