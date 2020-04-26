@@ -29,7 +29,7 @@ type service struct {
 	mux *http.ServeMux
 	srv *registry.Service
 
-	sync.Mutex
+	sync.RWMutex
 	running bool
 	static  bool
 	exit    chan chan error
@@ -90,11 +90,14 @@ func (s *service) genSrv() *registry.Service {
 }
 
 func (s *service) run(exit chan bool) {
+	s.RLock()
 	if s.opts.RegisterInterval <= time.Duration(0) {
+		s.RUnlock()
 		return
 	}
 
 	t := time.NewTicker(s.opts.RegisterInterval)
+	s.RUnlock()
 
 	for {
 		select {
@@ -327,6 +330,9 @@ func (s *service) HandleFunc(pattern string, handler func(http.ResponseWriter, *
 }
 
 func (s *service) Init(opts ...Option) error {
+	s.Lock()
+	defer s.Unlock()
+
 	for _, o := range opts {
 		o(&s.opts)
 	}
@@ -342,6 +348,9 @@ func (s *service) Init(opts ...Option) error {
 	}
 
 	serviceOpts = append(serviceOpts, micro.Action(func(ctx *cli.Context) error {
+		s.Lock()
+		defer s.Unlock()
+
 		if ttl := ctx.Int("register_ttl"); ttl > 0 {
 			s.opts.RegisterTTL = time.Duration(ttl) * time.Second
 		}
