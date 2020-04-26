@@ -14,6 +14,8 @@ type Options struct {
 	Fields map[string]interface{}
 	// It's common to set this to a file, or leave it default which is `os.Stderr`
 	Out io.Writer
+	// Caller skip frame count for file:line info
+	CallerSkipCount int
 	// Alternative options
 	Context context.Context
 }
@@ -36,6 +38,13 @@ func WithLevel(level Level) Option {
 func WithOutput(out io.Writer) Option {
 	return func(args *Options) {
 		args.Out = out
+	}
+}
+
+// WithCallerSkipCount set frame count to skip
+func WithCallerSkipCount(c int) Option {
+	return func(args *Options) {
+		args.CallerSkipCount = c
 	}
 }
 
