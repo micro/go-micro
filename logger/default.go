@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"runtime"
 	"sort"
 	"sync"
 	"time"
@@ -64,6 +65,10 @@ func (l *defaultLogger) Log(level Level, v ...interface{}) {
 
 	fields["level"] = level.String()
 
+	if _, file, line, ok := runtime.Caller(l.opts.CallerSkipCount); ok {
+		fields["caller"] = fmt.Sprintf("%s:%d", file, line)
+	}
+
 	rec := dlog.Record{
 		Timestamp: time.Now(),
 		Message:   fmt.Sprint(v...),
@@ -101,6 +106,10 @@ func (l *defaultLogger) Logf(level Level, format string, v ...interface{}) {
 
 	fields["level"] = level.String()
 
+	if _, file, line, ok := runtime.Caller(l.opts.CallerSkipCount); ok {
+		fields["caller"] = fmt.Sprintf("%s:%d", file, line)
+	}
+
 	rec := dlog.Record{
 		Timestamp: time.Now(),
 		Message:   fmt.Sprintf(format, v...),
@@ -127,17 +136,23 @@ func (l *defaultLogger) Logf(level Level, format string, v ...interface{}) {
 }
 
 func (n *defaultLogger) Options() Options {
-	return n.opts
+	// not guard against options Context values
+	n.RLock()
+	opts := n.opts
+	opts.Fields = copyFields(n.opts.Fields)
+	n.RUnlock()
+	return opts
 }
 
 // NewLogger builds a new logger based on options
 func NewLogger(opts ...Option) Logger {
 	// Default options
 	options := Options{
-		Level:   InfoLevel,
-		Fields:  make(map[string]interface{}),
-		Out:     os.Stderr,
-		Context: context.Background(),
+		Level:           InfoLevel,
+		Fields:          make(map[string]interface{}),
+		Out:             os.Stderr,
+		CallerSkipCount: 1,
+		Context:         context.Background(),
 	}
 
 	l := &defaultLogger{opts: options}
