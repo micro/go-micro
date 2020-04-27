@@ -78,8 +78,8 @@ func (s *svc) Logs(service *runtime.Service, opts ...runtime.LogsOption) (runtim
 
 	ls, err := s.runtime.Logs(options.Context, &pb.LogsRequest{
 		Service: service.Name,
-		Stream:  true,
-		//Count:   100, // @todo pass in actual options
+		Stream:  options.Stream,
+		Count:   options.Count,
 	})
 	if err != nil {
 		return nil, err

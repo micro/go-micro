@@ -284,9 +284,19 @@ func (r *runtime) Logs(s *Service, options ...LogsOption) (LogStream, error) {
 	} else if !ex {
 		return nil, fmt.Errorf("Log file %v does not exists", fpath)
 	}
-	t, err := tail.TailFile(logFile(s.Name), tail.Config{Follow: true, Location: &tail.SeekInfo{
-		Whence: 2,
-		Offset: 0,
+
+	whence := 2
+	offset := 0
+	if lopts.Count > 0 {
+		lopts.Stream = false
+	}
+	if !lopts.Stream {
+		offset -= int(lopts.Count) * 500
+	}
+	fmt.Println(lopts.Count, lopts.Stream, whence, offset)
+	t, err := tail.TailFile(logFile(s.Name), tail.Config{Follow: lopts.Stream, Location: &tail.SeekInfo{
+		Whence: whence,
+		Offset: int64(offset),
 	}, Logger: tail.DiscardingLogger})
 	if err != nil {
 		return nil, err
