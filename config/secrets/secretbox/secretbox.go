@@ -18,8 +18,8 @@ type secretBox struct {
 	secretKey [keyLength]byte
 }
 
-// NewCodec returns a secretbox codec
-func NewCodec(opts ...secrets.Option) secrets.Codec {
+// NewSecrets returns a secretbox codec
+func NewSecrets(opts ...secrets.Option) secrets.Secrets {
 	sb := &secretBox{}
 	for _, o := range opts {
 		o(&sb.options)
@@ -31,13 +31,13 @@ func (s *secretBox) Init(opts ...secrets.Option) error {
 	for _, o := range opts {
 		o(&s.options)
 	}
-	if len(s.options.SecretKey) == 0 {
+	if len(s.options.Key) == 0 {
 		return errors.New("no secret key is defined")
 	}
-	if len(s.options.SecretKey) != keyLength {
+	if len(s.options.Key) != keyLength {
 		return errors.Errorf("secret key must be %d bytes long", keyLength)
 	}
-	copy(s.secretKey[:], s.options.SecretKey)
+	copy(s.secretKey[:], s.options.Key)
 	return nil
 }
 
