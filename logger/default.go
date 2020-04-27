@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"path"
+	"path/filepath"
 	"runtime"
 	"sort"
 	"strings"
@@ -55,18 +55,9 @@ func copyFields(src map[string]interface{}) map[string]interface{} {
 	return dst
 }
 
-var sourceControlSites = []string{"github.com"}
-
-func logCallerfilePath(filepath string) string {
-	for _, v := range sourceControlSites {
-		if strings.Contains(filepath, v) {
-			parts := strings.Split(filepath, v)
-			if len(parts) > 0 {
-				return path.Join(v, parts[1])
-			}
-		}
-	}
-	return filepath
+func logCallerfilePath(loggingFilePath string) string {
+	parts := strings.Split(loggingFilePath, string(filepath.Separator))
+	return parts[len(parts)-1]
 }
 
 func (l *defaultLogger) Log(level Level, v ...interface{}) {
@@ -82,7 +73,7 @@ func (l *defaultLogger) Log(level Level, v ...interface{}) {
 	fields["level"] = level.String()
 
 	if _, file, line, ok := runtime.Caller(l.opts.CallerSkipCount); ok {
-		fields["caller"] = fmt.Sprintf("%s:%d", logCallerfilePath(file), line)
+		fields["file"] = fmt.Sprintf("%s:%d", logCallerfilePath(file), line)
 	}
 
 	rec := dlog.Record{
@@ -123,7 +114,7 @@ func (l *defaultLogger) Logf(level Level, format string, v ...interface{}) {
 	fields["level"] = level.String()
 
 	if _, file, line, ok := runtime.Caller(l.opts.CallerSkipCount); ok {
-		fields["caller"] = fmt.Sprintf("%s:%d", logCallerfilePath(file), line)
+		fields["file"] = fmt.Sprintf("%s:%d", logCallerfilePath(file), line)
 	}
 
 	rec := dlog.Record{
