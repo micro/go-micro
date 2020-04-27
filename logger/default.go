@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path"
 	"runtime"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -53,6 +55,20 @@ func copyFields(src map[string]interface{}) map[string]interface{} {
 	return dst
 }
 
+var sourceControlSites = []string{"github.com"}
+
+func logCallerfilePath(filepath string) string {
+	for _, v := range sourceControlSites {
+		if strings.Contains(filepath, v) {
+			parts := strings.Split(filepath, v)
+			if len(parts) > 0 {
+				return path.Join(v, parts[1])
+			}
+		}
+	}
+	return filepath
+}
+
 func (l *defaultLogger) Log(level Level, v ...interface{}) {
 	// TODO decide does we need to write message if log level not used?
 	if !l.opts.Level.Enabled(level) {
@@ -66,7 +82,7 @@ func (l *defaultLogger) Log(level Level, v ...interface{}) {
 	fields["level"] = level.String()
 
 	if _, file, line, ok := runtime.Caller(l.opts.CallerSkipCount); ok {
-		fields["caller"] = fmt.Sprintf("%s:%d", file, line)
+		fields["caller"] = fmt.Sprintf("%s:%d", logCallerfilePath(file), line)
 	}
 
 	rec := dlog.Record{
@@ -107,7 +123,7 @@ func (l *defaultLogger) Logf(level Level, format string, v ...interface{}) {
 	fields["level"] = level.String()
 
 	if _, file, line, ok := runtime.Caller(l.opts.CallerSkipCount); ok {
-		fields["caller"] = fmt.Sprintf("%s:%d", file, line)
+		fields["caller"] = fmt.Sprintf("%s:%d", logCallerfilePath(file), line)
 	}
 
 	rec := dlog.Record{
@@ -151,7 +167,7 @@ func NewLogger(opts ...Option) Logger {
 		Level:           InfoLevel,
 		Fields:          make(map[string]interface{}),
 		Out:             os.Stderr,
-		CallerSkipCount: 1,
+		CallerSkipCount: 2,
 		Context:         context.Background(),
 	}
 
