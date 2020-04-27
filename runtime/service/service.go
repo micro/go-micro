@@ -93,7 +93,7 @@ func (s *svc) Logs(service *runtime.Service, opts ...runtime.LogsOption) (runtim
 	go func() {
 		for {
 			select {
-			// @todod this never seems to return, investigate
+			// @todo this never seems to return, investigate
 			case <-ls.Context().Done():
 				return
 			default:
