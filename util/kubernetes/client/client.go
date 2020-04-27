@@ -312,6 +312,7 @@ func NewDeployment(name, version, typ, namespace string) *Deployment {
 		Template: &Template{
 			Metadata: Metadata,
 			PodSpec: &PodSpec{
+				ServiceAccountName: namespace,
 				Containers: []Container{{
 					Name:    name,
 					Image:   DefaultImage,
