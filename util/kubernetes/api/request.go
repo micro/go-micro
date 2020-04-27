@@ -163,7 +163,7 @@ func (r *Request) request() (*http.Request, error) {
 	case "namespace":
 		// /api/v1/namespaces/
 		url = fmt.Sprintf("%s/api/v1/namespaces/", r.host)
-	case "pod", "service", "endpoint":
+	case "pod", "service", "endpoint", "serviceaccount":
 		// /api/v1/namespaces/{namespace}/pods
 		url = fmt.Sprintf("%s/api/v1/namespaces/%s/%ss/", r.host, r.namespace, r.resource)
 	case "deployment":
