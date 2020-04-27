@@ -4,6 +4,7 @@ var templates = map[string]string{
 	"deployment":     deploymentTmpl,
 	"service":        serviceTmpl,
 	"namespace":      namespaceTmpl,
+	"secret":         secretTmpl,
 	"serviceaccount": serviceAccountTmpl,
 }
 
@@ -123,6 +124,26 @@ metadata:
     {{ $key }}: "{{ $value }}"
     {{- end }}
     {{- end }}
+`
+
+var secretTmpl = `
+apiVersion: v1
+kind: Secret
+metadata:
+  name: "{{ .Metadata.Name }}"
+  namespace: "{{ .Metadata.Namespace }}"
+  labels:
+    {{- with .Metadata.Labels }}
+    {{- range $key, $value := . }}
+    {{ $key }}: "{{ $value }}"
+    {{- end }}
+    {{- end }}
+data:
+{{- with .Data }}
+{{- range $key, $value := . }}
+{{ $key }}: "{{ $value }}"
+{{- end }}
+{{- end }}
 `
 
 var serviceAccountTmpl = `

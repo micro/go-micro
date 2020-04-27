@@ -195,6 +195,13 @@ type ImagePullSecret struct {
 	Name string `json:"name"`
 }
 
+// Secret
+type Secret struct {
+	Type     string            `json:"type,omitempty"`
+	Data     map[string]string `json:"data"`
+	Metadata *Metadata         `json:"metadata"`
+}
+
 // ServiceAccount
 type ServiceAccount struct {
 	Metadata         *Metadata         `json:"metadata,omitempty"`
