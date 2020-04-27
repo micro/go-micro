@@ -18,7 +18,7 @@ func TestBox(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	alice, bob := NewCodec(secrets.PublicKey(alicePublicKey[:]), secrets.PrivateKey(alicePrivateKey[:])), NewCodec()
+	alice, bob := NewSecrets(secrets.PublicKey(alicePublicKey[:]), secrets.PrivateKey(alicePrivateKey[:])), NewSecrets()
 	if err := alice.Init(); err != nil {
 		t.Error(err)
 	}
