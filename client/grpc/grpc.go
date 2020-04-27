@@ -6,7 +6,6 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net"
-	"os"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -20,6 +19,7 @@ import (
 	"github.com/micro/go-micro/v2/metadata"
 	"github.com/micro/go-micro/v2/registry"
 	"github.com/micro/go-micro/v2/util/config"
+	pnet "github.com/micro/go-micro/v2/util/net"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -74,27 +74,13 @@ func (g *grpcClient) secure(addr string) grpc.DialOption {
 }
 
 func (g *grpcClient) next(request client.Request, opts client.CallOptions) (selector.Next, error) {
-	service := request.Service()
-
-	// get proxy
-	if prx := os.Getenv("MICRO_PROXY"); len(prx) > 0 {
-		// default name
-		if prx == "service" {
-			prx = "go.micro.proxy"
-		}
-		service = prx
-	}
-
-	// get proxy address
-	if prx := os.Getenv("MICRO_PROXY_ADDRESS"); len(prx) > 0 {
-		opts.Address = []string{prx}
-	}
+	service, address, _ := pnet.Proxy(request.Service(), opts.Address)
 
 	// return remote address
-	if len(opts.Address) > 0 {
+	if len(address) > 0 {
 		return func() (*registry.Node, error) {
 			return &registry.Node{
-				Address: opts.Address[0],
+				Address: address[0],
 			}, nil
 		}, nil
 	}
@@ -131,21 +117,10 @@ func (g *grpcClient) call(ctx context.Context, node *registry.Node, req client.R
 	// set the content type for the request
 	header["x-content-type"] = req.ContentType()
 
-	// if the caller specifies using service token or no token
-	// was passed with the request, set the service token
-	var srvToken string
-	if g.opts.Auth != nil && g.opts.Auth.Options().Token != nil {
-		srvToken = g.opts.Auth.Options().Token.AccessToken
-	}
-	if (opts.ServiceToken || len(header["authorization"]) == 0) && len(srvToken) > 0 {
-		header["authorization"] = auth.BearerScheme + srvToken
-	}
-
-	// fall back to using the authorization token set in config,
-	// this enables the CLI to provide a token
-	if len(header["authorization"]) == 0 {
-		if token, err := config.Get("micro", "auth", "token"); err == nil && len(token) > 0 {
-			header["authorization"] = auth.BearerScheme + token
+	// set the authorization header
+	if opts.ServiceToken || len(header["authorization"]) == 0 {
+		if h := g.authorizationHeader(); len(h) > 0 {
+			header["authorization"] = h
 		}
 	}
 
@@ -226,6 +201,13 @@ func (g *grpcClient) stream(ctx context.Context, node *registry.Node, req client
 	}
 	// set the content type for the request
 	header["x-content-type"] = req.ContentType()
+
+	// set the authorization header
+	if opts.ServiceToken || len(header["authorization"]) == 0 {
+		if h := g.authorizationHeader(); len(h) > 0 {
+			header["authorization"] = h
+		}
+	}
 
 	md := gmetadata.New(header)
 	ctx = gmetadata.NewOutgoingContext(ctx, md)
@@ -311,6 +293,26 @@ func (g *grpcClient) stream(ctx context.Context, node *registry.Node, req client
 		conn:     cc,
 		cancel:   cancel,
 	}, nil
+}
+
+func (g *grpcClient) authorizationHeader() string {
+	// if the caller specifies using service token or no token
+	// was passed with the request, set the service token
+	var srvToken string
+	if g.opts.Auth != nil && g.opts.Auth.Options().Token != nil {
+		srvToken = g.opts.Auth.Options().Token.AccessToken
+	}
+	if len(srvToken) > 0 {
+		return auth.BearerScheme + srvToken
+	}
+
+	// fall back to using the authorization token set in config,
+	// this enables the CLI to provide a token
+	if token, err := config.Get("micro", "auth", "token"); err == nil && len(token) > 0 {
+		return auth.BearerScheme + token
+	}
+
+	return ""
 }
 
 func (g *grpcClient) poolMaxStreams() int {

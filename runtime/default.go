@@ -13,6 +13,7 @@ import (
 
 	"github.com/hpcloud/tail"
 	"github.com/micro/go-micro/v2/logger"
+	"github.com/micro/go-micro/v2/runtime/local/git"
 )
 
 type runtime struct {
@@ -40,12 +41,31 @@ func NewRuntime(opts ...Option) Runtime {
 		o(&options)
 	}
 
+	// make the logs directory
+	path := filepath.Join(os.TempDir(), "micro", "logs")
+	_ = os.MkdirAll(path, 0755)
+
 	return &runtime{
 		options:  options,
 		closed:   make(chan bool),
 		start:    make(chan *service, 128),
 		services: make(map[string]*service),
 	}
+}
+
+// @todo move this to runtime default
+func (r *runtime) checkoutSourceIfNeeded(s *Service) error {
+	source, err := git.ParseSourceLocal("", s.Source)
+	if err != nil {
+		return err
+	}
+	source.Ref = s.Version
+	err = git.CheckoutSource(os.TempDir(), source)
+	if err != nil {
+		return err
+	}
+	s.Source = source.FullPath
+	return nil
 }
 
 // Init initializes runtime options
@@ -138,7 +158,7 @@ func (r *runtime) run(events <-chan Event) {
 			case Update:
 				if len(event.Service) > 0 {
 					r.RLock()
-					service, ok := r.services[event.Service]
+					service, ok := r.services[fmt.Sprintf("%v:%v", event.Service, event.Version)]
 					r.RUnlock()
 					if !ok {
 						if logger.V(logger.DebugLevel, logger.DefaultLogger) {
@@ -177,16 +197,23 @@ func (r *runtime) run(events <-chan Event) {
 }
 
 func logFile(serviceName string) string {
+	// make the directory
 	name := strings.Replace(serviceName, "/", "-", -1)
-	return filepath.Join(os.TempDir(), fmt.Sprintf("%v.log", name))
+	path := filepath.Join(os.TempDir(), "micro", "logs")
+	return filepath.Join(path, fmt.Sprintf("%v.log", name))
+}
+
+func serviceKey(s *Service) string {
+	return fmt.Sprintf("%v:%v", s.Name, s.Version)
 }
 
 // Create creates a new service which is then started by runtime
 func (r *runtime) Create(s *Service, opts ...CreateOption) error {
+	r.checkoutSourceIfNeeded(s)
 	r.Lock()
 	defer r.Unlock()
 
-	if _, ok := r.services[s.Name]; ok {
+	if _, ok := r.services[serviceKey(s)]; ok {
 		return errors.New("service already running")
 	}
 
@@ -219,7 +246,7 @@ func (r *runtime) Create(s *Service, opts ...CreateOption) error {
 	}
 
 	// save service
-	r.services[s.Name] = service
+	r.services[serviceKey(s)] = service
 
 	return nil
 }
@@ -325,37 +352,33 @@ func (r *runtime) Read(opts ...ReadOption) ([]*Service, error) {
 }
 
 // Update attemps to update the service
-func (r *runtime) Update(s *Service) error {
-	var opts []CreateOption
-
-	// check if the service already exists
-	r.RLock()
-	if service, ok := r.services[s.Name]; ok {
-		opts = append(opts, WithOutput(service.output))
+func (r *runtime) Update(s *Service, opts ...UpdateOption) error {
+	r.checkoutSourceIfNeeded(s)
+	r.Lock()
+	service, ok := r.services[serviceKey(s)]
+	r.Unlock()
+	if !ok {
+		return errors.New("Service not found")
 	}
-	r.RUnlock()
-
-	// delete the service
-	if err := r.Delete(s); err != nil {
+	err := service.Stop()
+	if err != nil {
 		return err
 	}
-
-	// create new service
-	return r.Create(s, opts...)
+	return service.Start()
 }
 
 // Delete removes the service from the runtime and stops it
-func (r *runtime) Delete(s *Service) error {
+func (r *runtime) Delete(s *Service, opts ...DeleteOption) error {
 	r.Lock()
 	defer r.Unlock()
 
 	if logger.V(logger.DebugLevel, logger.DefaultLogger) {
 		logger.Debugf("Runtime deleting service %s", s.Name)
 	}
-	if s, ok := r.services[s.Name]; ok {
+	if s, ok := r.services[serviceKey(s)]; ok {
 		// check if running
 		if s.Running() {
-			delete(r.services, s.Name)
+			delete(r.services, s.key())
 			return nil
 		}
 		// otherwise stop it
@@ -363,25 +386,11 @@ func (r *runtime) Delete(s *Service) error {
 			return err
 		}
 		// delete it
-		delete(r.services, s.Name)
+		delete(r.services, s.key())
 		return nil
 	}
 
 	return nil
-}
-
-// List returns a slice of all services tracked by the runtime
-func (r *runtime) List() ([]*Service, error) {
-	r.RLock()
-	defer r.RUnlock()
-
-	services := make([]*Service, 0, len(r.services))
-
-	for _, service := range r.services {
-		services = append(services, service.Service)
-	}
-
-	return services, nil
 }
 
 // Start starts the runtime

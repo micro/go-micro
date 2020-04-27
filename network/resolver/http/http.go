@@ -30,8 +30,8 @@ type Response struct {
 // Resolve assumes ID is a domain which can be converted to a http://name/network request
 func (r *Resolver) Resolve(name string) ([]*resolver.Record, error) {
 	proto := "https"
-	host := "micro.mu"
-	path := "/network"
+	host := "go.micro.mu"
+	path := "/network/nodes"
 
 	if len(r.Proto) > 0 {
 		proto = r.Proto

@@ -67,7 +67,7 @@ func (k *klog) getMatchingPods() ([]string, error) {
 	// TODO: specify micro:service
 	// l["micro"] = "service"
 
-	if err := k.client.Get(r, l); err != nil {
+	if err := k.client.Get(r, client.GetLabels(l)); err != nil {
 		return nil, err
 	}
 

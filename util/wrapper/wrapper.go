@@ -159,7 +159,7 @@ func AuthHandler(fn func() auth.Auth) server.HandlerWrapper {
 			// Inspect the token and get the account
 			account, err := a.Inspect(token)
 			if err != nil {
-				account = &auth.Account{}
+				account = &auth.Account{Namespace: a.Options().Namespace}
 			}
 
 			// construct the resource

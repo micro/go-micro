@@ -28,7 +28,10 @@ type Grant struct {
 }
 
 type EndpointOptions struct {
+	// State is a code to verify the req
 	State string
+	// LoginHint prefils the user id on oauth clients
+	LoginHint string
 }
 
 type EndpointOption func(*EndpointOptions)
@@ -36,5 +39,11 @@ type EndpointOption func(*EndpointOptions)
 func WithState(c string) EndpointOption {
 	return func(o *EndpointOptions) {
 		o.State = c
+	}
+}
+
+func WithLoginHint(hint string) EndpointOption {
+	return func(o *EndpointOptions) {
+		o.LoginHint = hint
 	}
 }

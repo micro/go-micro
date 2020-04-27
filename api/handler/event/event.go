@@ -118,7 +118,7 @@ func (e *event) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// get client
-	c := e.opts.Service.Client()
+	c := e.opts.Client
 
 	// create publication
 	p := c.NewMessage(topic, ev)

@@ -50,6 +50,12 @@ spec:
         {{- end }}
         {{- end }}
     spec:
+      imagePullSecrets:
+      {{- with .Spec.Template.PodSpec.ImagePullSecrets }}
+      {{- range . }}
+      - name: "{{ .Name }}"
+      {{- end }}
+      {{- end }}
       containers:
       {{- with .Spec.Template.PodSpec.Containers }}
       {{- range . }}

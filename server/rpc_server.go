@@ -630,8 +630,8 @@ func (s *rpcServer) Register() error {
 	s.RUnlock()
 
 	if !registered {
-		if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-			log.Debugf("Registry [%s] Registering node: %s", config.Registry.String(), node.Id)
+		if logger.V(logger.InfoLevel, logger.DefaultLogger) {
+			log.Infof("Registry [%s] Registering node: %s", config.Registry.String(), node.Id)
 		}
 	}
 
@@ -650,10 +650,6 @@ func (s *rpcServer) Register() error {
 	s.Lock()
 	defer s.Unlock()
 
-	if cacheService {
-		s.rsvc = service
-	}
-	s.registered = true
 	// set what we're advertising
 	s.opts.Advertise = addr
 
@@ -688,11 +684,15 @@ func (s *rpcServer) Register() error {
 		if err != nil {
 			return err
 		}
-		if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-			log.Debugf("Subscribing to topic: %s", sub.Topic())
+		if logger.V(logger.InfoLevel, logger.DefaultLogger) {
+			log.Infof("Subscribing to topic: %s", sub.Topic())
 		}
 		s.subscribers[sb] = []broker.Subscriber{sub}
 	}
+	if cacheService {
+		s.rsvc = service
+	}
+	s.registered = true
 
 	return nil
 }
@@ -745,8 +745,8 @@ func (s *rpcServer) Deregister() error {
 		Nodes:   []*registry.Node{node},
 	}
 
-	if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-		log.Debugf("Registry [%s] Deregistering node: %s", config.Registry.String(), node.Id)
+	if logger.V(logger.InfoLevel, logger.DefaultLogger) {
+		log.Infof("Registry [%s] Deregistering node: %s", config.Registry.String(), node.Id)
 	}
 	if err := config.Registry.Deregister(service); err != nil {
 		return err
@@ -770,8 +770,8 @@ func (s *rpcServer) Deregister() error {
 
 	for sb, subs := range s.subscribers {
 		for _, sub := range subs {
-			if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-				log.Debugf("Unsubscribing %s from topic: %s", node.Id, sub.Topic())
+			if logger.V(logger.InfoLevel, logger.DefaultLogger) {
+				log.Infof("Unsubscribing %s from topic: %s", node.Id, sub.Topic())
 			}
 			sub.Unsubscribe()
 		}
@@ -798,8 +798,8 @@ func (s *rpcServer) Start() error {
 		return err
 	}
 
-	if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-		log.Debugf("Transport [%s] Listening on %s", config.Transport.String(), ts.Addr())
+	if logger.V(logger.InfoLevel, logger.DefaultLogger) {
+		log.Infof("Transport [%s] Listening on %s", config.Transport.String(), ts.Addr())
 	}
 
 	// swap address
@@ -818,8 +818,8 @@ func (s *rpcServer) Start() error {
 		return err
 	}
 
-	if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-		log.Debugf("Broker [%s] Connected to %s", bname, config.Broker.Address())
+	if logger.V(logger.InfoLevel, logger.DefaultLogger) {
+		log.Infof("Broker [%s] Connected to %s", bname, config.Broker.Address())
 	}
 
 	// use RegisterCheck func before register
@@ -940,8 +940,8 @@ func (s *rpcServer) Start() error {
 		// close transport listener
 		ch <- ts.Close()
 
-		if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-			log.Debugf("Broker [%s] Disconnected from %s", bname, config.Broker.Address())
+		if logger.V(logger.InfoLevel, logger.DefaultLogger) {
+			log.Infof("Broker [%s] Disconnected from %s", bname, config.Broker.Address())
 		}
 		// disconnect the broker
 		if err := config.Broker.Disconnect(); err != nil {

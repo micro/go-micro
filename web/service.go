@@ -10,7 +10,6 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
-	"syscall"
 	"time"
 
 	"github.com/micro/cli/v2"
@@ -20,6 +19,7 @@ import (
 	maddr "github.com/micro/go-micro/v2/util/addr"
 	mhttp "github.com/micro/go-micro/v2/util/http"
 	mnet "github.com/micro/go-micro/v2/util/net"
+	signalutil "github.com/micro/go-micro/v2/util/signal"
 	mls "github.com/micro/go-micro/v2/util/tls"
 )
 
@@ -29,7 +29,7 @@ type service struct {
 	mux *http.ServeMux
 	srv *registry.Service
 
-	sync.Mutex
+	sync.RWMutex
 	running bool
 	static  bool
 	exit    chan chan error
@@ -55,7 +55,7 @@ func (s *service) genSrv() *registry.Service {
 	if len(s.opts.Address) > 0 {
 		host, port, err = net.SplitHostPort(s.opts.Address)
 		if err != nil {
-			log.Fatal(err)
+			logger.Fatal(err)
 		}
 	}
 
@@ -65,13 +65,13 @@ func (s *service) genSrv() *registry.Service {
 	if len(s.opts.Advertise) > 0 {
 		host, port, err = net.SplitHostPort(s.opts.Address)
 		if err != nil {
-			log.Fatal(err)
+			logger.Fatal(err)
 		}
 	}
 
 	addr, err := maddr.Extract(host)
 	if err != nil {
-		log.Fatal(err)
+		logger.Fatal(err)
 	}
 
 	if strings.Count(addr, ":") > 0 {
@@ -90,11 +90,14 @@ func (s *service) genSrv() *registry.Service {
 }
 
 func (s *service) run(exit chan bool) {
+	s.RLock()
 	if s.opts.RegisterInterval <= time.Duration(0) {
+		s.RUnlock()
 		return
 	}
 
 	t := time.NewTicker(s.opts.RegisterInterval)
+	s.RUnlock()
 
 	for {
 		select {
@@ -125,8 +128,8 @@ func (s *service) register() error {
 
 	// use RegisterCheck func before register
 	if err := s.opts.RegisterCheck(s.opts.Context); err != nil {
-		if logger.V(logger.ErrorLevel, log) {
-			log.Errorf("Server %s-%s register check error: %s", s.opts.Name, s.opts.Id, err)
+		if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
+			logger.Errorf("Server %s-%s register check error: %s", s.opts.Name, s.opts.Id, err)
 		}
 		return err
 	}
@@ -192,8 +195,8 @@ func (s *service) start() error {
 			if s.static {
 				_, err := os.Stat(static)
 				if err == nil {
-					if logger.V(logger.InfoLevel, log) {
-						log.Infof("Enabling static file serving from %s", static)
+					if logger.V(logger.InfoLevel, logger.DefaultLogger) {
+						logger.Infof("Enabling static file serving from %s", static)
 					}
 					s.mux.Handle("/", http.FileServer(http.Dir(static)))
 				}
@@ -226,8 +229,8 @@ func (s *service) start() error {
 		ch <- l.Close()
 	}()
 
-	if logger.V(logger.DebugLevel, log) {
-		log.Debugf("Listening on %v", l.Addr().String())
+	if logger.V(logger.InfoLevel, logger.DefaultLogger) {
+		logger.Infof("Listening on %v", l.Addr().String())
 	}
 	return nil
 }
@@ -250,8 +253,8 @@ func (s *service) stop() error {
 	s.exit <- ch
 	s.running = false
 
-	if logger.V(logger.InfoLevel, log) {
-		log.Info("Stopping")
+	if logger.V(logger.InfoLevel, logger.DefaultLogger) {
+		logger.Info("Stopping")
 	}
 
 	for _, fn := range s.opts.AfterStop {
@@ -316,10 +319,20 @@ func (s *service) HandleFunc(pattern string, handler func(http.ResponseWriter, *
 		})
 	}
 
+	// disable static serving
+	if pattern == "/" {
+		s.Lock()
+		s.static = false
+		s.Unlock()
+	}
+
 	s.mux.HandleFunc(pattern, handler)
 }
 
 func (s *service) Init(opts ...Option) error {
+	s.Lock()
+	defer s.Unlock()
+
 	for _, o := range opts {
 		o(&s.opts)
 	}
@@ -335,6 +348,9 @@ func (s *service) Init(opts ...Option) error {
 	}
 
 	serviceOpts = append(serviceOpts, micro.Action(func(ctx *cli.Context) error {
+		s.Lock()
+		defer s.Unlock()
+
 		if ttl := ctx.Int("register_ttl"); ttl > 0 {
 			s.opts.RegisterTTL = time.Duration(ttl) * time.Second
 		}
@@ -397,19 +413,19 @@ func (s *service) Run() error {
 
 	ch := make(chan os.Signal, 1)
 	if s.opts.Signal {
-		signal.Notify(ch, syscall.SIGTERM, syscall.SIGINT)
+		signal.Notify(ch, signalutil.Shutdown()...)
 	}
 
 	select {
 	// wait on kill signal
 	case sig := <-ch:
-		if logger.V(logger.InfoLevel, log) {
-			log.Infof("Received signal %s", sig)
+		if logger.V(logger.InfoLevel, logger.DefaultLogger) {
+			logger.Infof("Received signal %s", sig)
 		}
 	// wait on context cancel
 	case <-s.opts.Context.Done():
-		if logger.V(logger.InfoLevel, log) {
-			log.Info("Received context shutdown")
+		if logger.V(logger.InfoLevel, logger.DefaultLogger) {
+			logger.Info("Received context shutdown")
 		}
 	}
 

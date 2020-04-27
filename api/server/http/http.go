@@ -51,18 +51,22 @@ func (s *httpServer) Init(opts ...server.Option) error {
 }
 
 func (s *httpServer) Handle(path string, handler http.Handler) {
-	h := handlers.CombinedLoggingHandler(os.Stdout, handler)
+	// TODO: move this stuff out to one place with ServeHTTP
 
 	// apply the wrappers, e.g. auth
 	for _, wrapper := range s.opts.Wrappers {
-		h = wrapper(h)
+		handler = wrapper(handler)
 	}
 
+	// wrap with cors
 	if s.opts.EnableCORS {
-		h = cors.CombinedCORSHandler(h)
+		handler = cors.CombinedCORSHandler(handler)
 	}
 
-	s.mux.Handle(path, h)
+	// wrap with logger
+	handler = handlers.CombinedLoggingHandler(os.Stdout, handler)
+
+	s.mux.Handle(path, handler)
 }
 
 func (s *httpServer) Start() error {

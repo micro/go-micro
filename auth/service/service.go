@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -18,9 +19,7 @@ import (
 
 // NewAuth returns a new instance of the Auth service
 func NewAuth(opts ...auth.Option) auth.Auth {
-	svc := new(svc)
-	svc.Init(opts...)
-	return svc
+	return &svc{options: auth.NewOptions(opts...)}
 }
 
 // svc is the service implementation of the Auth interface
@@ -55,8 +54,9 @@ func (s *svc) Init(opts ...auth.Option) {
 	}
 
 	// load rules periodically from the auth service
-	ruleTimer := time.NewTicker(time.Second * 30)
 	go func() {
+		ruleTimer := time.NewTicker(time.Second * 30)
+
 		// load rules immediately on startup
 		s.loadRules()
 
@@ -74,10 +74,11 @@ func (s *svc) Init(opts ...auth.Option) {
 	// we have client credentials and must load a new token
 	// periodically
 	if len(s.options.ID) > 0 || len(s.options.Secret) > 0 {
-		tokenTimer := time.NewTicker(time.Minute)
+		// get a token immediately
+		s.refreshToken()
 
 		go func() {
-			s.refreshToken()
+			tokenTimer := time.NewTicker(time.Minute)
 
 			for {
 				<-tokenTimer.C
@@ -180,10 +181,14 @@ func (s *svc) Verify(acc *auth.Account, res *auth.Resource) error {
 		}
 	}
 
-	// set a default account id to log
+	// set a default account id / namespace to log
 	logID := acc.ID
 	if len(logID) == 0 {
 		logID = "[no account]"
+	}
+	logNamespace := acc.Namespace
+	if len(logNamespace) == 0 {
+		logNamespace = "[no namespace]"
 	}
 
 	for _, q := range queries {
@@ -192,17 +197,17 @@ func (s *svc) Verify(acc *auth.Account, res *auth.Resource) error {
 			case pb.Access_UNKNOWN:
 				continue // rule did not specify access, check the next rule
 			case pb.Access_GRANTED:
-				log.Infof("%v:%v granted access to %v:%v:%v:%v by rule %v", acc.Namespace, logID, res.Namespace, res.Type, res.Name, res.Endpoint, rule.Id)
+				log.Tracef("%v:%v granted access to %v:%v:%v:%v by rule %v", logNamespace, logID, res.Namespace, res.Type, res.Name, res.Endpoint, rule.Id)
 				return nil // rule grants the account access to the resource
 			case pb.Access_DENIED:
-				log.Infof("%v:%v denied access to %v:%v:%v:%v by rule %v", acc.Namespace, logID, res.Namespace, res.Type, res.Name, res.Endpoint, rule.Id)
+				log.Tracef("%v:%v denied access to %v:%v:%v:%v by rule %v", logNamespace, logID, res.Namespace, res.Type, res.Name, res.Endpoint, rule.Id)
 				return auth.ErrForbidden // rule denies access to the resource
 			}
 		}
 	}
 
 	// no rules were found for the resource, default to denying access
-	log.Infof("%v:%v denied access to %v:%v:%v:%v by lack of rule (%v rules found for namespace)", acc.Namespace, logID, res.Namespace, res.Type, res.Name, res.Endpoint, len(s.listRules(res.Namespace)))
+	log.Tracef("%v:%v denied access to %v:%v:%v:%v by lack of rule (%v rules found for namespace)", logNamespace, logID, res.Namespace, res.Type, res.Name, res.Endpoint, len(s.listRules(res.Namespace)))
 	return auth.ErrForbidden
 }
 
@@ -285,6 +290,11 @@ func (s *svc) listRules(filters ...string) []*pb.Rule {
 
 		rules = append(rules, r)
 	}
+
+	// sort rules by priority
+	sort.Slice(rules, func(i, j int) bool {
+		return rules[i].Priority < rules[j].Priority
+	})
 
 	return rules
 }

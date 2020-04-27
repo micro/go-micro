@@ -1,6 +1,6 @@
 # Go Micro [![License](https://img.shields.io/:license-apache-blue.svg)](https://opensource.org/licenses/Apache-2.0) [![Go.Dev reference](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white&style=flat-square)](https://pkg.go.dev/github.com/micro/go-micro?tab=doc) [![Travis CI](https://api.travis-ci.org/micro/go-micro.svg?branch=master)](https://travis-ci.org/micro/go-micro) [![Go Report Card](https://goreportcard.com/badge/micro/go-micro)](https://goreportcard.com/report/github.com/micro/go-micro)
 
-Go Micro is a framework for microservice development.
+Go Micro is a framework for distributed systems development.
 
 ## Overview
 
@@ -35,8 +35,7 @@ communication. A request made to a service will be automatically resolved, load 
 transport is [gRPC](https://grpc.io/).
 
 - **Async Messaging** - PubSub is built in as a first class citizen for asynchronous communication and event driven architectures. 
-Event notifications are a core pattern in micro service development. The default messaging system is an embedded [NATS](https://nats.io/) 
-server.
+Event notifications are a core pattern in micro service development. The default messaging system is a HTTP event message broker.
 
 - **Pluggable Interfaces** - Go Micro makes use of Go interfaces for each distributed system abstraction. Because of this these interfaces 
 are pluggable and allows Go Micro to be runtime agnostic. You can plugin any underlying technology. Find plugins in 
@@ -44,5 +43,15 @@ are pluggable and allows Go Micro to be runtime agnostic. You can plugin any und
 
 ## Getting Started
 
+To make use of Go Micro
+
+```golang
+import "github.com/micro/go-micro/v2"
+```
+
 See the [docs](https://micro.mu/docs/framework.html) for detailed information on the architecture, installation and use of go-micro.
+
+## License
+
+Go Micro is Apache 2.0 licensed
 

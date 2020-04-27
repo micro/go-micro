@@ -93,7 +93,8 @@ type Metadata struct {
 
 // PodSpec is a pod
 type PodSpec struct {
-	Containers []Container `json:"containers"`
+	Containers       []Container       `json:"containers"`
+	ImagePullSecrets []ImagePullSecret `json:"imagePullSecrets"`
 }
 
 // PodList
@@ -182,4 +183,14 @@ type Template struct {
 // Namespace is a Kubernetes Namespace
 type Namespace struct {
 	Metadata *Metadata `json:"metadata,omitempty"`
+}
+
+// NamespaceList
+type NamespaceList struct {
+	Items []Namespace `json:"items"`
+}
+
+// ImagePullSecret
+type ImagePullSecret struct {
+	Name string `json:"name"`
 }
