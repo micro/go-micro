@@ -7,7 +7,6 @@ import (
 	"github.com/micro/go-micro/v2/client"
 	"github.com/micro/go-micro/v2/runtime"
 	pb "github.com/micro/go-micro/v2/runtime/service/proto"
-	"github.com/micro/go-micro/v2/util/log"
 )
 
 type svc struct {
@@ -80,7 +79,7 @@ func (s *svc) Logs(service *runtime.Service, opts ...runtime.LogsOption) (runtim
 	ls, err := s.runtime.Logs(options.Context, &pb.LogsRequest{
 		Service: service.Name,
 		Stream:  true,
-		Count:   10, // @todo pass in actual options
+		//Count:   100, // @todo pass in actual options
 	})
 	if err != nil {
 		return nil, err
@@ -90,14 +89,25 @@ func (s *svc) Logs(service *runtime.Service, opts ...runtime.LogsOption) (runtim
 		stream:  make(chan runtime.LogRecord),
 		stop:    make(chan bool),
 	}
+
 	go func() {
 		for {
-			record := runtime.LogRecord{}
-			err := ls.RecvMsg(&record)
-			if err != nil {
-				log.Error(err)
+			select {
+			// @todod this never seems to return, investigate
+			case <-ls.Context().Done():
+				return
+			default:
+				record := pb.LogRecord{}
+				err := ls.RecvMsg(&record)
+				if err != nil {
+					logStream.Stop()
+					return
+				}
+				logStream.stream <- runtime.LogRecord{
+					Message:  record.GetMessage(),
+					Metadata: record.GetMetadata(),
+				}
 			}
-			logStream.stream <- record
 		}
 	}()
 	return logStream, nil

@@ -294,9 +294,18 @@ func (r *runtime) Logs(s *Service, options ...LogsOption) (LogStream, error) {
 
 	ret.tail = t
 	go func() {
-		for line := range t.Lines {
-			ret.stream <- LogRecord{Message: line.Text}
+		for {
+			select {
+			case line := <-t.Lines:
+				if line == nil {
+					continue
+				}
+				ret.stream <- LogRecord{Message: line.Text}
+			case <-ret.stop:
+				return
+			}
 		}
+
 	}()
 	return ret, nil
 }
@@ -321,15 +330,15 @@ func (l *logStream) Error() error {
 func (l *logStream) Stop() error {
 	l.Lock()
 	defer l.Unlock()
-	// @todo seems like this is causing a hangup
-	//err := l.tail.Stop()
-	//if err != nil {
-	//	return err
-	//}
+
 	select {
 	case <-l.stop:
 		return nil
 	default:
+		err := l.tail.Stop()
+		if err != nil {
+			return err
+		}
 		close(l.stop)
 	}
 	return nil
