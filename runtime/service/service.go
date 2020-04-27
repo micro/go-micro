@@ -95,7 +95,21 @@ func (s *svc) Logs(service *runtime.Service, opts ...runtime.LogsOption) (runtim
 			select {
 			// @todo this never seems to return, investigate
 			case <-ls.Context().Done():
+				logStream.Stop()
+			}
+		}
+	}()
+
+	go func() {
+		for {
+			select {
+			// @todo this never seems to return, investigate
+			case <-ls.Context().Done():
 				return
+			case _, ok := <-logStream.stream:
+				if !ok {
+					return
+				}
 			default:
 				record := pb.LogRecord{}
 				err := ls.RecvMsg(&record)
@@ -136,6 +150,7 @@ func (l *serviceLogStream) Stop() error {
 	case <-l.stop:
 		return nil
 	default:
+		close(l.stream)
 		close(l.stop)
 	}
 	return nil

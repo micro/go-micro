@@ -293,7 +293,7 @@ func (r *runtime) Logs(s *Service, options ...LogsOption) (LogStream, error) {
 	if !lopts.Stream {
 		offset -= int(lopts.Count) * 500
 	}
-	fmt.Println(lopts.Count, lopts.Stream, whence, offset)
+
 	t, err := tail.TailFile(logFile(s.Name), tail.Config{Follow: lopts.Stream, Location: &tail.SeekInfo{
 		Whence: whence,
 		Offset: int64(offset),
@@ -306,9 +306,10 @@ func (r *runtime) Logs(s *Service, options ...LogsOption) (LogStream, error) {
 	go func() {
 		for {
 			select {
-			case line := <-t.Lines:
-				if line == nil {
-					continue
+			case line, ok := <-t.Lines:
+				if !ok {
+					ret.Stop()
+					return
 				}
 				ret.stream <- LogRecord{Message: line.Text}
 			case <-ret.stop:
@@ -345,11 +346,12 @@ func (l *logStream) Stop() error {
 	case <-l.stop:
 		return nil
 	default:
+		close(l.stop)
+		close(l.stream)
 		err := l.tail.Stop()
 		if err != nil {
 			return err
 		}
-		close(l.stop)
 	}
 	return nil
 }
