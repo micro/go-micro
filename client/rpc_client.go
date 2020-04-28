@@ -628,7 +628,7 @@ func (r *rpcClient) Publish(ctx context.Context, msg Message, opts ...PublishOpt
 	return r.opts.Broker.Publish(topic, &broker.Message{
 		Header: md,
 		Body:   body,
-	})
+	}, broker.PublishContext(options.Context))
 }
 
 func (r *rpcClient) NewMessage(topic string, message interface{}, opts ...MessageOption) Message {
