@@ -55,11 +55,17 @@ func NewRuntime(opts ...Option) Runtime {
 
 // @todo move this to runtime default
 func (r *runtime) checkoutSourceIfNeeded(s *Service) error {
+	// Runtime service like config have no source.
+	// Skip checkout in that case
+	if len(s.Source) == 0 {
+		return nil
+	}
 	source, err := git.ParseSourceLocal("", s.Source)
 	if err != nil {
 		return err
 	}
 	source.Ref = s.Version
+
 	err = git.CheckoutSource(os.TempDir(), source)
 	if err != nil {
 		return err
@@ -209,7 +215,10 @@ func serviceKey(s *Service) string {
 
 // Create creates a new service which is then started by runtime
 func (r *runtime) Create(s *Service, opts ...CreateOption) error {
-	r.checkoutSourceIfNeeded(s)
+	err := r.checkoutSourceIfNeeded(s)
+	if err != nil {
+		return err
+	}
 	r.Lock()
 	defer r.Unlock()
 
@@ -389,14 +398,17 @@ func (r *runtime) Read(opts ...ReadOption) ([]*Service, error) {
 
 // Update attemps to update the service
 func (r *runtime) Update(s *Service, opts ...UpdateOption) error {
-	r.checkoutSourceIfNeeded(s)
+	err := r.checkoutSourceIfNeeded(s)
+	if err != nil {
+		return err
+	}
 	r.Lock()
 	service, ok := r.services[serviceKey(s)]
 	r.Unlock()
 	if !ok {
 		return errors.New("Service not found")
 	}
-	err := service.Stop()
+	err = service.Stop()
 	if err != nil {
 		return err
 	}

@@ -1,6 +1,7 @@
 package git
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -105,7 +106,7 @@ type binaryGitter struct {
 }
 
 func (g binaryGitter) Clone(repo string) error {
-	fold := filepath.Join(g.folder, dirifyRepo(repo))
+	fold := filepath.Join(g.folder, dirifyRepo(repo), ".git")
 	exists, err := pathExists(fold)
 	if err != nil {
 		return err
@@ -113,6 +114,7 @@ func (g binaryGitter) Clone(repo string) error {
 	if exists {
 		return nil
 	}
+	fold = filepath.Join(g.folder, dirifyRepo(repo))
 	cmd := exec.Command("git", "clone", repo, ".")
 
 	err = os.MkdirAll(fold, 0777)
@@ -130,9 +132,9 @@ func (g binaryGitter) Clone(repo string) error {
 func (g binaryGitter) FetchAll(repo string) error {
 	cmd := exec.Command("git", "fetch", "--all")
 	cmd.Dir = filepath.Join(g.folder, dirifyRepo(repo))
-	_, err := cmd.Output()
+	outp, err := cmd.CombinedOutput()
 	if err != nil {
-		return err
+		return errors.New(string(outp))
 	}
 	return err
 }
@@ -143,9 +145,9 @@ func (g binaryGitter) Checkout(repo, branchOrCommit string) error {
 	}
 	cmd := exec.Command("git", "checkout", "-f", branchOrCommit)
 	cmd.Dir = filepath.Join(g.folder, dirifyRepo(repo))
-	_, err := cmd.Output()
+	outp, err := cmd.CombinedOutput()
 	if err != nil {
-		return err
+		return errors.New(string(outp))
 	}
 	return nil
 }
