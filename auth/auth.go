@@ -89,8 +89,6 @@ const (
 	DefaultNamespace = "go.micro"
 	// TokenCookieName is the name of the cookie which stores the auth token
 	TokenCookieName = "micro-token"
-	// SecretCookieName is the name of the cookie which stores the auth secret
-	SecretCookieName = "micro-secret"
 	// BearerScheme used for Authorization header
 	BearerScheme = "Bearer "
 )
