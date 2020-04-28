@@ -163,12 +163,12 @@ func (r *Request) request() (*http.Request, error) {
 	case "namespace":
 		// /api/v1/namespaces/
 		url = fmt.Sprintf("%s/api/v1/namespaces/", r.host)
-	case "pod", "service", "endpoint":
-		// /api/v1/namespaces/{namespace}/pods
-		url = fmt.Sprintf("%s/api/v1/namespaces/%s/%ss/", r.host, r.namespace, r.resource)
 	case "deployment":
 		// /apis/apps/v1/namespaces/{namespace}/deployments/{name}
 		url = fmt.Sprintf("%s/apis/apps/v1/namespaces/%s/%ss/", r.host, r.namespace, r.resource)
+	default:
+		// /api/v1/namespaces/{namespace}/{resource}
+		url = fmt.Sprintf("%s/api/v1/namespaces/%s/%ss/", r.host, r.namespace, r.resource)
 	}
 
 	// append resourceName if it is present

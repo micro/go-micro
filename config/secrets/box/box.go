@@ -18,8 +18,8 @@ type box struct {
 	privateKey [keyLength]byte
 }
 
-// NewCodec returns a nacl-box codec
-func NewCodec(opts ...secrets.Option) secrets.Codec {
+// NewSecrets returns a nacl-box codec
+func NewSecrets(opts ...secrets.Option) secrets.Secrets {
 	b := &box{}
 	for _, o := range opts {
 		o(&b.options)

@@ -14,21 +14,21 @@ func TestSecretBox(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	s := NewCodec()
+	s := NewSecrets()
 
 	if err := s.Init(); err == nil {
 		t.Error("Secretbox accepted an empty secret key")
 	}
-	if err := s.Init(secrets.SecretKey([]byte("invalid"))); err == nil {
+	if err := s.Init(secrets.Key([]byte("invalid"))); err == nil {
 		t.Error("Secretbox accepted a secret key that is invalid")
 	}
 
-	if err := s.Init(secrets.SecretKey(secretKey)); err != nil {
+	if err := s.Init(secrets.Key(secretKey)); err != nil {
 		t.Fatal(err)
 	}
 
 	o := s.Options()
-	if !reflect.DeepEqual(o.SecretKey, secretKey) {
+	if !reflect.DeepEqual(o.Key, secretKey) {
 		t.Error("Init() didn't set secret key correctly")
 	}
 	if s.String() != "nacl-secretbox" {
