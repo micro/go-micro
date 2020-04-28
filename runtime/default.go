@@ -55,6 +55,11 @@ func NewRuntime(opts ...Option) Runtime {
 
 // @todo move this to runtime default
 func (r *runtime) checkoutSourceIfNeeded(s *Service) error {
+	// Runtime service like config have no source.
+	// Skip checkout in that case
+	if len(s.Source) == 0 {
+		return nil
+	}
 	source, err := git.ParseSourceLocal("", s.Source)
 	if err != nil {
 		return err
