@@ -87,7 +87,7 @@ func (d *discordInput) Start() error {
 	}
 
 	var err error
-	d.session, err = discordgo.New(d.token)
+	d.session, err = discordgo.New("Bot " + d.token)
 	if err != nil {
 		return err
 	}
