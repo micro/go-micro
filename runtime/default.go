@@ -294,11 +294,23 @@ func (r *runtime) Logs(s *Service, options ...LogsOption) (LogStream, error) {
 		return nil, fmt.Errorf("Log file %v does not exists", fpath)
 	}
 
+	// have to check file size to avoid too big of a seek
+	fi, err := os.Stat(fpath)
+	if err != nil {
+		return nil, err
+	}
+	size := fi.Size()
+
 	whence := 2
 	// Multiply by length of an average line of log in bytes
-	offset := -1 * lopts.Count * 200
+	offset := lopts.Count * 200
 
-	t, err := tail.TailFile(logFile(s.Name), tail.Config{Follow: lopts.Stream, Location: &tail.SeekInfo{
+	if offset > size {
+		offset = size
+	}
+	offset *= -1
+
+	t, err := tail.TailFile(fpath, tail.Config{Follow: lopts.Stream, Location: &tail.SeekInfo{
 		Whence: whence,
 		Offset: int64(offset),
 	}, Logger: tail.DiscardingLogger})
@@ -354,6 +366,7 @@ func (l *logStream) Stop() error {
 		close(l.stream)
 		err := l.tail.Stop()
 		if err != nil {
+			logger.Errorf("Error stopping tail: %v", err)
 			return err
 		}
 	}
