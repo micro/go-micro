@@ -178,10 +178,7 @@ func AuthHandler(fn func() auth.Auth) server.HandlerWrapper {
 			}
 
 			// There is an account, set it in the context
-			ctx, err = auth.ContextWithAccount(ctx, account)
-			if err != nil {
-				return err
-			}
+			ctx = auth.ContextWithAccount(ctx, account)
 
 			// The user is authorised, allow the call
 			return h(ctx, req, rsp)
