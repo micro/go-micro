@@ -286,13 +286,8 @@ func (r *runtime) Logs(s *Service, options ...LogsOption) (LogStream, error) {
 	}
 
 	whence := 2
-	offset := 0
-	if lopts.Count > 0 {
-		lopts.Stream = false
-	}
-	if !lopts.Stream {
-		offset -= int(lopts.Count) * 500
-	}
+	// Multiply by length of an average line of log in bytes
+	offset := -1 * lopts.Count * 200
 
 	t, err := tail.TailFile(logFile(s.Name), tail.Config{Follow: lopts.Stream, Location: &tail.SeekInfo{
 		Whence: whence,

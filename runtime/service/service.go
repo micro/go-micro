@@ -72,6 +72,7 @@ func (s *svc) Logs(service *runtime.Service, opts ...runtime.LogsOption) (runtim
 	for _, o := range opts {
 		o(&options)
 	}
+
 	if options.Context == nil {
 		options.Context = context.Background()
 	}
