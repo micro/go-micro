@@ -110,10 +110,13 @@ func (r *staticRouter) Register(ep *api.Endpoint) error {
 
 	for _, p := range ep.Path {
 		var pcreok bool
-		pcrereg, err := regexp.CompilePOSIX(p)
-		if err == nil {
-			pcreregs = append(pcreregs, pcrereg)
-			pcreok = true
+
+		if p[len(p)-1] != '$' {
+			pcrereg, err := regexp.CompilePOSIX(p + "$")
+			if err == nil {
+				pcreregs = append(pcreregs, pcrereg)
+				pcreok = true
+			}
 		}
 
 		rule, err := util.Parse(p)
@@ -280,6 +283,9 @@ func (r *staticRouter) endpoint(req *http.Request) (*endpoint, error) {
 				}
 				continue
 			}
+			if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+				logger.Debugf("api gpath match %s = %v", path, pathreg)
+			}
 			pMatch = true
 			ctx := req.Context()
 			md, ok := metadata.FromContext(ctx)
@@ -294,16 +300,18 @@ func (r *staticRouter) endpoint(req *http.Request) (*endpoint, error) {
 			break
 		}
 
-		// 4. try path via pcre path matching
-		for _, pathreg := range ep.pcreregs {
-			if !pathreg.MatchString(req.URL.Path) {
-				if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-					logger.Debugf("api pcre path not match %s != %v", req.URL.Path, pathreg)
+		if !pMatch {
+			// 4. try path via pcre path matching
+			for _, pathreg := range ep.pcreregs {
+				if !pathreg.MatchString(req.URL.Path) {
+					if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+						logger.Debugf("api pcre path not match %s != %v", req.URL.Path, pathreg)
+					}
+					continue
 				}
-				continue
+				pMatch = true
+				break
 			}
-			pMatch = true
-			break
 		}
 
 		if !pMatch {
