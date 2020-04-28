@@ -60,6 +60,7 @@ func (r *runtime) checkoutSourceIfNeeded(s *Service) error {
 		return err
 	}
 	source.Ref = s.Version
+
 	err = git.CheckoutSource(os.TempDir(), source)
 	if err != nil {
 		return err
@@ -209,7 +210,10 @@ func serviceKey(s *Service) string {
 
 // Create creates a new service which is then started by runtime
 func (r *runtime) Create(s *Service, opts ...CreateOption) error {
-	r.checkoutSourceIfNeeded(s)
+	err := r.checkoutSourceIfNeeded(s)
+	if err != nil {
+		return err
+	}
 	r.Lock()
 	defer r.Unlock()
 
@@ -389,14 +393,17 @@ func (r *runtime) Read(opts ...ReadOption) ([]*Service, error) {
 
 // Update attemps to update the service
 func (r *runtime) Update(s *Service, opts ...UpdateOption) error {
-	r.checkoutSourceIfNeeded(s)
+	err := r.checkoutSourceIfNeeded(s)
+	if err != nil {
+		return err
+	}
 	r.Lock()
 	service, ok := r.services[serviceKey(s)]
 	r.Unlock()
 	if !ok {
 		return errors.New("Service not found")
 	}
-	err := service.Stop()
+	err = service.Stop()
 	if err != nil {
 		return err
 	}
