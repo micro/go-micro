@@ -653,7 +653,7 @@ func (g *grpcClient) Publish(ctx context.Context, p client.Message, opts ...clie
 	return g.opts.Broker.Publish(topic, &broker.Message{
 		Header: md,
 		Body:   body,
-	})
+	}, broker.PublishContext(options.Context))
 }
 
 func (g *grpcClient) String() string {
