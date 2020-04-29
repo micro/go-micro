@@ -34,6 +34,26 @@ func (s *testServer) HandleError(ctx context.Context, msg *pb.Request) error {
 }
 
 // TestHello implements helloworld.GreeterServer
+func (s *testServer) CallPcre(ctx context.Context, req *pb.Request, rsp *pb.Response) error {
+	if req.Name == "Error" {
+		return &errors.Error{Id: "1", Code: 99, Detail: "detail"}
+	}
+
+	rsp.Msg = "Hello " + req.Name
+	return nil
+}
+
+// TestHello implements helloworld.GreeterServer
+func (s *testServer) CallPcreInvalid(ctx context.Context, req *pb.Request, rsp *pb.Response) error {
+	if req.Name == "Error" {
+		return &errors.Error{Id: "1", Code: 99, Detail: "detail"}
+	}
+
+	rsp.Msg = "Hello " + req.Name
+	return nil
+}
+
+// TestHello implements helloworld.GreeterServer
 func (s *testServer) Call(ctx context.Context, req *pb.Request, rsp *pb.Response) error {
 	if req.Name == "Error" {
 		return &errors.Error{Id: "1", Code: 99, Detail: "detail"}

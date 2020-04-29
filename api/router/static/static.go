@@ -111,8 +111,9 @@ func (r *staticRouter) Register(ep *api.Endpoint) error {
 	for _, p := range ep.Path {
 		var pcreok bool
 
-		if p[len(p)-1] != '$' {
-			pcrereg, err := regexp.CompilePOSIX(p + "$")
+		// pcre only when we have start and end markers
+		if p[0] == '^' && p[len(p)-1] == '$' {
+			pcrereg, err := regexp.CompilePOSIX(p)
 			if err == nil {
 				pcreregs = append(pcreregs, pcrereg)
 				pcreok = true
@@ -125,6 +126,7 @@ func (r *staticRouter) Register(ep *api.Endpoint) error {
 		} else if err != nil && pcreok {
 			continue
 		}
+
 		tpl := rule.Compile()
 		pathreg, err := util.NewPattern(tpl.Version, tpl.OpCodes, tpl.Pool, "")
 		if err != nil {

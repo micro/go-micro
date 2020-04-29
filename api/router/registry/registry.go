@@ -188,8 +188,8 @@ func (r *registryRouter) store(services []*registry.Service) {
 		for _, p := range ep.Endpoint.Path {
 			var pcreok bool
 
-			if p[len(p)-1] != '$' {
-				pcrereg, err := regexp.CompilePOSIX(p + "$")
+			if p[0] == '^' && p[len(p)-1] != '$' {
+				pcrereg, err := regexp.CompilePOSIX(p)
 				if err == nil {
 					cep.pcreregs = append(cep.pcreregs, pcrereg)
 					pcreok = true
