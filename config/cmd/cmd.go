@@ -70,6 +70,7 @@ import (
 	memTracer "github.com/micro/go-micro/v2/debug/trace/memory"
 
 	// auth
+	jwtAuth "github.com/micro/go-micro/v2/auth/jwt"
 	svcAuth "github.com/micro/go-micro/v2/auth/service"
 
 	// auth providers
@@ -369,6 +370,7 @@ var (
 
 	DefaultAuths = map[string]func(...auth.Option) auth.Auth{
 		"service": svcAuth.NewAuth,
+		"jwt":     jwtAuth.NewAuth,
 	}
 
 	DefaultAuthProviders = map[string]func(...provider.Option) provider.Provider{
