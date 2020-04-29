@@ -146,7 +146,7 @@ func (a *authWrapper) Call(ctx context.Context, req client.Request, rsp interfac
 
 	// check to see if the authorization header has already been set.
 	// We dont't override the header unless the ServiceToken option has
-	// been specified.
+	// been specified or the header wasn't provided
 	if _, ok := metadata.Get(ctx, "Authorization"); ok && !options.ServiceToken {
 		return a.Client.Call(ctx, req, rsp, opts...)
 	}
@@ -158,8 +158,7 @@ func (a *authWrapper) Call(ctx context.Context, req client.Request, rsp interfac
 		return a.Client.Call(ctx, req, rsp, opts...)
 	}
 
-	// callWithToken performs the client call with the authorization header
-	// set to the token.
+	// performs the call with the authorization token provided
 	callWithToken := func(token string) error {
 		ctx := metadata.Set(ctx, "Authorization", auth.BearerScheme+token)
 		return a.Client.Call(ctx, req, rsp, opts...)
@@ -181,8 +180,7 @@ func (a *authWrapper) Call(ctx context.Context, req client.Request, rsp interfac
 		return callWithToken(tok.AccessToken)
 	}
 
-	// if we have credentials we can generate a new token for the exiting auth
-	// account. these credential would've been set by env vars.
+	// if we have credentials we can generate a new token for the account
 	if len(aaOpts.ID) > 0 && len(aaOpts.Secret) > 0 {
 		tok, err := aa.Token(auth.WithCredentials(aaOpts.ID, aaOpts.Secret))
 		if err != nil {
@@ -192,8 +190,8 @@ func (a *authWrapper) Call(ctx context.Context, req client.Request, rsp interfac
 		return callWithToken(tok.AccessToken)
 	}
 
-	// before we generate a new auth account, check to see if a token was provided
-	// in config, this is normally used for setting the token when calling via the cli
+	// check to see if a token was provided in config, this is normally used for
+	// setting the token when calling via the cli
 	if token, err := config.Get("micro", "auth", "token"); err == nil && len(token) > 0 {
 		return callWithToken(token)
 	}
