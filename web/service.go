@@ -111,6 +111,9 @@ func (s *service) run(exit chan bool) {
 }
 
 func (s *service) register() error {
+	s.RLock()
+	defer s.RUnlock()
+
 	if s.srv == nil {
 		return nil
 	}
@@ -138,6 +141,9 @@ func (s *service) register() error {
 }
 
 func (s *service) deregister() error {
+	s.RLock()
+	defer s.RUnlock()
+
 	if s.srv == nil {
 		return nil
 	}
@@ -280,18 +286,22 @@ func (s *service) Client() *http.Client {
 
 func (s *service) Handle(pattern string, handler http.Handler) {
 	var seen bool
+	s.RLock()
 	for _, ep := range s.srv.Endpoints {
 		if ep.Name == pattern {
 			seen = true
 			break
 		}
 	}
+	s.RUnlock()
 
 	// if its unseen then add an endpoint
 	if !seen {
+		s.Lock()
 		s.srv.Endpoints = append(s.srv.Endpoints, &registry.Endpoint{
 			Name: pattern,
 		})
+		s.Unlock()
 	}
 
 	// disable static serving
@@ -306,17 +316,23 @@ func (s *service) Handle(pattern string, handler http.Handler) {
 }
 
 func (s *service) HandleFunc(pattern string, handler func(http.ResponseWriter, *http.Request)) {
+
 	var seen bool
+	s.RLock()
 	for _, ep := range s.srv.Endpoints {
 		if ep.Name == pattern {
 			seen = true
 			break
 		}
 	}
+	s.RUnlock()
+
 	if !seen {
+		s.Lock()
 		s.srv.Endpoints = append(s.srv.Endpoints, &registry.Endpoint{
 			Name: pattern,
 		})
+		s.Unlock()
 	}
 
 	// disable static serving
@@ -331,7 +347,6 @@ func (s *service) HandleFunc(pattern string, handler func(http.ResponseWriter, *
 
 func (s *service) Init(opts ...Option) error {
 	s.Lock()
-	defer s.Unlock()
 
 	for _, o := range opts {
 		o(&s.opts)
@@ -346,6 +361,8 @@ func (s *service) Init(opts ...Option) error {
 	if s.opts.Registry != nil {
 		serviceOpts = append(serviceOpts, micro.Registry(s.opts.Registry))
 	}
+
+	s.Unlock()
 
 	serviceOpts = append(serviceOpts, micro.Action(func(ctx *cli.Context) error {
 		s.Lock()
@@ -386,14 +403,19 @@ func (s *service) Init(opts ...Option) error {
 		return nil
 	}))
 
+	s.RLock()
 	// pass in own name and version
 	serviceOpts = append(serviceOpts, micro.Name(s.opts.Name))
 	serviceOpts = append(serviceOpts, micro.Version(s.opts.Version))
+	s.RUnlock()
 
 	s.opts.Service.Init(serviceOpts...)
+
+	s.Lock()
 	srv := s.genSrv()
 	srv.Endpoints = s.srv.Endpoints
 	s.srv = srv
+	s.Unlock()
 
 	return nil
 }

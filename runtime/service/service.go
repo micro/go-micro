@@ -7,7 +7,6 @@ import (
 	"github.com/micro/go-micro/v2/client"
 	"github.com/micro/go-micro/v2/runtime"
 	pb "github.com/micro/go-micro/v2/runtime/service/proto"
-	"github.com/micro/go-micro/v2/util/log"
 )
 
 type svc struct {
@@ -72,14 +71,15 @@ func (s *svc) Logs(service *runtime.Service, opts ...runtime.LogsOption) (runtim
 	for _, o := range opts {
 		o(&options)
 	}
+
 	if options.Context == nil {
 		options.Context = context.Background()
 	}
 
 	ls, err := s.runtime.Logs(options.Context, &pb.LogsRequest{
 		Service: service.Name,
-		Stream:  true,
-		Count:   10, // @todo pass in actual options
+		Stream:  options.Stream,
+		Count:   options.Count,
 	})
 	if err != nil {
 		return nil, err
@@ -89,14 +89,39 @@ func (s *svc) Logs(service *runtime.Service, opts ...runtime.LogsOption) (runtim
 		stream:  make(chan runtime.LogRecord),
 		stop:    make(chan bool),
 	}
+
 	go func() {
 		for {
-			record := runtime.LogRecord{}
-			err := ls.RecvMsg(&record)
-			if err != nil {
-				log.Error(err)
+			select {
+			// @todo this never seems to return, investigate
+			case <-ls.Context().Done():
+				logStream.Stop()
 			}
-			logStream.stream <- record
+		}
+	}()
+
+	go func() {
+		for {
+			select {
+			// @todo this never seems to return, investigate
+			case <-ls.Context().Done():
+				return
+			case _, ok := <-logStream.stream:
+				if !ok {
+					return
+				}
+			default:
+				record := pb.LogRecord{}
+				err := ls.RecvMsg(&record)
+				if err != nil {
+					logStream.Stop()
+					return
+				}
+				logStream.stream <- runtime.LogRecord{
+					Message:  record.GetMessage(),
+					Metadata: record.GetMetadata(),
+				}
+			}
 		}
 	}()
 	return logStream, nil
@@ -125,6 +150,7 @@ func (l *serviceLogStream) Stop() error {
 	case <-l.stop:
 		return nil
 	default:
+		close(l.stream)
 		close(l.stop)
 	}
 	return nil

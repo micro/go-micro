@@ -252,6 +252,13 @@ func WithExchange(e string) PublishOption {
 	}
 }
 
+// PublishContext sets the context in publish options
+func PublishContext(ctx context.Context) PublishOption {
+	return func(o *PublishOptions) {
+		o.Context = ctx
+	}
+}
+
 // WithAddress sets the remote addresses to use rather than using service discovery
 func WithAddress(a ...string) CallOption {
 	return func(o *CallOptions) {
