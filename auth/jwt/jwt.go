@@ -182,8 +182,9 @@ func (j *jwt) Token(opts ...auth.TokenOption) (*auth.Token, error) {
 	}
 
 	return &auth.Token{
-		Created:     tok.Created,
-		Expiry:      tok.Expiry,
-		AccessToken: tok.Token,
+		Created:      tok.Created,
+		Expiry:       tok.Expiry,
+		AccessToken:  tok.Token,
+		RefreshToken: tok.Token,
 	}, nil
 }
