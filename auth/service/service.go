@@ -70,35 +70,6 @@ func (s *svc) Init(opts ...auth.Option) {
 			s.loadRules()
 		}
 	}()
-
-	// we have client credentials and must load a new token
-	// periodically
-	if len(s.options.ID) > 0 || len(s.options.Secret) > 0 {
-		// get a token immediately
-		s.refreshToken()
-
-		go func() {
-			tokenTimer := time.NewTicker(time.Minute)
-
-			for {
-				<-tokenTimer.C
-
-				// Do not get a new token if the current one has more than three
-				// minutes remaining. We do 3 minutes to allow multiple retires in
-				// the case one request fails
-				t := s.Options().Token
-				if t != nil && t.Expiry.Unix() > time.Now().Add(time.Minute*3).Unix() {
-					continue
-				}
-
-				// jitter for up to 5 seconds, this stops
-				// all the services calling the auth service
-				// at the exact same time
-				time.Sleep(jitter.Do(time.Second * 5))
-				s.refreshToken()
-			}
-		}()
-	}
 }
 
 func (s *svc) Options() auth.Options {
@@ -311,33 +282,6 @@ func (s *svc) loadRules() {
 	}
 
 	s.rules = rsp.Rules
-}
-
-// refreshToken generates a new token for the service to use when making calls
-func (s *svc) refreshToken() {
-	req := &pb.TokenRequest{
-		TokenExpiry: int64((time.Minute * 15).Seconds()),
-	}
-
-	if s.Options().Token == nil {
-		// we do not have a token, use the credentials to get one
-		req.Id = s.Options().ID
-		req.Secret = s.Options().Secret
-	} else {
-		// we have a token, refresh it
-		req.RefreshToken = s.Options().Token.RefreshToken
-	}
-
-	rsp, err := s.auth.Token(context.TODO(), req)
-	s.Lock()
-	defer s.Unlock()
-
-	if err != nil {
-		log.Errorf("Error generating token: %v", err)
-		return
-	}
-
-	s.options.Token = serializeToken(rsp.Token)
 }
 
 func serializeToken(t *pb.Token) *auth.Token {
