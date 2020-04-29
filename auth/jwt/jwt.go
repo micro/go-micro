@@ -30,7 +30,7 @@ func (j *jwt) Init(opts ...auth.Option) {
 	}
 
 	j.jwt = jwtToken.NewTokenProvider(
-		token.WithPrivateKey(j.options.PublicKey),
+		token.WithPrivateKey(j.options.PrivateKey),
 		token.WithPublicKey(j.options.PublicKey),
 	)
 }
