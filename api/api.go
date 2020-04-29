@@ -128,9 +128,18 @@ func Validate(e *Endpoint) error {
 	}
 
 	for _, p := range e.Path {
-		_, err := regexp.CompilePOSIX(p)
-		if err != nil {
-			return err
+		ps := p[0]
+		pe := p[len(p)-1]
+
+		if ps == '^' && pe == '$' {
+			_, err := regexp.CompilePOSIX(p)
+			if err != nil {
+				return err
+			}
+		} else if ps == '^' && pe != '$' {
+			return errors.New("invalid path")
+		} else if ps != '^' && pe == '$' {
+			return errors.New("invalid path")
 		}
 	}
 
