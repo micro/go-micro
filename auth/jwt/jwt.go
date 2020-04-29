@@ -15,7 +15,6 @@ func NewAuth(opts ...auth.Option) auth.Auth {
 	return j
 }
 
-// jwt is the service implementation of the Auth interface
 type jwt struct {
 	options auth.Options
 	jwt     token.Provider
