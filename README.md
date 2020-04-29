@@ -53,5 +53,5 @@ See the [docs](https://micro.mu/docs/framework.html) for detailed information on
 
 ## License
 
-Go Micro is Apache 2.0 licensed
+Go Micro is Apache 2.0 licensed.
 
