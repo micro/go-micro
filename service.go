@@ -41,7 +41,7 @@ func newService(opts ...Option) Service {
 	// wrap client to inject From-Service header on any calls
 	options.Client = wrapper.FromService(serviceName, options.Client)
 	options.Client = wrapper.TraceCall(serviceName, trace.DefaultTracer, options.Client)
-	options.Client = wrapper.AuthClient(serviceName, authFn, options.Client)
+	options.Client = wrapper.AuthClient(serviceName, options.Server.Options().Id, authFn, options.Client)
 
 	// wrap the server to provide handler stats
 	options.Server.Init(

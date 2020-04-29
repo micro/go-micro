@@ -2,6 +2,7 @@ package wrapper
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
@@ -134,6 +135,7 @@ func TraceHandler(t trace.Tracer) server.HandlerWrapper {
 type authWrapper struct {
 	client.Client
 	name string
+	id   string
 	auth func() auth.Auth
 }
 
@@ -208,7 +210,8 @@ func (a *authWrapper) Call(ctx context.Context, req client.Request, rsp interfac
 	}
 
 	// generate a new auth account for the service
-	acc, err := aa.Generate(a.name, auth.WithNamespace(aaOpts.Namespace), auth.WithRoles(serviceType))
+	name := fmt.Sprintf("%v-%v", a.name, a.id)
+	acc, err := aa.Generate(name, auth.WithNamespace(aaOpts.Namespace), auth.WithRoles(serviceType))
 	if err != nil {
 		return err
 	}
@@ -223,8 +226,8 @@ func (a *authWrapper) Call(ctx context.Context, req client.Request, rsp interfac
 }
 
 // AuthClient wraps requests with the auth header
-func AuthClient(name string, auth func() auth.Auth, c client.Client) client.Client {
-	return &authWrapper{c, name, auth}
+func AuthClient(name string, id string, auth func() auth.Auth, c client.Client) client.Client {
+	return &authWrapper{c, name, id, auth}
 }
 
 // AuthHandler wraps a server handler to perform auth
