@@ -274,20 +274,35 @@ func ParseSource(source string) (*Source, error) {
 }
 
 // ParseSourceLocal detects and handles local pathes too
-// workdir should be used only from the CLI @todo better interface for this function
-func ParseSourceLocal(workDir, source string) (*Source, error) {
+// workdir should be used only from the CLI @todo better interface for this function.
+// PathExistsFunc exists only for testing purposes, to make the function side effect free.
+func ParseSourceLocal(workDir, source string, pathExistsFunc ...func(path string) (bool, error)) (*Source, error) {
+	var pexists func(string) (bool, error)
+	if len(pathExistsFunc) == 0 {
+		pexists = pathExists
+	} else {
+		pexists = pathExistsFunc[0]
+	}
 	var localFullPath string
 	if len(workDir) > 0 {
 		localFullPath = filepath.Join(workDir, source)
 	} else {
 		localFullPath = source
 	}
-	if exists, err := pathExists(localFullPath); err == nil && exists {
+	if exists, err := pexists(localFullPath); err == nil && exists {
 		localRepoRoot, err := GetRepoRoot(localFullPath)
 		if err != nil {
 			return nil, err
 		}
-		folder := strings.ReplaceAll(localFullPath, localRepoRoot+string(filepath.Separator), "")
+		var folder string
+		// If the local repo root is a top level folder, we are not in a git repo.
+		// In this case, we should take the last folder as folder name.
+		if localRepoRoot == "" {
+			folder = filepath.Base(localFullPath)
+		} else {
+			folder = strings.ReplaceAll(localFullPath, localRepoRoot+string(filepath.Separator), "")
+		}
+
 		return &Source{
 			Local:         true,
 			Folder:        folder,
