@@ -55,11 +55,17 @@ func NewRuntime(opts ...Option) Runtime {
 
 // @todo move this to runtime default
 func (r *runtime) checkoutSourceIfNeeded(s *Service) error {
+	// Runtime service like config have no source.
+	// Skip checkout in that case
+	if len(s.Source) == 0 {
+		return nil
+	}
 	source, err := git.ParseSourceLocal("", s.Source)
 	if err != nil {
 		return err
 	}
 	source.Ref = s.Version
+
 	err = git.CheckoutSource(os.TempDir(), source)
 	if err != nil {
 		return err
@@ -209,7 +215,10 @@ func serviceKey(s *Service) string {
 
 // Create creates a new service which is then started by runtime
 func (r *runtime) Create(s *Service, opts ...CreateOption) error {
-	r.checkoutSourceIfNeeded(s)
+	err := r.checkoutSourceIfNeeded(s)
+	if err != nil {
+		return err
+	}
 	r.Lock()
 	defer r.Unlock()
 
@@ -251,6 +260,18 @@ func (r *runtime) Create(s *Service, opts ...CreateOption) error {
 	return nil
 }
 
+// exists returns whether the given file or directory exists
+func exists(path string) (bool, error) {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true, nil
+	}
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	return true, err
+}
+
 // @todo: Getting existing lines is not supported yet.
 // The reason for this is because it's hard to calculate line offset
 // as opposed to character offset.
@@ -265,18 +286,53 @@ func (r *runtime) Logs(s *Service, options ...LogsOption) (LogStream, error) {
 		stream:  make(chan LogRecord),
 		stop:    make(chan bool),
 	}
-	t, err := tail.TailFile(logFile(s.Name), tail.Config{Follow: true, Location: &tail.SeekInfo{
-		Whence: 2,
-		Offset: 0,
+
+	fpath := logFile(s.Name)
+	if ex, err := exists(fpath); err != nil {
+		return nil, err
+	} else if !ex {
+		return nil, fmt.Errorf("Log file %v does not exists", fpath)
+	}
+
+	// have to check file size to avoid too big of a seek
+	fi, err := os.Stat(fpath)
+	if err != nil {
+		return nil, err
+	}
+	size := fi.Size()
+
+	whence := 2
+	// Multiply by length of an average line of log in bytes
+	offset := lopts.Count * 200
+
+	if offset > size {
+		offset = size
+	}
+	offset *= -1
+
+	t, err := tail.TailFile(fpath, tail.Config{Follow: lopts.Stream, Location: &tail.SeekInfo{
+		Whence: whence,
+		Offset: int64(offset),
 	}, Logger: tail.DiscardingLogger})
 	if err != nil {
 		return nil, err
 	}
+
 	ret.tail = t
 	go func() {
-		for line := range t.Lines {
-			ret.stream <- LogRecord{Message: line.Text}
+		for {
+			select {
+			case line, ok := <-t.Lines:
+				if !ok {
+					ret.Stop()
+					return
+				}
+				ret.stream <- LogRecord{Message: line.Text}
+			case <-ret.stop:
+				return
+			}
 		}
+
 	}()
 	return ret, nil
 }
@@ -301,16 +357,18 @@ func (l *logStream) Error() error {
 func (l *logStream) Stop() error {
 	l.Lock()
 	defer l.Unlock()
-	// @todo seems like this is causing a hangup
-	//err := l.tail.Stop()
-	//if err != nil {
-	//	return err
-	//}
+
 	select {
 	case <-l.stop:
 		return nil
 	default:
 		close(l.stop)
+		close(l.stream)
+		err := l.tail.Stop()
+		if err != nil {
+			logger.Errorf("Error stopping tail: %v", err)
+			return err
+		}
 	}
 	return nil
 }
@@ -353,14 +411,17 @@ func (r *runtime) Read(opts ...ReadOption) ([]*Service, error) {
 
 // Update attemps to update the service
 func (r *runtime) Update(s *Service, opts ...UpdateOption) error {
-	r.checkoutSourceIfNeeded(s)
+	err := r.checkoutSourceIfNeeded(s)
+	if err != nil {
+		return err
+	}
 	r.Lock()
 	service, ok := r.services[serviceKey(s)]
 	r.Unlock()
 	if !ok {
 		return errors.New("Service not found")
 	}
-	err := service.Stop()
+	err = service.Stop()
 	if err != nil {
 		return err
 	}

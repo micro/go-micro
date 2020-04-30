@@ -79,6 +79,13 @@ func Credentials(id, secret string) Option {
 	}
 }
 
+// ClientToken sets the auth token to use when making requests
+func ClientToken(token *Token) Option {
+	return func(o *Options) {
+		o.Token = token
+	}
+}
+
 // Provider set the auth provider
 func Provider(p provider.Provider) Option {
 	return func(o *Options) {

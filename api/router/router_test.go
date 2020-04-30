@@ -34,6 +34,18 @@ func (s *testServer) Call(ctx context.Context, req *pb.Request, rsp *pb.Response
 	return nil
 }
 
+// TestHello implements helloworld.GreeterServer
+func (s *testServer) CallPcre(ctx context.Context, req *pb.Request, rsp *pb.Response) error {
+	rsp.Msg = "Hello " + req.Uuid
+	return nil
+}
+
+// TestHello implements helloworld.GreeterServer
+func (s *testServer) CallPcreInvalid(ctx context.Context, req *pb.Request, rsp *pb.Response) error {
+	rsp.Msg = "Hello " + req.Uuid
+	return nil
+}
+
 func initial(t *testing.T) (server.Server, client.Client) {
 	r := rmemory.NewRegistry()
 
@@ -81,7 +93,7 @@ func check(t *testing.T, addr string, path string, expected string) {
 	}
 }
 
-func TestRouterRegistry(t *testing.T) {
+func TestRouterRegistryPcre(t *testing.T) {
 	s, c := initial(t)
 	defer s.Stop()
 
@@ -152,7 +164,7 @@ func TestRouterStaticPcre(t *testing.T) {
 	check(t, hsrv.Addr, "http://%s/api/v0/test/call", `{"msg":"Hello "}`)
 }
 
-func TestRouterStaticG(t *testing.T) {
+func TestRouterStaticGpath(t *testing.T) {
 	s, c := initial(t)
 	defer s.Stop()
 
@@ -191,4 +203,43 @@ func TestRouterStaticG(t *testing.T) {
 
 	time.Sleep(1 * time.Second)
 	check(t, hsrv.Addr, "http://%s/api/v0/test/call/TEST", `{"msg":"Hello TEST"}`)
+}
+
+func TestRouterStaticPcreInvalid(t *testing.T) {
+	var ep *api.Endpoint
+	var err error
+
+	s, c := initial(t)
+	defer s.Stop()
+
+	router := rstatic.NewRouter(
+		router.WithHandler(rpc.Handler),
+		router.WithRegistry(s.Options().Registry),
+	)
+
+	ep = &api.Endpoint{
+		Name:    "foo.Test.Call",
+		Method:  []string{"POST"},
+		Path:    []string{"^/api/v0/test/call/?"},
+		Handler: "rpc",
+	}
+
+	err = router.Register(ep)
+	if err == nil {
+		t.Fatalf("invalid endpoint %v", ep)
+	}
+
+	ep = &api.Endpoint{
+		Name:    "foo.Test.Call",
+		Method:  []string{"POST"},
+		Path:    []string{"/api/v0/test/call/?$"},
+		Handler: "rpc",
+	}
+
+	err = router.Register(ep)
+	if err == nil {
+		t.Fatalf("invalid endpoint %v", ep)
+	}
+
+	_ = c
 }

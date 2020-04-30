@@ -2,7 +2,9 @@ package wrapper
 
 import (
 	"context"
+	"fmt"
 	"strings"
+	"time"
 
 	"github.com/micro/go-micro/v2/auth"
 	"github.com/micro/go-micro/v2/client"
@@ -11,68 +13,44 @@ import (
 	"github.com/micro/go-micro/v2/errors"
 	"github.com/micro/go-micro/v2/metadata"
 	"github.com/micro/go-micro/v2/server"
+	"github.com/micro/go-micro/v2/util/config"
 )
 
-type clientWrapper struct {
+type fromServiceWrapper struct {
 	client.Client
 
-	// Auth interface
-	auth func() auth.Auth
 	// headers to inject
 	headers metadata.Metadata
-}
-
-type traceWrapper struct {
-	client.Client
-
-	name  string
-	trace trace.Tracer
 }
 
 var (
 	HeaderPrefix = "Micro-"
 )
 
-func (c *clientWrapper) setHeaders(ctx context.Context) context.Context {
+func (f *fromServiceWrapper) setHeaders(ctx context.Context) context.Context {
 	// don't overwrite keys
-	return metadata.MergeContext(ctx, c.headers, false)
+	return metadata.MergeContext(ctx, f.headers, false)
 }
 
-func (c *clientWrapper) Call(ctx context.Context, req client.Request, rsp interface{}, opts ...client.CallOption) error {
-	ctx = c.setHeaders(ctx)
-	return c.Client.Call(ctx, req, rsp, opts...)
+func (f *fromServiceWrapper) Call(ctx context.Context, req client.Request, rsp interface{}, opts ...client.CallOption) error {
+	ctx = f.setHeaders(ctx)
+	return f.Client.Call(ctx, req, rsp, opts...)
 }
 
-func (c *clientWrapper) Stream(ctx context.Context, req client.Request, opts ...client.CallOption) (client.Stream, error) {
-	ctx = c.setHeaders(ctx)
-	return c.Client.Stream(ctx, req, opts...)
+func (f *fromServiceWrapper) Stream(ctx context.Context, req client.Request, opts ...client.CallOption) (client.Stream, error) {
+	ctx = f.setHeaders(ctx)
+	return f.Client.Stream(ctx, req, opts...)
 }
 
-func (c *clientWrapper) Publish(ctx context.Context, p client.Message, opts ...client.PublishOption) error {
-	ctx = c.setHeaders(ctx)
-	return c.Client.Publish(ctx, p, opts...)
-}
-
-func (c *traceWrapper) Call(ctx context.Context, req client.Request, rsp interface{}, opts ...client.CallOption) error {
-	newCtx, s := c.trace.Start(ctx, req.Service()+"."+req.Endpoint())
-
-	s.Type = trace.SpanTypeRequestOutbound
-	err := c.Client.Call(newCtx, req, rsp, opts...)
-	if err != nil {
-		s.Metadata["error"] = err.Error()
-	}
-
-	// finish the trace
-	c.trace.Finish(s)
-
-	return err
+func (f *fromServiceWrapper) Publish(ctx context.Context, p client.Message, opts ...client.PublishOption) error {
+	ctx = f.setHeaders(ctx)
+	return f.Client.Publish(ctx, p, opts...)
 }
 
 // FromService wraps a client to inject service and auth metadata
-func FromService(name string, c client.Client, fn func() auth.Auth) client.Client {
-	return &clientWrapper{
+func FromService(name string, c client.Client) client.Client {
+	return &fromServiceWrapper{
 		c,
-		fn,
 		metadata.Metadata{
 			HeaderPrefix + "From-Service": name,
 		},
@@ -93,6 +71,28 @@ func HandlerStats(stats stats.Stats) server.HandlerWrapper {
 			return err
 		}
 	}
+}
+
+type traceWrapper struct {
+	client.Client
+
+	name  string
+	trace trace.Tracer
+}
+
+func (c *traceWrapper) Call(ctx context.Context, req client.Request, rsp interface{}, opts ...client.CallOption) error {
+	newCtx, s := c.trace.Start(ctx, req.Service()+"."+req.Endpoint())
+
+	s.Type = trace.SpanTypeRequestOutbound
+	err := c.Client.Call(newCtx, req, rsp, opts...)
+	if err != nil {
+		s.Metadata["error"] = err.Error()
+	}
+
+	// finish the trace
+	c.trace.Finish(s)
+
+	return err
 }
 
 // TraceCall is a call tracing wrapper
@@ -130,6 +130,104 @@ func TraceHandler(t trace.Tracer) server.HandlerWrapper {
 			return err
 		}
 	}
+}
+
+type authWrapper struct {
+	client.Client
+	name string
+	id   string
+	auth func() auth.Auth
+}
+
+func (a *authWrapper) Call(ctx context.Context, req client.Request, rsp interface{}, opts ...client.CallOption) error {
+	// parse the options
+	var options client.CallOptions
+	for _, o := range opts {
+		o(&options)
+	}
+
+	// check to see if the authorization header has already been set.
+	// We dont't override the header unless the ServiceToken option has
+	// been specified or the header wasn't provided
+	if _, ok := metadata.Get(ctx, "Authorization"); ok && !options.ServiceToken {
+		return a.Client.Call(ctx, req, rsp, opts...)
+	}
+
+	// if auth is nil we won't be able to get an access token, so we execute
+	// the request without one.
+	aa := a.auth()
+	if a == nil {
+		return a.Client.Call(ctx, req, rsp, opts...)
+	}
+
+	// performs the call with the authorization token provided
+	callWithToken := func(token string) error {
+		ctx := metadata.Set(ctx, "Authorization", auth.BearerScheme+token)
+		return a.Client.Call(ctx, req, rsp, opts...)
+	}
+
+	// check to see if we have a valid access token
+	aaOpts := aa.Options()
+	if aaOpts.Token != nil && aaOpts.Token.Expiry.Unix() > time.Now().Unix() {
+		return callWithToken(aaOpts.Token.AccessToken)
+	}
+
+	// if we have a refresh token we can use this to generate another access token
+	if aaOpts.Token != nil {
+		tok, err := aa.Token(auth.WithToken(aaOpts.Token.RefreshToken))
+		if err != nil {
+			return err
+		}
+		aa.Init(auth.ClientToken(tok))
+		return callWithToken(tok.AccessToken)
+	}
+
+	// if we have credentials we can generate a new token for the account
+	if len(aaOpts.ID) > 0 && len(aaOpts.Secret) > 0 {
+		tok, err := aa.Token(auth.WithCredentials(aaOpts.ID, aaOpts.Secret))
+		if err != nil {
+			return err
+		}
+		aa.Init(auth.ClientToken(tok))
+		return callWithToken(tok.AccessToken)
+	}
+
+	// check to see if a token was provided in config, this is normally used for
+	// setting the token when calling via the cli
+	if token, err := config.Get("micro", "auth", "token"); err == nil && len(token) > 0 {
+		return callWithToken(token)
+	}
+
+	// determine the type of service from the name. we do this so we can allocate
+	// different roles depending on the type of services. e.g. we don't want web
+	// services talking directly to the runtime. TODO: find a better way to determine
+	// the type of service
+	serviceType := "service"
+	if strings.Contains(a.name, "api") {
+		serviceType = "api"
+	} else if strings.Contains(a.name, "web") {
+		serviceType = "web"
+	}
+
+	// generate a new auth account for the service
+	name := fmt.Sprintf("%v-%v", a.name, a.id)
+	acc, err := aa.Generate(name, auth.WithNamespace(aaOpts.Namespace), auth.WithRoles(serviceType))
+	if err != nil {
+		return err
+	}
+	token, err := aa.Token(auth.WithCredentials(acc.ID, acc.Secret))
+	if err != nil {
+		return err
+	}
+	aa.Init(auth.ClientToken(token))
+
+	// use the token to execute the request
+	return callWithToken(token.AccessToken)
+}
+
+// AuthClient wraps requests with the auth header
+func AuthClient(name string, id string, auth func() auth.Auth, c client.Client) client.Client {
+	return &authWrapper{c, name, id, auth}
 }
 
 // AuthHandler wraps a server handler to perform auth
@@ -178,10 +276,7 @@ func AuthHandler(fn func() auth.Auth) server.HandlerWrapper {
 			}
 
 			// There is an account, set it in the context
-			ctx, err = auth.ContextWithAccount(ctx, account)
-			if err != nil {
-				return err
-			}
+			ctx = auth.ContextWithAccount(ctx, account)
 
 			// The user is authorised, allow the call
 			return h(ctx, req, rsp)
