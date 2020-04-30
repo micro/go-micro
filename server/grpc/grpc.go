@@ -758,15 +758,21 @@ func (g *grpcServer) Deregister() error {
 
 	g.registered = false
 
+	wg := sync.WaitGroup{}
 	for sb, subs := range g.subscribers {
 		for _, sub := range subs {
-			if logger.V(logger.InfoLevel, logger.DefaultLogger) {
-				logger.Infof("Unsubscribing from topic: %s", sub.Topic())
-			}
-			sub.Unsubscribe()
+			wg.Add(1)
+			go func(s broker.Subscriber) {
+				defer wg.Done()
+				if logger.V(logger.InfoLevel, logger.DefaultLogger) {
+					logger.Infof("Unsubscribing from topic: %s", s.Topic())
+				}
+				s.Unsubscribe()
+			}(sub)
 		}
 		g.subscribers[sb] = nil
 	}
+	wg.Wait()
 
 	g.Unlock()
 	return nil
