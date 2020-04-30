@@ -61,12 +61,12 @@ func (s *sqlStore) createDB(database, table string) {
 
 func (s *sqlStore) initDB(database, table string) error {
 	// Create the namespace's database
-	_, err := s.db.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s ;", database))
+	_, err := s.db.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s;", database))
 	if err != nil {
 		return err
 	}
 
-	_, err = s.db.Exec(fmt.Sprintf("SET DATABASE = %s ;", database))
+	_, err = s.db.Exec(fmt.Sprintf("SET DATABASE = %s;", database))
 	if err != nil {
 		return errors.Wrap(err, "Couldn't set database")
 	}
@@ -99,12 +99,12 @@ func (s *sqlStore) configure() error {
 
 	database := s.options.Database
 	if len(database) == 0 {
-		database = DefaultDatabase
+		s.options.Database = DefaultDatabase
 	}
 
 	table := s.options.Table
 	if len(table) == 0 {
-		table = DefaultTable
+		s.options.Table = DefaultTable
 	}
 
 	// store.namespace must only contain letters, numbers and underscores
@@ -423,7 +423,11 @@ func (s *sqlStore) String() string {
 
 // NewStore returns a new micro Store backed by sql
 func NewStore(opts ...store.Option) store.Store {
-	var options store.Options
+	options := store.Options{
+		Database: DefaultDatabase,
+		Table: DefaultTable,
+	}
+
 	for _, o := range opts {
 		o(&options)
 	}
