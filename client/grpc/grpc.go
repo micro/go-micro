@@ -6,12 +6,10 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net"
-	"os"
 	"strings"
 	"sync/atomic"
 	"time"
 
-	"github.com/micro/go-micro/v2/auth"
 	"github.com/micro/go-micro/v2/broker"
 	"github.com/micro/go-micro/v2/client"
 	"github.com/micro/go-micro/v2/client/selector"
@@ -19,7 +17,7 @@ import (
 	"github.com/micro/go-micro/v2/errors"
 	"github.com/micro/go-micro/v2/metadata"
 	"github.com/micro/go-micro/v2/registry"
-	"github.com/micro/go-micro/v2/util/config"
+	pnet "github.com/micro/go-micro/v2/util/net"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -74,27 +72,13 @@ func (g *grpcClient) secure(addr string) grpc.DialOption {
 }
 
 func (g *grpcClient) next(request client.Request, opts client.CallOptions) (selector.Next, error) {
-	service := request.Service()
-
-	// get proxy
-	if prx := os.Getenv("MICRO_PROXY"); len(prx) > 0 {
-		// default name
-		if prx == "service" {
-			prx = "go.micro.proxy"
-		}
-		service = prx
-	}
-
-	// get proxy address
-	if prx := os.Getenv("MICRO_PROXY_ADDRESS"); len(prx) > 0 {
-		opts.Address = []string{prx}
-	}
+	service, address, _ := pnet.Proxy(request.Service(), opts.Address)
 
 	// return remote address
-	if len(opts.Address) > 0 {
+	if len(address) > 0 {
 		return func() (*registry.Node, error) {
 			return &registry.Node{
-				Address: opts.Address[0],
+				Address: address[0],
 			}, nil
 		}, nil
 	}
@@ -130,13 +114,6 @@ func (g *grpcClient) call(ctx context.Context, node *registry.Node, req client.R
 	header["timeout"] = fmt.Sprintf("%d", opts.RequestTimeout)
 	// set the content type for the request
 	header["x-content-type"] = req.ContentType()
-
-	// set the authorization token if one is saved locally
-	if len(header["authorization"]) == 0 {
-		if token, err := config.Get("token"); err == nil && len(token) > 0 {
-			header["authorization"] = auth.BearerScheme + token
-		}
-	}
 
 	md := gmetadata.New(header)
 	ctx = gmetadata.NewOutgoingContext(ctx, md)
@@ -210,7 +187,9 @@ func (g *grpcClient) stream(ctx context.Context, node *registry.Node, req client
 	}
 
 	// set timeout in nanoseconds
-	header["timeout"] = fmt.Sprintf("%d", opts.RequestTimeout)
+	if opts.StreamTimeout > time.Duration(0) {
+		header["timeout"] = fmt.Sprintf("%d", opts.StreamTimeout)
+	}
 	// set the content type for the request
 	header["x-content-type"] = req.ContentType()
 
@@ -638,7 +617,7 @@ func (g *grpcClient) Publish(ctx context.Context, p client.Message, opts ...clie
 	return g.opts.Broker.Publish(topic, &broker.Message{
 		Header: md,
 		Body:   body,
-	})
+	}, broker.PublishContext(options.Context))
 }
 
 func (g *grpcClient) String() string {

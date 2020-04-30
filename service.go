@@ -6,7 +6,6 @@ import (
 	"runtime"
 	"strings"
 	"sync"
-	"syscall"
 
 	"github.com/micro/go-micro/v2/auth"
 	"github.com/micro/go-micro/v2/client"
@@ -18,7 +17,7 @@ import (
 	"github.com/micro/go-micro/v2/plugin"
 	"github.com/micro/go-micro/v2/server"
 	"github.com/micro/go-micro/v2/store"
-	"github.com/micro/go-micro/v2/util/config"
+	signalutil "github.com/micro/go-micro/v2/util/signal"
 	"github.com/micro/go-micro/v2/util/wrapper"
 )
 
@@ -35,12 +34,14 @@ func newService(opts ...Option) Service {
 	// service name
 	serviceName := options.Server.Options().Name
 
-	// TODO: better accessors
-	authFn := func() auth.Auth { return service.opts.Auth }
+	// authFn returns the auth, we pass as a function since auth
+	// has not yet been set at this point.
+	authFn := func() auth.Auth { return options.Server.Options().Auth }
 
 	// wrap client to inject From-Service header on any calls
-	options.Client = wrapper.FromService(serviceName, options.Client, authFn)
+	options.Client = wrapper.FromService(serviceName, options.Client)
 	options.Client = wrapper.TraceCall(serviceName, trace.DefaultTracer, options.Client)
+	options.Client = wrapper.AuthClient(serviceName, options.Server.Options().Id, authFn, options.Client)
 
 	// wrap the server to provide handler stats
 	options.Server.Init(
@@ -106,20 +107,17 @@ func (s *service) Init(opts ...Option) {
 			logger.Fatal(err)
 		}
 
-		// If the store has no namespace set, fallback to the
-		// services name
-		if len(store.DefaultStore.Options().Namespace) == 0 {
-			name := s.opts.Cmd.App().Name
-			store.DefaultStore.Init(store.Namespace(name))
-		}
+		// Explicitly set the table name to the service name
+		name := s.opts.Cmd.App().Name
+		store.DefaultStore.Init(store.Table(name))
 
 		// TODO: replace Cmd.Init with config.Load
 		// Right now we're just going to load a token
 		// May need to re-read value on change
 		// TODO: should be scoped to micro/auth/token
-		if tk, _ := config.Get("token"); len(tk) > 0 {
-			s.opts.Auth.Init(auth.ServiceToken(tk))
-		}
+		// if tk, _ := config.Get("token"); len(tk) > 0 {
+		// 	s.opts.Auth.Init(auth.ServiceToken(tk))
+		// }
 	})
 }
 
@@ -213,7 +211,7 @@ func (s *service) Run() error {
 
 	ch := make(chan os.Signal, 1)
 	if s.opts.Signal {
-		signal.Notify(ch, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
+		signal.Notify(ch, signalutil.Shutdown()...)
 	}
 
 	select {

@@ -75,7 +75,9 @@ func (r *Request) Delete() *Request {
 
 // Namespace is to set the namespace to operate on
 func (r *Request) Namespace(s string) *Request {
-	r.namespace = s
+	if len(s) > 0 {
+		r.namespace = s
+	}
 	return r
 }
 
@@ -158,12 +160,15 @@ func (r *Request) SetHeader(key, value string) *Request {
 func (r *Request) request() (*http.Request, error) {
 	var url string
 	switch r.resource {
-	case "pod", "service", "endpoint":
-		// /api/v1/namespaces/{namespace}/pods
-		url = fmt.Sprintf("%s/api/v1/namespaces/%s/%ss/", r.host, r.namespace, r.resource)
+	case "namespace":
+		// /api/v1/namespaces/
+		url = fmt.Sprintf("%s/api/v1/namespaces/", r.host)
 	case "deployment":
 		// /apis/apps/v1/namespaces/{namespace}/deployments/{name}
 		url = fmt.Sprintf("%s/apis/apps/v1/namespaces/%s/%ss/", r.host, r.namespace, r.resource)
+	default:
+		// /api/v1/namespaces/{namespace}/{resource}
+		url = fmt.Sprintf("%s/api/v1/namespaces/%s/%ss/", r.host, r.namespace, r.resource)
 	}
 
 	// append resourceName if it is present

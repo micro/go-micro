@@ -2,6 +2,7 @@ package auth
 
 import (
 	"github.com/google/uuid"
+	"github.com/micro/go-micro/v2/auth/provider/basic"
 )
 
 var (
@@ -9,7 +10,17 @@ var (
 )
 
 func NewAuth(opts ...Option) Auth {
-	return &noop{}
+	options := Options{
+		Provider: basic.NewProvider(),
+	}
+
+	for _, o := range opts {
+		o(&options)
+	}
+
+	return &noop{
+		opts: options,
+	}
 }
 
 type noop struct {
@@ -38,10 +49,11 @@ func (n *noop) Generate(id string, opts ...GenerateOption) (*Account, error) {
 	options := NewGenerateOptions(opts...)
 
 	return &Account{
-		ID:       id,
-		Roles:    options.Roles,
-		Metadata: options.Metadata,
-		Secret:   &Token{},
+		ID:        id,
+		Roles:     options.Roles,
+		Secret:    options.Secret,
+		Metadata:  options.Metadata,
+		Namespace: DefaultNamespace,
 	}, nil
 }
 
@@ -63,11 +75,12 @@ func (n *noop) Verify(acc *Account, res *Resource) error {
 // Inspect a token
 func (n *noop) Inspect(token string) (*Account, error) {
 	return &Account{
-		ID: uuid.New().String(),
+		ID:        uuid.New().String(),
+		Namespace: DefaultNamespace,
 	}, nil
 }
 
-// Refresh an account using a secret
-func (n *noop) Refresh(secret string, opts ...RefreshOption) (*Token, error) {
+// Token generation using an account id and secret
+func (n *noop) Token(opts ...TokenOption) (*Token, error) {
 	return &Token{}, nil
 }

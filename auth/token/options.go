@@ -53,10 +53,6 @@ func NewOptions(opts ...Option) Options {
 type GenerateOptions struct {
 	// Expiry for the token
 	Expiry time.Duration
-	// Metadata associated with the account
-	Metadata map[string]string
-	// Roles/scopes associated with the account
-	Roles []string
 }
 
 type GenerateOption func(o *GenerateOptions)
@@ -65,20 +61,6 @@ type GenerateOption func(o *GenerateOptions)
 func WithExpiry(d time.Duration) GenerateOption {
 	return func(o *GenerateOptions) {
 		o.Expiry = d
-	}
-}
-
-// WithMetadata for the token
-func WithMetadata(md map[string]string) func(o *GenerateOptions) {
-	return func(o *GenerateOptions) {
-		o.Metadata = md
-	}
-}
-
-// WithRoles for the token
-func WithRoles(rs ...string) func(o *GenerateOptions) {
-	return func(o *GenerateOptions) {
-		o.Roles = rs
 	}
 }
 

@@ -8,8 +8,6 @@ import (
 	"os"
 	"sync"
 
-	"github.com/micro/go-micro/v2/api/server/auth"
-
 	"github.com/gorilla/handlers"
 	"github.com/micro/go-micro/v2/api/server"
 	"github.com/micro/go-micro/v2/api/server/cors"
@@ -25,9 +23,14 @@ type httpServer struct {
 	exit    chan chan error
 }
 
-func NewServer(address string) server.Server {
+func NewServer(address string, opts ...server.Option) server.Server {
+	var options server.Options
+	for _, o := range opts {
+		o(&options)
+	}
+
 	return &httpServer{
-		opts:    server.Options{},
+		opts:    options,
 		mux:     http.NewServeMux(),
 		address: address,
 		exit:    make(chan chan error),
@@ -48,14 +51,22 @@ func (s *httpServer) Init(opts ...server.Option) error {
 }
 
 func (s *httpServer) Handle(path string, handler http.Handler) {
-	h := handlers.CombinedLoggingHandler(os.Stdout, handler)
-	h = auth.CombinedAuthHandler(handler)
+	// TODO: move this stuff out to one place with ServeHTTP
 
-	if s.opts.EnableCORS {
-		h = cors.CombinedCORSHandler(h)
+	// apply the wrappers, e.g. auth
+	for _, wrapper := range s.opts.Wrappers {
+		handler = wrapper(handler)
 	}
 
-	s.mux.Handle(path, h)
+	// wrap with cors
+	if s.opts.EnableCORS {
+		handler = cors.CombinedCORSHandler(handler)
+	}
+
+	// wrap with logger
+	handler = handlers.CombinedLoggingHandler(os.Stdout, handler)
+
+	s.mux.Handle(path, handler)
 }
 
 func (s *httpServer) Start() error {

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/connectivity"
 )
 
 type pool struct {
@@ -77,6 +78,32 @@ func (p *pool) getConn(addr string, opts ...grpc.DialOption) (*poolConn, error) 
 	//  otherwise we'll create a new conn
 	conn := sp.head.next
 	for conn != nil {
+		//  check conn state
+		// https://github.com/grpc/grpc/blob/master/doc/connectivity-semantics-and-api.md
+		switch conn.GetState() {
+		case connectivity.Connecting:
+			conn = conn.next
+			continue
+		case connectivity.Shutdown:
+			next := conn.next
+			if conn.streams == 0 {
+				removeConn(conn)
+				sp.idle--
+			}
+			conn = next
+			continue
+		case connectivity.TransientFailure:
+			next := conn.next
+			if conn.streams == 0 {
+				removeConn(conn)
+				conn.ClientConn.Close()
+				sp.idle--
+			}
+			conn = next
+			continue
+		case connectivity.Ready:
+		case connectivity.Idle:
+		}
 		//  a old conn
 		if now-conn.created > p.ttl {
 			next := conn.next

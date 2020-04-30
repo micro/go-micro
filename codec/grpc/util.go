@@ -7,7 +7,7 @@ import (
 )
 
 var (
-	maxMessageSize = 1024 * 1024 * 4
+	MaxMessageSize = 1024 * 1024 * 4 // 4Mb
 	maxInt         = int(^uint(0) >> 1)
 )
 
@@ -34,8 +34,8 @@ func decode(r io.Reader) (uint8, []byte, error) {
 	if int64(length) > int64(maxInt) {
 		return cf, nil, fmt.Errorf("grpc: received message larger than max length allowed on current machine (%d vs. %d)", length, maxInt)
 	}
-	if int(length) > maxMessageSize {
-		return cf, nil, fmt.Errorf("grpc: received message larger than max (%d vs. %d)", length, maxMessageSize)
+	if int(length) > MaxMessageSize {
+		return cf, nil, fmt.Errorf("grpc: received message larger than max (%d vs. %d)", length, MaxMessageSize)
 	}
 
 	msg := make([]byte, int(length))

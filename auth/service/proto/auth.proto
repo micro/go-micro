@@ -1,0 +1,136 @@
+syntax = "proto3";
+
+package go.micro.auth;
+
+service Auth {
+	rpc Generate(GenerateRequest) returns (GenerateResponse) {};
+	rpc Inspect(InspectRequest) returns (InspectResponse) {};		
+	rpc Token(TokenRequest) returns (TokenResponse) {};
+}
+
+service Accounts {
+	rpc List(ListAccountsRequest) returns (ListAccountsResponse) {};
+}
+
+service Rules {
+	rpc Create(CreateRequest) returns (CreateResponse) {};
+	rpc Delete(DeleteRequest) returns (DeleteResponse) {};
+	rpc List(ListRequest) returns (ListResponse) {};
+}
+
+message ListAccountsRequest {
+}
+
+message ListAccountsResponse {
+	repeated Account accounts = 1;
+}
+
+message Token {
+	string access_token = 1;
+	string refresh_token = 2;
+	int64 created = 3;
+	int64 expiry = 4;
+}
+
+message Account {
+	string id = 1;
+	string type = 2;
+	repeated string roles = 3;
+	map<string, string> metadata = 4;
+	string namespace = 5;
+	string provider = 6;
+	string secret = 7;
+}
+
+message Resource{
+	string name = 1;
+	string type = 2;
+	string endpoint = 3;
+	string namespace = 4;
+}
+
+message GenerateRequest {
+	string id = 1;
+	repeated string roles = 2;
+	map<string, string> metadata = 3;
+	string namespace = 4;
+	string secret = 5;
+	string type = 6;
+	string provider = 7;
+}
+
+message GenerateResponse {
+	Account account = 1;
+}
+
+message GrantRequest {
+	string role = 1;
+	Resource resource = 2;
+}
+
+message GrantResponse {}
+
+message RevokeRequest {
+	string role = 1;
+	Resource resource = 2;
+}
+
+message RevokeResponse {}
+
+message InspectRequest {
+	string token = 1;
+}
+
+message InspectResponse {
+	Account account = 1;
+}
+
+message TokenRequest {
+	string id = 1;
+	string secret = 2;
+	string refresh_token = 3;
+	int64 token_expiry = 4;
+}
+
+message TokenResponse {
+	Token token = 1;
+}
+
+enum Access {
+	UNKNOWN = 0;
+	GRANTED = 1;
+	DENIED = 2;
+}
+
+message Rule {
+	string id = 1;
+	string role = 2;
+	Resource resource = 3;
+	Access access = 4;
+	int32 priority = 5;
+}
+
+message CreateRequest {
+	string role = 1;
+	Resource resource = 2;
+	Access access = 3;
+	int32 priority = 4;
+}
+
+message CreateResponse {}
+
+message DeleteRequest {
+	string role = 1;
+	Resource resource = 2;
+	Access access = 3;
+	int32 priority = 4;
+}
+
+message DeleteResponse {}
+
+message ListRequest {
+}
+
+message ListResponse {
+	repeated Rule rules = 1;
+}

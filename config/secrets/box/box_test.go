@@ -18,7 +18,7 @@ func TestBox(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	alice, bob := NewCodec(secrets.PublicKey(alicePublicKey[:]), secrets.PrivateKey(alicePrivateKey[:])), NewCodec()
+	alice, bob := NewSecrets(secrets.PublicKey(alicePublicKey[:]), secrets.PrivateKey(alicePrivateKey[:])), NewSecrets()
 	if err := alice.Init(); err != nil {
 		t.Error(err)
 	}
@@ -57,6 +57,9 @@ func TestBox(t *testing.T) {
 		t.Error(err)
 	}
 	dec, err = alice.Decrypt(enc, secrets.SenderPublicKey(bob.Options().PublicKey))
+	if err != nil {
+		t.Error(err)
+	}
 	if !reflect.DeepEqual(dec, bobSecret) {
 		t.Errorf("Alice's decrypted message didn't match Bob's encrypted message %v != %v", bobSecret, dec)
 	}

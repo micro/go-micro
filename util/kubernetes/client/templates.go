@@ -1,8 +1,11 @@
 package client
 
 var templates = map[string]string{
-	"deployment": deploymentTmpl,
-	"service":    serviceTmpl,
+	"deployment":     deploymentTmpl,
+	"service":        serviceTmpl,
+	"namespace":      namespaceTmpl,
+	"secret":         secretTmpl,
+	"serviceaccount": serviceAccountTmpl,
 }
 
 // stripped image pull policy always
@@ -48,7 +51,8 @@ spec:
         {{ $key }}: "{{ $value }}"
         {{- end }}
         {{- end }}
-    spec:
+    spec: 
+      serviceAccountName: {{ .Spec.Template.PodSpec.ServiceAccountName }}
       containers:
       {{- with .Spec.Template.PodSpec.Containers }}
       {{- range . }}
@@ -107,4 +111,56 @@ spec:
     protocol: {{ .Protocol }}
   {{- end }}
   {{- end }}
+`
+
+var namespaceTmpl = `
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: "{{ .Metadata.Name }}"
+  labels:
+    {{- with .Metadata.Labels }}
+    {{- range $key, $value := . }}
+    {{ $key }}: "{{ $value }}"
+    {{- end }}
+    {{- end }}
+`
+
+var secretTmpl = `
+apiVersion: v1
+kind: Secret
+metadata:
+  name: "{{ .Metadata.Name }}"
+  namespace: "{{ .Metadata.Namespace }}"
+  labels:
+    {{- with .Metadata.Labels }}
+    {{- range $key, $value := . }}
+    {{ $key }}: "{{ $value }}"
+    {{- end }}
+    {{- end }}
+data:
+{{- with .Data }}
+{{- range $key, $value := . }}
+{{ $key }}: "{{ $value }}"
+{{- end }}
+{{- end }}
+`
+
+var serviceAccountTmpl = `
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: "{{ .Metadata.Name }}"
+  labels:
+    {{- with .Metadata.Labels }}
+    {{- range $key, $value := . }}
+    {{ $key }}: "{{ $value }}"
+    {{- end }}
+    {{- end }}
+imagePullSecrets:
+{{- with .ImagePullSecrets }}
+{{- range . }}
+- name: "{{ .Name }}"
+{{- end }}
+{{- end }}
 `

@@ -2,10 +2,18 @@ package runtime
 
 import (
 	"errors"
+	"fmt"
+	"io"
+	"log"
+	"os"
+	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
+	"github.com/hpcloud/tail"
 	"github.com/micro/go-micro/v2/logger"
+	"github.com/micro/go-micro/v2/runtime/local/git"
 )
 
 type runtime struct {
@@ -33,12 +41,37 @@ func NewRuntime(opts ...Option) Runtime {
 		o(&options)
 	}
 
+	// make the logs directory
+	path := filepath.Join(os.TempDir(), "micro", "logs")
+	_ = os.MkdirAll(path, 0755)
+
 	return &runtime{
 		options:  options,
 		closed:   make(chan bool),
 		start:    make(chan *service, 128),
 		services: make(map[string]*service),
 	}
+}
+
+// @todo move this to runtime default
+func (r *runtime) checkoutSourceIfNeeded(s *Service) error {
+	// Runtime service like config have no source.
+	// Skip checkout in that case
+	if len(s.Source) == 0 {
+		return nil
+	}
+	source, err := git.ParseSourceLocal("", s.Source)
+	if err != nil {
+		return err
+	}
+	source.Ref = s.Version
+
+	err = git.CheckoutSource(os.TempDir(), source)
+	if err != nil {
+		return err
+	}
+	s.Source = source.FullPath
+	return nil
 }
 
 // Init initializes runtime options
@@ -131,7 +164,7 @@ func (r *runtime) run(events <-chan Event) {
 			case Update:
 				if len(event.Service) > 0 {
 					r.RLock()
-					service, ok := r.services[event.Service]
+					service, ok := r.services[fmt.Sprintf("%v:%v", event.Service, event.Version)]
 					r.RUnlock()
 					if !ok {
 						if logger.V(logger.DebugLevel, logger.DefaultLogger) {
@@ -169,12 +202,27 @@ func (r *runtime) run(events <-chan Event) {
 	}
 }
 
+func logFile(serviceName string) string {
+	// make the directory
+	name := strings.Replace(serviceName, "/", "-", -1)
+	path := filepath.Join(os.TempDir(), "micro", "logs")
+	return filepath.Join(path, fmt.Sprintf("%v.log", name))
+}
+
+func serviceKey(s *Service) string {
+	return fmt.Sprintf("%v:%v", s.Name, s.Version)
+}
+
 // Create creates a new service which is then started by runtime
 func (r *runtime) Create(s *Service, opts ...CreateOption) error {
+	err := r.checkoutSourceIfNeeded(s)
+	if err != nil {
+		return err
+	}
 	r.Lock()
 	defer r.Unlock()
 
-	if _, ok := r.services[s.Name]; ok {
+	if _, ok := r.services[serviceKey(s)]; ok {
 		return errors.New("service already running")
 	}
 
@@ -191,14 +239,137 @@ func (r *runtime) Create(s *Service, opts ...CreateOption) error {
 	// create new service
 	service := newService(s, options)
 
+	f, err := os.OpenFile(logFile(service.Name), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if service.output != nil {
+		service.output = io.MultiWriter(service.output, f)
+	} else {
+		service.output = f
+	}
 	// start the service
 	if err := service.Start(); err != nil {
 		return err
 	}
 
 	// save service
-	r.services[s.Name] = service
+	r.services[serviceKey(s)] = service
 
+	return nil
+}
+
+// exists returns whether the given file or directory exists
+func exists(path string) (bool, error) {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true, nil
+	}
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	return true, err
+}
+
+// @todo: Getting existing lines is not supported yet.
+// The reason for this is because it's hard to calculate line offset
+// as opposed to character offset.
+// This logger streams by default and only supports the `StreamCount` option.
+func (r *runtime) Logs(s *Service, options ...LogsOption) (LogStream, error) {
+	lopts := LogsOptions{}
+	for _, o := range options {
+		o(&lopts)
+	}
+	ret := &logStream{
+		service: s.Name,
+		stream:  make(chan LogRecord),
+		stop:    make(chan bool),
+	}
+
+	fpath := logFile(s.Name)
+	if ex, err := exists(fpath); err != nil {
+		return nil, err
+	} else if !ex {
+		return nil, fmt.Errorf("Log file %v does not exists", fpath)
+	}
+
+	// have to check file size to avoid too big of a seek
+	fi, err := os.Stat(fpath)
+	if err != nil {
+		return nil, err
+	}
+	size := fi.Size()
+
+	whence := 2
+	// Multiply by length of an average line of log in bytes
+	offset := lopts.Count * 200
+
+	if offset > size {
+		offset = size
+	}
+	offset *= -1
+
+	t, err := tail.TailFile(fpath, tail.Config{Follow: lopts.Stream, Location: &tail.SeekInfo{
+		Whence: whence,
+		Offset: int64(offset),
+	}, Logger: tail.DiscardingLogger})
+	if err != nil {
+		return nil, err
+	}
+
+	ret.tail = t
+	go func() {
+		for {
+			select {
+			case line, ok := <-t.Lines:
+				if !ok {
+					ret.Stop()
+					return
+				}
+				ret.stream <- LogRecord{Message: line.Text}
+			case <-ret.stop:
+				return
+			}
+		}
+
+	}()
+	return ret, nil
+}
+
+type logStream struct {
+	tail    *tail.Tail
+	service string
+	stream  chan LogRecord
+	sync.Mutex
+	stop chan bool
+	err  error
+}
+
+func (l *logStream) Chan() chan LogRecord {
+	return l.stream
+}
+
+func (l *logStream) Error() error {
+	return l.err
+}
+
+func (l *logStream) Stop() error {
+	l.Lock()
+	defer l.Unlock()
+
+	select {
+	case <-l.stop:
+		return nil
+	default:
+		close(l.stop)
+		close(l.stream)
+		err := l.tail.Stop()
+		if err != nil {
+			logger.Errorf("Error stopping tail: %v", err)
+			return err
+		}
+	}
 	return nil
 }
 
@@ -239,37 +410,36 @@ func (r *runtime) Read(opts ...ReadOption) ([]*Service, error) {
 }
 
 // Update attemps to update the service
-func (r *runtime) Update(s *Service) error {
-	var opts []CreateOption
-
-	// check if the service already exists
-	r.RLock()
-	if service, ok := r.services[s.Name]; ok {
-		opts = append(opts, WithOutput(service.output))
-	}
-	r.RUnlock()
-
-	// delete the service
-	if err := r.Delete(s); err != nil {
+func (r *runtime) Update(s *Service, opts ...UpdateOption) error {
+	err := r.checkoutSourceIfNeeded(s)
+	if err != nil {
 		return err
 	}
-
-	// create new service
-	return r.Create(s, opts...)
+	r.Lock()
+	service, ok := r.services[serviceKey(s)]
+	r.Unlock()
+	if !ok {
+		return errors.New("Service not found")
+	}
+	err = service.Stop()
+	if err != nil {
+		return err
+	}
+	return service.Start()
 }
 
 // Delete removes the service from the runtime and stops it
-func (r *runtime) Delete(s *Service) error {
+func (r *runtime) Delete(s *Service, opts ...DeleteOption) error {
 	r.Lock()
 	defer r.Unlock()
 
 	if logger.V(logger.DebugLevel, logger.DefaultLogger) {
 		logger.Debugf("Runtime deleting service %s", s.Name)
 	}
-	if s, ok := r.services[s.Name]; ok {
+	if s, ok := r.services[serviceKey(s)]; ok {
 		// check if running
 		if s.Running() {
-			delete(r.services, s.Name)
+			delete(r.services, s.key())
 			return nil
 		}
 		// otherwise stop it
@@ -277,25 +447,11 @@ func (r *runtime) Delete(s *Service) error {
 			return err
 		}
 		// delete it
-		delete(r.services, s.Name)
+		delete(r.services, s.key())
 		return nil
 	}
 
 	return nil
-}
-
-// List returns a slice of all services tracked by the runtime
-func (r *runtime) List() ([]*Service, error) {
-	r.RLock()
-	defer r.RUnlock()
-
-	services := make([]*Service, 0, len(r.services))
-
-	for _, service := range r.services {
-		services = append(services, service.Service)
-	}
-
-	return services, nil
 }
 
 // Start starts the runtime

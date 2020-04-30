@@ -65,7 +65,7 @@ func (a *apiHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// create request and response
-	c := a.opts.Service.Client()
+	c := a.opts.Client
 	req := c.NewRequest(service.Name, service.Endpoint.Name, request)
 	rsp := &api.Response{}
 

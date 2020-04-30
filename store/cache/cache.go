@@ -5,33 +5,54 @@ import (
 	"fmt"
 
 	"github.com/micro/go-micro/v2/store"
+	"github.com/micro/go-micro/v2/store/memory"
 	"github.com/pkg/errors"
 )
 
 type cache struct {
-	stores  []store.Store
-	options store.Options
+	stores []store.Store
+}
+
+// Cache is a cpu register style cache for the store.
+// It syncs between N stores in a faulting manner.
+type Cache interface {
+	// Implements the store interface
+	store.Store
 }
 
 // NewCache returns a new store using the underlying stores, which must be already Init()ialised
-func NewCache(stores ...store.Store) store.Store {
-	c := &cache{}
-	c.stores = make([]store.Store, len(stores))
-	for i, s := range stores {
-		c.stores[i] = s
+func NewCache(stores ...store.Store) Cache {
+	if len(stores) == 0 {
+		stores = []store.Store{
+			memory.NewStore(),
+		}
 	}
+
+	// TODO: build in an in memory cache
+	c := &cache{
+		stores: stores,
+	}
+
 	return c
 }
 
-func (c *cache) Init(...store.Option) error {
-	if len(c.stores) < 2 {
-		return errors.New("cache requires at least 2 stores")
+func (c *cache) Close() error {
+	return nil
+}
+
+func (c *cache) Init(opts ...store.Option) error {
+	// pass to the stores
+	for _, store := range c.stores {
+		if err := store.Init(opts...); err != nil {
+			return err
+		}
 	}
 	return nil
 }
 
 func (c *cache) Options() store.Options {
-	return c.options
+	// return from first store
+	return c.stores[0].Options()
 }
 
 func (c *cache) String() string {

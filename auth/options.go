@@ -7,12 +7,31 @@ import (
 	"github.com/micro/go-micro/v2/store"
 )
 
+func NewOptions(opts ...Option) Options {
+	var options Options
+	for _, o := range opts {
+		o(&options)
+	}
+
+	if len(options.Namespace) == 0 {
+		options.Namespace = DefaultNamespace
+	}
+
+	return options
+}
+
 type Options struct {
-	// Token is an auth token
-	Token string
-	// Public key base64 encoded
+	// Namespace the service belongs to
+	Namespace string
+	// ID is the services auth ID
+	ID string
+	// Secret is used to authenticate the service
+	Secret string
+	// Token is the services token used to authenticate itself
+	Token *Token
+	// PublicKey for decoding JWTs
 	PublicKey string
-	// Private key base64 encoded
+	// PrivateKey for encoding JWTs
 	PrivateKey string
 	// Provider is an auth provider
 	Provider provider.Provider
@@ -23,6 +42,13 @@ type Options struct {
 }
 
 type Option func(o *Options)
+
+// Namespace the service belongs to
+func Namespace(n string) Option {
+	return func(o *Options) {
+		o.Namespace = n
+	}
+}
 
 // Store to back auth
 func Store(s store.Store) Option {
@@ -45,10 +71,18 @@ func PrivateKey(key string) Option {
 	}
 }
 
-// ServiceToken sets an auth token
-func ServiceToken(t string) Option {
+// Credentials sets the auth credentials
+func Credentials(id, secret string) Option {
 	return func(o *Options) {
-		o.Token = t
+		o.ID = id
+		o.Secret = secret
+	}
+}
+
+// ClientToken sets the auth token to use when making requests
+func ClientToken(token *Token) Option {
+	return func(o *Options) {
+		o.Token = token
 	}
 }
 
@@ -71,11 +105,31 @@ type GenerateOptions struct {
 	Metadata map[string]string
 	// Roles/scopes associated with the account
 	Roles []string
-	// SecretExpiry is the time the secret should live for
-	SecretExpiry time.Duration
+	// Namespace the account belongs too
+	Namespace string
+	// Provider of the account, e.g. oauth
+	Provider string
+	// Type of the account, e.g. user
+	Type string
+	// Secret used to authenticate the account
+	Secret string
 }
 
 type GenerateOption func(o *GenerateOptions)
+
+// WithSecret for the generated account
+func WithSecret(s string) GenerateOption {
+	return func(o *GenerateOptions) {
+		o.Secret = s
+	}
+}
+
+// WithType for the generated account
+func WithType(t string) GenerateOption {
+	return func(o *GenerateOptions) {
+		o.Type = t
+	}
+}
 
 // WithMetadata for the generated account
 func WithMetadata(md map[string]string) GenerateOption {
@@ -91,10 +145,17 @@ func WithRoles(rs ...string) GenerateOption {
 	}
 }
 
-// WithSecretExpiry for the generated account's secret expires
-func WithSecretExpiry(ex time.Duration) GenerateOption {
+// WithNamespace for the generated account
+func WithNamespace(n string) GenerateOption {
 	return func(o *GenerateOptions) {
-		o.SecretExpiry = ex
+		o.Namespace = n
+	}
+}
+
+// WithProvider for the generated account
+func WithProvider(p string) GenerateOption {
+	return func(o *GenerateOptions) {
+		o.Provider = p
 	}
 }
 
@@ -104,39 +165,52 @@ func NewGenerateOptions(opts ...GenerateOption) GenerateOptions {
 	for _, o := range opts {
 		o(&options)
 	}
-
-	// set defualt expiry of secret
-	if options.SecretExpiry == 0 {
-		options.SecretExpiry = time.Hour * 24 * 7
-	}
-
 	return options
 }
 
-type RefreshOptions struct {
-	// TokenExpiry is the time the token should live for
-	TokenExpiry time.Duration
+type TokenOptions struct {
+	// ID for the account
+	ID string
+	// Secret for the account
+	Secret string
+	// RefreshToken is used to refesh a token
+	RefreshToken string
+	// Expiry is the time the token should live for
+	Expiry time.Duration
 }
 
-type RefreshOption func(o *RefreshOptions)
+type TokenOption func(o *TokenOptions)
 
-// WithTokenExpiry for the token
-func WithTokenExpiry(ex time.Duration) RefreshOption {
-	return func(o *RefreshOptions) {
-		o.TokenExpiry = ex
+// WithExpiry for the token
+func WithExpiry(ex time.Duration) TokenOption {
+	return func(o *TokenOptions) {
+		o.Expiry = ex
 	}
 }
 
-// NewRefreshOptions from a slice of options
-func NewRefreshOptions(opts ...RefreshOption) RefreshOptions {
-	var options RefreshOptions
+func WithCredentials(id, secret string) TokenOption {
+	return func(o *TokenOptions) {
+		o.ID = id
+		o.Secret = secret
+	}
+}
+
+func WithToken(rt string) TokenOption {
+	return func(o *TokenOptions) {
+		o.RefreshToken = rt
+	}
+}
+
+// NewTokenOptions from a slice of options
+func NewTokenOptions(opts ...TokenOption) TokenOptions {
+	var options TokenOptions
 	for _, o := range opts {
 		o(&options)
 	}
 
 	// set defualt expiry of token
-	if options.TokenExpiry == 0 {
-		options.TokenExpiry = time.Minute
+	if options.Expiry == 0 {
+		options.Expiry = time.Minute
 	}
 
 	return options

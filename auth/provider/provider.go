@@ -12,7 +12,7 @@ type Provider interface {
 	// Options returns the options of a provider
 	Options() Options
 	// Endpoint for the provider
-	Endpoint() string
+	Endpoint(...EndpointOption) string
 	// Redirect url incase of UI
 	Redirect() string
 }
@@ -25,4 +25,25 @@ type Grant struct {
 	Expiry time.Time
 	// Scopes associated with grant
 	Scopes []string
+}
+
+type EndpointOptions struct {
+	// State is a code to verify the req
+	State string
+	// LoginHint prefils the user id on oauth clients
+	LoginHint string
+}
+
+type EndpointOption func(*EndpointOptions)
+
+func WithState(c string) EndpointOption {
+	return func(o *EndpointOptions) {
+		o.State = c
+	}
+}
+
+func WithLoginHint(hint string) EndpointOption {
+	return func(o *EndpointOptions) {
+		o.LoginHint = hint
+	}
 }

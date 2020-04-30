@@ -24,7 +24,7 @@ func (t *Tracer) Read(opts ...trace.ReadOption) ([]*trace.Span, error) {
 
 	sp := t.buffer.Get(t.buffer.Size())
 
-	var spans []*trace.Span
+	spans := make([]*trace.Span, 0, len(sp))
 
 	for _, span := range sp {
 		val := span.Value.(*trace.Span)

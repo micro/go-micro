@@ -7,6 +7,8 @@ service Store {
 	rpc Write(WriteRequest) returns (WriteResponse) {};
 	rpc Delete(DeleteRequest) returns (DeleteResponse) {};
 	rpc List(ListRequest) returns (stream ListResponse) {};
+	rpc Databases(DatabasesRequest) returns (DatabasesResponse) {};
+	rpc Tables(TablesRequest) returns (TablesResponse) {};
 }
 
 message Record {
@@ -71,4 +73,18 @@ message ListRequest {
 message ListResponse {
 	reserved 1; //repeated Record records = 1;
 	repeated string keys = 2;
+}
+
+message DatabasesRequest {}
+
+message DatabasesResponse {
+	repeated string databases = 1;
+}
+
+message TablesRequest {
+	string database = 1;
+}
+
+message TablesResponse {
+	repeated string tables = 1;
 }

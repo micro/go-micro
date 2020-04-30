@@ -17,8 +17,6 @@ var (
 
 // Runtime is a service runtime manager
 type Runtime interface {
-	// String describes runtime
-	String() string
 	// Init initializes runtime
 	Init(...Option) error
 	// Create registers a service
@@ -26,15 +24,29 @@ type Runtime interface {
 	// Read returns the service
 	Read(...ReadOption) ([]*Service, error)
 	// Update the service in place
-	Update(*Service) error
+	Update(*Service, ...UpdateOption) error
 	// Remove a service
-	Delete(*Service) error
-	// List the managed services
-	List() ([]*Service, error)
+	Delete(*Service, ...DeleteOption) error
+	// Logs returns the logs for a service
+	Logs(*Service, ...LogsOption) (LogStream, error)
 	// Start starts the runtime
 	Start() error
 	// Stop shuts down the runtime
 	Stop() error
+	// String describes runtime
+	String() string
+}
+
+// Stream returns a log stream
+type LogStream interface {
+	Error() error
+	Chan() chan LogRecord
+	Stop() error
+}
+
+type LogRecord struct {
+	Message  string
+	Metadata map[string]string
 }
 
 // Scheduler is a runtime service scheduler

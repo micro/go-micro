@@ -59,6 +59,9 @@ type grpcServer struct {
 	started bool
 	// used for first registration
 	registered bool
+
+	// registry service instance
+	rsvc *registry.Service
 }
 
 func init() {
@@ -102,6 +105,9 @@ func (r grpcRouter) ServeRequest(ctx context.Context, req server.Request, rsp se
 }
 
 func (g *grpcServer) configure(opts ...server.Option) {
+	g.Lock()
+	defer g.Unlock()
+
 	// Don't reprocess where there's no config
 	if len(opts) == 0 && g.srv != nil {
 		return
@@ -127,6 +133,7 @@ func (g *grpcServer) configure(opts ...server.Option) {
 		gopts = append(gopts, opts...)
 	}
 
+	g.rsvc = nil
 	g.srv = grpc.NewServer(gopts...)
 }
 
@@ -559,11 +566,24 @@ func (g *grpcServer) Subscribe(sb server.Subscriber) error {
 }
 
 func (g *grpcServer) Register() error {
+
+	g.RLock()
+	rsvc := g.rsvc
+	config := g.opts
+	g.RUnlock()
+
+	// if service already filled, reuse it and return early
+	if rsvc != nil {
+		rOpts := []registry.RegisterOption{registry.RegisterTTL(config.RegisterTTL)}
+		if err := config.Registry.Register(rsvc, rOpts...); err != nil {
+			return err
+		}
+		return nil
+	}
+
 	var err error
 	var advt, host, port string
-
-	// parse address for host, port
-	config := g.opts
+	var cacheService bool
 
 	// check the advertise address first
 	// if it exists then use it, otherwise
@@ -584,16 +604,17 @@ func (g *grpcServer) Register() error {
 		host = advt
 	}
 
+	if ip := net.ParseIP(host); ip != nil {
+		cacheService = true
+	}
+
 	addr, err := addr.Extract(host)
 	if err != nil {
 		return err
 	}
 
 	// make copy of metadata
-	md := make(meta.Metadata)
-	for k, v := range config.Metadata {
-		md[k] = v
-	}
+	md := meta.Copy(config.Metadata)
 
 	// register service
 	node := &registry.Node{
@@ -646,9 +667,9 @@ func (g *grpcServer) Register() error {
 		Endpoints: endpoints,
 	}
 
-	g.Lock()
+	g.RLock()
 	registered := g.registered
-	g.Unlock()
+	g.RUnlock()
 
 	if !registered {
 		if logger.V(logger.InfoLevel, logger.DefaultLogger) {
@@ -670,8 +691,6 @@ func (g *grpcServer) Register() error {
 
 	g.Lock()
 	defer g.Unlock()
-
-	g.registered = true
 
 	for sb := range g.subscribers {
 		handler := g.createSubHandler(sb, g.opts)
@@ -698,6 +717,11 @@ func (g *grpcServer) Register() error {
 		g.subscribers[sb] = []broker.Subscriber{sub}
 	}
 
+	g.registered = true
+	if cacheService {
+		g.rsvc = service
+	}
+
 	return nil
 }
 
@@ -705,7 +729,9 @@ func (g *grpcServer) Deregister() error {
 	var err error
 	var advt, host, port string
 
+	g.RLock()
 	config := g.opts
+	g.RUnlock()
 
 	// check the advertise address first
 	// if it exists then use it, otherwise
@@ -750,6 +776,7 @@ func (g *grpcServer) Deregister() error {
 	}
 
 	g.Lock()
+	g.rsvc = nil
 
 	if !g.registered {
 		g.Unlock()
@@ -825,6 +852,9 @@ func (g *grpcServer) Start() error {
 	if len(g.subscribers) > 0 {
 		// connect to the broker
 		if err := config.Broker.Connect(); err != nil {
+			if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
+				logger.Errorf("Broker [%s] connect error: %v", config.Broker.String(), err)
+			}
 			return err
 		}
 
@@ -910,7 +940,11 @@ func (g *grpcServer) Start() error {
 			logger.Infof("Broker [%s] Disconnected from %s", config.Broker.String(), config.Broker.Address())
 		}
 		// disconnect broker
-		config.Broker.Disconnect()
+		if err := config.Broker.Disconnect(); err != nil {
+			if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
+				logger.Errorf("Broker [%s] disconnect error: %v", config.Broker.String(), err)
+			}
+		}
 	}()
 
 	// mark the server as started
@@ -936,6 +970,7 @@ func (g *grpcServer) Stop() error {
 	select {
 	case err = <-ch:
 		g.Lock()
+		g.rsvc = nil
 		g.started = false
 		g.Unlock()
 	}
