@@ -46,23 +46,27 @@ func (s *serviceStore) Init(opts ...store.Option) error {
 
 func (s *serviceStore) Context() context.Context {
 	ctx := context.Background()
-
 	md := make(metadata.Metadata)
-
-	if len(s.Database) > 0 {
-		md["Micro-Database"] = s.Database
-	}
-
-	if len(s.Table) > 0 {
-		md["Micro-Table"] = s.Table
-	}
-
 	return metadata.NewContext(ctx, md)
 }
 
 // Sync all the known records
 func (s *serviceStore) List(opts ...store.ListOption) ([]string, error) {
-	stream, err := s.Client.List(s.Context(), &pb.ListRequest{}, client.WithAddress(s.Nodes...))
+	var options store.ListOptions
+	for _, o := range opts {
+		o(&options)
+	}
+
+	listOpts := &pb.ListOptions{
+		Database: options.Database,
+		Table:    options.Table,
+		Prefix:   options.Prefix,
+		Suffix:   options.Suffix,
+		Limit:    uint64(options.Limit),
+		Offset:   uint64(options.Offset),
+	}
+
+	stream, err := s.Client.List(s.Context(), &pb.ListRequest{Options: listOpts}, client.WithAddress(s.Nodes...))
 	if err != nil && errors.Equal(err, errors.NotFound("", "")) {
 		return nil, store.ErrNotFound
 	} else if err != nil {
@@ -96,11 +100,18 @@ func (s *serviceStore) Read(key string, opts ...store.ReadOption) ([]*store.Reco
 		o(&options)
 	}
 
+	readOpts := &pb.ReadOptions{
+		Database: options.Database,
+		Table:    options.Table,
+		Prefix:   options.Prefix,
+		Suffix:   options.Suffix,
+		Limit:    uint64(options.Limit),
+		Offset:   uint64(options.Offset),
+	}
+
 	rsp, err := s.Client.Read(s.Context(), &pb.ReadRequest{
-		Key: key,
-		Options: &pb.ReadOptions{
-			Prefix: options.Prefix,
-		},
+		Key:     key,
+		Options: readOpts,
 	}, client.WithAddress(s.Nodes...))
 	if err != nil && errors.Equal(err, errors.NotFound("", "")) {
 		return nil, store.ErrNotFound
@@ -123,13 +134,23 @@ func (s *serviceStore) Read(key string, opts ...store.ReadOption) ([]*store.Reco
 
 // Write a record
 func (s *serviceStore) Write(record *store.Record, opts ...store.WriteOption) error {
+	var options store.WriteOptions
+	for _, o := range opts {
+		o(&options)
+	}
+
+	writeOpts := &pb.WriteOptions{
+		Database: options.Database,
+		Table:    options.Table,
+	}
+
 	_, err := s.Client.Write(s.Context(), &pb.WriteRequest{
 		Record: &pb.Record{
 			Key:    record.Key,
 			Value:  record.Value,
 			Expiry: int64(record.Expiry.Seconds()),
 		},
-	}, client.WithAddress(s.Nodes...))
+		Options: writeOpts}, client.WithAddress(s.Nodes...))
 	if err != nil && errors.Equal(err, errors.NotFound("", "")) {
 		return store.ErrNotFound
 	}
@@ -139,8 +160,19 @@ func (s *serviceStore) Write(record *store.Record, opts ...store.WriteOption) er
 
 // Delete a record with key
 func (s *serviceStore) Delete(key string, opts ...store.DeleteOption) error {
+	var options store.DeleteOptions
+	for _, o := range opts {
+		o(&options)
+	}
+
+	deleteOpts := &pb.DeleteOptions{
+		Database: options.Database,
+		Table:    options.Table,
+	}
+
 	_, err := s.Client.Delete(s.Context(), &pb.DeleteRequest{
-		Key: key,
+		Key:     key,
+		Options: deleteOpts,
 	}, client.WithAddress(s.Nodes...))
 	if err != nil && errors.Equal(err, errors.NotFound("", "")) {
 		return store.ErrNotFound
