@@ -102,6 +102,7 @@ func (s *service) Init(opts ...Option) {
 			cmd.Client(&s.opts.Client),
 			cmd.Config(&s.opts.Config),
 			cmd.Server(&s.opts.Server),
+			cmd.Store(&s.opts.Store),
 			cmd.Profile(&s.opts.Profile),
 		); err != nil {
 			logger.Fatal(err)
