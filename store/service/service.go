@@ -59,7 +59,11 @@ func (s *serviceStore) Context() context.Context {
 
 // Sync all the known records
 func (s *serviceStore) List(opts ...store.ListOption) ([]string, error) {
-	var options store.ListOptions
+	options := store.ListOptions{
+		Database: s.Database,
+		Table:    s.Table,
+	}
+
 	for _, o := range opts {
 		o(&options)
 	}
@@ -102,7 +106,11 @@ func (s *serviceStore) List(opts ...store.ListOption) ([]string, error) {
 
 // Read a record with key
 func (s *serviceStore) Read(key string, opts ...store.ReadOption) ([]*store.Record, error) {
-	var options store.ReadOptions
+	options := store.ReadOptions{
+		Database: s.Database,
+		Table:    s.Table,
+	}
+
 	for _, o := range opts {
 		o(&options)
 	}
@@ -141,7 +149,11 @@ func (s *serviceStore) Read(key string, opts ...store.ReadOption) ([]*store.Reco
 
 // Write a record
 func (s *serviceStore) Write(record *store.Record, opts ...store.WriteOption) error {
-	var options store.WriteOptions
+	options := store.WriteOptions{
+		Database: s.Database,
+		Table:    s.Table,
+	}
+
 	for _, o := range opts {
 		o(&options)
 	}
@@ -167,7 +179,11 @@ func (s *serviceStore) Write(record *store.Record, opts ...store.WriteOption) er
 
 // Delete a record with key
 func (s *serviceStore) Delete(key string, opts ...store.DeleteOption) error {
-	var options store.DeleteOptions
+	options := store.DeleteOptions{
+		Database: s.Database,
+		Table:    s.Table,
+	}
+
 	for _, o := range opts {
 		o(&options)
 	}
