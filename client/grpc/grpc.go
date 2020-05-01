@@ -129,7 +129,6 @@ func (g *grpcClient) call(ctx context.Context, node *registry.Node, req client.R
 	var grr error
 
 	grpcDialOptions := []grpc.DialOption{
-		grpc.WithDefaultCallOptions(grpc.ForceCodec(cf)),
 		grpc.WithTimeout(opts.DialTimeout),
 		g.secure(address),
 		grpc.WithDefaultCallOptions(
@@ -154,7 +153,9 @@ func (g *grpcClient) call(ctx context.Context, node *registry.Node, req client.R
 	ch := make(chan error, 1)
 
 	go func() {
-		grpcCallOptions := []grpc.CallOption{grpc.CallContentSubtype(cf.Name())}
+		grpcCallOptions := []grpc.CallOption{
+			grpc.ForceCodec(cf),
+			grpc.CallContentSubtype(cf.Name())}
 		if opts := g.getGrpcCallOptions(); opts != nil {
 			grpcCallOptions = append(grpcCallOptions, opts...)
 		}
@@ -213,7 +214,6 @@ func (g *grpcClient) stream(ctx context.Context, node *registry.Node, req client
 	wc := wrapCodec{cf}
 
 	grpcDialOptions := []grpc.DialOption{
-		grpc.WithDefaultCallOptions(grpc.ForceCodec(wc)),
 		grpc.WithTimeout(opts.DialTimeout),
 		g.secure(address),
 	}
@@ -233,7 +233,10 @@ func (g *grpcClient) stream(ctx context.Context, node *registry.Node, req client
 		ServerStreams: true,
 	}
 
-	grpcCallOptions := []grpc.CallOption{grpc.CallContentSubtype(cf.Name())}
+	grpcCallOptions := []grpc.CallOption{
+		grpc.ForceCodec(wc),
+		grpc.CallContentSubtype(cf.Name()),
+	}
 	if opts := g.getGrpcCallOptions(); opts != nil {
 		grpcCallOptions = append(grpcCallOptions, opts...)
 	}
