@@ -118,6 +118,12 @@ func Server(s *server.Server) Option {
 	}
 }
 
+func Store(s *store.Store) Option {
+	return func(o *Options) {
+		o.Store = s
+	}
+}
+
 func Tracer(t *trace.Tracer) Option {
 	return func(o *Options) {
 		o.Tracer = t
