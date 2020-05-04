@@ -397,13 +397,17 @@ func requestPayload(r *http.Request) ([]byte, error) {
 				return out, nil
 			}
 		}
+		var jsonbody map[string]interface{}
+		if err = json.Unmarshal(bodybuf, &jsonbody); err != nil {
+			return nil, err
+		}
 		dstmap := make(map[string]interface{})
 		ps := strings.Split(bodydst, ".")
 		if len(ps) == 1 {
-			dstmap[ps[0]] = bodybuf
+			dstmap[ps[0]] = jsonbody
 		} else {
 			em := make(map[string]interface{})
-			em[ps[len(ps)-1]] = bodybuf
+			em[ps[len(ps)-1]] = jsonbody
 			for i := len(ps) - 2; i > 0; i-- {
 				nm := make(map[string]interface{})
 				nm[ps[i]] = em
