@@ -12,18 +12,27 @@ type Model interface {
 	Init(...Option) error
 	// Retrieve the options
 	Options() Options
+	// New entity returns a new entity
+	NewEntity(id string, value interface{})
 	// Register a data type
 	Register(v interface{}) error
 	// Create an entity
-	Create(v interface{}, opts ...CreateOption) error
-	// Read an entity
+	Create(Entity, ...CreateOption) error
+	// Read an into the value provided
 	Read(v interface{}, opts ...ReadOption) error
 	// Update an enity
-	Update(v interface{}, opts ...UpdateOption) error
+	Update(Entity, ...UpdateOption) error
 	// Delete an entity
-	Delete(v interface{}, opts ...DeleteOption) error
+	Delete(Entity, ...DeleteOption) error
 	// The implementation e.g crud
 	String() string
+}
+
+type Entity interface {
+	// Id of the entity
+	ID() string
+	// Associated value
+	Value() interface{}
 }
 
 // Options to the model
