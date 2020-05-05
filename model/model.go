@@ -13,7 +13,7 @@ type Model interface {
 	// Retrieve the options
 	Options() Options
 	// New entity returns a new entity
-	NewEntity(id string, value interface{})
+	NewEntity(id string, value interface{}) Entity
 	// Register a data type
 	Register(v interface{}) error
 	// Create an entity
