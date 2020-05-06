@@ -36,6 +36,7 @@ type memoryStore struct {
 type internalRecord struct {
 	key       string
 	value     []byte
+	metadata  map[string]interface{}
 	expiresAt time.Time
 }
 
@@ -71,9 +72,19 @@ func (m *memoryStore) get(prefix, key string) (*store.Record, error) {
 	newRecord := &store.Record{}
 	newRecord.Key = strings.TrimPrefix(storedRecord.key, prefix+"/")
 	newRecord.Value = make([]byte, len(storedRecord.value))
+	newRecord.Metadata = make(map[string]interface{})
+
+	// copy the value into the new record
 	copy(newRecord.Value, storedRecord.value)
+
+	// check if we need to set the expiry
 	if !storedRecord.expiresAt.IsZero() {
 		newRecord.Expiry = time.Until(storedRecord.expiresAt)
+	}
+
+	// copy in the metadata
+	for k, v := range storedRecord.metadata {
+		newRecord.Metadata[k] = v
 	}
 
 	return newRecord, nil
@@ -87,10 +98,19 @@ func (m *memoryStore) set(prefix string, r *store.Record) {
 	i := &internalRecord{}
 	i.key = r.Key
 	i.value = make([]byte, len(r.Value))
+	i.metadata = make(map[string]interface{})
+
+	// copy the the value
 	copy(i.value, r.Value)
 
+	// set the expiry
 	if r.Expiry != 0 {
 		i.expiresAt = time.Now().Add(r.Expiry)
+	}
+
+	// set the metadata
+	for k, v := range r.Metadata {
+		i.metadata[k] = v
 	}
 
 	m.store.Set(key, i, r.Expiry)
@@ -200,6 +220,7 @@ func (m *memoryStore) Write(r *store.Record, opts ...store.WriteOption) error {
 		newRecord := store.Record{}
 		newRecord.Key = r.Key
 		newRecord.Value = make([]byte, len(r.Value))
+		newRecord.Metadata = make(map[string]interface{})
 		copy(newRecord.Value, r.Value)
 		newRecord.Expiry = r.Expiry
 
@@ -209,6 +230,11 @@ func (m *memoryStore) Write(r *store.Record, opts ...store.WriteOption) error {
 		if writeOpts.TTL != 0 {
 			newRecord.Expiry = writeOpts.TTL
 		}
+
+		for k, v := range newRecord.Metadata {
+			newRecord.Metadata[k] = v
+		}
+
 		m.set(prefix, &newRecord)
 		return nil
 	}
