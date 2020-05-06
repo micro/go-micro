@@ -68,16 +68,22 @@ func (s *sqlStore) getDB(database, table string) (string, string) {
 	return database, table
 }
 
-func (s *sqlStore) createDB(database, table string) {
+func (s *sqlStore) createDB(database, table string) error {
 	database, table = s.getDB(database, table)
 
 	s.Lock()
-	_, ok := s.databases[database+":"+table]
-	if !ok {
-		s.initDB(database, table)
-		s.databases[database+":"+table] = true
+	defer s.Unlock()
+
+	if _, ok := s.databases[database+":"+table]; ok {
+		return nil
 	}
-	s.Unlock()
+
+	if err := s.initDB(database, table); err != nil {
+		return err
+	}
+
+	s.databases[database+":"+table] = true
+	return nil
 }
 
 func (s *sqlStore) initDB(database, table string) error {
@@ -192,7 +198,9 @@ func (s *sqlStore) List(opts ...store.ListOption) ([]string, error) {
 	}
 
 	// create the db if not exists
-	s.createDB(options.Database, options.Table)
+	if err := s.createDB(options.Database, options.Table); err != nil {
+		return nil, err
+	}
 
 	st, err := s.prepare(options.Database, options.Table, "list")
 	if err != nil {
@@ -249,7 +257,9 @@ func (s *sqlStore) Read(key string, opts ...store.ReadOption) ([]*store.Record, 
 	}
 
 	// create the db if not exists
-	s.createDB(options.Database, options.Table)
+	if err := s.createDB(options.Database, options.Table); err != nil {
+		return nil, err
+	}
 
 	if options.Prefix || options.Suffix {
 		return s.read(key, options)
@@ -366,7 +376,9 @@ func (s *sqlStore) Write(r *store.Record, opts ...store.WriteOption) error {
 	}
 
 	// create the db if not exists
-	s.createDB(options.Database, options.Table)
+	if err := s.createDB(options.Database, options.Table); err != nil {
+		return err
+	}
 
 	st, err := s.prepare(options.Database, options.Table, "write")
 	if err != nil {
@@ -395,7 +407,9 @@ func (s *sqlStore) Delete(key string, opts ...store.DeleteOption) error {
 	}
 
 	// create the db if not exists
-	s.createDB(options.Database, options.Table)
+	if err := s.createDB(options.Database, options.Table); err != nil {
+		return err
+	}
 
 	st, err := s.prepare(options.Database, options.Table, "delete")
 	if err != nil {
