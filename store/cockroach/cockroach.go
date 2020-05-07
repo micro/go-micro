@@ -103,6 +103,7 @@ func (s *sqlStore) initDB(database, table string) error {
 	(
 		key text NOT NULL,
 		value bytea,
+		metadata JSONB,
 		expiry timestamp with time zone,
 		CONSTRAINT %s_pkey PRIMARY KEY (key)
 	);`, table, table))
@@ -112,6 +113,12 @@ func (s *sqlStore) initDB(database, table string) error {
 
 	// Create Index
 	_, err = s.db.Exec(fmt.Sprintf(`CREATE INDEX IF NOT EXISTS "%s" ON %s.%s USING btree ("key");`, "key_index_"+table, database, table))
+	if err != nil {
+		return err
+	}
+
+	// Create Metadata Index
+	_, err = s.db.Exec(fmt.Sprintf(`CREATE INDEX IF NOT EXISTS "%s" ON %s.%s USING GIN ("metadata");`, "metadata_index_"+table, database, table))
 	if err != nil {
 		return err
 	}
@@ -222,7 +229,8 @@ func (s *sqlStore) List(opts ...store.ListOption) ([]string, error) {
 
 	for rows.Next() {
 		record := &store.Record{}
-		if err := rows.Scan(&record.Key, &record.Value, &timehelper); err != nil {
+		record.Metadata = make(map[string]interface{})
+		if err := rows.Scan(&record.Key, &record.Value, &record.Metadata, &timehelper); err != nil {
 			return keys, err
 		}
 		if timehelper.Valid {
@@ -276,7 +284,9 @@ func (s *sqlStore) Read(key string, opts ...store.ReadOption) ([]*store.Record, 
 
 	row := st.QueryRow(key)
 	record := &store.Record{}
-	if err := row.Scan(&record.Key, &record.Value, &timehelper); err != nil {
+	record.Metadata = make(map[string]interface{})
+
+	if err := row.Scan(&record.Key, &record.Value, &record.Metadata, &timehelper); err != nil {
 		if err == sql.ErrNoRows {
 			return records, store.ErrNotFound
 		}
@@ -341,7 +351,9 @@ func (s *sqlStore) read(key string, options store.ReadOptions) ([]*store.Record,
 
 	for rows.Next() {
 		record := &store.Record{}
-		if err := rows.Scan(&record.Key, &record.Value, &timehelper); err != nil {
+		record.Metadata = make(map[string]interface{})
+
+		if err := rows.Scan(&record.Key, &record.Value, &record.Metadata, &timehelper); err != nil {
 			return records, err
 		}
 		if timehelper.Valid {
@@ -387,9 +399,9 @@ func (s *sqlStore) Write(r *store.Record, opts ...store.WriteOption) error {
 	defer st.Close()
 
 	if r.Expiry != 0 {
-		_, err = st.Exec(r.Key, r.Value, time.Now().Add(r.Expiry))
+		_, err = st.Exec(r.Key, r.Value, r.Metadata, time.Now().Add(r.Expiry))
 	} else {
-		_, err = st.Exec(r.Key, r.Value, nil)
+		_, err = st.Exec(r.Key, r.Value, r.Metadata, nil)
 	}
 
 	if err != nil {
