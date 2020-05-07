@@ -3,6 +3,7 @@ package cockroach
 import (
 	"database/sql"
 	"fmt"
+	"os"
 	"testing"
 	"time"
 
@@ -11,6 +12,10 @@ import (
 )
 
 func TestSQL(t *testing.T) {
+	if len(os.Getenv("IN_TRAVIS_CI")) != 0 {
+		t.Skip()
+	}
+
 	connection := fmt.Sprintf(
 		"host=%s port=%d user=%s sslmode=disable dbname=%s",
 		"localhost",
@@ -23,12 +28,12 @@ func TestSQL(t *testing.T) {
 		t.Fatal(err)
 	}
 	if err := db.Ping(); err != nil {
-		t.Skip(err)
+		t.Skip("store/cockroach: can't connect to db")
 	}
 	db.Close()
 
 	sqlStore := NewStore(
-		store.Namespace("testsql"),
+		store.Database("testsql"),
 		store.Nodes(connection),
 	)
 
@@ -108,11 +113,17 @@ func TestSQL(t *testing.T) {
 	sqlStore.Write(&store.Record{Key: "aaaa", Value: []byte("bbb"), Expiry: 5 * time.Second})
 	sqlStore.Write(&store.Record{Key: "aaaaa", Value: []byte("bbb"), Expiry: 5 * time.Second})
 	results, err := sqlStore.Read("a", store.ReadPrefix())
+	if err != nil {
+		t.Error(err)
+	}
 	if len(results) != 3 {
 		t.Fatal("Results should have returned 3 records")
 	}
 	time.Sleep(6 * time.Second)
 	results, err = sqlStore.Read("a", store.ReadPrefix())
+	if err != nil {
+		t.Error(err)
+	}
 	if len(results) != 0 {
 		t.Fatal("Results should have returned 0 records")
 	}

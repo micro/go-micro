@@ -2,6 +2,7 @@ package memory
 
 import (
 	"fmt"
+	"os"
 	"testing"
 	"time"
 
@@ -10,9 +11,9 @@ import (
 )
 
 func TestMemoryReInit(t *testing.T) {
-	s := NewStore(store.Prefix("aaa"))
-	s.Init(store.Prefix(""))
-	if len(s.Options().Prefix) > 0 {
+	s := NewStore(store.Table("aaa"))
+	s.Init(store.Table(""))
+	if len(s.Options().Table) > 0 {
 		t.Error("Init didn't reinitialise the store")
 	}
 }
@@ -25,36 +26,26 @@ func TestMemoryBasic(t *testing.T) {
 
 func TestMemoryPrefix(t *testing.T) {
 	s := NewStore()
-	s.Init(store.Prefix("some-prefix"))
-	basictest(s, t)
-}
-
-func TestMemorySuffix(t *testing.T) {
-	s := NewStore()
-	s.Init(store.Suffix("some-suffix"))
-	basictest(s, t)
-}
-
-func TestMemoryPrefixSuffix(t *testing.T) {
-	s := NewStore()
-	s.Init(store.Prefix("some-prefix"), store.Prefix("some-suffix"))
+	s.Init(store.Table("some-prefix"))
 	basictest(s, t)
 }
 
 func TestMemoryNamespace(t *testing.T) {
 	s := NewStore()
-	s.Init(store.Namespace("some-namespace"))
+	s.Init(store.Database("some-namespace"))
 	basictest(s, t)
 }
 
 func TestMemoryNamespacePrefix(t *testing.T) {
 	s := NewStore()
-	s.Init(store.Prefix("some-prefix"), store.Namespace("some-namespace"))
+	s.Init(store.Table("some-prefix"), store.Database("some-namespace"))
 	basictest(s, t)
 }
 
 func basictest(s store.Store, t *testing.T) {
-	t.Logf("Testing store %s, with options %# v\n", s.String(), pretty.Formatter(s.Options()))
+	if len(os.Getenv("IN_TRAVIS_CI")) == 0 {
+		t.Logf("Testing store %s, with options %# v\n", s.String(), pretty.Formatter(s.Options()))
+	}
 	// Read and Write an expiring Record
 	if err := s.Write(&store.Record{
 		Key:    "Hello",
@@ -109,7 +100,9 @@ func basictest(s store.Store, t *testing.T) {
 		if len(results) != 3 {
 			t.Errorf("Expected 3 items, got %d", len(results))
 		}
-		t.Logf("Prefix test: %v\n", pretty.Formatter(results))
+		if len(os.Getenv("IN_TRAVIS_CI")) == 0 {
+			t.Logf("Prefix test: %v\n", pretty.Formatter(results))
+		}
 	}
 	time.Sleep(time.Millisecond * 100)
 	if results, err := s.Read("foo", store.ReadPrefix()); err != nil {
@@ -118,7 +111,9 @@ func basictest(s store.Store, t *testing.T) {
 		if len(results) != 2 {
 			t.Errorf("Expected 2 items, got %d", len(results))
 		}
-		t.Logf("Prefix test: %v\n", pretty.Formatter(results))
+		if len(os.Getenv("IN_TRAVIS_CI")) == 0 {
+			t.Logf("Prefix test: %v\n", pretty.Formatter(results))
+		}
 	}
 	time.Sleep(time.Millisecond * 100)
 	if results, err := s.Read("foo", store.ReadPrefix()); err != nil {
@@ -127,7 +122,9 @@ func basictest(s store.Store, t *testing.T) {
 		if len(results) != 1 {
 			t.Errorf("Expected 1 item, got %d", len(results))
 		}
-		t.Logf("Prefix test: %# v\n", pretty.Formatter(results))
+		if len(os.Getenv("IN_TRAVIS_CI")) == 0 {
+			t.Logf("Prefix test: %# v\n", pretty.Formatter(results))
+		}
 	}
 	if err := s.Delete("foo", func(d *store.DeleteOptions) {}); err != nil {
 		t.Errorf("Delete failed (%v)", err)
@@ -168,7 +165,9 @@ func basictest(s store.Store, t *testing.T) {
 		if len(results) != 3 {
 			t.Errorf("Expected 3 items, got %d", len(results))
 		}
-		t.Logf("Prefix test: %v\n", pretty.Formatter(results))
+		if len(os.Getenv("IN_TRAVIS_CI")) == 0 {
+			t.Logf("Prefix test: %v\n", pretty.Formatter(results))
+		}
 	}
 	time.Sleep(time.Millisecond * 100)
 	if results, err := s.Read("foo", store.ReadSuffix()); err != nil {
@@ -177,7 +176,9 @@ func basictest(s store.Store, t *testing.T) {
 		if len(results) != 2 {
 			t.Errorf("Expected 2 items, got %d", len(results))
 		}
-		t.Logf("Prefix test: %v\n", pretty.Formatter(results))
+		if len(os.Getenv("IN_TRAVIS_CI")) == 0 {
+			t.Logf("Prefix test: %v\n", pretty.Formatter(results))
+		}
 	}
 	time.Sleep(time.Millisecond * 100)
 	if results, err := s.Read("foo", store.ReadSuffix()); err != nil {
@@ -186,7 +187,9 @@ func basictest(s store.Store, t *testing.T) {
 		if len(results) != 1 {
 			t.Errorf("Expected 1 item, got %d", len(results))
 		}
-		t.Logf("Prefix test: %# v\n", pretty.Formatter(results))
+		if len(os.Getenv("IN_TRAVIS_CI")) == 0 {
+			t.Logf("Prefix test: %# v\n", pretty.Formatter(results))
+		}
 	}
 	if err := s.Delete("foo"); err != nil {
 		t.Errorf("Delete failed (%v)", err)
@@ -256,13 +259,13 @@ func basictest(s store.Store, t *testing.T) {
 		t.Error(err)
 	} else {
 		if len(results) != 5 {
-			t.Error("Expected 5 results, got ", len(results))
+			t.Fatal("Expected 5 results, got ", len(results))
 		}
 		if results[0].Key != "a0" {
-			t.Errorf("Expected a0, got %s", results[0].Key)
+			t.Fatalf("Expected a0, got %s", results[0].Key)
 		}
 		if results[4].Key != "a4" {
-			t.Errorf("Expected a4, got %s", results[4].Key)
+			t.Fatalf("Expected a4, got %s", results[4].Key)
 		}
 	}
 	if results, err := s.Read("a", store.ReadLimit(30), store.ReadOffset(5), store.ReadPrefix()); err != nil {

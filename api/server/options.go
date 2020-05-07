@@ -2,7 +2,9 @@ package server
 
 import (
 	"crypto/tls"
+	"net/http"
 
+	"github.com/micro/go-micro/v2/api/resolver"
 	"github.com/micro/go-micro/v2/api/server/acme"
 )
 
@@ -15,6 +17,16 @@ type Options struct {
 	EnableTLS    bool
 	ACMEHosts    []string
 	TLSConfig    *tls.Config
+	Resolver     resolver.Resolver
+	Wrappers     []Wrapper
+}
+
+type Wrapper func(h http.Handler) http.Handler
+
+func WrapHandler(w Wrapper) Option {
+	return func(o *Options) {
+		o.Wrappers = append(o.Wrappers, w)
+	}
 }
 
 func EnableCORS(b bool) Option {
@@ -50,5 +62,11 @@ func EnableTLS(b bool) Option {
 func TLSConfig(t *tls.Config) Option {
 	return func(o *Options) {
 		o.TLSConfig = t
+	}
+}
+
+func Resolver(r resolver.Resolver) Option {
+	return func(o *Options) {
+		o.Resolver = r
 	}
 }

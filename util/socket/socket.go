@@ -67,23 +67,9 @@ func (s *Socket) Local() string {
 }
 
 func (s *Socket) Send(m *transport.Message) error {
-	// make copy
-	msg := &transport.Message{
-		Header: make(map[string]string),
-		Body:   make([]byte, len(m.Body)),
-	}
-
-	// copy headers
-	for k, v := range m.Header {
-		msg.Header[k] = v
-	}
-
-	// copy body
-	copy(msg.Body, m.Body)
-
 	// send a message
 	select {
-	case s.send <- msg:
+	case s.send <- m:
 	case <-s.closed:
 		return io.EOF
 	}

@@ -29,10 +29,12 @@ func (s *svc) Init(opts ...runtime.Option) error {
 
 // Create registers a service in the runtime
 func (s *svc) Create(svc *runtime.Service, opts ...runtime.CreateOption) error {
-	options := runtime.CreateOptions{}
-	// apply requested options
+	var options runtime.CreateOptions
 	for _, o := range opts {
 		o(&options)
+	}
+	if options.Context == nil {
+		options.Context = context.Background()
 	}
 
 	// set the default source from MICRO_RUNTIME_SOURCE
@@ -57,19 +59,111 @@ func (s *svc) Create(svc *runtime.Service, opts ...runtime.CreateOption) error {
 		},
 	}
 
-	if _, err := s.runtime.Create(context.Background(), req); err != nil {
+	if _, err := s.runtime.Create(options.Context, req); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-// Read returns the service with the given name from the runtime
-func (s *svc) Read(opts ...runtime.ReadOption) ([]*runtime.Service, error) {
-	options := runtime.ReadOptions{}
-	// apply requested options
+func (s *svc) Logs(service *runtime.Service, opts ...runtime.LogsOption) (runtime.LogStream, error) {
+	var options runtime.LogsOptions
 	for _, o := range opts {
 		o(&options)
+	}
+
+	if options.Context == nil {
+		options.Context = context.Background()
+	}
+
+	ls, err := s.runtime.Logs(options.Context, &pb.LogsRequest{
+		Service: service.Name,
+		Stream:  options.Stream,
+		Count:   options.Count,
+	})
+	if err != nil {
+		return nil, err
+	}
+	logStream := &serviceLogStream{
+		service: service.Name,
+		stream:  make(chan runtime.LogRecord),
+		stop:    make(chan bool),
+	}
+
+	go func() {
+		for {
+			select {
+			// @todo this never seems to return, investigate
+			case <-ls.Context().Done():
+				logStream.Stop()
+			}
+		}
+	}()
+
+	go func() {
+		for {
+			select {
+			// @todo this never seems to return, investigate
+			case <-ls.Context().Done():
+				return
+			case _, ok := <-logStream.stream:
+				if !ok {
+					return
+				}
+			default:
+				record := pb.LogRecord{}
+				err := ls.RecvMsg(&record)
+				if err != nil {
+					logStream.Stop()
+					return
+				}
+				logStream.stream <- runtime.LogRecord{
+					Message:  record.GetMessage(),
+					Metadata: record.GetMetadata(),
+				}
+			}
+		}
+	}()
+	return logStream, nil
+}
+
+type serviceLogStream struct {
+	service string
+	stream  chan runtime.LogRecord
+	sync.Mutex
+	stop chan bool
+	err  error
+}
+
+func (l *serviceLogStream) Error() error {
+	return l.err
+}
+
+func (l *serviceLogStream) Chan() chan runtime.LogRecord {
+	return l.stream
+}
+
+func (l *serviceLogStream) Stop() error {
+	l.Lock()
+	defer l.Unlock()
+	select {
+	case <-l.stop:
+		return nil
+	default:
+		close(l.stream)
+		close(l.stop)
+	}
+	return nil
+}
+
+// Read returns the service with the given name from the runtime
+func (s *svc) Read(opts ...runtime.ReadOption) ([]*runtime.Service, error) {
+	var options runtime.ReadOptions
+	for _, o := range opts {
+		o(&options)
+	}
+	if options.Context == nil {
+		options.Context = context.Background()
 	}
 
 	// runtime service create request
@@ -81,7 +175,7 @@ func (s *svc) Read(opts ...runtime.ReadOption) ([]*runtime.Service, error) {
 		},
 	}
 
-	resp, err := s.runtime.Read(context.Background(), req)
+	resp, err := s.runtime.Read(options.Context, req)
 	if err != nil {
 		return nil, err
 	}
@@ -101,16 +195,26 @@ func (s *svc) Read(opts ...runtime.ReadOption) ([]*runtime.Service, error) {
 }
 
 // Update updates the running service
-func (s *svc) Update(svc *runtime.Service) error {
+func (s *svc) Update(svc *runtime.Service, opts ...runtime.UpdateOption) error {
+	var options runtime.UpdateOptions
+	for _, o := range opts {
+		o(&options)
+	}
+	if options.Context == nil {
+		options.Context = context.Background()
+	}
+
 	// runtime service create request
 	req := &pb.UpdateRequest{
 		Service: &pb.Service{
-			Name:    svc.Name,
-			Version: svc.Version,
+			Name:     svc.Name,
+			Version:  svc.Version,
+			Source:   svc.Source,
+			Metadata: svc.Metadata,
 		},
 	}
 
-	if _, err := s.runtime.Update(context.Background(), req); err != nil {
+	if _, err := s.runtime.Update(options.Context, req); err != nil {
 		return err
 	}
 
@@ -118,42 +222,30 @@ func (s *svc) Update(svc *runtime.Service) error {
 }
 
 // Delete stops and removes the service from the runtime
-func (s *svc) Delete(svc *runtime.Service) error {
+func (s *svc) Delete(svc *runtime.Service, opts ...runtime.DeleteOption) error {
+	var options runtime.DeleteOptions
+	for _, o := range opts {
+		o(&options)
+	}
+	if options.Context == nil {
+		options.Context = context.Background()
+	}
+
 	// runtime service create request
 	req := &pb.DeleteRequest{
 		Service: &pb.Service{
-			Name:    svc.Name,
-			Version: svc.Version,
+			Name:     svc.Name,
+			Version:  svc.Version,
+			Source:   svc.Source,
+			Metadata: svc.Metadata,
 		},
 	}
 
-	if _, err := s.runtime.Delete(context.Background(), req); err != nil {
+	if _, err := s.runtime.Delete(options.Context, req); err != nil {
 		return err
 	}
 
 	return nil
-}
-
-// List lists all services managed by the runtime
-func (s *svc) List() ([]*runtime.Service, error) {
-	// list all services managed by the runtime
-	resp, err := s.runtime.List(context.Background(), &pb.ListRequest{})
-	if err != nil {
-		return nil, err
-	}
-
-	services := make([]*runtime.Service, 0, len(resp.Services))
-	for _, service := range resp.Services {
-		svc := &runtime.Service{
-			Name:     service.Name,
-			Version:  service.Version,
-			Source:   service.Source,
-			Metadata: service.Metadata,
-		}
-		services = append(services, svc)
-	}
-
-	return services, nil
 }
 
 // Start starts the runtime

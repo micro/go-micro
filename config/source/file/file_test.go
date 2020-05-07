@@ -59,8 +59,8 @@ func TestFile(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	t.Logf("%+v", c)
 	if string(c.Data) != string(data) {
+		t.Logf("%+v", c)
 		t.Error("data from file does not match")
 	}
 }

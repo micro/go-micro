@@ -1,6 +1,7 @@
 package runtime
 
 import (
+	"fmt"
 	"io"
 	"strconv"
 	"strings"
@@ -55,6 +56,7 @@ func newService(s *Service, c CreateOptions) *service {
 			},
 			Env:  c.Env,
 			Args: args,
+			Dir:  s.Source,
 		},
 		closed:     make(chan bool),
 		output:     c.Output,
@@ -73,6 +75,10 @@ func (s *service) shouldStart() bool {
 		return false
 	}
 	return s.retries <= s.maxRetries
+}
+
+func (s *service) key() string {
+	return fmt.Sprintf("%v:%v", s.Name, s.Version)
 }
 
 func (s *service) ShouldStart() bool {
@@ -99,6 +105,7 @@ func (s *service) Start() error {
 	// reset
 	s.err = nil
 	s.closed = make(chan bool)
+	s.retries = 0
 
 	if s.Metadata == nil {
 		s.Metadata = make(map[string]string)
@@ -112,6 +119,7 @@ func (s *service) Start() error {
 	if logger.V(logger.DebugLevel, logger.DefaultLogger) {
 		logger.Debugf("Runtime service %s forking new process", s.Service.Name)
 	}
+
 	p, err := s.Process.Fork(s.Exec)
 	if err != nil {
 		s.Metadata["status"] = "error"
@@ -149,6 +157,7 @@ func (s *service) Stop() error {
 	default:
 		close(s.closed)
 		s.running = false
+		s.retries = 0
 		if s.PID == nil {
 			return nil
 		}
@@ -158,6 +167,9 @@ func (s *service) Stop() error {
 
 		// kill the process
 		err := s.Process.Kill(s.PID)
+		if err != nil {
+			return err
+		}
 		// wait for it to exit
 		s.Process.Wait(s.PID)
 

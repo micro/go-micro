@@ -9,6 +9,23 @@ import (
 	"github.com/micro/go-micro/v2/server"
 )
 
+type Api interface {
+	// Initialise options
+	Init(...Option) error
+	// Get the options
+	Options() Options
+	// Register a http handler
+	Register(*Endpoint) error
+	// Register a route
+	Deregister(*Endpoint) error
+	// Implemenation of api
+	String() string
+}
+
+type Options struct{}
+
+type Option func(*Options) error
+
 // Endpoint is a mapping between an RPC method and HTTP endpoint
 type Endpoint struct {
 	// RPC Method e.g. Greeter.Hello
@@ -23,6 +40,12 @@ type Endpoint struct {
 	Method []string
 	// HTTP Path e.g /greeter. Expect POSIX regex
 	Path []string
+	// Body destination
+	// "*" or "" - top level message value
+	// "string" - inner message value
+	Body string
+	// Stream flag
+	Stream bool
 }
 
 // Service represents an API service
@@ -105,9 +128,18 @@ func Validate(e *Endpoint) error {
 	}
 
 	for _, p := range e.Path {
-		_, err := regexp.CompilePOSIX(p)
-		if err != nil {
-			return err
+		ps := p[0]
+		pe := p[len(p)-1]
+
+		if ps == '^' && pe == '$' {
+			_, err := regexp.CompilePOSIX(p)
+			if err != nil {
+				return err
+			}
+		} else if ps == '^' && pe != '$' {
+			return errors.New("invalid path")
+		} else if ps != '^' && pe == '$' {
+			return errors.New("invalid path")
 		}
 	}
 

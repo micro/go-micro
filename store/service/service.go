@@ -16,28 +16,29 @@ import (
 type serviceStore struct {
 	options store.Options
 
-	// Namespace to use
-	Namespace string
+	// The database to use
+	Database string
+
+	// The table to use
+	Table string
 
 	// Addresses of the nodes
 	Nodes []string
 
-	// Prefix to use
-	Prefix string
-
-	// Suffix to use
-	Suffix string
-
 	// store service client
 	Client pb.StoreService
+}
+
+func (s *serviceStore) Close() error {
+	return nil
 }
 
 func (s *serviceStore) Init(opts ...store.Option) error {
 	for _, o := range opts {
 		o(&s.options)
 	}
-	s.Namespace = s.options.Namespace
-	s.Prefix = s.options.Prefix
+	s.Database = s.options.Database
+	s.Table = s.options.Table
 	s.Nodes = s.options.Nodes
 
 	return nil
@@ -45,23 +46,38 @@ func (s *serviceStore) Init(opts ...store.Option) error {
 
 func (s *serviceStore) Context() context.Context {
 	ctx := context.Background()
-
 	md := make(metadata.Metadata)
-
-	if len(s.Namespace) > 0 {
-		md["Micro-Namespace"] = s.Namespace
+	if len(s.Database) > 0 {
+		md["Micro-Database"] = s.Database
 	}
 
-	if len(s.Prefix) > 0 {
-		md["Micro-Prefix"] = s.Prefix
+	if len(s.Table) > 0 {
+		md["Micro-Table"] = s.Table
 	}
-
 	return metadata.NewContext(ctx, md)
 }
 
 // Sync all the known records
 func (s *serviceStore) List(opts ...store.ListOption) ([]string, error) {
-	stream, err := s.Client.List(s.Context(), &pb.ListRequest{}, client.WithAddress(s.Nodes...))
+	options := store.ListOptions{
+		Database: s.Database,
+		Table:    s.Table,
+	}
+
+	for _, o := range opts {
+		o(&options)
+	}
+
+	listOpts := &pb.ListOptions{
+		Database: options.Database,
+		Table:    options.Table,
+		Prefix:   options.Prefix,
+		Suffix:   options.Suffix,
+		Limit:    uint64(options.Limit),
+		Offset:   uint64(options.Offset),
+	}
+
+	stream, err := s.Client.List(s.Context(), &pb.ListRequest{Options: listOpts}, client.WithAddress(s.Nodes...))
 	if err != nil && errors.Equal(err, errors.NotFound("", "")) {
 		return nil, store.ErrNotFound
 	} else if err != nil {
@@ -90,16 +106,27 @@ func (s *serviceStore) List(opts ...store.ListOption) ([]string, error) {
 
 // Read a record with key
 func (s *serviceStore) Read(key string, opts ...store.ReadOption) ([]*store.Record, error) {
-	var options store.ReadOptions
+	options := store.ReadOptions{
+		Database: s.Database,
+		Table:    s.Table,
+	}
+
 	for _, o := range opts {
 		o(&options)
 	}
 
+	readOpts := &pb.ReadOptions{
+		Database: options.Database,
+		Table:    options.Table,
+		Prefix:   options.Prefix,
+		Suffix:   options.Suffix,
+		Limit:    uint64(options.Limit),
+		Offset:   uint64(options.Offset),
+	}
+
 	rsp, err := s.Client.Read(s.Context(), &pb.ReadRequest{
-		Key: key,
-		Options: &pb.ReadOptions{
-			Prefix: options.Prefix,
-		},
+		Key:     key,
+		Options: readOpts,
 	}, client.WithAddress(s.Nodes...))
 	if err != nil && errors.Equal(err, errors.NotFound("", "")) {
 		return nil, store.ErrNotFound
@@ -122,13 +149,27 @@ func (s *serviceStore) Read(key string, opts ...store.ReadOption) ([]*store.Reco
 
 // Write a record
 func (s *serviceStore) Write(record *store.Record, opts ...store.WriteOption) error {
+	options := store.WriteOptions{
+		Database: s.Database,
+		Table:    s.Table,
+	}
+
+	for _, o := range opts {
+		o(&options)
+	}
+
+	writeOpts := &pb.WriteOptions{
+		Database: options.Database,
+		Table:    options.Table,
+	}
+
 	_, err := s.Client.Write(s.Context(), &pb.WriteRequest{
 		Record: &pb.Record{
 			Key:    record.Key,
 			Value:  record.Value,
 			Expiry: int64(record.Expiry.Seconds()),
 		},
-	}, client.WithAddress(s.Nodes...))
+		Options: writeOpts}, client.WithAddress(s.Nodes...))
 	if err != nil && errors.Equal(err, errors.NotFound("", "")) {
 		return store.ErrNotFound
 	}
@@ -138,8 +179,23 @@ func (s *serviceStore) Write(record *store.Record, opts ...store.WriteOption) er
 
 // Delete a record with key
 func (s *serviceStore) Delete(key string, opts ...store.DeleteOption) error {
+	options := store.DeleteOptions{
+		Database: s.Database,
+		Table:    s.Table,
+	}
+
+	for _, o := range opts {
+		o(&options)
+	}
+
+	deleteOpts := &pb.DeleteOptions{
+		Database: options.Database,
+		Table:    options.Table,
+	}
+
 	_, err := s.Client.Delete(s.Context(), &pb.DeleteRequest{
-		Key: key,
+		Key:     key,
+		Options: deleteOpts,
 	}, client.WithAddress(s.Nodes...))
 	if err != nil && errors.Equal(err, errors.NotFound("", "")) {
 		return store.ErrNotFound
@@ -164,11 +220,11 @@ func NewStore(opts ...store.Option) store.Store {
 	}
 
 	service := &serviceStore{
-		options:   options,
-		Namespace: options.Namespace,
-		Prefix:    options.Prefix,
-		Nodes:     options.Nodes,
-		Client:    pb.NewStoreService("go.micro.store", client.DefaultClient),
+		options:  options,
+		Database: options.Database,
+		Table:    options.Table,
+		Nodes:    options.Nodes,
+		Client:   pb.NewStoreService("go.micro.store", client.DefaultClient),
 	}
 
 	return service

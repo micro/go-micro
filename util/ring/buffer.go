@@ -67,17 +67,12 @@ func (b *Buffer) Get(n int) []*Entry {
 	defer b.RUnlock()
 
 	// reset any invalid values
-	if n > b.size || n < 0 {
-		n = b.size
+	if n > len(b.vals) || n < 0 {
+		n = len(b.vals)
 	}
 
 	// create a delta
-	delta := b.size - n
-
-	// if all the values are less than delta
-	if len(b.vals) < delta {
-		return b.vals
-	}
+	delta := len(b.vals) - n
 
 	// return the delta set
 	return b.vals[delta:]

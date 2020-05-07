@@ -2,7 +2,13 @@
 package resolver
 
 import (
+	"errors"
 	"net/http"
+)
+
+var (
+	ErrNotFound    = errors.New("not found")
+	ErrInvalidPath = errors.New("invalid path")
 )
 
 // Resolver resolves requests to endpoints
@@ -25,7 +31,14 @@ type Endpoint struct {
 
 type Options struct {
 	Handler   string
-	Namespace string
+	Namespace func(*http.Request) string
 }
 
 type Option func(o *Options)
+
+// StaticNamespace returns the same namespace for each request
+func StaticNamespace(ns string) func(*http.Request) string {
+	return func(*http.Request) string {
+		return ns
+	}
+}

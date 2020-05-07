@@ -49,6 +49,13 @@ type Option func(*Options)
 
 type PublishOption func(*PublishOptions)
 
+// PublishContext set context
+func PublishContext(ctx context.Context) PublishOption {
+	return func(o *PublishOptions) {
+		o.Context = ctx
+	}
+}
+
 type SubscribeOption func(*SubscribeOptions)
 
 func NewSubscribeOptions(opts ...SubscribeOption) SubscribeOptions {

@@ -11,6 +11,7 @@ import (
 
 import (
 	context "context"
+	api "github.com/micro/go-micro/v2/api"
 	client "github.com/micro/go-micro/v2/client"
 	server "github.com/micro/go-micro/v2/server"
 )
@@ -27,19 +28,23 @@ var _ = math.Inf
 const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
 // Reference imports to suppress errors if they are not otherwise used.
+var _ api.Endpoint
 var _ context.Context
 var _ client.Option
 var _ server.Option
+
+// Api Endpoints for Auth service
+
+func NewAuthEndpoints() []*api.Endpoint {
+	return []*api.Endpoint{}
+}
 
 // Client API for Auth service
 
 type AuthService interface {
 	Generate(ctx context.Context, in *GenerateRequest, opts ...client.CallOption) (*GenerateResponse, error)
-	Grant(ctx context.Context, in *GrantRequest, opts ...client.CallOption) (*GrantResponse, error)
-	Verify(ctx context.Context, in *VerifyRequest, opts ...client.CallOption) (*VerifyResponse, error)
-	Revoke(ctx context.Context, in *RevokeRequest, opts ...client.CallOption) (*RevokeResponse, error)
 	Inspect(ctx context.Context, in *InspectRequest, opts ...client.CallOption) (*InspectResponse, error)
-	Refresh(ctx context.Context, in *RefreshRequest, opts ...client.CallOption) (*RefreshResponse, error)
+	Token(ctx context.Context, in *TokenRequest, opts ...client.CallOption) (*TokenResponse, error)
 }
 
 type authService struct {
@@ -64,36 +69,6 @@ func (c *authService) Generate(ctx context.Context, in *GenerateRequest, opts ..
 	return out, nil
 }
 
-func (c *authService) Grant(ctx context.Context, in *GrantRequest, opts ...client.CallOption) (*GrantResponse, error) {
-	req := c.c.NewRequest(c.name, "Auth.Grant", in)
-	out := new(GrantResponse)
-	err := c.c.Call(ctx, req, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *authService) Verify(ctx context.Context, in *VerifyRequest, opts ...client.CallOption) (*VerifyResponse, error) {
-	req := c.c.NewRequest(c.name, "Auth.Verify", in)
-	out := new(VerifyResponse)
-	err := c.c.Call(ctx, req, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *authService) Revoke(ctx context.Context, in *RevokeRequest, opts ...client.CallOption) (*RevokeResponse, error) {
-	req := c.c.NewRequest(c.name, "Auth.Revoke", in)
-	out := new(RevokeResponse)
-	err := c.c.Call(ctx, req, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *authService) Inspect(ctx context.Context, in *InspectRequest, opts ...client.CallOption) (*InspectResponse, error) {
 	req := c.c.NewRequest(c.name, "Auth.Inspect", in)
 	out := new(InspectResponse)
@@ -104,9 +79,9 @@ func (c *authService) Inspect(ctx context.Context, in *InspectRequest, opts ...c
 	return out, nil
 }
 
-func (c *authService) Refresh(ctx context.Context, in *RefreshRequest, opts ...client.CallOption) (*RefreshResponse, error) {
-	req := c.c.NewRequest(c.name, "Auth.Refresh", in)
-	out := new(RefreshResponse)
+func (c *authService) Token(ctx context.Context, in *TokenRequest, opts ...client.CallOption) (*TokenResponse, error) {
+	req := c.c.NewRequest(c.name, "Auth.Token", in)
+	out := new(TokenResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -118,21 +93,15 @@ func (c *authService) Refresh(ctx context.Context, in *RefreshRequest, opts ...c
 
 type AuthHandler interface {
 	Generate(context.Context, *GenerateRequest, *GenerateResponse) error
-	Grant(context.Context, *GrantRequest, *GrantResponse) error
-	Verify(context.Context, *VerifyRequest, *VerifyResponse) error
-	Revoke(context.Context, *RevokeRequest, *RevokeResponse) error
 	Inspect(context.Context, *InspectRequest, *InspectResponse) error
-	Refresh(context.Context, *RefreshRequest, *RefreshResponse) error
+	Token(context.Context, *TokenRequest, *TokenResponse) error
 }
 
 func RegisterAuthHandler(s server.Server, hdlr AuthHandler, opts ...server.HandlerOption) error {
 	type auth interface {
 		Generate(ctx context.Context, in *GenerateRequest, out *GenerateResponse) error
-		Grant(ctx context.Context, in *GrantRequest, out *GrantResponse) error
-		Verify(ctx context.Context, in *VerifyRequest, out *VerifyResponse) error
-		Revoke(ctx context.Context, in *RevokeRequest, out *RevokeResponse) error
 		Inspect(ctx context.Context, in *InspectRequest, out *InspectResponse) error
-		Refresh(ctx context.Context, in *RefreshRequest, out *RefreshResponse) error
+		Token(ctx context.Context, in *TokenRequest, out *TokenResponse) error
 	}
 	type Auth struct {
 		auth
@@ -149,22 +118,162 @@ func (h *authHandler) Generate(ctx context.Context, in *GenerateRequest, out *Ge
 	return h.AuthHandler.Generate(ctx, in, out)
 }
 
-func (h *authHandler) Grant(ctx context.Context, in *GrantRequest, out *GrantResponse) error {
-	return h.AuthHandler.Grant(ctx, in, out)
-}
-
-func (h *authHandler) Verify(ctx context.Context, in *VerifyRequest, out *VerifyResponse) error {
-	return h.AuthHandler.Verify(ctx, in, out)
-}
-
-func (h *authHandler) Revoke(ctx context.Context, in *RevokeRequest, out *RevokeResponse) error {
-	return h.AuthHandler.Revoke(ctx, in, out)
-}
-
 func (h *authHandler) Inspect(ctx context.Context, in *InspectRequest, out *InspectResponse) error {
 	return h.AuthHandler.Inspect(ctx, in, out)
 }
 
-func (h *authHandler) Refresh(ctx context.Context, in *RefreshRequest, out *RefreshResponse) error {
-	return h.AuthHandler.Refresh(ctx, in, out)
+func (h *authHandler) Token(ctx context.Context, in *TokenRequest, out *TokenResponse) error {
+	return h.AuthHandler.Token(ctx, in, out)
+}
+
+// Api Endpoints for Accounts service
+
+func NewAccountsEndpoints() []*api.Endpoint {
+	return []*api.Endpoint{}
+}
+
+// Client API for Accounts service
+
+type AccountsService interface {
+	List(ctx context.Context, in *ListAccountsRequest, opts ...client.CallOption) (*ListAccountsResponse, error)
+}
+
+type accountsService struct {
+	c    client.Client
+	name string
+}
+
+func NewAccountsService(name string, c client.Client) AccountsService {
+	return &accountsService{
+		c:    c,
+		name: name,
+	}
+}
+
+func (c *accountsService) List(ctx context.Context, in *ListAccountsRequest, opts ...client.CallOption) (*ListAccountsResponse, error) {
+	req := c.c.NewRequest(c.name, "Accounts.List", in)
+	out := new(ListAccountsResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// Server API for Accounts service
+
+type AccountsHandler interface {
+	List(context.Context, *ListAccountsRequest, *ListAccountsResponse) error
+}
+
+func RegisterAccountsHandler(s server.Server, hdlr AccountsHandler, opts ...server.HandlerOption) error {
+	type accounts interface {
+		List(ctx context.Context, in *ListAccountsRequest, out *ListAccountsResponse) error
+	}
+	type Accounts struct {
+		accounts
+	}
+	h := &accountsHandler{hdlr}
+	return s.Handle(s.NewHandler(&Accounts{h}, opts...))
+}
+
+type accountsHandler struct {
+	AccountsHandler
+}
+
+func (h *accountsHandler) List(ctx context.Context, in *ListAccountsRequest, out *ListAccountsResponse) error {
+	return h.AccountsHandler.List(ctx, in, out)
+}
+
+// Api Endpoints for Rules service
+
+func NewRulesEndpoints() []*api.Endpoint {
+	return []*api.Endpoint{}
+}
+
+// Client API for Rules service
+
+type RulesService interface {
+	Create(ctx context.Context, in *CreateRequest, opts ...client.CallOption) (*CreateResponse, error)
+	Delete(ctx context.Context, in *DeleteRequest, opts ...client.CallOption) (*DeleteResponse, error)
+	List(ctx context.Context, in *ListRequest, opts ...client.CallOption) (*ListResponse, error)
+}
+
+type rulesService struct {
+	c    client.Client
+	name string
+}
+
+func NewRulesService(name string, c client.Client) RulesService {
+	return &rulesService{
+		c:    c,
+		name: name,
+	}
+}
+
+func (c *rulesService) Create(ctx context.Context, in *CreateRequest, opts ...client.CallOption) (*CreateResponse, error) {
+	req := c.c.NewRequest(c.name, "Rules.Create", in)
+	out := new(CreateResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *rulesService) Delete(ctx context.Context, in *DeleteRequest, opts ...client.CallOption) (*DeleteResponse, error) {
+	req := c.c.NewRequest(c.name, "Rules.Delete", in)
+	out := new(DeleteResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *rulesService) List(ctx context.Context, in *ListRequest, opts ...client.CallOption) (*ListResponse, error) {
+	req := c.c.NewRequest(c.name, "Rules.List", in)
+	out := new(ListResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// Server API for Rules service
+
+type RulesHandler interface {
+	Create(context.Context, *CreateRequest, *CreateResponse) error
+	Delete(context.Context, *DeleteRequest, *DeleteResponse) error
+	List(context.Context, *ListRequest, *ListResponse) error
+}
+
+func RegisterRulesHandler(s server.Server, hdlr RulesHandler, opts ...server.HandlerOption) error {
+	type rules interface {
+		Create(ctx context.Context, in *CreateRequest, out *CreateResponse) error
+		Delete(ctx context.Context, in *DeleteRequest, out *DeleteResponse) error
+		List(ctx context.Context, in *ListRequest, out *ListResponse) error
+	}
+	type Rules struct {
+		rules
+	}
+	h := &rulesHandler{hdlr}
+	return s.Handle(s.NewHandler(&Rules{h}, opts...))
+}
+
+type rulesHandler struct {
+	RulesHandler
+}
+
+func (h *rulesHandler) Create(ctx context.Context, in *CreateRequest, out *CreateResponse) error {
+	return h.RulesHandler.Create(ctx, in, out)
+}
+
+func (h *rulesHandler) Delete(ctx context.Context, in *DeleteRequest, out *DeleteResponse) error {
+	return h.RulesHandler.Delete(ctx, in, out)
+}
+
+func (h *rulesHandler) List(ctx context.Context, in *ListRequest, out *ListResponse) error {
+	return h.RulesHandler.List(ctx, in, out)
 }

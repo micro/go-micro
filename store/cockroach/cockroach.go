@@ -7,35 +7,179 @@ import (
 	"net/url"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/lib/pq"
-	"github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/store"
 	"github.com/pkg/errors"
 )
 
-// DefaultNamespace is the namespace that the sql store
+// DefaultDatabase is the namespace that the sql store
 // will use if no namespace is provided.
 var (
-	DefaultNamespace = "micro"
-	DefaultPrefix    = "micro"
+	DefaultDatabase = "micro"
+	DefaultTable    = "micro"
+)
+
+var (
+	re = regexp.MustCompile("[^a-zA-Z0-9]+")
+
+	statements = map[string]string{
+		"list":       "SELECT key, value, expiry FROM %s.%s;",
+		"read":       "SELECT key, value, expiry FROM %s.%s WHERE key = $1;",
+		"readMany":   "SELECT key, value, expiry FROM %s.%s WHERE key LIKE $1;",
+		"readOffset": "SELECT key, value, expiry FROM %s.%s WHERE key LIKE $1 ORDER BY key DESC LIMIT $2 OFFSET $3;",
+		"write":      "INSERT INTO %s.%s(key, value, expiry) VALUES ($1, $2::bytea, $3) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, expiry = EXCLUDED.expiry;",
+		"delete":     "DELETE FROM %s.%s WHERE key = $1;",
+	}
 )
 
 type sqlStore struct {
-	db *sql.DB
-
-	database string
-	table    string
-
-	list       *sql.Stmt
-	readOne    *sql.Stmt
-	readMany   *sql.Stmt
-	readOffset *sql.Stmt
-	write      *sql.Stmt
-	delete     *sql.Stmt
-
 	options store.Options
+	db      *sql.DB
+
+	sync.RWMutex
+	// known databases
+	databases map[string]bool
+}
+
+func (s *sqlStore) getDB(database, table string) (string, string) {
+	if len(database) == 0 {
+		if len(s.options.Database) > 0 {
+			database = s.options.Database
+		} else {
+			database = DefaultDatabase
+		}
+	}
+
+	if len(table) == 0 {
+		if len(s.options.Table) > 0 {
+			table = s.options.Table
+		} else {
+			database = DefaultTable
+		}
+	}
+
+	// store.namespace must only contain letters, numbers and underscores
+	database = re.ReplaceAllString(database, "_")
+	table = re.ReplaceAllString(table, "_")
+
+	return database, table
+}
+
+func (s *sqlStore) createDB(database, table string) error {
+	database, table = s.getDB(database, table)
+
+	s.Lock()
+	defer s.Unlock()
+
+	if _, ok := s.databases[database+":"+table]; ok {
+		return nil
+	}
+
+	if err := s.initDB(database, table); err != nil {
+		return err
+	}
+
+	s.databases[database+":"+table] = true
+	return nil
+}
+
+func (s *sqlStore) initDB(database, table string) error {
+	// Create the namespace's database
+	_, err := s.db.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s;", database))
+	if err != nil {
+		return err
+	}
+
+	_, err = s.db.Exec(fmt.Sprintf("SET DATABASE = %s;", database))
+	if err != nil {
+		return errors.Wrap(err, "Couldn't set database")
+	}
+
+	// Create a table for the namespace's prefix
+	_, err = s.db.Exec(fmt.Sprintf(`CREATE TABLE IF NOT EXISTS %s
+	(
+		key text NOT NULL,
+		value bytea,
+		expiry timestamp with time zone,
+		CONSTRAINT %s_pkey PRIMARY KEY (key)
+	);`, table, table))
+	if err != nil {
+		return errors.Wrap(err, "Couldn't create table")
+	}
+
+	// Create Index
+	_, err = s.db.Exec(fmt.Sprintf(`CREATE INDEX IF NOT EXISTS "%s" ON %s.%s USING btree ("key");`, "key_index_"+table, database, table))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *sqlStore) configure() error {
+	if len(s.options.Nodes) == 0 {
+		s.options.Nodes = []string{"postgresql://root@localhost:26257?sslmode=disable"}
+	}
+
+	source := s.options.Nodes[0]
+	// check if it is a standard connection string eg: host=%s port=%d user=%s password=%s dbname=%s sslmode=disable
+	// if err is nil which means it would be a URL like postgre://xxxx?yy=zz
+	_, err := url.Parse(source)
+	if err != nil {
+		if !strings.Contains(source, " ") {
+			source = fmt.Sprintf("host=%s", source)
+		}
+	}
+
+	// create source from first node
+	db, err := sql.Open("postgres", source)
+	if err != nil {
+		return err
+	}
+
+	if err := db.Ping(); err != nil {
+		return err
+	}
+
+	if s.db != nil {
+		s.db.Close()
+	}
+
+	// save the values
+	s.db = db
+
+	// get DB
+	database, table := s.getDB(s.options.Database, s.options.Table)
+
+	// initialise the database
+	return s.initDB(database, table)
+}
+
+func (s *sqlStore) prepare(database, table, query string) (*sql.Stmt, error) {
+	st, ok := statements[query]
+	if !ok {
+		return nil, errors.New("unsupported statement")
+	}
+
+	// get DB
+	database, table = s.getDB(database, table)
+
+	q := fmt.Sprintf(st, database, table)
+	stmt, err := s.db.Prepare(q)
+	if err != nil {
+		return nil, err
+	}
+	return stmt, nil
+}
+
+func (s *sqlStore) Close() error {
+	if s.db != nil {
+		return s.db.Close()
+	}
+	return nil
 }
 
 func (s *sqlStore) Init(opts ...store.Option) error {
@@ -48,16 +192,34 @@ func (s *sqlStore) Init(opts ...store.Option) error {
 
 // List all the known records
 func (s *sqlStore) List(opts ...store.ListOption) ([]string, error) {
-	rows, err := s.list.Query()
-	var keys []string
-	var timehelper pq.NullTime
+	var options store.ListOptions
+	for _, o := range opts {
+		o(&options)
+	}
+
+	// create the db if not exists
+	if err := s.createDB(options.Database, options.Table); err != nil {
+		return nil, err
+	}
+
+	st, err := s.prepare(options.Database, options.Table, "list")
+	if err != nil {
+		return nil, err
+	}
+	defer st.Close()
+
+	rows, err := st.Query()
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return keys, nil
+			return nil, nil
 		}
 		return nil, err
 	}
 	defer rows.Close()
+
+	var keys []string
+	var timehelper pq.NullTime
+
 	for rows.Next() {
 		record := &store.Record{}
 		if err := rows.Scan(&record.Key, &record.Value, &timehelper); err != nil {
@@ -94,6 +256,11 @@ func (s *sqlStore) Read(key string, opts ...store.ReadOption) ([]*store.Record, 
 		o(&options)
 	}
 
+	// create the db if not exists
+	if err := s.createDB(options.Database, options.Table); err != nil {
+		return nil, err
+	}
+
 	if options.Prefix || options.Suffix {
 		return s.read(key, options)
 	}
@@ -101,7 +268,13 @@ func (s *sqlStore) Read(key string, opts ...store.ReadOption) ([]*store.Record, 
 	var records []*store.Record
 	var timehelper pq.NullTime
 
-	row := s.readOne.QueryRow(key)
+	st, err := s.prepare(options.Database, options.Table, "read")
+	if err != nil {
+		return nil, err
+	}
+	defer st.Close()
+
+	row := st.QueryRow(key)
 	record := &store.Record{}
 	if err := row.Scan(&record.Key, &record.Value, &timehelper); err != nil {
 		if err == sql.ErrNoRows {
@@ -133,12 +306,26 @@ func (s *sqlStore) read(key string, options store.ReadOptions) ([]*store.Record,
 	if options.Suffix {
 		pattern = pattern + key
 	}
+
 	var rows *sql.Rows
 	var err error
+
 	if options.Limit != 0 {
-		rows, err = s.readOffset.Query(pattern, options.Limit, options.Offset)
+		st, err := s.prepare(options.Database, options.Table, "readOffset")
+		if err != nil {
+			return nil, err
+		}
+		defer st.Close()
+
+		rows, err = st.Query(pattern, options.Limit, options.Offset)
 	} else {
-		rows, err = s.readMany.Query(pattern)
+		st, err := s.prepare(options.Database, options.Table, "readMany")
+		if err != nil {
+			return nil, err
+		}
+		defer st.Close()
+
+		rows, err = st.Query(pattern)
 	}
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -146,7 +333,9 @@ func (s *sqlStore) read(key string, options store.ReadOptions) ([]*store.Record,
 		}
 		return []*store.Record{}, errors.Wrap(err, "sqlStore.read failed")
 	}
+
 	defer rows.Close()
+
 	var records []*store.Record
 	var timehelper pq.NullTime
 
@@ -181,11 +370,26 @@ func (s *sqlStore) read(key string, options store.ReadOptions) ([]*store.Record,
 
 // Write records
 func (s *sqlStore) Write(r *store.Record, opts ...store.WriteOption) error {
-	var err error
+	var options store.WriteOptions
+	for _, o := range opts {
+		o(&options)
+	}
+
+	// create the db if not exists
+	if err := s.createDB(options.Database, options.Table); err != nil {
+		return err
+	}
+
+	st, err := s.prepare(options.Database, options.Table, "write")
+	if err != nil {
+		return err
+	}
+	defer st.Close()
+
 	if r.Expiry != 0 {
-		_, err = s.write.Exec(r.Key, r.Value, time.Now().Add(r.Expiry))
+		_, err = st.Exec(r.Key, r.Value, time.Now().Add(r.Expiry))
 	} else {
-		_, err = s.write.Exec(r.Key, r.Value, nil)
+		_, err = st.Exec(r.Key, r.Value, nil)
 	}
 
 	if err != nil {
@@ -197,10 +401,27 @@ func (s *sqlStore) Write(r *store.Record, opts ...store.WriteOption) error {
 
 // Delete records with keys
 func (s *sqlStore) Delete(key string, opts ...store.DeleteOption) error {
-	result, err := s.delete.Exec(key)
+	var options store.DeleteOptions
+	for _, o := range opts {
+		o(&options)
+	}
+
+	// create the db if not exists
+	if err := s.createDB(options.Database, options.Table); err != nil {
+		return err
+	}
+
+	st, err := s.prepare(options.Database, options.Table, "delete")
 	if err != nil {
 		return err
 	}
+	defer st.Close()
+
+	result, err := st.Exec(key)
+	if err != nil {
+		return err
+	}
+
 	_, err = result.RowsAffected()
 	if err != nil {
 		return err
@@ -209,159 +430,21 @@ func (s *sqlStore) Delete(key string, opts ...store.DeleteOption) error {
 	return nil
 }
 
-func (s *sqlStore) initDB() error {
-	// Create the namespace's database
-	_, err := s.db.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s ;", s.database))
-	if err != nil {
-		return err
-	}
-
-	_, err = s.db.Exec(fmt.Sprintf("SET DATABASE = %s ;", s.database))
-	if err != nil {
-		return errors.Wrap(err, "Couldn't set database")
-	}
-
-	// Create a table for the namespace's prefix
-	_, err = s.db.Exec(fmt.Sprintf(`CREATE TABLE IF NOT EXISTS %s
-	(
-		key text NOT NULL,
-		value bytea,
-		expiry timestamp with time zone,
-		CONSTRAINT %s_pkey PRIMARY KEY (key)
-	);`, s.table, s.table))
-	if err != nil {
-		return errors.Wrap(err, "Couldn't create table")
-	}
-
-	// Create Index
-	_, err = s.db.Exec(fmt.Sprintf(`CREATE INDEX IF NOT EXISTS "%s" ON %s.%s USING btree ("key")`, "key_index_"+s.table, s.database, s.table))
-	if err != nil {
-		return err
-	}
-
-	list, err := s.db.Prepare(fmt.Sprintf("SELECT key, value, expiry FROM %s.%s;", s.database, s.table))
-	if err != nil {
-		return errors.Wrap(err, "List statement couldn't be prepared")
-	}
-	if s.list != nil {
-		s.list.Close()
-	}
-	s.list = list
-	readOne, err := s.db.Prepare(fmt.Sprintf("SELECT key, value, expiry FROM %s.%s WHERE key = $1;", s.database, s.table))
-	if err != nil {
-		return errors.Wrap(err, "ReadOne statement couldn't be prepared")
-	}
-	if s.readOne != nil {
-		s.readOne.Close()
-	}
-	s.readOne = readOne
-	readMany, err := s.db.Prepare(fmt.Sprintf("SELECT key, value, expiry FROM %s.%s WHERE key LIKE $1;", s.database, s.table))
-	if err != nil {
-		return errors.Wrap(err, "ReadMany statement couldn't be prepared")
-	}
-	if s.readMany != nil {
-		s.readMany.Close()
-	}
-	s.readMany = readMany
-	readOffset, err := s.db.Prepare(fmt.Sprintf("SELECT key, value, expiry FROM %s.%s WHERE key LIKE $1 ORDER BY key DESC LIMIT $2 OFFSET $3;", s.database, s.table))
-	if err != nil {
-		return errors.Wrap(err, "ReadOffset statement couldn't be prepared")
-	}
-	if s.readOffset != nil {
-		s.readOffset.Close()
-	}
-	s.readOffset = readOffset
-	write, err := s.db.Prepare(fmt.Sprintf(`INSERT INTO %s.%s(key, value, expiry)
-		VALUES ($1, $2::bytea, $3)
-		ON CONFLICT (key)
-		DO UPDATE
-		SET value = EXCLUDED.value, expiry = EXCLUDED.expiry;`, s.database, s.table))
-	if err != nil {
-		return errors.Wrap(err, "Write statement couldn't be prepared")
-	}
-	if s.write != nil {
-		s.write.Close()
-	}
-	s.write = write
-	delete, err := s.db.Prepare(fmt.Sprintf("DELETE FROM %s.%s WHERE key = $1;", s.database, s.table))
-	if err != nil {
-		return errors.Wrap(err, "Delete statement couldn't be prepared")
-	}
-	if s.delete != nil {
-		s.delete.Close()
-	}
-	s.delete = delete
-
-	return nil
-}
-
-func (s *sqlStore) configure() error {
-	nodes := s.options.Nodes
-	if len(nodes) == 0 {
-		nodes = []string{"localhost:26257"}
-	}
-
-	namespace := s.options.Namespace
-	if len(namespace) == 0 {
-		namespace = DefaultNamespace
-	}
-
-	prefix := s.options.Prefix
-	if len(prefix) == 0 {
-		prefix = DefaultPrefix
-	}
-
-	// store.namespace must only contain letters, numbers and underscores
-	reg, err := regexp.Compile("[^a-zA-Z0-9]+")
-	if err != nil {
-		return errors.New("error compiling regex for namespace")
-	}
-	namespace = reg.ReplaceAllString(namespace, "_")
-
-	source := nodes[0]
-	// check if it is a standard connection string eg: host=%s port=%d user=%s password=%s dbname=%s sslmode=disable
-	// if err is nil which means it would be a URL like postgre://xxxx?yy=zz
-	_, err = url.Parse(source)
-	if err != nil {
-		if !strings.Contains(source, " ") {
-			source = fmt.Sprintf("host=%s", source)
-		}
-	}
-
-	// create source from first node
-	db, err := sql.Open("postgres", source)
-	if err != nil {
-		return err
-	}
-
-	if err := db.Ping(); err != nil {
-		return err
-	}
-
-	if s.db != nil {
-		s.db.Close()
-	}
-
-	// save the values
-	s.db = db
-	s.database = namespace
-	s.table = prefix
-
-	// initialise the database
-	return s.initDB()
+func (s *sqlStore) Options() store.Options {
+	return s.options
 }
 
 func (s *sqlStore) String() string {
 	return "cockroach"
 }
 
-func (s *sqlStore) Options() store.Options {
-	return s.options
-}
-
 // NewStore returns a new micro Store backed by sql
 func NewStore(opts ...store.Option) store.Store {
-	var options store.Options
+	options := store.Options{
+		Database: DefaultDatabase,
+		Table:    DefaultTable,
+	}
+
 	for _, o := range opts {
 		o(&options)
 	}
@@ -370,11 +453,10 @@ func NewStore(opts ...store.Option) store.Store {
 	s := new(sqlStore)
 	// set the options
 	s.options = options
-
-	// configure the store
-	if err := s.configure(); err != nil {
-		logger.Fatal(err)
-	}
+	// mark known databases
+	s.databases = make(map[string]bool)
+	// best-effort configure the store
+	s.configure()
 
 	// return store
 	return s

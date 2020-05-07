@@ -1,11 +1,22 @@
 syntax = "proto3";
 
+import "google/api/annotations.proto";
+
 service Test {
-	rpc Call(Request) returns (Response) {}
+	rpc Call(Request) returns (Response) {
+    option (google.api.http) = { post: "/api/v0/test/call/{uuid}"; body:"*"; };
+	};
+	rpc CallPcre(Request) returns (Response) {
+    option (google.api.http) = { post: "^/api/v0/test/call/pcre/?$"; body:"*"; };
+	};
+	rpc CallPcreInvalid(Request) returns (Response) {
+    option (google.api.http) = { post: "^/api/v0/test/call/pcre/invalid/?"; body:"*"; };
+	};
 }
 
 message Request {
-	string name = 1;
+  string uuid = 1;
+	string name = 2;
 }
 
 message Response {

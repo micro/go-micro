@@ -4,12 +4,24 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
+	"runtime"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
 	dlog "github.com/micro/go-micro/v2/debug/log"
 )
+
+func init() {
+	lvl, err := GetLevel(os.Getenv("MICRO_LOG_LEVEL"))
+	if err != nil {
+		lvl = InfoLevel
+	}
+
+	DefaultLogger = NewHelper(NewLogger(WithLevel(lvl)))
+}
 
 type defaultLogger struct {
 	sync.RWMutex
@@ -43,6 +55,11 @@ func copyFields(src map[string]interface{}) map[string]interface{} {
 	return dst
 }
 
+func logCallerfilePath(loggingFilePath string) string {
+	parts := strings.Split(loggingFilePath, string(filepath.Separator))
+	return parts[len(parts)-1]
+}
+
 func (l *defaultLogger) Log(level Level, v ...interface{}) {
 	// TODO decide does we need to write message if log level not used?
 	if !l.opts.Level.Enabled(level) {
@@ -54,6 +71,10 @@ func (l *defaultLogger) Log(level Level, v ...interface{}) {
 	l.RUnlock()
 
 	fields["level"] = level.String()
+
+	if _, file, line, ok := runtime.Caller(l.opts.CallerSkipCount); ok {
+		fields["file"] = fmt.Sprintf("%s:%d", logCallerfilePath(file), line)
+	}
 
 	rec := dlog.Record{
 		Timestamp: time.Now(),
@@ -92,6 +113,10 @@ func (l *defaultLogger) Logf(level Level, format string, v ...interface{}) {
 
 	fields["level"] = level.String()
 
+	if _, file, line, ok := runtime.Caller(l.opts.CallerSkipCount); ok {
+		fields["file"] = fmt.Sprintf("%s:%d", logCallerfilePath(file), line)
+	}
+
 	rec := dlog.Record{
 		Timestamp: time.Now(),
 		Message:   fmt.Sprintf(format, v...),
@@ -118,17 +143,23 @@ func (l *defaultLogger) Logf(level Level, format string, v ...interface{}) {
 }
 
 func (n *defaultLogger) Options() Options {
-	return n.opts
+	// not guard against options Context values
+	n.RLock()
+	opts := n.opts
+	opts.Fields = copyFields(n.opts.Fields)
+	n.RUnlock()
+	return opts
 }
 
 // NewLogger builds a new logger based on options
 func NewLogger(opts ...Option) Logger {
 	// Default options
 	options := Options{
-		Level:   InfoLevel,
-		Fields:  make(map[string]interface{}),
-		Out:     os.Stderr,
-		Context: context.Background(),
+		Level:           InfoLevel,
+		Fields:          make(map[string]interface{}),
+		Out:             os.Stderr,
+		CallerSkipCount: 2,
+		Context:         context.Background(),
 	}
 
 	l := &defaultLogger{opts: options}

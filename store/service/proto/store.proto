@@ -7,6 +7,8 @@ service Store {
 	rpc Write(WriteRequest) returns (WriteResponse) {};
 	rpc Delete(DeleteRequest) returns (DeleteResponse) {};
 	rpc List(ListRequest) returns (stream ListResponse) {};
+	rpc Databases(DatabasesRequest) returns (DatabasesResponse) {};
+	rpc Tables(TablesRequest) returns (TablesResponse) {};
 }
 
 message Record {
@@ -19,10 +21,12 @@ message Record {
 }
 
 message ReadOptions {
-	bool prefix   = 1;
-	bool suffix   = 2;
-	uint64 limit  = 3;
-	uint64 offset = 4;
+	string database = 1;
+	string table = 2;
+	bool prefix   = 3;
+	bool suffix   = 4;
+	uint64 limit  = 5;
+	uint64 offset = 6;
 }
 
 message ReadRequest {
@@ -35,10 +39,12 @@ message ReadResponse {
 }
 
 message WriteOptions {
+	string database = 1;
+	string table = 2;
 	// time.Time
-	int64 expiry = 1;
+	int64 expiry = 3;
 	// time.Duration
-	int64 ttl = 2;
+	int64 ttl = 4;
 }
 
 message WriteRequest {
@@ -48,7 +54,10 @@ message WriteRequest {
 
 message WriteResponse {}
 
-message DeleteOptions {}
+message DeleteOptions {
+	string database = 1;
+	string table = 2;
+}
 
 message DeleteRequest {
 	string key            = 1;
@@ -58,11 +67,14 @@ message DeleteRequest {
 message DeleteResponse {}
 
 message ListOptions {
-	string prefix = 1;
-	string suffix = 2;
-	uint64 limit  = 3;
-	uint64 offset = 4;
+	string database = 1;
+	string table = 2;
+	string prefix   = 3;
+	string suffix   = 4;
+	uint64 limit  = 5;
+	uint64 offset = 6;
 }
+
 
 message ListRequest {
 	ListOptions options = 1;
@@ -71,4 +83,18 @@ message ListRequest {
 message ListResponse {
 	reserved 1; //repeated Record records = 1;
 	repeated string keys = 2;
+}
+
+message DatabasesRequest {}
+
+message DatabasesResponse {
+	repeated string databases = 1;
+}
+
+message TablesRequest {
+	string database = 1;
+}
+
+message TablesResponse {
+	repeated string tables = 1;
 }

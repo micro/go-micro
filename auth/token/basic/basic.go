@@ -2,6 +2,7 @@ package basic
 
 import (
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -14,6 +15,11 @@ import (
 type Basic struct {
 	store store.Store
 }
+
+var (
+	// StorePrefix to isolate tokens
+	StorePrefix = "tokens/"
+)
 
 // NewTokenProvider returns an initialized basic provider
 func NewTokenProvider(opts ...token.Option) token.Provider {
@@ -29,29 +35,19 @@ func NewTokenProvider(opts ...token.Option) token.Provider {
 }
 
 // Generate a token for an account
-func (b *Basic) Generate(subject string, opts ...token.GenerateOption) (*auth.Token, error) {
+func (b *Basic) Generate(acc *auth.Account, opts ...token.GenerateOption) (*token.Token, error) {
 	options := token.NewGenerateOptions(opts...)
 
-	// construct the token
-	token := auth.Token{
-		Subject:  subject,
-		Type:     b.String(),
-		Token:    uuid.New().String(),
-		Created:  time.Now(),
-		Expiry:   time.Now().Add(options.Expiry),
-		Metadata: options.Metadata,
-		Roles:    options.Roles,
-	}
-
 	// marshal the account to bytes
-	bytes, err := json.Marshal(token)
+	bytes, err := json.Marshal(acc)
 	if err != nil {
 		return nil, err
 	}
 
 	// write to the store
+	key := uuid.New().String()
 	err = b.store.Write(&store.Record{
-		Key:    token.Token,
+		Key:    fmt.Sprintf("%v%v", StorePrefix, key),
 		Value:  bytes,
 		Expiry: options.Expiry,
 	})
@@ -60,13 +56,17 @@ func (b *Basic) Generate(subject string, opts ...token.GenerateOption) (*auth.To
 	}
 
 	// return the token
-	return &token, nil
+	return &token.Token{
+		Token:   key,
+		Created: time.Now(),
+		Expiry:  time.Now().Add(options.Expiry),
+	}, nil
 }
 
 // Inspect a token
-func (b *Basic) Inspect(t string) (*auth.Token, error) {
+func (b *Basic) Inspect(t string) (*auth.Account, error) {
 	// lookup the token in the store
-	recs, err := b.store.Read(t)
+	recs, err := b.store.Read(StorePrefix + t)
 	if err == store.ErrNotFound {
 		return nil, token.ErrInvalidToken
 	} else if err != nil {
@@ -75,18 +75,12 @@ func (b *Basic) Inspect(t string) (*auth.Token, error) {
 	bytes := recs[0].Value
 
 	// unmarshal the bytes
-	var tok *auth.Token
-	if err := json.Unmarshal(bytes, &tok); err != nil {
+	var acc *auth.Account
+	if err := json.Unmarshal(bytes, &acc); err != nil {
 		return nil, err
 	}
 
-	// ensure the token hasn't expired, the store should
-	// expire the token but we're checking again
-	if tok.Expiry.Unix() < time.Now().Unix() {
-		return nil, token.ErrInvalidToken
-	}
-
-	return tok, err
+	return acc, nil
 }
 
 // String returns basic

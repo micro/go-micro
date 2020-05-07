@@ -3,33 +3,39 @@ package secrets
 
 import "context"
 
-// Codec encrypts or decrypts arbitrary data. The data should be as small as possible
-type Codec interface {
+// Secrets encrypts or decrypts arbitrary data. The data should be as small as possible
+type Secrets interface {
+	// Initialise options
 	Init(...Option) error
+	// Return the options
 	Options() Options
-	String() string
+	// Decrypt a value
 	Decrypt([]byte, ...DecryptOption) ([]byte, error)
+	// Encrypt a value
 	Encrypt([]byte, ...EncryptOption) ([]byte, error)
+	// Secrets implementation
+	String() string
 }
 
-// Options is a codec's options
-// SecretKey or both PublicKey and PrivateKey should be set depending on the
-// underlying implementation
 type Options struct {
-	SecretKey  []byte
+	// Key is a symmetric key for encoding
+	Key []byte
+	// Private key for decoding
 	PrivateKey []byte
-	PublicKey  []byte
-	Context    context.Context
+	// Public key for encoding
+	PublicKey []byte
+	// Context for other opts
+	Context context.Context
 }
 
 // Option sets options
 type Option func(*Options)
 
-// SecretKey sets the symmetric secret key
-func SecretKey(key []byte) Option {
+// Key sets the symmetric secret key
+func Key(k []byte) Option {
 	return func(o *Options) {
-		o.SecretKey = make([]byte, len(key))
-		copy(o.SecretKey, key)
+		o.Key = make([]byte, len(k))
+		copy(o.Key, k)
 	}
 }
 
@@ -49,7 +55,7 @@ func PrivateKey(key []byte) Option {
 	}
 }
 
-// DecryptOptions can be passed to Codec.Decrypt
+// DecryptOptions can be passed to Secrets.Decrypt
 type DecryptOptions struct {
 	SenderPublicKey []byte
 }
@@ -57,7 +63,7 @@ type DecryptOptions struct {
 // DecryptOption sets DecryptOptions
 type DecryptOption func(*DecryptOptions)
 
-// SenderPublicKey is the Public Key of the Codec that encrypted this message
+// SenderPublicKey is the Public Key of the Secrets that encrypted this message
 func SenderPublicKey(key []byte) DecryptOption {
 	return func(d *DecryptOptions) {
 		d.SenderPublicKey = make([]byte, len(key))
@@ -65,7 +71,7 @@ func SenderPublicKey(key []byte) DecryptOption {
 	}
 }
 
-// EncryptOptions can be passed to Codec.Encrypt
+// EncryptOptions can be passed to Secrets.Encrypt
 type EncryptOptions struct {
 	RecipientPublicKey []byte
 }
@@ -73,7 +79,7 @@ type EncryptOptions struct {
 // EncryptOption Sets EncryptOptions
 type EncryptOption func(*EncryptOptions)
 
-// RecipientPublicKey is the Public Key of the Codec that will decrypt this message
+// RecipientPublicKey is the Public Key of the Secrets that will decrypt this message
 func RecipientPublicKey(key []byte) EncryptOption {
 	return func(e *EncryptOptions) {
 		e.RecipientPublicKey = make([]byte, len(key))
