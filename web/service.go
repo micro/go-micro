@@ -63,7 +63,7 @@ func (s *service) genSrv() *registry.Service {
 	// if it exists then use it, otherwise
 	// use the address
 	if len(s.opts.Advertise) > 0 {
-		host, port, err = net.SplitHostPort(s.opts.Address)
+		host, port, err = net.SplitHostPort(s.opts.Advertise)
 		if err != nil {
 			log.Fatal(err)
 		}
