@@ -11,6 +11,13 @@ service Store {
 	rpc Tables(TablesRequest) returns (TablesResponse) {};
 }
 
+message Field {
+	// type of value e.g string, int, int64, bool, float64
+	string type = 1;
+	// the actual value
+	string value = 2;
+}
+
 message Record {
 	// key of the record
 	string key = 1;
@@ -18,6 +25,8 @@ message Record {
 	bytes value = 2;
 	// time.Duration (signed int64 nanoseconds)
 	int64 expiry = 3;
+	// the associated metadata
+	map<string,Field> metadata = 4;
 }
 
 message ReadOptions {
