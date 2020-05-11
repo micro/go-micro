@@ -23,6 +23,7 @@ type Client interface {
 	Write(sessionId, offset int64, data []byte) error
 	Close(sessionId int64) error
 	Download(filename, saveFile string) error
+	Upload(filename, localFile string) error
 	DownloadAt(filename, saveFile string, blockId int) error
 }
 
@@ -86,7 +87,11 @@ func (c *fc) Read(sessionId int64, buf []byte) (int, error) {
 }
 
 func (c *fc) Write(sessionId, offset int64, data []byte) error {
-	return c.Write(sessionId, offset, data)
+	_, err := c.c.Write(context.TODO(), &proto.WriteRequest{
+		Id:     sessionId,
+		Offset: offset,
+		Data:   data})
+	return err
 }
 
 func (c *fc) Close(sessionId int64) error {
@@ -99,17 +104,9 @@ func (c *fc) Download(filename, saveFile string) error {
 }
 
 func (c *fc) Upload(filename, localFile string) error {
-	stat, err := c.Stat(filename)
+	file, err := os.Open(localFile)
 	if err != nil {
 		return err
-	}
-	if stat.Type == "Directory" {
-		return errors.New(fmt.Sprintf("%s is directory.", filename))
-	}
-
-	file, err := os.Open("./genome.txt")
-	if err != nil {
-		log.Fatal(err)
 	}
 	defer file.Close()
 
@@ -133,8 +130,8 @@ func (c *fc) Upload(filename, localFile string) error {
 		}
 		offset += count
 	}
-	if err != io.EOF {
-		log.Fatal("Error Reading ", filename, ": ", err)
+	if err != nil && err != io.EOF {
+		return fmt.Errorf("Error reading %v: %v", localFile, err)
 	}
 	return nil
 }
