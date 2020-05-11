@@ -1,6 +1,8 @@
 package runtime
 
 import (
+	"archive/tar"
+	"compress/gzip"
 	"errors"
 	"fmt"
 	"io"
@@ -60,6 +62,18 @@ func (r *runtime) checkoutSourceIfNeeded(s *Service) error {
 	if len(s.Source) == 0 {
 		return nil
 	}
+	// @todo make this come from config
+	cpath := filepath.Join(os.TempDir(), "micro", "uploads", s.Source)
+	path := strings.ReplaceAll(cpath, ".tar.gz", "")
+	if ex, _ := exists(cpath); ex {
+		os.MkdirAll(path, 0777)
+		err := uncompress(cpath, path)
+		if err != nil {
+			return err
+		}
+		s.Source = path
+		return nil
+	}
 	source, err := git.ParseSourceLocal("", s.Source)
 	if err != nil {
 		return err
@@ -72,6 +86,77 @@ func (r *runtime) checkoutSourceIfNeeded(s *Service) error {
 	}
 	s.Source = source.FullPath
 	return nil
+}
+
+func uncompress(src string, dst string) error {
+	file, err := os.OpenFile(src, os.O_RDWR|os.O_CREATE, 0666)
+	defer file.Close()
+	if err != nil {
+		return err
+	}
+	// ungzip
+	zr, err := gzip.NewReader(file)
+	if err != nil {
+		return err
+	}
+	// untar
+	tr := tar.NewReader(zr)
+
+	// uncompress each element
+	for {
+		header, err := tr.Next()
+		if err == io.EOF {
+			break // End of archive
+		}
+		if err != nil {
+			return err
+		}
+		target := header.Name
+
+		// validate name against path traversal
+		if !validRelPath(header.Name) {
+			return fmt.Errorf("tar contained invalid name error %q\n", target)
+		}
+
+		// add dst + re-format slashes according to system
+		target = filepath.Join(dst, header.Name)
+		// if no join is needed, replace with ToSlash:
+		// target = filepath.ToSlash(header.Name)
+
+		// check the type
+		switch header.Typeflag {
+
+		// if its a dir and it doesn't exist create it (with 0755 permission)
+		case tar.TypeDir:
+			if _, err := os.Stat(target); err != nil {
+				if err := os.MkdirAll(target, 0755); err != nil {
+					return err
+				}
+			}
+		// if it's a file create it (with same permission)
+		case tar.TypeReg:
+			fileToWrite, err := os.OpenFile(target, os.O_CREATE|os.O_RDWR, os.FileMode(header.Mode))
+			if err != nil {
+				return err
+			}
+			// copy over contents
+			if _, err := io.Copy(fileToWrite, tr); err != nil {
+				return err
+			}
+			// manually close here after each file operation; defering would cause each file close
+			// to wait until all operations have completed.
+			fileToWrite.Close()
+		}
+	}
+	return nil
+}
+
+// check for path traversal and correct forward slashes
+func validRelPath(p string) bool {
+	if p == "" || strings.Contains(p, `\`) || strings.HasPrefix(p, "/") || strings.Contains(p, "../") {
+		return false
+	}
+	return true
 }
 
 // Init initializes runtime options
