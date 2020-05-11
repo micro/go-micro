@@ -100,6 +100,12 @@ func Registry(r *registry.Registry) Option {
 	}
 }
 
+func Runtime(r *runtime.Runtime) Option {
+	return func(o *Options) {
+		o.Runtime = r
+	}
+}
+
 func Transport(t *transport.Transport) Option {
 	return func(o *Options) {
 		o.Transport = t

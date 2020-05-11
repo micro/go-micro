@@ -3,7 +3,6 @@ package vpath
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"regexp"
 	"strings"
@@ -27,8 +26,6 @@ func (r *Resolver) Resolve(req *http.Request) (*resolver.Endpoint, error) {
 	if req.URL.Path == "/" {
 		return nil, errors.New("unknown name")
 	}
-
-	fmt.Println(req.URL.Path)
 
 	parts := strings.Split(req.URL.Path[1:], "/")
 	if len(parts) == 1 {

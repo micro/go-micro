@@ -24,6 +24,9 @@ func (s *svc) Init(opts ...runtime.Option) error {
 		o(&s.options)
 	}
 
+	// reset the runtime as the client could have changed
+	s.runtime = pb.NewRuntimeService(runtime.DefaultName, s.options.Client)
+
 	return nil
 }
 
@@ -278,19 +281,17 @@ func (s *svc) String() string {
 
 // NewRuntime creates new service runtime and returns it
 func NewRuntime(opts ...runtime.Option) runtime.Runtime {
-	// get default options
-	options := runtime.Options{}
+	var options runtime.Options
 
-	// apply requested options
 	for _, o := range opts {
 		o(&options)
 	}
-
-	// create default client
-	cli := client.DefaultClient
+	if options.Client == nil {
+		options.Client = client.DefaultClient
+	}
 
 	return &svc{
 		options: options,
-		runtime: pb.NewRuntimeService(runtime.DefaultName, cli),
+		runtime: pb.NewRuntimeService(runtime.DefaultName, options.Client),
 	}
 }

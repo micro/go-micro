@@ -24,7 +24,7 @@ type service struct {
 }
 
 func (m *service) Read() (set *source.ChangeSet, err error) {
-	client := proto.NewConfigService(m.serviceName, client.DefaultClient)
+	client := proto.NewConfigService(m.serviceName, m.opts.Client)
 	req, err := client.Read(context.Background(), &proto.ReadRequest{
 		Namespace: m.namespace,
 		Path:      m.path,
@@ -37,7 +37,7 @@ func (m *service) Read() (set *source.ChangeSet, err error) {
 }
 
 func (m *service) Watch() (w source.Watcher, err error) {
-	client := proto.NewConfigService(m.serviceName, client.DefaultClient)
+	client := proto.NewConfigService(m.serviceName, m.opts.Client)
 	stream, err := client.Watch(context.Background(), &proto.WatchRequest{
 		Namespace: m.namespace,
 		Path:      m.path,
@@ -85,6 +85,10 @@ func NewSource(opts ...source.Option) source.Source {
 		if ok {
 			path = p
 		}
+	}
+
+	if options.Client == nil {
+		options.Client = client.DefaultClient
 	}
 
 	s := &service{
