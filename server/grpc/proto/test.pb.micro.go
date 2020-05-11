@@ -54,7 +54,7 @@ func NewTestEndpoints() []*api.Endpoint {
 		},
 		&api.Endpoint{
 			Name:    "Test.CallPcreInvalid",
-			Path:    []string{"/api/v0/test/call/pcre/invalid/?"},
+			Path:    []string{"^/api/v0/test/call/pcre/invalid/?"},
 			Method:  []string{"POST"},
 			Body:    "*",
 			Handler: "rpc",
@@ -146,7 +146,7 @@ func RegisterTestHandler(s server.Server, hdlr TestHandler, opts ...server.Handl
 	}))
 	opts = append(opts, api.WithEndpoint(&api.Endpoint{
 		Name:    "Test.CallPcreInvalid",
-		Path:    []string{"/api/v0/test/call/pcre/invalid/?"},
+		Path:    []string{"^/api/v0/test/call/pcre/invalid/?"},
 		Method:  []string{"POST"},
 		Body:    "*",
 		Handler: "rpc",
