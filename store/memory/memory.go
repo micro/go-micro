@@ -33,7 +33,7 @@ type memoryStore struct {
 	store *cache.Cache
 }
 
-type internalRecord struct {
+type storeRecord struct {
 	key       string
 	value     []byte
 	metadata  map[string]interface{}
@@ -57,15 +57,15 @@ func (m *memoryStore) prefix(database, table string) string {
 func (m *memoryStore) get(prefix, key string) (*store.Record, error) {
 	key = m.key(prefix, key)
 
-	var storedRecord *internalRecord
+	var storedRecord *storeRecord
 	r, found := m.store.Get(key)
 	if !found {
 		return nil, store.ErrNotFound
 	}
 
-	storedRecord, ok := r.(*internalRecord)
+	storedRecord, ok := r.(*storeRecord)
 	if !ok {
-		return nil, errors.New("Retrieved a non *internalRecord from the cache")
+		return nil, errors.New("Retrieved a non *storeRecord from the cache")
 	}
 
 	// Copy the record on the way out
@@ -95,7 +95,7 @@ func (m *memoryStore) set(prefix string, r *store.Record) {
 
 	// copy the incoming record and then
 	// convert the expiry in to a hard timestamp
-	i := &internalRecord{}
+	i := &storeRecord{}
 	i.key = r.Key
 	i.value = make([]byte, len(r.Value))
 	i.metadata = make(map[string]interface{})
@@ -231,7 +231,7 @@ func (m *memoryStore) Write(r *store.Record, opts ...store.WriteOption) error {
 			newRecord.Expiry = writeOpts.TTL
 		}
 
-		for k, v := range newRecord.Metadata {
+		for k, v := range r.Metadata {
 			newRecord.Metadata[k] = v
 		}
 
