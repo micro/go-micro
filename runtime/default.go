@@ -88,6 +88,7 @@ func (r *runtime) checkoutSourceIfNeeded(s *Service) error {
 	return nil
 }
 
+// original version taken from here: https://gist.github.com/mimoo/25fc9716e0f1353791f5908f94d6e726
 func uncompress(src string, dst string) error {
 	file, err := os.OpenFile(src, os.O_RDWR|os.O_CREATE, 0666)
 	defer file.Close()
