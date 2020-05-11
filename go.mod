@@ -4,7 +4,6 @@ go 1.13
 
 require (
 	github.com/BurntSushi/toml v0.3.1
-	github.com/asim/go-file v0.0.0-20180410142150-978f4a541c86 // indirect
 	github.com/bitly/go-simplejson v0.5.0
 	github.com/bwmarrin/discordgo v0.20.2
 	github.com/coreos/etcd v3.3.18+incompatible
