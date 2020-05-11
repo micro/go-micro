@@ -29,7 +29,7 @@ type Client interface {
 
 // NewClient returns a new Client which uses a micro Client
 func NewClient(service string, c client.Client) Client {
-	return &fc{proto.NewServerService(service, c)}
+	return &fc{proto.NewFileService(service, c)}
 }
 
 const (
@@ -37,7 +37,7 @@ const (
 )
 
 type fc struct {
-	c proto.ServerService
+	c proto.FileService
 }
 
 func (c *fc) Open(filename string) (int64, error) {

@@ -8,7 +8,6 @@ require (
 	github.com/bitly/go-simplejson v0.5.0
 	github.com/bwmarrin/discordgo v0.20.2
 	github.com/coreos/etcd v3.3.18+incompatible
-	github.com/coreos/pkg v0.0.0-20180928190104-399ea9e2e55f // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
 	github.com/davecgh/go-spew v1.1.1
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
@@ -37,6 +36,7 @@ require (
 	github.com/lucas-clemente/quic-go v0.14.1
 	github.com/mholt/certmagic v0.9.3
 	github.com/micro/cli/v2 v2.1.2
+	github.com/micro/go-micro v1.18.0
 	github.com/miekg/dns v1.1.27
 	github.com/mitchellh/hashstructure v1.0.0
 	github.com/nats-io/nats-server/v2 v2.1.6 // indirect

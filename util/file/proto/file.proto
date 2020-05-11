@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package go.micro.server;
 
-service Server {
+service File {
 	rpc Open(OpenRequest) returns(OpenResponse) {};
 	rpc Stat(StatRequest) returns(StatResponse) {};
 	rpc Read(ReadRequest) returns(ReadResponse) {};
