@@ -219,12 +219,16 @@ func NewStore(opts ...store.Option) store.Store {
 		o(&options)
 	}
 
+	if options.Client == nil {
+		options.Client = client.DefaultClient
+	}
+
 	service := &serviceStore{
 		options:  options,
 		Database: options.Database,
 		Table:    options.Table,
 		Nodes:    options.Nodes,
-		Client:   pb.NewStoreService("go.micro.store", client.DefaultClient),
+		Client:   pb.NewStoreService("go.micro.store", options.Client),
 	}
 
 	return service

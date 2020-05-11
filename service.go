@@ -115,7 +115,9 @@ func (s *service) Init(opts ...Option) {
 		s.opts.Store.Init(store.Table(name))
 
 		// Set the client for the micro clients
+		s.opts.Auth.Init(auth.WithClient(s.Client()))
 		s.opts.Runtime.Init(runtime.WithClient(s.Client()))
+		s.opts.Store.Init(store.WithClient(s.Client()))
 	})
 }
 
