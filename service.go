@@ -3,7 +3,7 @@ package micro
 import (
 	"os"
 	"os/signal"
-	"runtime"
+	rtime "runtime"
 	"strings"
 	"sync"
 
@@ -15,6 +15,7 @@ import (
 	"github.com/micro/go-micro/v2/debug/trace"
 	"github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/plugin"
+	"github.com/micro/go-micro/v2/runtime"
 	"github.com/micro/go-micro/v2/server"
 	"github.com/micro/go-micro/v2/store"
 	signalutil "github.com/micro/go-micro/v2/util/signal"
@@ -98,6 +99,7 @@ func (s *service) Init(opts ...Option) {
 			cmd.Auth(&s.opts.Auth),
 			cmd.Broker(&s.opts.Broker),
 			cmd.Registry(&s.opts.Registry),
+			cmd.Runtime(&s.opts.Runtime),
 			cmd.Transport(&s.opts.Transport),
 			cmd.Client(&s.opts.Client),
 			cmd.Config(&s.opts.Config),
@@ -112,13 +114,8 @@ func (s *service) Init(opts ...Option) {
 		name := s.opts.Cmd.App().Name
 		s.opts.Store.Init(store.Table(name))
 
-		// TODO: replace Cmd.Init with config.Load
-		// Right now we're just going to load a token
-		// May need to re-read value on change
-		// TODO: should be scoped to micro/auth/token
-		// if tk, _ := config.Get("token"); len(tk) > 0 {
-		// 	s.opts.Auth.Init(auth.ServiceToken(tk))
-		// }
+		// Set the client for the micro clients
+		s.opts.Runtime.Init(runtime.WithClient(s.Client()))
 	})
 }
 
@@ -192,9 +189,9 @@ func (s *service) Run() error {
 	// start the profiler
 	if s.opts.Profile != nil {
 		// to view mutex contention
-		runtime.SetMutexProfileFraction(5)
+		rtime.SetMutexProfileFraction(5)
 		// to view blocking profile
-		runtime.SetBlockProfileRate(1)
+		rtime.SetBlockProfileRate(1)
 
 		if err := s.opts.Profile.Start(); err != nil {
 			return err

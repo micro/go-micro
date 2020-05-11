@@ -3,6 +3,8 @@ package runtime
 import (
 	"context"
 	"io"
+
+	"github.com/micro/go-micro/v2/client"
 )
 
 type Option func(o *Options)
@@ -17,6 +19,8 @@ type Options struct {
 	Source string
 	// Base image to use
 	Image string
+	// Client to use when making requests
+	Client client.Client
 }
 
 // WithSource sets the base image / repository
@@ -44,6 +48,13 @@ func WithType(t string) Option {
 func WithImage(t string) Option {
 	return func(o *Options) {
 		o.Image = t
+	}
+}
+
+// WithClient sets the client to use
+func WithClient(c client.Client) Option {
+	return func(o *Options) {
+		o.Client = c
 	}
 }
 
