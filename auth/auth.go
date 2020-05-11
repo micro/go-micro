@@ -72,6 +72,21 @@ type Account struct {
 	Secret string `json:"secret"`
 }
 
+// HasRole returns a boolean indicating if the account has the given role
+func (a *Account) HasRole(role string) bool {
+	if a.Roles == nil {
+		return false
+	}
+
+	for _, r := range a.Roles {
+		if r == role {
+			return true
+		}
+	}
+
+	return false
+}
+
 // Token can be short or long lived
 type Token struct {
 	// The token to be used for accessing resources
