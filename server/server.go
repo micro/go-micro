@@ -16,14 +16,23 @@ import (
 
 // Server is a simple micro server abstraction
 type Server interface {
-	Options() Options
+	// Initialise options
 	Init(...Option) error
+	// Retrieve the options
+	Options() Options
+	// Register a handler
 	Handle(Handler) error
+	// Create a new handler
 	NewHandler(interface{}, ...HandlerOption) Handler
+	// Create a new subscriber
 	NewSubscriber(string, interface{}, ...SubscriberOption) Subscriber
+	// Register a subscriber
 	Subscribe(Subscriber) error
+	// Start the server
 	Start() error
+	// Stop the server
 	Stop() error
+	// Server implementation
 	String() string
 }
 
@@ -116,7 +125,8 @@ type Handler interface {
 }
 
 // Subscriber interface represents a subscription to a given topic using
-// a specific subscriber function or object with endpoints.
+// a specific subscriber function or object with endpoints. It mirrors 
+// the handler in its behaviour.
 type Subscriber interface {
 	Topic() string
 	Subscriber() interface{}
