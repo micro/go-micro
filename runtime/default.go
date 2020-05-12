@@ -90,6 +90,10 @@ func (r *runtime) checkoutSourceIfNeeded(s *Service) error {
 
 // modified version of: https://gist.github.com/mimoo/25fc9716e0f1353791f5908f94d6e726
 func uncompress(src string, dst string) error {
+	err := os.RemoveAll(dst)
+	if err != nil {
+		return err
+	}
 	file, err := os.OpenFile(src, os.O_RDWR|os.O_CREATE, 0666)
 	defer file.Close()
 	if err != nil {
@@ -133,7 +137,6 @@ func uncompress(src string, dst string) error {
 				// @todo think about this:
 				// if we don't nuke the folder, we might end up with files from
 				// the previous decompress.
-				os.RemoveAll(target)
 				if err := os.MkdirAll(target, 0755); err != nil {
 					return err
 				}
