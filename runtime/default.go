@@ -66,8 +66,15 @@ func (r *runtime) checkoutSourceIfNeeded(s *Service) error {
 	cpath := filepath.Join(os.TempDir(), "micro", "uploads", s.Source)
 	path := strings.ReplaceAll(cpath, ".tar.gz", "")
 	if ex, _ := exists(cpath); ex {
-		os.MkdirAll(path, 0777)
-		err := uncompress(cpath, path)
+		err := os.RemoveAll(path)
+		if err != nil {
+			return err
+		}
+		err = os.MkdirAll(path, 0777)
+		if err != nil {
+			return err
+		}
+		err = uncompress(cpath, path)
 		if err != nil {
 			return err
 		}
@@ -90,10 +97,6 @@ func (r *runtime) checkoutSourceIfNeeded(s *Service) error {
 
 // modified version of: https://gist.github.com/mimoo/25fc9716e0f1353791f5908f94d6e726
 func uncompress(src string, dst string) error {
-	err := os.RemoveAll(dst)
-	if err != nil {
-		return err
-	}
 	file, err := os.OpenFile(src, os.O_RDWR|os.O_CREATE, 0666)
 	defer file.Close()
 	if err != nil {
