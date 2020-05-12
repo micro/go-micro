@@ -272,6 +272,11 @@ var (
 			Usage:   "Account secret used for client authentication",
 		},
 		&cli.StringFlag{
+			Name:    "auth_namespace",
+			EnvVars: []string{"MICRO_AUTH_NAMESPACE"},
+			Usage:   "Namespace for the services auth account",
+		},
+		&cli.StringFlag{
 			Name:    "auth_public_key",
 			EnvVars: []string{"MICRO_AUTH_PUBLIC_KEY"},
 			Usage:   "Public key for JWT auth (base64 encoded PEM)",
@@ -679,6 +684,10 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		authOpts = append(authOpts, auth.Credentials(
 			ctx.String("auth_id"), ctx.String("auth_secret"),
 		))
+	}
+
+	if len(ctx.String("auth_namespace")) > 0 {
+		authOpts = append(authOpts, auth.Namespace(ctx.String("auth_namespace")))
 	}
 
 	if len(ctx.String("auth_public_key")) > 0 {
