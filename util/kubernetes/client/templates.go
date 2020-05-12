@@ -139,11 +139,11 @@ metadata:
     {{- end }}
     {{- end }}
 data:
-{{- with .Data }}
-{{- range $key, $value := . }}
-{{ $key }}: "{{ $value }}"
-{{- end }}
-{{- end }}
+  {{- with .Data }}
+  {{- range $key, $value := . }}
+  {{ $key }}: "{{ $value }}"
+  {{- end }}
+  {{- end }}
 `
 
 var serviceAccountTmpl = `
