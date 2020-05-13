@@ -16,7 +16,7 @@ import (
 	"github.com/micro/go-micro/v2/debug/trace"
 	"github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/plugin"
-	srvRegistry "github.com/micro/go-micro/v2/registry/service"
+	registrySrv "github.com/micro/go-micro/v2/registry/service"
 	"github.com/micro/go-micro/v2/runtime"
 	"github.com/micro/go-micro/v2/server"
 	"github.com/micro/go-micro/v2/store"
@@ -118,7 +118,7 @@ func (s *service) Init(opts ...Option) {
 
 		// Set the client for the micro clients
 		s.opts.Auth.Init(auth.WithClient(s.Client()))
-		s.opts.Registry.Init(srvRegistry.WithClient(s.Client()))
+		s.opts.Registry.Init(registrySrv.WithClient(s.Client()))
 		s.opts.Runtime.Init(runtime.WithClient(s.Client()))
 		s.opts.Store.Init(store.WithClient(s.Client()))
 	})

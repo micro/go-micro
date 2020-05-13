@@ -22,8 +22,8 @@ type serviceRegistry struct {
 	name string
 	// address
 	address []string
-	// registry is the proto client
-	registry pb.RegistryService
+	// client to call registry
+	client pb.RegistryService
 }
 
 func (s *serviceRegistry) callOpts() []client.CallOption {
@@ -55,7 +55,7 @@ func (s *serviceRegistry) Init(opts ...registry.Option) error {
 		cli = grpc.NewClient()
 	}
 
-	s.registry = pb.NewRegistryService(DefaultService, cli)
+	s.client = pb.NewRegistryService(DefaultService, cli)
 
 	return nil
 }
@@ -78,7 +78,7 @@ func (s *serviceRegistry) Register(srv *registry.Service, opts ...registry.Regis
 	pbSrv.Options.Ttl = int64(options.TTL.Seconds())
 
 	// register the service
-	_, err := s.registry.Register(options.Context, pbSrv, s.callOpts()...)
+	_, err := s.client.Register(options.Context, pbSrv, s.callOpts()...)
 	if err != nil {
 		return err
 	}
@@ -96,7 +96,7 @@ func (s *serviceRegistry) Deregister(srv *registry.Service, opts ...registry.Der
 	}
 
 	// deregister the service
-	_, err := s.registry.Deregister(options.Context, ToProto(srv), s.callOpts()...)
+	_, err := s.client.Deregister(options.Context, ToProto(srv), s.callOpts()...)
 	if err != nil {
 		return err
 	}
@@ -112,7 +112,7 @@ func (s *serviceRegistry) GetService(name string, opts ...registry.GetOption) ([
 		options.Context = context.TODO()
 	}
 
-	rsp, err := s.registry.GetService(options.Context, &pb.GetRequest{
+	rsp, err := s.client.GetService(options.Context, &pb.GetRequest{
 		Service: name,
 	}, s.callOpts()...)
 
@@ -136,7 +136,7 @@ func (s *serviceRegistry) ListServices(opts ...registry.ListOption) ([]*registry
 		options.Context = context.TODO()
 	}
 
-	rsp, err := s.registry.ListServices(options.Context, &pb.ListRequest{}, s.callOpts()...)
+	rsp, err := s.client.ListServices(options.Context, &pb.ListRequest{}, s.callOpts()...)
 	if err != nil {
 		return nil, err
 	}
@@ -158,7 +158,7 @@ func (s *serviceRegistry) Watch(opts ...registry.WatchOption) (registry.Watcher,
 		options.Context = context.TODO()
 	}
 
-	stream, err := s.registry.Watch(options.Context, &pb.WatchRequest{
+	stream, err := s.client.Watch(options.Context, &pb.WatchRequest{
 		Service: options.Service,
 	}, s.callOpts()...)
 
@@ -202,9 +202,9 @@ func NewRegistry(opts ...registry.Option) registry.Registry {
 	name := DefaultService
 
 	return &serviceRegistry{
-		opts:     options,
-		name:     name,
-		address:  addrs,
-		registry: pb.NewRegistryService(name, cli),
+		opts:    options,
+		name:    name,
+		address: addrs,
+		client:  pb.NewRegistryService(name, cli),
 	}
 }
