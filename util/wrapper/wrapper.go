@@ -181,6 +181,16 @@ func (a *authWrapper) Call(ctx context.Context, req client.Request, rsp interfac
 		return callWithToken(tok.AccessToken)
 	}
 
+	// generate a new token if we have credentials
+	if len(aaOpts.ID) > 0 && len(aaOpts.Secret) > 0 {
+		tok, err := aa.Token(auth.WithCredentials(aaOpts.ID, aaOpts.Secret))
+		if err != nil {
+			return err
+		}
+		aa.Init(auth.ClientToken(tok))
+		return callWithToken(tok.AccessToken)
+	}
+
 	// check to see if a token was provided in config, this is normally used for
 	// setting the token when calling via the cli
 	if token, err := config.Get("micro", "auth", "token"); err == nil && len(token) > 0 {

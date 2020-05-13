@@ -250,8 +250,8 @@ func (s *service) registerAuthAccount() error {
 	if err != nil {
 		return err
 	}
-	s.Options().Auth.Init(auth.ClientToken(token))
 
+	s.Options().Auth.Init(auth.ClientToken(token), auth.Credentials(acc.ID, acc.Secret))
 	logger.Infof("Auth [%v] Authenticated as %v", s.Options().Auth, name)
 	return nil
 }
