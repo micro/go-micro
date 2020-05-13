@@ -17,11 +17,6 @@ import (
 	"github.com/micro/go-micro/v2/util/jitter"
 )
 
-// NewAuth returns a new instance of the Auth service
-func NewAuth(opts ...auth.Option) auth.Auth {
-	return &svc{options: auth.NewOptions(opts...)}
-}
-
 // svc is the service implementation of the Auth interface
 type svc struct {
 	options auth.Options
@@ -45,6 +40,7 @@ func (s *svc) Init(opts ...auth.Option) {
 	if s.options.Client == nil {
 		s.options.Client = client.DefaultClient
 	}
+
 	s.auth = pb.NewAuthService("go.micro.auth", s.options.Client)
 	s.rule = pb.NewRulesService("go.micro.auth", s.options.Client)
 
@@ -303,5 +299,20 @@ func serializeAccount(a *pb.Account) *auth.Account {
 		Metadata:  a.Metadata,
 		Provider:  a.Provider,
 		Namespace: a.Namespace,
+	}
+}
+
+// NewAuth returns a new instance of the Auth service
+func NewAuth(opts ...auth.Option) auth.Auth {
+	options := auth.NewOptions(opts...)
+
+	if options.Client == nil {
+		options.Client = client.DefaultClient
+	}
+
+	return &svc{
+		auth:    pb.NewAuthService("go.micro.auth", options.Client),
+		rule:    pb.NewRulesService("go.micro.auth", options.Client),
+		options: options,
 	}
 }
