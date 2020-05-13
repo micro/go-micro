@@ -171,6 +171,12 @@ func (a *authWrapper) Call(ctx context.Context, req client.Request, rsp interfac
 		return callWithToken(aaOpts.Token.AccessToken)
 	}
 
+	// check to ensure we're not calling auth, since this will result in
+	// an endless loop
+	if req.Service() == "go.micro.auth" {
+		return a.Client.Call(ctx, req, rsp, opts...)
+	}
+
 	// if we have a refresh token we can use this to generate another access token
 	if aaOpts.Token != nil {
 		tok, err := aa.Token(auth.WithToken(aaOpts.Token.RefreshToken))
