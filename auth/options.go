@@ -44,9 +44,18 @@ type Options struct {
 	Store store.Store
 	// Client to use for RPC
 	Client client.Client
+	// Addrs sets the addresses of auth
+	Addrs []string
 }
 
 type Option func(o *Options)
+
+// Addrs is the auth addresses to use
+func Addrs(addrs ...string) Option {
+	return func(o *Options) {
+		o.Addrs = addrs
+	}
+}
 
 // Namespace the service belongs to
 func Namespace(n string) Option {
