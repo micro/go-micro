@@ -13,6 +13,7 @@ import (
 	"github.com/micro/go-micro/v2/client"
 	"github.com/micro/go-micro/v2/client/selector"
 	"github.com/micro/go-micro/v2/config"
+	configSrc "github.com/micro/go-micro/v2/config/source"
 	configSrv "github.com/micro/go-micro/v2/config/source/service"
 	"github.com/micro/go-micro/v2/debug/profile"
 	"github.com/micro/go-micro/v2/debug/profile/http"
@@ -271,6 +272,11 @@ var (
 			Usage:   "Account secret used for client authentication",
 		},
 		&cli.StringFlag{
+			Name:    "auth_namespace",
+			EnvVars: []string{"MICRO_AUTH_NAMESPACE"},
+			Usage:   "Namespace for the services auth account",
+		},
+		&cli.StringFlag{
 			Name:    "auth_public_key",
 			EnvVars: []string{"MICRO_AUTH_PUBLIC_KEY"},
 			Usage:   "Public key for JWT auth (base64 encoded PEM)",
@@ -500,7 +506,6 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		}
 
 		*c.opts.Auth = a()
-		clientOpts = append(clientOpts, client.Auth(*c.opts.Auth))
 		serverOpts = append(serverOpts, server.Auth(*c.opts.Auth))
 	}
 
@@ -681,6 +686,10 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		))
 	}
 
+	if len(ctx.String("auth_namespace")) > 0 {
+		authOpts = append(authOpts, auth.Namespace(ctx.String("auth_namespace")))
+	}
+
 	if len(ctx.String("auth_public_key")) > 0 {
 		authOpts = append(authOpts, auth.PublicKey(ctx.String("auth_public_key")))
 	}
@@ -716,7 +725,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	(*c.opts.Auth).Init(authOpts...)
 
 	if ctx.String("config") == "service" {
-		opt := config.WithSource(configSrv.NewSource())
+		opt := config.WithSource(configSrv.NewSource(configSrc.WithClient(*c.opts.Client)))
 		if err := (*c.opts.Config).Init(opt); err != nil {
 			logger.Fatalf("Error configuring config: %v", err)
 		}

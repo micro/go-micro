@@ -42,9 +42,11 @@ func (s *svc) Init(opts ...auth.Option) {
 		o(&s.options)
 	}
 
-	dc := client.DefaultClient
-	s.auth = pb.NewAuthService("go.micro.auth", dc)
-	s.rule = pb.NewRulesService("go.micro.auth", dc)
+	if s.options.Client == nil {
+		s.options.Client = client.DefaultClient
+	}
+	s.auth = pb.NewAuthService("go.micro.auth", s.options.Client)
+	s.rule = pb.NewRulesService("go.micro.auth", s.options.Client)
 
 	// if we have a JWT public key passed as an option,
 	// we can decode tokens with the type "JWT" locally

@@ -57,7 +57,6 @@ func TestProxyEnv(t *testing.T) {
 	}
 
 	test("MICRO_PROXY", "service", "go.micro.proxy", "")
-	test("MICRO_PROXY_ADDRESS", "10.0.0.1:8080", "", "10.0.0.1:8080")
 	test("MICRO_NETWORK", "service", "go.micro.network", "")
 	test("MICRO_NETWORK_ADDRESS", "10.0.0.1:8081", "", "10.0.0.1:8081")
 }

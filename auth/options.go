@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/micro/go-micro/v2/auth/provider"
+	"github.com/micro/go-micro/v2/client"
 	"github.com/micro/go-micro/v2/store"
 )
 
@@ -12,9 +13,11 @@ func NewOptions(opts ...Option) Options {
 	for _, o := range opts {
 		o(&options)
 	}
-
 	if len(options.Namespace) == 0 {
 		options.Namespace = DefaultNamespace
+	}
+	if options.Client == nil {
+		options.Client = client.DefaultClient
 	}
 
 	return options
@@ -39,6 +42,8 @@ type Options struct {
 	LoginURL string
 	// Store to back auth
 	Store store.Store
+	// Client to use for RPC
+	Client client.Client
 }
 
 type Option func(o *Options)
@@ -97,6 +102,13 @@ func Provider(p provider.Provider) Option {
 func LoginURL(url string) Option {
 	return func(o *Options) {
 		o.LoginURL = url
+	}
+}
+
+// WithClient sets the client to use when making requests
+func WithClient(c client.Client) Option {
+	return func(o *Options) {
+		o.Client = c
 	}
 }
 
