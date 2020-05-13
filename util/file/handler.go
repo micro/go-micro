@@ -35,7 +35,11 @@ type handler struct {
 
 func (h *handler) Open(ctx context.Context, req *proto.OpenRequest, rsp *proto.OpenResponse) error {
 	path := filepath.Join(h.readDir, req.Filename)
-	file, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0666)
+	flags := os.O_CREATE | os.O_RDWR
+	if req.GetTruncate() {
+		flags = flags | os.O_TRUNC
+	}
+	file, err := os.OpenFile(path, flags, 0666)
 	if err != nil {
 		return errors.InternalServerError("go.micro.server", err.Error())
 	}
