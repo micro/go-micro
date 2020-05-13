@@ -59,17 +59,14 @@ func (s *svc) Init(opts ...auth.Option) {
 	go func() {
 		ruleTimer := time.NewTicker(time.Second * 30)
 
-		// load rules immediately on startup
-		s.loadRules()
-
 		for {
-			<-ruleTimer.C
-
 			// jitter for up to 5 seconds, this stops
 			// all the services calling the auth service
 			// at the exact same time
 			time.Sleep(jitter.Do(time.Second * 5))
 			s.loadRules()
+
+			<-ruleTimer.C
 		}
 	}()
 }
@@ -132,6 +129,9 @@ func (s *svc) Revoke(role string, res *auth.Resource) error {
 
 // Verify an account has access to a resource
 func (s *svc) Verify(acc *auth.Account, res *auth.Resource) error {
+	// load the rules if none are loaded
+	s.loadRulesIfEmpty()
+
 	// set the namespace on the resource
 	if len(res.Namespace) == 0 {
 		res.Namespace = s.Options().Namespace
@@ -284,6 +284,16 @@ func (s *svc) loadRules() {
 	}
 
 	s.rules = rsp.Rules
+}
+
+func (s *svc) loadRulesIfEmpty() {
+	s.Lock()
+	rules := s.rules
+	s.Unlock()
+
+	if len(rules) == 0 {
+		s.loadRules()
+	}
 }
 
 func serializeToken(t *pb.Token) *auth.Token {
