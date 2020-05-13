@@ -1,4 +1,4 @@
-// Package certmagic is the ACME provider from github.com/mholt/certmagic
+// Package certmagic is the ACME provider from github.com/caddyserver/certmagic
 package certmagic
 
 import (
@@ -7,7 +7,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/mholt/certmagic"
+	"github.com/caddyserver/certmagic"
 	"github.com/micro/go-micro/v2/api/server/acme"
 	"github.com/micro/go-micro/v2/logger"
 )
@@ -18,10 +18,10 @@ type certmagicProvider struct {
 
 // TODO: set self-contained options
 func (c *certmagicProvider) setup() {
-	certmagic.Default.CA = c.opts.CA
+	certmagic.DefaultACME.CA = c.opts.CA
 	if c.opts.ChallengeProvider != nil {
 		// Enabling DNS Challenge disables the other challenges
-		certmagic.Default.DNSProvider = c.opts.ChallengeProvider
+		certmagic.DefaultACME.DNSProvider = c.opts.ChallengeProvider
 	}
 	if c.opts.OnDemand {
 		certmagic.Default.OnDemand = new(certmagic.OnDemandConfig)
@@ -32,9 +32,10 @@ func (c *certmagicProvider) setup() {
 	}
 	// If multiple instances of the provider are running, inject some
 	// randomness so they don't collide
+	// RenewalWindowRatio [0.33 - 0.50)
 	rand.Seed(time.Now().UnixNano())
-	randomDuration := (7 * 24 * time.Hour) + (time.Duration(rand.Intn(504)) * time.Hour)
-	certmagic.Default.RenewDurationBefore = randomDuration
+	randomRatio := float64(rand.Intn(17) + 33) * 0.01
+	certmagic.Default.RenewalWindowRatio = randomRatio
 }
 
 func (c *certmagicProvider) Listen(hosts ...string) (net.Listener, error) {
