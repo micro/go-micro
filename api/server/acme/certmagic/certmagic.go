@@ -1,4 +1,4 @@
-// Package certmagic is the ACME provider from github.com/mholt/certmagic
+// Package certmagic is the ACME provider from github.com/caddyserver/certmagic
 package certmagic
 
 import (
