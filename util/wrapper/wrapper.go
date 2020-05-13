@@ -155,7 +155,7 @@ func (a *authWrapper) Call(ctx context.Context, req client.Request, rsp interfac
 	// if auth is nil we won't be able to get an access token, so we execute
 	// the request without one.
 	aa := a.auth()
-	if a == nil {
+	if aa == nil {
 		return a.Client.Call(ctx, req, rsp, opts...)
 	}
 
