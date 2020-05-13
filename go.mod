@@ -6,7 +6,7 @@ require (
 	github.com/BurntSushi/toml v0.3.1
 	github.com/bitly/go-simplejson v0.5.0
 	github.com/bwmarrin/discordgo v0.20.2
-	github.com/caddyserver/certmagic v0.10.13
+	github.com/caddyserver/certmagic v0.10.6
 	github.com/coreos/etcd v3.3.18+incompatible
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
 	github.com/davecgh/go-spew v1.1.1
