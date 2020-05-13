@@ -307,9 +307,9 @@ func NewAuth(opts ...auth.Option) auth.Auth {
 	}
 
 	addrs := options.Addrs
-	if len(addrs) == 0 {
-		addrs = []string{"127.0.0.1:8010"}
-	}
+	// if len(addrs) == 0 {
+	// 	addrs = []string{"127.0.0.1:8010"}
+	// }
 
 	service := &svc{
 		auth:    pb.NewAuthService("go.micro.auth", options.Client),
