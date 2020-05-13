@@ -1,8 +1,6 @@
 package service
 
 import (
-	"strings"
-
 	"github.com/micro/go-micro/v2/registry"
 	pb "github.com/micro/go-micro/v2/registry/service/proto"
 )
@@ -38,10 +36,6 @@ func toValues(v []*pb.Value) []*registry.Value {
 	}
 	return vs
 }
-
-// NameSeperator is the string which is used as a seperator when joinin
-// namespace to the service name
-const NameSeperator = "/"
 
 func ToProto(s *registry.Service) *pb.Service {
 	endpoints := make([]*pb.Endpoint, 0, len(s.Endpoints))
@@ -82,14 +76,8 @@ func ToProto(s *registry.Service) *pb.Service {
 		})
 	}
 
-	// the service name will contain the namespace, e.g.
-	// 'default/go.micro.service.foo'. Remove the namespace
-	// using the following:
-	comps := strings.Split(s.Name, NameSeperator)
-	name := comps[len(comps)-1]
-
 	return &pb.Service{
-		Name:      name,
+		Name:      s.Name,
 		Version:   s.Version,
 		Metadata:  s.Metadata,
 		Endpoints: endpoints,
@@ -98,12 +86,7 @@ func ToProto(s *registry.Service) *pb.Service {
 	}
 }
 
-func ToService(s *pb.Service, opts ...Option) *registry.Service {
-	var options Options
-	for _, o := range opts {
-		o(&options)
-	}
-
+func ToService(s *pb.Service) *registry.Service {
 	endpoints := make([]*registry.Endpoint, 0, len(s.Endpoints))
 	for _, ep := range s.Endpoints {
 		var request, response *registry.Value
@@ -141,34 +124,11 @@ func ToService(s *pb.Service, opts ...Option) *registry.Service {
 		})
 	}
 
-	// add the namespace to the name
-	var name string
-	if len(options.Namespace) > 0 {
-		name = strings.Join([]string{options.Namespace, s.Name}, NameSeperator)
-	} else {
-		name = s.Name
-	}
-
 	return &registry.Service{
-		Name:      name,
+		Name:      s.Name,
 		Version:   s.Version,
 		Metadata:  s.Metadata,
 		Endpoints: endpoints,
 		Nodes:     nodes,
-	}
-}
-
-// Options for marshaling / unmarshaling services
-type Options struct {
-	Namespace string
-}
-
-// Option is a function which sets options
-type Option func(o *Options)
-
-// WithNamespace sets the namespace option
-func WithNamespace(ns string) Option {
-	return func(o *Options) {
-		o.Namespace = ns
 	}
 }
