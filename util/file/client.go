@@ -14,8 +14,8 @@ import (
 )
 
 // Client is the client interface to access files
-type Client interface {
-	Open(filename string) (int64, error)
+type File interface {
+	Open(filename string, truncate bool) (int64, error)
 	Stat(filename string) (*proto.StatResponse, error)
 	GetBlock(sessionId, blockId int64) ([]byte, error)
 	ReadAt(sessionId, offset, size int64) ([]byte, error)
@@ -28,7 +28,7 @@ type Client interface {
 }
 
 // NewClient returns a new Client which uses a micro Client
-func NewClient(service string, c client.Client) Client {
+func New(service string, c client.Client) File {
 	return &fc{proto.NewFileService(service, c)}
 }
 
@@ -40,8 +40,11 @@ type fc struct {
 	c proto.FileService
 }
 
-func (c *fc) Open(filename string) (int64, error) {
-	rsp, err := c.c.Open(context.TODO(), &proto.OpenRequest{Filename: filename})
+func (c *fc) Open(filename string, truncate bool) (int64, error) {
+	rsp, err := c.c.Open(context.TODO(), &proto.OpenRequest{
+		Filename: filename,
+		Truncate: truncate,
+	})
 	if err != nil {
 		return 0, err
 	}
@@ -111,7 +114,7 @@ func (c *fc) Upload(filename, localFile string) error {
 	defer file.Close()
 
 	offset := 0
-	sessionId, err := c.Open(filename)
+	sessionId, err := c.Open(filename, true)
 	defer c.Close(sessionId)
 	if err != nil {
 		return err
@@ -158,7 +161,7 @@ func (c *fc) DownloadAt(filename, saveFile string, blockId int) error {
 	}
 	defer file.Close()
 
-	sessionId, err := c.Open(filename)
+	sessionId, err := c.Open(filename, false)
 	if err != nil {
 		return err
 	}

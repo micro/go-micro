@@ -12,6 +12,7 @@ service File {
 
 message OpenRequest {
 	string filename = 1;
+	bool truncate = 2;
 }
 
 message OpenResponse {
