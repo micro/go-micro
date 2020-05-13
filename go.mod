@@ -6,6 +6,7 @@ require (
 	github.com/BurntSushi/toml v0.3.1
 	github.com/bitly/go-simplejson v0.5.0
 	github.com/bwmarrin/discordgo v0.20.2
+	github.com/caddyserver/certmagic v0.10.6
 	github.com/coreos/etcd v3.3.18+incompatible
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
 	github.com/davecgh/go-spew v1.1.1
@@ -16,7 +17,7 @@ require (
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/fsouza/go-dockerclient v1.6.0
 	github.com/ghodss/yaml v1.0.0
-	github.com/go-acme/lego/v3 v3.3.0
+	github.com/go-acme/lego/v3 v3.4.0
 	github.com/go-git/go-git/v5 v5.0.0
 	github.com/gobwas/httphead v0.0.0-20180130184737-2c6c146eadee
 	github.com/gobwas/pool v0.2.0 // indirect
@@ -33,7 +34,7 @@ require (
 	github.com/kr/pretty v0.1.0
 	github.com/lib/pq v1.3.0
 	github.com/lucas-clemente/quic-go v0.14.1
-	github.com/mholt/certmagic v0.9.3
+	github.com/mholt/certmagic v0.8.3
 	github.com/micro/cli/v2 v2.1.2
 	github.com/micro/go-micro v1.18.0
 	github.com/miekg/dns v1.1.27
