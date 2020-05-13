@@ -17,31 +17,6 @@ import (
 	"github.com/micro/go-micro/v2/util/jitter"
 )
 
-// NewAuth returns a new instance of the Auth service
-func NewAuth(opts ...auth.Option) auth.Auth {
-	options := auth.NewOptions(opts...)
-
-	addrs := options.Addrs
-	if len(addrs) == 0 {
-		addrs = []string{"127.0.0.1:8010"}
-	}
-
-	svc := &svc{options: options, addrs: addrs}
-
-	// load rules periodically from the auth service
-	go func() {
-		ruleTimer := time.NewTicker(time.Second * 30)
-
-		for {
-			time.Sleep(jitter.Do(time.Second * 5))
-			svc.loadRules()
-			<-ruleTimer.C
-		}
-	}()
-
-	return svc
-}
-
 // svc is the service implementation of the Auth interface
 type svc struct {
 	options auth.Options
@@ -66,6 +41,7 @@ func (s *svc) Init(opts ...auth.Option) {
 	if s.options.Client == nil {
 		s.options.Client = client.DefaultClient
 	}
+
 	s.auth = pb.NewAuthService("go.micro.auth", s.options.Client)
 	s.rule = pb.NewRulesService("go.micro.auth", s.options.Client)
 
@@ -320,4 +296,38 @@ func serializeAccount(a *pb.Account) *auth.Account {
 		Provider:  a.Provider,
 		Namespace: a.Namespace,
 	}
+}
+
+// NewAuth returns a new instance of the Auth service
+func NewAuth(opts ...auth.Option) auth.Auth {
+	options := auth.NewOptions(opts...)
+
+	if options.Client == nil {
+		options.Client = client.DefaultClient
+	}
+
+	addrs := options.Addrs
+	if len(addrs) == 0 {
+		addrs = []string{"127.0.0.1:8010"}
+	}
+
+	service := &svc{
+		auth:    pb.NewAuthService("go.micro.auth", options.Client),
+		rule:    pb.NewRulesService("go.micro.auth", options.Client),
+		options: options,
+		addrs:   addrs,
+	}
+
+	// load rules periodically from the auth service
+	go func() {
+		ruleTimer := time.NewTicker(time.Second * 30)
+
+		for {
+			time.Sleep(jitter.Do(time.Second * 5))
+			service.loadRules()
+			<-ruleTimer.C
+		}
+	}()
+
+	return service
 }
