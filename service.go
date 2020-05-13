@@ -16,8 +16,6 @@ import (
 	"github.com/micro/go-micro/v2/debug/trace"
 	"github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/plugin"
-	registrySrv "github.com/micro/go-micro/v2/registry/service"
-	"github.com/micro/go-micro/v2/runtime"
 	"github.com/micro/go-micro/v2/server"
 	"github.com/micro/go-micro/v2/store"
 	signalutil "github.com/micro/go-micro/v2/util/signal"
@@ -54,10 +52,10 @@ func newService(opts ...Option) Service {
 	)
 
 	// set the client in the service implementations
-	options.Auth.Init(auth.WithClient(options.Client))
-	options.Registry.Init(registrySrv.WithClient(options.Client))
-	options.Runtime.Init(runtime.WithClient(options.Client))
-	options.Store.Init(store.WithClient(options.Client))
+	// options.Auth.Init(auth.WithClient(options.Client))
+	// options.Registry.Init(registrySrv.WithClient(options.Client))
+	// options.Runtime.Init(runtime.WithClient(options.Client))
+	// options.Store.Init(store.WithClient(options.Client))
 
 	// set opts
 	service.opts = options
@@ -126,10 +124,10 @@ func (s *service) Init(opts ...Option) {
 		// previously in newService for micro (since init is never called)
 		// however it needs to be done again here since for normal go-micro
 		// services the implementation may have changed by CLI flags.
-		s.opts.Auth.Init(auth.WithClient(s.Client()))
-		s.opts.Registry.Init(registrySrv.WithClient(s.Client()))
-		s.opts.Runtime.Init(runtime.WithClient(s.Client()))
-		s.opts.Store.Init(store.WithClient(s.Client()))
+		// s.opts.Auth.Init(auth.WithClient(s.Client()))
+		// s.opts.Registry.Init(registrySrv.WithClient(s.Client()))
+		// s.opts.Runtime.Init(runtime.WithClient(s.Client()))
+		// s.opts.Store.Init(store.WithClient(s.Client()))
 	})
 }
 
