@@ -20,6 +20,7 @@ func (p *Process) Exec(exe *process.Executable) error {
 }
 
 func (p *Process) Fork(exe *process.Executable) (*process.PID, error) {
+
 	// create command
 	cmd := exec.Command(exe.Package.Path, exe.Args...)
 
@@ -43,7 +44,6 @@ func (p *Process) Fork(exe *process.Executable) (*process.PID, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	// start the process
 	if err := cmd.Start(); err != nil {
 		return nil, err
@@ -62,22 +62,14 @@ func (p *Process) Kill(pid *process.PID) error {
 	if err != nil {
 		return err
 	}
-
-	pr, err := os.FindProcess(id)
-	if err != nil {
+	if _, err := os.FindProcess(id); err != nil {
 		return err
 	}
 
 	// now kill it
-	err = pr.Kill()
+	// using -ve PID kills the process group which we created in Fork()
+	return syscall.Kill(-id, syscall.SIGKILL)
 
-	// kill the group
-	if pgid, err := syscall.Getpgid(id); err == nil {
-		syscall.Kill(-pgid, syscall.SIGKILL)
-	}
-
-	// return the kill error
-	return err
 }
 
 func (p *Process) Wait(pid *process.PID) error {
