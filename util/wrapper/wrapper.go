@@ -2,7 +2,6 @@ package wrapper
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"time"
 
@@ -182,47 +181,14 @@ func (a *authWrapper) Call(ctx context.Context, req client.Request, rsp interfac
 		return callWithToken(tok.AccessToken)
 	}
 
-	// if we have credentials we can generate a new token for the account
-	if len(aaOpts.ID) > 0 && len(aaOpts.Secret) > 0 {
-		tok, err := aa.Token(auth.WithCredentials(aaOpts.ID, aaOpts.Secret))
-		if err != nil {
-			return err
-		}
-		aa.Init(auth.ClientToken(tok))
-		return callWithToken(tok.AccessToken)
-	}
-
 	// check to see if a token was provided in config, this is normally used for
 	// setting the token when calling via the cli
 	if token, err := config.Get("micro", "auth", "token"); err == nil && len(token) > 0 {
 		return callWithToken(token)
 	}
 
-	// determine the type of service from the name. we do this so we can allocate
-	// different roles depending on the type of services. e.g. we don't want web
-	// services talking directly to the runtime. TODO: find a better way to determine
-	// the type of service
-	serviceType := "service"
-	if strings.Contains(a.name, "api") {
-		serviceType = "api"
-	} else if strings.Contains(a.name, "web") {
-		serviceType = "web"
-	}
-
-	// generate a new auth account for the service
-	name := fmt.Sprintf("%v-%v", a.name, a.id)
-	acc, err := aa.Generate(name, auth.WithNamespace(aaOpts.Namespace), auth.WithRoles(serviceType))
-	if err != nil {
-		return err
-	}
-	token, err := aa.Token(auth.WithCredentials(acc.ID, acc.Secret))
-	if err != nil {
-		return err
-	}
-	aa.Init(auth.ClientToken(token))
-
-	// use the token to execute the request
-	return callWithToken(token.AccessToken)
+	// call without an auth token
+	return a.Client.Call(ctx, req, rsp, opts...)
 }
 
 // AuthClient wraps requests with the auth header
