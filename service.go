@@ -233,21 +233,11 @@ func (s *service) Run() error {
 }
 
 func (s *service) registerAuthAccount() error {
-	// determine the type of service from the name. we do this so we can allocate
-	// different roles depending on the type of services. e.g. we don't want web
-	// services talking directly to the runtime. TODO: find a better way to determine
-	// the type of service
-	serviceType := "service"
-	if strings.Contains(s.Name(), "api") {
-		serviceType = "api"
-	} else if strings.Contains(s.Name(), "web") {
-		serviceType = "web"
-	}
-
 	// generate a new auth account for the service
 	name := fmt.Sprintf("%v-%v", s.Name(), s.Server().Options().Id)
 	opts := []auth.GenerateOption{
-		auth.WithRoles(serviceType),
+		auth.WithType("service"),
+		auth.WithRoles("service"),
 		auth.WithNamespace(s.Options().Auth.Options().Namespace),
 	}
 	acc, err := s.Options().Auth.Generate(name, opts...)
