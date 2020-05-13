@@ -53,6 +53,12 @@ func newService(opts ...Option) Service {
 		server.WrapHandler(wrapper.AuthHandler(authFn)),
 	)
 
+	// set the client in the service implementations
+	options.Auth.Init(auth.WithClient(options.Client))
+	options.Registry.Init(registrySrv.WithClient(options.Client))
+	options.Runtime.Init(runtime.WithClient(options.Client))
+	options.Store.Init(store.WithClient(options.Client))
+
 	// set opts
 	service.opts = options
 
@@ -116,7 +122,10 @@ func (s *service) Init(opts ...Option) {
 		name := s.opts.Cmd.App().Name
 		s.opts.Store.Init(store.Table(name))
 
-		// Set the client for the micro clients
+		// Reset the clients for the micro services, this is done
+		// previously in newService for micro (since init is never called)
+		// however it needs to be done again here since for normal go-micro
+		// services the implementation may have changed by CLI flags.
 		s.opts.Auth.Init(auth.WithClient(s.Client()))
 		s.opts.Registry.Init(registrySrv.WithClient(s.Client()))
 		s.opts.Runtime.Init(runtime.WithClient(s.Client()))
@@ -183,6 +192,11 @@ func (s *service) Stop() error {
 }
 
 func (s *service) Run() error {
+	// generate an auth account
+	if err := s.generateAccount(); err != nil {
+		return err
+	}
+
 	// register the debug handler
 	s.opts.Server.Handle(
 		s.opts.Server.NewHandler(
@@ -208,11 +222,6 @@ func (s *service) Run() error {
 		logger.Infof("Starting [service] %s", s.Name())
 	}
 
-	// generate an auth account
-	if err := s.registerAuthAccount(); err != nil {
-		return err
-	}
-
 	if err := s.Start(); err != nil {
 		return err
 	}
@@ -232,7 +241,7 @@ func (s *service) Run() error {
 	return s.Stop()
 }
 
-func (s *service) registerAuthAccount() error {
+func (s *service) generateAccount() error {
 	// generate a new auth account for the service
 	name := fmt.Sprintf("%v-%v", s.Name(), s.Server().Options().Id)
 	opts := []auth.GenerateOption{
