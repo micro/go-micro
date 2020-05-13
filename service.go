@@ -1,6 +1,7 @@
 package micro
 
 import (
+	"fmt"
 	"os"
 	"os/signal"
 	rtime "runtime"
@@ -15,6 +16,7 @@ import (
 	"github.com/micro/go-micro/v2/debug/trace"
 	"github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/plugin"
+	registrySrv "github.com/micro/go-micro/v2/registry/service"
 	"github.com/micro/go-micro/v2/runtime"
 	"github.com/micro/go-micro/v2/server"
 	"github.com/micro/go-micro/v2/store"
@@ -115,7 +117,8 @@ func (s *service) Init(opts ...Option) {
 		s.opts.Store.Init(store.Table(name))
 
 		// Set the client for the micro clients
-		// s.opts.Auth.Init(auth.WithClient(s.Client()))
+		s.opts.Auth.Init(auth.WithClient(s.Client()))
+		s.opts.Registry.Init(registrySrv.WithClient(s.Client()))
 		s.opts.Runtime.Init(runtime.WithClient(s.Client()))
 		s.opts.Store.Init(store.WithClient(s.Client()))
 	})
@@ -205,6 +208,11 @@ func (s *service) Run() error {
 		logger.Infof("Starting [service] %s", s.Name())
 	}
 
+	// generate an auth account
+	if err := s.registerAuthAccount(); err != nil {
+		return err
+	}
+
 	if err := s.Start(); err != nil {
 		return err
 	}
@@ -222,4 +230,28 @@ func (s *service) Run() error {
 	}
 
 	return s.Stop()
+}
+
+func (s *service) registerAuthAccount() error {
+	// generate a new auth account for the service
+	name := fmt.Sprintf("%v-%v", s.Name(), s.Server().Options().Id)
+	opts := []auth.GenerateOption{
+		auth.WithType("service"),
+		auth.WithRoles("service"),
+		auth.WithNamespace(s.Options().Auth.Options().Namespace),
+	}
+	acc, err := s.Options().Auth.Generate(name, opts...)
+	if err != nil {
+		return err
+	}
+
+	// generate a token
+	token, err := s.Options().Auth.Token(auth.WithCredentials(acc.ID, acc.Secret))
+	if err != nil {
+		return err
+	}
+
+	s.Options().Auth.Init(auth.ClientToken(token), auth.Credentials(acc.ID, acc.Secret))
+	logger.Infof("Auth [%v] Authenticated as %v", s.Options().Auth, name)
+	return nil
 }
