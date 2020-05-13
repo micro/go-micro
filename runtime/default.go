@@ -536,7 +536,7 @@ func (r *runtime) Delete(s *Service, opts ...DeleteOption) error {
 	}
 	if s, ok := r.services[serviceKey(s)]; ok {
 		// check if running
-		if s.Running() {
+		if !s.Running() {
 			delete(r.services, s.key())
 			return nil
 		}
