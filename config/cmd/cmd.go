@@ -525,6 +525,22 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		*c.opts.Profile = p()
 	}
 
+	// Set the client
+	if name := ctx.String("client"); len(name) > 0 {
+		// only change if we have the client and type differs
+		if cl, ok := c.opts.Clients[name]; ok && (*c.opts.Client).String() != name {
+			*c.opts.Client = cl()
+		}
+	}
+
+	// Set the server
+	if name := ctx.String("server"); len(name) > 0 {
+		// only change if we have the server and type differs
+		if s, ok := c.opts.Servers[name]; ok && (*c.opts.Server).String() != name {
+			*c.opts.Server = s()
+		}
+	}
+
 	// Set the broker
 	if name := ctx.String("broker"); len(name) > 0 && (*c.opts.Broker).String() != name {
 		b, ok := c.opts.Brokers[name]
@@ -582,22 +598,6 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		*c.opts.Transport = t()
 		serverOpts = append(serverOpts, server.Transport(*c.opts.Transport))
 		clientOpts = append(clientOpts, client.Transport(*c.opts.Transport))
-	}
-
-	// Set the client
-	if name := ctx.String("client"); len(name) > 0 {
-		// only change if we have the client and type differs
-		if cl, ok := c.opts.Clients[name]; ok && (*c.opts.Client).String() != name {
-			*c.opts.Client = cl()
-		}
-	}
-
-	// Set the server
-	if name := ctx.String("server"); len(name) > 0 {
-		// only change if we have the server and type differs
-		if s, ok := c.opts.Servers[name]; ok && (*c.opts.Server).String() != name {
-			*c.opts.Server = s()
-		}
 	}
 
 	// Parse the server options
