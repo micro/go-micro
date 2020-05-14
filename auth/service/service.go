@@ -23,7 +23,6 @@ type svc struct {
 	auth    pb.AuthService
 	rule    pb.RulesService
 	jwt     token.Provider
-	addrs   []string
 
 	rules []*pb.Rule
 	sync.Mutex
@@ -71,7 +70,7 @@ func (s *svc) Generate(id string, opts ...auth.GenerateOption) (*auth.Account, e
 		Metadata:  options.Metadata,
 		Provider:  options.Provider,
 		Namespace: options.Namespace,
-	}, client.WithAddress(s.addrs...))
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +89,7 @@ func (s *svc) Grant(role string, res *auth.Resource) error {
 			Name:      res.Name,
 			Endpoint:  res.Endpoint,
 		},
-	}, client.WithAddress(s.addrs...))
+	})
 	return err
 }
 
@@ -105,7 +104,7 @@ func (s *svc) Revoke(role string, res *auth.Resource) error {
 			Name:      res.Name,
 			Endpoint:  res.Endpoint,
 		},
-	}, client.WithAddress(s.addrs...))
+	})
 	return err
 }
 
@@ -175,7 +174,7 @@ func (s *svc) Inspect(token string) (*auth.Account, error) {
 
 	// the token is not a JWT or we do not have the keys to decode it,
 	// fall back to the auth service
-	rsp, err := s.auth.Inspect(context.TODO(), &pb.InspectRequest{Token: token}, client.WithAddress(s.addrs...))
+	rsp, err := s.auth.Inspect(context.TODO(), &pb.InspectRequest{Token: token})
 	if err != nil {
 		return nil, err
 	}
@@ -191,7 +190,7 @@ func (s *svc) Token(opts ...auth.TokenOption) (*auth.Token, error) {
 		Secret:       options.Secret,
 		RefreshToken: options.RefreshToken,
 		TokenExpiry:  int64(options.Expiry.Seconds()),
-	}, client.WithAddress(s.addrs...))
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -256,7 +255,7 @@ func (s *svc) listRules(filters ...string) []*pb.Rule {
 
 // loadRules retrieves the rules from the auth service
 func (s *svc) loadRules() {
-	rsp, err := s.rule.List(context.TODO(), &pb.ListRequest{}, client.WithAddress(s.addrs...))
+	rsp, err := s.rule.List(context.TODO(), &pb.ListRequest{})
 	s.Lock()
 	defer s.Unlock()
 
@@ -301,21 +300,14 @@ func serializeAccount(a *pb.Account) *auth.Account {
 // NewAuth returns a new instance of the Auth service
 func NewAuth(opts ...auth.Option) auth.Auth {
 	options := auth.NewOptions(opts...)
-
 	if options.Client == nil {
 		options.Client = client.DefaultClient
 	}
-
-	addrs := options.Addrs
-	// if len(addrs) == 0 {
-	// 	addrs = []string{"127.0.0.1:8010"}
-	// }
 
 	service := &svc{
 		auth:    pb.NewAuthService("go.micro.auth", options.Client),
 		rule:    pb.NewRulesService("go.micro.auth", options.Client),
 		options: options,
-		addrs:   addrs,
 	}
 
 	// load rules periodically from the auth service
@@ -323,9 +315,9 @@ func NewAuth(opts ...auth.Option) auth.Auth {
 		ruleTimer := time.NewTicker(time.Second * 30)
 
 		for {
+			<-ruleTimer.C
 			time.Sleep(jitter.Do(time.Second * 5))
 			service.loadRules()
-			<-ruleTimer.C
 		}
 	}()
 

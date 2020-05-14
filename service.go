@@ -7,6 +7,7 @@ import (
 	rtime "runtime"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/micro/go-micro/v2/auth"
 	"github.com/micro/go-micro/v2/client"
@@ -42,7 +43,7 @@ func newService(opts ...Option) Service {
 	// wrap client to inject From-Service header on any calls
 	options.Client = wrapper.FromService(serviceName, options.Client)
 	options.Client = wrapper.TraceCall(serviceName, trace.DefaultTracer, options.Client)
-	options.Client = wrapper.AuthClient(serviceName, options.Server.Options().Id, authFn, options.Client)
+	options.Client = wrapper.AuthClient(authFn, options.Client)
 
 	// wrap the server to provide handler stats
 	options.Server.Init(
@@ -50,12 +51,6 @@ func newService(opts ...Option) Service {
 		server.WrapHandler(wrapper.TraceHandler(trace.DefaultTracer)),
 		server.WrapHandler(wrapper.AuthHandler(authFn)),
 	)
-
-	// set the client in the service implementations
-	// options.Auth.Init(auth.WithClient(options.Client))
-	// options.Registry.Init(registrySrv.WithClient(options.Client))
-	// options.Runtime.Init(runtime.WithClient(options.Client))
-	// options.Store.Init(store.WithClient(options.Client))
 
 	// set opts
 	service.opts = options
@@ -119,15 +114,6 @@ func (s *service) Init(opts ...Option) {
 		// Explicitly set the table name to the service name
 		name := s.opts.Cmd.App().Name
 		s.opts.Store.Init(store.Table(name))
-
-		// Reset the clients for the micro services, this is done
-		// previously in newService for micro (since init is never called)
-		// however it needs to be done again here since for normal go-micro
-		// services the implementation may have changed by CLI flags.
-		// s.opts.Auth.Init(auth.WithClient(s.Client()))
-		// s.opts.Registry.Init(registrySrv.WithClient(s.Client()))
-		// s.opts.Runtime.Init(runtime.WithClient(s.Client()))
-		// s.opts.Store.Init(store.WithClient(s.Client()))
 	})
 }
 
@@ -240,25 +226,71 @@ func (s *service) Run() error {
 }
 
 func (s *service) generateAccount() error {
-	// generate a new auth account for the service
-	name := fmt.Sprintf("%v-%v", s.Name(), s.Server().Options().Id)
-	opts := []auth.GenerateOption{
-		auth.WithType("service"),
-		auth.WithRoles("service"),
-		auth.WithNamespace(s.Options().Auth.Options().Namespace),
+	// extract the account creds from options, these can be set by flags
+	accID := s.Options().Auth.Options().ID
+	accSecret := s.Options().Auth.Options().Secret
+
+	// if no credentials were provided, generate an account
+	if len(accID) == 0 || len(accSecret) == 0 {
+		name := fmt.Sprintf("%v-%v", s.Name(), s.Server().Options().Id)
+		opts := []auth.GenerateOption{
+			auth.WithType("service"),
+			auth.WithRoles("service"),
+			auth.WithNamespace(s.Options().Auth.Options().Namespace),
+		}
+
+		acc, err := s.Options().Auth.Generate(name, opts...)
+		if err != nil {
+			return err
+		}
+		logger.Infof("Auth [%v] Authenticated as %v", s.Options().Auth, name)
+
+		accID = acc.ID
+		accSecret = acc.Secret
 	}
-	acc, err := s.Options().Auth.Generate(name, opts...)
+
+	// generate the first token
+	token, err := s.Options().Auth.Token(
+		auth.WithCredentials(accID, accSecret),
+		auth.WithExpiry(time.Minute*10),
+	)
 	if err != nil {
 		return err
 	}
 
-	// generate a token
-	token, err := s.Options().Auth.Token(auth.WithCredentials(acc.ID, acc.Secret))
-	if err != nil {
-		return err
-	}
+	// set the credentials and token in auth options
+	s.Options().Auth.Init(
+		auth.ClientToken(token),
+		auth.Credentials(accID, accSecret),
+	)
 
-	s.Options().Auth.Init(auth.ClientToken(token), auth.Credentials(acc.ID, acc.Secret))
-	logger.Infof("Auth [%v] Authenticated as %v", s.Options().Auth, name)
+	// periodically check to see if the token needs refreshing
+	go func() {
+		timer := time.NewTicker(time.Second * 15)
+
+		for {
+			<-timer.C
+
+			// don't refresh the token if it's not close to expiring
+			tok := s.Options().Auth.Options().Token
+			if tok.Expiry.Unix() > time.Now().Add(time.Minute).Unix() {
+				continue
+			}
+
+			// generate the first token
+			tok, err := s.Options().Auth.Token(
+				auth.WithCredentials(accID, accSecret),
+				auth.WithExpiry(time.Minute*10),
+			)
+			if err != nil {
+				logger.Warnf("[Auth] Error refreshing token: %v", err)
+				continue
+			}
+
+			// set the token
+			s.Options().Auth.Init(auth.ClientToken(tok))
+		}
+	}()
+
 	return nil
 }
