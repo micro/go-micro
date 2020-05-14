@@ -300,7 +300,6 @@ func serializeAccount(a *pb.Account) *auth.Account {
 // NewAuth returns a new instance of the Auth service
 func NewAuth(opts ...auth.Option) auth.Auth {
 	options := auth.NewOptions(opts...)
-
 	if options.Client == nil {
 		options.Client = client.DefaultClient
 	}

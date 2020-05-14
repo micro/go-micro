@@ -11,6 +11,7 @@ import (
 	"github.com/micro/go-micro/v2/auth/provider"
 	"github.com/micro/go-micro/v2/broker"
 	"github.com/micro/go-micro/v2/client"
+	"github.com/micro/go-micro/v2/client/grpc"
 	"github.com/micro/go-micro/v2/client/selector"
 	"github.com/micro/go-micro/v2/config"
 	configSrc "github.com/micro/go-micro/v2/config/source"
@@ -26,6 +27,7 @@ import (
 	"github.com/micro/go-micro/v2/server"
 	"github.com/micro/go-micro/v2/store"
 	"github.com/micro/go-micro/v2/transport"
+	"github.com/micro/go-micro/v2/util/wrapper"
 
 	// clients
 	cgrpc "github.com/micro/go-micro/v2/client/grpc"
@@ -469,21 +471,9 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	var serverOpts []server.Option
 	var clientOpts []client.Option
 
-	// Set the client. This must be first since we use the client below
-	if name := ctx.String("client"); len(name) > 0 {
-		// only change if we have the client and type differs
-		if cl, ok := c.opts.Clients[name]; ok && (*c.opts.Client).String() != name {
-			*c.opts.Client = cl()
-		}
-	}
-
-	// Set the server
-	if name := ctx.String("server"); len(name) > 0 {
-		// only change if we have the server and type differs
-		if s, ok := c.opts.Servers[name]; ok && (*c.opts.Server).String() != name {
-			*c.opts.Server = s()
-		}
-	}
+	// setup a client to use when calling the runtime
+	authFn := func() auth.Auth { return *c.opts.Auth }
+	microClient := wrapper.AuthClient(authFn, grpc.NewClient())
 
 	// Set the store
 	if name := ctx.String("store"); len(name) > 0 {
@@ -492,7 +482,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 			return fmt.Errorf("Unsupported store: %s", name)
 		}
 
-		*c.opts.Store = s(store.WithClient(*c.opts.Client))
+		*c.opts.Store = s(store.WithClient(microClient))
 	}
 
 	// Set the runtime
@@ -502,7 +492,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 			return fmt.Errorf("Unsupported runtime: %s", name)
 		}
 
-		*c.opts.Runtime = r(runtime.WithClient(*c.opts.Client))
+		*c.opts.Runtime = r(runtime.WithClient(microClient))
 	}
 
 	// Set the tracer
@@ -521,7 +511,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		if !ok {
 			return fmt.Errorf("Unsupported auth: %s", name)
 		}
-		*c.opts.Auth = a(auth.WithClient(*c.opts.Client))
+		*c.opts.Auth = a(auth.WithClient(microClient))
 		serverOpts = append(serverOpts, server.Auth(*c.opts.Auth))
 	}
 
@@ -554,7 +544,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 			return fmt.Errorf("Registry %s not found", name)
 		}
 
-		*c.opts.Registry = r(registrySrv.WithClient(*c.opts.Client))
+		*c.opts.Registry = r(registrySrv.WithClient(microClient))
 		serverOpts = append(serverOpts, server.Registry(*c.opts.Registry))
 		clientOpts = append(clientOpts, client.Registry(*c.opts.Registry))
 
@@ -592,6 +582,22 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		*c.opts.Transport = t()
 		serverOpts = append(serverOpts, server.Transport(*c.opts.Transport))
 		clientOpts = append(clientOpts, client.Transport(*c.opts.Transport))
+	}
+
+	// Set the client
+	if name := ctx.String("client"); len(name) > 0 {
+		// only change if we have the client and type differs
+		if cl, ok := c.opts.Clients[name]; ok && (*c.opts.Client).String() != name {
+			*c.opts.Client = cl()
+		}
+	}
+
+	// Set the server
+	if name := ctx.String("server"); len(name) > 0 {
+		// only change if we have the server and type differs
+		if s, ok := c.opts.Servers[name]; ok && (*c.opts.Server).String() != name {
+			*c.opts.Server = s()
+		}
 	}
 
 	// Parse the server options
@@ -725,7 +731,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	(*c.opts.Auth).Init(authOpts...)
 
 	if ctx.String("config") == "service" {
-		opt := config.WithSource(configSrv.NewSource(configSrc.WithClient(*c.opts.Client)))
+		opt := config.WithSource(configSrv.NewSource(configSrc.WithClient(microClient)))
 		if err := (*c.opts.Config).Init(opt); err != nil {
 			logger.Fatalf("Error configuring config: %v", err)
 		}

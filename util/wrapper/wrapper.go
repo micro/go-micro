@@ -132,8 +132,6 @@ func TraceHandler(t trace.Tracer) server.HandlerWrapper {
 
 type authWrapper struct {
 	client.Client
-	name string
-	id   string
 	auth func() auth.Auth
 }
 
@@ -170,8 +168,8 @@ func (a *authWrapper) Call(ctx context.Context, req client.Request, rsp interfac
 }
 
 // AuthClient wraps requests with the auth header
-func AuthClient(name string, id string, auth func() auth.Auth, c client.Client) client.Client {
-	return &authWrapper{c, name, id, auth}
+func AuthClient(auth func() auth.Auth, c client.Client) client.Client {
+	return &authWrapper{c, auth}
 }
 
 // AuthHandler wraps a server handler to perform auth
