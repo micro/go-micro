@@ -21,6 +21,7 @@ import (
 	"github.com/micro/go-micro/v2/debug/trace"
 	"github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/registry"
+	registrySrv "github.com/micro/go-micro/v2/registry/service"
 	"github.com/micro/go-micro/v2/runtime"
 	"github.com/micro/go-micro/v2/server"
 	"github.com/micro/go-micro/v2/store"
@@ -468,6 +469,22 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	var serverOpts []server.Option
 	var clientOpts []client.Option
 
+	// Set the client. This must be first since we use the client below
+	if name := ctx.String("client"); len(name) > 0 {
+		// only change if we have the client and type differs
+		if cl, ok := c.opts.Clients[name]; ok && (*c.opts.Client).String() != name {
+			*c.opts.Client = cl()
+		}
+	}
+
+	// Set the server
+	if name := ctx.String("server"); len(name) > 0 {
+		// only change if we have the server and type differs
+		if s, ok := c.opts.Servers[name]; ok && (*c.opts.Server).String() != name {
+			*c.opts.Server = s()
+		}
+	}
+
 	// Set the store
 	if name := ctx.String("store"); len(name) > 0 {
 		s, ok := c.opts.Stores[name]
@@ -475,7 +492,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 			return fmt.Errorf("Unsupported store: %s", name)
 		}
 
-		*c.opts.Store = s()
+		*c.opts.Store = s(store.WithClient(*c.opts.Client))
 	}
 
 	// Set the runtime
@@ -485,7 +502,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 			return fmt.Errorf("Unsupported runtime: %s", name)
 		}
 
-		*c.opts.Runtime = r()
+		*c.opts.Runtime = r(runtime.WithClient(*c.opts.Client))
 	}
 
 	// Set the tracer
@@ -504,8 +521,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		if !ok {
 			return fmt.Errorf("Unsupported auth: %s", name)
 		}
-
-		*c.opts.Auth = a()
+		*c.opts.Auth = a(auth.WithClient(*c.opts.Client))
 		serverOpts = append(serverOpts, server.Auth(*c.opts.Auth))
 	}
 
@@ -517,22 +533,6 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		}
 
 		*c.opts.Profile = p()
-	}
-
-	// Set the client
-	if name := ctx.String("client"); len(name) > 0 {
-		// only change if we have the client and type differs
-		if cl, ok := c.opts.Clients[name]; ok && (*c.opts.Client).String() != name {
-			*c.opts.Client = cl()
-		}
-	}
-
-	// Set the server
-	if name := ctx.String("server"); len(name) > 0 {
-		// only change if we have the server and type differs
-		if s, ok := c.opts.Servers[name]; ok && (*c.opts.Server).String() != name {
-			*c.opts.Server = s()
-		}
 	}
 
 	// Set the broker
@@ -554,7 +554,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 			return fmt.Errorf("Registry %s not found", name)
 		}
 
-		*c.opts.Registry = r()
+		*c.opts.Registry = r(registrySrv.WithClient(*c.opts.Client))
 		serverOpts = append(serverOpts, server.Registry(*c.opts.Registry))
 		clientOpts = append(clientOpts, client.Registry(*c.opts.Registry))
 
