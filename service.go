@@ -252,7 +252,7 @@ func (s *service) generateAccount() error {
 	// generate the first token
 	token, err := s.Options().Auth.Token(
 		auth.WithCredentials(accID, accSecret),
-		auth.WithExpiry(time.Minute*15),
+		auth.WithExpiry(time.Minute*10),
 	)
 	if err != nil {
 		return err
@@ -272,14 +272,15 @@ func (s *service) generateAccount() error {
 			<-timer.C
 
 			// don't refresh the token if it's not close to expiring
-			if token.Expiry.Unix() > time.Now().Add(time.Minute).Unix() {
+			tok := s.Options().Auth.Options().Token
+			if tok.Expiry.Unix() > time.Now().Add(time.Minute).Unix() {
 				continue
 			}
 
 			// generate the first token
-			token, err := s.Options().Auth.Token(
+			tok, err := s.Options().Auth.Token(
 				auth.WithCredentials(accID, accSecret),
-				auth.WithExpiry(time.Minute*15),
+				auth.WithExpiry(time.Minute*10),
 			)
 			if err != nil {
 				logger.Warnf("[Auth] Error refreshing token: %v", err)
@@ -287,7 +288,7 @@ func (s *service) generateAccount() error {
 			}
 
 			// set the token
-			s.Options().Auth.Init(auth.ClientToken(token))
+			s.Options().Auth.Init(auth.ClientToken(tok))
 		}
 	}()
 

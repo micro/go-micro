@@ -315,9 +315,9 @@ func NewAuth(opts ...auth.Option) auth.Auth {
 		ruleTimer := time.NewTicker(time.Second * 30)
 
 		for {
+			<-ruleTimer.C
 			time.Sleep(jitter.Do(time.Second * 5))
 			service.loadRules()
-			<-ruleTimer.C
 		}
 	}()
 
