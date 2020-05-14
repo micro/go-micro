@@ -17,6 +17,7 @@ import (
 	"github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/registry"
 	maddr "github.com/micro/go-micro/v2/util/addr"
+	authutil "github.com/micro/go-micro/v2/util/auth"
 	mhttp "github.com/micro/go-micro/v2/util/http"
 	mnet "github.com/micro/go-micro/v2/util/net"
 	signalutil "github.com/micro/go-micro/v2/util/signal"
@@ -421,6 +422,13 @@ func (s *service) Init(opts ...Option) error {
 }
 
 func (s *service) Run() error {
+	// generate an auth account
+	srvID := s.opts.Service.Server().Options().Id
+	srvName := s.opts.Service.Name()
+	if err := authutil.Generate(srvID, srvName, s.opts.Service.Options().Auth); err != nil {
+		return err
+	}
+
 	if err := s.start(); err != nil {
 		return err
 	}
