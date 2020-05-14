@@ -7,6 +7,7 @@ import (
 
 	"github.com/micro/go-micro/v2/client"
 	"github.com/micro/go-micro/v2/client/grpc"
+	"github.com/micro/go-micro/v2/errors"
 	"github.com/micro/go-micro/v2/registry"
 	pb "github.com/micro/go-micro/v2/registry/service/proto"
 )
@@ -116,7 +117,9 @@ func (s *serviceRegistry) GetService(name string, opts ...registry.GetOption) ([
 		Service: name,
 	}, s.callOpts()...)
 
-	if err != nil {
+	if verr, ok := err.(*errors.Error); ok && verr.Code == 404 {
+		return nil, registry.ErrNotFound
+	} else if err != nil {
 		return nil, err
 	}
 
