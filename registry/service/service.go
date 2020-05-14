@@ -47,6 +47,10 @@ func (s *serviceRegistry) Init(opts ...registry.Option) error {
 		o(&s.opts)
 	}
 
+	if len(s.opts.Addrs) > 0 {
+		s.address = s.opts.Addrs
+	}
+
 	// extract the client from the context, fallback to grpc
 	var cli client.Client
 	if c, ok := s.opts.Context.Value(clientKey{}).(client.Client); ok {
