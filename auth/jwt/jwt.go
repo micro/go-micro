@@ -2,6 +2,7 @@ package jwt
 
 import (
 	"sync"
+	"time"
 
 	"github.com/micro/go-micro/v2/auth"
 	"github.com/micro/go-micro/v2/auth/token"
@@ -176,15 +177,20 @@ func (j *jwt) Token(opts ...auth.TokenOption) (*auth.Token, error) {
 		return nil, err
 	}
 
-	tok, err := j.jwt.Generate(account, token.WithExpiry(options.Expiry))
+	access, err := j.jwt.Generate(account, token.WithExpiry(options.Expiry))
+	if err != nil {
+		return nil, err
+	}
+
+	refresh, err := j.jwt.Generate(account, token.WithExpiry(options.Expiry+time.Hour))
 	if err != nil {
 		return nil, err
 	}
 
 	return &auth.Token{
-		Created:      tok.Created,
-		Expiry:       tok.Expiry,
-		AccessToken:  tok.Token,
-		RefreshToken: tok.Token,
+		Created:      access.Created,
+		Expiry:       access.Expiry,
+		AccessToken:  access.Token,
+		RefreshToken: refresh.Token,
 	}, nil
 }
