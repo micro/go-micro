@@ -248,7 +248,7 @@ func basictest(s store.Store, t *testing.T) {
 		}
 	}
 
-	s.Init()
+	s.Close() // reset the store
 	for i := 0; i < 10; i++ {
 		s.Write(&store.Record{
 			Key:   fmt.Sprintf("a%d", i),

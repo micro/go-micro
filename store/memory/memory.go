@@ -154,7 +154,6 @@ func (m *memoryStore) Close() error {
 }
 
 func (m *memoryStore) Init(opts ...store.Option) error {
-	m.store.Flush()
 	for _, o := range opts {
 		o(&m.options)
 	}

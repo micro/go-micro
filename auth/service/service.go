@@ -17,11 +17,6 @@ import (
 	"github.com/micro/go-micro/v2/util/jitter"
 )
 
-// NewAuth returns a new instance of the Auth service
-func NewAuth(opts ...auth.Option) auth.Auth {
-	return &svc{options: auth.NewOptions(opts...)}
-}
-
 // svc is the service implementation of the Auth interface
 type svc struct {
 	options auth.Options
@@ -42,9 +37,12 @@ func (s *svc) Init(opts ...auth.Option) {
 		o(&s.options)
 	}
 
-	dc := client.DefaultClient
-	s.auth = pb.NewAuthService("go.micro.auth", dc)
-	s.rule = pb.NewRulesService("go.micro.auth", dc)
+	if s.options.Client == nil {
+		s.options.Client = client.DefaultClient
+	}
+
+	s.auth = pb.NewAuthService("go.micro.auth", s.options.Client)
+	s.rule = pb.NewRulesService("go.micro.auth", s.options.Client)
 
 	// if we have a JWT public key passed as an option,
 	// we can decode tokens with the type "JWT" locally
@@ -52,24 +50,6 @@ func (s *svc) Init(opts ...auth.Option) {
 	if key := s.options.PublicKey; len(key) > 0 {
 		s.jwt = jwt.NewTokenProvider(token.WithPublicKey(key))
 	}
-
-	// load rules periodically from the auth service
-	go func() {
-		ruleTimer := time.NewTicker(time.Second * 30)
-
-		// load rules immediately on startup
-		s.loadRules()
-
-		for {
-			<-ruleTimer.C
-
-			// jitter for up to 5 seconds, this stops
-			// all the services calling the auth service
-			// at the exact same time
-			time.Sleep(jitter.Do(time.Second * 5))
-			s.loadRules()
-		}
-	}()
 }
 
 func (s *svc) Options() auth.Options {
@@ -130,6 +110,9 @@ func (s *svc) Revoke(role string, res *auth.Resource) error {
 
 // Verify an account has access to a resource
 func (s *svc) Verify(acc *auth.Account, res *auth.Resource) error {
+	// load the rules if none are loaded
+	s.loadRulesIfEmpty()
+
 	// set the namespace on the resource
 	if len(res.Namespace) == 0 {
 		res.Namespace = s.Options().Namespace
@@ -220,7 +203,13 @@ var ruleJoinKey = ":"
 // accessForRule returns a rule status, indicating if a rule permits access to a
 // resource for a given account
 func accessForRule(rule *pb.Rule, acc *auth.Account, res *auth.Resource) pb.Access {
-	if rule.Role == "*" {
+	// a blank role permits access to the public
+	if rule.Role == "" {
+		return rule.Access
+	}
+
+	// a * role permits access to any user
+	if rule.Role == "*" && acc != nil {
 		return rule.Access
 	}
 
@@ -284,6 +273,16 @@ func (s *svc) loadRules() {
 	s.rules = rsp.Rules
 }
 
+func (s *svc) loadRulesIfEmpty() {
+	s.Lock()
+	rules := s.rules
+	s.Unlock()
+
+	if len(rules) == 0 {
+		s.loadRules()
+	}
+}
+
 func serializeToken(t *pb.Token) *auth.Token {
 	return &auth.Token{
 		AccessToken:  t.AccessToken,
@@ -302,4 +301,31 @@ func serializeAccount(a *pb.Account) *auth.Account {
 		Provider:  a.Provider,
 		Namespace: a.Namespace,
 	}
+}
+
+// NewAuth returns a new instance of the Auth service
+func NewAuth(opts ...auth.Option) auth.Auth {
+	options := auth.NewOptions(opts...)
+	if options.Client == nil {
+		options.Client = client.DefaultClient
+	}
+
+	service := &svc{
+		auth:    pb.NewAuthService("go.micro.auth", options.Client),
+		rule:    pb.NewRulesService("go.micro.auth", options.Client),
+		options: options,
+	}
+
+	// load rules periodically from the auth service
+	go func() {
+		ruleTimer := time.NewTicker(time.Second * 30)
+
+		for {
+			<-ruleTimer.C
+			time.Sleep(jitter.Do(time.Second * 5))
+			service.loadRules()
+		}
+	}()
+
+	return service
 }

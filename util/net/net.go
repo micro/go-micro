@@ -83,20 +83,23 @@ func Listen(addr string, fn func(string) (net.Listener, error)) (net.Listener, e
 func Proxy(service string, address []string) (string, []string, bool) {
 	var hasProxy bool
 
-	// get proxy
+	// get proxy. we parse out address if present
 	if prx := os.Getenv("MICRO_PROXY"); len(prx) > 0 {
 		// default name
 		if prx == "service" {
 			prx = "go.micro.proxy"
+			address = nil
 		}
+
+		// check if its an address
+		if v := strings.Split(prx, ":"); len(v) > 1 {
+			address = []string{prx}
+		}
+
 		service = prx
 		hasProxy = true
-	}
 
-	// get proxy address
-	if prx := os.Getenv("MICRO_PROXY_ADDRESS"); len(prx) > 0 {
-		address = []string{prx}
-		hasProxy = true
+		return service, address, hasProxy
 	}
 
 	if prx := os.Getenv("MICRO_NETWORK"); len(prx) > 0 {

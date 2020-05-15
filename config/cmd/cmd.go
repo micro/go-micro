@@ -11,8 +11,10 @@ import (
 	"github.com/micro/go-micro/v2/auth/provider"
 	"github.com/micro/go-micro/v2/broker"
 	"github.com/micro/go-micro/v2/client"
+	"github.com/micro/go-micro/v2/client/grpc"
 	"github.com/micro/go-micro/v2/client/selector"
 	"github.com/micro/go-micro/v2/config"
+	configSrc "github.com/micro/go-micro/v2/config/source"
 	configSrv "github.com/micro/go-micro/v2/config/source/service"
 	"github.com/micro/go-micro/v2/debug/profile"
 	"github.com/micro/go-micro/v2/debug/profile/http"
@@ -20,10 +22,12 @@ import (
 	"github.com/micro/go-micro/v2/debug/trace"
 	"github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/registry"
+	registrySrv "github.com/micro/go-micro/v2/registry/service"
 	"github.com/micro/go-micro/v2/runtime"
 	"github.com/micro/go-micro/v2/server"
 	"github.com/micro/go-micro/v2/store"
 	"github.com/micro/go-micro/v2/transport"
+	"github.com/micro/go-micro/v2/util/wrapper"
 
 	// clients
 	cgrpc "github.com/micro/go-micro/v2/client/grpc"
@@ -271,6 +275,11 @@ var (
 			Usage:   "Account secret used for client authentication",
 		},
 		&cli.StringFlag{
+			Name:    "auth_namespace",
+			EnvVars: []string{"MICRO_AUTH_NAMESPACE"},
+			Usage:   "Namespace for the services auth account",
+		},
+		&cli.StringFlag{
 			Name:    "auth_public_key",
 			EnvVars: []string{"MICRO_AUTH_PUBLIC_KEY"},
 			Usage:   "Public key for JWT auth (base64 encoded PEM)",
@@ -462,6 +471,10 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	var serverOpts []server.Option
 	var clientOpts []client.Option
 
+	// setup a client to use when calling the runtime
+	authFn := func() auth.Auth { return *c.opts.Auth }
+	microClient := wrapper.AuthClient(authFn, grpc.NewClient())
+
 	// Set the store
 	if name := ctx.String("store"); len(name) > 0 {
 		s, ok := c.opts.Stores[name]
@@ -469,7 +482,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 			return fmt.Errorf("Unsupported store: %s", name)
 		}
 
-		*c.opts.Store = s()
+		*c.opts.Store = s(store.WithClient(microClient))
 	}
 
 	// Set the runtime
@@ -479,7 +492,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 			return fmt.Errorf("Unsupported runtime: %s", name)
 		}
 
-		*c.opts.Runtime = r()
+		*c.opts.Runtime = r(runtime.WithClient(microClient))
 	}
 
 	// Set the tracer
@@ -498,9 +511,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		if !ok {
 			return fmt.Errorf("Unsupported auth: %s", name)
 		}
-
-		*c.opts.Auth = a()
-		clientOpts = append(clientOpts, client.Auth(*c.opts.Auth))
+		*c.opts.Auth = a(auth.WithClient(microClient))
 		serverOpts = append(serverOpts, server.Auth(*c.opts.Auth))
 	}
 
@@ -549,7 +560,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 			return fmt.Errorf("Registry %s not found", name)
 		}
 
-		*c.opts.Registry = r()
+		*c.opts.Registry = r(registrySrv.WithClient(microClient))
 		serverOpts = append(serverOpts, server.Registry(*c.opts.Registry))
 		clientOpts = append(clientOpts, client.Registry(*c.opts.Registry))
 
@@ -681,6 +692,10 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		))
 	}
 
+	if len(ctx.String("auth_namespace")) > 0 {
+		authOpts = append(authOpts, auth.Namespace(ctx.String("auth_namespace")))
+	}
+
 	if len(ctx.String("auth_public_key")) > 0 {
 		authOpts = append(authOpts, auth.PublicKey(ctx.String("auth_public_key")))
 	}
@@ -716,7 +731,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	(*c.opts.Auth).Init(authOpts...)
 
 	if ctx.String("config") == "service" {
-		opt := config.WithSource(configSrv.NewSource())
+		opt := config.WithSource(configSrv.NewSource(configSrc.WithClient(microClient)))
 		if err := (*c.opts.Config).Init(opt); err != nil {
 			logger.Fatalf("Error configuring config: %v", err)
 		}
