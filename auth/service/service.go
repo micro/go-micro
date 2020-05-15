@@ -203,7 +203,13 @@ var ruleJoinKey = ":"
 // accessForRule returns a rule status, indicating if a rule permits access to a
 // resource for a given account
 func accessForRule(rule *pb.Rule, acc *auth.Account, res *auth.Resource) pb.Access {
-	if rule.Role == "*" {
+	// a blank role permits access to the public
+	if rule.Role == "" {
+		return rule.Access
+	}
+
+	// a * role permits access to any user
+	if rule.Role == "*" && acc != nil {
 		return rule.Access
 	}
 
