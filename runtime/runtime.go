@@ -12,6 +12,7 @@ var (
 	// DefaultName is default runtime service name
 	DefaultName = "go.micro.runtime"
 
+	ErrNotFound      = errors.New("not found")
 	ErrAlreadyExists = errors.New("already exists")
 )
 
