@@ -260,9 +260,9 @@ func (r *runtime) run(events <-chan Event) {
 			// NOTE: we only handle Update events for now
 			switch event.Type {
 			case Update:
-				if len(event.Service) > 0 {
+				if event.Service != nil {
 					r.RLock()
-					service, ok := r.services[fmt.Sprintf("%v:%v", event.Service, event.Version)]
+					service, ok := r.services[fmt.Sprintf("%v:%v", event.Service.Name, event.Service.Version)]
 					r.RUnlock()
 					if !ok {
 						if logger.V(logger.DebugLevel, logger.DefaultLogger) {
