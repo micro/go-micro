@@ -114,8 +114,7 @@ func (r *rpcClient) call(ctx context.Context, node *registry.Node, req Request, 
 		return errors.InternalServerError("go.micro.client", "connection error: %v", err)
 	}
 
-	seq := atomic.LoadUint64(&r.seq)
-	atomic.AddUint64(&r.seq, 1)
+	seq := atomic.AddUint64(&r.seq, 1) - 1
 	codec := newRpcCodec(msg, c, cf, "")
 
 	rsp := &rpcResponse{
@@ -232,8 +231,7 @@ func (r *rpcClient) stream(ctx context.Context, node *registry.Node, req Request
 	}
 
 	// increment the sequence number
-	seq := atomic.LoadUint64(&r.seq)
-	atomic.AddUint64(&r.seq, 1)
+	seq := atomic.AddUint64(&r.seq, 1) - 1
 	id := fmt.Sprintf("%v", seq)
 
 	// create codec with stream id
