@@ -63,13 +63,13 @@ func (s *svc) Generate(id string, opts ...auth.GenerateOption) (*auth.Account, e
 	options := auth.NewGenerateOptions(opts...)
 
 	rsp, err := s.auth.Generate(context.TODO(), &pb.GenerateRequest{
-		Id:        id,
-		Type:      options.Type,
-		Secret:    options.Secret,
-		Roles:     options.Roles,
-		Metadata:  options.Metadata,
-		Provider:  options.Provider,
-		Namespace: options.Namespace,
+		Id:       id,
+		Type:     options.Type,
+		Secret:   options.Secret,
+		Roles:    options.Roles,
+		Scopes:   options.Scopes,
+		Metadata: options.Metadata,
+		Provider: options.Provider,
 	})
 	if err != nil {
 		return nil, err
@@ -84,10 +84,9 @@ func (s *svc) Grant(role string, res *auth.Resource) error {
 		Role:   role,
 		Access: pb.Access_GRANTED,
 		Resource: &pb.Resource{
-			Namespace: res.Namespace,
-			Type:      res.Type,
-			Name:      res.Name,
-			Endpoint:  res.Endpoint,
+			Type:     res.Type,
+			Name:     res.Name,
+			Endpoint: res.Endpoint,
 		},
 	})
 	return err
@@ -99,10 +98,9 @@ func (s *svc) Revoke(role string, res *auth.Resource) error {
 		Role:   role,
 		Access: pb.Access_GRANTED,
 		Resource: &pb.Resource{
-			Namespace: res.Namespace,
-			Type:      res.Type,
-			Name:      res.Name,
-			Endpoint:  res.Endpoint,
+			Type:     res.Type,
+			Name:     res.Name,
+			Endpoint: res.Endpoint,
 		},
 	})
 	return err
@@ -110,20 +108,20 @@ func (s *svc) Revoke(role string, res *auth.Resource) error {
 
 // Verify an account has access to a resource
 func (s *svc) Verify(acc *auth.Account, res *auth.Resource) error {
+	// check the scope
+	scope := "namespace." + s.options.Namespace
+	if acc != nil && !acc.HasScope(scope) {
+		return fmt.Errorf("Missing required scope: %v", scope)
+	}
+
 	// load the rules if none are loaded
 	s.loadRulesIfEmpty()
 
-	// set the namespace on the resource
-	if len(res.Namespace) == 0 {
-		res.Namespace = s.Options().Namespace
-	}
-
 	queries := [][]string{
-		{res.Namespace, res.Type, res.Name, res.Endpoint}, // check for specific role, e.g. service.foo.ListFoo:admin (role is checked in accessForRule)
-		{res.Namespace, res.Type, res.Name, "*"},          // check for wildcard endpoint, e.g. service.foo*
-		{res.Namespace, res.Type, "*"},                    // check for wildcard name, e.g. service.*
-		{res.Namespace, "*"},                              // check for wildcard type, e.g. *
-		{"*"},                                             // check for wildcard namespace
+		{res.Type, res.Name, res.Endpoint}, // check for specific role, e.g. service.foo.ListFoo:admin (role is checked in accessForRule)
+		{res.Type, res.Name, "*"},          // check for wildcard endpoint, e.g. service.foo*
+		{res.Type, "*"},                    // check for wildcard name, e.g. service.*
+		{"*"},                              // check for wildcard type, e.g. *
 	}
 
 	// endpoint is a url which can have wildcard excludes, e.g.
@@ -140,10 +138,6 @@ func (s *svc) Verify(acc *auth.Account, res *auth.Resource) error {
 	if len(logID) == 0 {
 		logID = "[no account]"
 	}
-	logNamespace := acc.Namespace
-	if len(logNamespace) == 0 {
-		logNamespace = "[no namespace]"
-	}
 
 	for _, q := range queries {
 		for _, rule := range s.listRules(q...) {
@@ -151,17 +145,17 @@ func (s *svc) Verify(acc *auth.Account, res *auth.Resource) error {
 			case pb.Access_UNKNOWN:
 				continue // rule did not specify access, check the next rule
 			case pb.Access_GRANTED:
-				log.Tracef("%v:%v granted access to %v:%v:%v:%v by rule %v", logNamespace, logID, res.Namespace, res.Type, res.Name, res.Endpoint, rule.Id)
+				log.Tracef("%v granted access to %v:%v:%v by rule %v", logID, res.Type, res.Name, res.Endpoint, rule.Id)
 				return nil // rule grants the account access to the resource
 			case pb.Access_DENIED:
-				log.Tracef("%v:%v denied access to %v:%v:%v:%v by rule %v", logNamespace, logID, res.Namespace, res.Type, res.Name, res.Endpoint, rule.Id)
+				log.Tracef("%v denied access to %v:%v:%v by rule %v", logID, res.Type, res.Name, res.Endpoint, rule.Id)
 				return auth.ErrForbidden // rule denies access to the resource
 			}
 		}
 	}
 
 	// no rules were found for the resource, default to denying access
-	log.Tracef("%v:%v denied access to %v:%v:%v:%v by lack of rule (%v rules found for namespace)", logNamespace, logID, res.Namespace, res.Type, res.Name, res.Endpoint, len(s.listRules(res.Namespace)))
+	log.Tracef("%v denied access to %v:%v:%v by lack of rule", logID, res.Type, res.Name, res.Endpoint)
 	return auth.ErrForbidden
 }
 
@@ -235,16 +229,13 @@ func (s *svc) listRules(filters ...string) []*pb.Rule {
 
 	var rules []*pb.Rule
 	for _, r := range s.rules {
-		if len(filters) > 0 && r.Resource.Namespace != filters[0] {
+		if len(filters) > 1 && r.Resource.Type != filters[0] {
 			continue
 		}
-		if len(filters) > 1 && r.Resource.Type != filters[1] {
+		if len(filters) > 2 && r.Resource.Name != filters[1] {
 			continue
 		}
-		if len(filters) > 2 && r.Resource.Name != filters[2] {
-			continue
-		}
-		if len(filters) > 3 && r.Resource.Endpoint != filters[3] {
+		if len(filters) > 3 && r.Resource.Endpoint != filters[2] {
 			continue
 		}
 
@@ -294,12 +285,12 @@ func serializeToken(t *pb.Token) *auth.Token {
 
 func serializeAccount(a *pb.Account) *auth.Account {
 	return &auth.Account{
-		ID:        a.Id,
-		Roles:     a.Roles,
-		Secret:    a.Secret,
-		Metadata:  a.Metadata,
-		Provider:  a.Provider,
-		Namespace: a.Namespace,
+		ID:       a.Id,
+		Roles:    a.Roles,
+		Secret:   a.Secret,
+		Metadata: a.Metadata,
+		Provider: a.Provider,
+		Scopes:   a.Scopes,
 	}
 }
 

@@ -18,17 +18,19 @@ func Generate(id string, name string, a auth.Auth) error {
 	// if no credentials were provided, generate an account
 	if len(accID) == 0 || len(accSecret) == 0 {
 		name := fmt.Sprintf("%v-%v", name, id)
+		scope := "namespace." + a.Options().Namespace
+
 		opts := []auth.GenerateOption{
 			auth.WithType("service"),
 			auth.WithRoles("service"),
-			auth.WithNamespace(a.Options().Namespace),
+			auth.WithScopes(scope),
 		}
 
 		acc, err := a.Generate(name, opts...)
 		if err != nil {
 			return err
 		}
-		logger.Infof("Auth [%v] Authenticated as %v in the %v namespace", a, name, acc.Namespace)
+		logger.Infof("Auth [%v] Authenticated as %v in the %v scope", a, name, scope)
 
 		accID = acc.ID
 		accSecret = acc.Secret

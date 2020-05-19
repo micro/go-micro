@@ -50,8 +50,6 @@ type Resource struct {
 	Type string `json:"type"`
 	// Endpoint resource e.g NotesService.Create
 	Endpoint string `json:"endpoint"`
-	// Namespace the resource belongs to
-	Namespace string `json:"namespace"`
 }
 
 // Account provided by an auth provider
@@ -66,10 +64,25 @@ type Account struct {
 	Roles []string `json:"roles"`
 	// Any other associated metadata
 	Metadata map[string]string `json:"metadata"`
-	// Namespace the account belongs to
-	Namespace string `json:"namespace"`
+	// Scopes the account has access to
+	Scopes []string `json:"scopes"`
 	// Secret for the account, e.g. the password
 	Secret string `json:"secret"`
+}
+
+// HasScope returns a boolean indicating if the account has the given scope
+func (a *Account) HasScope(scope string) bool {
+	if a.Scopes == nil {
+		return false
+	}
+
+	for _, s := range a.Scopes {
+		if s == scope {
+			return true
+		}
+	}
+
+	return false
 }
 
 // HasRole returns a boolean indicating if the account has the given role
@@ -100,8 +113,6 @@ type Token struct {
 }
 
 const (
-	// DefaultNamespace used for auth
-	DefaultNamespace = "go.micro"
 	// TokenCookieName is the name of the cookie which stores the auth token
 	TokenCookieName = "micro-token"
 	// BearerScheme used for Authorization header

@@ -1,6 +1,7 @@
 package jwt
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -41,10 +42,6 @@ func (j *jwt) Init(opts ...auth.Option) {
 		o(&j.options)
 	}
 
-	if len(j.options.Namespace) == 0 {
-		j.options.Namespace = auth.DefaultNamespace
-	}
-
 	j.jwt = jwtToken.NewTokenProvider(
 		token.WithPrivateKey(j.options.PrivateKey),
 		token.WithPublicKey(j.options.PublicKey),
@@ -60,12 +57,12 @@ func (j *jwt) Options() auth.Options {
 func (j *jwt) Generate(id string, opts ...auth.GenerateOption) (*auth.Account, error) {
 	options := auth.NewGenerateOptions(opts...)
 	account := &auth.Account{
-		ID:        id,
-		Type:      options.Type,
-		Roles:     options.Roles,
-		Provider:  options.Provider,
-		Metadata:  options.Metadata,
-		Namespace: options.Namespace,
+		ID:       id,
+		Type:     options.Type,
+		Roles:    options.Roles,
+		Scopes:   options.Scopes,
+		Provider: options.Provider,
+		Metadata: options.Metadata,
 	}
 
 	// generate a JWT secret which can be provided to the Token() method
@@ -111,18 +108,18 @@ func (j *jwt) Revoke(role string, res *auth.Resource) error {
 }
 
 func (j *jwt) Verify(acc *auth.Account, res *auth.Resource) error {
-	j.Lock()
-	if len(res.Namespace) == 0 {
-		res.Namespace = j.options.Namespace
+	// check the scope
+	scope := "namespace." + j.options.Namespace
+	if acc != nil && !acc.HasScope(scope) {
+		return fmt.Errorf("Missing required scope: %v", scope)
 	}
+
+	j.Lock()
 	rules := j.rules
 	j.Unlock()
 
 	for _, rule := range rules {
 		// validate the rule applies to the requested resource
-		if rule.resource.Namespace != "*" && rule.resource.Namespace != res.Namespace {
-			continue
-		}
 		if rule.resource.Type != "*" && rule.resource.Type != res.Type {
 			continue
 		}

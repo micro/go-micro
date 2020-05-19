@@ -11,11 +11,11 @@ import (
 
 // authClaims to be encoded in the JWT
 type authClaims struct {
-	Type      string            `json:"type"`
-	Roles     []string          `json:"roles"`
-	Provider  string            `json:"provider"`
-	Metadata  map[string]string `json:"metadata"`
-	Namespace string            `json:"namespace"`
+	Type     string            `json:"type"`
+	Roles    []string          `json:"roles"`
+	Scopes   []string          `json:"scopes"`
+	Provider string            `json:"provider"`
+	Metadata map[string]string `json:"metadata"`
 
 	jwt.StandardClaims
 }
@@ -52,7 +52,7 @@ func (j *JWT) Generate(acc *auth.Account, opts ...token.GenerateOption) (*token.
 	// generate the JWT
 	expiry := time.Now().Add(options.Expiry)
 	t := jwt.NewWithClaims(jwt.SigningMethodRS256, authClaims{
-		acc.Type, acc.Roles, acc.Provider, acc.Metadata, acc.Namespace, jwt.StandardClaims{
+		acc.Type, acc.Roles, acc.Scopes, acc.Provider, acc.Metadata, jwt.StandardClaims{
 			Subject:   acc.ID,
 			ExpiresAt: expiry.Unix(),
 		},
@@ -97,12 +97,12 @@ func (j *JWT) Inspect(t string) (*auth.Account, error) {
 
 	// return the token
 	return &auth.Account{
-		ID:        claims.Subject,
-		Type:      claims.Type,
-		Roles:     claims.Roles,
-		Provider:  claims.Provider,
-		Metadata:  claims.Metadata,
-		Namespace: claims.Namespace,
+		ID:       claims.Subject,
+		Type:     claims.Type,
+		Roles:    claims.Roles,
+		Scopes:   claims.Scopes,
+		Provider: claims.Provider,
+		Metadata: claims.Metadata,
 	}, nil
 }
 

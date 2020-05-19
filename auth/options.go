@@ -13,9 +13,6 @@ func NewOptions(opts ...Option) Options {
 	for _, o := range opts {
 		o(&options)
 	}
-	if len(options.Namespace) == 0 {
-		options.Namespace = DefaultNamespace
-	}
 	if options.Client == nil {
 		options.Client = client.DefaultClient
 	}
@@ -126,8 +123,8 @@ type GenerateOptions struct {
 	Metadata map[string]string
 	// Roles/scopes associated with the account
 	Roles []string
-	// Namespace the account belongs too
-	Namespace string
+	// Scopes the account hasaccess too
+	Scopes []string
 	// Provider of the account, e.g. oauth
 	Provider string
 	// Type of the account, e.g. user
@@ -166,10 +163,10 @@ func WithRoles(rs ...string) GenerateOption {
 	}
 }
 
-// WithNamespace for the generated account
-func WithNamespace(n string) GenerateOption {
+// WithScopes for the generated account
+func WithScopes(s ...string) GenerateOption {
 	return func(o *GenerateOptions) {
-		o.Namespace = n
+		o.Scopes = s
 	}
 }
 
