@@ -64,7 +64,7 @@ func Generate(id string, name string, a auth.Auth) error {
 
 			// generate the first token
 			tok, err := a.Token(
-				auth.WithCredentials(accID, accSecret),
+				auth.WithToken(tok.RefreshToken),
 				auth.WithExpiry(time.Minute*10),
 			)
 			if err != nil {
