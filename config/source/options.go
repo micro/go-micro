@@ -3,6 +3,7 @@ package source
 import (
 	"context"
 
+	"github.com/micro/go-micro/v2/client"
 	"github.com/micro/go-micro/v2/config/encoder"
 	"github.com/micro/go-micro/v2/config/encoder/json"
 )
@@ -13,6 +14,9 @@ type Options struct {
 
 	// for alternative data
 	Context context.Context
+
+	// Client to use for RPC
+	Client client.Client
 }
 
 type Option func(o *Options)
@@ -21,6 +25,7 @@ func NewOptions(opts ...Option) Options {
 	options := Options{
 		Encoder: json.NewEncoder(),
 		Context: context.Background(),
+		Client:  client.DefaultClient,
 	}
 
 	for _, o := range opts {
@@ -34,5 +39,12 @@ func NewOptions(opts ...Option) Options {
 func WithEncoder(e encoder.Encoder) Option {
 	return func(o *Options) {
 		o.Encoder = e
+	}
+}
+
+// WithClient sets the source client
+func WithClient(c client.Client) Option {
+	return func(o *Options) {
+		o.Client = c
 	}
 }

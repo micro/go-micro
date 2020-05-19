@@ -7,6 +7,7 @@ import (
 
 	"github.com/micro/go-micro/v2/client"
 	"github.com/micro/go-micro/v2/client/grpc"
+	"github.com/micro/go-micro/v2/errors"
 	"github.com/micro/go-micro/v2/registry"
 	pb "github.com/micro/go-micro/v2/registry/service/proto"
 )
@@ -46,6 +47,21 @@ func (s *serviceRegistry) Init(opts ...registry.Option) error {
 	for _, o := range opts {
 		o(&s.opts)
 	}
+
+	if len(s.opts.Addrs) > 0 {
+		s.address = s.opts.Addrs
+	}
+
+	// extract the client from the context, fallback to grpc
+	var cli client.Client
+	if c, ok := s.opts.Context.Value(clientKey{}).(client.Client); ok {
+		cli = c
+	} else {
+		cli = grpc.NewClient()
+	}
+
+	s.client = pb.NewRegistryService(DefaultService, cli)
+
 	return nil
 }
 
@@ -105,7 +121,9 @@ func (s *serviceRegistry) GetService(name string, opts ...registry.GetOption) ([
 		Service: name,
 	}, s.callOpts()...)
 
-	if err != nil {
+	if verr, ok := err.(*errors.Error); ok && verr.Code == 404 {
+		return nil, registry.ErrNotFound
+	} else if err != nil {
 		return nil, err
 	}
 
@@ -171,21 +189,23 @@ func NewRegistry(opts ...registry.Option) registry.Registry {
 
 	// the registry address
 	addrs := options.Addrs
-
 	if len(addrs) == 0 {
 		addrs = []string{"127.0.0.1:8000"}
 	}
 
-	// use mdns as a fall back in case its used
-	mReg := registry.NewRegistry()
+	if options.Context == nil {
+		options.Context = context.TODO()
+	}
 
-	// create new client with mdns
-	cli := grpc.NewClient(
-		client.Registry(mReg),
-	)
+	// extract the client from the context, fallback to grpc
+	var cli client.Client
+	if c, ok := options.Context.Value(clientKey{}).(client.Client); ok {
+		cli = c
+	} else {
+		cli = grpc.NewClient()
+	}
 
-	// service name
-	// TODO: accept option
+	// service name. TODO: accept option
 	name := DefaultService
 
 	return &serviceRegistry{

@@ -14,7 +14,9 @@ import (
 	"github.com/micro/go-micro/v2/debug/profile"
 	"github.com/micro/go-micro/v2/debug/trace"
 	"github.com/micro/go-micro/v2/registry"
+	"github.com/micro/go-micro/v2/runtime"
 	"github.com/micro/go-micro/v2/server"
+	"github.com/micro/go-micro/v2/store"
 	"github.com/micro/go-micro/v2/transport"
 )
 
@@ -26,7 +28,9 @@ type Options struct {
 	Config    config.Config
 	Client    client.Client
 	Server    server.Server
+	Store     store.Store
 	Registry  registry.Registry
+	Runtime   runtime.Runtime
 	Transport transport.Transport
 	Profile   profile.Profile
 
@@ -51,7 +55,9 @@ func newOptions(opts ...Option) Options {
 		Config:    config.DefaultConfig,
 		Client:    client.DefaultClient,
 		Server:    server.DefaultServer,
+		Store:     store.DefaultStore,
 		Registry:  registry.DefaultRegistry,
+		Runtime:   runtime.DefaultRuntime,
 		Transport: transport.DefaultTransport,
 		Context:   context.Background(),
 		Signal:    true,
@@ -118,6 +124,13 @@ func Server(s server.Server) Option {
 	}
 }
 
+// Store sets the store to use
+func Store(s store.Store) Option {
+	return func(o *Options) {
+		o.Store = s
+	}
+}
+
 // Registry sets the registry for the service
 // and the underlying components
 func Registry(r registry.Registry) Option {
@@ -142,7 +155,6 @@ func Tracer(t trace.Tracer) Option {
 func Auth(a auth.Auth) Option {
 	return func(o *Options) {
 		o.Auth = a
-		o.Client.Init(client.Auth(a))
 		o.Server.Init(server.Auth(a))
 	}
 }
@@ -169,6 +181,13 @@ func Transport(t transport.Transport) Option {
 		// Update Client and Server
 		o.Client.Init(client.Transport(t))
 		o.Server.Init(server.Transport(t))
+	}
+}
+
+// Runtime sets the runtime
+func Runtime(r runtime.Runtime) Option {
+	return func(o *Options) {
+		o.Runtime = r
 	}
 }
 

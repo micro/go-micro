@@ -17,11 +17,6 @@ import (
 	"github.com/micro/go-micro/v2/util/jitter"
 )
 
-// NewAuth returns a new instance of the Auth service
-func NewAuth(opts ...auth.Option) auth.Auth {
-	return &svc{options: auth.NewOptions(opts...)}
-}
-
 // svc is the service implementation of the Auth interface
 type svc struct {
 	options auth.Options
@@ -42,62 +37,18 @@ func (s *svc) Init(opts ...auth.Option) {
 		o(&s.options)
 	}
 
-	dc := client.DefaultClient
-	s.auth = pb.NewAuthService("go.micro.auth", dc)
-	s.rule = pb.NewRulesService("go.micro.auth", dc)
+	if s.options.Client == nil {
+		s.options.Client = client.DefaultClient
+	}
+
+	s.auth = pb.NewAuthService("go.micro.auth", s.options.Client)
+	s.rule = pb.NewRulesService("go.micro.auth", s.options.Client)
 
 	// if we have a JWT public key passed as an option,
 	// we can decode tokens with the type "JWT" locally
 	// and not have to make an RPC call
 	if key := s.options.PublicKey; len(key) > 0 {
 		s.jwt = jwt.NewTokenProvider(token.WithPublicKey(key))
-	}
-
-	// load rules periodically from the auth service
-	go func() {
-		ruleTimer := time.NewTicker(time.Second * 30)
-
-		// load rules immediately on startup
-		s.loadRules()
-
-		for {
-			<-ruleTimer.C
-
-			// jitter for up to 5 seconds, this stops
-			// all the services calling the auth service
-			// at the exact same time
-			time.Sleep(jitter.Do(time.Second * 5))
-			s.loadRules()
-		}
-	}()
-
-	// we have client credentials and must load a new token
-	// periodically
-	if len(s.options.ID) > 0 || len(s.options.Secret) > 0 {
-		// get a token immediately
-		s.refreshToken()
-
-		go func() {
-			tokenTimer := time.NewTicker(time.Minute)
-
-			for {
-				<-tokenTimer.C
-
-				// Do not get a new token if the current one has more than three
-				// minutes remaining. We do 3 minutes to allow multiple retires in
-				// the case one request fails
-				t := s.Options().Token
-				if t != nil && t.Expiry.Unix() > time.Now().Add(time.Minute*3).Unix() {
-					continue
-				}
-
-				// jitter for up to 5 seconds, this stops
-				// all the services calling the auth service
-				// at the exact same time
-				time.Sleep(jitter.Do(time.Second * 5))
-				s.refreshToken()
-			}
-		}()
 	}
 }
 
@@ -159,6 +110,9 @@ func (s *svc) Revoke(role string, res *auth.Resource) error {
 
 // Verify an account has access to a resource
 func (s *svc) Verify(acc *auth.Account, res *auth.Resource) error {
+	// load the rules if none are loaded
+	s.loadRulesIfEmpty()
+
 	// set the namespace on the resource
 	if len(res.Namespace) == 0 {
 		res.Namespace = s.Options().Namespace
@@ -249,7 +203,13 @@ var ruleJoinKey = ":"
 // accessForRule returns a rule status, indicating if a rule permits access to a
 // resource for a given account
 func accessForRule(rule *pb.Rule, acc *auth.Account, res *auth.Resource) pb.Access {
-	if rule.Role == "*" {
+	// a blank role permits access to the public
+	if rule.Role == "" {
+		return rule.Access
+	}
+
+	// a * role permits access to any user
+	if rule.Role == "*" && acc != nil {
 		return rule.Access
 	}
 
@@ -313,31 +273,14 @@ func (s *svc) loadRules() {
 	s.rules = rsp.Rules
 }
 
-// refreshToken generates a new token for the service to use when making calls
-func (s *svc) refreshToken() {
-	req := &pb.TokenRequest{
-		TokenExpiry: int64((time.Minute * 15).Seconds()),
-	}
-
-	if s.Options().Token == nil {
-		// we do not have a token, use the credentials to get one
-		req.Id = s.Options().ID
-		req.Secret = s.Options().Secret
-	} else {
-		// we have a token, refresh it
-		req.RefreshToken = s.Options().Token.RefreshToken
-	}
-
-	rsp, err := s.auth.Token(context.TODO(), req)
+func (s *svc) loadRulesIfEmpty() {
 	s.Lock()
-	defer s.Unlock()
+	rules := s.rules
+	s.Unlock()
 
-	if err != nil {
-		log.Errorf("Error generating token: %v", err)
-		return
+	if len(rules) == 0 {
+		s.loadRules()
 	}
-
-	s.options.Token = serializeToken(rsp.Token)
 }
 
 func serializeToken(t *pb.Token) *auth.Token {
@@ -358,4 +301,31 @@ func serializeAccount(a *pb.Account) *auth.Account {
 		Provider:  a.Provider,
 		Namespace: a.Namespace,
 	}
+}
+
+// NewAuth returns a new instance of the Auth service
+func NewAuth(opts ...auth.Option) auth.Auth {
+	options := auth.NewOptions(opts...)
+	if options.Client == nil {
+		options.Client = client.DefaultClient
+	}
+
+	service := &svc{
+		auth:    pb.NewAuthService("go.micro.auth", options.Client),
+		rule:    pb.NewRulesService("go.micro.auth", options.Client),
+		options: options,
+	}
+
+	// load rules periodically from the auth service
+	go func() {
+		ruleTimer := time.NewTicker(time.Second * 30)
+
+		for {
+			<-ruleTimer.C
+			time.Sleep(jitter.Do(time.Second * 5))
+			service.loadRules()
+		}
+	}()
+
+	return service
 }

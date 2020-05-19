@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/micro/go-micro/v2/auth"
 	"github.com/micro/go-micro/v2/broker"
 	"github.com/micro/go-micro/v2/client/selector"
 	"github.com/micro/go-micro/v2/codec"
@@ -17,7 +16,6 @@ type Options struct {
 	ContentType string
 
 	// Plugged interfaces
-	Auth      auth.Auth
 	Broker    broker.Broker
 	Codecs    map[string]codec.NewCodec
 	Registry  registry.Registry
@@ -105,7 +103,6 @@ func NewOptions(options ...Option) Options {
 		},
 		PoolSize:  DefaultPoolSize,
 		PoolTTL:   DefaultPoolTTL,
-		Auth:      auth.DefaultAuth,
 		Broker:    broker.DefaultBroker,
 		Selector:  selector.DefaultSelector,
 		Registry:  registry.DefaultRegistry,
@@ -123,13 +120,6 @@ func NewOptions(options ...Option) Options {
 func Broker(b broker.Broker) Option {
 	return func(o *Options) {
 		o.Broker = b
-	}
-}
-
-// Auth to be used when making a request
-func Auth(a auth.Auth) Option {
-	return func(o *Options) {
-		o.Auth = a
 	}
 }
 
@@ -249,6 +239,13 @@ func DialTimeout(d time.Duration) Option {
 func WithExchange(e string) PublishOption {
 	return func(o *PublishOptions) {
 		o.Exchange = e
+	}
+}
+
+// PublishContext sets the context in publish options
+func PublishContext(ctx context.Context) PublishOption {
+	return func(o *PublishOptions) {
+		o.Context = ctx
 	}
 }
 

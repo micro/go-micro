@@ -7,10 +7,10 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/micro/go-micro/v2/store"
-	"github.com/pkg/errors"
 	bolt "go.etcd.io/bbolt"
 )
 
@@ -29,18 +29,25 @@ var (
 
 // NewStore returns a memory store
 func NewStore(opts ...store.Option) store.Store {
-	s := &fileStore{}
+	s := &fileStore{
+		handles: make(map[string]*fileHandle),
+	}
 	s.init(opts...)
 	return s
 }
 
 type fileStore struct {
-	options  store.Options
-	dir      string
-	fileName string
-	dbPath   string
+	options store.Options
+	dir     string
+
 	// the database handle
-	db *bolt.DB
+	sync.RWMutex
+	handles map[string]*fileHandle
+}
+
+type fileHandle struct {
+	key string
+	db  *bolt.DB
 }
 
 // record stored by us
@@ -50,8 +57,12 @@ type record struct {
 	ExpiresAt time.Time
 }
 
-func (m *fileStore) delete(key string) error {
-	return m.db.Update(func(tx *bolt.Tx) error {
+func key(database, table string) string {
+	return database + ":" + table
+}
+
+func (m *fileStore) delete(fd *fileHandle, key string) error {
+	return fd.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(dataBucket))
 		if b == nil {
 			return nil
@@ -76,42 +87,63 @@ func (m *fileStore) init(opts ...store.Option) error {
 
 	// create a directory /tmp/micro
 	dir := filepath.Join(DefaultDir, m.options.Database)
-	// create the database handle
-	fname := m.options.Table + ".db"
 	// Ignoring this as the folder might exist.
 	// Reads/Writes updates will return with sensible error messages
 	// about the dir not existing in case this cannot create the path anyway
 	os.MkdirAll(dir, 0700)
 
-	m.dir = dir
-	m.fileName = fname
-	m.dbPath = filepath.Join(dir, fname)
-
-	// close existing handle
-	if m.db != nil {
-		m.db.Close()
-	}
-
-	// create new db handle
-	db, err := bolt.Open(m.dbPath, 0700, &bolt.Options{Timeout: 5 * time.Second})
-	if err != nil {
-		return err
-	}
-
-	// set the new db
-	m.db = db
-
-	// create the table
-	return db.Update(func(tx *bolt.Tx) error {
-		_, err := tx.CreateBucketIfNotExists([]byte(dataBucket))
-		return err
-	})
+	return nil
 }
 
-func (m *fileStore) list(limit, offset uint) []string {
+func (f *fileStore) getDB(database, table string) (*fileHandle, error) {
+	if len(database) == 0 {
+		database = f.options.Database
+	}
+	if len(table) == 0 {
+		table = f.options.Table
+	}
+
+	k := key(database, table)
+
+	f.RLock()
+	fd, ok := f.handles[k]
+	f.RUnlock()
+
+	// return the file handle
+	if ok {
+		return fd, nil
+	}
+
+	// create a directory /tmp/micro
+	dir := filepath.Join(DefaultDir, database)
+	// create the database handle
+	fname := table + ".db"
+	// make the dir
+	os.MkdirAll(dir, 0700)
+	// database path
+	dbPath := filepath.Join(dir, fname)
+
+	// create new db handle
+	db, err := bolt.Open(dbPath, 0700, &bolt.Options{Timeout: 5 * time.Second})
+	if err != nil {
+		return nil, err
+	}
+
+	f.Lock()
+	fd = &fileHandle{
+		key: k,
+		db:  db,
+	}
+	f.handles[k] = fd
+	f.Unlock()
+
+	return fd, nil
+}
+
+func (m *fileStore) list(fd *fileHandle, limit, offset uint) []string {
 	var allItems []string
 
-	m.db.View(func(tx *bolt.Tx) error {
+	fd.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(dataBucket))
 		// nothing to read
 		if b == nil {
@@ -162,10 +194,10 @@ func (m *fileStore) list(limit, offset uint) []string {
 	return allKeys
 }
 
-func (m *fileStore) get(k string) (*store.Record, error) {
+func (m *fileStore) get(fd *fileHandle, k string) (*store.Record, error) {
 	var value []byte
 
-	m.db.View(func(tx *bolt.Tx) error {
+	fd.db.View(func(tx *bolt.Tx) error {
 		// @todo this is still very experimental...
 		b := tx.Bucket([]byte(dataBucket))
 		if b == nil {
@@ -200,7 +232,7 @@ func (m *fileStore) get(k string) (*store.Record, error) {
 	return newRecord, nil
 }
 
-func (m *fileStore) set(r *store.Record) error {
+func (m *fileStore) set(fd *fileHandle, r *store.Record) error {
 	// copy the incoming record and then
 	// convert the expiry in to a hard timestamp
 	item := &record{}
@@ -213,7 +245,7 @@ func (m *fileStore) set(r *store.Record) error {
 	// marshal the data
 	data, _ := json.Marshal(item)
 
-	return m.db.Update(func(tx *bolt.Tx) error {
+	return fd.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(dataBucket))
 		if b == nil {
 			var err error
@@ -226,29 +258,43 @@ func (m *fileStore) set(r *store.Record) error {
 	})
 }
 
-func (m *fileStore) Close() error {
-	if m.db != nil {
-		return m.db.Close()
+func (f *fileStore) Close() error {
+	f.Lock()
+	defer f.Unlock()
+	for k, v := range f.handles {
+		v.db.Close()
+		delete(f.handles, k)
 	}
 	return nil
 }
 
-func (m *fileStore) Init(opts ...store.Option) error {
-	return m.init(opts...)
+func (f *fileStore) Init(opts ...store.Option) error {
+	return f.init(opts...)
 }
 
 func (m *fileStore) Delete(key string, opts ...store.DeleteOption) error {
-	deleteOptions := store.DeleteOptions{}
+	var deleteOptions store.DeleteOptions
 	for _, o := range opts {
 		o(&deleteOptions)
 	}
-	return m.delete(key)
+
+	fd, err := m.getDB(deleteOptions.Database, deleteOptions.Table)
+	if err != nil {
+		return err
+	}
+
+	return m.delete(fd, key)
 }
 
 func (m *fileStore) Read(key string, opts ...store.ReadOption) ([]*store.Record, error) {
-	readOpts := store.ReadOptions{}
+	var readOpts store.ReadOptions
 	for _, o := range opts {
 		o(&readOpts)
+	}
+
+	fd, err := m.getDB(readOpts.Database, readOpts.Table)
+	if err != nil {
+		return nil, err
 	}
 
 	var keys []string
@@ -256,23 +302,19 @@ func (m *fileStore) Read(key string, opts ...store.ReadOption) ([]*store.Record,
 	// Handle Prefix / suffix
 	// TODO: do range scan here rather than listing all keys
 	if readOpts.Prefix || readOpts.Suffix {
-		var opts []store.ListOption
-		if readOpts.Prefix {
-			opts = append(opts, store.ListPrefix(key))
-		}
-		if readOpts.Suffix {
-			opts = append(opts, store.ListSuffix(key))
-		}
+		// list the keys
+		k := m.list(fd, readOpts.Limit, readOpts.Offset)
 
-		opts = append(opts, store.ListLimit(readOpts.Limit))
-		opts = append(opts, store.ListOffset(readOpts.Offset))
-
-		k, err := m.List(opts...)
-		if err != nil {
-			return nil, errors.Wrap(err, "FileStore: Read couldn't List()")
+		// check for prefix and suffix
+		for _, v := range k {
+			if readOpts.Prefix && !strings.HasPrefix(v, key) {
+				continue
+			}
+			if readOpts.Suffix && !strings.HasSuffix(v, key) {
+				continue
+			}
+			keys = append(keys, v)
 		}
-
-		keys = k
 	} else {
 		keys = []string{key}
 	}
@@ -280,7 +322,7 @@ func (m *fileStore) Read(key string, opts ...store.ReadOption) ([]*store.Record,
 	var results []*store.Record
 
 	for _, k := range keys {
-		r, err := m.get(k)
+		r, err := m.get(fd, k)
 		if err != nil {
 			return results, err
 		}
@@ -291,9 +333,14 @@ func (m *fileStore) Read(key string, opts ...store.ReadOption) ([]*store.Record,
 }
 
 func (m *fileStore) Write(r *store.Record, opts ...store.WriteOption) error {
-	writeOpts := store.WriteOptions{}
+	var writeOpts store.WriteOptions
 	for _, o := range opts {
 		o(&writeOpts)
+	}
+
+	fd, err := m.getDB(writeOpts.Database, writeOpts.Table)
+	if err != nil {
+		return err
 	}
 
 	if len(opts) > 0 {
@@ -310,10 +357,10 @@ func (m *fileStore) Write(r *store.Record, opts ...store.WriteOption) error {
 			newRecord.Expiry = writeOpts.TTL
 		}
 
-		return m.set(&newRecord)
+		return m.set(fd, &newRecord)
 	}
 
-	return m.set(r)
+	return m.set(fd, r)
 }
 
 func (m *fileStore) Options() store.Options {
@@ -321,14 +368,19 @@ func (m *fileStore) Options() store.Options {
 }
 
 func (m *fileStore) List(opts ...store.ListOption) ([]string, error) {
-	listOptions := store.ListOptions{}
+	var listOptions store.ListOptions
 
 	for _, o := range opts {
 		o(&listOptions)
 	}
 
+	fd, err := m.getDB(listOptions.Database, listOptions.Table)
+	if err != nil {
+		return nil, err
+	}
+
 	// TODO apply prefix/suffix in range query
-	allKeys := m.list(listOptions.Limit, listOptions.Offset)
+	allKeys := m.list(fd, listOptions.Limit, listOptions.Offset)
 
 	if len(listOptions.Prefix) > 0 {
 		var prefixKeys []string

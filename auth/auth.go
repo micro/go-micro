@@ -3,11 +3,8 @@ package auth
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"time"
-
-	"github.com/micro/go-micro/v2/metadata"
 )
 
 var (
@@ -75,6 +72,21 @@ type Account struct {
 	Secret string `json:"secret"`
 }
 
+// HasRole returns a boolean indicating if the account has the given role
+func (a *Account) HasRole(role string) bool {
+	if a.Roles == nil {
+		return false
+	}
+
+	for _, r := range a.Roles {
+		if r == role {
+			return true
+		}
+	}
+
+	return false
+}
+
 // Token can be short or long lived
 type Token struct {
 	// The token to be used for accessing resources
@@ -90,44 +102,24 @@ type Token struct {
 const (
 	// DefaultNamespace used for auth
 	DefaultNamespace = "go.micro"
-	// MetadataKey is the key used when storing the account in metadata
-	MetadataKey = "auth-account"
 	// TokenCookieName is the name of the cookie which stores the auth token
 	TokenCookieName = "micro-token"
-	// SecretCookieName is the name of the cookie which stores the auth secret
-	SecretCookieName = "micro-secret"
 	// BearerScheme used for Authorization header
 	BearerScheme = "Bearer "
 )
+
+type accountKey struct{}
 
 // AccountFromContext gets the account from the context, which
 // is set by the auth wrapper at the start of a call. If the account
 // is not set, a nil account will be returned. The error is only returned
 // when there was a problem retrieving an account
-func AccountFromContext(ctx context.Context) (*Account, error) {
-	str, ok := metadata.Get(ctx, MetadataKey)
-	// there was no account set
-	if !ok {
-		return nil, nil
-	}
-
-	var acc *Account
-	// metadata is stored as a string, so unmarshal to an account
-	if err := json.Unmarshal([]byte(str), &acc); err != nil {
-		return nil, err
-	}
-
-	return acc, nil
+func AccountFromContext(ctx context.Context) (*Account, bool) {
+	acc, ok := ctx.Value(accountKey{}).(*Account)
+	return acc, ok
 }
 
 // ContextWithAccount sets the account in the context
-func ContextWithAccount(ctx context.Context, account *Account) (context.Context, error) {
-	// metadata is stored as a string, so marshal to bytes
-	bytes, err := json.Marshal(account)
-	if err != nil {
-		return ctx, err
-	}
-
-	// generate a new context with the MetadataKey set
-	return metadata.Set(ctx, MetadataKey, string(bytes)), nil
+func ContextWithAccount(ctx context.Context, account *Account) context.Context {
+	return context.WithValue(ctx, accountKey{}, account)
 }

@@ -129,6 +129,7 @@ metadata:
 var secretTmpl = `
 apiVersion: v1
 kind: Secret
+type: "{{ .Type }}"
 metadata:
   name: "{{ .Metadata.Name }}"
   namespace: "{{ .Metadata.Namespace }}"
@@ -139,11 +140,11 @@ metadata:
     {{- end }}
     {{- end }}
 data:
-{{- with .Data }}
-{{- range $key, $value := . }}
-{{ $key }}: "{{ $value }}"
-{{- end }}
-{{- end }}
+  {{- with .Data }}
+  {{- range $key, $value := . }}
+  {{ $key }}: "{{ $value }}"
+  {{- end }}
+  {{- end }}
 `
 
 var serviceAccountTmpl = `

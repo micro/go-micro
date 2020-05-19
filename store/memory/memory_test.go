@@ -248,7 +248,7 @@ func basictest(s store.Store, t *testing.T) {
 		}
 	}
 
-	s.Init()
+	s.Close() // reset the store
 	for i := 0; i < 10; i++ {
 		s.Write(&store.Record{
 			Key:   fmt.Sprintf("a%d", i),
@@ -259,13 +259,13 @@ func basictest(s store.Store, t *testing.T) {
 		t.Error(err)
 	} else {
 		if len(results) != 5 {
-			t.Error("Expected 5 results, got ", len(results))
+			t.Fatal("Expected 5 results, got ", len(results))
 		}
 		if results[0].Key != "a0" {
-			t.Errorf("Expected a0, got %s", results[0].Key)
+			t.Fatalf("Expected a0, got %s", results[0].Key)
 		}
 		if results[4].Key != "a4" {
-			t.Errorf("Expected a4, got %s", results[4].Key)
+			t.Fatalf("Expected a4, got %s", results[4].Key)
 		}
 	}
 	if results, err := s.Read("a", store.ReadLimit(30), store.ReadOffset(5), store.ReadPrefix()); err != nil {

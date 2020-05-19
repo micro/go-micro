@@ -100,6 +100,12 @@ func Registry(r *registry.Registry) Option {
 	}
 }
 
+func Runtime(r *runtime.Runtime) Option {
+	return func(o *Options) {
+		o.Runtime = r
+	}
+}
+
 func Transport(t *transport.Transport) Option {
 	return func(o *Options) {
 		o.Transport = t
@@ -115,6 +121,12 @@ func Client(c *client.Client) Option {
 func Server(s *server.Server) Option {
 	return func(o *Options) {
 		o.Server = s
+	}
+}
+
+func Store(s *store.Store) Option {
+	return func(o *Options) {
+		o.Store = s
 	}
 }
 

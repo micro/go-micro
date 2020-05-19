@@ -3,7 +3,7 @@ package micro
 import (
 	"os"
 	"os/signal"
-	"runtime"
+	rtime "runtime"
 	"strings"
 	"sync"
 
@@ -17,6 +17,7 @@ import (
 	"github.com/micro/go-micro/v2/plugin"
 	"github.com/micro/go-micro/v2/server"
 	"github.com/micro/go-micro/v2/store"
+	authutil "github.com/micro/go-micro/v2/util/auth"
 	signalutil "github.com/micro/go-micro/v2/util/signal"
 	"github.com/micro/go-micro/v2/util/wrapper"
 )
@@ -39,8 +40,9 @@ func newService(opts ...Option) Service {
 	authFn := func() auth.Auth { return options.Server.Options().Auth }
 
 	// wrap client to inject From-Service header on any calls
-	options.Client = wrapper.FromService(serviceName, options.Client, authFn)
+	options.Client = wrapper.FromService(serviceName, options.Client)
 	options.Client = wrapper.TraceCall(serviceName, trace.DefaultTracer, options.Client)
+	options.Client = wrapper.AuthClient(authFn, options.Client)
 
 	// wrap the server to provide handler stats
 	options.Server.Init(
@@ -97,10 +99,12 @@ func (s *service) Init(opts ...Option) {
 			cmd.Auth(&s.opts.Auth),
 			cmd.Broker(&s.opts.Broker),
 			cmd.Registry(&s.opts.Registry),
+			cmd.Runtime(&s.opts.Runtime),
 			cmd.Transport(&s.opts.Transport),
 			cmd.Client(&s.opts.Client),
 			cmd.Config(&s.opts.Config),
 			cmd.Server(&s.opts.Server),
+			cmd.Store(&s.opts.Store),
 			cmd.Profile(&s.opts.Profile),
 		); err != nil {
 			logger.Fatal(err)
@@ -108,15 +112,7 @@ func (s *service) Init(opts ...Option) {
 
 		// Explicitly set the table name to the service name
 		name := s.opts.Cmd.App().Name
-		store.DefaultStore.Init(store.Table(name))
-
-		// TODO: replace Cmd.Init with config.Load
-		// Right now we're just going to load a token
-		// May need to re-read value on change
-		// TODO: should be scoped to micro/auth/token
-		// if tk, _ := config.Get("token"); len(tk) > 0 {
-		// 	s.opts.Auth.Init(auth.ServiceToken(tk))
-		// }
+		s.opts.Store.Init(store.Table(name))
 	})
 }
 
@@ -179,6 +175,11 @@ func (s *service) Stop() error {
 }
 
 func (s *service) Run() error {
+	// generate an auth account
+	if err := authutil.Generate(s.Server().Options().Id, s.Name(), s.Options().Auth); err != nil {
+		return err
+	}
+
 	// register the debug handler
 	s.opts.Server.Handle(
 		s.opts.Server.NewHandler(
@@ -190,9 +191,9 @@ func (s *service) Run() error {
 	// start the profiler
 	if s.opts.Profile != nil {
 		// to view mutex contention
-		runtime.SetMutexProfileFraction(5)
+		rtime.SetMutexProfileFraction(5)
 		// to view blocking profile
-		runtime.SetBlockProfileRate(1)
+		rtime.SetBlockProfileRate(1)
 
 		if err := s.opts.Profile.Start(); err != nil {
 			return err
