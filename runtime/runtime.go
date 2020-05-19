@@ -85,14 +85,16 @@ func (t EventType) String() string {
 
 // Event is notification event
 type Event struct {
+	// ID of the event
+	ID string
 	// Type is event type
 	Type EventType
 	// Timestamp is event timestamp
 	Timestamp time.Time
-	// Service is the name of the service
-	Service string
-	// Version of the build
-	Version string
+	// Service the event relates to
+	Service *Service
+	// Options to use when processing the event
+	Options *CreateOptions
 }
 
 // Service is runtime service
