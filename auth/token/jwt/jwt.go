@@ -2,6 +2,7 @@ package jwt
 
 import (
 	"encoding/base64"
+	"fmt"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
@@ -43,7 +44,7 @@ func (j *JWT) Generate(acc *auth.Account, opts ...token.GenerateOption) (*token.
 	// parse the private key
 	key, err := jwt.ParseRSAPrivateKeyFromPEM(priv)
 	if err != nil {
-		return nil, token.ErrEncodingToken
+		return nil, fmt.Errorf("%v: %v", token.ErrEncodingToken, err)
 	}
 
 	// parse the options
@@ -83,7 +84,7 @@ func (j *JWT) Inspect(t string) (*auth.Account, error) {
 		return jwt.ParseRSAPublicKeyFromPEM(pub)
 	})
 	if err != nil {
-		return nil, token.ErrInvalidToken
+		return nil, fmt.Errorf("%v: %v", token.ErrInvalidToken, err)
 	}
 
 	// validate the token
