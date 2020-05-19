@@ -111,8 +111,8 @@ func (s *service) run(exit chan bool) {
 }
 
 func (s *service) register() error {
-	s.RLock()
-	defer s.RUnlock()
+	s.Lock()
+	defer s.Unlock()
 
 	if s.srv == nil {
 		return nil
@@ -141,8 +141,8 @@ func (s *service) register() error {
 }
 
 func (s *service) deregister() error {
-	s.RLock()
-	defer s.RUnlock()
+	s.Lock()
+	defer s.Unlock()
 
 	if s.srv == nil {
 		return nil
@@ -405,7 +405,9 @@ func (s *service) Init(opts ...Option) error {
 
 	s.RLock()
 	// pass in own name and version
-	serviceOpts = append(serviceOpts, micro.Name(s.opts.Name))
+	if s.opts.Service.Name() == "" {
+		serviceOpts = append(serviceOpts, micro.Name(s.opts.Name))
+	}
 	serviceOpts = append(serviceOpts, micro.Version(s.opts.Version))
 	s.RUnlock()
 
