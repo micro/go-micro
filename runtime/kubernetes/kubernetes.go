@@ -252,12 +252,12 @@ func (k *kubernetes) run(events <-chan runtime.Event) {
 			case runtime.Update:
 				// only process if there's an actual service
 				// we do not update all the things individually
-				if len(event.Service) == 0 {
+				if event.Service == nil {
 					continue
 				}
 
 				// format the name
-				name := client.Format(event.Service)
+				name := client.Format(event.Service.Name)
 
 				// set the default labels
 				labels := map[string]string{
@@ -265,8 +265,8 @@ func (k *kubernetes) run(events <-chan runtime.Event) {
 					"name":  name,
 				}
 
-				if len(event.Version) > 0 {
-					labels["version"] = event.Version
+				if len(event.Service.Version) > 0 {
+					labels["version"] = event.Service.Version
 				}
 
 				// get the deployment status
