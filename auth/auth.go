@@ -7,16 +7,13 @@ import (
 	"time"
 )
 
+// BearerScheme used for Authorization header
+const BearerScheme = "Bearer "
+
 var (
-	// ErrNotFound is returned when a resouce cannot be found
-	ErrNotFound = errors.New("not found")
-	// ErrEncodingToken is returned when the service encounters an error during encoding
-	ErrEncodingToken = errors.New("error encoding the token")
-	// ErrInvalidToken is returned when the token provided is not valid
+	// ErrInvalidToken is when the token provided is not valid
 	ErrInvalidToken = errors.New("invalid token provided")
-	// ErrInvalidRole is returned when the role provided was invalid
-	ErrInvalidRole = errors.New("invalid role")
-	// ErrForbidden is returned when a user does not have the necessary roles to access a resource
+	// ErrForbidden is when a user does not have the necessary roles or scoeps to access a resource
 	ErrForbidden = errors.New("resource forbidden")
 )
 
@@ -28,28 +25,20 @@ type Auth interface {
 	Options() Options
 	// Generate a new account
 	Generate(id string, opts ...GenerateOption) (*Account, error)
-	// Grant access to a resource
-	Grant(role string, res *Resource) error
-	// Revoke access to a resource
-	Revoke(role string, res *Resource) error
-	// Verify an account has access to a resource
+	// Verify an account has access to a resource using the rules
 	Verify(acc *Account, res *Resource) error
 	// Inspect a token
 	Inspect(token string) (*Account, error)
-	// Token generated using refresh token
+	// Token generated using refresh token or credentials
 	Token(opts ...TokenOption) (*Token, error)
+	// Grant access to a resource
+	Grant(rule *Rule) error
+	// Revoke access to a resource
+	Revoke(rule *Rule) error
+	// Rules returns all the rules used to verify requests
+	Rules() ([]*Rule, error)
 	// String returns the name of the implementation
 	String() string
-}
-
-// Resource is an entity such as a user or
-type Resource struct {
-	// Name of the resource
-	Name string `json:"name"`
-	// Type of resource, e.g.
-	Type string `json:"type"`
-	// Endpoint resource e.g NotesService.Create
-	Endpoint string `json:"endpoint"`
 }
 
 // Account provided by an auth provider
@@ -112,12 +101,46 @@ type Token struct {
 	Expiry time.Time `json:"expiry"`
 }
 
+// Expired returns a boolean indicating if the token needs to be refreshed
+func (t *Token) Expired() bool {
+	return t.Expiry.Unix() < time.Now().Unix()
+}
+
+// Resource is an entity such as a user or
+type Resource struct {
+	// Name of the resource, e.g. go.micro.service.notes
+	Name string `json:"name"`
+	// Type of resource, e.g. service
+	Type string `json:"type"`
+	// Endpoint resource e.g NotesService.Create
+	Endpoint string `json:"endpoint"`
+}
+
+// Access defines the type of access a rule grants
+type Access int
+
 const (
-	// TokenCookieName is the name of the cookie which stores the auth token
-	TokenCookieName = "micro-token"
-	// BearerScheme used for Authorization header
-	BearerScheme = "Bearer "
+	// AccessGranted to a resource
+	AccessGranted Access = iota
+	// AccessDenied to a resource
+	AccessDenied
 )
+
+// Rule is used to verify access to a resource
+type Rule struct {
+	// ID of the rule, e.g. "public"
+	ID string
+	// Role the rule requires, a blank role indicates open to the public and * indicates the rule
+	// applies to any valid account
+	Role string
+	// Resource the rule applies to
+	Resource *Resource
+	// Access determines if the rule grants or denies access to the resource
+	Access Access
+	// Priority the rule should take when verifying a request, the higher the value the sooner the
+	// rule will be applied
+	Priority int32
+}
 
 type accountKey struct{}
 

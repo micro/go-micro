@@ -2,13 +2,12 @@ package service
 
 import (
 	"context"
-	"fmt"
-	"sort"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/micro/go-micro/v2/auth"
+	"github.com/micro/go-micro/v2/auth/rules"
 	pb "github.com/micro/go-micro/v2/auth/service/proto"
 	"github.com/micro/go-micro/v2/auth/token"
 	"github.com/micro/go-micro/v2/auth/token/jwt"
@@ -23,8 +22,7 @@ type svc struct {
 	auth    pb.AuthService
 	rule    pb.RulesService
 	jwt     token.Provider
-
-	rules []*pb.Rule
+	rules   []*auth.Rule
 	sync.Mutex
 }
 
@@ -79,84 +77,53 @@ func (s *svc) Generate(id string, opts ...auth.GenerateOption) (*auth.Account, e
 }
 
 // Grant access to a resource
-func (s *svc) Grant(role string, res *auth.Resource) error {
+func (s *svc) Grant(rule *auth.Rule) error {
 	_, err := s.rule.Create(context.TODO(), &pb.CreateRequest{
-		Role:   role,
-		Access: pb.Access_GRANTED,
-		Resource: &pb.Resource{
-			Type:     res.Type,
-			Name:     res.Name,
-			Endpoint: res.Endpoint,
+		Rule: &pb.Rule{
+			Id:       rule.ID,
+			Role:     rule.Role,
+			Priority: rule.Priority,
+			Access:   pb.Access_GRANTED,
+			Resource: &pb.Resource{
+				Type:     rule.Resource.Type,
+				Name:     rule.Resource.Name,
+				Endpoint: rule.Resource.Endpoint,
+			},
 		},
 	})
+	go s.loadRules()
 	return err
 }
 
 // Revoke access to a resource
-func (s *svc) Revoke(role string, res *auth.Resource) error {
+func (s *svc) Revoke(rule *auth.Rule) error {
 	_, err := s.rule.Delete(context.TODO(), &pb.DeleteRequest{
-		Role:   role,
-		Access: pb.Access_GRANTED,
-		Resource: &pb.Resource{
-			Type:     res.Type,
-			Name:     res.Name,
-			Endpoint: res.Endpoint,
+		Rule: &pb.Rule{
+			Id:       rule.ID,
+			Role:     rule.Role,
+			Priority: rule.Priority,
+			Access:   pb.Access_GRANTED,
+			Resource: &pb.Resource{
+				Type:     rule.Resource.Type,
+				Name:     rule.Resource.Name,
+				Endpoint: rule.Resource.Endpoint,
+			},
 		},
 	})
+	go s.loadRules()
 	return err
+}
+
+func (s *svc) Rules() ([]*auth.Rule, error) {
+	return s.rules, nil
 }
 
 // Verify an account has access to a resource
 func (s *svc) Verify(acc *auth.Account, res *auth.Resource) error {
-	// check the scope
-	scope := "namespace." + s.options.Namespace
-	if acc != nil && !acc.HasScope(scope) {
-		return fmt.Errorf("Missing required scope: %v", scope)
-	}
-
 	// load the rules if none are loaded
 	s.loadRulesIfEmpty()
-
-	queries := [][]string{
-		{res.Type, res.Name, res.Endpoint}, // check for specific role, e.g. service.foo.ListFoo:admin (role is checked in accessForRule)
-		{res.Type, res.Name, "*"},          // check for wildcard endpoint, e.g. service.foo*
-		{res.Type, "*"},                    // check for wildcard name, e.g. service.*
-		{"*"},                              // check for wildcard type, e.g. *
-	}
-
-	// endpoint is a url which can have wildcard excludes, e.g.
-	// "/foo/*" will allow "/foo/bar"
-	if comps := strings.Split(res.Endpoint, "/"); len(comps) > 1 {
-		for i := 1; i < len(comps); i++ {
-			wildcard := fmt.Sprintf("%v/*", strings.Join(comps[0:i], "/"))
-			queries = append(queries, []string{res.Type, res.Name, wildcard})
-		}
-	}
-
-	// set a default account id / namespace to log
-	logID := acc.ID
-	if len(logID) == 0 {
-		logID = "[no account]"
-	}
-
-	for _, q := range queries {
-		for _, rule := range s.listRules(q...) {
-			switch accessForRule(rule, acc, res) {
-			case pb.Access_UNKNOWN:
-				continue // rule did not specify access, check the next rule
-			case pb.Access_GRANTED:
-				log.Tracef("%v granted access to %v:%v:%v by rule %v", logID, res.Type, res.Name, res.Endpoint, rule.Id)
-				return nil // rule grants the account access to the resource
-			case pb.Access_DENIED:
-				log.Tracef("%v denied access to %v:%v:%v by rule %v", logID, res.Type, res.Name, res.Endpoint, rule.Id)
-				return auth.ErrForbidden // rule denies access to the resource
-			}
-		}
-	}
-
-	// no rules were found for the resource, default to denying access
-	log.Tracef("%v denied access to %v:%v:%v by lack of rule", logID, res.Type, res.Name, res.Endpoint)
-	return auth.ErrForbidden
+	// verify the request using the rules
+	return rules.Verify(s.options.Namespace, s.rules, acc, res)
 }
 
 // Inspect a token
@@ -221,35 +188,6 @@ func accessForRule(rule *pb.Rule, acc *auth.Account, res *auth.Resource) pb.Acce
 	return pb.Access_UNKNOWN
 }
 
-// listRules gets all the rules from the store which match the filters.
-// filters are namespace, type, name and then endpoint.
-func (s *svc) listRules(filters ...string) []*pb.Rule {
-	s.Lock()
-	defer s.Unlock()
-
-	var rules []*pb.Rule
-	for _, r := range s.rules {
-		if len(filters) > 1 && r.Resource.Type != filters[0] {
-			continue
-		}
-		if len(filters) > 2 && r.Resource.Name != filters[1] {
-			continue
-		}
-		if len(filters) > 3 && r.Resource.Endpoint != filters[2] {
-			continue
-		}
-
-		rules = append(rules, r)
-	}
-
-	// sort rules by priority
-	sort.Slice(rules, func(i, j int) bool {
-		return rules[i].Priority < rules[j].Priority
-	})
-
-	return rules
-}
-
 // loadRules retrieves the rules from the auth service
 func (s *svc) loadRules() {
 	rsp, err := s.rule.List(context.TODO(), &pb.ListRequest{})
@@ -261,7 +199,27 @@ func (s *svc) loadRules() {
 		return
 	}
 
-	s.rules = rsp.Rules
+	s.rules = make([]*auth.Rule, 0, len(rsp.Rules))
+	for _, r := range rsp.Rules {
+		var access auth.Access
+		if r.Access == pb.Access_GRANTED {
+			access = auth.AccessGranted
+		} else {
+			access = auth.AccessDenied
+		}
+
+		s.rules = append(s.rules, &auth.Rule{
+			ID:       r.Id,
+			Role:     r.Role,
+			Access:   access,
+			Priority: r.Priority,
+			Resource: &auth.Resource{
+				Type:     r.Resource.Type,
+				Name:     r.Resource.Name,
+				Endpoint: r.Resource.Endpoint,
+			},
+		})
+	}
 }
 
 func (s *svc) loadRulesIfEmpty() {

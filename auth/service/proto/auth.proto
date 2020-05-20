@@ -110,19 +110,13 @@ message Rule {
 }
 
 message CreateRequest {
-	string role = 1;
-	Resource resource = 2;
-	Access access = 3;
-	int32 priority = 4;
+	Rule rule = 1;
 }
 
 message CreateResponse {}
 
 message DeleteRequest {
-	string role = 1;
-	Resource resource = 2;
-	Access access = 3;
-	int32 priority = 4;
+	Rule rule = 1;
 }
 
 message DeleteResponse {}

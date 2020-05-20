@@ -58,13 +58,18 @@ func (n *noop) Generate(id string, opts ...GenerateOption) (*Account, error) {
 }
 
 // Grant access to a resource
-func (n *noop) Grant(role string, res *Resource) error {
+func (n *noop) Grant(rule *Rule) error {
 	return nil
 }
 
 // Revoke access to a resource
-func (n *noop) Revoke(role string, res *Resource) error {
+func (n *noop) Revoke(rule *Rule) error {
 	return nil
+}
+
+// Rules used to verify requests
+func (n *noop) Rules() ([]*Rule, error) {
+	return []*Rule{}, nil
 }
 
 // Verify an account has access to a resource

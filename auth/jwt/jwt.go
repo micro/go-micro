@@ -1,11 +1,11 @@
 package jwt
 
 import (
-	"fmt"
 	"sync"
 	"time"
 
 	"github.com/micro/go-micro/v2/auth"
+	"github.com/micro/go-micro/v2/auth/rules"
 	"github.com/micro/go-micro/v2/auth/token"
 	jwtToken "github.com/micro/go-micro/v2/auth/token/jwt"
 )
@@ -25,7 +25,7 @@ type rule struct {
 type jwt struct {
 	options auth.Options
 	jwt     token.Provider
-	rules   []*rule
+	rules   []*auth.Rule
 
 	sync.Mutex
 }
@@ -77,30 +77,22 @@ func (j *jwt) Generate(id string, opts ...auth.GenerateOption) (*auth.Account, e
 	return account, nil
 }
 
-func (j *jwt) Grant(role string, res *auth.Resource) error {
+func (j *jwt) Grant(rule *auth.Rule) error {
 	j.Lock()
 	defer j.Unlock()
-	j.rules = append(j.rules, &rule{role, res})
+	j.rules = append(j.rules, rule)
 	return nil
 }
 
-func (j *jwt) Revoke(role string, res *auth.Resource) error {
+func (j *jwt) Revoke(rule *auth.Rule) error {
 	j.Lock()
 	defer j.Unlock()
 
-	rules := make([]*rule, 0, len(j.rules))
-
-	var ruleFound bool
+	rules := []*auth.Rule{}
 	for _, r := range rules {
-		if r.role == role && r.resource == res {
-			ruleFound = true
-		} else {
+		if r.ID != rule.ID {
 			rules = append(rules, r)
 		}
-	}
-
-	if !ruleFound {
-		return auth.ErrNotFound
 	}
 
 	j.rules = rules
@@ -108,53 +100,15 @@ func (j *jwt) Revoke(role string, res *auth.Resource) error {
 }
 
 func (j *jwt) Verify(acc *auth.Account, res *auth.Resource) error {
-	// check the scope
-	scope := "namespace." + j.options.Namespace
-	if acc != nil && !acc.HasScope(scope) {
-		return fmt.Errorf("Missing required scope: %v", scope)
-	}
-
 	j.Lock()
-	rules := j.rules
-	j.Unlock()
+	defer j.Unlock()
+	return rules.Verify(j.options.Namespace, j.rules, acc, res)
+}
 
-	for _, rule := range rules {
-		// validate the rule applies to the requested resource
-		if rule.resource.Type != "*" && rule.resource.Type != res.Type {
-			continue
-		}
-		if rule.resource.Name != "*" && rule.resource.Name != res.Name {
-			continue
-		}
-		if rule.resource.Endpoint != "*" && rule.resource.Endpoint != res.Endpoint {
-			continue
-		}
-
-		// a blank role indicates anyone can access the resource, even without an account
-		if rule.role == "" {
-			return nil
-		}
-
-		// all furter checks require an account
-		if acc == nil {
-			continue
-		}
-
-		// this rule allows any account access, allow the request
-		if rule.role == "*" {
-			return nil
-		}
-
-		// if the account has the necessary role, allow the request
-		for _, r := range acc.Roles {
-			if r == rule.role {
-				return nil
-			}
-		}
-	}
-
-	// no rules matched, forbid the request
-	return auth.ErrForbidden
+func (j *jwt) Rules() ([]*auth.Rule, error) {
+	j.Lock()
+	defer j.Unlock()
+	return j.rules, nil
 }
 
 func (j *jwt) Inspect(token string) (*auth.Account, error) {
