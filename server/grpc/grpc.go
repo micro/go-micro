@@ -22,6 +22,7 @@ import (
 	"github.com/micro/go-micro/v2/registry"
 	"github.com/micro/go-micro/v2/server"
 	"github.com/micro/go-micro/v2/util/addr"
+	"github.com/micro/go-micro/v2/util/backoff"
 	mgrpc "github.com/micro/go-micro/v2/util/grpc"
 	mnet "github.com/micro/go-micro/v2/util/net"
 	"golang.org/x/net/netutil"
@@ -566,16 +567,36 @@ func (g *grpcServer) Subscribe(sb server.Subscriber) error {
 }
 
 func (g *grpcServer) Register() error {
-
 	g.RLock()
 	rsvc := g.rsvc
 	config := g.opts
 	g.RUnlock()
 
+	regFunc := func(service *registry.Service) error {
+		var regErr error
+
+		for i := 0; i < 3; i++ {
+			// set the ttl
+			rOpts := []registry.RegisterOption{registry.RegisterTTL(config.RegisterTTL)}
+			// attempt to register
+			if err := config.Registry.Register(service, rOpts...); err != nil {
+				// set the error
+				regErr = err
+				// backoff then retry
+				time.Sleep(backoff.Do(i + 1))
+				continue
+			}
+			// success so nil error
+			regErr = nil
+			break
+		}
+
+		return regErr
+	}
+
 	// if service already filled, reuse it and return early
 	if rsvc != nil {
-		rOpts := []registry.RegisterOption{registry.RegisterTTL(config.RegisterTTL)}
-		if err := config.Registry.Register(rsvc, rOpts...); err != nil {
+		if err := regFunc(rsvc); err != nil {
 			return err
 		}
 		return nil
@@ -677,10 +698,8 @@ func (g *grpcServer) Register() error {
 		}
 	}
 
-	// create registry options
-	rOpts := []registry.RegisterOption{registry.RegisterTTL(config.RegisterTTL)}
-
-	if err := config.Registry.Register(service, rOpts...); err != nil {
+	// register the service
+	if err := regFunc(service); err != nil {
 		return err
 	}
 

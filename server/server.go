@@ -125,7 +125,7 @@ type Handler interface {
 }
 
 // Subscriber interface represents a subscription to a given topic using
-// a specific subscriber function or object with endpoints. It mirrors 
+// a specific subscriber function or object with endpoints. It mirrors
 // the handler in its behaviour.
 type Subscriber interface {
 	Topic() string
@@ -145,7 +145,7 @@ var (
 	DefaultRouter                  = newRpcRouter()
 	DefaultRegisterCheck           = func(context.Context) error { return nil }
 	DefaultRegisterInterval        = time.Second * 30
-	DefaultRegisterTTL             = time.Minute
+	DefaultRegisterTTL             = time.Second * 90
 
 	// NewServer creates a new server
 	NewServer func(...Option) Server = newRpcServer
