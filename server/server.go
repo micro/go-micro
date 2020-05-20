@@ -145,7 +145,7 @@ var (
 	DefaultRouter                  = newRpcRouter()
 	DefaultRegisterCheck           = func(context.Context) error { return nil }
 	DefaultRegisterInterval        = time.Second * 30
-	DefaultRegisterTTL             = time.Minute
+	DefaultRegisterTTL             = time.Second * 90
 
 	// NewServer creates a new server
 	NewServer func(...Option) Server = newRpcServer
