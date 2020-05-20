@@ -4,6 +4,7 @@ package auth
 import (
 	"context"
 	"errors"
+	"strings"
 	"time"
 )
 
@@ -60,13 +61,13 @@ type Account struct {
 }
 
 // HasScope returns a boolean indicating if the account has the given scope
-func (a *Account) HasScope(scope string) bool {
+func (a *Account) HasScope(scopes ...string) bool {
 	if a.Scopes == nil {
 		return false
 	}
 
 	for _, s := range a.Scopes {
-		if s == scope {
+		if s == strings.Join(scopes, ".") {
 			return true
 		}
 	}

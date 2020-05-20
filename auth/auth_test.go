@@ -3,15 +3,15 @@ package auth
 import "testing"
 
 func TestHasScope(t *testing.T) {
-	if new(Account).HasScope("namespace.foo") {
+	if new(Account).HasScope("namespace", "foo") {
 		t.Errorf("Expected the blank account to not have a role")
 	}
 
 	acc := Account{Scopes: []string{"namespace.foo"}}
-	if !acc.HasScope("namespace.foo") {
+	if !acc.HasScope("namespace", "foo") {
 		t.Errorf("Expected the account to have the namespace.foo role")
 	}
-	if acc.HasScope("namespace.bar") {
+	if acc.HasScope("namespace", "bar") {
 		t.Errorf("Expected the account to not have the namespace.bar role")
 	}
 }

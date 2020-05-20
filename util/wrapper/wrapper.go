@@ -208,14 +208,14 @@ func AuthHandler(fn func() auth.Auth) server.HandlerWrapper {
 
 			// Verify the caller has access to the resource
 			err := a.Verify(account, res)
-			if err != nil && len(account.ID) > 0 {
+			if err != nil && account != nil {
 				return errors.Forbidden(req.Service(), "Forbidden call made to %v:%v by %v", req.Service(), req.Endpoint(), account.ID)
 			} else if err != nil {
 				return errors.Unauthorized(req.Service(), "Unauthorised call made to %v:%v", req.Service(), req.Endpoint())
 			}
 
 			// There is an account, set it in the context
-			if len(account.ID) > 0 {
+			if account != nil {
 				ctx = auth.ContextWithAccount(ctx, account)
 			}
 
