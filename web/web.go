@@ -31,7 +31,7 @@ var (
 	DefaultAddress = ":0"
 
 	// for registration
-	DefaultRegisterTTL      = time.Minute
+	DefaultRegisterTTL      = time.Second * 90
 	DefaultRegisterInterval = time.Second * 30
 
 	// static directory
