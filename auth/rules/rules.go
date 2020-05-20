@@ -12,12 +12,6 @@ import (
 // access an error will be returned. If there are no rules provided which match the resource, an error
 // will be returned
 func Verify(namespace string, rules []*auth.Rule, acc *auth.Account, res *auth.Resource) error {
-	// ensure the account has the necessary scope. Some rules allow for public access so we don't
-	// error if the account is nil.
-	if acc != nil && !acc.HasScope("namespace."+namespace) {
-		return fmt.Errorf("Missing required scope: %v", "namespace."+namespace)
-	}
-
 	// the rule is only to be applied if the type matches the resource or is catch-all (*)
 	validTypes := []string{"*", res.Type}
 
@@ -37,6 +31,7 @@ func Verify(namespace string, rules []*auth.Rule, acc *auth.Account, res *auth.R
 	// filter the rules to the ones which match the criteria above
 	filteredRules := make([]*auth.Rule, 0)
 	for _, rule := range rules {
+		fmt.Printf("All rules: %v\n", rule.ID)
 		if !include(validTypes, rule.Resource.Type) {
 			continue
 		}
@@ -63,8 +58,8 @@ func Verify(namespace string, rules []*auth.Rule, acc *auth.Account, res *auth.R
 			return nil
 		}
 
-		// all furter checks require an account
-		if acc == nil {
+		// all further checks require an account within the current scope
+		if acc == nil || !acc.HasScope("namespace", namespace) {
 			continue
 		}
 

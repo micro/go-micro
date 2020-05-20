@@ -73,7 +73,7 @@ func (n *noop) Rules() ([]*Rule, error) {
 }
 
 // Verify an account has access to a resource
-func (n *noop) Verify(acc *Account, res *Resource) error {
+func (n *noop) Verify(acc *Account, res *Resource, opts ...VerifyOption) error {
 	return nil
 }
 

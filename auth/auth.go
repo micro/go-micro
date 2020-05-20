@@ -27,7 +27,7 @@ type Auth interface {
 	// Generate a new account
 	Generate(id string, opts ...GenerateOption) (*Account, error)
 	// Verify an account has access to a resource using the rules
-	Verify(acc *Account, res *Resource) error
+	Verify(acc *Account, res *Resource, opts ...VerifyOption) error
 	// Inspect a token
 	Inspect(token string) (*Account, error)
 	// Token generated using refresh token or credentials

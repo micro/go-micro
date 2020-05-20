@@ -119,11 +119,17 @@ func (s *svc) Rules() ([]*auth.Rule, error) {
 }
 
 // Verify an account has access to a resource
-func (s *svc) Verify(acc *auth.Account, res *auth.Resource) error {
+func (s *svc) Verify(acc *auth.Account, res *auth.Resource, opts ...auth.VerifyOption) error {
+	options := auth.VerifyOptions{Scope: s.options.Namespace}
+	for _, o := range opts {
+		o(&options)
+	}
+
 	// load the rules if none are loaded
 	s.loadRulesIfEmpty()
+
 	// verify the request using the rules
-	return rules.Verify(s.options.Namespace, s.rules, acc, res)
+	return rules.Verify(options.Scope, s.rules, acc, res)
 }
 
 // Inspect a token

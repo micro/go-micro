@@ -123,7 +123,7 @@ type GenerateOptions struct {
 	Metadata map[string]string
 	// Roles/scopes associated with the account
 	Roles []string
-	// Scopes the account hasaccess too
+	// Scopes the account has access too
 	Scopes []string
 	// Provider of the account, e.g. oauth
 	Provider string
@@ -232,4 +232,17 @@ func NewTokenOptions(opts ...TokenOption) TokenOptions {
 	}
 
 	return options
+}
+
+type VerifyOptions struct {
+	Scope string
+}
+
+type VerifyOption func(o *VerifyOptions)
+
+// WithScope to require when verifying
+func WithScope(s string) VerifyOption {
+	return func(o *VerifyOptions) {
+		o.Scope = s
+	}
 }

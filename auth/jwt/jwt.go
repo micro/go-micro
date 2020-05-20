@@ -99,10 +99,16 @@ func (j *jwt) Revoke(rule *auth.Rule) error {
 	return nil
 }
 
-func (j *jwt) Verify(acc *auth.Account, res *auth.Resource) error {
+func (j *jwt) Verify(acc *auth.Account, res *auth.Resource, opts ...auth.VerifyOption) error {
 	j.Lock()
 	defer j.Unlock()
-	return rules.Verify(j.options.Namespace, j.rules, acc, res)
+
+	options := auth.VerifyOptions{Scope: j.options.Namespace}
+	for _, o := range opts {
+		o(&options)
+	}
+
+	return rules.Verify(options.Scope, j.rules, acc, res)
 }
 
 func (j *jwt) Rules() ([]*auth.Rule, error) {
