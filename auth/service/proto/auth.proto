@@ -35,7 +35,6 @@ message Token {
 message Account {
 	string id = 1;
 	string type = 2;
-	repeated string roles = 3;
 	map<string, string> metadata = 4;
 	repeated string scopes = 5;
 	string provider = 6;
@@ -50,7 +49,6 @@ message Resource{
 
 message GenerateRequest {
 	string id = 1;
-	repeated string roles = 2;
 	map<string, string> metadata = 3;
 	repeated string scopes = 4;
 	string secret = 5;
@@ -63,14 +61,14 @@ message GenerateResponse {
 }
 
 message GrantRequest {
-	string role = 1;
+	string scope = 1;
 	Resource resource = 2;
 }
 
 message GrantResponse {}
 
 message RevokeRequest {
-	string role = 1;
+	string scope = 1;
 	Resource resource = 2;
 }
 
@@ -103,7 +101,7 @@ enum Access {
 
 message Rule {
 	string id = 1;
-	string role = 2;
+	string scope = 2;
 	Resource resource = 3;
 	Access access = 4;
 	int32 priority = 5;

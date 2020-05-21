@@ -65,7 +65,6 @@ func (s *svc) Generate(id string, opts ...auth.GenerateOption) (*auth.Account, e
 		Id:       id,
 		Type:     options.Type,
 		Secret:   options.Secret,
-		Roles:    options.Roles,
 		Scopes:   options.Scopes,
 		Metadata: options.Metadata,
 		Provider: options.Provider,
@@ -82,7 +81,7 @@ func (s *svc) Grant(rule *auth.Rule) error {
 	_, err := s.rule.Create(context.TODO(), &pb.CreateRequest{
 		Rule: &pb.Rule{
 			Id:       rule.ID,
-			Role:     rule.Role,
+			Scope:    rule.Scope,
 			Priority: rule.Priority,
 			Access:   pb.Access_GRANTED,
 			Resource: &pb.Resource{
@@ -156,35 +155,6 @@ func (s *svc) Token(opts ...auth.TokenOption) (*auth.Token, error) {
 	return serializeToken(rsp.Token), nil
 }
 
-var ruleJoinKey = ":"
-
-// accessForRule returns a rule status, indicating if a rule permits access to a
-// resource for a given account
-func accessForRule(rule *pb.Rule, acc *auth.Account, res *auth.Resource) pb.Access {
-	// a blank role permits access to the public
-	if rule.Role == "" {
-		return rule.Access
-	}
-
-	// a * role permits access to any user
-	if rule.Role == "*" && acc != nil {
-		return rule.Access
-	}
-
-	for _, role := range acc.Roles {
-		if rule.Role == role {
-			return rule.Access
-		}
-
-		// allow user.anything if role is user.*
-		if strings.HasSuffix(rule.Role, ".*") && strings.HasPrefix(rule.Role, role+".") {
-			return rule.Access
-		}
-	}
-
-	return pb.Access_UNKNOWN
-}
-
 // loadRules retrieves the rules from the auth service. Since this implementation is used by micro
 // clients, which support muti-tenancy we may have to persist rules in multiple namespaces.
 func (s *svc) loadRules(namespace string) {
@@ -206,7 +176,7 @@ func (s *svc) loadRules(namespace string) {
 
 		rules = append(rules, &auth.Rule{
 			ID:       r.Id,
-			Role:     r.Role,
+			Scope:    r.Scope,
 			Access:   access,
 			Priority: r.Priority,
 			Resource: &auth.Resource{
@@ -244,7 +214,6 @@ func serializeToken(t *pb.Token) *auth.Token {
 func serializeAccount(a *pb.Account) *auth.Account {
 	return &auth.Account{
 		ID:       a.Id,
-		Roles:    a.Roles,
 		Secret:   a.Secret,
 		Metadata: a.Metadata,
 		Provider: a.Provider,

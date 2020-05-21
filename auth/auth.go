@@ -4,7 +4,6 @@ package auth
 import (
 	"context"
 	"errors"
-	"strings"
 	"time"
 )
 
@@ -14,7 +13,7 @@ const BearerScheme = "Bearer "
 var (
 	// ErrInvalidToken is when the token provided is not valid
 	ErrInvalidToken = errors.New("invalid token provided")
-	// ErrForbidden is when a user does not have the necessary roles or scoeps to access a resource
+	// ErrForbidden is when a user does not have the necessary scope to access a resource
 	ErrForbidden = errors.New("resource forbidden")
 )
 
@@ -50,44 +49,12 @@ type Account struct {
 	Type string `json:"type"`
 	// Provider who issued the account
 	Provider string `json:"provider"`
-	// Roles associated with the Account
-	Roles []string `json:"roles"`
 	// Any other associated metadata
 	Metadata map[string]string `json:"metadata"`
 	// Scopes the account has access to
 	Scopes []string `json:"scopes"`
 	// Secret for the account, e.g. the password
 	Secret string `json:"secret"`
-}
-
-// HasScope returns a boolean indicating if the account has the given scope
-func (a *Account) HasScope(scopes ...string) bool {
-	if a.Scopes == nil {
-		return false
-	}
-
-	for _, s := range a.Scopes {
-		if s == strings.Join(scopes, ".") {
-			return true
-		}
-	}
-
-	return false
-}
-
-// HasRole returns a boolean indicating if the account has the given role
-func (a *Account) HasRole(role string) bool {
-	if a.Roles == nil {
-		return false
-	}
-
-	for _, r := range a.Roles {
-		if r == role {
-			return true
-		}
-	}
-
-	return false
 }
 
 // Token can be short or long lived
@@ -131,9 +98,9 @@ const (
 type Rule struct {
 	// ID of the rule, e.g. "public"
 	ID string
-	// Role the rule requires, a blank role indicates open to the public and * indicates the rule
+	// Scope the rule requires, a blank scope indicates open to the public and * indicates the rule
 	// applies to any valid account
-	Role string
+	Scope string
 	// Resource the rule applies to
 	Resource *Resource
 	// Access determines if the rule grants or denies access to the resource

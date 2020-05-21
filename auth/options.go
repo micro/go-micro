@@ -121,8 +121,6 @@ func WithClient(c client.Client) Option {
 type GenerateOptions struct {
 	// Metadata associated with the account
 	Metadata map[string]string
-	// Roles/scopes associated with the account
-	Roles []string
 	// Scopes the account has access too
 	Scopes []string
 	// Provider of the account, e.g. oauth
@@ -153,13 +151,6 @@ func WithType(t string) GenerateOption {
 func WithMetadata(md map[string]string) GenerateOption {
 	return func(o *GenerateOptions) {
 		o.Metadata = md
-	}
-}
-
-// WithRoles for the generated account
-func WithRoles(rs ...string) GenerateOption {
-	return func(o *GenerateOptions) {
-		o.Roles = rs
 	}
 }
 

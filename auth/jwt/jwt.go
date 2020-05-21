@@ -17,11 +17,6 @@ func NewAuth(opts ...auth.Option) auth.Auth {
 	return j
 }
 
-type rule struct {
-	role     string
-	resource *auth.Resource
-}
-
 type jwt struct {
 	options auth.Options
 	jwt     token.Provider
@@ -59,7 +54,6 @@ func (j *jwt) Generate(id string, opts ...auth.GenerateOption) (*auth.Account, e
 	account := &auth.Account{
 		ID:       id,
 		Type:     options.Type,
-		Roles:    options.Roles,
 		Scopes:   options.Scopes,
 		Provider: options.Provider,
 		Metadata: options.Metadata,

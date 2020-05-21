@@ -50,29 +50,29 @@ func Verify(namespace string, rules []*auth.Rule, acc *auth.Account, res *auth.R
 
 	// loop through the rules and check for a rule which applies to this account
 	for _, rule := range filteredRules {
-		// a blank role indicates the rule applies to everyone, even nil accounts
-		if rule.Role == "" && rule.Access == auth.AccessDenied {
+		// a blank scope indicates the rule applies to everyone, even nil accounts
+		if rule.Scope == "" && rule.Access == auth.AccessDenied {
 			return auth.ErrForbidden
-		} else if rule.Role == "" && rule.Access == auth.AccessGranted {
+		} else if rule.Scope == "" && rule.Access == auth.AccessGranted {
 			return nil
 		}
 
-		// all further checks require an account within the current scope
-		if acc == nil || !acc.HasScope("namespace", namespace) {
+		// all further checks require an account
+		if acc == nil {
 			continue
 		}
 
 		// this rule applies to any account
-		if rule.Role == "*" && rule.Access == auth.AccessDenied {
+		if rule.Scope == "*" && rule.Access == auth.AccessDenied {
 			return auth.ErrForbidden
-		} else if rule.Role == "" && rule.Access == auth.AccessGranted {
+		} else if rule.Scope == "" && rule.Access == auth.AccessGranted {
 			return nil
 		}
 
-		// if the account has the necessary role
-		if include(acc.Roles, rule.Role) && rule.Access == auth.AccessDenied {
+		// if the account has the necessary scope
+		if include(acc.Scopes, rule.Scope) && rule.Access == auth.AccessDenied {
 			return auth.ErrForbidden
-		} else if rule.Role == "" && rule.Access == auth.AccessGranted {
+		} else if rule.Scope == "" && rule.Access == auth.AccessGranted {
 			return nil
 		}
 	}
