@@ -6,8 +6,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/micro/go-micro/v2/metadata"
-
 	"github.com/micro/go-micro/v2/auth"
 	"github.com/micro/go-micro/v2/auth/rules"
 	pb "github.com/micro/go-micro/v2/auth/service/proto"
@@ -15,6 +13,7 @@ import (
 	"github.com/micro/go-micro/v2/auth/token/jwt"
 	"github.com/micro/go-micro/v2/client"
 	log "github.com/micro/go-micro/v2/logger"
+	"github.com/micro/go-micro/v2/metadata"
 	"github.com/micro/go-micro/v2/util/jitter"
 )
 
