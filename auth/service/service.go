@@ -98,17 +98,7 @@ func (s *svc) Grant(rule *auth.Rule) error {
 // Revoke access to a resource
 func (s *svc) Revoke(rule *auth.Rule) error {
 	_, err := s.rule.Delete(context.TODO(), &pb.DeleteRequest{
-		Rule: &pb.Rule{
-			Id:       rule.ID,
-			Role:     rule.Role,
-			Priority: rule.Priority,
-			Access:   pb.Access_GRANTED,
-			Resource: &pb.Resource{
-				Type:     rule.Resource.Type,
-				Name:     rule.Resource.Name,
-				Endpoint: rule.Resource.Endpoint,
-			},
-		},
+		Id: rule.ID,
 	})
 	go s.loadRules()
 	return err

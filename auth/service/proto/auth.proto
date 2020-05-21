@@ -116,7 +116,7 @@ message CreateRequest {
 message CreateResponse {}
 
 message DeleteRequest {
-	Rule rule = 1;
+	string id = 1;
 }
 
 message DeleteResponse {}
