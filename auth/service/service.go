@@ -6,6 +6,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/micro/go-micro/v2/metadata"
+
 	"github.com/micro/go-micro/v2/auth"
 	"github.com/micro/go-micro/v2/auth/rules"
 	pb "github.com/micro/go-micro/v2/auth/service/proto"
@@ -22,7 +24,7 @@ type svc struct {
 	auth    pb.AuthService
 	rule    pb.RulesService
 	jwt     token.Provider
-	rules   []*auth.Rule
+	rules   map[string][]*auth.Rule
 	sync.Mutex
 }
 
@@ -91,7 +93,7 @@ func (s *svc) Grant(rule *auth.Rule) error {
 			},
 		},
 	})
-	go s.loadRules()
+	go s.loadRules(s.options.Namespace)
 	return err
 }
 
@@ -100,12 +102,12 @@ func (s *svc) Revoke(rule *auth.Rule) error {
 	_, err := s.rule.Delete(context.TODO(), &pb.DeleteRequest{
 		Id: rule.ID,
 	})
-	go s.loadRules()
+	go s.loadRules(s.options.Namespace)
 	return err
 }
 
 func (s *svc) Rules() ([]*auth.Rule, error) {
-	return s.rules, nil
+	return s.rules[s.options.Namespace], nil
 }
 
 // Verify an account has access to a resource
@@ -116,10 +118,10 @@ func (s *svc) Verify(acc *auth.Account, res *auth.Resource, opts ...auth.VerifyO
 	}
 
 	// load the rules if none are loaded
-	s.loadRulesIfEmpty()
+	s.loadRulesIfEmpty(options.Scope)
 
 	// verify the request using the rules
-	return rules.Verify(options.Scope, s.rules, acc, res)
+	return rules.Verify(options.Scope, s.rules[options.Scope], acc, res)
 }
 
 // Inspect a token
@@ -184,18 +186,17 @@ func accessForRule(rule *pb.Rule, acc *auth.Account, res *auth.Resource) pb.Acce
 	return pb.Access_UNKNOWN
 }
 
-// loadRules retrieves the rules from the auth service
-func (s *svc) loadRules() {
-	rsp, err := s.rule.List(context.TODO(), &pb.ListRequest{})
-	s.Lock()
-	defer s.Unlock()
-
+// loadRules retrieves the rules from the auth service. Since this implementation is used by micro
+// clients, which support muti-tenancy we may have to persist rules in multiple namespaces.
+func (s *svc) loadRules(namespace string) {
+	ctx := metadata.Set(context.TODO(), "Micro-Namespace", namespace)
+	rsp, err := s.rule.List(ctx, &pb.ListRequest{})
 	if err != nil {
 		log.Errorf("Error listing rules: %v", err)
 		return
 	}
 
-	s.rules = make([]*auth.Rule, 0, len(rsp.Rules))
+	rules := make([]*auth.Rule, 0, len(rsp.Rules))
 	for _, r := range rsp.Rules {
 		var access auth.Access
 		if r.Access == pb.Access_GRANTED {
@@ -204,7 +205,7 @@ func (s *svc) loadRules() {
 			access = auth.AccessDenied
 		}
 
-		s.rules = append(s.rules, &auth.Rule{
+		rules = append(rules, &auth.Rule{
 			ID:       r.Id,
 			Role:     r.Role,
 			Access:   access,
@@ -216,15 +217,19 @@ func (s *svc) loadRules() {
 			},
 		})
 	}
+
+	s.Lock()
+	s.rules[namespace] = rules
+	s.Unlock()
 }
 
-func (s *svc) loadRulesIfEmpty() {
+func (s *svc) loadRulesIfEmpty(namespace string) {
 	s.Lock()
 	rules := s.rules
 	s.Unlock()
 
-	if len(rules) == 0 {
-		s.loadRules()
+	if _, ok := rules[namespace]; !ok {
+		s.loadRules(namespace)
 	}
 }
 
@@ -258,6 +263,7 @@ func NewAuth(opts ...auth.Option) auth.Auth {
 	service := &svc{
 		auth:    pb.NewAuthService("go.micro.auth", options.Client),
 		rule:    pb.NewRulesService("go.micro.auth", options.Client),
+		rules:   make(map[string][]*auth.Rule),
 		options: options,
 	}
 
@@ -268,7 +274,10 @@ func NewAuth(opts ...auth.Option) auth.Auth {
 		for {
 			<-ruleTimer.C
 			time.Sleep(jitter.Do(time.Second * 5))
-			service.loadRules()
+
+			for ns := range service.rules {
+				service.loadRules(ns)
+			}
 		}
 	}()
 
