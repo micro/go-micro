@@ -17,7 +17,7 @@ var (
 	ErrForbidden = errors.New("resource forbidden")
 )
 
-// Auth providers authentication and authorization
+// Auth provides authentication and authorization
 type Auth interface {
 	// Init the auth
 	Init(opts ...Option)
@@ -47,8 +47,8 @@ type Account struct {
 	ID string `json:"id"`
 	// Type of the account, e.g. service
 	Type string `json:"type"`
-	// Provider who issued the account
-	Provider string `json:"provider"`
+	// Issuer of the account
+	Issuer string `json:"issuer"`
 	// Any other associated metadata
 	Metadata map[string]string `json:"metadata"`
 	// Scopes the account has access to

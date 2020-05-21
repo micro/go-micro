@@ -154,17 +154,17 @@ func WithMetadata(md map[string]string) GenerateOption {
 	}
 }
 
-// WithScopes for the generated account
-func WithScopes(s ...string) GenerateOption {
-	return func(o *GenerateOptions) {
-		o.Scopes = s
-	}
-}
-
 // WithProvider for the generated account
 func WithProvider(p string) GenerateOption {
 	return func(o *GenerateOptions) {
 		o.Provider = p
+	}
+}
+
+// WithScopes for the generated account
+func WithScopes(s ...string) GenerateOption {
+	return func(o *GenerateOptions) {
+		o.Scopes = s
 	}
 }
 
@@ -225,15 +225,6 @@ func NewTokenOptions(opts ...TokenOption) TokenOptions {
 	return options
 }
 
-type VerifyOptions struct {
-	Scope string
-}
+type VerifyOptions struct{}
 
 type VerifyOption func(o *VerifyOptions)
-
-// WithScope to require when verifying
-func WithScope(s string) VerifyOption {
-	return func(o *VerifyOptions) {
-		o.Scope = s
-	}
-}

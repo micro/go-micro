@@ -190,18 +190,28 @@ func AuthHandler(fn func() auth.Auth) server.HandlerWrapper {
 
 			// Extract the token if present. Note: if noop is being used
 			// then the token can be blank without erroring
-			var token string
+			var account *auth.Account
 			if header, ok := metadata.Get(ctx, "Authorization"); ok {
 				// Ensure the correct scheme is being used
 				if !strings.HasPrefix(header, auth.BearerScheme) {
 					return errors.Unauthorized(req.Service(), "invalid authorization header. expected Bearer schema")
 				}
 
-				token = header[len(auth.BearerScheme):]
+				// Strip the prefix and inspect the resulting token
+				account, _ = a.Inspect(strings.TrimPrefix(header, auth.BearerScheme))
 			}
 
-			// Inspect the token and get the account
-			account, _ := a.Inspect(token)
+			// Extract the namespace header
+			ns, ok := metadata.Get(ctx, "Micro-Namespace")
+			if !ok {
+				ns = a.Options().Namespace
+				ctx = metadata.Set(ctx, "Micro-Namespace", ns)
+			}
+
+			// Check the issuer matches the services namespace
+			if account != nil && account.Issuer != ns {
+				return errors.Forbidden(req.Service(), "Account was not issued by %v", ns)
+			}
 
 			// construct the resource
 			res := &auth.Resource{

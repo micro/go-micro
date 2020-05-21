@@ -55,8 +55,8 @@ func (j *jwt) Generate(id string, opts ...auth.GenerateOption) (*auth.Account, e
 		ID:       id,
 		Type:     options.Type,
 		Scopes:   options.Scopes,
-		Provider: options.Provider,
 		Metadata: options.Metadata,
+		Issuer:   j.Options().Namespace,
 	}
 
 	// generate a JWT secret which can be provided to the Token() method
@@ -97,12 +97,12 @@ func (j *jwt) Verify(acc *auth.Account, res *auth.Resource, opts ...auth.VerifyO
 	j.Lock()
 	defer j.Unlock()
 
-	options := auth.VerifyOptions{Scope: j.options.Namespace}
+	var options auth.VerifyOptions
 	for _, o := range opts {
 		o(&options)
 	}
 
-	return rules.Verify(options.Scope, j.rules, acc, res)
+	return rules.Verify(j.rules, acc, res)
 }
 
 func (j *jwt) Rules() ([]*auth.Rule, error) {

@@ -78,12 +78,19 @@ func (s *svc) Generate(id string, opts ...auth.GenerateOption) (*auth.Account, e
 
 // Grant access to a resource
 func (s *svc) Grant(rule *auth.Rule) error {
+	access := pb.Access_UNKNOWN
+	if rule.Access == auth.AccessGranted {
+		access = pb.Access_GRANTED
+	} else if rule.Access == auth.AccessDenied {
+		access = pb.Access_DENIED
+	}
+
 	_, err := s.rule.Create(context.TODO(), &pb.CreateRequest{
 		Rule: &pb.Rule{
 			Id:       rule.ID,
 			Scope:    rule.Scope,
 			Priority: rule.Priority,
-			Access:   pb.Access_GRANTED,
+			Access:   access,
 			Resource: &pb.Resource{
 				Type:     rule.Resource.Type,
 				Name:     rule.Resource.Name,
@@ -91,6 +98,7 @@ func (s *svc) Grant(rule *auth.Rule) error {
 			},
 		},
 	})
+
 	go s.loadRules(s.options.Namespace)
 	return err
 }
@@ -100,6 +108,7 @@ func (s *svc) Revoke(rule *auth.Rule) error {
 	_, err := s.rule.Delete(context.TODO(), &pb.DeleteRequest{
 		Id: rule.ID,
 	})
+
 	go s.loadRules(s.options.Namespace)
 	return err
 }
@@ -110,16 +119,16 @@ func (s *svc) Rules() ([]*auth.Rule, error) {
 
 // Verify an account has access to a resource
 func (s *svc) Verify(acc *auth.Account, res *auth.Resource, opts ...auth.VerifyOption) error {
-	options := auth.VerifyOptions{Scope: s.options.Namespace}
+	var options auth.VerifyOptions
 	for _, o := range opts {
 		o(&options)
 	}
 
 	// load the rules if none are loaded
-	s.loadRulesIfEmpty(options.Scope)
+	s.loadRulesIfEmpty(s.Options().Namespace)
 
 	// verify the request using the rules
-	return rules.Verify(options.Scope, s.rules[options.Scope], acc, res)
+	return rules.Verify(s.rules[s.Options().Namespace], acc, res)
 }
 
 // Inspect a token
@@ -215,8 +224,8 @@ func serializeAccount(a *pb.Account) *auth.Account {
 	return &auth.Account{
 		ID:       a.Id,
 		Secret:   a.Secret,
+		Issuer:   a.Issuer,
 		Metadata: a.Metadata,
-		Provider: a.Provider,
 		Scopes:   a.Scopes,
 	}
 }

@@ -37,7 +37,7 @@ message Account {
 	string type = 2;
 	map<string, string> metadata = 4;
 	repeated string scopes = 5;
-	string provider = 6;
+	string issuer = 6;
 	string secret = 7;
 }
 

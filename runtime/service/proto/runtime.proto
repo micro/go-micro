@@ -41,8 +41,6 @@ message CreateOptions {
 	string type = 5;
 	// image to use
 	string image = 6;
-	// namespace to use
-	string namespace = 7;
 }
 
 message CreateRequest {
@@ -59,8 +57,6 @@ message ReadOptions {
 	string version = 2;
 	// type of service
 	string type = 3;
-	// namespace of service
-	string namespace = 4;
 }
 
 message ReadRequest {
@@ -72,8 +68,6 @@ message ReadResponse {
 }
 
 message DeleteOptions {
-	// namespace of the service
-	string namespace = 1;
 }
 
 message DeleteRequest {
@@ -84,8 +78,6 @@ message DeleteRequest {
 message DeleteResponse {}
 
 message UpdateOptions {
-	// namespace of the service
-	string namespace = 1;
 }
 
 message UpdateRequest {
@@ -96,8 +88,6 @@ message UpdateRequest {
 message UpdateResponse {}
 
 message ListOptions {
-	// namespace to list from
-	string namespace = 1;
 }
 
 message ListRequest {
@@ -109,8 +99,6 @@ message ListResponse {
 }
 
 message LogsOptions {
-	// namespace of the service
-	string namespace = 1;
 }
 
 message LogsRequest{
