@@ -18,6 +18,7 @@ import (
 	"github.com/micro/go-micro/v2/registry"
 	maddr "github.com/micro/go-micro/v2/util/addr"
 	authutil "github.com/micro/go-micro/v2/util/auth"
+	"github.com/micro/go-micro/v2/util/backoff"
 	mhttp "github.com/micro/go-micro/v2/util/http"
 	mnet "github.com/micro/go-micro/v2/util/net"
 	signalutil "github.com/micro/go-micro/v2/util/signal"
@@ -138,7 +139,24 @@ func (s *service) register() error {
 		return err
 	}
 
-	return r.Register(s.srv, registry.RegisterTTL(s.opts.RegisterTTL))
+	var regErr error
+
+	// try three times if necessary
+	for i := 0; i < 3; i++ {
+		// attempt to register
+		if err := r.Register(s.srv, registry.RegisterTTL(s.opts.RegisterTTL)); err != nil {
+			// set the error
+			regErr = err
+			// backoff then retry
+			time.Sleep(backoff.Do(i + 1))
+			continue
+		}
+		// success so nil error
+		regErr = nil
+		break
+	}
+
+	return regErr
 }
 
 func (s *service) deregister() error {
