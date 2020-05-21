@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/lib/pq"
+	"github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/store"
 	"github.com/pkg/errors"
 )
@@ -87,6 +88,10 @@ func (s *sqlStore) createDB(database, table string) error {
 }
 
 func (s *sqlStore) initDB(database, table string) error {
+	if s.db == nil {
+		return errors.New("Database connection not initialised")
+	}
+
 	// Create the namespace's database
 	_, err := s.db.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s;", database))
 	if err != nil {
@@ -486,7 +491,11 @@ func NewStore(opts ...store.Option) store.Store {
 	// mark known databases
 	s.databases = make(map[string]bool)
 	// best-effort configure the store
-	s.configure()
+	if err := s.configure(); err != nil {
+		if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
+			logger.Error("Error configuring store ", err)
+		}
+	}
 
 	// return store
 	return s
