@@ -3,7 +3,6 @@ package wrapper
 import (
 	"context"
 	"strings"
-	"time"
 
 	"github.com/micro/go-micro/v2/auth"
 	"github.com/micro/go-micro/v2/client"
@@ -156,9 +155,14 @@ func (a *authWrapper) Call(ctx context.Context, req client.Request, rsp interfac
 		return a.Client.Call(ctx, req, rsp, opts...)
 	}
 
+	// set the namespace header if it has not been set (e.g. on a service to service request)
+	if _, ok := metadata.Get(ctx, "Micro-Namespace"); !ok {
+		ctx = metadata.Set(ctx, "Micro-Namespace", aa.Options().Namespace)
+	}
+
 	// check to see if we have a valid access token
 	aaOpts := aa.Options()
-	if aaOpts.Token != nil && aaOpts.Token.Expiry.Unix() > time.Now().Unix() {
+	if aaOpts.Token != nil && !aaOpts.Token.Expired() {
 		ctx = metadata.Set(ctx, "Authorization", auth.BearerScheme+aaOpts.Token.AccessToken)
 		return a.Client.Call(ctx, req, rsp, opts...)
 	}

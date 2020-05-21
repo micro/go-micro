@@ -31,7 +31,6 @@ func Verify(namespace string, rules []*auth.Rule, acc *auth.Account, res *auth.R
 	// filter the rules to the ones which match the criteria above
 	filteredRules := make([]*auth.Rule, 0)
 	for _, rule := range rules {
-		fmt.Printf("All rules: %v\n", rule.ID)
 		if !include(validTypes, rule.Resource.Type) {
 			continue
 		}

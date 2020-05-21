@@ -30,7 +30,7 @@ func Generate(id string, name string, a auth.Auth) error {
 		if err != nil {
 			return err
 		}
-		logger.Infof("Auth [%v] Authenticated as %v in the %v scope", a, name, scope)
+		logger.Infof("Auth [%v] Authenticated as %v in the %v namespace", a, name, a.Options().Namespace)
 
 		accID = acc.ID
 		accSecret = acc.Secret
