@@ -225,6 +225,14 @@ func NewTokenOptions(opts ...TokenOption) TokenOptions {
 	return options
 }
 
-type VerifyOptions struct{}
+type VerifyOptions struct {
+	Namespace string
+}
 
 type VerifyOption func(o *VerifyOptions)
+
+func VerifyNamespace(ns string) VerifyOption {
+	return func(o *VerifyOptions) {
+		o.Namespace = ns
+	}
+}

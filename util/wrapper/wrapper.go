@@ -221,7 +221,7 @@ func AuthHandler(fn func() auth.Auth) server.HandlerWrapper {
 			}
 
 			// Verify the caller has access to the resource
-			err := a.Verify(account, res)
+			err := a.Verify(account, res, auth.VerifyNamespace(ns))
 			if err != nil && account != nil {
 				return errors.Forbidden(req.Service(), "Forbidden call made to %v:%v by %v", req.Service(), req.Endpoint(), account.ID)
 			} else if err != nil {

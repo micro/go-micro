@@ -123,12 +123,15 @@ func (s *svc) Verify(acc *auth.Account, res *auth.Resource, opts ...auth.VerifyO
 	for _, o := range opts {
 		o(&options)
 	}
+	if len(options.Namespace) == 0 {
+		options.Namespace = s.options.Namespace
+	}
 
 	// load the rules if none are loaded
-	s.loadRulesIfEmpty(s.Options().Namespace)
+	s.loadRulesIfEmpty(options.Namespace)
 
 	// verify the request using the rules
-	return rules.Verify(s.rules[s.Options().Namespace], acc, res)
+	return rules.Verify(s.rules[options.Namespace], acc, res)
 }
 
 // Inspect a token
