@@ -65,14 +65,14 @@ func Verify(rules []*auth.Rule, acc *auth.Account, res *auth.Resource) error {
 		// this rule applies to any account
 		if rule.Scope == "*" && rule.Access == auth.AccessDenied {
 			return auth.ErrForbidden
-		} else if rule.Scope == "" && rule.Access == auth.AccessGranted {
+		} else if rule.Scope == "*" && rule.Access == auth.AccessGranted {
 			return nil
 		}
 
 		// if the account has the necessary scope
 		if include(acc.Scopes, rule.Scope) && rule.Access == auth.AccessDenied {
 			return auth.ErrForbidden
-		} else if rule.Scope == "" && rule.Access == auth.AccessGranted {
+		} else if include(acc.Scopes, rule.Scope) && rule.Access == auth.AccessGranted {
 			return nil
 		}
 	}
