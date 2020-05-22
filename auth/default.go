@@ -53,6 +53,7 @@ func (n *noop) Generate(id string, opts ...GenerateOption) (*Account, error) {
 		Secret:   options.Secret,
 		Metadata: options.Metadata,
 		Scopes:   options.Scopes,
+		Issuer:   n.Options().Namespace,
 	}, nil
 }
 
