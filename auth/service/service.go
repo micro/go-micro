@@ -261,7 +261,7 @@ func (s *svc) listRules(filters ...string) []*pb.Rule {
 
 // loadRules retrieves the rules from the auth service
 func (s *svc) loadRules() {
-	rsp, err := s.rule.List(context.TODO(), &pb.ListRequest{})
+	rsp, err := s.rule.List(context.TODO(), &pb.ListRequest{}, client.WithCache(time.Minute))
 	s.Lock()
 	defer s.Unlock()
 

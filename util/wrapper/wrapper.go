@@ -227,3 +227,48 @@ func AuthHandler(fn func() auth.Auth) server.HandlerWrapper {
 		}
 	}
 }
+
+type cacheWrapper struct {
+	client.Client
+}
+
+// Call executes the request. If the CacheExpiry option was set, the response will be cached using
+// a hash of the metadata and request as the key.
+func (c *cacheWrapper) Call(ctx context.Context, req client.Request, rsp interface{}, opts ...client.CallOption) error {
+	// parse the options
+	var options client.CallOptions
+	for _, o := range opts {
+		o(&options)
+	}
+
+	// if the client doesn't have a cacbe setup don't continue
+	cache := c.Options().Cache
+	if cache == nil {
+		return c.Client.Call(ctx, req, rsp, opts...)
+	}
+
+	// if the cache expiry is not set, execute the call without the cache
+	if options.CacheExpiry == 0 {
+		return c.Client.Call(ctx, req, rsp, opts...)
+	}
+
+	// check to see if there is a response
+	if cRsp := cache.Get(ctx, &req); cRsp != nil {
+		rsp = cRsp
+		return nil
+	}
+
+	// don't cache the result if there was an error
+	if err := c.Client.Call(ctx, req, rsp, opts...); err != nil {
+		return err
+	}
+
+	// set the result in the cache
+	cache.Set(ctx, &req, rsp, options.CacheExpiry)
+	return nil
+}
+
+// CacheClient wraps requests with the cache wrapper
+func CacheClient(c client.Client) client.Client {
+	return &cacheWrapper{c}
+}
