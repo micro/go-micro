@@ -2,6 +2,8 @@ package config
 
 import (
 	"bytes"
+	"errors"
+	"strings"
 	"sync"
 	"time"
 
@@ -40,6 +42,8 @@ func newConfig(opts ...Option) (Config, error) {
 }
 
 func (c *config) Init(opts ...Option) error {
+	var gerrors []string
+
 	c.opts = Options{
 		Loader: memory.NewLoader(),
 		Reader: json.NewReader(),
@@ -51,19 +55,22 @@ func (c *config) Init(opts ...Option) error {
 
 	err := c.opts.Loader.Load(c.opts.Source...)
 	if err != nil {
-		return err
+		gerrors = append(gerrors, err.Error())
 	}
 
 	c.snap, err = c.opts.Loader.Snapshot()
 	if err != nil {
-		return err
+		gerrors = append(gerrors, err.Error())
 	}
 
 	c.vals, err = c.opts.Reader.Values(c.snap.ChangeSet)
 	if err != nil {
-		return err
+		gerrors = append(gerrors, err.Error())
 	}
 
+	if len(gerrors) != 0 {
+		return errors.New(strings.Join(gerrors, "\n"))
+	}
 	return nil
 }
 

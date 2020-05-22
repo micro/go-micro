@@ -127,3 +127,15 @@ func TestConfigMerge(t *testing.T) {
 			actualHost)
 	}
 }
+
+// ensure config.vals is not nil even when there are Init() errors
+func TestValsNil(t *testing.T) {
+	conf, err := NewConfig(WithSource(file.NewSource(file.WithPath("thisdoesnotexist"))))
+	if err != nil {
+		t.Fatalf("Expected no error but got %v", err)
+	}
+
+	if conf.(*config).vals == nil {
+		t.Fatalf("config reader.Values interface is uninitialized")
+	}
+}
