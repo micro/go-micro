@@ -51,9 +51,9 @@ func Verify(rules []*auth.Rule, acc *auth.Account, res *auth.Resource) error {
 	// loop through the rules and check for a rule which applies to this account
 	for _, rule := range filteredRules {
 		// a blank scope indicates the rule applies to everyone, even nil accounts
-		if rule.Scope == "" && rule.Access == auth.AccessDenied {
+		if rule.Scope == auth.ScopePublic && rule.Access == auth.AccessDenied {
 			return auth.ErrForbidden
-		} else if rule.Scope == "" && rule.Access == auth.AccessGranted {
+		} else if rule.Scope == auth.ScopePublic && rule.Access == auth.AccessGranted {
 			return nil
 		}
 
@@ -63,9 +63,9 @@ func Verify(rules []*auth.Rule, acc *auth.Account, res *auth.Resource) error {
 		}
 
 		// this rule applies to any account
-		if rule.Scope == "*" && rule.Access == auth.AccessDenied {
+		if rule.Scope == auth.ScopeAccount && rule.Access == auth.AccessDenied {
 			return auth.ErrForbidden
-		} else if rule.Scope == "*" && rule.Access == auth.AccessGranted {
+		} else if rule.Scope == auth.ScopeAccount && rule.Access == auth.AccessGranted {
 			return nil
 		}
 

@@ -7,8 +7,14 @@ import (
 	"time"
 )
 
-// BearerScheme used for Authorization header
-const BearerScheme = "Bearer "
+const (
+	// BearerScheme used for Authorization header
+	BearerScheme = "Bearer "
+	// ScopePublic is the scope applied to a rule to allow access to the public
+	ScopePublic = ""
+	// ScopeAccount is the scope applied to a rule to limit to users with any valid account
+	ScopeAccount = "*"
+)
 
 var (
 	// ErrInvalidToken is when the token provided is not valid
