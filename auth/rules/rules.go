@@ -22,7 +22,7 @@ func Verify(rules []*auth.Rule, acc *auth.Account, res *auth.Resource) error {
 	// e.g. /foo/* would include /foo/bar. We also want to check for wildcards and the exact endpoint
 	validEndpoints := []string{"*", res.Endpoint}
 	if comps := strings.Split(res.Endpoint, "/"); len(comps) > 1 {
-		for i := 1; i < len(comps); i++ {
+		for i := 1; i < len(comps)+1; i++ {
 			wildcard := fmt.Sprintf("%v/*", strings.Join(comps[0:i], "/"))
 			validEndpoints = append(validEndpoints, wildcard)
 		}
