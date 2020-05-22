@@ -79,7 +79,7 @@ func (n *noop) Verify(acc *Account, res *Resource, opts ...VerifyOption) error {
 
 // Inspect a token
 func (n *noop) Inspect(token string) (*Account, error) {
-	return &Account{ID: uuid.New().String()}, nil
+	return &Account{ID: uuid.New().String(), Issuer: n.Options().Namespace}, nil
 }
 
 // Token generation using an account id and secret
