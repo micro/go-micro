@@ -99,7 +99,10 @@ func (s *svc) Grant(rule *auth.Rule) error {
 		},
 	})
 
-	go s.loadRules(s.options.Namespace)
+	if err == nil {
+		go s.loadRules(s.options.Namespace)
+	}
+
 	return err
 }
 
