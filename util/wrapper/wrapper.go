@@ -253,8 +253,8 @@ func (c *cacheWrapper) Call(ctx context.Context, req client.Request, rsp interfa
 	}
 
 	// check to see if there is a response
-	if cRsp := cache.Get(ctx, &req); cRsp != nil {
-		rsp = cRsp
+	if r, ok := cache.Get(ctx, &req); ok {
+		rsp = r
 		return nil
 	}
 
