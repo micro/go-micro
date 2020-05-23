@@ -12,7 +12,7 @@ but everything can be easily swapped out.
 
 Plugins are available at [github.com/micro/go-plugins](https://github.com/micro/go-plugins).
 
-Follow us on [Twitter](https://twitter.com/microhq) or join the [Community](https://micro.mu/slack).
+Follow us on [Twitter](https://twitter.com/microhq) or join the [Community](https://slack.micro.mu).
 
 ## Features
 
