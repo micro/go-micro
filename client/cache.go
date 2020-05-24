@@ -33,6 +33,19 @@ func (c *Cache) Set(ctx context.Context, req *Request, rsp interface{}, expiry t
 	c.cache.Set(key(ctx, req), rsp, expiry)
 }
 
+// List the key value pairs in the cache
+func (c *Cache) List() map[string]string {
+	items := c.cache.Items()
+
+	rsp := make(map[string]string, len(items))
+	for k, v := range items {
+		bytes, _ := json.Marshal(v.Object)
+		rsp[k] = string(bytes)
+	}
+
+	return rsp
+}
+
 // key returns a hash for the context and request
 func key(ctx context.Context, req *Request) string {
 	md, _ := metadata.FromContext(ctx)

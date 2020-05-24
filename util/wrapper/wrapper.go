@@ -229,6 +229,7 @@ func AuthHandler(fn func() auth.Auth) server.HandlerWrapper {
 }
 
 type cacheWrapper struct {
+	cache func() *client.Cache
 	client.Client
 }
 
@@ -242,7 +243,7 @@ func (c *cacheWrapper) Call(ctx context.Context, req client.Request, rsp interfa
 	}
 
 	// if the client doesn't have a cacbe setup don't continue
-	cache := c.Options().Cache
+	cache := c.cache()
 	if cache == nil {
 		return c.Client.Call(ctx, req, rsp, opts...)
 	}
@@ -269,6 +270,6 @@ func (c *cacheWrapper) Call(ctx context.Context, req client.Request, rsp interfa
 }
 
 // CacheClient wraps requests with the cache wrapper
-func CacheClient(c client.Client) client.Client {
-	return &cacheWrapper{c}
+func CacheClient(cacheFn func() *client.Cache, c client.Client) client.Client {
+	return &cacheWrapper{cacheFn, c}
 }

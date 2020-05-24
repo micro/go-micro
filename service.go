@@ -35,14 +35,14 @@ func newService(opts ...Option) Service {
 	// service name
 	serviceName := options.Server.Options().Name
 
-	// authFn returns the auth, we pass as a function since auth
-	// has not yet been set at this point.
+	// we pass functions to the wrappers since the values can change during initialisation
 	authFn := func() auth.Auth { return options.Server.Options().Auth }
+	cacheFn := func() *client.Cache { return options.Client.Options().Cache }
 
 	// wrap client to inject From-Service header on any calls
 	options.Client = wrapper.FromService(serviceName, options.Client)
 	options.Client = wrapper.TraceCall(serviceName, trace.DefaultTracer, options.Client)
-	options.Client = wrapper.CacheClient(options.Client)
+	options.Client = wrapper.CacheClient(cacheFn, options.Client)
 	options.Client = wrapper.AuthClient(authFn, options.Client)
 
 	// wrap the server to provide handler stats
@@ -184,7 +184,7 @@ func (s *service) Run() error {
 	// register the debug handler
 	s.opts.Server.Handle(
 		s.opts.Server.NewHandler(
-			handler.NewHandler(),
+			handler.NewHandler(s.opts.Client),
 			server.InternalHandler(true),
 		),
 	)
