@@ -2,6 +2,7 @@ package wrapper
 
 import (
 	"context"
+	"reflect"
 	"strings"
 	"time"
 
@@ -229,7 +230,7 @@ func AuthHandler(fn func() auth.Auth) server.HandlerWrapper {
 }
 
 type cacheWrapper struct {
-	cache func() *client.Cache
+	cacheFn func() *client.Cache
 	client.Client
 }
 
@@ -243,7 +244,7 @@ func (c *cacheWrapper) Call(ctx context.Context, req client.Request, rsp interfa
 	}
 
 	// if the client doesn't have a cacbe setup don't continue
-	cache := c.cache()
+	cache := c.cacheFn()
 	if cache == nil {
 		return c.Client.Call(ctx, req, rsp, opts...)
 	}
@@ -253,9 +254,15 @@ func (c *cacheWrapper) Call(ctx context.Context, req client.Request, rsp interfa
 		return c.Client.Call(ctx, req, rsp, opts...)
 	}
 
-	// check to see if there is a response
+	// if the response is nil don't call the cache since we can't assign the response
+	if rsp == nil {
+		return c.Client.Call(ctx, req, rsp, opts...)
+	}
+
+	// check to see if there is a response cached, if there is assign it
 	if r, ok := cache.Get(ctx, &req); ok {
-		rsp = r
+		val := reflect.ValueOf(rsp).Elem()
+		val.Set(reflect.ValueOf(r).Elem())
 		return nil
 	}
 

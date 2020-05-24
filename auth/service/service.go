@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"sort"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/micro/go-micro/v2/auth"
@@ -23,9 +22,6 @@ type svc struct {
 	auth    pb.AuthService
 	rule    pb.RulesService
 	jwt     token.Provider
-
-	rules []*pb.Rule
-	sync.Mutex
 }
 
 func (s *svc) String() string {
@@ -53,8 +49,6 @@ func (s *svc) Init(opts ...auth.Option) {
 }
 
 func (s *svc) Options() auth.Options {
-	s.Lock()
-	defer s.Unlock()
 	return s.options
 }
 
@@ -110,9 +104,6 @@ func (s *svc) Revoke(role string, res *auth.Resource) error {
 
 // Verify an account has access to a resource
 func (s *svc) Verify(acc *auth.Account, res *auth.Resource) error {
-	// load the rules if none are loaded
-	s.loadRulesIfEmpty()
-
 	// set the namespace on the resource
 	if len(res.Namespace) == 0 {
 		res.Namespace = s.Options().Namespace
@@ -230,11 +221,14 @@ func accessForRule(rule *pb.Rule, acc *auth.Account, res *auth.Resource) pb.Acce
 // listRules gets all the rules from the store which match the filters.
 // filters are namespace, type, name and then endpoint.
 func (s *svc) listRules(filters ...string) []*pb.Rule {
-	s.Lock()
-	defer s.Unlock()
+	// load rules using the client cache
+	allRules, err := s.loadRules()
+	if err != nil {
+		return []*pb.Rule{}
+	}
 
 	var rules []*pb.Rule
-	for _, r := range s.rules {
+	for _, r := range allRules {
 		if len(filters) > 0 && r.Resource.Namespace != filters[0] {
 			continue
 		}
@@ -260,27 +254,15 @@ func (s *svc) listRules(filters ...string) []*pb.Rule {
 }
 
 // loadRules retrieves the rules from the auth service
-func (s *svc) loadRules() {
+func (s *svc) loadRules() ([]*pb.Rule, error) {
 	rsp, err := s.rule.List(context.TODO(), &pb.ListRequest{}, client.WithCache(time.Minute))
-	s.Lock()
-	defer s.Unlock()
 
 	if err != nil {
-		log.Errorf("Error listing rules: %v", err)
-		return
+		log.Debugf("Error listing rules: %v", err)
+		return nil, err
 	}
 
-	s.rules = rsp.Rules
-}
-
-func (s *svc) loadRulesIfEmpty() {
-	s.Lock()
-	rules := s.rules
-	s.Unlock()
-
-	if len(rules) == 0 {
-		s.loadRules()
-	}
+	return rsp.Rules, nil
 }
 
 func serializeToken(t *pb.Token) *auth.Token {
