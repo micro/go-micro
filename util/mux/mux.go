@@ -5,6 +5,7 @@ import (
 	"context"
 	"sync"
 
+	"github.com/micro/go-micro/v2/client"
 	"github.com/micro/go-micro/v2/debug/service/handler"
 	"github.com/micro/go-micro/v2/proxy"
 	"github.com/micro/go-micro/v2/server"
@@ -42,7 +43,7 @@ func New(name string, p proxy.Proxy) *Server {
 		server.DefaultRouter.Handle(
 			// inject the debug handler
 			server.DefaultRouter.NewHandler(
-				handler.NewHandler(),
+				handler.NewHandler(client.DefaultClient),
 				server.InternalHandler(true),
 			),
 		)

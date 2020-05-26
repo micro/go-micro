@@ -2,6 +2,7 @@ package wrapper
 
 import (
 	"context"
+	"reflect"
 	"strings"
 	"time"
 
@@ -226,4 +227,56 @@ func AuthHandler(fn func() auth.Auth) server.HandlerWrapper {
 			return h(ctx, req, rsp)
 		}
 	}
+}
+
+type cacheWrapper struct {
+	cacheFn func() *client.Cache
+	client.Client
+}
+
+// Call executes the request. If the CacheExpiry option was set, the response will be cached using
+// a hash of the metadata and request as the key.
+func (c *cacheWrapper) Call(ctx context.Context, req client.Request, rsp interface{}, opts ...client.CallOption) error {
+	// parse the options
+	var options client.CallOptions
+	for _, o := range opts {
+		o(&options)
+	}
+
+	// if the client doesn't have a cacbe setup don't continue
+	cache := c.cacheFn()
+	if cache == nil {
+		return c.Client.Call(ctx, req, rsp, opts...)
+	}
+
+	// if the cache expiry is not set, execute the call without the cache
+	if options.CacheExpiry == 0 {
+		return c.Client.Call(ctx, req, rsp, opts...)
+	}
+
+	// if the response is nil don't call the cache since we can't assign the response
+	if rsp == nil {
+		return c.Client.Call(ctx, req, rsp, opts...)
+	}
+
+	// check to see if there is a response cached, if there is assign it
+	if r, ok := cache.Get(ctx, &req); ok {
+		val := reflect.ValueOf(rsp).Elem()
+		val.Set(reflect.ValueOf(r).Elem())
+		return nil
+	}
+
+	// don't cache the result if there was an error
+	if err := c.Client.Call(ctx, req, rsp, opts...); err != nil {
+		return err
+	}
+
+	// set the result in the cache
+	cache.Set(ctx, &req, rsp, options.CacheExpiry)
+	return nil
+}
+
+// CacheClient wraps requests with the cache wrapper
+func CacheClient(cacheFn func() *client.Cache, c client.Client) client.Client {
+	return &cacheWrapper{cacheFn, c}
 }
