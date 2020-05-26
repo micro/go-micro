@@ -5,14 +5,14 @@ Go Micro is a framework for distributed systems development.
 ## Overview
 
 Go Micro provides the core requirements for distributed systems development including RPC and Event driven communication. 
-The **micro** philosophy is sane defaults with a pluggable architecture. We provide defaults to get you started quickly 
+The **Micro** philosophy is sane defaults with a pluggable architecture. We provide defaults to get you started quickly 
 but everything can be easily swapped out. 
 
 <img src="https://micro.mu/docs/images/go-micro.svg" />
 
 Plugins are available at [github.com/micro/go-plugins](https://github.com/micro/go-plugins).
 
-Follow us on [Twitter](https://twitter.com/microhq) or join the [Community](https://micro.mu/slack).
+Follow us on [Twitter](https://twitter.com/microhq) or join the [Community](https://slack.micro.mu).
 
 ## Features
 
