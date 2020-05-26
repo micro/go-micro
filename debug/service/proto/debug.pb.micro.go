@@ -46,6 +46,7 @@ type DebugService interface {
 	Health(ctx context.Context, in *HealthRequest, opts ...client.CallOption) (*HealthResponse, error)
 	Stats(ctx context.Context, in *StatsRequest, opts ...client.CallOption) (*StatsResponse, error)
 	Trace(ctx context.Context, in *TraceRequest, opts ...client.CallOption) (*TraceResponse, error)
+	Cache(ctx context.Context, in *CacheRequest, opts ...client.CallOption) (*CacheResponse, error)
 }
 
 type debugService struct {
@@ -139,6 +140,16 @@ func (c *debugService) Trace(ctx context.Context, in *TraceRequest, opts ...clie
 	return out, nil
 }
 
+func (c *debugService) Cache(ctx context.Context, in *CacheRequest, opts ...client.CallOption) (*CacheResponse, error) {
+	req := c.c.NewRequest(c.name, "Debug.Cache", in)
+	out := new(CacheResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Server API for Debug service
 
 type DebugHandler interface {
@@ -146,6 +157,7 @@ type DebugHandler interface {
 	Health(context.Context, *HealthRequest, *HealthResponse) error
 	Stats(context.Context, *StatsRequest, *StatsResponse) error
 	Trace(context.Context, *TraceRequest, *TraceResponse) error
+	Cache(context.Context, *CacheRequest, *CacheResponse) error
 }
 
 func RegisterDebugHandler(s server.Server, hdlr DebugHandler, opts ...server.HandlerOption) error {
@@ -154,6 +166,7 @@ func RegisterDebugHandler(s server.Server, hdlr DebugHandler, opts ...server.Han
 		Health(ctx context.Context, in *HealthRequest, out *HealthResponse) error
 		Stats(ctx context.Context, in *StatsRequest, out *StatsResponse) error
 		Trace(ctx context.Context, in *TraceRequest, out *TraceResponse) error
+		Cache(ctx context.Context, in *CacheRequest, out *CacheResponse) error
 	}
 	type Debug struct {
 		debug
@@ -216,4 +229,8 @@ func (h *debugHandler) Stats(ctx context.Context, in *StatsRequest, out *StatsRe
 
 func (h *debugHandler) Trace(ctx context.Context, in *TraceRequest, out *TraceResponse) error {
 	return h.DebugHandler.Trace(ctx, in, out)
+}
+
+func (h *debugHandler) Cache(ctx context.Context, in *CacheRequest, out *CacheResponse) error {
+	return h.DebugHandler.Cache(ctx, in, out)
 }

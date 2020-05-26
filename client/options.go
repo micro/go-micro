@@ -29,6 +29,9 @@ type Options struct {
 	PoolSize int
 	PoolTTL  time.Duration
 
+	// Response cache
+	Cache *Cache
+
 	// Middleware for client
 	Wrappers []Wrapper
 
@@ -59,6 +62,8 @@ type CallOptions struct {
 	StreamTimeout time.Duration
 	// Use the services own auth token
 	ServiceToken bool
+	// Duration to cache the response for
+	CacheExpiry time.Duration
 
 	// Middleware for low level call func
 	CallWrappers []CallWrapper
@@ -91,6 +96,7 @@ type RequestOptions struct {
 
 func NewOptions(options ...Option) Options {
 	opts := Options{
+		Cache:       NewCache(),
 		Context:     context.Background(),
 		ContentType: DefaultContentType,
 		Codecs:      make(map[string]codec.NewCodec),
@@ -321,6 +327,14 @@ func WithDialTimeout(d time.Duration) CallOption {
 func WithServiceToken() CallOption {
 	return func(o *CallOptions) {
 		o.ServiceToken = true
+	}
+}
+
+// WithCache is a CallOption which sets the duration the response
+// shoull be cached for
+func WithCache(c time.Duration) CallOption {
+	return func(o *CallOptions) {
+		o.CacheExpiry = c
 	}
 }
 
