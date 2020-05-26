@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/micro/go-micro/v2/auth"
@@ -12,19 +11,14 @@ import (
 	"github.com/micro/go-micro/v2/auth/token"
 	"github.com/micro/go-micro/v2/auth/token/jwt"
 	"github.com/micro/go-micro/v2/client"
-	log "github.com/micro/go-micro/v2/logger"
-	"github.com/micro/go-micro/v2/metadata"
-	"github.com/micro/go-micro/v2/util/jitter"
 )
 
 // svc is the service implementation of the Auth interface
 type svc struct {
 	options auth.Options
 	auth    pb.AuthService
-	rule    pb.RulesService
+	rules   pb.RulesService
 	jwt     token.Provider
-	rules   map[string][]*auth.Rule
-	sync.Mutex
 }
 
 func (s *svc) String() string {
@@ -41,7 +35,7 @@ func (s *svc) Init(opts ...auth.Option) {
 	}
 
 	s.auth = pb.NewAuthService("go.micro.auth", s.options.Client)
-	s.rule = pb.NewRulesService("go.micro.auth", s.options.Client)
+	s.rules = pb.NewRulesService("go.micro.auth", s.options.Client)
 
 	// if we have a JWT public key passed as an option,
 	// we can decode tokens with the type "JWT" locally
@@ -52,8 +46,6 @@ func (s *svc) Init(opts ...auth.Option) {
 }
 
 func (s *svc) Options() auth.Options {
-	s.Lock()
-	defer s.Unlock()
 	return s.options
 }
 
@@ -85,7 +77,7 @@ func (s *svc) Grant(rule *auth.Rule) error {
 		access = pb.Access_DENIED
 	}
 
-	_, err := s.rule.Create(context.TODO(), &pb.CreateRequest{
+	_, err := s.rules.Create(context.TODO(), &pb.CreateRequest{
 		Rule: &pb.Rule{
 			Id:       rule.ID,
 			Scope:    rule.Scope,
@@ -99,25 +91,38 @@ func (s *svc) Grant(rule *auth.Rule) error {
 		},
 	})
 
-	if err == nil {
-		go s.loadRules(s.options.Namespace)
-	}
-
 	return err
 }
 
 // Revoke access to a resource
 func (s *svc) Revoke(rule *auth.Rule) error {
-	_, err := s.rule.Delete(context.TODO(), &pb.DeleteRequest{
+	_, err := s.rules.Delete(context.TODO(), &pb.DeleteRequest{
 		Id: rule.ID,
 	})
 
-	go s.loadRules(s.options.Namespace)
 	return err
 }
 
-func (s *svc) Rules() ([]*auth.Rule, error) {
-	return s.rules[s.options.Namespace], nil
+func (s *svc) Rules(opts ...auth.RulesOption) ([]*auth.Rule, error) {
+	var options auth.RulesOptions
+	for _, o := range opts {
+		o(&options)
+	}
+	if options.Context == nil {
+		options.Context = context.TODO()
+	}
+
+	rsp, err := s.rules.List(options.Context, &pb.ListRequest{})
+	if err != nil {
+		return nil, err
+	}
+
+	rules := make([]*auth.Rule, len(rsp.Rules))
+	for i, r := range rsp.Rules {
+		rules[i] = serializeRule(r)
+	}
+
+	return rules, nil
 }
 
 // Verify an account has access to a resource
@@ -126,15 +131,13 @@ func (s *svc) Verify(acc *auth.Account, res *auth.Resource, opts ...auth.VerifyO
 	for _, o := range opts {
 		o(&options)
 	}
-	if len(options.Namespace) == 0 {
-		options.Namespace = s.options.Namespace
+
+	rs, err := s.Rules(auth.RulesContext(options.Context))
+	if err != nil {
+		return err
 	}
 
-	// load the rules if none are loaded
-	s.loadRulesIfEmpty(options.Namespace)
-
-	// verify the request using the rules
-	return rules.Verify(s.rules[options.Namespace], acc, res)
+	return rules.Verify(rs, acc, res)
 }
 
 // Inspect a token
@@ -170,53 +173,6 @@ func (s *svc) Token(opts ...auth.TokenOption) (*auth.Token, error) {
 	return serializeToken(rsp.Token), nil
 }
 
-// loadRules retrieves the rules from the auth service. Since this implementation is used by micro
-// clients, which support muti-tenancy we may have to persist rules in multiple namespaces.
-func (s *svc) loadRules(namespace string) {
-	ctx := metadata.Set(context.TODO(), "Micro-Namespace", namespace)
-	rsp, err := s.rule.List(ctx, &pb.ListRequest{})
-	if err != nil {
-		log.Errorf("Error listing rules: %v", err)
-		return
-	}
-
-	rules := make([]*auth.Rule, 0, len(rsp.Rules))
-	for _, r := range rsp.Rules {
-		var access auth.Access
-		if r.Access == pb.Access_GRANTED {
-			access = auth.AccessGranted
-		} else {
-			access = auth.AccessDenied
-		}
-
-		rules = append(rules, &auth.Rule{
-			ID:       r.Id,
-			Scope:    r.Scope,
-			Access:   access,
-			Priority: r.Priority,
-			Resource: &auth.Resource{
-				Type:     r.Resource.Type,
-				Name:     r.Resource.Name,
-				Endpoint: r.Resource.Endpoint,
-			},
-		})
-	}
-
-	s.Lock()
-	s.rules[namespace] = rules
-	s.Unlock()
-}
-
-func (s *svc) loadRulesIfEmpty(namespace string) {
-	s.Lock()
-	rules := s.rules
-	s.Unlock()
-
-	if _, ok := rules[namespace]; !ok {
-		s.loadRules(namespace)
-	}
-}
-
 func serializeToken(t *pb.Token) *auth.Token {
 	return &auth.Token{
 		AccessToken:  t.AccessToken,
@@ -236,6 +192,27 @@ func serializeAccount(a *pb.Account) *auth.Account {
 	}
 }
 
+func serializeRule(r *pb.Rule) *auth.Rule {
+	var access auth.Access
+	if r.Access == pb.Access_GRANTED {
+		access = auth.AccessGranted
+	} else {
+		access = auth.AccessDenied
+	}
+
+	return &auth.Rule{
+		ID:       r.Id,
+		Scope:    r.Scope,
+		Access:   access,
+		Priority: r.Priority,
+		Resource: &auth.Resource{
+			Type:     r.Resource.Type,
+			Name:     r.Resource.Name,
+			Endpoint: r.Resource.Endpoint,
+		},
+	}
+}
+
 // NewAuth returns a new instance of the Auth service
 func NewAuth(opts ...auth.Option) auth.Auth {
 	options := auth.NewOptions(opts...)
@@ -243,26 +220,9 @@ func NewAuth(opts ...auth.Option) auth.Auth {
 		options.Client = client.DefaultClient
 	}
 
-	service := &svc{
+	return &svc{
 		auth:    pb.NewAuthService("go.micro.auth", options.Client),
-		rule:    pb.NewRulesService("go.micro.auth", options.Client),
-		rules:   make(map[string][]*auth.Rule),
+		rules:   pb.NewRulesService("go.micro.auth", options.Client),
 		options: options,
 	}
-
-	// load rules periodically from the auth service
-	go func() {
-		ruleTimer := time.NewTicker(time.Second * 30)
-
-		for {
-			<-ruleTimer.C
-			time.Sleep(jitter.Do(time.Second * 5))
-
-			for ns := range service.rules {
-				service.loadRules(ns)
-			}
-		}
-	}()
-
-	return service
 }

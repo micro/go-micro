@@ -472,9 +472,13 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	var serverOpts []server.Option
 	var clientOpts []client.Option
 
-	// setup a client to use when calling the runtime
+	// setup a client to use when calling the runtime. It is important the auth client is wrapped
+	// after the cache client since the wrappers are applied in reverse order and the cache will use
+	// some of the headers set by the auth client.
 	authFn := func() auth.Auth { return *c.opts.Auth }
-	microClient := wrapper.AuthClient(authFn, grpc.NewClient())
+	cacheFn := func() *client.Cache { return (*c.opts.Client).Options().Cache }
+	microClient := wrapper.CacheClient(cacheFn, grpc.NewClient())
+	microClient = wrapper.AuthClient(authFn, microClient)
 
 	// Set the store
 	if name := ctx.String("store"); len(name) > 0 {

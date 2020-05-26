@@ -42,7 +42,7 @@ type Auth interface {
 	// Revoke access to a resource
 	Revoke(rule *Rule) error
 	// Rules returns all the rules used to verify requests
-	Rules() ([]*Rule, error)
+	Rules(...RulesOption) ([]*Rule, error)
 	// String returns the name of the implementation
 	String() string
 }

@@ -68,7 +68,7 @@ func (n *noop) Revoke(rule *Rule) error {
 }
 
 // Rules used to verify requests
-func (n *noop) Rules() ([]*Rule, error) {
+func (n *noop) Rules(opts ...RulesOption) ([]*Rule, error) {
 	return []*Rule{}, nil
 }
 

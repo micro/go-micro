@@ -105,7 +105,7 @@ func (j *jwt) Verify(acc *auth.Account, res *auth.Resource, opts ...auth.VerifyO
 	return rules.Verify(j.rules, acc, res)
 }
 
-func (j *jwt) Rules() ([]*auth.Rule, error) {
+func (j *jwt) Rules(opts ...auth.RulesOption) ([]*auth.Rule, error) {
 	j.Lock()
 	defer j.Unlock()
 	return j.rules, nil

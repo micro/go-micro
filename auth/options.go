@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"context"
 	"time"
 
 	"github.com/micro/go-micro/v2/auth/provider"
@@ -226,13 +227,25 @@ func NewTokenOptions(opts ...TokenOption) TokenOptions {
 }
 
 type VerifyOptions struct {
-	Namespace string
+	Context context.Context
 }
 
 type VerifyOption func(o *VerifyOptions)
 
-func VerifyNamespace(ns string) VerifyOption {
+func VerifyContext(ctx context.Context) VerifyOption {
 	return func(o *VerifyOptions) {
-		o.Namespace = ns
+		o.Context = ctx
+	}
+}
+
+type RulesOptions struct {
+	Context context.Context
+}
+
+type RulesOption func(o *RulesOptions)
+
+func RulesContext(ctx context.Context) RulesOption {
+	return func(o *RulesOptions) {
+		o.Context = ctx
 	}
 }
