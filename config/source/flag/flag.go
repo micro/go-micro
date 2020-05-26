@@ -4,7 +4,7 @@ import (
 	"errors"
 	"flag"
 	"github.com/imdario/mergo"
-	"github.com/micro/go-micro/config/source"
+	"github.com/micro/go-micro/v2/config/source"
 	"strings"
 	"time"
 )
@@ -75,6 +75,10 @@ func reverse(ss []string) {
 
 func (fs *flagsrc) Watch() (source.Watcher, error) {
 	return source.NewNoopWatcher()
+}
+
+func (fs *flagsrc) Write(cs *source.ChangeSet) error {
+	return nil
 }
 
 func (fs *flagsrc) String() string {

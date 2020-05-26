@@ -5,7 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/micro/go-micro/config/source"
+	"github.com/micro/go-micro/v2/config/source"
 )
 
 type file struct {
@@ -52,6 +52,10 @@ func (f *file) Watch() (source.Watcher, error) {
 		return nil, err
 	}
 	return newWatcher(f)
+}
+
+func (f *file) Write(cs *source.ChangeSet) error {
+	return nil
 }
 
 func NewSource(opts ...source.Option) source.Source {

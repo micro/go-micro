@@ -8,7 +8,7 @@ import (
 
 	cetcd "github.com/coreos/etcd/clientv3"
 	"github.com/coreos/etcd/mvcc/mvccpb"
-	"github.com/micro/go-micro/config/source"
+	"github.com/micro/go-micro/v2/config/source"
 )
 
 // Currently a single etcd reader
@@ -74,6 +74,10 @@ func (c *etcd) Watch() (source.Watcher, error) {
 		return nil, err
 	}
 	return newWatcher(c.prefix, c.stripPrefix, c.client.Watcher, cs, c.opts)
+}
+
+func (c *etcd) Write(cs *source.ChangeSet) error {
+	return nil
 }
 
 func NewSource(opts ...source.Option) source.Source {

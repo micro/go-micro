@@ -6,9 +6,11 @@ import (
 	"time"
 )
 
+// Do is a function x^e multiplied by a factor of 0.1 second.
+// Result is limited to 2 minute.
 func Do(attempts int) time.Duration {
-	if attempts == 0 {
-		return time.Duration(0)
+	if attempts > 13 {
+		return 2 * time.Minute
 	}
-	return time.Duration(math.Pow(10, float64(attempts))) * time.Millisecond
+	return time.Duration(math.Pow(float64(attempts), math.E)) * time.Millisecond * 100
 }

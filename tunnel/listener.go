@@ -2,9 +2,9 @@ package tunnel
 
 import (
 	"io"
-	"time"
+	"sync"
 
-	"github.com/micro/go-micro/util/log"
+	"github.com/micro/go-micro/v2/logger"
 )
 
 type tunListener struct {
@@ -14,32 +14,16 @@ type tunListener struct {
 	token string
 	// the accept channel
 	accept chan *session
-	// the channel to close
-	closed chan bool
 	// the tunnel closed channel
 	tunClosed chan bool
 	// the listener session
 	session *session
 	// del func to kill listener
 	delFunc func()
-}
 
-// periodically announce self the channel being listened on
-func (t *tunListener) announce() {
-	tick := time.NewTicker(time.Second * 30)
-	defer tick.Stop()
-
-	// first announcement
-	t.session.Announce()
-
-	for {
-		select {
-		case <-tick.C:
-			t.session.Announce()
-		case <-t.closed:
-			return
-		}
-	}
+	sync.RWMutex
+	// the channel to close
+	closed chan bool
 }
 
 func (t *tunListener) process() {
@@ -68,7 +52,7 @@ func (t *tunListener) process() {
 			var sessionId string
 			var linkId string
 
-			switch m.mode {
+			switch t.session.mode {
 			case Multicast:
 				sessionId = "multicast"
 				linkId = "multicast"
@@ -82,7 +66,9 @@ func (t *tunListener) process() {
 
 			// get a session
 			sess, ok := conns[sessionId]
-			log.Tracef("Tunnel listener received channel %s session %s type %s exists: %t", m.channel, m.session, m.typ, ok)
+			if logger.V(logger.TraceLevel, log) {
+				log.Tracef("Tunnel listener received channel %s session %s type %s exists: %t", m.channel, m.session, m.typ, ok)
+			}
 			if !ok {
 				// we only process open and session types
 				switch m.typ {
@@ -93,6 +79,8 @@ func (t *tunListener) process() {
 
 				// create a new session session
 				sess = &session{
+					// the session key
+					key: []byte(t.token + m.channel + sessionId),
 					// the id of the remote side
 					tunnel: m.tunnel,
 					// the channel
@@ -106,7 +94,7 @@ func (t *tunListener) process() {
 					// the link the message was received on
 					link: linkId,
 					// set the connection mode
-					mode: m.mode,
+					mode: t.session.mode,
 					// close chan
 					closed: make(chan bool),
 					// recv called by the acceptor
@@ -134,6 +122,11 @@ func (t *tunListener) process() {
 
 			switch m.typ {
 			case "close":
+				// don't close multicast sessions
+				if sess.mode > Unicast {
+					continue
+				}
+
 				// received a close message
 				select {
 				// check if the session is closed
@@ -161,7 +154,9 @@ func (t *tunListener) process() {
 			case <-sess.closed:
 				delete(conns, sessionId)
 			case sess.recv <- m:
-				log.Tracef("Tunnel listener sent to recv chan channel %s session %s type %s", m.channel, sessionId, m.typ)
+				if logger.V(logger.TraceLevel, log) {
+					log.Tracef("Tunnel listener sent to recv chan channel %s session %s type %s", m.channel, sessionId, m.typ)
+				}
 			}
 		}
 	}
@@ -173,6 +168,9 @@ func (t *tunListener) Channel() string {
 
 // Close closes tunnel listener
 func (t *tunListener) Close() error {
+	t.Lock()
+	defer t.Unlock()
+
 	select {
 	case <-t.closed:
 		return nil

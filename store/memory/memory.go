@@ -2,119 +2,266 @@
 package memory
 
 import (
-	"sync"
+	"path/filepath"
+	"sort"
+	"strings"
 	"time"
 
-	"github.com/micro/go-micro/config/options"
-	"github.com/micro/go-micro/store"
+	"github.com/micro/go-micro/v2/store"
+	"github.com/patrickmn/go-cache"
+	"github.com/pkg/errors"
 )
 
+// NewStore returns a memory store
+func NewStore(opts ...store.Option) store.Store {
+	s := &memoryStore{
+		options: store.Options{
+			Database: "micro",
+			Table:    "micro",
+		},
+		store: cache.New(cache.NoExpiration, 5*time.Minute),
+	}
+	for _, o := range opts {
+		o(&s.options)
+	}
+	return s
+}
+
 type memoryStore struct {
-	options.Options
+	options store.Options
 
-	sync.RWMutex
-	values map[string]*memoryRecord
+	store *cache.Cache
 }
 
-type memoryRecord struct {
-	r *store.Record
-	c time.Time
+type internalRecord struct {
+	key       string
+	value     []byte
+	expiresAt time.Time
 }
 
-func (m *memoryStore) List() ([]*store.Record, error) {
-	m.RLock()
-	defer m.RUnlock()
+func (m *memoryStore) key(prefix, key string) string {
+	return filepath.Join(prefix, key)
+}
 
-	//nolint:prealloc
-	var values []*store.Record
+func (m *memoryStore) prefix(database, table string) string {
+	if len(database) == 0 {
+		database = m.options.Database
+	}
+	if len(table) == 0 {
+		table = m.options.Table
+	}
+	return filepath.Join(database, table)
+}
 
-	for _, v := range m.values {
-		// get expiry
-		d := v.r.Expiry
-		t := time.Since(v.c)
+func (m *memoryStore) get(prefix, key string) (*store.Record, error) {
+	key = m.key(prefix, key)
 
-		if d > time.Duration(0) {
-			// expired
-			if t > d {
+	var storedRecord *internalRecord
+	r, found := m.store.Get(key)
+	if !found {
+		return nil, store.ErrNotFound
+	}
+
+	storedRecord, ok := r.(*internalRecord)
+	if !ok {
+		return nil, errors.New("Retrieved a non *internalRecord from the cache")
+	}
+
+	// Copy the record on the way out
+	newRecord := &store.Record{}
+	newRecord.Key = strings.TrimPrefix(storedRecord.key, prefix+"/")
+	newRecord.Value = make([]byte, len(storedRecord.value))
+	copy(newRecord.Value, storedRecord.value)
+	if !storedRecord.expiresAt.IsZero() {
+		newRecord.Expiry = time.Until(storedRecord.expiresAt)
+	}
+
+	return newRecord, nil
+}
+
+func (m *memoryStore) set(prefix string, r *store.Record) {
+	key := m.key(prefix, r.Key)
+
+	// copy the incoming record and then
+	// convert the expiry in to a hard timestamp
+	i := &internalRecord{}
+	i.key = r.Key
+	i.value = make([]byte, len(r.Value))
+	copy(i.value, r.Value)
+
+	if r.Expiry != 0 {
+		i.expiresAt = time.Now().Add(r.Expiry)
+	}
+
+	m.store.Set(key, i, r.Expiry)
+}
+
+func (m *memoryStore) delete(prefix, key string) {
+	key = m.key(prefix, key)
+	m.store.Delete(key)
+}
+
+func (m *memoryStore) list(prefix string, limit, offset uint) []string {
+	allItems := m.store.Items()
+	allKeys := make([]string, len(allItems))
+	i := 0
+
+	for k := range allItems {
+		if !strings.HasPrefix(k, prefix+"/") {
+			continue
+		}
+		allKeys[i] = strings.TrimPrefix(k, prefix+"/")
+		i++
+	}
+
+	if limit != 0 || offset != 0 {
+		sort.Slice(allKeys, func(i, j int) bool { return allKeys[i] < allKeys[j] })
+		min := func(i, j uint) uint {
+			if i < j {
+				return i
+			}
+			return j
+		}
+		return allKeys[offset:min(limit, uint(len(allKeys)))]
+	}
+
+	return allKeys
+}
+
+func (m *memoryStore) Close() error {
+	m.store.Flush()
+	return nil
+}
+
+func (m *memoryStore) Init(opts ...store.Option) error {
+	for _, o := range opts {
+		o(&m.options)
+	}
+	return nil
+}
+
+func (m *memoryStore) String() string {
+	return "memory"
+}
+
+func (m *memoryStore) Read(key string, opts ...store.ReadOption) ([]*store.Record, error) {
+	readOpts := store.ReadOptions{}
+	for _, o := range opts {
+		o(&readOpts)
+	}
+
+	prefix := m.prefix(readOpts.Database, readOpts.Table)
+
+	var keys []string
+
+	// Handle Prefix / suffix
+	if readOpts.Prefix || readOpts.Suffix {
+		k := m.list(prefix, readOpts.Limit, readOpts.Offset)
+
+		for _, kk := range k {
+			if readOpts.Prefix && !strings.HasPrefix(kk, key) {
 				continue
 			}
-			// update expiry
-			v.r.Expiry -= t
-			v.c = time.Now()
-		}
 
-		values = append(values, v.r)
-	}
-
-	return values, nil
-}
-
-func (m *memoryStore) Read(keys ...string) ([]*store.Record, error) {
-	m.RLock()
-	defer m.RUnlock()
-
-	//nolint:prealloc
-	var records []*store.Record
-
-	for _, key := range keys {
-		v, ok := m.values[key]
-		if !ok {
-			return nil, store.ErrNotFound
-		}
-
-		// get expiry
-		d := v.r.Expiry
-		t := time.Since(v.c)
-
-		// expired
-		if d > time.Duration(0) {
-			if t > d {
-				return nil, store.ErrNotFound
+			if readOpts.Suffix && !strings.HasSuffix(kk, key) {
+				continue
 			}
-			// update expiry
-			v.r.Expiry -= t
-			v.c = time.Now()
-		}
 
-		records = append(records, v.r)
+			keys = append(keys, kk)
+		}
+	} else {
+		keys = []string{key}
 	}
 
-	return records, nil
+	var results []*store.Record
+
+	for _, k := range keys {
+		r, err := m.get(prefix, k)
+		if err != nil {
+			return results, err
+		}
+		results = append(results, r)
+	}
+
+	return results, nil
 }
 
-func (m *memoryStore) Write(records ...*store.Record) error {
-	m.Lock()
-	defer m.Unlock()
-
-	for _, r := range records {
-		// set the record
-		m.values[r.Key] = &memoryRecord{
-			r: r,
-			c: time.Now(),
-		}
+func (m *memoryStore) Write(r *store.Record, opts ...store.WriteOption) error {
+	writeOpts := store.WriteOptions{}
+	for _, o := range opts {
+		o(&writeOpts)
 	}
+
+	prefix := m.prefix(writeOpts.Database, writeOpts.Table)
+
+	if len(opts) > 0 {
+		// Copy the record before applying options, or the incoming record will be mutated
+		newRecord := store.Record{}
+		newRecord.Key = r.Key
+		newRecord.Value = make([]byte, len(r.Value))
+		copy(newRecord.Value, r.Value)
+		newRecord.Expiry = r.Expiry
+
+		if !writeOpts.Expiry.IsZero() {
+			newRecord.Expiry = time.Until(writeOpts.Expiry)
+		}
+		if writeOpts.TTL != 0 {
+			newRecord.Expiry = writeOpts.TTL
+		}
+		m.set(prefix, &newRecord)
+		return nil
+	}
+
+	// set
+	m.set(prefix, r)
 
 	return nil
 }
 
-func (m *memoryStore) Delete(keys ...string) error {
-	m.Lock()
-	defer m.Unlock()
-
-	for _, key := range keys {
-		// delete the value
-		delete(m.values, key)
+func (m *memoryStore) Delete(key string, opts ...store.DeleteOption) error {
+	deleteOptions := store.DeleteOptions{}
+	for _, o := range opts {
+		o(&deleteOptions)
 	}
 
+	prefix := m.prefix(deleteOptions.Database, deleteOptions.Table)
+	m.delete(prefix, key)
 	return nil
 }
 
-// NewStore returns a new store.Store
-func NewStore(opts ...options.Option) store.Store {
-	options := options.NewOptions(opts...)
+func (m *memoryStore) Options() store.Options {
+	return m.options
+}
 
-	return &memoryStore{
-		Options: options,
-		values:  make(map[string]*memoryRecord),
+func (m *memoryStore) List(opts ...store.ListOption) ([]string, error) {
+	listOptions := store.ListOptions{}
+
+	for _, o := range opts {
+		o(&listOptions)
 	}
+
+	prefix := m.prefix(listOptions.Database, listOptions.Table)
+	keys := m.list(prefix, listOptions.Limit, listOptions.Offset)
+
+	if len(listOptions.Prefix) > 0 {
+		var prefixKeys []string
+		for _, k := range keys {
+			if strings.HasPrefix(k, listOptions.Prefix) {
+				prefixKeys = append(prefixKeys, k)
+			}
+		}
+		keys = prefixKeys
+	}
+
+	if len(listOptions.Suffix) > 0 {
+		var suffixKeys []string
+		for _, k := range keys {
+			if strings.HasSuffix(k, listOptions.Suffix) {
+				suffixKeys = append(suffixKeys, k)
+			}
+		}
+		keys = suffixKeys
+	}
+
+	return keys, nil
 }

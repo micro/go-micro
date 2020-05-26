@@ -1,9 +1,10 @@
 package selector
 
 import (
+	"os"
 	"testing"
 
-	"github.com/micro/go-micro/registry/memory"
+	"github.com/micro/go-micro/v2/registry/memory"
 )
 
 func TestRegistrySelector(t *testing.T) {
@@ -25,5 +26,7 @@ func TestRegistrySelector(t *testing.T) {
 		counts[node.Id]++
 	}
 
-	t.Logf("Selector Counts %v", counts)
+	if len(os.Getenv("IN_TRAVIS_CI")) == 0 {
+		t.Logf("Selector Counts %v", counts)
+	}
 }

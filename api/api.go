@@ -5,9 +5,26 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/micro/go-micro/registry"
-	"github.com/micro/go-micro/server"
+	"github.com/micro/go-micro/v2/registry"
+	"github.com/micro/go-micro/v2/server"
 )
+
+type Api interface {
+	// Initialise options
+	Init(...Option) error
+	// Get the options
+	Options() Options
+	// Register a http handler
+	Register(*Endpoint) error
+	// Register a route
+	Deregister(*Endpoint) error
+	// Implemenation of api
+	String() string
+}
+
+type Options struct{}
+
+type Option func(*Options) error
 
 // Endpoint is a mapping between an RPC method and HTTP endpoint
 type Endpoint struct {
@@ -23,6 +40,12 @@ type Endpoint struct {
 	Method []string
 	// HTTP Path e.g /greeter. Expect POSIX regex
 	Path []string
+	// Body destination
+	// "*" or "" - top level message value
+	// "string" - inner message value
+	Body string
+	// Stream flag
+	Stream bool
 }
 
 // Service represents an API service
@@ -57,14 +80,25 @@ func Encode(e *Endpoint) map[string]string {
 		return nil
 	}
 
-	return map[string]string{
-		"endpoint":    e.Name,
-		"description": e.Description,
-		"method":      strings.Join(e.Method, ","),
-		"path":        strings.Join(e.Path, ","),
-		"host":        strings.Join(e.Host, ","),
-		"handler":     e.Handler,
+	// endpoint map
+	ep := make(map[string]string)
+
+	// set vals only if they exist
+	set := func(k, v string) {
+		if len(v) == 0 {
+			return
+		}
+		ep[k] = v
 	}
+
+	set("endpoint", e.Name)
+	set("description", e.Description)
+	set("handler", e.Handler)
+	set("method", strings.Join(e.Method, ","))
+	set("path", strings.Join(e.Path, ","))
+	set("host", strings.Join(e.Host, ","))
+
+	return ep
 }
 
 // Decode decodes endpoint metadata into an endpoint
@@ -94,9 +128,18 @@ func Validate(e *Endpoint) error {
 	}
 
 	for _, p := range e.Path {
-		_, err := regexp.CompilePOSIX(p)
-		if err != nil {
-			return err
+		ps := p[0]
+		pe := p[len(p)-1]
+
+		if ps == '^' && pe == '$' {
+			_, err := regexp.CompilePOSIX(p)
+			if err != nil {
+				return err
+			}
+		} else if ps == '^' && pe != '$' {
+			return errors.New("invalid path")
+		} else if ps != '^' && pe == '$' {
+			return errors.New("invalid path")
 		}
 	}
 

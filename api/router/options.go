@@ -1,17 +1,15 @@
 package router
 
 import (
-	"github.com/micro/go-micro/api/resolver"
-	"github.com/micro/go-micro/api/resolver/micro"
-	"github.com/micro/go-micro/config/cmd"
-	"github.com/micro/go-micro/registry"
+	"github.com/micro/go-micro/v2/api/resolver"
+	"github.com/micro/go-micro/v2/api/resolver/vpath"
+	"github.com/micro/go-micro/v2/registry"
 )
 
 type Options struct {
-	Namespace string
-	Handler   string
-	Registry  registry.Registry
-	Resolver  resolver.Resolver
+	Handler  string
+	Registry registry.Registry
+	Resolver resolver.Resolver
 }
 
 type Option func(o *Options)
@@ -19,7 +17,7 @@ type Option func(o *Options)
 func NewOptions(opts ...Option) Options {
 	options := Options{
 		Handler:  "meta",
-		Registry: *cmd.DefaultOptions().Registry,
+		Registry: registry.DefaultRegistry,
 	}
 
 	for _, o := range opts {
@@ -27,9 +25,8 @@ func NewOptions(opts ...Option) Options {
 	}
 
 	if options.Resolver == nil {
-		options.Resolver = micro.NewResolver(
+		options.Resolver = vpath.NewResolver(
 			resolver.WithHandler(options.Handler),
-			resolver.WithNamespace(options.Namespace),
 		)
 	}
 
@@ -39,12 +36,6 @@ func NewOptions(opts ...Option) Options {
 func WithHandler(h string) Option {
 	return func(o *Options) {
 		o.Handler = h
-	}
-}
-
-func WithNamespace(ns string) Option {
-	return func(o *Options) {
-		o.Namespace = ns
 	}
 }
 

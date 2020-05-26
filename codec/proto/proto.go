@@ -6,7 +6,7 @@ import (
 	"io/ioutil"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/micro/go-micro/codec"
+	"github.com/micro/go-micro/v2/codec"
 )
 
 type Codec struct {
@@ -25,13 +25,17 @@ func (c *Codec) ReadBody(b interface{}) error {
 	if err != nil {
 		return err
 	}
-	return proto.Unmarshal(buf, b.(proto.Message))
+	m, ok := b.(proto.Message)
+	if !ok {
+		return codec.ErrInvalidMessage
+	}
+	return proto.Unmarshal(buf, m)
 }
 
 func (c *Codec) Write(m *codec.Message, b interface{}) error {
 	p, ok := b.(proto.Message)
 	if !ok {
-		return nil
+		return codec.ErrInvalidMessage
 	}
 	buf, err := proto.Marshal(p)
 	if err != nil {

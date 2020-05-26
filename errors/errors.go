@@ -8,13 +8,7 @@ import (
 	"net/http"
 )
 
-// Error implements the error interface.
-type Error struct {
-	Id     string `json:"id"`
-	Code   int32  `json:"code"`
-	Detail string `json:"detail"`
-	Status string `json:"status"`
-}
+//go:generate protoc -I. --go_out=paths=source_relative:. errors.proto
 
 func (e *Error) Error() string {
 	b, _ := json.Marshal(e)
@@ -120,4 +114,33 @@ func InternalServerError(id, format string, a ...interface{}) error {
 		Detail: fmt.Sprintf(format, a...),
 		Status: http.StatusText(500),
 	}
+}
+
+// Equal tries to compare errors
+func Equal(err1 error, err2 error) bool {
+	verr1, ok1 := err1.(*Error)
+	verr2, ok2 := err2.(*Error)
+
+	if ok1 != ok2 {
+		return false
+	}
+
+	if !ok1 {
+		return err1 == err2
+	}
+
+	if verr1.Code != verr2.Code {
+		return false
+	}
+
+	return true
+}
+
+// FromError try to convert go error to *Error
+func FromError(err error) *Error {
+	if verr, ok := err.(*Error); ok && verr != nil {
+		return verr
+	}
+
+	return Parse(err.Error())
 }

@@ -9,7 +9,7 @@ import (
 	"sync"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/micro/go-micro/codec"
+	"github.com/micro/go-micro/v2/codec"
 )
 
 type flusher interface {
@@ -32,13 +32,13 @@ func (c *protoCodec) String() string {
 	return "proto-rpc"
 }
 
-func id(id string) *uint64 {
+func id(id string) uint64 {
 	p, err := strconv.ParseInt(id, 10, 64)
 	if err != nil {
 		p = 0
 	}
 	i := uint64(p)
-	return &i
+	return i
 }
 
 func (c *protoCodec) Write(m *codec.Message, b interface{}) error {
@@ -47,7 +47,7 @@ func (c *protoCodec) Write(m *codec.Message, b interface{}) error {
 		c.Lock()
 		defer c.Unlock()
 		// This is protobuf, of course we copy it.
-		pbr := &Request{ServiceMethod: &m.Method, Seq: id(m.Id)}
+		pbr := &Request{ServiceMethod: m.Method, Seq: id(m.Id)}
 		data, err := proto.Marshal(pbr)
 		if err != nil {
 			return err
@@ -56,8 +56,12 @@ func (c *protoCodec) Write(m *codec.Message, b interface{}) error {
 		if err != nil {
 			return err
 		}
-		// Of course this is a protobuf! Trust me or detonate the program.
-		data, err = proto.Marshal(b.(proto.Message))
+		// dont trust or incoming message
+		m, ok := b.(proto.Message)
+		if !ok {
+			return codec.ErrInvalidMessage
+		}
+		data, err = proto.Marshal(m)
 		if err != nil {
 			return err
 		}
@@ -73,7 +77,7 @@ func (c *protoCodec) Write(m *codec.Message, b interface{}) error {
 	case codec.Response, codec.Error:
 		c.Lock()
 		defer c.Unlock()
-		rtmp := &Response{ServiceMethod: &m.Method, Seq: id(m.Id), Error: &m.Error}
+		rtmp := &Response{ServiceMethod: m.Method, Seq: id(m.Id), Error: m.Error}
 		data, err := proto.Marshal(rtmp)
 		if err != nil {
 			return err
@@ -100,7 +104,11 @@ func (c *protoCodec) Write(m *codec.Message, b interface{}) error {
 			}
 		}
 	case codec.Event:
-		data, err := proto.Marshal(b.(proto.Message))
+		m, ok := b.(proto.Message)
+		if !ok {
+			return codec.ErrInvalidMessage
+		}
+		data, err := proto.Marshal(m)
 		if err != nil {
 			return err
 		}

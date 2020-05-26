@@ -4,9 +4,9 @@ package broker
 import (
 	"context"
 
-	"github.com/micro/go-micro/broker"
-	"github.com/micro/go-micro/transport"
-	"github.com/micro/go-micro/tunnel"
+	"github.com/micro/go-micro/v2/broker"
+	"github.com/micro/go-micro/v2/transport"
+	"github.com/micro/go-micro/v2/tunnel"
 )
 
 type tunBroker struct {
@@ -160,6 +160,10 @@ func (t *tunEvent) Message() *broker.Message {
 }
 
 func (t *tunEvent) Ack() error {
+	return nil
+}
+
+func (t *tunEvent) Error() error {
 	return nil
 }
 

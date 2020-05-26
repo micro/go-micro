@@ -3,13 +3,18 @@ package cmd
 import (
 	"context"
 
-	"github.com/micro/go-micro/broker"
-	"github.com/micro/go-micro/client"
-	"github.com/micro/go-micro/client/selector"
-	"github.com/micro/go-micro/registry"
-	"github.com/micro/go-micro/runtime"
-	"github.com/micro/go-micro/server"
-	"github.com/micro/go-micro/transport"
+	"github.com/micro/go-micro/v2/auth"
+	"github.com/micro/go-micro/v2/broker"
+	"github.com/micro/go-micro/v2/client"
+	"github.com/micro/go-micro/v2/client/selector"
+	"github.com/micro/go-micro/v2/config"
+	"github.com/micro/go-micro/v2/debug/profile"
+	"github.com/micro/go-micro/v2/debug/trace"
+	"github.com/micro/go-micro/v2/registry"
+	"github.com/micro/go-micro/v2/runtime"
+	"github.com/micro/go-micro/v2/server"
+	"github.com/micro/go-micro/v2/store"
+	"github.com/micro/go-micro/v2/transport"
 )
 
 type Options struct {
@@ -23,17 +28,27 @@ type Options struct {
 	Registry  *registry.Registry
 	Selector  *selector.Selector
 	Transport *transport.Transport
+	Config    *config.Config
 	Client    *client.Client
 	Server    *server.Server
 	Runtime   *runtime.Runtime
+	Store     *store.Store
+	Tracer    *trace.Tracer
+	Auth      *auth.Auth
+	Profile   *profile.Profile
 
 	Brokers    map[string]func(...broker.Option) broker.Broker
+	Configs    map[string]func(...config.Option) (config.Config, error)
 	Clients    map[string]func(...client.Option) client.Client
 	Registries map[string]func(...registry.Option) registry.Registry
 	Selectors  map[string]func(...selector.Option) selector.Selector
 	Servers    map[string]func(...server.Option) server.Server
 	Transports map[string]func(...transport.Option) transport.Transport
 	Runtimes   map[string]func(...runtime.Option) runtime.Runtime
+	Stores     map[string]func(...store.Option) store.Store
+	Tracers    map[string]func(...trace.Option) trace.Tracer
+	Auths      map[string]func(...auth.Option) auth.Auth
+	Profiles   map[string]func(...profile.Option) profile.Profile
 
 	// Other options for implementations of the interface
 	// can be stored in a context
@@ -67,6 +82,12 @@ func Broker(b *broker.Broker) Option {
 	}
 }
 
+func Config(c *config.Config) Option {
+	return func(o *Options) {
+		o.Config = c
+	}
+}
+
 func Selector(s *selector.Selector) Option {
 	return func(o *Options) {
 		o.Selector = s
@@ -76,6 +97,12 @@ func Selector(s *selector.Selector) Option {
 func Registry(r *registry.Registry) Option {
 	return func(o *Options) {
 		o.Registry = r
+	}
+}
+
+func Runtime(r *runtime.Runtime) Option {
+	return func(o *Options) {
+		o.Runtime = r
 	}
 }
 
@@ -94,6 +121,30 @@ func Client(c *client.Client) Option {
 func Server(s *server.Server) Option {
 	return func(o *Options) {
 		o.Server = s
+	}
+}
+
+func Store(s *store.Store) Option {
+	return func(o *Options) {
+		o.Store = s
+	}
+}
+
+func Tracer(t *trace.Tracer) Option {
+	return func(o *Options) {
+		o.Tracer = t
+	}
+}
+
+func Auth(a *auth.Auth) Option {
+	return func(o *Options) {
+		o.Auth = a
+	}
+}
+
+func Profile(p *profile.Profile) Option {
+	return func(o *Options) {
+		o.Profile = p
 	}
 }
 
@@ -143,5 +194,19 @@ func NewTransport(name string, t func(...transport.Option) transport.Transport) 
 func NewRuntime(name string, r func(...runtime.Option) runtime.Runtime) Option {
 	return func(o *Options) {
 		o.Runtimes[name] = r
+	}
+}
+
+// New tracer func
+func NewTracer(name string, t func(...trace.Option) trace.Tracer) Option {
+	return func(o *Options) {
+		o.Tracers[name] = t
+	}
+}
+
+// New auth func
+func NewAuth(name string, t func(...auth.Option) auth.Auth) Option {
+	return func(o *Options) {
+		o.Auths[name] = t
 	}
 }

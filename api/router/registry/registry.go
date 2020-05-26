@@ -4,18 +4,27 @@ package registry
 import (
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"regexp"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/micro/go-micro/api"
-	"github.com/micro/go-micro/api/router"
-	"github.com/micro/go-micro/registry"
-	"github.com/micro/go-micro/registry/cache"
+	"github.com/micro/go-micro/v2/api"
+	"github.com/micro/go-micro/v2/api/router"
+	"github.com/micro/go-micro/v2/api/router/util"
+	"github.com/micro/go-micro/v2/logger"
+	"github.com/micro/go-micro/v2/metadata"
+	"github.com/micro/go-micro/v2/registry"
+	"github.com/micro/go-micro/v2/registry/cache"
 )
+
+// endpoint struct, that holds compiled pcre
+type endpoint struct {
+	hostregs []*regexp.Regexp
+	pathregs []util.Pattern
+	pcreregs []*regexp.Regexp
+}
 
 // router is the default router
 type registryRouter struct {
@@ -27,28 +36,8 @@ type registryRouter struct {
 
 	sync.RWMutex
 	eps map[string]*api.Service
-}
-
-func setNamespace(ns, name string) string {
-	ns = strings.TrimSpace(ns)
-	name = strings.TrimSpace(name)
-
-	// no namespace
-	if len(ns) == 0 {
-		return name
-	}
-
-	switch {
-	// has - suffix
-	case strings.HasSuffix(ns, "-"):
-		return strings.Replace(ns+name, ".", "-", -1)
-	// has . suffix
-	case strings.HasSuffix(ns, "."):
-		return ns + name
-	}
-
-	// default join .
-	return strings.Join([]string{ns, name}, ".")
+	// compiled regexp for host and path
+	ceps map[string]*endpoint
 }
 
 func (r *registryRouter) isClosed() bool {
@@ -68,7 +57,9 @@ func (r *registryRouter) refresh() {
 		services, err := r.opts.Registry.ListServices()
 		if err != nil {
 			attempts++
-			log.Println("Error listing endpoints", err)
+			if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
+				logger.Errorf("unable to list services: %v", err)
+			}
 			time.Sleep(time.Duration(attempts) * time.Second)
 			continue
 		}
@@ -77,18 +68,18 @@ func (r *registryRouter) refresh() {
 
 		// for each service, get service and store endpoints
 		for _, s := range services {
-			// only get services for this namespace
-			if !strings.HasPrefix(s.Name, r.opts.Namespace) {
-				continue
-			}
 			service, err := r.rc.GetService(s.Name)
 			if err != nil {
+				if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
+					logger.Errorf("unable to get service: %v", err)
+				}
 				continue
 			}
 			r.store(service)
 		}
 
 		// refresh list in 10 minutes... cruft
+		// use registry watching
 		select {
 		case <-time.After(time.Minute * 10):
 		case <-r.exit:
@@ -100,13 +91,16 @@ func (r *registryRouter) refresh() {
 // process watch event
 func (r *registryRouter) process(res *registry.Result) {
 	// skip these things
-	if res == nil || res.Service == nil || !strings.HasPrefix(res.Service.Name, r.opts.Namespace) {
+	if res == nil || res.Service == nil {
 		return
 	}
 
 	// get entry from cache
 	service, err := r.rc.GetService(res.Service.Name)
 	if err != nil {
+		if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
+			logger.Errorf("unable to get service: %v", err)
+		}
 		return
 	}
 
@@ -128,14 +122,17 @@ func (r *registryRouter) store(services []*registry.Service) {
 		names[service.Name] = true
 
 		// map per endpoint
-		for _, endpoint := range service.Endpoints {
+		for _, sep := range service.Endpoints {
 			// create a key service:endpoint_name
-			key := fmt.Sprintf("%s:%s", service.Name, endpoint.Name)
+			key := fmt.Sprintf("%s.%s", service.Name, sep.Name)
 			// decode endpoint
-			end := api.Decode(endpoint.Metadata)
+			end := api.Decode(sep.Metadata)
 
 			// if we got nothing skip
 			if err := api.Validate(end); err != nil {
+				if logger.V(logger.TraceLevel, logger.DefaultLogger) {
+					logger.Tracef("endpoint validation failed: %v", err)
+				}
 				continue
 			}
 
@@ -170,8 +167,57 @@ func (r *registryRouter) store(services []*registry.Service) {
 	}
 
 	// now set the eps we have
-	for name, endpoint := range eps {
-		r.eps[name] = endpoint
+	for name, ep := range eps {
+		r.eps[name] = ep
+		cep := &endpoint{}
+
+		for _, h := range ep.Endpoint.Host {
+			if h == "" || h == "*" {
+				continue
+			}
+			hostreg, err := regexp.CompilePOSIX(h)
+			if err != nil {
+				if logger.V(logger.TraceLevel, logger.DefaultLogger) {
+					logger.Tracef("endpoint have invalid host regexp: %v", err)
+				}
+				continue
+			}
+			cep.hostregs = append(cep.hostregs, hostreg)
+		}
+
+		for _, p := range ep.Endpoint.Path {
+			var pcreok bool
+
+			if p[0] == '^' && p[len(p)-1] != '$' {
+				pcrereg, err := regexp.CompilePOSIX(p)
+				if err == nil {
+					cep.pcreregs = append(cep.pcreregs, pcrereg)
+					pcreok = true
+				}
+			}
+
+			rule, err := util.Parse(p)
+			if err != nil && !pcreok {
+				if logger.V(logger.TraceLevel, logger.DefaultLogger) {
+					logger.Tracef("endpoint have invalid path pattern: %v", err)
+				}
+				continue
+			} else if err != nil && pcreok {
+				continue
+			}
+
+			tpl := rule.Compile()
+			pathreg, err := util.NewPattern(tpl.Version, tpl.OpCodes, tpl.Pool, "")
+			if err != nil {
+				if logger.V(logger.TraceLevel, logger.DefaultLogger) {
+					logger.Tracef("endpoint have invalid path pattern: %v", err)
+				}
+				continue
+			}
+			cep.pathregs = append(cep.pathregs, pathreg)
+		}
+
+		r.ceps[name] = cep
 	}
 }
 
@@ -188,7 +234,9 @@ func (r *registryRouter) watch() {
 		w, err := r.opts.Registry.Watch()
 		if err != nil {
 			attempts++
-			log.Println("Error watching endpoints", err)
+			if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
+				logger.Errorf("error watching endpoints: %v", err)
+			}
 			time.Sleep(time.Duration(attempts) * time.Second)
 			continue
 		}
@@ -211,7 +259,9 @@ func (r *registryRouter) watch() {
 			// process next event
 			res, err := w.Next()
 			if err != nil {
-				log.Println("Error getting next endpoint", err)
+				if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
+					logger.Errorf("error getting next endoint: %v", err)
+				}
 				close(ch)
 				break
 			}
@@ -235,6 +285,14 @@ func (r *registryRouter) Close() error {
 	return nil
 }
 
+func (r *registryRouter) Register(ep *api.Endpoint) error {
+	return nil
+}
+
+func (r *registryRouter) Deregister(ep *api.Endpoint) error {
+	return nil
+}
+
 func (r *registryRouter) Endpoint(req *http.Request) (*api.Service, error) {
 	if r.isClosed() {
 		return nil, errors.New("router closed")
@@ -243,60 +301,106 @@ func (r *registryRouter) Endpoint(req *http.Request) (*api.Service, error) {
 	r.RLock()
 	defer r.RUnlock()
 
+	var idx int
+	if len(req.URL.Path) > 0 && req.URL.Path != "/" {
+		idx = 1
+	}
+	path := strings.Split(req.URL.Path[idx:], "/")
+
 	// use the first match
 	// TODO: weighted matching
-	for _, e := range r.eps {
+	for n, e := range r.eps {
+		cep, ok := r.ceps[n]
+		if !ok {
+			continue
+		}
 		ep := e.Endpoint
-
-		// match
-		var pathMatch, hostMatch, methodMatch bool
-
-		// 1. try method GET, POST, PUT, etc
-		// 2. try host example.com, foobar.com, etc
-		// 3. try path /foo/bar, /bar/baz, etc
-
-		// 1. try match method
+		var mMatch, hMatch, pMatch bool
+		// 1. try method
 		for _, m := range ep.Method {
-			if req.Method == m {
-				methodMatch = true
+			if m == req.Method {
+				mMatch = true
 				break
 			}
 		}
-
-		// no match on method pass
-		if len(ep.Method) > 0 && !methodMatch {
+		if !mMatch {
 			continue
 		}
-
-		// 2. try match host
-		for _, h := range ep.Host {
-			if req.Host == h {
-				hostMatch = true
-				break
-			}
+		if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+			logger.Debugf("api method match %s", req.Method)
 		}
 
-		// no match on host pass
-		if len(ep.Host) > 0 && !hostMatch {
+		// 2. try host
+		if len(ep.Host) == 0 {
+			hMatch = true
+		} else {
+			for idx, h := range ep.Host {
+				if h == "" || h == "*" {
+					hMatch = true
+					break
+				} else {
+					if cep.hostregs[idx].MatchString(req.URL.Host) {
+						hMatch = true
+						break
+					}
+				}
+			}
+		}
+		if !hMatch {
 			continue
 		}
+		if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+			logger.Debugf("api host match %s", req.URL.Host)
+		}
 
-		// 3. try match paths
-		for _, p := range ep.Path {
-			re, err := regexp.CompilePOSIX(p)
-			if err == nil && re.MatchString(req.URL.Path) {
-				pathMatch = true
+		// 3. try path via google.api path matching
+		for _, pathreg := range cep.pathregs {
+			matches, err := pathreg.Match(path, "")
+			if err != nil {
+				if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+					logger.Debugf("api gpath not match %s != %v", path, pathreg)
+				}
+				continue
+			}
+			if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+				logger.Debugf("api gpath match %s = %v", path, pathreg)
+			}
+			pMatch = true
+			ctx := req.Context()
+			md, ok := metadata.FromContext(ctx)
+			if !ok {
+				md = make(metadata.Metadata)
+			}
+			for k, v := range matches {
+				md[fmt.Sprintf("x-api-field-%s", k)] = v
+			}
+			md["x-api-body"] = ep.Body
+			*req = *req.Clone(metadata.NewContext(ctx, md))
+			break
+		}
+
+		if !pMatch {
+			// 4. try path via pcre path matching
+			for _, pathreg := range cep.pcreregs {
+				if !pathreg.MatchString(req.URL.Path) {
+					if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+						logger.Debugf("api pcre path not match %s != %v", path, pathreg)
+					}
+					continue
+				}
+				if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+					logger.Debugf("api pcre path match %s != %v", path, pathreg)
+				}
+				pMatch = true
 				break
 			}
 		}
 
-		// no match pass
-		if len(ep.Path) > 0 && !pathMatch {
+		if !pMatch {
 			continue
 		}
 
 		// TODO: Percentage traffic
-
 		// we got here, so its a match
 		return e, nil
 	}
@@ -327,7 +431,7 @@ func (r *registryRouter) Route(req *http.Request) (*api.Service, error) {
 	}
 
 	// service name
-	name := setNamespace(r.opts.Namespace, rp.Name)
+	name := rp.Name
 
 	// get service
 	services, err := r.rc.GetService(name)
@@ -381,6 +485,7 @@ func newRouter(opts ...router.Option) *registryRouter {
 		opts: options,
 		rc:   cache.New(options.Registry),
 		eps:  make(map[string]*api.Service),
+		ceps: make(map[string]*endpoint),
 	}
 	go r.watch()
 	go r.refresh()

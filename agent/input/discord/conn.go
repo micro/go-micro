@@ -6,8 +6,8 @@ import (
 	"sync"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/micro/go-micro/agent/input"
-	"github.com/micro/go-micro/util/log"
+	"github.com/micro/go-micro/v2/agent/input"
+	"github.com/micro/go-micro/v2/logger"
 )
 
 type discordConn struct {
@@ -74,7 +74,9 @@ func (dc *discordConn) Send(e *input.Event) error {
 	fields := strings.Split(e.To, ":")
 	_, err := dc.master.session.ChannelMessageSend(fields[0], string(e.Data))
 	if err != nil {
-		log.Log("[bot][loop][send]", err)
+		if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
+			logger.Error("[bot][loop][send]", err)
+		}
 	}
 	return nil
 }

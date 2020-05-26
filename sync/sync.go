@@ -1,41 +1,53 @@
-// Package sync is a distributed synchronization framework
+// Package sync is an interface for distributed synchronization
 package sync
 
 import (
-	"github.com/micro/go-micro/store"
-	"github.com/micro/go-micro/sync/leader"
-	"github.com/micro/go-micro/sync/lock"
-	"github.com/micro/go-micro/sync/task"
-	"github.com/micro/go-micro/sync/time"
+	"errors"
+	"time"
 )
 
-// Map provides synchronized access to key-value storage.
-// It uses the store interface and lock interface to
-// provide a consistent storage mechanism.
-type Map interface {
-	// Read value with given key
-	Read(key, val interface{}) error
-	// Write value with given key
-	Write(key, val interface{}) error
-	// Delete value with given key
-	Delete(key interface{}) error
-	// Iterate over all key/vals. Value changes are saved
-	Iterate(func(key, val interface{}) error) error
+var (
+	ErrLockTimeout = errors.New("lock timeout")
+)
+
+// Sync is an interface for distributed synchronization
+type Sync interface {
+	// Initialise options
+	Init(...Option) error
+	// Return the options
+	Options() Options
+	// Elect a leader
+	Leader(id string, opts ...LeaderOption) (Leader, error)
+	// Lock acquires a lock
+	Lock(id string, opts ...LockOption) error
+	// Unlock releases a lock
+	Unlock(id string) error
+	// Sync implementation
+	String() string
 }
 
-// Cron is a distributed scheduler using leader election
-// and distributed task runners. It uses the leader and
-// task interfaces.
-type Cron interface {
-	Schedule(task.Schedule, task.Command) error
+// Leader provides leadership election
+type Leader interface {
+	// resign leadership
+	Resign() error
+	// status returns when leadership is lost
+	Status() chan bool
 }
 
 type Options struct {
-	Leader leader.Leader
-	Lock   lock.Lock
-	Store  store.Store
-	Task   task.Task
-	Time   time.Time
+	Nodes  []string
+	Prefix string
 }
 
 type Option func(o *Options)
+
+type LeaderOptions struct{}
+
+type LeaderOption func(o *LeaderOptions)
+
+type LockOptions struct {
+	TTL  time.Duration
+	Wait time.Duration
+}
+
+type LockOption func(o *LockOptions)

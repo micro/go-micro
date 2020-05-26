@@ -1,6 +1,7 @@
 package grpc
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -8,9 +9,9 @@ import (
 
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
-	jsoniter "github.com/json-iterator/go"
-	"github.com/micro/go-micro/codec"
-	"github.com/micro/go-micro/codec/bytes"
+	"github.com/micro/go-micro/v2/codec"
+	"github.com/micro/go-micro/v2/codec/bytes"
+	"github.com/oxtoacart/bpool"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/encoding"
 )
@@ -21,6 +22,10 @@ type bytesCodec struct{}
 type wrapCodec struct{ encoding.Codec }
 
 var jsonpbMarshaler = &jsonpb.Marshaler{}
+var useNumber bool
+
+// create buffer pool with 16 instances each preallocated with 256 bytes
+var bufferPool = bpool.NewSizedBufferPool(16, 256)
 
 var (
 	defaultGRPCCodecs = map[string]encoding.Codec{
@@ -33,18 +38,11 @@ var (
 		"application/grpc+proto":   protoCodec{},
 		"application/grpc+bytes":   bytesCodec{},
 	}
-
-	json = jsoniter.ConfigCompatibleWithStandardLibrary
 )
 
 // UseNumber fix unmarshal Number(8234567890123456789) to interface(8.234567890123457e+18)
 func UseNumber() {
-	json = jsoniter.Config{
-		UseNumber:              true,
-		EscapeHTML:             true,
-		SortMapKeys:            true,
-		ValidateJsonRawMessage: true,
-	}.Froze()
+	useNumber = true
 }
 
 func (w wrapCodec) String() string {
@@ -69,15 +67,21 @@ func (w wrapCodec) Unmarshal(data []byte, v interface{}) error {
 }
 
 func (protoCodec) Marshal(v interface{}) ([]byte, error) {
-	b, ok := v.(*bytes.Frame)
-	if ok {
-		return b.Data, nil
+	switch m := v.(type) {
+	case *bytes.Frame:
+		return m.Data, nil
+	case proto.Message:
+		return proto.Marshal(m)
 	}
-	return proto.Marshal(v.(proto.Message))
+	return nil, fmt.Errorf("failed to marshal: %v is not type of *bytes.Frame or proto.Message", v)
 }
 
 func (protoCodec) Unmarshal(data []byte, v interface{}) error {
-	return proto.Unmarshal(data, v.(proto.Message))
+	m, ok := v.(proto.Message)
+	if !ok {
+		return fmt.Errorf("failed to unmarshal: %v is not type of proto.Message", v)
+	}
+	return proto.Unmarshal(data, m)
 }
 
 func (protoCodec) Name() string {
@@ -106,21 +110,39 @@ func (bytesCodec) Name() string {
 }
 
 func (jsonCodec) Marshal(v interface{}) ([]byte, error) {
-	if pb, ok := v.(proto.Message); ok {
-		s, err := jsonpbMarshaler.MarshalToString(pb)
+	if b, ok := v.(*bytes.Frame); ok {
+		return b.Data, nil
+	}
 
-		return []byte(s), err
+	if pb, ok := v.(proto.Message); ok {
+		buf := bufferPool.Get()
+		defer bufferPool.Put(buf)
+		if err := jsonpbMarshaler.Marshal(buf, pb); err != nil {
+			return nil, err
+		}
+		return buf.Bytes(), nil
 	}
 
 	return json.Marshal(v)
 }
 
 func (jsonCodec) Unmarshal(data []byte, v interface{}) error {
+	if len(data) == 0 {
+		return nil
+	}
+	if b, ok := v.(*bytes.Frame); ok {
+		b.Data = data
+		return nil
+	}
 	if pb, ok := v.(proto.Message); ok {
 		return jsonpb.Unmarshal(b.NewReader(data), pb)
 	}
 
-	return json.Unmarshal(data, v)
+	dec := json.NewDecoder(b.NewReader(data))
+	if useNumber {
+		dec.UseNumber()
+	}
+	return dec.Decode(v)
 }
 
 func (jsonCodec) Name() string {
@@ -147,7 +169,7 @@ func (g *grpcCodec) ReadHeader(m *codec.Message, mt codec.MessageType) error {
 		m = new(codec.Message)
 	}
 	if m.Header == nil {
-		m.Header = make(map[string]string)
+		m.Header = make(map[string]string, len(md))
 	}
 	for k, v := range md {
 		m.Header[k] = strings.Join(v, ",")

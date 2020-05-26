@@ -4,7 +4,7 @@ package reader
 import (
 	"time"
 
-	"github.com/micro/go-micro/config/source"
+	"github.com/micro/go-micro/v2/config/source"
 )
 
 // Reader is an interface for merging changesets
@@ -18,6 +18,8 @@ type Reader interface {
 type Values interface {
 	Bytes() []byte
 	Get(path ...string) Value
+	Set(val interface{}, path ...string)
+	Del(path ...string)
 	Map() map[string]interface{}
 	Scan(v interface{}) error
 }

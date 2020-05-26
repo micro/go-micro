@@ -1,11 +1,12 @@
 package tunnel
 
 import (
+	"os"
 	"sync"
 	"testing"
 	"time"
 
-	"github.com/micro/go-micro/transport"
+	"github.com/micro/go-micro/v2/transport"
 )
 
 func testBrokenTunAccept(t *testing.T, tun Tunnel, wait chan bool, wg *sync.WaitGroup) {
@@ -288,12 +289,15 @@ func TestTunnelRTTRate(t *testing.T) {
 	// wait until done
 	wg.Wait()
 
-	for _, link := range tunA.Links() {
-		t.Logf("Link %s length %v rate %v", link.Id(), link.Length(), link.Rate())
-	}
+	if len(os.Getenv("IN_TRAVIS_CI")) == 0 {
+		// only needed for debug
+		for _, link := range tunA.Links() {
+			t.Logf("Link %s length %v rate %v", link.Id(), link.Length(), link.Rate())
+		}
 
-	for _, link := range tunB.Links() {
-		t.Logf("Link %s length %v rate %v", link.Id(), link.Length(), link.Rate())
+		for _, link := range tunB.Links() {
+			t.Logf("Link %s length %v rate %v", link.Id(), link.Length(), link.Rate())
+		}
 	}
 }
 

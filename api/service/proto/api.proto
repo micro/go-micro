@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package go.micro.api;
+
+service Api {
+  rpc Register(Endpoint) returns (EmptyResponse) {};
+  rpc Deregister(Endpoint) returns (EmptyResponse) {};
+}
+
+message Endpoint {
+  string name = 1;
+  repeated string host = 2;
+  repeated string path = 3;
+  repeated string method = 4;
+  bool stream = 5;
+}
+
+message EmptyResponse {}

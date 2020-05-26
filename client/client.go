@@ -5,7 +5,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/micro/go-micro/codec"
+	"github.com/micro/go-micro/v2/codec"
 )
 
 // Client is the interface used to make requests to services.
@@ -110,6 +110,9 @@ var (
 	DefaultPoolSize = 100
 	// DefaultPoolTTL sets the connection pool ttl
 	DefaultPoolTTL = time.Minute
+
+	// NewClient returns a new client
+	NewClient func(...Option) Client = newRpcClient
 )
 
 // Makes a synchronous call to a service using the default client
@@ -126,11 +129,6 @@ func Publish(ctx context.Context, msg Message, opts ...PublishOption) error {
 // Creates a new message using the default client
 func NewMessage(topic string, payload interface{}, opts ...MessageOption) Message {
 	return DefaultClient.NewMessage(topic, payload, opts...)
-}
-
-// Creates a new client with the options passed in
-func NewClient(opt ...Option) Client {
-	return newRpcClient(opt...)
 }
 
 // Creates a new request using the default client. Content Type will

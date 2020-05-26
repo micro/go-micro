@@ -2,10 +2,11 @@ package memory
 
 import (
 	"fmt"
+	"os"
 	"testing"
 	"time"
 
-	"github.com/micro/go-micro/registry"
+	"github.com/micro/go-micro/v2/registry"
 )
 
 var (
@@ -205,7 +206,9 @@ func TestMemoryRegistryTTLConcurrent(t *testing.T) {
 		}
 	}
 
-	t.Logf("test will wait %v, then check TTL timeouts", waitTime)
+	if len(os.Getenv("IN_TRAVIS_CI")) == 0 {
+		t.Logf("test will wait %v, then check TTL timeouts", waitTime)
+	}
 
 	errChan := make(chan error, concurrency)
 	syncChan := make(chan struct{})

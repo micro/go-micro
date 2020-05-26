@@ -7,10 +7,16 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/micro/go-micro/api/resolver"
+	"github.com/micro/go-micro/v2/api/resolver"
 )
 
-type Resolver struct{}
+func NewResolver(opts ...resolver.Option) resolver.Resolver {
+	return &Resolver{opts: resolver.NewOptions(opts...)}
+}
+
+type Resolver struct {
+	opts resolver.Options
+}
 
 var (
 	re = regexp.MustCompile("^v[0-9]+$")
@@ -22,10 +28,9 @@ func (r *Resolver) Resolve(req *http.Request) (*resolver.Endpoint, error) {
 	}
 
 	parts := strings.Split(req.URL.Path[1:], "/")
-
 	if len(parts) == 1 {
 		return &resolver.Endpoint{
-			Name:   parts[0],
+			Name:   r.withNamespace(req, parts...),
 			Host:   req.Host,
 			Method: req.Method,
 			Path:   req.URL.Path,
@@ -35,7 +40,7 @@ func (r *Resolver) Resolve(req *http.Request) (*resolver.Endpoint, error) {
 	// /v1/foo
 	if re.MatchString(parts[0]) {
 		return &resolver.Endpoint{
-			Name:   parts[1],
+			Name:   r.withNamespace(req, parts[0:2]...),
 			Host:   req.Host,
 			Method: req.Method,
 			Path:   req.URL.Path,
@@ -43,7 +48,7 @@ func (r *Resolver) Resolve(req *http.Request) (*resolver.Endpoint, error) {
 	}
 
 	return &resolver.Endpoint{
-		Name:   parts[0],
+		Name:   r.withNamespace(req, parts[0]),
 		Host:   req.Host,
 		Method: req.Method,
 		Path:   req.URL.Path,
@@ -54,6 +59,11 @@ func (r *Resolver) String() string {
 	return "path"
 }
 
-func NewResolver(opts ...resolver.Option) resolver.Resolver {
-	return &Resolver{}
+func (r *Resolver) withNamespace(req *http.Request, parts ...string) string {
+	ns := r.opts.Namespace(req)
+	if len(ns) == 0 {
+		return strings.Join(parts, ".")
+	}
+
+	return strings.Join(append([]string{ns}, parts...), ".")
 }

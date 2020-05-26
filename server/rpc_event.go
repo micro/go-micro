@@ -1,12 +1,13 @@
 package server
 
 import (
-	"github.com/micro/go-micro/broker"
-	"github.com/micro/go-micro/transport"
+	"github.com/micro/go-micro/v2/broker"
+	"github.com/micro/go-micro/v2/transport"
 )
 
 // event is a broker event we handle on the server transport
 type event struct {
+	err     error
 	message *broker.Message
 }
 
@@ -17,6 +18,10 @@ func (e *event) Ack() error {
 
 func (e *event) Message() *broker.Message {
 	return e.message
+}
+
+func (e *event) Error() error {
+	return e.err
 }
 
 func (e *event) Topic() string {

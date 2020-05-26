@@ -5,10 +5,55 @@ import (
 	"os"
 	"testing"
 
-	"github.com/micro/cli"
-	"github.com/micro/go-micro/config/cmd"
-	"github.com/micro/go-micro/config/source"
+	"github.com/micro/cli/v2"
+	"github.com/micro/go-micro/v2"
+	"github.com/micro/go-micro/v2/config"
+	"github.com/micro/go-micro/v2/config/cmd"
+	"github.com/micro/go-micro/v2/config/source"
 )
+
+func TestCliSourceDefault(t *testing.T) {
+	const expVal string = "flagvalue"
+
+	service := micro.NewService(
+		micro.Flags(
+			// to be able to run inside go test
+			&cli.StringFlag{
+				Name: "test.timeout",
+			},
+			&cli.BoolFlag{
+				Name: "test.v",
+			},
+			&cli.StringFlag{
+				Name: "test.run",
+			},
+			&cli.StringFlag{
+				Name: "test.testlogfile",
+			},
+			&cli.StringFlag{
+				Name:    "flag",
+				Usage:   "It changes something",
+				EnvVars: []string{"flag"},
+				Value:   expVal,
+			},
+		),
+	)
+	var cliSrc source.Source
+	service.Init(
+		// Loads CLI configuration
+		micro.Action(func(c *cli.Context) error {
+			cliSrc = NewSource(
+				Context(c),
+			)
+			return nil
+		}),
+	)
+
+	config.Load(cliSrc)
+	if fval := config.Get("flag").String("default"); fval != expVal {
+		t.Fatalf("default flag value not loaded %v != %v", fval, expVal)
+	}
+}
 
 func test(t *testing.T, withContext bool) {
 	var src source.Source
@@ -17,14 +62,19 @@ func test(t *testing.T, withContext bool) {
 	app := cmd.App()
 	app.Name = "testapp"
 	app.Flags = []cli.Flag{
-		cli.StringFlag{Name: "db-host"},
+		&cli.StringFlag{
+			Name:    "db-host",
+			EnvVars: []string{"db-host"},
+			Value:   "myval",
+		},
 	}
 
 	// with context
 	if withContext {
 		// set action
-		app.Action = func(c *cli.Context) {
+		app.Action = func(c *cli.Context) error {
 			src = WithContext(c)
+			return nil
 		}
 
 		// run app

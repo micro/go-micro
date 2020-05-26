@@ -4,10 +4,12 @@ package host
 import (
 	"net/http"
 
-	"github.com/micro/go-micro/api/resolver"
+	"github.com/micro/go-micro/v2/api/resolver"
 )
 
-type Resolver struct{}
+type Resolver struct {
+	opts resolver.Options
+}
 
 func (r *Resolver) Resolve(req *http.Request) (*resolver.Endpoint, error) {
 	return &resolver.Endpoint{
@@ -23,5 +25,5 @@ func (r *Resolver) String() string {
 }
 
 func NewResolver(opts ...resolver.Option) resolver.Resolver {
-	return &Resolver{}
+	return &Resolver{opts: resolver.NewOptions(opts...)}
 }

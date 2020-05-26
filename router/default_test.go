@@ -2,12 +2,12 @@ package router
 
 import (
 	"fmt"
+	"os"
 	"sync"
 	"testing"
 	"time"
 
-	"github.com/micro/go-micro/registry/memory"
-	"github.com/micro/go-micro/util/log"
+	"github.com/micro/go-micro/v2/registry/memory"
 )
 
 func routerTestSetup() Router {
@@ -18,7 +18,6 @@ func routerTestSetup() Router {
 func TestRouterStartStop(t *testing.T) {
 	r := routerTestSetup()
 
-	log.Debugf("TestRouterStartStop STARTING")
 	if err := r.Start(); err != nil {
 		t.Errorf("failed to start router: %v", err)
 	}
@@ -31,7 +30,9 @@ func TestRouterStartStop(t *testing.T) {
 	if err := r.Stop(); err != nil {
 		t.Errorf("failed to stop router: %v", err)
 	}
-	log.Debugf("TestRouterStartStop STOPPED")
+	if len(os.Getenv("IN_TRAVIS_CI")) == 0 {
+		t.Logf("TestRouterStartStop STOPPED")
+	}
 }
 
 func TestRouterAdvertise(t *testing.T) {
@@ -39,7 +40,6 @@ func TestRouterAdvertise(t *testing.T) {
 
 	// lower the advertise interval
 	AdvertiseEventsTick = 500 * time.Millisecond
-	AdvertiseTableTick = 1 * time.Second
 
 	if err := r.Start(); err != nil {
 		t.Errorf("failed to start router: %v", err)
@@ -52,7 +52,9 @@ func TestRouterAdvertise(t *testing.T) {
 
 	// receive announce event
 	ann := <-ch
-	log.Debugf("received announce advert: %v", ann)
+	if len(os.Getenv("IN_TRAVIS_CI")) == 0 {
+		t.Logf("received announce advert: %v", ann)
+	}
 
 	// Generate random unique routes
 	nrRoutes := 5
@@ -84,9 +86,13 @@ func TestRouterAdvertise(t *testing.T) {
 		wg.Done()
 		defer close(createDone)
 		for _, route := range routes {
-			log.Debugf("Creating route %v", route)
+			if len(os.Getenv("IN_TRAVIS_CI")) == 0 {
+				t.Logf("Creating route %v", route)
+			}
 			if err := r.Table().Create(route); err != nil {
-				log.Debugf("Failed to create route: %v", err)
+				if len(os.Getenv("IN_TRAVIS_CI")) == 0 {
+					t.Logf("Failed to create route: %v", err)
+				}
 				errChan <- err
 				return
 			}
@@ -108,7 +114,9 @@ func TestRouterAdvertise(t *testing.T) {
 				t.Errorf("failed advertising events: %v", advertErr)
 			default:
 				// do nothing for now
-				log.Debugf("Router advert received: %v", advert)
+				if len(os.Getenv("IN_TRAVIS_CI")) == 0 {
+					t.Logf("Router advert received: %v", advert)
+				}
 				adverts += len(advert.Events)
 			}
 			return

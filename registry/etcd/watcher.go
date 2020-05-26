@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/coreos/etcd/clientv3"
-	"github.com/micro/go-micro/registry"
+	"github.com/micro/go-micro/v2/registry"
 )
 
 type etcdWatcher struct {
@@ -47,6 +47,9 @@ func (ew *etcdWatcher) Next() (*registry.Result, error) {
 	for wresp := range ew.w {
 		if wresp.Err() != nil {
 			return nil, wresp.Err()
+		}
+		if wresp.Canceled {
+			return nil, errors.New("could not get next")
 		}
 		for _, ev := range wresp.Events {
 			service := decode(ev.Kv.Value)

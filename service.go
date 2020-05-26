@@ -3,21 +3,23 @@ package micro
 import (
 	"os"
 	"os/signal"
-	"runtime"
+	rtime "runtime"
 	"strings"
 	"sync"
-	"syscall"
 
-	"github.com/micro/go-micro/client"
-	"github.com/micro/go-micro/config/cmd"
-	"github.com/micro/go-micro/debug/profile"
-	"github.com/micro/go-micro/debug/profile/http"
-	"github.com/micro/go-micro/debug/profile/pprof"
-	"github.com/micro/go-micro/debug/service/handler"
-	"github.com/micro/go-micro/plugin"
-	"github.com/micro/go-micro/server"
-	"github.com/micro/go-micro/util/log"
-	"github.com/micro/go-micro/util/wrapper"
+	"github.com/micro/go-micro/v2/auth"
+	"github.com/micro/go-micro/v2/client"
+	"github.com/micro/go-micro/v2/config/cmd"
+	"github.com/micro/go-micro/v2/debug/service/handler"
+	"github.com/micro/go-micro/v2/debug/stats"
+	"github.com/micro/go-micro/v2/debug/trace"
+	"github.com/micro/go-micro/v2/logger"
+	"github.com/micro/go-micro/v2/plugin"
+	"github.com/micro/go-micro/v2/server"
+	"github.com/micro/go-micro/v2/store"
+	authutil "github.com/micro/go-micro/v2/util/auth"
+	signalutil "github.com/micro/go-micro/v2/util/signal"
+	"github.com/micro/go-micro/v2/util/wrapper"
 )
 
 type service struct {
@@ -27,17 +29,32 @@ type service struct {
 }
 
 func newService(opts ...Option) Service {
+	service := new(service)
 	options := newOptions(opts...)
 
 	// service name
 	serviceName := options.Server.Options().Name
 
+	// authFn returns the auth, we pass as a function since auth
+	// has not yet been set at this point.
+	authFn := func() auth.Auth { return options.Server.Options().Auth }
+
 	// wrap client to inject From-Service header on any calls
 	options.Client = wrapper.FromService(serviceName, options.Client)
+	options.Client = wrapper.TraceCall(serviceName, trace.DefaultTracer, options.Client)
+	options.Client = wrapper.AuthClient(authFn, options.Client)
 
-	return &service{
-		opts: options,
-	}
+	// wrap the server to provide handler stats
+	options.Server.Init(
+		server.WrapHandler(wrapper.HandlerStats(stats.DefaultStats)),
+		server.WrapHandler(wrapper.TraceHandler(trace.DefaultTracer)),
+		server.WrapHandler(wrapper.AuthHandler(authFn)),
+	)
+
+	// set opts
+	service.opts = options
+
+	return service
 }
 
 func (s *service) Name() string {
@@ -63,23 +80,39 @@ func (s *service) Init(opts ...Option) {
 			// load the plugin
 			c, err := plugin.Load(p)
 			if err != nil {
-				log.Fatal(err)
+				logger.Fatal(err)
 			}
 
 			// initialise the plugin
 			if err := plugin.Init(c); err != nil {
-				log.Fatal(err)
+				logger.Fatal(err)
 			}
 		}
 
+		// set cmd name
+		if len(s.opts.Cmd.App().Name) == 0 {
+			s.opts.Cmd.App().Name = s.Server().Options().Name
+		}
+
 		// Initialise the command flags, overriding new service
-		_ = s.opts.Cmd.Init(
+		if err := s.opts.Cmd.Init(
+			cmd.Auth(&s.opts.Auth),
 			cmd.Broker(&s.opts.Broker),
 			cmd.Registry(&s.opts.Registry),
+			cmd.Runtime(&s.opts.Runtime),
 			cmd.Transport(&s.opts.Transport),
 			cmd.Client(&s.opts.Client),
+			cmd.Config(&s.opts.Config),
 			cmd.Server(&s.opts.Server),
-		)
+			cmd.Store(&s.opts.Store),
+			cmd.Profile(&s.opts.Profile),
+		); err != nil {
+			logger.Fatal(err)
+		}
+
+		// Explicitly set the table name to the service name
+		name := s.opts.Cmd.App().Name
+		s.opts.Store.Init(store.Table(name))
 	})
 }
 
@@ -142,40 +175,34 @@ func (s *service) Stop() error {
 }
 
 func (s *service) Run() error {
+	// generate an auth account
+	if err := authutil.Generate(s.Server().Options().Id, s.Name(), s.Options().Auth); err != nil {
+		return err
+	}
+
 	// register the debug handler
 	s.opts.Server.Handle(
 		s.opts.Server.NewHandler(
-			handler.DefaultHandler,
+			handler.NewHandler(),
 			server.InternalHandler(true),
 		),
 	)
 
 	// start the profiler
-	// TODO: set as an option to the service, don't just use pprof
-	if prof := os.Getenv("MICRO_DEBUG_PROFILE"); len(prof) > 0 {
-		var profiler profile.Profile
-
+	if s.opts.Profile != nil {
 		// to view mutex contention
-		runtime.SetMutexProfileFraction(5)
+		rtime.SetMutexProfileFraction(5)
 		// to view blocking profile
-		runtime.SetBlockProfileRate(1)
+		rtime.SetBlockProfileRate(1)
 
-		switch prof {
-		case "http":
-			profiler = http.NewProfile()
-		default:
-			service := s.opts.Server.Options().Name
-			version := s.opts.Server.Options().Version
-			id := s.opts.Server.Options().Id
-			profiler = pprof.NewProfile(
-				profile.Name(service + "." + version + "." + id),
-			)
-		}
-
-		if err := profiler.Start(); err != nil {
+		if err := s.opts.Profile.Start(); err != nil {
 			return err
 		}
-		defer profiler.Stop()
+		defer s.opts.Profile.Stop()
+	}
+
+	if logger.V(logger.InfoLevel, logger.DefaultLogger) {
+		logger.Infof("Starting [service] %s", s.Name())
 	}
 
 	if err := s.Start(); err != nil {
@@ -184,7 +211,7 @@ func (s *service) Run() error {
 
 	ch := make(chan os.Signal, 1)
 	if s.opts.Signal {
-		signal.Notify(ch, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
+		signal.Notify(ch, signalutil.Shutdown()...)
 	}
 
 	select {

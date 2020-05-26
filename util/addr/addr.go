@@ -27,6 +27,29 @@ func isPrivateIP(ipAddr string) bool {
 	return false
 }
 
+// IsLocal tells us whether an ip is local
+func IsLocal(addr string) bool {
+	// extract the host
+	host, _, err := net.SplitHostPort(addr)
+	if err == nil {
+		addr = host
+	}
+
+	// check if its localhost
+	if addr == "localhost" {
+		return true
+	}
+
+	// check against all local ips
+	for _, ip := range IPs() {
+		if addr == ip {
+			return true
+		}
+	}
+
+	return false
+}
+
 // Extract returns a real ip
 func Extract(addr string) (string, error) {
 	// if addr specified then its returned
@@ -56,8 +79,8 @@ func Extract(addr string) (string, error) {
 	}
 	addrs = append(addrs, loAddrs...)
 
-	var ipAddr []byte
-	var publicIP []byte
+	var ipAddr string
+	var publicIP string
 
 	for _, rawAddr := range addrs {
 		var ip net.IP
@@ -71,22 +94,30 @@ func Extract(addr string) (string, error) {
 		}
 
 		if !isPrivateIP(ip.String()) {
-			publicIP = ip
+			publicIP = ip.String()
 			continue
 		}
 
-		ipAddr = ip
+		ipAddr = ip.String()
 		break
 	}
 
 	// return private ip
-	if ipAddr != nil {
-		return net.IP(ipAddr).String(), nil
+	if len(ipAddr) > 0 {
+		a := net.ParseIP(ipAddr)
+		if a == nil {
+			return "", fmt.Errorf("ip addr %s is invalid", ipAddr)
+		}
+		return a.String(), nil
 	}
 
 	// return public or virtual ip
-	if publicIP != nil {
-		return net.IP(publicIP).String(), nil
+	if len(publicIP) > 0 {
+		a := net.ParseIP(publicIP)
+		if a == nil {
+			return "", fmt.Errorf("ip addr %s is invalid", publicIP)
+		}
+		return a.String(), nil
 	}
 
 	return "", fmt.Errorf("No IP address found, and explicit IP not provided")

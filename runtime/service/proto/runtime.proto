@@ -7,7 +7,7 @@ service Runtime {
 	rpc Read(ReadRequest) returns (ReadResponse) {};
 	rpc Delete(DeleteRequest) returns (DeleteResponse) {};
 	rpc Update(UpdateRequest) returns (UpdateResponse) {};
-	rpc List(ListRequest) returns (ListResponse) {};
+	rpc Logs(LogsRequest) returns (stream LogRecord) {};
 }
 
 message Service {
@@ -17,17 +17,32 @@ message Service {
 	string version = 2;
 	// git url of the source
 	string source = 3;
-        // service metadata
-        map<string,string> metadata = 4;
+	// service metadata
+	map<string,string> metadata = 4;
+}
+
+message Event {
+	string type = 1;
+	int64 timestamp = 2;
+	string service = 3;
+	string version = 4;
 }
 
 message CreateOptions {
 	// command to pass in
 	repeated string command = 1;
+	// args to pass into command
+	repeated string args = 2;
 	// environment to pass in
-	repeated string env = 2;
+	repeated string env = 3;
 	// output to send to
-	string output = 3;
+	string output = 4;
+	// create type of service
+	string type = 5;
+	// image to use
+	string image = 6;
+	// namespace to use
+	string namespace = 7;
 }
 
 message CreateRequest {
@@ -44,30 +59,81 @@ message ReadOptions {
 	string version = 2;
 	// type of service
 	string type = 3;
+	// namespace of service
+	string namespace = 4;
 }
 
 message ReadRequest {
-        ReadOptions options = 1;
+	ReadOptions options = 1;
 }
 
 message ReadResponse {
-        repeated Service services = 1;
+	repeated Service services = 1;
+}
+
+message DeleteOptions {
+	// namespace of the service
+	string namespace = 1;
 }
 
 message DeleteRequest {
 	Service service = 1;
+	DeleteOptions options = 2;
 }
 
 message DeleteResponse {}
 
+message UpdateOptions {
+	// namespace of the service
+	string namespace = 1;
+}
+
 message UpdateRequest {
 	Service service = 1;
+	UpdateOptions options = 2;
 }
 
 message UpdateResponse {}
 
-message ListRequest {}
+message ListOptions {
+	// namespace to list from
+	string namespace = 1;
+}
+
+message ListRequest {
+	ListOptions options = 1;
+}
 
 message ListResponse {
 	repeated Service services = 1;
 }
+
+message LogsOptions {
+	// namespace of the service
+	string namespace = 1;
+}
+
+message LogsRequest{
+	// service to request logs for
+	string service = 1;
+	// stream records continuously
+	bool stream = 2;
+	// count of records to request
+	int64 count = 3;
+	// relative time in seconds
+	// before the current time
+	// from which to show logs
+	int64 since = 4;
+	// options to use
+	LogsOptions options = 5;
+}
+
+message LogRecord {
+	// timestamp of log record
+	int64 timestamp = 1;
+	// record metadata
+	map<string,string> metadata = 2;
+	// message
+	string message = 3;
+}
+

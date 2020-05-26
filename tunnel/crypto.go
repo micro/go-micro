@@ -5,20 +5,47 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"crypto/sha256"
-	"io"
+
+	"github.com/oxtoacart/bpool"
+)
+
+var (
+	// the local buffer pool
+	// gcmStandardNonceSize from crypto/cipher/gcm.go is 12 bytes
+	// 100 - is max size of pool
+	noncePool = bpool.NewBytePool(100, 12)
 )
 
 // hash hahes the data into 32 bytes key and returns it
 // hash uses sha256 underneath to hash the supplied key
-func hash(key string) []byte {
-	hasher := sha256.New()
-	hasher.Write([]byte(key))
-	return hasher.Sum(nil)
+func hash(key []byte) []byte {
+	sum := sha256.Sum256(key)
+	return sum[:]
 }
 
 // Encrypt encrypts data and returns the encrypted data
-func Encrypt(data []byte, key string) ([]byte, error) {
-	// generate a new AES cipher using our 32 byte key
+func Encrypt(gcm cipher.AEAD, data []byte) ([]byte, error) {
+	var err error
+
+	// get new byte array the size of the nonce from pool
+	// NOTE: we might use smaller nonce size in the future
+	nonce := noncePool.Get()
+	if _, err = rand.Read(nonce); err != nil {
+		return nil, err
+	}
+	defer noncePool.Put(nonce)
+
+	// NOTE: we prepend the nonce to the payload
+	// we need to do this as we need the same nonce
+	// to decrypt the payload when receiving it
+	return gcm.Seal(nonce, nonce, data, nil), nil
+}
+
+// Decrypt decrypts the payload and returns the decrypted data
+func newCipher(key []byte) (cipher.AEAD, error) {
+	var err error
+
+	// generate a new AES cipher using our 32 byte key for decrypting the message
 	c, err := aes.NewCipher(hash(key))
 	if err != nil {
 		return nil, err
@@ -32,41 +59,25 @@ func Encrypt(data []byte, key string) ([]byte, error) {
 		return nil, err
 	}
 
-	// create a new byte array the size of the nonce
-	// NOTE: we might use smaller nonce size in the future
-	nonce := make([]byte, gcm.NonceSize())
-	if _, err = io.ReadFull(rand.Reader, nonce); err != nil {
-		return nil, err
-	}
-
-	// NOTE: we prepend the nonce to the payload
-	// we need to do this as we need the same nonce
-	// to decrypt the payload when receiving it
-	return gcm.Seal(nonce, nonce, data, nil), nil
+	return gcm, nil
 }
 
-// Decrypt decrypts the payload and returns the decrypted data
-func Decrypt(data []byte, key string) ([]byte, error) {
-	// generate AES cipher for decrypting the message
-	c, err := aes.NewCipher(hash(key))
-	if err != nil {
-		return nil, err
-	}
-
-	// we use GCM to encrypt the payload
-	gcm, err := cipher.NewGCM(c)
-	if err != nil {
-		return nil, err
-	}
+func Decrypt(gcm cipher.AEAD, data []byte) ([]byte, error) {
+	var err error
 
 	nonceSize := gcm.NonceSize()
+
+	if len(data) < nonceSize {
+		return nil, ErrDecryptingData
+	}
+
 	// NOTE: we need to parse out nonce from the payload
 	// we prepend the nonce to every encrypted payload
 	nonce, ciphertext := data[:nonceSize], data[nonceSize:]
-	plaintext, err := gcm.Open(nil, nonce, ciphertext, nil)
+	ciphertext, err = gcm.Open(ciphertext[:0], nonce, ciphertext, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	return plaintext, nil
+	return ciphertext, nil
 }

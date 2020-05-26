@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mholt/certmagic"
-	"github.com/micro/go-micro/store"
-	"github.com/micro/go-micro/sync/lock"
+	"github.com/caddyserver/certmagic"
+	"github.com/micro/go-micro/v2/store"
+	"github.com/micro/go-micro/v2/sync"
 )
 
 // File represents a "File" that will be stored in store.Store - the contents and last modified time
@@ -26,16 +26,16 @@ type File struct {
 // As certmagic storage expects a filesystem (with stat() abilities) we have to implement
 // the bare minimum of metadata.
 type storage struct {
-	lock  lock.Lock
+	lock  sync.Sync
 	store store.Store
 }
 
 func (s *storage) Lock(key string) error {
-	return s.lock.Acquire(key, lock.TTL(10*time.Minute))
+	return s.lock.Lock(key, sync.LockTTL(10*time.Minute))
 }
 
 func (s *storage) Unlock(key string) error {
-	return s.lock.Release(key)
+	return s.lock.Unlock(key)
 }
 
 func (s *storage) Store(key string, value []byte) error {
@@ -88,16 +88,16 @@ func (s *storage) Exists(key string) bool {
 }
 
 func (s *storage) List(prefix string, recursive bool) ([]string, error) {
-	records, err := s.store.List()
+	keys, err := s.store.List()
 	if err != nil {
 		return nil, err
 	}
 
 	//nolint:prealloc
 	var results []string
-	for _, r := range records {
-		if strings.HasPrefix(r.Key, prefix) {
-			results = append(results, r.Key)
+	for _, k := range keys {
+		if strings.HasPrefix(k, prefix) {
+			results = append(results, k)
 		}
 	}
 	if recursive {
@@ -139,7 +139,7 @@ func (s *storage) Stat(key string) (certmagic.KeyInfo, error) {
 }
 
 // NewStorage returns a certmagic.Storage backed by a go-micro/lock and go-micro/store
-func NewStorage(lock lock.Lock, store store.Store) certmagic.Storage {
+func NewStorage(lock sync.Sync, store store.Store) certmagic.Storage {
 	return &storage{
 		lock:  lock,
 		store: store,

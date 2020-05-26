@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"os"
 	"strconv"
 	"strings"
 )
@@ -76,4 +77,44 @@ func Listen(addr string, fn func(string) (net.Listener, error)) (net.Listener, e
 
 	// why are we here?
 	return nil, fmt.Errorf("unable to bind to %s", addr)
+}
+
+// Proxy returns the proxy and the address if it exits
+func Proxy(service string, address []string) (string, []string, bool) {
+	var hasProxy bool
+
+	// get proxy. we parse out address if present
+	if prx := os.Getenv("MICRO_PROXY"); len(prx) > 0 {
+		// default name
+		if prx == "service" {
+			prx = "go.micro.proxy"
+			address = nil
+		}
+
+		// check if its an address
+		if v := strings.Split(prx, ":"); len(v) > 1 {
+			address = []string{prx}
+		}
+
+		service = prx
+		hasProxy = true
+
+		return service, address, hasProxy
+	}
+
+	if prx := os.Getenv("MICRO_NETWORK"); len(prx) > 0 {
+		// default name
+		if prx == "service" {
+			prx = "go.micro.network"
+		}
+		service = prx
+		hasProxy = true
+	}
+
+	if prx := os.Getenv("MICRO_NETWORK_ADDRESS"); len(prx) > 0 {
+		address = []string{prx}
+		hasProxy = true
+	}
+
+	return service, address, hasProxy
 }

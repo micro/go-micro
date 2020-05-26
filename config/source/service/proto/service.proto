@@ -1,0 +1,67 @@
+syntax = "proto3";
+
+service Config {
+	rpc Create (CreateRequest) returns (CreateResponse) {}
+	rpc Update (UpdateRequest) returns (UpdateResponse) {}
+	rpc Delete (DeleteRequest) returns (DeleteResponse) {}
+	rpc List (ListRequest) returns (ListResponse) {}
+	rpc Read (ReadRequest) returns (ReadResponse) {}
+	rpc Watch (WatchRequest) returns (stream WatchResponse) {}
+}
+
+message ChangeSet {
+    string data = 1;
+    string checksum = 2;
+    string format = 3;
+    string source = 4;
+    int64 timestamp = 5;
+}
+
+message Change {
+    string namespace = 1;
+    string path = 2;
+    ChangeSet changeSet = 3;
+}
+
+message CreateRequest {
+    Change change = 1;
+}
+
+message CreateResponse {}
+
+message UpdateRequest {
+    Change change = 1;
+}
+
+message UpdateResponse {}
+
+message DeleteRequest {
+    Change change = 1;
+}
+
+message DeleteResponse {}
+
+message ListRequest {}
+
+message ListResponse {
+    repeated Change values = 1;
+}
+
+message ReadRequest {
+    string namespace = 1;
+    string path = 2;
+}
+
+message ReadResponse {
+    Change change = 1;
+}
+
+message WatchRequest {
+    string namespace = 1;
+    string path = 2;
+}
+
+message WatchResponse {
+    string namespace = 1;
+    ChangeSet changeSet = 2;
+}

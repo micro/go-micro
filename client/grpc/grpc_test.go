@@ -5,10 +5,11 @@ import (
 	"net"
 	"testing"
 
-	"github.com/micro/go-micro/client"
-	"github.com/micro/go-micro/client/selector"
-	"github.com/micro/go-micro/registry"
-	"github.com/micro/go-micro/registry/memory"
+	"github.com/micro/go-micro/v2/client"
+	"github.com/micro/go-micro/v2/client/selector"
+	"github.com/micro/go-micro/v2/errors"
+	"github.com/micro/go-micro/v2/registry"
+	"github.com/micro/go-micro/v2/registry/memory"
 	pgrpc "google.golang.org/grpc"
 	pb "google.golang.org/grpc/examples/helloworld/helloworld"
 )
@@ -18,6 +19,9 @@ type greeterServer struct{}
 
 // SayHello implements helloworld.GreeterServer
 func (g *greeterServer) SayHello(ctx context.Context, in *pb.HelloRequest) (*pb.HelloReply, error) {
+	if in.Name == "Error" {
+		return nil, &errors.Error{Id: "1", Code: 99, Detail: "detail"}
+	}
 	return &pb.HelloReply{Message: "Hello " + in.Name}, nil
 }
 
@@ -84,4 +88,25 @@ func TestGRPCClient(t *testing.T) {
 			t.Fatalf("Got unexpected response %v", rsp.Message)
 		}
 	}
+
+	req := c.NewRequest("helloworld", "/helloworld.Greeter/SayHello", &pb.HelloRequest{
+		Name: "Error",
+	})
+
+	rsp := pb.HelloReply{}
+
+	err = c.Call(context.TODO(), req, &rsp)
+	if err == nil {
+		t.Fatal("nil error received")
+	}
+
+	verr, ok := err.(*errors.Error)
+	if !ok {
+		t.Fatalf("invalid error received %#+v\n", err)
+	}
+
+	if verr.Code != 99 && verr.Id != "1" && verr.Detail != "detail" {
+		t.Fatalf("invalid error received %#+v\n", verr)
+	}
+
 }

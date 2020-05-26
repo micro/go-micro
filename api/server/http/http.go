@@ -9,8 +9,9 @@ import (
 	"sync"
 
 	"github.com/gorilla/handlers"
-	"github.com/micro/go-micro/api/server"
-	"github.com/micro/go-micro/util/log"
+	"github.com/micro/go-micro/v2/api/server"
+	"github.com/micro/go-micro/v2/api/server/cors"
+	"github.com/micro/go-micro/v2/logger"
 )
 
 type httpServer struct {
@@ -22,9 +23,14 @@ type httpServer struct {
 	exit    chan chan error
 }
 
-func NewServer(address string) server.Server {
+func NewServer(address string, opts ...server.Option) server.Server {
+	var options server.Options
+	for _, o := range opts {
+		o(&options)
+	}
+
 	return &httpServer{
-		opts:    server.Options{},
+		opts:    options,
 		mux:     http.NewServeMux(),
 		address: address,
 		exit:    make(chan chan error),
@@ -45,7 +51,22 @@ func (s *httpServer) Init(opts ...server.Option) error {
 }
 
 func (s *httpServer) Handle(path string, handler http.Handler) {
-	s.mux.Handle(path, handlers.CombinedLoggingHandler(os.Stdout, handler))
+	// TODO: move this stuff out to one place with ServeHTTP
+
+	// apply the wrappers, e.g. auth
+	for _, wrapper := range s.opts.Wrappers {
+		handler = wrapper(handler)
+	}
+
+	// wrap with cors
+	if s.opts.EnableCORS {
+		handler = cors.CombinedCORSHandler(handler)
+	}
+
+	// wrap with logger
+	handler = handlers.CombinedLoggingHandler(os.Stdout, handler)
+
+	s.mux.Handle(path, handler)
 }
 
 func (s *httpServer) Start() error {
@@ -54,7 +75,7 @@ func (s *httpServer) Start() error {
 
 	if s.opts.EnableACME && s.opts.ACMEProvider != nil {
 		// should we check the address to make sure its using :443?
-		l, err = s.opts.ACMEProvider.NewListener(s.opts.ACMEHosts...)
+		l, err = s.opts.ACMEProvider.Listen(s.opts.ACMEHosts...)
 	} else if s.opts.EnableTLS && s.opts.TLSConfig != nil {
 		l, err = tls.Listen("tcp", s.address, s.opts.TLSConfig)
 	} else {
@@ -65,7 +86,9 @@ func (s *httpServer) Start() error {
 		return err
 	}
 
-	log.Logf("HTTP API Listening on %s", l.Addr().String())
+	if logger.V(logger.InfoLevel, logger.DefaultLogger) {
+		logger.Infof("HTTP API Listening on %s", l.Addr().String())
+	}
 
 	s.mtx.Lock()
 	s.address = l.Addr().String()
@@ -74,7 +97,7 @@ func (s *httpServer) Start() error {
 	go func() {
 		if err := http.Serve(l, s.mux); err != nil {
 			// temporary fix
-			//log.Fatal(err)
+			//logger.Fatal(err)
 		}
 	}()
 

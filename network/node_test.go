@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	pb "github.com/micro/go-micro/network/service/proto"
+	pb "github.com/micro/go-micro/v2/network/service/proto"
 )
 
 var (
@@ -21,6 +21,7 @@ func testSetup() *node {
 		address: testNodeAddress,
 		peers:   make(map[string]*node),
 		network: newNetwork(Name(testNodeNetName)),
+		status:  newStatus(),
 	}
 
 	// add some peers to the node
@@ -30,6 +31,7 @@ func testSetup() *node {
 			address: testNode.address + "-" + id,
 			peers:   make(map[string]*node),
 			network: testNode.network,
+			status:  newStatus(),
 		}
 	}
 
@@ -41,6 +43,7 @@ func testSetup() *node {
 			address: testNode.address + "-" + id,
 			peers:   make(map[string]*node),
 			network: testNode.network,
+			status:  newStatus(),
 		}
 	}
 
@@ -215,20 +218,52 @@ func TestDeletePeerNode(t *testing.T) {
 	}
 }
 
-func TestPruneStalePeerNodes(t *testing.T) {
+func TestPrunePeer(t *testing.T) {
 	// complicated node graph
 	node := testSetup()
 
-	nodes := node.Nodes()
+	before := node.Nodes()
 
+	node.PrunePeer("peer3")
+
+	now := node.Nodes()
+
+	if len(now) != len(before)-1 {
+		t.Errorf("Expected pruned node count: %d, got: %d", len(before)-1, len(now))
+	}
+}
+
+func TestPruneStalePeers(t *testing.T) {
+	// complicated node graph
+	node := testSetup()
+	nodes := node.Nodes()
+	// this will delete all nodes besides the root node
 	pruneTime := 10 * time.Millisecond
 	time.Sleep(pruneTime)
 
-	// should delete all nodes besides node
+	// should delete all nodes besides (root) node
 	pruned := node.PruneStalePeers(pruneTime)
 
 	if len(pruned) != len(nodes)-1 {
 		t.Errorf("Expected pruned node count: %d, got: %d", len(nodes)-1, len(pruned))
+	}
+
+	// complicated node graph
+	node = testSetup()
+	nodes = node.Nodes()
+
+	// set prune time to 100ms and wait for half of it
+	pruneTime = 100 * time.Millisecond
+	time.Sleep(pruneTime)
+
+	// update the time of peer1
+	node.peers["peer1"].lastSeen = time.Now()
+
+	// should prune all but the root nodes and peer1
+	pruned = node.PruneStalePeers(pruneTime)
+
+	if len(pruned) != len(nodes)-2 {
+		t.Errorf("Expected pruned node count: %d, got: %d", len(nodes)-2, len(pruned))
 	}
 }
 
@@ -237,6 +272,9 @@ func TestUnpackPeerTopology(t *testing.T) {
 		Node: &pb.Node{
 			Id:      "newPeer",
 			Address: "newPeerAddress",
+			Status: &pb.Status{
+				Error: &pb.Error{},
+			},
 		},
 		Peers: make([]*pb.Peer, 0),
 	}
@@ -252,12 +290,18 @@ func TestUnpackPeerTopology(t *testing.T) {
 	pbPeer1Node := &pb.Node{
 		Id:      peer1.id,
 		Address: peer1.address,
+		Status: &pb.Status{
+			Error: &pb.Error{},
+		},
 	}
 
 	pbPeer111 := &pb.Peer{
 		Node: &pb.Node{
 			Id:      "peer111",
 			Address: "peer111Address",
+			Status: &pb.Status{
+				Error: &pb.Error{},
+			},
 		},
 		Peers: make([]*pb.Peer, 0),
 	}
@@ -266,6 +310,9 @@ func TestUnpackPeerTopology(t *testing.T) {
 		Node: &pb.Node{
 			Id:      "peer121",
 			Address: "peer121Address",
+			Status: &pb.Status{
+				Error: &pb.Error{},
+			},
 		},
 		Peers: make([]*pb.Peer, 0),
 	}
@@ -292,6 +339,7 @@ func TestPeersToProto(t *testing.T) {
 		address: testNodeAddress,
 		peers:   make(map[string]*node),
 		network: newNetwork(Name(testNodeNetName)),
+		status:  newStatus(),
 	}
 	topCount := 0
 

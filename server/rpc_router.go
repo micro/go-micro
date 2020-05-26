@@ -18,17 +18,12 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/micro/go-micro/codec"
-	merrors "github.com/micro/go-micro/errors"
-	"github.com/micro/go-micro/util/log"
+	"github.com/micro/go-micro/v2/codec"
+	merrors "github.com/micro/go-micro/v2/errors"
 )
 
 var (
 	lastStreamResponseError = errors.New("EOS")
-	// A value sent as a placeholder for the server's response value when the server
-	// receives an invalid request. It is never decoded by the client since the Response
-	// contains an error when it is used.
-	invalidRequest = struct{}{}
 
 	// Precompute the reflect type for error. Can't use error directly
 	// because Typeof takes an empty interface value. This is annoying.
@@ -145,7 +140,7 @@ func prepareMethod(method reflect.Method) *methodType {
 		replyType = mtype.In(3)
 		contextType = mtype.In(1)
 	default:
-		log.Log("method", mname, "of", mtype, "has wrong number of ins:", mtype.NumIn())
+		log.Error("method", mname, "of", mtype, "has wrong number of ins:", mtype.NumIn())
 		return nil
 	}
 
@@ -153,7 +148,7 @@ func prepareMethod(method reflect.Method) *methodType {
 		// check stream type
 		streamType := reflect.TypeOf((*Stream)(nil)).Elem()
 		if !argType.Implements(streamType) {
-			log.Log(mname, "argument does not implement Stream interface:", argType)
+			log.Error(mname, "argument does not implement Stream interface:", argType)
 			return nil
 		}
 	} else {
@@ -161,30 +156,30 @@ func prepareMethod(method reflect.Method) *methodType {
 
 		// First arg need not be a pointer.
 		if !isExportedOrBuiltinType(argType) {
-			log.Log(mname, "argument type not exported:", argType)
+			log.Error(mname, "argument type not exported:", argType)
 			return nil
 		}
 
 		if replyType.Kind() != reflect.Ptr {
-			log.Log("method", mname, "reply type not a pointer:", replyType)
+			log.Error("method", mname, "reply type not a pointer:", replyType)
 			return nil
 		}
 
 		// Reply type must be exported.
 		if !isExportedOrBuiltinType(replyType) {
-			log.Log("method", mname, "reply type not exported:", replyType)
+			log.Error("method", mname, "reply type not exported:", replyType)
 			return nil
 		}
 	}
 
 	// Method needs one out.
 	if mtype.NumOut() != 1 {
-		log.Log("method", mname, "has wrong number of outs:", mtype.NumOut())
+		log.Error("method", mname, "has wrong number of outs:", mtype.NumOut())
 		return nil
 	}
 	// The return type of the method must be error.
 	if returnType := mtype.Out(0); returnType != typeOfError {
-		log.Log("method", mname, "returns", returnType.String(), "not error")
+		log.Error("method", mname, "returns", returnType.String(), "not error")
 		return nil
 	}
 	return &methodType{method: method, ArgType: argType, ReplyType: replyType, ContextType: contextType, stream: stream}
@@ -216,6 +211,7 @@ func (s *service) call(ctx context.Context, router *router, sending *sync.Mutex,
 		method:      req.msg.Method,
 		endpoint:    req.msg.Endpoint,
 		body:        req.msg.Body,
+		header:      req.msg.Header,
 	}
 
 	// only set if not nil
@@ -346,7 +342,9 @@ func (router *router) readRequest(r Request) (service *service, mtype *methodTyp
 	}
 	// is it a streaming request? then we don't read the body
 	if mtype.stream {
-		cc.ReadBody(nil)
+		if cc.(codec.Codec).String() != "grpc" {
+			cc.ReadBody(nil)
+		}
 		return
 	}
 
@@ -506,29 +504,24 @@ func (router *router) Subscribe(s Subscriber) error {
 	return nil
 }
 
-func (router *router) ProcessMessage(ctx context.Context, msg Message) error {
-	var err error
-
+func (router *router) ProcessMessage(ctx context.Context, msg Message) (err error) {
 	defer func() {
 		// recover any panics
 		if r := recover(); r != nil {
-			log.Log("panic recovered: ", r)
-			log.Log(string(debug.Stack()))
+			log.Error("panic recovered: ", r)
+			log.Error(string(debug.Stack()))
 			err = merrors.InternalServerError("go.micro.server", "panic recovered: %v", r)
 		}
 	}()
 
 	router.su.RLock()
-
 	// get the subscribers by topic
 	subs, ok := router.subscribers[msg.Topic()]
-	if !ok {
-		router.su.RUnlock()
-		return nil
-	}
-
 	// unlock since we only need to get the subs
 	router.su.RUnlock()
+	if !ok {
+		return nil
+	}
 
 	var errResults []string
 
@@ -543,18 +536,6 @@ func (router *router) ProcessMessage(ctx context.Context, msg Message) error {
 			var req reflect.Value
 
 			// check whether the handler is a pointer
-			if handler.reqType.Kind() == reflect.Ptr {
-				req = reflect.New(handler.reqType.Elem())
-			} else {
-				req = reflect.New(handler.reqType)
-				isVal = true
-			}
-
-			// if its a value get the element
-			if isVal {
-				req = req.Elem()
-			}
-
 			if handler.reqType.Kind() == reflect.Ptr {
 				req = reflect.New(handler.reqType.Elem())
 			} else {

@@ -6,11 +6,12 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/micro/cli"
-	"github.com/micro/go-micro"
-	"github.com/micro/go-micro/registry"
+	"github.com/micro/cli/v2"
+	"github.com/micro/go-micro/v2"
+	"github.com/micro/go-micro/v2/registry"
 )
 
+//Options for web
 type Options struct {
 	Name      string
 	Version   string
@@ -24,6 +25,9 @@ type Options struct {
 
 	RegisterTTL      time.Duration
 	RegisterInterval time.Duration
+
+	// RegisterCheck runs a check function before registering the service
+	RegisterCheck func(context.Context) error
 
 	Server  *http.Server
 	Handler http.Handler
@@ -43,6 +47,8 @@ type Options struct {
 
 	// Static directory
 	StaticDir string
+
+	Signal bool
 }
 
 func newOptions(opts ...Option) Options {
@@ -56,16 +62,21 @@ func newOptions(opts ...Option) Options {
 		StaticDir:        DefaultStaticDir,
 		Service:          micro.NewService(),
 		Context:          context.TODO(),
+		Signal:           true,
 	}
 
 	for _, o := range opts {
 		o(&opt)
 	}
 
+	if opt.RegisterCheck == nil {
+		opt.RegisterCheck = DefaultRegisterCheck
+	}
+
 	return opt
 }
 
-// Server name
+// Name of Web
 func Name(n string) Option {
 	return func(o *Options) {
 		o.Name = n
@@ -82,7 +93,7 @@ func Icon(ico string) Option {
 	}
 }
 
-// Unique server id
+//Id for Unique server id
 func Id(id string) Option {
 	return func(o *Options) {
 		o.Id = id
@@ -110,7 +121,7 @@ func Address(a string) Option {
 	}
 }
 
-// The address to advertise for discovery - host:port
+//Advertise The address to advertise for discovery - host:port
 func Advertise(a string) Option {
 	return func(o *Options) {
 		o.Advertise = a
@@ -126,30 +137,35 @@ func Context(ctx context.Context) Option {
 	}
 }
 
+// Registry used for discovery
 func Registry(r registry.Registry) Option {
 	return func(o *Options) {
 		o.Registry = r
 	}
 }
 
+//RegisterTTL Register the service with a TTL
 func RegisterTTL(t time.Duration) Option {
 	return func(o *Options) {
 		o.RegisterTTL = t
 	}
 }
 
+//RegisterInterval Register the service with at interval
 func RegisterInterval(t time.Duration) Option {
 	return func(o *Options) {
 		o.RegisterInterval = t
 	}
 }
 
+//Handler for custom handler
 func Handler(h http.Handler) Option {
 	return func(o *Options) {
 		o.Handler = h
 	}
 }
 
+//Server for custom Server
 func Server(srv *http.Server) Option {
 	return func(o *Options) {
 		o.Server = srv
@@ -223,5 +239,21 @@ func TLSConfig(t *tls.Config) Option {
 func StaticDir(d string) Option {
 	return func(o *Options) {
 		o.StaticDir = d
+	}
+}
+
+// RegisterCheck run func before registry service
+func RegisterCheck(fn func(context.Context) error) Option {
+	return func(o *Options) {
+		o.RegisterCheck = fn
+	}
+}
+
+// HandleSignal toggles automatic installation of the signal handler that
+// traps TERM, INT, and QUIT.  Users of this feature to disable the signal
+// handler, should control liveness of the service through the context.
+func HandleSignal(b bool) Option {
+	return func(o *Options) {
+		o.Signal = b
 	}
 }

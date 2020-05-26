@@ -4,8 +4,8 @@ package micro
 import (
 	"context"
 
-	"github.com/micro/go-micro/client"
-	"github.com/micro/go-micro/server"
+	"github.com/micro/go-micro/v2/client"
+	"github.com/micro/go-micro/v2/server"
 )
 
 type serviceKey struct{}
@@ -42,10 +42,34 @@ type Function interface {
 	Subscribe(topic string, v interface{}) error
 }
 
-// Publisher is syntactic sugar for publishing
-type Publisher interface {
+/*
+// Type Event is a future type for acting on asynchronous events
+type Event interface {
+	// Publish publishes a message to the event topic
+	Publish(ctx context.Context, msg interface{}, opts ...client.PublishOption) error
+	// Subscribe to the event
+	Subscribe(ctx context.Context, v in
+}
+
+// Resource is a future type for defining dependencies
+type Resource interface {
+	// Name of the resource
+	Name() string
+	// Type of resource
+	Type() string
+	// Method of creation
+	Create() error
+}
+*/
+
+// Event is used to publish messages to a topic
+type Event interface {
+	// Publish publishes a message to the event topic
 	Publish(ctx context.Context, msg interface{}, opts ...client.PublishOption) error
 }
+
+// Type alias to satisfy the deprecation
+type Publisher = Event
 
 type Option func(*Options)
 
@@ -74,12 +98,17 @@ func NewFunction(opts ...Option) Function {
 	return newFunction(opts...)
 }
 
-// NewPublisher returns a new Publisher
-func NewPublisher(topic string, c client.Client) Publisher {
+// NewEvent creates a new event publisher
+func NewEvent(topic string, c client.Client) Event {
 	if c == nil {
 		c = client.NewClient()
 	}
-	return &publisher{c, topic}
+	return &event{c, topic}
+}
+
+// Deprecated: NewPublisher returns a new Publisher
+func NewPublisher(topic string, c client.Client) Event {
+	return NewEvent(topic, c)
 }
 
 // RegisterHandler is syntactic sugar for registering a handler

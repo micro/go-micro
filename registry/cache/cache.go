@@ -7,8 +7,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/micro/go-micro/registry"
-	log "github.com/micro/go-micro/util/log"
+	"github.com/micro/go-micro/v2/logger"
+	"github.com/micro/go-micro/v2/registry"
+	util "github.com/micro/go-micro/v2/util/registry"
 )
 
 // Cache is the registry cache interface
@@ -119,7 +120,7 @@ func (c *cache) get(service string) ([]*registry.Service, error) {
 	// get cache ttl
 	ttl := c.ttls[service]
 	// make a copy
-	cp := registry.Copy(services)
+	cp := util.Copy(services)
 
 	// got services && within ttl so return cache
 	if c.isValid(cp, ttl) {
@@ -152,7 +153,7 @@ func (c *cache) get(service string) ([]*registry.Service, error) {
 
 		// cache results
 		c.Lock()
-		c.set(service, registry.Copy(services))
+		c.set(service, util.Copy(services))
 		c.Unlock()
 
 		return services, nil
@@ -339,7 +340,9 @@ func (c *cache) run() {
 			c.setStatus(err)
 
 			if a > 3 {
-				log.Log("rcache: ", err, " backing off ", d)
+				if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+					logger.Debug("rcache: ", err, " backing off ", d)
+				}
 				a = 0
 			}
 
@@ -362,7 +365,9 @@ func (c *cache) run() {
 			c.setStatus(err)
 
 			if b > 3 {
-				log.Log("rcache: ", err, " backing off ", d)
+				if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+					logger.Debug("rcache: ", err, " backing off ", d)
+				}
 				b = 0
 			}
 
@@ -414,7 +419,7 @@ func (c *cache) watch(w registry.Watcher) error {
 	}
 }
 
-func (c *cache) GetService(service string) ([]*registry.Service, error) {
+func (c *cache) GetService(service string, opts ...registry.GetOption) ([]*registry.Service, error) {
 	// get the service
 	services, err := c.get(service)
 	if err != nil {

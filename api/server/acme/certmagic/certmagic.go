@@ -1,26 +1,27 @@
-// Package certmagic is the ACME provider from github.com/mholt/certmagic
+// Package certmagic is the ACME provider from github.com/caddyserver/certmagic
 package certmagic
 
 import (
-	"log"
+	"crypto/tls"
 	"math/rand"
 	"net"
 	"time"
 
-	"github.com/mholt/certmagic"
-
-	"github.com/micro/go-micro/api/server/acme"
+	"github.com/caddyserver/certmagic"
+	"github.com/micro/go-micro/v2/api/server/acme"
+	"github.com/micro/go-micro/v2/logger"
 )
 
 type certmagicProvider struct {
 	opts acme.Options
 }
 
-func (c *certmagicProvider) NewListener(ACMEHosts ...string) (net.Listener, error) {
-	certmagic.Default.CA = c.opts.CA
+// TODO: set self-contained options
+func (c *certmagicProvider) setup() {
+	certmagic.DefaultACME.CA = c.opts.CA
 	if c.opts.ChallengeProvider != nil {
 		// Enabling DNS Challenge disables the other challenges
-		certmagic.Default.DNSProvider = c.opts.ChallengeProvider
+		certmagic.DefaultACME.DNSProvider = c.opts.ChallengeProvider
 	}
 	if c.opts.OnDemand {
 		certmagic.Default.OnDemand = new(certmagic.OnDemandConfig)
@@ -31,15 +32,24 @@ func (c *certmagicProvider) NewListener(ACMEHosts ...string) (net.Listener, erro
 	}
 	// If multiple instances of the provider are running, inject some
 	// randomness so they don't collide
+	// RenewalWindowRatio [0.33 - 0.50)
 	rand.Seed(time.Now().UnixNano())
-	randomDuration := (7 * 24 * time.Hour) + (time.Duration(rand.Intn(504)) * time.Hour)
-	certmagic.Default.RenewDurationBefore = randomDuration
-
-	return certmagic.Listen(ACMEHosts)
+	randomRatio := float64(rand.Intn(17) + 33) * 0.01
+	certmagic.Default.RenewalWindowRatio = randomRatio
 }
 
-// New returns a certmagic provider
-func New(options ...acme.Option) acme.Provider {
+func (c *certmagicProvider) Listen(hosts ...string) (net.Listener, error) {
+	c.setup()
+	return certmagic.Listen(hosts)
+}
+
+func (c *certmagicProvider) TLSConfig(hosts ...string) (*tls.Config, error) {
+	c.setup()
+	return certmagic.TLS(hosts)
+}
+
+// NewProvider returns a certmagic provider
+func NewProvider(options ...acme.Option) acme.Provider {
 	opts := acme.DefaultOptions()
 
 	for _, o := range options {
@@ -48,7 +58,7 @@ func New(options ...acme.Option) acme.Provider {
 
 	if opts.Cache != nil {
 		if _, ok := opts.Cache.(certmagic.Storage); !ok {
-			log.Fatal("ACME: cache provided doesn't implement certmagic's Storage interface")
+			logger.Fatal("ACME: cache provided doesn't implement certmagic's Storage interface")
 		}
 	}
 

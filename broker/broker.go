@@ -28,6 +28,7 @@ type Event interface {
 	Topic() string
 	Message() *Message
 	Ack() error
+	Error() error
 }
 
 // Subscriber is a convenience return type for the Subscribe method
@@ -38,12 +39,8 @@ type Subscriber interface {
 }
 
 var (
-	DefaultBroker Broker = newHttpBroker()
+	DefaultBroker Broker = NewBroker()
 )
-
-func NewBroker(opts ...Option) Broker {
-	return newHttpBroker(opts...)
-}
 
 func Init(opts ...Option) error {
 	return DefaultBroker.Init(opts...)

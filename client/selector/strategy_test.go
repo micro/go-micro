@@ -1,9 +1,10 @@
 package selector
 
 import (
+	"os"
 	"testing"
 
-	"github.com/micro/go-micro/registry"
+	"github.com/micro/go-micro/v2/registry"
 )
 
 func TestStrategies(t *testing.T) {
@@ -50,6 +51,8 @@ func TestStrategies(t *testing.T) {
 			counts[node.Id]++
 		}
 
-		t.Logf("%s: %+v\n", name, counts)
+		if len(os.Getenv("IN_TRAVIS_CI")) == 0 {
+			t.Logf("%s: %+v\n", name, counts)
+		}
 	}
 }

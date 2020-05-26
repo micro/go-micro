@@ -4,16 +4,20 @@ package config
 import (
 	"context"
 
-	"github.com/micro/go-micro/config/loader"
-	"github.com/micro/go-micro/config/reader"
-	"github.com/micro/go-micro/config/source"
-	"github.com/micro/go-micro/config/source/file"
+	"github.com/micro/go-micro/v2/config/loader"
+	"github.com/micro/go-micro/v2/config/reader"
+	"github.com/micro/go-micro/v2/config/source"
+	"github.com/micro/go-micro/v2/config/source/file"
 )
 
 // Config is an interface abstraction for dynamic configuration
 type Config interface {
 	// provide the reader.Values interface
 	reader.Values
+	// Init the config
+	Init(opts ...Option) error
+	// Options in the config
+	Options() Options
 	// Stop the config loader/watcher
 	Close() error
 	// Load config sources
@@ -43,11 +47,11 @@ type Option func(o *Options)
 
 var (
 	// Default Config Manager
-	DefaultConfig = NewConfig()
+	DefaultConfig, _ = NewConfig()
 )
 
 // NewConfig returns new config
-func NewConfig(opts ...Option) Config {
+func NewConfig(opts ...Option) (Config, error) {
 	return newConfig(opts...)
 }
 

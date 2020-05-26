@@ -3,7 +3,7 @@ package etcd
 import (
 	"context"
 
-	"github.com/micro/go-micro/registry"
+	"github.com/micro/go-micro/v2/registry"
 	"go.uber.org/zap"
 )
 
@@ -32,6 +32,6 @@ func LogConfig(config *zap.Config) registry.Option {
 		if o.Context == nil {
 			o.Context = context.Background()
 		}
-		o.Context = context.WithValue(o.Context, authKey{}, config)
+		o.Context = context.WithValue(o.Context, logConfigKey{}, config)
 	}
 }

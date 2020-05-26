@@ -6,17 +6,17 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/micro/go-micro/api/handler"
-	"github.com/micro/go-micro/api/router"
-	regRouter "github.com/micro/go-micro/api/router/registry"
-	"github.com/micro/go-micro/config/cmd"
-	"github.com/micro/go-micro/registry"
-	"github.com/micro/go-micro/registry/memory"
+	"github.com/micro/go-micro/v2/api/handler"
+	"github.com/micro/go-micro/v2/api/resolver"
+	"github.com/micro/go-micro/v2/api/resolver/vpath"
+	"github.com/micro/go-micro/v2/api/router"
+	regRouter "github.com/micro/go-micro/v2/api/router/registry"
+	"github.com/micro/go-micro/v2/registry"
+	"github.com/micro/go-micro/v2/registry/memory"
 )
 
 func testHttp(t *testing.T, path, service, ns string) {
 	r := memory.NewRegistry()
-	cmd.DefaultCmd = cmd.NewCmd(cmd.Registry(&r))
 
 	l, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
@@ -56,7 +56,10 @@ func testHttp(t *testing.T, path, service, ns string) {
 	// initialise the handler
 	rt := regRouter.NewRouter(
 		router.WithHandler("http"),
-		router.WithNamespace(ns),
+		router.WithRegistry(r),
+		router.WithResolver(vpath.NewResolver(
+			resolver.WithNamespace(resolver.StaticNamespace(ns)),
+		)),
 	)
 
 	p := NewHandler(handler.WithRouter(rt))
@@ -117,6 +120,8 @@ func TestHttpHandler(t *testing.T) {
 	}
 
 	for _, d := range testData {
-		testHttp(t, d.path, d.service, d.namespace)
+		t.Run(d.service, func(t *testing.T) {
+			testHttp(t, d.path, d.service, d.namespace)
+		})
 	}
 }

@@ -4,15 +4,22 @@ import (
 	"context"
 	"crypto/tls"
 
-	"github.com/micro/go-micro/codec"
-	"github.com/micro/go-micro/registry"
+	"github.com/micro/go-micro/v2/codec"
+	"github.com/micro/go-micro/v2/registry"
 )
 
 type Options struct {
-	Addrs     []string
-	Secure    bool
-	Codec     codec.Marshaler
+	Addrs  []string
+	Secure bool
+	Codec  codec.Marshaler
+
+	// Handler executed when error happens in broker mesage
+	// processing
+	ErrorHandler Handler
+
 	TLSConfig *tls.Config
+	// Registry used for clustering
+	Registry registry.Registry
 	// Other options for implementations of the interface
 	// can be stored in a context
 	Context context.Context
@@ -42,11 +49,14 @@ type Option func(*Options)
 
 type PublishOption func(*PublishOptions)
 
-type SubscribeOption func(*SubscribeOptions)
+// PublishContext set context
+func PublishContext(ctx context.Context) PublishOption {
+	return func(o *PublishOptions) {
+		o.Context = ctx
+	}
+}
 
-var (
-	registryKey = "github.com/micro/go-micro/registry"
-)
+type SubscribeOption func(*SubscribeOptions)
 
 func NewSubscribeOptions(opts ...SubscribeOption) SubscribeOptions {
 	opt := SubscribeOptions{
@@ -83,6 +93,14 @@ func DisableAutoAck() SubscribeOption {
 	}
 }
 
+// ErrorHandler will catch all broker errors that cant be handled
+// in normal way, for example Codec errors
+func ErrorHandler(h Handler) Option {
+	return func(o *Options) {
+		o.ErrorHandler = h
+	}
+}
+
 // Queue sets the name of the queue to share messages on
 func Queue(name string) SubscribeOption {
 	return func(o *SubscribeOptions) {
@@ -92,7 +110,7 @@ func Queue(name string) SubscribeOption {
 
 func Registry(r registry.Registry) Option {
 	return func(o *Options) {
-		o.Context = context.WithValue(o.Context, registryKey, r)
+		o.Registry = r
 	}
 }
 

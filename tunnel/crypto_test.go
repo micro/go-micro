@@ -6,10 +6,15 @@ import (
 )
 
 func TestEncrypt(t *testing.T) {
-	key := "tokenpassphrase"
+	key := []byte("tokenpassphrase")
+	gcm, err := newCipher(key)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	data := []byte("supersecret")
 
-	cipherText, err := Encrypt(data, key)
+	cipherText, err := Encrypt(gcm, data)
 	if err != nil {
 		t.Errorf("failed to encrypt data: %v", err)
 	}
@@ -21,15 +26,20 @@ func TestEncrypt(t *testing.T) {
 }
 
 func TestDecrypt(t *testing.T) {
-	key := "tokenpassphrase"
+	key := []byte("tokenpassphrase")
+	gcm, err := newCipher(key)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	data := []byte("supersecret")
 
-	cipherText, err := Encrypt(data, key)
+	cipherText, err := Encrypt(gcm, data)
 	if err != nil {
 		t.Errorf("failed to encrypt data: %v", err)
 	}
 
-	plainText, err := Decrypt(cipherText, key)
+	plainText, err := Decrypt(gcm, cipherText)
 	if err != nil {
 		t.Errorf("failed to decrypt data: %v", err)
 	}

@@ -4,53 +4,19 @@ package proxy
 import (
 	"context"
 
-	"github.com/micro/go-micro/client"
-	"github.com/micro/go-micro/config/options"
-	"github.com/micro/go-micro/router"
-	"github.com/micro/go-micro/server"
+	"github.com/micro/go-micro/v2/server"
 )
 
 // Proxy can be used as a proxy server for go-micro services
 type Proxy interface {
-	options.Options
 	// ProcessMessage handles inbound messages
 	ProcessMessage(context.Context, server.Message) error
 	// ServeRequest handles inbound requests
 	ServeRequest(context.Context, server.Request, server.Response) error
+	// Name of the proxy protocol
+	String() string
 }
 
 var (
 	DefaultEndpoint = "localhost:9090"
 )
-
-// WithEndpoint sets a proxy endpoint
-func WithEndpoint(e string) options.Option {
-	return options.WithValue("proxy.endpoint", e)
-}
-
-// WithClient sets the client
-func WithClient(c client.Client) options.Option {
-	return options.WithValue("proxy.client", c)
-}
-
-// WithRouter specifies the router to use
-func WithRouter(r router.Router) options.Option {
-	return options.WithValue("proxy.router", r)
-}
-
-// WithLink sets a link for outbound requests
-func WithLink(name string, c client.Client) options.Option {
-	return func(o *options.Values) error {
-		var links map[string]client.Client
-		v, ok := o.Get("proxy.links")
-		if ok {
-			links = v.(map[string]client.Client)
-		} else {
-			links = map[string]client.Client{}
-		}
-		links[name] = c
-		// save the links
-		o.Set("proxy.links", links)
-		return nil
-	}
-}

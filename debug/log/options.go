@@ -7,14 +7,31 @@ type Option func(*Options)
 
 // Options are logger options
 type Options struct {
+	// Name of the log
+	Name string
 	// Size is the size of ring buffer
 	Size int
+	// Format specifies the output format
+	Format FormatFunc
+}
+
+// Name of the log
+func Name(n string) Option {
+	return func(o *Options) {
+		o.Name = n
+	}
 }
 
 // Size sets the size of the ring buffer
 func Size(s int) Option {
 	return func(o *Options) {
 		o.Size = s
+	}
+}
+
+func Format(f FormatFunc) Option {
+	return func(o *Options) {
+		o.Format = f
 	}
 }
 
@@ -49,12 +66,5 @@ func Since(s time.Time) ReadOption {
 func Count(c int) ReadOption {
 	return func(o *ReadOptions) {
 		o.Count = c
-	}
-}
-
-// Stream requests continuous log stream
-func Stream(s bool) ReadOption {
-	return func(o *ReadOptions) {
-		o.Stream = s
 	}
 }

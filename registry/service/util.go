@@ -1,8 +1,8 @@
 package service
 
 import (
-	"github.com/micro/go-micro/registry"
-	pb "github.com/micro/go-micro/registry/service/proto"
+	"github.com/micro/go-micro/v2/registry"
+	pb "github.com/micro/go-micro/v2/registry/service/proto"
 )
 
 func values(v []*registry.Value) []*pb.Value {
@@ -82,6 +82,7 @@ func ToProto(s *registry.Service) *pb.Service {
 		Metadata:  s.Metadata,
 		Endpoints: endpoints,
 		Nodes:     nodes,
+		Options:   new(pb.Options),
 	}
 }
 

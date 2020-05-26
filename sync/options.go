@@ -1,36 +1,33 @@
 package sync
 
 import (
-	"github.com/micro/go-micro/store"
-	"github.com/micro/go-micro/sync/leader"
-	"github.com/micro/go-micro/sync/lock"
-	"github.com/micro/go-micro/sync/time"
+	"time"
 )
 
-// WithLeader sets the leader election implementation opton
-func WithLeader(l leader.Leader) Option {
+// Nodes sets the addresses to use
+func Nodes(a ...string) Option {
 	return func(o *Options) {
-		o.Leader = l
+		o.Nodes = a
 	}
 }
 
-// WithLock sets the locking implementation option
-func WithLock(l lock.Lock) Option {
+// Prefix sets a prefix to any lock ids used
+func Prefix(p string) Option {
 	return func(o *Options) {
-		o.Lock = l
+		o.Prefix = p
 	}
 }
 
-// WithStore sets the store implementation option
-func WithStore(s store.Store) Option {
-	return func(o *Options) {
-		o.Store = s
+// LockTTL sets the lock ttl
+func LockTTL(t time.Duration) LockOption {
+	return func(o *LockOptions) {
+		o.TTL = t
 	}
 }
 
-// WithTime sets the time implementation option
-func WithTime(t time.Time) Option {
-	return func(o *Options) {
-		o.Time = t
+// LockWait sets the wait time
+func LockWait(t time.Duration) LockOption {
+	return func(o *LockOptions) {
+		o.Wait = t
 	}
 }
