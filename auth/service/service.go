@@ -112,7 +112,7 @@ func (s *svc) Rules(opts ...auth.RulesOption) ([]*auth.Rule, error) {
 		options.Context = context.TODO()
 	}
 
-	rsp, err := s.rules.List(options.Context, &pb.ListRequest{})
+	rsp, err := s.rules.List(options.Context, &pb.ListRequest{}, client.WithCache(time.Second*30))
 	if err != nil {
 		return nil, err
 	}
