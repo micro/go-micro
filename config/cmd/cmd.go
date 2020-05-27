@@ -275,12 +275,6 @@ var (
 			Usage:   "Account secret used for client authentication",
 		},
 		&cli.StringFlag{
-			Name:    "auth_namespace",
-			EnvVars: []string{"MICRO_AUTH_NAMESPACE"},
-			Usage:   "Namespace for the services auth account",
-			Value:   "go.micro",
-		},
-		&cli.StringFlag{
 			Name:    "auth_public_key",
 			EnvVars: []string{"MICRO_AUTH_PUBLIC_KEY"},
 			Usage:   "Public key for JWT auth (base64 encoded PEM)",
@@ -319,6 +313,12 @@ var (
 			Name:    "auth_provider_scope",
 			EnvVars: []string{"MICRO_AUTH_PROVIDER_SCOPE"},
 			Usage:   "The scope to be used for oauth",
+		},
+		&cli.StringFlag{
+			Name:    "namespace",
+			EnvVars: []string{"MICRO_NAMESPACE"},
+			Usage:   "Namespace the services should running in",
+			Value:   "go.micro",
 		},
 		&cli.StringFlag{
 			Name:    "config",
@@ -696,16 +696,14 @@ func (c *cmd) Before(ctx *cli.Context) error {
 			ctx.String("auth_id"), ctx.String("auth_secret"),
 		))
 	}
-
-	if len(ctx.String("auth_namespace")) > 0 {
-		authOpts = append(authOpts, auth.Namespace(ctx.String("auth_namespace")))
-	}
-
 	if len(ctx.String("auth_public_key")) > 0 {
 		authOpts = append(authOpts, auth.PublicKey(ctx.String("auth_public_key")))
 	}
 	if len(ctx.String("auth_private_key")) > 0 {
 		authOpts = append(authOpts, auth.PrivateKey(ctx.String("auth_private_key")))
+	}
+	if len(ctx.String("namespace")) > 0 {
+		authOpts = append(authOpts, auth.Issuer(ctx.String("namespace")))
 	}
 
 	if name := ctx.String("auth_provider"); len(name) > 0 {

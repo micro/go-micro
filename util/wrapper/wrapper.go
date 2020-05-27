@@ -158,7 +158,7 @@ func (a *authWrapper) Call(ctx context.Context, req client.Request, rsp interfac
 
 	// set the namespace header if it has not been set (e.g. on a service to service request)
 	if _, ok := metadata.Get(ctx, "Micro-Namespace"); !ok {
-		ctx = metadata.Set(ctx, "Micro-Namespace", aa.Options().Namespace)
+		ctx = metadata.Set(ctx, "Micro-Namespace", aa.Options().Issuer)
 	}
 
 	// check to see if we have a valid access token
@@ -205,7 +205,7 @@ func AuthHandler(fn func() auth.Auth) server.HandlerWrapper {
 			// Extract the namespace header
 			ns, ok := metadata.Get(ctx, "Micro-Namespace")
 			if !ok {
-				ns = a.Options().Namespace
+				ns = a.Options().Issuer
 				ctx = metadata.Set(ctx, "Micro-Namespace", ns)
 			}
 
