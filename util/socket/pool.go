@@ -19,12 +19,18 @@ func (p *Pool) Get(id string) (*Socket, bool) {
 	}
 	p.RUnlock()
 
-	// create new socket
-	socket = New(id)
 	// save socket
 	p.Lock()
+	defer p.Unlock()
+	// double checked locking
+	socket, ok = p.pool[id]
+	if ok {
+		return socket, ok
+	}
+	// create new socket
+	socket = New(id)
 	p.pool[id] = socket
-	p.Unlock()
+
 	// return socket
 	return socket, false
 }
