@@ -32,7 +32,7 @@ func (m *service) Read() (set *source.ChangeSet, err error) {
 		Path:      m.path,
 	})
 	if verr, ok := err.(*errors.Error); ok && verr.Code == http.StatusNotFound {
-		return &source.ChangeSet{Data: []byte{}}, nil
+		return nil, nil
 	} else if err != nil {
 		return nil, err
 	}
