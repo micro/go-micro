@@ -2,10 +2,12 @@ package service
 
 import (
 	"context"
+	"net/http"
 
 	"github.com/micro/go-micro/v2/client"
 	"github.com/micro/go-micro/v2/config/source"
 	proto "github.com/micro/go-micro/v2/config/source/service/proto"
+	"github.com/micro/go-micro/v2/errors"
 	"github.com/micro/go-micro/v2/logger"
 )
 
@@ -29,7 +31,9 @@ func (m *service) Read() (set *source.ChangeSet, err error) {
 		Namespace: m.namespace,
 		Path:      m.path,
 	})
-	if err != nil {
+	if verr, ok := err.(*errors.Error); ok && verr.Code == http.StatusNotFound {
+		return nil, nil
+	} else if err != nil {
 		return nil, err
 	}
 

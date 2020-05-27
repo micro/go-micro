@@ -48,10 +48,10 @@ func (c *Cache) List() map[string]string {
 
 // key returns a hash for the context and request
 func key(ctx context.Context, req *Request) string {
-	md, _ := metadata.FromContext(ctx)
+	ns, _ := metadata.Get(ctx, "Micro-Namespace")
 
 	bytes, _ := json.Marshal(map[string]interface{}{
-		"metadata": md,
+		"namespace": ns,
 		"request": map[string]interface{}{
 			"service":  (*req).Service(),
 			"endpoint": (*req).Endpoint(),

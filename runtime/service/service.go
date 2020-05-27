@@ -54,12 +54,11 @@ func (s *svc) Create(svc *runtime.Service, opts ...runtime.CreateOption) error {
 			Metadata: svc.Metadata,
 		},
 		Options: &pb.CreateOptions{
-			Command:   options.Command,
-			Args:      options.Args,
-			Env:       options.Env,
-			Type:      options.Type,
-			Image:     options.Image,
-			Namespace: options.Namespace,
+			Command: options.Command,
+			Args:    options.Args,
+			Env:     options.Env,
+			Type:    options.Type,
+			Image:   options.Image,
 		},
 	}
 
@@ -84,9 +83,6 @@ func (s *svc) Logs(service *runtime.Service, opts ...runtime.LogsOption) (runtim
 		Service: service.Name,
 		Stream:  options.Stream,
 		Count:   options.Count,
-		Options: &pb.LogsOptions{
-			Namespace: options.Namespace,
-		},
 	})
 	if err != nil {
 		return nil, err
@@ -176,10 +172,9 @@ func (s *svc) Read(opts ...runtime.ReadOption) ([]*runtime.Service, error) {
 	// runtime service create request
 	req := &pb.ReadRequest{
 		Options: &pb.ReadOptions{
-			Service:   options.Service,
-			Version:   options.Version,
-			Type:      options.Type,
-			Namespace: options.Namespace,
+			Service: options.Service,
+			Version: options.Version,
+			Type:    options.Type,
 		},
 	}
 
@@ -220,9 +215,6 @@ func (s *svc) Update(svc *runtime.Service, opts ...runtime.UpdateOption) error {
 			Source:   svc.Source,
 			Metadata: svc.Metadata,
 		},
-		Options: &pb.UpdateOptions{
-			Namespace: options.Namespace,
-		},
 	}
 
 	if _, err := s.runtime.Update(options.Context, req); err != nil {
@@ -249,9 +241,6 @@ func (s *svc) Delete(svc *runtime.Service, opts ...runtime.DeleteOption) error {
 			Version:  svc.Version,
 			Source:   svc.Source,
 			Metadata: svc.Metadata,
-		},
-		Options: &pb.DeleteOptions{
-			Namespace: options.Namespace,
 		},
 	}
 

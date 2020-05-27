@@ -7,20 +7,23 @@ import (
 	"time"
 )
 
+const (
+	// BearerScheme used for Authorization header
+	BearerScheme = "Bearer "
+	// ScopePublic is the scope applied to a rule to allow access to the public
+	ScopePublic = ""
+	// ScopeAccount is the scope applied to a rule to limit to users with any valid account
+	ScopeAccount = "*"
+)
+
 var (
-	// ErrNotFound is returned when a resouce cannot be found
-	ErrNotFound = errors.New("not found")
-	// ErrEncodingToken is returned when the service encounters an error during encoding
-	ErrEncodingToken = errors.New("error encoding the token")
-	// ErrInvalidToken is returned when the token provided is not valid
+	// ErrInvalidToken is when the token provided is not valid
 	ErrInvalidToken = errors.New("invalid token provided")
-	// ErrInvalidRole is returned when the role provided was invalid
-	ErrInvalidRole = errors.New("invalid role")
-	// ErrForbidden is returned when a user does not have the necessary roles to access a resource
+	// ErrForbidden is when a user does not have the necessary scope to access a resource
 	ErrForbidden = errors.New("resource forbidden")
 )
 
-// Auth providers authentication and authorization
+// Auth provides authentication and authorization
 type Auth interface {
 	// Init the auth
 	Init(opts ...Option)
@@ -28,30 +31,20 @@ type Auth interface {
 	Options() Options
 	// Generate a new account
 	Generate(id string, opts ...GenerateOption) (*Account, error)
-	// Grant access to a resource
-	Grant(role string, res *Resource) error
-	// Revoke access to a resource
-	Revoke(role string, res *Resource) error
-	// Verify an account has access to a resource
-	Verify(acc *Account, res *Resource) error
+	// Verify an account has access to a resource using the rules
+	Verify(acc *Account, res *Resource, opts ...VerifyOption) error
 	// Inspect a token
 	Inspect(token string) (*Account, error)
-	// Token generated using refresh token
+	// Token generated using refresh token or credentials
 	Token(opts ...TokenOption) (*Token, error)
+	// Grant access to a resource
+	Grant(rule *Rule) error
+	// Revoke access to a resource
+	Revoke(rule *Rule) error
+	// Rules returns all the rules used to verify requests
+	Rules(...RulesOption) ([]*Rule, error)
 	// String returns the name of the implementation
 	String() string
-}
-
-// Resource is an entity such as a user or
-type Resource struct {
-	// Name of the resource
-	Name string `json:"name"`
-	// Type of resource, e.g.
-	Type string `json:"type"`
-	// Endpoint resource e.g NotesService.Create
-	Endpoint string `json:"endpoint"`
-	// Namespace the resource belongs to
-	Namespace string `json:"namespace"`
 }
 
 // Account provided by an auth provider
@@ -60,31 +53,14 @@ type Account struct {
 	ID string `json:"id"`
 	// Type of the account, e.g. service
 	Type string `json:"type"`
-	// Provider who issued the account
-	Provider string `json:"provider"`
-	// Roles associated with the Account
-	Roles []string `json:"roles"`
+	// Issuer of the account
+	Issuer string `json:"issuer"`
 	// Any other associated metadata
 	Metadata map[string]string `json:"metadata"`
-	// Namespace the account belongs to
-	Namespace string `json:"namespace"`
+	// Scopes the account has access to
+	Scopes []string `json:"scopes"`
 	// Secret for the account, e.g. the password
 	Secret string `json:"secret"`
-}
-
-// HasRole returns a boolean indicating if the account has the given role
-func (a *Account) HasRole(role string) bool {
-	if a.Roles == nil {
-		return false
-	}
-
-	for _, r := range a.Roles {
-		if r == role {
-			return true
-		}
-	}
-
-	return false
 }
 
 // Token can be short or long lived
@@ -99,14 +75,46 @@ type Token struct {
 	Expiry time.Time `json:"expiry"`
 }
 
+// Expired returns a boolean indicating if the token needs to be refreshed
+func (t *Token) Expired() bool {
+	return t.Expiry.Unix() < time.Now().Unix()
+}
+
+// Resource is an entity such as a user or
+type Resource struct {
+	// Name of the resource, e.g. go.micro.service.notes
+	Name string `json:"name"`
+	// Type of resource, e.g. service
+	Type string `json:"type"`
+	// Endpoint resource e.g NotesService.Create
+	Endpoint string `json:"endpoint"`
+}
+
+// Access defines the type of access a rule grants
+type Access int
+
 const (
-	// DefaultNamespace used for auth
-	DefaultNamespace = "go.micro"
-	// TokenCookieName is the name of the cookie which stores the auth token
-	TokenCookieName = "micro-token"
-	// BearerScheme used for Authorization header
-	BearerScheme = "Bearer "
+	// AccessGranted to a resource
+	AccessGranted Access = iota
+	// AccessDenied to a resource
+	AccessDenied
 )
+
+// Rule is used to verify access to a resource
+type Rule struct {
+	// ID of the rule, e.g. "public"
+	ID string
+	// Scope the rule requires, a blank scope indicates open to the public and * indicates the rule
+	// applies to any valid account
+	Scope string
+	// Resource the rule applies to
+	Resource *Resource
+	// Access determines if the rule grants or denies access to the resource
+	Access Access
+	// Priority the rule should take when verifying a request, the higher the value the sooner the
+	// rule will be applied
+	Priority int32
+}
 
 type accountKey struct{}
 

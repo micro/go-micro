@@ -4,7 +4,6 @@ import (
 	"context"
 	"reflect"
 	"strings"
-	"time"
 
 	"github.com/micro/go-micro/v2/auth"
 	"github.com/micro/go-micro/v2/client"
@@ -157,9 +156,14 @@ func (a *authWrapper) Call(ctx context.Context, req client.Request, rsp interfac
 		return a.Client.Call(ctx, req, rsp, opts...)
 	}
 
+	// set the namespace header if it has not been set (e.g. on a service to service request)
+	if _, ok := metadata.Get(ctx, "Micro-Namespace"); !ok {
+		ctx = metadata.Set(ctx, "Micro-Namespace", aa.Options().Namespace)
+	}
+
 	// check to see if we have a valid access token
 	aaOpts := aa.Options()
-	if aaOpts.Token != nil && aaOpts.Token.Expiry.Unix() > time.Now().Unix() {
+	if aaOpts.Token != nil && !aaOpts.Token.Expired() {
 		ctx = metadata.Set(ctx, "Authorization", auth.BearerScheme+aaOpts.Token.AccessToken)
 		return a.Client.Call(ctx, req, rsp, opts...)
 	}
@@ -187,20 +191,28 @@ func AuthHandler(fn func() auth.Auth) server.HandlerWrapper {
 
 			// Extract the token if present. Note: if noop is being used
 			// then the token can be blank without erroring
-			var token string
+			var account *auth.Account
 			if header, ok := metadata.Get(ctx, "Authorization"); ok {
 				// Ensure the correct scheme is being used
 				if !strings.HasPrefix(header, auth.BearerScheme) {
 					return errors.Unauthorized(req.Service(), "invalid authorization header. expected Bearer schema")
 				}
 
-				token = header[len(auth.BearerScheme):]
+				// Strip the prefix and inspect the resulting token
+				account, _ = a.Inspect(strings.TrimPrefix(header, auth.BearerScheme))
 			}
 
-			// Inspect the token and get the account
-			account, err := a.Inspect(token)
-			if err != nil {
-				account = &auth.Account{Namespace: a.Options().Namespace}
+			// Extract the namespace header
+			ns, ok := metadata.Get(ctx, "Micro-Namespace")
+			if !ok {
+				ns = a.Options().Namespace
+				ctx = metadata.Set(ctx, "Micro-Namespace", ns)
+			}
+
+			// Check the issuer matches the services namespace. TODO: Stop allowing go.micro to access
+			// any namespace and instead check for the server issuer.
+			if account != nil && account.Issuer != ns && account.Issuer != "go.micro" {
+				return errors.Forbidden(req.Service(), "Account was not issued by %v", ns)
 			}
 
 			// construct the resource
@@ -211,15 +223,15 @@ func AuthHandler(fn func() auth.Auth) server.HandlerWrapper {
 			}
 
 			// Verify the caller has access to the resource
-			err = a.Verify(account, res)
-			if err != nil && len(account.ID) > 0 {
+			err := a.Verify(account, res, auth.VerifyContext(ctx))
+			if err != nil && account != nil {
 				return errors.Forbidden(req.Service(), "Forbidden call made to %v:%v by %v", req.Service(), req.Endpoint(), account.ID)
 			} else if err != nil {
 				return errors.Unauthorized(req.Service(), "Unauthorised call made to %v:%v", req.Service(), req.Endpoint())
 			}
 
 			// There is an account, set it in the context
-			if len(account.ID) > 0 {
+			if account != nil {
 				ctx = auth.ContextWithAccount(ctx, account)
 			}
 
