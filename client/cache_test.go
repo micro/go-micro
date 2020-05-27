@@ -65,7 +65,7 @@ func TestCacheKey(t *testing.T) {
 	})
 
 	t.Run("DifferentMetadata", func(t *testing.T) {
-		mdCtx := metadata.Set(context.TODO(), "foo", "bar")
+		mdCtx := metadata.Set(context.TODO(), "Micro-Namespace", "bar")
 		key1 := key(mdCtx, &req1)
 		key2 := key(ctx, &req1)
 

@@ -444,7 +444,7 @@ func (s *service) Init(opts ...Option) error {
 func (s *service) Run() error {
 	// generate an auth account
 	srvID := s.opts.Service.Server().Options().Id
-	srvName := s.opts.Service.Name()
+	srvName := s.Options().Name
 	if err := authutil.Generate(srvID, srvName, s.opts.Service.Options().Auth); err != nil {
 		return err
 	}

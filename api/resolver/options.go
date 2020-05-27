@@ -2,8 +2,6 @@ package resolver
 
 import (
 	"net/http"
-
-	"github.com/micro/go-micro/v2/auth"
 )
 
 // NewOptions returns new initialised options
@@ -14,7 +12,7 @@ func NewOptions(opts ...Option) Options {
 	}
 
 	if options.Namespace == nil {
-		options.Namespace = StaticNamespace(auth.DefaultNamespace)
+		options.Namespace = StaticNamespace("go.micro")
 	}
 
 	return options

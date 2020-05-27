@@ -278,6 +278,7 @@ var (
 			Name:    "auth_namespace",
 			EnvVars: []string{"MICRO_AUTH_NAMESPACE"},
 			Usage:   "Namespace for the services auth account",
+			Value:   "go.micro",
 		},
 		&cli.StringFlag{
 			Name:    "auth_public_key",
