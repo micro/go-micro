@@ -353,10 +353,10 @@ func (m *mdnsRegistry) GetService(service string, opts ...GetOption) ([]*Service
 				}
 				addr := ""
 				// prefer ipv4 addrs
-				if e.AddrV4 != nil {
+				if len(e.AddrV4) > 0 {
 					addr = e.AddrV4.String()
 					// else use ipv6
-				} else if e.AddrV6 != nil {
+				} else if len(e.AddrV6) > 0 {
 					addr = "[" + e.AddrV6.String() + "]"
 				} else {
 					if logger.V(logger.InfoLevel, logger.DefaultLogger) {
