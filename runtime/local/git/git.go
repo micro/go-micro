@@ -74,27 +74,18 @@ func (g libGitter) Checkout(repo, branchOrCommit string) error {
 	if err != nil {
 		return err
 	}
-	isCommit := func(s string) bool {
-		return strings.ContainsAny(s, "0123456789") && len(s) == 40
-	}
-	if isCommit(branchOrCommit) {
-		err = worktree.Checkout(&git.CheckoutOptions{
+
+	if plumbing.IsHash(branchOrCommit) {
+		return worktree.Checkout(&git.CheckoutOptions{
 			Hash:  plumbing.NewHash(branchOrCommit),
 			Force: true,
 		})
-		if err != nil {
-			return err
-		}
-	} else {
-		err = worktree.Checkout(&git.CheckoutOptions{
-			Branch: plumbing.NewBranchReferenceName(branchOrCommit),
-			Force:  true,
-		})
-		if err != nil {
-			return err
-		}
 	}
-	return nil
+
+	return worktree.Checkout(&git.CheckoutOptions{
+		Branch: plumbing.NewBranchReferenceName(branchOrCommit),
+		Force:  true,
+	})
 }
 
 func (g libGitter) RepoDir(repo string) string {
