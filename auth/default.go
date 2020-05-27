@@ -49,35 +49,37 @@ func (n *noop) Generate(id string, opts ...GenerateOption) (*Account, error) {
 	options := NewGenerateOptions(opts...)
 
 	return &Account{
-		ID:        id,
-		Roles:     options.Roles,
-		Secret:    options.Secret,
-		Metadata:  options.Metadata,
-		Namespace: DefaultNamespace,
+		ID:       id,
+		Secret:   options.Secret,
+		Metadata: options.Metadata,
+		Scopes:   options.Scopes,
+		Issuer:   n.Options().Namespace,
 	}, nil
 }
 
 // Grant access to a resource
-func (n *noop) Grant(role string, res *Resource) error {
+func (n *noop) Grant(rule *Rule) error {
 	return nil
 }
 
 // Revoke access to a resource
-func (n *noop) Revoke(role string, res *Resource) error {
+func (n *noop) Revoke(rule *Rule) error {
 	return nil
 }
 
+// Rules used to verify requests
+func (n *noop) Rules(opts ...RulesOption) ([]*Rule, error) {
+	return []*Rule{}, nil
+}
+
 // Verify an account has access to a resource
-func (n *noop) Verify(acc *Account, res *Resource) error {
+func (n *noop) Verify(acc *Account, res *Resource, opts ...VerifyOption) error {
 	return nil
 }
 
 // Inspect a token
 func (n *noop) Inspect(token string) (*Account, error) {
-	return &Account{
-		ID:        uuid.New().String(),
-		Namespace: DefaultNamespace,
-	}, nil
+	return &Account{ID: uuid.New().String(), Issuer: n.Options().Namespace}, nil
 }
 
 // Token generation using an account id and secret
