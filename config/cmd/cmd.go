@@ -23,6 +23,7 @@ import (
 	"github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/registry"
 	registrySrv "github.com/micro/go-micro/v2/registry/service"
+	"github.com/micro/go-micro/v2/router"
 	"github.com/micro/go-micro/v2/runtime"
 	"github.com/micro/go-micro/v2/server"
 	"github.com/micro/go-micro/v2/store"
@@ -58,8 +59,14 @@ import (
 
 	// selectors
 	"github.com/micro/go-micro/v2/client/selector/dns"
-	"github.com/micro/go-micro/v2/client/selector/router"
+	rSelector "github.com/micro/go-micro/v2/client/selector/router"
 	"github.com/micro/go-micro/v2/client/selector/static"
+
+	// routers
+	dnsRouter "github.com/micro/go-micro/v2/router/dns"
+	regRouter "github.com/micro/go-micro/v2/router/registry"
+	srvRouter "github.com/micro/go-micro/v2/router/service"
+	staticRouter "github.com/micro/go-micro/v2/router/static"
 
 	// transports
 	thttp "github.com/micro/go-micro/v2/transport/http"
@@ -220,6 +227,11 @@ var (
 			Usage:   "Selector used to pick nodes for querying",
 		},
 		&cli.StringFlag{
+			Name:    "router",
+			EnvVars: []string{"MICRO_ROUTER"},
+			Usage:   "Router used for client requests",
+		},
+		&cli.StringFlag{
 			Name:    "store",
 			EnvVars: []string{"MICRO_STORE"},
 			Usage:   "Store used for key-value storage",
@@ -348,8 +360,15 @@ var (
 
 	DefaultSelectors = map[string]func(...selector.Option) selector.Selector{
 		"dns":    dns.NewSelector,
-		"router": router.NewSelector,
+		"router": rSelector.NewSelector,
 		"static": static.NewSelector,
+	}
+
+	DefaultRouters = map[string]func(...router.Option) router.Router{
+		"dns":      dnsRouter.NewRouter,
+		"registry": regRouter.NewRouter,
+		"static":   staticRouter.NewRouter,
+		"service":  srvRouter.NewRouter,
 	}
 
 	DefaultServers = map[string]func(...server.Option) server.Server{
@@ -410,6 +429,7 @@ func newCmd(opts ...Option) Cmd {
 		Registry:  &registry.DefaultRegistry,
 		Server:    &server.DefaultServer,
 		Selector:  &selector.DefaultSelector,
+		Router:    &router.DefaultRouter,
 		Transport: &transport.DefaultTransport,
 		Runtime:   &runtime.DefaultRuntime,
 		Store:     &store.DefaultStore,
@@ -591,6 +611,18 @@ func (c *cmd) Before(ctx *cli.Context) error {
 
 		// No server option here. Should there be?
 		clientOpts = append(clientOpts, client.Selector(*c.opts.Selector))
+	}
+
+	// Set the router
+	if name := ctx.String("router"); len(name) > 0 && (*c.opts.Router).String() != name {
+		r, ok := c.opts.Routers[name]
+		if !ok {
+			return fmt.Errorf("Router %s not found", name)
+		}
+
+		*c.opts.Router = r(router.Registry(*c.opts.Registry))
+
+		// TODO: Set the router in the client
 	}
 
 	// Set the transport

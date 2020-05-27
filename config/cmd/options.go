@@ -11,6 +11,7 @@ import (
 	"github.com/micro/go-micro/v2/debug/profile"
 	"github.com/micro/go-micro/v2/debug/trace"
 	"github.com/micro/go-micro/v2/registry"
+	"github.com/micro/go-micro/v2/router"
 	"github.com/micro/go-micro/v2/runtime"
 	"github.com/micro/go-micro/v2/server"
 	"github.com/micro/go-micro/v2/store"
@@ -27,6 +28,7 @@ type Options struct {
 	Broker    *broker.Broker
 	Registry  *registry.Registry
 	Selector  *selector.Selector
+	Router    *router.Router
 	Transport *transport.Transport
 	Config    *config.Config
 	Client    *client.Client
@@ -42,6 +44,7 @@ type Options struct {
 	Clients    map[string]func(...client.Option) client.Client
 	Registries map[string]func(...registry.Option) registry.Registry
 	Selectors  map[string]func(...selector.Option) selector.Selector
+	Routers    map[string]func(...router.Option) router.Router
 	Servers    map[string]func(...server.Option) server.Server
 	Transports map[string]func(...transport.Option) transport.Transport
 	Runtimes   map[string]func(...runtime.Option) runtime.Runtime
@@ -91,6 +94,12 @@ func Config(c *config.Config) Option {
 func Selector(s *selector.Selector) Option {
 	return func(o *Options) {
 		o.Selector = s
+	}
+}
+
+func Router(r *router.Router) Option {
+	return func(o *Options) {
+		o.Router = r
 	}
 }
 
