@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/micro/go-micro/v2/auth"
-	"github.com/micro/go-micro/v2/errors"
 	"github.com/micro/go-micro/v2/client"
+	"github.com/micro/go-micro/v2/errors"
 	"github.com/micro/go-micro/v2/metadata"
 	"github.com/micro/go-micro/v2/server"
 )
@@ -361,6 +361,10 @@ func TestAuthHandler(t *testing.T) {
 		}
 		if !handlerCalled {
 			t.Errorf("Expected the handler be called")
+		}
+	})
+}
+
 type testClient struct {
 	callCount int
 	callRsp   interface{}
