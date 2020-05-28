@@ -42,10 +42,10 @@ func TestInspect(t *testing.T) {
 
 	t.Run("Valid token", func(t *testing.T) {
 		md := map[string]string{"foo": "bar"}
-		roles := []string{"admin"}
+		scopes := []string{"admin"}
 		subject := "test"
 
-		acc := &auth.Account{ID: subject, Roles: roles, Metadata: md}
+		acc := &auth.Account{ID: subject, Scopes: scopes, Metadata: md}
 		tok, err := j.Generate(acc)
 		if err != nil {
 			t.Fatalf("Generate returned %v error, expected nil", err)
@@ -58,8 +58,8 @@ func TestInspect(t *testing.T) {
 		if acc.ID != subject {
 			t.Errorf("Inspect returned %v as the token subject, expected %v", acc.ID, subject)
 		}
-		if len(tok2.Roles) != len(roles) {
-			t.Errorf("Inspect returned %v roles, expected %v", len(tok2.Roles), len(roles))
+		if len(tok2.Scopes) != len(scopes) {
+			t.Errorf("Inspect returned %v scopes, expected %v", len(tok2.Scopes), len(scopes))
 		}
 		if len(tok2.Metadata) != len(md) {
 			t.Errorf("Inspect returned %v as the token metadata, expected %v", tok2.Metadata, md)
