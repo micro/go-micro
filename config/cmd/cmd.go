@@ -330,7 +330,7 @@ var (
 			Name:    "namespace",
 			EnvVars: []string{"MICRO_NAMESPACE"},
 			Usage:   "Namespace the services should running in",
-			Value:   "go.micro",
+			Value:   "micro",
 		},
 		&cli.StringFlag{
 			Name:    "config",
@@ -653,15 +653,23 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		serverOpts = append(serverOpts, server.Metadata(metadata))
 	}
 
-	if len(ctx.String("broker_address")) > 0 {
-		if err := (*c.opts.Broker).Init(broker.Addrs(strings.Split(ctx.String("broker_address"), ",")...)); err != nil {
-			logger.Fatalf("Error configuring broker: %v", err)
+	// Setup the registry
+	var regOpts []registry.Option
+	if len(ctx.String("registry_address")) > 0 {
+		regOpts = append(regOpts, registry.Addrs(strings.Split(ctx.String("registry_address"), ",")...))
+	}
+	if len(ctx.String("namespace")) > 0 {
+		regOpts = append(regOpts, registry.Domain(ctx.String("namespace")))
+	}
+	if len(regOpts) > 0 {
+		if err := (*c.opts.Registry).Init(); err != nil {
+			logger.Fatalf("Error configuring registry: %v", err)
 		}
 	}
 
-	if len(ctx.String("registry_address")) > 0 {
-		if err := (*c.opts.Registry).Init(registry.Addrs(strings.Split(ctx.String("registry_address"), ",")...)); err != nil {
-			logger.Fatalf("Error configuring registry: %v", err)
+	if len(ctx.String("broker_address")) > 0 {
+		if err := (*c.opts.Broker).Init(broker.Addrs(strings.Split(ctx.String("broker_address"), ",")...)); err != nil {
+			logger.Fatalf("Error configuring broker: %v", err)
 		}
 	}
 

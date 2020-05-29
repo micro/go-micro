@@ -20,11 +20,6 @@ import (
 	"github.com/micro/go-micro/v2/util/mdns"
 )
 
-var (
-	// use a .micro domain rather than .local
-	mdnsDomain = "micro"
-)
-
 type mdnsTxt struct {
 	Service   string
 	Version   string
@@ -39,11 +34,12 @@ type mdnsEntry struct {
 
 type mdnsRegistry struct {
 	opts Options
-	// the mdns domain
+	// the default domain
 	domain string
 
 	sync.Mutex
-	services map[string][]*mdnsEntry
+	// services grouped by domain
+	services map[string]map[string][]*mdnsEntry
 
 	mtx sync.RWMutex
 
@@ -131,24 +127,16 @@ func newRegistry(opts ...Option) Registry {
 	options := Options{
 		Context: context.Background(),
 		Timeout: time.Millisecond * 100,
+		Domain:  "micro",
 	}
 
 	for _, o := range opts {
 		o(&options)
 	}
 
-	// set the domain
-	domain := mdnsDomain
-
-	d, ok := options.Context.Value("mdns.domain").(string)
-	if ok {
-		domain = d
-	}
-
 	return &mdnsRegistry{
 		opts:     options,
-		domain:   domain,
-		services: make(map[string][]*mdnsEntry),
+		services: make(map[string]map[string][]*mdnsEntry),
 		watchers: make(map[string]*mdnsWatcher),
 	}
 }
@@ -168,13 +156,27 @@ func (m *mdnsRegistry) Register(service *Service, opts ...RegisterOption) error 
 	m.Lock()
 	defer m.Unlock()
 
-	entries, ok := m.services[service.Name]
+	// parse the options, fallback to the default domain
+	var options RegisterOptions
+	for _, o := range opts {
+		o(&options)
+	}
+	if len(options.Domain) == 0 {
+		options.Domain = m.opts.Domain
+	}
+
+	// ensure the domain exists in the map
+	if _, ok := m.services[options.Domain]; !ok {
+		m.services[options.Domain] = make(map[string][]*mdnsEntry)
+	}
+
+	entries, ok := m.services[options.Domain][service.Name]
 	// first entry, create wildcard used for list queries
 	if !ok {
 		s, err := mdns.NewMDNSService(
 			service.Name,
 			"_services",
-			m.domain+".",
+			options.Domain+".",
 			"",
 			9999,
 			[]net.IP{net.ParseIP("0.0.0.0")},
@@ -241,7 +243,7 @@ func (m *mdnsRegistry) Register(service *Service, opts ...RegisterOption) error 
 		s, err := mdns.NewMDNSService(
 			node.Id,
 			service.Name,
-			m.domain+".",
+			options.Domain+".",
 			"",
 			port,
 			[]net.IP{net.ParseIP(host)},
@@ -264,7 +266,7 @@ func (m *mdnsRegistry) Register(service *Service, opts ...RegisterOption) error 
 	}
 
 	// save
-	m.services[service.Name] = entries
+	m.services[options.Domain][service.Name] = entries
 
 	return gerr
 }
@@ -273,10 +275,24 @@ func (m *mdnsRegistry) Deregister(service *Service, opts ...DeregisterOption) er
 	m.Lock()
 	defer m.Unlock()
 
+	// parse the options, fallback to the default domain
+	var options DeregisterOptions
+	for _, o := range opts {
+		o(&options)
+	}
+	if len(options.Domain) == 0 {
+		options.Domain = m.opts.Domain
+	}
+
+	// ensure the domain exists in the map
+	if _, ok := m.services[options.Domain]; !ok {
+		m.services[options.Domain] = make(map[string][]*mdnsEntry)
+	}
+
 	var newEntries []*mdnsEntry
 
 	// loop existing entries, check if any match, shutdown those that do
-	for _, entry := range m.services[service.Name] {
+	for _, entry := range m.services[options.Domain][service.Name] {
 		var remove bool
 
 		for _, node := range service.Nodes {
@@ -298,13 +314,24 @@ func (m *mdnsRegistry) Deregister(service *Service, opts ...DeregisterOption) er
 		newEntries[0].node.Shutdown()
 		delete(m.services, service.Name)
 	} else {
-		m.services[service.Name] = newEntries
+		m.services[options.Domain][service.Name] = newEntries
 	}
 
 	return nil
 }
 
 func (m *mdnsRegistry) GetService(service string, opts ...GetOption) ([]*Service, error) {
+	// parse the options, fallback to the default domain
+	var options GetOptions
+	for _, o := range opts {
+		o(&options)
+	}
+	if len(options.Domain) == 0 {
+		m.Lock()
+		options.Domain = m.opts.Domain
+		m.Unlock()
+	}
+
 	serviceMap := make(map[string]*Service)
 	entries := make(chan *mdns.ServiceEntry, 10)
 	done := make(chan bool)
@@ -317,7 +344,7 @@ func (m *mdnsRegistry) GetService(service string, opts ...GetOption) ([]*Service
 	// set entries channel
 	p.Entries = entries
 	// set the domain
-	p.Domain = m.domain
+	p.Domain = options.Domain
 
 	go func() {
 		for {
@@ -327,7 +354,7 @@ func (m *mdnsRegistry) GetService(service string, opts ...GetOption) ([]*Service
 				if p.Service == "_services" {
 					continue
 				}
-				if p.Domain != m.domain {
+				if p.Domain != options.Domain {
 					continue
 				}
 				if e.TTL == 0 {
@@ -397,6 +424,17 @@ func (m *mdnsRegistry) GetService(service string, opts ...GetOption) ([]*Service
 }
 
 func (m *mdnsRegistry) ListServices(opts ...ListOption) ([]*Service, error) {
+	// parse the options, fallback to the default domain
+	var options ListOptions
+	for _, o := range opts {
+		o(&options)
+	}
+	if len(options.Domain) == 0 {
+		m.Lock()
+		options.Domain = m.opts.Domain
+		m.Unlock()
+	}
+
 	serviceMap := make(map[string]bool)
 	entries := make(chan *mdns.ServiceEntry, 10)
 	done := make(chan bool)
@@ -409,7 +447,7 @@ func (m *mdnsRegistry) ListServices(opts ...ListOption) ([]*Service, error) {
 	// set entries channel
 	p.Entries = entries
 	// set domain
-	p.Domain = m.domain
+	p.Domain = options.Domain
 
 	var services []*Service
 
@@ -447,9 +485,15 @@ func (m *mdnsRegistry) ListServices(opts ...ListOption) ([]*Service, error) {
 }
 
 func (m *mdnsRegistry) Watch(opts ...WatchOption) (Watcher, error) {
+	// parse the options, fallback to the default domain
 	var wo WatchOptions
 	for _, o := range opts {
 		o(&wo)
+	}
+	if len(wo.Domain) == 0 {
+		m.Lock()
+		wo.Domain = m.opts.Domain
+		m.Unlock()
 	}
 
 	md := &mdnsWatcher{
@@ -457,7 +501,7 @@ func (m *mdnsRegistry) Watch(opts ...WatchOption) (Watcher, error) {
 		wo:       wo,
 		ch:       make(chan *mdns.ServiceEntry, 32),
 		exit:     make(chan struct{}),
-		domain:   m.domain,
+		domain:   wo.Domain,
 		registry: m,
 	}
 
