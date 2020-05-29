@@ -32,7 +32,7 @@ type Request struct {
 	err error
 }
 
-// Params is the object to pass in to set paramaters
+// Params is the object to pass in to set parameters
 // on a request.
 type Params struct {
 	LabelSelector map[string]string
