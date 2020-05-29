@@ -354,7 +354,8 @@ func (m *mdnsRegistry) GetService(service string, opts ...GetOption) ([]*Service
 				if p.Service == "_services" {
 					continue
 				}
-				if p.Domain != options.Domain {
+				// ensure the domain matches
+				if !strings.HasSuffix(e.Name, "."+p.Domain+".") {
 					continue
 				}
 				if e.TTL == 0 {
@@ -412,6 +413,11 @@ func (m *mdnsRegistry) GetService(service string, opts ...GetOption) ([]*Service
 
 	// wait for completion
 	<-done
+
+	// if no services were returned, error
+	if len(serviceMap) == 0 {
+		return nil, ErrNotFound
+	}
 
 	// create list and return
 	services := make([]*Service, 0, len(serviceMap))

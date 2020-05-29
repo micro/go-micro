@@ -389,8 +389,8 @@ func TestDomain(t *testing.T) {
 		if len(srvs) != 0 {
 			t.Errorf("Expected 0 services, got %v", len(srvs))
 		}
-		if err != nil {
-			t.Errorf("Expected nil error, got %v", err)
+		if err != ErrNotFound {
+			t.Errorf("Expected %v, got %v", ErrNotFound, err)
 		}
 	})
 }
