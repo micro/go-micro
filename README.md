@@ -12,8 +12,6 @@ but everything can be easily swapped out.
 
 Plugins are available at [github.com/micro/go-plugins](https://github.com/micro/go-plugins).
 
-Follow us on [Twitter](https://twitter.com/microhq) or join the [Community](https://slack.micro.mu).
-
 ## Features
 
 Go Micro abstracts away the details of distributed systems. Here are the main features.
@@ -49,7 +47,7 @@ To make use of Go Micro
 import "github.com/micro/go-micro/v2"
 ```
 
-See the [docs](https://micro.mu/docs/framework.html) for detailed information on the architecture, installation and use of go-micro.
+See the [docs](https://dev.micro.mu) for detailed information on the architecture, installation and use of go-micro.
 
 ## License
 
