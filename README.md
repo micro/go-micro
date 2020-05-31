@@ -8,8 +8,6 @@ Go Micro provides the core requirements for distributed systems development incl
 The **Micro** philosophy is sane defaults with a pluggable architecture. We provide defaults to get you started quickly 
 but everything can be easily swapped out. 
 
-<img src="https://micro.mu/docs/images/go-micro.svg" />
-
 Plugins are available at [github.com/micro/go-plugins](https://github.com/micro/go-plugins).
 
 ## Features
@@ -58,6 +56,14 @@ To make use of Go Micro
 
 ```golang
 import "github.com/micro/go-micro/v2"
+
+service := micro.NewService(
+    micro.Name("helloworld"),
+)
+
+service.Init()
+
+service.Run()
 ```
 
 See the [docs](https://dev.micro.mu) for detailed information on the architecture, installation and use of go-micro.
