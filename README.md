@@ -34,8 +34,7 @@ across the services and retry a different node if there's a problem.
 to seamlessly encode and decode Go types for you. Any variety of messages could be encoded and sent from different clients. The client 
 and server handle this by default. This includes protobuf and json by default.
 
-- **gRPC Transport** - gRPC based request/response with support for bidirectional streaming. We provide an abstraction for synchronous communication. A request made to a service will be automatically resolved, load balanced, dialled and streamed. The default 
-transport is [gRPC](https://grpc.io/).
+- **gRPC Transport** - gRPC based request/response with support for bidirectional streaming. We provide an abstraction for synchronous communication. A request made to a service will be automatically resolved, load balanced, dialled and streamed.
 
 - **Async Messaging** - PubSub is built in as a first class citizen for asynchronous communication and event driven architectures. 
 Event notifications are a core pattern in micro service development. The default messaging system is a HTTP event message broker.
