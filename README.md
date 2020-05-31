@@ -35,6 +35,9 @@ transport is [gRPC](https://grpc.io/).
 - **Async Messaging** - PubSub is built in as a first class citizen for asynchronous communication and event driven architectures. 
 Event notifications are a core pattern in micro service development. The default messaging system is a HTTP event message broker.
 
+- **Dynamic Config** - Load and hot reload dynamic config from anywhere. The config interface provides a way to load application 
+level config from any source such as env vars, file, etcd. You can merge the sources and even define fallbacks.
+
 - **Pluggable Interfaces** - Go Micro makes use of Go interfaces for each distributed system abstraction. Because of this these interfaces 
 are pluggable and allows Go Micro to be runtime agnostic. You can plugin any underlying technology. Find plugins in 
 [github.com/micro/go-plugins](https://github.com/micro/go-plugins).
