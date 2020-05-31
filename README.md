@@ -8,8 +8,6 @@ Go Micro provides the core requirements for distributed systems development incl
 The **Micro** philosophy is sane defaults with a pluggable architecture. We provide defaults to get you started quickly 
 but everything can be easily swapped out. 
 
-Plugins are available at [github.com/micro/go-plugins](https://github.com/micro/go-plugins).
-
 ## Features
 
 Go Micro abstracts away the details of distributed systems. Here are the main features.
