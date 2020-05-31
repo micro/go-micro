@@ -42,6 +42,9 @@ level config from any source such as env vars, file, etcd. You can merge the sou
 CockroachDB by default. State and persistence becomes a core requirement beyond prototyping and Micro looks to build that into the 
 framework.
 
+- **Synchronization** - Distributed systems are often built in an eventually consistent manner. Support for distributed locking and 
+leadership are built in as a Sync interface. When using an eventually consistent database or scheduling use the Sync interface.
+
 - **Pluggable Interfaces** - Go Micro makes use of Go interfaces for each distributed system abstraction. Because of this these interfaces 
 are pluggable and allows Go Micro to be runtime agnostic. You can plugin any underlying technology. Find plugins in 
 [github.com/micro/go-plugins](https://github.com/micro/go-plugins).
