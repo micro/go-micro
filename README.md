@@ -57,12 +57,15 @@ To make use of Go Micro
 ```golang
 import "github.com/micro/go-micro/v2"
 
+// create a new service
 service := micro.NewService(
     micro.Name("helloworld"),
 )
 
+// initialise flags
 service.Init()
 
+// start the service
 service.Run()
 ```
 
