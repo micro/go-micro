@@ -13,6 +13,7 @@ import (
 	"github.com/gobwas/ws"
 	"github.com/gobwas/ws/wsutil"
 	"github.com/micro/go-micro/v2/api"
+	"github.com/micro/go-micro/v2/api/handler/util"
 	"github.com/micro/go-micro/v2/client"
 	raw "github.com/micro/go-micro/v2/codec/bytes"
 	"github.com/micro/go-micro/v2/logger"
@@ -109,7 +110,8 @@ func serveWebsocket(ctx context.Context, w http.ResponseWriter, r *http.Request,
 		client.StreamingRequest(),
 	)
 
-	so := strategy(service.Services)
+	so := util.Selector(service.Services)
+
 	// create a new stream
 	stream, err := c.Stream(ctx, req, client.WithSelector(so))
 	if err != nil {

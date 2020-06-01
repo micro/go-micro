@@ -19,6 +19,7 @@ import (
 	"github.com/micro/go-micro/v2/proxy"
 	"github.com/micro/go-micro/v2/router"
 	"github.com/micro/go-micro/v2/selector"
+	"github.com/micro/go-micro/v2/selector/roundrobin"
 	"github.com/micro/go-micro/v2/server"
 )
 

@@ -14,7 +14,6 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/micro/go-micro/v2/client"
 	cmucp "github.com/micro/go-micro/v2/client/mucp"
-	rtr "github.com/micro/go-micro/v2/client/selector/router"
 	"github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/network/resolver/dns"
 	pbNet "github.com/micro/go-micro/v2/network/service/proto"
@@ -153,11 +152,7 @@ func newNetwork(opts ...Option) Network {
 	client := cmucp.NewClient(
 		client.Broker(tunBroker),
 		client.Transport(tunTransport),
-		client.Selector(
-			rtr.NewSelector(
-				rtr.WithRouter(options.Router),
-			),
-		),
+		client.Router(options.Router),
 	)
 
 	network := &network{

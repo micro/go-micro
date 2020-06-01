@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/micro/go-micro/v2/client/selector"
 	"github.com/micro/go-micro/v2/errors"
 	"github.com/micro/go-micro/v2/registry"
 	"github.com/micro/go-micro/v2/registry/memory"
+	"github.com/micro/go-micro/v2/router"
 )
 
 func newTestRegistry() registry.Registry {
@@ -22,7 +22,7 @@ func TestCallAddress(t *testing.T) {
 	address := "10.1.10.1:8080"
 
 	wrap := func(cf CallFunc) CallFunc {
-		return func(ctx context.Context, node *registry.Node, req Request, rsp interface{}, opts CallOptions) error {
+		return func(ctx context.Context, route *router.Route, req Request, rsp interface{}, opts CallOptions) error {
 			called = true
 
 			if req.Service() != service {
@@ -33,8 +33,8 @@ func TestCallAddress(t *testing.T) {
 				return fmt.Errorf("expected service: %s got %s", endpoint, req.Endpoint())
 			}
 
-			if node.Address != address {
-				return fmt.Errorf("expected address: %s got %s", address, node.Address)
+			if route.Address != address {
+				return fmt.Errorf("expected address: %s got %s", address, route.Address)
 			}
 
 			// don't do the call
@@ -47,7 +47,7 @@ func TestCallAddress(t *testing.T) {
 		Registry(r),
 		WrapCall(wrap),
 	)
-	c.Options().Selector.Init(selector.Registry(r))
+	c.Options().Router.Init(router.Registry(r))
 
 	req := c.NewRequest(service, endpoint, nil)
 
@@ -70,7 +70,7 @@ func TestCallRetry(t *testing.T) {
 	var called int
 
 	wrap := func(cf CallFunc) CallFunc {
-		return func(ctx context.Context, node *registry.Node, req Request, rsp interface{}, opts CallOptions) error {
+		return func(ctx context.Context, route *router.Route, req Request, rsp interface{}, opts CallOptions) error {
 			called++
 			if called == 1 {
 				return errors.InternalServerError("test.error", "retry request")
@@ -86,7 +86,7 @@ func TestCallRetry(t *testing.T) {
 		Registry(r),
 		WrapCall(wrap),
 	)
-	c.Options().Selector.Init(selector.Registry(r))
+	c.Options().Router.Init(router.Registry(r))
 
 	req := c.NewRequest(service, endpoint, nil)
 
@@ -109,7 +109,7 @@ func TestCallWrapper(t *testing.T) {
 	address := "10.1.10.1:8080"
 
 	wrap := func(cf CallFunc) CallFunc {
-		return func(ctx context.Context, node *registry.Node, req Request, rsp interface{}, opts CallOptions) error {
+		return func(ctx context.Context, route *router.Route, req Request, rsp interface{}, opts CallOptions) error {
 			called = true
 
 			if req.Service() != service {
@@ -120,8 +120,8 @@ func TestCallWrapper(t *testing.T) {
 				return fmt.Errorf("expected service: %s got %s", endpoint, req.Endpoint())
 			}
 
-			if node.Address != address {
-				return fmt.Errorf("expected address: %s got %s", address, node.Address)
+			if route.Address != address {
+				return fmt.Errorf("expected address: %s got %s", address, route.Address)
 			}
 
 			// don't do the call
@@ -134,7 +134,7 @@ func TestCallWrapper(t *testing.T) {
 		Registry(r),
 		WrapCall(wrap),
 	)
-	c.Options().Selector.Init(selector.Registry(r))
+	c.Options().Router.Init(router.Registry(r))
 
 	r.Register(&registry.Service{
 		Name:    service,

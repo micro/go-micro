@@ -8,7 +8,7 @@ import (
 
 var (
 	// DefaultSelector is the default selector
-	DefaultSelector = newSelector()
+	DefaultSelector = NewSelector()
 
 	// ErrNoneAvailable is returned by select when no routes were provided to select from
 	ErrNoneAvailable = errors.New("none available")
@@ -33,3 +33,8 @@ type Options struct{}
 
 // Option updates the options
 type Option func(*Options)
+
+// NewSelector creates new selector and returns it
+func NewSelector(opts ...Option) Selector {
+	return newSelector(opts...)
+}

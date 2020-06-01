@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/micro/go-micro/v2/client/selector"
 	"github.com/micro/go-micro/v2/metadata"
 	"github.com/micro/go-micro/v2/registry"
 )
@@ -55,7 +54,6 @@ func NewRoundTripper(opts ...Option) http.RoundTripper {
 
 	return &roundTripper{
 		rt:   http.DefaultTransport,
-		st:   selector.Random,
 		opts: options,
 	}
 }
