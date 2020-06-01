@@ -140,6 +140,10 @@ func (s *service) Start() error {
 		}
 	}
 
+	if err := s.opts.Client.Options().Router.Start(); err != nil {
+		return err
+	}
+
 	if err := s.opts.Server.Start(); err != nil {
 		return err
 	}
@@ -160,6 +164,10 @@ func (s *service) Stop() error {
 		if err := fn(); err != nil {
 			gerr = err
 		}
+	}
+
+	if err := s.opts.Client.Options().Router.Stop(); err != nil {
+		return err
 	}
 
 	if err := s.opts.Server.Stop(); err != nil {
