@@ -32,19 +32,21 @@ type memory struct {
 	watchers *list.List
 }
 
+type updateValue struct {
+	version string
+	value   reader.Value
+}
+
 type watcher struct {
 	exit    chan bool
 	path    []string
 	value   reader.Value
 	reader  reader.Reader
-	updates chan reader.Value
+	version string
+	updates chan updateValue
 }
 
 func (m *memory) watch(idx int, s source.Source) {
-	m.Lock()
-	m.sets = append(m.sets, &source.ChangeSet{Source: s.String()})
-	m.Unlock()
-
 	// watches a source for changes
 	watch := func(idx int, s source.Watcher) error {
 		for {
@@ -159,11 +161,23 @@ func (m *memory) update() {
 	for e := m.watchers.Front(); e != nil; e = e.Next() {
 		watchers = append(watchers, e.Value.(*watcher))
 	}
+
+	vals := m.vals
+	snap := m.snap
 	m.RUnlock()
 
 	for _, w := range watchers {
+		if w.version >= snap.Version {
+			continue
+		}
+
+		uv := updateValue{
+			version: m.snap.Version,
+			value:   vals.Get(w.path...),
+		}
+
 		select {
-		case w.updates <- m.vals.Get(w.path...):
+		case w.updates <- uv:
 		default:
 		}
 	}
@@ -285,6 +299,7 @@ func (m *memory) Get(path ...string) (reader.Value, error) {
 	}
 
 	// ok we're going hardcore now
+
 	return nil, errors.New("no values")
 }
 
@@ -333,7 +348,8 @@ func (m *memory) Watch(path ...string) (loader.Watcher, error) {
 		path:    path,
 		value:   value,
 		reader:  m.opts.Reader,
-		updates: make(chan reader.Value, 1),
+		updates: make(chan updateValue, 1),
+		version: m.snap.Version,
 	}
 
 	e := m.watchers.PushBack(w)
@@ -355,28 +371,43 @@ func (m *memory) String() string {
 }
 
 func (w *watcher) Next() (*loader.Snapshot, error) {
+	update := func(v reader.Value) *loader.Snapshot {
+		w.value = v
+
+		cs := &source.ChangeSet{
+			Data:      v.Bytes(),
+			Format:    w.reader.String(),
+			Source:    "memory",
+			Timestamp: time.Now(),
+		}
+		cs.Sum()
+
+		return &loader.Snapshot{
+			ChangeSet: cs,
+			Version:   w.version,
+		}
+
+	}
+
 	for {
 		select {
 		case <-w.exit:
 			return nil, errors.New("watcher stopped")
-		case v := <-w.updates:
+
+		case uv := <-w.updates:
+			if uv.version <= w.version {
+				continue
+			}
+
+			v := uv.value
+
+			w.version = uv.version
+
 			if bytes.Equal(w.value.Bytes(), v.Bytes()) {
 				continue
 			}
-			w.value = v
 
-			cs := &source.ChangeSet{
-				Data:      v.Bytes(),
-				Format:    w.reader.String(),
-				Source:    "memory",
-				Timestamp: time.Now(),
-			}
-			cs.Sum()
-
-			return &loader.Snapshot{
-				ChangeSet: cs,
-				Version:   fmt.Sprintf("%d", time.Now().Unix()),
-			}, nil
+			return update(v), nil
 		}
 	}
 }
@@ -386,7 +417,9 @@ func (w *watcher) Stop() error {
 	case <-w.exit:
 	default:
 		close(w.exit)
+		close(w.updates)
 	}
+
 	return nil
 }
 
@@ -406,7 +439,10 @@ func NewLoader(opts ...loader.Option) loader.Loader {
 		sources:  options.Source,
 	}
 
+	m.sets = make([]*source.ChangeSet, len(options.Source))
+
 	for i, s := range options.Source {
+		m.sets[i] = &source.ChangeSet{Source: s.String()}
 		go m.watch(i, s)
 	}
 
