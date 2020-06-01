@@ -113,6 +113,7 @@ func NewOptions(options ...Option) Options {
 		Broker:    broker.DefaultBroker,
 		Registry:  registry.DefaultRegistry,
 		Router:    router.DefaultRouter,
+		Selector:  selector.DefaultSelector,
 		Transport: transport.DefaultTransport,
 	}
 
