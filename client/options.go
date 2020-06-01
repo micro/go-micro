@@ -5,9 +5,10 @@ import (
 	"time"
 
 	"github.com/micro/go-micro/v2/broker"
-	"github.com/micro/go-micro/v2/client/selector"
 	"github.com/micro/go-micro/v2/codec"
 	"github.com/micro/go-micro/v2/registry"
+	"github.com/micro/go-micro/v2/router"
+	"github.com/micro/go-micro/v2/selector"
 	"github.com/micro/go-micro/v2/transport"
 )
 
@@ -19,11 +20,9 @@ type Options struct {
 	Broker    broker.Broker
 	Codecs    map[string]codec.NewCodec
 	Registry  registry.Registry
+	Router    router.Router
 	Selector  selector.Selector
 	Transport transport.Transport
-
-	// Router sets the router
-	Router Router
 
 	// Connection Pool
 	PoolSize int
@@ -44,26 +43,28 @@ type Options struct {
 }
 
 type CallOptions struct {
-	SelectOptions []selector.SelectOption
-
 	// Address of remote hosts
 	Address []string
 	// Backoff func
 	Backoff BackoffFunc
 	// Check if retriable func
 	Retry RetryFunc
+	// Duration to cache the response for
+	CacheExpiry time.Duration
 	// Transport Dial Timeout
 	DialTimeout time.Duration
+	// Network the request should be routed to
+	Network string
 	// Number of Call attempts
 	Retries int
 	// Request/Response timeout
 	RequestTimeout time.Duration
+	// Selector to use for this call
+	Selector selector.Selector
 	// Stream timeout for the stream
 	StreamTimeout time.Duration
 	// Use the services own auth token
 	ServiceToken bool
-	// Duration to cache the response for
-	CacheExpiry time.Duration
 
 	// Middleware for low level call func
 	CallWrappers []CallWrapper
@@ -110,8 +111,8 @@ func NewOptions(options ...Option) Options {
 		PoolSize:  DefaultPoolSize,
 		PoolTTL:   DefaultPoolTTL,
 		Broker:    broker.DefaultBroker,
-		Selector:  selector.DefaultSelector,
 		Registry:  registry.DefaultRegistry,
+		Router:    router.DefaultRouter,
 		Transport: transport.DefaultTransport,
 	}
 
@@ -161,8 +162,21 @@ func PoolTTL(d time.Duration) Option {
 func Registry(r registry.Registry) Option {
 	return func(o *Options) {
 		o.Registry = r
-		// set in the selector
-		o.Selector.Init(selector.Registry(r))
+		o.Router.Init(router.Registry(r))
+	}
+}
+
+// Router is used to lookup the nodes a request can be routed to
+func Router(r router.Router) Option {
+	return func(o *Options) {
+		o.Router = r
+	}
+}
+
+// Selector is used to select a service from a pool
+func Selector(s selector.Selector) Option {
+	return func(o *Options) {
+		o.Selector = s
 	}
 }
 
@@ -170,13 +184,6 @@ func Registry(r registry.Registry) Option {
 func Transport(t transport.Transport) Option {
 	return func(o *Options) {
 		o.Transport = t
-	}
-}
-
-// Select is used to select a node to route a request to
-func Selector(s selector.Selector) Option {
-	return func(o *Options) {
-		o.Selector = s
 	}
 }
 
@@ -262,9 +269,10 @@ func WithAddress(a ...string) CallOption {
 	}
 }
 
-func WithSelectOption(so ...selector.SelectOption) CallOption {
+// WithSelector overrides the selector for the call
+func WithSelector(s selector.Selector) CallOption {
 	return func(o *CallOptions) {
-		o.SelectOptions = append(o.SelectOptions, so...)
+		o.Selector = s
 	}
 }
 
@@ -280,6 +288,13 @@ func WithCallWrapper(cw ...CallWrapper) CallOption {
 func WithBackoff(fn BackoffFunc) CallOption {
 	return func(o *CallOptions) {
 		o.Backoff = fn
+	}
+}
+
+// WithNetwork is a CallOption which overrides the default network
+func WithNetwork(n string) CallOption {
+	return func(o *CallOptions) {
+		o.Network = n
 	}
 }
 
@@ -355,12 +370,5 @@ func WithContentType(ct string) RequestOption {
 func StreamingRequest() RequestOption {
 	return func(o *RequestOptions) {
 		o.Stream = true
-	}
-}
-
-// WithRouter sets the client router
-func WithRouter(r Router) Option {
-	return func(o *Options) {
-		o.Router = r
 	}
 }

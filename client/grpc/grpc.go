@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"math/rand"
 	"net"
 	"strings"
 	"sync/atomic"
@@ -12,11 +13,11 @@ import (
 
 	"github.com/micro/go-micro/v2/broker"
 	"github.com/micro/go-micro/v2/client"
-	"github.com/micro/go-micro/v2/client/selector"
 	raw "github.com/micro/go-micro/v2/codec/bytes"
 	"github.com/micro/go-micro/v2/errors"
 	"github.com/micro/go-micro/v2/metadata"
-	"github.com/micro/go-micro/v2/registry"
+	"github.com/micro/go-micro/v2/router"
+	"github.com/micro/go-micro/v2/selector"
 	pnet "github.com/micro/go-micro/v2/util/net"
 
 	"google.golang.org/grpc"
@@ -71,34 +72,51 @@ func (g *grpcClient) secure(addr string) grpc.DialOption {
 	return grpc.WithInsecure()
 }
 
-func (g *grpcClient) next(request client.Request, opts client.CallOptions) (selector.Next, error) {
-	service, address, _ := pnet.Proxy(request.Service(), opts.Address)
-
-	// return remote address
-	if len(address) > 0 {
-		return func() (*registry.Node, error) {
-			return &registry.Node{
-				Address: address[0],
-			}, nil
+// todo: find a way to share this code with other clients
+func (g *grpcClient) lookupRoute(req client.Request, opts client.CallOptions) (*router.Route, error) {
+	// check to see if the proxy has been set, if it has we don't need to lookup the routes; net.Proxy
+	// returns a slice of addresses, so we'll use a random one. Eventually we should to use the
+	// selector for this.
+	service, addresses, _ := pnet.Proxy(req.Service(), opts.Address)
+	if len(addresses) > 0 {
+		return &router.Route{
+			Service: service,
+			Address: addresses[rand.Int()%len(addresses)],
+			Metadata: map[string]string{
+				"protocol": "mucp",
+			},
 		}, nil
 	}
 
-	// get next nodes from the selector
-	next, err := g.opts.Selector.Select(service, opts.SelectOptions...)
-	if err != nil {
-		if err == selector.ErrNotFound {
-			return nil, errors.InternalServerError("go.micro.client", "service %s: %s", service, err.Error())
-		}
-		return nil, errors.InternalServerError("go.micro.client", "error selecting %s node: %s", service, err.Error())
+	// construct the router query
+	query := []router.QueryOption{router.QueryService(req.Service())}
+
+	// if a custom network was requested, pass this to the router. By default the router will use it's
+	// own network, which is set during initialisation.
+	if len(opts.Network) > 0 {
+		query = append(query, router.QueryNetwork(opts.Network))
 	}
 
-	return next, nil
+	// lookup the routes which can be used to execute the request
+	routes, err := g.opts.Router.Lookup(query...)
+	if err == router.ErrRouteNotFound {
+		return nil, errors.InternalServerError("go.micro.client", "service %s: %s", req.Service(), err.Error())
+	} else if err != nil {
+		return nil, errors.InternalServerError("go.micro.client", "error getting next %s node: %s", req.Service(), err.Error())
+	}
+
+	// select the route to use for the request
+	if route, err := g.opts.Selector.Select(routes...); err == selector.ErrNoneAvailable {
+		return nil, errors.InternalServerError("go.micro.client", "service %s: %s", req.Service(), err.Error())
+	} else if err != nil {
+		return nil, errors.InternalServerError("go.micro.client", "error getting next %s node: %s", req.Service(), err.Error())
+	} else {
+		return route, nil
+	}
 }
 
-func (g *grpcClient) call(ctx context.Context, node *registry.Node, req client.Request, rsp interface{}, opts client.CallOptions) error {
+func (g *grpcClient) call(ctx context.Context, route *router.Route, req client.Request, rsp interface{}, opts client.CallOptions) error {
 	var header map[string]string
-
-	address := node.Address
 
 	header = make(map[string]string)
 	if md, ok := metadata.FromContext(ctx); ok {
@@ -130,7 +148,7 @@ func (g *grpcClient) call(ctx context.Context, node *registry.Node, req client.R
 
 	grpcDialOptions := []grpc.DialOption{
 		grpc.WithTimeout(opts.DialTimeout),
-		g.secure(address),
+		g.secure(route.Address),
 		grpc.WithDefaultCallOptions(
 			grpc.MaxCallRecvMsgSize(maxRecvMsgSize),
 			grpc.MaxCallSendMsgSize(maxSendMsgSize),
@@ -141,13 +159,13 @@ func (g *grpcClient) call(ctx context.Context, node *registry.Node, req client.R
 		grpcDialOptions = append(grpcDialOptions, opts...)
 	}
 
-	cc, err := g.pool.getConn(address, grpcDialOptions...)
+	cc, err := g.pool.getConn(route.Address, grpcDialOptions...)
 	if err != nil {
 		return errors.InternalServerError("go.micro.client", fmt.Sprintf("Error sending request: %v", err))
 	}
 	defer func() {
 		// defer execution of release
-		g.pool.release(address, cc, grr)
+		g.pool.release(route.Address, cc, grr)
 	}()
 
 	ch := make(chan error, 1)
@@ -173,10 +191,8 @@ func (g *grpcClient) call(ctx context.Context, node *registry.Node, req client.R
 	return grr
 }
 
-func (g *grpcClient) stream(ctx context.Context, node *registry.Node, req client.Request, opts client.CallOptions) (client.Stream, error) {
+func (g *grpcClient) stream(ctx context.Context, route *router.Route, req client.Request, opts client.CallOptions) (client.Stream, error) {
 	var header map[string]string
-
-	address := node.Address
 
 	if md, ok := metadata.FromContext(ctx); ok {
 		header = make(map[string]string, len(md))
@@ -215,14 +231,14 @@ func (g *grpcClient) stream(ctx context.Context, node *registry.Node, req client
 
 	grpcDialOptions := []grpc.DialOption{
 		grpc.WithTimeout(opts.DialTimeout),
-		g.secure(address),
+		g.secure(route.Address),
 	}
 
 	if opts := g.getGrpcDialOptions(); opts != nil {
 		grpcDialOptions = append(grpcDialOptions, opts...)
 	}
 
-	cc, err := grpc.DialContext(dialCtx, address, grpcDialOptions...)
+	cc, err := grpc.DialContext(dialCtx, route.Address, grpcDialOptions...)
 	if err != nil {
 		return nil, errors.InternalServerError("go.micro.client", fmt.Sprintf("Error sending request: %v", err))
 	}
@@ -379,15 +395,11 @@ func (g *grpcClient) Call(ctx context.Context, req client.Request, rsp interface
 	} else if rsp == nil {
 		return errors.InternalServerError("go.micro.client", "rsp is nil")
 	}
+
 	// make a copy of call opts
 	callOpts := g.opts.CallOptions
 	for _, opt := range opts {
 		opt(&callOpts)
-	}
-
-	next, err := g.next(req, callOpts)
-	if err != nil {
-		return err
 	}
 
 	// check if we already have a deadline
@@ -432,19 +444,19 @@ func (g *grpcClient) Call(ctx context.Context, req client.Request, rsp interface
 			time.Sleep(t)
 		}
 
-		// select next node
-		node, err := next()
-		service := req.Service()
+		// lookup the route to send the reques to
+		route, err := g.lookupRoute(req, callOpts)
 		if err != nil {
-			if err == selector.ErrNotFound {
-				return errors.InternalServerError("go.micro.client", "service %s: %s", service, err.Error())
-			}
-			return errors.InternalServerError("go.micro.client", "error selecting %s node: %s", service, err.Error())
+			return err
 		}
 
 		// make the call
-		err = gcall(ctx, node, req, rsp, callOpts)
-		g.opts.Selector.Mark(service, node, err)
+		err = gcall(ctx, route, req, rsp, callOpts)
+
+		// record the result of the call to inform future routing decisions
+		g.opts.Selector.Record(route, err)
+
+		// try and transform the error to a go-micro error
 		if verr, ok := err.(*errors.Error); ok {
 			return verr
 		}
@@ -492,11 +504,6 @@ func (g *grpcClient) Stream(ctx context.Context, req client.Request, opts ...cli
 		opt(&callOpts)
 	}
 
-	next, err := g.next(req, callOpts)
-	if err != nil {
-		return nil, err
-	}
-
 	// #200 - streams shouldn't have a request timeout set on the context
 
 	// should we noop right here?
@@ -518,17 +525,23 @@ func (g *grpcClient) Stream(ctx context.Context, req client.Request, opts ...cli
 			time.Sleep(t)
 		}
 
-		node, err := next()
-		service := req.Service()
+		// lookup the route to send the reques to
+		route, err := g.lookupRoute(req, callOpts)
 		if err != nil {
-			if err == selector.ErrNotFound {
-				return nil, errors.InternalServerError("go.micro.client", "service %s: %s", service, err.Error())
-			}
-			return nil, errors.InternalServerError("go.micro.client", "error selecting %s node: %s", service, err.Error())
+			return nil, err
 		}
 
-		stream, err := g.stream(ctx, node, req, callOpts)
-		g.opts.Selector.Mark(service, node, err)
+		// make the call
+		stream, err := g.stream(ctx, route, req, callOpts)
+
+		// record the result of the call to inform future routing decisions
+		g.opts.Selector.Record(route, err)
+
+		// try and transform the error to a go-micro error
+		if verr, ok := err.(*errors.Error); ok {
+			return nil, verr
+		}
+
 		return stream, err
 	}
 
@@ -555,7 +568,7 @@ func (g *grpcClient) Stream(ctx context.Context, req client.Request, opts ...cli
 				return rsp.stream, nil
 			}
 
-			retry, rerr := callOpts.Retry(ctx, req, i, err)
+			retry, rerr := callOpts.Retry(ctx, req, i, rsp.err)
 			if rerr != nil {
 				return nil, rerr
 			}

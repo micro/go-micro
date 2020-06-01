@@ -141,8 +141,8 @@ func (h *rpcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// create strategy
-	so := selector.WithStrategy(strategy(service.Services))
+	// create custom selector
+	so := selector(service.Services)
 
 	// walk the standard call path
 	// get payload
@@ -174,7 +174,7 @@ func (h *rpcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		)
 
 		// make the call
-		if err := c.Call(cx, req, response, client.WithSelectOption(so)); err != nil {
+		if err := c.Call(cx, req, response, client.WithSelector(so)); err != nil {
 			writeError(w, r, err)
 			return
 		}
@@ -209,7 +209,7 @@ func (h *rpcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			client.WithContentType(ct),
 		)
 		// make the call
-		if err := c.Call(cx, req, &response, client.WithSelectOption(so)); err != nil {
+		if err := c.Call(cx, req, &response, client.WithSelector(so)); err != nil {
 			writeError(w, r, err)
 			return
 		}

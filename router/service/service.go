@@ -36,9 +36,10 @@ func NewRouter(opts ...router.Option) router.Router {
 	// NOTE: might need some client opts here
 	cli := client.DefaultClient
 
-	// set options client
-	if options.Client != nil {
-		cli = options.Client
+	// get options client from the context. We set this in the context to prevent an import loop, as
+	// the client depends on the router
+	if c, ok := options.Context.Value(clientKey{}).(client.Client); ok {
+		cli = c
 	}
 
 	// NOTE: should we have Client/Service option in router.Options?

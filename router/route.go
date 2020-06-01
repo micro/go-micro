@@ -27,6 +27,8 @@ type Route struct {
 	Link string
 	// Metric is the route cost metric
 	Metric int64
+	// Metadata associated with the route
+	Metadata map[string]string
 }
 
 // Hash returns route hash sum.

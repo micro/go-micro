@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/micro/go-micro/v2/client"
-	"github.com/micro/go-micro/v2/client/selector"
 	"github.com/micro/go-micro/v2/codec"
 	"github.com/micro/go-micro/v2/codec/bytes"
 	"github.com/micro/go-micro/v2/errors"
@@ -19,6 +18,7 @@ import (
 	"github.com/micro/go-micro/v2/metadata"
 	"github.com/micro/go-micro/v2/proxy"
 	"github.com/micro/go-micro/v2/router"
+	"github.com/micro/go-micro/v2/selector"
 	"github.com/micro/go-micro/v2/server"
 )
 
@@ -27,6 +27,9 @@ import (
 type Proxy struct {
 	// embed options
 	options proxy.Options
+
+	// selector to use, mucp should use round robin
+	selector selector.Selector
 
 	// Endpoint specifies the fixed service endpoint to call.
 	Endpoint string
@@ -394,7 +397,7 @@ func (p *Proxy) ServeRequest(ctx context.Context, req server.Request, rsp server
 	//nolint:prealloc
 	opts := []client.CallOption{
 		// set strategy to round robin
-		client.WithSelectOption(selector.WithStrategy(selector.RoundRobin)),
+		client.WithSelector(p.selector),
 	}
 
 	// if the address is already set just serve it
@@ -583,6 +586,7 @@ func NewProxy(opts ...proxy.Option) proxy.Proxy {
 	p.Links = map[string]client.Client{}
 	p.Routes = make(map[string]map[uint64]router.Route)
 	p.options = options
+	p.selector = roundrobin.NewSelector()
 
 	// get endpoint
 	p.Endpoint = options.Endpoint

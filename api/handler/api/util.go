@@ -8,8 +8,6 @@ import (
 	"strings"
 
 	api "github.com/micro/go-micro/v2/api/proto"
-	"github.com/micro/go-micro/v2/client/selector"
-	"github.com/micro/go-micro/v2/registry"
 	"github.com/oxtoacart/bpool"
 )
 
@@ -108,12 +106,4 @@ func requestToProto(r *http.Request) (*api.Request, error) {
 	}
 
 	return req, nil
-}
-
-// strategy is a hack for selection
-func strategy(services []*registry.Service) selector.Strategy {
-	return func(_ []*registry.Service) selector.Next {
-		// ignore input to this function, use services above
-		return selector.Random(services)
-	}
 }

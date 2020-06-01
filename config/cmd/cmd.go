@@ -12,7 +12,6 @@ import (
 	"github.com/micro/go-micro/v2/broker"
 	"github.com/micro/go-micro/v2/client"
 	"github.com/micro/go-micro/v2/client/grpc"
-	"github.com/micro/go-micro/v2/client/selector"
 	"github.com/micro/go-micro/v2/config"
 	configSrc "github.com/micro/go-micro/v2/config/source"
 	configSrv "github.com/micro/go-micro/v2/config/source/service"
@@ -25,6 +24,7 @@ import (
 	registrySrv "github.com/micro/go-micro/v2/registry/service"
 	"github.com/micro/go-micro/v2/router"
 	"github.com/micro/go-micro/v2/runtime"
+	"github.com/micro/go-micro/v2/selector"
 	"github.com/micro/go-micro/v2/server"
 	"github.com/micro/go-micro/v2/store"
 	"github.com/micro/go-micro/v2/transport"
@@ -58,9 +58,8 @@ import (
 	srvRuntime "github.com/micro/go-micro/v2/runtime/service"
 
 	// selectors
-	"github.com/micro/go-micro/v2/client/selector/dns"
-	rSelector "github.com/micro/go-micro/v2/client/selector/router"
-	"github.com/micro/go-micro/v2/client/selector/static"
+	randSelector "github.com/micro/go-micro/v2/selector/random"
+	roundSelector "github.com/micro/go-micro/v2/selector/roundrobin"
 
 	// routers
 	dnsRouter "github.com/micro/go-micro/v2/router/dns"
@@ -359,9 +358,8 @@ var (
 	}
 
 	DefaultSelectors = map[string]func(...selector.Option) selector.Selector{
-		"dns":    dns.NewSelector,
-		"router": rSelector.NewSelector,
-		"static": static.NewSelector,
+		"random":     randSelector.NewSelector,
+		"roundrobin": roundSelector.NewSelector,
 	}
 
 	DefaultRouters = map[string]func(...router.Option) router.Router{
@@ -589,11 +587,9 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		serverOpts = append(serverOpts, server.Registry(*c.opts.Registry))
 		clientOpts = append(clientOpts, client.Registry(*c.opts.Registry))
 
-		if err := (*c.opts.Selector).Init(selector.Registry(*c.opts.Registry)); err != nil {
+		if err := (*c.opts.Router).Init(router.Registry(*c.opts.Registry)); err != nil {
 			logger.Fatalf("Error configuring registry: %v", err)
 		}
-
-		clientOpts = append(clientOpts, client.Selector(*c.opts.Selector))
 
 		if err := (*c.opts.Broker).Init(broker.Registry(*c.opts.Registry)); err != nil {
 			logger.Fatalf("Error configuring broker: %v", err)
@@ -607,7 +603,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 			return fmt.Errorf("Selector %s not found", name)
 		}
 
-		*c.opts.Selector = s(selector.Registry(*c.opts.Registry))
+		*c.opts.Selector = s()
 
 		// No server option here. Should there be?
 		clientOpts = append(clientOpts, client.Selector(*c.opts.Selector))

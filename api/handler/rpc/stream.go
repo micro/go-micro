@@ -14,7 +14,6 @@ import (
 	"github.com/gobwas/ws/wsutil"
 	"github.com/micro/go-micro/v2/api"
 	"github.com/micro/go-micro/v2/client"
-	"github.com/micro/go-micro/v2/client/selector"
 	raw "github.com/micro/go-micro/v2/codec/bytes"
 	"github.com/micro/go-micro/v2/logger"
 )
@@ -110,9 +109,9 @@ func serveWebsocket(ctx context.Context, w http.ResponseWriter, r *http.Request,
 		client.StreamingRequest(),
 	)
 
-	so := selector.WithStrategy(strategy(service.Services))
+	so := strategy(service.Services)
 	// create a new stream
-	stream, err := c.Stream(ctx, req, client.WithSelectOption(so))
+	stream, err := c.Stream(ctx, req, client.WithSelector(so))
 	if err != nil {
 		if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
 			logger.Error(err)
