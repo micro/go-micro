@@ -326,7 +326,7 @@ var (
 			Usage:   "The scope to be used for oauth",
 		},
 		&cli.StringFlag{
-			Name:    "namespace",
+			Name:    "service_namespace",
 			EnvVars: []string{"MICRO_NAMESPACE"},
 			Usage:   "Namespace the services should running in",
 			Value:   "micro",
@@ -604,8 +604,6 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		}
 
 		*c.opts.Selector = s()
-
-		// No server option here. Should there be?
 		clientOpts = append(clientOpts, client.Selector(*c.opts.Selector))
 	}
 
@@ -617,8 +615,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		}
 
 		*c.opts.Router = r(router.Registry(*c.opts.Registry))
-
-		// TODO: Set the router in the client
+		clientOpts = append(clientOpts, client.Router(*c.opts.Router))
 	}
 
 	// Set the transport
@@ -654,8 +651,8 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	if len(ctx.String("registry_address")) > 0 {
 		regOpts = append(regOpts, registry.Addrs(strings.Split(ctx.String("registry_address"), ",")...))
 	}
-	if len(ctx.String("namespace")) > 0 {
-		regOpts = append(regOpts, registry.Domain(ctx.String("namespace")))
+	if len(ctx.String("service_namespace")) > 0 {
+		regOpts = append(regOpts, registry.Domain(ctx.String("service_namespace")))
 	}
 	if len(regOpts) > 0 {
 		if err := (*c.opts.Registry).Init(); err != nil {
@@ -738,8 +735,8 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	if len(ctx.String("auth_private_key")) > 0 {
 		authOpts = append(authOpts, auth.PrivateKey(ctx.String("auth_private_key")))
 	}
-	if len(ctx.String("namespace")) > 0 {
-		authOpts = append(authOpts, auth.Issuer(ctx.String("namespace")))
+	if len(ctx.String("service_namespace")) > 0 {
+		authOpts = append(authOpts, auth.Issuer(ctx.String("service_namespace")))
 	}
 
 	if name := ctx.String("auth_provider"); len(name) > 0 {

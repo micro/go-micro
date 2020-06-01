@@ -165,14 +165,23 @@ func (c *cache) get(domain, service string) ([]*registry.Service, error) {
 	}
 
 	// watch service if not watched
-	_, ok := c.watched[domain][service]
-
-	// unlock the read lock
+	c.RLock()
+	var ok bool
+	if _, d := c.watched[domain]; d {
+		if _, s := c.watched[domain][service]; s {
+			ok = true
+		}
+	}
 	c.RUnlock()
 
 	// check if its being watched
 	if !ok {
 		c.Lock()
+
+		// add domain if not registered
+		if _, ok := c.watched[domain]; !ok {
+			c.watched[domain] = make(map[string]bool)
+		}
 
 		// set to watched
 		c.watched[domain][service] = true
@@ -486,6 +495,7 @@ func New(r registry.Registry, opts ...Option) Cache {
 	return &cache{
 		Registry: r,
 		opts:     options,
+		running:  make(map[string]bool),
 		watched:  make(map[string]watched),
 		services: make(map[string]services),
 		ttls:     make(map[string]ttls),
