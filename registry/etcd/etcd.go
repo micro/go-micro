@@ -6,7 +6,6 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net"
 	"path"
 	"sort"
@@ -139,7 +138,7 @@ func servicePath(domain, s string) string {
 }
 
 func prefixWithDomain(domain string) string {
-	return fmt.Sprintf("%v/%v", prefix, domain)
+	return path.Join(prefix, domain)
 }
 
 func (e *etcdRegistry) Init(opts ...registry.Option) error {
