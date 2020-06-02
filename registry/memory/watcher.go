@@ -13,6 +13,27 @@ type Watcher struct {
 	exit chan bool
 }
 
+func (m *Watcher) Chan() chan *registry.Result {
+	c := make(chan *registry.Result)
+
+	go func() {
+		for {
+			select {
+			case r := <-m.res:
+				if len(m.wo.Service) > 0 && m.wo.Service != r.Service.Name {
+					continue
+				}
+				c <- r
+			case <-m.exit:
+				close(c)
+				return
+			}
+		}
+	}()
+
+	return c
+}
+
 func (m *Watcher) Next() (*registry.Result, error) {
 	for {
 		select {

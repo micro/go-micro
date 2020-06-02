@@ -595,55 +595,77 @@ func (m *mdnsRegistry) String() string {
 	return "mdns"
 }
 
+func (m *mdnsWatcher) entryToRecord(e *mdns.ServiceEntry) *Result {
+	txt, err := decode(e.InfoFields)
+	if err != nil {
+		return nil
+	}
+
+	if len(txt.Service) == 0 || len(txt.Version) == 0 {
+		return nil
+	}
+
+	// Filter watch options
+	// wo.Service: Only keep services we care about
+	if len(m.wo.Service) > 0 && txt.Service != m.wo.Service {
+		return nil
+	}
+
+	var action string
+
+	if e.TTL == 0 {
+		action = "delete"
+	} else {
+		action = "create"
+	}
+
+	service := &Service{
+		Name:      txt.Service,
+		Version:   txt.Version,
+		Endpoints: txt.Endpoints,
+	}
+
+	// skip anything without the domain we care about
+	suffix := fmt.Sprintf(".%s.%s.", service.Name, m.domain)
+	if !strings.HasSuffix(e.Name, suffix) {
+		return nil
+	}
+
+	service.Nodes = append(service.Nodes, &Node{
+		Id:       strings.TrimSuffix(e.Name, suffix),
+		Address:  fmt.Sprintf("%s:%d", e.AddrV4.String(), e.Port),
+		Metadata: txt.Metadata,
+	})
+
+	return &Result{Action: action, Service: service}
+}
+
+func (m *mdnsWatcher) Chan() chan *Result {
+	c := make(chan *Result)
+
+	go func() {
+		for {
+			select {
+			case e := <-m.ch:
+				if result := m.entryToRecord(e); result != nil {
+					c <- result
+				}
+			case <-m.exit:
+				close(c)
+			}
+		}
+	}()
+
+	return c
+}
+
 func (m *mdnsWatcher) Next() (*Result, error) {
 	for {
 		select {
 		case e := <-m.ch:
-			txt, err := decode(e.InfoFields)
-			if err != nil {
-				continue
+			if result := m.entryToRecord(e); result != nil {
+				return result, nil
 			}
-
-			if len(txt.Service) == 0 || len(txt.Version) == 0 {
-				continue
-			}
-
-			// Filter watch options
-			// wo.Service: Only keep services we care about
-			if len(m.wo.Service) > 0 && txt.Service != m.wo.Service {
-				continue
-			}
-
-			var action string
-
-			if e.TTL == 0 {
-				action = "delete"
-			} else {
-				action = "create"
-			}
-
-			service := &Service{
-				Name:      txt.Service,
-				Version:   txt.Version,
-				Endpoints: txt.Endpoints,
-			}
-
-			// skip anything without the domain we care about
-			suffix := fmt.Sprintf(".%s.%s.", service.Name, m.domain)
-			if !strings.HasSuffix(e.Name, suffix) {
-				continue
-			}
-
-			service.Nodes = append(service.Nodes, &Node{
-				Id:       strings.TrimSuffix(e.Name, suffix),
-				Address:  fmt.Sprintf("%s:%d", e.AddrV4.String(), e.Port),
-				Metadata: txt.Metadata,
-			})
-
-			return &Result{
-				Action:  action,
-				Service: service,
-			}, nil
 		case <-m.exit:
 			return nil, ErrWatcherStopped
 		}

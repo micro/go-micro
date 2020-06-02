@@ -3,6 +3,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/micro/go-micro/v2/client"
@@ -165,6 +166,7 @@ func (s *serviceRegistry) Watch(opts ...registry.WatchOption) (registry.Watcher,
 		options.Context = context.TODO()
 	}
 
+	fmt.Println("Executing Watch RPC")
 	stream, err := s.client.Watch(options.Context, &pb.WatchRequest{
 		Service: options.Service,
 	}, s.callOpts()...)

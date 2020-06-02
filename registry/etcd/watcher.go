@@ -46,6 +46,29 @@ func newEtcdWatcher(r *etcdRegistry, timeout time.Duration, opts ...registry.Wat
 	}, nil
 }
 
+func (ew *etcdWatcher) Chan() chan *registry.Result {
+	c := make(chan *registry.Result)
+
+	go func() {
+		for wresp := range ew.w {
+			if wresp.Err() != nil || wresp.Canceled {
+				close(c)
+				return
+			}
+
+			for _, ev := range wresp.Events {
+				if r := serializeResult(ev); r != nil {
+					c <- r
+				}
+			}
+		}
+
+		close(c)
+	}()
+
+	return c
+}
+
 func (ew *etcdWatcher) Next() (*registry.Result, error) {
 	for wresp := range ew.w {
 		if wresp.Err() != nil {
@@ -55,30 +78,9 @@ func (ew *etcdWatcher) Next() (*registry.Result, error) {
 			return nil, errors.New("could not get next")
 		}
 		for _, ev := range wresp.Events {
-			service := decode(ev.Kv.Value)
-			var action string
-
-			switch ev.Type {
-			case clientv3.EventTypePut:
-				if ev.IsCreate() {
-					action = "create"
-				} else if ev.IsModify() {
-					action = "update"
-				}
-			case clientv3.EventTypeDelete:
-				action = "delete"
-
-				// get service from prevKv
-				service = decode(ev.PrevKv.Value)
+			if r := serializeResult(ev); r != nil {
+				return r, nil
 			}
-
-			if service == nil {
-				continue
-			}
-			return &registry.Result{
-				Action:  action,
-				Service: service,
-			}, nil
 		}
 	}
 	return nil, errors.New("could not get next")
@@ -90,5 +92,33 @@ func (ew *etcdWatcher) Stop() {
 		return
 	default:
 		close(ew.stop)
+	}
+}
+
+func serializeResult(ev *clientv3.Event) *registry.Result {
+	service := decode(ev.Kv.Value)
+	var action string
+
+	switch ev.Type {
+	case clientv3.EventTypePut:
+		if ev.IsCreate() {
+			action = "create"
+		} else if ev.IsModify() {
+			action = "update"
+		}
+	case clientv3.EventTypeDelete:
+		action = "delete"
+
+		// get service from prevKv
+		service = decode(ev.PrevKv.Value)
+	}
+
+	if service == nil {
+		return nil
+	}
+
+	return &registry.Result{
+		Action:  action,
+		Service: service,
 	}
 }

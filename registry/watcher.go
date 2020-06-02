@@ -7,6 +7,9 @@ import "time"
 type Watcher interface {
 	// Next is a blocking call
 	Next() (*Result, error)
+	// Consume results over a channel
+	Chan() chan *Result
+	// Stop the watcher
 	Stop()
 }
 
