@@ -105,8 +105,14 @@ func (g *grpcClient) lookupRoute(req client.Request, opts client.CallOptions) (*
 		return nil, errors.InternalServerError("go.micro.client", "error getting next %s node: %s", req.Service(), err.Error())
 	}
 
+	// use the selector passed as a call option, or fallback to the grpc clients selector
+	s := opts.Selector
+	if s == nil {
+		s = g.opts.Selector
+	}
+
 	// select the route to use for the request
-	if route, err := g.opts.Selector.Select(routes...); err == selector.ErrNoneAvailable {
+	if route, err := s.Select(routes...); err == selector.ErrNoneAvailable {
 		return nil, errors.InternalServerError("go.micro.client", "service %s: %s", req.Service(), err.Error())
 	} else if err != nil {
 		return nil, errors.InternalServerError("go.micro.client", "error getting next %s node: %s", req.Service(), err.Error())

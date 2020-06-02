@@ -88,7 +88,7 @@ func (h *rpcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		service = s
 	} else {
 		// we have no way of routing the request
-		writeError(w, r, errors.InternalServerError("go.micro.api", "no route found"))
+		writeError(w, r, errors.InternalServerError("go.micro.api", "no router set"))
 		return
 	}
 

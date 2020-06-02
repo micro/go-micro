@@ -137,7 +137,7 @@ func (c *cache) get(domain, service string) ([]*registry.Service, error) {
 	// get does the actual request for a service and cache it
 	get := func(domain string, service string, cached []*registry.Service) ([]*registry.Service, error) {
 		// ask the registry
-		services, err := c.Registry.GetService(service)
+		services, err := c.Registry.GetService(service, registry.GetDomain(domain))
 		if err != nil {
 			// check the cache
 			if len(cached) > 0 {
