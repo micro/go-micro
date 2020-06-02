@@ -542,7 +542,7 @@ func (g *grpcClient) Stream(ctx context.Context, req client.Request, opts ...cli
 
 		// make the call
 		stream := &grpcStream{}
-		err = g.stream(ctx, route, req, stream, callOpts)
+		err = g.stream(ctx, node, req, stream, callOpts)
 
 		g.opts.Selector.Mark(service, node, err)
 		return stream, err
