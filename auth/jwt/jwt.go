@@ -83,7 +83,7 @@ func (j *jwt) Revoke(rule *auth.Rule) error {
 	defer j.Unlock()
 
 	rules := []*auth.Rule{}
-	for _, r := range rules {
+	for _, r := range j.rules {
 		if r.ID != rule.ID {
 			rules = append(rules, r)
 		}
