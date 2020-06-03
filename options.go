@@ -13,6 +13,7 @@ import (
 	"github.com/micro/go-micro/v2/debug/profile"
 	"github.com/micro/go-micro/v2/debug/trace"
 	"github.com/micro/go-micro/v2/registry"
+	"github.com/micro/go-micro/v2/router"
 	"github.com/micro/go-micro/v2/runtime"
 	"github.com/micro/go-micro/v2/selector"
 	"github.com/micro/go-micro/v2/server"
@@ -27,9 +28,11 @@ type Options struct {
 	Cmd       cmd.Cmd
 	Config    config.Config
 	Client    client.Client
+	Selector  selector.Selector
 	Server    server.Server
 	Store     store.Store
 	Registry  registry.Registry
+	Router    router.Router
 	Runtime   runtime.Runtime
 	Transport transport.Transport
 	Profile   profile.Profile
@@ -56,7 +59,9 @@ func newOptions(opts ...Option) Options {
 		Client:    client.DefaultClient,
 		Server:    server.DefaultServer,
 		Store:     store.DefaultStore,
+		Selector:  selector.DefaultSelector,
 		Registry:  registry.DefaultRegistry,
+		Router:    router.DefaultRouter,
 		Runtime:   runtime.DefaultRuntime,
 		Transport: transport.DefaultTransport,
 		Context:   context.Background(),
@@ -139,8 +144,9 @@ func Registry(r registry.Registry) Option {
 		// Update Client and Server
 		o.Client.Init(client.Registry(r))
 		o.Server.Init(server.Registry(r))
-		// Update Broker
+		// Update other modules which depend on the Registry
 		o.Broker.Init(broker.Registry(r))
+		o.Router.Init(router.Registry(r))
 	}
 }
 
