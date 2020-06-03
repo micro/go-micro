@@ -4,7 +4,7 @@
 function build_binary {
     echo building $1
     pushd $1
-    go mod init example
+    go mod init github.com/micro/examples
     go mod edit -require=github.com/micro/go-micro/v2@$2
     go build
     local ret=$?
