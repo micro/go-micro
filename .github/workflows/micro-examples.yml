@@ -5,7 +5,7 @@ on:
       - 'release-**'
   pull_request: 
     branches:
-      - 'release-**'
+      - 'master'
 
 jobs:
 
