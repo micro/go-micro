@@ -47,11 +47,7 @@ func (s *static) Watch(opts ...router.WatchOption) (router.Watcher, error) {
 	return nil, nil
 }
 
-func (s *static) Start() error {
-	return nil
-}
-
-func (s *static) Stop() error {
+func (s *static) Close() error {
 	return nil
 }
 

@@ -656,9 +656,6 @@ func (c *cmd) Before(ctx *cli.Context) error {
 			logger.Fatalf("Error configuring router: %v", err)
 		}
 	}
-	if err := (*c.opts.Router).Start(); err != nil {
-		return err
-	}
 
 	// Set the profile
 	if name := ctx.String("profile"); len(name) > 0 {

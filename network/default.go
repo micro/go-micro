@@ -1741,11 +1741,6 @@ func (n *network) Connect() error {
 	// create closed channel
 	n.closed = make(chan bool)
 
-	// start the router
-	if err := n.options.Router.Start(); err != nil {
-		return err
-	}
-
 	// start advertising routes
 	advertChan, err := n.options.Router.Advertise()
 	if err != nil {
@@ -1781,7 +1776,7 @@ func (n *network) close() error {
 	}
 
 	// stop the router
-	if err := n.router.Stop(); err != nil {
+	if err := n.router.Close(); err != nil {
 		return err
 	}
 

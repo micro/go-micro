@@ -57,11 +57,7 @@ func (d *dns) Watch(opts ...router.WatchOption) (router.Watcher, error) {
 	return nil, nil
 }
 
-func (d *dns) Start() error {
-	return nil
-}
-
-func (d *dns) Stop() error {
+func (d *dns) Close() error {
 	return nil
 }
 

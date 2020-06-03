@@ -161,10 +161,6 @@ func (s *service) Stop() error {
 		}
 	}
 
-	if err := s.opts.Client.Options().Router.Stop(); err != nil {
-		return err
-	}
-
 	if err := s.opts.Server.Stop(); err != nil {
 		return err
 	}

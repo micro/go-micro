@@ -18,17 +18,13 @@ func routerTestSetup() Router {
 func TestRouterStartStop(t *testing.T) {
 	r := routerTestSetup()
 
-	if err := r.Start(); err != nil {
-		t.Errorf("failed to start router: %v", err)
-	}
-
 	_, err := r.Advertise()
 	if err != nil {
 		t.Errorf("failed to start advertising: %v", err)
 	}
 
-	if err := r.Stop(); err != nil {
-		t.Errorf("failed to stop router: %v", err)
+	if err := r.Close(); err != nil {
+		t.Errorf("failed to close router: %v", err)
 	}
 	if len(os.Getenv("IN_TRAVIS_CI")) == 0 {
 		t.Logf("TestRouterStartStop STOPPED")
@@ -40,10 +36,6 @@ func TestRouterAdvertise(t *testing.T) {
 
 	// lower the advertise interval
 	AdvertiseEventsTick = 500 * time.Millisecond
-
-	if err := r.Start(); err != nil {
-		t.Errorf("failed to start router: %v", err)
-	}
 
 	ch, err := r.Advertise()
 	if err != nil {
@@ -134,7 +126,7 @@ func TestRouterAdvertise(t *testing.T) {
 
 	wg.Wait()
 
-	if err := r.Stop(); err != nil {
-		t.Errorf("failed to stop router: %v", err)
+	if err := r.Close(); err != nil {
+		t.Errorf("failed to close router: %v", err)
 	}
 }
