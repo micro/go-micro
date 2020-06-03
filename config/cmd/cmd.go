@@ -27,6 +27,7 @@ import (
 	"github.com/micro/go-micro/v2/server"
 	"github.com/micro/go-micro/v2/store"
 	"github.com/micro/go-micro/v2/transport"
+	authutil "github.com/micro/go-micro/v2/util/auth"
 	"github.com/micro/go-micro/v2/util/wrapper"
 
 	// clients
@@ -468,7 +469,6 @@ func (c *cmd) Options() Options {
 
 func (c *cmd) Before(ctx *cli.Context) error {
 	// If flags are set then use them otherwise do nothing
-	var authOpts []auth.Option
 	var serverOpts []server.Option
 	var clientOpts []client.Option
 
@@ -510,26 +510,6 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		*c.opts.Tracer = r()
 	}
 
-	// Set the auth
-	if name := ctx.String("auth"); len(name) > 0 {
-		a, ok := c.opts.Auths[name]
-		if !ok {
-			return fmt.Errorf("Unsupported auth: %s", name)
-		}
-		*c.opts.Auth = a(auth.WithClient(microClient))
-		serverOpts = append(serverOpts, server.Auth(*c.opts.Auth))
-	}
-
-	// Set the profile
-	if name := ctx.String("profile"); len(name) > 0 {
-		p, ok := c.opts.Profiles[name]
-		if !ok {
-			return fmt.Errorf("Unsupported profile: %s", name)
-		}
-
-		*c.opts.Profile = p()
-	}
-
 	// Set the client
 	if name := ctx.String("client"); len(name) > 0 {
 		// only change if we have the client and type differs
@@ -544,6 +524,76 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		if s, ok := c.opts.Servers[name]; ok && (*c.opts.Server).String() != name {
 			*c.opts.Server = s()
 		}
+	}
+
+	// Setup auth
+	authOpts := []auth.Option{auth.WithClient(microClient)}
+
+	if len(ctx.String("auth_id")) > 0 || len(ctx.String("auth_secret")) > 0 {
+		authOpts = append(authOpts, auth.Credentials(
+			ctx.String("auth_id"), ctx.String("auth_secret"),
+		))
+	}
+	if len(ctx.String("auth_public_key")) > 0 {
+		authOpts = append(authOpts, auth.PublicKey(ctx.String("auth_public_key")))
+	}
+	if len(ctx.String("auth_private_key")) > 0 {
+		authOpts = append(authOpts, auth.PrivateKey(ctx.String("auth_private_key")))
+	}
+	if len(ctx.String("service_namespace")) > 0 {
+		authOpts = append(authOpts, auth.Namespace(ctx.String("service_namespace")))
+	}
+	if name := ctx.String("auth_provider"); len(name) > 0 {
+		p, ok := DefaultAuthProviders[name]
+		if !ok {
+			return fmt.Errorf("AuthProvider %s not found", name)
+		}
+
+		var provOpts []provider.Option
+		clientID := ctx.String("auth_provider_client_id")
+		clientSecret := ctx.String("auth_provider_client_secret")
+		if len(clientID) > 0 || len(clientSecret) > 0 {
+			provOpts = append(provOpts, provider.Credentials(clientID, clientSecret))
+		}
+		if e := ctx.String("auth_provider_endpoint"); len(e) > 0 {
+			provOpts = append(provOpts, provider.Endpoint(e))
+		}
+		if r := ctx.String("auth_provider_redirect"); len(r) > 0 {
+			provOpts = append(provOpts, provider.Redirect(r))
+		}
+		if s := ctx.String("auth_provider_scope"); len(s) > 0 {
+			provOpts = append(provOpts, provider.Scope(s))
+		}
+
+		authOpts = append(authOpts, auth.Provider(p(provOpts...)))
+	}
+
+	// Set the auth
+	if name := ctx.String("auth"); len(name) > 0 {
+		a, ok := c.opts.Auths[name]
+		if !ok {
+			return fmt.Errorf("Unsupported auth: %s", name)
+		}
+		*c.opts.Auth = a(authOpts...)
+		serverOpts = append(serverOpts, server.Auth(*c.opts.Auth))
+	} else {
+		(*c.opts.Auth).Init(authOpts...)
+	}
+
+	// generate the services auth account
+	serverID := (*c.opts.Server).Options().Id
+	if err := authutil.Generate(serverID, c.App().Name, (*c.opts.Auth)); err != nil {
+		return err
+	}
+
+	// Set the profile
+	if name := ctx.String("profile"); len(name) > 0 {
+		p, ok := c.opts.Profiles[name]
+		if !ok {
+			return fmt.Errorf("Unsupported profile: %s", name)
+		}
+
+		*c.opts.Profile = p()
 	}
 
 	// Set the broker
@@ -690,50 +740,6 @@ func (c *cmd) Before(ctx *cli.Context) error {
 			logger.Fatalf("Error configuring runtime: %v", err)
 		}
 	}
-
-	if len(ctx.String("auth_id")) > 0 || len(ctx.String("auth_secret")) > 0 {
-		authOpts = append(authOpts, auth.Credentials(
-			ctx.String("auth_id"), ctx.String("auth_secret"),
-		))
-	}
-
-	if len(ctx.String("auth_namespace")) > 0 {
-		authOpts = append(authOpts, auth.Namespace(ctx.String("auth_namespace")))
-	}
-
-	if len(ctx.String("auth_public_key")) > 0 {
-		authOpts = append(authOpts, auth.PublicKey(ctx.String("auth_public_key")))
-	}
-	if len(ctx.String("auth_private_key")) > 0 {
-		authOpts = append(authOpts, auth.PrivateKey(ctx.String("auth_private_key")))
-	}
-
-	if name := ctx.String("auth_provider"); len(name) > 0 {
-		p, ok := DefaultAuthProviders[name]
-		if !ok {
-			return fmt.Errorf("AuthProvider %s not found", name)
-		}
-
-		var provOpts []provider.Option
-
-		clientID := ctx.String("auth_provider_client_id")
-		clientSecret := ctx.String("auth_provider_client_secret")
-		if len(clientID) > 0 || len(clientSecret) > 0 {
-			provOpts = append(provOpts, provider.Credentials(clientID, clientSecret))
-		}
-		if e := ctx.String("auth_provider_endpoint"); len(e) > 0 {
-			provOpts = append(provOpts, provider.Endpoint(e))
-		}
-		if r := ctx.String("auth_provider_redirect"); len(r) > 0 {
-			provOpts = append(provOpts, provider.Redirect(r))
-		}
-		if s := ctx.String("auth_provider_scope"); len(s) > 0 {
-			provOpts = append(provOpts, provider.Scope(s))
-		}
-
-		authOpts = append(authOpts, auth.Provider(p(provOpts...)))
-	}
-	(*c.opts.Auth).Init(authOpts...)
 
 	if ctx.String("config") == "service" {
 		opt := config.WithSource(configSrv.NewSource(configSrc.WithClient(microClient)))
