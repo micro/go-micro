@@ -15,23 +15,25 @@ func (s *serviceWatcher) Chan() chan *registry.Result {
 	c := make(chan *registry.Result)
 
 	go func() {
-		select {
-		case <-s.closed:
-			close(c)
-			return
-		default:
-		}
+		for {
+			select {
+			case <-s.closed:
+				close(c)
+				return
+			default:
+			}
 
-		r, err := s.stream.Recv()
-		if err != nil {
-			logger.Debugf("Error returned from stream: %v", err)
-			close(c)
-			return
-		}
+			r, err := s.stream.Recv()
+			if err != nil {
+				logger.Debugf("Error returned from stream: %v", err)
+				close(c)
+				return
+			}
 
-		c <- &registry.Result{
-			Action:  r.Action,
-			Service: ToService(r.Service),
+			c <- &registry.Result{
+				Action:  r.Action,
+				Service: ToService(r.Service),
+			}
 		}
 	}()
 
