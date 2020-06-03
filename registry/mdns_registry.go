@@ -652,6 +652,7 @@ func (m *mdnsWatcher) Chan() chan *Result {
 				}
 			case <-m.exit:
 				close(c)
+				return
 			}
 		}
 	}()

@@ -18,6 +18,7 @@ func (s *serviceWatcher) Chan() chan *registry.Result {
 		select {
 		case <-s.closed:
 			close(c)
+			return
 		default:
 		}
 
