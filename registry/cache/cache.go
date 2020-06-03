@@ -160,9 +160,7 @@ func (c *cache) get(domain, service string) ([]*registry.Service, error) {
 		}
 
 		// cache results
-		c.Lock()
 		c.set(domain, service, util.Copy(services))
-		c.Unlock()
 
 		return services, nil
 	}
