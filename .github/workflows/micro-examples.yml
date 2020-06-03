@@ -20,6 +20,11 @@ jobs:
         go-version: 1.13
       id: go
 
+    - name: Check out this code
+      uses: actions/checkout@v2
+      with:
+        path: 'go-micro'
+
     - name: Check out code examples
       uses: actions/checkout@v2
       with:
@@ -27,5 +32,6 @@ jobs:
         path: 'examples'
 
     - name: Build all
-      run: .github/workflows/scripts/build-all-examples.sh $GITHUB_SHA
+      run: $GITHUB_WORKSPACE/go-micro/.github/workflows/scripts/build-all-examples.sh $GITHUB_SHA
+      working-directory: examples
     
