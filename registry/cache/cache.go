@@ -102,9 +102,12 @@ func (c *cache) quit() bool {
 
 func (c *cache) del(domain, service string) {
 	// don't blow away cache in error state
-	if err := c.status; err != nil {
+	if err := c.getStatus(); err != nil {
 		return
 	}
+
+	c.Lock()
+	defer c.Unlock()
 
 	if _, ok := c.services[domain]; ok {
 		delete(c.services[domain], service)
@@ -139,14 +142,14 @@ func (c *cache) get(domain, service string) ([]*registry.Service, error) {
 		// ask the registry
 		services, err := c.Registry.GetService(service, registry.GetDomain(domain))
 		if err != nil {
+			// set the error status
+			c.setStatus(err)
+
 			// check the cache
 			if len(cached) > 0 {
-				// set the error status
-				c.setStatus(err)
-
-				// return the stale cache
 				return cached, nil
 			}
+
 			// otherwise return error
 			return nil, err
 		}
@@ -186,12 +189,13 @@ func (c *cache) get(domain, service string) ([]*registry.Service, error) {
 		// set to watched
 		c.watched[domain][service] = true
 
+		running := c.running[domain]
+		c.Unlock()
+
 		// only kick it off if not running
-		if !c.running[domain] {
+		if !running {
 			go c.run(domain)
 		}
-
-		c.Unlock()
 	}
 
 	// get and return services
@@ -199,6 +203,9 @@ func (c *cache) get(domain, service string) ([]*registry.Service, error) {
 }
 
 func (c *cache) set(domain string, service string, srvs []*registry.Service) {
+	c.Lock()
+	defer c.Unlock()
+
 	if _, ok := c.services[domain]; !ok {
 		c.services[domain] = make(services)
 	}
@@ -215,20 +222,22 @@ func (c *cache) update(domain string, res *registry.Result) {
 		return
 	}
 
-	c.Lock()
-	defer c.Unlock()
-
-	// only save watched services
+	// only save watched services since the service using the cache may only depend on a handful
+	// of other services
+	c.RLock()
 	if _, ok := c.watched[res.Service.Name]; !ok {
+		c.RUnlock()
 		return
 	}
 
+	// we're not going to cache anything unless there was already a lookup
 	services, ok := c.services[domain][res.Service.Name]
 	if !ok {
-		// we're not going to cache anything
-		// unless there was already a lookup
+		c.RUnlock()
 		return
 	}
+
+	c.RUnlock()
 
 	if len(res.Service.Nodes) == 0 {
 		switch res.Action {
