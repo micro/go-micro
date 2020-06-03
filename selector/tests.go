@@ -29,7 +29,7 @@ func Tests(t *testing.T, s Selector) {
 		t.Run("MultipleRoutes", func(t *testing.T) {
 			srv, err := s.Select(*r1, *r2)
 			assert.Nil(t, err, "Error should be nil")
-			if srv != r1 && srv != r2 {
+			if srv.Address != r1.Address && srv.Address != r2.Address {
 				t.Errorf("Expected the route to be one of the inputs")
 			}
 		})
