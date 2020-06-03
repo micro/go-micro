@@ -8,6 +8,7 @@ function build_binary {
     local ret=$?
     if [ $ret -gt 0 ]; then 
         failed=1
+        failed_arr+=($1)
     fi
     popd
 }
@@ -29,10 +30,14 @@ function check_dir {
         fi
     done
 }
-
+failed_arr=()
 failed=0
 this_hash=$1
 go mod init github.com/micro/examples
 go mod edit -require=github.com/micro/go-micro/v2@$1 
 check_dir . $1
+if [ $failed -gt 0 ]; then
+    echo Some builds failed
+    printf '%s\n' "${failed_arr[@]}"
+fi
 exit $failed
