@@ -79,7 +79,7 @@ func (a *testAuth) Inspect(token string) (*auth.Account, error) {
 }
 
 func (a *testAuth) Options() auth.Options {
-	return auth.Options{Namespace: a.namespace}
+	return auth.Options{Issuer: a.namespace}
 }
 
 type testRequest struct {
