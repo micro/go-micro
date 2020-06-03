@@ -47,7 +47,7 @@ func newRouter(opts ...Option) Router {
 
 	return &router{
 		options:     options,
-		table:       newTable(),
+		table:       newTable(options),
 		subscribers: make(map[string]chan *Advert),
 	}
 }
@@ -59,6 +59,7 @@ func (r *router) Init(opts ...Option) error {
 
 	for _, o := range opts {
 		o(&r.options)
+		o(&r.table.options)
 	}
 
 	return nil

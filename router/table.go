@@ -19,6 +19,8 @@ var (
 // table is an in-memory routing table
 type table struct {
 	sync.RWMutex
+	// options passed from the router
+	options Options
 	// routes stores service routes
 	routes map[string]map[uint64]Route
 	// watchers stores table watchers
@@ -26,8 +28,9 @@ type table struct {
 }
 
 // newtable creates a new routing table and returns it
-func newTable(opts ...Option) *table {
+func newTable(opts Options) *table {
 	return &table{
+		options:  opts,
 		routes:   make(map[string]map[uint64]Route),
 		watchers: make(map[string]*tableWatcher),
 	}
@@ -239,6 +242,11 @@ func (t *table) Query(q ...QueryOption) ([]Route, error) {
 
 	// create new query options
 	opts := NewQuery(q...)
+
+	// set the network unless otherwise specified
+	if opts.Network == "*" && len(t.options.Network) > 0 {
+		opts.Network = t.options.Network
+	}
 
 	// create a cwslicelist of query results
 	results := make([]Route, 0, len(t.routes))

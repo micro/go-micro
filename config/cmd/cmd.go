@@ -277,6 +277,11 @@ var (
 			Usage:   "Auth for role based access control, e.g. service",
 		},
 		&cli.StringFlag{
+			Name:    "auth_address",
+			EnvVars: []string{"MICRO_AUTH_ADDRESS"},
+			Usage:   "Comma-separated list of auth addresses",
+		},
+		&cli.StringFlag{
 			Name:    "auth_id",
 			EnvVars: []string{"MICRO_AUTH_ID"},
 			Usage:   "Account ID used for client authentication",
@@ -549,9 +554,10 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	authOpts := []auth.Option{auth.WithClient(microClient)}
 
 	if len(ctx.String("auth_id")) > 0 || len(ctx.String("auth_secret")) > 0 {
-		authOpts = append(authOpts, auth.Credentials(
-			ctx.String("auth_id"), ctx.String("auth_secret"),
-		))
+		authOpts = append(authOpts, auth.Credentials(ctx.String("auth_id"), ctx.String("auth_secret")))
+	}
+	if len(ctx.String("auth_address")) > 0 {
+		authOpts = append(authOpts, auth.Addrs(strings.Split(ctx.String("auth_address"), ",")...))
 	}
 	if len(ctx.String("auth_public_key")) > 0 {
 		authOpts = append(authOpts, auth.PublicKey(ctx.String("auth_public_key")))
@@ -605,6 +611,55 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		return err
 	}
 
+	// Setup the registry, this must be done before the router because the router will lookup routes
+	// from the registry on start
+	regOpts := []registry.Option{
+		registrySrv.WithClient(microClient),
+	}
+	if len(ctx.String("registry_address")) > 0 {
+		regOpts = append(regOpts, registry.Addrs(strings.Split(ctx.String("registry_address"), ",")...))
+	}
+	if len(ctx.String("service_namespace")) > 0 {
+		regOpts = append(regOpts, registry.Domain(ctx.String("service_namespace")))
+	}
+	if name := ctx.String("registry"); len(name) > 0 && (*c.opts.Registry).String() != name {
+		r, ok := c.opts.Registries[name]
+		if !ok {
+			return fmt.Errorf("Registry %s not found", name)
+		}
+
+		*c.opts.Registry = r(regOpts...)
+		serverOpts = append(serverOpts, server.Registry(*c.opts.Registry))
+		clientOpts = append(clientOpts, client.Registry(*c.opts.Registry))
+	} else {
+		if err := (*c.opts.Registry).Init(regOpts...); err != nil {
+			logger.Fatalf("Error configuring registry: %v", err)
+		}
+	}
+
+	// Set the router, this must happen before the rest of the server as it'll route server requests
+	// such as go.micro.config if no address is specified
+	routerOpts := []router.Option{
+		router.Network(ctx.String("service_namespace")),
+		router.Registry(*c.opts.Registry),
+	}
+	if name := ctx.String("router"); len(name) > 0 && (*c.opts.Router).String() != name {
+		r, ok := c.opts.Routers[name]
+		if !ok {
+			return fmt.Errorf("Router %s not found", name)
+		}
+
+		*c.opts.Router = r(routerOpts...)
+		clientOpts = append(clientOpts, client.Router(*c.opts.Router))
+	} else {
+		if err := (*c.opts.Router).Init(routerOpts...); err != nil {
+			logger.Fatalf("Error configuring router: %v", err)
+		}
+	}
+	if err := (*c.opts.Router).Start(); err != nil {
+		return err
+	}
+
 	// Set the profile
 	if name := ctx.String("profile"); len(name) > 0 {
 		p, ok := c.opts.Profiles[name]
@@ -616,33 +671,23 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	}
 
 	// Set the broker
+	brokerOpts := []broker.Option{
+		broker.Registry(*c.opts.Registry),
+	}
+	if len(ctx.String("broker_address")) > 0 {
+		brokerOpts = append(brokerOpts, broker.Addrs(strings.Split(ctx.String("broker_address"), ",")...))
+	}
 	if name := ctx.String("broker"); len(name) > 0 && (*c.opts.Broker).String() != name {
 		b, ok := c.opts.Brokers[name]
 		if !ok {
 			return fmt.Errorf("Broker %s not found", name)
 		}
 
-		*c.opts.Broker = b()
+		*c.opts.Broker = b(brokerOpts...)
 		serverOpts = append(serverOpts, server.Broker(*c.opts.Broker))
 		clientOpts = append(clientOpts, client.Broker(*c.opts.Broker))
-	}
-
-	// Set the registry
-	if name := ctx.String("registry"); len(name) > 0 && (*c.opts.Registry).String() != name {
-		r, ok := c.opts.Registries[name]
-		if !ok {
-			return fmt.Errorf("Registry %s not found", name)
-		}
-
-		*c.opts.Registry = r(registrySrv.WithClient(microClient))
-		serverOpts = append(serverOpts, server.Registry(*c.opts.Registry))
-		clientOpts = append(clientOpts, client.Registry(*c.opts.Registry))
-
-		if err := (*c.opts.Router).Init(router.Registry(*c.opts.Registry)); err != nil {
-			logger.Fatalf("Error configuring registry: %v", err)
-		}
-
-		if err := (*c.opts.Broker).Init(broker.Registry(*c.opts.Registry)); err != nil {
+	} else {
+		if err := (*c.opts.Broker).Init(brokerOpts...); err != nil {
 			logger.Fatalf("Error configuring broker: %v", err)
 		}
 	}
@@ -656,17 +701,6 @@ func (c *cmd) Before(ctx *cli.Context) error {
 
 		*c.opts.Selector = s()
 		clientOpts = append(clientOpts, client.Selector(*c.opts.Selector))
-	}
-
-	// Set the router
-	if name := ctx.String("router"); len(name) > 0 && (*c.opts.Router).String() != name {
-		r, ok := c.opts.Routers[name]
-		if !ok {
-			return fmt.Errorf("Router %s not found", name)
-		}
-
-		*c.opts.Router = r(router.Registry(*c.opts.Registry))
-		clientOpts = append(clientOpts, client.Router(*c.opts.Router))
 	}
 
 	// Set the transport
@@ -695,26 +729,6 @@ func (c *cmd) Before(ctx *cli.Context) error {
 
 	if len(metadata) > 0 {
 		serverOpts = append(serverOpts, server.Metadata(metadata))
-	}
-
-	// Setup the registry
-	var regOpts []registry.Option
-	if len(ctx.String("registry_address")) > 0 {
-		regOpts = append(regOpts, registry.Addrs(strings.Split(ctx.String("registry_address"), ",")...))
-	}
-	if len(ctx.String("service_namespace")) > 0 {
-		regOpts = append(regOpts, registry.Domain(ctx.String("service_namespace")))
-	}
-	if len(regOpts) > 0 {
-		if err := (*c.opts.Registry).Init(); err != nil {
-			logger.Fatalf("Error configuring registry: %v", err)
-		}
-	}
-
-	if len(ctx.String("broker_address")) > 0 {
-		if err := (*c.opts.Broker).Init(broker.Addrs(strings.Split(ctx.String("broker_address"), ",")...)); err != nil {
-			logger.Fatalf("Error configuring broker: %v", err)
-		}
 	}
 
 	if len(ctx.String("transport_address")) > 0 {

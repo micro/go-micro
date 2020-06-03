@@ -17,6 +17,9 @@ func NewOptions(opts ...Option) Options {
 	if options.Client == nil {
 		options.Client = client.DefaultClient
 	}
+	if len(options.Addrs) == 0 {
+		options.Addrs = []string{"127.0.0.1:8010"}
+	}
 
 	return options
 }

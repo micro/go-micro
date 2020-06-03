@@ -139,10 +139,6 @@ func (s *service) Start() error {
 		}
 	}
 
-	if err := s.opts.Client.Options().Router.Start(); err != nil {
-		return err
-	}
-
 	if err := s.opts.Server.Start(); err != nil {
 		return err
 	}
