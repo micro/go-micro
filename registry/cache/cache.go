@@ -111,7 +111,7 @@ func (c *cache) del(domain, service string) {
 	}
 
 	if _, ok := c.ttls[domain]; ok {
-		delete(c.ttls, service)
+		delete(c.ttls[domain], service)
 	}
 }
 
