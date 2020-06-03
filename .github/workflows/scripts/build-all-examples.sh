@@ -4,8 +4,6 @@
 function build_binary {
     echo building $1
     pushd $1
-    go mod init github.com/micro/examples
-    go mod edit -require=github.com/micro/go-micro/v2@$2
     go build
     local ret=$?
     if [ $ret -gt 0 ]; then 
@@ -34,5 +32,7 @@ function check_dir {
 
 failed=0
 this_hash=$1
+go mod init github.com/micro/examples
+go mod edit -require=github.com/micro/go-micro/v2@$1 
 check_dir . $1
 exit $failed
