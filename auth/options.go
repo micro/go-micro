@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"context"
 	"time"
 
 	"github.com/micro/go-micro/v2/auth/provider"
@@ -12,9 +13,6 @@ func NewOptions(opts ...Option) Options {
 	var options Options
 	for _, o := range opts {
 		o(&options)
-	}
-	if len(options.Namespace) == 0 {
-		options.Namespace = DefaultNamespace
 	}
 	if options.Client == nil {
 		options.Client = client.DefaultClient
@@ -124,10 +122,8 @@ func WithClient(c client.Client) Option {
 type GenerateOptions struct {
 	// Metadata associated with the account
 	Metadata map[string]string
-	// Roles/scopes associated with the account
-	Roles []string
-	// Namespace the account belongs too
-	Namespace string
+	// Scopes the account has access too
+	Scopes []string
 	// Provider of the account, e.g. oauth
 	Provider string
 	// Type of the account, e.g. user
@@ -159,24 +155,17 @@ func WithMetadata(md map[string]string) GenerateOption {
 	}
 }
 
-// WithRoles for the generated account
-func WithRoles(rs ...string) GenerateOption {
-	return func(o *GenerateOptions) {
-		o.Roles = rs
-	}
-}
-
-// WithNamespace for the generated account
-func WithNamespace(n string) GenerateOption {
-	return func(o *GenerateOptions) {
-		o.Namespace = n
-	}
-}
-
 // WithProvider for the generated account
 func WithProvider(p string) GenerateOption {
 	return func(o *GenerateOptions) {
 		o.Provider = p
+	}
+}
+
+// WithScopes for the generated account
+func WithScopes(s ...string) GenerateOption {
+	return func(o *GenerateOptions) {
+		o.Scopes = s
 	}
 }
 
@@ -235,4 +224,28 @@ func NewTokenOptions(opts ...TokenOption) TokenOptions {
 	}
 
 	return options
+}
+
+type VerifyOptions struct {
+	Context context.Context
+}
+
+type VerifyOption func(o *VerifyOptions)
+
+func VerifyContext(ctx context.Context) VerifyOption {
+	return func(o *VerifyOptions) {
+		o.Context = ctx
+	}
+}
+
+type RulesOptions struct {
+	Context context.Context
+}
+
+type RulesOption func(o *RulesOptions)
+
+func RulesContext(ctx context.Context) RulesOption {
+	return func(o *RulesOptions) {
+		o.Context = ctx
+	}
 }

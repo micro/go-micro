@@ -1,10 +1,11 @@
 syntax = "proto3";
 
 service Debug {
-        rpc Log(LogRequest) returns (stream Record) {};
-        rpc Health(HealthRequest) returns (HealthResponse) {};
-        rpc Stats(StatsRequest) returns (StatsResponse) {};
+	rpc Log(LogRequest) returns (stream Record) {};
+	rpc Health(HealthRequest) returns (HealthResponse) {};
+	rpc Stats(StatsRequest) returns (StatsResponse) {};
 	rpc Trace(TraceRequest) returns (TraceResponse) {};
+	rpc Cache(CacheRequest) returns (CacheResponse) {};
 }
 
 message HealthRequest {
@@ -96,4 +97,10 @@ message Span {
 	// associated metadata
 	map<string,string> metadata = 7;
 	SpanType type = 8;
+}
+
+message CacheRequest {}
+
+message CacheResponse {
+	map<string, string> values = 1;
 }
