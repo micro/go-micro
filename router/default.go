@@ -47,6 +47,7 @@ func newRouter(opts ...Option) Router {
 
 	return &router{
 		options:     options,
+		exit:        make(chan bool),
 		table:       newTable(options),
 		subscribers: make(map[string]chan *Advert),
 	}
