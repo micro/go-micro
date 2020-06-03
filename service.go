@@ -17,7 +17,6 @@ import (
 	"github.com/micro/go-micro/v2/plugin"
 	"github.com/micro/go-micro/v2/server"
 	"github.com/micro/go-micro/v2/store"
-	authutil "github.com/micro/go-micro/v2/util/auth"
 	signalutil "github.com/micro/go-micro/v2/util/signal"
 	"github.com/micro/go-micro/v2/util/wrapper"
 )
@@ -184,11 +183,6 @@ func (s *service) Stop() error {
 }
 
 func (s *service) Run() error {
-	// generate an auth account
-	if err := authutil.Generate(s.Server().Options().Id, s.Name(), s.Options().Auth); err != nil {
-		return err
-	}
-
 	// register the debug handler
 	s.opts.Server.Handle(
 		s.opts.Server.NewHandler(
