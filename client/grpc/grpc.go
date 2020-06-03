@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net"
+	"reflect"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -197,7 +198,7 @@ func (g *grpcClient) call(ctx context.Context, route *router.Route, req client.R
 	return grr
 }
 
-func (g *grpcClient) stream(ctx context.Context, route *router.Route, req client.Request, opts client.CallOptions) (client.Stream, error) {
+func (g *grpcClient) stream(ctx context.Context, route *router.Route, req client.Request, rsp interface{}, opts client.CallOptions) error {
 	var header map[string]string
 
 	if md, ok := metadata.FromContext(ctx); ok {
@@ -221,7 +222,7 @@ func (g *grpcClient) stream(ctx context.Context, route *router.Route, req client
 
 	cf, err := g.newGRPCCodec(req.ContentType())
 	if err != nil {
-		return nil, errors.InternalServerError("go.micro.client", err.Error())
+		return errors.InternalServerError("go.micro.client", err.Error())
 	}
 
 	var dialCtx context.Context
@@ -246,7 +247,7 @@ func (g *grpcClient) stream(ctx context.Context, route *router.Route, req client
 
 	cc, err := grpc.DialContext(dialCtx, route.Address, grpcDialOptions...)
 	if err != nil {
-		return nil, errors.InternalServerError("go.micro.client", fmt.Sprintf("Error sending request: %v", err))
+		return errors.InternalServerError("go.micro.client", fmt.Sprintf("Error sending request: %v", err))
 	}
 
 	desc := &grpc.StreamDesc{
@@ -274,7 +275,7 @@ func (g *grpcClient) stream(ctx context.Context, route *router.Route, req client
 		// close the connection
 		cc.Close()
 		// now return the error
-		return nil, errors.InternalServerError("go.micro.client", fmt.Sprintf("Error creating stream: %v", err))
+		return errors.InternalServerError("go.micro.client", fmt.Sprintf("Error creating stream: %v", err))
 	}
 
 	codec := &grpcCodec{
@@ -287,21 +288,25 @@ func (g *grpcClient) stream(ctx context.Context, route *router.Route, req client
 		r.codec = codec
 	}
 
-	rsp := &response{
-		conn:   cc,
+	// setup the stream response
+	stream := &grpcStream{
+		context: ctx,
+		request: req,
+		response: &response{
+			conn:   cc,
+			stream: st,
+			codec:  cf,
+			gcodec: codec,
+		},
 		stream: st,
-		codec:  cf,
-		gcodec: codec,
+		conn:   cc,
+		cancel: cancel,
 	}
 
-	return &grpcStream{
-		context:  ctx,
-		request:  req,
-		response: rsp,
-		stream:   st,
-		conn:     cc,
-		cancel:   cancel,
-	}, nil
+	// set the stream as the response
+	val := reflect.ValueOf(rsp).Elem()
+	val.Set(reflect.ValueOf(stream).Elem())
+	return nil
 }
 
 func (g *grpcClient) poolMaxStreams() int {
@@ -519,6 +524,14 @@ func (g *grpcClient) Stream(ctx context.Context, req client.Request, opts ...cli
 	default:
 	}
 
+	// make a copy of stream
+	gstream := g.stream
+
+	// wrap the call in reverse
+	for i := len(callOpts.CallWrappers); i > 0; i-- {
+		gstream = callOpts.CallWrappers[i-1](gstream)
+	}
+
 	call := func(i int) (client.Stream, error) {
 		// call backoff first. Someone may want an initial start delay
 		t, err := callOpts.Backoff(ctx, req, i)
@@ -538,7 +551,8 @@ func (g *grpcClient) Stream(ctx context.Context, req client.Request, opts ...cli
 		}
 
 		// make the call
-		stream, err := g.stream(ctx, route, req, callOpts)
+		stream := &grpcStream{}
+		err = g.stream(ctx, route, req, stream, callOpts)
 
 		// record the result of the call to inform future routing decisions
 		g.opts.Selector.Record(route, err)
@@ -548,6 +562,7 @@ func (g *grpcClient) Stream(ctx context.Context, req client.Request, opts ...cli
 			return nil, verr
 		}
 
+		g.opts.Selector.Record(route, err)
 		return stream, err
 	}
 

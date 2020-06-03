@@ -34,7 +34,7 @@ func (c *certmagicProvider) setup() {
 	// randomness so they don't collide
 	// RenewalWindowRatio [0.33 - 0.50)
 	rand.Seed(time.Now().UnixNano())
-	randomRatio := float64(rand.Intn(17) + 33) * 0.01
+	randomRatio := float64(rand.Intn(17)+33) * 0.01
 	certmagic.Default.RenewalWindowRatio = randomRatio
 }
 

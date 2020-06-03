@@ -135,7 +135,7 @@ type authWrapper struct {
 	auth func() auth.Auth
 }
 
-func (a *authWrapper) Call(ctx context.Context, req client.Request, rsp interface{}, opts ...client.CallOption) error {
+func (a *authWrapper) prepareContext(ctx context.Context, opts ...client.CallOption) context.Context {
 	// parse the options
 	var options client.CallOptions
 	for _, o := range opts {
@@ -146,14 +146,14 @@ func (a *authWrapper) Call(ctx context.Context, req client.Request, rsp interfac
 	// We dont't override the header unless the ServiceToken option has
 	// been specified or the header wasn't provided
 	if _, ok := metadata.Get(ctx, "Authorization"); ok && !options.ServiceToken {
-		return a.Client.Call(ctx, req, rsp, opts...)
+		return ctx
 	}
 
 	// if auth is nil we won't be able to get an access token, so we execute
 	// the request without one.
 	aa := a.auth()
 	if aa == nil {
-		return a.Client.Call(ctx, req, rsp, opts...)
+		return ctx
 	}
 
 	// set the namespace header if it has not been set (e.g. on a service to service request)
@@ -165,10 +165,18 @@ func (a *authWrapper) Call(ctx context.Context, req client.Request, rsp interfac
 	aaOpts := aa.Options()
 	if aaOpts.Token != nil && !aaOpts.Token.Expired() {
 		ctx = metadata.Set(ctx, "Authorization", auth.BearerScheme+aaOpts.Token.AccessToken)
-		return a.Client.Call(ctx, req, rsp, opts...)
 	}
 
-	// call without an auth token
+	return ctx
+}
+
+func (a *authWrapper) Stream(ctx context.Context, req client.Request, opts ...client.CallOption) (client.Stream, error) {
+	ctx = a.prepareContext(ctx, opts...)
+	return a.Client.Stream(ctx, req, opts...)
+}
+
+func (a *authWrapper) Call(ctx context.Context, req client.Request, rsp interface{}, opts ...client.CallOption) error {
+	ctx = a.prepareContext(ctx, opts...)
 	return a.Client.Call(ctx, req, rsp, opts...)
 }
 
@@ -227,7 +235,7 @@ func AuthHandler(fn func() auth.Auth) server.HandlerWrapper {
 			if err != nil && account != nil {
 				return errors.Forbidden(req.Service(), "Forbidden call made to %v:%v by %v", req.Service(), req.Endpoint(), account.ID)
 			} else if err != nil {
-				return errors.Unauthorized(req.Service(), "Unauthorised call made to %v:%v", req.Service(), req.Endpoint())
+				return errors.Unauthorized(req.Service(), "Unauthorized call made to %v:%v", req.Service(), req.Endpoint())
 			}
 
 			// There is an account, set it in the context
