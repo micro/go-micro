@@ -10,5 +10,5 @@ if [ $failed -gt 0 ]; then
     exit $failed
 fi
 # unit tests
-go test -v ./...
+IN_TRAVIS_CI=yes go test -v ./...
 # TODO integration tests
