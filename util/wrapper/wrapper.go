@@ -299,8 +299,11 @@ type staticClient struct {
 }
 
 func (s *staticClient) Call(ctx context.Context, req client.Request, rsp interface{}, opts ...client.CallOption) error {
-	opts = append(opts, client.WithAddress(s.address))
-	return s.Client.Call(ctx, req, rsp, opts...)
+	return s.Client.Call(ctx, req, rsp, append(opts, client.WithAddress(s.address)))
+}
+
+func (s *staticClient) Stream(ctx context.Context, req client.Request, opts ...client.CallOption) (client.Stream, error) {
+	return s.Client.Stream(ctx, req, append(opts, client.WithAddress(s.address)))
 }
 
 // StaticClient sets an address on every call
