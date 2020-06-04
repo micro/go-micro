@@ -28,7 +28,9 @@ func Generate(id string, name string, a auth.Auth) error {
 		if err != nil {
 			return err
 		}
-		logger.Infof("Auth [%v] Authenticated as %v issued by %v", a, name, acc.Issuer)
+		if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+			logger.Debugf("Auth [%v] Authenticated as %v issued by %v", a, name, acc.Issuer)
+		}
 
 		accID = acc.ID
 		accSecret = acc.Secret
