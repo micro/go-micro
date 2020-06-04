@@ -21,7 +21,7 @@ func WithHandler(h string) Option {
 	}
 }
 
-// WithNamespace sets the function which determines the namespace for a request
+// WithNamespace sets the namespace for a request, e.g. go.micro.api
 func WithNamespace(n string) Option {
 	return func(o *Options) {
 		o.Namespace = n

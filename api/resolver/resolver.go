@@ -27,6 +27,8 @@ type Endpoint struct {
 	Method string
 	// HTTP Path e.g /greeter.
 	Path string
+	// Network the request should be routed to
+	Network string
 }
 
 type Options struct {
