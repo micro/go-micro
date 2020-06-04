@@ -60,10 +60,9 @@ func (r *Resolver) String() string {
 }
 
 func (r *Resolver) withNamespace(req *http.Request, parts ...string) string {
-	ns := r.opts.Namespace(req)
-	if len(ns) == 0 {
+	if len(r.opts.Namespace) == 0 {
 		return strings.Join(parts, ".")
 	}
 
-	return strings.Join(append([]string{ns}, parts...), ".")
+	return strings.Join(append([]string{r.opts.Namespace}, parts...), ".")
 }

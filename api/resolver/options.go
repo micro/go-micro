@@ -1,9 +1,5 @@
 package resolver
 
-import (
-	"net/http"
-)
-
 // NewOptions returns new initialised options
 func NewOptions(opts ...Option) Options {
 	var options Options
@@ -11,8 +7,8 @@ func NewOptions(opts ...Option) Options {
 		o(&options)
 	}
 
-	if options.Namespace == nil {
-		options.Namespace = StaticNamespace("go.micro")
+	if len(options.Namespace) == 0 {
+		options.Namespace = "go.micro"
 	}
 
 	return options
@@ -26,7 +22,7 @@ func WithHandler(h string) Option {
 }
 
 // WithNamespace sets the function which determines the namespace for a request
-func WithNamespace(n func(*http.Request) string) Option {
+func WithNamespace(n string) Option {
 	return func(o *Options) {
 		o.Namespace = n
 	}
