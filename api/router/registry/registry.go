@@ -424,7 +424,7 @@ func (r *registryRouter) Route(req *http.Request) (*api.Service, error) {
 	// ignore that shit
 	// TODO: don't ignore that shit
 
-	// get the service name
+	// get the service name and network to route the request to
 	rp, err := r.opts.Resolver.Resolve(req)
 	if err != nil {
 		return nil, err

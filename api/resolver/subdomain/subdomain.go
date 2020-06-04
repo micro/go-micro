@@ -11,8 +11,11 @@ import (
 	"golang.org/x/net/publicsuffix"
 )
 
-func NewResolver(opts ...resolver.Option) resolver.Resolver {
-	return &Resolver{path.NewResolver(opts...)}
+func NewResolver(parent resolver.Resolver, opts ...resolver.Option) resolver.Resolver {
+	if parent == nil {
+		parent = path.NewResolver(opts...)
+	}
+	return &Resolver{parent}
 }
 
 type Resolver struct {
