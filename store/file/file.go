@@ -54,6 +54,7 @@ type fileHandle struct {
 type record struct {
 	Key       string
 	Value     []byte
+	Metadata  map[string]interface{}
 	ExpiresAt time.Time
 }
 
@@ -221,6 +222,11 @@ func (m *fileStore) get(fd *fileHandle, k string) (*store.Record, error) {
 	newRecord := &store.Record{}
 	newRecord.Key = storedRecord.Key
 	newRecord.Value = storedRecord.Value
+	newRecord.Metadata = make(map[string]interface{})
+
+	for k, v := range storedRecord.Metadata {
+		newRecord.Metadata[k] = v
+	}
 
 	if !storedRecord.ExpiresAt.IsZero() {
 		if storedRecord.ExpiresAt.Before(time.Now()) {
@@ -238,8 +244,14 @@ func (m *fileStore) set(fd *fileHandle, r *store.Record) error {
 	item := &record{}
 	item.Key = r.Key
 	item.Value = r.Value
+	item.Metadata = make(map[string]interface{})
+
 	if r.Expiry != 0 {
 		item.ExpiresAt = time.Now().Add(r.Expiry)
+	}
+
+	for k, v := range r.Metadata {
+		item.Metadata[k] = v
 	}
 
 	// marshal the data
@@ -348,6 +360,7 @@ func (m *fileStore) Write(r *store.Record, opts ...store.WriteOption) error {
 		newRecord := store.Record{}
 		newRecord.Key = r.Key
 		newRecord.Value = r.Value
+		newRecord.Metadata = make(map[string]interface{})
 		newRecord.Expiry = r.Expiry
 
 		if !writeOpts.Expiry.IsZero() {
@@ -355,6 +368,10 @@ func (m *fileStore) Write(r *store.Record, opts ...store.WriteOption) error {
 		}
 		if writeOpts.TTL != 0 {
 			newRecord.Expiry = writeOpts.TTL
+		}
+
+		for k, v := range r.Metadata {
+			newRecord.Metadata[k] = v
 		}
 
 		return m.set(fd, &newRecord)

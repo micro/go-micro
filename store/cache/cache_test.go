@@ -28,16 +28,19 @@ func TestCache(t *testing.T) {
 	_, err := cachedStore.Read("test")
 	assert.Equal(store.ErrNotFound, err, "Read non existant key")
 	r1 := &store.Record{
-		Key:   "aaa",
-		Value: []byte("bbb"),
+		Key:      "aaa",
+		Value:    []byte("bbb"),
+		Metadata: map[string]interface{}{},
 	}
 	r2 := &store.Record{
-		Key:   "aaaa",
-		Value: []byte("bbbb"),
+		Key:      "aaaa",
+		Value:    []byte("bbbb"),
+		Metadata: map[string]interface{}{},
 	}
 	r3 := &store.Record{
-		Key:   "aaaaa",
-		Value: []byte("bbbbb"),
+		Key:      "aaaaa",
+		Value:    []byte("bbbbb"),
+		Metadata: map[string]interface{}{},
 	}
 	// Write 3 records directly to l2
 	l2.Write(r1)

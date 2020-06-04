@@ -27,11 +27,11 @@ var (
 	re = regexp.MustCompile("[^a-zA-Z0-9]+")
 
 	statements = map[string]string{
-		"list":       "SELECT key, value, expiry FROM %s.%s;",
-		"read":       "SELECT key, value, expiry FROM %s.%s WHERE key = $1;",
-		"readMany":   "SELECT key, value, expiry FROM %s.%s WHERE key LIKE $1;",
-		"readOffset": "SELECT key, value, expiry FROM %s.%s WHERE key LIKE $1 ORDER BY key DESC LIMIT $2 OFFSET $3;",
-		"write":      "INSERT INTO %s.%s(key, value, expiry) VALUES ($1, $2::bytea, $3) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, expiry = EXCLUDED.expiry;",
+		"list":       "SELECT key, value, metadata, expiry FROM %s.%s;",
+		"read":       "SELECT key, value, metadata, expiry FROM %s.%s WHERE key = $1;",
+		"readMany":   "SELECT key, value, metadata, expiry FROM %s.%s WHERE key LIKE $1;",
+		"readOffset": "SELECT key, value, metadata, expiry FROM %s.%s WHERE key LIKE $1 ORDER BY key DESC LIMIT $2 OFFSET $3;",
+		"write":      "INSERT INTO %s.%s(key, value, metadata, expiry) VALUES ($1, $2::bytea, $3, $4) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, metadata = EXCLUDED.metadata, expiry = EXCLUDED.expiry;",
 		"delete":     "DELETE FROM %s.%s WHERE key = $1;",
 	}
 )
@@ -108,6 +108,7 @@ func (s *sqlStore) initDB(database, table string) error {
 	(
 		key text NOT NULL,
 		value bytea,
+		metadata JSONB,
 		expiry timestamp with time zone,
 		CONSTRAINT %s_pkey PRIMARY KEY (key)
 	);`, table, table))
@@ -117,6 +118,12 @@ func (s *sqlStore) initDB(database, table string) error {
 
 	// Create Index
 	_, err = s.db.Exec(fmt.Sprintf(`CREATE INDEX IF NOT EXISTS "%s" ON %s.%s USING btree ("key");`, "key_index_"+table, database, table))
+	if err != nil {
+		return err
+	}
+
+	// Create Metadata Index
+	_, err = s.db.Exec(fmt.Sprintf(`CREATE INDEX IF NOT EXISTS "%s" ON %s.%s USING GIN ("metadata");`, "metadata_index_"+table, database, table))
 	if err != nil {
 		return err
 	}
@@ -227,9 +234,15 @@ func (s *sqlStore) List(opts ...store.ListOption) ([]string, error) {
 
 	for rows.Next() {
 		record := &store.Record{}
-		if err := rows.Scan(&record.Key, &record.Value, &timehelper); err != nil {
+		metadata := make(Metadata)
+
+		if err := rows.Scan(&record.Key, &record.Value, &metadata, &timehelper); err != nil {
 			return keys, err
 		}
+
+		// set the metadata
+		record.Metadata = toMetadata(&metadata)
+
 		if timehelper.Valid {
 			if timehelper.Time.Before(time.Now()) {
 				// record has expired
@@ -281,12 +294,18 @@ func (s *sqlStore) Read(key string, opts ...store.ReadOption) ([]*store.Record, 
 
 	row := st.QueryRow(key)
 	record := &store.Record{}
-	if err := row.Scan(&record.Key, &record.Value, &timehelper); err != nil {
+	metadata := make(Metadata)
+
+	if err := row.Scan(&record.Key, &record.Value, &metadata, &timehelper); err != nil {
 		if err == sql.ErrNoRows {
 			return records, store.ErrNotFound
 		}
 		return records, err
 	}
+
+	// set the metadata
+	record.Metadata = toMetadata(&metadata)
+
 	if timehelper.Valid {
 		if timehelper.Time.Before(time.Now()) {
 			// record has expired
@@ -346,9 +365,15 @@ func (s *sqlStore) read(key string, options store.ReadOptions) ([]*store.Record,
 
 	for rows.Next() {
 		record := &store.Record{}
-		if err := rows.Scan(&record.Key, &record.Value, &timehelper); err != nil {
+		metadata := make(Metadata)
+
+		if err := rows.Scan(&record.Key, &record.Value, &metadata, &timehelper); err != nil {
 			return records, err
 		}
+
+		// set the metadata
+		record.Metadata = toMetadata(&metadata)
+
 		if timehelper.Valid {
 			if timehelper.Time.Before(time.Now()) {
 				// record has expired
@@ -391,10 +416,15 @@ func (s *sqlStore) Write(r *store.Record, opts ...store.WriteOption) error {
 	}
 	defer st.Close()
 
+	metadata := make(Metadata)
+	for k, v := range r.Metadata {
+		metadata[k] = v
+	}
+
 	if r.Expiry != 0 {
-		_, err = st.Exec(r.Key, r.Value, time.Now().Add(r.Expiry))
+		_, err = st.Exec(r.Key, r.Value, metadata, time.Now().Add(r.Expiry))
 	} else {
-		_, err = st.Exec(r.Key, r.Value, nil)
+		_, err = st.Exec(r.Key, r.Value, metadata, nil)
 	}
 
 	if err != nil {
