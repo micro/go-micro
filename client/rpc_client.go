@@ -89,22 +89,26 @@ func (r *rpcClient) lookupRoute(req Request, opts CallOptions) (*router.Route, e
 		query = append(query, router.QueryNetwork(opts.Network))
 	}
 
+	// use the router passed as a call option, or fallback to the grpc clients router
+	if opts.Router == nil {
+		opts.Router = r.opts.Router
+	}
+
 	// lookup the routes which can be used to execute the request
-	routes, err := r.opts.Router.Lookup(query...)
+	routes, err := opts.Router.Lookup(query...)
 	if err == router.ErrRouteNotFound {
 		return nil, errors.InternalServerError("go.micro.client", "service %s: %s", req.Service(), err.Error())
 	} else if err != nil {
 		return nil, errors.InternalServerError("go.micro.client", "error getting next %s node: %s", req.Service(), err.Error())
 	}
 
-	// use the selector passed as a call option, or fallback to the rpc clients selector
-	s := opts.Selector
-	if s == nil {
-		s = r.opts.Selector
+	// use the selector passed as a call option, or fallback to the grpc clients selector
+	if opts.Selector == nil {
+		opts.Selector = r.opts.Selector
 	}
 
 	// select the route to use for the request
-	if route, err := s.Select(routes...); err == selector.ErrNoneAvailable {
+	if route, err := opts.Selector.Select(routes...); err == selector.ErrNoneAvailable {
 		return nil, errors.InternalServerError("go.micro.client", "service %s: %s", req.Service(), err.Error())
 	} else if err != nil {
 		return nil, errors.InternalServerError("go.micro.client", "error getting next %s node: %s", req.Service(), err.Error())

@@ -71,10 +71,10 @@ func (a *apiHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// create the context from headers
 	cx := ctx.FromRequest(r)
-	// create custom selector
-	so := util.Selector(service.Services)
+	// create custom router
+	rr := util.Router(service.Services)
 
-	if err := c.Call(cx, req, rsp, client.WithSelector(so)); err != nil {
+	if err := c.Call(cx, req, rsp, client.WithRouter(rr)); err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		ce := errors.Parse(err.Error())
 		switch ce.Code {

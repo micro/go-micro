@@ -434,7 +434,7 @@ func (r *registryRouter) Route(req *http.Request) (*api.Service, error) {
 	name := rp.Name
 
 	// get service
-	services, err := r.rc.GetService(name)
+	services, err := r.rc.GetService(name, registry.GetDomain(rp.Network))
 	if err != nil {
 		return nil, err
 	}

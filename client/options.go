@@ -59,6 +59,8 @@ type CallOptions struct {
 	Retries int
 	// Request/Response timeout
 	RequestTimeout time.Duration
+	// Router to use for this call
+	Router router.Router
 	// Selector to use for this call
 	Selector selector.Selector
 	// Stream timeout for the stream
@@ -274,6 +276,13 @@ func WithAddress(a ...string) CallOption {
 func WithSelector(s selector.Selector) CallOption {
 	return func(o *CallOptions) {
 		o.Selector = s
+	}
+}
+
+// WithRouter overrides the router for the call
+func WithRouter(r router.Router) CallOption {
+	return func(o *CallOptions) {
+		o.Router = r
 	}
 }
 

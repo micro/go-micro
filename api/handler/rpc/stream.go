@@ -110,10 +110,10 @@ func serveWebsocket(ctx context.Context, w http.ResponseWriter, r *http.Request,
 		client.StreamingRequest(),
 	)
 
-	so := util.Selector(service.Services)
+	rr := util.Router(service.Services)
 
 	// create a new stream
-	stream, err := c.Stream(ctx, req, client.WithSelector(so))
+	stream, err := c.Stream(ctx, req, client.WithRouter(rr))
 	if err != nil {
 		if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
 			logger.Error(err)
