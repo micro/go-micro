@@ -12,12 +12,12 @@ service Registry {
 
 // Service represents a go-micro service
 message Service {
-        string name = 1;
-        string version = 2;
-        map<string,string> metadata = 3;
-        repeated Endpoint endpoints = 4;
-        repeated Node nodes = 5;
-        Options options = 6;
+	string name = 1;
+	string version = 2;
+	map<string,string> metadata = 3;
+	repeated Endpoint endpoints = 4;
+	repeated Node nodes = 5;
+	Options options = 6;
 }
 
 // Node represents the node the service is on
@@ -45,7 +45,7 @@ message Value {
 
 // Options are registry options
 message Options {
-        int64 ttl = 1;
+	int64 ttl = 1;
 }
 
 // Result is returns by the watcher
@@ -59,6 +59,7 @@ message EmptyResponse {}
 
 message GetRequest {
 	string service = 1;
+	string domain = 2;
 }
 
 message GetResponse {
@@ -66,6 +67,7 @@ message GetResponse {
 }
 
 message ListRequest {
+	string domain = 1;
 	// TODO: filtering
 }
 
@@ -74,25 +76,26 @@ message ListResponse {
 }
 
 message WatchRequest {
-	// service is optional
+	// service and domain are optional
 	string service = 1;
+	string domain = 2;
 }
 
 // EventType defines the type of event
 enum EventType {
-        Create = 0;
-        Delete = 1;
-        Update = 2;
+	Create = 0;
+	Delete = 1;
+	Update = 2;
 }
 
 // Event is registry event
 message Event {
-        // Event Id
-        string id = 1;
-        // type of event
-        EventType type = 2;
-        // unix timestamp of event
-        int64 timestamp = 3;
-        // service entry
-        Service service = 4;
+	// Event Id
+	string id = 1;
+	// type of event
+	EventType type = 2;
+	// unix timestamp of event
+	int64 timestamp = 3;
+	// service entry
+	Service service = 4;
 }

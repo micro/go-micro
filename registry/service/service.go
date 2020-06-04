@@ -118,7 +118,7 @@ func (s *serviceRegistry) GetService(name string, opts ...registry.GetOption) ([
 	}
 
 	rsp, err := s.client.GetService(options.Context, &pb.GetRequest{
-		Service: name,
+		Service: name, Domain: options.Domain,
 	}, s.callOpts()...)
 
 	if verr, ok := err.(*errors.Error); ok && verr.Code == 404 {
@@ -143,7 +143,9 @@ func (s *serviceRegistry) ListServices(opts ...registry.ListOption) ([]*registry
 		options.Context = context.TODO()
 	}
 
-	rsp, err := s.client.ListServices(options.Context, &pb.ListRequest{}, s.callOpts()...)
+	rsp, err := s.client.ListServices(options.Context, &pb.ListRequest{
+		Domain: options.Domain,
+	}, s.callOpts()...)
 	if err != nil {
 		return nil, err
 	}
@@ -166,7 +168,7 @@ func (s *serviceRegistry) Watch(opts ...registry.WatchOption) (registry.Watcher,
 	}
 
 	stream, err := s.client.Watch(options.Context, &pb.WatchRequest{
-		Service: options.Service,
+		Service: options.Service, Domain: options.Domain,
 	}, s.callOpts()...)
 
 	if err != nil {
