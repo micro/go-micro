@@ -4,7 +4,7 @@
 function build_binary {
     echo building $1
     pushd $1
-    go build
+    go build -o _main
     local ret=$?
     if [ $ret -gt 0 ]; then 
         failed=1
@@ -33,8 +33,7 @@ function check_dir {
 failed_arr=()
 failed=0
 this_hash=$1
-go mod init github.com/micro/examples
-go mod edit -require=github.com/micro/go-micro/v2@$1 
+go mod edit -replace github.com/micro/go-micro/v2=github.com/micro/go-micro/v2@$1 
 check_dir . $1
 if [ $failed -gt 0 ]; then
     echo Some builds failed
