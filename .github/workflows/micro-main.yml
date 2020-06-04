@@ -7,7 +7,7 @@ on:
 jobs:
 
   build:
-    name: Build repos
+    name: Build and test micro
     runs-on: ubuntu-latest
     steps:
 
