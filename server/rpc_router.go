@@ -148,7 +148,7 @@ func prepareMethod(method reflect.Method) *methodType {
 		// check stream type
 		streamType := reflect.TypeOf((*Stream)(nil)).Elem()
 		if !argType.Implements(streamType) {
-			log.Error(mname, "argument does not implement Stream interface:", argType)
+			log.Error(mname, " argument does not implement Stream interface: ", argType)
 			return nil
 		}
 	} else {
@@ -156,30 +156,30 @@ func prepareMethod(method reflect.Method) *methodType {
 
 		// First arg need not be a pointer.
 		if !isExportedOrBuiltinType(argType) {
-			log.Error(mname, "argument type not exported:", argType)
+			log.Error(mname, " argument type not exported: ", argType)
 			return nil
 		}
 
 		if replyType.Kind() != reflect.Ptr {
-			log.Error("method", mname, "reply type not a pointer:", replyType)
+			log.Error("method ", mname, " reply type not a pointer: ", replyType)
 			return nil
 		}
 
 		// Reply type must be exported.
 		if !isExportedOrBuiltinType(replyType) {
-			log.Error("method", mname, "reply type not exported:", replyType)
+			log.Error("method ", mname, " reply type not exported: ", replyType)
 			return nil
 		}
 	}
 
 	// Method needs one out.
 	if mtype.NumOut() != 1 {
-		log.Error("method", mname, "has wrong number of outs:", mtype.NumOut())
+		log.Error("method ", mname, " has wrong number of outs: ", mtype.NumOut())
 		return nil
 	}
 	// The return type of the method must be error.
 	if returnType := mtype.Out(0); returnType != typeOfError {
-		log.Error("method", mname, "returns", returnType.String(), "not error")
+		log.Error("method ", mname, " returns ", returnType.String(), " not error")
 		return nil
 	}
 	return &methodType{method: method, ArgType: argType, ReplyType: replyType, ContextType: contextType, stream: stream}
