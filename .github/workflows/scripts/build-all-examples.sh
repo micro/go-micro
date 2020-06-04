@@ -32,7 +32,6 @@ function check_dir {
 }
 failed_arr=()
 failed=0
-this_hash=$1
 go mod edit -replace github.com/micro/go-micro/v2=github.com/micro/go-micro/v2@$1 
 check_dir . $1
 if [ $failed -gt 0 ]; then
