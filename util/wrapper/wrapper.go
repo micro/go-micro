@@ -292,3 +292,21 @@ func (c *cacheWrapper) Call(ctx context.Context, req client.Request, rsp interfa
 func CacheClient(cacheFn func() *client.Cache, c client.Client) client.Client {
 	return &cacheWrapper{cacheFn, c}
 }
+
+type staticClient struct {
+	address string
+	client.Client
+}
+
+func (s *staticClient) Call(ctx context.Context, req client.Request, rsp interface{}, opts ...client.CallOption) error {
+	return s.Client.Call(ctx, req, rsp, append(opts, client.WithAddress(s.address))...)
+}
+
+func (s *staticClient) Stream(ctx context.Context, req client.Request, opts ...client.CallOption) (client.Stream, error) {
+	return s.Client.Stream(ctx, req, append(opts, client.WithAddress(s.address))...)
+}
+
+// StaticClient sets an address on every call
+func StaticClient(address string, c client.Client) client.Client {
+	return &staticClient{address, c}
+}
