@@ -1,0 +1,34 @@
+name: Build all github.com/micro/examples
+on:
+  push: 
+    branches:
+      - 'release-**'
+
+jobs:
+
+  build:
+    name: Build repos
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Set up Go 1.13
+      uses: actions/setup-go@v1
+      with:
+        go-version: 1.13
+      id: go
+
+    - name: Check out this code
+      uses: actions/checkout@v2
+      with:
+        path: 'go-micro'
+
+    - name: Check out code examples
+      uses: actions/checkout@v2
+      with:
+        repository: 'micro/examples'
+        path: 'examples'
+
+    - name: Build all
+      run: $GITHUB_WORKSPACE/go-micro/.github/workflows/scripts/build-all-examples.sh $GITHUB_SHA
+      working-directory: examples
+    
