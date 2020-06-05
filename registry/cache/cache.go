@@ -2,7 +2,6 @@
 package cache
 
 import (
-	"fmt"
 	"math"
 	"math/rand"
 	"sync"
@@ -142,7 +141,6 @@ func (c *cache) get(domain, service string) ([]*registry.Service, error) {
 	get := func(domain string, service string, cached []*registry.Service) ([]*registry.Service, error) {
 		// ask the registry
 		services, err := c.Registry.GetService(service, registry.GetDomain(domain))
-		fmt.Println("get", service, domain, len(services), err)
 		if err != nil {
 			// set the error status
 			c.setStatus(err)
