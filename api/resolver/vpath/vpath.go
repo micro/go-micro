@@ -22,7 +22,10 @@ var (
 	re = regexp.MustCompile("^v[0-9]+$")
 )
 
-func (r *Resolver) Resolve(req *http.Request) (*resolver.Endpoint, error) {
+func (r *Resolver) Resolve(req *http.Request, opts ...resolver.ResolveOption) (*resolver.Endpoint, error) {
+	// parse the options
+	options := resolver.NewResolveOptions(opts...)
+
 	if req.URL.Path == "/" {
 		return nil, errors.New("unknown name")
 	}
@@ -34,25 +37,27 @@ func (r *Resolver) Resolve(req *http.Request) (*resolver.Endpoint, error) {
 			Host:    req.Host,
 			Method:  req.Method,
 			Path:    req.URL.Path,
-			Network: "micro",
+			Network: options.Network,
 		}, nil
 	}
 
 	// /v1/foo
 	if re.MatchString(parts[0]) {
 		return &resolver.Endpoint{
-			Name:   r.withNamespace(req, parts[0:2]...),
-			Host:   req.Host,
-			Method: req.Method,
-			Path:   req.URL.Path,
+			Name:    r.withNamespace(req, parts[0:2]...),
+			Host:    req.Host,
+			Method:  req.Method,
+			Path:    req.URL.Path,
+			Network: options.Network,
 		}, nil
 	}
 
 	return &resolver.Endpoint{
-		Name:   r.withNamespace(req, parts[0]),
-		Host:   req.Host,
-		Method: req.Method,
-		Path:   req.URL.Path,
+		Name:    r.withNamespace(req, parts[0]),
+		Host:    req.Host,
+		Method:  req.Method,
+		Path:    req.URL.Path,
+		Network: options.Network,
 	}, nil
 }
 

@@ -23,11 +23,12 @@ var (
 type router struct {
 	sync.RWMutex
 
-	table        *table
-	options      Options
-	exit         chan bool
-	eventChan    chan *Event
-	resetWatcher chan bool
+	table         *table
+	options       Options
+	exit          chan bool
+	eventChan     chan *Event
+	networks      map[string]bool
+	resetWatchers map[string]chan bool
 
 	// advert subscribers
 	sub         sync.RWMutex
@@ -46,16 +47,17 @@ func newRouter(opts ...Option) Router {
 
 	// construct the router
 	r := &router{
-		options:      options,
-		exit:         make(chan bool),
-		resetWatcher: make(chan bool),
-		table:        newTable(options),
-		subscribers:  make(map[string]chan *Advert),
+		networks:      map[string]bool{options.Network: true},
+		options:       options,
+		exit:          make(chan bool),
+		table:         newTable(options),
+		subscribers:   make(map[string]chan *Advert),
+		resetWatchers: make(map[string]chan bool),
 	}
 
 	// load routes from the registry and then watch them async
-	r.populateRoutes(r.options.Registry)
-	go r.watchRegistry()
+	r.populateRoutes(r.options.Registry, options.Network)
+	go r.watchRegistry(options.Network)
 
 	return r
 }
@@ -69,12 +71,19 @@ func (r *router) Init(opts ...Option) error {
 		o(&r.options)
 	}
 
-	// the underlying registry can change so we reset the router
+	// the underlying registry can change so we reset the router table, repopulate the caches for every
+	// network we're following and then instruct all the registry watchers to reset
 	r.table = newTable(r.options)
-	if err := r.populateRoutes(r.options.Registry); err != nil {
-		return err
+
+	for _, w := range r.resetWatchers {
+		w <- true
 	}
-	r.resetWatcher <- true
+
+	for network := range r.networks {
+		if err := r.populateRoutes(r.options.Registry, network); err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
@@ -116,7 +125,7 @@ func (r *router) manageRoute(route Route, action string) error {
 
 // manageServiceRoutes applies action to all routes of the service.
 // It returns error of the action fails with error.
-func (r *router) manageRoutes(service *registry.Service, action string) error {
+func (r *router) manageRoutes(service *registry.Service, action string, network string) error {
 	// action is the routing table action
 	action = strings.ToLower(action)
 
@@ -126,7 +135,7 @@ func (r *router) manageRoutes(service *registry.Service, action string) error {
 			Service: service.Name,
 			Address: node.Address,
 			Gateway: "",
-			Network: r.options.Network,
+			Network: network,
 			Router:  r.options.Id,
 			Link:    DefaultLink,
 			Metric:  DefaultLocalMetric,
@@ -142,9 +151,9 @@ func (r *router) manageRoutes(service *registry.Service, action string) error {
 
 // populareRoutes applies the create action to all routes of each service found in the registry.
 // It returns error if either the services failed to be listed or the routing table action fails.
-func (r *router) populateRoutes(reg registry.Registry) error {
+func (r *router) populateRoutes(reg registry.Registry, domain string) error {
 	// add all local service routes into the routing table
-	services, err := reg.ListServices()
+	services, err := reg.ListServices(registry.ListDomain(domain))
 	if err != nil {
 		return fmt.Errorf("failed listing services: %v", err)
 	}
@@ -152,13 +161,13 @@ func (r *router) populateRoutes(reg registry.Registry) error {
 	// add each service node as a separate route
 	for _, service := range services {
 		// get the service to retrieve all its info
-		srvs, err := reg.GetService(service.Name)
+		srvs, err := reg.GetService(service.Name, registry.GetDomain(domain))
 		if err != nil {
 			continue
 		}
 		// manage the routes for all returned services
 		for _, srv := range srvs {
-			if err := r.manageRoutes(srv, "create"); err != nil {
+			if err := r.manageRoutes(srv, "create", domain); err != nil {
 				return err
 			}
 		}
@@ -185,7 +194,7 @@ func (r *router) populateRoutes(reg registry.Registry) error {
 }
 
 // watchRegistry updates the routing table based on the received events
-func (r *router) watchRegistry() {
+func (r *router) watchRegistry(network string) {
 	watch := func() error {
 		w, err := r.options.Registry.Watch()
 		if err != nil {
@@ -199,13 +208,13 @@ func (r *router) watchRegistry() {
 			select {
 			case <-r.exit:
 				return nil
-			case <-r.resetWatcher:
+			case <-r.resetWatchers[network]:
 				return registry.ErrWatcherStopped
 			case res, ok := <-c:
 				if !ok {
 					return registry.ErrWatcherStopped
 				}
-				r.manageRoutes(res.Service, res.Action)
+				r.manageRoutes(res.Service, res.Action, network)
 			}
 		}
 	}
@@ -563,6 +572,13 @@ func (r *router) flushRouteEvents(evType EventType) ([]*Event, error) {
 
 // Lookup routes in the routing table
 func (r *router) Lookup(q ...QueryOption) ([]Route, error) {
+	opts := NewQuery(q...)
+
+	// setup the network if we're not already watching it
+	if err := r.watchNetwork(opts.Network); err != nil {
+		return nil, err
+	}
+
 	return r.table.Query(q...)
 }
 
@@ -605,4 +621,25 @@ func (r *router) Close() error {
 // String prints debugging information about router
 func (r *router) String() string {
 	return "registry"
+}
+
+// watchNetwork starts watching a network if it isn't already being watched
+func (r *router) watchNetwork(network string) error {
+	if len(network) == 0 {
+		return nil
+	}
+
+	r.RLock()
+	_, ok := r.networks[network]
+	r.RUnlock()
+	if ok {
+		return nil
+	}
+
+	r.Lock()
+	defer r.Unlock()
+
+	r.resetWatchers[network] = make(chan bool)
+	go r.watchRegistry(network)
+	return r.populateRoutes(r.options.Registry, network)
 }

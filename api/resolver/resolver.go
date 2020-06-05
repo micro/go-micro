@@ -13,7 +13,7 @@ var (
 
 // Resolver resolves requests to endpoints
 type Resolver interface {
-	Resolve(r *http.Request) (*Endpoint, error)
+	Resolve(r *http.Request, opts ...ResolveOption) (*Endpoint, error)
 	String() string
 }
 
@@ -30,10 +30,3 @@ type Endpoint struct {
 	// Network the request should be routed to
 	Network string
 }
-
-type Options struct {
-	Handler   string
-	Namespace string
-}
-
-type Option func(o *Options)

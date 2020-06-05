@@ -22,23 +22,17 @@ type Resolver struct {
 	resolver.Resolver
 }
 
-func (r *Resolver) Resolve(req *http.Request) (*resolver.Endpoint, error) {
+func (r *Resolver) Resolve(req *http.Request, opts ...resolver.ResolveOption) (*resolver.Endpoint, error) {
 	// resolve the endpoint using path based routing
-	endpoint, err := r.Resolver.Resolve(req)
+	endpoint, err := r.Resolver.Resolve(req, resolver.WithNetwork(r.ResolveNetwork(req)))
 	if err != nil {
 		return nil, err
 	}
 
-	// set the network to the subdomain
-	endpoint.Network = networkFromRequest(req)
 	return endpoint, nil
 }
 
-func (r *Resolver) String() string {
-	return "subdomain"
-}
-
-func networkFromRequest(req *http.Request) string {
+func (r *Resolver) ResolveNetwork(req *http.Request) string {
 	// determine the host, e.g. foobar.m3o.app
 	host := req.URL.Hostname()
 	if len(host) == 0 {
@@ -81,4 +75,8 @@ func networkFromRequest(req *http.Request) string {
 		comps[i], comps[opp] = comps[opp], comps[i]
 	}
 	return strings.Join(comps, "-")
+}
+
+func (r *Resolver) String() string {
+	return "subdomain"
 }
