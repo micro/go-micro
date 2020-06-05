@@ -204,6 +204,9 @@ func (s *service) Wait() {
 
 	// save the error
 	if err != nil {
+		if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
+			logger.Errorf("Service %s terminated with error %s", s.Name, err)
+		}
 		s.retries++
 		s.Status("error", err)
 		s.Metadata["retries"] = strconv.Itoa(s.retries)
