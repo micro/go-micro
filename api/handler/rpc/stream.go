@@ -185,7 +185,11 @@ func writeLoop(rw io.ReadWriter, stream client.Stream) {
 			if err != nil {
 				if wserr, ok := err.(wsutil.ClosedError); ok {
 					switch wserr.Code {
+					case ws.StatusGoingAway:
+						// this happens when user leave the page
+						return
 					case ws.StatusNormalClosure, ws.StatusNoStatusRcvd:
+						// this happens when user close ws connection, or we don't get any status
 						return
 					}
 				}
