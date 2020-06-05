@@ -24,10 +24,21 @@ func Generate(id string, name string, a auth.Auth) error {
 			auth.WithScopes("service"),
 		}
 
-		acc, err := a.Generate(name, opts...)
+		var acc *auth.Account
+		var err error
+
+		// retry up to three times
+		for i := 0; i < 3; i++ {
+			acc, err = a.Generate(name, opts...)
+			if err == nil {
+				break
+			}
+			time.Sleep(time.Second * time.Duration(i+1))
+		}
 		if err != nil {
 			return err
 		}
+
 		if logger.V(logger.DebugLevel, logger.DefaultLogger) {
 			logger.Debugf("Auth [%v] Authenticated as %v issued by %v", a, name, acc.Issuer)
 		}
