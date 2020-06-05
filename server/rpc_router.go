@@ -140,7 +140,7 @@ func prepareMethod(method reflect.Method) *methodType {
 		replyType = mtype.In(3)
 		contextType = mtype.In(1)
 	default:
-		log.Errorf("method %v of %v has wrong number of ins:", mname, mtype, mtype.NumIn())
+		log.Errorf("method %v of %v has wrong number of ins: %v", mname, mtype, mtype.NumIn())
 		return nil
 	}
 
