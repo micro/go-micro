@@ -373,7 +373,6 @@ func (r *runtime) Create(s *Service, opts ...CreateOption) error {
 	if err := service.Start(); err != nil {
 		return err
 	}
-
 	// save service
 	r.namespaces[options.Namespace][serviceKey(s)] = service
 
@@ -536,7 +535,7 @@ func (r *runtime) Read(opts ...ReadOption) ([]*Service, error) {
 	return services, nil
 }
 
-// Update attemps to update the service
+// Update attempts to update the service
 func (r *runtime) Update(s *Service, opts ...UpdateOption) error {
 	var options UpdateOptions
 	for _, o := range opts {
@@ -565,7 +564,8 @@ func (r *runtime) Update(s *Service, opts ...UpdateOption) error {
 		return errors.New("Service not found")
 	}
 
-	if err := service.Stop(); err != nil {
+	if err := service.Stop(); err != nil && err.Error() != "no such process" {
+		logger.Errorf("Error stopping service %s: %s", service.Name, err)
 		return err
 	}
 
