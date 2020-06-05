@@ -114,7 +114,7 @@ func prepareEndpoint(method reflect.Method) *methodType {
 
 		if replyType.Kind() != reflect.Ptr {
 			if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
-				logger.Errorf("method ", mname, " reply type not a pointer: ", replyType)
+				logger.Errorf("method %v reply type not a pointer: %v", mname, replyType)
 			}
 			return nil
 		}
