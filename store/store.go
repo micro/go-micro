@@ -36,7 +36,12 @@ type Store interface {
 
 // Record is an item stored or retrieved from a Store
 type Record struct {
-	Key    string        `json:"key"`
-	Value  []byte        `json:"value"`
+	// The key to store the record
+	Key string `json:"key"`
+	// The value within the record
+	Value []byte `json:"value"`
+	// Any associated metadata for indexing
+	Metadata map[string]interface{} `json:"metadata"`
+	// Time to expire a record: TODO: change to timestamp
 	Expiry time.Duration `json:"expiry,omitempty"`
 }
