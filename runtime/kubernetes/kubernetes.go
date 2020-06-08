@@ -167,11 +167,10 @@ func (k *kubernetes) getService(labels map[string]string, opts ...client.GetOpti
 
 			// parse out deployment status and inject into service metadata
 			if len(kdep.Status.Conditions) > 0 {
-				svc.Metadata["status"] = kdep.Status.Conditions[0].Type
+				svc.Status(kdep.Status.Conditions[0].Type, nil)
 				svc.Metadata["started"] = kdep.Status.Conditions[0].LastUpdateTime
-				delete(svc.Metadata, "error")
 			} else {
-				svc.Metadata["status"] = "n/a"
+				svc.Status("n/a", nil)
 			}
 
 			// get the real status
@@ -214,8 +213,7 @@ func (k *kubernetes) getService(labels map[string]string, opts ...client.GetOpti
 					}
 				}
 				// TODO: set from terminated
-
-				svc.Metadata["status"] = status
+				svc.Status(status, nil)
 			}
 
 			// save deployment
