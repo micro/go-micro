@@ -105,13 +105,19 @@ func (f *fileStore) getDB(database, table string) (*fileHandle, error) {
 	}
 
 	k := key(database, table)
-
 	f.RLock()
 	fd, ok := f.handles[k]
 	f.RUnlock()
 
 	// return the file handle
 	if ok {
+		return fd, nil
+	}
+
+	// double check locking
+	f.Lock()
+	defer f.Unlock()
+	if fd, ok := f.handles[k]; ok {
 		return fd, nil
 	}
 
@@ -125,18 +131,16 @@ func (f *fileStore) getDB(database, table string) (*fileHandle, error) {
 	dbPath := filepath.Join(dir, fname)
 
 	// create new db handle
+	// Bolt DB only allows one process to open the file R/W so make sure we're doing this under a lock
 	db, err := bolt.Open(dbPath, 0700, &bolt.Options{Timeout: 5 * time.Second})
 	if err != nil {
 		return nil, err
 	}
-
-	f.Lock()
 	fd = &fileHandle{
 		key: k,
 		db:  db,
 	}
 	f.handles[k] = fd
-	f.Unlock()
 
 	return fd, nil
 }
