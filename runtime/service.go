@@ -197,10 +197,19 @@ func (s *service) Error() error {
 // Wait waits for the service to finish running
 func (s *service) Wait() {
 	// wait for process to exit
-	err := s.Process.Wait(s.PID)
+	s.RLock()
+	thisPID := s.PID
+	s.RUnlock()
+	err := s.Process.Wait(thisPID)
 
 	s.Lock()
 	defer s.Unlock()
+
+	if s.PID.ID != thisPID.ID {
+		// trying to update when it's already been switched out, ignore
+		logger.Warnf("Trying to update a process status but PID doesn't match. Old %s, New %s. Skipping update.", thisPID.ID, s.PID.ID)
+		return
+	}
 
 	// save the error
 	if err != nil {
