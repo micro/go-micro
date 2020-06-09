@@ -580,6 +580,28 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		(*c.opts.Auth).Init(authOpts...)
 	}
 
+	// Set the registry
+	if name := ctx.String("registry"); len(name) > 0 && (*c.opts.Registry).String() != name {
+		r, ok := c.opts.Registries[name]
+		if !ok {
+			return fmt.Errorf("Registry %s not found", name)
+		}
+
+		*c.opts.Registry = r(registrySrv.WithClient(microClient))
+		serverOpts = append(serverOpts, server.Registry(*c.opts.Registry))
+		clientOpts = append(clientOpts, client.Registry(*c.opts.Registry))
+
+		if err := (*c.opts.Selector).Init(selector.Registry(*c.opts.Registry)); err != nil {
+			logger.Fatalf("Error configuring registry: %v", err)
+		}
+
+		clientOpts = append(clientOpts, client.Selector(*c.opts.Selector))
+
+		if err := (*c.opts.Broker).Init(broker.Registry(*c.opts.Registry)); err != nil {
+			logger.Fatalf("Error configuring broker: %v", err)
+		}
+	}
+
 	// generate the services auth account
 	serverID := (*c.opts.Server).Options().Id
 	if err := authutil.Generate(serverID, c.App().Name, (*c.opts.Auth)); err != nil {
@@ -606,28 +628,6 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		*c.opts.Broker = b()
 		serverOpts = append(serverOpts, server.Broker(*c.opts.Broker))
 		clientOpts = append(clientOpts, client.Broker(*c.opts.Broker))
-	}
-
-	// Set the registry
-	if name := ctx.String("registry"); len(name) > 0 && (*c.opts.Registry).String() != name {
-		r, ok := c.opts.Registries[name]
-		if !ok {
-			return fmt.Errorf("Registry %s not found", name)
-		}
-
-		*c.opts.Registry = r(registrySrv.WithClient(microClient))
-		serverOpts = append(serverOpts, server.Registry(*c.opts.Registry))
-		clientOpts = append(clientOpts, client.Registry(*c.opts.Registry))
-
-		if err := (*c.opts.Selector).Init(selector.Registry(*c.opts.Registry)); err != nil {
-			logger.Fatalf("Error configuring registry: %v", err)
-		}
-
-		clientOpts = append(clientOpts, client.Selector(*c.opts.Selector))
-
-		if err := (*c.opts.Broker).Init(broker.Registry(*c.opts.Registry)); err != nil {
-			logger.Fatalf("Error configuring broker: %v", err)
-		}
 	}
 
 	// Set the selector
