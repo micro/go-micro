@@ -380,7 +380,7 @@ func (w *watcher) Next() (*loader.Snapshot, error) {
 			Source:    "memory",
 			Timestamp: time.Now(),
 		}
-		cs.Sum()
+		cs.Checksum = cs.Sum()
 
 		return &loader.Snapshot{
 			ChangeSet: cs,
