@@ -72,7 +72,7 @@ func (m *memory) watch(idx int, s source.Source) {
 			m.vals, _ = m.opts.Reader.Values(set)
 			m.snap = &loader.Snapshot{
 				ChangeSet: set,
-				Version:   fmt.Sprintf("%d", time.Now().Unix()),
+				Version:   genVer(),
 			}
 			m.Unlock()
 
@@ -143,7 +143,7 @@ func (m *memory) reload() error {
 	m.vals, _ = m.opts.Reader.Values(set)
 	m.snap = &loader.Snapshot{
 		ChangeSet: set,
-		Version:   fmt.Sprintf("%d", time.Now().Unix()),
+		Version:   genVer(),
 	}
 
 	m.Unlock()
@@ -240,7 +240,7 @@ func (m *memory) Sync() error {
 	m.vals = vals
 	m.snap = &loader.Snapshot{
 		ChangeSet: set,
-		Version:   fmt.Sprintf("%d", time.Now().Unix()),
+		Version:   genVer(),
 	}
 
 	m.Unlock()
@@ -421,6 +421,10 @@ func (w *watcher) Stop() error {
 	}
 
 	return nil
+}
+
+func genVer() string {
+	return fmt.Sprintf("%d", time.Now().UnixNano())
 }
 
 func NewLoader(opts ...loader.Option) loader.Loader {
