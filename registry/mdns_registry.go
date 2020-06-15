@@ -630,9 +630,18 @@ func (m *mdnsWatcher) entryToRecord(e *mdns.ServiceEntry) *Result {
 		return nil
 	}
 
+	var addr string
+	if len(e.AddrV4) > 0 {
+		addr = e.AddrV4.String()
+	} else if len(e.AddrV6) > 0 {
+		addr = "[" + e.AddrV6.String() + "]"
+	} else {
+		addr = e.Addr.String()
+	}
+
 	service.Nodes = append(service.Nodes, &Node{
 		Id:       strings.TrimSuffix(e.Name, suffix),
-		Address:  fmt.Sprintf("%s:%d", e.AddrV4.String(), e.Port),
+		Address:  fmt.Sprintf("%s:%d", addr, e.Port),
 		Metadata: txt.Metadata,
 	})
 
@@ -656,25 +665,8 @@ func (m *mdnsWatcher) Chan() chan *Result {
 		}
 	}()
 
-<<<<<<< HEAD
 	return c
 }
-=======
-			var addr string
-			if len(e.AddrV4) > 0 {
-				addr = e.AddrV4.String()
-			} else if len(e.AddrV6) > 0 {
-				addr = "[" + e.AddrV6.String() + "]"
-			} else {
-				addr = e.Addr.String()
-			}
-
-			service.Nodes = append(service.Nodes, &Node{
-				Id:       strings.TrimSuffix(e.Name, suffix),
-				Address:  fmt.Sprintf("%s:%d", addr, e.Port),
-				Metadata: txt.Metadata,
-			})
->>>>>>> 1179d7e89ab690d491f62325a65dcb3fe21b41ad
 
 func (m *mdnsWatcher) Next() (*Result, error) {
 	for {
