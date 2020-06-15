@@ -3,7 +3,9 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"io"
+	"reflect"
 	"time"
 
 	"github.com/micro/go-micro/v2/client"
@@ -137,10 +139,21 @@ func (s *serviceStore) Read(key string, opts ...store.ReadOption) ([]*store.Reco
 	records := make([]*store.Record, 0, len(rsp.Records))
 
 	for _, val := range rsp.Records {
+		metadata := make(map[string]interface{})
+
+		for k, v := range val.Metadata {
+			switch v.Type {
+			// TODO: parse all types
+			default:
+				metadata[k] = v
+			}
+		}
+
 		records = append(records, &store.Record{
-			Key:    val.Key,
-			Value:  val.Value,
-			Expiry: time.Duration(val.Expiry) * time.Second,
+			Key:      val.Key,
+			Value:    val.Value,
+			Expiry:   time.Duration(val.Expiry) * time.Second,
+			Metadata: metadata,
 		})
 	}
 
@@ -163,11 +176,21 @@ func (s *serviceStore) Write(record *store.Record, opts ...store.WriteOption) er
 		Table:    options.Table,
 	}
 
+	metadata := make(map[string]*pb.Field)
+
+	for k, v := range record.Metadata {
+		metadata[k] = &pb.Field{
+			Type:  reflect.TypeOf(v).String(),
+			Value: fmt.Sprintf("%v", v),
+		}
+	}
+
 	_, err := s.Client.Write(s.Context(), &pb.WriteRequest{
 		Record: &pb.Record{
-			Key:    record.Key,
-			Value:  record.Value,
-			Expiry: int64(record.Expiry.Seconds()),
+			Key:      record.Key,
+			Value:    record.Value,
+			Expiry:   int64(record.Expiry.Seconds()),
+			Metadata: metadata,
 		},
 		Options: writeOpts}, client.WithAddress(s.Nodes...))
 	if err != nil && errors.Equal(err, errors.NotFound("", "")) {

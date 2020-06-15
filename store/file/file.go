@@ -54,6 +54,7 @@ type fileHandle struct {
 type record struct {
 	Key       string
 	Value     []byte
+	Metadata  map[string]interface{}
 	ExpiresAt time.Time
 }
 
@@ -104,13 +105,19 @@ func (f *fileStore) getDB(database, table string) (*fileHandle, error) {
 	}
 
 	k := key(database, table)
-
 	f.RLock()
 	fd, ok := f.handles[k]
 	f.RUnlock()
 
 	// return the file handle
 	if ok {
+		return fd, nil
+	}
+
+	// double check locking
+	f.Lock()
+	defer f.Unlock()
+	if fd, ok := f.handles[k]; ok {
 		return fd, nil
 	}
 
@@ -124,18 +131,16 @@ func (f *fileStore) getDB(database, table string) (*fileHandle, error) {
 	dbPath := filepath.Join(dir, fname)
 
 	// create new db handle
+	// Bolt DB only allows one process to open the file R/W so make sure we're doing this under a lock
 	db, err := bolt.Open(dbPath, 0700, &bolt.Options{Timeout: 5 * time.Second})
 	if err != nil {
 		return nil, err
 	}
-
-	f.Lock()
 	fd = &fileHandle{
 		key: k,
 		db:  db,
 	}
 	f.handles[k] = fd
-	f.Unlock()
 
 	return fd, nil
 }
@@ -221,6 +226,11 @@ func (m *fileStore) get(fd *fileHandle, k string) (*store.Record, error) {
 	newRecord := &store.Record{}
 	newRecord.Key = storedRecord.Key
 	newRecord.Value = storedRecord.Value
+	newRecord.Metadata = make(map[string]interface{})
+
+	for k, v := range storedRecord.Metadata {
+		newRecord.Metadata[k] = v
+	}
 
 	if !storedRecord.ExpiresAt.IsZero() {
 		if storedRecord.ExpiresAt.Before(time.Now()) {
@@ -238,8 +248,14 @@ func (m *fileStore) set(fd *fileHandle, r *store.Record) error {
 	item := &record{}
 	item.Key = r.Key
 	item.Value = r.Value
+	item.Metadata = make(map[string]interface{})
+
 	if r.Expiry != 0 {
 		item.ExpiresAt = time.Now().Add(r.Expiry)
+	}
+
+	for k, v := range r.Metadata {
+		item.Metadata[k] = v
 	}
 
 	// marshal the data
@@ -348,6 +364,7 @@ func (m *fileStore) Write(r *store.Record, opts ...store.WriteOption) error {
 		newRecord := store.Record{}
 		newRecord.Key = r.Key
 		newRecord.Value = r.Value
+		newRecord.Metadata = make(map[string]interface{})
 		newRecord.Expiry = r.Expiry
 
 		if !writeOpts.Expiry.IsZero() {
@@ -355,6 +372,10 @@ func (m *fileStore) Write(r *store.Record, opts ...store.WriteOption) error {
 		}
 		if writeOpts.TTL != 0 {
 			newRecord.Expiry = writeOpts.TTL
+		}
+
+		for k, v := range r.Metadata {
+			newRecord.Metadata[k] = v
 		}
 
 		return m.set(fd, &newRecord)

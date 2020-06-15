@@ -87,7 +87,7 @@ func prepareEndpoint(method reflect.Method) *methodType {
 		contextType = mtype.In(1)
 	default:
 		if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
-			logger.Error("method", mname, "of", mtype, "has wrong number of ins:", mtype.NumIn())
+			logger.Errorf("method %v of %v has wrong number of ins: %v", mname, mtype, mtype.NumIn())
 		}
 		return nil
 	}
@@ -97,7 +97,7 @@ func prepareEndpoint(method reflect.Method) *methodType {
 		streamType := reflect.TypeOf((*server.Stream)(nil)).Elem()
 		if !argType.Implements(streamType) {
 			if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
-				logger.Error(mname, "argument does not implement Streamer interface:", argType)
+				logger.Errorf("%v argument does not implement Streamer interface: %v", mname, argType)
 			}
 			return nil
 		}
@@ -107,14 +107,14 @@ func prepareEndpoint(method reflect.Method) *methodType {
 		// First arg need not be a pointer.
 		if !isExportedOrBuiltinType(argType) {
 			if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
-				logger.Error(mname, "argument type not exported:", argType)
+				logger.Errorf("%v argument type not exported: %v", mname, argType)
 			}
 			return nil
 		}
 
 		if replyType.Kind() != reflect.Ptr {
 			if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
-				logger.Error("method", mname, "reply type not a pointer:", replyType)
+				logger.Errorf("method %v reply type not a pointer: %v", mname, replyType)
 			}
 			return nil
 		}
@@ -122,7 +122,7 @@ func prepareEndpoint(method reflect.Method) *methodType {
 		// Reply type must be exported.
 		if !isExportedOrBuiltinType(replyType) {
 			if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
-				logger.Error("method", mname, "reply type not exported:", replyType)
+				logger.Errorf("method %v reply type not exported: %v", mname, replyType)
 			}
 			return nil
 		}
@@ -131,14 +131,14 @@ func prepareEndpoint(method reflect.Method) *methodType {
 	// Endpoint() needs one out.
 	if mtype.NumOut() != 1 {
 		if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
-			logger.Error("method", mname, "has wrong number of outs:", mtype.NumOut())
+			logger.Errorf("method %v has wrong number of outs: %v", mname, mtype.NumOut())
 		}
 		return nil
 	}
 	// The return type of the method must be error.
 	if returnType := mtype.Out(0); returnType != typeOfError {
 		if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
-			logger.Error("method", mname, "returns", returnType.String(), "not error")
+			logger.Errorf("method %v returns %v not error", mname, returnType.String())
 		}
 		return nil
 	}
@@ -156,7 +156,7 @@ func (server *rServer) register(rcvr interface{}) error {
 	s.rcvr = reflect.ValueOf(rcvr)
 	sname := reflect.Indirect(s.rcvr).Type().Name()
 	if sname == "" {
-		logger.Fatal("rpc: no service name for type", s.typ.String())
+		logger.Fatalf("rpc: no service name for type %v", s.typ.String())
 	}
 	if !isExported(sname) {
 		s := "rpc Register: type " + sname + " is not exported"
