@@ -251,7 +251,7 @@ func (g *grpcClient) stream(ctx context.Context, route *router.Route, req client
 
 	cc, err := grpc.DialContext(dialCtx, route.Address, grpcDialOptions...)
 	if err != nil {
-		return errors.InternalServerError("go.micro.client", fmt.Sprintf("Error sending request: %v", err))
+		return errors.InternalServerError("go.micro.client", fmt.Sprintf("Error sending %v request: %v", req.Endpoint(), err))
 	}
 
 	desc := &grpc.StreamDesc{
@@ -279,7 +279,7 @@ func (g *grpcClient) stream(ctx context.Context, route *router.Route, req client
 		// close the connection
 		cc.Close()
 		// now return the error
-		return errors.InternalServerError("go.micro.client", fmt.Sprintf("Error creating stream: %v", err))
+		return errors.InternalServerError("go.micro.client", fmt.Sprintf("Error creating %v stream: %v", req.Endpoint(), err))
 	}
 
 	codec := &grpcCodec{
