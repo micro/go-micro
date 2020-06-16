@@ -17,6 +17,15 @@ func init() {
 	}
 }
 
+// AppendPrivateBlocks append private network blocks
+func AppendPrivateBlocks(bs ...string) {
+	for _, b := range bs {
+		if _, block, err := net.ParseCIDR(b); err == nil {
+			privateBlocks = append(privateBlocks, block)
+		}
+	}
+}
+
 func isPrivateIP(ipAddr string) bool {
 	ip := net.ParseIP(ipAddr)
 	for _, priv := range privateBlocks {
