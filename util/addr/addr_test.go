@@ -56,3 +56,24 @@ func TestExtractor(t *testing.T) {
 	}
 
 }
+
+func TestAppendPrivateBlocks(t *testing.T) {
+	tests := []struct {
+		addr   string
+		expect bool
+	}{
+		{addr: "9.134.71.34", expect: true},
+		{addr: "8.10.110.34", expect: false}, // not in private blocks
+	}
+
+	AppendPrivateBlocks("9.134.0.0/16")
+
+	for _, test := range tests {
+		t.Run(test.addr, func(t *testing.T) {
+			res := isPrivateIP(test.addr)
+			if res != test.expect {
+				t.Fatalf("expected %t got %t", test.expect, res)
+			}
+		})
+	}
+}
