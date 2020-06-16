@@ -70,12 +70,32 @@ func (dc *discordConn) Recv(event *input.Event) error {
 	}
 }
 
+func ChunkString(s string, chunkSize int) []string {
+	var chunks []string
+	runes := []rune(s)
+
+	if len(runes) == 0 {
+		return []string{s}
+	}
+
+	for i := 0; i < len(runes); i += chunkSize {
+		nn := i + chunkSize
+		if nn > len(runes) {
+			nn = len(runes)
+		}
+		chunks = append(chunks, string(runes[i:nn]))
+	}
+	return chunks
+}
+
 func (dc *discordConn) Send(e *input.Event) error {
 	fields := strings.Split(e.To, ":")
-	_, err := dc.master.session.ChannelMessageSend(fields[0], string(e.Data))
-	if err != nil {
-		if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
-			logger.Error("[bot][loop][send]", err)
+	for _, chunk := range ChunkString(string(e.Data), 2000) {
+		_, err := dc.master.session.ChannelMessageSend(fields[0], chunk)
+		if err != nil {
+			if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
+				logger.Error("[bot][loop][send]", err)
+			}
 		}
 	}
 	return nil
