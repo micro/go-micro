@@ -93,7 +93,7 @@ func (s *service) Running() bool {
 	return s.running
 }
 
-// Start stars the service
+// Start starts the service
 func (s *service) Start() error {
 	s.Lock()
 	defer s.Unlock()
@@ -110,10 +110,7 @@ func (s *service) Start() error {
 	if s.Metadata == nil {
 		s.Metadata = make(map[string]string)
 	}
-
-	s.Metadata["status"] = "starting"
-	// delete any existing error
-	delete(s.Metadata, "error")
+	s.Status("starting", nil)
 
 	// TODO: pull source & build binary
 	if logger.V(logger.DebugLevel, logger.DefaultLogger) {
@@ -122,17 +119,15 @@ func (s *service) Start() error {
 
 	p, err := s.Process.Fork(s.Exec)
 	if err != nil {
-		s.Metadata["status"] = "error"
-		s.Metadata["error"] = err.Error()
+		s.Status("error", err)
 		return err
 	}
-
 	// set the pid
 	s.PID = p
 	// set to running
 	s.running = true
 	// set status
-	s.Metadata["status"] = "running"
+	s.Status("running", nil)
 	// set started
 	s.Metadata["started"] = time.Now().Format(time.RFC3339)
 
@@ -144,6 +139,18 @@ func (s *service) Start() error {
 	go s.Wait()
 
 	return nil
+}
+
+// Status updates the status of the service. Assumes it's called under a lock as it mutates state
+func (s *service) Status(status string, err error) {
+	s.Metadata["lastStatusUpdate"] = time.Now().Format(time.RFC3339)
+	s.Metadata["status"] = status
+	if err == nil {
+		delete(s.Metadata, "error")
+		return
+	}
+	s.Metadata["error"] = err.Error()
+
 }
 
 // Stop stops the service
@@ -163,18 +170,17 @@ func (s *service) Stop() error {
 		}
 
 		// set status
-		s.Metadata["status"] = "stopping"
+		s.Status("stopping", nil)
 
 		// kill the process
 		err := s.Process.Kill(s.PID)
-		if err != nil {
-			return err
+		if err == nil {
+			// wait for it to exit
+			s.Process.Wait(s.PID)
 		}
-		// wait for it to exit
-		s.Process.Wait(s.PID)
 
 		// set status
-		s.Metadata["status"] = "stopped"
+		s.Status("stopped", err)
 
 		// return the kill error
 		return err
@@ -191,21 +197,32 @@ func (s *service) Error() error {
 // Wait waits for the service to finish running
 func (s *service) Wait() {
 	// wait for process to exit
-	err := s.Process.Wait(s.PID)
+	s.RLock()
+	thisPID := s.PID
+	s.RUnlock()
+	err := s.Process.Wait(thisPID)
 
 	s.Lock()
 	defer s.Unlock()
 
+	if s.PID.ID != thisPID.ID {
+		// trying to update when it's already been switched out, ignore
+		logger.Warnf("Trying to update a process status but PID doesn't match. Old %s, New %s. Skipping update.", thisPID.ID, s.PID.ID)
+		return
+	}
+
 	// save the error
 	if err != nil {
+		if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
+			logger.Errorf("Service %s terminated with error %s", s.Name, err)
+		}
 		s.retries++
-		s.Metadata["status"] = "error"
-		s.Metadata["error"] = err.Error()
+		s.Status("error", err)
 		s.Metadata["retries"] = strconv.Itoa(s.retries)
 
 		s.err = err
 	} else {
-		s.Metadata["status"] = "done"
+		s.Status("done", nil)
 	}
 
 	// no longer running
