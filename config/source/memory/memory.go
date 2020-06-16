@@ -42,6 +42,7 @@ func (s *memory) Watch() (source.Watcher, error) {
 }
 
 func (m *memory) Write(cs *source.ChangeSet) error {
+	m.Update(cs)
 	return nil
 }
 
