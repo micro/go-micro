@@ -360,7 +360,13 @@ func (m *mdnsRegistry) Deregister(service *Service, opts ...DeregisterOption) er
 	}
 
 	// we have more than one entry remaining, we can exit
-	if len(newEntries) > 1 || newEntries[0].id == "*" {
+	if len(newEntries) > 1 {
+		m.domains[options.Domain][service.Name] = newEntries
+		return nil
+	}
+
+	// our remaining entry is not a wildcard, we can exit
+	if len(newEntries) == 1 && newEntries[0].id != "*" {
 		m.domains[options.Domain][service.Name] = newEntries
 		return nil
 	}
