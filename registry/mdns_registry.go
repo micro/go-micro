@@ -290,6 +290,22 @@ func (m *mdnsRegistry) Register(service *Service, opts ...RegisterOption) error 
 
 	// register in the global tld so it can be queried as one
 	if options.Domain != m.globalTLD {
+		srv := *service
+		srv.Nodes = nil
+
+		for _, n := range service.Nodes {
+			node := n
+
+			// set the original domain in node metadata
+			if node.Metadata == nil {
+				node.Metadata = map[string]string{"domain": options.Domain}
+			} else {
+				node.Metadata["domain"] = options.Domain
+			}
+
+			srv.Nodes = append(srv.Nodes, node)
+		}
+
 		if err := m.Register(service, append(opts, RegisterDomain(m.globalTLD))...); err != nil {
 			gerr = err
 		}
