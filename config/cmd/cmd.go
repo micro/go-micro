@@ -276,9 +276,9 @@ var (
 			Usage:   "Account secret used for client authentication",
 		},
 		&cli.StringFlag{
-			Name:    "auth_namespace",
-			EnvVars: []string{"MICRO_AUTH_NAMESPACE"},
-			Usage:   "Namespace for the services auth account",
+			Name:    "service_namespace",
+			EnvVars: []string{"MICRO_NAMESPACE"},
+			Usage:   "Namespace the service is operating in",
 			Value:   "go.micro",
 		},
 		&cli.StringFlag{
@@ -540,8 +540,8 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	if len(ctx.String("auth_private_key")) > 0 {
 		authOpts = append(authOpts, auth.PrivateKey(ctx.String("auth_private_key")))
 	}
-	if len(ctx.String("auth_namespace")) > 0 {
-		authOpts = append(authOpts, auth.Namespace(ctx.String("auth_namespace")))
+	if len(ctx.String("service_namespace")) > 0 {
+		authOpts = append(authOpts, auth.Issuer(ctx.String("service_namespace")))
 	}
 	if name := ctx.String("auth_provider"); len(name) > 0 {
 		p, ok := DefaultAuthProviders[name]
