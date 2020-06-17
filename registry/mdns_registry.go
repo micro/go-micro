@@ -22,11 +22,11 @@ import (
 
 var (
 	// use a .micro tld rather than .local by default
-	defaultTLD = "micro"
+	defaultDomain = "micro"
 	// every service is written to the global domain so * domain queries work, e.g.
 	// calling mdns.List(registry.ListDomain("*")) will list the services across all
 	// domains
-	globalTLD = "global"
+	globalDomain = "global"
 )
 
 type mdnsTxt struct {
@@ -50,8 +50,8 @@ type mdnsRegistry struct {
 	opts Options
 
 	// the top level domains, these can be overriden using options
-	defaultTLD string
-	globalTLD  string
+	defaultDomain string
+	globalDomain  string
 
 	sync.Mutex
 	domains map[string]services
@@ -149,19 +149,19 @@ func newRegistry(opts ...Option) Registry {
 	}
 
 	// set the domain
-	defaultTLD := defaultTLD
+	defaultDomain := defaultDomain
 
 	d, ok := options.Context.Value("mdns.domain").(string)
 	if ok {
-		defaultTLD = d
+		defaultDomain = d
 	}
 
 	return &mdnsRegistry{
-		defaultTLD: defaultTLD,
-		globalTLD:  globalTLD,
-		opts:       options,
-		domains:    make(map[string]services),
-		watchers:   make(map[string]*mdnsWatcher),
+		defaultDomain: defaultDomain,
+		globalDomain:  globalDomain,
+		opts:          options,
+		domains:       make(map[string]services),
+		watchers:      make(map[string]*mdnsWatcher),
 	}
 }
 
@@ -203,7 +203,7 @@ func (m *mdnsRegistry) Register(service *Service, opts ...RegisterOption) error 
 		o(&options)
 	}
 	if len(options.Domain) == 0 {
-		options.Domain = m.defaultTLD
+		options.Domain = m.defaultDomain
 	}
 
 	// create the domain in the memory store if it doesn't yet exist
@@ -288,8 +288,8 @@ func (m *mdnsRegistry) Register(service *Service, opts ...RegisterOption) error 
 	m.domains[options.Domain][service.Name] = entries
 	m.Unlock()
 
-	// register in the global tld so it can be queried as one
-	if options.Domain != m.globalTLD {
+	// register in the global Domain so it can be queried as one
+	if options.Domain != m.globalDomain {
 		srv := *service
 		srv.Nodes = nil
 
@@ -306,7 +306,7 @@ func (m *mdnsRegistry) Register(service *Service, opts ...RegisterOption) error 
 			srv.Nodes = append(srv.Nodes, node)
 		}
 
-		if err := m.Register(service, append(opts, RegisterDomain(m.globalTLD))...); err != nil {
+		if err := m.Register(service, append(opts, RegisterDomain(m.globalDomain))...); err != nil {
 			gerr = err
 		}
 	}
@@ -321,14 +321,14 @@ func (m *mdnsRegistry) Deregister(service *Service, opts ...DeregisterOption) er
 		o(&options)
 	}
 	if len(options.Domain) == 0 {
-		options.Domain = m.defaultTLD
+		options.Domain = m.defaultDomain
 	}
 
-	// register in the global tld
+	// register in the global Domain
 	var err error
-	if options.Domain != m.globalTLD {
+	if options.Domain != m.globalDomain {
 		defer func() {
-			err = m.Deregister(service, append(opts, DeregisterDomain(m.globalTLD))...)
+			err = m.Deregister(service, append(opts, DeregisterDomain(m.globalDomain))...)
 		}()
 	}
 
@@ -392,10 +392,10 @@ func (m *mdnsRegistry) GetService(service string, opts ...GetOption) ([]*Service
 		o(&options)
 	}
 	if len(options.Domain) == 0 {
-		options.Domain = m.defaultTLD
+		options.Domain = m.defaultDomain
 	}
 	if options.Domain == WildcardDomain {
-		options.Domain = m.globalTLD
+		options.Domain = m.globalDomain
 	}
 
 	serviceMap := make(map[string]*Service)
@@ -493,10 +493,10 @@ func (m *mdnsRegistry) ListServices(opts ...ListOption) ([]*Service, error) {
 		o(&options)
 	}
 	if len(options.Domain) == 0 {
-		options.Domain = m.defaultTLD
+		options.Domain = m.defaultDomain
 	}
 	if options.Domain == WildcardDomain {
-		options.Domain = m.globalTLD
+		options.Domain = m.globalDomain
 	}
 
 	serviceMap := make(map[string]bool)
@@ -554,10 +554,10 @@ func (m *mdnsRegistry) Watch(opts ...WatchOption) (Watcher, error) {
 		o(&wo)
 	}
 	if len(wo.Domain) == 0 {
-		wo.Domain = m.defaultTLD
+		wo.Domain = m.defaultDomain
 	}
 	if wo.Domain == WildcardDomain {
-		wo.Domain = m.globalTLD
+		wo.Domain = m.globalDomain
 	}
 
 	md := &mdnsWatcher{
