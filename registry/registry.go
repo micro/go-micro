@@ -5,6 +5,11 @@ import (
 	"errors"
 )
 
+const (
+	// WildcardDomain indicates any domain
+	WildcardDomain = "*"
+)
+
 var (
 	DefaultRegistry = NewRegistry()
 
@@ -38,6 +43,7 @@ type Service struct {
 
 type Node struct {
 	Id       string            `json:"id"`
+	Domain   string            `json:"domain"`
 	Address  string            `json:"address"`
 	Metadata map[string]string `json:"metadata"`
 }
