@@ -325,9 +325,11 @@ func (m *mdnsRegistry) Deregister(service *Service, opts ...DeregisterOption) er
 	}
 
 	// register in the global tld
+	var err error
 	if options.Domain != m.globalTLD {
-		// no errors are returned by this function so we don't need to handle the error
-		defer m.Deregister(service, append(opts, DeregisterDomain(m.globalTLD))...)
+		defer func() {
+			err = m.Deregister(service, append(opts, DeregisterDomain(m.globalTLD))...)
+		}()
 	}
 
 	// we want to unlock before we call deregister on the global domain, so it's important this unlock
@@ -337,7 +339,7 @@ func (m *mdnsRegistry) Deregister(service *Service, opts ...DeregisterOption) er
 
 	// the service wasn't registered, we can safely exist
 	if _, ok := m.domains[options.Domain]; !ok {
-		return nil
+		return err
 	}
 
 	// loop existing entries, check if any match, shutdown those that do
@@ -362,13 +364,13 @@ func (m *mdnsRegistry) Deregister(service *Service, opts ...DeregisterOption) er
 	// we have more than one entry remaining, we can exit
 	if len(newEntries) > 1 {
 		m.domains[options.Domain][service.Name] = newEntries
-		return nil
+		return err
 	}
 
 	// our remaining entry is not a wildcard, we can exit
 	if len(newEntries) == 1 && newEntries[0].id != "*" {
 		m.domains[options.Domain][service.Name] = newEntries
-		return nil
+		return err
 	}
 
 	// last entry is the wildcard for list queries. Remove it.
@@ -380,7 +382,7 @@ func (m *mdnsRegistry) Deregister(service *Service, opts ...DeregisterOption) er
 		delete(m.domains, options.Domain)
 	}
 
-	return nil
+	return err
 }
 
 func (m *mdnsRegistry) GetService(service string, opts ...GetOption) ([]*Service, error) {
