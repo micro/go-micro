@@ -22,8 +22,8 @@ func NewOptions(opts ...Option) Options {
 }
 
 type Options struct {
-	// Namespace the service belongs to
-	Namespace string
+	// Issuer of the service's account
+	Issuer string
 	// ID is the services auth ID
 	ID string
 	// Secret is used to authenticate the service
@@ -55,10 +55,10 @@ func Addrs(addrs ...string) Option {
 	}
 }
 
-// Namespace the service belongs to
-func Namespace(n string) Option {
+// Issuer of the services account
+func Issuer(i string) Option {
 	return func(o *Options) {
-		o.Namespace = n
+		o.Issuer = i
 	}
 }
 
