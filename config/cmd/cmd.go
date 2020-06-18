@@ -2,7 +2,6 @@
 package cmd
 
 import (
-	"fmt"
 	"math/rand"
 	"strings"
 	"time"
@@ -468,194 +467,36 @@ func (c *cmd) Options() Options {
 }
 
 func (c *cmd) Before(ctx *cli.Context) error {
-	// If flags are set then use them otherwise do nothing
-	var serverOpts []server.Option
+	// Setup client options
 	var clientOpts []client.Option
 
-	// setup a client to use when calling the runtime. It is important the auth client is wrapped
-	// after the cache client since the wrappers are applied in reverse order and the cache will use
-	// some of the headers set by the auth client.
-	authFn := func() auth.Auth { return *c.opts.Auth }
-	cacheFn := func() *client.Cache { return (*c.opts.Client).Options().Cache }
-	microClient := wrapper.CacheClient(cacheFn, grpc.NewClient())
-	microClient = wrapper.AuthClient(authFn, microClient)
-
-	// Set the store
-	if name := ctx.String("store"); len(name) > 0 {
-		s, ok := c.opts.Stores[name]
-		if !ok {
-			return fmt.Errorf("Unsupported store: %s", name)
-		}
-
-		*c.opts.Store = s(store.WithClient(microClient))
+	if r := ctx.Int("client_retries"); r >= 0 {
+		clientOpts = append(clientOpts, client.Retries(r))
 	}
 
-	// Set the runtime
-	if name := ctx.String("runtime"); len(name) > 0 {
-		r, ok := c.opts.Runtimes[name]
-		if !ok {
-			return fmt.Errorf("Unsupported runtime: %s", name)
+	if t := ctx.String("client_request_timeout"); len(t) > 0 {
+		d, err := time.ParseDuration(t)
+		if err != nil {
+			logger.Fatalf("failed to parse client_request_timeout: %v", t)
 		}
-
-		*c.opts.Runtime = r(runtime.WithClient(microClient))
+		clientOpts = append(clientOpts, client.RequestTimeout(d))
 	}
 
-	// Set the tracer
-	if name := ctx.String("tracer"); len(name) > 0 {
-		r, ok := c.opts.Tracers[name]
-		if !ok {
-			return fmt.Errorf("Unsupported tracer: %s", name)
-		}
-
-		*c.opts.Tracer = r()
+	if r := ctx.Int("client_pool_size"); r > 0 {
+		clientOpts = append(clientOpts, client.PoolSize(r))
 	}
 
-	// Set the client
-	if name := ctx.String("client"); len(name) > 0 {
-		// only change if we have the client and type differs
-		if cl, ok := c.opts.Clients[name]; ok && (*c.opts.Client).String() != name {
-			*c.opts.Client = cl()
+	if t := ctx.String("client_pool_ttl"); len(t) > 0 {
+		d, err := time.ParseDuration(t)
+		if err != nil {
+			logger.Fatalf("failed to parse client_pool_ttl: %v", t)
 		}
+		clientOpts = append(clientOpts, client.PoolTTL(d))
 	}
 
-	// Set the server
-	if name := ctx.String("server"); len(name) > 0 {
-		// only change if we have the server and type differs
-		if s, ok := c.opts.Servers[name]; ok && (*c.opts.Server).String() != name {
-			*c.opts.Server = s()
-		}
-	}
+	// Setup server options
+	var serverOpts []server.Option
 
-	// Setup auth
-	authOpts := []auth.Option{auth.WithClient(microClient)}
-
-	if len(ctx.String("auth_id")) > 0 || len(ctx.String("auth_secret")) > 0 {
-		authOpts = append(authOpts, auth.Credentials(
-			ctx.String("auth_id"), ctx.String("auth_secret"),
-		))
-	}
-	if len(ctx.String("auth_public_key")) > 0 {
-		authOpts = append(authOpts, auth.PublicKey(ctx.String("auth_public_key")))
-	}
-	if len(ctx.String("auth_private_key")) > 0 {
-		authOpts = append(authOpts, auth.PrivateKey(ctx.String("auth_private_key")))
-	}
-	if len(ctx.String("service_namespace")) > 0 {
-		authOpts = append(authOpts, auth.Issuer(ctx.String("service_namespace")))
-	}
-	if name := ctx.String("auth_provider"); len(name) > 0 {
-		p, ok := DefaultAuthProviders[name]
-		if !ok {
-			return fmt.Errorf("AuthProvider %s not found", name)
-		}
-
-		var provOpts []provider.Option
-		clientID := ctx.String("auth_provider_client_id")
-		clientSecret := ctx.String("auth_provider_client_secret")
-		if len(clientID) > 0 || len(clientSecret) > 0 {
-			provOpts = append(provOpts, provider.Credentials(clientID, clientSecret))
-		}
-		if e := ctx.String("auth_provider_endpoint"); len(e) > 0 {
-			provOpts = append(provOpts, provider.Endpoint(e))
-		}
-		if r := ctx.String("auth_provider_redirect"); len(r) > 0 {
-			provOpts = append(provOpts, provider.Redirect(r))
-		}
-		if s := ctx.String("auth_provider_scope"); len(s) > 0 {
-			provOpts = append(provOpts, provider.Scope(s))
-		}
-
-		authOpts = append(authOpts, auth.Provider(p(provOpts...)))
-	}
-
-	// Set the auth
-	if name := ctx.String("auth"); len(name) > 0 {
-		a, ok := c.opts.Auths[name]
-		if !ok {
-			return fmt.Errorf("Unsupported auth: %s", name)
-		}
-		*c.opts.Auth = a(authOpts...)
-		serverOpts = append(serverOpts, server.Auth(*c.opts.Auth))
-	} else {
-		(*c.opts.Auth).Init(authOpts...)
-	}
-
-	// Set the registry
-	if name := ctx.String("registry"); len(name) > 0 && (*c.opts.Registry).String() != name {
-		r, ok := c.opts.Registries[name]
-		if !ok {
-			return fmt.Errorf("Registry %s not found", name)
-		}
-
-		*c.opts.Registry = r(registrySrv.WithClient(microClient))
-		serverOpts = append(serverOpts, server.Registry(*c.opts.Registry))
-		clientOpts = append(clientOpts, client.Registry(*c.opts.Registry))
-
-		if err := (*c.opts.Selector).Init(selector.Registry(*c.opts.Registry)); err != nil {
-			logger.Fatalf("Error configuring registry: %v", err)
-		}
-
-		clientOpts = append(clientOpts, client.Selector(*c.opts.Selector))
-
-		if err := (*c.opts.Broker).Init(broker.Registry(*c.opts.Registry)); err != nil {
-			logger.Fatalf("Error configuring broker: %v", err)
-		}
-	}
-
-	// generate the services auth account
-	serverID := (*c.opts.Server).Options().Id
-	if err := authutil.Generate(serverID, c.App().Name, (*c.opts.Auth)); err != nil {
-		return err
-	}
-
-	// Set the profile
-	if name := ctx.String("profile"); len(name) > 0 {
-		p, ok := c.opts.Profiles[name]
-		if !ok {
-			return fmt.Errorf("Unsupported profile: %s", name)
-		}
-
-		*c.opts.Profile = p()
-	}
-
-	// Set the broker
-	if name := ctx.String("broker"); len(name) > 0 && (*c.opts.Broker).String() != name {
-		b, ok := c.opts.Brokers[name]
-		if !ok {
-			return fmt.Errorf("Broker %s not found", name)
-		}
-
-		*c.opts.Broker = b()
-		serverOpts = append(serverOpts, server.Broker(*c.opts.Broker))
-		clientOpts = append(clientOpts, client.Broker(*c.opts.Broker))
-	}
-
-	// Set the selector
-	if name := ctx.String("selector"); len(name) > 0 && (*c.opts.Selector).String() != name {
-		s, ok := c.opts.Selectors[name]
-		if !ok {
-			return fmt.Errorf("Selector %s not found", name)
-		}
-
-		*c.opts.Selector = s(selector.Registry(*c.opts.Registry))
-
-		// No server option here. Should there be?
-		clientOpts = append(clientOpts, client.Selector(*c.opts.Selector))
-	}
-
-	// Set the transport
-	if name := ctx.String("transport"); len(name) > 0 && (*c.opts.Transport).String() != name {
-		t, ok := c.opts.Transports[name]
-		if !ok {
-			return fmt.Errorf("Transport %s not found", name)
-		}
-
-		*c.opts.Transport = t()
-		serverOpts = append(serverOpts, server.Transport(*c.opts.Transport))
-		clientOpts = append(clientOpts, client.Transport(*c.opts.Transport))
-	}
-
-	// Parse the server options
 	metadata := make(map[string]string)
 	for _, d := range ctx.StringSlice("server_metadata") {
 		var key, val string
@@ -669,42 +510,6 @@ func (c *cmd) Before(ctx *cli.Context) error {
 
 	if len(metadata) > 0 {
 		serverOpts = append(serverOpts, server.Metadata(metadata))
-	}
-
-	if len(ctx.String("broker_address")) > 0 {
-		if err := (*c.opts.Broker).Init(broker.Addrs(strings.Split(ctx.String("broker_address"), ",")...)); err != nil {
-			logger.Fatalf("Error configuring broker: %v", err)
-		}
-	}
-
-	if len(ctx.String("registry_address")) > 0 {
-		if err := (*c.opts.Registry).Init(registry.Addrs(strings.Split(ctx.String("registry_address"), ",")...)); err != nil {
-			logger.Fatalf("Error configuring registry: %v", err)
-		}
-	}
-
-	if len(ctx.String("transport_address")) > 0 {
-		if err := (*c.opts.Transport).Init(transport.Addrs(strings.Split(ctx.String("transport_address"), ",")...)); err != nil {
-			logger.Fatalf("Error configuring transport: %v", err)
-		}
-	}
-
-	if len(ctx.String("store_address")) > 0 {
-		if err := (*c.opts.Store).Init(store.Nodes(strings.Split(ctx.String("store_address"), ",")...)); err != nil {
-			logger.Fatalf("Error configuring store: %v", err)
-		}
-	}
-
-	if len(ctx.String("store_database")) > 0 {
-		if err := (*c.opts.Store).Init(store.Database(ctx.String("store_database"))); err != nil {
-			logger.Fatalf("Error configuring store database option: %v", err)
-		}
-	}
-
-	if len(ctx.String("store_table")) > 0 {
-		if err := (*c.opts.Store).Init(store.Table(ctx.String("store_table"))); err != nil {
-			logger.Fatalf("Error configuring store table option: %v", err)
-		}
 	}
 
 	if len(ctx.String("server_name")) > 0 {
@@ -735,12 +540,229 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		serverOpts = append(serverOpts, server.RegisterInterval(val*time.Second))
 	}
 
+	// setup a client to use when calling the runtime. It is important the auth client is wrapped
+	// after the cache client since the wrappers are applied in reverse order and the cache will use
+	// some of the headers set by the auth client.
+	authFn := func() auth.Auth { return *c.opts.Auth }
+	cacheFn := func() *client.Cache { return (*c.opts.Client).Options().Cache }
+	microClient := wrapper.CacheClient(cacheFn, grpc.NewClient())
+	microClient = wrapper.AuthClient(authFn, microClient)
+
+	// Setup store options
+	storeOpts := []store.Option{store.WithClient(microClient)}
+	if len(ctx.String("store_address")) > 0 {
+		storeOpts = append(storeOpts, store.Nodes(strings.Split(ctx.String("store_address"), ",")...))
+	}
+	if len(ctx.String("store_database")) > 0 {
+		storeOpts = append(storeOpts, store.Database(ctx.String("store_database")))
+	}
+	if len(ctx.String("store_table")) > 0 {
+		storeOpts = append(storeOpts, store.Table(ctx.String("store_table")))
+	}
+
+	// Set the store
+	if name := ctx.String("store"); len(name) > 0 {
+		s, ok := c.opts.Stores[name]
+		if !ok {
+			logger.Fatalf("Unsupported store: %s", name)
+		}
+
+		*c.opts.Store = s(storeOpts...)
+	} else if len(storeOpts) > 0 {
+		if err := (*c.opts.Store).Init(storeOpts...); err != nil {
+			logger.Fatalf("Error configuring store: %v", err)
+		}
+	}
+
+	// Setup the runtime options
+	runtimeOpts := []runtime.Option{runtime.WithClient(microClient)}
 	if len(ctx.String("runtime_source")) > 0 {
-		if err := (*c.opts.Runtime).Init(runtime.WithSource(ctx.String("runtime_source"))); err != nil {
+		runtimeOpts = append(runtimeOpts, runtime.WithSource(ctx.String("runtime_source")))
+	}
+
+	// Set the runtime
+	if name := ctx.String("runtime"); len(name) > 0 {
+		r, ok := c.opts.Runtimes[name]
+		if !ok {
+			logger.Fatalf("Unsupported runtime: %s", name)
+		}
+
+		*c.opts.Runtime = r(runtimeOpts...)
+	} else if len(runtimeOpts) > 0 {
+		if err := (*c.opts.Runtime).Init(runtimeOpts...); err != nil {
 			logger.Fatalf("Error configuring runtime: %v", err)
 		}
 	}
 
+	// Set the tracer
+	if name := ctx.String("tracer"); len(name) > 0 {
+		r, ok := c.opts.Tracers[name]
+		if !ok {
+			logger.Fatalf("Unsupported tracer: %s", name)
+		}
+
+		*c.opts.Tracer = r()
+	}
+
+	// Setup broker options.
+	brokerOpts := []broker.Option{}
+	if len(ctx.String("broker_address")) > 0 {
+		brokerOpts = append(brokerOpts, broker.Addrs(ctx.String("broker_address")))
+	}
+
+	// Setup registry options
+	registryOpts := []registry.Option{registrySrv.WithClient(microClient)}
+	if len(ctx.String("registry_address")) > 0 {
+		addresses := strings.Split(ctx.String("registry_address"), ",")
+		registryOpts = append(registryOpts, registry.Addrs(addresses...))
+	}
+
+	// Setup auth options
+	authOpts := []auth.Option{auth.WithClient(microClient)}
+	if len(ctx.String("auth_id")) > 0 || len(ctx.String("auth_secret")) > 0 {
+		authOpts = append(authOpts, auth.Credentials(
+			ctx.String("auth_id"), ctx.String("auth_secret"),
+		))
+	}
+	if len(ctx.String("auth_public_key")) > 0 {
+		authOpts = append(authOpts, auth.PublicKey(ctx.String("auth_public_key")))
+	}
+	if len(ctx.String("auth_private_key")) > 0 {
+		authOpts = append(authOpts, auth.PrivateKey(ctx.String("auth_private_key")))
+	}
+	if len(ctx.String("service_namespace")) > 0 {
+		authOpts = append(authOpts, auth.Issuer(ctx.String("service_namespace")))
+	}
+	if name := ctx.String("auth_provider"); len(name) > 0 {
+		p, ok := DefaultAuthProviders[name]
+		if !ok {
+			logger.Fatalf("AuthProvider %s not found", name)
+		}
+
+		var provOpts []provider.Option
+		clientID := ctx.String("auth_provider_client_id")
+		clientSecret := ctx.String("auth_provider_client_secret")
+		if len(clientID) > 0 || len(clientSecret) > 0 {
+			provOpts = append(provOpts, provider.Credentials(clientID, clientSecret))
+		}
+		if e := ctx.String("auth_provider_endpoint"); len(e) > 0 {
+			provOpts = append(provOpts, provider.Endpoint(e))
+		}
+		if r := ctx.String("auth_provider_redirect"); len(r) > 0 {
+			provOpts = append(provOpts, provider.Redirect(r))
+		}
+		if s := ctx.String("auth_provider_scope"); len(s) > 0 {
+			provOpts = append(provOpts, provider.Scope(s))
+		}
+
+		authOpts = append(authOpts, auth.Provider(p(provOpts...)))
+	}
+
+	// Set the auth
+	if name := ctx.String("auth"); len(name) > 0 {
+		a, ok := c.opts.Auths[name]
+		if !ok {
+			logger.Fatalf("Unsupported auth: %s", name)
+		}
+		*c.opts.Auth = a(authOpts...)
+		serverOpts = append(serverOpts, server.Auth(*c.opts.Auth))
+	} else if len(authOpts) > 0 {
+		(*c.opts.Auth).Init(authOpts...)
+	}
+
+	// Setup selector options
+	selectorOpts := []selector.Option{selector.Registry(*c.opts.Registry)}
+
+	// Set the registry
+	if name := ctx.String("registry"); len(name) > 0 && (*c.opts.Registry).String() != name {
+		r, ok := c.opts.Registries[name]
+		if !ok {
+			logger.Fatalf("Registry %s not found", name)
+		}
+
+		*c.opts.Registry = r(registryOpts...)
+		serverOpts = append(serverOpts, server.Registry(*c.opts.Registry))
+		clientOpts = append(clientOpts, client.Registry(*c.opts.Registry))
+		brokerOpts = append(brokerOpts, broker.Registry(*c.opts.Registry))
+		selectorOpts = append(selectorOpts, selector.Registry(*c.opts.Registry))
+	} else if len(registryOpts) > 0 {
+		if err := (*c.opts.Registry).Init(registryOpts...); err != nil {
+			logger.Fatalf("Error configuring registry: %v", err)
+		}
+	}
+
+	// generate the services auth account.
+	// todo: move this so it only runs for new services
+	serverID := (*c.opts.Server).Options().Id
+	if err := authutil.Generate(serverID, c.App().Name, (*c.opts.Auth)); err != nil {
+		return err
+	}
+
+	// Set the profile
+	if name := ctx.String("profile"); len(name) > 0 {
+		p, ok := c.opts.Profiles[name]
+		if !ok {
+			logger.Fatalf("Unsupported profile: %s", name)
+		}
+
+		*c.opts.Profile = p()
+	}
+
+	// Set the broker
+	if name := ctx.String("broker"); len(name) > 0 && (*c.opts.Broker).String() != name {
+		b, ok := c.opts.Brokers[name]
+		if !ok {
+			logger.Fatalf("Broker %s not found", name)
+		}
+
+		*c.opts.Broker = b(brokerOpts...)
+		serverOpts = append(serverOpts, server.Broker(*c.opts.Broker))
+		clientOpts = append(clientOpts, client.Broker(*c.opts.Broker))
+	} else if len(brokerOpts) > 0 {
+		if err := (*c.opts.Broker).Init(brokerOpts...); err != nil {
+			logger.Fatalf("Error configuring broker: %v", err)
+		}
+	}
+
+	// Set the selector
+	if name := ctx.String("selector"); len(name) > 0 && (*c.opts.Selector).String() != name {
+		s, ok := c.opts.Selectors[name]
+		if !ok {
+			logger.Fatalf("Selector %s not found", name)
+		}
+
+		*c.opts.Selector = s(selectorOpts...)
+		clientOpts = append(clientOpts, client.Selector(*c.opts.Selector))
+	} else if len(selectorOpts) > 0 {
+		if err := (*c.opts.Selector).Init(selectorOpts...); err != nil {
+			logger.Fatalf("Error configuring selctor: %v", err)
+		}
+	}
+
+	// Setup the transport options
+	var transportOpts []transport.Option
+	if len(ctx.String("transport_address")) > 0 {
+		addresses := strings.Split(ctx.String("transport_address"), ",")
+		transportOpts = append(transportOpts, transport.Addrs(addresses...))
+	}
+
+	// Set the transport
+	if name := ctx.String("transport"); len(name) > 0 && (*c.opts.Transport).String() != name {
+		t, ok := c.opts.Transports[name]
+		if !ok {
+			logger.Fatalf("Transport %s not found", name)
+		}
+
+		*c.opts.Transport = t(transportOpts...)
+		serverOpts = append(serverOpts, server.Transport(*c.opts.Transport))
+		clientOpts = append(clientOpts, client.Transport(*c.opts.Transport))
+	} else if len(transportOpts) > 0 {
+		if err := (*c.opts.Transport).Init(transportOpts...); err != nil {
+			logger.Fatalf("Error configuring transport: %v", err)
+		}
+	}
+
+	// Setup config sources
 	if ctx.String("config") == "service" {
 		opt := config.WithSource(configSrv.NewSource(configSrc.WithClient(microClient)))
 		if err := (*c.opts.Config).Init(opt); err != nil {
@@ -748,43 +770,31 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		}
 	}
 
-	// client opts
-	if r := ctx.Int("client_retries"); r >= 0 {
-		clientOpts = append(clientOpts, client.Retries(r))
-	}
-
-	if t := ctx.String("client_request_timeout"); len(t) > 0 {
-		d, err := time.ParseDuration(t)
-		if err != nil {
-			return fmt.Errorf("failed to parse client_request_timeout: %v", t)
+	// Set the client
+	if name := ctx.String("client"); len(name) > 0 && (*c.opts.Client).String() != name {
+		cl, ok := c.opts.Clients[name]
+		if !ok {
+			logger.Fatalf("Client %s not found", name)
 		}
-		clientOpts = append(clientOpts, client.RequestTimeout(d))
-	}
 
-	if r := ctx.Int("client_pool_size"); r > 0 {
-		clientOpts = append(clientOpts, client.PoolSize(r))
-	}
-
-	if t := ctx.String("client_pool_ttl"); len(t) > 0 {
-		d, err := time.ParseDuration(t)
-		if err != nil {
-			return fmt.Errorf("failed to parse client_pool_ttl: %v", t)
-		}
-		clientOpts = append(clientOpts, client.PoolTTL(d))
-	}
-
-	// We have some command line opts for the server.
-	// Lets set it up
-	if len(serverOpts) > 0 {
-		if err := (*c.opts.Server).Init(serverOpts...); err != nil {
-			logger.Fatalf("Error configuring server: %v", err)
-		}
-	}
-
-	// Use an init option?
-	if len(clientOpts) > 0 {
+		*c.opts.Client = cl(clientOpts...)
+	} else if len(clientOpts) > 0 {
 		if err := (*c.opts.Client).Init(clientOpts...); err != nil {
 			logger.Fatalf("Error configuring client: %v", err)
+		}
+	}
+
+	// Set the server
+	if name := ctx.String("server"); len(name) > 0 && (*c.opts.Server).String() != name {
+		s, ok := c.opts.Servers[name]
+		if !ok {
+			logger.Fatalf("Server %s not found", name)
+		}
+
+		*c.opts.Server = s(serverOpts...)
+	} else if len(serverOpts) > 0 {
+		if err := (*c.opts.Server).Init(serverOpts...); err != nil {
+			logger.Fatalf("Error configuring server: %v", err)
 		}
 	}
 
