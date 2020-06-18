@@ -281,7 +281,7 @@ func (m *Registry) Deregister(s *registry.Service, opts ...registry.DeregisterOp
 
 	// if this version was the only version of the service, we can remove the whole service from the
 	// registry and exit
-	if len(versions) == 0 {
+	if len(versions) == 1 {
 		delete(m.records[options.Domain], s.Name)
 		go m.sendEvent(&registry.Result{Action: "delete", Service: s})
 
