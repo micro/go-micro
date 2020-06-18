@@ -35,11 +35,14 @@ func serviceToRecord(s *registry.Service, ttl time.Duration) *record {
 	}
 }
 
-func recordToService(r *record) *registry.Service {
+func recordToService(r *record, domain string) *registry.Service {
 	metadata := make(map[string]string, len(r.Metadata))
 	for k, v := range r.Metadata {
 		metadata[k] = v
 	}
+
+	// set the domain in metadata so it can be determined when a wildcard query is performed
+	metadata["domain"] = domain
 
 	endpoints := make([]*registry.Endpoint, len(r.Endpoints))
 	for i, e := range r.Endpoints {
