@@ -41,12 +41,16 @@ func newConfig(opts ...Option) (Config, error) {
 
 func (c *config) Init(opts ...Option) error {
 	c.opts = Options{
-		Loader: memory.NewLoader(),
 		Reader: json.NewReader(),
 	}
 	c.exit = make(chan bool)
 	for _, o := range opts {
 		o(&c.opts)
+	}
+
+	// default loader uses the configured reader
+	if c.opts.Loader == nil {
+		c.opts.Loader = memory.NewLoader(memory.WithReader(c.opts.Reader))
 	}
 
 	err := c.opts.Loader.Load(c.opts.Source...)
