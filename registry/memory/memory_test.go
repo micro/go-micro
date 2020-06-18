@@ -257,26 +257,26 @@ func TestMemoryWildcard(t *testing.T) {
 	}
 
 	if recs, err := m.ListServices(registry.ListDomain("one")); err != nil {
-		t.Fatalf("List err: %v", err)
+		t.Errorf("List err: %v", err)
 	} else if len(recs) != 1 {
-		t.Fatalf("Expected 1 record, got %v", len(recs))
+		t.Errorf("Expected 1 record, got %v", len(recs))
 	}
 
 	if recs, err := m.ListServices(registry.ListDomain("*")); err != nil {
-		t.Fatalf("List err: %v", err)
+		t.Errorf("List err: %v", err)
 	} else if len(recs) != 2 {
-		t.Fatalf("Expected 2 records, got %v", len(recs))
+		t.Errorf("Expected 2 records, got %v", len(recs))
 	}
 
 	if recs, err := m.GetService(testSrv.Name, registry.GetDomain("one")); err != nil {
-		t.Fatalf("List err: %v", err)
+		t.Errorf("List err: %v", err)
 	} else if len(recs) != 1 {
-		t.Fatalf("Expected 1 record, got %v", len(recs))
+		t.Errorf("Expected 1 record, got %v", len(recs))
 	}
 
 	if recs, err := m.GetService(testSrv.Name, registry.GetDomain("*")); err != nil {
-		t.Fatalf("List err: %v", err)
+		t.Errorf("List err: %v", err)
 	} else if len(recs) != 2 {
-		t.Fatalf("Expected 2 records, got %v", len(recs))
+		t.Errorf("Expected 2 records, got %v", len(recs))
 	}
 }
