@@ -55,12 +55,12 @@ func NewRegistry(opts ...registry.Option) registry.Registry {
 	// records can be passed for testing purposes
 	records := getServiceRecords(options.Context)
 	if records == nil {
-		records = make(map[string]map[string]*record)
+		records = make(services)
 	}
 
 	reg := &Registry{
 		options:  options,
-		records:  make(map[string]services),
+		records:  map[string]services{defaultDomain: records},
 		watchers: make(map[string]*Watcher),
 	}
 
@@ -319,12 +319,17 @@ func (m *Registry) GetService(name string, opts ...registry.GetOption) ([]*regis
 		var services []*registry.Service
 		for domain := range recs {
 			srvs, err := m.GetService(name, append(opts, registry.GetDomain(domain))...)
-			if err != nil {
+			if err == registry.ErrNotFound {
+				continue
+			} else if err != nil {
 				return nil, err
 			}
 			services = append(services, srvs...)
 		}
 
+		if len(services) == 0 {
+			return nil, registry.ErrNotFound
+		}
 		return services, nil
 	}
 

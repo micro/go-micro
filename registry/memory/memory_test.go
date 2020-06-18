@@ -269,13 +269,13 @@ func TestMemoryWildcard(t *testing.T) {
 	}
 
 	if recs, err := m.GetService(testSrv.Name, registry.GetDomain("one")); err != nil {
-		t.Errorf("List err: %v", err)
+		t.Errorf("Get err: %v", err)
 	} else if len(recs) != 1 {
 		t.Errorf("Expected 1 record, got %v", len(recs))
 	}
 
 	if recs, err := m.GetService(testSrv.Name, registry.GetDomain("*")); err != nil {
-		t.Errorf("List err: %v", err)
+		t.Errorf("Get err: %v", err)
 	} else if len(recs) != 2 {
 		t.Errorf("Expected 2 records, got %v", len(recs))
 	}
