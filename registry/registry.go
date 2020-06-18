@@ -5,6 +5,11 @@ import (
 	"errors"
 )
 
+const (
+	// WildcardDomain indicates any domain
+	WildcardDomain = "*"
+)
+
 var (
 	DefaultRegistry = NewRegistry()
 
