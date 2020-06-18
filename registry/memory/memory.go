@@ -312,9 +312,9 @@ func (m *Registry) GetService(name string, opts ...registry.GetOption) ([]*regis
 
 	// if it's a wildcard domain, return from all domains
 	if options.Domain == registry.WildcardDomain {
-		m.Lock()
+		m.RLock()
 		recs := m.records
-		m.Unlock()
+		m.RUnlock()
 
 		var services []*registry.Service
 		for domain := range recs {
@@ -370,9 +370,9 @@ func (m *Registry) ListServices(opts ...registry.ListOption) ([]*registry.Servic
 
 	// if it's a wildcard domain, list from all domains
 	if options.Domain == registry.WildcardDomain {
-		m.Lock()
+		m.RLock()
 		recs := m.records
-		m.Unlock()
+		m.RUnlock()
 
 		var services []*registry.Service
 		for domain := range recs {
