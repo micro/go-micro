@@ -13,11 +13,9 @@ fi
 IN_TRAVIS_CI=yes go test -v ./...
 
 ./scripts/test-docker.sh
-pushd test
 # Generate keys for JWT tests
 ssh-keygen -f /tmp/sshkey -m pkcs8 -q -N ""
 ssh-keygen -f /tmp/sshkey -e  -m pkcs8 > /tmp/sshkey.pub
-IN_TRAVIS_CI=yes go clean -testcache && go test --tags=integration -v ./...
+IN_TRAVIS_CI=yes go clean -testcache && go test --tags=integration -v ./test
 ret=$? 
-popd
 echo $ret
