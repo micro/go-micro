@@ -121,22 +121,6 @@ func TestAuthHandler(t *testing.T) {
 		}
 	})
 
-	// If the Authorization header is blank, no error should be returned and verify not called
-	t.Run("BlankAuthorizationHeader", func(t *testing.T) {
-		a := testAuth{}
-		handler := AuthHandler(func() auth.Auth {
-			return &a
-		})
-
-		err := handler(h)(context.TODO(), serviceReq, nil)
-		if err != nil {
-			t.Errorf("Expected nil error but got %v", err)
-		}
-		if a.inspectCount != 0 {
-			t.Errorf("Did not expect inspect to be called")
-		}
-	})
-
 	// If the Authorization header is invalid, an error should be returned and verify not called
 	t.Run("InvalidAuthorizationHeader", func(t *testing.T) {
 		a := testAuth{}
@@ -173,7 +157,7 @@ func TestAuthHandler(t *testing.T) {
 
 	// If the issuer header was not set on the request, the wrapper should set it to the auths
 	// own issuer
-	t.Run("BlankissuerHeader", func(t *testing.T) {
+	t.Run("BlankIssuerHeader", func(t *testing.T) {
 		a := testAuth{issuer: "myissuer"}
 		handler := AuthHandler(func() auth.Auth {
 			return &a
@@ -193,7 +177,7 @@ func TestAuthHandler(t *testing.T) {
 			t.Errorf("Expected issuer to be set to %v but was %v", a.issuer, ns)
 		}
 	})
-	t.Run("ValidissuerHeader", func(t *testing.T) {
+	t.Run("ValidIssuerHeader", func(t *testing.T) {
 		a := testAuth{issuer: "myissuer"}
 		handler := AuthHandler(func() auth.Auth {
 			return &a
