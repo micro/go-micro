@@ -197,10 +197,12 @@ func AuthHandler(fn func() auth.Auth) server.HandlerWrapper {
 				if !strings.HasPrefix(header, auth.BearerScheme) {
 					return errors.Unauthorized(req.Service(), "invalid authorization header. expected Bearer schema")
 				}
+
+				// Strip the bearer scheme prefix
 				token = strings.TrimPrefix(header, auth.BearerScheme)
 			}
 
-			// Strip the prefix and inspect the resulting token
+			// Inspect the token and decode an account
 			account, _ := a.Inspect(token)
 
 			// Extract the namespace header
