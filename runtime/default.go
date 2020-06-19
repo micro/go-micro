@@ -344,6 +344,7 @@ func (r *runtime) Create(s *Service, opts ...CreateOption) error {
 	if len(options.Namespace) == 0 {
 		options.Namespace = defaultNamespace
 	}
+
 	if len(options.Command) == 0 {
 		options.Command = []string{"go"}
 		options.Args = []string{"run", "."}

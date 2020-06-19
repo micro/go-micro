@@ -3,6 +3,8 @@ package runtime
 import (
 	"fmt"
 	"io"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -46,6 +48,15 @@ func newService(s *Service, c CreateOptions) *service {
 	exec = strings.Join(c.Command, " ")
 	args = c.Args
 
+	dir := s.Source
+	// for uploaded packages, we upload the whole repo
+	// so the correct working directory to do a `go run .`
+	// needs to include the relative path from the repo root
+	// which is the service name
+	if _, err := os.Stat(s.Source); !os.IsNotExist(err) {
+		dir = filepath.Join(s.Source, s.Name)
+	}
+
 	return &service{
 		Service: s,
 		Process: new(proc.Process),
@@ -56,7 +67,7 @@ func newService(s *Service, c CreateOptions) *service {
 			},
 			Env:  c.Env,
 			Args: args,
-			Dir:  s.Source,
+			Dir:  dir,
 		},
 		closed:     make(chan bool),
 		output:     c.Output,
