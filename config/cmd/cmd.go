@@ -617,6 +617,9 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		registryOpts = append(registryOpts, registry.Addrs(addresses...))
 	}
 
+	// Setup selector options
+	selectorOpts := []selector.Option{selector.Registry(*c.opts.Registry)}
+
 	// Setup auth options
 	authOpts := []auth.Option{auth.WithClient(microClient)}
 	if len(ctx.String("auth_id")) > 0 || len(ctx.String("auth_secret")) > 0 {
@@ -631,6 +634,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		authOpts = append(authOpts, auth.PrivateKey(ctx.String("auth_private_key")))
 	}
 	if ns := ctx.String("service_namespace"); len(ns) > 0 {
+		selectorOpts = append(selectorOpts, selector.Domain(ns))
 		serverOpts = append(serverOpts, server.Namespace(ns))
 		authOpts = append(authOpts, auth.Issuer(ns))
 	}
@@ -670,9 +674,6 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	} else if len(authOpts) > 0 {
 		(*c.opts.Auth).Init(authOpts...)
 	}
-
-	// Setup selector options
-	selectorOpts := []selector.Option{selector.Registry(*c.opts.Registry)}
 
 	// Set the registry
 	if name := ctx.String("registry"); len(name) > 0 && (*c.opts.Registry).String() != name {
