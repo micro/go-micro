@@ -692,6 +692,21 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		}
 	}
 
+	// Set the selector
+	if name := ctx.String("selector"); len(name) > 0 && (*c.opts.Selector).String() != name {
+		s, ok := c.opts.Selectors[name]
+		if !ok {
+			logger.Fatalf("Selector %s not found", name)
+		}
+
+		*c.opts.Selector = s(selectorOpts...)
+		clientOpts = append(clientOpts, client.Selector(*c.opts.Selector))
+	} else if len(selectorOpts) > 0 {
+		if err := (*c.opts.Selector).Init(selectorOpts...); err != nil {
+			logger.Fatalf("Error configuring selctor: %v", err)
+		}
+	}
+
 	// generate the services auth account.
 	// todo: move this so it only runs for new services
 	serverID := (*c.opts.Server).Options().Id
@@ -722,21 +737,6 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	} else if len(brokerOpts) > 0 {
 		if err := (*c.opts.Broker).Init(brokerOpts...); err != nil {
 			logger.Fatalf("Error configuring broker: %v", err)
-		}
-	}
-
-	// Set the selector
-	if name := ctx.String("selector"); len(name) > 0 && (*c.opts.Selector).String() != name {
-		s, ok := c.opts.Selectors[name]
-		if !ok {
-			logger.Fatalf("Selector %s not found", name)
-		}
-
-		*c.opts.Selector = s(selectorOpts...)
-		clientOpts = append(clientOpts, client.Selector(*c.opts.Selector))
-	} else if len(selectorOpts) > 0 {
-		if err := (*c.opts.Selector).Init(selectorOpts...); err != nil {
-			logger.Fatalf("Error configuring selctor: %v", err)
 		}
 	}
 
