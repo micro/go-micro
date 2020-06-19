@@ -59,7 +59,7 @@ func NewRegistry(opts ...registry.Option) registry.Registry {
 
 	reg := &Registry{
 		options:  options,
-		records:  map[string]services{registry.registry.DefaultDomain: records},
+		records:  map[string]services{registry.DefaultDomain: records},
 		watchers: make(map[string]*Watcher),
 	}
 
