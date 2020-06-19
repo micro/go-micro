@@ -14,7 +14,6 @@ import (
 var (
 	sendEventTime = 10 * time.Millisecond
 	ttlPruneTime  = time.Second
-	defaultDomain = "micro"
 )
 
 type node struct {
@@ -60,7 +59,7 @@ func NewRegistry(opts ...registry.Option) registry.Registry {
 
 	reg := &Registry{
 		options:  options,
-		records:  map[string]services{defaultDomain: records},
+		records:  map[string]services{registry.registry.DefaultDomain: records},
 		watchers: make(map[string]*Watcher),
 	}
 
@@ -129,7 +128,7 @@ func (m *Registry) Init(opts ...registry.Option) error {
 	defer m.Unlock()
 
 	// get the existing services from the records
-	srvs, ok := m.records[defaultDomain]
+	srvs, ok := m.records[registry.DefaultDomain]
 	if !ok {
 		srvs = make(services)
 	}
@@ -151,7 +150,7 @@ func (m *Registry) Init(opts ...registry.Option) error {
 	}
 
 	// set the services in the registry
-	m.records[defaultDomain] = srvs
+	m.records[registry.DefaultDomain] = srvs
 	return nil
 }
 
@@ -169,7 +168,7 @@ func (m *Registry) Register(s *registry.Service, opts ...registry.RegisterOption
 		o(&options)
 	}
 	if len(options.Domain) == 0 {
-		options.Domain = defaultDomain
+		options.Domain = registry.DefaultDomain
 	}
 
 	// get the services for this domain from the registry
@@ -243,7 +242,7 @@ func (m *Registry) Deregister(s *registry.Service, opts ...registry.DeregisterOp
 		o(&options)
 	}
 	if len(options.Domain) == 0 {
-		options.Domain = defaultDomain
+		options.Domain = registry.DefaultDomain
 	}
 
 	// if the domain doesn't exist, there is nothing to deregister
@@ -307,7 +306,7 @@ func (m *Registry) GetService(name string, opts ...registry.GetOption) ([]*regis
 		o(&options)
 	}
 	if len(options.Domain) == 0 {
-		options.Domain = defaultDomain
+		options.Domain = registry.DefaultDomain
 	}
 
 	// if it's a wildcard domain, return from all domains
@@ -365,7 +364,7 @@ func (m *Registry) ListServices(opts ...registry.ListOption) ([]*registry.Servic
 		o(&options)
 	}
 	if len(options.Domain) == 0 {
-		options.Domain = defaultDomain
+		options.Domain = registry.DefaultDomain
 	}
 
 	// if it's a wildcard domain, list from all domains
@@ -412,7 +411,7 @@ func (m *Registry) Watch(opts ...registry.WatchOption) (registry.Watcher, error)
 		o(&wo)
 	}
 	if len(wo.Domain) == 0 {
-		wo.Domain = defaultDomain
+		wo.Domain = registry.DefaultDomain
 	}
 
 	// construct the watcher
