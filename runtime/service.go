@@ -3,7 +3,6 @@ package runtime
 import (
 	"fmt"
 	"io"
-	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -49,11 +48,14 @@ func newService(s *Service, c CreateOptions) *service {
 	args = c.Args
 
 	dir := s.Source
-	// for uploaded packages, we upload the whole repo
+
+	// For uploaded packages, we upload the whole repo
 	// so the correct working directory to do a `go run .`
 	// needs to include the relative path from the repo root
-	// which is the service name
-	if _, err := os.Stat(s.Source); !os.IsNotExist(err) {
+	// which is the service name.
+	//
+	// Could use a better upload check
+	if strings.Contains(s.Source, "uploads") {
 		dir = filepath.Join(s.Source, s.Name)
 	}
 
