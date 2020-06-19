@@ -78,17 +78,14 @@ func (s *serviceRegistry) Register(srv *registry.Service, opts ...registry.Regis
 		options.Context = context.TODO()
 	}
 
-	// encode srv into protobuf and pack Register TTL into it
+	// encode srv into protobuf and pack TTL and domain into it
 	pbSrv := ToProto(srv)
 	pbSrv.Options.Ttl = int64(options.TTL.Seconds())
+	pbSrv.Options.Domain = options.Domain
 
 	// register the service
 	_, err := s.client.Register(options.Context, pbSrv, s.callOpts()...)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func (s *serviceRegistry) Deregister(srv *registry.Service, opts ...registry.DeregisterOption) error {
@@ -100,12 +97,13 @@ func (s *serviceRegistry) Deregister(srv *registry.Service, opts ...registry.Der
 		options.Context = context.TODO()
 	}
 
+	// encode srv into protobuf and pack domain into it
+	pbSrv := ToProto(srv)
+	pbSrv.Options.Domain = options.Domain
+
 	// deregister the service
-	_, err := s.client.Deregister(options.Context, ToProto(srv), s.callOpts()...)
-	if err != nil {
-		return err
-	}
-	return nil
+	_, err := s.client.Deregister(options.Context, pbSrv, s.callOpts()...)
+	return err
 }
 
 func (s *serviceRegistry) GetService(name string, opts ...registry.GetOption) ([]*registry.Service, error) {
@@ -118,7 +116,7 @@ func (s *serviceRegistry) GetService(name string, opts ...registry.GetOption) ([
 	}
 
 	rsp, err := s.client.GetService(options.Context, &pb.GetRequest{
-		Service: name,
+		Service: name, Options: &pb.Options{Domain: options.Domain},
 	}, s.callOpts()...)
 
 	if verr, ok := err.(*errors.Error); ok && verr.Code == 404 {
@@ -143,7 +141,8 @@ func (s *serviceRegistry) ListServices(opts ...registry.ListOption) ([]*registry
 		options.Context = context.TODO()
 	}
 
-	rsp, err := s.client.ListServices(options.Context, &pb.ListRequest{}, s.callOpts()...)
+	req := &pb.ListRequest{Options: &pb.Options{Domain: options.Domain}}
+	rsp, err := s.client.ListServices(options.Context, req, s.callOpts()...)
 	if err != nil {
 		return nil, err
 	}
@@ -166,7 +165,7 @@ func (s *serviceRegistry) Watch(opts ...registry.WatchOption) (registry.Watcher,
 	}
 
 	stream, err := s.client.Watch(options.Context, &pb.WatchRequest{
-		Service: options.Service,
+		Service: options.Service, Options: &pb.Options{Domain: options.Domain},
 	}, s.callOpts()...)
 
 	if err != nil {
