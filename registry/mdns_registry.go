@@ -20,9 +20,7 @@ import (
 	"github.com/micro/go-micro/v2/util/mdns"
 )
 
-var (
-	// use a .micro tld rather than .local by default
-	defaultDomain = "micro"
+const (
 	// every service is written to the global domain so * domain queries work, e.g.
 	// calling mdns.List(registry.ListDomain("*")) will list the services across all
 	// domains
@@ -149,7 +147,7 @@ func newRegistry(opts ...Option) Registry {
 	}
 
 	// set the domain
-	defaultDomain := defaultDomain
+	defaultDomain := DefaultDomain
 
 	d, ok := options.Context.Value("mdns.domain").(string)
 	if ok {
