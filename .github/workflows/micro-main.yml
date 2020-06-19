@@ -1,8 +1,5 @@
 name: Build and test micro
 on:
-  push: 
-    branches:
-      - 'release-**'
   pull_request:
     branches:
       - master
@@ -32,6 +29,6 @@ jobs:
         path: 'micro'
 
     - name: Build all
-      run: $GITHUB_WORKSPACE/go-micro/.github/workflows/scripts/build-micro.sh $GITHUB_SHA
+      run: $GITHUB_WORKSPACE/go-micro/.github/workflows/scripts/build-micro.sh ${{ github.event.pull_request.head.sha }}
       working-directory: micro
     
