@@ -278,7 +278,7 @@ var (
 			Name:    "service_namespace",
 			EnvVars: []string{"MICRO_NAMESPACE"},
 			Usage:   "Namespace the service is operating in",
-			Value:   "go.micro",
+			Value:   "micro",
 		},
 		&cli.StringFlag{
 			Name:    "auth_public_key",
@@ -630,8 +630,9 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	if len(ctx.String("auth_private_key")) > 0 {
 		authOpts = append(authOpts, auth.PrivateKey(ctx.String("auth_private_key")))
 	}
-	if len(ctx.String("service_namespace")) > 0 {
-		authOpts = append(authOpts, auth.Issuer(ctx.String("service_namespace")))
+	if ns := ctx.String("service_namespace"); len(ns) > 0 {
+		serverOpts = append(serverOpts, server.Namespace(ns))
+		authOpts = append(authOpts, auth.Issuer(ns))
 	}
 	if name := ctx.String("auth_provider"); len(name) > 0 {
 		p, ok := DefaultAuthProviders[name]

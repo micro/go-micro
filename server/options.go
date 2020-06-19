@@ -26,6 +26,7 @@ type Options struct {
 	Address      string
 	Advertise    string
 	Id           string
+	Namespace    string
 	Version      string
 	HdlrWrappers []HandlerWrapper
 	SubWrappers  []SubscriberWrapper
@@ -103,6 +104,13 @@ func newOptions(opt ...Option) Options {
 func Name(n string) Option {
 	return func(o *Options) {
 		o.Name = n
+	}
+}
+
+// Namespace to register handlers in
+func Namespace(n string) Option {
+	return func(o *Options) {
+		o.Namespace = n
 	}
 }
 
