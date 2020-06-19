@@ -46,6 +46,7 @@ message Value {
 // Options are registry options
 message Options {
 	int64 ttl = 1;
+	string domain = 2;
 }
 
 // Result is returns by the watcher
@@ -59,6 +60,7 @@ message EmptyResponse {}
 
 message GetRequest {
 	string service = 1;
+	Options options = 2;
 }
 
 message GetResponse {
@@ -66,7 +68,7 @@ message GetResponse {
 }
 
 message ListRequest {
-	// TODO: filtering
+	Options options = 1;
 }
 
 message ListResponse {
@@ -76,6 +78,7 @@ message ListResponse {
 message WatchRequest {
 	// service is optional
 	string service = 1;
+	Options options = 2;
 }
 
 // EventType defines the type of event

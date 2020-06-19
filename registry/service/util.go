@@ -76,10 +76,15 @@ func ToProto(s *registry.Service) *pb.Service {
 		})
 	}
 
+	metadata := s.Metadata
+	if metadata == nil {
+		metadata = make(map[string]string)
+	}
+
 	return &pb.Service{
 		Name:      s.Name,
 		Version:   s.Version,
-		Metadata:  s.Metadata,
+		Metadata:  metadata,
 		Endpoints: endpoints,
 		Nodes:     nodes,
 		Options:   new(pb.Options),
