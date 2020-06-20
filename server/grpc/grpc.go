@@ -183,7 +183,17 @@ func (g *grpcServer) getListener() net.Listener {
 	return nil
 }
 
-func (g *grpcServer) handler(srv interface{}, stream grpc.ServerStream) error {
+func (g *grpcServer) handler(srv interface{}, stream grpc.ServerStream) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
+				logger.Error("panic recovered: ", r)
+				logger.Error(string(debug.Stack()))
+			}
+			err = errors.InternalServerError("go.micro.server", "panic recovered: %v", r)
+		}
+	}()
+
 	if g.wg != nil {
 		g.wg.Add(1)
 		defer g.wg.Done()
