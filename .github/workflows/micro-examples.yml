@@ -1,8 +1,8 @@
 name: Build all github.com/micro/examples
 on:
-  push: 
+  pull_request:
     branches:
-      - 'release-**'
+      - master
 
 jobs:
 
@@ -29,6 +29,6 @@ jobs:
         path: 'examples'
 
     - name: Build all
-      run: $GITHUB_WORKSPACE/go-micro/.github/workflows/scripts/build-all-examples.sh $GITHUB_SHA
+      run: $GITHUB_WORKSPACE/go-micro/.github/workflows/scripts/build-all-examples.sh ${{ github.event.pull_request.head.sha }}
       working-directory: examples
     
