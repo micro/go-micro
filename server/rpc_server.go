@@ -522,7 +522,10 @@ func (s *rpcServer) Register() error {
 
 	regFunc := func(service *registry.Service) error {
 		// create registry options
-		rOpts := []registry.RegisterOption{registry.RegisterTTL(config.RegisterTTL)}
+		rOpts := []registry.RegisterOption{
+			registry.RegisterTTL(config.RegisterTTL),
+			registry.RegisterDomain(s.opts.Namespace),
+		}
 
 		var regErr error
 
