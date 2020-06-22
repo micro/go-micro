@@ -54,9 +54,18 @@ func newService(s *Service, c CreateOptions) *service {
 	// needs to include the relative path from the repo root
 	// which is the service name.
 	//
-	// Could use a better upload check
+	// Could use a better upload check.
 	if strings.Contains(s.Source, "uploads") {
-		dir = filepath.Join(s.Source, s.Name)
+		// There are two cases to consider here:
+		// a., if the uploaded code comes from a repo - in this case
+		// the service name is the relative path.
+		// b., if the uploaded code comes from a non repo folder -
+		// in this case the service name is the folder name.
+		// Because of this, we only append the service name to the source in
+		// case `a`
+		if ex, err := exists(filepath.Join(s.Source, s.Name)); err == nil && ex {
+			dir = filepath.Join(s.Source, s.Name)
+		}
 	}
 
 	return &service{
