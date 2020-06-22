@@ -277,7 +277,8 @@ func ParseSourceLocal(workDir, source string, pathExistsFunc ...func(path string
 	isLocal := false
 	localFullPath := ""
 	// Check for absolute path
-	if exists, err := pexists(source); err == nil && exists {
+	// @todo "/" won't work for Windows
+	if exists, err := pexists(source); strings.HasPrefix(source, "/") && err == nil && exists {
 		isLocal = true
 		localFullPath = source
 		// Check for path relative to workdir
@@ -285,6 +286,7 @@ func ParseSourceLocal(workDir, source string, pathExistsFunc ...func(path string
 		isLocal = true
 		localFullPath = filepath.Join(workDir, source)
 	}
+
 	if isLocal {
 		localRepoRoot, err := GetRepoRoot(localFullPath)
 		if err != nil {
