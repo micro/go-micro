@@ -273,6 +273,11 @@ var (
 			Usage:   "Auth for role based access control, e.g. service",
 		},
 		&cli.StringFlag{
+			Name:    "auth_address",
+			EnvVars: []string{"MICRO_AUTH_ADDRESS"},
+			Usage:   "Comma-separated list of auth addresses",
+		},
+		&cli.StringFlag{
 			Name:    "auth_id",
 			EnvVars: []string{"MICRO_AUTH_ID"},
 			Usage:   "Account ID used for client authentication",
@@ -570,6 +575,63 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	microClient := wrapper.CacheClient(cacheFn, grpc.NewClient())
 	microClient = wrapper.AuthClient(authFn, microClient)
 
+	// Setup auth options
+	authOpts := []auth.Option{auth.WithClient(microClient)}
+	if len(ctx.String("auth_address")) > 0 {
+		authOpts = append(authOpts, auth.Addrs(ctx.String("auth_address")))
+	}
+	if len(ctx.String("auth_id")) > 0 || len(ctx.String("auth_secret")) > 0 {
+		authOpts = append(authOpts, auth.Credentials(
+			ctx.String("auth_id"), ctx.String("auth_secret"),
+		))
+	}
+	if len(ctx.String("auth_public_key")) > 0 {
+		authOpts = append(authOpts, auth.PublicKey(ctx.String("auth_public_key")))
+	}
+	if len(ctx.String("auth_private_key")) > 0 {
+		authOpts = append(authOpts, auth.PrivateKey(ctx.String("auth_private_key")))
+	}
+	if ns := ctx.String("service_namespace"); len(ns) > 0 {
+		serverOpts = append(serverOpts, server.Namespace(ns))
+		authOpts = append(authOpts, auth.Issuer(ns))
+	}
+	if name := ctx.String("auth_provider"); len(name) > 0 {
+		p, ok := DefaultAuthProviders[name]
+		if !ok {
+			logger.Fatalf("AuthProvider %s not found", name)
+		}
+
+		var provOpts []provider.Option
+		clientID := ctx.String("auth_provider_client_id")
+		clientSecret := ctx.String("auth_provider_client_secret")
+		if len(clientID) > 0 || len(clientSecret) > 0 {
+			provOpts = append(provOpts, provider.Credentials(clientID, clientSecret))
+		}
+		if e := ctx.String("auth_provider_endpoint"); len(e) > 0 {
+			provOpts = append(provOpts, provider.Endpoint(e))
+		}
+		if r := ctx.String("auth_provider_redirect"); len(r) > 0 {
+			provOpts = append(provOpts, provider.Redirect(r))
+		}
+		if s := ctx.String("auth_provider_scope"); len(s) > 0 {
+			provOpts = append(provOpts, provider.Scope(s))
+		}
+
+		authOpts = append(authOpts, auth.Provider(p(provOpts...)))
+	}
+
+	// Set the auth
+	if name := ctx.String("auth"); len(name) > 0 {
+		a, ok := c.opts.Auths[name]
+		if !ok {
+			logger.Fatalf("Unsupported auth: %s", name)
+		}
+		*c.opts.Auth = a(authOpts...)
+		serverOpts = append(serverOpts, server.Auth(*c.opts.Auth))
+	} else if len(authOpts) > 0 {
+		(*c.opts.Auth).Init(authOpts...)
+	}
+
 	// Set the router, this must happen before the rest of the server as it'll route server requests
 	// such as go.micro.config if no address is specified
 	routerOpts := []router.Option{
@@ -659,60 +721,6 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	if len(ctx.String("registry_address")) > 0 {
 		addresses := strings.Split(ctx.String("registry_address"), ",")
 		registryOpts = append(registryOpts, registry.Addrs(addresses...))
-	}
-
-	// Setup auth options
-	authOpts := []auth.Option{auth.WithClient(microClient)}
-	if len(ctx.String("auth_id")) > 0 || len(ctx.String("auth_secret")) > 0 {
-		authOpts = append(authOpts, auth.Credentials(
-			ctx.String("auth_id"), ctx.String("auth_secret"),
-		))
-	}
-	if len(ctx.String("auth_public_key")) > 0 {
-		authOpts = append(authOpts, auth.PublicKey(ctx.String("auth_public_key")))
-	}
-	if len(ctx.String("auth_private_key")) > 0 {
-		authOpts = append(authOpts, auth.PrivateKey(ctx.String("auth_private_key")))
-	}
-	if ns := ctx.String("service_namespace"); len(ns) > 0 {
-		serverOpts = append(serverOpts, server.Namespace(ns))
-		authOpts = append(authOpts, auth.Issuer(ns))
-	}
-	if name := ctx.String("auth_provider"); len(name) > 0 {
-		p, ok := DefaultAuthProviders[name]
-		if !ok {
-			logger.Fatalf("AuthProvider %s not found", name)
-		}
-
-		var provOpts []provider.Option
-		clientID := ctx.String("auth_provider_client_id")
-		clientSecret := ctx.String("auth_provider_client_secret")
-		if len(clientID) > 0 || len(clientSecret) > 0 {
-			provOpts = append(provOpts, provider.Credentials(clientID, clientSecret))
-		}
-		if e := ctx.String("auth_provider_endpoint"); len(e) > 0 {
-			provOpts = append(provOpts, provider.Endpoint(e))
-		}
-		if r := ctx.String("auth_provider_redirect"); len(r) > 0 {
-			provOpts = append(provOpts, provider.Redirect(r))
-		}
-		if s := ctx.String("auth_provider_scope"); len(s) > 0 {
-			provOpts = append(provOpts, provider.Scope(s))
-		}
-
-		authOpts = append(authOpts, auth.Provider(p(provOpts...)))
-	}
-
-	// Set the auth
-	if name := ctx.String("auth"); len(name) > 0 {
-		a, ok := c.opts.Auths[name]
-		if !ok {
-			logger.Fatalf("Unsupported auth: %s", name)
-		}
-		*c.opts.Auth = a(authOpts...)
-		serverOpts = append(serverOpts, server.Auth(*c.opts.Auth))
-	} else if len(authOpts) > 0 {
-		(*c.opts.Auth).Init(authOpts...)
 	}
 
 	// Setup selector options
