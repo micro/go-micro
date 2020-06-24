@@ -16,6 +16,9 @@ jobs:
       with:
         go-version: 1.13
       id: go
+    
+    - name: Install Protoc
+      uses: arduino/setup-protoc@master
 
     - name: Check out this code
       uses: actions/checkout@v2
