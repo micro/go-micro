@@ -562,11 +562,20 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		serverOpts = append(serverOpts, server.RegisterInterval(val*time.Second))
 	}
 
+	// setup a client to use when calling the runtime. It is important the auth client is wrapped
+	// after the cache client since the wrappers are applied in reverse order and the cache will use
+	// some of the headers set by the auth client.
+	authFn := func() auth.Auth { return *c.opts.Auth }
+	cacheFn := func() *client.Cache { return (*c.opts.Client).Options().Cache }
+	microClient := wrapper.CacheClient(cacheFn, grpc.NewClient())
+	microClient = wrapper.AuthClient(authFn, microClient)
+
 	// Set the router, this must happen before the rest of the server as it'll route server requests
 	// such as go.micro.config if no address is specified
 	routerOpts := []router.Option{
 		router.Network(ctx.String("service_namespace")),
 		router.Registry(*c.opts.Registry),
+		srvRouter.Client(microClient),
 	}
 	if name := ctx.String("router"); len(name) > 0 && (*c.opts.Router).String() != name {
 		r, ok := c.opts.Routers[name]
@@ -582,14 +591,6 @@ func (c *cmd) Before(ctx *cli.Context) error {
 			logger.Fatalf("Error configuring router: %v", err)
 		}
 	}
-
-	// setup a client to use when calling the runtime. It is important the auth client is wrapped
-	// after the cache client since the wrappers are applied in reverse order and the cache will use
-	// some of the headers set by the auth client.
-	authFn := func() auth.Auth { return *c.opts.Auth }
-	cacheFn := func() *client.Cache { return (*c.opts.Client).Options().Cache }
-	microClient := wrapper.CacheClient(cacheFn, grpc.NewClient())
-	microClient = wrapper.AuthClient(authFn, microClient)
 
 	// Setup store options
 	storeOpts := []store.Option{store.WithClient(microClient)}
