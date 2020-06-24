@@ -45,20 +45,35 @@ func newRouter(opts ...Option) Router {
 		o(&options)
 	}
 
-	return &router{
+	// construct the router
+	r := &router{
 		options:     options,
 		table:       newTable(),
 		subscribers: make(map[string]chan *Advert),
 	}
+
+	// start the router and return
+	r.start()
+	return r
 }
 
 // Init initializes router with given options
 func (r *router) Init(opts ...Option) error {
+	// stop the router before we initialize
+	if err := r.Close(); err != nil {
+		return err
+	}
+
 	r.Lock()
 	defer r.Unlock()
 
 	for _, o := range opts {
 		o(&r.options)
+	}
+
+	// restart the router
+	if err := r.start(); err != nil {
+		return err
 	}
 
 	return nil
@@ -399,11 +414,8 @@ func (r *router) drain() {
 	}
 }
 
-// Start starts the router
-func (r *router) Start() error {
-	r.Lock()
-	defer r.Unlock()
-
+// start the router. Should be called under lock.
+func (r *router) start() error {
 	if r.running {
 		return nil
 	}
@@ -615,8 +627,8 @@ func (r *router) Watch(opts ...WatchOption) (Watcher, error) {
 	return r.table.Watch(opts...)
 }
 
-// Stop stops the router
-func (r *router) Stop() error {
+// Close the router
+func (r *router) Close() error {
 	r.Lock()
 	defer r.Unlock()
 
