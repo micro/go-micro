@@ -1,7 +1,6 @@
 package cachedfile
 
 import (
-	"github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/store"
 	"github.com/micro/go-micro/v2/store/file"
 	"github.com/micro/go-micro/v2/store/memory"
@@ -50,7 +49,6 @@ func (c *cachedFile) Options() store.Options {
 
 // Read takes a single key name and optional ReadOptions. It returns matching []*Record or an error.
 func (c *cachedFile) Read(key string, opts ...store.ReadOption) ([]*store.Record, error) {
-	logger.Infof("Checking key %s", key)
 	recs, err := c.m.Read(key, opts...)
 	if err != nil && err != store.ErrNotFound {
 		return nil, err
@@ -58,17 +56,14 @@ func (c *cachedFile) Read(key string, opts ...store.ReadOption) ([]*store.Record
 	if len(recs) > 0 {
 		return recs, nil
 	}
-	logger.Infof("Checking key %s nothing found in memory", key)
 	recs, err = c.f.Read(key, opts...)
 	if err == nil {
-		logger.Infof("Checking key %s found in file", key)
 		for _, rec := range recs {
 			if err := c.m.Write(rec); err != nil {
 				return nil, err
 			}
 		}
 	}
-	logger.Errorf("Error in file read %s", err)
 	return recs, err
 }
 
@@ -76,11 +71,9 @@ func (c *cachedFile) Read(key string, opts ...store.ReadOption) ([]*store.Record
 // If the write succeeds in writing to memory but fails to write through to file, you'll receive an error
 // but the value may still reside in memory so appropriate action should be taken.
 func (c *cachedFile) Write(r *store.Record, opts ...store.WriteOption) error {
-	logger.Infof("Writing key %s in memory", r.Key)
 	if err := c.m.Write(r, opts...); err != nil {
 		return err
 	}
-	logger.Infof("Writing key %s in file", r.Key)
 	return c.f.Write(r, opts...)
 }
 
