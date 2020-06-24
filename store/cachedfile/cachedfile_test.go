@@ -76,3 +76,27 @@ func TestDelete(t *testing.T) {
 	assert.Error(t, err, "Expected no records in file store")
 
 }
+
+func TestList(t *testing.T) {
+	cf := NewStore()
+	cf.Init()
+	cfInt := cf.(*cachedFile)
+	defer cleanup(file.DefaultDatabase, cf)
+
+	keys, err := cf.List()
+	assert.NoError(t, err)
+	assert.Len(t, keys, 0)
+	cfInt.f.Write(&store.Record{
+		Key:   "key1",
+		Value: []byte("foo"),
+	})
+
+	cfInt.f.Write(&store.Record{
+		Key:   "key2",
+		Value: []byte("foo"),
+	})
+	keys, err = cf.List()
+	assert.NoError(t, err)
+	assert.Len(t, keys, 2)
+
+}
