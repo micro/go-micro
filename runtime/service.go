@@ -3,6 +3,7 @@ package runtime
 import (
 	"fmt"
 	"io"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -46,6 +47,27 @@ func newService(s *Service, c CreateOptions) *service {
 	exec = strings.Join(c.Command, " ")
 	args = c.Args
 
+	dir := s.Source
+
+	// For uploaded packages, we upload the whole repo
+	// so the correct working directory to do a `go run .`
+	// needs to include the relative path from the repo root
+	// which is the service name.
+	//
+	// Could use a better upload check.
+	if strings.Contains(s.Source, "uploads") {
+		// There are two cases to consider here:
+		// a., if the uploaded code comes from a repo - in this case
+		// the service name is the relative path.
+		// b., if the uploaded code comes from a non repo folder -
+		// in this case the service name is the folder name.
+		// Because of this, we only append the service name to the source in
+		// case `a`
+		if ex, err := exists(filepath.Join(s.Source, s.Name)); err == nil && ex {
+			dir = filepath.Join(s.Source, s.Name)
+		}
+	}
+
 	return &service{
 		Service: s,
 		Process: new(proc.Process),
@@ -56,7 +78,7 @@ func newService(s *Service, c CreateOptions) *service {
 			},
 			Env:  c.Env,
 			Args: args,
-			Dir:  s.Source,
+			Dir:  dir,
 		},
 		closed:     make(chan bool),
 		output:     c.Output,
