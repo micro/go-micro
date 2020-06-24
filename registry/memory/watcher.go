@@ -20,6 +20,9 @@ func (m *Watcher) Next() (*registry.Result, error) {
 			if len(m.wo.Service) > 0 && m.wo.Service != r.Service.Name {
 				continue
 			}
+			if m.wo.Domain != registry.WildcardDomain && m.wo.Domain != m.wo.Domain {
+				continue
+			}
 			return r, nil
 		case <-m.exit:
 			return nil, errors.New("watcher stopped")

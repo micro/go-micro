@@ -158,7 +158,7 @@ func (a *authWrapper) Call(ctx context.Context, req client.Request, rsp interfac
 
 	// set the namespace header if it has not been set (e.g. on a service to service request)
 	if _, ok := metadata.Get(ctx, "Micro-Namespace"); !ok {
-		ctx = metadata.Set(ctx, "Micro-Namespace", aa.Options().Namespace)
+		ctx = metadata.Set(ctx, "Micro-Namespace", aa.Options().Issuer)
 	}
 
 	// check to see if we have a valid access token
@@ -189,23 +189,26 @@ func AuthHandler(fn func() auth.Auth) server.HandlerWrapper {
 				return h(ctx, req, rsp)
 			}
 
-			// Extract the token if present. Note: if noop is being used
-			// then the token can be blank without erroring
-			var account *auth.Account
+			// Extract the token if the header is present. We will inspect the token regardless of if it's
+			// present or not since noop auth will return a blank account upon Inspecting a blank token.
+			var token string
 			if header, ok := metadata.Get(ctx, "Authorization"); ok {
 				// Ensure the correct scheme is being used
 				if !strings.HasPrefix(header, auth.BearerScheme) {
 					return errors.Unauthorized(req.Service(), "invalid authorization header. expected Bearer schema")
 				}
 
-				// Strip the prefix and inspect the resulting token
-				account, _ = a.Inspect(strings.TrimPrefix(header, auth.BearerScheme))
+				// Strip the bearer scheme prefix
+				token = strings.TrimPrefix(header, auth.BearerScheme)
 			}
+
+			// Inspect the token and decode an account
+			account, _ := a.Inspect(token)
 
 			// Extract the namespace header
 			ns, ok := metadata.Get(ctx, "Micro-Namespace")
 			if !ok {
-				ns = a.Options().Namespace
+				ns = a.Options().Issuer
 				ctx = metadata.Set(ctx, "Micro-Namespace", ns)
 			}
 

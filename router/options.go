@@ -1,8 +1,9 @@
 package router
 
 import (
+	"context"
+
 	"github.com/google/uuid"
-	"github.com/micro/go-micro/v2/client"
 	"github.com/micro/go-micro/v2/registry"
 )
 
@@ -20,8 +21,8 @@ type Options struct {
 	Registry registry.Registry
 	// Advertise is the advertising strategy
 	Advertise Strategy
-	// Client for calling router
-	Client client.Client
+	// Context for additional options
+	Context context.Context
 }
 
 // Id sets Router Id
@@ -35,13 +36,6 @@ func Id(id string) Option {
 func Address(a string) Option {
 	return func(o *Options) {
 		o.Address = a
-	}
-}
-
-// Client to call router service
-func Client(c client.Client) Option {
-	return func(o *Options) {
-		o.Client = c
 	}
 }
 
@@ -81,5 +75,6 @@ func DefaultOptions() Options {
 		Network:   DefaultNetwork,
 		Registry:  registry.DefaultRegistry,
 		Advertise: AdvertiseLocal,
+		Context:   context.Background(),
 	}
 }

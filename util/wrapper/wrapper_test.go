@@ -61,7 +61,7 @@ func TestWrapper(t *testing.T) {
 type testAuth struct {
 	verifyCount    int
 	inspectCount   int
-	namespace      string
+	issuer         string
 	inspectAccount *auth.Account
 	verifyError    error
 
@@ -79,7 +79,7 @@ func (a *testAuth) Inspect(token string) (*auth.Account, error) {
 }
 
 func (a *testAuth) Options() auth.Options {
-	return auth.Options{Namespace: a.namespace}
+	return auth.Options{Issuer: a.issuer}
 }
 
 type testRequest struct {
@@ -121,22 +121,6 @@ func TestAuthHandler(t *testing.T) {
 		}
 	})
 
-	// If the Authorization header is blank, no error should be returned and verify not called
-	t.Run("BlankAuthorizationHeader", func(t *testing.T) {
-		a := testAuth{}
-		handler := AuthHandler(func() auth.Auth {
-			return &a
-		})
-
-		err := handler(h)(context.TODO(), serviceReq, nil)
-		if err != nil {
-			t.Errorf("Expected nil error but got %v", err)
-		}
-		if a.inspectCount != 0 {
-			t.Errorf("Did not expect inspect to be called")
-		}
-	})
-
 	// If the Authorization header is invalid, an error should be returned and verify not called
 	t.Run("InvalidAuthorizationHeader", func(t *testing.T) {
 		a := testAuth{}
@@ -171,10 +155,10 @@ func TestAuthHandler(t *testing.T) {
 		}
 	})
 
-	// If the namespace header was not set on the request, the wrapper should set it to the auths
-	// own namespace
-	t.Run("BlankNamespaceHeader", func(t *testing.T) {
-		a := testAuth{namespace: "mynamespace"}
+	// If the issuer header was not set on the request, the wrapper should set it to the auths
+	// own issuer
+	t.Run("BlankIssuerHeader", func(t *testing.T) {
+		a := testAuth{issuer: "myissuer"}
 		handler := AuthHandler(func() auth.Auth {
 			return &a
 		})
@@ -189,17 +173,17 @@ func TestAuthHandler(t *testing.T) {
 		if err != nil {
 			t.Errorf("Expected nil error but got %v", err)
 		}
-		if ns, _ := metadata.Get(inCtx, "Micro-Namespace"); ns != a.namespace {
-			t.Errorf("Expected namespace to be set to %v but was %v", a.namespace, ns)
+		if ns, _ := metadata.Get(inCtx, "Micro-Namespace"); ns != a.issuer {
+			t.Errorf("Expected issuer to be set to %v but was %v", a.issuer, ns)
 		}
 	})
-	t.Run("ValidNamespaceHeader", func(t *testing.T) {
-		a := testAuth{namespace: "mynamespace"}
+	t.Run("ValidIssuerHeader", func(t *testing.T) {
+		a := testAuth{issuer: "myissuer"}
 		handler := AuthHandler(func() auth.Auth {
 			return &a
 		})
 
-		inNs := "reqnamespace"
+		inNs := "reqissuer"
 		inCtx := metadata.Set(context.TODO(), "Micro-Namespace", inNs)
 		h := func(ctx context.Context, req server.Request, rsp interface{}) error {
 			inCtx = ctx
@@ -211,7 +195,7 @@ func TestAuthHandler(t *testing.T) {
 			t.Errorf("Expected nil error but got %v", err)
 		}
 		if ns, _ := metadata.Get(inCtx, "Micro-Namespace"); ns != inNs {
-			t.Errorf("Expected namespace to remain as %v but was set to %v", inNs, ns)
+			t.Errorf("Expected issuer to remain as %v but was set to %v", inNs, ns)
 		}
 	})
 
@@ -219,8 +203,8 @@ func TestAuthHandler(t *testing.T) {
 	// should be forbidden
 	t.Run("InvalidAccountIssuer", func(t *testing.T) {
 		a := testAuth{
-			namespace:      "validnamespace",
-			inspectAccount: &auth.Account{Issuer: "invalidnamespace"},
+			issuer:         "validissuer",
+			inspectAccount: &auth.Account{Issuer: "invalidissuer"},
 		}
 
 		handler := AuthHandler(func() auth.Auth {
@@ -235,8 +219,8 @@ func TestAuthHandler(t *testing.T) {
 	})
 	t.Run("ValidAccountIssuer", func(t *testing.T) {
 		a := testAuth{
-			namespace:      "validnamespace",
-			inspectAccount: &auth.Account{Issuer: "validnamespace"},
+			issuer:         "validissuer",
+			inspectAccount: &auth.Account{Issuer: "validissuer"},
 		}
 
 		handler := AuthHandler(func() auth.Auth {

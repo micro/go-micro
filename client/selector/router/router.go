@@ -184,7 +184,7 @@ func (r *routerSelector) Reset(service string) {
 
 func (r *routerSelector) Close() error {
 	// stop the router advertisements
-	return r.r.Stop()
+	return r.r.Close()
 }
 
 func (r *routerSelector) String() string {
