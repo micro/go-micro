@@ -11,7 +11,7 @@ var (
 	// DefaultName is default router service name
 	DefaultName = "go.micro.router"
 	// DefaultNetwork is default micro network
-	DefaultNetwork = "go.micro"
+	DefaultNetwork = "micro"
 	// DefaultRouter is default network router
 	DefaultRouter = NewRouter()
 )
