@@ -11,6 +11,7 @@ import (
 	"github.com/micro/go-micro/v2/debug/profile"
 	"github.com/micro/go-micro/v2/debug/trace"
 	"github.com/micro/go-micro/v2/registry"
+	"github.com/micro/go-micro/v2/router"
 	"github.com/micro/go-micro/v2/runtime"
 	"github.com/micro/go-micro/v2/server"
 	"github.com/micro/go-micro/v2/store"
@@ -31,6 +32,7 @@ type Options struct {
 	Config    *config.Config
 	Client    *client.Client
 	Server    *server.Server
+	Router    *router.Router
 	Runtime   *runtime.Runtime
 	Store     *store.Store
 	Tracer    *trace.Tracer
@@ -44,6 +46,7 @@ type Options struct {
 	Selectors  map[string]func(...selector.Option) selector.Selector
 	Servers    map[string]func(...server.Option) server.Server
 	Transports map[string]func(...transport.Option) transport.Transport
+	Routers    map[string]func(...router.Option) router.Router
 	Runtimes   map[string]func(...runtime.Option) runtime.Runtime
 	Stores     map[string]func(...store.Option) store.Store
 	Tracers    map[string]func(...trace.Option) trace.Tracer
@@ -97,6 +100,12 @@ func Selector(s *selector.Selector) Option {
 func Registry(r *registry.Registry) Option {
 	return func(o *Options) {
 		o.Registry = r
+	}
+}
+
+func Router(r *router.Router) Option {
+	return func(o *Options) {
+		o.Router = r
 	}
 }
 
@@ -187,6 +196,13 @@ func NewServer(name string, s func(...server.Option) server.Server) Option {
 func NewTransport(name string, t func(...transport.Option) transport.Transport) Option {
 	return func(o *Options) {
 		o.Transports[name] = t
+	}
+}
+
+// New router func
+func NewRouter(name string, r func(...router.Option) router.Router) Option {
+	return func(o *Options) {
+		o.Routers[name] = r
 	}
 }
 
