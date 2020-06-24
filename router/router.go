@@ -32,10 +32,8 @@ type Router interface {
 	Lookup(...QueryOption) ([]Route, error)
 	// Watch returns a watcher which tracks updates to the routing table
 	Watch(opts ...WatchOption) (Watcher, error)
-	// Start starts the router
-	Start() error
-	// Stop stops the router
-	Stop() error
+	// Close the router
+	Close() error
 	// Returns the router implementation
 	String() string
 }
