@@ -85,13 +85,6 @@ func (s *svc) Table() router.Table {
 	return s.table
 }
 
-// Start starts the service
-func (s *svc) Start() error {
-	s.Lock()
-	defer s.Unlock()
-	return nil
-}
-
 func (s *svc) advertiseEvents(advertChan chan *router.Advert, stream pb.Router_AdvertiseService) error {
 	go func() {
 		<-s.exit
@@ -202,8 +195,8 @@ func (s *svc) Process(advert *router.Advert) error {
 	return nil
 }
 
-// Remote router cannot be stopped
-func (s *svc) Stop() error {
+// Remote router cannot be closed
+func (s *svc) Close() error {
 	s.Lock()
 	defer s.Unlock()
 
