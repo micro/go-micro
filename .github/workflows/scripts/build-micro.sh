@@ -2,7 +2,7 @@
 # set -x
 
 failed=0
-go mod edit -replace github.com/micro/go-micro/v2=github.com/micro/go-micro/v2@$1 
+go mod edit -replace github.com/micro/go-micro/v2=github.com/$2/v2@$1 
 # basic test, build the binary
 go install
 failed=$?
