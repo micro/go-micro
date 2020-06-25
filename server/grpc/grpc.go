@@ -795,8 +795,8 @@ func (g *grpcServer) Deregister() error {
 		logger.Infof("Deregistering node: %s", node.Id)
 	}
 
-	opts := []registry.DeregisterOption{registry.DeregisterDomain(g.opts.Namespace)}
-	if err := config.Registry.Deregister(service, opts...); err != nil {
+	opt := registry.DeregisterDomain(g.opts.Namespace)
+	if err := config.Registry.Deregister(service, opt); err != nil {
 		return err
 	}
 
