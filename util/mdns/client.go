@@ -347,6 +347,7 @@ func (c *client) query(params *QueryParam) error {
 		select {
 		case resp := <-msgCh:
 			inp := messageToEntry(resp, inprogress)
+			fmt.Printf("MDNS received %+v\n", resp)
 			if inp == nil {
 				continue
 			}
