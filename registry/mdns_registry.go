@@ -680,6 +680,7 @@ func (m *mdnsWatcher) Next() (*Result, error) {
 				Name:      txt.Service,
 				Version:   txt.Version,
 				Endpoints: txt.Endpoints,
+				Metadata:  txt.Metadata,
 			}
 
 			// skip anything without the domain we care about
