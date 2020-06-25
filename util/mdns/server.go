@@ -2,13 +2,13 @@ package mdns
 
 import (
 	"fmt"
-	"log"
 	"math/rand"
 	"net"
 	"sync"
 	"sync/atomic"
 	"time"
 
+	log "github.com/micro/go-micro/v2/logger"
 	"github.com/miekg/dns"
 	"golang.org/x/net/ipv4"
 	"golang.org/x/net/ipv6"
@@ -176,7 +176,7 @@ func (s *Server) recv(c *net.UDPConn) {
 			continue
 		}
 		if err := s.parsePacket(buf[:n], from); err != nil {
-			log.Printf("[ERR] mdns: Failed to handle query: %v", err)
+			log.Errorf("[ERR] mdns: Failed to handle query: %v", err)
 		}
 	}
 }
@@ -185,7 +185,7 @@ func (s *Server) recv(c *net.UDPConn) {
 func (s *Server) parsePacket(packet []byte, from net.Addr) error {
 	var msg dns.Msg
 	if err := msg.Unpack(packet); err != nil {
-		log.Printf("[ERR] mdns: Failed to unpack packet: %v", err)
+		log.Errorf("[ERR] mdns: Failed to unpack packet: %v", err)
 		return err
 	}
 	// TODO: This is a bit of a hack
@@ -302,7 +302,7 @@ func (s *Server) handleQuery(query *dns.Msg, from net.Addr) error {
 // both.  The return values are DNS records for each transmission type.
 func (s *Server) handleQuestion(q dns.Question) (multicastRecs, unicastRecs []dns.RR) {
 	records := s.config.Zone.Records(q)
-	fmt.Printf("MDNS handling question %+v returning %d records\n%+v\n", q, len(records), records)
+	log.Infof("MDNS handling question %s returning %d records\n%+v", q.Name, len(records), records)
 	if len(records) == 0 {
 		return nil, nil
 	}
@@ -365,7 +365,7 @@ func (s *Server) probe() {
 
 	for i := 0; i < 3; i++ {
 		if err := s.SendMulticast(q); err != nil {
-			log.Println("[ERR] mdns: failed to send probe:", err.Error())
+			log.Errorf("[ERR] mdns: failed to send probe:", err.Error())
 		}
 		time.Sleep(time.Duration(randomizer.Intn(250)) * time.Millisecond)
 	}
@@ -391,7 +391,7 @@ func (s *Server) probe() {
 	timer := time.NewTimer(timeout)
 	for i := 0; i < 3; i++ {
 		if err := s.SendMulticast(resp); err != nil {
-			log.Println("[ERR] mdns: failed to send announcement:", err.Error())
+			log.Errorf("[ERR] mdns: failed to send announcement:", err.Error())
 		}
 		select {
 		case <-timer.C:

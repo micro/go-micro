@@ -7,6 +7,7 @@ import (
 	"strings"
 	"sync/atomic"
 
+	"github.com/micro/go-micro/v2/logger"
 	"github.com/miekg/dns"
 )
 
@@ -137,6 +138,7 @@ func trimDot(s string) string {
 
 // Records returns DNS records in response to a DNS question.
 func (m *MDNSService) Records(q dns.Question) []dns.RR {
+	logger.Infof("MDNS {service %s instance %s} responding to records %+v", m.Service, m.Instance, q)
 	switch q.Name {
 	case m.enumAddr:
 		return m.serviceEnum(q)

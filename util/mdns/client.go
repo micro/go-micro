@@ -34,6 +34,7 @@ type ServiceEntry struct {
 
 // complete is used to check if we have all the info we need
 func (s *ServiceEntry) complete() bool {
+
 	return (len(s.AddrV4) > 0 || len(s.AddrV6) > 0 || len(s.Addr) > 0) && s.Port != 0 && s.hasTXT
 }
 
@@ -336,6 +337,7 @@ func (c *client) query(params *QueryParam) error {
 		m.Question[0].Qclass |= 1 << 15
 	}
 	m.RecursionDesired = false
+	fmt.Printf("MDNS Sending query %+v", m.Question)
 	if err := c.sendQuery(m); err != nil {
 		return err
 	}

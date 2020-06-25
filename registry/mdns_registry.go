@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"sync"
@@ -308,6 +309,16 @@ func (m *mdnsRegistry) Register(service *Service, opts ...RegisterOption) error 
 			gerr = err
 		}
 	}
+	for dom, v := range m.domains {
+		for k, w := range v {
+			strin := ""
+			for _, x := range w {
+				strin += fmt.Sprintf(", %+v", *x)
+			}
+			logger.Infof("MDNS registry registered [%s] service %s, entries %+v", dom, k, strin)
+		}
+
+	}
 
 	return gerr
 }
@@ -403,13 +414,18 @@ func (m *mdnsRegistry) GetService(service string, opts ...GetOption) ([]*Service
 	p := mdns.DefaultParams(service)
 	// set context with timeout
 	var cancel context.CancelFunc
+	m.opts.Timeout = 3 * time.Second
+	logger.Infof("Timeout is %s", m.opts.Timeout)
+	logger.Infof("Domain is %s", options.Domain)
+
 	p.Context, cancel = context.WithTimeout(context.Background(), m.opts.Timeout)
 	defer cancel()
 	// set entries channel
 	p.Entries = entries
 	// set the domain
 	p.Domain = options.Domain
-
+	now := time.Now()
+	last := time.Now()
 	go func() {
 		for {
 			select {
@@ -426,6 +442,7 @@ func (m *mdnsRegistry) GetService(service string, opts ...GetOption) ([]*Service
 				if err != nil {
 					continue
 				}
+				logger.Infof("MDNS processing results %+v TEXT %+v\n", e, txt)
 
 				if txt.Service != service {
 					continue
@@ -459,6 +476,7 @@ func (m *mdnsRegistry) GetService(service string, opts ...GetOption) ([]*Service
 				})
 
 				serviceMap[txt.Version] = s
+				last = time.Now()
 			case <-p.Context.Done():
 				close(done)
 				return
@@ -473,7 +491,8 @@ func (m *mdnsRegistry) GetService(service string, opts ...GetOption) ([]*Service
 
 	// wait for completion
 	<-done
-
+	debug.PrintStack()
+	logger.Infof("MDNS it took %s to receive the %d responses to %+v", time.Duration(last.UnixNano()-now.UnixNano()), len(serviceMap), p)
 	// create list and return
 	services := make([]*Service, 0, len(serviceMap))
 
@@ -506,6 +525,8 @@ func (m *mdnsRegistry) ListServices(opts ...ListOption) ([]*Service, error) {
 	var cancel context.CancelFunc
 	p.Context, cancel = context.WithTimeout(context.Background(), m.opts.Timeout)
 	defer cancel()
+	logger.Infof("Timeout is %s", m.opts.Timeout)
+	logger.Infof("Domain is %s", options.Domain)
 	// set entries channel
 	p.Entries = entries
 	// set domain
@@ -539,10 +560,8 @@ func (m *mdnsRegistry) ListServices(opts ...ListOption) ([]*Service, error) {
 	if err := mdns.Query(p); err != nil {
 		return nil, err
 	}
-
 	// wait till done
 	<-done
-
 	return services, nil
 }
 
