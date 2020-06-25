@@ -235,9 +235,9 @@ func (s *Server) handleQuery(query *dns.Msg, from net.Addr) error {
 		// 18.1: ID (Query Identifier)
 		// 0 for multicast response, query.Id for unicast response
 		id := uint16(0)
-		if unicast {
-			id = query.Id
-		}
+		// if unicast {
+		id = query.Id
+		// }
 
 		var answer []dns.RR
 		if unicast {
@@ -301,8 +301,9 @@ func (s *Server) handleQuery(query *dns.Msg, from net.Addr) error {
 // The response to a question may be transmitted over multicast, unicast, or
 // both.  The return values are DNS records for each transmission type.
 func (s *Server) handleQuestion(q dns.Question) (multicastRecs, unicastRecs []dns.RR) {
+	fmt.Printf("MDNS handling question %+v\n", q)
 	records := s.config.Zone.Records(q)
-
+	fmt.Printf("MDNS returning records %+v\n", records)
 	if len(records) == 0 {
 		return nil, nil
 	}
