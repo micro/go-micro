@@ -343,6 +343,11 @@ var (
 			EnvVars: []string{"MICRO_ROUTER"},
 			Usage:   "Router used for client requests",
 		},
+		&cli.StringFlag{
+			Name:    "router_address",
+			Usage:   "Comma-separated list of router addresses",
+			EnvVars: []string{"MICRO_ROUTER_ADDRESS"},
+		},
 	}
 
 	DefaultBrokers = map[string]func(...broker.Option) broker.Broker{
@@ -635,14 +640,23 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	// Set the router, this must happen before the rest of the server as it'll route server requests
 	// such as go.micro.config if no address is specified
 	routerOpts := []router.Option{
+		srvRouter.Client(microClient),
 		router.Network(ctx.String("service_namespace")),
 		router.Registry(*c.opts.Registry),
-		srvRouter.Client(microClient),
+		router.Id((*c.opts.Server).Options().Id),
+	}
+	if len(ctx.String("router_address")) > 0 {
+		routerOpts = append(routerOpts, router.Address(ctx.String("router_address")))
 	}
 	if name := ctx.String("router"); len(name) > 0 && (*c.opts.Router).String() != name {
 		r, ok := c.opts.Routers[name]
 		if !ok {
 			return fmt.Errorf("Router %s not found", name)
+		}
+
+		// close the default router before replacing it
+		if err := (*c.opts.Router).Close(); err != nil {
+			logger.Fatalf("Error closing default router: %s", name)
 		}
 
 		*c.opts.Router = r(routerOpts...)
