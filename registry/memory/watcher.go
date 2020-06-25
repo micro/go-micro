@@ -20,10 +20,19 @@ func (m *Watcher) Next() (*registry.Result, error) {
 			if len(m.wo.Service) > 0 && m.wo.Service != r.Service.Name {
 				continue
 			}
-			if m.wo.Domain != registry.WildcardDomain && m.wo.Domain != m.wo.Domain {
-				continue
+
+			// extract domain from service metadata
+			var domain string
+			if r.Service.Metadata != nil && len(r.Service.Metadata["domain"]) > 0 {
+				domain = r.Service.Metadata["domain"]
+			} else {
+				domain = registry.DefaultDomain
 			}
-			return r, nil
+
+			// only send the event if watching the wildcard or this specific domain
+			if m.wo.Domain == registry.WildcardDomain || m.wo.Domain == domain {
+				return r, nil
+			}
 		case <-m.exit:
 			return nil, errors.New("watcher stopped")
 		}
