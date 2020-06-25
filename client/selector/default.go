@@ -53,6 +53,7 @@ func (c *registrySelector) Select(service string, opts ...SelectOption) (Next, e
 	if err != nil && err != registry.ErrNotFound {
 		return nil, err
 	}
+
 	if c.so.Domain != registry.DefaultDomain {
 		srvs, err := c.rc.GetService(service, registry.GetDomain(registry.DefaultDomain))
 		if err != nil && err != registry.ErrNotFound {
@@ -61,6 +62,10 @@ func (c *registrySelector) Select(service string, opts ...SelectOption) (Next, e
 		if err == nil {
 			services = append(services, srvs...)
 		}
+	}
+
+	if services == nil {
+		return nil, ErrNoneAvailable
 	}
 
 	// apply the filters
