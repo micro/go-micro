@@ -138,7 +138,8 @@ func trimDot(s string) string {
 
 // Records returns DNS records in response to a DNS question.
 func (m *MDNSService) Records(q dns.Question) []dns.RR {
-	logger.Infof("MDNS {service %s instance %s} responding to records %+v", m.Service, m.Instance, q)
+	logger.Infof("MDNS {service %s instance %s} Query %s enumAddr %s servAddr %s instAddr %s hostName %s ", m.Service, m.Instance, q.Name, m.enumAddr, m.serviceAddr, m.instanceAddr, m.HostName)
+
 	switch q.Name {
 	case m.enumAddr:
 		return m.serviceEnum(q)

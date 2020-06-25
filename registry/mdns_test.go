@@ -90,7 +90,7 @@ func TestMDNS(t *testing.T) {
 			t.Fatalf("Expected version %s got %s", service.Version, s[0].Version)
 		}
 
-		if len(s[0].Nodes) == 0 {
+		if len(s[0].Nodes) != 1 {
 			t.Fatalf("Expected 1 node, got %d", len(s[0].Nodes))
 		}
 
@@ -103,6 +103,7 @@ func TestMDNS(t *testing.T) {
 		if node.Address != service.Nodes[0].Address {
 			t.Fatalf("Expected node address %s got %s", service.Nodes[0].Address, node.Address)
 		}
+
 	}
 
 	services, err := r.ListServices()

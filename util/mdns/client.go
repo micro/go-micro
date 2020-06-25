@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/micro/go-micro/v2/logger"
 	"github.com/miekg/dns"
 	"golang.org/x/net/ipv4"
 	"golang.org/x/net/ipv6"
@@ -337,7 +338,6 @@ func (c *client) query(params *QueryParam) error {
 		m.Question[0].Qclass |= 1 << 15
 	}
 	m.RecursionDesired = false
-	fmt.Printf("MDNS Sending query %+v", m.Question)
 	if err := c.sendQuery(m); err != nil {
 		return err
 	}
@@ -349,8 +349,12 @@ func (c *client) query(params *QueryParam) error {
 		select {
 		case resp := <-msgCh:
 			inp := messageToEntry(resp, inprogress)
-			fmt.Printf("MDNS received %+v\n", resp)
+			logger.Infof("MDNS received %+v", resp)
 			if inp == nil {
+				continue
+			}
+			if len(resp.Question) == 0 || resp.Question[0].Name != m.Question[0].Name {
+				logger.Infof("Discarding answer to question we didn't ask. Asked %+v got %+v", m.Question, resp.Question)
 				continue
 			}
 
@@ -359,6 +363,7 @@ func (c *client) query(params *QueryParam) error {
 				if inp.sent {
 					continue
 				}
+
 				inp.sent = true
 				select {
 				case params.Entries <- inp:
@@ -382,6 +387,7 @@ func (c *client) query(params *QueryParam) error {
 
 // sendQuery is used to multicast a query out
 func (c *client) sendQuery(q *dns.Msg) error {
+	logger.Infof("MDNS Sending query %+v", q)
 	buf, err := q.Pack()
 	if err != nil {
 		return err

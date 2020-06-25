@@ -235,9 +235,9 @@ func (s *Server) handleQuery(query *dns.Msg, from net.Addr) error {
 		// 18.1: ID (Query Identifier)
 		// 0 for multicast response, query.Id for unicast response
 		id := uint16(0)
-		// if unicast {
-		id = query.Id
-		// }
+		if unicast {
+			id = query.Id
+		}
 
 		var answer []dns.RR
 		if unicast {
@@ -278,8 +278,8 @@ func (s *Server) handleQuery(query *dns.Msg, from net.Addr) error {
 			// caveats in the RFC), so set the Compress bit (part of the dns library
 			// API, not part of the DNS packet) to true.
 			Compress: true,
-
-			Answer: answer,
+			Question: query.Question,
+			Answer:   answer,
 		}
 	}
 

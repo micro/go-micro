@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net"
-	"runtime/debug"
 	"strconv"
 	"strings"
 	"sync"
@@ -442,7 +441,8 @@ func (m *mdnsRegistry) GetService(service string, opts ...GetOption) ([]*Service
 				if err != nil {
 					continue
 				}
-				logger.Infof("MDNS processing results %+v TEXT %+v\n", e, txt)
+
+				logger.Infof("MDNS processing results %s, %+v TEXT %+v\n", service, e, txt)
 
 				if txt.Service != service {
 					continue
@@ -491,7 +491,6 @@ func (m *mdnsRegistry) GetService(service string, opts ...GetOption) ([]*Service
 
 	// wait for completion
 	<-done
-	debug.PrintStack()
 	logger.Infof("MDNS it took %s to receive the %d responses to %+v", time.Duration(last.UnixNano()-now.UnixNano()), len(serviceMap), p)
 	// create list and return
 	services := make([]*Service, 0, len(serviceMap))
