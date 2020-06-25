@@ -17,6 +17,10 @@ func (m *Watcher) Next() (*registry.Result, error) {
 	for {
 		select {
 		case r := <-m.res:
+			if r.Service == nil {
+				continue
+			}
+
 			if len(m.wo.Service) > 0 && m.wo.Service != r.Service.Name {
 				continue
 			}
