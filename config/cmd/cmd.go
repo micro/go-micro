@@ -726,61 +726,6 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	// Setup selector options
 	selectorOpts := []selector.Option{selector.Registry(*c.opts.Registry)}
 
-	// Setup auth options
-	authOpts := []auth.Option{auth.WithClient(microClient)}
-	if len(ctx.String("auth_id")) > 0 || len(ctx.String("auth_secret")) > 0 {
-		authOpts = append(authOpts, auth.Credentials(
-			ctx.String("auth_id"), ctx.String("auth_secret"),
-		))
-	}
-	if len(ctx.String("auth_public_key")) > 0 {
-		authOpts = append(authOpts, auth.PublicKey(ctx.String("auth_public_key")))
-	}
-	if len(ctx.String("auth_private_key")) > 0 {
-		authOpts = append(authOpts, auth.PrivateKey(ctx.String("auth_private_key")))
-	}
-	if ns := ctx.String("service_namespace"); len(ns) > 0 {
-		selectorOpts = append(selectorOpts, selector.Domain(ns))
-		serverOpts = append(serverOpts, server.Namespace(ns))
-		authOpts = append(authOpts, auth.Issuer(ns))
-	}
-	if name := ctx.String("auth_provider"); len(name) > 0 {
-		p, ok := DefaultAuthProviders[name]
-		if !ok {
-			logger.Fatalf("AuthProvider %s not found", name)
-		}
-
-		var provOpts []provider.Option
-		clientID := ctx.String("auth_provider_client_id")
-		clientSecret := ctx.String("auth_provider_client_secret")
-		if len(clientID) > 0 || len(clientSecret) > 0 {
-			provOpts = append(provOpts, provider.Credentials(clientID, clientSecret))
-		}
-		if e := ctx.String("auth_provider_endpoint"); len(e) > 0 {
-			provOpts = append(provOpts, provider.Endpoint(e))
-		}
-		if r := ctx.String("auth_provider_redirect"); len(r) > 0 {
-			provOpts = append(provOpts, provider.Redirect(r))
-		}
-		if s := ctx.String("auth_provider_scope"); len(s) > 0 {
-			provOpts = append(provOpts, provider.Scope(s))
-		}
-
-		authOpts = append(authOpts, auth.Provider(p(provOpts...)))
-	}
-
-	// Set the auth
-	if name := ctx.String("auth"); len(name) > 0 {
-		a, ok := c.opts.Auths[name]
-		if !ok {
-			logger.Fatalf("Unsupported auth: %s", name)
-		}
-		*c.opts.Auth = a(authOpts...)
-		serverOpts = append(serverOpts, server.Auth(*c.opts.Auth))
-	} else if len(authOpts) > 0 {
-		(*c.opts.Auth).Init(authOpts...)
-	}
-
 	// Set the registry
 	if name := ctx.String("registry"); len(name) > 0 && (*c.opts.Registry).String() != name {
 		r, ok := c.opts.Registries[name]
