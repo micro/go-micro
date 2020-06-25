@@ -36,9 +36,10 @@ func NewRouter(opts ...router.Option) router.Router {
 	// NOTE: might need some client opts here
 	cli := client.DefaultClient
 
-	// set options client
-	if options.Client != nil {
-		cli = options.Client
+	// get options client from the context. We set this in the context to prevent an import loop, as
+	// the client depends on the router
+	if c, ok := options.Context.Value(clientKey{}).(client.Client); ok {
+		cli = c
 	}
 
 	// NOTE: should we have Client/Service option in router.Options?
@@ -83,13 +84,6 @@ func (s *svc) Options() router.Options {
 // Table returns routing table
 func (s *svc) Table() router.Table {
 	return s.table
-}
-
-// Start starts the service
-func (s *svc) Start() error {
-	s.Lock()
-	defer s.Unlock()
-	return nil
 }
 
 func (s *svc) advertiseEvents(advertChan chan *router.Advert, stream pb.Router_AdvertiseService) error {
@@ -202,8 +196,8 @@ func (s *svc) Process(advert *router.Advert) error {
 	return nil
 }
 
-// Remote router cannot be stopped
-func (s *svc) Stop() error {
+// Remote router cannot be closed
+func (s *svc) Close() error {
 	s.Lock()
 	defer s.Unlock()
 

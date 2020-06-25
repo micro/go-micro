@@ -2,6 +2,7 @@
 package cmd
 
 import (
+	"fmt"
 	"math/rand"
 	"strings"
 	"time"
@@ -22,6 +23,7 @@ import (
 	"github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/registry"
 	registrySrv "github.com/micro/go-micro/v2/registry/service"
+	"github.com/micro/go-micro/v2/router"
 	"github.com/micro/go-micro/v2/runtime"
 	"github.com/micro/go-micro/v2/server"
 	"github.com/micro/go-micro/v2/store"
@@ -51,6 +53,12 @@ import (
 	rmem "github.com/micro/go-micro/v2/registry/memory"
 	regSrv "github.com/micro/go-micro/v2/registry/service"
 
+	// routers
+	dnsRouter "github.com/micro/go-micro/v2/router/dns"
+	regRouter "github.com/micro/go-micro/v2/router/registry"
+	srvRouter "github.com/micro/go-micro/v2/router/service"
+	staticRouter "github.com/micro/go-micro/v2/router/static"
+
 	// runtimes
 	kRuntime "github.com/micro/go-micro/v2/runtime/kubernetes"
 	lRuntime "github.com/micro/go-micro/v2/runtime/local"
@@ -58,7 +66,7 @@ import (
 
 	// selectors
 	"github.com/micro/go-micro/v2/client/selector/dns"
-	"github.com/micro/go-micro/v2/client/selector/router"
+	sRouter "github.com/micro/go-micro/v2/client/selector/router"
 	"github.com/micro/go-micro/v2/client/selector/static"
 
 	// transports
@@ -265,6 +273,11 @@ var (
 			Usage:   "Auth for role based access control, e.g. service",
 		},
 		&cli.StringFlag{
+			Name:    "auth_address",
+			EnvVars: []string{"MICRO_AUTH_ADDRESS"},
+			Usage:   "Comma-separated list of auth addresses",
+		},
+		&cli.StringFlag{
 			Name:    "auth_id",
 			EnvVars: []string{"MICRO_AUTH_ID"},
 			Usage:   "Account ID used for client authentication",
@@ -325,6 +338,11 @@ var (
 			EnvVars: []string{"MICRO_CONFIG"},
 			Usage:   "The source of the config to be used to get configuration",
 		},
+		&cli.StringFlag{
+			Name:    "router",
+			EnvVars: []string{"MICRO_ROUTER"},
+			Usage:   "Router used for client requests",
+		},
 	}
 
 	DefaultBrokers = map[string]func(...broker.Option) broker.Broker{
@@ -346,9 +364,16 @@ var (
 		"memory":  rmem.NewRegistry,
 	}
 
+	DefaultRouters = map[string]func(...router.Option) router.Router{
+		"dns":      dnsRouter.NewRouter,
+		"registry": regRouter.NewRouter,
+		"static":   staticRouter.NewRouter,
+		"service":  srvRouter.NewRouter,
+	}
+
 	DefaultSelectors = map[string]func(...selector.Option) selector.Selector{
 		"dns":    dns.NewSelector,
-		"router": router.NewSelector,
+		"router": sRouter.NewSelector,
 		"static": static.NewSelector,
 	}
 
@@ -411,6 +436,7 @@ func newCmd(opts ...Option) Cmd {
 		Server:    &server.DefaultServer,
 		Selector:  &selector.DefaultSelector,
 		Transport: &transport.DefaultTransport,
+		Router:    &router.DefaultRouter,
 		Runtime:   &runtime.DefaultRuntime,
 		Store:     &store.DefaultStore,
 		Tracer:    &trace.DefaultTracer,
@@ -423,6 +449,7 @@ func newCmd(opts ...Option) Cmd {
 		Selectors:  DefaultSelectors,
 		Servers:    DefaultServers,
 		Transports: DefaultTransports,
+		Routers:    DefaultRouters,
 		Runtimes:   DefaultRuntimes,
 		Stores:     DefaultStores,
 		Tracers:    DefaultTracers,
@@ -547,6 +574,85 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	cacheFn := func() *client.Cache { return (*c.opts.Client).Options().Cache }
 	microClient := wrapper.CacheClient(cacheFn, grpc.NewClient())
 	microClient = wrapper.AuthClient(authFn, microClient)
+
+	// Setup auth options
+	authOpts := []auth.Option{auth.WithClient(microClient)}
+	if len(ctx.String("auth_address")) > 0 {
+		authOpts = append(authOpts, auth.Addrs(ctx.String("auth_address")))
+	}
+	if len(ctx.String("auth_id")) > 0 || len(ctx.String("auth_secret")) > 0 {
+		authOpts = append(authOpts, auth.Credentials(
+			ctx.String("auth_id"), ctx.String("auth_secret"),
+		))
+	}
+	if len(ctx.String("auth_public_key")) > 0 {
+		authOpts = append(authOpts, auth.PublicKey(ctx.String("auth_public_key")))
+	}
+	if len(ctx.String("auth_private_key")) > 0 {
+		authOpts = append(authOpts, auth.PrivateKey(ctx.String("auth_private_key")))
+	}
+	if ns := ctx.String("service_namespace"); len(ns) > 0 {
+		serverOpts = append(serverOpts, server.Namespace(ns))
+		authOpts = append(authOpts, auth.Issuer(ns))
+	}
+	if name := ctx.String("auth_provider"); len(name) > 0 {
+		p, ok := DefaultAuthProviders[name]
+		if !ok {
+			logger.Fatalf("AuthProvider %s not found", name)
+		}
+
+		var provOpts []provider.Option
+		clientID := ctx.String("auth_provider_client_id")
+		clientSecret := ctx.String("auth_provider_client_secret")
+		if len(clientID) > 0 || len(clientSecret) > 0 {
+			provOpts = append(provOpts, provider.Credentials(clientID, clientSecret))
+		}
+		if e := ctx.String("auth_provider_endpoint"); len(e) > 0 {
+			provOpts = append(provOpts, provider.Endpoint(e))
+		}
+		if r := ctx.String("auth_provider_redirect"); len(r) > 0 {
+			provOpts = append(provOpts, provider.Redirect(r))
+		}
+		if s := ctx.String("auth_provider_scope"); len(s) > 0 {
+			provOpts = append(provOpts, provider.Scope(s))
+		}
+
+		authOpts = append(authOpts, auth.Provider(p(provOpts...)))
+	}
+
+	// Set the auth
+	if name := ctx.String("auth"); len(name) > 0 {
+		a, ok := c.opts.Auths[name]
+		if !ok {
+			logger.Fatalf("Unsupported auth: %s", name)
+		}
+		*c.opts.Auth = a(authOpts...)
+		serverOpts = append(serverOpts, server.Auth(*c.opts.Auth))
+	} else if len(authOpts) > 0 {
+		(*c.opts.Auth).Init(authOpts...)
+	}
+
+	// Set the router, this must happen before the rest of the server as it'll route server requests
+	// such as go.micro.config if no address is specified
+	routerOpts := []router.Option{
+		router.Network(ctx.String("service_namespace")),
+		router.Registry(*c.opts.Registry),
+		srvRouter.Client(microClient),
+	}
+	if name := ctx.String("router"); len(name) > 0 && (*c.opts.Router).String() != name {
+		r, ok := c.opts.Routers[name]
+		if !ok {
+			return fmt.Errorf("Router %s not found", name)
+		}
+
+		*c.opts.Router = r(routerOpts...)
+		// todo: set the router in the client
+		// clientOpts = append(clientOpts, client.Router(*c.opts.Router))
+	} else if len(routerOpts) > 0 {
+		if err := (*c.opts.Router).Init(routerOpts...); err != nil {
+			logger.Fatalf("Error configuring router: %v", err)
+		}
+	}
 
 	// Setup store options
 	storeOpts := []store.Option{store.WithClient(microClient)}

@@ -264,8 +264,8 @@ func ParseSource(source string) (*Source, error) {
 	return ret, nil
 }
 
-// ParseSourceLocal detects and handles local pathes too
-// workdir should be used only from the CLI @todo better interface for this function.
+// ParseSourceLocal a version of ParseSource that detects and handles local paths.
+// Workdir should be used only from the CLI @todo better interface for this function.
 // PathExistsFunc exists only for testing purposes, to make the function side effect free.
 func ParseSourceLocal(workDir, source string, pathExistsFunc ...func(path string) (bool, error)) (*Source, error) {
 	var pexists func(string) (bool, error)
@@ -274,13 +274,19 @@ func ParseSourceLocal(workDir, source string, pathExistsFunc ...func(path string
 	} else {
 		pexists = pathExistsFunc[0]
 	}
-	var localFullPath string
-	if len(workDir) > 0 {
-		localFullPath = filepath.Join(workDir, source)
-	} else {
+	isLocal := false
+	localFullPath := ""
+	// Check for absolute path
+	// @todo "/" won't work for Windows
+	if exists, err := pexists(source); strings.HasPrefix(source, "/") && err == nil && exists {
+		isLocal = true
 		localFullPath = source
+		// Check for path relative to workdir
+	} else if exists, err := pexists(filepath.Join(workDir, source)); err == nil && exists {
+		isLocal = true
+		localFullPath = filepath.Join(workDir, source)
 	}
-	if exists, err := pexists(localFullPath); err == nil && exists {
+	if isLocal {
 		localRepoRoot, err := GetRepoRoot(localFullPath)
 		if err != nil {
 			return nil, err
