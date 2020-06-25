@@ -632,6 +632,62 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		(*c.opts.Auth).Init(authOpts...)
 	}
 
+	// generate the services auth account.
+	// todo: move this so it only runs for new services
+	serverID := (*c.opts.Server).Options().Id
+	if err := authutil.Generate(serverID, c.App().Name, (*c.opts.Auth)); err != nil {
+		return err
+	}
+
+	// Setup selector options
+	selectorOpts := []selector.Option{selector.Registry(*c.opts.Registry)}
+
+	// Setup broker options.
+	brokerOpts := []broker.Option{}
+	if len(ctx.String("broker_address")) > 0 {
+		brokerOpts = append(brokerOpts, broker.Addrs(ctx.String("broker_address")))
+	}
+
+	// Setup registry options
+	registryOpts := []registry.Option{registrySrv.WithClient(microClient)}
+	if len(ctx.String("registry_address")) > 0 {
+		addresses := strings.Split(ctx.String("registry_address"), ",")
+		registryOpts = append(registryOpts, registry.Addrs(addresses...))
+	}
+
+	// Set the registry
+	if name := ctx.String("registry"); len(name) > 0 && (*c.opts.Registry).String() != name {
+		r, ok := c.opts.Registries[name]
+		if !ok {
+			logger.Fatalf("Registry %s not found", name)
+		}
+
+		*c.opts.Registry = r(registryOpts...)
+		serverOpts = append(serverOpts, server.Registry(*c.opts.Registry))
+		clientOpts = append(clientOpts, client.Registry(*c.opts.Registry))
+		brokerOpts = append(brokerOpts, broker.Registry(*c.opts.Registry))
+		selectorOpts = append(selectorOpts, selector.Registry(*c.opts.Registry))
+	} else if len(registryOpts) > 0 {
+		if err := (*c.opts.Registry).Init(registryOpts...); err != nil {
+			logger.Fatalf("Error configuring registry: %v", err)
+		}
+	}
+
+	// Set the selector
+	if name := ctx.String("selector"); len(name) > 0 && (*c.opts.Selector).String() != name {
+		s, ok := c.opts.Selectors[name]
+		if !ok {
+			logger.Fatalf("Selector %s not found", name)
+		}
+
+		*c.opts.Selector = s(selectorOpts...)
+		clientOpts = append(clientOpts, client.Selector(*c.opts.Selector))
+	} else if len(selectorOpts) > 0 {
+		if err := (*c.opts.Selector).Init(selectorOpts...); err != nil {
+			logger.Fatalf("Error configuring selctor: %v", err)
+		}
+	}
+
 	// Set the router, this must happen before the rest of the server as it'll route server requests
 	// such as go.micro.config if no address is specified
 	routerOpts := []router.Option{
@@ -708,62 +764,6 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		}
 
 		*c.opts.Tracer = r()
-	}
-
-	// Setup broker options.
-	brokerOpts := []broker.Option{}
-	if len(ctx.String("broker_address")) > 0 {
-		brokerOpts = append(brokerOpts, broker.Addrs(ctx.String("broker_address")))
-	}
-
-	// Setup registry options
-	registryOpts := []registry.Option{registrySrv.WithClient(microClient)}
-	if len(ctx.String("registry_address")) > 0 {
-		addresses := strings.Split(ctx.String("registry_address"), ",")
-		registryOpts = append(registryOpts, registry.Addrs(addresses...))
-	}
-
-	// Setup selector options
-	selectorOpts := []selector.Option{selector.Registry(*c.opts.Registry)}
-
-	// Set the registry
-	if name := ctx.String("registry"); len(name) > 0 && (*c.opts.Registry).String() != name {
-		r, ok := c.opts.Registries[name]
-		if !ok {
-			logger.Fatalf("Registry %s not found", name)
-		}
-
-		*c.opts.Registry = r(registryOpts...)
-		serverOpts = append(serverOpts, server.Registry(*c.opts.Registry))
-		clientOpts = append(clientOpts, client.Registry(*c.opts.Registry))
-		brokerOpts = append(brokerOpts, broker.Registry(*c.opts.Registry))
-		selectorOpts = append(selectorOpts, selector.Registry(*c.opts.Registry))
-	} else if len(registryOpts) > 0 {
-		if err := (*c.opts.Registry).Init(registryOpts...); err != nil {
-			logger.Fatalf("Error configuring registry: %v", err)
-		}
-	}
-
-	// Set the selector
-	if name := ctx.String("selector"); len(name) > 0 && (*c.opts.Selector).String() != name {
-		s, ok := c.opts.Selectors[name]
-		if !ok {
-			logger.Fatalf("Selector %s not found", name)
-		}
-
-		*c.opts.Selector = s(selectorOpts...)
-		clientOpts = append(clientOpts, client.Selector(*c.opts.Selector))
-	} else if len(selectorOpts) > 0 {
-		if err := (*c.opts.Selector).Init(selectorOpts...); err != nil {
-			logger.Fatalf("Error configuring selctor: %v", err)
-		}
-	}
-
-	// generate the services auth account.
-	// todo: move this so it only runs for new services
-	serverID := (*c.opts.Server).Options().Id
-	if err := authutil.Generate(serverID, c.App().Name, (*c.opts.Auth)); err != nil {
-		return err
 	}
 
 	// Set the profile
