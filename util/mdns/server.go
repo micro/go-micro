@@ -431,9 +431,11 @@ func (s *Server) sendResponse(resp *dns.Msg, from net.Addr) error {
 	// Determine the socket to send from
 	addr := from.(*net.UDPAddr)
 	if addr.IP.To4() != nil {
+		log.Infof("Sending response from %+v to %+v", s.ipv4List.LocalAddr(), addr)
 		_, err = s.ipv4List.WriteToUDP(buf, addr)
 		return err
 	} else {
+		log.Infof("Sending response from %+v to %+v", s.ipv6List.LocalAddr(), addr)
 		_, err = s.ipv6List.WriteToUDP(buf, addr)
 		return err
 	}

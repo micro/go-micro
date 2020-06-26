@@ -350,11 +350,12 @@ func (c *client) query(params *QueryParam) error {
 		case resp := <-msgCh:
 			inp := messageToEntry(resp, inprogress)
 			logger.Infof("MDNS received %+v", resp)
+
 			if inp == nil {
 				continue
 			}
 			if len(resp.Question) == 0 || resp.Question[0].Name != m.Question[0].Name {
-				logger.Infof("Discarding answer to question we didn't ask. Asked %+v got %+v", m.Question, resp.Question)
+				logger.Infof("Discarding answer to question we didn't ask. Asked %+v got %+v inpcomplete %s", m.Question, resp.Question, inp.complete())
 				continue
 			}
 
@@ -403,6 +404,7 @@ func (c *client) sendQuery(q *dns.Msg) error {
 
 // recv is used to receive until we get a shutdown
 func (c *client) recv(l *net.UDPConn, msgCh chan *dns.Msg) {
+	logger.Infof("MDNS Listening for response on conn %s", l.LocalAddr())
 	if l == nil {
 		return
 	}
@@ -416,10 +418,13 @@ func (c *client) recv(l *net.UDPConn, msgCh chan *dns.Msg) {
 		c.closeLock.Unlock()
 		n, err := l.Read(buf)
 		if err != nil {
+			logger.Errorf("Error reading from conn %s %s", l.LocalAddr(), err)
 			continue
 		}
+		logger.Infof("MDNS Received on conn %s", l.LocalAddr())
 		msg := new(dns.Msg)
 		if err := msg.Unpack(buf[:n]); err != nil {
+			logger.Errorf("Error unpacking from conn %s %s", l.LocalAddr(), err)
 			continue
 		}
 		select {
