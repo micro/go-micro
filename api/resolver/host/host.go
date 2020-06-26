@@ -17,6 +17,7 @@ func (r *Resolver) Resolve(req *http.Request) (*resolver.Endpoint, error) {
 		Host:   req.Host,
 		Method: req.Method,
 		Path:   req.URL.Path,
+		Domain: r.opts.Domain,
 	}, nil
 }
 

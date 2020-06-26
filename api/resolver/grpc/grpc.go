@@ -9,7 +9,9 @@ import (
 	"github.com/micro/go-micro/v2/api/resolver"
 )
 
-type Resolver struct{}
+type Resolver struct {
+	opts resolver.Options
+}
 
 func (r *Resolver) Resolve(req *http.Request) (*resolver.Endpoint, error) {
 	// /foo.Bar/Service
@@ -26,6 +28,7 @@ func (r *Resolver) Resolve(req *http.Request) (*resolver.Endpoint, error) {
 		Host:   req.Host,
 		Method: req.Method,
 		Path:   req.URL.Path,
+		Domain: r.opts.Domain,
 	}, nil
 }
 
@@ -34,5 +37,5 @@ func (r *Resolver) String() string {
 }
 
 func NewResolver(opts ...resolver.Option) resolver.Resolver {
-	return &Resolver{}
+	return &Resolver{opts: resolver.NewOptions(opts...)}
 }
