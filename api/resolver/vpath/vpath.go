@@ -65,5 +65,9 @@ func (r *Resolver) String() string {
 // withPrefix transforms "foo" into "go.micro.api.foo"
 func (r *Resolver) withPrefix(parts ...string) string {
 	p := r.opts.ServicePrefix
-	return strings.Join(append([]string{p}, parts...), ".")
+	if len(p) > 0 {
+		parts = append([]string{p}, parts...)
+	}
+
+	return strings.Join(parts, ".")
 }
