@@ -30,28 +30,31 @@ func (r *Resolver) Resolve(req *http.Request) (*resolver.Endpoint, error) {
 	parts := strings.Split(req.URL.Path[1:], "/")
 	if len(parts) == 1 {
 		return &resolver.Endpoint{
-			Name:   r.withNamespace(req, parts...),
+			Name:   r.withPrefix(parts...),
 			Host:   req.Host,
 			Method: req.Method,
 			Path:   req.URL.Path,
+			Domain: r.opts.Domain,
 		}, nil
 	}
 
 	// /v1/foo
 	if re.MatchString(parts[0]) {
 		return &resolver.Endpoint{
-			Name:   r.withNamespace(req, parts[0:2]...),
+			Name:   r.withPrefix(parts[0:2]...),
 			Host:   req.Host,
 			Method: req.Method,
 			Path:   req.URL.Path,
+			Domain: r.opts.Domain,
 		}, nil
 	}
 
 	return &resolver.Endpoint{
-		Name:   r.withNamespace(req, parts[0]),
+		Name:   r.withPrefix(parts[0]),
 		Host:   req.Host,
 		Method: req.Method,
 		Path:   req.URL.Path,
+		Domain: r.opts.Domain,
 	}, nil
 }
 
@@ -59,11 +62,8 @@ func (r *Resolver) String() string {
 	return "path"
 }
 
-func (r *Resolver) withNamespace(req *http.Request, parts ...string) string {
-	ns := r.opts.Namespace(req)
-	if len(ns) == 0 {
-		return strings.Join(parts, ".")
-	}
-
-	return strings.Join(append([]string{ns}, parts...), ".")
+// withPrefix transforms "foo" into "go.micro.api.foo"
+func (r *Resolver) withPrefix(parts ...string) string {
+	p := r.opts.ServicePrefix
+	return strings.Join(append([]string{p}, parts...), ".")
 }
