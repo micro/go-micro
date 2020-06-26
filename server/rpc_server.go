@@ -771,7 +771,7 @@ func (s *rpcServer) Deregister() error {
 	if logger.V(logger.InfoLevel, logger.DefaultLogger) {
 		log.Infof("Registry [%s] Deregistering node: %s", config.Registry.String(), node.Id)
 	}
-	if err := config.Registry.Deregister(service); err != nil {
+	if err := config.Registry.Deregister(service, registry.DeregisterDomain(s.opts.Namespace)); err != nil {
 		return err
 	}
 

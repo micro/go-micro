@@ -118,7 +118,7 @@ func (r *router) manageRoute(route Route, action string) error {
 
 // manageServiceRoutes applies action to all routes of the service.
 // It returns error of the action fails with error.
-func (r *router) manageRoutes(service *registry.Service, action string) error {
+func (r *router) manageRoutes(service *registry.Service, action, network string) error {
 	// action is the routing table action
 	action = strings.ToLower(action)
 
@@ -128,7 +128,7 @@ func (r *router) manageRoutes(service *registry.Service, action string) error {
 			Service: service.Name,
 			Address: node.Address,
 			Gateway: "",
-			Network: r.options.Network,
+			Network: network,
 			Router:  r.options.Id,
 			Link:    DefaultLink,
 			Metric:  DefaultLocalMetric,
@@ -145,21 +145,29 @@ func (r *router) manageRoutes(service *registry.Service, action string) error {
 // manageRegistryRoutes applies action to all routes of each service found in the registry.
 // It returns error if either the services failed to be listed or the routing table action fails.
 func (r *router) manageRegistryRoutes(reg registry.Registry, action string) error {
-	services, err := reg.ListServices()
+	services, err := reg.ListServices(registry.ListDomain(registry.WildcardDomain))
 	if err != nil {
 		return fmt.Errorf("failed listing services: %v", err)
 	}
 
 	// add each service node as a separate route
 	for _, service := range services {
+		// get the services domain from metadata. Fallback to wildcard.
+		var domain string
+		if service.Metadata != nil && len(service.Metadata["domain"]) > 0 {
+			domain = service.Metadata["domain"]
+		} else {
+			domain = registry.WildcardDomain
+		}
+
 		// get the service to retrieve all its info
-		srvs, err := reg.GetService(service.Name)
+		srvs, err := reg.GetService(service.Name, registry.GetDomain(domain))
 		if err != nil {
 			continue
 		}
 		// manage the routes for all returned services
 		for _, srv := range srvs {
-			if err := r.manageRoutes(srv, action); err != nil {
+			if err := r.manageRoutes(srv, action, domain); err != nil {
 				return err
 			}
 		}
@@ -197,7 +205,19 @@ func (r *router) watchRegistry(w registry.Watcher) error {
 			break
 		}
 
-		if err := r.manageRoutes(res.Service, res.Action); err != nil {
+		if res.Service == nil {
+			continue
+		}
+
+		// get the services domain from metadata. Fallback to wildcard.
+		var domain string
+		if res.Service.Metadata != nil && len(res.Service.Metadata["domain"]) > 0 {
+			domain = res.Service.Metadata["domain"]
+		} else {
+			domain = registry.WildcardDomain
+		}
+
+		if err := r.manageRoutes(res.Service, res.Action, domain); err != nil {
 			return err
 		}
 	}
@@ -446,7 +466,7 @@ func (r *router) start() error {
 	r.exit = make(chan bool)
 
 	// registry watcher
-	w, err := r.options.Registry.Watch()
+	w, err := r.options.Registry.Watch(registry.WatchDomain(registry.WildcardDomain))
 	if err != nil {
 		return fmt.Errorf("failed creating registry watcher: %v", err)
 	}

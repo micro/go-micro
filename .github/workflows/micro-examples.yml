@@ -32,6 +32,6 @@ jobs:
         path: 'examples'
 
     - name: Build all
-      run: $GITHUB_WORKSPACE/go-micro/.github/workflows/scripts/build-all-examples.sh ${{ github.event.pull_request.head.sha }}
+      run: $GITHUB_WORKSPACE/go-micro/.github/workflows/scripts/build-all-examples.sh ${{ github.event.pull_request.head.sha }} ${{ github.event.pull_request.head.repo.full_name }}
       working-directory: examples
     

@@ -14,6 +14,7 @@ import (
 	"github.com/micro/go-micro/v2/debug/profile"
 	"github.com/micro/go-micro/v2/debug/trace"
 	"github.com/micro/go-micro/v2/registry"
+	"github.com/micro/go-micro/v2/router"
 	"github.com/micro/go-micro/v2/runtime"
 	"github.com/micro/go-micro/v2/server"
 	"github.com/micro/go-micro/v2/store"
@@ -30,6 +31,7 @@ type Options struct {
 	Server    server.Server
 	Store     store.Store
 	Registry  registry.Registry
+	Router    router.Router
 	Runtime   runtime.Runtime
 	Transport transport.Transport
 	Profile   profile.Profile
@@ -57,6 +59,7 @@ func newOptions(opts ...Option) Options {
 		Server:    server.DefaultServer,
 		Store:     store.DefaultStore,
 		Registry:  registry.DefaultRegistry,
+		Router:    router.DefaultRouter,
 		Runtime:   runtime.DefaultRuntime,
 		Transport: transport.DefaultTransport,
 		Context:   context.Background(),
