@@ -46,15 +46,26 @@ func (c *registrySelector) Select(service string, opts ...SelectOption) (Next, e
 		opt(&sopts)
 	}
 
-	// get the service
-	// try the cache first
-	// if that fails go directly to the registry
-	services, err := c.rc.GetService(service)
-	if err != nil {
-		if err == registry.ErrNotFound {
-			return nil, ErrNotFound
-		}
+	// get the service. Because the service could be running in the current or the default domain,
+	// we call both. For example, go.micro.service.foo could be running in the services current domain,
+	// however the runtime (go.micro.runtime) will always be run in the default domain.
+	services, err := c.rc.GetService(service, registry.GetDomain(c.so.Domain))
+	if err != nil && err != registry.ErrNotFound {
 		return nil, err
+	}
+
+	if c.so.Domain != registry.DefaultDomain {
+		srvs, err := c.rc.GetService(service, registry.GetDomain(registry.DefaultDomain))
+		if err != nil && err != registry.ErrNotFound {
+			return nil, err
+		}
+		if err == nil {
+			services = append(services, srvs...)
+		}
+	}
+
+	if services == nil {
+		return nil, ErrNoneAvailable
 	}
 
 	// apply the filters
