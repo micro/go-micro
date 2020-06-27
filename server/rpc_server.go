@@ -363,11 +363,12 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 			r = rpcRouter{h: handler}
 		}
 
+		// wait for two coroutines to exit
+		// serve the request and process the outbound messages
+		wg.Add(2)
+
 		// process the outbound messages from the socket
 		go func(id string, psock *socket.Socket) {
-			// wait for processing to exit
-			wg.Add(1)
-
 			defer func() {
 				// TODO: don't hack this but if its grpc just break out of the stream
 				// We do this because the underlying connection is h2 and its a stream
@@ -405,9 +406,6 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 
 		// serve the request in a go routine as this may be a stream
 		go func(id string, psock *socket.Socket) {
-			// add to the waitgroup
-			wg.Add(1)
-
 			defer func() {
 				// release the socket
 				pool.Release(psock)
