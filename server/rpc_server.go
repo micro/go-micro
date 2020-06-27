@@ -522,7 +522,10 @@ func (s *rpcServer) Register() error {
 
 	regFunc := func(service *registry.Service) error {
 		// create registry options
-		rOpts := []registry.RegisterOption{registry.RegisterTTL(config.RegisterTTL)}
+		rOpts := []registry.RegisterOption{
+			registry.RegisterTTL(config.RegisterTTL),
+			registry.RegisterDomain(s.opts.Namespace),
+		}
 
 		var regErr error
 
@@ -768,7 +771,7 @@ func (s *rpcServer) Deregister() error {
 	if logger.V(logger.InfoLevel, logger.DefaultLogger) {
 		log.Infof("Registry [%s] Deregistering node: %s", config.Registry.String(), node.Id)
 	}
-	if err := config.Registry.Deregister(service); err != nil {
+	if err := config.Registry.Deregister(service, registry.DeregisterDomain(s.opts.Namespace)); err != nil {
 		return err
 	}
 

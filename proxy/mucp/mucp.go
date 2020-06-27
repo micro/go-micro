@@ -129,7 +129,7 @@ func (p *Proxy) filterRoutes(ctx context.Context, routes []router.Route) []route
 
 		// only process routes with this network
 		if net, ok := md.Get("Micro-Network"); ok && len(net) > 0 {
-			if route.Network != net {
+			if route.Network != router.DefaultNetwork && route.Network != net {
 				// skip routes that don't mwatch
 				continue
 			}
@@ -183,14 +183,12 @@ func (p *Proxy) getLink(r router.Route) (client.Client, error) {
 
 func (p *Proxy) getRoute(ctx context.Context, service string) ([]router.Route, error) {
 	// lookup the route cache first
-	p.Lock()
+	p.RLock()
 	cached, ok := p.Routes[service]
+	p.RUnlock()
 	if ok {
-		p.Unlock()
-		routes := toSlice(cached)
-		return p.filterRoutes(ctx, routes), nil
+		return p.filterRoutes(ctx, toSlice(cached)), nil
 	}
-	p.Unlock()
 
 	// cache routes for the service
 	routes, err := p.cacheRoutes(service)
@@ -203,7 +201,7 @@ func (p *Proxy) getRoute(ctx context.Context, service string) ([]router.Route, e
 
 func (p *Proxy) cacheRoutes(service string) ([]router.Route, error) {
 	// lookup the routes in the router
-	results, err := p.Router.Lookup(router.QueryService(service))
+	results, err := p.Router.Lookup(router.QueryService(service), router.QueryNetwork("*"))
 	if err != nil {
 		// assumption that we're ok with stale routes
 		logger.Debugf("Failed to lookup route for %s: %v", service, err)
@@ -290,6 +288,7 @@ func (p *Proxy) watchRoutes() {
 	// route watcher
 	w, err := p.Router.Watch()
 	if err != nil {
+		logger.Debugf("Error watching router: %v", err)
 		return
 	}
 	defer w.Stop()
@@ -297,6 +296,7 @@ func (p *Proxy) watchRoutes() {
 	for {
 		event, err := w.Next()
 		if err != nil {
+			logger.Debugf("Error watching router: %v", err)
 			return
 		}
 

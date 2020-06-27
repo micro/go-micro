@@ -45,20 +45,35 @@ func newRouter(opts ...Option) Router {
 		o(&options)
 	}
 
-	return &router{
+	// construct the router
+	r := &router{
 		options:     options,
 		table:       newTable(),
 		subscribers: make(map[string]chan *Advert),
 	}
+
+	// start the router and return
+	r.start()
+	return r
 }
 
 // Init initializes router with given options
 func (r *router) Init(opts ...Option) error {
+	// stop the router before we initialize
+	if err := r.Close(); err != nil {
+		return err
+	}
+
 	r.Lock()
 	defer r.Unlock()
 
 	for _, o := range opts {
 		o(&r.options)
+	}
+
+	// restart the router
+	if err := r.start(); err != nil {
+		return err
 	}
 
 	return nil
@@ -103,7 +118,7 @@ func (r *router) manageRoute(route Route, action string) error {
 
 // manageServiceRoutes applies action to all routes of the service.
 // It returns error of the action fails with error.
-func (r *router) manageRoutes(service *registry.Service, action string) error {
+func (r *router) manageRoutes(service *registry.Service, action, network string) error {
 	// action is the routing table action
 	action = strings.ToLower(action)
 
@@ -113,7 +128,7 @@ func (r *router) manageRoutes(service *registry.Service, action string) error {
 			Service: service.Name,
 			Address: node.Address,
 			Gateway: "",
-			Network: r.options.Network,
+			Network: network,
 			Router:  r.options.Id,
 			Link:    DefaultLink,
 			Metric:  DefaultLocalMetric,
@@ -130,21 +145,29 @@ func (r *router) manageRoutes(service *registry.Service, action string) error {
 // manageRegistryRoutes applies action to all routes of each service found in the registry.
 // It returns error if either the services failed to be listed or the routing table action fails.
 func (r *router) manageRegistryRoutes(reg registry.Registry, action string) error {
-	services, err := reg.ListServices()
+	services, err := reg.ListServices(registry.ListDomain(registry.WildcardDomain))
 	if err != nil {
 		return fmt.Errorf("failed listing services: %v", err)
 	}
 
 	// add each service node as a separate route
 	for _, service := range services {
+		// get the services domain from metadata. Fallback to wildcard.
+		var domain string
+		if service.Metadata != nil && len(service.Metadata["domain"]) > 0 {
+			domain = service.Metadata["domain"]
+		} else {
+			domain = registry.WildcardDomain
+		}
+
 		// get the service to retrieve all its info
-		srvs, err := reg.GetService(service.Name)
+		srvs, err := reg.GetService(service.Name, registry.GetDomain(domain))
 		if err != nil {
 			continue
 		}
 		// manage the routes for all returned services
 		for _, srv := range srvs {
-			if err := r.manageRoutes(srv, action); err != nil {
+			if err := r.manageRoutes(srv, action, domain); err != nil {
 				return err
 			}
 		}
@@ -182,7 +205,19 @@ func (r *router) watchRegistry(w registry.Watcher) error {
 			break
 		}
 
-		if err := r.manageRoutes(res.Service, res.Action); err != nil {
+		if res.Service == nil {
+			continue
+		}
+
+		// get the services domain from metadata. Fallback to wildcard.
+		var domain string
+		if res.Service.Metadata != nil && len(res.Service.Metadata["domain"]) > 0 {
+			domain = res.Service.Metadata["domain"]
+		} else {
+			domain = registry.WildcardDomain
+		}
+
+		if err := r.manageRoutes(res.Service, res.Action, domain); err != nil {
 			return err
 		}
 	}
@@ -399,11 +434,8 @@ func (r *router) drain() {
 	}
 }
 
-// Start starts the router
-func (r *router) Start() error {
-	r.Lock()
-	defer r.Unlock()
-
+// start the router. Should be called under lock.
+func (r *router) start() error {
 	if r.running {
 		return nil
 	}
@@ -434,7 +466,7 @@ func (r *router) Start() error {
 	r.exit = make(chan bool)
 
 	// registry watcher
-	w, err := r.options.Registry.Watch()
+	w, err := r.options.Registry.Watch(registry.WatchDomain(registry.WildcardDomain))
 	if err != nil {
 		return fmt.Errorf("failed creating registry watcher: %v", err)
 	}
@@ -615,8 +647,8 @@ func (r *router) Watch(opts ...WatchOption) (Watcher, error) {
 	return r.table.Watch(opts...)
 }
 
-// Stop stops the router
-func (r *router) Stop() error {
+// Close the router
+func (r *router) Close() error {
 	r.Lock()
 	defer r.Unlock()
 

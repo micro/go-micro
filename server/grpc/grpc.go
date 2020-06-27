@@ -576,8 +576,12 @@ func (g *grpcServer) Register() error {
 		var regErr error
 
 		for i := 0; i < 3; i++ {
-			// set the ttl
-			rOpts := []registry.RegisterOption{registry.RegisterTTL(config.RegisterTTL)}
+			// set the ttl and namespace
+			rOpts := []registry.RegisterOption{
+				registry.RegisterTTL(config.RegisterTTL),
+				registry.RegisterDomain(g.opts.Namespace),
+			}
+
 			// attempt to register
 			if err := config.Registry.Register(service, rOpts...); err != nil {
 				// set the error
@@ -790,7 +794,9 @@ func (g *grpcServer) Deregister() error {
 	if logger.V(logger.InfoLevel, logger.DefaultLogger) {
 		logger.Infof("Deregistering node: %s", node.Id)
 	}
-	if err := config.Registry.Deregister(service); err != nil {
+
+	opt := registry.DeregisterDomain(g.opts.Namespace)
+	if err := config.Registry.Deregister(service, opt); err != nil {
 		return err
 	}
 

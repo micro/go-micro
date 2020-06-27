@@ -30,10 +30,6 @@ func (s *svc) Init(opts ...auth.Option) {
 		o(&s.options)
 	}
 
-	if s.options.Client == nil {
-		s.options.Client = client.DefaultClient
-	}
-
 	s.auth = pb.NewAuthService("go.micro.auth", s.options.Client)
 	s.rules = pb.NewRulesService("go.micro.auth", s.options.Client)
 
@@ -60,7 +56,7 @@ func (s *svc) Generate(id string, opts ...auth.GenerateOption) (*auth.Account, e
 		Scopes:   options.Scopes,
 		Metadata: options.Metadata,
 		Provider: options.Provider,
-	})
+	}, s.callOpts()...)
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +85,7 @@ func (s *svc) Grant(rule *auth.Rule) error {
 				Endpoint: rule.Resource.Endpoint,
 			},
 		},
-	})
+	}, s.callOpts()...)
 
 	return err
 }
@@ -98,7 +94,7 @@ func (s *svc) Grant(rule *auth.Rule) error {
 func (s *svc) Revoke(rule *auth.Rule) error {
 	_, err := s.rules.Delete(context.TODO(), &pb.DeleteRequest{
 		Id: rule.ID,
-	})
+	}, s.callOpts()...)
 
 	return err
 }
@@ -112,7 +108,8 @@ func (s *svc) Rules(opts ...auth.RulesOption) ([]*auth.Rule, error) {
 		options.Context = context.TODO()
 	}
 
-	rsp, err := s.rules.List(options.Context, &pb.ListRequest{}, client.WithCache(time.Second*30))
+	callOpts := append(s.callOpts(), client.WithCache(time.Second*30))
+	rsp, err := s.rules.List(options.Context, &pb.ListRequest{}, callOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -149,7 +146,7 @@ func (s *svc) Inspect(token string) (*auth.Account, error) {
 
 	// the token is not a JWT or we do not have the keys to decode it,
 	// fall back to the auth service
-	rsp, err := s.auth.Inspect(context.TODO(), &pb.InspectRequest{Token: token})
+	rsp, err := s.auth.Inspect(context.TODO(), &pb.InspectRequest{Token: token}, s.callOpts()...)
 	if err != nil {
 		return nil, err
 	}
@@ -165,7 +162,7 @@ func (s *svc) Token(opts ...auth.TokenOption) (*auth.Token, error) {
 		Secret:       options.Secret,
 		RefreshToken: options.RefreshToken,
 		TokenExpiry:  int64(options.Expiry.Seconds()),
-	})
+	}, s.callOpts()...)
 	if err != nil {
 		return nil, err
 	}
@@ -213,11 +210,20 @@ func serializeRule(r *pb.Rule) *auth.Rule {
 	}
 }
 
+func (s *svc) callOpts() []client.CallOption {
+	return []client.CallOption{
+		client.WithAddress(s.options.Addrs...),
+	}
+}
+
 // NewAuth returns a new instance of the Auth service
 func NewAuth(opts ...auth.Option) auth.Auth {
 	options := auth.NewOptions(opts...)
 	if options.Client == nil {
 		options.Client = client.DefaultClient
+	}
+	if len(options.Addrs) == 0 {
+		options.Addrs = []string{"127.0.0.1:8010"}
 	}
 
 	return &svc{
