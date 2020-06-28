@@ -177,6 +177,13 @@ func (m *Registry) Register(s *registry.Service, opts ...registry.RegisterOption
 		srvs = make(services)
 	}
 
+	// domain is set in metadata so it can be passed to watchers
+	if s.Metadata == nil {
+		s.Metadata = map[string]string{"domain": options.Domain}
+	} else {
+		s.Metadata["domain"] = options.Domain
+	}
+
 	// ensure the service name exists
 	r := serviceToRecord(s, options.TTL)
 	if _, ok := srvs[s.Name]; !ok {
@@ -189,7 +196,7 @@ func (m *Registry) Register(s *registry.Service, opts ...registry.RegisterOption
 			logger.Debugf("Registry added new service: %s, version: %s", s.Name, s.Version)
 		}
 		m.records[options.Domain] = srvs
-		go m.sendEvent(&registry.Result{Action: "update", Service: s})
+		go m.sendEvent(&registry.Result{Action: "create", Service: s})
 	}
 
 	addedNodes := false
@@ -245,6 +252,13 @@ func (m *Registry) Deregister(s *registry.Service, opts ...registry.DeregisterOp
 		options.Domain = registry.DefaultDomain
 	}
 
+	// domain is set in metadata so it can be passed to watchers
+	if s.Metadata == nil {
+		s.Metadata = map[string]string{"domain": options.Domain}
+	} else {
+		s.Metadata["domain"] = options.Domain
+	}
+
 	// if the domain doesn't exist, there is nothing to deregister
 	services, ok := m.records[options.Domain]
 	if !ok {
@@ -275,6 +289,7 @@ func (m *Registry) Deregister(s *registry.Service, opts ...registry.DeregisterOp
 	// is cleanup
 	if len(version.Nodes) > 0 {
 		m.records[options.Domain][s.Name][s.Version] = version
+		go m.sendEvent(&registry.Result{Action: "update", Service: s})
 		return nil
 	}
 
@@ -292,6 +307,7 @@ func (m *Registry) Deregister(s *registry.Service, opts ...registry.DeregisterOp
 
 	// there are other versions of the service running, so only remove this version of it
 	delete(m.records[options.Domain][s.Name], s.Version)
+	go m.sendEvent(&registry.Result{Action: "delete", Service: s})
 	if logger.V(logger.DebugLevel, logger.DefaultLogger) {
 		logger.Debugf("Registry removed service: %s, version: %s", s.Name, s.Version)
 	}

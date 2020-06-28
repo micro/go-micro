@@ -99,7 +99,7 @@ func (r *registryRouter) process(res *registry.Result) {
 	service, err := r.rc.GetService(res.Service.Name)
 	if err != nil {
 		if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
-			logger.Errorf("unable to get service: %v", err)
+			logger.Errorf("unable to get %v service: %v", res.Service.Name, err)
 		}
 		return
 	}

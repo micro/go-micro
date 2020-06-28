@@ -1,152 +1,128 @@
-// Package cache implements a faulting style read cache on top of multiple micro stores
 package cache
 
 import (
-	"fmt"
-
 	"github.com/micro/go-micro/v2/store"
 	"github.com/micro/go-micro/v2/store/memory"
-	"github.com/pkg/errors"
 )
 
+// cache store is a store with caching to reduce IO where applicable.
+// A memory store is used to cache reads from the given backing store.
+// Reads are read through, writes are write-through
 type cache struct {
-	stores []store.Store
+	m       store.Store // the memory store
+	b       store.Store // the backing store, could be file, cockroach etc
+	options store.Options
 }
 
-// Cache is a cpu register style cache for the store.
-// It syncs between N stores in a faulting manner.
-type Cache interface {
-	// Implements the store interface
-	store.Store
-}
-
-// NewCache returns a new store using the underlying stores, which must be already Init()ialised
-func NewCache(stores ...store.Store) Cache {
-	if len(stores) == 0 {
-		stores = []store.Store{
-			memory.NewStore(),
-		}
+// NewStore returns a new cache store
+func NewStore(store store.Store, opts ...store.Option) store.Store {
+	cf := &cache{
+		m: memory.NewStore(opts...),
+		b: store,
 	}
+	return cf
 
-	// TODO: build in an in memory cache
-	c := &cache{
-		stores: stores,
-	}
-
-	return c
 }
 
-func (c *cache) Close() error {
-	return nil
-}
-
-func (c *cache) Init(opts ...store.Option) error {
-	// pass to the stores
-	for _, store := range c.stores {
-		if err := store.Init(opts...); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (c *cache) Options() store.Options {
-	// return from first store
-	return c.stores[0].Options()
-}
-
-func (c *cache) String() string {
-	stores := make([]string, len(c.stores))
-	for i, s := range c.stores {
-		stores[i] = s.String()
-	}
-	return fmt.Sprintf("cache %v", stores)
-}
-
-func (c *cache) Read(key string, opts ...store.ReadOption) ([]*store.Record, error) {
-	readOpts := store.ReadOptions{}
+func (c *cache) init(opts ...store.Option) error {
 	for _, o := range opts {
-		o(&readOpts)
+		o(&c.options)
 	}
+	return nil
+}
 
-	if readOpts.Prefix || readOpts.Suffix {
-		// List, then try cached gets for each key
-		var lOpts []store.ListOption
-		if readOpts.Prefix {
-			lOpts = append(lOpts, store.ListPrefix(key))
-		}
-		if readOpts.Suffix {
-			lOpts = append(lOpts, store.ListSuffix(key))
-		}
-		if readOpts.Limit > 0 {
-			lOpts = append(lOpts, store.ListLimit(readOpts.Limit))
-		}
-		if readOpts.Offset > 0 {
-			lOpts = append(lOpts, store.ListOffset(readOpts.Offset))
-		}
-		keys, err := c.List(lOpts...)
-		if err != nil {
-			return []*store.Record{}, errors.Wrap(err, "cache.List failed")
-		}
-		recs := make([]*store.Record, len(keys))
-		for i, k := range keys {
-			r, err := c.readOne(k, opts...)
-			if err != nil {
-				return recs, errors.Wrap(err, "cache.readOne failed")
-			}
-			recs[i] = r
-		}
+// Init initialises the underlying stores
+func (c *cache) Init(opts ...store.Option) error {
+	if err := c.init(opts...); err != nil {
+		return err
+	}
+	if err := c.m.Init(opts...); err != nil {
+		return err
+	}
+	return c.b.Init(opts...)
+}
+
+// Options allows you to view the current options.
+func (c *cache) Options() store.Options {
+	return c.options
+}
+
+// Read takes a single key name and optional ReadOptions. It returns matching []*Record or an error.
+func (c *cache) Read(key string, opts ...store.ReadOption) ([]*store.Record, error) {
+	recs, err := c.m.Read(key, opts...)
+	if err != nil && err != store.ErrNotFound {
+		return nil, err
+	}
+	if len(recs) > 0 {
 		return recs, nil
 	}
-
-	// Otherwise just try cached get
-	r, err := c.readOne(key, opts...)
-	if err != nil {
-		return []*store.Record{}, err // preserve store.ErrNotFound
+	recs, err = c.b.Read(key, opts...)
+	if err == nil {
+		for _, rec := range recs {
+			if err := c.m.Write(rec); err != nil {
+				return nil, err
+			}
+		}
 	}
-	return []*store.Record{r}, nil
+	return recs, err
 }
 
-func (c *cache) readOne(key string, opts ...store.ReadOption) (*store.Record, error) {
-	for i, s := range c.stores {
-		// ReadOne ignores all options
-		r, err := s.Read(key)
-		if err == nil {
-			if len(r) > 1 {
-				return nil, errors.Wrapf(err, "read from L%d cache (%s) returned multiple records", i, c.stores[i].String())
+// Write() writes a record to the store, and returns an error if the record was not written.
+// If the write succeeds in writing to memory but fails to write through to file, you'll receive an error
+// but the value may still reside in memory so appropriate action should be taken.
+func (c *cache) Write(r *store.Record, opts ...store.WriteOption) error {
+	if err := c.m.Write(r, opts...); err != nil {
+		return err
+	}
+	return c.b.Write(r, opts...)
+}
+
+// Delete removes the record with the corresponding key from the store.
+// If the delete succeeds in writing to memory but fails to write through to file, you'll receive an error
+// but the value may still reside in memory so appropriate action should be taken.
+func (c *cache) Delete(key string, opts ...store.DeleteOption) error {
+	if err := c.m.Delete(key, opts...); err != nil {
+		return err
+	}
+	return c.b.Delete(key, opts...)
+}
+
+// List returns any keys that match, or an empty list with no error if none matched.
+func (c *cache) List(opts ...store.ListOption) ([]string, error) {
+	keys, err := c.m.List(opts...)
+	if err != nil && err != store.ErrNotFound {
+		return nil, err
+	}
+	if len(keys) > 0 {
+		return keys, nil
+	}
+	keys, err = c.b.List(opts...)
+	if err == nil {
+		for _, key := range keys {
+			recs, err := c.b.Read(key)
+			if err != nil {
+				return nil, err
 			}
-			for j := i - 1; j >= 0; j-- {
-				err := c.stores[j].Write(r[0])
-				if err != nil {
-					return nil, errors.Wrapf(err, "could not write to L%d cache (%s)", j, c.stores[j].String())
+			for _, r := range recs {
+				if err := c.m.Write(r); err != nil {
+					return nil, err
 				}
 			}
-			return r[0], nil
+
 		}
 	}
-	return nil, store.ErrNotFound
+	return keys, err
 }
 
-func (c *cache) Write(r *store.Record, opts ...store.WriteOption) error {
-	// Write to all layers in reverse
-	for i := len(c.stores) - 1; i >= 0; i-- {
-		if err := c.stores[i].Write(r, opts...); err != nil {
-			return errors.Wrapf(err, "could not write to L%d cache (%s)", i, c.stores[i].String())
-		}
+// Close the store and the underlying store
+func (c *cache) Close() error {
+	if err := c.m.Close(); err != nil {
+		return err
 	}
-	return nil
+	return c.b.Close()
 }
 
-func (c *cache) Delete(key string, opts ...store.DeleteOption) error {
-	for i, s := range c.stores {
-		if err := s.Delete(key, opts...); err != nil {
-			return errors.Wrapf(err, "could not delete from L%d cache (%s)", i, c.stores[i].String())
-		}
-	}
-	return nil
-}
-
-func (c *cache) List(opts ...store.ListOption) ([]string, error) {
-	// List only makes sense from the top level
-	return c.stores[len(c.stores)-1].List(opts...)
+// String returns the name of the implementation.
+func (c *cache) String() string {
+	return "cache"
 }
