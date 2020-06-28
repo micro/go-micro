@@ -61,8 +61,7 @@ func (s *testServer) Call(ctx context.Context, req *pb.Request, rsp *pb.Response
 
 	if req.Name == "Panic" {
 		// make it panic
-		var a int
-		fmt.Print(1 / a)
+		panic("handler panic")
 	}
 
 	rsp.Msg = "Hello " + req.Name
@@ -222,9 +221,7 @@ func TestGRPCServerWithPanicWrapper(t *testing.T) {
 		server.WrapHandler(func(hf server.HandlerFunc) server.HandlerFunc {
 			return func(ctx context.Context, req server.Request, rsp interface{}) error {
 				// make it panic
-				var a int
-				fmt.Print(1 / a)
-				return hf(ctx, req, rsp)
+				panic("wrapper panic")
 			}
 		}),
 	)
