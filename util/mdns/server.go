@@ -305,7 +305,6 @@ func (s *Server) handleQuery(query *dns.Msg, from net.Addr) error {
 // both.  The return values are DNS records for each transmission type.
 func (s *Server) handleQuestion(q dns.Question) (multicastRecs, unicastRecs []dns.RR) {
 	records := s.config.Zone.Records(q)
-	log.Infof("MDNS handling question %s returning %d records\n%+v", q.Name, len(records), records)
 	if len(records) == 0 {
 		return nil, nil
 	}
@@ -440,7 +439,6 @@ func (s *Server) sendResponse(resp *dns.Msg, from net.Addr) error {
 		conn = s.ipv6List
 		backupTarget = net.IPv6zero
 	}
-	log.Infof("Sending response from %+v to %+v", s.ipv4List.LocalAddr(), addr)
 	_, err = conn.WriteToUDP(buf, addr)
 	// If the address we're responding to is this machine then we can also attempt sending on 0.0.0.0
 	// This covers the case where this machine is using a VPN and certain ports are blocked so the response never gets there

@@ -103,7 +103,6 @@ func TestMDNS(t *testing.T) {
 		if node.Address != service.Nodes[0].Address {
 			t.Fatalf("Expected node address %s got %s", service.Nodes[0].Address, node.Address)
 		}
-
 	}
 
 	services, err := r.ListServices()
