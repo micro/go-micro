@@ -150,7 +150,7 @@ func (t *table) List() ([]Route, error) {
 func isMatch(route Route, address, gateway, network, router string, strategy Strategy) bool {
 	// matches the values provided
 	match := func(a, b string) bool {
-		if a == "*" || a == b {
+		if a == "*" || b == "*" || a == b {
 			return true
 		}
 		return false

@@ -141,10 +141,16 @@ func (s *service) register() error {
 
 	var regErr error
 
+	// register options
+	rOpts := []registry.RegisterOption{
+		registry.RegisterTTL(s.opts.RegisterTTL),
+		registry.RegisterDomain(s.opts.Service.Server().Options().Namespace),
+	}
+
 	// try three times if necessary
 	for i := 0; i < 3; i++ {
 		// attempt to register
-		if err := r.Register(s.srv, registry.RegisterTTL(s.opts.RegisterTTL)); err != nil {
+		if err := r.Register(s.srv, rOpts...); err != nil {
 			// set the error
 			regErr = err
 			// backoff then retry
