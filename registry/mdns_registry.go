@@ -403,7 +403,6 @@ func (m *mdnsRegistry) GetService(service string, opts ...GetOption) ([]*Service
 	p := mdns.DefaultParams(service)
 	// set context with timeout
 	var cancel context.CancelFunc
-
 	p.Context, cancel = context.WithTimeout(context.Background(), m.opts.Timeout)
 	defer cancel()
 	// set entries channel
@@ -474,6 +473,7 @@ func (m *mdnsRegistry) GetService(service string, opts ...GetOption) ([]*Service
 
 	// wait for completion
 	<-done
+
 	// create list and return
 	services := make([]*Service, 0, len(serviceMap))
 
