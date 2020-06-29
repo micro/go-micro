@@ -258,9 +258,11 @@ func (t *table) Query(q ...QueryOption) ([]Route, error) {
 		}
 
 		// load the cache and try again
+		t.RUnlock()
 		if err := t.router.fetchRoutes(opts.Service); err != nil {
 			return nil, err
 		}
+		t.RLock()
 		if _, ok := t.routes[opts.Service]; ok {
 			return findRoutes(t.routes[opts.Service], opts.Address, opts.Gateway, opts.Network, opts.Router, opts.Strategy), nil
 
