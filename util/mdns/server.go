@@ -65,6 +65,8 @@ type Server struct {
 	shutdownCh   chan struct{}
 	shutdownLock sync.Mutex
 	wg           sync.WaitGroup
+
+	outboundIP net.IP
 }
 
 // NewServer is used to create a new mDNS server from a config
@@ -123,6 +125,7 @@ func NewServer(config *Config) (*Server, error) {
 		ipv4List:   ipv4List,
 		ipv6List:   ipv6List,
 		shutdownCh: make(chan struct{}),
+		outboundIP: getOutboundIP(),
 	}
 
 	go s.recv(s.ipv4List)
@@ -430,15 +433,24 @@ func (s *Server) sendResponse(resp *dns.Msg, from net.Addr) error {
 
 	// Determine the socket to send from
 	addr := from.(*net.UDPAddr)
-	if addr.IP.To4() != nil {
-		log.Infof("Sending response from %+v to %+v", s.ipv4List.LocalAddr(), addr)
-		_, err = s.ipv4List.WriteToUDP(buf, addr)
-		return err
-	} else {
-		log.Infof("Sending response from %+v to %+v", s.ipv6List.LocalAddr(), addr)
-		_, err = s.ipv6List.WriteToUDP(buf, addr)
-		return err
+	conn := s.ipv4List
+	backupTarget := net.IPv4zero
+
+	if addr.IP.To4() == nil {
+		conn = s.ipv6List
+		backupTarget = net.IPv6zero
 	}
+	log.Infof("Sending response from %+v to %+v", s.ipv4List.LocalAddr(), addr)
+	_, err = conn.WriteToUDP(buf, addr)
+	// If the address we're responding to is this machine then we can also attempt sending on 0.0.0.0
+	// This covers the case where this machine is using a VPN and certain ports are blocked so the response never gets there
+	// Sending two responses is OK since it's UDP
+	if addr.IP.Equal(s.outboundIP) {
+		// ignore any errors, this is best efforts
+		conn.WriteToUDP(buf, &net.UDPAddr{IP: backupTarget, Port: addr.Port}) {
+	}
+	return err
+
 }
 
 func (s *Server) unregister() error {
@@ -475,4 +487,17 @@ func setCustomPort(port int) {
 			ipv6Addr.Port = port
 		}
 	}
+}
+
+func getOutboundIP() net.IP {
+	conn, err := net.Dial("udp", "8.8.8.8:80")
+	if err != nil {
+		// no net connectivity maybe so fallback
+		return nil
+	}
+	defer conn.Close()
+
+	localAddr := conn.LocalAddr().(*net.UDPAddr)
+
+	return localAddr.IP
 }

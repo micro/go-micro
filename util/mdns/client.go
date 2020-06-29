@@ -355,7 +355,7 @@ func (c *client) query(params *QueryParam) error {
 				continue
 			}
 			if len(resp.Question) == 0 || resp.Question[0].Name != m.Question[0].Name {
-				logger.Infof("Discarding answer to question we didn't ask. Asked %+v got %+v inpcomplete %s", m.Question, resp.Question, inp.complete())
+				// discard anything which we've not asked for
 				continue
 			}
 
