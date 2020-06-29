@@ -447,7 +447,7 @@ func (s *Server) sendResponse(resp *dns.Msg, from net.Addr) error {
 	// Sending two responses is OK since it's UDP
 	if addr.IP.Equal(s.outboundIP) {
 		// ignore any errors, this is best efforts
-		conn.WriteToUDP(buf, &net.UDPAddr{IP: backupTarget, Port: addr.Port}) {
+		conn.WriteToUDP(buf, &net.UDPAddr{IP: backupTarget, Port: addr.Port})
 	}
 	return err
 
