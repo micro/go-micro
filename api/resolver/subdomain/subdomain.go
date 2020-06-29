@@ -23,14 +23,14 @@ type Resolver struct {
 }
 
 func (r *Resolver) Resolve(req *http.Request, opts ...resolver.ResolveOption) (*resolver.Endpoint, error) {
-	if dom := r.resolveDomain(req); len(dom) > 0 {
-		opts = append(opts, resolver.Domain(r.resolveDomain(req)))
+	if dom := r.Domain(req); len(dom) > 0 {
+		opts = append(opts, resolver.Domain(r.Domain(req)))
 	}
 
 	return r.Resolver.Resolve(req, opts...)
 }
 
-func (r *Resolver) resolveDomain(req *http.Request) string {
+func (r *Resolver) Domain(req *http.Request) string {
 	// determine the host, e.g. foobar.m3o.app
 	host := req.URL.Hostname()
 	if len(host) == 0 {
