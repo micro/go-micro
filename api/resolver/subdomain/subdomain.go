@@ -24,7 +24,7 @@ type Resolver struct {
 
 func (r *Resolver) Resolve(req *http.Request, opts ...resolver.ResolveOption) (*resolver.Endpoint, error) {
 	if dom := r.Domain(req); len(dom) > 0 {
-		opts = append(opts, resolver.Domain(r.Domain(req)))
+		opts = append(opts, resolver.Domain(dom))
 	}
 
 	return r.Resolver.Resolve(req, opts...)
