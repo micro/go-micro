@@ -442,7 +442,7 @@ func (s *Server) sendResponse(resp *dns.Msg, from net.Addr) error {
 	_, err = conn.WriteToUDP(buf, addr)
 	// If the address we're responding to is this machine then we can also attempt sending on 0.0.0.0
 	// This covers the case where this machine is using a VPN and certain ports are blocked so the response never gets there
-	// Sending two responses is OK since it's UDP
+	// Sending two responses is OK
 	if addr.IP.Equal(s.outboundIP) {
 		// ignore any errors, this is best efforts
 		conn.WriteToUDP(buf, &net.UDPAddr{IP: backupTarget, Port: addr.Port})
@@ -487,6 +487,7 @@ func setCustomPort(port int) {
 	}
 }
 
+// getOutboundIP returns the IP address of this machine as seen when dialling out
 func getOutboundIP() net.IP {
 	conn, err := net.Dial("udp", "8.8.8.8:80")
 	if err != nil {
