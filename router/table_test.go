@@ -6,7 +6,7 @@ import (
 )
 
 func testSetup() (*table, Route) {
-	table := newTable()
+	table := newTable(&router{options: DefaultOptions()})
 
 	route := Route{
 		Service: "dest.svc",
