@@ -13,7 +13,10 @@ type Resolver struct {
 	opts resolver.Options
 }
 
-func (r *Resolver) Resolve(req *http.Request) (*resolver.Endpoint, error) {
+func (r *Resolver) Resolve(req *http.Request, opts ...resolver.ResolveOption) (*resolver.Endpoint, error) {
+	// parse options
+	options := resolver.NewResolveOptions(opts...)
+
 	// /foo.Bar/Service
 	if req.URL.Path == "/" {
 		return nil, errors.New("unknown name")
@@ -28,7 +31,7 @@ func (r *Resolver) Resolve(req *http.Request) (*resolver.Endpoint, error) {
 		Host:   req.Host,
 		Method: req.Method,
 		Path:   req.URL.Path,
-		Domain: r.opts.Domain,
+		Domain: options.Domain,
 	}, nil
 }
 

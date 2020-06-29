@@ -22,18 +22,12 @@ type Resolver struct {
 	resolver.Resolver
 }
 
-func (r *Resolver) Resolve(req *http.Request) (*resolver.Endpoint, error) {
-	// resolve the endpoint using the provided resolver
-	endpoint, err := r.Resolver.Resolve(req)
-	if err != nil {
-		return nil, err
+func (r *Resolver) Resolve(req *http.Request, opts ...resolver.ResolveOption) (*resolver.Endpoint, error) {
+	if dom := r.resolveDomain(req); len(dom) > 0 {
+		opts = append(opts, resolver.Domain(r.resolveDomain(req)))
 	}
 
-	// override the domain
-	endpoint.Domain = r.resolveDomain(req)
-
-	// return the result
-	return endpoint, nil
+	return r.Resolver.Resolve(req, opts...)
 }
 
 func (r *Resolver) resolveDomain(req *http.Request) string {
@@ -49,24 +43,24 @@ func (r *Resolver) resolveDomain(req *http.Request) string {
 
 	// check for an ip address
 	if net.ParseIP(host) != nil {
-		return r.opts.Domain
+		return ""
 	}
 
 	// check for dev enviroment
 	if host == "localhost" || host == "127.0.0.1" {
-		return r.opts.Domain
+		return ""
 	}
 
 	// extract the top level domain plus one (e.g. 'myapp.com')
 	domain, err := publicsuffix.EffectiveTLDPlusOne(host)
 	if err != nil {
 		logger.Debugf("Unable to extract domain from %v", host)
-		return r.opts.Domain
+		return ""
 	}
 
 	// there was no subdomain
 	if host == domain {
-		return r.opts.Domain
+		return ""
 	}
 
 	// remove the domain from the host, leaving the subdomain, e.g. "staging.foo.myapp.com" => "staging.foo"

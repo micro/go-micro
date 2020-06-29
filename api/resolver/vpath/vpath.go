@@ -22,10 +22,12 @@ var (
 	re = regexp.MustCompile("^v[0-9]+$")
 )
 
-func (r *Resolver) Resolve(req *http.Request) (*resolver.Endpoint, error) {
+func (r *Resolver) Resolve(req *http.Request, opts ...resolver.ResolveOption) (*resolver.Endpoint, error) {
 	if req.URL.Path == "/" {
 		return nil, errors.New("unknown name")
 	}
+
+	options := resolver.NewResolveOptions(opts...)
 
 	parts := strings.Split(req.URL.Path[1:], "/")
 	if len(parts) == 1 {
@@ -34,7 +36,7 @@ func (r *Resolver) Resolve(req *http.Request) (*resolver.Endpoint, error) {
 			Host:   req.Host,
 			Method: req.Method,
 			Path:   req.URL.Path,
-			Domain: r.opts.Domain,
+			Domain: options.Domain,
 		}, nil
 	}
 
@@ -45,7 +47,7 @@ func (r *Resolver) Resolve(req *http.Request) (*resolver.Endpoint, error) {
 			Host:   req.Host,
 			Method: req.Method,
 			Path:   req.URL.Path,
-			Domain: r.opts.Domain,
+			Domain: options.Domain,
 		}, nil
 	}
 
@@ -54,7 +56,7 @@ func (r *Resolver) Resolve(req *http.Request) (*resolver.Endpoint, error) {
 		Host:   req.Host,
 		Method: req.Method,
 		Path:   req.URL.Path,
-		Domain: r.opts.Domain,
+		Domain: options.Domain,
 	}, nil
 }
 
