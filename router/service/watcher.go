@@ -56,12 +56,13 @@ func (w *watcher) watch(stream pb.Router_WatchService) error {
 		}
 
 		route := router.Route{
-			Service: resp.Route.Service,
-			Address: resp.Route.Address,
-			Gateway: resp.Route.Gateway,
-			Network: resp.Route.Network,
-			Link:    resp.Route.Link,
-			Metric:  resp.Route.Metric,
+			Service:  resp.Route.Service,
+			Address:  resp.Route.Address,
+			Gateway:  resp.Route.Gateway,
+			Network:  resp.Route.Network,
+			Link:     resp.Route.Link,
+			Metric:   resp.Route.Metric,
+			Metadata: resp.Route.Metadata,
 		}
 
 		event := &router.Event{
