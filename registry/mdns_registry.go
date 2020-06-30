@@ -252,7 +252,7 @@ func (m *mdnsRegistry) Register(service *Service, opts ...RegisterOption) error 
 			continue
 		}
 
-		srv, err := mdns.NewServer(&mdns.Config{Zone: s})
+		srv, err := mdns.NewServer(&mdns.Config{Zone: s, LocalhostChecking: true})
 		if err != nil {
 			gerr = err
 			continue
