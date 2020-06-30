@@ -551,6 +551,10 @@ func (r *router) Advertise() (<-chan *Advert, error) {
 		return nil, errors.New("not running")
 	}
 
+	// we're mutating the subscribers so they need to be locked also
+	r.sub.Lock()
+	defer r.sub.Unlock()
+
 	// already advertising
 	if r.eventChan != nil {
 		advertChan := make(chan *Advert, 128)
