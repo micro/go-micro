@@ -128,13 +128,14 @@ func (r *router) manageRoutes(service *registry.Service, action, network string)
 	// take route action on each service node
 	for _, node := range service.Nodes {
 		route := Route{
-			Service: service.Name,
-			Address: node.Address,
-			Gateway: "",
-			Network: network,
-			Router:  r.options.Id,
-			Link:    DefaultLink,
-			Metric:  DefaultLocalMetric,
+			Service:  service.Name,
+			Address:  node.Address,
+			Gateway:  "",
+			Network:  network,
+			Router:   r.options.Id,
+			Link:     DefaultLink,
+			Metric:   DefaultLocalMetric,
+			Metadata: service.Metadata,
 		}
 
 		if err := r.manageRoute(route, action); err != nil {
