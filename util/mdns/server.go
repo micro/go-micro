@@ -39,6 +39,10 @@ var (
 	}
 )
 
+// GetMachineIP is a func which returns the outbound IP of this machine.
+// Used by the server to determine whether to attempt send the response on a local address
+type GetMachineIP func() net.IP
+
 // Config is used to configure the mDNS server
 type Config struct {
 	// Zone must be provided to support responding to queries
@@ -51,9 +55,15 @@ type Config struct {
 
 	// Port If it is not 0, replace the port 5353 with this port number.
 	Port int
+
+	// GetMachineIP is a function to return the IP of the local machine
+	GetMachineIP GetMachineIP
+	// LocalhostChecking if enabled asks the server to also send responses to 0.0.0.0 if the target IP
+	// is this host (as defined by GetMachineIP). Useful in case machine is on a VPN which blocks comms on non standard ports
+	LocalhostChecking bool
 }
 
-// mDNS server is used to listen for mDNS queries and respond if we
+// Server is an mDNS server used to listen for mDNS queries and respond if we
 // have a matching local record
 type Server struct {
 	config *Config
@@ -120,12 +130,17 @@ func NewServer(config *Config) (*Server, error) {
 		}
 	}
 
+	ipFunc := getOutboundIP
+	if config.GetMachineIP != nil {
+		ipFunc = config.GetMachineIP
+	}
+
 	s := &Server{
 		config:     config,
 		ipv4List:   ipv4List,
 		ipv6List:   ipv6List,
 		shutdownCh: make(chan struct{}),
-		outboundIP: getOutboundIP(),
+		outboundIP: ipFunc(),
 	}
 
 	go s.recv(s.ipv4List)
@@ -406,7 +421,7 @@ func (s *Server) probe() {
 	}
 }
 
-// multicastResponse us used to send a multicast response packet
+// SendMulticast us used to send a multicast response packet
 func (s *Server) SendMulticast(msg *dns.Msg) error {
 	buf, err := msg.Pack()
 	if err != nil {
@@ -443,7 +458,7 @@ func (s *Server) sendResponse(resp *dns.Msg, from net.Addr) error {
 	// If the address we're responding to is this machine then we can also attempt sending on 0.0.0.0
 	// This covers the case where this machine is using a VPN and certain ports are blocked so the response never gets there
 	// Sending two responses is OK
-	if addr.IP.Equal(s.outboundIP) {
+	if s.config.LocalhostChecking && addr.IP.Equal(s.outboundIP) {
 		// ignore any errors, this is best efforts
 		conn.WriteToUDP(buf, &net.UDPAddr{IP: backupTarget, Port: addr.Port})
 	}
