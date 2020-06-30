@@ -84,8 +84,14 @@ func (g *grpcClient) next(request client.Request, opts client.CallOptions) (sele
 		}, nil
 	}
 
+	// if the network was set, pass it to the selector
+	sopts := opts.SelectOptions
+	if len(opts.Network) > 0 {
+		sopts = append(sopts, selector.WithDomain(opts.Network))
+	}
+
 	// get next nodes from the selector
-	next, err := g.opts.Selector.Select(service, opts.SelectOptions...)
+	next, err := g.opts.Selector.Select(service, sopts...)
 	if err != nil {
 		if err == selector.ErrNotFound {
 			return nil, errors.InternalServerError("go.micro.client", "service %s: %s", service, err.Error())

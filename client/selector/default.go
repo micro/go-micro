@@ -38,12 +38,24 @@ func (c *registrySelector) Options() Options {
 }
 
 func (c *registrySelector) Select(service string, opts ...SelectOption) (Next, error) {
-	sopts := SelectOptions{
-		Strategy: c.so.Strategy,
-	}
-
+	sopts := SelectOptions{Strategy: c.so.Strategy}
 	for _, opt := range opts {
 		opt(&sopts)
+	}
+
+	// a specific domain was requested, only lookup the services in that domain
+	if len(sopts.Domain) > 0 {
+		services, err := c.rc.GetService(service, registry.GetDomain(sopts.Domain))
+		if err != nil && err != registry.ErrNotFound {
+			return nil, err
+		}
+		for _, filter := range sopts.Filters {
+			services = filter(services)
+		}
+		if len(services) == 0 {
+			return nil, ErrNoneAvailable
+		}
+		return sopts.Strategy(services), nil
 	}
 
 	// get the service. Because the service could be running in the current or the default domain,
