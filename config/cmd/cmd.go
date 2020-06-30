@@ -716,8 +716,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		}
 
 		*c.opts.Router = r(routerOpts...)
-		// todo: set the router in the client
-		// clientOpts = append(clientOpts, client.Router(*c.opts.Router))
+		clientOpts = append(clientOpts, client.Router(*c.opts.Router))
 	} else if len(routerOpts) > 0 {
 		if err := (*c.opts.Router).Init(routerOpts...); err != nil {
 			logger.Fatalf("Error configuring router: %v", err)

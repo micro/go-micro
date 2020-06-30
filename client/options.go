@@ -7,7 +7,7 @@ import (
 	"github.com/micro/go-micro/v2/broker"
 	"github.com/micro/go-micro/v2/client/selector"
 	"github.com/micro/go-micro/v2/codec"
-	"github.com/micro/go-micro/v2/registry"
+	"github.com/micro/go-micro/v2/router"
 	"github.com/micro/go-micro/v2/transport"
 )
 
@@ -18,12 +18,8 @@ type Options struct {
 	// Plugged interfaces
 	Broker    broker.Broker
 	Codecs    map[string]codec.NewCodec
-	Registry  registry.Registry
-	Selector  selector.Selector
+	Router    router.Router
 	Transport transport.Transport
-
-	// Router sets the router
-	Router Router
 
 	// Connection Pool
 	PoolSize int
@@ -58,6 +54,8 @@ type CallOptions struct {
 	Retries int
 	// Request/Response timeout
 	RequestTimeout time.Duration
+	// Router to use for this call
+	Router router.Router
 	// Stream timeout for the stream
 	StreamTimeout time.Duration
 	// Use the services own auth token
@@ -112,8 +110,7 @@ func NewOptions(options ...Option) Options {
 		PoolSize:  DefaultPoolSize,
 		PoolTTL:   DefaultPoolTTL,
 		Broker:    broker.DefaultBroker,
-		Selector:  selector.DefaultSelector,
-		Registry:  registry.DefaultRegistry,
+		Router:    router.DefaultRouter,
 		Transport: transport.DefaultTransport,
 	}
 
@@ -159,15 +156,6 @@ func PoolTTL(d time.Duration) Option {
 	}
 }
 
-// Registry to find nodes for a given service
-func Registry(r registry.Registry) Option {
-	return func(o *Options) {
-		o.Registry = r
-		// set in the selector
-		o.Selector.Init(selector.Registry(r))
-	}
-}
-
 // Transport to use for communication e.g http, rabbitmq, etc
 func Transport(t transport.Transport) Option {
 	return func(o *Options) {
@@ -175,10 +163,10 @@ func Transport(t transport.Transport) Option {
 	}
 }
 
-// Select is used to select a node to route a request to
-func Selector(s selector.Selector) Option {
+// Router is used to lookup routes for a service
+func Router(r router.Router) Option {
 	return func(o *Options) {
-		o.Selector = s
+		o.Router = r
 	}
 }
 
@@ -347,6 +335,13 @@ func WithNetwork(n string) CallOption {
 	}
 }
 
+// WithRouter sets the router to use for this call
+func WithRouter(r router.Router) CallOption {
+	return func(o *CallOptions) {
+		o.Router = r
+	}
+}
+
 func WithMessageContentType(ct string) MessageOption {
 	return func(o *MessageOptions) {
 		o.ContentType = ct
@@ -364,12 +359,5 @@ func WithContentType(ct string) RequestOption {
 func StreamingRequest() RequestOption {
 	return func(o *RequestOptions) {
 		o.Stream = true
-	}
-}
-
-// WithRouter sets the client router
-func WithRouter(r Router) Option {
-	return func(o *Options) {
-		o.Router = r
 	}
 }
