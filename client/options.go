@@ -6,6 +6,7 @@ import (
 
 	"github.com/micro/go-micro/v2/broker"
 	"github.com/micro/go-micro/v2/codec"
+	"github.com/micro/go-micro/v2/registry"
 	"github.com/micro/go-micro/v2/router"
 	"github.com/micro/go-micro/v2/selector"
 	"github.com/micro/go-micro/v2/transport"
@@ -45,22 +46,24 @@ type CallOptions struct {
 	Address []string
 	// Backoff func
 	Backoff BackoffFunc
-	// Check if retriable func
-	Retry RetryFunc
+	// Duration to cache the response for
+	CacheExpiry time.Duration
 	// Transport Dial Timeout
 	DialTimeout time.Duration
 	// Number of Call attempts
 	Retries int
+	// Check if retriable func
+	Retry RetryFunc
 	// Request/Response timeout
 	RequestTimeout time.Duration
 	// Router to use for this call
 	Router router.Router
+	// Selector to use for the call
+	Selector selector.Selector
 	// Stream timeout for the stream
 	StreamTimeout time.Duration
 	// Use the services own auth token
 	ServiceToken bool
-	// Duration to cache the response for
-	CacheExpiry time.Duration
 	// Network to lookup the route within
 	Network string
 
@@ -214,6 +217,13 @@ func Retry(fn RetryFunc) Option {
 	}
 }
 
+// Registry sets the routers registry
+func Registry(r registry.Registry) Option {
+	return func(o *Options) {
+		o.Router.Init(router.Registry(r))
+	}
+}
+
 // The request timeout.
 // Should this be a Call Option?
 func RequestTimeout(d time.Duration) Option {
@@ -340,6 +350,13 @@ func WithNetwork(n string) CallOption {
 func WithRouter(r router.Router) CallOption {
 	return func(o *CallOptions) {
 		o.Router = r
+	}
+}
+
+// WithSelector sets the selector to use for this call
+func WithSelector(s selector.Selector) CallOption {
+	return func(o *CallOptions) {
+		o.Selector = s
 	}
 }
 

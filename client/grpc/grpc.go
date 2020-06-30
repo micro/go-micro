@@ -114,7 +114,7 @@ func (g *grpcClient) lookupRoute(req client.Request, opts client.CallOptions) (*
 	}
 
 	// select the route to use for the request
-	if route, err := opts.Selector.Select(routes...); err == selector.ErrNoneAvailable {
+	if route, err := opts.Selector.Select(routes); err == selector.ErrNoneAvailable {
 		return nil, errors.InternalServerError("go.micro.client", "service %s: %s", req.Service(), err.Error())
 	} else if err != nil {
 		return nil, errors.InternalServerError("go.micro.client", "error getting next %s node: %s", req.Service(), err.Error())
@@ -413,11 +413,6 @@ func (g *grpcClient) Call(ctx context.Context, req client.Request, rsp interface
 		opt(&callOpts)
 	}
 
-	next, err := g.next(req, callOpts)
-	if err != nil {
-		return err
-	}
-
 	// check if we already have a deadline
 	d, ok := ctx.Deadline()
 	if !ok {
@@ -470,7 +465,7 @@ func (g *grpcClient) Call(ctx context.Context, req client.Request, rsp interface
 		err = gcall(ctx, route, req, rsp, callOpts)
 
 		// record the result of the call to inform future routing decisions
-		g.opts.Selector.Record(route, err)
+		g.opts.Selector.Record(*route, err)
 
 		// try and transform the error to a go-micro error
 		if verr, ok := err.(*errors.Error); ok {
@@ -560,14 +555,14 @@ func (g *grpcClient) Stream(ctx context.Context, req client.Request, opts ...cli
 		err = g.stream(ctx, route, req, stream, callOpts)
 
 		// record the result of the call to inform future routing decisions
-		g.opts.Selector.Record(route, err)
+		g.opts.Selector.Record(*route, err)
 
 		// try and transform the error to a go-micro error
 		if verr, ok := err.(*errors.Error); ok {
 			return nil, verr
 		}
 
-		g.opts.Selector.Record(route, err)
+		g.opts.Selector.Record(*route, err)
 		return stream, err
 	}
 
@@ -594,7 +589,7 @@ func (g *grpcClient) Stream(ctx context.Context, req client.Request, opts ...cli
 				return rsp.stream, nil
 			}
 
-			retry, rerr := callOpts.Retry(ctx, req, i, err)
+			retry, rerr := callOpts.Retry(ctx, req, i, grr)
 			if rerr != nil {
 				return nil, rerr
 			}

@@ -8,13 +8,13 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/micro/go-micro/client/selector"
 	"github.com/micro/go-micro/v2/broker"
 	"github.com/micro/go-micro/v2/codec"
 	raw "github.com/micro/go-micro/v2/codec/bytes"
 	"github.com/micro/go-micro/v2/errors"
 	"github.com/micro/go-micro/v2/metadata"
 	"github.com/micro/go-micro/v2/router"
+	"github.com/micro/go-micro/v2/selector"
 	"github.com/micro/go-micro/v2/transport"
 	"github.com/micro/go-micro/v2/util/buf"
 	"github.com/micro/go-micro/v2/util/net"
@@ -85,7 +85,7 @@ func (r *rpcClient) lookupRoute(req Request, opts CallOptions) (*router.Route, e
 		query = append(query, router.QueryNetwork(opts.Network))
 	}
 
-	// use the router passed as a call option, or fallback to the grpc clients router
+	// use the router passed as a call option, or fallback to the rpc clients router
 	if opts.Router == nil {
 		opts.Router = r.opts.Router
 	}
@@ -98,8 +98,13 @@ func (r *rpcClient) lookupRoute(req Request, opts CallOptions) (*router.Route, e
 		return nil, errors.InternalServerError("go.micro.client", "error getting next %s node: %s", req.Service(), err.Error())
 	}
 
+	// use the selector passed as a call option, or fallback to the rpc clients selector
+	if opts.Selector == nil {
+		opts.Selector = r.opts.Selector
+	}
+
 	// select the route to use for the request
-	if route, err := r.opts.Selector.Select(routes); err == selector.ErrNoneAvailable {
+	if route, err := opts.Selector.Select(routes); err == selector.ErrNoneAvailable {
 		return nil, errors.InternalServerError("go.micro.client", "service %s: %s", req.Service(), err.Error())
 	} else if err != nil {
 		return nil, errors.InternalServerError("go.micro.client", "error getting next %s node: %s", req.Service(), err.Error())
@@ -419,7 +424,7 @@ func (r *rpcClient) Call(ctx context.Context, request Request, response interfac
 		err = rcall(ctx, route, request, response, callOpts)
 
 		// record the result of the call to inform future routing decisions
-		r.opts.Selector.Record(route, err)
+		r.opts.Selector.Record(*route, err)
 
 		return err
 	}
@@ -501,7 +506,7 @@ func (r *rpcClient) Stream(ctx context.Context, request Request, opts ...CallOpt
 		stream, err := r.stream(ctx, route, request, callOpts)
 
 		// record the result of the call to inform future routing decisions
-		r.opts.Selector.Record(route, err)
+		r.opts.Selector.Record(*route, err)
 
 		return stream, err
 	}

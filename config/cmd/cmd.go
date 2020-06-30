@@ -642,9 +642,6 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		return err
 	}
 
-	// Setup selector options
-	selectorOpts := []selector.Option{selector.Registry(*c.opts.Registry)}
-
 	// Setup broker options.
 	brokerOpts := []broker.Option{}
 	if len(ctx.String("broker_address")) > 0 {
@@ -667,9 +664,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 
 		*c.opts.Registry = r(registryOpts...)
 		serverOpts = append(serverOpts, server.Registry(*c.opts.Registry))
-		clientOpts = append(clientOpts, client.Registry(*c.opts.Registry))
 		brokerOpts = append(brokerOpts, broker.Registry(*c.opts.Registry))
-		selectorOpts = append(selectorOpts, selector.Registry(*c.opts.Registry))
 	} else if len(registryOpts) > 0 {
 		if err := (*c.opts.Registry).Init(registryOpts...); err != nil {
 			logger.Fatalf("Error configuring registry: %v", err)
@@ -683,12 +678,8 @@ func (c *cmd) Before(ctx *cli.Context) error {
 			logger.Fatalf("Selector %s not found", name)
 		}
 
-		*c.opts.Selector = s(selectorOpts...)
+		*c.opts.Selector = s()
 		clientOpts = append(clientOpts, client.Selector(*c.opts.Selector))
-	} else if len(selectorOpts) > 0 {
-		if err := (*c.opts.Selector).Init(selectorOpts...); err != nil {
-			logger.Fatalf("Error configuring selctor: %v", err)
-		}
 	}
 
 	// Set the router, this must happen before the rest of the server as it'll route server requests
