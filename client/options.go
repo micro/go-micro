@@ -5,9 +5,9 @@ import (
 	"time"
 
 	"github.com/micro/go-micro/v2/broker"
-	"github.com/micro/go-micro/v2/client/selector"
 	"github.com/micro/go-micro/v2/codec"
 	"github.com/micro/go-micro/v2/router"
+	"github.com/micro/go-micro/v2/selector"
 	"github.com/micro/go-micro/v2/transport"
 )
 
@@ -19,6 +19,7 @@ type Options struct {
 	Broker    broker.Broker
 	Codecs    map[string]codec.NewCodec
 	Router    router.Router
+	Selector  selector.Selector
 	Transport transport.Transport
 
 	// Connection Pool
@@ -40,8 +41,6 @@ type Options struct {
 }
 
 type CallOptions struct {
-	SelectOptions []selector.SelectOption
-
 	// Address of remote hosts
 	Address []string
 	// Backoff func
@@ -111,6 +110,7 @@ func NewOptions(options ...Option) Options {
 		PoolTTL:   DefaultPoolTTL,
 		Broker:    broker.DefaultBroker,
 		Router:    router.DefaultRouter,
+		Selector:  selector.DefaultSelector,
 		Transport: transport.DefaultTransport,
 	}
 
@@ -167,6 +167,13 @@ func Transport(t transport.Transport) Option {
 func Router(r router.Router) Option {
 	return func(o *Options) {
 		o.Router = r
+	}
+}
+
+// Selector is used to select a route
+func Selector(s selector.Selector) Option {
+	return func(o *Options) {
+		o.Selector = s
 	}
 }
 
@@ -249,12 +256,6 @@ func PublishContext(ctx context.Context) PublishOption {
 func WithAddress(a ...string) CallOption {
 	return func(o *CallOptions) {
 		o.Address = a
-	}
-}
-
-func WithSelectOption(so ...selector.SelectOption) CallOption {
-	return func(o *CallOptions) {
-		o.SelectOptions = append(o.SelectOptions, so...)
 	}
 }
 

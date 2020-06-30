@@ -12,7 +12,6 @@ import (
 	"github.com/micro/go-micro/v2/broker"
 	"github.com/micro/go-micro/v2/client"
 	"github.com/micro/go-micro/v2/client/grpc"
-	"github.com/micro/go-micro/v2/client/selector"
 	"github.com/micro/go-micro/v2/config"
 	configSrc "github.com/micro/go-micro/v2/config/source"
 	configSrv "github.com/micro/go-micro/v2/config/source/service"
@@ -25,6 +24,7 @@ import (
 	registrySrv "github.com/micro/go-micro/v2/registry/service"
 	"github.com/micro/go-micro/v2/router"
 	"github.com/micro/go-micro/v2/runtime"
+	"github.com/micro/go-micro/v2/selector"
 	"github.com/micro/go-micro/v2/server"
 	"github.com/micro/go-micro/v2/store"
 	"github.com/micro/go-micro/v2/transport"
@@ -65,9 +65,8 @@ import (
 	srvRuntime "github.com/micro/go-micro/v2/runtime/service"
 
 	// selectors
-	"github.com/micro/go-micro/v2/client/selector/dns"
-	sRouter "github.com/micro/go-micro/v2/client/selector/router"
-	"github.com/micro/go-micro/v2/client/selector/static"
+	randSelector "github.com/micro/go-micro/v2/selector/random"
+	roundSelector "github.com/micro/go-micro/v2/selector/roundrobin"
 
 	// transports
 	thttp "github.com/micro/go-micro/v2/transport/http"
@@ -377,9 +376,8 @@ var (
 	}
 
 	DefaultSelectors = map[string]func(...selector.Option) selector.Selector{
-		"dns":    dns.NewSelector,
-		"router": sRouter.NewSelector,
-		"static": static.NewSelector,
+		"random":     randSelector.NewSelector,
+		"roundrobin": roundSelector.NewSelector,
 	}
 
 	DefaultServers = map[string]func(...server.Option) server.Server{
