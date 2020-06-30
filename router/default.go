@@ -48,9 +48,12 @@ func newRouter(opts ...Option) Router {
 	// construct the router
 	r := &router{
 		options:     options,
-		table:       newTable(),
 		subscribers: make(map[string]chan *Advert),
 	}
+
+	// create the new table, passing the fetchRoute method in as a fallback if
+	// the table doesn't contain the result for a query.
+	r.table = newTable(r.fetchRoutes)
 
 	// start the router and return
 	r.start()
@@ -170,6 +173,29 @@ func (r *router) manageRegistryRoutes(reg registry.Registry, action string) erro
 			if err := r.manageRoutes(srv, action, domain); err != nil {
 				return err
 			}
+		}
+	}
+
+	return nil
+}
+
+// fetchRoutes retrieves all the routes for a given service and creates them in the routing table
+func (r *router) fetchRoutes(service string) error {
+	services, err := r.options.Registry.GetService(service, registry.GetDomain(registry.WildcardDomain))
+	if err != nil {
+		return fmt.Errorf("failed getting services: %v", err)
+	}
+
+	for _, srv := range services {
+		var domain string
+		if srv.Metadata != nil && len(srv.Metadata["domain"]) > 0 {
+			domain = srv.Metadata["domain"]
+		} else {
+			domain = registry.WildcardDomain
+		}
+
+		if err := r.manageRoutes(srv, "create", domain); err != nil {
+			return err
 		}
 	}
 
