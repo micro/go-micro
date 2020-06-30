@@ -14,19 +14,19 @@ func Tests(t *testing.T, s Selector) {
 
 	t.Run("Select", func(t *testing.T) {
 		t.Run("NoRoutes", func(t *testing.T) {
-			srv, err := s.Select()
+			srv, err := s.Select([]*router.Route{})
 			assert.Nil(t, srv, "Route should be nil")
 			assert.Equal(t, ErrNoneAvailable, err, "Expected error to be none available")
 		})
 
 		t.Run("OneRoute", func(t *testing.T) {
-			srv, err := s.Select(r1)
+			srv, err := s.Select([]*router.Route{r1})
 			assert.Nil(t, err, "Error should be nil")
 			assert.Equal(t, r1, srv, "Expected the route to be returned")
 		})
 
 		t.Run("MultipleRoutes", func(t *testing.T) {
-			srv, err := s.Select(r1, r2)
+			srv, err := s.Select([]*router.Route{r1, r2})
 			assert.Nil(t, err, "Error should be nil")
 			if srv.Address != r1.Address && srv.Address != r2.Address {
 				t.Errorf("Expected the route to be one of the inputs")

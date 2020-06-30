@@ -38,7 +38,7 @@ func (r *roundrobin) Options() selector.Options {
 	return selector.Options{}
 }
 
-func (r *roundrobin) Select(routes ...*router.Route) (*router.Route, error) {
+func (r *roundrobin) Select(routes []*router.Route) (*router.Route, error) {
 	if len(routes) == 0 {
 		return nil, selector.ErrNoneAvailable
 	}
