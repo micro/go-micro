@@ -9,12 +9,21 @@ import (
 	"github.com/micro/go-micro/v2/selector"
 )
 
+var routeTTL = time.Minute * 15
+
 // NewSelector returns an initalised round robin selector
 func NewSelector(opts ...selector.Option) selector.Selector {
-	return &roundrobin{routes: make(map[uint64]time.Time)}
+	r := &roundrobin{
+		routes: make(map[uint64]time.Time),
+		ticker: time.NewTicker(time.Minute),
+	}
+	go r.cleanRoutes()
+	return r
 }
 
 type roundrobin struct {
+	ticker *time.Ticker
+
 	// routes is a map with the key being a route's hash and the value being the last time it
 	// was used to perform a request
 	routes map[uint64]time.Time
@@ -72,6 +81,28 @@ func (r *roundrobin) Record(srv *router.Route, err error) error {
 	return nil
 }
 
+func (r *roundrobin) Close() error {
+	r.ticker.Stop()
+	return nil
+}
+
 func (r *roundrobin) String() string {
 	return "roundrobin"
+}
+
+func (r *roundrobin) cleanRoutes() {
+	for {
+		// watch for ticks until the ticker is closed
+		if _, ok := <-r.ticker.C; !ok {
+			return
+		}
+
+		r.Lock()
+		for hash, t := range r.routes {
+			if t.Unix() < time.Now().Add(-routeTTL).Unix() {
+				delete(r.routes, hash)
+			}
+		}
+		r.Unlock()
+	}
 }

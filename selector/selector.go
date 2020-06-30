@@ -24,6 +24,8 @@ type Selector interface {
 	Select(...*router.Route) (*router.Route, error)
 	// Record the error returned from a route to inform future selection
 	Record(*router.Route, error) error
+	// Close the selector
+	Close() error
 	// String returns the name of the selector
 	String() string
 }

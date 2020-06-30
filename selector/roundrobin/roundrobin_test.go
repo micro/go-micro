@@ -2,7 +2,6 @@ package roundrobin
 
 import (
 	"testing"
-	"time"
 
 	"github.com/micro/go-micro/v2/router"
 	"github.com/micro/go-micro/v2/selector"
@@ -23,34 +22,28 @@ func TestRoundRobin(t *testing.T) {
 	r, err := sel.Select(r1)
 	assert.Nil(t, err, "Error should be nil")
 	assert.Equal(t, r1, r, "Expected route to be r1")
-	time.Sleep(time.Millisecond * 10)
 
 	r, err = sel.Select(r2)
 	assert.Nil(t, err, "Error should be nil")
 	assert.Equal(t, r2, r, "Expected route to be r2")
-	time.Sleep(time.Millisecond * 10)
 
 	// Because r1 and r2 have been recently called, r3 should be chosen
 
 	r, err = sel.Select(r1, r2, r3)
 	assert.Nil(t, err, "Error should be nil")
 	assert.Equal(t, r3, r, "Expected route to be r3")
-	time.Sleep(time.Millisecond * 10)
 
 	// r1 was called longest ago, so it should be prioritised
 
 	r, err = sel.Select(r1, r2, r3)
 	assert.Nil(t, err, "Error should be nil")
 	assert.Equal(t, r1, r, "Expected route to be r1")
-	time.Sleep(time.Millisecond * 10)
 
 	r, err = sel.Select(r1, r2, r3)
 	assert.Nil(t, err, "Error should be nil")
 	assert.Equal(t, r2, r, "Expected route to be r2")
-	time.Sleep(time.Millisecond * 10)
 
 	r, err = sel.Select(r1, r2, r3)
 	assert.Nil(t, err, "Error should be nil")
 	assert.Equal(t, r3, r, "Expected route to be r3")
-	time.Sleep(time.Millisecond * 10)
 }

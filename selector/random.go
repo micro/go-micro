@@ -35,6 +35,10 @@ func (r *random) Record(route *router.Route, err error) error {
 	return nil
 }
 
+func (r *random) Close() error {
+	return nil
+}
+
 func (r *random) String() string {
 	return "random"
 }
