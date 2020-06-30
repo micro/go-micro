@@ -106,12 +106,13 @@ func (s *svc) advertiseEvents(advertChan chan *router.Advert, stream pb.Router_A
 		events := make([]*router.Event, len(resp.Events))
 		for i, event := range resp.Events {
 			route := router.Route{
-				Service: event.Route.Service,
-				Address: event.Route.Address,
-				Gateway: event.Route.Gateway,
-				Network: event.Route.Network,
-				Link:    event.Route.Link,
-				Metric:  event.Route.Metric,
+				Service:  event.Route.Service,
+				Address:  event.Route.Address,
+				Gateway:  event.Route.Gateway,
+				Network:  event.Route.Network,
+				Link:     event.Route.Link,
+				Metric:   event.Route.Metric,
+				Metadata: event.Route.Metadata,
 			}
 
 			events[i] = &router.Event{
@@ -166,12 +167,13 @@ func (s *svc) Process(advert *router.Advert) error {
 	events := make([]*pb.Event, 0, len(advert.Events))
 	for _, event := range advert.Events {
 		route := &pb.Route{
-			Service: event.Route.Service,
-			Address: event.Route.Address,
-			Gateway: event.Route.Gateway,
-			Network: event.Route.Network,
-			Link:    event.Route.Link,
-			Metric:  event.Route.Metric,
+			Service:  event.Route.Service,
+			Address:  event.Route.Address,
+			Gateway:  event.Route.Gateway,
+			Network:  event.Route.Network,
+			Link:     event.Route.Link,
+			Metric:   event.Route.Metric,
+			Metadata: event.Route.Metadata,
 		}
 		e := &pb.Event{
 			Id:        event.Id,
@@ -232,12 +234,13 @@ func (s *svc) Lookup(q ...router.QueryOption) ([]router.Route, error) {
 	routes := make([]router.Route, len(resp.Routes))
 	for i, route := range resp.Routes {
 		routes[i] = router.Route{
-			Service: route.Service,
-			Address: route.Address,
-			Gateway: route.Gateway,
-			Network: route.Network,
-			Link:    route.Link,
-			Metric:  route.Metric,
+			Service:  route.Service,
+			Address:  route.Address,
+			Gateway:  route.Gateway,
+			Network:  route.Network,
+			Link:     route.Link,
+			Metric:   route.Metric,
+			Metadata: route.Metadata,
 		}
 	}
 
