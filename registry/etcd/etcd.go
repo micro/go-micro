@@ -167,6 +167,13 @@ func (e *etcdRegistry) registerNode(s *registry.Service, node *registry.Node, op
 		options.Domain = defaultDomain
 	}
 
+	// set the domain in metadata so it can be retrieved by wildcard queries
+	if s.Metadata == nil {
+		s.Metadata = map[string]string{"domain": options.Domain}
+	} else {
+		s.Metadata["domain"] = options.Domain
+	}
+
 	e.Lock()
 	// ensure the leases and registers are setup for this domain
 	if _, ok := e.leases[options.Domain]; !ok {

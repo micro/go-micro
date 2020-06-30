@@ -136,6 +136,16 @@ type authWrapper struct {
 }
 
 func (a *authWrapper) Call(ctx context.Context, req client.Request, rsp interface{}, opts ...client.CallOption) error {
+	ctx = a.wrapContext(ctx, opts...)
+	return a.Client.Call(ctx, req, rsp, opts...)
+}
+
+func (a *authWrapper) Stream(ctx context.Context, req client.Request, opts ...client.CallOption) (client.Stream, error) {
+	ctx = a.wrapContext(ctx, opts...)
+	return a.Client.Stream(ctx, req, opts...)
+}
+
+func (a *authWrapper) wrapContext(ctx context.Context, opts ...client.CallOption) context.Context {
 	// parse the options
 	var options client.CallOptions
 	for _, o := range opts {
@@ -146,14 +156,14 @@ func (a *authWrapper) Call(ctx context.Context, req client.Request, rsp interfac
 	// We dont't override the header unless the ServiceToken option has
 	// been specified or the header wasn't provided
 	if _, ok := metadata.Get(ctx, "Authorization"); ok && !options.ServiceToken {
-		return a.Client.Call(ctx, req, rsp, opts...)
+		return ctx
 	}
 
 	// if auth is nil we won't be able to get an access token, so we execute
 	// the request without one.
 	aa := a.auth()
 	if aa == nil {
-		return a.Client.Call(ctx, req, rsp, opts...)
+		return ctx
 	}
 
 	// set the namespace header if it has not been set (e.g. on a service to service request)
@@ -165,11 +175,11 @@ func (a *authWrapper) Call(ctx context.Context, req client.Request, rsp interfac
 	aaOpts := aa.Options()
 	if aaOpts.Token != nil && !aaOpts.Token.Expired() {
 		ctx = metadata.Set(ctx, "Authorization", auth.BearerScheme+aaOpts.Token.AccessToken)
-		return a.Client.Call(ctx, req, rsp, opts...)
+		return ctx
 	}
 
 	// call without an auth token
-	return a.Client.Call(ctx, req, rsp, opts...)
+	return ctx
 }
 
 // AuthClient wraps requests with the auth header
@@ -212,10 +222,10 @@ func AuthHandler(fn func() auth.Auth) server.HandlerWrapper {
 				ctx = metadata.Set(ctx, "Micro-Namespace", ns)
 			}
 
-			// Check the issuer matches the services namespace. TODO: Stop allowing go.micro to access
+			// Check the issuer matches the services namespace. TODO: Stop allowing micro to access
 			// any namespace and instead check for the server issuer.
-			if account != nil && account.Issuer != ns && account.Issuer != "go.micro" {
-				return errors.Forbidden(req.Service(), "Account was not issued by %v", ns)
+			if account != nil && account.Issuer != ns && account.Issuer != "micro" {
+				return errors.Forbidden(req.Service(), "Account was issued by %v, not %v", account.Issuer, ns)
 			}
 
 			// construct the resource

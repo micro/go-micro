@@ -19,6 +19,8 @@ var (
 // table is an in-memory routing table
 type table struct {
 	sync.RWMutex
+	// fetchRoutes for a service
+	fetchRoutes func(string) error
 	// routes stores service routes
 	routes map[string]map[uint64]Route
 	// watchers stores table watchers
@@ -26,10 +28,11 @@ type table struct {
 }
 
 // newtable creates a new routing table and returns it
-func newTable(opts ...Option) *table {
+func newTable(fetchRoutes func(string) error, opts ...Option) *table {
 	return &table{
-		routes:   make(map[string]map[uint64]Route),
-		watchers: make(map[string]*tableWatcher),
+		fetchRoutes: fetchRoutes,
+		routes:      make(map[string]map[uint64]Route),
+		watchers:    make(map[string]*tableWatcher),
 	}
 }
 
@@ -150,7 +153,7 @@ func (t *table) List() ([]Route, error) {
 func isMatch(route Route, address, gateway, network, router string, strategy Strategy) bool {
 	// matches the values provided
 	match := func(a, b string) bool {
-		if a == "*" || a == b {
+		if a == "*" || b == "*" || a == b {
 			return true
 		}
 		return false
@@ -249,10 +252,23 @@ func (t *table) Query(q ...QueryOption) ([]Route, error) {
 	}
 
 	if opts.Service != "*" {
-		if _, ok := t.routes[opts.Service]; !ok {
-			return nil, ErrRouteNotFound
+		// try and load services from the cache
+		if _, ok := t.routes[opts.Service]; ok {
+			return findRoutes(t.routes[opts.Service], opts.Address, opts.Gateway, opts.Network, opts.Router, opts.Strategy), nil
 		}
-		return findRoutes(t.routes[opts.Service], opts.Address, opts.Gateway, opts.Network, opts.Router, opts.Strategy), nil
+
+		// load the cache and try again
+		t.RUnlock()
+		if err := t.fetchRoutes(opts.Service); err != nil {
+			return nil, err
+		}
+		t.RLock()
+		if _, ok := t.routes[opts.Service]; ok {
+			return findRoutes(t.routes[opts.Service], opts.Address, opts.Gateway, opts.Network, opts.Router, opts.Strategy), nil
+
+		}
+
+		return nil, ErrRouteNotFound
 	}
 
 	// search through all destinations

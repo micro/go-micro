@@ -7,7 +7,7 @@ import (
 
 var (
 	// DefaultAddress is default router address
-	DefaultAddress = ":9093"
+	DefaultAddress = ":8084"
 	// DefaultName is default router service name
 	DefaultName = "go.micro.router"
 	// DefaultNetwork is default micro network

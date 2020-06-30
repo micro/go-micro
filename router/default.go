@@ -48,9 +48,12 @@ func newRouter(opts ...Option) Router {
 	// construct the router
 	r := &router{
 		options:     options,
-		table:       newTable(),
 		subscribers: make(map[string]chan *Advert),
 	}
+
+	// create the new table, passing the fetchRoute method in as a fallback if
+	// the table doesn't contain the result for a query.
+	r.table = newTable(r.fetchRoutes)
 
 	// start the router and return
 	r.start()
@@ -118,20 +121,21 @@ func (r *router) manageRoute(route Route, action string) error {
 
 // manageServiceRoutes applies action to all routes of the service.
 // It returns error of the action fails with error.
-func (r *router) manageRoutes(service *registry.Service, action string) error {
+func (r *router) manageRoutes(service *registry.Service, action, network string) error {
 	// action is the routing table action
 	action = strings.ToLower(action)
 
 	// take route action on each service node
 	for _, node := range service.Nodes {
 		route := Route{
-			Service: service.Name,
-			Address: node.Address,
-			Gateway: "",
-			Network: r.options.Network,
-			Router:  r.options.Id,
-			Link:    DefaultLink,
-			Metric:  DefaultLocalMetric,
+			Service:  service.Name,
+			Address:  node.Address,
+			Gateway:  "",
+			Network:  network,
+			Router:   r.options.Id,
+			Link:     DefaultLink,
+			Metric:   DefaultLocalMetric,
+			Metadata: service.Metadata,
 		}
 
 		if err := r.manageRoute(route, action); err != nil {
@@ -145,23 +149,54 @@ func (r *router) manageRoutes(service *registry.Service, action string) error {
 // manageRegistryRoutes applies action to all routes of each service found in the registry.
 // It returns error if either the services failed to be listed or the routing table action fails.
 func (r *router) manageRegistryRoutes(reg registry.Registry, action string) error {
-	services, err := reg.ListServices()
+	services, err := reg.ListServices(registry.ListDomain(registry.WildcardDomain))
 	if err != nil {
 		return fmt.Errorf("failed listing services: %v", err)
 	}
 
 	// add each service node as a separate route
 	for _, service := range services {
+		// get the services domain from metadata. Fallback to wildcard.
+		var domain string
+		if service.Metadata != nil && len(service.Metadata["domain"]) > 0 {
+			domain = service.Metadata["domain"]
+		} else {
+			domain = registry.WildcardDomain
+		}
+
 		// get the service to retrieve all its info
-		srvs, err := reg.GetService(service.Name)
+		srvs, err := reg.GetService(service.Name, registry.GetDomain(domain))
 		if err != nil {
 			continue
 		}
 		// manage the routes for all returned services
 		for _, srv := range srvs {
-			if err := r.manageRoutes(srv, action); err != nil {
+			if err := r.manageRoutes(srv, action, domain); err != nil {
 				return err
 			}
+		}
+	}
+
+	return nil
+}
+
+// fetchRoutes retrieves all the routes for a given service and creates them in the routing table
+func (r *router) fetchRoutes(service string) error {
+	services, err := r.options.Registry.GetService(service, registry.GetDomain(registry.WildcardDomain))
+	if err != nil {
+		return fmt.Errorf("failed getting services: %v", err)
+	}
+
+	for _, srv := range services {
+		var domain string
+		if srv.Metadata != nil && len(srv.Metadata["domain"]) > 0 {
+			domain = srv.Metadata["domain"]
+		} else {
+			domain = registry.WildcardDomain
+		}
+
+		if err := r.manageRoutes(srv, "create", domain); err != nil {
+			return err
 		}
 	}
 
@@ -197,7 +232,19 @@ func (r *router) watchRegistry(w registry.Watcher) error {
 			break
 		}
 
-		if err := r.manageRoutes(res.Service, res.Action); err != nil {
+		if res.Service == nil {
+			continue
+		}
+
+		// get the services domain from metadata. Fallback to wildcard.
+		var domain string
+		if res.Service.Metadata != nil && len(res.Service.Metadata["domain"]) > 0 {
+			domain = res.Service.Metadata["domain"]
+		} else {
+			domain = registry.WildcardDomain
+		}
+
+		if err := r.manageRoutes(res.Service, res.Action, domain); err != nil {
 			return err
 		}
 	}
@@ -446,7 +493,7 @@ func (r *router) start() error {
 	r.exit = make(chan bool)
 
 	// registry watcher
-	w, err := r.options.Registry.Watch()
+	w, err := r.options.Registry.Watch(registry.WatchDomain(registry.WildcardDomain))
 	if err != nil {
 		return fmt.Errorf("failed creating registry watcher: %v", err)
 	}
@@ -654,6 +701,7 @@ func (r *router) Close() error {
 
 	// remove event chan
 	r.eventChan = nil
+	r.running = false
 
 	return nil
 }

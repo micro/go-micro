@@ -13,7 +13,7 @@ var (
 
 // Resolver resolves requests to endpoints
 type Resolver interface {
-	Resolve(r *http.Request) (*Endpoint, error)
+	Resolve(r *http.Request, opts ...ResolveOption) (*Endpoint, error)
 	String() string
 }
 
@@ -27,18 +27,6 @@ type Endpoint struct {
 	Method string
 	// HTTP Path e.g /greeter.
 	Path string
-}
-
-type Options struct {
-	Handler   string
-	Namespace func(*http.Request) string
-}
-
-type Option func(o *Options)
-
-// StaticNamespace returns the same namespace for each request
-func StaticNamespace(ns string) func(*http.Request) string {
-	return func(*http.Request) string {
-		return ns
-	}
+	// Domain endpoint exists within
+	Domain string
 }

@@ -11,10 +11,15 @@ func TestWatcher(t *testing.T) {
 		id:   "test",
 		res:  make(chan *registry.Result),
 		exit: make(chan bool),
+		wo: registry.WatchOptions{
+			Domain: registry.WildcardDomain,
+		},
 	}
 
 	go func() {
-		w.res <- &registry.Result{}
+		w.res <- &registry.Result{
+			Service: &registry.Service{Name: "foo"},
+		}
 	}()
 
 	_, err := w.Next()

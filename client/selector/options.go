@@ -10,6 +10,9 @@ type Options struct {
 	Registry registry.Registry
 	Strategy Strategy
 
+	// Domain to lookup services from within the registry
+	Domain string
+
 	// Other options for implementations of the interface
 	// can be stored in a context
 	Context context.Context
@@ -18,6 +21,7 @@ type Options struct {
 type SelectOptions struct {
 	Filters  []Filter
 	Strategy Strategy
+	Domain   string
 
 	// Other options for implementations of the interface
 	// can be stored in a context
@@ -34,6 +38,13 @@ type SelectOption func(*SelectOptions)
 func Registry(r registry.Registry) Option {
 	return func(o *Options) {
 		o.Registry = r
+	}
+}
+
+// Domain sets the domain used by the selector
+func Domain(d string) Option {
+	return func(o *Options) {
+		o.Domain = d
 	}
 }
 
@@ -56,5 +67,12 @@ func WithFilter(fn ...Filter) SelectOption {
 func WithStrategy(fn Strategy) SelectOption {
 	return func(o *SelectOptions) {
 		o.Strategy = fn
+	}
+}
+
+// WithDomain sets the registry domain to use for the selection
+func WithDomain(d string) SelectOption {
+	return func(o *SelectOptions) {
+		o.Domain = d
 	}
 }

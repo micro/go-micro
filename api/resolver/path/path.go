@@ -12,19 +12,22 @@ type Resolver struct {
 	opts resolver.Options
 }
 
-func (r *Resolver) Resolve(req *http.Request) (*resolver.Endpoint, error) {
+func (r *Resolver) Resolve(req *http.Request, opts ...resolver.ResolveOption) (*resolver.Endpoint, error) {
+	// parse options
+	options := resolver.NewResolveOptions(opts...)
+
 	if req.URL.Path == "/" {
 		return nil, resolver.ErrNotFound
 	}
 
 	parts := strings.Split(req.URL.Path[1:], "/")
-	ns := r.opts.Namespace(req)
 
 	return &resolver.Endpoint{
-		Name:   ns + "." + parts[0],
+		Name:   r.opts.ServicePrefix + "." + parts[0],
 		Host:   req.Host,
 		Method: req.Method,
 		Path:   req.URL.Path,
+		Domain: options.Domain,
 	}, nil
 }
 
