@@ -19,8 +19,8 @@ var (
 // table is an in-memory routing table
 type table struct {
 	sync.RWMutex
-	// router which manages the table
-	router *router
+	// fetchRoutes for a service
+	fetchRoutes func(string) error
 	// routes stores service routes
 	routes map[string]map[uint64]Route
 	// watchers stores table watchers
@@ -28,11 +28,11 @@ type table struct {
 }
 
 // newtable creates a new routing table and returns it
-func newTable(router *router, opts ...Option) *table {
+func newTable(fetchRoutes func(string) error, opts ...Option) *table {
 	return &table{
-		router:   router,
-		routes:   make(map[string]map[uint64]Route),
-		watchers: make(map[string]*tableWatcher),
+		fetchRoutes: fetchRoutes,
+		routes:      make(map[string]map[uint64]Route),
+		watchers:    make(map[string]*tableWatcher),
 	}
 }
 
@@ -259,7 +259,7 @@ func (t *table) Query(q ...QueryOption) ([]Route, error) {
 
 		// load the cache and try again
 		t.RUnlock()
-		if err := t.router.fetchRoutes(opts.Service); err != nil {
+		if err := t.fetchRoutes(opts.Service); err != nil {
 			return nil, err
 		}
 		t.RLock()

@@ -51,9 +51,9 @@ func newRouter(opts ...Option) Router {
 		subscribers: make(map[string]chan *Advert),
 	}
 
-	// create the new table, passing the router in. The router can be used as a fallback if
+	// create the new table, passing the fetchRoute method in as a fallback if
 	// the table doesn't contain the result for a query.
-	r.table = newTable(r)
+	r.table = newTable(r.fetchRoutes)
 
 	// start the router and return
 	r.start()
