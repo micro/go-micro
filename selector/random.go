@@ -16,7 +16,7 @@ func (r *random) Options() Options {
 	return Options{}
 }
 
-func (r *random) Select(routes []*router.Route) (*router.Route, error) {
+func (r *random) Select(routes []router.Route) (*router.Route, error) {
 	// we can't select from an empty pool of routes
 	if len(routes) == 0 {
 		return nil, ErrNoneAvailable
@@ -24,14 +24,14 @@ func (r *random) Select(routes []*router.Route) (*router.Route, error) {
 
 	// if there is only one route provided we'll select it
 	if len(routes) == 1 {
-		return routes[0], nil
+		return &routes[0], nil
 	}
 
 	// select a random route from the slice
-	return routes[rand.Intn(len(routes)-1)], nil
+	return &routes[rand.Intn(len(routes)-1)], nil
 }
 
-func (r *random) Record(route *router.Route, err error) error {
+func (r *random) Record(route router.Route, err error) error {
 	return nil
 }
 

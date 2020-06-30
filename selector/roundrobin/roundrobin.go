@@ -38,7 +38,7 @@ func (r *roundrobin) Options() selector.Options {
 	return selector.Options{}
 }
 
-func (r *roundrobin) Select(routes []*router.Route) (*router.Route, error) {
+func (r *roundrobin) Select(routes []router.Route) (*router.Route, error) {
 	if len(routes) == 0 {
 		return nil, selector.ErrNoneAvailable
 	}
@@ -51,33 +51,27 @@ func (r *roundrobin) Select(routes []*router.Route) (*router.Route, error) {
 		r.routes[hash] = time.Now()
 	}
 
-	// calculate the route hashes once
-	hashes := make(map[*router.Route]uint64, len(routes))
-	for _, s := range routes {
-		hashes[s] = s.Hash()
-	}
-
 	// if a route hasn't yet been seen, prioritise it
-	for srv, hash := range hashes {
-		if _, ok := r.routes[hash]; !ok {
-			setLastUsed(hash)
-			return srv, nil
+	for _, route := range routes {
+		if _, ok := r.routes[route.Hash()]; !ok {
+			setLastUsed(route.Hash())
+			return &route, nil
 		}
 	}
 
 	// sort the services by the time they were last used
 	sort.SliceStable(routes, func(i, j int) bool {
-		iLastSeen := r.routes[hashes[routes[i]]]
-		jLastSeen := r.routes[hashes[routes[j]]]
+		iLastSeen := r.routes[routes[i].Hash()]
+		jLastSeen := r.routes[routes[j].Hash()]
 		return iLastSeen.UnixNano() < jLastSeen.UnixNano()
 	})
 
 	// return the route which was last used
-	setLastUsed(hashes[routes[0]])
-	return routes[0], nil
+	setLastUsed(routes[0].Hash())
+	return &routes[0], nil
 }
 
-func (r *roundrobin) Record(srv *router.Route, err error) error {
+func (r *roundrobin) Record(srv router.Route, err error) error {
 	return nil
 }
 

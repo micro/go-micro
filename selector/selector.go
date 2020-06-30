@@ -21,9 +21,9 @@ type Selector interface {
 	// Options the selector is using
 	Options() Options
 	// Select a route from the pool using the strategy
-	Select([]*router.Route) (*router.Route, error)
+	Select([]router.Route) (*router.Route, error)
 	// Record the error returned from a route to inform future selection
-	Record(*router.Route, error) error
+	Record(router.Route, error) error
 	// Close the selector
 	Close() error
 	// String returns the name of the selector
