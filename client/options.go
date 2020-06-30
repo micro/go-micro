@@ -64,6 +64,8 @@ type CallOptions struct {
 	ServiceToken bool
 	// Duration to cache the response for
 	CacheExpiry time.Duration
+	// Network to lookup the route within
+	Network string
 
 	// Middleware for low level call func
 	CallWrappers []CallWrapper
@@ -335,6 +337,13 @@ func WithServiceToken() CallOption {
 func WithCache(c time.Duration) CallOption {
 	return func(o *CallOptions) {
 		o.CacheExpiry = c
+	}
+}
+
+// WithNetwork is a CallOption which sets the network attribute
+func WithNetwork(n string) CallOption {
+	return func(o *CallOptions) {
+		o.Network = n
 	}
 }
 
