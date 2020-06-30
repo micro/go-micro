@@ -19,3 +19,4 @@ jobs:
            name: micro/go-micro
            username: ${{ secrets.DOCKER_USERNAME }}
            password: ${{ secrets.DOCKER_PASSWORD }}
+           tag_names: true
