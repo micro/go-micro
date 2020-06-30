@@ -98,7 +98,11 @@ func (r *roundrobin) cleanRoutes() {
 		}
 
 		r.Lock()
-		for hash, t := range r.routes {
+
+		// copy the slice to prevent concurrent map iteration and map write
+		rts := r.routes
+
+		for hash, t := range rts {
 			if t.Unix() < time.Now().Add(-routeTTL).Unix() {
 				delete(r.routes, hash)
 			}
