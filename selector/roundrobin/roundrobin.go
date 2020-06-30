@@ -14,13 +14,6 @@ func NewSelector(opts ...selector.Option) selector.Selector {
 	return &roundrobin{routes: make(map[uint64]time.Time)}
 }
 
-const (
-	// maxRoutes which should be stored in the cache before a purge occurs
-	maxRoutes = 1024
-	// purgeRoutes is the number of routes which should be removed at each purge
-	purgeRoutes = 256
-)
-
 type roundrobin struct {
 	// routes is a map with the key being a route's hash and the value being the last time it
 	// was used to perform a request
