@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net/http"
 	"sync"
 	"time"
 
 	"github.com/micro/go-micro/v2/client"
+	"github.com/micro/go-micro/v2/errors"
 	"github.com/micro/go-micro/v2/router"
 	pb "github.com/micro/go-micro/v2/router/service/proto"
 )
@@ -226,8 +228,9 @@ func (s *svc) Lookup(q ...router.QueryOption) ([]router.Route, error) {
 		},
 	}, s.callOpts...)
 
-	// errored out
-	if err != nil {
+	if verr, ok := err.(*errors.Error); ok && verr.Code == http.StatusNotFound {
+		return nil, router.ErrRouteNotFound
+	} else if err != nil {
 		return nil, err
 	}
 
