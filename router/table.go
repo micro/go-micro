@@ -98,6 +98,9 @@ func (t *table) Delete(r Route) error {
 	}
 
 	delete(t.routes[service], sum)
+	if len(t.routes[service]) == 0 {
+		delete(t.routes, service)
+	}
 	if logger.V(logger.DebugLevel, logger.DefaultLogger) {
 		logger.Debugf("Router emitting %s for route: %s", Delete, r.Address)
 	}
@@ -253,8 +256,8 @@ func (t *table) Query(q ...QueryOption) ([]Route, error) {
 
 	if opts.Service != "*" {
 		// try and load services from the cache
-		if _, ok := t.routes[opts.Service]; ok {
-			return findRoutes(t.routes[opts.Service], opts.Address, opts.Gateway, opts.Network, opts.Router, opts.Strategy), nil
+		if routes, ok := t.routes[opts.Service]; ok && len(routes) > 0 {
+			return findRoutes(routes, opts.Address, opts.Gateway, opts.Network, opts.Router, opts.Strategy), nil
 		}
 
 		// load the cache and try again
@@ -263,9 +266,8 @@ func (t *table) Query(q ...QueryOption) ([]Route, error) {
 			return nil, err
 		}
 		t.RLock()
-		if _, ok := t.routes[opts.Service]; ok {
-			return findRoutes(t.routes[opts.Service], opts.Address, opts.Gateway, opts.Network, opts.Router, opts.Strategy), nil
-
+		if routes, ok := t.routes[opts.Service]; ok && len(routes) > 0 {
+			return findRoutes(routes, opts.Address, opts.Gateway, opts.Network, opts.Router, opts.Strategy), nil
 		}
 
 		return nil, ErrRouteNotFound
