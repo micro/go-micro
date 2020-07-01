@@ -23,6 +23,8 @@ type Options struct {
 	Advertise Strategy
 	// Context for additional options
 	Context context.Context
+	// Prewarm the route table on router startup
+	Prewarm bool
 }
 
 // Id sets Router Id
@@ -60,10 +62,17 @@ func Registry(r registry.Registry) Option {
 	}
 }
 
-// Strategy sets route advertising strategy
+// Advertise sets route advertising strategy
 func Advertise(a Strategy) Option {
 	return func(o *Options) {
 		o.Advertise = a
+	}
+}
+
+// Prewarm sets whether to prewarm the route table
+func Prewarm(b bool) Option {
+	return func(o *Options) {
+		o.Prewarm = b
 	}
 }
 
