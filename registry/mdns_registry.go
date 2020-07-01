@@ -359,7 +359,7 @@ func (m *mdnsRegistry) Deregister(service *Service, opts ...DeregisterOption) er
 		}
 	}
 
-	// we have no new entries, we can exist
+	// we have no new entries, we can exit
 	if len(newEntries) == 0 {
 		return nil
 	}
