@@ -671,6 +671,13 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		}
 	}
 
+	// Add support for legacy MICRO_SELECTOR=static support, until V3.
+	if ctx.String("selector") == "static" {
+		ctx.Set("router", "static")
+		ctx.Set("selector", "")
+		logger.Warnf("DEPRECATION WARNING: router/static now provides static routing, use '--router=static'. Support for the static selector flag will be removed in v3.")
+	}
+
 	// Set the selector
 	if name := ctx.String("selector"); len(name) > 0 && (*c.opts.Selector).String() != name {
 		s, ok := c.opts.Selectors[name]
