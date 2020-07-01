@@ -12,7 +12,6 @@ import (
 	"github.com/micro/go-micro/v2/broker"
 	"github.com/micro/go-micro/v2/client"
 	"github.com/micro/go-micro/v2/client/grpc"
-	"github.com/micro/go-micro/v2/client/selector"
 	"github.com/micro/go-micro/v2/config"
 	configSrc "github.com/micro/go-micro/v2/config/source"
 	configSrv "github.com/micro/go-micro/v2/config/source/service"
@@ -25,6 +24,7 @@ import (
 	registrySrv "github.com/micro/go-micro/v2/registry/service"
 	"github.com/micro/go-micro/v2/router"
 	"github.com/micro/go-micro/v2/runtime"
+	"github.com/micro/go-micro/v2/selector"
 	"github.com/micro/go-micro/v2/server"
 	"github.com/micro/go-micro/v2/store"
 	"github.com/micro/go-micro/v2/transport"
@@ -65,9 +65,8 @@ import (
 	srvRuntime "github.com/micro/go-micro/v2/runtime/service"
 
 	// selectors
-	"github.com/micro/go-micro/v2/client/selector/dns"
-	sRouter "github.com/micro/go-micro/v2/client/selector/router"
-	"github.com/micro/go-micro/v2/client/selector/static"
+	randSelector "github.com/micro/go-micro/v2/selector/random"
+	roundSelector "github.com/micro/go-micro/v2/selector/roundrobin"
 
 	// transports
 	thttp "github.com/micro/go-micro/v2/transport/http"
@@ -377,9 +376,8 @@ var (
 	}
 
 	DefaultSelectors = map[string]func(...selector.Option) selector.Selector{
-		"dns":    dns.NewSelector,
-		"router": sRouter.NewSelector,
-		"static": static.NewSelector,
+		"random":     randSelector.NewSelector,
+		"roundrobin": roundSelector.NewSelector,
 	}
 
 	DefaultServers = map[string]func(...server.Option) server.Server{
@@ -644,9 +642,6 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		return err
 	}
 
-	// Setup selector options
-	selectorOpts := []selector.Option{selector.Registry(*c.opts.Registry)}
-
 	// Setup broker options.
 	brokerOpts := []broker.Option{}
 	if len(ctx.String("broker_address")) > 0 {
@@ -669,13 +664,23 @@ func (c *cmd) Before(ctx *cli.Context) error {
 
 		*c.opts.Registry = r(registryOpts...)
 		serverOpts = append(serverOpts, server.Registry(*c.opts.Registry))
-		clientOpts = append(clientOpts, client.Registry(*c.opts.Registry))
 		brokerOpts = append(brokerOpts, broker.Registry(*c.opts.Registry))
-		selectorOpts = append(selectorOpts, selector.Registry(*c.opts.Registry))
 	} else if len(registryOpts) > 0 {
 		if err := (*c.opts.Registry).Init(registryOpts...); err != nil {
 			logger.Fatalf("Error configuring registry: %v", err)
 		}
+	}
+
+	// Add support for legacy selectors until v3.
+	if ctx.String("selector") == "static" {
+		ctx.Set("router", "static")
+		ctx.Set("selector", "")
+		logger.Warnf("DEPRECATION WARNING: router/static now provides static routing, use '--router=static'. Support for the static selector flag will be removed in v3.")
+	}
+	if ctx.String("selector") == "dns" {
+		ctx.Set("router", "dns")
+		ctx.Set("selector", "")
+		logger.Warnf("DEPRECATION WARNING: router/dns now provides dns routing, use '--router=dns'. Support for the dns selector flag will be removed in v3.")
 	}
 
 	// Set the selector
@@ -685,12 +690,8 @@ func (c *cmd) Before(ctx *cli.Context) error {
 			logger.Fatalf("Selector %s not found", name)
 		}
 
-		*c.opts.Selector = s(selectorOpts...)
+		*c.opts.Selector = s()
 		clientOpts = append(clientOpts, client.Selector(*c.opts.Selector))
-	} else if len(selectorOpts) > 0 {
-		if err := (*c.opts.Selector).Init(selectorOpts...); err != nil {
-			logger.Fatalf("Error configuring selctor: %v", err)
-		}
 	}
 
 	// Set the router, this must happen before the rest of the server as it'll route server requests
@@ -716,8 +717,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		}
 
 		*c.opts.Router = r(routerOpts...)
-		// todo: set the router in the client
-		// clientOpts = append(clientOpts, client.Router(*c.opts.Router))
+		clientOpts = append(clientOpts, client.Router(*c.opts.Router))
 	} else if len(routerOpts) > 0 {
 		if err := (*c.opts.Router).Init(routerOpts...); err != nil {
 			logger.Fatalf("Error configuring router: %v", err)

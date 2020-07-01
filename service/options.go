@@ -83,11 +83,12 @@ func Server(s server.Server) Option {
 func Registry(r registry.Registry) Option {
 	return func(o *Options) {
 		o.Registry = r
-		// Update Client and Server
-		o.Client.Init(client.Registry(r))
+		// Update server
 		o.Server.Init(server.Registry(r))
 		// Update Broker
 		o.Broker.Init(broker.Registry(r))
+		// Update router
+		o.Client.Init(client.Registry(r))
 	}
 }
 

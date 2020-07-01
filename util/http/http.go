@@ -8,9 +8,9 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/micro/go-micro/v2/client/selector"
 	"github.com/micro/go-micro/v2/metadata"
-	"github.com/micro/go-micro/v2/registry"
+	"github.com/micro/go-micro/v2/router"
+	"github.com/micro/go-micro/v2/selector/random"
 )
 
 // Write sets the status and body on a http ResponseWriter
@@ -47,7 +47,7 @@ func WriteInternalServerError(w http.ResponseWriter, err error) {
 
 func NewRoundTripper(opts ...Option) http.RoundTripper {
 	options := Options{
-		Registry: registry.DefaultRegistry,
+		Router: router.DefaultRouter,
 	}
 	for _, o := range opts {
 		o(&options)
@@ -55,7 +55,7 @@ func NewRoundTripper(opts ...Option) http.RoundTripper {
 
 	return &roundTripper{
 		rt:   http.DefaultTransport,
-		st:   selector.Random,
+		st:   random.NewSelector(),
 		opts: options,
 	}
 }
