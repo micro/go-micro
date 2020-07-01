@@ -13,7 +13,7 @@ var (
 
 // Resolver resolves requests to endpoints
 type Resolver interface {
-	Resolve(r *http.Request) (*Endpoint, error)
+	Resolve(r *http.Request, opts ...ResolveOption) (*Endpoint, error)
 	String() string
 }
 

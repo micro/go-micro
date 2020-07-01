@@ -130,4 +130,6 @@ message Route {
   string link = 6;
   // the metric / score of this route
   int64 metric = 7;
+  // metadata for the route
+  map<string,string> metadata = 8;
 }

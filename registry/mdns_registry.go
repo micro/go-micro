@@ -184,7 +184,7 @@ func createServiceMDNSEntry(name, domain string) (*mdnsEntry, error) {
 		return nil, err
 	}
 
-	srv, err := mdns.NewServer(&mdns.Config{Zone: &mdns.DNSSDService{MDNSService: s}})
+	srv, err := mdns.NewServer(&mdns.Config{Zone: &mdns.DNSSDService{MDNSService: s}, LocalhostChecking: true})
 	if err != nil {
 		return nil, err
 	}
@@ -273,7 +273,7 @@ func (m *mdnsRegistry) Register(service *Service, opts ...RegisterOption) error 
 			continue
 		}
 
-		srv, err := mdns.NewServer(&mdns.Config{Zone: s})
+		srv, err := mdns.NewServer(&mdns.Config{Zone: s, LocalhostChecking: true})
 		if err != nil {
 			gerr = err
 			continue
@@ -357,6 +357,11 @@ func (m *mdnsRegistry) Deregister(service *Service, opts ...DeregisterOption) er
 		if !remove {
 			newEntries = append(newEntries, entry)
 		}
+	}
+
+	// we have no new entries, we can exit
+	if len(newEntries) == 0 {
+		return nil
 	}
 
 	// we have more than one entry remaining, we can exit

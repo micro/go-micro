@@ -48,9 +48,12 @@ func newRouter(opts ...Option) Router {
 	// construct the router
 	r := &router{
 		options:     options,
-		table:       newTable(),
 		subscribers: make(map[string]chan *Advert),
 	}
+
+	// create the new table, passing the fetchRoute method in as a fallback if
+	// the table doesn't contain the result for a query.
+	r.table = newTable(r.fetchRoutes)
 
 	// start the router and return
 	r.start()
@@ -125,13 +128,14 @@ func (r *router) manageRoutes(service *registry.Service, action, network string)
 	// take route action on each service node
 	for _, node := range service.Nodes {
 		route := Route{
-			Service: service.Name,
-			Address: node.Address,
-			Gateway: "",
-			Network: network,
-			Router:  r.options.Id,
-			Link:    DefaultLink,
-			Metric:  DefaultLocalMetric,
+			Service:  service.Name,
+			Address:  node.Address,
+			Gateway:  "",
+			Network:  network,
+			Router:   r.options.Id,
+			Link:     DefaultLink,
+			Metric:   DefaultLocalMetric,
+			Metadata: service.Metadata,
 		}
 
 		if err := r.manageRoute(route, action); err != nil {
@@ -170,6 +174,29 @@ func (r *router) manageRegistryRoutes(reg registry.Registry, action string) erro
 			if err := r.manageRoutes(srv, action, domain); err != nil {
 				return err
 			}
+		}
+	}
+
+	return nil
+}
+
+// fetchRoutes retrieves all the routes for a given service and creates them in the routing table
+func (r *router) fetchRoutes(service string) error {
+	services, err := r.options.Registry.GetService(service, registry.GetDomain(registry.WildcardDomain))
+	if err != nil {
+		return fmt.Errorf("failed getting services: %v", err)
+	}
+
+	for _, srv := range services {
+		var domain string
+		if srv.Metadata != nil && len(srv.Metadata["domain"]) > 0 {
+			domain = srv.Metadata["domain"]
+		} else {
+			domain = registry.WildcardDomain
+		}
+
+		if err := r.manageRoutes(srv, "create", domain); err != nil {
+			return err
 		}
 	}
 
@@ -258,7 +285,6 @@ func (r *router) watchTable(w Watcher) error {
 
 		select {
 		case <-r.exit:
-			close(r.eventChan)
 			return nil
 		case r.eventChan <- event:
 			// process event
@@ -440,9 +466,11 @@ func (r *router) start() error {
 		return nil
 	}
 
-	// add all local service routes into the routing table
-	if err := r.manageRegistryRoutes(r.options.Registry, "create"); err != nil {
-		return fmt.Errorf("failed adding registry routes: %s", err)
+	if r.options.Prewarm {
+		// add all local service routes into the routing table
+		if err := r.manageRegistryRoutes(r.options.Registry, "create"); err != nil {
+			return fmt.Errorf("failed adding registry routes: %s", err)
+		}
 	}
 
 	// add default gateway into routing table
@@ -523,6 +551,10 @@ func (r *router) Advertise() (<-chan *Advert, error) {
 	if !r.running {
 		return nil, errors.New("not running")
 	}
+
+	// we're mutating the subscribers so they need to be locked also
+	r.sub.Lock()
+	defer r.sub.Unlock()
 
 	// already advertising
 	if r.eventChan != nil {
@@ -672,9 +704,13 @@ func (r *router) Close() error {
 		r.sub.Unlock()
 	}
 
-	// remove event chan
-	r.eventChan = nil
+	// close and remove event chan
+	if r.eventChan != nil {
+		close(r.eventChan)
+		r.eventChan = nil
+	}
 
+	r.running = false
 	return nil
 }
 
