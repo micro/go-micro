@@ -359,6 +359,11 @@ func (m *mdnsRegistry) Deregister(service *Service, opts ...DeregisterOption) er
 		}
 	}
 
+	// we have no new entries, we can exist
+	if len(newEntries) == 0 {
+		return nil
+	}
+
 	// we have more than one entry remaining, we can exit
 	if len(newEntries) > 1 {
 		m.domains[options.Domain][service.Name] = newEntries
