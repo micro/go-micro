@@ -285,7 +285,6 @@ func (r *router) watchTable(w Watcher) error {
 
 		select {
 		case <-r.exit:
-			close(r.eventChan)
 			return nil
 		case r.eventChan <- event:
 			// process event
@@ -705,10 +704,11 @@ func (r *router) Close() error {
 		r.sub.Unlock()
 	}
 
-	// remove event chan
+	// close and remove event chan
+	close(r.eventChan)
 	r.eventChan = nil
-	r.running = false
 
+	r.running = false
 	return nil
 }
 
