@@ -128,7 +128,7 @@ func (p *Proxy) filterRoutes(ctx context.Context, routes []router.Route) []route
 		}
 
 		// only process routes with this network
-		if net, ok := md.Get("Micro-Network"); ok && len(net) > 0 {
+		if net, ok := md.Get("Micro-Namespace"); ok && len(net) > 0 {
 			if route.Network != router.DefaultNetwork && route.Network != net {
 				// skip routes that don't mwatch
 				continue
