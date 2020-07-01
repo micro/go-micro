@@ -705,8 +705,10 @@ func (r *router) Close() error {
 	}
 
 	// close and remove event chan
-	close(r.eventChan)
-	r.eventChan = nil
+	if r.eventChan != nil {
+		close(r.eventChan)
+		r.eventChan = nil
+	}
 
 	r.running = false
 	return nil
