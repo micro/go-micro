@@ -34,7 +34,6 @@ func (g *binaryGitter) Checkout(repo, branchOrCommit string) error {
 	g.folder = filepath.Join(os.TempDir(),
 		repoFolder+"-"+shortid.MustGenerate())
 
-	fmt.Println("repo", repo)
 	url := fmt.Sprintf("%v/archive/%v.zip", repo, branchOrCommit)
 	if !strings.HasPrefix(url, "https://") {
 		url = "https://" + url
