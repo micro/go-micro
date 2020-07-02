@@ -1,157 +1,70 @@
 package git
 
 import (
+	"archive/tar"
+	"compress/gzip"
 	"errors"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
 
-	"github.com/go-git/go-git/v5"
-	"github.com/go-git/go-git/v5/config"
-	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/teris-io/shortid"
 )
 
 type Gitter interface {
-	Clone(repo string) error
-	FetchAll(repo string) error
 	Checkout(repo, branchOrCommit string) error
-	RepoDir(repo string) string
-}
-
-type libGitter struct {
-	folder string
-}
-
-func (g libGitter) Clone(repo string) error {
-	fold := filepath.Join(g.folder, dirifyRepo(repo))
-	exists, err := pathExists(fold)
-	if err != nil {
-		return err
-	}
-	if exists {
-		return nil
-	}
-	_, err = git.PlainClone(fold, false, &git.CloneOptions{
-		URL:      repo,
-		Progress: os.Stdout,
-	})
-	return err
-}
-
-func (g libGitter) FetchAll(repo string) error {
-	repos, err := git.PlainOpen(filepath.Join(g.folder, dirifyRepo(repo)))
-	if err != nil {
-		return err
-	}
-	remotes, err := repos.Remotes()
-	if err != nil {
-		return err
-	}
-
-	err = remotes[0].Fetch(&git.FetchOptions{
-		RefSpecs: []config.RefSpec{"refs/*:refs/*", "HEAD:refs/heads/HEAD"},
-		Progress: os.Stdout,
-		Depth:    1,
-	})
-	if err != nil && err != git.NoErrAlreadyUpToDate {
-		return err
-	}
-	return nil
-}
-
-func (g libGitter) Checkout(repo, branchOrCommit string) error {
-	if branchOrCommit == "latest" {
-		branchOrCommit = "master"
-	}
-	repos, err := git.PlainOpen(filepath.Join(g.folder, dirifyRepo(repo)))
-	if err != nil {
-		return err
-	}
-	worktree, err := repos.Worktree()
-	if err != nil {
-		return err
-	}
-
-	if plumbing.IsHash(branchOrCommit) {
-		return worktree.Checkout(&git.CheckoutOptions{
-			Hash:  plumbing.NewHash(branchOrCommit),
-			Force: true,
-		})
-	}
-
-	return worktree.Checkout(&git.CheckoutOptions{
-		Branch: plumbing.NewBranchReferenceName(branchOrCommit),
-		Force:  true,
-	})
-}
-
-func (g libGitter) RepoDir(repo string) string {
-	return filepath.Join(g.folder, dirifyRepo(repo))
+	RepoDir() string
 }
 
 type binaryGitter struct {
 	folder string
 }
 
-func (g binaryGitter) Clone(repo string) error {
-	fold := filepath.Join(g.folder, dirifyRepo(repo), ".git")
-	exists, err := pathExists(fold)
-	if err != nil {
-		return err
-	}
-	if exists {
-		return nil
-	}
-	fold = filepath.Join(g.folder, dirifyRepo(repo))
-	cmd := exec.Command("git", "clone", repo, ".")
-
-	err = os.MkdirAll(fold, 0777)
-	if err != nil {
-		return err
-	}
-	cmd.Dir = fold
-	_, err = cmd.Output()
-	if err != nil {
-		return err
-	}
-	return err
-}
-
-func (g binaryGitter) FetchAll(repo string) error {
-	cmd := exec.Command("git", "fetch", "--all")
-	cmd.Dir = filepath.Join(g.folder, dirifyRepo(repo))
-	outp, err := cmd.CombinedOutput()
-	if err != nil {
-		return errors.New(string(outp))
-	}
-	return err
-}
-
 func (g binaryGitter) Checkout(repo, branchOrCommit string) error {
+	// @todo if it's a commit it must not be checked out all the time
+	g.folder = filepath.Join(os.TempDir(), strings.ReplaceAll(repo, "/", "-")+shortid.MustGenerate())
 	if branchOrCommit == "latest" {
 		branchOrCommit = "master"
 	}
-	cmd := exec.Command("git", "checkout", "-f", branchOrCommit)
-	cmd.Dir = filepath.Join(g.folder, dirifyRepo(repo))
-	outp, err := cmd.CombinedOutput()
+	url := fmt.Sprintf("https://%v/archive/%v.zip", repo, branchOrCommit)
+	resp, err := http.Get(url)
 	if err != nil {
-		return errors.New(string(outp))
+		return err
 	}
-	return nil
+
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		return errors.New("Status code was not 200")
+	}
+
+	src := g.folder + ".zip"
+	// Create the file
+	out, err := os.Create(src)
+	if err != nil {
+		fmt.Printf("err: %s", err)
+	}
+	defer out.Close()
+
+	// Write the body to file
+	_, err = io.Copy(out, resp.Body)
+	if err != nil {
+		return err
+	}
+	return Uncompress(src, g.folder)
 }
 
-func (g binaryGitter) RepoDir(repo string) string {
-	return filepath.Join(g.folder, dirifyRepo(repo))
+func (g binaryGitter) RepoDir() string {
+	return filepath.Join(g.folder, g.folder)
 }
 
 func NewGitter(folder string) Gitter {
-	if commandExists("git") {
-		return binaryGitter{folder}
-	}
-	return libGitter{folder}
+	return binaryGitter{folder}
+
 }
 
 func commandExists(cmd string) bool {
@@ -325,11 +238,11 @@ func CheckoutSource(folder string, source *Source) error {
 		repo = "https://" + repo
 	}
 	// Always clone, it's idempotent and only clones if needed
-	err := gitter.Clone(repo)
+	err := gitter.Checkout(source.Repo, source.Ref)
 	if err != nil {
 		return err
 	}
-	source.FullPath = filepath.Join(gitter.RepoDir(source.Repo), source.Folder)
+	source.FullPath = filepath.Join(gitter.RepoDir(), source.Folder)
 	return gitter.Checkout(repo, source.Ref)
 }
 
@@ -344,4 +257,81 @@ func extractServiceName(fileContent []byte) string {
 	}
 	hit := string(hits[0])
 	return strings.Split(hit, "\"")[1]
+}
+
+// Uncompress is a modified version of: https://gist.github.com/mimoo/25fc9716e0f1353791f5908f94d6e726
+func Uncompress(src string, dst string) error {
+	file, err := os.OpenFile(src, os.O_RDWR|os.O_CREATE, 0666)
+	defer file.Close()
+	if err != nil {
+		return err
+	}
+	// ungzip
+	zr, err := gzip.NewReader(file)
+	if err != nil {
+		return err
+	}
+	// untar
+	tr := tar.NewReader(zr)
+
+	// uncompress each element
+	for {
+		header, err := tr.Next()
+		if err == io.EOF {
+			break // End of archive
+		}
+		if err != nil {
+			return err
+		}
+		target := header.Name
+
+		// validate name against path traversal
+		if !validRelPath(header.Name) {
+			return fmt.Errorf("tar contained invalid name error %q\n", target)
+		}
+
+		// add dst + re-format slashes according to system
+		target = filepath.Join(dst, header.Name)
+		// if no join is needed, replace with ToSlash:
+		// target = filepath.ToSlash(header.Name)
+
+		// check the type
+		switch header.Typeflag {
+
+		// if its a dir and it doesn't exist create it (with 0755 permission)
+		case tar.TypeDir:
+			if _, err := os.Stat(target); err != nil {
+				// @todo think about this:
+				// if we don't nuke the folder, we might end up with files from
+				// the previous decompress.
+				if err := os.MkdirAll(target, 0755); err != nil {
+					return err
+				}
+			}
+		// if it's a file create it (with same permission)
+		case tar.TypeReg:
+			// the truncating is probably unnecessary due to the `RemoveAll` of folders
+			// above
+			fileToWrite, err := os.OpenFile(target, os.O_TRUNC|os.O_CREATE|os.O_RDWR, os.FileMode(header.Mode))
+			if err != nil {
+				return err
+			}
+			// copy over contents
+			if _, err := io.Copy(fileToWrite, tr); err != nil {
+				return err
+			}
+			// manually close here after each file operation; defering would cause each file close
+			// to wait until all operations have completed.
+			fileToWrite.Close()
+		}
+	}
+	return nil
+}
+
+// check for path traversal and correct forward slashes
+func validRelPath(p string) bool {
+	if p == "" || strings.Contains(p, `\`) || strings.HasPrefix(p, "/") || strings.Contains(p, "../") {
+		return false
+	}
+	return true
 }

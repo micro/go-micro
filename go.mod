@@ -47,6 +47,7 @@ require (
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.4.0
+	github.com/teris-io/shortid v0.0.0-20171029131806-771a37caa5cf
 	github.com/tmc/grpc-websocket-proxy v0.0.0-20200122045848-3419fae592fc // indirect
 	go.etcd.io/bbolt v1.3.4
 	go.uber.org/zap v1.13.0
