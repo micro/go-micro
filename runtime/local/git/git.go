@@ -351,9 +351,7 @@ func unzip(src, dest string, skipTopFolder bool) error {
 		return err
 	}
 	defer func() {
-		if err := r.Close(); err != nil {
-			panic(err)
-		}
+		r.Close()
 	}()
 
 	os.MkdirAll(dest, 0755)
@@ -365,9 +363,7 @@ func unzip(src, dest string, skipTopFolder bool) error {
 			return err
 		}
 		defer func() {
-			if err := rc.Close(); err != nil {
-				panic(err)
-			}
+			rc.Close()
 		}()
 		if skipTopFolder {
 			f.Name = strings.Join(strings.Split(f.Name, string(filepath.Separator))[1:], string(filepath.Separator))
@@ -382,9 +378,7 @@ func unzip(src, dest string, skipTopFolder bool) error {
 				return err
 			}
 			defer func() {
-				if err := f.Close(); err != nil {
-					panic(err)
-				}
+				f.Close()
 			}()
 
 			_, err = io.Copy(f, rc)
