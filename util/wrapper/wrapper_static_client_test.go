@@ -8,6 +8,7 @@ import (
 	bmemory "github.com/micro/go-micro/v2/broker/memory"
 	"github.com/micro/go-micro/v2/client"
 	rmemory "github.com/micro/go-micro/v2/registry/memory"
+	"github.com/micro/go-micro/v2/router"
 	"github.com/micro/go-micro/v2/server"
 	tmemory "github.com/micro/go-micro/v2/transport/memory"
 	wrapper "github.com/micro/go-micro/v2/util/wrapper"
@@ -36,6 +37,7 @@ func TestStaticClientWrapper(t *testing.T) {
 	reg := rmemory.NewRegistry()
 	brk := bmemory.NewBroker(broker.Registry(reg))
 	tr := tmemory.NewTransport()
+	rtr := router.NewRouter(router.Registry(reg))
 
 	srv := server.NewServer(
 		server.Broker(brk),
@@ -53,7 +55,7 @@ func TestStaticClientWrapper(t *testing.T) {
 	}
 
 	cli := client.NewClient(
-		client.Registry(reg),
+		client.Router(rtr),
 		client.Broker(brk),
 		client.Transport(tr),
 	)

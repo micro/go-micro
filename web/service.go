@@ -120,7 +120,7 @@ func (s *service) register() error {
 		return nil
 	}
 	// default to service registry
-	r := s.opts.Service.Client().Options().Registry
+	r := s.opts.Service.Options().Registry
 	// switch to option if specified
 	if s.opts.Registry != nil {
 		r = s.opts.Registry
@@ -173,7 +173,7 @@ func (s *service) deregister() error {
 		return nil
 	}
 	// default to service registry
-	r := s.opts.Service.Client().Options().Registry
+	r := s.opts.Service.Options().Registry
 	// switch to option if specified
 	if s.opts.Registry != nil {
 		r = s.opts.Registry
@@ -302,7 +302,7 @@ func (s *service) stop() error {
 
 func (s *service) Client() *http.Client {
 	rt := mhttp.NewRoundTripper(
-		mhttp.WithRegistry(s.opts.Registry),
+		mhttp.WithRouter(s.opts.Service.Options().Router),
 	)
 	return &http.Client{
 		Transport: rt,
