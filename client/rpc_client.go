@@ -104,7 +104,7 @@ func (r *rpcClient) lookupRoute(req Request, opts CallOptions) (*router.Route, e
 	}
 
 	// select the route to use for the request
-	if route, err := opts.Selector.Select(routes); err == selector.ErrNoneAvailable {
+	if route, err := opts.Selector.Select(routes, opts.SelectOptions...); err == selector.ErrNoneAvailable {
 		return nil, errors.InternalServerError("go.micro.client", "service %s: %s", req.Service(), err.Error())
 	} else if err != nil {
 		return nil, errors.InternalServerError("go.micro.client", "error getting next %s node: %s", req.Service(), err.Error())
