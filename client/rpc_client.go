@@ -13,6 +13,7 @@ import (
 	raw "github.com/micro/go-micro/v2/codec/bytes"
 	"github.com/micro/go-micro/v2/errors"
 	"github.com/micro/go-micro/v2/metadata"
+	"github.com/micro/go-micro/v2/registry"
 	"github.com/micro/go-micro/v2/router"
 	"github.com/micro/go-micro/v2/selector"
 	"github.com/micro/go-micro/v2/transport"
@@ -113,7 +114,7 @@ func (r *rpcClient) lookupRoute(req Request, opts CallOptions) (*router.Route, e
 	}
 }
 
-func (r *rpcClient) call(ctx context.Context, route *router.Route, req Request, resp interface{}, opts CallOptions) error {
+func (r *rpcClient) call(ctx context.Context, node *registry.Node, req Request, resp interface{}, opts CallOptions) error {
 	msg := &transport.Message{
 		Header: make(map[string]string),
 	}
@@ -138,7 +139,7 @@ func (r *rpcClient) call(ctx context.Context, route *router.Route, req Request, 
 	msg.Header["Accept"] = req.ContentType()
 
 	// setup old protocol
-	cf := setupProtocol(msg, route)
+	cf := setupProtocol(msg, node)
 
 	// no codec specified
 	if cf == nil {
@@ -157,7 +158,7 @@ func (r *rpcClient) call(ctx context.Context, route *router.Route, req Request, 
 		dOpts = append(dOpts, transport.WithTimeout(opts.DialTimeout))
 	}
 
-	c, err := r.pool.Get(route.Address, dOpts...)
+	c, err := r.pool.Get(node.Address, dOpts...)
 	if err != nil {
 		return errors.InternalServerError("go.micro.client", "connection error: %v", err)
 	}
@@ -230,7 +231,7 @@ func (r *rpcClient) call(ctx context.Context, route *router.Route, req Request, 
 	return nil
 }
 
-func (r *rpcClient) stream(ctx context.Context, route *router.Route, req Request, opts CallOptions) (Stream, error) {
+func (r *rpcClient) stream(ctx context.Context, node *registry.Node, req Request, opts CallOptions) (Stream, error) {
 	msg := &transport.Message{
 		Header: make(map[string]string),
 	}
@@ -252,7 +253,7 @@ func (r *rpcClient) stream(ctx context.Context, route *router.Route, req Request
 	msg.Header["Accept"] = req.ContentType()
 
 	// set old codecs
-	cf := setupProtocol(msg, route)
+	cf := setupProtocol(msg, node)
 
 	// no codec specified
 	if cf == nil {
@@ -271,7 +272,7 @@ func (r *rpcClient) stream(ctx context.Context, route *router.Route, req Request
 		dOpts = append(dOpts, transport.WithTimeout(opts.DialTimeout))
 	}
 
-	c, err := r.opts.Transport.Dial(route.Address, dOpts...)
+	c, err := r.opts.Transport.Dial(node.Address, dOpts...)
 	if err != nil {
 		return nil, errors.InternalServerError("go.micro.client", "connection error: %v", err)
 	}
@@ -420,8 +421,13 @@ func (r *rpcClient) Call(ctx context.Context, request Request, response interfac
 			return err
 		}
 
+		// pass a node to enable backwards compatability as changing the
+		// call func would be a breaking change.
+		// todo v3: change the call func to accept a route
+		node := &registry.Node{Address: route.Address, Metadata: route.Metadata}
+
 		// make the call
-		err = rcall(ctx, route, request, response, callOpts)
+		err = rcall(ctx, node, request, response, callOpts)
 
 		// record the result of the call to inform future routing decisions
 		r.opts.Selector.Record(*route, err)
@@ -502,8 +508,13 @@ func (r *rpcClient) Stream(ctx context.Context, request Request, opts ...CallOpt
 			return nil, err
 		}
 
+		// pass a node to enable backwards compatability as changing the
+		// call func would be a breaking change.
+		// todo v3: change the call func to accept a route
+		node := &registry.Node{Address: route.Address, Metadata: route.Metadata}
+
 		// perform the call
-		stream, err := r.stream(ctx, route, request, callOpts)
+		stream, err := r.stream(ctx, node, request, callOpts)
 
 		// record the result of the call to inform future routing decisions
 		r.opts.Selector.Record(*route, err)
