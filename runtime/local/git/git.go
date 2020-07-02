@@ -2,8 +2,8 @@ package git
 
 import (
 	"archive/tar"
+	"archive/zip"
 	"compress/gzip"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -25,28 +25,38 @@ type binaryGitter struct {
 	folder string
 }
 
-func (g binaryGitter) Checkout(repo, branchOrCommit string) error {
-	// @todo if it's a commit it must not be checked out all the time
-	g.folder = filepath.Join(os.TempDir(), strings.ReplaceAll(repo, "/", "-")+shortid.MustGenerate())
+func (g *binaryGitter) Checkout(repo, branchOrCommit string) error {
 	if branchOrCommit == "latest" {
 		branchOrCommit = "master"
 	}
-	url := fmt.Sprintf("https://%v/archive/%v.zip", repo, branchOrCommit)
+	// @todo if it's a commit it must not be checked out all the time
+	repoFolder := strings.ReplaceAll(strings.ReplaceAll(repo, "/", "-"), "https://", "")
+	g.folder = filepath.Join(os.TempDir(),
+		repoFolder+"-"+shortid.MustGenerate())
+
+	fmt.Println("repo", repo)
+	url := fmt.Sprintf("%v/archive/%v.zip", repo, branchOrCommit)
+	if !strings.HasPrefix(url, "https://") {
+		url = "https://" + url
+	}
 	resp, err := http.Get(url)
 	if err != nil {
-		return err
+		return fmt.Errorf("Can't get zip: %v", err)
 	}
 
 	defer resp.Body.Close()
-	if resp.StatusCode != 200 {
-		return errors.New("Status code was not 200")
-	}
+	// Github returns 404 for tar.gz files...
+	// but still gives back a proper file so ignoring status code
+	// for now.
+	//if resp.StatusCode != 200 {
+	//	return errors.New("Status code was not 200")
+	//}
 
 	src := g.folder + ".zip"
 	// Create the file
 	out, err := os.Create(src)
 	if err != nil {
-		fmt.Printf("err: %s", err)
+		return fmt.Errorf("Can't create source file %v src: %v", src, err)
 	}
 	defer out.Close()
 
@@ -55,15 +65,15 @@ func (g binaryGitter) Checkout(repo, branchOrCommit string) error {
 	if err != nil {
 		return err
 	}
-	return Uncompress(src, g.folder)
+	return unzip(src, g.folder, true)
 }
 
-func (g binaryGitter) RepoDir() string {
-	return filepath.Join(g.folder, g.folder)
+func (g *binaryGitter) RepoDir() string {
+	return g.folder
 }
 
 func NewGitter(folder string) Gitter {
-	return binaryGitter{folder}
+	return &binaryGitter{folder}
 
 }
 
@@ -237,13 +247,12 @@ func CheckoutSource(folder string, source *Source) error {
 	if !strings.Contains(repo, "https://") {
 		repo = "https://" + repo
 	}
-	// Always clone, it's idempotent and only clones if needed
 	err := gitter.Checkout(source.Repo, source.Ref)
 	if err != nil {
 		return err
 	}
 	source.FullPath = filepath.Join(gitter.RepoDir(), source.Folder)
-	return gitter.Checkout(repo, source.Ref)
+	return nil
 }
 
 // code below is not used yet
@@ -334,4 +343,65 @@ func validRelPath(p string) bool {
 		return false
 	}
 	return true
+}
+
+// taken from https://stackoverflow.com/questions/20357223/easy-way-to-unzip-file-with-golang
+func unzip(src, dest string, skipTopFolder bool) error {
+	r, err := zip.OpenReader(src)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err := r.Close(); err != nil {
+			panic(err)
+		}
+	}()
+
+	os.MkdirAll(dest, 0755)
+
+	// Closure to address file descriptors issue with all the deferred .Close() methods
+	extractAndWriteFile := func(f *zip.File) error {
+		rc, err := f.Open()
+		if err != nil {
+			return err
+		}
+		defer func() {
+			if err := rc.Close(); err != nil {
+				panic(err)
+			}
+		}()
+		if skipTopFolder {
+			f.Name = strings.Join(strings.Split(f.Name, string(filepath.Separator))[1:], string(filepath.Separator))
+		}
+		path := filepath.Join(dest, f.Name)
+		if f.FileInfo().IsDir() {
+			os.MkdirAll(path, f.Mode())
+		} else {
+			os.MkdirAll(filepath.Dir(path), f.Mode())
+			f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
+			if err != nil {
+				return err
+			}
+			defer func() {
+				if err := f.Close(); err != nil {
+					panic(err)
+				}
+			}()
+
+			_, err = io.Copy(f, rc)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+
+	for _, f := range r.File {
+		err := extractAndWriteFile(f)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

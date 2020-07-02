@@ -56,7 +56,6 @@ func NewRuntime(opts ...Option) Runtime {
 	}
 }
 
-// @todo move this to runtime default
 func (r *runtime) checkoutSourceIfNeeded(s *Service) error {
 	// Runtime service like config have no source.
 	// Skip checkout in that case
