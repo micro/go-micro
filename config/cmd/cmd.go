@@ -831,7 +831,11 @@ func (c *cmd) Before(ctx *cli.Context) error {
 
 	// Setup config sources
 	if ctx.String("config") == "service" {
-		opt := config.WithSource(configSrv.NewSource(configSrc.WithClient(microClient)))
+		opt := config.WithSource(configSrv.NewSource(
+			configSrc.WithClient(microClient),
+			configSrv.Namespace(ctx.String("service_namespace")),
+		))
+
 		if err := (*c.opts.Config).Init(opt); err != nil {
 			logger.Fatalf("Error configuring config: %v", err)
 		}
