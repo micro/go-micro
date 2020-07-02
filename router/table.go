@@ -251,13 +251,23 @@ func (t *table) Query(q ...QueryOption) ([]Route, error) {
 		return results, nil
 	}
 
+	// readAndFilter routes for this service under read lock.
+	readAndFilter := func() ([]Route, bool) {
+		t.RLock()
+		defer t.RUnlock()
+
+		routes, ok := t.routes[opts.Service]
+		if !ok || len(routes) == 0 {
+			return nil, false
+		}
+
+		return findRoutes(routes, opts.Address, opts.Gateway, opts.Network, opts.Router, opts.Strategy), true
+	}
+
 	if opts.Service != "*" {
 		// try and load services from the cache
-		t.RLock()
-		routes, ok := t.routes[opts.Service]
-		t.RUnlock()
-		if ok && len(routes) > 0 {
-			return findRoutes(routes, opts.Address, opts.Gateway, opts.Network, opts.Router, opts.Strategy), nil
+		if routes, ok := readAndFilter(); ok {
+			return routes, nil
 		}
 
 		// load the cache and try again
@@ -265,11 +275,9 @@ func (t *table) Query(q ...QueryOption) ([]Route, error) {
 			return nil, err
 		}
 
-		t.RLock()
-		routes, ok = t.routes[opts.Service]
-		t.RUnlock()
-		if ok && len(routes) > 0 {
-			return findRoutes(routes, opts.Address, opts.Gateway, opts.Network, opts.Router, opts.Strategy), nil
+		// try again
+		if routes, ok := readAndFilter(); ok {
+			return routes, nil
 		}
 
 		return nil, ErrRouteNotFound
