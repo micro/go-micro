@@ -643,7 +643,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	}
 
 	// Setup broker options.
-	brokerOpts := []broker.Option{brokerSrv.Client(microClient)}
+	brokerOpts := []broker.Option{}
 	if len(ctx.String("broker_address")) > 0 {
 		brokerOpts = append(brokerOpts, broker.Addrs(ctx.String("broker_address")))
 	}
