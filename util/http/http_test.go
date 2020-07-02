@@ -8,14 +8,15 @@ import (
 
 	"github.com/micro/go-micro/v2/registry"
 	"github.com/micro/go-micro/v2/registry/memory"
+	"github.com/micro/go-micro/v2/router"
+	regRouter "github.com/micro/go-micro/v2/router/registry"
 )
 
 func TestRoundTripper(t *testing.T) {
 	m := memory.NewRegistry()
+	r := regRouter.NewRouter(router.Registry(m))
 
-	rt := NewRoundTripper(
-		WithRegistry(m),
-	)
+	rt := NewRoundTripper(WithRouter(r))
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`hello world`))

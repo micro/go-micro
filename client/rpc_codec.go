@@ -12,7 +12,7 @@ import (
 	"github.com/micro/go-micro/v2/codec/proto"
 	"github.com/micro/go-micro/v2/codec/protorpc"
 	"github.com/micro/go-micro/v2/errors"
-	"github.com/micro/go-micro/v2/registry"
+	"github.com/micro/go-micro/v2/router"
 	"github.com/micro/go-micro/v2/transport"
 )
 
@@ -128,11 +128,9 @@ func setHeaders(m *codec.Message, stream string) {
 }
 
 // setupProtocol sets up the old protocol
-func setupProtocol(msg *transport.Message, node *registry.Node) codec.NewCodec {
-	protocol := node.Metadata["protocol"]
-
-	// got protocol
-	if len(protocol) > 0 {
+func setupProtocol(msg *transport.Message, route *router.Route) codec.NewCodec {
+	// get the protocol from route metadata
+	if protocol := route.Metadata["protocol"]; len(protocol) > 0 {
 		return nil
 	}
 
