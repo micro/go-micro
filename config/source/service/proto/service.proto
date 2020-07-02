@@ -41,7 +41,9 @@ message DeleteRequest {
 
 message DeleteResponse {}
 
-message ListRequest {}
+message ListRequest {
+    string namespace = 1;
+}
 
 message ListResponse {
     repeated Change values = 1;

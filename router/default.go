@@ -285,7 +285,6 @@ func (r *router) watchTable(w Watcher) error {
 
 		select {
 		case <-r.exit:
-			close(r.eventChan)
 			return nil
 		case r.eventChan <- event:
 			// process event
@@ -467,9 +466,11 @@ func (r *router) start() error {
 		return nil
 	}
 
-	// add all local service routes into the routing table
-	if err := r.manageRegistryRoutes(r.options.Registry, "create"); err != nil {
-		return fmt.Errorf("failed adding registry routes: %s", err)
+	if r.options.Prewarm {
+		// add all local service routes into the routing table
+		if err := r.manageRegistryRoutes(r.options.Registry, "create"); err != nil {
+			return fmt.Errorf("failed adding registry routes: %s", err)
+		}
 	}
 
 	// add default gateway into routing table
@@ -550,6 +551,10 @@ func (r *router) Advertise() (<-chan *Advert, error) {
 	if !r.running {
 		return nil, errors.New("not running")
 	}
+
+	// we're mutating the subscribers so they need to be locked also
+	r.sub.Lock()
+	defer r.sub.Unlock()
 
 	// already advertising
 	if r.eventChan != nil {
@@ -699,10 +704,13 @@ func (r *router) Close() error {
 		r.sub.Unlock()
 	}
 
-	// remove event chan
-	r.eventChan = nil
-	r.running = false
+	// close and remove event chan
+	if r.eventChan != nil {
+		close(r.eventChan)
+		r.eventChan = nil
+	}
 
+	r.running = false
 	return nil
 }
 

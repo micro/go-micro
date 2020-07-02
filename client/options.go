@@ -5,9 +5,10 @@ import (
 	"time"
 
 	"github.com/micro/go-micro/v2/broker"
-	"github.com/micro/go-micro/v2/client/selector"
 	"github.com/micro/go-micro/v2/codec"
 	"github.com/micro/go-micro/v2/registry"
+	"github.com/micro/go-micro/v2/router"
+	"github.com/micro/go-micro/v2/selector"
 	"github.com/micro/go-micro/v2/transport"
 )
 
@@ -18,12 +19,9 @@ type Options struct {
 	// Plugged interfaces
 	Broker    broker.Broker
 	Codecs    map[string]codec.NewCodec
-	Registry  registry.Registry
+	Router    router.Router
 	Selector  selector.Selector
 	Transport transport.Transport
-
-	// Router sets the router
-	Router Router
 
 	// Connection Pool
 	PoolSize int
@@ -44,26 +42,28 @@ type Options struct {
 }
 
 type CallOptions struct {
-	SelectOptions []selector.SelectOption
-
 	// Address of remote hosts
 	Address []string
 	// Backoff func
 	Backoff BackoffFunc
-	// Check if retriable func
-	Retry RetryFunc
+	// Duration to cache the response for
+	CacheExpiry time.Duration
 	// Transport Dial Timeout
 	DialTimeout time.Duration
 	// Number of Call attempts
 	Retries int
+	// Check if retriable func
+	Retry RetryFunc
 	// Request/Response timeout
 	RequestTimeout time.Duration
+	// Router to use for this call
+	Router router.Router
+	// Selector to use for the call
+	Selector selector.Selector
 	// Stream timeout for the stream
 	StreamTimeout time.Duration
 	// Use the services own auth token
 	ServiceToken bool
-	// Duration to cache the response for
-	CacheExpiry time.Duration
 	// Network to lookup the route within
 	Network string
 
@@ -112,8 +112,8 @@ func NewOptions(options ...Option) Options {
 		PoolSize:  DefaultPoolSize,
 		PoolTTL:   DefaultPoolTTL,
 		Broker:    broker.DefaultBroker,
+		Router:    router.DefaultRouter,
 		Selector:  selector.DefaultSelector,
-		Registry:  registry.DefaultRegistry,
 		Transport: transport.DefaultTransport,
 	}
 
@@ -159,15 +159,6 @@ func PoolTTL(d time.Duration) Option {
 	}
 }
 
-// Registry to find nodes for a given service
-func Registry(r registry.Registry) Option {
-	return func(o *Options) {
-		o.Registry = r
-		// set in the selector
-		o.Selector.Init(selector.Registry(r))
-	}
-}
-
 // Transport to use for communication e.g http, rabbitmq, etc
 func Transport(t transport.Transport) Option {
 	return func(o *Options) {
@@ -175,7 +166,14 @@ func Transport(t transport.Transport) Option {
 	}
 }
 
-// Select is used to select a node to route a request to
+// Router is used to lookup routes for a service
+func Router(r router.Router) Option {
+	return func(o *Options) {
+		o.Router = r
+	}
+}
+
+// Selector is used to select a route
 func Selector(s selector.Selector) Option {
 	return func(o *Options) {
 		o.Selector = s
@@ -216,6 +214,13 @@ func Retries(i int) Option {
 func Retry(fn RetryFunc) Option {
 	return func(o *Options) {
 		o.CallOptions.Retry = fn
+	}
+}
+
+// Registry sets the routers registry
+func Registry(r registry.Registry) Option {
+	return func(o *Options) {
+		o.Router.Init(router.Registry(r))
 	}
 }
 
@@ -261,12 +266,6 @@ func PublishContext(ctx context.Context) PublishOption {
 func WithAddress(a ...string) CallOption {
 	return func(o *CallOptions) {
 		o.Address = a
-	}
-}
-
-func WithSelectOption(so ...selector.SelectOption) CallOption {
-	return func(o *CallOptions) {
-		o.SelectOptions = append(o.SelectOptions, so...)
 	}
 }
 
@@ -347,6 +346,20 @@ func WithNetwork(n string) CallOption {
 	}
 }
 
+// WithRouter sets the router to use for this call
+func WithRouter(r router.Router) CallOption {
+	return func(o *CallOptions) {
+		o.Router = r
+	}
+}
+
+// WithSelector sets the selector to use for this call
+func WithSelector(s selector.Selector) CallOption {
+	return func(o *CallOptions) {
+		o.Selector = s
+	}
+}
+
 func WithMessageContentType(ct string) MessageOption {
 	return func(o *MessageOptions) {
 		o.ContentType = ct
@@ -364,12 +377,5 @@ func WithContentType(ct string) RequestOption {
 func StreamingRequest() RequestOption {
 	return func(o *RequestOptions) {
 		o.Stream = true
-	}
-}
-
-// WithRouter sets the client router
-func WithRouter(r Router) Option {
-	return func(o *Options) {
-		o.Router = r
 	}
 }
