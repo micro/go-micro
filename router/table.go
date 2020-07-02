@@ -240,9 +240,6 @@ func findRoutes(routes map[uint64]Route, address, gateway, network, router strin
 
 // Lookup queries routing table and returns all routes that match the lookup query
 func (t *table) Query(q ...QueryOption) ([]Route, error) {
-	t.RLock()
-	defer t.RUnlock()
-
 	// create new query options
 	opts := NewQuery(q...)
 
@@ -254,29 +251,44 @@ func (t *table) Query(q ...QueryOption) ([]Route, error) {
 		return results, nil
 	}
 
+	// readAndFilter routes for this service under read lock.
+	readAndFilter := func() ([]Route, bool) {
+		t.RLock()
+		defer t.RUnlock()
+
+		routes, ok := t.routes[opts.Service]
+		if !ok || len(routes) == 0 {
+			return nil, false
+		}
+
+		return findRoutes(routes, opts.Address, opts.Gateway, opts.Network, opts.Router, opts.Strategy), true
+	}
+
 	if opts.Service != "*" {
 		// try and load services from the cache
-		if routes, ok := t.routes[opts.Service]; ok && len(routes) > 0 {
-			return findRoutes(routes, opts.Address, opts.Gateway, opts.Network, opts.Router, opts.Strategy), nil
+		if routes, ok := readAndFilter(); ok {
+			return routes, nil
 		}
 
 		// load the cache and try again
-		t.RUnlock()
 		if err := t.fetchRoutes(opts.Service); err != nil {
 			return nil, err
 		}
-		t.RLock()
-		if routes, ok := t.routes[opts.Service]; ok && len(routes) > 0 {
-			return findRoutes(routes, opts.Address, opts.Gateway, opts.Network, opts.Router, opts.Strategy), nil
+
+		// try again
+		if routes, ok := readAndFilter(); ok {
+			return routes, nil
 		}
 
 		return nil, ErrRouteNotFound
 	}
 
 	// search through all destinations
+	t.RLock()
 	for _, routes := range t.routes {
 		results = append(results, findRoutes(routes, opts.Address, opts.Gateway, opts.Network, opts.Router, opts.Strategy)...)
 	}
+	t.RUnlock()
 
 	return results, nil
 }
