@@ -38,7 +38,15 @@ func (r *roundrobin) Options() selector.Options {
 	return selector.Options{}
 }
 
-func (r *roundrobin) Select(routes []router.Route) (*router.Route, error) {
+func (r *roundrobin) Select(routes []router.Route, opts ...selector.SelectOption) (*router.Route, error) {
+	// parse the options
+	options := selector.NewSelectOptions(opts...)
+
+	// apply the filters
+	for _, f := range options.Filters {
+		routes = f(routes)
+	}
+
 	if len(routes) == 0 {
 		return nil, selector.ErrNoneAvailable
 	}

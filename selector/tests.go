@@ -32,6 +32,18 @@ func Tests(t *testing.T, s Selector) {
 				t.Errorf("Expected the route to be one of the inputs")
 			}
 		})
+
+		t.Run("Filters", func(t *testing.T) {
+			var filterApplied bool
+			filter := func(rts []router.Route) []router.Route {
+				filterApplied = true
+				return rts
+			}
+
+			_, err := s.Select([]router.Route{r1, r2}, WithFilter(filter))
+			assert.Nil(t, err, "Error should be nil")
+			assert.True(t, filterApplied, "Filters should be applied")
+		})
 	})
 
 	t.Run("Record", func(t *testing.T) {
