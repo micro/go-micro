@@ -21,7 +21,7 @@ type Selector interface {
 	// Options the selector is using
 	Options() Options
 	// Select a route from the pool using the strategy
-	Select([]router.Route) (*router.Route, error)
+	Select([]router.Route, ...SelectOption) (*router.Route, error)
 	// Record the error returned from a route to inform future selection
 	Record(router.Route, error) error
 	// Close the selector
@@ -29,12 +29,6 @@ type Selector interface {
 	// String returns the name of the selector
 	String() string
 }
-
-// Options used to configure a selector
-type Options struct{}
-
-// Option updates the options
-type Option func(*Options)
 
 // NewSelector creates new selector and returns it
 func NewSelector(opts ...Option) Selector {
