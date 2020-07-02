@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/micro/go-micro/v2/client"
-	"github.com/micro/go-micro/v2/client/selector"
 	"github.com/micro/go-micro/v2/codec"
 	"github.com/micro/go-micro/v2/codec/bytes"
 	"github.com/micro/go-micro/v2/errors"
@@ -19,6 +18,7 @@ import (
 	"github.com/micro/go-micro/v2/metadata"
 	"github.com/micro/go-micro/v2/proxy"
 	"github.com/micro/go-micro/v2/router"
+	"github.com/micro/go-micro/v2/selector/roundrobin"
 	"github.com/micro/go-micro/v2/server"
 )
 
@@ -394,7 +394,7 @@ func (p *Proxy) ServeRequest(ctx context.Context, req server.Request, rsp server
 	//nolint:prealloc
 	opts := []client.CallOption{
 		// set strategy to round robin
-		client.WithSelectOption(selector.WithStrategy(selector.RoundRobin)),
+		client.WithSelector(roundrobin.NewSelector()),
 	}
 
 	// if the address is already set just serve it
