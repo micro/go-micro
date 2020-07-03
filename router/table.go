@@ -98,6 +98,9 @@ func (t *table) Delete(r Route) error {
 	}
 
 	delete(t.routes[service], sum)
+	if len(t.routes[service]) == 0 {
+		delete(t.routes, service)
+	}
 	if logger.V(logger.DebugLevel, logger.DefaultLogger) {
 		logger.Debugf("Router emitting %s for route: %s", Delete, r.Address)
 	}
@@ -237,9 +240,6 @@ func findRoutes(routes map[uint64]Route, address, gateway, network, router strin
 
 // Lookup queries routing table and returns all routes that match the lookup query
 func (t *table) Query(q ...QueryOption) ([]Route, error) {
-	t.RLock()
-	defer t.RUnlock()
-
 	// create new query options
 	opts := NewQuery(q...)
 
@@ -251,30 +251,44 @@ func (t *table) Query(q ...QueryOption) ([]Route, error) {
 		return results, nil
 	}
 
+	// readAndFilter routes for this service under read lock.
+	readAndFilter := func() ([]Route, bool) {
+		t.RLock()
+		defer t.RUnlock()
+
+		routes, ok := t.routes[opts.Service]
+		if !ok || len(routes) == 0 {
+			return nil, false
+		}
+
+		return findRoutes(routes, opts.Address, opts.Gateway, opts.Network, opts.Router, opts.Strategy), true
+	}
+
 	if opts.Service != "*" {
 		// try and load services from the cache
-		if _, ok := t.routes[opts.Service]; ok {
-			return findRoutes(t.routes[opts.Service], opts.Address, opts.Gateway, opts.Network, opts.Router, opts.Strategy), nil
+		if routes, ok := readAndFilter(); ok {
+			return routes, nil
 		}
 
 		// load the cache and try again
-		t.RUnlock()
 		if err := t.fetchRoutes(opts.Service); err != nil {
 			return nil, err
 		}
-		t.RLock()
-		if _, ok := t.routes[opts.Service]; ok {
-			return findRoutes(t.routes[opts.Service], opts.Address, opts.Gateway, opts.Network, opts.Router, opts.Strategy), nil
 
+		// try again
+		if routes, ok := readAndFilter(); ok {
+			return routes, nil
 		}
 
 		return nil, ErrRouteNotFound
 	}
 
 	// search through all destinations
+	t.RLock()
 	for _, routes := range t.routes {
 		results = append(results, findRoutes(routes, opts.Address, opts.Gateway, opts.Network, opts.Router, opts.Strategy)...)
 	}
+	t.RUnlock()
 
 	return results, nil
 }

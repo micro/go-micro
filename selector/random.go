@@ -16,7 +16,15 @@ func (r *random) Options() Options {
 	return Options{}
 }
 
-func (r *random) Select(routes []router.Route) (*router.Route, error) {
+func (r *random) Select(routes []router.Route, opts ...SelectOption) (*router.Route, error) {
+	// parse the options
+	options := NewSelectOptions(opts...)
+
+	// apply the filters
+	for _, f := range options.Filters {
+		routes = f(routes)
+	}
+
 	// we can't select from an empty pool of routes
 	if len(routes) == 0 {
 		return nil, ErrNoneAvailable

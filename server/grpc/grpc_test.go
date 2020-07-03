@@ -11,6 +11,7 @@ import (
 	gcli "github.com/micro/go-micro/v2/client/grpc"
 	"github.com/micro/go-micro/v2/errors"
 	rmemory "github.com/micro/go-micro/v2/registry/memory"
+	"github.com/micro/go-micro/v2/router"
 	"github.com/micro/go-micro/v2/server"
 	gsrv "github.com/micro/go-micro/v2/server/grpc"
 	tgrpc "github.com/micro/go-micro/v2/transport/grpc"
@@ -110,14 +111,17 @@ func TestGRPCServer(t *testing.T) {
 	r := rmemory.NewRegistry()
 	b := bmemory.NewBroker()
 	tr := tgrpc.NewTransport()
+	rtr := router.NewRouter(router.Registry(r))
+
 	s := gsrv.NewServer(
 		server.Broker(b),
 		server.Name("foo"),
 		server.Registry(r),
 		server.Transport(tr),
 	)
+
 	c := gcli.NewClient(
-		client.Registry(r),
+		client.Router(rtr),
 		client.Broker(b),
 		client.Transport(tr),
 	)

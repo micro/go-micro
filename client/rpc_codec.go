@@ -129,10 +129,8 @@ func setHeaders(m *codec.Message, stream string) {
 
 // setupProtocol sets up the old protocol
 func setupProtocol(msg *transport.Message, node *registry.Node) codec.NewCodec {
-	protocol := node.Metadata["protocol"]
-
-	// got protocol
-	if len(protocol) > 0 {
+	// get the protocol from node metadata
+	if protocol := node.Metadata["protocol"]; len(protocol) > 0 {
 		return nil
 	}
 

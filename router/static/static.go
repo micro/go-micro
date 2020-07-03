@@ -1,6 +1,8 @@
 package static
 
-import "github.com/micro/go-micro/v2/router"
+import (
+	"github.com/micro/go-micro/v2/router"
+)
 
 // NewRouter returns an initialized static router
 func NewRouter(opts ...router.Option) router.Router {
@@ -39,8 +41,8 @@ func (s *static) Process(*router.Advert) error {
 	return nil
 }
 
-func (s *static) Lookup(...router.QueryOption) ([]router.Route, error) {
-	return nil, nil
+func (s *static) Lookup(opts ...router.QueryOption) ([]router.Route, error) {
+	return s.table.Query(opts...)
 }
 
 func (s *static) Watch(opts ...router.WatchOption) (router.Watcher, error) {
