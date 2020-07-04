@@ -183,7 +183,9 @@ func (r *router) manageRegistryRoutes(reg registry.Registry, action string) erro
 // fetchRoutes retrieves all the routes for a given service and creates them in the routing table
 func (r *router) fetchRoutes(service string) error {
 	services, err := r.options.Registry.GetService(service, registry.GetDomain(registry.WildcardDomain))
-	if err != nil {
+	if err == registry.ErrNotFound {
+		return nil
+	} else if err != nil {
 		return fmt.Errorf("failed getting services: %v", err)
 	}
 

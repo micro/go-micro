@@ -304,7 +304,7 @@ func (m *mdnsRegistry) Register(service *Service, opts ...RegisterOption) error 
 			srv.Nodes = append(srv.Nodes, node)
 		}
 
-		if err := m.Register(service, append(opts, RegisterDomain(m.globalDomain))...); err != nil {
+		if err := m.Register(&srv, append(opts, RegisterDomain(m.globalDomain))...); err != nil {
 			gerr = err
 		}
 	}
