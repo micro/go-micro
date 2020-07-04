@@ -332,10 +332,11 @@ func (s *sqlStore) read(key string, options store.ReadOptions) ([]*store.Record,
 	}
 
 	var rows *sql.Rows
+	var st *sql.Stmt
 	var err error
 
 	if options.Limit != 0 {
-		st, err := s.prepare(options.Database, options.Table, "readOffset")
+		st, err = s.prepare(options.Database, options.Table, "readOffset")
 		if err != nil {
 			return nil, err
 		}
@@ -343,7 +344,7 @@ func (s *sqlStore) read(key string, options store.ReadOptions) ([]*store.Record,
 
 		rows, err = st.Query(pattern, options.Limit, options.Offset)
 	} else {
-		st, err := s.prepare(options.Database, options.Table, "readMany")
+		st, err = s.prepare(options.Database, options.Table, "readMany")
 		if err != nil {
 			return nil, err
 		}
