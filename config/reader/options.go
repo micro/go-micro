@@ -10,7 +10,8 @@ import (
 )
 
 type Options struct {
-	Encoding map[string]encoder.Encoder
+	Encoding              map[string]encoder.Encoder
+	DisableReplaceEnvVars bool
 }
 
 type Option func(o *Options)
@@ -38,5 +39,12 @@ func WithEncoder(e encoder.Encoder) Option {
 			o.Encoding = make(map[string]encoder.Encoder)
 		}
 		o.Encoding[e.String()] = e
+	}
+}
+
+// WithDisableReplaceEnvVars disables the environment variable interpolation preprocessor
+func WithDisableReplaceEnvVars() Option {
+	return func(o *Options) {
+		o.DisableReplaceEnvVars = true
 	}
 }
