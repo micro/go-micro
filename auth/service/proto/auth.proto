@@ -92,7 +92,7 @@ message TokenRequest {
 	string secret = 2;
 	string refresh_token = 3;
 	int64 token_expiry = 4;
-	Options options = 8;
+	Options options = 5;
 }
 
 message TokenResponse {
