@@ -116,6 +116,46 @@ func InternalServerError(id, format string, a ...interface{}) error {
 	}
 }
 
+// NotImplemented generates a 501 error
+func NotImplemented(id, format string, a ...interface{}) error {
+	return &Error{
+		Id:                   id,
+		Code:                 501,
+		Detail:               fmt.Sprintf(format, a...),
+		Status:               http.StatusText(501),
+	}
+}
+
+// BadGateway generates a 502 error
+func BadGateway(id, format string, a ...interface{}) error {
+	return &Error{
+		Id:                   id,
+		Code:                 502,
+		Detail:               fmt.Sprintf(format, a...),
+		Status:               http.StatusText(502),
+	}
+}
+
+// ServiceUnavailable generates a 503 error
+func ServiceUnavailable(id, format string, a ...interface{}) error {
+	return &Error{
+		Id:                   id,
+		Code:                 503,
+		Detail:               fmt.Sprintf(format, a...),
+		Status:               http.StatusText(503),
+	}
+}
+
+// GatewayTimeout generates a 504 error
+func GatewayTimeout(id, format string, a ...interface{}) error {
+	return &Error{
+		Id:                   id,
+		Code:                 504,
+		Detail:               fmt.Sprintf(format, a...),
+		Status:               http.StatusText(504),
+	}
+}
+
 // Equal tries to compare errors
 func Equal(err1 error, err2 error) bool {
 	verr1, ok1 := err1.(*Error)
