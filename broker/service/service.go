@@ -138,6 +138,12 @@ func NewBroker(opts ...broker.Option) broker.Broker {
 
 	cli := client.DefaultClient
 
+	// get options client from the context. We set this in the context to prevent an import loop, as
+	// the client depends on the broker
+	if c, ok := options.Context.Value(clientKey{}).(client.Client); ok {
+		cli = c
+	}
+
 	return &serviceBroker{
 		Addrs:   addrs,
 		Client:  pb.NewBrokerService(DefaultName, cli),

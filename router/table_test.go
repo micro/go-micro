@@ -330,3 +330,19 @@ func TestFallback(t *testing.T) {
 	}
 
 }
+
+func TestFallbackError(t *testing.T) {
+	r := &router{
+		subscribers: make(map[string]chan *Advert),
+		options:     DefaultOptions(),
+	}
+	r.table = newTable(func(s string) error {
+		return fmt.Errorf("ERROR")
+	})
+	r.start()
+	_, err := r.Lookup(QueryService("go.micro.service.foo"))
+	if err == nil {
+		t.Errorf("expected error looking up service but none returned")
+	}
+
+}
