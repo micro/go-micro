@@ -19,6 +19,7 @@ service Rules {
 }
 
 message ListAccountsRequest {
+	Options options = 1;
 }
 
 message ListAccountsResponse {
@@ -54,6 +55,7 @@ message GenerateRequest {
 	string secret = 5;
 	string type = 6;
 	string provider = 7;
+	Options options = 8;
 }
 
 message GenerateResponse {
@@ -63,6 +65,7 @@ message GenerateResponse {
 message GrantRequest {
 	string scope = 1;
 	Resource resource = 2;
+	Options options = 3;
 }
 
 message GrantResponse {}
@@ -70,12 +73,14 @@ message GrantResponse {}
 message RevokeRequest {
 	string scope = 1;
 	Resource resource = 2;
+	Options options = 3;
 }
 
 message RevokeResponse {}
 
 message InspectRequest {
 	string token = 1;
+	Options options = 2;
 }
 
 message InspectResponse {
@@ -87,6 +92,7 @@ message TokenRequest {
 	string secret = 2;
 	string refresh_token = 3;
 	int64 token_expiry = 4;
+	Options options = 8;
 }
 
 message TokenResponse {
@@ -107,19 +113,26 @@ message Rule {
 	int32 priority = 5;
 }
 
+message Options {
+	string namespace = 1;
+}
+
 message CreateRequest {
 	Rule rule = 1;
+	Options options = 2;
 }
 
 message CreateResponse {}
 
 message DeleteRequest {
 	string id = 1;
+	Options options = 2;
 }
 
 message DeleteResponse {}
 
 message ListRequest {
+	Options options = 2;
 }
 
 message ListResponse {
