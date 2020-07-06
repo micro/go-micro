@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
-	"net/textproto"
 	"strconv"
 	"strings"
 
@@ -104,30 +103,11 @@ func (h *rpcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// create context
 	cx := ctx.FromRequest(r)
-	// get context from http handler wrappers
-	md, ok := metadata.FromContext(r.Context())
-	if !ok {
-		md = make(metadata.Metadata)
-	}
-	// fill contex with http headers
-	md["Host"] = r.Host
-	md["Method"] = r.Method
-	// get canonical headers
-	for k, _ := range r.Header {
-		// may be need to get all values for key like r.Header.Values() provide in go 1.14
-		md[textproto.CanonicalMIMEHeaderKey(k)] = r.Header.Get(k)
-	}
-
-	// merge context with overwrite
-	cx = metadata.MergeContext(cx, md, true)
 
 	// set merged context to request
 	*r = *r.Clone(cx)
 	// if stream we currently only support json
 	if isStream(r, service) {
-		// drop older context as it can have timeouts and create new
-		//		md, _ := metadata.FromContext(cx)
-		//serveWebsocket(context.TODO(), w, r, service, c)
 		serveWebsocket(cx, w, r, service, c)
 		return
 	}
