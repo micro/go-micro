@@ -60,6 +60,8 @@ type CallOptions struct {
 	Router router.Router
 	// Selector to use for the call
 	Selector selector.Selector
+	// SelectOptions to use when selecting a route
+	SelectOptions []selector.SelectOption
 	// Stream timeout for the stream
 	StreamTimeout time.Duration
 	// Use the services own auth token
@@ -357,6 +359,13 @@ func WithRouter(r router.Router) CallOption {
 func WithSelector(s selector.Selector) CallOption {
 	return func(o *CallOptions) {
 		o.Selector = s
+	}
+}
+
+// WithSelectOptions sets the options to pass to the selector for this call
+func WithSelectOptions(sops ...selector.SelectOption) CallOption {
+	return func(o *CallOptions) {
+		o.SelectOptions = sops
 	}
 }
 

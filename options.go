@@ -195,6 +195,15 @@ func Runtime(r runtime.Runtime) Option {
 	}
 }
 
+// Router sets the router
+func Router(r router.Router) Option {
+	return func(o *Options) {
+		o.Router = r
+		// Update client
+		o.Client.Init(client.Router(r))
+	}
+}
+
 // Convenience options
 
 // Address sets the address of the server
