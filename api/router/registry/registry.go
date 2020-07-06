@@ -260,7 +260,7 @@ func (r *registryRouter) watch() {
 			res, err := w.Next()
 			if err != nil {
 				if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
-					logger.Errorf("error getting next endoint: %v", err)
+					logger.Errorf("error getting next endpoint: %v", err)
 				}
 				close(ch)
 				break
