@@ -56,6 +56,9 @@ func (s *svc) Generate(id string, opts ...auth.GenerateOption) (*auth.Account, e
 		Scopes:   options.Scopes,
 		Metadata: options.Metadata,
 		Provider: options.Provider,
+		Options: &pb.Options{
+			Namespace: s.Options().Issuer,
+		},
 	}, s.callOpts()...)
 	if err != nil {
 		return nil, err
@@ -85,6 +88,9 @@ func (s *svc) Grant(rule *auth.Rule) error {
 				Endpoint: rule.Resource.Endpoint,
 			},
 		},
+		Options: &pb.Options{
+			Namespace: s.Options().Issuer,
+		},
 	}, s.callOpts()...)
 
 	return err
@@ -93,7 +99,9 @@ func (s *svc) Grant(rule *auth.Rule) error {
 // Revoke access to a resource
 func (s *svc) Revoke(rule *auth.Rule) error {
 	_, err := s.rules.Delete(context.TODO(), &pb.DeleteRequest{
-		Id: rule.ID,
+		Id: rule.ID, Options: &pb.Options{
+			Namespace: s.Options().Issuer,
+		},
 	}, s.callOpts()...)
 
 	return err
@@ -107,9 +115,14 @@ func (s *svc) Rules(opts ...auth.RulesOption) ([]*auth.Rule, error) {
 	if options.Context == nil {
 		options.Context = context.TODO()
 	}
+	if len(options.Namespace) == 0 {
+		options.Namespace = s.options.Issuer
+	}
 
 	callOpts := append(s.callOpts(), client.WithCache(time.Second*30))
-	rsp, err := s.rules.List(options.Context, &pb.ListRequest{}, callOpts...)
+	rsp, err := s.rules.List(options.Context, &pb.ListRequest{
+		Options: &pb.Options{Namespace: options.Namespace},
+	}, callOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -129,7 +142,10 @@ func (s *svc) Verify(acc *auth.Account, res *auth.Resource, opts ...auth.VerifyO
 		o(&options)
 	}
 
-	rs, err := s.Rules(auth.RulesContext(options.Context))
+	rs, err := s.Rules(
+		auth.RulesContext(options.Context),
+		auth.RulesNamespace(options.Namespace),
+	)
 	if err != nil {
 		return err
 	}
@@ -146,7 +162,9 @@ func (s *svc) Inspect(token string) (*auth.Account, error) {
 
 	// the token is not a JWT or we do not have the keys to decode it,
 	// fall back to the auth service
-	rsp, err := s.auth.Inspect(context.TODO(), &pb.InspectRequest{Token: token}, s.callOpts()...)
+	rsp, err := s.auth.Inspect(context.TODO(), &pb.InspectRequest{
+		Token: token, Options: &pb.Options{Namespace: s.Options().Issuer},
+	}, s.callOpts()...)
 	if err != nil {
 		return nil, err
 	}
@@ -162,6 +180,9 @@ func (s *svc) Token(opts ...auth.TokenOption) (*auth.Token, error) {
 		Secret:       options.Secret,
 		RefreshToken: options.RefreshToken,
 		TokenExpiry:  int64(options.Expiry.Seconds()),
+		Options: &pb.Options{
+			Namespace: s.Options().Issuer,
+		},
 	}, s.callOpts()...)
 	if err != nil {
 		return nil, err

@@ -227,7 +227,8 @@ func NewTokenOptions(opts ...TokenOption) TokenOptions {
 }
 
 type VerifyOptions struct {
-	Context context.Context
+	Context   context.Context
+	Namespace string
 }
 
 type VerifyOption func(o *VerifyOptions)
@@ -237,9 +238,15 @@ func VerifyContext(ctx context.Context) VerifyOption {
 		o.Context = ctx
 	}
 }
+func VerifyNamespace(ns string) VerifyOption {
+	return func(o *VerifyOptions) {
+		o.Namespace = ns
+	}
+}
 
 type RulesOptions struct {
-	Context context.Context
+	Context   context.Context
+	Namespace string
 }
 
 type RulesOption func(o *RulesOptions)
@@ -247,5 +254,11 @@ type RulesOption func(o *RulesOptions)
 func RulesContext(ctx context.Context) RulesOption {
 	return func(o *RulesOptions) {
 		o.Context = ctx
+	}
+}
+
+func RulesNamespace(ns string) RulesOption {
+	return func(o *RulesOptions) {
+		o.Namespace = ns
 	}
 }
