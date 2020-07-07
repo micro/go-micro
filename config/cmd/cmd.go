@@ -114,6 +114,11 @@ var (
 
 	DefaultFlags = []cli.Flag{
 		&cli.StringFlag{
+			Name:    "certificate_authorities",
+			EnvVars: []string{"MICRO_CERTIFICATE_AUTHORITIES"},
+			Usage:   "Commar-seperated list of certificate authorities, e.g. '/certs/ca.pem'",
+		},
+		&cli.StringFlag{
 			Name:    "client",
 			EnvVars: []string{"MICRO_CLIENT"},
 			Usage:   "Client for go-micro; rpc",
@@ -505,6 +510,18 @@ func (c *cmd) Options() Options {
 }
 
 func (c *cmd) Before(ctx *cli.Context) error {
+	// Setup custom certificate authorities
+	caCertPool := x509.NewCertPool()
+	if len(ctx.String("certificate_authorities")) > 0 {
+		for _, ca := range strings.Split(ctx.String("certificate_authorities"), ",") {
+			crt, err := ioutil.ReadFile(ca)
+			if err != nil {
+				logger.Fatalf("Error loading registry certificate authority: %v", err)
+			}
+			caCertPool.AppendCertsFromPEM(crt)
+		}
+	}
+
 	// Setup client options
 	var clientOpts []client.Option
 
@@ -665,14 +682,6 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		if err != nil {
 			logger.Fatalf("Error loading x509 key pair: %v", err)
 		}
-
-		// Load CA cert authority. TODO: Change this so it's loaded by default.
-		caCert, err := ioutil.ReadFile("/certs/registry/ca.crt")
-		if err != nil {
-			logger.Fatalf("Error loading registry certificate authority: %v", err)
-		}
-		caCertPool := x509.NewCertPool()
-		caCertPool.AppendCertsFromPEM(caCert)
 
 		cfg := &tls.Config{Certificates: []tls.Certificate{cert}, RootCAs: caCertPool}
 		registryOpts = append(registryOpts, registry.TLSConfig(cfg))
