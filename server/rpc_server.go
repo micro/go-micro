@@ -898,7 +898,7 @@ func (s *rpcServer) Start() error {
 				rerr := s.opts.RegisterCheck(s.opts.Context)
 				if rerr != nil && registered {
 					if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
-						log.Errorf("Server %s-%s register check error: %s, deregister it", config.Name, config.Id, err)
+						log.Errorf("Server %s-%s register check error: %s, deregister it", config.Name, config.Id, rerr)
 					}
 					// deregister self in case of error
 					if err := s.Deregister(); err != nil {
@@ -908,7 +908,7 @@ func (s *rpcServer) Start() error {
 					}
 				} else if rerr != nil && !registered {
 					if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
-						log.Errorf("Server %s-%s register check error: %s", config.Name, config.Id, err)
+						log.Errorf("Server %s-%s register check error: %s", config.Name, config.Id, rerr)
 					}
 					continue
 				}
