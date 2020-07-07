@@ -2,6 +2,7 @@
 package cmd
 
 import (
+	"crypto/tls"
 	"fmt"
 	"math/rand"
 	"strings"
@@ -208,6 +209,11 @@ var (
 			Name:    "registry_address",
 			EnvVars: []string{"MICRO_REGISTRY_ADDRESS"},
 			Usage:   "Comma-separated list of registry addresses",
+		},
+		&cli.BoolFlag{
+			Name:    "registry_secure",
+			Usage:   "Secure connection to registry",
+			EnvVars: []string{"MICRO_REGISTRY_SECURE"},
 		},
 		&cli.StringFlag{
 			Name:    "runtime",
@@ -650,6 +656,17 @@ func (c *cmd) Before(ctx *cli.Context) error {
 
 	// Setup registry options
 	registryOpts := []registry.Option{registrySrv.WithClient(microClient)}
+
+	// Parse registry TLS certs
+	if ctx.Bool("registry_secure") {
+		cert, err := tls.LoadX509KeyPair("/certs/registry/cert.pem", "/certs/registry/key.pem")
+		if err != nil {
+			logger.Fatalf("Error loading x509 key pair: %v", err)
+		}
+		cfg := &tls.Config{Certificates: []tls.Certificate{cert}}
+		registryOpts = append(registryOpts, registry.TLSConfig(cfg))
+	}
+
 	if len(ctx.String("registry_address")) > 0 {
 		addresses := strings.Split(ctx.String("registry_address"), ",")
 		registryOpts = append(registryOpts, registry.Addrs(addresses...))
