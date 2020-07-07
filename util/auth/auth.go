@@ -10,7 +10,7 @@ import (
 
 // Generate generates a service account for and continually
 // refreshes the access token.
-func Generate(id string, name string, a auth.Auth) error {
+func Generate(id, name string, a auth.Auth) error {
 	// extract the account creds from options, these can be set by flags
 	accID := a.Options().ID
 	accSecret := a.Options().Secret

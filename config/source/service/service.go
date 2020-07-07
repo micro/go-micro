@@ -13,7 +13,7 @@ import (
 
 var (
 	DefaultName      = "go.micro.config"
-	DefaultNamespace = "global"
+	DefaultNamespace = "micro"
 	DefaultPath      = ""
 )
 

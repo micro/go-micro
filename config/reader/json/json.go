@@ -66,7 +66,7 @@ func (j *jsonReader) Values(ch *source.ChangeSet) (reader.Values, error) {
 	if ch.Format != "json" {
 		return nil, errors.New("unsupported format")
 	}
-	return newValues(ch)
+	return newValues(ch, j.opts)
 }
 
 func (j *jsonReader) String() string {
