@@ -65,7 +65,7 @@ service.Init()
 service.Run()
 ```
 
-See the [pkg.go.dev](https://pkg.go.dev/github.com/micro/go-micro?tab=doc) for further usage.
+See [pkg.go.dev](https://pkg.go.dev/github.com/micro/go-micro?tab=doc) for further usage.
 
 ## License
 
