@@ -3,16 +3,24 @@ package ctx
 import (
 	"context"
 	"net/http"
+	"net/textproto"
 	"strings"
 
 	"github.com/micro/go-micro/v2/metadata"
 )
 
 func FromRequest(r *http.Request) context.Context {
-	ctx := context.Background()
-	md := make(metadata.Metadata)
-	for k, v := range r.Header {
-		md[k] = strings.Join(v, ",")
+	ctx := r.Context()
+	md, ok := metadata.FromContext(ctx)
+	if !ok {
+		md = make(metadata.Metadata)
 	}
+	for k, v := range r.Header {
+		md[textproto.CanonicalMIMEHeaderKey(k)] = strings.Join(v, ",")
+	}
+	// pass http host
+	md["Host"] = r.Host
+	// pass http method
+	md["Method"] = r.Method
 	return metadata.NewContext(ctx, md)
 }
