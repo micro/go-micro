@@ -3,7 +3,9 @@ package cmd
 
 import (
 	"crypto/tls"
+	"crypto/x509"
 	"fmt"
+	"io/ioutil"
 	"math/rand"
 	"strings"
 	"time"
@@ -663,7 +665,16 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		if err != nil {
 			logger.Fatalf("Error loading x509 key pair: %v", err)
 		}
-		cfg := &tls.Config{Certificates: []tls.Certificate{cert}}
+
+		// Load CA cert authority. TODO: Change this so it's loaded by default.
+		caCert, err := ioutil.ReadFile("/certs/registry/ca.pem")
+		if err != nil {
+			logger.Fatalf("Error loading registry certificate authority: %v", err)
+		}
+		caCertPool := x509.NewCertPool()
+		caCertPool.AppendCertsFromPEM(caCert)
+
+		cfg := &tls.Config{Certificates: []tls.Certificate{cert}, RootCAs: caCertPool}
 		registryOpts = append(registryOpts, registry.TLSConfig(cfg))
 	}
 
