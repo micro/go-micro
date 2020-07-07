@@ -667,7 +667,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		}
 
 		// Load CA cert authority. TODO: Change this so it's loaded by default.
-		caCert, err := ioutil.ReadFile("/certs/registry/ca.pem")
+		caCert, err := ioutil.ReadFile("/certs/registry/ca.crt")
 		if err != nil {
 			logger.Fatalf("Error loading registry certificate authority: %v", err)
 		}
