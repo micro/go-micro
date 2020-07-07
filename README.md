@@ -65,7 +65,7 @@ service.Init()
 service.Run()
 ```
 
-See the [docs](https://dev.m3o.com) for detailed information on the architecture, installation and use of go-micro.
+See [pkg.go.dev](https://pkg.go.dev/github.com/micro/go-micro?tab=doc) for further usage.
 
 ## License
 
