@@ -116,7 +116,7 @@ var (
 		&cli.StringFlag{
 			Name:    "certificate_authorities",
 			EnvVars: []string{"MICRO_CERTIFICATE_AUTHORITIES"},
-			Usage:   "Commar-seperated list of certificate authorities, e.g. '/certs/ca.pem'",
+			Usage:   "Commar-seperated list of certificate authorities, e.g. '/certs/ca.crt'",
 		},
 		&cli.StringFlag{
 			Name:    "client",
