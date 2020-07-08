@@ -2,7 +2,10 @@
 package cmd
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
+	"io/ioutil"
 	"math/rand"
 	"strings"
 	"time"
@@ -111,6 +114,11 @@ var (
 
 	DefaultFlags = []cli.Flag{
 		&cli.StringFlag{
+			Name:    "certificate_authorities",
+			EnvVars: []string{"MICRO_CERTIFICATE_AUTHORITIES"},
+			Usage:   "Commar-seperated list of certificate authorities, e.g. '/certs/ca.crt'",
+		},
+		&cli.StringFlag{
 			Name:    "client",
 			EnvVars: []string{"MICRO_CLIENT"},
 			Usage:   "Client for go-micro; rpc",
@@ -208,6 +216,11 @@ var (
 			Name:    "registry_address",
 			EnvVars: []string{"MICRO_REGISTRY_ADDRESS"},
 			Usage:   "Comma-separated list of registry addresses",
+		},
+		&cli.BoolFlag{
+			Name:    "registry_secure",
+			Usage:   "Secure connection to registry",
+			EnvVars: []string{"MICRO_REGISTRY_SECURE"},
 		},
 		&cli.StringFlag{
 			Name:    "runtime",
@@ -497,6 +510,18 @@ func (c *cmd) Options() Options {
 }
 
 func (c *cmd) Before(ctx *cli.Context) error {
+	// Setup custom certificate authorities
+	caCertPool := x509.NewCertPool()
+	if len(ctx.String("certificate_authorities")) > 0 {
+		for _, ca := range strings.Split(ctx.String("certificate_authorities"), ",") {
+			crt, err := ioutil.ReadFile(ca)
+			if err != nil {
+				logger.Fatalf("Error loading registry certificate authority: %v", err)
+			}
+			caCertPool.AppendCertsFromPEM(crt)
+		}
+	}
+
 	// Setup client options
 	var clientOpts []client.Option
 
@@ -650,6 +675,18 @@ func (c *cmd) Before(ctx *cli.Context) error {
 
 	// Setup registry options
 	registryOpts := []registry.Option{registrySrv.WithClient(microClient)}
+
+	// Parse registry TLS certs
+	if ctx.Bool("registry_secure") {
+		cert, err := tls.LoadX509KeyPair("/certs/registry/cert.pem", "/certs/registry/key.pem")
+		if err != nil {
+			logger.Fatalf("Error loading x509 key pair: %v", err)
+		}
+
+		cfg := &tls.Config{Certificates: []tls.Certificate{cert}, RootCAs: caCertPool}
+		registryOpts = append(registryOpts, registry.TLSConfig(cfg))
+	}
+
 	if len(ctx.String("registry_address")) > 0 {
 		addresses := strings.Split(ctx.String("registry_address"), ",")
 		registryOpts = append(registryOpts, registry.Addrs(addresses...))
