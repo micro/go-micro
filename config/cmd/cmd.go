@@ -2,7 +2,10 @@
 package cmd
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
+	"io/ioutil"
 	"math/rand"
 	"strings"
 	"time"
@@ -111,6 +114,11 @@ var (
 
 	DefaultFlags = []cli.Flag{
 		&cli.StringFlag{
+			Name:    "certificate_authorities",
+			EnvVars: []string{"MICRO_CERTIFICATE_AUTHORITIES"},
+			Usage:   "Commar-seperated list of certificate authorities, e.g. '/certs/ca.crt'",
+		},
+		&cli.StringFlag{
 			Name:    "client",
 			EnvVars: []string{"MICRO_CLIENT"},
 			Usage:   "Client for go-micro; rpc",
@@ -194,6 +202,11 @@ var (
 			EnvVars: []string{"MICRO_BROKER_ADDRESS"},
 			Usage:   "Comma-separated list of broker addresses",
 		},
+		&cli.BoolFlag{
+			Name:    "broker_secure",
+			Usage:   "Secure connection to broker",
+			EnvVars: []string{"MICRO_BROKER_SECURE"},
+		},
 		&cli.StringFlag{
 			Name:    "profile",
 			Usage:   "Debug profiler for cpu and memory stats",
@@ -208,6 +221,11 @@ var (
 			Name:    "registry_address",
 			EnvVars: []string{"MICRO_REGISTRY_ADDRESS"},
 			Usage:   "Comma-separated list of registry addresses",
+		},
+		&cli.BoolFlag{
+			Name:    "registry_secure",
+			Usage:   "Secure connection to registry",
+			EnvVars: []string{"MICRO_REGISTRY_SECURE"},
 		},
 		&cli.StringFlag{
 			Name:    "runtime",
@@ -497,6 +515,18 @@ func (c *cmd) Options() Options {
 }
 
 func (c *cmd) Before(ctx *cli.Context) error {
+	// Setup custom certificate authorities
+	caCertPool := x509.NewCertPool()
+	if len(ctx.String("certificate_authorities")) > 0 {
+		for _, ca := range strings.Split(ctx.String("certificate_authorities"), ",") {
+			crt, err := ioutil.ReadFile(ca)
+			if err != nil {
+				logger.Fatalf("Error loading registry certificate authority: %v", err)
+			}
+			caCertPool.AppendCertsFromPEM(crt)
+		}
+	}
+
 	// Setup client options
 	var clientOpts []client.Option
 
@@ -648,8 +678,31 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		brokerOpts = append(brokerOpts, broker.Addrs(ctx.String("broker_address")))
 	}
 
+	// Parse broker TLS certs
+	if ctx.Bool("broker_secure") {
+		cert, err := tls.LoadX509KeyPair("/certs/broker/cert.pem", "/certs/broker/key.pem")
+		if err != nil {
+			logger.Fatalf("Error loading broker x509 key pair: %v", err)
+		}
+
+		cfg := &tls.Config{Certificates: []tls.Certificate{cert}, RootCAs: caCertPool}
+		brokerOpts = append(brokerOpts, broker.TLSConfig(cfg))
+	}
+
 	// Setup registry options
 	registryOpts := []registry.Option{registrySrv.WithClient(microClient)}
+
+	// Parse registry TLS certs
+	if ctx.Bool("registry_secure") {
+		cert, err := tls.LoadX509KeyPair("/certs/registry/cert.pem", "/certs/registry/key.pem")
+		if err != nil {
+			logger.Fatalf("Error loading registry x509 key pair: %v", err)
+		}
+
+		cfg := &tls.Config{Certificates: []tls.Certificate{cert}, RootCAs: caCertPool}
+		registryOpts = append(registryOpts, registry.TLSConfig(cfg))
+	}
+
 	if len(ctx.String("registry_address")) > 0 {
 		addresses := strings.Split(ctx.String("registry_address"), ",")
 		registryOpts = append(registryOpts, registry.Addrs(addresses...))
