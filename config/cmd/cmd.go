@@ -202,6 +202,11 @@ var (
 			EnvVars: []string{"MICRO_BROKER_ADDRESS"},
 			Usage:   "Comma-separated list of broker addresses",
 		},
+		&cli.BoolFlag{
+			Name:    "broker_secure",
+			Usage:   "Secure connection to broker",
+			EnvVars: []string{"MICRO_BROKER_SECURE"},
+		},
 		&cli.StringFlag{
 			Name:    "profile",
 			Usage:   "Debug profiler for cpu and memory stats",
@@ -673,6 +678,18 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		brokerOpts = append(brokerOpts, broker.Addrs(ctx.String("broker_address")))
 	}
 
+	// Parse broker TLS certs
+	if ctx.Bool("broker_secure") {
+		// cert, err := tls.LoadX509KeyPair("/certs/broker/cert.pem", "/certs/broker/key.pem")
+		cert, err := tls.LoadX509KeyPair("./platform/kubernetes/resource/nats/certs/client.pem", "./platform/kubernetes/resource/nats/certs/client-key.pem")
+		if err != nil {
+			logger.Fatalf("Error loading broker x509 key pair: %v", err)
+		}
+
+		cfg := &tls.Config{Certificates: []tls.Certificate{cert}, RootCAs: caCertPool}
+		brokerOpts = append(brokerOpts, broker.TLSConfig(cfg))
+	}
+
 	// Setup registry options
 	registryOpts := []registry.Option{registrySrv.WithClient(microClient)}
 
@@ -680,7 +697,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	if ctx.Bool("registry_secure") {
 		cert, err := tls.LoadX509KeyPair("/certs/registry/cert.pem", "/certs/registry/key.pem")
 		if err != nil {
-			logger.Fatalf("Error loading x509 key pair: %v", err)
+			logger.Fatalf("Error loading registry x509 key pair: %v", err)
 		}
 
 		cfg := &tls.Config{Certificates: []tls.Certificate{cert}, RootCAs: caCertPool}
