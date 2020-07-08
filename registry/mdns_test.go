@@ -79,7 +79,6 @@ func TestMDNS(t *testing.T) {
 
 		if len(s) != 1 {
 			t.Fatalf("Expected one result for %s got %d", service.Name, len(s))
-
 		}
 
 		if s[0].Name != service.Name {
