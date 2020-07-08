@@ -2,6 +2,7 @@
 package model
 
 import (
+	"github.com/micro/go-micro/v2/codec"
 	"github.com/micro/go-micro/v2/store"
 	"github.com/micro/go-micro/v2/sync"
 )
@@ -27,13 +28,19 @@ type Model interface {
 type Entity interface {
 	// Unique id of the entity
 	Id() string
+	// Name of the entity
+	Name() string
 	// The value associated with the entity
 	Value() interface{}
 	// Attributes of the enity
 	Attributes() map[string]interface{}
+	// Read a value as a concrete type
+	Read(v interface{}) error
 }
 
 type Options struct {
+	// for serialising
+	Codec codec.Marshaler
 	// for locking
 	Sync sync.Sync
 	// for storage
