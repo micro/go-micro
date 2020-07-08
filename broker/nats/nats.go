@@ -131,6 +131,10 @@ func (n *natsBroker) Connect() error {
 
 		c, err := opts.Connect()
 		if err != nil {
+			if logger.V(logger.WarnLevel, logger.DefaultLogger) {
+				logger.Warnf("Error connecting to broker: %v", err)
+			}
+
 			return err
 		}
 		n.conn = c
