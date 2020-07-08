@@ -14,4 +14,6 @@ type Cache interface {
 	String() string
 }
 
-type Option struct{}
+type Options struct{}
+
+type Option func(o *Options)
