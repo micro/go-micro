@@ -680,8 +680,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 
 	// Parse broker TLS certs
 	if ctx.Bool("broker_secure") {
-		// cert, err := tls.LoadX509KeyPair("/certs/broker/cert.pem", "/certs/broker/key.pem")
-		cert, err := tls.LoadX509KeyPair("./platform/kubernetes/resource/nats/certs/client.pem", "./platform/kubernetes/resource/nats/certs/client-key.pem")
+		cert, err := tls.LoadX509KeyPair("/certs/broker/cert.pem", "/certs/broker/key.pem")
 		if err != nil {
 			logger.Fatalf("Error loading broker x509 key pair: %v", err)
 		}
