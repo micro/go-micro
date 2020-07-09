@@ -85,6 +85,7 @@ func encode(txt *mdnsTxt) ([]string, error) {
 
 	w := zlib.NewWriter(&buf)
 	if _, err := w.Write(b); err != nil {
+		w.Close()
 		return nil, err
 	}
 	w.Close()
@@ -119,6 +120,7 @@ func decode(record []string) (*mdnsTxt, error) {
 
 	br := bytes.NewReader(hr)
 	zr, err := zlib.NewReader(br)
+	defer zr.Close()
 	if err != nil {
 		return nil, err
 	}
