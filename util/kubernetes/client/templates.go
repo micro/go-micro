@@ -62,6 +62,19 @@ spec:
           {{- range . }}
           - name: "{{ .Name }}"
             value: "{{ .Value }}"
+          {{- if .ValueFrom }}
+          {{- with .ValueFrom }}
+            valueFrom: 
+              {{- if .SecretKeyRef }}
+              {{- with .SecretKeyRef }}
+              secretKeyRef:
+                key: {{ .Key }}
+                name: {{ .Name }}
+                optional: {{ .Optional }}
+              {{- end }}
+              {{- end }}
+          {{- end }}
+          {{- end }}
           {{- end }}
           {{- end }}
           args:
