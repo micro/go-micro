@@ -39,6 +39,8 @@ type Entity interface {
 }
 
 type Options struct {
+	// Database to write to
+	Database string
 	// for serialising
 	Codec codec.Marshaler
 	// for locking
