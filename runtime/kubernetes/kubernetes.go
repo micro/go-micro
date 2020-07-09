@@ -341,7 +341,7 @@ func (k *kubernetes) Logs(s *runtime.Service, options ...runtime.LogsOption) (ru
 		go func() {
 			records, err := klo.Read()
 			if err != nil {
-				log.Errorf("Failed to get logs for service '%v' from k8s: %v", err)
+				log.Errorf("Failed to get logs for service '%v' from k8s: %v", s.Name, err)
 				return
 			}
 			// @todo: this might actually not run before podLogStream starts
