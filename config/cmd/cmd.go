@@ -114,11 +114,6 @@ var (
 
 	DefaultFlags = []cli.Flag{
 		&cli.StringFlag{
-			Name:    "certificate_authorities",
-			EnvVars: []string{"MICRO_CERTIFICATE_AUTHORITIES"},
-			Usage:   "Commar-seperated list of certificate authorities, e.g. '/certs/ca.crt'",
-		},
-		&cli.StringFlag{
 			Name:    "client",
 			EnvVars: []string{"MICRO_CLIENT"},
 			Usage:   "Client for go-micro; rpc",
