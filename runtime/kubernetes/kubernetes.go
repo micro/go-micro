@@ -387,6 +387,7 @@ func (k *kubeStream) Stop() error {
 
 // Creates a service
 func (k *kubernetes) Create(s *runtime.Service, opts ...runtime.CreateOption) error {
+	fmt.Println("KUBERNETES CREATE")
 	k.Lock()
 	defer k.Unlock()
 
