@@ -199,17 +199,17 @@ var (
 		},
 		&cli.BoolFlag{
 			Name:    "broker_tls_ca",
-			Usage:   "Certificate authority for tsl with broker",
+			Usage:   "Certificate authority for TLS with broker",
 			EnvVars: []string{"MICRO_BROKER_TLS_CA"},
 		},
 		&cli.BoolFlag{
 			Name:    "broker_tls_cert",
-			Usage:   "Client cert for tsl with broker",
+			Usage:   "Client cert for TLS with broker",
 			EnvVars: []string{"MICRO_BROKER_TLS_CERT"},
 		},
 		&cli.BoolFlag{
 			Name:    "broker_tls_key",
-			Usage:   "Client key for tsl with broker",
+			Usage:   "Client key for TLS with broker",
 			EnvVars: []string{"MICRO_BROKER_TLS_KEY"},
 		},
 		&cli.StringFlag{
@@ -229,17 +229,17 @@ var (
 		},
 		&cli.BoolFlag{
 			Name:    "registry_tls_ca",
-			Usage:   "Certificate authority for tsl with registry",
+			Usage:   "Certificate authority for TLS with registry",
 			EnvVars: []string{"MICRO_REGISTRY_TLS_CA"},
 		},
 		&cli.BoolFlag{
 			Name:    "registry_tls_cert",
-			Usage:   "Client cert for tsl with registry",
+			Usage:   "Client cert for TLS with registry",
 			EnvVars: []string{"MICRO_REGISTRY_TLS_CERT"},
 		},
 		&cli.BoolFlag{
 			Name:    "registry_tls_key",
-			Usage:   "Client key for tsl with registry",
+			Usage:   "Client key for TLS with registry",
 			EnvVars: []string{"MICRO_REGISTRY_TLS_KEY"},
 		}, &cli.StringFlag{
 			Name:    "runtime",
@@ -684,7 +684,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	if ctx.IsSet("broker_tls_cert") || ctx.IsSet("broker_tls_key") {
 		cert, err := tls.LoadX509KeyPair(ctx.String("broker_tls_cert"), ctx.String("broker_tls_key"))
 		if err != nil {
-			logger.Fatalf("Error loading broker tls cert: %v", err)
+			logger.Fatalf("Error loading broker TLS cert: %v", err)
 		}
 
 		// load custom certificate authority
@@ -692,7 +692,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		if ctx.IsSet("broker_tls_ca") {
 			crt, err := ioutil.ReadFile(ctx.String("broker_tls_ca"))
 			if err != nil {
-				logger.Fatalf("Error loading broker tls certificate authority: %v", err)
+				logger.Fatalf("Error loading broker TLS certificate authority: %v", err)
 			}
 			caCertPool.AppendCertsFromPEM(crt)
 		}
