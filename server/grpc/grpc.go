@@ -118,6 +118,8 @@ func (g *grpcServer) configure(opts ...server.Option) {
 		o(&g.opts)
 	}
 
+	g.wg = wait(g.opts.Context)
+
 	maxMsgSize := g.getMaxMsgSize()
 
 	gopts := []grpc.ServerOption{
