@@ -114,11 +114,6 @@ var (
 
 	DefaultFlags = []cli.Flag{
 		&cli.StringFlag{
-			Name:    "certificate_authorities",
-			EnvVars: []string{"MICRO_CERTIFICATE_AUTHORITIES"},
-			Usage:   "Commar-seperated list of certificate authorities, e.g. '/certs/ca.crt'",
-		},
-		&cli.StringFlag{
 			Name:    "client",
 			EnvVars: []string{"MICRO_CLIENT"},
 			Usage:   "Client for go-micro; rpc",
@@ -202,10 +197,20 @@ var (
 			EnvVars: []string{"MICRO_BROKER_ADDRESS"},
 			Usage:   "Comma-separated list of broker addresses",
 		},
-		&cli.BoolFlag{
-			Name:    "broker_secure",
-			Usage:   "Secure connection to broker",
-			EnvVars: []string{"MICRO_BROKER_SECURE"},
+		&cli.StringFlag{
+			Name:    "broker_tls_ca",
+			Usage:   "Certificate authority for TLS with broker",
+			EnvVars: []string{"MICRO_BROKER_TLS_CA"},
+		},
+		&cli.StringFlag{
+			Name:    "broker_tls_cert",
+			Usage:   "Client cert for TLS with broker",
+			EnvVars: []string{"MICRO_BROKER_TLS_CERT"},
+		},
+		&cli.StringFlag{
+			Name:    "broker_tls_key",
+			Usage:   "Client key for TLS with broker",
+			EnvVars: []string{"MICRO_BROKER_TLS_KEY"},
 		},
 		&cli.StringFlag{
 			Name:    "profile",
@@ -222,12 +227,21 @@ var (
 			EnvVars: []string{"MICRO_REGISTRY_ADDRESS"},
 			Usage:   "Comma-separated list of registry addresses",
 		},
-		&cli.BoolFlag{
-			Name:    "registry_secure",
-			Usage:   "Secure connection to registry",
-			EnvVars: []string{"MICRO_REGISTRY_SECURE"},
+		&cli.StringFlag{
+			Name:    "registry_tls_ca",
+			Usage:   "Certificate authority for TLS with registry",
+			EnvVars: []string{"MICRO_REGISTRY_TLS_CA"},
 		},
 		&cli.StringFlag{
+			Name:    "registry_tls_cert",
+			Usage:   "Client cert for TLS with registry",
+			EnvVars: []string{"MICRO_REGISTRY_TLS_CERT"},
+		},
+		&cli.StringFlag{
+			Name:    "registry_tls_key",
+			Usage:   "Client key for TLS with registry",
+			EnvVars: []string{"MICRO_REGISTRY_TLS_KEY"},
+		}, &cli.StringFlag{
 			Name:    "runtime",
 			Usage:   "Runtime for building and running services e.g local, kubernetes",
 			EnvVars: []string{"MICRO_RUNTIME"},
@@ -515,18 +529,6 @@ func (c *cmd) Options() Options {
 }
 
 func (c *cmd) Before(ctx *cli.Context) error {
-	// Setup custom certificate authorities
-	caCertPool := x509.NewCertPool()
-	if len(ctx.String("certificate_authorities")) > 0 {
-		for _, ca := range strings.Split(ctx.String("certificate_authorities"), ",") {
-			crt, err := ioutil.ReadFile(ca)
-			if err != nil {
-				logger.Fatalf("Error loading registry certificate authority: %v", err)
-			}
-			caCertPool.AppendCertsFromPEM(crt)
-		}
-	}
-
 	// Setup client options
 	var clientOpts []client.Option
 
@@ -679,10 +681,20 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	}
 
 	// Parse broker TLS certs
-	if ctx.Bool("broker_secure") {
-		cert, err := tls.LoadX509KeyPair("/certs/broker/cert.pem", "/certs/broker/key.pem")
+	if ctx.IsSet("broker_tls_cert") || ctx.IsSet("broker_tls_key") {
+		cert, err := tls.LoadX509KeyPair(ctx.String("broker_tls_cert"), ctx.String("broker_tls_key"))
 		if err != nil {
-			logger.Fatalf("Error loading broker x509 key pair: %v", err)
+			logger.Fatalf("Error loading broker TLS cert: %v", err)
+		}
+
+		// load custom certificate authority
+		caCertPool := x509.NewCertPool()
+		if ctx.IsSet("broker_tls_ca") {
+			crt, err := ioutil.ReadFile(ctx.String("broker_tls_ca"))
+			if err != nil {
+				logger.Fatalf("Error loading broker TLS certificate authority: %v", err)
+			}
+			caCertPool.AppendCertsFromPEM(crt)
 		}
 
 		cfg := &tls.Config{Certificates: []tls.Certificate{cert}, RootCAs: caCertPool}
@@ -693,10 +705,20 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	registryOpts := []registry.Option{registrySrv.WithClient(microClient)}
 
 	// Parse registry TLS certs
-	if ctx.Bool("registry_secure") {
-		cert, err := tls.LoadX509KeyPair("/certs/registry/cert.pem", "/certs/registry/key.pem")
+	if ctx.IsSet("registry_tls_cert") || ctx.IsSet("registry_tls_key") {
+		cert, err := tls.LoadX509KeyPair(ctx.String("registry_tls_cert"), ctx.String("registry_tls_key"))
 		if err != nil {
-			logger.Fatalf("Error loading registry x509 key pair: %v", err)
+			logger.Fatalf("Error loading registry tls cert: %v", err)
+		}
+
+		// load custom certificate authority
+		caCertPool := x509.NewCertPool()
+		if ctx.IsSet("registry_tls_ca") {
+			crt, err := ioutil.ReadFile(ctx.String("registry_tls_ca"))
+			if err != nil {
+				logger.Fatalf("Error loading registry tls certificate authority: %v", err)
+			}
+			caCertPool.AppendCertsFromPEM(crt)
 		}
 
 		cfg := &tls.Config{Certificates: []tls.Certificate{cert}, RootCAs: caCertPool}
