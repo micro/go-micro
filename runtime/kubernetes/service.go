@@ -66,9 +66,6 @@ func newService(s *runtime.Service, c runtime.CreateOptions) *service {
 			kdeploy.Spec.Template.PodSpec.Containers[i].Command = []string{}
 			kdeploy.Spec.Template.PodSpec.Containers[i].Args = []string{}
 		}
-	} else {
-		// use the default image (micro/cell:go), passing the source as the first argument
-		kdeploy.Spec.Template.PodSpec.Containers[0].Args = []string{s.Source}
 	}
 
 	// define the environment values used by the container
