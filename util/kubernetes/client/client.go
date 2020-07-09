@@ -23,7 +23,7 @@ var (
 	// ErrReadNamespace is returned when the names could not be read from service account
 	ErrReadNamespace = errors.New("Could not read namespace from service account secret")
 	// DefaultImage is default micro image
-	DefaultImage = "micro/cells:go"
+	DefaultImage = "micro/go-micro"
 	// DefaultNamespace is the default k8s namespace
 	DefaultNamespace = "default"
 )
