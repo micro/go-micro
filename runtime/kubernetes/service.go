@@ -75,18 +75,6 @@ func newService(s *runtime.Service, c runtime.CreateOptions) *service {
 		env = append(env, client.EnvVar{Name: evarPair[0], Value: evarPair[1]})
 	}
 
-	// testing: add some env vars using secrets
-	env = append(env, client.EnvVar{
-		Name: "mysecret",
-		ValueFrom: &client.EnvVarSource{
-			SecretKeyRef: &client.SecretKeySelector{
-				Name:     "hello",
-				Key:      "world",
-				Optional: false,
-			},
-		},
-	})
-
 	// if environment has been supplied update deployment default environment
 	if len(env) > 0 {
 		kdeploy.Spec.Template.PodSpec.Containers[0].Env = append(kdeploy.Spec.Template.PodSpec.Containers[0].Env, env...)
