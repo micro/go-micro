@@ -681,7 +681,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	}
 
 	// Parse broker TLS certs
-	if ctx.IsSet("broker_tls_cert") || ctx.IsSet("broker_tls_key") {
+	if len(ctx.String("broker_tls_cert")) > 0 || len(ctx.String("broker_tls_key")) > 0 {
 		cert, err := tls.LoadX509KeyPair(ctx.String("broker_tls_cert"), ctx.String("broker_tls_key"))
 		if err != nil {
 			logger.Fatalf("Error loading broker TLS cert: %v", err)
@@ -689,7 +689,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 
 		// load custom certificate authority
 		caCertPool := x509.NewCertPool()
-		if ctx.IsSet("broker_tls_ca") {
+		if len(ctx.String("broker_tls_ca")) > 0 {
 			crt, err := ioutil.ReadFile(ctx.String("broker_tls_ca"))
 			if err != nil {
 				logger.Fatalf("Error loading broker TLS certificate authority: %v", err)
@@ -705,7 +705,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	registryOpts := []registry.Option{registrySrv.WithClient(microClient)}
 
 	// Parse registry TLS certs
-	if ctx.IsSet("registry_tls_cert") || ctx.IsSet("registry_tls_key") {
+	if len(ctx.String("registry_tls_cert")) > 0 || len(ctx.String("registry_tls_key")) > 0 {
 		cert, err := tls.LoadX509KeyPair(ctx.String("registry_tls_cert"), ctx.String("registry_tls_key"))
 		if err != nil {
 			logger.Fatalf("Error loading registry tls cert: %v", err)
@@ -713,7 +713,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 
 		// load custom certificate authority
 		caCertPool := x509.NewCertPool()
-		if ctx.IsSet("registry_tls_ca") {
+		if len(ctx.String("registry_tls_ca")) > 0 {
 			crt, err := ioutil.ReadFile(ctx.String("registry_tls_ca"))
 			if err != nil {
 				logger.Fatalf("Error loading registry tls certificate authority: %v", err)
