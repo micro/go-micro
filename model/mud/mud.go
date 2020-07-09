@@ -51,6 +51,7 @@ func (m *mudModel) Read(opts ...model.ReadOption) ([]model.Entity, error) {
 	for _, o := range opts {
 		o(&options)
 	}
+	// TODO: implement the options that allow querying
 	return nil, nil
 }
 
@@ -82,6 +83,7 @@ func (m *mudModel) Delete(opts ...model.DeleteOption) error {
 	for _, o := range opts {
 		o(&options)
 	}
+	// TODO: implement the options that allow deleting
 	return nil
 }
 
