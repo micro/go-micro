@@ -705,5 +705,6 @@ func (k *kubernetes) createCredentials(service *runtime.Service, options runtime
 }
 
 func credentialsName(service *runtime.Service) string {
-	return fmt.Sprintf("%v-%v-credentials", service.Name, service.Version)
+	name := fmt.Sprintf("%v-%v-credentials", service.Name, service.Version)
+	return client.SerializeResourceName(name)
 }
