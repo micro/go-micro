@@ -212,7 +212,7 @@ type ImagePullSecret struct {
 type Secret struct {
 	Type     string            `json:"type,omitempty"`
 	Data     map[string]string `json:"data"`
-	Metadata *Metadata         `json:"metadata"`
+	Metadata *Metadata         `json:"metadata,omitempty"`
 }
 
 // ServiceAccount
