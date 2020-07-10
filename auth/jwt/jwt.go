@@ -51,12 +51,16 @@ func (j *jwt) Options() auth.Options {
 
 func (j *jwt) Generate(id string, opts ...auth.GenerateOption) (*auth.Account, error) {
 	options := auth.NewGenerateOptions(opts...)
+	if len(options.Issuer) == 0 {
+		options.Issuer = j.Options().Issuer
+	}
+
 	account := &auth.Account{
 		ID:       id,
 		Type:     options.Type,
 		Scopes:   options.Scopes,
 		Metadata: options.Metadata,
-		Issuer:   j.Options().Issuer,
+		Issuer:   options.Issuer,
 	}
 
 	// generate a JWT secret which can be provided to the Token() method

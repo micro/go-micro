@@ -2,7 +2,9 @@
 package kubernetes
 
 import (
+	"errors"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -420,9 +422,27 @@ func (k *kubernetes) Create(s *runtime.Service, opts ...runtime.CreateOption) er
 			return err
 		}
 	}
-
 	// determine the image from the source and options
 	options.Image = k.getImage(s, options)
+
+	// create a secret for the credentials if some where provided
+	if len(options.Credentials) > 0 {
+		secret, err := k.createCredentials(s, options)
+		if err != nil {
+			return err
+		}
+
+		// set the secret name in the service metadata so it can be destroyed
+		// when the service is deleted
+		if s.Metadata == nil {
+			s.Metadata = map[string]string{"credentials": secret}
+		} else {
+			s.Metadata["credentials"] = secret
+		}
+
+		// pass the secret name to the client via the credentials option
+		options.Credentials = secret
+	}
 
 	// create new service
 	service := newService(s, options)
@@ -530,7 +550,6 @@ func (k *kubernetes) Delete(s *runtime.Service, opts ...runtime.DeleteOption) er
 	options := runtime.DeleteOptions{
 		Namespace: client.DefaultNamespace,
 	}
-
 	for _, o := range opts {
 		o(&options)
 	}
@@ -544,7 +563,11 @@ func (k *kubernetes) Delete(s *runtime.Service, opts ...runtime.DeleteOption) er
 		Namespace: options.Namespace,
 	})
 
-	return service.Stop(k.client, client.DeleteNamespace(options.Namespace))
+	// delete the service credentials
+	ns := client.DeleteNamespace(options.Namespace)
+	k.client.Delete(&client.Resource{Name: credentialsName(s), Kind: "secret"}, ns)
+
+	return service.Stop(k.client, ns)
 }
 
 // Start starts the runtime
@@ -642,4 +665,37 @@ func (k *kubernetes) getImage(s *runtime.Service, options runtime.CreateOptions)
 	}
 
 	return ""
+}
+func (k *kubernetes) createCredentials(service *runtime.Service, options runtime.CreateOptions) (string, error) {
+	// validate the creds
+	comps := strings.Split(options.Credentials, ":")
+	if len(comps) != 2 {
+		return "", errors.New("Invalid credentials, expected format 'user:pass'")
+	}
+
+	// construct the k8s secret object
+	secret := &client.Secret{
+		Type: "Opaque",
+		Data: map[string]string{
+			"id":     comps[0],
+			"secret": comps[1],
+		},
+		Metadata: &client.Metadata{
+			Name:      service.Name,
+			Version:   service.Version,
+			Namespace: options.Namespace,
+		},
+	}
+
+	// create options specify the namespace
+	ns := client.CreateNamespace(options.Namespace)
+
+	// crete the secret in kubernetes
+	name := credentialsName(service)
+	err := k.client.Create(&client.Resource{Kind: "secret", Name: name, Value: secret}, ns)
+	return name, err
+}
+
+func credentialsName(service *runtime.Service) string {
+	return fmt.Sprintf("%v-%v-credentials", service.Name, service.Version)
 }

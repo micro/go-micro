@@ -667,10 +667,8 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		(*c.opts.Auth).Init(authOpts...)
 	}
 
-	// generate the services auth account.
-	// todo: move this so it only runs for new services
-	serverID := (*c.opts.Server).Options().Id
-	if err := authutil.Generate(serverID, c.App().Name, (*c.opts.Auth)); err != nil {
+	// verify the auth's service account
+	if err := authutil.Verify(*c.opts.Auth); err != nil {
 		return err
 	}
 
