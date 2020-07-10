@@ -3,6 +3,7 @@ package auth
 import (
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/micro/go-micro/v2/auth"
 	"github.com/micro/go-micro/v2/logger"
 )
@@ -12,6 +13,23 @@ func Verify(a auth.Auth) error {
 	// extract the account creds from options, these can be set by flags
 	accID := a.Options().ID
 	accSecret := a.Options().Secret
+
+	// if no credentials were provided, self generate an account
+	if len(accID) == 0 && len(accSecret) == 0 {
+		opts := []auth.GenerateOption{
+			auth.WithType("service"),
+			auth.WithScopes("service"),
+		}
+
+		acc, err := a.Generate(uuid.New().String(), opts...)
+		if err != nil {
+			return err
+		}
+		logger.Debugf("Auth [%v] Self-generated an auth account")
+
+		accID = acc.ID
+		accSecret = acc.Secret
+	}
 
 	// generate the first token
 	token, err := a.Token(
