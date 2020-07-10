@@ -92,7 +92,6 @@ func encode(txt *mdnsTxt) ([]string, error) {
 		}
 	}()
 	if _, err := w.Write(b); err != nil {
-		w.Close()
 		return nil, err
 	}
 
