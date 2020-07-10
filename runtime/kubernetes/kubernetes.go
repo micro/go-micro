@@ -681,6 +681,10 @@ func (k *kubernetes) createCredentials(service *runtime.Service, options runtime
 			"id":     base64.StdEncoding.EncodeToString([]byte(comps[0])),
 			"secret": base64.StdEncoding.EncodeToString([]byte(comps[1])),
 		},
+		Metadata: &client.Metadata{
+			Name:      credentialsName(service),
+			Namespace: options.Namespace,
+		},
 	}
 
 	// create options specify the namespace
