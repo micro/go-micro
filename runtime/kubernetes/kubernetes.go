@@ -440,14 +440,6 @@ func (k *kubernetes) Create(s *runtime.Service, opts ...runtime.CreateOption) er
 			logger.Debugf("Generated auth credentials for service %v", s.Name)
 		}
 
-		// set the secret name in the service metadata so it can be destroyed
-		// when the service is deleted
-		if s.Metadata == nil {
-			s.Metadata = map[string]string{"credentials": secret}
-		} else {
-			s.Metadata["credentials"] = secret
-		}
-
 		// pass the secret name to the client via the credentials option
 		options.Credentials = secret
 	}
