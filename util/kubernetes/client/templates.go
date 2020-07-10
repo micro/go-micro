@@ -143,6 +143,7 @@ var secretTmpl = `
 apiVersion: v1
 kind: Secret
 type: "{{ .Type }}"
+{{- if .Metadata }}
 metadata:
   name: "{{ .Metadata.Name }}"
   namespace: "{{ .Metadata.Namespace }}"
@@ -152,6 +153,7 @@ metadata:
     {{ $key }}: "{{ $value }}"
     {{- end }}
     {{- end }}
+{{- end }}
 data:
   {{- with .Data }}
   {{- range $key, $value := . }}
