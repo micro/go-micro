@@ -65,7 +65,7 @@ func (j *jwt) Generate(id string, opts ...auth.GenerateOption) (*auth.Account, e
 
 	// generate a JWT secret which can be provided to the Token() method
 	// and exchanged for an access token
-	secret, err := j.jwt.Generate(account)
+	secret, err := j.jwt.Generate(account, token.WithExpiry(time.Hour*24*365))
 	if err != nil {
 		return nil, err
 	}

@@ -34,7 +34,7 @@ func Verify(a auth.Auth) error {
 	// generate the first token
 	token, err := a.Token(
 		auth.WithCredentials(accID, accSecret),
-		auth.WithExpiry(time.Hour*24*365),
+		auth.WithExpiry(time.Minute*10),
 	)
 	if err != nil {
 		return err
