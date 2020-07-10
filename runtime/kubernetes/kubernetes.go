@@ -2,6 +2,7 @@
 package kubernetes
 
 import (
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"strings"
@@ -677,8 +678,8 @@ func (k *kubernetes) createCredentials(service *runtime.Service, options runtime
 	secret := &client.Secret{
 		Type: "Opaque",
 		Data: map[string]string{
-			"id":     comps[0],
-			"secret": comps[1],
+			"id":     base64.StdEncoding.EncodeToString([]byte(comps[0])),
+			"secret": base64.StdEncoding.EncodeToString([]byte(comps[1])),
 		},
 		Metadata: &client.Metadata{
 			Name:      service.Name,
