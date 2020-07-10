@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/micro/go-micro/v2/logger"
 	log "github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/runtime"
 	"github.com/micro/go-micro/v2/util/kubernetes/client"
@@ -429,7 +430,14 @@ func (k *kubernetes) Create(s *runtime.Service, opts ...runtime.CreateOption) er
 	if len(options.Credentials) > 0 {
 		secret, err := k.createCredentials(s, options)
 		if err != nil {
+			if logger.V(logger.WarnLevel, logger.DefaultLogger) {
+				logger.Warnf("Error generating auth credentials for service: %v", err)
+			}
 			return err
+		}
+
+		if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+			logger.Debugf("Generated auth credentials for service %v", s.Name)
 		}
 
 		// set the secret name in the service metadata so it can be destroyed
