@@ -6,6 +6,7 @@ import (
 
 	"github.com/micro/go-micro/v2/broker"
 	"github.com/micro/go-micro/v2/client"
+	"github.com/micro/go-micro/v2/model"
 	"github.com/micro/go-micro/v2/registry"
 	"github.com/micro/go-micro/v2/server"
 	"github.com/micro/go-micro/v2/transport"
@@ -15,6 +16,7 @@ type Options struct {
 	Broker    broker.Broker
 	Client    client.Client
 	Server    server.Server
+	Model     model.Model
 	Registry  registry.Registry
 	Transport transport.Transport
 
@@ -72,9 +74,17 @@ func Context(ctx context.Context) Option {
 	}
 }
 
+// Server sets the server for handling requests
 func Server(s server.Server) Option {
 	return func(o *Options) {
 		o.Server = s
+	}
+}
+
+// Model sets the model for data access
+func Model(m model.Model) Option {
+	return func(o *Options) {
+		o.Model = m
 	}
 }
 
