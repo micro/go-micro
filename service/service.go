@@ -3,6 +3,7 @@ package service
 
 import (
 	"github.com/micro/go-micro/v2/client"
+	"github.com/micro/go-micro/v2/model"
 	"github.com/micro/go-micro/v2/server"
 )
 
@@ -18,6 +19,8 @@ type Service interface {
 	Client() client.Client
 	// Server is for handling requests and events
 	Server() server.Server
+	// Model is used to access data
+	Model() model.Model
 	// Run the service
 	Run() error
 	// The service implementation

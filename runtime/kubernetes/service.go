@@ -75,6 +75,27 @@ func newService(s *runtime.Service, c runtime.CreateOptions) *service {
 		env = append(env, client.EnvVar{Name: evarPair[0], Value: evarPair[1]})
 	}
 
+	// if credentials were provided, pass them to the service
+	if len(c.Credentials) > 0 {
+		env = append(env, client.EnvVar{
+			Name: "MICRO_AUTH_ID",
+			ValueFrom: &client.EnvVarSource{
+				SecretKeyRef: &client.SecretKeySelector{
+					Name: c.Credentials, Key: "id",
+				},
+			},
+		})
+
+		env = append(env, client.EnvVar{
+			Name: "MICRO_AUTH_SECRET",
+			ValueFrom: &client.EnvVarSource{
+				SecretKeyRef: &client.SecretKeySelector{
+					Name: c.Credentials, Key: "secret",
+				},
+			},
+		})
+	}
+
 	// if environment has been supplied update deployment default environment
 	if len(env) > 0 {
 		kdeploy.Spec.Template.PodSpec.Containers[0].Env = append(kdeploy.Spec.Template.PodSpec.Containers[0].Env, env...)
