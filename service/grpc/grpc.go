@@ -3,6 +3,7 @@ package grpc
 import (
 	"github.com/micro/go-micro/v2/client"
 	gclient "github.com/micro/go-micro/v2/client/grpc"
+	"github.com/micro/go-micro/v2/model"
 	"github.com/micro/go-micro/v2/server"
 	gserver "github.com/micro/go-micro/v2/server/grpc"
 	"github.com/micro/go-micro/v2/service"
@@ -44,6 +45,10 @@ func (s *grpcService) Client() client.Client {
 
 func (s *grpcService) Server() server.Server {
 	return s.opts.Server
+}
+
+func (s *grpcService) Model() model.Model {
+	return s.opts.Model
 }
 
 func (s *grpcService) String() string {
