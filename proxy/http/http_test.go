@@ -5,13 +5,15 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"sync"
 	"testing"
+	"time"
 
-	"github.com/micro/go-micro/v2"
 	"github.com/micro/go-micro/v2/client"
+	grpcClient "github.com/micro/go-micro/v2/client/grpc"
+	"github.com/micro/go-micro/v2/router"
 	"github.com/micro/go-micro/v2/registry/memory"
 	"github.com/micro/go-micro/v2/server"
+	grpcServer "github.com/micro/go-micro/v2/server/grpc"
 )
 
 type testHandler struct{}
@@ -52,37 +54,33 @@ func TestHTTPProxy(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	var wg sync.WaitGroup
-	wg.Add(1)
+	reg := memory.NewRegistry()
+	rtr := router.NewRouter(router.Registry(reg))
 
 	// new micro service
-	service := micro.NewService(
-		micro.Context(ctx),
-		micro.Name("foobar"),
-		micro.Registry(memory.NewRegistry()),
-		micro.AfterStart(func() error {
-			wg.Done()
-			return nil
-		}),
-	)
-
-	// set router
-	service.Server().Init(
+	srv := grpcServer.NewServer(
+		server.Name("foobar"),
+		server.Registry(reg),
 		server.WithRouter(p),
 	)
 
+	cli := grpcClient.NewClient(
+		client.Router(rtr),
+	)
+
 	// run service
-	// server
 	go http.Serve(c, nil)
-	go service.Run()
 
-	// wait till service is started
-	wg.Wait()
+	if err := srv.Start(); err != nil {
+		t.Fatal(err)
+	}
+	defer srv.Stop()
 
+	time.Sleep(time.Second)
 	for _, test := range testCases {
-		req := service.Client().NewRequest("foobar", test.rpcEp, map[string]string{"foo": "bar"}, client.WithContentType("application/json"))
+		req := cli.NewRequest("foobar", test.rpcEp, map[string]string{"foo": "bar"}, client.WithContentType("application/json"))
 		var rsp map[string]string
-		err := service.Client().Call(ctx, req, &rsp)
+		err := cli.Call(ctx, req, &rsp)
 		if err != nil && test.err == false {
 			t.Fatal(err)
 		}
