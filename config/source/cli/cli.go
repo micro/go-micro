@@ -1,9 +1,6 @@
 package cli
 
 import (
-	"flag"
-	"io/ioutil"
-	"os"
 	"strings"
 	"time"
 
@@ -103,33 +100,6 @@ func NewSource(opts ...source.Option) source.Source {
 
 	if c, ok := options.Context.Value(contextKey{}).(*cli.Context); ok {
 		ctx = c
-/*
-	TODO: fix flag parsing in CLI source
-	
-	} else {
-		// no context
-		// get the default app/flags
-		app := cmd.App()
-		flags := app.Flags
-
-		// create flagset
-		set := flag.NewFlagSet(app.Name, flag.ContinueOnError)
-
-		// apply flags to set
-		for _, f := range flags {
-			f.Apply(set)
-		}
-
-		// parse flags
-		set.SetOutput(ioutil.Discard)
-		set.Parse(os.Args[1:])
-
-		// normalise flags
-		normalizeFlags(app.Flags, set)
-
-		// create context
-		ctx = cli.NewContext(app, set, nil)
-*/
 	}
 
 	return &cliSource{
