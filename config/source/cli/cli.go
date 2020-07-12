@@ -9,7 +9,6 @@ import (
 
 	"github.com/imdario/mergo"
 	"github.com/micro/cli/v2"
-	"github.com/micro/go-micro/v2/config/cmd"
 	"github.com/micro/go-micro/v2/config/source"
 )
 
@@ -104,6 +103,9 @@ func NewSource(opts ...source.Option) source.Source {
 
 	if c, ok := options.Context.Value(contextKey{}).(*cli.Context); ok {
 		ctx = c
+/*
+	TODO: fix flag parsing in CLI source
+	
 	} else {
 		// no context
 		// get the default app/flags
@@ -127,6 +129,7 @@ func NewSource(opts ...source.Option) source.Source {
 
 		// create context
 		ctx = cli.NewContext(app, set, nil)
+*/
 	}
 
 	return &cliSource{

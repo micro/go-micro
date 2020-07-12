@@ -3,8 +3,6 @@ package plugin
 
 // Plugin is a plugin loaded from a file
 type Plugin interface {
-	// Initialise a plugin with the config
-	Init(c *Config) error
 	// Load loads a .so plugin at the given path
 	Load(path string) (*Config, error)
 	// Build a .so plugin with config at the path specified
