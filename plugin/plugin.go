@@ -38,7 +38,3 @@ func Build(path string, c *Config) error {
 func Load(path string) (*Config, error) {
 	return DefaultPlugin.Load(path)
 }
-
-func Init(c *Config) error {
-	return DefaultPlugin.Init(c)
-}
