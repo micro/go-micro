@@ -11,7 +11,6 @@ import (
 
 // Service is a web service with service discovery built in
 type Service interface {
-	Client() *http.Client
 	Init(opts ...Option) error
 	Options() Options
 	Handle(pattern string, handler http.Handler)

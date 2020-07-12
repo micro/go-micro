@@ -6,8 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/micro/cli/v2"
-	"github.com/micro/go-micro/v2"
+	"github.com/micro/go-micro/v2/auth"
 	"github.com/micro/go-micro/v2/registry"
 )
 
@@ -19,9 +18,7 @@ type Options struct {
 	Metadata  map[string]string
 	Address   string
 	Advertise string
-
-	Action func(*cli.Context)
-	Flags  []cli.Flag
+	Namespace string
 
 	RegisterTTL      time.Duration
 	RegisterInterval time.Duration
@@ -35,8 +32,8 @@ type Options struct {
 	// Alternative Options
 	Context context.Context
 
+	Auth     auth.Auth
 	Registry registry.Registry
-	Service  micro.Service
 
 	Secure      bool
 	TLSConfig   *tls.Config
@@ -60,9 +57,10 @@ func newOptions(opts ...Option) Options {
 		RegisterTTL:      DefaultRegisterTTL,
 		RegisterInterval: DefaultRegisterInterval,
 		StaticDir:        DefaultStaticDir,
-		Service:          micro.NewService(),
 		Context:          context.TODO(),
 		Signal:           true,
+		Auth:             auth.DefaultAuth,
+		Registry:         registry.DefaultRegistry,
 	}
 
 	for _, o := range opts {
@@ -137,6 +135,13 @@ func Context(ctx context.Context) Option {
 	}
 }
 
+// Auth sets the auth interface
+func Auth(a auth.Auth) Option {
+	return func(o *Options) {
+		o.Auth = a
+	}
+}
+
 // Registry used for discovery
 func Registry(r registry.Registry) Option {
 	return func(o *Options) {
@@ -169,27 +174,6 @@ func Handler(h http.Handler) Option {
 func Server(srv *http.Server) Option {
 	return func(o *Options) {
 		o.Server = srv
-	}
-}
-
-// MicroService sets the micro.Service used internally
-func MicroService(s micro.Service) Option {
-	return func(o *Options) {
-		o.Service = s
-	}
-}
-
-// Flags sets the command flags.
-func Flags(flags ...cli.Flag) Option {
-	return func(o *Options) {
-		o.Flags = append(o.Flags, flags...)
-	}
-}
-
-// Action sets the command action.
-func Action(a func(*cli.Context)) Option {
-	return func(o *Options) {
-		o.Action = a
 	}
 }
 
