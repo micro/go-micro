@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/micro/go-micro/v2"
 	bmemory "github.com/micro/go-micro/v2/broker/memory"
 	"github.com/micro/go-micro/v2/client"
 	gcli "github.com/micro/go-micro/v2/client/grpc"
@@ -135,12 +134,10 @@ func TestGRPCServer(t *testing.T) {
 	h := &testServer{}
 	pb.RegisterTestHandler(s, h)
 
-	if err := micro.RegisterSubscriber("test_topic", s, h.Handle); err != nil {
-		t.Fatal(err)
-	}
-	if err := micro.RegisterSubscriber("error_topic", s, h.HandleError); err != nil {
-		t.Fatal(err)
-	}
+	sub1 := s.NewSubscriber("test_topic", h.Handle)
+	s.Subscribe(sub1)
+	sub2 := s.NewSubscriber("error_topic", h.HandleError)
+	s.Subscribe(sub2)
 
 	if err := s.Start(); err != nil {
 		t.Fatalf("failed to start: %v", err)
@@ -158,11 +155,11 @@ func TestGRPCServer(t *testing.T) {
 		}
 	}()
 
-	pub := micro.NewEvent("test_topic", c)
-	pubErr := micro.NewEvent("error_topic", c)
+	pubErr := c.NewMessage("error_topic", new(pb.Request))
 	cnt := 4
 	for i := 0; i < cnt; i++ {
-		if err = pub.Publish(ctx, &pb.Request{Name: fmt.Sprintf("msg %d", i)}); err != nil {
+		msg := c.NewMessage("test_topic", &pb.Request{Name: fmt.Sprintf("msg %d", i)})
+		if err = c.Publish(ctx, msg); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -170,7 +167,7 @@ func TestGRPCServer(t *testing.T) {
 	if h.msgCount != cnt {
 		t.Fatalf("pub/sub not work, or invalid message count %d", h.msgCount)
 	}
-	if err = pubErr.Publish(ctx, &pb.Request{}); err == nil {
+	if err = c.Publish(ctx, pubErr); err == nil {
 		t.Fatal("this must return error, as we return error from handler")
 	}
 
