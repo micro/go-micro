@@ -130,6 +130,8 @@ type GenerateOptions struct {
 	Type string
 	// Secret used to authenticate the account
 	Secret string
+	// Issuer of the account, e.g. micro
+	Issuer string
 }
 
 type GenerateOption func(o *GenerateOptions)
@@ -166,6 +168,13 @@ func WithProvider(p string) GenerateOption {
 func WithScopes(s ...string) GenerateOption {
 	return func(o *GenerateOptions) {
 		o.Scopes = s
+	}
+}
+
+// WithIssuer for the generated account
+func WithIssuer(i string) GenerateOption {
+	return func(o *GenerateOptions) {
+		o.Issuer = i
 	}
 }
 

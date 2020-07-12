@@ -4,6 +4,7 @@ package mucp
 import (
 	"github.com/micro/go-micro/v2/client"
 	cmucp "github.com/micro/go-micro/v2/client/mucp"
+	"github.com/micro/go-micro/v2/model"
 	"github.com/micro/go-micro/v2/server"
 	smucp "github.com/micro/go-micro/v2/server/mucp"
 	"github.com/micro/go-micro/v2/service"
@@ -45,6 +46,10 @@ func (s *mucpService) Client() client.Client {
 
 func (s *mucpService) Server() server.Server {
 	return s.opts.Server
+}
+
+func (s *mucpService) Model() model.Model {
+	return s.opts.Model
 }
 
 func (s *mucpService) String() string {

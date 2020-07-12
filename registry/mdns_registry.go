@@ -120,10 +120,10 @@ func decode(record []string) (*mdnsTxt, error) {
 
 	br := bytes.NewReader(hr)
 	zr, err := zlib.NewReader(br)
-	defer zr.Close()
 	if err != nil {
 		return nil, err
 	}
+	defer zr.Close()
 
 	rbuf, err := ioutil.ReadAll(zr)
 	if err != nil {
