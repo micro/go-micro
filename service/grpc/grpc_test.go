@@ -7,7 +7,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/micro/go-micro/v2/client"
 	"github.com/micro/go-micro/v2/registry/memory"
+	"github.com/micro/go-micro/v2/router"
+	"github.com/micro/go-micro/v2/server"
 	"github.com/micro/go-micro/v2/service"
 	hello "github.com/micro/go-micro/v2/service/grpc/proto"
 	mls "github.com/micro/go-micro/v2/util/tls"
@@ -28,17 +31,26 @@ func TestGRPCService(t *testing.T) {
 	defer cancel()
 
 	// create memory registry
-	r := memory.NewRegistry()
+	reg := memory.NewRegistry()
+	rtr := router.NewRouter(
+		router.Registry(reg),
+	)
 
 	// create GRPC service
 	service := NewService(
 		service.Name("test.service"),
-		service.Registry(r),
 		service.AfterStart(func() error {
 			wg.Done()
 			return nil
 		}),
 		service.Context(ctx),
+	)
+
+	service.Server().Init(
+		server.Registry(reg),
+	)
+	service.Client().Init(
+		client.Router(rtr),
 	)
 
 	// register test handler
@@ -89,7 +101,10 @@ func TestGRPCTLSService(t *testing.T) {
 	defer cancel()
 
 	// create memory registry
-	r := memory.NewRegistry()
+	reg := memory.NewRegistry()
+	rtr := router.NewRouter(
+		router.Registry(reg),
+	)
 
 	// create cert
 	cert, err := mls.Certificate("test.service")
@@ -104,7 +119,6 @@ func TestGRPCTLSService(t *testing.T) {
 	// create GRPC service
 	service := NewService(
 		service.Name("test.service"),
-		service.Registry(r),
 		service.AfterStart(func() error {
 			wg.Done()
 			return nil
@@ -112,6 +126,13 @@ func TestGRPCTLSService(t *testing.T) {
 		service.Context(ctx),
 		// set TLS config
 		WithTLS(config),
+	)
+
+	service.Server().Init(
+		server.Registry(reg),
+	)
+	service.Client().Init(
+		client.Router(rtr),
 	)
 
 	// register test handler

@@ -2,23 +2,16 @@ package service
 
 import (
 	"context"
-	"time"
 
-	"github.com/micro/go-micro/v2/broker"
 	"github.com/micro/go-micro/v2/client"
 	"github.com/micro/go-micro/v2/model"
-	"github.com/micro/go-micro/v2/registry"
 	"github.com/micro/go-micro/v2/server"
-	"github.com/micro/go-micro/v2/transport"
 )
 
 type Options struct {
-	Broker    broker.Broker
-	Client    client.Client
-	Server    server.Server
-	Model     model.Model
-	Registry  registry.Registry
-	Transport transport.Transport
+	Client client.Client
+	Server server.Server
+	Model  model.Model
 
 	// Before and After funcs
 	BeforeStart []func() error
@@ -35,12 +28,9 @@ type Option func(*Options)
 
 func NewOptions(opts ...Option) Options {
 	opt := Options{
-		Broker:    broker.DefaultBroker,
-		Client:    client.DefaultClient,
-		Server:    server.DefaultServer,
-		Registry:  registry.DefaultRegistry,
-		Transport: transport.DefaultTransport,
-		Context:   context.Background(),
+		Client:  client.DefaultClient,
+		Server:  server.DefaultServer,
+		Context: context.Background(),
 	}
 
 	for _, o := range opts {
@@ -50,20 +40,26 @@ func NewOptions(opts ...Option) Options {
 	return opt
 }
 
-func Broker(b broker.Broker) Option {
-	return func(o *Options) {
-		o.Broker = b
-		// Update Client and Server
-		o.Client.Init(client.Broker(b))
-		o.Server.Init(server.Broker(b))
-	}
-}
-
 func Client(c client.Client) Option {
 	return func(o *Options) {
 		o.Client = c
 	}
 }
+
+// Address sets the address of the server
+func Address(addr string) Option {
+       return func(o *Options) {
+               o.Server.Init(server.Address(addr))
+       }
+}
+
+// Name of the service
+func Name(n string) Option {
+       return func(o *Options) {
+               o.Server.Init(server.Name(n))
+       }
+}
+
 
 // Context specifies a context for the service.
 // Can be used to signal shutdown of the service.
@@ -88,47 +84,6 @@ func Model(m model.Model) Option {
 	}
 }
 
-// Registry sets the registry for the service
-// and the underlying components
-func Registry(r registry.Registry) Option {
-	return func(o *Options) {
-		o.Registry = r
-		// Update server
-		o.Server.Init(server.Registry(r))
-		// Update Broker
-		o.Broker.Init(broker.Registry(r))
-		// Update router
-		o.Client.Init(client.Registry(r))
-	}
-}
-
-// Transport sets the transport for the service
-// and the underlying components
-func Transport(t transport.Transport) Option {
-	return func(o *Options) {
-		o.Transport = t
-		// Update Client and Server
-		o.Client.Init(client.Transport(t))
-		o.Server.Init(server.Transport(t))
-	}
-}
-
-// Convenience options
-
-// Address sets the address of the server
-func Address(addr string) Option {
-	return func(o *Options) {
-		o.Server.Init(server.Address(addr))
-	}
-}
-
-// Name of the service
-func Name(n string) Option {
-	return func(o *Options) {
-		o.Server.Init(server.Name(n))
-	}
-}
-
 // Version of the service
 func Version(v string) Option {
 	return func(o *Options) {
@@ -140,20 +95,6 @@ func Version(v string) Option {
 func Metadata(md map[string]string) Option {
 	return func(o *Options) {
 		o.Server.Init(server.Metadata(md))
-	}
-}
-
-// RegisterTTL specifies the TTL to use when registering the service
-func RegisterTTL(t time.Duration) Option {
-	return func(o *Options) {
-		o.Server.Init(server.RegisterTTL(t))
-	}
-}
-
-// RegisterInterval specifies the interval on which to re-register
-func RegisterInterval(t time.Duration) Option {
-	return func(o *Options) {
-		o.Server.Init(server.RegisterInterval(t))
 	}
 }
 
