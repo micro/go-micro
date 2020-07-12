@@ -84,14 +84,22 @@ func encode(txt *mdnsTxt) ([]string, error) {
 	defer buf.Reset()
 
 	w := zlib.NewWriter(&buf)
+	defer func() {
+		if closeErr := w.Close(); closeErr != nil {
+			if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
+				logger.Errorf("[mdns] registry close encoding writer err: %v", closeErr)
+			}
+		}
+	}()
 	if _, err := w.Write(b); err != nil {
-		w.Close()
 		return nil, err
 	}
-	w.Close()
+
+	if err = w.Close(); err != nil {
+		return nil, err
+	}
 
 	encoded := hex.EncodeToString(buf.Bytes())
-
 	// individual txt limit
 	if len(encoded) <= 255 {
 		return []string{encoded}, nil
