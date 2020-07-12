@@ -4,7 +4,6 @@ package cmd
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"fmt"
 	"io/ioutil"
 	"math/rand"
 	"strings"
@@ -669,7 +668,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 
 	// verify the auth's service account
 	if err := authutil.Verify(*c.opts.Auth); err != nil {
-		return err
+		logger.Fatalf("Error generating auth account: %v", err)
 	}
 
 	// Setup broker options.
@@ -781,7 +780,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	if name := ctx.String("router"); len(name) > 0 && (*c.opts.Router).String() != name {
 		r, ok := c.opts.Routers[name]
 		if !ok {
-			return fmt.Errorf("Router %s not found", name)
+			logger.Fatalf("Router %s not found", name)
 		}
 
 		// close the default router before replacing it
