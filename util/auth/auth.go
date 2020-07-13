@@ -25,7 +25,7 @@ func Verify(a auth.Auth) error {
 		if err != nil {
 			return err
 		}
-		logger.Debugf("Auth [%v] Self-generated an auth account", a.String())
+		logger.Debugf("Auth [%v] Generated an auth account", a.String())
 
 		accID = acc.ID
 		accSecret = acc.Secret
