@@ -342,7 +342,7 @@ func (r *runtime) Logs(s *Service, options ...LogsOption) (LogStream, error) {
 	if ex, err := exists(fpath); err != nil {
 		return nil, err
 	} else if !ex {
-		return nil, fmt.Errorf("Log file %v does not exists", fpath)
+		return nil, fmt.Errorf("Logs not found for service %s", s.Name)
 	}
 
 	// have to check file size to avoid too big of a seek

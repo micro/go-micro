@@ -33,12 +33,7 @@ func (s *svc) Init(opts ...auth.Option) {
 	s.auth = pb.NewAuthService("go.micro.auth", s.options.Client)
 	s.rules = pb.NewRulesService("go.micro.auth", s.options.Client)
 
-	// if we have a JWT public key passed as an option,
-	// we can decode tokens with the type "JWT" locally
-	// and not have to make an RPC call
-	if key := s.options.PublicKey; len(key) > 0 {
-		s.jwt = jwt.NewTokenProvider(token.WithPublicKey(key))
-	}
+	s.setupJWT()
 }
 
 func (s *svc) Options() auth.Options {
@@ -48,6 +43,27 @@ func (s *svc) Options() auth.Options {
 // Generate a new account
 func (s *svc) Generate(id string, opts ...auth.GenerateOption) (*auth.Account, error) {
 	options := auth.NewGenerateOptions(opts...)
+
+	// we have the JWT private key and generate ourselves an account
+	if len(s.options.PrivateKey) > 0 {
+		acc := &auth.Account{
+			ID:       id,
+			Type:     options.Type,
+			Scopes:   options.Scopes,
+			Metadata: options.Metadata,
+			Issuer:   s.Options().Issuer,
+		}
+
+		tok, err := s.jwt.Generate(acc, token.WithExpiry(time.Hour*24*365))
+		if err != nil {
+			return nil, err
+		}
+
+		// when using JWTs, the account secret is the JWT's token. This
+		// can be used as an argument in the Token method.
+		acc.Secret = tok.Token
+		return acc, nil
+	}
 
 	rsp, err := s.auth.Generate(context.TODO(), &pb.GenerateRequest{
 		Id:       id,
@@ -156,7 +172,7 @@ func (s *svc) Verify(acc *auth.Account, res *auth.Resource, opts ...auth.VerifyO
 // Inspect a token
 func (s *svc) Inspect(token string) (*auth.Account, error) {
 	// try to decode JWT locally and fall back to srv if an error occurs
-	if len(strings.Split(token, ".")) == 3 && s.jwt != nil {
+	if len(strings.Split(token, ".")) == 3 && len(s.options.PublicKey) > 0 {
 		return s.jwt.Inspect(token)
 	}
 
@@ -174,6 +190,30 @@ func (s *svc) Inspect(token string) (*auth.Account, error) {
 // Token generation using an account ID and secret
 func (s *svc) Token(opts ...auth.TokenOption) (*auth.Token, error) {
 	options := auth.NewTokenOptions(opts...)
+
+	// we have the JWT private key and refresh accounts locally
+	if len(s.options.PrivateKey) > 0 {
+		tok := options.RefreshToken
+		if len(options.Secret) > 0 {
+			tok = options.Secret
+		}
+
+		acc, err := s.jwt.Inspect(tok)
+		if err != nil {
+			return nil, err
+		}
+
+		token, err := s.jwt.Generate(acc, token.WithExpiry(options.Expiry))
+		if err != nil {
+			return nil, err
+		}
+
+		return &auth.Token{
+			Expiry:       token.Expiry,
+			AccessToken:  token.Token,
+			RefreshToken: tok,
+		}, nil
+	}
 
 	rsp, err := s.auth.Token(context.Background(), &pb.TokenRequest{
 		Id:           options.ID,
@@ -247,9 +287,33 @@ func NewAuth(opts ...auth.Option) auth.Auth {
 		options.Addrs = []string{"127.0.0.1:8010"}
 	}
 
-	return &svc{
+	service := &svc{
 		auth:    pb.NewAuthService("go.micro.auth", options.Client),
 		rules:   pb.NewRulesService("go.micro.auth", options.Client),
 		options: options,
 	}
+	service.setupJWT()
+
+	return service
+}
+
+func (s *svc) setupJWT() {
+	tokenOpts := []token.Option{}
+
+	// if we have a JWT public key passed as an option,
+	// we can decode tokens with the type "JWT" locally
+	// and not have to make an RPC call
+	if key := s.options.PublicKey; len(key) > 0 {
+		tokenOpts = append(tokenOpts, token.WithPublicKey(key))
+	}
+
+	// if we have a JWT private key passed as an option,
+	// we can generate accounts locally and not have to make
+	// an RPC call, this is used for micro clients such as
+	// api, web, proxy.
+	if key := s.options.PrivateKey; len(key) > 0 {
+		tokenOpts = append(tokenOpts, token.WithPrivateKey(key))
+	}
+
+	s.jwt = jwt.NewTokenProvider(tokenOpts...)
 }
