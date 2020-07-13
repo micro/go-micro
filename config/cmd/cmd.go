@@ -911,7 +911,9 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		))
 
 		if err := (*c.opts.Config).Init(opt); err != nil {
-			logger.Fatalf("Error configuring config: %v", err)
+			if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+				logger.Debugf("Error configuring config: %v", err)
+			}
 		}
 	}
 
