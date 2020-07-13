@@ -211,7 +211,7 @@ func (s *svc) Token(opts ...auth.TokenOption) (*auth.Token, error) {
 		return &auth.Token{
 			Expiry:       token.Expiry,
 			AccessToken:  token.Token,
-			RefreshToken: acc.Secret,
+			RefreshToken: tok,
 		}, nil
 	}
 
