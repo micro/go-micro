@@ -668,7 +668,9 @@ func (c *cmd) Before(ctx *cli.Context) error {
 
 	// verify the auth's service account
 	if err := authutil.Verify(*c.opts.Auth); err != nil {
-		logger.Fatalf("Error generating auth account: %v", err)
+		if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+			logger.Debugf("Auth [%v] Error generating auth account: %v", (*c.opts.Auth), err)
+		}
 	}
 
 	// Setup broker options.
