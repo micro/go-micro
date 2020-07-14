@@ -8,7 +8,6 @@ import (
 	"github.com/micro/go-micro/v2/auth/rules"
 	"github.com/micro/go-micro/v2/auth/token"
 	jwtToken "github.com/micro/go-micro/v2/auth/token/jwt"
-	"github.com/micro/go-micro/v2/logger"
 )
 
 // NewAuth returns a new instance of the Auth service
@@ -80,7 +79,6 @@ func (j *jwt) Grant(rule *auth.Rule) error {
 	j.Lock()
 	defer j.Unlock()
 	j.rules = append(j.rules, rule)
-	logger.Debugf("Adding rule: %v", rule)
 	return nil
 }
 
@@ -92,7 +90,6 @@ func (j *jwt) Revoke(rule *auth.Rule) error {
 	for _, r := range j.rules {
 		if r.ID != rule.ID {
 			rules = append(rules, r)
-			logger.Debugf("Removing rule: %v", rule)
 		}
 	}
 
@@ -108,8 +105,6 @@ func (j *jwt) Verify(acc *auth.Account, res *auth.Resource, opts ...auth.VerifyO
 	for _, o := range opts {
 		o(&options)
 	}
-
-	logger.Debugf("Verify access to %v:%v:%v using %v rules", res.Type, res.Name, res.Endpoint, len(j.rules))
 
 	return rules.Verify(j.rules, acc, res)
 }

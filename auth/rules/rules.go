@@ -5,8 +5,6 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/micro/go-micro/v2/logger"
-
 	"github.com/micro/go-micro/v2/auth"
 )
 
@@ -14,8 +12,6 @@ import (
 // access an error will be returned. If there are no rules provided which match the resource, an error
 // will be returned
 func Verify(rules []*auth.Rule, acc *auth.Account, res *auth.Resource) error {
-	logger.Debugf("Verify using %v rules: %v => %v", len(rules), acc, res)
-
 	// the rule is only to be applied if the type matches the resource or is catch-all (*)
 	validTypes := []string{"*", res.Type}
 
@@ -56,39 +52,30 @@ func Verify(rules []*auth.Rule, acc *auth.Account, res *auth.Resource) error {
 	for _, rule := range filteredRules {
 		// a blank scope indicates the rule applies to everyone, even nil accounts
 		if rule.Scope == auth.ScopePublic && rule.Access == auth.AccessDenied {
-			logger.Debugf("Access was explicitly denied by a public scope rule")
 			return auth.ErrForbidden
 		} else if rule.Scope == auth.ScopePublic && rule.Access == auth.AccessGranted {
-			logger.Debugf("Access was explicitly granted by a public scope rule")
 			return nil
 		}
 
 		// all further checks require an account
 		if acc == nil {
-			logger.Debugf("Rule was skipped as account is nil")
 			continue
 		}
 
 		// this rule applies to any account
 		if rule.Scope == auth.ScopeAccount && rule.Access == auth.AccessDenied {
-			logger.Debugf("Access was explicitly denied by a account scope rule")
 			return auth.ErrForbidden
 		} else if rule.Scope == auth.ScopeAccount && rule.Access == auth.AccessGranted {
-			logger.Debugf("Access was explicitly granted by a account scope rule")
 			return nil
 		}
 
 		// if the account has the necessary scope
 		if include(acc.Scopes, rule.Scope) && rule.Access == auth.AccessDenied {
-			logger.Debugf("Account was denied due to a lack of role: %v", rule.Scope)
 			return auth.ErrForbidden
 		} else if include(acc.Scopes, rule.Scope) && rule.Access == auth.AccessGranted {
-			logger.Debugf("Account was granted due to a presence of role: %v", rule.Scope)
 			return nil
 		}
 	}
-
-	logger.Debugf("Access was denied because no rules granted access")
 
 	// if no rules matched then return forbidden
 	return auth.ErrForbidden
