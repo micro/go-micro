@@ -43,6 +43,9 @@ func (s *svc) Options() auth.Options {
 // Generate a new account
 func (s *svc) Generate(id string, opts ...auth.GenerateOption) (*auth.Account, error) {
 	options := auth.NewGenerateOptions(opts...)
+	if len(options.Issuer) == 0 {
+		options.Issuer = s.options.Issuer
+	}
 
 	// we have the JWT private key and generate ourselves an account
 	if len(s.options.PrivateKey) > 0 {
@@ -51,7 +54,7 @@ func (s *svc) Generate(id string, opts ...auth.GenerateOption) (*auth.Account, e
 			Type:     options.Type,
 			Scopes:   options.Scopes,
 			Metadata: options.Metadata,
-			Issuer:   s.Options().Issuer,
+			Issuer:   options.Issuer,
 		}
 
 		tok, err := s.jwt.Generate(acc, token.WithExpiry(time.Hour*24*365))
@@ -73,7 +76,7 @@ func (s *svc) Generate(id string, opts ...auth.GenerateOption) (*auth.Account, e
 		Metadata: options.Metadata,
 		Provider: options.Provider,
 		Options: &pb.Options{
-			Namespace: s.Options().Issuer,
+			Namespace: options.Issuer,
 		},
 	}, s.callOpts()...)
 	if err != nil {
@@ -190,6 +193,9 @@ func (s *svc) Inspect(token string) (*auth.Account, error) {
 // Token generation using an account ID and secret
 func (s *svc) Token(opts ...auth.TokenOption) (*auth.Token, error) {
 	options := auth.NewTokenOptions(opts...)
+	if len(options.Issuer) == 0 {
+		options.Issuer = s.options.Issuer
+	}
 
 	// we have the JWT private key and refresh accounts locally
 	if len(s.options.PrivateKey) > 0 {
@@ -221,7 +227,7 @@ func (s *svc) Token(opts ...auth.TokenOption) (*auth.Token, error) {
 		RefreshToken: options.RefreshToken,
 		TokenExpiry:  int64(options.Expiry.Seconds()),
 		Options: &pb.Options{
-			Namespace: s.Options().Issuer,
+			Namespace: options.Issuer,
 		},
 	}, s.callOpts()...)
 	if err != nil {
