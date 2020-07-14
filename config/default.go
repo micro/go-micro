@@ -86,7 +86,7 @@ func (c *config) run() {
 
 			c.Lock()
 
-			if c.snap.Version >= snap.Version {
+			if c.snap != nil && c.snap.Version >= snap.Version {
 				c.Unlock()
 				continue
 			}
