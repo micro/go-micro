@@ -26,7 +26,7 @@ var (
 	dataBucket = "data"
 )
 
-// NewStore returns a memory store
+// NewStore returns a file store
 func NewStore(opts ...store.Option) store.Store {
 	s := &fileStore{}
 	s.init(opts...)
