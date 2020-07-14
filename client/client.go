@@ -57,7 +57,7 @@ type Response interface {
 	Read() ([]byte, error)
 }
 
-// Stream is the inteface for a bidirectional synchronous stream
+// Stream is the interface for a bidirectional synchronous stream
 type Stream interface {
 	// Context for the stream
 	Context() context.Context

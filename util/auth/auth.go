@@ -8,7 +8,7 @@ import (
 	"github.com/micro/go-micro/v2/logger"
 )
 
-// Verify the auth credentials and refresh the auth token periodicallay
+// Verify the auth credentials and refresh the auth token periodically
 func Verify(a auth.Auth) error {
 	// extract the account creds from options, these can be set by flags
 	accID := a.Options().ID

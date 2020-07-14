@@ -421,7 +421,7 @@ func (r *rpcClient) Call(ctx context.Context, request Request, response interfac
 			return err
 		}
 
-		// pass a node to enable backwards compatability as changing the
+		// pass a node to enable backwards comparability as changing the
 		// call func would be a breaking change.
 		// todo v3: change the call func to accept a route
 		node := &registry.Node{Address: route.Address, Metadata: route.Metadata}

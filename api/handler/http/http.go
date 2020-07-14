@@ -21,7 +21,7 @@ const (
 type httpHandler struct {
 	options handler.Options
 
-	// set with different initialiser
+	// set with different initializer
 	s *api.Service
 }
 

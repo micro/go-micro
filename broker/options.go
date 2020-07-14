@@ -13,7 +13,7 @@ type Options struct {
 	Secure bool
 	Codec  codec.Marshaler
 
-	// Handler executed when error happens in broker mesage
+	// Handler executed when error happens in broker message
 	// processing
 	ErrorHandler Handler
 
