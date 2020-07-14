@@ -1,5 +1,5 @@
 // Package store is an interface for distributed data storage.
-// The design document is located at https://github.com/micro/development/blob/master/design/store.md
+// The design document is located at https://github.com/micro/development/blob/master/design/framework/store.md
 package store
 
 import (
