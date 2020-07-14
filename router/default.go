@@ -515,8 +515,8 @@ func (r *router) start() error {
 				if w == nil {
 					w, err = r.options.Registry.Watch()
 					if err != nil {
-						if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
-							logger.Errorf("failed creating registry watcher: %v", err)
+						if logger.V(logger.WarnLevel, logger.DefaultLogger) {
+							logger.Warnf("failed creating registry watcher: %v", err)
 						}
 						time.Sleep(time.Second)
 						continue
@@ -524,8 +524,8 @@ func (r *router) start() error {
 				}
 
 				if err := r.watchRegistry(w); err != nil {
-					if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
-						logger.Errorf("Error watching the registry: %v", err)
+					if logger.V(logger.WarnLevel, logger.DefaultLogger) {
+						logger.Warnf("Error watching the registry: %v", err)
 					}
 					time.Sleep(time.Second)
 				}

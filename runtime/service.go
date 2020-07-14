@@ -229,7 +229,7 @@ func (s *service) Wait() {
 
 	if s.PID.ID != thisPID.ID {
 		// trying to update when it's already been switched out, ignore
-		logger.Warnf("Trying to update a process status but PID doesn't match. Old %s, New %s. Skipping update.", thisPID.ID, s.PID.ID)
+		logger.Debugf("Trying to update a process status but PID doesn't match. Old %s, New %s. Skipping update.", thisPID.ID, s.PID.ID)
 		return
 	}
 

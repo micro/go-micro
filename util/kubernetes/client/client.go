@@ -312,12 +312,11 @@ func NewDeployment(name, version, typ, namespace string) *Deployment {
 		Template: &Template{
 			Metadata: Metadata,
 			PodSpec: &PodSpec{
-				ServiceAccountName: namespace,
 				Containers: []Container{{
 					Name:    name,
 					Image:   DefaultImage,
 					Env:     []EnvVar{env},
-					Command: []string{"go", "run", "."},
+					Command: []string{},
 					Ports: []ContainerPort{{
 						Name:          "service-port",
 						ContainerPort: 8080,

@@ -269,6 +269,18 @@ func (r *runtime) Create(s *Service, opts ...CreateOption) error {
 		options.Args = []string{"run", "."}
 	}
 
+	// pass credentials as env vars
+	if len(options.Credentials) > 0 {
+		// validate the creds
+		comps := strings.Split(options.Credentials, ":")
+		if len(comps) != 2 {
+			return errors.New("Invalid credentials, expected format 'user:pass'")
+		}
+
+		options.Env = append(options.Env, "MICRO_AUTH_ID", comps[0])
+		options.Env = append(options.Env, "MICRO_AUTH_SECRET", comps[1])
+	}
+
 	if _, ok := r.namespaces[options.Namespace]; !ok {
 		r.namespaces[options.Namespace] = make(map[string]*service)
 	}
@@ -330,7 +342,7 @@ func (r *runtime) Logs(s *Service, options ...LogsOption) (LogStream, error) {
 	if ex, err := exists(fpath); err != nil {
 		return nil, err
 	} else if !ex {
-		return nil, fmt.Errorf("Log file %v does not exists", fpath)
+		return nil, fmt.Errorf("Logs not found for service %s", s.Name)
 	}
 
 	// have to check file size to avoid too big of a seek

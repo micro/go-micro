@@ -2,7 +2,9 @@
 package cmd
 
 import (
-	"fmt"
+	"crypto/tls"
+	"crypto/x509"
+	"io/ioutil"
 	"math/rand"
 	"strings"
 	"time"
@@ -195,6 +197,21 @@ var (
 			Usage:   "Comma-separated list of broker addresses",
 		},
 		&cli.StringFlag{
+			Name:    "broker_tls_ca",
+			Usage:   "Certificate authority for TLS with broker",
+			EnvVars: []string{"MICRO_BROKER_TLS_CA"},
+		},
+		&cli.StringFlag{
+			Name:    "broker_tls_cert",
+			Usage:   "Client cert for TLS with broker",
+			EnvVars: []string{"MICRO_BROKER_TLS_CERT"},
+		},
+		&cli.StringFlag{
+			Name:    "broker_tls_key",
+			Usage:   "Client key for TLS with broker",
+			EnvVars: []string{"MICRO_BROKER_TLS_KEY"},
+		},
+		&cli.StringFlag{
 			Name:    "profile",
 			Usage:   "Debug profiler for cpu and memory stats",
 			EnvVars: []string{"MICRO_DEBUG_PROFILE"},
@@ -210,6 +227,20 @@ var (
 			Usage:   "Comma-separated list of registry addresses",
 		},
 		&cli.StringFlag{
+			Name:    "registry_tls_ca",
+			Usage:   "Certificate authority for TLS with registry",
+			EnvVars: []string{"MICRO_REGISTRY_TLS_CA"},
+		},
+		&cli.StringFlag{
+			Name:    "registry_tls_cert",
+			Usage:   "Client cert for TLS with registry",
+			EnvVars: []string{"MICRO_REGISTRY_TLS_CERT"},
+		},
+		&cli.StringFlag{
+			Name:    "registry_tls_key",
+			Usage:   "Client key for TLS with registry",
+			EnvVars: []string{"MICRO_REGISTRY_TLS_KEY"},
+		}, &cli.StringFlag{
 			Name:    "runtime",
 			Usage:   "Runtime for building and running services e.g local, kubernetes",
 			EnvVars: []string{"MICRO_RUNTIME"},
@@ -635,11 +666,11 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		(*c.opts.Auth).Init(authOpts...)
 	}
 
-	// generate the services auth account.
-	// todo: move this so it only runs for new services
-	serverID := (*c.opts.Server).Options().Id
-	if err := authutil.Generate(serverID, c.App().Name, (*c.opts.Auth)); err != nil {
-		return err
+	// verify the auth's service account
+	if err := authutil.Verify(*c.opts.Auth); err != nil {
+		if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+			logger.Debugf("Auth [%v] Error generating auth account: %v", (*c.opts.Auth), err)
+		}
 	}
 
 	// Setup broker options.
@@ -648,8 +679,51 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		brokerOpts = append(brokerOpts, broker.Addrs(ctx.String("broker_address")))
 	}
 
+	// Parse broker TLS certs
+	if ctx.IsSet("broker_tls_cert") || ctx.IsSet("broker_tls_key") {
+		cert, err := tls.LoadX509KeyPair(ctx.String("broker_tls_cert"), ctx.String("broker_tls_key"))
+		if err != nil {
+			logger.Fatalf("Error loading broker TLS cert: %v", err)
+		}
+
+		// load custom certificate authority
+		caCertPool := x509.NewCertPool()
+		if ctx.IsSet("broker_tls_ca") {
+			crt, err := ioutil.ReadFile(ctx.String("broker_tls_ca"))
+			if err != nil {
+				logger.Fatalf("Error loading broker TLS certificate authority: %v", err)
+			}
+			caCertPool.AppendCertsFromPEM(crt)
+		}
+
+		cfg := &tls.Config{Certificates: []tls.Certificate{cert}, RootCAs: caCertPool}
+		brokerOpts = append(brokerOpts, broker.TLSConfig(cfg))
+	}
+
 	// Setup registry options
 	registryOpts := []registry.Option{registrySrv.WithClient(microClient)}
+
+	// Parse registry TLS certs
+	if ctx.IsSet("registry_tls_cert") || ctx.IsSet("registry_tls_key") {
+		cert, err := tls.LoadX509KeyPair(ctx.String("registry_tls_cert"), ctx.String("registry_tls_key"))
+		if err != nil {
+			logger.Fatalf("Error loading registry tls cert: %v", err)
+		}
+
+		// load custom certificate authority
+		caCertPool := x509.NewCertPool()
+		if ctx.IsSet("registry_tls_ca") {
+			crt, err := ioutil.ReadFile(ctx.String("registry_tls_ca"))
+			if err != nil {
+				logger.Fatalf("Error loading registry tls certificate authority: %v", err)
+			}
+			caCertPool.AppendCertsFromPEM(crt)
+		}
+
+		cfg := &tls.Config{Certificates: []tls.Certificate{cert}, RootCAs: caCertPool}
+		registryOpts = append(registryOpts, registry.TLSConfig(cfg))
+	}
+
 	if len(ctx.String("registry_address")) > 0 {
 		addresses := strings.Split(ctx.String("registry_address"), ",")
 		registryOpts = append(registryOpts, registry.Addrs(addresses...))
@@ -708,7 +782,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	if name := ctx.String("router"); len(name) > 0 && (*c.opts.Router).String() != name {
 		r, ok := c.opts.Routers[name]
 		if !ok {
-			return fmt.Errorf("Router %s not found", name)
+			logger.Fatalf("Router %s not found", name)
 		}
 
 		// close the default router before replacing it
@@ -837,7 +911,9 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		))
 
 		if err := (*c.opts.Config).Init(opt); err != nil {
-			logger.Fatalf("Error configuring config: %v", err)
+			if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+				logger.Debugf("Error configuring config: %v", err)
+			}
 		}
 	}
 

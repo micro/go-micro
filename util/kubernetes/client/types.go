@@ -10,8 +10,21 @@ type ContainerPort struct {
 
 // EnvVar is environment variable
 type EnvVar struct {
-	Name  string `json:"name"`
-	Value string `json:"value,omitempty"`
+	Name      string        `json:"name"`
+	Value     string        `json:"value,omitempty"`
+	ValueFrom *EnvVarSource `json:"valueFrom,omitempty"`
+}
+
+// EnvVarSource represents a source for the value of an EnvVar.
+type EnvVarSource struct {
+	SecretKeyRef *SecretKeySelector `json:"secretKeyRef,omitempty"`
+}
+
+// SecretKeySelector selects a key of a Secret.
+type SecretKeySelector struct {
+	Key      string `json:"key"`
+	Name     string `json:"name"`
+	Optional bool   `json:"optional,omitempty"`
 }
 
 type Condition struct {
@@ -199,7 +212,7 @@ type ImagePullSecret struct {
 type Secret struct {
 	Type     string            `json:"type,omitempty"`
 	Data     map[string]string `json:"data"`
-	Metadata *Metadata         `json:"metadata"`
+	Metadata *Metadata         `json:"metadata,omitempty"`
 }
 
 // ServiceAccount

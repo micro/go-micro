@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"io"
 	"sync"
 
 	"github.com/micro/go-micro/v2/client"
@@ -121,6 +122,9 @@ func (s *svc) Logs(service *runtime.Service, opts ...runtime.LogsOption) (runtim
 				record := pb.LogRecord{}
 				err := ls.RecvMsg(&record)
 				if err != nil {
+					if err != io.EOF {
+						logStream.err = err
+					}
 					logStream.Stop()
 					return
 				}
