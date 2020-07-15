@@ -53,7 +53,11 @@ func (k *klog) podLogStream(podName string, stream *kubeStream) error {
 				record := runtime.LogRecord{
 					Message: s.Text(),
 				}
-				stream.stream <- record
+				select {
+				case stream.stream <- record:
+				case <-stream.stop:
+					return stream.Error()
+				}
 			} else {
 				// TODO: is there a blocking call
 				// rather than a sleep loop?
