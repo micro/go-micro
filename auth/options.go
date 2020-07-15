@@ -196,6 +196,8 @@ type TokenOptions struct {
 	RefreshToken string
 	// Expiry is the time the token should live for
 	Expiry time.Duration
+	// Issuer of the account
+	Issuer string
 }
 
 type TokenOption func(o *TokenOptions)
@@ -217,6 +219,12 @@ func WithCredentials(id, secret string) TokenOption {
 func WithToken(rt string) TokenOption {
 	return func(o *TokenOptions) {
 		o.RefreshToken = rt
+	}
+}
+
+func WithTokenIssuer(iss string) TokenOption {
+	return func(o *TokenOptions) {
+		o.Issuer = iss
 	}
 }
 

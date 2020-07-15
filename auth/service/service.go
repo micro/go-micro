@@ -193,6 +193,9 @@ func (s *svc) Inspect(token string) (*auth.Account, error) {
 // Token generation using an account ID and secret
 func (s *svc) Token(opts ...auth.TokenOption) (*auth.Token, error) {
 	options := auth.NewTokenOptions(opts...)
+	if len(options.Issuer) == 0 {
+		options.Issuer = s.options.Issuer
+	}
 
 	// we have the JWT private key and refresh accounts locally
 	if len(s.options.PrivateKey) > 0 {
@@ -224,7 +227,7 @@ func (s *svc) Token(opts ...auth.TokenOption) (*auth.Token, error) {
 		RefreshToken: options.RefreshToken,
 		TokenExpiry:  int64(options.Expiry.Seconds()),
 		Options: &pb.Options{
-			Namespace: s.Options().Issuer,
+			Namespace: options.Issuer,
 		},
 	}, s.callOpts()...)
 	if err != nil {
