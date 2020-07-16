@@ -8,6 +8,7 @@ require (
 	github.com/BurntSushi/toml v0.3.1
 	github.com/bitly/go-simplejson v0.5.0
 	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
+	github.com/bradfitz/gomemcache v0.0.0-20190913173617-a41fca850d0b
 	github.com/bwmarrin/discordgo v0.20.2
 	github.com/caddyserver/certmagic v0.10.6
 	github.com/coreos/bbolt v1.3.3 // indirect
