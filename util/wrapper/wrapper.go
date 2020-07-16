@@ -187,28 +187,10 @@ func AuthClient(auth func() auth.Auth, c client.Client) client.Client {
 	return &authWrapper{c, auth}
 }
 
-func AuthHandlerNamespace(ns string) AuthHandlerOption {
-	return func(o *AuthHandlerOptions) {
-		o.Namespace = ns
-	}
-}
-
-type AuthHandlerOption func(o *AuthHandlerOptions)
-
-type AuthHandlerOptions struct {
-	Namespace string
-}
-
 // AuthHandler wraps a server handler to perform auth
-func AuthHandler(fn func() auth.Auth, opts ...AuthHandlerOption) server.HandlerWrapper {
+func AuthHandler(fn func() auth.Auth) server.HandlerWrapper {
 	return func(h server.HandlerFunc) server.HandlerFunc {
 		return func(ctx context.Context, req server.Request, rsp interface{}) error {
-			// parse the options
-			options := AuthHandlerOptions{}
-			for _, o := range opts {
-				o(&options)
-			}
-
 			// get the auth.Auth interface
 			a := fn()
 
@@ -233,19 +215,6 @@ func AuthHandler(fn func() auth.Auth, opts ...AuthHandlerOption) server.HandlerW
 			// Inspect the token and decode an account
 			account, _ := a.Inspect(token)
 
-			// Extract the namespace header
-			ns, ok := metadata.Get(ctx, "Micro-Namespace")
-			if !ok {
-				ns = a.Options().Issuer
-				ctx = metadata.Set(ctx, "Micro-Namespace", ns)
-			}
-
-			// Check the issuer matches the services namespace. TODO: Stop allowing micro to access
-			// any namespace and instead check for the server issuer.
-			if account != nil && account.Issuer != ns && account.Issuer != "micro" {
-				return errors.Forbidden(req.Service(), "Account was issued by %v, not %v", account.Issuer, ns)
-			}
-
 			// construct the resource
 			res := &auth.Resource{
 				Type:     "service",
@@ -253,16 +222,15 @@ func AuthHandler(fn func() auth.Auth, opts ...AuthHandlerOption) server.HandlerW
 				Endpoint: req.Endpoint(),
 			}
 
-			// Normal services set the namespace to prevent it being overriden
-			// by setting the Namespace header, however this isn't the case for
-			// the proxy which uses the namespace header when routing requests
-			// to a specific network.
-			if len(options.Namespace) == 0 {
-				options.Namespace = ns
+			// An account can only be used to verify if it has the same issuer
+			// as the current service
+			var verifyAcc *auth.Account
+			if account != nil && account.Issuer == a.Options().Issuer {
+				verifyAcc = account
 			}
 
 			// Verify the caller has access to the resource.
-			err := a.Verify(account, res, auth.VerifyNamespace(options.Namespace))
+			err := a.Verify(verifyAcc, res, auth.VerifyNamespace(a.Options().Issuer))
 			if err == auth.ErrForbidden && account != nil {
 				return errors.Forbidden(req.Service(), "Forbidden call made to %v:%v by %v", req.Service(), req.Endpoint(), account.ID)
 			} else if err == auth.ErrForbidden {
