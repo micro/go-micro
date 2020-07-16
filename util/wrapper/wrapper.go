@@ -223,14 +223,15 @@ func AuthHandler(fn func() auth.Auth) server.HandlerWrapper {
 			}
 
 			// An account can only be used to verify if it has the same issuer
-			// as the current service
-			var verifyAcc *auth.Account
-			if account != nil && account.Issuer == a.Options().Issuer {
-				verifyAcc = account
+			// as the current service. The only exception is the default namespace
+			// (micro) which can be called using any account since it is designed to
+			// be multi-tenant.
+			if account != nil && account.Issuer != a.Options().Issuer && a.Options().Issuer != "micro" {
+				account = nil
 			}
 
 			// Verify the caller has access to the resource.
-			err := a.Verify(verifyAcc, res, auth.VerifyNamespace(a.Options().Issuer))
+			err := a.Verify(account, res, auth.VerifyNamespace(a.Options().Issuer))
 			if err == auth.ErrForbidden && account != nil {
 				return errors.Forbidden(req.Service(), "Forbidden call made to %v:%v by %v", req.Service(), req.Endpoint(), account.ID)
 			} else if err == auth.ErrForbidden {
