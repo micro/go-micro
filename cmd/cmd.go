@@ -805,6 +805,8 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	}
 	if len(ctx.String("store_database")) > 0 {
 		storeOpts = append(storeOpts, store.Database(ctx.String("store_database")))
+	} else if len(ctx.String("service_namespace")) > 0 {
+		storeOpts = append(storeOpts, store.Database(ctx.String("service_namespace")))
 	}
 	if len(ctx.String("store_table")) > 0 {
 		storeOpts = append(storeOpts, store.Table(ctx.String("store_table")))

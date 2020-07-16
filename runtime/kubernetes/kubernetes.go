@@ -36,10 +36,18 @@ type kubernetes struct {
 func (k *kubernetes) namespaceExists(name string) (bool, error) {
 	// populate the cache
 	if k.namespaces == nil {
+		if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+			logger.Debugf("Populating namespace cache")
+		}
+
 		namespaceList := new(client.NamespaceList)
 		resource := &client.Resource{Kind: "namespace", Value: namespaceList}
 		if err := k.client.List(resource); err != nil {
 			return false, err
+		}
+
+		if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+			logger.Debugf("Popualted namespace cache successfully with %v items", len(namespaceList.Items))
 		}
 		k.namespaces = namespaceList.Items
 	}
@@ -384,7 +392,6 @@ func (k *kubeStream) Stop() error {
 		return nil
 	default:
 		close(k.stop)
-		close(k.stream)
 	}
 	return nil
 }
@@ -418,9 +425,15 @@ func (k *kubernetes) Create(s *runtime.Service, opts ...runtime.CreateOption) er
 	if namespace != "default" {
 		if exist, err := k.namespaceExists(namespace); err == nil && !exist {
 			if err := k.createNamespace(namespace); err != nil {
+				if logger.V(logger.WarnLevel, logger.DefaultLogger) {
+					logger.Warnf("Error creating namespacr %v: %v", namespace, err)
+				}
 				return err
 			}
 		} else if err != nil {
+			if logger.V(logger.WarnLevel, logger.DefaultLogger) {
+				logger.Warnf("Error checking namespace %v exists: %v", namespace, err)
+			}
 			return err
 		}
 	}
