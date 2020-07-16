@@ -5,7 +5,6 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"math/rand"
 	"net"
 	"reflect"
 	"strings"
@@ -18,9 +17,6 @@ import (
 	"github.com/micro/go-micro/v2/errors"
 	"github.com/micro/go-micro/v2/metadata"
 	"github.com/micro/go-micro/v2/registry"
-	"github.com/micro/go-micro/v2/router"
-	"github.com/micro/go-micro/v2/selector"
-	pnet "github.com/micro/go-micro/v2/util/net"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -72,56 +68,6 @@ func (g *grpcClient) secure(addr string) grpc.DialOption {
 
 	// other fallback to insecure
 	return grpc.WithInsecure()
-}
-
-// lookupRoute for a request using the router and then choose one using the selector
-func (g *grpcClient) lookupRoute(req client.Request, opts client.CallOptions) (*router.Route, error) {
-	// check to see if the proxy has been set, if it has we don't need to lookup the routes; net.Proxy
-	// returns a slice of addresses, so we'll use a random one. Eventually we should to use the
-	// selector for this.
-	service, addresses, _ := pnet.Proxy(req.Service(), opts.Address)
-	if len(addresses) > 0 {
-		return &router.Route{
-			Service: service,
-			Address: addresses[rand.Int()%len(addresses)],
-		}, nil
-	}
-
-	// construct the router query
-	query := []router.QueryOption{router.QueryService(req.Service())}
-
-	// if a custom network was requested, pass this to the router. By default the router will use it's
-	// own network, which is set during initialisation.
-	if len(opts.Network) > 0 {
-		query = append(query, router.QueryNetwork(opts.Network))
-	}
-
-	// use the router passed as a call option, or fallback to the grpc clients router
-	if opts.Router == nil {
-		opts.Router = g.opts.Router
-	}
-
-	// lookup the routes which can be used to execute the request
-	routes, err := opts.Router.Lookup(query...)
-	if err == router.ErrRouteNotFound {
-		return nil, errors.InternalServerError("go.micro.client", "service %s: %s", req.Service(), err.Error())
-	} else if err != nil {
-		return nil, errors.InternalServerError("go.micro.client", "error getting next %s node: %s", req.Service(), err.Error())
-	}
-
-	// use the selector passed as a call option, or fallback to the grpc clients selector
-	if opts.Selector == nil {
-		opts.Selector = g.opts.Selector
-	}
-
-	// select the route to use for the request
-	if route, err := opts.Selector.Select(routes, opts.SelectOptions...); err == selector.ErrNoneAvailable {
-		return nil, errors.InternalServerError("go.micro.client", "service %s: %s", req.Service(), err.Error())
-	} else if err != nil {
-		return nil, errors.InternalServerError("go.micro.client", "error getting next %s node: %s", req.Service(), err.Error())
-	} else {
-		return route, nil
-	}
 }
 
 func (g *grpcClient) call(ctx context.Context, node *registry.Node, req client.Request, rsp interface{}, opts client.CallOptions) error {
@@ -456,8 +402,17 @@ func (g *grpcClient) Call(ctx context.Context, req client.Request, rsp interface
 			time.Sleep(t)
 		}
 
+		// use the router passed as a call option, or fallback to the rpc clients router
+		if callOpts.Router == nil {
+			callOpts.Router = g.opts.Router
+		}
+		// use the selector passed as a call option, or fallback to the rpc clients selector
+		if callOpts.Selector == nil {
+			callOpts.Selector = g.opts.Selector
+		}
+
 		// lookup the route to send the reques to
-		route, err := g.lookupRoute(req, callOpts)
+		route, err := client.LookupRoute(req, callOpts)
 		if err != nil {
 			return err
 		}
@@ -550,8 +505,17 @@ func (g *grpcClient) Stream(ctx context.Context, req client.Request, opts ...cli
 			time.Sleep(t)
 		}
 
+		// use the router passed as a call option, or fallback to the rpc clients router
+		if callOpts.Router == nil {
+			callOpts.Router = g.opts.Router
+		}
+		// use the selector passed as a call option, or fallback to the rpc clients selector
+		if callOpts.Selector == nil {
+			callOpts.Selector = g.opts.Selector
+		}
+
 		// lookup the route to send the reques to
-		route, err := g.lookupRoute(req, callOpts)
+		route, err := client.LookupRoute(req, callOpts)
 		if err != nil {
 			return nil, err
 		}
