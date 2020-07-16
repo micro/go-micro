@@ -32,7 +32,7 @@ type Entity interface {
 	Name() string
 	// The value associated with the entity
 	Value() interface{}
-	// Attributes of the enity
+	// Attributes of the entity
 	Attributes() map[string]interface{}
 	// Read a value as a concrete type
 	Read(v interface{}) error

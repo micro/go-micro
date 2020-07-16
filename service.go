@@ -46,7 +46,7 @@ func newService(opts ...Option) Service {
 
 	// pass the services auth namespace to the auth handler so it
 	// uses this to verify requests, preventing the reliance on the
-	// unsecure Micro-Namespace header.
+	// insecure Micro-Namespace header.
 	handlerNS := wrapper.AuthHandlerNamespace(options.Auth.Options().Issuer)
 
 	// wrap the server to provide handler stats

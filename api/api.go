@@ -18,7 +18,7 @@ type Api interface {
 	Register(*Endpoint) error
 	// Register a route
 	Deregister(*Endpoint) error
-	// Implemenation of api
+	// Implementation of api
 	String() string
 }
 
