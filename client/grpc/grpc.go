@@ -618,6 +618,16 @@ func (g *grpcClient) Stream(ctx context.Context, req client.Request, opts ...cli
 
 func (g *grpcClient) Publish(ctx context.Context, p client.Message, opts ...client.PublishOption) error {
 	var options client.PublishOptions
+	var body []byte
+
+	// fail early on connect error
+	if !g.once.Load().(bool) {
+		if err := g.opts.Broker.Connect(); err != nil {
+			return errors.InternalServerError("go.micro.client", err.Error())
+		}
+		g.once.Store(true)
+	}
+
 	for _, o := range opts {
 		o(&options)
 	}
@@ -629,30 +639,21 @@ func (g *grpcClient) Publish(ctx context.Context, p client.Message, opts ...clie
 	md["Content-Type"] = p.ContentType()
 	md["Micro-Topic"] = p.Topic()
 
-	cf, err := g.newGRPCCodec(p.ContentType())
-	if err != nil {
-		return errors.InternalServerError("go.micro.client", err.Error())
-	}
-
-	var body []byte
-
 	// passed in raw data
 	if d, ok := p.Payload().(*raw.Frame); ok {
 		body = d.Data
 	} else {
+		// use codec for payload
+		cf, err := g.newGRPCCodec(p.ContentType())
+		if err != nil {
+			return errors.InternalServerError("go.micro.client", err.Error())
+		}
 		// set the body
 		b, err := cf.Marshal(p.Payload())
 		if err != nil {
 			return errors.InternalServerError("go.micro.client", err.Error())
 		}
 		body = b
-	}
-
-	if !g.once.Load().(bool) {
-		if err = g.opts.Broker.Connect(); err != nil {
-			return errors.InternalServerError("go.micro.client", err.Error())
-		}
-		g.once.Store(true)
 	}
 
 	topic := p.Topic()
