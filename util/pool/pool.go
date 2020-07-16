@@ -13,7 +13,7 @@ type Pool interface {
 	Close() error
 	// Get a connection
 	Get(addr string, opts ...transport.DialOption) (Conn, error)
-	// Releaes the connection
+	// Release the connection
 	Release(c Conn, status error) error
 }
 

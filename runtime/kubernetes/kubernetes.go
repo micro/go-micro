@@ -398,7 +398,6 @@ func (k *kubeStream) Stop() error {
 		return nil
 	default:
 		close(k.stop)
-		close(k.stream)
 	}
 	return nil
 }

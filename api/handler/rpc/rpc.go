@@ -265,7 +265,7 @@ func requestPayload(r *http.Request) ([]byte, error) {
 
 	// otherwise as per usual
 	ctx := r.Context()
-	// dont user meadata.FromContext as it mangles names
+	// dont user metadata.FromContext as it mangles names
 	md, ok := metadata.FromContext(ctx)
 	if !ok {
 		md = make(map[string]string)

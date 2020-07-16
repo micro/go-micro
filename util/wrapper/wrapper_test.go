@@ -340,7 +340,7 @@ func TestCacheWrapper(t *testing.T) {
 			return nil
 		}, cli)
 
-		// perfroming two requests should increment the call count by two indicating the cache wasn't
+		// performing two requests should increment the call count by two indicating the cache wasn't
 		// used even though the WithCache option was passed.
 		w.Call(context.TODO(), req, nil, client.WithCache(time.Minute))
 		w.Call(context.TODO(), req, nil, client.WithCache(time.Minute))
@@ -358,7 +358,7 @@ func TestCacheWrapper(t *testing.T) {
 			return cache
 		}, cli)
 
-		// perfroming two requests should increment the call count by two since we didn't pass the WithCache
+		// performing two requests should increment the call count by two since we didn't pass the WithCache
 		// option to Call.
 		w.Call(context.TODO(), req, nil)
 		w.Call(context.TODO(), req, nil)
@@ -377,7 +377,7 @@ func TestCacheWrapper(t *testing.T) {
 			return cache
 		}, cli)
 
-		// perfroming two requests should increment the call count by once since the second request should
+		// performing two requests should increment the call count by once since the second request should
 		// have used the cache. The correct value should be set on both responses and no errors should
 		// be returned.
 		rsp1 := &testRsp{}

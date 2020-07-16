@@ -44,6 +44,11 @@ func newService(opts ...Option) Service {
 	options.Client = wrapper.CacheClient(cacheFn, options.Client)
 	options.Client = wrapper.AuthClient(authFn, options.Client)
 
+	// pass the services auth namespace to the auth handler so it
+	// uses this to verify requests, preventing the reliance on the
+	// insecure Micro-Namespace header.
+	handlerNS := wrapper.AuthHandlerNamespace(options.Auth.Options().Issuer)
+
 	// wrap the server to provide handler stats
 	options.Server.Init(
 		server.WrapHandler(wrapper.HandlerStats(stats.DefaultStats)),

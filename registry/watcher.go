@@ -23,9 +23,9 @@ type EventType int
 const (
 	// Create is emitted when a new service is registered
 	Create EventType = iota
-	// Delete is emitted when an existing service is deregsitered
+	// Delete is emitted when an existing service is deregistered
 	Delete
-	// Update is emitted when an existing servicec is updated
+	// Update is emitted when an existing service is updated
 	Update
 )
 
