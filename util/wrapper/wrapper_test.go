@@ -155,28 +155,6 @@ func TestAuthHandler(t *testing.T) {
 		}
 	})
 
-	// If the issuer header was not set on the request, the wrapper should set it to the auths
-	// own issuer
-	t.Run("BlankIssuerHeader", func(t *testing.T) {
-		a := testAuth{issuer: "myissuer"}
-		handler := AuthHandler(func() auth.Auth {
-			return &a
-		})
-
-		inCtx := context.TODO()
-		h := func(ctx context.Context, req server.Request, rsp interface{}) error {
-			inCtx = ctx
-			return nil
-		}
-
-		err := handler(h)(inCtx, serviceReq, nil)
-		if err != nil {
-			t.Errorf("Expected nil error but got %v", err)
-		}
-		if ns, _ := metadata.Get(inCtx, "Micro-Namespace"); ns != a.issuer {
-			t.Errorf("Expected issuer to be set to %v but was %v", a.issuer, ns)
-		}
-	})
 	t.Run("ValidIssuerHeader", func(t *testing.T) {
 		a := testAuth{issuer: "myissuer"}
 		handler := AuthHandler(func() auth.Auth {
@@ -199,24 +177,6 @@ func TestAuthHandler(t *testing.T) {
 		}
 	})
 
-	// If the callers account was set but the issuer didn't match that of the request, the request
-	// should be forbidden
-	t.Run("InvalidAccountIssuer", func(t *testing.T) {
-		a := testAuth{
-			issuer:         "validissuer",
-			inspectAccount: &auth.Account{Issuer: "invalidissuer"},
-		}
-
-		handler := AuthHandler(func() auth.Auth {
-			return &a
-		})
-
-		ctx := metadata.Set(context.TODO(), "Authorization", auth.BearerScheme+"Token")
-		err := handler(h)(ctx, serviceReq, nil)
-		if verr, ok := err.(*errors.Error); !ok || verr.Code != http.StatusForbidden {
-			t.Errorf("Expected forbidden error but got %v", err)
-		}
-	})
 	t.Run("ValidAccountIssuer", func(t *testing.T) {
 		a := testAuth{
 			issuer:         "validissuer",
