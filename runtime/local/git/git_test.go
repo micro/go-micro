@@ -5,8 +5,9 @@ import (
 )
 
 type parseCase struct {
-	source   string
-	expected *Source
+	source      string
+	expected    *Source
+	expectedErr bool
 }
 
 func TestParseSource(t *testing.T) {
@@ -18,6 +19,8 @@ func TestParseSource(t *testing.T) {
 				Folder: "helloworld",
 				Ref:    "latest",
 			},
+			// should fail as "micro/services" contains no helloworld
+			expectedErr: true,
 		},
 		{
 			source: "github.com/micro/services/helloworld",
@@ -55,7 +58,10 @@ func TestParseSource(t *testing.T) {
 	for i, c := range cases {
 		result, err := ParseSource(c.source)
 		if err != nil {
-			t.Fatalf("Failed case %v: %v", i, err)
+			if !c.expectedErr {
+				t.Fatalf("Failed case %v: %v", i, err)
+			}
+			return
 		}
 		if result.Folder != c.expected.Folder {
 			t.Fatalf("Folder does not match for '%v', expected '%v', got '%v'", i, c.expected.Folder, result.Folder)

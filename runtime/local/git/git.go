@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"archive/zip"
 	"compress/gzip"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -13,7 +14,6 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/asaskevich/govalidator"
 	"github.com/teris-io/shortid"
 )
 
@@ -166,20 +166,45 @@ func (s *Source) RuntimeSource() string {
 	return fmt.Sprintf("%v/%v", s.Repo, s.Folder)
 }
 
+// repo: github.com/micro/services
+// folder: helloworld
+func defaultExists(repo, folder, ref string) error {
+	if ref == "" || ref == "latest" {
+		ref = "master"
+	}
+	url := fmt.Sprintf("https://%v/tree/%v/%v", repo, ref, folder)
+	resp, err := http.Get(url)
+	// @todo gracefully degrade?
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	if resp.StatusCode >= 400 && resp.StatusCode < 500 {
+		return fmt.Errorf("service at '%v' not found", url)
+	}
+	return nil
+}
+
 // ParseSource parses a `micro run/update/kill` source.
 func ParseSource(source string) (*Source, error) {
-	// If the part before the first dash doesn't look like a domain,
-	// we prepend the default repo because at this point we should not have local sources.
-	if !govalidator.IsDNSName(strings.Split(source, "/")[0]) {
-		source = "github.com/micro/services/" + source
-	}
 	if !strings.Contains(source, "@") {
 		source += "@latest"
 	}
 	ret := &Source{}
 	refParts := strings.Split(source, "@")
 	ret.Ref = refParts[1]
+	source = refParts[0]
+
+	// If the part before the first dash doesn't look like a domain,
+	// we prepend the default repo because at this point we should not have local sources.
+	if defaultExists("github.com/micro/services", source, ret.Ref) == nil {
+		source = "github.com/micro/services/" + source
+	}
+
 	dashParts := strings.Split(refParts[0], "/")
+	if len(dashParts) < 3 {
+		return nil, errors.New("Can't find service")
+	}
 	ret.Repo = strings.Join(dashParts[0:3], "/")
 	if len(dashParts) > 3 {
 		ret.Folder = strings.Join(dashParts[3:], "/")
