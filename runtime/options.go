@@ -129,8 +129,8 @@ func CreateContext(ctx context.Context) CreateOption {
 	}
 }
 
-// CreateSecret sets a secret to provide the service with
-func CreateSecret(key, value string) CreateOption {
+// WithSecret sets a secret to provide the service with
+func WithSecret(key, value string) CreateOption {
 	return func(o *CreateOptions) {
 		secret := strings.Join([]string{key, value}, "=")
 		o.Secrets = append(o.Secrets, secret)
