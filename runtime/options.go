@@ -3,7 +3,6 @@ package runtime
 import (
 	"context"
 	"io"
-	"strings"
 
 	"github.com/micro/go-micro/v2/client"
 )
@@ -84,7 +83,7 @@ type CreateOptions struct {
 	// Specify the context to use
 	Context context.Context
 	// Secrets to use
-	Secrets []string
+	Secrets map[string]string
 }
 
 // ReadOptions queries runtime services
@@ -132,8 +131,11 @@ func CreateContext(ctx context.Context) CreateOption {
 // WithSecret sets a secret to provide the service with
 func WithSecret(key, value string) CreateOption {
 	return func(o *CreateOptions) {
-		secret := strings.Join([]string{key, value}, "=")
-		o.Secrets = append(o.Secrets, secret)
+		if o.Secrets == nil {
+			o.Secrets = map[string]string{key: value}
+		} else {
+			o.Secrets[key] = value
+		}
 	}
 }
 

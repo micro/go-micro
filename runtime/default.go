@@ -270,13 +270,8 @@ func (r *runtime) Create(s *Service, opts ...CreateOption) error {
 	}
 
 	// pass secrets as env vars
-	for _, secret := range options.Secrets {
-		// validate the format
-		comps := strings.Split(secret, "=")
-		if len(comps) != 2 {
-			return errors.New("Invalid secret, expected format 'user:pass'")
-		}
-		options.Env = append(options.Env, comps[0], comps[1])
+	for key, value := range options.Secrets {
+		options.Env = append(options.Env, key, value)
 	}
 
 	if _, ok := r.namespaces[options.Namespace]; !ok {

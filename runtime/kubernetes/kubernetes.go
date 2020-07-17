@@ -3,9 +3,7 @@ package kubernetes
 
 import (
 	"encoding/base64"
-	"errors"
 	"fmt"
-	"strings"
 	"sync"
 	"time"
 
@@ -678,13 +676,8 @@ func (k *kubernetes) getImage(s *runtime.Service, options runtime.CreateOptions)
 }
 func (k *kubernetes) createCredentials(service *runtime.Service, options runtime.CreateOptions) error {
 	data := make(map[string]string, len(options.Secrets))
-	for _, secret := range options.Secrets {
-		// validate the creds
-		comps := strings.Split(secret, "=")
-		if len(comps) != 2 {
-			return errors.New("Invalid secret, expected format 'KEY=VALUE'")
-		}
-		data[comps[0]] = base64.StdEncoding.EncodeToString([]byte(comps[1]))
+	for key, value := range options.Secrets {
+		data[key] = base64.StdEncoding.EncodeToString([]byte(value))
 	}
 
 	// construct the k8s secret object
