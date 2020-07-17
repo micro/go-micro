@@ -269,16 +269,14 @@ func (r *runtime) Create(s *Service, opts ...CreateOption) error {
 		options.Args = []string{"run", "."}
 	}
 
-	// pass credentials as env vars
-	if len(options.Credentials) > 0 {
-		// validate the creds
-		comps := strings.Split(options.Credentials, ":")
+	// pass secrets as env vars
+	for _, secret := range options.Secrets {
+		// validate the format
+		comps := strings.Split(secret, "=")
 		if len(comps) != 2 {
-			return errors.New("Invalid credentials, expected format 'user:pass'")
+			return errors.New("Invalid secret, expected format 'user:pass'")
 		}
-
-		options.Env = append(options.Env, "MICRO_AUTH_ID", comps[0])
-		options.Env = append(options.Env, "MICRO_AUTH_SECRET", comps[1])
+		options.Env = append(options.Env, comps[0], comps[1])
 	}
 
 	if _, ok := r.namespaces[options.Namespace]; !ok {
