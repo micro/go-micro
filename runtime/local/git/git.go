@@ -13,6 +13,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/asaskevich/govalidator"
 	"github.com/teris-io/shortid"
 )
 
@@ -167,20 +168,21 @@ func (s *Source) RuntimeSource() string {
 
 // ParseSource parses a `micro run/update/kill` source.
 func ParseSource(source string) (*Source, error) {
-	// If github is not present, we got a shorthand for `micro/services`
-	if !strings.Contains(source, "github.com") {
+	// If the part before the first dash doesn't look like a domain,
+	// we prepend the default repo because at this point we should not have local sources.
+	if !govalidator.IsDNSName(strings.Split(source, "/")[0]) {
 		source = "github.com/micro/services/" + source
 	}
 	if !strings.Contains(source, "@") {
 		source += "@latest"
 	}
 	ret := &Source{}
-	refs := strings.Split(source, "@")
-	ret.Ref = refs[1]
-	parts := strings.Split(refs[0], "/")
-	ret.Repo = strings.Join(parts[0:3], "/")
-	if len(parts) > 1 {
-		ret.Folder = strings.Join(parts[3:], "/")
+	refParts := strings.Split(source, "@")
+	ret.Ref = refParts[1]
+	dashParts := strings.Split(refParts[0], "/")
+	ret.Repo = strings.Join(dashParts[0:3], "/")
+	if len(dashParts) > 3 {
+		ret.Folder = strings.Join(dashParts[3:], "/")
 	}
 
 	return ret, nil
