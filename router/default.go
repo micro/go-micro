@@ -135,7 +135,7 @@ func (r *router) manageRoutes(service *registry.Service, action, network string)
 			Router:   r.options.Id,
 			Link:     DefaultLink,
 			Metric:   DefaultLocalMetric,
-			Metadata: service.Metadata,
+			Metadata: node.Metadata,
 		}
 
 		if err := r.manageRoute(route, action); err != nil {
