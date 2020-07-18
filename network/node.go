@@ -167,7 +167,7 @@ func (n *node) walk(until func(peer *node) bool, action func(parent, peer *node)
 			return visited
 		}
 		// iterate through all of the node peers
-		// mark the visited nodes; enqueue the non-visted
+		// mark the visited nodes; enqueue the non-visited
 		for id, peer := range qnode.Value.(*node).peers {
 			action(qnode.Value.(*node), peer)
 			if _, ok := visited[id]; !ok {
@@ -274,7 +274,7 @@ func (n *node) RefreshSync(now time.Time) error {
 // Nodes returns a slice of all nodes in the whole node topology
 func (n *node) Nodes() []Node {
 	// we need to freeze the network graph here
-	// otherwise we might get inconsisten results
+	// otherwise we might get inconsistent results
 	n.RLock()
 	defer n.RUnlock()
 
