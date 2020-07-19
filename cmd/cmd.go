@@ -925,3 +925,8 @@ func Init(opts ...Option) error {
 func NewCmd(opts ...Option) Cmd {
 	return newCmd(opts...)
 }
+
+// Run the default command
+func Run() error {
+	return DefaultCmd.Run()
+}
