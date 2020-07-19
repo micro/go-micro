@@ -1,3 +1,4 @@
+// Package jwt is a jwt implementation of the auth interface
 package jwt
 
 import (

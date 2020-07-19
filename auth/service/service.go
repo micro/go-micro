@@ -1,3 +1,4 @@
+// Package servie is a micro service implementation of the auth interface
 package service
 
 import (
