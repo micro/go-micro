@@ -1,3 +1,4 @@
+// Package selector is for node selection and load balancing
 package selector
 
 import (
