@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 	"io/ioutil"
 	"math/rand"
+	"os"
 	"strings"
 	"time"
 
@@ -87,13 +88,15 @@ import (
 )
 
 type Cmd interface {
-	// Init parses the command line args
-	// TODO: replace with Run method
+	// Init initialises options
+	// Note: Use Run to parse command line
 	Init(opts ...Option) error
-	// The cli app within this cmd
-	App() *cli.App
 	// Options set within this command
 	Options() Options
+	// The cli app within this cmd
+	App() *cli.App
+	// Run executes the command
+	Run() error
 	// Implementation
 	String() string
 }
@@ -900,8 +903,11 @@ func (c *cmd) Init(opts ...Option) error {
 	}
 	c.app.HideVersion = len(c.opts.Version) == 0
 	c.app.Usage = c.opts.Description
-	c.app.RunAndExitOnError()
 	return nil
+}
+
+func (c *cmd) Run() error {
+	return c.app.Run(os.Args)
 }
 
 func (c *cmd) String() string {
