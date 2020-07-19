@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/micro/go-micro/v2/auth"
-	"github.com/micro/go-micro/v2/auth/rules"
 	pb "github.com/micro/go-micro/v2/auth/service/proto"
 	"github.com/micro/go-micro/v2/auth/token"
 	"github.com/micro/go-micro/v2/auth/token/jwt"
@@ -170,7 +169,7 @@ func (s *svc) Verify(acc *auth.Account, res *auth.Resource, opts ...auth.VerifyO
 		return err
 	}
 
-	return rules.Verify(rs, acc, res)
+	return auth.VerifyAccess(rs, acc, res)
 }
 
 // Inspect a token
