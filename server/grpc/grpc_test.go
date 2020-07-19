@@ -10,6 +10,7 @@ import (
 	"github.com/micro/go-micro/v2/client"
 	gcli "github.com/micro/go-micro/v2/client/grpc"
 	"github.com/micro/go-micro/v2/errors"
+	pberr "github.com/micro/go-micro/v2/errors/proto"
 	rmemory "github.com/micro/go-micro/v2/registry/memory"
 	"github.com/micro/go-micro/v2/router"
 	"github.com/micro/go-micro/v2/server"
@@ -201,7 +202,7 @@ func TestGRPCServer(t *testing.T) {
 		if !ok {
 			t.Fatalf("invalid error received %#+v\n", err)
 		}
-		verr, ok := st.Details()[0].(*errors.Error)
+		verr, ok := st.Details()[0].(*pberr.Error)
 		if !ok {
 			t.Fatalf("invalid error received %#+v\n", st.Details()[0])
 		}
