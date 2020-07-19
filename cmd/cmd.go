@@ -10,21 +10,20 @@ import (
 	"strings"
 	"time"
 
+	"github.com/micro/cli/v2"
 	"github.com/micro/go-micro/v2/auth"
 	"github.com/micro/go-micro/v2/broker"
+	brokerSrv "github.com/micro/go-micro/v2/broker/service"
 	"github.com/micro/go-micro/v2/client"
 	"github.com/micro/go-micro/v2/client/grpc"
 	"github.com/micro/go-micro/v2/config"
-	configSrc "github.com/micro/go-micro/v2/config/source"
-	configSrv "github.com/micro/go-micro/v2/config/source/service"
 	"github.com/micro/go-micro/v2/debug/profile"
-	"github.com/micro/go-micro/v2/debug/profile/http"
-	"github.com/micro/go-micro/v2/debug/profile/pprof"
 	"github.com/micro/go-micro/v2/debug/trace"
 	"github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/registry"
 	registrySrv "github.com/micro/go-micro/v2/registry/service"
 	"github.com/micro/go-micro/v2/router"
+	srvRouter "github.com/micro/go-micro/v2/router/service"
 	"github.com/micro/go-micro/v2/runtime"
 	"github.com/micro/go-micro/v2/selector"
 	"github.com/micro/go-micro/v2/server"
@@ -33,58 +32,8 @@ import (
 	authutil "github.com/micro/go-micro/v2/util/auth"
 	"github.com/micro/go-micro/v2/util/wrapper"
 
-	// clients
-	cgrpc "github.com/micro/go-micro/v2/client/grpc"
-	cmucp "github.com/micro/go-micro/v2/client/mucp"
-
-	// servers
-	"github.com/micro/cli/v2"
-
-	sgrpc "github.com/micro/go-micro/v2/server/grpc"
-	smucp "github.com/micro/go-micro/v2/server/mucp"
-
-	// brokers
-	brokerHttp "github.com/micro/go-micro/v2/broker/http"
-	"github.com/micro/go-micro/v2/broker/memory"
-	"github.com/micro/go-micro/v2/broker/nats"
-	brokerSrv "github.com/micro/go-micro/v2/broker/service"
-
-	// registries
-	"github.com/micro/go-micro/v2/registry/etcd"
-	"github.com/micro/go-micro/v2/registry/mdns"
-	rmem "github.com/micro/go-micro/v2/registry/memory"
-	regSrv "github.com/micro/go-micro/v2/registry/service"
-
-	// routers
-	dnsRouter "github.com/micro/go-micro/v2/router/dns"
-	regRouter "github.com/micro/go-micro/v2/router/registry"
-	srvRouter "github.com/micro/go-micro/v2/router/service"
-	staticRouter "github.com/micro/go-micro/v2/router/static"
-
-	// runtimes
-	kRuntime "github.com/micro/go-micro/v2/runtime/kubernetes"
-	lRuntime "github.com/micro/go-micro/v2/runtime/local"
-	srvRuntime "github.com/micro/go-micro/v2/runtime/service"
-
-	// selectors
-	randSelector "github.com/micro/go-micro/v2/selector/random"
-	roundSelector "github.com/micro/go-micro/v2/selector/roundrobin"
-
-	// transports
-	thttp "github.com/micro/go-micro/v2/transport/http"
-	tmem "github.com/micro/go-micro/v2/transport/memory"
-
-	// stores
-	memStore "github.com/micro/go-micro/v2/store/memory"
-	svcStore "github.com/micro/go-micro/v2/store/service"
-
-	// tracers
-	// jTracer "github.com/micro/go-micro/v2/debug/trace/jaeger"
-	memTracer "github.com/micro/go-micro/v2/debug/trace/memory"
-
-	// auth
-	jwtAuth "github.com/micro/go-micro/v2/auth/jwt"
-	svcAuth "github.com/micro/go-micro/v2/auth/service"
+	configSrc "github.com/micro/go-micro/v2/config/source"
+	configSrv "github.com/micro/go-micro/v2/config/source/service"
 )
 
 type Cmd interface {
@@ -350,76 +299,31 @@ var (
 		},
 	}
 
-	DefaultBrokers = map[string]func(...broker.Option) broker.Broker{
-		"service": brokerSrv.NewBroker,
-		"memory":  memory.NewBroker,
-		"nats":    nats.NewBroker,
-		"http":    brokerHttp.NewBroker,
-	}
+	DefaultBrokers = map[string]func(...broker.Option) broker.Broker{}
 
-	DefaultClients = map[string]func(...client.Option) client.Client{
-		"mucp": cmucp.NewClient,
-		"grpc": cgrpc.NewClient,
-	}
+	DefaultClients = map[string]func(...client.Option) client.Client{}
 
-	DefaultRegistries = map[string]func(...registry.Option) registry.Registry{
-		"service": regSrv.NewRegistry,
-		"etcd":    etcd.NewRegistry,
-		"mdns":    mdns.NewRegistry,
-		"memory":  rmem.NewRegistry,
-	}
+	DefaultRegistries = map[string]func(...registry.Option) registry.Registry{}
 
-	DefaultRouters = map[string]func(...router.Option) router.Router{
-		"dns":      dnsRouter.NewRouter,
-		"registry": regRouter.NewRouter,
-		"static":   staticRouter.NewRouter,
-		"service":  srvRouter.NewRouter,
-	}
+	DefaultRouters = map[string]func(...router.Option) router.Router{}
 
-	DefaultSelectors = map[string]func(...selector.Option) selector.Selector{
-		"random":     randSelector.NewSelector,
-		"roundrobin": roundSelector.NewSelector,
-	}
+	DefaultSelectors = map[string]func(...selector.Option) selector.Selector{}
 
-	DefaultServers = map[string]func(...server.Option) server.Server{
-		"mucp": smucp.NewServer,
-		"grpc": sgrpc.NewServer,
-	}
+	DefaultServers = map[string]func(...server.Option) server.Server{}
 
-	DefaultTransports = map[string]func(...transport.Option) transport.Transport{
-		"memory": tmem.NewTransport,
-		"http":   thttp.NewTransport,
-	}
+	DefaultTransports = map[string]func(...transport.Option) transport.Transport{}
 
-	DefaultRuntimes = map[string]func(...runtime.Option) runtime.Runtime{
-		"local":      lRuntime.NewRuntime,
-		"service":    srvRuntime.NewRuntime,
-		"kubernetes": kRuntime.NewRuntime,
-	}
+	DefaultRuntimes = map[string]func(...runtime.Option) runtime.Runtime{}
 
-	DefaultStores = map[string]func(...store.Option) store.Store{
-		"memory":  memStore.NewStore,
-		"service": svcStore.NewStore,
-	}
+	DefaultStores = map[string]func(...store.Option) store.Store{}
 
-	DefaultTracers = map[string]func(...trace.Option) trace.Tracer{
-		"memory": memTracer.NewTracer,
-		// "jaeger": jTracer.NewTracer,
-	}
+	DefaultTracers = map[string]func(...trace.Option) trace.Tracer{}
 
-	DefaultAuths = map[string]func(...auth.Option) auth.Auth{
-		"service": svcAuth.NewAuth,
-		"jwt":     jwtAuth.NewAuth,
-	}
+	DefaultAuths = map[string]func(...auth.Option) auth.Auth{}
 
-	DefaultProfiles = map[string]func(...profile.Option) profile.Profile{
-		"http":  http.NewProfile,
-		"pprof": pprof.NewProfile,
-	}
+	DefaultProfiles = map[string]func(...profile.Option) profile.Profile{}
 
-	DefaultConfigs = map[string]func(...config.Option) (config.Config, error){
-		"service": config.NewConfig,
-	}
+	DefaultConfigs = map[string]func(...config.Option) (config.Config, error){}
 )
 
 func init() {
@@ -616,6 +520,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 
 	// Setup broker options.
 	brokerOpts := []broker.Option{brokerSrv.Client(microClient)}
+
 	if len(ctx.String("broker_address")) > 0 {
 		brokerOpts = append(brokerOpts, broker.Addrs(ctx.String("broker_address")))
 	}
