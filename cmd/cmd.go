@@ -591,18 +591,6 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		}
 	}
 
-	// Add support for legacy selectors until v3.
-	if ctx.String("selector") == "static" {
-		ctx.Set("router", "static")
-		ctx.Set("selector", "")
-		logger.Warnf("DEPRECATION WARNING: router/static now provides static routing, use '--router=static'. Support for the static selector flag will be removed in v3.")
-	}
-	if ctx.String("selector") == "dns" {
-		ctx.Set("router", "dns")
-		ctx.Set("selector", "")
-		logger.Warnf("DEPRECATION WARNING: router/dns now provides dns routing, use '--router=dns'. Support for the dns selector flag will be removed in v3.")
-	}
-
 	// Set the selector
 	if name := ctx.String("selector"); len(name) > 0 && (*c.opts.Selector).String() != name {
 		s, ok := c.opts.Selectors[name]
