@@ -1,4 +1,4 @@
-// Package cmd is an interface for parsing the command line
+// Package cmd is an interface for building a command line binary
 package cmd
 
 import (
@@ -87,13 +87,15 @@ import (
 )
 
 type Cmd interface {
+	// Init parses the command line args
+	// TODO: replace with Run method
+	Init(opts ...Option) error
 	// The cli app within this cmd
 	App() *cli.App
-	// Adds options, parses flags and initialise
-	// exits on error
-	Init(opts ...Option) error
 	// Options set within this command
 	Options() Options
+	// Implementation
+	String() string
 }
 
 type cmd struct {
@@ -900,6 +902,10 @@ func (c *cmd) Init(opts ...Option) error {
 	c.app.Usage = c.opts.Description
 	c.app.RunAndExitOnError()
 	return nil
+}
+
+func (c *cmd) String() string {
+	return "micro/cli"
 }
 
 func App() *cli.App {
