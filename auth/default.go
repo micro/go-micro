@@ -2,7 +2,6 @@ package auth
 
 import (
 	"github.com/google/uuid"
-	"github.com/micro/go-micro/v2/auth/provider/basic"
 )
 
 var (
@@ -10,9 +9,7 @@ var (
 )
 
 func NewAuth(opts ...Option) Auth {
-	options := Options{
-		Provider: basic.NewProvider(),
-	}
+	var options Options
 
 	for _, o := range opts {
 		o(&options)

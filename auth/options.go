@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/micro/go-micro/v2/auth/provider"
 	"github.com/micro/go-micro/v2/client"
 	"github.com/micro/go-micro/v2/store"
 )
@@ -34,8 +33,6 @@ type Options struct {
 	PublicKey string
 	// PrivateKey for encoding JWTs
 	PrivateKey string
-	// Provider is an auth provider
-	Provider provider.Provider
 	// LoginURL is the relative url path where a user can login
 	LoginURL string
 	// Store to back auth
@@ -95,13 +92,6 @@ func Credentials(id, secret string) Option {
 func ClientToken(token *Token) Option {
 	return func(o *Options) {
 		o.Token = token
-	}
-}
-
-// Provider set the auth provider
-func Provider(p provider.Provider) Option {
-	return func(o *Options) {
-		o.Provider = p
 	}
 }
 
