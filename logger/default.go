@@ -160,12 +160,12 @@ func (l *defaultLogger) Logf(level Level, format string, v ...interface{}) {
 	fmt.Printf("%s %s %v\n", t, metadata, rec.Message)
 }
 
-func (n *defaultLogger) Options() Options {
+func (l *defaultLogger) Options() Options {
 	// not guard against options Context values
-	n.RLock()
-	opts := n.opts
-	opts.Fields = copyFields(n.opts.Fields)
-	n.RUnlock()
+	l.RLock()
+	opts := l.opts
+	opts.Fields = copyFields(l.opts.Fields)
+	l.RUnlock()
 	return opts
 }
 

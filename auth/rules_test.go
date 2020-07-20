@@ -1,25 +1,23 @@
-package rules
+package auth
 
 import (
 	"testing"
-
-	"github.com/micro/go-micro/v2/auth"
 )
 
 func TestVerify(t *testing.T) {
-	srvResource := &auth.Resource{
+	srvResource := &Resource{
 		Type:     "service",
 		Name:     "go.micro.service.foo",
 		Endpoint: "Foo.Bar",
 	}
 
-	webResource := &auth.Resource{
+	webResource := &Resource{
 		Type:     "service",
 		Name:     "go.micro.web.foo",
 		Endpoint: "/foo/bar",
 	}
 
-	catchallResource := &auth.Resource{
+	catchallResource := &Resource{
 		Type:     "*",
 		Name:     "*",
 		Endpoint: "*",
@@ -27,24 +25,24 @@ func TestVerify(t *testing.T) {
 
 	tt := []struct {
 		Name     string
-		Rules    []*auth.Rule
-		Account  *auth.Account
-		Resource *auth.Resource
+		Rules    []*Rule
+		Account  *Account
+		Resource *Resource
 		Error    error
 	}{
 		{
 			Name:     "NoRules",
-			Rules:    []*auth.Rule{},
+			Rules:    []*Rule{},
 			Account:  nil,
 			Resource: srvResource,
-			Error:    auth.ErrForbidden,
+			Error:    ErrForbidden,
 		},
 		{
 			Name:     "CatchallPublicAccount",
-			Account:  &auth.Account{},
+			Account:  &Account{},
 			Resource: srvResource,
-			Rules: []*auth.Rule{
-				&auth.Rule{
+			Rules: []*Rule{
+				&Rule{
 					Scope:    "",
 					Resource: catchallResource,
 				},
@@ -53,8 +51,8 @@ func TestVerify(t *testing.T) {
 		{
 			Name:     "CatchallPublicNoAccount",
 			Resource: srvResource,
-			Rules: []*auth.Rule{
-				&auth.Rule{
+			Rules: []*Rule{
+				&Rule{
 					Scope:    "",
 					Resource: catchallResource,
 				},
@@ -62,10 +60,10 @@ func TestVerify(t *testing.T) {
 		},
 		{
 			Name:     "CatchallPrivateAccount",
-			Account:  &auth.Account{},
+			Account:  &Account{},
 			Resource: srvResource,
-			Rules: []*auth.Rule{
-				&auth.Rule{
+			Rules: []*Rule{
+				&Rule{
 					Scope:    "*",
 					Resource: catchallResource,
 				},
@@ -74,22 +72,22 @@ func TestVerify(t *testing.T) {
 		{
 			Name:     "CatchallPrivateNoAccount",
 			Resource: srvResource,
-			Rules: []*auth.Rule{
-				&auth.Rule{
+			Rules: []*Rule{
+				&Rule{
 					Scope:    "*",
 					Resource: catchallResource,
 				},
 			},
-			Error: auth.ErrForbidden,
+			Error: ErrForbidden,
 		},
 		{
 			Name:     "CatchallServiceRuleMatch",
 			Resource: srvResource,
-			Account:  &auth.Account{},
-			Rules: []*auth.Rule{
-				&auth.Rule{
+			Account:  &Account{},
+			Rules: []*Rule{
+				&Rule{
 					Scope: "*",
-					Resource: &auth.Resource{
+					Resource: &Resource{
 						Type:     srvResource.Type,
 						Name:     srvResource.Name,
 						Endpoint: "*",
@@ -100,27 +98,27 @@ func TestVerify(t *testing.T) {
 		{
 			Name:     "CatchallServiceRuleNoMatch",
 			Resource: srvResource,
-			Account:  &auth.Account{},
-			Rules: []*auth.Rule{
-				&auth.Rule{
+			Account:  &Account{},
+			Rules: []*Rule{
+				&Rule{
 					Scope: "*",
-					Resource: &auth.Resource{
+					Resource: &Resource{
 						Type:     srvResource.Type,
 						Name:     "wrongname",
 						Endpoint: "*",
 					},
 				},
 			},
-			Error: auth.ErrForbidden,
+			Error: ErrForbidden,
 		},
 		{
 			Name:     "ExactRuleValidScope",
 			Resource: srvResource,
-			Account: &auth.Account{
+			Account: &Account{
 				Scopes: []string{"neededscope"},
 			},
-			Rules: []*auth.Rule{
-				&auth.Rule{
+			Rules: []*Rule{
+				&Rule{
 					Scope:    "neededscope",
 					Resource: srvResource,
 				},
@@ -129,58 +127,58 @@ func TestVerify(t *testing.T) {
 		{
 			Name:     "ExactRuleInvalidScope",
 			Resource: srvResource,
-			Account: &auth.Account{
+			Account: &Account{
 				Scopes: []string{"neededscope"},
 			},
-			Rules: []*auth.Rule{
-				&auth.Rule{
+			Rules: []*Rule{
+				&Rule{
 					Scope:    "invalidscope",
 					Resource: srvResource,
 				},
 			},
-			Error: auth.ErrForbidden,
+			Error: ErrForbidden,
 		},
 		{
 			Name:     "CatchallDenyWithAccount",
 			Resource: srvResource,
-			Account:  &auth.Account{},
-			Rules: []*auth.Rule{
-				&auth.Rule{
+			Account:  &Account{},
+			Rules: []*Rule{
+				&Rule{
 					Scope:    "*",
 					Resource: catchallResource,
-					Access:   auth.AccessDenied,
+					Access:   AccessDenied,
 				},
 			},
-			Error: auth.ErrForbidden,
+			Error: ErrForbidden,
 		},
 		{
 			Name:     "CatchallDenyWithNoAccount",
 			Resource: srvResource,
-			Account:  &auth.Account{},
-			Rules: []*auth.Rule{
-				&auth.Rule{
+			Account:  &Account{},
+			Rules: []*Rule{
+				&Rule{
 					Scope:    "*",
 					Resource: catchallResource,
-					Access:   auth.AccessDenied,
+					Access:   AccessDenied,
 				},
 			},
-			Error: auth.ErrForbidden,
+			Error: ErrForbidden,
 		},
 		{
 			Name:     "RulePriorityGrantFirst",
 			Resource: srvResource,
-			Account:  &auth.Account{},
-			Rules: []*auth.Rule{
-				&auth.Rule{
+			Account:  &Account{},
+			Rules: []*Rule{
+				&Rule{
 					Scope:    "*",
 					Resource: catchallResource,
-					Access:   auth.AccessGranted,
+					Access:   AccessGranted,
 					Priority: 1,
 				},
-				&auth.Rule{
+				&Rule{
 					Scope:    "*",
 					Resource: catchallResource,
-					Access:   auth.AccessDenied,
+					Access:   AccessDenied,
 					Priority: 0,
 				},
 			},
@@ -188,29 +186,29 @@ func TestVerify(t *testing.T) {
 		{
 			Name:     "RulePriorityDenyFirst",
 			Resource: srvResource,
-			Account:  &auth.Account{},
-			Rules: []*auth.Rule{
-				&auth.Rule{
+			Account:  &Account{},
+			Rules: []*Rule{
+				&Rule{
 					Scope:    "*",
 					Resource: catchallResource,
-					Access:   auth.AccessGranted,
+					Access:   AccessGranted,
 					Priority: 0,
 				},
-				&auth.Rule{
+				&Rule{
 					Scope:    "*",
 					Resource: catchallResource,
-					Access:   auth.AccessDenied,
+					Access:   AccessDenied,
 					Priority: 1,
 				},
 			},
-			Error: auth.ErrForbidden,
+			Error: ErrForbidden,
 		},
 		{
 			Name:     "WebExactEndpointValid",
 			Resource: webResource,
-			Account:  &auth.Account{},
-			Rules: []*auth.Rule{
-				&auth.Rule{
+			Account:  &Account{},
+			Rules: []*Rule{
+				&Rule{
 					Scope:    "*",
 					Resource: webResource,
 				},
@@ -219,27 +217,27 @@ func TestVerify(t *testing.T) {
 		{
 			Name:     "WebExactEndpointInalid",
 			Resource: webResource,
-			Account:  &auth.Account{},
-			Rules: []*auth.Rule{
-				&auth.Rule{
+			Account:  &Account{},
+			Rules: []*Rule{
+				&Rule{
 					Scope: "*",
-					Resource: &auth.Resource{
+					Resource: &Resource{
 						Type:     webResource.Type,
 						Name:     webResource.Name,
 						Endpoint: "invalidendpoint",
 					},
 				},
 			},
-			Error: auth.ErrForbidden,
+			Error: ErrForbidden,
 		},
 		{
 			Name:     "WebWildcardEndpoint",
 			Resource: webResource,
-			Account:  &auth.Account{},
-			Rules: []*auth.Rule{
-				&auth.Rule{
+			Account:  &Account{},
+			Rules: []*Rule{
+				&Rule{
 					Scope: "*",
-					Resource: &auth.Resource{
+					Resource: &Resource{
 						Type:     webResource.Type,
 						Name:     webResource.Name,
 						Endpoint: "*",
@@ -250,11 +248,11 @@ func TestVerify(t *testing.T) {
 		{
 			Name:     "WebWildcardPathEndpointValid",
 			Resource: webResource,
-			Account:  &auth.Account{},
-			Rules: []*auth.Rule{
-				&auth.Rule{
+			Account:  &Account{},
+			Rules: []*Rule{
+				&Rule{
 					Scope: "*",
-					Resource: &auth.Resource{
+					Resource: &Resource{
 						Type:     webResource.Type,
 						Name:     webResource.Name,
 						Endpoint: "/foo/*",
@@ -265,24 +263,24 @@ func TestVerify(t *testing.T) {
 		{
 			Name:     "WebWildcardPathEndpointInvalid",
 			Resource: webResource,
-			Account:  &auth.Account{},
-			Rules: []*auth.Rule{
-				&auth.Rule{
+			Account:  &Account{},
+			Rules: []*Rule{
+				&Rule{
 					Scope: "*",
-					Resource: &auth.Resource{
+					Resource: &Resource{
 						Type:     webResource.Type,
 						Name:     webResource.Name,
 						Endpoint: "/bar/*",
 					},
 				},
 			},
-			Error: auth.ErrForbidden,
+			Error: ErrForbidden,
 		},
 	}
 
 	for _, tc := range tt {
 		t.Run(tc.Name, func(t *testing.T) {
-			if err := Verify(tc.Rules, tc.Account, tc.Resource); err != tc.Error {
+			if err := VerifyAccess(tc.Rules, tc.Account, tc.Resource); err != tc.Error {
 				t.Errorf("Expected %v but got %v", tc.Error, err)
 			}
 		})

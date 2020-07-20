@@ -17,6 +17,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/micro/go-micro/v2/broker"
 	"github.com/micro/go-micro/v2/errors"
+	pberr "github.com/micro/go-micro/v2/errors/proto"
 	"github.com/micro/go-micro/v2/logger"
 	meta "github.com/micro/go-micro/v2/metadata"
 	"github.com/micro/go-micro/v2/registry"
@@ -400,10 +401,17 @@ func (g *grpcServer) processRequest(stream grpc.ServerStream, service *service, 
 			var errStatus *status.Status
 			switch verr := appErr.(type) {
 			case *errors.Error:
+				perr := &pberr.Error{
+					Id:     verr.Id,
+					Code:   verr.Code,
+					Detail: verr.Detail,
+					Status: verr.Status,
+				}
+
 				// micro.Error now proto based and we can attach it to grpc status
 				statusCode = microError(verr)
 				statusDesc = verr.Error()
-				errStatus, err = status.New(statusCode, statusDesc).WithDetails(verr)
+				errStatus, err = status.New(statusCode, statusDesc).WithDetails(perr)
 				if err != nil {
 					return err
 				}
@@ -472,10 +480,16 @@ func (g *grpcServer) processStream(stream grpc.ServerStream, service *service, m
 		var errStatus *status.Status
 		switch verr := appErr.(type) {
 		case *errors.Error:
+			perr := &pberr.Error{
+				Id:     verr.Id,
+				Code:   verr.Code,
+				Detail: verr.Detail,
+				Status: verr.Status,
+			}
 			// micro.Error now proto based and we can attach it to grpc status
 			statusCode = microError(verr)
 			statusDesc = verr.Error()
-			errStatus, err = status.New(statusCode, statusDesc).WithDetails(verr)
+			errStatus, err = status.New(statusCode, statusDesc).WithDetails(perr)
 			if err != nil {
 				return err
 			}

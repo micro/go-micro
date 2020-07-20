@@ -7,8 +7,8 @@ import (
 
 	"github.com/micro/cli/v2"
 	"github.com/micro/go-micro/v2"
-	"github.com/micro/go-micro/v2/config"
 	"github.com/micro/go-micro/v2/cmd"
+	"github.com/micro/go-micro/v2/config"
 	"github.com/micro/go-micro/v2/config/source"
 )
 

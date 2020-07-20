@@ -65,6 +65,12 @@ func (k *kubernetes) createNamespace(namespace string) error {
 	ns := client.Namespace{Metadata: &client.Metadata{Name: namespace}}
 	err := k.client.Create(&client.Resource{Kind: "namespace", Value: ns})
 
+	// ignore err already exists
+	if err != nil && strings.Contains(err.Error(), "already exists") {
+		logger.Debugf("Ignoring ErrAlreadyExists for namespace %v: %v", namespace, err)
+		err = nil
+	}
+
 	// add to cache
 	if err == nil && k.namespaces != nil {
 		k.namespaces = append(k.namespaces, ns)

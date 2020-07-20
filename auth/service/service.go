@@ -1,3 +1,4 @@
+// Package servie is a micro service implementation of the auth interface
 package service
 
 import (
@@ -6,26 +7,25 @@ import (
 	"time"
 
 	"github.com/micro/go-micro/v2/auth"
-	"github.com/micro/go-micro/v2/auth/rules"
 	pb "github.com/micro/go-micro/v2/auth/service/proto"
-	"github.com/micro/go-micro/v2/auth/token"
-	"github.com/micro/go-micro/v2/auth/token/jwt"
 	"github.com/micro/go-micro/v2/client"
+	"github.com/micro/go-micro/v2/util/token"
+	"github.com/micro/go-micro/v2/util/token/jwt"
 )
 
 // svc is the service implementation of the Auth interface
-type svc struct {
+type svcAuth struct {
 	options auth.Options
 	auth    pb.AuthService
 	rules   pb.RulesService
-	jwt     token.Provider
+	token   token.Provider
 }
 
-func (s *svc) String() string {
+func (s *svcAuth) String() string {
 	return "service"
 }
 
-func (s *svc) Init(opts ...auth.Option) {
+func (s *svcAuth) Init(opts ...auth.Option) {
 	for _, o := range opts {
 		o(&s.options)
 	}
@@ -36,12 +36,12 @@ func (s *svc) Init(opts ...auth.Option) {
 	s.setupJWT()
 }
 
-func (s *svc) Options() auth.Options {
+func (s *svcAuth) Options() auth.Options {
 	return s.options
 }
 
 // Generate a new account
-func (s *svc) Generate(id string, opts ...auth.GenerateOption) (*auth.Account, error) {
+func (s *svcAuth) Generate(id string, opts ...auth.GenerateOption) (*auth.Account, error) {
 	options := auth.NewGenerateOptions(opts...)
 	if len(options.Issuer) == 0 {
 		options.Issuer = s.options.Issuer
@@ -57,7 +57,7 @@ func (s *svc) Generate(id string, opts ...auth.GenerateOption) (*auth.Account, e
 			Issuer:   options.Issuer,
 		}
 
-		tok, err := s.jwt.Generate(acc, token.WithExpiry(time.Hour*24*365))
+		tok, err := s.token.Generate(acc, token.WithExpiry(time.Hour*24*365))
 		if err != nil {
 			return nil, err
 		}
@@ -87,7 +87,7 @@ func (s *svc) Generate(id string, opts ...auth.GenerateOption) (*auth.Account, e
 }
 
 // Grant access to a resource
-func (s *svc) Grant(rule *auth.Rule) error {
+func (s *svcAuth) Grant(rule *auth.Rule) error {
 	access := pb.Access_UNKNOWN
 	if rule.Access == auth.AccessGranted {
 		access = pb.Access_GRANTED
@@ -116,7 +116,7 @@ func (s *svc) Grant(rule *auth.Rule) error {
 }
 
 // Revoke access to a resource
-func (s *svc) Revoke(rule *auth.Rule) error {
+func (s *svcAuth) Revoke(rule *auth.Rule) error {
 	_, err := s.rules.Delete(context.TODO(), &pb.DeleteRequest{
 		Id: rule.ID, Options: &pb.Options{
 			Namespace: s.Options().Issuer,
@@ -126,7 +126,7 @@ func (s *svc) Revoke(rule *auth.Rule) error {
 	return err
 }
 
-func (s *svc) Rules(opts ...auth.RulesOption) ([]*auth.Rule, error) {
+func (s *svcAuth) Rules(opts ...auth.RulesOption) ([]*auth.Rule, error) {
 	var options auth.RulesOptions
 	for _, o := range opts {
 		o(&options)
@@ -155,7 +155,7 @@ func (s *svc) Rules(opts ...auth.RulesOption) ([]*auth.Rule, error) {
 }
 
 // Verify an account has access to a resource
-func (s *svc) Verify(acc *auth.Account, res *auth.Resource, opts ...auth.VerifyOption) error {
+func (s *svcAuth) Verify(acc *auth.Account, res *auth.Resource, opts ...auth.VerifyOption) error {
 	var options auth.VerifyOptions
 	for _, o := range opts {
 		o(&options)
@@ -169,14 +169,14 @@ func (s *svc) Verify(acc *auth.Account, res *auth.Resource, opts ...auth.VerifyO
 		return err
 	}
 
-	return rules.Verify(rs, acc, res)
+	return auth.VerifyAccess(rs, acc, res)
 }
 
 // Inspect a token
-func (s *svc) Inspect(token string) (*auth.Account, error) {
+func (s *svcAuth) Inspect(token string) (*auth.Account, error) {
 	// try to decode JWT locally and fall back to srv if an error occurs
 	if len(strings.Split(token, ".")) == 3 && len(s.options.PublicKey) > 0 {
-		return s.jwt.Inspect(token)
+		return s.token.Inspect(token)
 	}
 
 	// the token is not a JWT or we do not have the keys to decode it,
@@ -191,7 +191,7 @@ func (s *svc) Inspect(token string) (*auth.Account, error) {
 }
 
 // Token generation using an account ID and secret
-func (s *svc) Token(opts ...auth.TokenOption) (*auth.Token, error) {
+func (s *svcAuth) Token(opts ...auth.TokenOption) (*auth.Token, error) {
 	options := auth.NewTokenOptions(opts...)
 	if len(options.Issuer) == 0 {
 		options.Issuer = s.options.Issuer
@@ -204,12 +204,12 @@ func (s *svc) Token(opts ...auth.TokenOption) (*auth.Token, error) {
 			tok = options.Secret
 		}
 
-		acc, err := s.jwt.Inspect(tok)
+		acc, err := s.token.Inspect(tok)
 		if err != nil {
 			return nil, err
 		}
 
-		token, err := s.jwt.Generate(acc, token.WithExpiry(options.Expiry))
+		token, err := s.token.Generate(acc, token.WithExpiry(options.Expiry))
 		if err != nil {
 			return nil, err
 		}
@@ -277,7 +277,7 @@ func serializeRule(r *pb.Rule) *auth.Rule {
 	}
 }
 
-func (s *svc) callOpts() []client.CallOption {
+func (s *svcAuth) callOpts() []client.CallOption {
 	return []client.CallOption{
 		client.WithAddress(s.options.Addrs...),
 	}
@@ -293,7 +293,7 @@ func NewAuth(opts ...auth.Option) auth.Auth {
 		options.Addrs = []string{"127.0.0.1:8010"}
 	}
 
-	service := &svc{
+	service := &svcAuth{
 		auth:    pb.NewAuthService("go.micro.auth", options.Client),
 		rules:   pb.NewRulesService("go.micro.auth", options.Client),
 		options: options,
@@ -303,7 +303,7 @@ func NewAuth(opts ...auth.Option) auth.Auth {
 	return service
 }
 
-func (s *svc) setupJWT() {
+func (s *svcAuth) setupJWT() {
 	tokenOpts := []token.Option{}
 
 	// if we have a JWT public key passed as an option,
@@ -321,5 +321,5 @@ func (s *svc) setupJWT() {
 		tokenOpts = append(tokenOpts, token.WithPrivateKey(key))
 	}
 
-	s.jwt = jwt.NewTokenProvider(tokenOpts...)
+	s.token = jwt.NewTokenProvider(tokenOpts...)
 }

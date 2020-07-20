@@ -1,17 +1,15 @@
-package rules
+package auth
 
 import (
 	"fmt"
 	"sort"
 	"strings"
-
-	"github.com/micro/go-micro/v2/auth"
 )
 
-// Verify an account has access to a resource using the rules provided. If the account does not have
+// VerifyAccess an account has access to a resource using the rules provided. If the account does not have
 // access an error will be returned. If there are no rules provided which match the resource, an error
 // will be returned
-func Verify(rules []*auth.Rule, acc *auth.Account, res *auth.Resource) error {
+func VerifyAccess(rules []*Rule, acc *Account, res *Resource) error {
 	// the rule is only to be applied if the type matches the resource or is catch-all (*)
 	validTypes := []string{"*", res.Type}
 
@@ -29,7 +27,7 @@ func Verify(rules []*auth.Rule, acc *auth.Account, res *auth.Resource) error {
 	}
 
 	// filter the rules to the ones which match the criteria above
-	filteredRules := make([]*auth.Rule, 0)
+	filteredRules := make([]*Rule, 0)
 	for _, rule := range rules {
 		if !include(validTypes, rule.Resource.Type) {
 			continue
@@ -51,9 +49,9 @@ func Verify(rules []*auth.Rule, acc *auth.Account, res *auth.Resource) error {
 	// loop through the rules and check for a rule which applies to this account
 	for _, rule := range filteredRules {
 		// a blank scope indicates the rule applies to everyone, even nil accounts
-		if rule.Scope == auth.ScopePublic && rule.Access == auth.AccessDenied {
-			return auth.ErrForbidden
-		} else if rule.Scope == auth.ScopePublic && rule.Access == auth.AccessGranted {
+		if rule.Scope == ScopePublic && rule.Access == AccessDenied {
+			return ErrForbidden
+		} else if rule.Scope == ScopePublic && rule.Access == AccessGranted {
 			return nil
 		}
 
@@ -63,22 +61,22 @@ func Verify(rules []*auth.Rule, acc *auth.Account, res *auth.Resource) error {
 		}
 
 		// this rule applies to any account
-		if rule.Scope == auth.ScopeAccount && rule.Access == auth.AccessDenied {
-			return auth.ErrForbidden
-		} else if rule.Scope == auth.ScopeAccount && rule.Access == auth.AccessGranted {
+		if rule.Scope == ScopeAccount && rule.Access == AccessDenied {
+			return ErrForbidden
+		} else if rule.Scope == ScopeAccount && rule.Access == AccessGranted {
 			return nil
 		}
 
 		// if the account has the necessary scope
-		if include(acc.Scopes, rule.Scope) && rule.Access == auth.AccessDenied {
-			return auth.ErrForbidden
-		} else if include(acc.Scopes, rule.Scope) && rule.Access == auth.AccessGranted {
+		if include(acc.Scopes, rule.Scope) && rule.Access == AccessDenied {
+			return ErrForbidden
+		} else if include(acc.Scopes, rule.Scope) && rule.Access == AccessGranted {
 			return nil
 		}
 	}
 
 	// if no rules matched then return forbidden
-	return auth.ErrForbidden
+	return ErrForbidden
 }
 
 // include is a helper function which checks to see if the slice contains the value. includes is
