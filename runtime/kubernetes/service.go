@@ -76,21 +76,13 @@ func newService(s *runtime.Service, c runtime.CreateOptions) *service {
 	}
 
 	// if secrets were provided, pass them to the service
-	for _, secret := range c.Secrets {
-		// validate the creds
-		comps := strings.Split(secret, "=")
-		if len(comps) != 2 {
-			logger.Errorf("Invalid secret, expected format 'KEY=VALUE'")
-			continue
-		}
-
-		// add the secret using the KEY as the env var name
+	for key := range c.Secrets {
 		env = append(env, client.EnvVar{
-			Name: comps[0],
+			Name: key,
 			ValueFrom: &client.EnvVarSource{
 				SecretKeyRef: &client.SecretKeySelector{
 					Name: credentialsName(s),
-					Key:  comps[0],
+					Key:  key,
 				},
 			},
 		})
