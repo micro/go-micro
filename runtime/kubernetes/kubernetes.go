@@ -359,7 +359,9 @@ func (k *kubernetes) Logs(s *runtime.Service, options ...runtime.LogsOption) (ru
 			stop:   make(chan bool),
 		}
 		go func() {
+			fmt.Println("read starts")
 			records, err := klo.Read()
+			fmt.Println("read finishes")
 			if err != nil {
 				log.Errorf("Failed to get logs for service '%v' from k8s: %v", s.Name, err)
 				return
@@ -370,6 +372,7 @@ func (k *kubernetes) Logs(s *runtime.Service, options ...runtime.LogsOption) (ru
 			for _, record := range records {
 				kstream.Chan() <- record
 			}
+			kstream.Stop()
 		}()
 		return kstream, nil
 	}
