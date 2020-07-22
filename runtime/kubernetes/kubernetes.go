@@ -350,6 +350,7 @@ func (k *kubernetes) Init(opts ...runtime.Option) error {
 
 func (k *kubernetes) Logs(s *runtime.Service, options ...runtime.LogsOption) (runtime.LogStream, error) {
 	klo := newLog(k.client, s.Name, options...)
+	fmt.Println("should stream?", klo.options.Stream)
 	stream, err := klo.Stream()
 	if err != nil {
 		return nil, err
