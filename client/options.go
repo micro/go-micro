@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/micro/go-micro/v2/broker"
+	"github.com/micro/go-micro/v2/broker/http"
 	"github.com/micro/go-micro/v2/codec"
 	"github.com/micro/go-micro/v2/registry"
 	"github.com/micro/go-micro/v2/router"
@@ -113,7 +114,7 @@ func NewOptions(options ...Option) Options {
 		},
 		PoolSize:  DefaultPoolSize,
 		PoolTTL:   DefaultPoolTTL,
-		Broker:    broker.DefaultBroker,
+		Broker:    http.NewBroker(),
 		Router:    router.DefaultRouter,
 		Selector:  selector.DefaultSelector,
 		Transport: transport.DefaultTransport,

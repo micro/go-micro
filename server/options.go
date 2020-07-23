@@ -8,6 +8,7 @@ import (
 
 	"github.com/micro/go-micro/v2/auth"
 	"github.com/micro/go-micro/v2/broker"
+	"github.com/micro/go-micro/v2/broker/http"
 	"github.com/micro/go-micro/v2/codec"
 	"github.com/micro/go-micro/v2/debug/trace"
 	"github.com/micro/go-micro/v2/registry"
@@ -62,7 +63,7 @@ func newOptions(opt ...Option) Options {
 	}
 
 	if opts.Broker == nil {
-		opts.Broker = broker.DefaultBroker
+		opts.Broker = http.NewBroker()
 	}
 
 	if opts.Registry == nil {

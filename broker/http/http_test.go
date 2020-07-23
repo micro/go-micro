@@ -1,4 +1,4 @@
-package broker_test
+package http
 
 import (
 	"sync"

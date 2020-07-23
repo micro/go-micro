@@ -5,7 +5,7 @@ import (
 	"crypto/tls"
 	"net"
 
-	"github.com/micro/go-micro/v2/broker"
+	"github.com/micro/go-micro/v2/broker/http"
 	"github.com/micro/go-micro/v2/codec"
 	"github.com/micro/go-micro/v2/registry"
 	"github.com/micro/go-micro/v2/server"
@@ -68,7 +68,7 @@ func newOptions(opt ...server.Option) server.Options {
 	opts := server.Options{
 		Codecs:    make(map[string]codec.NewCodec),
 		Metadata:  map[string]string{},
-		Broker:    broker.DefaultBroker,
+		Broker:    http.NewBroker(),
 		Registry:  registry.DefaultRegistry,
 		Transport: transport.DefaultTransport,
 		Address:   server.DefaultAddress,

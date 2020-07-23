@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/micro/go-micro/v2/client"
 	"github.com/micro/go-micro/v2/store"
 )
 
@@ -33,10 +32,10 @@ type Options struct {
 	LoginURL string
 	// Store to back auth
 	Store store.Store
-	// Client to use for RPC
-	Client client.Client
 	// Addrs sets the addresses of auth
 	Addrs []string
+	// Context to store other options
+	Context context.Context
 }
 
 type Option func(o *Options)
@@ -95,13 +94,6 @@ func ClientToken(token *Token) Option {
 func LoginURL(url string) Option {
 	return func(o *Options) {
 		o.LoginURL = url
-	}
-}
-
-// WithClient sets the client to use when making requests
-func WithClient(c client.Client) Option {
-	return func(o *Options) {
-		o.Client = c
 	}
 }
 
