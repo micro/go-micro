@@ -25,7 +25,6 @@ func NewOptions(opts ...Option) Options {
 	options := Options{
 		Encoder: json.NewEncoder(),
 		Context: context.Background(),
-		Client:  client.DefaultClient,
 	}
 
 	for _, o := range opts {

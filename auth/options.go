@@ -13,10 +13,6 @@ func NewOptions(opts ...Option) Options {
 	for _, o := range opts {
 		o(&options)
 	}
-	if options.Client == nil {
-		options.Client = client.DefaultClient
-	}
-
 	return options
 }
 

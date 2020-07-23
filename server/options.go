@@ -61,10 +61,6 @@ func newOptions(opt ...Option) Options {
 		o(&opts)
 	}
 
-	if opts.Auth == nil {
-		opts.Auth = auth.DefaultAuth
-	}
-
 	if opts.Broker == nil {
 		opts.Broker = broker.DefaultBroker
 	}

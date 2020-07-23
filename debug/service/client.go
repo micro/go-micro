@@ -5,7 +5,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/micro/go-micro/v2/client"
+	"github.com/micro/go-micro/v2/client/grpc"
 	"github.com/micro/go-micro/v2/debug/log"
 	pb "github.com/micro/go-micro/v2/debug/service/proto"
 )
@@ -86,7 +86,7 @@ func (d *debugClient) streamLogs(lg *logStream, stream pb.Debug_LogService) {
 // NewClient provides a debug client
 func NewClient(name string) *debugClient {
 	// create default client
-	cli := client.DefaultClient
+	cli := grpc.NewClient()
 
 	return &debugClient{
 		Client: pb.NewDebugService(name, cli),

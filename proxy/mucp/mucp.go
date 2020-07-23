@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/micro/go-micro/v2/client"
+	"github.com/micro/go-micro/v2/client/grpc"
 	"github.com/micro/go-micro/v2/codec"
 	"github.com/micro/go-micro/v2/codec/bytes"
 	"github.com/micro/go-micro/v2/errors"
@@ -593,7 +594,7 @@ func NewProxy(opts ...proxy.Option) proxy.Proxy {
 
 	// set the default client
 	if p.Client == nil {
-		p.Client = client.DefaultClient
+		p.Client = grpc.NewClient()
 	}
 
 	// create default router and start it
