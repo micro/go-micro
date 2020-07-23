@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/micro/go-micro/v2/registry"
+	"github.com/micro/go-micro/v2/registry/mdns"
 )
 
 // Options are router options
@@ -82,7 +83,7 @@ func DefaultOptions() Options {
 		Id:        uuid.New().String(),
 		Address:   DefaultAddress,
 		Network:   DefaultNetwork,
-		Registry:  registry.DefaultRegistry,
+		Registry:  mdns.NewRegistry(),
 		Advertise: AdvertiseLocal,
 		Context:   context.Background(),
 	}

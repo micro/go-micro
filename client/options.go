@@ -9,6 +9,7 @@ import (
 	"github.com/micro/go-micro/v2/codec"
 	"github.com/micro/go-micro/v2/registry"
 	"github.com/micro/go-micro/v2/router"
+	regRouter "github.com/micro/go-micro/v2/router/registry"
 	"github.com/micro/go-micro/v2/selector"
 	"github.com/micro/go-micro/v2/transport"
 )
@@ -115,7 +116,7 @@ func NewOptions(options ...Option) Options {
 		PoolSize:  DefaultPoolSize,
 		PoolTTL:   DefaultPoolTTL,
 		Broker:    http.NewBroker(),
-		Router:    router.DefaultRouter,
+		Router:    regRouter.NewRouter(),
 		Selector:  selector.DefaultSelector,
 		Transport: transport.DefaultTransport,
 	}

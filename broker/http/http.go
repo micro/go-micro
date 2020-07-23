@@ -23,6 +23,7 @@ import (
 	merr "github.com/micro/go-micro/v2/errors"
 	"github.com/micro/go-micro/v2/registry"
 	"github.com/micro/go-micro/v2/registry/cache"
+	"github.com/micro/go-micro/v2/registry/mdns"
 	maddr "github.com/micro/go-micro/v2/util/addr"
 	mnet "github.com/micro/go-micro/v2/util/net"
 	mls "github.com/micro/go-micro/v2/util/tls"
@@ -112,7 +113,7 @@ func newHttpBroker(opts ...broker.Option) broker.Broker {
 	options := broker.Options{
 		Codec:    json.Marshaler{},
 		Context:  context.TODO(),
-		Registry: registry.DefaultRegistry,
+		Registry: mdns.NewRegistry(),
 	}
 
 	for _, o := range opts {
@@ -422,7 +423,7 @@ func (h *httpBroker) Connect() error {
 	// get registry
 	reg := h.opts.Registry
 	if reg == nil {
-		reg = registry.DefaultRegistry
+		reg = mdns.NewRegistry()
 	}
 	// set cache
 	h.r = cache.New(reg)
@@ -485,7 +486,7 @@ func (h *httpBroker) Init(opts ...broker.Option) error {
 	// get registry
 	reg := h.opts.Registry
 	if reg == nil {
-		reg = registry.DefaultRegistry
+		reg = mdns.NewRegistry()
 	}
 
 	// get cache

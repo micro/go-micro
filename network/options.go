@@ -7,6 +7,7 @@ import (
 	"github.com/micro/go-micro/v2/proxy"
 	"github.com/micro/go-micro/v2/proxy/mucp"
 	"github.com/micro/go-micro/v2/router"
+	regRouter "github.com/micro/go-micro/v2/router/registry"
 	"github.com/micro/go-micro/v2/tunnel"
 )
 
@@ -104,7 +105,7 @@ func DefaultOptions() Options {
 		Name:     DefaultName,
 		Address:  DefaultAddress,
 		Tunnel:   tunnel.NewTunnel(),
-		Router:   router.DefaultRouter,
+		Router:   regRouter.NewRouter(),
 		Proxy:    mucp.NewProxy(),
 		Resolver: &registry.Resolver{},
 	}

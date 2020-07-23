@@ -10,6 +10,7 @@ import (
 	"github.com/micro/go-micro/v2/registry"
 	"github.com/micro/go-micro/v2/registry/memory"
 	"github.com/micro/go-micro/v2/router"
+	regRouter "github.com/micro/go-micro/v2/router/registry"
 	pgrpc "google.golang.org/grpc"
 	pb "google.golang.org/grpc/examples/helloworld/helloworld"
 )
@@ -57,7 +58,7 @@ func TestGRPCClient(t *testing.T) {
 	})
 
 	// create router
-	rtr := router.NewRouter(router.Registry(r))
+	rtr := regRouter.NewRouter(router.Registry(r))
 
 	// create client
 	c := NewClient(client.Router(rtr))

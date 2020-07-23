@@ -1,12 +1,14 @@
-package router
+package registry
 
 import (
 	"fmt"
 	"testing"
+
+	"github.com/micro/go-micro/v2/router"
 )
 
 func testSetup() (*table, Route) {
-	router := newRouter().(*router)
+	router := NewRouter().(*router)
 	table := router.table
 
 	route := Route{
@@ -37,8 +39,8 @@ func TestCreate(t *testing.T) {
 	}
 
 	// adding the same route under Insert policy must error
-	if err := table.Create(route); err != ErrDuplicateRoute {
-		t.Errorf("error adding route. Expected error: %s, found: %s", ErrDuplicateRoute, err)
+	if err := table.Create(route); err != router.ErrDuplicateRoute {
+		t.Errorf("error adding route. Expected error: %s, found: %s", router.ErrDuplicateRoute, err)
 	}
 }
 

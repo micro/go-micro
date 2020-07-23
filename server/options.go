@@ -12,6 +12,7 @@ import (
 	"github.com/micro/go-micro/v2/codec"
 	"github.com/micro/go-micro/v2/debug/trace"
 	"github.com/micro/go-micro/v2/registry"
+	"github.com/micro/go-micro/v2/registry/mdns"
 	"github.com/micro/go-micro/v2/transport"
 )
 
@@ -67,7 +68,7 @@ func newOptions(opt ...Option) Options {
 	}
 
 	if opts.Registry == nil {
-		opts.Registry = registry.DefaultRegistry
+		opts.Registry = mdns.NewRegistry()
 	}
 
 	if opts.Transport == nil {

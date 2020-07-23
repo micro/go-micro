@@ -19,6 +19,7 @@ import (
 	"github.com/micro/go-micro/v2/metadata"
 	"github.com/micro/go-micro/v2/proxy"
 	"github.com/micro/go-micro/v2/router"
+	"github.com/micro/go-micro/v2/router/registry"
 	"github.com/micro/go-micro/v2/selector/roundrobin"
 	"github.com/micro/go-micro/v2/server"
 )
@@ -599,7 +600,7 @@ func NewProxy(opts ...proxy.Option) proxy.Proxy {
 
 	// create default router and start it
 	if p.Router == nil {
-		p.Router = router.DefaultRouter
+		p.Router = registry.NewRouter()
 	}
 	// set the links
 	if options.Links != nil {

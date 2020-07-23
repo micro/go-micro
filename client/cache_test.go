@@ -10,7 +10,8 @@ import (
 
 func TestCache(t *testing.T) {
 	ctx := context.TODO()
-	req := NewRequest("go.micro.service.foo", "Foo.Bar", nil)
+	cli := NewClient()
+	req := cli.NewRequest("go.micro.service.foo", "Foo.Bar", nil)
 
 	t.Run("CacheMiss", func(t *testing.T) {
 		if _, ok := NewCache().Get(ctx, &req); ok {
@@ -34,9 +35,11 @@ func TestCache(t *testing.T) {
 
 func TestCacheKey(t *testing.T) {
 	ctx := context.TODO()
-	req1 := NewRequest("go.micro.service.foo", "Foo.Bar", nil)
-	req2 := NewRequest("go.micro.service.foo", "Foo.Baz", nil)
-	req3 := NewRequest("go.micro.service.foo", "Foo.Baz", "customquery")
+	cli := NewClient()
+
+	req1 := cli.NewRequest("go.micro.service.foo", "Foo.Bar", nil)
+	req2 := cli.NewRequest("go.micro.service.foo", "Foo.Baz", nil)
+	req3 := cli.NewRequest("go.micro.service.foo", "Foo.Baz", "customquery")
 
 	t.Run("IdenticalRequests", func(t *testing.T) {
 		key1 := key(ctx, &req1)
