@@ -354,18 +354,18 @@ func (k *kubernetes) Logs(s *runtime.Service, options ...runtime.LogsOption) (ru
 
 	// If requested, also read existing records and stream those too
 	if !klo.options.Stream {
+		fmt.Println("read starts")
+		records, err := klo.Read()
+		fmt.Println("read finishes")
+		if err != nil {
+			log.Errorf("Failed to get logs for service '%v' from k8s: %v", s.Name, err)
+			return nil, err
+		}
 		kstream := &kubeStream{
 			stream: make(chan runtime.LogRecord),
 			stop:   make(chan bool),
 		}
 		go func() {
-			fmt.Println("read starts")
-			records, err := klo.Read()
-			fmt.Println("read finishes")
-			if err != nil {
-				log.Errorf("Failed to get logs for service '%v' from k8s: %v", s.Name, err)
-				return
-			}
 			// @todo: this might actually not run before podLogStream starts
 			// and might cause out of order log retrieval at the receiving end.
 			// A better approach would probably to suppor this inside the `klog.Stream` method.
