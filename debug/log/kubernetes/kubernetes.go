@@ -102,7 +102,6 @@ func (k *klog) Read(options ...log.ReadOption) ([]log.Record, error) {
 	for _, o := range options {
 		o(opts)
 	}
-	fmt.Printf("klog.Read stream %v count %v since %v\n", opts.Stream, opts.Count, opts.Since)
 	pods, err := k.getMatchingPods()
 	if err != nil {
 		return nil, err
@@ -155,7 +154,6 @@ func (k *klog) Write(l log.Record) error {
 }
 
 func (k *klog) Stream() (log.Stream, error) {
-	fmt.Println("klog.Stream")
 	// find the matching pods
 	pods, err := k.getMatchingPods()
 	if err != nil {
@@ -181,7 +179,6 @@ func NewLog(opts ...log.Option) log.Log {
 	for _, o := range opts {
 		o(&klog.Options)
 	}
-	fmt.Printf("New klog. Name: %v\n", klog.Options.Name)
 
 	if len(os.Getenv("KUBERNETES_SERVICE_HOST")) > 0 {
 		klog.client = client.NewClusterClient()
