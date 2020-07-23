@@ -372,7 +372,7 @@ func (k *kubernetes) Logs(s *runtime.Service, options ...runtime.LogsOption) (ru
 			for _, record := range records {
 				kstream.Chan() <- record
 			}
-			kstream.Stop()
+			//kstream.Stop()
 		}()
 		return kstream, nil
 	}
