@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/micro/go-micro/v2"
 	"github.com/micro/go-micro/v2/registry"
 	"github.com/micro/go-micro/v2/registry/memory"
 )
@@ -33,7 +32,6 @@ type Options struct {
 	Context context.Context
 
 	Registry registry.Registry
-	Service  micro.Service
 
 	Secure      bool
 	TLSConfig   *tls.Config
