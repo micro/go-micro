@@ -5,11 +5,16 @@ import (
 	"time"
 
 	"github.com/micro/go-micro/v2/broker"
+	"github.com/micro/go-micro/v2/broker/http"
 	"github.com/micro/go-micro/v2/client"
+	mucpClient "github.com/micro/go-micro/v2/client/mucp"
 	"github.com/micro/go-micro/v2/model"
 	"github.com/micro/go-micro/v2/registry"
+	"github.com/micro/go-micro/v2/registry/mdns"
 	"github.com/micro/go-micro/v2/server"
+	mucpServer "github.com/micro/go-micro/v2/server/mucp"
 	"github.com/micro/go-micro/v2/transport"
+	thttp "github.com/micro/go-micro/v2/transport/http"
 )
 
 type Options struct {
@@ -35,11 +40,11 @@ type Option func(*Options)
 
 func NewOptions(opts ...Option) Options {
 	opt := Options{
-		Broker:    broker.DefaultBroker,
-		Client:    client.DefaultClient,
-		Server:    server.DefaultServer,
-		Registry:  registry.DefaultRegistry,
-		Transport: transport.DefaultTransport,
+		Broker:    http.NewBroker(),
+		Client:    mucpClient.NewClient(),
+		Server:    mucpServer.NewServer(),
+		Registry:  mdns.NewRegistry(),
+		Transport: thttp.NewTransport(),
 		Context:   context.Background(),
 	}
 
