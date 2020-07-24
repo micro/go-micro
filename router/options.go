@@ -24,8 +24,8 @@ type Options struct {
 	Advertise Strategy
 	// Context for additional options
 	Context context.Context
-	// Prewarm the route table on router startup
-	Prewarm bool
+	// Precache the route table on router startup
+	Precache bool
 }
 
 // Id sets Router Id
@@ -70,10 +70,10 @@ func Advertise(a Strategy) Option {
 	}
 }
 
-// Prewarm sets whether to prewarm the route table
-func Prewarm(b bool) Option {
+// Precache sets whether to precache the route table
+func Precache(b bool) Option {
 	return func(o *Options) {
-		o.Prewarm = b
+		o.Precache = b
 	}
 }
 
