@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/micro/go-micro/v2/metadata"
-	"github.com/micro/go-micro/v2/router"
+	"github.com/micro/go-micro/v2/router/registry"
 	"github.com/micro/go-micro/v2/selector/random"
 )
 
@@ -47,7 +47,7 @@ func WriteInternalServerError(w http.ResponseWriter, err error) {
 
 func NewRoundTripper(opts ...Option) http.RoundTripper {
 	options := Options{
-		Router: router.DefaultRouter,
+		Router: registry.NewRouter(),
 	}
 	for _, o := range opts {
 		o(&options)
