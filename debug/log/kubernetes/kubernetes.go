@@ -102,7 +102,6 @@ func (k *klog) Read(options ...log.ReadOption) ([]log.Record, error) {
 	for _, o := range options {
 		o(opts)
 	}
-
 	pods, err := k.getMatchingPods()
 	if err != nil {
 		return nil, err
