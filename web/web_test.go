@@ -12,7 +12,7 @@ import (
 )
 
 func TestWeb(t *testing.T) {
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 3; i++ {
 		fmt.Println("Test nr", i)
 		testFunc()
 	}
