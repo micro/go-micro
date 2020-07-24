@@ -7,11 +7,11 @@ import (
 	"github.com/micro/go-micro/v2/router"
 )
 
-func testSetup() (*table, Route) {
-	router := NewRouter().(*router)
-	table := router.table
+func testSetup() (*table, router.Route) {
+	routr := NewRouter().(*rtr)
+	table := newTable(routr.fetchRoutes)
 
-	route := Route{
+	route := router.Route{
 		Service: "dest.svc",
 		Address: "dest.addr",
 		Gateway: "dest.gw",
@@ -55,8 +55,8 @@ func TestDelete(t *testing.T) {
 	prevSvc := route.Service
 	route.Service = "randDest"
 
-	if err := table.Delete(route); err != ErrRouteNotFound {
-		t.Errorf("error deleting route. Expected: %s, found: %s", ErrRouteNotFound, err)
+	if err := table.Delete(route); err != router.ErrRouteNotFound {
+		t.Errorf("error deleting route. Expected: %s, found: %s", router.ErrRouteNotFound, err)
 	}
 
 	// we should be able to delete the existing route
@@ -140,7 +140,7 @@ func TestQuery(t *testing.T) {
 	// query routes particular network
 	network := "net1"
 
-	routes, err = table.Query(QueryNetwork(network))
+	routes, err = table.Query(router.QueryNetwork(network))
 	if err != nil {
 		t.Errorf("error looking up routes: %s", err)
 	}
@@ -158,7 +158,7 @@ func TestQuery(t *testing.T) {
 	// query routes for particular gateway
 	gateway := "gw1"
 
-	routes, err = table.Query(QueryGateway(gateway))
+	routes, err = table.Query(router.QueryGateway(gateway))
 	if err != nil {
 		t.Errorf("error looking up routes: %s", err)
 	}
@@ -172,9 +172,9 @@ func TestQuery(t *testing.T) {
 	}
 
 	// query routes for particular router
-	router := "rtr1"
+	rt := "rtr1"
 
-	routes, err = table.Query(QueryRouter(router))
+	routes, err = table.Query(router.QueryRouter(rt))
 	if err != nil {
 		t.Errorf("error looking up routes: %s", err)
 	}
@@ -183,15 +183,15 @@ func TestQuery(t *testing.T) {
 		t.Errorf("incorrect number of routes returned. Expected: %d, found: %d", 1, len(routes))
 	}
 
-	if routes[0].Router != router {
-		t.Errorf("incorrect route returned. Expected router: %s, found: %s", router, routes[0].Router)
+	if routes[0].Router != rt {
+		t.Errorf("incorrect route returned. Expected router: %s, found: %s", rt, routes[0].Router)
 	}
 
 	// query particular gateway and network
-	query := []QueryOption{
-		QueryGateway(gateway),
-		QueryNetwork(network),
-		QueryRouter(router),
+	query := []router.QueryOption{
+		router.QueryGateway(gateway),
+		router.QueryNetwork(network),
+		router.QueryRouter(rt),
 	}
 
 	routes, err = table.Query(query...)
@@ -211,14 +211,14 @@ func TestQuery(t *testing.T) {
 		t.Errorf("incorrect network returned. Expected network: %s, found: %s", network, routes[0].Network)
 	}
 
-	if routes[0].Router != router {
-		t.Errorf("incorrect route returned. Expected router: %s, found: %s", router, routes[0].Router)
+	if routes[0].Router != rt {
+		t.Errorf("incorrect route returned. Expected router: %s, found: %s", rt, routes[0].Router)
 	}
 
 	// non-existen route query
-	routes, err = table.Query(QueryService("foobar"))
-	if err != ErrRouteNotFound {
-		t.Errorf("error looking up routes. Expected: %s, found: %s", ErrRouteNotFound, err)
+	routes, err = table.Query(router.QueryService("foobar"))
+	if err != router.ErrRouteNotFound {
+		t.Errorf("error looking up routes. Expected: %s, found: %s", router.ErrRouteNotFound, err)
 	}
 
 	if len(routes) != 0 {
@@ -226,10 +226,10 @@ func TestQuery(t *testing.T) {
 	}
 
 	// query NO routes
-	query = []QueryOption{
-		QueryGateway(gateway),
-		QueryNetwork(network),
-		QueryStrategy(AdvertiseNone),
+	query = []router.QueryOption{
+		router.QueryGateway(gateway),
+		router.QueryNetwork(network),
+		router.QueryStrategy(router.AdvertiseNone),
 	}
 
 	routes, err = table.Query(query...)
@@ -251,10 +251,10 @@ func TestQuery(t *testing.T) {
 	}
 
 	// query local routes
-	query = []QueryOption{
-		QueryGateway("*"),
-		QueryNetwork("*"),
-		QueryStrategy(AdvertiseLocal),
+	query = []router.QueryOption{
+		router.QueryGateway("*"),
+		router.QueryNetwork("*"),
+		router.QueryStrategy(router.AdvertiseLocal),
 	}
 
 	routes, err = table.Query(query...)
@@ -277,9 +277,9 @@ func TestQuery(t *testing.T) {
 	}
 
 	// query best routes for svcX
-	query = []QueryOption{
-		QueryService("svcX"),
-		QueryStrategy(AdvertiseBest),
+	query = []router.QueryOption{
+		router.QueryService("svcX"),
+		router.QueryStrategy(router.AdvertiseBest),
 	}
 
 	routes, err = table.Query(query...)
@@ -294,15 +294,15 @@ func TestQuery(t *testing.T) {
 
 func TestFallback(t *testing.T) {
 
-	r := &router{
-		subscribers: make(map[string]chan *Advert),
-		options:     DefaultOptions(),
+	r := &rtr{
+		subscribers: make(map[string]chan *router.Advert),
+		options:     router.DefaultOptions(),
 	}
-	route := Route{
+	route := router.Route{
 		Service: "go.micro.service.foo",
 		Router:  r.options.Id,
-		Link:    DefaultLink,
-		Metric:  DefaultLocalMetric,
+		Link:    router.DefaultLink,
+		Metric:  router.DefaultLocalMetric,
 	}
 	r.table = newTable(func(s string) error {
 		r.table.Create(route)
@@ -310,7 +310,7 @@ func TestFallback(t *testing.T) {
 	})
 	r.start()
 
-	rts, err := r.Lookup(QueryService("go.micro.service.foo"))
+	rts, err := r.Lookup(router.QueryService("go.micro.service.foo"))
 	if err != nil {
 		t.Errorf("error looking up service %s", err)
 	}
@@ -323,7 +323,7 @@ func TestFallback(t *testing.T) {
 		t.Errorf("error deleting route %s", err)
 	}
 
-	rts, err = r.Lookup(QueryService("go.micro.service.foo"))
+	rts, err = r.Lookup(router.QueryService("go.micro.service.foo"))
 	if err != nil {
 		t.Errorf("error looking up service %s", err)
 	}
@@ -334,15 +334,15 @@ func TestFallback(t *testing.T) {
 }
 
 func TestFallbackError(t *testing.T) {
-	r := &router{
-		subscribers: make(map[string]chan *Advert),
-		options:     DefaultOptions(),
+	r := &rtr{
+		subscribers: make(map[string]chan *router.Advert),
+		options:     router.DefaultOptions(),
 	}
 	r.table = newTable(func(s string) error {
 		return fmt.Errorf("ERROR")
 	})
 	r.start()
-	_, err := r.Lookup(QueryService("go.micro.service.foo"))
+	_, err := r.Lookup(router.QueryService("go.micro.service.foo"))
 	if err == nil {
 		t.Errorf("expected error looking up service but none returned")
 	}

@@ -71,6 +71,7 @@ func (r *rtr) Init(opts ...router.Option) error {
 	for _, o := range opts {
 		o(&r.options)
 	}
+
 	return nil
 }
 
@@ -88,8 +89,6 @@ func (r *rtr) Options() router.Options {
 func (r *rtr) Table() router.Table {
 	r.Lock()
 	defer r.Unlock()
-	r.start()
-
 	return r.table
 }
 
@@ -464,7 +463,7 @@ func (r *rtr) start() error {
 		return nil
 	}
 
-	if r.options.Prewarm {
+	if r.options.Precache {
 		// add all local service routes into the routing table
 		if err := r.manageRegistryRoutes(r.options.Registry, "create"); err != nil {
 			return fmt.Errorf("failed adding registry routes: %s", err)
@@ -546,9 +545,12 @@ func (r *rtr) Advertise() (<-chan *router.Advert, error) {
 	r.Lock()
 	defer r.Unlock()
 
-	if !r.running {
-		return nil, errors.New("not running")
+	if r.running {
+		return nil, errors.New("cannot re-advertise, already running")
 	}
+
+	// start the router
+	r.start()
 
 	// we're mutating the subscribers so they need to be locked also
 	r.sub.Lock()
@@ -641,7 +643,7 @@ func (r *rtr) flushRouteEvents(evType router.EventType) ([]*router.Event, error)
 		router.QueryStrategy(r.options.Advertise),
 	}
 
-	routes, err := r.Table().Query(q...)
+	routes, err := r.table.Query(q...)
 	if err != nil && err != router.ErrRouteNotFound {
 		return nil, err
 	}

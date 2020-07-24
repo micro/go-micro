@@ -8,11 +8,12 @@ import (
 	"time"
 
 	"github.com/micro/go-micro/v2/registry/memory"
+	"github.com/micro/go-micro/v2/router"
 )
 
-func routerTestSetup() Router {
+func routerTestSetup() router.Router {
 	r := memory.NewRegistry()
-	return newRouter(Registry(r))
+	return NewRouter(router.Registry(r))
 }
 
 func TestRouterClose(t *testing.T) {
@@ -50,8 +51,8 @@ func TestRouterAdvertise(t *testing.T) {
 
 	// Generate random unique routes
 	nrRoutes := 5
-	routes := make([]Route, nrRoutes)
-	route := Route{
+	routes := make([]router.Route, nrRoutes)
+	route := router.Route{
 		Service: "dest.svc",
 		Address: "dest.addr",
 		Gateway: "dest.gw",
