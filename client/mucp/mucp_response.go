@@ -1,4 +1,4 @@
-package client
+package mucp
 
 import (
 	"github.com/micro/go-micro/v2/codec"

@@ -104,7 +104,7 @@ func NewOptions(options ...Option) Options {
 	opts := Options{
 		Cache:       NewCache(),
 		Context:     context.Background(),
-		ContentType: DefaultContentType,
+		ContentType: "application/protobuf",
 		Codecs:      make(map[string]codec.NewCodec),
 		CallOptions: CallOptions{
 			Backoff:        DefaultBackoff,

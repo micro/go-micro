@@ -1,10 +1,11 @@
-package client
+package mucp
 
 import (
 	"context"
 	"io"
 	"sync"
 
+	"github.com/micro/go-micro/v2/client"
 	"github.com/micro/go-micro/v2/codec"
 )
 
@@ -14,8 +15,8 @@ type rpcStream struct {
 	id       string
 	closed   chan bool
 	err      error
-	request  Request
-	response Response
+	request  client.Request
+	response client.Response
 	codec    codec.Codec
 	context  context.Context
 
@@ -39,11 +40,11 @@ func (r *rpcStream) Context() context.Context {
 	return r.context
 }
 
-func (r *rpcStream) Request() Request {
+func (r *rpcStream) Request() client.Request {
 	return r.request
 }
 
-func (r *rpcStream) Response() Response {
+func (r *rpcStream) Response() client.Response {
 	return r.response
 }
 

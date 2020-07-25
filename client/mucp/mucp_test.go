@@ -1,10 +1,11 @@
-package client
+package mucp
 
 import (
 	"context"
 	"fmt"
 	"testing"
 
+	"github.com/micro/go-micro/v2/client"
 	"github.com/micro/go-micro/v2/errors"
 	"github.com/micro/go-micro/v2/registry"
 	"github.com/micro/go-micro/v2/registry/memory"
@@ -20,8 +21,8 @@ func TestCallAddress(t *testing.T) {
 	endpoint := "Test.Endpoint"
 	address := "10.1.10.1:8080"
 
-	wrap := func(cf CallFunc) CallFunc {
-		return func(ctx context.Context, node *registry.Node, req Request, rsp interface{}, opts CallOptions) error {
+	wrap := func(cf client.CallFunc) client.CallFunc {
+		return func(ctx context.Context, node *registry.Node, req client.Request, rsp interface{}, opts client.CallOptions) error {
 			called = true
 
 			if req.Service() != service {
@@ -43,14 +44,14 @@ func TestCallAddress(t *testing.T) {
 
 	r := newTestRegistry()
 	c := NewClient(
-		Registry(r),
-		WrapCall(wrap),
+		client.Registry(r),
+		client.WrapCall(wrap),
 	)
 
 	req := c.NewRequest(service, endpoint, nil)
 
 	// test calling remote address
-	if err := c.Call(context.Background(), req, nil, WithAddress(address)); err != nil {
+	if err := c.Call(context.Background(), req, nil, client.WithAddress(address)); err != nil {
 		t.Fatal("call with address error", err)
 	}
 
@@ -67,8 +68,8 @@ func TestCallRetry(t *testing.T) {
 
 	var called int
 
-	wrap := func(cf CallFunc) CallFunc {
-		return func(ctx context.Context, node *registry.Node, req Request, rsp interface{}, opts CallOptions) error {
+	wrap := func(cf client.CallFunc) client.CallFunc {
+		return func(ctx context.Context, node *registry.Node, req client.Request, rsp interface{}, opts client.CallOptions) error {
 			called++
 			if called == 1 {
 				return errors.InternalServerError("test.error", "retry request")
@@ -81,14 +82,14 @@ func TestCallRetry(t *testing.T) {
 
 	r := newTestRegistry()
 	c := NewClient(
-		Registry(r),
-		WrapCall(wrap),
+		client.Registry(r),
+		client.WrapCall(wrap),
 	)
 
 	req := c.NewRequest(service, endpoint, nil)
 
 	// test calling remote address
-	if err := c.Call(context.Background(), req, nil, WithAddress(address)); err != nil {
+	if err := c.Call(context.Background(), req, nil, client.WithAddress(address)); err != nil {
 		t.Fatal("call with address error", err)
 	}
 
@@ -105,8 +106,8 @@ func TestCallWrapper(t *testing.T) {
 	endpoint := "Test.Endpoint"
 	address := "10.1.10.1:8080"
 
-	wrap := func(cf CallFunc) CallFunc {
-		return func(ctx context.Context, node *registry.Node, req Request, rsp interface{}, opts CallOptions) error {
+	wrap := func(cf client.CallFunc) client.CallFunc {
+		return func(ctx context.Context, node *registry.Node, req client.Request, rsp interface{}, opts client.CallOptions) error {
 			called = true
 
 			if req.Service() != service {
@@ -128,8 +129,8 @@ func TestCallWrapper(t *testing.T) {
 
 	r := newTestRegistry()
 	c := NewClient(
-		Registry(r),
-		WrapCall(wrap),
+		client.Registry(r),
+		client.WrapCall(wrap),
 	)
 
 	r.Register(&registry.Service{

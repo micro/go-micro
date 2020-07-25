@@ -1,9 +1,10 @@
-package client
+package mucp
 
 import (
 	"testing"
 	"time"
 
+	"github.com/micro/go-micro/v2/client"
 	"github.com/micro/go-micro/v2/transport"
 )
 
@@ -14,33 +15,33 @@ func TestCallOptions(t *testing.T) {
 		rtimeout time.Duration
 		dtimeout time.Duration
 	}{
-		{false, DefaultRetries, DefaultRequestTimeout, transport.DefaultDialTimeout},
+		{false, client.DefaultRetries, client.DefaultRequestTimeout, transport.DefaultDialTimeout},
 		{true, 10, time.Second, time.Second * 2},
 	}
 
 	for _, d := range testData {
-		var opts Options
-		var cl Client
+		var opts client.Options
+		var cl client.Client
 
 		if d.set {
-			opts = NewOptions(
-				Retries(d.retries),
-				RequestTimeout(d.rtimeout),
-				DialTimeout(d.dtimeout),
+			opts = client.NewOptions(
+				client.Retries(d.retries),
+				client.RequestTimeout(d.rtimeout),
+				client.DialTimeout(d.dtimeout),
 			)
 
 			cl = NewClient(
-				Retries(d.retries),
-				RequestTimeout(d.rtimeout),
-				DialTimeout(d.dtimeout),
+				client.Retries(d.retries),
+				client.RequestTimeout(d.rtimeout),
+				client.DialTimeout(d.dtimeout),
 			)
 		} else {
-			opts = NewOptions()
+			opts = client.NewOptions()
 			cl = NewClient()
 		}
 
 		// test options and those set in client
-		for _, o := range []Options{opts, cl.Options()} {
+		for _, o := range []client.Options{opts, cl.Options()} {
 			if o.CallOptions.Retries != d.retries {
 				t.Fatalf("Expected retries %v got %v", d.retries, o.CallOptions.Retries)
 			}
@@ -57,12 +58,12 @@ func TestCallOptions(t *testing.T) {
 			callOpts := o.CallOptions
 
 			// create new opts
-			cretries := WithRetries(o.CallOptions.Retries * 10)
-			crtimeout := WithRequestTimeout(o.CallOptions.RequestTimeout * (time.Second * 10))
-			cdtimeout := WithDialTimeout(o.CallOptions.DialTimeout * (time.Second * 10))
+			cretries := client.WithRetries(o.CallOptions.Retries * 10)
+			crtimeout := client.WithRequestTimeout(o.CallOptions.RequestTimeout * (time.Second * 10))
+			cdtimeout := client.WithDialTimeout(o.CallOptions.DialTimeout * (time.Second * 10))
 
 			// set call options
-			for _, opt := range []CallOption{cretries, crtimeout, cdtimeout} {
+			for _, opt := range []client.CallOption{cretries, crtimeout, cdtimeout} {
 				opt(&callOpts)
 			}
 
