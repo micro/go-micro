@@ -102,8 +102,8 @@ func Resolver(r resolver.Resolver) Option {
 func DefaultOptions() Options {
 	return Options{
 		Id:       uuid.New().String(),
-		Name:     DefaultName,
-		Address:  DefaultAddress,
+		Name:     "go.micro",
+		Address:  ":0",
 		Tunnel:   tunnel.NewTunnel(),
 		Router:   regRouter.NewRouter(),
 		Proxy:    mucp.NewProxy(),
