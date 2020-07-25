@@ -25,12 +25,13 @@ type Cmd interface {
 type Option func(o *Options)
 
 type Options struct {
-	// For the Command Line itself
-	Name        string
+	// Name of the application
+	Name string
+	// Description of the application
 	Description string
-	Version     string
-
-	// Action to execute when calling Run
+	// Version of the application
+	Version string
+	// Action to execute when Run is called and there is no subcommand
 	// TODO replace with a build in context
 	Action func(*cli.Context) error
 	// TODO replace with built in command definition
