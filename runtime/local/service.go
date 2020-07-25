@@ -1,4 +1,4 @@
-package runtime
+package local
 
 import (
 	"fmt"
@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/micro/go-micro/v2/logger"
+	"github.com/micro/go-micro/v2/runtime"
 	"github.com/micro/go-micro/v2/runtime/local/build"
 	"github.com/micro/go-micro/v2/runtime/local/process"
 	proc "github.com/micro/go-micro/v2/runtime/local/process/os"
@@ -30,7 +31,7 @@ type service struct {
 	output io.Writer
 
 	// service to manage
-	*Service
+	*runtime.Service
 	// process creator
 	Process *proc.Process
 	// Exec
@@ -39,7 +40,7 @@ type service struct {
 	PID *process.PID
 }
 
-func newService(s *Service, c CreateOptions) *service {
+func newService(s *runtime.Service, c runtime.CreateOptions) *service {
 	var exec string
 	var args []string
 
