@@ -313,7 +313,7 @@ func (c *cacheWrapper) Call(ctx context.Context, req client.Request, rsp interfa
 	}
 
 	// check to see if there is a response cached, if there is assign it
-	if r, ok := cache.Get(ctx, &req); ok {
+	if r, ok := cache.Get(ctx, req); ok {
 		val := reflect.ValueOf(rsp).Elem()
 		val.Set(reflect.ValueOf(r).Elem())
 		return nil
@@ -325,7 +325,7 @@ func (c *cacheWrapper) Call(ctx context.Context, req client.Request, rsp interfa
 	}
 
 	// set the result in the cache
-	cache.Set(ctx, &req, rsp, options.CacheExpiry)
+	cache.Set(ctx, req, rsp, options.CacheExpiry)
 	return nil
 }
 
