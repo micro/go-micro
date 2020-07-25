@@ -505,6 +505,10 @@ func (router *router) Subscribe(s server.Subscriber) error {
 	return nil
 }
 
+func (router *router) String() string {
+	return "mucp"
+}
+
 func (router *router) ProcessMessage(ctx context.Context, msg server.Message) (err error) {
 	defer func() {
 		// recover any panics

@@ -5,6 +5,10 @@ import (
 	"github.com/micro/go-micro/v2/server"
 )
 
+var (
+	DefaultRouter = newRpcRouter()
+)
+
 // NewServer returns a micro server interface
 func NewServer(opts ...server.Option) server.Server {
 	return newServer(opts...)
