@@ -7,6 +7,7 @@ import (
 	"github.com/micro/cli/v2"
 )
 
+// TODO: replace App with RegisterCommand/RegisterFlags
 type Cmd interface {
 	// Init initialises options
 	// Note: Use Run to parse command line
@@ -28,6 +29,14 @@ type Options struct {
 	Name        string
 	Description string
 	Version     string
+
+	// Action to execute when calling Run
+	// TODO replace with a build in context
+	Action func(*cli.Context) error
+	// TODO replace with built in command definition
+	Commands []*cli.Command
+	// TODO replace with built in flags definition
+	Flags []cli.Flag
 	// Other options for implementations of the interface
 	// can be stored in a context
 	Context context.Context
@@ -51,5 +60,26 @@ func Description(d string) Option {
 func Version(v string) Option {
 	return func(o *Options) {
 		o.Version = v
+	}
+}
+
+// Commands to add
+func Commands(c ...*cli.Command) Option {
+	return func(o *Options) {
+		o.Commands = c
+	}
+}
+
+// Flags to add
+func Flags(f ...cli.Flag) Option {
+	return func(o *Options) {
+		o.Flags = f
+	}
+}
+
+// Action to execute
+func Action(a func(*cli.Context) error) Option {
+	return func(o *Options) {
+		o.Action = a
 	}
 }
