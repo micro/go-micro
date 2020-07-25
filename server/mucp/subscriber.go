@@ -1,10 +1,11 @@
-package server
+package mucp
 
 import (
 	"fmt"
 	"reflect"
 
 	"github.com/micro/go-micro/v2/registry"
+	"github.com/micro/go-micro/v2/server"
 )
 
 const (
@@ -24,11 +25,11 @@ type subscriber struct {
 	subscriber interface{}
 	handlers   []*handler
 	endpoints  []*registry.Endpoint
-	opts       SubscriberOptions
+	opts       server.SubscriberOptions
 }
 
-func newSubscriber(topic string, sub interface{}, opts ...SubscriberOption) Subscriber {
-	options := SubscriberOptions{
+func newSubscriber(topic string, sub interface{}, opts ...server.SubscriberOption) server.Subscriber {
+	options := server.SubscriberOptions{
 		AutoAck: true,
 	}
 
@@ -104,7 +105,7 @@ func newSubscriber(topic string, sub interface{}, opts ...SubscriberOption) Subs
 	}
 }
 
-func validateSubscriber(sub Subscriber) error {
+func validateSubscriber(sub server.Subscriber) error {
 	typ := reflect.TypeOf(sub.Subscriber())
 	var argType reflect.Type
 
@@ -170,6 +171,6 @@ func (s *subscriber) Endpoints() []*registry.Endpoint {
 	return s.endpoints
 }
 
-func (s *subscriber) Options() SubscriberOptions {
+func (s *subscriber) Options() server.SubscriberOptions {
 	return s.opts
 }

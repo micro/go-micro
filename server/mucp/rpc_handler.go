@@ -1,20 +1,21 @@
-package server
+package mucp
 
 import (
 	"reflect"
 
 	"github.com/micro/go-micro/v2/registry"
+	"github.com/micro/go-micro/v2/server"
 )
 
 type rpcHandler struct {
 	name      string
 	handler   interface{}
 	endpoints []*registry.Endpoint
-	opts      HandlerOptions
+	opts      server.HandlerOptions
 }
 
-func newRpcHandler(handler interface{}, opts ...HandlerOption) Handler {
-	options := HandlerOptions{
+func newRpcHandler(handler interface{}, opts ...server.HandlerOption) server.Handler {
+	options := server.HandlerOptions{
 		Metadata: make(map[string]map[string]string),
 	}
 
@@ -60,6 +61,6 @@ func (r *rpcHandler) Endpoints() []*registry.Endpoint {
 	return r.endpoints
 }
 
-func (r *rpcHandler) Options() HandlerOptions {
+func (r *rpcHandler) Options() server.HandlerOptions {
 	return r.opts
 }

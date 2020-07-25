@@ -35,9 +35,9 @@ func TestCache(t *testing.T) {
 func TestCacheKey(t *testing.T) {
 	ctx := context.TODO()
 
-	req1 := &testRequest{service: "go.micro.service.foo", method:"Foo.Bar"}
-	req2 := &testRequest{service: "go.micro.service.foo", method:"Foo.Baz"}
-	req3 := &testRequest{service: "go.micro.service.foo", method:"Foo.Bar", body: "customquery"}
+	req1 := &testRequest{service: "go.micro.service.foo", method: "Foo.Bar"}
+	req2 := &testRequest{service: "go.micro.service.foo", method: "Foo.Baz"}
+	req3 := &testRequest{service: "go.micro.service.foo", method: "Foo.Bar", body: "customquery"}
 
 	t.Run("IdenticalRequests", func(t *testing.T) {
 		key1 := key(ctx, req1)

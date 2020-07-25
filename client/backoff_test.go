@@ -18,9 +18,8 @@ func TestBackoff(t *testing.T) {
 
 	r := &testRequest{
 		service: "test",
-		method: "test",
+		method:  "test",
 	}
-
 
 	for i := 0; i < 5; i++ {
 		d, err := exponentialBackoff(context.TODO(), r, i)
