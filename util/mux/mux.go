@@ -5,11 +5,11 @@ import (
 	"context"
 	"sync"
 
-	"github.com/micro/go-micro/v2/client/grpc"
-	"github.com/micro/go-micro/v2/debug/service/handler"
-	"github.com/micro/go-micro/v2/proxy"
-	"github.com/micro/go-micro/v2/server"
-	"github.com/micro/go-micro/v2/server/mucp"
+	"github.com/micro/go-micro/v3/client/grpc"
+	"github.com/micro/go-micro/v3/debug/service/handler"
+	"github.com/micro/go-micro/v3/proxy"
+	"github.com/micro/go-micro/v3/server"
+	"github.com/micro/go-micro/v3/server/mucp"
 )
 
 // Server is a proxy muxer that incudes the use of the DefaultHandler

@@ -4,7 +4,7 @@ package mdns
 import (
 	"context"
 
-	"github.com/micro/go-micro/v2/registry"
+	"github.com/micro/go-micro/v3/registry"
 )
 
 // Domain sets the mdnsDomain

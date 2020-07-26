@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/micro/go-micro/v2/logger"
-	"github.com/micro/go-micro/v2/web"
+	"github.com/micro/go-micro/v3/logger"
+	"github.com/micro/go-micro/v3/web"
 )
 
 func TestWeb(t *testing.T) {

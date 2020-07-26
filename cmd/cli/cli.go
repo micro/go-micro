@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/micro/cli/v2"
-	"github.com/micro/go-micro/v2/cmd"
+	"github.com/micro/go-micro/v3/cmd"
 )
 
 type cliCmd struct {

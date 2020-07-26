@@ -3,7 +3,7 @@ package mucp
 import (
 	"testing"
 
-	"github.com/micro/go-micro/v2/client"
+	"github.com/micro/go-micro/v3/client"
 )
 
 func TestRequestOptions(t *testing.T) {

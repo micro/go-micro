@@ -1,11 +1,11 @@
 package mucp
 
 import (
-	"github.com/micro/go-micro/v2/broker/http"
-	"github.com/micro/go-micro/v2/codec"
-	"github.com/micro/go-micro/v2/registry/mdns"
-	"github.com/micro/go-micro/v2/server"
-	thttp "github.com/micro/go-micro/v2/transport/http"
+	"github.com/micro/go-micro/v3/broker/http"
+	"github.com/micro/go-micro/v3/codec"
+	"github.com/micro/go-micro/v3/registry/mdns"
+	"github.com/micro/go-micro/v3/server"
+	thttp "github.com/micro/go-micro/v3/transport/http"
 )
 
 func newOptions(opt ...server.Option) server.Options {

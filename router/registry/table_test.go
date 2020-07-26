@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/micro/go-micro/v2/router"
+	"github.com/micro/go-micro/v3/router"
 )
 
 func testSetup() (*table, router.Route) {

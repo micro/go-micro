@@ -2,8 +2,8 @@
 package network
 
 import (
-	"github.com/micro/go-micro/v2/client"
-	"github.com/micro/go-micro/v2/server"
+	"github.com/micro/go-micro/v3/client"
+	"github.com/micro/go-micro/v3/server"
 )
 
 // Error is network node errors

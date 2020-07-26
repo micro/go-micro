@@ -12,13 +12,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/micro/go-micro/v2/logger"
-	"github.com/micro/go-micro/v2/registry"
-	maddr "github.com/micro/go-micro/v2/util/addr"
-	"github.com/micro/go-micro/v2/util/backoff"
-	mnet "github.com/micro/go-micro/v2/util/net"
-	signalutil "github.com/micro/go-micro/v2/util/signal"
-	mls "github.com/micro/go-micro/v2/util/tls"
+	"github.com/micro/go-micro/v3/logger"
+	"github.com/micro/go-micro/v3/registry"
+	maddr "github.com/micro/go-micro/v3/util/addr"
+	"github.com/micro/go-micro/v3/util/backoff"
+	mnet "github.com/micro/go-micro/v3/util/net"
+	signalutil "github.com/micro/go-micro/v3/util/signal"
+	mls "github.com/micro/go-micro/v3/util/tls"
 )
 
 type service struct {

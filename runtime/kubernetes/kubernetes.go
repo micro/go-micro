@@ -9,10 +9,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/micro/go-micro/v2/logger"
-	log "github.com/micro/go-micro/v2/logger"
-	"github.com/micro/go-micro/v2/runtime"
-	"github.com/micro/go-micro/v2/util/kubernetes/client"
+	"github.com/micro/go-micro/v3/logger"
+	log "github.com/micro/go-micro/v3/logger"
+	"github.com/micro/go-micro/v3/runtime"
+	"github.com/micro/go-micro/v3/util/kubernetes/client"
 )
 
 // action to take on runtime service

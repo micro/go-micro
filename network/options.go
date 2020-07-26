@@ -2,13 +2,13 @@ package network
 
 import (
 	"github.com/google/uuid"
-	"github.com/micro/go-micro/v2/network/resolver"
-	"github.com/micro/go-micro/v2/network/resolver/registry"
-	"github.com/micro/go-micro/v2/proxy"
-	"github.com/micro/go-micro/v2/proxy/mucp"
-	"github.com/micro/go-micro/v2/router"
-	regRouter "github.com/micro/go-micro/v2/router/registry"
-	"github.com/micro/go-micro/v2/tunnel"
+	"github.com/micro/go-micro/v3/network/resolver"
+	"github.com/micro/go-micro/v3/network/resolver/registry"
+	"github.com/micro/go-micro/v3/proxy"
+	"github.com/micro/go-micro/v3/proxy/mucp"
+	"github.com/micro/go-micro/v3/router"
+	regRouter "github.com/micro/go-micro/v3/router/registry"
+	"github.com/micro/go-micro/v3/tunnel"
 )
 
 type Option func(*Options)

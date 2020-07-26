@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/micro/go-micro/v2/store"
+	"github.com/micro/go-micro/v3/store"
 )
 
 func NewOptions(opts ...Option) Options {

@@ -3,8 +3,8 @@ package mucp
 import (
 	"net/http"
 
-	"github.com/micro/go-micro/v2/codec"
-	"github.com/micro/go-micro/v2/transport"
+	"github.com/micro/go-micro/v3/codec"
+	"github.com/micro/go-micro/v3/transport"
 )
 
 type rpcResponse struct {
