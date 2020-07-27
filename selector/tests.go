@@ -3,7 +3,7 @@ package selector
 import (
 	"testing"
 
-	"github.com/micro/go-micro/v2/router"
+	"github.com/micro/go-micro/v3/router"
 	"github.com/stretchr/testify/assert"
 )
 

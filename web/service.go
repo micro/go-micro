@@ -12,17 +12,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/micro/cli/v2"
-	"github.com/micro/go-micro/v2"
-	"github.com/micro/go-micro/v2/logger"
-	"github.com/micro/go-micro/v2/registry"
-	maddr "github.com/micro/go-micro/v2/util/addr"
-	authutil "github.com/micro/go-micro/v2/util/auth"
-	"github.com/micro/go-micro/v2/util/backoff"
-	mhttp "github.com/micro/go-micro/v2/util/http"
-	mnet "github.com/micro/go-micro/v2/util/net"
-	signalutil "github.com/micro/go-micro/v2/util/signal"
-	mls "github.com/micro/go-micro/v2/util/tls"
+	"github.com/micro/go-micro/v3/logger"
+	"github.com/micro/go-micro/v3/registry"
+	maddr "github.com/micro/go-micro/v3/util/addr"
+	"github.com/micro/go-micro/v3/util/backoff"
+	mnet "github.com/micro/go-micro/v3/util/net"
+	signalutil "github.com/micro/go-micro/v3/util/signal"
+	mls "github.com/micro/go-micro/v3/util/tls"
 )
 
 type service struct {
@@ -120,11 +116,7 @@ func (s *service) register() error {
 		return nil
 	}
 	// default to service registry
-	r := s.opts.Service.Options().Registry
-	// switch to option if specified
-	if s.opts.Registry != nil {
-		r = s.opts.Registry
-	}
+	r := s.opts.Registry
 
 	// service node need modify, node address maybe changed
 	srv := s.genSrv()
@@ -144,7 +136,6 @@ func (s *service) register() error {
 	// register options
 	rOpts := []registry.RegisterOption{
 		registry.RegisterTTL(s.opts.RegisterTTL),
-		registry.RegisterDomain(s.opts.Service.Server().Options().Namespace),
 	}
 
 	// try three times if necessary
@@ -173,11 +164,8 @@ func (s *service) deregister() error {
 		return nil
 	}
 	// default to service registry
-	r := s.opts.Service.Options().Registry
-	// switch to option if specified
-	if s.opts.Registry != nil {
-		r = s.opts.Registry
-	}
+	r := s.opts.Registry
+
 	return r.Deregister(s.srv)
 }
 
@@ -300,15 +288,6 @@ func (s *service) stop() error {
 	return <-ch
 }
 
-func (s *service) Client() *http.Client {
-	rt := mhttp.NewRoundTripper(
-		mhttp.WithRouter(s.opts.Service.Options().Router),
-	)
-	return &http.Client{
-		Transport: rt,
-	}
-}
-
 func (s *service) Handle(pattern string, handler http.Handler) {
 	var seen bool
 	s.RLock()
@@ -377,68 +356,6 @@ func (s *service) Init(opts ...Option) error {
 		o(&s.opts)
 	}
 
-	serviceOpts := []micro.Option{}
-
-	if len(s.opts.Flags) > 0 {
-		serviceOpts = append(serviceOpts, micro.Flags(s.opts.Flags...))
-	}
-
-	if s.opts.Registry != nil {
-		serviceOpts = append(serviceOpts, micro.Registry(s.opts.Registry))
-	}
-
-	s.Unlock()
-
-	serviceOpts = append(serviceOpts, micro.Action(func(ctx *cli.Context) error {
-		s.Lock()
-		defer s.Unlock()
-
-		if ttl := ctx.Int("register_ttl"); ttl > 0 {
-			s.opts.RegisterTTL = time.Duration(ttl) * time.Second
-		}
-
-		if interval := ctx.Int("register_interval"); interval > 0 {
-			s.opts.RegisterInterval = time.Duration(interval) * time.Second
-		}
-
-		if name := ctx.String("server_name"); len(name) > 0 {
-			s.opts.Name = name
-		}
-
-		if ver := ctx.String("server_version"); len(ver) > 0 {
-			s.opts.Version = ver
-		}
-
-		if id := ctx.String("server_id"); len(id) > 0 {
-			s.opts.Id = id
-		}
-
-		if addr := ctx.String("server_address"); len(addr) > 0 {
-			s.opts.Address = addr
-		}
-
-		if adv := ctx.String("server_advertise"); len(adv) > 0 {
-			s.opts.Advertise = adv
-		}
-
-		if s.opts.Action != nil {
-			s.opts.Action(ctx)
-		}
-
-		return nil
-	}))
-
-	s.RLock()
-	// pass in own name and version
-	if s.opts.Service.Name() == "" {
-		serviceOpts = append(serviceOpts, micro.Name(s.opts.Name))
-	}
-	serviceOpts = append(serviceOpts, micro.Version(s.opts.Version))
-	s.RUnlock()
-
-	s.opts.Service.Init(serviceOpts...)
-
-	s.Lock()
 	srv := s.genSrv()
 	srv.Endpoints = s.srv.Endpoints
 	s.srv = srv
@@ -448,11 +365,6 @@ func (s *service) Init(opts ...Option) error {
 }
 
 func (s *service) Run() error {
-	// generate an auth account
-	if err := authutil.Verify(s.opts.Service.Options().Auth); err != nil {
-		return err
-	}
-
 	if err := s.start(); err != nil {
 		return err
 	}

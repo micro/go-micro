@@ -3,7 +3,7 @@ package selector
 import (
 	"math/rand"
 
-	"github.com/micro/go-micro/v2/router"
+	"github.com/micro/go-micro/v3/router"
 )
 
 type random struct{}

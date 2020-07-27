@@ -2,12 +2,13 @@ package network
 
 import (
 	"github.com/google/uuid"
-	"github.com/micro/go-micro/v2/network/resolver"
-	"github.com/micro/go-micro/v2/network/resolver/registry"
-	"github.com/micro/go-micro/v2/proxy"
-	"github.com/micro/go-micro/v2/proxy/mucp"
-	"github.com/micro/go-micro/v2/router"
-	"github.com/micro/go-micro/v2/tunnel"
+	"github.com/micro/go-micro/v3/network/resolver"
+	"github.com/micro/go-micro/v3/network/resolver/registry"
+	"github.com/micro/go-micro/v3/proxy"
+	"github.com/micro/go-micro/v3/proxy/mucp"
+	"github.com/micro/go-micro/v3/router"
+	regRouter "github.com/micro/go-micro/v3/router/registry"
+	"github.com/micro/go-micro/v3/tunnel"
 )
 
 type Option func(*Options)
@@ -101,10 +102,10 @@ func Resolver(r resolver.Resolver) Option {
 func DefaultOptions() Options {
 	return Options{
 		Id:       uuid.New().String(),
-		Name:     DefaultName,
-		Address:  DefaultAddress,
+		Name:     "go.micro",
+		Address:  ":0",
 		Tunnel:   tunnel.NewTunnel(),
-		Router:   router.DefaultRouter,
+		Router:   regRouter.NewRouter(),
 		Proxy:    mucp.NewProxy(),
 		Resolver: &registry.Resolver{},
 	}

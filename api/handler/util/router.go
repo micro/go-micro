@@ -1,8 +1,8 @@
 package util
 
 import (
-	"github.com/micro/go-micro/v2/registry"
-	"github.com/micro/go-micro/v2/router"
+	"github.com/micro/go-micro/v3/registry"
+	"github.com/micro/go-micro/v3/router"
 )
 
 // Router is a hack for API routing

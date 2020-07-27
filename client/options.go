@@ -4,12 +4,14 @@ import (
 	"context"
 	"time"
 
-	"github.com/micro/go-micro/v2/broker"
-	"github.com/micro/go-micro/v2/codec"
-	"github.com/micro/go-micro/v2/registry"
-	"github.com/micro/go-micro/v2/router"
-	"github.com/micro/go-micro/v2/selector"
-	"github.com/micro/go-micro/v2/transport"
+	"github.com/micro/go-micro/v3/broker"
+	"github.com/micro/go-micro/v3/broker/http"
+	"github.com/micro/go-micro/v3/codec"
+	"github.com/micro/go-micro/v3/registry"
+	"github.com/micro/go-micro/v3/router"
+	regRouter "github.com/micro/go-micro/v3/router/registry"
+	"github.com/micro/go-micro/v3/selector"
+	"github.com/micro/go-micro/v3/transport"
 )
 
 type Options struct {
@@ -102,7 +104,7 @@ func NewOptions(options ...Option) Options {
 	opts := Options{
 		Cache:       NewCache(),
 		Context:     context.Background(),
-		ContentType: DefaultContentType,
+		ContentType: "application/protobuf",
 		Codecs:      make(map[string]codec.NewCodec),
 		CallOptions: CallOptions{
 			Backoff:        DefaultBackoff,
@@ -113,8 +115,8 @@ func NewOptions(options ...Option) Options {
 		},
 		PoolSize:  DefaultPoolSize,
 		PoolTTL:   DefaultPoolTTL,
-		Broker:    broker.DefaultBroker,
-		Router:    router.DefaultRouter,
+		Broker:    http.NewBroker(),
+		Router:    regRouter.NewRouter(),
 		Selector:  selector.DefaultSelector,
 		Transport: transport.DefaultTransport,
 	}

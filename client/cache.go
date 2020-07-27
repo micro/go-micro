@@ -7,7 +7,7 @@ import (
 	"hash/fnv"
 	"time"
 
-	"github.com/micro/go-micro/v2/metadata"
+	"github.com/micro/go-micro/v3/metadata"
 	cache "github.com/patrickmn/go-cache"
 )
 
@@ -24,12 +24,12 @@ type Cache struct {
 }
 
 // Get a response from the cache
-func (c *Cache) Get(ctx context.Context, req *Request) (interface{}, bool) {
+func (c *Cache) Get(ctx context.Context, req Request) (interface{}, bool) {
 	return c.cache.Get(key(ctx, req))
 }
 
 // Set a response in the cache
-func (c *Cache) Set(ctx context.Context, req *Request, rsp interface{}, expiry time.Duration) {
+func (c *Cache) Set(ctx context.Context, req Request, rsp interface{}, expiry time.Duration) {
 	c.cache.Set(key(ctx, req), rsp, expiry)
 }
 
@@ -47,16 +47,16 @@ func (c *Cache) List() map[string]string {
 }
 
 // key returns a hash for the context and request
-func key(ctx context.Context, req *Request) string {
+func key(ctx context.Context, req Request) string {
 	ns, _ := metadata.Get(ctx, "Micro-Namespace")
 
 	bytes, _ := json.Marshal(map[string]interface{}{
 		"namespace": ns,
 		"request": map[string]interface{}{
-			"service":  (*req).Service(),
-			"endpoint": (*req).Endpoint(),
-			"method":   (*req).Method(),
-			"body":     (*req).Body(),
+			"service":  req.Service(),
+			"endpoint": req.Endpoint(),
+			"method":   req.Method(),
+			"body":     req.Body(),
 		},
 	})
 

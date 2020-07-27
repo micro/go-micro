@@ -5,10 +5,11 @@ import (
 	"context"
 	"sync"
 
-	"github.com/micro/go-micro/v2/client"
-	"github.com/micro/go-micro/v2/codec"
-	"github.com/micro/go-micro/v2/metadata"
-	"github.com/micro/go-micro/v2/server"
+	"github.com/micro/go-micro/v3/client"
+	"github.com/micro/go-micro/v3/client/mucp"
+	"github.com/micro/go-micro/v3/codec"
+	"github.com/micro/go-micro/v3/metadata"
+	"github.com/micro/go-micro/v3/server"
 )
 
 type Stream interface {
@@ -81,7 +82,7 @@ func New(service, endpoint string, req interface{}, s Stream) server.Stream {
 		Stream: s,
 		request: &request{
 			context: s.Context(),
-			Request: client.DefaultClient.NewRequest(service, endpoint, req),
+			Request: mucp.NewClient().NewRequest(service, endpoint, req),
 		},
 	}
 }
