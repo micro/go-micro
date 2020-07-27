@@ -25,6 +25,19 @@ func init() {
 	bracketSplitter = regexp.MustCompile("\\[|\\]")
 }
 
+func btSplitter(str string) []string {
+	r := bracketSplitter.Split(str, -1)
+	for idx, s := range r {
+		if len(s) == 0 {
+			if len(r) > idx+1 {
+				copy(r[idx:], r[idx+1:])
+				r = r[:len(r)-1]
+			}
+		}
+	}
+	return r
+}
+
 // Unmarshal will take a dest along with URL
 // query params and attempt to first turn the query params
 // into JSON and then unmarshal those into the dest variable
@@ -86,7 +99,7 @@ func queryToMap(param string) (map[string]interface{}, error) {
 		return nil, err
 	}
 
-	pieces := bracketSplitter.Split(rawKey, -1)
+	pieces := btSplitter(rawKey)
 	key := pieces[0]
 
 	// If len==1 then rawKey has no [] chars and we can just
@@ -136,7 +149,8 @@ func queryToMap(param string) (map[string]interface{}, error) {
 // pieces = [bar one two ]
 // and return "one[two]"
 func buildNewKey(origKey string) string {
-	pieces := bracketSplitter.Split(origKey, -1)
+	pieces := btSplitter(origKey)
+
 	ret := origKey[len(pieces[0])+1:]
 	ret = ret[:len(pieces[1])] + ret[len(pieces[1])+1:]
 	return ret
