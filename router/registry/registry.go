@@ -177,6 +177,8 @@ func (r *rtr) manageRegistryRoutes(reg registry.Registry, action string) error {
 
 // fetchRoutes retrieves all the routes for a given service and creates them in the routing table
 func (r *rtr) fetchRoutes(service string) error {
+	r.start()
+
 	services, err := r.options.Registry.GetService(service, registry.GetDomain(registry.WildcardDomain))
 	if err == registry.ErrNotFound {
 		return nil
@@ -459,9 +461,17 @@ func (r *rtr) drain() {
 
 // start the router. Should be called under lock.
 func (r *rtr) start() error {
+	// don't run the router twice
+	r.RLock()
 	if r.running {
+		r.RUnlock()
 		return nil
 	}
+
+	// upgrade read lock to write lock
+	r.RUnlock()
+	r.Lock()
+	defer r.Unlock()
 
 	if r.options.Precache {
 		// add all local service routes into the routing table
@@ -542,15 +552,15 @@ func (r *rtr) start() error {
 // If the router is already advertising it returns the channel to consume from.
 // It returns error if either the router is not running or if the routing table fails to list the routes to advertise.
 func (r *rtr) Advertise() (<-chan *router.Advert, error) {
+	// start the router
+	r.start()
+
 	r.Lock()
 	defer r.Unlock()
 
 	if r.running {
 		return nil, errors.New("cannot re-advertise, already running")
 	}
-
-	// start the router
-	r.start()
 
 	// we're mutating the subscribers so they need to be locked also
 	r.sub.Lock()
