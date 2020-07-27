@@ -1,6 +1,6 @@
 package selector
 
-import "github.com/micro/go-micro/v2/router"
+import "github.com/micro/go-micro/v3/router"
 
 // Options used to configure a selector
 type Options struct{}

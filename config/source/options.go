@@ -3,9 +3,9 @@ package source
 import (
 	"context"
 
-	"github.com/micro/go-micro/v2/client"
-	"github.com/micro/go-micro/v2/config/encoder"
-	"github.com/micro/go-micro/v2/config/encoder/json"
+	"github.com/micro/go-micro/v3/client"
+	"github.com/micro/go-micro/v3/config/encoder"
+	"github.com/micro/go-micro/v3/config/encoder/json"
 )
 
 type Options struct {
@@ -25,7 +25,6 @@ func NewOptions(opts ...Option) Options {
 	options := Options{
 		Encoder: json.NewEncoder(),
 		Context: context.Background(),
-		Client:  client.DefaultClient,
 	}
 
 	for _, o := range opts {

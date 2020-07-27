@@ -10,64 +10,9 @@ import (
 	pg "plugin"
 	"strings"
 	"text/template"
-
-	"github.com/micro/go-micro/v2/broker"
-	"github.com/micro/go-micro/v2/client"
-	"github.com/micro/go-micro/v2/cmd"
-	"github.com/micro/go-micro/v2/registry"
-	"github.com/micro/go-micro/v2/selector"
-	"github.com/micro/go-micro/v2/server"
-	"github.com/micro/go-micro/v2/transport"
 )
 
 type plugin struct{}
-
-// Init sets up the plugin
-func (p *plugin) Init(c *Config) error {
-	switch c.Type {
-	case "broker":
-		pg, ok := c.NewFunc.(func(...broker.Option) broker.Broker)
-		if !ok {
-			return fmt.Errorf("Invalid plugin %s", c.Name)
-		}
-		cmd.DefaultBrokers[c.Name] = pg
-	case "client":
-		pg, ok := c.NewFunc.(func(...client.Option) client.Client)
-		if !ok {
-			return fmt.Errorf("Invalid plugin %s", c.Name)
-		}
-		cmd.DefaultClients[c.Name] = pg
-	case "registry":
-		pg, ok := c.NewFunc.(func(...registry.Option) registry.Registry)
-		if !ok {
-			return fmt.Errorf("Invalid plugin %s", c.Name)
-		}
-		cmd.DefaultRegistries[c.Name] = pg
-
-	case "selector":
-		pg, ok := c.NewFunc.(func(...selector.Option) selector.Selector)
-		if !ok {
-			return fmt.Errorf("Invalid plugin %s", c.Name)
-		}
-		cmd.DefaultSelectors[c.Name] = pg
-	case "server":
-		pg, ok := c.NewFunc.(func(...server.Option) server.Server)
-		if !ok {
-			return fmt.Errorf("Invalid plugin %s", c.Name)
-		}
-		cmd.DefaultServers[c.Name] = pg
-	case "transport":
-		pg, ok := c.NewFunc.(func(...transport.Option) transport.Transport)
-		if !ok {
-			return fmt.Errorf("Invalid plugin %s", c.Name)
-		}
-		cmd.DefaultTransports[c.Name] = pg
-	default:
-		return fmt.Errorf("Unknown plugin type: %s for %s", c.Type, c.Name)
-	}
-
-	return nil
-}
 
 // Load loads a plugin created with `go build -buildmode=plugin`
 func (p *plugin) Load(path string) (*Config, error) {

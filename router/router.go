@@ -2,6 +2,7 @@
 package router
 
 import (
+	"errors"
 	"time"
 )
 
@@ -12,8 +13,10 @@ var (
 	DefaultName = "go.micro.router"
 	// DefaultNetwork is default micro network
 	DefaultNetwork = "micro"
-	// DefaultRouter is default network router
-	DefaultRouter = NewRouter()
+	// ErrRouteNotFound is returned when no route was found in the routing table
+	ErrRouteNotFound = errors.New("route not found")
+	// ErrDuplicateRoute is returned when the route already exists
+	ErrDuplicateRoute = errors.New("duplicate route")
 )
 
 // Router is an interface for a routing control plane
@@ -134,9 +137,4 @@ func (s Strategy) String() string {
 	default:
 		return "unknown"
 	}
-}
-
-// NewRouter creates new Router and returns it
-func NewRouter(opts ...Option) Router {
-	return newRouter(opts...)
 }

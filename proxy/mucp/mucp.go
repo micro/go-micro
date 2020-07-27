@@ -10,16 +10,18 @@ import (
 	"sync"
 	"time"
 
-	"github.com/micro/go-micro/v2/client"
-	"github.com/micro/go-micro/v2/codec"
-	"github.com/micro/go-micro/v2/codec/bytes"
-	"github.com/micro/go-micro/v2/errors"
-	"github.com/micro/go-micro/v2/logger"
-	"github.com/micro/go-micro/v2/metadata"
-	"github.com/micro/go-micro/v2/proxy"
-	"github.com/micro/go-micro/v2/router"
-	"github.com/micro/go-micro/v2/selector/roundrobin"
-	"github.com/micro/go-micro/v2/server"
+	"github.com/micro/go-micro/v3/client"
+	"github.com/micro/go-micro/v3/client/grpc"
+	"github.com/micro/go-micro/v3/codec"
+	"github.com/micro/go-micro/v3/codec/bytes"
+	"github.com/micro/go-micro/v3/errors"
+	"github.com/micro/go-micro/v3/logger"
+	"github.com/micro/go-micro/v3/metadata"
+	"github.com/micro/go-micro/v3/proxy"
+	"github.com/micro/go-micro/v3/router"
+	"github.com/micro/go-micro/v3/router/registry"
+	"github.com/micro/go-micro/v3/selector/roundrobin"
+	"github.com/micro/go-micro/v3/server"
 )
 
 // Proxy will transparently proxy requests to an endpoint.
@@ -593,12 +595,12 @@ func NewProxy(opts ...proxy.Option) proxy.Proxy {
 
 	// set the default client
 	if p.Client == nil {
-		p.Client = client.DefaultClient
+		p.Client = grpc.NewClient()
 	}
 
 	// create default router and start it
 	if p.Router == nil {
-		p.Router = router.DefaultRouter
+		p.Router = registry.NewRouter()
 	}
 	// set the links
 	if options.Links != nil {

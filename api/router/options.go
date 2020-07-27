@@ -1,9 +1,10 @@
 package router
 
 import (
-	"github.com/micro/go-micro/v2/api/resolver"
-	"github.com/micro/go-micro/v2/api/resolver/vpath"
-	"github.com/micro/go-micro/v2/registry"
+	"github.com/micro/go-micro/v3/api/resolver"
+	"github.com/micro/go-micro/v3/api/resolver/vpath"
+	"github.com/micro/go-micro/v3/registry"
+	"github.com/micro/go-micro/v3/registry/mdns"
 )
 
 type Options struct {
@@ -17,7 +18,7 @@ type Option func(o *Options)
 func NewOptions(opts ...Option) Options {
 	options := Options{
 		Handler:  "meta",
-		Registry: registry.DefaultRegistry,
+		Registry: mdns.NewRegistry(),
 	}
 
 	for _, o := range opts {
