@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/micro/go-micro/v2/store"
-	"github.com/micro/go-micro/v2/store/file"
+	"github.com/micro/go-micro/v3/store"
+	"github.com/micro/go-micro/v3/store/file"
 	"github.com/stretchr/testify/assert"
 )
 

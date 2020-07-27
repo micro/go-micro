@@ -4,13 +4,13 @@ package api
 import (
 	"net/http"
 
-	goapi "github.com/micro/go-micro/v2/api"
-	"github.com/micro/go-micro/v2/api/handler"
-	"github.com/micro/go-micro/v2/api/handler/util"
-	api "github.com/micro/go-micro/v2/api/proto"
-	"github.com/micro/go-micro/v2/client"
-	"github.com/micro/go-micro/v2/errors"
-	"github.com/micro/go-micro/v2/util/ctx"
+	goapi "github.com/micro/go-micro/v3/api"
+	"github.com/micro/go-micro/v3/api/handler"
+	"github.com/micro/go-micro/v3/api/handler/util"
+	api "github.com/micro/go-micro/v3/api/proto"
+	"github.com/micro/go-micro/v3/client"
+	"github.com/micro/go-micro/v3/errors"
+	"github.com/micro/go-micro/v3/util/ctx"
 )
 
 type apiHandler struct {

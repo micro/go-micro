@@ -37,31 +37,3 @@ type Subscriber interface {
 	Topic() string
 	Unsubscribe() error
 }
-
-var (
-	DefaultBroker Broker = NewBroker()
-)
-
-func Init(opts ...Option) error {
-	return DefaultBroker.Init(opts...)
-}
-
-func Connect() error {
-	return DefaultBroker.Connect()
-}
-
-func Disconnect() error {
-	return DefaultBroker.Disconnect()
-}
-
-func Publish(topic string, msg *Message, opts ...PublishOption) error {
-	return DefaultBroker.Publish(topic, msg, opts...)
-}
-
-func Subscribe(topic string, handler Handler, opts ...SubscribeOption) (Subscriber, error) {
-	return DefaultBroker.Subscribe(topic, handler, opts...)
-}
-
-func String() string {
-	return DefaultBroker.String()
-}

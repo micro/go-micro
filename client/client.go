@@ -5,7 +5,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/micro/go-micro/v2/codec"
+	"github.com/micro/go-micro/v3/codec"
 )
 
 // Client is the interface used to make requests to services.
@@ -91,8 +91,6 @@ type MessageOption func(*MessageOptions)
 type RequestOption func(*RequestOptions)
 
 var (
-	// DefaultClient is a default client to use out of the box
-	DefaultClient Client = newRpcClient()
 	// DefaultBackoff is the default backoff function for retries
 	DefaultBackoff = exponentialBackoff
 	// DefaultRetry is the default check-for-retry function for retries
@@ -105,39 +103,4 @@ var (
 	DefaultPoolSize = 100
 	// DefaultPoolTTL sets the connection pool ttl
 	DefaultPoolTTL = time.Minute
-
-	// NewClient returns a new client
-	NewClient func(...Option) Client = newRpcClient
 )
-
-// Makes a synchronous call to a service using the default client
-func Call(ctx context.Context, request Request, response interface{}, opts ...CallOption) error {
-	return DefaultClient.Call(ctx, request, response, opts...)
-}
-
-// Publishes a publication using the default client. Using the underlying broker
-// set within the options.
-func Publish(ctx context.Context, msg Message, opts ...PublishOption) error {
-	return DefaultClient.Publish(ctx, msg, opts...)
-}
-
-// Creates a new message using the default client
-func NewMessage(topic string, payload interface{}, opts ...MessageOption) Message {
-	return DefaultClient.NewMessage(topic, payload, opts...)
-}
-
-// Creates a new request using the default client. Content Type will
-// be set to the default within options and use the appropriate codec
-func NewRequest(service, endpoint string, request interface{}, reqOpts ...RequestOption) Request {
-	return DefaultClient.NewRequest(service, endpoint, request, reqOpts...)
-}
-
-// Creates a streaming connection with a service and returns responses on the
-// channel passed in. It's up to the user to close the streamer.
-func NewStream(ctx context.Context, request Request, opts ...CallOption) (Stream, error) {
-	return DefaultClient.Stream(ctx, request, opts...)
-}
-
-func String() string {
-	return DefaultClient.String()
-}

@@ -16,10 +16,13 @@ func TestBackoff(t *testing.T) {
 		7900 * time.Millisecond,
 	}
 
-	c := NewClient()
+	r := &testRequest{
+		service: "test",
+		method:  "test",
+	}
 
 	for i := 0; i < 5; i++ {
-		d, err := exponentialBackoff(context.TODO(), c.NewRequest("test", "test", nil), i)
+		d, err := exponentialBackoff(context.TODO(), r, i)
 		if err != nil {
 			t.Fatal(err)
 		}

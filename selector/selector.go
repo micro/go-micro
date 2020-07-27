@@ -4,7 +4,7 @@ package selector
 import (
 	"errors"
 
-	"github.com/micro/go-micro/v2/router"
+	"github.com/micro/go-micro/v3/router"
 )
 
 var (

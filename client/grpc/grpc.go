@@ -11,12 +11,12 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/micro/go-micro/v2/broker"
-	"github.com/micro/go-micro/v2/client"
-	raw "github.com/micro/go-micro/v2/codec/bytes"
-	"github.com/micro/go-micro/v2/errors"
-	"github.com/micro/go-micro/v2/metadata"
-	"github.com/micro/go-micro/v2/registry"
+	"github.com/micro/go-micro/v3/broker"
+	"github.com/micro/go-micro/v3/client"
+	raw "github.com/micro/go-micro/v3/codec/bytes"
+	"github.com/micro/go-micro/v3/errors"
+	"github.com/micro/go-micro/v3/metadata"
+	"github.com/micro/go-micro/v3/registry"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
