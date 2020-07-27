@@ -1,36 +1,45 @@
 package file
 
 import (
+	"bytes"
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sync"
 
+	erro "errors"
+
 	"github.com/micro/go-micro/v2/errors"
 	"github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/server"
+	"github.com/micro/go-micro/v2/store"
 	proto "github.com/micro/go-micro/v2/util/file/proto"
 	"golang.org/x/net/context"
 )
 
+const filePrefix = "files/"
+
 // NewHandler is a handler that can be registered with a micro Server
-func NewHandler(readDir string) proto.FileHandler {
+func NewHandler(readDir string, store store.Store) proto.FileHandler {
 	return &handler{
 		readDir: readDir,
 		session: &session{
 			files: make(map[int64]*os.File),
 		},
+		store: store,
 	}
 }
 
 // RegisterHandler is a convenience method for registering a handler
-func RegisterHandler(s server.Server, readDir string) {
-	proto.RegisterFileHandler(s, NewHandler(readDir))
+func RegisterHandler(s server.Server, readDir string, store store.Store) {
+	proto.RegisterFileHandler(s, NewHandler(readDir, store))
 }
 
 type handler struct {
 	readDir string
 	session *session
+	store   store.Store
 }
 
 func (h *handler) Open(ctx context.Context, req *proto.OpenRequest, rsp *proto.OpenResponse) error {
@@ -44,6 +53,13 @@ func (h *handler) Open(ctx context.Context, req *proto.OpenRequest, rsp *proto.O
 		return errors.InternalServerError("go.micro.server", err.Error())
 	}
 
+	// Uploads are using truncate on open.
+	// We use truncate as a (probably bad) proxy to know if a file is opened for reading or writing.
+	isWrite := !req.Truncate
+	err = h.storeToDisk(req.Filename, file, isWrite)
+	if err != nil {
+		return err
+	}
 	rsp.Id = h.session.Add(file)
 	rsp.Result = true
 
@@ -53,6 +69,13 @@ func (h *handler) Open(ctx context.Context, req *proto.OpenRequest, rsp *proto.O
 }
 
 func (h *handler) Close(ctx context.Context, req *proto.CloseRequest, rsp *proto.CloseResponse) error {
+	file := h.session.Get(req.Id)
+	// @todo we should only do this if the file was opened for writing
+	// otherwise we do an unnecessary writeback to store at each read
+	err := h.diskToStore(file.Name(), file)
+	if err != nil {
+		return err
+	}
 	h.session.Delete(req.Id)
 	logger.Debugf("Close sessionId=%d", req.Id)
 	return nil
@@ -117,6 +140,33 @@ func (h *handler) Write(ctx context.Context, req *proto.WriteRequest, rsp *proto
 	return nil
 }
 
+func (h *handler) diskToStore(filename string, file *os.File) error {
+	val, err := ioutil.ReadFile(file.Name())
+	if err != nil {
+		return err
+	}
+	return h.store.Write(&store.Record{
+		Key:   filePrefix + filename,
+		Value: val,
+	})
+}
+
+func (h *handler) storeToDisk(filename string, file *os.File, failIfNotExist bool) error {
+	recs, err := h.store.Read(filePrefix + filename)
+	if err != nil && err != store.ErrNotFound {
+		return err
+	}
+	if (err != nil && err == store.ErrNotFound) || len(recs) == 0 {
+		if failIfNotExist {
+			return erro.New("File not found")
+		}
+		return nil
+	}
+	rec := recs[0]
+	_, err = io.Copy(file, bytes.NewReader(rec.Value))
+	return err
+}
+
 type session struct {
 	sync.Mutex
 	files   map[int64]*os.File
@@ -127,7 +177,7 @@ func (s *session) Add(file *os.File) int64 {
 	s.Lock()
 	defer s.Unlock()
 
-	s.counter += 1
+	s.counter++
 	s.files[s.counter] = file
 
 	return s.counter
