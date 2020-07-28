@@ -1,7 +1,6 @@
 package registry
 
 import (
-	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -547,10 +546,6 @@ func (r *rtr) start() error {
 func (r *rtr) Advertise() (<-chan *router.Advert, error) {
 	r.Lock()
 	defer r.Unlock()
-
-	if r.running {
-		return nil, errors.New("cannot re-advertise, already running")
-	}
 
 	// we're mutating the subscribers so they need to be locked also
 	r.sub.Lock()
