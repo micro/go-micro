@@ -3,7 +3,6 @@ package file
 import (
 	"bufio"
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -139,21 +138,27 @@ func (c *fc) Upload(filename, localFile string) error {
 	return nil
 }
 
-func (c *fc) DownloadAt(filename, saveFile string, blockId int) error {
+func (c *fc) DownloadAt(filename, saveFile string, blockID int) error {
+	sessionID, err := c.Open(filename, false)
+	if err != nil {
+		return err
+	}
+	defer c.Close(sessionID)
+
 	stat, err := c.Stat(filename)
 	if err != nil {
 		return err
 	}
 	if stat.Type == "Directory" {
-		return errors.New(fmt.Sprintf("%s is directory.", filename))
+		return fmt.Errorf("%s is directory", filename)
 	}
 
 	blocks := int(stat.Size / blockSize)
 	if stat.Size%blockSize != 0 {
-		blocks += 1
+		blocks++
 	}
 
-	log.Printf("Download %s in %d blocks\n", filename, blocks-blockId)
+	log.Printf("Download %s in %d blocks\n", filename, blocks-blockID)
 
 	file, err := os.OpenFile(saveFile, os.O_CREATE|os.O_WRONLY, 0666)
 	if err != nil {
@@ -161,13 +166,8 @@ func (c *fc) DownloadAt(filename, saveFile string, blockId int) error {
 	}
 	defer file.Close()
 
-	sessionId, err := c.Open(filename, false)
-	if err != nil {
-		return err
-	}
-
-	for i := blockId; i < blocks; i++ {
-		buf, rerr := c.GetBlock(sessionId, int64(i))
+	for i := blockID; i < blocks; i++ {
+		buf, rerr := c.GetBlock(sessionID, int64(i))
 		if rerr != nil && rerr != io.EOF {
 			return rerr
 		}
@@ -175,8 +175,8 @@ func (c *fc) DownloadAt(filename, saveFile string, blockId int) error {
 			return werr
 		}
 
-		if i%((blocks-blockId)/100+1) == 0 {
-			log.Printf("Downloading %s [%d/%d] blocks", filename, i-blockId+1, blocks-blockId)
+		if i%((blocks-blockID)/100+1) == 0 {
+			log.Printf("Downloading %s [%d/%d] blocks", filename, i-blockID+1, blocks-blockID)
 		}
 
 		if rerr == io.EOF {
@@ -184,8 +184,6 @@ func (c *fc) DownloadAt(filename, saveFile string, blockId int) error {
 		}
 	}
 	log.Printf("Download %s completed", filename)
-
-	c.Close(sessionId)
 
 	return nil
 }

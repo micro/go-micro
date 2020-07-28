@@ -105,7 +105,13 @@ func (r runtime) downloadSourceFromServer(s *Service, namespace string) error {
 	if err != nil {
 		return err
 	}
-	s.Source = uncompressedDir
+	// The relative path inside the repo is (in a rather ugly way)
+	// encoded in the filename, see comment around the upload functionality in
+	// the `micro run` code. We decode it here.
+	subfolder := strings.ReplaceAll(
+		strings.ReplaceAll(s.Source, "."+compressedExtension, ""),
+		"--", string(filepath.Separator))
+	s.Source = filepath.Join(uncompressedDir, subfolder)
 	return nil
 }
 
