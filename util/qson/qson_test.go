@@ -5,6 +5,14 @@ import (
 	"testing"
 )
 
+func TestFuzz1(t *testing.T) {
+	b, err := ToJSON(`[^@hGl5=`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = b
+}
+
 func ExampleUnmarshal() {
 	type Ex struct {
 		A string `json:"a"`
