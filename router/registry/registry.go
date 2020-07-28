@@ -1,7 +1,6 @@
 package registry
 
 import (
-	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -55,6 +54,9 @@ func NewRouter(opts ...router.Option) router.Router {
 	// create the new table, passing the fetchRoute method in as a fallback if
 	// the table doesn't contain the result for a query.
 	r.table = newTable(r.fetchRoutes)
+
+	// start the router
+	r.start()
 	return r
 }
 
@@ -544,13 +546,6 @@ func (r *rtr) start() error {
 func (r *rtr) Advertise() (<-chan *router.Advert, error) {
 	r.Lock()
 	defer r.Unlock()
-
-	if r.running {
-		return nil, errors.New("cannot re-advertise, already running")
-	}
-
-	// start the router
-	r.start()
 
 	// we're mutating the subscribers so they need to be locked also
 	r.sub.Lock()
