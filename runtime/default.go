@@ -14,10 +14,14 @@ import (
 	"github.com/hpcloud/tail"
 	"github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/runtime/local/git"
+	"github.com/micro/go-micro/v2/util/file"
 )
 
 // defaultNamespace to use if not provided as an option
-const defaultNamespace = "default"
+const (
+	defaultNamespace    = "default"
+	compressedExtension = "tar.gz"
+)
 
 type runtime struct {
 	sync.RWMutex
@@ -62,24 +66,9 @@ func (r *runtime) checkoutSourceIfNeeded(s *Service, namespace string) error {
 	if len(s.Source) == 0 {
 		return nil
 	}
-	// @todo make this come from config
-	cpath := filepath.Join(os.TempDir(), "micro", "uploads", namespace, s.Source)
-	path := strings.ReplaceAll(cpath, ".tar.gz", "")
-	if ex, _ := exists(cpath); ex {
-		err := os.RemoveAll(path)
-		if err != nil {
-			return err
-		}
-		err = os.MkdirAll(path, 0777)
-		if err != nil {
-			return err
-		}
-		err = git.Uncompress(cpath, path)
-		if err != nil {
-			return err
-		}
-		s.Source = path
-		return nil
+	// hackish: we detect local uploaded sources by their extension
+	if strings.HasSuffix(s.Source, compressedExtension) {
+		return r.downloadSourceFromServer(s, namespace)
 	}
 	source, err := git.ParseSourceLocal("", s.Source)
 	if err != nil {
@@ -92,6 +81,31 @@ func (r *runtime) checkoutSourceIfNeeded(s *Service, namespace string) error {
 		return err
 	}
 	s.Source = source.FullPath
+	return nil
+}
+
+func (r runtime) downloadSourceFromServer(s *Service, namespace string) error {
+	dirPath := filepath.Join(os.TempDir(), "micro", "server-downloads", namespace)
+	filePath := filepath.Join(dirPath, s.Source)
+	err := os.RemoveAll(filePath)
+	if err != nil {
+		return err
+	}
+	err = os.MkdirAll(dirPath, 0777)
+	if err != nil {
+		return err
+	}
+	fileServer := file.New("go.micro.server", r.options.Client)
+	err = fileServer.Download(s.Source, filePath)
+	if err != nil {
+		return err
+	}
+	uncompressedDir := strings.ReplaceAll(filePath, "."+compressedExtension, "")
+	err = git.Uncompress(filePath, uncompressedDir)
+	if err != nil {
+		return err
+	}
+	s.Source = uncompressedDir
 	return nil
 }
 
