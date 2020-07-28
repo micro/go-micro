@@ -340,10 +340,8 @@ func (m *fileStore) Write(r *store.Record, opts ...store.WriteOption) error {
 		for k, v := range r.Metadata {
 			newRecord.Metadata[k] = v
 		}
-
 		return m.set(db, &newRecord)
 	}
-
 	return m.set(db, r)
 }
 
