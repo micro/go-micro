@@ -100,7 +100,14 @@ func (r runtime) downloadSourceFromServer(s *Service, namespace string) error {
 	if err != nil {
 		return err
 	}
+	if ex, err := exists(filePath); err != nil || !ex {
+		return errors.New(filePath + " does not exist")
+	}
 	uncompressedDir := strings.ReplaceAll(filePath, "."+compressedExtension, "")
+	err = os.MkdirAll(uncompressedDir, 0777)
+	if err != nil {
+		return err
+	}
 	err = git.Uncompress(filePath, uncompressedDir)
 	if err != nil {
 		return err
