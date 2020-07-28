@@ -58,7 +58,7 @@ func (s *sqlStore) getDB(database, table string) (string, string) {
 		if len(s.options.Table) > 0 {
 			table = s.options.Table
 		} else {
-			database = DefaultTable
+			table = DefaultTable
 		}
 	}
 
