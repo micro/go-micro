@@ -56,14 +56,14 @@ func NewRuntime(opts ...Option) Runtime {
 	}
 }
 
-func (r *runtime) checkoutSourceIfNeeded(s *Service) error {
+func (r *runtime) checkoutSourceIfNeeded(s *Service, namespace string) error {
 	// Runtime service like config have no source.
 	// Skip checkout in that case
 	if len(s.Source) == 0 {
 		return nil
 	}
 	// @todo make this come from config
-	cpath := filepath.Join(os.TempDir(), "micro", "uploads", s.Source)
+	cpath := filepath.Join(os.TempDir(), "micro", "uploads", namespace, s.Source)
 	path := strings.ReplaceAll(cpath, ".tar.gz", "")
 	if ex, _ := exists(cpath); ex {
 		err := os.RemoveAll(path)
@@ -250,13 +250,6 @@ func serviceKey(s *Service) string {
 
 // Create creates a new service which is then started by runtime
 func (r *runtime) Create(s *Service, opts ...CreateOption) error {
-	err := r.checkoutSourceIfNeeded(s)
-	if err != nil {
-		return err
-	}
-	r.Lock()
-	defer r.Unlock()
-
 	var options CreateOptions
 	for _, o := range opts {
 		o(&options)
@@ -264,6 +257,12 @@ func (r *runtime) Create(s *Service, opts ...CreateOption) error {
 	if len(options.Namespace) == 0 {
 		options.Namespace = defaultNamespace
 	}
+	err := r.checkoutSourceIfNeeded(s, options.Namespace)
+	if err != nil {
+		return err
+	}
+	r.Lock()
+	defer r.Unlock()
 	if len(options.Command) == 0 {
 		options.Command = []string{"go"}
 		options.Args = []string{"run", "."}
@@ -477,7 +476,7 @@ func (r *runtime) Update(s *Service, opts ...UpdateOption) error {
 		options.Namespace = defaultNamespace
 	}
 
-	err := r.checkoutSourceIfNeeded(s)
+	err := r.checkoutSourceIfNeeded(s, options.Namespace)
 	if err != nil {
 		return err
 	}
