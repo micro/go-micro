@@ -209,6 +209,7 @@ func GetLogger() dlog.Log {
 // SetLevel sets the log level
 func SetLevel(l Level) {
 	atomic.StoreInt32((*int32)(&level), int32(l))
+	nlog.Init(nlog.WithLevel(levelToLevel(l)))
 }
 
 // GetLevel returns the current level
