@@ -113,27 +113,25 @@ func testAccept(t *testing.T, tun Tunnel, wait chan bool, wg *sync.WaitGroup) {
 	}
 
 	// get a message
-	for {
-		// accept the message
-		m := new(transport.Message)
-		if err := c.Recv(m); err != nil {
-			t.Fatal(err)
-		}
-
-		if v := m.Header["test"]; v != "send" {
-			t.Fatalf("Accept side expected test:send header. Received: %s", v)
-		}
-
-		// now respond
-		m.Header["test"] = "accept"
-		if err := c.Send(m); err != nil {
-			t.Fatal(err)
-		}
-
-		wait <- true
-
-		return
+	// accept the message
+	m := new(transport.Message)
+	if err := c.Recv(m); err != nil {
+		t.Fatal(err)
 	}
+
+	if v := m.Header["test"]; v != "send" {
+		t.Fatalf("Accept side expected test:send header. Received: %s", v)
+	}
+
+	// now respond
+	m.Header["test"] = "accept"
+	if err := c.Send(m); err != nil {
+		t.Fatal(err)
+	}
+
+	wait <- true
+
+	return
 }
 
 // testSend will create a new link to an address and then a tunnel on top
