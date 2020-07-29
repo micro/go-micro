@@ -33,9 +33,11 @@ type watcher struct {
 func newConfig(opts ...Option) (Config, error) {
 	var c config
 
-	c.Init(opts...)
-	go c.run()
+	if err := c.Init(opts...); err != nil {
+		return nil, err
+	}
 
+	go c.run()
 	return &c, nil
 }
 
