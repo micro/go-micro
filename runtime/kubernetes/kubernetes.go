@@ -3,7 +3,6 @@ package kubernetes
 
 import (
 	"encoding/base64"
-	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -450,9 +449,8 @@ func (k *kubernetes) Create(s *runtime.Service, opts ...runtime.CreateOption) er
 	options.Image = k.getImage(s, options)
 
 	// create a secret for the credentials if some where provided
-	if len(options.Credentials) > 0 {
-		secret, err := k.createCredentials(s, options)
-		if err != nil {
+	if len(options.Secrets) > 0 {
+		if err := k.createCredentials(s, options); err != nil {
 			if logger.V(logger.WarnLevel, logger.DefaultLogger) {
 				logger.Warnf("Error generating auth credentials for service: %v", err)
 			}
@@ -462,9 +460,6 @@ func (k *kubernetes) Create(s *runtime.Service, opts ...runtime.CreateOption) er
 		if logger.V(logger.DebugLevel, logger.DefaultLogger) {
 			logger.Debugf("Generated auth credentials for service %v", s.Name)
 		}
-
-		// pass the secret name to the client via the credentials option
-		options.Credentials = secret
 	}
 
 	// create new service
@@ -689,33 +684,27 @@ func (k *kubernetes) getImage(s *runtime.Service, options runtime.CreateOptions)
 
 	return ""
 }
-func (k *kubernetes) createCredentials(service *runtime.Service, options runtime.CreateOptions) (string, error) {
-	// validate the creds
-	comps := strings.Split(options.Credentials, ":")
-	if len(comps) != 2 {
-		return "", errors.New("Invalid credentials, expected format 'user:pass'")
+func (k *kubernetes) createCredentials(service *runtime.Service, options runtime.CreateOptions) error {
+	data := make(map[string]string, len(options.Secrets))
+	for key, value := range options.Secrets {
+		data[key] = base64.StdEncoding.EncodeToString([]byte(value))
 	}
 
 	// construct the k8s secret object
 	secret := &client.Secret{
 		Type: "Opaque",
-		Data: map[string]string{
-			"id":     base64.StdEncoding.EncodeToString([]byte(comps[0])),
-			"secret": base64.StdEncoding.EncodeToString([]byte(comps[1])),
-		},
+		Data: data,
 		Metadata: &client.Metadata{
 			Name:      credentialsName(service),
 			Namespace: options.Namespace,
 		},
 	}
 
-	// create options specify the namespace
-	ns := client.CreateNamespace(options.Namespace)
-
 	// crete the secret in kubernetes
 	name := credentialsName(service)
-	err := k.client.Create(&client.Resource{Kind: "secret", Name: name, Value: secret}, ns)
-	return name, err
+	return k.client.Create(&client.Resource{
+		Kind: "secret", Name: name, Value: secret,
+	}, client.CreateNamespace(options.Namespace))
 }
 
 func credentialsName(service *runtime.Service) string {

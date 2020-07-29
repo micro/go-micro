@@ -270,16 +270,9 @@ func (r *localRuntime) Create(s *runtime.Service, opts ...runtime.CreateOption) 
 		options.Args = []string{"run", "."}
 	}
 
-	// pass credentials as env vars
-	if len(options.Credentials) > 0 {
-		// validate the creds
-		comps := strings.Split(options.Credentials, ":")
-		if len(comps) != 2 {
-			return errors.New("Invalid credentials, expected format 'user:pass'")
-		}
-
-		options.Env = append(options.Env, "MICRO_AUTH_ID", comps[0])
-		options.Env = append(options.Env, "MICRO_AUTH_SECRET", comps[1])
+	// pass secrets as env vars
+	for key, value := range options.Secrets {
+		options.Env = append(options.Env, key, value)
 	}
 
 	if _, ok := r.namespaces[options.Namespace]; !ok {

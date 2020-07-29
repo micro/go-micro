@@ -82,8 +82,8 @@ type CreateOptions struct {
 	Namespace string
 	// Specify the context to use
 	Context context.Context
-	// Credentials for the service to use
-	Credentials string
+	// Secrets to use
+	Secrets map[string]string
 }
 
 // ReadOptions queries runtime services
@@ -128,10 +128,14 @@ func CreateContext(ctx context.Context) CreateOption {
 	}
 }
 
-// CreateCredentials sets the credentials to start the service with
-func CreateCredentials(user, pass string) CreateOption {
+// WithSecret sets a secret to provide the service with
+func WithSecret(key, value string) CreateOption {
 	return func(o *CreateOptions) {
-		o.Credentials = user + ":" + pass
+		if o.Secrets == nil {
+			o.Secrets = map[string]string{key: value}
+		} else {
+			o.Secrets[key] = value
+		}
 	}
 }
 

@@ -75,22 +75,14 @@ func newService(s *runtime.Service, c runtime.CreateOptions) *service {
 		env = append(env, client.EnvVar{Name: evarPair[0], Value: evarPair[1]})
 	}
 
-	// if credentials were provided, pass them to the service
-	if len(c.Credentials) > 0 {
+	// if secrets were provided, pass them to the service
+	for key := range c.Secrets {
 		env = append(env, client.EnvVar{
-			Name: "MICRO_AUTH_ID",
+			Name: key,
 			ValueFrom: &client.EnvVarSource{
 				SecretKeyRef: &client.SecretKeySelector{
-					Name: c.Credentials, Key: "id",
-				},
-			},
-		})
-
-		env = append(env, client.EnvVar{
-			Name: "MICRO_AUTH_SECRET",
-			ValueFrom: &client.EnvVarSource{
-				SecretKeyRef: &client.SecretKeySelector{
-					Name: c.Credentials, Key: "secret",
+					Name: credentialsName(s),
+					Key:  key,
 				},
 			},
 		})
