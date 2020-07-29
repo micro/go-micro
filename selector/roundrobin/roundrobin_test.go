@@ -3,8 +3,8 @@ package roundrobin
 import (
 	"testing"
 
-	"github.com/micro/go-micro/v2/router"
-	"github.com/micro/go-micro/v2/selector"
+	"github.com/micro/go-micro/v3/router"
+	"github.com/micro/go-micro/v3/selector"
 	"github.com/stretchr/testify/assert"
 )
 

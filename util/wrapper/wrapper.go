@@ -5,13 +5,13 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/micro/go-micro/v2/auth"
-	"github.com/micro/go-micro/v2/client"
-	"github.com/micro/go-micro/v2/debug/stats"
-	"github.com/micro/go-micro/v2/debug/trace"
-	"github.com/micro/go-micro/v2/errors"
-	"github.com/micro/go-micro/v2/metadata"
-	"github.com/micro/go-micro/v2/server"
+	"github.com/micro/go-micro/v3/auth"
+	"github.com/micro/go-micro/v3/client"
+	"github.com/micro/go-micro/v3/debug/stats"
+	"github.com/micro/go-micro/v3/debug/trace"
+	"github.com/micro/go-micro/v3/errors"
+	"github.com/micro/go-micro/v3/metadata"
+	"github.com/micro/go-micro/v3/server"
 )
 
 type fromServiceWrapper struct {
@@ -313,7 +313,7 @@ func (c *cacheWrapper) Call(ctx context.Context, req client.Request, rsp interfa
 	}
 
 	// check to see if there is a response cached, if there is assign it
-	if r, ok := cache.Get(ctx, &req); ok {
+	if r, ok := cache.Get(ctx, req); ok {
 		val := reflect.ValueOf(rsp).Elem()
 		val.Set(reflect.ValueOf(r).Elem())
 		return nil
@@ -325,7 +325,7 @@ func (c *cacheWrapper) Call(ctx context.Context, req client.Request, rsp interfa
 	}
 
 	// set the result in the cache
-	cache.Set(ctx, &req, rsp, options.CacheExpiry)
+	cache.Set(ctx, req, rsp, options.CacheExpiry)
 	return nil
 }
 

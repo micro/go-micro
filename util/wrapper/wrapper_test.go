@@ -7,11 +7,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/micro/go-micro/v2/auth"
-	"github.com/micro/go-micro/v2/client"
-	"github.com/micro/go-micro/v2/errors"
-	"github.com/micro/go-micro/v2/metadata"
-	"github.com/micro/go-micro/v2/server"
+	"github.com/micro/go-micro/v3/auth"
+	"github.com/micro/go-micro/v3/client"
+	"github.com/micro/go-micro/v3/client/grpc"
+	"github.com/micro/go-micro/v3/errors"
+	"github.com/micro/go-micro/v3/metadata"
+	"github.com/micro/go-micro/v3/server"
 )
 
 func TestWrapper(t *testing.T) {
@@ -371,7 +372,7 @@ type testRsp struct {
 }
 
 func TestCacheWrapper(t *testing.T) {
-	req := client.NewRequest("go.micro.service.foo", "Foo.Bar", nil)
+	req := grpc.NewClient().NewRequest("go.micro.service.foo", "Foo.Bar", nil)
 
 	t.Run("NilCache", func(t *testing.T) {
 		cli := new(testClient)

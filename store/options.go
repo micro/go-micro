@@ -3,8 +3,6 @@ package store
 import (
 	"context"
 	"time"
-
-	"github.com/micro/go-micro/v2/client"
 )
 
 // Options contains configuration for the Store
@@ -19,8 +17,6 @@ type Options struct {
 	Table string
 	// Context should contain all implementation specific options, using context.WithValue.
 	Context context.Context
-	// Client to use for RPC
-	Client client.Client
 }
 
 // Option sets values in Options
@@ -53,13 +49,6 @@ func Table(t string) Option {
 func WithContext(c context.Context) Option {
 	return func(o *Options) {
 		o.Context = c
-	}
-}
-
-// WithClient sets the stores client to use for RPC
-func WithClient(c client.Client) Option {
-	return func(o *Options) {
-		o.Client = c
 	}
 }
 

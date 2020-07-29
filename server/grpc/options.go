@@ -5,12 +5,11 @@ import (
 	"crypto/tls"
 	"net"
 
-	"github.com/micro/go-micro/v2/auth"
-	"github.com/micro/go-micro/v2/broker"
-	"github.com/micro/go-micro/v2/codec"
-	"github.com/micro/go-micro/v2/registry"
-	"github.com/micro/go-micro/v2/server"
-	"github.com/micro/go-micro/v2/transport"
+	"github.com/micro/go-micro/v3/broker/http"
+	"github.com/micro/go-micro/v3/codec"
+	"github.com/micro/go-micro/v3/registry/mdns"
+	"github.com/micro/go-micro/v3/server"
+	"github.com/micro/go-micro/v3/transport"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/encoding"
 )
@@ -67,11 +66,10 @@ func MaxMsgSize(s int) server.Option {
 
 func newOptions(opt ...server.Option) server.Options {
 	opts := server.Options{
-		Auth:      auth.DefaultAuth,
 		Codecs:    make(map[string]codec.NewCodec),
 		Metadata:  map[string]string{},
-		Broker:    broker.DefaultBroker,
-		Registry:  registry.DefaultRegistry,
+		Broker:    http.NewBroker(),
+		Registry:  mdns.NewRegistry(),
 		Transport: transport.DefaultTransport,
 		Address:   server.DefaultAddress,
 		Name:      server.DefaultName,

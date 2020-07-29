@@ -2,8 +2,9 @@
 package registry
 
 import (
-	"github.com/micro/go-micro/v2/network/resolver"
-	"github.com/micro/go-micro/v2/registry"
+	"github.com/micro/go-micro/v3/network/resolver"
+	"github.com/micro/go-micro/v3/registry"
+	"github.com/micro/go-micro/v3/registry/mdns"
 )
 
 // Resolver is a registry network resolver
@@ -16,7 +17,7 @@ type Resolver struct {
 func (r *Resolver) Resolve(name string) ([]*resolver.Record, error) {
 	reg := r.Registry
 	if reg == nil {
-		reg = registry.DefaultRegistry
+		reg = mdns.NewRegistry()
 	}
 
 	services, err := reg.GetService(name)

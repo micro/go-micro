@@ -4,14 +4,17 @@ import (
 	"context"
 	"testing"
 
-	"github.com/micro/go-micro/v2/broker"
-	bmemory "github.com/micro/go-micro/v2/broker/memory"
-	"github.com/micro/go-micro/v2/client"
-	rmemory "github.com/micro/go-micro/v2/registry/memory"
-	"github.com/micro/go-micro/v2/router"
-	"github.com/micro/go-micro/v2/server"
-	tmemory "github.com/micro/go-micro/v2/transport/memory"
-	wrapper "github.com/micro/go-micro/v2/util/wrapper"
+	"github.com/micro/go-micro/v3/broker"
+	bmemory "github.com/micro/go-micro/v3/broker/memory"
+	"github.com/micro/go-micro/v3/client"
+	"github.com/micro/go-micro/v3/client/grpc"
+	rmemory "github.com/micro/go-micro/v3/registry/memory"
+	"github.com/micro/go-micro/v3/router"
+	rtreg "github.com/micro/go-micro/v3/router/registry"
+	"github.com/micro/go-micro/v3/server"
+	grpcsrv "github.com/micro/go-micro/v3/server/grpc"
+	tmemory "github.com/micro/go-micro/v3/transport/memory"
+	wrapper "github.com/micro/go-micro/v3/util/wrapper"
 )
 
 type TestFoo struct {
@@ -31,15 +34,20 @@ func (h *TestFoo) Bar(ctx context.Context, req *TestReq, rsp *TestRsp) error {
 func TestStaticClientWrapper(t *testing.T) {
 	var err error
 
-	req := client.NewRequest("go.micro.service.foo", "TestFoo.Bar", &TestReq{}, client.WithContentType("application/json"))
+	req := grpc.NewClient().NewRequest(
+		"go.micro.service.foo",
+		"TestFoo.Bar",
+		&TestReq{},
+		client.WithContentType("application/json"),
+	)
 	rsp := &TestRsp{}
 
 	reg := rmemory.NewRegistry()
 	brk := bmemory.NewBroker(broker.Registry(reg))
 	tr := tmemory.NewTransport()
-	rtr := router.NewRouter(router.Registry(reg))
+	rtr := rtreg.NewRouter(router.Registry(reg))
 
-	srv := server.NewServer(
+	srv := grpcsrv.NewServer(
 		server.Broker(brk),
 		server.Registry(reg),
 		server.Name("go.micro.service.foo"),
@@ -54,7 +62,7 @@ func TestStaticClientWrapper(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cli := client.NewClient(
+	cli := grpc.NewClient(
 		client.Router(rtr),
 		client.Broker(brk),
 		client.Transport(tr),

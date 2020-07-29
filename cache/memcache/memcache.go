@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 
 	"github.com/bradfitz/gomemcache/memcache"
-	"github.com/micro/go-micro/v2/cache"
+	"github.com/micro/go-micro/v3/cache"
 )
 
 type memcacheCache struct {
