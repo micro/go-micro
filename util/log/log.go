@@ -1,5 +1,5 @@
 // Package log is a global internal logger
-// DEPRECATED: this is frozen package, use github.com/micro/go-micro/v2/logger
+// DEPRECATED: this is frozen package, use github.com/micro/go-micro/v3/logger
 package log
 
 import (
@@ -7,8 +7,8 @@ import (
 	"os"
 	"sync/atomic"
 
-	dlog "github.com/micro/go-micro/v2/debug/log"
-	nlog "github.com/micro/go-micro/v2/logger"
+	dlog "github.com/micro/go-micro/v3/debug/log"
+	nlog "github.com/micro/go-micro/v3/logger"
 )
 
 // level is a log level
@@ -209,6 +209,7 @@ func GetLogger() dlog.Log {
 // SetLevel sets the log level
 func SetLevel(l Level) {
 	atomic.StoreInt32((*int32)(&level), int32(l))
+	nlog.Init(nlog.WithLevel(levelToLevel(l)))
 }
 
 // GetLevel returns the current level

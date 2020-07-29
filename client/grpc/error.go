@@ -1,7 +1,7 @@
 package grpc
 
 import (
-	"github.com/micro/go-micro/v2/errors"
+	"github.com/micro/go-micro/v3/errors"
 	"google.golang.org/grpc/status"
 )
 
@@ -24,7 +24,9 @@ func microError(err error) error {
 
 	// return first error from details
 	if details := s.Details(); len(details) > 0 {
-		return microError(details[0].(error))
+		if verr, ok := details[0].(error); ok {
+			return microError(verr)
+		}
 	}
 
 	// try to decode micro *errors.Error

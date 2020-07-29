@@ -2,28 +2,8 @@
 package network
 
 import (
-	"time"
-
-	"github.com/micro/go-micro/v2/client"
-	"github.com/micro/go-micro/v2/server"
-)
-
-var (
-	// DefaultName is default network name
-	DefaultName = "go.micro"
-	// DefaultAddress is default network address
-	DefaultAddress = ":0"
-	// ResolveTime defines time interval to periodically resolve network nodes
-	ResolveTime = 1 * time.Minute
-	// AnnounceTime defines time interval to periodically announce node neighbours
-	AnnounceTime = 1 * time.Second
-	// KeepAliveTime is the time in which we want to have sent a message to a peer
-	KeepAliveTime = 30 * time.Second
-	// SyncTime is the time a network node requests full sync from the network
-	SyncTime = 1 * time.Minute
-	// PruneTime defines time interval to periodically check nodes that need to be pruned
-	// due to their not announcing their presence within this time interval
-	PruneTime = 90 * time.Second
+	"github.com/micro/go-micro/v3/client"
+	"github.com/micro/go-micro/v3/server"
 )
 
 // Error is network node errors
@@ -72,9 +52,4 @@ type Network interface {
 	Client() client.Client
 	// Server is micro server
 	Server() server.Server
-}
-
-// NewNetwork returns a new network interface
-func NewNetwork(opts ...Option) Network {
-	return newNetwork(opts...)
 }

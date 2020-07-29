@@ -1,6 +1,6 @@
 package http
 
-import "github.com/micro/go-micro/v2/router"
+import "github.com/micro/go-micro/v3/router"
 
 type Options struct {
 	Router router.Router

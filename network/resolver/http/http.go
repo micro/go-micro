@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/micro/go-micro/v2/network/resolver"
+	"github.com/micro/go-micro/v3/network/resolver"
 )
 
 // Resolver is a HTTP network resolver
@@ -29,8 +29,8 @@ type Response struct {
 
 // Resolve assumes ID is a domain which can be converted to a http://name/network request
 func (r *Resolver) Resolve(name string) ([]*resolver.Record, error) {
-	proto := "https"
-	host := "go.micro.mu"
+	proto := "http"
+	host := "localhost:8080"
 	path := "/network/nodes"
 
 	if len(r.Proto) > 0 {

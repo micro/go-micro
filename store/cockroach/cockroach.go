@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/lib/pq"
-	"github.com/micro/go-micro/v2/logger"
-	"github.com/micro/go-micro/v2/store"
+	"github.com/micro/go-micro/v3/logger"
+	"github.com/micro/go-micro/v3/store"
 	"github.com/pkg/errors"
 )
 
@@ -58,7 +58,7 @@ func (s *sqlStore) getDB(database, table string) (string, string) {
 		if len(s.options.Table) > 0 {
 			table = s.options.Table
 		} else {
-			database = DefaultTable
+			table = DefaultTable
 		}
 	}
 

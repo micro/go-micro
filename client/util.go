@@ -3,10 +3,10 @@ package client
 import (
 	"math/rand"
 
-	"github.com/micro/go-micro/v2/errors"
-	"github.com/micro/go-micro/v2/router"
-	"github.com/micro/go-micro/v2/selector"
-	pnet "github.com/micro/go-micro/v2/util/net"
+	"github.com/micro/go-micro/v3/errors"
+	"github.com/micro/go-micro/v3/router"
+	"github.com/micro/go-micro/v3/selector"
+	pnet "github.com/micro/go-micro/v3/util/net"
 )
 
 // LookupRoute for a request using the router and then choose one using the selector

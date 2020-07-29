@@ -1,4 +1,4 @@
-// Package kubernetes is a logger implementing (github.com/micro/go-micro/v2/debug/log).Log
+// Package kubernetes is a logger implementing (github.com/micro/go-micro/v3/debug/log).Log
 package kubernetes
 
 import (
@@ -10,8 +10,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/micro/go-micro/v2/debug/log"
-	"github.com/micro/go-micro/v2/util/kubernetes/client"
+	"github.com/micro/go-micro/v3/debug/log"
+	"github.com/micro/go-micro/v3/util/kubernetes/client"
 )
 
 type klog struct {
@@ -102,7 +102,6 @@ func (k *klog) Read(options ...log.ReadOption) ([]log.Record, error) {
 	for _, o := range options {
 		o(opts)
 	}
-
 	pods, err := k.getMatchingPods()
 	if err != nil {
 		return nil, err
