@@ -411,6 +411,11 @@ func (g *grpcClient) Call(ctx context.Context, req client.Request, rsp interface
 			callOpts.Selector = g.opts.Selector
 		}
 
+		// inject proxy address
+		if len(callOpts.Address) == 0 && len(g.opts.Proxy) > 0 {
+			callOpts.Address = []string{g.opts.Proxy}
+		}
+
 		// lookup the route to send the reques to
 		route, err := client.LookupRoute(req, callOpts)
 		if err != nil {
@@ -512,6 +517,11 @@ func (g *grpcClient) Stream(ctx context.Context, req client.Request, opts ...cli
 		// use the selector passed as a call option, or fallback to the rpc clients selector
 		if callOpts.Selector == nil {
 			callOpts.Selector = g.opts.Selector
+		}
+
+		// inject proxy address
+		if len(callOpts.Address) == 0 && len(g.opts.Proxy) > 0 {
+			callOpts.Address = []string{g.opts.Proxy}
 		}
 
 		// lookup the route to send the reques to

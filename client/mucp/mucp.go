@@ -17,7 +17,6 @@ import (
 	"github.com/micro/go-micro/v3/registry"
 	"github.com/micro/go-micro/v3/transport"
 	"github.com/micro/go-micro/v3/util/buf"
-	"github.com/micro/go-micro/v3/util/net"
 	"github.com/micro/go-micro/v3/util/pool"
 )
 
@@ -379,6 +378,11 @@ func (r *rpcClient) Call(ctx context.Context, request client.Request, response i
 			callOpts.Selector = r.opts.Selector
 		}
 
+		// inject proxy address
+		if len(callOpts.Address) == 0 && len(r.opts.Proxy) > 0 {
+			callOpts.Address = []string{r.opts.Proxy}
+		}
+
 		// lookup the route to send the request via
 		route, err := client.LookupRoute(request, callOpts)
 		if err != nil {
@@ -403,7 +407,7 @@ func (r *rpcClient) Call(ctx context.Context, request client.Request, response i
 	retries := callOpts.Retries
 
 	// disable retries when using a proxy
-	if _, _, ok := net.Proxy(request.Service(), callOpts.Address); ok {
+	if len(r.opts.Proxy) > 0 {
 		retries = 0
 	}
 
@@ -475,6 +479,11 @@ func (r *rpcClient) Stream(ctx context.Context, request client.Request, opts ...
 			callOpts.Selector = r.opts.Selector
 		}
 
+		// inject proxy address
+		if len(callOpts.Address) == 0 && len(r.opts.Proxy) > 0 {
+			callOpts.Address = []string{r.opts.Proxy}
+		}
+
 		// lookup the route to send the request via
 		route, err := client.LookupRoute(request, callOpts)
 		if err != nil {
@@ -504,7 +513,7 @@ func (r *rpcClient) Stream(ctx context.Context, request client.Request, opts ...
 	retries := callOpts.Retries
 
 	// disable retries when using a proxy
-	if _, _, ok := net.Proxy(request.Service(), callOpts.Address); ok {
+	if len(r.opts.Proxy) > 0 {
 		retries = 0
 	}
 

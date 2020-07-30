@@ -6,19 +6,15 @@ import (
 	"github.com/micro/go-micro/v3/errors"
 	"github.com/micro/go-micro/v3/router"
 	"github.com/micro/go-micro/v3/selector"
-	pnet "github.com/micro/go-micro/v3/util/net"
 )
 
 // LookupRoute for a request using the router and then choose one using the selector
 func LookupRoute(req Request, opts CallOptions) (*router.Route, error) {
-	// check to see if the proxy has been set, if it has we don't need to lookup the routes; net.Proxy
-	// returns a slice of addresses, so we'll use a random one. Eventually we should to use the
-	// selector for this.
-	service, addresses, _ := pnet.Proxy(req.Service(), opts.Address)
-	if len(addresses) > 0 {
+	// check to see if an address was provided as a call option
+	if len(opts.Address) > 0 {
 		return &router.Route{
-			Service: service,
-			Address: addresses[rand.Int()%len(addresses)],
+			Service: req.Service(),
+			Address: opts.Address[rand.Int()%len(opts.Address)],
 		}, nil
 	}
 

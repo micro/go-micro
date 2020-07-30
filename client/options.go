@@ -17,6 +17,8 @@ import (
 type Options struct {
 	// Used to select codec
 	ContentType string
+	// Proxy address to send requests via
+	Proxy string
 
 	// Plugged interfaces
 	Broker    broker.Broker
@@ -146,6 +148,13 @@ func Codec(contentType string, c codec.NewCodec) Option {
 func ContentType(ct string) Option {
 	return func(o *Options) {
 		o.ContentType = ct
+	}
+}
+
+// Proxy sets the proxy address
+func Proxy(addr string) Option {
+	return func(o *Options) {
+		o.Proxy = addr
 	}
 }
 
