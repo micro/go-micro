@@ -412,8 +412,8 @@ func (g *grpcClient) Call(ctx context.Context, req client.Request, rsp interface
 		}
 
 		// inject proxy address
-		if len(callOpts.Address) == 0 && len(g.opts.ProxyAddress) > 0 {
-			callOpts.Address = []string{g.opts.ProxyAddress}
+		if len(callOpts.Address) == 0 && len(g.opts.Proxy) > 0 {
+			callOpts.Address = []string{g.opts.Proxy}
 		}
 
 		// lookup the route to send the reques to
@@ -520,8 +520,8 @@ func (g *grpcClient) Stream(ctx context.Context, req client.Request, opts ...cli
 		}
 
 		// inject proxy address
-		if len(callOpts.Address) == 0 && len(g.opts.ProxyAddress) > 0 {
-			callOpts.Address = []string{g.opts.ProxyAddress}
+		if len(callOpts.Address) == 0 && len(g.opts.Proxy) > 0 {
+			callOpts.Address = []string{g.opts.Proxy}
 		}
 
 		// lookup the route to send the reques to

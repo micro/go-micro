@@ -379,8 +379,8 @@ func (r *rpcClient) Call(ctx context.Context, request client.Request, response i
 		}
 
 		// inject proxy address
-		if len(callOpts.Address) == 0 && len(r.opts.ProxyAddress) > 0 {
-			callOpts.Address = []string{r.opts.ProxyAddress}
+		if len(callOpts.Address) == 0 && len(r.opts.Proxy) > 0 {
+			callOpts.Address = []string{r.opts.Proxy}
 		}
 
 		// lookup the route to send the request via
@@ -407,7 +407,7 @@ func (r *rpcClient) Call(ctx context.Context, request client.Request, response i
 	retries := callOpts.Retries
 
 	// disable retries when using a proxy
-	if len(r.opts.ProxyAddress) > 0 {
+	if len(r.opts.Proxy) > 0 {
 		retries = 0
 	}
 
@@ -480,8 +480,8 @@ func (r *rpcClient) Stream(ctx context.Context, request client.Request, opts ...
 		}
 
 		// inject proxy address
-		if len(callOpts.Address) == 0 && len(r.opts.ProxyAddress) > 0 {
-			callOpts.Address = []string{r.opts.ProxyAddress}
+		if len(callOpts.Address) == 0 && len(r.opts.Proxy) > 0 {
+			callOpts.Address = []string{r.opts.Proxy}
 		}
 
 		// lookup the route to send the request via
@@ -513,7 +513,7 @@ func (r *rpcClient) Stream(ctx context.Context, request client.Request, opts ...
 	retries := callOpts.Retries
 
 	// disable retries when using a proxy
-	if len(r.opts.ProxyAddress) > 0 {
+	if len(r.opts.Proxy) > 0 {
 		retries = 0
 	}
 
