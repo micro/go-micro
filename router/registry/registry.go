@@ -188,8 +188,14 @@ func (r *rtr) fetchRoutes(service string) error {
 
 	for _, srv := range services {
 		var domain string
+
+		// since a wildcard query was performed, the service could belong
+		// to one of many namespaces, to get this information we check
+		// the node metadata. TODO: Add Domain to registry.Service
 		if srv.Metadata != nil && len(srv.Metadata["domain"]) > 0 {
 			domain = srv.Metadata["domain"]
+		} else if len(srv.Nodes) > 0 && srv.Nodes[0].Metadata != nil {
+			domain = srv.Nodes[0].Metadata["domain"]
 		} else {
 			domain = registry.WildcardDomain
 		}
