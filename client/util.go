@@ -18,11 +18,6 @@ func LookupRoute(req Request, opts CallOptions) (*router.Route, error) {
 		}, nil
 	}
 
-	// check to see if the proxy has been set, if it has we don't need to lookup the routes
-	if len(opts.ProxyAddress) > 0 {
-		return &router.Route{Service: req.Service(), Address: opts.ProxyAddress}, nil
-	}
-
 	// construct the router query
 	query := []router.QueryOption{router.QueryService(req.Service())}
 

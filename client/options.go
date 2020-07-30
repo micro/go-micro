@@ -73,8 +73,6 @@ type CallOptions struct {
 	ServiceToken bool
 	// Network to lookup the route within
 	Network string
-	// Proxy address to route request via
-	ProxyAddress string
 
 	// Middleware for low level call func
 	CallWrappers []CallWrapper
@@ -380,13 +378,6 @@ func WithSelector(s selector.Selector) CallOption {
 func WithSelectOptions(sops ...selector.SelectOption) CallOption {
 	return func(o *CallOptions) {
 		o.SelectOptions = sops
-	}
-}
-
-// WithProxy sets the ProxyAddress in CallOptions
-func WithProxy(add string) CallOption {
-	return func(o *CallOptions) {
-		o.ProxyAddress = add
 	}
 }
 
