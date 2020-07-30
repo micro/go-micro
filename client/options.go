@@ -41,6 +41,9 @@ type Options struct {
 	// Other options for implementations of the interface
 	// can be stored in a context
 	Context context.Context
+
+	// ProxyAddress to send requests via
+	ProxyAddress string
 }
 
 type CallOptions struct {
@@ -146,6 +149,13 @@ func Codec(contentType string, c codec.NewCodec) Option {
 func ContentType(ct string) Option {
 	return func(o *Options) {
 		o.ContentType = ct
+	}
+}
+
+// Proxy sets the proxy address
+func Proxy(addr string) Option {
+	return func(o *Options) {
+		o.ProxyAddress = addr
 	}
 }
 

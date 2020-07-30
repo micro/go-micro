@@ -412,7 +412,7 @@ func (g *grpcClient) Call(ctx context.Context, req client.Request, rsp interface
 		}
 
 		// lookup the route to send the reques to
-		route, err := client.LookupRoute(req, callOpts)
+		route, err := client.LookupRoute(req, callOpts, g.opts.ProxyAddress)
 		if err != nil {
 			return err
 		}
@@ -515,7 +515,7 @@ func (g *grpcClient) Stream(ctx context.Context, req client.Request, opts ...cli
 		}
 
 		// lookup the route to send the reques to
-		route, err := client.LookupRoute(req, callOpts)
+		route, err := client.LookupRoute(req, callOpts, g.opts.ProxyAddress)
 		if err != nil {
 			return nil, err
 		}
