@@ -378,8 +378,13 @@ func (r *rpcClient) Call(ctx context.Context, request client.Request, response i
 			callOpts.Selector = r.opts.Selector
 		}
 
+		// inject proxy address
+		if len(callOpts.ProxyAddress) == 0 && len(r.opts.ProxyAddress) > 0 {
+			callOpts.ProxyAddress = r.opts.ProxyAddress
+		}
+
 		// lookup the route to send the request via
-		route, err := client.LookupRoute(request, callOpts, r.opts.ProxyAddress)
+		route, err := client.LookupRoute(request, callOpts)
 		if err != nil {
 			return err
 		}
@@ -474,8 +479,13 @@ func (r *rpcClient) Stream(ctx context.Context, request client.Request, opts ...
 			callOpts.Selector = r.opts.Selector
 		}
 
+		// inject proxy address
+		if len(callOpts.ProxyAddress) == 0 && len(r.opts.ProxyAddress) > 0 {
+			callOpts.ProxyAddress = r.opts.ProxyAddress
+		}
+
 		// lookup the route to send the request via
-		route, err := client.LookupRoute(request, callOpts, r.opts.ProxyAddress)
+		route, err := client.LookupRoute(request, callOpts)
 		if err != nil {
 			return nil, err
 		}

@@ -9,7 +9,7 @@ import (
 )
 
 // LookupRoute for a request using the router and then choose one using the selector
-func LookupRoute(req Request, opts CallOptions, proxyAddr string) (*router.Route, error) {
+func LookupRoute(req Request, opts CallOptions) (*router.Route, error) {
 	// check to see if an address was provided as a call option
 	if len(opts.Address) > 0 {
 		return &router.Route{
@@ -19,8 +19,8 @@ func LookupRoute(req Request, opts CallOptions, proxyAddr string) (*router.Route
 	}
 
 	// check to see if the proxy has been set, if it has we don't need to lookup the routes
-	if len(proxyAddr) > 0 {
-		return &router.Route{Service: req.Service(), Address: proxyAddr}, nil
+	if len(opts.ProxyAddress) > 0 {
+		return &router.Route{Service: req.Service(), Address: opts.ProxyAddress}, nil
 	}
 
 	// construct the router query
