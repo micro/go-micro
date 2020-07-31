@@ -379,7 +379,7 @@ func (r *rpcClient) Call(ctx context.Context, request client.Request, response i
 		}
 
 		// inject proxy address
-		if len(callOpts.Address) == 0 && len(r.opts.Proxy) > 0 {
+		if len(r.opts.Proxy) > 0 {
 			callOpts.Address = []string{r.opts.Proxy}
 		}
 
@@ -480,7 +480,7 @@ func (r *rpcClient) Stream(ctx context.Context, request client.Request, opts ...
 		}
 
 		// inject proxy address
-		if len(callOpts.Address) == 0 && len(r.opts.Proxy) > 0 {
+		if len(r.opts.Proxy) > 0 {
 			callOpts.Address = []string{r.opts.Proxy}
 		}
 
