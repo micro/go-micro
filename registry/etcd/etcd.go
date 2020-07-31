@@ -305,7 +305,6 @@ func (e *etcdRegistry) registerNode(s *registry.Service, node *registry.Node, op
 		}
 	} else if logger.V(logger.TraceLevel, logger.DefaultLogger) {
 		logger.Tracef("Registering %s id %s without lease", service.Name, node.Id)
-		}
 	}
 
 	key := nodePath(options.Domain, s.Name, node.Id)
