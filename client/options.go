@@ -17,6 +17,8 @@ import (
 type Options struct {
 	// Used to select codec
 	ContentType string
+	// Proxy address to send requests via
+	Proxy string
 
 	// Plugged interfaces
 	Broker    broker.Broker
@@ -66,8 +68,8 @@ type CallOptions struct {
 	SelectOptions []selector.SelectOption
 	// Stream timeout for the stream
 	StreamTimeout time.Duration
-	// Use the services own auth token
-	ServiceToken bool
+	// Use the auth token as the authorization header
+	AuthToken bool
 	// Network to lookup the route within
 	Network string
 
@@ -146,6 +148,13 @@ func Codec(contentType string, c codec.NewCodec) Option {
 func ContentType(ct string) Option {
 	return func(o *Options) {
 		o.ContentType = ct
+	}
+}
+
+// Proxy sets the proxy address
+func Proxy(addr string) Option {
+	return func(o *Options) {
+		o.Proxy = addr
 	}
 }
 
@@ -327,11 +336,11 @@ func WithDialTimeout(d time.Duration) CallOption {
 	}
 }
 
-// WithServiceToken is a CallOption which overrides the
+// WithAuthToken is a CallOption which overrides the
 // authorization header with the services own auth token
-func WithServiceToken() CallOption {
+func WithAuthToken() CallOption {
 	return func(o *CallOptions) {
-		o.ServiceToken = true
+		o.AuthToken = true
 	}
 }
 

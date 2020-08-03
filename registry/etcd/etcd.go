@@ -295,14 +295,16 @@ func (e *etcdRegistry) registerNode(s *registry.Service, node *registry.Node, op
 		}
 	}
 
-	if logger.V(logger.TraceLevel, logger.DefaultLogger) {
-		logger.Tracef("Registering %s id %s with lease %v and leaseID %v and ttl %v", service.Name, node.Id, lgr, lgr.ID, options.TTL)
-	}
-
 	// create an entry for the node
 	var putOpts []clientv3.OpOption
 	if lgr != nil {
 		putOpts = append(putOpts, clientv3.WithLease(lgr.ID))
+
+		if logger.V(logger.TraceLevel, logger.DefaultLogger) {
+			logger.Tracef("Registering %s id %s with lease %v and leaseID %v and ttl %v", service.Name, node.Id, lgr, lgr.ID, options.TTL)
+		}
+	} else if logger.V(logger.TraceLevel, logger.DefaultLogger) {
+		logger.Tracef("Registering %s id %s without lease", service.Name, node.Id)
 	}
 
 	key := nodePath(options.Domain, s.Name, node.Id)
