@@ -28,6 +28,7 @@ type rtr struct {
 	table     *table
 	options   router.Options
 	exit      chan bool
+	initChan  chan bool
 	eventChan chan *router.Event
 
 	// advert subscribers
@@ -48,6 +49,7 @@ func NewRouter(opts ...router.Option) router.Router {
 	// construct the router
 	r := &rtr{
 		options:     options,
+		initChan:    make(chan bool),
 		subscribers: make(map[string]chan *router.Advert),
 	}
 
@@ -62,17 +64,17 @@ func NewRouter(opts ...router.Option) router.Router {
 
 // Init initializes router with given options
 func (r *rtr) Init(opts ...router.Option) error {
-	// stop the router before we initialize
-	if err := r.Close(); err != nil {
-		return err
-	}
-
 	r.Lock()
-	defer r.Unlock()
-
 	for _, o := range opts {
 		o(&r.options)
 	}
+	r.Unlock()
+
+	// push a message to the init chan so the watchers
+	// can reset in the case the registry was changed
+	go func() {
+		r.initChan <- true
+	}()
 
 	return nil
 }
@@ -498,14 +500,9 @@ func (r *rtr) start() error {
 	// create error and exit channels
 	r.exit = make(chan bool)
 
-	// registry watcher
-	w, err := r.options.Registry.Watch(registry.WatchDomain(registry.WildcardDomain))
-	if err != nil {
-		return fmt.Errorf("failed creating registry watcher: %v", err)
-	}
-
 	go func() {
 		var err error
+		var w registry.Watcher
 
 		for {
 			select {
@@ -514,9 +511,17 @@ func (r *rtr) start() error {
 					w.Stop()
 				}
 				return
+			case <-r.initChan:
+				// the registry could have changed during initialization
+				// so if there was a watcher setup, stop it and create a
+				// new one
+				if w != nil {
+					w.Stop()
+					w = nil
+				}
 			default:
 				if w == nil {
-					w, err = r.options.Registry.Watch()
+					w, err = r.options.Registry.Watch(registry.WatchDomain(registry.WildcardDomain))
 					if err != nil {
 						if logger.V(logger.WarnLevel, logger.DefaultLogger) {
 							logger.Warnf("failed creating registry watcher: %v", err)
