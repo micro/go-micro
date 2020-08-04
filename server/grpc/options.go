@@ -66,15 +66,17 @@ func MaxMsgSize(s int) server.Option {
 
 func newOptions(opt ...server.Option) server.Options {
 	opts := server.Options{
-		Codecs:    make(map[string]codec.NewCodec),
-		Metadata:  map[string]string{},
-		Broker:    http.NewBroker(),
-		Registry:  mdns.NewRegistry(),
-		Transport: transport.DefaultTransport,
-		Address:   server.DefaultAddress,
-		Name:      server.DefaultName,
-		Id:        server.DefaultId,
-		Version:   server.DefaultVersion,
+		Codecs:           make(map[string]codec.NewCodec),
+		Metadata:         map[string]string{},
+		Broker:           http.NewBroker(),
+		Registry:         mdns.NewRegistry(),
+		Transport:        transport.DefaultTransport,
+		Address:          server.DefaultAddress,
+		Name:             server.DefaultName,
+		Id:               server.DefaultId,
+		Version:          server.DefaultVersion,
+		RegisterInterval: server.DefaultRegisterInterval,
+		RegisterTTL:      server.DefaultRegisterTTL,
 	}
 
 	for _, o := range opt {

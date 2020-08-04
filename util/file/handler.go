@@ -112,7 +112,7 @@ func (h *handler) Write(ctx context.Context, req *proto.WriteRequest, rsp *proto
 		return err
 	}
 
-	logger.Debugf("Write sessionId=%d, Offset=%d, n=%d", req.Id, req.Offset)
+	logger.Debugf("Write session id=%d, Offset=%d,", req.Id, req.Offset)
 
 	return nil
 }
