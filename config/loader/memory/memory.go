@@ -177,6 +177,8 @@ func (m *memory) update() {
 		}
 
 		select {
+		case <-w.exit:
+			return
 		case w.updates <- uv:
 		default:
 		}
