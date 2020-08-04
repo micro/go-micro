@@ -178,6 +178,10 @@ func (m *memory) update() {
 
 		select {
 		case <-w.exit:
+			continue
+		default:
+		}
+		select {
 		case w.updates <- uv:
 		default:
 		}
