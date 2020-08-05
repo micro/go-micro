@@ -10,6 +10,7 @@ import (
 
 type file struct {
 	path string
+	data []byte
 	opts source.Options
 }
 
