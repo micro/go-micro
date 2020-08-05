@@ -623,6 +623,12 @@ func NewProxy(opts ...proxy.Option) proxy.Proxy {
 		p.Links = options.Links
 	}
 
+	// TODO: remove this cruft
+	// skip watching routes if proxy is set
+	if len(p.Client.Options().Proxy) > 0 {
+		return p
+	}
+
 	go func() {
 		// continuously attempt to watch routes
 		for {
