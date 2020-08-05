@@ -367,6 +367,12 @@ func (p *Proxy) ServeRequest(ctx context.Context, req server.Request, rsp server
 		local = true
 	}
 
+	// if there is a proxy being used, e.g. micro network, we don't need to
+	// look up the routes since they'll be ignored by the client
+	if len(p.Client.Options().Proxy) > 0 {
+		return p.serveRequest(ctx, p.Client, service, endpoint, req, rsp)
+	}
+
 	// call a specific backend endpoint either by name or address
 	if len(p.Endpoint) > 0 {
 		// address:port
