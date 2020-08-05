@@ -127,7 +127,10 @@ func (r *registryRouter) store(services []*registry.Service) {
 			key := fmt.Sprintf("%s.%s", service.Name, sep.Name)
 			// decode endpoint
 			end := api.Decode(sep.Metadata)
-
+			// no endpoint or no name
+			if end == nil || len(end.Name) == 0 {
+				continue
+			}
 			// if we got nothing skip
 			if err := api.Validate(end); err != nil {
 				if logger.V(logger.TraceLevel, logger.DefaultLogger) {
