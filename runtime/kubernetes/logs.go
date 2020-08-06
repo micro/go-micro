@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/micro/go-micro/v3/errors"
 	"github.com/micro/go-micro/v3/runtime"
 	"github.com/micro/go-micro/v3/util/kubernetes/client"
 	"github.com/micro/go-micro/v3/util/log"
@@ -104,6 +105,9 @@ func (k *klog) Read() ([]runtime.LogRecord, error) {
 	pods, err := k.getMatchingPods()
 	if err != nil {
 		return nil, err
+	}
+	if len(pods) == 0 {
+		return nil, errors.NotFound("runtime.logs", "no such service")
 	}
 
 	var records []runtime.LogRecord
