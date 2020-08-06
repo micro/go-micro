@@ -33,10 +33,6 @@ func (c *Codec) ReadBody(b interface{}) error {
 }
 
 func (c *Codec) Write(m *codec.Message, b interface{}) error {
-	if b == nil {
-		// Nothing to write
-		return nil
-	}
 	p, ok := b.(proto.Message)
 	if !ok {
 		return codec.ErrInvalidMessage
