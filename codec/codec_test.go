@@ -4,14 +4,14 @@ import (
 	"io"
 	"testing"
 
-	"github.com/micro/go-micro/v2/codec"
-	"github.com/micro/go-micro/v2/codec/bytes"
-	"github.com/micro/go-micro/v2/codec/grpc"
-	"github.com/micro/go-micro/v2/codec/json"
-	"github.com/micro/go-micro/v2/codec/jsonrpc"
-	"github.com/micro/go-micro/v2/codec/proto"
-	"github.com/micro/go-micro/v2/codec/protorpc"
-	"github.com/micro/go-micro/v2/codec/text"
+	"github.com/micro/go-micro/v3/codec"
+	"github.com/micro/go-micro/v3/codec/bytes"
+	"github.com/micro/go-micro/v3/codec/grpc"
+	"github.com/micro/go-micro/v3/codec/json"
+	"github.com/micro/go-micro/v3/codec/jsonrpc"
+	"github.com/micro/go-micro/v3/codec/proto"
+	"github.com/micro/go-micro/v3/codec/protorpc"
+	"github.com/micro/go-micro/v3/codec/text"
 )
 
 type testRWC struct{}
@@ -29,7 +29,6 @@ func (rwc *testRWC) Close() error {
 }
 
 func getCodecs(c io.ReadWriteCloser) map[string]codec.Codec {
-
 	return map[string]codec.Codec{
 		"bytes":    bytes.NewCodec(c),
 		"grpc":     grpc.NewCodec(c),
@@ -48,7 +47,7 @@ func Test_WriteEmptyBody(t *testing.T) {
 			Header: map[string]string{},
 		}, nil)
 		if err != nil {
-			t.Fatalf("codec %s - expected no error when writing empty/nil body", name)
+			t.Fatalf("codec %s - expected no error when writing empty/nil body: %s", name, err)
 		}
 	}
 }
