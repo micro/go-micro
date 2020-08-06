@@ -4,6 +4,7 @@ package file
 
 import (
 	"os"
+	"reflect"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/micro/go-micro/v3/config/source"
