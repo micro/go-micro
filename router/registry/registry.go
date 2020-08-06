@@ -157,21 +157,37 @@ func (r *rtr) manageRegistryRoutes(reg registry.Registry, action string) error {
 	for _, service := range services {
 		// get the services domain from metadata. Fallback to wildcard.
 		var domain string
+
 		if service.Metadata != nil && len(service.Metadata["domain"]) > 0 {
 			domain = service.Metadata["domain"]
 		} else {
 			domain = registry.WildcardDomain
 		}
 
+		// we already have nodes
+		if len(service.Nodes) > 0 {
+			logger.Tracef("Creating route %v domain: %v", service, domain)
+			if err := r.manageRoutes(service, action, domain); err != nil {
+				logger.Tracef("Failed to manage route for %v domain: %v", service, domain)
+			}
+			continue
+		}
+
+		// otherwise get all the service info
+
 		// get the service to retrieve all its info
 		srvs, err := reg.GetService(service.Name, registry.GetDomain(domain))
 		if err != nil {
+			logger.Tracef("Failed to get service %s domain: %s", service.Name, domain)
 			continue
 		}
+
 		// manage the routes for all returned services
 		for _, srv := range srvs {
+			logger.Tracef("Creating route %v domain: %v", srv, domain)
 			if err := r.manageRoutes(srv, action, domain); err != nil {
-				return err
+				logger.Tracef("Failed to manage route for %v domain: %v", srv, domain)
+				continue
 			}
 		}
 	}
@@ -183,8 +199,10 @@ func (r *rtr) manageRegistryRoutes(reg registry.Registry, action string) error {
 func (r *rtr) fetchRoutes(service string) error {
 	services, err := r.options.Registry.GetService(service, registry.GetDomain(registry.WildcardDomain))
 	if err == registry.ErrNotFound {
+		logger.Tracef("Failed to find route for %s", service)
 		return nil
 	} else if err != nil {
+		logger.Tracef("Failed to find route for %s: %v", service, err)
 		return fmt.Errorf("failed getting services: %v", err)
 	}
 
@@ -202,8 +220,10 @@ func (r *rtr) fetchRoutes(service string) error {
 			domain = registry.WildcardDomain
 		}
 
+		logger.Tracef("Creating route %v domain: %v", srv, domain)
 		if err := r.manageRoutes(srv, "create", domain); err != nil {
-			return err
+			logger.Tracef("Failed to create route for %v domain %v: %v", err)
+			continue
 		}
 	}
 
@@ -473,9 +493,11 @@ func (r *rtr) start() error {
 		return nil
 	}
 
-	// add all local service routes into the routing table
-	if err := r.manageRegistryRoutes(r.options.Registry, "create"); err != nil {
-		return fmt.Errorf("failed adding registry routes: %s", err)
+	if r.options.Precache {
+		// add all local service routes into the routing table
+		if err := r.manageRegistryRoutes(r.options.Registry, "create"); err != nil {
+			return fmt.Errorf("failed adding registry routes: %s", err)
+		}
 	}
 
 	// add default gateway into routing table

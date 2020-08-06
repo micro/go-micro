@@ -36,7 +36,7 @@ func newEtcdWatcher(r *etcdRegistry, timeout time.Duration, opts ...registry.Wat
 	watchPath := prefix
 	if wo.Domain == registry.WildcardDomain {
 		if len(wo.Service) > 0 {
-			return nil, errors.New("Cannot watch a service accross domains")
+			return nil, errors.New("Cannot watch a service across domains")
 		}
 		watchPath = prefix
 	} else if len(wo.Service) > 0 {

@@ -24,6 +24,8 @@ type Options struct {
 	Advertise Strategy
 	// Context for additional options
 	Context context.Context
+	// Precache routes
+	Precache bool
 }
 
 // Id sets Router Id
@@ -65,6 +67,13 @@ func Registry(r registry.Registry) Option {
 func Advertise(a Strategy) Option {
 	return func(o *Options) {
 		o.Advertise = a
+	}
+}
+
+// Precache the routes
+func Precache() Option {
+	return func(o *Options) {
+		o.Precache = true
 	}
 }
 
