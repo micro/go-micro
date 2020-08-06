@@ -19,6 +19,9 @@ var (
 	KeepAliveTime = 30 * time.Second
 	// ReconnectTime defines time interval we periodically attempt to reconnect dead links
 	ReconnectTime = 5 * time.Second
+
+	// create a logger
+	log = logger.NewHelper(logger.DefaultLogger).WithFields(map[string]interface{}{"package": "tunnel"})
 )
 
 // tun represents a network tunnel
