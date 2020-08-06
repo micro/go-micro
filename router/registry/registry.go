@@ -473,11 +473,9 @@ func (r *rtr) start() error {
 		return nil
 	}
 
-	if r.options.Precache {
-		// add all local service routes into the routing table
-		if err := r.manageRegistryRoutes(r.options.Registry, "create"); err != nil {
-			return fmt.Errorf("failed adding registry routes: %s", err)
-		}
+	// add all local service routes into the routing table
+	if err := r.manageRegistryRoutes(r.options.Registry, "create"); err != nil {
+		return fmt.Errorf("failed adding registry routes: %s", err)
 	}
 
 	// add default gateway into routing table
