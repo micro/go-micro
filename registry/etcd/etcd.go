@@ -519,9 +519,9 @@ func (e *etcdRegistry) ListServices(opts ...registry.ListOption) ([]*registry.Se
 			continue
 		}
 
-		v, ok := versions[sn.Version]
+		v, ok := versions[sn.Name+sn.Version]
 		if !ok {
-			versions[sn.Version] = sn
+			versions[sn.Name+sn.Version] = sn
 			continue
 		}
 
