@@ -197,6 +197,7 @@ func (r *rtr) manageRegistryRoutes(reg registry.Registry, action string) error {
 
 // fetchRoutes retrieves all the routes for a given service and creates them in the routing table
 func (r *rtr) fetchRoutes(service string) error {
+	logger.Tracef("Fetching route for %s domain: %v", service, registry.WildcardDomain)
 	services, err := r.options.Registry.GetService(service, registry.GetDomain(registry.WildcardDomain))
 	if err == registry.ErrNotFound {
 		logger.Tracef("Failed to find route for %s", service)
