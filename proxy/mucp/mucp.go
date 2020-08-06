@@ -20,6 +20,7 @@ import (
 	"github.com/micro/go-micro/v3/proxy"
 	"github.com/micro/go-micro/v3/router"
 	"github.com/micro/go-micro/v3/router/registry"
+	"github.com/micro/go-micro/v3/selector"
 	"github.com/micro/go-micro/v3/selector/roundrobin"
 	"github.com/micro/go-micro/v3/server"
 )
@@ -45,6 +46,9 @@ type Proxy struct {
 	// A fib of routes service:address
 	sync.RWMutex
 	Routes map[string]map[uint64]router.Route
+
+	// selector used for load balancing
+	Selector selector.Selector
 }
 
 // read client request and write to server
@@ -402,7 +406,7 @@ func (p *Proxy) ServeRequest(ctx context.Context, req server.Request, rsp server
 	//nolint:prealloc
 	opts := []client.CallOption{
 		// set strategy to round robin
-		client.WithSelector(roundrobin.NewSelector()),
+		client.WithSelector(p.Selector),
 	}
 
 	// if the address is already set just serve it
@@ -608,10 +612,21 @@ func NewProxy(opts ...proxy.Option) proxy.Proxy {
 	if p.Router == nil {
 		p.Router = registry.NewRouter()
 	}
+
+	if p.Selector == nil {
+		p.Selector = roundrobin.NewSelector()
+	}
+
 	// set the links
 	if options.Links != nil {
 		// get client
 		p.Links = options.Links
+	}
+
+	// TODO: remove this cruft
+	// skip watching routes if proxy is set
+	if len(p.Client.Options().Proxy) > 0 {
+		return p
 	}
 
 	go func() {

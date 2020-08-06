@@ -93,12 +93,7 @@ func (r *roundrobin) String() string {
 }
 
 func (r *roundrobin) cleanRoutes() {
-	for {
-		// watch for ticks until the ticker is closed
-		if _, ok := <-r.ticker.C; !ok {
-			return
-		}
-
+	for _ = range r.ticker.C {
 		r.Lock()
 
 		// copy the slice to prevent concurrent map iteration and map write
@@ -109,6 +104,7 @@ func (r *roundrobin) cleanRoutes() {
 				delete(r.routes, hash)
 			}
 		}
+
 		r.Unlock()
 	}
 }
