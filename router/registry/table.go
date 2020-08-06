@@ -245,21 +245,21 @@ func (t *table) Query(q ...router.QueryOption) ([]router.Route, error) {
 	}
 
 	// readAndFilter routes for this service under read lock.
-	readAndFilter := func() ([]router.Route, bool) {
+	readAndFilter := func(q router.QueryOptions) ([]router.Route, bool) {
 		t.RLock()
 		defer t.RUnlock()
 
-		routes, ok := t.routes[opts.Service]
+		routes, ok := t.routes[q.Service]
 		if !ok || len(routes) == 0 {
 			return nil, false
 		}
 
-		return findRoutes(routes, opts.Address, opts.Gateway, opts.Network, opts.Router, opts.Strategy), true
+		return findRoutes(routes, q.Address, q.Gateway, q.Network, q.Router, q.Strategy), true
 	}
 
 	if opts.Service != "*" {
 		// try and load services from the cache
-		if routes, ok := readAndFilter(); ok {
+		if routes, ok := readAndFilter(opts); ok {
 			return routes, nil
 		}
 
@@ -269,7 +269,7 @@ func (t *table) Query(q ...router.QueryOption) ([]router.Route, error) {
 		}
 
 		// try again
-		if routes, ok := readAndFilter(); ok {
+		if routes, ok := readAndFilter(opts); ok {
 			return routes, nil
 		}
 

@@ -24,7 +24,7 @@ type Options struct {
 	Advertise Strategy
 	// Context for additional options
 	Context context.Context
-	// Precache the route table on router startup
+	// Precache routes
 	Precache bool
 }
 
@@ -70,10 +70,10 @@ func Advertise(a Strategy) Option {
 	}
 }
 
-// Precache sets whether to precache the route table
-func Precache(b bool) Option {
+// Precache the routes
+func Precache() Option {
 	return func(o *Options) {
-		o.Precache = b
+		o.Precache = true
 	}
 }
 
