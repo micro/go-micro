@@ -44,6 +44,8 @@ func (c *Codec) ReadBody(b interface{}) error {
 func (c *Codec) Write(m *codec.Message, b interface{}) error {
 	var v []byte
 	switch vb := b.(type) {
+	case nil:
+		return nil
 	case *Frame:
 		v = vb.Data
 	case *[]byte:
