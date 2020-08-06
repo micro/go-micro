@@ -6,7 +6,6 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net"
 	"path"
 	"sort"
@@ -114,6 +113,32 @@ func configure(e *etcdRegistry, opts ...registry.Option) error {
 	}
 	e.client = cli
 	return nil
+}
+
+// hasName checks if the key has the name we expect
+// the key is a path of /prefix/domain/name/id e.g /micro/registry/domain/service/uuid
+func hasName(key, prefix, name string) bool {
+	// strip the prefix from keys
+	key = strings.TrimPrefix(key, prefix)
+
+	// split the key so we remove domain
+	parts := strings.Split(key, "/")
+
+	if len(parts) == 0 {
+		return false
+	}
+
+	if len(parts[0]) == 0 {
+		parts = parts[1:]
+	}
+
+	// we expect a domain and then name domain/service
+	if len(parts) < 2 {
+		return false
+	}
+
+	// ensure the name matches what we expect
+	return parts[1] == name
 }
 
 func encode(s *registry.Service) string {
@@ -392,18 +417,23 @@ func (e *etcdRegistry) GetService(name string, opts ...registry.GetOption) ([]*r
 	}
 
 	var results []*mvccpb.KeyValue
+
+	// TODO: refactorout wildcard, this is an incredibly expensive operation
 	if options.Domain == registry.WildcardDomain {
 		rsp, err := e.client.Get(ctx, prefix, clientv3.WithPrefix(), clientv3.WithSerializable())
 		if err != nil {
 			return nil, err
 		}
 
-		// filter using a check for the service name
-		keyPath := fmt.Sprintf("/%v/", serializeServiceName(name))
+		// filter the results for the key we care about
 		for _, kv := range rsp.Kvs {
-			if strings.Contains(string(kv.Key), keyPath) {
-				results = append(results, kv)
+			// if the key does not contain the name then pass
+			if !hasName(string(kv.Key), prefix, name) {
+				continue
 			}
+
+			// save the result if its what we expect
+			results = append(results, kv)
 		}
 	} else {
 		prefix := servicePath(options.Domain, name) + "/"
@@ -421,13 +451,13 @@ func (e *etcdRegistry) GetService(name string, opts ...registry.GetOption) ([]*r
 	versions := make(map[string]*registry.Service)
 
 	for _, n := range results {
-		// key contains the domain, service name and version. hence, if a service name exists in two
-		// seperate domains, it'll be returned twice (for wildcard queries), this is because although
-		// the name is the same, the endpoints / metadata could differ
-		key, _ := path.Split(string(n.Key))
+		// only process the things we care about
+		if !hasName(string(n.Key), prefix, name) {
+			continue
+		}
 
 		if sn := decode(n.Value); sn != nil {
-			s, ok := versions[key]
+			s, ok := versions[sn.Version]
 			if !ok {
 				s = &registry.Service{
 					Name:      sn.Name,
@@ -437,15 +467,17 @@ func (e *etcdRegistry) GetService(name string, opts ...registry.GetOption) ([]*r
 				}
 				versions[s.Version] = s
 			}
-
 			s.Nodes = append(s.Nodes, sn.Nodes...)
 		}
 	}
 
 	services := make([]*registry.Service, 0, len(versions))
+
 	for _, service := range versions {
 		services = append(services, service)
 	}
+
+	logger.Tracef("[etcd] registry get service %s returned %v", name, services)
 
 	return services, nil
 }
@@ -487,14 +519,9 @@ func (e *etcdRegistry) ListServices(opts ...registry.ListOption) ([]*registry.Se
 			continue
 		}
 
-		// key contains the domain, service name and version. hence, if a service name exists in two
-		// seperate domains, it'll be returned twice (for wildcard queries), this is because although
-		// the name is the same, the endpoints / metadata could differ
-		key, _ := path.Split(string(n.Key))
-
-		v, ok := versions[key]
+		v, ok := versions[sn.Version]
 		if !ok {
-			versions[key] = sn
+			versions[sn.Version] = sn
 			continue
 		}
 
