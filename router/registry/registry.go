@@ -166,6 +166,7 @@ func (r *rtr) manageRegistryRoutes(reg registry.Registry, action string) error {
 
 		// we already have nodes
 		if len(service.Nodes) > 0 {
+			logger.Tracef("Creating route %v domain: %v", service, domain)
 			if err := r.manageRoutes(service, action, domain); err != nil {
 				logger.Tracef("Failed to manage route for %v domain: %v", service, domain)
 			}
@@ -183,6 +184,7 @@ func (r *rtr) manageRegistryRoutes(reg registry.Registry, action string) error {
 
 		// manage the routes for all returned services
 		for _, srv := range srvs {
+			logger.Tracef("Creating route %v domain: %v", srv, domain)
 			if err := r.manageRoutes(srv, action, domain); err != nil {
 				logger.Tracef("Failed to manage route for %v domain: %v", srv, domain)
 				continue
