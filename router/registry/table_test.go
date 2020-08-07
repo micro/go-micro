@@ -9,7 +9,7 @@ import (
 
 func testSetup() (*table, router.Route) {
 	routr := NewRouter().(*rtr)
-	table := newTable(routr.fetchRoutes)
+	table := newTable(routr.lookup)
 
 	route := router.Route{
 		Service: "dest.svc",
@@ -304,9 +304,8 @@ func TestFallback(t *testing.T) {
 		Link:    router.DefaultLink,
 		Metric:  router.DefaultLocalMetric,
 	}
-	r.table = newTable(func(s string) error {
-		r.table.Create(route)
-		return nil
+	r.table = newTable(func(s string) ([]router.Route, error) {
+		return []router.Route{route}, nil
 	})
 	r.start()
 
@@ -338,8 +337,8 @@ func TestFallbackError(t *testing.T) {
 		subscribers: make(map[string]chan *router.Advert),
 		options:     router.DefaultOptions(),
 	}
-	r.table = newTable(func(s string) error {
-		return fmt.Errorf("ERROR")
+	r.table = newTable(func(s string) ([]router.Route, error) {
+		return nil, fmt.Errorf("ERROR")
 	})
 	r.start()
 	_, err := r.Lookup(router.QueryService("go.micro.service.foo"))

@@ -12,20 +12,98 @@ import (
 // table is an in-memory routing table
 type table struct {
 	sync.RWMutex
-	// fetchRoutes for a service
-	fetchRoutes func(string) error
+	// lookup for a service
+	lookup func(string) ([]router.Route, error)
 	// routes stores service routes
-	routes map[string]map[uint64]router.Route
+	routes map[string]map[uint64]*route
 	// watchers stores table watchers
 	watchers map[string]*tableWatcher
 }
 
+type route struct {
+	route   router.Route
+	updated time.Time
+}
+
 // newtable creates a new routing table and returns it
-func newTable(fetchRoutes func(string) error, opts ...router.Option) *table {
+func newTable(lookup func(string) ([]router.Route, error), opts ...router.Option) *table {
 	return &table{
-		fetchRoutes: fetchRoutes,
-		routes:      make(map[string]map[uint64]router.Route),
-		watchers:    make(map[string]*tableWatcher),
+		lookup:   lookup,
+		routes:   make(map[string]map[uint64]*route),
+		watchers: make(map[string]*tableWatcher),
+	}
+}
+
+// pruneRoutes will prune routes older than the time specified
+func (t *table) pruneRoutes(olderThan time.Duration) {
+	var routes []router.Route
+
+	t.Lock()
+
+	// search for all the routes
+	for _, routeList := range t.routes {
+		for _, r := range routeList {
+			// if any route is older than
+			if time.Since(r.updated).Seconds() > olderThan.Seconds() {
+				routes = append(routes, r.route)
+			}
+		}
+	}
+
+	t.Unlock()
+
+	// delete the routes we've found
+	for _, route := range routes {
+		t.Delete(route)
+	}
+}
+
+// deleteService removes the entire service
+func (t *table) deleteService(service, network string) {
+	t.Lock()
+
+	routes, ok := t.routes[service]
+	if !ok {
+		return
+	}
+
+	// delete the routes for the service
+	for hash, rt := range routes {
+		// TODO: check if this causes a problem
+		// with * in the network if that is a thing
+		// or blank strings
+		if rt.route.Network != network {
+			continue
+		}
+		delete(routes, hash)
+	}
+
+	// delete the map for the service if its empty
+	if len(routes) == 0 {
+		delete(t.routes, service)
+		return
+	}
+
+	// save the routes
+	t.routes[service] = routes
+
+	t.Unlock()
+}
+
+// saveRoutes completely replaces the routes for a service
+func (t *table) saveRoutes(service string, routes []router.Route) {
+	t.Lock()
+	defer t.Unlock()
+
+	// delete old routes
+	delete(t.routes, service)
+	// make new map
+	t.routes[service] = make(map[uint64]*route)
+
+	// iterate through new routes and save
+	for _, rt := range routes {
+		// save the new route
+		t.routes[service][rt.Hash()] = &route{rt, time.Now()}
 	}
 }
 
@@ -58,20 +136,25 @@ func (t *table) Create(r router.Route) error {
 
 	// check if there are any routes in the table for the route destination
 	if _, ok := t.routes[service]; !ok {
-		t.routes[service] = make(map[uint64]router.Route)
+		t.routes[service] = make(map[uint64]*route)
 	}
 
 	// add new route to the table for the route destination
-	if _, ok := t.routes[service][sum]; !ok {
-		t.routes[service][sum] = r
-		if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-			logger.Debugf("Router emitting %s for route: %s", router.Create, r.Address)
-		}
-		go t.sendEvent(&router.Event{Type: router.Create, Timestamp: time.Now(), Route: r})
-		return nil
+	if _, ok := t.routes[service][sum]; ok {
+		return router.ErrDuplicateRoute
 	}
 
-	return router.ErrDuplicateRoute
+	// create the route
+	t.routes[service][sum] = &route{r, time.Now()}
+
+	if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+		logger.Debugf("Router emitting %s for route: %s", router.Create, r.Address)
+	}
+
+	// send a route created event
+	go t.sendEvent(&router.Event{Type: router.Create, Timestamp: time.Now(), Route: r})
+
+	return nil
 }
 
 // Delete deletes the route from the routing table
@@ -90,10 +173,14 @@ func (t *table) Delete(r router.Route) error {
 		return router.ErrRouteNotFound
 	}
 
+	// delete the route from the service
 	delete(t.routes[service], sum)
+
+	// delete the whole map if there are no routes left
 	if len(t.routes[service]) == 0 {
 		delete(t.routes, service)
 	}
+
 	if logger.V(logger.DebugLevel, logger.DefaultLogger) {
 		logger.Debugf("Router emitting %s for route: %s", router.Delete, r.Address)
 	}
@@ -112,11 +199,13 @@ func (t *table) Update(r router.Route) error {
 
 	// check if the route destination has any routes in the table
 	if _, ok := t.routes[service]; !ok {
-		t.routes[service] = make(map[uint64]router.Route)
+		t.routes[service] = make(map[uint64]*route)
 	}
 
 	if _, ok := t.routes[service][sum]; !ok {
-		t.routes[service][sum] = r
+		// update the route
+		t.routes[service][sum] = &route{r, time.Now()}
+
 		if logger.V(logger.DebugLevel, logger.DefaultLogger) {
 			logger.Debugf("Router emitting %s for route: %s", router.Update, r.Address)
 		}
@@ -125,7 +214,7 @@ func (t *table) Update(r router.Route) error {
 	}
 
 	// just update the route, but dont emit Update event
-	t.routes[service][sum] = r
+	t.routes[service][sum] = &route{r, time.Now()}
 
 	return nil
 }
@@ -138,7 +227,7 @@ func (t *table) List() ([]router.Route, error) {
 	var routes []router.Route
 	for _, rmap := range t.routes {
 		for _, route := range rmap {
-			routes = append(routes, route)
+			routes = append(routes, route.route)
 		}
 	}
 
@@ -187,12 +276,21 @@ func isMatch(route router.Route, address, gateway, network, rtr string, strategy
 	return true
 }
 
-// findRoutes finds all the routes for given network and router and returns them
-func findRoutes(routes map[uint64]router.Route, address, gateway, network, rtr string, strategy router.Strategy) []router.Route {
+// filterRoutes finds all the routes for given network and router and returns them
+func filterRoutes(routes map[uint64]*route, opts router.QueryOptions) []router.Route {
+	address := opts.Address
+	gateway := opts.Gateway
+	network := opts.Network
+	rtr := opts.Router
+	strategy := opts.Strategy
+
 	// routeMap stores the routes we're going to advertise
 	routeMap := make(map[string][]router.Route)
 
-	for _, route := range routes {
+	for _, rt := range routes {
+		// get the actual route
+		route := rt.route
+
 		if isMatch(route, address, gateway, network, rtr, strategy) {
 			// add matchihg route to the routeMap
 			routeKey := route.Service + "@" + route.Network
@@ -254,7 +352,7 @@ func (t *table) Query(q ...router.QueryOption) ([]router.Route, error) {
 			return nil, false
 		}
 
-		return findRoutes(routes, q.Address, q.Gateway, q.Network, q.Router, q.Strategy), true
+		return filterRoutes(routes, q), true
 	}
 
 	if opts.Service != "*" {
@@ -263,10 +361,16 @@ func (t *table) Query(q ...router.QueryOption) ([]router.Route, error) {
 			return routes, nil
 		}
 
-		// load the cache and try again
-		if err := t.fetchRoutes(opts.Service); err != nil {
+		// lookup the route and try again
+		// TODO: move this logic out of the hot path
+		// being hammered on queries will require multiple lookups
+		routes, err := t.lookup(opts.Service)
+		if err != nil {
 			return nil, err
 		}
+
+		// cache the routes
+		t.saveRoutes(opts.Service, routes)
 
 		// try again
 		if routes, ok := readAndFilter(opts); ok {
@@ -278,9 +382,17 @@ func (t *table) Query(q ...router.QueryOption) ([]router.Route, error) {
 
 	// search through all destinations
 	t.RLock()
+
 	for _, routes := range t.routes {
-		results = append(results, findRoutes(routes, opts.Address, opts.Gateway, opts.Network, opts.Router, opts.Strategy)...)
+		// filter the routes
+		found := filterRoutes(routes, opts)
+		// ensure we don't append zero length routes
+		if len(found) == 0 {
+			continue
+		}
+		results = append(results, found...)
 	}
+
 	t.RUnlock()
 
 	return results, nil
