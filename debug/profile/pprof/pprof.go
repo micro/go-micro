@@ -1,4 +1,4 @@
-// Package pprof provides a pprof profiler
+// Package pprof provides a pprof profiler which writes output to /tmp/[name].{cpu,mem}.pprof
 package pprof
 
 import (
