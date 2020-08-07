@@ -11,7 +11,6 @@ import (
 	jsonpatch "github.com/evanphx/json-patch/v5"
 	"github.com/micro/go-micro/v3/api"
 	"github.com/micro/go-micro/v3/api/handler"
-	"github.com/micro/go-micro/v3/api/handler/util"
 	"github.com/micro/go-micro/v3/api/internal/proto"
 	"github.com/micro/go-micro/v3/client"
 	"github.com/micro/go-micro/v3/codec"
@@ -22,6 +21,7 @@ import (
 	"github.com/micro/go-micro/v3/metadata"
 	"github.com/micro/go-micro/v3/util/ctx"
 	"github.com/micro/go-micro/v3/util/qson"
+	"github.com/micro/go-micro/v3/util/router"
 	"github.com/oxtoacart/bpool"
 )
 
@@ -113,7 +113,7 @@ func (h *rpcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// create custom router
-	callOpt := client.WithRouter(util.Router(service.Services))
+	callOpt := client.WithRouter(router.New(service.Services))
 
 	// walk the standard call path
 	// get payload

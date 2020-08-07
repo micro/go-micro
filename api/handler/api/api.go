@@ -6,11 +6,11 @@ import (
 
 	goapi "github.com/micro/go-micro/v3/api"
 	"github.com/micro/go-micro/v3/api/handler"
-	"github.com/micro/go-micro/v3/api/handler/util"
 	api "github.com/micro/go-micro/v3/api/proto"
 	"github.com/micro/go-micro/v3/client"
 	"github.com/micro/go-micro/v3/errors"
 	"github.com/micro/go-micro/v3/util/ctx"
+	"github.com/micro/go-micro/v3/util/router"
 )
 
 type apiHandler struct {
@@ -72,7 +72,7 @@ func (a *apiHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// create the context from headers
 	cx := ctx.FromRequest(r)
 
-	if err := c.Call(cx, req, rsp, client.WithRouter(util.Router(service.Services))); err != nil {
+	if err := c.Call(cx, req, rsp, client.WithRouter(router.New(service.Services))); err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		ce := errors.Parse(err.Error())
 		switch ce.Code {
