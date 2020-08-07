@@ -613,8 +613,6 @@ func (r *rtr) start() error {
 		}
 	}()
 
-	// we don't trust the events so we're going to periodically refresh
-
 	r.running = true
 
 	return nil
