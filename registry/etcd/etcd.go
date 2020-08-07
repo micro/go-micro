@@ -366,9 +366,18 @@ func (e *etcdRegistry) Deregister(s *registry.Service, opts ...registry.Deregist
 	for _, node := range s.Nodes {
 		e.Lock()
 		// delete our hash of the service
-		delete(e.register, s.Name+node.Id)
+		nodes, ok := e.register[options.Domain]
+		if ok {
+			delete(nodes, s.Name+node.Id)
+			e.register[options.Domain] = nodes
+		}
+
 		// delete our lease of the service
-		delete(e.leases, s.Name+node.Id)
+		leases, ok := e.leases[options.Domain]
+		if ok {
+			delete(leases, s.Name+node.Id)
+			e.leases[options.Domain] = leases
+		}
 		e.Unlock()
 
 		ctx, cancel := context.WithTimeout(context.Background(), e.options.Timeout)
