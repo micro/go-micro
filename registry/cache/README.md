@@ -19,13 +19,11 @@ type Cache interface {
 ## Usage
 
 ```go
-import (
-	"github.com/micro/go-micro/registry"
-	"github.com/micro/go-micro/registry/cache"
-)
+import "github.com/micro/go-micro/registry/cache"
 
-r := registry.NewRegistry()
-cache := cache.New(r)
+# create a new cache
+c := cache.New(registry)
 
-services, _ := cache.GetService("my.service")
+# get a service from the cache
+services, _ := c.GetService("helloworld")
 ```
