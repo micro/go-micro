@@ -120,6 +120,13 @@ func configure(e *etcdRegistry, opts ...registry.Option) error {
 	if err != nil {
 		return err
 	}
+
+	// close the existing client
+	if e.client != nil {
+		e.client.Close()
+	}
+
+	// set the new client
 	e.client = cli
 	return nil
 }
