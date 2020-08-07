@@ -107,6 +107,15 @@ func configure(e *etcdRegistry, opts ...registry.Option) error {
 		config.Endpoints = cAddrs
 	}
 
+	// check if the endpoints have https://
+	if config.TLS != nil {
+		for i, ep := range config.Endpoints {
+			if !strings.HasPrefix(ep, "https://") {
+				config.Endpoints[i] = "https://" + ep
+			}
+		}
+	}
+
 	cli, err := clientv3.New(config)
 	if err != nil {
 		return err
