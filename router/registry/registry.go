@@ -272,6 +272,8 @@ func (r *rtr) watchRegistry(w registry.Watcher) error {
 		select {
 		case <-exit:
 			return
+		case <-r.initChan:
+			return
 		case <-r.exit:
 			return
 		}
@@ -578,14 +580,6 @@ func (r *rtr) start() error {
 					w.Stop()
 				}
 				return
-			case <-r.initChan:
-				// the registry could have changed during initialization
-				// so if there was a watcher setup, stop it and create a
-				// new one
-				if w != nil {
-					w.Stop()
-					w = nil
-				}
 			default:
 				if w == nil {
 					w, err = r.options.Registry.Watch(registry.WatchDomain(registry.WildcardDomain))
