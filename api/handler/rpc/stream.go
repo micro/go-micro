@@ -13,10 +13,10 @@ import (
 	"github.com/gobwas/ws"
 	"github.com/gobwas/ws/wsutil"
 	"github.com/micro/go-micro/v3/api"
-	"github.com/micro/go-micro/v3/api/handler/util"
 	"github.com/micro/go-micro/v3/client"
 	raw "github.com/micro/go-micro/v3/codec/bytes"
 	"github.com/micro/go-micro/v3/logger"
+	"github.com/micro/go-micro/v3/util/router"
 )
 
 // serveWebsocket will stream rpc back over websockets assuming json
@@ -111,7 +111,7 @@ func serveWebsocket(ctx context.Context, w http.ResponseWriter, r *http.Request,
 	)
 
 	// create custom router
-	callOpt := client.WithRouter(util.Router(service.Services))
+	callOpt := client.WithRouter(router.New(service.Services))
 
 	// create a new stream
 	stream, err := c.Stream(ctx, req, callOpt)

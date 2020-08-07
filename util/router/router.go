@@ -1,12 +1,25 @@
-package util
+package router
 
 import (
 	"github.com/micro/go-micro/v3/registry"
 	"github.com/micro/go-micro/v3/router"
 )
 
+type apiRouter struct {
+	routes []router.Route
+	router.Router
+}
+
+func (r *apiRouter) Lookup(...router.QueryOption) ([]router.Route, error) {
+	return r.routes, nil
+}
+
+func (r *apiRouter) String() string {
+	return "api"
+}
+
 // Router is a hack for API routing
-func Router(srvs []*registry.Service) router.Router {
+func New(srvs []*registry.Service) router.Router {
 	var routes []router.Route
 
 	for _, srv := range srvs {
@@ -16,17 +29,4 @@ func Router(srvs []*registry.Service) router.Router {
 	}
 
 	return &apiRouter{routes: routes}
-}
-
-func (r *apiRouter) Lookup(...router.QueryOption) ([]router.Route, error) {
-	return r.routes, nil
-}
-
-type apiRouter struct {
-	routes []router.Route
-	router.Router
-}
-
-func (r *apiRouter) String() string {
-	return "api"
 }
