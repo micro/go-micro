@@ -13,7 +13,7 @@ import (
 type table struct {
 	sync.RWMutex
 	// lookup for a service
-	lookup func(string) error
+	lookup func(string) ([]router.Route, error)
 	// routes stores service routes
 	routes map[string]map[uint64]*route
 	// watchers stores table watchers
@@ -21,29 +21,29 @@ type table struct {
 }
 
 type route struct {
-	route router.Route
+	route   router.Route
 	updated time.Time
 }
 
 // newtable creates a new routing table and returns it
-func newTable(lookup func(string) error, opts ...router.Option) *table {
+func newTable(lookup func(string) ([]router.Route, error), opts ...router.Option) *table {
 	return &table{
-		lookup: lookup,
-		routes:      make(map[string]map[uint64]*route),
-		watchers:    make(map[string]*tableWatcher),
+		lookup:   lookup,
+		routes:   make(map[string]map[uint64]*route),
+		watchers: make(map[string]*tableWatcher),
 	}
 }
 
 // pruneRoutes will prune routes older than the time specified
-func (t *table) pruneRoutes(olderThan time.Second) {
-	var routes []route.Route
+func (t *table) pruneRoutes(olderThan time.Duration) {
+	var routes []router.Route
 
 	t.Lock()
 
 	// search for all the routes
-	for service, routeList := range t.routes {
+	for _, routeList := range t.routes {
 		for _, r := range routeList {
-			// if any route is older than 
+			// if any route is older than
 			if time.Since(r.updated).Seconds() > olderThan.Seconds() {
 				routes = append(routes, r.route)
 			}
@@ -58,8 +58,8 @@ func (t *table) pruneRoutes(olderThan time.Second) {
 	}
 }
 
-// removeService removes the entire service
-func (t *table) removeService(service, network string) {
+// deleteService removes the entire service
+func (t *table) deleteService(service, network string) {
 	t.Lock()
 
 	routes, ok := t.routes[service]
@@ -103,7 +103,7 @@ func (t *table) saveRoutes(service string, routes []router.Route) {
 	// iterate through new routes and save
 	for _, rt := range routes {
 		// save the new route
-		t.routes[service][route.Hash()] = &route{rt, time.Now()}
+		t.routes[service][rt.Hash()] = &route{rt, time.Now()}
 	}
 }
 
@@ -136,7 +136,7 @@ func (t *table) Create(r router.Route) error {
 
 	// check if there are any routes in the table for the route destination
 	if _, ok := t.routes[service]; !ok {
-		t.routes[service] = make(map[uint64]route)
+		t.routes[service] = make(map[uint64]*route)
 	}
 
 	// add new route to the table for the route destination
@@ -199,7 +199,7 @@ func (t *table) Update(r router.Route) error {
 
 	// check if the route destination has any routes in the table
 	if _, ok := t.routes[service]; !ok {
-		t.routes[service] = make(map[uint64]router.Route)
+		t.routes[service] = make(map[uint64]*route)
 	}
 
 	if _, ok := t.routes[service][sum]; !ok {
@@ -277,10 +277,10 @@ func isMatch(route router.Route, address, gateway, network, rtr string, strategy
 }
 
 // filterRoutes finds all the routes for given network and router and returns them
-func filterRoutes(routes map[uint64]*route, opts router.QueryOptions) []router.Route{
+func filterRoutes(routes map[uint64]*route, opts router.QueryOptions) []router.Route {
 	address := opts.Address
 	gateway := opts.Gateway
-	network	:= opts.Network
+	network := opts.Network
 	rtr := opts.Router
 	strategy := opts.Strategy
 
@@ -370,7 +370,7 @@ func (t *table) Query(q ...router.QueryOption) ([]router.Route, error) {
 		}
 
 		// cache the routes
-		t.saveRoutes(opts.Sevice, routes)
+		t.saveRoutes(opts.Service, routes)
 
 		// try again
 		if routes, ok := readAndFilter(opts); ok {

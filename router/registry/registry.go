@@ -101,7 +101,7 @@ func (r *rtr) Table() router.Table {
 }
 
 func getDomain(srv *registry.Service) string {
-	// check the service metadata for domain	
+	// check the service metadata for domain
 	// TODO: domain as Domain field in registry?
 	if srv.Metadata != nil && len(srv.Metadata["domain"]) > 0 {
 		return srv.Metadata["domain"]
@@ -137,11 +137,11 @@ func (r *rtr) manageRoute(route router.Route, action string) error {
 }
 
 // createRoutes turns a service into a list routes basically converting nodes to routes
-func (r *rtr) createRoutes(service *registry.Service, network string) []route.Route {
+func (r *rtr) createRoutes(service *registry.Service, network string) []router.Route {
 	var routes []router.Route
 
 	for _, node := range service.Nodes {
-		route := router.Route{
+		routes = append(routes, router.Route{
 			Service:  service.Name,
 			Address:  node.Address,
 			Gateway:  "",
@@ -150,7 +150,7 @@ func (r *rtr) createRoutes(service *registry.Service, network string) []route.Ro
 			Link:     router.DefaultLink,
 			Metric:   router.DefaultLocalMetric,
 			Metadata: node.Metadata,
-		}
+		})
 	}
 
 	return routes
@@ -169,8 +169,8 @@ func (r *rtr) manageRoutes(service *registry.Service, action, network string) er
 	// it means we need to wipe out all the routes
 	// for that service
 	if action == "delete" && len(routes) == 0 {
-		// remove the service
-		r.table.removeService(service, network)
+		// delete the service entirely
+		r.table.deleteService(service.Name, network)
 		return nil
 	}
 
@@ -199,7 +199,7 @@ func (r *rtr) loadRoutes(reg registry.Registry) error {
 		domain := getDomain(service)
 
 		// create the routes
-		routes := r.createRoutes(service)
+		routes := r.createRoutes(service, domain)
 
 		// if the routes exist save them
 		if len(routes) > 0 {
@@ -220,7 +220,7 @@ func (r *rtr) loadRoutes(reg registry.Registry) error {
 
 		// manage the routes for all returned services
 		for _, srv := range srvs {
-			routes := r.createRoutes(srv)
+			routes := r.createRoutes(srv, domain)
 
 			if len(routes) > 0 {
 				logger.Tracef("Creating routes for service %v domain: %v", srv, domain)
@@ -233,7 +233,7 @@ func (r *rtr) loadRoutes(reg registry.Registry) error {
 }
 
 // lookup retrieves all the routes for a given service and creates them in the routing table
-func (r *rtr) lookup(service string) ([]route.Route, error) {
+func (r *rtr) lookup(service string) ([]router.Route, error) {
 	logger.Tracef("Fetching route for %s domain: %v", service, registry.WildcardDomain)
 
 	services, err := r.options.Registry.GetService(service, registry.GetDomain(registry.WildcardDomain))
@@ -558,7 +558,7 @@ func (r *rtr) start() error {
 			case <-r.exit:
 				return
 			case <-t2.C:
-				t.table.pruneRoutes(RefreshInterval)
+				r.table.pruneRoutes(RefreshInterval)
 			case <-t1.C:
 				if err := r.loadRoutes(r.options.Registry); err != nil {
 					logger.Errorf("failed refreshing registry routes: %s", err)
@@ -614,7 +614,6 @@ func (r *rtr) start() error {
 	}()
 
 	// we don't trust the events so we're going to periodically refresh
-
 
 	r.running = true
 
