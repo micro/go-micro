@@ -3,6 +3,7 @@ package etcd
 import (
 	"context"
 	"errors"
+	"sync"
 	"time"
 
 	"github.com/coreos/etcd/clientv3"
@@ -10,10 +11,12 @@ import (
 )
 
 type etcdWatcher struct {
-	stop    chan bool
 	w       clientv3.WatchChan
 	client  *clientv3.Client
 	timeout time.Duration
+
+	mtx sync.Mutex
+	stop    chan bool
 }
 
 func newEtcdWatcher(r *etcdRegistry, timeout time.Duration, opts ...registry.WatchOption) (registry.Watcher, error) {
@@ -90,6 +93,9 @@ func (ew *etcdWatcher) Next() (*registry.Result, error) {
 }
 
 func (ew *etcdWatcher) Stop() {
+	ew.mtx.Lock()
+	defer ew.mtx.Unlock()
+
 	select {
 	case <-ew.stop:
 		return
