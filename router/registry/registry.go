@@ -577,8 +577,8 @@ func (r *rtr) start() error {
 			default:
 				w, err := r.options.Registry.Watch(registry.WatchDomain(registry.WildcardDomain))
 				if err != nil {
-					if logger.V(logger.WarnLevel, logger.DefaultLogger) {
-						logger.Warnf("failed creating registry watcher: %v", err)
+					if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+						logger.Debugf("failed creating registry watcher: %v", err)
 					}
 					time.Sleep(time.Second)
 					continue
@@ -586,8 +586,8 @@ func (r *rtr) start() error {
 
 				// watchRegistry calls stop when it's done
 				if err := r.watchRegistry(w); err != nil {
-					if logger.V(logger.WarnLevel, logger.DefaultLogger) {
-						logger.Warnf("Error watching the registry: %v", err)
+					if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+						logger.Debugf("Error watching the registry: %v", err)
 					}
 					time.Sleep(time.Second)
 				}
