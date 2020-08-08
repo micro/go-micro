@@ -193,7 +193,7 @@ func (g *grpcServer) handler(srv interface{}, stream grpc.ServerStream) (err err
 				logger.Error("panic recovered: ", r)
 				logger.Error(string(debug.Stack()))
 			}
-			err = errors.InternalServerError("go.micro.server", "panic recovered: %v", r)
+			err = errors.InternalServerError(g.opts.Name, "panic recovered: %v", r)
 		}
 	}()
 
@@ -262,7 +262,7 @@ func (g *grpcServer) handler(srv interface{}, stream grpc.ServerStream) (err err
 	if g.opts.Router != nil {
 		cc, err := g.newGRPCCodec(ct)
 		if err != nil {
-			return errors.InternalServerError("go.micro.server", err.Error())
+			return errors.InternalServerError(g.opts.Name, err.Error())
 		}
 		codec := &grpcCodec{
 			method:   fmt.Sprintf("%s.%s", serviceName, methodName),
@@ -362,7 +362,7 @@ func (g *grpcServer) processRequest(stream grpc.ServerStream, service *service, 
 
 		cc, err := g.newGRPCCodec(ct)
 		if err != nil {
-			return errors.InternalServerError("go.micro.server", err.Error())
+			return errors.InternalServerError(g.opts.Name, err.Error())
 		}
 		b, err := cc.Marshal(argv.Interface())
 		if err != nil {
