@@ -570,38 +570,26 @@ func (r *rtr) start() error {
 	}()
 
 	go func() {
-		var err error
-		var w registry.Watcher
-
 		for {
 			select {
 			case <-r.exit:
-				if w != nil {
-					w.Stop()
-				}
 				return
 			default:
-				if w == nil {
-					w, err = r.options.Registry.Watch(registry.WatchDomain(registry.WildcardDomain))
-					if err != nil {
-						if logger.V(logger.WarnLevel, logger.DefaultLogger) {
-							logger.Warnf("failed creating registry watcher: %v", err)
-						}
-						time.Sleep(time.Second)
-						continue
+				w, err := r.options.Registry.Watch(registry.WatchDomain(registry.WildcardDomain))
+				if err != nil {
+					if logger.V(logger.WarnLevel, logger.DefaultLogger) {
+						logger.Warnf("failed creating registry watcher: %v", err)
 					}
+					time.Sleep(time.Second)
+					continue
 				}
 
+				// watchRegistry calls stop when it's done
 				if err := r.watchRegistry(w); err != nil {
 					if logger.V(logger.WarnLevel, logger.DefaultLogger) {
 						logger.Warnf("Error watching the registry: %v", err)
 					}
 					time.Sleep(time.Second)
-				}
-
-				if w != nil {
-					w.Stop()
-					w = nil
 				}
 			}
 		}
