@@ -15,11 +15,12 @@ type etcdWatcher struct {
 	client  *clientv3.Client
 	timeout time.Duration
 
-	mtx sync.Mutex
-	stop    chan bool
+	mtx    sync.Mutex
+	stop   chan bool
+	cancel func()
 }
 
-func newEtcdWatcher(r *etcdRegistry, timeout time.Duration, opts ...registry.WatchOption) (registry.Watcher, error) {
+func newEtcdWatcher(c *clientv3.Client, timeout time.Duration, opts ...registry.WatchOption) (registry.Watcher, error) {
 	var wo registry.WatchOptions
 	for _, o := range opts {
 		o(&wo)
@@ -27,14 +28,6 @@ func newEtcdWatcher(r *etcdRegistry, timeout time.Duration, opts ...registry.Wat
 	if len(wo.Domain) == 0 {
 		wo.Domain = defaultDomain
 	}
-
-	ctx, cancel := context.WithCancel(context.Background())
-	stop := make(chan bool, 1)
-
-	go func() {
-		<-stop
-		cancel()
-	}()
 
 	watchPath := prefix
 	if wo.Domain == registry.WildcardDomain {
@@ -46,10 +39,15 @@ func newEtcdWatcher(r *etcdRegistry, timeout time.Duration, opts ...registry.Wat
 		watchPath = servicePath(wo.Domain, wo.Service) + "/"
 	}
 
+	ctx, cancel := context.WithCancel(context.Background())
+	w := c.Watch(ctx, watchPath, clientv3.WithPrefix(), clientv3.WithPrevKV())
+	stop := make(chan bool, 1)
+
 	return &etcdWatcher{
+		cancel:  cancel,
 		stop:    stop,
-		w:       r.client.Watch(ctx, watchPath, clientv3.WithPrefix(), clientv3.WithPrevKV()),
-		client:  r.client,
+		w:       w,
+		client:  c,
 		timeout: timeout,
 	}, nil
 }
@@ -101,5 +99,7 @@ func (ew *etcdWatcher) Stop() {
 		return
 	default:
 		close(ew.stop)
+		ew.cancel()
+		ew.client.Close()
 	}
 }

@@ -51,12 +51,9 @@ func NewRegistry(opts ...registry.Option) registry.Registry {
 	return e
 }
 
-func configure(e *etcdRegistry, opts ...registry.Option) error {
+func newClient(e *etcdRegistry) (*clientv3.Client, error) {
 	config := clientv3.Config{
 		Endpoints: []string{"127.0.0.1:2379"},
-	}
-	for _, o := range opts {
-		o(&e.options)
 	}
 
 	if e.options.Timeout == 0 {
@@ -118,16 +115,31 @@ func configure(e *etcdRegistry, opts ...registry.Option) error {
 
 	cli, err := clientv3.New(config)
 	if err != nil {
+		return nil, err
+	}
+
+	return cli, nil
+}
+
+// configure will setup the registry with new options
+func configure(e *etcdRegistry, opts ...registry.Option) error {
+	for _, o := range opts {
+		o(&e.options)
+	}
+
+	// setup the client
+	cli, err := newClient(e)
+	if err != nil {
 		return err
 	}
 
-	// close the existing client
 	if e.client != nil {
 		e.client.Close()
 	}
 
-	// set the new client
+	// setup new client
 	e.client = cli
+
 	return nil
 }
 
@@ -566,7 +578,11 @@ func (e *etcdRegistry) ListServices(opts ...registry.ListOption) ([]*registry.Se
 }
 
 func (e *etcdRegistry) Watch(opts ...registry.WatchOption) (registry.Watcher, error) {
-	return newEtcdWatcher(e, e.options.Timeout, opts...)
+	cli, err := newClient(e)
+	if err != nil {
+		return nil, err
+	}
+	return newEtcdWatcher(cli, e.options.Timeout, opts...)
 }
 
 func (e *etcdRegistry) String() string {
