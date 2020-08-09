@@ -265,11 +265,11 @@ func (g *grpcServer) handler(srv interface{}, stream grpc.ServerStream) (err err
 			return errors.InternalServerError(g.opts.Name, err.Error())
 		}
 		codec := &grpcCodec{
-			method:   fmt.Sprintf("%s.%s", serviceName, methodName),
-			endpoint: fmt.Sprintf("%s.%s", serviceName, methodName),
-			target:   g.opts.Name,
-			s:        stream,
-			c:        cc,
+			ServerStream: stream,
+			method:       fmt.Sprintf("%s.%s", serviceName, methodName),
+			endpoint:     fmt.Sprintf("%s.%s", serviceName, methodName),
+			target:       g.opts.Name,
+			c:            cc,
 		}
 
 		// create a client.Request
@@ -394,8 +394,10 @@ func (g *grpcServer) processRequest(stream grpc.ServerStream, service *service, 
 		for i := len(g.opts.HdlrWrappers); i > 0; i-- {
 			fn = g.opts.HdlrWrappers[i-1](fn)
 		}
+
 		statusCode := codes.OK
 		statusDesc := ""
+
 		// execute the handler
 		if appErr := fn(ctx, r, replyv.Interface()); appErr != nil {
 			var errStatus *status.Status
@@ -411,6 +413,7 @@ func (g *grpcServer) processRequest(stream grpc.ServerStream, service *service, 
 				// micro.Error now proto based and we can attach it to grpc status
 				statusCode = microError(verr)
 				statusDesc = verr.Error()
+
 				errStatus, err = status.New(statusCode, statusDesc).WithDetails(perr)
 				if err != nil {
 					return err
@@ -428,6 +431,7 @@ func (g *grpcServer) processRequest(stream grpc.ServerStream, service *service, 
 				statusCode = convertCode(verr)
 				statusDesc = verr.Error()
 				errStatus = status.New(statusCode, statusDesc)
+				fmt.Printf("Responding with :%v\n", errStatus)
 			}
 
 			return errStatus.Err()
@@ -436,6 +440,7 @@ func (g *grpcServer) processRequest(stream grpc.ServerStream, service *service, 
 		if err := stream.SendMsg(replyv.Interface()); err != nil {
 			return err
 		}
+
 		return status.New(statusCode, statusDesc).Err()
 	}
 }
@@ -451,8 +456,8 @@ func (g *grpcServer) processStream(stream grpc.ServerStream, service *service, m
 	}
 
 	ss := &rpcStream{
-		request: r,
-		s:       stream,
+		ServerStream: stream,
+		request:      r,
 	}
 
 	function := mtype.method.Func
@@ -507,6 +512,7 @@ func (g *grpcServer) processStream(stream grpc.ServerStream, service *service, m
 			statusDesc = verr.Error()
 			errStatus = status.New(statusCode, statusDesc)
 		}
+
 		return errStatus.Err()
 	}
 

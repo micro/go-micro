@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/micro/go-micro/v3/client"
-	"github.com/micro/go-micro/v3/client/grpc"
+	grpcc "github.com/micro/go-micro/v3/client/grpc"
 	"github.com/micro/go-micro/v3/codec"
 	"github.com/micro/go-micro/v3/codec/bytes"
 	"github.com/micro/go-micro/v3/errors"
@@ -23,6 +23,7 @@ import (
 	"github.com/micro/go-micro/v3/selector"
 	"github.com/micro/go-micro/v3/selector/roundrobin"
 	"github.com/micro/go-micro/v3/server"
+	"google.golang.org/grpc"
 )
 
 // Proxy will transparently proxy requests to an endpoint.
@@ -514,6 +515,9 @@ func (p *Proxy) serveRequest(ctx context.Context, link client.Client, service, e
 		return nil
 	}
 
+	// new context with cancel
+	ctx, cancel := context.WithCancel(ctx)
+
 	// create new stream
 	stream, err := link.Stream(ctx, creq, opts...)
 	if err != nil {
@@ -542,7 +546,13 @@ func (p *Proxy) serveRequest(ctx context.Context, link client.Client, service, e
 	}
 
 	// create client request read loop if streaming
-	go readLoop(req, stream)
+	go func() {
+		err := readLoop(req, stream)
+		if err != nil && err != io.EOF {
+			// cancel the context
+			cancel()
+		}
+	}()
 
 	// get raw response
 	resp := stream.Response()
@@ -551,6 +561,15 @@ func (p *Proxy) serveRequest(ctx context.Context, link client.Client, service, e
 	for {
 		// read backend response body
 		body, err := resp.Read()
+		if err != nil {
+			// when we're done if its a grpc stream we have to set the trailer
+			if cc, ok := stream.(grpc.ClientStream); ok {
+				if ss, ok := resp.Codec().(grpc.ServerStream); ok {
+					ss.SetTrailer(cc.Trailer())
+				}
+			}
+		}
+
 		if err == io.EOF {
 			return nil
 		} else if err != nil {
@@ -605,7 +624,7 @@ func NewProxy(opts ...proxy.Option) proxy.Proxy {
 
 	// set the default client
 	if p.Client == nil {
-		p.Client = grpc.NewClient()
+		p.Client = grpcc.NewClient()
 	}
 
 	// create default router and start it
