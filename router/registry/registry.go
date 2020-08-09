@@ -111,7 +111,7 @@ func getDomain(srv *registry.Service) string {
 
 	// otherwise return wildcard
 	// TODO: return GlobalDomain or PublicDomain
-	return registry.WildcardDomain
+	return registry.DefaultDomain
 }
 
 // manageRoute applies action on a given route
