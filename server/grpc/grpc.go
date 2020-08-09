@@ -431,7 +431,6 @@ func (g *grpcServer) processRequest(stream grpc.ServerStream, service *service, 
 				statusCode = convertCode(verr)
 				statusDesc = verr.Error()
 				errStatus = status.New(statusCode, statusDesc)
-				fmt.Printf("Responding with :%v\n", errStatus)
 			}
 
 			return errStatus.Err()
