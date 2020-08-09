@@ -431,7 +431,7 @@ func (n *mucpNetwork) resolveNodes() ([]string, error) {
 	}
 
 	// sort by lowest priority
-	if err == nil {
+	if err == nil && len(records) > 0 {
 		sort.Slice(records, func(i, j int) bool { return records[i].Priority < records[j].Priority })
 	}
 
