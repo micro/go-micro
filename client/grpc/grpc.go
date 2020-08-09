@@ -419,7 +419,7 @@ func (g *grpcClient) Call(ctx context.Context, req client.Request, rsp interface
 		// lookup the route to send the reques to
 		route, err := client.LookupRoute(req, callOpts)
 		if err != nil {
-			return err
+			return errors.InternalServerError("go.micro.client", err.Error())
 		}
 
 		// pass a node to enable backwards compatability as changing the
@@ -527,7 +527,7 @@ func (g *grpcClient) Stream(ctx context.Context, req client.Request, opts ...cli
 		// lookup the route to send the reques to
 		route, err := client.LookupRoute(req, callOpts)
 		if err != nil {
-			return nil, err
+			return nil, errors.InternalServerError("go.micro.client", err.Error())
 		}
 
 		// pass a node to enable backwards compatability as changing the
