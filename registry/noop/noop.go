@@ -39,3 +39,8 @@ func (n *noopRegistry) Watch(...registry.WatchOption) (registry.Watcher, error) 
 func (n *noopRegistry) String() string {
 	return "noop"
 }
+
+// NewRegistry returns a new noop registry
+func NewRegistry(opts ...registry.Option) registry.Registry {
+	return new(noopRegistry)
+}
