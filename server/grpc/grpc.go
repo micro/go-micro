@@ -595,6 +595,11 @@ func (g *grpcServer) Register() error {
 	config := g.opts
 	g.RUnlock()
 
+	// only register if it exists or is not noop
+	if config.Registry == nil || config.Registry.String() == "noop" {
+		return nil
+	}
+
 	regFunc := func(service *registry.Service) error {
 		var regErr error
 
@@ -778,6 +783,11 @@ func (g *grpcServer) Deregister() error {
 	g.RLock()
 	config := g.opts
 	g.RUnlock()
+
+	// only register if it exists or is not noop
+	if config.Registry == nil || config.Registry.String() == "noop" {
+		return nil
+	}
 
 	// check the advertise address first
 	// if it exists then use it, otherwise
