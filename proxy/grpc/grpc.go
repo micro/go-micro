@@ -4,6 +4,7 @@ package grpc
 import (
 	"context"
 	"io"
+	"strings"
 
 	"github.com/micro/go-micro/v3/client"
 	grpcc "github.com/micro/go-micro/v3/client/grpc"
@@ -24,6 +25,9 @@ type Proxy struct {
 
 	// The client to use for outbound requests in the local network
 	Client client.Client
+
+	// Endpoint to route all calls to
+	Endpoint string
 }
 
 // read client request and write to server
@@ -90,8 +94,20 @@ func (p *Proxy) ServeRequest(ctx context.Context, req server.Request, rsp server
 		logger.Tracef("Proxy received request for %s %s", service, endpoint)
 	}
 
+	// no retries with the proxy
 	opts := []client.CallOption{
 		client.WithRetries(0),
+	}
+
+	// call a specific backend
+	if len(p.Endpoint) > 0 {
+		// address:port
+		if parts := strings.Split(p.Endpoint, ":"); len(parts) > 1 {
+			opts = append(opts, client.WithAddress(p.Endpoint))
+			// use as service name
+		} else {
+			service = p.Endpoint
+		}
 	}
 
 	// serve the normal way
@@ -218,6 +234,8 @@ func NewProxy(opts ...proxy.Option) proxy.Proxy {
 
 	// set the client
 	p.Client = options.Client
+	// set the endpoint
+	p.Endpoint = options.Endpoint
 
 	// set the default client
 	if p.Client == nil {
