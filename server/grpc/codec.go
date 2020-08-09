@@ -128,18 +128,18 @@ func (bytesCodec) Name() string {
 }
 
 type grpcCodec struct {
+	grpc.ServerStream
 	// headers
 	id       string
 	target   string
 	method   string
 	endpoint string
 
-	s grpc.ServerStream
 	c encoding.Codec
 }
 
 func (g *grpcCodec) ReadHeader(m *codec.Message, mt codec.MessageType) error {
-	md, _ := metadata.FromIncomingContext(g.s.Context())
+	md, _ := metadata.FromIncomingContext(g.ServerStream.Context())
 	if m == nil {
 		m = new(codec.Message)
 	}
@@ -159,9 +159,9 @@ func (g *grpcCodec) ReadHeader(m *codec.Message, mt codec.MessageType) error {
 func (g *grpcCodec) ReadBody(v interface{}) error {
 	// caller has requested a frame
 	if f, ok := v.(*bytes.Frame); ok {
-		return g.s.RecvMsg(f)
+		return g.ServerStream.RecvMsg(f)
 	}
-	return g.s.RecvMsg(v)
+	return g.ServerStream.RecvMsg(v)
 }
 
 func (g *grpcCodec) Write(m *codec.Message, v interface{}) error {
@@ -174,7 +174,7 @@ func (g *grpcCodec) Write(m *codec.Message, v interface{}) error {
 		m.Body = b
 	}
 	// write the body using the framing codec
-	return g.s.SendMsg(&bytes.Frame{Data: m.Body})
+	return g.ServerStream.SendMsg(&bytes.Frame{Data: m.Body})
 }
 
 func (g *grpcCodec) Close() error {

@@ -238,15 +238,15 @@ func (g *grpcClient) stream(ctx context.Context, node *registry.Node, req client
 
 	// setup the stream response
 	stream := &grpcStream{
-		context: ctx,
-		request: req,
+		ClientStream: st,
+		context:      ctx,
+		request:      req,
 		response: &response{
 			conn:   cc,
 			stream: st,
 			codec:  cf,
 			gcodec: codec,
 		},
-		stream: st,
 		conn:   cc,
 		cancel: cancel,
 	}
