@@ -61,6 +61,7 @@ func (t *table) pruneRoutes(olderThan time.Duration) {
 // deleteService removes the entire service
 func (t *table) deleteService(service, network string) {
 	t.Lock()
+	defer t.Unlock()
 
 	routes, ok := t.routes[service]
 	if !ok {
@@ -86,8 +87,6 @@ func (t *table) deleteService(service, network string) {
 
 	// save the routes
 	t.routes[service] = routes
-
-	t.Unlock()
 }
 
 // saveRoutes completely replaces the routes for a service
