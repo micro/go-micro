@@ -7,6 +7,7 @@ import (
 	"github.com/micro/go-micro/v3/broker"
 	"github.com/micro/go-micro/v3/transport"
 	"github.com/micro/go-micro/v3/tunnel"
+	"github.com/micro/go-micro/v3/tunnel/mucp"
 )
 
 type tunBroker struct {
@@ -176,7 +177,7 @@ func NewBroker(opts ...broker.Option) broker.Broker {
 	}
 	t, ok := options.Context.Value(tunnelKey{}).(tunnel.Tunnel)
 	if !ok {
-		t = tunnel.NewTunnel()
+		t = mucp.NewTunnel()
 	}
 
 	a, ok := options.Context.Value(tunnelAddr{}).(string)

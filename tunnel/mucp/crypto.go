@@ -1,4 +1,4 @@
-package tunnel
+package mucp
 
 import (
 	"crypto/aes"
@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 
+	"github.com/micro/go-micro/v3/tunnel"
 	"github.com/oxtoacart/bpool"
 )
 
@@ -68,7 +69,7 @@ func Decrypt(gcm cipher.AEAD, data []byte) ([]byte, error) {
 	nonceSize := gcm.NonceSize()
 
 	if len(data) < nonceSize {
-		return nil, ErrDecryptingData
+		return nil, tunnel.ErrDecryptingData
 	}
 
 	// NOTE: we need to parse out nonce from the payload

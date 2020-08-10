@@ -1,4 +1,4 @@
-package tunnel
+package mucp
 
 import (
 	"os"
@@ -7,9 +7,10 @@ import (
 	"time"
 
 	"github.com/micro/go-micro/v3/transport"
+	"github.com/micro/go-micro/v3/tunnel"
 )
 
-func testBrokenTunAccept(t *testing.T, tun Tunnel, wait chan bool, wg *sync.WaitGroup) {
+func testBrokenTunAccept(t *testing.T, tun tunnel.Tunnel, wait chan bool, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	// listen on some virtual address
@@ -52,7 +53,7 @@ func testBrokenTunAccept(t *testing.T, tun Tunnel, wait chan bool, wg *sync.Wait
 	wait <- true
 }
 
-func testBrokenTunSend(t *testing.T, tun Tunnel, wait chan bool, wg *sync.WaitGroup, reconnect time.Duration) {
+func testBrokenTunSend(t *testing.T, tun tunnel.Tunnel, wait chan bool, wg *sync.WaitGroup, reconnect time.Duration) {
 	defer wg.Done()
 
 	// wait for the listener to get ready
@@ -94,7 +95,7 @@ func testBrokenTunSend(t *testing.T, tun Tunnel, wait chan bool, wg *sync.WaitGr
 }
 
 // testAccept will accept connections on the transport, create a new link and tunnel on top
-func testAccept(t *testing.T, tun Tunnel, wait chan bool, wg *sync.WaitGroup) {
+func testAccept(t *testing.T, tun tunnel.Tunnel, wait chan bool, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	// listen on some virtual address
@@ -135,7 +136,7 @@ func testAccept(t *testing.T, tun Tunnel, wait chan bool, wg *sync.WaitGroup) {
 }
 
 // testSend will create a new link to an address and then a tunnel on top
-func testSend(t *testing.T, tun Tunnel, wait chan bool, wg *sync.WaitGroup) {
+func testSend(t *testing.T, tun tunnel.Tunnel, wait chan bool, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	// wait for the listener to get ready
@@ -175,13 +176,13 @@ func testSend(t *testing.T, tun Tunnel, wait chan bool, wg *sync.WaitGroup) {
 func TestTunnel(t *testing.T) {
 	// create a new tunnel client
 	tunA := NewTunnel(
-		Address("127.0.0.1:9096"),
-		Nodes("127.0.0.1:9097"),
+		tunnel.Address("127.0.0.1:9096"),
+		tunnel.Nodes("127.0.0.1:9097"),
 	)
 
 	// create a new tunnel server
 	tunB := NewTunnel(
-		Address("127.0.0.1:9097"),
+		tunnel.Address("127.0.0.1:9097"),
 	)
 
 	// start tunB
@@ -217,8 +218,8 @@ func TestTunnel(t *testing.T) {
 func TestLoopbackTunnel(t *testing.T) {
 	// create a new tunnel
 	tun := NewTunnel(
-		Address("127.0.0.1:9096"),
-		Nodes("127.0.0.1:9096"),
+		tunnel.Address("127.0.0.1:9096"),
+		tunnel.Nodes("127.0.0.1:9096"),
 	)
 
 	// start tunnel
@@ -249,13 +250,13 @@ func TestLoopbackTunnel(t *testing.T) {
 func TestTunnelRTTRate(t *testing.T) {
 	// create a new tunnel client
 	tunA := NewTunnel(
-		Address("127.0.0.1:9096"),
-		Nodes("127.0.0.1:9097"),
+		tunnel.Address("127.0.0.1:9096"),
+		tunnel.Nodes("127.0.0.1:9097"),
 	)
 
 	// create a new tunnel server
 	tunB := NewTunnel(
-		Address("127.0.0.1:9097"),
+		tunnel.Address("127.0.0.1:9097"),
 	)
 
 	// start tunB
@@ -306,13 +307,13 @@ func TestReconnectTunnel(t *testing.T) {
 
 	// create a new tunnel client
 	tunA := NewTunnel(
-		Address("127.0.0.1:9098"),
-		Nodes("127.0.0.1:9099"),
+		tunnel.Address("127.0.0.1:9098"),
+		tunnel.Nodes("127.0.0.1:9099"),
 	)
 
 	// create a new tunnel server
 	tunB := NewTunnel(
-		Address("127.0.0.1:9099"),
+		tunnel.Address("127.0.0.1:9099"),
 	)
 
 	// start tunnel

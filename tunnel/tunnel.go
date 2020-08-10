@@ -101,7 +101,3 @@ type Session interface {
 	transport.Socket
 }
 
-// NewTunnel creates a new tunnel
-func NewTunnel(opts ...Option) Tunnel {
-	return newTunnel(opts...)
-}
