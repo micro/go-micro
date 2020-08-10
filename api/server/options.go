@@ -23,9 +23,9 @@ type Options struct {
 
 type Wrapper func(h http.Handler) http.Handler
 
-func WrapHandler(w Wrapper) Option {
+func WrapHandler(w ...Wrapper) Option {
 	return func(o *Options) {
-		o.Wrappers = append(o.Wrappers, w)
+		o.Wrappers = append(o.Wrappers, w...)
 	}
 }
 
