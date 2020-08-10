@@ -533,7 +533,7 @@ func (k *kubernetes) Update(s *runtime.Service, opts ...runtime.UpdateOption) er
 	}
 
 	// get the existing service
-	services, err := k.getService(labels)
+	services, err := k.getService(labels, client.GetNamespace(options.Namespace))
 	if err != nil {
 		return err
 	}
