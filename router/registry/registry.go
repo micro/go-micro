@@ -403,8 +403,8 @@ func (r *rtr) advertiseEvents() error {
 					// routing table watcher
 					w, err = r.Watch()
 					if err != nil {
-						if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
-							logger.Errorf("Error creating watcher: %v", err)
+						if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+							logger.Debugf("Error creating watcher: %v", err)
 						}
 						time.Sleep(time.Second)
 						continue
@@ -412,8 +412,8 @@ func (r *rtr) advertiseEvents() error {
 				}
 
 				if err := r.watchTable(w); err != nil {
-					if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
-						logger.Errorf("Error watching table: %v", err)
+					if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+						logger.Debugf("Error watching table: %v", err)
 					}
 					time.Sleep(time.Second)
 				}
@@ -563,7 +563,7 @@ func (r *rtr) start() error {
 				r.table.pruneRoutes(RefreshInterval)
 			case <-t1.C:
 				if err := r.loadRoutes(r.options.Registry); err != nil {
-					logger.Errorf("failed refreshing registry routes: %s", err)
+					logger.Debugf("failed refreshing registry routes: %s", err)
 				}
 			}
 		}
@@ -640,8 +640,8 @@ func (r *rtr) Advertise() (<-chan *router.Advert, error) {
 			return
 		default:
 			if err := r.advertiseEvents(); err != nil {
-				if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
-					logger.Errorf("Error adveritising events: %v", err)
+				if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+					logger.Debugf("Error adveritising events: %v", err)
 				}
 			}
 		}
