@@ -165,6 +165,9 @@ func (k *klog) Stream() (runtime.LogStream, error) {
 	if err != nil {
 		return nil, err
 	}
+	if len(pods) == 0 {
+		return nil, errors.NotFound("runtime.logs", "no such service")
+	}
 
 	stream := &kubeStream{
 		stream: make(chan runtime.LogRecord),
