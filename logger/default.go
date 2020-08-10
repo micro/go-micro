@@ -113,8 +113,6 @@ func (l *defaultLogger) Log(level Level, v ...interface{}) {
 		metadata += fmt.Sprintf(" %s=%v", k, fields[k])
 	}
 
-	dlog.DefaultLog.Write(rec)
-
 	t := rec.Timestamp.Format("2006-01-02 15:04:05")
 	fmt.Printf("%s %s %v\n", t, metadata, rec.Message)
 }
@@ -153,8 +151,6 @@ func (l *defaultLogger) Logf(level Level, format string, v ...interface{}) {
 	for _, k := range keys {
 		metadata += fmt.Sprintf(" %s=%v", k, fields[k])
 	}
-
-	dlog.DefaultLog.Write(rec)
 
 	t := rec.Timestamp.Format("2006-01-02 15:04:05")
 	fmt.Printf("%s %s %v\n", t, metadata, rec.Message)

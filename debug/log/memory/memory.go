@@ -8,11 +8,6 @@ import (
 	"github.com/micro/go-micro/v3/util/ring"
 )
 
-var (
-	// DefaultSize of the logger buffer
-	DefaultSize = 1024
-)
-
 // memoryLog is default micro log
 type memoryLog struct {
 	*ring.Buffer
