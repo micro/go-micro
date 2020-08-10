@@ -5,10 +5,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/micro/go-micro/v3/debug/stats"
 	"github.com/micro/go-micro/v3/util/ring"
 )
 
-type stats struct {
+type memoryStats struct {
 	// used to store past stats
 	buffer *ring.Buffer
 
@@ -18,7 +19,7 @@ type stats struct {
 	errors   uint64
 }
 
-func (s *stats) snapshot() *Stat {
+func (s *memoryStats) snapshot() *stats.Stat {
 	s.RLock()
 	defer s.RUnlock()
 
@@ -27,7 +28,7 @@ func (s *stats) snapshot() *Stat {
 
 	now := time.Now().Unix()
 
-	return &Stat{
+	return &stats.Stat{
 		Timestamp: now,
 		Started:   s.started,
 		Uptime:    now - s.started,
@@ -39,32 +40,31 @@ func (s *stats) snapshot() *Stat {
 	}
 }
 
-func (s *stats) Read() ([]*Stat, error) {
-	// TODO adjustable size and optional read values
-	buf := s.buffer.Get(60)
-	var stats []*Stat
+func (s *memoryStats) Read() ([]*stats.Stat, error) {
+	buf := s.buffer.Get(s.buffer.Size())
+	var buffer []*stats.Stat
 
 	// get a value from the buffer if it exists
 	for _, b := range buf {
-		stat, ok := b.Value.(*Stat)
+		stat, ok := b.Value.(*stats.Stat)
 		if !ok {
 			continue
 		}
-		stats = append(stats, stat)
+		buffer = append(buffer, stat)
 	}
 
 	// get a snapshot
-	stats = append(stats, s.snapshot())
+	buffer = append(buffer, s.snapshot())
 
-	return stats, nil
+	return buffer, nil
 }
 
-func (s *stats) Write(stat *Stat) error {
+func (s *memoryStats) Write(stat *stats.Stat) error {
 	s.buffer.Put(stat)
 	return nil
 }
 
-func (s *stats) Record(err error) error {
+func (s *memoryStats) Record(err error) error {
 	s.Lock()
 	defer s.Unlock()
 
@@ -81,9 +81,9 @@ func (s *stats) Record(err error) error {
 
 // NewStats returns a new in memory stats buffer
 // TODO add options
-func NewStats() Stats {
-	return &stats{
+func NewStats() stats.Stats {
+	return &memoryStats{
 		started: time.Now().Unix(),
-		buffer:  ring.New(60),
+		buffer:  ring.New(1),
 	}
 }

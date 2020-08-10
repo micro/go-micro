@@ -12,6 +12,7 @@ import (
 	regRouter "github.com/micro/go-micro/v3/router/registry"
 	"github.com/micro/go-micro/v3/selector"
 	"github.com/micro/go-micro/v3/transport"
+	thttp "github.com/micro/go-micro/v3/transport/http"
 )
 
 type Options struct {
@@ -120,7 +121,7 @@ func NewOptions(options ...Option) Options {
 		Broker:    http.NewBroker(),
 		Router:    regRouter.NewRouter(),
 		Selector:  selector.DefaultSelector,
-		Transport: transport.DefaultTransport,
+		Transport: thttp.NewTransport(),
 	}
 
 	for _, o := range options {

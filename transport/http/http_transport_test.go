@@ -1,13 +1,15 @@
-package transport
+package http
 
 import (
 	"io"
 	"net"
 	"testing"
 	"time"
+
+	"github.com/micro/go-micro/v3/transport"
 )
 
-func expectedPort(t *testing.T, expected string, lsn Listener) {
+func expectedPort(t *testing.T, expected string, lsn transport.Listener) {
 	_, port, err := net.SplitHostPort(lsn.Addr())
 	if err != nil {
 		t.Errorf("Expected address to be `%s`, got error: %v", expected, err)
@@ -53,11 +55,11 @@ func TestHTTPTransportCommunication(t *testing.T) {
 	}
 	defer l.Close()
 
-	fn := func(sock Socket) {
+	fn := func(sock transport.Socket) {
 		defer sock.Close()
 
 		for {
-			var m Message
+			var m transport.Message
 			if err := sock.Recv(&m); err != nil {
 				return
 			}
@@ -86,7 +88,7 @@ func TestHTTPTransportCommunication(t *testing.T) {
 	}
 	defer c.Close()
 
-	m := Message{
+	m := transport.Message{
 		Header: map[string]string{
 			"Content-Type": "application/json",
 		},
@@ -97,7 +99,7 @@ func TestHTTPTransportCommunication(t *testing.T) {
 		t.Errorf("Unexpected send err: %v", err)
 	}
 
-	var rm Message
+	var rm transport.Message
 
 	if err := c.Recv(&rm); err != nil {
 		t.Errorf("Unexpected recv err: %v", err)
@@ -119,11 +121,11 @@ func TestHTTPTransportError(t *testing.T) {
 	}
 	defer l.Close()
 
-	fn := func(sock Socket) {
+	fn := func(sock transport.Socket) {
 		defer sock.Close()
 
 		for {
-			var m Message
+			var m transport.Message
 			if err := sock.Recv(&m); err != nil {
 				if err == io.EOF {
 					return
@@ -131,7 +133,7 @@ func TestHTTPTransportError(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			sock.(*httpTransportSocket).error(&Message{
+			sock.(*httpTransportSocket).error(&transport.Message{
 				Body: []byte(`an error occurred`),
 			})
 		}
@@ -155,7 +157,7 @@ func TestHTTPTransportError(t *testing.T) {
 	}
 	defer c.Close()
 
-	m := Message{
+	m := transport.Message{
 		Header: map[string]string{
 			"Content-Type": "application/json",
 		},
@@ -166,7 +168,7 @@ func TestHTTPTransportError(t *testing.T) {
 		t.Errorf("Unexpected send err: %v", err)
 	}
 
-	var rm Message
+	var rm transport.Message
 
 	err = c.Recv(&rm)
 	if err == nil {
@@ -181,7 +183,7 @@ func TestHTTPTransportError(t *testing.T) {
 }
 
 func TestHTTPTransportTimeout(t *testing.T) {
-	tr := NewTransport(Timeout(time.Millisecond * 100))
+	tr := NewTransport(transport.Timeout(time.Millisecond * 100))
 
 	l, err := tr.Listen("127.0.0.1:0")
 	if err != nil {
@@ -191,7 +193,7 @@ func TestHTTPTransportTimeout(t *testing.T) {
 
 	done := make(chan bool)
 
-	fn := func(sock Socket) {
+	fn := func(sock transport.Socket) {
 		defer func() {
 			sock.Close()
 			close(done)
@@ -207,7 +209,7 @@ func TestHTTPTransportTimeout(t *testing.T) {
 		}()
 
 		for {
-			var m Message
+			var m transport.Message
 
 			if err := sock.Recv(&m); err != nil {
 				return
@@ -231,7 +233,7 @@ func TestHTTPTransportTimeout(t *testing.T) {
 	}
 	defer c.Close()
 
-	m := Message{
+	m := transport.Message{
 		Header: map[string]string{
 			"Content-Type": "application/json",
 		},

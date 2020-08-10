@@ -30,7 +30,3 @@ type Stat struct {
 	// Total errors
 	Errors uint64
 }
-
-var (
-	DefaultStats = NewStats()
-)

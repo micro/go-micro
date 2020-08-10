@@ -9,7 +9,6 @@ import (
 	"github.com/micro/go-micro/v3/codec"
 	"github.com/micro/go-micro/v3/registry/mdns"
 	"github.com/micro/go-micro/v3/server"
-	"github.com/micro/go-micro/v3/transport"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/encoding"
 )
@@ -70,7 +69,6 @@ func newOptions(opt ...server.Option) server.Options {
 		Metadata:         map[string]string{},
 		Broker:           http.NewBroker(),
 		Registry:         mdns.NewRegistry(),
-		Transport:        transport.DefaultTransport,
 		Address:          server.DefaultAddress,
 		Name:             server.DefaultName,
 		Id:               server.DefaultId,
