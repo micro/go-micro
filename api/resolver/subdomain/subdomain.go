@@ -66,6 +66,11 @@ func (r *Resolver) Domain(req *http.Request) string {
 	// remove the domain from the host, leaving the subdomain, e.g. "staging.foo.myapp.com" => "staging.foo"
 	subdomain := strings.TrimSuffix(host, "."+domain)
 
+	// ignore the API subdomain
+	if subdomain == "api" {
+		return ""
+	}
+
 	// return the reversed subdomain as the namespace, e.g. "staging.foo" => "foo-staging"
 	comps := strings.Split(subdomain, ".")
 	for i := len(comps)/2 - 1; i >= 0; i-- {

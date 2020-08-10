@@ -51,12 +51,9 @@ func NewRegistry(opts ...registry.Option) registry.Registry {
 	return e
 }
 
-func configure(e *etcdRegistry, opts ...registry.Option) error {
+func newClient(e *etcdRegistry) (*clientv3.Client, error) {
 	config := clientv3.Config{
 		Endpoints: []string{"127.0.0.1:2379"},
-	}
-	for _, o := range opts {
-		o(&e.options)
 	}
 
 	if e.options.Timeout == 0 {
@@ -107,11 +104,42 @@ func configure(e *etcdRegistry, opts ...registry.Option) error {
 		config.Endpoints = cAddrs
 	}
 
+	// check if the endpoints have https://
+	if config.TLS != nil {
+		for i, ep := range config.Endpoints {
+			if !strings.HasPrefix(ep, "https://") {
+				config.Endpoints[i] = "https://" + ep
+			}
+		}
+	}
+
 	cli, err := clientv3.New(config)
+	if err != nil {
+		return nil, err
+	}
+
+	return cli, nil
+}
+
+// configure will setup the registry with new options
+func configure(e *etcdRegistry, opts ...registry.Option) error {
+	for _, o := range opts {
+		o(&e.options)
+	}
+
+	// setup the client
+	cli, err := newClient(e)
 	if err != nil {
 		return err
 	}
+
+	if e.client != nil {
+		e.client.Close()
+	}
+
+	// setup new client
 	e.client = cli
+
 	return nil
 }
 
@@ -366,9 +394,18 @@ func (e *etcdRegistry) Deregister(s *registry.Service, opts ...registry.Deregist
 	for _, node := range s.Nodes {
 		e.Lock()
 		// delete our hash of the service
-		delete(e.register, s.Name+node.Id)
+		nodes, ok := e.register[options.Domain]
+		if ok {
+			delete(nodes, s.Name+node.Id)
+			e.register[options.Domain] = nodes
+		}
+
 		// delete our lease of the service
-		delete(e.leases, s.Name+node.Id)
+		leases, ok := e.leases[options.Domain]
+		if ok {
+			delete(leases, s.Name+node.Id)
+			e.leases[options.Domain] = leases
+		}
 		e.Unlock()
 
 		ctx, cancel := context.WithTimeout(context.Background(), e.options.Timeout)
@@ -541,7 +578,11 @@ func (e *etcdRegistry) ListServices(opts ...registry.ListOption) ([]*registry.Se
 }
 
 func (e *etcdRegistry) Watch(opts ...registry.WatchOption) (registry.Watcher, error) {
-	return newEtcdWatcher(e, e.options.Timeout, opts...)
+	cli, err := newClient(e)
+	if err != nil {
+		return nil, err
+	}
+	return newEtcdWatcher(cli, e.options.Timeout, opts...)
 }
 
 func (e *etcdRegistry) String() string {

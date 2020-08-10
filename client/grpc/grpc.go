@@ -238,15 +238,15 @@ func (g *grpcClient) stream(ctx context.Context, node *registry.Node, req client
 
 	// setup the stream response
 	stream := &grpcStream{
-		context: ctx,
-		request: req,
+		ClientStream: st,
+		context:      ctx,
+		request:      req,
 		response: &response{
 			conn:   cc,
 			stream: st,
 			codec:  cf,
 			gcodec: codec,
 		},
-		stream: st,
 		conn:   cc,
 		cancel: cancel,
 	}
@@ -419,7 +419,7 @@ func (g *grpcClient) Call(ctx context.Context, req client.Request, rsp interface
 		// lookup the route to send the reques to
 		route, err := client.LookupRoute(req, callOpts)
 		if err != nil {
-			return err
+			return errors.InternalServerError("go.micro.client", err.Error())
 		}
 
 		// pass a node to enable backwards compatability as changing the
@@ -527,7 +527,7 @@ func (g *grpcClient) Stream(ctx context.Context, req client.Request, opts ...cli
 		// lookup the route to send the reques to
 		route, err := client.LookupRoute(req, callOpts)
 		if err != nil {
-			return nil, err
+			return nil, errors.InternalServerError("go.micro.client", err.Error())
 		}
 
 		// pass a node to enable backwards compatability as changing the

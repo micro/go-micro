@@ -3,7 +3,7 @@ package network
 import (
 	"github.com/google/uuid"
 	"github.com/micro/go-micro/v3/network/resolver"
-	"github.com/micro/go-micro/v3/network/resolver/registry"
+	"github.com/micro/go-micro/v3/network/resolver/noop"
 	"github.com/micro/go-micro/v3/proxy"
 	"github.com/micro/go-micro/v3/proxy/mucp"
 	"github.com/micro/go-micro/v3/router"
@@ -107,6 +107,6 @@ func DefaultOptions() Options {
 		Tunnel:   tunnel.NewTunnel(),
 		Router:   regRouter.NewRouter(),
 		Proxy:    mucp.NewProxy(),
-		Resolver: &registry.Resolver{},
+		Resolver: new(noop.Resolver),
 	}
 }

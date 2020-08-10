@@ -522,6 +522,11 @@ func (s *rpcServer) Register() error {
 	config := s.Options()
 	s.RUnlock()
 
+	// only register if it exists or is not noop
+	if config.Registry == nil || config.Registry.String() == "noop" {
+		return nil
+	}
+
 	regFunc := func(service *registry.Service) error {
 		// create registry options
 		rOpts := []registry.RegisterOption{
@@ -729,6 +734,11 @@ func (s *rpcServer) Deregister() error {
 	s.RLock()
 	config := s.Options()
 	s.RUnlock()
+
+	// only register if it exists or is not noop
+	if config.Registry == nil || config.Registry.String() == "noop" {
+		return nil
+	}
 
 	// check the advertise address first
 	// if it exists then use it, otherwise

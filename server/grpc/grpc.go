@@ -193,7 +193,7 @@ func (g *grpcServer) handler(srv interface{}, stream grpc.ServerStream) (err err
 				logger.Error("panic recovered: ", r)
 				logger.Error(string(debug.Stack()))
 			}
-			err = errors.InternalServerError("go.micro.server", "panic recovered: %v", r)
+			err = errors.InternalServerError(g.opts.Name, "panic recovered: %v", r)
 		}
 	}()
 
@@ -262,14 +262,14 @@ func (g *grpcServer) handler(srv interface{}, stream grpc.ServerStream) (err err
 	if g.opts.Router != nil {
 		cc, err := g.newGRPCCodec(ct)
 		if err != nil {
-			return errors.InternalServerError("go.micro.server", err.Error())
+			return errors.InternalServerError(g.opts.Name, err.Error())
 		}
 		codec := &grpcCodec{
-			method:   fmt.Sprintf("%s.%s", serviceName, methodName),
-			endpoint: fmt.Sprintf("%s.%s", serviceName, methodName),
-			target:   g.opts.Name,
-			s:        stream,
-			c:        cc,
+			ServerStream: stream,
+			method:       fmt.Sprintf("%s.%s", serviceName, methodName),
+			endpoint:     fmt.Sprintf("%s.%s", serviceName, methodName),
+			target:       g.opts.Name,
+			c:            cc,
 		}
 
 		// create a client.Request
@@ -362,7 +362,7 @@ func (g *grpcServer) processRequest(stream grpc.ServerStream, service *service, 
 
 		cc, err := g.newGRPCCodec(ct)
 		if err != nil {
-			return errors.InternalServerError("go.micro.server", err.Error())
+			return errors.InternalServerError(g.opts.Name, err.Error())
 		}
 		b, err := cc.Marshal(argv.Interface())
 		if err != nil {
@@ -394,8 +394,10 @@ func (g *grpcServer) processRequest(stream grpc.ServerStream, service *service, 
 		for i := len(g.opts.HdlrWrappers); i > 0; i-- {
 			fn = g.opts.HdlrWrappers[i-1](fn)
 		}
+
 		statusCode := codes.OK
 		statusDesc := ""
+
 		// execute the handler
 		if appErr := fn(ctx, r, replyv.Interface()); appErr != nil {
 			var errStatus *status.Status
@@ -411,6 +413,7 @@ func (g *grpcServer) processRequest(stream grpc.ServerStream, service *service, 
 				// micro.Error now proto based and we can attach it to grpc status
 				statusCode = microError(verr)
 				statusDesc = verr.Error()
+
 				errStatus, err = status.New(statusCode, statusDesc).WithDetails(perr)
 				if err != nil {
 					return err
@@ -436,6 +439,7 @@ func (g *grpcServer) processRequest(stream grpc.ServerStream, service *service, 
 		if err := stream.SendMsg(replyv.Interface()); err != nil {
 			return err
 		}
+
 		return status.New(statusCode, statusDesc).Err()
 	}
 }
@@ -451,8 +455,8 @@ func (g *grpcServer) processStream(stream grpc.ServerStream, service *service, m
 	}
 
 	ss := &rpcStream{
-		request: r,
-		s:       stream,
+		ServerStream: stream,
+		request:      r,
 	}
 
 	function := mtype.method.Func
@@ -507,6 +511,7 @@ func (g *grpcServer) processStream(stream grpc.ServerStream, service *service, m
 			statusDesc = verr.Error()
 			errStatus = status.New(statusCode, statusDesc)
 		}
+
 		return errStatus.Err()
 	}
 
@@ -588,6 +593,11 @@ func (g *grpcServer) Register() error {
 	rsvc := g.rsvc
 	config := g.opts
 	g.RUnlock()
+
+	// only register if it exists or is not noop
+	if config.Registry == nil || config.Registry.String() == "noop" {
+		return nil
+	}
 
 	regFunc := func(service *registry.Service) error {
 		var regErr error
@@ -772,6 +782,11 @@ func (g *grpcServer) Deregister() error {
 	g.RLock()
 	config := g.opts
 	g.RUnlock()
+
+	// only register if it exists or is not noop
+	if config.Registry == nil || config.Registry.String() == "noop" {
+		return nil
+	}
 
 	// check the advertise address first
 	// if it exists then use it, otherwise

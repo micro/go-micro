@@ -1,5 +1,5 @@
 // Package static is a static resolver
-package registry
+package static
 
 import (
 	"github.com/micro/go-micro/v3/network/resolver"

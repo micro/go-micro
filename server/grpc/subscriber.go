@@ -175,7 +175,7 @@ func (g *grpcServer) createSubHandler(sb *subscriber, opts server.Options) broke
 					logger.Error("panic recovered: ", r)
 					logger.Error(string(debug.Stack()))
 				}
-				err = errors.InternalServerError("go.micro.server", "panic recovered: %v", r)
+				err = errors.InternalServerError(g.opts.Name+".subscriber", "panic recovered: %v", r)
 			}
 		}()
 
