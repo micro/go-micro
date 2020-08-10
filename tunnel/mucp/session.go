@@ -1,4 +1,4 @@
-package tunnel
+package mucp
 
 import (
 	"crypto/cipher"
@@ -9,6 +9,7 @@ import (
 
 	"github.com/micro/go-micro/v3/logger"
 	"github.com/micro/go-micro/v3/transport"
+	"github.com/micro/go-micro/v3/tunnel"
 )
 
 // session is our pseudo session for transport.Socket
@@ -40,7 +41,7 @@ type session struct {
 	// lookback marks the session as a loopback on the inbound
 	loopback bool
 	// mode of the connection
-	mode Mode
+	mode tunnel.Mode
 	// the dial timeout
 	dialTimeout time.Duration
 	// the read timeout
@@ -71,7 +72,7 @@ type message struct {
 	// loopback marks the message intended for loopback
 	loopback bool
 	// mode of the connection
-	mode Mode
+	mode tunnel.Mode
 	// the link to send the message on
 	link string
 	// transport data
@@ -180,7 +181,7 @@ func (s *session) waitFor(msgType string, timeout time.Duration) (*message, erro
 			// got the message
 			return msg, nil
 		case <-after(timeout):
-			return nil, ErrReadTimeout
+			return nil, tunnel.ErrReadTimeout
 		case <-s.closed:
 			// check pending message queue
 			select {
@@ -214,14 +215,14 @@ func (s *session) Discover() error {
 	// create a new discovery message for this channel
 	msg := s.newMessage("discover")
 	// broadcast the message to all links
-	msg.mode = Broadcast
+	msg.mode = tunnel.Broadcast
 	// its an outbound connection since we're dialling
 	msg.outbound = true
 	// don't set the link since we don't know where it is
 	msg.link = ""
 
 	// if multicast then set that as session
-	if s.mode == Multicast {
+	if s.mode == tunnel.Multicast {
 		msg.session = "multicast"
 	}
 
@@ -249,7 +250,7 @@ func (s *session) Discover() error {
 	// wait to hear back about the sent message
 	select {
 	case <-time.After(after()):
-		return ErrDialTimeout
+		return tunnel.ErrDialTimeout
 	case err := <-s.errChan:
 		if err != nil {
 			return err
@@ -258,7 +259,7 @@ func (s *session) Discover() error {
 
 	// bail early if its not unicast
 	// we don't need to wait for the announce
-	if s.mode != Unicast {
+	if s.mode != tunnel.Unicast {
 		s.discovered = true
 		s.accepted = true
 		return nil
@@ -326,7 +327,7 @@ func (s *session) Announce() error {
 	// we don't need an error back
 	msg.errChan = nil
 	// announce to all
-	msg.mode = Broadcast
+	msg.mode = tunnel.Broadcast
 	// we don't need the link
 	msg.link = ""
 
@@ -382,7 +383,7 @@ func (s *session) Send(m *transport.Message) error {
 	msg.data = data
 
 	// if multicast don't set the link
-	if s.mode != Unicast {
+	if s.mode != tunnel.Unicast {
 		msg.link = ""
 	}
 
@@ -482,7 +483,7 @@ func (s *session) Close() error {
 		close(s.closed)
 
 		// don't send close on multicast or broadcast
-		if s.mode != Unicast {
+		if s.mode != tunnel.Unicast {
 			return nil
 		}
 

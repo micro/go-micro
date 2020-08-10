@@ -1,10 +1,11 @@
-package tunnel
+package mucp
 
 import (
 	"io"
 	"sync"
 
 	"github.com/micro/go-micro/v3/logger"
+	"github.com/micro/go-micro/v3/tunnel"
 )
 
 type tunListener struct {
@@ -53,10 +54,10 @@ func (t *tunListener) process() {
 			var linkId string
 
 			switch t.session.mode {
-			case Multicast:
+			case tunnel.Multicast:
 				sessionId = "multicast"
 				linkId = "multicast"
-			case Broadcast:
+			case tunnel.Broadcast:
 				sessionId = "broadcast"
 				linkId = "broadcast"
 			default:
@@ -123,7 +124,7 @@ func (t *tunListener) process() {
 			switch m.typ {
 			case "close":
 				// don't close multicast sessions
-				if sess.mode > Unicast {
+				if sess.mode > tunnel.Unicast {
 					continue
 				}
 
@@ -184,7 +185,7 @@ func (t *tunListener) Close() error {
 }
 
 // Everytime accept is called we essentially block till we get a new connection
-func (t *tunListener) Accept() (Session, error) {
+func (t *tunListener) Accept() (tunnel.Session, error) {
 	select {
 	// if the session is closed return
 	case <-t.closed:
@@ -199,7 +200,7 @@ func (t *tunListener) Accept() (Session, error) {
 			return nil, io.EOF
 		}
 		// return without accept
-		if c.mode != Unicast {
+		if c.mode != tunnel.Unicast {
 			return c, nil
 		}
 		// send back the accept
