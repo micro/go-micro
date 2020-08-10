@@ -199,24 +199,36 @@ func (m *Registry) Register(s *registry.Service, opts ...registry.RegisterOption
 		go m.sendEvent(&registry.Result{Action: "create", Service: s})
 	}
 
-	addedNodes := false
+	var addedNodes bool
+
 	for _, n := range s.Nodes {
-		if _, ok := srvs[s.Name][s.Version].Nodes[n.Id]; !ok {
-			addedNodes = true
-			metadata := make(map[string]string)
-			for k, v := range n.Metadata {
-				metadata[k] = v
-				srvs[s.Name][s.Version].Nodes[n.Id] = &node{
-					Node: &registry.Node{
-						Id:       n.Id,
-						Address:  n.Address,
-						Metadata: metadata,
-					},
-					TTL:      options.TTL,
-					LastSeen: time.Now(),
-				}
-			}
+		// check if already exists
+		if _, ok := srvs[s.Name][s.Version].Nodes[n.Id]; ok {
+			continue
 		}
+
+		metadata := make(map[string]string)
+
+		// make copy of metadata
+		for k, v := range n.Metadata {
+			metadata[k] = v
+		}
+
+		// set the domain
+		metadata["domain"] = options.Domain
+
+		// add the node
+		srvs[s.Name][s.Version].Nodes[n.Id] = &node{
+			Node: &registry.Node{
+				Id:       n.Id,
+				Address:  n.Address,
+				Metadata: metadata,
+			},
+			TTL:      options.TTL,
+			LastSeen: time.Now(),
+		}
+
+		addedNodes = true
 	}
 
 	if addedNodes {
@@ -270,6 +282,7 @@ func (m *Registry) Deregister(s *registry.Service, opts ...registry.DeregisterOp
 	if !ok {
 		return nil
 	}
+
 	version, ok := versions[s.Version]
 	if !ok {
 		return nil
@@ -332,6 +345,7 @@ func (m *Registry) GetService(name string, opts ...registry.GetOption) ([]*regis
 		m.RUnlock()
 
 		var services []*registry.Service
+
 		for domain := range recs {
 			srvs, err := m.GetService(name, append(opts, registry.GetDomain(domain))...)
 			if err == registry.ErrNotFound {
@@ -365,11 +379,14 @@ func (m *Registry) GetService(name string, opts ...registry.GetOption) ([]*regis
 
 	// serialize the response
 	result := make([]*registry.Service, len(versions))
-	i := 0
+
+	var i int
+
 	for _, r := range versions {
 		result[i] = recordToService(r, options.Domain)
 		i++
 	}
+
 	return result, nil
 }
 
@@ -390,6 +407,7 @@ func (m *Registry) ListServices(opts ...registry.ListOption) ([]*registry.Servic
 		m.RUnlock()
 
 		var services []*registry.Service
+
 		for domain := range recs {
 			srvs, err := m.ListServices(append(opts, registry.ListDomain(domain))...)
 			if err != nil {
@@ -412,11 +430,13 @@ func (m *Registry) ListServices(opts ...registry.ListOption) ([]*registry.Servic
 
 	// serialize the result, each version counts as an individual service
 	var result []*registry.Service
+
 	for domain, service := range services {
 		for _, version := range service {
 			result = append(result, recordToService(version, domain))
 		}
 	}
+
 	return result, nil
 }
 

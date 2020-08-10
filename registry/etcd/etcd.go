@@ -143,9 +143,10 @@ func configure(e *etcdRegistry, opts ...registry.Option) error {
 	return nil
 }
 
-// hasName checks if the key has the name we expect
+// getName returns the domain and name
+// it returns false if there's an issue
 // the key is a path of /prefix/domain/name/id e.g /micro/registry/domain/service/uuid
-func hasName(key, prefix, name string) bool {
+func getName(key, prefix string) (string, string, bool) {
 	// strip the prefix from keys
 	key = strings.TrimPrefix(key, prefix)
 
@@ -153,7 +154,7 @@ func hasName(key, prefix, name string) bool {
 	parts := strings.Split(key, "/")
 
 	if len(parts) == 0 {
-		return false
+		return "", "", false
 	}
 
 	if len(parts[0]) == 0 {
@@ -162,11 +163,11 @@ func hasName(key, prefix, name string) bool {
 
 	// we expect a domain and then name domain/service
 	if len(parts) < 2 {
-		return false
+		return "", "", false
 	}
 
-	// ensure the name matches what we expect
-	return parts[1] == name
+	// return name, domain
+	return parts[0], parts[1], true
 }
 
 func encode(s *registry.Service) string {
@@ -220,12 +221,16 @@ func (e *etcdRegistry) registerNode(s *registry.Service, node *registry.Node, op
 		options.Domain = defaultDomain
 	}
 
-	// set the domain in metadata so it can be retrieved by wildcard queries
 	if s.Metadata == nil {
-		s.Metadata = map[string]string{"domain": options.Domain}
-	} else {
-		s.Metadata["domain"] = options.Domain
+		s.Metadata = map[string]string{}
 	}
+	if node.Metadata == nil {
+		node.Metadata = map[string]string{}
+	}
+
+	// set the domain in metadata so it can be retrieved by wildcard queries
+	s.Metadata["domain"] = options.Domain
+	node.Metadata["domain"] = options.Domain
 
 	e.Lock()
 	// ensure the leases and registers are setup for this domain
@@ -465,7 +470,8 @@ func (e *etcdRegistry) GetService(name string, opts ...registry.GetOption) ([]*r
 		// filter the results for the key we care about
 		for _, kv := range rsp.Kvs {
 			// if the key does not contain the name then pass
-			if !hasName(string(kv.Key), prefix, name) {
+			_, service, ok := getName(string(kv.Key), prefix)
+			if !ok || service != name {
 				continue
 			}
 
@@ -489,12 +495,16 @@ func (e *etcdRegistry) GetService(name string, opts ...registry.GetOption) ([]*r
 
 	for _, n := range results {
 		// only process the things we care about
-		if !hasName(string(n.Key), prefix, name) {
+		domain, service, ok := getName(string(n.Key), prefix)
+		if !ok || service != name {
 			continue
 		}
 
 		if sn := decode(n.Value); sn != nil {
-			s, ok := versions[sn.Version]
+			// compose a key of name/version/domain
+			key := sn.Name + sn.Version + domain
+
+			s, ok := versions[key]
 			if !ok {
 				s = &registry.Service{
 					Name:      sn.Name,
@@ -502,7 +512,7 @@ func (e *etcdRegistry) GetService(name string, opts ...registry.GetOption) ([]*r
 					Metadata:  sn.Metadata,
 					Endpoints: sn.Endpoints,
 				}
-				versions[s.Version] = s
+				versions[key] = s
 			}
 			s.Nodes = append(s.Nodes, sn.Nodes...)
 		}
@@ -513,8 +523,6 @@ func (e *etcdRegistry) GetService(name string, opts ...registry.GetOption) ([]*r
 	for _, service := range versions {
 		services = append(services, service)
 	}
-
-	logger.Tracef("[etcd] registry get service %s returned %v", name, services)
 
 	return services, nil
 }
@@ -550,15 +558,22 @@ func (e *etcdRegistry) ListServices(opts ...registry.ListOption) ([]*registry.Se
 
 	versions := make(map[string]*registry.Service)
 	for _, n := range rsp.Kvs {
-		sn := decode(n.Value)
-
-		if sn == nil {
+		domain, service, ok := getName(string(n.Key), prefix)
+		if !ok {
 			continue
 		}
 
-		v, ok := versions[sn.Name+sn.Version]
+		sn := decode(n.Value)
+		if sn == nil || sn.Name != service {
+			continue
+		}
+
+		// key based on name/version/domain
+		key := sn.Name + sn.Version + domain
+
+		v, ok := versions[key]
 		if !ok {
-			versions[sn.Name+sn.Version] = sn
+			versions[key] = sn
 			continue
 		}
 
