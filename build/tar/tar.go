@@ -1,5 +1,5 @@
-// Package tarball basically tarballs source code
-package tarball
+// Package tar basically tarballs source code
+package tar
 
 import (
 	"os"
