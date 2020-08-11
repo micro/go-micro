@@ -321,6 +321,13 @@ func NewDeployment(name, version, typ, namespace string) *Deployment {
 						Name:          "service-port",
 						ContainerPort: 8080,
 					}},
+					ReadinessProbe: &Probe{
+						TCPSocket: TCPSocketAction{
+							Port: 8080,
+						},
+						PeriodSeconds:       10,
+						InitialDelaySeconds: 10,
+					},
 				}},
 			},
 		},
