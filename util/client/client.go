@@ -1,4 +1,4 @@
-package wrapper
+package client
 
 import (
 	"context"
@@ -20,6 +20,6 @@ func (s *staticClient) Stream(ctx context.Context, req client.Request, opts ...c
 }
 
 // StaticClient sets an address on every call
-func StaticClient(address string, c client.Client) client.Client {
+func Static(address string, c client.Client) client.Client {
 	return &staticClient{address, c}
 }
