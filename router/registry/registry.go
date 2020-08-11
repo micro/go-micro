@@ -204,8 +204,11 @@ func (r *rtr) loadRoutes(reg registry.Registry) error {
 		// if the routes exist save them
 		if len(routes) > 0 {
 			logger.Tracef("Creating routes for service %v domain: %v", service, domain)
-			// save the routes without pumping out events
-			r.table.saveRoutes(service.Name, routes)
+			for _, rt := range routes {
+				if err := r.table.Create(rt); err != nil {
+					logger.Errorf("Error creating route for service %v in domain %v: %v", service, domain, err)
+				}
+			}
 			continue
 		}
 
@@ -224,7 +227,11 @@ func (r *rtr) loadRoutes(reg registry.Registry) error {
 
 			if len(routes) > 0 {
 				logger.Tracef("Creating routes for service %v domain: %v", srv, domain)
-				r.table.saveRoutes(srv.Name, routes)
+				for _, rt := range routes {
+					if err := r.table.Create(rt); err != nil {
+						logger.Errorf("Error creating route for service %v in domain %v: %v", service, domain, err)
+					}
+				}
 			}
 		}
 	}

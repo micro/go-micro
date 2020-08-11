@@ -89,23 +89,6 @@ func (t *table) deleteService(service, network string) {
 	t.routes[service] = routes
 }
 
-// saveRoutes completely replaces the routes for a service
-func (t *table) saveRoutes(service string, routes []router.Route) {
-	t.Lock()
-	defer t.Unlock()
-
-	// delete old routes
-	delete(t.routes, service)
-	// make new map
-	t.routes[service] = make(map[uint64]*route)
-
-	// iterate through new routes and save
-	for _, rt := range routes {
-		// save the new route
-		t.routes[service][rt.Hash()] = &route{rt, time.Now()}
-	}
-}
-
 // sendEvent sends events to all subscribed watchers
 func (t *table) sendEvent(e *router.Event) {
 	t.RLock()
@@ -369,7 +352,9 @@ func (t *table) Query(q ...router.QueryOption) ([]router.Route, error) {
 		}
 
 		// cache the routes
-		t.saveRoutes(opts.Service, routes)
+		for _, rt := range routes {
+			t.Create(rt)
+		}
 
 		// try again
 		if routes, ok := readAndFilter(opts); ok {
