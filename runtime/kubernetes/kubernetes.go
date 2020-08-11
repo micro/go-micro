@@ -347,7 +347,7 @@ func (k *kubernetes) Init(opts ...runtime.Option) error {
 	return nil
 }
 
-func (k *kubernetes) Logs(s *runtime.Service, options ...runtime.LogsOption) (runtime.LogStream, error) {
+func (k *kubernetes) Logs(s *runtime.Service, options ...runtime.LogsOption) (runtime.Logs, error) {
 	klo := newLog(k.client, s.Name, options...)
 
 	if !klo.options.Stream {
@@ -357,7 +357,7 @@ func (k *kubernetes) Logs(s *runtime.Service, options ...runtime.LogsOption) (ru
 			return nil, err
 		}
 		kstream := &kubeStream{
-			stream: make(chan runtime.LogRecord),
+			stream: make(chan runtime.Log),
 			stop:   make(chan bool),
 		}
 		go func() {
@@ -377,7 +377,7 @@ func (k *kubernetes) Logs(s *runtime.Service, options ...runtime.LogsOption) (ru
 
 type kubeStream struct {
 	// the k8s log stream
-	stream chan runtime.LogRecord
+	stream chan runtime.Log
 	// the stop chan
 	sync.Mutex
 	stop chan bool
@@ -388,7 +388,7 @@ func (k *kubeStream) Error() error {
 	return k.err
 }
 
-func (k *kubeStream) Chan() chan runtime.LogRecord {
+func (k *kubeStream) Chan() chan runtime.Log {
 	return k.stream
 }
 

@@ -23,7 +23,7 @@ type Runtime interface {
 	// Remove a service
 	Delete(*Service, ...DeleteOption) error
 	// Logs returns the logs for a service
-	Logs(*Service, ...LogsOption) (LogStream, error)
+	Logs(*Service, ...LogsOption) (Logs, error)
 	// Start starts the runtime
 	Start() error
 	// Stop shuts down the runtime
@@ -32,14 +32,15 @@ type Runtime interface {
 	String() string
 }
 
-// Stream returns a log stream
-type LogStream interface {
+// Logs returns a log stream
+type Logs interface {
 	Error() error
-	Chan() chan LogRecord
+	Chan() chan Log
 	Stop() error
 }
 
-type LogRecord struct {
+// Log is a log message
+type Log struct {
 	Message  string
 	Metadata map[string]string
 }

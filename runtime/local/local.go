@@ -329,14 +329,14 @@ func exists(path string) (bool, error) {
 // The reason for this is because it's hard to calculate line offset
 // as opposed to character offset.
 // This logger streams by default and only supports the `StreamCount` option.
-func (r *localRuntime) Logs(s *runtime.Service, options ...runtime.LogsOption) (runtime.LogStream, error) {
+func (r *localRuntime) Logs(s *runtime.Service, options ...runtime.LogsOption) (runtime.Logs, error) {
 	lopts := runtime.LogsOptions{}
 	for _, o := range options {
 		o(&lopts)
 	}
 	ret := &logStream{
 		service: s.Name,
-		stream:  make(chan runtime.LogRecord),
+		stream:  make(chan runtime.Log),
 		stop:    make(chan bool),
 	}
 
@@ -380,7 +380,7 @@ func (r *localRuntime) Logs(s *runtime.Service, options ...runtime.LogsOption) (
 					ret.Stop()
 					return
 				}
-				ret.stream <- runtime.LogRecord{Message: line.Text}
+				ret.stream <- runtime.Log{Message: line.Text}
 			case <-ret.stop:
 				return
 			}
@@ -393,13 +393,13 @@ func (r *localRuntime) Logs(s *runtime.Service, options ...runtime.LogsOption) (
 type logStream struct {
 	tail    *tail.Tail
 	service string
-	stream  chan runtime.LogRecord
+	stream  chan runtime.Log
 	sync.Mutex
 	stop chan bool
 	err  error
 }
 
-func (l *logStream) Chan() chan runtime.LogRecord {
+func (l *logStream) Chan() chan runtime.Log {
 	return l.stream
 }
 
