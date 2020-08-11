@@ -35,12 +35,13 @@ type Condition struct {
 
 // Container defined container runtime values
 type Container struct {
-	Name    string          `json:"name"`
-	Image   string          `json:"image"`
-	Env     []EnvVar        `json:"env,omitempty"`
-	Command []string        `json:"command,omitempty"`
-	Args    []string        `json:"args,omitempty"`
-	Ports   []ContainerPort `json:"ports,omitempty"`
+	Name           string          `json:"name"`
+	Image          string          `json:"image"`
+	Env            []EnvVar        `json:"env,omitempty"`
+	Command        []string        `json:"command,omitempty"`
+	Args           []string        `json:"args,omitempty"`
+	Ports          []ContainerPort `json:"ports,omitempty"`
+	ReadinessProbe *Probe          `json:"readinessProbe,omitempty"`
 }
 
 // DeploymentSpec defines micro deployment spec
@@ -219,4 +220,17 @@ type Secret struct {
 type ServiceAccount struct {
 	Metadata         *Metadata         `json:"metadata,omitempty"`
 	ImagePullSecrets []ImagePullSecret `json:"imagePullSecrets,omitempty"`
+}
+
+// Probe describes a health check to be performed against a container to determine whether it is alive or ready to receive traffic.
+type Probe struct {
+	TCPSocket           TCPSocketAction `json:"tcpSocket,omitempty"`
+	PeriodSeconds       int             `json:"periodSeconds"`
+	InitialDelaySeconds int             `json:"initialDelaySeconds"`
+}
+
+// TCPSocketAction describes an action based on opening a socket
+type TCPSocketAction struct {
+	Host string `json:"host,omitempty"`
+	Port int    `json:"port,omitempty"`
 }

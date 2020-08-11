@@ -92,8 +92,22 @@ spec:
             name: {{ .Name }}
           {{- end}}
           {{- end}}
+          {{- if .ReadinessProbe }}
+          {{- with .ReadinessProbe }}
+          readinessProbe:
+            {{- with .TCPSocket }}
+            tcpSocket:
+              {{- if .Host }}
+              host: {{ .Host }}
+              {{- end }}
+              port: {{ .Port }}
+            {{- end }}
+            initialDelaySeconds: {{ .InitialDelaySeconds }}
+            periodSeconds: {{ .PeriodSeconds }}
+          {{- end }}
+          {{- end }}
       {{- end }}
-      {{- end}}
+      {{- end }}
 `
 
 var serviceTmpl = `
