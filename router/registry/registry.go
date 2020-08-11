@@ -205,7 +205,14 @@ func (r *rtr) loadRoutes(reg registry.Registry) error {
 		if len(routes) > 0 {
 			logger.Tracef("Creating routes for service %v domain: %v", service, domain)
 			for _, rt := range routes {
-				if err := r.table.Create(rt); err != nil {
+				err := r.table.Create(rt)
+
+				// update the route to prevent it from expiring
+				if err == router.ErrDuplicateRoute {
+					err = r.table.Update(rt)
+				}
+
+				if err != nil {
 					logger.Errorf("Error creating route for service %v in domain %v: %v", service, domain, err)
 				}
 			}
@@ -228,7 +235,14 @@ func (r *rtr) loadRoutes(reg registry.Registry) error {
 			if len(routes) > 0 {
 				logger.Tracef("Creating routes for service %v domain: %v", srv, domain)
 				for _, rt := range routes {
-					if err := r.table.Create(rt); err != nil {
+					err := r.table.Create(rt)
+
+					// update the route to prevent it from expiring
+					if err == router.ErrDuplicateRoute {
+						err = r.table.Update(rt)
+					}
+
+					if err != nil {
 						logger.Errorf("Error creating route for service %v in domain %v: %v", service, domain, err)
 					}
 				}
