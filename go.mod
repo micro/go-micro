@@ -67,3 +67,6 @@ require (
 	google.golang.org/protobuf v1.25.0
 	sigs.k8s.io/yaml v1.1.0 // indirect
 )
+
+replace google.golang.org/grpc => google.golang.org/grpc v1.26.0
+
