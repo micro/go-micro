@@ -1,4 +1,4 @@
-package wrapper_test
+package client_test
 
 import (
 	"context"
@@ -14,7 +14,7 @@ import (
 	"github.com/micro/go-micro/v3/server"
 	grpcsrv "github.com/micro/go-micro/v3/server/grpc"
 	tmemory "github.com/micro/go-micro/v3/transport/memory"
-	wrapper "github.com/micro/go-micro/v3/util/wrapper"
+	cw "github.com/micro/go-micro/v3/util/client"
 )
 
 type TestFoo struct {
@@ -31,7 +31,7 @@ func (h *TestFoo) Bar(ctx context.Context, req *TestReq, rsp *TestRsp) error {
 	return nil
 }
 
-func TestStaticClientWrapper(t *testing.T) {
+func TestStaticClient(t *testing.T) {
 	var err error
 
 	req := grpc.NewClient().NewRequest(
@@ -68,12 +68,12 @@ func TestStaticClientWrapper(t *testing.T) {
 		client.Transport(tr),
 	)
 
-	w1 := wrapper.StaticClient("xxx_localhost:12345", cli)
+	w1 := cw.Static("xxx_localhost:12345", cli)
 	if err = w1.Call(context.TODO(), req, nil); err == nil {
 		t.Fatal("address xxx_#localhost:12345 must not exists and call must be failed")
 	}
 
-	w2 := wrapper.StaticClient(srv.Options().Address, cli)
+	w2 := cw.Static(srv.Options().Address, cli)
 	if err = w2.Call(context.TODO(), req, rsp); err != nil {
 		t.Fatal(err)
 	} else if rsp.Data != "pass" {
