@@ -9,9 +9,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/micro/go-micro/v3/build"
 	"github.com/micro/go-micro/v3/logger"
 	"github.com/micro/go-micro/v3/runtime"
-	"github.com/micro/go-micro/v3/runtime/local/build"
 	"github.com/micro/go-micro/v3/runtime/local/process"
 	proc "github.com/micro/go-micro/v3/runtime/local/process/os"
 )
@@ -35,7 +35,7 @@ type service struct {
 	// process creator
 	Process *proc.Process
 	// Exec
-	Exec *process.Executable
+	Exec *process.Binary
 	// process pid
 	PID *process.PID
 }
@@ -72,7 +72,7 @@ func newService(s *runtime.Service, c runtime.CreateOptions) *service {
 	return &service{
 		Service: s,
 		Process: new(proc.Process),
-		Exec: &process.Executable{
+		Exec: &process.Binary{
 			Package: &build.Package{
 				Name: s.Name,
 				Path: exec,

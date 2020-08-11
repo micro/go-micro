@@ -4,22 +4,22 @@ package process
 import (
 	"io"
 
-	"github.com/micro/go-micro/v3/runtime/local/build"
+	"github.com/micro/go-micro/v3/build"
 )
 
 // Process manages a running process
 type Process interface {
 	// Executes a process to completion
-	Exec(*Executable) error
+	Exec(*Binary) error
 	// Creates a new process
-	Fork(*Executable) (*PID, error)
+	Fork(*Binary) (*PID, error)
 	// Kills the process
 	Kill(*PID) error
 	// Waits for a process to exit
 	Wait(*PID) error
 }
 
-type Executable struct {
+type Binary struct {
 	// Package containing executable
 	Package *build.Package
 	// The env variables

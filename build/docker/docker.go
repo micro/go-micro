@@ -9,17 +9,17 @@ import (
 	"path/filepath"
 
 	docker "github.com/fsouza/go-dockerclient"
+	"github.com/micro/go-micro/v3/build"
 	"github.com/micro/go-micro/v3/logger"
-	"github.com/micro/go-micro/v3/runtime/local/build"
 )
 
-type Builder struct {
+type dockerBuild struct {
 	Options build.Options
 	Client  *docker.Client
 }
 
-func (d *Builder) Build(s *build.Source) (*build.Package, error) {
-	image := filepath.Join(s.Repository.Path, s.Repository.Name)
+func (d *dockerBuild) Package(name string, s *build.Source) (*build.Package, error) {
+	image := name
 
 	buf := new(bytes.Buffer)
 	tw := tar.NewWriter(buf)
@@ -28,7 +28,7 @@ func (d *Builder) Build(s *build.Source) (*build.Package, error) {
 	dockerFile := "Dockerfile"
 
 	// open docker file
-	f, err := os.Open(filepath.Join(s.Repository.Path, s.Repository.Name, dockerFile))
+	f, err := os.Open(filepath.Join(s.Path, dockerFile))
 	if err != nil {
 		return nil, err
 	}
@@ -71,12 +71,15 @@ func (d *Builder) Build(s *build.Source) (*build.Package, error) {
 	}, nil
 }
 
-func (d *Builder) Clean(b *build.Package) error {
-	image := filepath.Join(b.Path, b.Name)
-	return d.Client.RemoveImage(image)
+func (d *dockerBuild) Remove(b *build.Package) error {
+	return d.Client.RemoveImage(b.Name)
 }
 
-func NewBuilder(opts ...build.Option) build.Builder {
+func (d *dockerBuild) String() string {
+	return "docker"
+}
+
+func NewBuild(opts ...build.Option) build.Build {
 	options := build.Options{}
 	for _, o := range opts {
 		o(&options)
@@ -86,7 +89,7 @@ func NewBuilder(opts ...build.Option) build.Builder {
 	if err != nil {
 		logger.Fatal(err)
 	}
-	return &Builder{
+	return &dockerBuild{
 		Options: options,
 		Client:  client,
 	}
