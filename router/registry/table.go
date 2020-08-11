@@ -352,7 +352,9 @@ func (t *table) Query(q ...router.QueryOption) ([]router.Route, error) {
 		}
 
 		// cache the routes
-		t.saveRoutes(opts.Service, routes)
+		for _, rt := range routes {
+			t.Create(rt)
+		}
 
 		// try again
 		if routes, ok := readAndFilter(opts); ok {
