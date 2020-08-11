@@ -202,7 +202,8 @@ func createServiceMDNSEntry(name, domain string) (*mdnsEntry, error) {
 	return &mdnsEntry{id: "*", node: srv}, nil
 }
 
-func (m *mdnsRegistry) getMdnsEntries(domain, serviceName string) ([]*mdnsEntry, error) {
+func (m *mdnsRegistry) createMDNSEntries(domain, serviceName string) ([]*mdnsEntry, error) {
+	// if it already exists don't reegister it again
 	entries, ok := m.domains[domain][serviceName]
 	if ok {
 		return entries, nil
@@ -320,7 +321,7 @@ func (m *mdnsRegistry) Register(service *registry.Service, opts ...registry.Regi
 		m.domains[options.Domain] = make(services)
 	}
 
-	entries, err := m.getMdnsEntries(options.Domain, service.Name)
+	entries, err := m.createMDNSEntries(options.Domain, service.Name)
 	if err != nil {
 		m.Unlock()
 		return err

@@ -9,6 +9,7 @@ import (
 	"github.com/micro/go-micro/v3/router"
 	regRouter "github.com/micro/go-micro/v3/router/registry"
 	"github.com/micro/go-micro/v3/tunnel"
+	tmucp "github.com/micro/go-micro/v3/tunnel/mucp"
 )
 
 type Option func(*Options)
@@ -104,7 +105,7 @@ func DefaultOptions() Options {
 		Id:       uuid.New().String(),
 		Name:     "go.micro",
 		Address:  ":0",
-		Tunnel:   tunnel.NewTunnel(),
+		Tunnel:   tmucp.NewTunnel(),
 		Router:   regRouter.NewRouter(),
 		Proxy:    mucp.NewProxy(),
 		Resolver: new(noop.Resolver),

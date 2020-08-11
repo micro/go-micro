@@ -10,44 +10,59 @@ func TestEtcdHasName(t *testing.T) {
 		key    string
 		prefix string
 		name   string
+		domain string
 		expect bool
 	}{
 		{
 			"/micro/registry/micro/registry",
 			"/micro/registry",
 			"registry",
+			"micro",
 			true,
 		},
 		{
-			"/micro/registry/micro/store",
+			"/micro/registry/micro",
 			"/micro/registry",
-			"registry",
+			"store",
+			"micro",
 			false,
 		},
 		{
 			"/prefix/baz/*/registry",
 			"/prefix/baz",
 			"registry",
+			"*",
 			true,
 		},
 		{
-			"/prefix/baz/micro/registry",
+			"/prefix/baz",
 			"/prefix/baz",
 			"store",
+			"micro",
 			false,
 		},
 		{
-			"/prefix/baz/micro/registry",
+			"/prefix/baz/foobar/registry",
 			"/prefix/baz",
 			"registry",
+			"foobar",
 			true,
 		},
 	}
 
 	for _, c := range testCases {
-		v := hasName(c.key, c.prefix, c.name)
-		if v != c.expect {
-			t.Fatalf("Expected %t for %v got: %t", c.expect, c, v)
+		domain, service, ok := getName(c.key, c.prefix)
+		if ok != c.expect {
+			t.Fatalf("Expected %t for %v got: %t", c.expect, c, ok)
+		}
+		if !ok {
+			continue
+		}
+		if service != c.name {
+			t.Fatalf("Expected service %s got %s", c.name, service)
+		}
+		if domain != c.domain {
+			t.Fatalf("Expected domain %s got %s", c.domain, domain)
 		}
 	}
 }

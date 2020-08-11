@@ -1,4 +1,4 @@
-package tunnel
+package mucp
 
 import (
 	"errors"
@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/micro/go-micro/v3/logger"
 	"github.com/micro/go-micro/v3/transport"
+	"github.com/micro/go-micro/v3/tunnel"
 )
 
 var (
@@ -26,7 +27,7 @@ var (
 
 // tun represents a network tunnel
 type tun struct {
-	options Options
+	options tunnel.Options
 
 	sync.RWMutex
 
@@ -56,9 +57,9 @@ type tun struct {
 }
 
 // create new tunnel on top of a link
-func newTunnel(opts ...Option) *tun {
+func NewTunnel(opts ...tunnel.Option) *tun {
 	rand.Seed(time.Now().UnixNano())
-	options := DefaultOptions()
+	options := tunnel.DefaultOptions()
 	for _, o := range opts {
 		o(&options)
 	}
@@ -75,7 +76,7 @@ func newTunnel(opts ...Option) *tun {
 }
 
 // Init initializes tunnel options
-func (t *tun) Init(opts ...Option) error {
+func (t *tun) Init(opts ...tunnel.Option) error {
 	t.Lock()
 	for _, o := range opts {
 		o(&t.options)
@@ -410,7 +411,7 @@ func (t *tun) process() {
 					if logger.V(logger.DebugLevel, log) {
 						log.Debugf("Link for node %s not connected", id)
 					}
-					err = ErrLinkDisconnected
+					err = tunnel.ErrLinkDisconnected
 					continue
 				}
 
@@ -418,19 +419,19 @@ func (t *tun) process() {
 				// and the message is being sent outbound via
 				// a dialled connection don't use this link
 				if loopback && msg.outbound {
-					err = ErrLinkLoopback
+					err = tunnel.ErrLinkLoopback
 					continue
 				}
 
 				// if the message was being returned by the loopback listener
 				// send it back up the loopback link only
 				if msg.loopback && !loopback {
-					err = ErrLinkRemote
+					err = tunnel.ErrLinkRemote
 					continue
 				}
 
 				// check the multicast mappings
-				if msg.mode == Multicast {
+				if msg.mode == tunnel.Multicast {
 					// channel mapping not found in link
 					if !exists {
 						continue
@@ -440,7 +441,7 @@ func (t *tun) process() {
 					// this is where we explicitly set the link
 					// in a message received via the listen method
 					if len(msg.link) > 0 && id != msg.link {
-						err = ErrLinkNotFound
+						err = tunnel.ErrLinkNotFound
 						continue
 					}
 				}
@@ -527,7 +528,7 @@ func (t *tun) sendTo(links []*link, msg *message) error {
 		}
 
 		// blast it in a go routine since its multicast/broadcast
-		if msg.mode > Unicast {
+		if msg.mode > tunnel.Unicast {
 			// make a copy
 			m := &transport.Message{
 				Header: make(map[string]string),
@@ -705,7 +706,7 @@ func (t *tun) listen(link *link) {
 			if exists && !loopback {
 				// only delete the session if its unicast
 				// otherwise ignore close on the multicast
-				if s.mode == Unicast {
+				if s.mode == tunnel.Unicast {
 					// only delete this if its unicast
 					// but not if its a loopback conn
 					t.delSession(channel, sessionId)
@@ -730,7 +731,7 @@ func (t *tun) listen(link *link) {
 		case "accept":
 			s, exists := t.getSession(channel, sessionId)
 			// just set accepted on anything not unicast
-			if exists && s.mode > Unicast {
+			if exists && s.mode > tunnel.Unicast {
 				s.accepted = true
 				continue
 			}
@@ -1166,10 +1167,10 @@ func (t *tun) Close() error {
 }
 
 // Dial an address
-func (t *tun) Dial(channel string, opts ...DialOption) (Session, error) {
+func (t *tun) Dial(channel string, opts ...tunnel.DialOption) (tunnel.Session, error) {
 	// get the options
-	options := DialOptions{
-		Timeout: DefaultDialTimeout,
+	options := tunnel.DialOptions{
+		Timeout: tunnel.DefaultDialTimeout,
 		Wait:    true,
 	}
 
@@ -1239,9 +1240,9 @@ func (t *tun) Dial(channel string, opts ...DialOption) (Session, error) {
 			// delete session and return error
 			t.delSession(c.channel, c.session)
 			if logger.V(logger.DebugLevel, log) {
-				log.Debugf("Tunnel deleting session %s %s: %v", c.session, c.channel, ErrLinkNotFound)
+				log.Debugf("Tunnel deleting session %s %s: %v", c.session, c.channel, tunnel.ErrLinkNotFound)
 			}
-			return nil, ErrLinkNotFound
+			return nil, tunnel.ErrLinkNotFound
 		}
 
 		// assume discovered because we picked
@@ -1256,7 +1257,7 @@ func (t *tun) Dial(channel string, opts ...DialOption) (Session, error) {
 	}
 
 	// discovered so set the link if not multicast
-	if c.discovered && c.mode == Unicast {
+	if c.discovered && c.mode == tunnel.Unicast {
 		// pick a link if not specified
 		if len(c.link) == 0 {
 			// pickLink will pick the best link
@@ -1300,7 +1301,7 @@ func (t *tun) Dial(channel string, opts ...DialOption) (Session, error) {
 	// return early if its not unicast
 	// we will not wait for "open" for multicast
 	// and we will not wait it told not to
-	if c.mode != Unicast || !options.Wait {
+	if c.mode != tunnel.Unicast || !options.Wait {
 		return c, nil
 	}
 
@@ -1341,11 +1342,11 @@ func (t *tun) Dial(channel string, opts ...DialOption) (Session, error) {
 }
 
 // Accept a connection on the address
-func (t *tun) Listen(channel string, opts ...ListenOption) (Listener, error) {
+func (t *tun) Listen(channel string, opts ...tunnel.ListenOption) (tunnel.Listener, error) {
 	if logger.V(logger.DebugLevel, log) {
 		log.Debugf("Tunnel listening on %s", channel)
 	}
-	options := ListenOptions{
+	options := tunnel.ListenOptions{
 		// Read timeout defaults to never
 		Timeout: time.Duration(-1),
 	}
@@ -1405,9 +1406,9 @@ func (t *tun) Listen(channel string, opts ...ListenOption) (Listener, error) {
 	return tl, nil
 }
 
-func (t *tun) Links() []Link {
+func (t *tun) Links() []tunnel.Link {
 	t.RLock()
-	links := make([]Link, 0, len(t.links))
+	links := make([]tunnel.Link, 0, len(t.links))
 
 	for _, link := range t.links {
 		links = append(links, link)
