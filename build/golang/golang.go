@@ -6,10 +6,10 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"github.com/micro/go-micro/v3/runtime/local/build"
+	"github.com/micro/go-micro/v3/build"
 )
 
-type Builder struct {
+type goBuild struct {
 	Options build.Options
 	Cmd     string
 	Path    string
@@ -34,35 +34,40 @@ func whichGo() string {
 	return "go"
 }
 
-func (g *Builder) Build(s *build.Source) (*build.Package, error) {
-	binary := filepath.Join(g.Path, s.Repository.Name)
-	source := filepath.Join(s.Repository.Path, s.Repository.Name)
+func (g *goBuild) Package(name string, src *build.Source) (*build.Package, error) {
+	binary := filepath.Join(g.Path, name)
+	source := src.Path
 
 	cmd := exec.Command(g.Cmd, "build", "-o", binary, source)
 	if err := cmd.Run(); err != nil {
 		return nil, err
 	}
+
 	return &build.Package{
-		Name:   s.Repository.Name,
+		Name:   name,
 		Path:   binary,
-		Type:   "go",
-		Source: s,
+		Type:   g.String(),
+		Source: src,
 	}, nil
 }
 
-func (g *Builder) Clean(b *build.Package) error {
+func (g *goBuild) Remove(b *build.Package) error {
 	binary := filepath.Join(b.Path, b.Name)
 	return os.Remove(binary)
 }
 
-func NewBuild(opts ...build.Option) build.Builder {
+func (g *goBuild) String() string {
+	return "golang"
+}
+
+func NewBuild(opts ...build.Option) build.Build {
 	options := build.Options{
 		Path: os.TempDir(),
 	}
 	for _, o := range opts {
 		o(&options)
 	}
-	return &Builder{
+	return &goBuild{
 		Options: options,
 		Cmd:     whichGo(),
 		Path:    options.Path,

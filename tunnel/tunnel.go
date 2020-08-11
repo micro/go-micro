@@ -100,4 +100,3 @@ type Session interface {
 	// a transport socket
 	transport.Socket
 }
-
