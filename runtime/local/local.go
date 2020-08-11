@@ -23,6 +23,8 @@ const defaultNamespace = "default"
 var (
 	// The directory for logs to be output
 	LogDir = filepath.Join(os.TempDir(), "micro", "logs")
+	// The source directory where code lives
+	SourceDir = filepath.Join(os.TempDir(), "micro", "uploads")
 )
 
 type localRuntime struct {
@@ -68,8 +70,10 @@ func (r *localRuntime) checkoutSourceIfNeeded(s *runtime.Service) error {
 		return nil
 	}
 	// @todo make this come from config
-	cpath := filepath.Join(os.TempDir(), "micro", "uploads", s.Source)
+	cpath := filepath.Join(SourceDir, s.Source)
 	path := strings.ReplaceAll(cpath, ".tar.gz", "")
+
+	// check if the directory already exists
 	if ex, _ := exists(cpath); ex {
 		err := os.RemoveAll(path)
 		if err != nil {
@@ -86,6 +90,7 @@ func (r *localRuntime) checkoutSourceIfNeeded(s *runtime.Service) error {
 		s.Source = path
 		return nil
 	}
+
 	source, err := git.ParseSourceLocal("", s.Source)
 	if err != nil {
 		return err
@@ -245,8 +250,7 @@ func (r *localRuntime) run(events <-chan runtime.Event) {
 func logFile(serviceName string) string {
 	// make the directory
 	name := strings.Replace(serviceName, "/", "-", -1)
-	path := filepath.Join(os.TempDir(), "micro", "logs")
-	return filepath.Join(path, fmt.Sprintf("%v.log", name))
+	return filepath.Join(LogDir, fmt.Sprintf("%v.log", name))
 }
 
 func serviceKey(s *runtime.Service) string {
