@@ -20,6 +20,11 @@ import (
 // defaultNamespace to use if not provided as an option
 const defaultNamespace = "default"
 
+var (
+	// The directory for logs to be output
+	LogDir = filepath.Join(os.TempDir(), "micro", "logs")
+)
+
 type localRuntime struct {
 	sync.RWMutex
 	// options configure runtime
@@ -46,8 +51,7 @@ func NewRuntime(opts ...runtime.Option) runtime.Runtime {
 	}
 
 	// make the logs directory
-	path := filepath.Join(os.TempDir(), "micro", "logs")
-	_ = os.MkdirAll(path, 0755)
+	os.MkdirAll(LogDir, 0755)
 
 	return &localRuntime{
 		options:    options,
