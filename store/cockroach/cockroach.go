@@ -422,13 +422,14 @@ func (s *sqlStore) Write(r *store.Record, opts ...store.WriteOption) error {
 		metadata[k] = v
 	}
 
-	if r.Expiry != 0 {
-		_, err = st.Exec(r.Key, r.Value, metadata, time.Now().Add(r.Expiry))
-	} else {
-		_, err = st.Exec(r.Key, r.Value, metadata, nil)
+	var expiry time.Time
+	// expiry from options takes precedence
+	if !options.Expiry.IsZero() {
+		expiry = options.Expiry
+	} else if r.Expiry != 0 {
+		expiry = time.Now().Add(r.Expiry)
 	}
-
-	if err != nil {
+	if _, err := st.Exec(r.Key, r.Value, metadata, expiry); err != nil {
 		return errors.Wrap(err, "Couldn't insert record "+r.Key)
 	}
 
