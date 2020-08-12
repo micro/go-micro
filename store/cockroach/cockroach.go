@@ -429,7 +429,14 @@ func (s *sqlStore) Write(r *store.Record, opts ...store.WriteOption) error {
 	} else if r.Expiry != 0 {
 		expiry = time.Now().Add(r.Expiry)
 	}
-	if _, err := st.Exec(r.Key, r.Value, metadata, expiry); err != nil {
+
+	if expiry.IsZero() {
+		_, err = st.Exec(r.Key, r.Value, metadata, nil)
+	} else {
+		_, err = st.Exec(r.Key, r.Value, metadata, expiry)
+	}
+
+	if err != nil {
 		return errors.Wrap(err, "Couldn't insert record "+r.Key)
 	}
 
