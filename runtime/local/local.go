@@ -280,7 +280,7 @@ func (r *localRuntime) Create(s *runtime.Service, opts ...runtime.CreateOption) 
 
 	// pass secrets as env vars
 	for key, value := range options.Secrets {
-		options.Env = append(options.Env, key, value)
+		options.Env = append(options.Env, fmt.Sprintf("%v=%v", key, value))
 	}
 
 	if _, ok := r.namespaces[options.Namespace]; !ok {
