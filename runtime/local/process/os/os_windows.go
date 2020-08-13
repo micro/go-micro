@@ -10,12 +10,12 @@ import (
 	"github.com/micro/go-micro/v3/runtime/local/process"
 )
 
-func (p *Process) Exec(exe *process.Exec) error {
+func (p *Process) Exec(exe *process.Binary) error {
 	cmd := exec.Command(exe.Package.Path)
 	return cmd.Run()
 }
 
-func (p *Process) Fork(exe *process.Exec) (*process.PID, error) {
+func (p *Process) Fork(exe *process.Binary) (*process.PID, error) {
 	// create command
 	cmd := exec.Command(exe.Package.Path, exe.Args...)
 	// set env vars
