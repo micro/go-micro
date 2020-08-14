@@ -84,6 +84,8 @@ type CreateOptions struct {
 	Context context.Context
 	// Secrets to use
 	Secrets map[string]string
+	// Resources to allocate the service
+	Resources *Resources
 }
 
 // ReadOptions queries runtime services
@@ -173,6 +175,13 @@ func WithEnv(env []string) CreateOption {
 func WithOutput(out io.Writer) CreateOption {
 	return func(o *CreateOptions) {
 		o.Output = out
+	}
+}
+
+// ResourceLimits sets the resources for the service to use
+func ResourceLimits(r *Resources) CreateOption {
+	return func(o *CreateOptions) {
+		o.Resources = r
 	}
 }
 

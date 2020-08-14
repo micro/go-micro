@@ -35,13 +35,14 @@ type Condition struct {
 
 // Container defined container runtime values
 type Container struct {
-	Name           string          `json:"name"`
-	Image          string          `json:"image"`
-	Env            []EnvVar        `json:"env,omitempty"`
-	Command        []string        `json:"command,omitempty"`
-	Args           []string        `json:"args,omitempty"`
-	Ports          []ContainerPort `json:"ports,omitempty"`
-	ReadinessProbe *Probe          `json:"readinessProbe,omitempty"`
+	Name           string                `json:"name"`
+	Image          string                `json:"image"`
+	Env            []EnvVar              `json:"env,omitempty"`
+	Command        []string              `json:"command,omitempty"`
+	Args           []string              `json:"args,omitempty"`
+	Ports          []ContainerPort       `json:"ports,omitempty"`
+	ReadinessProbe *Probe                `json:"readinessProbe,omitempty"`
+	Resources      *ResourceRequirements `json:"resources,omitempty"`
 }
 
 // DeploymentSpec defines micro deployment spec
@@ -233,4 +234,17 @@ type Probe struct {
 type TCPSocketAction struct {
 	Host string `json:"host,omitempty"`
 	Port int    `json:"port,omitempty"`
+}
+
+// ResourceRequirements describes the compute resource requirements.
+type ResourceRequirements struct {
+	Limits   *ResourceLimits `json:"limits,omitempty"`
+	Requests *ResourceLimits `json:"requests,omitempty"`
+}
+
+// ResourceLimits describes the limits for a service
+type ResourceLimits struct {
+	Memory           string `json:"memory,omitempty"`
+	CPU              string `json:"cpu,omitempty"`
+	EphemeralStorage string `json:"ephemeral-storage,omitempty"`
 }
