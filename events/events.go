@@ -13,8 +13,8 @@ type Broker interface {
 
 // Store of events
 type Store interface {
-	Write(event *Event, opts ...WriteOption) error
 	Read(opts ...ReadOption) ([]*Event, error)
+	Write(event *Event, opts ...WriteOption) error
 }
 
 // Event is the object returned by the broker when you subscribe to a topic
