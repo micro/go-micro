@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -147,10 +148,7 @@ type Source struct {
 // Name to be passed to RPC call runtime.Create Update Delete
 // eg: `helloworld/api`, `crufter/myrepo/helloworld/api`, `localfolder`
 func (s *Source) RuntimeName() string {
-	if s.Repo == "github.com/micro/services" || s.Repo == "" {
-		return s.Folder
-	}
-	return fmt.Sprintf("%v/%v", strings.ReplaceAll(s.Repo, "github.com/", ""), s.Folder)
+	return path.Base(s.Folder)
 }
 
 // Source to be passed to RPC call runtime.Create Update Delete
@@ -159,18 +157,11 @@ func (s *Source) RuntimeSource() string {
 	if s.Local {
 		return s.FullPath
 	}
-	if s.Repo == "github.com/micro/services" || s.Repo == "" {
-		return s.Folder
-	}
 	return fmt.Sprintf("%v/%v", s.Repo, s.Folder)
 }
 
 // ParseSource parses a `micro run/update/kill` source.
 func ParseSource(source string) (*Source, error) {
-	// If github is not present, we got a shorthand for `micro/services`
-	if !strings.Contains(source, "github.com") {
-		source = "github.com/micro/services/" + source
-	}
 	if !strings.Contains(source, "@") {
 		source += "@latest"
 	}
@@ -196,18 +187,7 @@ func ParseSourceLocal(workDir, source string, pathExistsFunc ...func(path string
 	} else {
 		pexists = pathExistsFunc[0]
 	}
-	isLocal := false
-	localFullPath := ""
-	// Check for absolute path
-	// @todo "/" won't work for Windows
-	if exists, err := pexists(source); strings.HasPrefix(source, "/") && err == nil && exists {
-		isLocal = true
-		localFullPath = source
-		// Check for path relative to workdir
-	} else if exists, err := pexists(filepath.Join(workDir, source)); err == nil && exists {
-		isLocal = true
-		localFullPath = filepath.Join(workDir, source)
-	}
+	isLocal, localFullPath := IsLocal(workDir, source, pexists)
 	if isLocal {
 		localRepoRoot, err := GetRepoRoot(localFullPath)
 		if err != nil {
@@ -231,6 +211,26 @@ func ParseSourceLocal(workDir, source string, pathExistsFunc ...func(path string
 		}, nil
 	}
 	return ParseSource(source)
+}
+
+// IsLocal tries returns true and full path of directory if the path is a local one, and
+// false and empty string if not.
+func IsLocal(workDir, source string, pathExistsFunc ...func(path string) (bool, error)) (bool, string) {
+	var pexists func(string) (bool, error)
+	if len(pathExistsFunc) == 0 {
+		pexists = pathExists
+	} else {
+		pexists = pathExistsFunc[0]
+	}
+	// Check for absolute path
+	// @todo "/" won't work for Windows
+	if exists, err := pexists(source); strings.HasPrefix(source, "/") && err == nil && exists {
+		return true, source
+		// Check for path relative to workdir
+	} else if exists, err := pexists(filepath.Join(workDir, source)); err == nil && exists {
+		return true, filepath.Join(workDir, source)
+	}
+	return false, ""
 }
 
 // CheckoutSource for the local runtime server
