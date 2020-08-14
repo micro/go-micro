@@ -104,3 +104,16 @@ type Service struct {
 	// Metadata stores metadata
 	Metadata map[string]string
 }
+
+// Resources which are allocated to a serivce
+type Resources struct {
+	// CPU is the maximum amount of CPU the service will be allocated (unit millicpu)
+	// e.g. 0.25CPU would be passed as 250
+	CPU int
+	// Mem is the maximum amount of memory the service will be allocated (unit mebibyte)
+	// e.g. 128 MiB of memory would be passed as 128
+	Mem int
+	// Disk is the maximum amount of disk space the service will be allocated (unit mebibyte)
+	// e.g. 128 MiB of memory would be passed as 128
+	Disk int
+}
