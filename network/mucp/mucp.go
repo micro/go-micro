@@ -1341,6 +1341,11 @@ func (n *mucpNetwork) manage() {
 			routers := make(map[string]bool)
 
 			for _, route := range routes {
+				// don't process routes originated by ourselves
+				if route.Router == n.Id() {
+					continue
+				}
+
 				// check if its been processed
 				if _, ok := routers[route.Router]; ok {
 					continue
@@ -1353,6 +1358,7 @@ func (n *mucpNetwork) manage() {
 				if peer := n.node.GetPeerNode(route.Router); peer != nil {
 					continue
 				}
+
 				// otherwise delete all the routes originated by it
 				if err := n.pruneRoutes(router.QueryRouter(route.Router)); err != nil {
 					if logger.V(logger.DebugLevel, logger.DefaultLogger) {
