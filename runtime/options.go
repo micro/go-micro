@@ -84,6 +84,15 @@ type CreateOptions struct {
 	Context context.Context
 	// Secrets to use
 	Secrets map[string]string
+	// CPULimit is the maximum amount of CPU the service will be allocated (unit millicpu)
+	// e.g. 0.25CPU would be passed as 250
+	CPULimit int
+	// MemoryLimit is the maximum amount of memory the service will be allocated (unit mebibyte)
+	// e.g. 128 MiB of memory would be passed as 128
+	MemoryLimit int
+	// DiskLimit is the maximum amount of disk space the service will be allocated (unit mebibyte)
+	// e.g. 128 MiB of memory would be passed as 128
+	DiskLimit int
 }
 
 // ReadOptions queries runtime services
@@ -173,6 +182,30 @@ func WithEnv(env []string) CreateOption {
 func WithOutput(out io.Writer) CreateOption {
 	return func(o *CreateOptions) {
 		o.Output = out
+	}
+}
+
+// CPULimit is the maximum amount of CPU the service will be allocated (unit millicpu)
+// e.g. 0.25CPU would be passed as 250
+func CPULimit(limit int) CreateOption {
+	return func(o *CreateOptions) {
+		o.CPULimit = limit
+	}
+}
+
+// MemoryLimit is the maximum amount of memory the service will be allocated (unit mebibyte)
+// e.g. 128 MiB of memory would be passed as 128
+func MemoryLimit(limit int) CreateOption {
+	return func(o *CreateOptions) {
+		o.MemoryLimit = limit
+	}
+}
+
+// DiskLimit is the maximum amount of disk space the service will be allocated (unit mebibyte)
+// e.g. 128 MiB of memory would be passed as 128
+func DiskLimit(limit int) CreateOption {
+	return func(o *CreateOptions) {
+		o.DiskLimit = limit
 	}
 }
 
