@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/micro/go-micro/v3/events"
 	"github.com/micro/go-micro/v3/logger"
 	log "github.com/micro/go-micro/v3/logger"
 	"github.com/micro/go-micro/v3/runtime"
@@ -249,7 +250,7 @@ func (k *kubernetes) getService(labels map[string]string, opts ...client.GetOpti
 }
 
 // run runs the runtime management loop
-func (k *kubernetes) run(events <-chan runtime.Event) {
+func (k *kubernetes) run(events <-chan events.Event) {
 	t := time.NewTicker(time.Second * 10)
 	defer t.Stop()
 
@@ -259,20 +260,28 @@ func (k *kubernetes) run(events <-chan runtime.Event) {
 			// TODO: figure out what to do here
 			// - do we even need the ticker for k8s services?
 		case event := <-events:
+			var payload runtime.EventPayload
+			if err := event.Unmarshal(&payload); err != nil {
+				if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
+					logger.Errorf("Runtime failed to unmarshal event %v: %v", event.ID, err)
+				}
+				continue
+			}
+
 			// NOTE: we only handle Update events for now
 			if log.V(log.DebugLevel, log.DefaultLogger) {
 				log.Debugf("Runtime received notification event: %v", event)
 			}
-			switch event.Type {
-			case runtime.Update:
+			switch event.Topic {
+			case runtime.UpdatedEvent:
 				// only process if there's an actual service
 				// we do not update all the things individually
-				if event.Service == nil {
+				if payload.Service == nil {
 					continue
 				}
 
 				// format the name
-				name := client.Format(event.Service.Name)
+				name := client.Format(payload.Service.Name)
 
 				// set the default labels
 				labels := map[string]string{
@@ -280,8 +289,8 @@ func (k *kubernetes) run(events <-chan runtime.Event) {
 					"name":  name,
 				}
 
-				if len(event.Service.Version) > 0 {
-					labels["version"] = event.Service.Version
+				if len(payload.Service.Version) > 0 {
+					labels["version"] = payload.Service.Version
 				}
 
 				// get the deployment status
@@ -295,7 +304,7 @@ func (k *kubernetes) run(events <-chan runtime.Event) {
 
 				if err != nil {
 					if log.V(log.DebugLevel, log.DefaultLogger) {
-						log.Debugf("Runtime update failed to get service %s: %v", event.Service, err)
+						log.Debugf("Runtime update failed to get service %s: %v", payload.Service, err)
 					}
 					continue
 				}
@@ -316,11 +325,11 @@ func (k *kubernetes) run(events <-chan runtime.Event) {
 					service.Spec.Template.Metadata.Annotations["updated"] = fmt.Sprintf("%d", event.Timestamp.Unix())
 
 					if log.V(log.DebugLevel, log.DefaultLogger) {
-						log.Debugf("Runtime updating service: %s deployment: %s", event.Service, service.Metadata.Name)
+						log.Debugf("Runtime updating service: %s deployment: %s", payload.Service, service.Metadata.Name)
 					}
 					if err := k.client.Update(deploymentResource(&service)); err != nil {
 						if log.V(log.DebugLevel, log.DefaultLogger) {
-							log.Debugf("Runtime failed to update service %s: %v", event.Service, err)
+							log.Debugf("Runtime failed to update service %s: %v", payload.Service, err)
 						}
 						continue
 					}
@@ -603,7 +612,7 @@ func (k *kubernetes) Start() error {
 	k.running = true
 	k.closed = make(chan bool)
 
-	var events <-chan runtime.Event
+	var events <-chan events.Event
 	if k.options.Scheduler != nil {
 		var err error
 		events, err = k.options.Scheduler.Notify()

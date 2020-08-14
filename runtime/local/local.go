@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/hpcloud/tail"
+	"github.com/micro/go-micro/v3/events"
 	"github.com/micro/go-micro/v3/logger"
 	"github.com/micro/go-micro/v3/runtime"
 	"github.com/micro/go-micro/v3/runtime/local/git"
@@ -118,12 +119,12 @@ func (r *localRuntime) Init(opts ...runtime.Option) error {
 }
 
 // run runs the runtime management loop
-func (r *localRuntime) run(events <-chan runtime.Event) {
+func (r *localRuntime) run(evChan <-chan events.Event) {
 	t := time.NewTicker(time.Second * 5)
 	defer t.Stop()
 
 	// process event processes an incoming event
-	processEvent := func(event runtime.Event, service *service, ns string) error {
+	processEvent := func(event events.Event, service *service, ns string) error {
 		// get current vals
 		r.RLock()
 		name := service.Name
@@ -188,17 +189,26 @@ func (r *localRuntime) run(events <-chan runtime.Event) {
 					logger.Debugf("Runtime error starting service %s: %v", service.Name, err)
 				}
 			}
-		case event := <-events:
+		case event := <-evChan:
 			if logger.V(logger.DebugLevel, logger.DefaultLogger) {
 				logger.Debugf("Runtime received notification event: %v", event)
 			}
+
 			// NOTE: we only handle Update events for now
-			switch event.Type {
-			case runtime.Update:
-				if event.Service != nil {
+			switch event.Topic {
+			case runtime.UpdatedEvent:
+				var payload runtime.EventPayload
+				if err := event.Unmarshal(&payload); err != nil {
+					if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
+						logger.Errorf("Runtime failed to unmarshal event %v: %v", event.ID, err)
+					}
+					continue
+				}
+
+				if payload.Service != nil {
 					ns := defaultNamespace
-					if event.Options != nil && len(event.Options.Namespace) > 0 {
-						ns = event.Options.Namespace
+					if payload.Options != nil && len(payload.Options.Namespace) > 0 {
+						ns = payload.Options.Namespace
 					}
 
 					r.RLock()
@@ -209,15 +219,15 @@ func (r *localRuntime) run(events <-chan runtime.Event) {
 						r.RUnlock()
 						continue
 					}
-					service, ok := r.namespaces[ns][fmt.Sprintf("%v:%v", event.Service.Name, event.Service.Version)]
+					service, ok := r.namespaces[ns][fmt.Sprintf("%v:%v", payload.Service.Name, payload.Service.Version)]
 					r.RUnlock()
 					if !ok {
-						logger.Debugf("Runtime unknown service: %s", event.Service)
+						logger.Debugf("Runtime unknown service: %s", payload.Service)
 					}
 
 					if err := processEvent(event, service, ns); err != nil {
 						if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-							logger.Debugf("Runtime error updating service %s: %v", event.Service, err)
+							logger.Debugf("Runtime error updating service %s: %v", payload.Service, err)
 						}
 					}
 					continue
@@ -563,7 +573,7 @@ func (r *localRuntime) Start() error {
 	r.running = true
 	r.closed = make(chan bool)
 
-	var events <-chan runtime.Event
+	var events <-chan events.Event
 	if r.options.Scheduler != nil {
 		var err error
 		events, err = r.options.Scheduler.Notify()

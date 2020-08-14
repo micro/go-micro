@@ -3,7 +3,8 @@ package runtime
 
 import (
 	"errors"
-	"time"
+
+	"github.com/micro/go-micro/v3/events"
 )
 
 var (
@@ -48,49 +49,9 @@ type Log struct {
 // Scheduler is a runtime service scheduler
 type Scheduler interface {
 	// Notify publishes schedule events
-	Notify() (<-chan Event, error)
+	Notify() (<-chan events.Event, error)
 	// Close stops the scheduler
 	Close() error
-}
-
-// EventType defines schedule event
-type EventType int
-
-const (
-	// Create is emitted when a new build has been craeted
-	Create EventType = iota
-	// Update is emitted when a new update become available
-	Update
-	// Delete is emitted when a build has been deleted
-	Delete
-)
-
-// String returns human readable event type
-func (t EventType) String() string {
-	switch t {
-	case Create:
-		return "create"
-	case Delete:
-		return "delete"
-	case Update:
-		return "update"
-	default:
-		return "unknown"
-	}
-}
-
-// Event is notification event
-type Event struct {
-	// ID of the event
-	ID string
-	// Type is event type
-	Type EventType
-	// Timestamp is event timestamp
-	Timestamp time.Time
-	// Service the event relates to
-	Service *Service
-	// Options to use when processing the event
-	Options *CreateOptions
 }
 
 // Service is runtime service
