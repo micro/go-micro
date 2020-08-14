@@ -106,13 +106,13 @@ func newService(s *runtime.Service, c runtime.CreateOptions) *service {
 	// apply resource limits
 	resLimits := &client.ResourceLimits{}
 	if c.CPULimit > 0 {
-		resLimits.CPU = fmt.Sprintf("%vMi", c.CPULimit)
+		resLimits.CPU = fmt.Sprintf("%vm", c.CPULimit)
 	}
 	if c.MemoryLimit > 0 {
-		resLimits.Memory = fmt.Sprintf("%vm", c.MemoryLimit)
+		resLimits.Memory = fmt.Sprintf("%vMi", c.MemoryLimit)
 	}
 	if c.DiskLimit > 0 {
-		resLimits.EphemeralStorage = fmt.Sprintf("%vm", c.DiskLimit)
+		resLimits.EphemeralStorage = fmt.Sprintf("%vMi", c.DiskLimit)
 	}
 	kdeploy.Spec.Template.PodSpec.Containers[0].Resources = &client.ResourceRequirements{Limits: resLimits}
 
