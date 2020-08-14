@@ -5,8 +5,8 @@ import (
 	"time"
 )
 
-// Broker of events
-type Broker interface {
+// Stream of events
+type Stream interface {
 	Publish(topic string, opts ...PublishOption) error
 	Subscribe(topic string, opts ...SubscribeOption) (<-chan Event, error)
 }
