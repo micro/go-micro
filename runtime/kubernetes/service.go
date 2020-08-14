@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"encoding/json"
+	"fmt"
 	"strings"
 	"time"
 
@@ -101,6 +102,19 @@ func newService(s *runtime.Service, c runtime.CreateOptions) *service {
 	if len(c.Args) > 0 {
 		kdeploy.Spec.Template.PodSpec.Containers[0].Args = c.Args
 	}
+
+	// apply resource limits
+	resLimits := &client.ResourceLimits{}
+	if c.CPULimit > 0 {
+		resLimits.CPU = fmt.Sprintf("%vMi", c.CPULimit)
+	}
+	if c.MemoryLimit > 0 {
+		resLimits.Memory = fmt.Sprintf("%vm", c.MemoryLimit)
+	}
+	if c.DiskLimit > 0 {
+		resLimits.EphemeralStorage = fmt.Sprintf("%vm", c.DiskLimit)
+	}
+	kdeploy.Spec.Template.PodSpec.Containers[0].Resources = &client.ResourceRequirements{Limits: resLimits}
 
 	return &service{
 		Service:  s,
