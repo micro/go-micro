@@ -106,23 +106,35 @@ spec:
             periodSeconds: {{ .PeriodSeconds }}
           {{- end }}
           {{- end }}
-          {{-if .Resources }}
-          {{-with .Resources }}
+          {{- if .Resources }}
+          {{- with .Resources }}
           resources:
             {{- if .Limits }}
             {{- with .Limits }}
             limits:
+              {{- if .Memory }}
               memory: {{ .Memory }}
+              {{- end }}
+              {{- if .CPU }}
               cpu: {{ .CPU }}
+              {{- end }}
+              {{- if .EphemeralStorage }}
               ephemeral-storage: {{ .EphemeralStorage }}
+              {{- end }}
             {{- end }}
             {{- end }}
             {{- if .Requests }}
             {{- with .Requests }}
             requests:
+              {{- if .Memory }}
               memory: {{ .Memory }}
+              {{- end }}
+              {{- if .CPU }}
               cpu: {{ .CPU }}
+              {{- end }}
+              {{- if .EphemeralStorage }}
               ephemeral-storage: {{ .EphemeralStorage }}
+              {{- end }}
             {{- end }}
             {{- end }}
           {{- end }}
