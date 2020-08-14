@@ -41,14 +41,6 @@ func (d *dns) Table() router.Table {
 	return d.table
 }
 
-func (d *dns) Advertise() (<-chan *router.Advert, error) {
-	return nil, nil
-}
-
-func (d *dns) Process(*router.Advert) error {
-	return nil
-}
-
 func (d *dns) Lookup(opts ...router.QueryOption) ([]router.Route, error) {
 	return d.table.Query(opts...)
 }

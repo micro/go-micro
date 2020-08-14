@@ -27,10 +27,6 @@ type Router interface {
 	Options() Options
 	// The routing table
 	Table() Table
-	// Advertise advertises routes
-	Advertise() (<-chan *Advert, error)
-	// Process processes incoming adverts
-	Process(*Advert) error
 	// Lookup queries routes in the routing table
 	Lookup(...QueryOption) ([]Route, error)
 	// Watch returns a watcher which tracks updates to the routing table
