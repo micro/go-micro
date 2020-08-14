@@ -19,6 +19,7 @@ import (
 	pb "github.com/micro/go-micro/v3/network/mucp/proto"
 	"github.com/micro/go-micro/v3/network/resolver/dns"
 	"github.com/micro/go-micro/v3/proxy"
+	"github.com/micro/go-micro/v3/registry/noop"
 	"github.com/micro/go-micro/v3/router"
 	"github.com/micro/go-micro/v3/server"
 	smucp "github.com/micro/go-micro/v3/server/mucp"
@@ -156,6 +157,7 @@ func NewNetwork(opts ...network.Option) network.Network {
 	)
 
 	// server is network server
+	// TODO: use the real registry
 	server := smucp.NewServer(
 		server.Id(options.Id),
 		server.Address(peerAddress),
@@ -163,6 +165,7 @@ func NewNetwork(opts ...network.Option) network.Network {
 		server.Name(options.Name),
 		server.Transport(tunTransport),
 		server.Broker(tunBroker),
+		server.Registry(noop.NewRegistry()),
 	)
 
 	// client is network client
