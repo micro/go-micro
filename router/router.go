@@ -3,7 +3,6 @@ package router
 
 import (
 	"errors"
-	"time"
 )
 
 var (
@@ -27,10 +26,6 @@ type Router interface {
 	Options() Options
 	// The routing table
 	Table() Table
-	// Advertise advertises routes
-	Advertise() (<-chan *Advert, error)
-	// Process processes incoming adverts
-	Process(*Advert) error
 	// Lookup queries routes in the routing table
 	Lookup(...QueryOption) ([]Route, error)
 	// Watch returns a watcher which tracks updates to the routing table
@@ -64,77 +59,8 @@ type StatusCode int
 const (
 	// Running means the router is up and running
 	Running StatusCode = iota
-	// Advertising means the router is advertising
-	Advertising
 	// Stopped means the router has been stopped
 	Stopped
 	// Error means the router has encountered error
 	Error
 )
-
-// AdvertType is route advertisement type
-type AdvertType int
-
-const (
-	// Announce is advertised when the router announces itself
-	Announce AdvertType = iota
-	// RouteUpdate advertises route updates
-	RouteUpdate
-)
-
-// String returns human readable advertisement type
-func (t AdvertType) String() string {
-	switch t {
-	case Announce:
-		return "announce"
-	case RouteUpdate:
-		return "update"
-	default:
-		return "unknown"
-	}
-}
-
-// Advert contains a list of events advertised by the router to the network
-type Advert struct {
-	// Id is the router Id
-	Id string
-	// Type is type of advert
-	Type AdvertType
-	// Timestamp marks the time when the update is sent
-	Timestamp time.Time
-	// TTL is Advert TTL
-	TTL time.Duration
-	// Events is a list of routing table events to advertise
-	Events []*Event
-}
-
-// Strategy is route advertisement strategy
-type Strategy int
-
-// TODO: remove the "Advertise" prefix from these
-const (
-	// AdvertiseAll advertises all routes to the network
-	AdvertiseAll Strategy = iota
-	// AdvertiseBest advertises optimal routes to the network
-	AdvertiseBest
-	// AdvertiseLocal will only advertise the local routes
-	AdvertiseLocal
-	// AdvertiseNone will not advertise any routes
-	AdvertiseNone
-)
-
-// String returns human readable Strategy
-func (s Strategy) String() string {
-	switch s {
-	case AdvertiseAll:
-		return "all"
-	case AdvertiseBest:
-		return "best"
-	case AdvertiseLocal:
-		return "local"
-	case AdvertiseNone:
-		return "none"
-	default:
-		return "unknown"
-	}
-}
