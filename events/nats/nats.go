@@ -14,7 +14,7 @@ import (
 
 const (
 	defaultClusterID = "micro"
-	firehoseTopic    = "firehose"
+	eventsTopic      = "events"
 )
 
 // NewStream returns an initialized nats stream or an error if the connection to the nats
@@ -63,10 +63,16 @@ func (s *stream) Publish(topic string, opts ...events.PublishOption) error {
 		o(&options)
 	}
 
-	// marshal the message
-	payload, err := json.Marshal(options.Payload)
-	if err != nil {
-		return events.ErrEncodingMessage
+	// encode the message if it's not already encoded
+	var payload []byte
+	if p, ok := options.Payload.([]byte); ok {
+		payload = p
+	} else {
+		p, err := json.Marshal(options.Payload)
+		if err != nil {
+			return events.ErrEncodingMessage
+		}
+		payload = p
 	}
 
 	// construct the event
@@ -84,9 +90,9 @@ func (s *stream) Publish(topic string, opts ...events.PublishOption) error {
 		return errors.Wrap(err, "Error encoding event")
 	}
 
-	// publish the event to the firehouse channel
-	if _, err := s.conn.PublishAsync(firehoseTopic, bytes, nil); err != nil {
-		return errors.Wrap(err, "Error publishing message to firehouse")
+	// publish the event to the events channel
+	if _, err := s.conn.PublishAsync(eventsTopic, bytes, nil); err != nil {
+		return errors.Wrap(err, "Error publishing message to events")
 	}
 
 	// publish the event to the topic's channel
@@ -101,7 +107,7 @@ func (s *stream) Publish(topic string, opts ...events.PublishOption) error {
 func (s *stream) Subscribe(opts ...events.SubscribeOption) (<-chan events.Event, error) {
 	// parse the options
 	options := events.SubscribeOptions{
-		Topic: firehoseTopic,
+		Topic: eventsTopic,
 		Queue: uuid.New().String(),
 	}
 	for _, o := range opts {

@@ -55,10 +55,16 @@ func (m *mem) Publish(topic string, opts ...events.PublishOption) error {
 		o(&options)
 	}
 
-	// marshal the message
-	payload, err := json.Marshal(options.Payload)
-	if err != nil {
-		return events.ErrEncodingMessage
+	// encode the message if it's not already encoded
+	var payload []byte
+	if p, ok := options.Payload.([]byte); ok {
+		payload = p
+	} else {
+		p, err := json.Marshal(options.Payload)
+		if err != nil {
+			return events.ErrEncodingMessage
+		}
+		payload = p
 	}
 
 	// construct the event
