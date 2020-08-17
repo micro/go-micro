@@ -7,6 +7,7 @@ import (
 	"github.com/micro/go-micro/v3/broker"
 	"github.com/micro/go-micro/v3/broker/http"
 	"github.com/micro/go-micro/v3/codec"
+	"github.com/micro/go-micro/v3/registry"
 	"github.com/micro/go-micro/v3/router"
 	regRouter "github.com/micro/go-micro/v3/router/registry"
 	"github.com/micro/go-micro/v3/selector"
@@ -181,6 +182,13 @@ func PoolTTL(d time.Duration) Option {
 func Transport(t transport.Transport) Option {
 	return func(o *Options) {
 		o.Transport = t
+	}
+}
+
+// Registry sets the routers registry
+func Registry(r registry.Registry) Option {
+	return func(o *Options) {
+		o.Router.Init(router.Registry(r))
 	}
 }
 
