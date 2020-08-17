@@ -20,8 +20,6 @@ type Options struct {
 	Network string
 	// Registry is the local registry
 	Registry registry.Registry
-	// Advertise is the advertising strategy
-	Advertise Strategy
 	// Context for additional options
 	Context context.Context
 	// Precache routes
@@ -63,13 +61,6 @@ func Registry(r registry.Registry) Option {
 	}
 }
 
-// Advertise sets route advertising strategy
-func Advertise(a Strategy) Option {
-	return func(o *Options) {
-		o.Advertise = a
-	}
-}
-
 // Precache the routes
 func Precache() Option {
 	return func(o *Options) {
@@ -80,11 +71,10 @@ func Precache() Option {
 // DefaultOptions returns router default options
 func DefaultOptions() Options {
 	return Options{
-		Id:        uuid.New().String(),
-		Address:   DefaultAddress,
-		Network:   DefaultNetwork,
-		Registry:  mdns.NewRegistry(),
-		Advertise: AdvertiseLocal,
-		Context:   context.Background(),
+		Id:       uuid.New().String(),
+		Address:  DefaultAddress,
+		Network:  DefaultNetwork,
+		Registry: mdns.NewRegistry(),
+		Context:  context.Background(),
 	}
 }
