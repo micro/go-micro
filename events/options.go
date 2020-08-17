@@ -39,27 +39,38 @@ func WithTimestamp(t time.Time) PublishOption {
 
 // SubscribeOptions contains all the options which can be provided when subscribing to a topic
 type SubscribeOptions struct {
-	// Prefix when true will return any event which has the prefix of the topic, not just exact matches
-	Prefix bool
 	// Queue is the name of the subscribers queue, if two subscribers have the same queue the message
 	// should only be published to one of them
 	Queue string
+	// Topic to subscribe to, if left blank the consumer will be subscribed to the firehouse topic which
+	// recieves all events
+	Topic string
+	// StartAtTime is the time from which the messages should be consumed from. If not provided then
+	// the messages will be consumed starting from the moment the Subscription starts.
+	StartAtTime time.Time
 }
 
 // SubscribeOption sets attributes on SubscribeOptions
 type SubscribeOption func(o *SubscribeOptions)
 
-// WithPrefix sets the Prefix field on SubscribeOptions to true
-func WithPrefix() SubscribeOption {
-	return func(o *SubscribeOptions) {
-		o.Prefix = true
-	}
-}
-
 // WithQueue sets the Queue fielf on SubscribeOptions to the value provided
 func WithQueue(q string) SubscribeOption {
 	return func(o *SubscribeOptions) {
 		o.Queue = q
+	}
+}
+
+// WithTopic sets the topic to subscribe to
+func WithTopic(t string) SubscribeOption {
+	return func(o *SubscribeOptions) {
+		o.Topic = t
+	}
+}
+
+// WithStartAtTime sets the StartAtTime field on SubscribeOptions to the value provided
+func WithStartAtTime(t time.Time) SubscribeOption {
+	return func(o *SubscribeOptions) {
+		o.StartAtTime = t
 	}
 }
 
@@ -96,15 +107,15 @@ type ReadOptions struct {
 // ReadOption sets attributes on ReadOptions
 type ReadOption func(o *ReadOptions)
 
-// WithTopic sets the topic attribute on ReadOptions
-func WithTopic(t string) ReadOption {
+// ReadTopic sets the topic attribute on ReadOptions
+func ReadTopic(t string) ReadOption {
 	return func(o *ReadOptions) {
 		o.Topic = t
 	}
 }
 
-// WithFilter sets a key and value in the query
-func WithFilter(key, value string) ReadOption {
+// ReadFilter sets a key and value in the query
+func ReadFilter(key, value string) ReadOption {
 	return func(o *ReadOptions) {
 		if o.Query == nil {
 			o.Query = map[string]string{key: value}
@@ -114,15 +125,15 @@ func WithFilter(key, value string) ReadOption {
 	}
 }
 
-// WithLimit sets the limit attribute on ReadOptions
-func WithLimit(l int) ReadOption {
+// ReadLimit sets the limit attribute on ReadOptions
+func ReadLimit(l int) ReadOption {
 	return func(o *ReadOptions) {
 		o.Limit = 1
 	}
 }
 
-// WithOffset sets the offset attribute on ReadOptions
-func WithOffset(l int) ReadOption {
+// ReadOffset sets the offset attribute on ReadOptions
+func ReadOffset(l int) ReadOption {
 	return func(o *ReadOptions) {
 		o.Offset = 1
 	}
