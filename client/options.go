@@ -7,7 +7,6 @@ import (
 	"github.com/micro/go-micro/v3/broker"
 	"github.com/micro/go-micro/v3/broker/http"
 	"github.com/micro/go-micro/v3/codec"
-	"github.com/micro/go-micro/v3/registry"
 	"github.com/micro/go-micro/v3/router"
 	regRouter "github.com/micro/go-micro/v3/router/registry"
 	"github.com/micro/go-micro/v3/selector"
@@ -240,13 +239,6 @@ func Retries(i int) Option {
 func Retry(fn RetryFunc) Option {
 	return func(o *Options) {
 		o.CallOptions.Retry = fn
-	}
-}
-
-// Registry sets the routers registry
-func Registry(r registry.Registry) Option {
-	return func(o *Options) {
-		o.Router.Init(router.Registry(r))
 	}
 }
 
