@@ -219,6 +219,9 @@ func (s *Source) RuntimeSource() string {
 	if s.Local {
 		return s.FullPath
 	}
+	if len(s.Folder) == 0 {
+		return s.Repo
+	}
 	return fmt.Sprintf("%v/%v", s.Repo, s.Folder)
 }
 
