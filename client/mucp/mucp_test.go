@@ -9,10 +9,13 @@ import (
 	"github.com/micro/go-micro/v3/errors"
 	"github.com/micro/go-micro/v3/registry"
 	"github.com/micro/go-micro/v3/registry/memory"
+	"github.com/micro/go-micro/v3/router"
+	regRouter "github.com/micro/go-micro/v3/router/registry"
 )
 
-func newTestRegistry() registry.Registry {
-	return memory.NewRegistry(memory.Services(testData))
+func newTestRouter() router.Router {
+	reg := memory.NewRegistry(memory.Services(testData))
+	return regRouter.NewRouter(router.Registry(reg))
 }
 
 func TestCallAddress(t *testing.T) {
@@ -42,9 +45,10 @@ func TestCallAddress(t *testing.T) {
 		}
 	}
 
-	r := newTestRegistry()
+	r := newTestRouter()
+
 	c := NewClient(
-		client.Registry(r),
+		client.Router(r),
 		client.WrapCall(wrap),
 	)
 
@@ -80,9 +84,9 @@ func TestCallRetry(t *testing.T) {
 		}
 	}
 
-	r := newTestRegistry()
+	r := newTestRouter()
 	c := NewClient(
-		client.Registry(r),
+		client.Router(r),
 		client.WrapCall(wrap),
 	)
 
@@ -127,22 +131,19 @@ func TestCallWrapper(t *testing.T) {
 		}
 	}
 
-	r := newTestRegistry()
+	r := newTestRouter()
 	c := NewClient(
-		client.Registry(r),
+		client.Router(r),
 		client.WrapCall(wrap),
 	)
 
-	r.Register(&registry.Service{
+	r.Options().Registry.Register(&registry.Service{
 		Name:    service,
 		Version: "latest",
 		Nodes: []*registry.Node{
 			{
 				Id:      id,
 				Address: address,
-				Metadata: map[string]string{
-					"protocol": "mucp",
-				},
 			},
 		},
 	})
