@@ -1,21 +1,21 @@
 package client
 
 import (
-	"math/rand"
+	"context"
 
 	"github.com/micro/go-micro/v3/errors"
 	"github.com/micro/go-micro/v3/router"
-	"github.com/micro/go-micro/v3/selector"
 )
 
+// LookupFunc is used to lookup routes for a service
+// TODO: move to returning []string. error
+type LookupFunc func(context.Context, Request, CallOptions) ([]string, error)
+
 // LookupRoute for a request using the router and then choose one using the selector
-func LookupRoute(req Request, opts CallOptions) (*router.Route, error) {
+func LookupRoute(ctx context.Context, req Request, opts CallOptions) ([]string, error) {
 	// check to see if an address was provided as a call option
 	if len(opts.Address) > 0 {
-		return &router.Route{
-			Service: req.Service(),
-			Address: opts.Address[rand.Int()%len(opts.Address)],
-		}, nil
+		return opts.Address, nil
 	}
 
 	// construct the router query
@@ -35,12 +35,11 @@ func LookupRoute(req Request, opts CallOptions) (*router.Route, error) {
 		return nil, errors.InternalServerError("go.micro.client", "error getting next %s node: %s", req.Service(), err.Error())
 	}
 
-	// select the route to use for the request
-	if route, err := opts.Selector.Select(routes, opts.SelectOptions...); err == selector.ErrNoneAvailable {
-		return nil, errors.InternalServerError("go.micro.client", "service %s: %s", req.Service(), err.Error())
-	} else if err != nil {
-		return nil, errors.InternalServerError("go.micro.client", "error getting next %s node: %s", req.Service(), err.Error())
-	} else {
-		return route, nil
+	var addrs []string
+
+	for _, route := range routes {
+		addrs = append(addrs, route.Address)
 	}
+
+	return addrs, nil
 }
