@@ -8,7 +8,6 @@ import (
 )
 
 // LookupFunc is used to lookup routes for a service
-// TODO: move to returning []string. error
 type LookupFunc func(context.Context, Request, CallOptions) ([]string, error)
 
 // LookupRoute for a request using the router and then choose one using the selector
