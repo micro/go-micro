@@ -182,8 +182,6 @@ func GetRepoRoot(fullPath string) (string, error) {
 	return "", nil
 }
 
-const defaultRepo = "github.com/micro/services"
-
 // Source is not just git related @todo move
 type Source struct {
 	// is it a local folder intended for a local runtime?
