@@ -1,3 +1,4 @@
+// Package events contains interfaces for managing events within distributed systems
 package events
 
 import (
