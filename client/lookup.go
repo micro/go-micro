@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"sort"
 
 	"github.com/micro/go-micro/v3/errors"
 	"github.com/micro/go-micro/v3/router"
@@ -33,6 +34,11 @@ func LookupRoute(ctx context.Context, req Request, opts CallOptions) ([]string, 
 	} else if err != nil {
 		return nil, errors.InternalServerError("go.micro.client", "error getting next %s node: %s", req.Service(), err.Error())
 	}
+
+	// sort by lowest metric first
+	sort.Slice(routes, func(i, j int) bool {
+		return routes[i].Metric < routes[j].Metric
+	})
 
 	var addrs []string
 
