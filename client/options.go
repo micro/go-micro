@@ -7,10 +7,10 @@ import (
 	"github.com/micro/go-micro/v3/broker"
 	"github.com/micro/go-micro/v3/broker/http"
 	"github.com/micro/go-micro/v3/codec"
-	"github.com/micro/go-micro/v3/registry"
 	"github.com/micro/go-micro/v3/router"
 	regRouter "github.com/micro/go-micro/v3/router/registry"
 	"github.com/micro/go-micro/v3/selector"
+	"github.com/micro/go-micro/v3/selector/random"
 	"github.com/micro/go-micro/v3/transport"
 	thttp "github.com/micro/go-micro/v3/transport/http"
 )
@@ -27,6 +27,9 @@ type Options struct {
 	Router    router.Router
 	Selector  selector.Selector
 	Transport transport.Transport
+
+	// Lookup used for looking up routes
+	Lookup LookupFunc
 
 	// Connection Pool
 	PoolSize int
@@ -116,11 +119,12 @@ func NewOptions(options ...Option) Options {
 			RequestTimeout: DefaultRequestTimeout,
 			DialTimeout:    transport.DefaultDialTimeout,
 		},
+		Lookup:    LookupRoute,
 		PoolSize:  DefaultPoolSize,
 		PoolTTL:   DefaultPoolTTL,
 		Broker:    http.NewBroker(),
 		Router:    regRouter.NewRouter(),
-		Selector:  selector.DefaultSelector,
+		Selector:  random.NewSelector(),
 		Transport: thttp.NewTransport(),
 	}
 
@@ -216,6 +220,13 @@ func Backoff(fn BackoffFunc) Option {
 	}
 }
 
+// Lookup sets the lookup function to use for resolving service names
+func Lookup(l LookupFunc) Option {
+	return func(o *Options) {
+		o.Lookup = l
+	}
+}
+
 // Number of retries when making the request.
 // Should this be a Call Option?
 func Retries(i int) Option {
@@ -228,13 +239,6 @@ func Retries(i int) Option {
 func Retry(fn RetryFunc) Option {
 	return func(o *Options) {
 		o.CallOptions.Retry = fn
-	}
-}
-
-// Registry sets the routers registry
-func Registry(r registry.Registry) Option {
-	return func(o *Options) {
-		o.Router.Init(router.Registry(r))
 	}
 }
 

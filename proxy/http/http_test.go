@@ -10,6 +10,8 @@ import (
 	"github.com/micro/go-micro/v3/client"
 	cmucp "github.com/micro/go-micro/v3/client/mucp"
 	"github.com/micro/go-micro/v3/registry/memory"
+	"github.com/micro/go-micro/v3/router"
+	"github.com/micro/go-micro/v3/router/registry"
 	"github.com/micro/go-micro/v3/server"
 	"github.com/micro/go-micro/v3/server/mucp"
 )
@@ -53,6 +55,9 @@ func TestHTTPProxy(t *testing.T) {
 	defer cancel()
 
 	reg := memory.NewRegistry()
+	rtr := registry.NewRouter(
+		router.Registry(reg),
+	)
 
 	// new micro service
 	service := mucp.NewServer(
@@ -70,7 +75,7 @@ func TestHTTPProxy(t *testing.T) {
 	go http.Serve(c, nil)
 
 	cl := cmucp.NewClient(
-		client.Registry(reg),
+		client.Router(rtr),
 	)
 
 	for _, test := range testCases {

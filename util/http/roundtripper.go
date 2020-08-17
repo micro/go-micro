@@ -21,18 +21,12 @@ func (r *roundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 	}
 
 	// rudimentary retry 3 times
-	for i := 0; i < 3; i++ {
-		route, err := r.st.Select(routes)
-		if err != nil {
-			continue
-		}
-
+	for _, route := range routes {
 		req.URL.Host = route.Address
 		w, err := r.rt.RoundTrip(req)
 		if err != nil {
 			continue
 		}
-
 		return w, nil
 	}
 

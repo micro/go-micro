@@ -9,10 +9,13 @@ import (
 	"github.com/micro/go-micro/v3/errors"
 	"github.com/micro/go-micro/v3/registry"
 	"github.com/micro/go-micro/v3/registry/memory"
+	"github.com/micro/go-micro/v3/router"
+	regRouter "github.com/micro/go-micro/v3/router/registry"
 )
 
-func newTestRegistry() registry.Registry {
-	return memory.NewRegistry(memory.Services(testData))
+func newTestRouter() router.Router {
+	reg := memory.NewRegistry(memory.Services(testData))
+	return regRouter.NewRouter(router.Registry(reg))
 }
 
 func TestCallAddress(t *testing.T) {
@@ -22,7 +25,7 @@ func TestCallAddress(t *testing.T) {
 	address := "10.1.10.1:8080"
 
 	wrap := func(cf client.CallFunc) client.CallFunc {
-		return func(ctx context.Context, node *registry.Node, req client.Request, rsp interface{}, opts client.CallOptions) error {
+		return func(ctx context.Context, node string, req client.Request, rsp interface{}, opts client.CallOptions) error {
 			called = true
 
 			if req.Service() != service {
@@ -33,8 +36,8 @@ func TestCallAddress(t *testing.T) {
 				return fmt.Errorf("expected service: %s got %s", endpoint, req.Endpoint())
 			}
 
-			if node.Address != address {
-				return fmt.Errorf("expected address: %s got %s", address, node.Address)
+			if node != address {
+				return fmt.Errorf("expected address: %s got %s", address, node)
 			}
 
 			// don't do the call
@@ -42,9 +45,10 @@ func TestCallAddress(t *testing.T) {
 		}
 	}
 
-	r := newTestRegistry()
+	r := newTestRouter()
+
 	c := NewClient(
-		client.Registry(r),
+		client.Router(r),
 		client.WrapCall(wrap),
 	)
 
@@ -69,7 +73,7 @@ func TestCallRetry(t *testing.T) {
 	var called int
 
 	wrap := func(cf client.CallFunc) client.CallFunc {
-		return func(ctx context.Context, node *registry.Node, req client.Request, rsp interface{}, opts client.CallOptions) error {
+		return func(ctx context.Context, node string, req client.Request, rsp interface{}, opts client.CallOptions) error {
 			called++
 			if called == 1 {
 				return errors.InternalServerError("test.error", "retry request")
@@ -80,9 +84,9 @@ func TestCallRetry(t *testing.T) {
 		}
 	}
 
-	r := newTestRegistry()
+	r := newTestRouter()
 	c := NewClient(
-		client.Registry(r),
+		client.Router(r),
 		client.WrapCall(wrap),
 	)
 
@@ -107,7 +111,7 @@ func TestCallWrapper(t *testing.T) {
 	address := "10.1.10.1:8080"
 
 	wrap := func(cf client.CallFunc) client.CallFunc {
-		return func(ctx context.Context, node *registry.Node, req client.Request, rsp interface{}, opts client.CallOptions) error {
+		return func(ctx context.Context, node string, req client.Request, rsp interface{}, opts client.CallOptions) error {
 			called = true
 
 			if req.Service() != service {
@@ -118,8 +122,8 @@ func TestCallWrapper(t *testing.T) {
 				return fmt.Errorf("expected service: %s got %s", endpoint, req.Endpoint())
 			}
 
-			if node.Address != address {
-				return fmt.Errorf("expected address: %s got %s", address, node.Address)
+			if node != address {
+				return fmt.Errorf("expected address: %s got %s", address, node)
 			}
 
 			// don't do the call
@@ -127,22 +131,19 @@ func TestCallWrapper(t *testing.T) {
 		}
 	}
 
-	r := newTestRegistry()
+	r := newTestRouter()
 	c := NewClient(
-		client.Registry(r),
+		client.Router(r),
 		client.WrapCall(wrap),
 	)
 
-	r.Register(&registry.Service{
+	r.Options().Registry.Register(&registry.Service{
 		Name:    service,
 		Version: "latest",
 		Nodes: []*registry.Node{
 			{
 				Id:      id,
 				Address: address,
-				Metadata: map[string]string{
-					"protocol": "mucp",
-				},
 			},
 		},
 	})
