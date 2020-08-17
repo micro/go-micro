@@ -217,7 +217,7 @@ func (t *table) List() ([]router.Route, error) {
 }
 
 // isMatch checks if the route matches given query options
-func isMatch(route router.Route, address, gateway, network, rtr string, strategy router.Strategy) bool {
+func isMatch(route router.Route, address, gateway, network, rtr, link string) bool {
 	// matches the values provided
 	match := func(a, b string) bool {
 		if a == "*" || b == "*" || a == b {
@@ -230,13 +230,6 @@ func isMatch(route router.Route, address, gateway, network, rtr string, strategy
 	type compare struct {
 		a string
 		b string
-	}
-
-	// by default assume we are querying all routes
-	link := "*"
-	// if AdvertiseLocal change the link query accordingly
-	if strategy == router.AdvertiseLocal {
-		link = "local"
 	}
 
 	// compare the following values
@@ -264,7 +257,7 @@ func filterRoutes(routes map[uint64]*route, opts router.QueryOptions) []router.R
 	gateway := opts.Gateway
 	network := opts.Network
 	rtr := opts.Router
-	strategy := opts.Strategy
+	link := opts.Link
 
 	// routeMap stores the routes we're going to advertise
 	routeMap := make(map[string][]router.Route)
@@ -273,37 +266,15 @@ func filterRoutes(routes map[uint64]*route, opts router.QueryOptions) []router.R
 		// get the actual route
 		route := rt.route
 
-		if isMatch(route, address, gateway, network, rtr, strategy) {
+		if isMatch(route, address, gateway, network, rtr, link) {
 			// add matchihg route to the routeMap
 			routeKey := route.Service + "@" + route.Network
-			// append the first found route to routeMap
-			_, ok := routeMap[routeKey]
-			if !ok {
-				routeMap[routeKey] = append(routeMap[routeKey], route)
-				continue
-			}
-
-			// if AdvertiseAll, keep appending
-			if strategy == router.AdvertiseAll || strategy == router.AdvertiseLocal {
-				routeMap[routeKey] = append(routeMap[routeKey], route)
-				continue
-			}
-
-			// now we're going to find the best routes
-			if strategy == router.AdvertiseBest {
-				// if the current optimal route metric is higher than routing table route, replace it
-				if len(routeMap[routeKey]) > 0 {
-					// NOTE: we know that when AdvertiseBest is set, we only ever have one item in current
-					if routeMap[routeKey][0].Metric > route.Metric {
-						routeMap[routeKey][0] = route
-						continue
-					}
-				}
-			}
+			routeMap[routeKey] = append(routeMap[routeKey], route)
 		}
 	}
 
 	var results []router.Route
+
 	for _, route := range routeMap {
 		results = append(results, route...)
 	}
@@ -318,11 +289,6 @@ func (t *table) Query(q ...router.QueryOption) ([]router.Route, error) {
 
 	// create a cwslicelist of query results
 	results := make([]router.Route, 0, len(t.routes))
-
-	// if No routes are queried, return early
-	if opts.Strategy == router.AdvertiseNone {
-		return results, nil
-	}
 
 	// readAndFilter routes for this service under read lock.
 	readAndFilter := func(q router.QueryOptions) ([]router.Route, bool) {

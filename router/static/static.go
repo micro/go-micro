@@ -33,14 +33,6 @@ func (s *static) Table() router.Table {
 	return nil
 }
 
-func (s *static) Advertise() (<-chan *router.Advert, error) {
-	return nil, nil
-}
-
-func (s *static) Process(*router.Advert) error {
-	return nil
-}
-
 func (s *static) Lookup(opts ...router.QueryOption) ([]router.Route, error) {
 	return s.table.Query(opts...)
 }

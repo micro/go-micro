@@ -90,8 +90,8 @@ spec:
           {{- range . }}
           - containerPort: {{ .ContainerPort }}
             name: {{ .Name }}
-          {{- end}}
-          {{- end}}
+          {{- end }}
+          {{- end }}
           {{- if .ReadinessProbe }}
           {{- with .ReadinessProbe }}
           readinessProbe:
@@ -104,6 +104,39 @@ spec:
             {{- end }}
             initialDelaySeconds: {{ .InitialDelaySeconds }}
             periodSeconds: {{ .PeriodSeconds }}
+          {{- end }}
+          {{- end }}
+          {{- if .Resources }}
+          {{- with .Resources }}
+          resources:
+            {{- if .Limits }}
+            {{- with .Limits }}
+            limits:
+              {{- if .Memory }}
+              memory: {{ .Memory }}
+              {{- end }}
+              {{- if .CPU }}
+              cpu: {{ .CPU }}
+              {{- end }}
+              {{- if .EphemeralStorage }}
+              ephemeral-storage: {{ .EphemeralStorage }}
+              {{- end }}
+            {{- end }}
+            {{- end }}
+            {{- if .Requests }}
+            {{- with .Requests }}
+            requests:
+              {{- if .Memory }}
+              memory: {{ .Memory }}
+              {{- end }}
+              {{- if .CPU }}
+              cpu: {{ .CPU }}
+              {{- end }}
+              {{- if .EphemeralStorage }}
+              ephemeral-storage: {{ .EphemeralStorage }}
+              {{- end }}
+            {{- end }}
+            {{- end }}
           {{- end }}
           {{- end }}
       {{- end }}
