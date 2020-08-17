@@ -6,6 +6,7 @@ import (
 	"compress/gzip"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
@@ -27,45 +28,102 @@ type binaryGitter struct {
 }
 
 func (g *binaryGitter) Checkout(repo, branchOrCommit string) error {
+	// The implementation of this method is questionable.
+	// We use archives from github/gitlab etc which doesnt require the user to have got
+	// and probably is faster than downloading the whole repo history,
+	// but it comes with a bit of custom code for EACH host.
+	// @todo probably we should fall back to git in case the archives are not available.
+
 	if branchOrCommit == "latest" {
 		branchOrCommit = "master"
 	}
-	// @todo if it's a commit it must not be checked out all the time
-	repoFolder := strings.ReplaceAll(strings.ReplaceAll(repo, "/", "-"), "https://", "")
-	g.folder = filepath.Join(os.TempDir(),
-		repoFolder+"-"+shortid.MustGenerate())
+	if strings.Contains(repo, "github") {
+		// @todo if it's a commit it must not be checked out all the time
+		repoFolder := strings.ReplaceAll(strings.ReplaceAll(repo, "/", "-"), "https://", "")
+		g.folder = filepath.Join(os.TempDir(),
+			repoFolder+"-"+shortid.MustGenerate())
 
-	url := fmt.Sprintf("%v/archive/%v.zip", repo, branchOrCommit)
-	if !strings.HasPrefix(url, "https://") {
-		url = "https://" + url
-	}
-	resp, err := http.Get(url)
-	if err != nil {
-		return fmt.Errorf("Can't get zip: %v", err)
-	}
+		url := fmt.Sprintf("%v/archive/%v.zip", repo, branchOrCommit)
+		if !strings.HasPrefix(url, "https://") {
+			url = "https://" + url
+		}
+		resp, err := http.Get(url)
+		if err != nil {
+			return fmt.Errorf("Can't get zip: %v", err)
+		}
 
-	defer resp.Body.Close()
-	// Github returns 404 for tar.gz files...
-	// but still gives back a proper file so ignoring status code
-	// for now.
-	//if resp.StatusCode != 200 {
-	//	return errors.New("Status code was not 200")
-	//}
+		defer resp.Body.Close()
+		// Github returns 404 for tar.gz files...
+		// but still gives back a proper file so ignoring status code
+		// for now.
+		//if resp.StatusCode != 200 {
+		//	return errors.New("Status code was not 200")
+		//}
 
-	src := g.folder + ".zip"
-	// Create the file
-	out, err := os.Create(src)
-	if err != nil {
-		return fmt.Errorf("Can't create source file %v src: %v", src, err)
-	}
-	defer out.Close()
+		src := g.folder + ".zip"
+		// Create the file
+		out, err := os.Create(src)
+		if err != nil {
+			return fmt.Errorf("Can't create source file %v src: %v", src, err)
+		}
+		defer out.Close()
 
-	// Write the body to file
-	_, err = io.Copy(out, resp.Body)
-	if err != nil {
-		return err
+		// Write the body to file
+		_, err = io.Copy(out, resp.Body)
+		if err != nil {
+			return err
+		}
+		return unzip(src, g.folder, true)
+	} else if strings.Contains(repo, "gitlab") {
+		// Example: https://gitlab.com/micro-test/basic-micro-service/-/archive/master/basic-micro-service-master.tar.gz
+		// @todo if it's a commit it must not be checked out all the time
+		repoFolder := strings.ReplaceAll(strings.ReplaceAll(repo, "/", "-"), "https://", "")
+		g.folder = filepath.Join(os.TempDir(),
+			repoFolder+"-"+shortid.MustGenerate())
+
+		tarName := strings.ReplaceAll(strings.ReplaceAll(repo, "gitlab.com/", ""), "/", "-")
+		url := fmt.Sprintf("%v/-/archive/%v/%v.tar.gz", repo, branchOrCommit, tarName)
+		if !strings.HasPrefix(url, "https://") {
+			url = "https://" + url
+		}
+		resp, err := http.Get(url)
+		if err != nil {
+			return fmt.Errorf("Can't get zip: %v", err)
+		}
+
+		defer resp.Body.Close()
+
+		src := g.folder + ".tar.gz"
+		// Create the file
+		out, err := os.Create(src)
+		if err != nil {
+			return fmt.Errorf("Can't create source file %v src: %v", src, err)
+		}
+		defer out.Close()
+
+		// Write the body to file
+		_, err = io.Copy(out, resp.Body)
+		if err != nil {
+			return err
+		}
+		err = Uncompress(src, g.folder)
+		if err != nil {
+			return err
+		}
+		// Gitlab zip/tar has contents inside a folder
+		// It has the format of eg. basic-micro-service-master-314b4a494ed472793e0a8bce8babbc69359aed7b
+		// Since we don't have the commit at this point we must list the dir
+		files, err := ioutil.ReadDir(g.folder)
+		if err != nil {
+			return err
+		}
+		if len(files) == 0 {
+			return fmt.Errorf("No contents in dir downloaded from gitlab: %v", g.folder)
+		}
+		g.folder = filepath.Join(g.folder, files[0].Name())
+		return nil
 	}
-	return unzip(src, g.folder, true)
+	return fmt.Errorf("Repo host %v is not supported yet", repo)
 }
 
 func (g *binaryGitter) RepoDir() string {
@@ -148,6 +206,10 @@ type Source struct {
 // Name to be passed to RPC call runtime.Create Update Delete
 // eg: `helloworld/api`, `crufter/myrepo/helloworld/api`, `localfolder`
 func (s *Source) RuntimeName() string {
+	if len(s.Folder) == 0 {
+		// This is the case for top level url source ie. gitlab.com/micro-test/basic-micro-service
+		return path.Base(s.Repo)
+	}
 	return path.Base(s.Folder)
 }
 
