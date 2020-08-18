@@ -6,6 +6,8 @@ import (
 
 	"github.com/micro/go-micro/v3/registry"
 	"github.com/micro/go-micro/v3/server"
+	"github.com/micro/go-micro/v3/broker"
+	"github.com/micro/go-micro/v3/transport"
 )
 
 const (
@@ -26,6 +28,13 @@ type subscriber struct {
 	handlers   []*handler
 	endpoints  []*registry.Endpoint
 	opts       server.SubscriberOptions
+}
+
+func newMessage(msg transport.Message) *broker.Message {
+        return &broker.Message{
+                Header: msg.Header,
+                Body:   msg.Body,
+        }
 }
 
 func newSubscriber(topic string, sub interface{}, opts ...server.SubscriberOption) server.Subscriber {

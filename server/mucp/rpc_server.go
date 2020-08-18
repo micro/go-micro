@@ -79,10 +79,7 @@ func newServer(opts ...server.Option) server.Server {
 
 // HandleEvent handles inbound messages to the service directly
 // TODO: handle requests from an event. We won't send a response.
-func (s *rpcServer) HandleEvent(e broker.Event) error {
-	// formatting horrible cruft
-	msg := e.Message()
-
+func (s *rpcServer) HandleEvent(msg *broker.Message) error {
 	if msg.Header == nil {
 		// create empty map in case of headers empty to avoid panic later
 		msg.Header = make(map[string]string)
@@ -190,10 +187,8 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 		// Micro-Service is a request
 		// Micro-Topic is a message
 		if t := msg.Header["Micro-Topic"]; len(t) > 0 {
-			// process the event
-			ev := newEvent(msg)
 			// TODO: handle the error event
-			if err := s.HandleEvent(ev); err != nil {
+			if err := s.HandleEvent(newMessage(msg)); err != nil {
 				msg.Header["Micro-Error"] = err.Error()
 			}
 			// write back some 200
@@ -704,10 +699,6 @@ func (s *rpcServer) Register() error {
 
 		if cx := sb.Options().Context; cx != nil {
 			opts = append(opts, broker.SubscribeContext(cx))
-		}
-
-		if !sb.Options().AutoAck {
-			opts = append(opts, broker.DisableAutoAck())
 		}
 
 		sub, err := config.Broker.Subscribe(sb.Topic(), s.HandleEvent, opts...)

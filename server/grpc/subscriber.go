@@ -167,7 +167,7 @@ func validateSubscriber(sub server.Subscriber) error {
 }
 
 func (g *grpcServer) createSubHandler(sb *subscriber, opts server.Options) broker.Handler {
-	return func(p broker.Event) (err error) {
+	return func(msg *broker.Message) (err error) {
 
 		defer func() {
 			if r := recover(); r != nil {
@@ -179,7 +179,6 @@ func (g *grpcServer) createSubHandler(sb *subscriber, opts server.Options) broke
 			}
 		}()
 
-		msg := p.Message()
 		// if we don't have headers, create empty map
 		if msg.Header == nil {
 			msg.Header = make(map[string]string)
