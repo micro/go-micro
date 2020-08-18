@@ -124,12 +124,9 @@ func (t *tunSubscriber) run() {
 		c.Close()
 
 		// handle the message
-		go t.handler(&tunEvent{
-			topic: t.topic,
-			message: &broker.Message{
-				Header: m.Header,
-				Body:   m.Body,
-			},
+		go t.handler(&broker.Message{
+			Header: m.Header,
+			Body:   m.Body,
 		})
 	}
 }

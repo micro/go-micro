@@ -300,8 +300,11 @@ func (r *rtr) watchRegistry(w registry.Watcher) error {
 
 		// don't process nil entries
 		if res.Service == nil {
+			logger.Trace("Received a nil service")
 			continue
 		}
+
+		logger.Tracef("Router dealing with next route %s %+v\n", res.Action, res.Service)
 
 		// get the services domain from metadata. Fallback to wildcard.
 		domain := getDomain(res.Service)
@@ -376,6 +379,7 @@ func (r *rtr) start() error {
 			case <-r.exit:
 				return
 			default:
+				logger.Tracef("Router starting registry watch")
 				w, err := r.options.Registry.Watch(registry.WatchDomain(registry.WildcardDomain))
 				if err != nil {
 					if logger.V(logger.DebugLevel, logger.DefaultLogger) {
