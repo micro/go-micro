@@ -16,6 +16,7 @@ import (
 	"strings"
 
 	"github.com/teris-io/shortid"
+	"github.com/xanzy/go-gitlab"
 )
 
 type Gitter interface {
@@ -111,7 +112,6 @@ func (g *binaryGitter) checkoutGitLabPublic(repo, branchOrCommit string) error {
 	}
 	client := &http.Client{}
 	req, _ := http.NewRequest("GET", url, nil)
-	req.Header.Set("PRIVATE-TOKEN", g.secrets["GIT_CREDENTIALS"])
 	resp, err := client.Do(req)
 	if err != nil {
 		return fmt.Errorf("Can't get zip: %v", err)
@@ -151,6 +151,68 @@ func (g *binaryGitter) checkoutGitLabPublic(repo, branchOrCommit string) error {
 }
 
 func (g *binaryGitter) checkoutGitLabPrivate(repo, branchOrCommit string) error {
+	git, err := gitlab.NewClient(g.secrets["GIT_CREDENTIALS"])
+	if err != nil {
+		return err
+	}
+	owned := true
+	projects, _, err := git.Projects.ListProjects(&gitlab.ListProjectsOptions{
+		Owned: &owned,
+	})
+	if err != nil {
+		return err
+	}
+	projectID := ""
+	for _, project := range projects {
+		if strings.Contains(repo, project.Name) {
+			projectID = fmt.Sprintf("%v", project.ID)
+		}
+	}
+	if len(projectID) == 0 {
+		return fmt.Errorf("Project id not found for repo %v", repo)
+	}
+	fmt.Println(projectID)
+	// Example URL:
+	// https://gitlab.com/api/v3/projects/0000000/repository/archive?private_token=XXXXXXXXXXXXXXXXXXXX
+	url := fmt.Sprintf("https://gitlab.com/api/v4/projects/%v/repository/archive?private_token=%v", projectID, g.secrets["GIT_CREDENTIALS"])
+
+	client := &http.Client{}
+	req, _ := http.NewRequest("GET", url, nil)
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("Can't get zip: %v", err)
+	}
+
+	defer resp.Body.Close()
+
+	src := g.folder + ".tar.gz"
+	// Create the file
+	out, err := os.Create(src)
+	if err != nil {
+		return fmt.Errorf("Can't create source file %v src: %v", src, err)
+	}
+	defer out.Close()
+
+	// Write the body to file
+	_, err = io.Copy(out, resp.Body)
+	if err != nil {
+		return err
+	}
+	err = Uncompress(src, g.folder)
+	if err != nil {
+		return err
+	}
+	// Gitlab zip/tar has contents inside a folder
+	// It has the format of eg. basic-micro-service-master-314b4a494ed472793e0a8bce8babbc69359aed7b
+	// Since we don't have the commit at this point we must list the dir
+	files, err := ioutil.ReadDir(g.folder)
+	if err != nil {
+		return err
+	}
+	if len(files) == 0 {
+		return fmt.Errorf("No contents in dir downloaded from gitlab: %v", g.folder)
+	}
+	g.folder = filepath.Join(g.folder, files[0].Name())
 	return nil
 }
 
