@@ -63,7 +63,7 @@ func NewRuntime(opts ...runtime.Option) runtime.Runtime {
 	}
 }
 
-func (r *localRuntime) checkoutSourceIfNeeded(s *runtime.Service) error {
+func (r *localRuntime) checkoutSourceIfNeeded(s *runtime.Service, secrets map[string]string) error {
 	// Runtime service like config have no source.
 	// Skip checkout in that case
 	if len(s.Source) == 0 {
@@ -109,7 +109,7 @@ func (r *localRuntime) checkoutSourceIfNeeded(s *runtime.Service) error {
 	}
 	source.Ref = s.Version
 
-	err = git.CheckoutSource(os.TempDir(), source)
+	err = git.CheckoutSource(os.TempDir(), source, secrets)
 	if err != nil {
 		return err
 	}
@@ -271,17 +271,17 @@ func serviceKey(s *runtime.Service) string {
 
 // Create creates a new service which is then started by runtime
 func (r *localRuntime) Create(s *runtime.Service, opts ...runtime.CreateOption) error {
-	err := r.checkoutSourceIfNeeded(s)
+	var options runtime.CreateOptions
+	for _, o := range opts {
+		o(&options)
+	}
+	err := r.checkoutSourceIfNeeded(s, options.Secrets)
 	if err != nil {
 		return err
 	}
 	r.Lock()
 	defer r.Unlock()
 
-	var options runtime.CreateOptions
-	for _, o := range opts {
-		o(&options)
-	}
 	if len(options.Namespace) == 0 {
 		options.Namespace = defaultNamespace
 	}
@@ -487,13 +487,13 @@ func (r *localRuntime) Update(s *runtime.Service, opts ...runtime.UpdateOption) 
 	for _, o := range opts {
 		o(&options)
 	}
-	if len(options.Namespace) == 0 {
-		options.Namespace = defaultNamespace
-	}
-
-	err := r.checkoutSourceIfNeeded(s)
+	err := r.checkoutSourceIfNeeded(s, options.Secrets)
 	if err != nil {
 		return err
+	}
+
+	if len(options.Namespace) == 0 {
+		options.Namespace = defaultNamespace
 	}
 
 	r.Lock()

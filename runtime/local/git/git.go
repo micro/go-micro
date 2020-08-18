@@ -24,7 +24,8 @@ type Gitter interface {
 }
 
 type binaryGitter struct {
-	folder string
+	folder  string
+	secrets map[string]string
 }
 
 func (g *binaryGitter) Checkout(repo, branchOrCommit string) error {
@@ -47,7 +48,10 @@ func (g *binaryGitter) Checkout(repo, branchOrCommit string) error {
 		if !strings.HasPrefix(url, "https://") {
 			url = "https://" + url
 		}
-		resp, err := http.Get(url)
+		client := &http.Client{}
+		req, _ := http.NewRequest("GET", url, nil)
+		req.Header.Set("Authorization", "token "+g.secrets["GIT_CREDENTIALS"])
+		resp, err := client.Do(req)
 		if err != nil {
 			return fmt.Errorf("Can't get zip: %v", err)
 		}
@@ -86,7 +90,10 @@ func (g *binaryGitter) Checkout(repo, branchOrCommit string) error {
 		if !strings.HasPrefix(url, "https://") {
 			url = "https://" + url
 		}
-		resp, err := http.Get(url)
+		client := &http.Client{}
+		req, _ := http.NewRequest("GET", url, nil)
+		req.Header.Set("Authorization", "token "+g.secrets["GIT_CREDENTIALS"])
+		resp, err := client.Do(req)
 		if err != nil {
 			return fmt.Errorf("Can't get zip: %v", err)
 		}
@@ -130,8 +137,8 @@ func (g *binaryGitter) RepoDir() string {
 	return g.folder
 }
 
-func NewGitter(folder string) Gitter {
-	return &binaryGitter{folder}
+func NewGitter(folder string, secrets map[string]string) Gitter {
+	return &binaryGitter{folder, secrets}
 
 }
 
@@ -299,12 +306,12 @@ func IsLocal(workDir, source string, pathExistsFunc ...func(path string) (bool, 
 // CheckoutSource for the local runtime server
 // folder is the folder to check out the source code to
 // Modifies source path to set it to checked out repo absolute path locally.
-func CheckoutSource(folder string, source *Source) error {
+func CheckoutSource(folder string, source *Source, secrets map[string]string) error {
 	// if it's a local folder, do nothing
 	if exists, err := pathExists(source.FullPath); err == nil && exists {
 		return nil
 	}
-	gitter := NewGitter(folder)
+	gitter := NewGitter(folder, secrets)
 	repo := source.Repo
 	if !strings.Contains(repo, "https://") {
 		repo = "https://" + repo
