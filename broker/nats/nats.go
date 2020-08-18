@@ -36,29 +36,6 @@ type subscriber struct {
 	opts broker.SubscribeOptions
 }
 
-type publication struct {
-	t   string
-	err error
-	m   *broker.Message
-}
-
-func (p *publication) Topic() string {
-	return p.t
-}
-
-func (p *publication) Message() *broker.Message {
-	return p.m
-}
-
-func (p *publication) Ack() error {
-	// nats does not support acking
-	return nil
-}
-
-func (p *publication) Error() error {
-	return p.err
-}
-
 func (s *subscriber) Options() broker.SubscribeOptions {
 	return s.opts
 }
@@ -195,7 +172,6 @@ func (n *natsBroker) Subscribe(topic string, handler broker.Handler, opts ...bro
 	n.RUnlock()
 
 	opt := broker.SubscribeOptions{
-		AutoAck: true,
 		Context: context.Background(),
 	}
 
@@ -204,29 +180,25 @@ func (n *natsBroker) Subscribe(topic string, handler broker.Handler, opts ...bro
 	}
 
 	fn := func(msg *nats.Msg) {
-		var m broker.Message
-		pub := &publication{t: msg.Subject}
-		eh := n.opts.ErrorHandler
+		var m *broker.Message
+		eh := opt.ErrorHandler
 		err := n.opts.Codec.Unmarshal(msg.Data, &m)
-		pub.err = err
-		pub.m = &m
 		if err != nil {
 			m.Body = msg.Data
 			if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
 				logger.Error(err)
 			}
 			if eh != nil {
-				eh(pub)
+				eh(m, err)
 			}
 			return
 		}
-		if err := handler(pub); err != nil {
-			pub.err = err
+		if err := handler(m); err != nil {
 			if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
 				logger.Error(err)
 			}
 			if eh != nil {
-				eh(pub)
+				eh(m, err)
 			}
 		}
 	}
