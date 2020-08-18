@@ -60,12 +60,6 @@ type httpSubscriber struct {
 	hb    *httpBroker
 }
 
-type httpEvent struct {
-	m   *broker.Message
-	t   string
-	err error
-}
-
 var (
 	DefaultPath      = "/"
 	DefaultAddress   = "127.0.0.1:0"
@@ -153,22 +147,6 @@ func newHttpBroker(opts ...broker.Option) broker.Broker {
 	}
 
 	return h
-}
-
-func (h *httpEvent) Ack() error {
-	return nil
-}
-
-func (h *httpEvent) Error() error {
-	return h.err
-}
-
-func (h *httpEvent) Message() *broker.Message {
-	return h.m
-}
-
-func (h *httpEvent) Topic() string {
-	return h.t
 }
 
 func (h *httpSubscriber) Options() broker.SubscribeOptions {
@@ -310,16 +288,15 @@ func (h *httpBroker) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	var m *broker.Message
-	if err = h.opts.Codec.Unmarshal(b, &m); err != nil {
+	var msg *broker.Message
+	if err = h.opts.Codec.Unmarshal(b, &msg); err != nil {
 		errr := merr.InternalServerError("go.micro.broker", "Error parsing request body: %v", err)
 		w.WriteHeader(500)
 		w.Write([]byte(errr.Error()))
 		return
 	}
 
-	topic := m.Header["Micro-Topic"]
-	//delete(m.Header, ":topic")
+	topic := msg.Header["Micro-Topic"]
 
 	if len(topic) == 0 {
 		errr := merr.InternalServerError("go.micro.broker", "Topic not found")
@@ -328,7 +305,6 @@ func (h *httpBroker) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	p := &httpEvent{m: m, t: topic}
 	id := req.Form.Get("id")
 
 	//nolint:prealloc
@@ -345,7 +321,7 @@ func (h *httpBroker) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	// execute the handler
 	for _, fn := range subs {
-		p.err = fn(p)
+		fn(msg)
 	}
 }
 

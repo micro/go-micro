@@ -83,9 +83,8 @@ func sub(be *testing.B, c int) {
 	done := make(chan bool, c)
 
 	for i := 0; i < c; i++ {
-		sub, err := b.Subscribe(topic, func(p broker.Event) error {
+		sub, err := b.Subscribe(topic, func(m *broker.Message) error {
 			done <- true
-			m := p.Message()
 
 			if string(m.Body) != string(msg.Body) {
 				be.Fatalf("Unexpected msg %s, expected %s", string(m.Body), string(msg.Body))
@@ -140,9 +139,8 @@ func pub(be *testing.B, c int) {
 
 	done := make(chan bool, c*4)
 
-	sub, err := b.Subscribe(topic, func(p broker.Event) error {
+	sub, err := b.Subscribe(topic, func(m *broker.Message) error {
 		done <- true
-		m := p.Message()
 		if string(m.Body) != string(msg.Body) {
 			be.Fatalf("Unexpected msg %s, expected %s", string(m.Body), string(msg.Body))
 		}
@@ -208,8 +206,7 @@ func TestBroker(t *testing.T) {
 
 	done := make(chan bool)
 
-	sub, err := b.Subscribe("test", func(p broker.Event) error {
-		m := p.Message()
+	sub, err := b.Subscribe("test", func(m *broker.Message) error {
 
 		if string(m.Body) != string(msg.Body) {
 			t.Fatalf("Unexpected msg %s, expected %s", string(m.Body), string(msg.Body))
@@ -257,10 +254,8 @@ func TestConcurrentSubBroker(t *testing.T) {
 	var wg sync.WaitGroup
 
 	for i := 0; i < 10; i++ {
-		sub, err := b.Subscribe("test", func(p broker.Event) error {
+		sub, err := b.Subscribe("test", func(m *broker.Message) error {
 			defer wg.Done()
-
-			m := p.Message()
 
 			if string(m.Body) != string(msg.Body) {
 				t.Fatalf("Unexpected msg %s, expected %s", string(m.Body), string(msg.Body))
@@ -312,10 +307,8 @@ func TestConcurrentPubBroker(t *testing.T) {
 
 	var wg sync.WaitGroup
 
-	sub, err := b.Subscribe("test", func(p broker.Event) error {
+	sub, err := b.Subscribe("test", func(m *broker.Message) error {
 		defer wg.Done()
-
-		m := p.Message()
 
 		if string(m.Body) != string(msg.Body) {
 			t.Fatalf("Unexpected msg %s, expected %s", string(m.Body), string(msg.Body))
