@@ -25,7 +25,10 @@ jobs:
       id: tests
       env:
         IN_TRAVIS_CI: yes
-      run: go test -v ./...
+      run: |
+        wget -qO- https://binaries.cockroachdb.com/cockroach-v20.1.4.linux-amd64.tgz | tar  xvz
+        cockroach-v20.1.4.linux-amd64/cockroach start-single-node --insecure &
+        go test -v ./...
   
     - name: Notify of test failure
       if: failure()
