@@ -12,12 +12,15 @@ import (
 func TestPrometheusReporter(t *testing.T) {
 
 	// Make a Reporter:
-	reporter, err := New(metrics.PrometheusPath("/prometheus"), metrics.DefaultTags(map[string]string{"service": "prometheus-test"}))
+	reporter, err := New(metrics.Path("/prometheus"), metrics.DefaultTags(map[string]string{"service": "prometheus-test"}))
 	assert.NoError(t, err)
 	assert.NotNil(t, reporter)
 	assert.Equal(t, "prometheus-test", reporter.options.DefaultTags["service"])
-	assert.Equal(t, ":9000", reporter.options.PrometheusListenAddress)
-	assert.Equal(t, "/prometheus", reporter.options.PrometheusPath)
+	assert.Equal(t, ":9000", reporter.options.Address)
+	assert.Equal(t, "/prometheus", reporter.options.Path)
+
+	// Check that our implementation is valid:
+	assert.Implements(t, new(metrics.Reporter), reporter)
 
 	// Test tag conversion:
 	tags := metrics.Tags{

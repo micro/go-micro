@@ -36,9 +36,9 @@ func New(opts ...metrics.Option) (*Reporter, error) {
 	newReporter.metrics = newReporter.newMetricFamily()
 
 	// Handle the metrics endpoint with prometheus:
-	log.Infof("Metrics/Prometheus [http] Listening on %s%s", options.PrometheusListenAddress, options.PrometheusPath)
-	http.Handle(options.PrometheusPath, promhttp.HandlerFor(prometheusRegistry, promhttp.HandlerOpts{ErrorHandling: promhttp.ContinueOnError}))
-	go http.ListenAndServe(options.PrometheusListenAddress, nil)
+	log.Infof("Metrics/Prometheus [http] Listening on %s%s", options.Address, options.Path)
+	http.Handle(options.Path, promhttp.HandlerFor(prometheusRegistry, promhttp.HandlerOpts{ErrorHandling: promhttp.ContinueOnError}))
+	go http.ListenAndServe(options.Address, nil)
 
 	return newReporter, nil
 }
