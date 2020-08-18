@@ -12,7 +12,7 @@ type parseCase struct {
 func TestParseSource(t *testing.T) {
 	cases := []parseCase{
 		{
-			source: "helloworld",
+			source: "github.com/micro/services/helloworld",
 			expected: &Source{
 				Repo:   "github.com/micro/services",
 				Folder: "helloworld",
