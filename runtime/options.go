@@ -227,6 +227,19 @@ type UpdateOptions struct {
 	Namespace string
 	// Specify the context to use
 	Context context.Context
+	// Secrets to use
+	Secrets map[string]string
+}
+
+// WithSecret sets a secret to provide the service with
+func UpdateSecret(key, value string) UpdateOption {
+	return func(o *UpdateOptions) {
+		if o.Secrets == nil {
+			o.Secrets = map[string]string{key: value}
+		} else {
+			o.Secrets[key] = value
+		}
+	}
 }
 
 // UpdateNamespace sets the namespace
