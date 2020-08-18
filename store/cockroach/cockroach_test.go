@@ -3,7 +3,6 @@ package cockroach
 import (
 	"database/sql"
 	"fmt"
-	"os"
 	"testing"
 	"time"
 
@@ -12,10 +11,6 @@ import (
 )
 
 func TestSQL(t *testing.T) {
-	if len(os.Getenv("IN_TRAVIS_CI")) != 0 {
-		t.Skip()
-	}
-
 	connection := fmt.Sprintf(
 		"host=%s port=%d user=%s sslmode=disable dbname=%s",
 		"localhost",
@@ -109,9 +104,9 @@ func TestSQL(t *testing.T) {
 		break
 	}
 	sqlStore.Delete("bar")
-	sqlStore.Write(&store.Record{Key: "aaa", Value: []byte("bbb"), Expiry: 5 * time.Second})
-	sqlStore.Write(&store.Record{Key: "aaaa", Value: []byte("bbb"), Expiry: 5 * time.Second})
-	sqlStore.Write(&store.Record{Key: "aaaaa", Value: []byte("bbb"), Expiry: 5 * time.Second})
+	sqlStore.Write(&store.Record{Key: "aaa", Value: []byte("bbb"), Expiry: 10 * time.Second})
+	sqlStore.Write(&store.Record{Key: "aaaa", Value: []byte("bbb"), Expiry: 10 * time.Second})
+	sqlStore.Write(&store.Record{Key: "aaaaa", Value: []byte("bbb"), Expiry: 10 * time.Second})
 	results, err := sqlStore.Read("a", store.ReadPrefix())
 	if err != nil {
 		t.Error(err)
@@ -119,12 +114,50 @@ func TestSQL(t *testing.T) {
 	if len(results) != 3 {
 		t.Fatal("Results should have returned 3 records")
 	}
-	time.Sleep(6 * time.Second)
+	time.Sleep(10 * time.Second)
 	results, err = sqlStore.Read("a", store.ReadPrefix())
 	if err != nil {
 		t.Error(err)
 	}
 	if len(results) != 0 {
 		t.Fatal("Results should have returned 0 records")
+	}
+
+	sqlStore.Write(&store.Record{Key: "bbb", Value: []byte("bbb")}, store.WriteExpiry(time.Now().Add(10*time.Second)))
+	sqlStore.Write(&store.Record{Key: "bbbb", Value: []byte("bbb")}, store.WriteExpiry(time.Now().Add(10*time.Second)))
+	sqlStore.Write(&store.Record{Key: "bbbbb", Value: []byte("bbb")}, store.WriteExpiry(time.Now().Add(10*time.Second)))
+	results, err = sqlStore.Read("b", store.ReadPrefix())
+	if err != nil {
+		t.Error(err)
+	}
+	if len(results) != 3 {
+		t.Fatalf("Results should have returned 3 records. Received %d", len(results))
+	}
+	time.Sleep(10 * time.Second)
+	results, err = sqlStore.Read("b", store.ReadPrefix())
+	if err != nil {
+		t.Error(err)
+	}
+	if len(results) != 0 {
+		t.Fatalf("Results should have returned 0 records. Received %d", len(results))
+	}
+
+	sqlStore.Write(&store.Record{Key: "ccc", Value: []byte("bbb")}, store.WriteTTL(10*time.Second))
+	sqlStore.Write(&store.Record{Key: "cccc", Value: []byte("bbb")}, store.WriteTTL(10*time.Second))
+	sqlStore.Write(&store.Record{Key: "ccccc", Value: []byte("bbb")}, store.WriteTTL(10*time.Second))
+	results, err = sqlStore.Read("c", store.ReadPrefix())
+	if err != nil {
+		t.Error(err)
+	}
+	if len(results) != 3 {
+		t.Fatalf("Results should have returned 3 records. Received %d", len(results))
+	}
+	time.Sleep(10 * time.Second)
+	results, err = sqlStore.Read("c", store.ReadPrefix())
+	if err != nil {
+		t.Error(err)
+	}
+	if len(results) != 0 {
+		t.Fatalf("Results should have returned 0 records. Received %d", len(results))
 	}
 }

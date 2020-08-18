@@ -16,6 +16,7 @@ import (
 	"strings"
 
 	"github.com/teris-io/shortid"
+	"github.com/xanzy/go-gitlab"
 )
 
 type Gitter interface {
@@ -24,7 +25,8 @@ type Gitter interface {
 }
 
 type binaryGitter struct {
-	folder string
+	folder  string
+	secrets map[string]string
 }
 
 func (g *binaryGitter) Checkout(repo, branchOrCommit string) error {
@@ -38,100 +40,187 @@ func (g *binaryGitter) Checkout(repo, branchOrCommit string) error {
 		branchOrCommit = "master"
 	}
 	if strings.Contains(repo, "github") {
-		// @todo if it's a commit it must not be checked out all the time
-		repoFolder := strings.ReplaceAll(strings.ReplaceAll(repo, "/", "-"), "https://", "")
-		g.folder = filepath.Join(os.TempDir(),
-			repoFolder+"-"+shortid.MustGenerate())
-
-		url := fmt.Sprintf("%v/archive/%v.zip", repo, branchOrCommit)
-		if !strings.HasPrefix(url, "https://") {
-			url = "https://" + url
-		}
-		resp, err := http.Get(url)
-		if err != nil {
-			return fmt.Errorf("Can't get zip: %v", err)
-		}
-
-		defer resp.Body.Close()
-		// Github returns 404 for tar.gz files...
-		// but still gives back a proper file so ignoring status code
-		// for now.
-		//if resp.StatusCode != 200 {
-		//	return errors.New("Status code was not 200")
-		//}
-
-		src := g.folder + ".zip"
-		// Create the file
-		out, err := os.Create(src)
-		if err != nil {
-			return fmt.Errorf("Can't create source file %v src: %v", src, err)
-		}
-		defer out.Close()
-
-		// Write the body to file
-		_, err = io.Copy(out, resp.Body)
-		if err != nil {
-			return err
-		}
-		return unzip(src, g.folder, true)
+		return g.checkoutGithub(repo, branchOrCommit)
 	} else if strings.Contains(repo, "gitlab") {
-		// Example: https://gitlab.com/micro-test/basic-micro-service/-/archive/master/basic-micro-service-master.tar.gz
-		// @todo if it's a commit it must not be checked out all the time
-		repoFolder := strings.ReplaceAll(strings.ReplaceAll(repo, "/", "-"), "https://", "")
-		g.folder = filepath.Join(os.TempDir(),
-			repoFolder+"-"+shortid.MustGenerate())
-
-		tarName := strings.ReplaceAll(strings.ReplaceAll(repo, "gitlab.com/", ""), "/", "-")
-		url := fmt.Sprintf("%v/-/archive/%v/%v.tar.gz", repo, branchOrCommit, tarName)
-		if !strings.HasPrefix(url, "https://") {
-			url = "https://" + url
-		}
-		resp, err := http.Get(url)
+		err := g.checkoutGitLabPublic(repo, branchOrCommit)
 		if err != nil {
-			return fmt.Errorf("Can't get zip: %v", err)
+			// If the public download fails, try getting it with tokens.
+			// Private downloads needs a token for api project listing, hence
+			// the weird structure of this code.
+			return g.checkoutGitLabPrivate(repo, branchOrCommit)
 		}
-
-		defer resp.Body.Close()
-
-		src := g.folder + ".tar.gz"
-		// Create the file
-		out, err := os.Create(src)
-		if err != nil {
-			return fmt.Errorf("Can't create source file %v src: %v", src, err)
-		}
-		defer out.Close()
-
-		// Write the body to file
-		_, err = io.Copy(out, resp.Body)
-		if err != nil {
-			return err
-		}
-		err = Uncompress(src, g.folder)
-		if err != nil {
-			return err
-		}
-		// Gitlab zip/tar has contents inside a folder
-		// It has the format of eg. basic-micro-service-master-314b4a494ed472793e0a8bce8babbc69359aed7b
-		// Since we don't have the commit at this point we must list the dir
-		files, err := ioutil.ReadDir(g.folder)
-		if err != nil {
-			return err
-		}
-		if len(files) == 0 {
-			return fmt.Errorf("No contents in dir downloaded from gitlab: %v", g.folder)
-		}
-		g.folder = filepath.Join(g.folder, files[0].Name())
 		return nil
 	}
 	return fmt.Errorf("Repo host %v is not supported yet", repo)
+}
+
+func (g *binaryGitter) checkoutGithub(repo, branchOrCommit string) error {
+	// @todo if it's a commit it must not be checked out all the time
+	repoFolder := strings.ReplaceAll(strings.ReplaceAll(repo, "/", "-"), "https://", "")
+	g.folder = filepath.Join(os.TempDir(),
+		repoFolder+"-"+shortid.MustGenerate())
+
+	url := fmt.Sprintf("%v/archive/%v.zip", repo, branchOrCommit)
+	if !strings.HasPrefix(url, "https://") {
+		url = "https://" + url
+	}
+	client := &http.Client{}
+	req, _ := http.NewRequest("GET", url, nil)
+	if len(g.secrets["GIT_CREDENTIALS"]) > 0 {
+		req.Header.Set("Authorization", "token "+g.secrets["GIT_CREDENTIALS"])
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("Can't get zip: %v", err)
+	}
+
+	defer resp.Body.Close()
+	// Github returns 404 for tar.gz files...
+	// but still gives back a proper file so ignoring status code
+	// for now.
+	//if resp.StatusCode != 200 {
+	//	return errors.New("Status code was not 200")
+	//}
+
+	src := g.folder + ".zip"
+	// Create the file
+	out, err := os.Create(src)
+	if err != nil {
+		return fmt.Errorf("Can't create source file %v src: %v", src, err)
+	}
+	defer out.Close()
+
+	// Write the body to file
+	_, err = io.Copy(out, resp.Body)
+	if err != nil {
+		return err
+	}
+	return unzip(src, g.folder, true)
+}
+
+func (g *binaryGitter) checkoutGitLabPublic(repo, branchOrCommit string) error {
+	// Example: https://gitlab.com/micro-test/basic-micro-service/-/archive/master/basic-micro-service-master.tar.gz
+	// @todo if it's a commit it must not be checked out all the time
+	repoFolder := strings.ReplaceAll(strings.ReplaceAll(repo, "/", "-"), "https://", "")
+	g.folder = filepath.Join(os.TempDir(),
+		repoFolder+"-"+shortid.MustGenerate())
+
+	tarName := strings.ReplaceAll(strings.ReplaceAll(repo, "gitlab.com/", ""), "/", "-")
+	url := fmt.Sprintf("%v/-/archive/%v/%v.tar.gz", repo, branchOrCommit, tarName)
+	if !strings.HasPrefix(url, "https://") {
+		url = "https://" + url
+	}
+	client := &http.Client{}
+	req, _ := http.NewRequest("GET", url, nil)
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("Can't get zip: %v", err)
+	}
+
+	defer resp.Body.Close()
+
+	src := g.folder + ".tar.gz"
+	// Create the file
+	out, err := os.Create(src)
+	if err != nil {
+		return fmt.Errorf("Can't create source file %v src: %v", src, err)
+	}
+	defer out.Close()
+
+	// Write the body to file
+	_, err = io.Copy(out, resp.Body)
+	if err != nil {
+		return err
+	}
+	err = Uncompress(src, g.folder)
+	if err != nil {
+		return err
+	}
+	// Gitlab zip/tar has contents inside a folder
+	// It has the format of eg. basic-micro-service-master-314b4a494ed472793e0a8bce8babbc69359aed7b
+	// Since we don't have the commit at this point we must list the dir
+	files, err := ioutil.ReadDir(g.folder)
+	if err != nil {
+		return err
+	}
+	if len(files) == 0 {
+		return fmt.Errorf("No contents in dir downloaded from gitlab: %v", g.folder)
+	}
+	g.folder = filepath.Join(g.folder, files[0].Name())
+	return nil
+}
+
+func (g *binaryGitter) checkoutGitLabPrivate(repo, branchOrCommit string) error {
+	git, err := gitlab.NewClient(g.secrets["GIT_CREDENTIALS"])
+	if err != nil {
+		return err
+	}
+	owned := true
+	projects, _, err := git.Projects.ListProjects(&gitlab.ListProjectsOptions{
+		Owned: &owned,
+	})
+	if err != nil {
+		return err
+	}
+	projectID := ""
+	for _, project := range projects {
+		if strings.Contains(repo, project.Name) {
+			projectID = fmt.Sprintf("%v", project.ID)
+		}
+	}
+	if len(projectID) == 0 {
+		return fmt.Errorf("Project id not found for repo %v", repo)
+	}
+	// Example URL:
+	// https://gitlab.com/api/v3/projects/0000000/repository/archive?private_token=XXXXXXXXXXXXXXXXXXXX
+	url := fmt.Sprintf("https://gitlab.com/api/v4/projects/%v/repository/archive?private_token=%v", projectID, g.secrets["GIT_CREDENTIALS"])
+
+	client := &http.Client{}
+	req, _ := http.NewRequest("GET", url, nil)
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("Can't get zip: %v", err)
+	}
+
+	defer resp.Body.Close()
+
+	src := g.folder + ".tar.gz"
+	// Create the file
+	out, err := os.Create(src)
+	if err != nil {
+		return fmt.Errorf("Can't create source file %v src: %v", src, err)
+	}
+	defer out.Close()
+
+	// Write the body to file
+	_, err = io.Copy(out, resp.Body)
+	if err != nil {
+		return err
+	}
+	err = Uncompress(src, g.folder)
+	if err != nil {
+		return err
+	}
+	// Gitlab zip/tar has contents inside a folder
+	// It has the format of eg. basic-micro-service-master-314b4a494ed472793e0a8bce8babbc69359aed7b
+	// Since we don't have the commit at this point we must list the dir
+	files, err := ioutil.ReadDir(g.folder)
+	if err != nil {
+		return err
+	}
+	if len(files) == 0 {
+		return fmt.Errorf("No contents in dir downloaded from gitlab: %v", g.folder)
+	}
+	g.folder = filepath.Join(g.folder, files[0].Name())
+	return nil
 }
 
 func (g *binaryGitter) RepoDir() string {
 	return g.folder
 }
 
-func NewGitter(folder string) Gitter {
-	return &binaryGitter{folder}
+func NewGitter(folder string, secrets map[string]string) Gitter {
+	return &binaryGitter{folder, secrets}
 
 }
 
@@ -299,12 +388,12 @@ func IsLocal(workDir, source string, pathExistsFunc ...func(path string) (bool, 
 // CheckoutSource for the local runtime server
 // folder is the folder to check out the source code to
 // Modifies source path to set it to checked out repo absolute path locally.
-func CheckoutSource(folder string, source *Source) error {
+func CheckoutSource(folder string, source *Source, secrets map[string]string) error {
 	// if it's a local folder, do nothing
 	if exists, err := pathExists(source.FullPath); err == nil && exists {
 		return nil
 	}
-	gitter := NewGitter(folder)
+	gitter := NewGitter(folder, secrets)
 	repo := source.Repo
 	if !strings.Contains(repo, "https://") {
 		repo = "https://" + repo

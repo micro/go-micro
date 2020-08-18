@@ -429,6 +429,9 @@ func (s *sqlStore) Write(r *store.Record, opts ...store.WriteOption) error {
 	} else if r.Expiry != 0 {
 		expiry = time.Now().Add(r.Expiry)
 	}
+	if options.TTL != 0 {
+		expiry = time.Now().Add(options.TTL)
+	}
 
 	if expiry.IsZero() {
 		_, err = st.Exec(r.Key, r.Value, metadata, nil)
