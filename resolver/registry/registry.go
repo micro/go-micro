@@ -2,7 +2,7 @@
 package registry
 
 import (
-	"github.com/micro/go-micro/v3/network/resolver"
+	"github.com/micro/go-micro/v3/resolver"
 	"github.com/micro/go-micro/v3/registry"
 	"github.com/micro/go-micro/v3/registry/mdns"
 )

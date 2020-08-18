@@ -7,7 +7,6 @@ import (
 	"io"
 	"math"
 	"math/rand"
-	"sort"
 	"sync"
 	"time"
 
@@ -17,9 +16,9 @@ import (
 	"github.com/micro/go-micro/v3/logger"
 	"github.com/micro/go-micro/v3/network"
 	pb "github.com/micro/go-micro/v3/network/mucp/proto"
-	"github.com/micro/go-micro/v3/network/resolver/dns"
 	"github.com/micro/go-micro/v3/proxy"
 	"github.com/micro/go-micro/v3/registry/noop"
+	"github.com/micro/go-micro/v3/resolver/dns"
 	"github.com/micro/go-micro/v3/router"
 	"github.com/micro/go-micro/v3/server"
 	smucp "github.com/micro/go-micro/v3/server/mucp"
@@ -35,8 +34,6 @@ var (
 	DefaultName = "go.micro"
 	// DefaultAddress is default network address
 	DefaultAddress = ":0"
-	// ResolveTime defines time interval to periodically resolve network nodes
-	ResolveTime = 1 * time.Minute
 	// AnnounceTime defines time interval to periodically announce node neighbours
 	AnnounceTime = 1 * time.Second
 	// KeepAliveTime is the time in which we want to have sent a message to a peer
@@ -424,43 +421,11 @@ func (n *mucpNetwork) initNodes(startup bool) {
 
 // resolveNodes resolves network nodes to addresses
 func (n *mucpNetwork) resolveNodes() ([]string, error) {
-	// resolve the network address to network nodes
-	records, err := n.options.Resolver.Resolve(n.options.Name)
-	if err != nil {
-		if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-			logger.Debugf("Network failed to resolve nodes: %v", err)
-		}
-	}
-
-	// sort by lowest priority
-	if err == nil && len(records) > 0 {
-		sort.Slice(records, func(i, j int) bool { return records[i].Priority < records[j].Priority })
-	}
-
-	// keep processing
-
 	nodeMap := make(map[string]bool)
 
 	// collect network node addresses
 	//nolint:prealloc
 	var nodes []string
-	var i int
-
-	for _, record := range records {
-		if _, ok := nodeMap[record.Address]; ok {
-			continue
-		}
-
-		nodeMap[record.Address] = true
-		nodes = append(nodes, record.Address)
-
-		i++
-
-		// break once MaxConnection nodes has been reached
-		if i == MaxConnections {
-			break
-		}
-	}
 
 	// use the DNS resolver to expand peers
 	dns := &dns.Resolver{}
@@ -481,6 +446,7 @@ func (n *mucpNetwork) resolveNodes() ([]string, error) {
 			if _, ok := nodeMap[record.Address]; !ok {
 				nodes = append(nodes, record.Address)
 			}
+			nodeMap[record.Address] = true
 		}
 	}
 
@@ -1160,8 +1126,6 @@ func (n *mucpNetwork) manage() {
 	defer announce.Stop()
 	prune := time.NewTicker(PruneTime)
 	defer prune.Stop()
-	resolve := time.NewTicker(ResolveTime)
-	defer resolve.Stop()
 	netsync := time.NewTicker(SyncTime)
 	defer netsync.Stop()
 
@@ -1374,8 +1338,6 @@ func (n *mucpNetwork) manage() {
 					}
 				}
 			}()
-		case <-resolve.C:
-			n.initNodes(false)
 		}
 	}
 }

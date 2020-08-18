@@ -2,8 +2,6 @@ package network
 
 import (
 	"github.com/google/uuid"
-	"github.com/micro/go-micro/v3/network/resolver"
-	"github.com/micro/go-micro/v3/network/resolver/noop"
 	"github.com/micro/go-micro/v3/proxy"
 	"github.com/micro/go-micro/v3/proxy/mucp"
 	"github.com/micro/go-micro/v3/router"
@@ -32,8 +30,6 @@ type Options struct {
 	Router router.Router
 	// Proxy is network proxy
 	Proxy proxy.Proxy
-	// Resolver is network resolver
-	Resolver resolver.Resolver
 }
 
 // Id sets the id of the network node
@@ -92,22 +88,14 @@ func Proxy(p proxy.Proxy) Option {
 	}
 }
 
-// Resolver is the network resolver
-func Resolver(r resolver.Resolver) Option {
-	return func(o *Options) {
-		o.Resolver = r
-	}
-}
-
 // DefaultOptions returns network default options
 func DefaultOptions() Options {
 	return Options{
-		Id:       uuid.New().String(),
-		Name:     "go.micro",
-		Address:  ":0",
-		Tunnel:   tmucp.NewTunnel(),
-		Router:   regRouter.NewRouter(),
-		Proxy:    mucp.NewProxy(),
-		Resolver: new(noop.Resolver),
+		Id:      uuid.New().String(),
+		Name:    "go.micro",
+		Address: ":0",
+		Tunnel:  tmucp.NewTunnel(),
+		Router:  regRouter.NewRouter(),
+		Proxy:   mucp.NewProxy(),
 	}
 }
