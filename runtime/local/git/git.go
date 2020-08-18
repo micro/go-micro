@@ -41,7 +41,14 @@ func (g *binaryGitter) Checkout(repo, branchOrCommit string) error {
 	if strings.Contains(repo, "github") {
 		return g.checkoutGithub(repo, branchOrCommit)
 	} else if strings.Contains(repo, "gitlab") {
-		return g.checkoutGitLab(repo, branchOrCommit)
+		err := g.checkoutGitLabPublic(repo, branchOrCommit)
+		if err != nil {
+			// If the public download fails, try getting it with tokens.
+			// Private downloads needs a token for api project listing, hence
+			// the weird structure of this code.
+			return g.checkoutGitLabPrivate(repo, branchOrCommit)
+		}
+		return nil
 	}
 	return fmt.Errorf("Repo host %v is not supported yet", repo)
 }
@@ -90,7 +97,7 @@ func (g *binaryGitter) checkoutGithub(repo, branchOrCommit string) error {
 	return unzip(src, g.folder, true)
 }
 
-func (g *binaryGitter) checkoutGitLab(repo, branchOrCommit string) error {
+func (g *binaryGitter) checkoutGitLabPublic(repo, branchOrCommit string) error {
 	// Example: https://gitlab.com/micro-test/basic-micro-service/-/archive/master/basic-micro-service-master.tar.gz
 	// @todo if it's a commit it must not be checked out all the time
 	repoFolder := strings.ReplaceAll(strings.ReplaceAll(repo, "/", "-"), "https://", "")
@@ -140,6 +147,10 @@ func (g *binaryGitter) checkoutGitLab(repo, branchOrCommit string) error {
 		return fmt.Errorf("No contents in dir downloaded from gitlab: %v", g.folder)
 	}
 	g.folder = filepath.Join(g.folder, files[0].Name())
+	return nil
+}
+
+func (g *binaryGitter) checkoutGitLabPrivate(repo, branchOrCommit string) error {
 	return nil
 }
 
