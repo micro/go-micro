@@ -171,7 +171,6 @@ func (g *binaryGitter) checkoutGitLabPrivate(repo, branchOrCommit string) error 
 	if len(projectID) == 0 {
 		return fmt.Errorf("Project id not found for repo %v", repo)
 	}
-	fmt.Println(projectID)
 	// Example URL:
 	// https://gitlab.com/api/v3/projects/0000000/repository/archive?private_token=XXXXXXXXXXXXXXXXXXXX
 	url := fmt.Sprintf("https://gitlab.com/api/v4/projects/%v/repository/archive?private_token=%v", projectID, g.secrets["GIT_CREDENTIALS"])
