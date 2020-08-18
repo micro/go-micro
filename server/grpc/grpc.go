@@ -753,10 +753,6 @@ func (g *grpcServer) Register() error {
 			opts = append(opts, broker.SubscribeContext(cx))
 		}
 
-		if !sb.Options().AutoAck {
-			opts = append(opts, broker.DisableAutoAck())
-		}
-
 		if logger.V(logger.InfoLevel, logger.DefaultLogger) {
 			logger.Infof("Subscribing to topic: %s", sb.Topic())
 		}

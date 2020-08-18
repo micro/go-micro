@@ -10,7 +10,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/micro/go-micro/v3/broker"
-	"github.com/micro/go-micro/v3/logger"
 	maddr "github.com/micro/go-micro/v3/util/addr"
 	mnet "github.com/micro/go-micro/v3/util/net"
 )
@@ -22,13 +21,6 @@ type memoryBroker struct {
 	sync.RWMutex
 	connected   bool
 	Subscribers map[string][]*memorySubscriber
-}
-
-type memoryEvent struct {
-	opts    broker.Options
-	topic   string
-	err     error
-	message interface{}
 }
 
 type memorySubscriber struct {
@@ -103,31 +95,9 @@ func (m *memoryBroker) Publish(topic string, msg *broker.Message, opts ...broker
 		return nil
 	}
 
-	var v interface{}
-	if m.opts.Codec != nil {
-		buf, err := m.opts.Codec.Marshal(msg)
-		if err != nil {
-			return err
-		}
-		v = buf
-	} else {
-		v = msg
-	}
-
-	p := &memoryEvent{
-		topic:   topic,
-		message: v,
-		opts:    m.opts,
-	}
-
 	for _, sub := range subs {
-		if err := sub.handler(p); err != nil {
-			p.err = err
-			if eh := m.opts.ErrorHandler; eh != nil {
-				eh(p)
-				continue
-			}
-			return err
+		if err := sub.handler(msg); err != nil {
+			continue
 		}
 	}
 
@@ -178,36 +148,6 @@ func (m *memoryBroker) Subscribe(topic string, handler broker.Handler, opts ...b
 
 func (m *memoryBroker) String() string {
 	return "memory"
-}
-
-func (m *memoryEvent) Topic() string {
-	return m.topic
-}
-
-func (m *memoryEvent) Message() *broker.Message {
-	switch v := m.message.(type) {
-	case *broker.Message:
-		return v
-	case []byte:
-		msg := &broker.Message{}
-		if err := m.opts.Codec.Unmarshal(v, msg); err != nil {
-			if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
-				logger.Errorf("[memory]: failed to unmarshal: %v\n", err)
-			}
-			return nil
-		}
-		return msg
-	}
-
-	return nil
-}
-
-func (m *memoryEvent) Ack() error {
-	return nil
-}
-
-func (m *memoryEvent) Error() error {
-	return m.err
 }
 
 func (m *memorySubscriber) Options() broker.SubscribeOptions {
