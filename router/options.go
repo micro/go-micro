@@ -72,7 +72,6 @@ func Precache() Option {
 func DefaultOptions() Options {
 	return Options{
 		Id:       uuid.New().String(),
-		Address:  DefaultAddress,
 		Network:  DefaultNetwork,
 		Registry: mdns.NewRegistry(),
 		Context:  context.Background(),

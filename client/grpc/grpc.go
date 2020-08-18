@@ -16,7 +16,6 @@ import (
 	raw "github.com/micro/go-micro/v3/codec/bytes"
 	"github.com/micro/go-micro/v3/errors"
 	"github.com/micro/go-micro/v3/metadata"
-	"github.com/micro/go-micro/v3/registry"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -70,7 +69,7 @@ func (g *grpcClient) secure(addr string) grpc.DialOption {
 	return grpc.WithInsecure()
 }
 
-func (g *grpcClient) call(ctx context.Context, node *registry.Node, req client.Request, rsp interface{}, opts client.CallOptions) error {
+func (g *grpcClient) call(ctx context.Context, addr string, req client.Request, rsp interface{}, opts client.CallOptions) error {
 	var header map[string]string
 
 	header = make(map[string]string)
@@ -103,7 +102,7 @@ func (g *grpcClient) call(ctx context.Context, node *registry.Node, req client.R
 
 	grpcDialOptions := []grpc.DialOption{
 		grpc.WithTimeout(opts.DialTimeout),
-		g.secure(node.Address),
+		g.secure(addr),
 		grpc.WithDefaultCallOptions(
 			grpc.MaxCallRecvMsgSize(maxRecvMsgSize),
 			grpc.MaxCallSendMsgSize(maxSendMsgSize),
@@ -114,13 +113,13 @@ func (g *grpcClient) call(ctx context.Context, node *registry.Node, req client.R
 		grpcDialOptions = append(grpcDialOptions, opts...)
 	}
 
-	cc, err := g.pool.getConn(node.Address, grpcDialOptions...)
+	cc, err := g.pool.getConn(addr, grpcDialOptions...)
 	if err != nil {
 		return errors.InternalServerError("go.micro.client", fmt.Sprintf("Error sending request: %v", err))
 	}
 	defer func() {
 		// defer execution of release
-		g.pool.release(node.Address, cc, grr)
+		g.pool.release(addr, cc, grr)
 	}()
 
 	ch := make(chan error, 1)
@@ -146,7 +145,7 @@ func (g *grpcClient) call(ctx context.Context, node *registry.Node, req client.R
 	return grr
 }
 
-func (g *grpcClient) stream(ctx context.Context, node *registry.Node, req client.Request, rsp interface{}, opts client.CallOptions) error {
+func (g *grpcClient) stream(ctx context.Context, addr string, req client.Request, rsp interface{}, opts client.CallOptions) error {
 	var header map[string]string
 
 	if md, ok := metadata.FromContext(ctx); ok {
@@ -186,14 +185,14 @@ func (g *grpcClient) stream(ctx context.Context, node *registry.Node, req client
 
 	grpcDialOptions := []grpc.DialOption{
 		grpc.WithTimeout(opts.DialTimeout),
-		g.secure(node.Address),
+		g.secure(addr),
 	}
 
 	if opts := g.getGrpcDialOptions(); opts != nil {
 		grpcDialOptions = append(grpcDialOptions, opts...)
 	}
 
-	cc, err := grpc.DialContext(dialCtx, node.Address, grpcDialOptions...)
+	cc, err := grpc.DialContext(dialCtx, addr, grpcDialOptions...)
 	if err != nil {
 		return errors.InternalServerError("go.micro.client", fmt.Sprintf("Error sending request: %v", err))
 	}
@@ -389,6 +388,34 @@ func (g *grpcClient) Call(ctx context.Context, req client.Request, rsp interface
 		gcall = callOpts.CallWrappers[i-1](gcall)
 	}
 
+	// use the router passed as a call option, or fallback to the rpc clients router
+	if callOpts.Router == nil {
+		callOpts.Router = g.opts.Router
+	}
+
+	if callOpts.Selector == nil {
+		callOpts.Selector = g.opts.Selector
+	}
+
+	// inject proxy address
+	// TODO: don't even bother using Lookup/Select in this case
+	if len(g.opts.Proxy) > 0 {
+		callOpts.Address = []string{g.opts.Proxy}
+	}
+
+	// lookup the route to send the reques to
+	// TODO apply any filtering here
+	routes, err := g.opts.Lookup(ctx, req, callOpts)
+	if err != nil {
+		return errors.InternalServerError("go.micro.client", err.Error())
+	}
+
+	// balance the list of nodes
+	next, err := callOpts.Selector.Select(routes)
+	if err != nil {
+		return err
+	}
+
 	// return errors.New("go.micro.client", "request timeout", 408)
 	call := func(i int) error {
 		// call backoff first. Someone may want an initial start delay
@@ -402,36 +429,14 @@ func (g *grpcClient) Call(ctx context.Context, req client.Request, rsp interface
 			time.Sleep(t)
 		}
 
-		// use the router passed as a call option, or fallback to the rpc clients router
-		if callOpts.Router == nil {
-			callOpts.Router = g.opts.Router
-		}
-		// use the selector passed as a call option, or fallback to the rpc clients selector
-		if callOpts.Selector == nil {
-			callOpts.Selector = g.opts.Selector
-		}
-
-		// inject proxy address
-		if len(g.opts.Proxy) > 0 {
-			callOpts.Address = []string{g.opts.Proxy}
-		}
-
-		// lookup the route to send the reques to
-		route, err := client.LookupRoute(req, callOpts)
-		if err != nil {
-			return errors.InternalServerError("go.micro.client", err.Error())
-		}
-
-		// pass a node to enable backwards compatability as changing the
-		// call func would be a breaking change.
-		// todo v3: change the call func to accept a route
-		node := &registry.Node{Address: route.Address}
+		// get the next node
+		node := next()
 
 		// make the call
 		err = gcall(ctx, node, req, rsp, callOpts)
 
 		// record the result of the call to inform future routing decisions
-		g.opts.Selector.Record(*route, err)
+		g.opts.Selector.Record(node, err)
 
 		// try and transform the error to a go-micro error
 		if verr, ok := err.(*errors.Error); ok {
@@ -498,6 +503,34 @@ func (g *grpcClient) Stream(ctx context.Context, req client.Request, opts ...cli
 		gstream = callOpts.CallWrappers[i-1](gstream)
 	}
 
+	// use the router passed as a call option, or fallback to the rpc clients router
+	if callOpts.Router == nil {
+		callOpts.Router = g.opts.Router
+	}
+
+	if callOpts.Selector == nil {
+		callOpts.Selector = g.opts.Selector
+	}
+
+	// inject proxy address
+	// TODO: don't even bother using Lookup/Select in this case
+	if len(g.opts.Proxy) > 0 {
+		callOpts.Address = []string{g.opts.Proxy}
+	}
+
+	// lookup the route to send the reques to
+	// TODO: move to internal lookup func
+	routes, err := g.opts.Lookup(ctx, req, callOpts)
+	if err != nil {
+		return nil, errors.InternalServerError("go.micro.client", err.Error())
+	}
+
+	// balance the list of nodes
+	next, err := callOpts.Selector.Select(routes)
+	if err != nil {
+		return nil, err
+	}
+
 	call := func(i int) (client.Stream, error) {
 		// call backoff first. Someone may want an initial start delay
 		t, err := callOpts.Backoff(ctx, req, i)
@@ -510,44 +543,22 @@ func (g *grpcClient) Stream(ctx context.Context, req client.Request, opts ...cli
 			time.Sleep(t)
 		}
 
-		// use the router passed as a call option, or fallback to the rpc clients router
-		if callOpts.Router == nil {
-			callOpts.Router = g.opts.Router
-		}
-		// use the selector passed as a call option, or fallback to the rpc clients selector
-		if callOpts.Selector == nil {
-			callOpts.Selector = g.opts.Selector
-		}
-
-		// inject proxy address
-		if len(g.opts.Proxy) > 0 {
-			callOpts.Address = []string{g.opts.Proxy}
-		}
-
-		// lookup the route to send the reques to
-		route, err := client.LookupRoute(req, callOpts)
-		if err != nil {
-			return nil, errors.InternalServerError("go.micro.client", err.Error())
-		}
-
-		// pass a node to enable backwards compatability as changing the
-		// call func would be a breaking change.
-		// todo v3: change the call func to accept a route
-		node := &registry.Node{Address: route.Address}
+		// get the next node
+		node := next()
 
 		// make the call
 		stream := &grpcStream{}
 		err = g.stream(ctx, node, req, stream, callOpts)
 
 		// record the result of the call to inform future routing decisions
-		g.opts.Selector.Record(*route, err)
+		g.opts.Selector.Record(node, err)
 
 		// try and transform the error to a go-micro error
 		if verr, ok := err.(*errors.Error); ok {
 			return nil, verr
 		}
 
-		g.opts.Selector.Record(*route, err)
+		g.opts.Selector.Record(node, err)
 		return stream, err
 	}
 

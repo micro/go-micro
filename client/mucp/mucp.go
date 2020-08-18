@@ -14,16 +14,10 @@ import (
 	raw "github.com/micro/go-micro/v3/codec/bytes"
 	"github.com/micro/go-micro/v3/errors"
 	"github.com/micro/go-micro/v3/metadata"
-	"github.com/micro/go-micro/v3/registry"
 	"github.com/micro/go-micro/v3/transport"
 	"github.com/micro/go-micro/v3/util/buf"
 	"github.com/micro/go-micro/v3/util/pool"
 )
-
-// NewClient returns a new micro client interface
-func NewClient(opts ...client.Option) client.Client {
-	return newClient(opts...)
-}
 
 type rpcClient struct {
 	once atomic.Value
@@ -32,7 +26,8 @@ type rpcClient struct {
 	seq  uint64
 }
 
-func newClient(opt ...client.Option) client.Client {
+// NewClient returns a new micro client interface
+func NewClient(opt ...client.Option) client.Client {
 	opts := client.NewOptions(opt...)
 
 	p := pool.NewPool(
@@ -68,7 +63,7 @@ func (r *rpcClient) newCodec(contentType string) (codec.NewCodec, error) {
 	return nil, fmt.Errorf("Unsupported Content-Type: %s", contentType)
 }
 
-func (r *rpcClient) call(ctx context.Context, node *registry.Node, req client.Request, resp interface{}, opts client.CallOptions) error {
+func (r *rpcClient) call(ctx context.Context, addr string, req client.Request, resp interface{}, opts client.CallOptions) error {
 	msg := &transport.Message{
 		Header: make(map[string]string),
 	}
@@ -92,16 +87,9 @@ func (r *rpcClient) call(ctx context.Context, node *registry.Node, req client.Re
 	// set the accept header
 	msg.Header["Accept"] = req.ContentType()
 
-	// setup old protocol
-	cf := setupProtocol(msg, node)
-
-	// no codec specified
-	if cf == nil {
-		var err error
-		cf, err = r.newCodec(req.ContentType())
-		if err != nil {
-			return errors.InternalServerError("go.micro.client", err.Error())
-		}
+	cf, err := r.newCodec(req.ContentType())
+	if err != nil {
+		return errors.InternalServerError("go.micro.client", err.Error())
 	}
 
 	dOpts := []transport.DialOption{
@@ -112,7 +100,7 @@ func (r *rpcClient) call(ctx context.Context, node *registry.Node, req client.Re
 		dOpts = append(dOpts, transport.WithTimeout(opts.DialTimeout))
 	}
 
-	c, err := r.pool.Get(node.Address, dOpts...)
+	c, err := r.pool.Get(addr, dOpts...)
 	if err != nil {
 		return errors.InternalServerError("go.micro.client", "connection error: %v", err)
 	}
@@ -185,7 +173,7 @@ func (r *rpcClient) call(ctx context.Context, node *registry.Node, req client.Re
 	return nil
 }
 
-func (r *rpcClient) stream(ctx context.Context, node *registry.Node, req client.Request, opts client.CallOptions) (client.Stream, error) {
+func (r *rpcClient) stream(ctx context.Context, addr string, req client.Request, opts client.CallOptions) (client.Stream, error) {
 	msg := &transport.Message{
 		Header: make(map[string]string),
 	}
@@ -206,16 +194,9 @@ func (r *rpcClient) stream(ctx context.Context, node *registry.Node, req client.
 	// set the accept header
 	msg.Header["Accept"] = req.ContentType()
 
-	// set old codecs
-	cf := setupProtocol(msg, node)
-
-	// no codec specified
-	if cf == nil {
-		var err error
-		cf, err = r.newCodec(req.ContentType())
-		if err != nil {
-			return nil, errors.InternalServerError("go.micro.client", err.Error())
-		}
+	cf, err := r.newCodec(req.ContentType())
+	if err != nil {
+		return nil, errors.InternalServerError("go.micro.client", err.Error())
 	}
 
 	dOpts := []transport.DialOption{
@@ -226,7 +207,7 @@ func (r *rpcClient) stream(ctx context.Context, node *registry.Node, req client.
 		dOpts = append(dOpts, transport.WithTimeout(opts.DialTimeout))
 	}
 
-	c, err := r.opts.Transport.Dial(node.Address, dOpts...)
+	c, err := r.opts.Transport.Dial(addr, dOpts...)
 	if err != nil {
 		return nil, errors.InternalServerError("go.micro.client", "connection error: %v", err)
 	}
@@ -356,6 +337,34 @@ func (r *rpcClient) Call(ctx context.Context, request client.Request, response i
 		rcall = callOpts.CallWrappers[i-1](rcall)
 	}
 
+	// use the router passed as a call option, or fallback to the rpc clients router
+	if callOpts.Router == nil {
+		callOpts.Router = r.opts.Router
+	}
+
+	if callOpts.Selector == nil {
+		callOpts.Selector = r.opts.Selector
+	}
+
+	// inject proxy address
+	// TODO: don't even bother using Lookup/Select in this case
+	if len(r.opts.Proxy) > 0 {
+		callOpts.Address = []string{r.opts.Proxy}
+	}
+
+	// lookup the route to send the reques to
+	// TODO apply any filtering here
+	routes, err := r.opts.Lookup(ctx, request, callOpts)
+	if err != nil {
+		return errors.InternalServerError("go.micro.client", err.Error())
+	}
+
+	// balance the list of nodes
+	next, err := callOpts.Selector.Select(routes)
+	if err != nil {
+		return err
+	}
+
 	// return errors.New("go.micro.client", "request timeout", 408)
 	call := func(i int) error {
 		// call backoff first. Someone may want an initial start delay
@@ -369,36 +378,14 @@ func (r *rpcClient) Call(ctx context.Context, request client.Request, response i
 			time.Sleep(t)
 		}
 
-		// use the router passed as a call option, or fallback to the rpc clients router
-		if callOpts.Router == nil {
-			callOpts.Router = r.opts.Router
-		}
-		// use the selector passed as a call option, or fallback to the rpc clients selector
-		if callOpts.Selector == nil {
-			callOpts.Selector = r.opts.Selector
-		}
-
-		// inject proxy address
-		if len(r.opts.Proxy) > 0 {
-			callOpts.Address = []string{r.opts.Proxy}
-		}
-
-		// lookup the route to send the request via
-		route, err := client.LookupRoute(request, callOpts)
-		if err != nil {
-			return err
-		}
-
-		// pass a node to enable backwards comparability as changing the
-		// call func would be a breaking change.
-		// todo v3: change the call func to accept a route
-		node := &registry.Node{Address: route.Address, Metadata: route.Metadata}
+		// get the next node
+		node := next()
 
 		// make the call
 		err = rcall(ctx, node, request, response, callOpts)
 
 		// record the result of the call to inform future routing decisions
-		r.opts.Selector.Record(*route, err)
+		r.opts.Selector.Record(node, err)
 
 		return err
 	}
@@ -458,6 +445,34 @@ func (r *rpcClient) Stream(ctx context.Context, request client.Request, opts ...
 	default:
 	}
 
+	// use the router passed as a call option, or fallback to the rpc clients router
+	if callOpts.Router == nil {
+		callOpts.Router = r.opts.Router
+	}
+
+	if callOpts.Selector == nil {
+		callOpts.Selector = r.opts.Selector
+	}
+
+	// inject proxy address
+	// TODO: don't even bother using Lookup/Select in this case
+	if len(r.opts.Proxy) > 0 {
+		callOpts.Address = []string{r.opts.Proxy}
+	}
+
+	// lookup the route to send the reques to
+	// TODO apply any filtering here
+	routes, err := r.opts.Lookup(ctx, request, callOpts)
+	if err != nil {
+		return nil, errors.InternalServerError("go.micro.client", err.Error())
+	}
+
+	// balance the list of nodes
+	next, err := callOpts.Selector.Select(routes)
+	if err != nil {
+		return nil, err
+	}
+
 	call := func(i int) (client.Stream, error) {
 		// call backoff first. Someone may want an initial start delay
 		t, err := callOpts.Backoff(ctx, request, i)
@@ -470,36 +485,14 @@ func (r *rpcClient) Stream(ctx context.Context, request client.Request, opts ...
 			time.Sleep(t)
 		}
 
-		// use the router passed as a call option, or fallback to the rpc clients router
-		if callOpts.Router == nil {
-			callOpts.Router = r.opts.Router
-		}
-		// use the selector passed as a call option, or fallback to the rpc clients selector
-		if callOpts.Selector == nil {
-			callOpts.Selector = r.opts.Selector
-		}
-
-		// inject proxy address
-		if len(r.opts.Proxy) > 0 {
-			callOpts.Address = []string{r.opts.Proxy}
-		}
-
-		// lookup the route to send the request via
-		route, err := client.LookupRoute(request, callOpts)
-		if err != nil {
-			return nil, err
-		}
-
-		// pass a node to enable backwards compatability as changing the
-		// call func would be a breaking change.
-		// todo v3: change the call func to accept a route
-		node := &registry.Node{Address: route.Address, Metadata: route.Metadata}
+		// get the next node
+		node := next()
 
 		// perform the call
 		stream, err := r.stream(ctx, node, request, callOpts)
 
 		// record the result of the call to inform future routing decisions
-		r.opts.Selector.Record(*route, err)
+		r.opts.Selector.Record(node, err)
 
 		return stream, err
 	}

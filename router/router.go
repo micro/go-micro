@@ -6,10 +6,6 @@ import (
 )
 
 var (
-	// DefaultAddress is default router address
-	DefaultAddress = ":8084"
-	// DefaultName is default router service name
-	DefaultName = "go.micro.router"
 	// DefaultNetwork is default micro network
 	DefaultNetwork = "micro"
 	// ErrRouteNotFound is returned when no route was found in the routing table
