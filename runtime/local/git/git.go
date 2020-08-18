@@ -6,9 +6,11 @@ import (
 	"compress/gzip"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -26,45 +28,102 @@ type binaryGitter struct {
 }
 
 func (g *binaryGitter) Checkout(repo, branchOrCommit string) error {
+	// The implementation of this method is questionable.
+	// We use archives from github/gitlab etc which doesnt require the user to have got
+	// and probably is faster than downloading the whole repo history,
+	// but it comes with a bit of custom code for EACH host.
+	// @todo probably we should fall back to git in case the archives are not available.
+
 	if branchOrCommit == "latest" {
 		branchOrCommit = "master"
 	}
-	// @todo if it's a commit it must not be checked out all the time
-	repoFolder := strings.ReplaceAll(strings.ReplaceAll(repo, "/", "-"), "https://", "")
-	g.folder = filepath.Join(os.TempDir(),
-		repoFolder+"-"+shortid.MustGenerate())
+	if strings.Contains(repo, "github") {
+		// @todo if it's a commit it must not be checked out all the time
+		repoFolder := strings.ReplaceAll(strings.ReplaceAll(repo, "/", "-"), "https://", "")
+		g.folder = filepath.Join(os.TempDir(),
+			repoFolder+"-"+shortid.MustGenerate())
 
-	url := fmt.Sprintf("%v/archive/%v.zip", repo, branchOrCommit)
-	if !strings.HasPrefix(url, "https://") {
-		url = "https://" + url
-	}
-	resp, err := http.Get(url)
-	if err != nil {
-		return fmt.Errorf("Can't get zip: %v", err)
-	}
+		url := fmt.Sprintf("%v/archive/%v.zip", repo, branchOrCommit)
+		if !strings.HasPrefix(url, "https://") {
+			url = "https://" + url
+		}
+		resp, err := http.Get(url)
+		if err != nil {
+			return fmt.Errorf("Can't get zip: %v", err)
+		}
 
-	defer resp.Body.Close()
-	// Github returns 404 for tar.gz files...
-	// but still gives back a proper file so ignoring status code
-	// for now.
-	//if resp.StatusCode != 200 {
-	//	return errors.New("Status code was not 200")
-	//}
+		defer resp.Body.Close()
+		// Github returns 404 for tar.gz files...
+		// but still gives back a proper file so ignoring status code
+		// for now.
+		//if resp.StatusCode != 200 {
+		//	return errors.New("Status code was not 200")
+		//}
 
-	src := g.folder + ".zip"
-	// Create the file
-	out, err := os.Create(src)
-	if err != nil {
-		return fmt.Errorf("Can't create source file %v src: %v", src, err)
-	}
-	defer out.Close()
+		src := g.folder + ".zip"
+		// Create the file
+		out, err := os.Create(src)
+		if err != nil {
+			return fmt.Errorf("Can't create source file %v src: %v", src, err)
+		}
+		defer out.Close()
 
-	// Write the body to file
-	_, err = io.Copy(out, resp.Body)
-	if err != nil {
-		return err
+		// Write the body to file
+		_, err = io.Copy(out, resp.Body)
+		if err != nil {
+			return err
+		}
+		return unzip(src, g.folder, true)
+	} else if strings.Contains(repo, "gitlab") {
+		// Example: https://gitlab.com/micro-test/basic-micro-service/-/archive/master/basic-micro-service-master.tar.gz
+		// @todo if it's a commit it must not be checked out all the time
+		repoFolder := strings.ReplaceAll(strings.ReplaceAll(repo, "/", "-"), "https://", "")
+		g.folder = filepath.Join(os.TempDir(),
+			repoFolder+"-"+shortid.MustGenerate())
+
+		tarName := strings.ReplaceAll(strings.ReplaceAll(repo, "gitlab.com/", ""), "/", "-")
+		url := fmt.Sprintf("%v/-/archive/%v/%v.tar.gz", repo, branchOrCommit, tarName)
+		if !strings.HasPrefix(url, "https://") {
+			url = "https://" + url
+		}
+		resp, err := http.Get(url)
+		if err != nil {
+			return fmt.Errorf("Can't get zip: %v", err)
+		}
+
+		defer resp.Body.Close()
+
+		src := g.folder + ".tar.gz"
+		// Create the file
+		out, err := os.Create(src)
+		if err != nil {
+			return fmt.Errorf("Can't create source file %v src: %v", src, err)
+		}
+		defer out.Close()
+
+		// Write the body to file
+		_, err = io.Copy(out, resp.Body)
+		if err != nil {
+			return err
+		}
+		err = Uncompress(src, g.folder)
+		if err != nil {
+			return err
+		}
+		// Gitlab zip/tar has contents inside a folder
+		// It has the format of eg. basic-micro-service-master-314b4a494ed472793e0a8bce8babbc69359aed7b
+		// Since we don't have the commit at this point we must list the dir
+		files, err := ioutil.ReadDir(g.folder)
+		if err != nil {
+			return err
+		}
+		if len(files) == 0 {
+			return fmt.Errorf("No contents in dir downloaded from gitlab: %v", g.folder)
+		}
+		g.folder = filepath.Join(g.folder, files[0].Name())
+		return nil
 	}
-	return unzip(src, g.folder, true)
+	return fmt.Errorf("Repo host %v is not supported yet", repo)
 }
 
 func (g *binaryGitter) RepoDir() string {
@@ -123,8 +182,6 @@ func GetRepoRoot(fullPath string) (string, error) {
 	return "", nil
 }
 
-const defaultRepo = "github.com/micro/services"
-
 // Source is not just git related @todo move
 type Source struct {
 	// is it a local folder intended for a local runtime?
@@ -147,10 +204,11 @@ type Source struct {
 // Name to be passed to RPC call runtime.Create Update Delete
 // eg: `helloworld/api`, `crufter/myrepo/helloworld/api`, `localfolder`
 func (s *Source) RuntimeName() string {
-	if s.Repo == "github.com/micro/services" || s.Repo == "" {
-		return s.Folder
+	if len(s.Folder) == 0 {
+		// This is the case for top level url source ie. gitlab.com/micro-test/basic-micro-service
+		return path.Base(s.Repo)
 	}
-	return fmt.Sprintf("%v/%v", strings.ReplaceAll(s.Repo, "github.com/", ""), s.Folder)
+	return path.Base(s.Folder)
 }
 
 // Source to be passed to RPC call runtime.Create Update Delete
@@ -159,18 +217,14 @@ func (s *Source) RuntimeSource() string {
 	if s.Local {
 		return s.FullPath
 	}
-	if s.Repo == "github.com/micro/services" || s.Repo == "" {
-		return s.Folder
+	if len(s.Folder) == 0 {
+		return s.Repo
 	}
 	return fmt.Sprintf("%v/%v", s.Repo, s.Folder)
 }
 
 // ParseSource parses a `micro run/update/kill` source.
 func ParseSource(source string) (*Source, error) {
-	// If github is not present, we got a shorthand for `micro/services`
-	if !strings.Contains(source, "github.com") {
-		source = "github.com/micro/services/" + source
-	}
 	if !strings.Contains(source, "@") {
 		source += "@latest"
 	}
@@ -196,18 +250,7 @@ func ParseSourceLocal(workDir, source string, pathExistsFunc ...func(path string
 	} else {
 		pexists = pathExistsFunc[0]
 	}
-	isLocal := false
-	localFullPath := ""
-	// Check for absolute path
-	// @todo "/" won't work for Windows
-	if exists, err := pexists(source); strings.HasPrefix(source, "/") && err == nil && exists {
-		isLocal = true
-		localFullPath = source
-		// Check for path relative to workdir
-	} else if exists, err := pexists(filepath.Join(workDir, source)); err == nil && exists {
-		isLocal = true
-		localFullPath = filepath.Join(workDir, source)
-	}
+	isLocal, localFullPath := IsLocal(workDir, source, pexists)
 	if isLocal {
 		localRepoRoot, err := GetRepoRoot(localFullPath)
 		if err != nil {
@@ -231,6 +274,26 @@ func ParseSourceLocal(workDir, source string, pathExistsFunc ...func(path string
 		}, nil
 	}
 	return ParseSource(source)
+}
+
+// IsLocal tries returns true and full path of directory if the path is a local one, and
+// false and empty string if not.
+func IsLocal(workDir, source string, pathExistsFunc ...func(path string) (bool, error)) (bool, string) {
+	var pexists func(string) (bool, error)
+	if len(pathExistsFunc) == 0 {
+		pexists = pathExists
+	} else {
+		pexists = pathExistsFunc[0]
+	}
+	// Check for absolute path
+	// @todo "/" won't work for Windows
+	if exists, err := pexists(source); strings.HasPrefix(source, "/") && err == nil && exists {
+		return true, source
+		// Check for path relative to workdir
+	} else if exists, err := pexists(filepath.Join(workDir, source)); err == nil && exists {
+		return true, filepath.Join(workDir, source)
+	}
+	return false, ""
 }
 
 // CheckoutSource for the local runtime server

@@ -69,25 +69,37 @@ func (r *localRuntime) checkoutSourceIfNeeded(s *runtime.Service) error {
 	if len(s.Source) == 0 {
 		return nil
 	}
-	// @todo make this come from config
-	cpath := filepath.Join(SourceDir, s.Source)
-	path := strings.ReplaceAll(cpath, ".tar.gz", "")
+
+	// Incoming uploaded files have format lastfolder.tar.gz or
+	// lastfolder.tar.gz/relative/path
+	sourceParts := strings.Split(s.Source, "/")
+	compressedFilepath := filepath.Join(SourceDir, sourceParts[0])
+	uncompressPath := strings.ReplaceAll(compressedFilepath, ".tar.gz", "")
+	if len(sourceParts) > 1 {
+		uncompressPath = filepath.Join(SourceDir, strings.ReplaceAll(sourceParts[0], ".tar.gz", ""))
+	}
 
 	// check if the directory already exists
-	if ex, _ := exists(cpath); ex {
-		err := os.RemoveAll(path)
+	if ex, _ := exists(compressedFilepath); ex {
+		err := os.RemoveAll(uncompressPath)
 		if err != nil {
 			return err
 		}
-		err = os.MkdirAll(path, 0777)
+		err = os.MkdirAll(uncompressPath, 0777)
 		if err != nil {
 			return err
 		}
-		err = git.Uncompress(cpath, path)
+		err = git.Uncompress(compressedFilepath, uncompressPath)
 		if err != nil {
 			return err
 		}
-		s.Source = path
+		if len(sourceParts) > 1 {
+			lastFolderPart := s.Name
+			fullp := append([]string{uncompressPath}, sourceParts[1:]...)
+			s.Source = filepath.Join(append(fullp, lastFolderPart)...)
+		} else {
+			s.Source = uncompressPath
+		}
 		return nil
 	}
 
