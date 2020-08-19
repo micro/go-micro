@@ -97,6 +97,9 @@ func (m *memoryBroker) Publish(topic string, msg *broker.Message, opts ...broker
 
 	for _, sub := range subs {
 		if err := sub.handler(msg); err != nil {
+			if eh := sub.opts.ErrorHandler; eh != nil {
+				eh(msg, err)
+			}
 			continue
 		}
 	}
