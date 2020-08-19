@@ -153,13 +153,14 @@ func (m *fileStore) list(db *bolt.DB, limit, offset uint) []string {
 
 	if limit != 0 || offset != 0 {
 		sort.Slice(allKeys, func(i, j int) bool { return allKeys[i] < allKeys[j] })
-		min := func(i, j uint) uint {
-			if i < j {
-				return i
-			}
-			return j
+		end := int(limit)
+		if end == 0 || end > len(allKeys) {
+			end = len(allKeys)
 		}
-		return allKeys[offset:min(limit, uint(len(allKeys)))]
+		if int(offset) >= end {
+			return nil
+		}
+		return allKeys[offset:end]
 	}
 
 	return allKeys
