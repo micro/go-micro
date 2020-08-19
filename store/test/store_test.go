@@ -10,6 +10,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/micro/go-micro/v3/store/memory"
+
 	"github.com/kr/pretty"
 	"github.com/micro/go-micro/v3/store/cockroach"
 
@@ -34,6 +36,9 @@ func cockroachStoreCleanup(db string, s store.Store) {
 	s.Close()
 }
 
+func memoryCleanup(db string, s store.Store) {
+}
+
 func TestStoreReInit(t *testing.T) {
 	tcs := []struct {
 		name    string
@@ -42,6 +47,7 @@ func TestStoreReInit(t *testing.T) {
 	}{
 		{name: "file", s: file.NewStore(store.Table("aaa")), cleanup: fileStoreCleanup},
 		{name: "cockroach", s: cockroach.NewStore(store.Table("aaa")), cleanup: cockroachStoreCleanup},
+		{name: "memory", s: memory.NewStore(store.Table("aaa")), cleanup: memoryCleanup},
 	}
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
@@ -62,6 +68,7 @@ func TestStoreBasic(t *testing.T) {
 	}{
 		{name: "file", s: file.NewStore(), cleanup: fileStoreCleanup},
 		{name: "cockroach", s: cockroach.NewStore(), cleanup: cockroachStoreCleanup},
+		{name: "memory", s: memory.NewStore(), cleanup: memoryCleanup},
 	}
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
@@ -80,6 +87,7 @@ func TestStoreTable(t *testing.T) {
 	}{
 		{name: "file", s: file.NewStore(store.Table("testTable")), cleanup: fileStoreCleanup},
 		{name: "cockroach", s: cockroach.NewStore(store.Table("testTable")), cleanup: cockroachStoreCleanup},
+		{name: "memory", s: memory.NewStore(store.Table("testTable")), cleanup: memoryCleanup},
 	}
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
@@ -97,6 +105,7 @@ func TestStoreDatabase(t *testing.T) {
 	}{
 		{name: "file", s: file.NewStore(store.Database("testdb")), cleanup: fileStoreCleanup},
 		{name: "cockroach", s: cockroach.NewStore(store.Database("testdb")), cleanup: cockroachStoreCleanup},
+		{name: "memory", s: memory.NewStore(store.Database("testdb")), cleanup: memoryCleanup},
 	}
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
@@ -114,6 +123,7 @@ func TestStoreDatabaseTable(t *testing.T) {
 	}{
 		{name: "file", s: file.NewStore(store.Database("testdb"), store.Table("testTable")), cleanup: fileStoreCleanup},
 		{name: "cockroach", s: cockroach.NewStore(store.Database("testdb"), store.Table("testTable")), cleanup: cockroachStoreCleanup},
+		{name: "memory", s: memory.NewStore(store.Database("testdb"), store.Table("testTable")), cleanup: memoryCleanup},
 	}
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
