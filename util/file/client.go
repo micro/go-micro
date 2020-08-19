@@ -28,8 +28,18 @@ type File interface {
 }
 
 // NewClient returns a new Client which uses a micro Client
-func New(service string, c client.Client) File {
-	return &fc{proto.NewFileService(service, c)}
+func New(service string, c client.Client, opts ...Option) File {
+	options := Options{
+		Context: context.TODO(),
+	}
+	for _, o := range opts {
+		o(&options)
+	}
+
+	return &fc{
+		c:    proto.NewFileService(service, c),
+		opts: options,
+	}
 }
 
 const (
@@ -37,11 +47,12 @@ const (
 )
 
 type fc struct {
-	c proto.FileService
+	c    proto.FileService
+	opts Options
 }
 
 func (c *fc) Open(filename string, truncate bool) (int64, error) {
-	rsp, err := c.c.Open(context.TODO(), &proto.OpenRequest{
+	rsp, err := c.c.Open(c.opts.Context, &proto.OpenRequest{
 		Filename: filename,
 		Truncate: truncate,
 	})
@@ -52,7 +63,7 @@ func (c *fc) Open(filename string, truncate bool) (int64, error) {
 }
 
 func (c *fc) Stat(filename string) (*proto.StatResponse, error) {
-	return c.c.Stat(context.TODO(), &proto.StatRequest{Filename: filename})
+	return c.c.Stat(c.opts.Context, &proto.StatRequest{Filename: filename})
 }
 
 func (c *fc) GetBlock(sessionId, blockId int64) ([]byte, error) {
@@ -60,7 +71,7 @@ func (c *fc) GetBlock(sessionId, blockId int64) ([]byte, error) {
 }
 
 func (c *fc) ReadAt(sessionId, offset, size int64) ([]byte, error) {
-	rsp, err := c.c.Read(context.TODO(), &proto.ReadRequest{Id: sessionId, Size: size, Offset: offset})
+	rsp, err := c.c.Read(c.opts.Context, &proto.ReadRequest{Id: sessionId, Size: size, Offset: offset})
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +101,7 @@ func (c *fc) Read(sessionId int64, buf []byte) (int, error) {
 }
 
 func (c *fc) Write(sessionId, offset int64, data []byte) error {
-	_, err := c.c.Write(context.TODO(), &proto.WriteRequest{
+	_, err := c.c.Write(c.opts.Context, &proto.WriteRequest{
 		Id:     sessionId,
 		Offset: offset,
 		Data:   data})
@@ -98,7 +109,7 @@ func (c *fc) Write(sessionId, offset int64, data []byte) error {
 }
 
 func (c *fc) Close(sessionId int64) error {
-	_, err := c.c.Close(context.TODO(), &proto.CloseRequest{Id: sessionId})
+	_, err := c.c.Close(c.opts.Context, &proto.CloseRequest{Id: sessionId})
 	return err
 }
 
