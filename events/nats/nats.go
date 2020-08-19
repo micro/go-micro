@@ -2,9 +2,11 @@ package nats
 
 import (
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/nats-io/nats.go"
 	stan "github.com/nats-io/stan.go"
 	"github.com/pkg/errors"
 
@@ -29,19 +31,27 @@ func NewStream(opts ...Option) (events.Stream, error) {
 		o(&options)
 	}
 
-	// pass the address as an option if it was set
-	var cOpts []stan.Option
+	// connect to nats
+	nopts := nats.GetDefaultOptions()
+	if options.TLSConfig != nil {
+		nopts.Secure = true
+		nopts.TLSConfig = options.TLSConfig
+	}
 	if len(options.Address) > 0 {
-		cOpts = append(cOpts, stan.NatsURL(options.Address))
+		nopts.Servers = []string{options.Address}
+	}
+	conn, err := nopts.Connect()
+	if err != nil {
+		return nil, fmt.Errorf("Error connecting to nats at %v with tls enabled (%v): %v", options.Address, nopts.TLSConfig != nil, err)
 	}
 
 	// connect to the cluster
-	conn, err := stan.Connect(options.ClusterID, options.ClientID, cOpts...)
+	clusterConn, err := stan.Connect(options.ClusterID, options.ClientID, stan.NatsConn(conn))
 	if err != nil {
-		return nil, errors.Wrap(err, "Error connecting to nats")
+		return nil, fmt.Errorf("Error connecting to nats cluster %v: %v", options.ClusterID, err)
 	}
 
-	return &stream{conn}, nil
+	return &stream{clusterConn}, nil
 }
 
 type stream struct {
