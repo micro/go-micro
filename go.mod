@@ -23,7 +23,6 @@ require (
 	github.com/fsouza/go-dockerclient v1.6.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-acme/lego/v3 v3.4.0
-	github.com/go-git/go-git/v5 v5.1.0
 	github.com/gobwas/httphead v0.0.0-20180130184737-2c6c146eadee
 	github.com/gobwas/pool v0.2.0 // indirect
 	github.com/gobwas/ws v1.0.3
@@ -40,6 +39,7 @@ require (
 	github.com/imdario/mergo v0.3.9
 	github.com/jonboulle/clockwork v0.1.0 // indirect
 	github.com/kr/pretty v0.2.0
+	github.com/kr/text v0.2.0 // indirect
 	github.com/lib/pq v1.7.0
 	github.com/lucas-clemente/quic-go v0.14.1
 	github.com/miekg/dns v1.1.27
@@ -47,6 +47,7 @@ require (
 	github.com/nats-io/nats-streaming-server v0.18.0 // indirect
 	github.com/nats-io/nats.go v1.10.0
 	github.com/nats-io/stan.go v0.7.0
+	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
 	github.com/onsi/ginkgo v1.12.0 // indirect
 	github.com/oxtoacart/bpool v0.0.0-20190530202638-03653db5a59c
 	github.com/patrickmn/go-cache v2.1.0+incompatible
@@ -56,7 +57,7 @@ require (
 	github.com/stretchr/testify v1.5.1
 	github.com/teris-io/shortid v0.0.0-20171029131806-771a37caa5cf
 	github.com/tmc/grpc-websocket-proxy v0.0.0-20200122045848-3419fae592fc // indirect
-	github.com/xanzy/go-gitlab v0.35.1 // indirect
+	github.com/xanzy/go-gitlab v0.35.1
 	github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2 // indirect
 	go.etcd.io/bbolt v1.3.5
 	go.uber.org/zap v1.13.0
@@ -66,6 +67,7 @@ require (
 	google.golang.org/genproto v0.0.0-20200526211855-cb27e3aa2013
 	google.golang.org/grpc v1.27.0
 	google.golang.org/protobuf v1.25.0
+	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
 	gopkg.in/square/go-jose.v2 v2.4.1 // indirect
 	gopkg.in/yaml.v2 v2.2.8 // indirect
 	sigs.k8s.io/yaml v1.1.0 // indirect

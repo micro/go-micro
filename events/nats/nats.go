@@ -2,6 +2,7 @@ package nats
 
 import (
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -37,14 +38,17 @@ func NewStream(opts ...Option) (events.Stream, error) {
 		nopts.TLSConfig = options.TLSConfig
 	}
 	if len(options.Address) > 0 {
-		nopts.Url = options.Address
+		nopts.Servers = []string{options.Address}
 	}
 	conn, err := nopts.Connect()
+	if err != nil {
+		return nil, fmt.Errorf("Error connecting to nats at %v with tls enabled (%v): %v", options.Address, nopts.TLSConfig != nil, err)
+	}
 
 	// connect to the cluster
 	clusterConn, err := stan.Connect(options.ClusterID, options.ClientID, stan.NatsConn(conn))
 	if err != nil {
-		return nil, errors.Wrap(err, "Error connecting to nats")
+		return nil, fmt.Errorf("Error connecting to nats cluster %v: %v", options.ClusterID, err)
 	}
 
 	return &stream{clusterConn}, nil
