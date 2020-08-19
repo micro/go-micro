@@ -19,6 +19,8 @@ import (
 	"github.com/xanzy/go-gitlab"
 )
 
+const credentialsKey = "GIT_CREDENTIALS"
+
 type Gitter interface {
 	Checkout(repo, branchOrCommit string) error
 	RepoDir() string
@@ -43,15 +45,47 @@ func (g *binaryGitter) Checkout(repo, branchOrCommit string) error {
 		return g.checkoutGithub(repo, branchOrCommit)
 	} else if strings.Contains(repo, "gitlab") {
 		err := g.checkoutGitLabPublic(repo, branchOrCommit)
-		if err != nil {
+		if err != nil && len(g.secrets[credentialsKey]) > 0 {
 			// If the public download fails, try getting it with tokens.
 			// Private downloads needs a token for api project listing, hence
 			// the weird structure of this code.
 			return g.checkoutGitLabPrivate(repo, branchOrCommit)
 		}
-		return nil
+		return err
 	}
-	return fmt.Errorf("Repo host %v is not supported yet", repo)
+	// This requires git support
+	return g.checkoutAnyRemote(repo, branchOrCommit)
+}
+
+func (g *binaryGitter) checkoutAnyRemote(repo, branchOrCommit string) error {
+	repoFolder := strings.ReplaceAll(strings.ReplaceAll(repo, "/", "-"), "https://", "")
+	g.folder = filepath.Join(os.TempDir(),
+		repoFolder+"-"+shortid.MustGenerate())
+
+	// Assumes remote address format is git@gitlab.com:micro-test/monorepo-test.git
+	remoteAddr := fmt.Sprintf("git@%v.git", strings.Replace(repo, "/", ":", 1))
+
+	cmd := exec.Command("git", "clone", remoteAddr, "--depth=1", ".")
+	cmd.Dir = g.folder
+	outp, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("Git clone failed: %v", string(outp))
+	}
+
+	cmd = exec.Command("git", "fetch", "origin", branchOrCommit, "--depth=1")
+	cmd.Dir = g.folder
+	outp, err = cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("Git fetch failed: %v", string(outp))
+	}
+
+	cmd = exec.Command("git", "checkout", branchOrCommit)
+	cmd.Dir = g.folder
+	outp, err = cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("Git  checkout failed: %v", string(outp))
+	}
+	return nil
 }
 
 func (g *binaryGitter) checkoutGithub(repo, branchOrCommit string) error {
@@ -66,8 +100,8 @@ func (g *binaryGitter) checkoutGithub(repo, branchOrCommit string) error {
 	}
 	client := &http.Client{}
 	req, _ := http.NewRequest("GET", url, nil)
-	if len(g.secrets["GIT_CREDENTIALS"]) > 0 {
-		req.Header.Set("Authorization", "token "+g.secrets["GIT_CREDENTIALS"])
+	if len(g.secrets[credentialsKey]) > 0 {
+		req.Header.Set("Authorization", "token "+g.secrets[credentialsKey])
 	}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -151,7 +185,7 @@ func (g *binaryGitter) checkoutGitLabPublic(repo, branchOrCommit string) error {
 }
 
 func (g *binaryGitter) checkoutGitLabPrivate(repo, branchOrCommit string) error {
-	git, err := gitlab.NewClient(g.secrets["GIT_CREDENTIALS"])
+	git, err := gitlab.NewClient(g.secrets[credentialsKey])
 	if err != nil {
 		return err
 	}
@@ -173,7 +207,7 @@ func (g *binaryGitter) checkoutGitLabPrivate(repo, branchOrCommit string) error 
 	}
 	// Example URL:
 	// https://gitlab.com/api/v3/projects/0000000/repository/archive?private_token=XXXXXXXXXXXXXXXXXXXX
-	url := fmt.Sprintf("https://gitlab.com/api/v4/projects/%v/repository/archive?private_token=%v", projectID, g.secrets["GIT_CREDENTIALS"])
+	url := fmt.Sprintf("https://gitlab.com/api/v4/projects/%v/repository/archive?private_token=%v", projectID, g.secrets[credentialsKey])
 
 	client := &http.Client{}
 	req, _ := http.NewRequest("GET", url, nil)
