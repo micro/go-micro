@@ -56,7 +56,7 @@ require (
 	github.com/stretchr/testify v1.5.1
 	github.com/teris-io/shortid v0.0.0-20171029131806-771a37caa5cf
 	github.com/tmc/grpc-websocket-proxy v0.0.0-20200122045848-3419fae592fc // indirect
-	github.com/xanzy/go-gitlab v0.35.1 // indirect
+	github.com/xanzy/go-gitlab v0.35.1
 	github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2 // indirect
 	go.etcd.io/bbolt v1.3.5
 	go.uber.org/zap v1.13.0

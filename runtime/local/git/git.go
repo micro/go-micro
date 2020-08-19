@@ -53,11 +53,10 @@ func (g *binaryGitter) Checkout(repo, branchOrCommit string) error {
 		}
 		return err
 	}
-	err := g.checkoutAnyRemote(repo, branchOrCommit, false)
-	if err != nil {
+	if len(g.secrets[credentialsKey]) > 0 {
 		return g.checkoutAnyRemote(repo, branchOrCommit, true)
 	}
-	return nil
+	return g.checkoutAnyRemote(repo, branchOrCommit, false)
 }
 
 // This aims to be a generic checkout method. Currently only tested for bitbucket,
