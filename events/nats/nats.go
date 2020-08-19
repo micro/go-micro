@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/nats-io/nats.go"
 	stan "github.com/nats-io/stan.go"
 	"github.com/pkg/errors"
 
@@ -29,19 +30,24 @@ func NewStream(opts ...Option) (events.Stream, error) {
 		o(&options)
 	}
 
-	// pass the address as an option if it was set
-	var cOpts []stan.Option
-	if len(options.Address) > 0 {
-		cOpts = append(cOpts, stan.NatsURL(options.Address))
+	// connect to nats
+	nopts := nats.GetDefaultOptions()
+	if options.TLSConfig != nil {
+		nopts.Secure = true
+		nopts.TLSConfig = options.TLSConfig
 	}
+	if len(options.Address) > 0 {
+		nopts.Url = options.Address
+	}
+	conn, err := nopts.Connect()
 
 	// connect to the cluster
-	conn, err := stan.Connect(options.ClusterID, options.ClientID, cOpts...)
+	clusterConn, err := stan.Connect(options.ClusterID, options.ClientID, stan.NatsConn(conn))
 	if err != nil {
 		return nil, errors.Wrap(err, "Error connecting to nats")
 	}
 
-	return &stream{conn}, nil
+	return &stream{clusterConn}, nil
 }
 
 type stream struct {
