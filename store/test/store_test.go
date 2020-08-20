@@ -266,6 +266,15 @@ func listTests(s store.Store, t *testing.T) {
 		t.Fatalf("Expected 2 records, received %d %+v", len(recs), recs)
 	}
 
+	for i := 0; i < 10; i++ {
+		s.Write(&store.Record{Key: fmt.Sprintf("ListOffset%d", i), Value: []byte("bar")})
+	}
+
+	recs, err = s.List(store.ListPrefix("ListOffset"), store.ListOffset(6))
+	if len(recs) != 4 {
+		t.Fatalf("Expected 4 records, received %d %+v", len(recs), recs)
+	}
+
 }
 
 func expiryTests(s store.Store, t *testing.T) {
@@ -308,7 +317,7 @@ func expiryTests(s store.Store, t *testing.T) {
 		t.Error(err)
 	}
 	if len(results) != 3 {
-		t.Fatal("Results should have returned 3 records")
+		t.Fatalf("Results should have returned 3 records, returned %d", len(results))
 	}
 	time.Sleep(1 * time.Second)
 	results, err = s.Read("a", store.ReadPrefix())
