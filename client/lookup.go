@@ -19,7 +19,7 @@ func LookupRoute(ctx context.Context, req Request, opts CallOptions) ([]string, 
 	}
 
 	// construct the router query
-	query := []router.QueryOption{router.QueryService(req.Service())}
+	query := []router.QueryOption{}
 
 	// if a custom network was requested, pass this to the router. By default the router will use it's
 	// own network, which is set during initialisation.
@@ -28,7 +28,7 @@ func LookupRoute(ctx context.Context, req Request, opts CallOptions) ([]string, 
 	}
 
 	// lookup the routes which can be used to execute the request
-	routes, err := opts.Router.Lookup(query...)
+	routes, err := opts.Router.Lookup(req.Service(), query...)
 	if err == router.ErrRouteNotFound {
 		return nil, errors.InternalServerError("go.micro.client", "service %s: %s", req.Service(), err.Error())
 	} else if err != nil {

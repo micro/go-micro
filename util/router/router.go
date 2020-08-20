@@ -10,7 +10,7 @@ type apiRouter struct {
 	router.Router
 }
 
-func (r *apiRouter) Lookup(...router.QueryOption) ([]router.Route, error) {
+func (r *apiRouter) Lookup(service string, opts ...router.QueryOption) ([]router.Route, error) {
 	return r.routes, nil
 }
 
