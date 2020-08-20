@@ -11,7 +11,7 @@ import (
 	"github.com/micro/go-micro/v3/router"
 	regRouter "github.com/micro/go-micro/v3/router/registry"
 	"github.com/micro/go-micro/v3/selector"
-	"github.com/micro/go-micro/v3/selector/random"
+	"github.com/micro/go-micro/v3/selector/roundrobin"
 	"github.com/micro/go-micro/v3/transport"
 	thttp "github.com/micro/go-micro/v3/transport/http"
 )
@@ -125,7 +125,7 @@ func NewOptions(options ...Option) Options {
 		PoolTTL:   DefaultPoolTTL,
 		Broker:    http.NewBroker(),
 		Router:    regRouter.NewRouter(),
-		Selector:  random.NewSelector(),
+		Selector:  roundrobin.NewSelector(),
 		Transport: thttp.NewTransport(),
 	}
 
