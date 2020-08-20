@@ -208,7 +208,7 @@ func (p *Proxy) getRoute(ctx context.Context, service string) ([]router.Route, e
 
 func (p *Proxy) cacheRoutes(service string) ([]router.Route, error) {
 	// lookup the routes in the router
-	results, err := p.Router.Lookup(router.QueryService(service), router.QueryNetwork("*"))
+	results, err := p.Router.Lookup(service, router.QueryNetwork("*"))
 	if err != nil {
 		// assumption that we're ok with stale routes
 		logger.Debugf("Failed to lookup route for %s: %v", service, err)
