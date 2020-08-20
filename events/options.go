@@ -6,9 +6,6 @@ import "time"
 type PublishOptions struct {
 	// Metadata contains any keys which can be used to query the data, for example a customer id
 	Metadata map[string]string
-	// Payload contains any additonal data which is relevent to the event but does not need to be
-	// indexed such as structured data
-	Payload interface{}
 	// Timestamp to set for the event, if the timestamp is a zero value, the current time will be used
 	Timestamp time.Time
 }
@@ -20,13 +17,6 @@ type PublishOption func(o *PublishOptions)
 func WithMetadata(md map[string]string) PublishOption {
 	return func(o *PublishOptions) {
 		o.Metadata = md
-	}
-}
-
-// WithPayload sets the payload field on PublishOptions
-func WithPayload(p interface{}) PublishOption {
-	return func(o *PublishOptions) {
-		o.Payload = p
 	}
 }
 
@@ -42,9 +32,6 @@ type SubscribeOptions struct {
 	// Queue is the name of the subscribers queue, if two subscribers have the same queue the message
 	// should only be published to one of them
 	Queue string
-	// Topic to subscribe to, if left blank the consumer will be subscribed to the firehouse topic which
-	// recieves all events
-	Topic string
 	// StartAtTime is the time from which the messages should be consumed from. If not provided then
 	// the messages will be consumed starting from the moment the Subscription starts.
 	StartAtTime time.Time
@@ -57,13 +44,6 @@ type SubscribeOption func(o *SubscribeOptions)
 func WithQueue(q string) SubscribeOption {
 	return func(o *SubscribeOptions) {
 		o.Queue = q
-	}
-}
-
-// WithTopic sets the topic to subscribe to
-func WithTopic(t string) SubscribeOption {
-	return func(o *SubscribeOptions) {
-		o.Topic = t
 	}
 }
 

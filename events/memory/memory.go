@@ -41,7 +41,7 @@ type mem struct {
 	sync.RWMutex
 }
 
-func (m *mem) Publish(topic string, opts ...events.PublishOption) error {
+func (m *mem) Publish(topic string, msg interface{}, opts ...events.PublishOption) error {
 	// validate the topic
 	if len(topic) == 0 {
 		return events.ErrMissingTopic
@@ -57,10 +57,10 @@ func (m *mem) Publish(topic string, opts ...events.PublishOption) error {
 
 	// encode the message if it's not already encoded
 	var payload []byte
-	if p, ok := options.Payload.([]byte); ok {
+	if p, ok := msg.([]byte); ok {
 		payload = p
 	} else {
-		p, err := json.Marshal(options.Payload)
+		p, err := json.Marshal(msg)
 		if err != nil {
 			return events.ErrEncodingMessage
 		}
@@ -94,7 +94,12 @@ func (m *mem) Publish(topic string, opts ...events.PublishOption) error {
 	return nil
 }
 
-func (m *mem) Subscribe(opts ...events.SubscribeOption) (<-chan events.Event, error) {
+func (m *mem) Subscribe(topic string, opts ...events.SubscribeOption) (<-chan events.Event, error) {
+	// validate the topic
+	if len(topic) == 0 {
+		return nil, events.ErrMissingTopic
+	}
+
 	// parse the options
 	options := events.SubscribeOptions{
 		Queue: uuid.New().String(),
@@ -106,7 +111,7 @@ func (m *mem) Subscribe(opts ...events.SubscribeOption) (<-chan events.Event, er
 	// setup the subscriber
 	sub := &subscriber{
 		Channel: make(chan events.Event),
-		Topic:   options.Topic,
+		Topic:   topic,
 		Queue:   options.Queue,
 	}
 
@@ -127,13 +132,8 @@ func (m *mem) Subscribe(opts ...events.SubscribeOption) (<-chan events.Event, er
 // lookupPreviousEvents finds events for a subscriber which occured before a given time and sends
 // them into the subscribers channel
 func (m *mem) lookupPreviousEvents(sub *subscriber, startTime time.Time) {
-	var prefix string
-	if len(sub.Topic) > 0 {
-		prefix = sub.Topic + "/"
-	}
-
 	// lookup all events which match the topic (a blank topic will return all results)
-	recs, err := m.store.Read(prefix, store.ReadPrefix())
+	recs, err := m.store.Read(sub.Topic+"/", store.ReadPrefix())
 	if err != nil && logger.V(logger.ErrorLevel, logger.DefaultLogger) {
 		logger.Errorf("Error looking up previous events: %v", err)
 		return

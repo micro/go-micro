@@ -21,51 +21,8 @@ func TestStream(t *testing.T) {
 
 	// TestMissingTopic will test the topic validation on publish
 	t.Run("TestMissingTopic", func(t *testing.T) {
-		err := stream.Publish("")
+		err := stream.Publish("", nil)
 		assert.Equalf(t, err, events.ErrMissingTopic, "Publishing to a blank topic should return an error")
-	})
-
-	// TestFirehose will publish a message to the test topic. The subscriber will subscribe to the
-	// firehose topic (indicated by a lack of the topic option).
-	t.Run("TestFirehose", func(t *testing.T) {
-		payload := &testPayload{Message: "HelloWorld"}
-		metadata := map[string]string{"foo": "bar"}
-
-		// create the subscriber
-		evChan, err := stream.Subscribe()
-		assert.Nilf(t, err, "Subscribe should not return an error")
-
-		// setup the subscriber async
-		var wg sync.WaitGroup
-
-		go func() {
-			timeout := time.NewTimer(time.Millisecond * 250)
-
-			select {
-			case event, _ := <-evChan:
-				assert.NotNilf(t, event, "The message was nil")
-				assert.Equal(t, event.Metadata, metadata, "Metadata didn't match")
-
-				var result testPayload
-				err = event.Unmarshal(&result)
-				assert.Nil(t, err, "Error decoding result")
-				assert.Equal(t, result, *payload, "Payload didn't match")
-
-				wg.Done()
-			case <-timeout.C:
-				t.Fatalf("Event was not recieved")
-			}
-		}()
-
-		err = stream.Publish("test",
-			events.WithPayload(payload),
-			events.WithMetadata(metadata),
-		)
-		assert.Nil(t, err, "Publishing a valid message should not return an error")
-		wg.Add(1)
-
-		// wait for the subscriber to recieve the message or timeout
-		wg.Wait()
 	})
 
 	// TestSubscribeTopic will publish a message to the test topic. The subscriber will subscribe to the
@@ -75,7 +32,7 @@ func TestStream(t *testing.T) {
 		metadata := map[string]string{"foo": "bar"}
 
 		// create the subscriber
-		evChan, err := stream.Subscribe(events.WithTopic("test"))
+		evChan, err := stream.Subscribe("test")
 		assert.Nilf(t, err, "Subscribe should not return an error")
 
 		// setup the subscriber async
@@ -100,10 +57,7 @@ func TestStream(t *testing.T) {
 			}
 		}()
 
-		err = stream.Publish("test",
-			events.WithPayload(payload),
-			events.WithMetadata(metadata),
-		)
+		err = stream.Publish("test", payload, events.WithMetadata(metadata))
 		assert.Nil(t, err, "Publishing a valid message should not return an error")
 		wg.Add(1)
 
@@ -120,7 +74,7 @@ func TestStream(t *testing.T) {
 		metadata := map[string]string{"foo": "bar"}
 
 		// create the first subscriber
-		evChan1, err := stream.Subscribe(events.WithTopic(topic))
+		evChan1, err := stream.Subscribe(topic)
 		assert.Nilf(t, err, "Subscribe should not return an error")
 
 		// setup the subscriber async
@@ -145,16 +99,12 @@ func TestStream(t *testing.T) {
 			}
 		}()
 
-		err = stream.Publish(topic,
-			events.WithPayload(payload),
-			events.WithMetadata(metadata),
-		)
+		err = stream.Publish(topic, payload, events.WithMetadata(metadata))
 		assert.Nil(t, err, "Publishing a valid message should not return an error")
 		wg.Add(2)
 
 		// create the second subscriber
-		evChan2, err := stream.Subscribe(
-			events.WithTopic(topic),
+		evChan2, err := stream.Subscribe(topic,
 			events.WithQueue("second_queue"),
 			events.WithStartAtTime(time.Now().Add(time.Minute*-1)),
 		)
