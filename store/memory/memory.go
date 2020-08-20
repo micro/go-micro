@@ -123,35 +123,19 @@ func (m *memoryStore) delete(prefix, key string) {
 
 func (m *memoryStore) list(prefix string, limit, offset uint) []string {
 	allItems := m.store.Items()
-	allKeys := make([]string, len(allItems))
+	keys := make([]string, len(allItems))
 	i := 0
 
 	for k := range allItems {
 		if !strings.HasPrefix(k, prefix+"/") {
 			continue
 		}
-		allKeys[i] = strings.TrimPrefix(k, prefix+"/")
+		keys[i] = strings.TrimPrefix(k, prefix+"/")
 		i++
 	}
 
-	if limit != 0 || offset != 0 {
-		sort.Slice(allKeys, func(i, j int) bool { return allKeys[i] < allKeys[j] })
-		sort.Slice(allKeys, func(i, j int) bool { return allKeys[i] < allKeys[j] })
-		end := len(allKeys)
-		if limit > 0 {
-			calcLimit := int(offset + limit)
-			if calcLimit < end {
-				end = calcLimit
-			}
-		}
-
-		if int(offset) >= end {
-			return nil
-		}
-		return allKeys[offset:end]
-	}
-
-	return allKeys
+	sort.Slice(keys, func(i, j int) bool { return keys[i] < keys[j] })
+	return applyLimitAndOffset(keys, limit, offset)
 }
 
 func (m *memoryStore) Close() error {
@@ -179,12 +163,10 @@ func (m *memoryStore) Read(key string, opts ...store.ReadOption) ([]*store.Recor
 	prefix := m.prefix(readOpts.Database, readOpts.Table)
 
 	var keys []string
-
 	// Handle Prefix / suffix
 	if readOpts.Prefix || readOpts.Suffix {
-		k := m.list(prefix, readOpts.Limit, readOpts.Offset)
-
-		for _, kk := range k {
+		// apply limit / offset once filtering is complete
+		for _, kk := range m.list(prefix, 0, 0) {
 			if readOpts.Prefix && !strings.HasPrefix(kk, key) {
 				continue
 			}
@@ -195,6 +177,8 @@ func (m *memoryStore) Read(key string, opts ...store.ReadOption) ([]*store.Recor
 
 			keys = append(keys, kk)
 		}
+
+		keys = applyLimitAndOffset(keys, readOpts.Limit, readOpts.Offset)
 	} else {
 		keys = []string{key}
 	}
@@ -296,4 +280,24 @@ func (m *memoryStore) List(opts ...store.ListOption) ([]string, error) {
 	}
 
 	return keys, nil
+}
+
+func applyLimitAndOffset(keys []string, limit, offset uint) []string {
+	if limit == 0 && offset == 0 {
+		return keys
+	}
+
+	end := len(keys)
+	if limit > 0 {
+		calcLimit := int(offset + limit)
+		if calcLimit < end {
+			end = calcLimit
+		}
+	}
+
+	if int(offset) >= end {
+		return nil
+	}
+
+	return keys[offset:end]
 }
