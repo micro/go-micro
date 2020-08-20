@@ -16,8 +16,8 @@ var (
 
 // Stream of events
 type Stream interface {
-	Publish(topic string, opts ...PublishOption) error
-	Subscribe(opts ...SubscribeOption) (<-chan Event, error)
+	Publish(topic string, msg interface{}, opts ...PublishOption) error
+	Subscribe(topic string, opts ...SubscribeOption) (<-chan Event, error)
 }
 
 // Store of events

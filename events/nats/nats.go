@@ -16,7 +16,6 @@ import (
 
 const (
 	defaultClusterID = "micro"
-	eventsTopic      = "events"
 )
 
 // NewStream returns an initialized nats stream or an error if the connection to the nats
@@ -59,7 +58,7 @@ type stream struct {
 }
 
 // Publish a message to a topic
-func (s *stream) Publish(topic string, opts ...events.PublishOption) error {
+func (s *stream) Publish(topic string, msg interface{}, opts ...events.PublishOption) error {
 	// validate the topic
 	if len(topic) == 0 {
 		return events.ErrMissingTopic
@@ -75,10 +74,10 @@ func (s *stream) Publish(topic string, opts ...events.PublishOption) error {
 
 	// encode the message if it's not already encoded
 	var payload []byte
-	if p, ok := options.Payload.([]byte); ok {
+	if p, ok := msg.([]byte); ok {
 		payload = p
 	} else {
-		p, err := json.Marshal(options.Payload)
+		p, err := json.Marshal(msg)
 		if err != nil {
 			return events.ErrEncodingMessage
 		}
@@ -100,11 +99,6 @@ func (s *stream) Publish(topic string, opts ...events.PublishOption) error {
 		return errors.Wrap(err, "Error encoding event")
 	}
 
-	// publish the event to the events channel
-	if _, err := s.conn.PublishAsync(eventsTopic, bytes, nil); err != nil {
-		return errors.Wrap(err, "Error publishing message to events")
-	}
-
 	// publish the event to the topic's channel
 	if _, err := s.conn.PublishAsync(event.Topic, bytes, nil); err != nil {
 		return errors.Wrap(err, "Error publishing message to topic")
@@ -114,10 +108,14 @@ func (s *stream) Publish(topic string, opts ...events.PublishOption) error {
 }
 
 // Subscribe to a topic
-func (s *stream) Subscribe(opts ...events.SubscribeOption) (<-chan events.Event, error) {
+func (s *stream) Subscribe(topic string, opts ...events.SubscribeOption) (<-chan events.Event, error) {
+	// validate the topic
+	if len(topic) == 0 {
+		return nil, events.ErrMissingTopic
+	}
+
 	// parse the options
 	options := events.SubscribeOptions{
-		Topic: eventsTopic,
 		Queue: uuid.New().String(),
 	}
 	for _, o := range opts {
@@ -147,7 +145,7 @@ func (s *stream) Subscribe(opts ...events.SubscribeOption) (<-chan events.Event,
 
 	// setup the options
 	subOpts := []stan.SubscriptionOption{
-		stan.DurableName(options.Topic),
+		stan.DurableName(topic),
 		stan.SetManualAckMode(),
 	}
 	if options.StartAtTime.Unix() > 0 {
@@ -155,7 +153,7 @@ func (s *stream) Subscribe(opts ...events.SubscribeOption) (<-chan events.Event,
 	}
 
 	// connect the subscriber
-	_, err := s.conn.QueueSubscribe(options.Topic, options.Queue, handleMsg, subOpts...)
+	_, err := s.conn.QueueSubscribe(topic, options.Queue, handleMsg, subOpts...)
 	if err != nil {
 		return nil, errors.Wrap(err, "Error subscribing to topic")
 	}
