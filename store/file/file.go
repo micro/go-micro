@@ -2,11 +2,10 @@
 package file
 
 import (
+	"bytes"
 	"encoding/json"
 	"os"
 	"path/filepath"
-	"sort"
-	"strings"
 	"time"
 
 	"github.com/micro/go-micro/v3/store"
@@ -111,8 +110,9 @@ func (f *fileStore) getDB(database, table string) (*bolt.DB, error) {
 	return bolt.Open(dbPath, 0700, &bolt.Options{Timeout: 5 * time.Second})
 }
 
-func (m *fileStore) list(db *bolt.DB, limit, offset uint) []string {
-	var allItems []string
+func (m *fileStore) list(db *bolt.DB, limit, offset uint, prefix, suffix string) []string {
+
+	var keys []string
 
 	db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(dataBucket))
@@ -120,54 +120,53 @@ func (m *fileStore) list(db *bolt.DB, limit, offset uint) []string {
 		if b == nil {
 			return nil
 		}
+		c := b.Cursor()
+		var k, v []byte
+		var cont func(k []byte) bool
 
-		// @todo very inefficient
-		if err := b.ForEach(func(k, v []byte) error {
+		if prefix != "" {
+			// for prefix we can speed up the search, not for suffix though :(
+			k, v = c.Seek([]byte(prefix))
+			cont = func(k []byte) bool {
+				return bytes.HasPrefix(k, []byte(prefix))
+			}
+		} else {
+			k, v = c.First()
+			cont = func(k []byte) bool {
+				return true
+			}
+		}
+
+		for ; k != nil && cont(k); k, v = c.Next() {
 			storedRecord := &record{}
 
 			if err := json.Unmarshal(v, storedRecord); err != nil {
 				return err
 			}
-
 			if !storedRecord.ExpiresAt.IsZero() {
 				if storedRecord.ExpiresAt.Before(time.Now()) {
-					return nil
+					continue
 				}
 			}
+			if suffix != "" && !bytes.HasSuffix(k, []byte(suffix)) {
+				continue
+			}
+			if offset > 0 {
+				offset--
+				continue
+			}
+			keys = append(keys, string(k))
+			// this check still works if no limit was passed to begin with, you'll just end up with large -ve value
+			if limit == 1 {
+				break
+			}
+			limit--
 
-			allItems = append(allItems, string(k))
-
-			return nil
-		}); err != nil {
-			return err
 		}
-
 		return nil
 	})
 
-	allKeys := make([]string, len(allItems))
-
-	for i, k := range allItems {
-		allKeys[i] = k
-	}
-
-	if limit != 0 || offset != 0 {
-		sort.Slice(allKeys, func(i, j int) bool { return allKeys[i] < allKeys[j] })
-		end := len(allKeys)
-		if limit > 0 {
-			calcLimit := int(offset + limit)
-			if calcLimit < end {
-				end = calcLimit
-			}
-		}
-
-		if int(offset) >= end {
-			return nil
-		}
-		return allKeys[offset:end]
-	}
-
-	return allKeys
+	return keys
 }
 
 func (m *fileStore) get(db *bolt.DB, k string) (*store.Record, error) {
@@ -283,21 +282,17 @@ func (m *fileStore) Read(key string, opts ...store.ReadOption) ([]*store.Record,
 	var keys []string
 
 	// Handle Prefix / suffix
-	// TODO: do range scan here rather than listing all keys
 	if readOpts.Prefix || readOpts.Suffix {
-		// list the keys
-		k := m.list(db, readOpts.Limit, readOpts.Offset)
-
-		// check for prefix and suffix
-		for _, v := range k {
-			if readOpts.Prefix && !strings.HasPrefix(v, key) {
-				continue
-			}
-			if readOpts.Suffix && !strings.HasSuffix(v, key) {
-				continue
-			}
-			keys = append(keys, v)
+		prefix := ""
+		if readOpts.Prefix {
+			prefix = key
 		}
+		suffix := ""
+		if readOpts.Suffix {
+			suffix = key
+		}
+		// list the keys
+		keys = m.list(db, readOpts.Limit, readOpts.Offset, prefix, suffix)
 	} else {
 		keys = []string{key}
 	}
@@ -369,28 +364,7 @@ func (m *fileStore) List(opts ...store.ListOption) ([]string, error) {
 	}
 	defer db.Close()
 
-	// TODO apply prefix/suffix in range query
-	allKeys := m.list(db, listOptions.Limit, listOptions.Offset)
-
-	if len(listOptions.Prefix) > 0 {
-		var prefixKeys []string
-		for _, k := range allKeys {
-			if strings.HasPrefix(k, listOptions.Prefix) {
-				prefixKeys = append(prefixKeys, k)
-			}
-		}
-		allKeys = prefixKeys
-	}
-
-	if len(listOptions.Suffix) > 0 {
-		var suffixKeys []string
-		for _, k := range allKeys {
-			if strings.HasSuffix(k, listOptions.Suffix) {
-				suffixKeys = append(suffixKeys, k)
-			}
-		}
-		allKeys = suffixKeys
-	}
+	allKeys := m.list(db, listOptions.Limit, listOptions.Offset, listOptions.Prefix, listOptions.Suffix)
 
 	return allKeys, nil
 }
