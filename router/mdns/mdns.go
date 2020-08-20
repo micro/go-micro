@@ -42,19 +42,19 @@ func (m *mdnsRouter) Table() router.Table {
 	return nil
 }
 
-func (m *mdnsRouter) Lookup(opts ...router.QueryOption) ([]router.Route, error) {
+func (m *mdnsRouter) Lookup(service string, opts ...router.QueryOption) ([]router.Route, error) {
 	options := router.NewQuery(opts...)
 
 	// check to see if we have the port provided in the service, e.g. go-micro-srv-foo:8000
-	service, port, err := net.SplitHostPort(options.Service)
+	srv, port, err := net.SplitHostPort(service)
 	if err != nil {
-		service = options.Service
+		srv = service
 	}
 
 	// query for the host
 	entries := make(chan *mdns.ServiceEntry)
 
-	p := mdns.DefaultParams(service)
+	p := mdns.DefaultParams(srv)
 	p.Timeout = time.Millisecond * 100
 	p.Entries = entries
 

@@ -47,7 +47,7 @@ func NewRouter(opts ...router.Option) router.Router {
 
 	// create the new table, passing the fetchRoute method in as a fallback if
 	// the table doesn't contain the result for a query.
-	r.table = newTable(r.lookup)
+	r.table = newTable()
 
 	// start the router
 	r.start()
@@ -241,8 +241,41 @@ func (r *rtr) loadRoutes(reg registry.Registry) error {
 	return nil
 }
 
+// Close the router
+func (r *rtr) Close() error {
+	r.Lock()
+	defer r.Unlock()
+
+	select {
+	case <-r.exit:
+		return nil
+	default:
+		if !r.running {
+			return nil
+		}
+		close(r.exit)
+
+	}
+
+	r.running = false
+	return nil
+}
+
 // lookup retrieves all the routes for a given service and creates them in the routing table
-func (r *rtr) lookup(service string) ([]router.Route, error) {
+func (r *rtr) Lookup(service string, opts ...router.QueryOption) ([]router.Route, error) {
+	q := router.NewQuery(opts...)
+
+	// if we find the routes filter and return them
+	routes, err := r.table.Query(service)
+	if err == nil {
+		routes = router.Filter(routes, q)
+		if len(routes) == 0 {
+			return nil, router.ErrRouteNotFound
+		}
+		return routes, nil
+	}
+
+	// lookup the route
 	logger.Tracef("Fetching route for %s domain: %v", service, registry.WildcardDomain)
 
 	services, err := r.options.Registry.GetService(service, registry.GetDomain(registry.WildcardDomain))
@@ -254,8 +287,6 @@ func (r *rtr) lookup(service string) ([]router.Route, error) {
 		return nil, fmt.Errorf("failed getting services: %v", err)
 	}
 
-	var routes []router.Route
-
 	for _, srv := range services {
 		domain := getDomain(srv)
 		// TODO: should we continue to send the event indicating we created a route?
@@ -263,6 +294,17 @@ func (r *rtr) lookup(service string) ([]router.Route, error) {
 		routes = append(routes, r.createRoutes(srv, domain)...)
 	}
 
+	// if we're supposed to cache then save the routes
+	if r.options.Cache {
+		for _, route := range routes {
+			r.table.Create(route)
+		}
+	}
+
+	routes = router.Filter(routes, q)
+	if len(routes) == 0 {
+		return nil, router.ErrRouteNotFound
+	}
 	return routes, nil
 }
 
@@ -434,34 +476,9 @@ func (r *rtr) start() error {
 	return nil
 }
 
-// Lookup routes in the routing table
-func (r *rtr) Lookup(q ...router.QueryOption) ([]router.Route, error) {
-	return r.Table().Query(q...)
-}
-
 // Watch routes
 func (r *rtr) Watch(opts ...router.WatchOption) (router.Watcher, error) {
 	return r.table.Watch(opts...)
-}
-
-// Close the router
-func (r *rtr) Close() error {
-	r.Lock()
-	defer r.Unlock()
-
-	select {
-	case <-r.exit:
-		return nil
-	default:
-		if !r.running {
-			return nil
-		}
-		close(r.exit)
-
-	}
-
-	r.running = false
-	return nil
 }
 
 // String prints debugging information about router
