@@ -1,13 +1,11 @@
 package router
 
-// QueryOption sets routing table query options
-type QueryOption func(*QueryOptions)
+// LookupOption sets routing table query options
+type LookupOption func(*LookupOptions)
 
-// QueryOptions are routing table query options
+// LookupOptions are routing table query options
 // TODO replace with Filter(Route) bool
-type QueryOptions struct {
-	// Service is destination service name
-	Service string
+type LookupOptions struct {
 	// Address of the service
 	Address string
 	// Gateway is route gateway
@@ -20,53 +18,45 @@ type QueryOptions struct {
 	Link string
 }
 
-// QueryService sets service to query
-func QueryService(s string) QueryOption {
-	return func(o *QueryOptions) {
-		o.Service = s
-	}
-}
-
-// QueryAddress sets service to query
-func QueryAddress(a string) QueryOption {
-	return func(o *QueryOptions) {
+// LookupAddress sets service to query
+func LookupAddress(a string) LookupOption {
+	return func(o *LookupOptions) {
 		o.Address = a
 	}
 }
 
-// QueryGateway sets gateway address to query
-func QueryGateway(g string) QueryOption {
-	return func(o *QueryOptions) {
+// LookupGateway sets gateway address to query
+func LookupGateway(g string) LookupOption {
+	return func(o *LookupOptions) {
 		o.Gateway = g
 	}
 }
 
-// QueryNetwork sets network name to query
-func QueryNetwork(n string) QueryOption {
-	return func(o *QueryOptions) {
+// LookupNetwork sets network name to query
+func LookupNetwork(n string) LookupOption {
+	return func(o *LookupOptions) {
 		o.Network = n
 	}
 }
 
-// QueryRouter sets router id to query
-func QueryRouter(r string) QueryOption {
-	return func(o *QueryOptions) {
+// LookupRouter sets router id to query
+func LookupRouter(r string) LookupOption {
+	return func(o *LookupOptions) {
 		o.Router = r
 	}
 }
 
-// QueryLink sets the link to query
-func QueryLink(link string) QueryOption {
-	return func(o *QueryOptions) {
+// LookupLink sets the link to query
+func LookupLink(link string) LookupOption {
+	return func(o *LookupOptions) {
 		o.Link = link
 	}
 }
 
-// NewQuery creates new query and returns it
-func NewQuery(opts ...QueryOption) QueryOptions {
+// NewLookup creates new query and returns it
+func NewLookup(opts ...LookupOption) LookupOptions {
 	// default options
-	qopts := QueryOptions{
-		Service: "*",
+	qopts := LookupOptions{
 		Address: "*",
 		Gateway: "*",
 		Network: "*",
@@ -117,7 +107,7 @@ func isMatch(route Route, address, gateway, network, rtr, link string) bool {
 }
 
 // filterRoutes finds all the routes for given network and router and returns them
-func Filter(routes []Route, opts QueryOptions) []Route {
+func Filter(routes []Route, opts LookupOptions) []Route {
 	address := opts.Address
 	gateway := opts.Gateway
 	network := opts.Network

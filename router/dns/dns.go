@@ -43,9 +43,7 @@ func (d *dns) Close() error {
 	return nil
 }
 
-func (d *dns) Lookup(service string, opts ...router.QueryOption) ([]router.Route, error) {
-	options := router.NewQuery(opts...)
-
+func (d *dns) Lookup(service string, opts ...router.LookupOption) ([]router.Route, error) {
 	// check to see if we have the port provided in the service, e.g. go-micro-srv-foo:8000
 	host, port, err := net.SplitHostPort(service)
 	if err == nil {
@@ -61,7 +59,7 @@ func (d *dns) Lookup(service string, opts ...router.QueryOption) ([]router.Route
 		result := make([]router.Route, len(ips))
 		for i, ip := range ips {
 			result[i] = router.Route{
-				Service: options.Service,
+				Service: service,
 				Address: fmt.Sprintf("%s:%d", ip, uint16(p)),
 			}
 		}
@@ -79,7 +77,7 @@ func (d *dns) Lookup(service string, opts ...router.QueryOption) ([]router.Route
 	result := make([]router.Route, len(nodes))
 	for i, n := range nodes {
 		result[i] = router.Route{
-			Service: options.Service,
+			Service: service,
 			Address: fmt.Sprintf("%s:%d", n.Target, n.Port),
 			Network: d.options.Network,
 		}

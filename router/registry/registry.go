@@ -262,8 +262,8 @@ func (r *rtr) Close() error {
 }
 
 // lookup retrieves all the routes for a given service and creates them in the routing table
-func (r *rtr) Lookup(service string, opts ...router.QueryOption) ([]router.Route, error) {
-	q := router.NewQuery(opts...)
+func (r *rtr) Lookup(service string, opts ...router.LookupOption) ([]router.Route, error) {
+	q := router.NewLookup(opts...)
 
 	// if we find the routes filter and return them
 	routes, err := r.table.Query(service)

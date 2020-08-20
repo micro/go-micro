@@ -42,8 +42,8 @@ func (m *mdnsRouter) Table() router.Table {
 	return nil
 }
 
-func (m *mdnsRouter) Lookup(service string, opts ...router.QueryOption) ([]router.Route, error) {
-	options := router.NewQuery(opts...)
+func (m *mdnsRouter) Lookup(service string, opts ...router.LookupOption) ([]router.Route, error) {
+	options := router.NewLookup(opts...)
 
 	// check to see if we have the port provided in the service, e.g. go-micro-srv-foo:8000
 	srv, port, err := net.SplitHostPort(service)

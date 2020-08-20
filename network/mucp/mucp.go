@@ -961,8 +961,8 @@ func (n *mucpNetwork) processNetChan(listener tunnel.Listener) {
 						route.Metric = d
 					}
 
-					q := []router.QueryOption{
-						router.QueryLink(route.Link),
+					q := []router.LookupOption{
+						router.LookupLink(route.Link),
 					}
 
 					routes, err := n.router.Lookup(route.Service, q...)
@@ -1078,14 +1078,14 @@ func (n *mucpNetwork) processNetChan(listener tunnel.Listener) {
 }
 
 // pruneRoutes prunes routes return by given query
-func (n *mucpNetwork) pruneRoutes(q ...router.QueryOption) error {
+func (n *mucpNetwork) pruneRoutes(q ...router.LookupOption) error {
 	routes, err := n.router.Table().List()
 	if err != nil && err != router.ErrRouteNotFound {
 		return err
 	}
 
 	// filter and delete the routes in question
-	for _, route := range router.Filter(routes, router.NewQuery(q...)) {
+	for _, route := range router.Filter(routes, router.NewLookup(q...)) {
 		n.router.Table().Delete(route)
 	}
 
@@ -1095,18 +1095,18 @@ func (n *mucpNetwork) pruneRoutes(q ...router.QueryOption) error {
 // pruneNodeRoutes prunes routes that were either originated by or routable via given node
 func (n *mucpNetwork) prunePeerRoutes(peer *node) error {
 	// lookup all routes originated by router
-	q := []router.QueryOption{
-		router.QueryRouter(peer.id),
-		router.QueryLink("*"),
+	q := []router.LookupOption{
+		router.LookupRouter(peer.id),
+		router.LookupLink("*"),
 	}
 	if err := n.pruneRoutes(q...); err != nil {
 		return err
 	}
 
 	// lookup all routes routable via gw
-	q = []router.QueryOption{
-		router.QueryGateway(peer.address),
-		router.QueryLink("*"),
+	q = []router.LookupOption{
+		router.LookupGateway(peer.address),
+		router.LookupLink("*"),
 	}
 	if err := n.pruneRoutes(q...); err != nil {
 		return err
@@ -1289,7 +1289,7 @@ func (n *mucpNetwork) manage() {
 				}
 
 				// otherwise delete all the routes originated by it
-				if err := n.pruneRoutes(router.QueryRouter(route.Router)); err != nil {
+				if err := n.pruneRoutes(router.LookupRouter(route.Router)); err != nil {
 					if logger.V(logger.DebugLevel, logger.DefaultLogger) {
 						logger.Debugf("Network failed deleting routes by %s: %v", route.Router, err)
 					}

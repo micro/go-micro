@@ -32,8 +32,8 @@ func (s *static) Table() router.Table {
 	return nil
 }
 
-func (s *static) Lookup(service string, opts ...router.QueryOption) ([]router.Route, error) {
-	options := router.NewQuery(opts...)
+func (s *static) Lookup(service string, opts ...router.LookupOption) ([]router.Route, error) {
+	options := router.NewLookup(opts...)
 
 	return []router.Route{
 		router.Route{
