@@ -962,11 +962,10 @@ func (n *mucpNetwork) processNetChan(listener tunnel.Listener) {
 					}
 
 					q := []router.QueryOption{
-						router.QueryService(route.Service),
 						router.QueryLink(route.Link),
 					}
 
-					routes, err := n.router.Table().Query(q...)
+					routes, err := n.router.Lookup(route.Service, q...)
 					if err != nil && err != router.ErrRouteNotFound {
 						if logger.V(logger.DebugLevel, logger.DefaultLogger) {
 							logger.Debugf("Network node %s failed listing best routes for %s: %v", n.id, route.Service, err)
@@ -1080,15 +1079,14 @@ func (n *mucpNetwork) processNetChan(listener tunnel.Listener) {
 
 // pruneRoutes prunes routes return by given query
 func (n *mucpNetwork) pruneRoutes(q ...router.QueryOption) error {
-	routes, err := n.router.Table().Query(q...)
+	routes, err := n.router.Table().List()
 	if err != nil && err != router.ErrRouteNotFound {
 		return err
 	}
 
-	for _, route := range routes {
-		if err := n.router.Table().Delete(route); err != nil && err != router.ErrRouteNotFound {
-			return err
-		}
+	// filter and delete the routes in question
+	for _, route := range router.Filter(routes, router.NewQuery(q...)) {
+		n.router.Table().Delete(route)
 	}
 
 	return nil
