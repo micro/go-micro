@@ -213,13 +213,6 @@ func (m *memoryStore) Write(r *store.Record, opts ...store.WriteOption) error {
 		copy(newRecord.Value, r.Value)
 		newRecord.Expiry = r.Expiry
 
-		if !writeOpts.Expiry.IsZero() {
-			newRecord.Expiry = time.Until(writeOpts.Expiry)
-		}
-		if writeOpts.TTL != 0 {
-			newRecord.Expiry = writeOpts.TTL
-		}
-
 		for k, v := range r.Metadata {
 			newRecord.Metadata[k] = v
 		}

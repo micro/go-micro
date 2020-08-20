@@ -2,7 +2,6 @@ package store
 
 import (
 	"context"
-	"time"
 )
 
 // Options contains configuration for the Store
@@ -108,10 +107,6 @@ func ReadOffset(o uint) ReadOption {
 // If Expiry and TTL are set TTL takes precedence
 type WriteOptions struct {
 	Database, Table string
-	// Expiry is the time the record expires
-	Expiry time.Time
-	// TTL is the time until the record expires
-	TTL time.Duration
 }
 
 // WriteOption sets values in WriteOptions
@@ -122,20 +117,6 @@ func WriteTo(database, table string) WriteOption {
 	return func(w *WriteOptions) {
 		w.Database = database
 		w.Table = table
-	}
-}
-
-// WriteExpiry is the time the record expires
-func WriteExpiry(t time.Time) WriteOption {
-	return func(w *WriteOptions) {
-		w.Expiry = t
-	}
-}
-
-// WriteTTL is the time the record expires
-func WriteTTL(d time.Duration) WriteOption {
-	return func(w *WriteOptions) {
-		w.TTL = d
 	}
 }
 

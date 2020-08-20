@@ -160,22 +160,24 @@ func runStoreTest(s store.Store, t *testing.T) {
 func readTests(s store.Store, t *testing.T) {
 	// Test Table, Suffix and WriteOptions
 	if err := s.Write(&store.Record{
-		Key:   "foofoobarbar",
-		Value: []byte("something"),
-	}, store.WriteTTL(time.Millisecond*100)); err != nil {
+		Key:    "foofoobarbar",
+		Value:  []byte("something"),
+		Expiry: time.Millisecond * 100,
+	}); err != nil {
 		t.Error(err)
 	}
 	if err := s.Write(&store.Record{
-		Key:   "foofoo",
-		Value: []byte("something"),
-	}, store.WriteExpiry(time.Now().Add(time.Millisecond*100))); err != nil {
+		Key:    "foofoo",
+		Value:  []byte("something"),
+		Expiry: time.Millisecond * 100,
+	}); err != nil {
 		t.Error(err)
 	}
 	if err := s.Write(&store.Record{
-		Key:   "barbar",
-		Value: []byte("something"),
-		// TTL has higher precedence than expiry
-	}, store.WriteExpiry(time.Now().Add(time.Hour)), store.WriteTTL(time.Millisecond*100)); err != nil {
+		Key:    "barbar",
+		Value:  []byte("something"),
+		Expiry: time.Millisecond * 100,
+	}); err != nil {
 		t.Error(err)
 	}
 
@@ -297,7 +299,7 @@ func expiryTests(s store.Store, t *testing.T) {
 		t.Errorf("Expected %# v, got %# v", store.ErrNotFound, err)
 	}
 
-	// exercise the different ways to write an expiry, record.expiry
+	// exercise the records expiry
 	s.Write(&store.Record{Key: "aaa", Value: []byte("bbb"), Expiry: 1 * time.Second})
 	s.Write(&store.Record{Key: "aaaa", Value: []byte("bbb"), Expiry: 1 * time.Second})
 	s.Write(&store.Record{Key: "aaaaa", Value: []byte("bbb"), Expiry: 1 * time.Second})
@@ -315,46 +317,6 @@ func expiryTests(s store.Store, t *testing.T) {
 	}
 	if len(results) != 0 {
 		t.Fatal("Results should have returned 0 records")
-	}
-
-	// exercise the different ways to write an expiry, WriteExpiry
-	s.Write(&store.Record{Key: "bbb", Value: []byte("bbb")}, store.WriteExpiry(time.Now().Add(1*time.Second)))
-	s.Write(&store.Record{Key: "bbbb", Value: []byte("bbb")}, store.WriteExpiry(time.Now().Add(1*time.Second)))
-	s.Write(&store.Record{Key: "bbbbb", Value: []byte("bbb")}, store.WriteExpiry(time.Now().Add(1*time.Second)))
-	results, err = s.Read("b", store.ReadPrefix())
-	if err != nil {
-		t.Error(err)
-	}
-	if len(results) != 3 {
-		t.Fatalf("Results should have returned 3 records. Received %d", len(results))
-	}
-	time.Sleep(1 * time.Second)
-	results, err = s.Read("b", store.ReadPrefix())
-	if err != nil {
-		t.Error(err)
-	}
-	if len(results) != 0 {
-		t.Fatalf("Results should have returned 0 records. Received %d", len(results))
-	}
-
-	// exercise the different ways to write an expiry, WriteTTL
-	s.Write(&store.Record{Key: "ccc", Value: []byte("bbb")}, store.WriteTTL(1*time.Second))
-	s.Write(&store.Record{Key: "cccc", Value: []byte("bbb")}, store.WriteTTL(1*time.Second))
-	s.Write(&store.Record{Key: "ccccc", Value: []byte("bbb")}, store.WriteTTL(1*time.Second))
-	results, err = s.Read("c", store.ReadPrefix())
-	if err != nil {
-		t.Error(err)
-	}
-	if len(results) != 3 {
-		t.Fatalf("Results should have returned 3 records. Received %d", len(results))
-	}
-	time.Sleep(1 * time.Second)
-	results, err = s.Read("c", store.ReadPrefix())
-	if err != nil {
-		t.Error(err)
-	}
-	if len(results) != 0 {
-		t.Fatalf("Results should have returned 0 records. Received %d", len(results))
 	}
 }
 
