@@ -15,7 +15,7 @@ type roundTripper struct {
 }
 
 func (r *roundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
-	routes, err := r.opts.Router.Lookup(router.QueryService(req.URL.Host))
+	routes, err := r.opts.Router.Lookup(req.URL.Host)
 	if err != nil {
 		return nil, err
 	}
