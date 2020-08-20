@@ -165,6 +165,8 @@ func (m *memoryStore) list(prefix string, limit, offset uint, prefixFilter, suff
 }
 
 func (m *memoryStore) Close() error {
+	m.Lock()
+	defer m.Unlock()
 	for _, s := range m.stores {
 		s.Flush()
 	}
