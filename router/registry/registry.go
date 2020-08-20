@@ -324,13 +324,6 @@ func (r *rtr) start() error {
 		return nil
 	}
 
-	if r.options.Precache {
-		// add all local service routes into the routing table
-		if err := r.loadRoutes(r.options.Registry); err != nil {
-			return fmt.Errorf("failed loading registry routes: %s", err)
-		}
-	}
-
 	// add default gateway into routing table
 	if r.options.Gateway != "" {
 		// note, the only non-default value is the gateway
@@ -350,25 +343,59 @@ func (r *rtr) start() error {
 
 	// create error and exit channels
 	r.exit = make(chan bool)
+	r.running = true
 
-	// periodically refresh all the routes
+	// only cache if told to do so
+	if !r.options.Cache {
+		return nil
+	}
+
+	// create a refresh notify channel
+	refresh := make(chan bool, 1)
+
+	// fires the refresh for loading routes
+	refreshRoutes := func() {
+		select {
+		case refresh <- true:
+		default:
+		}
+	}
+
+	// refresh all the routes in the event of a failure watching the registry
 	go func() {
-		t1 := time.NewTicker(RefreshInterval)
-		defer t1.Stop()
+		var lastRefresh time.Time
 
-		t2 := time.NewTicker(PruneInterval)
-		defer t2.Stop()
+		// load a refresh
+		refreshRoutes()
 
 		for {
 			select {
 			case <-r.exit:
 				return
-			case <-t2.C:
-				r.table.pruneRoutes(RefreshInterval)
-			case <-t1.C:
+			case <-refresh:
+				// don't refresh if we've done so in the past minute
+				if !lastRefresh.IsZero() && time.Since(lastRefresh) < time.Minute {
+					continue
+				}
+
+				// load new routes
 				if err := r.loadRoutes(r.options.Registry); err != nil {
 					logger.Debugf("failed refreshing registry routes: %s", err)
+					// in this don't prune
+					continue
 				}
+
+				// first time so nothing to prune
+				if !lastRefresh.IsZero() {
+					// prune any routes since last refresh since we've
+					// updated basically everything we care about
+					r.table.pruneRoutes(time.Since(lastRefresh))
+				}
+
+				// update the refresh time
+				lastRefresh = time.Now()
+			case <-time.After(RefreshInterval):
+				refreshRoutes()
 			}
 		}
 	}()
@@ -386,6 +413,8 @@ func (r *rtr) start() error {
 						logger.Debugf("failed creating registry watcher: %v", err)
 					}
 					time.Sleep(time.Second)
+					// in the event of an error reload routes
+					refreshRoutes()
 					continue
 				}
 
@@ -395,12 +424,12 @@ func (r *rtr) start() error {
 						logger.Debugf("Error watching the registry: %v", err)
 					}
 					time.Sleep(time.Second)
+					// in the event of an error reload routes
+					refreshRoutes()
 				}
 			}
 		}
 	}()
-
-	r.running = true
 
 	return nil
 }
