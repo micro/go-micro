@@ -22,7 +22,7 @@ type Stream interface {
 
 // Store of events
 type Store interface {
-	Read(opts ...ReadOption) ([]*Event, error)
+	Read(topic string, opts ...ReadOption) ([]*Event, error)
 	Write(event *Event, opts ...WriteOption) error
 }
 
@@ -34,7 +34,7 @@ type Event struct {
 	Topic string
 	// Timestamp of the event
 	Timestamp time.Time
-	// Metadata contains the encoded event was indexed by
+	// Metadata contains the values the event was indexed by
 	Metadata map[string]string
 	// Payload contains the encoded message
 	Payload []byte

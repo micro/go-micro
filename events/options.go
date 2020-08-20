@@ -73,47 +73,24 @@ func WithTTL(d time.Duration) WriteOption {
 
 // ReadOptions contains all the options which can be provided when reading events from a store
 type ReadOptions struct {
-	// Topic to read events from, if no topic is provided events from all topics will be returned
-	Topic string
-	// Query to filter the results using. The store will query the metadata provided when the event
-	// was written to the store
-	Query map[string]string
 	// Limit the number of results to return
-	Limit int
+	Limit uint
 	// Offset the results by this number, useful for paginated queries
-	Offset int
+	Offset uint
 }
 
 // ReadOption sets attributes on ReadOptions
 type ReadOption func(o *ReadOptions)
 
-// ReadTopic sets the topic attribute on ReadOptions
-func ReadTopic(t string) ReadOption {
-	return func(o *ReadOptions) {
-		o.Topic = t
-	}
-}
-
-// ReadFilter sets a key and value in the query
-func ReadFilter(key, value string) ReadOption {
-	return func(o *ReadOptions) {
-		if o.Query == nil {
-			o.Query = map[string]string{key: value}
-		} else {
-			o.Query[key] = value
-		}
-	}
-}
-
 // ReadLimit sets the limit attribute on ReadOptions
-func ReadLimit(l int) ReadOption {
+func ReadLimit(l uint) ReadOption {
 	return func(o *ReadOptions) {
 		o.Limit = 1
 	}
 }
 
 // ReadOffset sets the offset attribute on ReadOptions
-func ReadOffset(l int) ReadOption {
+func ReadOffset(l uint) ReadOption {
 	return func(o *ReadOptions) {
 		o.Offset = 1
 	}
