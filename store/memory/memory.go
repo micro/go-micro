@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/micro/go-micro/v3/store"
@@ -28,6 +29,7 @@ func NewStore(opts ...store.Option) store.Store {
 }
 
 type memoryStore struct {
+	sync.RWMutex
 	options store.Options
 
 	stores map[string]*cache.Cache
@@ -51,11 +53,18 @@ func (m *memoryStore) prefix(database, table string) string {
 }
 
 func (m *memoryStore) getStore(prefix string) *cache.Cache {
-	// TODO locking
-	if m.stores[prefix] == nil {
-		m.stores[prefix] = cache.New(cache.NoExpiration, 5*time.Minute)
+	m.RLock()
+	store := m.stores[prefix]
+	m.RUnlock()
+	if store == nil {
+		m.Lock()
+		if m.stores[prefix] == nil {
+			m.stores[prefix] = cache.New(cache.NoExpiration, 5*time.Minute)
+		}
+		store = m.stores[prefix]
+		m.Unlock()
 	}
-	return m.stores[prefix]
+	return store
 }
 
 func (m *memoryStore) get(prefix, key string) (*store.Record, error) {
