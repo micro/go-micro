@@ -19,13 +19,22 @@ type metricFamily struct {
 
 // newMetricFamily returns a new metricFamily (useful in case we want to change the structure later):
 func (r *Reporter) newMetricFamily() metricFamily {
+
+	// Take quantile thresholds from our pre-defined list:
+	timingObjectives := make(map[float64]float64)
+	for _, percentile := range r.options.Percentiles {
+		if quantileThreshold, ok := quantileThresholds[percentile]; ok {
+			timingObjectives[percentile] = quantileThreshold
+		}
+	}
+
 	return metricFamily{
 		counters:           make(map[string]*prometheus.CounterVec),
 		gauges:             make(map[string]*prometheus.GaugeVec),
 		timings:            make(map[string]*prometheus.SummaryVec),
 		defaultLabels:      r.convertTags(r.options.DefaultTags),
 		prometheusRegistry: r.prometheusRegistry,
-		timingObjectives:   r.options.TimingObjectives,
+		timingObjectives:   timingObjectives,
 	}
 }
 
