@@ -4,7 +4,6 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/micro/go-micro/v3/router"
 	"github.com/micro/go-micro/v3/selector"
 )
 
