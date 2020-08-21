@@ -10,6 +10,12 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
+var (
+	// quantileThresholds maps quantiles / percentiles to error thresholds (required by the Prometheus client).
+	// Must be from our pre-defined set [0.0, 0.5, 0.75, 0.90, 0.95, 0.98, 0.99, 1]:
+	quantileThresholds = map[float64]float64{0.0: 0, 0.5: 0.05, 0.75: 0.04, 0.90: 0.03, 0.95: 0.02, 0.98: 0.001, 1: 0}
+)
+
 // Reporter is an implementation of metrics.Reporter:
 type Reporter struct {
 	options            metrics.Options

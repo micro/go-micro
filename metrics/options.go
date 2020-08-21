@@ -5,8 +5,8 @@ var (
 	defaultPrometheusListenAddress = ":9000"
 	// This is the endpoint where the Prometheus metrics will be made available ("/metrics" is the default with Prometheus):
 	defaultPath = "/metrics"
-	// timingObjectives is the default spread of stats we maintain for timings / histograms:
-	defaultTimingObjectives = map[float64]float64{0.0: 0, 0.5: 0.05, 0.75: 0.04, 0.90: 0.03, 0.95: 0.02, 0.98: 0.001, 1: 0}
+	// defaultPercentiles is the default spread of percentiles/quantiles we maintain for timings / histogram metrics:
+	defaultPercentiles = []float64{0, 0.5, 0.75, 0.90, 0.95, 0.98, 0.99, 1}
 )
 
 // Option powers the configuration for metrics implementations:
@@ -14,19 +14,19 @@ type Option func(*Options)
 
 // Options for metrics implementations:
 type Options struct {
-	Address          string
-	Path             string
-	DefaultTags      Tags
-	TimingObjectives map[float64]float64
+	Address     string
+	DefaultTags Tags
+	Path        string
+	Percentiles []float64
 }
 
 // NewOptions prepares a set of options:
 func NewOptions(opt ...Option) Options {
 	opts := Options{
-		Address:          defaultPrometheusListenAddress,
-		DefaultTags:      make(Tags),
-		Path:             defaultPath,
-		TimingObjectives: defaultTimingObjectives,
+		Address:     defaultPrometheusListenAddress,
+		DefaultTags: make(Tags),
+		Path:        defaultPath,
+		Percentiles: defaultPercentiles,
 	}
 
 	for _, o := range opt {
@@ -57,9 +57,9 @@ func DefaultTags(value Tags) Option {
 	}
 }
 
-// TimingObjectives defines the desired spread of statistics for histogram / timing metrics:
-func TimingObjectives(value map[float64]float64) Option {
+// Percentiles defines the desired spread of statistics for histogram / timing metrics:
+func Percentiles(value []float64) Option {
 	return func(o *Options) {
-		o.TimingObjectives = value
+		o.Percentiles = value
 	}
 }
