@@ -286,7 +286,7 @@ func (r *localRuntime) Create(s *runtime.Service, opts ...runtime.CreateOption) 
 		options.Namespace = defaultNamespace
 	}
 	if len(options.Command) == 0 {
-		ep, err := entrypoint(s.Source)
+		ep, err := Entrypoint(s.Source)
 		if err != nil {
 			return err
 		}
@@ -639,9 +639,9 @@ func (r *localRuntime) String() string {
 	return "local"
 }
 
-// entrypoint determines the entrypoint for the service, since main.go doesn't always exist at
+// Entrypoint determines the entrypoint for the service, since main.go doesn't always exist at
 // the top level
-func entrypoint(dir string) (string, error) {
+func Entrypoint(dir string) (string, error) {
 	var entrypoints []string
 
 	filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
