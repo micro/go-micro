@@ -339,7 +339,7 @@ func suffixPrefixExpiryTests(s store.Store, t *testing.T) {
 		&store.Record{
 			Key:    "foobar",
 			Value:  []byte("foobarfoobar"),
-			Expiry: time.Millisecond * 100,
+			Expiry: 1 * time.Second,
 		},
 	}
 
@@ -358,7 +358,7 @@ func suffixPrefixExpiryTests(s store.Store, t *testing.T) {
 	}
 
 	// wait for the expiry
-	time.Sleep(time.Millisecond * 200)
+	time.Sleep(1 * time.Second)
 
 	if results, err := s.Read("foo", store.ReadPrefix()); err != nil {
 		t.Errorf("Couldn't read all \"foo\" keys, got %# v (%s)", spew.Sdump(results), err)
