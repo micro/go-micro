@@ -11,9 +11,18 @@ import (
 func TestEntrypoint(t *testing.T) {
 	wd, _ := os.Getwd()
 
-	result := entrypoint(filepath.Join(wd, "test"))
-	assert.Equal(t, result, "cmd/main.go", "Expected entrypoint to return cmd/main.go")
+	// test a service with idiomatic folder structure
+	result, err := entrypoint(filepath.Join(wd, "test"))
+	assert.Nil(t, err, "Didn'expected entrypoint to return an error")
+	assert.Equal(t, "cmd/test/main.go", result, "Expected entrypoint to return cmd/test/main.go")
 
-	result = entrypoint(filepath.Join(wd, "test/foo"))
-	assert.Equal(t, result, "main.go", "Expected entrypoint to return main.go")
+	// test a service with a top level main.go
+	result, err = entrypoint(filepath.Join(wd, "test/bar"))
+	assert.Nil(t, err, "Didn'expected entrypoint to return an error")
+	assert.Equal(t, "main.go", result, "Expected entrypoint to return main.go")
+
+	// test a service with multiple main.go files within the cmd folder
+	result, err = entrypoint(filepath.Join(wd, "test/foo"))
+	assert.Error(t, err, "Expected entrypoint to return an error when to main.go files exist")
+	assert.Equal(t, "", result, "Expected entrypoint to not return a result")
 }

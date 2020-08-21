@@ -286,8 +286,13 @@ func (r *localRuntime) Create(s *runtime.Service, opts ...runtime.CreateOption) 
 		options.Namespace = defaultNamespace
 	}
 	if len(options.Command) == 0 {
+		ep, err := entrypoint(s.Source)
+		if err != nil {
+			return err
+		}
+
 		options.Command = []string{"go"}
-		options.Args = []string{"run", entrypoint(s.Source)}
+		options.Args = []string{"run", ep}
 	}
 
 	// pass secrets as env vars
@@ -636,8 +641,8 @@ func (r *localRuntime) String() string {
 
 // entrypoint determines the entrypoint for the service, since main.go doesn't always exist at
 // the top level
-func entrypoint(dir string) string {
-	result := "."
+func entrypoint(dir string) (string, error) {
+	var entrypoints []string
 
 	filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -650,18 +655,25 @@ func entrypoint(dir string) string {
 			return err
 		}
 
-		// only look for main.go files in the top level or the cmd folder
-		if dir := filepath.Dir(rel); dir != "cmd" && dir != "." {
+		// only look for files in the top level or the cmd folder
+		if dir := filepath.Dir(rel); !filepath.HasPrefix(dir, "cmd") && dir != "." {
 			return nil
 		}
 
 		// only look for main.go files
 		if filepath.Base(rel) == "main.go" {
-			result = rel
+			entrypoints = append(entrypoints, rel)
 		}
 
 		return nil
 	})
 
-	return result
+	switch len(entrypoints) {
+	case 0:
+		return ".", nil
+	case 1:
+		return entrypoints[0], nil
+	default:
+		return "", errors.New("More than one entrypoint found")
+	}
 }
