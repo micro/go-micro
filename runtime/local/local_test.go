@@ -23,6 +23,11 @@ func TestEntrypoint(t *testing.T) {
 
 	// test a service with multiple main.go files within the cmd folder
 	result, err = entrypoint(filepath.Join(wd, "test/foo"))
-	assert.Error(t, err, "Expected entrypoint to return an error when to main.go files exist")
+	assert.Error(t, err, "Expected entrypoint to return an error when multiple main.go files exist")
+	assert.Equal(t, "", result, "Expected entrypoint to not return a result")
+
+	// test a service with no main.go files
+	result, err = entrypoint(filepath.Join(wd, "test/empty"))
+	assert.Error(t, err, "Expected entrypoint to return an error when no main.go files exist")
 	assert.Equal(t, "", result, "Expected entrypoint to not return a result")
 }

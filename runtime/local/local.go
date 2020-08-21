@@ -670,7 +670,7 @@ func entrypoint(dir string) (string, error) {
 
 	switch len(entrypoints) {
 	case 0:
-		return ".", nil
+		return "", errors.New("No entrypoint found")
 	case 1:
 		return entrypoints[0], nil
 	default:
