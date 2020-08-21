@@ -733,11 +733,7 @@ func (k *kubernetes) CreateNamespace(ns string) error {
 func (k *kubernetes) DeleteNamespace(ns string) error {
 	err := k.client.Delete(&client.Resource{
 		Kind: "namespace",
-		Value: client.Namespace{
-			Metadata: &client.Metadata{
-				Name: ns,
-			},
-		},
+		Name: ns,
 	})
 	if err != nil {
 		if err != nil {
