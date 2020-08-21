@@ -433,14 +433,8 @@ func (s *sqlStore) Write(r *store.Record, opts ...store.WriteOption) error {
 	}
 
 	var expiry time.Time
-	// expiry from options takes precedence
-	if !options.Expiry.IsZero() {
-		expiry = options.Expiry
-	} else if r.Expiry != 0 {
+	if r.Expiry != 0 {
 		expiry = time.Now().Add(r.Expiry)
-	}
-	if options.TTL != 0 {
-		expiry = time.Now().Add(options.TTL)
 	}
 
 	if expiry.IsZero() {
