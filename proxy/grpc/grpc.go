@@ -94,10 +94,7 @@ func (p *Proxy) ServeRequest(ctx context.Context, req server.Request, rsp server
 		logger.Tracef("Proxy received request for %s %s", service, endpoint)
 	}
 
-	// no retries with the proxy
-	opts := []client.CallOption{
-		client.WithRetries(0),
-	}
+	var opts []client.CallOption
 
 	// call a specific backend
 	if len(p.Endpoint) > 0 {

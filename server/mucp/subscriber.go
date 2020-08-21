@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/micro/go-micro/v3/broker"
 	"github.com/micro/go-micro/v3/registry"
 	"github.com/micro/go-micro/v3/server"
-	"github.com/micro/go-micro/v3/broker"
 	"github.com/micro/go-micro/v3/transport"
 )
 
@@ -31,10 +31,10 @@ type subscriber struct {
 }
 
 func newMessage(msg transport.Message) *broker.Message {
-        return &broker.Message{
-                Header: msg.Header,
-                Body:   msg.Body,
-        }
+	return &broker.Message{
+		Header: msg.Header,
+		Body:   msg.Body,
+	}
 }
 
 func newSubscriber(topic string, sub interface{}, opts ...server.SubscriberOption) server.Subscriber {
