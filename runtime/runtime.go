@@ -30,6 +30,10 @@ type Runtime interface {
 	Stop() error
 	// String describes runtime
 	String() string
+	// CreateNamespace creates a new namespace in the runtime
+	CreateNamespace(string) error
+	// DeleteNamespace deletes a namespace in the runtime
+	DeleteNamespace(string) error
 }
 
 // Logs returns a log stream

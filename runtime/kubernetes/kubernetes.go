@@ -712,3 +712,25 @@ func credentialsName(service *runtime.Service) string {
 	name := fmt.Sprintf("%v-%v-credentials", service.Name, service.Version)
 	return client.SerializeResourceName(name)
 }
+
+func (k *kubernetes) CreateNamespace(ns string) error {
+	return k.client.Create(&client.Resource{
+		Kind: "namespace",
+		Value: client.Namespace{
+			Metadata: &client.Metadata{
+				Name: ns,
+			},
+		},
+	})
+}
+
+func (k *kubernetes) DeleteNamespace(ns string) error {
+	return k.client.Delete(&client.Resource{
+		Kind: "namespace",
+		Value: client.Namespace{
+			Metadata: &client.Metadata{
+				Name: ns,
+			},
+		},
+	})
+}
