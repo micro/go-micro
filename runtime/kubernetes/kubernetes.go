@@ -435,7 +435,7 @@ func (k *kubernetes) Create(s *runtime.Service, opts ...runtime.CreateOption) er
 		if exist, err := k.namespaceExists(namespace); err == nil && !exist {
 			if err := k.createNamespace(namespace); err != nil {
 				if logger.V(logger.WarnLevel, logger.DefaultLogger) {
-					logger.Warnf("Error creating namespacr %v: %v", namespace, err)
+					logger.Warnf("Error creating namespace %v: %v", namespace, err)
 				}
 				return err
 			}
@@ -714,7 +714,7 @@ func credentialsName(service *runtime.Service) string {
 }
 
 func (k *kubernetes) CreateNamespace(ns string) error {
-	return k.client.Create(&client.Resource{
+	err := k.client.Create(&client.Resource{
 		Kind: "namespace",
 		Value: client.Namespace{
 			Metadata: &client.Metadata{
@@ -722,10 +722,16 @@ func (k *kubernetes) CreateNamespace(ns string) error {
 			},
 		},
 	})
+	if err != nil {
+		if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
+			logger.Errorf("Error creating namespace %v: %v", ns, err)
+		}
+	}
+	return err
 }
 
 func (k *kubernetes) DeleteNamespace(ns string) error {
-	return k.client.Delete(&client.Resource{
+	err := k.client.Delete(&client.Resource{
 		Kind: "namespace",
 		Value: client.Namespace{
 			Metadata: &client.Metadata{
@@ -733,4 +739,12 @@ func (k *kubernetes) DeleteNamespace(ns string) error {
 			},
 		},
 	})
+	if err != nil {
+		if err != nil {
+			if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
+				logger.Errorf("Error deleting namespace %v: %v", ns, err)
+			}
+		}
+	}
+	return err
 }
