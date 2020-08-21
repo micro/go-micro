@@ -22,8 +22,8 @@ type Options struct {
 	Registry registry.Registry
 	// Context for additional options
 	Context context.Context
-	// Precache routes
-	Precache bool
+	// Cache routes
+	Cache bool
 }
 
 // Id sets Router Id
@@ -61,10 +61,10 @@ func Registry(r registry.Registry) Option {
 	}
 }
 
-// Precache the routes
-func Precache() Option {
+// Cache the routes
+func Cache() Option {
 	return func(o *Options) {
-		o.Precache = true
+		o.Cache = true
 	}
 }
 

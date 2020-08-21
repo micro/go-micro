@@ -1,15 +1,13 @@
 package registry
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/micro/go-micro/v3/router"
 )
 
 func testSetup() (*table, router.Route) {
-	routr := NewRouter().(*rtr)
-	table := newTable(routr.lookup)
+	table := newTable()
 
 	route := router.Route{
 		Service: "dest.svc",
@@ -114,235 +112,20 @@ func TestList(t *testing.T) {
 func TestQuery(t *testing.T) {
 	table, route := testSetup()
 
-	svc := []string{"svc1", "svc2", "svc3", "svc1"}
-	net := []string{"net1", "net2", "net1", "net3"}
-	gw := []string{"gw1", "gw2", "gw3", "gw3"}
-	rtr := []string{"rtr1", "rt2", "rt3", "rtr3"}
-
-	for i := 0; i < len(svc); i++ {
-		route.Service = svc[i]
-		route.Network = net[i]
-		route.Gateway = gw[i]
-		route.Router = rtr[i]
-		route.Link = router.DefaultLink
-
-		if err := table.Create(route); err != nil {
-			t.Fatalf("error adding route: %s", err)
-		}
+	if err := table.Create(route); err != nil {
+		t.Fatalf("error adding route: %s", err)
 	}
 
-	// return all routes
-	routes, err := table.Query()
+	rt, err := table.Query(route.Service)
 	if err != nil {
-		t.Fatalf("error looking up routes: %s", err)
-	} else if len(routes) == 0 {
-		t.Fatalf("error looking up routes: not found")
+		t.Fatal("Expected a route got err", err)
 	}
 
-	// query routes particular network
-	network := "net1"
-
-	routes, err = table.Query(router.QueryNetwork(network))
-	if err != nil {
-		t.Fatalf("error looking up routes: %s", err)
+	if len(rt) != 1 {
+		t.Fatalf("Expected one route got %d", len(rt))
 	}
 
-	if len(routes) != 2 {
-		t.Fatalf("incorrect number of routes returned. Expected: %d, found: %d", 2, len(routes))
+	if rt[0].Hash() != route.Hash() {
+		t.Fatal("Mismatched routes received")
 	}
-
-	for _, route := range routes {
-		if route.Network != network {
-			t.Fatalf("incorrect route returned. Expected network: %s, found: %s", network, route.Network)
-		}
-	}
-
-	// query routes for particular gateway
-	gateway := "gw1"
-
-	routes, err = table.Query(router.QueryGateway(gateway))
-	if err != nil {
-		t.Fatalf("error looking up routes: %s", err)
-	}
-
-	if len(routes) != 1 {
-		t.Fatalf("incorrect number of routes returned. Expected: %d, found: %d", 1, len(routes))
-	}
-
-	if routes[0].Gateway != gateway {
-		t.Fatalf("incorrect route returned. Expected gateway: %s, found: %s", gateway, routes[0].Gateway)
-	}
-
-	// query routes for particular router
-	rt := "rtr1"
-
-	routes, err = table.Query(router.QueryRouter(rt))
-	if err != nil {
-		t.Fatalf("error looking up routes: %s", err)
-	}
-
-	if len(routes) != 1 {
-		t.Fatalf("incorrect number of routes returned. Expected: %d, found: %d", 1, len(routes))
-	}
-
-	if routes[0].Router != rt {
-		t.Fatalf("incorrect route returned. Expected router: %s, found: %s", rt, routes[0].Router)
-	}
-
-	// query particular gateway and network
-	query := []router.QueryOption{
-		router.QueryGateway(gateway),
-		router.QueryNetwork(network),
-		router.QueryRouter(rt),
-	}
-
-	routes, err = table.Query(query...)
-	if err != nil {
-		t.Fatalf("error looking up routes: %s", err)
-	}
-
-	if len(routes) != 1 {
-		t.Fatalf("incorrect number of routes returned. Expected: %d, found: %d", 1, len(routes))
-	}
-
-	if routes[0].Gateway != gateway {
-		t.Fatalf("incorrect route returned. Expected gateway: %s, found: %s", gateway, routes[0].Gateway)
-	}
-
-	if routes[0].Network != network {
-		t.Fatalf("incorrect network returned. Expected network: %s, found: %s", network, routes[0].Network)
-	}
-
-	if routes[0].Router != rt {
-		t.Fatalf("incorrect route returned. Expected router: %s, found: %s", rt, routes[0].Router)
-	}
-
-	// non-existen route query
-	routes, err = table.Query(router.QueryService("foobar"))
-	if err != router.ErrRouteNotFound {
-		t.Fatalf("error looking up routes. Expected: %s, found: %s", router.ErrRouteNotFound, err)
-	}
-
-	if len(routes) != 0 {
-		t.Fatalf("incorrect number of routes returned. Expected: %d, found: %d", 0, len(routes))
-	}
-
-	// query NO routes
-	query = []router.QueryOption{
-		router.QueryGateway(gateway),
-		router.QueryNetwork(network),
-		router.QueryLink("network"),
-	}
-
-	routes, err = table.Query(query...)
-	if err != nil {
-		t.Fatalf("error looking up routes: %s", err)
-	}
-
-	if len(routes) > 0 {
-		t.Fatalf("incorrect number of routes returned. Expected: %d, found: %d", 0, len(routes))
-	}
-
-	// insert local routes to query
-	for i := 0; i < 2; i++ {
-		route.Link = "foobar"
-		route.Address = fmt.Sprintf("local.route.address-%d", i)
-		if err := table.Create(route); err != nil {
-			t.Fatalf("error adding route: %s", err)
-		}
-	}
-
-	// query local routes
-	query = []router.QueryOption{
-		router.QueryGateway("*"),
-		router.QueryNetwork("*"),
-		router.QueryLink("foobar"),
-	}
-
-	routes, err = table.Query(query...)
-	if err != nil {
-		t.Fatalf("error looking up routes: %s", err)
-	}
-
-	if len(routes) != 2 {
-		t.Fatalf("incorrect number of routes returned. Expected: %d, found: %d", 2, len(routes))
-	}
-
-	// add two different routes for svcX with different metric
-	for i := 0; i < 2; i++ {
-		route.Service = "svcX"
-		route.Address = fmt.Sprintf("svcX.route.address-%d", i)
-		route.Metric = int64(100 + i)
-		route.Link = router.DefaultLink
-		if err := table.Create(route); err != nil {
-			t.Fatalf("error adding route: %s", err)
-		}
-	}
-
-	query = []router.QueryOption{
-		router.QueryService("svcX"),
-	}
-
-	routes, err = table.Query(query...)
-	if err != nil {
-		t.Fatalf("error looking up routes: %s", err)
-	}
-
-	if len(routes) != 2 {
-		t.Fatalf("incorrect number of routes returned. Expected: %d, found: %d", 1, len(routes))
-	}
-}
-
-func TestFallback(t *testing.T) {
-
-	r := &rtr{
-		options: router.DefaultOptions(),
-	}
-	route := router.Route{
-		Service: "go.micro.service.foo",
-		Router:  r.options.Id,
-		Link:    router.DefaultLink,
-		Metric:  router.DefaultLocalMetric,
-	}
-	r.table = newTable(func(s string) ([]router.Route, error) {
-		return []router.Route{route}, nil
-	})
-	r.start()
-
-	rts, err := r.Lookup(router.QueryService("go.micro.service.foo"))
-	if err != nil {
-		t.Fatalf("error looking up service %s", err)
-	}
-	if len(rts) != 1 {
-		t.Fatalf("incorrect number of routes returned %d", len(rts))
-	}
-
-	// deleting from the table but the next query should invoke the fallback that we passed during new table creation
-	if err := r.table.Delete(route); err != nil {
-		t.Fatalf("error deleting route %s", err)
-	}
-
-	rts, err = r.Lookup(router.QueryService("go.micro.service.foo"))
-	if err != nil {
-		t.Fatalf("error looking up service %s", err)
-	}
-	if len(rts) != 1 {
-		t.Fatalf("incorrect number of routes returned %d", len(rts))
-	}
-
-}
-
-func TestFallbackError(t *testing.T) {
-	r := &rtr{
-		options: router.DefaultOptions(),
-	}
-	r.table = newTable(func(s string) ([]router.Route, error) {
-		return nil, fmt.Errorf("ERROR")
-	})
-	r.start()
-	_, err := r.Lookup(router.QueryService("go.micro.service.foo"))
-	if err == nil {
-		t.Fatalf("expected error looking up service but none returned")
-	}
-
 }

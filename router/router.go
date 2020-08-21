@@ -23,7 +23,7 @@ type Router interface {
 	// The routing table
 	Table() Table
 	// Lookup queries routes in the routing table
-	Lookup(...QueryOption) ([]Route, error)
+	Lookup(service string, opts ...LookupOption) ([]Route, error)
 	// Watch returns a watcher which tracks updates to the routing table
 	Watch(opts ...WatchOption) (Watcher, error)
 	// Close the router
@@ -43,7 +43,7 @@ type Table interface {
 	// List all routes in the table
 	List() ([]Route, error)
 	// Query routes in the routing table
-	Query(...QueryOption) ([]Route, error)
+	Query(service string) ([]Route, error)
 }
 
 // Option used by the router
