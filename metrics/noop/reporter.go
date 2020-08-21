@@ -3,7 +3,6 @@ package noop
 import (
 	"time"
 
-	log "github.com/micro/go-micro/v3/logger"
 	"github.com/micro/go-micro/v3/metrics"
 )
 
@@ -14,8 +13,6 @@ type Reporter struct {
 
 // New returns a configured noop reporter:
 func New(opts ...metrics.Option) *Reporter {
-	log.Info("Metrics/NoOp - not doing anything")
-
 	return &Reporter{
 		options: metrics.NewOptions(opts...),
 	}
