@@ -643,9 +643,23 @@ func entrypoint(dir string) string {
 		if err != nil {
 			return err
 		}
-		if filepath.Base(path) == "main.go" {
-			result, _ = filepath.Rel(dir, path)
+
+		// get the relative path to the directory
+		rel, err := filepath.Rel(dir, path)
+		if err != nil {
+			return err
 		}
+
+		// only look for main.go files in the top level or the cmd folder
+		if dir := filepath.Dir(rel); dir != "cmd" && dir != "." {
+			return nil
+		}
+
+		// only look for main.go files
+		if filepath.Base(rel) == "main.go" {
+			result = rel
+		}
+
 		return nil
 	})
 
