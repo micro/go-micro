@@ -287,7 +287,7 @@ func (r *localRuntime) Create(s *runtime.Service, opts ...runtime.CreateOption) 
 	}
 	if len(options.Command) == 0 {
 		options.Command = []string{"go"}
-		options.Args = []string{"run", "."}
+		options.Args = []string{"run", entrypoint(s.Source)}
 	}
 
 	// pass secrets as env vars
@@ -632,4 +632,22 @@ func (r *localRuntime) Stop() error {
 // String implements stringer interface
 func (r *localRuntime) String() string {
 	return "local"
+}
+
+// entrypoint determines the entrypoint for the service, since main.go doesn't always exist at
+// the top level
+func entrypoint(dir string) string {
+	result := "."
+
+	filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if filepath.Base(path) == "main.go" {
+			result, _ = filepath.Rel(dir, path)
+		}
+		return nil
+	})
+
+	return result
 }
