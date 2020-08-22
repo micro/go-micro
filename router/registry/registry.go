@@ -136,7 +136,7 @@ func (r *rtr) createRoutes(service *registry.Service, network string) []router.R
 			Network:  network,
 			Router:   r.options.Id,
 			Link:     router.DefaultLink,
-			Metric:   router.DefaultLocalMetric,
+			Metric:   router.DefaultMetric,
 			Metadata: node.Metadata,
 		})
 	}
@@ -376,7 +376,7 @@ func (r *rtr) start() error {
 			Network: "*",
 			Router:  r.options.Id,
 			Link:    router.DefaultLink,
-			Metric:  router.DefaultLocalMetric,
+			Metric:  router.DefaultMetric,
 		}
 		if err := r.table.Create(route); err != nil {
 			return fmt.Errorf("failed adding default gateway route: %s", err)
