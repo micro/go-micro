@@ -1,4 +1,4 @@
-// Package mucp provides an mucp client
+// Package mucp provides a transport agnostic RPC client
 package mucp
 
 import (
