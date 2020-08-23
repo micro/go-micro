@@ -45,10 +45,8 @@ type Table interface {
 	Delete(Route) error
 	// Update route in the routing table
 	Update(Route) error
-	// List all routes in the table
-	List() ([]Route, error)
-	// Query routes in the routing table
-	Query(service string) ([]Route, error)
+	// Read is for querying the table
+	Read(...ReadOption) ([]Route, error)
 }
 
 // Option used by the router

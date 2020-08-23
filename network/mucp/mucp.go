@@ -1079,7 +1079,7 @@ func (n *mucpNetwork) processNetChan(listener tunnel.Listener) {
 
 // pruneRoutes prunes routes return by given query
 func (n *mucpNetwork) pruneRoutes(q ...router.LookupOption) error {
-	routes, err := n.router.Table().List()
+	routes, err := n.router.Table().Read()
 	if err != nil && err != router.ErrRouteNotFound {
 		return err
 	}
@@ -1258,7 +1258,7 @@ func (n *mucpNetwork) manage() {
 			}
 
 			// get a list of all routes
-			routes, err := n.options.Router.Table().List()
+			routes, err := n.options.Router.Table().Read()
 			if err != nil {
 				if logger.V(logger.DebugLevel, logger.DefaultLogger) {
 					logger.Debugf("Network failed listing routes when pruning peers: %v", err)
@@ -1344,7 +1344,7 @@ func (n *mucpNetwork) manage() {
 // based on the advertisement strategy encoded in protobuf
 // It returns error if the routes failed to be retrieved from the routing table
 func (n *mucpNetwork) getProtoRoutes() ([]*pb.Route, error) {
-	routes, err := n.router.Table().List()
+	routes, err := n.router.Table().Read()
 	if err != nil && err != router.ErrRouteNotFound {
 		return nil, err
 	}
