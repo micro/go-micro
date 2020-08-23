@@ -36,9 +36,6 @@ type Options struct {
 	PoolSize int
 	PoolTTL  time.Duration
 
-	// Response cache
-	Cache *Cache
-
 	// Middleware for client
 	Wrappers []Wrapper
 
@@ -55,8 +52,6 @@ type CallOptions struct {
 	Address []string
 	// Backoff func
 	Backoff BackoffFunc
-	// Duration to cache the response for
-	CacheExpiry time.Duration
 	// Transport Dial Timeout
 	DialTimeout time.Duration
 	// Number of Call attempts
@@ -109,7 +104,6 @@ type RequestOptions struct {
 
 func NewOptions(options ...Option) Options {
 	opts := Options{
-		Cache:       NewCache(),
 		Context:     context.Background(),
 		ContentType: "application/protobuf",
 		Codecs:      make(map[string]codec.NewCodec),
@@ -354,14 +348,6 @@ func WithDialTimeout(d time.Duration) CallOption {
 func WithAuthToken() CallOption {
 	return func(o *CallOptions) {
 		o.AuthToken = true
-	}
-}
-
-// WithCache is a CallOption which sets the duration the response
-// shoull be cached for
-func WithCache(c time.Duration) CallOption {
-	return func(o *CallOptions) {
-		o.CacheExpiry = c
 	}
 }
 
