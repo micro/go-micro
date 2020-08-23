@@ -14,7 +14,7 @@ import (
 	raw "github.com/micro/go-micro/v3/codec/bytes"
 	"github.com/micro/go-micro/v3/errors"
 	"github.com/micro/go-micro/v3/metadata"
-	"github.com/micro/go-micro/v3/transport"
+	"github.com/micro/go-micro/v3/network/transport"
 	"github.com/micro/go-micro/v3/util/buf"
 	"github.com/micro/go-micro/v3/util/pool"
 )

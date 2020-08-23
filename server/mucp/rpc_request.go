@@ -4,7 +4,7 @@ import (
 	"bytes"
 
 	"github.com/micro/go-micro/v3/codec"
-	"github.com/micro/go-micro/v3/transport"
+	"github.com/micro/go-micro/v3/network/transport"
 	"github.com/micro/go-micro/v3/util/buf"
 )
 
