@@ -219,7 +219,6 @@ func (t *table) Read(opts ...router.ReadOption) ([]router.Route, error) {
 		for _, rt := range routeMap {
 			routes = append(routes, rt.route)
 		}
-
 		return routes, nil
 	}
 
