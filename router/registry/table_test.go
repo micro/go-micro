@@ -99,7 +99,7 @@ func TestList(t *testing.T) {
 		}
 	}
 
-	routes, err := table.List()
+	routes, err := table.Read()
 	if err != nil {
 		t.Fatalf("error listing routes: %s", err)
 	}
@@ -116,7 +116,7 @@ func TestQuery(t *testing.T) {
 		t.Fatalf("error adding route: %s", err)
 	}
 
-	rt, err := table.Query(route.Service)
+	rt, err := table.Read(router.ReadService(route.Service))
 	if err != nil {
 		t.Fatal("Expected a route got err", err)
 	}

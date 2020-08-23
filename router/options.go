@@ -77,3 +77,16 @@ func DefaultOptions() Options {
 		Context:  context.Background(),
 	}
 }
+
+type ReadOptions struct {
+	Service string
+}
+
+type ReadOption func(o *ReadOptions)
+
+// ReadService sets the service to read from the table
+func ReadService(s string) ReadOption {
+	return func(o *ReadOptions) {
+		o.Service = s
+	}
+}

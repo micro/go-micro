@@ -1,4 +1,4 @@
-// Package events contains interfaces for managing events within distributed systems
+// Package events is for event streaming and storage
 package events
 
 import (
@@ -14,13 +14,13 @@ var (
 	ErrEncodingMessage = errors.New("Error encoding message")
 )
 
-// Stream of events
+// Stream is an event streaming interface
 type Stream interface {
 	Publish(topic string, msg interface{}, opts ...PublishOption) error
 	Subscribe(topic string, opts ...SubscribeOption) (<-chan Event, error)
 }
 
-// Store of events
+// Store is an event store interface
 type Store interface {
 	Read(topic string, opts ...ReadOption) ([]*Event, error)
 	Write(event *Event, opts ...WriteOption) error

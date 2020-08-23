@@ -198,35 +198,35 @@ func (t *table) Update(r router.Route) error {
 	return nil
 }
 
-// List returns a list of all routes in the table
-func (t *table) List() ([]router.Route, error) {
+// Read entries from the table
+func (t *table) Read(opts ...router.ReadOption) ([]router.Route, error) {
+	var options router.ReadOptions
+	for _, o := range opts {
+		o(&options)
+	}
+
 	t.RLock()
 	defer t.RUnlock()
 
 	var routes []router.Route
-	for _, rmap := range t.routes {
-		for _, route := range rmap {
-			routes = append(routes, route.route)
+
+	// get the routes based on options passed
+	if len(options.Service) > 0 {
+		routeMap, ok := t.routes[options.Service]
+		if !ok {
+			return nil, router.ErrRouteNotFound
 		}
+		for _, rt := range routeMap {
+			routes = append(routes, rt.route)
+		}
+		return routes, nil
 	}
 
-	return routes, nil
-}
-
-// Lookup queries routing table and returns all routes that match the lookup query
-func (t *table) Query(service string) ([]router.Route, error) {
-	t.RLock()
-	defer t.RUnlock()
-
-	routeMap, ok := t.routes[service]
-	if !ok {
-		return nil, router.ErrRouteNotFound
-	}
-
-	var routes []router.Route
-
-	for _, rt := range routeMap {
-		routes = append(routes, rt.route)
+	// otherwise get all routes
+	for _, serviceRoutes := range t.routes {
+		for _, rt := range serviceRoutes {
+			routes = append(routes, rt.route)
+		}
 	}
 
 	return routes, nil
