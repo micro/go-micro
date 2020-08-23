@@ -44,7 +44,7 @@ func (s *static) Table() router.Table {
 func (s *static) Lookup(service string, opts ...router.LookupOption) ([]router.Route, error) {
 	options := router.NewLookup(opts...)
 
-	_, _ , err := net.SplitHostPort(service)
+	_, _, err := net.SplitHostPort(service)
 	if err == nil {
 		// use the address
 		options.Address = service

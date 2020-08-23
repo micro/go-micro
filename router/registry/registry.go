@@ -266,7 +266,7 @@ func (r *rtr) Lookup(service string, opts ...router.LookupOption) ([]router.Rout
 	q := router.NewLookup(opts...)
 
 	// if we find the routes filter and return them
-	routes, err := r.table.Query(service)
+	routes, err := r.table.Read(router.ReadService(service))
 	if err == nil {
 		routes = router.Filter(routes, q)
 		if len(routes) == 0 {
