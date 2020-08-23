@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"github.com/micro/go-micro/v3/logger"
-	"github.com/micro/go-micro/v3/tunnel"
+	"github.com/micro/go-micro/v3/network/tunnel"
 )
 
 type tunListener struct {

@@ -18,14 +18,14 @@ import (
 	pb "github.com/micro/go-micro/v3/network/mucp/proto"
 	"github.com/micro/go-micro/v3/proxy"
 	"github.com/micro/go-micro/v3/registry/noop"
-	"github.com/micro/go-micro/v3/resolver/dns"
+	"github.com/micro/go-micro/v3/network/resolver/dns"
 	"github.com/micro/go-micro/v3/router"
 	"github.com/micro/go-micro/v3/server"
 	smucp "github.com/micro/go-micro/v3/server/mucp"
 	"github.com/micro/go-micro/v3/transport"
-	"github.com/micro/go-micro/v3/tunnel"
-	bun "github.com/micro/go-micro/v3/tunnel/broker"
-	tun "github.com/micro/go-micro/v3/tunnel/transport"
+	"github.com/micro/go-micro/v3/network/tunnel"
+	bun "github.com/micro/go-micro/v3/network/tunnel/broker"
+	tun "github.com/micro/go-micro/v3/network/tunnel/transport"
 	"github.com/micro/go-micro/v3/util/backoff"
 )
 

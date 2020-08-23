@@ -6,8 +6,8 @@ import (
 
 	"github.com/micro/go-micro/v3/broker"
 	"github.com/micro/go-micro/v3/transport"
-	"github.com/micro/go-micro/v3/tunnel"
-	"github.com/micro/go-micro/v3/tunnel/mucp"
+	"github.com/micro/go-micro/v3/network/tunnel"
+	"github.com/micro/go-micro/v3/network/tunnel/mucp"
 )
 
 type tunBroker struct {

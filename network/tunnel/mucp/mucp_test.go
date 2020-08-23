@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/micro/go-micro/v3/transport"
-	"github.com/micro/go-micro/v3/tunnel"
+	"github.com/micro/go-micro/v3/network/tunnel"
 )
 
 func testBrokenTunAccept(t *testing.T, tun tunnel.Tunnel, wait chan bool, wg *sync.WaitGroup) {

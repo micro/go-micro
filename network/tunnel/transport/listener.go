@@ -2,7 +2,7 @@ package transport
 
 import (
 	"github.com/micro/go-micro/v3/transport"
-	"github.com/micro/go-micro/v3/tunnel"
+	"github.com/micro/go-micro/v3/network/tunnel"
 )
 
 type tunListener struct {

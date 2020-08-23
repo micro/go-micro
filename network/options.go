@@ -6,8 +6,8 @@ import (
 	"github.com/micro/go-micro/v3/proxy/mucp"
 	"github.com/micro/go-micro/v3/router"
 	regRouter "github.com/micro/go-micro/v3/router/registry"
-	"github.com/micro/go-micro/v3/tunnel"
-	tmucp "github.com/micro/go-micro/v3/tunnel/mucp"
+	"github.com/micro/go-micro/v3/network/tunnel"
+	tmucp "github.com/micro/go-micro/v3/network/tunnel/mucp"
 )
 
 type Option func(*Options)
