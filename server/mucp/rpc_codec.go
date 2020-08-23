@@ -11,7 +11,7 @@ import (
 	"github.com/micro/go-micro/v3/codec/jsonrpc"
 	"github.com/micro/go-micro/v3/codec/proto"
 	"github.com/micro/go-micro/v3/codec/protorpc"
-	"github.com/micro/go-micro/v3/transport"
+	"github.com/micro/go-micro/v3/network/transport"
 	"github.com/oxtoacart/bpool"
 	"github.com/pkg/errors"
 )

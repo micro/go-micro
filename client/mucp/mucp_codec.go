@@ -12,8 +12,8 @@ import (
 	"github.com/micro/go-micro/v3/codec/proto"
 	"github.com/micro/go-micro/v3/codec/protorpc"
 	"github.com/micro/go-micro/v3/errors"
+	"github.com/micro/go-micro/v3/network/transport"
 	"github.com/micro/go-micro/v3/registry"
-	"github.com/micro/go-micro/v3/transport"
 )
 
 const (

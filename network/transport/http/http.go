@@ -13,7 +13,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/micro/go-micro/v3/transport"
+	"github.com/micro/go-micro/v3/network/transport"
 	maddr "github.com/micro/go-micro/v3/util/addr"
 	"github.com/micro/go-micro/v3/util/buf"
 	mnet "github.com/micro/go-micro/v3/util/net"

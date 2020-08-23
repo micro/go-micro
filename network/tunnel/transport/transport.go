@@ -4,7 +4,7 @@ package transport
 import (
 	"context"
 
-	"github.com/micro/go-micro/v3/transport"
+	"github.com/micro/go-micro/v3/network/transport"
 	"github.com/micro/go-micro/v3/network/tunnel"
 	"github.com/micro/go-micro/v3/network/tunnel/mucp"
 )

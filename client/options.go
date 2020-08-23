@@ -7,13 +7,13 @@ import (
 	"github.com/micro/go-micro/v3/broker"
 	"github.com/micro/go-micro/v3/broker/http"
 	"github.com/micro/go-micro/v3/codec"
+	"github.com/micro/go-micro/v3/network/transport"
+	thttp "github.com/micro/go-micro/v3/network/transport/http"
 	"github.com/micro/go-micro/v3/registry"
 	"github.com/micro/go-micro/v3/router"
 	regRouter "github.com/micro/go-micro/v3/router/registry"
 	"github.com/micro/go-micro/v3/selector"
 	"github.com/micro/go-micro/v3/selector/roundrobin"
-	"github.com/micro/go-micro/v3/transport"
-	thttp "github.com/micro/go-micro/v3/transport/http"
 )
 
 type Options struct {

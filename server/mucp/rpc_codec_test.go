@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/micro/go-micro/v3/codec"
-	"github.com/micro/go-micro/v3/transport"
+	"github.com/micro/go-micro/v3/network/transport"
 )
 
 // testCodec is a dummy codec that only knows how to encode nil bodies
