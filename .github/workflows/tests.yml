@@ -32,6 +32,8 @@ jobs:
         IN_TRAVIS_CI: yes
       run: |
         kubectl apply -f runtime/kubernetes/test/test.yaml
+        sudo mkdir /var/run/secrets/kubernetes.io/serviceaccount
+        sudo chmod 755 /var/run/secrets/kubernetes.io/serviceaccount
         wget -qO- https://binaries.cockroachdb.com/cockroach-v20.1.4.linux-amd64.tgz | tar  xvz
         cockroach-v20.1.4.linux-amd64/cockroach start-single-node --insecure &
         go test -tags kubernetes -v ./...

@@ -14,7 +14,6 @@ import (
 )
 
 func setupClient(t *testing.T) {
-	os.MkdirAll("/var/run/secrets/kubernetes.io/serviceaccount", 0755)
 	files := []string{"token", "ca.crt"}
 	for _, f := range files {
 		cmd := exec.Command("kubectl", "get", "secrets", "-o",
