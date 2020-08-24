@@ -678,3 +678,13 @@ func Entrypoint(dir string) (string, error) {
 		return "", errors.New("More than one entrypoint found")
 	}
 }
+
+func (r *localRuntime) CreateNamespace(ns string) error {
+	// noop
+	return nil
+}
+
+func (r *localRuntime) DeleteNamespace(ns string) error {
+	// noop
+	return nil
+}
