@@ -104,66 +104,41 @@ func IsLocal(addr string) bool {
 // Extract returns a real ip
 func Extract(addr string) (string, error) {
 	// if addr specified then its returned
-	if len(addr) > 0 && (addr != "0.0.0.0" && addr != "[::]" && addr != "::") {
-		return addr, nil
-	}
-
-	ifaces, err := net.Interfaces()
-	if err != nil {
-		return "", fmt.Errorf("Failed to get interfaces! Err: %v", err)
-	}
-
-	//nolint:prealloc
-	var addrs []net.Addr
-	var loAddrs []net.Addr
-	for _, iface := range ifaces {
-		ifaceAddrs, err := iface.Addrs()
-		if err != nil {
-			// ignore error, interface can disappear from system
-			continue
+	if len(addr) > 0 {
+		if addr != "0.0.0.0" && addr != "[::]" && addr != "::" {
+			return addr, nil
 		}
-		if iface.Flags&net.FlagLoopback != 0 {
-			loAddrs = append(loAddrs, ifaceAddrs...)
-			continue
-		}
-		addrs = append(addrs, ifaceAddrs...)
 	}
-	addrs = append(addrs, loAddrs...)
 
-	var ipAddr string
-	var publicIP string
+	var privateAddrs []string
+	var publicAddrs []string
+	var loopbackAddrs []string
 
-	for _, rawAddr := range addrs {
-		ip := addrToIP(rawAddr)
+	for _, ipAddr := range localIPs() {
+		ip := net.ParseIP(ipAddr)
 		if ip == nil {
 			continue
 		}
 
-		if !isPrivateIP(ip.String()) {
-			publicIP = ip.String()
+		if ip.IsUnspecified() {
 			continue
 		}
 
-		ipAddr = ip.String()
-		break
+		if ip.IsLoopback() {
+			loopbackAddrs = append(loopbackAddrs, ipAddr)
+		} else if isPrivateIP(ipAddr) {
+			privateAddrs = append(privateAddrs, ipAddr)
+		} else {
+			publicAddrs = append(publicAddrs, ipAddr)
+		}
 	}
 
-	// return private ip
-	if len(ipAddr) > 0 {
-		a := net.ParseIP(ipAddr)
-		if a == nil {
-			return "", fmt.Errorf("ip addr %s is invalid", ipAddr)
-		}
-		return a.String(), nil
-	}
-
-	// return public or virtual ip
-	if len(publicIP) > 0 {
-		a := net.ParseIP(publicIP)
-		if a == nil {
-			return "", fmt.Errorf("ip addr %s is invalid", publicIP)
-		}
-		return a.String(), nil
+	if len(privateAddrs) > 0 {
+		return privateAddrs[0], nil
+	} else if len(publicAddrs) > 0 {
+		return publicAddrs[0], nil
+	} else if len(loopbackAddrs) > 0 {
+		return loopbackAddrs[0], nil
 	}
 
 	return "", fmt.Errorf("No IP address found, and explicit IP not provided")
