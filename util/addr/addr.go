@@ -43,6 +43,41 @@ func isPrivateIP(ipAddr string) bool {
 	return false
 }
 
+func addrToIP(addr net.Addr) net.IP {
+	switch v := addr.(type) {
+	case *net.IPAddr:
+		return v.IP
+	case *net.IPNet:
+		return v.IP
+	default:
+		return nil
+	}
+}
+
+func localIPs() []string {
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		return nil
+	}
+
+	var ipAddrs []string
+
+	for _, iface := range ifaces {
+		addrs, err := iface.Addrs()
+		if err != nil {
+			continue // ignore error
+		}
+
+		for _, addr := range addrs {
+			if ip := addrToIP(addr); ip != nil {
+				ipAddrs = append(ipAddrs, ip.String())
+			}
+		}
+	}
+
+	return ipAddrs
+}
+
 // IsLocal tells us whether an ip is local
 func IsLocal(addr string) bool {
 	// extract the host
@@ -57,7 +92,7 @@ func IsLocal(addr string) bool {
 	}
 
 	// check against all local ips
-	for _, ip := range IPs() {
+	for _, ip := range localIPs() {
 		if addr == ip {
 			return true
 		}
@@ -99,13 +134,8 @@ func Extract(addr string) (string, error) {
 	var publicIP string
 
 	for _, rawAddr := range addrs {
-		var ip net.IP
-		switch addr := rawAddr.(type) {
-		case *net.IPAddr:
-			ip = addr.IP
-		case *net.IPNet:
-			ip = addr.IP
-		default:
+		ip := addrToIP(rawAddr)
+		if ip == nil {
 			continue
 		}
 
@@ -141,43 +171,5 @@ func Extract(addr string) (string, error) {
 
 // IPs returns all known ips
 func IPs() []string {
-	ifaces, err := net.Interfaces()
-	if err != nil {
-		return nil
-	}
-
-	var ipAddrs []string
-
-	for _, i := range ifaces {
-		addrs, err := i.Addrs()
-		if err != nil {
-			continue
-		}
-
-		for _, addr := range addrs {
-			var ip net.IP
-			switch v := addr.(type) {
-			case *net.IPNet:
-				ip = v.IP
-			case *net.IPAddr:
-				ip = v.IP
-			}
-
-			if ip == nil {
-				continue
-			}
-
-			// dont skip ipv6 addrs
-			/*
-				ip = ip.To4()
-				if ip == nil {
-					continue
-				}
-			*/
-
-			ipAddrs = append(ipAddrs, ip.String())
-		}
-	}
-
-	return ipAddrs
+	return localIPs()
 }
