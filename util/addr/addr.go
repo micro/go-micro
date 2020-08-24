@@ -31,8 +31,12 @@ func AppendPrivateBlocks(bs ...string) {
 
 func isPrivateIP(ipAddr string) bool {
 	ip := net.ParseIP(ipAddr)
-	for _, priv := range privateBlocks {
-		if priv.Contains(ip) {
+	if ip == nil {
+		return false
+	}
+
+	for _, blocks := range privateBlocks {
+		if blocks.Contains(ip) {
 			return true
 		}
 	}
