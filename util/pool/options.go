@@ -3,7 +3,7 @@ package pool
 import (
 	"time"
 
-	"github.com/micro/go-micro/v3/transport"
+	"github.com/micro/go-micro/v3/network/transport"
 )
 
 type Options struct {
