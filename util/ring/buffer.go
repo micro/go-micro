@@ -33,6 +33,15 @@ type Stream struct {
 	Stop chan bool
 }
 
+func (s *Stream) isStoped() bool {
+	select {
+	case <-s.Stop:
+		return true
+	default:
+		return false
+	}
+}
+
 // Put adds a new value to ring buffer
 func (b *Buffer) Put(v interface{}) {
 	b.Lock()
@@ -52,11 +61,11 @@ func (b *Buffer) Put(v interface{}) {
 
 	// send to every stream
 	for _, stream := range b.streams {
-		select {
-		case <-stream.Stop:
+		if stream.isStoped() {
 			delete(b.streams, stream.Id)
 			close(stream.Entries)
-		case stream.Entries <- entry:
+		} else {
+			stream.Entries <- entry
 		}
 	}
 }
