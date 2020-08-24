@@ -33,7 +33,7 @@ jobs:
       run: |
         kubectl apply -f runtime/kubernetes/test/test.yaml
         sudo mkdir -p /var/run/secrets/kubernetes.io/serviceaccount
-        sudo chmod 755 /var/run/secrets/kubernetes.io/serviceaccount
+        sudo chmod 777 /var/run/secrets/kubernetes.io/serviceaccount
         wget -qO- https://binaries.cockroachdb.com/cockroach-v20.1.4.linux-amd64.tgz | tar  xvz
         cockroach-v20.1.4.linux-amd64/cockroach start-single-node --insecure &
         go test -tags kubernetes -v ./...

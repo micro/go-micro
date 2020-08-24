@@ -27,7 +27,9 @@ func setupClient(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Failed to set k8s token %s '%s'", err, outq)
 			}
-			ioutil.WriteFile("/var/run/secrets/kubernetes.io/serviceaccount/"+f, decoded, 0755)
+			if err := ioutil.WriteFile("/var/run/secrets/kubernetes.io/serviceaccount/"+f, decoded, 0755); err != nil {
+				t.Fatalf("Error setting up k8s %s", err)
+			}
 		}
 
 	}
