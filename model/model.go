@@ -34,8 +34,6 @@ type Entity interface {
 	Value() interface{}
 	// Attributes of the entity
 	Attributes() map[string]interface{}
-	// Read a value as a concrete type
-	Read(v interface{}) error
 }
 
 type Options struct {
