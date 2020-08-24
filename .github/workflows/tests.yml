@@ -15,9 +15,9 @@ jobs:
       id: go
 
     - name: Setup Kind
-        uses: engineerd/setup-kind@v0.4.0
-        with:
-          version: v0.8.1
+      uses: engineerd/setup-kind@v0.4.0
+      with:
+        version: v0.8.1
 
     - name: Check out code into the Go module directory
       uses: actions/checkout@v2
