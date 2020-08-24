@@ -75,8 +75,9 @@ func (r *localRuntime) checkoutSourceIfNeeded(s *runtime.Service, secrets map[st
 	sourceParts := strings.Split(s.Source, "/")
 	compressedFilepath := filepath.Join(SourceDir, sourceParts[0])
 	uncompressPath := strings.ReplaceAll(compressedFilepath, ".tar.gz", "")
+	tarName := strings.ReplaceAll(sourceParts[0], ".tar.gz", "")
 	if len(sourceParts) > 1 {
-		uncompressPath = filepath.Join(SourceDir, strings.ReplaceAll(sourceParts[0], ".tar.gz", ""))
+		uncompressPath = filepath.Join(SourceDir, tarName)
 	}
 
 	// check if the directory already exists
@@ -98,7 +99,7 @@ func (r *localRuntime) checkoutSourceIfNeeded(s *runtime.Service, secrets map[st
 			fullp := append([]string{uncompressPath}, sourceParts[1:]...)
 			s.Source = filepath.Join(append(fullp, lastFolderPart)...)
 		} else {
-			s.Source = uncompressPath
+			s.Source = filepath.Join(uncompressPath, tarName)
 		}
 		return nil
 	}
@@ -676,4 +677,14 @@ func Entrypoint(dir string) (string, error) {
 	default:
 		return "", errors.New("More than one entrypoint found")
 	}
+}
+
+func (r *localRuntime) CreateNamespace(ns string) error {
+	// noop
+	return nil
+}
+
+func (r *localRuntime) DeleteNamespace(ns string) error {
+	// noop
+	return nil
 }
