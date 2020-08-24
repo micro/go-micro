@@ -388,12 +388,12 @@ func suffixPrefixExpiryTests(s store.Store, t *testing.T) {
 			Key:   "barfoo",
 			Value: []byte("barfoobarfoo"),
 
-			Expiry: time.Millisecond * 100,
+			Expiry: time.Second * 1,
 		},
 		&store.Record{
 			Key:    "bazbarfoo",
 			Value:  []byte("bazbarfoobazbarfoo"),
-			Expiry: 2 * time.Millisecond * 100,
+			Expiry: 2 * time.Second,
 		},
 	}
 	for _, r := range records {
@@ -410,7 +410,7 @@ func suffixPrefixExpiryTests(s store.Store, t *testing.T) {
 		}
 
 	}
-	time.Sleep(time.Millisecond * 100)
+	time.Sleep(time.Second * 1)
 	if results, err := s.Read("foo", store.ReadSuffix()); err != nil {
 		t.Errorf("Couldn't read all \"foo\" keys, got %# v (%s)", spew.Sdump(results), err)
 	} else {
@@ -420,7 +420,7 @@ func suffixPrefixExpiryTests(s store.Store, t *testing.T) {
 		}
 
 	}
-	time.Sleep(time.Millisecond * 100)
+	time.Sleep(time.Second * 1)
 	if results, err := s.Read("foo", store.ReadSuffix()); err != nil {
 		t.Errorf("Couldn't read all \"foo\" keys, got %# v (%s)", spew.Sdump(results), err)
 	} else {
