@@ -14,6 +14,11 @@ jobs:
         go-version: 1.13
       id: go
 
+    - name: Setup Kind
+        uses: engineerd/setup-kind@v0.4.0
+        with:
+          version: v0.8.1
+
     - name: Check out code into the Go module directory
       uses: actions/checkout@v2
 
@@ -26,6 +31,7 @@ jobs:
       env:
         IN_TRAVIS_CI: yes
       run: |
+        kubectl apply -f runtime/kubernetes/test/test.yaml
         wget -qO- https://binaries.cockroachdb.com/cockroach-v20.1.4.linux-amd64.tgz | tar  xvz
         cockroach-v20.1.4.linux-amd64/cockroach start-single-node --insecure &
         go test -v ./...
