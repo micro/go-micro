@@ -194,6 +194,10 @@ func (g *grpcServer) handler(srv interface{}, stream grpc.ServerStream) (err err
 				logger.Error(string(debug.Stack()))
 			}
 			err = errors.InternalServerError(g.opts.Name, "panic recovered: %v", r)
+		} else if err != nil {
+			if logger.V(logger.InfoLevel, logger.DefaultLogger) {
+				logger.Errorf("grpc handler got error: %s", err)
+			}
 		}
 	}()
 
