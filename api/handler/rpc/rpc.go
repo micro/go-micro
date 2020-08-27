@@ -249,7 +249,7 @@ func requestPayload(r *http.Request) ([]byte, error) {
 			return nil, err
 		}
 		return raw.Marshal()
-	case strings.Contains(ct, "application/www-x-form-urlencoded"):
+	case strings.Contains(ct, "application/x-www-form-urlencoded"):
 		r.ParseForm()
 
 		// generate a new set of values from the form
