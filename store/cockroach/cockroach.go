@@ -98,20 +98,15 @@ func (s *sqlStore) initDB(database, table string) error {
 		return err
 	}
 
-	_, err = s.db.Exec(fmt.Sprintf("SET DATABASE = %s;", database))
-	if err != nil {
-		return errors.Wrap(err, "Couldn't set database")
-	}
-
 	// Create a table for the namespace's prefix
-	_, err = s.db.Exec(fmt.Sprintf(`CREATE TABLE IF NOT EXISTS %s
+	_, err = s.db.Exec(fmt.Sprintf(`CREATE TABLE IF NOT EXISTS %s.%s
 	(
 		key text NOT NULL,
 		value bytea,
 		metadata JSONB,
 		expiry timestamp with time zone,
 		CONSTRAINT %s_pkey PRIMARY KEY (key)
-	);`, table, table))
+	);`, database, table, table))
 	if err != nil {
 		return errors.Wrap(err, "Couldn't create table")
 	}
