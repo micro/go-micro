@@ -1,6 +1,8 @@
 package prometheus
 
 import (
+	"io/ioutil"
+	"net/http"
 	"testing"
 	"time"
 
@@ -12,11 +14,11 @@ import (
 func TestPrometheusReporter(t *testing.T) {
 
 	// Make a Reporter:
-	reporter, err := New(metrics.Path("/prometheus"), metrics.DefaultTags(map[string]string{"service": "prometheus-test"}))
+	reporter, err := New(metrics.Address(":9999"), metrics.Path("/prometheus"), metrics.DefaultTags(map[string]string{"service": "prometheus-test"}))
 	assert.NoError(t, err)
 	assert.NotNil(t, reporter)
 	assert.Equal(t, "prometheus-test", reporter.options.DefaultTags["service"])
-	assert.Equal(t, ":9000", reporter.options.Address)
+	assert.Equal(t, ":9999", reporter.options.Address)
 	assert.Equal(t, "/prometheus", reporter.options.Path)
 
 	// Check that our implementation is valid:
@@ -69,5 +71,19 @@ func TestPrometheusReporter(t *testing.T) {
 	assert.Len(t, reporter.metrics.timings, 2)
 
 	// Test reading back the metrics:
-	// This could be done by hitting the /metrics endpoint
+	rsp, err := http.Get("http://localhost:9999/prometheus")
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, rsp.StatusCode)
+
+	// Read the response body and check for our metric:
+	bodyBytes, err := ioutil.ReadAll(rsp.Body)
+	assert.NoError(t, err)
+
+	// Check for appropriately aggregated metrics:
+	assert.Contains(t, string(bodyBytes), `test_counter_1{service="prometheus-test",tag1="false",tag2="true"} 11`)
+	assert.Contains(t, string(bodyBytes), `test_counter_2{service="prometheus-test",tag1="false",tag2="true"} 19`)
+	assert.Contains(t, string(bodyBytes), `test_gauge_1{service="prometheus-test",tag1="false",tag2="true"} 98`)
+	assert.Contains(t, string(bodyBytes), `test_gauge_2{service="prometheus-test",tag1="false",tag2="true"} 55`)
+	assert.Contains(t, string(bodyBytes), `test_timing_1{service="prometheus-test",tag1="false",tag2="true",quantile="0"} 1`)
+	assert.Contains(t, string(bodyBytes), `test_timing_2{service="prometheus-test",tag1="false",tag2="true",quantile="0"} 60`)
 }
