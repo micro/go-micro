@@ -117,7 +117,7 @@ func Logf(format string, v ...interface{}) {
 	if len(prefix) > 0 {
 		format = prefix + " " + format
 	}
-	nlog.DefaultLogger.Log(levelToLevel(level), format, v)
+	nlog.DefaultLogger.Logf(levelToLevel(level), format, v)
 }
 
 // WithLevel logs with the level specified
