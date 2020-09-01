@@ -42,8 +42,8 @@ type SubscribeOptions struct {
 	ManualAck bool
 	// RetryLimit indicates number of times a message is retried
 	RetryLimit int
-	// RetriesSet indicates whether to use RetryLimit
-	RetriesSet bool
+	// TrackRetries indicates whether to use RetryLimit
+	TrackRetries bool
 }
 
 // SubscribeOption sets attributes on SubscribeOptions
@@ -75,12 +75,12 @@ func WithManualAck(mAck bool) SubscribeOption {
 func WithRetryLimit(retries int) SubscribeOption {
 	return func(o *SubscribeOptions) {
 		o.RetryLimit = retries
-		o.RetriesSet = true
+		o.TrackRetries = true
 	}
 }
 
 func (s SubscribeOptions) GetRetryLimit() int {
-	if !s.RetriesSet {
+	if !s.TrackRetries {
 		return 10 // default
 	}
 	return s.RetryLimit

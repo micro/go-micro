@@ -32,6 +32,12 @@ type subscriber struct {
 	Queue   string
 	Topic   string
 	Channel chan events.Event
+
+	sync.RWMutex
+	retryMap     map[string]int
+	retryLimit   int
+	trackRetries bool
+	manualAck    bool
 }
 
 type mem struct {
@@ -116,6 +122,13 @@ func (m *mem) Subscribe(topic string, opts ...events.SubscribeOption) (<-chan ev
 		Queue:   options.Queue,
 	}
 
+	if options.TrackRetries {
+		sub.trackRetries = true
+		sub.retryLimit = options.GetRetryLimit()
+		sub.retryMap = map[string]int{}
+	}
+	sub.manualAck = options.ManualAck
+
 	// register the subscriber
 	m.Lock()
 	m.subs = append(m.subs, sub)
@@ -130,7 +143,7 @@ func (m *mem) Subscribe(topic string, opts ...events.SubscribeOption) (<-chan ev
 	return sub.Channel, nil
 }
 
-// lookupPreviousEvents finds events for a subscriber which occured before a given time and sends
+// lookupPreviousEvents finds events for a subscriber which occurred before a given time and sends
 // them into the subscribers channel
 func (m *mem) lookupPreviousEvents(sub *subscriber, startTime time.Time) {
 	// lookup all events which match the topic (a blank topic will return all results)
@@ -151,8 +164,7 @@ func (m *mem) lookupPreviousEvents(sub *subscriber, startTime time.Time) {
 		if ev.Timestamp.Unix() < startTime.Unix() {
 			continue
 		}
-
-		sub.Channel <- ev
+		sendEvent(&ev, sub)
 	}
 }
 
@@ -175,19 +187,42 @@ func (m *mem) handleEvent(ev *events.Event) {
 
 	// send the message to each channel async (since one channel might be blocked)
 	for _, sub := range subs {
-		go func(s *subscriber) {
-			evCopy := *ev
-			evCopy.SetAckFunc(func() error {
-				// noop
-				return nil
-			})
-			evCopy.SetNackFunc(func() error {
-				go func() {
-					s.Channel <- evCopy
-				}()
-				return nil
-			})
-			s.Channel <- evCopy
-		}(sub)
+		sendEvent(ev, sub)
 	}
+}
+
+func sendEvent(ev *events.Event, sub *subscriber) {
+	go func(s *subscriber) {
+		evCopy := *ev
+		if !s.manualAck {
+			s.Channel <- evCopy
+			return
+		}
+		evCopy.SetAckFunc(func() error {
+			if s.trackRetries {
+				s.Lock()
+				delete(s.retryMap, evCopy.ID)
+				s.Unlock()
+			}
+			return nil
+		})
+		evCopy.SetNackFunc(func() error {
+			if s.trackRetries {
+				s.Lock()
+				count := s.retryMap[evCopy.ID] + 1
+				if count > s.retryLimit {
+					delete(s.retryMap, evCopy.ID)
+					s.Unlock()
+					return nil
+				}
+				s.retryMap[evCopy.ID] = count
+				s.Unlock()
+			}
+			go func() {
+				s.Channel <- evCopy
+			}()
+			return nil
+		})
+		s.Channel <- evCopy
+	}(sub)
 }
