@@ -107,6 +107,7 @@ func (m *mem) Subscribe(topic string, opts ...events.SubscribeOption) (<-chan ev
 	for _, o := range opts {
 		o(&options)
 	}
+	// NOTE ManualAck and RetryLimit options not supported
 
 	// setup the subscriber
 	sub := &subscriber{

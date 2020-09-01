@@ -125,19 +125,42 @@ func (s *stream) Subscribe(topic string, opts ...events.SubscribeOption) (<-chan
 	// setup the subscriber
 	c := make(chan events.Event)
 	handleMsg := func(m *stan.Msg) {
+		// poison message handling
+		if options.GetRetryLimit() > -1 && m.Redelivered && int(m.RedeliveryCount) > options.GetRetryLimit() {
+			if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
+				logger.Errorf("Message retry limit reached, discarding: %v", m.Sequence)
+			}
+			m.Ack() // ignoring error
+			return
+		}
+
 		// decode the message
 		var evt events.Event
 		if err := json.Unmarshal(m.Data, &evt); err != nil {
 			if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
 				logger.Errorf("Error decoding message: %v", err)
 			}
-			// not ackknowledging the message is the way to indicate an error occured
+			// not acknowledging the message is the way to indicate an error occurred
 			return
+		}
+
+		if options.ManualAck {
+			// set up the ack funcs
+			evt.AckFunc = func() error {
+				return m.Ack()
+			}
+			evt.NackFunc = func() error {
+				// noop. not acknowledging the message is the way to indicate an error occurred
+				return nil
+			}
 		}
 
 		// push onto the channel and wait for the consumer to take the event off before we acknowledge it.
 		c <- evt
 
+		if !options.ManualAck {
+			return
+		}
 		if err := m.Ack(); err != nil && logger.V(logger.ErrorLevel, logger.DefaultLogger) {
 			logger.Errorf("Error acknowledging message: %v", err)
 		}
