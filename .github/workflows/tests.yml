@@ -35,7 +35,7 @@ jobs:
         sudo chmod 777 /var/run/secrets/kubernetes.io/serviceaccount
         wget -qO- https://binaries.cockroachdb.com/cockroach-v20.1.4.linux-amd64.tgz | tar -xvz
         cockroach-v20.1.4.linux-amd64/cockroach start-single-node --insecure &
-        wget https://github.com/nats-io/nats-streaming-server/releases/download/v0.18.0/nats-streaming-server-v0.18.0-linux-amd64.zip
+        wget -q https://github.com/nats-io/nats-streaming-server/releases/download/v0.18.0/nats-streaming-server-v0.18.0-linux-amd64.zip
         unzip ./nats-streaming-server-v0.18.0-linux-amd64.zip
         export PATH=PATH:./nats-streaming-server-v0.18.0-linux-amd64
         nats-streaming-server &
