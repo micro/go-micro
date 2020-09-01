@@ -122,7 +122,7 @@ func (m *mem) Subscribe(topic string, opts ...events.SubscribeOption) (<-chan ev
 		Queue:   options.Queue,
 	}
 
-	if options.TrackRetries {
+	if options.CustomRetries {
 		sub.trackRetries = true
 		sub.retryLimit = options.GetRetryLimit()
 		sub.retryMap = map[string]int{}
