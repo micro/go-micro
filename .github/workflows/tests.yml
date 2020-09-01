@@ -38,7 +38,7 @@ jobs:
         wget -q https://github.com/nats-io/nats-streaming-server/releases/download/v0.18.0/nats-streaming-server-v0.18.0-linux-amd64.zip
         unzip ./nats-streaming-server-v0.18.0-linux-amd64.zip
         export PATH=PATH:./nats-streaming-server-v0.18.0-linux-amd64
-        nats-streaming-server &
+        echo NATS setup && nats-streaming-server > /dev/null 2>&1 &
         go test -tags kubernetes -v ./...
   
     - name: Notify of test failure
