@@ -158,7 +158,7 @@ func (s *stream) Subscribe(topic string, opts ...events.SubscribeOption) (<-chan
 		// push onto the channel and wait for the consumer to take the event off before we acknowledge it.
 		c <- evt
 
-		if !options.ManualAck {
+		if options.ManualAck {
 			return
 		}
 		if err := m.Ack(); err != nil && logger.V(logger.ErrorLevel, logger.DefaultLogger) {

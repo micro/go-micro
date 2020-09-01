@@ -107,7 +107,7 @@ func (m *mem) Subscribe(topic string, opts ...events.SubscribeOption) (<-chan ev
 	for _, o := range opts {
 		o(&options)
 	}
-	// NOTE ManualAck and RetryLimit options not supported
+	// TODO RetryLimit
 
 	// setup the subscriber
 	sub := &subscriber{
@@ -176,7 +176,18 @@ func (m *mem) handleEvent(ev *events.Event) {
 	// send the message to each channel async (since one channel might be blocked)
 	for _, sub := range subs {
 		go func(s *subscriber) {
-			s.Channel <- *ev
+			evCopy := *ev
+			evCopy.SetAckFunc(func() error {
+				// noop
+				return nil
+			})
+			evCopy.SetNackFunc(func() error {
+				go func() {
+					s.Channel <- evCopy
+				}()
+				return nil
+			})
+			s.Channel <- evCopy
 		}(sub)
 	}
 }
