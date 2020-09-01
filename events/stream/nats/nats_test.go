@@ -1,8 +1,9 @@
+// +build nats
+
 package nats
 
 import (
 	"net"
-	"os/exec"
 	"sync"
 	"testing"
 	"time"
@@ -17,10 +18,6 @@ type testPayload struct {
 }
 
 func TestStream(t *testing.T) {
-	_, err := exec.LookPath("nats-streaming-server")
-	if err != nil {
-		t.Skipf("Skipping nats test, nats-streaming-server binary is not detected")
-	}
 
 	conn, err := net.DialTimeout("tcp", ":4222", time.Millisecond*100)
 	if err != nil {

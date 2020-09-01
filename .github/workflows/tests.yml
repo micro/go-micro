@@ -39,7 +39,7 @@ jobs:
         unzip ./nats-streaming-server-v0.18.0-linux-amd64.zip
         export PATH=$PATH:./nats-streaming-server-v0.18.0-linux-amd64
         nats-streaming-server &
-        go test -tags kubernetes -v ./...
+        go test -tags kubernetes,nats -v ./...
   
     - name: Notify of test failure
       if: failure()
