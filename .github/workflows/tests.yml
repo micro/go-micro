@@ -9,7 +9,7 @@ jobs:
     steps:
     - name: debugging
       run: |
-        wget -qO- https://github.com/nats-io/nats-streaming-server/releases/download/v0.18.0/nats-streaming-server-v0.18.0-linux-amd64.zip
+        wget https://github.com/nats-io/nats-streaming-server/releases/download/v0.18.0/nats-streaming-server-v0.18.0-linux-amd64.zip
         gunzip ./nats-streaming-server-v0.18.0-linux-amd64.zip
         export PATH=PATH:./nats-streaming-server-v0.18.0-linux-amd64
         which nats-streaming-server
