@@ -42,8 +42,8 @@ type Event struct {
 	// Payload contains the encoded message
 	Payload []byte
 
-	AckFunc  AckFunc
-	NackFunc NackFunc
+	ackFunc  AckFunc
+	nackFunc NackFunc
 }
 
 // Unmarshal the events message into an object
@@ -52,9 +52,17 @@ func (e *Event) Unmarshal(v interface{}) error {
 }
 
 func (e *Event) Ack() error {
-	return e.AckFunc()
+	return e.ackFunc()
+}
+
+func (e *Event) SetAckFunc(f AckFunc) {
+	e.ackFunc = f
 }
 
 func (e *Event) Nack() error {
-	return e.NackFunc()
+	return e.nackFunc()
+}
+
+func (e *Event) SetNackFunc(f NackFunc) {
+	e.nackFunc = f
 }

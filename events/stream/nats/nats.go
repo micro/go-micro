@@ -146,13 +146,13 @@ func (s *stream) Subscribe(topic string, opts ...events.SubscribeOption) (<-chan
 
 		if options.ManualAck {
 			// set up the ack funcs
-			evt.AckFunc = func() error {
+			evt.SetAckFunc(func() error {
 				return m.Ack()
-			}
-			evt.NackFunc = func() error {
+			})
+			evt.SetNackFunc(func() error {
 				// noop. not acknowledging the message is the way to indicate an error occurred
 				return nil
-			}
+			})
 		}
 
 		// push onto the channel and wait for the consumer to take the event off before we acknowledge it.
