@@ -116,7 +116,8 @@ func (s *stream) Subscribe(topic string, opts ...events.SubscribeOption) (<-chan
 
 	// parse the options
 	options := events.SubscribeOptions{
-		Queue: uuid.New().String(),
+		Queue:   uuid.New().String(),
+		AutoAck: true,
 	}
 	for _, o := range opts {
 		o(&options)
@@ -144,7 +145,7 @@ func (s *stream) Subscribe(topic string, opts ...events.SubscribeOption) (<-chan
 			return
 		}
 
-		if options.ManualAck {
+		if !options.AutoAck {
 			// set up the ack funcs
 			evt.SetAckFunc(func() error {
 				return m.Ack()
@@ -159,7 +160,7 @@ func (s *stream) Subscribe(topic string, opts ...events.SubscribeOption) (<-chan
 		// push onto the channel and wait for the consumer to take the event off before we acknowledge it.
 		c <- evt
 
-		if options.ManualAck {
+		if !options.AutoAck {
 			return
 		}
 		if err := m.Ack(); err != nil && logger.V(logger.ErrorLevel, logger.DefaultLogger) {

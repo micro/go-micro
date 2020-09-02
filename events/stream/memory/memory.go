@@ -109,7 +109,8 @@ func (m *mem) Subscribe(topic string, opts ...events.SubscribeOption) (<-chan ev
 
 	// parse the options
 	options := events.SubscribeOptions{
-		Queue: uuid.New().String(),
+		Queue:   uuid.New().String(),
+		AutoAck: true,
 	}
 	for _, o := range opts {
 		o(&options)
@@ -129,8 +130,8 @@ func (m *mem) Subscribe(topic string, opts ...events.SubscribeOption) (<-chan ev
 		sub.retryLimit = options.GetRetryLimit()
 
 	}
-	if options.ManualAck {
-		sub.manualAck = options.ManualAck
+	if !options.AutoAck {
+		sub.manualAck = options.AutoAck
 		sub.ackWait = options.AckWait
 	}
 

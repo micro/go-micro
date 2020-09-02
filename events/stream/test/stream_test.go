@@ -162,7 +162,7 @@ func runTestStream(t *testing.T, stream events.Stream) {
 	})
 
 	t.Run("AckingNacking", func(t *testing.T) {
-		ch, err := stream.Subscribe("foobarAck", events.WithManualAck(true, 5*time.Second))
+		ch, err := stream.Subscribe("foobarAck", events.WithAutoAck(false, 5*time.Second))
 		assert.NoError(t, err, "Unexpected error subscribing")
 		assert.NoError(t, stream.Publish("foobarAck", map[string]string{"foo": "message 1"}))
 		assert.NoError(t, stream.Publish("foobarAck", map[string]string{"foo": "message 2"}))
@@ -183,7 +183,7 @@ func runTestStream(t *testing.T, stream events.Stream) {
 	})
 
 	t.Run("Retries", func(t *testing.T) {
-		ch, err := stream.Subscribe("foobarRetries", events.WithManualAck(true, 5*time.Second), events.WithRetryLimit(1))
+		ch, err := stream.Subscribe("foobarRetries", events.WithAutoAck(false, 5*time.Second), events.WithRetryLimit(1))
 		assert.NoError(t, err, "Unexpected error subscribing")
 		assert.NoError(t, stream.Publish("foobarRetries", map[string]string{"foo": "message 1"}))
 
