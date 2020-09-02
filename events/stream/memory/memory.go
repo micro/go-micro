@@ -32,6 +32,13 @@ type subscriber struct {
 	Queue   string
 	Topic   string
 	Channel chan events.Event
+
+	sync.RWMutex
+	retryMap     map[string]int
+	retryLimit   int
+	trackRetries bool
+	autoAck      bool
+	ackWait      time.Duration
 }
 
 type mem struct {
@@ -102,17 +109,31 @@ func (m *mem) Subscribe(topic string, opts ...events.SubscribeOption) (<-chan ev
 
 	// parse the options
 	options := events.SubscribeOptions{
-		Queue: uuid.New().String(),
+		Queue:   uuid.New().String(),
+		AutoAck: true,
 	}
 	for _, o := range opts {
 		o(&options)
 	}
+	// TODO RetryLimit
 
 	// setup the subscriber
 	sub := &subscriber{
-		Channel: make(chan events.Event),
-		Topic:   topic,
-		Queue:   options.Queue,
+		Channel:  make(chan events.Event),
+		Topic:    topic,
+		Queue:    options.Queue,
+		retryMap: map[string]int{},
+		autoAck:  true,
+	}
+
+	if options.CustomRetries {
+		sub.trackRetries = true
+		sub.retryLimit = options.GetRetryLimit()
+
+	}
+	if !options.AutoAck {
+		sub.autoAck = options.AutoAck
+		sub.ackWait = options.AckWait
 	}
 
 	// register the subscriber
@@ -129,7 +150,7 @@ func (m *mem) Subscribe(topic string, opts ...events.SubscribeOption) (<-chan ev
 	return sub.Channel, nil
 }
 
-// lookupPreviousEvents finds events for a subscriber which occured before a given time and sends
+// lookupPreviousEvents finds events for a subscriber which occurred before a given time and sends
 // them into the subscribers channel
 func (m *mem) lookupPreviousEvents(sub *subscriber, startTime time.Time) {
 	// lookup all events which match the topic (a blank topic will return all results)
@@ -150,8 +171,7 @@ func (m *mem) lookupPreviousEvents(sub *subscriber, startTime time.Time) {
 		if ev.Timestamp.Unix() < startTime.Unix() {
 			continue
 		}
-
-		sub.Channel <- ev
+		sendEvent(&ev, sub)
 	}
 }
 
@@ -174,8 +194,59 @@ func (m *mem) handleEvent(ev *events.Event) {
 
 	// send the message to each channel async (since one channel might be blocked)
 	for _, sub := range subs {
-		go func(s *subscriber) {
-			s.Channel <- *ev
-		}(sub)
+		sendEvent(ev, sub)
+	}
+}
+
+func sendEvent(ev *events.Event, sub *subscriber) {
+	go func(s *subscriber) {
+		evCopy := *ev
+		if s.autoAck {
+			s.Channel <- evCopy
+			return
+		}
+		evCopy.SetAckFunc(ackFunc(s, evCopy))
+		evCopy.SetNackFunc(nackFunc(s, evCopy))
+		s.retryMap[evCopy.ID] = 0
+		tick := time.NewTicker(s.ackWait)
+		defer tick.Stop()
+		for range tick.C {
+			s.Lock()
+			count, ok := s.retryMap[evCopy.ID]
+			s.Unlock()
+			if !ok {
+				// success
+				break
+			}
+
+			if s.trackRetries && count > s.retryLimit {
+				if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
+					logger.Errorf("Message retry limit reached, discarding: %v %d %d", evCopy.ID, count, s.retryLimit)
+				}
+				s.Lock()
+				delete(s.retryMap, evCopy.ID)
+				s.Unlock()
+				return
+			}
+			s.Channel <- evCopy
+			s.Lock()
+			s.retryMap[evCopy.ID] = count + 1
+			s.Unlock()
+		}
+	}(sub)
+}
+
+func ackFunc(s *subscriber, evCopy events.Event) func() error {
+	return func() error {
+		s.Lock()
+		delete(s.retryMap, evCopy.ID)
+		s.Unlock()
+		return nil
+	}
+}
+
+func nackFunc(s *subscriber, evCopy events.Event) func() error {
+	return func() error {
+		return nil
 	}
 }

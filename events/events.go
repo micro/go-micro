@@ -26,6 +26,9 @@ type Store interface {
 	Write(event *Event, opts ...WriteOption) error
 }
 
+type AckFunc func() error
+type NackFunc func() error
+
 // Event is the object returned by the broker when you subscribe to a topic
 type Event struct {
 	// ID to uniquely identify the event
@@ -38,9 +41,30 @@ type Event struct {
 	Metadata map[string]string
 	// Payload contains the encoded message
 	Payload []byte
+
+	ackFunc  AckFunc
+	nackFunc NackFunc
 }
 
 // Unmarshal the events message into an object
 func (e *Event) Unmarshal(v interface{}) error {
 	return json.Unmarshal(e.Payload, v)
+}
+
+// Ack acknowledges successful processing of the event in ManualAck mode
+func (e *Event) Ack() error {
+	return e.ackFunc()
+}
+
+func (e *Event) SetAckFunc(f AckFunc) {
+	e.ackFunc = f
+}
+
+// Nack negatively acknowledges processing of the event (i.e. failure) in ManualAck mode
+func (e *Event) Nack() error {
+	return e.nackFunc()
+}
+
+func (e *Event) SetNackFunc(f NackFunc) {
+	e.nackFunc = f
 }

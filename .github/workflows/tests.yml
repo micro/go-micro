@@ -7,7 +7,6 @@ jobs:
     name: Test repo
     runs-on: ubuntu-latest
     steps:
-
     - name: Set up Go 1.13
       uses: actions/setup-go@v1
       with:
@@ -34,9 +33,13 @@ jobs:
         kubectl apply -f runtime/kubernetes/test/test.yaml
         sudo mkdir -p /var/run/secrets/kubernetes.io/serviceaccount
         sudo chmod 777 /var/run/secrets/kubernetes.io/serviceaccount
-        wget -qO- https://binaries.cockroachdb.com/cockroach-v20.1.4.linux-amd64.tgz | tar  xvz
+        wget -qO- https://binaries.cockroachdb.com/cockroach-v20.1.4.linux-amd64.tgz | tar -xvz
         cockroach-v20.1.4.linux-amd64/cockroach start-single-node --insecure &
-        go test -tags kubernetes -v ./...
+        wget -q https://github.com/nats-io/nats-streaming-server/releases/download/v0.18.0/nats-streaming-server-v0.18.0-linux-amd64.zip
+        unzip ./nats-streaming-server-v0.18.0-linux-amd64.zip
+        export PATH=$PATH:./nats-streaming-server-v0.18.0-linux-amd64
+        nats-streaming-server &
+        go test -tags kubernetes,nats -v ./...
   
     - name: Notify of test failure
       if: failure()
