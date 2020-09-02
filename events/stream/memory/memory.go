@@ -37,7 +37,7 @@ type subscriber struct {
 	retryMap     map[string]int
 	retryLimit   int
 	trackRetries bool
-	manualAck    bool
+	autoAck      bool
 	ackWait      time.Duration
 }
 
@@ -123,6 +123,7 @@ func (m *mem) Subscribe(topic string, opts ...events.SubscribeOption) (<-chan ev
 		Topic:    topic,
 		Queue:    options.Queue,
 		retryMap: map[string]int{},
+		autoAck:  true,
 	}
 
 	if options.CustomRetries {
@@ -131,7 +132,7 @@ func (m *mem) Subscribe(topic string, opts ...events.SubscribeOption) (<-chan ev
 
 	}
 	if !options.AutoAck {
-		sub.manualAck = options.AutoAck
+		sub.autoAck = options.AutoAck
 		sub.ackWait = options.AckWait
 	}
 
@@ -200,7 +201,7 @@ func (m *mem) handleEvent(ev *events.Event) {
 func sendEvent(ev *events.Event, sub *subscriber) {
 	go func(s *subscriber) {
 		evCopy := *ev
-		if !s.manualAck {
+		if s.autoAck {
 			s.Channel <- evCopy
 			return
 		}
