@@ -162,7 +162,7 @@ func runTestStream(t *testing.T, stream events.Stream) {
 	})
 
 	t.Run("AckingNacking", func(t *testing.T) {
-		ch, err := stream.Subscribe("foobarAck", events.WithManualAck(true))
+		ch, err := stream.Subscribe("foobarAck", events.WithManualAck(true, 5*time.Second))
 		assert.NoError(t, err, "Unexpected error subscribing")
 		assert.NoError(t, stream.Publish("foobarAck", map[string]string{"foo": "message 1"}))
 		assert.NoError(t, stream.Publish("foobarAck", map[string]string{"foo": "message 2"}))
@@ -176,14 +176,14 @@ func runTestStream(t *testing.T, stream events.Stream) {
 		case ev = <-ch:
 			assert.Equal(t, ev.ID, nacked, "Nacked message should have been received again")
 			assert.NoError(t, ev.Ack())
-		case <-time.After(35 * time.Second):
+		case <-time.After(7 * time.Second):
 			t.Fatalf("Timed out waiting for message to be put back on queue")
 		}
 
 	})
 
 	t.Run("Retries", func(t *testing.T) {
-		ch, err := stream.Subscribe("foobarRetries", events.WithManualAck(true), events.WithRetryLimit(1))
+		ch, err := stream.Subscribe("foobarRetries", events.WithManualAck(true, 5*time.Second), events.WithRetryLimit(1))
 		assert.NoError(t, err, "Unexpected error subscribing")
 		assert.NoError(t, stream.Publish("foobarRetries", map[string]string{"foo": "message 1"}))
 
@@ -196,7 +196,7 @@ func runTestStream(t *testing.T, stream events.Stream) {
 		select {
 		case ev = <-ch:
 			t.Fatalf("Unexpected event received")
-		case <-time.After(35 * time.Second):
+		case <-time.After(7 * time.Second):
 		}
 
 	})

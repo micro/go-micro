@@ -38,6 +38,7 @@ type subscriber struct {
 	retryLimit   int
 	trackRetries bool
 	manualAck    bool
+	ackWait      time.Duration
 }
 
 type mem struct {
@@ -117,17 +118,21 @@ func (m *mem) Subscribe(topic string, opts ...events.SubscribeOption) (<-chan ev
 
 	// setup the subscriber
 	sub := &subscriber{
-		Channel: make(chan events.Event),
-		Topic:   topic,
-		Queue:   options.Queue,
+		Channel:  make(chan events.Event),
+		Topic:    topic,
+		Queue:    options.Queue,
+		retryMap: map[string]int{},
 	}
 
 	if options.CustomRetries {
 		sub.trackRetries = true
 		sub.retryLimit = options.GetRetryLimit()
-		sub.retryMap = map[string]int{}
+
 	}
-	sub.manualAck = options.ManualAck
+	if options.ManualAck {
+		sub.manualAck = options.ManualAck
+		sub.ackWait = options.AckWait
+	}
 
 	// register the subscriber
 	m.Lock()
@@ -198,31 +203,48 @@ func sendEvent(ev *events.Event, sub *subscriber) {
 			s.Channel <- evCopy
 			return
 		}
-		evCopy.SetAckFunc(func() error {
-			if s.trackRetries {
+		evCopy.SetAckFunc(ackFunc(s, evCopy))
+		evCopy.SetNackFunc(nackFunc(s, evCopy))
+		s.retryMap[evCopy.ID] = 0
+		tick := time.NewTicker(s.ackWait)
+		defer tick.Stop()
+		for range tick.C {
+			s.Lock()
+			count, ok := s.retryMap[evCopy.ID]
+			s.Unlock()
+			if !ok {
+				// success
+				break
+			}
+
+			if s.trackRetries && count > s.retryLimit {
+				if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
+					logger.Errorf("Message retry limit reached, discarding: %v %d %d", evCopy.ID, count, s.retryLimit)
+				}
 				s.Lock()
 				delete(s.retryMap, evCopy.ID)
 				s.Unlock()
+				return
 			}
-			return nil
-		})
-		evCopy.SetNackFunc(func() error {
-			if s.trackRetries {
-				s.Lock()
-				count := s.retryMap[evCopy.ID] + 1
-				if count > s.retryLimit {
-					delete(s.retryMap, evCopy.ID)
-					s.Unlock()
-					return nil
-				}
-				s.retryMap[evCopy.ID] = count
-				s.Unlock()
-			}
-			go func() {
-				s.Channel <- evCopy
-			}()
-			return nil
-		})
-		s.Channel <- evCopy
+			s.Channel <- evCopy
+			s.Lock()
+			s.retryMap[evCopy.ID] = count + 1
+			s.Unlock()
+		}
 	}(sub)
+}
+
+func ackFunc(s *subscriber, evCopy events.Event) func() error {
+	return func() error {
+		s.Lock()
+		delete(s.retryMap, evCopy.ID)
+		s.Unlock()
+		return nil
+	}
+}
+
+func nackFunc(s *subscriber, evCopy events.Event) func() error {
+	return func() error {
+		return nil
+	}
 }

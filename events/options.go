@@ -35,11 +35,12 @@ type SubscribeOptions struct {
 	// StartAtTime is the time from which the messages should be consumed from. If not provided then
 	// the messages will be consumed starting from the moment the Subscription starts.
 	StartAtTime time.Time
-	// ManualAck if true, specifies that each message need ts to be manually acknowledged by the subscriber.
+	// ManualAck if true (default false), specifies that each message need ts to be manually acknowledged by the subscriber.
 	// If processing is successful the message should be ack'ed to remove the message from the stream.
 	// If processing is unsuccessful the message should be nack'ed (negative acknowledgement) which will mean it will
 	// remain on the stream to be processed again.
 	ManualAck bool
+	AckWait   time.Duration
 	// RetryLimit indicates number of times a message is retried
 	RetryLimit int
 	// CustomRetries indicates whether to use RetryLimit
@@ -63,15 +64,17 @@ func WithStartAtTime(t time.Time) SubscribeOption {
 	}
 }
 
-// WithManualAck sets the ManualAck field on SubscribeOptions
-func WithManualAck(mAck bool) SubscribeOption {
+// WithManualAck sets the ManualAck field on SubscribeOptions and an ackWait duration after which if no ack is received
+// the message is requeued
+func WithManualAck(mAck bool, ackWait time.Duration) SubscribeOption {
 	return func(o *SubscribeOptions) {
 		o.ManualAck = mAck
+		o.AckWait = ackWait
 	}
 }
 
-// WithRetryLimit sets the RetryLimit field on SubscribeOptions. Defaults to 10.
-// Set to -1 for infinite retries (not recommended)
+// WithRetryLimit sets the RetryLimit field on SubscribeOptions.
+// Set to -1 for infinite retries (default)
 func WithRetryLimit(retries int) SubscribeOption {
 	return func(o *SubscribeOptions) {
 		o.RetryLimit = retries
@@ -81,7 +84,7 @@ func WithRetryLimit(retries int) SubscribeOption {
 
 func (s SubscribeOptions) GetRetryLimit() int {
 	if !s.CustomRetries {
-		return 10 // default
+		return -1
 	}
 	return s.RetryLimit
 }

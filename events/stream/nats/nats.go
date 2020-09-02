@@ -151,6 +151,7 @@ func (s *stream) Subscribe(topic string, opts ...events.SubscribeOption) (<-chan
 			})
 			evt.SetNackFunc(func() error {
 				// noop. not acknowledging the message is the way to indicate an error occurred
+				// we have to wait for the ack wait to kick in before the message is resent
 				return nil
 			})
 		}
@@ -172,7 +173,10 @@ func (s *stream) Subscribe(topic string, opts ...events.SubscribeOption) (<-chan
 		stan.SetManualAckMode(),
 	}
 	if options.StartAtTime.Unix() > 0 {
-		stan.StartAtTime(options.StartAtTime)
+		subOpts = append(subOpts, stan.StartAtTime(options.StartAtTime))
+	}
+	if options.AckWait > 0 {
+		subOpts = append(subOpts, stan.AckWait(options.AckWait))
 	}
 
 	// connect the subscriber
