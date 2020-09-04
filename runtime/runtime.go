@@ -14,6 +14,10 @@ var (
 type Runtime interface {
 	// Init initializes runtime
 	Init(...Option) error
+	// CreateNamespace creates a new namespace in the runtime
+	CreateNamespace(string) error
+	// DeleteNamespace deletes a namespace in the runtime
+	DeleteNamespace(string) error
 	// Create registers a service
 	Create(*Service, ...CreateOption) error
 	// Read returns the service
@@ -28,12 +32,8 @@ type Runtime interface {
 	Start() error
 	// Stop shuts down the runtime
 	Stop() error
-	// String describes runtime
+	// String defines the runtime implementation
 	String() string
-	// CreateNamespace creates a new namespace in the runtime
-	CreateNamespace(string) error
-	// DeleteNamespace deletes a namespace in the runtime
-	DeleteNamespace(string) error
 }
 
 // Logs returns a log stream
