@@ -200,4 +200,54 @@ func runTestStream(t *testing.T, stream events.Stream) {
 		}
 
 	})
+
+	t.Run("InfiniteRetries", func(t *testing.T) {
+		ch, err := stream.Subscribe("foobarRetriesInf", events.WithAutoAck(false, 2*time.Second))
+		assert.NoError(t, err, "Unexpected error subscribing")
+		assert.NoError(t, stream.Publish("foobarRetriesInf", map[string]string{"foo": "message 1"}))
+
+		count := 0
+		id := ""
+		for {
+			select {
+			case ev := <-ch:
+				if id != "" {
+					assert.Equal(t, id, ev.ID, "Nacked message should have been received again")
+				}
+				id = ev.ID
+			case <-time.After(3 * time.Second):
+				t.Fatalf("Unexpected event received")
+			}
+
+			count++
+			if count == 11 {
+				break
+			}
+		}
+
+	})
+
+	t.Run("twoSubs", func(t *testing.T) {
+		ch1, err := stream.Subscribe("foobarTwoSubs1", events.WithAutoAck(false, 5*time.Second))
+		assert.NoError(t, err, "Unexpected error subscribing to topic 1")
+		ch2, err := stream.Subscribe("foobarTwoSubs2", events.WithAutoAck(false, 5*time.Second))
+		assert.NoError(t, err, "Unexpected error subscribing to topic 2")
+
+		assert.NoError(t, stream.Publish("foobarTwoSubs2", map[string]string{"foo": "message 1"}))
+		assert.NoError(t, stream.Publish("foobarTwoSubs1", map[string]string{"foo": "message 1"}))
+
+		wg := sync.WaitGroup{}
+		wg.Add(2)
+		go func() {
+			ev := <-ch1
+			assert.Equal(t, "foobarTwoSubs1", ev.Topic, "Received message from unexpected topic")
+			wg.Done()
+		}()
+		go func() {
+			ev := <-ch2
+			assert.Equal(t, "foobarTwoSubs2", ev.Topic, "Received message from unexpected topic")
+			wg.Done()
+		}()
+		wg.Wait()
+	})
 }

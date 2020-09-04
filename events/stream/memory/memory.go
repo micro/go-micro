@@ -34,11 +34,10 @@ type subscriber struct {
 	Channel chan events.Event
 
 	sync.RWMutex
-	retryMap     map[string]int
-	retryLimit   int
-	trackRetries bool
-	autoAck      bool
-	ackWait      time.Duration
+	retryMap   map[string]int
+	retryLimit int
+	autoAck    bool
+	ackWait    time.Duration
 }
 
 type mem struct {
@@ -119,19 +118,18 @@ func (m *mem) Subscribe(topic string, opts ...events.SubscribeOption) (<-chan ev
 
 	// setup the subscriber
 	sub := &subscriber{
-		Channel:  make(chan events.Event),
-		Topic:    topic,
-		Queue:    options.Queue,
-		retryMap: map[string]int{},
-		autoAck:  true,
+		Channel:    make(chan events.Event),
+		Topic:      topic,
+		Queue:      options.Queue,
+		retryMap:   map[string]int{},
+		autoAck:    true,
+		retryLimit: options.GetRetryLimit(),
 	}
 
-	if options.CustomRetries {
-		sub.trackRetries = true
-		sub.retryLimit = options.GetRetryLimit()
-
-	}
 	if !options.AutoAck {
+		if options.AckWait == 0 {
+			return nil, fmt.Errorf("invalid AckWait passed, should be positive integer")
+		}
 		sub.autoAck = options.AutoAck
 		sub.ackWait = options.AckWait
 	}
@@ -193,7 +191,7 @@ func (m *mem) handleEvent(ev *events.Event) {
 	}
 
 	// send the message to each channel async (since one channel might be blocked)
-	for _, sub := range subs {
+	for _, sub := range filteredSubs {
 		sendEvent(ev, sub)
 	}
 }
@@ -219,7 +217,7 @@ func sendEvent(ev *events.Event, sub *subscriber) {
 				break
 			}
 
-			if s.trackRetries && count > s.retryLimit {
+			if s.retryLimit > -1 && count > s.retryLimit {
 				if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
 					logger.Errorf("Message retry limit reached, discarding: %v %d %d", evCopy.ID, count, s.retryLimit)
 				}
