@@ -127,6 +127,9 @@ func (m *mem) Subscribe(topic string, opts ...events.SubscribeOption) (<-chan ev
 	}
 
 	if !options.AutoAck {
+		if options.AckWait == 0 {
+			return nil, fmt.Errorf("invalid AckWait passed, should be positive integer")
+		}
 		sub.autoAck = options.AutoAck
 		sub.ackWait = options.AckWait
 	}
