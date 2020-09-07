@@ -540,6 +540,11 @@ func (k *kubernetes) Update(s *runtime.Service, opts ...runtime.UpdateOption) er
 
 	// update the relevant services
 	for _, service := range services {
+		if service.kdeploy == nil {
+			fmt.Printf("Service %v has no kdeploy", service.Name)
+			service.kdeploy = client.NewDeployment(service.Name, service.Version, "service", options.Namespace)
+		}
+
 		// nil check
 		if service.kdeploy.Metadata == nil || service.kdeploy.Metadata.Annotations == nil {
 			md := new(client.Metadata)
