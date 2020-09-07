@@ -233,7 +233,7 @@ type Probe struct {
 // TCPSocketAction describes an action based on opening a socket
 type TCPSocketAction struct {
 	Host string `json:"host,omitempty"`
-	Port int    `json:"port,omitempty"`
+	Port string `json:"port,omitempty"`
 }
 
 // ResourceRequirements describes the compute resource requirements.
