@@ -323,7 +323,7 @@ func NewDeployment(name, version, typ, namespace string) *Deployment {
 					}},
 					ReadinessProbe: &Probe{
 						TCPSocket: TCPSocketAction{
-							Port: 8080,
+							Port: "8080",
 						},
 						PeriodSeconds:       10,
 						InitialDelaySeconds: 10,
