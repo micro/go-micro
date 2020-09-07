@@ -40,7 +40,7 @@ func (w *Wrapper) HandlerFunc(handlerFunction server.HandlerFunc) server.Handler
 		if err != nil {
 			tags["result"] = "failure"
 		} else {
-			tags["result"] = "failure"
+			tags["result"] = "success"
 		}
 
 		// Instrument the result (if the DefaultClient has been configured):
