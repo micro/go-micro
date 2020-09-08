@@ -274,10 +274,12 @@ func NewDeployment(name, version, typ, namespace string) *Deployment {
 		logger.Tracef("kubernetes default deployment: name: %s, version: %s", name, version)
 	}
 
-	Labels := map[string]string{
-		"name":    name,
-		"version": version,
-		"micro":   typ,
+	Labels := map[string]string{"name": name}
+	if len(typ) > 0 {
+		Labels["micro"] = typ
+	}
+	if len(version) > 0 {
+		Labels["version"] = version
 	}
 
 	depName := name
@@ -322,7 +324,7 @@ func NewDeployment(name, version, typ, namespace string) *Deployment {
 						ContainerPort: 8080,
 					}},
 					ReadinessProbe: &Probe{
-						TCPSocket: TCPSocketAction{
+						TCPSocket: &TCPSocketAction{
 							Port: 8080,
 						},
 						PeriodSeconds:       10,
