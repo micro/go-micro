@@ -225,15 +225,15 @@ type ServiceAccount struct {
 
 // Probe describes a health check to be performed against a container to determine whether it is alive or ready to receive traffic.
 type Probe struct {
-	TCPSocket           TCPSocketAction `json:"tcpSocket,omitempty"`
-	PeriodSeconds       int             `json:"periodSeconds"`
-	InitialDelaySeconds int             `json:"initialDelaySeconds"`
+	TCPSocket           *TCPSocketAction `json:"tcpSocket,omitempty"`
+	PeriodSeconds       int              `json:"periodSeconds"`
+	InitialDelaySeconds int              `json:"initialDelaySeconds"`
 }
 
 // TCPSocketAction describes an action based on opening a socket
 type TCPSocketAction struct {
-	Host string `json:"host,omitempty"`
-	Port int    `json:"port,omitempty"`
+	Host string      `json:"host,omitempty"`
+	Port interface{} `json:"port,omitempty"`
 }
 
 // ResourceRequirements describes the compute resource requirements.
