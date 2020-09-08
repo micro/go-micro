@@ -10,18 +10,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/micro/go-micro/v3/store/cache"
-
-	"github.com/micro/go-micro/v3/store/memory"
-
-	"github.com/kr/pretty"
-	"github.com/micro/go-micro/v3/store/cockroach"
-
-	"github.com/micro/go-micro/v3/store"
-
-	"github.com/micro/go-micro/v3/store/file"
-
 	"github.com/davecgh/go-spew/spew"
+	"github.com/kr/pretty"
+	"github.com/micro/go-micro/v3/store"
+	"github.com/micro/go-micro/v3/store/cache"
+	"github.com/micro/go-micro/v3/store/file"
+	"github.com/micro/go-micro/v3/store/memory"
 )
 
 func fileStoreCleanup(db string, s store.Store) {
