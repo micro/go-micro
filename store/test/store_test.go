@@ -10,18 +10,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/micro/go-micro/v3/store/cache"
-
-	"github.com/micro/go-micro/v3/store/memory"
-
-	"github.com/kr/pretty"
-	"github.com/micro/go-micro/v3/store/cockroach"
-
-	"github.com/micro/go-micro/v3/store"
-
-	"github.com/micro/go-micro/v3/store/file"
-
 	"github.com/davecgh/go-spew/spew"
+	"github.com/kr/pretty"
+	"github.com/micro/go-micro/v3/store"
+	"github.com/micro/go-micro/v3/store/cache"
+	"github.com/micro/go-micro/v3/store/file"
+	"github.com/micro/go-micro/v3/store/memory"
 )
 
 func fileStoreCleanup(db string, s store.Store) {
@@ -53,7 +47,6 @@ func TestStoreReInit(t *testing.T) {
 		cleanup func(db string, s store.Store)
 	}{
 		{name: "file", s: file.NewStore(store.Table("aaa")), cleanup: fileStoreCleanup},
-		{name: "cockroach", s: cockroach.NewStore(store.Table("aaa")), cleanup: cockroachStoreCleanup},
 		{name: "memory", s: memory.NewStore(store.Table("aaa")), cleanup: memoryCleanup},
 		{name: "cache", s: cache.NewStore(memory.NewStore(store.Table("aaa"))), cleanup: cacheCleanup},
 	}
@@ -75,7 +68,6 @@ func TestStoreBasic(t *testing.T) {
 		cleanup func(db string, s store.Store)
 	}{
 		{name: "file", s: file.NewStore(), cleanup: fileStoreCleanup},
-		{name: "cockroach", s: cockroach.NewStore(), cleanup: cockroachStoreCleanup},
 		{name: "memory", s: memory.NewStore(), cleanup: memoryCleanup},
 		{name: "cache", s: cache.NewStore(memory.NewStore()), cleanup: cacheCleanup},
 	}
@@ -95,7 +87,6 @@ func TestStoreTable(t *testing.T) {
 		cleanup func(db string, s store.Store)
 	}{
 		{name: "file", s: file.NewStore(store.Table("testTable")), cleanup: fileStoreCleanup},
-		{name: "cockroach", s: cockroach.NewStore(store.Table("testTable")), cleanup: cockroachStoreCleanup},
 		{name: "memory", s: memory.NewStore(store.Table("testTable")), cleanup: memoryCleanup},
 		{name: "cache", s: cache.NewStore(memory.NewStore(store.Table("testTable"))), cleanup: cacheCleanup},
 	}
@@ -114,7 +105,6 @@ func TestStoreDatabase(t *testing.T) {
 		cleanup func(db string, s store.Store)
 	}{
 		{name: "file", s: file.NewStore(store.Database("testdb")), cleanup: fileStoreCleanup},
-		{name: "cockroach", s: cockroach.NewStore(store.Database("testdb")), cleanup: cockroachStoreCleanup},
 		{name: "memory", s: memory.NewStore(store.Database("testdb")), cleanup: memoryCleanup},
 		{name: "cache", s: cache.NewStore(memory.NewStore(store.Database("testdb"))), cleanup: cacheCleanup},
 	}
@@ -133,7 +123,6 @@ func TestStoreDatabaseTable(t *testing.T) {
 		cleanup func(db string, s store.Store)
 	}{
 		{name: "file", s: file.NewStore(store.Database("testdb"), store.Table("testTable")), cleanup: fileStoreCleanup},
-		{name: "cockroach", s: cockroach.NewStore(store.Database("testdb"), store.Table("testTable")), cleanup: cockroachStoreCleanup},
 		{name: "memory", s: memory.NewStore(store.Database("testdb"), store.Table("testTable")), cleanup: memoryCleanup},
 		{name: "cache", s: cache.NewStore(memory.NewStore(store.Database("testdb"), store.Table("testTable"))), cleanup: cacheCleanup},
 	}

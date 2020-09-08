@@ -9,7 +9,6 @@ import (
 
 	"github.com/micro/go-micro/v3/events"
 	"github.com/micro/go-micro/v3/events/stream/memory"
-	"github.com/micro/go-micro/v3/events/stream/nats"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -27,13 +26,7 @@ type testCase struct {
 func TestStream(t *testing.T) {
 	tcs := []testCase{}
 
-	// NATS specific setup
-	stream, err := nats.NewStream(nats.ClusterID("test-cluster"))
-	assert.Nilf(t, err, "NewStream should not return an error")
-	assert.NotNilf(t, stream, "NewStream should return a stream object")
-	tcs = append(tcs, testCase{str: stream, name: "nats"})
-
-	stream, err = memory.NewStream()
+	stream, err := memory.NewStream()
 	assert.Nilf(t, err, "NewStream should not return an error")
 	assert.NotNilf(t, stream, "NewStream should return a stream object")
 	tcs = append(tcs, testCase{str: stream, name: "memory"})
