@@ -26,7 +26,7 @@ type testCase struct {
 func TestStream(t *testing.T) {
 	tcs := []testCase{}
 
-	stream, err = memory.NewStream()
+	stream, err := memory.NewStream()
 	assert.Nilf(t, err, "NewStream should not return an error")
 	assert.NotNilf(t, stream, "NewStream should return a stream object")
 	tcs = append(tcs, testCase{str: stream, name: "memory"})
