@@ -184,16 +184,15 @@ func (k *kubernetes) getService(labels map[string]string, opts ...client.GetOpti
 
 			// parse out deployment status and inject into service metadata
 			if len(kdep.Status.Conditions) > 0 {
-				svc.Status(kdep.Status.Conditions[0].Type, nil)
+				status := transformStatus(kdep.Status.Conditions[0].Type)
+				svc.Status(status, nil)
 				svc.Metadata["started"] = kdep.Status.Conditions[0].LastUpdateTime
 			} else {
-				svc.Status("n/a", nil)
+				svc.Status(runtime.Unknown, nil)
 			}
 
 			// get the real status
 			for _, item := range podList.Items {
-				var status string
-
 				// check the name
 				if item.Metadata.Labels["name"] != name {
 					continue
@@ -203,12 +202,7 @@ func (k *kubernetes) getService(labels map[string]string, opts ...client.GetOpti
 					continue
 				}
 
-				switch item.Status.Phase {
-				case "Failed":
-					status = item.Status.Reason
-				default:
-					status = item.Status.Phase
-				}
+				status := transformStatus(item.Status.Phase)
 
 				// skip if we can't get the container
 				if len(item.Status.Containers) == 0 {
@@ -225,11 +219,9 @@ func (k *kubernetes) getService(labels map[string]string, opts ...client.GetOpti
 
 				// set status from waiting
 				if v := state.Waiting; v != nil {
-					if len(v.Reason) > 0 {
-						status = v.Reason
-					}
+					status = runtime.Pending
 				}
-				// TODO: set from terminated
+
 				svc.Status(status, nil)
 			}
 
@@ -743,4 +735,35 @@ func (k *kubernetes) DeleteNamespace(ns string) error {
 		}
 	}
 	return err
+}
+
+// transformStatus takes a deployment status (deploymentcondition.type) and transforms it into a
+// runtime service status, e.g. containercreating => starting
+func transformStatus(depStatus string) runtime.ServiceStatus {
+	switch strings.ToLower(depStatus) {
+	case "pending":
+		return runtime.Pending
+	case "containercreating":
+		return runtime.Starting
+	case "imagepullbackoff":
+		return runtime.Error
+	case "crashloopbackoff":
+		return runtime.Error
+	case "error":
+		return runtime.Error
+	case "running":
+		return runtime.Running
+	case "available":
+		return runtime.Running
+	case "succeeded":
+		return runtime.Stopped
+	case "failed":
+		return runtime.Error
+	case "waiting":
+		return runtime.Pending
+	case "terminated":
+		return runtime.Stopped
+	default:
+		return runtime.Unknown
+	}
 }
