@@ -99,7 +99,15 @@ func (r *localRuntime) checkoutSourceIfNeeded(s *runtime.Service, secrets map[st
 			fullp := append([]string{uncompressPath}, sourceParts[1:]...)
 			s.Source = filepath.Join(append(fullp, lastFolderPart)...)
 		} else {
-			s.Source = filepath.Join(uncompressPath, tarName)
+			// The tar name is 'helloworld' for both
+			// the case when the code is uploaded from `$REPO/helloworld`
+			// and when it's uploaded from outside a repo ie `~/helloworld`.
+			// This is an error prone check that we should make better later.
+			if ex, _ := exists(filepath.Join(uncompressPath, tarName)); ex {
+				s.Source = filepath.Join(uncompressPath, tarName)
+			} else {
+				s.Source = uncompressPath
+			}
 		}
 		return nil
 	}
@@ -276,6 +284,7 @@ func (r *localRuntime) Create(s *runtime.Service, opts ...runtime.CreateOption) 
 	for _, o := range opts {
 		o(&options)
 	}
+
 	err := r.checkoutSourceIfNeeded(s, options.Secrets)
 	if err != nil {
 		return err
