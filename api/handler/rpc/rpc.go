@@ -353,18 +353,7 @@ func requestPayload(r *http.Request) ([]byte, error) {
 			return []byte{}, nil
 		}
 		return out, nil
-	case "POST":
-		bodybuf := []byte("{}")
-		buf := bufferPool.Get()
-		defer bufferPool.Put(buf)
-		if _, err := buf.ReadFrom(r.Body); err != nil {
-			return nil, err
-		}
-		if b := buf.Bytes(); len(b) > 0 {
-			bodybuf = b
-		}
-		return bodybuf, nil
-	case "PATCH", "PUT", "DELETE":
+	case "PATCH", "POST", "PUT", "DELETE":
 		bodybuf := []byte("{}")
 		buf := bufferPool.Get()
 		defer bufferPool.Put(buf)
@@ -410,6 +399,10 @@ func requestPayload(r *http.Request) ([]byte, error) {
 			dstmap[ps[0]] = em
 		}
 
+		if len(dstmap) == 0 {
+			return bodybuf, nil
+		}
+
 		bodyout, err := json.Marshal(dstmap)
 		if err != nil {
 			return nil, err
@@ -421,7 +414,6 @@ func requestPayload(r *http.Request) ([]byte, error) {
 
 		//fallback to previous unknown behaviour
 		return bodybuf, nil
-
 	}
 
 	return []byte{}, nil
