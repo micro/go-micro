@@ -3,7 +3,6 @@ package local
 import (
 	"fmt"
 	"io"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -49,25 +48,6 @@ func newService(s *runtime.Service, c runtime.CreateOptions) *service {
 	args = c.Args
 
 	dir := s.Source
-
-	// For uploaded packages, we upload the whole repo
-	// so the correct working directory to do a `go run .`
-	// needs to include the relative path from the repo root
-	// which is the service name.
-	//
-	// Could use a better upload check.
-	if strings.Contains(s.Source, "uploads") {
-		// There are two cases to consider here:
-		// a., if the uploaded code comes from a repo - in this case
-		// the service name is the relative path.
-		// b., if the uploaded code comes from a non repo folder -
-		// in this case the service name is the folder name.
-		// Because of this, we only append the service name to the source in
-		// case `a`
-		if ex, err := exists(filepath.Join(s.Source, s.Name)); err == nil && ex {
-			dir = filepath.Join(s.Source, s.Name)
-		}
-	}
 
 	return &service{
 		Service: s,
@@ -133,7 +113,7 @@ func (s *service) Start() error {
 	if s.Metadata == nil {
 		s.Metadata = make(map[string]string)
 	}
-	s.Status("starting", nil)
+	s.Status(runtime.Starting, nil)
 
 	// TODO: pull source & build binary
 	if logger.V(logger.DebugLevel, logger.DefaultLogger) {
@@ -142,7 +122,7 @@ func (s *service) Start() error {
 
 	p, err := s.Process.Fork(s.Exec)
 	if err != nil {
-		s.Status("error", err)
+		s.Status(runtime.Error, err)
 		return err
 	}
 	// set the pid
@@ -150,7 +130,7 @@ func (s *service) Start() error {
 	// set to running
 	s.running = true
 	// set status
-	s.Status("running", nil)
+	s.Status(runtime.Running, nil)
 	// set started
 	s.Metadata["started"] = time.Now().Format(time.RFC3339)
 
@@ -165,9 +145,9 @@ func (s *service) Start() error {
 }
 
 // Status updates the status of the service. Assumes it's called under a lock as it mutates state
-func (s *service) Status(status string, err error) {
+func (s *service) Status(status runtime.ServiceStatus, err error) {
+	s.Service.Status = status
 	s.Metadata["lastStatusUpdate"] = time.Now().Format(time.RFC3339)
-	s.Metadata["status"] = status
 	if err == nil {
 		delete(s.Metadata, "error")
 		return
@@ -193,7 +173,7 @@ func (s *service) Stop() error {
 		}
 
 		// set status
-		s.Status("stopping", nil)
+		s.Status(runtime.Stopping, nil)
 
 		// kill the process
 		err := s.Process.Kill(s.PID)
@@ -203,7 +183,7 @@ func (s *service) Stop() error {
 		}
 
 		// set status
-		s.Status("stopped", err)
+		s.Status(runtime.Stopped, err)
 
 		// return the kill error
 		return err
@@ -240,12 +220,12 @@ func (s *service) Wait() {
 			logger.Errorf("Service %s terminated with error %s", s.Name, err)
 		}
 		s.retries++
-		s.Status("error", err)
+		s.Status(runtime.Error, err)
 		s.Metadata["retries"] = strconv.Itoa(s.retries)
 
 		s.err = err
 	} else {
-		s.Status("done", nil)
+		s.Status(runtime.Stopped, nil)
 	}
 
 	// no longer running

@@ -97,6 +97,29 @@ type Event struct {
 	Options *CreateOptions
 }
 
+// ServiceStatus defines service statuses
+type ServiceStatus int
+
+const (
+	// Unknown indicates the status of the service is not known
+	Unknown ServiceStatus = iota
+	// Pending is the initial status of a service
+	Pending
+	// Building is the status when the service is being built
+	Building
+	// Starting is the status when the service has been started but is not yet ready to accept traffic
+	Starting
+	// Running is the status when the service is active and accepting traffic
+	Running
+	// Stopping is the status when a service is stopping
+	Stopping
+	// Stopped is the status when a service has been stopped or has completed
+	Stopped
+	// Error is the status when an error occured, this could be a build error or a run error. The error
+	// details can be found within the service's metadata
+	Error
+)
+
 // Service is runtime service
 type Service struct {
 	// Name of the service
@@ -107,6 +130,8 @@ type Service struct {
 	Source string
 	// Metadata stores metadata
 	Metadata map[string]string
+	// Status of the service
+	Status ServiceStatus
 }
 
 // Resources which are allocated to a serivce
