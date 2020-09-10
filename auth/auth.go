@@ -49,7 +49,7 @@ type Auth interface {
 
 // Account provided by an auth provider
 type Account struct {
-	// ID of the account e.g. email
+	// ID of the account e.g. UUID. Should not change
 	ID string `json:"id"`
 	// Type of the account, e.g. service
 	Type string `json:"type"`
@@ -61,6 +61,8 @@ type Account struct {
 	Scopes []string `json:"scopes"`
 	// Secret for the account, e.g. the password
 	Secret string `json:"secret"`
+	// Name of the account. User friendly name that might change e.g. a username or email
+	Name string `json:"name"`
 }
 
 // Token can be short or long lived
