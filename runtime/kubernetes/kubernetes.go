@@ -190,9 +190,9 @@ func (k *kubernetes) getService(labels map[string]string, opts ...client.GetOpti
 
 				// if the status wasn't known, inject the raw value into the metadata as a fallback which
 				// also makes it easier to debug
-				if status == runtime.Unknown {
-					svc.Metadata["status"] = kdep.Status.Conditions[0].Type
-				}
+				// if status == runtime.Unknown {
+				svc.Metadata["status"] = kdep.Status.Conditions[0].Type
+				// }
 			} else {
 				svc.Status(runtime.Unknown, nil)
 			}
