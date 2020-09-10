@@ -185,15 +185,8 @@ func (k *kubernetes) getService(labels map[string]string, opts ...client.GetOpti
 			// parse out deployment status and inject into service metadata
 			if len(kdep.Status.Conditions) > 0 {
 				status := transformStatus(kdep.Status.Conditions[0].Type)
-				fmt.Println("transformStatus deployment", name, version, kdep.Status.Conditions[0].Type, status)
 				svc.Status(status, nil)
 				svc.Metadata["started"] = kdep.Status.Conditions[0].LastUpdateTime
-
-				// if the status wasn't known, inject the raw value into the metadata as a fallback which
-				// also makes it easier to debug
-				if status == runtime.Unknown {
-					svc.Metadata["status"] = kdep.Status.Conditions[0].Type
-				}
 			} else {
 				svc.Status(runtime.Unknown, nil)
 			}
@@ -210,7 +203,6 @@ func (k *kubernetes) getService(labels map[string]string, opts ...client.GetOpti
 				}
 
 				status := transformStatus(item.Status.Phase)
-				fmt.Println("transformStatus pod", name, version, kdep.Status.Conditions[0].Type, status)
 
 				// skip if we can't get the container
 				if len(item.Status.Containers) == 0 {
