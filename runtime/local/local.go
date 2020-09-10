@@ -102,8 +102,7 @@ func (r *localRuntime) checkoutSourceIfNeeded(s *runtime.Service, secrets map[st
 			// The tar name is 'helloworld' for both
 			// the case when the code is uploaded from `$REPO/helloworld`
 			// and when it's uploaded from outside a repo ie `~/helloworld`.
-			// This is an error prone check that we should make better later.
-			if ex, _ := exists(filepath.Join(uncompressPath, tarName)); ex {
+			if _, err := Entrypoint(s.Source); err != nil {
 				s.Source = filepath.Join(uncompressPath, tarName)
 			} else {
 				s.Source = uncompressPath
