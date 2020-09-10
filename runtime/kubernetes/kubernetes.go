@@ -185,6 +185,7 @@ func (k *kubernetes) getService(labels map[string]string, opts ...client.GetOpti
 			// parse out deployment status and inject into service metadata
 			if len(kdep.Status.Conditions) > 0 {
 				status := transformStatus(kdep.Status.Conditions[0].Type)
+				fmt.Println("transformStatus deployment", name, version, kdep.Status.Conditions[0].Type, status)
 				svc.Status(status, nil)
 				svc.Metadata["started"] = kdep.Status.Conditions[0].LastUpdateTime
 
@@ -209,6 +210,7 @@ func (k *kubernetes) getService(labels map[string]string, opts ...client.GetOpti
 				}
 
 				status := transformStatus(item.Status.Phase)
+				fmt.Println("transformStatus pod", name, version, kdep.Status.Conditions[0].Type, status)
 
 				// skip if we can't get the container
 				if len(item.Status.Containers) == 0 {
@@ -746,8 +748,6 @@ func (k *kubernetes) DeleteNamespace(ns string) error {
 // transformStatus takes a deployment status (deploymentcondition.type) and transforms it into a
 // runtime service status, e.g. containercreating => starting
 func transformStatus(depStatus string) runtime.ServiceStatus {
-	fmt.Println("transformStatus", depStatus)
-
 	switch strings.ToLower(depStatus) {
 	case "pending":
 		return runtime.Pending
@@ -760,6 +760,8 @@ func transformStatus(depStatus string) runtime.ServiceStatus {
 	case "error":
 		return runtime.Error
 	case "running":
+		return runtime.Running
+	case "available":
 		return runtime.Running
 	case "succeeded":
 		return runtime.Stopped
