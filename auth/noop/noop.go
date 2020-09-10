@@ -40,13 +40,17 @@ func (n *noop) Options() auth.Options {
 // Generate a new account
 func (n *noop) Generate(id string, opts ...auth.GenerateOption) (*auth.Account, error) {
 	options := auth.NewGenerateOptions(opts...)
-
+	name := options.Name
+	if name == "" {
+		name = id
+	}
 	return &auth.Account{
 		ID:       id,
 		Secret:   options.Secret,
 		Metadata: options.Metadata,
 		Scopes:   options.Scopes,
 		Issuer:   n.Options().Issuer,
+		Name:     name,
 	}, nil
 }
 

@@ -110,6 +110,8 @@ type GenerateOptions struct {
 	Secret string
 	// Issuer of the account, e.g. micro
 	Issuer string
+	// Name of the acouunt e.g. an email or username
+	Name string
 }
 
 type GenerateOption func(o *GenerateOptions)
@@ -153,6 +155,13 @@ func WithScopes(s ...string) GenerateOption {
 func WithIssuer(i string) GenerateOption {
 	return func(o *GenerateOptions) {
 		o.Issuer = i
+	}
+}
+
+// WithName for the generated account
+func WithName(n string) GenerateOption {
+	return func(o *GenerateOptions) {
+		o.Name = m
 	}
 }
 
