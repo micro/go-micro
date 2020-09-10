@@ -161,7 +161,7 @@ func WithIssuer(i string) GenerateOption {
 // WithName for the generated account
 func WithName(n string) GenerateOption {
 	return func(o *GenerateOptions) {
-		o.Name = m
+		o.Name = n
 	}
 }
 
