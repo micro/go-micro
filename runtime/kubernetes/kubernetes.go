@@ -187,7 +187,7 @@ func (k *kubernetes) getService(labels map[string]string, opts ...client.GetOpti
 				svc.Status(kdep.Status.Conditions[0].Type, nil)
 				svc.Metadata["started"] = kdep.Status.Conditions[0].LastUpdateTime
 			} else {
-				svc.Status("n/a", nil)
+				svc.Status(runtime.Unknown, nil)
 			}
 
 			// get the real status

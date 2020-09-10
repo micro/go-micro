@@ -149,7 +149,7 @@ func (s *service) Start(k client.Client, opts ...client.CreateOption) error {
 		if logger.V(logger.DebugLevel, logger.DefaultLogger) {
 			logger.Debugf("Runtime failed to create deployment: %v", err)
 		}
-		s.Status("error", err)
+		s.Status(runtime.Error, err)
 		v := parseError(err)
 		if v.Reason == "AlreadyExists" {
 			return runtime.ErrAlreadyExists
@@ -161,7 +161,7 @@ func (s *service) Start(k client.Client, opts ...client.CreateOption) error {
 		if logger.V(logger.DebugLevel, logger.DefaultLogger) {
 			logger.Debugf("Runtime failed to create service: %v", err)
 		}
-		s.Status("error", err)
+		s.Status(runtime.Error, err)
 		v := parseError(err)
 		if v.Reason == "AlreadyExists" {
 			return runtime.ErrAlreadyExists
@@ -169,7 +169,7 @@ func (s *service) Start(k client.Client, opts ...client.CreateOption) error {
 		return err
 	}
 
-	s.Status("started", nil)
+	s.Status(runtime.Running, nil)
 
 	return nil
 }
@@ -180,7 +180,7 @@ func (s *service) Stop(k client.Client, opts ...client.DeleteOption) error {
 		if logger.V(logger.DebugLevel, logger.DefaultLogger) {
 			logger.Debugf("Runtime failed to delete service: %v", err)
 		}
-		s.Status("error", err)
+		s.Status(runtime.Error, err)
 		return err
 	}
 	// delete deployment once the service has been deleted
@@ -188,11 +188,11 @@ func (s *service) Stop(k client.Client, opts ...client.DeleteOption) error {
 		if logger.V(logger.DebugLevel, logger.DefaultLogger) {
 			logger.Debugf("Runtime failed to delete deployment: %v", err)
 		}
-		s.Status("error", err)
+		s.Status(runtime.Error, err)
 		return err
 	}
 
-	s.Status("stopped", nil)
+	s.Status(runtime.Stopped, nil)
 
 	return nil
 }
@@ -202,7 +202,7 @@ func (s *service) Update(k client.Client, opts ...client.UpdateOption) error {
 		if logger.V(logger.DebugLevel, logger.DefaultLogger) {
 			logger.Debugf("Runtime failed to update deployment: %v", err)
 		}
-		s.Status("error", err)
+		s.Status(runtime.Error, err)
 		return err
 	}
 	if err := k.Update(serviceResource(s.kservice), opts...); err != nil {
@@ -215,13 +215,13 @@ func (s *service) Update(k client.Client, opts ...client.UpdateOption) error {
 	return nil
 }
 
-func (s *service) Status(status string, err error) {
+func (s *service) Status(status runtime.ServiceStatus, err error) {
+	s.Service.Status = status
 	s.Metadata["lastStatusUpdate"] = time.Now().Format(time.RFC3339)
+
 	if err == nil {
-		s.Metadata["status"] = status
 		delete(s.Metadata, "error")
 		return
 	}
-	s.Metadata["status"] = "error"
 	s.Metadata["error"] = err.Error()
 }
