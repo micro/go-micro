@@ -364,6 +364,13 @@ func requestPayload(r *http.Request) ([]byte, error) {
 			bodybuf = b
 		}
 		if bodydst == "" || bodydst == "*" {
+			// jsonpatch resequences the json object so we avoid it if possible (some usecases such as
+			// validating signatures require the request body to be unchangedd). We're keeping support
+			// for the custom paramaters for backwards compatability reasons.
+			if string(out) == "{}" {
+				return bodybuf, nil
+			}
+
 			if out, err = jsonpatch.MergeMergePatches(out, bodybuf); err == nil {
 				return out, nil
 			}
@@ -410,7 +417,6 @@ func requestPayload(r *http.Request) ([]byte, error) {
 
 		//fallback to previous unknown behaviour
 		return bodybuf, nil
-
 	}
 
 	return []byte{}, nil
