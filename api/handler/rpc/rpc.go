@@ -353,7 +353,18 @@ func requestPayload(r *http.Request) ([]byte, error) {
 			return []byte{}, nil
 		}
 		return out, nil
-	case "PATCH", "POST", "PUT", "DELETE":
+	case "POST":
+		bodybuf := []byte("{}")
+		buf := bufferPool.Get()
+		defer bufferPool.Put(buf)
+		if _, err := buf.ReadFrom(r.Body); err != nil {
+			return nil, err
+		}
+		if b := buf.Bytes(); len(b) > 0 {
+			bodybuf = b
+		}
+		return bodybuf, nil
+	case "PATCH", "PUT", "DELETE":
 		bodybuf := []byte("{}")
 		buf := bufferPool.Get()
 		defer bufferPool.Put(buf)
