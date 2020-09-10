@@ -44,8 +44,9 @@ func TestInspect(t *testing.T) {
 		md := map[string]string{"foo": "bar"}
 		scopes := []string{"admin"}
 		subject := "test"
+		name := "testname"
 
-		acc := &auth.Account{ID: subject, Scopes: scopes, Metadata: md}
+		acc := &auth.Account{ID: subject, Scopes: scopes, Metadata: md, Name: name}
 		tok, err := j.Generate(acc)
 		if err != nil {
 			t.Fatalf("Generate returned %v error, expected nil", err)
@@ -64,6 +65,9 @@ func TestInspect(t *testing.T) {
 		if len(tok2.Metadata) != len(md) {
 			t.Errorf("Inspect returned %v as the token metadata, expected %v", tok2.Metadata, md)
 		}
+		if tok2.Name != name {
+			t.Errorf("Inspect returned %v as the token name, expected %v", tok2.Name, name)
+		}
 	})
 
 	t.Run("Expired token", func(t *testing.T) {
@@ -81,6 +85,21 @@ func TestInspect(t *testing.T) {
 		_, err := j.Inspect("Invalid token")
 		if err != token.ErrInvalidToken {
 			t.Fatalf("Inspect returned %v error, expected %v", err, token.ErrInvalidToken)
+		}
+	})
+
+	t.Run("Default name", func(t *testing.T) {
+		tok, err := j.Generate(&auth.Account{ID: "test"})
+		if err != nil {
+			t.Fatalf("Generate returned %v error, expected nil", err)
+		}
+
+		tok2, err := j.Inspect(tok.Token)
+		if err != nil {
+			t.Fatalf("Inspect returned %v error, expected nil", err)
+		}
+		if tok2.Name != "test" {
+			t.Fatalf("Inspect returned %v as the token name, expected test", tok2.Name)
 		}
 	})
 
