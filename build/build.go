@@ -1,32 +1,52 @@
 // Package build is for building source into a package
 package build
 
-// Build is an interface for building packages
-type Build interface {
+// Builder is an interface for building packages
+type Builder interface {
 	// Package builds a package
-	Package(name string, src *Source) (*Package, error)
-	// Remove removes the package
-	Remove(*Package) error
+	Build(src Source, opts ...Option) (Build, error)
 }
 
-// Source is the source of a build
-type Source struct {
-	// Path to the source if local
-	Path string
-	// Language is the language of code
-	Language string
-	// Location of the source
-	Repository string
+// Package is packaged source
+type Package interface {
+	// Location of the package, e.g micro/foo-api:latest
+	Location() string
 }
 
-// Package is packaged format for source
-type Package struct {
-	// Name of the package
-	Name string
-	// Location of the package
-	Path string
-	// Type of package e.g tarball, binary, docker
-	Type string
-	// Source of the package
-	Source *Source
+// Source code to be built
+type Source interface {
+	// String to describe the source, e.g. foo/api
+	String() string
+}
+
+// Status defines the status of a build
+type Status int
+
+const (
+	// Unknown is returned by the builder when the status is unknown
+	Unknown Status = iota
+	// Pending indicates the builder hasn't starting building the source yet
+	Pending
+	// Building indicates the build is in progress
+	Building
+	// Uploading is returned if the builder is uploading the source to a remote repository. Not
+	// all builders will return this status for a build.
+	Uploading
+	// Failed indicates there was an error building the source. See the Error for more information.
+	Failed
+	// Completed indicates the build completed okay
+	Completed
+)
+
+// Build of source
+type Build interface {
+	// Package contains the result of the build. It will return nil whilst the build status is not
+	// complete.
+	Package() Package
+	// Status returns the status of the build
+	Status() Status
+	// Error returns the build error if present
+	Error() error
+	// Wait will wait for the build to either complete or fail
+	Wait()
 }
