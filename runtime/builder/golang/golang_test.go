@@ -122,7 +122,12 @@ func testBuilder(t *testing.T, buf io.Reader, opts ...builder.Option) error {
 	if _, err := io.Copy(file, res); err != nil {
 		return fmt.Errorf("Error copying binary to tmp file: %v", err)
 	}
-	os.Chmod(file.Name(), 0111)
+	if err := file.Close(); err != nil {
+		return err
+	}
+	if err := os.Chmod(file.Name(), 0111); err != nil {
+		return err
+	}
 	defer os.Remove(file.Name())
 
 	// execute the binary
