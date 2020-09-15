@@ -126,11 +126,7 @@ func (b *blobStore) Delete(key string, opts ...store.BlobOption) error {
 		// check for the namespaces bucket
 		bucket := tx.Bucket([]byte(options.Namespace))
 		if bucket == nil {
-			return store.ErrNotFound
-		}
-
-		if bucket.Get([]byte(key)) == nil {
-			return store.ErrNotFound
+			return nil
 		}
 
 		return bucket.Delete([]byte(key))
