@@ -29,6 +29,10 @@ jobs:
       id: tests
       env:
         IN_TRAVIS_CI: yes
+        S3_BLOB_STORE_REGION: ${{ secrets.SCALEWAY_REGION }}
+        S3_BLOB_STORE_ENDPOINT: ${{ secrets.SCALEWAY_ENDPOINT }}
+        S3_BLOB_STORE_ACCESS_KEY: ${{ secrets.SCALEWAY_ACCESS_KEY }}
+        S3_BLOB_STORE_SECRET_KEY: ${{ secrets.SCALEWAY_SECRET_KEY }}
       run: |
         kubectl apply -f runtime/kubernetes/test/test.yaml
         sudo mkdir -p /var/run/secrets/kubernetes.io/serviceaccount

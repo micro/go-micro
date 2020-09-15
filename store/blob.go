@@ -7,7 +7,7 @@ import (
 
 var (
 	// ErrMissingKey is returned when no key is passed to blob store Read / Write
-	ErrMissingKey = errors.New("Missing key")
+	ErrMissingKey = errors.New("missing key")
 )
 
 // BlobStore is an interface for reading / writing blobs

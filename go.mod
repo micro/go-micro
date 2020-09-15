@@ -31,6 +31,7 @@ require (
 	github.com/kr/pretty v0.2.0
 	github.com/kr/text v0.2.0 // indirect
 	github.com/miekg/dns v1.1.27
+	github.com/minio/minio-go/v7 v7.0.5
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
 	github.com/oxtoacart/bpool v0.0.0-20190530202638-03653db5a59c
 	github.com/patrickmn/go-cache v2.1.0+incompatible
@@ -41,7 +42,6 @@ require (
 	go.etcd.io/bbolt v1.3.5
 	golang.org/x/crypto v0.0.0-20200709230013-948cd5f35899
 	golang.org/x/net v0.0.0-20200707034311-ab3426394381
-	golang.org/x/sys v0.0.0-20200615200032-f1bc736245b1 // indirect
 	google.golang.org/genproto v0.0.0-20200526211855-cb27e3aa2013
 	google.golang.org/grpc v1.27.0
 	google.golang.org/protobuf v1.25.0
