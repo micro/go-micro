@@ -30,6 +30,7 @@ require (
 	github.com/imdario/mergo v0.3.9
 	github.com/kr/pretty v0.2.0
 	github.com/kr/text v0.2.0 // indirect
+	github.com/micro/go-micro v1.18.0
 	github.com/miekg/dns v1.1.27
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
 	github.com/oxtoacart/bpool v0.0.0-20190530202638-03653db5a59c
