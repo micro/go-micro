@@ -99,7 +99,7 @@ func (s *s3) Write(key string, blob io.Reader, opts ...store.BlobOption) error {
 	// check the bucket exists, create it if not
 	if exists, err := s.client.BucketExists(context.TODO(), options.Namespace); err != nil {
 		return err
-	} else if !exits {
+	} else if !exists {
 		opts := minio.MakeBucketOptions{Region: s.options.Region}
 		if err := s.client.MakeBucket(context.TODO(), options.Namespace, opts); err != nil {
 			return err
