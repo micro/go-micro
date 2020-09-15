@@ -75,7 +75,7 @@ func (g *golang) Build(src io.Reader, opts ...builder.Option) (io.Reader, error)
 	}
 
 	// build the binary
-	cmd := exec.Command(g.cmdPath, "build", "-o", "build", filepath.Dir(options.Entrypoint))
+	cmd := exec.Command(g.cmdPath, "build", "-o", "micro_build", filepath.Dir(options.Entrypoint))
 	cmd.Env = append(os.Environ(), "GO111MODULE=auto")
 	cmd.Dir = dir
 	if err := cmd.Run(); err != nil {
@@ -83,7 +83,7 @@ func (g *golang) Build(src io.Reader, opts ...builder.Option) (io.Reader, error)
 	}
 
 	// read the bytes from the file
-	dst, err := ioutil.ReadFile(filepath.Join(dir, "build"))
+	dst, err := ioutil.ReadFile(filepath.Join(dir, "micro_build"))
 	if err != nil {
 		return nil, err
 	}
