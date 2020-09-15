@@ -18,7 +18,7 @@ import (
 
 var (
 	testMainGo   = "package main; import \"fmt\"; func main() { fmt.Println(\"HelloWorld\") }"
-	testSecondGo = "package main; func init() { fmt.Println(\"Init\") }"
+	testSecondGo = "package main; import \"fmt\"; func init() { fmt.Println(\"Init\") }"
 )
 
 func TestGolangBuilder(t *testing.T) {
@@ -135,9 +135,9 @@ func testBuilder(t *testing.T, buf io.Reader, opts ...builder.Option) error {
 		return fmt.Errorf("Output does not contain HelloWorld")
 	}
 	// when an archive is used we also check for the second file to be loaded
-	// if len(opts) > 0 && !strings.Contains(string(outp), "Init") {
-	// 	return fmt.Errorf("Output does not contain Init")
-	// }
+	if len(opts) > 0 && !strings.Contains(string(outp), "Init") {
+		return fmt.Errorf("Output does not contain Init")
+	}
 
 	return nil
 }

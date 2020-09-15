@@ -74,22 +74,16 @@ func (g *golang) Build(src io.Reader, opts ...builder.Option) (io.Reader, error)
 		options.Entrypoint = ep
 	}
 
-	// create a file for the output to be written to
-	out, err := ioutil.TempFile(dir, "output")
-	if err != nil {
-		return nil, err
-	}
-	defer out.Close()
-
 	// build the binary
-	cmd := exec.Command(g.cmdPath, "build", "-o", out.Name(), options.Entrypoint)
+	cmd := exec.Command(g.cmdPath, "build", "-o", "build", filepath.Dir(options.Entrypoint))
+	cmd.Env = append(os.Environ(), "GO111MODULE=auto")
 	cmd.Dir = dir
 	if err := cmd.Run(); err != nil {
 		return nil, err
 	}
 
 	// read the bytes from the file
-	dst, err := ioutil.ReadFile(out.Name())
+	dst, err := ioutil.ReadFile(filepath.Join(dir, "build"))
 	if err != nil {
 		return nil, err
 	}
