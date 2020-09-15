@@ -129,7 +129,7 @@ func testBuilder(t *testing.T, buf io.Reader, opts ...builder.Option) error {
 	cmd := exec.Command(file.Name())
 	outp, err := cmd.Output()
 	if err != nil {
-		return fmt.Errorf("Error executing binary")
+		return fmt.Errorf("Error executing binary: %v", err)
 	}
 	if !strings.Contains(string(outp), "HelloWorld") {
 		return fmt.Errorf("Output does not contain HelloWorld")
