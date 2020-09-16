@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/micro/go-micro/v3/store"
-	"github.com/pkg/errors"
 	bolt "go.etcd.io/bbolt"
 )
 
@@ -18,19 +17,14 @@ func NewBlobStore() (store.BlobStore, error) {
 	// ensure the parent directory exists
 	os.MkdirAll(DefaultDir, 0700)
 
-	// open the connection to the database
-	dbPath := filepath.Join(DefaultDir, "micro.db")
-	db, err := bolt.Open(dbPath, 0700, &bolt.Options{Timeout: 5 * time.Second})
-	if err != nil {
-		return nil, errors.Wrap(err, "Error connecting to database")
-	}
-
-	// return the blob store
-	return &blobStore{db}, nil
+	return &blobStore{}, nil
 }
 
-type blobStore struct {
-	db *bolt.DB
+type blobStore struct{}
+
+func (b *blobStore) db() (*bolt.DB, error) {
+	dbPath := filepath.Join(DefaultDir, "blob.db")
+	return bolt.Open(dbPath, 0700, &bolt.Options{Timeout: 5 * time.Second})
 }
 
 func (b *blobStore) Read(key string, opts ...store.BlobOption) (io.Reader, error) {
@@ -47,6 +41,13 @@ func (b *blobStore) Read(key string, opts ...store.BlobOption) (io.Reader, error
 	if len(options.Namespace) == 0 {
 		options.Namespace = "micro"
 	}
+
+	// open a connection to the database
+	db, err := b.db()
+	if err != nil {
+		return nil, err
+	}
+	defer db.Close()
 
 	// execute the transaction
 	var value []byte
@@ -65,7 +66,7 @@ func (b *blobStore) Read(key string, opts ...store.BlobOption) (io.Reader, error
 
 		return nil
 	}
-	if err := b.db.View(readValue); err != nil {
+	if err := db.View(readValue); err != nil {
 		return nil, err
 	}
 
@@ -88,8 +89,15 @@ func (b *blobStore) Write(key string, blob io.Reader, opts ...store.BlobOption) 
 		options.Namespace = "micro"
 	}
 
+	// open a connection to the database
+	db, err := b.db()
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
 	// execute the transaction
-	return b.db.Update(func(tx *bolt.Tx) error {
+	return db.Update(func(tx *bolt.Tx) error {
 		// create the bucket
 		bucket, err := tx.CreateBucketIfNotExists([]byte(options.Namespace))
 		if err != nil {
@@ -121,8 +129,15 @@ func (b *blobStore) Delete(key string, opts ...store.BlobOption) error {
 		options.Namespace = "micro"
 	}
 
+	// open a connection to the database
+	db, err := b.db()
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
 	// execute the transaction
-	return b.db.Update(func(tx *bolt.Tx) error {
+	return db.Update(func(tx *bolt.Tx) error {
 		// check for the namespaces bucket
 		bucket := tx.Bucket([]byte(options.Namespace))
 		if bucket == nil {
