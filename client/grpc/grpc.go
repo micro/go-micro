@@ -172,15 +172,6 @@ func (g *grpcClient) stream(ctx context.Context, addr string, req client.Request
 		return errors.InternalServerError("go.micro.client", err.Error())
 	}
 
-	var dialCtx context.Context
-	var cancel context.CancelFunc
-	if opts.DialTimeout >= 0 {
-		dialCtx, cancel = context.WithTimeout(ctx, opts.DialTimeout)
-	} else {
-		dialCtx, cancel = context.WithCancel(ctx)
-	}
-	defer cancel()
-
 	wc := wrapCodec{cf}
 
 	grpcDialOptions := []grpc.DialOption{
@@ -192,7 +183,7 @@ func (g *grpcClient) stream(ctx context.Context, addr string, req client.Request
 		grpcDialOptions = append(grpcDialOptions, opts...)
 	}
 
-	cc, err := grpc.DialContext(dialCtx, addr, grpcDialOptions...)
+	cc, err := g.pool.getConn(addr, grpcDialOptions...)
 	if err != nil {
 		return errors.InternalServerError("go.micro.client", fmt.Sprintf("Error sending request: %v", err))
 	}
@@ -211,16 +202,16 @@ func (g *grpcClient) stream(ctx context.Context, addr string, req client.Request
 		grpcCallOptions = append(grpcCallOptions, opts...)
 	}
 
-	// create a new cancelling context
-	newCtx, cancel := context.WithCancel(ctx)
+	var cancel context.CancelFunc
+	ctx, cancel = context.WithCancel(ctx)
 
-	st, err := cc.NewStream(newCtx, desc, methodToGRPC(req.Service(), req.Endpoint()), grpcCallOptions...)
+	st, err := cc.NewStream(ctx, desc, methodToGRPC(req.Service(), req.Endpoint()), grpcCallOptions...)
 	if err != nil {
 		// we need to cleanup as we dialled and created a context
 		// cancel the context
 		cancel()
-		// close the connection
-		cc.Close()
+		// release the connection
+		g.pool.release(addr, cc, err)
 		// now return the error
 		return errors.InternalServerError("go.micro.client", fmt.Sprintf("Error creating stream: %v", err))
 	}
@@ -246,8 +237,16 @@ func (g *grpcClient) stream(ctx context.Context, addr string, req client.Request
 			codec:  cf,
 			gcodec: codec,
 		},
-		conn:   cc,
-		cancel: cancel,
+		conn: cc,
+		close: func(err error) {
+			// cancel the context if an error occured
+			if err != nil {
+				cancel()
+			}
+
+			// defer execution of release
+			g.pool.release(addr, cc, err)
+		},
 	}
 
 	// set the stream as the response
