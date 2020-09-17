@@ -202,15 +202,10 @@ func (g *grpcClient) stream(ctx context.Context, addr string, req client.Request
 		grpcCallOptions = append(grpcCallOptions, opts...)
 	}
 
-	var dialCtx context.Context
 	var cancel context.CancelFunc
-	if opts.DialTimeout >= 0 {
-		dialCtx, cancel = context.WithTimeout(ctx, opts.DialTimeout)
-	} else {
-		dialCtx, cancel = context.WithCancel(ctx)
-	}
+	ctx, cancel = context.WithCancel(ctx)
 
-	st, err := cc.NewStream(dialCtx, desc, methodToGRPC(req.Service(), req.Endpoint()), grpcCallOptions...)
+	st, err := cc.NewStream(ctx, desc, methodToGRPC(req.Service(), req.Endpoint()), grpcCallOptions...)
 	if err != nil {
 		// we need to cleanup as we dialled and created a context
 		// cancel the context
