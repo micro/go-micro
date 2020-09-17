@@ -28,30 +28,33 @@ func NewJSONValues(data []byte) (*JSONValues, error) {
 	return &JSONValues{data, sj}, nil
 }
 
-func (j *JSONValues) Get(path ...string) Value {
-	return &JSONValue{j.sj.GetPath(path...)}
+func (j *JSONValues) Get(path string) Value {
+	paths := strings.Split(path, ".")
+	return &JSONValue{j.sj.GetPath(paths...)}
 }
 
-func (j *JSONValues) Delete(path ...string) {
+func (j *JSONValues) Delete(path string) {
+	paths := strings.Split(path, ".")
 	// delete the tree?
-	if len(path) == 0 {
+	if len(paths) == 0 {
 		j.sj = simple.New()
 		return
 	}
 
-	if len(path) == 1 {
-		j.sj.Del(path[0])
+	if len(paths) == 1 {
+		j.sj.Del(paths[0])
 		return
 	}
 
-	vals := j.sj.GetPath(path[:len(path)-1]...)
-	vals.Del(path[len(path)-1])
-	j.sj.SetPath(path[:len(path)-1], vals.Interface())
+	vals := j.sj.GetPath(paths[:len(paths)-1]...)
+	vals.Del(paths[len(paths)-1])
+	j.sj.SetPath(paths[:len(paths)-1], vals.Interface())
 	return
 }
 
-func (j *JSONValues) Set(val interface{}, path ...string) {
-	j.sj.SetPath(path, val)
+func (j *JSONValues) Set(val interface{}, path string) {
+	paths := strings.Split(path, ".")
+	j.sj.SetPath(paths, val)
 }
 
 func (j *JSONValues) Bytes() []byte {

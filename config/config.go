@@ -11,9 +11,9 @@ import (
 )
 
 type Values interface {
-	Get(path ...string) Value
-	Set(val interface{}, path ...string)
-	Delete(path ...string)
+	Get(path string) Value
+	Set(val interface{}, path string)
+	Delete(path string)
 }
 
 // Config is an interface abstraction for dynamic configuration
@@ -82,7 +82,7 @@ func (c *config) Init(opts ...Option) error {
 	return nil
 }
 
-func (c *config) Get(path ...string) Value {
+func (c *config) Get(path string) Value {
 	key := "micro"
 	// @todo support tables
 	rec, err := c.store.Read(key)
@@ -91,10 +91,10 @@ func (c *config) Get(path ...string) Value {
 		dat = rec[0].Value
 	}
 	values, _ := NewJSONValues(dat)
-	return values.Get(path...)
+	return values.Get(path)
 }
 
-func (c *config) Set(val interface{}, path ...string) {
+func (c *config) Set(val interface{}, path string) {
 	key := "micro"
 	// @todo support tables
 	rec, err := c.store.Read(key)
@@ -103,14 +103,14 @@ func (c *config) Set(val interface{}, path ...string) {
 		dat = rec[0].Value
 	}
 	values, _ := NewJSONValues(dat)
-	values.Set(val, path...)
+	values.Set(val, path)
 	c.store.Write(&store.Record{
 		Key:   key,
 		Value: values.Bytes(),
 	})
 }
 
-func (c *config) Delete(path ...string) {
+func (c *config) Delete(path string) {
 	// @todo support tables
 	key := "micro"
 	rec, err := c.store.Read(key)
@@ -119,5 +119,5 @@ func (c *config) Delete(path ...string) {
 		return
 	}
 	values, _ := NewJSONValues(dat)
-	values.Delete(path...)
+	values.Delete(path)
 }
