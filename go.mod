@@ -7,7 +7,6 @@ replace github.com/imdario/mergo => github.com/imdario/mergo v0.3.8
 require (
 	github.com/BurntSushi/toml v0.3.1
 	github.com/bitly/go-simplejson v0.5.0
-	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
 	github.com/bradfitz/gomemcache v0.0.0-20190913173617-a41fca850d0b
 	github.com/caddyserver/certmagic v0.10.6
 	github.com/davecgh/go-spew v1.1.1
@@ -30,6 +29,7 @@ require (
 	github.com/imdario/mergo v0.3.9
 	github.com/kr/pretty v0.2.0
 	github.com/kr/text v0.2.0 // indirect
+	github.com/micro/go-micro v1.18.0
 	github.com/miekg/dns v1.1.27
 	github.com/minio/minio-go/v7 v7.0.5
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
@@ -48,4 +48,5 @@ require (
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
 	gopkg.in/square/go-jose.v2 v2.4.1 // indirect
 	gopkg.in/yaml.v2 v2.3.0 // indirect
+	honnef.co/go/tools v0.0.1-2019.2.3
 )
