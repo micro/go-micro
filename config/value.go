@@ -28,12 +28,12 @@ func NewJSONValues(data []byte) (*JSONValues, error) {
 	return &JSONValues{data, sj}, nil
 }
 
-func (j *JSONValues) Get(path string) Value {
+func (j *JSONValues) Get(path string, options ...Option) Value {
 	paths := strings.Split(path, ".")
 	return &JSONValue{j.sj.GetPath(paths...)}
 }
 
-func (j *JSONValues) Delete(path string) {
+func (j *JSONValues) Delete(path string, options ...Option) {
 	paths := strings.Split(path, ".")
 	// delete the tree?
 	if len(paths) == 0 {
@@ -52,7 +52,7 @@ func (j *JSONValues) Delete(path string) {
 	return
 }
 
-func (j *JSONValues) Set(val interface{}, path string) {
+func (j *JSONValues) Set(path string, val interface{}, options ...Option) {
 	paths := strings.Split(path, ".")
 	j.sj.SetPath(paths, val)
 }

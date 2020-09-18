@@ -11,9 +11,9 @@ import (
 )
 
 type Values interface {
-	Get(path string) Value
-	Set(val interface{}, path string)
-	Delete(path string)
+	Get(path string, options ...Option) Value
+	Set(path string, val interface{}, options ...Option)
+	Delete(path string, options ...Option)
 }
 
 // Config is an interface abstraction for dynamic configuration
@@ -43,7 +43,20 @@ type Value interface {
 }
 
 type Options struct {
-	Secret  bool
+	// Is the value being read a secret?
+	// If true, the Config will try to decode it with `SecretKey`
+	Secret bool
+	// SecretKey is used to decode secret values when Getting or Setting them.
+	SecretKey string
+
+	// Key is used for namespacing purposes:
+	// some Config implementations use the Store interface underneath
+	// and will use this value to separate between different configs.
+	// Ignore if unsure.
+	Key string
+
+	// Client and Context are used only for certain implementations,
+	// Ignore these if you are unsure.
 	Client  goclient.Client
 	Context context.Context
 }
@@ -82,9 +95,22 @@ func (c *config) Init(opts ...Option) error {
 	return nil
 }
 
-func (c *config) Get(path string) Value {
-	key := "micro"
-	// @todo support tables
+func mergeOptions(old Options, nu ...Option) Options {
+	n := Options{
+		Secret:    old.Secret,
+		SecretKey: old.SecretKey,
+		Client:    old.Client,
+		Context:   old.Context,
+	}
+	for _, opt := range nu {
+		opt(&n)
+	}
+	return n
+}
+
+func (c *config) Get(path string, options ...Option) Value {
+	key := mergeOptions(*c.options, options...).Key
+
 	rec, err := c.store.Read(key)
 	dat := []byte("{}")
 	if err == nil && len(rec) > 0 {
@@ -94,25 +120,25 @@ func (c *config) Get(path string) Value {
 	return values.Get(path)
 }
 
-func (c *config) Set(val interface{}, path string) {
-	key := "micro"
-	// @todo support tables
+func (c *config) Set(path string, val interface{}, options ...Option) {
+	key := mergeOptions(*c.options, options...).Key
+
 	rec, err := c.store.Read(key)
 	dat := []byte("{}")
 	if err == nil && len(rec) > 0 {
 		dat = rec[0].Value
 	}
 	values, _ := NewJSONValues(dat)
-	values.Set(val, path)
+	values.Set(path, val)
 	c.store.Write(&store.Record{
 		Key:   key,
 		Value: values.Bytes(),
 	})
 }
 
-func (c *config) Delete(path string) {
-	// @todo support tables
-	key := "micro"
+func (c *config) Delete(path string, options ...Option) {
+	key := mergeOptions(*c.options, options...).Key
+
 	rec, err := c.store.Read(key)
 	dat := []byte("{}")
 	if err != nil || len(rec) == 0 {
