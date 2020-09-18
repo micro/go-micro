@@ -70,6 +70,30 @@ func Secret(isSecret bool) Option {
 	}
 }
 
+func SecretKey(secretKey string) Option {
+	return func(o *Options) {
+		o.SecretKey = secretKey
+	}
+}
+
+func Key(key string) Option {
+	return func(o *Options) {
+		o.Key = key
+	}
+}
+
+func Context(context context.Context) Option {
+	return func(o *Options) {
+		o.Context = context
+	}
+}
+
+func Client(client goclient.Client) Option {
+	return func(o *Options) {
+		o.Client = client
+	}
+}
+
 type config struct {
 	options *Options
 	store   store.Store
