@@ -40,10 +40,8 @@ func readLoop(r server.Request, s client.Stream) error {
 		//  no need to decode it
 		body, err := r.Read()
 		if err == io.EOF {
-			return nil
-		}
-
-		if err != nil {
+			return s.Close()
+		} else if err != nil {
 			return err
 		}
 
@@ -55,11 +53,8 @@ func readLoop(r server.Request, s client.Stream) error {
 			Body:   body,
 		}
 
-		// write the raw request
-		err = req.Codec().Write(msg, nil)
-		if err == io.EOF {
-			return nil
-		} else if err != nil {
+		// send the message to the stream
+		if err := req.Codec().Write(msg, nil); err != nil {
 			return err
 		}
 	}
@@ -168,8 +163,7 @@ func (p *Proxy) serveRequest(ctx context.Context, link client.Client, service, e
 
 	// create client request read loop if streaming
 	go func() {
-		err := readLoop(req, stream)
-		if err != nil && err != io.EOF {
+		if err := readLoop(req, stream); err != nil {
 			// cancel the context
 			cancel()
 		}

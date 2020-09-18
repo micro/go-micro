@@ -17,11 +17,11 @@ type grpcStream struct {
 	sync.RWMutex
 	closed   bool
 	err      error
-	conn     *grpc.ClientConn
+	conn     *poolConn
 	request  client.Request
 	response client.Response
 	context  context.Context
-	cancel   func()
+	close    func(err error)
 }
 
 func (g *grpcStream) Context() context.Context {
@@ -86,9 +86,9 @@ func (g *grpcStream) Close() error {
 	if g.closed {
 		return nil
 	}
-	// cancel the context
-	g.cancel()
+
+	// close the connection
 	g.closed = true
-	g.ClientStream.CloseSend()
-	return g.conn.Close()
+	g.close(g.err)
+	return g.ClientStream.CloseSend()
 }

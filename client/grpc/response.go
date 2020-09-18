@@ -10,7 +10,7 @@ import (
 )
 
 type response struct {
-	conn   *grpc.ClientConn
+	conn   *poolConn
 	stream grpc.ClientStream
 	codec  encoding.Codec
 	gcodec codec.Codec
