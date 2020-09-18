@@ -28,6 +28,15 @@ func NewJSONValues(data []byte) (*JSONValues, error) {
 	return &JSONValues{data, sj}, nil
 }
 
+func NewJSONValue(data []byte) *JSONValue {
+	sj := simple.New()
+
+	if err := sj.UnmarshalJSON(data); err != nil {
+		sj.SetPath(nil, string(data))
+	}
+	return &JSONValue{sj}
+}
+
 func (j *JSONValues) Get(path string, options ...Option) Value {
 	paths := strings.Split(path, ".")
 	return &JSONValue{j.sj.GetPath(paths...)}
