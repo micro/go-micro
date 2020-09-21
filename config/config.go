@@ -7,15 +7,11 @@ import (
 	"github.com/micro/go-micro/v3/store"
 )
 
-type Values interface {
+// Config is an interface abstraction for dynamic configuration
+type Config interface {
 	Get(path string, options ...Option) Value
 	Set(path string, val interface{}, options ...Option)
 	Delete(path string, options ...Option)
-}
-
-// Config is an interface abstraction for dynamic configuration
-type Config interface {
-	Values
 }
 
 // NewConfig returns new config
