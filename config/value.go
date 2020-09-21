@@ -12,20 +12,20 @@ import (
 
 type JSONValues struct {
 	values []byte
-	sj *simple.Json
+	sj     *simple.Json
 }
 
 type JSONValue struct {
 	*simple.Json
 }
 
-func NewJSONValues(data []byte) (*JSONValues, error) {
+func NewJSONValues(data []byte) *JSONValues {
 	sj := simple.New()
 
 	if err := sj.UnmarshalJSON(data); err != nil {
 		sj.SetPath(nil, string(data))
 	}
-	return &JSONValues{data, sj}, nil
+	return &JSONValues{data, sj}
 }
 
 func NewJSONValue(data []byte) *JSONValue {
