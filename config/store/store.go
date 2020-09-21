@@ -37,7 +37,7 @@ func (c *conf) Get(path string, options ...config.Option) config.Value {
 	if err == nil && len(rec) > 0 {
 		dat = rec[0].Value
 	}
-	values, _ := config.NewJSONValues(dat)
+	values := config.NewJSONValues(dat)
 	return values.Get(path)
 }
 
@@ -47,7 +47,7 @@ func (c *conf) Set(path string, val interface{}, options ...config.Option) {
 	if err == nil && len(rec) > 0 {
 		dat = rec[0].Value
 	}
-	values, _ := config.NewJSONValues(dat)
+	values := config.NewJSONValues(dat)
 	values.Set(path, val)
 	c.store.Write(&store.Record{
 		Key:   c.key,
@@ -61,6 +61,6 @@ func (c *conf) Delete(path string, options ...config.Option) {
 	if err != nil || len(rec) == 0 {
 		return
 	}
-	values, _ := config.NewJSONValues(dat)
+	values := config.NewJSONValues(dat)
 	values.Delete(path)
 }
