@@ -4,9 +4,6 @@ package config
 import (
 	"time"
 
-	"context"
-
-	goclient "github.com/micro/go-micro/v3/client"
 	"github.com/micro/go-micro/v3/store"
 )
 
@@ -19,13 +16,11 @@ type Values interface {
 // Config is an interface abstraction for dynamic configuration
 type Config interface {
 	Values
-	// Init the config
-	Init(opts ...Option) error
 }
 
 // NewConfig returns new config
-func NewConfig(store store.Store, opts ...Option) (Config, error) {
-	return newConfig(store, opts...)
+func NewConfig(store store.Store, key string) (Config, error) {
+	return newConfig(store)
 }
 
 // Value represents a value of any type
@@ -46,19 +41,6 @@ type Options struct {
 	// Is the value being read a secret?
 	// If true, the Config will try to decode it with `SecretKey`
 	Secret bool
-	// SecretKey is used to decode secret values when Getting or Setting them.
-	SecretKey string
-
-	// Key is used for namespacing purposes:
-	// some Config implementations use the Store interface underneath
-	// and will use this value to separate between different configs.
-	// Ignore if unsure.
-	Key string
-
-	// Client and Context are used only for certain implementations,
-	// Ignore these if you are unsure.
-	Client  goclient.Client
-	Context context.Context
 }
 
 // Option sets values in Options
@@ -70,61 +52,20 @@ func Secret(isSecret bool) Option {
 	}
 }
 
-func SecretKey(secretKey string) Option {
-	return func(o *Options) {
-		o.SecretKey = secretKey
-	}
-}
-
-func Key(key string) Option {
-	return func(o *Options) {
-		o.Key = key
-	}
-}
-
-func Context(context context.Context) Option {
-	return func(o *Options) {
-		o.Context = context
-	}
-}
-
-func Client(client goclient.Client) Option {
-	return func(o *Options) {
-		o.Client = client
-	}
-}
-
 type config struct {
-	options *Options
-	store   store.Store
+	key   string
+	store store.Store
 }
 
-func newConfig(store store.Store, opts ...Option) (*config, error) {
-	o := &Options{}
-	for _, opt := range opts {
-		opt(o)
-	}
+func newConfig(store store.Store) (*config, error) {
 	return &config{
-		options: o,
-		store:   store,
+		store: store,
 	}, nil
-}
-
-func (c *config) Init(opts ...Option) error {
-	o := &Options{}
-	for _, opt := range opts {
-		opt(o)
-	}
-	c.options = o
-	return nil
 }
 
 func mergeOptions(old Options, nu ...Option) Options {
 	n := Options{
-		Secret:    old.Secret,
-		SecretKey: old.SecretKey,
-		Client:    old.Client,
-		Context:   old.Context,
+		Secret: old.Secret,
 	}
 	for _, opt := range nu {
 		opt(&n)
@@ -133,9 +74,7 @@ func mergeOptions(old Options, nu ...Option) Options {
 }
 
 func (c *config) Get(path string, options ...Option) Value {
-	key := mergeOptions(*c.options, options...).Key
-
-	rec, err := c.store.Read(key)
+	rec, err := c.store.Read(c.key)
 	dat := []byte("{}")
 	if err == nil && len(rec) > 0 {
 		dat = rec[0].Value
@@ -145,9 +84,7 @@ func (c *config) Get(path string, options ...Option) Value {
 }
 
 func (c *config) Set(path string, val interface{}, options ...Option) {
-	key := mergeOptions(*c.options, options...).Key
-
-	rec, err := c.store.Read(key)
+	rec, err := c.store.Read(c.key)
 	dat := []byte("{}")
 	if err == nil && len(rec) > 0 {
 		dat = rec[0].Value
@@ -155,15 +92,13 @@ func (c *config) Set(path string, val interface{}, options ...Option) {
 	values, _ := NewJSONValues(dat)
 	values.Set(path, val)
 	c.store.Write(&store.Record{
-		Key:   key,
+		Key:   c.key,
 		Value: values.Bytes(),
 	})
 }
 
 func (c *config) Delete(path string, options ...Option) {
-	key := mergeOptions(*c.options, options...).Key
-
-	rec, err := c.store.Read(key)
+	rec, err := c.store.Read(c.key)
 	dat := []byte("{}")
 	if err != nil || len(rec) == 0 {
 		return
