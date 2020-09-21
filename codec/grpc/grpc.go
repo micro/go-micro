@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/micro/go-micro/codec"
+	"github.com/micro/go-micro/v3/codec"
 )
 
 type Codec struct {
@@ -29,8 +29,8 @@ func (c *Codec) ReadHeader(m *codec.Message, t codec.MessageType) error {
 	// service method
 	path := m.Header[":path"]
 	if len(path) == 0 || path[0] != '/' {
-		m.Target = m.Header["X-Micro-Service"]
-		m.Endpoint = m.Header["X-Micro-Endpoint"]
+		m.Target = m.Header["Micro-Service"]
+		m.Endpoint = m.Header["Micro-Endpoint"]
 	} else {
 		// [ , a.package.Foo, Bar]
 		parts := strings.Split(path, "/")
@@ -89,9 +89,22 @@ func (c *Codec) Write(m *codec.Message, b interface{}) error {
 		m.Header[":authority"] = m.Target
 		m.Header["content-type"] = c.ContentType
 	case codec.Response:
-		m.Header["Trailer"] = "grpc-status, grpc-message"
+		m.Header["Trailer"] = "grpc-status" //, grpc-message"
+		m.Header["content-type"] = c.ContentType
+		m.Header[":status"] = "200"
 		m.Header["grpc-status"] = "0"
-		m.Header["grpc-message"] = ""
+		//		m.Header["grpc-message"] = ""
+	case codec.Error:
+		m.Header["Trailer"] = "grpc-status, grpc-message"
+		// micro end of stream
+		if m.Error == "EOS" {
+			m.Header["grpc-status"] = "0"
+		} else {
+			m.Header["grpc-message"] = m.Error
+			m.Header["grpc-status"] = "13"
+		}
+
+		return nil
 	}
 
 	// marshal content
@@ -111,6 +124,10 @@ func (c *Codec) Write(m *codec.Message, b interface{}) error {
 		m.Header["grpc-status"] = "8"
 		m.Header["grpc-message"] = err.Error()
 		return err
+	}
+
+	if len(buf) == 0 {
+		return nil
 	}
 
 	return encode(0, buf, c.Conn)

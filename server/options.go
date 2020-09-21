@@ -2,37 +2,50 @@ package server
 
 import (
 	"context"
+	"crypto/tls"
+	"sync"
 	"time"
 
-	"github.com/micro/go-micro/broker"
-	"github.com/micro/go-micro/codec"
-	"github.com/micro/go-micro/registry"
-	"github.com/micro/go-micro/server/debug"
-	"github.com/micro/go-micro/transport"
+	"github.com/micro/go-micro/v3/auth"
+	"github.com/micro/go-micro/v3/broker"
+	"github.com/micro/go-micro/v3/broker/http"
+	"github.com/micro/go-micro/v3/codec"
+	"github.com/micro/go-micro/v3/debug/trace"
+	"github.com/micro/go-micro/v3/network/transport"
+	thttp "github.com/micro/go-micro/v3/network/transport/http"
+	"github.com/micro/go-micro/v3/registry"
+	"github.com/micro/go-micro/v3/registry/mdns"
 )
 
 type Options struct {
 	Codecs       map[string]codec.NewCodec
 	Broker       broker.Broker
 	Registry     registry.Registry
+	Tracer       trace.Tracer
+	Auth         auth.Auth
 	Transport    transport.Transport
 	Metadata     map[string]string
 	Name         string
 	Address      string
 	Advertise    string
 	Id           string
+	Namespace    string
 	Version      string
 	HdlrWrappers []HandlerWrapper
 	SubWrappers  []SubscriberWrapper
 
+	// RegisterCheck runs a check function before registering the service
+	RegisterCheck func(context.Context) error
 	// The register expiry time
 	RegisterTTL time.Duration
+	// The interval on which to register
+	RegisterInterval time.Duration
 
 	// The router for requests
 	Router Router
 
-	// Debug Handler which can be set by a user
-	DebugHandler debug.DebugHandler
+	// TLSConfig specifies tls.Config for secure serving
+	TLSConfig *tls.Config
 
 	// Other options for implementations of the interface
 	// can be stored in a context
@@ -41,8 +54,10 @@ type Options struct {
 
 func newOptions(opt ...Option) Options {
 	opts := Options{
-		Codecs:   make(map[string]codec.NewCodec),
-		Metadata: map[string]string{},
+		Codecs:           make(map[string]codec.NewCodec),
+		Metadata:         map[string]string{},
+		RegisterInterval: DefaultRegisterInterval,
+		RegisterTTL:      DefaultRegisterTTL,
 	}
 
 	for _, o := range opt {
@@ -50,19 +65,19 @@ func newOptions(opt ...Option) Options {
 	}
 
 	if opts.Broker == nil {
-		opts.Broker = broker.DefaultBroker
+		opts.Broker = http.NewBroker()
 	}
 
 	if opts.Registry == nil {
-		opts.Registry = registry.DefaultRegistry
+		opts.Registry = mdns.NewRegistry()
 	}
 
 	if opts.Transport == nil {
-		opts.Transport = transport.DefaultTransport
+		opts.Transport = thttp.NewTransport()
 	}
 
-	if opts.DebugHandler == nil {
-		opts.DebugHandler = debug.DefaultDebugHandler
+	if opts.RegisterCheck == nil {
+		opts.RegisterCheck = DefaultRegisterCheck
 	}
 
 	if len(opts.Address) == 0 {
@@ -88,6 +103,13 @@ func newOptions(opt ...Option) Options {
 func Name(n string) Option {
 	return func(o *Options) {
 		o.Name = n
+	}
+}
+
+// Namespace to register handlers in
+func Namespace(n string) Option {
+	return func(o *Options) {
+		o.Namespace = n
 	}
 }
 
@@ -133,10 +155,33 @@ func Codec(contentType string, c codec.NewCodec) Option {
 	}
 }
 
+// Context specifies a context for the service.
+// Can be used to signal shutdown of the service
+// Can be used for extra option values.
+func Context(ctx context.Context) Option {
+	return func(o *Options) {
+		o.Context = ctx
+	}
+}
+
 // Registry used for discovery
 func Registry(r registry.Registry) Option {
 	return func(o *Options) {
 		o.Registry = r
+	}
+}
+
+// Tracer mechanism for distributed tracking
+func Tracer(t trace.Tracer) Option {
+	return func(o *Options) {
+		o.Tracer = t
+	}
+}
+
+// Auth mechanism for role based access control
+func Auth(a auth.Auth) Option {
+	return func(o *Options) {
+		o.Auth = a
 	}
 }
 
@@ -147,13 +192,6 @@ func Transport(t transport.Transport) Option {
 	}
 }
 
-// DebugHandler for this server
-func DebugHandler(d debug.DebugHandler) Option {
-	return func(o *Options) {
-		o.DebugHandler = d
-	}
-}
-
 // Metadata associated with the server
 func Metadata(md map[string]string) Option {
 	return func(o *Options) {
@@ -161,10 +199,44 @@ func Metadata(md map[string]string) Option {
 	}
 }
 
+// RegisterCheck run func before registry service
+func RegisterCheck(fn func(context.Context) error) Option {
+	return func(o *Options) {
+		o.RegisterCheck = fn
+	}
+}
+
 // Register the service with a TTL
 func RegisterTTL(t time.Duration) Option {
 	return func(o *Options) {
 		o.RegisterTTL = t
+	}
+}
+
+// Register the service with at interval
+func RegisterInterval(t time.Duration) Option {
+	return func(o *Options) {
+		o.RegisterInterval = t
+	}
+}
+
+// TLSConfig specifies a *tls.Config
+func TLSConfig(t *tls.Config) Option {
+	return func(o *Options) {
+		// set the internal tls
+		o.TLSConfig = t
+
+		// set the default transport if one is not
+		// already set. Required for Init call below.
+		if o.Transport == nil {
+			o.Transport = thttp.NewTransport()
+		}
+
+		// set the transport tls
+		o.Transport.Init(
+			transport.Secure(true),
+			transport.TLSConfig(t),
+		)
 	}
 }
 
@@ -176,12 +248,18 @@ func WithRouter(r Router) Option {
 }
 
 // Wait tells the server to wait for requests to finish before exiting
-func Wait(b bool) Option {
+// If `wg` is nil, server only wait for completion of rpc handler.
+// For user need finer grained control, pass a concrete `wg` here, server will
+// wait against it on stop.
+func Wait(wg *sync.WaitGroup) Option {
 	return func(o *Options) {
 		if o.Context == nil {
 			o.Context = context.Background()
 		}
-		o.Context = context.WithValue(o.Context, "wait", b)
+		if wg == nil {
+			wg = new(sync.WaitGroup)
+		}
+		o.Context = context.WithValue(o.Context, "wait", wg)
 	}
 }
 

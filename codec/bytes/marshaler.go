@@ -1,7 +1,7 @@
 package bytes
 
 import (
-	"errors"
+	"github.com/micro/go-micro/v3/codec"
 )
 
 type Marshaler struct{}
@@ -12,28 +12,25 @@ type Message struct {
 }
 
 func (n Marshaler) Marshal(v interface{}) ([]byte, error) {
-	switch v.(type) {
+	switch ve := v.(type) {
 	case *[]byte:
-		ve := v.(*[]byte)
 		return *ve, nil
 	case []byte:
-		return v.([]byte), nil
+		return ve, nil
 	case *Message:
-		return v.(*Message).Body, nil
+		return ve.Body, nil
 	}
-	return nil, errors.New("invalid message")
+	return nil, codec.ErrInvalidMessage
 }
 
 func (n Marshaler) Unmarshal(d []byte, v interface{}) error {
-	switch v.(type) {
+	switch ve := v.(type) {
 	case *[]byte:
-		ve := v.(*[]byte)
 		*ve = d
 	case *Message:
-		ve := v.(*Message)
 		ve.Body = d
 	}
-	return errors.New("invalid message")
+	return codec.ErrInvalidMessage
 }
 
 func (n Marshaler) String() string {

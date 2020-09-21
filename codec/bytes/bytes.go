@@ -6,11 +6,16 @@ import (
 	"io"
 	"io/ioutil"
 
-	"github.com/micro/go-micro/codec"
+	"github.com/micro/go-micro/v3/codec"
 )
 
 type Codec struct {
 	Conn io.ReadWriteCloser
+}
+
+// Frame gives us the ability to define raw data to send over the pipes
+type Frame struct {
+	Data []byte
 }
 
 func (c *Codec) ReadHeader(m *codec.Message, t codec.MessageType) error {
@@ -18,30 +23,35 @@ func (c *Codec) ReadHeader(m *codec.Message, t codec.MessageType) error {
 }
 
 func (c *Codec) ReadBody(b interface{}) error {
-	v, ok := b.(*[]byte)
-	if !ok {
-		return fmt.Errorf("failed to read body: %v is not type of *[]byte", b)
-	}
-
 	// read bytes
 	buf, err := ioutil.ReadAll(c.Conn)
 	if err != nil {
 		return err
 	}
 
-	// set bytes
-	*v = buf
+	switch v := b.(type) {
+	case *[]byte:
+		*v = buf
+	case *Frame:
+		v.Data = buf
+	default:
+		return fmt.Errorf("failed to read body: %v is not type of *[]byte", b)
+	}
+
 	return nil
 }
 
 func (c *Codec) Write(m *codec.Message, b interface{}) error {
 	var v []byte
-	switch b.(type) {
+	switch vb := b.(type) {
+	case nil:
+		return nil
+	case *Frame:
+		v = vb.Data
 	case *[]byte:
-		ve := b.(*[]byte)
-		v = *ve
+		v = *vb
 	case []byte:
-		v = b.([]byte)
+		v = vb
 	default:
 		return fmt.Errorf("failed to write: %v is not type of *[]byte or []byte", b)
 	}

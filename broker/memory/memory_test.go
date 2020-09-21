@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/micro/go-micro/broker"
+	"github.com/micro/go-micro/v3/broker"
 )
 
 func TestMemoryBroker(t *testing.T) {
@@ -17,7 +17,7 @@ func TestMemoryBroker(t *testing.T) {
 	topic := "test"
 	count := 10
 
-	fn := func(p broker.Publication) error {
+	fn := func(m *broker.Message) error {
 		return nil
 	}
 

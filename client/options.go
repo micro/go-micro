@@ -4,26 +4,33 @@ import (
 	"context"
 	"time"
 
-	"github.com/micro/go-micro/broker"
-	"github.com/micro/go-micro/codec"
-	"github.com/micro/go-micro/registry"
-	"github.com/micro/go-micro/selector"
-	"github.com/micro/go-micro/transport"
+	"github.com/micro/go-micro/v3/broker"
+	"github.com/micro/go-micro/v3/broker/http"
+	"github.com/micro/go-micro/v3/codec"
+	"github.com/micro/go-micro/v3/network/transport"
+	thttp "github.com/micro/go-micro/v3/network/transport/http"
+	"github.com/micro/go-micro/v3/registry"
+	"github.com/micro/go-micro/v3/router"
+	regRouter "github.com/micro/go-micro/v3/router/registry"
+	"github.com/micro/go-micro/v3/selector"
+	"github.com/micro/go-micro/v3/selector/roundrobin"
 )
 
 type Options struct {
 	// Used to select codec
 	ContentType string
+	// Proxy address to send requests via
+	Proxy string
 
 	// Plugged interfaces
 	Broker    broker.Broker
 	Codecs    map[string]codec.NewCodec
-	Registry  registry.Registry
+	Router    router.Router
 	Selector  selector.Selector
 	Transport transport.Transport
 
-	// Router sets the router
-	Router Router
+	// Lookup used for looking up routes
+	Lookup LookupFunc
 
 	// Connection Pool
 	PoolSize int
@@ -41,20 +48,30 @@ type Options struct {
 }
 
 type CallOptions struct {
-	SelectOptions []selector.SelectOption
-
-	// Address of remote host
-	Address string
+	// Address of remote hosts
+	Address []string
 	// Backoff func
 	Backoff BackoffFunc
-	// Check if retriable func
-	Retry RetryFunc
 	// Transport Dial Timeout
 	DialTimeout time.Duration
 	// Number of Call attempts
 	Retries int
+	// Check if retriable func
+	Retry RetryFunc
 	// Request/Response timeout
 	RequestTimeout time.Duration
+	// Router to use for this call
+	Router router.Router
+	// Selector to use for the call
+	Selector selector.Selector
+	// SelectOptions to use when selecting a route
+	SelectOptions []selector.SelectOption
+	// Stream timeout for the stream
+	StreamTimeout time.Duration
+	// Use the auth token as the authorization header
+	AuthToken bool
+	// Network to lookup the route within
+	Network string
 
 	// Middleware for low level call func
 	CallWrappers []CallWrapper
@@ -65,6 +82,8 @@ type CallOptions struct {
 }
 
 type PublishOptions struct {
+	// Exchange is the routing exchange for the message
+	Exchange string
 	// Other options for implementations of the interface
 	// can be stored in a context
 	Context context.Context
@@ -83,9 +102,11 @@ type RequestOptions struct {
 	Context context.Context
 }
 
-func newOptions(options ...Option) Options {
+func NewOptions(options ...Option) Options {
 	opts := Options{
-		Codecs: make(map[string]codec.NewCodec),
+		Context:     context.Background(),
+		ContentType: "application/protobuf",
+		Codecs:      make(map[string]codec.NewCodec),
 		CallOptions: CallOptions{
 			Backoff:        DefaultBackoff,
 			Retry:          DefaultRetry,
@@ -93,34 +114,17 @@ func newOptions(options ...Option) Options {
 			RequestTimeout: DefaultRequestTimeout,
 			DialTimeout:    transport.DefaultDialTimeout,
 		},
-		PoolSize: DefaultPoolSize,
-		PoolTTL:  DefaultPoolTTL,
+		Lookup:    LookupRoute,
+		PoolSize:  DefaultPoolSize,
+		PoolTTL:   DefaultPoolTTL,
+		Broker:    http.NewBroker(),
+		Router:    regRouter.NewRouter(),
+		Selector:  roundrobin.NewSelector(),
+		Transport: thttp.NewTransport(),
 	}
 
 	for _, o := range options {
 		o(&opts)
-	}
-
-	if len(opts.ContentType) == 0 {
-		opts.ContentType = DefaultContentType
-	}
-
-	if opts.Broker == nil {
-		opts.Broker = broker.DefaultBroker
-	}
-
-	if opts.Registry == nil {
-		opts.Registry = registry.DefaultRegistry
-	}
-
-	if opts.Selector == nil {
-		opts.Selector = selector.NewSelector(
-			selector.Registry(opts.Registry),
-		)
-	}
-
-	if opts.Transport == nil {
-		opts.Transport = transport.DefaultTransport
 	}
 
 	return opts
@@ -147,6 +151,13 @@ func ContentType(ct string) Option {
 	}
 }
 
+// Proxy sets the proxy address
+func Proxy(addr string) Option {
+	return func(o *Options) {
+		o.Proxy = addr
+	}
+}
+
 // PoolSize sets the connection pool size
 func PoolSize(d int) Option {
 	return func(o *Options) {
@@ -154,17 +165,10 @@ func PoolSize(d int) Option {
 	}
 }
 
-// PoolSize sets the connection pool size
+// PoolTTL sets the connection pool ttl
 func PoolTTL(d time.Duration) Option {
 	return func(o *Options) {
 		o.PoolTTL = d
-	}
-}
-
-// Registry to find nodes for a given service
-func Registry(r registry.Registry) Option {
-	return func(o *Options) {
-		o.Registry = r
 	}
 }
 
@@ -175,7 +179,21 @@ func Transport(t transport.Transport) Option {
 	}
 }
 
-// Select is used to select a node to route a request to
+// Registry sets the routers registry
+func Registry(r registry.Registry) Option {
+	return func(o *Options) {
+		o.Router.Init(router.Registry(r))
+	}
+}
+
+// Router is used to lookup routes for a service
+func Router(r router.Router) Option {
+	return func(o *Options) {
+		o.Router = r
+	}
+}
+
+// Selector is used to select a route
 func Selector(s selector.Selector) Option {
 	return func(o *Options) {
 		o.Selector = s
@@ -204,6 +222,13 @@ func Backoff(fn BackoffFunc) Option {
 	}
 }
 
+// Lookup sets the lookup function to use for resolving service names
+func Lookup(l LookupFunc) Option {
+	return func(o *Options) {
+		o.Lookup = l
+	}
+}
+
 // Number of retries when making the request.
 // Should this be a Call Option?
 func Retries(i int) Option {
@@ -227,6 +252,13 @@ func RequestTimeout(d time.Duration) Option {
 	}
 }
 
+// StreamTimeout sets the stream timeout
+func StreamTimeout(d time.Duration) Option {
+	return func(o *Options) {
+		o.CallOptions.StreamTimeout = d
+	}
+}
+
 // Transport dial timeout
 func DialTimeout(d time.Duration) Option {
 	return func(o *Options) {
@@ -236,16 +268,24 @@ func DialTimeout(d time.Duration) Option {
 
 // Call Options
 
-// WithAddress sets the remote address to use rather than using service discovery
-func WithAddress(a string) CallOption {
-	return func(o *CallOptions) {
-		o.Address = a
+// WithExchange sets the exchange to route a message through
+func WithExchange(e string) PublishOption {
+	return func(o *PublishOptions) {
+		o.Exchange = e
 	}
 }
 
-func WithSelectOption(so ...selector.SelectOption) CallOption {
+// PublishContext sets the context in publish options
+func PublishContext(ctx context.Context) PublishOption {
+	return func(o *PublishOptions) {
+		o.Context = ctx
+	}
+}
+
+// WithAddress sets the remote addresses to use rather than using service discovery
+func WithAddress(a ...string) CallOption {
 	return func(o *CallOptions) {
-		o.SelectOptions = append(o.SelectOptions, so...)
+		o.Address = a
 	}
 }
 
@@ -288,11 +328,60 @@ func WithRequestTimeout(d time.Duration) CallOption {
 	}
 }
 
+// WithStreamTimeout sets the stream timeout
+func WithStreamTimeout(d time.Duration) CallOption {
+	return func(o *CallOptions) {
+		o.StreamTimeout = d
+	}
+}
+
 // WithDialTimeout is a CallOption which overrides that which
 // set in Options.CallOptions
 func WithDialTimeout(d time.Duration) CallOption {
 	return func(o *CallOptions) {
 		o.DialTimeout = d
+	}
+}
+
+// WithAuthToken is a CallOption which overrides the
+// authorization header with the services own auth token
+func WithAuthToken() CallOption {
+	return func(o *CallOptions) {
+		o.AuthToken = true
+	}
+}
+
+// WithNetwork is a CallOption which sets the network attribute
+func WithNetwork(n string) CallOption {
+	return func(o *CallOptions) {
+		o.Network = n
+	}
+}
+
+// WithRouter sets the router to use for this call
+func WithRouter(r router.Router) CallOption {
+	return func(o *CallOptions) {
+		o.Router = r
+	}
+}
+
+// WithSelector sets the selector to use for this call
+func WithSelector(s selector.Selector) CallOption {
+	return func(o *CallOptions) {
+		o.Selector = s
+	}
+}
+
+// WithSelectOptions sets the options to pass to the selector for this call
+func WithSelectOptions(sops ...selector.SelectOption) CallOption {
+	return func(o *CallOptions) {
+		o.SelectOptions = sops
+	}
+}
+
+func WithMessageContentType(ct string) MessageOption {
+	return func(o *MessageOptions) {
+		o.ContentType = ct
 	}
 }
 
@@ -307,12 +396,5 @@ func WithContentType(ct string) RequestOption {
 func StreamingRequest() RequestOption {
 	return func(o *RequestOptions) {
 		o.Stream = true
-	}
-}
-
-// WithRouter sets the client router
-func WithRouter(r Router) Option {
-	return func(o *Options) {
-		o.Router = r
 	}
 }
