@@ -1,7 +1,6 @@
 package redis
 
 import (
-	"fmt"
 	"strconv"
 	"testing"
 
@@ -22,7 +21,7 @@ func TestNewCache(t *testing.T) {
 	t.Log(cache.String())
 }
 
-func TestSet(t *testing.T) {
+func TestSetGet(t *testing.T) {
 	for _, nod := range nodes {
 		cache.Nodes(nod)
 	}
@@ -31,7 +30,7 @@ func TestSet(t *testing.T) {
 
 	key := "test"
 	val := 100
-	if err := cache.Set(key, 100); err != nil {
+	if err := cache.Set(key, val); err != nil {
 		t.Fatal(err.Error())
 	}
 
@@ -53,5 +52,23 @@ func TestSet(t *testing.T) {
 		} else {
 			t.Fatalf("set(%v) get(%v) fail", val, vi)
 		}
+	}
+}
+
+func TestSetDelete(t *testing.T) {
+	for _, nod := range nodes {
+		cache.Nodes(nod)
+	}
+
+	cache := NewCache(cache.Nodes())
+
+	key := "test"
+	val := 100
+	if err := cache.Set(key, val); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	if err := cache.Delete(key); err != nil {
+		t.Fatal(err.Error())
 	}
 }
