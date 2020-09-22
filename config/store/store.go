@@ -31,17 +31,17 @@ func mergeOptions(old config.Options, nu ...config.Option) config.Options {
 	return n
 }
 
-func (c *conf) Get(path string, options ...config.Option) config.Value {
+func (c *conf) Get(path string, options ...config.Option) (config.Value, error) {
 	rec, err := c.store.Read(c.key)
 	dat := []byte("{}")
 	if err == nil && len(rec) > 0 {
 		dat = rec[0].Value
 	}
 	values := config.NewJSONValues(dat)
-	return values.Get(path)
+	return values.Get(path), nil
 }
 
-func (c *conf) Set(path string, val interface{}, options ...config.Option) {
+func (c *conf) Set(path string, val interface{}, options ...config.Option) error {
 	rec, err := c.store.Read(c.key)
 	dat := []byte("{}")
 	if err == nil && len(rec) > 0 {
@@ -49,18 +49,22 @@ func (c *conf) Set(path string, val interface{}, options ...config.Option) {
 	}
 	values := config.NewJSONValues(dat)
 	values.Set(path, val)
-	c.store.Write(&store.Record{
+	return c.store.Write(&store.Record{
 		Key:   c.key,
 		Value: values.Bytes(),
 	})
 }
 
-func (c *conf) Delete(path string, options ...config.Option) {
+func (c *conf) Delete(path string, options ...config.Option) error {
 	rec, err := c.store.Read(c.key)
 	dat := []byte("{}")
 	if err != nil || len(rec) == 0 {
-		return
+		return nil
 	}
 	values := config.NewJSONValues(dat)
 	values.Delete(path)
+	return c.store.Write(&store.Record{
+		Key:   c.key,
+		Value: values.Bytes(),
+	})
 }
