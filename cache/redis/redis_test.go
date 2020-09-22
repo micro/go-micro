@@ -41,7 +41,6 @@ func TestSet(t *testing.T) {
 	}
 
 	v, ok := rs.(string)
-	fmt.Println(v, ok)
 
 	if ok {
 		vi, err := strconv.Atoi(v)
