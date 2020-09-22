@@ -7,9 +7,9 @@ import (
 
 // Config is an interface abstraction for dynamic configuration
 type Config interface {
-	Get(path string, options ...Option) Value
-	Set(path string, val interface{}, options ...Option)
-	Delete(path string, options ...Option)
+	Get(path string, options ...Option) (Value, error)
+	Set(path string, val interface{}, options ...Option) error
+	Delete(path string, options ...Option) error
 }
 
 // Value represents a value of any type
