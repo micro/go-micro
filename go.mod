@@ -16,6 +16,7 @@ require (
 	github.com/evanphx/json-patch/v5 v5.0.0
 	github.com/fsnotify/fsnotify v1.4.9
 	github.com/fsouza/go-dockerclient v1.6.0
+	github.com/garyburd/redigo v1.6.2
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-acme/lego/v3 v3.4.0
 	github.com/gobwas/httphead v0.0.0-20180130184737-2c6c146eadee
@@ -23,6 +24,7 @@ require (
 	github.com/gobwas/ws v1.0.3
 	github.com/gogo/protobuf v1.3.1 // indirect
 	github.com/golang/protobuf v1.4.2
+	github.com/gomodule/redigo v2.0.0+incompatible
 	github.com/google/uuid v1.1.1
 	github.com/gorilla/handlers v1.4.2
 	github.com/hashicorp/hcl v1.0.0
@@ -32,6 +34,7 @@ require (
 	github.com/kr/text v0.2.0 // indirect
 	github.com/miekg/dns v1.1.27
 	github.com/minio/minio-go/v7 v7.0.5
+	github.com/mna/redisc v1.1.7
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
 	github.com/oxtoacart/bpool v0.0.0-20190530202638-03653db5a59c
 	github.com/patrickmn/go-cache v2.1.0+incompatible
