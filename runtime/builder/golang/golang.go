@@ -1,7 +1,6 @@
 package golang
 
 import (
-	"archive/tar"
 	"archive/zip"
 	"bytes"
 	"errors"
@@ -13,7 +12,7 @@ import (
 	"path/filepath"
 
 	"github.com/micro/go-micro/v3/runtime/builder"
-	"github.com/micro/go-micro/v3/runtime/local"
+	"github.com/micro/go-micro/v3/util/tar"
 )
 
 // NewBuilder returns a golang builder which can build a go binary given some source
@@ -54,10 +53,10 @@ func (g *golang) Build(src io.Reader, opts ...builder.Option) (io.Reader, error)
 	switch options.Archive {
 	case "":
 		err = writeFile(src, dir)
-	case "tar":
-		err = unarchiveTar(src, dir)
 	case "zip":
 		err = unarchiveZip(src, dir)
+	case "tar":
+		err = tar.Unarchive(src, dir)
 	default:
 		return nil, errors.New("Invalid Archive")
 	}
@@ -65,21 +64,30 @@ func (g *golang) Build(src io.Reader, opts ...builder.Option) (io.Reader, error)
 		return nil, err
 	}
 
-	// determine the entrypoint if one wasn't provided
-	if len(options.Entrypoint) == 0 {
-		ep, err := local.Entrypoint(dir)
-		if err != nil {
-			return nil, err
-		}
-		options.Entrypoint = ep
+	// build the binary
+	cmd := exec.Command(g.cmdPath, "build", "-o", "micro_build", ".")
+	cmd.Dir = filepath.Join(dir, options.Entrypoint)
+	cmd.Env = append(os.Environ(),
+		"GO111MODULE=auto",
+		"CGO_ENABLED=0",
+		"GOOS=linux",
+		"GOARCH=amd64",
+	)
+
+	files, err := ioutil.ReadDir(cmd.Dir)
+	if err != nil {
+		fmt.Println("Err listing files in", cmd.Dir, err)
+	}
+	for _, f := range files {
+		fmt.Println(f.Name())
 	}
 
-	// build the binary
-	cmd := exec.Command(g.cmdPath, "build", "-o", "micro_build", filepath.Dir(options.Entrypoint))
-	cmd.Env = append(os.Environ(), "GO111MODULE=auto")
-	cmd.Dir = dir
+	var stdout, errout bytes.Buffer
+	cmd.Stderr = &errout
+	cmd.Stdout = &stdout
 	if err := cmd.Run(); err != nil {
-		return nil, err
+		fmt.Println(errout.String(), stdout.String())
+		return nil, fmt.Errorf("Error building service: %v", errout.String())
 	}
 
 	// read the bytes from the file
@@ -87,6 +95,7 @@ func (g *golang) Build(src io.Reader, opts ...builder.Option) (io.Reader, error)
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println("BUILD FINISHED OKAY", len(dst))
 
 	return bytes.NewBuffer(dst), nil
 }
@@ -103,30 +112,6 @@ func writeFile(src io.Reader, dir string) error {
 	// os.ModeTemp. This is okay because we delete all the files in the tmp dir at the end of this
 	// function.
 	return ioutil.WriteFile(filepath.Join(dir, "main.go"), bytes, os.ModePerm)
-}
-
-// unarchiveTar decodes the source in a tar and writes it to a directory
-func unarchiveTar(src io.Reader, dir string) error {
-	tr := tar.NewReader(src)
-	for {
-		hdr, err := tr.Next()
-		if err == io.EOF {
-			break
-		} else if err != nil {
-			return err
-		}
-
-		path := filepath.Join(dir, hdr.Name)
-		bytes, err := ioutil.ReadAll(tr)
-		if err != nil {
-			return err
-		}
-
-		if err := ioutil.WriteFile(path, bytes, os.ModePerm); err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 // unarchiveZip decodes the source in a zip and writes it to a directory
