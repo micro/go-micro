@@ -6,12 +6,15 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"regexp"
 
 	"github.com/micro/go-micro/v3/store"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"github.com/pkg/errors"
 )
+
+var keyRegex = regexp.MustCompile("[^a-zA-Z0-9]+")
 
 // NewBlobStore returns an initialized s3 blob store
 func NewBlobStore(opts ...Option) (store.BlobStore, error) {
@@ -44,6 +47,9 @@ func (s *s3) Read(key string, opts ...store.BlobOption) (io.Reader, error) {
 	if len(key) == 0 {
 		return nil, store.ErrMissingKey
 	}
+
+	// make the key safe for use with s3
+	key = keyRegex.ReplaceAllString(key, "-")
 
 	// parse the options
 	var options store.BlobOptions
@@ -87,6 +93,9 @@ func (s *s3) Write(key string, blob io.Reader, opts ...store.BlobOption) error {
 		return store.ErrMissingKey
 	}
 
+	// make the key safe for use with s3
+	key = keyRegex.ReplaceAllString(key, "-")
+
 	// parse the options
 	var options store.BlobOptions
 	for _, o := range opts {
@@ -129,6 +138,9 @@ func (s *s3) Delete(key string, opts ...store.BlobOption) error {
 	if len(key) == 0 {
 		return store.ErrMissingKey
 	}
+
+	// make the key safe for use with s3
+	key = keyRegex.ReplaceAllString(key, "-")
 
 	// parse the options
 	var options store.BlobOptions
