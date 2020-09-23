@@ -99,6 +99,8 @@ type CreateOptions struct {
 	Args []string
 	// Environment to configure
 	Env []string
+	// Entrypoint within the folder (e.g. in the case of a mono-repo)
+	Entrypoint string
 	// Log output
 	Output io.Writer
 	// Type of service to create
@@ -156,6 +158,13 @@ func CreateNamespace(ns string) CreateOption {
 func CreateContext(ctx context.Context) CreateOption {
 	return func(o *CreateOptions) {
 		o.Context = ctx
+	}
+}
+
+// CreateEntrypoint sets the entrypoint
+func CreateEntrypoint(e string) CreateOption {
+	return func(o *CreateOptions) {
+		o.Entrypoint = e
 	}
 }
 
@@ -252,6 +261,8 @@ func ReadContext(ctx context.Context) ReadOption {
 type UpdateOption func(o *UpdateOptions)
 
 type UpdateOptions struct {
+	// Entrypoint within the folder (e.g. in the case of a mono-repo)
+	Entrypoint string
 	// Namespace the service is running in
 	Namespace string
 	// Specify the context to use
@@ -282,6 +293,13 @@ func UpdateNamespace(ns string) UpdateOption {
 func UpdateContext(ctx context.Context) UpdateOption {
 	return func(o *UpdateOptions) {
 		o.Context = ctx
+	}
+}
+
+// UpdateEntrypoint sets the entrypoint
+func UpdateEntrypoint(e string) UpdateOption {
+	return func(o *UpdateOptions) {
+		o.Entrypoint = e
 	}
 }
 
