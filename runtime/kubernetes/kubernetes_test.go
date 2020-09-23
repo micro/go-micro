@@ -11,6 +11,9 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+
+	"github.com/micro/go-micro/v3/runtime"
+	"github.com/stretchr/testify/assert"
 )
 
 func setupClient(t *testing.T) {
@@ -47,19 +50,45 @@ func setupClient(t *testing.T) {
 
 func TestNamespaceCreateDelete(t *testing.T) {
 	defer func() {
+		exec.Command("kubectl", "-n", "foobar", "delete", "networkpolicy", "baz").Run()
 		exec.Command("kubectl", "delete", "namespace", "foobar").Run()
 	}()
 	setupClient(t)
 	r := NewRuntime()
-	if err := r.CreateNamespace("foobar"); err != nil {
-		t.Fatalf("Unexpected error creating namespace %s", err)
+
+	// Create a namespace
+	testNamespace, err := runtime.NewNamespace("foobar")
+	assert.NoError(t, err)
+	if err := r.Create(testNamespace); err != nil {
+		t.Fatalf("Unexpected error creating namespace: %v", err)
 	}
 
+	// Check that the namespace exists
 	if !namespaceExists(t, "foobar") {
 		t.Fatalf("Namespace foobar not found")
 	}
-	if err := r.DeleteNamespace("foobar"); err != nil {
-		t.Fatalf("Unexpected error deleting namespace %s", err)
+
+	// Create a networkpolicy:
+	testNetworkPolicy, err := runtime.NewNetworkPolicy("baz", "foobar", nil)
+	assert.NoError(t, err)
+	if err := r.Create(testNetworkPolicy); err != nil {
+		t.Fatalf("Unexpected error creating networkpolicy: %v", err)
+	}
+
+	// Check that the networkpolicy exists:
+	if !networkPolicyExists(t, "foobar", "baz") {
+		t.Fatalf("NetworkPolicy foobar.baz not found")
+	}
+
+	// Tidy up
+	if err := r.Delete(testNetworkPolicy); err != nil {
+		t.Fatalf("Unexpected error deleting networkpolicy: %v", err)
+	}
+	if networkPolicyExists(t, "foobar", "baz") {
+		t.Fatalf("NetworkPolicy foobar.baz still exists")
+	}
+	if err := r.Delete(testNamespace); err != nil {
+		t.Fatalf("Unexpected error deleting namespace: %v", err)
 	}
 	if namespaceExists(t, "foobar") {
 		t.Fatalf("Namespace foobar still exists")
@@ -77,5 +106,17 @@ func namespaceExists(t *testing.T, ns string) bool {
 		t.Fatalf("Error listing namespaces %s", err)
 	}
 	return exists
+}
 
+func networkPolicyExists(t *testing.T, ns, np string) bool {
+	cmd := exec.Command("kubectl", "-n", ns, "get", "networkpolicy")
+	outp, err := cmd.Output()
+	if err != nil {
+		t.Fatalf("Unexpected error listing networkpolicies %s", err)
+	}
+	exists, err := regexp.Match(np, outp)
+	if err != nil {
+		t.Fatalf("Error listing networkpolicies %s", err)
+	}
+	return exists
 }

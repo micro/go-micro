@@ -1,11 +1,13 @@
 package client
 
 var templates = map[string]string{
-	"deployment":     deploymentTmpl,
-	"service":        serviceTmpl,
-	"namespace":      namespaceTmpl,
-	"secret":         secretTmpl,
-	"serviceaccount": serviceAccountTmpl,
+	"deployment":      deploymentTmpl,
+	"service":         serviceTmpl,
+	"namespace":       namespaceTmpl,
+	"secret":          secretTmpl,
+	"serviceaccount":  serviceAccountTmpl,
+	"networkpolicies": networkPolicyTmpl,
+	"networkpolicy":   networkPolicyTmpl,
 }
 
 var deploymentTmpl = `
@@ -238,4 +240,32 @@ imagePullSecrets:
 - name: "{{ .Name }}"
 {{- end }}
 {{- end }}
+`
+
+var networkPolicyTmpl = `
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: "{{ .Metadata.Name }}"
+  namespace: "{{ .Metadata.Namespace }}"
+  labels:
+    {{- with .Metadata.Labels }}
+    {{- range $key, $value := . }}
+    {{ $key }}: "{{ $value }}"
+    {{- end }}
+    {{- end }}
+spec:
+  podSelector:
+    matchLabels:
+  ingress:
+  - from: # Allow pods in this namespace to talk to each other
+    - podSelector: {}
+  - from: # Allow pods in the namespaces bearing the specified labels to talk to pods in this namespace:
+    - namespaceSelector:
+        matchLabels:
+          {{- with .AllowedLabels }}
+          {{- range $key, $value := . }}
+          {{ $key }}: "{{ $value }}"
+          {{- end }}
+          {{- end }}
 `

@@ -168,6 +168,9 @@ func (r *Request) request() (*http.Request, error) {
 	case "deployment":
 		// /apis/apps/v1/namespaces/{namespace}/deployments/{name}
 		url = fmt.Sprintf("%s/apis/apps/v1/namespaces/%s/%ss/", r.host, r.namespace, r.resource)
+	case "networkpolicy", "networkpolicies":
+		// /apis/networking.k8s.io/v1/namespaces/{namespace}/networkpolicies
+		url = fmt.Sprintf("%s/apis/networking.k8s.io/v1/namespaces/%s/networkpolicies/", r.host, r.namespace)
 	default:
 		// /api/v1/namespaces/{namespace}/{resource}
 		url = fmt.Sprintf("%s/api/v1/namespaces/%s/%ss/", r.host, r.namespace, r.resource)

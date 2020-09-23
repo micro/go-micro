@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/micro/go-micro/v3/logger"
+	"github.com/micro/go-micro/v3/runtime"
 	"github.com/micro/go-micro/v3/util/kubernetes/client"
 )
 
@@ -24,7 +25,7 @@ func (k *kubernetes) ensureNamepaceExists(ns string) error {
 		return err
 	}
 
-	if err := k.createNamespace(namespace); err != nil {
+	if err := k.autoCreateNamespace(namespace); err != nil {
 		if logger.V(logger.WarnLevel, logger.DefaultLogger) {
 			logger.Warnf("Error creating namespace %v: %v", namespace, err)
 		}
@@ -65,7 +66,7 @@ func (k *kubernetes) namespaceExists(name string) (bool, error) {
 }
 
 // createNamespace creates a new k8s namespace
-func (k *kubernetes) createNamespace(namespace string) error {
+func (k *kubernetes) autoCreateNamespace(namespace string) error {
 	ns := client.Namespace{Metadata: &client.Metadata{Name: namespace}}
 	err := k.client.Create(&client.Resource{Kind: "namespace", Value: ns})
 
@@ -83,30 +84,36 @@ func (k *kubernetes) createNamespace(namespace string) error {
 	return err
 }
 
-func (k *kubernetes) CreateNamespace(ns string) error {
+// createNamespace creates a namespace resource
+func (k *kubernetes) createNamespace(namespace *runtime.Namespace) error {
 	err := k.client.Create(&client.Resource{
 		Kind: "namespace",
 		Value: client.Namespace{
 			Metadata: &client.Metadata{
-				Name: ns,
+				Name: namespace.Name,
 			},
 		},
 	})
 	if err != nil {
 		if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
-			logger.Errorf("Error creating namespace %v: %v", ns, err)
+			logger.Errorf("Error creating namespace %s: %v", namespace.ID(), err)
 		}
 	}
 	return err
 }
 
-func (k *kubernetes) DeleteNamespace(ns string) error {
+// deleteNamespace deletes a namespace resource
+func (k *kubernetes) deleteNamespace(namespace *runtime.Namespace) error {
 	err := k.client.Delete(&client.Resource{
 		Kind: "namespace",
-		Name: ns,
+		Name: namespace.Name,
 	})
-	if err != nil && logger.V(logger.ErrorLevel, logger.DefaultLogger) {
-		logger.Errorf("Error deleting namespace %v: %v", ns, err)
+	if err != nil {
+		if err != nil {
+			if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
+				logger.Errorf("Error deleting namespace %s: %v", namespace.ID(), err)
+			}
+		}
 	}
 	return err
 }
