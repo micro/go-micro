@@ -12,6 +12,7 @@ import (
 	log "github.com/micro/go-micro/v3/logger"
 	"github.com/micro/go-micro/v3/runtime"
 	"github.com/micro/go-micro/v3/runtime/builder"
+	"github.com/micro/go-micro/v3/store"
 	"github.com/micro/go-micro/v3/store/file"
 	"github.com/micro/go-micro/v3/store/memory"
 	"github.com/micro/go-micro/v3/util/kubernetes/client"
@@ -430,8 +431,9 @@ func (k *kubernetes) Create(s *runtime.Service, opts ...runtime.CreateOption) er
 	}
 
 	// write the binary to the blob store
-	key := fmt.Sprintf("build://%v/%v/%v", options.Namespace, s.Name, s.Version)
-	if err := k.options.BlobStore.Write(key, build); err != nil {
+	key := fmt.Sprintf("build://%v:%v", s.Name, s.Version)
+	nsOpt := store.BlobNamespace(options.Namespace)
+	if err := k.options.BlobStore.Write(key, build, nsOpt); err != nil {
 		return fmt.Errorf("Error writing build to store: %v", err)
 	}
 	s.Source = key
