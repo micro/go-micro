@@ -11,7 +11,11 @@ import (
 	"github.com/micro/go-micro/v3/logger"
 	log "github.com/micro/go-micro/v3/logger"
 	"github.com/micro/go-micro/v3/runtime"
+	"github.com/micro/go-micro/v3/runtime/builder"
+	"github.com/micro/go-micro/v3/store/file"
+	"github.com/micro/go-micro/v3/store/memory"
 	"github.com/micro/go-micro/v3/util/kubernetes/client"
+	"github.com/micro/go-micro/v3/util/tar"
 )
 
 // action to take on runtime service
@@ -410,15 +414,27 @@ func (k *kubernetes) Create(s *runtime.Service, opts ...runtime.CreateOption) er
 		o(&options)
 	}
 
-	// default type if it doesn't exist
-	if len(options.Type) == 0 {
-		options.Type = k.options.Type
+	// the source is a folder, archive it so we can pass it to the builder
+	archive, err := tar.Archive(s.Source)
+	if err != nil {
+		return fmt.Errorf("Error archiving source: %v", err)
 	}
 
-	// default the source if it doesn't exist
-	if len(s.Source) == 0 {
-		s.Source = k.options.Source
+	// build the source into a binary
+	build, err := k.options.Builder.Build(archive,
+		builder.Archive("tar"),
+		builder.Entrypoint(options.Entrypoint),
+	)
+	if err != nil {
+		return fmt.Errorf("Error building source: %v", err)
 	}
+
+	// write the binary to the blob store
+	key := fmt.Sprintf("build://%v/%v/%v", options.Namespace, s.Name, s.Version)
+	if err := k.options.BlobStore.Write(key, build); err != nil {
+		return fmt.Errorf("Error writing build to store: %v", err)
+	}
+	s.Source = key
 
 	// ensure the namespace exists
 	namespace := client.SerializeResourceName(options.Namespace)
@@ -653,6 +669,17 @@ func NewRuntime(opts ...runtime.Option) runtime.Runtime {
 	// apply requested options
 	for _, o := range opts {
 		o(&options)
+	}
+	if options.Store == nil {
+		options.Store = memory.NewStore()
+	}
+	if options.BlobStore == nil {
+		options.Store = file.NewStore()
+	}
+
+	// ensure a builder was configured
+	if options.Builder == nil {
+		logger.Fatalf("Kubernetes runtime wasn't configured with a builder")
 	}
 
 	// kubernetes client
