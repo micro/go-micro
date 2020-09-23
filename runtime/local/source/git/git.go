@@ -348,6 +348,10 @@ func (s *Source) RuntimeName() string {
 // Source to be passed to RPC call runtime.Create Update Delete
 // eg: `helloworld`, `github.com/crufter/myrepo/helloworld`, `/path/to/localrepo/localfolder`
 func (s *Source) RuntimeSource() string {
+	if s.Local && s.LocalRepoRoot != s.FullPath {
+		relpath, _ := filepath.Rel(s.LocalRepoRoot, s.FullPath)
+		return relpath
+	}
 	if s.Local {
 		return s.FullPath
 	}
