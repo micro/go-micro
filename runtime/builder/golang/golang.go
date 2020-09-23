@@ -68,6 +68,9 @@ func (g *golang) Build(src io.Reader, opts ...builder.Option) (io.Reader, error)
 	cmd := exec.Command(g.cmdPath, "build", "-o", "micro_build", ".")
 	cmd.Dir = filepath.Join(dir, options.Entrypoint)
 
+	// set the build arch to linux
+	cmd.Env = append(os.Environ(), "GOOS=linux", "GOARCH=amd64")
+
 	// stream the error output to a buffer so it can be returned to the user. this would contain build
 	// time errors such as compilation errors
 	var errout bytes.Buffer
