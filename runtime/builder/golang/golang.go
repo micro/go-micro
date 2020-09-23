@@ -67,35 +67,20 @@ func (g *golang) Build(src io.Reader, opts ...builder.Option) (io.Reader, error)
 	// build the binary
 	cmd := exec.Command(g.cmdPath, "build", "-o", "micro_build", ".")
 	cmd.Dir = filepath.Join(dir, options.Entrypoint)
-	cmd.Env = append(os.Environ(),
-		"GO111MODULE=auto",
-		"CGO_ENABLED=0",
-		"GOOS=linux",
-		"GOARCH=amd64",
-	)
 
-	files, err := ioutil.ReadDir(cmd.Dir)
-	if err != nil {
-		fmt.Println("Err listing files in", cmd.Dir, err)
-	}
-	for _, f := range files {
-		fmt.Println(f.Name())
-	}
-
-	var stdout, errout bytes.Buffer
+	// stream the error output to a buffer so it can be returned to the user. this would contain build
+	// time errors such as compilation errors
+	var errout bytes.Buffer
 	cmd.Stderr = &errout
-	cmd.Stdout = &stdout
 	if err := cmd.Run(); err != nil {
-		fmt.Println(errout.String(), stdout.String())
 		return nil, fmt.Errorf("Error building service: %v", errout.String())
 	}
 
-	// read the bytes from the file
-	dst, err := ioutil.ReadFile(filepath.Join(dir, "micro_build"))
+	// read the bytes from the built binary
+	dst, err := ioutil.ReadFile(filepath.Join(cmd.Dir, "micro_build"))
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("BUILD FINISHED OKAY", len(dst))
 
 	return bytes.NewBuffer(dst), nil
 }
