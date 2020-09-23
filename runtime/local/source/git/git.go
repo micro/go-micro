@@ -447,11 +447,10 @@ func CheckoutSource(folder string, source *Source, secrets map[string]string) er
 	if !strings.Contains(repo, "https://") {
 		repo = "https://" + repo
 	}
-	err := gitter.Checkout(source.Repo, source.Ref)
-	if err != nil {
+	if err := gitter.Checkout(repo, source.Ref); err != nil {
 		return err
 	}
-	source.FullPath = filepath.Join(gitter.RepoDir(), source.Folder)
+	source.FullPath = gitter.RepoDir()
 	return nil
 }
 
