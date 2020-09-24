@@ -8,6 +8,7 @@ import (
 
 var (
 	ErrAlreadyExists = errors.New("already exists")
+	ErrNotFound      = errors.New("not found")
 )
 
 // Runtime is a service runtime manager
