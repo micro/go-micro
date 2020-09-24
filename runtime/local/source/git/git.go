@@ -370,7 +370,13 @@ func ParseSource(source string) (*Source, error) {
 	refs := strings.Split(source, "@")
 	ret.Ref = refs[1]
 	parts := strings.Split(refs[0], "/")
-	ret.Repo = strings.Join(parts[0:3], "/")
+
+	max := 3
+	if len(parts) < 3 {
+		max = len(parts)
+	}
+	ret.Repo = strings.Join(parts[0:max], "/")
+
 	if len(parts) > 1 {
 		ret.Folder = strings.Join(parts[3:], "/")
 	}
