@@ -192,7 +192,6 @@ func (k *kubernetes) getService(labels map[string]string, opts ...client.GetOpti
 			}
 
 			// get the real status
-			log.Infof("Looking for a deeper state %+v", podList.Items)
 			for _, item := range podList.Items {
 				// check the name
 				if item.Metadata.Labels["name"] != name {
@@ -205,7 +204,6 @@ func (k *kubernetes) getService(labels map[string]string, opts ...client.GetOpti
 
 				status := transformStatus(item.Status.Phase)
 
-				log.Infof("Still Looking for a deeper state %+v", item)
 				// skip if we can't get the container
 				if len(item.Status.Containers) == 0 {
 					continue
@@ -214,9 +212,7 @@ func (k *kubernetes) getService(labels map[string]string, opts ...client.GetOpti
 				// now try get a deeper status
 				state := item.Status.Containers[0].State
 				// set start time
-				log.Infof("Setting started state %+v", state.Running)
 				if state.Running != nil {
-					log.Infof("Setting started states %s %+v", svc.Name, state.Running)
 					svc.Metadata["started"] = state.Running.Started
 				}
 
