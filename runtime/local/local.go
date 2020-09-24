@@ -18,7 +18,7 @@ import (
 )
 
 // defaultNamespace to use if not provided as an option
-const defaultNamespace = "default"
+const defaultNamespace = "micro"
 
 var (
 	// The directory for logs to be output
