@@ -6,6 +6,8 @@ type Options struct {
 	Archive string
 	// Entrypoint to use, e.g. foo/main.go
 	Entrypoint string
+	// Env vars to pass to the builder
+	Env []string
 }
 
 // Option configures one or more options
@@ -22,5 +24,12 @@ func Archive(a string) Option {
 func Entrypoint(e string) Option {
 	return func(o *Options) {
 		o.Entrypoint = e
+	}
+}
+
+// Env vars to pass to the builder
+func Env(vars ...string) Option {
+	return func(o *Options) {
+		o.Env = vars
 	}
 }

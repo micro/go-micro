@@ -102,6 +102,14 @@ func TestGolangBuilder(t *testing.T) {
 }
 
 func testBuilder(t *testing.T, buf io.Reader, opts ...builder.Option) error {
+	// pass the options to ensure the build can be run locally, it will build binaries for linux
+	// by default.
+	opts = append(opts, builder.Env(
+		"GO111MODULE=auto",
+		fmt.Sprintf("GOOS=%v", os.Getenv("GOOS")),
+		fmt.Sprintf("GOARCH=%v", os.Getenv("GOARCH")),
+	))
+
 	// setup the builder
 	builder, err := NewBuilder()
 	if err != nil {
@@ -140,7 +148,7 @@ func testBuilder(t *testing.T, buf io.Reader, opts ...builder.Option) error {
 		return fmt.Errorf("Output does not contain HelloWorld")
 	}
 	// when an archive is used we also check for the second file to be loaded
-	if len(opts) > 0 && !strings.Contains(string(outp), "Init") {
+	if len(opts) > 1 && !strings.Contains(string(outp), "Init") {
 		return fmt.Errorf("Output does not contain Init")
 	}
 
