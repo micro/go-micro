@@ -313,7 +313,7 @@ func (r *localRuntime) Create(s *runtime.Service, opts ...runtime.CreateOption) 
 		r.namespaces[options.Namespace] = make(map[string]*service)
 	}
 	if _, ok := r.namespaces[options.Namespace][serviceKey(s)]; ok {
-		return errors.New("service already running")
+		return runtime.ErrAlreadyExists
 	}
 
 	// create new service
