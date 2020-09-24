@@ -192,6 +192,7 @@ func (k *kubernetes) getService(labels map[string]string, opts ...client.GetOpti
 			}
 
 			// get the real status
+			log.Infof("Looking for a deeper state %+v", podList.Items)
 			for _, item := range podList.Items {
 				// check the name
 				if item.Metadata.Labels["name"] != name {
@@ -204,6 +205,7 @@ func (k *kubernetes) getService(labels map[string]string, opts ...client.GetOpti
 
 				status := transformStatus(item.Status.Phase)
 
+				log.Infof("Still Looking for a deeper state %+v", item)
 				// skip if we can't get the container
 				if len(item.Status.Containers) == 0 {
 					continue
@@ -211,9 +213,10 @@ func (k *kubernetes) getService(labels map[string]string, opts ...client.GetOpti
 
 				// now try get a deeper status
 				state := item.Status.Containers[0].State
-
 				// set start time
+				log.Infof("Setting started state %+v", state.Running)
 				if state.Running != nil {
+					log.Infof("Setting started states %s %+v", svc.Name, state.Running)
 					svc.Metadata["started"] = state.Running.Started
 				}
 
@@ -484,7 +487,7 @@ func (k *kubernetes) Read(opts ...runtime.ReadOption) ([]*runtime.Service, error
 
 	// add version to labels if a version has been supplied
 	if len(options.Version) > 0 {
-		labels["version"] = options.Version
+		labels["version"] = client.Format(options.Version)
 	}
 
 	if len(options.Type) > 0 {
@@ -521,7 +524,7 @@ func (k *kubernetes) Update(s *runtime.Service, opts ...runtime.UpdateOption) er
 	}
 
 	if len(s.Version) > 0 {
-		labels["version"] = s.Version
+		labels["version"] = client.Format(s.Version)
 	}
 
 	// get the existing service
