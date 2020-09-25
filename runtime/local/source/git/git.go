@@ -71,7 +71,7 @@ func (g *binaryGitter) checkoutAnyRemote(repo, branchOrCommit string, useCredent
 	}
 
 	// Assumes remote address format is git@gitlab.com:micro-test/monorepo-test.git
-	remoteAddr := fmt.Sprintf("https://%v", repo)
+	remoteAddr := fmt.Sprintf("https://%v", strings.TrimPrefix(repo, "https://"))
 	if useCredentials {
 		remoteAddr = fmt.Sprintf("https://%v@%v", g.secrets[credentialsKey], repo)
 	}
