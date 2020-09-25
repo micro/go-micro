@@ -5,18 +5,12 @@ import (
 	"io"
 
 	"github.com/micro/go-micro/v3/client"
-	"github.com/micro/go-micro/v3/runtime/builder"
-	"github.com/micro/go-micro/v3/store"
 )
 
 type Option func(o *Options)
 
 // Options configure runtime
 type Options struct {
-	// BlobStore to persist builds
-	BlobStore store.BlobStore
-	// Builder to use for precompiling source
-	Builder builder.Builder
 	// Client to use when making requests
 	Client client.Client
 	// Base image to use
@@ -25,31 +19,8 @@ type Options struct {
 	Scheduler Scheduler
 	// Source of the services repository
 	Source string
-	// Store to persist data
-	Store store.Store
 	// Service type to manage
 	Type string
-}
-
-// WithBlobStore sets the runtimes blob store
-func WithBlobStore(s store.BlobStore) Option {
-	return func(o *Options) {
-		o.BlobStore = s
-	}
-}
-
-// WithBuilder sets the runtimes builder
-func WithBuilder(b builder.Builder) Option {
-	return func(o *Options) {
-		o.Builder = b
-	}
-}
-
-// WithStore sets the runtimes store
-func WithStore(s store.Store) Option {
-	return func(o *Options) {
-		o.Store = s
-	}
 }
 
 // WithSource sets the base image / repository
