@@ -7,7 +7,7 @@ import (
 
 // NewConfig returns new config
 func NewConfig(store store.Store, key string) (config.Config, error) {
-	return newConfig(store)
+	return newConfig(store, key)
 }
 
 type conf struct {
@@ -15,9 +15,10 @@ type conf struct {
 	store store.Store
 }
 
-func newConfig(store store.Store) (*conf, error) {
+func newConfig(store store.Store, key string) (*conf, error) {
 	return &conf{
 		store: store,
+		key:   key,
 	}, nil
 }
 
