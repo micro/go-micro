@@ -59,10 +59,15 @@ func (b *blobStore) Read(key string, opts ...store.BlobOption) (io.Reader, error
 		}
 
 		// look for the blob within the bucket
-		value = bucket.Get([]byte(key))
-		if value == nil {
+		res := bucket.Get([]byte(key))
+		if res == nil {
 			return store.ErrNotFound
 		}
+
+		// the res object is only valid for the duration of the blot transaction, see:
+		// https://github.com/golang/go/issues/33047
+		value = make([]byte, len(res))
+		copy(value, res)
 
 		return nil
 	}
