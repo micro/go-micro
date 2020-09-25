@@ -440,6 +440,9 @@ func (r *localRuntime) Update(s *runtime.Service, opts ...runtime.UpdateOption) 
 	if len(options.Namespace) == 0 {
 		options.Namespace = defaultNamespace
 	}
+	if len(options.Entrypoint) > 0 {
+		s.Source = filepath.Join(s.Source, options.Entrypoint)
+	}
 
 	r.Lock()
 	srvs, ok := r.namespaces[options.Namespace]
