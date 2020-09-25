@@ -216,7 +216,6 @@ func (k *kubernetes) getService(labels map[string]string, opts ...client.GetOpti
 
 				// now try get a deeper status
 				state := item.Status.Containers[0].State
-
 				// set start time
 				if state.Running != nil {
 					svc.Metadata["started"] = state.Running.Started
@@ -502,7 +501,7 @@ func (k *kubernetes) Read(opts ...runtime.ReadOption) ([]*runtime.Service, error
 
 	// add version to labels if a version has been supplied
 	if len(options.Version) > 0 {
-		labels["version"] = options.Version
+		labels["version"] = client.Format(options.Version)
 	}
 
 	if len(options.Type) > 0 {
@@ -539,7 +538,7 @@ func (k *kubernetes) Update(s *runtime.Service, opts ...runtime.UpdateOption) er
 	}
 
 	if len(s.Version) > 0 {
-		labels["version"] = s.Version
+		labels["version"] = client.Format(s.Version)
 	}
 
 	// get the existing service
