@@ -264,9 +264,13 @@ func (g *binaryGitter) RepoDir() string {
 	return g.folder
 }
 
-func NewGitter(folder string, secrets map[string]string) Gitter {
-	return &binaryGitter{folder, secrets}
+func NewGitter(secrets map[string]string) Gitter {
+	tmpdir, _ := ioutil.TempDir(os.TempDir(), "git-src-*")
 
+	return &binaryGitter{
+		folder:  tmpdir,
+		secrets: secrets,
+	}
 }
 
 func commandExists(cmd string) bool {
@@ -440,24 +444,19 @@ func IsLocal(workDir, source string, pathExistsFunc ...func(path string) (bool, 
 	return false, ""
 }
 
-// CheckoutSource for the local runtime server
-// folder is the folder to check out the source code to
-// Modifies source path to set it to checked out repo absolute path locally.
-func CheckoutSource(folder string, source *Source, secrets map[string]string) error {
-	// if it's a local folder, do nothing
-	if exists, err := pathExists(source.FullPath); err == nil && exists {
-		return nil
-	}
-	gitter := NewGitter(folder, secrets)
+// CheckoutSource checks out a git repo (source) into a local temp directory. It will reutrn the
+// source of the local repo an an error if one occured. Secrets can optionally be passed if the repo
+// is private.
+func CheckoutSource(source *Source, secrets map[string]string) (string, error) {
+	gitter := NewGitter(secrets)
 	repo := source.Repo
 	if !strings.Contains(repo, "https://") {
 		repo = "https://" + repo
 	}
 	if err := gitter.Checkout(repo, source.Ref); err != nil {
-		return err
+		return "", err
 	}
-	source.FullPath = gitter.RepoDir()
-	return nil
+	return gitter.RepoDir(), nil
 }
 
 // code below is not used yet
