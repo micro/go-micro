@@ -11,6 +11,7 @@ import (
 	"github.com/micro/go-micro/v3/logger"
 	log "github.com/micro/go-micro/v3/logger"
 	"github.com/micro/go-micro/v3/runtime"
+	"github.com/micro/go-micro/v3/util/kubernetes/api"
 	"github.com/micro/go-micro/v3/util/kubernetes/client"
 )
 
@@ -577,7 +578,13 @@ func (k *kubernetes) Delete(s *runtime.Service, opts ...runtime.DeleteOption) er
 	ns := client.DeleteNamespace(options.Namespace)
 	k.client.Delete(&client.Resource{Name: credentialsName(s), Kind: "secret"}, ns)
 
-	return service.Stop(k.client, ns)
+	if err := service.Stop(k.client, ns); err == api.ErrNotFound {
+		return runtime.ErrNotFound
+	} else if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // Start starts the runtime
