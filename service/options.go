@@ -9,8 +9,6 @@ import (
 	"github.com/micro/go-micro/v3/client"
 	mucpClient "github.com/micro/go-micro/v3/client/mucp"
 	"github.com/micro/go-micro/v3/model"
-	"github.com/micro/go-micro/v3/network/transport"
-	thttp "github.com/micro/go-micro/v3/network/transport/http"
 	"github.com/micro/go-micro/v3/registry"
 	"github.com/micro/go-micro/v3/registry/mdns"
 	"github.com/micro/go-micro/v3/server"
@@ -18,12 +16,11 @@ import (
 )
 
 type Options struct {
-	Broker    broker.Broker
-	Client    client.Client
-	Server    server.Server
-	Model     model.Model
-	Registry  registry.Registry
-	Transport transport.Transport
+	Broker   broker.Broker
+	Client   client.Client
+	Server   server.Server
+	Model    model.Model
+	Registry registry.Registry
 
 	// Before and After funcs
 	BeforeStart []func() error
@@ -40,12 +37,11 @@ type Option func(*Options)
 
 func NewOptions(opts ...Option) Options {
 	opt := Options{
-		Broker:    http.NewBroker(),
-		Client:    mucpClient.NewClient(),
-		Server:    mucpServer.NewServer(),
-		Registry:  mdns.NewRegistry(),
-		Transport: thttp.NewTransport(),
-		Context:   context.Background(),
+		Broker:   http.NewBroker(),
+		Client:   mucpClient.NewClient(),
+		Server:   mucpServer.NewServer(),
+		Registry: mdns.NewRegistry(),
+		Context:  context.Background(),
 	}
 
 	for _, o := range opts {
@@ -104,17 +100,6 @@ func Registry(r registry.Registry) Option {
 		o.Broker.Init(broker.Registry(r))
 		// Update router
 		o.Client.Init(client.Registry(r))
-	}
-}
-
-// Transport sets the transport for the service
-// and the underlying components
-func Transport(t transport.Transport) Option {
-	return func(o *Options) {
-		o.Transport = t
-		// Update Client and Server
-		o.Client.Init(client.Transport(t))
-		o.Server.Init(server.Transport(t))
 	}
 }
 
