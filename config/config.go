@@ -27,16 +27,4 @@ type Value interface {
 }
 
 type Options struct {
-	// Is the value being read a secret?
-	// If true, the Config will try to decode it with `SecretKey`
-	Secret bool
-}
-
-// Option sets values in Options
-type Option func(o *Options)
-
-func Secret(isSecret bool) Option {
-	return func(o *Options) {
-		o.Secret = isSecret
-	}
 }
