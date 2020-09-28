@@ -28,3 +28,9 @@ type Value interface {
 
 type Options struct {
 }
+
+type Option func(o *Options)
+
+type Secrets interface {
+	Config
+}
