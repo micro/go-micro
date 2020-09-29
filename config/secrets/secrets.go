@@ -3,7 +3,6 @@ package secrets
 import (
 	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"fmt"
 
 	"github.com/micro/go-micro/v3/config"
@@ -111,11 +110,11 @@ func (c *secretConf) fromEncrypted(elem interface{}) (interface{}, error) {
 	}
 	dec, err := base64.StdEncoding.DecodeString(s)
 	if err != nil {
-		return nil, errors.New("Badly encoded secret")
+		return elem, nil
 	}
 	decrypted, err := decrypt(string(dec), []byte(c.encryptionKey))
 	if err != nil {
-		return nil, fmt.Errorf("Failed to decrypt: %v", err)
+		return elem, nil
 	}
 	var ret interface{}
 	return ret, json.Unmarshal([]byte(decrypted), &ret)
