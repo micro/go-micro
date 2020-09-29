@@ -10,7 +10,7 @@ import (
 )
 
 // NewSecrets returns a config that encrypts values at rest
-func NewSecrets(config config.Config, encryptionKey string) (config.Config, error) {
+func NewSecrets(config config.Config, encryptionKey string) (config.Secrets, error) {
 	return newSecrets(config, encryptionKey)
 }
 
