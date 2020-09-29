@@ -1,4 +1,4 @@
-package store
+package secrets
 
 import (
 	"encoding/base64"
@@ -7,44 +7,33 @@ import (
 	"fmt"
 
 	"github.com/micro/go-micro/v3/config"
-	"github.com/micro/go-micro/v3/store"
 )
 
 // NewSecrets returns a config that encrypts values at rest
-func NewSecrets(store store.Store, key, encryptionKey string) (config.Config, error) {
-	return newSecrets(store, key, encryptionKey)
+func NewSecrets(config config.Config, encryptionKey string) (config.Config, error) {
+	return newSecrets(config, encryptionKey)
 }
 
 type secretConf struct {
-	store         store.Store
 	config        config.Config
 	encryptionKey string
-	key           string
 }
 
-func newSecrets(store store.Store, key, encryptionKey string) (*secretConf, error) {
-	c, err := NewConfig(store, key)
-	if err != nil {
-		return nil, err
-	}
+func newSecrets(config config.Config, encryptionKey string) (*secretConf, error) {
 	return &secretConf{
-		store:         store,
-		config:        c,
-		key:           key,
+		config:        config,
 		encryptionKey: encryptionKey,
 	}, nil
 }
 
 func (c *secretConf) Get(path string, options ...config.Option) (config.Value, error) {
-	rec, err := c.store.Read(c.key)
-	dat := []byte("{}")
+	val, err := c.config.Get(path, options...)
 	empty := config.NewJSONValue([]byte("null"))
-
-	if err == nil && len(rec) > 0 {
-		dat = rec[0].Value
+	if err != nil {
+		return empty, err
 	}
 	var v interface{}
-	err = json.Unmarshal(dat, &v)
+	err = json.Unmarshal(val.Bytes(), &v)
 	if err != nil {
 		return empty, err
 	}
@@ -52,12 +41,11 @@ func (c *secretConf) Get(path string, options ...config.Option) (config.Value, e
 	if err != nil {
 		return empty, err
 	}
-	dat, err = json.Marshal(v)
+	dat, err := json.Marshal(v)
 	if err != nil {
 		return empty, err
 	}
-	values := config.NewJSONValues(dat)
-	return values.Get(path), nil
+	return config.NewJSONValue(dat), nil
 }
 
 func (c *secretConf) Set(path string, val interface{}, options ...config.Option) error {
@@ -115,7 +103,11 @@ func (c *secretConf) toEncrypted(elem interface{}) (interface{}, error) {
 func (c *secretConf) fromEncrypted(elem interface{}) (interface{}, error) {
 	s, ok := elem.(string)
 	if !ok {
-		return nil, fmt.Errorf("Encrypted values should be strings, but got: %v", elem)
+		// This bit decides if the Secrets implementation suppports nonencrypted values
+		// ie. we could do:
+		// return nil, fmt.Errorf("Encrypted values should be strings, but got: %v", elem)
+		// but let's go with not making nonencrypted values blow up the whole thing
+		return elem, nil
 	}
 	dec, err := base64.StdEncoding.DecodeString(s)
 	if err != nil {

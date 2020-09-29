@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/micro/go-micro/v3/config"
+	"github.com/micro/go-micro/v3/config/secrets"
 	"github.com/micro/go-micro/v3/store/memory"
 )
 
@@ -21,7 +22,12 @@ func TestBasics(t *testing.T) {
 		t.Fatal(err)
 	}
 	testBasics(conf, t)
-	secrets, err := NewSecrets(memory.NewStore(), "micro", "somethingRandomButLongEnough32by")
+	// We need to get a new config because existing config so
+	conf, err = NewConfig(memory.NewStore(), "micro1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	secrets, err := secrets.NewSecrets(conf, "somethingRandomButLongEnough32by")
 	if err != nil {
 		t.Fatal(err)
 	}
