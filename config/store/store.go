@@ -1,6 +1,9 @@
-package storeconfig
+package store
 
 import (
+	"encoding/json"
+	"strings"
+
 	"github.com/micro/go-micro/v3/config"
 	"github.com/micro/go-micro/v3/store"
 )
@@ -22,16 +25,6 @@ func newConfig(store store.Store, key string) (*conf, error) {
 	}, nil
 }
 
-func mergeOptions(old config.Options, nu ...config.Option) config.Options {
-	n := config.Options{
-		Secret: old.Secret,
-	}
-	for _, opt := range nu {
-		opt(&n)
-	}
-	return n
-}
-
 func (c *conf) Get(path string, options ...config.Option) (config.Value, error) {
 	rec, err := c.store.Read(c.key)
 	dat := []byte("{}")
@@ -49,11 +42,54 @@ func (c *conf) Set(path string, val interface{}, options ...config.Option) error
 		dat = rec[0].Value
 	}
 	values := config.NewJSONValues(dat)
-	values.Set(path, val)
+
+	// marshal to JSON and back so we can iterate on the
+	// value without reflection
+	// @todo only do this if a struct
+	JSON, err := json.Marshal(val)
+	if err != nil {
+		return err
+	}
+	var v interface{}
+	err = json.Unmarshal(JSON, &v)
+	if err != nil {
+		return err
+	}
+
+	m, ok := v.(map[string]interface{})
+	if ok {
+		err := traverse(m, []string{path}, func(p string, value interface{}) error {
+			values.Set(p, value)
+			return nil
+		})
+		if err != nil {
+			return err
+		}
+	} else {
+		values.Set(path, val)
+	}
 	return c.store.Write(&store.Record{
 		Key:   c.key,
 		Value: values.Bytes(),
 	})
+}
+
+func traverse(m map[string]interface{}, paths []string, callback func(path string, value interface{}) error) error {
+	for k, v := range m {
+		val, ok := v.(map[string]interface{})
+		if !ok {
+			err := callback(strings.Join(append(paths, k), "."), v)
+			if err != nil {
+				return err
+			}
+			continue
+		}
+		err := traverse(val, append(paths, k), callback)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (c *conf) Delete(path string, options ...config.Option) error {
