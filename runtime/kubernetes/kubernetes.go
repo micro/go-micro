@@ -219,7 +219,7 @@ func (k *kubernetes) getService(labels map[string]string, opts ...client.GetOpti
 
 				// set status from waiting
 				if v := state.Waiting; v != nil {
-					status = runtime.Pending
+					status = runtime.Starting
 				}
 
 				svc.Status(status, nil)
@@ -748,7 +748,7 @@ func (k *kubernetes) DeleteNamespace(ns string) error {
 func transformStatus(depStatus string) runtime.ServiceStatus {
 	switch strings.ToLower(depStatus) {
 	case "pending":
-		return runtime.Pending
+		return runtime.Starting
 	case "containercreating":
 		return runtime.Starting
 	case "imagepullbackoff":
@@ -766,7 +766,7 @@ func transformStatus(depStatus string) runtime.ServiceStatus {
 	case "failed":
 		return runtime.Error
 	case "waiting":
-		return runtime.Pending
+		return runtime.Starting
 	case "terminated":
 		return runtime.Stopped
 	default:
