@@ -27,9 +27,16 @@ type Value interface {
 }
 
 type Options struct {
+	Secret bool
 }
 
 type Option func(o *Options)
+
+func Secret(b bool) Option {
+	return func(o *Options) {
+		o.Secret = b
+	}
+}
 
 type Secrets interface {
 	Config
