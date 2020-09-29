@@ -96,7 +96,7 @@ func (k *kubernetes) createNamespace(namespace *runtime.Namespace) error {
 	})
 	if err != nil {
 		if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
-			logger.Errorf("Error creating namespace %s: %v", namespace.ID(), err)
+			logger.Errorf("Error creating namespace %s: %v", namespace.String(), err)
 		}
 	}
 	return err
@@ -109,10 +109,8 @@ func (k *kubernetes) deleteNamespace(namespace *runtime.Namespace) error {
 		Name: namespace.Name,
 	})
 	if err != nil {
-		if err != nil {
-			if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
-				logger.Errorf("Error deleting namespace %s: %v", namespace.ID(), err)
-			}
+		if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
+			logger.Errorf("Error deleting namespace %s: %v", namespace.String(), err)
 		}
 	}
 	return err

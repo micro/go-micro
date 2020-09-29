@@ -9,6 +9,7 @@ import (
 func TestResources(t *testing.T) {
 
 	// Namespace:
+	assert.Equal(t, TypeNamespace, new(Namespace).Type())
 	namespace, err := NewNamespace("")
 	assert.Error(t, err)
 	assert.Equal(t, ErrInvalidResource, err)
@@ -18,9 +19,10 @@ func TestResources(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, namespace)
 	assert.Equal(t, TypeNamespace, namespace.Type())
-	assert.Equal(t, "test-namespace", namespace.ID())
+	assert.Equal(t, "test-namespace", namespace.String())
 
 	// NetworkPolicy:
+	assert.Equal(t, TypeNetworkPolicy, new(NetworkPolicy).Type())
 	networkPolicy, err := NewNetworkPolicy("", "", nil)
 	assert.Error(t, err)
 	assert.Equal(t, ErrInvalidResource, err)
@@ -40,21 +42,24 @@ func TestResources(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, networkPolicy)
 	assert.Equal(t, TypeNetworkPolicy, networkPolicy.Type())
-	assert.Equal(t, "test.ingress", networkPolicy.ID())
+	assert.Equal(t, "test.ingress", networkPolicy.String())
 	assert.Len(t, networkPolicy.AllowedLabels, 1)
 
 	networkPolicy, err = NewNetworkPolicy("ingress", "test", map[string]string{"foo": "bar", "bar": "foo"})
 	assert.Len(t, networkPolicy.AllowedLabels, 2)
 
 	// Service:
-	service, err := NewService("")
+	assert.Equal(t, TypeService, new(Service).Type())
+	service, err := NewService("", "")
 	assert.Error(t, err)
 	assert.Equal(t, ErrInvalidResource, err)
 	assert.Nil(t, service)
 
-	service, err = NewService("test-service")
+	service, err = NewService("test-service", "oldest")
+	service.Metadata = map[string]string{"namespace": "testing"}
 	assert.NoError(t, err)
 	assert.NotNil(t, service)
 	assert.Equal(t, TypeService, service.Type())
-	assert.Equal(t, "test-service", service.ID())
+	assert.Equal(t, "service://testing@test-service:oldest", service.String())
+	assert.Equal(t, "oldest", service.Version)
 }

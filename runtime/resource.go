@@ -11,7 +11,7 @@ const (
 
 // Resource represents any resource handled by runtime
 type Resource interface {
-	ID() string
+	String() string
 	Type() string
 }
 
@@ -31,8 +31,8 @@ func NewNamespace(name string) (*Namespace, error) {
 	}, nil
 }
 
-// ID implements Resource
-func (r *Namespace) ID() string {
+// String implements Resource
+func (r *Namespace) String() string {
 	return r.Name
 }
 
@@ -68,8 +68,8 @@ func NewNetworkPolicy(name, namespace string, allowedLabels map[string]string) (
 	}, nil
 }
 
-// ID implements Resource
-func (r *NetworkPolicy) ID() string {
+// String implements Resource
+func (r *NetworkPolicy) String() string {
 	return fmt.Sprintf("%s.%s", r.Namespace, r.Name)
 }
 
@@ -93,18 +93,22 @@ type Service struct {
 }
 
 // NewService mints a new service
-func NewService(name string) (*Service, error) {
+func NewService(name, version string) (*Service, error) {
 	if name == "" {
 		return nil, ErrInvalidResource
 	}
+	if version == "" {
+		version = "latest"
+	}
 	return &Service{
-		Name: name,
+		Name:    name,
+		Version: version,
 	}, nil
 }
 
-// ID implements Resource
-func (r *Service) ID() string {
-	return r.Name
+// String implements Resource
+func (r *Service) String() string {
+	return fmt.Sprintf("service://%s@%s:%s", r.Metadata["namespace"], r.Name, r.Version)
 }
 
 // Type implements Resource

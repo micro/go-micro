@@ -20,7 +20,7 @@ func (k *kubernetes) createNetworkPolicy(networkPolicy *runtime.NetworkPolicy) e
 	}, client.CreateNamespace(networkPolicy.Namespace))
 	if err != nil {
 		if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
-			logger.Errorf("Error creating resource %s: %v", networkPolicy.ID(), err)
+			logger.Errorf("Error creating resource %s: %v", networkPolicy.String(), err)
 		}
 	}
 	return err
@@ -40,7 +40,7 @@ func (k *kubernetes) updateNetworkPolicy(networkPolicy *runtime.NetworkPolicy) e
 	}, client.UpdateNamespace(networkPolicy.Namespace))
 	if err != nil {
 		if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
-			logger.Errorf("Error updating resource %s: %v", networkPolicy.ID(), err)
+			logger.Errorf("Error updating resource %s: %v", networkPolicy.String(), err)
 		}
 	}
 	return err
@@ -60,7 +60,7 @@ func (k *kubernetes) deleteNetworkPolicy(networkPolicy *runtime.NetworkPolicy) e
 	}, client.DeleteNamespace(networkPolicy.Namespace))
 	if err != nil {
 		if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
-			logger.Errorf("Error deleting resource %s: %v", networkPolicy.ID(), err)
+			logger.Errorf("Error deleting resource %s: %v", networkPolicy.String(), err)
 		}
 	}
 	return err
