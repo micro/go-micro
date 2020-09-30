@@ -297,6 +297,9 @@ func (p *Proxy) watchRoutes() {
 	if err != nil {
 		logger.Debugf("Error watching router: %v", err)
 		return
+	} else if w == nil {
+		logger.Debugf("Error watching routes, no watcher returned")
+		return
 	}
 	defer w.Stop()
 
