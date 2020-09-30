@@ -125,7 +125,7 @@ func newService(s *runtime.Service, c runtime.CreateOptions) *service {
 	for name, path := range c.Volumes {
 		volumes = append(volumes, client.Volume{
 			Name:                  name,
-			PersistentVolumeClaim: &client.PersistentVolumeClaimVolumeSource{ClaimName: name},
+			PersistentVolumeClaim: client.PersistentVolumeClaimVolumeSource{ClaimName: name},
 		})
 
 		mounts = append(mounts, client.VolumeMount{Name: name, MountPath: path})
