@@ -63,8 +63,11 @@ func (s *static) Lookup(service string, opts ...router.LookupOption) ([]router.R
 	}, nil
 }
 
+// Watch will return a noop watcher
 func (s *static) Watch(opts ...router.WatchOption) (router.Watcher, error) {
-	return nil, nil
+	return &watcher{
+		events: make(chan *router.Event),
+	}, nil
 }
 
 func (s *static) Close() error {
@@ -73,4 +76,25 @@ func (s *static) Close() error {
 
 func (s *static) String() string {
 	return "static"
+}
+
+// watcher is a noop implementation
+type watcher struct {
+	events chan *router.Event
+}
+
+// Next is a blocking call that returns watch result
+func (w *watcher) Next() (*router.Event, error) {
+	e := <-w.events
+	return e, nil
+}
+
+// Chan returns event channel
+func (w *watcher) Chan() (<-chan *router.Event, error) {
+	return w.events, nil
+}
+
+// Stop stops watcher
+func (w *watcher) Stop() {
+	return
 }
