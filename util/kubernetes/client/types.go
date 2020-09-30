@@ -43,6 +43,7 @@ type Container struct {
 	Ports          []ContainerPort       `json:"ports,omitempty"`
 	ReadinessProbe *Probe                `json:"readinessProbe,omitempty"`
 	Resources      *ResourceRequirements `json:"resources,omitempty"`
+	VolumeMounts   []VolumeMount         `json:"volumeMounts,omitempty"`
 }
 
 // DeploymentSpec defines micro deployment spec
@@ -110,6 +111,7 @@ type Metadata struct {
 type PodSpec struct {
 	Containers         []Container `json:"containers"`
 	ServiceAccountName string      `json:"serviceAccountName"`
+	Volumes            []Volume    `json:"volumes"`
 }
 
 // PodList
@@ -247,4 +249,21 @@ type ResourceLimits struct {
 	Memory           string `json:"memory,omitempty"`
 	CPU              string `json:"cpu,omitempty"`
 	EphemeralStorage string `json:"ephemeral-storage,omitempty"`
+}
+
+// Volume describes a volume which can be mounted to a pod
+type Volume struct {
+	Name                  string                            `json:"name"`
+	PersistentVolumeClaim PersistentVolumeClaimVolumeSource `json:"persistentVolumeClaim,omitempty"`
+}
+
+// PersistentVolumeClaimVolumeSource represents a reference to a PersistentVolumeClaim in the same namespace
+type PersistentVolumeClaimVolumeSource struct {
+	ClaimName string `json:"claimName"`
+}
+
+// VolumeMount describes a mounting of a Volume within a container.
+type VolumeMount struct {
+	Name      string `json:"name"`
+	MountPath string `json:"mountPath"`
 }
