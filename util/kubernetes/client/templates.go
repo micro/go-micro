@@ -146,6 +146,8 @@ spec:
               mountPath: {{ .MountPath }}
           {{- end }}
           {{- end }}
+      {{- end }}
+      {{- end }} 
       volumes:
       {{- with .Spec.Template.PodSpec.Volumes }}
       {{- range . }}
