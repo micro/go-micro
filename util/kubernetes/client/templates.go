@@ -142,18 +142,18 @@ spec:
           volumeMounts:
           {{- with .VolumeMounts }}
           {{- range . }}
-          - name: {{ .Name }}
-            mountPath: {{ .MountPath }}
+            - name: {{ .Name }}
+              mountPath: {{ .MountPath }}
           {{- end }}
           {{- end }}
-    volumes:
-    {{- with .Spec.Template.PodSpec.Volumes }}
-    {{- range . }}
-    - name: {{ .Name }}
-      persistentVolumeClaim:
-        claimName: {{ .PersistentVolumeClaim.ClaimName }}
-    {{- end }}
-    {{- end }}
+      volumes:
+      {{- with .Spec.Template.PodSpec.Volumes }}
+      {{- range . }}
+        - name: {{ .Name }}
+          persistentVolumeClaim:
+            claimName: {{ .PersistentVolumeClaim.ClaimName }}
+      {{- end }}
+      {{- end }}
 `
 
 var serviceTmpl = `
