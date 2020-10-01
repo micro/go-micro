@@ -30,6 +30,16 @@ func NewBlobStore(opts ...Option) (store.BlobStore, error) {
 		minioOpts.Creds = credentials.NewStaticV4(options.AccessKeyID, options.SecretAccessKey, "")
 	}
 
+	// configure the transport to use custom tls config if provided
+	if options.TLSConfig != nil {
+		ts, err := minio.DefaultTransport(options.Secure)
+		if err != nil {
+			return nil, errors.Wrap(err, "Error setting up s3 blob store transport")
+		}
+		ts.TLSClientConfig = options.TLSConfig
+		minioOpts.Transport = ts
+	}
+
 	// initialize minio client
 	client, err := minio.New(options.Endpoint, minioOpts)
 	if err != nil {
