@@ -23,12 +23,15 @@ func NewBlobStore(opts ...Option) (store.BlobStore, error) {
 	for _, o := range opts {
 		o(&options)
 	}
+	minioOpts := &minio.Options{
+		Secure: options.Secure,
+	}
+	if len(options.AccessKeyID) > 0 || len(options.SecretAccessKey) > 0 {
+		minioOpts.Creds = credentials.NewStaticV4(options.AccessKeyID, options.SecretAccessKey, "")
+	}
 
 	// initialize minio client
-	client, err := minio.New(options.Endpoint, &minio.Options{
-		Creds:  credentials.NewStaticV4(options.AccessKeyID, options.SecretAccessKey, ""),
-		Secure: options.Secure,
-	})
+	client, err := minio.New(options.Endpoint, minioOpts)
 	if err != nil {
 		return nil, errors.Wrap(err, "Error connecting to s3 blob store")
 	}
