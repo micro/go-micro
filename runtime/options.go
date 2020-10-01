@@ -11,8 +11,6 @@ type Option func(o *Options)
 
 // Options configure runtime
 type Options struct {
-	// Scheduler for updates
-	Scheduler Scheduler
 	// Service type to manage
 	Type string
 	// Source of the services repository
@@ -27,13 +25,6 @@ type Options struct {
 func WithSource(src string) Option {
 	return func(o *Options) {
 		o.Source = src
-	}
-}
-
-// WithScheduler specifies a scheduler for updates
-func WithScheduler(n Scheduler) Option {
-	return func(o *Options) {
-		o.Scheduler = n
 	}
 }
 

@@ -588,21 +588,6 @@ func (r *localRuntime) Start() error {
 	// set running
 	r.running = true
 	r.closed = make(chan bool)
-
-	var events <-chan runtime.Event
-	if r.options.Scheduler != nil {
-		var err error
-		events, err = r.options.Scheduler.Notify()
-		if err != nil {
-			// TODO: should we bail here?
-			if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-				logger.Debugf("Runtime failed to start update notifier")
-			}
-		}
-	}
-
-	go r.run(events)
-
 	return nil
 }
 
@@ -632,11 +617,6 @@ func (r *localRuntime) Stop() error {
 				}
 				service.Stop()
 			}
-		}
-
-		// stop the scheduler
-		if r.options.Scheduler != nil {
-			return r.options.Scheduler.Close()
 		}
 	}
 

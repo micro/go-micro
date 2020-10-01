@@ -50,14 +50,6 @@ type Log struct {
 	Metadata map[string]string
 }
 
-// Scheduler is a runtime service scheduler
-type Scheduler interface {
-	// Notify publishes schedule events
-	Notify() (<-chan Event, error)
-	// Close stops the scheduler
-	Close() error
-}
-
 // EventType defines schedule event
 type EventType int
 
