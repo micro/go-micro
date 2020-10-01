@@ -224,9 +224,9 @@ func (c *client) Watch(r *Resource, opts ...WatchOption) (Watcher, error) {
 // NewService returns default micro kubernetes service definition
 func NewService(s *runtime.Service, opts *runtime.CreateOptions) *Resource {
 	labels := map[string]string{
-		"name":    s.Name,
-		"version": s.Version,
-		"micro":   opts.Type,
+		"name":    Format(s.Name),
+		"version": Format(s.Version),
+		"micro":   Format(opts.Type),
 	}
 
 	metadata := &Metadata{
@@ -255,9 +255,9 @@ func NewService(s *runtime.Service, opts *runtime.CreateOptions) *Resource {
 // NewDeployment returns default micro kubernetes deployment definition
 func NewDeployment(s *runtime.Service, opts *runtime.CreateOptions) *Resource {
 	labels := map[string]string{
-		"name":    s.Name,
-		"version": s.Version,
-		"micro":   opts.Type,
+		"name":    Format(s.Name),
+		"version": Format(s.Version),
+		"micro":   Format(opts.Type),
 	}
 
 	// attach our values to the deployment; name, version, source
