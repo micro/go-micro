@@ -272,6 +272,11 @@ func (k *kubernetes) Delete(s *runtime.Service, opts ...runtime.DeleteOption) er
 		Namespace: options.Namespace,
 	})
 	if err := k.client.Delete(dep, client.DeleteNamespace(options.Namespace)); err != nil {
+		fmt.Println(parseError(err))
+		if parseError(err).Code == 404 {
+			return runtime.ErrNotFound
+		}
+
 		if logger.V(logger.DebugLevel, logger.DefaultLogger) {
 			logger.Debugf("Runtime failed to delete deployment: %v", err)
 		}

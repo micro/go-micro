@@ -84,7 +84,7 @@ spec:
           - {{.}}
           {{- end }}
           image: {{ .Image }}
-          imagePullPolicy: Always
+          imagePullPolicy: IfNotPresent
           ports:
           {{- with .Ports }}
           {{- range . }}
