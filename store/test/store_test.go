@@ -260,6 +260,9 @@ func listTests(s store.Store, t *testing.T) {
 	}
 
 	recs, err = s.List(store.ListPrefix("ListOffset"), store.ListOffset(6))
+	if err != nil {
+		t.Fatalf("Error listing records %s", err)
+	}
 	if len(recs) != 4 {
 		t.Fatalf("Expected 4 records, received %d %+v", len(recs), recs)
 	}
