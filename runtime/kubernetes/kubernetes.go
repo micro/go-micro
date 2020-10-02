@@ -11,6 +11,7 @@ import (
 	"github.com/micro/go-micro/v3/logger"
 	log "github.com/micro/go-micro/v3/logger"
 	"github.com/micro/go-micro/v3/runtime"
+	"github.com/micro/go-micro/v3/util/kubernetes/api"
 	"github.com/micro/go-micro/v3/util/kubernetes/client"
 )
 
@@ -218,7 +219,7 @@ func (k *kubernetes) getService(labels map[string]string, opts ...client.GetOpti
 
 				// set status from waiting
 				if v := state.Waiting; v != nil {
-					status = runtime.Pending
+					status = runtime.Starting
 				}
 
 				svc.Status(status, nil)
@@ -577,7 +578,13 @@ func (k *kubernetes) Delete(s *runtime.Service, opts ...runtime.DeleteOption) er
 	ns := client.DeleteNamespace(options.Namespace)
 	k.client.Delete(&client.Resource{Name: credentialsName(s), Kind: "secret"}, ns)
 
-	return service.Stop(k.client, ns)
+	if err := service.Stop(k.client, ns); err == api.ErrNotFound {
+		return runtime.ErrNotFound
+	} else if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // Start starts the runtime
@@ -741,7 +748,7 @@ func (k *kubernetes) DeleteNamespace(ns string) error {
 func transformStatus(depStatus string) runtime.ServiceStatus {
 	switch strings.ToLower(depStatus) {
 	case "pending":
-		return runtime.Pending
+		return runtime.Starting
 	case "containercreating":
 		return runtime.Starting
 	case "imagepullbackoff":
@@ -759,7 +766,7 @@ func transformStatus(depStatus string) runtime.ServiceStatus {
 	case "failed":
 		return runtime.Error
 	case "waiting":
-		return runtime.Pending
+		return runtime.Starting
 	case "terminated":
 		return runtime.Stopped
 	default:
