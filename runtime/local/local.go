@@ -14,7 +14,6 @@ import (
 	"github.com/hpcloud/tail"
 	"github.com/micro/go-micro/v3/logger"
 	"github.com/micro/go-micro/v3/runtime"
-	"github.com/micro/go-micro/v3/runtime/local/source/git"
 )
 
 // defaultNamespace to use if not provided as an option
@@ -61,68 +60,6 @@ func NewRuntime(opts ...runtime.Option) runtime.Runtime {
 		start:      make(chan *service, 128),
 		namespaces: make(map[string]map[string]*service),
 	}
-}
-
-func (r *localRuntime) checkoutSourceIfNeeded(s *runtime.Service, secrets map[string]string) error {
-	// Runtime service like config have no source.
-	// Skip checkout in that case
-	if len(s.Source) == 0 {
-		return nil
-	}
-
-	// Incoming uploaded files have format lastfolder.tar.gz or
-	// lastfolder.tar.gz/relative/path
-	sourceParts := strings.Split(s.Source, "/")
-	compressedFilepath := filepath.Join(SourceDir, sourceParts[0])
-	uncompressPath := strings.ReplaceAll(compressedFilepath, ".tar.gz", "")
-	tarName := strings.ReplaceAll(sourceParts[0], ".tar.gz", "")
-	if len(sourceParts) > 1 {
-		uncompressPath = filepath.Join(SourceDir, tarName)
-	}
-
-	// check if the directory already exists
-	if ex, _ := exists(compressedFilepath); ex {
-		err := os.RemoveAll(uncompressPath)
-		if err != nil {
-			return err
-		}
-		err = os.MkdirAll(uncompressPath, 0777)
-		if err != nil {
-			return err
-		}
-		err = git.Uncompress(compressedFilepath, uncompressPath)
-		if err != nil {
-			return err
-		}
-		if len(sourceParts) > 1 {
-			lastFolderPart := tarName
-			fullp := append([]string{uncompressPath}, sourceParts[1:]...)
-			s.Source = filepath.Join(append(fullp, lastFolderPart)...)
-		} else {
-			// The tar name is 'helloworld' for both
-			// the case when the code is uploaded from `$REPO/helloworld`
-			// and when it's uploaded from outside a repo ie `~/helloworld`.
-			if _, err := Entrypoint(filepath.Join(uncompressPath, tarName)); err == nil {
-				s.Source = filepath.Join(uncompressPath, tarName)
-			} else {
-				s.Source = uncompressPath
-			}
-		}
-		return nil
-	}
-
-	source, err := git.ParseSourceLocal("", s.Source)
-	if err != nil {
-		return err
-	}
-	source.Ref = s.Version
-
-	err = git.CheckoutSource(os.TempDir(), source, secrets)
-	if err != nil {
-		return err
-	}
-	s.Source = source.FullPath
-	return nil
 }
 
 // Init initializes runtime options
@@ -284,15 +221,14 @@ func (r *localRuntime) Create(s *runtime.Service, opts ...runtime.CreateOption) 
 		o(&options)
 	}
 
-	err := r.checkoutSourceIfNeeded(s, options.Secrets)
-	if err != nil {
-		return err
-	}
 	r.Lock()
 	defer r.Unlock()
 
 	if len(options.Namespace) == 0 {
 		options.Namespace = defaultNamespace
+	}
+	if len(options.Entrypoint) > 0 {
+		s.Source = filepath.Join(s.Source, options.Entrypoint)
 	}
 	if len(options.Command) == 0 {
 		ep, err := Entrypoint(s.Source)
@@ -501,13 +437,11 @@ func (r *localRuntime) Update(s *runtime.Service, opts ...runtime.UpdateOption) 
 	for _, o := range opts {
 		o(&options)
 	}
-	err := r.checkoutSourceIfNeeded(s, options.Secrets)
-	if err != nil {
-		return err
-	}
-
 	if len(options.Namespace) == 0 {
 		options.Namespace = defaultNamespace
+	}
+	if len(options.Entrypoint) > 0 {
+		s.Source = filepath.Join(s.Source, options.Entrypoint)
 	}
 
 	r.Lock()
@@ -529,6 +463,9 @@ func (r *localRuntime) Update(s *runtime.Service, opts ...runtime.UpdateOption) 
 		return err
 	}
 
+	// update the source to the new location and restart the service
+	service.Source = s.Source
+	service.Exec.Dir = s.Source
 	return service.Start()
 }
 

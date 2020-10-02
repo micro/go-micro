@@ -1,5 +1,7 @@
 package s3
 
+import "crypto/tls"
+
 // Options used to configure the s3 blob store
 type Options struct {
 	Endpoint        string
@@ -7,6 +9,7 @@ type Options struct {
 	AccessKeyID     string
 	SecretAccessKey string
 	Secure          bool
+	TLSConfig       *tls.Config
 }
 
 // Option configures one or more options
@@ -38,5 +41,12 @@ func Credentials(id, secret string) Option {
 func Insecure() Option {
 	return func(o *Options) {
 		o.Secure = false
+	}
+}
+
+// TLSConfig sets the tls config for the client
+func TLSConfig(c *tls.Config) Option {
+	return func(o *Options) {
+		o.TLSConfig = c
 	}
 }

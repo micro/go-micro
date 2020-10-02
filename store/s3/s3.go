@@ -6,12 +6,15 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"regexp"
 
 	"github.com/micro/go-micro/v3/store"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"github.com/pkg/errors"
 )
+
+var keyRegex = regexp.MustCompile("[^a-zA-Z0-9]+")
 
 // NewBlobStore returns an initialized s3 blob store
 func NewBlobStore(opts ...Option) (store.BlobStore, error) {
@@ -20,12 +23,25 @@ func NewBlobStore(opts ...Option) (store.BlobStore, error) {
 	for _, o := range opts {
 		o(&options)
 	}
+	minioOpts := &minio.Options{
+		Secure: options.Secure,
+	}
+	if len(options.AccessKeyID) > 0 || len(options.SecretAccessKey) > 0 {
+		minioOpts.Creds = credentials.NewStaticV4(options.AccessKeyID, options.SecretAccessKey, "")
+	}
+
+	// configure the transport to use custom tls config if provided
+	if options.TLSConfig != nil {
+		ts, err := minio.DefaultTransport(options.Secure)
+		if err != nil {
+			return nil, errors.Wrap(err, "Error setting up s3 blob store transport")
+		}
+		ts.TLSClientConfig = options.TLSConfig
+		minioOpts.Transport = ts
+	}
 
 	// initialize minio client
-	client, err := minio.New(options.Endpoint, &minio.Options{
-		Creds:  credentials.NewStaticV4(options.AccessKeyID, options.SecretAccessKey, ""),
-		Secure: options.Secure,
-	})
+	client, err := minio.New(options.Endpoint, minioOpts)
 	if err != nil {
 		return nil, errors.Wrap(err, "Error connecting to s3 blob store")
 	}
@@ -44,6 +60,9 @@ func (s *s3) Read(key string, opts ...store.BlobOption) (io.Reader, error) {
 	if len(key) == 0 {
 		return nil, store.ErrMissingKey
 	}
+
+	// make the key safe for use with s3
+	key = keyRegex.ReplaceAllString(key, "-")
 
 	// parse the options
 	var options store.BlobOptions
@@ -87,6 +106,9 @@ func (s *s3) Write(key string, blob io.Reader, opts ...store.BlobOption) error {
 		return store.ErrMissingKey
 	}
 
+	// make the key safe for use with s3
+	key = keyRegex.ReplaceAllString(key, "-")
+
 	// parse the options
 	var options store.BlobOptions
 	for _, o := range opts {
@@ -129,6 +151,9 @@ func (s *s3) Delete(key string, opts ...store.BlobOption) error {
 	if len(key) == 0 {
 		return store.ErrMissingKey
 	}
+
+	// make the key safe for use with s3
+	key = keyRegex.ReplaceAllString(key, "-")
 
 	// parse the options
 	var options store.BlobOptions

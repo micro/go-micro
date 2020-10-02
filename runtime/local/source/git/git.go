@@ -71,7 +71,7 @@ func (g *binaryGitter) checkoutAnyRemote(repo, branchOrCommit string, useCredent
 	}
 
 	// Assumes remote address format is git@gitlab.com:micro-test/monorepo-test.git
-	remoteAddr := fmt.Sprintf("https://%v", repo)
+	remoteAddr := fmt.Sprintf("https://%v", strings.TrimPrefix(repo, "https://"))
 	if useCredentials {
 		remoteAddr = fmt.Sprintf("https://%v@%v", g.secrets[credentialsKey], repo)
 	}
@@ -264,9 +264,13 @@ func (g *binaryGitter) RepoDir() string {
 	return g.folder
 }
 
-func NewGitter(folder string, secrets map[string]string) Gitter {
-	return &binaryGitter{folder, secrets}
+func NewGitter(secrets map[string]string) Gitter {
+	tmpdir, _ := ioutil.TempDir(os.TempDir(), "git-src-*")
 
+	return &binaryGitter{
+		folder:  tmpdir,
+		secrets: secrets,
+	}
 }
 
 func commandExists(cmd string) bool {
@@ -348,6 +352,10 @@ func (s *Source) RuntimeName() string {
 // Source to be passed to RPC call runtime.Create Update Delete
 // eg: `helloworld`, `github.com/crufter/myrepo/helloworld`, `/path/to/localrepo/localfolder`
 func (s *Source) RuntimeSource() string {
+	if s.Local && s.LocalRepoRoot != s.FullPath {
+		relpath, _ := filepath.Rel(s.LocalRepoRoot, s.FullPath)
+		return relpath
+	}
 	if s.Local {
 		return s.FullPath
 	}
@@ -366,7 +374,13 @@ func ParseSource(source string) (*Source, error) {
 	refs := strings.Split(source, "@")
 	ret.Ref = refs[1]
 	parts := strings.Split(refs[0], "/")
-	ret.Repo = strings.Join(parts[0:3], "/")
+
+	max := 3
+	if len(parts) < 3 {
+		max = len(parts)
+	}
+	ret.Repo = strings.Join(parts[0:max], "/")
+
 	if len(parts) > 1 {
 		ret.Folder = strings.Join(parts[3:], "/")
 	}
@@ -430,25 +444,19 @@ func IsLocal(workDir, source string, pathExistsFunc ...func(path string) (bool, 
 	return false, ""
 }
 
-// CheckoutSource for the local runtime server
-// folder is the folder to check out the source code to
-// Modifies source path to set it to checked out repo absolute path locally.
-func CheckoutSource(folder string, source *Source, secrets map[string]string) error {
-	// if it's a local folder, do nothing
-	if exists, err := pathExists(source.FullPath); err == nil && exists {
-		return nil
-	}
-	gitter := NewGitter(folder, secrets)
+// CheckoutSource checks out a git repo (source) into a local temp directory. It will reutrn the
+// source of the local repo an an error if one occured. Secrets can optionally be passed if the repo
+// is private.
+func CheckoutSource(source *Source, secrets map[string]string) (string, error) {
+	gitter := NewGitter(secrets)
 	repo := source.Repo
 	if !strings.Contains(repo, "https://") {
 		repo = "https://" + repo
 	}
-	err := gitter.Checkout(source.Repo, source.Ref)
-	if err != nil {
-		return err
+	if err := gitter.Checkout(repo, source.Ref); err != nil {
+		return "", err
 	}
-	source.FullPath = filepath.Join(gitter.RepoDir(), source.Folder)
-	return nil
+	return gitter.RepoDir(), nil
 }
 
 // code below is not used yet
