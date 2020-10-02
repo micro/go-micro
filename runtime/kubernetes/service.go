@@ -119,6 +119,20 @@ func newService(s *runtime.Service, c runtime.CreateOptions) *service {
 		kdeploy.Spec.Template.PodSpec.Containers[0].Resources = &client.ResourceRequirements{Limits: resLimits}
 	}
 
+	// mount volumes
+	var volumes []client.Volume
+	var mounts []client.VolumeMount
+	for name, path := range c.Volumes {
+		volumes = append(volumes, client.Volume{
+			Name:                  name,
+			PersistentVolumeClaim: client.PersistentVolumeClaimVolumeSource{ClaimName: name},
+		})
+
+		mounts = append(mounts, client.VolumeMount{Name: name, MountPath: path})
+	}
+	kdeploy.Spec.Template.PodSpec.Volumes = volumes
+	kdeploy.Spec.Template.PodSpec.Containers[0].VolumeMounts = mounts
+
 	return &service{
 		Service:  s,
 		kservice: kservice,

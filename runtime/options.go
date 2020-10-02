@@ -88,6 +88,8 @@ type CreateOptions struct {
 	Secrets map[string]string
 	// Resources to allocate the service
 	Resources *Resources
+	// Volumes to mount
+	Volumes map[string]string
 }
 
 // ReadOptions queries runtime services
@@ -184,6 +186,17 @@ func WithEnv(env []string) CreateOption {
 func WithOutput(out io.Writer) CreateOption {
 	return func(o *CreateOptions) {
 		o.Output = out
+	}
+}
+
+// WithVolume adds a volume to be mounted
+func WithVolume(name, path string) CreateOption {
+	return func(o *CreateOptions) {
+		if o.Volumes == nil {
+			o.Volumes = map[string]string{name: path}
+		} else {
+			o.Volumes[name] = path
+		}
 	}
 }
 
