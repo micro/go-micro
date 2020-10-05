@@ -81,6 +81,8 @@ type CreateOptions struct {
 	Resources *Resources
 	// Volumes to mount
 	Volumes map[string]string
+	// ServiceAccount to start the container with
+	ServiceAccount string
 }
 
 // ReadOptions queries runtime services
@@ -129,6 +131,13 @@ func CreateContext(ctx context.Context) CreateOption {
 func CreateEntrypoint(e string) CreateOption {
 	return func(o *CreateOptions) {
 		o.Entrypoint = e
+	}
+}
+
+// WithServiceAccount sets the ServiceAccount
+func WithServiceAccount(s string) CreateOption {
+	return func(o *CreateOptions) {
+		o.ServiceAccount = s
 	}
 }
 

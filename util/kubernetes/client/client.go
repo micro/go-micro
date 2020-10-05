@@ -335,6 +335,7 @@ func NewDeployment(s *runtime.Service, opts *runtime.CreateOptions) *Resource {
 				Template: &Template{
 					Metadata: metadata,
 					PodSpec: &PodSpec{
+						ServiceAccountName: opts.ServiceAccount,
 						Containers: []Container{{
 							Name:    Format(s.Name),
 							Image:   image,
