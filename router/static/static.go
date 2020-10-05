@@ -38,7 +38,7 @@ func (s *static) Options() router.Options {
 }
 
 func (s *static) Table() router.Table {
-	return nil
+	return new(table)
 }
 
 func (s *static) Lookup(service string, opts ...router.LookupOption) ([]router.Route, error) {
@@ -97,4 +97,26 @@ func (w *watcher) Chan() (<-chan *router.Event, error) {
 // Stop stops watcher
 func (w *watcher) Stop() {
 	return
+}
+
+type table struct{}
+
+// Create new route in the routing table
+func (t *table) Create(router.Route) error {
+	return nil
+}
+
+// Delete existing route from the routing table
+func (t *table) Delete(router.Route) error {
+	return nil
+}
+
+// Update route in the routing table
+func (t *table) Update(router.Route) error {
+	return nil
+}
+
+// Read is for querying the table
+func (t *table) Read(...router.ReadOption) ([]router.Route, error) {
+	return []router.Route{}, nil
 }
