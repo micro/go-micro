@@ -9,6 +9,7 @@ import (
 	"github.com/micro/go-micro/v3/logger"
 	log "github.com/micro/go-micro/v3/logger"
 	"github.com/micro/go-micro/v3/runtime"
+	"github.com/micro/go-micro/v3/util/kubernetes/api"
 	"github.com/micro/go-micro/v3/util/kubernetes/client"
 )
 
@@ -240,7 +241,7 @@ func (k *kubernetes) Update(s *runtime.Service, opts ...runtime.UpdateOption) er
 		res := &client.Resource{
 			Kind:  "deployment",
 			Name:  resourceName(s),
-			Value: dep,
+			Value: &dep,
 		}
 		if err := k.client.Update(res, client.UpdateNamespace(options.Namespace)); err != nil {
 			if logger.V(logger.DebugLevel, logger.DefaultLogger) {
@@ -272,14 +273,17 @@ func (k *kubernetes) Delete(s *runtime.Service, opts ...runtime.DeleteOption) er
 		Namespace: options.Namespace,
 	})
 	if err := k.client.Delete(dep, client.DeleteNamespace(options.Namespace)); err != nil {
-		fmt.Println(parseError(err))
-		if parseError(err).Code == 404 {
+		if err == api.ErrNotFound {
 			return runtime.ErrNotFound
 		}
-
 		if logger.V(logger.DebugLevel, logger.DefaultLogger) {
 			logger.Debugf("Runtime failed to delete deployment: %v", err)
 		}
+		return err
+	}
+
+	// delete the credentials
+	if err := k.deleteCredentials(s, &runtime.CreateOptions{Namespace: options.Namespace}); err != nil {
 		return err
 	}
 
@@ -291,7 +295,7 @@ func (k *kubernetes) Delete(s *runtime.Service, opts ...runtime.DeleteOption) er
 
 	// get the existing services. todo: refactor to just get the deployments
 	services, err := k.getServices(client.GetNamespace(options.Namespace), client.GetLabels(labels))
-	if err != nil || len(services) == 0 {
+	if err != nil || len(services) > 0 {
 		return err
 	}
 

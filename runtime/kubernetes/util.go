@@ -129,9 +129,36 @@ func (k *kubernetes) createCredentials(service *runtime.Service, options *runtim
 		Value: secret,
 	}, client.CreateNamespace(options.Namespace))
 
-	// print the error if one occured
-	if err != nil && logger.V(logger.WarnLevel, logger.DefaultLogger) {
+	// ignore the error if the creds already exist
+	if err == nil || parseError(err).Reason == "AlreadyExists" {
+		return nil
+	}
+
+	if logger.V(logger.WarnLevel, logger.DefaultLogger) {
 		logger.Warnf("Error generating auth credentials for service: %v", err)
+	}
+	return err
+}
+
+func (k *kubernetes) deleteCredentials(service *runtime.Service, options *runtime.CreateOptions) error {
+	// construct the k8s secret object
+	secret := &client.Secret{
+		Type: "Opaque",
+		Metadata: &client.Metadata{
+			Name:      resourceName(service),
+			Namespace: options.Namespace,
+		},
+	}
+
+	// crete the secret in kubernetes
+	err := k.client.Delete(&client.Resource{
+		Kind:  "secret",
+		Name:  resourceName(service),
+		Value: secret,
+	}, client.DeleteNamespace(options.Namespace))
+
+	if err != nil && logger.V(logger.WarnLevel, logger.DefaultLogger) {
+		logger.Warnf("Error deleting auth credentials for service: %v", err)
 	}
 
 	return err

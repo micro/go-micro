@@ -230,14 +230,14 @@ func NewService(s *runtime.Service, opts *runtime.CreateOptions) *Resource {
 	}
 
 	metadata := &Metadata{
-		Name:      fmt.Sprintf("%v-%v", Format(s.Name), Format(s.Version)),
+		Name:      Format(s.Name),
 		Namespace: Format(opts.Namespace),
 		Version:   Format(s.Version),
 		Labels:    labels,
 	}
 
 	return &Resource{
-		Kind: "deployment",
+		Kind: "service",
 		Name: metadata.Name,
 		Value: &Service{
 			Metadata: metadata,
