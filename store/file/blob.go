@@ -13,17 +13,35 @@ import (
 )
 
 // NewBlobStore returns a blob file store
-func NewBlobStore() (store.BlobStore, error) {
-	// ensure the parent directory exists
-	os.MkdirAll(DefaultDir, 0700)
+func NewBlobStore(opts ...store.Option) (store.BlobStore, error) {
+	// parse the options
+	var options store.Options
+	for _, o := range opts {
+		o(&options)
+	}
 
-	return &blobStore{}, nil
+	var dir string
+	if options.Context != nil {
+		if d, ok := options.Context.Value(dirKey{}).(string); ok {
+			dir = d
+		}
+	}
+	if len(dir) == 0 {
+		dir = DefaultDir
+	}
+
+	// ensure the parent directory exists
+	os.MkdirAll(dir, 0700)
+
+	return &blobStore{dir}, nil
 }
 
-type blobStore struct{}
+type blobStore struct {
+	dir string
+}
 
 func (b *blobStore) db() (*bolt.DB, error) {
-	dbPath := filepath.Join(DefaultDir, "blob.db")
+	dbPath := filepath.Join(b.dir, "blob.db")
 	return bolt.Open(dbPath, 0700, &bolt.Options{Timeout: 5 * time.Second})
 }
 
