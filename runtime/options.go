@@ -71,6 +71,8 @@ type CreateOptions struct {
 	Retries int
 	// Specify the image to use
 	Image string
+	// Port to expose
+	Port string
 	// Namespace to create the service in
 	Namespace string
 	// Specify the context to use
@@ -197,6 +199,13 @@ func WithVolume(name, path string) CreateOption {
 		} else {
 			o.Volumes[name] = path
 		}
+	}
+}
+
+// WithPort sets the port to expose
+func WithPort(p string) CreateOption {
+	return func(o *CreateOptions) {
+		o.Port = p
 	}
 }
 

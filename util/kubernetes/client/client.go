@@ -12,6 +12,7 @@ import (
 	"os"
 	"path"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/micro/go-micro/v3/logger"
@@ -28,6 +29,8 @@ var (
 	DefaultImage = "micro/go-micro"
 	// DefaultNamespace is the default k8s namespace
 	DefaultNamespace = "default"
+	// DefaultPort to expose on a service
+	DefaultPort = 8080
 )
 
 // Client ...
@@ -236,6 +239,11 @@ func NewService(s *runtime.Service, opts *runtime.CreateOptions) *Resource {
 		Labels:    labels,
 	}
 
+	port := DefaultPort
+	if len(opts.Port) > 0 {
+		port, _ = strconv.Atoi(opts.Port)
+	}
+
 	return &Resource{
 		Kind: "service",
 		Name: metadata.Name,
@@ -245,7 +253,7 @@ func NewService(s *runtime.Service, opts *runtime.CreateOptions) *Resource {
 				Type:     "ClusterIP",
 				Selector: labels,
 				Ports: []ServicePort{{
-					"service-port", 8080, "",
+					"service-port", port, "",
 				}},
 			},
 		},
@@ -322,6 +330,12 @@ func NewDeployment(s *runtime.Service, opts *runtime.CreateOptions) *Resource {
 		}
 	}
 
+	// parse the port option
+	port := DefaultPort
+	if len(opts.Port) > 0 {
+		port, _ = strconv.Atoi(opts.Port)
+	}
+
 	return &Resource{
 		Kind: "deployment",
 		Name: metadata.Name,
@@ -344,11 +358,11 @@ func NewDeployment(s *runtime.Service, opts *runtime.CreateOptions) *Resource {
 							Args:    opts.Args,
 							Ports: []ContainerPort{{
 								Name:          "service-port",
-								ContainerPort: 8080,
+								ContainerPort: port,
 							}},
 							ReadinessProbe: &Probe{
 								TCPSocket: &TCPSocketAction{
-									Port: 8080,
+									Port: port,
 								},
 								PeriodSeconds:       10,
 								InitialDelaySeconds: 10,
