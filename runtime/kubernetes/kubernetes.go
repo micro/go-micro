@@ -17,10 +17,9 @@ import (
 type action int
 
 type kubernetes struct {
-	sync.RWMutex
 	// options configure runtime
 	options runtime.Options
-	// client is kubernetes client
+  // client is kubernetes client
 	client client.Client
 	// namespaces which exist
 	namespaces []client.Namespace
@@ -28,13 +27,9 @@ type kubernetes struct {
 
 // Init initializes runtime options
 func (k *kubernetes) Init(opts ...runtime.Option) error {
-	k.Lock()
-	defer k.Unlock()
-
 	for _, o := range opts {
 		o(&k.options)
 	}
-
 	return nil
 }
 
