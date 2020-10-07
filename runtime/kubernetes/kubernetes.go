@@ -17,9 +17,10 @@ import (
 type action int
 
 type kubernetes struct {
+	sync.Mutex
 	// options configure runtime
 	options runtime.Options
-  // client is kubernetes client
+	// client is kubernetes client
 	client client.Client
 	// namespaces which exist
 	namespaces []client.Namespace
