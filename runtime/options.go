@@ -15,8 +15,6 @@ type Options struct {
 	Client client.Client
 	// Base image to use
 	Image string
-	// Scheduler for updates
-	Scheduler Scheduler
 	// Source of the services repository
 	Source string
 	// Service type to manage
@@ -27,13 +25,6 @@ type Options struct {
 func WithSource(src string) Option {
 	return func(o *Options) {
 		o.Source = src
-	}
-}
-
-// WithScheduler specifies a scheduler for updates
-func WithScheduler(n Scheduler) Option {
-	return func(o *Options) {
-		o.Scheduler = n
 	}
 }
 

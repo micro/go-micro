@@ -24,8 +24,6 @@ type kubernetes struct {
 	options runtime.Options
 	// indicates if we're running
 	running bool
-	// used to stop the runtime
-	closed chan bool
 	// client is kubernetes client
 	client client.Client
 	// namespaces which exist
@@ -238,93 +236,6 @@ func (k *kubernetes) getService(labels map[string]string, opts ...client.GetOpti
 	}
 
 	return services, nil
-}
-
-// run runs the runtime management loop
-func (k *kubernetes) run(events <-chan runtime.Event) {
-	t := time.NewTicker(time.Second * 10)
-	defer t.Stop()
-
-	for {
-		select {
-		case <-t.C:
-			// TODO: figure out what to do here
-			// - do we even need the ticker for k8s services?
-		case event := <-events:
-			// NOTE: we only handle Update events for now
-			if log.V(log.DebugLevel, log.DefaultLogger) {
-				log.Debugf("Runtime received notification event: %v", event)
-			}
-			switch event.Type {
-			case runtime.Update:
-				// only process if there's an actual service
-				// we do not update all the things individually
-				if event.Service == nil {
-					continue
-				}
-
-				// format the name
-				name := client.Format(event.Service.Name)
-
-				// set the default labels
-				labels := map[string]string{
-					"micro": k.options.Type,
-					"name":  name,
-				}
-
-				if len(event.Service.Version) > 0 {
-					labels["version"] = event.Service.Version
-				}
-
-				// get the deployment status
-				deployed := new(client.DeploymentList)
-
-				// get the existing service rather than creating a new one
-				err := k.client.Get(&client.Resource{
-					Kind:  "deployment",
-					Value: deployed,
-				}, client.GetLabels(labels))
-
-				if err != nil {
-					if log.V(log.DebugLevel, log.DefaultLogger) {
-						log.Debugf("Runtime update failed to get service %s: %v", event.Service, err)
-					}
-					continue
-				}
-
-				// technically we should not receive multiple versions but hey ho
-				for _, service := range deployed.Items {
-					// check the name matches
-					if service.Metadata.Name != name {
-						continue
-					}
-
-					// update build time annotation
-					if service.Spec.Template.Metadata.Annotations == nil {
-						service.Spec.Template.Metadata.Annotations = make(map[string]string)
-					}
-
-					// update the build time
-					service.Spec.Template.Metadata.Annotations["updated"] = fmt.Sprintf("%d", event.Timestamp.Unix())
-
-					if log.V(log.DebugLevel, log.DefaultLogger) {
-						log.Debugf("Runtime updating service: %s deployment: %s", event.Service, service.Metadata.Name)
-					}
-					if err := k.client.Update(deploymentResource(&service)); err != nil {
-						if log.V(log.DebugLevel, log.DefaultLogger) {
-							log.Debugf("Runtime failed to update service %s: %v", event.Service, err)
-						}
-						continue
-					}
-				}
-			}
-		case <-k.closed:
-			if log.V(log.DebugLevel, log.DefaultLogger) {
-				log.Debugf("Runtime stopped")
-			}
-			return
-		}
-	}
 }
 
 // Init initializes runtime options
@@ -599,22 +510,6 @@ func (k *kubernetes) Start() error {
 
 	// set running
 	k.running = true
-	k.closed = make(chan bool)
-
-	var events <-chan runtime.Event
-	if k.options.Scheduler != nil {
-		var err error
-		events, err = k.options.Scheduler.Notify()
-		if err != nil {
-			// TODO: should we bail here?
-			if log.V(log.DebugLevel, log.DefaultLogger) {
-				log.Debugf("Runtime failed to start update notifier")
-			}
-		}
-	}
-
-	go k.run(events)
-
 	return nil
 }
 
@@ -627,19 +522,8 @@ func (k *kubernetes) Stop() error {
 		return nil
 	}
 
-	select {
-	case <-k.closed:
-		return nil
-	default:
-		close(k.closed)
-		// set not running
-		k.running = false
-		// stop the scheduler
-		if k.options.Scheduler != nil {
-			return k.options.Scheduler.Close()
-		}
-	}
-
+	// set not running
+	k.running = false
 	return nil
 }
 
@@ -666,7 +550,6 @@ func NewRuntime(opts ...runtime.Option) runtime.Runtime {
 
 	return &kubernetes{
 		options: options,
-		closed:  make(chan bool),
 		client:  client,
 	}
 }
