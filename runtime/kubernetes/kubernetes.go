@@ -130,8 +130,8 @@ func (k *kubernetes) Create(s *runtime.Service, opts ...runtime.CreateOption) er
 		if parseError(err).Reason == "AlreadyExists" {
 			return runtime.ErrAlreadyExists
 		}
-		if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-			logger.Debugf("Runtime failed to create deployment: %v", err)
+		if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
+			logger.Errorf("Runtime failed to create deployment: %v", err)
 		}
 		return err
 	}
@@ -141,8 +141,8 @@ func (k *kubernetes) Create(s *runtime.Service, opts ...runtime.CreateOption) er
 		if parseError(err).Reason == "AlreadyExists" {
 			return nil
 		}
-		if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-			logger.Debugf("Runtime failed to create service: %v", err)
+		if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
+			logger.Errorf("Runtime failed to create service: %v", err)
 		}
 		return err
 	}
@@ -240,8 +240,8 @@ func (k *kubernetes) Update(s *runtime.Service, opts ...runtime.UpdateOption) er
 			Value: &dep,
 		}
 		if err := k.client.Update(res, client.UpdateNamespace(options.Namespace)); err != nil {
-			if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-				logger.Debugf("Runtime failed to update deployment: %v", err)
+			if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
+				logger.Errorf("Runtime failed to update deployment: %v", err)
 			}
 			return err
 		}
@@ -272,8 +272,8 @@ func (k *kubernetes) Delete(s *runtime.Service, opts ...runtime.DeleteOption) er
 		if err == api.ErrNotFound {
 			return runtime.ErrNotFound
 		}
-		if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-			logger.Debugf("Runtime failed to delete deployment: %v", err)
+		if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
+			logger.Errorf("Runtime failed to delete deployment: %v", err)
 		}
 		return err
 	}
@@ -301,8 +301,8 @@ func (k *kubernetes) Delete(s *runtime.Service, opts ...runtime.DeleteOption) er
 		Namespace: options.Namespace,
 	})
 	if err := k.client.Delete(srv, client.DeleteNamespace(options.Namespace)); err != nil {
-		if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-			logger.Debugf("Runtime failed to delete service: %v", err)
+		if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
+			logger.Errorf("Runtime failed to delete service: %v", err)
 		}
 		return err
 	}
