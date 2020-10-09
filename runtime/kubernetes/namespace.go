@@ -105,12 +105,8 @@ func (k *kubernetes) DeleteNamespace(ns string) error {
 		Kind: "namespace",
 		Name: ns,
 	})
-	if err != nil {
-		if err != nil {
-			if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
-				logger.Errorf("Error deleting namespace %v: %v", ns, err)
-			}
-		}
+	if err != nil && logger.V(logger.ErrorLevel, logger.DefaultLogger) {
+		logger.Errorf("Error deleting namespace %v: %v", ns, err)
 	}
 	return err
 }
