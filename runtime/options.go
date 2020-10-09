@@ -11,14 +11,14 @@ type Option func(o *Options)
 
 // Options configure runtime
 type Options struct {
+	// Service type to manage
+	Type string
 	// Client to use when making requests
 	Client client.Client
 	// Base image to use
 	Image string
 	// Source of the services repository
 	Source string
-	// Service type to manage
-	Type string
 }
 
 // WithSource sets the base image / repository
@@ -71,6 +71,8 @@ type CreateOptions struct {
 	Retries int
 	// Specify the image to use
 	Image string
+	// Port to expose
+	Port string
 	// Namespace to create the service in
 	Namespace string
 	// Specify the context to use
@@ -81,6 +83,8 @@ type CreateOptions struct {
 	Resources *Resources
 	// Volumes to mount
 	Volumes map[string]string
+	// ServiceAccount to start the container with
+	ServiceAccount string
 }
 
 // ReadOptions queries runtime services
@@ -129,6 +133,13 @@ func CreateContext(ctx context.Context) CreateOption {
 func CreateEntrypoint(e string) CreateOption {
 	return func(o *CreateOptions) {
 		o.Entrypoint = e
+	}
+}
+
+// WithServiceAccount sets the ServiceAccount
+func WithServiceAccount(s string) CreateOption {
+	return func(o *CreateOptions) {
+		o.ServiceAccount = s
 	}
 }
 
@@ -188,6 +199,13 @@ func WithVolume(name, path string) CreateOption {
 		} else {
 			o.Volumes[name] = path
 		}
+	}
+}
+
+// WithPort sets the port to expose
+func WithPort(p string) CreateOption {
+	return func(o *CreateOptions) {
+		o.Port = p
 	}
 }
 

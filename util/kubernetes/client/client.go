@@ -5,15 +5,18 @@ import (
 	"bytes"
 	"crypto/tls"
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"path"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/micro/go-micro/v3/logger"
+	"github.com/micro/go-micro/v3/runtime"
 	"github.com/micro/go-micro/v3/util/kubernetes/api"
 )
 
@@ -26,6 +29,8 @@ var (
 	DefaultImage = "micro/go-micro"
 	// DefaultNamespace is the default k8s namespace
 	DefaultNamespace = "default"
+	// DefaultPort to expose on a service
+	DefaultPort = 8080
 )
 
 // Client ...
@@ -78,12 +83,6 @@ func (c *client) Create(r *Resource, opts ...CreateOption) error {
 var (
 	nameRegex = regexp.MustCompile("[^a-zA-Z0-9]+")
 )
-
-// SerializeResourceName removes all spacial chars from a string so it
-// can be used as a k8s resource name
-func SerializeResourceName(ns string) string {
-	return nameRegex.ReplaceAllString(ns, "-")
-}
 
 // Get queries API objects and stores the result in r
 func (c *client) Get(r *Resource, opts ...GetOption) error {
@@ -226,118 +225,154 @@ func (c *client) Watch(r *Resource, opts ...WatchOption) (Watcher, error) {
 }
 
 // NewService returns default micro kubernetes service definition
-func NewService(name, version, typ, namespace string) *Service {
-	if logger.V(logger.TraceLevel, logger.DefaultLogger) {
-		logger.Tracef("kubernetes default service: name: %s, version: %s", name, version)
+func NewService(s *runtime.Service, opts *runtime.CreateOptions) *Resource {
+	labels := map[string]string{
+		"name":    Format(s.Name),
+		"version": Format(s.Version),
+		"micro":   Format(opts.Type),
 	}
 
-	Labels := map[string]string{
-		"name":    name,
-		"version": version,
-		"micro":   typ,
+	metadata := &Metadata{
+		Name:      Format(s.Name),
+		Namespace: Format(opts.Namespace),
+		Version:   Format(s.Version),
+		Labels:    labels,
 	}
 
-	svcName := name
-	if len(version) > 0 {
-		// API service object name joins name and version over "-"
-		svcName = strings.Join([]string{name, version}, "-")
+	port := DefaultPort
+	if len(opts.Port) > 0 {
+		port, _ = strconv.Atoi(opts.Port)
 	}
 
-	if len(namespace) == 0 {
-		namespace = DefaultNamespace
-	}
-
-	Metadata := &Metadata{
-		Name:      svcName,
-		Namespace: SerializeResourceName(namespace),
-		Version:   version,
-		Labels:    Labels,
-	}
-
-	Spec := &ServiceSpec{
-		Type:     "ClusterIP",
-		Selector: Labels,
-		Ports: []ServicePort{{
-			"service-port", 8080, "",
-		}},
-	}
-
-	return &Service{
-		Metadata: Metadata,
-		Spec:     Spec,
-	}
-}
-
-// NewService returns default micro kubernetes deployment definition
-func NewDeployment(name, version, typ, namespace string) *Deployment {
-	if logger.V(logger.TraceLevel, logger.DefaultLogger) {
-		logger.Tracef("kubernetes default deployment: name: %s, version: %s", name, version)
-	}
-
-	Labels := map[string]string{"name": name}
-	if len(typ) > 0 {
-		Labels["micro"] = typ
-	}
-	if len(version) > 0 {
-		Labels["version"] = version
-	}
-
-	depName := name
-	if len(version) > 0 {
-		// API deployment object name joins name and version over "-"
-		depName = strings.Join([]string{name, version}, "-")
-	}
-
-	if len(namespace) == 0 {
-		namespace = DefaultNamespace
-	}
-
-	Metadata := &Metadata{
-		Name:        depName,
-		Namespace:   SerializeResourceName(namespace),
-		Version:     version,
-		Labels:      Labels,
-		Annotations: map[string]string{},
-	}
-
-	// enable go modules by default
-	env := EnvVar{
-		Name:  "GO111MODULE",
-		Value: "on",
-	}
-
-	Spec := &DeploymentSpec{
-		Replicas: 1,
-		Selector: &LabelSelector{
-			MatchLabels: Labels,
-		},
-		Template: &Template{
-			Metadata: Metadata,
-			PodSpec: &PodSpec{
-				Containers: []Container{{
-					Name:    name,
-					Image:   DefaultImage,
-					Env:     []EnvVar{env},
-					Command: []string{},
-					Ports: []ContainerPort{{
-						Name:          "service-port",
-						ContainerPort: 8080,
-					}},
-					ReadinessProbe: &Probe{
-						TCPSocket: &TCPSocketAction{
-							Port: 8080,
-						},
-						PeriodSeconds:       10,
-						InitialDelaySeconds: 10,
-					},
+	return &Resource{
+		Kind: "service",
+		Name: metadata.Name,
+		Value: &Service{
+			Metadata: metadata,
+			Spec: &ServiceSpec{
+				Type:     "ClusterIP",
+				Selector: labels,
+				Ports: []ServicePort{{
+					"service-port", port, "",
 				}},
 			},
 		},
 	}
+}
 
-	return &Deployment{
-		Metadata: Metadata,
-		Spec:     Spec,
+// NewDeployment returns default micro kubernetes deployment definition
+func NewDeployment(s *runtime.Service, opts *runtime.CreateOptions) *Resource {
+	labels := map[string]string{
+		"name":    Format(s.Name),
+		"version": Format(s.Version),
+		"micro":   Format(opts.Type),
+	}
+
+	// attach our values to the deployment; name, version, source
+	annotations := map[string]string{
+		"name":    s.Name,
+		"version": s.Version,
+		"source":  s.Source,
+	}
+	for k, v := range s.Metadata {
+		annotations[k] = v
+	}
+
+	// construct the metadata for the deployment
+	metadata := &Metadata{
+		Name:        fmt.Sprintf("%v-%v", Format(s.Name), Format(s.Version)),
+		Namespace:   Format(opts.Namespace),
+		Version:     Format(s.Version),
+		Labels:      labels,
+		Annotations: annotations,
+	}
+
+	// set the image
+	image := opts.Image
+	if len(image) == 0 {
+		image = DefaultImage
+	}
+
+	// pass the env vars
+	env := make([]EnvVar, 0, len(opts.Env))
+	for _, evar := range opts.Env {
+		if comps := strings.Split(evar, "="); len(comps) == 2 {
+			env = append(env, EnvVar{Name: comps[0], Value: comps[1]})
+		}
+	}
+
+	// pass the secrets
+	for key := range opts.Secrets {
+		env = append(env, EnvVar{
+			Name: key,
+			ValueFrom: &EnvVarSource{
+				SecretKeyRef: &SecretKeySelector{
+					Name: metadata.Name,
+					Key:  key,
+				},
+			},
+		})
+	}
+
+	// parse resource limits
+	var resReqs *ResourceRequirements
+	if opts.Resources != nil {
+		resReqs = &ResourceRequirements{Limits: &ResourceLimits{}}
+
+		if opts.Resources.CPU > 0 {
+			resReqs.Limits.CPU = fmt.Sprintf("%vm", opts.Resources.CPU)
+		}
+		if opts.Resources.Mem > 0 {
+			resReqs.Limits.Memory = fmt.Sprintf("%vMi", opts.Resources.Mem)
+		}
+		if opts.Resources.Disk > 0 {
+			resReqs.Limits.EphemeralStorage = fmt.Sprintf("%vMi", opts.Resources.Disk)
+		}
+	}
+
+	// parse the port option
+	port := DefaultPort
+	if len(opts.Port) > 0 {
+		port, _ = strconv.Atoi(opts.Port)
+	}
+
+	return &Resource{
+		Kind: "deployment",
+		Name: metadata.Name,
+		Value: &Deployment{
+			Metadata: metadata,
+			Spec: &DeploymentSpec{
+				Replicas: 1,
+				Selector: &LabelSelector{
+					MatchLabels: labels,
+				},
+				Template: &Template{
+					Metadata: metadata,
+					PodSpec: &PodSpec{
+						ServiceAccountName: opts.ServiceAccount,
+						Containers: []Container{{
+							Name:    Format(s.Name),
+							Image:   image,
+							Env:     env,
+							Command: opts.Command,
+							Args:    opts.Args,
+							Ports: []ContainerPort{{
+								Name:          "service-port",
+								ContainerPort: port,
+							}},
+							ReadinessProbe: &Probe{
+								TCPSocket: &TCPSocketAction{
+									Port: port,
+								},
+								PeriodSeconds:       10,
+								InitialDelaySeconds: 10,
+							},
+							Resources: resReqs,
+						}},
+					},
+				},
+			},
+		},
 	}
 }
 
