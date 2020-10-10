@@ -54,3 +54,6 @@ See [pkg.go.dev](https://pkg.go.dev/github.com/micro/go-micro/v3?tab=overview) f
 
 Go Micro is Apache 2.0 licensed.
 
+## Framework
+
+See [Micro](https://github.com/micro/micro) for a full Rails like framework experience.
