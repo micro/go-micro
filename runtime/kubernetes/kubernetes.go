@@ -116,7 +116,10 @@ func (k *kubeStream) Stop() error {
 func (k *kubernetes) Create(resource runtime.Resource, opts ...runtime.CreateOption) error {
 	k.Lock()
 	defer k.Unlock()
+	return k.create(resource, opts...)
+}
 
+func (k *kubernetes) create(resource runtime.Resource, opts ...runtime.CreateOption) error {
 	// parse the options
 	options := &runtime.CreateOptions{
 		Type:      k.options.Type,

@@ -83,7 +83,7 @@ func (k *kubernetes) autoCreateNamespace(namespace string) error {
 		if networkPolicy, err := runtime.NewNetworkPolicy("ingress", namespace, map[string]string{"owner": "micro"}); err != nil {
 			return err
 		} else {
-			return k.Create(networkPolicy)
+			return k.create(networkPolicy)
 		}
 	}
 
