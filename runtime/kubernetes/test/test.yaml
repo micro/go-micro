@@ -45,6 +45,20 @@ rules:
       - get
       - watch
       - list
+  - apiGroups:
+      - "networking.k8s.io"
+    resources:
+      - networkpolicy
+      - networkpolicies
+    verbs:
+      - get
+      - create
+      - update
+      - delete
+      - deletecollection
+      - list
+      - patch
+      - watch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding

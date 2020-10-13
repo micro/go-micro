@@ -81,7 +81,7 @@ func serviceKey(s *runtime.Service) string {
 }
 
 // Create creates a new service which is then started by runtime
-func (r *localRuntime) Create(s *runtime.Service, opts ...runtime.CreateOption) error {
+func (r *localRuntime) Create(resource runtime.Resource, opts ...runtime.CreateOption) error {
 	var options runtime.CreateOptions
 	for _, o := range opts {
 		o(&options)
@@ -90,55 +90,74 @@ func (r *localRuntime) Create(s *runtime.Service, opts ...runtime.CreateOption) 
 	r.Lock()
 	defer r.Unlock()
 
-	if len(options.Namespace) == 0 {
-		options.Namespace = defaultNamespace
-	}
-	if len(options.Entrypoint) > 0 {
-		s.Source = filepath.Join(s.Source, options.Entrypoint)
-	}
-	if len(options.Command) == 0 {
-		ep, err := Entrypoint(s.Source)
-		if err != nil {
-			return err
+	// Handle the various different types of resources:
+	switch resource.Type() {
+	case runtime.TypeNamespace:
+		// noop (Namespace is not supported by local)
+		return nil
+	case runtime.TypeNetworkPolicy:
+		// noop (NetworkPolicy is not supported by local)
+		return nil
+	case runtime.TypeService:
+
+		// Assert the resource back into a *runtime.Service
+		s, ok := resource.(*runtime.Service)
+		if !ok {
+			return runtime.ErrInvalidResource
 		}
 
-		options.Command = []string{"go"}
-		options.Args = []string{"run", ep}
-	}
+		if len(options.Namespace) == 0 {
+			options.Namespace = defaultNamespace
+		}
+		if len(options.Entrypoint) > 0 {
+			s.Source = filepath.Join(s.Source, options.Entrypoint)
+		}
+		if len(options.Command) == 0 {
+			ep, err := Entrypoint(s.Source)
+			if err != nil {
+				return err
+			}
 
-	// pass secrets as env vars
-	for key, value := range options.Secrets {
-		options.Env = append(options.Env, fmt.Sprintf("%v=%v", key, value))
-	}
+			options.Command = []string{"go"}
+			options.Args = []string{"run", ep}
+		}
 
-	if _, ok := r.namespaces[options.Namespace]; !ok {
-		r.namespaces[options.Namespace] = make(map[string]*service)
-	}
-	if _, ok := r.namespaces[options.Namespace][serviceKey(s)]; ok {
-		return runtime.ErrAlreadyExists
-	}
+		// pass secrets as env vars
+		for key, value := range options.Secrets {
+			options.Env = append(options.Env, fmt.Sprintf("%v=%v", key, value))
+		}
 
-	// create new service
-	service := newService(s, options)
+		if _, ok := r.namespaces[options.Namespace]; !ok {
+			r.namespaces[options.Namespace] = make(map[string]*service)
+		}
+		if _, ok := r.namespaces[options.Namespace][serviceKey(s)]; ok {
+			return runtime.ErrAlreadyExists
+		}
 
-	f, err := os.OpenFile(logFile(service.Name), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		log.Fatal(err)
-	}
+		// create new service
+		service := newService(s, options)
 
-	if service.output != nil {
-		service.output = io.MultiWriter(service.output, f)
-	} else {
-		service.output = f
-	}
-	// start the service
-	if err := service.Start(); err != nil {
-		return err
-	}
-	// save service
-	r.namespaces[options.Namespace][serviceKey(s)] = service
+		f, err := os.OpenFile(logFile(service.Name), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		if err != nil {
+			log.Fatal(err)
+		}
 
-	return nil
+		if service.output != nil {
+			service.output = io.MultiWriter(service.output, f)
+		} else {
+			service.output = f
+		}
+		// start the service
+		if err := service.Start(); err != nil {
+			return err
+		}
+		// save service
+		r.namespaces[options.Namespace][serviceKey(s)] = service
+
+		return nil
+	default:
+		return runtime.ErrInvalidResource
+	}
 }
 
 // exists returns whether the given file or directory exists
@@ -157,65 +176,85 @@ func exists(path string) (bool, error) {
 // The reason for this is because it's hard to calculate line offset
 // as opposed to character offset.
 // This logger streams by default and only supports the `StreamCount` option.
-func (r *localRuntime) Logs(s *runtime.Service, options ...runtime.LogsOption) (runtime.Logs, error) {
+func (r *localRuntime) Logs(resource runtime.Resource, options ...runtime.LogsOption) (runtime.Logs, error) {
 	lopts := runtime.LogsOptions{}
 	for _, o := range options {
 		o(&lopts)
 	}
-	ret := &logStream{
-		service: s.Name,
-		stream:  make(chan runtime.Log),
-		stop:    make(chan bool),
-	}
 
-	fpath := logFile(s.Name)
-	if ex, err := exists(fpath); err != nil {
-		return nil, err
-	} else if !ex {
-		return nil, fmt.Errorf("Logs not found for service %s", s.Name)
-	}
+	// Handle the various different types of resources:
+	switch resource.Type() {
+	case runtime.TypeNamespace:
+		// noop (Namespace is not supported by local)
+		return nil, nil
+	case runtime.TypeNetworkPolicy:
+		// noop (NetworkPolicy is not supported by local)
+		return nil, nil
+	case runtime.TypeService:
 
-	// have to check file size to avoid too big of a seek
-	fi, err := os.Stat(fpath)
-	if err != nil {
-		return nil, err
-	}
-	size := fi.Size()
-
-	whence := 2
-	// Multiply by length of an average line of log in bytes
-	offset := lopts.Count * 200
-
-	if offset > size {
-		offset = size
-	}
-	offset *= -1
-
-	t, err := tail.TailFile(fpath, tail.Config{Follow: lopts.Stream, Location: &tail.SeekInfo{
-		Whence: whence,
-		Offset: int64(offset),
-	}, Logger: tail.DiscardingLogger})
-	if err != nil {
-		return nil, err
-	}
-
-	ret.tail = t
-	go func() {
-		for {
-			select {
-			case line, ok := <-t.Lines:
-				if !ok {
-					ret.Stop()
-					return
-				}
-				ret.stream <- runtime.Log{Message: line.Text}
-			case <-ret.stop:
-				return
-			}
+		// Assert the resource back into a *runtime.Service
+		s, ok := resource.(*runtime.Service)
+		if !ok {
+			return nil, runtime.ErrInvalidResource
 		}
 
-	}()
-	return ret, nil
+		ret := &logStream{
+			service: s.Name,
+			stream:  make(chan runtime.Log),
+			stop:    make(chan bool),
+		}
+
+		fpath := logFile(s.Name)
+		if ex, err := exists(fpath); err != nil {
+			return nil, err
+		} else if !ex {
+			return nil, fmt.Errorf("Logs not found for service %s", s.Name)
+		}
+
+		// have to check file size to avoid too big of a seek
+		fi, err := os.Stat(fpath)
+		if err != nil {
+			return nil, err
+		}
+		size := fi.Size()
+
+		whence := 2
+		// Multiply by length of an average line of log in bytes
+		offset := lopts.Count * 200
+
+		if offset > size {
+			offset = size
+		}
+		offset *= -1
+
+		t, err := tail.TailFile(fpath, tail.Config{Follow: lopts.Stream, Location: &tail.SeekInfo{
+			Whence: whence,
+			Offset: int64(offset),
+		}, Logger: tail.DiscardingLogger})
+		if err != nil {
+			return nil, err
+		}
+
+		ret.tail = t
+		go func() {
+			for {
+				select {
+				case line, ok := <-t.Lines:
+					if !ok {
+						ret.Stop()
+						return
+					}
+					ret.stream <- runtime.Log{Message: line.Text}
+				case <-ret.stop:
+					return
+				}
+			}
+
+		}()
+		return ret, nil
+	default:
+		return nil, runtime.ErrInvalidResource
+	}
 }
 
 type logStream struct {
@@ -298,84 +337,126 @@ func (r *localRuntime) Read(opts ...runtime.ReadOption) ([]*runtime.Service, err
 }
 
 // Update attempts to update the service
-func (r *localRuntime) Update(s *runtime.Service, opts ...runtime.UpdateOption) error {
+func (r *localRuntime) Update(resource runtime.Resource, opts ...runtime.UpdateOption) error {
 	var options runtime.UpdateOptions
 	for _, o := range opts {
 		o(&options)
 	}
-	if len(options.Namespace) == 0 {
-		options.Namespace = defaultNamespace
-	}
-	if len(options.Entrypoint) > 0 {
-		s.Source = filepath.Join(s.Source, options.Entrypoint)
-	}
 
-	r.Lock()
-	srvs, ok := r.namespaces[options.Namespace]
-	r.Unlock()
-	if !ok {
-		return errors.New("Service not found")
-	}
+	// Handle the various different types of resources:
+	switch resource.Type() {
+	case runtime.TypeNamespace:
+		// noop (Namespace is not supported by local)
+		return nil
+	case runtime.TypeNetworkPolicy:
+		// noop (NetworkPolicy is not supported by local)
+		return nil
+	case runtime.TypeService:
 
-	r.Lock()
-	service, ok := srvs[serviceKey(s)]
-	r.Unlock()
-	if !ok {
-		return errors.New("Service not found")
-	}
+		// Assert the resource back into a *runtime.Service
+		s, ok := resource.(*runtime.Service)
+		if !ok {
+			return runtime.ErrInvalidResource
+		}
 
-	if err := service.Stop(); err != nil && err.Error() != "no such process" {
-		logger.Errorf("Error stopping service %s: %s", service.Name, err)
-		return err
-	}
+		if len(options.Entrypoint) > 0 {
+			s.Source = filepath.Join(s.Source, options.Entrypoint)
+		}
 
-	// update the source to the new location and restart the service
-	service.Source = s.Source
-	service.Exec.Dir = s.Source
-	return service.Start()
+		if len(options.Namespace) == 0 {
+			options.Namespace = defaultNamespace
+		}
+
+		r.Lock()
+		srvs, ok := r.namespaces[options.Namespace]
+		r.Unlock()
+		if !ok {
+			return errors.New("Service not found")
+		}
+
+		r.Lock()
+		service, ok := srvs[serviceKey(s)]
+		r.Unlock()
+		if !ok {
+			return errors.New("Service not found")
+		}
+
+		if err := service.Stop(); err != nil && err.Error() != "no such process" {
+			logger.Errorf("Error stopping service %s: %s", service.Name, err)
+			return err
+		}
+
+		// update the source to the new location and restart the service
+		service.Source = s.Source
+		service.Exec.Dir = s.Source
+		return service.Start()
+
+	default:
+		return runtime.ErrInvalidResource
+	}
 }
 
 // Delete removes the service from the runtime and stops it
-func (r *localRuntime) Delete(s *runtime.Service, opts ...runtime.DeleteOption) error {
-	r.Lock()
-	defer r.Unlock()
+func (r *localRuntime) Delete(resource runtime.Resource, opts ...runtime.DeleteOption) error {
 
-	var options runtime.DeleteOptions
-	for _, o := range opts {
-		o(&options)
-	}
-	if len(options.Namespace) == 0 {
-		options.Namespace = defaultNamespace
-	}
-
-	srvs, ok := r.namespaces[options.Namespace]
-	if !ok {
+	// Handle the various different types of resources:
+	switch resource.Type() {
+	case runtime.TypeNamespace:
+		// noop (Namespace is not supported by local)
 		return nil
-	}
-
-	if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-		logger.Debugf("Runtime deleting service %s", s.Name)
-	}
-
-	service, ok := srvs[serviceKey(s)]
-	if !ok {
+	case runtime.TypeNetworkPolicy:
+		// noop (NetworkPolicy is not supported by local)
 		return nil
-	}
+	case runtime.TypeService:
 
-	// check if running
-	if !service.Running() {
+		// Assert the resource back into a *runtime.Service
+		s, ok := resource.(*runtime.Service)
+		if !ok {
+			return runtime.ErrInvalidResource
+		}
+
+		r.Lock()
+		defer r.Unlock()
+
+		var options runtime.DeleteOptions
+		for _, o := range opts {
+			o(&options)
+		}
+		if len(options.Namespace) == 0 {
+			options.Namespace = defaultNamespace
+		}
+
+		srvs, ok := r.namespaces[options.Namespace]
+		if !ok {
+			return nil
+		}
+
+		if logger.V(logger.DebugLevel, logger.DefaultLogger) {
+			logger.Debugf("Runtime deleting service %s", s.Name)
+		}
+
+		service, ok := srvs[serviceKey(s)]
+		if !ok {
+			return nil
+		}
+
+		// check if running
+		if !service.Running() {
+			delete(srvs, service.key())
+			r.namespaces[options.Namespace] = srvs
+			return nil
+		}
+		// otherwise stop it
+		if err := service.Stop(); err != nil {
+			return err
+		}
+		// delete it
 		delete(srvs, service.key())
 		r.namespaces[options.Namespace] = srvs
 		return nil
+	default:
+		return runtime.ErrInvalidResource
 	}
-	// otherwise stop it
-	if err := service.Stop(); err != nil {
-		return err
-	}
-	// delete it
-	delete(srvs, service.key())
-	r.namespaces[options.Namespace] = srvs
-	return nil
 }
 
 // Start starts the runtime
@@ -460,14 +541,4 @@ func Entrypoint(dir string) (string, error) {
 	default:
 		return "", errors.New("More than one entrypoint found")
 	}
-}
-
-func (r *localRuntime) CreateNamespace(ns string) error {
-	// noop
-	return nil
-}
-
-func (r *localRuntime) DeleteNamespace(ns string) error {
-	// noop
-	return nil
 }

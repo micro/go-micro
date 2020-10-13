@@ -7,28 +7,25 @@ import (
 )
 
 var (
-	ErrAlreadyExists = errors.New("already exists")
-	ErrNotFound      = errors.New("not found")
+	ErrAlreadyExists   = errors.New("already exists")
+	ErrInvalidResource = errors.New("invalid resource")
+	ErrNotFound        = errors.New("not found")
 )
 
 // Runtime is a service runtime manager
 type Runtime interface {
 	// Init initializes runtime
 	Init(...Option) error
-	// CreateNamespace creates a new namespace in the runtime
-	CreateNamespace(string) error
-	// DeleteNamespace deletes a namespace in the runtime
-	DeleteNamespace(string) error
-	// Create registers a service
-	Create(*Service, ...CreateOption) error
-	// Read returns the service
+	// Create a resource
+	Create(Resource, ...CreateOption) error
+	// Read a resource
 	Read(...ReadOption) ([]*Service, error)
-	// Update the service in place
-	Update(*Service, ...UpdateOption) error
-	// Remove a service
-	Delete(*Service, ...DeleteOption) error
-	// Logs returns the logs for a service
-	Logs(*Service, ...LogsOption) (Logs, error)
+	// Update a resource
+	Update(Resource, ...UpdateOption) error
+	// Delete a resource
+	Delete(Resource, ...DeleteOption) error
+	// Logs returns the logs for a resource
+	Logs(Resource, ...LogsOption) (Logs, error)
 	// Start starts the runtime
 	Start() error
 	// Stop shuts down the runtime
@@ -112,20 +109,6 @@ const (
 	// details can be found within the service's metadata
 	Error
 )
-
-// Service is runtime service
-type Service struct {
-	// Name of the service
-	Name string
-	// Version of the service
-	Version string
-	// url location of source
-	Source string
-	// Metadata stores metadata
-	Metadata map[string]string
-	// Status of the service
-	Status ServiceStatus
-}
 
 // Resources which are allocated to a serivce
 type Resources struct {

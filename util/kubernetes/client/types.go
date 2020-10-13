@@ -267,3 +267,9 @@ type VolumeMount struct {
 	Name      string `json:"name"`
 	MountPath string `json:"mountPath"`
 }
+
+// NetworkPolicy is a Kubernetes Namespace
+type NetworkPolicy struct {
+	AllowedLabels map[string]string `json:"allowedLabels,omitempty"`
+	Metadata      *Metadata         `json:"metadata,omitempty"`
+}
