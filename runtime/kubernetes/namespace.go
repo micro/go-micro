@@ -35,7 +35,7 @@ func (k *kubernetes) ensureNamepaceExists(ns string) error {
 	return nil
 }
 
-// namespaceExists returns a boolean indicating if a namespace exists
+// namespaceExists returns a boolean indicating if a namespace exists in the cache
 func (k *kubernetes) namespaceExists(name string) (bool, error) {
 	// populate the cache
 	if k.namespaces == nil {
@@ -50,7 +50,7 @@ func (k *kubernetes) namespaceExists(name string) (bool, error) {
 		}
 
 		if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-			logger.Debugf("Popualted namespace cache successfully with %v items", len(namespaceList.Items))
+			logger.Debugf("Populated namespace cache successfully with %v items", len(namespaceList.Items))
 		}
 		k.namespaces = namespaceList.Items
 	}
@@ -83,7 +83,12 @@ func (k *kubernetes) autoCreateNamespace(namespace string) error {
 		if networkPolicy, err := runtime.NewNetworkPolicy("ingress", namespace, map[string]string{"owner": "micro"}); err != nil {
 			return err
 		} else {
-			return k.create(networkPolicy)
+			err := k.create(networkPolicy)
+			if err != nil && strings.Contains(err.Error(), "already exists") {
+				logger.Debugf("Ignoring ErrAlreadyExists for network policy %v in namespace %v: %v", networkPolicy.Name, networkPolicy.Namespace, err)
+				err = nil
+			}
+			return err
 		}
 	}
 
