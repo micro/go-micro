@@ -268,8 +268,15 @@ type VolumeMount struct {
 	MountPath string `json:"mountPath"`
 }
 
-// NetworkPolicy is a Kubernetes Namespace
+// NetworkPolicy defines label-based filtering for network ingress
 type NetworkPolicy struct {
 	AllowedLabels map[string]string `json:"allowedLabels,omitempty"`
 	Metadata      *Metadata         `json:"metadata,omitempty"`
+}
+
+// ResourceQuota defines resource limits for a namespace
+type ResourceQuota struct {
+	Requests *ResourceLimits `json:"requests,omitempty"`
+	Limits   *ResourceLimits `json:"limits,omitempty"`
+	Metadata *Metadata       `json:"metadata,omitempty"`
 }

@@ -8,6 +8,7 @@ var templates = map[string]string{
 	"serviceaccount":  serviceAccountTmpl,
 	"networkpolicies": networkPolicyTmpl,
 	"networkpolicy":   networkPolicyTmpl,
+	"resourcequota":   resourceQuotaTmpl,
 }
 
 var deploymentTmpl = `
@@ -268,4 +269,46 @@ spec:
           {{ $key }}: "{{ $value }}"
           {{- end }}
           {{- end }}
+`
+
+var resourceQuotaTmpl = `
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: "{{ .Metadata.Name }}"
+  namespace: "{{ .Metadata.Namespace }}"
+  labels:
+    {{- with .Metadata.Labels }}
+    {{- range $key, $value := . }}
+    {{ $key }}: "{{ $value }}"
+    {{- end }}
+    {{- end }}
+spec:
+  hard:
+  {{- if .Limits }}
+  {{- with .Limits }}
+    {{- if .Memory }}
+    limits.memory: {{ .Memory }}
+    {{- end }}
+    {{- if .CPU }}
+    limits.cpu: {{ .CPU }}
+    {{- end }}
+    {{- if .EphemeralStorage }}
+    limits.ephemeral-storage: {{ .EphemeralStorage }}
+    {{- end }}
+  {{- end }}
+  {{- end }}
+  {{- if .Requests }}
+  {{- with .Requests }}
+    {{- if .Memory }}
+    requests.memory: {{ .Memory }}
+    {{- end }}
+    {{- if .CPU }}
+    requests.cpu: {{ .CPU }}
+    {{- end }}
+    {{- if .EphemeralStorage }}
+    requests.ephemeral-storage: {{ .EphemeralStorage }}
+    {{- end }}
+  {{- end }}
+  {{- end }}
 `
