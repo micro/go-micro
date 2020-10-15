@@ -4,13 +4,8 @@ package memory
 import (
 	"fmt"
 
-	"github.com/micro/go-micro/debug/log"
-	"github.com/micro/go-micro/util/ring"
-)
-
-var (
-	// DefaultSize of the logger buffer
-	DefaultSize = 1024
+	"github.com/micro/go-micro/v3/debug/log"
+	"github.com/micro/go-micro/v3/util/ring"
 )
 
 // memoryLog is default micro log

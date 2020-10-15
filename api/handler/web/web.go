@@ -5,15 +5,16 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math/rand"
 	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"strings"
 
-	"github.com/micro/go-micro/api"
-	"github.com/micro/go-micro/api/handler"
-	"github.com/micro/go-micro/client/selector"
+	"github.com/micro/go-micro/v3/api"
+	"github.com/micro/go-micro/v3/api/handler"
+	"github.com/micro/go-micro/v3/registry"
 )
 
 const (
@@ -70,16 +71,19 @@ func (wh *webHandler) getService(r *http.Request) (string, error) {
 		return "", errors.New("no route found")
 	}
 
-	// create a random selector
-	next := selector.Random(service.Services)
-
-	// get the next node
-	s, err := next()
-	if err != nil {
-		return "", nil
+	// get the nodes
+	var nodes []*registry.Node
+	for _, srv := range service.Services {
+		nodes = append(nodes, srv.Nodes...)
+	}
+	if len(nodes) == 0 {
+		return "", errors.New("no route found")
 	}
 
-	return fmt.Sprintf("http://%s", s.Address), nil
+	// select a random node
+	node := nodes[rand.Int()%len(nodes)]
+
+	return fmt.Sprintf("http://%s", node.Address), nil
 }
 
 // serveWebSocket used to serve a web socket proxied connection

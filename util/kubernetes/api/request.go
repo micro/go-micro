@@ -2,16 +2,21 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
+
+	"github.com/micro/go-micro/v3/logger"
 )
 
 // Request is used to construct a http request for the k8s API.
 type Request struct {
+	// the request context
+	context   context.Context
 	client    *http.Client
 	header    http.Header
 	params    url.Values
@@ -27,7 +32,7 @@ type Request struct {
 	err error
 }
 
-// Params is the object to pass in to set paramaters
+// Params is the object to pass in to set parameters
 // on a request.
 type Params struct {
 	LabelSelector map[string]string
@@ -39,6 +44,10 @@ type Params struct {
 func (r *Request) verb(method string) *Request {
 	r.method = method
 	return r
+}
+
+func (r *Request) Context(ctx context.Context) {
+	r.context = ctx
 }
 
 // Get request
@@ -68,7 +77,9 @@ func (r *Request) Delete() *Request {
 
 // Namespace is to set the namespace to operate on
 func (r *Request) Namespace(s string) *Request {
-	r.namespace = s
+	if len(s) > 0 {
+		r.namespace = s
+	}
 	return r
 }
 
@@ -79,7 +90,7 @@ func (r *Request) Resource(s string) *Request {
 	return r
 }
 
-// SubResource sets a subresource on a resource,
+// SubResource sets a sub resource on a resource,
 // e.g. pods/log for pod logs
 func (r *Request) SubResource(s string) *Request {
 	r.subResource = &s
@@ -121,7 +132,7 @@ func (r *Request) Body(in interface{}) *Request {
 	return r
 }
 
-// Params isused to set paramters on a request
+// Params is used to set parameters on a request
 func (r *Request) Params(p *Params) *Request {
 	for k, v := range p.LabelSelector {
 		// create new key=value pair
@@ -151,12 +162,18 @@ func (r *Request) SetHeader(key, value string) *Request {
 func (r *Request) request() (*http.Request, error) {
 	var url string
 	switch r.resource {
-	case "pod", "service", "endpoint":
-		// /api/v1/namespaces/{namespace}/pods
-		url = fmt.Sprintf("%s/api/v1/namespaces/%s/%ss/", r.host, r.namespace, r.resource)
+	case "namespace":
+		// /api/v1/namespaces/
+		url = fmt.Sprintf("%s/api/v1/namespaces/", r.host)
 	case "deployment":
 		// /apis/apps/v1/namespaces/{namespace}/deployments/{name}
 		url = fmt.Sprintf("%s/apis/apps/v1/namespaces/%s/%ss/", r.host, r.namespace, r.resource)
+	case "networkpolicy", "networkpolicies":
+		// /apis/networking.k8s.io/v1/namespaces/{namespace}/networkpolicies
+		url = fmt.Sprintf("%s/apis/networking.k8s.io/v1/namespaces/%s/networkpolicies/", r.host, r.namespace)
+	default:
+		// /api/v1/namespaces/{namespace}/{resource}
+		url = fmt.Sprintf("%s/api/v1/namespaces/%s/%ss/", r.host, r.namespace, r.resource)
 	}
 
 	// append resourceName if it is present
@@ -172,8 +189,15 @@ func (r *Request) request() (*http.Request, error) {
 		url += "?" + r.params.Encode()
 	}
 
+	var req *http.Request
+	var err error
+
 	// build request
-	req, err := http.NewRequest(r.method, url, r.body)
+	if r.context != nil {
+		req, err = http.NewRequestWithContext(r.context, r.method, url, r.body)
+	} else {
+		req, err = http.NewRequest(r.method, url, r.body)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -198,6 +222,7 @@ func (r *Request) Do() *Response {
 		}
 	}
 
+	logger.Debugf("[Kubernetes] %v %v", req.Method, req.URL.String())
 	res, err := r.client.Do(req)
 	if err != nil {
 		return &Response{

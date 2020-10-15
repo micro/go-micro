@@ -2,6 +2,7 @@
 package acme
 
 import (
+	"crypto/tls"
 	"errors"
 	"net"
 )
@@ -14,7 +15,10 @@ var (
 
 // Provider is a ACME provider interface
 type Provider interface {
-	NewListener(...string) (net.Listener, error)
+	// Listen returns a new listener
+	Listen(...string) (net.Listener, error)
+	// TLSConfig returns a tls config
+	TLSConfig(...string) (*tls.Config, error)
 }
 
 // The Let's Encrypt ACME endpoints

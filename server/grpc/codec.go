@@ -2,17 +2,14 @@ package grpc
 
 import (
 	"encoding/json"
-	"fmt"
 	"strings"
 
 	b "bytes"
 
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
-	"github.com/micro/go-micro/codec"
-	"github.com/micro/go-micro/codec/bytes"
-	"github.com/micro/go-micro/codec/jsonrpc"
-	"github.com/micro/go-micro/codec/protorpc"
+	"github.com/micro/go-micro/v3/codec"
+	"github.com/micro/go-micro/v3/codec/bytes"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/encoding"
 	"google.golang.org/grpc/metadata"
@@ -23,7 +20,11 @@ type bytesCodec struct{}
 type protoCodec struct{}
 type wrapCodec struct{ encoding.Codec }
 
-var jsonpbMarshaler = &jsonpb.Marshaler{}
+var jsonpbMarshaler = &jsonpb.Marshaler{
+	EnumsAsInts:  false,
+	EmitDefaults: false,
+	OrigName:     true,
+}
 
 var (
 	defaultGRPCCodecs = map[string]encoding.Codec{
@@ -35,14 +36,6 @@ var (
 		"application/grpc+json":    jsonCodec{},
 		"application/grpc+proto":   protoCodec{},
 		"application/grpc+bytes":   bytesCodec{},
-	}
-
-	defaultRPCCodecs = map[string]codec.NewCodec{
-		"application/json":         jsonrpc.NewCodec,
-		"application/json-rpc":     jsonrpc.NewCodec,
-		"application/protobuf":     protorpc.NewCodec,
-		"application/proto-rpc":    protorpc.NewCodec,
-		"application/octet-stream": protorpc.NewCodec,
 	}
 )
 
@@ -64,15 +57,26 @@ func (w wrapCodec) Unmarshal(data []byte, v interface{}) error {
 		b.Data = data
 		return nil
 	}
+	if v == nil {
+		return nil
+	}
 	return w.Codec.Unmarshal(data, v)
 }
 
 func (protoCodec) Marshal(v interface{}) ([]byte, error) {
-	return proto.Marshal(v.(proto.Message))
+	m, ok := v.(proto.Message)
+	if !ok {
+		return nil, codec.ErrInvalidMessage
+	}
+	return proto.Marshal(m)
 }
 
 func (protoCodec) Unmarshal(data []byte, v interface{}) error {
-	return proto.Unmarshal(data, v.(proto.Message))
+	m, ok := v.(proto.Message)
+	if !ok {
+		return codec.ErrInvalidMessage
+	}
+	return proto.Unmarshal(data, m)
 }
 
 func (protoCodec) Name() string {
@@ -82,7 +86,6 @@ func (protoCodec) Name() string {
 func (jsonCodec) Marshal(v interface{}) ([]byte, error) {
 	if pb, ok := v.(proto.Message); ok {
 		s, err := jsonpbMarshaler.MarshalToString(pb)
-
 		return []byte(s), err
 	}
 
@@ -90,10 +93,12 @@ func (jsonCodec) Marshal(v interface{}) ([]byte, error) {
 }
 
 func (jsonCodec) Unmarshal(data []byte, v interface{}) error {
+	if len(data) == 0 {
+		return nil
+	}
 	if pb, ok := v.(proto.Message); ok {
 		return jsonpb.Unmarshal(b.NewReader(data), pb)
 	}
-
 	return json.Unmarshal(data, v)
 }
 
@@ -104,7 +109,7 @@ func (jsonCodec) Name() string {
 func (bytesCodec) Marshal(v interface{}) ([]byte, error) {
 	b, ok := v.(*[]byte)
 	if !ok {
-		return nil, fmt.Errorf("failed to marshal: %v is not type of *[]byte", v)
+		return nil, codec.ErrInvalidMessage
 	}
 	return *b, nil
 }
@@ -112,7 +117,7 @@ func (bytesCodec) Marshal(v interface{}) ([]byte, error) {
 func (bytesCodec) Unmarshal(data []byte, v interface{}) error {
 	b, ok := v.(*[]byte)
 	if !ok {
-		return fmt.Errorf("failed to unmarshal: %v is not type of *[]byte", v)
+		return codec.ErrInvalidMessage
 	}
 	*b = data
 	return nil
@@ -123,23 +128,23 @@ func (bytesCodec) Name() string {
 }
 
 type grpcCodec struct {
+	grpc.ServerStream
 	// headers
 	id       string
 	target   string
 	method   string
 	endpoint string
 
-	s grpc.ServerStream
 	c encoding.Codec
 }
 
 func (g *grpcCodec) ReadHeader(m *codec.Message, mt codec.MessageType) error {
-	md, _ := metadata.FromIncomingContext(g.s.Context())
+	md, _ := metadata.FromIncomingContext(g.ServerStream.Context())
 	if m == nil {
 		m = new(codec.Message)
 	}
 	if m.Header == nil {
-		m.Header = make(map[string]string)
+		m.Header = make(map[string]string, len(md))
 	}
 	for k, v := range md {
 		m.Header[k] = strings.Join(v, ",")
@@ -154,9 +159,9 @@ func (g *grpcCodec) ReadHeader(m *codec.Message, mt codec.MessageType) error {
 func (g *grpcCodec) ReadBody(v interface{}) error {
 	// caller has requested a frame
 	if f, ok := v.(*bytes.Frame); ok {
-		return g.s.RecvMsg(f)
+		return g.ServerStream.RecvMsg(f)
 	}
-	return g.s.RecvMsg(v)
+	return g.ServerStream.RecvMsg(v)
 }
 
 func (g *grpcCodec) Write(m *codec.Message, v interface{}) error {
@@ -169,7 +174,7 @@ func (g *grpcCodec) Write(m *codec.Message, v interface{}) error {
 		m.Body = b
 	}
 	// write the body using the framing codec
-	return g.s.SendMsg(&bytes.Frame{Data: m.Body})
+	return g.ServerStream.SendMsg(&bytes.Frame{Data: m.Body})
 }
 
 func (g *grpcCodec) Close() error {
@@ -177,5 +182,5 @@ func (g *grpcCodec) Close() error {
 }
 
 func (g *grpcCodec) String() string {
-	return g.c.Name()
+	return "grpc"
 }

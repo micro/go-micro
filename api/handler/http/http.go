@@ -4,13 +4,14 @@ package http
 import (
 	"errors"
 	"fmt"
+	"math/rand"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
 
-	"github.com/micro/go-micro/api"
-	"github.com/micro/go-micro/api/handler"
-	"github.com/micro/go-micro/client/selector"
+	"github.com/micro/go-micro/v3/api"
+	"github.com/micro/go-micro/v3/api/handler"
+	"github.com/micro/go-micro/v3/registry"
 )
 
 const (
@@ -20,7 +21,7 @@ const (
 type httpHandler struct {
 	options handler.Options
 
-	// set with different initialiser
+	// set with different initializer
 	s *api.Service
 }
 
@@ -64,16 +65,19 @@ func (h *httpHandler) getService(r *http.Request) (string, error) {
 		return "", errors.New("no route found")
 	}
 
-	// create a random selector
-	next := selector.Random(service.Services)
-
-	// get the next node
-	s, err := next()
-	if err != nil {
-		return "", nil
+	// get the nodes for this service
+	var nodes []*registry.Node
+	for _, srv := range service.Services {
+		nodes = append(nodes, srv.Nodes...)
 	}
 
-	return fmt.Sprintf("http://%s", s.Address), nil
+	// select a random node
+	if len(nodes) == 0 {
+		return "", errors.New("no route found")
+	}
+	node := nodes[rand.Int()%len(nodes)]
+
+	return fmt.Sprintf("http://%s", node.Address), nil
 }
 
 func (h *httpHandler) String() string {

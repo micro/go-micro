@@ -6,7 +6,7 @@ If you're looking for caching in your microservices use the [selector](https://m
 
 ## Interface
 
-```
+```go
 // Cache is the registry cache interface
 type Cache interface {
 	// embed the registry interface
@@ -18,14 +18,12 @@ type Cache interface {
 
 ## Usage
 
-```
-import (
-	"github.com/micro/go-micro/registry"
-	"github.com/micro/go-micro/registry/cache"
-)
+```go
+import "github.com/micro/go-micro/registry/cache"
 
-r := registry.NewRegistry()
-cache := cache.New(r)
+# create a new cache
+c := cache.New(registry)
 
-services, _ := cache.GetService("my.service")
+# get a service from the cache
+services, _ := c.GetService("helloworld")
 ```

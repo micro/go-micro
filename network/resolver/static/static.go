@@ -1,8 +1,8 @@
 // Package static is a static resolver
-package registry
+package static
 
 import (
-	"github.com/micro/go-micro/network/resolver"
+	"github.com/micro/go-micro/v3/network/resolver"
 )
 
 // Resolver returns a static list of nodes. In the event the node list

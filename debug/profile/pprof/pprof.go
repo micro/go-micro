@@ -1,4 +1,4 @@
-// Package pprof provides a pprof profiler
+// Package pprof provides a pprof profiler which writes output to /tmp/[name].{cpu,mem}.pprof
 package pprof
 
 import (
@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/micro/go-micro/debug/profile"
+	"github.com/micro/go-micro/v3/debug/profile"
 )
 
 type profiler struct {

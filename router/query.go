@@ -1,12 +1,11 @@
 package router
 
-// QueryOption sets routing table query options
-type QueryOption func(*QueryOptions)
+// LookupOption sets routing table query options
+type LookupOption func(*LookupOptions)
 
-// QueryOptions are routing table query options
-type QueryOptions struct {
-	// Service is destination service name
-	Service string
+// LookupOptions are routing table query options
+// TODO replace with Filter(Route) bool
+type LookupOptions struct {
 	// Address of the service
 	Address string
 	// Gateway is route gateway
@@ -15,52 +14,54 @@ type QueryOptions struct {
 	Network string
 	// Router is router id
 	Router string
+	// Link to query
+	Link string
 }
 
-// QueryService sets service to query
-func QueryService(s string) QueryOption {
-	return func(o *QueryOptions) {
-		o.Service = s
-	}
-}
-
-// QueryAddress sets service to query
-func QueryAddress(a string) QueryOption {
-	return func(o *QueryOptions) {
+// LookupAddress sets service to query
+func LookupAddress(a string) LookupOption {
+	return func(o *LookupOptions) {
 		o.Address = a
 	}
 }
 
-// QueryGateway sets gateway address to query
-func QueryGateway(g string) QueryOption {
-	return func(o *QueryOptions) {
+// LookupGateway sets gateway address to query
+func LookupGateway(g string) LookupOption {
+	return func(o *LookupOptions) {
 		o.Gateway = g
 	}
 }
 
-// QueryNetwork sets network name to query
-func QueryNetwork(n string) QueryOption {
-	return func(o *QueryOptions) {
+// LookupNetwork sets network name to query
+func LookupNetwork(n string) LookupOption {
+	return func(o *LookupOptions) {
 		o.Network = n
 	}
 }
 
-// QueryRouter sets router id to query
-func QueryRouter(r string) QueryOption {
-	return func(o *QueryOptions) {
+// LookupRouter sets router id to query
+func LookupRouter(r string) LookupOption {
+	return func(o *LookupOptions) {
 		o.Router = r
 	}
 }
 
-// NewQuery creates new query and returns it
-func NewQuery(opts ...QueryOption) QueryOptions {
+// LookupLink sets the link to query
+func LookupLink(link string) LookupOption {
+	return func(o *LookupOptions) {
+		o.Link = link
+	}
+}
+
+// NewLookup creates new query and returns it
+func NewLookup(opts ...LookupOption) LookupOptions {
 	// default options
-	qopts := QueryOptions{
-		Service: "*",
+	qopts := LookupOptions{
 		Address: "*",
 		Gateway: "*",
 		Network: "*",
 		Router:  "*",
+		Link:    DefaultLink,
 	}
 
 	for _, o := range opts {
@@ -68,4 +69,67 @@ func NewQuery(opts ...QueryOption) QueryOptions {
 	}
 
 	return qopts
+}
+
+// isMatch checks if the route matches given query options
+func isMatch(route Route, address, gateway, network, rtr, link string) bool {
+	// matches the values provided
+	match := func(a, b string) bool {
+		if a == "*" || b == "*" || a == b {
+			return true
+		}
+		return false
+	}
+
+	// a simple struct to hold our values
+	type compare struct {
+		a string
+		b string
+	}
+
+	// compare the following values
+	values := []compare{
+		{gateway, route.Gateway},
+		{network, route.Network},
+		{rtr, route.Router},
+		{address, route.Address},
+		{link, route.Link},
+	}
+
+	for _, v := range values {
+		// attempt to match each value
+		if !match(v.a, v.b) {
+			return false
+		}
+	}
+
+	return true
+}
+
+// filterRoutes finds all the routes for given network and router and returns them
+func Filter(routes []Route, opts LookupOptions) []Route {
+	address := opts.Address
+	gateway := opts.Gateway
+	network := opts.Network
+	rtr := opts.Router
+	link := opts.Link
+
+	// routeMap stores the routes we're going to advertise
+	routeMap := make(map[string][]Route)
+
+	for _, route := range routes {
+		if isMatch(route, address, gateway, network, rtr, link) {
+			// add matchihg route to the routeMap
+			routeKey := route.Service + "@" + route.Network
+			routeMap[routeKey] = append(routeMap[routeKey], route)
+		}
+	}
+
+	var results []Route
+
+	for _, route := range routeMap {
+		results = append(results, route...)
+	}
+
+	return results
 }

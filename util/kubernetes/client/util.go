@@ -88,11 +88,16 @@ func CertsFromPEM(pemCerts []byte) ([]*x509.Certificate, error) {
 }
 
 // Format is used to format a string value into a k8s valid name
+// https://kubernetes.io/docs/concepts/overview/working-with-objects/names/
 func Format(v string) string {
 	// to lower case
 	v = strings.ToLower(v)
-	// dots to dashes
-	v = strings.ReplaceAll(v, ".", "-")
+	// / to dashes
+	replaceChars := []string{"/", ".", "_"}
+	for _, s := range replaceChars {
+		v = strings.ReplaceAll(v, s, "-")
+	}
+
 	// limit to 253 chars
 	if len(v) > 253 {
 		v = v[:253]

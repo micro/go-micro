@@ -2,15 +2,16 @@
 package memory
 
 import (
+	"context"
 	"errors"
 	"math/rand"
 	"sync"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/micro/go-micro/broker"
-	maddr "github.com/micro/go-micro/util/addr"
-	mnet "github.com/micro/go-micro/util/net"
+	"github.com/micro/go-micro/v3/broker"
+	maddr "github.com/micro/go-micro/v3/util/addr"
+	mnet "github.com/micro/go-micro/v3/util/net"
 )
 
 type memoryBroker struct {
@@ -20,11 +21,6 @@ type memoryBroker struct {
 	sync.RWMutex
 	connected   bool
 	Subscribers map[string][]*memorySubscriber
-}
-
-type memoryEvent struct {
-	topic   string
-	message *broker.Message
 }
 
 type memorySubscriber struct {
@@ -51,7 +47,8 @@ func (m *memoryBroker) Connect() error {
 		return nil
 	}
 
-	addr, err := maddr.Extract("::")
+	// use 127.0.0.1 to avoid scan of all network interfaces
+	addr, err := maddr.Extract("127.0.0.1")
 	if err != nil {
 		return err
 	}
@@ -85,7 +82,7 @@ func (m *memoryBroker) Init(opts ...broker.Option) error {
 	return nil
 }
 
-func (m *memoryBroker) Publish(topic string, message *broker.Message, opts ...broker.PublishOption) error {
+func (m *memoryBroker) Publish(topic string, msg *broker.Message, opts ...broker.PublishOption) error {
 	m.RLock()
 	if !m.connected {
 		m.RUnlock()
@@ -98,14 +95,12 @@ func (m *memoryBroker) Publish(topic string, message *broker.Message, opts ...br
 		return nil
 	}
 
-	p := &memoryEvent{
-		topic:   topic,
-		message: message,
-	}
-
 	for _, sub := range subs {
-		if err := sub.handler(p); err != nil {
-			return err
+		if err := sub.handler(msg); err != nil {
+			if eh := sub.opts.ErrorHandler; eh != nil {
+				eh(msg, err)
+			}
+			continue
 		}
 	}
 
@@ -158,18 +153,6 @@ func (m *memoryBroker) String() string {
 	return "memory"
 }
 
-func (m *memoryEvent) Topic() string {
-	return m.topic
-}
-
-func (m *memoryEvent) Message() *broker.Message {
-	return m.message
-}
-
-func (m *memoryEvent) Ack() error {
-	return nil
-}
-
 func (m *memorySubscriber) Options() broker.SubscribeOptions {
 	return m.opts
 }
@@ -184,7 +167,10 @@ func (m *memorySubscriber) Unsubscribe() error {
 }
 
 func NewBroker(opts ...broker.Option) broker.Broker {
-	var options broker.Options
+	options := broker.Options{
+		Context: context.Background(),
+	}
+
 	rand.Seed(time.Now().UnixNano())
 	for _, o := range opts {
 		o(&options)

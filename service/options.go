@@ -4,19 +4,23 @@ import (
 	"context"
 	"time"
 
-	"github.com/micro/go-micro/broker"
-	"github.com/micro/go-micro/client"
-	"github.com/micro/go-micro/registry"
-	"github.com/micro/go-micro/server"
-	"github.com/micro/go-micro/transport"
+	"github.com/micro/go-micro/v3/broker"
+	"github.com/micro/go-micro/v3/broker/http"
+	"github.com/micro/go-micro/v3/client"
+	mucpClient "github.com/micro/go-micro/v3/client/mucp"
+	"github.com/micro/go-micro/v3/model"
+	"github.com/micro/go-micro/v3/registry"
+	"github.com/micro/go-micro/v3/registry/mdns"
+	"github.com/micro/go-micro/v3/server"
+	mucpServer "github.com/micro/go-micro/v3/server/mucp"
 )
 
 type Options struct {
-	Broker    broker.Broker
-	Client    client.Client
-	Server    server.Server
-	Registry  registry.Registry
-	Transport transport.Transport
+	Broker   broker.Broker
+	Client   client.Client
+	Server   server.Server
+	Model    model.Model
+	Registry registry.Registry
 
 	// Before and After funcs
 	BeforeStart []func() error
@@ -31,14 +35,13 @@ type Options struct {
 
 type Option func(*Options)
 
-func newOptions(opts ...Option) Options {
+func NewOptions(opts ...Option) Options {
 	opt := Options{
-		Broker:    broker.DefaultBroker,
-		Client:    client.DefaultClient,
-		Server:    server.DefaultServer,
-		Registry:  registry.DefaultRegistry,
-		Transport: transport.DefaultTransport,
-		Context:   context.Background(),
+		Broker:   http.NewBroker(),
+		Client:   mucpClient.NewClient(),
+		Server:   mucpServer.NewServer(),
+		Registry: mdns.NewRegistry(),
+		Context:  context.Background(),
 	}
 
 	for _, o := range opts {
@@ -72,9 +75,17 @@ func Context(ctx context.Context) Option {
 	}
 }
 
+// Server sets the server for handling requests
 func Server(s server.Server) Option {
 	return func(o *Options) {
 		o.Server = s
+	}
+}
+
+// Model sets the model for data access
+func Model(m model.Model) Option {
+	return func(o *Options) {
+		o.Model = m
 	}
 }
 
@@ -83,22 +94,12 @@ func Server(s server.Server) Option {
 func Registry(r registry.Registry) Option {
 	return func(o *Options) {
 		o.Registry = r
-		// Update Client and Server
-		o.Client.Init(client.Registry(r))
+		// Update server
 		o.Server.Init(server.Registry(r))
 		// Update Broker
 		o.Broker.Init(broker.Registry(r))
-	}
-}
-
-// Transport sets the transport for the service
-// and the underlying components
-func Transport(t transport.Transport) Option {
-	return func(o *Options) {
-		o.Transport = t
-		// Update Client and Server
-		o.Client.Init(client.Transport(t))
-		o.Server.Init(server.Transport(t))
+		// Update router
+		o.Client.Init(client.Registry(r))
 	}
 }
 

@@ -2,25 +2,34 @@ package server
 
 import (
 	"context"
+	"crypto/tls"
 	"sync"
 	"time"
 
-	"github.com/micro/go-micro/broker"
-	"github.com/micro/go-micro/codec"
-	"github.com/micro/go-micro/registry"
-	"github.com/micro/go-micro/transport"
+	"github.com/micro/go-micro/v3/auth"
+	"github.com/micro/go-micro/v3/broker"
+	"github.com/micro/go-micro/v3/broker/http"
+	"github.com/micro/go-micro/v3/codec"
+	"github.com/micro/go-micro/v3/debug/trace"
+	"github.com/micro/go-micro/v3/network/transport"
+	thttp "github.com/micro/go-micro/v3/network/transport/http"
+	"github.com/micro/go-micro/v3/registry"
+	"github.com/micro/go-micro/v3/registry/mdns"
 )
 
 type Options struct {
 	Codecs       map[string]codec.NewCodec
 	Broker       broker.Broker
 	Registry     registry.Registry
+	Tracer       trace.Tracer
+	Auth         auth.Auth
 	Transport    transport.Transport
 	Metadata     map[string]string
 	Name         string
 	Address      string
 	Advertise    string
 	Id           string
+	Namespace    string
 	Version      string
 	HdlrWrappers []HandlerWrapper
 	SubWrappers  []SubscriberWrapper
@@ -34,6 +43,9 @@ type Options struct {
 
 	// The router for requests
 	Router Router
+
+	// TLSConfig specifies tls.Config for secure serving
+	TLSConfig *tls.Config
 
 	// Other options for implementations of the interface
 	// can be stored in a context
@@ -53,15 +65,15 @@ func newOptions(opt ...Option) Options {
 	}
 
 	if opts.Broker == nil {
-		opts.Broker = broker.DefaultBroker
+		opts.Broker = http.NewBroker()
 	}
 
 	if opts.Registry == nil {
-		opts.Registry = registry.DefaultRegistry
+		opts.Registry = mdns.NewRegistry()
 	}
 
 	if opts.Transport == nil {
-		opts.Transport = transport.DefaultTransport
+		opts.Transport = thttp.NewTransport()
 	}
 
 	if opts.RegisterCheck == nil {
@@ -91,6 +103,13 @@ func newOptions(opt ...Option) Options {
 func Name(n string) Option {
 	return func(o *Options) {
 		o.Name = n
+	}
+}
+
+// Namespace to register handlers in
+func Namespace(n string) Option {
+	return func(o *Options) {
+		o.Namespace = n
 	}
 }
 
@@ -152,6 +171,20 @@ func Registry(r registry.Registry) Option {
 	}
 }
 
+// Tracer mechanism for distributed tracking
+func Tracer(t trace.Tracer) Option {
+	return func(o *Options) {
+		o.Tracer = t
+	}
+}
+
+// Auth mechanism for role based access control
+func Auth(a auth.Auth) Option {
+	return func(o *Options) {
+		o.Auth = a
+	}
+}
+
 // Transport mechanism for communication e.g http, rabbitmq, etc
 func Transport(t transport.Transport) Option {
 	return func(o *Options) {
@@ -184,6 +217,26 @@ func RegisterTTL(t time.Duration) Option {
 func RegisterInterval(t time.Duration) Option {
 	return func(o *Options) {
 		o.RegisterInterval = t
+	}
+}
+
+// TLSConfig specifies a *tls.Config
+func TLSConfig(t *tls.Config) Option {
+	return func(o *Options) {
+		// set the internal tls
+		o.TLSConfig = t
+
+		// set the default transport if one is not
+		// already set. Required for Init call below.
+		if o.Transport == nil {
+			o.Transport = thttp.NewTransport()
+		}
+
+		// set the transport tls
+		o.Transport.Init(
+			transport.Secure(true),
+			transport.TLSConfig(t),
+		)
 	}
 }
 

@@ -2,23 +2,12 @@ package grpc
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"os"
 	"sync"
 
 	"google.golang.org/grpc/codes"
 )
-
-// rpcError defines the status from an RPC.
-type rpcError struct {
-	code codes.Code
-	desc string
-}
-
-func (e *rpcError) Error() string {
-	return fmt.Sprintf("rpc error: code = %d desc = %s", e.code, e.desc)
-}
 
 // convertCode converts a standard Go error into its canonical code. Note that
 // this is only used to translate the error returned by the server applications.

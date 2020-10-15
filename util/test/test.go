@@ -1,7 +1,7 @@
 package test
 
 import (
-	"github.com/micro/go-micro/registry"
+	"github.com/micro/go-micro/v3/registry"
 )
 
 var (

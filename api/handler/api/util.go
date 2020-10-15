@@ -2,15 +2,18 @@ package api
 
 import (
 	"fmt"
-	"io/ioutil"
 	"mime"
 	"net"
 	"net/http"
 	"strings"
 
-	api "github.com/micro/go-micro/api/proto"
-	"github.com/micro/go-micro/client/selector"
-	"github.com/micro/go-micro/registry"
+	api "github.com/micro/go-micro/v3/api/proto"
+	"github.com/oxtoacart/bpool"
+)
+
+var (
+	// need to calculate later to specify useful defaults
+	bufferPool = bpool.NewSizedBufferPool(1024, 8)
 )
 
 func requestToProto(r *http.Request) (*api.Request, error) {
@@ -39,9 +42,12 @@ func requestToProto(r *http.Request) (*api.Request, error) {
 		case "application/x-www-form-urlencoded":
 			// expect form vals in Post data
 		default:
-
-			data, _ := ioutil.ReadAll(r.Body)
-			req.Body = string(data)
+			buf := bufferPool.Get()
+			defer bufferPool.Put(buf)
+			if _, err = buf.ReadFrom(r.Body); err != nil {
+				return nil, err
+			}
+			req.Body = buf.String()
 		}
 	}
 
@@ -100,12 +106,4 @@ func requestToProto(r *http.Request) (*api.Request, error) {
 	}
 
 	return req, nil
-}
-
-// strategy is a hack for selection
-func strategy(services []*registry.Service) selector.Strategy {
-	return func(_ []*registry.Service) selector.Next {
-		// ignore input to this function, use services above
-		return selector.Random(services)
-	}
 }

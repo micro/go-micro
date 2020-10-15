@@ -3,14 +3,14 @@ package grpc
 import (
 	"strings"
 
-	"github.com/micro/go-micro/codec"
-	"github.com/micro/go-micro/codec/bytes"
+	"github.com/micro/go-micro/v3/codec"
+	"github.com/micro/go-micro/v3/codec/bytes"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/encoding"
 )
 
 type response struct {
-	conn   *grpc.ClientConn
+	conn   *poolConn
 	stream grpc.ClientStream
 	codec  encoding.Codec
 	gcodec codec.Codec
@@ -27,7 +27,7 @@ func (r *response) Header() map[string]string {
 	if err != nil {
 		return map[string]string{}
 	}
-	hdr := make(map[string]string)
+	hdr := make(map[string]string, len(md))
 	for k, v := range md {
 		hdr[k] = strings.Join(v, ",")
 	}

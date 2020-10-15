@@ -6,7 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 
-	"github.com/micro/go-micro/codec"
+	"github.com/micro/go-micro/v3/codec"
 )
 
 type Codec struct {
@@ -46,6 +46,8 @@ func (c *Codec) ReadBody(b interface{}) error {
 func (c *Codec) Write(m *codec.Message, b interface{}) error {
 	var v []byte
 	switch ve := b.(type) {
+	case nil:
+		return nil
 	case *Frame:
 		v = ve.Data
 	case *[]byte:

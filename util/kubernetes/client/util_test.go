@@ -3,22 +3,23 @@ package client
 import (
 	"bytes"
 	"testing"
+
+	"github.com/micro/go-micro/v3/runtime"
 )
 
 func TestTemplates(t *testing.T) {
-	name := "foo"
-	version := "123"
-	typ := "service"
+	srv := &runtime.Service{Name: "foo", Version: "123"}
+	opts := &runtime.CreateOptions{Type: "service", Namespace: "default"}
 
 	// Render default service
-	s := NewService(name, version, typ)
+	s := NewService(srv, opts)
 	bs := new(bytes.Buffer)
 	if err := renderTemplate(templates["service"], bs, s); err != nil {
 		t.Errorf("Failed to render kubernetes service: %v", err)
 	}
 
 	// Render default deployment
-	d := NewDeployment(name, version, typ)
+	d := NewDeployment(srv, opts)
 	bd := new(bytes.Buffer)
 	if err := renderTemplate(templates["deployment"], bd, d); err != nil {
 		t.Errorf("Failed to render kubernetes deployment: %v", err)
@@ -35,6 +36,8 @@ func TestFormatName(t *testing.T) {
 		{"foo.bar", "foo-bar"},
 		{"Foo.Bar", "foo-bar"},
 		{"go.micro.foo.bar", "go-micro-foo-bar"},
+		{"go.micro.foo.bar", "go-micro-foo-bar"},
+		{"foo/bar_baz", "foo-bar-baz"},
 	}
 
 	for _, test := range testCases {

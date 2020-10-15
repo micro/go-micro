@@ -7,12 +7,12 @@ import (
 	"runtime/debug"
 	"strings"
 
-	"github.com/micro/go-micro/broker"
-	"github.com/micro/go-micro/errors"
-	"github.com/micro/go-micro/metadata"
-	"github.com/micro/go-micro/registry"
-	"github.com/micro/go-micro/server"
-	"github.com/micro/go-micro/util/log"
+	"github.com/micro/go-micro/v3/broker"
+	"github.com/micro/go-micro/v3/errors"
+	"github.com/micro/go-micro/v3/logger"
+	"github.com/micro/go-micro/v3/metadata"
+	"github.com/micro/go-micro/v3/registry"
+	"github.com/micro/go-micro/v3/server"
 )
 
 const (
@@ -167,17 +167,23 @@ func validateSubscriber(sub server.Subscriber) error {
 }
 
 func (g *grpcServer) createSubHandler(sb *subscriber, opts server.Options) broker.Handler {
-	return func(p broker.Event) (err error) {
+	return func(msg *broker.Message) (err error) {
 
 		defer func() {
 			if r := recover(); r != nil {
-				log.Log("panic recovered: ", r)
-				log.Logf(string(debug.Stack()))
-				err = errors.InternalServerError("go.micro.server", "panic recovered: %v", r)
+				if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
+					logger.Error("panic recovered: ", r)
+					logger.Error(string(debug.Stack()))
+				}
+				err = errors.InternalServerError(g.opts.Name+".subscriber", "panic recovered: %v", r)
 			}
 		}()
 
-		msg := p.Message()
+		// if we don't have headers, create empty map
+		if msg.Header == nil {
+			msg.Header = make(map[string]string)
+		}
+
 		ct := msg.Header["Content-Type"]
 		if len(ct) == 0 {
 			msg.Header["Content-Type"] = defaultContentType
@@ -188,7 +194,7 @@ func (g *grpcServer) createSubHandler(sb *subscriber, opts server.Options) broke
 			return err
 		}
 
-		hdr := make(map[string]string)
+		hdr := make(map[string]string, len(msg.Header))
 		for k, v := range msg.Header {
 			hdr[k] = v
 		}
@@ -246,18 +252,19 @@ func (g *grpcServer) createSubHandler(sb *subscriber, opts server.Options) broke
 				if g.wg != nil {
 					defer g.wg.Done()
 				}
-				results <- fn(ctx, &rpcMessage{
+				err := fn(ctx, &rpcMessage{
 					topic:       sb.topic,
 					contentType: ct,
 					payload:     req.Interface(),
 					header:      msg.Header,
 					body:        msg.Body,
 				})
+				results <- err
 			}()
 		}
 		var errors []string
 		for i := 0; i < len(sb.handlers); i++ {
-			if rerr := <-results; err != nil {
+			if rerr := <-results; rerr != nil {
 				errors = append(errors, rerr.Error())
 			}
 		}

@@ -9,9 +9,7 @@ import (
 
 var (
 	// Default buffer size if any
-	DefaultSize = 1024
-	// DefaultLog logger
-	DefaultLog = NewLog()
+	DefaultSize = 256
 	// Default formatter
 	DefaultFormat = TextFormat
 )

@@ -1,0 +1,86 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: micro-runtime
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: micro-runtime
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+      - pods/log
+      - services
+      - secrets
+      - namespaces
+    verbs:
+      - get
+      - create
+      - update
+      - delete
+      - list
+      - patch
+      - watch
+  - apiGroups:
+      - "apps"
+    resources:
+      - deployments
+    verbs:
+      - create
+      - update
+      - delete
+      - list
+      - patch
+      - watch
+  - apiGroups:
+      - ""
+    resources:
+      - secrets
+      - pods
+      - pods/logs
+    verbs:
+      - get
+      - watch
+      - list
+  - apiGroups:
+      - "networking.k8s.io"
+    resources:
+      - networkpolicy
+      - networkpolicies
+    verbs:
+      - get
+      - create
+      - update
+      - delete
+      - deletecollection
+      - list
+      - patch
+      - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: micro-runtime
+subjects:
+  - kind: ServiceAccount
+    name: micro-runtime
+    namespace: default
+roleRef:
+  kind: ClusterRole
+  name: micro-runtime
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: micro-runtime
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: micro-runtime
+subjects:
+  - kind: ServiceAccount
+    name: micro-runtime

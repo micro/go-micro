@@ -1,12 +1,14 @@
+syntax = "proto3";
+
 package protorpc;
 
 message Request {
-	optional string service_method = 1;
-	optional fixed64 seq = 2;
+	string service_method = 1;
+	fixed64 seq = 2;
 }
 
 message Response {
-	optional string service_method = 1;
-	optional fixed64 seq = 2;
-	optional string error = 3;
+	string service_method = 1;
+	fixed64 seq = 2;
+	string error = 3;
 }

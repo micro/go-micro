@@ -3,16 +3,16 @@ package memory
 import (
 	"time"
 
-	"github.com/micro/go-micro/registry"
+	"github.com/micro/go-micro/v3/registry"
 )
 
 func serviceToRecord(s *registry.Service, ttl time.Duration) *record {
-	metadata := make(map[string]string)
+	metadata := make(map[string]string, len(s.Metadata))
 	for k, v := range s.Metadata {
 		metadata[k] = v
 	}
 
-	nodes := make(map[string]*node)
+	nodes := make(map[string]*node, len(s.Nodes))
 	for _, n := range s.Nodes {
 		nodes[n.Id] = &node{
 			Node:     n,
@@ -35,11 +35,14 @@ func serviceToRecord(s *registry.Service, ttl time.Duration) *record {
 	}
 }
 
-func recordToService(r *record) *registry.Service {
-	metadata := make(map[string]string)
+func recordToService(r *record, domain string) *registry.Service {
+	metadata := make(map[string]string, len(r.Metadata))
 	for k, v := range r.Metadata {
 		metadata[k] = v
 	}
+
+	// set the domain in metadata so it can be determined when a wildcard query is performed
+	metadata["domain"] = domain
 
 	endpoints := make([]*registry.Endpoint, len(r.Endpoints))
 	for i, e := range r.Endpoints {
@@ -52,7 +55,7 @@ func recordToService(r *record) *registry.Service {
 			*response = *e.Response
 		}
 
-		metadata := make(map[string]string)
+		metadata := make(map[string]string, len(e.Metadata))
 		for k, v := range e.Metadata {
 			metadata[k] = v
 		}
@@ -68,7 +71,7 @@ func recordToService(r *record) *registry.Service {
 	nodes := make([]*registry.Node, len(r.Nodes))
 	i := 0
 	for _, n := range r.Nodes {
-		metadata := make(map[string]string)
+		metadata := make(map[string]string, len(n.Metadata))
 		for k, v := range n.Metadata {
 			metadata[k] = v
 		}

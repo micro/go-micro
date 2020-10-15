@@ -4,30 +4,24 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/micro/go-micro/client/selector"
+	"github.com/micro/go-micro/v3/selector"
 )
 
 type roundTripper struct {
 	rt   http.RoundTripper
-	st   selector.Strategy
+	st   selector.Selector
 	opts Options
 }
 
 func (r *roundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
-	s, err := r.opts.Registry.GetService(req.URL.Host)
+	routes, err := r.opts.Router.Lookup(req.URL.Host)
 	if err != nil {
 		return nil, err
 	}
 
-	next := r.st(s)
-
 	// rudimentary retry 3 times
-	for i := 0; i < 3; i++ {
-		n, err := next()
-		if err != nil {
-			continue
-		}
-		req.URL.Host = n.Address
+	for _, route := range routes {
+		req.URL.Host = route.Address
 		w, err := r.rt.RoundTrip(req)
 		if err != nil {
 			continue

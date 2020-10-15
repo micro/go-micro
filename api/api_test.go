@@ -111,3 +111,42 @@ func TestEncoding(t *testing.T) {
 		}
 	}
 }
+
+func TestValidate(t *testing.T) {
+	epPcre := &Endpoint{
+		Name:        "Foo.Bar",
+		Description: "A test endpoint",
+		Handler:     "meta",
+		Host:        []string{"foo.com"},
+		Method:      []string{"GET"},
+		Path:        []string{"^/test/?$"},
+	}
+	if err := Validate(epPcre); err != nil {
+		t.Fatal(err)
+	}
+
+	epGpath := &Endpoint{
+		Name:        "Foo.Bar",
+		Description: "A test endpoint",
+		Handler:     "meta",
+		Host:        []string{"foo.com"},
+		Method:      []string{"GET"},
+		Path:        []string{"/test/{id}"},
+	}
+	if err := Validate(epGpath); err != nil {
+		t.Fatal(err)
+	}
+
+	epPcreInvalid := &Endpoint{
+		Name:        "Foo.Bar",
+		Description: "A test endpoint",
+		Handler:     "meta",
+		Host:        []string{"foo.com"},
+		Method:      []string{"GET"},
+		Path:        []string{"/test/?$"},
+	}
+	if err := Validate(epPcreInvalid); err == nil {
+		t.Fatalf("invalid pcre %v", epPcreInvalid.Path[0])
+	}
+
+}

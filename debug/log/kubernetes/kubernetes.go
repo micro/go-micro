@@ -1,4 +1,4 @@
-// Package kubernetes is a logger implementing (github.com/micro/go-micro/debug/log).Log
+// Package kubernetes is a logger implementing (github.com/micro/go-micro/v3/debug/log).Log
 package kubernetes
 
 import (
@@ -10,8 +10,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/micro/go-micro/debug/log"
-	"github.com/micro/go-micro/util/kubernetes/client"
+	"github.com/micro/go-micro/v3/debug/log"
+	"github.com/micro/go-micro/v3/util/kubernetes/client"
 )
 
 type klog struct {
@@ -67,7 +67,7 @@ func (k *klog) getMatchingPods() ([]string, error) {
 	// TODO: specify micro:service
 	// l["micro"] = "service"
 
-	if err := k.client.Get(r, l); err != nil {
+	if err := k.client.Get(r, client.GetLabels(l)); err != nil {
 		return nil, err
 	}
 
@@ -102,7 +102,6 @@ func (k *klog) Read(options ...log.ReadOption) ([]log.Record, error) {
 	for _, o := range options {
 		o(opts)
 	}
-
 	pods, err := k.getMatchingPods()
 	if err != nil {
 		return nil, err
@@ -182,9 +181,9 @@ func NewLog(opts ...log.Option) log.Log {
 	}
 
 	if len(os.Getenv("KUBERNETES_SERVICE_HOST")) > 0 {
-		klog.client = client.NewClientInCluster()
+		klog.client = client.NewClusterClient()
 	} else {
-		klog.client = client.NewLocalDevClient()
+		klog.client = client.NewLocalClient()
 	}
 	return klog
 }

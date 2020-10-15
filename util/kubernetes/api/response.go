@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 )
@@ -16,13 +17,13 @@ var (
 
 // Status is an object that is returned when a request
 // failed or delete succeeded.
-// type Status struct {
-// 	Kind    string `json:"kind"`
-// 	Status  string `json:"status"`
-// 	Message string `json:"message"`
-// 	Reason  string `json:"reason"`
-// 	Code    int    `json:"code"`
-// }
+type Status struct {
+	Kind    string `json:"kind"`
+	Status  string `json:"status"`
+	Message string `json:"message"`
+	Reason  string `json:"reason"`
+	Code    int    `json:"code"`
+}
 
 // Response ...
 type Response struct {
@@ -50,12 +51,15 @@ func (r *Response) Into(data interface{}) error {
 
 	defer r.res.Body.Close()
 	decoder := json.NewDecoder(r.res.Body)
-	err := decoder.Decode(&data)
-	if err != nil {
-		return ErrDecode
+	if err := decoder.Decode(&data); err != nil {
+		return fmt.Errorf("%v: %v", ErrDecode, err)
 	}
 
 	return r.err
+}
+
+func (r *Response) Close() error {
+	return r.res.Body.Close()
 }
 
 func newResponse(res *http.Response, err error) *Response {

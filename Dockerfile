@@ -5,7 +5,7 @@ RUN mkdir /user && \
     echo 'nobody:x:65534:' > /user/group
 
 ENV GO111MODULE=on
-RUN apk --no-cache add make git gcc libtool musl-dev ca-certificates && \
+RUN apk --no-cache add make git gcc libtool musl-dev ca-certificates dumb-init && \
     rm -rf /var/cache/apk/* /tmp/*
 
 WORKDIR /
