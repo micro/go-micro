@@ -1,4 +1,4 @@
-# Go Micro [![License](https://img.shields.io/badge/license-polyform:perimeter-blue)](https://polyformproject.org/licenses/perimeter/1.0.0/) [![Go.Dev reference](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white&style=flat-square)](https://pkg.go.dev/github.com/micro/go-micro/v3?tab=overview) [![Travis CI](https://api.travis-ci.org/micro/go-micro.svg?branch=master)](https://travis-ci.org/micro/go-micro) [![Go Report Card](https://goreportcard.com/badge/micro/go-micro)](https://goreportcard.com/report/github.com/micro/go-micro) 
+# Go Micro [![License](https://img.shields.io/badge/license-polyform:perimeter-blue)](https://polyformproject.org/licenses/perimeter/1.0.0/) [![Go.Dev reference](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white&style=flat-square)](https://pkg.go.dev/github.com/asim/go-micro/v3?tab=overview) [![Go Report Card](https://goreportcard.com/badge/asim/go-micro)](https://goreportcard.com/report/github.com/asim/go-micro) 
 
 Go Micro is a framework for microservices development.
 
@@ -44,11 +44,11 @@ leadership are built in as a Sync interface. When using an eventually consistent
 
 - **Pluggable Interfaces** - Go Micro makes use of Go interfaces for each distributed system abstraction. Because of this these interfaces 
 are pluggable and allows Go Micro to be runtime agnostic. You can plugin any underlying technology. Find plugins in 
-[github.com/micro/go-plugins](https://github.com/micro/go-plugins).
+[github.com/micro/go-plugins](https://github.com/asim/go-plugins).
 
 ## Getting Started
 
-See [pkg.go.dev](https://pkg.go.dev/github.com/micro/go-micro/v3?tab=overview) for usage.
+See [pkg.go.dev](https://pkg.go.dev/github.com/asim/go-micro/v3?tab=overview) for usage.
 
 ## License
 
