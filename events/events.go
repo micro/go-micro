@@ -1,4 +1,4 @@
-// Package events is for event streaming and storage
+// Package events is for event streaming
 package events
 
 import (
