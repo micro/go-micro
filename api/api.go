@@ -60,22 +60,6 @@ type Service struct {
 	Services []*registry.Service
 }
 
-func strip(s string) string {
-	return strings.TrimSpace(s)
-}
-
-func slice(s string) []string {
-	var sl []string
-
-	for _, p := range strings.Split(s, ",") {
-		if str := strip(p); len(str) > 0 {
-			sl = append(sl, strip(p))
-		}
-	}
-
-	return sl
-}
-
 // Encode encodes an endpoint to endpoint metadata
 func Encode(e *Endpoint) map[string]string {
 	if e == nil {
@@ -151,28 +135,6 @@ func Validate(e *Endpoint) error {
 
 	return nil
 }
-
-/*
-Design ideas
-
-// Gateway is an api gateway interface
-type Gateway interface {
-	// Register a http handler
-	Handle(pattern string, http.Handler)
-	// Register a route
-	RegisterRoute(r Route)
-	// Init initialises the command line.
-	// It also parses further options.
-	Init(...Option) error
-	// Run the gateway
-	Run() error
-}
-
-// NewGateway returns a new api gateway
-func NewGateway() Gateway {
-	return newGateway()
-}
-*/
 
 // WithEndpoint returns a server.HandlerOption with endpoint metadata set
 //
