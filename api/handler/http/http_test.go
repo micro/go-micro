@@ -8,7 +8,7 @@ import (
 
 	"github.com/micro/go-micro/v3/api/handler"
 	"github.com/micro/go-micro/v3/api/resolver"
-	"github.com/micro/go-micro/v3/api/resolver/vpath"
+	rpath "github.com/micro/go-micro/v3/api/resolver/path"
 	"github.com/micro/go-micro/v3/api/router"
 	regRouter "github.com/micro/go-micro/v3/api/router/registry"
 	"github.com/micro/go-micro/v3/registry"
@@ -57,7 +57,7 @@ func testHttp(t *testing.T, path, service, ns string) {
 	rt := regRouter.NewRouter(
 		router.WithHandler("http"),
 		router.WithRegistry(r),
-		router.WithResolver(vpath.NewResolver(
+		router.WithResolver(rpath.NewResolver(
 			resolver.WithServicePrefix(ns),
 		)),
 	)
@@ -91,31 +91,6 @@ func TestHttpHandler(t *testing.T) {
 			"/test/foo/baz",
 			"go.micro.api.test",
 			"go.micro.api",
-		},
-		{
-			"/v1/foo",
-			"go.micro.api.v1.foo",
-			"go.micro.api",
-		},
-		{
-			"/v1/foo/bar",
-			"go.micro.api.v1.foo",
-			"go.micro.api",
-		},
-		{
-			"/v2/baz",
-			"go.micro.api.v2.baz",
-			"go.micro.api",
-		},
-		{
-			"/v2/baz/bar",
-			"go.micro.api.v2.baz",
-			"go.micro.api",
-		},
-		{
-			"/v2/baz/bar",
-			"v2.baz",
-			"",
 		},
 	}
 

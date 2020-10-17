@@ -2,7 +2,7 @@ package router
 
 import (
 	"github.com/micro/go-micro/v3/api/resolver"
-	"github.com/micro/go-micro/v3/api/resolver/vpath"
+	"github.com/micro/go-micro/v3/api/resolver/path"
 	"github.com/micro/go-micro/v3/registry"
 	"github.com/micro/go-micro/v3/registry/mdns"
 )
@@ -26,7 +26,7 @@ func NewOptions(opts ...Option) Options {
 	}
 
 	if options.Resolver == nil {
-		options.Resolver = vpath.NewResolver(
+		options.Resolver = path.NewResolver(
 			resolver.WithHandler(options.Handler),
 		)
 	}
