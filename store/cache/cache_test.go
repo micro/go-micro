@@ -1,8 +1,6 @@
 package cache
 
 import (
-	"os"
-	"path/filepath"
 	"testing"
 
 	"github.com/micro/go-micro/v3/store"
