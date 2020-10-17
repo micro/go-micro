@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/micro/go-micro/v3/events"
-	"github.com/micro/go-micro/v3/events/stream/memory"
+	"github.com/micro/go-micro/v3/events/memory"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
