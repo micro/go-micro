@@ -14,16 +14,11 @@ var (
 	ErrEncodingMessage = errors.New("Error encoding message")
 )
 
-// Stream is an event streaming interface
+// Stream is an events streaming interface
 type Stream interface {
 	Publish(topic string, msg interface{}, opts ...PublishOption) error
-	Subscribe(topic string, opts ...SubscribeOption) (<-chan Event, error)
-}
-
-// Store is an event store interface
-type Store interface {
-	Read(topic string, opts ...ReadOption) ([]*Event, error)
-	Write(event *Event, opts ...WriteOption) error
+	Consume(topic string, opts ...ConsumeOption) (<-chan Event, error)
+	String() string
 }
 
 type AckFunc func() error

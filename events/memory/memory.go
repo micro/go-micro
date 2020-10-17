@@ -15,9 +15,9 @@ import (
 )
 
 // NewStream returns an initialized memory stream
-func NewStream(opts ...Option) (events.Stream, error) {
+func NewStream(opts ...events.Option) (events.Stream, error) {
 	// parse the options
-	var options Options
+	var options events.Options
 	for _, o := range opts {
 		o(&options)
 	}
@@ -25,7 +25,7 @@ func NewStream(opts ...Option) (events.Stream, error) {
 		options.Store = memory.NewStore()
 	}
 
-	return &mem{store: options.Store}, nil
+	return &memoryStream{store: options.Store}, nil
 }
 
 type subscriber struct {
@@ -40,14 +40,14 @@ type subscriber struct {
 	ackWait    time.Duration
 }
 
-type mem struct {
+type memoryStream struct {
 	store store.Store
 
 	subs []*subscriber
 	sync.RWMutex
 }
 
-func (m *mem) Publish(topic string, msg interface{}, opts ...events.PublishOption) error {
+func (m *memoryStream) Publish(topic string, msg interface{}, opts ...events.PublishOption) error {
 	// validate the topic
 	if len(topic) == 0 {
 		return events.ErrMissingTopic
@@ -100,14 +100,14 @@ func (m *mem) Publish(topic string, msg interface{}, opts ...events.PublishOptio
 	return nil
 }
 
-func (m *mem) Subscribe(topic string, opts ...events.SubscribeOption) (<-chan events.Event, error) {
+func (m *memoryStream) Consume(topic string, opts ...events.ConsumeOption) (<-chan events.Event, error) {
 	// validate the topic
 	if len(topic) == 0 {
 		return nil, events.ErrMissingTopic
 	}
 
 	// parse the options
-	options := events.SubscribeOptions{
+	options := events.ConsumeOptions{
 		Queue:   uuid.New().String(),
 		AutoAck: true,
 	}
@@ -150,7 +150,7 @@ func (m *mem) Subscribe(topic string, opts ...events.SubscribeOption) (<-chan ev
 
 // lookupPreviousEvents finds events for a subscriber which occurred before a given time and sends
 // them into the subscribers channel
-func (m *mem) lookupPreviousEvents(sub *subscriber, startTime time.Time) {
+func (m *memoryStream) lookupPreviousEvents(sub *subscriber, startTime time.Time) {
 	// lookup all events which match the topic (a blank topic will return all results)
 	recs, err := m.store.Read(sub.Topic+"/", store.ReadPrefix())
 	if err != nil && logger.V(logger.ErrorLevel, logger.DefaultLogger) {
@@ -173,8 +173,12 @@ func (m *mem) lookupPreviousEvents(sub *subscriber, startTime time.Time) {
 	}
 }
 
+func (m *memoryStream) String() string {
+	return "memory"
+}
+
 // handleEvents sends the event to any registered subscribers.
-func (m *mem) handleEvent(ev *events.Event) {
+func (m *memoryStream) handleEvent(ev *events.Event) {
 	m.RLock()
 	subs := m.subs
 	m.RUnlock()
