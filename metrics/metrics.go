@@ -1,10 +1,6 @@
 // Package metrics is an interface for instrumentation.
 package metrics
 
-import (
-	"time"
-)
-
 type Fields map[string]string
 
 // Metrics provides a way to instrument application data
