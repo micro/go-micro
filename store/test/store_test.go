@@ -14,23 +14,8 @@ import (
 	"github.com/kr/pretty"
 	"github.com/micro/go-micro/v3/store"
 	"github.com/micro/go-micro/v3/store/cache"
-	"github.com/micro/go-micro/v3/store/file"
 	"github.com/micro/go-micro/v3/store/memory"
 )
-
-func fileStoreCleanup(db string, s store.Store) {
-	s.Close()
-	dir := filepath.Join(file.DefaultDir, db+"/")
-	os.RemoveAll(dir)
-}
-
-func cockroachStoreCleanup(db string, s store.Store) {
-	keys, _ := s.List()
-	for _, k := range keys {
-		s.Delete(k)
-	}
-	s.Close()
-}
 
 func memoryCleanup(db string, s store.Store) {
 	s.Close()
@@ -46,13 +31,11 @@ func TestStoreReInit(t *testing.T) {
 		s       store.Store
 		cleanup func(db string, s store.Store)
 	}{
-		{name: "file", s: file.NewStore(store.Table("aaa")), cleanup: fileStoreCleanup},
 		{name: "memory", s: memory.NewStore(store.Table("aaa")), cleanup: memoryCleanup},
 		{name: "cache", s: cache.NewStore(memory.NewStore(store.Table("aaa"))), cleanup: cacheCleanup},
 	}
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			defer tc.cleanup(file.DefaultDatabase, tc.s)
 			tc.s.Init(store.Table("bbb"))
 			if tc.s.Options().Table != "bbb" {
 				t.Error("Init didn't reinitialise the store")
@@ -67,13 +50,11 @@ func TestStoreBasic(t *testing.T) {
 		s       store.Store
 		cleanup func(db string, s store.Store)
 	}{
-		{name: "file", s: file.NewStore(), cleanup: fileStoreCleanup},
 		{name: "memory", s: memory.NewStore(), cleanup: memoryCleanup},
 		{name: "cache", s: cache.NewStore(memory.NewStore()), cleanup: cacheCleanup},
 	}
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			defer tc.cleanup(file.DefaultDatabase, tc.s)
 			runStoreTest(tc.s, t)
 		})
 	}
@@ -86,13 +67,11 @@ func TestStoreTable(t *testing.T) {
 		s       store.Store
 		cleanup func(db string, s store.Store)
 	}{
-		{name: "file", s: file.NewStore(store.Table("testTable")), cleanup: fileStoreCleanup},
 		{name: "memory", s: memory.NewStore(store.Table("testTable")), cleanup: memoryCleanup},
 		{name: "cache", s: cache.NewStore(memory.NewStore(store.Table("testTable"))), cleanup: cacheCleanup},
 	}
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			defer tc.cleanup(file.DefaultDatabase, tc.s)
 			runStoreTest(tc.s, t)
 		})
 	}
@@ -104,7 +83,6 @@ func TestStoreDatabase(t *testing.T) {
 		s       store.Store
 		cleanup func(db string, s store.Store)
 	}{
-		{name: "file", s: file.NewStore(store.Database("testdb")), cleanup: fileStoreCleanup},
 		{name: "memory", s: memory.NewStore(store.Database("testdb")), cleanup: memoryCleanup},
 		{name: "cache", s: cache.NewStore(memory.NewStore(store.Database("testdb"))), cleanup: cacheCleanup},
 	}
@@ -122,7 +100,6 @@ func TestStoreDatabaseTable(t *testing.T) {
 		s       store.Store
 		cleanup func(db string, s store.Store)
 	}{
-		{name: "file", s: file.NewStore(store.Database("testdb"), store.Table("testTable")), cleanup: fileStoreCleanup},
 		{name: "memory", s: memory.NewStore(store.Database("testdb"), store.Table("testTable")), cleanup: memoryCleanup},
 		{name: "cache", s: cache.NewStore(memory.NewStore(store.Database("testdb"), store.Table("testTable"))), cleanup: cacheCleanup},
 	}

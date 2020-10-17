@@ -6,21 +6,14 @@ import (
 	"testing"
 
 	"github.com/micro/go-micro/v3/store"
-	"github.com/micro/go-micro/v3/store/file"
+	"github.com/micro/go-micro/v3/store/memory"
 	"github.com/stretchr/testify/assert"
 )
 
-func cleanup(db string, s store.Store) {
-	s.Close()
-	dir := filepath.Join(file.DefaultDir, db+"/")
-	os.RemoveAll(dir)
-}
-
 func TestRead(t *testing.T) {
-	cf := NewStore(file.NewStore())
+	cf := NewStore(memory.NewStore())
 	cf.Init()
 	cfInt := cf.(*cache)
-	defer cleanup(file.DefaultDatabase, cf)
 
 	_, err := cf.Read("key1")
 	assert.Error(t, err, "Unexpected record")
@@ -38,10 +31,9 @@ func TestRead(t *testing.T) {
 }
 
 func TestWrite(t *testing.T) {
-	cf := NewStore(file.NewStore())
+	cf := NewStore(memory.NewStore())
 	cf.Init()
 	cfInt := cf.(*cache)
-	defer cleanup(file.DefaultDatabase, cf)
 
 	cf.Write(&store.Record{
 		Key:   "key1",
@@ -55,10 +47,9 @@ func TestWrite(t *testing.T) {
 }
 
 func TestDelete(t *testing.T) {
-	cf := NewStore(file.NewStore())
+	cf := NewStore(memory.NewStore())
 	cf.Init()
 	cfInt := cf.(*cache)
-	defer cleanup(file.DefaultDatabase, cf)
 
 	cf.Write(&store.Record{
 		Key:   "key1",
@@ -78,10 +69,9 @@ func TestDelete(t *testing.T) {
 }
 
 func TestList(t *testing.T) {
-	cf := NewStore(file.NewStore())
+	cf := NewStore(memory.NewStore())
 	cf.Init()
 	cfInt := cf.(*cache)
-	defer cleanup(file.DefaultDatabase, cf)
 
 	keys, err := cf.List()
 	assert.NoError(t, err)

@@ -34,7 +34,6 @@ require (
 	github.com/stretchr/testify v1.6.1
 	github.com/teris-io/shortid v0.0.0-20171029131806-771a37caa5cf
 	github.com/xanzy/go-gitlab v0.35.1
-	go.etcd.io/bbolt v1.3.5
 	golang.org/x/crypto v0.0.0-20200709230013-948cd5f35899
 	golang.org/x/net v0.0.0-20200707034311-ab3426394381
 	golang.org/x/sys v0.0.0-20200625212154-ddb9806d33ae // indirect
