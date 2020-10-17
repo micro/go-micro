@@ -21,7 +21,7 @@ type Gateway interface {
 	// Deregister a route
 	Deregister(*Endpoint) error
 	// Register http handler
-	Handle(path string, hd http.Handler)
+	Handle(string, http.Handler)
 	// Start serving requests
 	Serve() error
 	// Implementation of api
