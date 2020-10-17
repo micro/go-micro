@@ -1,14 +1,45 @@
-// Package metrics is for instrumentation and debugging
+// Package metrics is an interface for instrumentation.
 package metrics
 
-import "time"
+import (
+	"time"
+)
 
-// Tags is a map of fields to add to a metric:
-type Tags map[string]string
+type Fields map[string]string
 
-// Reporter is an interface for collecting and instrumenting metrics
-type Reporter interface {
-	Count(id string, value int64, tags Tags) error
-	Gauge(id string, value float64, tags Tags) error
-	Timing(id string, value time.Duration, tags Tags) error
+// Metrics provides a way to instrument application data
+type Metrics interface {
+	Counter(id string) Counter
+	Gauge(id string) Gauge
+	Histogram(id string) Histogram
+	String() string
+}
+
+type Counter interface {
+	// Increment by the given value
+	Incr(d uint64)
+	// Decrement by the given value
+	Decr(d uint64)
+	// Reset the counter
+	Reset()
+	// Label the counter
+	WithFields(f Fields) Counter
+}
+
+type Gauge interface {
+	// Set the gauge value
+	Set(d int64)
+	// Reset the gauge
+	Reset()
+	// Label the gauge
+	WithFields(f Fields) Gauge
+}
+
+type Histogram interface {
+	// Record a timing
+	Record(d int64)
+	// Reset the histogram
+	Reset()
+	// Label the histogram
+	WithFields(f Fields) Histogram
 }
