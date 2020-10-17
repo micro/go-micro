@@ -1,4 +1,4 @@
-# Go Micro [![License](https://img.shields.io/badge/license-polyform:perimeter-blue)](https://polyformproject.org/licenses/perimeter/1.0.0/) [![Go.Dev reference](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white&style=flat-square)](https://pkg.go.dev/github.com/asim/go-micro/v3?tab=overview) [![Go Report Card](https://goreportcard.com/badge/asim/go-micro)](https://goreportcard.com/report/github.com/asim/go-micro) 
+# Go Micro [![License](https://img.shields.io/badge/license-polyform:perimeter-blue)](https://polyformproject.org/licenses/perimeter/1.0.0/) [![Go.Dev reference](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white&style=flat-square)](https://pkg.go.dev/github.com/asim/go-micro/v3?tab=overview)
 
 Go Micro is a framework for microservices development.
 
