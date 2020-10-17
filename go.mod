@@ -7,7 +7,6 @@ replace github.com/imdario/mergo => github.com/imdario/mergo v0.3.8
 require (
 	github.com/bitly/go-simplejson v0.5.0
 	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
-	github.com/caddyserver/certmagic v0.10.6
 	github.com/davecgh/go-spew v1.1.1
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/ef-ds/deque v1.0.4-0.20190904040645-54cb57c252a1
@@ -21,9 +20,7 @@ require (
 	github.com/gogo/protobuf v1.3.1 // indirect
 	github.com/golang/protobuf v1.4.2
 	github.com/google/uuid v1.1.2
-	github.com/gorilla/handlers v1.4.2
 	github.com/hpcloud/tail v1.0.0
-	github.com/klauspost/cpuid v1.3.1 // indirect
 	github.com/kr/pretty v0.2.0
 	github.com/kr/text v0.2.0 // indirect
 	github.com/miekg/dns v1.1.27
@@ -42,5 +39,4 @@ require (
 	google.golang.org/grpc v1.27.0
 	google.golang.org/protobuf v1.25.0
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
-	gopkg.in/square/go-jose.v2 v2.4.1 // indirect
 )
