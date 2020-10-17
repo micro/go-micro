@@ -5,68 +5,60 @@ import (
 	"crypto/tls"
 	"net"
 	"net/http"
-	"os"
 	"sync"
 
-	"github.com/gorilla/handlers"
-	"github.com/micro/go-micro/v3/api/server"
-	"github.com/micro/go-micro/v3/api/server/cors"
+	"github.com/micro/go-micro/v3/api"
 	"github.com/micro/go-micro/v3/logger"
 )
 
 type httpServer struct {
 	mux  *http.ServeMux
-	opts server.Options
+	opts api.Options
 
 	mtx     sync.RWMutex
 	address string
 	exit    chan chan error
 }
 
-func NewServer(address string, opts ...server.Option) server.Server {
-	var options server.Options
+// NewGateway returns a new HTTP api gateway
+func NewGateway(opts ...api.Option) api.Gateway {
+	var options api.Options
 	for _, o := range opts {
 		o(&options)
 	}
 
 	return &httpServer{
-		opts:    options,
-		mux:     http.NewServeMux(),
-		address: address,
-		exit:    make(chan chan error),
+		opts: options,
+		mux:  http.NewServeMux(),
+		exit: make(chan chan error),
 	}
 }
 
-func (s *httpServer) Address() string {
-	s.mtx.RLock()
-	defer s.mtx.RUnlock()
-	return s.address
-}
-
-func (s *httpServer) Init(opts ...server.Option) error {
+func (s *httpServer) Init(opts ...api.Option) error {
 	for _, o := range opts {
 		o(&s.opts)
 	}
 	return nil
 }
 
+func (s *httpServer) Options() api.Options {
+	return s.opts
+}
+
+func (s *httpServer) Register(ep *api.Endpoint) error   { return nil }
+func (s *httpServer) Deregister(ep *api.Endpoint) error { return nil }
+
 func (s *httpServer) Handle(path string, handler http.Handler) {
-	// TODO: move this stuff out to one place with ServeHTTP
-
-	// apply the wrappers, e.g. auth
-	for _, wrapper := range s.opts.Wrappers {
-		handler = wrapper(handler)
-	}
-
-	// wrap with cors
-	if s.opts.EnableCORS {
-		handler = cors.CombinedCORSHandler(handler)
-	}
-
-	// wrap with logger
-	handler = handlers.CombinedLoggingHandler(os.Stdout, handler)
-
 	s.mux.Handle(path, handler)
+}
+
+func (s *httpServer) Serve() error {
+	if err := s.Start(); err != nil {
+		return err
+	}
+
+	<-s.exit
+	return nil
 }
 
 func (s *httpServer) Start() error {
@@ -77,10 +69,10 @@ func (s *httpServer) Start() error {
 		// should we check the address to make sure its using :443?
 		l, err = s.opts.ACMEProvider.Listen(s.opts.ACMEHosts...)
 	} else if s.opts.EnableTLS && s.opts.TLSConfig != nil {
-		l, err = tls.Listen("tcp", s.address, s.opts.TLSConfig)
+		l, err = tls.Listen("tcp", s.opts.Address, s.opts.TLSConfig)
 	} else {
 		// otherwise plain listen
-		l, err = net.Listen("tcp", s.address)
+		l, err = net.Listen("tcp", s.opts.Address)
 	}
 	if err != nil {
 		return err
@@ -89,10 +81,6 @@ func (s *httpServer) Start() error {
 	if logger.V(logger.InfoLevel, logger.DefaultLogger) {
 		logger.Infof("HTTP API Listening on %s", l.Addr().String())
 	}
-
-	s.mtx.Lock()
-	s.address = l.Addr().String()
-	s.mtx.Unlock()
 
 	go func() {
 		if err := http.Serve(l, s.mux); err != nil {

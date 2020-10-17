@@ -1,37 +1,27 @@
-package server
+package api
 
 import (
 	"crypto/tls"
-	"net/http"
 
+	"github.com/micro/go-micro/v3/api/acme"
 	"github.com/micro/go-micro/v3/api/resolver"
-	"github.com/micro/go-micro/v3/api/server/acme"
 )
 
-type Option func(o *Options)
-
 type Options struct {
+	Address      string
 	EnableACME   bool
-	EnableCORS   bool
 	ACMEProvider acme.Provider
 	EnableTLS    bool
 	ACMEHosts    []string
 	TLSConfig    *tls.Config
 	Resolver     resolver.Resolver
-	Wrappers     []Wrapper
 }
 
-type Wrapper func(h http.Handler) http.Handler
+type Option func(o *Options)
 
-func WrapHandler(w ...Wrapper) Option {
+func Address(a string) Option {
 	return func(o *Options) {
-		o.Wrappers = append(o.Wrappers, w...)
-	}
-}
-
-func EnableCORS(b bool) Option {
-	return func(o *Options) {
-		o.EnableCORS = b
+		o.Address = a
 	}
 }
 

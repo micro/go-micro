@@ -2,6 +2,7 @@ package api
 
 import (
 	"errors"
+	"net/http"
 	"regexp"
 	"strings"
 
@@ -9,22 +10,23 @@ import (
 	"github.com/micro/go-micro/v3/server"
 )
 
-type Api interface {
+// Gateway is an api gateway interface
+type Gateway interface {
 	// Initialise options
 	Init(...Option) error
 	// Get the options
 	Options() Options
-	// Register a http handler
+	// Register an endpoint
 	Register(*Endpoint) error
-	// Register a route
+	// Deregister a route
 	Deregister(*Endpoint) error
+	// Register http handler
+	Handle(path string, hd http.Handler)
+	// Start serving requests
+	Serve() error
 	// Implementation of api
 	String() string
 }
-
-type Options struct{}
-
-type Option func(*Options) error
 
 // Endpoint is a mapping between an RPC method and HTTP endpoint
 type Endpoint struct {

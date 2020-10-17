@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/caddyserver/certmagic"
-	"github.com/micro/go-micro/v3/api/server/acme"
+	"github.com/micro/go-micro/v3/api/acme"
 	"github.com/micro/go-micro/v3/logger"
 )
 
