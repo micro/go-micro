@@ -11,7 +11,7 @@ import (
 	jsonpatch "github.com/evanphx/json-patch/v5"
 	"github.com/micro/go-micro/v3/api"
 	"github.com/micro/go-micro/v3/api/handler"
-	"github.com/micro/go-micro/v3/api/internal/proto"
+	"github.com/micro/go-micro/v3/api/handler/rpc/proto"
 	"github.com/micro/go-micro/v3/client"
 	"github.com/micro/go-micro/v3/codec"
 	"github.com/micro/go-micro/v3/codec/jsonrpc"
