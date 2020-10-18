@@ -30,7 +30,7 @@ func WriteBadRequestError(w http.ResponseWriter, err error) {
 		WriteInternalServerError(w, err)
 		return
 	}
-	Write(w, "application/json", 400, string(rawBody))
+	Write(w, "application/json", http.StatusBadRequest, string(rawBody))
 }
 
 // WriteInternalServerError sets a 500 status code

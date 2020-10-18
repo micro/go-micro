@@ -283,7 +283,7 @@ func (h *httpBroker) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	b, err := ioutil.ReadAll(req.Body)
 	if err != nil {
 		errr := merr.InternalServerError("go.micro.broker", "Error reading request body: %v", err)
-		w.WriteHeader(500)
+		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(errr.Error()))
 		return
 	}
@@ -291,7 +291,7 @@ func (h *httpBroker) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	var msg *broker.Message
 	if err = h.opts.Codec.Unmarshal(b, &msg); err != nil {
 		errr := merr.InternalServerError("go.micro.broker", "Error parsing request body: %v", err)
-		w.WriteHeader(500)
+		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(errr.Error()))
 		return
 	}
@@ -300,7 +300,7 @@ func (h *httpBroker) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	if len(topic) == 0 {
 		errr := merr.InternalServerError("go.micro.broker", "Topic not found")
-		w.WriteHeader(500)
+		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(errr.Error()))
 		return
 	}
