@@ -40,6 +40,10 @@ func (a *autocertProvider) TLSConfig(hosts ...string) (*tls.Config, error) {
 	return m.TLSConfig(), nil
 }
 
+func (a *autocertProvider) String() string {
+	return "autocert"
+}
+
 // New returns an autocert acme.Provider
 func NewProvider() acme.Provider {
 	return &autocertProvider{}

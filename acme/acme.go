@@ -25,4 +25,6 @@ type Provider interface {
 	Listen(...string) (net.Listener, error)
 	// TLSConfig returns a tls config
 	TLSConfig(...string) (*tls.Config, error)
+	// Implementation of the acme provider
+	String() string
 }
