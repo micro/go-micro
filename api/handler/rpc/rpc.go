@@ -428,11 +428,11 @@ func writeError(w http.ResponseWriter, r *http.Request, err error) {
 	switch ce.Code {
 	case 0:
 		// assuming it's totally screwed
-		ce.Code = 500
+		ce.Code = http.StatusInternalServerError
 		ce.Id = "go.micro.api"
-		ce.Status = http.StatusText(500)
+		ce.Status = http.StatusText(http.StatusInternalServerError)
 		ce.Detail = "error during request: " + ce.Detail
-		w.WriteHeader(500)
+		w.WriteHeader(http.StatusInternalServerError)
 	default:
 		w.WriteHeader(int(ce.Code))
 	}
