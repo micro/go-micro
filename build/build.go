@@ -7,6 +7,8 @@ type Build interface {
 	Package(*Source) (*Package, error)
 	// Remove removes the package
 	Remove(*Package) error
+	// Implementation of build
+	String() string
 }
 
 // Source is the source of a build
