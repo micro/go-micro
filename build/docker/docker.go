@@ -18,7 +18,8 @@ type dockerBuild struct {
 	Client  *docker.Client
 }
 
-func (d *dockerBuild) Package(name string, s *build.Source) (*build.Package, error) {
+func (d *dockerBuild) Package(s *build.Source) (*build.Package, error) {
+	name := s.Name
 	image := name
 
 	buf := new(bytes.Buffer)

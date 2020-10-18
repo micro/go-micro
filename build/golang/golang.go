@@ -34,7 +34,8 @@ func whichGo() string {
 	return "go"
 }
 
-func (g *goBuild) Package(name string, src *build.Source) (*build.Package, error) {
+func (g *goBuild) Package(src *build.Source) (*build.Package, error) {
+	name := src.Name
 	binary := filepath.Join(g.Path, name)
 	source := src.Path
 

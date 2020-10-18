@@ -10,7 +10,8 @@ import (
 
 type tarBuild struct{}
 
-func (t *tarBuild) Package(name string, src *build.Source) (*build.Package, error) {
+func (t *tarBuild) Package(src *build.Source) (*build.Package, error) {
+	name := src.Name
 	pkg := name + ".tar.gz"
 	// path to the tarball
 	path := filepath.Join(os.TempDir(), src.Path, pkg)
