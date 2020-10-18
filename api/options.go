@@ -3,7 +3,7 @@ package api
 import (
 	"crypto/tls"
 
-	"github.com/micro/go-micro/v3/api/acme"
+	"github.com/micro/go-micro/v3/acme"
 	"github.com/micro/go-micro/v3/api/resolver"
 )
 
