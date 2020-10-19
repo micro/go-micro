@@ -46,6 +46,7 @@ func TestResources(t *testing.T) {
 	assert.Len(t, networkPolicy.AllowedLabels, 1)
 
 	networkPolicy, err = NewNetworkPolicy("ingress", "test", map[string]string{"foo": "bar", "bar": "foo"})
+	assert.NoError(t, err)
 	assert.Len(t, networkPolicy.AllowedLabels, 2)
 
 	// Service:
