@@ -52,4 +52,4 @@ See [pkg.go.dev](https://pkg.go.dev/github.com/asim/go-micro/v3?tab=overview) fo
 
 ## License
 
-[Polyform Perimeter](https://polyformproject.org/licenses/perimeter/1.0.0/)
+[Polyform Perimeter](https://polyformproject.org/licenses/perimeter/1.0.0/). To purchase a more permissive license contact [asim@micro.mu](mailto:asim@micro.mu).
