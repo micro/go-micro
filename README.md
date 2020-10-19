@@ -44,7 +44,7 @@ leadership are built in as a Sync interface. When using an eventually consistent
 
 - **Pluggable Interfaces** - Go Micro makes use of Go interfaces for each distributed system abstraction. Because of this these interfaces 
 are pluggable and allows Go Micro to be runtime agnostic. You can plugin any underlying technology. Find plugins in 
-[github.com/micro/go-plugins](https://github.com/asim/go-plugins).
+[github.com/asim/go-plugins](https://github.com/asim/go-plugins).
 
 ## Getting Started
 

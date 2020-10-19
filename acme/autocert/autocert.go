@@ -7,7 +7,7 @@ import (
 	"net"
 	"os"
 
-	"github.com/micro/go-micro/v3/api/acme"
+	"github.com/micro/go-micro/v3/acme"
 	"github.com/micro/go-micro/v3/logger"
 	"golang.org/x/crypto/acme/autocert"
 )
@@ -38,6 +38,10 @@ func (a *autocertProvider) TLSConfig(hosts ...string) (*tls.Config, error) {
 		m.Cache = autocert.DirCache(dir)
 	}
 	return m.TLSConfig(), nil
+}
+
+func (a *autocertProvider) String() string {
+	return "autocert"
 }
 
 // New returns an autocert acme.Provider

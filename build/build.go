@@ -4,13 +4,17 @@ package build
 // Build is an interface for building packages
 type Build interface {
 	// Package builds a package
-	Package(name string, src *Source) (*Package, error)
+	Package(*Source) (*Package, error)
 	// Remove removes the package
 	Remove(*Package) error
+	// Implementation of build
+	String() string
 }
 
 // Source is the source of a build
 type Source struct {
+	// Name of the source
+	Name string
 	// Path to the source if local
 	Path string
 	// Language is the language of code

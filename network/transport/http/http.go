@@ -346,7 +346,7 @@ func (h *httpTransportSocket) error(m *transport.Message) error {
 			Header:        make(http.Header),
 			Body:          ioutil.NopCloser(bytes.NewReader(m.Body)),
 			Status:        "500 Internal Server Error",
-			StatusCode:    500,
+			StatusCode:    http.StatusInternalServerError,
 			Proto:         "HTTP/1.1",
 			ProtoMajor:    1,
 			ProtoMinor:    1,

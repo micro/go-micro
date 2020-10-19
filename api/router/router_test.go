@@ -9,12 +9,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/micro/go-micro/v3/api"
 	"github.com/micro/go-micro/v3/api/handler"
 	"github.com/micro/go-micro/v3/api/handler/rpc"
 	"github.com/micro/go-micro/v3/api/router"
 	rregistry "github.com/micro/go-micro/v3/api/router/registry"
-	rstatic "github.com/micro/go-micro/v3/api/router/static"
 	"github.com/micro/go-micro/v3/client"
 	gcli "github.com/micro/go-micro/v3/client/grpc"
 	rmemory "github.com/micro/go-micro/v3/registry/memory"
@@ -127,125 +125,4 @@ func TestRouterRegistryPcre(t *testing.T) {
 	defer hsrv.Close()
 	time.Sleep(1 * time.Second)
 	check(t, hsrv.Addr, "http://%s/api/v0/test/call/TEST", `{"msg":"Hello TEST"}`)
-}
-
-func TestRouterStaticPcre(t *testing.T) {
-	s, c := initial(t)
-	defer s.Stop()
-
-	router := rstatic.NewRouter(
-		router.WithHandler(rpc.Handler),
-		router.WithRegistry(s.Options().Registry),
-	)
-
-	err := router.Register(&api.Endpoint{
-		Name:    "foo.Test.Call",
-		Method:  []string{"POST"},
-		Path:    []string{"^/api/v0/test/call/?$"},
-		Handler: "rpc",
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	hrpc := rpc.NewHandler(
-		handler.WithClient(c),
-		handler.WithRouter(router),
-	)
-	hsrv := &http.Server{
-		Handler:        hrpc,
-		Addr:           "127.0.0.1:6543",
-		WriteTimeout:   15 * time.Second,
-		ReadTimeout:    15 * time.Second,
-		IdleTimeout:    20 * time.Second,
-		MaxHeaderBytes: 1024 * 1024 * 1, // 1Mb
-	}
-
-	go func() {
-		log.Println(hsrv.ListenAndServe())
-	}()
-	defer hsrv.Close()
-
-	time.Sleep(1 * time.Second)
-	check(t, hsrv.Addr, "http://%s/api/v0/test/call", `{"msg":"Hello "}`)
-}
-
-func TestRouterStaticGpath(t *testing.T) {
-	s, c := initial(t)
-	defer s.Stop()
-
-	router := rstatic.NewRouter(
-		router.WithHandler(rpc.Handler),
-		router.WithRegistry(s.Options().Registry),
-	)
-
-	err := router.Register(&api.Endpoint{
-		Name:    "foo.Test.Call",
-		Method:  []string{"POST"},
-		Path:    []string{"/api/v0/test/call/{uuid}"},
-		Handler: "rpc",
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	hrpc := rpc.NewHandler(
-		handler.WithClient(c),
-		handler.WithRouter(router),
-	)
-	hsrv := &http.Server{
-		Handler:        hrpc,
-		Addr:           "127.0.0.1:6543",
-		WriteTimeout:   15 * time.Second,
-		ReadTimeout:    15 * time.Second,
-		IdleTimeout:    20 * time.Second,
-		MaxHeaderBytes: 1024 * 1024 * 1, // 1Mb
-	}
-
-	go func() {
-		log.Println(hsrv.ListenAndServe())
-	}()
-	defer hsrv.Close()
-
-	time.Sleep(1 * time.Second)
-	check(t, hsrv.Addr, "http://%s/api/v0/test/call/TEST", `{"msg":"Hello TEST"}`)
-}
-
-func TestRouterStaticPcreInvalid(t *testing.T) {
-	var ep *api.Endpoint
-	var err error
-
-	s, c := initial(t)
-	defer s.Stop()
-
-	router := rstatic.NewRouter(
-		router.WithHandler(rpc.Handler),
-		router.WithRegistry(s.Options().Registry),
-	)
-
-	ep = &api.Endpoint{
-		Name:    "foo.Test.Call",
-		Method:  []string{"POST"},
-		Path:    []string{"^/api/v0/test/call/?"},
-		Handler: "rpc",
-	}
-
-	err = router.Register(ep)
-	if err == nil {
-		t.Fatalf("invalid endpoint %v", ep)
-	}
-
-	ep = &api.Endpoint{
-		Name:    "foo.Test.Call",
-		Method:  []string{"POST"},
-		Path:    []string{"/api/v0/test/call/?$"},
-		Handler: "rpc",
-	}
-
-	err = router.Register(ep)
-	if err == nil {
-		t.Fatalf("invalid endpoint %v", ep)
-	}
-
-	_ = c
 }
