@@ -33,15 +33,17 @@ func (m *memoryCache) Get(key string) (interface{}, error) {
 
 func (m *memoryCache) Set(key string, val interface{}) error {
 	m.Lock()
+	defer m.Unlock()
+
 	m.values[key] = val
-	m.Unlock()
 	return nil
 }
 
 func (m *memoryCache) Delete(key string) error {
 	m.Lock()
+	defer m.Unlock()
+
 	delete(m.values, key)
-	m.Unlock()
 	return nil
 }
 
