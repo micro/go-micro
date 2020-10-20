@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/micro/go-micro/v3/config"
+	"github.com/asim/go-micro/v3/config"
 )
 
 // NewSecrets returns a config that encrypts values at rest

@@ -5,10 +5,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/asim/go-micro/v3/broker"
+	"github.com/asim/go-micro/v3/registry"
+	"github.com/asim/go-micro/v3/registry/memory"
 	"github.com/google/uuid"
-	"github.com/micro/go-micro/v3/broker"
-	"github.com/micro/go-micro/v3/registry"
-	"github.com/micro/go-micro/v3/registry/memory"
 )
 
 var (

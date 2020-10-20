@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/micro/go-micro/v3/api"
-	"github.com/micro/go-micro/v3/logger"
+	"github.com/asim/go-micro/v3/api"
+	"github.com/asim/go-micro/v3/logger"
 )
 
 type httpServer struct {

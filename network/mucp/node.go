@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/micro/go-micro/v3/network"
-	pb "github.com/micro/go-micro/v3/network/mucp/proto"
+	"github.com/asim/go-micro/v3/network"
+	pb "github.com/asim/go-micro/v3/network/mucp/proto"
 )
 
 // nodeError tracks node errors

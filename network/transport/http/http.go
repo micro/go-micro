@@ -13,11 +13,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/micro/go-micro/v3/network/transport"
-	maddr "github.com/micro/go-micro/v3/util/addr"
-	"github.com/micro/go-micro/v3/util/buf"
-	mnet "github.com/micro/go-micro/v3/util/net"
-	mls "github.com/micro/go-micro/v3/util/tls"
+	"github.com/asim/go-micro/v3/network/transport"
+	maddr "github.com/asim/go-micro/v3/util/addr"
+	"github.com/asim/go-micro/v3/util/buf"
+	mnet "github.com/asim/go-micro/v3/util/net"
+	mls "github.com/asim/go-micro/v3/util/tls"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 )

@@ -1,10 +1,10 @@
 package router
 
 import (
-	"github.com/micro/go-micro/v3/api/resolver"
-	"github.com/micro/go-micro/v3/api/resolver/path"
-	"github.com/micro/go-micro/v3/registry"
-	"github.com/micro/go-micro/v3/registry/mdns"
+	"github.com/asim/go-micro/v3/api/resolver"
+	"github.com/asim/go-micro/v3/api/resolver/path"
+	"github.com/asim/go-micro/v3/registry"
+	"github.com/asim/go-micro/v3/registry/mdns"
 )
 
 type Options struct {

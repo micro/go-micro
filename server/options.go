@@ -6,15 +6,15 @@ import (
 	"sync"
 	"time"
 
-	"github.com/micro/go-micro/v3/auth"
-	"github.com/micro/go-micro/v3/broker"
-	"github.com/micro/go-micro/v3/broker/http"
-	"github.com/micro/go-micro/v3/codec"
-	"github.com/micro/go-micro/v3/debug/trace"
-	"github.com/micro/go-micro/v3/network/transport"
-	thttp "github.com/micro/go-micro/v3/network/transport/http"
-	"github.com/micro/go-micro/v3/registry"
-	"github.com/micro/go-micro/v3/registry/mdns"
+	"github.com/asim/go-micro/v3/auth"
+	"github.com/asim/go-micro/v3/broker"
+	"github.com/asim/go-micro/v3/broker/http"
+	"github.com/asim/go-micro/v3/codec"
+	"github.com/asim/go-micro/v3/debug/trace"
+	"github.com/asim/go-micro/v3/network/transport"
+	thttp "github.com/asim/go-micro/v3/network/transport/http"
+	"github.com/asim/go-micro/v3/registry"
+	"github.com/asim/go-micro/v3/registry/mdns"
 )
 
 type Options struct {

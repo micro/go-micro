@@ -6,8 +6,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/micro/go-micro/v3/registry"
-	"github.com/micro/go-micro/v3/server"
+	"github.com/asim/go-micro/v3/registry"
+	"github.com/asim/go-micro/v3/server"
 )
 
 // Gateway is an api gateway interface

@@ -5,9 +5,9 @@ import (
 	"context"
 	"time"
 
+	"github.com/asim/go-micro/v3/codec"
+	"github.com/asim/go-micro/v3/registry"
 	"github.com/google/uuid"
-	"github.com/micro/go-micro/v3/codec"
-	"github.com/micro/go-micro/v3/registry"
 )
 
 // Server is a simple micro server abstraction

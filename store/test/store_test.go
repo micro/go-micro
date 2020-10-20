@@ -9,11 +9,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/asim/go-micro/v3/store"
+	"github.com/asim/go-micro/v3/store/cache"
+	"github.com/asim/go-micro/v3/store/memory"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/kr/pretty"
-	"github.com/micro/go-micro/v3/store"
-	"github.com/micro/go-micro/v3/store/cache"
-	"github.com/micro/go-micro/v3/store/memory"
 )
 
 func memoryCleanup(db string, s store.Store) {

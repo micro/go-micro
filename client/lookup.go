@@ -4,8 +4,8 @@ import (
 	"context"
 	"sort"
 
-	"github.com/micro/go-micro/v3/errors"
-	"github.com/micro/go-micro/v3/router"
+	"github.com/asim/go-micro/v3/errors"
+	"github.com/asim/go-micro/v3/router"
 )
 
 // LookupFunc is used to lookup routes for a service

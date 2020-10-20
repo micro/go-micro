@@ -3,7 +3,7 @@ package scope
 import (
 	"fmt"
 
-	"github.com/micro/go-micro/v3/store"
+	"github.com/asim/go-micro/v3/store"
 )
 
 // Scope extends the store, applying a prefix to each request

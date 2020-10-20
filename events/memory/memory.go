@@ -6,11 +6,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/asim/go-micro/v3/events"
+	"github.com/asim/go-micro/v3/logger"
+	"github.com/asim/go-micro/v3/store"
+	"github.com/asim/go-micro/v3/store/memory"
 	"github.com/google/uuid"
-	"github.com/micro/go-micro/v3/events"
-	"github.com/micro/go-micro/v3/logger"
-	"github.com/micro/go-micro/v3/store"
-	"github.com/micro/go-micro/v3/store/memory"
 	"github.com/pkg/errors"
 )
 

@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/micro/go-micro/v3/events"
-	"github.com/micro/go-micro/v3/events/memory"
+	"github.com/asim/go-micro/v3/events"
+	"github.com/asim/go-micro/v3/events/memory"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"

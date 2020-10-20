@@ -4,9 +4,9 @@ import (
 	"context"
 	"time"
 
+	"github.com/asim/go-micro/v3/debug/trace"
+	"github.com/asim/go-micro/v3/util/ring"
 	"github.com/google/uuid"
-	"github.com/micro/go-micro/v3/debug/trace"
-	"github.com/micro/go-micro/v3/util/ring"
 )
 
 type Tracer struct {

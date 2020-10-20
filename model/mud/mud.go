@@ -2,11 +2,11 @@
 package mud
 
 import (
-	"github.com/micro/go-micro/v3/codec/json"
-	"github.com/micro/go-micro/v3/model"
-	"github.com/micro/go-micro/v3/store"
-	"github.com/micro/go-micro/v3/store/memory"
-	memsync "github.com/micro/go-micro/v3/sync/memory"
+	"github.com/asim/go-micro/v3/codec/json"
+	"github.com/asim/go-micro/v3/model"
+	"github.com/asim/go-micro/v3/store"
+	"github.com/asim/go-micro/v3/store/memory"
+	memsync "github.com/asim/go-micro/v3/sync/memory"
 )
 
 type mudModel struct {
