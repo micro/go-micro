@@ -53,4 +53,4 @@ See [pkg.go.dev](https://pkg.go.dev/github.com/asim/go-micro/v3?tab=overview) fo
 
 ## License
 
-[Polyform Strict](https://polyformproject.org/licenses/strict/1.0.0/).
+[Polyform Strict](https://polyformproject.org/licenses/strict/1.0.0/). See [github.com/sponsors/asim](https://github.com/sponsors/asim) for commercial licensing.
