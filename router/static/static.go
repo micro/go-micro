@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/micro/go-micro/v3/router"
+	"github.com/asim/go-micro/v3/router"
 )
 
 var (

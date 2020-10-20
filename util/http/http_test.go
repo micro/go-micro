@@ -6,10 +6,10 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/micro/go-micro/v3/registry"
-	"github.com/micro/go-micro/v3/registry/memory"
-	"github.com/micro/go-micro/v3/router"
-	regRouter "github.com/micro/go-micro/v3/router/registry"
+	"github.com/asim/go-micro/v3/registry"
+	"github.com/asim/go-micro/v3/registry/memory"
+	"github.com/asim/go-micro/v3/router"
+	regRouter "github.com/asim/go-micro/v3/router/registry"
 )
 
 func TestRoundTripper(t *testing.T) {

@@ -6,11 +6,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/micro/go-micro/v3/logger"
-	log "github.com/micro/go-micro/v3/logger"
-	"github.com/micro/go-micro/v3/runtime"
-	"github.com/micro/go-micro/v3/util/kubernetes/api"
-	"github.com/micro/go-micro/v3/util/kubernetes/client"
+	"github.com/asim/go-micro/v3/logger"
+	log "github.com/asim/go-micro/v3/logger"
+	"github.com/asim/go-micro/v3/runtime"
+	"github.com/asim/go-micro/v3/util/kubernetes/api"
+	"github.com/asim/go-micro/v3/util/kubernetes/client"
 )
 
 // action to take on runtime service

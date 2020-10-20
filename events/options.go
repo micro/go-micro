@@ -3,7 +3,7 @@ package events
 import (
 	"time"
 
-	"github.com/micro/go-micro/v3/store"
+	"github.com/asim/go-micro/v3/store"
 )
 
 // Options which are used to configure the in-memory stream

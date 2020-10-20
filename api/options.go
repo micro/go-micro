@@ -3,8 +3,8 @@ package api
 import (
 	"crypto/tls"
 
-	"github.com/micro/go-micro/v3/acme"
-	"github.com/micro/go-micro/v3/api/resolver"
+	"github.com/asim/go-micro/v3/acme"
+	"github.com/asim/go-micro/v3/api/resolver"
 )
 
 type Options struct {

@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"syscall"
 
-	"github.com/micro/go-micro/v3/runtime/local/process"
+	"github.com/asim/go-micro/v3/runtime/local/process"
 )
 
 func (p *Process) Exec(exe *process.Binary) error {

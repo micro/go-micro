@@ -3,9 +3,9 @@ package tunnel
 import (
 	"time"
 
+	"github.com/asim/go-micro/v3/network/transport"
+	"github.com/asim/go-micro/v3/network/transport/grpc"
 	"github.com/google/uuid"
-	"github.com/micro/go-micro/v3/network/transport"
-	"github.com/micro/go-micro/v3/network/transport/grpc"
 )
 
 var (

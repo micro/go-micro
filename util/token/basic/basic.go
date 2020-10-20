@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/asim/go-micro/v3/auth"
+	"github.com/asim/go-micro/v3/store"
+	"github.com/asim/go-micro/v3/util/token"
 	"github.com/google/uuid"
-	"github.com/micro/go-micro/v3/auth"
-	"github.com/micro/go-micro/v3/store"
-	"github.com/micro/go-micro/v3/util/token"
 )
 
 // Basic implementation of token provider, backed by the store

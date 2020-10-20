@@ -1,8 +1,8 @@
 package cache
 
 import (
-	"github.com/micro/go-micro/v3/store"
-	"github.com/micro/go-micro/v3/store/memory"
+	"github.com/asim/go-micro/v3/store"
+	"github.com/asim/go-micro/v3/store/memory"
 )
 
 // cache store is a store with caching to reduce IO where applicable.

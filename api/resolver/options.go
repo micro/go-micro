@@ -1,7 +1,7 @@
 package resolver
 
 import (
-	"github.com/micro/go-micro/v3/registry"
+	"github.com/asim/go-micro/v3/registry"
 )
 
 type Options struct {

@@ -6,14 +6,14 @@ import (
 	"io"
 	"strings"
 
-	"github.com/micro/go-micro/v3/client"
-	grpcc "github.com/micro/go-micro/v3/client/grpc"
-	"github.com/micro/go-micro/v3/codec"
-	"github.com/micro/go-micro/v3/codec/bytes"
-	"github.com/micro/go-micro/v3/errors"
-	"github.com/micro/go-micro/v3/logger"
-	"github.com/micro/go-micro/v3/proxy"
-	"github.com/micro/go-micro/v3/server"
+	"github.com/asim/go-micro/v3/client"
+	grpcc "github.com/asim/go-micro/v3/client/grpc"
+	"github.com/asim/go-micro/v3/codec"
+	"github.com/asim/go-micro/v3/codec/bytes"
+	"github.com/asim/go-micro/v3/errors"
+	"github.com/asim/go-micro/v3/logger"
+	"github.com/asim/go-micro/v3/proxy"
+	"github.com/asim/go-micro/v3/server"
 	"google.golang.org/grpc"
 )
 

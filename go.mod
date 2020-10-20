@@ -1,4 +1,4 @@
-module github.com/micro/go-micro/v3
+module github.com/asim/go-micro/v3
 
 go 1.13
 

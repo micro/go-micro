@@ -4,17 +4,17 @@ import (
 	"context"
 	"testing"
 
-	"github.com/micro/go-micro/v3/broker"
-	bmemory "github.com/micro/go-micro/v3/broker/memory"
-	"github.com/micro/go-micro/v3/client"
-	"github.com/micro/go-micro/v3/client/grpc"
-	tmemory "github.com/micro/go-micro/v3/network/transport/memory"
-	rmemory "github.com/micro/go-micro/v3/registry/memory"
-	"github.com/micro/go-micro/v3/router"
-	rtreg "github.com/micro/go-micro/v3/router/registry"
-	"github.com/micro/go-micro/v3/server"
-	grpcsrv "github.com/micro/go-micro/v3/server/grpc"
-	cw "github.com/micro/go-micro/v3/util/client"
+	"github.com/asim/go-micro/v3/broker"
+	bmemory "github.com/asim/go-micro/v3/broker/memory"
+	"github.com/asim/go-micro/v3/client"
+	"github.com/asim/go-micro/v3/client/grpc"
+	tmemory "github.com/asim/go-micro/v3/network/transport/memory"
+	rmemory "github.com/asim/go-micro/v3/registry/memory"
+	"github.com/asim/go-micro/v3/router"
+	rtreg "github.com/asim/go-micro/v3/router/registry"
+	"github.com/asim/go-micro/v3/server"
+	grpcsrv "github.com/asim/go-micro/v3/server/grpc"
+	cw "github.com/asim/go-micro/v3/util/client"
 )
 
 type TestFoo struct {

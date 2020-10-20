@@ -3,8 +3,8 @@ package mucp
 import (
 	"reflect"
 
-	"github.com/micro/go-micro/v3/registry"
-	"github.com/micro/go-micro/v3/server"
+	"github.com/asim/go-micro/v3/registry"
+	"github.com/asim/go-micro/v3/server"
 )
 
 type rpcHandler struct {

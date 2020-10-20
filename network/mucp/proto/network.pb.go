@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.22.0
 // 	protoc        v3.11.4
-// source: github.com/micro/go-micro/network/mucp/proto/network.proto
+// source: github.com/asim/go-micro/network/mucp/proto/network.proto
 
 package go_micro_network_mucp
 

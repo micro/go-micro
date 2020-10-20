@@ -1,8 +1,8 @@
 package noop
 
 import (
+	"github.com/asim/go-micro/v3/auth"
 	"github.com/google/uuid"
-	"github.com/micro/go-micro/v3/auth"
 )
 
 func NewAuth(opts ...auth.Option) auth.Auth {
