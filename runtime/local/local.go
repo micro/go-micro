@@ -21,8 +21,6 @@ const defaultNamespace = "micro"
 var (
 	// The directory for logs to be output
 	LogDir = filepath.Join(os.TempDir(), "micro", "logs")
-	// The source directory where code lives
-	SourceDir = filepath.Join(os.TempDir(), "micro", "uploads")
 )
 
 type localRuntime struct {
