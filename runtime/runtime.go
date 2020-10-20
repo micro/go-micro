@@ -26,8 +26,6 @@ type Runtime interface {
 	Delete(Resource, ...DeleteOption) error
 	// Logs returns the logs for a resource
 	Logs(Resource, ...LogsOption) (Logs, error)
-	// Start starts the runtime
-	Start() error
 	// Stop shuts down the runtime
 	Stop() error
 	// String defines the runtime implementation

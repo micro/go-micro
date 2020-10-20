@@ -51,11 +51,14 @@ func NewRuntime(opts ...runtime.Option) runtime.Runtime {
 	// make the logs directory
 	os.MkdirAll(LogDir, 0755)
 
-	return &localRuntime{
+	lr := &localRuntime{
 		options:    options,
 		start:      make(chan *service, 128),
 		namespaces: make(map[string]map[string]*service),
 	}
+	lr.Start()
+
+	return lr
 }
 
 // Init initializes runtime options
