@@ -27,6 +27,7 @@ type endpoint struct {
 
 // router is the default router
 type registryRouter struct {
+	sync.RWMutex
 	exit chan bool
 	opts router.Options
 
@@ -279,7 +280,6 @@ func (r *registryRouter) Close() error {
 		return nil
 	default:
 		close(r.exit)
-		r.opts.Registry.Stop()
 	}
 	return nil
 }

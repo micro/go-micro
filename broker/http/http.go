@@ -21,7 +21,7 @@ import (
 	"github.com/asim/go-micro/v3/codec/json"
 	merr "github.com/asim/go-micro/v3/errors"
 	"github.com/asim/go-micro/v3/registry"
-	"github.com/asim/go-micro/v3/registry/mdns"
+	"github.com/asim/go-micro/v3/registry/memory"
 	maddr "github.com/asim/go-micro/v3/util/addr"
 	mnet "github.com/asim/go-micro/v3/util/net"
 	mls "github.com/asim/go-micro/v3/util/tls"
@@ -106,7 +106,7 @@ func newHttpBroker(opts ...broker.Option) broker.Broker {
 	options := broker.Options{
 		Codec:    json.Marshaler{},
 		Context:  context.TODO(),
-		Registry: mdns.NewRegistry(),
+		Registry: memory.NewRegistry(),
 	}
 
 	for _, o := range opts {
@@ -398,7 +398,7 @@ func (h *httpBroker) Connect() error {
 	// get registry
 	reg := h.opts.Registry
 	if reg == nil {
-		reg = mdns.NewRegistry()
+		reg = memory.NewRegistry()
 	}
 	// set cache
 	h.r = reg
@@ -455,16 +455,11 @@ func (h *httpBroker) Init(opts ...broker.Option) error {
 	// get registry
 	reg := h.opts.Registry
 	if reg == nil {
-		reg = mdns.NewRegistry()
-	}
-
-	// get cache
-	if rc, ok := h.r.(cache.Cache); ok {
-		rc.Stop()
+		reg = memory.NewRegistry()
 	}
 
 	// set registry
-	h.r = cache.New(reg)
+	h.r = reg
 
 	// reconfigure tls config
 	if c := h.opts.TLSConfig; c != nil {

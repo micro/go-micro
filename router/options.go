@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/asim/go-micro/v3/registry"
-	"github.com/asim/go-micro/v3/registry/mdns"
+	"github.com/asim/go-micro/v3/registry/memory"
 	"github.com/google/uuid"
 )
 
@@ -73,7 +73,7 @@ func DefaultOptions() Options {
 	return Options{
 		Id:       uuid.New().String(),
 		Network:  DefaultNetwork,
-		Registry: mdns.NewRegistry(),
+		Registry: memory.NewRegistry(),
 		Context:  context.Background(),
 	}
 }

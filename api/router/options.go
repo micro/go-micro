@@ -4,7 +4,7 @@ import (
 	"github.com/asim/go-micro/v3/api/resolver"
 	"github.com/asim/go-micro/v3/api/resolver/path"
 	"github.com/asim/go-micro/v3/registry"
-	"github.com/asim/go-micro/v3/registry/mdns"
+	"github.com/asim/go-micro/v3/registry/memory"
 )
 
 type Options struct {
@@ -18,7 +18,7 @@ type Option func(o *Options)
 func NewOptions(opts ...Option) Options {
 	options := Options{
 		Handler:  "meta",
-		Registry: mdns.NewRegistry(),
+		Registry: memory.NewRegistry(),
 	}
 
 	for _, o := range opts {

@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/asim/go-micro/v3/store"
+	"github.com/asim/go-micro/v3/store/memory"
 )
 
 type Options struct {
@@ -45,7 +46,7 @@ func NewOptions(opts ...Option) Options {
 	}
 	//set default store
 	if options.Store == nil {
-		options.Store = store.DefaultStore
+		options.Store = memory.NewStore()
 	}
 	return options
 }

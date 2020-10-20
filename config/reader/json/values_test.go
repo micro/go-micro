@@ -4,8 +4,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/micro/go-micro/v3/config/reader"
-	"github.com/micro/go-micro/v3/config/source"
+	"github.com/asim/go-micro/v3/config/reader"
+	"github.com/asim/go-micro/v3/config/source"
 )
 
 func TestValues(t *testing.T) {

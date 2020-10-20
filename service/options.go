@@ -9,7 +9,7 @@ import (
 	"github.com/asim/go-micro/v3/client"
 	mucpClient "github.com/asim/go-micro/v3/client/mucp"
 	"github.com/asim/go-micro/v3/registry"
-	"github.com/asim/go-micro/v3/registry/mdns"
+	"github.com/asim/go-micro/v3/registry/memory"
 	"github.com/asim/go-micro/v3/server"
 	mucpServer "github.com/asim/go-micro/v3/server/mucp"
 )
@@ -38,7 +38,7 @@ func NewOptions(opts ...Option) Options {
 		Broker:   http.NewBroker(),
 		Client:   mucpClient.NewClient(),
 		Server:   mucpServer.NewServer(),
-		Registry: mdns.NewRegistry(),
+		Registry: memory.NewRegistry(),
 		Context:  context.Background(),
 	}
 

@@ -4,7 +4,7 @@ import (
 	"github.com/asim/go-micro/v3/broker/http"
 	"github.com/asim/go-micro/v3/codec"
 	thttp "github.com/asim/go-micro/v3/transport/http"
-	"github.com/asim/go-micro/v3/registry/mdns"
+	"github.com/asim/go-micro/v3/registry/memory"
 	"github.com/asim/go-micro/v3/server"
 )
 
@@ -25,7 +25,7 @@ func newOptions(opt ...server.Option) server.Options {
 	}
 
 	if opts.Registry == nil {
-		opts.Registry = mdns.NewRegistry()
+		opts.Registry = memory.NewRegistry()
 	}
 
 	if opts.Transport == nil {

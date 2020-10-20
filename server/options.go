@@ -14,7 +14,7 @@ import (
 	"github.com/asim/go-micro/v3/transport"
 	thttp "github.com/asim/go-micro/v3/transport/http"
 	"github.com/asim/go-micro/v3/registry"
-	"github.com/asim/go-micro/v3/registry/mdns"
+	"github.com/asim/go-micro/v3/registry/memory"
 )
 
 type Options struct {
@@ -69,7 +69,7 @@ func newOptions(opt ...Option) Options {
 	}
 
 	if opts.Registry == nil {
-		opts.Registry = mdns.NewRegistry()
+		opts.Registry = memory.NewRegistry()
 	}
 
 	if opts.Transport == nil {
