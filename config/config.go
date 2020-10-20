@@ -2,42 +2,49 @@
 package config
 
 import (
-	"time"
+	"context"
+
+	"github.com/micro/go-micro/v3/config/loader"
+	"github.com/micro/go-micro/v3/config/reader"
+	"github.com/micro/go-micro/v3/config/source"
 )
 
 // Config is an interface abstraction for dynamic configuration
 type Config interface {
-	Get(path string, options ...Option) (Value, error)
-	Set(path string, val interface{}, options ...Option) error
-	Delete(path string, options ...Option) error
+	// provide the reader.Values interface
+	reader.Values
+	// Init the config
+	Init(opts ...Option) error
+	// Options in the config
+	Options() Options
+	// Stop the config loader/watcher
+	Close() error
+	// Load config sources
+	Load(source ...source.Source) error
+	// Force a source changeset sync
+	Sync() error
+	// Watch a value for changes
+	Watch(path ...string) (Watcher, error)
 }
 
-// Value represents a value of any type
-type Value interface {
-	Exists() bool
-	Bool(def bool) bool
-	Int(def int) int
-	String(def string) string
-	Float64(def float64) float64
-	Duration(def time.Duration) time.Duration
-	StringSlice(def []string) []string
-	StringMap(def map[string]string) map[string]string
-	Scan(val interface{}) error
-	Bytes() []byte
+// Watcher is the config watcher
+type Watcher interface {
+	Next() (reader.Value, error)
+	Stop() error
 }
 
 type Options struct {
-	Secret bool
+	Loader loader.Loader
+	Reader reader.Reader
+	Source []source.Source
+
+	// for alternative data
+	Context context.Context
 }
 
 type Option func(o *Options)
 
-func Secret(b bool) Option {
-	return func(o *Options) {
-		o.Secret = b
-	}
-}
-
-type Secrets interface {
-	Config
+// NewConfig returns new config
+func NewConfig(opts ...Option) (Config, error) {
+	return newConfig(opts...)
 }
