@@ -28,3 +28,9 @@ type Provider interface {
 	// Implementation of the acme provider
 	String() string
 }
+
+// Challenge is used to create an acme dns challenge
+type Challenge interface {
+	Present(domain, token, key string) error
+	CleanUp(domain, token, key string) error
+}
