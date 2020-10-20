@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/asim/go-micro/v3/client"
-	grpcc "github.com/asim/go-micro/v3/client/grpc"
+	"github.com/asim/go-micro/v3/client/mucp"
 	"github.com/asim/go-micro/v3/codec"
 	"github.com/asim/go-micro/v3/codec/bytes"
 	"github.com/asim/go-micro/v3/errors"
@@ -23,7 +23,6 @@ import (
 	"github.com/asim/go-micro/v3/selector"
 	"github.com/asim/go-micro/v3/selector/roundrobin"
 	"github.com/asim/go-micro/v3/server"
-	"google.golang.org/grpc"
 )
 
 // Proxy will transparently proxy requests to an endpoint.
@@ -564,15 +563,6 @@ func (p *Proxy) serveRequest(ctx context.Context, link client.Client, service, e
 	for {
 		// read backend response body
 		body, err := resp.Read()
-		if err != nil {
-			// when we're done if its a grpc stream we have to set the trailer
-			if cc, ok := stream.(grpc.ClientStream); ok {
-				if ss, ok := resp.Codec().(grpc.ServerStream); ok {
-					ss.SetTrailer(cc.Trailer())
-				}
-			}
-		}
-
 		if err == io.EOF {
 			return nil
 		} else if err != nil {
@@ -627,7 +617,7 @@ func NewProxy(opts ...proxy.Option) proxy.Proxy {
 
 	// set the default client
 	if p.Client == nil {
-		p.Client = grpcc.NewClient()
+		p.Client = mucp.NewClient()
 	}
 
 	// create default router and start it

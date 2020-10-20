@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/asim/go-micro/v3/network/transport"
-	"github.com/asim/go-micro/v3/network/transport/grpc"
+	"github.com/asim/go-micro/v3/network/transport/http"
 	"github.com/google/uuid"
 )
 

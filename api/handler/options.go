@@ -3,7 +3,7 @@ package handler
 import (
 	"github.com/asim/go-micro/v3/api/router"
 	"github.com/asim/go-micro/v3/client"
-	"github.com/asim/go-micro/v3/client/grpc"
+	"github.com/asim/go-micro/v3/client/mucp"
 )
 
 var (
@@ -27,7 +27,7 @@ func NewOptions(opts ...Option) Options {
 	}
 
 	if options.Client == nil {
-		WithClient(grpc.NewClient())(&options)
+		WithClient(mucp.NewClient())(&options)
 	}
 
 	// set namespace if blank
