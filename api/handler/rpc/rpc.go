@@ -18,11 +18,11 @@ import (
 	"github.com/asim/go-micro/v3/errors"
 	"github.com/asim/go-micro/v3/logger"
 	"github.com/asim/go-micro/v3/metadata"
+	"github.com/asim/go-micro/v3/util/buf"
 	"github.com/asim/go-micro/v3/util/ctx"
 	"github.com/asim/go-micro/v3/util/qson"
 	"github.com/asim/go-micro/v3/util/router"
 	jsonpatch "github.com/evanphx/json-patch/v5"
-	"github.com/oxtoacart/bpool"
 )
 
 const (
@@ -47,7 +47,7 @@ var (
 		"application/octet-stream",
 	}
 
-	bufferPool = bpool.NewSizedBufferPool(1024, 8)
+	bufferPool = buf.NewPool()
 )
 
 type rpcHandler struct {

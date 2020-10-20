@@ -12,7 +12,7 @@ import (
 	"github.com/asim/go-micro/v3/codec/proto"
 	"github.com/asim/go-micro/v3/codec/protorpc"
 	"github.com/asim/go-micro/v3/network/transport"
-	"github.com/oxtoacart/bpool"
+	"github.com/asim/go-micro/v3/util/buf"
 	"github.com/pkg/errors"
 )
 
@@ -59,7 +59,7 @@ var (
 	}
 
 	// the local buffer pool
-	bufferPool = bpool.NewSizedBufferPool(32, 1)
+	bufferPool = buf.NewPool()
 )
 
 func (rwc *readWriteCloser) Read(p []byte) (n int, err error) {

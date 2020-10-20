@@ -7,7 +7,7 @@ import (
 	"crypto/sha256"
 
 	"github.com/asim/go-micro/v3/network/tunnel"
-	"github.com/oxtoacart/bpool"
+	"github.com/asim/go-micro/v3/util/buf"
 )
 
 var (
