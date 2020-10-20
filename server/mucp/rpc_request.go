@@ -4,7 +4,7 @@ import (
 	"bytes"
 
 	"github.com/asim/go-micro/v3/codec"
-	"github.com/asim/go-micro/v3/network/transport"
+	"github.com/asim/go-micro/v3/transport"
 	"github.com/asim/go-micro/v3/util/buf"
 )
 

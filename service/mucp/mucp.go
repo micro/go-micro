@@ -4,7 +4,6 @@ package mucp
 import (
 	"github.com/asim/go-micro/v3/client"
 	cmucp "github.com/asim/go-micro/v3/client/mucp"
-	"github.com/asim/go-micro/v3/model"
 	"github.com/asim/go-micro/v3/server"
 	smucp "github.com/asim/go-micro/v3/server/mucp"
 	"github.com/asim/go-micro/v3/service"
@@ -46,10 +45,6 @@ func (s *mucpService) Client() client.Client {
 
 func (s *mucpService) Server() server.Server {
 	return s.opts.Server
-}
-
-func (s *mucpService) Model() model.Model {
-	return s.opts.Model
 }
 
 func (s *mucpService) String() string {

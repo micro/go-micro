@@ -14,6 +14,22 @@ func (p *pool) Get() *bytes.Buffer {
 }
 
 func (p *pool) Put(b *bytes.Buffer) {
+	b.Reset()
+	p.p.Put(b)
+}
+
+type bytePool struct {
+	p sync.Pool
+}
+
+func (p *bytePool) Get() []byte {
+	return p.p.Get().([]byte)
+}
+
+func (p *bytePool) Put(b []byte) {
+	for i, _ := range b {
+		b[i] = '0'
+	}
 	p.p.Put(b)
 }
 
@@ -38,6 +54,16 @@ func NewPool() *pool {
 		p: sync.Pool{
 			New: func() interface{} {
 				return new(bytes.Buffer)
+			},
+		},
+	}
+}
+
+func NewBytePool(i int) *bytePool {
+	return &bytePool{
+		p: sync.Pool{
+			New: func() interface{} {
+				return make([]byte, i)
 			},
 		},
 	}

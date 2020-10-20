@@ -13,7 +13,7 @@ import (
 	raw "github.com/asim/go-micro/v3/codec/bytes"
 	"github.com/asim/go-micro/v3/errors"
 	"github.com/asim/go-micro/v3/metadata"
-	"github.com/asim/go-micro/v3/network/transport"
+	"github.com/asim/go-micro/v3/transport"
 	"github.com/asim/go-micro/v3/util/buf"
 	"github.com/asim/go-micro/v3/util/pool"
 	"github.com/google/uuid"

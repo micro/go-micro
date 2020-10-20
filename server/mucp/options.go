@@ -3,7 +3,7 @@ package mucp
 import (
 	"github.com/asim/go-micro/v3/broker/http"
 	"github.com/asim/go-micro/v3/codec"
-	thttp "github.com/asim/go-micro/v3/network/transport/http"
+	thttp "github.com/asim/go-micro/v3/transport/http"
 	"github.com/asim/go-micro/v3/registry/mdns"
 	"github.com/asim/go-micro/v3/server"
 )

@@ -189,3 +189,12 @@ func FromError(err error) *Error {
 
 	return Parse(err.Error())
 }
+
+// Wrap wraps errors
+func Wrap(err error, msg string) error {
+	return fmt.Errorf(`%s: %s"`, msg, err.Error())
+}
+
+func Wrapf(err error, format string, args ...interface{}) error {
+	return Wrap(err, fmt.Sprintf(format, args...))
+}

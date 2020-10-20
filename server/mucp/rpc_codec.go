@@ -11,7 +11,7 @@ import (
 	"github.com/asim/go-micro/v3/codec/jsonrpc"
 	"github.com/asim/go-micro/v3/codec/proto"
 	"github.com/asim/go-micro/v3/codec/protorpc"
-	"github.com/asim/go-micro/v3/network/transport"
+	"github.com/asim/go-micro/v3/transport"
 	"github.com/asim/go-micro/v3/util/buf"
 	"github.com/pkg/errors"
 )

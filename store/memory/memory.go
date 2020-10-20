@@ -2,6 +2,7 @@
 package memory
 
 import (
+	"errors"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -10,7 +11,6 @@ import (
 
 	"github.com/asim/go-micro/v3/store"
 	"github.com/patrickmn/go-cache"
-	"github.com/pkg/errors"
 )
 
 // NewStore returns a memory store

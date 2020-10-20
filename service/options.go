@@ -8,7 +8,6 @@ import (
 	"github.com/asim/go-micro/v3/broker/http"
 	"github.com/asim/go-micro/v3/client"
 	mucpClient "github.com/asim/go-micro/v3/client/mucp"
-	"github.com/asim/go-micro/v3/model"
 	"github.com/asim/go-micro/v3/registry"
 	"github.com/asim/go-micro/v3/registry/mdns"
 	"github.com/asim/go-micro/v3/server"
@@ -19,7 +18,6 @@ type Options struct {
 	Broker   broker.Broker
 	Client   client.Client
 	Server   server.Server
-	Model    model.Model
 	Registry registry.Registry
 
 	// Before and After funcs
@@ -79,13 +77,6 @@ func Context(ctx context.Context) Option {
 func Server(s server.Server) Option {
 	return func(o *Options) {
 		o.Server = s
-	}
-}
-
-// Model sets the model for data access
-func Model(m model.Model) Option {
-	return func(o *Options) {
-		o.Model = m
 	}
 }
 

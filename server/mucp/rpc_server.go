@@ -17,7 +17,7 @@ import (
 	raw "github.com/asim/go-micro/v3/codec/bytes"
 	"github.com/asim/go-micro/v3/logger"
 	"github.com/asim/go-micro/v3/metadata"
-	"github.com/asim/go-micro/v3/network/transport"
+	"github.com/asim/go-micro/v3/transport"
 	"github.com/asim/go-micro/v3/registry"
 	"github.com/asim/go-micro/v3/server"
 	"github.com/asim/go-micro/v3/util/addr"

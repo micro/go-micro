@@ -3,7 +3,6 @@ package service
 
 import (
 	"github.com/asim/go-micro/v3/client"
-	"github.com/asim/go-micro/v3/model"
 	"github.com/asim/go-micro/v3/server"
 )
 
@@ -19,8 +18,6 @@ type Service interface {
 	Client() client.Client
 	// Server is for handling requests and events
 	Server() server.Server
-	// Model is used to access data
-	Model() model.Model
 	// Run the service
 	Run() error
 	// The service implementation

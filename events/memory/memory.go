@@ -6,12 +6,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/asim/go-micro/v3/errors"
 	"github.com/asim/go-micro/v3/events"
 	"github.com/asim/go-micro/v3/logger"
 	"github.com/asim/go-micro/v3/store"
 	"github.com/asim/go-micro/v3/store/memory"
 	"github.com/google/uuid"
-	"github.com/pkg/errors"
 )
 
 // NewStream returns an initialized memory stream

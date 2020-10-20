@@ -2,13 +2,14 @@
 package sync
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 	"time"
 
+	verrors "github.com/asim/go-micro/v3/errors"
 	"github.com/asim/go-micro/v3/store"
 	"github.com/ef-ds/deque"
-	"github.com/pkg/errors"
 )
 
 // Sync implements a sync in for stores
@@ -59,7 +60,7 @@ func (c *syncStore) Init(opts ...store.Option) error {
 	}
 	for _, s := range c.syncOpts.Stores {
 		if err := s.Init(); err != nil {
-			return errors.Wrapf(err, "Store %s failed to Init()", s.String())
+			return verrors.Wrapf(err, "Store %s failed to Init()", s.String())
 		}
 	}
 	c.pendingWrites = make([]*deque.Deque, len(c.syncOpts.Stores)-1)
