@@ -19,7 +19,6 @@ import (
 	"github.com/asim/go-micro/v3/logger"
 	"github.com/asim/go-micro/v3/metadata"
 	"github.com/asim/go-micro/v3/util/buf"
-	"github.com/asim/go-micro/v3/util/ctx"
 	"github.com/asim/go-micro/v3/util/qson"
 	"github.com/asim/go-micro/v3/util/router"
 	jsonpatch "github.com/evanphx/json-patch/v5"
@@ -102,7 +101,7 @@ func (h *rpcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	c := h.opts.Client
 
 	// create context
-	cx := ctx.FromRequest(r)
+	cx := fromRequest(r)
 
 	// set merged context to request
 	*r = *r.Clone(cx)

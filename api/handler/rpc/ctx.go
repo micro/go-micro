@@ -1,4 +1,4 @@
-package ctx
+package rpc
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 	"github.com/asim/go-micro/v3/metadata"
 )
 
-func FromRequest(r *http.Request) context.Context {
+func fromRequest(r *http.Request) context.Context {
 	ctx := r.Context()
 	md, ok := metadata.FromContext(ctx)
 	if !ok {
