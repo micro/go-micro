@@ -11,10 +11,10 @@ import (
 	"github.com/asim/go-micro/v3/broker/http"
 	"github.com/asim/go-micro/v3/codec"
 	"github.com/asim/go-micro/v3/debug/trace"
-	"github.com/asim/go-micro/v3/transport"
-	thttp "github.com/asim/go-micro/v3/transport/http"
 	"github.com/asim/go-micro/v3/registry"
 	"github.com/asim/go-micro/v3/registry/memory"
+	"github.com/asim/go-micro/v3/transport"
+	thttp "github.com/asim/go-micro/v3/transport/http"
 )
 
 type Options struct {

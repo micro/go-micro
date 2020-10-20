@@ -7,13 +7,13 @@ import (
 	"github.com/asim/go-micro/v3/broker"
 	"github.com/asim/go-micro/v3/broker/http"
 	"github.com/asim/go-micro/v3/codec"
-	"github.com/asim/go-micro/v3/transport"
-	thttp "github.com/asim/go-micro/v3/transport/http"
 	"github.com/asim/go-micro/v3/registry"
 	"github.com/asim/go-micro/v3/router"
 	regRouter "github.com/asim/go-micro/v3/router/registry"
 	"github.com/asim/go-micro/v3/selector"
 	"github.com/asim/go-micro/v3/selector/roundrobin"
+	"github.com/asim/go-micro/v3/transport"
+	thttp "github.com/asim/go-micro/v3/transport/http"
 )
 
 type Options struct {

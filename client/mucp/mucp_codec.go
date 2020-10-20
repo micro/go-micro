@@ -12,8 +12,8 @@ import (
 	"github.com/asim/go-micro/v3/codec/proto"
 	"github.com/asim/go-micro/v3/codec/protorpc"
 	"github.com/asim/go-micro/v3/errors"
-	"github.com/asim/go-micro/v3/transport"
 	"github.com/asim/go-micro/v3/registry"
+	"github.com/asim/go-micro/v3/transport"
 )
 
 const (

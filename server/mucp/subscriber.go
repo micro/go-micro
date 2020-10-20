@@ -5,9 +5,9 @@ import (
 	"reflect"
 
 	"github.com/asim/go-micro/v3/broker"
-	"github.com/asim/go-micro/v3/transport"
 	"github.com/asim/go-micro/v3/registry"
 	"github.com/asim/go-micro/v3/server"
+	"github.com/asim/go-micro/v3/transport"
 )
 
 const (
