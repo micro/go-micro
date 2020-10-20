@@ -15,7 +15,6 @@ import (
 	"github.com/asim/go-micro/v3/logger"
 	"github.com/asim/go-micro/v3/metadata"
 	"github.com/asim/go-micro/v3/registry"
-	"github.com/asim/go-micro/v3/registry/cache"
 	util "github.com/asim/go-micro/v3/util/router"
 )
 
@@ -31,10 +30,7 @@ type registryRouter struct {
 	exit chan bool
 	opts router.Options
 
-	// registry cache
-	rc cache.Cache
-
-	sync.RWMutex
+	// registry 	sync.RWMutex
 	eps map[string]*api.Service
 	// compiled regexp for host and path
 	ceps map[string]*endpoint
@@ -68,7 +64,7 @@ func (r *registryRouter) refresh() {
 
 		// for each service, get service and store endpoints
 		for _, s := range services {
-			service, err := r.rc.GetService(s.Name)
+			service, err := r.opts.Registry.GetService(s.Name)
 			if err != nil {
 				if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
 					logger.Errorf("unable to get service: %v", err)
@@ -96,7 +92,7 @@ func (r *registryRouter) process(res *registry.Result) {
 	}
 
 	// get entry from cache
-	service, err := r.rc.GetService(res.Service.Name)
+	service, err := r.opts.Registry.GetService(res.Service.Name)
 	if err != nil {
 		if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
 			logger.Errorf("unable to get %v service: %v", res.Service.Name, err)
@@ -283,7 +279,7 @@ func (r *registryRouter) Close() error {
 		return nil
 	default:
 		close(r.exit)
-		r.rc.Stop()
+		r.opts.Registry.Stop()
 	}
 	return nil
 }
@@ -437,7 +433,7 @@ func (r *registryRouter) Route(req *http.Request) (*api.Service, error) {
 	name := rp.Name
 
 	// get service
-	services, err := r.rc.GetService(name, registry.GetDomain(rp.Domain))
+	services, err := r.opts.Registry.GetService(name, registry.GetDomain(rp.Domain))
 	if err != nil {
 		return nil, err
 	}
@@ -486,7 +482,6 @@ func newRouter(opts ...router.Option) *registryRouter {
 	r := &registryRouter{
 		exit: make(chan bool),
 		opts: options,
-		rc:   cache.New(options.Registry),
 		eps:  make(map[string]*api.Service),
 		ceps: make(map[string]*endpoint),
 	}

@@ -21,7 +21,6 @@ import (
 	"github.com/asim/go-micro/v3/codec/json"
 	merr "github.com/asim/go-micro/v3/errors"
 	"github.com/asim/go-micro/v3/registry"
-	"github.com/asim/go-micro/v3/registry/cache"
 	"github.com/asim/go-micro/v3/registry/mdns"
 	maddr "github.com/asim/go-micro/v3/util/addr"
 	mnet "github.com/asim/go-micro/v3/util/net"
@@ -402,7 +401,7 @@ func (h *httpBroker) Connect() error {
 		reg = mdns.NewRegistry()
 	}
 	// set cache
-	h.r = cache.New(reg)
+	h.r = reg
 
 	// set running
 	h.running = true
@@ -419,12 +418,6 @@ func (h *httpBroker) Disconnect() error {
 
 	h.Lock()
 	defer h.Unlock()
-
-	// stop cache
-	rc, ok := h.r.(cache.Cache)
-	if ok {
-		rc.Stop()
-	}
 
 	// exit and return err
 	ch := make(chan error)
