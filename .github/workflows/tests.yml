@@ -28,21 +28,7 @@ jobs:
     - name: Run tests
       id: tests
       env:
-        IN_TRAVIS_CI: yes
-        S3_BLOB_STORE_REGION: ${{ secrets.SCALEWAY_REGION }}
-        S3_BLOB_STORE_ENDPOINT: ${{ secrets.SCALEWAY_ENDPOINT }}
-        S3_BLOB_STORE_ACCESS_KEY: ${{ secrets.SCALEWAY_ACCESS_KEY }}
-        S3_BLOB_STORE_SECRET_KEY: ${{ secrets.SCALEWAY_SECRET_KEY }}
       run: |
-        kubectl apply -f runtime/kubernetes/test/test.yaml
-        sudo mkdir -p /var/run/secrets/kubernetes.io/serviceaccount
-        sudo chmod 777 /var/run/secrets/kubernetes.io/serviceaccount
-        wget -qO- https://binaries.cockroachdb.com/cockroach-v20.1.4.linux-amd64.tgz | tar -xvz
-        cockroach-v20.1.4.linux-amd64/cockroach start-single-node --insecure &
-        wget -q https://github.com/nats-io/nats-streaming-server/releases/download/v0.18.0/nats-streaming-server-v0.18.0-linux-amd64.zip
-        unzip ./nats-streaming-server-v0.18.0-linux-amd64.zip
-        export PATH=$PATH:./nats-streaming-server-v0.18.0-linux-amd64
-        nats-streaming-server &
-        go test -tags kubernetes,nats -v ./...
+        go test -v ./...
   
 
