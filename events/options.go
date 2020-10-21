@@ -56,12 +56,12 @@ func WithTimestamp(t time.Time) PublishOption {
 
 // ConsumeOptions contains all the options which can be provided when subscribing to a topic
 type ConsumeOptions struct {
-	// Queue is the name of the subscribers queue, if two subscribers have the same queue the message
+	// Group is the name of the subscribers queue, if two subscribers have the same queue the message
 	// should only be published to one of them
-	Queue string
-	// StartAtTime is the time from which the messages should be consumed from. If not provided then
+	Group string
+	// Offset is the time from which the messages should be consumed from. If not provided then
 	// the messages will be consumed starting from the moment the Subscription starts.
-	StartAtTime time.Time
+	Offset time.Time
 	// AutoAck if true (default true), automatically acknowledges every message so it will not be redelivered.
 	// If false specifies that each message need ts to be manually acknowledged by the subscriber.
 	// If processing is successful the message should be ack'ed to remove the message from the stream.
@@ -78,17 +78,17 @@ type ConsumeOptions struct {
 // ConsumeOption sets attributes on ConsumeOptions
 type ConsumeOption func(o *ConsumeOptions)
 
-// WithQueue sets the Queue fielf on ConsumeOptions to the value provided
-func WithQueue(q string) ConsumeOption {
+// WithGroup sets the Group fielf on ConsumeOptions to the value provided
+func WithGroup(q string) ConsumeOption {
 	return func(o *ConsumeOptions) {
-		o.Queue = q
+		o.Group = q
 	}
 }
 
-// WithStartAtTime sets the StartAtTime field on ConsumeOptions to the value provided
-func WithStartAtTime(t time.Time) ConsumeOption {
+// WithOffset sets the Offset field on ConsumeOptions to the value provided
+func WithOffset(t time.Time) ConsumeOption {
 	return func(o *ConsumeOptions) {
-		o.StartAtTime = t
+		o.Offset = t
 	}
 }
 

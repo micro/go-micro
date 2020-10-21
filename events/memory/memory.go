@@ -29,7 +29,7 @@ func NewStream(opts ...events.Option) (events.Stream, error) {
 }
 
 type subscriber struct {
-	Queue   string
+	Group   string
 	Topic   string
 	Channel chan events.Event
 
@@ -108,7 +108,7 @@ func (m *memoryStream) Consume(topic string, opts ...events.ConsumeOption) (<-ch
 
 	// parse the options
 	options := events.ConsumeOptions{
-		Queue:   uuid.New().String(),
+		Group:   uuid.New().String(),
 		AutoAck: true,
 	}
 	for _, o := range opts {
@@ -120,7 +120,7 @@ func (m *memoryStream) Consume(topic string, opts ...events.ConsumeOption) (<-ch
 	sub := &subscriber{
 		Channel:    make(chan events.Event),
 		Topic:      topic,
-		Queue:      options.Queue,
+		Group:      options.Group,
 		retryMap:   map[string]int{},
 		autoAck:    true,
 		retryLimit: options.GetRetryLimit(),
@@ -140,8 +140,8 @@ func (m *memoryStream) Consume(topic string, opts ...events.ConsumeOption) (<-ch
 	m.Unlock()
 
 	// lookup previous events if the start time option was passed
-	if options.StartAtTime.Unix() > 0 {
-		go m.lookupPreviousEvents(sub, options.StartAtTime)
+	if options.Offset.Unix() > 0 {
+		go m.lookupPreviousEvents(sub, options.Offset)
 	}
 
 	// return the channel
@@ -190,7 +190,7 @@ func (m *memoryStream) handleEvent(ev *events.Event) {
 	// filter down to subscribers who are interested in this topic
 	for _, sub := range subs {
 		if len(sub.Topic) == 0 || sub.Topic == ev.Topic {
-			filteredSubs[sub.Queue] = sub
+			filteredSubs[sub.Group] = sub
 		}
 	}
 
