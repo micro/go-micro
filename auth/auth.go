@@ -20,7 +20,7 @@ var (
 	ErrForbidden = errors.New("resource forbidden")
 )
 
-// Auth provides authentication and authorization
+// Auth provides authentication
 type Auth interface {
 	// Init the auth
 	Init(opts ...Option)
@@ -36,7 +36,7 @@ type Auth interface {
 	String() string
 }
 
-// Rules is an interface for managing auth rules
+// Rules is an interface for authorization
 type Rules interface {
 	// Grant access to a resource
 	Grant(rule *Rule) error
