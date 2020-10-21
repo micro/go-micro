@@ -32,5 +32,5 @@ type Provider interface {
 // Challenge is used to create an acme dns challenge
 type Challenge interface {
 	Present(domain, token, key string) error
-	CleanUp(domain, token, key string) error
+	Remove(domain, token, key string) error
 }
