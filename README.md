@@ -1,4 +1,4 @@
-# Go Micro [![License](https://img.shields.io/badge/license-polyform:strict-blue)](https://polyformproject.org/licenses/strict/1.0.0/) [![Go.Dev reference](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white&style=flat-square)](https://pkg.go.dev/github.com/asim/go-micro/v3?tab=overview)
+# Go Micro [![License](https://img.shields.io/badge/license-polyform:noncommercial-blue)](https://polyformproject.org/licenses/noncommercial/1.0.0/) [![Go.Dev reference](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white&style=flat-square)](https://pkg.go.dev/github.com/asim/go-micro/v3?tab=overview)
 
 Go Micro is a framework for microservices development.
 
@@ -53,4 +53,4 @@ See [pkg.go.dev](https://pkg.go.dev/github.com/asim/go-micro/v3?tab=overview) fo
 
 ## License
 
-[Polyform Strict](https://polyformproject.org/licenses/strict/1.0.0/). See [github.com/sponsors/asim](https://github.com/sponsors/asim) for commercial licensing.
+[Polyform Noncommercial](https://polyformproject.org/licenses/noncommercial/1.0.0/). See [github.com/sponsors/asim](https://github.com/sponsors/asim) for commercial licensing.
