@@ -28,20 +28,24 @@ type Auth interface {
 	Options() Options
 	// Generate a new account
 	Generate(id string, opts ...GenerateOption) (*Account, error)
-	// Verify an account has access to a resource using the rules
-	Verify(acc *Account, res *Resource, opts ...VerifyOption) error
 	// Inspect a token
 	Inspect(token string) (*Account, error)
 	// Token generated using refresh token or credentials
 	Token(opts ...TokenOption) (*Token, error)
+	// String returns the name of the implementation
+	String() string
+}
+
+// Rules is an interface for managing auth rules
+type Rules interface {
 	// Grant access to a resource
 	Grant(rule *Rule) error
 	// Revoke access to a resource
 	Revoke(rule *Rule) error
-	// Rules returns all the rules used to verify requests
-	Rules(...RulesOption) ([]*Rule, error)
-	// String returns the name of the implementation
-	String() string
+	// List returns all the rules used to verify requests
+	List(...RulesOption) ([]*Rule, error)
+	// Verify an account has access to a resource using the rules
+	Verify(acc *Account, res *Resource, opts ...VerifyOption) error
 }
 
 // Account provided by an auth provider

@@ -17,12 +17,19 @@ func NewAuth(opts ...auth.Option) auth.Auth {
 	return j
 }
 
+func NewRules() auth.Rules {
+	return &jwtRules{}
+}
+
 type jwtAuth struct {
+	sync.Mutex
 	options auth.Options
 	token   token.Provider
-	rules   []*auth.Rule
+}
 
+type jwtRules struct {
 	sync.Mutex
+	rules []*auth.Rule
 }
 
 func (j *jwtAuth) String() string {
@@ -79,46 +86,6 @@ func (j *jwtAuth) Generate(id string, opts ...auth.GenerateOption) (*auth.Accoun
 	return account, nil
 }
 
-func (j *jwtAuth) Grant(rule *auth.Rule) error {
-	j.Lock()
-	defer j.Unlock()
-	j.rules = append(j.rules, rule)
-	return nil
-}
-
-func (j *jwtAuth) Revoke(rule *auth.Rule) error {
-	j.Lock()
-	defer j.Unlock()
-
-	rules := []*auth.Rule{}
-	for _, r := range j.rules {
-		if r.ID != rule.ID {
-			rules = append(rules, r)
-		}
-	}
-
-	j.rules = rules
-	return nil
-}
-
-func (j *jwtAuth) Verify(acc *auth.Account, res *auth.Resource, opts ...auth.VerifyOption) error {
-	j.Lock()
-	defer j.Unlock()
-
-	var options auth.VerifyOptions
-	for _, o := range opts {
-		o(&options)
-	}
-
-	return auth.VerifyAccess(j.rules, acc, res)
-}
-
-func (j *jwtAuth) Rules(opts ...auth.RulesOption) ([]*auth.Rule, error) {
-	j.Lock()
-	defer j.Unlock()
-	return j.rules, nil
-}
-
 func (j *jwtAuth) Inspect(token string) (*auth.Account, error) {
 	return j.token.Inspect(token)
 }
@@ -152,4 +119,44 @@ func (j *jwtAuth) Token(opts ...auth.TokenOption) (*auth.Token, error) {
 		AccessToken:  access.Token,
 		RefreshToken: refresh.Token,
 	}, nil
+}
+
+func (j *jwtRules) Grant(rule *auth.Rule) error {
+	j.Lock()
+	defer j.Unlock()
+	j.rules = append(j.rules, rule)
+	return nil
+}
+
+func (j *jwtRules) Revoke(rule *auth.Rule) error {
+	j.Lock()
+	defer j.Unlock()
+
+	rules := []*auth.Rule{}
+	for _, r := range j.rules {
+		if r.ID != rule.ID {
+			rules = append(rules, r)
+		}
+	}
+
+	j.rules = rules
+	return nil
+}
+
+func (j *jwtRules) Verify(acc *auth.Account, res *auth.Resource, opts ...auth.VerifyOption) error {
+	j.Lock()
+	defer j.Unlock()
+
+	var options auth.VerifyOptions
+	for _, o := range opts {
+		o(&options)
+	}
+
+	return auth.VerifyAccess(j.rules, acc, res)
+}
+
+func (j *jwtRules) List(opts ...auth.RulesOption) ([]*auth.Rule, error) {
+	j.Lock()
+	defer j.Unlock()
+	return j.rules, nil
 }
