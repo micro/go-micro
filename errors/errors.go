@@ -125,9 +125,9 @@ func InternalServerError(id, format string, a ...interface{}) error {
 func NotImplemented(id, format string, a ...interface{}) error {
 	return &Error{
 		Id:     id,
-		Code:   501,
+		Code:   http.StatusNotImplemented,
 		Detail: fmt.Sprintf(format, a...),
-		Status: http.StatusText(501),
+		Status: http.StatusText(http.StatusNotImplemented),
 	}
 }
 
@@ -135,9 +135,9 @@ func NotImplemented(id, format string, a ...interface{}) error {
 func BadGateway(id, format string, a ...interface{}) error {
 	return &Error{
 		Id:     id,
-		Code:   502,
+		Code:   http.StatusBadGateway,
 		Detail: fmt.Sprintf(format, a...),
-		Status: http.StatusText(502),
+		Status: http.StatusText(http.StatusBadGateway),
 	}
 }
 
@@ -145,9 +145,9 @@ func BadGateway(id, format string, a ...interface{}) error {
 func ServiceUnavailable(id, format string, a ...interface{}) error {
 	return &Error{
 		Id:     id,
-		Code:   503,
+		Code:   http.StatusServiceUnavailable,
 		Detail: fmt.Sprintf(format, a...),
-		Status: http.StatusText(503),
+		Status: http.StatusText(http.StatusServiceUnavailable),
 	}
 }
 
@@ -155,9 +155,9 @@ func ServiceUnavailable(id, format string, a ...interface{}) error {
 func GatewayTimeout(id, format string, a ...interface{}) error {
 	return &Error{
 		Id:     id,
-		Code:   504,
+		Code:   http.StatusGatewayTimeout,
 		Detail: fmt.Sprintf(format, a...),
-		Status: http.StatusText(504),
+		Status: http.StatusText(http.StatusGatewayTimeout),
 	}
 }
 
