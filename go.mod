@@ -1,6 +1,6 @@
 module github.com/asim/go-micro/v3
 
-go 1.13
+go 1.15
 
 replace github.com/imdario/mergo => github.com/imdario/mergo v0.3.8
 
