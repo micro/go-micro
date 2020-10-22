@@ -13,7 +13,7 @@ import (
 	"github.com/asim/go-micro/v3/selector"
 	"github.com/asim/go-micro/v3/selector/roundrobin"
 	"github.com/asim/go-micro/v3/transport"
-	thttp "github.com/asim/go-micro/v3/transport/http"
+	tmem "github.com/asim/go-micro/v3/transport/memory"
 )
 
 type Options struct {
@@ -120,7 +120,7 @@ func NewOptions(options ...Option) Options {
 		Broker:    mbroker.NewBroker(),
 		Router:    regRouter.NewRouter(),
 		Selector:  roundrobin.NewSelector(),
-		Transport: thttp.NewTransport(),
+		Transport: tmem.NewTransport(),
 	}
 
 	for _, o := range options {

@@ -14,7 +14,7 @@ import (
 	"github.com/asim/go-micro/v3/registry"
 	"github.com/asim/go-micro/v3/registry/memory"
 	"github.com/asim/go-micro/v3/transport"
-	thttp "github.com/asim/go-micro/v3/transport/http"
+	tmem "github.com/asim/go-micro/v3/transport/memory"
 )
 
 type Options struct {
@@ -73,7 +73,7 @@ func newOptions(opt ...Option) Options {
 	}
 
 	if opts.Transport == nil {
-		opts.Transport = thttp.NewTransport()
+		opts.Transport = tmem.NewTransport()
 	}
 
 	if opts.RegisterCheck == nil {
@@ -229,7 +229,7 @@ func TLSConfig(t *tls.Config) Option {
 		// set the default transport if one is not
 		// already set. Required for Init call below.
 		if o.Transport == nil {
-			o.Transport = thttp.NewTransport()
+			o.Transport = tmem.NewTransport()
 		}
 
 		// set the transport tls
