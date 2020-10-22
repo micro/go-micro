@@ -2,13 +2,13 @@ package mucp
 
 import (
 	"github.com/asim/go-micro/v3/codec"
-	"github.com/asim/go-micro/v3/transport"
+	"github.com/asim/go-micro/v3/network"
 )
 
 type rpcResponse struct {
 	header map[string]string
 	body   []byte
-	socket transport.Socket
+	socket network.Socket
 	codec  codec.Codec
 }
 
@@ -21,7 +21,7 @@ func (r *rpcResponse) Header() map[string]string {
 }
 
 func (r *rpcResponse) Read() ([]byte, error) {
-	var msg transport.Message
+	var msg network.Message
 
 	if err := r.socket.Recv(&msg); err != nil {
 		return nil, err

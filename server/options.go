@@ -13,8 +13,8 @@ import (
 	"github.com/asim/go-micro/v3/debug/trace"
 	"github.com/asim/go-micro/v3/registry"
 	"github.com/asim/go-micro/v3/registry/memory"
-	"github.com/asim/go-micro/v3/transport"
-	tmem "github.com/asim/go-micro/v3/transport/memory"
+	"github.com/asim/go-micro/v3/network"
+	tmem "github.com/asim/go-micro/v3/network/memory"
 )
 
 type Options struct {
@@ -23,7 +23,7 @@ type Options struct {
 	Registry     registry.Registry
 	Tracer       trace.Tracer
 	Auth         auth.Auth
-	Transport    transport.Transport
+	Network    network.Network
 	Metadata     map[string]string
 	Name         string
 	Address      string
@@ -72,8 +72,8 @@ func newOptions(opt ...Option) Options {
 		opts.Registry = memory.NewRegistry()
 	}
 
-	if opts.Transport == nil {
-		opts.Transport = tmem.NewTransport()
+	if opts.Network == nil {
+		opts.Network = tmem.NewNetwork()
 	}
 
 	if opts.RegisterCheck == nil {
@@ -185,10 +185,10 @@ func Auth(a auth.Auth) Option {
 	}
 }
 
-// Transport mechanism for communication e.g http, rabbitmq, etc
-func Transport(t transport.Transport) Option {
+// Network mechanism for communication e.g http, rabbitmq, etc
+func Network(t network.Network) Option {
 	return func(o *Options) {
-		o.Transport = t
+		o.Network = t
 	}
 }
 
@@ -226,16 +226,16 @@ func TLSConfig(t *tls.Config) Option {
 		// set the internal tls
 		o.TLSConfig = t
 
-		// set the default transport if one is not
+		// set the default network if one is not
 		// already set. Required for Init call below.
-		if o.Transport == nil {
-			o.Transport = tmem.NewTransport()
+		if o.Network == nil {
+			o.Network = tmem.NewNetwork()
 		}
 
-		// set the transport tls
-		o.Transport.Init(
-			transport.Secure(true),
-			transport.TLSConfig(t),
+		// set the network tls
+		o.Network.Init(
+			network.Secure(true),
+			network.TLSConfig(t),
 		)
 	}
 }

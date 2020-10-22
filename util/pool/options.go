@@ -3,11 +3,11 @@ package pool
 import (
 	"time"
 
-	"github.com/asim/go-micro/v3/transport"
+	"github.com/asim/go-micro/v3/network"
 )
 
 type Options struct {
-	Transport transport.Transport
+	Network network.Network
 	TTL       time.Duration
 	Size      int
 }
@@ -20,9 +20,9 @@ func Size(i int) Option {
 	}
 }
 
-func Transport(t transport.Transport) Option {
+func Network(t network.Network) Option {
 	return func(o *Options) {
-		o.Transport = t
+		o.Network = t
 	}
 }
 

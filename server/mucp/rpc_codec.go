@@ -11,17 +11,17 @@ import (
 	"github.com/asim/go-micro/v3/codec/jsonrpc"
 	"github.com/asim/go-micro/v3/codec/proto"
 	"github.com/asim/go-micro/v3/codec/protorpc"
-	"github.com/asim/go-micro/v3/transport"
+	"github.com/asim/go-micro/v3/network"
 	"github.com/asim/go-micro/v3/util/buf"
 	"github.com/pkg/errors"
 )
 
 type rpcCodec struct {
-	socket   transport.Socket
+	socket   network.Socket
 	codec    codec.Codec
 	protocol string
 
-	req *transport.Message
+	req *network.Message
 	buf *readWriteCloser
 
 	// check if we're the first
@@ -123,7 +123,7 @@ func setHeaders(m, r *codec.Message) {
 }
 
 // setupProtocol sets up the old protocol
-func setupProtocol(msg *transport.Message) codec.NewCodec {
+func setupProtocol(msg *network.Message) codec.NewCodec {
 	service := getHeader("Micro-Service", msg.Header)
 	method := getHeader("Micro-Method", msg.Header)
 	endpoint := getHeader("Micro-Endpoint", msg.Header)
@@ -136,7 +136,7 @@ func setupProtocol(msg *transport.Message) codec.NewCodec {
 		return nil
 	}
 
-	// newer method of processing messages over transport
+	// newer method of processing messages over network
 	if len(topic) > 0 {
 		return nil
 	}
@@ -164,7 +164,7 @@ func setupProtocol(msg *transport.Message) codec.NewCodec {
 	return nil
 }
 
-func newRpcCodec(req *transport.Message, socket transport.Socket, c codec.NewCodec) codec.Codec {
+func newRpcCodec(req *network.Message, socket network.Socket, c codec.NewCodec) codec.Codec {
 	rwc := &readWriteCloser{
 		rbuf: bufferPool.Get(),
 		wbuf: bufferPool.Get(),
@@ -206,7 +206,7 @@ func (c *rpcCodec) ReadHeader(r *codec.Message, t codec.MessageType) error {
 	select {
 	case <-c.first:
 		// not the first
-		var tm transport.Message
+		var tm network.Message
 
 		// read off the socket
 		if err := c.socket.Recv(&tm); err != nil {
@@ -331,7 +331,7 @@ func (c *rpcCodec) Write(r *codec.Message, b interface{}) error {
 	}
 
 	// send on the socket
-	return c.socket.Send(&transport.Message{
+	return c.socket.Send(&network.Message{
 		Header: m.Header,
 		Body:   body,
 	})

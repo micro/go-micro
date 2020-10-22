@@ -4,7 +4,7 @@ import (
 	"bytes"
 
 	"github.com/asim/go-micro/v3/codec"
-	"github.com/asim/go-micro/v3/transport"
+	"github.com/asim/go-micro/v3/network"
 	"github.com/asim/go-micro/v3/util/buf"
 )
 
@@ -13,7 +13,7 @@ type rpcRequest struct {
 	method      string
 	endpoint    string
 	contentType string
-	socket      transport.Socket
+	socket      network.Socket
 	codec       codec.Codec
 	header      map[string]string
 	body        []byte
@@ -67,7 +67,7 @@ func (r *rpcRequest) Read() ([]byte, error) {
 		return b, nil
 	}
 
-	var msg transport.Message
+	var msg network.Message
 	err := r.socket.Recv(&msg)
 	if err != nil {
 		return nil, err

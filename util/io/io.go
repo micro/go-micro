@@ -4,15 +4,15 @@ package io
 import (
 	"io"
 
-	"github.com/asim/go-micro/v3/transport"
+	"github.com/asim/go-micro/v3/network"
 )
 
 type rwc struct {
-	socket transport.Socket
+	socket network.Socket
 }
 
 func (r *rwc) Read(p []byte) (n int, err error) {
-	m := new(transport.Message)
+	m := new(network.Message)
 	if err := r.socket.Recv(m); err != nil {
 		return 0, err
 	}
@@ -21,7 +21,7 @@ func (r *rwc) Read(p []byte) (n int, err error) {
 }
 
 func (r *rwc) Write(p []byte) (n int, err error) {
-	err = r.socket.Send(&transport.Message{
+	err = r.socket.Send(&network.Message{
 		Body: p,
 	})
 	if err != nil {
@@ -35,6 +35,6 @@ func (r *rwc) Close() error {
 }
 
 // NewRWC returns a new ReadWriteCloser
-func NewRWC(sock transport.Socket) io.ReadWriteCloser {
+func NewRWC(sock network.Socket) io.ReadWriteCloser {
 	return &rwc{sock}
 }

@@ -19,7 +19,7 @@ import (
 	"github.com/asim/go-micro/v3/metadata"
 	"github.com/asim/go-micro/v3/registry"
 	"github.com/asim/go-micro/v3/server"
-	"github.com/asim/go-micro/v3/transport"
+	"github.com/asim/go-micro/v3/network"
 	"github.com/asim/go-micro/v3/util/addr"
 	"github.com/asim/go-micro/v3/util/backoff"
 	mnet "github.com/asim/go-micro/v3/util/net"
@@ -143,7 +143,7 @@ func (s *rpcServer) HandleEvent(msg *broker.Message) error {
 }
 
 // ServeConn serves a single connection
-func (s *rpcServer) ServeConn(sock transport.Socket) {
+func (s *rpcServer) ServeConn(sock network.Socket) {
 	// streams are multiplexed on Micro-Stream or Micro-Id header
 	pool := socket.NewPool()
 
@@ -177,7 +177,7 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 	}()
 
 	for {
-		var msg transport.Message
+		var msg network.Message
 		// process inbound messages one at a time
 		if err := sock.Recv(&msg); err != nil {
 			return
@@ -192,7 +192,7 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 				msg.Header["Micro-Error"] = err.Error()
 			}
 			// write back some 200
-			if err := sock.Send(&transport.Message{
+			if err := sock.Send(&network.Message{
 				Header: msg.Header,
 			}); err != nil {
 				break
@@ -304,7 +304,7 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 			// try get a new codec
 			if cf, err = s.newCodec(ct); err != nil {
 				// no codec found so send back an error
-				sock.Send(&transport.Message{
+				sock.Send(&network.Message{
 					Header: map[string]string{
 						"Content-Type": "text/plain",
 					},
@@ -391,7 +391,7 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 
 			for {
 				// get the message from our internal handler/stream
-				m := new(transport.Message)
+				m := new(network.Message)
 				if err := psock.Process(m); err != nil {
 					return
 				}
@@ -603,7 +603,7 @@ func (s *rpcServer) Register() error {
 		Metadata: md,
 	}
 
-	node.Metadata["transport"] = config.Transport.String()
+	node.Metadata["network"] = config.Network.String()
 	node.Metadata["broker"] = config.Broker.String()
 	node.Metadata["server"] = s.String()
 	node.Metadata["registry"] = config.Registry.String()
@@ -818,14 +818,14 @@ func (s *rpcServer) Start() error {
 
 	config := s.Options()
 
-	// start listening on the transport
-	ts, err := config.Transport.Listen(config.Address)
+	// start listening on the network
+	ts, err := config.Network.Listen(config.Address)
 	if err != nil {
 		return err
 	}
 
 	if logger.V(logger.InfoLevel, logger.DefaultLogger) {
-		log.Infof("Transport [%s] Listening on %s", config.Transport.String(), ts.Addr())
+		log.Infof("Network [%s] Listening on %s", config.Network.String(), ts.Addr())
 	}
 
 	// swap address
@@ -963,7 +963,7 @@ func (s *rpcServer) Start() error {
 			swg.Wait()
 		}
 
-		// close transport listener
+		// close network listener
 		ch <- ts.Close()
 
 		if logger.V(logger.InfoLevel, logger.DefaultLogger) {

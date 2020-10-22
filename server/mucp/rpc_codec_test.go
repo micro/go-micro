@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/asim/go-micro/v3/codec"
-	"github.com/asim/go-micro/v3/transport"
+	"github.com/asim/go-micro/v3/network"
 )
 
 // testCodec is a dummy codec that only knows how to encode nil bodies
@@ -28,7 +28,7 @@ type testSocket struct {
 // timeouts.
 func TestCodecWriteError(t *testing.T) {
 	socket := testSocket{}
-	message := transport.Message{
+	message := network.Message{
 		Header: map[string]string{},
 		Body:   []byte{},
 	}
@@ -96,11 +96,11 @@ func (s testSocket) Remote() string {
 	return s.remote
 }
 
-func (s testSocket) Recv(message *transport.Message) error {
+func (s testSocket) Recv(message *network.Message) error {
 	return nil
 }
 
-func (s testSocket) Send(message *transport.Message) error {
+func (s testSocket) Send(message *network.Message) error {
 	return nil
 }
 

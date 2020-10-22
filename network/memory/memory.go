@@ -1,4 +1,4 @@
-// Package memory is an in-memory transport
+// Package memory is an in-memory network
 package memory
 
 import (
@@ -10,14 +10,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/asim/go-micro/v3/transport"
+	"github.com/asim/go-micro/v3/network"
 	maddr "github.com/asim/go-micro/v3/util/addr"
 	mnet "github.com/asim/go-micro/v3/util/net"
 )
 
 type memorySocket struct {
-	recv chan *transport.Message
-	send chan *transport.Message
+	recv chan *network.Message
+	send chan *network.Message
 	// sock exit
 	exit chan bool
 	// listener exit
@@ -26,7 +26,7 @@ type memorySocket struct {
 	local  string
 	remote string
 
-	// for send/recv transport.Timeout
+	// for send/recv network.Timeout
 	timeout time.Duration
 	ctx     context.Context
 	sync.RWMutex
@@ -34,26 +34,26 @@ type memorySocket struct {
 
 type memoryClient struct {
 	*memorySocket
-	opts transport.DialOptions
+	opts network.DialOptions
 }
 
 type memoryListener struct {
 	addr  string
 	exit  chan bool
 	conn  chan *memorySocket
-	lopts transport.ListenOptions
-	topts transport.Options
+	lopts network.ListenOptions
+	topts network.Options
 	sync.RWMutex
 	ctx context.Context
 }
 
-type memoryTransport struct {
-	opts transport.Options
+type memoryNetwork struct {
+	opts network.Options
 	sync.RWMutex
 	listeners map[string]*memoryListener
 }
 
-func (ms *memorySocket) Recv(m *transport.Message) error {
+func (ms *memorySocket) Recv(m *network.Message) error {
 	ms.RLock()
 	defer ms.RUnlock()
 
@@ -85,7 +85,7 @@ func (ms *memorySocket) Remote() string {
 	return ms.remote
 }
 
-func (ms *memorySocket) Send(m *transport.Message) error {
+func (ms *memorySocket) Send(m *network.Message) error {
 	ms.RLock()
 	defer ms.RUnlock()
 
@@ -136,7 +136,7 @@ func (m *memoryListener) Close() error {
 	return nil
 }
 
-func (m *memoryListener) Accept(fn func(transport.Socket)) error {
+func (m *memoryListener) Accept(fn func(network.Socket)) error {
 	for {
 		select {
 		case <-m.exit:
@@ -156,7 +156,7 @@ func (m *memoryListener) Accept(fn func(transport.Socket)) error {
 	}
 }
 
-func (m *memoryTransport) Dial(addr string, opts ...transport.DialOption) (transport.Client, error) {
+func (m *memoryNetwork) Dial(addr string, opts ...network.DialOption) (network.Client, error) {
 	m.RLock()
 	defer m.RUnlock()
 
@@ -165,15 +165,15 @@ func (m *memoryTransport) Dial(addr string, opts ...transport.DialOption) (trans
 		return nil, errors.New("could not dial " + addr)
 	}
 
-	var options transport.DialOptions
+	var options network.DialOptions
 	for _, o := range opts {
 		o(&options)
 	}
 
 	client := &memoryClient{
 		&memorySocket{
-			send:    make(chan *transport.Message),
-			recv:    make(chan *transport.Message),
+			send:    make(chan *network.Message),
+			recv:    make(chan *network.Message),
 			exit:    make(chan bool),
 			lexit:   listener.exit,
 			local:   addr,
@@ -194,11 +194,11 @@ func (m *memoryTransport) Dial(addr string, opts ...transport.DialOption) (trans
 	return client, nil
 }
 
-func (m *memoryTransport) Listen(addr string, opts ...transport.ListenOption) (transport.Listener, error) {
+func (m *memoryNetwork) Listen(addr string, opts ...network.ListenOption) (network.Listener, error) {
 	m.Lock()
 	defer m.Unlock()
 
-	var options transport.ListenOptions
+	var options network.ListenOptions
 	for _, o := range opts {
 		o(&options)
 	}
@@ -240,23 +240,23 @@ func (m *memoryTransport) Listen(addr string, opts ...transport.ListenOption) (t
 	return listener, nil
 }
 
-func (m *memoryTransport) Init(opts ...transport.Option) error {
+func (m *memoryNetwork) Init(opts ...network.Option) error {
 	for _, o := range opts {
 		o(&m.opts)
 	}
 	return nil
 }
 
-func (m *memoryTransport) Options() transport.Options {
+func (m *memoryNetwork) Options() network.Options {
 	return m.opts
 }
 
-func (m *memoryTransport) String() string {
+func (m *memoryNetwork) String() string {
 	return "memory"
 }
 
-func NewTransport(opts ...transport.Option) transport.Transport {
-	var options transport.Options
+func NewNetwork(opts ...network.Option) network.Network {
+	var options network.Options
 
 	rand.Seed(time.Now().UnixNano())
 
@@ -268,7 +268,7 @@ func NewTransport(opts ...transport.Option) transport.Transport {
 		options.Context = context.Background()
 	}
 
-	return &memoryTransport{
+	return &memoryNetwork{
 		opts:      options,
 		listeners: make(map[string]*memoryListener),
 	}

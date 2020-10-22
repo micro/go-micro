@@ -12,8 +12,8 @@ import (
 	regRouter "github.com/asim/go-micro/v3/router/registry"
 	"github.com/asim/go-micro/v3/selector"
 	"github.com/asim/go-micro/v3/selector/roundrobin"
-	"github.com/asim/go-micro/v3/transport"
-	tmem "github.com/asim/go-micro/v3/transport/memory"
+	"github.com/asim/go-micro/v3/network"
+	tmem "github.com/asim/go-micro/v3/network/memory"
 )
 
 type Options struct {
@@ -27,7 +27,7 @@ type Options struct {
 	Codecs    map[string]codec.NewCodec
 	Router    router.Router
 	Selector  selector.Selector
-	Transport transport.Transport
+	Network network.Network
 
 	// Lookup used for looking up routes
 	Lookup LookupFunc
@@ -52,7 +52,7 @@ type CallOptions struct {
 	Address []string
 	// Backoff func
 	Backoff BackoffFunc
-	// Transport Dial Timeout
+	// Network Dial Timeout
 	DialTimeout time.Duration
 	// Number of Call attempts
 	Retries int
@@ -112,7 +112,7 @@ func NewOptions(options ...Option) Options {
 			Retry:          DefaultRetry,
 			Retries:        DefaultRetries,
 			RequestTimeout: DefaultRequestTimeout,
-			DialTimeout:    transport.DefaultDialTimeout,
+			DialTimeout:    network.DefaultDialTimeout,
 		},
 		Lookup:    LookupRoute,
 		PoolSize:  DefaultPoolSize,
@@ -120,7 +120,7 @@ func NewOptions(options ...Option) Options {
 		Broker:    mbroker.NewBroker(),
 		Router:    regRouter.NewRouter(),
 		Selector:  roundrobin.NewSelector(),
-		Transport: tmem.NewTransport(),
+		Network: tmem.NewNetwork(),
 	}
 
 	for _, o := range options {
@@ -172,10 +172,10 @@ func PoolTTL(d time.Duration) Option {
 	}
 }
 
-// Transport to use for communication e.g http, rabbitmq, etc
-func Transport(t transport.Transport) Option {
+// Network to use for communication e.g http, rabbitmq, etc
+func Network(t network.Network) Option {
 	return func(o *Options) {
-		o.Transport = t
+		o.Network = t
 	}
 }
 
@@ -259,7 +259,7 @@ func StreamTimeout(d time.Duration) Option {
 	}
 }
 
-// Transport dial timeout
+// Network dial timeout
 func DialTimeout(d time.Duration) Option {
 	return func(o *Options) {
 		o.CallOptions.DialTimeout = d

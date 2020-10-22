@@ -5,7 +5,7 @@ import (
 	"github.com/asim/go-micro/v3/codec"
 	"github.com/asim/go-micro/v3/registry/memory"
 	"github.com/asim/go-micro/v3/server"
-	tmem "github.com/asim/go-micro/v3/transport/memory"
+	tmem "github.com/asim/go-micro/v3/network/memory"
 )
 
 func newOptions(opt ...server.Option) server.Options {
@@ -28,8 +28,8 @@ func newOptions(opt ...server.Option) server.Options {
 		opts.Registry = memory.NewRegistry()
 	}
 
-	if opts.Transport == nil {
-		opts.Transport = tmem.NewTransport()
+	if opts.Network == nil {
+		opts.Network = tmem.NewNetwork()
 	}
 
 	if opts.RegisterCheck == nil {

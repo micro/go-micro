@@ -4,12 +4,12 @@ import (
 	"net/http"
 
 	"github.com/asim/go-micro/v3/codec"
-	"github.com/asim/go-micro/v3/transport"
+	"github.com/asim/go-micro/v3/network"
 )
 
 type rpcResponse struct {
 	header map[string]string
-	socket transport.Socket
+	socket network.Socket
 	codec  codec.Codec
 }
 
@@ -28,7 +28,7 @@ func (r *rpcResponse) Write(b []byte) error {
 		r.header["Content-Type"] = http.DetectContentType(b)
 	}
 
-	return r.socket.Send(&transport.Message{
+	return r.socket.Send(&network.Message{
 		Header: r.header,
 		Body:   b,
 	})

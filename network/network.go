@@ -1,14 +1,14 @@
-// Package transport is an interface for synchronous connection based communication
-package transport
+// Package network is an interface for synchronous connection based communication
+package network
 
 import (
 	"time"
 )
 
-// Transport is an interface which is used for communication between
+// Network is an interface which is used for communication between
 // services. It uses connection based socket send/recv semantics and
 // has various implementations; http, grpc, quic.
-type Transport interface {
+type Network interface {
 	Init(...Option) error
 	Options() Options
 	Dial(addr string, opts ...DialOption) (Client, error)

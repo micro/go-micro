@@ -7,7 +7,7 @@ import (
 	"github.com/asim/go-micro/v3/broker"
 	"github.com/asim/go-micro/v3/registry"
 	"github.com/asim/go-micro/v3/server"
-	"github.com/asim/go-micro/v3/transport"
+	"github.com/asim/go-micro/v3/network"
 )
 
 const (
@@ -30,7 +30,7 @@ type subscriber struct {
 	opts       server.SubscriberOptions
 }
 
-func newMessage(msg transport.Message) *broker.Message {
+func newMessage(msg network.Message) *broker.Message {
 	return &broker.Message{
 		Header: msg.Header,
 		Body:   msg.Body,

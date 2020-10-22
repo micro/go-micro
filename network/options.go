@@ -1,4 +1,4 @@
-package transport
+package network
 
 import (
 	"context"
@@ -12,9 +12,9 @@ type Options struct {
 	// Addrs is the list of intermediary addresses to connect to
 	Addrs []string
 	// Codec is the codec interface to use where headers are not supported
-	// by the transport and the entire payload must be encoded
+	// by the network and the entire payload must be encoded
 	Codec codec.Marshaler
-	// Secure tells the transport to secure the connection.
+	// Secure tells the network to secure the connection.
 	// In the case TLSConfig is not specified best effort self-signed
 	// certs should be used
 	Secure bool
@@ -29,7 +29,7 @@ type Options struct {
 }
 
 type DialOptions struct {
-	// Tells the transport this is a streaming connection with
+	// Tells the network this is a streaming connection with
 	// multiple calls to send/recv and that send may not even be called
 	Stream bool
 	// Timeout for dialing
@@ -52,14 +52,14 @@ type ListenOptions struct {
 	Context context.Context
 }
 
-// Addrs to use for transport
+// Addrs to use for network
 func Addrs(addrs ...string) Option {
 	return func(o *Options) {
 		o.Addrs = addrs
 	}
 }
 
-// Codec sets the codec used for encoding where the transport
+// Codec sets the codec used for encoding where the network
 // does not support message headers
 func Codec(c codec.Marshaler) Option {
 	return func(o *Options) {
@@ -82,7 +82,7 @@ func Secure(b bool) Option {
 	}
 }
 
-// TLSConfig to be used for the transport.
+// TLSConfig to be used for the network.
 func TLSConfig(t *tls.Config) Option {
 	return func(o *Options) {
 		o.TLSConfig = t

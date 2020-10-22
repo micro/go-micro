@@ -4,21 +4,21 @@ import (
 	"sync"
 	"time"
 
-	"github.com/asim/go-micro/v3/transport"
+	"github.com/asim/go-micro/v3/network"
 	"github.com/google/uuid"
 )
 
 type pool struct {
 	size int
 	ttl  time.Duration
-	tr   transport.Transport
+	tr   network.Network
 
 	sync.Mutex
 	conns map[string][]*poolConn
 }
 
 type poolConn struct {
-	transport.Client
+	network.Client
 	id      string
 	created time.Time
 }
@@ -26,7 +26,7 @@ type poolConn struct {
 func newPool(options Options) *pool {
 	return &pool{
 		size:  options.Size,
-		tr:    options.Transport,
+		tr:    options.Network,
 		ttl:   options.TTL,
 		conns: make(map[string][]*poolConn),
 	}
@@ -57,7 +57,7 @@ func (p *poolConn) Created() time.Time {
 	return p.created
 }
 
-func (p *pool) Get(addr string, opts ...transport.DialOption) (Conn, error) {
+func (p *pool) Get(addr string, opts ...network.DialOption) (Conn, error) {
 	p.Lock()
 	conns := p.conns[addr]
 

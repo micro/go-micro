@@ -10,7 +10,7 @@ type metadataKey struct{}
 
 // Metadata is our way of representing request headers internally.
 // They're used at the RPC level and translate back and forth
-// from Transport headers.
+// from Network headers.
 type Metadata map[string]string
 
 func (md Metadata) Get(key string) (string, bool) {

@@ -1,4 +1,4 @@
-// Package mucp provides a transport agnostic RPC server
+// Package mucp provides a network agnostic RPC server
 package mucp
 
 import (

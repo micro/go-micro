@@ -1,4 +1,4 @@
-// Package mucp provides a transport agnostic RPC client
+// Package mucp provides a network agnostic RPC client
 package mucp
 
 import (
@@ -13,7 +13,7 @@ import (
 	raw "github.com/asim/go-micro/v3/codec/bytes"
 	"github.com/asim/go-micro/v3/errors"
 	"github.com/asim/go-micro/v3/metadata"
-	"github.com/asim/go-micro/v3/transport"
+	"github.com/asim/go-micro/v3/network"
 	"github.com/asim/go-micro/v3/util/buf"
 	"github.com/asim/go-micro/v3/util/pool"
 	"github.com/google/uuid"
@@ -33,7 +33,7 @@ func NewClient(opt ...client.Option) client.Client {
 	p := pool.NewPool(
 		pool.Size(opts.PoolSize),
 		pool.TTL(opts.PoolTTL),
-		pool.Transport(opts.Transport),
+		pool.Network(opts.Network),
 	)
 
 	rc := &rpcClient{
@@ -64,7 +64,7 @@ func (r *rpcClient) newCodec(contentType string) (codec.NewCodec, error) {
 }
 
 func (r *rpcClient) call(ctx context.Context, addr string, req client.Request, resp interface{}, opts client.CallOptions) error {
-	msg := &transport.Message{
+	msg := &network.Message{
 		Header: make(map[string]string),
 	}
 
@@ -92,12 +92,12 @@ func (r *rpcClient) call(ctx context.Context, addr string, req client.Request, r
 		return errors.InternalServerError("go.micro.client", err.Error())
 	}
 
-	dOpts := []transport.DialOption{
-		transport.WithStream(),
+	dOpts := []network.DialOption{
+		network.WithStream(),
 	}
 
 	if opts.DialTimeout >= 0 {
-		dOpts = append(dOpts, transport.WithTimeout(opts.DialTimeout))
+		dOpts = append(dOpts, network.WithTimeout(opts.DialTimeout))
 	}
 
 	c, err := r.pool.Get(addr, dOpts...)
@@ -174,7 +174,7 @@ func (r *rpcClient) call(ctx context.Context, addr string, req client.Request, r
 }
 
 func (r *rpcClient) stream(ctx context.Context, addr string, req client.Request, opts client.CallOptions) (client.Stream, error) {
-	msg := &transport.Message{
+	msg := &network.Message{
 		Header: make(map[string]string),
 	}
 
@@ -199,15 +199,15 @@ func (r *rpcClient) stream(ctx context.Context, addr string, req client.Request,
 		return nil, errors.InternalServerError("go.micro.client", err.Error())
 	}
 
-	dOpts := []transport.DialOption{
-		transport.WithStream(),
+	dOpts := []network.DialOption{
+		network.WithStream(),
 	}
 
 	if opts.DialTimeout >= 0 {
-		dOpts = append(dOpts, transport.WithTimeout(opts.DialTimeout))
+		dOpts = append(dOpts, network.WithTimeout(opts.DialTimeout))
 	}
 
-	c, err := r.opts.Transport.Dial(addr, dOpts...)
+	c, err := r.opts.Network.Dial(addr, dOpts...)
 	if err != nil {
 		return nil, errors.InternalServerError("go.micro.client", "connection error: %v", err)
 	}
@@ -277,21 +277,21 @@ func (r *rpcClient) stream(ctx context.Context, addr string, req client.Request,
 func (r *rpcClient) Init(opts ...client.Option) error {
 	size := r.opts.PoolSize
 	ttl := r.opts.PoolTTL
-	tr := r.opts.Transport
+	tr := r.opts.Network
 
 	for _, o := range opts {
 		o(&r.opts)
 	}
 
 	// update pool configuration if the options changed
-	if size != r.opts.PoolSize || ttl != r.opts.PoolTTL || tr != r.opts.Transport {
+	if size != r.opts.PoolSize || ttl != r.opts.PoolTTL || tr != r.opts.Network {
 		// close existing pool
 		r.pool.Close()
 		// create new pool
 		r.pool = pool.NewPool(
 			pool.Size(r.opts.PoolSize),
 			pool.TTL(r.opts.PoolTTL),
-			pool.Transport(r.opts.Transport),
+			pool.Network(r.opts.Network),
 		)
 	}
 

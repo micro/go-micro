@@ -4,18 +4,18 @@ import (
 	"testing"
 	"time"
 
-	"github.com/asim/go-micro/v3/transport"
-	"github.com/asim/go-micro/v3/transport/memory"
+	"github.com/asim/go-micro/v3/network"
+	"github.com/asim/go-micro/v3/network/memory"
 )
 
 func testPool(t *testing.T, size int, ttl time.Duration) {
-	// mock transport
-	tr := memory.NewTransport()
+	// mock network
+	tr := memory.NewNetwork()
 
 	options := Options{
 		TTL:       ttl,
 		Size:      size,
-		Transport: tr,
+		Network: tr,
 	}
 	// zero pool
 	p := newPool(options)
@@ -30,9 +30,9 @@ func testPool(t *testing.T, size int, ttl time.Duration) {
 	// accept loop
 	go func() {
 		for {
-			if err := l.Accept(func(s transport.Socket) {
+			if err := l.Accept(func(s network.Socket) {
 				for {
-					var msg transport.Message
+					var msg network.Message
 					if err := s.Recv(&msg); err != nil {
 						return
 					}
@@ -53,7 +53,7 @@ func testPool(t *testing.T, size int, ttl time.Duration) {
 			t.Fatal(err)
 		}
 
-		msg := &transport.Message{
+		msg := &network.Message{
 			Body: []byte(`hello world`),
 		}
 
@@ -61,7 +61,7 @@ func testPool(t *testing.T, size int, ttl time.Duration) {
 			t.Fatal(err)
 		}
 
-		var rcv transport.Message
+		var rcv network.Message
 
 		if err := c.Recv(&rcv); err != nil {
 			t.Fatal(err)

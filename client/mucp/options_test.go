@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/asim/go-micro/v3/client"
-	"github.com/asim/go-micro/v3/transport"
+	"github.com/asim/go-micro/v3/network"
 )
 
 func TestCallOptions(t *testing.T) {
@@ -15,7 +15,7 @@ func TestCallOptions(t *testing.T) {
 		rtimeout time.Duration
 		dtimeout time.Duration
 	}{
-		{false, client.DefaultRetries, client.DefaultRequestTimeout, transport.DefaultDialTimeout},
+		{false, client.DefaultRetries, client.DefaultRequestTimeout, network.DefaultDialTimeout},
 		{true, 10, time.Second, time.Second * 2},
 	}
 

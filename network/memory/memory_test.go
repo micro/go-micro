@@ -4,11 +4,11 @@ import (
 	"os"
 	"testing"
 
-	"github.com/asim/go-micro/v3/transport"
+	"github.com/asim/go-micro/v3/network"
 )
 
-func TestMemoryTransport(t *testing.T) {
-	tr := NewTransport()
+func TestMemoryNetwork(t *testing.T) {
+	tr := NewNetwork()
 
 	// bind / listen
 	l, err := tr.Listen("127.0.0.1:8080")
@@ -19,16 +19,16 @@ func TestMemoryTransport(t *testing.T) {
 
 	// accept
 	go func() {
-		if err := l.Accept(func(sock transport.Socket) {
+		if err := l.Accept(func(sock network.Socket) {
 			for {
-				var m transport.Message
+				var m network.Message
 				if err := sock.Recv(&m); err != nil {
 					return
 				}
 				if len(os.Getenv("IN_TRAVIS_CI")) == 0 {
 					t.Logf("Server Received %s", string(m.Body))
 				}
-				if err := sock.Send(&transport.Message{
+				if err := sock.Send(&network.Message{
 					Body: []byte(`pong`),
 				}); err != nil {
 					return
@@ -48,12 +48,12 @@ func TestMemoryTransport(t *testing.T) {
 
 	// send <=> receive
 	for i := 0; i < 3; i++ {
-		if err := c.Send(&transport.Message{
+		if err := c.Send(&network.Message{
 			Body: []byte(`ping`),
 		}); err != nil {
 			return
 		}
-		var m transport.Message
+		var m network.Message
 		if err := c.Recv(&m); err != nil {
 			return
 		}
@@ -65,7 +65,7 @@ func TestMemoryTransport(t *testing.T) {
 }
 
 func TestListener(t *testing.T) {
-	tr := NewTransport()
+	tr := NewNetwork()
 
 	// bind / listen on random port
 	l, err := tr.Listen(":0")
