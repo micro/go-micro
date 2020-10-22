@@ -8,7 +8,7 @@ import (
 
 	"github.com/asim/go-micro/v3/auth"
 	"github.com/asim/go-micro/v3/broker"
-	"github.com/asim/go-micro/v3/broker/memory"
+	mbroker "github.com/asim/go-micro/v3/broker/memory"
 	"github.com/asim/go-micro/v3/codec"
 	"github.com/asim/go-micro/v3/debug/trace"
 	"github.com/asim/go-micro/v3/registry"
@@ -65,7 +65,7 @@ func newOptions(opt ...Option) Options {
 	}
 
 	if opts.Broker == nil {
-		opts.Broker = http.NewBroker()
+		opts.Broker = mbroker.NewBroker()
 	}
 
 	if opts.Registry == nil {

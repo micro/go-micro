@@ -20,7 +20,7 @@ type Config interface {
 	// Stop the config loader/watcher
 	Close() error
 	// Load config sources
-	Load(source ...source.Source) error
+	Load(source ...source.Source) (reader.Values, error)
 	// Force a source changeset sync
 	Sync() error
 	// Watch a value for changes
@@ -43,8 +43,3 @@ type Options struct {
 }
 
 type Option func(o *Options)
-
-// NewConfig returns new config
-func NewConfig(opts ...Option) (Config, error) {
-	return newConfig(opts...)
-}

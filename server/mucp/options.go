@@ -1,7 +1,7 @@
 package mucp
 
 import (
-	"github.com/asim/go-micro/v3/broker/memory"
+	mbroker "github.com/asim/go-micro/v3/broker/memory"
 	"github.com/asim/go-micro/v3/codec"
 	"github.com/asim/go-micro/v3/registry/memory"
 	"github.com/asim/go-micro/v3/server"
@@ -21,7 +21,7 @@ func newOptions(opt ...server.Option) server.Options {
 	}
 
 	if opts.Broker == nil {
-		opts.Broker = http.NewBroker()
+		opts.Broker = mbroker.NewBroker()
 	}
 
 	if opts.Registry == nil {

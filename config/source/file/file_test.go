@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/asim/go-micro/v3/config"
+	"github.com/asim/go-micro/v3/config/memory"
 	"github.com/asim/go-micro/v3/config/source/file"
 )
 
@@ -27,7 +27,7 @@ func TestConfig(t *testing.T) {
 		t.Error(err)
 	}
 
-	conf, err := config.NewConfig()
+	conf, err := memory.NewConfig()
 	if err != nil {
 		t.Fatal(err)
 	}

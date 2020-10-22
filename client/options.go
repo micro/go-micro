@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/asim/go-micro/v3/broker"
-	"github.com/asim/go-micro/v3/broker/memory"
+	mbroker "github.com/asim/go-micro/v3/broker/memory"
 	"github.com/asim/go-micro/v3/codec"
 	"github.com/asim/go-micro/v3/registry"
 	"github.com/asim/go-micro/v3/router"
@@ -117,7 +117,7 @@ func NewOptions(options ...Option) Options {
 		Lookup:    LookupRoute,
 		PoolSize:  DefaultPoolSize,
 		PoolTTL:   DefaultPoolTTL,
-		Broker:    http.NewBroker(),
+		Broker:    mbroker.NewBroker(),
 		Router:    regRouter.NewRouter(),
 		Selector:  roundrobin.NewSelector(),
 		Transport: thttp.NewTransport(),

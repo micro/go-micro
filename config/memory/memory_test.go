@@ -1,4 +1,4 @@
-package config
+package memory
 
 import (
 	"fmt"
@@ -59,7 +59,7 @@ func TestConfigLoadWithGoodFile(t *testing.T) {
 		t.Fatalf("Expected no error but got %v", err)
 	}
 	// Load file source
-	if err := conf.Load(file.NewSource(
+	if _, err := conf.Load(file.NewSource(
 		file.WithPath(path),
 	)); err != nil {
 		t.Fatalf("Expected no error but got %v", err)
@@ -80,7 +80,7 @@ func TestConfigLoadWithInvalidFile(t *testing.T) {
 		t.Fatalf("Expected no error but got %v", err)
 	}
 	// Load file source
-	err = conf.Load(file.NewSource(
+	_, err = conf.Load(file.NewSource(
 		file.WithPath(path),
 		file.WithPath("/i/do/not/exists.json"),
 	))
@@ -114,7 +114,7 @@ func TestConfigMerge(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Expected no error but got %v", err)
 	}
-	if err := conf.Load(
+	if _, err := conf.Load(
 		file.NewSource(
 			file.WithPath(path),
 		),
@@ -154,7 +154,7 @@ func TestConfigWatcherDirtyOverrite(t *testing.T) {
 	conf, _ := NewConfig()
 
 	for _, s := range ss {
-		_ = conf.Load(s)
+		conf.Load(s)
 	}
 	runtime.Gosched()
 

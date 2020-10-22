@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/asim/go-micro/v3/broker"
-	"github.com/asim/go-micro/v3/broker/memory"
+	mbroker "github.com/asim/go-micro/v3/broker/memory"
 	"github.com/asim/go-micro/v3/client"
 	mucpClient "github.com/asim/go-micro/v3/client/mucp"
 	"github.com/asim/go-micro/v3/registry"
@@ -35,7 +35,7 @@ type Option func(*Options)
 
 func NewOptions(opts ...Option) Options {
 	opt := Options{
-		Broker:   http.NewBroker(),
+		Broker:   mbroker.NewBroker(),
 		Client:   mucpClient.NewClient(),
 		Server:   mucpServer.NewServer(),
 		Registry: memory.NewRegistry(),
