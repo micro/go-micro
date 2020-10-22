@@ -5,9 +5,8 @@ import (
 	"time"
 )
 
-// Transport is an interface which is used for communication between
-// services. It uses connection based socket send/recv semantics and
-// has various implementations; http, grpc, quic.
+// Transport is an interface used for communication between
+// services. It uses connection based socket send/recv semantics.
 type Transport interface {
 	Init(...Option) error
 	Options() Options
