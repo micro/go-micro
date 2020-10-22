@@ -9,11 +9,7 @@ require (
 	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
-	github.com/evanphx/json-patch/v5 v5.0.0
 	github.com/fsnotify/fsnotify v1.4.9
-	github.com/gobwas/httphead v0.0.0-20180130184737-2c6c146eadee
-	github.com/gobwas/pool v0.2.0 // indirect
-	github.com/gobwas/ws v1.0.3
 	github.com/golang/protobuf v1.4.2
 	github.com/google/uuid v1.1.2
 	github.com/hpcloud/tail v1.0.0

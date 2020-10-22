@@ -8,7 +8,7 @@ import (
 
 	"github.com/asim/go-micro/v3/auth"
 	"github.com/asim/go-micro/v3/broker"
-	"github.com/asim/go-micro/v3/broker/http"
+	"github.com/asim/go-micro/v3/broker/memory"
 	"github.com/asim/go-micro/v3/codec"
 	"github.com/asim/go-micro/v3/debug/trace"
 	"github.com/asim/go-micro/v3/registry"

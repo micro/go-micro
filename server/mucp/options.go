@@ -1,7 +1,7 @@
 package mucp
 
 import (
-	"github.com/asim/go-micro/v3/broker/http"
+	"github.com/asim/go-micro/v3/broker/memory"
 	"github.com/asim/go-micro/v3/codec"
 	"github.com/asim/go-micro/v3/registry/memory"
 	"github.com/asim/go-micro/v3/server"

@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/asim/go-micro/v3/broker"
-	"github.com/asim/go-micro/v3/broker/http"
+	"github.com/asim/go-micro/v3/broker/memory"
 	"github.com/asim/go-micro/v3/client"
 	mucpClient "github.com/asim/go-micro/v3/client/mucp"
 	"github.com/asim/go-micro/v3/registry"
