@@ -1,4 +1,4 @@
-# Go Micro [![License](https://img.shields.io/badge/license-polyform:noncommercial-blue)](https://polyformproject.org/licenses/noncommercial/1.0.0/) [![Go.Dev reference](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white&style=flat-square)](https://pkg.go.dev/github.com/asim/go-micro/v3?tab=overview)
+# Go Micro [![License](https://img.shields.io/badge/license-polyform:noncommercial-blue)](https://polyformproject.org/licenses/noncommercial/1.0.0/)
 
 Go Micro is a framework for microservices development.
 
@@ -46,10 +46,6 @@ leadership are built in as a Sync interface. When using an eventually consistent
 - **Pluggable Interfaces** - Go Micro makes use of Go interfaces for each distributed system abstraction. Because of this these interfaces 
 are pluggable and allows Go Micro to be runtime agnostic. You can plugin any underlying technology. Find external third party (non stdlib) 
 plugins in [github.com/asim/go-plugins](https://github.com/asim/go-plugins).
-
-## Getting Started
-
-See [pkg.go.dev](https://pkg.go.dev/github.com/asim/go-micro/v3?tab=overview) for usage.
 
 ## License
 
