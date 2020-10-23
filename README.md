@@ -69,7 +69,7 @@ I have made the hard decision to relicense as a noncommercial project. For any c
 ### Where are all the plugins?
 
 The plugins now live in [github.com/asim/go-plugins](https://github.com/asim/go-plugins). This was to reduce the overall size and scope of Go Micro to purely 
-a set of interfaces and stdlib implementations. Go Plugins is Apache 2.0 licensed but relies on Go Micro interfaces and so again can only be used in 
+a set of interfaces and standard library implementations. Go Plugins is Apache 2.0 licensed but relies on Go Micro interfaces and so again can only be used in 
 noncommercial setting without a commercial license.
 
 ### What's the new direction of Go Micro?
