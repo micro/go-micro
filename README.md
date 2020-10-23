@@ -106,7 +106,7 @@ Micro is a platform for cloud native development. A complete experience that inc
 include environments, multi-tenancy and many more features which push it towards being a hosted Micro as a Service offering. It is a complete platform.
 
 Go Micro is more of a pluggable standard library for distributed systems development and now once again a purely personal project maintained by me and 
-perhaps others who still find use for it commercial or noncommercial. It's of sentimental value and something I'd like to carry on for personal projects 
+perhaps others who still find use for it commercially or noncommercially. It's of sentimental value and something I'd like to carry on for personal projects 
 such as things related to IoT, embedded systems, web assembly, etc.
 
 ### I used Go Micro to build microservices. What should I do now?
