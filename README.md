@@ -51,7 +51,7 @@ plugins in [github.com/asim/go-plugins](https://github.com/asim/go-plugins).
 
 [Polyform Noncommercial](https://polyformproject.org/licenses/noncommercial/1.0.0/). 
 
-For a commercia license see [github.com/sponsors/asim](https://github.com/sponsors/asim) or file an issue.
+For a commercial license see [github.com/sponsors/asim](https://github.com/sponsors/asim) or file an issue.
 
 ## FAQ
 
