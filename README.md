@@ -111,7 +111,7 @@ you managed metrics, tracing, logging and much other boilerplate that needed to 
 and help you in that journey e.g you're probably running managed kubernetes on a major cloud provider with many other things. We're doing that for you 
 instead as a company and platform team.
 
-### I still want to use Go Micro version 2.0 for my company. Can I still do that?
+### I want to use Go Micro version 2.0 for my company. Can I still do that?
 
 Yes. Go Micro 2.0 is still Apache 2.0 licensed which means you can still freely use it for everything you were using before. If you're a new user 
 you can do the same. These things are using go modules so you're import path is simply `github.com/micro/go-micro/v2` as it was before. Because 
