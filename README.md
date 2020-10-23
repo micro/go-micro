@@ -51,8 +51,6 @@ plugins in [github.com/asim/go-plugins](https://github.com/asim/go-plugins).
 
 [Polyform Noncommercial](https://polyformproject.org/licenses/noncommercial/1.0.0/). See [github.com/sponsors/asim](https://github.com/sponsors/asim) for commercial licensing.
 
-## History
-
 ## FAQ
 
 ### Why has the license changed from Apache 2.0 to Polyform Noncommercial
