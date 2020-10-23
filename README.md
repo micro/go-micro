@@ -1,4 +1,5 @@
-# Go Micro [![License](https://img.shields.io/badge/license-polyform:noncommercial-blue)](https://polyformproject.org/licenses/noncommercial/1.0.0/)
+# Go Micro [![License](https://img.shields.io/badge/license-polyform:noncommercial-blue)](https://polyformproject.org/licenses/noncommercial/1.0.0/) 
+[![Docs](https://img.shields.io/badge/godoc-green)](https://go-micro.dev/docs/v3) 
 
 Go Micro is a framework for distributed systems development.
 
