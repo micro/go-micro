@@ -102,3 +102,18 @@ include environments, multi-tenancy and many more features which push it towards
 Go Micro is more of a pluggable standard library for distributed systems development and now once again a purely personal project maintained by me and 
 perhaps others who stil find use for it commercial or noncommercial. It's of sentimental value and something I'd like to carry on for personal projects 
 such as things related to IoT, embedded systems, web assembly, etc.
+
+### I used Go Micro to build microservices. What should I do now?
+
+You should quite honestly go look at [Micro](https://github.com/micro/micro) and then consider the hosted offering at [m3o.com](https://m3o.com) which 
+starts as a purely free Dev environment in the cloud. Micro continues to address many of the concerns and requirements you had if not more. It is likely 
+you managed metrics, tracing, logging and much other boilerplate that needed to be plugged in. Micro will now take this complete platform story approach 
+and help you in that journey e.g you're probably running managed kubernetes on a major cloud provider with many other things. We're doing that for you 
+instead as a company and platform team.
+
+### I still want to use Go Micro version 2.0 for my company. Can I still do that?
+
+Yes. Go Micro 2.0 is still Apache 2.0 licensed which means you can still freely use it for everything you were using before. If you're a new user 
+you can do the same. These things are using go modules so you're import path is simply `github.com/micro/go-micro/v2` as it was before. Because 
+GitHub handles redirects this should not break. Please continue to use it if you like, but my own support for 2.0 is now end of life. I will be 
+focusing on some side hacking on 3.0 as I find time.
