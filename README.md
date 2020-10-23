@@ -64,7 +64,7 @@ See [go-micro.dev/docs/v3](https://go-micro.dev/docs/v3/)
 Go Micro has largely been a solo maintained effort for the entirety of its lifetime. It has enabled the creation of a company called Micro Services, Inc. which 
 now focuses on [Micro](https://github.com/micro/micro) as a Service and has consolidated any interfaces here into a service library in that project. For 
 the most part, Go Micro was unfunded and in some ways under appreciated. In version 3.0, going back to something of a personal project of more than 6 years 
-I have made the hard decision to relicense as a noncommercial project. For any commercial applications I am looking for [github sponsorship](https://github.com/asim/go-micro) so that I can then use those funds maintainenance and support efforts.
+I have made the hard decision to relicense as a noncommercial project. For any commercial applications I am looking for [github sponsorship](https://github.com/asim/go-micro) so that I can then use those funds maintenance and support efforts.
 
 ### Where are all the plugins?
 
