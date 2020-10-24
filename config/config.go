@@ -11,26 +11,47 @@ import (
 
 // Config is an interface abstraction for dynamic configuration
 type Config interface {
-	// provide the reader.Values interface
-	reader.Values
 	// Init the config
 	Init(opts ...Option) error
 	// Options in the config
 	Options() Options
-	// Stop the config loader/watcher
-	Close() error
 	// Load config sources
-	Load(source ...source.Source) (reader.Values, error)
-	// Force a source changeset sync
-	Sync() error
+	Load(path ...string) (Values, error)
 	// Watch a value for changes
 	Watch(path ...string) (Watcher, error)
+	// Force a source changeset sync
+	Sync() error
+	// Stop the config loader/watcher
+	Close() error
 }
 
 // Watcher is the config watcher
 type Watcher interface {
-	Next() (reader.Value, error)
+	Next() (Value, error)
 	Stop() error
+}
+
+// Values is returned by the reader
+type Values interface {
+        Bytes() []byte
+        Get(path ...string) Value
+        Set(val interface{}, path ...string)
+        Del(path ...string)
+        Map() map[string]interface{}
+        Scan(v interface{}) error
+}
+
+// Value represents a value of any type
+type Value interface {
+        Bool(def bool) bool
+        Int(def int) int
+        String(def string) string
+        Float64(def float64) float64
+        Duration(def time.Duration) time.Duration
+        StringSlice(def []string) []string
+        StringMap(def map[string]string) map[string]string
+        Scan(val interface{}) error
+        Bytes() []byte
 }
 
 type Options struct {
