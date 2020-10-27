@@ -10,7 +10,6 @@ import (
 	"github.com/asim/go-micro/v3/config/loader/memory"
 	"github.com/asim/go-micro/v3/config/reader"
 	"github.com/asim/go-micro/v3/config/reader/json"
-	"github.com/asim/go-micro/v3/config/source"
 )
 
 type memoryConfig struct {
@@ -140,18 +139,6 @@ func (c *memoryConfig) run() {
 	}
 }
 
-func (c *memoryConfig) Map() map[string]interface{} {
-	c.RLock()
-	defer c.RUnlock()
-	return c.vals.Map()
-}
-
-func (c *memoryConfig) Scan(v interface{}) error {
-	c.RLock()
-	defer c.RUnlock()
-	return c.vals.Scan(v)
-}
-
 // sync loads all the sources, calls the parser and updates the config
 func (c *memoryConfig) Sync() error {
 	if err := c.opts.Loader.Sync(); err != nil {
@@ -199,60 +186,8 @@ func (c *memoryConfig) Get(path ...string) reader.Value {
 	return newValue()
 }
 
-func (c *memoryConfig) Set(val interface{}, path ...string) {
-	c.Lock()
-	defer c.Unlock()
-
-	if c.vals != nil {
-		c.vals.Set(val, path...)
-	}
-
-	return
-}
-
-func (c *memoryConfig) Del(path ...string) {
-	c.Lock()
-	defer c.Unlock()
-
-	if c.vals != nil {
-		c.vals.Del(path...)
-	}
-
-	return
-}
-
-func (c *memoryConfig) Bytes() []byte {
-	c.RLock()
-	defer c.RUnlock()
-
-	if c.vals == nil {
-		return []byte{}
-	}
-
-	return c.vals.Bytes()
-}
-
-func (c *memoryConfig) Load(sources ...source.Source) (reader.Values, error) {
-	if err := c.opts.Loader.Load(sources...); err != nil {
-		return nil, err
-	}
-
-	snap, err := c.opts.Loader.Snapshot()
-	if err != nil {
-		return nil, err
-	}
-
-	c.Lock()
-	defer c.Unlock()
-
-	c.snap = snap
-	vals, err := c.opts.Reader.Values(snap.ChangeSet)
-	if err != nil {
-		return nil, err
-	}
-	c.vals = vals
-
-	return vals, nil
+func (c *memoryConfig) Load(path ...string) (reader.Value, error) {
+	return c.Get(path...), nil
 }
 
 func (c *memoryConfig) Watch(path ...string) (config.Watcher, error) {

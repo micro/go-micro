@@ -4,15 +4,13 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/asim/go-micro/v3/config/source"
+	"github.com/asim/go-micro/v3/config"
 	"github.com/asim/go-micro/v3/config/source/env"
 	"github.com/asim/go-micro/v3/config/source/file"
-	"github.com/asim/go-micro/v3/config/source/memory"
 )
 
 func createFileForIssue18(t *testing.T, content string) *os.File {
@@ -54,14 +52,15 @@ func TestConfigLoadWithGoodFile(t *testing.T) {
 	}()
 
 	// Create new config
-	conf, err := NewConfig()
+	conf, err := NewConfig(
+		config.WithSource(file.NewSource(file.WithPath(path))),
+	)
 	if err != nil {
 		t.Fatalf("Expected no error but got %v", err)
 	}
+
 	// Load file source
-	if _, err := conf.Load(file.NewSource(
-		file.WithPath(path),
-	)); err != nil {
+	if err := conf.Sync(); err != nil {
 		t.Fatalf("Expected no error but got %v", err)
 	}
 }
@@ -75,16 +74,10 @@ func TestConfigLoadWithInvalidFile(t *testing.T) {
 	}()
 
 	// Create new config
-	conf, err := NewConfig()
-	if err != nil {
-		t.Fatalf("Expected no error but got %v", err)
-	}
-	// Load file source
-	_, err = conf.Load(file.NewSource(
+	_, err := NewConfig(config.WithSource(file.NewSource(
 		file.WithPath(path),
 		file.WithPath("/i/do/not/exists.json"),
-	))
-
+	)))
 	if err == nil {
 		t.Fatal("Expected error but none !")
 	}
@@ -110,20 +103,20 @@ func TestConfigMerge(t *testing.T) {
 	}()
 	os.Setenv("AMQP_HOST", "rabbit.testing.com")
 
-	conf, err := NewConfig()
+	conf, err := NewConfig(
+		config.WithSource(file.NewSource(file.WithPath(path))),
+		config.WithSource(env.NewSource()),
+	)
+
 	if err != nil {
 		t.Fatalf("Expected no error but got %v", err)
 	}
-	if _, err := conf.Load(
-		file.NewSource(
-			file.WithPath(path),
-		),
-		env.NewSource(),
-	); err != nil {
+	if err := conf.Sync(); err != nil {
 		t.Fatalf("Expected no error but got %v", err)
 	}
 
-	actualHost := conf.Get("amqp", "host").String("backup")
+	val, _ := conf.Load("amqp", "host")
+	actualHost := val.String("backup")
 	if actualHost != "rabbit.testing.com" {
 		t.Fatalf("Expected %v but got %v",
 			"rabbit.testing.com",
@@ -133,34 +126,6 @@ func TestConfigMerge(t *testing.T) {
 
 func equalS(t *testing.T, actual, expect string) {
 	if actual != expect {
-		t.Errorf("Expected %s but got %s", actual, expect)
-	}
-}
-
-func TestConfigWatcherDirtyOverrite(t *testing.T) {
-	n := runtime.GOMAXPROCS(0)
-	defer runtime.GOMAXPROCS(n)
-
-	runtime.GOMAXPROCS(1)
-
-	l := 100
-
-	ss := make([]source.Source, l, l)
-
-	for i := 0; i < l; i++ {
-		ss[i] = memory.NewSource(memory.WithJSON([]byte(fmt.Sprintf(`{"key%d": "val%d"}`, i, i))))
-	}
-
-	conf, _ := NewConfig()
-
-	for _, s := range ss {
-		conf.Load(s)
-	}
-	runtime.Gosched()
-
-	for i, _ := range ss {
-		k := fmt.Sprintf("key%d", i)
-		v := fmt.Sprintf("val%d", i)
-		equalS(t, conf.Get(k).String(""), v)
+		t.Errorf("Expected %s but got %s", expect, actual)
 	}
 }

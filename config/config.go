@@ -11,20 +11,18 @@ import (
 
 // Config is an interface abstraction for dynamic configuration
 type Config interface {
-	// provide the reader.Values interface
-	reader.Values
 	// Init the config
 	Init(opts ...Option) error
 	// Options in the config
 	Options() Options
-	// Stop the config loader/watcher
-	Close() error
 	// Load config sources
-	Load(source ...source.Source) (reader.Values, error)
-	// Force a source changeset sync
-	Sync() error
+	Load(path ...string) (reader.Value, error)
 	// Watch a value for changes
 	Watch(path ...string) (Watcher, error)
+	// Force a source changeset sync
+	Sync() error
+	// Stop the config loader/watcher
+	Close() error
 }
 
 // Watcher is the config watcher
