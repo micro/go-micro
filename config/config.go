@@ -15,7 +15,7 @@ type Config interface {
 	Init(opts ...Option) error
 	// Options in the config
 	Options() Options
-	// Load config value
+	// Load value from config
 	Load(path ...string) (reader.Value, error)
 	// Watch a value for changes
 	Watch(path ...string) (Watcher, error)
