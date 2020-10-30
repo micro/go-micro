@@ -1,6 +1,6 @@
-# Go Micro [![License](https://img.shields.io/badge/license-polyform:noncommercial-blue)](https://polyformproject.org/licenses/noncommercial/1.0.0/) [![Docs](https://img.shields.io/badge/godoc-reference-green)](https://go-micro.dev/docs/v3) 
+# Nitro [![License](https://img.shields.io/badge/license-polyform:noncommercial-blue)](https://polyformproject.org/licenses/noncommercial/1.0.0/) [![Docs](https://img.shields.io/badge/godoc-reference-green)](https://go-nitro.dev/docs/v3) 
 
-Go Micro is a framework for distributed systems development.
+Nitro (formerly known as Go Micro) is a blazingly fast framework for distributed systems development.
 
 ## Overview
 
