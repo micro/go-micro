@@ -55,7 +55,7 @@ plugins in [github.com/asim/go-plugins](https://github.com/asim/go-plugins).
 
 ## Docs
 
-See [go-micro.dev/docs/v3](https://go-micro.dev/docs/v3/)
+See [go-nitro.dev/docs/v3](https://go-nitro.dev/docs/v3/)
 
 ## FAQ
 
