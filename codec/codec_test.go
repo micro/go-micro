@@ -4,14 +4,14 @@ import (
 	"io"
 	"testing"
 
-	"github.com/asim/go-micro/v3/codec"
-	"github.com/asim/go-micro/v3/codec/bytes"
-	"github.com/asim/go-micro/v3/codec/grpc"
-	"github.com/asim/go-micro/v3/codec/json"
-	"github.com/asim/go-micro/v3/codec/jsonrpc"
-	"github.com/asim/go-micro/v3/codec/proto"
-	"github.com/asim/go-micro/v3/codec/protorpc"
-	"github.com/asim/go-micro/v3/codec/text"
+	"github.com/asim/nitro/v3/codec"
+	"github.com/asim/nitro/v3/codec/bytes"
+	"github.com/asim/nitro/v3/codec/grpc"
+	"github.com/asim/nitro/v3/codec/json"
+	"github.com/asim/nitro/v3/codec/jsonrpc"
+	"github.com/asim/nitro/v3/codec/proto"
+	"github.com/asim/nitro/v3/codec/protorpc"
+	"github.com/asim/nitro/v3/codec/text"
 )
 
 type testRWC struct{}

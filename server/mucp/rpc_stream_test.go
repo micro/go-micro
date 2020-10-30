@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/asim/go-micro/v3/codec/json"
-	protoCodec "github.com/asim/go-micro/v3/codec/proto"
+	"github.com/asim/nitro/v3/codec/json"
+	protoCodec "github.com/asim/nitro/v3/codec/proto"
 	"github.com/golang/protobuf/proto"
 )
 

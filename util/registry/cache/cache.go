@@ -7,9 +7,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/asim/go-micro/v3/logger"
-	"github.com/asim/go-micro/v3/registry"
-	util "github.com/asim/go-micro/v3/util/registry"
+	"github.com/asim/nitro/v3/logger"
+	"github.com/asim/nitro/v3/registry"
+	util "github.com/asim/nitro/v3/util/registry"
 )
 
 // Cache is the registry cache interface

@@ -1,11 +1,11 @@
 package mucp
 
 import (
-	mbroker "github.com/asim/go-micro/v3/broker/memory"
-	"github.com/asim/go-micro/v3/codec"
-	"github.com/asim/go-micro/v3/registry/memory"
-	"github.com/asim/go-micro/v3/server"
-	tmem "github.com/asim/go-micro/v3/transport/memory"
+	mbroker "github.com/asim/nitro/v3/broker/memory"
+	"github.com/asim/nitro/v3/codec"
+	"github.com/asim/nitro/v3/registry/memory"
+	"github.com/asim/nitro/v3/server"
+	tmem "github.com/asim/nitro/v3/transport/memory"
 )
 
 func newOptions(opt ...server.Option) server.Options {

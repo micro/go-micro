@@ -1,7 +1,7 @@
 package noop
 
 import (
-	"github.com/asim/go-micro/v3/auth"
+	"github.com/asim/nitro/v3/auth"
 	"github.com/google/uuid"
 )
 

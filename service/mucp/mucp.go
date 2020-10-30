@@ -2,11 +2,11 @@
 package mucp
 
 import (
-	"github.com/asim/go-micro/v3/client"
-	cmucp "github.com/asim/go-micro/v3/client/mucp"
-	"github.com/asim/go-micro/v3/server"
-	smucp "github.com/asim/go-micro/v3/server/mucp"
-	"github.com/asim/go-micro/v3/service"
+	"github.com/asim/nitro/v3/client"
+	cmucp "github.com/asim/nitro/v3/client/mucp"
+	"github.com/asim/nitro/v3/server"
+	smucp "github.com/asim/nitro/v3/server/mucp"
+	"github.com/asim/nitro/v3/service"
 )
 
 type mucpService struct {

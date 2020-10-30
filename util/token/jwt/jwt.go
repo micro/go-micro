@@ -4,8 +4,8 @@ import (
 	"encoding/base64"
 	"time"
 
-	"github.com/asim/go-micro/v3/auth"
-	"github.com/asim/go-micro/v3/util/token"
+	"github.com/asim/nitro/v3/auth"
+	"github.com/asim/nitro/v3/util/token"
 	"github.com/dgrijalva/jwt-go"
 )
 

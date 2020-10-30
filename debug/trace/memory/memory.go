@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/asim/go-micro/v3/debug/trace"
-	"github.com/asim/go-micro/v3/util/ring"
+	"github.com/asim/nitro/v3/debug/trace"
+	"github.com/asim/nitro/v3/util/ring"
 	"github.com/google/uuid"
 )
 

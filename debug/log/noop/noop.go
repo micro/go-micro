@@ -1,7 +1,7 @@
 package noop
 
 import (
-	"github.com/asim/go-micro/v3/debug/log"
+	"github.com/asim/nitro/v3/debug/log"
 )
 
 type noop struct{}

@@ -4,8 +4,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/asim/go-micro/v3/registry/memory"
-	"github.com/asim/go-micro/v3/router"
+	"github.com/asim/nitro/v3/registry/memory"
+	"github.com/asim/nitro/v3/router"
 )
 
 func routerTestSetup() router.Router {

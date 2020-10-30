@@ -4,10 +4,10 @@ import (
 	"errors"
 	"time"
 
-	"github.com/asim/go-micro/v3/config/encoder"
-	"github.com/asim/go-micro/v3/config/encoder/json"
-	"github.com/asim/go-micro/v3/config/reader"
-	"github.com/asim/go-micro/v3/config/source"
+	"github.com/asim/nitro/v3/config/encoder"
+	"github.com/asim/nitro/v3/config/encoder/json"
+	"github.com/asim/nitro/v3/config/reader"
+	"github.com/asim/nitro/v3/config/source"
 	"github.com/imdario/mergo"
 )
 

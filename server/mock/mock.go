@@ -4,7 +4,7 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/asim/go-micro/v3/server"
+	"github.com/asim/nitro/v3/server"
 	"github.com/google/uuid"
 )
 

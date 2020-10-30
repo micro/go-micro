@@ -3,7 +3,7 @@ package memory
 import (
 	"time"
 
-	"github.com/asim/go-micro/v3/config/reader"
+	"github.com/asim/nitro/v3/config/reader"
 )
 
 type value struct{}

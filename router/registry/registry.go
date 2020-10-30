@@ -6,9 +6,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/asim/go-micro/v3/logger"
-	"github.com/asim/go-micro/v3/registry"
-	"github.com/asim/go-micro/v3/router"
+	"github.com/asim/nitro/v3/logger"
+	"github.com/asim/nitro/v3/registry"
+	"github.com/asim/nitro/v3/router"
 )
 
 var (

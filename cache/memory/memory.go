@@ -4,8 +4,8 @@ package memory
 import (
 	"sync"
 
-	"github.com/asim/go-micro/v3/cache"
-	"github.com/asim/go-micro/v3/errors"
+	"github.com/asim/nitro/v3/cache"
+	"github.com/asim/nitro/v3/errors"
 )
 
 type memoryCache struct {

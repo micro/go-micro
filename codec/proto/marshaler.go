@@ -3,8 +3,8 @@ package proto
 import (
 	"bytes"
 
-	"github.com/asim/go-micro/v3/codec"
-	"github.com/asim/go-micro/v3/util/buf"
+	"github.com/asim/nitro/v3/codec"
+	"github.com/asim/nitro/v3/util/buf"
 	"github.com/golang/protobuf/proto"
 )
 

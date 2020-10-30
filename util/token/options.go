@@ -3,8 +3,8 @@ package token
 import (
 	"time"
 
-	"github.com/asim/go-micro/v3/store"
-	"github.com/asim/go-micro/v3/store/memory"
+	"github.com/asim/nitro/v3/store"
+	"github.com/asim/nitro/v3/store/memory"
 )
 
 type Options struct {

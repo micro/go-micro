@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/asim/go-micro/v3/config/source"
+	"github.com/asim/nitro/v3/config/source"
 	"github.com/imdario/mergo"
 )
 

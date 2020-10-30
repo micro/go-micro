@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/asim/go-micro/v3/config"
-	"github.com/asim/go-micro/v3/config/source/env"
-	"github.com/asim/go-micro/v3/config/source/file"
+	"github.com/asim/nitro/v3/config"
+	"github.com/asim/nitro/v3/config/source/env"
+	"github.com/asim/nitro/v3/config/source/file"
 )
 
 func createFileForIssue18(t *testing.T, content string) *os.File {

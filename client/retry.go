@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/asim/go-micro/v3/errors"
+	"github.com/asim/nitro/v3/errors"
 )
 
 // note that returning either false or a non-nil error will result in the call not being retried

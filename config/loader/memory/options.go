@@ -1,9 +1,9 @@
 package memory
 
 import (
-	"github.com/asim/go-micro/v3/config/loader"
-	"github.com/asim/go-micro/v3/config/reader"
-	"github.com/asim/go-micro/v3/config/source"
+	"github.com/asim/nitro/v3/config/loader"
+	"github.com/asim/nitro/v3/config/reader"
+	"github.com/asim/nitro/v3/config/source"
 )
 
 // WithSource appends a source to list of sources

@@ -1,7 +1,7 @@
 package mucp
 
 import (
-	"github.com/asim/go-micro/v3/client"
+	"github.com/asim/nitro/v3/client"
 )
 
 type message struct {
