@@ -59,6 +59,12 @@ See [go-micro.dev/docs/v3](https://go-micro.dev/docs/v3/)
 
 ## FAQ
 
+### What happened to Go Micro?
+
+Go Micro has now moved back to being a personal project. So no longer lives under the organisation github.com/micro. The company is now doubling 
+down on Micro itself and has pulled in the needed interfaces to consolidate a Server, Framework and CLI into one tool. Go Micro is now no longer 
+maintained by a company.
+
 ### Why has the license changed from Apache 2.0 to Polyform Noncommercial
 
 Go Micro has largely been a solo maintained effort for the entirety of its lifetime. It has enabled the creation of a company called Micro Services, Inc. which 
