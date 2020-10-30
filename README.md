@@ -4,13 +4,13 @@ Nitro (formerly known as Go Micro) is a blazingly fast framework for distributed
 
 ## Overview
 
-Go Micro provides the core requirements for distributed systems development including RPC and Event driven communication. 
-The **Go Micro** philosophy is sane defaults with a pluggable architecture. We provide defaults to get you started quickly 
+Nitro provides the core requirements for distributed systems development including RPC and Event driven communication. 
+The **Nitro** philosophy is sane defaults with a pluggable architecture. We provide defaults to get you started quickly 
 but everything can be easily swapped out. 
 
 ## Features
 
-Go Micro abstracts away the details of distributed systems. Here are the main features.
+Nitro abstracts away the details of distributed systems. Here are the main features.
 
 - **Authentication** - Auth is built in as a first class citizen. Authentication and authorization enable secure 
 zero trust networking by providing every service an identity and certificates. This additionally includes rule 
@@ -43,8 +43,8 @@ Event notifications are a core pattern in micro service development. The default
 - **Synchronization** - Distributed systems are often built in an eventually consistent manner. Support for distributed locking and 
 leadership are built in as a Sync interface. When using an eventually consistent database or scheduling use the Sync interface.
 
-- **Pluggable Interfaces** - Go Micro makes use of Go interfaces for each distributed system abstraction. Because of this these interfaces 
-are pluggable and allows Go Micro to be runtime agnostic. You can plugin any underlying technology. Find external third party (non stdlib) 
+- **Pluggable Interfaces** - Nitro makes use of Go interfaces for each distributed system abstraction. Because of this these interfaces 
+are pluggable and allows Nitro to be runtime agnostic. You can plugin any underlying technology. Find external third party (non stdlib) 
 plugins in [github.com/asim/go-plugins](https://github.com/asim/go-plugins).
 
 ## License
@@ -61,27 +61,28 @@ See [go-micro.dev/docs/v3](https://go-micro.dev/docs/v3/)
 
 ### What happened to Go Micro?
 
-Go Micro has now moved back to being a personal project. So no longer lives under the organisation github.com/micro. The company is now doubling 
-down on Micro itself and has pulled in the needed interfaces to consolidate a Server, Framework and CLI into one tool. Go Micro is now no longer 
-maintained by a company.
+Go Micro has now been renamed to Nitro. Go Micro moved back to being a personal project. So no longer lives under the organisation github.com/micro. 
+The company is now doubling down on Micro itself and has pulled in the needed interfaces to consolidate a Server, Framework and CLI into one tool. 
+Go Micro is now no longer maintained by a company. Yet it continued to create confusion even as a personal repo. So for that reason, we're renaming 
+to Nitro.
 
 ### Why has the license changed from Apache 2.0 to Polyform Noncommercial
 
-Go Micro has largely been a solo maintained effort for the entirety of its lifetime. It has enabled the creation of a company called Micro Services, Inc. which 
+Go Micro was largely solo maintained effort for the entirety of its lifetime. It has enabled the creation of a company called Micro Services, Inc. which 
 now focuses on [Micro](https://github.com/micro/micro) as a Service and has consolidated any interfaces here into a service library in that project. For 
 the most part, Go Micro was unfunded and in some ways under appreciated. In version 3.0, going back to something of a personal project of more than 6 years 
-I have made the hard decision to relicense as a noncommercial project. For any commercial applications I am looking for [github sponsorship](https://github.com/asim/go-micro) 
+I have made the hard decision to relicense as a noncommercial project. For any commercial applications I am looking for [github sponsorship](https://github.com/sponsors/asim) 
 so that I can then use those funds for maintenance and support efforts.
 
 ### Where are all the plugins?
 
 The plugins now live in [github.com/asim/go-plugins](https://github.com/asim/go-plugins). This was to reduce the overall size and scope of Go Micro to purely 
-a set of interfaces and standard library implementations. Go Plugins is Apache 2.0 licensed but relies on Go Micro interfaces and so again can only be used in 
+a set of interfaces and standard library implementations. Go Plugins is Apache 2.0 licensed but relies on Nitro interfaces and so again can only be used in 
 noncommercial setting without a commercial license.
 
-### What's the new direction of Go Micro?
+### What's the new direction of Nitro?
 
-Go Micro will now purely focus on being interfaces and standard library implementations. It will continue to define abstractions for distributed systems 
+Nitro will now purely focus on being interfaces and standard library implementations. It will continue to define abstractions for distributed systems 
 but will only do so without external dependencies. All those external dependencies will live in Go Plugins. In this manner the hope is Go Micro can be 
 picked up with minimal overhead for all sorts of new applications that have a low memory or low resource footprint. The assumption is there are places 
 which would like to use distributed systems just as embedded systems or web assembly, unikernels, and related targets that would benefit from a framework 
@@ -89,7 +90,7 @@ that defined these as primitives for such use.
 
 ### Where is the top level Service definition?
 
-The top level service definition has been moved to the [service](https://github.com/asim/go-micro/tree/master/service) package. Go Micro exploded in terms 
+The top level service definition has been moved to the [service](https://github.com/asim/nitro/tree/master/service) package. Nitro exploded in terms 
 of the interfaces it offered. While originally it was a small library, this increase in packages has meant the top level can't really provide full scope 
 for everything. It's unclear at this time whether the top level definition should return.
 
@@ -107,12 +108,12 @@ initialisation. The flag parsing, plugin loading, etc is all gone in favour of u
 than what we can provide as hard coded values. For this reason we may look into [github.com/google/wire](https://github.com/google/wire) as a better 
 alternative.
 
-### How do Go Micro and Micro now differ?
+### How do Nitro and Micro now differ?
 
 Micro is a platform for cloud native development. A complete experience that includes a server, framework and multi-language clients. Beyond that it also 
 include environments, multi-tenancy and many more features which push it towards being a hosted Micro as a Service offering. It is a complete platform.
 
-Go Micro is more of a pluggable standard library for distributed systems development and now once again a purely personal project maintained by me and 
+Nitro is more of a pluggable standard library for distributed systems development and now once again a purely personal project maintained by me and 
 perhaps others who still find use for it commercially or noncommercially. It's of sentimental value and something I'd like to carry on for personal projects 
 such as things related to IoT, embedded systems, web assembly, etc.
 
