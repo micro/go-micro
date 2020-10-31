@@ -105,7 +105,7 @@ type RequestOptions struct {
 func NewOptions(options ...Option) Options {
 	opts := Options{
 		Context:     context.Background(),
-		ContentType: "application/protobuf",
+		ContentType: "application/json",
 		Codecs:      make(map[string]codec.NewCodec),
 		CallOptions: CallOptions{
 			Backoff:        DefaultBackoff,

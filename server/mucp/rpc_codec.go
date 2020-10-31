@@ -36,7 +36,7 @@ type readWriteCloser struct {
 }
 
 var (
-	DefaultContentType = "application/protobuf"
+	DefaultContentType = "application/json"
 
 	DefaultCodecs = map[string]codec.NewCodec{
 		"application/grpc":         grpc.NewCodec,
