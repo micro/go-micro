@@ -9,14 +9,14 @@ import (
 	"github.com/google/uuid"
 )
 
-type Tracer struct {
+type Trace struct {
 	opts trace.Options
 
 	// ring buffer of traces
 	buffer *ring.Buffer
 }
 
-func (t *Tracer) Read(opts ...trace.ReadOption) ([]*trace.Span, error) {
+func (t *Trace) Read(opts ...trace.ReadOption) ([]*trace.Span, error) {
 	var options trace.ReadOptions
 	for _, o := range opts {
 		o(&options)
@@ -38,7 +38,7 @@ func (t *Tracer) Read(opts ...trace.ReadOption) ([]*trace.Span, error) {
 	return spans, nil
 }
 
-func (t *Tracer) Start(ctx context.Context, name string) (context.Context, *trace.Span) {
+func (t *Trace) Start(ctx context.Context, name string) (context.Context, *trace.Span) {
 	span := &trace.Span{
 		Name:     name,
 		Trace:    uuid.New().String(),
@@ -67,7 +67,7 @@ func (t *Tracer) Start(ctx context.Context, name string) (context.Context, *trac
 	return trace.ToContext(ctx, span.Trace, span.Id), span
 }
 
-func (t *Tracer) Finish(s *trace.Span) error {
+func (t *Trace) Finish(s *trace.Span) error {
 	// set finished time
 	s.Duration = time.Since(s.Started)
 	// save the span
@@ -76,13 +76,13 @@ func (t *Tracer) Finish(s *trace.Span) error {
 	return nil
 }
 
-func NewTracer(opts ...trace.Option) trace.Tracer {
+func NewTrace(opts ...trace.Option) trace.Trace {
 	var options trace.Options
 	for _, o := range opts {
 		o(&options)
 	}
 
-	return &Tracer{
+	return &Trace{
 		opts: options,
 		// the last 256 requests
 		buffer: ring.New(256),

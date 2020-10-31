@@ -21,7 +21,7 @@ type Options struct {
 	Codecs       map[string]codec.NewCodec
 	Broker       broker.Broker
 	Registry     registry.Registry
-	Tracer       trace.Tracer
+	Trace       trace.Trace
 	Auth         auth.Auth
 	Transport    transport.Transport
 	Metadata     map[string]string
@@ -171,10 +171,10 @@ func Registry(r registry.Registry) Option {
 	}
 }
 
-// Tracer mechanism for distributed tracking
-func Tracer(t trace.Tracer) Option {
+// Trace mechanism for distributed tracking
+func Trace(t trace.Trace) Option {
 	return func(o *Options) {
-		o.Tracer = t
+		o.Trace = t
 	}
 }
 

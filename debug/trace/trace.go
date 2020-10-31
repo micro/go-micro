@@ -8,8 +8,8 @@ import (
 	"github.com/asim/nitro/v3/metadata"
 )
 
-// Tracer is an interface for distributed tracing
-type Tracer interface {
+// Trace is an interface for distributed tracing
+type Trace interface {
 	// Start a trace
 	Start(ctx context.Context, name string) (context.Context, *Span)
 	// Finish the trace
@@ -77,7 +77,7 @@ func ToContext(ctx context.Context, traceID, parentSpanID string) context.Contex
 }
 
 var (
-	DefaultTracer Tracer = new(noop)
+	DefaultTrace Trace = new(noop)
 )
 
 type noop struct{}
