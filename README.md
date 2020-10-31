@@ -83,7 +83,7 @@ noncommercial setting without a commercial license.
 ### What's the new direction of Nitro?
 
 Nitro will now purely focus on being interfaces and standard library implementations. It will continue to define abstractions for distributed systems 
-but will only do so without external dependencies. All those external dependencies will live in Go Plugins. In this manner the hope is Go Micro can be 
+but will only do so without external dependencies. All those external dependencies will live in Go Plugins. In this manner the hope is Nitro can be 
 picked up with minimal overhead for all sorts of new applications that have a low memory or low resource footprint. The assumption is there are places 
 which would like to use distributed systems just as embedded systems or web assembly, unikernels, and related targets that would benefit from a framework 
 that defined these as primitives for such use.
