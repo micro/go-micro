@@ -47,7 +47,7 @@ leadership are built in as a Sync interface. When using an eventually consistent
 
 - **Pluggable Interfaces** - Nitro makes use of Go interfaces for each distributed system abstraction. Because of this these interfaces 
 are pluggable and allows Nitro to be runtime agnostic. You can plugin any underlying technology. Find external third party (non stdlib) 
-plugins in [github.com/asim/go-plugins](https://github.com/asim/go-plugins).
+plugins in [github.com/asim/nitro-plugins](https://github.com/asim/nitro-plugins).
 
 ## License
 
@@ -76,7 +76,7 @@ so that I can then use those funds for maintenance and support efforts.
 
 ### Where are all the plugins?
 
-The plugins now live in [github.com/asim/go-plugins](https://github.com/asim/go-plugins). This was to reduce the overall size and scope of Go Micro to purely 
+The plugins now live in [github.com/asim/nitro-plugins](https://github.com/asim/nitro-plugins). This was to reduce the overall size and scope of Go Micro to purely 
 a set of interfaces and standard library implementations. Go Plugins is Apache 2.0 licensed but relies on Nitro interfaces and so again can only be used in 
 noncommercial setting without a commercial license.
 
