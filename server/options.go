@@ -21,7 +21,7 @@ type Options struct {
 	Codecs       map[string]codec.NewCodec
 	Broker       broker.Broker
 	Registry     registry.Registry
-	Trace       trace.Trace
+	Trace        trace.Trace
 	Auth         auth.Auth
 	Transport    transport.Transport
 	Metadata     map[string]string
