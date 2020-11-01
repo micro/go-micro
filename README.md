@@ -45,7 +45,7 @@ Event notifications are a core pattern in micro service development. The default
 - **Synchronization** - Distributed systems are often built in an eventually consistent manner. Support for distributed locking and 
 leadership are built in as a Sync interface. When using an eventually consistent database or scheduling use the Sync interface.
 
-- **Pluggable Interfaces** - Nitro makes use of Go interfaces for each distributed system abstraction. Because of this these interfaces 
+- **Pluggable Interfaces** - Nitro makes use of Go interfaces for each package. Because of this these interfaces 
 are pluggable and allows Nitro to be runtime agnostic. You can plugin any underlying technology. Find external third party (non stdlib) 
 plugins in [github.com/asim/nitro-plugins](https://github.com/asim/nitro-plugins).
 
