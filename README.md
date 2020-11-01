@@ -2,7 +2,7 @@
 
 <img src="https://avatars2.githubusercontent.com/u/73709577" />
 
-Nitro (formerly known as Go Micro) is a blazingly fast framework for distributed systems development.
+Nitro (formerly known as Go Micro) is a blazingly fast framework for distributed app development.
 
 ## Overview
 
