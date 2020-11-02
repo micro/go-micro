@@ -2,11 +2,11 @@
 
 <img src="https://avatars2.githubusercontent.com/u/73709577" />
 
-Nitro (formerly known as Go Micro) is a blazingly fast framework for distributed systems development.
+Nitro (formerly known as Go Micro) is a blazingly fast framework for distributed app development.
 
 ## Overview
 
-Nitro provides the core requirements for distributed systems development including RPC and Event driven communication. 
+Nitro provides the core requirements for distributed app development including RPC and Event driven communication. 
 The **Nitro** model is in-memory defaults with a pluggable architecture. Blaze with pure in-memory development 
 and swap out as needed to go multi-process or multi-host.
 
@@ -45,7 +45,7 @@ Event notifications are a core pattern in micro service development. The default
 - **Synchronization** - Distributed systems are often built in an eventually consistent manner. Support for distributed locking and 
 leadership are built in as a Sync interface. When using an eventually consistent database or scheduling use the Sync interface.
 
-- **Pluggable Interfaces** - Nitro makes use of Go interfaces for each distributed system abstraction. Because of this these interfaces 
+- **Pluggable Interfaces** - Nitro makes use of Go interfaces for each package. Because of this these interfaces 
 are pluggable and allows Nitro to be runtime agnostic. You can plugin any underlying technology. Find external third party (non stdlib) 
 plugins in [github.com/asim/nitro-plugins](https://github.com/asim/nitro-plugins).
 
@@ -82,10 +82,10 @@ noncommercial setting without a commercial license.
 
 ### What's the new direction of Nitro?
 
-Nitro will now purely focus on being interfaces and standard library implementations. It will continue to define abstractions for distributed systems 
-but will only do so without external dependencies. All those external dependencies will live in Go Plugins. In this manner the hope is Nitro can be 
+Nitro will now focus on distributed app development using the Go standard library. It will continue to define abstractions for distributed systems 
+but will only do so without external dependencies. All those external dependencies will live in Nitro Plugins. In this manner the hope is Nitro can be 
 picked up with minimal overhead for all sorts of new applications that have a low memory or low resource footprint. The assumption is there are places 
-which would like to use distributed systems just as embedded systems or web assembly, unikernels, and related targets that would benefit from a framework 
+which would like to use distributed apps just as embedded systems or web assembly, unikernels, and related targets that would benefit from a framework 
 that defined these as primitives for such use.
 
 ### Where is the top level Service definition?
@@ -113,9 +113,9 @@ alternative.
 Micro is a platform for cloud native development. A complete experience that includes a server, framework and multi-language clients. Beyond that it also 
 include environments, multi-tenancy and many more features which push it towards being a hosted Micro as a Service offering. It is a complete platform.
 
-Nitro is more of a pluggable standard library for distributed systems development and now once again a purely personal project maintained by me and 
+Nitro is more of a pluggable framework for distributed app development and now once again a purely personal project maintained by me and 
 perhaps others who still find use for it commercially or noncommercially. It's of sentimental value and something I'd like to carry on for personal projects 
-such as things related to IoT, embedded systems, web assembly, etc.
+such as things related to edge, IoT, embedded systems, p2p, web assembly, etc.
 
 ### I used Go Micro to build microservices. What should I do now?
 
