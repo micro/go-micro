@@ -1,4 +1,4 @@
-package service
+package app
 
 import (
 	"context"
@@ -64,8 +64,8 @@ func Client(c client.Client) Option {
 	}
 }
 
-// Context specifies a context for the service.
-// Can be used to signal shutdown of the service.
+// Context specifies a context for the app.
+// Can be used to signal shutdown of the app.
 // Can be used for extra option values.
 func Context(ctx context.Context) Option {
 	return func(o *Options) {
@@ -80,7 +80,7 @@ func Server(s server.Server) Option {
 	}
 }
 
-// Registry sets the registry for the service
+// Registry sets the registry for the app
 // and the underlying components
 func Registry(r registry.Registry) Option {
 	return func(o *Options) {
@@ -103,28 +103,28 @@ func Address(addr string) Option {
 	}
 }
 
-// Name of the service
+// Name of the app
 func Name(n string) Option {
 	return func(o *Options) {
 		o.Server.Init(server.Name(n))
 	}
 }
 
-// Version of the service
+// Version of the app
 func Version(v string) Option {
 	return func(o *Options) {
 		o.Server.Init(server.Version(v))
 	}
 }
 
-// Metadata associated with the service
+// Metadata associated with the app
 func Metadata(md map[string]string) Option {
 	return func(o *Options) {
 		o.Server.Init(server.Metadata(md))
 	}
 }
 
-// RegisterTTL specifies the TTL to use when registering the service
+// RegisterTTL specifies the TTL to use when registering the app
 func RegisterTTL(t time.Duration) Option {
 	return func(o *Options) {
 		o.Server.Init(server.RegisterTTL(t))

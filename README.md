@@ -90,7 +90,7 @@ that defined these as primitives for such use.
 
 ### Where is the top level Service definition?
 
-The top level service definition has been moved to the [service](https://github.com/asim/nitro/tree/master/service) package. Nitro exploded in terms 
+The top level service definition has been moved to the [app](https://github.com/asim/nitro/tree/master/app) package. Nitro exploded in terms 
 of the interfaces it offered. While originally it was a small library, this increase in packages has meant the top level can't really provide full scope 
 for everything. It's unclear at this time whether the top level definition should return.
 

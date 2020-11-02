@@ -1,4 +1,4 @@
-// Package service encapsulates the client, server and other interfaces to provide a complete micro service.
+// Package nitro is for blazingly fast distributed app development
 package service
 
 import (
@@ -6,14 +6,14 @@ import (
 	"github.com/asim/nitro/v3/server"
 )
 
-// Service is an interface for a micro service
-type Service interface {
-	// The service name
-	Name() string
+// App is an interface for the Nitro App
+type App interface {
 	// Init initialises options
 	Init(...Option)
 	// Options returns the current options
 	Options() Options
+	// The service name
+	Name() string
 	// Client is used to call services
 	Client() client.Client
 	// Server is for handling requests and events
