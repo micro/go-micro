@@ -1,57 +1,57 @@
-// Package mucp provides an app implementation for Nitro
-package mucp
+// Package rpc provides an app implementation for Nitro
+package rpc
 
 import (
 	"github.com/asim/nitro/v3/client"
-	cmucp "github.com/asim/nitro/v3/client/mucp"
+	crpc "github.com/asim/nitro/v3/client/rpc"
 	"github.com/asim/nitro/v3/server"
-	smucp "github.com/asim/nitro/v3/server/mucp"
+	srpc "github.com/asim/nitro/v3/server/rpc"
 	"github.com/asim/nitro/v3/app"
 )
 
-type mucpApp struct {
+type rpcApp struct {
 	opts app.Options
 }
 
 func newApp(opts ...app.Option) app.App {
 	options := app.NewOptions(opts...)
 
-	return &mucpApp{
+	return &rpcApp{
 		opts: options,
 	}
 }
 
-func (s *mucpApp) Name() string {
+func (s *rpcApp) Name() string {
 	return s.opts.Server.Options().Name
 }
 
 // Init initialises options. Additionally it calls cmd.Init
 // which parses command line flags. cmd.Init is only called
 // on first Init.
-func (s *mucpApp) Init(opts ...app.Option) {
+func (s *rpcApp) Init(opts ...app.Option) {
 	// process options
 	for _, o := range opts {
 		o(&s.opts)
 	}
 }
 
-func (s *mucpApp) Options() app.Options {
+func (s *rpcApp) Options() app.Options {
 	return s.opts
 }
 
-func (s *mucpApp) Client() client.Client {
+func (s *rpcApp) Client() client.Client {
 	return s.opts.Client
 }
 
-func (s *mucpApp) Server() server.Server {
+func (s *rpcApp) Server() server.Server {
 	return s.opts.Server
 }
 
-func (s *mucpApp) String() string {
-	return "mucp"
+func (s *rpcApp) String() string {
+	return "rpc"
 }
 
-func (s *mucpApp) Start() error {
+func (s *rpcApp) Start() error {
 	for _, fn := range s.opts.BeforeStart {
 		if err := fn(); err != nil {
 			return err
@@ -71,7 +71,7 @@ func (s *mucpApp) Start() error {
 	return nil
 }
 
-func (s *mucpApp) Stop() error {
+func (s *rpcApp) Stop() error {
 	var gerr error
 
 	for _, fn := range s.opts.BeforeStop {
@@ -93,7 +93,7 @@ func (s *mucpApp) Stop() error {
 	return gerr
 }
 
-func (s *mucpApp) Run() error {
+func (s *rpcApp) Run() error {
 	if err := s.Start(); err != nil {
 		return err
 	}
@@ -107,8 +107,8 @@ func (s *mucpApp) Run() error {
 // NewApp returns a new Nitro app
 func NewApp(opts ...app.Option) app.App {
 	options := []app.Option{
-		app.Client(cmucp.NewClient()),
-		app.Server(smucp.NewServer()),
+		app.Client(crpc.NewClient()),
+		app.Server(srpc.NewServer()),
 	}
 
 	options = append(options, opts...)

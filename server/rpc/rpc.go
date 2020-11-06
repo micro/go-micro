@@ -1,5 +1,5 @@
-// Package mucp provides a transport agnostic RPC server
-package mucp
+// Package rpc provides a transport agnostic RPC server
+package rpc
 
 import (
 	"github.com/asim/nitro/v3/server"

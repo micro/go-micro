@@ -1,4 +1,4 @@
-package mucp
+package rpc
 
 import (
 	"github.com/asim/nitro/v3/codec"

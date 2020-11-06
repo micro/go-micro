@@ -1,5 +1,5 @@
-// Package mucp provides a transport agnostic RPC client
-package mucp
+// Package rpc provides a transport agnostic RPC client
+package rpc
 
 import (
 	"context"

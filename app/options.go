@@ -7,11 +7,11 @@ import (
 	"github.com/asim/nitro/v3/broker"
 	mbroker "github.com/asim/nitro/v3/broker/memory"
 	"github.com/asim/nitro/v3/client"
-	mucpClient "github.com/asim/nitro/v3/client/mucp"
+	rpcClient "github.com/asim/nitro/v3/client/rpc"
 	"github.com/asim/nitro/v3/registry"
 	"github.com/asim/nitro/v3/registry/memory"
 	"github.com/asim/nitro/v3/server"
-	mucpServer "github.com/asim/nitro/v3/server/mucp"
+	rpcServer "github.com/asim/nitro/v3/server/rpc"
 )
 
 type Options struct {
@@ -36,8 +36,8 @@ type Option func(*Options)
 func NewOptions(opts ...Option) Options {
 	opt := Options{
 		Broker:   mbroker.NewBroker(),
-		Client:   mucpClient.NewClient(),
-		Server:   mucpServer.NewServer(),
+		Client:   rpcClient.NewClient(),
+		Server:   rpcServer.NewServer(),
 		Registry: memory.NewRegistry(),
 		Context:  context.Background(),
 	}

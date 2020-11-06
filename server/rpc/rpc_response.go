@@ -1,4 +1,4 @@
-package mucp
+package rpc
 
 import (
 	"net/http"

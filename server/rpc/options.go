@@ -1,4 +1,4 @@
-package mucp
+package rpc
 
 import (
 	mbroker "github.com/asim/nitro/v3/broker/memory"
