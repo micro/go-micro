@@ -49,6 +49,46 @@ leadership are built in as a Sync interface. When using an eventually consistent
 are pluggable and allows Nitro to be runtime agnostic. You can plugin any underlying technology. Find external third party (non stdlib) 
 plugins in [github.com/asim/nitro-plugins](https://github.com/asim/nitro-plugins).
 
+## Usage
+
+```go
+import (
+	"github.com/asim/nitro/app"
+	"github.com/asim/nitro/app/rpc"
+)
+
+type Request struct {
+	Name string
+}
+
+type Response struct {
+	Message string
+}
+
+type Handler struct {}
+
+func (h *Handler) Call(req *Request, rsp *Response) error {
+	rsp.Message = "Hello " + req.Name
+	return nil
+}
+
+// create a new app
+app := rpc.NewApp(
+	app.Name("helloworld"),
+)
+
+// register a handler
+app.Handle(new(Handler))
+
+// run the app
+app.Run()
+
+var rsp Response
+
+// call your app
+app.Call("helloworld", "Handler.Call", &Request{Name: "Alice"}, &rsp)
+```
+
 ## License
 
 [Polyform Noncommercial](https://polyformproject.org/licenses/noncommercial/1.0.0/). 
