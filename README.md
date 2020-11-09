@@ -81,7 +81,7 @@ app := rpc.NewApp(
 app.Handle(new(Handler))
 
 // run the app
-app.Run()
+go app.Run()
 
 var rsp Response
 
