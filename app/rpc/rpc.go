@@ -23,8 +23,10 @@ func newApp(opts ...app.Option) app.App {
 	}
 }
 
-func (s *rpcApp) Name() string {
-	return s.opts.Server.Options().Name
+func (s *rpcApp) Name(name string) {
+	s.opts.Server.Init(
+		server.Name(name),
+	)
 }
 
 // Init initialises options. Additionally it calls cmd.Init
