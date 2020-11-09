@@ -12,6 +12,7 @@ import (
 	"github.com/asim/nitro/v3/registry/memory"
 	"github.com/asim/nitro/v3/server"
 	rpcServer "github.com/asim/nitro/v3/server/rpc"
+	tmem "github.com/asim/nitro/v3/transport/memory"
 )
 
 type Options struct {
@@ -34,11 +35,32 @@ type Options struct {
 type Option func(*Options)
 
 func NewOptions(opts ...Option) Options {
+	b := mbroker.NewBroker()
+	c := rpcClient.NewClient()
+	s := rpcServer.NewServer()
+	r := memory.NewRegistry()
+	t := tmem.NewTransport()
+
+	// set client options
+	c.Init(
+		client.Broker(b),
+		client.Registry(r),
+		client.Transport(t),
+	)
+
+	// set server options
+	s.Init(
+		server.Broker(b),
+		server.Registry(r),
+		server.Transport(t),
+	)
+
+	// define local opts
 	opt := Options{
-		Broker:   mbroker.NewBroker(),
-		Client:   rpcClient.NewClient(),
-		Server:   rpcServer.NewServer(),
-		Registry: memory.NewRegistry(),
+		Broker:   b,
+		Client:   c,
+		Server:   s,
+		Registry: r,
 		Context:  context.Background(),
 	}
 

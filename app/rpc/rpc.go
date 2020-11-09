@@ -5,22 +5,17 @@ import (
 	"context"
 
 	"github.com/asim/nitro/v3/app"
+	mbroker "github.com/asim/nitro/v3/broker/memory"
 	"github.com/asim/nitro/v3/client"
-	crpc "github.com/asim/nitro/v3/client/rpc"
+	rpcClient "github.com/asim/nitro/v3/client/rpc"
+	"github.com/asim/nitro/v3/registry/memory"
 	"github.com/asim/nitro/v3/server"
-	srpc "github.com/asim/nitro/v3/server/rpc"
+	rpcServer "github.com/asim/nitro/v3/server/rpc"
+	tmem "github.com/asim/nitro/v3/transport/memory"
 )
 
 type rpcApp struct {
 	opts app.Options
-}
-
-func newApp(opts ...app.Option) app.App {
-	options := app.NewOptions(opts...)
-
-	return &rpcApp{
-		opts: options,
-	}
 }
 
 func (s *rpcApp) Name(name string) {
@@ -120,12 +115,40 @@ func (s *rpcApp) Run() error {
 
 // NewApp returns a new Nitro app
 func NewApp(opts ...app.Option) app.App {
-	options := []app.Option{
-		app.Client(crpc.NewClient()),
-		app.Server(srpc.NewServer()),
+	b := mbroker.NewBroker()
+	c := rpcClient.NewClient()
+	s := rpcServer.NewServer()
+	r := memory.NewRegistry()
+	t := tmem.NewTransport()
+
+	// set client options
+	c.Init(
+		client.Broker(b),
+		client.Registry(r),
+		client.Transport(t),
+	)
+
+	// set server options
+	s.Init(
+		server.Broker(b),
+		server.Registry(r),
+		server.Transport(t),
+	)
+
+	// define local opts
+	options := app.Options{
+		Broker:   b,
+		Client:   c,
+		Server:   s,
+		Registry: r,
+		Context:  context.Background(),
 	}
 
-	options = append(options, opts...)
+	for _, o := range opts {
+		o(&options)
+	}
 
-	return newApp(options...)
+	return &rpcApp{
+		opts: options,
+	}
 }
