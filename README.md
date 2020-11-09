@@ -61,7 +61,6 @@ package main
 import (
         "context"
         "fmt"
-        "time"
 
         "github.com/asim/nitro/app/rpc"
 )
