@@ -2,11 +2,13 @@
 package rpc
 
 import (
+	"context"
+
+	"github.com/asim/nitro/v3/app"
 	"github.com/asim/nitro/v3/client"
 	crpc "github.com/asim/nitro/v3/client/rpc"
 	"github.com/asim/nitro/v3/server"
 	srpc "github.com/asim/nitro/v3/server/rpc"
-	"github.com/asim/nitro/v3/app"
 )
 
 type rpcApp struct {
@@ -37,6 +39,16 @@ func (s *rpcApp) Init(opts ...app.Option) {
 
 func (s *rpcApp) Options() app.Options {
 	return s.opts
+}
+
+func (s *rpcApp) Call(name, ep string, req, rsp interface{}) error {
+	r := s.Client().NewRequest(name, ep, req)
+	return s.Client().Call(context.Background(), r, rsp)
+}
+
+func (s *rpcApp) Handle(v interface{}) error {
+	h := s.Server().NewHandler(v)
+	return s.Server().Handle(h)
 }
 
 func (s *rpcApp) Client() client.Client {
