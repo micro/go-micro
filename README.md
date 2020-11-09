@@ -100,7 +100,7 @@ func main() {
 
 To call a Nitro App
 
-```
+```go
 var rsp Response
 
 // Call your app (or any other) by name
