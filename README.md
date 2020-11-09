@@ -80,22 +80,24 @@ func (h *Handler) Call(req *Request, rsp *Response) error {
 	return nil
 }
 
-// Create a new App
-app := rpc.NewApp()
+func main() {
+	// Create a new App
+	app := rpc.NewApp()
 
-// Set the App name
-app.Name("helloworld")
+	// Set the App name
+	app.Name("helloworld")
 
-// Register the Handler
-app.Handle(new(Handler))
+	// Register the Handler
+	app.Handle(new(Handler))
 
-// Run the App (blocking call)
-go app.Run()
+	// Run the App (blocking call)
+	go app.Run()
 
-var rsp Response
+	var rsp Response
 
-// Call your app (or any other) by name
-app.Call("helloworld", "Handler.Call", &Request{Name: "Alice"}, &rsp)
+	// Call your app (or any other) by name
+	app.Call("helloworld", "Handler.Call", &Request{Name: "Alice"}, &rsp)
+}
 ```
 
 ## License
