@@ -51,42 +51,53 @@ plugins in [github.com/asim/nitro-plugins](https://github.com/asim/nitro-plugins
 
 ## Usage
 
+Here's how to write a quick Nitro App
+
 ```go
+package main
+
 import (
 	"github.com/asim/nitro/app"
 	"github.com/asim/nitro/app/rpc"
 )
 
+// Define a request type
 type Request struct {
 	Name string
 }
 
+// Define a response type
 type Response struct {
 	Message string
 }
 
+// Create your public App Handler
 type Handler struct {}
 
+// Create a public Handler method which takes request, response and returns an error
 func (h *Handler) Call(req *Request, rsp *Response) error {
 	rsp.Message = "Hello " + req.Name
 	return nil
 }
 
-// create a new app
-app := rpc.NewApp(
-	app.Name("helloworld"),
-)
+func main() {
+	// Create a new App
+	app := rpc.NewApp()
 
-// register a handler
-app.Handle(new(Handler))
+	// Set the App name
+	app.Name("helloworld")
 
-// run the app
-go app.Run()
+	// Register the Handler
+	app.Handle(new(Handler))
 
-var rsp Response
+	// Run the App (blocking call)
+	go app.Run()
 
-// call your app
-app.Call("helloworld", "Handler.Call", &Request{Name: "Alice"}, &rsp)
+	var rsp Response
+
+	// Call your app (or any other) by name
+	app.Call("helloworld", "Handler.Call", &Request{Name: "Alice"}, &rsp)
+}
 ```
 
 ## License
