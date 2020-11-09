@@ -94,7 +94,7 @@ func main() {
         app.Handle(new(Handler))
 
         // Run the App (blocking call)
-        go app.Run()
+        app.Run()
 }
 ```
 
