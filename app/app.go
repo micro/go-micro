@@ -3,13 +3,11 @@ package app
 
 // App is an interface for distributed apps
 type App interface {
-	// Options returns the current options
-	Options() Options
-	// Set the app name
+	// Set the current application name
 	Name(string)
-	// Call an application
+	// Call an application by name and endpoint
 	Call(name, ep string, req, rsp interface{}) error
-	// Register a handler e.g a Go struct
+	// Register a handler e.g a public Go struct/method with signature func(*Request, *Response) error
 	Handle(v interface{}) error
 	// Run the application
 	Run() error
