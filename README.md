@@ -95,19 +95,21 @@ func main() {
 
         // Run the App (blocking call)
         go app.Run()
-
-	// calling the app
-	
-        var rsp Response
-
-        // Call your app (or any other) by name
-        err := app.Call("helloworld", "Handler.Call", &Request{Name: "Alice"}, &rsp)
-        if err != nil {
-                fmt.Println(err)
-        }
-
-        fmt.Println(rsp.Message)
 }
+```
+
+To call a Nitro App
+
+```
+var rsp Response
+
+// Call your app (or any other) by name
+err := app.Call("helloworld", "Handler.Call", &Request{Name: "Alice"}, &rsp)
+if err != nil {
+	fmt.Println(err)
+}
+
+fmt.Println(rsp.Message)
 ```
 
 ## License
