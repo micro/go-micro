@@ -1,8 +1,10 @@
-# Nitro [![License](https://img.shields.io/badge/license-polyform:noncommercial-blue)](https://polyformproject.org/licenses/noncommercial/1.0.0/) [![Docs](https://img.shields.io/badge/godoc-reference-green)](https://go-nitro.dev/docs/v3) 
+# Nitro [![License](https://img.shields.io/badge/license-polyform:noncommercial-blue)](https://polyformproject.org/licenses/noncommercial/1.0.0/) [![Docs](https://img.shields.io/badge/godoc-reference-green)](https://go-nitro.dev/docs/v3) [![Micro](https://img.shields.io/badge/m3o-micro-red)](https://m3o.com) 
 
 <img src="https://avatars2.githubusercontent.com/u/73709577" />
 
 Nitro (formerly known as Go Micro) is a blazingly fast framework for distributed app development.
+
+Go to [m3o.com](https://m3o.com) for Micro.
 
 ## Overview
 
@@ -59,7 +61,6 @@ package main
 import (
         "context"
         "fmt"
-        "time"
 
         "github.com/asim/nitro/app/rpc"
 )
@@ -94,20 +95,22 @@ func main() {
         app.Handle(new(Handler))
 
         // Run the App (blocking call)
-        go app.Run()
-
-	// calling the app
-	
-        var rsp Response
-
-        // Call your app (or any other) by name
-        err := app.Call("helloworld", "Handler.Call", &Request{Name: "Alice"}, &rsp)
-        if err != nil {
-                fmt.Println(err)
-        }
-
-        fmt.Println(rsp.Message)
+        app.Run()
 }
+```
+
+To call a Nitro App
+
+```go
+var rsp Response
+
+// Call your app (or any other) by name
+err := app.Call("helloworld", "Handler.Call", &Request{Name: "Alice"}, &rsp)
+if err != nil {
+	fmt.Println(err)
+}
+
+fmt.Println(rsp.Message)
 ```
 
 ## License
