@@ -134,7 +134,7 @@ type Option func(*Options)
 
 var (
 	DefaultAddress          = ":0"
-	DefaultName             = "go.micro.server"
+	DefaultName             = "nitro"
 	DefaultVersion          = "latest"
 	DefaultId               = uuid.New().String()
 	DefaultRegisterCheck    = func(context.Context) error { return nil }

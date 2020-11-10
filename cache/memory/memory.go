@@ -25,7 +25,7 @@ func (m *memoryCache) Get(key string) (interface{}, error) {
 
 	v, ok := m.values[key]
 	if !ok {
-		return nil, errors.NotFound("go.micro.cache", key+" not found")
+		return nil, errors.NotFound("cache", key+" not found")
 	}
 
 	return v, nil
