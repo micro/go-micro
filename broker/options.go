@@ -31,6 +31,10 @@ type SubscribeOptions struct {
 	// Handler executed when errors occur processing messages
 	ErrorHandler ErrorHandler
 
+	// AutoAck defaults to true. When a handler returns
+	// with a nil error the message is acked.
+	AutoAck bool
+
 	// Subscribers with the same queue name
 	// will create a shared subscription where each
 	// receives a subset of messages.
@@ -55,7 +59,9 @@ func PublishContext(ctx context.Context) PublishOption {
 type SubscribeOption func(*SubscribeOptions)
 
 func NewSubscribeOptions(opts ...SubscribeOption) SubscribeOptions {
-	opt := SubscribeOptions{}
+	opt := SubscribeOptions{
+		AutoAck: true,
+	}
 
 	for _, o := range opts {
 		o(&opt)
@@ -76,6 +82,14 @@ func Addrs(addrs ...string) Option {
 func Codec(c codec.Marshaler) Option {
 	return func(o *Options) {
 		o.Codec = c
+	}
+}
+
+// DisableAutoAck will disable auto acking of messages
+// after they have been handled.
+func DisableAutoAck() SubscribeOption {
+	return func(o *SubscribeOptions) {
+		o.AutoAck = false
 	}
 }
 
