@@ -2,7 +2,6 @@
 package memory
 
 import (
-	"errors"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -10,7 +9,6 @@ import (
 	"time"
 
 	"github.com/asim/nitro/v3/store"
-	"github.com/patrickmn/go-cache"
 )
 
 // NewStore returns a memory store
@@ -20,7 +18,7 @@ func NewStore(opts ...store.Option) store.Store {
 			Database: "micro",
 			Table:    "micro",
 		},
-		stores: map[string]*cache.Cache{}, // cache.New(cache.NoExpiration, 5*time.Minute),
+		stores: make(map[string]*storeValues),
 	}
 	for _, o := range opts {
 		o(&s.options)
@@ -32,7 +30,7 @@ type memoryStore struct {
 	sync.RWMutex
 	options store.Options
 
-	stores map[string]*cache.Cache
+	stores map[string]*storeValues
 }
 
 type storeRecord struct {
@@ -40,6 +38,42 @@ type storeRecord struct {
 	value     []byte
 	metadata  map[string]interface{}
 	expiresAt time.Time
+}
+
+type storeValues struct {
+	values map[string]*storeRecord
+}
+
+func (s *storeValues) Get(key string) (*storeRecord, bool) {
+	v, ok := s.values[key]
+	if !ok {
+		return nil, false
+	}
+	if v.expiresAt.IsZero() {
+		return v, true
+	}
+	x := v.expiresAt.Sub(time.Now())
+	if x.Nanoseconds() > 0 {
+		return v, true
+	}
+	delete(s.values, key)
+	return nil, false
+}
+
+func (s *storeValues) Delete(key string) {
+	delete(s.values, key)
+}
+
+func (s *storeValues) Set(key string, v *storeRecord) {
+	s.values[key] = v
+}
+
+func (s *storeValues) List() map[string]*storeRecord {
+	return s.values
+}
+
+func (s *storeValues) Flush() {
+	s.values = make(map[string]*storeRecord)
 }
 
 func (m *memoryStore) prefix(database, table string) string {
@@ -52,14 +86,16 @@ func (m *memoryStore) prefix(database, table string) string {
 	return filepath.Join(database, table)
 }
 
-func (m *memoryStore) getStore(prefix string) *cache.Cache {
+func (m *memoryStore) getStore(prefix string) *storeValues {
 	m.RLock()
 	store := m.stores[prefix]
 	m.RUnlock()
 	if store == nil {
 		m.Lock()
 		if m.stores[prefix] == nil {
-			m.stores[prefix] = cache.New(cache.NoExpiration, 5*time.Minute)
+			m.stores[prefix] = &storeValues{
+				values: make(map[string]*storeRecord),
+			}
 		}
 		store = m.stores[prefix]
 		m.Unlock()
@@ -68,15 +104,9 @@ func (m *memoryStore) getStore(prefix string) *cache.Cache {
 }
 
 func (m *memoryStore) get(prefix, key string) (*store.Record, error) {
-	var storedRecord *storeRecord
-	r, found := m.getStore(prefix).Get(key)
+	storedRecord, found := m.getStore(prefix).Get(key)
 	if !found {
 		return nil, store.ErrNotFound
-	}
-
-	storedRecord, ok := r.(*storeRecord)
-	if !ok {
-		return nil, errors.New("Retrieved a non *storeRecord from the cache")
 	}
 
 	// Copy the record on the way out
@@ -122,7 +152,7 @@ func (m *memoryStore) set(prefix string, r *store.Record) {
 		i.metadata[k] = v
 	}
 
-	m.getStore(prefix).Set(r.Key, i, r.Expiry)
+	m.getStore(prefix).Set(r.Key, i)
 }
 
 func (m *memoryStore) delete(prefix, key string) {
@@ -130,8 +160,7 @@ func (m *memoryStore) delete(prefix, key string) {
 }
 
 func (m *memoryStore) list(prefix string, limit, offset uint, prefixFilter, suffixFilter string) []string {
-
-	allItems := m.getStore(prefix).Items()
+	allItems := m.getStore(prefix).List()
 
 	allKeys := make([]string, len(allItems))
 
