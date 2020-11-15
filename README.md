@@ -129,7 +129,6 @@ import (
 )
 
 rpc.NewApp(
-	app.Name("helloworld")
 	app.Transport(socket.NewTransport()),
 )
 ```
