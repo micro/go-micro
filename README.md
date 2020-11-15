@@ -141,17 +141,17 @@ rpc.NewApp(
 )
 ```
 
-To make use of udp, tcp, unix sockets, etc
+To make use of unix sockets
 
 ```go
 rpc.NewApp(
-	app.Address("udp://localhost:1234"),
+	app.Address("unix:///tmp/helloworld.sock"),
 )
 ```
 
 ### Router
 
-Set the router to use e.g the thing that figures out what to call
+Set the router to static so you can specify the address in calls
 
 ```go
 import (
@@ -173,7 +173,7 @@ app := rpc.NewApp(
 )
 
 // call using a fixed address
-app.Call("udp://localhost:1234", "Handler.Call", req, rsp)
+app.Call("unix:///tmp/helloworld.sock", "Handler.Call", req, rsp)
 ```
 
 ## License
