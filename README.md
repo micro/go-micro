@@ -206,6 +206,59 @@ Simply call the service by name in another process (using mdns there also)
 app.Call("helloworld", "Handler.Call", req, rsp)
 ```
 
+### Broadcast
+
+Broadcast and consume messages asynchronously
+
+```go
+package main
+
+import (
+        "context"
+	"fmt"
+
+        "github.com/asim/nitro/v3/app/rpc"
+)
+
+// Define a request type
+type Event struct {
+        ID string
+	Message string
+}
+
+// Create your public App Handler
+type Events struct {}
+
+// Create a public Handler method which consumes the message
+func (e *Events) Handler(ctx context.Context, ev *Event) error {
+	fmt.Println("Received event", ev.ID)
+        return nil
+}
+
+func main() {
+        // Create a new App
+        app := rpc.NewApp()
+
+        // Set the App name
+        app.Name("helloworld")
+
+        // Register the subscriber
+        app.Subscribe("events", new(Events))
+
+        // Run the App (blocking call)
+        app.Run()
+}
+```
+
+The broadcast side
+
+```go
+err := app.Broadcast("events", &Event{
+	ID: "1",
+	Message: "Foo",
+})
+```
+
 ## FAQ
 
 ### What happened to Go Micro?
