@@ -133,7 +133,7 @@ rpc.NewApp(
 )
 ```
 
-To set the address
+To set the address (defaults to tcp)
 
 ```go
 rpc.NewApp(
