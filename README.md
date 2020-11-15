@@ -159,12 +159,12 @@ import (
 	"github.com/asim/nitro/app"
 	"github.com/asim/nitro/app/rpc"
 	"github.com/asim/nitro/client"
-	"github.com/asim/nitro/client/rpc"
+	rpcc "github.com/asim/nitro/client/rpc"
 	"github.com/asim/nitro/router/static"
 )
 
 // set a static router that uses whatever you pass in
-c := rpc.NewClient(client.Lookup(static.NewRouter))
+c := rpcc.NewClient(client.Lookup(static.NewRouter))
 
 app := rpc.NewApp(
 	app.Client(c),
