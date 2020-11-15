@@ -119,7 +119,7 @@ fmt.Println(rsp.Message)
 
 ### Sockets
 
-To use network sockets aka tcp
+Use network sockets to communicate across multiple processes
 
 ```go
 import (
@@ -133,7 +133,7 @@ rpc.NewApp(
 )
 ```
 
-To set the address (defaults to tcp)
+To set the address (defaults to tcp address :0 otherwise)
 
 ```go
 rpc.NewApp(
@@ -177,6 +177,29 @@ app.Call("unix:///tmp/helloworld.sock", "Handler.Call", req, rsp)
 
 // for tcp call the address
 app.Call("localhost:1234", "Handler.Call", req, rsp)
+```
+
+### Registry
+
+Make use of mdns for zero conf service discovery across processes on a single host
+
+```go
+import (
+	"github.com/asim/nitro/v3/app"
+	"github.com/asim/nitro/v3/app/rpc"
+	"github.com/asim/nitro-plugins/registry/mdns/v3"
+)
+
+hw := rpc.NewApp(
+	app.Registry(mdns.NewRegistry()),
+)
+hw.Name("helloworld")
+```
+
+Simply call the service by name in another process (using mdns there also)
+
+```go
+app.Call("helloworld", "Handler.Call", req, rsp)
 ```
 
 ## License
