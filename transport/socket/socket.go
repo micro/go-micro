@@ -43,17 +43,17 @@ type Listener struct {
 	timeout  time.Duration
 }
 
-func getNetwork(v string) string {
+func getNetwork(v string) (string, string) {
 	if len(v) == 0 {
-		return "tcp"
+		return "tcp", v
 	}
 
 	parts := strings.Split(v, "://")
 	if len(parts) > 1 {
-		return parts[0]
+		return parts[0], strings.Join(parts[1:], ":")
 	}
 
-	return "tcp"
+	return "tcp", v
 }
 
 func (t *Client) Local() string {
@@ -188,7 +188,7 @@ func (t *socketTransport) Dial(addr string, opts ...transport.DialOption) (trans
 	var err error
 
 	// get tcp, udp, ip network
-	network := getNetwork(addr)
+	network, address := getNetwork(addr)
 
 	// TODO: support dial option here rather than using internal config
 	if t.opts.Secure || t.opts.TLSConfig != nil {
@@ -198,9 +198,9 @@ func (t *socketTransport) Dial(addr string, opts ...transport.DialOption) (trans
 				InsecureSkipVerify: true,
 			}
 		}
-		conn, err = tls.DialWithDialer(&net.Dialer{Timeout: dopts.Timeout}, network, addr, config)
+		conn, err = tls.DialWithDialer(&net.Dialer{Timeout: dopts.Timeout}, network, address, config)
 	} else {
-		conn, err = net.DialTimeout(network, addr, dopts.Timeout)
+		conn, err = net.DialTimeout(network, address, dopts.Timeout)
 	}
 
 	if err != nil {
@@ -229,7 +229,7 @@ func (t *socketTransport) Listen(addr string, opts ...transport.ListenOption) (t
 	var err error
 
 	// get tcp, udp, ip network
-	network := getNetwork(addr)
+	network, address := getNetwork(addr)
 
 	// TODO: support use of listen options
 	if t.opts.Secure || t.opts.TLSConfig != nil {
@@ -237,10 +237,10 @@ func (t *socketTransport) Listen(addr string, opts ...transport.ListenOption) (t
 
 		fn := func(addr string) (net.Listener, error) {
 			if config == nil {
-				hosts := []string{addr}
+				hosts := []string{address}
 
 				// check if its a valid host:port
-				if host, _, err := net.SplitHostPort(addr); err == nil {
+				if host, _, err := net.SplitHostPort(address); err == nil {
 					if len(host) == 0 {
 						hosts = maddr.IPs()
 					} else {
@@ -255,16 +255,16 @@ func (t *socketTransport) Listen(addr string, opts ...transport.ListenOption) (t
 				}
 				config = &tls.Config{Certificates: []tls.Certificate{cert}}
 			}
-			return tls.Listen(network, addr, config)
+			return tls.Listen(network, address, config)
 		}
 
-		l, err = mnet.Listen(addr, fn)
+		l, err = mnet.Listen(address, fn)
 	} else {
 		fn := func(addr string) (net.Listener, error) {
 			return net.Listen(network, addr)
 		}
 
-		l, err = mnet.Listen(addr, fn)
+		l, err = mnet.Listen(address, fn)
 	}
 
 	if err != nil {
