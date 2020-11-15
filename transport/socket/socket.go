@@ -231,11 +231,13 @@ func (t *socketTransport) Listen(addr string, opts ...transport.ListenOption) (t
 	// get tcp, udp, ip network
 	network, address := getNetwork(addr)
 
+	var fn func(addr string) (net.Listener, error)
+
 	// TODO: support use of listen options
 	if t.opts.Secure || t.opts.TLSConfig != nil {
 		config := t.opts.TLSConfig
 
-		fn := func(addr string) (net.Listener, error) {
+		fn = func(addr string) (net.Listener, error) {
 			if config == nil {
 				hosts := []string{address}
 
@@ -258,12 +260,17 @@ func (t *socketTransport) Listen(addr string, opts ...transport.ListenOption) (t
 			return tls.Listen(network, address, config)
 		}
 
-		l, err = mnet.Listen(address, fn)
 	} else {
-		fn := func(addr string) (net.Listener, error) {
+		fn = func(addr string) (net.Listener, error) {
 			return net.Listen(network, addr)
 		}
+	}
 
+	// don't both with port massaging with unix
+	switch network {
+	case "unix":
+		l, err = fn(address)
+	default:
 		l, err = mnet.Listen(address, fn)
 	}
 
