@@ -174,6 +174,9 @@ app := rpc.NewApp(
 
 // call using a fixed address
 app.Call("unix:///tmp/helloworld.sock", "Handler.Call", req, rsp)
+
+// for tcp call the address
+app.Call("localhost:1234", "Handler.Call", req, rsp)
 ```
 
 ## License
