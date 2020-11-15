@@ -150,6 +150,8 @@ rpc.NewApp(
 )
 ```
 
+### Router
+
 Set the router to use e.g the thing that figures out what to call
 
 ```go
