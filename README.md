@@ -51,6 +51,10 @@ leadership are built in as a Sync interface. When using an eventually consistent
 are pluggable and allows Nitro to be runtime agnostic. You can plugin any underlying technology. Find external third party (non stdlib) 
 plugins in [github.com/asim/nitro-plugins](https://github.com/asim/nitro-plugins).
 
+## Docs
+
+See [go-nitro.dev/docs/v3](https://go-nitro.dev/docs/v3/)
+
 ## Usage
 
 Here's how to write a quick Nitro App (totally in-memory)
@@ -202,14 +206,6 @@ Simply call the service by name in another process (using mdns there also)
 app.Call("helloworld", "Handler.Call", req, rsp)
 ```
 
-## License
-
-[Polyform Noncommercial](https://polyformproject.org/licenses/noncommercial/1.0.0/). 
-
-## Docs
-
-See [go-nitro.dev/docs/v3](https://go-nitro.dev/docs/v3/)
-
 ## FAQ
 
 ### What happened to Go Micro?
@@ -284,3 +280,7 @@ Yes. Go Micro 2.0 is still Apache 2.0 licensed which means you can still freely 
 you can do the same. These things are using go modules so you're import path is simply `github.com/micro/go-micro/v2` as it was before. Because 
 GitHub handles redirects this should not break. Please continue to use it if you like, but my own support for 2.0 is now end of life. I will be 
 focusing on some side hacking on 3.0 as I find time.
+
+## License
+
+[Polyform Noncommercial](https://polyformproject.org/licenses/noncommercial/1.0.0/). 
