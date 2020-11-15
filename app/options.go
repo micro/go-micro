@@ -12,6 +12,7 @@ import (
 	"github.com/asim/nitro/v3/registry/memory"
 	"github.com/asim/nitro/v3/server"
 	rpcServer "github.com/asim/nitro/v3/server/rpc"
+	"github.com/asim/nitro/v3/transport"
 	tmem "github.com/asim/nitro/v3/transport/memory"
 )
 
@@ -113,6 +114,14 @@ func Registry(r registry.Registry) Option {
 		o.Broker.Init(broker.Registry(r))
 		// Update router
 		o.Client.Init(client.Registry(r))
+	}
+}
+
+// Transport sets the app client/server transport
+func Transport(t transport.Transport) Option {
+	return func(o *Options) {
+		o.Server.Init(server.Transport(t))
+		o.Client.Init(client.Transport(t))
 	}
 }
 
