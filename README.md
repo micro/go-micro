@@ -156,13 +156,19 @@ Set the router to use e.g the thing that figures out what to call
 
 ```go
 import (
+	"github.com/asim/nitro/app"
+	"github.com/asim/nitro/app/rpc"
 	"github.com/asim/nitro/client"
+	"github.com/asim/nitro/client/rpc"
 	"github.com/asim/nitro/router/static"
 )
 
 // set a static router that uses whatever you pass in
-c := app.Options().Client
-c.Init(client.Lookup(static.NewRouter))
+c := rpc.NewClient(client.Lookup(static.NewRouter))
+
+app := rpc.NewApp(
+	app.Client(c),
+)
 
 // call using a fixed address
 app.Call("udp://localhost:1234", "Handler.Call", req, rsp)
