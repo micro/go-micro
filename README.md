@@ -55,6 +55,8 @@ plugins in [github.com/asim/nitro-plugins](https://github.com/asim/nitro-plugins
 
 Here's how to write a quick Nitro App
 
+### App
+
 ```go
 package main
 
@@ -98,6 +100,9 @@ func main() {
 }
 ```
 
+### Client
+
+
 To call a Nitro App
 
 ```go
@@ -110,6 +115,38 @@ if err != nil {
 }
 
 fmt.Println(rsp.Message)
+```
+
+### Sockets
+
+To use network sockets aka tcp
+
+```go
+import (
+	"github.com/asim/nitro/app"
+	"github.com/asim/nitro/app/rpc"
+	"github.com/asim/nitro/transport/socket"
+
+rpc.NewApp(
+	app.Name("helloworld")
+	app.Transport(socket.NewTransport()),
+)
+```
+
+To set the address
+
+```go
+rpc.NewApp(
+	app.Address("localhost:1234"),
+)
+```
+
+To make use of udp, tcp, unix sockets, etc
+
+```go
+rpc.NewApp(
+	app.Address("udp://localhost:1234"),
+)
 ```
 
 ## License
