@@ -158,15 +158,18 @@ import (
 	"github.com/asim/nitro/v3/app"
 	"github.com/asim/nitro/v3/app/rpc"
 	"github.com/asim/nitro/v3/client"
+	"github.com/asim/nitro/v3/transport/socket"
 	rpcc "github.com/asim/nitro/v3/client/rpc"
 	"github.com/asim/nitro/v3/router/static"
 )
 
 // set a static router that uses whatever you pass in
 c := rpcc.NewClient(client.Lookup(static.NewRouter()))
+s := socket.NewTransport()
 
 app := rpc.NewApp(
 	app.Client(c),
+	app.Transport(s),
 )
 
 // call using a fixed address
