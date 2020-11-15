@@ -57,7 +57,7 @@ See [go-nitro.dev/docs/v3](https://go-nitro.dev/docs/v3/)
 
 ## Usage
 
-Here's how to write a quick Nitro App (totally in-memory)
+Here's how to write a quick Nitro App (complete in-memory including transport)
 
 ### App
 
