@@ -163,7 +163,7 @@ import (
 )
 
 // set a static router that uses whatever you pass in
-c := rpcc.NewClient(client.Lookup(static.NewRouter))
+c := rpcc.NewClient(client.Lookup(static.NewRouter()))
 
 app := rpc.NewApp(
 	app.Client(c),
