@@ -2,9 +2,6 @@
 package static
 
 import (
-	"fmt"
-	"net"
-
 	"github.com/asim/nitro/v3/router"
 )
 
@@ -44,18 +41,10 @@ func (s *static) Table() router.Table {
 func (s *static) Lookup(service string, opts ...router.LookupOption) ([]router.Route, error) {
 	options := router.NewLookup(opts...)
 
-	_, _, err := net.SplitHostPort(service)
-	if err == nil {
-		// use the address
-		options.Address = service
-	} else {
-		options.Address = fmt.Sprintf("%s:%d", service, DefaultPort)
-	}
-
 	return []router.Route{
 		router.Route{
 			Service: service,
-			Address: options.Address,
+			Address: service,
 			Gateway: options.Gateway,
 			Network: options.Network,
 			Router:  options.Router,
