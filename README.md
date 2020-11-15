@@ -57,7 +57,7 @@ See [go-nitro.dev/docs/v3](https://go-nitro.dev/docs/v3/)
 
 ## Usage
 
-Here's how to write a quick Nitro App (complete in-memory including transport)
+Here's how to write a quick Nitro App (completely in-memory including transport)
 
 ### App
 
@@ -107,7 +107,7 @@ func main() {
 ### Client
 
 
-To call a Nitro App (must be the same app / in-memory process)
+To call a Nitro App (if in-memory, must be the same process, same app, registry, transport, etc)
 
 ```go
 var rsp Response
