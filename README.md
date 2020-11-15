@@ -53,7 +53,7 @@ plugins in [github.com/asim/nitro-plugins](https://github.com/asim/nitro-plugins
 
 ## Usage
 
-Here's how to write a quick Nitro App
+Here's how to write a quick Nitro App (totally in-memory)
 
 ### App
 
@@ -103,7 +103,7 @@ func main() {
 ### Client
 
 
-To call a Nitro App
+To call a Nitro App (must be the same app / in-memory process)
 
 ```go
 var rsp Response
