@@ -121,7 +121,7 @@ if err != nil {
 fmt.Println(rsp.Message)
 ```
 
-### Sockets
+### Transport
 
 Use network sockets to communicate across multiple processes
 
