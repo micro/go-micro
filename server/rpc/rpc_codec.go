@@ -131,7 +131,7 @@ func setupProtocol(msg *transport.Message) codec.NewCodec {
 	target := getHeader("Micro-Target", msg.Header)
 	topic := getHeader("Micro-Topic", msg.Header)
 
-	// if the protocol exists (mucp) do nothing
+	// if the protocol exists (rpc) do nothing
 	if len(protocol) > 0 {
 		return nil
 	}
@@ -175,7 +175,7 @@ func newRpcCodec(req *transport.Message, socket transport.Socket, c codec.NewCod
 		codec:    c(rwc),
 		req:      req,
 		socket:   socket,
-		protocol: "mucp",
+		protocol: "rpc",
 		first:    make(chan bool),
 	}
 

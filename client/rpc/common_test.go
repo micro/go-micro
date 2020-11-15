@@ -16,14 +16,14 @@ var (
 						Id:      "foo-1.0.0-123",
 						Address: "localhost:9999",
 						Metadata: map[string]string{
-							"protocol": "mucp",
+							"protocol": "rpc",
 						},
 					},
 					{
 						Id:      "foo-1.0.0-321",
 						Address: "localhost:9999",
 						Metadata: map[string]string{
-							"protocol": "mucp",
+							"protocol": "rpc",
 						},
 					},
 				},
@@ -36,7 +36,7 @@ var (
 						Id:      "foo-1.0.1-321",
 						Address: "localhost:6666",
 						Metadata: map[string]string{
-							"protocol": "mucp",
+							"protocol": "rpc",
 						},
 					},
 				},
@@ -49,7 +49,7 @@ var (
 						Id:      "foo-1.0.3-345",
 						Address: "localhost:8888",
 						Metadata: map[string]string{
-							"protocol": "mucp",
+							"protocol": "rpc",
 						},
 					},
 				},

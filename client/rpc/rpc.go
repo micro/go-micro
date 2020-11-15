@@ -622,5 +622,5 @@ func (r *rpcClient) NewRequest(service, method string, request interface{}, reqO
 }
 
 func (r *rpcClient) String() string {
-	return "mucp"
+	return "rpc"
 }

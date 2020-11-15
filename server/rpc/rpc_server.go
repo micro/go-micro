@@ -607,7 +607,7 @@ func (s *rpcServer) Register() error {
 	node.Metadata["broker"] = config.Broker.String()
 	node.Metadata["server"] = s.String()
 	node.Metadata["registry"] = config.Registry.String()
-	node.Metadata["protocol"] = "mucp"
+	node.Metadata["protocol"] = "rpc"
 
 	s.RLock()
 
@@ -1010,5 +1010,5 @@ func (s *rpcServer) Stop() error {
 }
 
 func (s *rpcServer) String() string {
-	return "mucp"
+	return "rpc"
 }
