@@ -6,13 +6,14 @@ Nitro (formerly known as Go Micro) is a blazingly fast framework for distributed
 
 **Note: Nitro requires a paid subscription license for commercial use**
 
-Go to [m3o.com](https://m3o.com) for Micro. Nitro 
-
 ## Overview
 
 Nitro provides the core requirements for distributed app development, IoT, edge and p2p including RPC and Event driven communication. 
 The **Nitro** model is in-memory defaults with a pluggable architecture. Blaze with pure in-memory development and swap out as needed 
 to go multi-process or multi-host.
+
+Nitro is formerly Go Micro. Go to [m3o.com](https://m3o.com) for Micro.
+
 
 ## Features
 
