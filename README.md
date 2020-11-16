@@ -4,7 +4,7 @@
 
 Nitro (formerly known as Go Micro) is a blazingly fast framework for distributed app development.
 
-*Note: Nitro requires a paid subscription license for commercial use*
+**Note: Nitro requires a paid subscription license for commercial use**
 
 Go to [m3o.com](https://m3o.com) for Micro. Nitro 
 
