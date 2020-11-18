@@ -6,6 +6,8 @@ Nitro (formerly known as Go Micro) is a blazingly fast framework for distributed
 
 **Note: Nitro requires a paid subscription license for commercial use**
 
+[Sponsor the project from just $10/month](https://github.com/sponsors/asim) and get your name into the repo!
+
 ## Overview
 
 Nitro provides the core requirements for distributed app development, IoT, edge and p2p including RPC and Event driven communication. 
