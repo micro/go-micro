@@ -1,16 +1,21 @@
-# Nitro [![License](https://img.shields.io/badge/license-polyform:noncommercial-blue)](https://polyformproject.org/licenses/noncommercial/1.0.0/) [![Docs](https://img.shields.io/badge/godoc-reference-green)](https://go-nitro.dev/docs/v3) [![Twitter](https://img.shields.io/badge/twitter-gonitrodev-9cf)](https://twitter.com/GoNitroDev) 
+# Nitro [![License](https://img.shields.io/badge/license-polyform:noncommercial-blue)](https://polyformproject.org/licenses/noncommercial/1.0.0/) [![Docs](https://img.shields.io/badge/godoc-reference-green)](https://go-nitro.dev/docs/v3) [![Twitter](https://img.shields.io/badge/twitter-gonitrodev-9cf)](https://twitter.com/GoNitroDev) [![Discussions](https://img.shields.io/badge/github-discussions-orange)](https://github.com/asim/nitro/discussions) 
 
 <img src="https://avatars2.githubusercontent.com/u/73709577" />
 
 Nitro (formerly known as Go Micro) is a blazingly fast framework for distributed app development.
 
-Go to [m3o.com](https://m3o.com) for Micro.
+[Sponsor the project from just $10/month](https://github.com/sponsors/asim) and get your name into the repo!
+
+**Note: Nitro requires a paid subscription license for commercial use**
 
 ## Overview
 
 Nitro provides the core requirements for distributed app development, IoT, edge and p2p including RPC and Event driven communication. 
 The **Nitro** model is in-memory defaults with a pluggable architecture. Blaze with pure in-memory development and swap out as needed 
 to go multi-process or multi-host.
+
+Nitro is formerly Go Micro. Go to [m3o.com](https://m3o.com) for Micro.
+
 
 ## Features
 
@@ -54,6 +59,10 @@ plugins in [github.com/asim/nitro-plugins](https://github.com/asim/nitro-plugins
 ## Docs
 
 See [go-nitro.dev/docs/v3](https://go-nitro.dev/docs/v3/)
+
+## Discussion
+
+See [nitro/discussions](https://github.com/asim/nitro/discussions) for any discussions, development, etc
 
 ## Usage
 
