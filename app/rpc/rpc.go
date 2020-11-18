@@ -124,7 +124,7 @@ func (s *rpcApp) Run() error {
 }
 
 // NewApp returns a new Nitro app
-func NewApp(opts ...app.Option) app.App {
+func NewApp(opts ...app.Option) *rpcApp {
 	b := mbroker.NewBroker()
 	c := rpcClient.NewClient()
 	s := rpcServer.NewServer()
