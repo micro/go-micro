@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/asim/nitro/v3/transport"
+	"github.com/asim/nitro/v3/app/transport"
 	"github.com/google/uuid"
 )
 
