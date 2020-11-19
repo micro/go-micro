@@ -10,7 +10,6 @@ import (
 	"github.com/asim/nitro/v3/broker"
 	mbroker "github.com/asim/nitro/v3/broker/memory"
 	"github.com/asim/nitro/v3/codec"
-	"github.com/asim/nitro/v3/debug/trace"
 	"github.com/asim/nitro/v3/registry"
 	"github.com/asim/nitro/v3/registry/memory"
 	"github.com/asim/nitro/v3/transport"
@@ -21,7 +20,6 @@ type Options struct {
 	Codecs       map[string]codec.NewCodec
 	Broker       broker.Broker
 	Registry     registry.Registry
-	Trace        trace.Trace
 	Auth         auth.Auth
 	Transport    transport.Transport
 	Metadata     map[string]string
@@ -168,13 +166,6 @@ func Context(ctx context.Context) Option {
 func Registry(r registry.Registry) Option {
 	return func(o *Options) {
 		o.Registry = r
-	}
-}
-
-// Trace mechanism for distributed tracking
-func Trace(t trace.Trace) Option {
-	return func(o *Options) {
-		o.Trace = t
 	}
 }
 

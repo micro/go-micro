@@ -3,8 +3,6 @@ package cache
 
 // Cache is an interface for caching
 type Cache interface {
-	// Initialise options
-	Init(...Option) error
 	// Get a value
 	Get(key string) (interface{}, error)
 	// Set a value
