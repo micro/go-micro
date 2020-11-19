@@ -58,7 +58,7 @@ plugins in [github.com/asim/nitro-plugins](https://github.com/asim/nitro-plugins
 
 ## Docs
 
-See [go-nitro.dev/docs/v3](https://go-nitro.dev/docs/v3/)
+See [gonitro.dev/docs/v3](https://gonitro.dev/docs/v3/)
 
 ## Discussion
 
