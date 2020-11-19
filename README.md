@@ -1,4 +1,4 @@
-# Nitro [![License](https://img.shields.io/badge/license-polyform:noncommercial-blue)](https://polyformproject.org/licenses/noncommercial/1.0.0/) [![Docs](https://img.shields.io/badge/godoc-reference-green)](https://go-nitro.dev/docs/v3) [![Twitter](https://img.shields.io/badge/twitter-gonitrodev-9cf)](https://twitter.com/GoNitroDev) [![Discussions](https://img.shields.io/badge/github-discussions-orange)](https://github.com/asim/nitro/discussions) 
+# Nitro [![License](https://img.shields.io/badge/license-polyform:noncommercial-blue)](https://polyformproject.org/licenses/noncommercial/1.0.0/) [![Docs](https://img.shields.io/badge/godoc-reference-green)](https://gonitro.dev/docs/v3) [![Twitter](https://img.shields.io/badge/twitter-gonitrodev-9cf)](https://twitter.com/GoNitroDev) [![Discussions](https://img.shields.io/badge/github-discussions-orange)](https://github.com/asim/nitro/discussions) 
 
 <img src="https://avatars2.githubusercontent.com/u/73709577" />
 
