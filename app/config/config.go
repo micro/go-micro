@@ -4,9 +4,9 @@ package config
 import (
 	"context"
 
-	"github.com/asim/nitro/v3/app/config/loader"
-	"github.com/asim/nitro/v3/app/config/reader"
-	"github.com/asim/nitro/v3/app/config/source"
+	"github.com/asim/nitro/app/config/loader"
+	"github.com/asim/nitro/app/config/reader"
+	"github.com/asim/nitro/app/config/source"
 )
 
 // Config is an interface abstraction for dynamic configuration

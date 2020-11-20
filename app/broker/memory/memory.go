@@ -8,9 +8,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/asim/nitro/v3/app/broker"
-	maddr "github.com/asim/nitro/v3/util/addr"
-	mnet "github.com/asim/nitro/v3/util/net"
+	"github.com/asim/nitro/app/broker"
+	maddr "github.com/asim/nitro/util/addr"
+	mnet "github.com/asim/nitro/util/net"
 	"github.com/google/uuid"
 )
 

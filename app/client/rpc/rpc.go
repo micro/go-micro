@@ -1,4 +1,4 @@
-// Package rpc provides a transport agnostic RPC client
+// Package rpc provides a network agnostic RPC client
 package rpc
 
 import (
@@ -7,15 +7,15 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/asim/nitro/v3/app/broker"
-	"github.com/asim/nitro/v3/app/client"
-	"github.com/asim/nitro/v3/app/codec"
-	raw "github.com/asim/nitro/v3/app/codec/bytes"
-	"github.com/asim/nitro/v3/app/errors"
-	"github.com/asim/nitro/v3/app/metadata"
-	"github.com/asim/nitro/v3/app/transport"
-	"github.com/asim/nitro/v3/util/buf"
-	"github.com/asim/nitro/v3/util/pool"
+	"github.com/asim/nitro/app/broker"
+	"github.com/asim/nitro/app/client"
+	"github.com/asim/nitro/app/codec"
+	raw "github.com/asim/nitro/app/codec/bytes"
+	"github.com/asim/nitro/app/errors"
+	"github.com/asim/nitro/app/metadata"
+	"github.com/asim/nitro/app/network"
+	"github.com/asim/nitro/util/buf"
+	"github.com/asim/nitro/util/pool"
 	"github.com/google/uuid"
 )
 
@@ -64,7 +64,7 @@ func (r *rpcClient) newCodec(contentType string) (codec.NewCodec, error) {
 }
 
 func (r *rpcClient) call(ctx context.Context, addr string, req client.Request, resp interface{}, opts client.CallOptions) error {
-	msg := &transport.Message{
+	msg := &network.Message{
 		Header: make(map[string]string),
 	}
 
@@ -92,12 +92,12 @@ func (r *rpcClient) call(ctx context.Context, addr string, req client.Request, r
 		return errors.InternalServerError("nitro", err.Error())
 	}
 
-	dOpts := []transport.DialOption{
-		transport.WithStream(),
+	dOpts := []network.DialOption{
+		network.WithStream(),
 	}
 
 	if opts.DialTimeout >= 0 {
-		dOpts = append(dOpts, transport.WithTimeout(opts.DialTimeout))
+		dOpts = append(dOpts, network.WithTimeout(opts.DialTimeout))
 	}
 
 	c, err := r.pool.Get(addr, dOpts...)
@@ -174,7 +174,7 @@ func (r *rpcClient) call(ctx context.Context, addr string, req client.Request, r
 }
 
 func (r *rpcClient) stream(ctx context.Context, addr string, req client.Request, opts client.CallOptions) (client.Stream, error) {
-	msg := &transport.Message{
+	msg := &network.Message{
 		Header: make(map[string]string),
 	}
 
@@ -199,12 +199,12 @@ func (r *rpcClient) stream(ctx context.Context, addr string, req client.Request,
 		return nil, errors.InternalServerError("nitro", err.Error())
 	}
 
-	dOpts := []transport.DialOption{
-		transport.WithStream(),
+	dOpts := []network.DialOption{
+		network.WithStream(),
 	}
 
 	if opts.DialTimeout >= 0 {
-		dOpts = append(dOpts, transport.WithTimeout(opts.DialTimeout))
+		dOpts = append(dOpts, network.WithTimeout(opts.DialTimeout))
 	}
 
 	c, err := r.opts.Transport.Dial(addr, dOpts...)

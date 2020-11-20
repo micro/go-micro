@@ -3,9 +3,9 @@ package rpc
 import (
 	"bytes"
 
-	"github.com/asim/nitro/v3/app/codec"
-	"github.com/asim/nitro/v3/app/transport"
-	"github.com/asim/nitro/v3/util/buf"
+	"github.com/asim/nitro/app/codec"
+	"github.com/asim/nitro/app/network"
+	"github.com/asim/nitro/util/buf"
 )
 
 type rpcRequest struct {
@@ -13,7 +13,7 @@ type rpcRequest struct {
 	method      string
 	endpoint    string
 	contentType string
-	socket      transport.Socket
+	socket      network.Socket
 	codec       codec.Codec
 	header      map[string]string
 	body        []byte
@@ -67,7 +67,7 @@ func (r *rpcRequest) Read() ([]byte, error) {
 		return b, nil
 	}
 
-	var msg transport.Message
+	var msg network.Message
 	err := r.socket.Recv(&msg)
 	if err != nil {
 		return nil, err

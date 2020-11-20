@@ -1,9 +1,9 @@
 package config
 
 import (
-	"github.com/asim/nitro/v3/app/config/loader"
-	"github.com/asim/nitro/v3/app/config/reader"
-	"github.com/asim/nitro/v3/app/config/source"
+	"github.com/asim/nitro/app/config/loader"
+	"github.com/asim/nitro/app/config/reader"
+	"github.com/asim/nitro/app/config/source"
 )
 
 // WithLoader sets the loader for manager config

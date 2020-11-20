@@ -6,7 +6,7 @@ import (
 	"os"
 	"reflect"
 
-	"github.com/asim/nitro/v3/app/config/source"
+	"github.com/asim/nitro/app/config/source"
 	"github.com/fsnotify/fsnotify"
 )
 

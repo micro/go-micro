@@ -4,10 +4,10 @@ import (
 	"errors"
 	"time"
 
-	"github.com/asim/nitro/v3/app/codec"
-	"github.com/asim/nitro/v3/app/codec/json"
-	"github.com/asim/nitro/v3/app/config/reader"
-	"github.com/asim/nitro/v3/app/config/source"
+	"github.com/asim/nitro/app/codec"
+	"github.com/asim/nitro/app/codec/json"
+	"github.com/asim/nitro/app/config/reader"
+	"github.com/asim/nitro/app/config/source"
 	"github.com/imdario/mergo"
 )
 

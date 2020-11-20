@@ -4,16 +4,16 @@ import (
 	"context"
 	"time"
 
-	"github.com/asim/nitro/v3/app/broker"
-	mbroker "github.com/asim/nitro/v3/app/broker/memory"
-	"github.com/asim/nitro/v3/app/codec"
-	"github.com/asim/nitro/v3/app/registry"
-	"github.com/asim/nitro/v3/app/router"
-	regRouter "github.com/asim/nitro/v3/app/router/registry"
-	"github.com/asim/nitro/v3/app/selector"
-	"github.com/asim/nitro/v3/app/selector/roundrobin"
-	"github.com/asim/nitro/v3/app/transport"
-	tmem "github.com/asim/nitro/v3/app/transport/memory"
+	"github.com/asim/nitro/app/broker"
+	mbroker "github.com/asim/nitro/app/broker/memory"
+	"github.com/asim/nitro/app/codec"
+	"github.com/asim/nitro/app/network"
+	tmem "github.com/asim/nitro/app/network/memory"
+	"github.com/asim/nitro/app/registry"
+	"github.com/asim/nitro/app/router"
+	regRouter "github.com/asim/nitro/app/router/registry"
+	"github.com/asim/nitro/app/selector"
+	"github.com/asim/nitro/app/selector/roundrobin"
 )
 
 type Options struct {
@@ -27,7 +27,7 @@ type Options struct {
 	Codecs    map[string]codec.NewCodec
 	Router    router.Router
 	Selector  selector.Selector
-	Transport transport.Transport
+	Transport network.Transport
 
 	// Lookup used for looking up routes
 	Lookup LookupFunc
@@ -112,7 +112,7 @@ func NewOptions(options ...Option) Options {
 			Retry:          DefaultRetry,
 			Retries:        DefaultRetries,
 			RequestTimeout: DefaultRequestTimeout,
-			DialTimeout:    transport.DefaultDialTimeout,
+			DialTimeout:    network.DefaultDialTimeout,
 		},
 		Lookup:    LookupRoute,
 		PoolSize:  DefaultPoolSize,
@@ -173,7 +173,7 @@ func PoolTTL(d time.Duration) Option {
 }
 
 // Transport to use for communication e.g http, rabbitmq, etc
-func Transport(t transport.Transport) Option {
+func Transport(t network.Transport) Option {
 	return func(o *Options) {
 		o.Transport = t
 	}

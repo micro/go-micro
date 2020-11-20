@@ -3,13 +3,13 @@ package rpc
 import (
 	"net/http"
 
-	"github.com/asim/nitro/v3/app/codec"
-	"github.com/asim/nitro/v3/app/transport"
+	"github.com/asim/nitro/app/codec"
+	"github.com/asim/nitro/app/network"
 )
 
 type rpcResponse struct {
 	header map[string]string
-	socket transport.Socket
+	socket network.Socket
 	codec  codec.Codec
 }
 
@@ -28,7 +28,7 @@ func (r *rpcResponse) Write(b []byte) error {
 		r.header["Content-Type"] = http.DetectContentType(b)
 	}
 
-	return r.socket.Send(&transport.Message{
+	return r.socket.Send(&network.Message{
 		Header: r.header,
 		Body:   b,
 	})

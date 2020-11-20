@@ -6,10 +6,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/asim/nitro/v3/app/transport"
+	"github.com/asim/nitro/app/network"
 )
 
-func expectedPort(t *testing.T, expected string, lsn transport.Listener) {
+func expectedPort(t *testing.T, expected string, lsn network.Listener) {
 	parts := strings.Split(lsn.Addr(), ":")
 	port := parts[len(parts)-1]
 
@@ -53,11 +53,11 @@ func TestSocketTransportCommunication(t *testing.T) {
 	}
 	defer l.Close()
 
-	fn := func(sock transport.Socket) {
+	fn := func(sock network.Socket) {
 		defer sock.Close()
 
 		for {
-			var m transport.Message
+			var m network.Message
 			if err := sock.Recv(&m); err != nil {
 				return
 			}
@@ -86,7 +86,7 @@ func TestSocketTransportCommunication(t *testing.T) {
 	}
 	defer c.Close()
 
-	m := transport.Message{
+	m := network.Message{
 		Header: map[string]string{
 			"Content-Type": "application/json",
 		},
@@ -97,7 +97,7 @@ func TestSocketTransportCommunication(t *testing.T) {
 		t.Errorf("Unexpected send err: %v", err)
 	}
 
-	var rm transport.Message
+	var rm network.Message
 
 	if err := c.Recv(&rm); err != nil {
 		t.Errorf("Unexpected recv err: %v", err)
@@ -119,11 +119,11 @@ func TestSocketTransportError(t *testing.T) {
 	}
 	defer l.Close()
 
-	fn := func(sock transport.Socket) {
+	fn := func(sock network.Socket) {
 		defer sock.Close()
 
 		for {
-			var m transport.Message
+			var m network.Message
 			if err := sock.Recv(&m); err != nil {
 				if err == io.EOF {
 					return
@@ -151,7 +151,7 @@ func TestSocketTransportError(t *testing.T) {
 	}
 	defer c.Close()
 
-	m := transport.Message{
+	m := network.Message{
 		Header: map[string]string{
 			"Content-Type": "application/json",
 		},
@@ -166,7 +166,7 @@ func TestSocketTransportError(t *testing.T) {
 }
 
 func TestSocketTransportTimeout(t *testing.T) {
-	tr := NewTransport(transport.Timeout(time.Millisecond * 100))
+	tr := NewTransport(network.Timeout(time.Millisecond * 100))
 
 	l, err := tr.Listen(":0")
 	if err != nil {
@@ -176,7 +176,7 @@ func TestSocketTransportTimeout(t *testing.T) {
 
 	done := make(chan bool)
 
-	fn := func(sock transport.Socket) {
+	fn := func(sock network.Socket) {
 		defer func() {
 			sock.Close()
 			close(done)
@@ -192,7 +192,7 @@ func TestSocketTransportTimeout(t *testing.T) {
 		}()
 
 		for {
-			var m transport.Message
+			var m network.Message
 
 			if err := sock.Recv(&m); err != nil {
 				return
@@ -216,7 +216,7 @@ func TestSocketTransportTimeout(t *testing.T) {
 	}
 	defer c.Close()
 
-	m := transport.Message{
+	m := network.Message{
 		Header: map[string]string{
 			"Content-Type": "application/json",
 		},

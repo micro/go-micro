@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/asim/nitro/v3/app/store"
+	"github.com/asim/nitro/app/store"
 )
 
 // NewStore returns a memory store

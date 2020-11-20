@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/asim/nitro/v3/app/client"
-	"github.com/asim/nitro/v3/app/transport"
+	"github.com/asim/nitro/app/client"
+	"github.com/asim/nitro/app/network"
 )
 
 func TestCallOptions(t *testing.T) {
@@ -15,7 +15,7 @@ func TestCallOptions(t *testing.T) {
 		rtimeout time.Duration
 		dtimeout time.Duration
 	}{
-		{false, client.DefaultRetries, client.DefaultRequestTimeout, transport.DefaultDialTimeout},
+		{false, client.DefaultRetries, client.DefaultRequestTimeout, network.DefaultDialTimeout},
 		{true, 10, time.Second, time.Second * 2},
 	}
 

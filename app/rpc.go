@@ -3,13 +3,13 @@ package app
 import (
 	"context"
 
-	mbroker "github.com/asim/nitro/v3/app/broker/memory"
-	"github.com/asim/nitro/v3/app/client"
-	rpcClient "github.com/asim/nitro/v3/app/client/rpc"
-	"github.com/asim/nitro/v3/app/registry/memory"
-	"github.com/asim/nitro/v3/app/server"
-	rpcServer "github.com/asim/nitro/v3/app/server/rpc"
-	tmem "github.com/asim/nitro/v3/app/transport/memory"
+	mbroker "github.com/asim/nitro/app/broker/memory"
+	"github.com/asim/nitro/app/client"
+	rpcClient "github.com/asim/nitro/app/client/rpc"
+	tmem "github.com/asim/nitro/app/network/memory"
+	"github.com/asim/nitro/app/registry/memory"
+	"github.com/asim/nitro/app/server"
+	rpcServer "github.com/asim/nitro/app/server/rpc"
 )
 
 type rpcApp struct {

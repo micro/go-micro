@@ -62,7 +62,7 @@ See [nitro/discussions](https://github.com/asim/nitro/discussions) for any discu
 
 ## Usage
 
-Here's how to write a quick Nitro App (completely in-memory including transport)
+Here's how to write a quick Nitro App (completely in-memory including network)
 
 ### App
 
@@ -72,7 +72,7 @@ package main
 import (
         "context"
 
-        "github.com/asim/nitro/v3/app"
+        "github.com/asim/nitro/app"
 )
 
 // Define a request type
@@ -112,7 +112,7 @@ func main() {
 ### Client
 
 
-To call a Nitro App (if in-memory, must be the same process, same app, registry, transport, etc)
+To call a Nitro App (if in-memory, must be the same process, same app, registry, network, etc)
 
 ```go
 var rsp Response
@@ -132,8 +132,8 @@ Use network sockets to communicate across multiple processes
 
 ```go
 import (
-	"github.com/asim/nitro/v3/app"
-	"github.com/asim/nitro/v3/app/transport/socket"
+	"github.com/asim/nitro/app"
+	"github.com/asim/nitro/app/network/socket"
 )
 
 app.New(
@@ -163,11 +163,11 @@ Set the router to static so you can specify the address in calls
 
 ```go
 import (
-	"github.com/asim/nitro/v3/app"
-	"github.com/asim/nitro/v3/app/client"
-	"github.com/asim/nitro/v3/app/transport/socket"
-	rpcc "github.com/asim/nitro/v3/app/client/rpc"
-	"github.com/asim/nitro/v3/app/router/static"
+	"github.com/asim/nitro/app"
+	"github.com/asim/nitro/app/client"
+	"github.com/asim/nitro/app/network/socket"
+	rpcc "github.com/asim/nitro/app/client/rpc"
+	"github.com/asim/nitro/app/router/static"
 )
 
 // set a static router that uses whatever you pass in
@@ -192,7 +192,7 @@ Make use of mdns for zero conf service discovery across processes on a single ho
 
 ```go
 import (
-	"github.com/asim/nitro/v3/app"
+	"github.com/asim/nitro/app"
 	"github.com/asim/nitro-plugins/registry/mdns/v3"
 )
 
@@ -219,7 +219,7 @@ import (
         "context"
 	"fmt"
 
-        "github.com/asim/nitro/v3/app"
+        "github.com/asim/nitro/app"
 )
 
 // Define a request type

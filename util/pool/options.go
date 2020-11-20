@@ -3,11 +3,11 @@ package pool
 import (
 	"time"
 
-	"github.com/asim/nitro/v3/app/transport"
+	"github.com/asim/nitro/app/network"
 )
 
 type Options struct {
-	Transport transport.Transport
+	Transport network.Transport
 	TTL       time.Duration
 	Size      int
 }
@@ -20,7 +20,7 @@ func Size(i int) Option {
 	}
 }
 
-func Transport(t transport.Transport) Option {
+func Transport(t network.Transport) Option {
 	return func(o *Options) {
 		o.Transport = t
 	}

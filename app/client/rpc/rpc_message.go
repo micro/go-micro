@@ -1,7 +1,7 @@
 package rpc
 
 import (
-	"github.com/asim/nitro/v3/app/client"
+	"github.com/asim/nitro/app/client"
 )
 
 type message struct {

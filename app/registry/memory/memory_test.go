@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/asim/nitro/v3/app/registry"
+	"github.com/asim/nitro/app/registry"
 )
 
 var (

@@ -6,9 +6,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/asim/nitro/v3/app/logger"
-	"github.com/asim/nitro/v3/app/registry"
-	"github.com/asim/nitro/v3/app/router"
+	"github.com/asim/nitro/app/logger"
+	"github.com/asim/nitro/app/registry"
+	"github.com/asim/nitro/app/router"
 )
 
 var (

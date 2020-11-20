@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/asim/nitro/v3/app/registry"
+	"github.com/asim/nitro/app/registry"
 )
 
 func TestRemove(t *testing.T) {

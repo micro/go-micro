@@ -6,7 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 
-	"github.com/asim/nitro/v3/app/codec"
+	"github.com/asim/nitro/app/codec"
 )
 
 type Codec struct {

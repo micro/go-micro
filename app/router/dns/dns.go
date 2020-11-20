@@ -5,7 +5,7 @@ import (
 	"net"
 	"strconv"
 
-	"github.com/asim/nitro/v3/app/router"
+	"github.com/asim/nitro/app/router"
 )
 
 // NewRouter returns an initialized dns router

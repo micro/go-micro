@@ -1,5 +1,5 @@
-// Package transport is an interface for synchronous connection based communication
-package transport
+// Package network is an interface for synchronous connection based communication
+package network
 
 import (
 	"time"

@@ -1,14 +1,14 @@
 package rpc
 
 import (
-	"github.com/asim/nitro/v3/app/codec"
-	"github.com/asim/nitro/v3/app/transport"
+	"github.com/asim/nitro/app/codec"
+	"github.com/asim/nitro/app/network"
 )
 
 type rpcResponse struct {
 	header map[string]string
 	body   []byte
-	socket transport.Socket
+	socket network.Socket
 	codec  codec.Codec
 }
 
@@ -21,7 +21,7 @@ func (r *rpcResponse) Header() map[string]string {
 }
 
 func (r *rpcResponse) Read() ([]byte, error) {
-	var msg transport.Message
+	var msg network.Message
 
 	if err := r.socket.Recv(&msg); err != nil {
 		return nil, err

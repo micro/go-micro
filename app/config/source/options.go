@@ -3,9 +3,9 @@ package source
 import (
 	"context"
 
-	"github.com/asim/nitro/v3/app/client"
-	"github.com/asim/nitro/v3/app/config/encoder"
-	"github.com/asim/nitro/v3/app/config/encoder/json"
+	"github.com/asim/nitro/app/client"
+	"github.com/asim/nitro/app/config/encoder"
+	"github.com/asim/nitro/app/config/encoder/json"
 )
 
 type Options struct {

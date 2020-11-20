@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/asim/nitro/v3/app/broker"
-	"github.com/asim/nitro/v3/app/registry"
-	"github.com/asim/nitro/v3/app/server"
-	"github.com/asim/nitro/v3/app/transport"
+	"github.com/asim/nitro/app/broker"
+	"github.com/asim/nitro/app/network"
+	"github.com/asim/nitro/app/registry"
+	"github.com/asim/nitro/app/server"
 )
 
 const (
@@ -30,7 +30,7 @@ type subscriber struct {
 	opts       server.SubscriberOptions
 }
 
-func newMessage(msg transport.Message) *broker.Message {
+func newMessage(msg network.Message) *broker.Message {
 	return &broker.Message{
 		Header: msg.Header,
 		Body:   msg.Body,

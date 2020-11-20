@@ -8,7 +8,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/asim/nitro/v3/app/codec"
+	"github.com/asim/nitro/app/codec"
 	"github.com/golang/protobuf/proto"
 )
 

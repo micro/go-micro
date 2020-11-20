@@ -3,7 +3,7 @@ package json
 import (
 	"encoding/json"
 
-	"github.com/asim/nitro/v3/app/config/encoder"
+	"github.com/asim/nitro/app/config/encoder"
 )
 
 type jsonEncoder struct{}

@@ -12,18 +12,18 @@ import (
 	"sync"
 	"time"
 
-	"github.com/asim/nitro/v3/app/broker"
-	"github.com/asim/nitro/v3/app/codec"
-	raw "github.com/asim/nitro/v3/app/codec/bytes"
-	"github.com/asim/nitro/v3/app/logger"
-	"github.com/asim/nitro/v3/app/metadata"
-	"github.com/asim/nitro/v3/app/registry"
-	"github.com/asim/nitro/v3/app/server"
-	"github.com/asim/nitro/v3/app/transport"
-	"github.com/asim/nitro/v3/util/addr"
-	"github.com/asim/nitro/v3/util/backoff"
-	mnet "github.com/asim/nitro/v3/util/net"
-	"github.com/asim/nitro/v3/util/socket"
+	"github.com/asim/nitro/app/broker"
+	"github.com/asim/nitro/app/codec"
+	raw "github.com/asim/nitro/app/codec/bytes"
+	"github.com/asim/nitro/app/logger"
+	"github.com/asim/nitro/app/metadata"
+	"github.com/asim/nitro/app/network"
+	"github.com/asim/nitro/app/registry"
+	"github.com/asim/nitro/app/server"
+	"github.com/asim/nitro/util/addr"
+	"github.com/asim/nitro/util/backoff"
+	mnet "github.com/asim/nitro/util/net"
+	"github.com/asim/nitro/util/socket"
 )
 
 type rpcServer struct {
@@ -143,7 +143,7 @@ func (s *rpcServer) HandleEvent(msg *broker.Message) error {
 }
 
 // ServeConn serves a single connection
-func (s *rpcServer) ServeConn(sock transport.Socket) {
+func (s *rpcServer) ServeConn(sock network.Socket) {
 	// streams are multiplexed on Micro-Stream or Micro-Id header
 	pool := socket.NewPool()
 
@@ -177,7 +177,7 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 	}()
 
 	for {
-		var msg transport.Message
+		var msg network.Message
 		// process inbound messages one at a time
 		if err := sock.Recv(&msg); err != nil {
 			return
@@ -192,7 +192,7 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 				msg.Header["Micro-Error"] = err.Error()
 			}
 			// write back some 200
-			if err := sock.Send(&transport.Message{
+			if err := sock.Send(&network.Message{
 				Header: msg.Header,
 			}); err != nil {
 				break
@@ -304,7 +304,7 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 			// try get a new codec
 			if cf, err = s.newCodec(ct); err != nil {
 				// no codec found so send back an error
-				sock.Send(&transport.Message{
+				sock.Send(&network.Message{
 					Header: map[string]string{
 						"Content-Type": "text/plain",
 					},
@@ -391,7 +391,7 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 
 			for {
 				// get the message from our internal handler/stream
-				m := new(transport.Message)
+				m := new(network.Message)
 				if err := psock.Process(m); err != nil {
 					return
 				}
@@ -603,7 +603,7 @@ func (s *rpcServer) Register() error {
 		Metadata: md,
 	}
 
-	node.Metadata["transport"] = config.Transport.String()
+	node.Metadata["network"] = config.Transport.String()
 	node.Metadata["broker"] = config.Broker.String()
 	node.Metadata["server"] = s.String()
 	node.Metadata["registry"] = config.Registry.String()
@@ -818,7 +818,7 @@ func (s *rpcServer) Start() error {
 
 	config := s.Options()
 
-	// start listening on the transport
+	// start listening on the network
 	ts, err := config.Transport.Listen(config.Address)
 	if err != nil {
 		return err
@@ -963,7 +963,7 @@ func (s *rpcServer) Start() error {
 			swg.Wait()
 		}
 
-		// close transport listener
+		// close network listener
 		ch <- ts.Close()
 
 		if logger.V(logger.InfoLevel, logger.DefaultLogger) {

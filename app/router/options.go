@@ -3,8 +3,8 @@ package router
 import (
 	"context"
 
-	"github.com/asim/nitro/v3/app/registry"
-	"github.com/asim/nitro/v3/app/registry/memory"
+	"github.com/asim/nitro/app/registry"
+	"github.com/asim/nitro/app/registry/memory"
 	"github.com/google/uuid"
 )
 

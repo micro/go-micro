@@ -4,12 +4,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/asim/nitro/v3/app/transport"
-	"github.com/asim/nitro/v3/app/transport/memory"
+	"github.com/asim/nitro/app/network"
+	"github.com/asim/nitro/app/network/memory"
 )
 
 func testPool(t *testing.T, size int, ttl time.Duration) {
-	// mock transport
+	// mock network
 	tr := memory.NewTransport()
 
 	options := Options{
@@ -30,9 +30,9 @@ func testPool(t *testing.T, size int, ttl time.Duration) {
 	// accept loop
 	go func() {
 		for {
-			if err := l.Accept(func(s transport.Socket) {
+			if err := l.Accept(func(s network.Socket) {
 				for {
-					var msg transport.Message
+					var msg network.Message
 					if err := s.Recv(&msg); err != nil {
 						return
 					}
@@ -53,7 +53,7 @@ func testPool(t *testing.T, size int, ttl time.Duration) {
 			t.Fatal(err)
 		}
 
-		msg := &transport.Message{
+		msg := &network.Message{
 			Body: []byte(`hello world`),
 		}
 
@@ -61,7 +61,7 @@ func testPool(t *testing.T, size int, ttl time.Duration) {
 			t.Fatal(err)
 		}
 
-		var rcv transport.Message
+		var rcv network.Message
 
 		if err := c.Recv(&rcv); err != nil {
 			t.Fatal(err)

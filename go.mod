@@ -1,4 +1,4 @@
-module github.com/asim/nitro/v3
+module github.com/asim/nitro
 
 go 1.15
 

@@ -3,7 +3,7 @@ package registry
 import (
 	"sync"
 
-	"github.com/asim/nitro/v3/app/router"
+	"github.com/asim/nitro/app/router"
 )
 
 // tableWatcher implements routing table Watcher

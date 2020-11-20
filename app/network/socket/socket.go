@@ -1,4 +1,4 @@
-// Package socket provides a net socket transport
+// Package socket provides a net socket network
 package socket
 
 import (
@@ -10,19 +10,19 @@ import (
 	"strings"
 	"time"
 
-	log "github.com/asim/nitro/v3/app/logger"
-	"github.com/asim/nitro/v3/app/transport"
-	maddr "github.com/asim/nitro/v3/util/addr"
-	mnet "github.com/asim/nitro/v3/util/net"
-	mls "github.com/asim/nitro/v3/util/tls"
+	log "github.com/asim/nitro/app/logger"
+	"github.com/asim/nitro/app/network"
+	maddr "github.com/asim/nitro/util/addr"
+	mnet "github.com/asim/nitro/util/net"
+	mls "github.com/asim/nitro/util/tls"
 )
 
 type socketTransport struct {
-	opts transport.Options
+	opts network.Options
 }
 
 type Client struct {
-	dialOpts transport.DialOptions
+	dialOpts network.DialOptions
 	conn     net.Conn
 	enc      *gob.Encoder
 	dec      *gob.Decoder
@@ -64,7 +64,7 @@ func (t *Client) Remote() string {
 	return t.conn.RemoteAddr().String()
 }
 
-func (t *Client) Send(m *transport.Message) error {
+func (t *Client) Send(m *network.Message) error {
 	// set timeout if its greater than 0
 	if t.timeout > time.Duration(0) {
 		t.conn.SetDeadline(time.Now().Add(t.timeout))
@@ -75,7 +75,7 @@ func (t *Client) Send(m *transport.Message) error {
 	return t.encBuf.Flush()
 }
 
-func (t *Client) Recv(m *transport.Message) error {
+func (t *Client) Recv(m *network.Message) error {
 	// set timeout if its greater than 0
 	if t.timeout > time.Duration(0) {
 		t.conn.SetDeadline(time.Now().Add(t.timeout))
@@ -95,7 +95,7 @@ func (t *Socket) Remote() string {
 	return t.conn.RemoteAddr().String()
 }
 
-func (t *Socket) Recv(m *transport.Message) error {
+func (t *Socket) Recv(m *network.Message) error {
 	if m == nil {
 		return errors.New("message passed in is nil")
 	}
@@ -108,7 +108,7 @@ func (t *Socket) Recv(m *transport.Message) error {
 	return t.dec.Decode(&m)
 }
 
-func (t *Socket) Send(m *transport.Message) error {
+func (t *Socket) Send(m *network.Message) error {
 	// set timeout if its greater than 0
 	if t.timeout > time.Duration(0) {
 		t.conn.SetDeadline(time.Now().Add(t.timeout))
@@ -131,7 +131,7 @@ func (t *Listener) Close() error {
 	return t.listener.Close()
 }
 
-func (t *Listener) Accept(fn func(transport.Socket)) error {
+func (t *Listener) Accept(fn func(network.Socket)) error {
 	var tempDelay time.Duration
 
 	for {
@@ -175,9 +175,9 @@ func (t *Listener) Accept(fn func(transport.Socket)) error {
 	}
 }
 
-func (t *socketTransport) Dial(addr string, opts ...transport.DialOption) (transport.Client, error) {
-	dopts := transport.DialOptions{
-		Timeout: transport.DefaultDialTimeout,
+func (t *socketTransport) Dial(addr string, opts ...network.DialOption) (network.Client, error) {
+	dopts := network.DialOptions{
+		Timeout: network.DefaultDialTimeout,
 	}
 
 	for _, opt := range opts {
@@ -219,8 +219,8 @@ func (t *socketTransport) Dial(addr string, opts ...transport.DialOption) (trans
 	}, nil
 }
 
-func (t *socketTransport) Listen(addr string, opts ...transport.ListenOption) (transport.Listener, error) {
-	var options transport.ListenOptions
+func (t *socketTransport) Listen(addr string, opts ...network.ListenOption) (network.Listener, error) {
+	var options network.ListenOptions
 	for _, o := range opts {
 		o(&options)
 	}
@@ -284,14 +284,14 @@ func (t *socketTransport) Listen(addr string, opts ...transport.ListenOption) (t
 	}, nil
 }
 
-func (t *socketTransport) Init(opts ...transport.Option) error {
+func (t *socketTransport) Init(opts ...network.Option) error {
 	for _, o := range opts {
 		o(&t.opts)
 	}
 	return nil
 }
 
-func (t *socketTransport) Options() transport.Options {
+func (t *socketTransport) Options() network.Options {
 	return t.opts
 }
 
@@ -299,8 +299,8 @@ func (t *socketTransport) String() string {
 	return "socket"
 }
 
-func NewTransport(opts ...transport.Option) transport.Transport {
-	var options transport.Options
+func NewTransport(opts ...network.Option) network.Transport {
+	var options network.Options
 	for _, o := range opts {
 		o(&options)
 	}

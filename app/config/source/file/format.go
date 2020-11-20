@@ -3,7 +3,7 @@ package file
 import (
 	"strings"
 
-	"github.com/asim/nitro/v3/app/config/encoder"
+	"github.com/asim/nitro/app/config/encoder"
 )
 
 func format(p string, e encoder.Encoder) string {

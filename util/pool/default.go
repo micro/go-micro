@@ -4,21 +4,21 @@ import (
 	"sync"
 	"time"
 
-	"github.com/asim/nitro/v3/app/transport"
+	"github.com/asim/nitro/app/network"
 	"github.com/google/uuid"
 )
 
 type pool struct {
 	size int
 	ttl  time.Duration
-	tr   transport.Transport
+	tr   network.Transport
 
 	sync.Mutex
 	conns map[string][]*poolConn
 }
 
 type poolConn struct {
-	transport.Client
+	network.Client
 	id      string
 	created time.Time
 }
@@ -57,7 +57,7 @@ func (p *poolConn) Created() time.Time {
 	return p.created
 }
 
-func (p *pool) Get(addr string, opts ...transport.DialOption) (Conn, error) {
+func (p *pool) Get(addr string, opts ...network.DialOption) (Conn, error) {
 	p.Lock()
 	conns := p.conns[addr]
 

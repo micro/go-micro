@@ -3,7 +3,7 @@ package random
 import (
 	"testing"
 
-	"github.com/asim/nitro/v3/app/selector"
+	"github.com/asim/nitro/app/selector"
 )
 
 func TestRandom(t *testing.T) {

@@ -4,8 +4,8 @@ import (
 	"context"
 	"sort"
 
-	"github.com/asim/nitro/v3/app/errors"
-	"github.com/asim/nitro/v3/app/router"
+	"github.com/asim/nitro/app/errors"
+	"github.com/asim/nitro/app/router"
 )
 
 // LookupFunc is used to lookup routes for a service

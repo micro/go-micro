@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/asim/nitro/v3/app/config/reader"
-	"github.com/asim/nitro/v3/app/config/source"
+	"github.com/asim/nitro/app/config/reader"
+	"github.com/asim/nitro/app/config/source"
 	simple "github.com/bitly/go-simplejson"
 )
 

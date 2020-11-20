@@ -4,14 +4,14 @@ import (
 	"io"
 	"testing"
 
-	"github.com/asim/nitro/v3/app/codec"
-	"github.com/asim/nitro/v3/app/codec/bytes"
-	"github.com/asim/nitro/v3/app/codec/grpc"
-	"github.com/asim/nitro/v3/app/codec/json"
-	"github.com/asim/nitro/v3/app/codec/jsonrpc"
-	"github.com/asim/nitro/v3/app/codec/proto"
-	"github.com/asim/nitro/v3/app/codec/protorpc"
-	"github.com/asim/nitro/v3/app/codec/text"
+	"github.com/asim/nitro/app/codec"
+	"github.com/asim/nitro/app/codec/bytes"
+	"github.com/asim/nitro/app/codec/grpc"
+	"github.com/asim/nitro/app/codec/json"
+	"github.com/asim/nitro/app/codec/jsonrpc"
+	"github.com/asim/nitro/app/codec/proto"
+	"github.com/asim/nitro/app/codec/protorpc"
+	"github.com/asim/nitro/app/codec/text"
 )
 
 type testRWC struct{}

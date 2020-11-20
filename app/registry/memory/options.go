@@ -3,7 +3,7 @@ package memory
 import (
 	"context"
 
-	"github.com/asim/nitro/v3/app/registry"
+	"github.com/asim/nitro/app/registry"
 )
 
 type servicesKey struct{}

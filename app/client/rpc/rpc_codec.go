@@ -4,16 +4,16 @@ import (
 	"bytes"
 	errs "errors"
 
-	"github.com/asim/nitro/v3/app/codec"
-	raw "github.com/asim/nitro/v3/app/codec/bytes"
-	"github.com/asim/nitro/v3/app/codec/grpc"
-	"github.com/asim/nitro/v3/app/codec/json"
-	"github.com/asim/nitro/v3/app/codec/jsonrpc"
-	"github.com/asim/nitro/v3/app/codec/proto"
-	"github.com/asim/nitro/v3/app/codec/protorpc"
-	"github.com/asim/nitro/v3/app/errors"
-	"github.com/asim/nitro/v3/app/registry"
-	"github.com/asim/nitro/v3/app/transport"
+	"github.com/asim/nitro/app/codec"
+	raw "github.com/asim/nitro/app/codec/bytes"
+	"github.com/asim/nitro/app/codec/grpc"
+	"github.com/asim/nitro/app/codec/json"
+	"github.com/asim/nitro/app/codec/jsonrpc"
+	"github.com/asim/nitro/app/codec/proto"
+	"github.com/asim/nitro/app/codec/protorpc"
+	"github.com/asim/nitro/app/errors"
+	"github.com/asim/nitro/app/network"
+	"github.com/asim/nitro/app/registry"
 )
 
 const (
@@ -34,10 +34,10 @@ var (
 )
 
 type rpcCodec struct {
-	client transport.Client
+	client network.Client
 	codec  codec.Codec
 
-	req *transport.Message
+	req *network.Message
 	buf *readWriteCloser
 
 	// signify if its a stream
@@ -128,7 +128,7 @@ func setHeaders(m *codec.Message, stream string) {
 }
 
 // setupProtocol sets up the old protocol
-func setupProtocol(msg *transport.Message, node *registry.Node) codec.NewCodec {
+func setupProtocol(msg *network.Message, node *registry.Node) codec.NewCodec {
 	// get the protocol from node metadata
 	if protocol := node.Metadata["protocol"]; len(protocol) > 0 {
 		return nil
@@ -151,7 +151,7 @@ func setupProtocol(msg *transport.Message, node *registry.Node) codec.NewCodec {
 	return defaultCodecs[msg.Header["Content-Type"]]
 }
 
-func newRpcCodec(req *transport.Message, client transport.Client, c codec.NewCodec, stream string) codec.Codec {
+func newRpcCodec(req *network.Message, client network.Client, c codec.NewCodec, stream string) codec.Codec {
 	rwc := &readWriteCloser{
 		wbuf: bytes.NewBuffer(nil),
 		rbuf: bytes.NewBuffer(nil),
@@ -197,32 +197,32 @@ func (c *rpcCodec) Write(m *codec.Message, body interface{}) error {
 		}
 	}
 
-	// create new transport message
-	msg := transport.Message{
+	// create new network message
+	msg := network.Message{
 		Header: m.Header,
 		Body:   m.Body,
 	}
 
 	// send the request
 	if err := c.client.Send(&msg); err != nil {
-		return errors.InternalServerError("nitro.transport", err.Error())
+		return errors.InternalServerError("nitro.network", err.Error())
 	}
 
 	return nil
 }
 
 func (c *rpcCodec) ReadHeader(m *codec.Message, r codec.MessageType) error {
-	var tm transport.Message
+	var tm network.Message
 
-	// read message from transport
+	// read message from network
 	if err := c.client.Recv(&tm); err != nil {
-		return errors.InternalServerError("nitro.transport", err.Error())
+		return errors.InternalServerError("nitro.network", err.Error())
 	}
 
 	c.buf.rbuf.Reset()
 	c.buf.rbuf.Write(tm.Body)
 
-	// set headers from transport
+	// set headers from network
 	m.Header = tm.Header
 
 	// read header
@@ -257,7 +257,7 @@ func (c *rpcCodec) Close() error {
 	c.buf.Close()
 	c.codec.Close()
 	if err := c.client.Close(); err != nil {
-		return errors.InternalServerError("nitro.transport", err.Error())
+		return errors.InternalServerError("nitro.network", err.Error())
 	}
 	return nil
 }

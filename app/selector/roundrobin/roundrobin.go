@@ -1,7 +1,7 @@
 package roundrobin
 
 import (
-	"github.com/asim/nitro/v3/app/selector"
+	"github.com/asim/nitro/app/selector"
 )
 
 // NewSelector returns an initalised round robin selector

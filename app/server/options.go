@@ -6,14 +6,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/asim/nitro/v3/app/auth"
-	"github.com/asim/nitro/v3/app/broker"
-	mbroker "github.com/asim/nitro/v3/app/broker/memory"
-	"github.com/asim/nitro/v3/app/codec"
-	"github.com/asim/nitro/v3/app/registry"
-	"github.com/asim/nitro/v3/app/registry/memory"
-	"github.com/asim/nitro/v3/app/transport"
-	tmem "github.com/asim/nitro/v3/app/transport/memory"
+	"github.com/asim/nitro/app/auth"
+	"github.com/asim/nitro/app/broker"
+	mbroker "github.com/asim/nitro/app/broker/memory"
+	"github.com/asim/nitro/app/codec"
+	"github.com/asim/nitro/app/network"
+	tmem "github.com/asim/nitro/app/network/memory"
+	"github.com/asim/nitro/app/registry"
+	"github.com/asim/nitro/app/registry/memory"
 )
 
 type Options struct {
@@ -21,7 +21,7 @@ type Options struct {
 	Broker       broker.Broker
 	Registry     registry.Registry
 	Auth         auth.Auth
-	Transport    transport.Transport
+	Transport    network.Transport
 	Metadata     map[string]string
 	Name         string
 	Address      string
@@ -177,7 +177,7 @@ func Auth(a auth.Auth) Option {
 }
 
 // Transport mechanism for communication e.g http, rabbitmq, etc
-func Transport(t transport.Transport) Option {
+func Transport(t network.Transport) Option {
 	return func(o *Options) {
 		o.Transport = t
 	}
@@ -217,16 +217,16 @@ func TLSConfig(t *tls.Config) Option {
 		// set the internal tls
 		o.TLSConfig = t
 
-		// set the default transport if one is not
+		// set the default network if one is not
 		// already set. Required for Init call below.
 		if o.Transport == nil {
 			o.Transport = tmem.NewTransport()
 		}
 
-		// set the transport tls
+		// set the network tls
 		o.Transport.Init(
-			transport.Secure(true),
-			transport.TLSConfig(t),
+			network.Secure(true),
+			network.TLSConfig(t),
 		)
 	}
 }

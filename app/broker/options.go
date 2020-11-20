@@ -4,8 +4,8 @@ import (
 	"context"
 	"crypto/tls"
 
-	"github.com/asim/nitro/v3/app/codec"
-	"github.com/asim/nitro/v3/app/registry"
+	"github.com/asim/nitro/app/codec"
+	"github.com/asim/nitro/app/registry"
 )
 
 type Options struct {

@@ -4,7 +4,7 @@ package reader
 import (
 	"time"
 
-	"github.com/asim/nitro/v3/app/config/source"
+	"github.com/asim/nitro/app/config/source"
 )
 
 // Reader is an interface for merging changesets

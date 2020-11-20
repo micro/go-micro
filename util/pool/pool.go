@@ -4,7 +4,7 @@ package pool
 import (
 	"time"
 
-	"github.com/asim/nitro/v3/app/transport"
+	"github.com/asim/nitro/app/network"
 )
 
 // Pool is an interface for connection pooling
@@ -12,7 +12,7 @@ type Pool interface {
 	// Close the pool
 	Close() error
 	// Get a connection
-	Get(addr string, opts ...transport.DialOption) (Conn, error)
+	Get(addr string, opts ...network.DialOption) (Conn, error)
 	// Release the connection
 	Release(c Conn, status error) error
 }
@@ -23,7 +23,7 @@ type Conn interface {
 	// time it was created
 	Created() time.Time
 	// embedded connection
-	transport.Client
+	network.Client
 }
 
 func NewPool(opts ...Option) Pool {

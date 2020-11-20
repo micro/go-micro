@@ -4,10 +4,10 @@ package socket
 import (
 	"io"
 
-	"github.com/asim/nitro/v3/app/transport"
+	"github.com/asim/nitro/app/network"
 )
 
-// Socket is our pseudo socket for transport.Socket
+// Socket is our pseudo socket for network.Socket
 type Socket struct {
 	id string
 	// closed
@@ -17,9 +17,9 @@ type Socket struct {
 	// local addr
 	local string
 	// send chan
-	send chan *transport.Message
+	send chan *network.Message
 	// recv chan
-	recv chan *transport.Message
+	recv chan *network.Message
 }
 
 func (s *Socket) SetLocal(l string) {
@@ -31,7 +31,7 @@ func (s *Socket) SetRemote(r string) {
 }
 
 // Accept passes a message to the socket which will be processed by the call to Recv
-func (s *Socket) Accept(m *transport.Message) error {
+func (s *Socket) Accept(m *network.Message) error {
 	select {
 	case s.recv <- m:
 		return nil
@@ -41,7 +41,7 @@ func (s *Socket) Accept(m *transport.Message) error {
 }
 
 // Process takes the next message off the send queue created by a call to Send
-func (s *Socket) Process(m *transport.Message) error {
+func (s *Socket) Process(m *network.Message) error {
 	select {
 	case msg := <-s.send:
 		*m = *msg
@@ -66,7 +66,7 @@ func (s *Socket) Local() string {
 	return s.local
 }
 
-func (s *Socket) Send(m *transport.Message) error {
+func (s *Socket) Send(m *network.Message) error {
 	// send a message
 	select {
 	case s.send <- m:
@@ -77,7 +77,7 @@ func (s *Socket) Send(m *transport.Message) error {
 	return nil
 }
 
-func (s *Socket) Recv(m *transport.Message) error {
+func (s *Socket) Recv(m *network.Message) error {
 	// receive a message
 	select {
 	case msg := <-s.recv:
@@ -102,7 +102,7 @@ func (s *Socket) Close() error {
 	return nil
 }
 
-// New returns a new pseudo socket which can be used in the place of a transport socket.
+// New returns a new pseudo socket which can be used in the place of a network socket.
 // Messages are sent to the socket via Accept and receives from the socket via Process.
 // SetLocal/SetRemote should be called before using the socket.
 func New(id string) *Socket {
@@ -111,7 +111,7 @@ func New(id string) *Socket {
 		closed: make(chan bool),
 		local:  "local",
 		remote: "remote",
-		send:   make(chan *transport.Message, 128),
-		recv:   make(chan *transport.Message, 128),
+		send:   make(chan *network.Message, 128),
+		recv:   make(chan *network.Message, 128),
 	}
 }

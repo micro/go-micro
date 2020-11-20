@@ -1,8 +1,8 @@
-// Package rpc provides a transport agnostic RPC server
+// Package rpc provides a network agnostic RPC server
 package rpc
 
 import (
-	"github.com/asim/nitro/v3/app/server"
+	"github.com/asim/nitro/app/server"
 )
 
 var (

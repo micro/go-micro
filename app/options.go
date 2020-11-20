@@ -4,16 +4,16 @@ import (
 	"context"
 	"time"
 
-	"github.com/asim/nitro/v3/app/broker"
-	mbroker "github.com/asim/nitro/v3/app/broker/memory"
-	"github.com/asim/nitro/v3/app/client"
-	rpcClient "github.com/asim/nitro/v3/app/client/rpc"
-	"github.com/asim/nitro/v3/app/registry"
-	"github.com/asim/nitro/v3/app/registry/memory"
-	"github.com/asim/nitro/v3/app/server"
-	rpcServer "github.com/asim/nitro/v3/app/server/rpc"
-	"github.com/asim/nitro/v3/app/transport"
-	tmem "github.com/asim/nitro/v3/app/transport/memory"
+	"github.com/asim/nitro/app/broker"
+	mbroker "github.com/asim/nitro/app/broker/memory"
+	"github.com/asim/nitro/app/client"
+	rpcClient "github.com/asim/nitro/app/client/rpc"
+	"github.com/asim/nitro/app/network"
+	tmem "github.com/asim/nitro/app/network/memory"
+	"github.com/asim/nitro/app/registry"
+	"github.com/asim/nitro/app/registry/memory"
+	"github.com/asim/nitro/app/server"
+	rpcServer "github.com/asim/nitro/app/server/rpc"
 )
 
 type Options struct {
@@ -117,8 +117,8 @@ func Registry(r registry.Registry) Option {
 	}
 }
 
-// Transport sets the app client/server transport
-func Transport(t transport.Transport) Option {
+// Transport sets the app client/server network
+func Transport(t network.Transport) Option {
 	return func(o *Options) {
 		o.Server.Init(server.Transport(t))
 		o.Client.Init(client.Transport(t))
