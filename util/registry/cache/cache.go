@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/asim/nitro/v3/logger"
-	"github.com/asim/nitro/v3/registry"
+	"github.com/asim/nitro/v3/app/logger"
+	"github.com/asim/nitro/v3/app/registry"
 	util "github.com/asim/nitro/v3/util/registry"
 )
 

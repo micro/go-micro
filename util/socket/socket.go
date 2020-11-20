@@ -4,7 +4,7 @@ package socket
 import (
 	"io"
 
-	"github.com/asim/nitro/v3/transport"
+	"github.com/asim/nitro/v3/app/transport"
 )
 
 // Socket is our pseudo socket for transport.Socket

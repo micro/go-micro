@@ -5,13 +5,13 @@ import (
 	"context"
 
 	"github.com/asim/nitro/v3/app"
-	mbroker "github.com/asim/nitro/v3/broker/memory"
-	"github.com/asim/nitro/v3/client"
-	rpcClient "github.com/asim/nitro/v3/client/rpc"
-	"github.com/asim/nitro/v3/registry/memory"
-	"github.com/asim/nitro/v3/server"
-	rpcServer "github.com/asim/nitro/v3/server/rpc"
-	tmem "github.com/asim/nitro/v3/transport/memory"
+	mbroker "github.com/asim/nitro/v3/app/broker/memory"
+	"github.com/asim/nitro/v3/app/client"
+	rpcClient "github.com/asim/nitro/v3/app/client/rpc"
+	"github.com/asim/nitro/v3/app/registry/memory"
+	"github.com/asim/nitro/v3/app/server"
+	rpcServer "github.com/asim/nitro/v3/app/server/rpc"
+	tmem "github.com/asim/nitro/v3/app/transport/memory"
 )
 
 type rpcApp struct {

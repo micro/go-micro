@@ -134,7 +134,7 @@ Use network sockets to communicate across multiple processes
 import (
 	"github.com/asim/nitro/v3/app"
 	"github.com/asim/nitro/v3/app/rpc"
-	"github.com/asim/nitro/v3/transport/socket"
+	"github.com/asim/nitro/v3/app/transport/socket"
 )
 
 rpc.NewApp(
@@ -166,10 +166,10 @@ Set the router to static so you can specify the address in calls
 import (
 	"github.com/asim/nitro/v3/app"
 	"github.com/asim/nitro/v3/app/rpc"
-	"github.com/asim/nitro/v3/client"
-	"github.com/asim/nitro/v3/transport/socket"
-	rpcc "github.com/asim/nitro/v3/client/rpc"
-	"github.com/asim/nitro/v3/router/static"
+	"github.com/asim/nitro/v3/app/client"
+	"github.com/asim/nitro/v3/app/transport/socket"
+	rpcc "github.com/asim/nitro/v3/app/client/rpc"
+	"github.com/asim/nitro/v3/app/router/static"
 )
 
 // set a static router that uses whatever you pass in
