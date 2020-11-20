@@ -72,7 +72,7 @@ package main
 import (
         "context"
 
-        "github.com/asim/nitro/v3/app/rpc"
+        "github.com/asim/nitro/v3/app"
 )
 
 // Define a request type
@@ -96,7 +96,7 @@ func (h *Handler) Call(ctx context.Context, req *Request, rsp *Response) error {
 
 func main() {
         // Create a new App
-        app := rpc.NewApp()
+        app := app.New()
 
         // Set the App name
         app.Name("helloworld")
@@ -133,11 +133,10 @@ Use network sockets to communicate across multiple processes
 ```go
 import (
 	"github.com/asim/nitro/v3/app"
-	"github.com/asim/nitro/v3/app/rpc"
 	"github.com/asim/nitro/v3/app/transport/socket"
 )
 
-rpc.NewApp(
+app.New(
 	app.Transport(socket.NewTransport()),
 )
 ```
@@ -145,7 +144,7 @@ rpc.NewApp(
 To set the address (defaults to tcp address :0 otherwise)
 
 ```go
-rpc.NewApp(
+app.New(
 	app.Address("localhost:1234"),
 )
 ```
@@ -153,7 +152,7 @@ rpc.NewApp(
 To make use of unix sockets
 
 ```go
-rpc.NewApp(
+app.New(
 	app.Address("unix:///tmp/helloworld.sock"),
 )
 ```
@@ -165,7 +164,6 @@ Set the router to static so you can specify the address in calls
 ```go
 import (
 	"github.com/asim/nitro/v3/app"
-	"github.com/asim/nitro/v3/app/rpc"
 	"github.com/asim/nitro/v3/app/client"
 	"github.com/asim/nitro/v3/app/transport/socket"
 	rpcc "github.com/asim/nitro/v3/app/client/rpc"
@@ -176,7 +174,7 @@ import (
 c := rpcc.NewClient(client.Lookup(static.NewRouter()))
 s := socket.NewTransport()
 
-app := rpc.NewApp(
+app := app.New(
 	app.Client(c),
 	app.Transport(s),
 )
@@ -195,11 +193,10 @@ Make use of mdns for zero conf service discovery across processes on a single ho
 ```go
 import (
 	"github.com/asim/nitro/v3/app"
-	"github.com/asim/nitro/v3/app/rpc"
 	"github.com/asim/nitro-plugins/registry/mdns/v3"
 )
 
-hw := rpc.NewApp(
+hw := app.New(
 	app.Registry(mdns.NewRegistry()),
 )
 hw.Name("helloworld")
@@ -222,7 +219,7 @@ import (
         "context"
 	"fmt"
 
-        "github.com/asim/nitro/v3/app/rpc"
+        "github.com/asim/nitro/v3/app"
 )
 
 // Define a request type
@@ -242,7 +239,7 @@ func (e *Events) Handler(ctx context.Context, ev *Event) error {
 
 func main() {
         // Create a new App
-        app := rpc.NewApp()
+        app := app.New()
 
         // Set the App name
         app.Name("helloworld")

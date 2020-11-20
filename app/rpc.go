@@ -1,10 +1,8 @@
-// Package rpc provides an app implementation for Nitro
-package rpc
+package app
 
 import (
 	"context"
 
-	"github.com/asim/nitro/v3/app"
 	mbroker "github.com/asim/nitro/v3/app/broker/memory"
 	"github.com/asim/nitro/v3/app/client"
 	rpcClient "github.com/asim/nitro/v3/app/client/rpc"
@@ -15,7 +13,7 @@ import (
 )
 
 type rpcApp struct {
-	opts app.Options
+	opts Options
 }
 
 func (s *rpcApp) Name(name string) {
@@ -27,14 +25,14 @@ func (s *rpcApp) Name(name string) {
 // Init initialises options. Additionally it calls cmd.Init
 // which parses command line flags. cmd.Init is only called
 // on first Init.
-func (s *rpcApp) Init(opts ...app.Option) {
+func (s *rpcApp) Init(opts ...Option) {
 	// process options
 	for _, o := range opts {
 		o(&s.opts)
 	}
 }
 
-func (s *rpcApp) Options() app.Options {
+func (s *rpcApp) Options() Options {
 	return s.opts
 }
 
@@ -123,8 +121,8 @@ func (s *rpcApp) Run() error {
 	return s.Stop()
 }
 
-// NewApp returns a new Nitro app
-func NewApp(opts ...app.Option) *rpcApp {
+// New returns a new Nitro app
+func New(opts ...Option) *rpcApp {
 	b := mbroker.NewBroker()
 	c := rpcClient.NewClient()
 	s := rpcServer.NewServer()
@@ -146,7 +144,7 @@ func NewApp(opts ...app.Option) *rpcApp {
 	)
 
 	// define local opts
-	options := app.Options{
+	options := Options{
 		Broker:   b,
 		Client:   c,
 		Server:   s,
