@@ -63,6 +63,6 @@ require (
 	golang.org/x/time v0.0.0-20191024005414-555d28b269f0 // indirect
 	google.golang.org/genproto v0.0.0-20191216164720-4f79533eabd1
 	google.golang.org/grpc v1.26.0
-	google.golang.org/protobuf v1.22.0
+	google.golang.org/protobuf v1.22.0 // indirect
 	sigs.k8s.io/yaml v1.1.0 // indirect
 )
