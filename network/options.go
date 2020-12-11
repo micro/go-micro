@@ -7,7 +7,7 @@ import (
 	"github.com/micro/go-micro/v2/proxy"
 	"github.com/micro/go-micro/v2/proxy/mucp"
 	"github.com/micro/go-micro/v2/router"
-	"github.com/micro/go-micro/v2/tunnel"
+	"github.com/micro/go-micro/v2/network/tunnel"
 )
 
 type Option func(*Options)

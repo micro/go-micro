@@ -24,9 +24,9 @@ import (
 	"github.com/micro/go-micro/v2/server"
 	smucp "github.com/micro/go-micro/v2/server/mucp"
 	"github.com/micro/go-micro/v2/transport"
-	"github.com/micro/go-micro/v2/tunnel"
-	bun "github.com/micro/go-micro/v2/tunnel/broker"
-	tun "github.com/micro/go-micro/v2/tunnel/transport"
+	"github.com/micro/go-micro/v2/network/tunnel"
+	bun "github.com/micro/go-micro/v2/network/tunnel/broker"
+	tun "github.com/micro/go-micro/v2/network/tunnel/transport"
 	"github.com/micro/go-micro/v2/util/backoff"
 	pbUtil "github.com/micro/go-micro/v2/util/proto"
 )

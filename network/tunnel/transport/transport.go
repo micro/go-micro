@@ -5,7 +5,7 @@ import (
 	"context"
 
 	"github.com/micro/go-micro/v2/transport"
-	"github.com/micro/go-micro/v2/tunnel"
+	"github.com/micro/go-micro/v2/network/tunnel"
 )
 
 type tunTransport struct {
