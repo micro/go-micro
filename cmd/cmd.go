@@ -14,15 +14,12 @@ import (
 	"github.com/micro/go-micro/v2/client/grpc"
 	"github.com/micro/go-micro/v2/client/selector"
 	"github.com/micro/go-micro/v2/config"
-	configSrc "github.com/micro/go-micro/v2/config/source"
-	configSrv "github.com/micro/go-micro/v2/config/source/service"
 	"github.com/micro/go-micro/v2/debug/profile"
 	"github.com/micro/go-micro/v2/debug/profile/http"
 	"github.com/micro/go-micro/v2/debug/profile/pprof"
 	"github.com/micro/go-micro/v2/debug/trace"
 	"github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/registry"
-	registrySrv "github.com/micro/go-micro/v2/registry/service"
 	"github.com/micro/go-micro/v2/runtime"
 	"github.com/micro/go-micro/v2/server"
 	"github.com/micro/go-micro/v2/store"
@@ -44,18 +41,15 @@ import (
 	brokerHttp "github.com/micro/go-micro/v2/broker/http"
 	"github.com/micro/go-micro/v2/broker/memory"
 	"github.com/micro/go-micro/v2/broker/nats"
-	brokerSrv "github.com/micro/go-micro/v2/broker/service"
 
 	// registries
 	"github.com/micro/go-micro/v2/registry/etcd"
 	"github.com/micro/go-micro/v2/registry/mdns"
 	rmem "github.com/micro/go-micro/v2/registry/memory"
-	regSrv "github.com/micro/go-micro/v2/registry/service"
 
 	// runtimes
 	kRuntime "github.com/micro/go-micro/v2/runtime/kubernetes"
 	lRuntime "github.com/micro/go-micro/v2/runtime/local"
-	srvRuntime "github.com/micro/go-micro/v2/runtime/service"
 
 	// selectors
 	"github.com/micro/go-micro/v2/client/selector/dns"
@@ -68,7 +62,6 @@ import (
 
 	// stores
 	memStore "github.com/micro/go-micro/v2/store/memory"
-	svcStore "github.com/micro/go-micro/v2/store/service"
 
 	// tracers
 	// jTracer "github.com/micro/go-micro/v2/debug/trace/jaeger"
@@ -76,7 +69,6 @@ import (
 
 	// auth
 	jwtAuth "github.com/micro/go-micro/v2/auth/jwt"
-	svcAuth "github.com/micro/go-micro/v2/auth/service"
 
 	// auth providers
 	"github.com/micro/go-micro/v2/auth/provider/basic"
@@ -329,7 +321,6 @@ var (
 	}
 
 	DefaultBrokers = map[string]func(...broker.Option) broker.Broker{
-		"service": brokerSrv.NewBroker,
 		"memory":  memory.NewBroker,
 		"nats":    nats.NewBroker,
 		"http":    brokerHttp.NewBroker,
@@ -341,7 +332,6 @@ var (
 	}
 
 	DefaultRegistries = map[string]func(...registry.Option) registry.Registry{
-		"service": regSrv.NewRegistry,
 		"etcd":    etcd.NewRegistry,
 		"mdns":    mdns.NewRegistry,
 		"memory":  rmem.NewRegistry,
@@ -365,13 +355,11 @@ var (
 
 	DefaultRuntimes = map[string]func(...runtime.Option) runtime.Runtime{
 		"local":      lRuntime.NewRuntime,
-		"service":    srvRuntime.NewRuntime,
 		"kubernetes": kRuntime.NewRuntime,
 	}
 
 	DefaultStores = map[string]func(...store.Option) store.Store{
 		"memory":  memStore.NewStore,
-		"service": svcStore.NewStore,
 	}
 
 	DefaultTracers = map[string]func(...trace.Option) trace.Tracer{
@@ -380,7 +368,6 @@ var (
 	}
 
 	DefaultAuths = map[string]func(...auth.Option) auth.Auth{
-		"service": svcAuth.NewAuth,
 		"jwt":     jwtAuth.NewAuth,
 	}
 
@@ -394,9 +381,7 @@ var (
 		"pprof": pprof.NewProfile,
 	}
 
-	DefaultConfigs = map[string]func(...config.Option) (config.Config, error){
-		"service": config.NewConfig,
-	}
+	DefaultConfigs = map[string]func(...config.Option) (config.Config, error){}
 )
 
 func init() {
@@ -587,7 +572,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 			return fmt.Errorf("Registry %s not found", name)
 		}
 
-		*c.opts.Registry = r(registrySrv.WithClient(microClient))
+		*c.opts.Registry = r()
 		serverOpts = append(serverOpts, server.Registry(*c.opts.Registry))
 		clientOpts = append(clientOpts, client.Registry(*c.opts.Registry))
 
@@ -738,13 +723,6 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	if len(ctx.String("runtime_source")) > 0 {
 		if err := (*c.opts.Runtime).Init(runtime.WithSource(ctx.String("runtime_source"))); err != nil {
 			logger.Fatalf("Error configuring runtime: %v", err)
-		}
-	}
-
-	if ctx.String("config") == "service" {
-		opt := config.WithSource(configSrv.NewSource(configSrc.WithClient(microClient)))
-		if err := (*c.opts.Config).Init(opt); err != nil {
-			logger.Fatalf("Error configuring config: %v", err)
 		}
 	}
 
