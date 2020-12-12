@@ -16,12 +16,19 @@ func NewAuth(opts ...auth.Option) auth.Auth {
 	return j
 }
 
+func NewRules() auth.Rules {
+	return new(jwtRules)
+}
+
 type jwt struct {
+	sync.Mutex
 	options auth.Options
 	jwt     token.Provider
-	rules   []*auth.Rule
+}
 
+type jwtRules struct {
 	sync.Mutex
+	rules []*auth.Rule
 }
 
 func (j *jwt) String() string {
@@ -70,14 +77,14 @@ func (j *jwt) Generate(id string, opts ...auth.GenerateOption) (*auth.Account, e
 	return account, nil
 }
 
-func (j *jwt) Grant(rule *auth.Rule) error {
+func (j *jwtRules) Grant(rule *auth.Rule) error {
 	j.Lock()
 	defer j.Unlock()
 	j.rules = append(j.rules, rule)
 	return nil
 }
 
-func (j *jwt) Revoke(rule *auth.Rule) error {
+func (j *jwtRules) Revoke(rule *auth.Rule) error {
 	j.Lock()
 	defer j.Unlock()
 
@@ -92,7 +99,7 @@ func (j *jwt) Revoke(rule *auth.Rule) error {
 	return nil
 }
 
-func (j *jwt) Verify(acc *auth.Account, res *auth.Resource, opts ...auth.VerifyOption) error {
+func (j *jwtRules) Verify(acc *auth.Account, res *auth.Resource, opts ...auth.VerifyOption) error {
 	j.Lock()
 	defer j.Unlock()
 
@@ -104,7 +111,7 @@ func (j *jwt) Verify(acc *auth.Account, res *auth.Resource, opts ...auth.VerifyO
 	return auth.Verify(j.rules, acc, res)
 }
 
-func (j *jwt) Rules(opts ...auth.RulesOption) ([]*auth.Rule, error) {
+func (j *jwtRules) List(opts ...auth.ListOption) ([]*auth.Rule, error) {
 	j.Lock()
 	defer j.Unlock()
 	return j.rules, nil

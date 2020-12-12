@@ -20,9 +20,15 @@ func NewAuth(opts ...Option) Auth {
 	}
 }
 
+func NewRules() Rules {
+	return new(noopRules)
+}
+
 type noop struct {
 	opts Options
 }
+
+type noopRules struct{}
 
 // String returns the name of the implementation
 func (n *noop) String() string {
@@ -55,23 +61,23 @@ func (n *noop) Generate(id string, opts ...GenerateOption) (*Account, error) {
 }
 
 // Grant access to a resource
-func (n *noop) Grant(rule *Rule) error {
+func (n *noopRules) Grant(rule *Rule) error {
 	return nil
 }
 
 // Revoke access to a resource
-func (n *noop) Revoke(rule *Rule) error {
+func (n *noopRules) Revoke(rule *Rule) error {
 	return nil
 }
 
 // Rules used to verify requests
-func (n *noop) Rules(opts ...RulesOption) ([]*Rule, error) {
-	return []*Rule{}, nil
+// Verify an account has access to a resource
+func (n *noopRules) Verify(acc *Account, res *Resource, opts ...VerifyOption) error {
+	return nil
 }
 
-// Verify an account has access to a resource
-func (n *noop) Verify(acc *Account, res *Resource, opts ...VerifyOption) error {
-	return nil
+func (n *noopRules) List(opts ...ListOption) ([]*Rule, error) {
+	return []*Rule{}, nil
 }
 
 // Inspect a token

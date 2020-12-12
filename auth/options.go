@@ -219,14 +219,14 @@ func VerifyContext(ctx context.Context) VerifyOption {
 	}
 }
 
-type RulesOptions struct {
+type ListOptions struct {
 	Context context.Context
 }
 
-type RulesOption func(o *RulesOptions)
+type ListOption func(o *ListOptions)
 
-func RulesContext(ctx context.Context) RulesOption {
-	return func(o *RulesOptions) {
+func RulesContext(ctx context.Context) ListOption {
+	return func(o *ListOptions) {
 		o.Context = ctx
 	}
 }
