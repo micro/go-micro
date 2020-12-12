@@ -1,4 +1,4 @@
-// Package network is for creating internetworks
+// Package network is for creating p2p networks
 package network
 
 import (
