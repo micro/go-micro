@@ -21,7 +21,7 @@ import (
 	"github.com/micro/go-micro/v2/network/tunnel"
 	bun "github.com/micro/go-micro/v2/network/tunnel/broker"
 	tun "github.com/micro/go-micro/v2/network/tunnel/transport"
-	"github.com/micro/go-micro/v2/proxy"
+	"github.com/micro/go-micro/v2/network/proxy"
 	"github.com/micro/go-micro/v2/router"
 	"github.com/micro/go-micro/v2/server"
 	smucp "github.com/micro/go-micro/v2/server/mucp"

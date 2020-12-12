@@ -553,18 +553,6 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		authOpts = append(authOpts, auth.Provider(p(provOpts...)))
 	}
 
-	// Set the auth
-	if name := ctx.String("auth"); len(name) > 0 {
-		a, ok := c.opts.Auths[name]
-		if !ok {
-			return fmt.Errorf("Unsupported auth: %s", name)
-		}
-		*c.opts.Auth = a(authOpts...)
-		serverOpts = append(serverOpts, server.Auth(*c.opts.Auth))
-	} else {
-		(*c.opts.Auth).Init(authOpts...)
-	}
-
 	// Set the registry
 	if name := ctx.String("registry"); len(name) > 0 && (*c.opts.Registry).String() != name {
 		r, ok := c.opts.Registries[name]

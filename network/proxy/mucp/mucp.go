@@ -17,7 +17,7 @@ import (
 	"github.com/micro/go-micro/v2/errors"
 	"github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/metadata"
-	"github.com/micro/go-micro/v2/proxy"
+	"github.com/micro/go-micro/v2/network/proxy"
 	"github.com/micro/go-micro/v2/router"
 	"github.com/micro/go-micro/v2/server"
 )
