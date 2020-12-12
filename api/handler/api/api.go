@@ -8,8 +8,8 @@ import (
 	"github.com/micro/go-micro/v2/api/handler"
 	api "github.com/micro/go-micro/v2/api/proto"
 	"github.com/micro/go-micro/v2/client"
-	"github.com/micro/go-micro/v2/client/selector"
 	"github.com/micro/go-micro/v2/errors"
+	"github.com/micro/go-micro/v2/selector"
 	"github.com/micro/go-micro/v2/util/ctx"
 )
 

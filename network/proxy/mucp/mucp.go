@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/micro/go-micro/v2/client"
-	"github.com/micro/go-micro/v2/client/selector"
 	"github.com/micro/go-micro/v2/codec"
 	"github.com/micro/go-micro/v2/codec/bytes"
 	"github.com/micro/go-micro/v2/errors"
@@ -19,6 +18,7 @@ import (
 	"github.com/micro/go-micro/v2/metadata"
 	"github.com/micro/go-micro/v2/network/proxy"
 	"github.com/micro/go-micro/v2/network/router"
+	"github.com/micro/go-micro/v2/selector"
 	"github.com/micro/go-micro/v2/server"
 )
 

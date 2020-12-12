@@ -13,11 +13,11 @@ import (
 
 	"github.com/micro/go-micro/v2/broker"
 	"github.com/micro/go-micro/v2/client"
-	"github.com/micro/go-micro/v2/client/selector"
 	raw "github.com/micro/go-micro/v2/codec/bytes"
 	"github.com/micro/go-micro/v2/errors"
 	"github.com/micro/go-micro/v2/metadata"
 	"github.com/micro/go-micro/v2/registry"
+	"github.com/micro/go-micro/v2/selector"
 	pnet "github.com/micro/go-micro/v2/util/net"
 
 	"google.golang.org/grpc"

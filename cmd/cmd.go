@@ -10,8 +10,6 @@ import (
 	"github.com/micro/go-micro/v2/auth"
 	"github.com/micro/go-micro/v2/broker"
 	"github.com/micro/go-micro/v2/client"
-	"github.com/micro/go-micro/v2/client/grpc"
-	"github.com/micro/go-micro/v2/client/selector"
 	"github.com/micro/go-micro/v2/config"
 	"github.com/micro/go-micro/v2/debug/profile"
 	"github.com/micro/go-micro/v2/debug/profile/http"
@@ -20,11 +18,11 @@ import (
 	"github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/registry"
 	"github.com/micro/go-micro/v2/runtime"
+	"github.com/micro/go-micro/v2/selector"
 	"github.com/micro/go-micro/v2/server"
 	"github.com/micro/go-micro/v2/store"
 	"github.com/micro/go-micro/v2/transport"
 	authutil "github.com/micro/go-micro/v2/util/auth"
-	"github.com/micro/go-micro/v2/util/wrapper"
 
 	// clients
 	cgrpc "github.com/micro/go-micro/v2/client/grpc"
@@ -51,9 +49,9 @@ import (
 	lRuntime "github.com/micro/go-micro/v2/runtime/local"
 
 	// selectors
-	"github.com/micro/go-micro/v2/client/selector/dns"
-	"github.com/micro/go-micro/v2/client/selector/router"
-	"github.com/micro/go-micro/v2/client/selector/static"
+	"github.com/micro/go-micro/v2/selector/dns"
+	"github.com/micro/go-micro/v2/selector/router"
+	"github.com/micro/go-micro/v2/selector/static"
 
 	// transports
 	thttp "github.com/micro/go-micro/v2/transport/http"
@@ -417,44 +415,6 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	var serverOpts []server.Option
 	var clientOpts []client.Option
 
-	// setup a client to use when calling the runtime. It is important the auth client is wrapped
-	// after the cache client since the wrappers are applied in reverse order and the cache will use
-	// some of the headers set by the auth client.
-	authFn := func() auth.Auth { return *c.opts.Auth }
-	cacheFn := func() *client.Cache { return (*c.opts.Client).Options().Cache }
-	microClient := wrapper.CacheClient(cacheFn, grpc.NewClient())
-	microClient = wrapper.AuthClient(authFn, microClient)
-
-	// Set the store
-	if name := ctx.String("store"); len(name) > 0 {
-		s, ok := c.opts.Stores[name]
-		if !ok {
-			return fmt.Errorf("Unsupported store: %s", name)
-		}
-
-		*c.opts.Store = s(store.WithClient(microClient))
-	}
-
-	// Set the runtime
-	if name := ctx.String("runtime"); len(name) > 0 {
-		r, ok := c.opts.Runtimes[name]
-		if !ok {
-			return fmt.Errorf("Unsupported runtime: %s", name)
-		}
-
-		*c.opts.Runtime = r(runtime.WithClient(microClient))
-	}
-
-	// Set the tracer
-	if name := ctx.String("tracer"); len(name) > 0 {
-		r, ok := c.opts.Tracers[name]
-		if !ok {
-			return fmt.Errorf("Unsupported tracer: %s", name)
-		}
-
-		*c.opts.Tracer = r()
-	}
-
 	// Set the client
 	if name := ctx.String("client"); len(name) > 0 {
 		// only change if we have the client and type differs
@@ -471,8 +431,38 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		}
 	}
 
+	// Set the store
+	if name := ctx.String("store"); len(name) > 0 {
+		s, ok := c.opts.Stores[name]
+		if !ok {
+			return fmt.Errorf("Unsupported store: %s", name)
+		}
+
+		*c.opts.Store = s(store.WithClient(*c.opts.Client))
+	}
+
+	// Set the runtime
+	if name := ctx.String("runtime"); len(name) > 0 {
+		r, ok := c.opts.Runtimes[name]
+		if !ok {
+			return fmt.Errorf("Unsupported runtime: %s", name)
+		}
+
+		*c.opts.Runtime = r(runtime.WithClient(*c.opts.Client))
+	}
+
+	// Set the tracer
+	if name := ctx.String("tracer"); len(name) > 0 {
+		r, ok := c.opts.Tracers[name]
+		if !ok {
+			return fmt.Errorf("Unsupported tracer: %s", name)
+		}
+
+		*c.opts.Tracer = r()
+	}
+
 	// Setup auth
-	authOpts := []auth.Option{auth.WithClient(microClient)}
+	authOpts := []auth.Option{auth.WithClient(*c.opts.Client)}
 
 	if len(ctx.String("auth_id")) > 0 || len(ctx.String("auth_secret")) > 0 {
 		authOpts = append(authOpts, auth.Credentials(
