@@ -9,8 +9,8 @@ import (
 	"github.com/micro/go-micro/v2/broker"
 	"github.com/micro/go-micro/v2/client"
 	"github.com/micro/go-micro/v2/client/selector"
-	"github.com/micro/go-micro/v2/config"
 	"github.com/micro/go-micro/v2/cmd"
+	"github.com/micro/go-micro/v2/config"
 	"github.com/micro/go-micro/v2/debug/profile"
 	"github.com/micro/go-micro/v2/debug/trace"
 	"github.com/micro/go-micro/v2/registry"
@@ -155,7 +155,6 @@ func Tracer(t trace.Tracer) Option {
 func Auth(a auth.Auth) Option {
 	return func(o *Options) {
 		o.Auth = a
-		o.Server.Init(server.Auth(a))
 	}
 }
 

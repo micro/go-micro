@@ -321,9 +321,9 @@ var (
 	}
 
 	DefaultBrokers = map[string]func(...broker.Option) broker.Broker{
-		"memory":  memory.NewBroker,
-		"nats":    nats.NewBroker,
-		"http":    brokerHttp.NewBroker,
+		"memory": memory.NewBroker,
+		"nats":   nats.NewBroker,
+		"http":   brokerHttp.NewBroker,
 	}
 
 	DefaultClients = map[string]func(...client.Option) client.Client{
@@ -332,9 +332,9 @@ var (
 	}
 
 	DefaultRegistries = map[string]func(...registry.Option) registry.Registry{
-		"etcd":    etcd.NewRegistry,
-		"mdns":    mdns.NewRegistry,
-		"memory":  rmem.NewRegistry,
+		"etcd":   etcd.NewRegistry,
+		"mdns":   mdns.NewRegistry,
+		"memory": rmem.NewRegistry,
 	}
 
 	DefaultSelectors = map[string]func(...selector.Option) selector.Selector{
@@ -359,7 +359,7 @@ var (
 	}
 
 	DefaultStores = map[string]func(...store.Option) store.Store{
-		"memory":  memStore.NewStore,
+		"memory": memStore.NewStore,
 	}
 
 	DefaultTracers = map[string]func(...trace.Option) trace.Tracer{
@@ -368,7 +368,7 @@ var (
 	}
 
 	DefaultAuths = map[string]func(...auth.Option) auth.Auth{
-		"jwt":     jwtAuth.NewAuth,
+		"jwt": jwtAuth.NewAuth,
 	}
 
 	DefaultAuthProviders = map[string]func(...provider.Option) provider.Provider{

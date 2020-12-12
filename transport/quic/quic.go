@@ -119,7 +119,7 @@ func (q *quicTransport) Dial(addr string, opts ...transport.DialOption) (transpo
 	}
 	s, err := quic.DialAddr(addr, config, &quic.Config{
 		MaxIdleTimeout: time.Minute * 2,
-		KeepAlive:   true,
+		KeepAlive:      true,
 	})
 	if err != nil {
 		return nil, err

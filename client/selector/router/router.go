@@ -7,8 +7,8 @@ import (
 	"sync"
 
 	"github.com/micro/go-micro/v2/client/selector"
+	"github.com/micro/go-micro/v2/network/router"
 	"github.com/micro/go-micro/v2/registry"
-	"github.com/micro/go-micro/v2/router"
 )
 
 type routerSelector struct {
