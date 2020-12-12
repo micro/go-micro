@@ -22,7 +22,6 @@ import (
 	"github.com/micro/go-micro/v2/server"
 	"github.com/micro/go-micro/v2/store"
 	"github.com/micro/go-micro/v2/transport"
-	authutil "github.com/micro/go-micro/v2/util/auth"
 
 	// clients
 	cgrpc "github.com/micro/go-micro/v2/client/grpc"
@@ -499,12 +498,6 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		if err := (*c.opts.Broker).Init(broker.Registry(*c.opts.Registry)); err != nil {
 			logger.Fatalf("Error configuring broker: %v", err)
 		}
-	}
-
-	// generate the services auth account
-	serverID := (*c.opts.Server).Options().Id
-	if err := authutil.Generate(serverID, c.App().Name, (*c.opts.Auth)); err != nil {
-		return err
 	}
 
 	// Set the profile
