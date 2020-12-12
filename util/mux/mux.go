@@ -6,7 +6,7 @@ import (
 	"sync"
 
 	"github.com/micro/go-micro/v2/client"
-	"github.com/micro/go-micro/v2/debug/service/handler"
+	"github.com/micro/go-micro/v2/debug/handler"
 	"github.com/micro/go-micro/v2/network/proxy"
 	"github.com/micro/go-micro/v2/server"
 )

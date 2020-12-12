@@ -7,7 +7,7 @@ import (
 
 	"github.com/micro/go-micro/v2/client"
 	"github.com/micro/go-micro/v2/debug/log"
-	proto "github.com/micro/go-micro/v2/debug/service/proto"
+	proto "github.com/micro/go-micro/v2/debug/proto"
 	"github.com/micro/go-micro/v2/debug/stats"
 	"github.com/micro/go-micro/v2/debug/trace"
 	"github.com/micro/go-micro/v2/server"
@@ -19,7 +19,6 @@ func NewHandler(c client.Client) *Debug {
 		log:   log.DefaultLog,
 		stats: stats.DefaultStats,
 		trace: trace.DefaultTracer,
-		cache: c.Options().Cache,
 	}
 }
 
@@ -32,8 +31,6 @@ type Debug struct {
 	stats stats.Stats
 	// the tracer
 	trace trace.Tracer
-	// the cache
-	cache *client.Cache
 }
 
 func (d *Debug) Health(ctx context.Context, req *proto.HealthRequest, rsp *proto.HealthResponse) error {
@@ -166,11 +163,5 @@ func (d *Debug) Log(ctx context.Context, stream server.Stream) error {
 		}
 	}
 
-	return nil
-}
-
-// Cache returns all the key value pairs in the client cache
-func (d *Debug) Cache(ctx context.Context, req *proto.CacheRequest, rsp *proto.CacheResponse) error {
-	rsp.Values = d.cache.List()
 	return nil
 }

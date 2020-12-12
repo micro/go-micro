@@ -9,7 +9,7 @@ import (
 
 	"github.com/micro/go-micro/v2/client"
 	"github.com/micro/go-micro/v2/cmd"
-	"github.com/micro/go-micro/v2/debug/service/handler"
+	"github.com/micro/go-micro/v2/debug/handler"
 	"github.com/micro/go-micro/v2/debug/stats"
 	"github.com/micro/go-micro/v2/debug/trace"
 	"github.com/micro/go-micro/v2/logger"

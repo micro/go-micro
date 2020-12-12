@@ -5,7 +5,7 @@ import (
 	"sync"
 	"testing"
 
-	proto "github.com/micro/go-micro/v2/debug/service/proto"
+	proto "github.com/micro/go-micro/v2/debug/proto"
 	"github.com/micro/go-micro/v2/registry/memory"
 	"github.com/micro/go-micro/v2/util/test"
 )
