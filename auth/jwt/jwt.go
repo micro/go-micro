@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/micro/go-micro/v2/auth"
-	"github.com/micro/go-micro/v2/auth/rules"
 	"github.com/micro/go-micro/v2/auth/token"
 	jwtToken "github.com/micro/go-micro/v2/auth/token/jwt"
 )
@@ -102,7 +101,7 @@ func (j *jwt) Verify(acc *auth.Account, res *auth.Resource, opts ...auth.VerifyO
 		o(&options)
 	}
 
-	return rules.Verify(j.rules, acc, res)
+	return auth.Verify(j.rules, acc, res)
 }
 
 func (j *jwt) Rules(opts ...auth.RulesOption) ([]*auth.Rule, error) {
