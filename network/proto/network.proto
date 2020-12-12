@@ -2,8 +2,6 @@ syntax = "proto3";
 
 package go.micro.network;
 
-import "router/service/proto/router.proto";
-
 // Network service is usesd to gain visibility into networks
 service Network {
         // Connect to the network
@@ -18,6 +16,63 @@ service Network {
         rpc Services(ServicesRequest) returns (ServicesResponse) {};
         // Status returns network status
         rpc Status(StatusRequest) returns (StatusResponse) {};
+}
+
+// Route is a service route
+message Route {
+	// service for the route
+	string service = 1;
+	// the address that advertise this route
+	string address = 2;
+	// gateway as the next hop
+	string gateway = 3;
+	// the network for this destination
+	string network = 4;
+	// router if the router id
+	string router = 5;
+	// the network link
+	string link = 6;
+	// the metric / score of this route
+	int64 metric = 7;
+}
+
+// AdvertType defines the type of advert
+enum AdvertType {
+  AdvertAnnounce = 0;
+  AdvertUpdate = 1;
+}
+
+// Advert is router advertsement streamed by Watch
+message Advert {
+  // id of the advertising router
+  string id = 1;
+  // type of advertisement
+  AdvertType type = 2;
+  // unix timestamp of the advertisement
+  int64 timestamp = 3;
+  // TTL of the Advert
+  int64 ttl = 4;
+  // events is a list of advertised events
+  repeated Event events = 5;
+}
+
+// EventType defines the type of event
+enum EventType {
+  Create = 0;
+  Delete = 1;
+  Update = 2;
+}
+
+// Event is routing table event
+message Event {
+  // the unique event id
+  string id = 1;
+  // type of event
+  EventType type = 2;
+  // unix timestamp of event
+  int64 timestamp = 3;
+  // service route
+  Route route = 4;
 }
 
 // Query is passed in a LookupRequest
@@ -62,7 +117,7 @@ message RoutesRequest {
 }
 
 message RoutesResponse {
-	repeated go.micro.router.Route routes = 1;
+	repeated Route routes = 1;
 }
 
 message ServicesRequest {}
@@ -127,5 +182,5 @@ message Sync {
         // peer origin
         Peer peer = 1;
         // node routes
-        repeated go.micro.router.Route routes = 2;
+        repeated Route routes = 2;
 }

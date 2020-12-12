@@ -1,14 +1,13 @@
-// Package proto contains utility functions for working with protobufs
-package proto
+package network
 
 import (
+	pbNet "github.com/micro/go-micro/v2/network/proto"
 	"github.com/micro/go-micro/v2/router"
-	pbRtr "github.com/micro/go-micro/v2/router/service/proto"
 )
 
-// RouteToProto encodes route into protobuf and returns it
-func RouteToProto(route router.Route) *pbRtr.Route {
-	return &pbRtr.Route{
+// routeToProto encodes route into protobuf and returns it
+func routeToProto(route router.Route) *pbNet.Route {
+	return &pbNet.Route{
 		Service: route.Service,
 		Address: route.Address,
 		Gateway: route.Gateway,
@@ -19,8 +18,8 @@ func RouteToProto(route router.Route) *pbRtr.Route {
 	}
 }
 
-// ProtoToRoute decodes protobuf route into router route and returns it
-func ProtoToRoute(route *pbRtr.Route) router.Route {
+// protoToRoute decodes protobuf route into router route and returns it
+func protoToRoute(route *pbNet.Route) router.Route {
 	return router.Route{
 		Service: route.Service,
 		Address: route.Address,

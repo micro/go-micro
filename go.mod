@@ -19,7 +19,7 @@ require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/ef-ds/deque v1.0.4-0.20190904040645-54cb57c252a1
 	github.com/evanphx/json-patch/v5 v5.0.0
-	github.com/fsnotify/fsnotify v1.4.7
+	github.com/fsnotify/fsnotify v1.4.9
 	github.com/fsouza/go-dockerclient v1.6.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-acme/lego/v3 v3.4.0
@@ -28,7 +28,7 @@ require (
 	github.com/gobwas/pool v0.2.0 // indirect
 	github.com/gobwas/ws v1.0.3
 	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e // indirect
-	github.com/golang/protobuf v1.4.0
+	github.com/golang/protobuf v1.4.2
 	github.com/google/uuid v1.1.1
 	github.com/gorilla/handlers v1.4.2
 	github.com/gorilla/websocket v1.4.1 // indirect
@@ -42,7 +42,7 @@ require (
 	github.com/json-iterator/go v1.1.9 // indirect
 	github.com/kr/pretty v0.1.0
 	github.com/lib/pq v1.3.0
-	github.com/lucas-clemente/quic-go v0.14.1
+	github.com/lucas-clemente/quic-go v0.19.3
 	github.com/micro/cli/v2 v2.1.2
 	github.com/miekg/dns v1.1.27
 	github.com/mitchellh/hashstructure v1.0.0
@@ -57,12 +57,11 @@ require (
 	github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2 // indirect
 	go.etcd.io/bbolt v1.3.4
 	go.uber.org/zap v1.13.0
-	golang.org/x/crypto v0.0.0-20200510223506-06a226fb4e37
-	golang.org/x/net v0.0.0-20200520182314-0ba52f642ac2
+	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
+	golang.org/x/net v0.0.0-20200707034311-ab3426394381
 	golang.org/x/sys v0.0.0-20200523222454-059865788121 // indirect
 	golang.org/x/time v0.0.0-20191024005414-555d28b269f0 // indirect
 	google.golang.org/genproto v0.0.0-20191216164720-4f79533eabd1
 	google.golang.org/grpc v1.26.0
-	google.golang.org/protobuf v1.22.0 // indirect
 	sigs.k8s.io/yaml v1.1.0 // indirect
 )

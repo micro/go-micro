@@ -16,19 +16,17 @@ import (
 	cmucp "github.com/micro/go-micro/v2/client/mucp"
 	rtr "github.com/micro/go-micro/v2/client/selector/router"
 	"github.com/micro/go-micro/v2/logger"
+	pbNet "github.com/micro/go-micro/v2/network/proto"
 	"github.com/micro/go-micro/v2/network/resolver/dns"
-	pbNet "github.com/micro/go-micro/v2/network/service/proto"
-	"github.com/micro/go-micro/v2/proxy"
-	"github.com/micro/go-micro/v2/router"
-	pbRtr "github.com/micro/go-micro/v2/router/service/proto"
-	"github.com/micro/go-micro/v2/server"
-	smucp "github.com/micro/go-micro/v2/server/mucp"
-	"github.com/micro/go-micro/v2/transport"
 	"github.com/micro/go-micro/v2/network/tunnel"
 	bun "github.com/micro/go-micro/v2/network/tunnel/broker"
 	tun "github.com/micro/go-micro/v2/network/tunnel/transport"
+	"github.com/micro/go-micro/v2/proxy"
+	"github.com/micro/go-micro/v2/router"
+	"github.com/micro/go-micro/v2/server"
+	smucp "github.com/micro/go-micro/v2/server/mucp"
+	"github.com/micro/go-micro/v2/transport"
 	"github.com/micro/go-micro/v2/util/backoff"
-	pbUtil "github.com/micro/go-micro/v2/util/proto"
 )
 
 var (
@@ -274,7 +272,7 @@ func (n *network) acceptCtrlConn(l tunnel.Listener, recv chan *message) {
 }
 
 // maskRoute will mask the route so that we apply the right values
-func (n *network) maskRoute(r *pbRtr.Route) {
+func (n *network) maskRoute(r *pbNet.Route) {
 	hasher := fnv.New64()
 	// the routes service address
 	address := r.Address
@@ -309,11 +307,11 @@ func (n *network) advertise(advertChan <-chan *router.Advert) {
 		// process local adverts and randomly fire them at other nodes
 		case advert := <-advertChan:
 			// create a proto advert
-			var events []*pbRtr.Event
+			var events []*pbNet.Event
 
 			for _, event := range advert.Events {
 				// make a copy of the route
-				route := &pbRtr.Route{
+				route := &pbNet.Route{
 					Service: event.Route.Service,
 					Address: event.Route.Address,
 					Gateway: event.Route.Gateway,
@@ -326,8 +324,8 @@ func (n *network) advertise(advertChan <-chan *router.Advert) {
 				// override the various values
 				n.maskRoute(route)
 
-				e := &pbRtr.Event{
-					Type:      pbRtr.EventType(event.Type),
+				e := &pbNet.Event{
+					Type:      pbNet.EventType(event.Type),
 					Timestamp: event.Timestamp.UnixNano(),
 					Route:     route,
 				}
@@ -335,9 +333,9 @@ func (n *network) advertise(advertChan <-chan *router.Advert) {
 				events = append(events, e)
 			}
 
-			msg := &pbRtr.Advert{
+			msg := &pbNet.Advert{
 				Id:        advert.Id,
-				Type:      pbRtr.AdvertType(advert.Type),
+				Type:      pbNet.AdvertType(advert.Type),
 				Timestamp: advert.Timestamp.UnixNano(),
 				Events:    events,
 			}
@@ -648,9 +646,9 @@ func (n *network) processCtrlChan(listener tunnel.Listener) {
 			// switch on type of message and take action
 			switch m.msg.Header["Micro-Method"] {
 			case "advert":
-				pbRtrAdvert := &pbRtr.Advert{}
+				pbNetAdvert := &pbNet.Advert{}
 
-				if err := proto.Unmarshal(m.msg.Body, pbRtrAdvert); err != nil {
+				if err := proto.Unmarshal(m.msg.Body, pbNetAdvert); err != nil {
 					if logger.V(logger.DebugLevel, logger.DefaultLogger) {
 						logger.Debugf("Network fail to unmarshal advert message: %v", err)
 					}
@@ -658,38 +656,38 @@ func (n *network) processCtrlChan(listener tunnel.Listener) {
 				}
 
 				// don't process your own messages
-				if pbRtrAdvert.Id == n.options.Id {
+				if pbNetAdvert.Id == n.options.Id {
 					continue
 				}
 				if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-					logger.Debugf("Network received advert message from: %s", pbRtrAdvert.Id)
+					logger.Debugf("Network received advert message from: %s", pbNetAdvert.Id)
 				}
 
 				// loookup advertising node in our peer topology
-				advertNode := n.node.GetPeerNode(pbRtrAdvert.Id)
+				advertNode := n.node.GetPeerNode(pbNetAdvert.Id)
 				if advertNode == nil {
 					// if we can't find the node in our topology (MaxDepth) we skipp prcessing adverts
 					if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-						logger.Debugf("Network skipping advert message from unknown peer: %s", pbRtrAdvert.Id)
+						logger.Debugf("Network skipping advert message from unknown peer: %s", pbNetAdvert.Id)
 					}
 					continue
 				}
 
 				var events []*router.Event
 
-				for _, event := range pbRtrAdvert.Events {
+				for _, event := range pbNetAdvert.Events {
 					// for backwards compatibility reasons
 					if event == nil || event.Route == nil {
 						continue
 					}
 
 					// we know the advertising node is not the origin of the route
-					if pbRtrAdvert.Id != event.Route.Router {
+					if pbNetAdvert.Id != event.Route.Router {
 						// if the origin router is not the advertising node peer
 						// we can't rule out potential routing loops so we bail here
 						if peer := advertNode.GetPeerNode(event.Route.Router); peer == nil {
 							if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-								logger.Debugf("Network skipping advert message from peer: %s", pbRtrAdvert.Id)
+								logger.Debugf("Network skipping advert message from peer: %s", pbNetAdvert.Id)
 							}
 							continue
 						}
@@ -724,7 +722,7 @@ func (n *network) processCtrlChan(listener tunnel.Listener) {
 					// create router event
 					e := &router.Event{
 						Type:      router.EventType(event.Type),
-						Timestamp: time.Unix(0, pbRtrAdvert.Timestamp),
+						Timestamp: time.Unix(0, pbNetAdvert.Timestamp),
 						Route:     route,
 					}
 					events = append(events, e)
@@ -740,10 +738,10 @@ func (n *network) processCtrlChan(listener tunnel.Listener) {
 
 				// create an advert and process it
 				advert := &router.Advert{
-					Id:        pbRtrAdvert.Id,
-					Type:      router.AdvertType(pbRtrAdvert.Type),
-					Timestamp: time.Unix(0, pbRtrAdvert.Timestamp),
-					TTL:       time.Duration(pbRtrAdvert.Ttl),
+					Id:        pbNetAdvert.Id,
+					Type:      router.AdvertType(pbNetAdvert.Type),
+					Timestamp: time.Unix(0, pbNetAdvert.Timestamp),
+					TTL:       time.Duration(pbNetAdvert.Ttl),
 					Events:    events,
 				}
 
@@ -990,7 +988,7 @@ func (n *network) processNetChan(listener tunnel.Listener) {
 				// add all the routes we have received in the sync message
 				for _, pbRoute := range pbNetSync.Routes {
 					// unmarshal the routes received from remote peer
-					route := pbUtil.ProtoToRoute(pbRoute)
+					route := protoToRoute(pbRoute)
 					// continue if we are the originator of the route
 					if route.Router == n.router.Options().Id {
 						if logger.V(logger.DebugLevel, logger.DefaultLogger) {
@@ -1395,7 +1393,7 @@ func (n *network) manage() {
 // getAdvertProtoRoutes returns a list of routes to advertise to remote peer
 // based on the advertisement strategy encoded in protobuf
 // It returns error if the routes failed to be retrieved from the routing table
-func (n *network) getProtoRoutes() ([]*pbRtr.Route, error) {
+func (n *network) getProtoRoutes() ([]*pbNet.Route, error) {
 	// get a list of the best routes for each service in our routing table
 	q := []router.QueryOption{
 		router.QueryStrategy(n.router.Options().Advertise),
@@ -1407,10 +1405,10 @@ func (n *network) getProtoRoutes() ([]*pbRtr.Route, error) {
 	}
 
 	// encode the routes to protobuf
-	pbRoutes := make([]*pbRtr.Route, 0, len(routes))
+	pbRoutes := make([]*pbNet.Route, 0, len(routes))
 	for _, route := range routes {
 		// generate new route proto
-		pbRoute := pbUtil.RouteToProto(route)
+		pbRoute := routeToProto(route)
 		// mask the route before outbounding
 		n.maskRoute(pbRoute)
 		// add to list of routes
