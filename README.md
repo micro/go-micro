@@ -72,3 +72,7 @@ See the [docs](https://github.com/micro/micro/tree/master/docs/v2) for detailed 
 
 Go Micro is Apache 2.0 licensed.
 
+## Upgrade
+
+[Micro](https://github.com/micro/micro) v3 consolidates Go Micro into it as a single unified platform. 
+Please see the [upgrade guide](https://micro.mu/v2-to-v3-upgrade-guide).
