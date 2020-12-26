@@ -1,6 +1,6 @@
 # protoc-gen-micro
 
-This is protobuf code generation for micro. We use protoc-gen-micro to reduce boilerplate code.
+This is protobuf code generation for go-micro. We use protoc-gen-micro to reduce boilerplate code.
 
 ## Install
 
