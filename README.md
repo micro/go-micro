@@ -68,6 +68,10 @@ service.Run()
 
 See the [docs](https://github.com/micro/micro/tree/master/docs/v2) for detailed information on the architecture, installation and use of go-micro.
 
+## Code Generation
+
+See [cmd/protoc-gen-micro](https://github.com/micro/go-micro/tree/master/cmd/protoc-gen-micro) for protobuf code generation.
+
 ## License
 
 Go Micro is Apache 2.0 licensed.
