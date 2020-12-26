@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package auth;
+
+service Auth {
+  rpc VerifyToken(Request) returns (Result) {}
+}
+
+message Request {
+  string authToken = 1;
+}
+
+message Result {
+  Customer customer = 1;
+}
+
+message Customer {
+  int32 id = 1;
+  string authToken = 2;
+}

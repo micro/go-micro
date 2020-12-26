@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+import "github.com/micro/go-micro/v2/api/proto/api.proto";
+
+service Form {
+	// regular form
+	rpc Submit(go.api.Request) returns (go.api.Response) {};
+	// multipart form
+	rpc Multipart(go.api.Request) returns (go.api.Response) {};
+}

@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: micro-api
+  namespace: micro
+  labels:
+    name: micro-api
+spec:
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8080
+  selector:
+    name: micro-api
+  type: LoadBalancer

@@ -72,6 +72,10 @@ See the [docs](https://github.com/micro/micro/tree/master/docs/v2) for detailed 
 
 See [cmd/protoc-gen-micro](https://github.com/micro/go-micro/tree/master/cmd/protoc-gen-micro) for protobuf code generation.
 
+## Examples
+
+See [examples](https://github.com/micro/go-micro/tree/master/examples) directory for usage examples.
+
 ## License
 
 Go Micro is Apache 2.0 licensed.

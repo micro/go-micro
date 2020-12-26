@@ -1,0 +1,9 @@
+syntax = "proto3";
+
+package go.micro.api.template;
+
+import "github.com/micro/go-micro/v2/api/proto/api.proto";
+
+service Example {
+	rpc Call(go.api.Request) returns (go.api.Response) {}
+}

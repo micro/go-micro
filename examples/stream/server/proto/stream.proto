@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+service Streamer {
+	rpc Stream(stream Request) returns (stream Response) {}
+	rpc ServerStream(Request) returns (stream Response) {}
+}
+
+message Request {
+	int64 count = 1;
+}
+
+message Response {
+	int64 count = 1;
+}
