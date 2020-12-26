@@ -29,7 +29,7 @@ Clone the repository:
 
 Change to examples dir
 
-    $ cd micro/examples/booking
+    $ cd micro/go-micro/examples/booking
 
 ### Protobufs
 

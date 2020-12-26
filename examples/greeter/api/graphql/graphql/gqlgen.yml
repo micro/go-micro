@@ -14,4 +14,4 @@ resolver:
 
 models:
   HelloResponse:
-    model: github.com/micro/examples/greeter/srv/proto/hello.Response
+    model: github.com/micro/go-micro/examples/greeter/srv/proto/hello.Response

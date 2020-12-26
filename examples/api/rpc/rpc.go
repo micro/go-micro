@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 
-	proto "github.com/micro/examples/api/rpc/proto"
+	proto "github.com/micro/go-micro/examples/api/rpc/proto"
 	"github.com/micro/go-micro/v2"
 	"github.com/micro/go-micro/v2/errors"
 

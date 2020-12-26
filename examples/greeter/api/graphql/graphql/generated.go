@@ -11,7 +11,7 @@ import (
 
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/introspection"
-	"github.com/micro/examples/greeter/srv/proto/hello"
+	"github.com/micro/go-micro/examples/greeter/srv/proto/hello"
 	"github.com/vektah/gqlparser"
 	"github.com/vektah/gqlparser/ast"
 )

@@ -8,7 +8,7 @@ import (
 	"mime/multipart"
 	"strings"
 
-	proto "github.com/micro/examples/form/api/proto"
+	proto "github.com/micro/go-micro/examples/form/api/proto"
 	"github.com/micro/go-micro/v2"
 	api "github.com/micro/go-micro/v2/api/proto"
 	"github.com/micro/go-micro/v2/util/log"

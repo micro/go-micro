@@ -7,7 +7,7 @@ import (
 	"github.com/astaxie/beego"
 	bctx "github.com/astaxie/beego/context"
 
-	hello "github.com/micro/examples/greeter/srv/proto/hello"
+	hello "github.com/micro/go-micro/examples/greeter/srv/proto/hello"
 	"github.com/micro/go-micro/v2/client"
 	"github.com/micro/go-micro/v2/web"
 )

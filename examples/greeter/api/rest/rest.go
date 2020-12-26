@@ -6,7 +6,7 @@ import (
 
 	"github.com/emicklei/go-restful"
 
-	hello "github.com/micro/examples/greeter/srv/proto/hello"
+	hello "github.com/micro/go-micro/examples/greeter/srv/proto/hello"
 	"github.com/micro/go-micro/v2/client"
 	"github.com/micro/go-micro/v2/web"
 )

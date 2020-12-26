@@ -2,8 +2,8 @@ package main
 
 import (
 	"github.com/99designs/gqlgen/handler"
-	gql "github.com/micro/examples/greeter/api/graphql/graphql"
-	helloProto "github.com/micro/examples/greeter/srv/proto/hello"
+	gql "github.com/micro/go-micro/examples/greeter/api/graphql/graphql"
+	helloProto "github.com/micro/go-micro/examples/greeter/srv/proto/hello"
 	"github.com/micro/go-micro/v2/client"
 	"github.com/micro/go-micro/v2/util/log"
 	"github.com/micro/go-micro/v2/web"

@@ -33,7 +33,7 @@ provides a kubernetes native runtime to help build micro services.
 
 
 ```
-go get github.com/micro/examples/kubernetes/cmd/micro
+go get github.com/micro/go-micro/examples/kubernetes/cmd/micro
 ```
 
 or
@@ -45,7 +45,7 @@ docker pull microhq/micro:kubernetes
 For go-micro
 
 ```
-import "github.com/micro/examples/kubernetes/go/micro"
+import "github.com/micro/go-micro/examples/kubernetes/go/micro"
 ```
 
 ## Writing a Service
@@ -55,7 +55,7 @@ Write a service as you would any other [go-micro](https://github.com/micro/go-mi
 ```go
 import (
 	"github.com/micro/go-micro/v2"
-	k8s "github.com/micro/examples/kubernetes/go/micro"
+	k8s "github.com/micro/go-micro/examples/kubernetes/go/micro"
 )
 
 func main() {
@@ -138,7 +138,7 @@ import (
 	"net/http"
 
 	"github.com/micro/go-micro/v2/web"
-	k8s "github.com/micro/examples/kubernetes/go/web"
+	k8s "github.com/micro/go-micro/examples/kubernetes/go/web"
 )
 
 func main() {
@@ -163,7 +163,7 @@ Every go-micro service has a built in Debug.Health endpoint.
 ### Install
 
 ```
-go get github.com/micro/examples/kubernetes/cmd/health
+go get github.com/micro/go-micro/examples/kubernetes/cmd/health
 ```
 
 or
@@ -368,7 +368,7 @@ $ kubectl get configmap micro --namespace default
 Import and use the config
 
 ```go
-import "github.com/micro/examples/kubernetes/go/config"
+import "github.com/micro/go-micro/examples/kubernetes/go/config"
 
 cfg := config.NewConfig()
 

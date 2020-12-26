@@ -1,7 +1,7 @@
 package main
 
 import (
-	proto "github.com/micro/examples/pubsub/srv/proto"
+	proto "github.com/micro/go-micro/examples/pubsub/srv/proto"
 	"github.com/micro/go-micro/v2"
 	"github.com/micro/go-micro/v2/metadata"
 	"github.com/micro/go-micro/v2/server"

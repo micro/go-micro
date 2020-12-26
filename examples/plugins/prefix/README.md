@@ -11,7 +11,7 @@ package main
 
 import (
 	"github.com/micro/micro/plugin"
-	"github.com/micro/examples/plugins/prefix"
+	"github.com/micro/go-micro/examples/plugins/prefix"
 )
 
 func init() {
@@ -35,7 +35,7 @@ package main
 
 import (
 	"github.com/micro/micro/api"
-	"github.com/micro/examples/plugins/prefix"
+	"github.com/micro/go-micro/examples/plugins/prefix"
 )
 
 func init() {

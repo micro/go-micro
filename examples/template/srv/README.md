@@ -5,7 +5,7 @@ This is the Template service
 Generated with
 
 ```
-micro new github.com/micro/examples/template/srv --namespace=go.micro --alias=template --type=srv
+micro new github.com/micro/go-micro/examples/template/srv --namespace=go.micro --alias=template --type=srv
 ```
 
 ## Getting Started

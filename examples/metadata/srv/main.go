@@ -5,7 +5,7 @@ import (
 	"log"
 	"time"
 
-	hello "github.com/micro/examples/greeter/srv/proto/hello"
+	hello "github.com/micro/go-micro/examples/greeter/srv/proto/hello"
 	"github.com/micro/go-micro/v2"
 	"github.com/micro/go-micro/v2/metadata"
 

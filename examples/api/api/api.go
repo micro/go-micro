@@ -6,7 +6,7 @@ import (
 	"log"
 	"strings"
 
-	proto "github.com/micro/examples/api/api/proto"
+	proto "github.com/micro/go-micro/examples/api/api/proto"
 	"github.com/micro/go-micro/v2"
 	api "github.com/micro/go-micro/v2/api/proto"
 	"github.com/micro/go-micro/v2/errors"

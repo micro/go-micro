@@ -4,11 +4,11 @@ import (
 	"log"
 
 	"context"
-	"github.com/micro/examples/server/subscriber"
+	"github.com/micro/go-micro/examples/server/subscriber"
 	"github.com/micro/go-micro/v2/config/cmd"
 	"github.com/micro/go-micro/v2/server"
 
-	example "github.com/micro/examples/server/proto/example"
+	example "github.com/micro/go-micro/examples/server/proto/example"
 )
 
 type Example struct{}

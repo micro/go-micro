@@ -12,7 +12,7 @@ import (
 	"github.com/micro/go-micro/v2/config/cmd"
 	"github.com/micro/go-micro/v2/registry"
 
-	example "github.com/micro/examples/server/proto/example"
+	example "github.com/micro/go-micro/examples/server/proto/example"
 )
 
 // Built in random hashed node selector

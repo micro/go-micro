@@ -1,4 +1,4 @@
-module github.com/micro/examples
+module github.com/micro/go-micro/examples
 
 go 1.13
 

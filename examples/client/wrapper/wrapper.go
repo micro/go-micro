@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"context"
-	example "github.com/micro/examples/server/proto/example"
+	example "github.com/micro/go-micro/examples/server/proto/example"
 	"github.com/micro/go-micro/v2/client"
 	"github.com/micro/go-micro/v2/config/cmd"
 	"github.com/micro/go-micro/v2/metadata"
