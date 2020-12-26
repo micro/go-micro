@@ -76,6 +76,10 @@ See [cmd/protoc-gen-micro](https://github.com/micro/go-micro/tree/master/cmd/pro
 
 See [examples](https://github.com/micro/go-micro/tree/master/examples) directory for usage examples.
 
+## Plugins
+
+See [plugins](https://github.com/micro/go-micro/tree/master/plugins) directory for all the plugins.
+
 ## License
 
 Go Micro is Apache 2.0 licensed.

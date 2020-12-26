@@ -13,7 +13,7 @@ import (
 	"github.com/micro/go-micro/v2/debug/stats"
 	"github.com/micro/go-micro/v2/debug/trace"
 	"github.com/micro/go-micro/v2/logger"
-	"github.com/micro/go-micro/v2/plugin"
+	"github.com/micro/go-micro/v2/plugins"
 	"github.com/micro/go-micro/v2/server"
 	"github.com/micro/go-micro/v2/store"
 	signalutil "github.com/micro/go-micro/v2/util/signal"

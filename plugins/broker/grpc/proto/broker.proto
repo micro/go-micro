@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package broker;
+
+service Broker {
+	rpc Publish(Message) returns (Empty) {}
+}
+
+message Message {
+	string topic = 1;
+	string id = 2;
+	map<string,string> header = 3;
+	bytes body = 4;
+}
+
+message Empty {}
