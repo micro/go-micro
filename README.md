@@ -44,8 +44,7 @@ Event notifications are a core pattern in micro service development. The default
 leadership are built in as a Sync interface. When using an eventually consistent database or scheduling use the Sync interface.
 
 - **Pluggable Interfaces** - Go Micro makes use of Go interfaces for each distributed system abstraction. Because of this these interfaces 
-are pluggable and allows Go Micro to be runtime agnostic. You can plugin any underlying technology. Find plugins in 
-[github.com/micro/go-plugins](https://github.com/micro/go-plugins).
+are pluggable and allows Go Micro to be runtime agnostic. You can plugin any underlying technology.
 
 ## Getting Started
 
