@@ -1,6 +1,6 @@
 # Examples
 
-This is a repository for micro examples. Feel free to contribute.
+This is a repository for go-micro examples. Feel free to contribute.
 
 ## Contents
 
