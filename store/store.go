@@ -45,3 +45,7 @@ type Record struct {
 	// Time to expire a record: TODO: change to timestamp
 	Expiry time.Duration `json:"expiry,omitempty"`
 }
+
+func NewStore(opts ...Option) Store {
+	return NewMemoryStore(opts...)
+}

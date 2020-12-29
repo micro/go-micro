@@ -10,8 +10,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-// NewStore returns a memory store
-func NewStore(opts ...Option) Store {
+// NewMemoryStore returns a memory store
+func NewMemoryStore(opts ...Option) Store {
 	s := &memoryStore{
 		options: Options{
 			Database: "micro",
