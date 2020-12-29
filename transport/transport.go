@@ -50,4 +50,3 @@ var (
 
 	DefaultDialTimeout = time.Second * 5
 )
-
