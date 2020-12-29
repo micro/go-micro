@@ -11,7 +11,7 @@ var (
 	// ErrNotFound is returned when a key doesn't exist
 	ErrNotFound = errors.New("not found")
 	// DefaultStore is the memory store.
-	DefaultStore Store = new(noopStore)
+	DefaultStore Store = NewStore()
 )
 
 // Store is a data storage interface

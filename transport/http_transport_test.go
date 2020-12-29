@@ -20,7 +20,7 @@ func expectedPort(t *testing.T, expected string, lsn Listener) {
 }
 
 func TestHTTPTransportPortRange(t *testing.T) {
-	tp := NewTransport()
+	tp := NewHTTPTransport()
 
 	lsn1, err := tp.Listen(":44444-44448")
 	if err != nil {
@@ -45,7 +45,7 @@ func TestHTTPTransportPortRange(t *testing.T) {
 }
 
 func TestHTTPTransportCommunication(t *testing.T) {
-	tr := NewTransport()
+	tr := NewHTTPTransport()
 
 	l, err := tr.Listen("127.0.0.1:0")
 	if err != nil {
@@ -111,7 +111,7 @@ func TestHTTPTransportCommunication(t *testing.T) {
 }
 
 func TestHTTPTransportError(t *testing.T) {
-	tr := NewTransport()
+	tr := NewHTTPTransport()
 
 	l, err := tr.Listen("127.0.0.1:0")
 	if err != nil {
@@ -181,7 +181,7 @@ func TestHTTPTransportError(t *testing.T) {
 }
 
 func TestHTTPTransportTimeout(t *testing.T) {
-	tr := NewTransport(Timeout(time.Millisecond * 100))
+	tr := NewHTTPTransport(Timeout(time.Millisecond * 100))
 
 	l, err := tr.Listen("127.0.0.1:0")
 	if err != nil {

@@ -4,13 +4,13 @@ import (
 	"os"
 	"testing"
 
-	"github.com/micro/go-micro/v2/registry/memory"
+	"github.com/micro/go-micro/v2/registry"
 )
 
 func TestRegistrySelector(t *testing.T) {
 	counts := map[string]int{}
 
-	r := memory.NewRegistry(memory.Services(testData))
+	r := registry.NewMemoryRegistry(registry.Services(testData))
 	cache := NewSelector(Registry(r))
 
 	next, err := cache.Select("foo")

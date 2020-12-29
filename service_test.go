@@ -8,7 +8,7 @@ import (
 
 	"github.com/micro/go-micro/v2/client"
 	proto "github.com/micro/go-micro/v2/debug/proto"
-	"github.com/micro/go-micro/v2/registry/memory"
+	"github.com/micro/go-micro/v2/registry"
 	"github.com/micro/go-micro/v2/util/test"
 )
 
@@ -25,7 +25,7 @@ func testService(ctx context.Context, wg *sync.WaitGroup, name string) Service {
 	// add self
 	wg.Add(1)
 
-	r := memory.NewRegistry(memory.Services(test.Data))
+	r := registry.NewMemoryRegistry(registry.Services(test.Data))
 
 	// create service
 	return NewService(

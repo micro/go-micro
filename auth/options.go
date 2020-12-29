@@ -3,9 +3,6 @@ package auth
 import (
 	"context"
 	"time"
-
-	"github.com/micro/go-micro/v2/client"
-	"github.com/micro/go-micro/v2/store"
 )
 
 func NewOptions(opts ...Option) Options {
@@ -13,10 +10,6 @@ func NewOptions(opts ...Option) Options {
 	for _, o := range opts {
 		o(&options)
 	}
-	if options.Client == nil {
-		options.Client = client.DefaultClient
-	}
-
 	return options
 }
 
@@ -33,10 +26,6 @@ type Options struct {
 	PublicKey string
 	// PrivateKey for encoding JWTs
 	PrivateKey string
-	// Store to back auth
-	Store store.Store
-	// Client to use for RPC
-	Client client.Client
 	// Addrs sets the addresses of auth
 	Addrs []string
 }
@@ -54,13 +43,6 @@ func Addrs(addrs ...string) Option {
 func Namespace(n string) Option {
 	return func(o *Options) {
 		o.Namespace = n
-	}
-}
-
-// Store to back auth
-func Store(s store.Store) Option {
-	return func(o *Options) {
-		o.Store = s
 	}
 }
 
@@ -90,13 +72,6 @@ func Credentials(id, secret string) Option {
 func ClientToken(token *Token) Option {
 	return func(o *Options) {
 		o.Token = token
-	}
-}
-
-// WithClient sets the client to use when making requests
-func WithClient(c client.Client) Option {
-	return func(o *Options) {
-		o.Client = c
 	}
 }
 

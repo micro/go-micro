@@ -7,13 +7,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/micro/cli/v2"
+
 	"github.com/micro/go-micro/v2/auth"
 	"github.com/micro/go-micro/v2/broker"
 	"github.com/micro/go-micro/v2/client"
 	"github.com/micro/go-micro/v2/config"
 	"github.com/micro/go-micro/v2/debug/profile"
-	"github.com/micro/go-micro/v2/debug/profile/http"
-	"github.com/micro/go-micro/v2/debug/profile/pprof"
 	"github.com/micro/go-micro/v2/debug/trace"
 	"github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/registry"
@@ -22,49 +22,6 @@ import (
 	"github.com/micro/go-micro/v2/server"
 	"github.com/micro/go-micro/v2/store"
 	"github.com/micro/go-micro/v2/transport"
-
-	// clients
-	cgrpc "github.com/micro/go-micro/v2/client/grpc"
-	cmucp "github.com/micro/go-micro/v2/client/mucp"
-
-	// servers
-	"github.com/micro/cli/v2"
-
-	sgrpc "github.com/micro/go-micro/v2/server/grpc"
-	smucp "github.com/micro/go-micro/v2/server/mucp"
-
-	// brokers
-	brokerHttp "github.com/micro/go-micro/v2/broker/http"
-	"github.com/micro/go-micro/v2/broker/memory"
-	"github.com/micro/go-micro/v2/broker/nats"
-
-	// registries
-	"github.com/micro/go-micro/v2/registry/etcd"
-	"github.com/micro/go-micro/v2/registry/mdns"
-	rmem "github.com/micro/go-micro/v2/registry/memory"
-
-	// runtimes
-	kRuntime "github.com/micro/go-micro/v2/runtime/kubernetes"
-	lRuntime "github.com/micro/go-micro/v2/runtime/local"
-
-	// selectors
-	"github.com/micro/go-micro/v2/selector/dns"
-	"github.com/micro/go-micro/v2/selector/router"
-	"github.com/micro/go-micro/v2/selector/static"
-
-	// transports
-	thttp "github.com/micro/go-micro/v2/transport/http"
-	tmem "github.com/micro/go-micro/v2/transport/memory"
-
-	// stores
-	memStore "github.com/micro/go-micro/v2/store/memory"
-
-	// tracers
-	// jTracer "github.com/micro/go-micro/v2/debug/trace/jaeger"
-	memTracer "github.com/micro/go-micro/v2/debug/trace/memory"
-
-	// auth
-	jwtAuth "github.com/micro/go-micro/v2/auth/jwt"
 )
 
 type Cmd interface {
@@ -191,7 +148,6 @@ var (
 			Name:    "runtime",
 			Usage:   "Runtime for building and running services e.g local, kubernetes",
 			EnvVars: []string{"MICRO_RUNTIME"},
-			Value:   "local",
 		},
 		&cli.StringFlag{
 			Name:    "runtime_source",
@@ -282,61 +238,27 @@ var (
 		},
 	}
 
-	DefaultBrokers = map[string]func(...broker.Option) broker.Broker{
-		"memory": memory.NewBroker,
-		"nats":   nats.NewBroker,
-		"http":   brokerHttp.NewBroker,
-	}
+	DefaultBrokers = map[string]func(...broker.Option) broker.Broker{}
 
-	DefaultClients = map[string]func(...client.Option) client.Client{
-		"mucp": cmucp.NewClient,
-		"grpc": cgrpc.NewClient,
-	}
+	DefaultClients = map[string]func(...client.Option) client.Client{}
 
-	DefaultRegistries = map[string]func(...registry.Option) registry.Registry{
-		"etcd":   etcd.NewRegistry,
-		"mdns":   mdns.NewRegistry,
-		"memory": rmem.NewRegistry,
-	}
+	DefaultRegistries = map[string]func(...registry.Option) registry.Registry{}
 
-	DefaultSelectors = map[string]func(...selector.Option) selector.Selector{
-		"dns":    dns.NewSelector,
-		"router": router.NewSelector,
-		"static": static.NewSelector,
-	}
+	DefaultSelectors = map[string]func(...selector.Option) selector.Selector{}
 
-	DefaultServers = map[string]func(...server.Option) server.Server{
-		"mucp": smucp.NewServer,
-		"grpc": sgrpc.NewServer,
-	}
+	DefaultServers = map[string]func(...server.Option) server.Server{}
 
-	DefaultTransports = map[string]func(...transport.Option) transport.Transport{
-		"memory": tmem.NewTransport,
-		"http":   thttp.NewTransport,
-	}
+	DefaultTransports = map[string]func(...transport.Option) transport.Transport{}
 
-	DefaultRuntimes = map[string]func(...runtime.Option) runtime.Runtime{
-		"local":      lRuntime.NewRuntime,
-		"kubernetes": kRuntime.NewRuntime,
-	}
+	DefaultRuntimes = map[string]func(...runtime.Option) runtime.Runtime{}
 
-	DefaultStores = map[string]func(...store.Option) store.Store{
-		"memory": memStore.NewStore,
-	}
+	DefaultStores = map[string]func(...store.Option) store.Store{}
 
-	DefaultTracers = map[string]func(...trace.Option) trace.Tracer{
-		"memory": memTracer.NewTracer,
-		// "jaeger": jTracer.NewTracer,
-	}
+	DefaultTracers = map[string]func(...trace.Option) trace.Tracer{}
 
-	DefaultAuths = map[string]func(...auth.Option) auth.Auth{
-		"jwt": jwtAuth.NewAuth,
-	}
+	DefaultAuths = map[string]func(...auth.Option) auth.Auth{}
 
-	DefaultProfiles = map[string]func(...profile.Option) profile.Profile{
-		"http":  http.NewProfile,
-		"pprof": pprof.NewProfile,
-	}
+	DefaultProfiles = map[string]func(...profile.Option) profile.Profile{}
 
 	DefaultConfigs = map[string]func(...config.Option) (config.Config, error){}
 )
@@ -461,7 +383,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	}
 
 	// Setup auth
-	authOpts := []auth.Option{auth.WithClient(*c.opts.Client)}
+	authOpts := []auth.Option{}
 
 	if len(ctx.String("auth_id")) > 0 || len(ctx.String("auth_secret")) > 0 {
 		authOpts = append(authOpts, auth.Credentials(

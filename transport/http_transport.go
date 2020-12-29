@@ -592,7 +592,7 @@ func (h *httpTransport) String() string {
 	return "http"
 }
 
-func newHTTPTransport(opts ...Option) *httpTransport {
+func NewHTTPTransport(opts ...Option) *httpTransport {
 	var options Options
 	for _, o := range opts {
 		o(&options)

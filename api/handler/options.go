@@ -3,7 +3,6 @@ package handler
 import (
 	"github.com/micro/go-micro/v2/api/router"
 	"github.com/micro/go-micro/v2/client"
-	"github.com/micro/go-micro/v2/client/grpc"
 )
 
 var (
@@ -27,7 +26,7 @@ func NewOptions(opts ...Option) Options {
 	}
 
 	if options.Client == nil {
-		WithClient(grpc.NewClient())(&options)
+		WithClient(client.NewClient())(&options)
 	}
 
 	// set namespace if blank

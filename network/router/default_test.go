@@ -7,11 +7,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/micro/go-micro/v2/registry/memory"
+	"github.com/micro/go-micro/v2/registry"
 )
 
 func routerTestSetup() Router {
-	r := memory.NewRegistry()
+	r := registry.NewMemoryRegistry()
 	return newRouter(Registry(r))
 }
 

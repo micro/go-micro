@@ -7,12 +7,11 @@ import (
 
 	"github.com/micro/go-micro/v2/errors"
 	"github.com/micro/go-micro/v2/registry"
-	"github.com/micro/go-micro/v2/registry/memory"
 	"github.com/micro/go-micro/v2/selector"
 )
 
 func newTestRegistry() registry.Registry {
-	return memory.NewRegistry(memory.Services(testData))
+	return registry.NewMemoryRegistry(registry.Services(testData))
 }
 
 func TestCallAddress(t *testing.T) {

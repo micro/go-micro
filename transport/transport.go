@@ -46,11 +46,8 @@ type DialOption func(*DialOptions)
 type ListenOption func(*ListenOptions)
 
 var (
-	DefaultTransport Transport = newHTTPTransport()
+	DefaultTransport Transport = NewHTTPTransport()
 
 	DefaultDialTimeout = time.Second * 5
 )
 
-func NewTransport(opts ...Option) Transport {
-	return newHTTPTransport(opts...)
-}

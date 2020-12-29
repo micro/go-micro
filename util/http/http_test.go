@@ -7,11 +7,10 @@ import (
 	"testing"
 
 	"github.com/micro/go-micro/v2/registry"
-	"github.com/micro/go-micro/v2/registry/memory"
 )
 
 func TestRoundTripper(t *testing.T) {
-	m := memory.NewRegistry()
+	m := registry.NewMemoryRegistry()
 
 	rt := NewRoundTripper(
 		WithRegistry(m),

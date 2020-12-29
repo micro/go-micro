@@ -6,7 +6,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/transport"
-	"github.com/micro/go-micro/v2/transport/quic"
 )
 
 var (
@@ -142,6 +141,6 @@ func DefaultOptions() Options {
 		Id:        uuid.New().String(),
 		Address:   DefaultAddress,
 		Token:     DefaultToken,
-		Transport: quic.NewTransport(),
+		Transport: transport.NewQUICTransport(),
 	}
 }

@@ -12,11 +12,10 @@ import (
 	"github.com/micro/go-micro/v2/api/router"
 	regRouter "github.com/micro/go-micro/v2/api/router/registry"
 	"github.com/micro/go-micro/v2/registry"
-	"github.com/micro/go-micro/v2/registry/memory"
 )
 
 func testHttp(t *testing.T, path, service, ns string) {
-	r := memory.NewRegistry()
+	r := registry.NewMemoryRegistry()
 
 	l, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
