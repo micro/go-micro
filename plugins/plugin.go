@@ -18,7 +18,6 @@ import (
 	"github.com/micro/go-micro/v2/registry"
 	"github.com/micro/go-micro/v2/server"
 	"github.com/micro/go-micro/v2/transport"
-	mp "github.com/micro/micro/v2/plugin"
 )
 
 // Plugin is a plugin loaded from a file
@@ -36,12 +35,6 @@ type Plugin struct {
 // Init sets up the plugin
 func Init(p *Plugin) error {
 	switch p.Type {
-	case "micro":
-		pg, ok := p.NewFunc.(func() mp.Plugin)
-		if !ok {
-			return fmt.Errorf("Invalid plugin %s", p.Name)
-		}
-		mp.Register(pg())
 	case "broker":
 		pg, ok := p.NewFunc.(func(...broker.Option) broker.Broker)
 		if !ok {
