@@ -68,71 +68,29 @@ func (zw *zookeeperWatcher) writeResult(r *result) {
 }
 
 func (zw *zookeeperWatcher) watchDir(key string) {
+	// mark children changed
+	childrenChanged := true
+
 	for {
 		// get current children for a key
-		children, _, childEventCh, err := zw.client.ChildrenW(key)
+		newChildren, _, childEventCh, err := zw.client.ChildrenW(key)
 		if err != nil {
 			zw.writeRespChan(&watchResponse{zk.Event{}, nil, err})
 			return
 		}
 
+		if childrenChanged {
+			zw.overrideChildrenInfo(newChildren, key)
+		}
+
 		select {
 		case e := <-childEventCh:
 			if e.Type != zk.EventNodeChildrenChanged {
+				childrenChanged = false
 				continue
 			}
 
-			newChildren, _, err := zw.client.Children(e.Path)
-			if err != nil {
-				zw.writeRespChan(&watchResponse{e, nil, err})
-				return
-			}
-
-			// a node was added -- watch the new node
-			for _, i := range newChildren {
-				if contains(children, i) {
-					continue
-				}
-
-				newNode := path.Join(e.Path, i)
-
-				if key == prefix {
-					// a new service was created under prefix
-					go zw.watchDir(newNode)
-
-					nodes, _, _ := zw.client.Children(newNode)
-					for _, node := range nodes {
-						n := path.Join(newNode, node)
-						go zw.watchKey(n)
-						s, _, err := zw.client.Get(n)
-						if err != nil {
-							continue
-						}
-						e.Type = zk.EventNodeCreated
-
-						srv, err := decode(s)
-						if err != nil {
-							continue
-						}
-
-						zw.writeRespChan(&watchResponse{e, srv, err})
-					}
-				} else {
-					go zw.watchKey(newNode)
-					s, _, err := zw.client.Get(newNode)
-					if err != nil {
-						continue
-					}
-					e.Type = zk.EventNodeCreated
-
-					srv, err := decode(s)
-					if err != nil {
-						continue
-					}
-
-					zw.writeRespChan(&watchResponse{e, srv, err})
-				}
-			}
+			childrenChanged = true
 		case <-zw.stop:
 			// There is no way to stop GetW/ChildrenW so just quit
 			return
@@ -194,14 +152,10 @@ func (zw *zookeeperWatcher) watch() {
 	//watch every service
 	for _, service := range services() {
 		sPath := childPath(prefix, service)
+		if sPath == prefix {
+			continue
+		}
 		go zw.watchDir(sPath)
-		children, _, err := zw.client.Children(sPath)
-		if err != nil {
-			zw.writeResult(&result{nil, err})
-		}
-		for _, c := range children {
-			go zw.watchKey(path.Join(sPath, c))
-		}
 	}
 
 	var service *registry.Service
@@ -225,6 +179,9 @@ func (zw *zookeeperWatcher) watch() {
 			case zk.EventNodeCreated:
 				action = "create"
 				service = rsp.service
+			case zk.EventNodeChildrenChanged:
+				action = "override"
+				service = rsp.service
 			}
 		}
 		zw.writeResult(&result{&registry.Result{Action: action, Service: service}, nil})
@@ -246,5 +203,37 @@ func (zw *zookeeperWatcher) Next() (*registry.Result, error) {
 		return nil, errors.New("watcher stopped")
 	case r := <-zw.results:
 		return r.res, r.err
+	}
+}
+
+func (zw *zookeeperWatcher) overrideChildrenInfo(newChildren []string, parentPath string) {
+	// override resp
+	var overrideResp *watchResponse
+
+	for _, i := range newChildren {
+		newNode := path.Join(parentPath, i)
+
+		s, _, err := zw.client.Get(newNode)
+		if err != nil {
+			continue
+		}
+
+		srv, err := decode(s)
+		if err != nil {
+			continue
+		}
+
+		// if nil, then init, do it once
+		if overrideResp == nil {
+			overrideResp = &watchResponse{zk.Event{
+				Type: zk.EventNodeChildrenChanged,
+			}, srv, nil}
+			zw.writeRespChan(overrideResp)
+		}
+
+		// when node was added or updated
+		zw.writeRespChan(&watchResponse{zk.Event{
+			Type: zk.EventNodeCreated,
+		}, srv, nil})
 	}
 }
