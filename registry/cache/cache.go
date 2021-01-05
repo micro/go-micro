@@ -305,6 +305,12 @@ func (c *cache) update(res *registry.Result) {
 
 		// save
 		c.set(service.Name, srvs)
+	case "override":
+		if service == nil {
+			return
+		}
+
+		c.del(service.Name)
 	}
 }
 
