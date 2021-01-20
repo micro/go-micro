@@ -4,8 +4,6 @@ This is a repository for go-micro examples. Feel free to contribute.
 
 ## Contents
 
-- [api](api) - Provides API usage examples
-- [booking](booking) - A booking.com demo application
 - [broker](broker) - A example of using Broker for Publish and Subscribing.
 - [client](client) - Usage of the Client package to call a service.
 - [command](command) - An example of bot commands as micro services
@@ -20,7 +18,6 @@ This is a repository for go-micro examples. Feel free to contribute.
 - [greeter](greeter) - A complete greeter example (includes python, ruby examples)
 - [heartbeat](heartbeat) - Make services heartbeat with discovery for high availability
 - [helloworld](helloworld) - Hello world using micro
-- [kubernetes](kubernetes) - Examples of using the k8s registry and grpc
 - [metadata](metadata) - Extracting metadata from context of a request
 - [mocking](mocking) - Demonstrate mocking helloworld service
 - [noproto](noproto) - Use micro without protobuf or code generation, only go types
@@ -36,7 +33,5 @@ This is a repository for go-micro examples. Feel free to contribute.
 - [sharding](sharding) - An example of how to shard requests or use session affinity
 - [shutdown](shutdown) - Demonstrates graceful shutdown via context cancellation
 - [stream](stream) - An example of a streaming service and client
-- [template](template) - Api, web and srv service templates generated with the 'micro new' command
-- [tunnel](tunnel) - How to use connection tunneling with the tunnel package
 - [waitgroup](waitgroup) - Demonstrates how to use a waitgroup with a service
 - [wrapper](wrapper) - A simple example of using a log wrapper
