@@ -1,9 +1,9 @@
-module github.com/micro/go-micro/cmd/protoc-gen-micro/v2
+module github.com/asim/go-micro/cmd/protoc-gen-micro/v3
 
 go 1.13
 
 require (
-	github.com/golang/protobuf v1.3.5
-	github.com/asim/go-micro/v3 v2.4.1-0.20200414211455-9a5b8ff50d31
+	github.com/asim/go-micro/v3 v3.0.0-20210120135431-d94936f6c97c
+	github.com/golang/protobuf v1.4.2
 	google.golang.org/genproto v0.0.0-20191216164720-4f79533eabd1
 )
