@@ -5,9 +5,9 @@ import (
 	"time"
 
 	"context"
-	example "github.com/micro/go-micro/examples/server/proto/example"
+	example "github.com/asim/go-micro/examples/v3/server/proto/example"
 	"github.com/asim/go-micro/v3/client"
-	"github.com/asim/go-micro/v3/config/cmd"
+	"github.com/asim/go-micro/v3/cmd"
 	"github.com/asim/go-micro/v3/metadata"
 	"github.com/asim/go-micro/v3/registry"
 )

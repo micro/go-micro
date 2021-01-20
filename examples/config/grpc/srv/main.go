@@ -12,7 +12,7 @@ import (
 	"github.com/asim/go-micro/v3/config"
 	"github.com/asim/go-micro/v3/config/source/file"
 	"github.com/asim/go-micro/v3/util/log"
-	proto "github.com/micro/go-plugins/config/source/grpc/v2/proto"
+	proto "github.com/asim/go-micro/plugins/config/source/grpc/v3/proto"
 	grpc "google.golang.org/grpc"
 )
 

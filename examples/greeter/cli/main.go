@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	hello "github.com/micro/go-micro/examples/greeter/srv/proto/hello"
+	hello "github.com/asim/go-micro/examples/v3/greeter/srv/proto/hello"
 	"github.com/asim/go-micro/v3"
 )
 

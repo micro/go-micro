@@ -6,7 +6,7 @@ import (
 
 	"context"
 	"github.com/micro/cli/v2"
-	proto "github.com/micro/go-micro/examples/service/proto"
+	proto "github.com/asim/go-micro/examples/v3/service/proto"
 	"github.com/asim/go-micro/v3"
 )
 

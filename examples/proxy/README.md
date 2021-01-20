@@ -1,6 +1,6 @@
 # Proxy Sidecar
 
-The [micro proxy](https://github.com/micro/micro/tree/master/proxy) provides [go-micro](https://github.com/micro/go-micro) features as http endpoints.
+The [micro proxy](https://github.com/micro/micro/tree/master/proxy) provides [go-micro](https://github.com/asim/go-micro) features as http endpoints.
 
 This directory contains examples for using the proxy with various languages.
 

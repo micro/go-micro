@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 
-	proto "github.com/micro/go-micro/examples/function/proto"
+	proto "github.com/asim/go-micro/examples/v3/function/proto"
 	"github.com/asim/go-micro/v3"
 )
 

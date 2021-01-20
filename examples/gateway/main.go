@@ -9,7 +9,7 @@ import (
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"google.golang.org/grpc"
 
-	hello "github.com/micro/go-micro/examples/gateway/proto/hello"
+	hello "github.com/asim/go-micro/examples/v3/gateway/proto/hello"
 )
 
 var (
