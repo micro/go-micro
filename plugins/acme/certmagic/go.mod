@@ -4,5 +4,5 @@ go 1.15
 
 require (
 	github.com/caddyserver/certmagic v0.10.6
-	github.com/asim/go-micro/v3 v2.9.2-0.20201229165018-ee8b369a19fc
+	github.com/micro/go-micro/v2 v2.9.2-0.20201229165018-ee8b369a19fc
 )

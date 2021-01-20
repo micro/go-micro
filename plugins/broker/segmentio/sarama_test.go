@@ -6,7 +6,7 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/asim/go-micro/v3/broker"
+	"github.com/micro/go-micro/v2/broker"
 	sarama "github.com/micro/go-micro/plugins/broker/kafka/v2"
 	segjson "github.com/micro/go-micro/plugins/codec/segmentio/v2"
 )

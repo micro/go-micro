@@ -1,7 +1,7 @@
 package nats
 
 import (
-	"github.com/asim/go-micro/v3/registry"
+	"github.com/micro/go-micro/v2/registry"
 )
 
 func cp(current []*registry.Service) []*registry.Service {

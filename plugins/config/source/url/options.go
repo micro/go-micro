@@ -3,7 +3,7 @@ package url
 import (
 	"context"
 
-	"github.com/asim/go-micro/v3/config/source"
+	"github.com/micro/go-micro/v2/config/source"
 )
 
 type urlKey struct{}

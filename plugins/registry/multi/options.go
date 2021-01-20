@@ -3,7 +3,7 @@ package multi
 import (
 	"context"
 
-	"github.com/asim/go-micro/v3/registry"
+	"github.com/micro/go-micro/v2/registry"
 )
 
 type writeKey struct{}

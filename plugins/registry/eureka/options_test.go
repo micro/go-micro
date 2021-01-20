@@ -7,7 +7,7 @@ import (
 
 	"golang.org/x/oauth2/clientcredentials"
 
-	"github.com/asim/go-micro/v3/registry"
+	"github.com/micro/go-micro/v2/registry"
 )
 
 func TestOAuth2ClientCredentials(t *testing.T) {

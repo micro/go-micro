@@ -6,7 +6,7 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/asim/go-micro/v3/broker"
+	"github.com/micro/go-micro/v2/broker"
 	segmentio "github.com/micro/go-micro/plugins/broker/segmentio/v2"
 	segjson "github.com/micro/go-micro/plugins/codec/segmentio/v2"
 )

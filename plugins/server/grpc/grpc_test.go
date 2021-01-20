@@ -5,19 +5,19 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/asim/go-micro/v3"
-	bmemory "github.com/asim/go-micro/v3/broker/memory"
-	"github.com/asim/go-micro/v3/client"
-	gcli "github.com/asim/go-micro/v3/client/grpc"
-	"github.com/asim/go-micro/v3/errors"
-	rmemory "github.com/asim/go-micro/v3/registry/memory"
-	"github.com/asim/go-micro/v3/server"
-	gsrv "github.com/asim/go-micro/v3/server/grpc"
-	tgrpc "github.com/asim/go-micro/v3/transport/grpc"
+	"github.com/micro/go-micro/v2"
+	bmemory "github.com/micro/go-micro/v2/broker/memory"
+	"github.com/micro/go-micro/v2/client"
+	gcli "github.com/micro/go-micro/v2/client/grpc"
+	"github.com/micro/go-micro/v2/errors"
+	rmemory "github.com/micro/go-micro/v2/registry/memory"
+	"github.com/micro/go-micro/v2/server"
+	gsrv "github.com/micro/go-micro/v2/server/grpc"
+	tgrpc "github.com/micro/go-micro/v2/transport/grpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/status"
 
-	pb "github.com/asim/go-micro/v3/server/grpc/proto"
+	pb "github.com/micro/go-micro/v2/server/grpc/proto"
 )
 
 // server is used to implement helloworld.GreeterServer.

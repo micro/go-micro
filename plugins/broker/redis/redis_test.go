@@ -7,7 +7,7 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/asim/go-micro/v3/broker"
+	"github.com/micro/go-micro/v2/broker"
 )
 
 func subscribe(t *testing.T, b broker.Broker, topic string, handle broker.Handler) broker.Subscriber {

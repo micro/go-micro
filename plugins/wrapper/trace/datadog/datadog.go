@@ -2,12 +2,12 @@
 package datadog
 
 import (
-	"github.com/asim/go-micro/v3/registry"
+	"github.com/micro/go-micro/v2/registry"
 
 	"context"
 
-	"github.com/asim/go-micro/v3/client"
-	"github.com/asim/go-micro/v3/server"
+	"github.com/micro/go-micro/v2/client"
+	"github.com/micro/go-micro/v2/server"
 )
 
 var noDebugStack = true

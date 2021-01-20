@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/asim/go-micro/v3/broker"
+	"github.com/micro/go-micro/v2/broker"
 	"google.golang.org/api/option"
 )
 

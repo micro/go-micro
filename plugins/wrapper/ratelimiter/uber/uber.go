@@ -1,8 +1,8 @@
 package ratelimit
 
 import (
-	"github.com/asim/go-micro/v3/client"
-	"github.com/asim/go-micro/v3/server"
+	"github.com/micro/go-micro/v2/client"
+	"github.com/micro/go-micro/v2/server"
 	"go.uber.org/ratelimit"
 
 	"context"

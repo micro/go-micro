@@ -1,8 +1,8 @@
 package http
 
 import (
-	"github.com/asim/go-micro/v3"
-	"github.com/asim/go-micro/v3/server"
+	"github.com/micro/go-micro/v2"
+	"github.com/micro/go-micro/v2/server"
 )
 
 // WithBackend provides an option to set the http backend url

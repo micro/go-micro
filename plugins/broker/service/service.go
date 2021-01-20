@@ -2,9 +2,9 @@
 package service
 
 import (
-	"github.com/asim/go-micro/v3/broker"
-	"github.com/asim/go-micro/v3/broker/service"
-	"github.com/asim/go-micro/v3/cmd"
+	"github.com/micro/go-micro/v2/broker"
+	"github.com/micro/go-micro/v2/broker/service"
+	"github.com/micro/go-micro/v2/cmd"
 )
 
 func init() {

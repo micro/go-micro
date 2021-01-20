@@ -3,7 +3,7 @@ package grpc
 import (
 	"time"
 
-	"github.com/asim/go-micro/v3/config/source"
+	"github.com/micro/go-micro/v2/config/source"
 	proto "github.com/micro/go-micro/plugins/config/source/grpc/v2/proto"
 )
 

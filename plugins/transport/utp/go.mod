@@ -7,5 +7,5 @@ require (
 	github.com/anacrolix/sync v0.2.0 // indirect
 	github.com/anacrolix/utp v0.0.0-20180219060659-9e0e1d1d0572
 	github.com/bradfitz/iter v0.0.0-20191230175014-e8f45d346db8 // indirect
-	github.com/asim/go-micro/v3 v2.9.2-0.20201226154210-35d72660c801
+	github.com/micro/go-micro/v2 v2.9.2-0.20201226154210-35d72660c801
 )
