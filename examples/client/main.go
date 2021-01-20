@@ -5,9 +5,9 @@ import (
 
 	"context"
 	example "github.com/micro/go-micro/examples/server/proto/example"
-	"github.com/micro/go-micro/v2"
-	"github.com/micro/go-micro/v2/client"
-	"github.com/micro/go-micro/v2/metadata"
+	"github.com/asim/go-micro/v3"
+	"github.com/asim/go-micro/v3/client"
+	"github.com/asim/go-micro/v3/metadata"
 )
 
 // publishes a message

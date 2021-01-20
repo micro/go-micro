@@ -5,8 +5,8 @@ import (
 	"io"
 	"io/ioutil"
 
+	"github.com/asim/go-micro/v3/codec"
 	"github.com/golang/protobuf/proto"
-	"github.com/micro/go-micro/v2/codec"
 )
 
 type Codec struct {

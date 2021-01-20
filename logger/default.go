@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	dlog "github.com/micro/go-micro/v2/debug/log"
+	dlog "github.com/asim/go-micro/v3/debug/log"
 )
 
 func init() {

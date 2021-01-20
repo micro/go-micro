@@ -2,8 +2,8 @@
 package proxy
 
 import (
-	"github.com/micro/go-micro/v2/client"
-	"github.com/micro/go-micro/v2/network/router"
+	"github.com/asim/go-micro/v3/client"
+	"github.com/asim/go-micro/v3/network/router"
 )
 
 type Options struct {

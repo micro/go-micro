@@ -9,8 +9,8 @@ import (
 
 	"github.com/gorilla/websocket"
 	proto "github.com/micro/go-micro/examples/stream/server/proto"
-	"github.com/micro/go-micro/v2/client"
-	"github.com/micro/go-micro/v2/web"
+	"github.com/asim/go-micro/v3/client"
+	"github.com/asim/go-micro/v3/web"
 )
 
 var upgrader = websocket.Upgrader{

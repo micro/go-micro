@@ -6,8 +6,8 @@ import (
 
 	"context"
 	proto "github.com/micro/go-micro/examples/service/proto"
-	"github.com/micro/go-micro/v2"
-	"github.com/micro/go-micro/v2/server"
+	"github.com/asim/go-micro/v3"
+	"github.com/asim/go-micro/v3/server"
 )
 
 type Greeter struct{}

@@ -18,10 +18,10 @@ import (
 	"github.com/micro/go-micro/examples/booking/srv/geo/proto"
 	"github.com/micro/go-micro/examples/booking/srv/profile/proto"
 	"github.com/micro/go-micro/examples/booking/srv/rate/proto"
-	"github.com/micro/go-micro/v2"
-	"github.com/micro/go-micro/v2/client"
-	merr "github.com/micro/go-micro/v2/errors"
-	"github.com/micro/go-micro/v2/metadata"
+	"github.com/asim/go-micro/v3"
+	"github.com/asim/go-micro/v3/client"
+	merr "github.com/asim/go-micro/v3/errors"
+	"github.com/asim/go-micro/v3/metadata"
 )
 
 const (

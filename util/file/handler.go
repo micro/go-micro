@@ -6,10 +6,10 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/micro/go-micro/v2/errors"
-	"github.com/micro/go-micro/v2/logger"
-	"github.com/micro/go-micro/v2/server"
-	proto "github.com/micro/go-micro/v2/util/file/proto"
+	"github.com/asim/go-micro/v3/errors"
+	"github.com/asim/go-micro/v3/logger"
+	"github.com/asim/go-micro/v3/server"
+	proto "github.com/asim/go-micro/v3/util/file/proto"
 	"golang.org/x/net/context"
 )
 

@@ -10,10 +10,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/asim/go-micro/v3/api/handler"
+	proto "github.com/asim/go-micro/v3/api/proto"
+	"github.com/asim/go-micro/v3/util/ctx"
 	"github.com/google/uuid"
-	"github.com/micro/go-micro/v2/api/handler"
-	proto "github.com/micro/go-micro/v2/api/proto"
-	"github.com/micro/go-micro/v2/util/ctx"
 	"github.com/oxtoacart/bpool"
 )
 

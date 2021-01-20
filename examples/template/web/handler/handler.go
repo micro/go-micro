@@ -7,7 +7,7 @@ import (
 	"time"
 
 	example "github.com/micro/go-micro/examples/template/srv/proto/example"
-	"github.com/micro/go-micro/v2/client"
+	"github.com/asim/go-micro/v3/client"
 )
 
 func ExampleCall(w http.ResponseWriter, r *http.Request) {

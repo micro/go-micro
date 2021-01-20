@@ -4,11 +4,11 @@ import (
 	"log"
 
 	proto "github.com/micro/go-micro/examples/api/rpc/proto"
-	"github.com/micro/go-micro/v2"
-	"github.com/micro/go-micro/v2/api"
-	rapi "github.com/micro/go-micro/v2/api/handler/api"
-	"github.com/micro/go-micro/v2/api/handler/rpc"
-	"github.com/micro/go-micro/v2/errors"
+	"github.com/asim/go-micro/v3"
+	"github.com/asim/go-micro/v3/api"
+	rapi "github.com/asim/go-micro/v3/api/handler/api"
+	"github.com/asim/go-micro/v3/api/handler/rpc"
+	"github.com/asim/go-micro/v3/errors"
 
 	"context"
 )

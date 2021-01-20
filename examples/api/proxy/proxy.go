@@ -5,8 +5,8 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/micro/go-micro/v2/errors"
-	"github.com/micro/go-micro/v2/web"
+	"github.com/asim/go-micro/v3/errors"
+	"github.com/asim/go-micro/v3/web"
 )
 
 // exampleCall will handle /example/call

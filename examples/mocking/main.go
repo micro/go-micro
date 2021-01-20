@@ -7,7 +7,7 @@ import (
 	"github.com/micro/cli/v2"
 	proto "github.com/micro/go-micro/examples/helloworld/proto"
 	"github.com/micro/go-micro/examples/mocking/mock"
-	"github.com/micro/go-micro/v2"
+	"github.com/asim/go-micro/v3"
 )
 
 func main() {

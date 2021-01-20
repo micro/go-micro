@@ -5,7 +5,7 @@ import (
 
 	proto "github.com/micro/go-micro/examples/greeter/api/rpc/proto/hello"
 	hello "github.com/micro/go-micro/examples/greeter/srv/proto/hello"
-	"github.com/micro/go-micro/v2"
+	"github.com/asim/go-micro/v3"
 
 	"context"
 )

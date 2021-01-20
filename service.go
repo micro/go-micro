@@ -7,17 +7,17 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/micro/go-micro/v2/client"
-	"github.com/micro/go-micro/v2/cmd"
-	"github.com/micro/go-micro/v2/debug/handler"
-	"github.com/micro/go-micro/v2/debug/stats"
-	"github.com/micro/go-micro/v2/debug/trace"
-	"github.com/micro/go-micro/v2/logger"
-	"github.com/micro/go-micro/v2/plugins"
-	"github.com/micro/go-micro/v2/server"
-	"github.com/micro/go-micro/v2/store"
-	signalutil "github.com/micro/go-micro/v2/util/signal"
-	"github.com/micro/go-micro/v2/util/wrapper"
+	"github.com/asim/go-micro/v3/client"
+	"github.com/asim/go-micro/v3/cmd"
+	"github.com/asim/go-micro/v3/debug/handler"
+	"github.com/asim/go-micro/v3/debug/stats"
+	"github.com/asim/go-micro/v3/debug/trace"
+	"github.com/asim/go-micro/v3/logger"
+	"github.com/asim/go-micro/v3/plugins"
+	"github.com/asim/go-micro/v3/server"
+	"github.com/asim/go-micro/v3/store"
+	signalutil "github.com/asim/go-micro/v3/util/signal"
+	"github.com/asim/go-micro/v3/util/wrapper"
 )
 
 type service struct {

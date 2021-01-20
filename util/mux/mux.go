@@ -5,10 +5,10 @@ import (
 	"context"
 	"sync"
 
-	"github.com/micro/go-micro/v2/client"
-	"github.com/micro/go-micro/v2/debug/handler"
-	"github.com/micro/go-micro/v2/network/proxy"
-	"github.com/micro/go-micro/v2/server"
+	"github.com/asim/go-micro/v3/client"
+	"github.com/asim/go-micro/v3/debug/handler"
+	"github.com/asim/go-micro/v3/network/proxy"
+	"github.com/asim/go-micro/v3/server"
 )
 
 // Server is a proxy muxer that incudes the use of the DefaultHandler

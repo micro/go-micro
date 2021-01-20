@@ -6,8 +6,8 @@ import (
 	"encoding/gob"
 	"time"
 
+	utls "github.com/asim/go-micro/v3/util/tls"
 	quic "github.com/lucas-clemente/quic-go"
-	utls "github.com/micro/go-micro/v2/util/tls"
 )
 
 type quicSocket struct {

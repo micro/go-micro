@@ -4,7 +4,7 @@ import (
 	"context"
 
 	proto "github.com/micro/go-micro/examples/helloworld/proto"
-	"github.com/micro/go-micro/v2/client"
+	"github.com/asim/go-micro/v3/client"
 )
 
 type mockGreeterService struct {

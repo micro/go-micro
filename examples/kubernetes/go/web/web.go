@@ -1,8 +1,8 @@
 package web
 
 import (
-	"github.com/micro/go-micro/v2"
-	"github.com/micro/go-micro/v2/web"
+	"github.com/asim/go-micro/v3"
+	"github.com/asim/go-micro/v3/web"
 	"github.com/micro/go-plugins/registry/kubernetes/v2"
 	// static selector offloads load balancing to k8s services
 	// enable with MICRO_SELECTOR=static or --selector=static

@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-import "github.com/micro/go-micro/v2/api/proto/api.proto";
+import "github.com/asim/go-micro/v3/api/proto/api.proto";
 
 service Example {
 	rpc Call(go.api.Request) returns(go.api.Response) {};

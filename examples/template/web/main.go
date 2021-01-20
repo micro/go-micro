@@ -4,8 +4,8 @@ import (
 	"net/http"
 
 	"github.com/micro/go-micro/examples/template/web/handler"
-	"github.com/micro/go-micro/v2/util/log"
-	"github.com/micro/go-micro/v2/web"
+	"github.com/asim/go-micro/v3/util/log"
+	"github.com/asim/go-micro/v3/web"
 )
 
 func main() {

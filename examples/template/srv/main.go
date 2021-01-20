@@ -3,8 +3,8 @@ package main
 import (
 	"github.com/micro/go-micro/examples/template/srv/handler"
 	"github.com/micro/go-micro/examples/template/srv/subscriber"
-	"github.com/micro/go-micro/v2"
-	"github.com/micro/go-micro/v2/util/log"
+	"github.com/asim/go-micro/v3"
+	"github.com/asim/go-micro/v3/util/log"
 
 	example "github.com/micro/go-micro/examples/template/srv/proto/example"
 )

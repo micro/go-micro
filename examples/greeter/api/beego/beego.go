@@ -8,8 +8,8 @@ import (
 	bctx "github.com/astaxie/beego/context"
 
 	hello "github.com/micro/go-micro/examples/greeter/srv/proto/hello"
-	"github.com/micro/go-micro/v2/client"
-	"github.com/micro/go-micro/v2/web"
+	"github.com/asim/go-micro/v3/client"
+	"github.com/asim/go-micro/v3/web"
 )
 
 type Say struct{}

@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/micro/go-micro/v2/registry"
+	"github.com/asim/go-micro/v3/registry"
 )
 
 func TestRoundTripper(t *testing.T) {

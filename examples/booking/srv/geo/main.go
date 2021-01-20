@@ -11,8 +11,8 @@ import (
 	"context"
 	"golang.org/x/net/trace"
 
-	"github.com/micro/go-micro/v2"
-	"github.com/micro/go-micro/v2/metadata"
+	"github.com/asim/go-micro/v3"
+	"github.com/asim/go-micro/v3/metadata"
 )
 
 const (

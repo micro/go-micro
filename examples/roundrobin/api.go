@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	hello "github.com/micro/go-micro/examples/greeter/srv/proto/hello"
-	"github.com/micro/go-micro/v2"
-	"github.com/micro/go-micro/v2/errors"
+	"github.com/asim/go-micro/v3"
+	"github.com/asim/go-micro/v3/errors"
 	roundrobin "github.com/micro/go-plugins/wrapper/select/roundrobin/v2"
 	api "github.com/micro/micro/v2/api/proto"
 

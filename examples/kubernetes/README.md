@@ -54,7 +54,7 @@ Write a service as you would any other [go-micro](https://github.com/micro/go-mi
 
 ```go
 import (
-	"github.com/micro/go-micro/v2"
+	"github.com/asim/go-micro/v3"
 	k8s "github.com/micro/go-micro/examples/kubernetes/go/micro"
 )
 
@@ -137,7 +137,7 @@ Write a web service as you would any other [go-micro/web](https://github.com/mic
 import (
 	"net/http"
 
-	"github.com/micro/go-micro/v2/web"
+	"github.com/asim/go-micro/v3/web"
 	k8s "github.com/micro/go-micro/examples/kubernetes/go/web"
 )
 

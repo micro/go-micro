@@ -2,8 +2,8 @@
 package config
 
 import (
-	"github.com/micro/go-micro/v2/config"
-	"github.com/micro/go-micro/v2/config/source/env"
+	"github.com/asim/go-micro/v3/config"
+	"github.com/asim/go-micro/v3/config/source/env"
 	"github.com/micro/go-plugins/config/source/configmap/v2"
 )
 

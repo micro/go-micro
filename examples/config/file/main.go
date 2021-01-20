@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 
-	"github.com/micro/go-micro/v2/config"
-	"github.com/micro/go-micro/v2/config/source/file"
+	"github.com/asim/go-micro/v3/config"
+	"github.com/asim/go-micro/v3/config/source/file"
 )
 
 func main() {
