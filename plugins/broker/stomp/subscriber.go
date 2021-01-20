@@ -2,7 +2,7 @@ package stomp
 
 import (
 	"github.com/go-stomp/stomp"
-	"github.com/micro/go-micro/v2/broker"
+	"github.com/asim/go-micro/v3/broker"
 )
 
 type subscriber struct {

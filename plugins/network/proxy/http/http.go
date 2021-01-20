@@ -10,9 +10,9 @@ import (
 	"net/url"
 	"path"
 
-	"github.com/micro/go-micro/v2/errors"
-	"github.com/micro/go-micro/v2/network/proxy"
-	"github.com/micro/go-micro/v2/server"
+	"github.com/asim/go-micro/v3/errors"
+	"github.com/asim/go-micro/v3/network/proxy"
+	"github.com/asim/go-micro/v3/server"
 )
 
 // Proxy will proxy rpc requests as http POST requests. It is a server.Proxy

@@ -8,7 +8,7 @@ import (
 
 	cetcd "github.com/coreos/etcd/clientv3"
 	"github.com/coreos/etcd/mvcc/mvccpb"
-	"github.com/micro/go-micro/v2/config/source"
+	"github.com/asim/go-micro/v3/config/source"
 )
 
 // Currently a single etcd reader

@@ -3,9 +3,9 @@ package shard
 import (
 	"strings"
 
-	"github.com/micro/go-micro/v2/client"
-	"github.com/micro/go-micro/v2/selector"
-	"github.com/micro/go-micro/v2/registry"
+	"github.com/asim/go-micro/v3/client"
+	"github.com/asim/go-micro/v3/selector"
+	"github.com/asim/go-micro/v3/registry"
 	"github.com/minio/highwayhash"
 )
 

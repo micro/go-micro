@@ -3,7 +3,7 @@ package pkger
 import (
 	"strings"
 
-	"github.com/micro/go-micro/v2/config/encoder"
+	"github.com/asim/go-micro/v3/config/encoder"
 )
 
 func format(p string, e encoder.Encoder) string {

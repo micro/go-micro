@@ -1,8 +1,8 @@
-module github.com/micro/go-micro/plugins/broker/sqs/v2
+module github.com/asim/go-micro/plugins/broker/sqs/v3
 
 go 1.13
 
 require (
 	github.com/aws/aws-sdk-go v1.28.4
-	github.com/micro/go-micro/v2 v2.9.1
+	github.com/asim/go-micro/v3 v3.0.0-20210120135431-d94936f6c97c
 )

@@ -2,9 +2,8 @@
 package mdns
 
 import (
-	"github.com/micro/go-micro/v2/cmd"
-	"github.com/micro/go-micro/v2/registry"
-	"github.com/micro/go-micro/v2/registry/mdns"
+	"github.com/asim/go-micro/v3/cmd"
+	"github.com/asim/go-micro/v3/registry"
 )
 
 func init() {
@@ -16,7 +15,3 @@ func NewRegistry(opts ...registry.Option) registry.Registry {
 	return registry.NewRegistry(opts...)
 }
 
-// Domain sets the mdnsDomain
-func Domain(d string) registry.Option {
-	return mdns.Domain(d)
-}

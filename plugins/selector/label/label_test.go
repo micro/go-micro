@@ -3,9 +3,9 @@ package label
 import (
 	"testing"
 
-	"github.com/micro/go-micro/v2/selector"
-	"github.com/micro/go-micro/v2/registry"
-	"github.com/micro/go-micro/v2/registry/memory"
+	"github.com/asim/go-micro/v3/selector"
+	"github.com/asim/go-micro/v3/registry"
+	"github.com/asim/go-micro/plugins/registry/memory/v3"
 )
 
 func TestPrioritiseFunc(t *testing.T) {
