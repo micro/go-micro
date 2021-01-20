@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	proto "github.com/micro/go-micro/examples/service/proto"
-	"github.com/micro/go-micro/v2"
-	"github.com/micro/go-micro/v2/metadata"
+	"github.com/asim/go-micro/v3"
+	"github.com/asim/go-micro/v3/metadata"
 )
 
 type Greeter struct{}

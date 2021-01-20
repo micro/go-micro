@@ -5,8 +5,8 @@ import (
 
 	"context"
 	proto "github.com/micro/go-micro/examples/service/proto"
-	"github.com/micro/go-micro/v2"
-	"github.com/micro/go-micro/v2/client"
+	"github.com/asim/go-micro/v3"
+	"github.com/asim/go-micro/v3/client"
 )
 
 // log wrapper logs every time a request is made

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/micro/go-micro/v2/store"
+	"github.com/asim/go-micro/v3/store"
 	"github.com/patrickmn/go-cache"
 	"github.com/pkg/errors"
 )

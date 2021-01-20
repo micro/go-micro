@@ -9,11 +9,11 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/micro/go-micro/v2/broker"
-	"github.com/micro/go-micro/v2/codec"
-	"github.com/micro/go-micro/v2/metadata"
-	"github.com/micro/go-micro/v2/registry"
-	"github.com/micro/go-micro/v2/server"
+	"github.com/asim/go-micro/v3/broker"
+	"github.com/asim/go-micro/v3/codec"
+	"github.com/asim/go-micro/v3/metadata"
+	"github.com/asim/go-micro/v3/registry"
+	"github.com/asim/go-micro/v3/server"
 )
 
 const (

@@ -6,9 +6,9 @@ import (
 	"strings"
 
 	hello "github.com/micro/go-micro/examples/greeter/srv/proto/hello"
-	"github.com/micro/go-micro/v2"
-	api "github.com/micro/go-micro/v2/api/proto"
-	"github.com/micro/go-micro/v2/errors"
+	"github.com/asim/go-micro/v3"
+	api "github.com/asim/go-micro/v3/api/proto"
+	"github.com/asim/go-micro/v3/errors"
 
 	"context"
 )

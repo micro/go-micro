@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/micro/go-micro/v2/logger"
-	"github.com/micro/go-micro/v2/transport"
+	"github.com/asim/go-micro/v3/logger"
+	"github.com/asim/go-micro/v3/transport"
 )
 
 // session is our pseudo session for transport.Socket

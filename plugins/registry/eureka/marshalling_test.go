@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/hudl/fargo"
-	"github.com/micro/go-micro/v2/registry"
+	"github.com/asim/go-micro/v3/registry"
 )
 
 func TestServiceToInstance(t *testing.T) {

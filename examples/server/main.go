@@ -5,8 +5,8 @@ import (
 
 	"github.com/micro/go-micro/examples/server/handler"
 	"github.com/micro/go-micro/examples/server/subscriber"
-	"github.com/micro/go-micro/v2/config/cmd"
-	"github.com/micro/go-micro/v2/server"
+	"github.com/asim/go-micro/v3/config/cmd"
+	"github.com/asim/go-micro/v3/server"
 )
 
 func main() {

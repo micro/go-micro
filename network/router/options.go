@@ -1,9 +1,9 @@
 package router
 
 import (
+	"github.com/asim/go-micro/v3/client"
+	"github.com/asim/go-micro/v3/registry"
 	"github.com/google/uuid"
-	"github.com/micro/go-micro/v2/client"
-	"github.com/micro/go-micro/v2/registry"
 )
 
 // Options are router options

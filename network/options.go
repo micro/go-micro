@@ -1,13 +1,13 @@
 package network
 
 import (
+	"github.com/asim/go-micro/v3/network/proxy"
+	"github.com/asim/go-micro/v3/network/proxy/mucp"
+	"github.com/asim/go-micro/v3/network/resolver"
+	"github.com/asim/go-micro/v3/network/resolver/registry"
+	"github.com/asim/go-micro/v3/network/router"
+	"github.com/asim/go-micro/v3/network/tunnel"
 	"github.com/google/uuid"
-	"github.com/micro/go-micro/v2/network/proxy"
-	"github.com/micro/go-micro/v2/network/proxy/mucp"
-	"github.com/micro/go-micro/v2/network/resolver"
-	"github.com/micro/go-micro/v2/network/resolver/registry"
-	"github.com/micro/go-micro/v2/network/router"
-	"github.com/micro/go-micro/v2/network/tunnel"
 )
 
 type Option func(*Options)

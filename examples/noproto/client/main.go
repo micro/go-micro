@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/micro/go-micro/v2"
-	"github.com/micro/go-micro/v2/client"
+	"github.com/asim/go-micro/v3"
+	"github.com/asim/go-micro/v3/client"
 )
 
 func main() {

@@ -4,9 +4,9 @@ import (
 	"github.com/99designs/gqlgen/handler"
 	gql "github.com/micro/go-micro/examples/greeter/api/graphql/graphql"
 	helloProto "github.com/micro/go-micro/examples/greeter/srv/proto/hello"
-	"github.com/micro/go-micro/v2/client"
-	"github.com/micro/go-micro/v2/util/log"
-	"github.com/micro/go-micro/v2/web"
+	"github.com/asim/go-micro/v3/client"
+	"github.com/asim/go-micro/v3/util/log"
+	"github.com/asim/go-micro/v3/web"
 )
 
 func main() {

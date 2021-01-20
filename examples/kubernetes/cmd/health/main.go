@@ -7,11 +7,11 @@ import (
 	"os"
 
 	"github.com/micro/cli/v2"
-	"github.com/micro/go-micro/v2/client"
-	gcli "github.com/micro/go-micro/v2/client/grpc"
-	"github.com/micro/go-micro/v2/config/cmd"
-	proto "github.com/micro/go-micro/v2/debug/service/proto"
-	"github.com/micro/go-micro/v2/util/log"
+	"github.com/asim/go-micro/v3/client"
+	gcli "github.com/asim/go-micro/v3/client/grpc"
+	"github.com/asim/go-micro/v3/config/cmd"
+	proto "github.com/asim/go-micro/v3/debug/service/proto"
+	"github.com/asim/go-micro/v3/util/log"
 	_ "github.com/micro/go-plugins/registry/kubernetes/v2"
 )
 

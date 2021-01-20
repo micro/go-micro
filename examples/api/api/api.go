@@ -7,9 +7,9 @@ import (
 	"strings"
 
 	proto "github.com/micro/go-micro/examples/api/api/proto"
-	"github.com/micro/go-micro/v2"
-	api "github.com/micro/go-micro/v2/api/proto"
-	"github.com/micro/go-micro/v2/errors"
+	"github.com/asim/go-micro/v3"
+	api "github.com/asim/go-micro/v3/api/proto"
+	"github.com/asim/go-micro/v3/errors"
 )
 
 type Example struct{}

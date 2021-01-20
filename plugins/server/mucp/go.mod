@@ -2,4 +2,4 @@ module github.com/micro/go-micro/plugins/server/mucp/v2
 
 go 1.15
 
-require github.com/micro/go-micro/v2 v2.9.2-0.20201226154210-35d72660c801
+require github.com/asim/go-micro/v3 v2.9.2-0.20201226154210-35d72660c801

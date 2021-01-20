@@ -7,9 +7,9 @@ import (
 	"time"
 
 	metrics "github.com/VictoriaMetrics/metrics"
-	"github.com/micro/go-micro/v2/client"
-	"github.com/micro/go-micro/v2/registry"
-	"github.com/micro/go-micro/v2/server"
+	"github.com/asim/go-micro/v3/client"
+	"github.com/asim/go-micro/v3/registry"
+	"github.com/asim/go-micro/v3/server"
 )
 
 var (

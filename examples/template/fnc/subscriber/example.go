@@ -3,7 +3,7 @@ package subscriber
 import (
 	"context"
 
-	"github.com/micro/go-micro/v2/util/log"
+	"github.com/asim/go-micro/v3/util/log"
 
 	example "github.com/micro/go-micro/examples/template/fnc/proto/example"
 )

@@ -5,11 +5,11 @@ import (
 	"os"
 	"testing"
 
+	"github.com/asim/go-micro/v3"
+	"github.com/asim/go-micro/v3/cmd"
+	"github.com/asim/go-micro/v3/config"
+	"github.com/asim/go-micro/v3/config/source"
 	"github.com/micro/cli/v2"
-	"github.com/micro/go-micro/v2"
-	"github.com/micro/go-micro/v2/cmd"
-	"github.com/micro/go-micro/v2/config"
-	"github.com/micro/go-micro/v2/config/source"
 )
 
 func TestCliSourceDefault(t *testing.T) {

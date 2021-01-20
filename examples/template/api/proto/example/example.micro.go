@@ -6,14 +6,14 @@ package go_micro_api_template
 import (
 	fmt "fmt"
 	proto "github.com/golang/protobuf/proto"
-	proto1 "github.com/micro/go-micro/v2/api/proto"
+	proto1 "github.com/asim/go-micro/v3/api/proto"
 	math "math"
 )
 
 import (
 	context "context"
-	client "github.com/micro/go-micro/v2/client"
-	server "github.com/micro/go-micro/v2/server"
+	client "github.com/asim/go-micro/v3/client"
+	server "github.com/asim/go-micro/v3/server"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.

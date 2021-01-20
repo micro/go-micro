@@ -10,16 +10,16 @@ import (
 	"sync"
 	"time"
 
-	"github.com/micro/go-micro/v2/client"
-	"github.com/micro/go-micro/v2/codec"
-	"github.com/micro/go-micro/v2/codec/bytes"
-	"github.com/micro/go-micro/v2/errors"
-	"github.com/micro/go-micro/v2/logger"
-	"github.com/micro/go-micro/v2/metadata"
-	"github.com/micro/go-micro/v2/network/proxy"
-	"github.com/micro/go-micro/v2/network/router"
-	"github.com/micro/go-micro/v2/selector"
-	"github.com/micro/go-micro/v2/server"
+	"github.com/asim/go-micro/v3/client"
+	"github.com/asim/go-micro/v3/codec"
+	"github.com/asim/go-micro/v3/codec/bytes"
+	"github.com/asim/go-micro/v3/errors"
+	"github.com/asim/go-micro/v3/logger"
+	"github.com/asim/go-micro/v3/metadata"
+	"github.com/asim/go-micro/v3/network/proxy"
+	"github.com/asim/go-micro/v3/network/router"
+	"github.com/asim/go-micro/v3/selector"
+	"github.com/asim/go-micro/v3/server"
 )
 
 // Proxy will transparently proxy requests to an endpoint.

@@ -3,9 +3,9 @@ package mucp
 import (
 	"context"
 
-	"github.com/micro/go-micro/v2/cmd"
-	"github.com/micro/go-micro/v2/config/source"
-	log "github.com/micro/go-micro/v2/logger"
+	"github.com/asim/go-micro/v3/cmd"
+	"github.com/asim/go-micro/v3/config/source"
+	log "github.com/asim/go-micro/v3/logger"
 	proto "github.com/micro/go-micro/plugins/config/source/mucp/v2/proto"
 )
 

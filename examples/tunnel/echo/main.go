@@ -7,8 +7,8 @@ import (
 	"os"
 
 	"github.com/google/uuid"
-	"github.com/micro/go-micro/v2/transport"
-	"github.com/micro/go-micro/v2/tunnel"
+	"github.com/asim/go-micro/v3/transport"
+	"github.com/asim/go-micro/v3/tunnel"
 )
 
 var (

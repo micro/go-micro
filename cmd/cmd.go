@@ -9,19 +9,19 @@ import (
 
 	"github.com/micro/cli/v2"
 
-	"github.com/micro/go-micro/v2/auth"
-	"github.com/micro/go-micro/v2/broker"
-	"github.com/micro/go-micro/v2/client"
-	"github.com/micro/go-micro/v2/config"
-	"github.com/micro/go-micro/v2/debug/profile"
-	"github.com/micro/go-micro/v2/debug/trace"
-	"github.com/micro/go-micro/v2/logger"
-	"github.com/micro/go-micro/v2/registry"
-	"github.com/micro/go-micro/v2/runtime"
-	"github.com/micro/go-micro/v2/selector"
-	"github.com/micro/go-micro/v2/server"
-	"github.com/micro/go-micro/v2/store"
-	"github.com/micro/go-micro/v2/transport"
+	"github.com/asim/go-micro/v3/auth"
+	"github.com/asim/go-micro/v3/broker"
+	"github.com/asim/go-micro/v3/client"
+	"github.com/asim/go-micro/v3/config"
+	"github.com/asim/go-micro/v3/debug/profile"
+	"github.com/asim/go-micro/v3/debug/trace"
+	"github.com/asim/go-micro/v3/logger"
+	"github.com/asim/go-micro/v3/registry"
+	"github.com/asim/go-micro/v3/runtime"
+	"github.com/asim/go-micro/v3/selector"
+	"github.com/asim/go-micro/v3/server"
+	"github.com/asim/go-micro/v3/store"
+	"github.com/asim/go-micro/v3/transport"
 )
 
 type Cmd interface {

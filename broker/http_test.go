@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/asim/go-micro/v3/broker"
+	"github.com/asim/go-micro/v3/registry"
 	"github.com/google/uuid"
-	"github.com/micro/go-micro/v2/broker"
-	"github.com/micro/go-micro/v2/registry"
 )
 
 var (

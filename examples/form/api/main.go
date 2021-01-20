@@ -9,9 +9,9 @@ import (
 	"strings"
 
 	proto "github.com/micro/go-micro/examples/form/api/proto"
-	"github.com/micro/go-micro/v2"
-	api "github.com/micro/go-micro/v2/api/proto"
-	"github.com/micro/go-micro/v2/util/log"
+	"github.com/asim/go-micro/v3"
+	api "github.com/asim/go-micro/v3/api/proto"
+	"github.com/asim/go-micro/v3/util/log"
 )
 
 type Form struct{}
