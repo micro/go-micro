@@ -3,8 +3,8 @@ package grpc
 import (
 	"time"
 
-	"github.com/micro/go-micro/v2/config/source"
-	proto "github.com/micro/go-micro/plugins/config/source/grpc/v2/proto"
+	"github.com/asim/go-micro/v3/config/source"
+	proto "github.com/asim/go-micro/plugins/config/source/grpc/v3/proto"
 )
 
 func toChangeSet(c *proto.ChangeSet) *source.ChangeSet {

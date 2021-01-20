@@ -27,7 +27,7 @@ require (
 	github.com/grpc-ecosystem/grpc-gateway v1.12.1
 	github.com/hailocab/go-geoindex v0.0.0-20160127134810-64631bfe9711
 	github.com/micro/cli/v2 v2.1.2
-	github.com/asim/go-micro/v3 v2.4.0
+	github.com/asim/go-micro/v3 master
 	github.com/micro/go-plugins/broker/grpc/v2 v2.3.0
 	github.com/micro/go-plugins/client/selector/static/v2 v2.3.0
 	github.com/micro/go-plugins/config/source/configmap/v2 v2.3.0

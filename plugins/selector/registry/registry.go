@@ -2,8 +2,8 @@
 package registry
 
 import (
-	"github.com/micro/go-micro/v2/cmd"
-	"github.com/micro/go-micro/v2/selector"
+	"github.com/asim/go-micro/v3/cmd"
+	"github.com/asim/go-micro/v3/selector"
 )
 
 func init() {

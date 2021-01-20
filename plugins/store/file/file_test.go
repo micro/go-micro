@@ -10,7 +10,7 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/kr/pretty"
-	"github.com/micro/go-micro/v2/store"
+	"github.com/asim/go-micro/v3/store"
 )
 
 func cleanup(db string, s store.Store) {

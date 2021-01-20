@@ -1,7 +1,7 @@
 package mock
 
 import (
-	"github.com/micro/go-micro/v2/client"
+	"github.com/asim/go-micro/v3/client"
 )
 
 // Response sets the response methods for a service

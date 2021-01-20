@@ -5,6 +5,7 @@ go 1.13
 replace github.com/imdario/mergo => github.com/imdario/mergo v0.3.8
 
 require (
+	github.com/Shopify/sarama v1.19.0
 	github.com/bitly/go-simplejson v0.5.0
 	github.com/ef-ds/deque v1.0.4-0.20190904040645-54cb57c252a1
 	github.com/evanphx/json-patch/v5 v5.0.0

@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 
 	"github.com/hashicorp/consul/api"
-	"github.com/micro/go-micro/v2/store"
+	"github.com/asim/go-micro/v3/store"
 )
 
 type ckv struct {
