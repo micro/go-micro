@@ -15,7 +15,7 @@ import (
 
 	"github.com/asim/go-micro/v3/logger"
 	"github.com/asim/go-micro/v3/runtime/local/git"
-	"github.com/hpcloud/tail"
+	"github.com/nxadm/tail"
 )
 
 // defaultNamespace to use if not provided as an option
