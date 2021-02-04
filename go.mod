@@ -11,6 +11,7 @@ require (
 	github.com/evanphx/json-patch/v5 v5.0.0
 	github.com/fsnotify/fsnotify v1.4.9
 	github.com/fsouza/go-dockerclient v1.6.0
+	github.com/ghodss/yaml v1.0.0
 	github.com/go-acme/lego/v3 v3.4.0
 	github.com/go-git/go-git/v5 v5.1.0
 	github.com/gobwas/httphead v0.0.0-20180130184737-2c6c146eadee
@@ -28,6 +29,7 @@ require (
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.4.0
+	gitlab.com/zzjin/go-simpleyaml v0.0.0-20190106201515-dc2847867c08
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 	golang.org/x/net v0.0.0-20200707034311-ab3426394381
 	golang.org/x/sync v0.0.0-20201207232520-09787c993a3a
