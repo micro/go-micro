@@ -2,6 +2,7 @@
 package http
 
 import (
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"net"
@@ -236,7 +237,17 @@ func (h *httpServer) Start() error {
 	hd := h.hd
 	h.Unlock()
 
-	ln, err := net.Listen("tcp", opts.Address)
+	var (
+		ln net.Listener
+		err error
+	)
+
+	if opts.TLSConfig != nil {
+		ln, err = tls.Listen("tcp", opts.Address, opts.TLSConfig)
+	} else {
+		ln, err = net.Listen("tcp", opts.Address)
+	}
+
 	if err != nil {
 		return err
 	}
@@ -289,12 +300,14 @@ func (h *httpServer) Start() error {
 			}
 		}
 
-		ch <- ln.Close()
-
+		
 		// deregister
 		h.Deregister()
 
 		opts.Broker.Disconnect()
+		
+		// Solve the problem of early exit
+		ch <- ln.Close()
 	}()
 
 	return nil
@@ -307,6 +320,9 @@ func (h *httpServer) Stop() error {
 }
 
 func (h *httpServer) String() string {
+	if h.opts.TLSConfig != nil {
+		return "https"
+	}
 	return "http"
 }
 

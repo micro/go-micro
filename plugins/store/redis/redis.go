@@ -1,14 +1,16 @@
 package redis
 
 import (
+	"context"
 	"fmt"
 
-	"github.com/go-redis/redis/v7"
 	log "github.com/asim/go-micro/v3/logger"
 	"github.com/asim/go-micro/v3/store"
+	"github.com/go-redis/redis/v8"
 )
 
 type rkv struct {
+	ctx     context.Context
 	options store.Options
 	Client  *redis.Client
 }
@@ -40,7 +42,7 @@ func (r *rkv) Read(key string, opts ...store.ReadOption) ([]*store.Record, error
 	// TODO suffix
 	if options.Prefix {
 		prefixKey := fmt.Sprintf("%s*", rkey)
-		fkeys, err := r.Client.Keys(prefixKey).Result()
+		fkeys, err := r.Client.Keys(r.ctx, prefixKey).Result()
 		if err != nil {
 			return nil, err
 		}
@@ -55,7 +57,7 @@ func (r *rkv) Read(key string, opts ...store.ReadOption) ([]*store.Record, error
 	records := make([]*store.Record, 0, len(keys))
 
 	for _, rkey = range keys {
-		val, err := r.Client.Get(rkey).Bytes()
+		val, err := r.Client.Get(r.ctx, rkey).Bytes()
 
 		if err != nil && err == redis.Nil {
 			return nil, store.ErrNotFound
@@ -67,7 +69,7 @@ func (r *rkv) Read(key string, opts ...store.ReadOption) ([]*store.Record, error
 			return nil, store.ErrNotFound
 		}
 
-		d, err := r.Client.TTL(rkey).Result()
+		d, err := r.Client.TTL(r.ctx, rkey).Result()
 		if err != nil {
 			return nil, err
 		}
@@ -91,7 +93,7 @@ func (r *rkv) Delete(key string, opts ...store.DeleteOption) error {
 	}
 
 	rkey := fmt.Sprintf("%s%s", options.Table, key)
-	return r.Client.Del(rkey).Err()
+	return r.Client.Del(r.ctx, rkey).Err()
 }
 
 func (r *rkv) Write(record *store.Record, opts ...store.WriteOption) error {
@@ -103,7 +105,7 @@ func (r *rkv) Write(record *store.Record, opts ...store.WriteOption) error {
 	}
 
 	rkey := fmt.Sprintf("%s%s", options.Table, record.Key)
-	return r.Client.Set(rkey, record.Value, record.Expiry).Err()
+	return r.Client.Set(r.ctx, rkey, record.Value, record.Expiry).Err()
 }
 
 func (r *rkv) List(opts ...store.ListOption) ([]string, error) {
@@ -114,7 +116,7 @@ func (r *rkv) List(opts ...store.ListOption) ([]string, error) {
 		o(&options)
 	}
 
-	keys, err := r.Client.Keys("*").Result()
+	keys, err := r.Client.Keys(r.ctx, "*").Result()
 	if err != nil {
 		return nil, err
 	}
@@ -136,8 +138,10 @@ func NewStore(opts ...store.Option) store.Store {
 		o(&options)
 	}
 
-	s := new(rkv)
-	s.options = options
+	s := &rkv{
+		ctx:     context.Background(),
+		options: options,
+	}
 
 	if err := s.configure(); err != nil {
 		log.Fatal(err)

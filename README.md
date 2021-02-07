@@ -1,4 +1,4 @@
-# Go Micro [![License](https://img.shields.io/:license-apache-blue.svg)](https://opensource.org/licenses/Apache-2.0) [![Go.Dev reference](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white&style=flat-square)](https://pkg.go.dev/github.com/asim/go-micro/v3?tab=doc) [![Travis CI](https://api.travis-ci.org/micro/go-micro.svg?branch=master)](https://travis-ci.org/micro/go-micro) [![Go Report Card](https://goreportcard.com/badge/micro/go-micro)](https://goreportcard.com/report/github.com/micro/go-micro) 
+# Go Micro [![License](https://img.shields.io/:license-apache-blue.svg)](https://opensource.org/licenses/Apache-2.0) [![Go.Dev reference](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white&style=flat-square)](https://pkg.go.dev/github.com/asim/go-micro/v3?tab=doc)
 
 Go Micro is a framework for distributed systems development.
 
@@ -65,7 +65,7 @@ service.Init()
 service.Run()
 ```
 
-See the [docs](https://github.com/micro/micro/tree/master/docs/v2) for detailed information on the architecture, installation and use of go-micro.
+See the [examples](https://github.com/micro/go-micro/tree/master/examples) for detailed information on usage.
 
 ## Code Generation
 
@@ -82,8 +82,3 @@ See [plugins](https://github.com/micro/go-micro/tree/master/plugins) directory f
 ## License
 
 Go Micro is Apache 2.0 licensed.
-
-## Upgrade
-
-[Micro](https://github.com/micro/micro) v3 consolidates Go Micro into it as a single unified platform. 
-Please see the [upgrade guide](https://micro.mu/v2-to-v3-upgrade-guide).

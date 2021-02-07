@@ -7,17 +7,19 @@ import (
 	"encoding/json"
 	"errors"
 	"net"
+	"os"
 	"path"
 	"sort"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/coreos/etcd/clientv3"
-	"github.com/coreos/etcd/etcdserver/api/v3rpc/rpctypes"
+	"github.com/asim/go-micro/v3/cmd"
 	"github.com/asim/go-micro/v3/logger"
 	"github.com/asim/go-micro/v3/registry"
 	hash "github.com/mitchellh/hashstructure"
+	"go.etcd.io/etcd/api/v3/v3rpc/rpctypes"
+	"go.etcd.io/etcd/client/v3"
 	"go.uber.org/zap"
 )
 
@@ -34,11 +36,23 @@ type etcdRegistry struct {
 	leases   map[string]clientv3.LeaseID
 }
 
+func init() {
+	cmd.DefaultRegistries["etcd"] = NewRegistry
+}
+
 func NewRegistry(opts ...registry.Option) registry.Registry {
 	e := &etcdRegistry{
 		options:  registry.Options{},
 		register: make(map[string]uint64),
 		leases:   make(map[string]clientv3.LeaseID),
+	}
+	username, password := os.Getenv("ETCD_USERNAME"), os.Getenv("ETCD_PASSWORD")
+	if len(username) > 0 && len(password) > 0 {
+		opts = append(opts, Auth(username, password))
+	}
+	address := os.Getenv("MICRO_REGISTRY_ADDRESS")
+	if len(address) > 0 {
+		opts = append(opts, registry.Addrs(address))
 	}
 	configure(e, opts...)
 	return e
@@ -56,6 +70,7 @@ func configure(e *etcdRegistry, opts ...registry.Option) error {
 	if e.options.Timeout == 0 {
 		e.options.Timeout = 5 * time.Second
 	}
+	config.DialTimeout = e.options.Timeout
 
 	if e.options.Secure || e.options.TLSConfig != nil {
 		tlsConfig := e.options.TLSConfig

@@ -1,11 +1,12 @@
 package redis
 
 import (
-	"github.com/go-redis/redis/v7"
-	"github.com/asim/go-micro/v3/store"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/asim/go-micro/v3/store"
+	"github.com/go-redis/redis/v8"
 )
 
 func Test_rkv_configure(t *testing.T) {
@@ -27,34 +28,34 @@ func Test_rkv_configure(t *testing.T) {
 	}{
 		{name: "No Url", fields: fields{options: store.Options{}, Client: nil},
 			wantErr: false, want: wantValues{
-				username: "",
-				password: "",
-				address:  "127.0.0.1:6379",
-			}},
+			username: "",
+			password: "",
+			address:  "127.0.0.1:6379",
+		}},
 		{name: "legacy Url", fields: fields{options: store.Options{Nodes: []string{"127.0.0.1:6379"}}, Client: nil},
 			wantErr: false, want: wantValues{
-				username: "",
-				password: "",
-				address:  "127.0.0.1:6379",
-			}},
+			username: "",
+			password: "",
+			address:  "127.0.0.1:6379",
+		}},
 		{name: "New Url", fields: fields{options: store.Options{Nodes: []string{"redis://127.0.0.1:6379"}}, Client: nil},
 			wantErr: false, want: wantValues{
-				username: "",
-				password: "",
-				address:  "127.0.0.1:6379",
-			}},
+			username: "",
+			password: "",
+			address:  "127.0.0.1:6379",
+		}},
 		{name: "Url with Pwd", fields: fields{options: store.Options{Nodes: []string{"redis://:password@redis:6379"}}, Client: nil},
 			wantErr: false, want: wantValues{
-				username: "",
-				password: "password",
-				address:  "redis:6379",
-			}},
+			username: "",
+			password: "password",
+			address:  "redis:6379",
+		}},
 		{name: "Url with username and Pwd", fields: fields{options: store.Options{Nodes: []string{"redis://username:password@redis:6379"}}, Client: nil},
 			wantErr: false, want: wantValues{
-				username: "username",
-				password: "password",
-				address:  "redis:6379",
-			}},
+			username: "username",
+			password: "password",
+			address:  "redis:6379",
+		}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

@@ -56,6 +56,8 @@ github.com/apache/thrift v0.12.0/go.mod h1:cp2SuWMxlEZw2r+iP2GNCdIi4C1qmUzdZFSVb
 github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5 h1:0CwZNZbxp69SHPdPJAN/hZIm0C4OItdklCFmMRWYpio=
 github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5/go.mod h1:wHh0iHkYZB8zMSxRWpUBQtwG5a7fFgvEO+odwuTv2gs=
 github.com/asim/go-micro v1.18.0 h1:k/qyLA5R175Vr1Owf90Ms1+J/zhBf/aa8aiHGhk0x5s=
+github.com/asim/go-micro/plugins/registry/memory/v3 v3.0.0-20210202145831-070250155285 h1:zgDzypD412DKHoXIXW1JwIOWoGcjxzI1iF6JmwtyqHw=
+github.com/asim/go-micro/plugins/registry/memory/v3 v3.0.0-20210202145831-070250155285/go.mod h1:AU0vyZvsO1lpuQr/DUG4CnNRvITXqQcJRRAzBATR6Jo=
 github.com/asim/go-micro/v3 v2.9.1 h1:+S9koIrNWARjpP6k2TZ7kt0uC9zUJtNXzIdZTZRms7Q=
 github.com/asim/go-micro/v3 v2.9.1/go.mod h1:x55ZM3Puy0FyvvkR3e0ha0xsE9DFwfPSUMWAIbFY0SY=
 github.com/asim/go-micro/v3 v3.0.0-20210120135431-d94936f6c97c h1:pxZggDV2VJ7aTR7/7xzAJOGam0y8zzrtBgmop1pHAyA=

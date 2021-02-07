@@ -3,11 +3,9 @@ package configmap
 import (
 	"strings"
 
-	// "strings"
-
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/1.5/kubernetes"
+	"k8s.io/client-go/1.5/rest"
+	"k8s.io/client-go/1.5/tools/clientcmd"
 )
 
 func getClient(configPath string) (*kubernetes.Clientset, error) {

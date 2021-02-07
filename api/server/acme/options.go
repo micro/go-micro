@@ -1,6 +1,6 @@
 package acme
 
-import "github.com/go-acme/lego/v3/challenge"
+import "github.com/go-acme/lego/v4/challenge"
 
 // Option (or Options) are passed to New() to configure providers
 type Option func(o *Options)

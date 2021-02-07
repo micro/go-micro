@@ -116,7 +116,7 @@ func (m *memoryStore) set(prefix string, r *Record) {
 
 func (m *memoryStore) delete(prefix, key string) {
 	key = m.key(prefix, key)
-	m.Delete(key)
+	m.store.Delete(key)
 }
 
 func (m *memoryStore) list(prefix string, limit, offset uint) []string {
