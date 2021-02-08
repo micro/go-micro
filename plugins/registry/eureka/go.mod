@@ -3,7 +3,7 @@ module github.com/asim/go-micro/plugins/registry/eureka/v3
 go 1.13
 
 require (
-	github.com/asim/go-micro/v3 v3.0.0-20210120135431-d94936f6c97c
+	github.com/asim/go-micro/v3 v3.5.0
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
 	github.com/clbanning/x2j v0.0.0-20191024224557-825249438eec // indirect
 	github.com/franela/goblin v0.0.0-20200105215937-c9ffbefa60db // indirect

@@ -5,7 +5,7 @@ import (
 	"path"
 
 	"github.com/asim/go-micro/v3/registry"
-	"github.com/samuel/go-zookeeper/zk"
+	"github.com/go-zookeeper/zk"
 )
 
 type zookeeperWatcher struct {
