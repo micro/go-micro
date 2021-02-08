@@ -9,8 +9,7 @@ import (
 	"github.com/asim/go-micro/v3/cmd"
 	log "github.com/asim/go-micro/v3/logger"
 	"github.com/asim/go-micro/v3/registry"
-	"github.com/samuel/go-zookeeper/zk"
-
+	"github.com/go-zookeeper/zk"
 	hash "github.com/mitchellh/hashstructure"
 )
 

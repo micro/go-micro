@@ -1,8 +1,8 @@
 module github.com/asim/go-micro/plugins/registry/memory/v3
 
-go 1.15
+go 1.13
 
 require (
-	github.com/google/uuid v1.1.5
-	github.com/asim/go-micro/v3 v3.0.0-20210120135431-d94936f6c97c
+	github.com/asim/go-micro/v3 v3.5.0
+	github.com/google/uuid v1.2.0
 )
