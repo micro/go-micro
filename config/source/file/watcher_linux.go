@@ -41,7 +41,7 @@ func (w *watcher) Next() (*source.ChangeSet, error) {
 
 	// try get the event
 	select {
-	case event, _ := <-w.fw.Events:
+	case event := <-w.fw.Events:
 		if event.Op == fsnotify.Rename {
 			// check existence of file, and add watch again
 			_, err := os.Stat(event.Name)

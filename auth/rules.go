@@ -83,7 +83,7 @@ func Verify(rules []*Rule, acc *Account, res *Resource) error {
 // not case sensitive.
 func include(slice []string, val string) bool {
 	for _, s := range slice {
-		if strings.ToLower(s) == strings.ToLower(val) {
+		if strings.EqualFold(s, val) {
 			return true
 		}
 	}
