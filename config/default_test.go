@@ -158,7 +158,7 @@ func TestConfigWatcherDirtyOverrite(t *testing.T) {
 	}
 	runtime.Gosched()
 
-	for i, _ := range ss {
+	for i := range ss {
 		k := fmt.Sprintf("key%d", i)
 		v := fmt.Sprintf("val%d", i)
 		equalS(t, conf.Get(k).String(""), v)
