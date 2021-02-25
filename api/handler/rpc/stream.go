@@ -38,7 +38,7 @@ func serveWebsocket(ctx context.Context, w http.ResponseWriter, r *http.Request,
 	}
 
 	hdr := make(http.Header)
-	if proto, ok := r.Header["Sec-WebSocket-Protocol"]; ok {
+	if proto, ok := r.Header["Sec-Websocket-Protocol"]; ok {
 		for _, p := range proto {
 			switch p {
 			case "binary":
