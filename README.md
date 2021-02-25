@@ -65,7 +65,7 @@ service.Init()
 service.Run()
 ```
 
-See the [docs](https://github.com/micro/micro/tree/master/docs/v2) for detailed information on the architecture, installation and use of go-micro.
+See the [examples](https://github.com/micro/go-micro/tree/master/examples) for detailed information on usage.
 
 ## Code Generation
 
