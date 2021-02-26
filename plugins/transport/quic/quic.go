@@ -6,6 +6,7 @@ import (
 	"encoding/gob"
 	"time"
 
+	"github.com/asim/go-micro/v3/transport"
 	utls "github.com/asim/go-micro/v3/util/tls"
 	quic "github.com/lucas-clemente/quic-go"
 )
@@ -18,30 +19,30 @@ type quicSocket struct {
 }
 
 type quicTransport struct {
-	opts Options
+	opts transport.Options
 }
 
 type quicClient struct {
 	*quicSocket
 	t    *quicTransport
-	opts DialOptions
+	opts transport.DialOptions
 }
 
 type quicListener struct {
 	l    quic.Listener
 	t    *quicTransport
-	opts ListenOptions
+	opts transport.ListenOptions
 }
 
 func (q *quicClient) Close() error {
 	return q.quicSocket.st.Close()
 }
 
-func (q *quicSocket) Recv(m *Message) error {
+func (q *quicSocket) Recv(m *transport.Message) error {
 	return q.dec.Decode(&m)
 }
 
-func (q *quicSocket) Send(m *Message) error {
+func (q *quicSocket) Send(m *transport.Message) error {
 	// set the write deadline
 	q.st.SetWriteDeadline(time.Now().Add(time.Second * 10))
 	// send the data
@@ -68,7 +69,7 @@ func (q *quicListener) Close() error {
 	return q.l.Close()
 }
 
-func (q *quicListener) Accept(fn func(Socket)) error {
+func (q *quicListener) Accept(fn func(transport.Socket)) error {
 	for {
 		s, err := q.l.Accept(context.TODO())
 		if err != nil {
@@ -91,19 +92,19 @@ func (q *quicListener) Accept(fn func(Socket)) error {
 	}
 }
 
-func (q *quicTransport) Init(opts ...Option) error {
+func (q *quicTransport) Init(opts ...transport.Option) error {
 	for _, o := range opts {
 		o(&q.opts)
 	}
 	return nil
 }
 
-func (q *quicTransport) Options() Options {
+func (q *quicTransport) Options() transport.Options {
 	return q.opts
 }
 
-func (q *quicTransport) Dial(addr string, opts ...DialOption) (Client, error) {
-	var options DialOptions
+func (q *quicTransport) Dial(addr string, opts ...transport.DialOption) (transport.Client, error) {
+	var options transport.DialOptions
 	for _, o := range opts {
 		o(&options)
 	}
@@ -143,8 +144,8 @@ func (q *quicTransport) Dial(addr string, opts ...DialOption) (Client, error) {
 	}, nil
 }
 
-func (q *quicTransport) Listen(addr string, opts ...ListenOption) (Listener, error) {
-	var options ListenOptions
+func (q *quicTransport) Listen(addr string, opts ...transport.ListenOption) (transport.Listener, error) {
+	var options transport.ListenOptions
 	for _, o := range opts {
 		o(&options)
 	}
@@ -177,8 +178,8 @@ func (q *quicTransport) String() string {
 	return "quic"
 }
 
-func NewQUICTransport(opts ...Option) Transport {
-	options := Options{}
+func NewTransport(opts ...transport.Option) transport.Transport {
+	options := transport.Options{}
 
 	for _, o := range opts {
 		o(&options)
