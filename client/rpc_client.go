@@ -379,7 +379,7 @@ func (r *rpcClient) Call(ctx context.Context, request Request, response interfac
 	} else {
 		// got a deadline so no need to setup context
 		// but we need to set the timeout we pass along
-		opt := WithRequestTimeout(d.Sub(time.Now()))
+		opt := WithRequestTimeout(time.Until(d))
 		opt(&callOpts)
 	}
 

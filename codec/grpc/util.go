@@ -15,7 +15,7 @@ func decode(r io.Reader) (uint8, []byte, error) {
 	header := make([]byte, 5)
 
 	// read the header
-	if _, err := r.Read(header[:]); err != nil {
+	if _, err := r.Read(header); err != nil {
 		return uint8(0), nil, err
 	}
 
@@ -60,7 +60,7 @@ func encode(cf uint8, buf []byte, w io.Writer) error {
 	binary.BigEndian.PutUint32(header[1:], uint32(len(buf)))
 
 	// read the header
-	if _, err := w.Write(header[:]); err != nil {
+	if _, err := w.Write(header); err != nil {
 		return err
 	}
 
