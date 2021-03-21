@@ -91,3 +91,8 @@ See [Slack](https://slack.micro.mu) or [GitHub discussions](https://github.com/a
 
 [Micro v3](https://github.com/micro/micro) consolidates Go Micro into it as a single unified platform. 
 Please see the [upgrade guide](https://micro.mu/v2-to-v3-upgrade-guide).
+
+
+
+
+
