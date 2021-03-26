@@ -57,11 +57,6 @@ func (s *service) Name() string {
 // which parses command line flags. cmd.Init is only called
 // on first Init.
 func (s *service) Init(opts ...Option) {
-	// process options
-	for _, o := range opts {
-		o(&s.opts)
-	}
-
 	s.once.Do(func() {
 		// setup the plugins
 		for _, p := range strings.Split(os.Getenv("MICRO_PLUGIN"), ",") {
@@ -106,6 +101,11 @@ func (s *service) Init(opts ...Option) {
 		name := s.opts.Cmd.App().Name
 		s.opts.Store.Init(store.Table(name))
 	})
+
+	// process options
+	for _, o := range opts {
+		o(&s.opts)
+	}
 }
 
 func (s *service) Options() Options {
