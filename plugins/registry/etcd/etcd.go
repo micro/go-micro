@@ -56,6 +56,7 @@ func configure(e *etcdRegistry, opts ...registry.Option) error {
 	if e.options.Timeout == 0 {
 		e.options.Timeout = 5 * time.Second
 	}
+	config.DialTimeout = e.options.Timeout
 
 	if e.options.Secure || e.options.TLSConfig != nil {
 		tlsConfig := e.options.TLSConfig
