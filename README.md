@@ -87,7 +87,7 @@ Go Micro is Apache 2.0 licensed.
 
 See [Slack](https://slack.micro.mu) or [GitHub discussions](https://github.com/asim/go-micro/discussions)
 
-## Upgrade
+## Platform
 
 [Micro v3](https://github.com/micro/micro) consolidates Go Micro into it as a single unified platform. 
 Please see the [upgrade guide](https://micro.mu/v2-to-v3-upgrade-guide).
