@@ -13,6 +13,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/asim/go-micro/v3/cmd"
 	"github.com/asim/go-micro/v3/logger"
 	"github.com/asim/go-micro/v3/registry"
 	hash "github.com/mitchellh/hashstructure"
@@ -32,6 +33,10 @@ type etcdRegistry struct {
 	sync.RWMutex
 	register map[string]uint64
 	leases   map[string]clientv3.LeaseID
+}
+
+func init() {
+	cmd.DefaultRegistries["etcd"] = NewRegistry
 }
 
 func NewRegistry(opts ...registry.Option) registry.Registry {
