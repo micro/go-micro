@@ -21,10 +21,10 @@ import (
 )
 
 type rpcClient struct {
+	seq  uint64
 	once atomic.Value
 	opts Options
 	pool pool.Pool
-	seq  uint64
 }
 
 func newRpcClient(opt ...Option) Client {
