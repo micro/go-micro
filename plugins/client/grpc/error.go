@@ -33,5 +33,10 @@ func microError(err error) error {
 	}
 
 	// fallback
-	return errors.InternalServerError("go.micro.client", s.Message())
+	return &errors.Error{
+		Id:                   "go.micro.client",
+		Code:                 int32(s.Code()),
+		Detail:               s.Message(),
+		Status:               s.Code().String(),
+	}
 }
