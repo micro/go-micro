@@ -405,6 +405,7 @@ func (g *grpcServer) processRequest(stream grpc.ServerStream, service *service, 
 				// micro.Error now proto based and we can attach it to grpc status
 				statusCode = microError(verr)
 				statusDesc = verr.Error()
+				verr.Detail = strings.ToValidUTF8(verr.Detail, "")
 				errStatus, err = status.New(statusCode, statusDesc).WithDetails(verr)
 				if err != nil {
 					return err
@@ -477,6 +478,7 @@ func (g *grpcServer) processStream(stream grpc.ServerStream, service *service, m
 			// micro.Error now proto based and we can attach it to grpc status
 			statusCode = microError(verr)
 			statusDesc = verr.Error()
+			verr.Detail = strings.ToValidUTF8(verr.Detail, "")
 			errStatus, err = status.New(statusCode, statusDesc).WithDetails(verr)
 			if err != nil {
 				return err
