@@ -59,7 +59,10 @@ func (r *Response) Into(data interface{}) error {
 }
 
 func (r *Response) Close() error {
-	return r.res.Body.Close()
+	if r.res != nil {
+		return r.res.Body.Close()
+	}
+	return nil
 }
 
 func newResponse(res *http.Response, err error) *Response {
