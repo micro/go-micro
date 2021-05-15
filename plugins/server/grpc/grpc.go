@@ -915,7 +915,10 @@ func (g *grpcServer) Start() error {
 		}
 
 		// return error chan
-		var ch chan error
+		var (
+			err error
+			ch  chan error
+		)
 
 	Loop:
 		for {
@@ -959,18 +962,18 @@ func (g *grpcServer) Start() error {
 			g.srv.Stop()
 		}
 
-		// close transport
-		ch <- nil
-
 		if logger.V(logger.InfoLevel, logger.DefaultLogger) {
 			logger.Infof("Broker [%s] Disconnected from %s", config.Broker.String(), config.Broker.Address())
 		}
 		// disconnect broker
-		if err := config.Broker.Disconnect(); err != nil {
+		if err = config.Broker.Disconnect(); err != nil {
 			if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
 				logger.Errorf("Broker [%s] disconnect error: %v", config.Broker.String(), err)
 			}
 		}
+
+		// close transport
+		ch <- err
 	}()
 
 	// mark the server as started
