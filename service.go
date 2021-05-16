@@ -168,17 +168,14 @@ func (s *service) Stop() error {
 	return err
 }
 
-func (s *service) Run() error {
+func (s *service) Run() (err error) {
 	// register the debug handler
-	err := s.opts.Server.Handle(
+	s.opts.Server.Handle(
 		s.opts.Server.NewHandler(
 			handler.NewHandler(s.opts.Client),
 			server.InternalHandler(true),
 		),
 	)
-	if err != nil {
-		return err
-	}
 
 	// start the profiler
 	if s.opts.Profile != nil {
