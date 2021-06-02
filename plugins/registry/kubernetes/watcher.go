@@ -155,11 +155,7 @@ func (k *k8sWatcher) handleEvent(event watch.Event) {
 
 		for _, result := range results {
 			// pod isnt running
-<<<<<<< HEAD
 			if pod.Status.Phase != podRunning || pod.Metadata.DeletionTimestamp != "" {
-=======
-			if pod.Status.Phase != podRunning || pod.Meta.DeletionTimestamp != "" {
->>>>>>> upstream/master
 				result.Action = "delete"
 			}
 			k.next <- result
