@@ -25,6 +25,7 @@ type Meta struct {
 	Name        string             `json:"name,omitempty"`
 	Labels      map[string]*string `json:"labels,omitempty"`
 	Annotations map[string]*string `json:"annotations,omitempty"`
+	DeletionTimestamp    string    `json:"deletionTimestamp,omitempty"`
 }
 
 // Status ...
