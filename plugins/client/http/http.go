@@ -11,18 +11,19 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/asim/go-micro/v3/broker"
 	"github.com/asim/go-micro/v3/client"
-	"github.com/asim/go-micro/v3/selector"
+	"github.com/asim/go-micro/v3/cmd"
 	"github.com/asim/go-micro/v3/codec"
 	raw "github.com/asim/go-micro/v3/codec/bytes"
-	"github.com/asim/go-micro/v3/cmd"
 	errors "github.com/asim/go-micro/v3/errors"
 	"github.com/asim/go-micro/v3/metadata"
 	"github.com/asim/go-micro/v3/registry"
+	"github.com/asim/go-micro/v3/selector"
 	"github.com/asim/go-micro/v3/transport"
 )
 
@@ -106,13 +107,22 @@ func (h *httpClient) call(ctx context.Context, node *registry.Node, req client.R
 	buf := &buffer{bytes.NewBuffer(b)}
 	defer buf.Close()
 
+	// start with / or not
+	endpoint := req.Endpoint()
+	if !strings.HasPrefix(endpoint, "/") {
+		endpoint = "/" + endpoint
+	}
+	rawurl := "http://" + address + endpoint
+
+	// parse rawurl
+	URL, err := url.Parse(rawurl)
+	if err != nil {
+		return errors.InternalServerError("go.micro.client", err.Error())
+	}
+
 	hreq := &http.Request{
-		Method: "POST",
-		URL: &url.URL{
-			Scheme: "http",
-			Host:   address,
-			Path:   req.Endpoint(),
-		},
+		Method:        "POST",
+		URL:           URL,
 		Header:        header,
 		Body:          buf,
 		ContentLength: int64(len(b)),
