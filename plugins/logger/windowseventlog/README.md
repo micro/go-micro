@@ -6,7 +6,7 @@
 
 Before the first use, it is necessary to initialize the registrar with administrator rights.
 
-The __NewLogger__ function tries to create an event source named src in the parameters (or by default), but this may not happen, so for proper initialization it is recommended to use the __Init__ function, which returns an error.
+The __NewLogger__ function tries to create an event source named __src in the options__ (or by default), but this may not happen, so for proper initialization it is recommended to use the __Init__ function, which returns an error.
 ```go
 func Init() {
   l := windowseventlog.NewLogger(windowseventlog.WithSrc("test src"), logger.WithEid(1000))
