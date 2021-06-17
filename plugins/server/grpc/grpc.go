@@ -842,12 +842,14 @@ func (g *grpcServer) Start() error {
 	config := g.Options()
 
 	// micro: config.Transport.Listen(config.Address)
-	var ts net.Listener
+	var (
+		ts net.Listener
+		err error
+	)
 
 	if l := g.getListener(); l != nil {
 		ts = l
 	} else {
-		var err error
 
 		// check the tls config for secure connect
 		if tc := config.TLSConfig; tc != nil {
