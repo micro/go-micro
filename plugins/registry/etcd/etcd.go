@@ -37,13 +37,17 @@ type etcdRegistry struct {
 
 func NewRegistry(opts ...registry.Option) registry.Registry {
 	e := &etcdRegistry{
-		options:  registry.Options{Addrs: []string{os.Getenv("MICRO_REGISTRY_ADDRESS")}},
+		options:  registry.Options{},
 		register: make(map[string]uint64),
 		leases:   make(map[string]clientv3.LeaseID),
 	}
 	username, password := os.Getenv("ETCD_USERNAME"), os.Getenv("ETCD_PASSWORD")
 	if len(username) > 0 && len(password) > 0 {
 		opts = append(opts, Auth(username, password))
+	}
+	address := os.Getenv("MICRO_REGISTRY_ADDRESS")
+	if len(address) > 0 {
+		opts = append(opts, registry.Addrs(address))
 	}
 	configure(e, opts...)
 	return e
