@@ -6,3 +6,5 @@ require (
 	github.com/asim/go-micro/v3 v3.5.1
 	github.com/nacos-group/nacos-sdk-go/v2 v2.0.0-Alpha.1
 )
+
+replace github.com/asim/go-micro/v3 => ../../../../go-micro

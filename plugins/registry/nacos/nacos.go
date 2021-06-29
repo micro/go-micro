@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/asim/go-micro/v3/cmd"
-
 	"github.com/asim/go-micro/v3/registry"
 	"github.com/nacos-group/nacos-sdk-go/v2/clients"
 	"github.com/nacos-group/nacos-sdk-go/v2/clients/naming_client"

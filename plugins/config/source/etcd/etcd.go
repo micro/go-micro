@@ -6,9 +6,9 @@ import (
 	"net"
 	"time"
 
-	cetcd "github.com/coreos/etcd/clientv3"
-	"github.com/coreos/etcd/mvcc/mvccpb"
 	"github.com/asim/go-micro/v3/config/source"
+	"go.etcd.io/etcd/api/v3/mvccpb"
+	"go.etcd.io/etcd/client/v3"
 )
 
 // Currently a single etcd reader
@@ -16,7 +16,7 @@ type etcd struct {
 	prefix      string
 	stripPrefix string
 	opts        source.Options
-	client      *cetcd.Client
+	client      *clientv3.Client
 	cerr        error
 }
 
@@ -29,7 +29,7 @@ func (c *etcd) Read() (*source.ChangeSet, error) {
 		return nil, c.cerr
 	}
 
-	rsp, err := c.client.Get(context.Background(), c.prefix, cetcd.WithPrefix())
+	rsp, err := c.client.Get(context.Background(), c.prefix, clientv3.WithPrefix())
 	if err != nil {
 		return nil, err
 	}
@@ -110,7 +110,7 @@ func NewSource(opts ...source.Option) source.Source {
 		dialTimeout = 3 * time.Second // default dial timeout
 	}
 
-	config := cetcd.Config{
+	config := clientv3.Config{
 		Endpoints:   endpoints,
 		DialTimeout: dialTimeout,
 	}
@@ -122,7 +122,7 @@ func NewSource(opts ...source.Option) source.Source {
 	}
 
 	// use default config
-	client, err := cetcd.New(config)
+	client, err := clientv3.New(config)
 
 	prefix := DefaultPrefix
 	sp := ""

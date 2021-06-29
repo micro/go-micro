@@ -6,9 +6,9 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/asim/go-micro/v3/broker"
-	segmentio "github.com/asim/go-micro/plugins/broker/segmentio/v3"
+	"github.com/asim/go-micro/plugins/broker/segmentio/v3"
 	segjson "github.com/asim/go-micro/plugins/codec/segmentio/v3"
+	"github.com/asim/go-micro/v3/broker"
 )
 
 func BenchmarkSegmentioCodecJsonPublish(b *testing.B) {
