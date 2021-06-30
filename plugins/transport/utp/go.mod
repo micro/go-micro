@@ -7,7 +7,7 @@ require (
 	github.com/anacrolix/missinggo v1.3.0 // indirect
 	github.com/anacrolix/sync v0.4.0 // indirect
 	github.com/anacrolix/utp v0.1.0
-	github.com/asim/go-micro/v3 v3.5.2-0.20210629124054-4929a7c16ecc
+	github.com/asim/go-micro/v3 v3.5.2-0.20210630062103-c13bb07171bc
 )
 
 replace github.com/asim/go-micro/v3 => ../../../../go-micro
