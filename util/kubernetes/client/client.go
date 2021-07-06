@@ -64,15 +64,15 @@ func (c *client) Create(r *Resource, opts ...CreateOption) error {
 	if err := renderTemplate(r.Kind, b, r.Value); err != nil {
 		return err
 	}
-
-	return api.NewRequest(c.opts).
+	resp := api.NewRequest(c.opts).
 		Post().
 		SetHeader("Content-Type", "application/yaml").
 		Namespace(options.Namespace).
 		Resource(r.Kind).
 		Body(b).
-		Do().
-		Error()
+		Do()
+	resp.Close()
+	return resp.Error()
 }
 
 var (
@@ -160,8 +160,9 @@ func (c *client) Update(r *Resource, opts ...UpdateOption) error {
 	default:
 		return errors.New("unsupported resource")
 	}
-
-	return req.Do().Error()
+	resp := req.Do()
+	resp.Close()
+	return resp.Error()
 }
 
 // Delete removes API object
@@ -172,14 +173,14 @@ func (c *client) Delete(r *Resource, opts ...DeleteOption) error {
 	for _, o := range opts {
 		o(&options)
 	}
-
-	return api.NewRequest(c.opts).
+	resp := api.NewRequest(c.opts).
 		Delete().
 		Resource(r.Kind).
 		Name(r.Name).
 		Namespace(options.Namespace).
-		Do().
-		Error()
+		Do()
+	resp.Close()
+	return resp.Error()
 }
 
 // List lists API objects and stores the result in r
