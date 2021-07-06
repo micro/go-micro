@@ -1,5 +1,7 @@
 syntax = "proto3";
 
+option go_package = "../greeter";
+
 import "google/api/annotations.proto";
 
 service Greeter {
