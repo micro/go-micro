@@ -54,7 +54,7 @@ import (
 
 	"github.com/asim/go-micro/cmd/protoc-gen-micro/v3/generator"
 	_ "github.com/asim/go-micro/cmd/protoc-gen-micro/v3/plugin/micro"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 )
 
 func main() {
