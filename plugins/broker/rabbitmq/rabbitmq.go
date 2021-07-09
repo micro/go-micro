@@ -162,6 +162,47 @@ func (r *rbroker) Publish(topic string, msg *broker.Message, opts ...broker.Publ
 		if value, ok := options.Context.Value(priorityKey{}).(uint8); ok {
 			m.Priority = value
 		}
+
+		if value, ok := options.Context.Value(contentType{}).(string); ok {
+			m.ContentType = value
+		}
+
+		if value, ok := options.Context.Value(contentEncoding{}).(string); ok {
+			m.ContentEncoding = value
+		}
+
+		if value, ok := options.Context.Value(correlationID{}).(string); ok {
+			m.CorrelationId = value
+		}
+
+		if value, ok := options.Context.Value(replyTo{}).(string); ok {
+			m.ReplyTo = value
+		}
+
+		if value, ok := options.Context.Value(expiration{}).(string); ok {
+			m.Expiration = value
+		}
+
+		if value, ok := options.Context.Value(messageID{}).(string); ok {
+			m.MessageId = value
+		}
+
+		if value, ok := options.Context.Value(timestamp{}).(time.Time); ok {
+			m.Timestamp = value
+		}
+
+		if value, ok := options.Context.Value(typeMsg{}).(string); ok {
+			m.Type = value
+		}
+
+		if value, ok := options.Context.Value(userID{}).(string); ok {
+			m.UserId = value
+		}
+
+		if value, ok := options.Context.Value(appID{}).(string); ok {
+			m.AppId = value
+		}
+
 	}
 
 	for k, v := range msg.Header {

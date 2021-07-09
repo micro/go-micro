@@ -5,10 +5,10 @@ import (
 	"time"
 
 	"github.com/asim/go-micro/v3/config/source"
-	v12 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/fields"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/1.5/kubernetes"
+	"k8s.io/client-go/1.5/pkg/api"
+	"k8s.io/client-go/1.5/pkg/fields"
+	"k8s.io/client-go/1.5/tools/cache"
 )
 
 type watcher struct {
@@ -17,7 +17,7 @@ type watcher struct {
 	namespace string
 	client    *kubernetes.Clientset
 	st        cache.Store
-	ct        cache.Controller
+	ct        *cache.Controller
 	ch        chan *source.ChangeSet
 
 	exit chan bool
@@ -35,10 +35,10 @@ func newWatcher(n, ns string, c *kubernetes.Clientset, opts source.Options) (sou
 		stop:      make(chan struct{}),
 	}
 
-	lw := cache.NewListWatchFromClient(w.client.CoreV1().RESTClient(), "configmaps", w.namespace, fields.OneTermEqualSelector("metadata.name", w.name))
+	lw := cache.NewListWatchFromClient(w.client.CoreClient.RESTClient, "configmaps", w.namespace, fields.OneTermEqualSelector("metadata.name", w.name))
 	st, ct := cache.NewInformer(
 		lw,
-		&v12.ConfigMap{},
+		&api.ConfigMap{},
 		time.Second*30,
 		cache.ResourceEventHandlerFuncs{
 			UpdateFunc: w.handle,
@@ -58,7 +58,7 @@ func (w *watcher) handle(oldCmp interface{}, newCmp interface{}) {
 		return
 	}
 
-	data := makeMap(newCmp.(*v12.ConfigMap).Data)
+	data := makeMap(newCmp.(*api.ConfigMap).Data)
 
 	b, err := w.opts.Encoder.Encode(data)
 	if err != nil {
@@ -69,7 +69,7 @@ func (w *watcher) handle(oldCmp interface{}, newCmp interface{}) {
 		Format:    w.opts.Encoder.String(),
 		Source:    w.name,
 		Data:      b,
-		Timestamp: newCmp.(*v12.ConfigMap).CreationTimestamp.Time,
+		Timestamp: newCmp.(*api.ConfigMap).CreationTimestamp.Time,
 	}
 	cs.Checksum = cs.Sum()
 

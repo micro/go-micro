@@ -191,7 +191,7 @@ func (c *kregistry) GetService(name string, opts ...registry.GetOption) ([]*regi
 
 	// loop through items
 	for _, pod := range pods.Items {
-		if pod.Status.Phase != podRunning {
+		if pod.Status.Phase != podRunning || pod.Metadata.DeletionTimestamp != "" {
 			continue
 		}
 		// get serialised service from annotation
@@ -235,7 +235,7 @@ func (c *kregistry) ListServices(opts ...registry.ListOption) ([]*registry.Servi
 	svcs := make(map[string]bool)
 
 	for _, pod := range pods.Items {
-		if pod.Status.Phase != podRunning {
+		if pod.Status.Phase != podRunning || pod.Metadata.DeletionTimestamp != "" {
 			continue
 		}
 		for k, v := range pod.Metadata.Annotations {

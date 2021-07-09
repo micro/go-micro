@@ -6,10 +6,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/golang/protobuf/proto"
-	pb "github.com/golang/protobuf/protoc-gen-go/descriptor"
 	"github.com/asim/go-micro/cmd/protoc-gen-micro/v3/generator"
 	options "google.golang.org/genproto/googleapis/api/annotations"
+	"google.golang.org/protobuf/proto"
+	pb "google.golang.org/protobuf/types/descriptorpb"
 )
 
 // Paths for packages used by code generated in this file,
@@ -150,7 +150,7 @@ func (g *micro) generateService(file *generator.FileDescriptor, service *pb.Serv
 	g.P("return []*", apiPkg, ".Endpoint{")
 	for _, method := range service.Method {
 		if method.Options != nil && proto.HasExtension(method.Options, options.E_Http) {
-			g.P("&", apiPkg, ".Endpoint{")
+			g.P("{")
 			g.generateEndpoint(servName, method)
 			g.P("},")
 		}
@@ -275,10 +275,7 @@ func (g *micro) generateEndpoint(servName string, method *pb.MethodDescriptorPro
 		return
 	}
 	// http rules
-	r, err := proto.GetExtension(method.Options, options.E_Http)
-	if err != nil {
-		return
-	}
+	r := proto.GetExtension(method.Options, options.E_Http)
 	rule := r.(*options.HttpRule)
 	var meth string
 	var path string

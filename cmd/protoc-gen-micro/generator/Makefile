@@ -31,7 +31,7 @@
 
 include $(GOROOT)/src/Make.inc
 
-TARG=github.com/golang/protobuf/compiler/generator
+TARG=github.com/golang/protobuf/protoc-gen-go/generator
 GOFILES=\
 	generator.go\
 

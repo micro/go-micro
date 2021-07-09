@@ -1,15 +1,22 @@
 package hystrix
 
 import (
-	"testing"
-
+	"context"
+	"fmt"
 	"github.com/afex/hystrix-go/hystrix"
+	"github.com/asim/go-micro/plugins/registry/memory/v3"
 	"github.com/asim/go-micro/v3/client"
 	"github.com/asim/go-micro/v3/selector"
-	"github.com/asim/go-micro/plugins/registry/memory/v3"
-
-	"context"
+	"testing"
 )
+
+func fallbackEvent() func(error) error {
+	return func(err error) error {
+		// You can set up webhook event messages here
+		fmt.Println("publish event message")
+		return err
+	}
+}
 
 func TestBreaker(t *testing.T) {
 	// setup
@@ -20,7 +27,7 @@ func TestBreaker(t *testing.T) {
 		// set the selector
 		client.Selector(s),
 		// add the breaker wrapper
-		client.Wrap(NewClientWrapper()),
+		client.Wrap(NewClientWrapper(fallbackEvent())),
 	)
 
 	req := c.NewRequest("test.service", "Test.Method", map[string]string{

@@ -11,7 +11,7 @@ go get github.com/asim/go-micro/cmd/protoc-gen-micro/v3
 Also required: 
 
 - [protoc](https://github.com/google/protobuf)
-- [protoc-gen-go](https://github.com/golang/protobuf)
+- [protoc-gen-go](https://google.golang.org/protobuf)
 
 ## Usage
 
