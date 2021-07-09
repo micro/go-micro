@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/JeffreyBool/go-micro/logger"
+	"github.com/asim/go-micro/logger"
 	"github.com/streadway/amqp"
 )
 
