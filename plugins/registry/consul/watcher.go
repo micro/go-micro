@@ -2,8 +2,6 @@ package consul
 
 import (
 	"fmt"
-	"log"
-	"os"
 	"sync"
 
 	"github.com/asim/go-micro/v3/registry"
