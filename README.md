@@ -79,6 +79,10 @@ See [examples](https://github.com/micro/go-micro/tree/master/examples) directory
 
 See [plugins](https://github.com/micro/go-micro/tree/master/plugins) directory for all the plugins.
 
+## Services
+
+See [Micro Cloud](https://m3o.cloud/) for cloud hosted services. 
+
 ## License
 
 Go Micro is Apache 2.0 licensed.
