@@ -1,4 +1,4 @@
-# Go Micro [![License](https://img.shields.io/:license-apache-blue.svg)](https://opensource.org/licenses/Apache-2.0) [![Go.Dev reference](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white&style=flat-square)](https://pkg.go.dev/github.com/asim/go-micro/v3?tab=doc)
+# Go Micro [![License](https://img.shields.io/:license-apache-blue.svg)](https://opensource.org/licenses/Apache-2.0) [![Go.Dev reference](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white&style=flat-square)](https://pkg.go.dev/github.com/asim/go-micro/v3?tab=doc) [![M3O](https://img.shields.io/badge/micro-cloud-orange)](https://m3o.cloud/) [![M3O](https://img.shields.io/badge/micro-slack-red)](https://slack.micro.mu)
 
 Go Micro is a framework for distributed systems development.
 
