@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -443,6 +444,23 @@ func (s *service) Init(opts ...Option) error {
 func (s *service) Run() error {
 	if err := s.start(); err != nil {
 		return err
+	}
+
+	// start the profiler
+	if s.opts.Service.Options().Profile != nil {
+		// to view mutex contention
+		runtime.SetMutexProfileFraction(5)
+		// to view blocking profile
+		runtime.SetBlockProfileRate(1)
+
+		if err := s.opts.Service.Options().Profile.Start(); err != nil {
+			return err
+		}
+		defer func() {
+			if err := s.opts.Service.Options().Profile.Stop(); err != nil {
+				logger.Error(err)
+			}
+		}()
 	}
 
 	if err := s.register(); err != nil {

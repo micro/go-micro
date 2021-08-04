@@ -7,7 +7,6 @@ import (
 	"runtime"
 	"runtime/pprof"
 	"sync"
-	"time"
 
 	"github.com/asim/go-micro/v3/debug/profile"
 )
@@ -17,29 +16,11 @@ type profiler struct {
 
 	sync.Mutex
 	running bool
-	exit    chan bool
 
 	// where the cpu profile is written
 	cpuFile *os.File
 	// where the mem profile is written
 	memFile *os.File
-}
-
-func (p *profiler) writeHeap(f *os.File) {
-	defer f.Close()
-
-	t := time.NewTicker(time.Second * 30)
-	defer t.Stop()
-
-	for {
-		select {
-		case <-t.C:
-			runtime.GC()
-			pprof.WriteHeapProfile(f)
-		case <-p.exit:
-			return
-		}
-	}
 }
 
 func (p *profiler) Start() error {
@@ -50,15 +31,12 @@ func (p *profiler) Start() error {
 		return nil
 	}
 
-	// create exit channel
-	p.exit = make(chan bool)
-
-	cpuFile := filepath.Join("/tmp", "cpu.pprof")
-	memFile := filepath.Join("/tmp", "mem.pprof")
+	cpuFile := filepath.Join(os.TempDir(), "cpu.pprof")
+	memFile := filepath.Join(os.TempDir(), "mem.pprof")
 
 	if len(p.opts.Name) > 0 {
-		cpuFile = filepath.Join("/tmp", p.opts.Name+".cpu.pprof")
-		memFile = filepath.Join("/tmp", p.opts.Name+".mem.pprof")
+		cpuFile = filepath.Join(os.TempDir(), p.opts.Name+".cpu.pprof")
+		memFile = filepath.Join(os.TempDir(), p.opts.Name+".mem.pprof")
 	}
 
 	f1, err := os.Create(cpuFile)
@@ -76,9 +54,6 @@ func (p *profiler) Start() error {
 		return err
 	}
 
-	// write the heap periodically
-	go p.writeHeap(f2)
-
 	// set cpu file
 	p.cpuFile = f1
 	// set mem file
@@ -93,18 +68,19 @@ func (p *profiler) Stop() error {
 	p.Lock()
 	defer p.Unlock()
 
-	select {
-	case <-p.exit:
-		return nil
-	default:
-		close(p.exit)
-		pprof.StopCPUProfile()
-		p.cpuFile.Close()
-		p.running = false
-		p.cpuFile = nil
-		p.memFile = nil
+	if !p.running {
 		return nil
 	}
+
+	pprof.StopCPUProfile()
+	runtime.GC()
+	pprof.WriteHeapProfile(p.memFile)
+	p.cpuFile.Close()
+	p.memFile.Close()
+	p.running = false
+	p.cpuFile = nil
+	p.memFile = nil
+	return nil
 }
 
 func (p *profiler) String() string {
