@@ -12,6 +12,8 @@ import (
 	"github.com/asim/go-micro/v3/client"
 	"github.com/asim/go-micro/v3/config"
 	"github.com/asim/go-micro/v3/debug/profile"
+	"github.com/asim/go-micro/v3/debug/profile/http"
+	"github.com/asim/go-micro/v3/debug/profile/pprof"
 	"github.com/asim/go-micro/v3/debug/trace"
 	"github.com/asim/go-micro/v3/logger"
 	"github.com/asim/go-micro/v3/registry"
@@ -257,7 +259,10 @@ var (
 
 	DefaultAuths = map[string]func(...auth.Option) auth.Auth{}
 
-	DefaultProfiles = map[string]func(...profile.Option) profile.Profile{}
+	DefaultProfiles = map[string]func(...profile.Option) profile.Profile{
+		"http":  http.NewProfile,
+		"pprof": pprof.NewProfile,
+	}
 
 	DefaultConfigs = map[string]func(...config.Option) (config.Config, error){}
 )
