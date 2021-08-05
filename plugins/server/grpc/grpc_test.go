@@ -5,19 +5,21 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/asim/go-micro/v3"
-	bmemory "github.com/asim/go-micro/plugins/broker/memory/v3"
-	"github.com/asim/go-micro/v3/client"
-	gcli "github.com/asim/go-micro/plugins/client/grpc/v3"
-	"github.com/asim/go-micro/v3/errors"
-	rmemory "github.com/asim/go-micro/plugins/registry/memory/v3"
-	"github.com/asim/go-micro/v3/server"
-	gsrv "github.com/asim/go-micro/plugins/server/grpc/v3"
-	tgrpc "github.com/asim/go-micro/plugins/transport/grpc/v3"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/status"
 
+	"github.com/asim/go-micro/v3"
+	"github.com/asim/go-micro/v3/client"
+	"github.com/asim/go-micro/v3/errors"
+	"github.com/asim/go-micro/v3/registry"
+	"github.com/asim/go-micro/v3/server"
+
+	bmemory "github.com/asim/go-micro/plugins/broker/memory/v3"
+	gcli "github.com/asim/go-micro/plugins/client/grpc/v3"
+	rmemory "github.com/asim/go-micro/plugins/registry/memory/v3"
+	gsrv "github.com/asim/go-micro/plugins/server/grpc/v3"
 	pb "github.com/asim/go-micro/plugins/server/grpc/v3/proto"
+	tgrpc "github.com/asim/go-micro/plugins/transport/grpc/v3"
 )
 
 // server is used to implement helloworld.GreeterServer.
@@ -106,21 +108,7 @@ func BenchmarkServer(b *testing.B) {
 
 }
 */
-func TestGRPCServer(t *testing.T) {
-	r := rmemory.NewRegistry()
-	b := bmemory.NewBroker()
-	tr := tgrpc.NewTransport()
-	s := gsrv.NewServer(
-		server.Broker(b),
-		server.Name("foo"),
-		server.Registry(r),
-		server.Transport(tr),
-	)
-	c := gcli.NewClient(
-		client.Registry(r),
-		client.Broker(b),
-		client.Transport(tr),
-	)
+func testGRPCServer(t *testing.T, s server.Server, c client.Client, r registry.Registry) {
 	ctx := context.TODO()
 
 	h := &testServer{}
@@ -200,4 +188,22 @@ func TestGRPCServer(t *testing.T) {
 			t.Fatalf("invalid error received %#+v\n", verr)
 		}
 	}
+}
+
+func TestDefaultGRPCServer(t *testing.T) {
+	r := rmemory.NewRegistry()
+	b := bmemory.NewBroker()
+	tr := tgrpc.NewTransport()
+	s := gsrv.NewServer(
+		server.Broker(b),
+		server.Name("foo"),
+		server.Registry(r),
+		server.Transport(tr),
+	)
+	c := gcli.NewClient(
+		client.Registry(r),
+		client.Broker(b),
+		client.Transport(tr),
+	)
+	testGRPCServer(t, s, c, r)
 }
