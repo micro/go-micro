@@ -9,10 +9,12 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/asim/go-micro/v3"
+	"github.com/asim/go-micro/v3/broker"
 	"github.com/asim/go-micro/v3/client"
 	"github.com/asim/go-micro/v3/errors"
 	"github.com/asim/go-micro/v3/registry"
 	"github.com/asim/go-micro/v3/server"
+	"github.com/asim/go-micro/v3/transport"
 
 	bmemory "github.com/asim/go-micro/plugins/broker/memory/v3"
 	gcli "github.com/asim/go-micro/plugins/client/grpc/v3"
@@ -190,11 +192,33 @@ func testGRPCServer(t *testing.T, s server.Server, c client.Client, r registry.R
 	}
 }
 
-func TestDefaultGRPCServer(t *testing.T) {
+func getTestHarness() (registry.Registry, broker.Broker, transport.Transport) {
 	r := rmemory.NewRegistry()
 	b := bmemory.NewBroker()
 	tr := tgrpc.NewTransport()
+	return r, b, tr
+}
+
+func TestGRPCServer(t *testing.T) {
+	r, b, tr := getTestHarness()
 	s := gsrv.NewServer(
+		server.Broker(b),
+		server.Name("foo"),
+		server.Registry(r),
+		server.Transport(tr),
+	)
+	c := gcli.NewClient(
+		client.Registry(r),
+		client.Broker(b),
+		client.Transport(tr),
+	)
+	testGRPCServer(t, s, c, r)
+}
+
+func TestGRPCServerInitAfterNew(t *testing.T) {
+	r, b, tr := getTestHarness()
+	s := gsrv.NewServer()
+	s.Init(
 		server.Broker(b),
 		server.Name("foo"),
 		server.Registry(r),
