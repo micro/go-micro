@@ -110,7 +110,7 @@ func BenchmarkServer(b *testing.B) {
 
 }
 */
-func testGRPCServer(t *testing.T, s server.Server, c client.Client, r registry.Registry) {
+func testGRPCServer(t *testing.T, s server.Server, c client.Client, r registry.Registry, testRPC bool) {
 	ctx := context.TODO()
 
 	h := &testServer{}
@@ -153,6 +153,10 @@ func testGRPCServer(t *testing.T, s server.Server, c client.Client, r registry.R
 	}
 	if err = pubErr.Publish(ctx, &pb.Request{}); err == nil {
 		t.Fatal("this must return error, as we return error from handler")
+	}
+
+	if !testRPC {
+		return
 	}
 
 	cc, err := grpc.Dial(s.Options().Address, grpc.WithInsecure())
@@ -212,7 +216,7 @@ func TestGRPCServer(t *testing.T) {
 		client.Broker(b),
 		client.Transport(tr),
 	)
-	testGRPCServer(t, s, c, r)
+	testGRPCServer(t, s, c, r, true)
 }
 
 func TestGRPCServerInitAfterNew(t *testing.T) {
@@ -229,5 +233,25 @@ func TestGRPCServerInitAfterNew(t *testing.T) {
 		client.Broker(b),
 		client.Transport(tr),
 	)
-	testGRPCServer(t, s, c, r)
+	testGRPCServer(t, s, c, r, true)
+}
+
+func TestGRPCServerInjectedServer(t *testing.T) {
+	r, b, tr := getTestHarness()
+	srv := grpc.NewServer()
+	s := gsrv.NewServer(
+		gsrv.Server(srv),
+	)
+	s.Init(
+		server.Broker(b),
+		server.Name("foo"),
+		server.Registry(r),
+		server.Transport(tr),
+	)
+	c := gcli.NewClient(
+		client.Registry(r),
+		client.Broker(b),
+		client.Transport(tr),
+	)
+	testGRPCServer(t, s, c, r, false)
 }

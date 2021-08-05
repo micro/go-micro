@@ -20,6 +20,7 @@ type netListener struct{}
 type maxMsgSizeKey struct{}
 type maxConnKey struct{}
 type tlsAuth struct{}
+type grpcServerKey struct{}
 
 // gRPC Codec to be used to encode/decode requests for a given content type
 func Codec(contentType string, c encoding.Codec) server.Option {
@@ -49,6 +50,14 @@ func MaxConn(n int) server.Option {
 // Listener specifies the net.Listener to use instead of the default
 func Listener(l net.Listener) server.Option {
 	return setServerOption(netListener{}, l)
+}
+
+// Server specifies a *grpc.Server to use instead of the default
+// This is for rare use case where user need to expose grpc.Server for
+// customization. Please NOTE however user injected grpcServer doesn't support
+// server Handler abstraction
+func Server(srv *grpc.Server) server.Option {
+	return setServerOption(grpcServerKey{}, srv)
 }
 
 // Options to be used to configure gRPC options
