@@ -1,0 +1,7 @@
+hosts:
+  database:
+    address: 10.0.0.1
+    port: 3306
+  cache:
+    address: 10.0.0.2
+    port: 6379
