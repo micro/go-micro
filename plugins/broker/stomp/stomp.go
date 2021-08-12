@@ -9,10 +9,10 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/go-stomp/stomp"
-	"github.com/go-stomp/stomp/frame"
 	"github.com/asim/go-micro/v3/broker"
 	"github.com/asim/go-micro/v3/cmd"
+	"github.com/go-stomp/stomp/v3"
+	"github.com/go-stomp/stomp/v3/frame"
 )
 
 type rbroker struct {

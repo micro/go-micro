@@ -1,9 +1,11 @@
 module github.com/asim/go-micro/plugins/wrapper/trace/opencensus/v3
 
-go 1.13
+go 1.16
 
 require (
-	github.com/asim/go-micro/v3 v3.0.0-20210120135431-d94936f6c97c
-	go.opencensus.io v0.22.2
-	google.golang.org/genproto v0.0.0-20200115191322-ca5a22157cba
+	github.com/asim/go-micro/v3 v3.5.2-0.20210630062103-c13bb07171bc
+	go.opencensus.io v0.23.0
+	google.golang.org/genproto v0.0.0-20210624195500-8bfb893ecb84
 )
+
+replace github.com/asim/go-micro/v3 => ../../../../../go-micro

@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/asim/go-micro/v3/broker"
-	kafka "github.com/segmentio/kafka-go"
+	"github.com/segmentio/kafka-go"
 )
 
 var (

@@ -1,9 +1,9 @@
 package main
 
 import (
-	"github.com/asim/go-micro/v3/config"
-	"github.com/asim/go-micro/v3/util/log"
 	grpcConfig "github.com/asim/go-micro/plugins/config/source/grpc/v3"
+	"github.com/asim/go-micro/v3/config"
+	log "github.com/asim/go-micro/v3/logger"
 )
 
 type Micro struct {
@@ -37,7 +37,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	log.Logf("Read config: %s", string(conf.Bytes()))
+	log.Infof("Read config: %s", string(conf.Bytes()))
 
 	// watch the config for changes
 	watcher, err := conf.Watch()
@@ -45,7 +45,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	log.Logf("Watching for changes ...")
+	log.Infof("Watching for changes ...")
 
 	for {
 		v, err := watcher.Next()
@@ -53,6 +53,6 @@ func main() {
 			log.Fatal(err)
 		}
 
-		log.Logf("Watching for changes: %v", string(v.Bytes()))
+		log.Infof("Watching for changes: %v", string(v.Bytes()))
 	}
 }

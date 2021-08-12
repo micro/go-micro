@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	cetcd "github.com/coreos/etcd/clientv3"
 	"github.com/asim/go-micro/v3/config/source"
+	"go.etcd.io/etcd/client/v3"
 )
 
 type watcher struct {
@@ -22,7 +22,7 @@ type watcher struct {
 	exit chan bool
 }
 
-func newWatcher(key, strip string, wc cetcd.Watcher, cs *source.ChangeSet, opts source.Options) (source.Watcher, error) {
+func newWatcher(key, strip string, wc clientv3.Watcher, cs *source.ChangeSet, opts source.Options) (source.Watcher, error) {
 	w := &watcher{
 		opts:        opts,
 		name:        "etcd",
@@ -32,14 +32,14 @@ func newWatcher(key, strip string, wc cetcd.Watcher, cs *source.ChangeSet, opts 
 		exit:        make(chan bool),
 	}
 
-	ch := wc.Watch(context.Background(), key, cetcd.WithPrefix())
+	ch := wc.Watch(context.Background(), key, clientv3.WithPrefix())
 
 	go w.run(wc, ch)
 
 	return w, nil
 }
 
-func (w *watcher) handle(evs []*cetcd.Event) {
+func (w *watcher) handle(evs []*clientv3.Event) {
 	w.RLock()
 	data := w.cs.Data
 	w.RUnlock()
@@ -78,7 +78,7 @@ func (w *watcher) handle(evs []*cetcd.Event) {
 	w.ch <- cs
 }
 
-func (w *watcher) run(wc cetcd.Watcher, ch cetcd.WatchChan) {
+func (w *watcher) run(wc clientv3.Watcher, ch clientv3.WatchChan) {
 	for {
 		select {
 		case rsp, ok := <-ch:
