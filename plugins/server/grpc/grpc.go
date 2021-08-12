@@ -119,8 +119,21 @@ func (g *grpcServer) configure(opts ...server.Option) {
 		return
 	}
 
+	// Optionally use injected grpc.Server if there's a one
+	var srv *grpc.Server
+	if srv = g.getGrpcServer(); srv != nil {
+		g.srv = srv
+	}
+
 	for _, o := range opts {
 		o(&g.opts)
+	}
+
+	g.rsvc = nil
+
+	// NOTE: injected grpc.Server doesn't have g.handler registered
+	if srv != nil {
+		return
 	}
 
 	maxMsgSize := g.getMaxMsgSize()
@@ -139,7 +152,6 @@ func (g *grpcServer) configure(opts ...server.Option) {
 		gopts = append(gopts, opts...)
 	}
 
-	g.rsvc = nil
 	g.srv = grpc.NewServer(gopts...)
 }
 
@@ -183,6 +195,18 @@ func (g *grpcServer) getListener() net.Listener {
 
 	if l, ok := g.opts.Context.Value(netListener{}).(net.Listener); ok && l != nil {
 		return l
+	}
+
+	return nil
+}
+
+func (g *grpcServer) getGrpcServer() *grpc.Server {
+	if g.opts.Context == nil {
+		return nil
+	}
+
+	if srv, ok := g.opts.Context.Value(grpcServerKey{}).(*grpc.Server); ok && srv != nil {
+		return srv
 	}
 
 	return nil
@@ -843,7 +867,7 @@ func (g *grpcServer) Start() error {
 
 	// micro: config.Transport.Listen(config.Address)
 	var (
-		ts net.Listener
+		ts  net.Listener
 		err error
 	)
 
