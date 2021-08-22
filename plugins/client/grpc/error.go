@@ -2,7 +2,9 @@ package grpc
 
 import (
 	"github.com/asim/go-micro/v3/errors"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"net/http"
 )
 
 func microError(err error) error {
@@ -33,10 +35,34 @@ func microError(err error) error {
 	}
 
 	// fallback
-	return &errors.Error{
-		Id:                   "go.micro.client",
-		Code:                 int32(s.Code()),
-		Detail:               s.Message(),
-		Status:               s.Code().String(),
+	return errors.New("go.micro.client", s.Message(), microStatusFromGrpcCode(s.Code()))
+}
+
+func microStatusFromGrpcCode(code codes.Code) int32 {
+	switch code {
+	case codes.OK:
+		return http.StatusOK
+	case codes.InvalidArgument:
+		return http.StatusBadRequest
+	case codes.DeadlineExceeded:
+		return http.StatusRequestTimeout
+	case codes.NotFound:
+		return http.StatusNotFound
+	case codes.AlreadyExists:
+		return http.StatusConflict
+	case codes.PermissionDenied:
+		return http.StatusForbidden
+	case codes.Unauthenticated:
+		return http.StatusUnauthorized
+	case codes.FailedPrecondition:
+		return http.StatusPreconditionFailed
+	case codes.Unimplemented:
+		return http.StatusNotImplemented
+	case codes.Internal:
+		return http.StatusInternalServerError
+	case codes.Unavailable:
+		return http.StatusServiceUnavailable
 	}
+
+	return http.StatusInternalServerError
 }
