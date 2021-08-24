@@ -2,6 +2,7 @@ package certmagic
 
 import (
 	"bytes"
+	"context"
 	"encoding/gob"
 	"errors"
 	"fmt"
@@ -9,9 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/caddyserver/certmagic"
 	"github.com/asim/go-micro/v3/store"
 	"github.com/asim/go-micro/v3/sync"
+	"github.com/caddyserver/certmagic"
 )
 
 // File represents a "File" that will be stored in store.Store - the contents and last modified time
@@ -30,7 +31,7 @@ type storage struct {
 	store store.Store
 }
 
-func (s *storage) Lock(key string) error {
+func (s *storage) Lock(ctx context.Context, key string) error {
 	return s.lock.Lock(key, sync.LockTTL(10*time.Minute))
 }
 

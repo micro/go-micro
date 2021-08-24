@@ -9,10 +9,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/asim/go-micro/v3/config"
-	"github.com/asim/go-micro/v3/config/source/file"
-	"github.com/asim/go-micro/v3/util/log"
+	yaml "github.com/asim/go-micro/plugins/config/encoder/yaml/v3"
 	proto "github.com/asim/go-micro/plugins/config/source/grpc/v3/proto"
+	"github.com/asim/go-micro/v3/config"
+	"github.com/asim/go-micro/v3/config/reader"
+	"github.com/asim/go-micro/v3/config/reader/json"
+	"github.com/asim/go-micro/v3/config/source/file"
+	log "github.com/asim/go-micro/v3/logger"
 	grpc "google.golang.org/grpc"
 )
 
@@ -20,11 +23,18 @@ var (
 	mux        sync.RWMutex
 	configMaps = make(map[string]*proto.ChangeSet)
 	apps       = []string{"micro", "extra"}
+	cfg        config.Config
 )
 
 type Service struct{}
 
 func main() {
+	// create config with yaml encoder
+	enc := yaml.NewEncoder()
+	cfg, _ = config.NewConfig(config.WithReader(json.NewReader(
+		reader.WithEncoder(enc),
+	)))
+
 	// load config files
 	err := loadConfigFile()
 	if err != nil {
@@ -39,7 +49,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	log.Logf("configServer started")
+	log.Infof("configServer started")
 	err = service.Serve(ts)
 	if err != nil {
 		log.Fatal(err)
@@ -58,8 +68,6 @@ func (s Service) Read(ctx context.Context, req *proto.ReadRequest) (rsp *proto.R
 		err = fmt.Errorf("[Read] the first path is invalid")
 		return
 	}
-
-	return
 }
 
 func (s Service) Watch(req *proto.WatchRequest, server proto.Source_WatchServer) (err error) {
@@ -68,7 +76,7 @@ func (s Service) Watch(req *proto.WatchRequest, server proto.Source_WatchServer)
 		ChangeSet: getConfig(appName),
 	}
 	if err = server.Send(rsp); err != nil {
-		log.Logf("[Watch] watch files error，%s", err)
+		log.Infof("[Watch] watch files error，%s", err)
 		return err
 	}
 
@@ -77,8 +85,8 @@ func (s Service) Watch(req *proto.WatchRequest, server proto.Source_WatchServer)
 
 func loadConfigFile() (err error) {
 	for _, app := range apps {
-		if err := config.Load(file.NewSource(
-			file.WithPath("./conf/" + app + ".yml"),
+		if err := cfg.Load(file.NewSource(
+			file.WithPath("./conf/" + app + ".yaml"),
 		)); err != nil {
 			log.Fatalf("[loadConfigFile] load files error，%s", err)
 			return err
@@ -86,7 +94,7 @@ func loadConfigFile() (err error) {
 	}
 
 	// watch changes
-	watcher, err := config.Watch()
+	watcher, err := cfg.Watch()
 	if err != nil {
 		log.Fatalf("[loadConfigFile] start watching files error，%s", err)
 		return err
@@ -100,7 +108,7 @@ func loadConfigFile() (err error) {
 				return
 			}
 
-			log.Logf("[loadConfigFile] file change， %s", string(v.Bytes()))
+			log.Infof("[loadConfigFile] file change， %s", string(v.Bytes()))
 		}
 	}()
 
@@ -108,9 +116,9 @@ func loadConfigFile() (err error) {
 }
 
 func getConfig(appName string) *proto.ChangeSet {
-	bytes := config.Get(appName).Bytes()
+	bytes := cfg.Get(appName).Bytes()
 
-	log.Logf("[getConfig] appName，%s", string(bytes))
+	log.Infof("[getConfig] appName，%s", string(bytes))
 	return &proto.ChangeSet{
 		Data:      bytes,
 		Checksum:  fmt.Sprintf("%x", md5.Sum(bytes)),

@@ -38,10 +38,13 @@ func newService(opts ...Option) Service {
 	options.Client = wrapper.TraceCall(serviceName, trace.DefaultTracer, options.Client)
 
 	// wrap the server to provide handler stats
-	options.Server.Init(
+	err := options.Server.Init(
 		server.WrapHandler(wrapper.HandlerStats(stats.DefaultStats)),
 		server.WrapHandler(wrapper.TraceHandler(trace.DefaultTracer)),
 	)
+	if err != nil {
+		logger.Fatal(err)
+	}
 
 	// set opts
 	service.opts = options
@@ -104,7 +107,10 @@ func (s *service) Init(opts ...Option) {
 
 		// Explicitly set the table name to the service name
 		name := s.opts.Cmd.App().Name
-		s.opts.Store.Init(store.Table(name))
+		err := s.opts.Store.Init(store.Table(name))
+		if err != nil {
+			logger.Fatal(err)
+		}
 	})
 }
 
@@ -145,28 +151,24 @@ func (s *service) Start() error {
 }
 
 func (s *service) Stop() error {
-	var gerr error
+	var err error
 
 	for _, fn := range s.opts.BeforeStop {
-		if err := fn(); err != nil {
-			gerr = err
-		}
+		err = fn()
 	}
 
-	if err := s.opts.Server.Stop(); err != nil {
+	if err = s.opts.Server.Stop(); err != nil {
 		return err
 	}
 
 	for _, fn := range s.opts.AfterStop {
-		if err := fn(); err != nil {
-			gerr = err
-		}
+		err = fn()
 	}
 
-	return gerr
+	return err
 }
 
-func (s *service) Run() error {
+func (s *service) Run() (err error) {
 	// register the debug handler
 	s.opts.Server.Handle(
 		s.opts.Server.NewHandler(
@@ -182,17 +184,22 @@ func (s *service) Run() error {
 		// to view blocking profile
 		rtime.SetBlockProfileRate(1)
 
-		if err := s.opts.Profile.Start(); err != nil {
+		if err = s.opts.Profile.Start(); err != nil {
 			return err
 		}
-		defer s.opts.Profile.Stop()
+		defer func() {
+			err = s.opts.Profile.Stop()
+			if err != nil {
+				logger.Error(err)
+			}
+		}()
 	}
 
 	if logger.V(logger.InfoLevel, logger.DefaultLogger) {
 		logger.Infof("Starting [service] %s", s.Name())
 	}
 
-	if err := s.Start(); err != nil {
+	if err = s.Start(); err != nil {
 		return err
 	}
 

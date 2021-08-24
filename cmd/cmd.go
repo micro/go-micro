@@ -7,13 +7,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/micro/cli/v2"
-
 	"github.com/asim/go-micro/v3/auth"
 	"github.com/asim/go-micro/v3/broker"
 	"github.com/asim/go-micro/v3/client"
 	"github.com/asim/go-micro/v3/config"
 	"github.com/asim/go-micro/v3/debug/profile"
+	"github.com/asim/go-micro/v3/debug/profile/http"
+	"github.com/asim/go-micro/v3/debug/profile/pprof"
 	"github.com/asim/go-micro/v3/debug/trace"
 	"github.com/asim/go-micro/v3/logger"
 	"github.com/asim/go-micro/v3/registry"
@@ -22,6 +22,7 @@ import (
 	"github.com/asim/go-micro/v3/server"
 	"github.com/asim/go-micro/v3/store"
 	"github.com/asim/go-micro/v3/transport"
+	"github.com/micro/cli/v2"
 )
 
 type Cmd interface {
@@ -258,7 +259,10 @@ var (
 
 	DefaultAuths = map[string]func(...auth.Option) auth.Auth{}
 
-	DefaultProfiles = map[string]func(...profile.Option) profile.Profile{}
+	DefaultProfiles = map[string]func(...profile.Option) profile.Profile{
+		"http":  http.NewProfile,
+		"pprof": pprof.NewProfile,
+	}
 
 	DefaultConfigs = map[string]func(...config.Option) (config.Config, error){}
 )

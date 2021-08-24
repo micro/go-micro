@@ -300,12 +300,14 @@ func (h *httpServer) Start() error {
 			}
 		}
 
-		ch <- ln.Close()
-
+		
 		// deregister
 		h.Deregister()
 
 		opts.Broker.Disconnect()
+		
+		// Solve the problem of early exit
+		ch <- ln.Close()
 	}()
 
 	return nil

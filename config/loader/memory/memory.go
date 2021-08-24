@@ -140,7 +140,9 @@ func (m *memory) reload() error {
 	}
 
 	// set values
-	m.vals, _ = m.opts.Reader.Values(set)
+	if vals, err := m.opts.Reader.Values(set); err != nil {
+		m.vals = vals
+	}
 	m.snap = &loader.Snapshot{
 		ChangeSet: set,
 		Version:   genVer(),

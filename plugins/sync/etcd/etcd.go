@@ -9,15 +9,15 @@ import (
 	"strings"
 	gosync "sync"
 
-	client "github.com/coreos/etcd/clientv3"
-	cc "github.com/coreos/etcd/clientv3/concurrency"
 	"github.com/asim/go-micro/v3/sync"
+	"go.etcd.io/etcd/client/v3"
+	cc "go.etcd.io/etcd/client/v3/concurrency"
 )
 
 type etcdSync struct {
 	options sync.Options
 	path    string
-	client  *client.Client
+	client  *clientv3.Client
 
 	mtx   gosync.Mutex
 	locks map[string]*etcdLock
@@ -163,7 +163,7 @@ func NewSync(opts ...sync.Option) sync.Sync {
 	}
 
 	// TODO: parse addresses
-	c, err := client.New(client.Config{
+	c, err := clientv3.New(clientv3.Config{
 		Endpoints: endpoints,
 	})
 	if err != nil {
