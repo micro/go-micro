@@ -15,6 +15,7 @@ service Greeter {
 
 message Request {
 	string name = 1;
+	optional string msg = 2;
 }
 
 message Response {
