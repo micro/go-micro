@@ -7,7 +7,7 @@ import (
 
 	"github.com/asim/go-micro/v3"
 	"github.com/asim/go-micro/v3/client"
-	"github.com/micro/cli/v2"
+	"github.com/urfave/cli/v2"
 )
 
 // Bidirectional streams client requests and prints the server stream responses

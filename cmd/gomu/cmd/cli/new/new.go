@@ -10,7 +10,7 @@ import (
 
 	"github.com/asim/go-micro/cmd/gomu/cmd"
 	tmpl "github.com/asim/go-micro/cmd/gomu/cmd/cli/new/template"
-	"github.com/micro/cli/v2"
+	"github.com/urfave/cli/v2"
 )
 
 var flags []cli.Flag = []cli.Flag{

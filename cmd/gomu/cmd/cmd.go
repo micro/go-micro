@@ -5,7 +5,7 @@ import (
 	"os"
 
 	mcmd "github.com/asim/go-micro/v3/cmd"
-	"github.com/micro/cli/v2"
+	"github.com/urfave/cli/v2"
 )
 
 var (

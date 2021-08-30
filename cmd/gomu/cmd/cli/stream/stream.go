@@ -2,7 +2,7 @@ package stream
 
 import (
 	"github.com/asim/go-micro/cmd/gomu/cmd"
-	"github.com/micro/cli/v2"
+	"github.com/urfave/cli/v2"
 )
 
 // NewCommand returns a new stream command.

@@ -17,7 +17,7 @@ import (
 	"github.com/asim/go-micro/v3/server"
 	"github.com/asim/go-micro/v3/store"
 	"github.com/asim/go-micro/v3/transport"
-	"github.com/micro/cli/v2"
+	"github.com/urfave/cli/v2"
 )
 
 // Options for micro service

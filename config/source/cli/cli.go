@@ -10,7 +10,7 @@ import (
 	"github.com/asim/go-micro/v3/cmd"
 	"github.com/asim/go-micro/v3/config/source"
 	"github.com/imdario/mergo"
-	"github.com/micro/cli/v2"
+	"github.com/urfave/cli/v2"
 )
 
 type cliSource struct {
@@ -84,7 +84,7 @@ func (c *cliSource) String() string {
 	return "cli"
 }
 
-// NewSource returns a config source for integrating parsed flags from a micro/cli.Context.
+// NewSource returns a config source for integrating parsed flags from a urfave/cli.Context.
 // Hyphens are delimiters for nesting, and all keys are lowercased. The assumption is that
 // command line flags have already been parsed.
 //
