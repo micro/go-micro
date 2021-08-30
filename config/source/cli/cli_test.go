@@ -31,6 +31,9 @@ func TestCliSourceDefault(t *testing.T) {
 				Name: "test.testlogfile",
 			},
 			&cli.StringFlag{
+				Name: "test.paniconexit0",
+			},
+			&cli.StringFlag{
 				Name:    "flag",
 				Usage:   "It changes something",
 				EnvVars: []string{"flag"},
