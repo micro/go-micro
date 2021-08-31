@@ -13,7 +13,7 @@ import (
 	"github.com/asim/go-micro/v3/debug/stats"
 	"github.com/asim/go-micro/v3/debug/trace"
 	"github.com/asim/go-micro/v3/logger"
-	"github.com/asim/go-micro/v3/plugins"
+	plugin "github.com/asim/go-micro/v3/plugins"
 	"github.com/asim/go-micro/v3/server"
 	"github.com/asim/go-micro/v3/store"
 	signalutil "github.com/asim/go-micro/v3/util/signal"
@@ -169,6 +169,13 @@ func (s *service) Stop() error {
 }
 
 func (s *service) Run() (err error) {
+	// exit when help flag is provided
+	for _, v := range os.Args[1:] {
+		if v == "-h" || v == "--help" {
+			os.Exit(0)
+		}
+	}
+
 	// register the debug handler
 	s.opts.Server.Handle(
 		s.opts.Server.NewHandler(
