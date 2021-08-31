@@ -51,8 +51,15 @@ func (i *Item) Expired() bool {
 
 // NewCache returns a new cache.
 func NewCache(opts ...Option) Cache {
+	options := NewOptions(opts...)
+	items := make(map[string]Item)
+
+	if len(options.Items) > 0 {
+		items = options.Items
+	}
+
 	return &memCache{
-		opts:  NewOptions(opts...),
-		items: make(map[string]Item),
+		opts:  options,
+		items: items,
 	}
 }

@@ -6,14 +6,14 @@ import (
 	"time"
 )
 
+var (
+	ctx context.Context = context.TODO()
+	key string          = "test"
+	val interface{}     = "hello go-micro"
+)
+
 // TestMemCache tests the in-memory cache implementation.
 func TestCache(t *testing.T) {
-	var (
-		ctx context.Context = context.TODO()
-		key string          = "test"
-		val interface{}     = "hello go-micro"
-	)
-
 	t.Run("CacheGetMiss", func(t *testing.T) {
 		if _, _, err := NewCache().Context(ctx).Get(key); err == nil {
 			t.Error("expected to get no value from cache")
@@ -31,19 +31,6 @@ func TestCache(t *testing.T) {
 			t.Errorf("Expected a value, got err: %s", err)
 		} else if a != val {
 			t.Errorf("Expected '%v', got '%v'", val, a)
-		}
-	})
-
-	t.Run("CacheExpiration", func(t *testing.T) {
-		c := NewCache(Expiration(20 * time.Millisecond))
-
-		if err := c.Context(ctx).Put(key, val, 0); err != nil {
-			t.Error(err)
-		}
-
-		<-time.After(25 * time.Millisecond)
-		if _, _, err := c.Context(ctx).Get(key); err == nil {
-			t.Error("expected to get no value from cache")
 		}
 	})
 
@@ -77,7 +64,7 @@ func TestCache(t *testing.T) {
 
 	t.Run("CacheDeleteMiss", func(t *testing.T) {
 		if err := NewCache().Context(ctx).Delete(key); err == nil {
-			t.Error("expected to delete no value from cace")
+			t.Error("expected to delete no value from cache")
 		}
 	})
 
@@ -94,6 +81,31 @@ func TestCache(t *testing.T) {
 
 		if _, _, err := c.Context(ctx).Get(key); err == nil {
 			t.Errorf("Expected error")
+		}
+	})
+}
+
+func TestCacheWithOptions(t *testing.T) {
+	t.Run("CacheWithExpiration", func(t *testing.T) {
+		c := NewCache(Expiration(20 * time.Millisecond))
+
+		if err := c.Context(ctx).Put(key, val, 0); err != nil {
+			t.Error(err)
+		}
+
+		<-time.After(25 * time.Millisecond)
+		if _, _, err := c.Context(ctx).Get(key); err == nil {
+			t.Error("expected to get no value from cache")
+		}
+	})
+
+	t.Run("CacheWithItems", func(t *testing.T) {
+		c := NewCache(Items(map[string]Item{key: {val, 0}}))
+
+		if a, _, err := c.Context(ctx).Get(key); err != nil {
+			t.Errorf("Expected a value, got err: %s", err)
+		} else if a != val {
+			t.Errorf("Expected '%v', got '%v'", val, a)
 		}
 	})
 }

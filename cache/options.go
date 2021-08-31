@@ -5,6 +5,7 @@ import "time"
 // Options represents the options for the cache.
 type Options struct {
 	Expiration time.Duration
+	Items      map[string]Item
 }
 
 // Option manipulates the Options passed.
@@ -17,10 +18,18 @@ func Expiration(d time.Duration) Option {
 	}
 }
 
+// Items initializes the cache with preconfigured items.
+func Items(i map[string]Item) Option {
+	return func(o *Options) {
+		o.Items = i
+	}
+}
+
 // NewOptions returns a new options struct.
 func NewOptions(opts ...Option) Options {
 	options := Options{
 		Expiration: DefaultExpiration,
+		Items:      make(map[string]Item),
 	}
 
 	for _, o := range opts {
