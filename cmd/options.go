@@ -5,6 +5,7 @@ import (
 
 	"github.com/asim/go-micro/v3/auth"
 	"github.com/asim/go-micro/v3/broker"
+	"github.com/asim/go-micro/v3/cache"
 	"github.com/asim/go-micro/v3/client"
 	"github.com/asim/go-micro/v3/config"
 	"github.com/asim/go-micro/v3/debug/profile"
@@ -28,6 +29,7 @@ type Options struct {
 	Registry  *registry.Registry
 	Selector  *selector.Selector
 	Transport *transport.Transport
+	Cache     *cache.Cache
 	Config    *config.Config
 	Client    *client.Client
 	Server    *server.Server
@@ -38,6 +40,7 @@ type Options struct {
 	Profile   *profile.Profile
 
 	Brokers    map[string]func(...broker.Option) broker.Broker
+	Caches     map[string]func(...cache.Option) cache.Cache
 	Configs    map[string]func(...config.Option) (config.Config, error)
 	Clients    map[string]func(...client.Option) client.Client
 	Registries map[string]func(...registry.Option) registry.Registry
@@ -79,6 +82,12 @@ func Version(v string) Option {
 func Broker(b *broker.Broker) Option {
 	return func(o *Options) {
 		o.Broker = b
+	}
+}
+
+func Cache(c *cache.Cache) Option {
+	return func(o *Options) {
+		o.Cache = c
 	}
 }
 
@@ -152,6 +161,13 @@ func Profile(p *profile.Profile) Option {
 func NewBroker(name string, b func(...broker.Option) broker.Broker) Option {
 	return func(o *Options) {
 		o.Brokers[name] = b
+	}
+}
+
+// New cache func
+func NewCache(name string, c func(...cache.Option) cache.Cache) Option {
+	return func(o *Options) {
+		o.Caches[name] = c
 	}
 }
 
