@@ -9,6 +9,9 @@ import (
 var (
 	// DefaultCache is the default cache.
 	DefaultCache Cache = NewCache()
+	// DefaultExpiration is the default duration for items stored in
+	// the cache to expire.
+	DefaultExpiration time.Duration = 0
 
 	// ErrItemExpired is returned in Cache.Get when the item found in the cache
 	// has expired.
@@ -48,13 +51,8 @@ func (i *Item) Expired() bool {
 
 // NewCache returns a new cache.
 func NewCache(opts ...Option) Cache {
-	var options Options
-	for _, o := range opts {
-		o(&options)
-	}
-
 	return &memCache{
-		opts:  options,
+		opts:  NewOptions(opts...),
 		items: make(map[string]Item),
 	}
 }

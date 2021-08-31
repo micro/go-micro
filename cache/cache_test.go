@@ -34,6 +34,19 @@ func TestCache(t *testing.T) {
 		}
 	})
 
+	t.Run("CacheExpiration", func(t *testing.T) {
+		c := NewCache(Expiration(20 * time.Millisecond))
+
+		if err := c.Context(ctx).Put(key, val, 0); err != nil {
+			t.Error(err)
+		}
+
+		<-time.After(25 * time.Millisecond)
+		if _, _, err := c.Context(ctx).Get(key); err == nil {
+			t.Error("expected to get no value from cache")
+		}
+	})
+
 	t.Run("CacheGetExpired", func(t *testing.T) {
 		c := NewCache()
 		e := 20 * time.Millisecond
@@ -48,7 +61,7 @@ func TestCache(t *testing.T) {
 		}
 	})
 
-	t.Run("CacheGetNotExpired", func(t *testing.T) {
+	t.Run("CacheGetValid", func(t *testing.T) {
 		c := NewCache()
 		e := 25 * time.Millisecond
 
