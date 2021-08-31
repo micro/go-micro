@@ -10,7 +10,7 @@ import (
 	"github.com/asim/go-micro/cmd/gomu/cmd/cli/run"
 	"github.com/asim/go-micro/cmd/gomu/cmd/cli/services"
 	"github.com/asim/go-micro/cmd/gomu/cmd/cli/stream"
-	mcli "github.com/micro/cli/v2"
+	mcli "github.com/urfave/cli/v2"
 )
 
 func init() {

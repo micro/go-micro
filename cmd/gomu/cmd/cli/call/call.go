@@ -9,7 +9,7 @@ import (
 	"github.com/asim/go-micro/cmd/gomu/cmd"
 	"github.com/asim/go-micro/v3"
 	"github.com/asim/go-micro/v3/client"
-	"github.com/micro/cli/v2"
+	"github.com/urfave/cli/v2"
 )
 
 // NewCommand returns a new call cli command.

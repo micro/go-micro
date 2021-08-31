@@ -2,7 +2,7 @@ package describe
 
 import (
 	"github.com/asim/go-micro/cmd/gomu/cmd"
-	"github.com/micro/cli/v2"
+	"github.com/urfave/cli/v2"
 )
 
 var flags []cli.Flag = []cli.Flag{

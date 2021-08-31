@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/fsnotify/fsnotify"
-	"github.com/micro/cli/v2"
+	"github.com/urfave/cli/v2"
 )
 
 // NewCommand returns a new run command.
