@@ -67,6 +67,10 @@ service.Run()
 
 See the [examples](https://github.com/micro/go-micro/tree/master/examples) for detailed information on usage.
 
+## Command Line Interface
+
+See [cmd/gomu](https://github.com/asim/go-micro/tree/master/cmd/gomu) for the command line interface.
+
 ## Code Generation
 
 See [cmd/protoc-gen-micro](https://github.com/micro/go-micro/tree/master/cmd/protoc-gen-micro) for protobuf code generation.
