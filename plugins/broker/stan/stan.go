@@ -10,10 +10,10 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/asim/go-micro/v3/broker"
-	"github.com/asim/go-micro/v3/codec/json"
-	"github.com/asim/go-micro/v3/cmd"
-	log "github.com/asim/go-micro/v3/logger"
+	"github.com/chinahtl/go-micro/v3/broker"
+	"github.com/chinahtl/go-micro/v3/codec/json"
+	"github.com/chinahtl/go-micro/v3/cmd"
+	log "github.com/chinahtl/go-micro/v3/logger"
 	stan "github.com/nats-io/stan.go"
 )
 

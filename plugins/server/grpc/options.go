@@ -5,11 +5,11 @@ import (
 	"crypto/tls"
 	"net"
 
-	"github.com/asim/go-micro/v3/broker"
-	"github.com/asim/go-micro/v3/codec"
-	"github.com/asim/go-micro/v3/registry"
-	"github.com/asim/go-micro/v3/server"
-	"github.com/asim/go-micro/v3/transport"
+	"github.com/chinahtl/go-micro/v3/broker"
+	"github.com/chinahtl/go-micro/v3/codec"
+	"github.com/chinahtl/go-micro/v3/registry"
+	"github.com/chinahtl/go-micro/v3/server"
+	"github.com/chinahtl/go-micro/v3/transport"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/encoding"
 )

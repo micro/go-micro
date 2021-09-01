@@ -6,8 +6,8 @@ import (
 	"encoding/gob"
 	"time"
 
-	"github.com/asim/go-micro/v3/transport"
-	utls "github.com/asim/go-micro/v3/util/tls"
+	"github.com/chinahtl/go-micro/v3/transport"
+	utls "github.com/chinahtl/go-micro/v3/util/tls"
 	quic "github.com/lucas-clemente/quic-go"
 )
 

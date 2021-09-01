@@ -3,10 +3,10 @@ package main
 import (
 	"log"
 
-	"github.com/asim/go-micro/examples/v3/server/handler"
-	"github.com/asim/go-micro/examples/v3/server/subscriber"
-	"github.com/asim/go-micro/v3/cmd"
-	"github.com/asim/go-micro/v3/server"
+	"github.com/chinahtl/go-micro/examples/v3/server/handler"
+	"github.com/chinahtl/go-micro/examples/v3/server/subscriber"
+	"github.com/chinahtl/go-micro/v3/cmd"
+	"github.com/chinahtl/go-micro/v3/server"
 )
 
 func main() {

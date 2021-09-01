@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/asim/go-micro/v3/auth"
+	"github.com/chinahtl/go-micro/v3/auth"
 )
 
 func TestGenerate(t *testing.T) {

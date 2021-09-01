@@ -4,17 +4,17 @@ import (
 	"context"
 	"testing"
 
-	"github.com/asim/go-micro/v3/client"
-	"github.com/asim/go-micro/v3/selector"
-	microerr "github.com/asim/go-micro/v3/errors"
-	"github.com/asim/go-micro/plugins/registry/memory/v3"
-	"github.com/asim/go-micro/v3/server"
+	"github.com/chinahtl/go-micro/v3/client"
+	"github.com/chinahtl/go-micro/v3/selector"
+	microerr "github.com/chinahtl/go-micro/v3/errors"
+	"github.com/chinahtl/go-micro/plugins/registry/memory/v3"
+	"github.com/chinahtl/go-micro/v3/server"
 	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/mocktracer"
 	"github.com/stretchr/testify/assert"
 
-	cli "github.com/asim/go-micro/v3/client"
-	srv "github.com/asim/go-micro/v3/server"
+	cli "github.com/chinahtl/go-micro/v3/client"
+	srv "github.com/chinahtl/go-micro/v3/server"
 )
 
 type Test interface {

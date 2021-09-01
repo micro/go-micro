@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"context"
-	example "github.com/asim/go-micro/examples/v3/server/proto/example"
-	"github.com/asim/go-micro/v3"
+	example "github.com/chinahtl/go-micro/examples/v3/server/proto/example"
+	"github.com/chinahtl/go-micro/v3"
 )
 
 // publishes a message

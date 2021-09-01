@@ -4,8 +4,8 @@ import (
 	"context"
 	"sync"
 
-	log "github.com/asim/go-micro/v3/logger"
-	"github.com/asim/go-micro/v3/registry"
+	log "github.com/chinahtl/go-micro/v3/logger"
+	"github.com/chinahtl/go-micro/v3/registry"
 )
 
 type multiRegistry struct {

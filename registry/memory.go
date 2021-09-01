@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/asim/go-micro/v3/logger"
+	"github.com/chinahtl/go-micro/v3/logger"
 	"github.com/google/uuid"
 )
 

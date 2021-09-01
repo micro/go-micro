@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/asim/go-micro/v3/errors"
+	"github.com/chinahtl/go-micro/v3/errors"
 )
 
 func TestClient(t *testing.T) {

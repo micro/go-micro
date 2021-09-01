@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 
-	"github.com/asim/go-micro/v3"
-	"github.com/asim/go-micro/v3/server"
+	"github.com/chinahtl/go-micro/v3"
+	"github.com/chinahtl/go-micro/v3/server"
 )
 
 func main() {

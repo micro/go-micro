@@ -22,10 +22,10 @@ import (
 	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
-	"github.com/asim/go-micro/v3/broker"
-	"github.com/asim/go-micro/v3/codec/json"
-	"github.com/asim/go-micro/v3/cmd"
-	log "github.com/asim/go-micro/v3/logger"
+	"github.com/chinahtl/go-micro/v3/broker"
+	"github.com/chinahtl/go-micro/v3/codec/json"
+	"github.com/chinahtl/go-micro/v3/cmd"
+	log "github.com/chinahtl/go-micro/v3/logger"
 )
 
 type mqttBroker struct {

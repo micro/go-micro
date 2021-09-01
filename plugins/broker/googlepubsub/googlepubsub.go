@@ -8,9 +8,9 @@ import (
 
 	"cloud.google.com/go/pubsub"
 	"github.com/google/uuid"
-	"github.com/asim/go-micro/v3/broker"
-	"github.com/asim/go-micro/v3/cmd"
-	log "github.com/asim/go-micro/v3/logger"
+	"github.com/chinahtl/go-micro/v3/broker"
+	"github.com/chinahtl/go-micro/v3/cmd"
+	log "github.com/chinahtl/go-micro/v3/logger"
 	"google.golang.org/api/option"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

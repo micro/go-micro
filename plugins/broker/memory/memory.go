@@ -9,11 +9,11 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/asim/go-micro/v3/cmd"
-	"github.com/asim/go-micro/v3/broker"
-	"github.com/asim/go-micro/v3/logger"
-	maddr "github.com/asim/go-micro/v3/util/addr"
-	mnet "github.com/asim/go-micro/v3/util/net"
+	"github.com/chinahtl/go-micro/v3/cmd"
+	"github.com/chinahtl/go-micro/v3/broker"
+	"github.com/chinahtl/go-micro/v3/logger"
+	maddr "github.com/chinahtl/go-micro/v3/util/addr"
+	mnet "github.com/chinahtl/go-micro/v3/util/net"
 )
 
 func init() {

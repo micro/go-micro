@@ -1,7 +1,7 @@
 package http
 
 import (
-	"github.com/asim/go-micro/v3/client"
+	"github.com/chinahtl/go-micro/v3/client"
 )
 
 type httpMessage struct {

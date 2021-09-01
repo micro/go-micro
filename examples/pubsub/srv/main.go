@@ -1,11 +1,11 @@
 package main
 
 import (
-	proto "github.com/asim/go-micro/examples/v3/pubsub/srv/proto"
-	"github.com/asim/go-micro/v3"
-	"github.com/asim/go-micro/v3/metadata"
-	"github.com/asim/go-micro/v3/server"
-	"github.com/asim/go-micro/v3/util/log"
+	proto "github.com/chinahtl/go-micro/examples/v3/pubsub/srv/proto"
+	"github.com/chinahtl/go-micro/v3"
+	"github.com/chinahtl/go-micro/v3/metadata"
+	"github.com/chinahtl/go-micro/v3/server"
+	"github.com/chinahtl/go-micro/v3/util/log"
 
 	"context"
 )

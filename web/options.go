@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/asim/go-micro/v3"
-	"github.com/asim/go-micro/v3/registry"
+	"github.com/chinahtl/go-micro/v3"
+	"github.com/chinahtl/go-micro/v3/registry"
 	"github.com/micro/cli/v2"
 )
 

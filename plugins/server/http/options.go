@@ -3,10 +3,10 @@ package http
 import (
 	"context"
 
-	"github.com/asim/go-micro/v3/broker"
-	"github.com/asim/go-micro/v3/codec"
-	"github.com/asim/go-micro/v3/registry"
-	"github.com/asim/go-micro/v3/server"
+	"github.com/chinahtl/go-micro/v3/broker"
+	"github.com/chinahtl/go-micro/v3/codec"
+	"github.com/chinahtl/go-micro/v3/registry"
+	"github.com/chinahtl/go-micro/v3/server"
 )
 
 func newOptions(opt ...server.Option) server.Options {

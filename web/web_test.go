@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/asim/go-micro/v3"
-	"github.com/asim/go-micro/v3/logger"
-	"github.com/asim/go-micro/v3/web"
+	"github.com/chinahtl/go-micro/v3"
+	"github.com/chinahtl/go-micro/v3/logger"
+	"github.com/chinahtl/go-micro/v3/web"
 	"github.com/micro/cli/v2"
 )
 

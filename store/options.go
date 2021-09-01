@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/asim/go-micro/v3/client"
+	"github.com/chinahtl/go-micro/v3/client"
 )
 
 // Options contains configuration for the Store

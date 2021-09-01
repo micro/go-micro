@@ -16,11 +16,11 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/google/uuid"
 	"github.com/hashicorp/memberlist"
-	"github.com/asim/go-micro/v3/cmd"
-	log "github.com/asim/go-micro/v3/logger"
-	"github.com/asim/go-micro/v3/registry"
-	regutil "github.com/asim/go-micro/v3/util/registry"
-	pb "github.com/asim/go-micro/plugins/registry/gossip/v3/proto"
+	"github.com/chinahtl/go-micro/v3/cmd"
+	log "github.com/chinahtl/go-micro/v3/logger"
+	"github.com/chinahtl/go-micro/v3/registry"
+	regutil "github.com/chinahtl/go-micro/v3/util/registry"
+	pb "github.com/chinahtl/go-micro/plugins/registry/gossip/v3/proto"
 	"github.com/mitchellh/hashstructure"
 )
 

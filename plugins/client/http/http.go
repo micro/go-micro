@@ -15,16 +15,16 @@ import (
 	"sync"
 	"time"
 
-	"github.com/asim/go-micro/v3/broker"
-	"github.com/asim/go-micro/v3/client"
-	"github.com/asim/go-micro/v3/cmd"
-	"github.com/asim/go-micro/v3/codec"
-	raw "github.com/asim/go-micro/v3/codec/bytes"
-	errors "github.com/asim/go-micro/v3/errors"
-	"github.com/asim/go-micro/v3/metadata"
-	"github.com/asim/go-micro/v3/registry"
-	"github.com/asim/go-micro/v3/selector"
-	"github.com/asim/go-micro/v3/transport"
+	"github.com/chinahtl/go-micro/v3/broker"
+	"github.com/chinahtl/go-micro/v3/client"
+	"github.com/chinahtl/go-micro/v3/cmd"
+	"github.com/chinahtl/go-micro/v3/codec"
+	raw "github.com/chinahtl/go-micro/v3/codec/bytes"
+	errors "github.com/chinahtl/go-micro/v3/errors"
+	"github.com/chinahtl/go-micro/v3/metadata"
+	"github.com/chinahtl/go-micro/v3/registry"
+	"github.com/chinahtl/go-micro/v3/selector"
+	"github.com/chinahtl/go-micro/v3/transport"
 )
 
 type httpClient struct {

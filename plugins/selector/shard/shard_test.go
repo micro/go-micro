@@ -3,10 +3,10 @@ package shard_test
 import (
 	"testing"
 
-	"github.com/asim/go-micro/v3/client"
-	"github.com/asim/go-micro/v3/selector"
-	"github.com/asim/go-micro/v3/registry"
-	"github.com/asim/go-micro/plugins/selector/shard/v3"
+	"github.com/chinahtl/go-micro/v3/client"
+	"github.com/chinahtl/go-micro/v3/selector"
+	"github.com/chinahtl/go-micro/v3/registry"
+	"github.com/chinahtl/go-micro/plugins/selector/shard/v3"
 )
 
 func TestShard(t *testing.T) {

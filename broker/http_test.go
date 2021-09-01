@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/asim/go-micro/v3/broker"
-	"github.com/asim/go-micro/v3/registry"
+	"github.com/chinahtl/go-micro/v3/broker"
+	"github.com/chinahtl/go-micro/v3/registry"
 	"github.com/google/uuid"
 )
 

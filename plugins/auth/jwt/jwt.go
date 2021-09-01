@@ -4,9 +4,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/asim/go-micro/v3/auth"
-	"github.com/asim/go-micro/v3/cmd"
-	jwtToken "github.com/asim/go-micro/plugins/auth/jwt/v3/token"
+	"github.com/chinahtl/go-micro/v3/auth"
+	"github.com/chinahtl/go-micro/v3/cmd"
+	jwtToken "github.com/chinahtl/go-micro/plugins/auth/jwt/v3/token"
 )
 
 func init() {

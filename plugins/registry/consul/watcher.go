@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/asim/go-micro/v3/registry"
-	regutil "github.com/asim/go-micro/v3/util/registry"
+	"github.com/chinahtl/go-micro/v3/registry"
+	regutil "github.com/chinahtl/go-micro/v3/util/registry"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/api/watch"
 )

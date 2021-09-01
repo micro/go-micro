@@ -1,8 +1,8 @@
 package mock
 
 import (
-	"github.com/asim/go-micro/v3/registry"
-	"github.com/asim/go-micro/v3/server"
+	"github.com/chinahtl/go-micro/v3/registry"
+	"github.com/chinahtl/go-micro/v3/server"
 )
 
 type MockHandler struct {

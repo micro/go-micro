@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	log "github.com/asim/go-micro/v3/logger"
-	"github.com/asim/go-micro/v3/store"
+	log "github.com/chinahtl/go-micro/v3/logger"
+	"github.com/chinahtl/go-micro/v3/store"
 	"github.com/go-redis/redis/v8"
 )
 

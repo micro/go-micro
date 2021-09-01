@@ -6,9 +6,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/asim/go-micro/v3/cmd"
-	log "github.com/asim/go-micro/v3/logger"
-	"github.com/asim/go-micro/v3/registry"
+	"github.com/chinahtl/go-micro/v3/cmd"
+	log "github.com/chinahtl/go-micro/v3/logger"
+	"github.com/chinahtl/go-micro/v3/registry"
 	"github.com/go-zookeeper/zk"
 	hash "github.com/mitchellh/hashstructure"
 )

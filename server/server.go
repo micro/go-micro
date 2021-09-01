@@ -7,10 +7,10 @@ import (
 	"os/signal"
 	"time"
 
-	"github.com/asim/go-micro/v3/codec"
-	"github.com/asim/go-micro/v3/logger"
-	"github.com/asim/go-micro/v3/registry"
-	signalutil "github.com/asim/go-micro/v3/util/signal"
+	"github.com/chinahtl/go-micro/v3/codec"
+	"github.com/chinahtl/go-micro/v3/logger"
+	"github.com/chinahtl/go-micro/v3/registry"
+	signalutil "github.com/chinahtl/go-micro/v3/util/signal"
 	"github.com/google/uuid"
 )
 

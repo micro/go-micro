@@ -4,7 +4,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/asim/go-micro/v3/config/source"
+	"github.com/chinahtl/go-micro/v3/config/source"
 	"k8s.io/client-go/1.5/kubernetes"
 	"k8s.io/client-go/1.5/pkg/api"
 	"k8s.io/client-go/1.5/pkg/fields"

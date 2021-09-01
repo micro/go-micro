@@ -3,7 +3,7 @@ package nacos
 import (
 	"context"
 
-	"github.com/asim/go-micro/v3/config/source"
+	"github.com/chinahtl/go-micro/v3/config/source"
 	"github.com/nacos-group/nacos-sdk-go/v2/common/constant"
 )
 

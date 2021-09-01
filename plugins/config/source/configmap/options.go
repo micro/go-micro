@@ -3,7 +3,7 @@ package configmap
 import (
 	"context"
 
-	"github.com/asim/go-micro/v3/config/source"
+	"github.com/chinahtl/go-micro/v3/config/source"
 )
 
 type configPathKey struct{}

@@ -9,7 +9,7 @@ import (
 	"strings"
 	gosync "sync"
 
-	"github.com/asim/go-micro/v3/sync"
+	"github.com/chinahtl/go-micro/v3/sync"
 	"go.etcd.io/etcd/client/v3"
 	cc "go.etcd.io/etcd/client/v3/concurrency"
 )

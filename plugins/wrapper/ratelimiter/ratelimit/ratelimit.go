@@ -4,9 +4,9 @@ import (
 	"time"
 
 	"github.com/juju/ratelimit"
-	"github.com/asim/go-micro/v3/client"
-	"github.com/asim/go-micro/v3/errors"
-	"github.com/asim/go-micro/v3/server"
+	"github.com/chinahtl/go-micro/v3/client"
+	"github.com/chinahtl/go-micro/v3/errors"
+	"github.com/chinahtl/go-micro/v3/server"
 
 	"context"
 )

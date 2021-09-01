@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 
-	"github.com/asim/go-micro/v3"
+	"github.com/chinahtl/go-micro/v3"
 )
 
 type Greeter struct{}

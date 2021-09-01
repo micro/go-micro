@@ -1,8 +1,8 @@
 package http
 
 import (
-	"github.com/asim/go-micro/v3/client"
-	"github.com/asim/go-micro/v3/codec"
+	"github.com/chinahtl/go-micro/v3/client"
+	"github.com/chinahtl/go-micro/v3/codec"
 )
 
 type httpRequest struct {

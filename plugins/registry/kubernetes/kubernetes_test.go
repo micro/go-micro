@@ -9,10 +9,10 @@ import (
 	"testing"
 	"time"
 
-	log "github.com/asim/go-micro/v3/logger"
-	"github.com/asim/go-micro/v3/registry"
-	"github.com/asim/go-micro/plugins/registry/kubernetes/v3/client"
-	"github.com/asim/go-micro/plugins/registry/kubernetes/v3/client/mock"
+	log "github.com/chinahtl/go-micro/v3/logger"
+	"github.com/chinahtl/go-micro/v3/registry"
+	"github.com/chinahtl/go-micro/plugins/registry/kubernetes/v3/client"
+	"github.com/chinahtl/go-micro/plugins/registry/kubernetes/v3/client/mock"
 )
 
 var (

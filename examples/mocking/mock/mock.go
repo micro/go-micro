@@ -3,8 +3,8 @@ package mock
 import (
 	"context"
 
-	proto "github.com/asim/go-micro/examples/v3/helloworld/proto"
-	"github.com/asim/go-micro/v3/client"
+	proto "github.com/chinahtl/go-micro/examples/v3/helloworld/proto"
+	"github.com/chinahtl/go-micro/v3/client"
 )
 
 type mockGreeterService struct {

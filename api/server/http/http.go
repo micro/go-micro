@@ -8,9 +8,9 @@ import (
 	"os"
 	"sync"
 
-	"github.com/asim/go-micro/v3/api/server"
-	"github.com/asim/go-micro/v3/api/server/cors"
-	"github.com/asim/go-micro/v3/logger"
+	"github.com/chinahtl/go-micro/v3/api/server"
+	"github.com/chinahtl/go-micro/v3/api/server/cors"
+	"github.com/chinahtl/go-micro/v3/logger"
 	"github.com/gorilla/handlers"
 )
 

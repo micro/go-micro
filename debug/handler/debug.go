@@ -5,12 +5,12 @@ import (
 	"context"
 	"time"
 
-	"github.com/asim/go-micro/v3/client"
-	"github.com/asim/go-micro/v3/debug/log"
-	proto "github.com/asim/go-micro/v3/debug/proto"
-	"github.com/asim/go-micro/v3/debug/stats"
-	"github.com/asim/go-micro/v3/debug/trace"
-	"github.com/asim/go-micro/v3/server"
+	"github.com/chinahtl/go-micro/v3/client"
+	"github.com/chinahtl/go-micro/v3/debug/log"
+	proto "github.com/chinahtl/go-micro/v3/debug/proto"
+	"github.com/chinahtl/go-micro/v3/debug/stats"
+	"github.com/chinahtl/go-micro/v3/debug/trace"
+	"github.com/chinahtl/go-micro/v3/server"
 )
 
 // NewHandler returns an instance of the Debug Handler

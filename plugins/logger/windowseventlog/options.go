@@ -2,7 +2,7 @@
 
 package windowseventlog
 
-import "github.com/asim/go-micro/v3/logger"
+import "github.com/chinahtl/go-micro/v3/logger"
 
 type src struct{}
 type eid struct{}

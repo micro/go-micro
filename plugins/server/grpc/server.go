@@ -14,8 +14,8 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/asim/go-micro/v3/logger"
-	"github.com/asim/go-micro/v3/server"
+	"github.com/chinahtl/go-micro/v3/logger"
+	"github.com/chinahtl/go-micro/v3/server"
 )
 
 var (

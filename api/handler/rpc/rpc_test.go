@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"testing"
 
-	go_api "github.com/asim/go-micro/v3/api/proto"
+	go_api "github.com/chinahtl/go-micro/v3/api/proto"
 	"github.com/golang/protobuf/proto"
 )
 

@@ -5,10 +5,10 @@ import (
 	"os"
 	"testing"
 
-	"github.com/asim/go-micro/v3"
-	"github.com/asim/go-micro/v3/cmd"
-	"github.com/asim/go-micro/v3/config"
-	"github.com/asim/go-micro/v3/config/source"
+	"github.com/chinahtl/go-micro/v3"
+	"github.com/chinahtl/go-micro/v3/cmd"
+	"github.com/chinahtl/go-micro/v3/config"
+	"github.com/chinahtl/go-micro/v3/config/source"
 	"github.com/micro/cli/v2"
 )
 
