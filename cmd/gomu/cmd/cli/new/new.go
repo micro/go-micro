@@ -45,13 +45,13 @@ func NewCommand() *cli.Command {
 		Subcommands: []*cli.Command{
 			{
 				Name:   "function",
-				Usage:  "Create a function template, e.g. " + cmd.App().Name + " new function greeter",
+				Usage:  "Create a function template, e.g. " + cmd.App().Name + " new function helloworld",
 				Action: Function,
 				Flags:  flags,
 			},
 			{
 				Name:   "service",
-				Usage:  "Create a service template, e.g. " + cmd.App().Name + " new service greeter",
+				Usage:  "Create a service template, e.g. " + cmd.App().Name + " new service helloworld",
 				Action: Service,
 				Flags:  flags,
 			},
