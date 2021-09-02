@@ -53,6 +53,10 @@ type memoryTransport struct {
 	listeners map[string]*memoryListener
 }
 
+func init() {
+	cmd.DefaultTransports["memory"] = NewTransport
+}
+
 func (ms *memorySocket) Recv(m *transport.Message) error {
 	ms.RLock()
 	defer ms.RUnlock()

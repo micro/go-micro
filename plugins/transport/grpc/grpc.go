@@ -27,6 +27,10 @@ type grpcTransportListener struct {
 	tls      *tls.Config
 }
 
+func init() {
+	cmd.DefaultTransports["grpc"] = NewTransport
+}
+
 func getTLSConfig(addr string) (*tls.Config, error) {
 	hosts := []string{addr}
 
