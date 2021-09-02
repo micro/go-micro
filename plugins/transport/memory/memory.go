@@ -13,6 +13,7 @@ import (
 	"github.com/asim/go-micro/v3/transport"
 	maddr "github.com/asim/go-micro/v3/util/addr"
 	mnet "github.com/asim/go-micro/v3/util/net"
+	"github.com/asim/go-micro/v3/cmd"
 )
 
 type memorySocket struct {

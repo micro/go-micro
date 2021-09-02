@@ -10,7 +10,7 @@ import (
 	maddr "github.com/asim/go-micro/v3/util/addr"
 	mnet "github.com/asim/go-micro/v3/util/net"
 	mls "github.com/asim/go-micro/v3/util/tls"
-
+	"github.com/asim/go-micro/v3/cmd"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 
