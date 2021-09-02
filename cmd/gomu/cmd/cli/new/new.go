@@ -114,7 +114,7 @@ func createProject(ctx *cli.Context, fn bool) error {
 	if ctx.Bool("skaffold") {
 		files = append(files, []file{
 			{"skaffold.yaml", tmpl.SkaffoldCFG},
-			{"resources/deployment.yaml", tmpl.SkaffoldDEP},
+			{"resources/deployment.yaml", tmpl.KubernetesDEP},
 		}...)
 	}
 
