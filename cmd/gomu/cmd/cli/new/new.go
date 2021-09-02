@@ -113,8 +113,12 @@ func createProject(ctx *cli.Context, fn bool) error {
 
 	if ctx.Bool("skaffold") {
 		files = append(files, []file{
+			{"plugins.go", tmpl.Plugins},
+			{"resources/clusterrole.yaml", tmpl.KubernetesClusterRole},
+			{"resources/configmap.yaml", tmpl.KubernetesEnv},
+			{"resources/deployment.yaml", tmpl.KubernetesDeployment},
+			{"resources/rolebinding.yaml", tmpl.KubernetesRoleBinding},
 			{"skaffold.yaml", tmpl.SkaffoldCFG},
-			{"resources/deployment.yaml", tmpl.KubernetesDEP},
 		}...)
 	}
 
