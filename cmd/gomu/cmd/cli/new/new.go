@@ -37,6 +37,98 @@ type file struct {
 	Tmpl string
 }
 
+// NewCommand returns a new new cli command.
+func NewCommand() *cli.Command {
+	return &cli.Command{
+		Name:  "new",
+		Usage: "Create a project template",
+		Subcommands: []*cli.Command{
+			{
+				Name:   "function",
+				Usage:  "Create a function template, e.g. " + cmd.App().Name + " new function greeter",
+				Action: Function,
+				Flags:  flags,
+			},
+			{
+				Name:   "service",
+				Usage:  "Create a service template, e.g. " + cmd.App().Name + " new service greeter",
+				Action: Service,
+				Flags:  flags,
+			},
+		},
+	}
+}
+
+// Function creates a new function project template. Exits on error.
+func Function(ctx *cli.Context) error {
+	return createProject(ctx, true)
+}
+
+// Service creates a new service project template. Exits on error.
+func Service(ctx *cli.Context) error {
+	return createProject(ctx, false)
+}
+
+func createProject(ctx *cli.Context, fn bool) error {
+	name := ctx.Args().First()
+	if len(name) == 0 {
+		return cli.ShowSubcommandHelp(ctx)
+	}
+
+	if path.IsAbs(name) {
+		fmt.Println("must provide a relative path as service name")
+		return nil
+	}
+
+	if _, err := os.Stat(name); !os.IsNotExist(err) {
+		return fmt.Errorf("%s already exists", name)
+	}
+
+	if fn {
+		fmt.Printf("creating function %s\n", name)
+	} else {
+		fmt.Printf("creating service %s\n", name)
+	}
+
+	files := []file{
+		{".dockerignore", tmpl.DockerIgnore},
+		{".gitignore", tmpl.GitIgnore},
+		{"Dockerfile", tmpl.Dockerfile},
+		{"Makefile", tmpl.Makefile},
+		{"go.mod", tmpl.Module},
+	}
+	if fn {
+		files = append(files, []file{
+			{"handler/" + name + ".go", tmpl.HandlerFNC},
+			{"main.go", tmpl.MainFNC},
+			{"proto/" + name + ".proto", tmpl.ProtoFNC},
+		}...)
+	} else {
+		files = append(files, []file{
+			{"handler/" + name + ".go", tmpl.HandlerSRV},
+			{"main.go", tmpl.MainSRV},
+			{"proto/" + name + ".proto", tmpl.ProtoSRV},
+		}...)
+	}
+
+	if ctx.Bool("skaffold") {
+		files = append(files, []file{
+			{"skaffold.yaml", tmpl.SkaffoldCFG},
+			{"resources/deployment.yaml", tmpl.SkaffoldDEP},
+		}...)
+	}
+
+	c := config{
+		Alias:    name,
+		Comments: protoComments(name),
+		Dir:      name,
+		Jaeger:   ctx.Bool("jaeger"),
+		Skaffold: ctx.Bool("skaffold"),
+	}
+
+	return create(files, c)
+}
+
 func protoComments(alias string) []string {
 	return []string{
 		"\ndownload protoc zip packages (protoc-$VERSION-$PLATFORM.zip) and install:\n",
@@ -92,116 +184,4 @@ func create(files []file, c config) error {
 	}
 
 	return nil
-}
-
-// NewCommand returns a new new cli command.
-func NewCommand() *cli.Command {
-	return &cli.Command{
-		Name:  "new",
-		Usage: "Create a project template",
-		Subcommands: []*cli.Command{
-			{
-				Name:   "function",
-				Usage:  "Create a function template, e.g. " + cmd.App().Name + " new function greeter",
-				Action: Function,
-				Flags:  flags,
-			},
-			{
-				Name:   "service",
-				Usage:  "Create a service template, e.g. " + cmd.App().Name + " new service greeter",
-				Action: Service,
-				Flags:  flags,
-			},
-		},
-	}
-}
-
-// Function creates a new function project template. Exits on error.
-func Function(ctx *cli.Context) error {
-	function := ctx.Args().First()
-	if len(function) == 0 {
-		return cli.ShowSubcommandHelp(ctx)
-	}
-
-	if path.IsAbs(function) {
-		fmt.Println("must provide a relative path as function name")
-		return nil
-	}
-
-	if _, err := os.Stat(function); !os.IsNotExist(err) {
-		return fmt.Errorf("%s already exists", function)
-	}
-
-	fmt.Printf("creating function %s\n", function)
-
-	files := []file{
-		{".gitignore", tmpl.GitIgnore},
-		{"Dockerfile", tmpl.Dockerfile},
-		{"Makefile", tmpl.Makefile},
-		{"go.mod", tmpl.Module},
-		{"handler/" + function + ".go", tmpl.HandlerFNC},
-		{"main.go", tmpl.MainFNC},
-		{"proto/" + function + ".proto", tmpl.ProtoFNC},
-	}
-	if ctx.Bool("skaffold") {
-		files = append(files, []file{
-			{"skaffold.yaml", tmpl.SkaffoldCFG},
-			{"resources/deployment.yaml", tmpl.SkaffoldDEP},
-		}...)
-	}
-
-	c := config{
-		Alias:    function,
-		Comments: protoComments(function),
-		Dir:      function,
-		Jaeger:   ctx.Bool("jaeger"),
-	}
-
-	return create(files, c)
-}
-
-// Service creates a new service project template. Exits on error.
-func Service(ctx *cli.Context) error {
-	service := ctx.Args().First()
-	if len(service) == 0 {
-		return cli.ShowSubcommandHelp(ctx)
-	}
-
-	if path.IsAbs(service) {
-		fmt.Println("must provide a relative path as service name")
-		return nil
-	}
-
-	if _, err := os.Stat(service); !os.IsNotExist(err) {
-		return fmt.Errorf("%s already exists", service)
-	}
-
-	fmt.Printf("creating service %s\n", service)
-
-	files := []file{
-		{".dockerignore", tmpl.DockerIgnore},
-		{".gitignore", tmpl.GitIgnore},
-		{"Dockerfile", tmpl.Dockerfile},
-		{"Makefile", tmpl.Makefile},
-		{"go.mod", tmpl.Module},
-		{"handler/" + service + ".go", tmpl.HandlerSRV},
-		{"main.go", tmpl.MainSRV},
-		{"proto/" + service + ".proto", tmpl.ProtoSRV},
-	}
-	if ctx.Bool("skaffold") {
-		files = append(files, []file{
-			{"skaffold.yaml", tmpl.SkaffoldCFG},
-			{"resources/deployment.yaml", tmpl.SkaffoldDEP},
-		}...)
-	}
-
-	c := config{
-		Alias:    service,
-		Comments: protoComments(service),
-		Dir:      service,
-		Jaeger:   ctx.Bool("jaeger"),
-		Skaffold: ctx.Bool("skaffold"),
-	}
-
-	return create(files, c)
 }
