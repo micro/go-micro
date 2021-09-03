@@ -29,6 +29,7 @@ type config struct {
 	Comments []string
 	Dir      string
 	Vendor   string
+	Client   bool
 	Jaeger   bool
 	Skaffold bool
 }
@@ -148,6 +149,7 @@ func createProject(ctx *cli.Context, pt string) error {
 		Alias:    name,
 		Dir:      dir,
 		Vendor:   vendor,
+		Client:   pt == "client",
 		Jaeger:   ctx.Bool("jaeger"),
 		Skaffold: ctx.Bool("skaffold"),
 	}
