@@ -3,7 +3,6 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/asim/go-micro/v3/config/source/cli"
 	"math/rand"
 	"strings"
 	"time"
