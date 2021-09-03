@@ -9,6 +9,7 @@ import (
 
 	"github.com/asim/go-micro/v3/auth"
 	"github.com/asim/go-micro/v3/broker"
+	"github.com/asim/go-micro/v3/cache"
 	"github.com/asim/go-micro/v3/client"
 	"github.com/asim/go-micro/v3/config"
 	"github.com/asim/go-micro/v3/debug/profile"
@@ -22,7 +23,7 @@ import (
 	"github.com/asim/go-micro/v3/server"
 	"github.com/asim/go-micro/v3/store"
 	"github.com/asim/go-micro/v3/transport"
-	"github.com/micro/cli/v2"
+	"github.com/urfave/cli/v2"
 )
 
 type Cmd interface {
@@ -265,6 +266,8 @@ var (
 	}
 
 	DefaultConfigs = map[string]func(...config.Option) (config.Config, error){}
+
+	DefaultCaches = map[string]func(...cache.Option) cache.Cache{}
 )
 
 func init() {
@@ -285,6 +288,7 @@ func newCmd(opts ...Option) Cmd {
 		Tracer:    &trace.DefaultTracer,
 		Profile:   &profile.DefaultProfile,
 		Config:    &config.DefaultConfig,
+		Cache:     &cache.DefaultCache,
 
 		Brokers:    DefaultBrokers,
 		Clients:    DefaultClients,
@@ -298,6 +302,7 @@ func newCmd(opts ...Option) Cmd {
 		Auths:      DefaultAuths,
 		Profiles:   DefaultProfiles,
 		Configs:    DefaultConfigs,
+		Caches:     DefaultCaches,
 	}
 
 	for _, o := range opts {

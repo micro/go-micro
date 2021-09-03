@@ -62,6 +62,10 @@ import (
 	plugin "google.golang.org/protobuf/types/pluginpb"
 )
 
+// SupportedFeatures used to signaling that code generator supports proto3 optional
+// https://github.com/protocolbuffers/protobuf/blob/master/docs/implementing_proto3_presence.md#signaling-that-your-code-generator-supports-proto3-optional
+var SupportedFeatures = uint64(plugin.CodeGeneratorResponse_FEATURE_PROTO3_OPTIONAL)
+
 // A Plugin provides functionality to add to the output during Go code generation,
 // such as to produce RPC stubs.
 type Plugin interface {
@@ -1071,6 +1075,7 @@ func (g *Generator) GenerateAllFiles() {
 			Content: proto.String(g.String()),
 		})
 	}
+	g.Response.SupportedFeatures = proto.Uint64(SupportedFeatures)
 }
 
 // Run all the plugins associated with the file.
@@ -2625,7 +2630,7 @@ func dottedSlice(elem []string) string { return strings.Join(elem, ".") }
 
 // Is this field optional?
 func isOptional(field *descriptor.FieldDescriptorProto) bool {
-	return field.Label != nil && *field.Label == descriptor.FieldDescriptorProto_LABEL_OPTIONAL
+	return *field.Proto3Optional
 }
 
 // Is this field required?

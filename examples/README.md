@@ -5,6 +5,7 @@ This is a repository for go-micro examples. Feel free to contribute.
 ## Contents
 
 - [broker](broker) - A example of using Broker for Publish and Subscribing.
+- [cache](cache) - Usage of the Cache package to create a cache service.
 - [client](client) - Usage of the Client package to call a service.
 - [config](config) - Using Go Config for dynamic config
 - [event](event) - Using the API Gateway event handler

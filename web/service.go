@@ -22,7 +22,7 @@ import (
 	mnet "github.com/asim/go-micro/v3/util/net"
 	signalutil "github.com/asim/go-micro/v3/util/signal"
 	mls "github.com/asim/go-micro/v3/util/tls"
-	"github.com/micro/cli/v2"
+	"github.com/urfave/cli/v2"
 )
 
 type service struct {

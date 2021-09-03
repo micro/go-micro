@@ -10,7 +10,7 @@ import (
 	"github.com/asim/go-micro/v3"
 	"github.com/asim/go-micro/v3/logger"
 	"github.com/asim/go-micro/v3/web"
-	"github.com/micro/cli/v2"
+	"github.com/urfave/cli/v2"
 )
 
 func TestWeb(t *testing.T) {

@@ -6,6 +6,7 @@ import (
 
 	"github.com/asim/go-micro/v3/auth"
 	"github.com/asim/go-micro/v3/broker"
+	"github.com/asim/go-micro/v3/cache"
 	"github.com/asim/go-micro/v3/client"
 	"github.com/asim/go-micro/v3/cmd"
 	"github.com/asim/go-micro/v3/config"
@@ -17,13 +18,14 @@ import (
 	"github.com/asim/go-micro/v3/server"
 	"github.com/asim/go-micro/v3/store"
 	"github.com/asim/go-micro/v3/transport"
-	"github.com/micro/cli/v2"
+	"github.com/urfave/cli/v2"
 )
 
 // Options for micro service
 type Options struct {
 	Auth      auth.Auth
 	Broker    broker.Broker
+	Cache     cache.Cache
 	Cmd       cmd.Cmd
 	Config    config.Config
 	Client    client.Client
@@ -51,6 +53,7 @@ func newOptions(opts ...Option) Options {
 	opt := Options{
 		Auth:      auth.DefaultAuth,
 		Broker:    broker.DefaultBroker,
+		Cache:     cache.DefaultCache,
 		Cmd:       cmd.DefaultCmd,
 		Config:    config.DefaultConfig,
 		Client:    client.DefaultClient,
@@ -77,6 +80,12 @@ func Broker(b broker.Broker) Option {
 		// Update Client and Server
 		o.Client.Init(client.Broker(b))
 		o.Server.Init(server.Broker(b))
+	}
+}
+
+func Cache(c cache.Cache) Option {
+	return func(o *Options) {
+		o.Cache = c
 	}
 }
 

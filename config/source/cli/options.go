@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/asim/go-micro/v3/config/source"
-	"github.com/micro/cli/v2"
+	"github.com/urfave/cli/v2"
 )
 
 type contextKey struct{}
