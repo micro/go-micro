@@ -1,7 +1,7 @@
 package template
 
 // Module is the go.mod template used for new projects.
-var Module = `module {{.Dir}}
+var Module = `module {{.Vendor}}{{.Dir}}
 
 go 1.16
 
@@ -11,5 +11,7 @@ require (
 
 // This can be removed once etcd becomes go gettable, version 3.4 and 3.5 is not,
 // see https://github.com/etcd-io/etcd/issues/11154 and https://github.com/etcd-io/etcd/issues/11931.
-replace google.golang.org/grpc => google.golang.org/grpc v1.26.0
+replace google.golang.org/grpc => google.golang.org/grpc v1.26.0{{if .Vendor}}
+
+replace {{.Vendor}}{{lower .Alias}} => ../{{lower .Alias}}{{end}}
 `

@@ -16,7 +16,7 @@ import (
 func NewCommand() *cli.Command {
 	return &cli.Command{
 		Name:   "call",
-		Usage:  "Call a service, e.g. " + cmd.App().Name + " call greeter Helloworld.Call '{\"name\": \"John\"}'",
+		Usage:  "Call a service, e.g. " + cmd.App().Name + " call helloworld Helloworld.Call '{\"name\": \"John\"}'",
 		Action: RunCall,
 	}
 }

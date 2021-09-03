@@ -28,6 +28,7 @@ type config struct {
 	Alias    string
 	Comments []string
 	Dir      string
+	Vendor   string
 	Jaeger   bool
 	Skaffold bool
 }
@@ -44,14 +45,20 @@ func NewCommand() *cli.Command {
 		Usage: "Create a project template",
 		Subcommands: []*cli.Command{
 			{
+				Name:   "client",
+				Usage:  "Create a client template, e.g. " + cmd.App().Name + " new client [github.com/auditemarlow/]helloworld",
+				Action: Client,
+				Flags:  flags,
+			},
+			{
 				Name:   "function",
-				Usage:  "Create a function template, e.g. " + cmd.App().Name + " new function greeter",
+				Usage:  "Create a function template, e.g. " + cmd.App().Name + " new function [github.com/auditemarlow/]helloworld",
 				Action: Function,
 				Flags:  flags,
 			},
 			{
 				Name:   "service",
-				Usage:  "Create a service template, e.g. " + cmd.App().Name + " new service greeter",
+				Usage:  "Create a service template, e.g. " + cmd.App().Name + " new service [github.com/auditemarlow/]helloworld",
 				Action: Service,
 				Flags:  flags,
 			},
@@ -59,36 +66,43 @@ func NewCommand() *cli.Command {
 	}
 }
 
+func Client(ctx *cli.Context) error {
+	return createProject(ctx, "client")
+}
+
 // Function creates a new function project template. Exits on error.
 func Function(ctx *cli.Context) error {
-	return createProject(ctx, true)
+	return createProject(ctx, "function")
 }
 
 // Service creates a new service project template. Exits on error.
 func Service(ctx *cli.Context) error {
-	return createProject(ctx, false)
+	return createProject(ctx, "service")
 }
 
-func createProject(ctx *cli.Context, fn bool) error {
-	name := ctx.Args().First()
-	if len(name) == 0 {
+func createProject(ctx *cli.Context, pt string) error {
+	arg := ctx.Args().First()
+	if len(arg) == 0 {
 		return cli.ShowSubcommandHelp(ctx)
 	}
 
-	if path.IsAbs(name) {
+	name, vendor := getNameAndVendor(arg)
+
+	dir := name
+	if pt == "client" {
+		dir += "-client"
+	}
+
+	if path.IsAbs(dir) {
 		fmt.Println("must provide a relative path as service name")
 		return nil
 	}
 
-	if _, err := os.Stat(name); !os.IsNotExist(err) {
-		return fmt.Errorf("%s already exists", name)
+	if _, err := os.Stat(dir); !os.IsNotExist(err) {
+		return fmt.Errorf("%s already exists", dir)
 	}
 
-	if fn {
-		fmt.Printf("creating function %s\n", name)
-	} else {
-		fmt.Printf("creating service %s\n", name)
-	}
+	fmt.Printf("creating %s %s\n", pt, name)
 
 	files := []file{
 		{".dockerignore", tmpl.DockerIgnore},
@@ -97,18 +111,26 @@ func createProject(ctx *cli.Context, fn bool) error {
 		{"Makefile", tmpl.Makefile},
 		{"go.mod", tmpl.Module},
 	}
-	if fn {
+
+	switch pt {
+	case "client":
+		files = append(files, []file{
+			{"main.go", tmpl.MainCLT},
+		}...)
+	case "function":
 		files = append(files, []file{
 			{"handler/" + name + ".go", tmpl.HandlerFNC},
 			{"main.go", tmpl.MainFNC},
 			{"proto/" + name + ".proto", tmpl.ProtoFNC},
 		}...)
-	} else {
+	case "service":
 		files = append(files, []file{
 			{"handler/" + name + ".go", tmpl.HandlerSRV},
 			{"main.go", tmpl.MainSRV},
 			{"proto/" + name + ".proto", tmpl.ProtoSRV},
 		}...)
+	default:
+		return fmt.Errorf("%s project type not supported", pt)
 	}
 
 	if ctx.Bool("skaffold") {
@@ -124,16 +146,29 @@ func createProject(ctx *cli.Context, fn bool) error {
 
 	c := config{
 		Alias:    name,
-		Comments: protoComments(name),
-		Dir:      name,
+		Dir:      dir,
+		Vendor:   vendor,
 		Jaeger:   ctx.Bool("jaeger"),
 		Skaffold: ctx.Bool("skaffold"),
+	}
+
+	if pt == "client" {
+		c.Comments = clientComments(name, dir)
+	} else {
+		c.Comments = protoComments(name, dir)
 	}
 
 	return create(files, c)
 }
 
-func protoComments(alias string) []string {
+func clientComments(name, dir string) []string {
+	return []string{
+		"cd " + dir,
+		"make tidy\n",
+	}
+}
+
+func protoComments(name, dir string) []string {
 	return []string{
 		"\ndownload protoc zip packages (protoc-$VERSION-$PLATFORM.zip) and install:\n",
 		"visit https://github.com/protocolbuffers/protobuf/releases/latest",
@@ -141,15 +176,15 @@ func protoComments(alias string) []string {
 		"go get -u google.golang.org/protobuf/proto",
 		"go install github.com/golang/protobuf/protoc-gen-go@latest",
 		"go install github.com/asim/go-micro/cmd/protoc-gen-micro/v3@latest",
-		"\ncompile the proto file " + alias + ".proto:\n",
-		"cd " + alias,
+		"\ncompile the proto file " + name + ".proto:\n",
+		"cd " + dir,
 		"make proto tidy\n",
 	}
 }
 
 func create(files []file, c config) error {
 	for _, file := range files {
-		fp := filepath.Join(c.Alias, file.Path)
+		fp := filepath.Join(c.Dir, file.Path)
 		dir := filepath.Dir(fp)
 
 		if _, err := os.Stat(dir); os.IsNotExist(err) {
@@ -188,4 +223,19 @@ func create(files []file, c config) error {
 	}
 
 	return nil
+}
+
+func getNameAndVendor(s string) (string, string) {
+	var n string
+	var v string
+
+	if i := strings.LastIndex(s, "/"); i == -1 {
+		n = s
+		v = ""
+	} else {
+		n = s[i+1:]
+		v = s[:i+1]
+	}
+
+	return n, v
 }

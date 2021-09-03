@@ -1,14 +1,54 @@
 package template
 
+// MainCLT is the main template used for new client projects.
+var MainCLT = `package main
+
+import (
+	"context"
+	"time"
+
+	pb "{{.Vendor}}{{lower .Alias}}/proto"
+
+	"github.com/asim/go-micro/v3"
+	log "github.com/asim/go-micro/v3/logger"
+)
+
+var (
+	service = "{{lower .Alias}}"
+	version = "latest"
+)
+
+func main() {
+	// Create service
+	srv := micro.NewService()
+	srv.Init()
+
+	// Create client
+	c := pb.NewHelloworldService(service, srv.Client())
+
+	for {
+		// Call service
+		rsp, err := c.Call(context.Background(), &pb.CallRequest{Name: "John"})
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		log.Info(rsp)
+
+		time.Sleep(1 * time.Second)
+	}
+}
+`
+
 // MainFNC is the main template used for new function projects.
 var MainFNC = `package main
 
 import (
-	"{{.Dir}}/handler"
+	"{{.Vendor}}{{.Dir}}/handler"
 
-{{if .Jaeger }}	ot "github.com/asim/go-micro/plugins/wrapper/trace/opentracing/v3"
+{{if .Jaeger}}	ot "github.com/asim/go-micro/plugins/wrapper/trace/opentracing/v3"
 {{end}}	"github.com/asim/go-micro/v3"
-	log "github.com/asim/go-micro/v3/logger"{{if .Jaeger }}
+	log "github.com/asim/go-micro/v3/logger"{{if .Jaeger}}
 
 	"github.com/asim/go-micro/cmd/gomu/debug/trace/jaeger"{{end}}
 )
@@ -55,12 +95,12 @@ func main() {
 var MainSRV = `package main
 
 import (
-	"{{.Dir}}/handler"
-	pb "{{.Dir}}/proto"
+	"{{.Vendor}}{{.Dir}}/handler"
+	pb "{{.Vendor}}{{.Dir}}/proto"
 
-{{if .Jaeger }}	ot "github.com/asim/go-micro/plugins/wrapper/trace/opentracing/v3"
+{{if .Jaeger}}	ot "github.com/asim/go-micro/plugins/wrapper/trace/opentracing/v3"
 {{end}}	"github.com/asim/go-micro/v3"
-	log "github.com/asim/go-micro/v3/logger"{{if .Jaeger }}
+	log "github.com/asim/go-micro/v3/logger"{{if .Jaeger}}
 
 	"github.com/asim/go-micro/cmd/gomu/debug/trace/jaeger"{{end}}
 )
