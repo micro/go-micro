@@ -408,6 +408,14 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	if len(ctx.String("auth_namespace")) > 0 {
 		authOpts = append(authOpts, auth.Namespace(ctx.String("auth_namespace")))
 	}
+	if name := ctx.String("auth"); len(name) > 0 {
+		r, ok := c.opts.Auths[name]
+		if !ok {
+			return fmt.Errorf("Unsupported auth: %s", name)
+		}
+
+		*c.opts.Auth = r(authOpts...)
+	}
 
 	// Set the registry
 	if name := ctx.String("registry"); len(name) > 0 && (*c.opts.Registry).String() != name {

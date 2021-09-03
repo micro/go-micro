@@ -13,6 +13,7 @@ import (
 	"github.com/asim/go-micro/v3/transport"
 	maddr "github.com/asim/go-micro/v3/util/addr"
 	mnet "github.com/asim/go-micro/v3/util/net"
+	"github.com/asim/go-micro/v3/cmd"
 )
 
 type memorySocket struct {
@@ -51,6 +52,10 @@ type memoryTransport struct {
 	opts transport.Options
 	sync.RWMutex
 	listeners map[string]*memoryListener
+}
+
+func init() {
+	cmd.DefaultTransports["memory"] = NewTransport
 }
 
 func (ms *memorySocket) Recv(m *transport.Message) error {
