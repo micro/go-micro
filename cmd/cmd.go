@@ -612,6 +612,19 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		}
 	}
 
+	// config
+	if name := ctx.String("config"); len(name) > 0 {
+		// only change if we have the server and type differs
+		if r, ok := c.opts.Configs[name]; ok {
+			rc , err := r()
+			if err != nil {
+				logger.Fatalf("Error configuring config: %v", err)
+			}
+			*c.opts.Config = rc
+		}
+	}
+
+
 	return nil
 }
 
