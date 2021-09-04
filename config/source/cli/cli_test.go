@@ -9,7 +9,7 @@ import (
 	"github.com/asim/go-micro/v3/cmd"
 	"github.com/asim/go-micro/v3/config"
 	"github.com/asim/go-micro/v3/config/source"
-	"github.com/micro/cli/v2"
+	"github.com/urfave/cli/v2"
 )
 
 func TestCliSourceDefault(t *testing.T) {
@@ -29,6 +29,9 @@ func TestCliSourceDefault(t *testing.T) {
 			},
 			&cli.StringFlag{
 				Name: "test.testlogfile",
+			},
+			&cli.StringFlag{
+				Name: "test.paniconexit0",
 			},
 			&cli.StringFlag{
 				Name:    "flag",

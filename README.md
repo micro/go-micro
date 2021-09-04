@@ -1,4 +1,4 @@
-# Go Micro [![License](https://img.shields.io/:license-apache-blue.svg)](https://opensource.org/licenses/Apache-2.0) [![Go.Dev reference](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white&style=flat-square)](https://pkg.go.dev/github.com/asim/go-micro/v3?tab=doc) [![M3O](https://img.shields.io/badge/micro-cloud-orange)](https://m3o.cloud/) [![M3O](https://img.shields.io/badge/micro-slack-red)](https://slack.m3o.com)
+# Go Micro [![License](https://img.shields.io/:license-apache-blue.svg)](https://opensource.org/licenses/Apache-2.0) [![Go.Dev reference](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white&style=flat-square)](https://pkg.go.dev/github.com/asim/go-micro/v3?tab=doc)
 
 Go Micro is a framework for distributed systems development.
 
@@ -67,6 +67,10 @@ service.Run()
 
 See the [examples](https://github.com/micro/go-micro/tree/master/examples) for detailed information on usage.
 
+## Command Line Interface
+
+See [cmd/gomu](https://github.com/asim/go-micro/tree/master/cmd/gomu) for the command line interface.
+
 ## Code Generation
 
 See [cmd/protoc-gen-micro](https://github.com/micro/go-micro/tree/master/cmd/protoc-gen-micro) for protobuf code generation.
@@ -78,10 +82,6 @@ See [examples](https://github.com/micro/go-micro/tree/master/examples) directory
 ## Plugins
 
 See [plugins](https://github.com/micro/go-micro/tree/master/plugins) directory for all the plugins.
-
-## Services
-
-See [Micro Cloud](https://m3o.cloud/) for cloud hosted services. 
 
 ## License
 

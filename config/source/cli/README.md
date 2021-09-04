@@ -4,7 +4,7 @@ The cli source reads config from parsed flags via a cli.Context.
 
 ## Format
 
-We expect the use of the `micro/cli` package. Upper case flags will be lower cased. Dashes will be used as delimiters for nesting.
+We expect the use of the `urfave/cli` package. Upper case flags will be lower cased. Dashes will be used as delimiters for nesting.
 
 ### Example
 
