@@ -1,4 +1,4 @@
-// +build !windows
+// +build windows
 
 package run
 
@@ -33,7 +33,7 @@ func (s *service) Start() error {
 	}
 
 	s.cmd = exec.Command("go", "run", ".")
-	s.cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	s.cmd.SysProcAttr = &syscall.SysProcAttr{}
 	s.cmd.Stdout = os.Stdout
 	s.cmd.Stderr = os.Stderr
 	s.running = true
@@ -48,7 +48,11 @@ func (s *service) Stop() error {
 	}
 
 	s.running = false
-	return syscall.Kill(-s.cmd.Process.Pid, syscall.SIGTERM)
+	pro, err := os.FindProcess(s.cmd.Process.Pid)
+	if err != nil {
+		return err
+	}
+	return pro.Signal(syscall.SIGTERM)
 }
 
 // Wait waits for the service to exit and exits on error.

@@ -8,7 +8,7 @@ import (
 
 	log "github.com/asim/go-micro/v3/logger"
 
-	pb "{{.Dir}}/proto"
+	pb "{{.Vendor}}{{.Dir}}/proto"
 )
 
 type {{title .Alias}} struct{}
@@ -30,7 +30,7 @@ import (
 
 	log "github.com/asim/go-micro/v3/logger"
 
-	pb "{{.Dir}}/proto"
+	pb "{{.Vendor}}{{.Dir}}/proto"
 )
 
 type {{title .Alias}} struct{}
