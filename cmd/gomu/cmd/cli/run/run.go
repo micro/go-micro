@@ -33,14 +33,13 @@ var (
 	}
 )
 
-// NewCommand returns a new run command.
-func NewCommand() *cli.Command {
-	return &cli.Command{
+func init() {
+	cmd.Register(&cli.Command{
 		Name:   "run",
 		Usage:  "Build and run a service continuously, e.g. gomu run [github.com/auditemarlow/helloworld]",
 		Flags:  flags,
 		Action: Run,
-	}
+	})
 }
 
 // Run runs a service and watches the project directory for change events. On
