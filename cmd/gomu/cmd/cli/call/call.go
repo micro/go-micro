@@ -12,13 +12,12 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-// NewCommand returns a new call cli command.
-func NewCommand() *cli.Command {
-	return &cli.Command{
+func init() {
+	cmd.Register(&cli.Command{
 		Name:   "call",
 		Usage:  "Call a service, e.g. " + cmd.App().Name + " call helloworld Helloworld.Call '{\"name\": \"John\"}'",
 		Action: RunCall,
-	}
+	})
 }
 
 // RunCall calls a service endpoint and prints its response. Exits on error.

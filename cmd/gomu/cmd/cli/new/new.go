@@ -40,8 +40,8 @@ type file struct {
 }
 
 // NewCommand returns a new new cli command.
-func NewCommand() *cli.Command {
-	return &cli.Command{
+func init() {
+	cmd.Register(&cli.Command{
 		Name:  "new",
 		Usage: "Create a project template",
 		Subcommands: []*cli.Command{
@@ -64,7 +64,7 @@ func NewCommand() *cli.Command {
 				Flags:  flags,
 			},
 		},
-	}
+	})
 }
 
 func Client(ctx *cli.Context) error {
