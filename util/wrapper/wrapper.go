@@ -128,6 +128,10 @@ func TraceHandler(t trace.Tracer) server.HandlerWrapper {
 	}
 }
 
+func AuthCall(a func() auth.Auth, c client.Client) client.Client {
+	return &authWrapper{Client:c, auth: a}
+}
+
 type authWrapper struct {
 	client.Client
 	auth func() auth.Auth
