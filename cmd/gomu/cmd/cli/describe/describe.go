@@ -13,9 +13,8 @@ var flags []cli.Flag = []cli.Flag{
 	},
 }
 
-// NewCommand returns a new describe cli command.
-func NewCommand() *cli.Command {
-	return &cli.Command{
+func init() {
+	cmd.Register(&cli.Command{
 		Name:  "describe",
 		Usage: "Describe a resource",
 		Subcommands: []*cli.Command{
@@ -27,5 +26,5 @@ func NewCommand() *cli.Command {
 				Flags:   flags,
 			},
 		},
-	}
+	})
 }
