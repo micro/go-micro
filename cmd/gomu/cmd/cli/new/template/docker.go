@@ -5,8 +5,10 @@ var Dockerfile = `FROM golang:alpine AS builder
 ENV CGO_ENABLED=0 GOOS=linux
 WORKDIR /go/src/{{.Alias}}
 RUN apk --update --no-cache add ca-certificates gcc libtool make musl-dev protoc
-COPY . /go/src/{{.Alias}}
-RUN make {{if not .Client}}init proto {{end}}tidy build
+COPY {{if not .Client}}Makefile {{end}go.mod go.sum ./
+RUN {{if not .Client}}make init && {{end}}go mod download
+COPY . .
+RUN make {{if not .Client}}proto {{end}}tidy build
 
 FROM scratch
 COPY --from=builder /etc/ssl/certs /etc/ssl/certs
