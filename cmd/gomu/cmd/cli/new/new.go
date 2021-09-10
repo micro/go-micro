@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"path/filepath"
 	"strings"
-	"text/template"
 
 	"github.com/asim/go-micro/cmd/gomu/cmd"
-	tmpl "github.com/asim/go-micro/cmd/gomu/cmd/cli/new/template"
+	"github.com/asim/go-micro/cmd/gomu/file"
+	"github.com/asim/go-micro/cmd/gomu/file/generator"
+	tmpl "github.com/asim/go-micro/cmd/gomu/file/template"
 	"github.com/urfave/cli/v2"
 )
 
@@ -22,21 +22,6 @@ var flags []cli.Flag = []cli.Flag{
 		Name:  "skaffold",
 		Usage: "generate skaffold files",
 	},
-}
-
-type config struct {
-	Alias    string
-	Comments []string
-	Dir      string
-	Vendor   string
-	Client   bool
-	Jaeger   bool
-	Skaffold bool
-}
-
-type file struct {
-	Path string
-	Tmpl string
 }
 
 // NewCommand returns a new new cli command.
@@ -87,10 +72,11 @@ func createProject(ctx *cli.Context, pt string) error {
 		return cli.ShowSubcommandHelp(ctx)
 	}
 
+	client := pt == "client"
 	name, vendor := getNameAndVendor(arg)
 
 	dir := name
-	if pt == "client" {
+	if client {
 		dir += "-client"
 	}
 
@@ -105,7 +91,16 @@ func createProject(ctx *cli.Context, pt string) error {
 
 	fmt.Printf("creating %s %s\n", pt, name)
 
-	files := []file{
+	g := generator.New(
+		generator.Service(name),
+		generator.Vendor(vendor),
+		generator.Directory(dir),
+		generator.Client(client),
+		generator.Jaeger(ctx.Bool("jaeger")),
+		generator.Skaffold(ctx.Bool("skaffold")),
+	)
+
+	files := []file.File{
 		{".dockerignore", tmpl.DockerIgnore},
 		{".gitignore", tmpl.GitIgnore},
 		{"Dockerfile", tmpl.Dockerfile},
@@ -115,17 +110,17 @@ func createProject(ctx *cli.Context, pt string) error {
 
 	switch pt {
 	case "client":
-		files = append(files, []file{
+		files = append(files, []file.File{
 			{"main.go", tmpl.MainCLT},
 		}...)
 	case "function":
-		files = append(files, []file{
+		files = append(files, []file.File{
 			{"handler/" + name + ".go", tmpl.HandlerFNC},
 			{"main.go", tmpl.MainFNC},
 			{"proto/" + name + ".proto", tmpl.ProtoFNC},
 		}...)
 	case "service":
-		files = append(files, []file{
+		files = append(files, []file.File{
 			{"handler/" + name + ".go", tmpl.HandlerSRV},
 			{"main.go", tmpl.MainSRV},
 			{"proto/" + name + ".proto", tmpl.ProtoSRV},
@@ -135,7 +130,7 @@ func createProject(ctx *cli.Context, pt string) error {
 	}
 
 	if ctx.Bool("skaffold") {
-		files = append(files, []file{
+		files = append(files, []file.File{
 			{"plugins.go", tmpl.Plugins},
 			{"resources/clusterrole.yaml", tmpl.KubernetesClusterRole},
 			{"resources/configmap.yaml", tmpl.KubernetesEnv},
@@ -145,22 +140,22 @@ func createProject(ctx *cli.Context, pt string) error {
 		}...)
 	}
 
-	c := config{
-		Alias:    name,
-		Dir:      dir,
-		Vendor:   vendor,
-		Client:   pt == "client",
-		Jaeger:   ctx.Bool("jaeger"),
-		Skaffold: ctx.Bool("skaffold"),
+	if err := g.Generate(files); err != nil {
+		return err
 	}
 
-	if pt == "client" {
-		c.Comments = clientComments(name, dir)
+	var comments []string
+	if client {
+		comments = clientComments(name, dir)
 	} else {
-		c.Comments = protoComments(name, dir)
+		comments = protoComments(name, dir)
 	}
 
-	return create(files, c)
+	for _, comment := range comments {
+		fmt.Println(comment)
+	}
+
+	return nil
 }
 
 func clientComments(name, dir string) []string {
@@ -182,49 +177,6 @@ func protoComments(name, dir string) []string {
 		"cd " + dir,
 		"make proto tidy\n",
 	}
-}
-
-func create(files []file, c config) error {
-	for _, file := range files {
-		fp := filepath.Join(c.Dir, file.Path)
-		dir := filepath.Dir(fp)
-
-		if _, err := os.Stat(dir); os.IsNotExist(err) {
-			if err := os.MkdirAll(dir, 0755); err != nil {
-				return err
-			}
-		}
-
-		f, err := os.Create(fp)
-		if err != nil {
-			return err
-		}
-
-		fn := template.FuncMap{
-			"dehyphen": func(s string) string {
-				return strings.ReplaceAll(s, "-", "")
-			},
-			"lower": strings.ToLower,
-			"title": func(s string) string {
-				return strings.ReplaceAll(strings.Title(s), "-", "")
-			},
-		}
-		t, err := template.New(fp).Funcs(fn).Parse(file.Tmpl)
-		if err != nil {
-			return err
-		}
-
-		err = t.Execute(f, c)
-		if err != nil {
-			return err
-		}
-	}
-
-	for _, comment := range c.Comments {
-		fmt.Println(comment)
-	}
-
-	return nil
 }
 
 func getNameAndVendor(s string) (string, string) {

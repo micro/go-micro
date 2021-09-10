@@ -8,13 +8,13 @@ import (
 
 	log "github.com/asim/go-micro/v3/logger"
 
-	pb "{{.Vendor}}{{.Dir}}/proto"
+	pb "{{.Vendor}}{{.Service}}/proto"
 )
 
-type {{title .Alias}} struct{}
+type {{title .Service}} struct{}
 
-func (e *{{title .Alias}}) Call(ctx context.Context, req *pb.CallRequest, rsp *pb.CallResponse) error {
-	log.Infof("Received {{title .Alias}}.Call request: %v", req)
+func (e *{{title .Service}}) Call(ctx context.Context, req *pb.CallRequest, rsp *pb.CallResponse) error {
+	log.Infof("Received {{title .Service}}.Call request: %v", req)
 	rsp.Msg = "Hello " + req.Name
 	return nil
 }
@@ -30,18 +30,18 @@ import (
 
 	log "github.com/asim/go-micro/v3/logger"
 
-	pb "{{.Vendor}}{{.Dir}}/proto"
+	pb "{{.Vendor}}{{.Service}}/proto"
 )
 
-type {{title .Alias}} struct{}
+type {{title .Service}} struct{}
 
-func (e *{{title .Alias}}) Call(ctx context.Context, req *pb.CallRequest, rsp *pb.CallResponse) error {
-	log.Infof("Received {{title .Alias}}.Call request: %v", req)
+func (e *{{title .Service}}) Call(ctx context.Context, req *pb.CallRequest, rsp *pb.CallResponse) error {
+	log.Infof("Received {{title .Service}}.Call request: %v", req)
 	rsp.Msg = "Hello " + req.Name
 	return nil
 }
 
-func (e *{{title .Alias}}) ClientStream(ctx context.Context, stream pb.{{title .Alias}}_ClientStreamStream) error {
+func (e *{{title .Service}}) ClientStream(ctx context.Context, stream pb.{{title .Service}}_ClientStreamStream) error {
 	var count int64
 	for {
 		req, err := stream.Recv()
@@ -57,8 +57,8 @@ func (e *{{title .Alias}}) ClientStream(ctx context.Context, stream pb.{{title .
 	}
 }
 
-func (e *{{title .Alias}}) ServerStream(ctx context.Context, req *pb.ServerStreamRequest, stream pb.{{title .Alias}}_ServerStreamStream) error {
-	log.Infof("Received {{title .Alias}}.ServerStream request: %v", req)
+func (e *{{title .Service}}) ServerStream(ctx context.Context, req *pb.ServerStreamRequest, stream pb.{{title .Service}}_ServerStreamStream) error {
+	log.Infof("Received {{title .Service}}.ServerStream request: %v", req)
 	for i := 0; i < int(req.Count); i++ {
 		log.Infof("Sending %d", i)
 		if err := stream.Send(&pb.ServerStreamResponse{
@@ -71,7 +71,7 @@ func (e *{{title .Alias}}) ServerStream(ctx context.Context, req *pb.ServerStrea
 	return nil
 }
 
-func (e *{{title .Alias}}) BidiStream(ctx context.Context, stream pb.{{title .Alias}}_BidiStreamStream) error {
+func (e *{{title .Service}}) BidiStream(ctx context.Context, stream pb.{{title .Service}}_BidiStreamStream) error {
 	for {
 		req, err := stream.Recv()
 		if err == io.EOF {

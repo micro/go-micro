@@ -7,7 +7,7 @@ var KubernetesEnv = `---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{.Dir}}-env
+  name: {{.Service}}{{if .Client}}-client{{end}}-env
 data:
   MICRO_REGISTRY: kubernetes
 `
@@ -56,23 +56,23 @@ var KubernetesDeployment = `---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{.Dir}}
+  name: {{.Service}}{{if .Client}}-client{{end}}
   labels:
-    app: {{.Dir}}
+    app: {{.Service}}{{if .Client}}-client{{end}}
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: {{.Dir}}
+      app: {{.Service}}{{if .Client}}-client{{end}}
   template:
     metadata:
       labels:
-        app: {{.Dir}}
+        app: {{.Service}}{{if .Client}}-client{{end}}
     spec:
       containers:
-      - name: {{.Dir}}
-        image: {{.Dir}}:latest
+      - name: {{.Service}}{{if .Client}}-client{{end}}
+        image: {{.Service}}{{if .Client}}-client{{end}}:latest
         envFrom:
         - configMapRef:
-            name: {{.Dir}}-env
+            name: {{.Service}}{{if .Client}}-client{{end}}-env
 `

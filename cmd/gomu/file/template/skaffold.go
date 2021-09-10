@@ -6,10 +6,10 @@ var SkaffoldCFG = `---
 apiVersion: skaffold/v2beta21
 kind: Config
 metadata:
-  name: {{.Dir}}
+  name: {{.Service}}{{if .Client}}-client{{end}}
 build:
   artifacts:
-  - image: {{.Dir}}
+  - image: {{.Service}}{{if .Client}}-client{{end}}
 deploy:
   kubectl:
     manifests:
