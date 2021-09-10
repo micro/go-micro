@@ -1,10 +1,10 @@
 package generate
 
 import (
-	"html/template"
 	"os"
 	"path/filepath"
 	"strings"
+	"text/template"
 )
 
 type File struct {
