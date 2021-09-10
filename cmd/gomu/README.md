@@ -229,6 +229,17 @@ $ gomu run
 2021-09-03 12:52:23  file=helloworld-client/main.go:33 level=info msg:"Hello John"
 ```
 
+## Generating Files
+
+To generate Go Micro project template files after the fact, use the `gomu
+generate` command. It will place the generated files in the current working
+directory.
+
+```bash
+$ gomu generate skaffold
+skaffold project template files generated
+```
+
 ## Listing Services
 
 To list services, use the `gomu services` command.
