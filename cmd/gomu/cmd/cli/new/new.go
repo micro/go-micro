@@ -15,11 +15,15 @@ import (
 var flags []cli.Flag = []cli.Flag{
 	&cli.BoolFlag{
 		Name:  "jaeger",
-		Usage: "generate jaeger tracer files",
+		Usage: "Generate Jaeger tracer files",
+	},
+	&cli.BoolFlag{
+		Name:  "kubernetes",
+		Usage: "Generate Kubernetes resource files",
 	},
 	&cli.BoolFlag{
 		Name:  "skaffold",
-		Usage: "generate skaffold files",
+		Usage: "Generate Skaffold files",
 	},
 }
 
@@ -128,13 +132,18 @@ func createProject(ctx *cli.Context, pt string) error {
 		return fmt.Errorf("%s project type not supported", pt)
 	}
 
-	if ctx.Bool("skaffold") {
+	if ctx.Bool("kubernetes") || ctx.Bool("skaffold") {
 		files = append(files, []generator.File{
 			{"plugins.go", tmpl.Plugins},
 			{"resources/clusterrole.yaml", tmpl.KubernetesClusterRole},
 			{"resources/configmap.yaml", tmpl.KubernetesEnv},
 			{"resources/deployment.yaml", tmpl.KubernetesDeployment},
 			{"resources/rolebinding.yaml", tmpl.KubernetesRoleBinding},
+		}...)
+	}
+
+	if ctx.Bool("skaffold") {
+		files = append(files, []generator.File{
 			{"skaffold.yaml", tmpl.SkaffoldCFG},
 		}...)
 	}
