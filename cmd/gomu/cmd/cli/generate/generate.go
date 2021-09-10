@@ -2,12 +2,14 @@ package generate
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 	"strings"
 
 	"github.com/asim/go-micro/cmd/gomu/cmd"
-	"github.com/asim/go-micro/cmd/gomu/generate"
-	tmpl "github.com/asim/go-micro/cmd/gomu/generate/template"
+	"github.com/asim/go-micro/cmd/gomu/file"
+	"github.com/asim/go-micro/cmd/gomu/file/generator"
+	tmpl "github.com/asim/go-micro/cmd/gomu/file/template"
 	"github.com/urfave/cli/v2"
 )
 
@@ -39,7 +41,15 @@ func Skaffold(ctx *cli.Context) error {
 		return err
 	}
 
-	files := []generate.File{
+	g := generator.New(
+		generator.Service(service),
+		generator.Vendor(vendor),
+		generator.Directory("."),
+		generator.Client(strings.HasSuffix(service, "-client")),
+		generator.Skaffold(true),
+	)
+
+	files := []file.File{
 		{".dockerignore", tmpl.DockerIgnore},
 		{"go.mod", tmpl.Module},
 		{"plugins.go", tmpl.Plugins},
@@ -50,17 +60,11 @@ func Skaffold(ctx *cli.Context) error {
 		{"skaffold.yaml", tmpl.SkaffoldCFG},
 	}
 
-	c := generate.Config{
-		Service:  service,
-		Dir:      ".",
-		Vendor:   vendor,
-		Comments: []string{"skaffold project template files generated"},
-		Client:   strings.HasSuffix(service, "-client"),
-		Jaeger:   false,
-		Skaffold: true,
+	if err := g.Generate(files); err != nil {
+		return err
 	}
 
-	generate.Create(files, c)
+	fmt.Println("skaffold project template files generated")
 
 	return nil
 }

@@ -1,31 +1,26 @@
-package generate
+package generator
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"text/template"
+
+	"github.com/asim/go-micro/cmd/gomu/file"
 )
 
-type Config struct {
-	Service  string
-	Vendor   string
-	Dir      string
-	Comments []string
-	Client   bool
-	Jaeger   bool
-	Skaffold bool
+type Generator interface {
+	Generate([]file.File) error
 }
 
-type File struct {
-	Path     string
-	Template string
+type generator struct {
+	opts Options
 }
 
-func Create(files []File, c Config) error {
+// Generate generates project template files.
+func (g *generator) Generate(files []file.File) error {
 	for _, file := range files {
-		fp := filepath.Join(c.Dir, file.Path)
+		fp := filepath.Join(g.opts.Directory, file.Path)
 		dir := filepath.Dir(fp)
 
 		if _, err := os.Stat(dir); os.IsNotExist(err) {
@@ -53,15 +48,23 @@ func Create(files []File, c Config) error {
 			return err
 		}
 
-		err = t.Execute(f, c)
+		err = t.Execute(f, g.opts)
 		if err != nil {
 			return err
 		}
 	}
 
-	for _, comment := range c.Comments {
-		fmt.Println(comment)
+	return nil
+}
+
+// New returns a new generator struct.
+func New(opts ...Option) Generator {
+	var options Options
+	for _, o := range opts {
+		o(&options)
 	}
 
-	return nil
+	return &generator{
+		opts: options,
+	}
 }

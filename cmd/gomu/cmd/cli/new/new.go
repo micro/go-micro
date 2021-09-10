@@ -7,8 +7,9 @@ import (
 	"strings"
 
 	"github.com/asim/go-micro/cmd/gomu/cmd"
-	"github.com/asim/go-micro/cmd/gomu/generate"
-	tmpl "github.com/asim/go-micro/cmd/gomu/generate/template"
+	"github.com/asim/go-micro/cmd/gomu/file"
+	"github.com/asim/go-micro/cmd/gomu/file/generator"
+	tmpl "github.com/asim/go-micro/cmd/gomu/file/template"
 	"github.com/urfave/cli/v2"
 )
 
@@ -87,9 +88,20 @@ func createProject(ctx *cli.Context, pt string) error {
 		return fmt.Errorf("%s already exists", dir)
 	}
 
+	client := pt == "client"
+
 	fmt.Printf("creating %s %s\n", pt, name)
 
-	files := []generate.File{
+	g := generator.New(
+		generator.Service(name),
+		generator.Vendor(vendor),
+		generator.Directory(dir),
+		generator.Client(client),
+		generator.Jaeger(ctx.Bool("jaeger")),
+		generator.Skaffold(ctx.Bool("skaffold")),
+	)
+
+	files := []file.File{
 		{".dockerignore", tmpl.DockerIgnore},
 		{".gitignore", tmpl.GitIgnore},
 		{"Dockerfile", tmpl.Dockerfile},
@@ -99,17 +111,17 @@ func createProject(ctx *cli.Context, pt string) error {
 
 	switch pt {
 	case "client":
-		files = append(files, []generate.File{
+		files = append(files, []file.File{
 			{"main.go", tmpl.MainCLT},
 		}...)
 	case "function":
-		files = append(files, []generate.File{
+		files = append(files, []file.File{
 			{"handler/" + name + ".go", tmpl.HandlerFNC},
 			{"main.go", tmpl.MainFNC},
 			{"proto/" + name + ".proto", tmpl.ProtoFNC},
 		}...)
 	case "service":
-		files = append(files, []generate.File{
+		files = append(files, []file.File{
 			{"handler/" + name + ".go", tmpl.HandlerSRV},
 			{"main.go", tmpl.MainSRV},
 			{"proto/" + name + ".proto", tmpl.ProtoSRV},
@@ -119,7 +131,7 @@ func createProject(ctx *cli.Context, pt string) error {
 	}
 
 	if ctx.Bool("skaffold") {
-		files = append(files, []generate.File{
+		files = append(files, []file.File{
 			{"plugins.go", tmpl.Plugins},
 			{"resources/clusterrole.yaml", tmpl.KubernetesClusterRole},
 			{"resources/configmap.yaml", tmpl.KubernetesEnv},
@@ -129,22 +141,22 @@ func createProject(ctx *cli.Context, pt string) error {
 		}...)
 	}
 
-	c := generate.Config{
-		Service:  name,
-		Vendor:   vendor,
-		Dir:      dir,
-		Client:   pt == "client",
-		Jaeger:   ctx.Bool("jaeger"),
-		Skaffold: ctx.Bool("skaffold"),
+	if err := g.Generate(files); err != nil {
+		return err
 	}
 
-	if pt == "client" {
-		c.Comments = clientComments(name, dir)
+	var comments []string
+	if client {
+		comments = clientComments(name, dir)
 	} else {
-		c.Comments = protoComments(name, dir)
+		comments = protoComments(name, dir)
 	}
 
-	return generate.Create(files, c)
+	for _, comment := range comments {
+		fmt.Println(comment)
+	}
+
+	return nil
 }
 
 func clientComments(name, dir string) []string {
