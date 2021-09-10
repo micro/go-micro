@@ -18,22 +18,59 @@ func init() {
 		Usage: "Generate project template files after the fact",
 		Subcommands: []*cli.Command{
 			{
+				Name:   "kubernetes",
+				Usage:  "Generate Kubernetes resource template files",
+				Action: Kubernetes,
+			},
+			{
 				Name:   "skaffold",
-				Usage:  "Generate Skaffold project template files",
+				Usage:  "Generate Skaffold template files",
 				Action: Skaffold,
 			},
 		},
 	})
 }
 
-// Skaffold generates Skaffold project template files in the current directory.
-// Exits on error.
-func Skaffold(ctx *cli.Context) error {
-	dir, err := os.Getwd()
+// Kubernetes generates Kubernetes resource template files in the current
+// working directory. Exits on error.
+func Kubernetes(ctx *cli.Context) error {
+	service, err := getService()
 	if err != nil {
 		return err
 	}
-	service := dir[strings.LastIndex(dir, "/")+1:]
+
+	vendor, err := getServiceVendor(service)
+	if err != nil {
+		return err
+	}
+
+	g := generator.New(
+		generator.Service(service),
+		generator.Vendor(vendor),
+		generator.Directory("."),
+		generator.Client(strings.HasSuffix(service, "-client")),
+	)
+
+	files := []generator.File{
+		{"plugins.go", tmpl.Plugins},
+		{"resources/clusterrole.yaml", tmpl.KubernetesClusterRole},
+		{"resources/configmap.yaml", tmpl.KubernetesEnv},
+		{"resources/deployment.yaml", tmpl.KubernetesDeployment},
+		{"resources/rolebinding.yaml", tmpl.KubernetesRoleBinding},
+	}
+
+	g.Generate(files)
+
+	return nil
+}
+
+// Skaffold generates Skaffold template files in the current working directory.
+// Exits on error.
+func Skaffold(ctx *cli.Context) error {
+	service, err := getService()
+	if err != nil {
+		return err
+	}
 
 	vendor, err := getServiceVendor(service)
 	if err != nil {
@@ -66,6 +103,14 @@ func Skaffold(ctx *cli.Context) error {
 	fmt.Println("skaffold project template files generated")
 
 	return nil
+}
+
+func getService() (string, error) {
+	dir, err := os.Getwd()
+	if err != nil {
+		return "", err
+	}
+	return dir[strings.LastIndex(dir, "/")+1:], nil
 }
 
 func getServiceVendor(s string) (string, error) {
