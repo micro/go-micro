@@ -130,9 +130,9 @@ func createProject(ctx *cli.Context, pt string) error {
 	}
 
 	c := generate.Config{
-		Alias:    name,
-		Dir:      dir,
+		Service:  name,
 		Vendor:   vendor,
+		Dir:      dir,
 		Client:   pt == "client",
 		Jaeger:   ctx.Bool("jaeger"),
 		Skaffold: ctx.Bool("skaffold"),

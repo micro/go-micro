@@ -1,10 +1,10 @@
 package generate
 
 type Config struct {
-	Alias    string
-	Comments []string
-	Dir      string
+	Service  string
 	Vendor   string
+	Dir      string
+	Comments []string
 	Client   bool
 	Jaeger   bool
 	Skaffold bool

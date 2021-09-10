@@ -7,14 +7,14 @@ import (
 	"context"
 	"time"
 
-	pb "{{.Vendor}}{{lower .Alias}}/proto"
+	pb "{{.Vendor}}{{lower .Service}}/proto"
 
 	"github.com/asim/go-micro/v3"
 	log "github.com/asim/go-micro/v3/logger"
 )
 
 var (
-	service = "{{lower .Alias}}"
+	service = "{{lower .Service}}"
 	version = "latest"
 )
 
@@ -44,7 +44,7 @@ func main() {
 var MainFNC = `package main
 
 import (
-	"{{.Vendor}}{{.Dir}}/handler"
+	"{{.Vendor}}{{.Service}}/handler"
 
 {{if .Jaeger}}	ot "github.com/asim/go-micro/plugins/wrapper/trace/opentracing/v3"
 {{end}}	"github.com/asim/go-micro/v3"
@@ -54,7 +54,7 @@ import (
 )
 
 var (
-	service = "{{lower .Alias}}"
+	service = "{{lower .Service}}"
 	version = "latest"
 )
 
@@ -82,7 +82,7 @@ func main() {
 	fnc.Init()
 
 	// Handle function
-	fnc.Handle(new(handler.{{title .Alias}}))
+	fnc.Handle(new(handler.{{title .Service}}))
 
 	// Run function
 	if err := fnc.Run(); err != nil {
@@ -95,8 +95,8 @@ func main() {
 var MainSRV = `package main
 
 import (
-	"{{.Vendor}}{{.Dir}}/handler"
-	pb "{{.Vendor}}{{.Dir}}/proto"
+	"{{.Vendor}}{{.Service}}/handler"
+	pb "{{.Vendor}}{{.Service}}/proto"
 
 {{if .Jaeger}}	ot "github.com/asim/go-micro/plugins/wrapper/trace/opentracing/v3"
 {{end}}	"github.com/asim/go-micro/v3"
@@ -106,7 +106,7 @@ import (
 )
 
 var (
-	service = "{{lower .Alias}}"
+	service = "{{lower .Service}}"
 	version = "latest"
 )
 
@@ -134,7 +134,7 @@ func main() {
 	srv.Init()
 
 	// Register handler
-	pb.Register{{title .Alias}}Handler(srv.Server(), new(handler.{{title .Alias}}))
+	pb.Register{{title .Service}}Handler(srv.Server(), new(handler.{{title .Service}}))
 
 	// Run service
 	if err := srv.Run(); err != nil {
