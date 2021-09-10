@@ -7,9 +7,8 @@ import (
 	"strings"
 
 	"github.com/asim/go-micro/cmd/gomu/cmd"
-	"github.com/asim/go-micro/cmd/gomu/file"
-	"github.com/asim/go-micro/cmd/gomu/file/generator"
-	tmpl "github.com/asim/go-micro/cmd/gomu/file/template"
+	"github.com/asim/go-micro/cmd/gomu/generator"
+	tmpl "github.com/asim/go-micro/cmd/gomu/generator/template"
 	"github.com/urfave/cli/v2"
 )
 
@@ -49,7 +48,7 @@ func Skaffold(ctx *cli.Context) error {
 		generator.Skaffold(true),
 	)
 
-	files := []file.File{
+	files := []generator.File{
 		{".dockerignore", tmpl.DockerIgnore},
 		{"go.mod", tmpl.Module},
 		{"plugins.go", tmpl.Plugins},
