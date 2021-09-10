@@ -5,20 +5,23 @@ import (
 	"path/filepath"
 	"strings"
 	"text/template"
-
-	"github.com/asim/go-micro/cmd/gomu/file"
 )
 
 type Generator interface {
-	Generate([]file.File) error
+	Generate([]File) error
 }
 
 type generator struct {
 	opts Options
 }
 
+type File struct {
+	Path     string
+	Template string
+}
+
 // Generate generates project template files.
-func (g *generator) Generate(files []file.File) error {
+func (g *generator) Generate(files []File) error {
 	for _, file := range files {
 		fp := filepath.Join(g.opts.Directory, file.Path)
 		dir := filepath.Dir(fp)

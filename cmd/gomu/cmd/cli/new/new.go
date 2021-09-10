@@ -7,9 +7,8 @@ import (
 	"strings"
 
 	"github.com/asim/go-micro/cmd/gomu/cmd"
-	"github.com/asim/go-micro/cmd/gomu/file"
-	"github.com/asim/go-micro/cmd/gomu/file/generator"
-	tmpl "github.com/asim/go-micro/cmd/gomu/file/template"
+	"github.com/asim/go-micro/cmd/gomu/generator"
+	tmpl "github.com/asim/go-micro/cmd/gomu/generator/template"
 	"github.com/urfave/cli/v2"
 )
 
@@ -100,7 +99,7 @@ func createProject(ctx *cli.Context, pt string) error {
 		generator.Skaffold(ctx.Bool("skaffold")),
 	)
 
-	files := []file.File{
+	files := []generator.File{
 		{".dockerignore", tmpl.DockerIgnore},
 		{".gitignore", tmpl.GitIgnore},
 		{"Dockerfile", tmpl.Dockerfile},
@@ -110,17 +109,17 @@ func createProject(ctx *cli.Context, pt string) error {
 
 	switch pt {
 	case "client":
-		files = append(files, []file.File{
+		files = append(files, []generator.File{
 			{"main.go", tmpl.MainCLT},
 		}...)
 	case "function":
-		files = append(files, []file.File{
+		files = append(files, []generator.File{
 			{"handler/" + name + ".go", tmpl.HandlerFNC},
 			{"main.go", tmpl.MainFNC},
 			{"proto/" + name + ".proto", tmpl.ProtoFNC},
 		}...)
 	case "service":
-		files = append(files, []file.File{
+		files = append(files, []generator.File{
 			{"handler/" + name + ".go", tmpl.HandlerSRV},
 			{"main.go", tmpl.MainSRV},
 			{"proto/" + name + ".proto", tmpl.ProtoSRV},
@@ -130,7 +129,7 @@ func createProject(ctx *cli.Context, pt string) error {
 	}
 
 	if ctx.Bool("skaffold") {
-		files = append(files, []file.File{
+		files = append(files, []generator.File{
 			{"plugins.go", tmpl.Plugins},
 			{"resources/clusterrole.yaml", tmpl.KubernetesClusterRole},
 			{"resources/configmap.yaml", tmpl.KubernetesEnv},
