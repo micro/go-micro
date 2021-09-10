@@ -144,7 +144,7 @@ func createProject(ctx *cli.Context, pt string) error {
 		c.Comments = protoComments(name, dir)
 	}
 
-	return create(files, c)
+	return generate.Create(files, c)
 }
 
 func clientComments(name, dir string) []string {
@@ -166,16 +166,6 @@ func protoComments(name, dir string) []string {
 		"cd " + dir,
 		"make proto tidy\n",
 	}
-}
-
-func create(files []generate.File, c generate.Config) error {
-	generate.Create(files, c)
-
-	for _, comment := range c.Comments {
-		fmt.Println(comment)
-	}
-
-	return nil
 }
 
 func getNameAndVendor(s string) (string, string) {

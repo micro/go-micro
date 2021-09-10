@@ -1,11 +1,22 @@
 package generate
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"text/template"
 )
+
+type Config struct {
+	Service  string
+	Vendor   string
+	Dir      string
+	Comments []string
+	Client   bool
+	Jaeger   bool
+	Skaffold bool
+}
 
 type File struct {
 	Path     string
@@ -46,6 +57,10 @@ func Create(files []File, c Config) error {
 		if err != nil {
 			return err
 		}
+	}
+
+	for _, comment := range c.Comments {
+		fmt.Println(comment)
 	}
 
 	return nil
