@@ -72,10 +72,11 @@ func createProject(ctx *cli.Context, pt string) error {
 		return cli.ShowSubcommandHelp(ctx)
 	}
 
+	client := pt == "client"
 	name, vendor := getNameAndVendor(arg)
 
 	dir := name
-	if pt == "client" {
+	if client {
 		dir += "-client"
 	}
 
@@ -87,8 +88,6 @@ func createProject(ctx *cli.Context, pt string) error {
 	if _, err := os.Stat(dir); !os.IsNotExist(err) {
 		return fmt.Errorf("%s already exists", dir)
 	}
-
-	client := pt == "client"
 
 	fmt.Printf("creating %s %s\n", pt, name)
 
