@@ -7,6 +7,9 @@ import (
 	"text/template"
 )
 
+// Generator is the interface that generates project template files.
+//
+// Generate accepts a list of files and generates them based on their template.
 type Generator interface {
 	Generate([]File) error
 }
@@ -15,8 +18,11 @@ type generator struct {
 	opts Options
 }
 
+// File represents a file to generate.
 type File struct {
-	Path     string
+	// Path specifies where the file will reside.
+	Path string
+	// Template is the template used to generate the file.
 	Template string
 }
 
