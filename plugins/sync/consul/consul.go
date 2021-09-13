@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"os"
 	"path"
 	"strings"
 	gosync "sync"
@@ -88,9 +89,10 @@ func (c *consulElected) Status() chan bool {
 		}
 	}
 
-	// os.Stdout, "consul: ", hclog.Lshortfile
-
-	go p.RunWithClientAndHclog(c.c, hclog.New(&hclog.LoggerOptions{}))
+	go p.RunWithClientAndHclog(c.c, hclog.New(&hclog.LoggerOptions{
+		Name:   "consul",
+		Output: os.Stdout,
+	}))
 	return ch
 }
 
