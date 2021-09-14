@@ -14,7 +14,9 @@ type Config struct {
 // CombinedCORSHandler wraps a server and provides CORS headers
 func CombinedCORSHandler(h http.Handler, config *Config) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		SetHeaders(w, r, config)
+		if config != nil {
+			SetHeaders(w, r, config)
+		}
 		if r.Method == "OPTIONS" {
 			return
 		}
