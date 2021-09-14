@@ -60,7 +60,7 @@ func (s *httpServer) Handle(path string, handler http.Handler) {
 
 	// wrap with cors
 	if s.opts.EnableCORS {
-		handler = cors.CombinedCORSHandler(handler)
+		handler = cors.CombinedCORSHandler(handler, s.opts.CORSConfig)
 	}
 
 	// wrap with logger
