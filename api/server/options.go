@@ -2,7 +2,7 @@ package server
 
 import (
 	"crypto/tls"
-	"github.com/micro/go-micro/v2/api/server/cors"
+	"github.com/asim/go-micro/v3/api/server/cors"
 	"net/http"
 
 	"github.com/asim/go-micro/v3/api/resolver"
