@@ -2,6 +2,7 @@ package server
 
 import (
 	"crypto/tls"
+	"github.com/asim/go-micro/v3/api/server/cors"
 	"net/http"
 
 	"github.com/asim/go-micro/v3/api/resolver"
@@ -13,6 +14,7 @@ type Option func(o *Options)
 type Options struct {
 	EnableACME   bool
 	EnableCORS   bool
+	CORSConfig   *cors.Config
 	ACMEProvider acme.Provider
 	EnableTLS    bool
 	ACMEHosts    []string
@@ -32,6 +34,12 @@ func WrapHandler(w Wrapper) Option {
 func EnableCORS(b bool) Option {
 	return func(o *Options) {
 		o.EnableCORS = b
+	}
+}
+
+func CORSConfig(c *cors.Config) Option {
+	return func(o *Options) {
+		o.CORSConfig = c
 	}
 }
 
