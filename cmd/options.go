@@ -226,3 +226,10 @@ func NewAuth(name string, t func(...auth.Option) auth.Auth) Option {
 		o.Auths[name] = t
 	}
 }
+
+// New config func
+func NewConfig(name string, t func(...config.Option) (config.Config, error)) Option  {
+	return func(o *Options) {
+		o.Configs[name] = t
+	}
+}
