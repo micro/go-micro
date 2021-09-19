@@ -19,7 +19,7 @@ func init() {
 		lvl = InfoLevel
 	}
 
-	DefaultLogger = NewHelper(NewLogger(WithLevel(lvl)))
+	DefaultLogger = NewLogger(WithLevel(lvl))
 }
 
 type defaultLogger struct {
@@ -41,9 +41,23 @@ func (l *defaultLogger) String() string {
 
 func (l *defaultLogger) Fields(fields map[string]interface{}) Logger {
 	l.Lock()
-	l.opts.Fields = copyFields(fields)
+	nfields := make(map[string]interface{}, len(l.opts.Fields))
+	for k, v := range l.opts.Fields {
+		nfields[k] = v
+	}
 	l.Unlock()
-	return l
+
+	for k, v := range fields {
+		nfields[k] = v
+	}
+
+	return &defaultLogger{opts: Options{
+		Level:           l.opts.Level,
+		Fields:          nfields,
+		Out:             l.opts.Out,
+		CallerSkipCount: l.opts.CallerSkipCount,
+		Context:         l.opts.Context,
+	}}
 }
 
 func copyFields(src map[string]interface{}) map[string]interface{} {
