@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"context"
-
 	"github.com/asim/go-micro/v3/auth"
 	"github.com/asim/go-micro/v3/broker"
 	"github.com/asim/go-micro/v3/cache"
@@ -224,5 +223,19 @@ func NewTracer(name string, t func(...trace.Option) trace.Tracer) Option {
 func NewAuth(name string, t func(...auth.Option) auth.Auth) Option {
 	return func(o *Options) {
 		o.Auths[name] = t
+	}
+}
+
+// New config func
+func NewConfig(name string, t func(...config.Option) (config.Config, error)) Option  {
+	return func(o *Options) {
+		o.Configs[name] = t
+	}
+}
+
+// New profile func
+func NewProfile(name string, t func(...profile.Option) profile.Profile) Option {
+	return func(o *Options) {
+		o.Profiles[name] = t
 	}
 }
