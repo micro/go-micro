@@ -3,7 +3,7 @@ package logger
 
 var (
 	// Default logger
-	DefaultLogger Logger = NewHelper(NewLogger())
+	DefaultLogger Logger = NewLogger()
 )
 
 // Logger is a generic logging interface

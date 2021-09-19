@@ -11,7 +11,7 @@ init:
 
 .PHONY: proto
 proto:
-	@protoc --proto_path=. --micro_out=. --go_out=:. proto/{{.Alias}}.proto
+	@protoc --proto_path=. --micro_out=. --go_out=:. proto/{{.Service}}.proto
 
 .PHONY: tidy
 tidy:
@@ -19,7 +19,7 @@ tidy:
 
 .PHONY: build
 build:
-	@go build -o {{.Alias}} *.go
+	@go build -o {{.Service}}{{if .Client}}-client{{end}} *.go
 
 .PHONY: test
 test:
@@ -27,5 +27,5 @@ test:
 
 .PHONY: docker
 docker:
-	@docker build -t {{.Alias}}:latest .
+	@docker build -t {{.Service}}{{if .Client}}-client{{end}}:latest .
 `

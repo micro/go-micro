@@ -47,7 +47,7 @@ func RunCall(ctx *cli.Context) error {
 	c := srv.Client()
 
 	request := c.NewRequest(service, endpoint, creq, client.WithContentType("application/json"))
-	response := map[string]string{}
+	var response map[string]interface{}
 
 	if err := c.Call(context.Background(), request, &response); err != nil {
 		return err
