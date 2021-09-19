@@ -26,15 +26,18 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-type Cmd interface {
-	// The cli app within this cmd
-	App() *cli.App
-	// Adds options, parses flags and initialise
-	// exits on error
-	Init(opts ...Option) error
-	// Options set within this command
-	Options() Options
-}
+type (
+	Cmd interface {
+		// The cli app within this cmd
+		App() *cli.App
+		// Adds options, parses flags and initialise
+		Init(opts ...Option) error
+		// Options set within this command
+		Options() Options
+		// exits on error
+		Run() error
+	}
+)
 
 type cmd struct {
 	opts Options
@@ -340,6 +343,11 @@ func (c *cmd) Options() Options {
 	return c.opts
 }
 
+func (c *cmd) Run() error {
+	c.app.RunAndExitOnError()
+	return nil
+}
+
 func (c *cmd) Before(ctx *cli.Context) error {
 	// If flags are set then use them otherwise do nothing
 	var serverOpts []server.Option
@@ -616,14 +624,13 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	if name := ctx.String("config"); len(name) > 0 {
 		// only change if we have the server and type differs
 		if r, ok := c.opts.Configs[name]; ok {
-			rc , err := r()
+			rc, err := r()
 			if err != nil {
 				logger.Fatalf("Error configuring config: %v", err)
 			}
 			*c.opts.Config = rc
 		}
 	}
-
 
 	return nil
 }
@@ -640,7 +647,7 @@ func (c *cmd) Init(opts ...Option) error {
 	}
 	c.app.HideVersion = len(c.opts.Version) == 0
 	c.app.Usage = c.opts.Description
-	c.app.RunAndExitOnError()
+
 	return nil
 }
 

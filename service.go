@@ -1,6 +1,7 @@
 package micro
 
 import (
+	"fmt"
 	"os"
 	"os/signal"
 	rtime "runtime"
@@ -169,6 +170,14 @@ func (s *service) Stop() error {
 }
 
 func (s *service) Run() (err error) {
+	// Prioritize CMD Run Method, but Error never performs
+	// because the default CMD error will exit
+	// The error is to customize the CMD user output
+	if err := s.opts.Cmd.Run(); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
 	// exit when help flag is provided
 	for _, v := range os.Args[1:] {
 		if v == "-h" || v == "--help" {

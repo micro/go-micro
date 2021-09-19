@@ -51,6 +51,8 @@ func TestCliSourceDefault(t *testing.T) {
 			return nil
 		}),
 	)
+	// Run cmd
+	service.Options().Cmd.Run()
 
 	config.Load(cliSrc)
 	if fval := config.Get("flag").String("default"); fval != expVal {
