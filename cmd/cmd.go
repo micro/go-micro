@@ -26,18 +26,16 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-type (
-	Cmd interface {
-		// The cli app within this cmd
-		App() *cli.App
-		// Adds options, parses flags and initialise
-		Init(opts ...Option) error
-		// Options set within this command
-		Options() Options
-		// exits on error
-		Run() error
-	}
-)
+type Cmd interface {
+	// The cli app within this cmd
+	App() *cli.App
+	// Adds options, parses flags and initialise
+	Init(opts ...Option) error
+	// Options set within this command
+	Options() Options
+	// exits on error
+	Run() error
+}
 
 type cmd struct {
 	opts Options
