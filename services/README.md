@@ -14,7 +14,7 @@ and hosted by [m3o.com](https://m3o.com) and powered by [Micro](https://github.c
 
 ## Features
 
-The types of services available are as follows
+The types of services available are as follows:
 
 - [Address](https://m3o.com/address) - Address lookup by postcode
 - [Answer](https://m3o.com/answer) - Instant answers to any question
