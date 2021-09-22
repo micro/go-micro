@@ -72,7 +72,7 @@ Find the service you're looking for and browse to its API page e.g [https://m3o.
 Copy the example for the relevant endpoint
 
 ```go
-package example
+package main
 
 import (
 	"fmt"
