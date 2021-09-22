@@ -94,6 +94,11 @@ func main() {
 		To:   "GBP",
 	})
 
+	// {
+	//	"from": "USD",
+	//	"to": "GBP",
+	//	"rate": 0.7104
+	// }
 	fmt.Println(rsp, err)
 }
 ```
