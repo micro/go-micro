@@ -87,7 +87,7 @@ See [plugins](https://github.com/micro/go-micro/tree/master/plugins) directory f
 
 Augment your experience with real world Micro services
 
-See [m3o.com](https://m3o.com)
+See [services](https://github.com/micro/go-micro/tree/master/services) directory for a list of services.
 
 ## License
 
