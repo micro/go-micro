@@ -56,7 +56,7 @@ The types of services available are as follows
 
 The source code for all services exist in [github.com/micro/services](https://github.com/micro/services).
 
-The hosted versions of all services can be found on [m3o.com](https://m3o.com/explore).
+The hosted versions of all services can be found on [m3o.com](https://m3o.com).
 
 ## Usage
 
