@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"context"
-	
+
 	"github.com/asim/go-micro/v3/auth"
 	"github.com/asim/go-micro/v3/broker"
 	"github.com/asim/go-micro/v3/cache"
@@ -228,7 +228,7 @@ func NewAuth(name string, t func(...auth.Option) auth.Auth) Option {
 }
 
 // New config func
-func NewConfig(name string, t func(...config.Option) (config.Config, error)) Option  {
+func NewConfig(name string, t func(...config.Option) (config.Config, error)) Option {
 	return func(o *Options) {
 		o.Configs[name] = t
 	}
