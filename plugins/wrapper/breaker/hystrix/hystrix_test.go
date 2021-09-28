@@ -50,12 +50,12 @@ func TestBreakerWithFilter(t *testing.T) {
 	s := selector.NewSelector(selector.Registry(r))
 	c := client.NewClient(
 		client.Selector(s),
-		client.Wrap(NewClientWrapper(WithFilter(func(c context.Context, e error) error {
+		client.Wrap(NewClientWrapper(WithFilter(func(c context.Context, e error) bool {
 			var merr *merrors.Error
 			if errors.As(e, &merr) && merr.Detail == "service test.service: not found" {
-				return nil
+				return true
 			}
-			return e
+			return false
 		}))),
 	)
 

@@ -9,7 +9,7 @@ import (
 
 type clientWrapper struct {
 	client.Client
-	filter   func(context.Context, error) error
+	filter   func(context.Context, error) bool
 	fallback func(context.Context, error) error
 }
 
@@ -19,7 +19,9 @@ func (cw *clientWrapper) Call(ctx context.Context, req client.Request, rsp inter
 		err = cw.Client.Call(c, req, rsp, opts...)
 		if cw.filter != nil {
 			// custom error handling, filter errors that should not trigger circuit breaker
-			return cw.filter(ctx, err)
+			if cw.filter(ctx, err) {
+				return nil
+			}
 		}
 		return err
 	}, cw.fallback)
