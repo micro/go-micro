@@ -37,18 +37,13 @@ func (l *zaplog) Init(opts ...logger.Option) error {
 
 	}
 
-	skip, ok := l.opts.Context.Value(callerSkipKey{}).(int)
-	if !ok || skip < 1 {
-		skip = 1
-	}
-
 	// Set log Level if not default
 	zapConfig.Level = zap.NewAtomicLevel()
 	if l.opts.Level != logger.InfoLevel {
 		zapConfig.Level.SetLevel(loggerToZapLevel(l.opts.Level))
 	}
 
-	log, err := zapConfig.Build(zap.AddCallerSkip(skip))
+	log, err := zapConfig.Build(zap.AddCallerSkip(l.opts.CallerSkipCount))
 	if err != nil {
 		return err
 	}
@@ -166,10 +161,11 @@ func (l *zaplog) Options() logger.Options {
 func NewLogger(opts ...logger.Option) (logger.Logger, error) {
 	// Default options
 	options := logger.Options{
-		Level:   logger.InfoLevel,
-		Fields:  make(map[string]interface{}),
-		Out:     os.Stderr,
-		Context: context.Background(),
+		Level:           logger.InfoLevel,
+		Fields:          make(map[string]interface{}),
+		Out:             os.Stderr,
+		Context:         context.Background(),
+		CallerSkipCount: 2,
 	}
 
 	l := &zaplog{opts: options}

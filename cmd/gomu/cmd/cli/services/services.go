@@ -8,13 +8,12 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-// NewCommand returns a new services command.
-func NewCommand() *cli.Command {
-	return &cli.Command{
+func init() {
+	cmd.Register(&cli.Command{
 		Name:   "services",
 		Usage:  "List services in the registry",
 		Action: List,
-	}
+	})
 }
 
 // List fetches running services from the registry and lists them. Exits on

@@ -1,114 +1,131 @@
 package logger
 
 import (
+	"context"
 	"os"
 )
 
 type Helper struct {
-	Logger
-	fields map[string]interface{}
+	logger Logger
 }
 
-func NewHelper(log Logger) *Helper {
-	return &Helper{Logger: log}
+func NewHelper(logger Logger) *Helper {
+	return &Helper{logger: logger}
+}
+
+// Extract always returns valid Helper with logger from context or with DefaultLogger as fallback.
+// Can be used in pair with function Inject.
+// Example: propagate RequestID to logger in service handler methods.
+func Extract(ctx context.Context) *Helper {
+	if l, ok := FromContext(ctx); ok {
+		return NewHelper(l)
+	}
+
+	return NewHelper(DefaultLogger)
+}
+
+func (h *Helper) Inject(ctx context.Context) context.Context {
+	return NewContext(ctx, h.logger)
+}
+
+func (h *Helper) Log(level Level, args ...interface{}) {
+	h.logger.Log(level, args...)
+}
+
+func (h *Helper) Logf(level Level, template string, args ...interface{}) {
+	h.logger.Logf(level, template, args...)
 }
 
 func (h *Helper) Info(args ...interface{}) {
-	if !h.Logger.Options().Level.Enabled(InfoLevel) {
+	if !h.logger.Options().Level.Enabled(InfoLevel) {
 		return
 	}
-	h.Logger.Fields(h.fields).Log(InfoLevel, args...)
+	h.logger.Log(InfoLevel, args...)
 }
 
 func (h *Helper) Infof(template string, args ...interface{}) {
-	if !h.Logger.Options().Level.Enabled(InfoLevel) {
+	if !h.logger.Options().Level.Enabled(InfoLevel) {
 		return
 	}
-	h.Logger.Fields(h.fields).Logf(InfoLevel, template, args...)
+	h.logger.Logf(InfoLevel, template, args...)
 }
 
 func (h *Helper) Trace(args ...interface{}) {
-	if !h.Logger.Options().Level.Enabled(TraceLevel) {
+	if !h.logger.Options().Level.Enabled(TraceLevel) {
 		return
 	}
-	h.Logger.Fields(h.fields).Log(TraceLevel, args...)
+	h.logger.Log(TraceLevel, args...)
 }
 
 func (h *Helper) Tracef(template string, args ...interface{}) {
-	if !h.Logger.Options().Level.Enabled(TraceLevel) {
+	if !h.logger.Options().Level.Enabled(TraceLevel) {
 		return
 	}
-	h.Logger.Fields(h.fields).Logf(TraceLevel, template, args...)
+	h.logger.Logf(TraceLevel, template, args...)
 }
 
 func (h *Helper) Debug(args ...interface{}) {
-	if !h.Logger.Options().Level.Enabled(DebugLevel) {
+	if !h.logger.Options().Level.Enabled(DebugLevel) {
 		return
 	}
-	h.Logger.Fields(h.fields).Log(DebugLevel, args...)
+	h.logger.Log(DebugLevel, args...)
 }
 
 func (h *Helper) Debugf(template string, args ...interface{}) {
-	if !h.Logger.Options().Level.Enabled(DebugLevel) {
+	if !h.logger.Options().Level.Enabled(DebugLevel) {
 		return
 	}
-	h.Logger.Fields(h.fields).Logf(DebugLevel, template, args...)
+	h.logger.Logf(DebugLevel, template, args...)
 }
 
 func (h *Helper) Warn(args ...interface{}) {
-	if !h.Logger.Options().Level.Enabled(WarnLevel) {
+	if !h.logger.Options().Level.Enabled(WarnLevel) {
 		return
 	}
-	h.Logger.Fields(h.fields).Log(WarnLevel, args...)
+	h.logger.Log(WarnLevel, args...)
 }
 
 func (h *Helper) Warnf(template string, args ...interface{}) {
-	if !h.Logger.Options().Level.Enabled(WarnLevel) {
+	if !h.logger.Options().Level.Enabled(WarnLevel) {
 		return
 	}
-	h.Logger.Fields(h.fields).Logf(WarnLevel, template, args...)
+	h.logger.Logf(WarnLevel, template, args...)
 }
 
 func (h *Helper) Error(args ...interface{}) {
-	if !h.Logger.Options().Level.Enabled(ErrorLevel) {
+	if !h.logger.Options().Level.Enabled(ErrorLevel) {
 		return
 	}
-	h.Logger.Fields(h.fields).Log(ErrorLevel, args...)
+	h.logger.Log(ErrorLevel, args...)
 }
 
 func (h *Helper) Errorf(template string, args ...interface{}) {
-	if !h.Logger.Options().Level.Enabled(ErrorLevel) {
+	if !h.logger.Options().Level.Enabled(ErrorLevel) {
 		return
 	}
-	h.Logger.Fields(h.fields).Logf(ErrorLevel, template, args...)
+	h.logger.Logf(ErrorLevel, template, args...)
 }
 
 func (h *Helper) Fatal(args ...interface{}) {
-	if !h.Logger.Options().Level.Enabled(FatalLevel) {
+	if !h.logger.Options().Level.Enabled(FatalLevel) {
 		return
 	}
-	h.Logger.Fields(h.fields).Log(FatalLevel, args...)
+	h.logger.Log(FatalLevel, args...)
 	os.Exit(1)
 }
 
 func (h *Helper) Fatalf(template string, args ...interface{}) {
-	if !h.Logger.Options().Level.Enabled(FatalLevel) {
+	if !h.logger.Options().Level.Enabled(FatalLevel) {
 		return
 	}
-	h.Logger.Fields(h.fields).Logf(FatalLevel, template, args...)
+	h.logger.Logf(FatalLevel, template, args...)
 	os.Exit(1)
 }
 
 func (h *Helper) WithError(err error) *Helper {
-	fields := copyFields(h.fields)
-	fields["error"] = err
-	return &Helper{Logger: h.Logger, fields: fields}
+	return &Helper{logger: h.logger.Fields(map[string]interface{}{"error": err})}
 }
 
 func (h *Helper) WithFields(fields map[string]interface{}) *Helper {
-	nfields := copyFields(fields)
-	for k, v := range h.fields {
-		nfields[k] = v
-	}
-	return &Helper{Logger: h.Logger, fields: nfields}
+	return &Helper{logger: h.logger.Fields(fields)}
 }

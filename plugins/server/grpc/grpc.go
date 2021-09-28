@@ -398,10 +398,7 @@ func (g *grpcServer) processRequest(stream grpc.ServerStream, service *service, 
 		fn := func(ctx context.Context, req server.Request, rsp interface{}) (err error) {
 			defer func() {
 				if r := recover(); r != nil {
-					if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
-						logger.Error("panic recovered: ", r)
-						logger.Error(string(debug.Stack()))
-					}
+					logger.Extract(ctx).Errorf("panic recovered: %v, stack: %s", r, string(debug.Stack()))
 					err = errors.InternalServerError("go.micro.server", "panic recovered: %v", r)
 				}
 			}()
