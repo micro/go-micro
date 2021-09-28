@@ -29,5 +29,3 @@ require (
 	golang.org/x/net v0.0.0-20210510120150-4163338589ed
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 )
-
-replace github.com/asim/go-micro/v3 => ../go-micro

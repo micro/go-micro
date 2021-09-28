@@ -1,28 +1,11 @@
 package cli
 
 import (
-	"sort"
-
-	"github.com/asim/go-micro/cmd/gomu/cmd"
-	"github.com/asim/go-micro/cmd/gomu/cmd/cli/call"
-	"github.com/asim/go-micro/cmd/gomu/cmd/cli/describe"
-	"github.com/asim/go-micro/cmd/gomu/cmd/cli/new"
-	"github.com/asim/go-micro/cmd/gomu/cmd/cli/run"
-	"github.com/asim/go-micro/cmd/gomu/cmd/cli/services"
-	"github.com/asim/go-micro/cmd/gomu/cmd/cli/stream"
-	mcli "github.com/urfave/cli/v2"
+	_ "github.com/asim/go-micro/cmd/gomu/cmd/cli/call"
+	_ "github.com/asim/go-micro/cmd/gomu/cmd/cli/describe"
+	_ "github.com/asim/go-micro/cmd/gomu/cmd/cli/generate"
+	_ "github.com/asim/go-micro/cmd/gomu/cmd/cli/new"
+	_ "github.com/asim/go-micro/cmd/gomu/cmd/cli/run"
+	_ "github.com/asim/go-micro/cmd/gomu/cmd/cli/services"
+	_ "github.com/asim/go-micro/cmd/gomu/cmd/cli/stream"
 )
-
-func init() {
-	cmd.Register(
-		call.NewCommand(),
-		describe.NewCommand(),
-		new.NewCommand(),
-		run.NewCommand(),
-		services.NewCommand(),
-		stream.NewCommand(),
-	)
-
-	sort.Sort(mcli.FlagsByName(cmd.App().Flags))
-	sort.Sort(mcli.CommandsByName(cmd.App().Commands))
-}

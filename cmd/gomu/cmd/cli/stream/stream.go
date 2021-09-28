@@ -5,9 +5,8 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-// NewCommand returns a new stream command.
-func NewCommand() *cli.Command {
-	return &cli.Command{
+func init() {
+	cmd.Register(&cli.Command{
 		Name:  "stream",
 		Usage: "Create a service stream",
 		Subcommands: []*cli.Command{
@@ -24,5 +23,5 @@ func NewCommand() *cli.Command {
 				Action:  Server,
 			},
 		},
-	}
+	})
 }

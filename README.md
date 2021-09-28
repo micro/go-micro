@@ -83,6 +83,12 @@ See [examples](https://github.com/micro/go-micro/tree/master/examples) directory
 
 See [plugins](https://github.com/micro/go-micro/tree/master/plugins) directory for all the plugins.
 
+## Services
+
+Augment your experience with real world Micro services
+
+See [services](https://github.com/micro/go-micro/tree/master/services) directory for a list of services.
+
 ## License
 
 Go Micro is Apache 2.0 licensed.

@@ -408,6 +408,14 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	if len(ctx.String("auth_namespace")) > 0 {
 		authOpts = append(authOpts, auth.Namespace(ctx.String("auth_namespace")))
 	}
+	if name := ctx.String("auth"); len(name) > 0 {
+		r, ok := c.opts.Auths[name]
+		if !ok {
+			return fmt.Errorf("Unsupported auth: %s", name)
+		}
+
+		*c.opts.Auth = r(authOpts...)
+	}
 
 	// Set the registry
 	if name := ctx.String("registry"); len(name) > 0 && (*c.opts.Registry).String() != name {
@@ -601,6 +609,18 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	if len(clientOpts) > 0 {
 		if err := (*c.opts.Client).Init(clientOpts...); err != nil {
 			logger.Fatalf("Error configuring client: %v", err)
+		}
+	}
+
+	// config
+	if name := ctx.String("config"); len(name) > 0 {
+		// only change if we have the server and type differs
+		if r, ok := c.opts.Configs[name]; ok {
+			rc, err := r()
+			if err != nil {
+				logger.Fatalf("Error configuring config: %v", err)
+			}
+			*c.opts.Config = rc
 		}
 	}
 
