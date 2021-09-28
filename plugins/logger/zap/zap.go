@@ -62,6 +62,11 @@ func (l *zaplog) Init(opts ...logger.Option) error {
 		log = log.With(zap.Namespace(namespace))
 	}
 
+	// Adding options
+	if options, ok := l.opts.Context.Value(optionsKey{}).([]zap.Option); ok {
+		log = log.WithOptions(options...)
+	}
+
 	// defer log.Sync() ??
 
 	l.cfg = zapConfig
