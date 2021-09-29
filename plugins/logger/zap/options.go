@@ -30,3 +30,9 @@ type namespaceKey struct{}
 func WithNamespace(namespace string) logger.Option {
 	return logger.SetOption(namespaceKey{}, namespace)
 }
+
+type optionsKey struct{}
+
+func WithOptions(opts ...zap.Option) logger.Option {
+	return logger.SetOption(optionsKey{}, opts)
+}
