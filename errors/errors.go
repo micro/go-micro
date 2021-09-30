@@ -4,6 +4,7 @@ package errors
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 )
@@ -143,4 +144,13 @@ func FromError(err error) *Error {
 	}
 
 	return Parse(err.Error())
+}
+
+// As finds the first error in err's chain that matches *Error
+func As(err error) (bool, *Error) {
+	var merr *Error
+	if errors.As(err, &merr) {
+		return true, merr
+	}
+	return false, nil
 }
