@@ -4,7 +4,10 @@ import "context"
 
 // Options represents hystrix client wrapper options
 type Options struct {
-	Filter   func(context.Context, error) error
+	// Filter used to prevent errors from trigger circuit breaker.
+	// return true if you want to ignore target error
+	Filter func(context.Context, error) bool
+	// Fallback used to define some code to execute during outages.
 	Fallback func(context.Context, error) error
 }
 
@@ -12,7 +15,7 @@ type Options struct {
 type Option func(*Options)
 
 // WithFilter used to set filter func for options
-func WithFilter(filter func(context.Context, error) error) Option {
+func WithFilter(filter func(context.Context, error) bool) Option {
 	return func(o *Options) {
 		o.Filter = filter
 	}
