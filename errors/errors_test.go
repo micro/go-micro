@@ -17,7 +17,10 @@ func TestFromError(t *testing.T) {
 	if merr.Id != "go.micro.test" || merr.Code != 404 {
 		t.Fatalf("invalid conversation %v != %v", err, merr)
 	}
-
+	merr = FromError(nil)
+	if merr != nil {
+		t.Fatalf("%v should be nil", merr)
+	}
 }
 
 func TestEqual(t *testing.T) {
@@ -73,5 +76,25 @@ func TestErrors(t *testing.T) {
 		if pe.Status != e.Status {
 			t.Fatalf("Expected %s got %s", e.Status, pe.Status)
 		}
+	}
+}
+
+func TestAs(t *testing.T) {
+	err := NotFound("go.micro.test", "%s", "example")
+	merr, match := As(err)
+	if !match {
+		t.Fatalf("%v should convert to *Error", err)
+	}
+	if merr.Id != "go.micro.test" || merr.Code != 404 || merr.Detail != "example" {
+		t.Fatalf("invalid conversation %v != %v", err, merr)
+	}
+	err = er.New(err.Error())
+	merr, match = As(err)
+	if match || merr != nil {
+		t.Fatalf("%v should not convert to *Error", err)
+	}
+	merr, match = As(nil)
+	if match || merr != nil {
+		t.Fatalf("nil should not convert to *Error")
 	}
 }
