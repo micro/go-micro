@@ -25,5 +25,5 @@ go run main.go
 Curl your request at the gateway (localhost:8080)
 
 ```
-curl -d '{"name": "john"}' http://localhost:8080/greeter/hello
+curl -H "content-type: application/json" -d '{"name": "john"}' http://localhost:8080/greeter/hello
 ```
