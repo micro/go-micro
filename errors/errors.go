@@ -147,10 +147,10 @@ func FromError(err error) *Error {
 }
 
 // As finds the first error in err's chain that matches *Error
-func As(err error) (bool, *Error) {
+func As(err error) (*Error, bool) {
 	var merr *Error
 	if errors.As(err, &merr) {
-		return true, merr
+		return merr, true
 	}
-	return false, nil
+	return nil, false
 }

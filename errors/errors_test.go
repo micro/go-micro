@@ -78,7 +78,7 @@ func TestErrors(t *testing.T) {
 
 func TestAs(t *testing.T) {
 	err := NotFound("go.micro.test", "%s", "example")
-	match, merr := As(err)
+	merr, match := As(err)
 	if !match {
 		t.Fatalf("%v should convert to *Error", err)
 	}
@@ -86,7 +86,7 @@ func TestAs(t *testing.T) {
 		t.Fatalf("invalid conversation %v != %v", err, merr)
 	}
 	err = er.New(err.Error())
-	match, merr = As(err)
+	merr, match = As(err)
 	if match || merr != nil {
 		t.Fatalf("%v should not convert to *Error", err)
 	}
