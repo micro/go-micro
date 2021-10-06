@@ -98,3 +98,81 @@ func TestAs(t *testing.T) {
 		t.Fatalf("nil should not convert to *Error")
 	}
 }
+
+func TestAppend(t *testing.T) {
+	mError := NewMultiError()
+	testData := []*Error{
+		{
+			Id:     "test1",
+			Code:   500,
+			Detail: "Internal server error",
+			Status: http.StatusText(500),
+		},
+		{
+			Id: 	"test2",
+			Code:	400,
+			Detail:	"Bad Request",
+			Status: http.StatusText(400),
+		},
+		{
+			Id:     "test3",
+			Code:   404,
+			Detail: "Not Found",
+			Status: http.StatusText(404),	
+		},
+	}
+
+	for _, e := range testData {
+		mError.Append(&Error{
+			Id: e.Id,
+			Code: e.Code,
+			Detail: e.Detail,
+			Status: e.Status,
+		})
+	}
+
+	if len(mError.Errors) != 3 {
+		t.Fatalf("Expected 3 got %v", len(mError.Errors))
+	}
+}
+
+func TestHasErrors(t *testing.T) {
+	mError := NewMultiError()
+	testData := []*Error{
+		{
+			Id:     "test1",
+			Code:   500,
+			Detail: "Internal server error",
+			Status: http.StatusText(500),
+		},
+		{
+			Id: 	"test2",
+			Code:	400,
+			Detail:	"Bad Request",
+			Status: http.StatusText(400),
+		},
+		{
+			Id:     "test3",
+			Code:   404,
+			Detail: "Not Found",
+			Status: http.StatusText(404),	
+		},
+	}
+
+	if mError.HasErrors() {
+		t.Fatal("Expected no error")
+	}
+
+	for _, e := range testData {
+		mError.Errors = append(mError.Errors, &Error{
+			Id: e.Id,
+			Code: e.Code,
+			Detail: e.Detail,
+			Status: e.Status,
+		})
+	}
+
+	if !mError.HasErrors() {
+		t.Fatal("Expected errors")
+	}
+}

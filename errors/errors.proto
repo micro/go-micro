@@ -8,3 +8,7 @@ message Error {
   string detail = 3;
   string status = 4;
 };
+
+message MultiError {
+  repeated Error errors = 1;
+}
