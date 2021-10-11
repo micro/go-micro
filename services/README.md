@@ -1,6 +1,6 @@
 # Services
 
-Micro Services provide additional functionality via external services for Go Micro.
+Micro Services provide additional functionality via external third party services.
 
 ## Overview
 
