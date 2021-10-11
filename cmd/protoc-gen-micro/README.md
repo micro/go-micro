@@ -5,7 +5,7 @@ This is protobuf code generation for go-micro. We use protoc-gen-micro to reduce
 ## Install
 
 ```
-go get github.com/asim/go-micro/cmd/protoc-gen-micro/v3
+go install github.com/asim/go-micro/cmd/protoc-gen-micro/v3
 ```
 
 Also required: 
