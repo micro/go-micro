@@ -85,9 +85,7 @@ See [plugins](https://github.com/micro/go-micro/tree/master/plugins) directory f
 
 ## Services
 
-Augment your development with real world Micro services
-
-See [services](https://github.com/micro/go-micro/tree/master/services) directory for a list of services.
+See [services](https://github.com/micro/go-micro/tree/master/services) directory for third party services.
 
 ## License
 
