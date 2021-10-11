@@ -85,7 +85,7 @@ See [plugins](https://github.com/micro/go-micro/tree/master/plugins) directory f
 
 ## Services
 
-Augment your experience with real world Micro services
+Augment your development with real world Micro services
 
 See [services](https://github.com/micro/go-micro/tree/master/services) directory for a list of services.
 
