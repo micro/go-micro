@@ -1,6 +1,6 @@
 # Services
 
-Micro Services provide additional functionality via external third party services.
+[Micro Services](https://github.com/micro/services) provide additional functionality via external third party services.
 
 ## Overview
 
