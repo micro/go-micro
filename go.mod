@@ -18,6 +18,7 @@ require (
 	github.com/google/uuid v1.2.0
 	github.com/gorilla/handlers v1.5.1
 	github.com/imdario/mergo v0.3.12
+	github.com/m3o/m3o-go/client v0.0.0-20210421144725-8bfd7992ada3
 	github.com/miekg/dns v1.1.43
 	github.com/nxadm/tail v1.4.8
 	github.com/oxtoacart/bpool v0.0.0-20190530202638-03653db5a59c
