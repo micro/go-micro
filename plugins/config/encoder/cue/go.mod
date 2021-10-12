@@ -4,7 +4,7 @@ go 1.16
 
 require (
 	cuelang.org/go v0.0.15
-	go-micro.dev/v4 v4.0.0
+	go-micro.dev/v4 v4.1.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/stretchr/testify v1.7.0
 )
