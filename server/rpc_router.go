@@ -18,9 +18,9 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/asim/go-micro/v3/codec"
-	merrors "github.com/asim/go-micro/v3/errors"
-	"github.com/asim/go-micro/v3/logger"
+	"go-micro.dev/v4/codec"
+	merrors "go-micro.dev/v4/errors"
+	"go-micro.dev/v4/logger"
 )
 
 var (

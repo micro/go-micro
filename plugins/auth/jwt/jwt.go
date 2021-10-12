@@ -4,8 +4,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/asim/go-micro/v3/auth"
-	"github.com/asim/go-micro/v3/cmd"
+	"go-micro.dev/v4/auth"
+	"go-micro.dev/v4/cmd"
 	jwtToken "github.com/asim/go-micro/plugins/auth/jwt/v3/token"
 )
 

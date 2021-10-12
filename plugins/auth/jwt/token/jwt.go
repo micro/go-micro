@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
-	"github.com/asim/go-micro/v3/auth"
+	"go-micro.dev/v4/auth"
 )
 
 // authClaims to be encoded in the JWT

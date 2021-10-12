@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"testing"
 
-	go_api "github.com/asim/go-micro/v3/api/proto"
+	go_api "go-micro.dev/v4/api/proto"
 	"github.com/golang/protobuf/proto"
 )
 

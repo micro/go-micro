@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/asim/go-micro/v3/transport"
+	"go-micro.dev/v4/transport"
 	"github.com/google/uuid"
 )
 

@@ -3,7 +3,7 @@ module github.com/asim/go-micro/plugins/broker/stan/v3
 go 1.16
 
 require (
-	github.com/asim/go-micro/v3 v3.5.2-0.20210630062103-c13bb07171bc
+	go-micro.dev/v4 v4.0.0
 	github.com/google/uuid v1.2.0
 	github.com/nats-io/nats-server/v2 v2.3.0 // indirect
 	github.com/nats-io/nats-streaming-server v0.22.0 // indirect

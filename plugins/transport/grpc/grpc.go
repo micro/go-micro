@@ -6,11 +6,11 @@ import (
 	"crypto/tls"
 	"net"
 
-	"github.com/asim/go-micro/v3/transport"
-	maddr "github.com/asim/go-micro/v3/util/addr"
-	mnet "github.com/asim/go-micro/v3/util/net"
-	mls "github.com/asim/go-micro/v3/util/tls"
-	"github.com/asim/go-micro/v3/cmd"
+	"go-micro.dev/v4/transport"
+	maddr "go-micro.dev/v4/util/addr"
+	mnet "go-micro.dev/v4/util/net"
+	mls "go-micro.dev/v4/util/tls"
+	"go-micro.dev/v4/cmd"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 

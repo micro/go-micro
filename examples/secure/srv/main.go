@@ -6,8 +6,8 @@ import (
 
 	"context"
 	hello "github.com/asim/go-micro/examples/v3/greeter/srv/proto/hello"
-	"github.com/asim/go-micro/v3"
-	"github.com/asim/go-micro/v3/transport"
+	"go-micro.dev/v4"
+	"go-micro.dev/v4/transport"
 )
 
 type Say struct{}

@@ -3,9 +3,9 @@ package server
 import (
 	"bytes"
 
-	"github.com/asim/go-micro/v3/codec"
-	"github.com/asim/go-micro/v3/transport"
-	"github.com/asim/go-micro/v3/util/buf"
+	"go-micro.dev/v4/codec"
+	"go-micro.dev/v4/transport"
+	"go-micro.dev/v4/util/buf"
 )
 
 type rpcRequest struct {

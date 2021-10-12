@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/asim/go-micro/v3"
+	"go-micro.dev/v4"
 	"github.com/urfave/cli/v2"
 )
 

@@ -1,8 +1,8 @@
 package reader
 
 import (
-	"github.com/asim/go-micro/v3/config/encoder"
-	"github.com/asim/go-micro/v3/config/encoder/json"
+	"go-micro.dev/v4/config/encoder"
+	"go-micro.dev/v4/config/encoder/json"
 )
 
 type Options struct {

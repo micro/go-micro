@@ -11,9 +11,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/asim/go-micro/v3"
-	"github.com/asim/go-micro/v3/errors"
-	"github.com/asim/go-micro/v3/server"
+	"go-micro.dev/v4"
+	"go-micro.dev/v4/errors"
+	"go-micro.dev/v4/server"
 )
 
 // Router will proxy rpc requests as http POST requests. It is a server.Router

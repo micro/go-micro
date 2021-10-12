@@ -2,7 +2,7 @@
 package http
 
 import (
-	"github.com/asim/go-micro/v3/transport"
+	"go-micro.dev/v4/transport"
 )
 
 // NewTransport returns a new http transport using net/http and supporting http2

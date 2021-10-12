@@ -3,8 +3,8 @@ package datadog
 import (
 	"context"
 
-	log "github.com/asim/go-micro/v3/logger"
-	"github.com/asim/go-micro/v3/metadata"
+	log "go-micro.dev/v4/logger"
+	"go-micro.dev/v4/metadata"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 )
 

@@ -101,10 +101,10 @@ github.com/asim/go-micro/plugins/wrapper/select/roundrobin/v3 v3.0.0-20210403073
 github.com/asim/go-micro/plugins/wrapper/select/roundrobin/v3 v3.0.0-20210403073940-e7a7e3a05092/go.mod h1:ylLMnWRirHZgMKEUyhnseG44r0UqXyqpFCIlxbFd9fU=
 github.com/asim/go-micro/plugins/wrapper/select/shard/v3 v3.0.0-20210403073940-e7a7e3a05092 h1:YU1Qks1LnRQU/b9UbHz0V1ZMjlWcuQmPf95g403VRiY=
 github.com/asim/go-micro/plugins/wrapper/select/shard/v3 v3.0.0-20210403073940-e7a7e3a05092/go.mod h1:W82nHY+YFENWaye4jazv6nX+OYru9T7It+wUqJA9Vc0=
-github.com/asim/go-micro/v3 v3.0.0-20210120135431-d94936f6c97c/go.mod h1:fAeb2KUnD3z4XwtQ91XFxw5zgGKhoTsLc6Ie81QdER4=
-github.com/asim/go-micro/v3 v3.5.2-0.20210630062103-c13bb07171bc/go.mod h1:cNGIIYQcp0qy+taNYmrBdaIHeqMWHV5ZH/FfQzfOyE8=
-github.com/asim/go-micro/v3 v3.6.1-0.20210831143116-05a299b76c7c h1:CaJvJPUEbd5aBmCBhOHmWDHCQr2HCxyCkbBxHW7w/kY=
-github.com/asim/go-micro/v3 v3.6.1-0.20210831143116-05a299b76c7c/go.mod h1:UQd2JfP/+4goQxddksr2r6ZSaUXNIlVE8hlepbAx/DI=
+go-micro.dev/v4 v4.0.0
+go-micro.dev/v4 v4.0.0
+go-micro.dev/v4 v4.0.0
+go-micro.dev/v4 v4.0.0
 github.com/aws/aws-sdk-go v1.23.0/go.mod h1:KmX6BPdI08NWTb3/sm4ZGu5ShLoqVDhKgpiN924inxo=
 github.com/aws/aws-sdk-go v1.37.27/go.mod h1:hcU610XS61/+aQV88ixoOzUoG7v3b31pl2zKMmprdro=
 github.com/baiyubin/aliyun-sts-go-sdk v0.0.0-20180326062324-cfa1a18b161f/go.mod h1:AuiFmCCPBSrqvVMvuqFuk0qogytodnVFVSN5CeJB8Gc=

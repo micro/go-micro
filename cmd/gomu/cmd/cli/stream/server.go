@@ -7,8 +7,8 @@ import (
 	"io"
 	"strings"
 
-	"github.com/asim/go-micro/v3"
-	"github.com/asim/go-micro/v3/client"
+	"go-micro.dev/v4"
+	"go-micro.dev/v4/client"
 	"github.com/urfave/cli/v2"
 )
 

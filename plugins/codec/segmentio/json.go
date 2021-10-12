@@ -6,7 +6,7 @@ import (
 	"io"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/asim/go-micro/v3/codec"
+	"go-micro.dev/v4/codec"
 	segjson "github.com/segmentio/encoding/json"
 )
 

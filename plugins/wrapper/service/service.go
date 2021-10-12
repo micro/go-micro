@@ -2,9 +2,9 @@
 package service
 
 import (
-	"github.com/asim/go-micro/v3"
-	"github.com/asim/go-micro/v3/client"
-	"github.com/asim/go-micro/v3/server"
+	"go-micro.dev/v4"
+	"go-micro.dev/v4/client"
+	"go-micro.dev/v4/server"
 
 	"context"
 )

@@ -4,8 +4,8 @@ import (
 	"github.com/asim/go-micro/examples/v3/cache/handler"
 	pb "github.com/asim/go-micro/examples/v3/cache/proto"
 
-	"github.com/asim/go-micro/v3"
-	log "github.com/asim/go-micro/v3/logger"
+	"go-micro.dev/v4"
+	log "go-micro.dev/v4/logger"
 )
 
 var (

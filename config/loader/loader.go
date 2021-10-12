@@ -4,8 +4,8 @@ package loader
 import (
 	"context"
 
-	"github.com/asim/go-micro/v3/config/reader"
-	"github.com/asim/go-micro/v3/config/source"
+	"go-micro.dev/v4/config/reader"
+	"go-micro.dev/v4/config/source"
 )
 
 // Loader manages loading sources

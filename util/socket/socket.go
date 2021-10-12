@@ -4,7 +4,7 @@ package socket
 import (
 	"io"
 
-	"github.com/asim/go-micro/v3/transport"
+	"go-micro.dev/v4/transport"
 )
 
 // Socket is our pseudo socket for transport.Socket

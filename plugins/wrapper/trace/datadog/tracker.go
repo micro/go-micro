@@ -7,7 +7,7 @@ import (
 
 	"google.golang.org/grpc/codes"
 
-	microerr "github.com/asim/go-micro/v3/errors"
+	microerr "go-micro.dev/v4/errors"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/ext"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"

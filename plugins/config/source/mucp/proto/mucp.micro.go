@@ -11,8 +11,8 @@ import (
 
 import (
 	context "context"
-	client "github.com/asim/go-micro/v3/client"
-	server "github.com/asim/go-micro/v3/server"
+	client "go-micro.dev/v4/client"
+	server "go-micro.dev/v4/server"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.

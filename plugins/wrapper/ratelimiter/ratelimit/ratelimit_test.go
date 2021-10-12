@@ -9,11 +9,11 @@ import (
 
 	"github.com/juju/ratelimit"
 	bmemory "github.com/asim/go-micro/plugins/broker/memory/v3"
-	"github.com/asim/go-micro/v3/client"
-	"github.com/asim/go-micro/v3/selector"
-	"github.com/asim/go-micro/v3/errors"
+	"go-micro.dev/v4/client"
+	"go-micro.dev/v4/selector"
+	"go-micro.dev/v4/errors"
 	rmemory "github.com/asim/go-micro/plugins/registry/memory/v3"
-	"github.com/asim/go-micro/v3/server"
+	"go-micro.dev/v4/server"
 	tmemory "github.com/asim/go-micro/plugins/transport/memory/v3"
 )
 

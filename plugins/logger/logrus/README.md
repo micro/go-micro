@@ -8,7 +8,7 @@
 import (
 	"os"
 	"github.com/sirupsen/logrus"
-	"github.com/asim/go-micro/v3/logger"
+	"go-micro.dev/v4/logger"
 )
 
 func ExampleWithOutput() {

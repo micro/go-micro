@@ -4,8 +4,8 @@ import (
 	"log"
 
 	example "github.com/asim/go-micro/examples/v3/server/proto/example"
-	"github.com/asim/go-micro/v3/metadata"
-	"github.com/asim/go-micro/v3/server"
+	"go-micro.dev/v4/metadata"
+	"go-micro.dev/v4/server"
 
 	"context"
 )

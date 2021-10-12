@@ -13,7 +13,7 @@ Specify the server to your micro service
 
 ```go
 import (
-        "github.com/asim/go-micro/v3"
+        "go-micro.dev/v4"
         "github.com/asim/go-micro/plugins/server/grpc/v3"
 )
 

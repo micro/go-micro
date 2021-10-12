@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	hello "github.com/asim/go-micro/examples/v3/greeter/srv/proto/hello"
-	"github.com/asim/go-micro/v3"
+	"go-micro.dev/v4"
 )
 
 func main() {

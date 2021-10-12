@@ -8,10 +8,10 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/asim/go-micro/v3"
-	"github.com/asim/go-micro/v3/client"
+	"go-micro.dev/v4"
+	"go-micro.dev/v4/client"
 	"github.com/asim/go-micro/plugins/registry/memory/v3"
-	"github.com/asim/go-micro/v3/server"
+	"go-micro.dev/v4/server"
 )
 
 type testHandler struct{}

@@ -4,7 +4,7 @@ package nacos
 import (
 	"context"
 
-	"github.com/asim/go-micro/v3/registry"
+	"go-micro.dev/v4/registry"
 	"github.com/nacos-group/nacos-sdk-go/v2/common/constant"
 )
 

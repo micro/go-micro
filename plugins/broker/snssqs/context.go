@@ -3,9 +3,9 @@ package snssqs
 import (
 	"context"
 
-	"github.com/asim/go-micro/v3/broker"
-	"github.com/asim/go-micro/v3/client"
-	"github.com/asim/go-micro/v3/server"
+	"go-micro.dev/v4/broker"
+	"go-micro.dev/v4/client"
+	"go-micro.dev/v4/server"
 )
 
 // setSubscribeOption returns a function to setup a context with given value

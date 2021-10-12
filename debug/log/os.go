@@ -3,7 +3,7 @@ package log
 import (
 	"sync"
 
-	"github.com/asim/go-micro/v3/util/ring"
+	"go-micro.dev/v4/util/ring"
 	"github.com/google/uuid"
 )
 

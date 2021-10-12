@@ -119,7 +119,7 @@ package helloworld
 import (
     "context"
 
-    log "github.com/asim/go-micro/v3/logger"
+    log "go-micro.dev/v4/logger"
 
     "helloworld/greeter"
     pb "helloworld/proto"

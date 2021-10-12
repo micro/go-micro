@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/asim/go-micro/v3/store"
+	"go-micro.dev/v4/store"
 	"github.com/go-redis/redis/v8"
 )
 

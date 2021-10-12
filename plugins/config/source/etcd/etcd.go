@@ -6,7 +6,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/asim/go-micro/v3/config/source"
+	"go-micro.dev/v4/config/source"
 	"go.etcd.io/etcd/api/v3/mvccpb"
 	"go.etcd.io/etcd/client/v3"
 )
