@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/asim/go-micro/v3/transport"
+	"go-micro.dev/v4/transport"
 )
 
 func testPool(t *testing.T, size int, ttl time.Duration) {

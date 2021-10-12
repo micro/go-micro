@@ -3,7 +3,7 @@ package gocloud
 import (
 	"context"
 
-	"github.com/asim/go-micro/v3/broker"
+	"go-micro.dev/v4/broker"
 	"gocloud.dev/gcp"
 )
 

@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/asim/go-micro/plugins/registry/memory/v3"
-	"github.com/asim/go-micro/v3/server"
+	"go-micro.dev/v4/server"
 )
 
 func TestHTTPServer(t *testing.T) {

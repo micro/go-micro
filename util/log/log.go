@@ -7,8 +7,8 @@ import (
 	"os"
 	"sync/atomic"
 
-	dlog "github.com/asim/go-micro/v3/debug/log"
-	nlog "github.com/asim/go-micro/v3/logger"
+	dlog "go-micro.dev/v4/debug/log"
+	nlog "go-micro.dev/v4/logger"
 )
 
 // level is a log level

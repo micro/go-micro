@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"time"
 	
-	"github.com/asim/go-micro/v3/cmd"
-	"github.com/asim/go-micro/v3/registry"
+	"go-micro.dev/v4/cmd"
+	"go-micro.dev/v4/registry"
 	"github.com/nacos-group/nacos-sdk-go/v2/clients"
 	"github.com/nacos-group/nacos-sdk-go/v2/clients/naming_client"
 	"github.com/nacos-group/nacos-sdk-go/v2/common/constant"

@@ -1,7 +1,7 @@
 package grpc
 
 import (
-	"github.com/asim/go-micro/v3/config/source"
+	"go-micro.dev/v4/config/source"
 	proto "github.com/asim/go-micro/plugins/config/source/grpc/v3/proto"
 )
 

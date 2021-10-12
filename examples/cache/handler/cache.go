@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/asim/go-micro/v3/cache"
-	log "github.com/asim/go-micro/v3/logger"
+	"go-micro.dev/v4/cache"
+	log "go-micro.dev/v4/logger"
 
 	pb "github.com/asim/go-micro/examples/v3/cache/proto"
 )

@@ -3,10 +3,10 @@ package prometheus
 import (
 	"context"
 	"fmt"
-	"github.com/asim/go-micro/v3/client"
-	"github.com/asim/go-micro/v3/logger"
-	"github.com/asim/go-micro/v3/registry"
-	"github.com/asim/go-micro/v3/server"
+	"go-micro.dev/v4/client"
+	"go-micro.dev/v4/logger"
+	"go-micro.dev/v4/registry"
+	"go-micro.dev/v4/server"
 	"github.com/prometheus/client_golang/prometheus"
 )
 

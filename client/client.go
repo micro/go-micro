@@ -5,7 +5,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/asim/go-micro/v3/codec"
+	"go-micro.dev/v4/codec"
 )
 
 // Client is the interface used to make requests to services.

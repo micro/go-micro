@@ -6,7 +6,7 @@ A go-micro plugin for go-hystrix.
 package main
 
 import (
-	"github.com/asim/go-micro/v3"
+	"go-micro.dev/v4"
 	hystrix "github.com/asim/go-micro/plugins/wrapper/breaker/hystrix/v3"
 )
 
@@ -24,7 +24,7 @@ func main() {
 package main
 
 import (
-	"github.com/asim/go-micro/v3"
+	"go-micro.dev/v4"
 	hystrix "github.com/asim/go-micro/plugins/wrapper/breaker/hystrix/v3"
 )
 
@@ -63,7 +63,7 @@ var (
 package main
 
 import (
-	"github.com/asim/go-micro/v3"
+	"go-micro.dev/v4"
 	hystrix "github.com/asim/go-micro/plugins/wrapper/breaker/hystrix/v3"
 )
 

@@ -9,8 +9,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/asim/go-micro/v3/client"
-	proto "github.com/asim/go-micro/v3/util/file/proto"
+	"go-micro.dev/v4/client"
+	proto "go-micro.dev/v4/util/file/proto"
 )
 
 // Client is the client interface to access files

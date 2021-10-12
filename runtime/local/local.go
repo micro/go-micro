@@ -2,7 +2,7 @@
 package local
 
 import (
-	"github.com/asim/go-micro/v3/runtime"
+	"go-micro.dev/v4/runtime"
 )
 
 // NewRuntime returns a new local runtime

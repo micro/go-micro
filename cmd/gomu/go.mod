@@ -4,7 +4,7 @@ go 1.16
 
 require (
 	github.com/HdrHistogram/hdrhistogram-go v1.1.2 // indirect
-	github.com/asim/go-micro/v3 v3.6.1-0.20210831082736-088ccb50019c
+	go-micro.dev/v4 v4.0.0
 	github.com/fsnotify/fsnotify v1.4.9
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/uber/jaeger-client-go v2.29.1+incompatible

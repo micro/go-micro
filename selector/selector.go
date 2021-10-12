@@ -4,7 +4,7 @@ package selector
 import (
 	"errors"
 
-	"github.com/asim/go-micro/v3/registry"
+	"go-micro.dev/v4/registry"
 )
 
 // Selector builds on the registry as a mechanism to pick nodes

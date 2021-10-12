@@ -5,7 +5,7 @@ import (
 	gosync "sync"
 	"time"
 
-	"github.com/asim/go-micro/v3/sync"
+	"go-micro.dev/v4/sync"
 )
 
 type memorySync struct {

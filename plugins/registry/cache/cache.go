@@ -2,8 +2,8 @@
 package cache
 
 import (
-	"github.com/asim/go-micro/v3/registry"
-	"github.com/asim/go-micro/v3/registry/cache"
+	"go-micro.dev/v4/registry"
+	"go-micro.dev/v4/registry/cache"
 )
 
 // New returns a new cache

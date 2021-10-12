@@ -5,9 +5,9 @@ import (
 	"log"
 
 	httpClient "github.com/asim/go-micro/plugins/client/http/v3"
-	"github.com/asim/go-micro/v3/client"
-	"github.com/asim/go-micro/v3/registry"
-	"github.com/asim/go-micro/v3/selector"
+	"go-micro.dev/v4/client"
+	"go-micro.dev/v4/registry"
+	"go-micro.dev/v4/selector"
 )
 
 func main() {

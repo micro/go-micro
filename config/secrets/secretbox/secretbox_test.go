@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/asim/go-micro/v3/config/secrets"
+	"go-micro.dev/v4/config/secrets"
 )
 
 func TestSecretBox(t *testing.T) {

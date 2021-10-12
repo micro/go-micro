@@ -3,8 +3,8 @@ package validator
 import (
 	"context"
 
-	"github.com/asim/go-micro/v3/errors"
-	"github.com/asim/go-micro/v3/server"
+	"go-micro.dev/v4/errors"
+	"go-micro.dev/v4/server"
 )
 
 type Validator interface {

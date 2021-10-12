@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/asim/go-micro/v3"
-	"github.com/asim/go-micro/v3/logger"
-	"github.com/asim/go-micro/v3/web"
+	"go-micro.dev/v4"
+	"go-micro.dev/v4/logger"
+	"go-micro.dev/v4/web"
 	"github.com/urfave/cli/v2"
 )
 

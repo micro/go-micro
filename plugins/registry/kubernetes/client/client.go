@@ -8,7 +8,7 @@ import (
 	"os"
 	"path"
 
-	log "github.com/asim/go-micro/v3/logger"
+	log "go-micro.dev/v4/logger"
 	"github.com/asim/go-micro/plugins/registry/kubernetes/v3/client/api"
 	"github.com/asim/go-micro/plugins/registry/kubernetes/v3/client/watch"
 )

@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/asim/go-micro/v3/broker"
+	"go-micro.dev/v4/broker"
 	"github.com/asim/go-micro/plugins/registry/memory/v3"
 )
 

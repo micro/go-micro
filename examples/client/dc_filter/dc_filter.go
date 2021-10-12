@@ -6,11 +6,11 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/asim/go-micro/v3/client"
-	"github.com/asim/go-micro/v3/selector"
-	"github.com/asim/go-micro/v3/cmd"
-	"github.com/asim/go-micro/v3/metadata"
-	"github.com/asim/go-micro/v3/registry"
+	"go-micro.dev/v4/client"
+	"go-micro.dev/v4/selector"
+	"go-micro.dev/v4/cmd"
+	"go-micro.dev/v4/metadata"
+	"go-micro.dev/v4/registry"
 
 	example "github.com/asim/go-micro/examples/v3/server/proto/example"
 )

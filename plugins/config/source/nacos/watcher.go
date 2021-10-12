@@ -3,8 +3,8 @@ package nacos
 import (
 	"time"
 
-	"github.com/asim/go-micro/v3/config/encoder"
-	"github.com/asim/go-micro/v3/config/source"
+	"go-micro.dev/v4/config/encoder"
+	"go-micro.dev/v4/config/source"
 	"github.com/nacos-group/nacos-sdk-go/v2/clients/config_client"
 	"github.com/nacos-group/nacos-sdk-go/v2/vo"
 )

@@ -12,8 +12,8 @@ import (
 
 	"github.com/asim/go-micro/plugins/registry/kubernetes/v3/client"
 
-	"github.com/asim/go-micro/v3/cmd"
-	"github.com/asim/go-micro/v3/registry"
+	"go-micro.dev/v4/cmd"
+	"go-micro.dev/v4/registry"
 )
 
 type kregistry struct {
