@@ -6,7 +6,7 @@ import (
 
 	"go-micro.dev/v4/auth"
 	"go-micro.dev/v4/cmd"
-	jwtToken "github.com/asim/go-micro/plugins/auth/jwt/v3/token"
+	jwtToken "github.com/asim/go-micro/plugins/auth/jwt/v4/token"
 )
 
 func init() {

@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"go-micro.dev/v4/broker"
-	segmentio "github.com/asim/go-micro/plugins/broker/segmentio/v3"
+	segmentio "github.com/asim/go-micro/plugins/broker/segmentio/v4"
 )
 
 var (

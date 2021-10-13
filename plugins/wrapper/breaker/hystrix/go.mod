@@ -1,4 +1,4 @@
-module github.com/asim/go-micro/plugins/wrapper/breaker/hystrix/v3
+module github.com/asim/go-micro/plugins/wrapper/breaker/hystrix/v4
 
 go 1.16
 

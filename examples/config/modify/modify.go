@@ -5,7 +5,7 @@ import (
 	"io/ioutil"
 
 	"go-micro.dev/v4/config"
-	"github.com/asim/go-micro/plugins/config/encoder/toml/v3"
+	"github.com/asim/go-micro/plugins/config/encoder/toml/v4"
 	"go-micro.dev/v4/config/source"
 	"go-micro.dev/v4/config/source/file"
 )

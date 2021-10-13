@@ -12,7 +12,7 @@ import (
 	"go-micro.dev/v4/client"
 	"go-micro.dev/v4/selector"
 	microerr "go-micro.dev/v4/errors"
-	"github.com/asim/go-micro/plugins/registry/memory/v3"
+	"github.com/asim/go-micro/plugins/registry/memory/v4"
 	"go-micro.dev/v4/server"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/mocktracer"

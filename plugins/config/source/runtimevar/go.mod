@@ -1,4 +1,4 @@
-module github.com/asim/go-micro/plugins/config/source/runtimevar/v3
+module github.com/asim/go-micro/plugins/config/source/runtimevar/v4
 
 go 1.16
 
@@ -7,4 +7,4 @@ require (
 	gocloud.dev v0.17.0
 )
 
-replace github.com/asim/go-micro/v3 => ../../../../../go-micro
+replace go-micro.dev/v4 => ../../../../../go-micro

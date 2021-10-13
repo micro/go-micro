@@ -8,7 +8,7 @@ import (
 	"go-micro.dev/v4/cache"
 	log "go-micro.dev/v4/logger"
 
-	pb "github.com/asim/go-micro/examples/v3/cache/proto"
+	pb "github.com/asim/go-micro/examples/v4/cache/proto"
 )
 
 type Cache struct {

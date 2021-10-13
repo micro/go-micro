@@ -7,7 +7,7 @@ import (
 	"go-micro.dev/v4/client"
 	"go-micro.dev/v4/selector"
 	"go-micro.dev/v4/errors"
-	"github.com/asim/go-micro/plugins/registry/memory/v3"
+	"github.com/asim/go-micro/plugins/registry/memory/v4"
 	"github.com/sony/gobreaker"
 )
 

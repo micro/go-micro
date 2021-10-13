@@ -6,7 +6,7 @@ import (
 	"io"
 	"log"
 
-	proto "github.com/asim/go-micro/examples/v3/stream/server/proto"
+	proto "github.com/asim/go-micro/examples/v4/stream/server/proto"
 	"go-micro.dev/v4"
 )
 

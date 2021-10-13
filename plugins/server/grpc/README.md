@@ -14,7 +14,7 @@ Specify the server to your micro service
 ```go
 import (
         "go-micro.dev/v4"
-        "github.com/asim/go-micro/plugins/server/grpc/v3"
+        "github.com/asim/go-micro/plugins/server/grpc/v4"
 )
 
 func main() {

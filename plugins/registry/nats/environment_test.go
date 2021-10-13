@@ -6,7 +6,7 @@ import (
 
 	log "go-micro.dev/v4/logger"
 	"go-micro.dev/v4/registry"
-	"github.com/asim/go-micro/plugins/registry/nats/v3"
+	"github.com/asim/go-micro/plugins/registry/nats/v4"
 )
 
 type environment struct {

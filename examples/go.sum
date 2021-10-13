@@ -85,25 +85,25 @@ github.com/armon/go-metrics v0.0.0-20180917152333-f0300d1749da/go.mod h1:Q73ZrmV
 github.com/armon/go-radix v0.0.0-20180808171621-7fddfc383310/go.mod h1:ufUuZ+zHj4x4TnLV4JWEpy2hxWSpsRywHrMgIH9cCH8=
 github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5 h1:0CwZNZbxp69SHPdPJAN/hZIm0C4OItdklCFmMRWYpio=
 github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5/go.mod h1:wHh0iHkYZB8zMSxRWpUBQtwG5a7fFgvEO+odwuTv2gs=
-github.com/asim/go-micro/plugins/client/http/v3 v3.0.0-20210403073940-e7a7e3a05092 h1:9wpvQ2BRw7z86H636ck2fi2JQ8VM0QBGu2s3sb+41h4=
-github.com/asim/go-micro/plugins/client/http/v3 v3.0.0-20210403073940-e7a7e3a05092/go.mod h1:Ku9ESaA5G1BIU9CYYM+nXxIDoDt+7X4lJse/iU0R7dI=
-github.com/asim/go-micro/plugins/config/encoder/toml/v3 v3.0.0-20210403073940-e7a7e3a05092 h1:IlS6vW3jvmJjk5HryWgVP+0uYloKqossvbGiQ4nyXKg=
-github.com/asim/go-micro/plugins/config/encoder/toml/v3 v3.0.0-20210403073940-e7a7e3a05092/go.mod h1:D+mkq2EASL7nsd7UNLpKZZsuhCnxladX3sfM/gmcW+M=
-github.com/asim/go-micro/plugins/config/encoder/yaml/v3 v3.0.0-20210804083901-3e0411a3f61b h1:4BLu8EYJyOJ66BQHPLtQYGuxe1pbpvxYLjPWCnwWSY4=
-github.com/asim/go-micro/plugins/config/encoder/yaml/v3 v3.0.0-20210804083901-3e0411a3f61b/go.mod h1:yXyEK7d097bwYcWdjZHwX07kC9kKNSNKmo9z2Kf8Zj4=
-github.com/asim/go-micro/plugins/config/source/grpc/v3 v3.0.0-20210403073940-e7a7e3a05092 h1:h8VnyFBH1JyrN76rxqpBmXratAEc7D/goWUweA1W8CM=
-github.com/asim/go-micro/plugins/config/source/grpc/v3 v3.0.0-20210403073940-e7a7e3a05092/go.mod h1:zQevfYGVnE3ojeKbuiawb/vU+TuolXSVilxu9Nyhr/g=
-github.com/asim/go-micro/plugins/registry/memory/v3 v3.0.0-20210202145831-070250155285 h1:zgDzypD412DKHoXIXW1JwIOWoGcjxzI1iF6JmwtyqHw=
-github.com/asim/go-micro/plugins/registry/memory/v3 v3.0.0-20210202145831-070250155285/go.mod h1:AU0vyZvsO1lpuQr/DUG4CnNRvITXqQcJRRAzBATR6Jo=
-github.com/asim/go-micro/plugins/server/http/v3 v3.0.0-20210403073940-e7a7e3a05092 h1:Fe2Q8L62o+fKtK4RwSwPsVznBA4vgQPfAHlpMEHUvY4=
-github.com/asim/go-micro/plugins/server/http/v3 v3.0.0-20210403073940-e7a7e3a05092/go.mod h1:Oe0f4zsBx6if1scvMrL/4mNfkD7URaqkvhQWnWogcws=
-github.com/asim/go-micro/plugins/wrapper/select/roundrobin/v3 v3.0.0-20210403073940-e7a7e3a05092 h1:u9kTRyOcpyLQDYbcHTpIYnwRSHLcGq3HbSx/vQ4ei9c=
-github.com/asim/go-micro/plugins/wrapper/select/roundrobin/v3 v3.0.0-20210403073940-e7a7e3a05092/go.mod h1:ylLMnWRirHZgMKEUyhnseG44r0UqXyqpFCIlxbFd9fU=
-github.com/asim/go-micro/plugins/wrapper/select/shard/v3 v3.0.0-20210403073940-e7a7e3a05092 h1:YU1Qks1LnRQU/b9UbHz0V1ZMjlWcuQmPf95g403VRiY=
-github.com/asim/go-micro/plugins/wrapper/select/shard/v3 v3.0.0-20210403073940-e7a7e3a05092/go.mod h1:W82nHY+YFENWaye4jazv6nX+OYru9T7It+wUqJA9Vc0=
-github.com/asim/go-micro/v3 v3.0.0-20210120135431-d94936f6c97c/go.mod h1:fAeb2KUnD3z4XwtQ91XFxw5zgGKhoTsLc6Ie81QdER4=
-github.com/asim/go-micro/v3 v3.5.2-0.20210630062103-c13bb07171bc h1:nbM89BiCBeWjJESWmf8BQj8ObK6HEQzc/Dj7uITXR/8=
-github.com/asim/go-micro/v3 v3.5.2-0.20210630062103-c13bb07171bc/go.mod h1:cNGIIYQcp0qy+taNYmrBdaIHeqMWHV5ZH/FfQzfOyE8=
+github.com/asim/go-micro/plugins/client/http/v4 master
+github.com/asim/go-micro/plugins/client/http/v4 master
+github.com/asim/go-micro/plugins/config/encoder/toml/v4 master
+github.com/asim/go-micro/plugins/config/encoder/toml/v4 master
+github.com/asim/go-micro/plugins/config/encoder/yaml/v4 master
+github.com/asim/go-micro/plugins/config/encoder/yaml/v4 master
+github.com/asim/go-micro/plugins/config/source/grpc/v4 master
+github.com/asim/go-micro/plugins/config/source/grpc/v4 master
+github.com/asim/go-micro/plugins/registry/memory/v4 master
+github.com/asim/go-micro/plugins/registry/memory/v4 master
+github.com/asim/go-micro/plugins/server/http/v4 master
+github.com/asim/go-micro/plugins/server/http/v4 master
+github.com/asim/go-micro/plugins/wrapper/select/roundrobin/v4 master
+github.com/asim/go-micro/plugins/wrapper/select/roundrobin/v4 master
+github.com/asim/go-micro/plugins/wrapper/select/shard/v4 master
+github.com/asim/go-micro/plugins/wrapper/select/shard/v4 master
+go-micro.dev/v4 master
+go-micro.dev/v4 master
+go-micro.dev/v4 master
 github.com/aws/aws-sdk-go v1.23.0/go.mod h1:KmX6BPdI08NWTb3/sm4ZGu5ShLoqVDhKgpiN924inxo=
 github.com/aws/aws-sdk-go v1.37.27/go.mod h1:hcU610XS61/+aQV88ixoOzUoG7v3b31pl2zKMmprdro=
 github.com/baiyubin/aliyun-sts-go-sdk v0.0.0-20180326062324-cfa1a18b161f/go.mod h1:AuiFmCCPBSrqvVMvuqFuk0qogytodnVFVSN5CeJB8Gc=

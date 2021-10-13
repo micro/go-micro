@@ -1,4 +1,4 @@
-module github.com/asim/go-micro/plugins/config/source/etcd/v3
+module github.com/asim/go-micro/plugins/config/source/etcd/v4
 
 go 1.16
 
@@ -8,4 +8,4 @@ require (
 	go.etcd.io/etcd/client/v3 v3.5.0
 )
 
-replace github.com/asim/go-micro/v3 => ../../../../../go-micro
+replace go-micro.dev/v4 => ../../../../../go-micro

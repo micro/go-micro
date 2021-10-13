@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/asim/go-micro/examples/v3/cache/handler"
-	pb "github.com/asim/go-micro/examples/v3/cache/proto"
+	"github.com/asim/go-micro/examples/v4/cache/handler"
+	pb "github.com/asim/go-micro/examples/v4/cache/proto"
 
 	"go-micro.dev/v4"
 	log "go-micro.dev/v4/logger"

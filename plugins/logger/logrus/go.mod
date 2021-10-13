@@ -1,10 +1,10 @@
-module github.com/asim/go-micro/plugins/logger/logrus/v3
+module github.com/asim/go-micro/plugins/logger/logrus/v4
 
 go 1.16
 
 require (
-	go-micro.dev/v4 v4.1.0
 	github.com/sirupsen/logrus v1.8.1
+	go-micro.dev/v4 v4.1.0
 )
 
-replace github.com/asim/go-micro/v3 => ../../../../go-micro
+replace go-micro.dev/v4 => ../../../../go-micro

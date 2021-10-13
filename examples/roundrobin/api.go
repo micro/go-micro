@@ -5,10 +5,10 @@ import (
 	"log"
 	"strings"
 
-	hello "github.com/asim/go-micro/examples/v3/greeter/srv/proto/hello"
+	hello "github.com/asim/go-micro/examples/v4/greeter/srv/proto/hello"
 	"go-micro.dev/v4"
 	"go-micro.dev/v4/errors"
-	roundrobin "github.com/asim/go-micro/plugins/wrapper/select/roundrobin/v3"
+	roundrobin "github.com/asim/go-micro/plugins/wrapper/select/roundrobin/v4"
 	api "go-micro.dev/v4/api/proto"
 
 	"context"

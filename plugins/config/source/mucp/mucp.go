@@ -6,7 +6,7 @@ import (
 	"go-micro.dev/v4/cmd"
 	"go-micro.dev/v4/config/source"
 	log "go-micro.dev/v4/logger"
-	proto "github.com/asim/go-micro/plugins/config/source/mucp/v3/proto"
+	proto "github.com/asim/go-micro/plugins/config/source/mucp/v4/proto"
 )
 
 var (

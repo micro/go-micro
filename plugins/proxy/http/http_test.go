@@ -10,7 +10,7 @@ import (
 
 	"go-micro.dev/v4"
 	"go-micro.dev/v4/client"
-	"github.com/asim/go-micro/plugins/registry/memory/v3"
+	"github.com/asim/go-micro/plugins/registry/memory/v4"
 	"go-micro.dev/v4/server"
 )
 

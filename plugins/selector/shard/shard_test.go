@@ -6,7 +6,7 @@ import (
 	"go-micro.dev/v4/client"
 	"go-micro.dev/v4/selector"
 	"go-micro.dev/v4/registry"
-	"github.com/asim/go-micro/plugins/selector/shard/v3"
+	"github.com/asim/go-micro/plugins/selector/shard/v4"
 )
 
 func TestShard(t *testing.T) {

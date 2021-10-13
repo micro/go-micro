@@ -46,7 +46,7 @@ var MainFNC = `package main
 import (
 	"{{.Vendor}}{{.Service}}/handler"
 
-{{if .Jaeger}}	ot "github.com/asim/go-micro/plugins/wrapper/trace/opentracing/v3"
+{{if .Jaeger}}	ot "github.com/asim/go-micro/plugins/wrapper/trace/opentracing/v4"
 {{end}}	"go-micro.dev/v4"
 	log "go-micro.dev/v4/logger"{{if .Jaeger}}
 
@@ -98,7 +98,7 @@ import (
 	"{{.Vendor}}{{.Service}}/handler"
 	pb "{{.Vendor}}{{.Service}}/proto"
 
-{{if .Jaeger}}	ot "github.com/asim/go-micro/plugins/wrapper/trace/opentracing/v3"
+{{if .Jaeger}}	ot "github.com/asim/go-micro/plugins/wrapper/trace/opentracing/v4"
 {{end}}	"go-micro.dev/v4"
 	log "go-micro.dev/v4/logger"{{if .Jaeger}}
 

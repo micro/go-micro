@@ -40,9 +40,9 @@ Import the plugins in a `plugins.go` file
 package main
 
 import (
-	_ "github.com/asim/go-micro/plugins/broker/rabbitmq/v3"
-	_ "github.com/asim/go-micro/plugins/registry/kubernetes/v3"
-	_ "github.com/asim/go-micro/plugins/transport/nats/v3"
+	_ "github.com/asim/go-micro/plugins/broker/rabbitmq/v4"
+	_ "github.com/asim/go-micro/plugins/registry/kubernetes/v4"
+	_ "github.com/asim/go-micro/plugins/transport/nats/v4"
 )
 ```
 
@@ -98,7 +98,7 @@ Import and set as options when creating a new service
 ```go
 import (
 	"go-micro.dev/v4"
-	"github.com/asim/go-micro/plugins/registry/kubernetes/v3"
+	"github.com/asim/go-micro/plugins/registry/kubernetes/v4"
 )
 
 func main() {
@@ -125,9 +125,9 @@ Create file plugins.go
 package main
 
 import (
-	_ "github.com/asim/go-micro/plugins/broker/rabbitmq/v3"
-	_ "github.com/asim/go-micro/plugins/registry/kubernetes/v3"
-	_ "github.com/asim/go-micro/plugins/transport/nats/v3"
+	_ "github.com/asim/go-micro/plugins/broker/rabbitmq/v4"
+	_ "github.com/asim/go-micro/plugins/registry/kubernetes/v4"
+	_ "github.com/asim/go-micro/plugins/transport/nats/v4"
 )
 ```
 

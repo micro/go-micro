@@ -16,12 +16,12 @@ import (
 	"go-micro.dev/v4/server"
 	"go-micro.dev/v4/transport"
 
-	bmemory "github.com/asim/go-micro/plugins/broker/memory/v3"
-	gcli "github.com/asim/go-micro/plugins/client/grpc/v3"
-	rmemory "github.com/asim/go-micro/plugins/registry/memory/v3"
-	gsrv "github.com/asim/go-micro/plugins/server/grpc/v3"
-	pb "github.com/asim/go-micro/plugins/server/grpc/v3/proto"
-	tgrpc "github.com/asim/go-micro/plugins/transport/grpc/v3"
+	bmemory "github.com/asim/go-micro/plugins/broker/memory/v4"
+	gcli "github.com/asim/go-micro/plugins/client/grpc/v4"
+	rmemory "github.com/asim/go-micro/plugins/registry/memory/v4"
+	gsrv "github.com/asim/go-micro/plugins/server/grpc/v4"
+	pb "github.com/asim/go-micro/plugins/server/grpc/v4/proto"
+	tgrpc "github.com/asim/go-micro/plugins/transport/grpc/v4"
 )
 
 // server is used to implement helloworld.GreeterServer.

@@ -1,5 +1,5 @@
 // Package log is a global internal logger
-// DEPRECATED: this is frozen package, use github.com/asim/go-micro/v3/logger
+// DEPRECATED: this is frozen package, use go-micro.dev/v4/logger
 package log
 
 import (

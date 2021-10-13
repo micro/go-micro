@@ -5,7 +5,7 @@ import (
 
 	"go-micro.dev/v4/selector"
 	"go-micro.dev/v4/registry"
-	"github.com/asim/go-micro/plugins/registry/memory/v3"
+	"github.com/asim/go-micro/plugins/registry/memory/v4"
 )
 
 func TestPrioritiseFunc(t *testing.T) {

@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/asim/go-micro/plugins/registry/memory/v3"
+	"github.com/asim/go-micro/plugins/registry/memory/v4"
 	"go-micro.dev/v4/server"
 )
 

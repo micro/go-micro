@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	proto "github.com/asim/go-micro/examples/v3/helloworld/proto"
-	"github.com/asim/go-micro/examples/v3/mocking/mock"
+	proto "github.com/asim/go-micro/examples/v4/helloworld/proto"
+	"github.com/asim/go-micro/examples/v4/mocking/mock"
 	"go-micro.dev/v4"
 	"github.com/urfave/cli/v2"
 )

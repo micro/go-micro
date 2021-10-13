@@ -2,7 +2,7 @@ package mucp
 
 import (
 	"go-micro.dev/v4/config/source"
-	proto "github.com/asim/go-micro/plugins/config/source/mucp/v3/proto"
+	proto "github.com/asim/go-micro/plugins/config/source/mucp/v4/proto"
 )
 
 type watcher struct {

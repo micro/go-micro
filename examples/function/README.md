@@ -11,7 +11,7 @@ This is an example of creating a micro function. A function is a one time execut
 
 ```shell
 while true; do
-	github.com/asim/go-micro/examples/v3/function
+	github.com/asim/go-micro/examples/v4/function
 done
 ```
 

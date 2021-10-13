@@ -1,7 +1,7 @@
 package main
 
 import (
-	proto "github.com/asim/go-micro/examples/v3/pubsub/srv/proto"
+	proto "github.com/asim/go-micro/examples/v4/pubsub/srv/proto"
 	"go-micro.dev/v4"
 	"go-micro.dev/v4/metadata"
 	"go-micro.dev/v4/server"

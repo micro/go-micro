@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 
-	httpServer "github.com/asim/go-micro/plugins/server/http/v3"
+	httpServer "github.com/asim/go-micro/plugins/server/http/v4"
 	"go-micro.dev/v4"
 
 	"go-micro.dev/v4/registry"

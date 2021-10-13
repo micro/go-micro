@@ -4,7 +4,7 @@ import (
 	"context"
 	"log"
 
-	httpClient "github.com/asim/go-micro/plugins/client/http/v3"
+	httpClient "github.com/asim/go-micro/plugins/client/http/v4"
 	"go-micro.dev/v4/client"
 	"go-micro.dev/v4/registry"
 	"go-micro.dev/v4/selector"

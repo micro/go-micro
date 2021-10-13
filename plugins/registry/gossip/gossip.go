@@ -20,7 +20,7 @@ import (
 	log "go-micro.dev/v4/logger"
 	"go-micro.dev/v4/registry"
 	regutil "go-micro.dev/v4/util/registry"
-	pb "github.com/asim/go-micro/plugins/registry/gossip/v3/proto"
+	pb "github.com/asim/go-micro/plugins/registry/gossip/v4/proto"
 	"github.com/mitchellh/hashstructure"
 )
 

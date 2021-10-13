@@ -1,4 +1,4 @@
-module github.com/asim/go-micro/plugins/wrapper/trace/opencensus/v3
+module github.com/asim/go-micro/plugins/wrapper/trace/opencensus/v4
 
 go 1.16
 
@@ -8,4 +8,4 @@ require (
 	google.golang.org/genproto v0.0.0-20210624195500-8bfb893ecb84
 )
 
-replace github.com/asim/go-micro/v3 => ../../../../../go-micro
+replace go-micro.dev/v4 => ../../../../../go-micro
