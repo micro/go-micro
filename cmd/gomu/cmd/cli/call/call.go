@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/asim/go-micro/cmd/gomu/cmd"
+	"go-micro.dev/cmd/gomu/cmd"
 	"go-micro.dev/v4"
 	"go-micro.dev/v4/client"
 	"github.com/urfave/cli/v2"

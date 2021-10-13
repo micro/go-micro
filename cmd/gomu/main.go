@@ -1,10 +1,10 @@
 package main
 
 import (
-	"github.com/asim/go-micro/cmd/gomu/cmd"
+	"go-micro.dev/cmd/gomu/cmd"
 
 	// register commands
-	_ "github.com/asim/go-micro/cmd/gomu/cmd/cli"
+	_ "go-micro.dev/cmd/gomu/cmd/cli"
 )
 
 func main() {
