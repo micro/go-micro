@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/asim/go-micro/cmd/protoc-gen-micro/v4/generator"
+	"go-micro.dev/cmd/protoc-gen-micro/v4/generator"
 	options "google.golang.org/genproto/googleapis/api/annotations"
 	"google.golang.org/protobuf/proto"
 	pb "google.golang.org/protobuf/types/descriptorpb"
