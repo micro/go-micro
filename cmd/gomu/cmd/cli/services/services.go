@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sort"
 
-	"go-micro.dev/cmd/gomu/cmd"
+	"github.com/asim/go-micro/cmd/gomu/cmd"
 	"github.com/urfave/cli/v2"
 )
 

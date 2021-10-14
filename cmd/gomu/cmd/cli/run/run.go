@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"go-micro.dev/cmd/gomu/cmd"
+	"github.com/asim/go-micro/cmd/gomu/cmd"
 	"go-micro.dev/v4/runtime"
 	"go-micro.dev/v4/runtime/local/git"
 	"github.com/fsnotify/fsnotify"

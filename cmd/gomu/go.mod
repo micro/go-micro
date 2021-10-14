@@ -1,4 +1,4 @@
-module go-micro.dev/cmd/gomu
+module github.com/asim/go-micro/cmd/gomu
 
 go 1.16
 

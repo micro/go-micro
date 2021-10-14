@@ -9,7 +9,7 @@ Gomu is a helper tool for developing [Go Micro][1] projects.
 Installation is done by using the [`go install`][3] command.
 
 ```bash
-go install go-micro.dev/cmd/gomu@latest
+go install github.com/asim/go-micro/cmd/gomu@latest
 ```
 
 Let's create a new service using the `new` command.
@@ -143,7 +143,7 @@ import (
     "context"
     "fmt"
 
-    "go-micro.dev/cmd/gomu/debug/trace"
+    "github.com/asim/go-micro/cmd/gomu/debug/trace"
 )
 
 func Greet(ctx context.Context, name string) string {
