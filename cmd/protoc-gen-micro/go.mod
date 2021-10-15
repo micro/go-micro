@@ -1,4 +1,4 @@
-module go-micro.dev/cmd/protoc-gen-micro/v4
+module github.com/asim/go-micro/cmd/protoc-gen-micro/v4
 
 go 1.16
 
