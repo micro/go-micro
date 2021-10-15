@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	mcmd "github.com/asim/go-micro/v3/cmd"
+	mcmd "go-micro.dev/v4/cmd"
 	"github.com/urfave/cli/v2"
 )
 
@@ -19,7 +19,7 @@ var (
 
 // Cmd is the interface that wraps the cli app.
 //
-// Cmd embeds the Cmd interface from the github.com/asim/go-micro/v3/cmd
+// Cmd embeds the Cmd interface from the go-micro.dev/v4/cmd
 // package and adds a Run method.
 //
 // Run runs the cli app within this command and exits on error.

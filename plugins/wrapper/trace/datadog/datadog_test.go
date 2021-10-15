@@ -9,16 +9,16 @@ import (
 
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 
-	"github.com/asim/go-micro/v3/client"
-	"github.com/asim/go-micro/v3/selector"
-	microerr "github.com/asim/go-micro/v3/errors"
-	"github.com/asim/go-micro/plugins/registry/memory/v3"
-	"github.com/asim/go-micro/v3/server"
+	"go-micro.dev/v4/client"
+	"go-micro.dev/v4/selector"
+	microerr "go-micro.dev/v4/errors"
+	"github.com/asim/go-micro/plugins/registry/memory/v4"
+	"go-micro.dev/v4/server"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/mocktracer"
 
-	cli "github.com/asim/go-micro/v3/client"
-	srv "github.com/asim/go-micro/v3/server"
+	cli "go-micro.dev/v4/client"
+	srv "go-micro.dev/v4/server"
 )
 
 type Test interface {

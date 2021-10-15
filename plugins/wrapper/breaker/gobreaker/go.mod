@@ -1,14 +1,14 @@
-module github.com/asim/go-micro/plugins/wrapper/breaker/gobreaker/v3
+module github.com/asim/go-micro/plugins/wrapper/breaker/gobreaker/v4
 
 go 1.16
 
 require (
-	github.com/asim/go-micro/plugins/registry/memory/v3 v3.0.0-20210630062103-c13bb07171bc
-	github.com/asim/go-micro/v3 v3.5.2-0.20210630062103-c13bb07171bc
+	github.com/asim/go-micro/plugins/registry/memory/v4 v4.0.0-20211013123123-62801c3d6883
 	github.com/sony/gobreaker v0.4.1
+	go-micro.dev/v4 v4.1.0
 )
 
 replace (
-	github.com/asim/go-micro/plugins/registry/memory/v3 => ../../../../plugins/registry/memory
-	github.com/asim/go-micro/v3 => ../../../../../go-micro
+	github.com/asim/go-micro/plugins/registry/memory/v4 => ../../../../plugins/registry/memory
+	go-micro.dev/v4 => ../../../../../go-micro
 )

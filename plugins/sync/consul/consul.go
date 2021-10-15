@@ -11,7 +11,7 @@ import (
 	gosync "sync"
 	"time"
 
-	"github.com/asim/go-micro/v3/sync"
+	"go-micro.dev/v4/sync"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/api/watch"
 	hclog "github.com/hashicorp/go-hclog"

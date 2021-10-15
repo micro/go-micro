@@ -8,8 +8,8 @@ import (
 	"strings"
 
 	"github.com/asim/go-micro/cmd/gomu/cmd"
-	"github.com/asim/go-micro/v3/runtime"
-	"github.com/asim/go-micro/v3/runtime/local/git"
+	"go-micro.dev/v4/runtime"
+	"go-micro.dev/v4/runtime/local/git"
 	"github.com/fsnotify/fsnotify"
 	"github.com/urfave/cli/v2"
 )

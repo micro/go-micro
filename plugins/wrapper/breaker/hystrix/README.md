@@ -6,8 +6,8 @@ A go-micro plugin for go-hystrix.
 package main
 
 import (
-	"github.com/asim/go-micro/v3"
-	hystrix "github.com/asim/go-micro/plugins/wrapper/breaker/hystrix/v3"
+	"go-micro.dev/v4"
+	hystrix "github.com/asim/go-micro/plugins/wrapper/breaker/hystrix/v4"
 )
 
 func main() {
@@ -24,8 +24,8 @@ func main() {
 package main
 
 import (
-	"github.com/asim/go-micro/v3"
-	hystrix "github.com/asim/go-micro/plugins/wrapper/breaker/hystrix/v3"
+	"go-micro.dev/v4"
+	hystrix "github.com/asim/go-micro/plugins/wrapper/breaker/hystrix/v4"
 )
 
 func main() {
@@ -63,8 +63,8 @@ var (
 package main
 
 import (
-	"github.com/asim/go-micro/v3"
-	hystrix "github.com/asim/go-micro/plugins/wrapper/breaker/hystrix/v3"
+	"go-micro.dev/v4"
+	hystrix "github.com/asim/go-micro/plugins/wrapper/breaker/hystrix/v4"
 )
 
 func main() {

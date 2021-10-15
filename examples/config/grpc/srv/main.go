@@ -9,13 +9,13 @@ import (
 	"sync"
 	"time"
 
-	yaml "github.com/asim/go-micro/plugins/config/encoder/yaml/v3"
-	proto "github.com/asim/go-micro/plugins/config/source/grpc/v3/proto"
-	"github.com/asim/go-micro/v3/config"
-	"github.com/asim/go-micro/v3/config/reader"
-	"github.com/asim/go-micro/v3/config/reader/json"
-	"github.com/asim/go-micro/v3/config/source/file"
-	log "github.com/asim/go-micro/v3/logger"
+	yaml "github.com/asim/go-micro/plugins/config/encoder/yaml/v4"
+	proto "github.com/asim/go-micro/plugins/config/source/grpc/v4/proto"
+	"go-micro.dev/v4/config"
+	"go-micro.dev/v4/config/reader"
+	"go-micro.dev/v4/config/reader/json"
+	"go-micro.dev/v4/config/source/file"
+	log "go-micro.dev/v4/logger"
 	grpc "google.golang.org/grpc"
 )
 

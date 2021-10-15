@@ -4,12 +4,12 @@ import (
 	"context"
 	"strings"
 
-	"github.com/asim/go-micro/v3/auth"
-	"github.com/asim/go-micro/v3/client"
-	"github.com/asim/go-micro/v3/debug/stats"
-	"github.com/asim/go-micro/v3/debug/trace"
-	"github.com/asim/go-micro/v3/metadata"
-	"github.com/asim/go-micro/v3/server"
+	"go-micro.dev/v4/auth"
+	"go-micro.dev/v4/client"
+	"go-micro.dev/v4/debug/stats"
+	"go-micro.dev/v4/debug/trace"
+	"go-micro.dev/v4/metadata"
+	"go-micro.dev/v4/server"
 )
 
 type fromServiceWrapper struct {

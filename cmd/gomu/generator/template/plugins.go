@@ -4,6 +4,6 @@ package template
 var Plugins = `package main
 
 import (
-	_ "github.com/asim/go-micro/plugins/registry/kubernetes/v3"
+	_ "github.com/asim/go-micro/plugins/registry/kubernetes/v4"
 )
 `

@@ -48,7 +48,7 @@ You will need protoc-gen-micro for code generation
 # https://github.com/protocolbuffers/protobuf/releases
 go get -u google.golang.org/protobuf/proto
 go install github.com/golang/protobuf/protoc-gen-go@latest
-go install github.com/asim/go-micro/cmd/protoc-gen-micro/v3@latest
+go install go-micro.dev/cmd/protoc-gen-micro/v4@latest
 ```
 
 ## Creating A Service
@@ -67,7 +67,7 @@ download protobuf for go-micro:
 
 go get -u google.golang.org/protobuf/proto
 go install github.com/golang/protobuf/protoc-gen-go@latest
-go install github.com/asim/go-micro/cmd/protoc-gen-micro/v3@latest
+go install go-micro.dev/cmd/protoc-gen-micro/v4@latest
 
 compile the proto file helloworld.proto:
 
@@ -90,7 +90,7 @@ download protobuf for go-micro:
 
 go get -u google.golang.org/protobuf/proto
 go install github.com/golang/protobuf/protoc-gen-go@latest
-go install github.com/asim/go-micro/cmd/protoc-gen-micro/v3@latest
+go install go-micro.dev/cmd/protoc-gen-micro/v4@latest
 
 compile the proto file helloworld.proto:
 
@@ -119,7 +119,7 @@ package helloworld
 import (
     "context"
 
-    log "github.com/asim/go-micro/v3/logger"
+    log "go-micro.dev/v4/logger"
 
     "helloworld/greeter"
     pb "helloworld/proto"
@@ -377,12 +377,12 @@ $ gomu stream bidi helloworld Helloworld.BidiStream '{"stroke": 1}' '{"stroke": 
 
 This software is published under the [MIT license][10].
 
-[1]: https://github.com/asim/go-micro
+[1]: https://go-micro.dev
 [2]: https://golang.org/dl/
 [3]: https://golang.org/cmd/go/#hdr-Compile_and_install_packages_and_dependencies
 [4]: https://grpc.io/docs/protoc-installation/
 [5]: https://micro.mu/github.com/golang/protobuf/protoc-gen-go
-[6]: https://github.com/asim/go-micro/tree/master/cmd/protoc-gen-micro
+[6]: https://go-micro.dev/tree/master/cmd/protoc-gen-micro
 [7]: https://www.jaegertracing.io/
 [8]: https://github.com/jaegertracing/jaeger-client-go#environment-variables
 [9]: https://skaffold.dev/

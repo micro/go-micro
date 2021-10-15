@@ -6,8 +6,8 @@ import (
 	"time"
 	"unicode"
 
-	log "github.com/asim/go-micro/v3/logger"
-	"github.com/asim/go-micro/v3/store"
+	log "go-micro.dev/v4/logger"
+	"go-micro.dev/v4/store"
 	"github.com/pkg/errors"
 )
 

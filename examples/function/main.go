@@ -3,8 +3,8 @@ package main
 import (
 	"context"
 
-	proto "github.com/asim/go-micro/examples/v3/function/proto"
-	"github.com/asim/go-micro/v3"
+	proto "github.com/asim/go-micro/examples/v4/function/proto"
+	"go-micro.dev/v4"
 )
 
 type Greeter struct{}

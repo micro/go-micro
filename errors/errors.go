@@ -4,6 +4,7 @@ package errors
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 )
@@ -138,9 +139,43 @@ func Equal(err1 error, err2 error) bool {
 
 // FromError try to convert go error to *Error
 func FromError(err error) *Error {
+	if err == nil {
+		return nil
+	}
 	if verr, ok := err.(*Error); ok && verr != nil {
 		return verr
 	}
 
 	return Parse(err.Error())
+}
+
+// As finds the first error in err's chain that matches *Error
+func As(err error) (*Error, bool) {
+	if err == nil {
+		return nil, false
+	}
+	var merr *Error
+	if errors.As(err, &merr) {
+		return merr, true
+	}
+	return nil, false
+}
+
+func NewMultiError() *MultiError {
+	return &MultiError{
+		Errors: make([]*Error, 0),
+	}
+}
+
+func (e *MultiError) Append(err *Error) {
+	e.Errors = append(e.Errors, err)
+}
+
+func (e *MultiError) HasErrors() bool {
+	return len(e.Errors) > 0
+}
+
+func (e *MultiError) Error() string {
+	b, _ := json.Marshal(e)
+	return string(b)
 }

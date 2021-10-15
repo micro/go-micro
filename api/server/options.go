@@ -2,11 +2,11 @@ package server
 
 import (
 	"crypto/tls"
-	"github.com/asim/go-micro/v3/api/server/cors"
+	"go-micro.dev/v4/api/server/cors"
 	"net/http"
 
-	"github.com/asim/go-micro/v3/api/resolver"
-	"github.com/asim/go-micro/v3/api/server/acme"
+	"go-micro.dev/v4/api/resolver"
+	"go-micro.dev/v4/api/server/acme"
 )
 
 type Option func(o *Options)

@@ -2,7 +2,7 @@
 package os
 
 import (
-	"github.com/asim/go-micro/v3/runtime/local/process"
+	"go-micro.dev/v4/runtime/local/process"
 )
 
 type Process struct{}

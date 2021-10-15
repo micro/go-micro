@@ -11,14 +11,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/asim/go-micro/v3/broker"
-	"github.com/asim/go-micro/v3/codec"
-	"github.com/asim/go-micro/v3/codec/jsonrpc"
-	"github.com/asim/go-micro/v3/codec/protorpc"
-	"github.com/asim/go-micro/v3/cmd"
-	log "github.com/asim/go-micro/v3/logger"
-	"github.com/asim/go-micro/v3/registry"
-	"github.com/asim/go-micro/v3/server"
+	"go-micro.dev/v4/broker"
+	"go-micro.dev/v4/codec"
+	"go-micro.dev/v4/codec/jsonrpc"
+	"go-micro.dev/v4/codec/protorpc"
+	"go-micro.dev/v4/cmd"
+	log "go-micro.dev/v4/logger"
+	"go-micro.dev/v4/registry"
+	"go-micro.dev/v4/server"
 )
 
 var (

@@ -8,8 +8,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/asim/go-micro/v3/logger"
-	"github.com/asim/go-micro/v3/runtime/local/build"
+	"go-micro.dev/v4/logger"
+	"go-micro.dev/v4/runtime/local/build"
 	docker "github.com/fsouza/go-dockerclient"
 )
 

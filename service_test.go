@@ -6,10 +6,10 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/asim/go-micro/v3/client"
-	proto "github.com/asim/go-micro/v3/debug/proto"
-	"github.com/asim/go-micro/v3/registry"
-	"github.com/asim/go-micro/v3/util/test"
+	"go-micro.dev/v4/client"
+	proto "go-micro.dev/v4/debug/proto"
+	"go-micro.dev/v4/registry"
+	"go-micro.dev/v4/util/test"
 )
 
 func testShutdown(wg *sync.WaitGroup, cancel func()) {

@@ -13,8 +13,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/asim/go-micro/v3/logger"
-	"github.com/asim/go-micro/v3/runtime/local/git"
+	"go-micro.dev/v4/logger"
+	"go-micro.dev/v4/runtime/local/git"
 	"github.com/nxadm/tail"
 )
 

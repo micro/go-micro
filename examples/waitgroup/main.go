@@ -5,8 +5,8 @@ import (
 	"sync"
 
 	"context"
-	"github.com/asim/go-micro/v3"
-	"github.com/asim/go-micro/v3/server"
+	"go-micro.dev/v4"
+	"go-micro.dev/v4/server"
 )
 
 // waitgroup is a handler wrapper which adds a handler to a sync.WaitGroup

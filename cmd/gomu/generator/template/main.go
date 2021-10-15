@@ -9,8 +9,8 @@ import (
 
 	pb "{{.Vendor}}{{lower .Service}}/proto"
 
-	"github.com/asim/go-micro/v3"
-	log "github.com/asim/go-micro/v3/logger"
+	"go-micro.dev/v4"
+	log "go-micro.dev/v4/logger"
 )
 
 var (
@@ -46,9 +46,9 @@ var MainFNC = `package main
 import (
 	"{{.Vendor}}{{.Service}}/handler"
 
-{{if .Jaeger}}	ot "github.com/asim/go-micro/plugins/wrapper/trace/opentracing/v3"
-{{end}}	"github.com/asim/go-micro/v3"
-	log "github.com/asim/go-micro/v3/logger"{{if .Jaeger}}
+{{if .Jaeger}}	ot "github.com/asim/go-micro/plugins/wrapper/trace/opentracing/v4"
+{{end}}	"go-micro.dev/v4"
+	log "go-micro.dev/v4/logger"{{if .Jaeger}}
 
 	"github.com/asim/go-micro/cmd/gomu/debug/trace/jaeger"{{end}}
 )
@@ -98,9 +98,9 @@ import (
 	"{{.Vendor}}{{.Service}}/handler"
 	pb "{{.Vendor}}{{.Service}}/proto"
 
-{{if .Jaeger}}	ot "github.com/asim/go-micro/plugins/wrapper/trace/opentracing/v3"
-{{end}}	"github.com/asim/go-micro/v3"
-	log "github.com/asim/go-micro/v3/logger"{{if .Jaeger}}
+{{if .Jaeger}}	ot "github.com/asim/go-micro/plugins/wrapper/trace/opentracing/v4"
+{{end}}	"go-micro.dev/v4"
+	log "go-micro.dev/v4/logger"{{if .Jaeger}}
 
 	"github.com/asim/go-micro/cmd/gomu/debug/trace/jaeger"{{end}}
 )

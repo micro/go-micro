@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/asim/go-micro/v3/store"
-	"github.com/asim/go-micro/v3/sync"
+	"go-micro.dev/v4/store"
+	"go-micro.dev/v4/sync"
 	"github.com/caddyserver/certmagic"
 )
 

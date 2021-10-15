@@ -4,7 +4,7 @@ import (
 	"net"
 	"testing"
 
-	"github.com/asim/go-micro/v3/transport"
+	"go-micro.dev/v4/transport"
 )
 
 func expectedPort(t *testing.T, expected string, lsn transport.Listener) {

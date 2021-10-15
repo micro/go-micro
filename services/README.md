@@ -1,6 +1,6 @@
 # Services
 
-Micro Services provide additional functionality via external services for Go Micro.
+[Micro Services](https://github.com/micro/services) provide additional functionality via external third party services.
 
 ## Overview
 
@@ -78,7 +78,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/micro/services/clients/go/currency"
+	"go-micro.dev/v4/services/currency"
 )
 
 var (

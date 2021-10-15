@@ -4,11 +4,11 @@ import (
 	"log"
 
 	"context"
-	"github.com/asim/go-micro/examples/v3/server/subscriber"
-	"github.com/asim/go-micro/v3/cmd"
-	"github.com/asim/go-micro/v3/server"
+	"github.com/asim/go-micro/examples/v4/server/subscriber"
+	"go-micro.dev/v4/cmd"
+	"go-micro.dev/v4/server"
 
-	example "github.com/asim/go-micro/examples/v3/server/proto/example"
+	example "github.com/asim/go-micro/examples/v4/server/proto/example"
 )
 
 type Example struct{}
