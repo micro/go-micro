@@ -8,7 +8,7 @@ if [ "x$tag" = "x" ]; then
   exit 1;
 fi
 
-for m in $('C:\Program Files\Git\usr\bin\find.exe' * -name 'go.mod' -exec dirname {} \;); do
+for m in $(find * -name 'go.mod' -exec dirname {} \;); do
   if [ ! -n "$commitsh" ]; then
     hub release create -m "plugins/$m/$tag release" plugins/$m/$tag;
   else
