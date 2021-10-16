@@ -1,4 +1,4 @@
-module github.com/korableg/go-micro/plugins/logger/windowseventlog
+module github.com/asim/go-micro/plugins/logger/windowseventlog
 
 go 1.16
 
