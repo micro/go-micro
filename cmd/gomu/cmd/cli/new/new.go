@@ -168,22 +168,23 @@ func createProject(ctx *cli.Context, pt string) error {
 
 func clientComments(name, dir string) []string {
 	return []string{
-		"cd " + dir,
-		"make tidy\n",
+		"\ninstall dependencies:",
+		"\ncd " + dir,
+		"make update tidy",
 	}
 }
 
 func protoComments(name, dir string) []string {
 	return []string{
-		"\ndownload protoc zip packages (protoc-$VERSION-$PLATFORM.zip) and install:\n",
-		"visit https://github.com/protocolbuffers/protobuf/releases/latest",
-		"\ndownload protobuf for go-micro:\n",
-		"go get -u google.golang.org/protobuf/proto",
+		"\ndownload protoc zip packages (protoc-$VERSION-$PLATFORM.zip) and install:",
+		"\nvisit https://github.com/protocolbuffers/protobuf/releases/latest",
+		"\ndownload protobuf for go-micro:",
+		"\ngo get -u google.golang.org/protobuf/proto",
 		"go install github.com/golang/protobuf/protoc-gen-go@latest",
 		"go install github.com/asim/go-micro/cmd/protoc-gen-micro/v4@latest",
-		"\ncompile the proto file " + name + ".proto:\n",
-		"cd " + dir,
-		"make proto tidy\n",
+		"\ncompile the proto file " + name + ".proto and install dependencies:",
+		"\ncd " + dir,
+		"make proto update tidy",
 	}
 }
 

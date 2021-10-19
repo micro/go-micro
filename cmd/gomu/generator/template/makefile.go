@@ -13,6 +13,10 @@ init:
 proto:
 	@protoc --proto_path=. --micro_out=. --go_out=:. proto/{{.Service}}.proto
 
+.PHONY: update
+update:
+	@go get -u
+
 .PHONY: tidy
 tidy:
 	@go mod tidy
