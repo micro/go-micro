@@ -14,9 +14,9 @@ for /r %%i in (go.mod) do (
   set m=!m:%~dp0=!
   set m=!m:\=/!
   if "%commitsh%"=="" (
-    echo hub release create -m "plugins/!m!%tag% release" plugins/!m!%tag%
+    hub release create -m "plugins/!m!%tag% release" plugins/!m!%tag%
   ) else (
-    echo hub release create -m "plugins/!m!%tag% release" -t %commitsh% plugins/!m!%tag%
+    hub release create -m "plugins/!m!%tag% release" -t %commitsh% plugins/!m!%tag%
   )
 )
 endlocal

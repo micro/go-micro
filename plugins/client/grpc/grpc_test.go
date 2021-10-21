@@ -5,7 +5,6 @@ import (
 	"net"
 	"testing"
 
-	"github.com/asim/go-micro/plugins/registry/memory/v4"
 	"go-micro.dev/v4/client"
 	"go-micro.dev/v4/errors"
 	"go-micro.dev/v4/registry"
@@ -41,7 +40,7 @@ func TestGRPCClient(t *testing.T) {
 	defer s.Stop()
 
 	// create mock registry
-	r := memory.NewRegistry()
+	r := registry.NewMemoryRegistry()
 
 	// register service
 	r.Register(&registry.Service{
