@@ -8,8 +8,8 @@ import (
 	"github.com/Shopify/sarama"
 	"github.com/google/uuid"
 	"go-micro.dev/v4/broker"
-	"go-micro.dev/v4/codec/json"
 	"go-micro.dev/v4/cmd"
+	"go-micro.dev/v4/codec/json"
 	log "go-micro.dev/v4/logger"
 )
 
@@ -115,7 +115,7 @@ func (k *kBroker) Connect() error {
 	k.p = p
 	k.sc = make([]sarama.Client, 0)
 	k.connected = true
-	defer k.scMutex.Unlock()
+	k.scMutex.Unlock()
 
 	return nil
 }
@@ -127,7 +127,9 @@ func (k *kBroker) Disconnect() error {
 		client.Close()
 	}
 	k.sc = nil
-	k.p.Close()
+	if k.p != nil {
+		k.p.Close()
+	}
 	if err := k.c.Close(); err != nil {
 		return err
 	}

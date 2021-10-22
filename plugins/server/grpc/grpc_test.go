@@ -18,7 +18,6 @@ import (
 
 	bmemory "github.com/asim/go-micro/plugins/broker/memory/v4"
 	gcli "github.com/asim/go-micro/plugins/client/grpc/v4"
-	rmemory "github.com/asim/go-micro/plugins/registry/memory/v4"
 	gsrv "github.com/asim/go-micro/plugins/server/grpc/v4"
 	pb "github.com/asim/go-micro/plugins/server/grpc/v4/proto"
 	tgrpc "github.com/asim/go-micro/plugins/transport/grpc/v4"
@@ -197,7 +196,7 @@ func testGRPCServer(t *testing.T, s server.Server, c client.Client, r registry.R
 }
 
 func getTestHarness() (registry.Registry, broker.Broker, transport.Transport) {
-	r := rmemory.NewRegistry()
+	r := registry.NewMemoryRegistry()
 	b := bmemory.NewBroker()
 	tr := tgrpc.NewTransport()
 	return r, b, tr
