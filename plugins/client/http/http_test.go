@@ -11,14 +11,13 @@ import (
 	"testing"
 
 	"github.com/asim/go-micro/plugins/client/http/v4/test"
-	"github.com/asim/go-micro/plugins/registry/memory/v4"
 	"go-micro.dev/v4/client"
 	"go-micro.dev/v4/registry"
 	"go-micro.dev/v4/selector"
 )
 
 func TestHTTPClient(t *testing.T) {
-	r := memory.NewRegistry()
+	r := registry.NewMemoryRegistry()
 	s := selector.NewSelector(selector.Registry(r))
 
 	l, err := net.Listen("tcp", "127.0.0.1:0")
@@ -106,7 +105,7 @@ func TestHTTPClient(t *testing.T) {
 }
 
 func TestHTTPClientStream(t *testing.T) {
-	r := memory.NewRegistry()
+	r := registry.NewMemoryRegistry()
 	s := selector.NewSelector(selector.Registry(r))
 
 	l, err := net.Listen("tcp", "127.0.0.1:0")

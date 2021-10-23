@@ -6,12 +6,12 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/asim/go-micro/plugins/registry/memory/v4"
+	"go-micro.dev/v4/registry"
 	"go-micro.dev/v4/server"
 )
 
 func TestHTTPServer(t *testing.T) {
-	reg := memory.NewRegistry()
+	reg := registry.NewMemoryRegistry()
 
 	// create server
 	srv := NewServer(server.Registry(reg))

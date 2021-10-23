@@ -5,16 +5,15 @@ import (
 	"fmt"
 	"testing"
 
-	"go-micro.dev/v4/broker"
-	bmemory "github.com/asim/go-micro/plugins/broker/memory/v4"
-	"go-micro.dev/v4/client"
-	"go-micro.dev/v4/selector"
-	"github.com/asim/go-micro/plugins/registry/memory/v4"
-	"go-micro.dev/v4/server"
 	promwrapper "github.com/asim/go-micro/plugins/wrapper/monitoring/prometheus/v4"
 	"github.com/prometheus/client_golang/prometheus"
 	dto "github.com/prometheus/client_model/go"
 	"github.com/stretchr/testify/assert"
+	"go-micro.dev/v4/broker"
+	"go-micro.dev/v4/client"
+	"go-micro.dev/v4/registry"
+	"go-micro.dev/v4/selector"
+	"go-micro.dev/v4/server"
 )
 
 type Test interface {
@@ -37,8 +36,8 @@ func (t *testHandler) Method(ctx context.Context, req *TestRequest, rsp *TestRes
 
 func TestPrometheusMetrics(t *testing.T) {
 	// setup
-	reg := memory.NewRegistry()
-	brk := bmemory.NewBroker(broker.Registry(reg))
+	reg := registry.NewMemoryRegistry()
+	brk := broker.NewMemoryBroker(broker.Registry(reg))
 	sel := selector.NewSelector(selector.Registry(reg))
 
 	name := "test"
