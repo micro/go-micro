@@ -8,7 +8,6 @@ import (
 	"github.com/google/uuid"
 	"go-micro.dev/v4/broker"
 	"go-micro.dev/v4/registry"
-	"github.com/asim/go-micro/plugins/registry/memory/v4"
 )
 
 var (
@@ -54,7 +53,7 @@ var (
 )
 
 func newTestRegistry() registry.Registry {
-	return memory.NewRegistry(memory.Services(testData))
+	return registry.NewMemoryRegistry(registry.Services(testData))
 }
 
 func sub(be *testing.B, c int) {

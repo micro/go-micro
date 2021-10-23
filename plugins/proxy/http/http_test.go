@@ -10,7 +10,7 @@ import (
 
 	"go-micro.dev/v4"
 	"go-micro.dev/v4/client"
-	"github.com/asim/go-micro/plugins/registry/memory/v4"
+	"go-micro.dev/v4/registry"
 	"go-micro.dev/v4/server"
 )
 
@@ -71,7 +71,7 @@ func TestHTTPRouter(t *testing.T) {
 	service := micro.NewService(
 		micro.Context(ctx),
 		micro.Name("foobar"),
-		micro.Registry(memory.NewRegistry()),
+		micro.Registry(registry.NewMemoryRegistry()),
 		micro.AfterStart(func() error {
 			wg.Done()
 			return nil

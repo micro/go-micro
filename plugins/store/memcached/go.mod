@@ -4,7 +4,7 @@ go 1.16
 
 require (
 	github.com/bradfitz/gomemcache v0.0.0-20190913173617-a41fca850d0b
-	go-micro.dev/v4 v4.1.0
+	go-micro.dev/v4 v4.2.1
 )
 
 replace go-micro.dev/v4 => ../../../../go-micro

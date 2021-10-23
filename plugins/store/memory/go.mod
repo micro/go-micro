@@ -6,7 +6,7 @@ require (
 	github.com/kr/pretty v0.2.1
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pkg/errors v0.9.1
-	go-micro.dev/v4 v4.1.0
+	go-micro.dev/v4 v4.2.1
 )
 
 replace go-micro.dev/v4 => ../../../../go-micro
