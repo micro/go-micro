@@ -71,7 +71,7 @@ func testPool(t *testing.T, size int, ttl time.Duration) {
 		}
 
 		// release the conn
-		p.Release(c, nil)
+		_ = p.Release(c, nil)
 
 		p.Lock()
 		if i := len(p.conns[l.Addr()]); i > size {

@@ -31,5 +31,8 @@ func NewPool(opts ...Option) Pool {
 	for _, o := range opts {
 		o(&options)
 	}
+	if options.UseLimitPool {
+		return newLimitPool(options)
+	}
 	return newPool(options)
 }
