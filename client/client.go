@@ -76,6 +76,8 @@ type Stream interface {
 	Recv(interface{}) error
 	// Error returns the stream error
 	Error() error
+	// CloseSend closes the send direction of the stream.
+	CloseSend() error
 	// Close closes the stream
 	Close() error
 }

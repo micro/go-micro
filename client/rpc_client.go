@@ -6,6 +6,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/google/uuid"
 	"go-micro.dev/v4/broker"
 	"go-micro.dev/v4/codec"
 	raw "go-micro.dev/v4/codec/bytes"
@@ -17,7 +18,6 @@ import (
 	"go-micro.dev/v4/util/buf"
 	"go-micro.dev/v4/util/net"
 	"go-micro.dev/v4/util/pool"
-	"github.com/google/uuid"
 )
 
 type rpcClient struct {
@@ -60,7 +60,7 @@ func (r *rpcClient) newCodec(contentType string) (codec.NewCodec, error) {
 	if cf, ok := DefaultCodecs[contentType]; ok {
 		return cf, nil
 	}
-	return nil, fmt.Errorf("Unsupported Content-Type: %s", contentType)
+	return nil, fmt.Errorf("unsupported Content-Type: %s", contentType)
 }
 
 func (r *rpcClient) call(ctx context.Context, node *registry.Node, req Request, resp interface{}, opts CallOptions) error {

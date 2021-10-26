@@ -120,6 +120,10 @@ func (h *httpStream) Error() error {
 	return h.err
 }
 
+func (h *httpStream) CloseSend() error {
+	return errors.New("streamer not implemented")
+}
+
 func (h *httpStream) Close() error {
 	select {
 	case <-h.closed:
