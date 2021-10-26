@@ -64,6 +64,7 @@ type Response interface {
 
 // Stream is the inteface for a bidirectional synchronous stream
 type Stream interface {
+	Closer
 	// Context for the stream
 	Context() context.Context
 	// The request made
@@ -76,10 +77,14 @@ type Stream interface {
 	Recv(interface{}) error
 	// Error returns the stream error
 	Error() error
-	// CloseSend closes the send direction of the stream.
-	CloseSend() error
 	// Close closes the stream
 	Close() error
+}
+
+// Closer handle client close
+type Closer interface {
+	// CloseSend closes the send direction of the stream.
+	CloseSend() error
 }
 
 // Option used by the Client
