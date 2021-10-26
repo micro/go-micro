@@ -52,8 +52,8 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/asim/go-micro/cmd/protoc-gen-micro/v4/generator"
-	_ "github.com/asim/go-micro/cmd/protoc-gen-micro/v4/plugin/micro"
+	"go-micro.dev/v4/cmd/protoc-gen-micro/generator"
+	_ "go-micro.dev/v4/cmd/protoc-gen-micro/plugin/micro"
 	"google.golang.org/protobuf/proto"
 )
 
