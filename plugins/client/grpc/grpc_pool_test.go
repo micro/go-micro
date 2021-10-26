@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"google.golang.org/grpc"
-	pgrpc "google.golang.org/grpc"
 	pb "google.golang.org/grpc/examples/helloworld/helloworld"
 )
 
@@ -19,7 +18,7 @@ func testPool(t *testing.T, size int, ttl time.Duration, idle int, ms int) {
 	}
 	defer l.Close()
 
-	s := pgrpc.NewServer()
+	s := grpc.NewServer()
 	pb.RegisterGreeterServer(s, &greeterServer{})
 
 	go s.Serve(l)
@@ -30,7 +29,7 @@ func testPool(t *testing.T, size int, ttl time.Duration, idle int, ms int) {
 
 	for i := 0; i < 10; i++ {
 		// get a conn
-		cc, err := p.getConn(l.Addr().String(), grpc.WithInsecure())
+		cc, err := p.getConn(context.TODO(), l.Addr().String(), grpc.WithInsecure())
 		if err != nil {
 			t.Fatal(err)
 		}

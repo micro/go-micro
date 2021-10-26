@@ -2,10 +2,12 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"time"
 
 	"context"
-	proto "github.com/asim/go-micro/examples/v4/stream/server/proto"
+
+	proto "github.com/asim/go-micro/examples/v4/stream/rpc/server/proto"
 	"go-micro.dev/v4"
 )
 
@@ -25,6 +27,9 @@ func bidirectional(cl proto.StreamerService) {
 			return
 		}
 		rsp, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
 		if err != nil {
 			fmt.Println("recv err", err)
 			break
@@ -52,6 +57,9 @@ func serverStream(cl proto.StreamerService) {
 	// receive messages for a 10 count
 	for {
 		rsp, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
 		if err != nil {
 			fmt.Println("recv err", err)
 			break

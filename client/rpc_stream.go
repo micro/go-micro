@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"errors"
 	"io"
 	"sync"
 
@@ -127,6 +128,10 @@ func (r *rpcStream) Error() error {
 	r.RLock()
 	defer r.RUnlock()
 	return r.err
+}
+
+func (r *rpcStream) CloseSend() error {
+	return errors.New("streamer not implemented")
 }
 
 func (r *rpcStream) Close() error {
