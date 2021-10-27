@@ -4,15 +4,15 @@ import (
 	"fmt"
 	"os"
 
-	mcmd "go-micro.dev/v4/cmd"
 	"github.com/urfave/cli/v2"
+	mcmd "go-micro.dev/v4/cmd"
 )
 
 var (
 	// DefaultCmd is the default, unmodified root command.
 	DefaultCmd Cmd = NewCmd()
 
-	name        string = "gomu"
+	name        string = "micro"
 	description string = "The Go Micro CLI tool"
 	version     string = "latest"
 )

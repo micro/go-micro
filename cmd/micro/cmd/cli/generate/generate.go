@@ -6,9 +6,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/asim/go-micro/cmd/gomu/cmd"
-	"github.com/asim/go-micro/cmd/gomu/generator"
-	tmpl "github.com/asim/go-micro/cmd/gomu/generator/template"
+	"github.com/asim/go-micro/cmd/micro/cmd"
+	"github.com/asim/go-micro/cmd/micro/generator"
+	tmpl "github.com/asim/go-micro/cmd/micro/generator/template"
 	"github.com/urfave/cli/v2"
 )
 

@@ -1,4 +1,4 @@
-module github.com/asim/go-micro/cmd/gomu
+module github.com/asim/go-micro/cmd/micro
 
 go 1.16
 
@@ -12,3 +12,5 @@ require (
 	go-micro.dev/v4 v4.1.0
 	gopkg.in/yaml.v2 v2.4.0
 )
+
+replace github.com/asim/go-micro/cmd/micro => ../
