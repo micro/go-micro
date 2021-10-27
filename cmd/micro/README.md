@@ -1,6 +1,6 @@
-# Gomu
+# Micro CLI
 
-Gomu is a helper tool for developing [Go Micro][1] projects.
+Micro CLI is the command line interface for developing [Go Micro][1] projects.
 
 ## Getting Started
 
@@ -9,13 +9,13 @@ Gomu is a helper tool for developing [Go Micro][1] projects.
 Installation is done by using the [`go install`][3] command.
 
 ```bash
-go install github.com/asim/go-micro/cmd/gomu@latest
+go install github.com/asim/go-micro/cmd/micro@latest
 ```
 
 Let's create a new service using the `new` command.
 
 ```bash
-gomu new service helloworld
+micro new service helloworld
 ```
 
 Follow the on-screen instructions. Next, we can run the program.
@@ -23,13 +23,13 @@ Follow the on-screen instructions. Next, we can run the program.
 ```bash
 cd helloworld
 make proto tidy
-gomu run
+micro run
 ```
 
 Finally we can call the service.
 
 ```bash
-gomu call helloworld Helloworld.Call '{"name": "John"}'
+micro call helloworld Helloworld.Call '{"name": "John"}'
 ```
 
 That's all you need to know to get started. Refer to the [Go Micro][1]
@@ -53,10 +53,10 @@ go install go-micro.dev/v4/cmd/protoc-gen-micro@latest
 
 ## Creating A Service
 
-To create a new service, use the `gomu new service` command.
+To create a new service, use the `micro new service` command.
 
 ```bash
-$ gomu new service helloworld
+$ micro new service helloworld
 creating service helloworld
 
 download protoc zip packages (protoc-$VERSION-$PLATFORM.zip) and install:
@@ -75,11 +75,11 @@ cd helloworld
 make proto tidy
 ```
 
-To create a new function, use the `gomu new function` command. Functions differ
+To create a new function, use the `micro new function` command. Functions differ
 from services in that they exit after returning.
 
 ```bash
-$ gomu new function helloworld
+$ micro new function helloworld
 creating function helloworld
 
 download protoc zip packages (protoc-$VERSION-$PLATFORM.zip) and install:
@@ -101,11 +101,11 @@ make proto tidy
 ### Jaeger
 
 To create a new service with [Jaeger][7] integration, pass the `--jaeger` flag
-to the `gomu new service` or `gomu new function` commands. You may configure
+to the `micro new service` or `micro new function` commands. You may configure
 the Jaeger client using [environment variables][8].
 
 ```bash
-gomu new service --jaeger helloworld
+micro new service --jaeger helloworld
 ```
 
 You may invoke `trace.NewSpan(context.Context).Finish()` to nest spans. For
@@ -143,7 +143,7 @@ import (
     "context"
     "fmt"
 
-    "github.com/asim/go-micro/cmd/gomu/debug/trace"
+    "github.com/asim/go-micro/cmd/micro/debug/trace"
 )
 
 func Greet(ctx context.Context, name string) string {
@@ -155,19 +155,19 @@ func Greet(ctx context.Context, name string) string {
 ### Skaffold
 
 To create a new service with [Skaffold][9] files, pass the `--skaffold` flag to
-the `gomu new service` or `gomu new function` commands.
+the `micro new service` or `micro new function` commands.
 
 ```bash
-gomu new service --skaffold helloworld
+micro new service --skaffold helloworld
 ```
 
 ## Running A Service
 
-To run a service, use the `gomu run` command to build and run your service
+To run a service, use the `micro run` command to build and run your service
 continuously.
 
 ```bash
-$ gomu run
+$ micro run
 2021-08-20 14:05:54  file=v3@v3.5.2/service.go:199 level=info Starting [service] helloworld
 2021-08-20 14:05:54  file=server/rpc_server.go:820 level=info Transport [http] Listening on [::]:34531
 2021-08-20 14:05:54  file=server/rpc_server.go:840 level=info Broker [http] Connected to 127.0.0.1:44975
@@ -199,11 +199,11 @@ skaffold dev
 
 ## Creating A Client
 
-To create a new client, use the `gomu new client` command. The name is the
+To create a new client, use the `micro new client` command. The name is the
 service you'd like to create a client project for.
 
 ```bash
-$ gomu new client helloworld
+$ micro new client helloworld
 creating client helloworld
 cd helloworld-client
 make tidy
@@ -213,7 +213,7 @@ You may optionally pass the fully qualified package name of the service you'd
 like to create a client project for.
 
 ```bash
-$ gomu new client github.com/auditemarlow/helloworld
+$ micro new client github.com/auditemarlow/helloworld
 creating client helloworld
 cd helloworld-client
 make tidy
@@ -221,40 +221,40 @@ make tidy
 
 ## Running A Client
 
-To run a client, use the `gomu run` command to build and run your client
+To run a client, use the `micro run` command to build and run your client
 continuously.
 
 ```bash
-$ gomu run
+$ micro run
 2021-09-03 12:52:23  file=helloworld-client/main.go:33 level=info msg:"Hello John"
 ```
 
 ## Generating Files
 
-To generate Go Micro project template files after the fact, use the `gomu
+To generate Go Micro project template files after the fact, use the `micro
 generate` command. It will place the generated files in the current working
 directory.
 
 ```bash
-$ gomu generate skaffold
+$ micro generate skaffold
 skaffold project template files generated
 ```
 
 ## Listing Services
 
-To list services, use the `gomu services` command.
+To list services, use the `micro services` command.
 
 ```bash
-$ gomu services
+$ micro services
 helloworld
 ```
 
 ## Describing A Service
 
-To describe a service, use the `gomu describe service` command.
+To describe a service, use the `micro describe service` command.
 
 ```bash
-$ gomu describe service helloworld
+$ micro describe service helloworld
 {
   "name": "helloworld",
   "version": "latest",
@@ -305,7 +305,7 @@ $ gomu describe service helloworld
 You may pass the `--format=yaml` flag to output a YAML formatted object.
 
 ```bash
-$ gomu describe service --format=yaml helloworld
+$ micro describe service --format=yaml helloworld
 name: helloworld
 version: latest
 metadata: {}
@@ -338,19 +338,19 @@ nodes:
 
 ## Calling A Service
 
-To call a service, use the `gomu call` command. This will send a single request
+To call a service, use the `micro call` command. This will send a single request
 and expect a single response.
 
 ```bash
-$ gomu call helloworld Helloworld.Call '{"name": "John"}'
+$ micro call helloworld Helloworld.Call '{"name": "John"}'
 {"msg":"Hello John"}
 ```
 
-To call a service's server stream, use the `gomu stream server` command. This
+To call a service's server stream, use the `micro stream server` command. This
 will send a single request and expect a stream of responses.
 
 ```bash
-$ gomu stream server helloworld Helloworld.ServerStream '{"count": 10}'
+$ micro stream server helloworld Helloworld.ServerStream '{"count": 10}'
 {"count":0}
 {"count":1}
 {"count":2}
@@ -363,19 +363,15 @@ $ gomu stream server helloworld Helloworld.ServerStream '{"count": 10}'
 {"count":9}
 ```
 
-To call a service's bidirectional stream, use the `gomu stream bidi` command.
+To call a service's bidirectional stream, use the `micro stream bidi` command.
 This will send a stream of requests and expect a stream of responses.
 
 ```bash
-$ gomu stream bidi helloworld Helloworld.BidiStream '{"stroke": 1}' '{"stroke": 2}' '{"stroke": 3}'
+$ micro stream bidi helloworld Helloworld.BidiStream '{"stroke": 1}' '{"stroke": 2}' '{"stroke": 3}'
 {"stroke":1}
 {"stroke":2}
 {"stroke":3}
 ```
-
-## License
-
-This software is published under the [MIT license][10].
 
 [1]: https://go-micro.dev
 [2]: https://golang.org/dl/
@@ -386,4 +382,3 @@ This software is published under the [MIT license][10].
 [7]: https://www.jaegertracing.io/
 [8]: https://github.com/jaegertracing/jaeger-client-go#environment-variables
 [9]: https://skaffold.dev/
-[10]: LICENSE

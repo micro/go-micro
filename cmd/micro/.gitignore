@@ -29,5 +29,5 @@ coverage.txt
 coverage.out
 
 # ignore locally built binaries
-gomu
 dist
+micro
