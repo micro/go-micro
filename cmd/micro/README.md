@@ -373,10 +373,6 @@ $ micro stream bidi helloworld Helloworld.BidiStream '{"stroke": 1}' '{"stroke":
 {"stroke":3}
 ```
 
-## License
-
-This software is published under the [MIT license][10].
-
 [1]: https://go-micro.dev
 [2]: https://golang.org/dl/
 [3]: https://golang.org/cmd/go/#hdr-Compile_and_install_packages_and_dependencies
@@ -386,4 +382,3 @@ This software is published under the [MIT license][10].
 [7]: https://www.jaegertracing.io/
 [8]: https://github.com/jaegertracing/jaeger-client-go#environment-variables
 [9]: https://skaffold.dev/
-[10]: LICENSE
