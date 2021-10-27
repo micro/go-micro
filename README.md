@@ -69,7 +69,7 @@ See the [examples](https://github.com/micro/go-micro/tree/master/examples) for d
 
 ## Command Line Interface
 
-See [cmd/gomu](https://github.com/asim/go-micro/tree/master/cmd/gomu) for the command line interface.
+See [cmd/micro](https://github.com/asim/go-micro/tree/master/cmd/micro) for the command line interface.
 
 ## Code Generation
 
