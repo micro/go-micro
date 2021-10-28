@@ -2,12 +2,13 @@ package consul
 
 import (
 	"fmt"
+	"net"
 	"sync"
 
-	"go-micro.dev/v4/registry"
-	regutil "go-micro.dev/v4/util/registry"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/api/watch"
+	"go-micro.dev/v4/registry"
+	regutil "go-micro.dev/v4/util/registry"
 )
 
 type consulWatcher struct {
@@ -44,7 +45,7 @@ func newConsulWatcher(cr *consulRegistry, opts ...registry.WatchOption) (registr
 	}
 
 	wp.Handler = cw.handle
-	go wp.RunWithClientAndHclog(cr.Client(),wp.Logger)
+	go wp.RunWithClientAndHclog(cr.Client(), wp.Logger)
 	cw.wp = wp
 
 	return cw, nil
@@ -102,7 +103,7 @@ func (cw *consulWatcher) serviceHandler(idx uint64, data interface{}) {
 
 		svc.Nodes = append(svc.Nodes, &registry.Node{
 			Id:       id,
-			Address:  fmt.Sprintf("%s:%d", address, e.Service.Port),
+			Address:  net.JoinHostPort(address, fmt.Sprint(e.Service.Port)),
 			Metadata: decodeMetadata(e.Service.Tags),
 		})
 	}
