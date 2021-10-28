@@ -2,6 +2,7 @@ package http
 
 import (
 	"fmt"
+	"net"
 	"reflect"
 	"strconv"
 	"strings"
@@ -36,7 +37,7 @@ func serviceDef(opts server.Options) *registry.Service {
 
 	node := &registry.Node{
 		Id:       opts.Name + "-" + opts.Id,
-		Address:  fmt.Sprintf("%s:%d", addr, port),
+		Address:  net.JoinHostPort(addr, fmt.Sprint(port)),
 		Metadata: opts.Metadata,
 	}
 

@@ -13,6 +13,7 @@ import (
 	"sync"
 	"time"
 
+	proto "github.com/asim/go-micro/plugins/broker/grpc/v4/proto"
 	"github.com/google/uuid"
 	"go-micro.dev/v4/broker"
 	"go-micro.dev/v4/cmd"
@@ -23,7 +24,6 @@ import (
 	maddr "go-micro.dev/v4/util/addr"
 	mnet "go-micro.dev/v4/util/net"
 	mls "go-micro.dev/v4/util/tls"
-	proto "github.com/asim/go-micro/plugins/broker/grpc/v4/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )
@@ -505,7 +505,7 @@ func (h *grpcBroker) Subscribe(topic string, handler broker.Handler, opts ...bro
 	// register service
 	node := &registry.Node{
 		Id:      id,
-		Address: fmt.Sprintf("%s:%d", addr, port),
+		Address: net.JoinHostPort(addr, fmt.Sprint(port)),
 		Metadata: map[string]string{
 			"secure": fmt.Sprintf("%t", secure),
 		},

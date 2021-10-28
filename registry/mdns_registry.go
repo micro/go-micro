@@ -15,9 +15,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	"go-micro.dev/v4/logger"
 	"go-micro.dev/v4/util/mdns"
-	"github.com/google/uuid"
 )
 
 var (
@@ -366,7 +366,7 @@ func (m *mdnsRegistry) GetService(service string, opts ...GetOption) ([]*Service
 				}
 				s.Nodes = append(s.Nodes, &Node{
 					Id:       strings.TrimSuffix(e.Name, "."+p.Service+"."+p.Domain+"."),
-					Address:  fmt.Sprintf("%s:%d", addr, e.Port),
+					Address:  net.JoinHostPort(addr, fmt.Sprint(e.Port)),
 					Metadata: txt.Metadata,
 				})
 
@@ -593,7 +593,7 @@ func (m *mdnsWatcher) Next() (*Result, error) {
 
 			service.Nodes = append(service.Nodes, &Node{
 				Id:       strings.TrimSuffix(e.Name, suffix),
-				Address:  fmt.Sprintf("%s:%d", addr, e.Port),
+				Address:  net.JoinHostPort(addr, fmt.Sprint(e.Port)),
 				Metadata: txt.Metadata,
 			})
 
