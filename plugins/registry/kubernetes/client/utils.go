@@ -5,7 +5,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"os"
 )
 
 // COPIED FROM
@@ -31,7 +31,7 @@ func certificatesFromFile(file string) ([]*x509.Certificate, error) {
 	if len(file) == 0 {
 		return nil, errors.New("error reading certificates from an empty filename")
 	}
-	pemBlock, err := ioutil.ReadFile(file)
+	pemBlock, err := os.ReadFile(file)
 	if err != nil {
 		return nil, err
 	}

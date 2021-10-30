@@ -3,7 +3,6 @@ package client
 import (
 	"crypto/tls"
 	"errors"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"path"
@@ -54,7 +53,7 @@ func detectNamespace() (string, error) {
 	}
 
 	// Read the file, and cast to a string
-	if ns, e := ioutil.ReadFile(nsPath); e != nil {
+	if ns, e := os.ReadFile(nsPath); e != nil {
 		return string(ns), e
 	} else {
 		return string(ns), nil
@@ -97,7 +96,7 @@ func NewClientInCluster() Kubernetes {
 		log.Fatal(errors.New("no k8s service account found"))
 	}
 
-	token, err := ioutil.ReadFile(path.Join(serviceAccountPath, "token"))
+	token, err := os.ReadFile(path.Join(serviceAccountPath, "token"))
 	if err != nil {
 		log.Fatal(err)
 	}

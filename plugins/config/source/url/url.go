@@ -2,7 +2,7 @@
 package url
 
 import (
-	"io/ioutil"
+	"io"
 	"net/http"
 	"time"
 
@@ -25,7 +25,7 @@ func (u *urlSource) Read() (*source.ChangeSet, error) {
 	}
 	defer rsp.Body.Close()
 
-	b, err := ioutil.ReadAll(rsp.Body)
+	b, err := io.ReadAll(rsp.Body)
 	if err != nil {
 		return nil, err
 	}

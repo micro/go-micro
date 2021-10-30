@@ -4,7 +4,6 @@ package bytes
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 
 	"go-micro.dev/v4/codec"
 )
@@ -24,7 +23,7 @@ func (c *Codec) ReadHeader(m *codec.Message, t codec.MessageType) error {
 
 func (c *Codec) ReadBody(b interface{}) error {
 	// read bytes
-	buf, err := ioutil.ReadAll(c.Conn)
+	buf, err := io.ReadAll(c.Conn)
 	if err != nil {
 		return err
 	}

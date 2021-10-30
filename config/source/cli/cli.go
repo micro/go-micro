@@ -2,7 +2,7 @@ package cli
 
 import (
 	"flag"
-	"io/ioutil"
+	"io"
 	"os"
 	"strings"
 	"time"
@@ -119,7 +119,7 @@ func NewSource(opts ...source.Option) source.Source {
 		}
 
 		// parse flags
-		set.SetOutput(ioutil.Discard)
+		set.SetOutput(io.Discard)
 		set.Parse(os.Args[1:])
 
 		// normalise flags

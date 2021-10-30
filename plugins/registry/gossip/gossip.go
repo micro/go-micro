@@ -5,7 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net"
 	"os"
 	"strconv"
@@ -179,7 +179,7 @@ func configure(g *gossipRegistry, opts ...registry.Option) error {
 	c := memberlist.DefaultLocalConfig()
 
 	// sane good default options
-	c.LogOutput = ioutil.Discard // log to /dev/null
+	c.LogOutput = io.Discard // log to /dev/null
 	c.PushPullInterval = 0       // disable expensive tcp push/pull
 	c.ProtocolVersion = 4        // suport latest stable features
 

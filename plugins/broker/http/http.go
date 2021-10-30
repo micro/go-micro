@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math/rand"
 	"net"
 	"net/http"
@@ -304,7 +303,7 @@ func (h *httpBroker) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	req.ParseForm()
 
-	b, err := ioutil.ReadAll(req.Body)
+	b, err := io.ReadAll(req.Body)
 	if err != nil {
 		errr := merr.InternalServerError("go.micro.broker", "Error reading request body: %v", err)
 		w.WriteHeader(500)
@@ -562,7 +561,7 @@ func (h *httpBroker) Publish(topic string, msg *broker.Message, opts ...broker.P
 		}
 
 		// discard response body
-		io.Copy(ioutil.Discard, r.Body)
+		io.Copy(io.Discard, r.Body)
 		r.Body.Close()
 		return nil
 	}

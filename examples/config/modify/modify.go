@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 
 	"go-micro.dev/v4/config"
 	"github.com/asim/go-micro/plugins/config/encoder/toml/v4"
@@ -51,7 +51,7 @@ func main() {
 	}
 
 	// write the file
-	if err := ioutil.WriteFile("./example.conf", v, 0644); err != nil {
+	if err := os.WriteFile("./example.conf", v, 0644); err != nil {
 		fmt.Println(err)
 		return
 	}
