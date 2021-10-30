@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 
 	"go-micro.dev/v4/broker"
@@ -109,7 +108,7 @@ func (s *sidecar) Publish(topic string, msg *broker.Message, opts ...broker.Publ
 		}
 
 		// discard response
-		io.Copy(ioutil.Discard, rsp.Body)
+		io.Copy(io.Discard, rsp.Body)
 		rsp.Body.Close()
 
 		return nil

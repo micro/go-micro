@@ -8,7 +8,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net"
 	"strconv"
 	"strings"
@@ -114,7 +114,7 @@ func decode(record []string) (*mdnsTxt, error) {
 		return nil, err
 	}
 
-	rbuf, err := ioutil.ReadAll(zr)
+	rbuf, err := io.ReadAll(zr)
 	if err != nil {
 		return nil, err
 	}

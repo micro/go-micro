@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"go-micro.dev/v4/api/server"
 	"go-micro.dev/v4/api/server/cors"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"testing"
 )
@@ -28,7 +28,7 @@ func TestHTTPServer(t *testing.T) {
 	}
 	defer rsp.Body.Close()
 
-	b, err := ioutil.ReadAll(rsp.Body)
+	b, err := io.ReadAll(rsp.Body)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -73,7 +73,7 @@ func TestCORSHTTPServer(t *testing.T) {
 	}
 	defer rsp.Body.Close()
 
-	b, err := ioutil.ReadAll(rsp.Body)
+	b, err := io.ReadAll(rsp.Body)
 	if err != nil {
 		t.Fatal(err)
 	}

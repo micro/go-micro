@@ -49,7 +49,7 @@
 package main
 
 import (
-	"io/ioutil"
+	"io"
 	"os"
 
 	"go-micro.dev/v4/cmd/protoc-gen-micro/generator"
@@ -63,7 +63,7 @@ func main() {
 	// report failure.
 	g := generator.New()
 
-	data, err := ioutil.ReadAll(os.Stdin)
+	data, err := io.ReadAll(os.Stdin)
 	if err != nil {
 		g.Error(err, "reading input")
 	}

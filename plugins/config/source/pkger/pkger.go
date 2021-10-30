@@ -1,7 +1,7 @@
 package pkger
 
 import (
-	"io/ioutil"
+	"io"
 
 	"github.com/markbates/pkger"
 	"go-micro.dev/v4/config/source"
@@ -22,7 +22,7 @@ func (f *file) Read() (*source.ChangeSet, error) {
 		return nil, err
 	}
 	defer fh.Close()
-	b, err := ioutil.ReadAll(fh)
+	b, err := io.ReadAll(fh)
 	if err != nil {
 		return nil, err
 	}

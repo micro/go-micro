@@ -2,7 +2,7 @@ package http
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"testing"
 
@@ -56,7 +56,7 @@ func TestHTTPServer(t *testing.T) {
 	}
 	defer rsp.Body.Close()
 
-	b, err := ioutil.ReadAll(rsp.Body)
+	b, err := io.ReadAll(rsp.Body)
 	if err != nil {
 		t.Fatal(err)
 	}

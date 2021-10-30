@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"context"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"path/filepath"
@@ -174,7 +173,7 @@ func (p *Router) ServeRequest(ctx context.Context, req server.Request, rsp serve
 		}
 
 		// read body
-		b, err := ioutil.ReadAll(hrsp.Body)
+		b, err := io.ReadAll(hrsp.Body)
 		hrsp.Body.Close()
 		if err != nil {
 			return errors.InternalServerError(req.Service(), err.Error())

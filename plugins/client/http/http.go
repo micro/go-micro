@@ -6,7 +6,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net"
 	"net/http"
 	"net/url"
@@ -137,7 +137,7 @@ func (h *httpClient) call(ctx context.Context, node *registry.Node, req client.R
 	defer hrsp.Body.Close()
 
 	// parse response
-	b, err = ioutil.ReadAll(hrsp.Body)
+	b, err = io.ReadAll(hrsp.Body)
 	if err != nil {
 		return errors.InternalServerError("go.micro.client", err.Error())
 	}

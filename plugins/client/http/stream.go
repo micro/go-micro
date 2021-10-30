@@ -5,7 +5,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"io/ioutil"
+	"io"
 	"net"
 	"net/http"
 	"net/url"
@@ -102,7 +102,7 @@ func (h *httpStream) Recv(msg interface{}) error {
 	}
 	defer rsp.Body.Close()
 
-	b, err := ioutil.ReadAll(rsp.Body)
+	b, err := io.ReadAll(rsp.Body)
 	if err != nil {
 		return err
 	}

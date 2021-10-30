@@ -5,7 +5,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net"
 	"net/http"
 	"testing"
@@ -41,7 +41,7 @@ func TestHTTPClient(t *testing.T) {
 			http.Error(w, "codec not found", 500)
 			return
 		}
-		b, err := ioutil.ReadAll(r.Body)
+		b, err := io.ReadAll(r.Body)
 		if err != nil {
 			http.Error(w, err.Error(), 500)
 			return
@@ -146,7 +146,7 @@ func TestHTTPClientStream(t *testing.T) {
 			http.Error(w, "codec not found", 500)
 			return
 		}
-		b, err := ioutil.ReadAll(r.Body)
+		b, err := io.ReadAll(r.Body)
 		if err != nil {
 			http.Error(w, err.Error(), 500)
 			return
@@ -191,7 +191,7 @@ func TestHTTPClientStream(t *testing.T) {
 				return
 			}
 
-			b, err = ioutil.ReadAll(r.Body)
+			b, err = io.ReadAll(r.Body)
 			if err != nil {
 				http.Error(w, err.Error(), 500)
 				return
