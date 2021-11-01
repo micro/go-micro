@@ -1,4 +1,4 @@
-package cmd
+package cli
 
 import (
 	"fmt"
@@ -9,21 +9,21 @@ import (
 )
 
 var (
-	// DefaultCmd is the default, unmodified root command.
-	DefaultCmd Cmd = NewCmd()
+	// DefaultCLI is the default, unmodified root command.
+	DefaultCLI CLI = NewCLI()
 
 	name        string = "micro"
 	description string = "The Go Micro CLI tool"
 	version     string = "latest"
 )
 
-// Cmd is the interface that wraps the cli app.
+// CLI is the interface that wraps the cli app.
 //
-// Cmd embeds the Cmd interface from the go-micro.dev/v4/cmd
+// CLI embeds the Cmd interface from the go-micro.dev/v4/cmd
 // package and adds a Run method.
 //
 // Run runs the cli app within this command and exits on error.
-type Cmd interface {
+type CLI interface {
 	mcmd.Cmd
 	Run() error
 }
@@ -55,31 +55,31 @@ func (c *cmd) Run() error {
 
 // DefaultOptions returns the options passed to the default command.
 func DefaultOptions() mcmd.Options {
-	return DefaultCmd.Options()
+	return DefaultCLI.Options()
 }
 
 // App returns the cli app within the default command.
 func App() *cli.App {
-	return DefaultCmd.App()
+	return DefaultCLI.App()
 }
 
 // Register appends commands to the default app.
 func Register(cmds ...*cli.Command) {
-	app := DefaultCmd.App()
+	app := DefaultCLI.App()
 	app.Commands = append(app.Commands, cmds...)
 }
 
 // Run runs the cli app within the default command. On error, it prints the
 // error message and exits.
 func Run() {
-	if err := DefaultCmd.Run(); err != nil {
+	if err := DefaultCLI.Run(); err != nil {
 		fmt.Println(err.Error())
 		os.Exit(1)
 	}
 }
 
-// NewCmd returns a new command.
-func NewCmd(opts ...mcmd.Option) Cmd {
+// NewCLI returns a new command.
+func NewCLI(opts ...mcmd.Option) CLI {
 	options := mcmd.DefaultOptions()
 
 	// Clear the name, version and description parameters from the default

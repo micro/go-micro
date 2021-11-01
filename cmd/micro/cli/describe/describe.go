@@ -2,7 +2,7 @@ package describe
 
 import (
 	"github.com/urfave/cli/v2"
-	"go-micro.dev/v4/cmd/micro/cmd"
+	mcli "go-micro.dev/v4/cmd/micro/cli"
 )
 
 var flags []cli.Flag = []cli.Flag{
@@ -14,14 +14,14 @@ var flags []cli.Flag = []cli.Flag{
 }
 
 func init() {
-	cmd.Register(&cli.Command{
+	mcli.Register(&cli.Command{
 		Name:  "describe",
 		Usage: "Describe a resource",
 		Subcommands: []*cli.Command{
 			{
 				Name:    "service",
 				Aliases: []string{"s"},
-				Usage:   "Describe a service resource, e.g. " + cmd.App().Name + " describe service helloworld",
+				Usage:   "Describe a service resource, e.g. " + mcli.App().Name + " describe service helloworld",
 				Action:  Service,
 				Flags:   flags,
 			},

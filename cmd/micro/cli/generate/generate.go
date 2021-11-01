@@ -7,13 +7,13 @@ import (
 	"strings"
 
 	"github.com/urfave/cli/v2"
-	"go-micro.dev/v4/cmd/micro/cmd"
+	mcli "go-micro.dev/v4/cmd/micro/cli"
 	"go-micro.dev/v4/cmd/micro/generator"
 	tmpl "go-micro.dev/v4/cmd/micro/generator/template"
 )
 
 func init() {
-	cmd.Register(&cli.Command{
+	mcli.Register(&cli.Command{
 		Name:  "generate",
 		Usage: "Generate project template files after the fact",
 		Subcommands: []*cli.Command{
