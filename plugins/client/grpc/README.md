@@ -13,7 +13,7 @@ Specify the client to your micro service
 ```go
 import (
 	"github.com/micro/go-micro"
-	"github.com/micro/go-plugins/client/grpc"
+	"github.com/asim/go-micro/plugins/server/grpc/v4"
 )
 
 func main() {
