@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/urfave/cli/v2"
-	"go-micro.dev/v4/cmd/micro/cmd"
+	mcli "go-micro.dev/v4/cmd/micro/cli"
 	"go-micro.dev/v4/cmd/micro/generator"
 	tmpl "go-micro.dev/v4/cmd/micro/generator/template"
 )
@@ -29,25 +29,25 @@ var flags []cli.Flag = []cli.Flag{
 
 // NewCommand returns a new new cli command.
 func init() {
-	cmd.Register(&cli.Command{
+	mcli.Register(&cli.Command{
 		Name:  "new",
 		Usage: "Create a project template",
 		Subcommands: []*cli.Command{
 			{
 				Name:   "client",
-				Usage:  "Create a client template, e.g. " + cmd.App().Name + " new client [github.com/auditemarlow/]helloworld",
+				Usage:  "Create a client template, e.g. " + mcli.App().Name + " new client [github.com/auditemarlow/]helloworld",
 				Action: Client,
 				Flags:  flags,
 			},
 			{
 				Name:   "function",
-				Usage:  "Create a function template, e.g. " + cmd.App().Name + " new function [github.com/auditemarlow/]helloworld",
+				Usage:  "Create a function template, e.g. " + mcli.App().Name + " new function [github.com/auditemarlow/]helloworld",
 				Action: Function,
 				Flags:  flags,
 			},
 			{
 				Name:   "service",
-				Usage:  "Create a service template, e.g. " + cmd.App().Name + " new service [github.com/auditemarlow/]helloworld",
+				Usage:  "Create a service template, e.g. " + mcli.App().Name + " new service [github.com/auditemarlow/]helloworld",
 				Action: Service,
 				Flags:  flags,
 			},

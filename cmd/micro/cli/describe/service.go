@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/urfave/cli/v2"
-	"go-micro.dev/v4/cmd/micro/cmd"
+	mcli "go-micro.dev/v4/cmd/micro/cli"
 	"gopkg.in/yaml.v2"
 )
 
@@ -20,7 +20,7 @@ func Service(ctx *cli.Context) error {
 		return cli.ShowSubcommandHelp(ctx)
 	}
 
-	r := *cmd.DefaultOptions().Registry
+	r := *mcli.DefaultOptions().Registry
 	srvs, err := r.GetService(args[0])
 	if err != nil {
 		return err

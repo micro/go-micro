@@ -9,7 +9,7 @@ import (
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/urfave/cli/v2"
-	"go-micro.dev/v4/cmd/micro/cmd"
+	mcli "go-micro.dev/v4/cmd/micro/cli"
 	"go-micro.dev/v4/runtime"
 	"go-micro.dev/v4/runtime/local/git"
 )
@@ -34,9 +34,9 @@ var (
 )
 
 func init() {
-	cmd.Register(&cli.Command{
+	mcli.Register(&cli.Command{
 		Name:   "run",
-		Usage:  "Build and run a service continuously, e.g. " + cmd.App().Name + " run [github.com/auditemarlow/helloworld]",
+		Usage:  "Build and run a service continuously, e.g. " + mcli.App().Name + " run [github.com/auditemarlow/helloworld]",
 		Flags:  flags,
 		Action: Run,
 	})
@@ -66,7 +66,7 @@ func Run(ctx *cli.Context) error {
 	command := strings.TrimSpace(ctx.String("command"))
 	args := strings.TrimSpace(ctx.String("args"))
 
-	r := *cmd.DefaultCmd.Options().Runtime
+	r := *mcli.DefaultCLI.Options().Runtime
 
 	var retries = DefaultRetries
 	if ctx.IsSet("retries") {

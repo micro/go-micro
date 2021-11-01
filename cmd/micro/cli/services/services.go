@@ -5,11 +5,11 @@ import (
 	"sort"
 
 	"github.com/urfave/cli/v2"
-	"go-micro.dev/v4/cmd/micro/cmd"
+	mcli "go-micro.dev/v4/cmd/micro/cli"
 )
 
 func init() {
-	cmd.Register(&cli.Command{
+	mcli.Register(&cli.Command{
 		Name:   "services",
 		Usage:  "List services in the registry",
 		Action: List,
@@ -19,7 +19,7 @@ func init() {
 // List fetches running services from the registry and lists them. Exits on
 // error.
 func List(ctx *cli.Context) error {
-	r := *cmd.DefaultOptions().Registry
+	r := *mcli.DefaultOptions().Registry
 	srvs, err := r.ListServices()
 	if err != nil {
 		return err

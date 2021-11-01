@@ -9,13 +9,13 @@ import (
 	"github.com/urfave/cli/v2"
 	"go-micro.dev/v4"
 	"go-micro.dev/v4/client"
-	"go-micro.dev/v4/cmd/micro/cmd"
+	mcli "go-micro.dev/v4/cmd/micro/cli"
 )
 
 func init() {
-	cmd.Register(&cli.Command{
+	mcli.Register(&cli.Command{
 		Name:   "call",
-		Usage:  "Call a service, e.g. " + cmd.App().Name + " call helloworld Helloworld.Call '{\"name\": \"John\"}'",
+		Usage:  "Call a service, e.g. " + mcli.App().Name + " call helloworld Helloworld.Call '{\"name\": \"John\"}'",
 		Action: RunCall,
 	})
 }
