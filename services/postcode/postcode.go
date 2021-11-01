@@ -1,7 +1,7 @@
 package postcode
 
 import (
-	"github.com/m3o/m3o-go/client"
+	"go.m3o.com/client"
 )
 
 func NewPostcodeService(token string) *PostcodeService {

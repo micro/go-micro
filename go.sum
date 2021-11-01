@@ -260,7 +260,6 @@ github.com/gorilla/handlers v1.5.1/go.mod h1:t8XrUpc4KVXb7HGyJ4/cEnwQiaxrX/hz1Zv
 github.com/gorilla/mux v1.6.2/go.mod h1:1lud6UwP+6orDFRuTfBEV8e9/aOM/c4fVVCaMa2zaAs=
 github.com/gorilla/mux v1.7.3/go.mod h1:1lud6UwP+6orDFRuTfBEV8e9/aOM/c4fVVCaMa2zaAs=
 github.com/gorilla/mux v1.8.0/go.mod h1:DVbg23sWSpFRCP0SfiEN6jmj59UnW/n46BH5rLB71So=
-github.com/gorilla/websocket v1.4.1/go.mod h1:YR8l580nyteQvAITg2hZ9XVh4b55+EU/adAjf1fMHhE=
 github.com/gorilla/websocket v1.4.2 h1:+/TMaTYc4QFitKJxsQ7Yye35DkWvkdLcvGKqM+x0Ufc=
 github.com/gorilla/websocket v1.4.2/go.mod h1:YR8l580nyteQvAITg2hZ9XVh4b55+EU/adAjf1fMHhE=
 github.com/grpc-ecosystem/go-grpc-middleware v1.0.0/go.mod h1:FiyG127CGDf3tlThmgyCl78X/SZQqEOJBCDaAfeWzPs=
@@ -343,8 +342,6 @@ github.com/liquidweb/go-lwApi v0.0.0-20190605172801-52a4864d2738/go.mod h1:0sYF9
 github.com/liquidweb/go-lwApi v0.0.5/go.mod h1:0sYF9rMXb0vlG+4SzdiGMXHheCZxjguMq+Zb4S2BfBs=
 github.com/liquidweb/liquidweb-cli v0.6.9/go.mod h1:cE1uvQ+x24NGUL75D0QagOFCG8Wdvmwu8aL9TLmA/eQ=
 github.com/liquidweb/liquidweb-go v1.6.3/go.mod h1:SuXXp+thr28LnjEw18AYtWwIbWMHSUiajPQs8T9c/Rc=
-github.com/m3o/m3o-go/client v0.0.0-20210421144725-8bfd7992ada3 h1:RVt7rqWl4al36BH9OY9k7IXnnooOP0Feanu1bed6X2s=
-github.com/m3o/m3o-go/client v0.0.0-20210421144725-8bfd7992ada3/go.mod h1:vmeaYrKYpgVNhny/l7iH8mXS88S7ijUiYni3gZUrCq0=
 github.com/magiconair/properties v1.8.1/go.mod h1:PppfXfuXeibc/6YijjN8zIbojt8czPbwD3XqdrwzmxQ=
 github.com/magiconair/properties v1.8.4/go.mod h1:y3VJvCyxH9uVvJTWEGAELF3aiYNyPKd5NZ3oSwXrF60=
 github.com/matryer/is v1.2.0 h1:92UTHpy8CDwaJ08GqLDzhhuixiBUUD1p3AU6PHddz4A=
@@ -542,6 +539,8 @@ github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2/go.mod h1:UETIi67q
 github.com/yuin/goldmark v1.1.27/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.2.1/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 go.etcd.io/bbolt v1.3.2/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
+go.m3o.com v0.1.0 h1:vYYcMtUzkkl8/zQcLIZFakBvNO/wSrMcNHRySAmEh9E=
+go.m3o.com v0.1.0/go.mod h1:p8FdLqZH3R9a0y04qiMNT+clw69d3SxyQPFzCNbDRtk=
 go.opencensus.io v0.20.1/go.mod h1:6WKK9ahsWS3RSO+PY9ZHZUfv2irvY6gN279GOPZjmmk=
 go.opencensus.io v0.20.2/go.mod h1:6WKK9ahsWS3RSO+PY9ZHZUfv2irvY6gN279GOPZjmmk=
 go.opencensus.io v0.21.0/go.mod h1:mSImk1erAIZhrmZN+AvHh14ztQfjbGwt4TtuofqLduU=

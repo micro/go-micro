@@ -1,7 +1,7 @@
 package quran
 
 import (
-	"github.com/m3o/m3o-go/client"
+	"go.m3o.com/client"
 )
 
 func NewQuranService(token string) *QuranService {

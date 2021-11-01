@@ -1,7 +1,7 @@
 package image
 
 import (
-	"github.com/m3o/m3o-go/client"
+	"go.m3o.com/client"
 )
 
 func NewImageService(token string) *ImageService {
@@ -40,7 +40,6 @@ func (t *ImageService) Upload(request *UploadRequest) (*UploadResponse, error) {
 
 type ConvertRequest struct {
 	// base64 encoded image to resize,
-	// ie. "data:image/png;base64, iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHElEQVQI12P4//8/w38GIAXDIBKE0DHxgljNBAAO9TXL0Y4OHwAAAABJRU5ErkJggg=="
 	Base64 string `json:"base64"`
 	// output name of the image including extension, ie. "cat.png"
 	Name string `json:"name"`
@@ -79,7 +78,6 @@ type Rectangle struct {
 
 type ResizeRequest struct {
 	// base64 encoded image to resize,
-	// ie. "data:image/png;base64, iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHElEQVQI12P4//8/w38GIAXDIBKE0DHxgljNBAAO9TXL0Y4OHwAAAABJRU5ErkJggg=="
 	Base64 string `json:"base64"`
 	// optional crop options
 	// if provided, after resize, the image
@@ -102,7 +100,6 @@ type ResizeResponse struct {
 
 type UploadRequest struct {
 	// Base64 encoded image to upload,
-	// ie. "data:image/png;base64, iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHElEQVQI12P4//8/w38GIAXDIBKE0DHxgljNBAAO9TXL0Y4OHwAAAABJRU5ErkJggg=="
 	Base64 string `json:"base64"`
 	// Output name of the image including extension, ie. "cat.png"
 	Name string `json:"name"`

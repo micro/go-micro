@@ -19,7 +19,6 @@ require (
 	github.com/google/uuid v1.2.0
 	github.com/gorilla/handlers v1.5.1
 	github.com/imdario/mergo v0.3.12
-	github.com/m3o/m3o-go/client v0.0.0-20210421144725-8bfd7992ada3
 	github.com/miekg/dns v1.1.43
 	github.com/nxadm/tail v1.4.8
 	github.com/opentracing/opentracing-go v1.2.0
@@ -30,6 +29,7 @@ require (
 	github.com/uber/jaeger-client-go v2.29.1+incompatible
 	github.com/uber/jaeger-lib v2.4.1+incompatible
 	github.com/urfave/cli/v2 v2.3.0
+	go.m3o.com v0.1.0
 	golang.org/x/crypto v0.0.0-20210513164829-c07d793c2f9a
 	golang.org/x/net v0.0.0-20210510120150-4163338589ed
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c

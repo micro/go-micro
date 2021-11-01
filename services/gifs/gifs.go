@@ -1,7 +1,7 @@
 package gifs
 
 import (
-	"github.com/m3o/m3o-go/client"
+	"go.m3o.com/client"
 )
 
 func NewGifsService(token string) *GifsService {
@@ -16,7 +16,7 @@ type GifsService struct {
 	client *client.Client
 }
 
-// Search for a gif
+// Search for a GIF
 func (t *GifsService) Search(request *SearchRequest) (*SearchResponse, error) {
 	rsp := &SearchResponse{}
 	return rsp, t.client.Call("gifs", "Search", request, rsp)

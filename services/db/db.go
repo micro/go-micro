@@ -1,7 +1,7 @@
 package db
 
 import (
-	"github.com/m3o/m3o-go/client"
+	"go.m3o.com/client"
 )
 
 func NewDbService(token string) *DbService {
@@ -14,6 +14,12 @@ func NewDbService(token string) *DbService {
 
 type DbService struct {
 	client *client.Client
+}
+
+// Count records in a table
+func (t *DbService) Count(request *CountRequest) (*CountResponse, error) {
+	rsp := &CountResponse{}
+	return rsp, t.client.Call("db", "Count", request, rsp)
 }
 
 // Create a record in the database. Optionally include an "id" field otherwise it's set automatically.
@@ -44,6 +50,16 @@ func (t *DbService) Truncate(request *TruncateRequest) (*TruncateResponse, error
 func (t *DbService) Update(request *UpdateRequest) (*UpdateResponse, error) {
 	rsp := &UpdateResponse{}
 	return rsp, t.client.Call("db", "Update", request, rsp)
+}
+
+type CountRequest struct {
+	// specify the table name
+	Table string `json:"table"`
+}
+
+type CountResponse struct {
+	// the number of records in the table
+	Count int32 `json:"count"`
 }
 
 type CreateRequest struct {

@@ -1,7 +1,7 @@
 package id
 
 import (
-	"github.com/m3o/m3o-go/client"
+	"go.m3o.com/client"
 )
 
 func NewIdService(token string) *IdService {

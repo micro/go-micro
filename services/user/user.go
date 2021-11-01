@@ -1,7 +1,7 @@
 package user
 
 import (
-	"github.com/m3o/m3o-go/client"
+	"go.m3o.com/client"
 )
 
 func NewUserService(token string) *UserService {
@@ -95,9 +95,11 @@ type Account struct {
 	// unix timestamp
 	Updated int64 `json:"updated,string"`
 	// alphanumeric username
-	Username         string `json:"username"`
-	VerificationDate int64  `json:"verificationDate,string"`
-	Verified         bool   `json:"verified"`
+	Username string `json:"username"`
+	// date of verification
+	VerificationDate int64 `json:"verificationDate,string"`
+	// if the account is verified
+	Verified bool `json:"verified"`
 }
 
 type CreateRequest struct {

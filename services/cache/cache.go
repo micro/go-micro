@@ -1,7 +1,7 @@
 package cache
 
 import (
-	"github.com/m3o/m3o-go/client"
+	"go.m3o.com/client"
 )
 
 func NewCacheService(token string) *CacheService {
