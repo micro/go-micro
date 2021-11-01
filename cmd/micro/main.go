@@ -1,10 +1,10 @@
 package main
 
 import (
-	"github.com/asim/go-micro/cmd/micro/cmd"
+	"go-micro.dev/v4/cmd/micro/cmd"
 
 	// register commands
-	_ "github.com/asim/go-micro/cmd/micro/cmd/cli"
+	_ "go-micro.dev/v4/cmd/micro/cmd/cli"
 )
 
 func main() {

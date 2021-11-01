@@ -1,8 +1,8 @@
 package describe
 
 import (
-	"github.com/asim/go-micro/cmd/micro/cmd"
 	"github.com/urfave/cli/v2"
+	"go-micro.dev/v4/cmd/micro/cmd"
 )
 
 var flags []cli.Flag = []cli.Flag{

@@ -7,9 +7,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/asim/go-micro/cmd/micro/cmd"
 	"github.com/fsnotify/fsnotify"
 	"github.com/urfave/cli/v2"
+	"go-micro.dev/v4/cmd/micro/cmd"
 	"go-micro.dev/v4/runtime"
 	"go-micro.dev/v4/runtime/local/git"
 )

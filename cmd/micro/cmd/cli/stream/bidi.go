@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/urfave/cli/v2"
 	"go-micro.dev/v4"
 	"go-micro.dev/v4/client"
-	"github.com/urfave/cli/v2"
 )
 
 // Bidirectional streams client requests and prints the server stream responses

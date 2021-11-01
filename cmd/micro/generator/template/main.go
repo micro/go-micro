@@ -50,7 +50,7 @@ import (
 {{end}}	"go-micro.dev/v4"
 	log "go-micro.dev/v4/logger"{{if .Jaeger}}
 
-	"github.com/asim/go-micro/cmd/micro/debug/trace/jaeger"{{end}}
+	"go-micro.dev/v4/cmd/micro/debug/trace/jaeger"{{end}}
 )
 
 var (
@@ -102,7 +102,7 @@ import (
 {{end}}	"go-micro.dev/v4"
 	log "go-micro.dev/v4/logger"{{if .Jaeger}}
 
-	"github.com/asim/go-micro/cmd/micro/debug/trace/jaeger"{{end}}
+	"go-micro.dev/v4/cmd/micro/debug/trace/jaeger"{{end}}
 )
 
 var (

@@ -6,10 +6,10 @@ import (
 	"path"
 	"strings"
 
-	"github.com/asim/go-micro/cmd/micro/cmd"
-	"github.com/asim/go-micro/cmd/micro/generator"
-	tmpl "github.com/asim/go-micro/cmd/micro/generator/template"
 	"github.com/urfave/cli/v2"
+	"go-micro.dev/v4/cmd/micro/cmd"
+	"go-micro.dev/v4/cmd/micro/generator"
+	tmpl "go-micro.dev/v4/cmd/micro/generator/template"
 )
 
 var flags []cli.Flag = []cli.Flag{

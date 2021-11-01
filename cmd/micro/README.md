@@ -9,7 +9,7 @@ Micro CLI is the command line interface for developing [Go Micro][1] projects.
 Installation is done by using the [`go install`][3] command.
 
 ```bash
-go install github.com/asim/go-micro/cmd/micro@latest
+go install go-micro.dev/v4/cmd/micro@latest
 ```
 
 Let's create a new service using the `new` command.
@@ -143,7 +143,7 @@ import (
     "context"
     "fmt"
 
-    "github.com/asim/go-micro/cmd/micro/debug/trace"
+    "go-micro.dev/v4/cmd/micro/debug/trace"
 )
 
 func Greet(ctx context.Context, name string) string {
