@@ -3,8 +3,8 @@ package cli
 import (
 	"context"
 
-	"go-micro.dev/v4/config/source"
 	"github.com/urfave/cli/v2"
+	"go-micro.dev/v4/config/source"
 )
 
 type contextKey struct{}

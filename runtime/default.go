@@ -13,9 +13,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/nxadm/tail"
 	"go-micro.dev/v4/logger"
 	"go-micro.dev/v4/runtime/local/git"
-	"github.com/nxadm/tail"
 )
 
 // defaultNamespace to use if not provided as an option

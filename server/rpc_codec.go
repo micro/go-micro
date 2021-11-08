@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"sync"
 
+	"github.com/oxtoacart/bpool"
+	"github.com/pkg/errors"
 	"go-micro.dev/v4/codec"
 	raw "go-micro.dev/v4/codec/bytes"
 	"go-micro.dev/v4/codec/grpc"
@@ -12,8 +14,6 @@ import (
 	"go-micro.dev/v4/codec/proto"
 	"go-micro.dev/v4/codec/protorpc"
 	"go-micro.dev/v4/transport"
-	"github.com/oxtoacart/bpool"
-	"github.com/pkg/errors"
 )
 
 type rpcCodec struct {

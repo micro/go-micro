@@ -3,8 +3,8 @@
 package secretbox
 
 import (
-	"go-micro.dev/v4/config/secrets"
 	"github.com/pkg/errors"
+	"go-micro.dev/v4/config/secrets"
 	"golang.org/x/crypto/nacl/secretbox"
 
 	"crypto/rand"

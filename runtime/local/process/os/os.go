@@ -1,3 +1,4 @@
+//go:build !windows
 // +build !windows
 
 // Package os runs processes locally
