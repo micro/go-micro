@@ -40,6 +40,9 @@ communication. A request made to a service will be automatically resolved, load 
 - **Async Messaging** - PubSub is built in as a first class citizen for asynchronous communication and event driven architectures. 
 Event notifications are a core pattern in micro service development. The default messaging system is a HTTP event message broker.
 
+- **Event Streaming** - PubSub is great for async notifications but for more advanced use cases event streaming is preferred. Offering 
+persistent storage, consuming from offsets and acking. Go Micro includes support for NATS Jetstream and Redis streams.
+
 - **Synchronization** - Distributed systems are often built in an eventually consistent manner. Support for distributed locking and 
 leadership are built in as a Sync interface. When using an eventually consistent database or scheduling use the Sync interface.
 
