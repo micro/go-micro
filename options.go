@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/urfave/cli/v2"
 	"go-micro.dev/v4/auth"
 	"go-micro.dev/v4/broker"
 	"go-micro.dev/v4/cache"
@@ -18,7 +19,6 @@ import (
 	"go-micro.dev/v4/server"
 	"go-micro.dev/v4/store"
 	"go-micro.dev/v4/transport"
-	"github.com/urfave/cli/v2"
 )
 
 // Options for micro service

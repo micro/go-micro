@@ -3,8 +3,8 @@ package log
 import (
 	"sync"
 
-	"go-micro.dev/v4/util/ring"
 	"github.com/google/uuid"
+	"go-micro.dev/v4/util/ring"
 )
 
 // Should stream from OS

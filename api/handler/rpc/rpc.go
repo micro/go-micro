@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"strings"
 
+	jsonpatch "github.com/evanphx/json-patch/v5"
+	"github.com/oxtoacart/bpool"
 	"go-micro.dev/v4/api"
 	"go-micro.dev/v4/api/handler"
 	"go-micro.dev/v4/api/internal/proto"
@@ -23,8 +25,6 @@ import (
 	"go-micro.dev/v4/selector"
 	"go-micro.dev/v4/util/ctx"
 	"go-micro.dev/v4/util/qson"
-	jsonpatch "github.com/evanphx/json-patch/v5"
-	"github.com/oxtoacart/bpool"
 )
 
 const (

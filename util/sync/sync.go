@@ -6,9 +6,9 @@ import (
 	"sync"
 	"time"
 
-	"go-micro.dev/v4/store"
 	"github.com/ef-ds/deque"
 	"github.com/pkg/errors"
+	"go-micro.dev/v4/store"
 )
 
 // Sync implements a sync in for stores
