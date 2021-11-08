@@ -9,14 +9,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gobwas/httphead"
+	"github.com/gobwas/ws"
+	"github.com/gobwas/ws/wsutil"
 	"go-micro.dev/v4/api"
 	"go-micro.dev/v4/client"
 	raw "go-micro.dev/v4/codec/bytes"
 	"go-micro.dev/v4/logger"
 	"go-micro.dev/v4/selector"
-	"github.com/gobwas/httphead"
-	"github.com/gobwas/ws"
-	"github.com/gobwas/ws/wsutil"
 )
 
 // serveWebsocket will stream rpc back over websockets assuming json

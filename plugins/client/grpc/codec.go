@@ -12,6 +12,8 @@ import (
 	"google.golang.org/grpc/encoding"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/runtime/protoiface"
+	"google.golang.org/protobuf/runtime/protoimpl"
 )
 
 type jsonCodec struct{}
@@ -66,16 +68,24 @@ func (protoCodec) Marshal(v interface{}) ([]byte, error) {
 		return m.Data, nil
 	case proto.Message:
 		return proto.Marshal(m)
+	case protoiface.MessageV1:
+		// #2333 compatible with etcd legacy proto.Message
+		m2 := protoimpl.X.ProtoMessageV2Of(m)
+		return proto.Marshal(m2)
 	}
 	return nil, fmt.Errorf("failed to marshal: %v is not type of *bytes.Frame or proto.Message", v)
 }
 
 func (protoCodec) Unmarshal(data []byte, v interface{}) error {
-	m, ok := v.(proto.Message)
-	if !ok {
-		return fmt.Errorf("failed to unmarshal: %v is not type of proto.Message", v)
+	switch m := v.(type) {
+	case proto.Message:
+		return proto.Unmarshal(data, m)
+	case protoiface.MessageV1:
+		// #2333 compatible with etcd legacy proto.Message
+		m2 := protoimpl.X.ProtoMessageV2Of(m)
+		return proto.Unmarshal(data, m2)
 	}
-	return proto.Unmarshal(data, m)
+	return fmt.Errorf("failed to unmarshal: %v is not type of proto.Message", v)
 }
 
 func (protoCodec) Name() string {

@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"go-micro.dev/v4/runtime/local/source"
 	"github.com/go-git/go-git/v5"
+	"go-micro.dev/v4/runtime/local/source"
 )
 
 // Source retrieves source code

@@ -16,6 +16,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	"go-micro.dev/v4/codec/json"
 	merr "go-micro.dev/v4/errors"
 	"go-micro.dev/v4/registry"
@@ -23,7 +24,6 @@ import (
 	maddr "go-micro.dev/v4/util/addr"
 	mnet "go-micro.dev/v4/util/net"
 	mls "go-micro.dev/v4/util/tls"
-	"github.com/google/uuid"
 	"golang.org/x/net/http2"
 )
 

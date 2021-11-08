@@ -109,23 +109,23 @@ func TestAppend(t *testing.T) {
 			Status: http.StatusText(500),
 		},
 		{
-			Id: 	"test2",
-			Code:	400,
-			Detail:	"Bad Request",
+			Id:     "test2",
+			Code:   400,
+			Detail: "Bad Request",
 			Status: http.StatusText(400),
 		},
 		{
 			Id:     "test3",
 			Code:   404,
 			Detail: "Not Found",
-			Status: http.StatusText(404),	
+			Status: http.StatusText(404),
 		},
 	}
 
 	for _, e := range testData {
 		mError.Append(&Error{
-			Id: e.Id,
-			Code: e.Code,
+			Id:     e.Id,
+			Code:   e.Code,
 			Detail: e.Detail,
 			Status: e.Status,
 		})
@@ -146,16 +146,16 @@ func TestHasErrors(t *testing.T) {
 			Status: http.StatusText(500),
 		},
 		{
-			Id: 	"test2",
-			Code:	400,
-			Detail:	"Bad Request",
+			Id:     "test2",
+			Code:   400,
+			Detail: "Bad Request",
 			Status: http.StatusText(400),
 		},
 		{
 			Id:     "test3",
 			Code:   404,
 			Detail: "Not Found",
-			Status: http.StatusText(404),	
+			Status: http.StatusText(404),
 		},
 	}
 
@@ -165,8 +165,8 @@ func TestHasErrors(t *testing.T) {
 
 	for _, e := range testData {
 		mError.Errors = append(mError.Errors, &Error{
-			Id: e.Id,
-			Code: e.Code,
+			Id:     e.Id,
+			Code:   e.Code,
 			Detail: e.Detail,
 			Status: e.Status,
 		})

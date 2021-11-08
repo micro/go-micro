@@ -174,9 +174,21 @@ func (m *memoryStore) Read(key string, opts ...ReadOption) ([]*Record, error) {
 
 	// Handle Prefix / suffix
 	if readOpts.Prefix || readOpts.Suffix {
-		k := m.list(prefix, readOpts.Limit, readOpts.Offset)
+		k := m.list(prefix, 0, 0)
+		limit := int(readOpts.Limit)
+		offset := int(readOpts.Offset)
 
-		for _, kk := range k {
+		if limit > len(k) {
+			limit = len(k)
+		}
+
+		if offset > len(k) {
+			offset = len(k)
+		}
+
+		for i := offset; i < limit; i++ {
+			kk := k[i]
+
 			if readOpts.Prefix && !strings.HasPrefix(kk, key) {
 				continue
 			}

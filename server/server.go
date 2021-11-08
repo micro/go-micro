@@ -7,11 +7,11 @@ import (
 	"os/signal"
 	"time"
 
+	"github.com/google/uuid"
 	"go-micro.dev/v4/codec"
 	"go-micro.dev/v4/logger"
 	"go-micro.dev/v4/registry"
 	signalutil "go-micro.dev/v4/util/signal"
-	"github.com/google/uuid"
 )
 
 // Server is a simple micro server abstraction
