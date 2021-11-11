@@ -7,6 +7,7 @@ require (
 	github.com/nats-io/nats.go v1.13.1-0.20211018182449-f2416a8b1483
 	github.com/nats-io/stan.go v0.10.0
 	github.com/pkg/errors v0.9.1
+	go-micro.dev/v4 v4.3.1-0.20211108085239-0c2041e43908
 )
 
 require (
@@ -19,7 +20,6 @@ require (
 	github.com/nats-io/nuid v1.0.1 // indirect
 	github.com/oxtoacart/bpool v0.0.0-20190530202638-03653db5a59c // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
-	go-micro.dev/v4 v4.3.1-0.20211108085239-0c2041e43908 // indirect
 	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519 // indirect
 	golang.org/x/net v0.0.0-20210510120150-4163338589ed // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
