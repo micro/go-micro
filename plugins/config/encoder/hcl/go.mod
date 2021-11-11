@@ -1,6 +1,6 @@
 module github.com/asim/go-micro/plugins/config/encoder/hcl/v4
 
-go 1.16
+go 1.17
 
 require (
 	github.com/hashicorp/hcl v1.0.0
