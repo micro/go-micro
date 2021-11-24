@@ -22,7 +22,7 @@ var _cfg *Config = &Config{
 	Server: ServerConfig{
 		Auth: AuthConfig{
 			Username:        "admin",
-			Password:        "123456",
+			Password:        "micro",
 			TokenSecret:     "modifyme",
 			TokenExpiration: 24 * time.Hour,
 		},
