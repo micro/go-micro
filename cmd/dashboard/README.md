@@ -12,4 +12,4 @@ go install github.com/asim/go-micro/cmd/dashboard/v4@latest
 dashboard --registry etcd --server_address :4000
 ```
 
-Visit: [http://localhost:4000](http://localhost:4000)(deafult admin@123456)
+Visit: [http://localhost:4000](http://localhost:4000)(default admin@micro)
