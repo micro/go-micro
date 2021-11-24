@@ -11,17 +11,23 @@ This is hello world using micro
 
 Install the following
 
-- [micro](https://github.com/micro/micro)
-- [protoc-gen-micro](https://github.com/micro/protoc-gen-micro)
+- [micro](https://github.com/asim/go-micro/tree/master/cmd/micro)
+- [protoc-gen-micro](https://github.com/asim/go-micro/tree/master/cmd/protoc-gen-micro)
 
 ## Run Service
 
 ```shell
-micro run service --name helloworld
+micro run . --name helloworld
 ```
 
 ## Query Service
 
 ```
 micro call helloworld Greeter.Hello '{"name": "John"}'
+```
+
+## List Services
+
+```shell
+micro services
 ```
