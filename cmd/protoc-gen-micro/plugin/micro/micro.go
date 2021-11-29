@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/asim/go-micro/cmd/protoc-gen-micro/v3/generator"
+	"go-micro.dev/v4/cmd/protoc-gen-micro/generator"
 	options "google.golang.org/genproto/googleapis/api/annotations"
 	"google.golang.org/protobuf/proto"
 	pb "google.golang.org/protobuf/types/descriptorpb"
@@ -15,10 +15,10 @@ import (
 // Paths for packages used by code generated in this file,
 // relative to the import_prefix of the generator.Generator.
 const (
-	apiPkgPath     = "github.com/asim/go-micro/v3/api"
+	apiPkgPath     = "go-micro.dev/v4/api"
 	contextPkgPath = "context"
-	clientPkgPath  = "github.com/asim/go-micro/v3/client"
-	serverPkgPath  = "github.com/asim/go-micro/v3/server"
+	clientPkgPath  = "go-micro.dev/v4/client"
+	serverPkgPath  = "go-micro.dev/v4/server"
 )
 
 func init() {
@@ -363,6 +363,8 @@ func (g *micro) generateClientMethod(reqServ, servName, serviceDescVar string, m
 
 	if !method.GetClientStreaming() {
 		g.P("if err := stream.Send(in); err != nil { return nil, err }")
+		// TODO: currently only grpc support CloseSend
+		// g.P("if err := stream.CloseSend(); err != nil { return nil, err }")
 	}
 
 	g.P("return &", streamType, "{stream}, nil")
@@ -377,6 +379,7 @@ func (g *micro) generateClientMethod(reqServ, servName, serviceDescVar string, m
 	g.P("Context() context.Context")
 	g.P("SendMsg(interface{}) error")
 	g.P("RecvMsg(interface{}) error")
+	g.P("CloseSend() error")
 	g.P("Close() error")
 
 	if genSend {
@@ -390,6 +393,11 @@ func (g *micro) generateClientMethod(reqServ, servName, serviceDescVar string, m
 
 	g.P("type ", streamType, " struct {")
 	g.P("stream ", clientPkg, ".Stream")
+	g.P("}")
+	g.P()
+
+	g.P("func (x *", streamType, ") CloseSend() error {")
+	g.P("return x.stream.CloseSend()")
 	g.P("}")
 	g.P()
 

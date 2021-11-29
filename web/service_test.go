@@ -3,7 +3,7 @@ package web
 import (
 	"crypto/tls"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"os/signal"
@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/asim/go-micro/v3/registry"
+	"go-micro.dev/v4/registry"
 )
 
 func TestService(t *testing.T) {
@@ -80,7 +80,7 @@ func TestService(t *testing.T) {
 	}
 	defer rsp.Body.Close()
 
-	b, err := ioutil.ReadAll(rsp.Body)
+	b, err := io.ReadAll(rsp.Body)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -276,7 +276,7 @@ func TestTLS(t *testing.T) {
 	}
 	defer rsp.Body.Close()
 
-	b, err := ioutil.ReadAll(rsp.Body)
+	b, err := io.ReadAll(rsp.Body)
 	if err != nil {
 		t.Fatal(err)
 	}

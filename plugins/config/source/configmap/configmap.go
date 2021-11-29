@@ -2,10 +2,12 @@
 package configmap
 
 import (
+	"context"
 	"fmt"
 
-	"github.com/asim/go-micro/v3/config/source"
-	"k8s.io/client-go/1.5/kubernetes"
+	"go-micro.dev/v4/config/source"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 )
 
 type configmap struct {
@@ -29,7 +31,7 @@ func (k *configmap) Read() (*source.ChangeSet, error) {
 		return nil, k.cerr
 	}
 
-	cmp, err := k.client.CoreClient.ConfigMaps(k.namespace).Get(k.name)
+	cmp, err := k.client.CoreV1().ConfigMaps(k.namespace).Get(context.TODO(), k.name, v1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}

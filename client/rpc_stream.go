@@ -2,10 +2,11 @@ package client
 
 import (
 	"context"
+	"errors"
 	"io"
 	"sync"
 
-	"github.com/asim/go-micro/v3/codec"
+	"go-micro.dev/v4/codec"
 )
 
 // Implements the streamer interface
@@ -127,6 +128,10 @@ func (r *rpcStream) Error() error {
 	r.RLock()
 	defer r.RUnlock()
 	return r.err
+}
+
+func (r *rpcStream) CloseSend() error {
+	return errors.New("streamer not implemented")
 }
 
 func (r *rpcStream) Close() error {

@@ -2,11 +2,11 @@
 package url
 
 import (
-	"io/ioutil"
+	"io"
 	"net/http"
 	"time"
 
-	"github.com/asim/go-micro/v3/config/source"
+	"go-micro.dev/v4/config/source"
 )
 
 type urlSource struct {
@@ -25,7 +25,7 @@ func (u *urlSource) Read() (*source.ChangeSet, error) {
 	}
 	defer rsp.Body.Close()
 
-	b, err := ioutil.ReadAll(rsp.Body)
+	b, err := io.ReadAll(rsp.Body)
 	if err != nil {
 		return nil, err
 	}

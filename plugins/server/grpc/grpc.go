@@ -14,17 +14,17 @@ import (
 	"sync"
 	"time"
 
-	"github.com/asim/go-micro/v3/broker"
-	"github.com/asim/go-micro/v3/cmd"
-	"github.com/asim/go-micro/v3/errors"
-	"github.com/asim/go-micro/v3/logger"
-	meta "github.com/asim/go-micro/v3/metadata"
-	"github.com/asim/go-micro/v3/registry"
-	"github.com/asim/go-micro/v3/server"
-	"github.com/asim/go-micro/v3/util/addr"
-	"github.com/asim/go-micro/v3/util/backoff"
-	mgrpc "github.com/asim/go-micro/v3/util/grpc"
-	mnet "github.com/asim/go-micro/v3/util/net"
+	"go-micro.dev/v4/broker"
+	"go-micro.dev/v4/cmd"
+	"go-micro.dev/v4/errors"
+	"go-micro.dev/v4/logger"
+	meta "go-micro.dev/v4/metadata"
+	"go-micro.dev/v4/registry"
+	"go-micro.dev/v4/server"
+	"go-micro.dev/v4/util/addr"
+	"go-micro.dev/v4/util/backoff"
+	mgrpc "go-micro.dev/v4/util/grpc"
+	mnet "go-micro.dev/v4/util/net"
 	"github.com/golang/protobuf/proto"
 	"golang.org/x/net/netutil"
 
@@ -398,10 +398,7 @@ func (g *grpcServer) processRequest(stream grpc.ServerStream, service *service, 
 		fn := func(ctx context.Context, req server.Request, rsp interface{}) (err error) {
 			defer func() {
 				if r := recover(); r != nil {
-					if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
-						logger.Error("panic recovered: ", r)
-						logger.Error(string(debug.Stack()))
-					}
+					logger.Extract(ctx).Errorf("panic recovered: %v, stack: %s", r, string(debug.Stack()))
 					err = errors.InternalServerError("go.micro.server", "panic recovered: %v", r)
 				}
 			}()

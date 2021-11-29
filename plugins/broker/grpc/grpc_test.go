@@ -6,13 +6,13 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/asim/go-micro/v3/broker"
-	"github.com/asim/go-micro/plugins/registry/memory/v3"
+	"go-micro.dev/v4/broker"
+	"go-micro.dev/v4/registry"
 )
 
 func sub(be *testing.B, c int) {
 	be.StopTimer()
-	m := memory.NewRegistry()
+	m := registry.NewMemoryRegistry()
 	b := NewBroker(broker.Registry(m))
 	topic := uuid.New().String()
 
@@ -71,7 +71,7 @@ func sub(be *testing.B, c int) {
 
 func pub(be *testing.B, c int) {
 	be.StopTimer()
-	m := memory.NewRegistry()
+	m := registry.NewMemoryRegistry()
 	b := NewBroker(broker.Registry(m))
 	topic := uuid.New().String()
 
@@ -140,7 +140,7 @@ func pub(be *testing.B, c int) {
 }
 
 func TestBroker(t *testing.T) {
-	m := memory.NewRegistry()
+	m := registry.NewMemoryRegistry()
 	b := NewBroker(broker.Registry(m))
 
 	if err := b.Init(); err != nil {
@@ -186,7 +186,7 @@ func TestBroker(t *testing.T) {
 }
 
 func TestConcurrentSubBroker(t *testing.T) {
-	m := memory.NewRegistry()
+	m := registry.NewMemoryRegistry()
 	b := NewBroker(broker.Registry(m))
 
 	if err := b.Init(); err != nil {
@@ -243,7 +243,7 @@ func TestConcurrentSubBroker(t *testing.T) {
 }
 
 func TestConcurrentPubBroker(t *testing.T) {
-	m := memory.NewRegistry()
+	m := registry.NewMemoryRegistry()
 	b := NewBroker(broker.Registry(m))
 
 	if err := b.Init(); err != nil {

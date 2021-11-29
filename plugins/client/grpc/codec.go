@@ -1,19 +1,19 @@
 package grpc
 
 import (
+	b "bytes"
 	"encoding/json"
 	"fmt"
 	"strings"
 
-	b "bytes"
-
-	"github.com/golang/protobuf/jsonpb"
-	"github.com/golang/protobuf/proto"
-	"github.com/asim/go-micro/v3/codec"
-	"github.com/asim/go-micro/v3/codec/bytes"
-	"github.com/oxtoacart/bpool"
+	"go-micro.dev/v4/codec"
+	"go-micro.dev/v4/codec/bytes"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/encoding"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/runtime/protoiface"
+	"google.golang.org/protobuf/runtime/protoimpl"
 )
 
 type jsonCodec struct{}
@@ -21,11 +21,7 @@ type protoCodec struct{}
 type bytesCodec struct{}
 type wrapCodec struct{ encoding.Codec }
 
-var jsonpbMarshaler = &jsonpb.Marshaler{}
 var useNumber bool
-
-// create buffer pool with 16 instances each preallocated with 256 bytes
-var bufferPool = bpool.NewSizedBufferPool(16, 256)
 
 var (
 	defaultGRPCCodecs = map[string]encoding.Codec{
@@ -72,16 +68,24 @@ func (protoCodec) Marshal(v interface{}) ([]byte, error) {
 		return m.Data, nil
 	case proto.Message:
 		return proto.Marshal(m)
+	case protoiface.MessageV1:
+		// #2333 compatible with etcd legacy proto.Message
+		m2 := protoimpl.X.ProtoMessageV2Of(m)
+		return proto.Marshal(m2)
 	}
 	return nil, fmt.Errorf("failed to marshal: %v is not type of *bytes.Frame or proto.Message", v)
 }
 
 func (protoCodec) Unmarshal(data []byte, v interface{}) error {
-	m, ok := v.(proto.Message)
-	if !ok {
-		return fmt.Errorf("failed to unmarshal: %v is not type of proto.Message", v)
+	switch m := v.(type) {
+	case proto.Message:
+		return proto.Unmarshal(data, m)
+	case protoiface.MessageV1:
+		// #2333 compatible with etcd legacy proto.Message
+		m2 := protoimpl.X.ProtoMessageV2Of(m)
+		return proto.Unmarshal(data, m2)
 	}
-	return proto.Unmarshal(data, m)
+	return fmt.Errorf("failed to unmarshal: %v is not type of proto.Message", v)
 }
 
 func (protoCodec) Name() string {
@@ -115,12 +119,11 @@ func (jsonCodec) Marshal(v interface{}) ([]byte, error) {
 	}
 
 	if pb, ok := v.(proto.Message); ok {
-		buf := bufferPool.Get()
-		defer bufferPool.Put(buf)
-		if err := jsonpbMarshaler.Marshal(buf, pb); err != nil {
+		bytes, err := protojson.Marshal(pb)
+		if err != nil {
 			return nil, err
 		}
-		return buf.Bytes(), nil
+		return bytes, nil
 	}
 
 	return json.Marshal(v)
@@ -135,7 +138,7 @@ func (jsonCodec) Unmarshal(data []byte, v interface{}) error {
 		return nil
 	}
 	if pb, ok := v.(proto.Message); ok {
-		return jsonpb.Unmarshal(b.NewReader(data), pb)
+		return protojson.Unmarshal(data, pb)
 	}
 
 	dec := json.NewDecoder(b.NewReader(data))

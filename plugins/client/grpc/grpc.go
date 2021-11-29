@@ -11,16 +11,15 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/asim/go-micro/v3/broker"
-	"github.com/asim/go-micro/v3/cmd"
-	"github.com/asim/go-micro/v3/client"
-	raw "github.com/asim/go-micro/v3/codec/bytes"
-	"github.com/asim/go-micro/v3/errors"
-	"github.com/asim/go-micro/v3/metadata"
-	"github.com/asim/go-micro/v3/registry"
-	"github.com/asim/go-micro/v3/selector"
-	pnet "github.com/asim/go-micro/v3/util/net"
-
+	"go-micro.dev/v4/broker"
+	"go-micro.dev/v4/client"
+	"go-micro.dev/v4/cmd"
+	raw "go-micro.dev/v4/codec/bytes"
+	"go-micro.dev/v4/errors"
+	"go-micro.dev/v4/metadata"
+	"go-micro.dev/v4/registry"
+	"go-micro.dev/v4/selector"
+	pnet "go-micro.dev/v4/util/net"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/encoding"
@@ -104,7 +103,6 @@ func (g *grpcClient) call(ctx context.Context, node *registry.Node, req client.R
 
 	address := node.Address
 
-	header = make(map[string]string)
 	if md, ok := metadata.FromContext(ctx); ok {
 		header = make(map[string]string, len(md))
 		for k, v := range md {
@@ -132,8 +130,16 @@ func (g *grpcClient) call(ctx context.Context, node *registry.Node, req client.R
 
 	var grr error
 
+	var dialCtx context.Context
+	var cancel context.CancelFunc
+	if opts.DialTimeout > 0 {
+		dialCtx, cancel = context.WithTimeout(ctx, opts.DialTimeout)
+	} else {
+		dialCtx, cancel = context.WithCancel(ctx)
+	}
+	defer cancel()
+
 	grpcDialOptions := []grpc.DialOption{
-		grpc.WithTimeout(opts.DialTimeout),
 		g.secure(address),
 		grpc.WithDefaultCallOptions(
 			grpc.MaxCallRecvMsgSize(maxRecvMsgSize),
@@ -145,7 +151,7 @@ func (g *grpcClient) call(ctx context.Context, node *registry.Node, req client.R
 		grpcDialOptions = append(grpcDialOptions, opts...)
 	}
 
-	cc, err := g.pool.getConn(address, grpcDialOptions...)
+	cc, err := g.pool.getConn(dialCtx, address, grpcDialOptions...)
 	if err != nil {
 		return errors.InternalServerError("go.micro.client", fmt.Sprintf("Error sending request: %v", err))
 	}
@@ -208,7 +214,7 @@ func (g *grpcClient) stream(ctx context.Context, node *registry.Node, req client
 
 	var dialCtx context.Context
 	var cancel context.CancelFunc
-	if opts.DialTimeout >= 0 {
+	if opts.DialTimeout > 0 {
 		dialCtx, cancel = context.WithTimeout(ctx, opts.DialTimeout)
 	} else {
 		dialCtx, cancel = context.WithCancel(ctx)
@@ -218,7 +224,6 @@ func (g *grpcClient) stream(ctx context.Context, node *registry.Node, req client
 	wc := wrapCodec{cf}
 
 	grpcDialOptions := []grpc.DialOption{
-		grpc.WithTimeout(opts.DialTimeout),
 		g.secure(address),
 	}
 
@@ -226,7 +231,7 @@ func (g *grpcClient) stream(ctx context.Context, node *registry.Node, req client
 		grpcDialOptions = append(grpcDialOptions, opts...)
 	}
 
-	cc, err := grpc.DialContext(dialCtx, address, grpcDialOptions...)
+	cc, err := g.pool.getConn(dialCtx, address, grpcDialOptions...)
 	if err != nil {
 		return errors.InternalServerError("go.micro.client", fmt.Sprintf("Error sending request: %v", err))
 	}
@@ -274,14 +279,16 @@ func (g *grpcClient) stream(ctx context.Context, node *registry.Node, req client
 		context: ctx,
 		request: req,
 		response: &response{
-			conn:   cc,
+			conn:   cc.ClientConn,
 			stream: st,
 			codec:  cf,
 			gcodec: codec,
 		},
 		stream: st,
-		conn:   cc,
 		cancel: cancel,
+		release: func(err error) {
+			g.pool.release(address, cc, err)
+		},
 	}
 
 	// set the stream as the response
@@ -347,7 +354,7 @@ func (g *grpcClient) newGRPCCodec(contentType string) (encoding.Codec, error) {
 	if c, ok := defaultGRPCCodecs[contentType]; ok {
 		return wrapCodec{c}, nil
 	}
-	return nil, fmt.Errorf("Unsupported Content-Type: %s", contentType)
+	return nil, fmt.Errorf("unsupported Content-Type: %s", contentType)
 }
 
 func (g *grpcClient) Init(opts ...client.Option) error {

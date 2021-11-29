@@ -6,15 +6,14 @@ import (
 	"crypto/tls"
 	"errors"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"path"
 	"regexp"
 	"strings"
 
-	"github.com/asim/go-micro/v3/logger"
-	"github.com/asim/go-micro/v3/util/kubernetes/api"
+	"go-micro.dev/v4/logger"
+	"go-micro.dev/v4/util/kubernetes/api"
 )
 
 var (
@@ -360,7 +359,7 @@ func NewClusterClient() *client {
 		logger.Fatal(errors.New("service account not found"))
 	}
 
-	token, err := ioutil.ReadFile(path.Join(serviceAccountPath, "token"))
+	token, err := os.ReadFile(path.Join(serviceAccountPath, "token"))
 	if err != nil {
 		logger.Fatal(err)
 	}

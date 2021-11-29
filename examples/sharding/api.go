@@ -5,11 +5,11 @@ import (
 	"log"
 	"strings"
 
-	hello "github.com/asim/go-micro/examples/v3/greeter/srv/proto/hello"
-	"github.com/asim/go-micro/v3"
-	"github.com/asim/go-micro/v3/errors"
-	shard "github.com/asim/go-micro/plugins/wrapper/select/shard/v3"
-	api "github.com/asim/go-micro/v3/api/proto"
+	hello "github.com/asim/go-micro/examples/v4/greeter/srv/proto/hello"
+	"go-micro.dev/v4"
+	"go-micro.dev/v4/errors"
+	shard "github.com/asim/go-micro/plugins/wrapper/select/shard/v4"
+	api "go-micro.dev/v4/api/proto"
 
 	"context"
 )

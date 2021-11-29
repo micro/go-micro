@@ -2,15 +2,15 @@ package cli
 
 import (
 	"flag"
-	"io/ioutil"
+	"io"
 	"os"
 	"strings"
 	"time"
 
-	"github.com/asim/go-micro/v3/cmd"
-	"github.com/asim/go-micro/v3/config/source"
 	"github.com/imdario/mergo"
 	"github.com/urfave/cli/v2"
+	"go-micro.dev/v4/cmd"
+	"go-micro.dev/v4/config/source"
 )
 
 type cliSource struct {
@@ -119,7 +119,7 @@ func NewSource(opts ...source.Option) source.Source {
 		}
 
 		// parse flags
-		set.SetOutput(ioutil.Discard)
+		set.SetOutput(io.Discard)
 		set.Parse(os.Args[1:])
 
 		// normalise flags

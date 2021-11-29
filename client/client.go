@@ -5,7 +5,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/asim/go-micro/v3/codec"
+	"go-micro.dev/v4/codec"
 )
 
 // Client is the interface used to make requests to services.
@@ -64,6 +64,7 @@ type Response interface {
 
 // Stream is the inteface for a bidirectional synchronous stream
 type Stream interface {
+	Closer
 	// Context for the stream
 	Context() context.Context
 	// The request made
@@ -78,6 +79,12 @@ type Stream interface {
 	Error() error
 	// Close closes the stream
 	Close() error
+}
+
+// Closer handle client close
+type Closer interface {
+	// CloseSend closes the send direction of the stream.
+	CloseSend() error
 }
 
 // Option used by the Client

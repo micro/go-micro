@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	hello "github.com/asim/go-micro/examples/v3/greeter/srv/proto/hello"
-	"github.com/asim/go-micro/v3"
+	hello "github.com/asim/go-micro/examples/v4/greeter/srv/proto/hello"
+	"go-micro.dev/v4"
 )
 
 func main() {

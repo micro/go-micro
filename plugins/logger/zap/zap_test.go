@@ -3,7 +3,7 @@ package zap
 import (
 	"testing"
 
-	"github.com/asim/go-micro/v3/logger"
+	"go-micro.dev/v4/logger"
 )
 
 func TestName(t *testing.T) {
@@ -20,7 +20,8 @@ func TestName(t *testing.T) {
 }
 
 func TestLogf(t *testing.T) {
-	l, err := NewLogger()
+	// skip is 2, because we call logger through logger package
+	l, err := NewLogger(logger.WithCallerSkipCount(2))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -30,7 +31,8 @@ func TestLogf(t *testing.T) {
 }
 
 func TestSetLevel(t *testing.T) {
-	l, err := NewLogger()
+	// skip is 1, because we call logger directly
+	l, err := NewLogger(logger.WithCallerSkipCount(1))
 	if err != nil {
 		t.Fatal(err)
 	}

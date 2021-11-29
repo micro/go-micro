@@ -3,7 +3,7 @@ package vault
 import (
 	"context"
 
-	"github.com/asim/go-micro/v3/config/source"
+	"go-micro.dev/v4/config/source"
 )
 
 type addressKey struct{}

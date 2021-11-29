@@ -10,11 +10,11 @@ import (
 	"testing"
 
 	metrics "github.com/VictoriaMetrics/metrics"
-	"github.com/asim/go-micro/v3/client"
-	"github.com/asim/go-micro/v3/selector"
-	"github.com/asim/go-micro/plugins/registry/memory/v3"
-	"github.com/asim/go-micro/v3/server"
 	"github.com/stretchr/testify/assert"
+	"go-micro.dev/v4/client"
+	"go-micro.dev/v4/registry"
+	"go-micro.dev/v4/selector"
+	"go-micro.dev/v4/server"
 )
 
 type Test interface {
@@ -37,8 +37,8 @@ func (t *testHandler) Method(ctx context.Context, req *TestRequest, rsp *TestRes
 
 func TestVictoriametrics(t *testing.T) {
 	// setup
-	registry := memory.NewRegistry()
-	sel := selector.NewSelector(selector.Registry(registry))
+	r := registry.NewMemoryRegistry()
+	sel := selector.NewSelector(selector.Registry(r))
 
 	name := "test"
 	id := "id-1234567890"
@@ -49,7 +49,7 @@ func TestVictoriametrics(t *testing.T) {
 		server.Name(name),
 		server.Version(version),
 		server.Id(id),
-		server.Registry(registry),
+		server.Registry(r),
 		server.WrapHandler(
 			NewHandlerWrapper(
 				ServiceName(name),

@@ -1,12 +1,12 @@
 package http
 
 import (
-	"io/ioutil"
+	"io"
 	"net"
 	"net/http"
 	"testing"
 
-	"github.com/asim/go-micro/v3/registry"
+	"go-micro.dev/v4/registry"
 )
 
 func TestRoundTripper(t *testing.T) {
@@ -48,7 +48,7 @@ func TestRoundTripper(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	b, err := ioutil.ReadAll(w.Body)
+	b, err := io.ReadAll(w.Body)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -68,7 +68,7 @@ func TestRoundTripper(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	b, err = ioutil.ReadAll(rsp.Body)
+	b, err = io.ReadAll(rsp.Body)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -1,4 +1,4 @@
-# Go Micro [![License](https://img.shields.io/:license-apache-blue.svg)](https://opensource.org/licenses/Apache-2.0) [![Go.Dev reference](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white&style=flat-square)](https://pkg.go.dev/github.com/asim/go-micro/v3?tab=doc)
+# Go Micro [![License](https://img.shields.io/:license-apache-blue.svg)](https://opensource.org/licenses/Apache-2.0) [![Go.Dev reference](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white&style=flat-square)](https://pkg.go.dev/go-micro.dev/v4?tab=doc)
 
 Go Micro is a framework for distributed systems development.
 
@@ -40,6 +40,9 @@ communication. A request made to a service will be automatically resolved, load 
 - **Async Messaging** - PubSub is built in as a first class citizen for asynchronous communication and event driven architectures. 
 Event notifications are a core pattern in micro service development. The default messaging system is a HTTP event message broker.
 
+- **Event Streaming** - PubSub is great for async notifications but for more advanced use cases event streaming is preferred. Offering 
+persistent storage, consuming from offsets and acking. Go Micro includes support for NATS Jetstream and Redis streams.
+
 - **Synchronization** - Distributed systems are often built in an eventually consistent manner. Support for distributed locking and 
 leadership are built in as a Sync interface. When using an eventually consistent database or scheduling use the Sync interface.
 
@@ -51,7 +54,7 @@ are pluggable and allows Go Micro to be runtime agnostic. You can plugin any und
 To make use of Go Micro
 
 ```golang
-import "github.com/asim/go-micro/v3"
+import "go-micro.dev/v4"
 
 // create a new service
 service := micro.NewService(
@@ -69,7 +72,7 @@ See the [examples](https://github.com/micro/go-micro/tree/master/examples) for d
 
 ## Command Line Interface
 
-See [cmd/gomu](https://github.com/asim/go-micro/tree/master/cmd/gomu) for the command line interface.
+See [cmd/micro](https://github.com/asim/go-micro/tree/master/cmd/micro) for the command line interface.
 
 ## Code Generation
 
@@ -82,6 +85,10 @@ See [examples](https://github.com/micro/go-micro/tree/master/examples) directory
 ## Plugins
 
 See [plugins](https://github.com/micro/go-micro/tree/master/plugins) directory for all the plugins.
+
+## Services
+
+See [services](https://github.com/micro/go-micro/tree/master/services) directory for third party services.
 
 ## License
 

@@ -1,10 +1,10 @@
-module github.com/asim/go-micro/plugins/config/encoder/hcl/v3
+module github.com/asim/go-micro/plugins/config/encoder/hcl/v4
 
-go 1.16
+go 1.17
 
 require (
-	github.com/asim/go-micro/v3 v3.5.2-0.20210630062103-c13bb07171bc
 	github.com/hashicorp/hcl v1.0.0
+	go-micro.dev/v4 v4.2.1
 )
 
-replace github.com/asim/go-micro/v3 => ../../../../../go-micro
+replace go-micro.dev/v4 => ../../../../../go-micro

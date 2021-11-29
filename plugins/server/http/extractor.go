@@ -2,13 +2,14 @@ package http
 
 import (
 	"fmt"
+	"net"
 	"reflect"
 	"strconv"
 	"strings"
 
-	"github.com/asim/go-micro/v3/registry"
-	"github.com/asim/go-micro/v3/server"
-	"github.com/asim/go-micro/v3/util/addr"
+	"go-micro.dev/v4/registry"
+	"go-micro.dev/v4/server"
+	"go-micro.dev/v4/util/addr"
 )
 
 func serviceDef(opts server.Options) *registry.Service {
@@ -36,7 +37,7 @@ func serviceDef(opts server.Options) *registry.Service {
 
 	node := &registry.Node{
 		Id:       opts.Name + "-" + opts.Id,
-		Address:  fmt.Sprintf("%s:%d", addr, port),
+		Address:  net.JoinHostPort(addr, fmt.Sprint(port)),
 		Metadata: opts.Metadata,
 	}
 
@@ -73,6 +74,9 @@ func extractValue(v reflect.Type, d int) *registry.Value {
 	case reflect.Struct:
 		for i := 0; i < v.NumField(); i++ {
 			f := v.Field(i)
+			if !f.IsExported() {
+				continue
+			}
 			val := extractValue(f.Type, d+1)
 			if val == nil {
 				continue

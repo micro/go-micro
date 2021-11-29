@@ -2,32 +2,26 @@ package hystrix
 
 import (
 	"context"
-	"fmt"
-	"github.com/afex/hystrix-go/hystrix"
-	"github.com/asim/go-micro/plugins/registry/memory/v3"
-	"github.com/asim/go-micro/v3/client"
-	"github.com/asim/go-micro/v3/selector"
+	"errors"
+	"strings"
 	"testing"
-)
 
-func fallbackEvent() func(error) error {
-	return func(err error) error {
-		// You can set up webhook event messages here
-		fmt.Println("publish event message")
-		return err
-	}
-}
+	"github.com/afex/hystrix-go/hystrix"
+	"go-micro.dev/v4/client"
+	merrors "go-micro.dev/v4/errors"
+	"go-micro.dev/v4/registry"
+	"go-micro.dev/v4/selector"
+)
 
 func TestBreaker(t *testing.T) {
 	// setup
-	r := memory.NewRegistry()
+	r := registry.NewMemoryRegistry()
 	s := selector.NewSelector(selector.Registry(r))
-
 	c := client.NewClient(
 		// set the selector
 		client.Selector(s),
 		// add the breaker wrapper
-		client.Wrap(NewClientWrapper(fallbackEvent())),
+		client.Wrap(NewClientWrapper()),
 	)
 
 	req := c.NewRequest("test.service", "Test.Method", map[string]string{
@@ -48,5 +42,71 @@ func TestBreaker(t *testing.T) {
 
 	if err.Error() != "hystrix: circuit open" {
 		t.Errorf("Expecting tripped breaker, got %v", err)
+	}
+}
+
+func TestBreakerWithFilter(t *testing.T) {
+	r := registry.NewMemoryRegistry()
+	s := selector.NewSelector(selector.Registry(r))
+	c := client.NewClient(
+		client.Selector(s),
+		client.Wrap(NewClientWrapper(WithFilter(func(c context.Context, e error) bool {
+			var merr *merrors.Error
+			if errors.As(e, &merr) && merr.Detail == "service test.service: not found" {
+				return true
+			}
+			return false
+		}))),
+	)
+
+	req := c.NewRequest("test.service", "Test.FilterMethod", nil)
+	for i := 0; i < (hystrix.DefaultVolumeThreshold); i++ {
+		c.Call(context.TODO(), req, nil)
+	}
+
+	circuit, _, _ := hystrix.GetCircuit("test.service.Test.FilterMethod")
+	if circuit.IsOpen() {
+		t.Errorf("breaker should not be opened")
+	}
+
+	err := c.Call(context.TODO(), req, nil)
+	if err == nil {
+		t.Error("original error should be throw out")
+	}
+}
+
+func TestBreakerWithFallback(t *testing.T) {
+	r := registry.NewMemoryRegistry()
+	s := selector.NewSelector(selector.Registry(r))
+	c := client.NewClient(
+		client.Selector(s),
+		client.Wrap(NewClientWrapper(WithFallback(func(c context.Context, e error) error {
+			var merr *merrors.Error
+			if errors.As(e, &merr) && merr.Detail == "service test.service: not found" {
+				return hystrix.ErrCircuitOpen
+			}
+			return e
+		}))),
+	)
+
+	// trigger fallback to open circuit breaker
+	req := c.NewRequest("test.service", "Test.FallbackMethod", nil)
+	for i := 0; i < (hystrix.DefaultVolumeThreshold); i++ {
+		c.Call(context.TODO(), req, nil)
+	}
+	err := c.Call(context.TODO(), req, nil)
+	if err == nil || !strings.HasPrefix(err.Error(), "fallback failed with 'hystrix: circuit open'") {
+		t.Error("fallback-failure error should be throw out")
+		return
+	}
+
+	circuit, _, _ := hystrix.GetCircuit("test.service.Test.FallbackMethod")
+	if !circuit.IsOpen() {
+		t.Errorf("breaker should be opened")
+	}
+
+	err = c.Call(context.TODO(), req, nil)
+	if err == nil {
+		t.Error("original error should be throw out")
 	}
 }

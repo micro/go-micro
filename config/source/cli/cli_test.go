@@ -5,11 +5,11 @@ import (
 	"os"
 	"testing"
 
-	"github.com/asim/go-micro/v3"
-	"github.com/asim/go-micro/v3/cmd"
-	"github.com/asim/go-micro/v3/config"
-	"github.com/asim/go-micro/v3/config/source"
 	"github.com/urfave/cli/v2"
+	"go-micro.dev/v4"
+	"go-micro.dev/v4/cmd"
+	"go-micro.dev/v4/config"
+	"go-micro.dev/v4/config/source"
 )
 
 func TestCliSourceDefault(t *testing.T) {

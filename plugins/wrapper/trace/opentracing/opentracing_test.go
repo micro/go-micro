@@ -4,17 +4,16 @@ import (
 	"context"
 	"testing"
 
-	"github.com/asim/go-micro/v3/client"
-	"github.com/asim/go-micro/v3/selector"
-	microerr "github.com/asim/go-micro/v3/errors"
-	"github.com/asim/go-micro/plugins/registry/memory/v3"
-	"github.com/asim/go-micro/v3/server"
 	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/mocktracer"
 	"github.com/stretchr/testify/assert"
-
-	cli "github.com/asim/go-micro/v3/client"
-	srv "github.com/asim/go-micro/v3/server"
+	"go-micro.dev/v4/client"
+	cli "go-micro.dev/v4/client"
+	microerr "go-micro.dev/v4/errors"
+	"go-micro.dev/v4/registry"
+	"go-micro.dev/v4/selector"
+	"go-micro.dev/v4/server"
+	srv "go-micro.dev/v4/server"
 )
 
 type Test interface {
@@ -65,8 +64,8 @@ func TestClient(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			tracer := mocktracer.New()
 
-			registry := memory.NewRegistry()
-			sel := selector.NewSelector(selector.Registry(registry))
+			r := registry.NewMemoryRegistry()
+			sel := selector.NewSelector(selector.Registry(r))
 
 			serverName := "micro.server.name"
 			serverID := "id-1234567890"
@@ -81,7 +80,7 @@ func TestClient(t *testing.T) {
 				server.Name(serverName),
 				server.Version(serverVersion),
 				server.Id(serverID),
-				server.Registry(registry),
+				server.Registry(r),
 				server.WrapSubscriber(NewSubscriberWrapper(tracer)),
 				server.WrapHandler(NewHandlerWrapper(tracer)),
 			)

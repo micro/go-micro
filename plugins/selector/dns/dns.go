@@ -6,8 +6,8 @@ import (
 	"net"
 	"strconv"
 
-	"github.com/asim/go-micro/v3/registry"
-	"github.com/asim/go-micro/v3/selector"
+	"go-micro.dev/v4/registry"
+	"go-micro.dev/v4/selector"
 )
 
 type dnsSelector struct {
@@ -67,7 +67,7 @@ func (d *dnsSelector) Select(service string, opts ...selector.SelectOption) (sel
 	for _, node := range srv {
 		nodes = append(nodes, &registry.Node{
 			Id:      node.Target,
-			Address: fmt.Sprintf("%s:%d", node.Target, node.Port),
+			Address: net.JoinHostPort(node.Target, fmt.Sprint(node.Port)),
 		})
 	}
 

@@ -3,7 +3,7 @@ package file
 import (
 	"strings"
 
-	"github.com/asim/go-micro/v3/config/encoder"
+	"go-micro.dev/v4/config/encoder"
 )
 
 func format(p string, e encoder.Encoder) string {

@@ -3,8 +3,8 @@ package flag
 import (
 	"errors"
 	"flag"
-	"github.com/asim/go-micro/v3/config/source"
 	"github.com/imdario/mergo"
+	"go-micro.dev/v4/config/source"
 	"strings"
 	"time"
 )

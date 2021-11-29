@@ -7,23 +7,23 @@ import (
 	"strings"
 	"time"
 
-	"github.com/asim/go-micro/v3/auth"
-	"github.com/asim/go-micro/v3/broker"
-	"github.com/asim/go-micro/v3/cache"
-	"github.com/asim/go-micro/v3/client"
-	"github.com/asim/go-micro/v3/config"
-	"github.com/asim/go-micro/v3/debug/profile"
-	"github.com/asim/go-micro/v3/debug/profile/http"
-	"github.com/asim/go-micro/v3/debug/profile/pprof"
-	"github.com/asim/go-micro/v3/debug/trace"
-	"github.com/asim/go-micro/v3/logger"
-	"github.com/asim/go-micro/v3/registry"
-	"github.com/asim/go-micro/v3/runtime"
-	"github.com/asim/go-micro/v3/selector"
-	"github.com/asim/go-micro/v3/server"
-	"github.com/asim/go-micro/v3/store"
-	"github.com/asim/go-micro/v3/transport"
 	"github.com/urfave/cli/v2"
+	"go-micro.dev/v4/auth"
+	"go-micro.dev/v4/broker"
+	"go-micro.dev/v4/cache"
+	"go-micro.dev/v4/client"
+	"go-micro.dev/v4/config"
+	"go-micro.dev/v4/debug/profile"
+	"go-micro.dev/v4/debug/profile/http"
+	"go-micro.dev/v4/debug/profile/pprof"
+	"go-micro.dev/v4/debug/trace"
+	"go-micro.dev/v4/logger"
+	"go-micro.dev/v4/registry"
+	"go-micro.dev/v4/runtime"
+	"go-micro.dev/v4/selector"
+	"go-micro.dev/v4/server"
+	"go-micro.dev/v4/store"
+	"go-micro.dev/v4/transport"
 )
 
 type Cmd interface {
@@ -609,6 +609,18 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	if len(clientOpts) > 0 {
 		if err := (*c.opts.Client).Init(clientOpts...); err != nil {
 			logger.Fatalf("Error configuring client: %v", err)
+		}
+	}
+
+	// config
+	if name := ctx.String("config"); len(name) > 0 {
+		// only change if we have the server and type differs
+		if r, ok := c.opts.Configs[name]; ok {
+			rc, err := r()
+			if err != nil {
+				logger.Fatalf("Error configuring config: %v", err)
+			}
+			*c.opts.Config = rc
 		}
 	}
 

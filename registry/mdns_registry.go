@@ -8,16 +8,16 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/asim/go-micro/v3/logger"
-	"github.com/asim/go-micro/v3/util/mdns"
 	"github.com/google/uuid"
+	"go-micro.dev/v4/logger"
+	"go-micro.dev/v4/util/mdns"
 )
 
 var (
@@ -114,7 +114,7 @@ func decode(record []string) (*mdnsTxt, error) {
 		return nil, err
 	}
 
-	rbuf, err := ioutil.ReadAll(zr)
+	rbuf, err := io.ReadAll(zr)
 	if err != nil {
 		return nil, err
 	}
@@ -366,7 +366,7 @@ func (m *mdnsRegistry) GetService(service string, opts ...GetOption) ([]*Service
 				}
 				s.Nodes = append(s.Nodes, &Node{
 					Id:       strings.TrimSuffix(e.Name, "."+p.Service+"."+p.Domain+"."),
-					Address:  fmt.Sprintf("%s:%d", addr, e.Port),
+					Address:  net.JoinHostPort(addr, fmt.Sprint(e.Port)),
 					Metadata: txt.Metadata,
 				})
 
@@ -593,7 +593,7 @@ func (m *mdnsWatcher) Next() (*Result, error) {
 
 			service.Nodes = append(service.Nodes, &Node{
 				Id:       strings.TrimSuffix(e.Name, suffix),
-				Address:  fmt.Sprintf("%s:%d", addr, e.Port),
+				Address:  net.JoinHostPort(addr, fmt.Sprint(e.Port)),
 				Metadata: txt.Metadata,
 			})
 

@@ -2,7 +2,6 @@ package web
 
 import (
 	"crypto/tls"
-	"fmt"
 	"net"
 	"net/http"
 	"os"
@@ -13,16 +12,16 @@ import (
 	"sync"
 	"time"
 
-	"github.com/asim/go-micro/v3"
-	"github.com/asim/go-micro/v3/logger"
-	"github.com/asim/go-micro/v3/registry"
-	maddr "github.com/asim/go-micro/v3/util/addr"
-	"github.com/asim/go-micro/v3/util/backoff"
-	mhttp "github.com/asim/go-micro/v3/util/http"
-	mnet "github.com/asim/go-micro/v3/util/net"
-	signalutil "github.com/asim/go-micro/v3/util/signal"
-	mls "github.com/asim/go-micro/v3/util/tls"
 	"github.com/urfave/cli/v2"
+	"go-micro.dev/v4"
+	"go-micro.dev/v4/logger"
+	"go-micro.dev/v4/registry"
+	maddr "go-micro.dev/v4/util/addr"
+	"go-micro.dev/v4/util/backoff"
+	mhttp "go-micro.dev/v4/util/http"
+	mnet "go-micro.dev/v4/util/net"
+	signalutil "go-micro.dev/v4/util/signal"
+	mls "go-micro.dev/v4/util/tls"
 )
 
 type service struct {
@@ -85,7 +84,7 @@ func (s *service) genSrv() *registry.Service {
 		Version: s.opts.Version,
 		Nodes: []*registry.Node{{
 			Id:       s.opts.Id,
-			Address:  fmt.Sprintf("%s:%s", addr, port),
+			Address:  net.JoinHostPort(addr, port),
 			Metadata: s.opts.Metadata,
 		}},
 	}

@@ -3,8 +3,8 @@ package sync
 import (
 	"time"
 
-	"github.com/asim/go-micro/v3/store"
 	"github.com/pkg/errors"
+	"go-micro.dev/v4/store"
 )
 
 type operation struct {

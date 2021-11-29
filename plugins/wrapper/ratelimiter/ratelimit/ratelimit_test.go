@@ -8,13 +8,13 @@ import (
 	"context"
 
 	"github.com/juju/ratelimit"
-	bmemory "github.com/asim/go-micro/plugins/broker/memory/v3"
-	"github.com/asim/go-micro/v3/client"
-	"github.com/asim/go-micro/v3/selector"
-	"github.com/asim/go-micro/v3/errors"
-	rmemory "github.com/asim/go-micro/plugins/registry/memory/v3"
-	"github.com/asim/go-micro/v3/server"
-	tmemory "github.com/asim/go-micro/plugins/transport/memory/v3"
+	"go-micro.dev/v4/broker"
+	"go-micro.dev/v4/client"
+	"go-micro.dev/v4/errors"
+	"go-micro.dev/v4/registry"
+	"go-micro.dev/v4/selector"
+	"go-micro.dev/v4/server"
+	"go-micro.dev/v4/transport"
 )
 
 type testHandler struct{}
@@ -27,9 +27,9 @@ func (t *testHandler) Method(ctx context.Context, req *TestRequest, rsp *TestRes
 
 func TestRateClientLimit(t *testing.T) {
 	// setup
-	r := rmemory.NewRegistry()
+	r := registry.NewMemoryRegistry()
 	s := selector.NewSelector(selector.Registry(r))
-	tr := tmemory.NewTransport()
+	tr := transport.NewMemoryTransport()
 	testRates := []int{1, 10, 20}
 
 	for _, limit := range testRates {
@@ -72,9 +72,9 @@ func TestRateServerLimit(t *testing.T) {
 	testRates := []int{1, 5, 6, 10}
 
 	for _, limit := range testRates {
-		r := rmemory.NewRegistry()
-		b := bmemory.NewBroker()
-		tr := tmemory.NewTransport()
+		r := registry.NewMemoryRegistry()
+		b := broker.NewMemoryBroker()
+		tr := transport.NewMemoryTransport()
 		_ = b
 		s := selector.NewSelector(selector.Registry(r))
 

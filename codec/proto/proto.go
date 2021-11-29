@@ -3,10 +3,9 @@ package proto
 
 import (
 	"io"
-	"io/ioutil"
 
-	"github.com/asim/go-micro/v3/codec"
 	"github.com/golang/protobuf/proto"
+	"go-micro.dev/v4/codec"
 )
 
 type Codec struct {
@@ -21,7 +20,7 @@ func (c *Codec) ReadBody(b interface{}) error {
 	if b == nil {
 		return nil
 	}
-	buf, err := ioutil.ReadAll(c.Conn)
+	buf, err := io.ReadAll(c.Conn)
 	if err != nil {
 		return err
 	}

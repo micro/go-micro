@@ -6,7 +6,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net"
 	"net/http"
 	"net/url"
@@ -15,16 +15,16 @@ import (
 	"sync"
 	"time"
 
-	"github.com/asim/go-micro/v3/broker"
-	"github.com/asim/go-micro/v3/client"
-	"github.com/asim/go-micro/v3/cmd"
-	"github.com/asim/go-micro/v3/codec"
-	raw "github.com/asim/go-micro/v3/codec/bytes"
-	errors "github.com/asim/go-micro/v3/errors"
-	"github.com/asim/go-micro/v3/metadata"
-	"github.com/asim/go-micro/v3/registry"
-	"github.com/asim/go-micro/v3/selector"
-	"github.com/asim/go-micro/v3/transport"
+	"go-micro.dev/v4/broker"
+	"go-micro.dev/v4/client"
+	"go-micro.dev/v4/cmd"
+	"go-micro.dev/v4/codec"
+	raw "go-micro.dev/v4/codec/bytes"
+	errors "go-micro.dev/v4/errors"
+	"go-micro.dev/v4/metadata"
+	"go-micro.dev/v4/registry"
+	"go-micro.dev/v4/selector"
+	"go-micro.dev/v4/transport"
 )
 
 type httpClient struct {
@@ -137,7 +137,7 @@ func (h *httpClient) call(ctx context.Context, node *registry.Node, req client.R
 	defer hrsp.Body.Close()
 
 	// parse response
-	b, err = ioutil.ReadAll(hrsp.Body)
+	b, err = io.ReadAll(hrsp.Body)
 	if err != nil {
 		return errors.InternalServerError("go.micro.client", err.Error())
 	}

@@ -5,7 +5,7 @@ import (
 	"io"
 	"sync"
 
-	"github.com/asim/go-micro/v3/client"
+	"go-micro.dev/v4/client"
 	"google.golang.org/grpc"
 )
 
@@ -14,12 +14,12 @@ type grpcStream struct {
 	sync.RWMutex
 	closed   bool
 	err      error
-	conn     *grpc.ClientConn
 	stream   grpc.ClientStream
 	request  client.Request
 	response client.Response
 	context  context.Context
 	cancel   func()
+	release  func(error)
 }
 
 func (g *grpcStream) Context() context.Context {
@@ -43,15 +43,11 @@ func (g *grpcStream) Send(msg interface{}) error {
 }
 
 func (g *grpcStream) Recv(msg interface{}) (err error) {
-	defer g.setError(err)
 	if err = g.stream.RecvMsg(msg); err != nil {
-		// #202 - inconsistent gRPC stream behavior
-		// the only way to tell if the stream is done is when we get a EOF on the Recv
-		// here we should close the underlying gRPC ClientConn
-		closeErr := g.Close()
-		if err == io.EOF && closeErr != nil {
-			err = closeErr
+		if err != io.EOF {
+			g.setError(err)
 		}
+		return err
 	}
 	return
 }
@@ -68,11 +64,10 @@ func (g *grpcStream) setError(e error) {
 	g.Unlock()
 }
 
-// Close the gRPC send stream
-// #202 - inconsistent gRPC stream behavior
-// The underlying gRPC stream should not be closed here since the
-// stream should still be able to receive after this function call
-// TODO: should the conn be closed in another way?
+func (g *grpcStream) CloseSend() error {
+	return g.stream.CloseSend()
+}
+
 func (g *grpcStream) Close() error {
 	g.Lock()
 	defer g.Unlock()
@@ -83,6 +78,7 @@ func (g *grpcStream) Close() error {
 	// cancel the context
 	g.cancel()
 	g.closed = true
-	g.stream.CloseSend()
-	return g.conn.Close()
+	// release back to pool
+	g.release(g.err)
+	return nil
 }

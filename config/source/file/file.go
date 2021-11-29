@@ -2,10 +2,10 @@
 package file
 
 import (
-	"io/ioutil"
+	"io"
 	"os"
 
-	"github.com/asim/go-micro/v3/config/source"
+	"go-micro.dev/v4/config/source"
 )
 
 type file struct {
@@ -23,7 +23,7 @@ func (f *file) Read() (*source.ChangeSet, error) {
 		return nil, err
 	}
 	defer fh.Close()
-	b, err := ioutil.ReadAll(fh)
+	b, err := io.ReadAll(fh)
 	if err != nil {
 		return nil, err
 	}

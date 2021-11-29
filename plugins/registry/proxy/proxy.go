@@ -7,12 +7,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 
-	"github.com/asim/go-micro/v3/cmd"
-	"github.com/asim/go-micro/v3/registry"
+	"go-micro.dev/v4/cmd"
+	"go-micro.dev/v4/registry"
 )
 
 type proxy struct {
@@ -75,7 +74,7 @@ func (s *proxy) Register(service *registry.Service, opts ...registry.RegisterOpt
 			continue
 		}
 		if rsp.StatusCode != 200 {
-			b, err := ioutil.ReadAll(rsp.Body)
+			b, err := io.ReadAll(rsp.Body)
 			if err != nil {
 				return err
 			}
@@ -83,7 +82,7 @@ func (s *proxy) Register(service *registry.Service, opts ...registry.RegisterOpt
 			gerr = errors.New(string(b))
 			continue
 		}
-		io.Copy(ioutil.Discard, rsp.Body)
+		io.Copy(io.Discard, rsp.Body)
 		rsp.Body.Close()
 		return nil
 	}
@@ -117,7 +116,7 @@ func (s *proxy) Deregister(service *registry.Service, opts ...registry.Deregiste
 		}
 
 		if rsp.StatusCode != 200 {
-			b, err := ioutil.ReadAll(rsp.Body)
+			b, err := io.ReadAll(rsp.Body)
 			if err != nil {
 				return err
 			}
@@ -126,7 +125,7 @@ func (s *proxy) Deregister(service *registry.Service, opts ...registry.Deregiste
 			continue
 		}
 
-		io.Copy(ioutil.Discard, rsp.Body)
+		io.Copy(io.Discard, rsp.Body)
 		rsp.Body.Close()
 		return nil
 	}
@@ -149,7 +148,7 @@ func (s *proxy) GetService(service string, opts ...registry.GetOption) ([]*regis
 		}
 
 		if rsp.StatusCode != 200 {
-			b, err := ioutil.ReadAll(rsp.Body)
+			b, err := io.ReadAll(rsp.Body)
 			if err != nil {
 				return nil, err
 			}
@@ -158,7 +157,7 @@ func (s *proxy) GetService(service string, opts ...registry.GetOption) ([]*regis
 			continue
 		}
 
-		b, err := ioutil.ReadAll(rsp.Body)
+		b, err := io.ReadAll(rsp.Body)
 		if err != nil {
 			gerr = err
 			continue
@@ -189,7 +188,7 @@ func (s *proxy) ListServices(opts ...registry.ListOption) ([]*registry.Service, 
 		}
 
 		if rsp.StatusCode != 200 {
-			b, err := ioutil.ReadAll(rsp.Body)
+			b, err := io.ReadAll(rsp.Body)
 			if err != nil {
 				return nil, err
 			}
@@ -198,7 +197,7 @@ func (s *proxy) ListServices(opts ...registry.ListOption) ([]*registry.Service, 
 			continue
 		}
 
-		b, err := ioutil.ReadAll(rsp.Body)
+		b, err := io.ReadAll(rsp.Body)
 		if err != nil {
 			gerr = err
 			continue

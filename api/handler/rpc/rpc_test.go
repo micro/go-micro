@@ -4,10 +4,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"net/http"
+	"reflect"
 	"testing"
 
-	go_api "github.com/asim/go-micro/v3/api/proto"
 	"github.com/golang/protobuf/proto"
+	go_api "go-micro.dev/v4/api/proto"
 )
 
 func TestRequestPayloadFromRequest(t *testing.T) {
@@ -27,7 +28,12 @@ func TestRequestPayloadFromRequest(t *testing.T) {
 		t.Fatal("Failed to marshal proto to JSON ", err)
 	}
 
-	jsonUrlBytes := []byte(`{"key1":"val1","key2":"val2","name":"Test"}`)
+	type jsonUrl struct {
+		Key1 string `json:"key1"`
+		Key2 string `json:"key2"`
+		Name string `json:"name"`
+	}
+	jUrl := &jsonUrl{Key1: "val1", Key2: "val2", Name: "Test"}
 
 	t.Run("extracting a json from a POST request with url params", func(t *testing.T) {
 		r, err := http.NewRequest("POST", "http://localhost/my/path?key1=val1&key2=val2", bytes.NewReader(jsonBytes))
@@ -39,8 +45,12 @@ func TestRequestPayloadFromRequest(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to extract payload from request: %v", err)
 		}
-		if string(extByte) != string(jsonUrlBytes) {
-			t.Fatalf("Expected %v and %v to match", string(extByte), jsonUrlBytes)
+		extJUrl := &jsonUrl{}
+		if err := json.Unmarshal(extByte, extJUrl); err != nil {
+			t.Fatalf("Failed to unmarshal payload from request: %v", err)
+		}
+		if !reflect.DeepEqual(extJUrl, jUrl) {
+			t.Fatalf("Expected %v and %v to match", extJUrl, jUrl)
 		}
 	})
 

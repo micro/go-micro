@@ -11,7 +11,7 @@ import (
 	zlog "github.com/rs/zerolog/log"
 	"github.com/rs/zerolog/pkgerrors"
 
-	"github.com/asim/go-micro/v3/logger"
+	"go-micro.dev/v4/logger"
 )
 
 type Mode uint8
@@ -53,10 +53,14 @@ func (l *zeroLogger) Init(opts ...logger.Option) error {
 		l.opts.Mode = Production
 	}
 
+	skip := 4
+	if l.opts.CallerSkipCount > 0 {
+		skip = l.opts.CallerSkipCount
+	}
 	// RESET
 	zerolog.TimeFieldFormat = time.RFC3339
 	zerolog.ErrorStackMarshaler = nil
-	zerolog.CallerSkipFrameCount = 4
+	zerolog.CallerSkipFrameCount = skip
 
 	switch l.opts.Mode {
 	case Development:
@@ -94,7 +98,7 @@ func (l *zeroLogger) Init(opts ...logger.Option) error {
 	if l.opts.ReportCaller {
 		l.zLog = l.zLog.With().Caller().Logger()
 	}
-	
+
 	// Adding hooks if exist
 	for _, hook := range l.opts.Hooks {
 		l.zLog = l.zLog.Hook(hook)

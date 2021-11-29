@@ -3,10 +3,10 @@ package api
 import (
 	"encoding/json"
 	"errors"
-	"io/ioutil"
+	"io"
 	"net/http"
 
-	log "github.com/asim/go-micro/v3/logger"
+	log "go-micro.dev/v4/logger"
 )
 
 // Errors ...
@@ -84,7 +84,7 @@ func newResponse(res *http.Response, err error) *Response {
 
 	log.Errorf("K8s: request failed with code %v", r.res.StatusCode)
 
-	b, err := ioutil.ReadAll(r.res.Body)
+	b, err := io.ReadAll(r.res.Body)
 	if err == nil {
 		log.Error("K8s: request failed with body:")
 		log.Error(string(b))

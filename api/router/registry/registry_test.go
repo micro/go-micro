@@ -3,8 +3,8 @@ package registry
 import (
 	"testing"
 
-	"github.com/asim/go-micro/v3/registry"
 	"github.com/stretchr/testify/assert"
+	"go-micro.dev/v4/registry"
 )
 
 func TestStoreRegex(t *testing.T) {

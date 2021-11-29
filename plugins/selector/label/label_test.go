@@ -3,9 +3,8 @@ package label
 import (
 	"testing"
 
-	"github.com/asim/go-micro/v3/selector"
-	"github.com/asim/go-micro/v3/registry"
-	"github.com/asim/go-micro/plugins/registry/memory/v3"
+	"go-micro.dev/v4/registry"
+	"go-micro.dev/v4/selector"
 )
 
 func TestPrioritiseFunc(t *testing.T) {
@@ -77,7 +76,7 @@ func TestPrioritiseFunc(t *testing.T) {
 func TestLabelSelector(t *testing.T) {
 	counts := map[string]int{}
 
-	r := memory.NewRegistry()
+	r := registry.NewMemoryRegistry()
 	r.Register(&registry.Service{
 		Name:    "bar",
 		Version: "latest",

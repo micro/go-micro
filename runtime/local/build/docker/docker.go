@@ -4,13 +4,13 @@ package docker
 import (
 	"archive/tar"
 	"bytes"
-	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
 
-	"github.com/asim/go-micro/v3/logger"
-	"github.com/asim/go-micro/v3/runtime/local/build"
 	docker "github.com/fsouza/go-dockerclient"
+	"go-micro.dev/v4/logger"
+	"go-micro.dev/v4/runtime/local/build"
 )
 
 type Builder struct {
@@ -33,7 +33,7 @@ func (d *Builder) Build(s *build.Source) (*build.Package, error) {
 		return nil, err
 	}
 	// read docker file
-	by, err := ioutil.ReadAll(f)
+	by, err := io.ReadAll(f)
 	if err != nil {
 		return nil, err
 	}
@@ -56,7 +56,7 @@ func (d *Builder) Build(s *build.Source) (*build.Package, error) {
 		Name:           image,
 		Dockerfile:     dockerFile,
 		InputStream:    tr,
-		OutputStream:   ioutil.Discard,
+		OutputStream:   io.Discard,
 		RmTmpContainer: true,
 		SuppressOutput: true,
 	})

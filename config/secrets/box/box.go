@@ -2,8 +2,8 @@
 package box
 
 import (
-	"github.com/asim/go-micro/v3/config/secrets"
 	"github.com/pkg/errors"
+	"go-micro.dev/v4/config/secrets"
 	naclbox "golang.org/x/crypto/nacl/box"
 
 	"crypto/rand"

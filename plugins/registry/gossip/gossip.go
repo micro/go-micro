@@ -5,7 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net"
 	"os"
 	"strconv"
@@ -16,11 +16,11 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/google/uuid"
 	"github.com/hashicorp/memberlist"
-	"github.com/asim/go-micro/v3/cmd"
-	log "github.com/asim/go-micro/v3/logger"
-	"github.com/asim/go-micro/v3/registry"
-	regutil "github.com/asim/go-micro/v3/util/registry"
-	pb "github.com/asim/go-micro/plugins/registry/gossip/v3/proto"
+	"go-micro.dev/v4/cmd"
+	log "go-micro.dev/v4/logger"
+	"go-micro.dev/v4/registry"
+	regutil "go-micro.dev/v4/util/registry"
+	pb "github.com/asim/go-micro/plugins/registry/gossip/v4/proto"
 	"github.com/mitchellh/hashstructure"
 )
 
@@ -179,7 +179,7 @@ func configure(g *gossipRegistry, opts ...registry.Option) error {
 	c := memberlist.DefaultLocalConfig()
 
 	// sane good default options
-	c.LogOutput = ioutil.Discard // log to /dev/null
+	c.LogOutput = io.Discard // log to /dev/null
 	c.PushPullInterval = 0       // disable expensive tcp push/pull
 	c.ProtocolVersion = 4        // suport latest stable features
 

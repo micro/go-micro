@@ -5,15 +5,14 @@ import (
 	"bytes"
 	"context"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"path/filepath"
 	"strings"
 
-	"github.com/asim/go-micro/v3"
-	"github.com/asim/go-micro/v3/errors"
-	"github.com/asim/go-micro/v3/server"
+	"go-micro.dev/v4"
+	"go-micro.dev/v4/errors"
+	"go-micro.dev/v4/server"
 )
 
 // Router will proxy rpc requests as http POST requests. It is a server.Router
@@ -174,7 +173,7 @@ func (p *Router) ServeRequest(ctx context.Context, req server.Request, rsp serve
 		}
 
 		// read body
-		b, err := ioutil.ReadAll(hrsp.Body)
+		b, err := io.ReadAll(hrsp.Body)
 		hrsp.Body.Close()
 		if err != nil {
 			return errors.InternalServerError(req.Service(), err.Error())

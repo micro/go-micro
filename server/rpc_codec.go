@@ -4,16 +4,16 @@ import (
 	"bytes"
 	"sync"
 
-	"github.com/asim/go-micro/v3/codec"
-	raw "github.com/asim/go-micro/v3/codec/bytes"
-	"github.com/asim/go-micro/v3/codec/grpc"
-	"github.com/asim/go-micro/v3/codec/json"
-	"github.com/asim/go-micro/v3/codec/jsonrpc"
-	"github.com/asim/go-micro/v3/codec/proto"
-	"github.com/asim/go-micro/v3/codec/protorpc"
-	"github.com/asim/go-micro/v3/transport"
 	"github.com/oxtoacart/bpool"
 	"github.com/pkg/errors"
+	"go-micro.dev/v4/codec"
+	raw "go-micro.dev/v4/codec/bytes"
+	"go-micro.dev/v4/codec/grpc"
+	"go-micro.dev/v4/codec/json"
+	"go-micro.dev/v4/codec/jsonrpc"
+	"go-micro.dev/v4/codec/proto"
+	"go-micro.dev/v4/codec/protorpc"
+	"go-micro.dev/v4/transport"
 )
 
 type rpcCodec struct {

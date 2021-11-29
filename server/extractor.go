@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/asim/go-micro/v3/registry"
+	"go-micro.dev/v4/registry"
 )
 
 func extractValue(v reflect.Type, d int) *registry.Value {
@@ -29,6 +29,9 @@ func extractValue(v reflect.Type, d int) *registry.Value {
 	case reflect.Struct:
 		for i := 0; i < v.NumField(); i++ {
 			f := v.Field(i)
+			if !f.IsExported() {
+				continue
+			}
 			val := extractValue(f.Type, d+1)
 			if val == nil {
 				continue

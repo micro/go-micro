@@ -5,20 +5,15 @@ import (
 	"sync"
 	"testing"
 
-	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/ext"
-
-	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
-
-	"github.com/asim/go-micro/v3/client"
-	"github.com/asim/go-micro/v3/selector"
-	microerr "github.com/asim/go-micro/v3/errors"
-	"github.com/asim/go-micro/plugins/registry/memory/v3"
-	"github.com/asim/go-micro/v3/server"
 	"github.com/stretchr/testify/assert"
+	"go-micro.dev/v4/client"
+	"go-micro.dev/v4/errors"
+	"go-micro.dev/v4/registry"
+	"go-micro.dev/v4/selector"
+	"go-micro.dev/v4/server"
+	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/ext"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/mocktracer"
-
-	cli "github.com/asim/go-micro/v3/client"
-	srv "github.com/asim/go-micro/v3/server"
+	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 )
 
 type Test interface {
@@ -36,7 +31,7 @@ type testHandler struct{}
 
 func (t *testHandler) Method(ctx context.Context, req *TestRequest, rsp *TestResponse) error {
 	if req.IsError {
-		return microerr.BadRequest("bad", "test error")
+		return errors.BadRequest("bad", "test error")
 	}
 
 	rsp.Message = "passed"
@@ -70,23 +65,23 @@ func TestClient(t *testing.T) {
 			mt := mocktracer.Start()
 			defer mt.Stop()
 
-			registry := memory.NewRegistry()
-			sel := selector.NewSelector(selector.Registry(registry))
+			r := registry.NewMemoryRegistry()
+			sel := selector.NewSelector(selector.Registry(r))
 
 			serverName := "micro.server.name"
 			serverID := "id-1234567890"
 			serverVersion := "1.0.0"
 
-			c := cli.NewClient(
+			c := client.NewClient(
 				client.Selector(sel),
 				client.WrapCall(NewCallWrapper()),
 			)
 
-			s := srv.NewServer(
+			s := server.NewServer(
 				server.Name(serverName),
 				server.Version(serverVersion),
 				server.Id(serverID),
-				server.Registry(registry),
+				server.Registry(r),
 				server.WrapSubscriber(NewSubscriberWrapper()),
 				server.WrapHandler(NewHandlerWrapper()),
 			)
@@ -151,23 +146,23 @@ func TestRace(t *testing.T) {
 	mt := mocktracer.Start()
 	defer mt.Stop()
 
-	registry := memory.NewRegistry()
-	sel := selector.NewSelector(selector.Registry(registry))
+	r := registry.NewMemoryRegistry()
+	sel := selector.NewSelector(selector.Registry(r))
 
 	serverName := "micro.server.name"
 	serverID := "id-1234567890"
 	serverVersion := "1.0.0"
 
-	c := cli.NewClient(
+	c := client.NewClient(
 		client.Selector(sel),
 		client.WrapCall(NewCallWrapper()),
 	)
 
-	s := srv.NewServer(
+	s := server.NewServer(
 		server.Name(serverName),
 		server.Version(serverVersion),
 		server.Id(serverID),
-		server.Registry(registry),
+		server.Registry(r),
 		server.WrapSubscriber(NewSubscriberWrapper()),
 		server.WrapHandler(NewHandlerWrapper()),
 	)

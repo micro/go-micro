@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/asim/go-micro/v3/errors"
-	"github.com/asim/go-micro/v3/registry"
-	"github.com/asim/go-micro/v3/selector"
+	"go-micro.dev/v4/errors"
+	"go-micro.dev/v4/registry"
+	"go-micro.dev/v4/selector"
 )
 
 func newTestRegistry() registry.Registry {

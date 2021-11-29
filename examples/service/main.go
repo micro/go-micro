@@ -6,8 +6,8 @@ import (
 
 	"context"
 
-	proto "github.com/asim/go-micro/examples/v3/service/proto"
-	"github.com/asim/go-micro/v3"
+	proto "github.com/asim/go-micro/examples/v4/service/proto"
+	"go-micro.dev/v4"
 	"github.com/urfave/cli/v2"
 )
 

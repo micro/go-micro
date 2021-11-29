@@ -49,11 +49,11 @@
 package main
 
 import (
-	"io/ioutil"
+	"io"
 	"os"
 
-	"github.com/asim/go-micro/cmd/protoc-gen-micro/v3/generator"
-	_ "github.com/asim/go-micro/cmd/protoc-gen-micro/v3/plugin/micro"
+	"go-micro.dev/v4/cmd/protoc-gen-micro/generator"
+	_ "go-micro.dev/v4/cmd/protoc-gen-micro/plugin/micro"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -63,7 +63,7 @@ func main() {
 	// report failure.
 	g := generator.New()
 
-	data, err := ioutil.ReadAll(os.Stdin)
+	data, err := io.ReadAll(os.Stdin)
 	if err != nil {
 		g.Error(err, "reading input")
 	}

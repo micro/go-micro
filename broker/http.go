@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math/rand"
 	"net"
 	"net/http"
@@ -17,14 +16,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/asim/go-micro/v3/codec/json"
-	merr "github.com/asim/go-micro/v3/errors"
-	"github.com/asim/go-micro/v3/registry"
-	"github.com/asim/go-micro/v3/registry/cache"
-	maddr "github.com/asim/go-micro/v3/util/addr"
-	mnet "github.com/asim/go-micro/v3/util/net"
-	mls "github.com/asim/go-micro/v3/util/tls"
 	"github.com/google/uuid"
+	"go-micro.dev/v4/codec/json"
+	merr "go-micro.dev/v4/errors"
+	"go-micro.dev/v4/registry"
+	"go-micro.dev/v4/registry/cache"
+	maddr "go-micro.dev/v4/util/addr"
+	mnet "go-micro.dev/v4/util/net"
+	mls "go-micro.dev/v4/util/tls"
 	"golang.org/x/net/http2"
 )
 
@@ -300,7 +299,7 @@ func (h *httpBroker) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	req.ParseForm()
 
-	b, err := ioutil.ReadAll(req.Body)
+	b, err := io.ReadAll(req.Body)
 	if err != nil {
 		errr := merr.InternalServerError("go.micro.broker", "Error reading request body: %v", err)
 		w.WriteHeader(500)
@@ -558,7 +557,7 @@ func (h *httpBroker) Publish(topic string, msg *Message, opts ...PublishOption) 
 		}
 
 		// discard response body
-		io.Copy(ioutil.Discard, r.Body)
+		io.Copy(io.Discard, r.Body)
 		r.Body.Close()
 		return nil
 	}

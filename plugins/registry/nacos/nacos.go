@@ -1,19 +1,17 @@
 package nacos
 
-
 import (
 	"errors"
 	"fmt"
 	"net"
 	"strconv"
 	"time"
-
-	"github.com/asim/go-micro/v3/cmd"
-	"github.com/asim/go-micro/v3/registry"
+	
+	"go-micro.dev/v4/cmd"
+	"go-micro.dev/v4/registry"
 	"github.com/nacos-group/nacos-sdk-go/v2/clients"
 	"github.com/nacos-group/nacos-sdk-go/v2/clients/naming_client"
 	"github.com/nacos-group/nacos-sdk-go/v2/common/constant"
-	"github.com/nacos-group/nacos-sdk-go/v2/common/logger"
 	"github.com/nacos-group/nacos-sdk-go/v2/vo"
 )
 
@@ -53,7 +51,7 @@ func configure(n *nacosRegistry, opts ...registry.Option) error {
 	}
 	addrs, ok := n.opts.Context.Value(addressKey{}).([]string)
 	if !ok {
-		addrs = []string{"127.0.0.1:8848"} // 默认连接本地
+		addrs = []string{"127.0.0.1:8848"}
 	}
 
 	for _, addr := range addrs {
@@ -69,7 +67,6 @@ func configure(n *nacosRegistry, opts ...registry.Option) error {
 		}
 
 		serverConfigs = append(serverConfigs, constant.ServerConfig{
-			// Scheme:      "go.micro",
 			IpAddr:      host,
 			Port:        p,
 			ContextPath: contextPath,
@@ -147,7 +144,6 @@ func (n *nacosRegistry) Register(s *registry.Service, opts ...registry.RegisterO
 		param.Ephemeral = true
 	}
 	_, err := n.client.RegisterInstance(param)
-	logger.Info("test nacos logger")
 	return err
 }
 
@@ -175,7 +171,6 @@ func (n *nacosRegistry) Deregister(s *registry.Service, opts ...registry.Deregis
 	}
 
 	_, err := n.client.DeregisterInstance(param)
-	//log.Println(param, err)
 	return err
 }
 
@@ -201,8 +196,6 @@ func (n *nacosRegistry) GetService(name string, opts ...registry.GetOption) ([]*
 	}
 	services := make([]*registry.Service, 0)
 	for _, v := range service.Hosts {
-		//log.Printf("%+v\n", v)
-		// 跳过不正常的节点
 		if !v.Healthy || !v.Enable || v.Weight <= 0 {
 			continue
 		}

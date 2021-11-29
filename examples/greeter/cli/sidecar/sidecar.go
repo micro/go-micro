@@ -3,11 +3,11 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"github.com/golang/protobuf/proto"
-	hello "github.com/asim/go-micro/examples/v3/greeter/srv/proto/hello"
+	hello "github.com/asim/go-micro/examples/v4/greeter/srv/proto/hello"
 )
 
 func main() {
@@ -24,7 +24,7 @@ func main() {
 	}
 	defer r.Body.Close()
 
-	b, err := ioutil.ReadAll(r.Body)
+	b, err := io.ReadAll(r.Body)
 	if err != nil {
 		fmt.Println(err)
 		return

@@ -8,20 +8,18 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/status"
 
-	"github.com/asim/go-micro/v3"
-	"github.com/asim/go-micro/v3/broker"
-	"github.com/asim/go-micro/v3/client"
-	"github.com/asim/go-micro/v3/errors"
-	"github.com/asim/go-micro/v3/registry"
-	"github.com/asim/go-micro/v3/server"
-	"github.com/asim/go-micro/v3/transport"
+	"go-micro.dev/v4"
+	"go-micro.dev/v4/broker"
+	"go-micro.dev/v4/client"
+	"go-micro.dev/v4/errors"
+	"go-micro.dev/v4/registry"
+	"go-micro.dev/v4/server"
+	"go-micro.dev/v4/transport"
 
-	bmemory "github.com/asim/go-micro/plugins/broker/memory/v3"
-	gcli "github.com/asim/go-micro/plugins/client/grpc/v3"
-	rmemory "github.com/asim/go-micro/plugins/registry/memory/v3"
-	gsrv "github.com/asim/go-micro/plugins/server/grpc/v3"
-	pb "github.com/asim/go-micro/plugins/server/grpc/v3/proto"
-	tgrpc "github.com/asim/go-micro/plugins/transport/grpc/v3"
+	gcli "github.com/asim/go-micro/plugins/client/grpc/v4"
+	gsrv "github.com/asim/go-micro/plugins/server/grpc/v4"
+	pb "github.com/asim/go-micro/plugins/server/grpc/v4/proto"
+	tgrpc "github.com/asim/go-micro/plugins/transport/grpc/v4"
 )
 
 // server is used to implement helloworld.GreeterServer.
@@ -69,8 +67,8 @@ func (s *testServer) Call(ctx context.Context, req *pb.Request, rsp *pb.Response
 
 /*
 func BenchmarkServer(b *testing.B) {
-	r := rmemory.NewRegistry()
-	br := bmemory.NewBroker()
+	r := registry.NewMemoryRegistry()
+	br := broker.NewMemoryBroker()
 	tr := tgrpc.NewTransport()
 	s := gsrv.NewServer(
 		server.Broker(br),
@@ -197,8 +195,8 @@ func testGRPCServer(t *testing.T, s server.Server, c client.Client, r registry.R
 }
 
 func getTestHarness() (registry.Registry, broker.Broker, transport.Transport) {
-	r := rmemory.NewRegistry()
-	b := bmemory.NewBroker()
+	r := registry.NewMemoryRegistry()
+	b := broker.NewMemoryBroker()
 	tr := tgrpc.NewTransport()
 	return r, b, tr
 }

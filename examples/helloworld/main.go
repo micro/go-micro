@@ -4,8 +4,8 @@ import (
 	"context"
 	"log"
 
-	pb "github.com/asim/go-micro/examples/v3/helloworld/proto"
-	"github.com/asim/go-micro/v3"
+	pb "github.com/asim/go-micro/examples/v4/helloworld/proto"
+	"go-micro.dev/v4"
 )
 
 type Greeter struct{}

@@ -4,17 +4,11 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 
-	"github.com/asim/go-micro/v3/logger"
+	"go-micro.dev/v4/logger"
 )
 
 type Options struct {
 	logger.Options
-}
-
-type callerSkipKey struct{}
-
-func WithCallerSkip(i int) logger.Option {
-	return logger.SetOption(callerSkipKey{}, i)
 }
 
 type configKey struct{}
@@ -35,4 +29,10 @@ type namespaceKey struct{}
 
 func WithNamespace(namespace string) logger.Option {
 	return logger.SetOption(namespaceKey{}, namespace)
+}
+
+type optionsKey struct{}
+
+func WithOptions(opts ...zap.Option) logger.Option {
+	return logger.SetOption(optionsKey{}, opts)
 }

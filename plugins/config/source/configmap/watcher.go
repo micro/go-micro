@@ -4,11 +4,11 @@ import (
 	"errors"
 	"time"
 
-	"github.com/asim/go-micro/v3/config/source"
-	"k8s.io/client-go/1.5/kubernetes"
-	"k8s.io/client-go/1.5/pkg/api"
-	"k8s.io/client-go/1.5/pkg/fields"
-	"k8s.io/client-go/1.5/tools/cache"
+	"go-micro.dev/v4/config/source"
+	api "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/cache"
 )
 
 type watcher struct {
@@ -35,7 +35,7 @@ func newWatcher(n, ns string, c *kubernetes.Clientset, opts source.Options) (sou
 		stop:      make(chan struct{}),
 	}
 
-	lw := cache.NewListWatchFromClient(w.client.CoreClient.RESTClient, "configmaps", w.namespace, fields.OneTermEqualSelector("metadata.name", w.name))
+	lw := cache.NewListWatchFromClient(w.client.RESTClient(), "configmaps", w.namespace, fields.OneTermEqualSelector("metadata.name", w.name))
 	st, ct := cache.NewInformer(
 		lw,
 		&api.ConfigMap{},
@@ -47,7 +47,7 @@ func newWatcher(n, ns string, c *kubernetes.Clientset, opts source.Options) (sou
 
 	go ct.Run(w.stop)
 
-	w.ct = ct
+	w.ct = &ct
 	w.st = st
 
 	return w, nil

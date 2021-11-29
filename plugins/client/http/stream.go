@@ -5,13 +5,13 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"io/ioutil"
+	"io"
 	"net"
 	"net/http"
 	"net/url"
 	"sync"
 
-	"github.com/asim/go-micro/v3/client"
+	"go-micro.dev/v4/client"
 )
 
 // Implements the streamer interface
@@ -102,7 +102,7 @@ func (h *httpStream) Recv(msg interface{}) error {
 	}
 	defer rsp.Body.Close()
 
-	b, err := ioutil.ReadAll(rsp.Body)
+	b, err := io.ReadAll(rsp.Body)
 	if err != nil {
 		return err
 	}
@@ -118,6 +118,10 @@ func (h *httpStream) Error() error {
 	h.RLock()
 	defer h.RUnlock()
 	return h.err
+}
+
+func (h *httpStream) CloseSend() error {
+	return errors.New("streamer not implemented")
 }
 
 func (h *httpStream) Close() error {

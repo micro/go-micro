@@ -3,7 +3,7 @@ package nats
 import (
 	"context"
 
-	"github.com/asim/go-micro/v3/transport"
+	"go-micro.dev/v4/transport"
 	"github.com/nats-io/nats.go"
 )
 

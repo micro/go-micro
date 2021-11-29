@@ -4,10 +4,10 @@ import (
 	"context"
 	"log"
 
-	hello "github.com/asim/go-micro/examples/v3/greeter/srv/proto/hello"
-	"github.com/asim/go-micro/v3"
-	"github.com/asim/go-micro/v3/client"
-	"github.com/asim/go-micro/v3/registry"
+	hello "github.com/asim/go-micro/examples/v4/greeter/srv/proto/hello"
+	"go-micro.dev/v4"
+	"go-micro.dev/v4/client"
+	"go-micro.dev/v4/registry"
 )
 
 func main() {

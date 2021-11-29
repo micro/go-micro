@@ -2,16 +2,16 @@ package http
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"testing"
 
-	"github.com/asim/go-micro/plugins/registry/memory/v3"
-	"github.com/asim/go-micro/v3/server"
+	"go-micro.dev/v4/registry"
+	"go-micro.dev/v4/server"
 )
 
 func TestHTTPServer(t *testing.T) {
-	reg := memory.NewRegistry()
+	reg := registry.NewMemoryRegistry()
 
 	// create server
 	srv := NewServer(server.Registry(reg))
@@ -56,7 +56,7 @@ func TestHTTPServer(t *testing.T) {
 	}
 	defer rsp.Body.Close()
 
-	b, err := ioutil.ReadAll(rsp.Body)
+	b, err := io.ReadAll(rsp.Body)
 	if err != nil {
 		t.Fatal(err)
 	}

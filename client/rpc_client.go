@@ -6,18 +6,18 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/asim/go-micro/v3/broker"
-	"github.com/asim/go-micro/v3/codec"
-	raw "github.com/asim/go-micro/v3/codec/bytes"
-	"github.com/asim/go-micro/v3/errors"
-	"github.com/asim/go-micro/v3/metadata"
-	"github.com/asim/go-micro/v3/registry"
-	"github.com/asim/go-micro/v3/selector"
-	"github.com/asim/go-micro/v3/transport"
-	"github.com/asim/go-micro/v3/util/buf"
-	"github.com/asim/go-micro/v3/util/net"
-	"github.com/asim/go-micro/v3/util/pool"
 	"github.com/google/uuid"
+	"go-micro.dev/v4/broker"
+	"go-micro.dev/v4/codec"
+	raw "go-micro.dev/v4/codec/bytes"
+	"go-micro.dev/v4/errors"
+	"go-micro.dev/v4/metadata"
+	"go-micro.dev/v4/registry"
+	"go-micro.dev/v4/selector"
+	"go-micro.dev/v4/transport"
+	"go-micro.dev/v4/util/buf"
+	"go-micro.dev/v4/util/net"
+	"go-micro.dev/v4/util/pool"
 )
 
 type rpcClient struct {
@@ -60,7 +60,7 @@ func (r *rpcClient) newCodec(contentType string) (codec.NewCodec, error) {
 	if cf, ok := DefaultCodecs[contentType]; ok {
 		return cf, nil
 	}
-	return nil, fmt.Errorf("Unsupported Content-Type: %s", contentType)
+	return nil, fmt.Errorf("unsupported Content-Type: %s", contentType)
 }
 
 func (r *rpcClient) call(ctx context.Context, node *registry.Node, req Request, resp interface{}, opts CallOptions) error {

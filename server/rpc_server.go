@@ -12,17 +12,17 @@ import (
 	"sync"
 	"time"
 
-	"github.com/asim/go-micro/v3/broker"
-	"github.com/asim/go-micro/v3/codec"
-	raw "github.com/asim/go-micro/v3/codec/bytes"
-	"github.com/asim/go-micro/v3/logger"
-	"github.com/asim/go-micro/v3/metadata"
-	"github.com/asim/go-micro/v3/registry"
-	"github.com/asim/go-micro/v3/transport"
-	"github.com/asim/go-micro/v3/util/addr"
-	"github.com/asim/go-micro/v3/util/backoff"
-	mnet "github.com/asim/go-micro/v3/util/net"
-	"github.com/asim/go-micro/v3/util/socket"
+	"go-micro.dev/v4/broker"
+	"go-micro.dev/v4/codec"
+	raw "go-micro.dev/v4/codec/bytes"
+	"go-micro.dev/v4/logger"
+	"go-micro.dev/v4/metadata"
+	"go-micro.dev/v4/registry"
+	"go-micro.dev/v4/transport"
+	"go-micro.dev/v4/util/addr"
+	"go-micro.dev/v4/util/backoff"
+	mnet "go-micro.dev/v4/util/net"
+	"go-micro.dev/v4/util/socket"
 )
 
 type rpcServer struct {

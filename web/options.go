@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/asim/go-micro/v3"
-	"github.com/asim/go-micro/v3/registry"
 	"github.com/urfave/cli/v2"
+	"go-micro.dev/v4"
+	"go-micro.dev/v4/registry"
 )
 
 //Options for web
