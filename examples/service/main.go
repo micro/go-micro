@@ -6,6 +6,8 @@ import (
 
 	"context"
 
+	"github.com/JeffreyBool/go-micro"
+	"github.com/JeffreyBool/go-micro/config/source/cli"
 	proto "github.com/asim/go-micro/examples/v4/service/proto"
 	"go-micro.dev/v4"
 	"github.com/urfave/cli/v2"
@@ -70,6 +72,22 @@ func main() {
 				runClient(service)
 				os.Exit(0)
 			}
+			return nil
+		}),
+		micro.BeforeStart(func() error {
+			// Processing before service start
+			return nil
+		}),
+		micro.AfterStart(func() error {
+			// Processing after service start
+			return nil
+		}),
+		micro.BeforeStop(func() error {
+			// Processing before service stop
+			return nil
+		}),
+		micro.AfterStop(func() error {
+			// Processing after service stop
 			return nil
 		}),
 	)
