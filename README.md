@@ -58,7 +58,7 @@ import "go-micro.dev/v4"
 
 // create a new service
 service := micro.NewService(
-micro.Name("helloworld"),
+    micro.Name("helloworld"),
 )
 
 // initialise flags
