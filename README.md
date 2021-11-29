@@ -53,20 +53,35 @@ are pluggable and allows Go Micro to be runtime agnostic. You can plugin any und
 
 To make use of Go Micro
 
-```golang
+```go
 import "go-micro.dev/v4"
 
 // create a new service
 service := micro.NewService(
-    micro.Name("helloworld"),
+micro.Name("helloworld"),
 )
 
 // initialise flags
-service.Init()
+service.Init(
+    BeforeStart(func() error {
+        // Processing operations prior to service start.
+    }),
+    AfterStart(func() error {
+        // Handling operations after service start.
+    }),
+    micro.BeforeStop(func() error {
+        // Handling operations before service stoppage.
+    }),
+    micro.AfterStop(func() error {
+        // Handling operations after a service stop.
+    })
+)
 
 // start the service
 service.Run()
 ```
+
+For more startup configuration items please see [options](./options.go)
 
 See the [examples](https://github.com/micro/go-micro/tree/master/examples) for detailed information on usage.
 
