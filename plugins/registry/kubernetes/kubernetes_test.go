@@ -9,10 +9,10 @@ import (
 	"testing"
 	"time"
 
-	log "go-micro.dev/v4/logger"
-	"go-micro.dev/v4/registry"
 	"github.com/asim/go-micro/plugins/registry/kubernetes/v4/client"
 	"github.com/asim/go-micro/plugins/registry/kubernetes/v4/client/mock"
+	"go-micro.dev/v4/logger"
+	"go-micro.dev/v4/registry"
 )
 
 var (
@@ -58,7 +58,7 @@ func register(r registry.Registry, podName string, svc *registry.Service) {
 	})
 
 	if err := r.Register(svc); err != nil {
-		log.Fatalf("did not expect Register() to fail: %v", err)
+		logger.Fatalf("did not expect Register() to fail: %v", err)
 	}
 
 	os.Setenv("HOSTNAME", "")
@@ -379,8 +379,8 @@ func TestListServices(t *testing.T) {
 	r := setupRegistry()
 	defer teardownRegistry()
 
-	svc1 := &registry.Service{Name: "foo.service"}
-	svc2 := &registry.Service{Name: "bar.service"}
+	svc1 := &registry.Service{Name: "foo.service", Version: "1"}
+	svc2 := &registry.Service{Name: "bar.service", Version: "2"}
 
 	register(r, "pod-1", svc1)
 	register(r, "pod-2", svc2)
@@ -390,8 +390,8 @@ func TestListServices(t *testing.T) {
 		t.Fatalf("did not expect ListServices to fail %v", err)
 	}
 	if !hasServices(services, []*registry.Service{
-		{Name: "foo.service"},
-		{Name: "bar.service"},
+		{Name: "foo.service", Version: "1"},
+		{Name: "bar.service", Version: "2"},
 	}) {
 		t.Fatal("expected services to equal")
 	}
@@ -403,7 +403,7 @@ func TestListServices(t *testing.T) {
 		t.Fatalf("did not expect ListServices to fail %v", err)
 	}
 	if !hasServices(services2, []*registry.Service{
-		{Name: "bar.service"},
+		{Name: "bar.service", Version: "2"},
 	}) {
 		t.Fatal("expected services to equal")
 	}
@@ -427,7 +427,7 @@ func TestWatcher(t *testing.T) {
 
 	// check that service is blank
 	if _, err := r.GetService("foo.service"); err != registry.ErrNotFound {
-		log.Fatal("expected ErrNotFound")
+		logger.Fatal("expected ErrNotFound")
 	}
 
 	// setup svc

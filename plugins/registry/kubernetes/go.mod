@@ -2,7 +2,7 @@ module github.com/asim/go-micro/plugins/registry/kubernetes/v4
 
 go 1.17
 
-require go-micro.dev/v4 v4.2.1
+require go-micro.dev/v4 v4.4.0
 
 require (
 	github.com/Microsoft/go-winio v0.5.0 // indirect
