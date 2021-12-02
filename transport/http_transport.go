@@ -12,12 +12,13 @@ import (
 	"sync"
 	"time"
 
+	"golang.org/x/net/http2"
+	"golang.org/x/net/http2/h2c"
+
 	maddr "go-micro.dev/v4/util/addr"
 	"go-micro.dev/v4/util/buf"
 	mnet "go-micro.dev/v4/util/net"
 	mls "go-micro.dev/v4/util/tls"
-	"golang.org/x/net/http2"
-	"golang.org/x/net/http2/h2c"
 )
 
 type httpTransport struct {
@@ -34,9 +35,10 @@ type httpTransportClient struct {
 	sync.RWMutex
 
 	// request must be stored for response processing
-	r    chan *http.Request
-	bl   []*http.Request
-	buff *bufio.Reader
+	r      chan *http.Request
+	bl     []*http.Request
+	buff   *bufio.Reader
+	closed bool
 
 	// local/remote ip
 	local  string
@@ -137,7 +139,12 @@ func (h *httpTransportClient) Recv(m *Message) error {
 		h.conn.SetDeadline(time.Now().Add(h.ht.opts.Timeout))
 	}
 
+	h.Lock()
+	if h.closed {
+		return io.EOF
+	}
 	rsp, err := http.ReadResponse(h.buff, r)
+	h.Unlock()
 	if err != nil {
 		return err
 	}
@@ -173,6 +180,7 @@ func (h *httpTransportClient) Close() error {
 	h.once.Do(func() {
 		h.Lock()
 		h.buff.Reset(nil)
+		h.closed = true
 		h.Unlock()
 		close(h.r)
 	})

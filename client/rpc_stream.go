@@ -75,10 +75,10 @@ func (r *rpcStream) Send(msg interface{}) error {
 
 func (r *rpcStream) Recv(msg interface{}) error {
 	r.Lock()
-	defer r.Unlock()
 
 	if r.isClosed() {
 		r.err = errShutdown
+		r.Unlock()
 		return errShutdown
 	}
 
@@ -90,9 +90,12 @@ func (r *rpcStream) Recv(msg interface{}) error {
 	if err != nil {
 		if err == io.EOF && !r.isClosed() {
 			r.err = io.ErrUnexpectedEOF
+			r.Unlock()
 			return io.ErrUnexpectedEOF
 		}
 		r.err = err
+
+		r.Unlock()
 		return err
 	}
 
@@ -121,6 +124,7 @@ func (r *rpcStream) Recv(msg interface{}) error {
 		}
 	}
 
+	r.Unlock()
 	return r.err
 }
 
