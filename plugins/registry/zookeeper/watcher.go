@@ -4,8 +4,8 @@ import (
 	"errors"
 	"path"
 
-	"go-micro.dev/v4/registry"
 	"github.com/go-zookeeper/zk"
+	"go-micro.dev/v4/registry"
 )
 
 type zookeeperWatcher struct {
@@ -207,6 +207,14 @@ func (zw *zookeeperWatcher) Next() (*registry.Result, error) {
 }
 
 func (zw *zookeeperWatcher) overrideChildrenInfo(newChildren []string, parentPath string) {
+	// nodes were removed
+	if len(newChildren) == 0 {
+		zw.writeRespChan(&watchResponse{zk.Event{
+			Type: zk.EventNodeCreated,
+		}, nil, nil})
+		return
+	}
+
 	// override resp
 	var overrideResp *watchResponse
 

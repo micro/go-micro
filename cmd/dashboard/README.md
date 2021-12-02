@@ -1,7 +1,5 @@
 # Go Micro Dashboard
 
-Go micro dashboard is designed to make it as easy as possible for users to work with go-micro framework.
-
 ## Installation
 
 ```

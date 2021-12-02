@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/asim/go-micro/plugins/registry/kubernetes/v4/client"
-
 	"go-micro.dev/v4/cmd"
 	"go-micro.dev/v4/registry"
 )
@@ -140,7 +139,6 @@ func (c *kregistry) Register(s *registry.Service, opts ...registry.RegisterOptio
 	}
 
 	return nil
-
 }
 
 // Deregister nils out any things set in Register
@@ -231,8 +229,8 @@ func (c *kregistry) ListServices(opts ...registry.ListOption) ([]*registry.Servi
 		return nil, err
 	}
 
-	// svcs mapped by name
-	svcs := make(map[string]bool)
+	// svcs mapped by name+version
+	svcs := make(map[string]*registry.Service)
 
 	for _, pod := range pods.Items {
 		if pod.Status.Phase != podRunning || pod.Metadata.DeletionTimestamp != "" {
@@ -249,13 +247,18 @@ func (c *kregistry) ListServices(opts ...registry.ListOption) ([]*registry.Servi
 			if err := json.Unmarshal([]byte(*v), &svc); err != nil {
 				continue
 			}
-			svcs[svc.Name] = true
+			s, ok := svcs[svc.Name+svc.Version]
+			if !ok {
+				svcs[svc.Name+svc.Version] = &svc
+				continue
+			}
+			// append to service:version nodes
+			s.Nodes = append(s.Nodes, svc.Nodes...)
 		}
 	}
-
 	var list []*registry.Service
-	for val := range svcs {
-		list = append(list, &registry.Service{Name: val})
+	for _, s := range svcs {
+		list = append(list, s)
 	}
 	return list, nil
 }
