@@ -12,11 +12,12 @@ type getServiceListResponse struct {
 }
 
 type registryService struct {
-	Name      string             `json:"name" binding:"required"`
-	Version   string             `json:"version" binding:"required"`
-	Metadata  map[string]string  `json:"metadata,omitempty"`
-	Endpoints []registryEndpoint `json:"endpoints,omitempty"`
-	Nodes     []registryNode     `json:"nodes,omitempty"`
+	Name        string             `json:"name" binding:"required"`
+	Version     string             `json:"version" binding:"required"`
+	Metadata    map[string]string  `json:"metadata,omitempty"`
+	Handlers    []registryEndpoint `json:"handlers,omitempty"`
+	Subscribers []registryEndpoint `json:"subscribers,omitempty"`
+	Nodes       []registryNode     `json:"nodes,omitempty"`
 }
 
 type registryEndpoint struct {
@@ -42,8 +43,12 @@ type getServiceDetailResponse struct {
 	Services []registryService `json:"services"`
 }
 
-type getServiceEndpointsResponse struct {
-	Endpoints []registryEndpoint `json:"endpoints"`
+type getServiceHandlersResponse struct {
+	Handlers []registryEndpoint `json:"handlers"`
+}
+
+type getServiceSubscribersResponse struct {
+	Subscribers []registryEndpoint `json:"subscribers"`
 }
 
 func convertRegistryValue(v *registry.Value) registryValue {

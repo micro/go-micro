@@ -20,9 +20,10 @@ import (
 // internal instance of Config
 var _cfg *Config = &Config{
 	Server: ServerConfig{
+		Address: ":8082",
 		Auth: AuthConfig{
 			Username:        "admin",
-			Password:        "123456",
+			Password:        "micro",
 			TokenSecret:     "modifyme",
 			TokenExpiration: 24 * time.Hour,
 		},

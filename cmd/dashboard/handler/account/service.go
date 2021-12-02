@@ -16,12 +16,9 @@ func NewRouteRegistrar() route.Registrar {
 	return service{}
 }
 
-func (s service) RegisterAuthRoute(router gin.IRoutes) {
-	router.GET("/api/account/profile", s.Profile)
-}
-
-func (s service) RegisterNonAuthRoute(router gin.IRoutes) {
+func (s service) RegisterRoute(router gin.IRoutes) {
 	router.POST("/api/account/login", s.Login)
+	router.Use(route.AuthRequired()).GET("/api/account/profile", s.Profile)
 }
 
 type loginRequest struct {
