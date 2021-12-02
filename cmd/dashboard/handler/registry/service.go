@@ -17,13 +17,12 @@ func NewRouteRegistrar(registry registry.Registry) route.Registrar {
 	return service{registry: registry}
 }
 
-func (s service) RegisterAuthRoute(router gin.IRoutes) {
-	router.GET("/api/registry/services", s.GetServices)
-	router.GET("/api/registry/service", s.GetServiceDetail)
-	router.GET("/api/registry/service/endpoints", s.GetServiceEndpoints)
-}
-
-func (s service) RegisterNonAuthRoute(router gin.IRoutes) {
+func (s service) RegisterRoute(router gin.IRoutes) {
+	router.Use(route.AuthRequired()).
+		GET("/api/registry/services", s.GetServices).
+		GET("/api/registry/service", s.GetServiceDetail).
+		GET("/api/registry/service/handlers", s.GetServiceHandlers).
+		GET("/api/registry/service/subscribers", s.GetServiceSubscribers)
 }
 
 // @Security ApiKeyAuth
@@ -87,14 +86,23 @@ func (s *service) GetServiceDetail(ctx *gin.Context) {
 		if len(version) > 0 && s.Version != version {
 			continue
 		}
-		endpoints := make([]registryEndpoint, 0, len(s.Endpoints))
+		handlers := make([]registryEndpoint, 0)
+		subscribers := make([]registryEndpoint, 0)
 		for _, e := range s.Endpoints {
-			endpoints = append(endpoints, registryEndpoint{
-				Name:     e.Name,
-				Request:  convertRegistryValue(e.Request),
-				Response: convertRegistryValue(e.Response),
-				Metadata: e.Metadata,
-			})
+			if isSubscriber(e) {
+				subscribers = append(subscribers, registryEndpoint{
+					Name:     e.Metadata["topic"],
+					Request:  convertRegistryValue(e.Request),
+					Metadata: e.Metadata,
+				})
+			} else {
+				handlers = append(handlers, registryEndpoint{
+					Name:     e.Name,
+					Request:  convertRegistryValue(e.Request),
+					Response: convertRegistryValue(e.Response),
+					Metadata: e.Metadata,
+				})
+			}
 		}
 		nodes := make([]registryNode, 0, len(s.Nodes))
 		for _, n := range s.Nodes {
@@ -105,11 +113,12 @@ func (s *service) GetServiceDetail(ctx *gin.Context) {
 			})
 		}
 		resp.Services = append(resp.Services, registryService{
-			Name:      s.Name,
-			Version:   s.Version,
-			Metadata:  s.Metadata,
-			Endpoints: endpoints,
-			Nodes:     nodes,
+			Name:        s.Name,
+			Version:     s.Version,
+			Metadata:    s.Metadata,
+			Handlers:    handlers,
+			Subscribers: subscribers,
+			Nodes:       nodes,
 		})
 	}
 	ctx.JSON(200, resp)
@@ -117,15 +126,15 @@ func (s *service) GetServiceDetail(ctx *gin.Context) {
 
 // @Security ApiKeyAuth
 // @Tags Registry
-// @ID registry_getServiceEndpoints
+// @ID registry_getServiceHandlers
 // @Param 	name  	query 		string 						true "service name"
 // @Param 	version	query 		string	 					false "service version"
-// @Success 200 	{object}	getServiceEndpointsResponse
+// @Success 200 	{object}	getServiceHandlersResponse
 // @Failure 400 	{object}	string
 // @Failure 401 	{object}	string
 // @Failure 500		{object}	string
-// @Router /api/registry/service/endpoints [get]
-func (s *service) GetServiceEndpoints(ctx *gin.Context) {
+// @Router /api/registry/service/handlers [get]
+func (s *service) GetServiceHandlers(ctx *gin.Context) {
 	name := ctx.Query("name")
 	if len(name) == 0 {
 		ctx.Render(400, render.String{Format: "service name required"})
@@ -137,25 +146,76 @@ func (s *service) GetServiceEndpoints(ctx *gin.Context) {
 		return
 	}
 	version := ctx.Query("version")
-	resp := getServiceEndpointsResponse{}
+	resp := getServiceHandlersResponse{}
 	for _, s := range services {
 		if s.Version != version {
 			continue
 		}
-		endpoints := make([]registryEndpoint, 0, len(s.Endpoints))
+		handlers := make([]registryEndpoint, 0, len(s.Endpoints))
 		for _, e := range s.Endpoints {
-			if e.Name == "Func" {
+			if isSubscriber(e) {
 				continue
 			}
-			endpoints = append(endpoints, registryEndpoint{
-				Name:     e.Name,
-				Request:  convertRegistryValue(e.Request),
-				Response: convertRegistryValue(e.Response),
-				Metadata: e.Metadata,
+			handlers = append(handlers, registryEndpoint{
+				Name:    e.Name,
+				Request: convertRegistryValue(e.Request),
 			})
 		}
-		resp.Endpoints = endpoints
+		resp.Handlers = handlers
 		break
 	}
 	ctx.JSON(200, resp)
+}
+
+// @Security ApiKeyAuth
+// @Tags Registry
+// @ID registry_getServiceSubscribers
+// @Param 	name  	query 		string 						true "service name"
+// @Param 	version	query 		string	 					false "service version"
+// @Success 200 	{object}	getServiceSubscribersResponse
+// @Failure 400 	{object}	string
+// @Failure 401 	{object}	string
+// @Failure 500		{object}	string
+// @Router /api/registry/service/subscribers [get]
+func (s *service) GetServiceSubscribers(ctx *gin.Context) {
+	name := ctx.Query("name")
+	if len(name) == 0 {
+		ctx.Render(400, render.String{Format: "service name required"})
+		return
+	}
+	services, err := s.registry.GetService(name)
+	if err != nil {
+		ctx.Render(500, render.String{Format: err.Error()})
+		return
+	}
+	version := ctx.Query("version")
+	resp := getServiceSubscribersResponse{}
+	for _, s := range services {
+		if s.Version != version {
+			continue
+		}
+		subscribers := make([]registryEndpoint, 0, len(s.Endpoints))
+		for _, e := range s.Endpoints {
+			if !isSubscriber(e) {
+				continue
+			}
+			subscribers = append(subscribers, registryEndpoint{
+				Name:    e.Metadata["topic"],
+				Request: convertRegistryValue(e.Request),
+			})
+		}
+		resp.Subscribers = subscribers
+		break
+	}
+	ctx.JSON(200, resp)
+}
+
+func isSubscriber(ep *registry.Endpoint) bool {
+	if ep == nil || len(ep.Metadata) == 0 {
+		return false
+	}
+	if s, ok := ep.Metadata["subscriber"]; ok && s == "true" {
+		return true
+	}
+	return false
 }

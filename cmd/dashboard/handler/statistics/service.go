@@ -1,6 +1,7 @@
 package statistics
 
 import (
+	"github.com/asim/go-micro/cmd/dashboard/v4/config"
 	"github.com/asim/go-micro/cmd/dashboard/v4/handler/route"
 	"github.com/gin-gonic/gin"
 	"go-micro.dev/v4/registry"
@@ -14,11 +15,9 @@ func NewRouteRegistrar(registry registry.Registry) route.Registrar {
 	return service{registry: registry}
 }
 
-func (s service) RegisterAuthRoute(router gin.IRoutes) {
-	router.GET("/api/summary", s.GetSummary)
-}
-
-func (s service) RegisterNonAuthRoute(router gin.IRoutes) {
+func (s service) RegisterRoute(router gin.IRoutes) {
+	router.GET("/version", s.GetVersion)
+	router.Use(route.AuthRequired()).GET("/api/summary", s.GetSummary)
 }
 
 // @Security ApiKeyAuth
@@ -53,4 +52,11 @@ func (s *service) GetSummary(ctx *gin.Context) {
 		},
 	}
 	ctx.JSON(200, resp)
+}
+
+// @ID getVersion
+// @Success 200 	{object}	object
+// @Router /version [get]
+func (s *service) GetVersion(ctx *gin.Context) {
+	ctx.JSON(200, gin.H{"version": config.Version})
 }
