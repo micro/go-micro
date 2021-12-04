@@ -5,7 +5,7 @@ go 1.17
 require (
 	github.com/go-zookeeper/zk v1.0.2
 	github.com/mitchellh/hashstructure v1.1.0
-	go-micro.dev/v4 v4.2.1
+	go-micro.dev/v4 v4.4.0
 )
 
 require (

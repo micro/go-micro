@@ -9,19 +9,15 @@ import (
 	"go-micro.dev/v4/logger"
 )
 
-const (
-	Name    = "go.micro.dashboard"
-	Version = "1.0.0"
-)
-
 func main() {
 	if err := config.Load(); err != nil {
 		logger.Fatal(err)
 	}
 	srv := micro.NewService(micro.Server(mhttp.NewServer()))
 	opts := []micro.Option{
-		micro.Name(Name),
-		micro.Version(Version),
+		micro.Name(config.Name),
+		micro.Address(config.GetServerConfig().Address),
+		micro.Version(config.Version),
 	}
 	srv.Init(opts...)
 	gin.SetMode(gin.ReleaseMode)

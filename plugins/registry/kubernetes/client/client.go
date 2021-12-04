@@ -7,9 +7,9 @@ import (
 	"os"
 	"path"
 
-	log "go-micro.dev/v4/logger"
 	"github.com/asim/go-micro/plugins/registry/kubernetes/v4/client/api"
 	"github.com/asim/go-micro/plugins/registry/kubernetes/v4/client/watch"
+	"go-micro.dev/v4/logger"
 )
 
 var (
@@ -90,26 +90,26 @@ func NewClientInCluster() Kubernetes {
 
 	s, err := os.Stat(serviceAccountPath)
 	if err != nil {
-		log.Fatal(err)
+		logger.Fatal(err)
 	}
 	if s == nil || !s.IsDir() {
-		log.Fatal(errors.New("no k8s service account found"))
+		logger.Fatal(errors.New("no k8s service account found"))
 	}
 
 	token, err := os.ReadFile(path.Join(serviceAccountPath, "token"))
 	if err != nil {
-		log.Fatal(err)
+		logger.Fatal(err)
 	}
 	t := string(token)
 
 	ns, err := detectNamespace()
 	if err != nil {
-		log.Fatal(err)
+		logger.Fatal(err)
 	}
 
 	crt, err := CertPoolFromFile(path.Join(serviceAccountPath, "ca.crt"))
 	if err != nil {
-		log.Fatal(err)
+		logger.Fatal(err)
 	}
 
 	c := &http.Client{
