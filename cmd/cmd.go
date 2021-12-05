@@ -18,6 +18,7 @@ import (
 	"go-micro.dev/v4/debug/profile/pprof"
 	"go-micro.dev/v4/debug/trace"
 	"go-micro.dev/v4/logger"
+	sProfile "go-micro.dev/v4/profile"
 	"go-micro.dev/v4/registry"
 	"go-micro.dev/v4/runtime"
 	"go-micro.dev/v4/selector"
@@ -47,6 +48,12 @@ var (
 	DefaultCmd = newCmd()
 
 	DefaultFlags = []cli.Flag{
+		&cli.StringFlag{
+			Name:    "server_profile",
+			Aliases: []string{"p"},
+			Usage:   "Set the micro server profile: e.g. local or kubernetes",
+			EnvVars: []string{"MICRO_PROFILE"},
+		},
 		&cli.StringFlag{
 			Name:    "client",
 			EnvVars: []string{"MICRO_CLIENT"},
@@ -344,6 +351,22 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	// If flags are set then use them otherwise do nothing
 	var serverOpts []server.Option
 	var clientOpts []client.Option
+
+	// default the profile for the server
+	prof := ctx.String("server_profile")
+
+	// if no profile is set then set one
+	if len(prof) == 0 {
+		prof = "client"
+	}
+
+	// apply the profile
+	if p, err := sProfile.Load(prof); err != nil {
+		logger.Fatal(err)
+	} else {
+		// load the profile
+		p.Setup(ctx)
+	}
 
 	// Set the client
 	if name := ctx.String("client"); len(name) > 0 {
