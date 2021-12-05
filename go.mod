@@ -31,11 +31,16 @@ require (
 	github.com/urfave/cli/v2 v2.3.0
 	go.m3o.com v0.1.0
 	golang.org/x/crypto v0.0.0-20210513164829-c07d793c2f9a
-	golang.org/x/net v0.0.0-20210510120150-4163338589ed
+	golang.org/x/net v0.0.0-20211020060615-d418f374d309
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	google.golang.org/genproto v0.0.0-20200305110556-506484158171
-	google.golang.org/protobuf v1.26.0
+	google.golang.org/genproto v0.0.0-20211020151524-b7c3a969101a
+	google.golang.org/protobuf v1.27.1
 	gopkg.in/yaml.v2 v2.4.0
+)
+
+require (
+	github.com/asim/go-micro/plugins/client/grpc/v4 v4.0.0-20211204045202-229b36970209
+	github.com/asim/go-micro/plugins/server/grpc/v4 v4.0.0-20211204045202-229b36970209
 )
 
 require (
@@ -76,8 +81,9 @@ require (
 	github.com/xanzy/ssh-agent v0.3.0 // indirect
 	go.opencensus.io v0.22.3 // indirect
 	go.uber.org/atomic v1.4.0 // indirect
-	golang.org/x/sys v0.0.0-20210502180810-71e4cd670f79 // indirect
+	golang.org/x/sys v0.0.0-20210510120138-977fb7262007 // indirect
 	golang.org/x/text v0.3.6 // indirect
+	google.golang.org/grpc v1.42.0 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
