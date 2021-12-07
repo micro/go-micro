@@ -21,12 +21,15 @@ type MockResponse struct {
 	Error    error
 }
 
+type MockSubscriber func(client.Message) error
+
 type MockClient struct {
 	Client client.Client
 	Opts   client.Options
 
 	sync.Mutex
-	Response map[string][]MockResponse
+	Response   map[string][]MockResponse
+	Subscriber map[string]MockSubscriber
 }
 
 func (m *MockClient) Init(opts ...client.Option) error {
@@ -37,7 +40,7 @@ func (m *MockClient) Init(opts ...client.Option) error {
 		opt(&m.Opts)
 	}
 
-	r, ok := fromContext(m.Opts.Context)
+	r, ok := responseFromContext(m.Opts.Context)
 	if !ok {
 		r = make(map[string][]MockResponse)
 	}
@@ -121,11 +124,45 @@ func (m *MockClient) Stream(ctx context.Context, req client.Request, opts ...cli
 }
 
 func (m *MockClient) Publish(ctx context.Context, p client.Message, opts ...client.PublishOption) error {
+	m.Lock()
+	defer m.Unlock()
+
+	if s, ok := m.Subscriber[p.Topic()]; ok {
+		return s(p)
+	}
 	return nil
 }
 
 func (m *MockClient) String() string {
 	return "mock"
+}
+
+func (m *MockClient) SetResponse(service string, response MockResponse) {
+	m.Lock()
+	defer m.Unlock()
+
+	endpoints, ok := m.Response[service]
+	if !ok {
+		// new service
+		m.Response[service] = []MockResponse{response}
+		return
+	}
+	for i, r := range endpoints {
+		if r.Endpoint == response.Endpoint {
+			// update service endpoint
+			m.Response[service][i] = response
+			return
+		}
+	}
+	// add new endpoint for service
+	m.Response[service] = append(m.Response[service], response)
+}
+
+func (m *MockClient) SetSubscriber(topic string, subscriber MockSubscriber) {
+	m.Lock()
+	defer m.Unlock()
+
+	m.Subscriber[topic] = subscriber
 }
 
 func NewClient(opts ...client.Option) *MockClient {
@@ -137,14 +174,20 @@ func NewClient(opts ...client.Option) *MockClient {
 		opt(&options)
 	}
 
-	r, ok := fromContext(options.Context)
+	r, ok := responseFromContext(options.Context)
 	if !ok {
 		r = make(map[string][]MockResponse)
 	}
 
+	s, ok := subscriberFromContext(options.Context)
+	if !ok {
+		s = make(map[string]MockSubscriber)
+	}
+
 	return &MockClient{
-		Client:   client.DefaultClient,
-		Opts:     options,
-		Response: r,
+		Client:     client.DefaultClient,
+		Opts:       options,
+		Response:   r,
+		Subscriber: s,
 	}
 }
