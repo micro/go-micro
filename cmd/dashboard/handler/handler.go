@@ -31,7 +31,7 @@ func Register(opts Options) error {
 		registry.NewRouteRegistrar(opts.Client.Options().Registry),
 		statistics.NewRouteRegistrar(opts.Client.Options().Registry),
 	} {
-		r.RegisterRoute(router)
+		r.RegisterRoute(router.Group(""))
 	}
 	return nil
 }
