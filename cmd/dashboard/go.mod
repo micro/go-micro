@@ -3,25 +3,25 @@ module github.com/asim/go-micro/cmd/dashboard/v4
 go 1.17
 
 require (
-	github.com/asim/go-micro/plugins/broker/kafka/v4 v4.0.0-20211124174154-b25d744f5c51
+	github.com/asim/go-micro/plugins/broker/kafka/v4 v4.0.0-20211201082631-1e4dd94b71f1
 	github.com/asim/go-micro/plugins/broker/mqtt/v4 v4.0.0-20211201082631-1e4dd94b71f1
 	github.com/asim/go-micro/plugins/broker/nats/v4 v4.0.0-20211201082631-1e4dd94b71f1
 	github.com/asim/go-micro/plugins/broker/rabbitmq/v4 v4.0.0-20211201082631-1e4dd94b71f1
 	github.com/asim/go-micro/plugins/broker/redis/v4 v4.0.0-20211201082631-1e4dd94b71f1
-	github.com/asim/go-micro/plugins/client/grpc/v4 v4.0.0-20211201082631-1e4dd94b71f1
+	github.com/asim/go-micro/plugins/client/grpc/v4 v4.0.0-20211202051538-c0e0b2b22508
 	github.com/asim/go-micro/plugins/client/http/v4 v4.0.0-20211201082631-1e4dd94b71f1
 	github.com/asim/go-micro/plugins/client/mucp/v4 v4.0.0-20211201082631-1e4dd94b71f1
 	github.com/asim/go-micro/plugins/config/encoder/toml/v4 v4.0.0-20211201082631-1e4dd94b71f1
 	github.com/asim/go-micro/plugins/config/encoder/yaml/v4 v4.0.0-20211201082631-1e4dd94b71f1
 	github.com/asim/go-micro/plugins/registry/consul/v4 v4.0.0-20211201082631-1e4dd94b71f1
-	github.com/asim/go-micro/plugins/registry/etcd/v4 v4.0.0-20211124174154-b25d744f5c51
+	github.com/asim/go-micro/plugins/registry/etcd/v4 v4.0.0-20211202051538-c0e0b2b22508
 	github.com/asim/go-micro/plugins/registry/eureka/v4 v4.0.0-20211201082631-1e4dd94b71f1
 	github.com/asim/go-micro/plugins/registry/gossip/v4 v4.0.0-20211201082631-1e4dd94b71f1
-	github.com/asim/go-micro/plugins/registry/kubernetes/v4 v4.0.0-20211201082631-1e4dd94b71f1
+	github.com/asim/go-micro/plugins/registry/kubernetes/v4 v4.0.0-20211205115617-97f169c424fe
 	github.com/asim/go-micro/plugins/registry/nacos/v4 v4.0.0-20211201082631-1e4dd94b71f1
 	github.com/asim/go-micro/plugins/registry/nats/v4 v4.0.0-20211201082631-1e4dd94b71f1
-	github.com/asim/go-micro/plugins/registry/zookeeper/v4 v4.0.0-20211124174154-b25d744f5c51
-	github.com/asim/go-micro/plugins/server/http/v4 v4.0.0-20211124174154-b25d744f5c51
+	github.com/asim/go-micro/plugins/registry/zookeeper/v4 v4.0.0-20211201082631-1e4dd94b71f1
+	github.com/asim/go-micro/plugins/server/http/v4 v4.0.0-20211201082631-1e4dd94b71f1
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/gin-gonic/gin v1.7.7
 	github.com/pkg/errors v0.9.1
