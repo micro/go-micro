@@ -21,18 +21,26 @@ func TestRegister(t *testing.T) {
 }
 
 func TestDeregister(t *testing.T) {
-	t.Skip("not properly implemented")
+	service1 := registry.Service{Name: "test-deregister", Version: "v1"}
+	service2 := registry.Service{Name: "test-deregister", Version: "v2"}
 
-	service := registry.Service{Name: "test"}
-
-	assertNoError(t, e.registryOne.Register(&service))
-	assertNoError(t, e.registryOne.Deregister(&service))
-
-	services, err := e.registryOne.ListServices()
+	assertNoError(t, e.registryOne.Register(&service1))
+	services, err := e.registryOne.GetService(service1.Name)
 	assertNoError(t, err)
-	assertEqual(t, 0, len(services))
+	assertEqual(t, 1, len(services))
 
-	services, err = e.registryTwo.ListServices()
+	assertNoError(t, e.registryOne.Register(&service2))
+	services, err = e.registryOne.GetService(service2.Name)
+	assertNoError(t, err)
+	assertEqual(t, 2, len(services))
+
+	assertNoError(t, e.registryOne.Deregister(&service1))
+	services, err = e.registryOne.GetService(service1.Name)
+	assertNoError(t, err)
+	assertEqual(t, 1, len(services))
+
+	assertNoError(t, e.registryOne.Deregister(&service2))
+	services, err = e.registryOne.GetService(service1.Name)
 	assertNoError(t, err)
 	assertEqual(t, 0, len(services))
 }

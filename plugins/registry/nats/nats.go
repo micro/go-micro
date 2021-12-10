@@ -8,9 +8,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/nats-io/nats.go"
 	"go-micro.dev/v4/cmd"
 	"go-micro.dev/v4/registry"
-	"github.com/nats-io/nats.go"
 )
 
 type natsRegistry struct {
@@ -81,6 +81,7 @@ func configure(n *natsRegistry, opts ...registry.Option) error {
 
 	return nil
 }
+
 func setAddrs(addrs []string) []string {
 	var cAddrs []string
 	for _, addr := range addrs {
@@ -205,8 +206,7 @@ func (n *natsRegistry) deregister(s *registry.Service) error {
 	n.Lock()
 	defer n.Unlock()
 
-	// cache leftover service
-	services := addServices(n.services[s.Name], cp([]*registry.Service{s}))
+	services := delServices(n.services[s.Name], cp([]*registry.Service{s}))
 	if len(services) > 0 {
 		n.services[s.Name] = services
 		return nil

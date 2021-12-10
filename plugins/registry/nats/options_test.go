@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"go-micro.dev/v4/registry"
 	"github.com/nats-io/nats.go"
+	"go-micro.dev/v4/registry"
 )
 
 var addrTestCases = []struct {
@@ -35,7 +35,8 @@ var addrTestCases = []struct {
 		"default",
 		"check if default Address is set correctly",
 		map[string]string{
-			"nats://localhost:4222": ""},
+			nats.DefaultURL: "",
+		},
 	},
 }
 
@@ -73,6 +74,8 @@ func TestInitAddrs(t *testing.T) {
 			}
 			// check if the same amount of addrs we set has actually been set
 			if len(natsRegistry.addrs) != len(tc.addrs) {
+				t.Errorf("Expected Addr = %v, Actual Addr = %v",
+					natsRegistry.addrs, tc.addrs)
 				t.Errorf("Expected Addr count = %d, Actual Addr count = %d",
 					len(natsRegistry.addrs), len(tc.addrs))
 			}
@@ -80,6 +83,8 @@ func TestInitAddrs(t *testing.T) {
 			for _, addr := range natsRegistry.addrs {
 				_, ok := tc.addrs[addr]
 				if !ok {
+					t.Errorf("Expected Addr = %v, Actual Addr = %v",
+						natsRegistry.addrs, tc.addrs)
 					t.Errorf("Expected '%s' has not been set", addr)
 				}
 			}
