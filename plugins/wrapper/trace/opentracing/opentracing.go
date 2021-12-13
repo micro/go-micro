@@ -7,12 +7,12 @@ import (
 	"context"
 	"strings"
 
+	opentracing "github.com/opentracing/opentracing-go"
+	opentracinglog "github.com/opentracing/opentracing-go/log"
 	"go-micro.dev/v4/client"
 	"go-micro.dev/v4/metadata"
 	"go-micro.dev/v4/registry"
 	"go-micro.dev/v4/server"
-	opentracing "github.com/opentracing/opentracing-go"
-	opentracinglog "github.com/opentracing/opentracing-go/log"
 )
 
 type otWrapper struct {
@@ -122,6 +122,28 @@ func NewCallWrapper(ot opentracing.Tracer) client.CallWrapper {
 			}
 			defer span.Finish()
 			if err = cf(ctx, node, req, rsp, opts); err != nil {
+				span.LogFields(opentracinglog.String("error", err.Error()))
+				span.SetTag("error", true)
+			}
+			return err
+		}
+	}
+}
+
+// NewPublishWrapper accepts an opentracing Tracer and returns a Publish Wrapper
+func NewPublishWrapper(ot opentracing.Tracer) client.PublishWrapper {
+	return func(pf client.PublishFunc) client.PublishFunc {
+		return func(ctx context.Context, msg client.Message, opts ...client.PublishOption) error {
+			if ot == nil {
+				ot = opentracing.GlobalTracer()
+			}
+			name := fmt.Sprintf("Pub to %s", msg.Topic())
+			ctx, span, err := StartSpanFromContext(ctx, ot, name)
+			if err != nil {
+				return err
+			}
+			defer span.Finish()
+			if err = pf(ctx, msg, opts...); err != nil {
 				span.LogFields(opentracinglog.String("error", err.Error()))
 				span.SetTag("error", true)
 			}
