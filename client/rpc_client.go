@@ -561,72 +561,84 @@ func (r *rpcClient) Stream(ctx context.Context, request Request, opts ...CallOpt
 }
 
 func (r *rpcClient) Publish(ctx context.Context, msg Message, opts ...PublishOption) error {
-	options := PublishOptions{
-		Context: context.Background(),
-	}
+	options := r.opts.PublishOptions
 	for _, o := range opts {
 		o(&options)
 	}
 
-	md, ok := metadata.FromContext(ctx)
-	if !ok {
-		md = make(map[string]string)
-	}
+	publish := func(ctx context.Context, msg Message, opts ...PublishOption) error {
+		options := r.opts.PublishOptions
+		for _, o := range opts {
+			o(&options)
+		}
 
-	id := uuid.New().String()
-	md["Content-Type"] = msg.ContentType()
-	md["Micro-Topic"] = msg.Topic()
-	md["Micro-Id"] = id
+		md, ok := metadata.FromContext(ctx)
+		if !ok {
+			md = make(map[string]string)
+		}
 
-	// set the topic
-	topic := msg.Topic()
+		id := uuid.New().String()
+		md["Content-Type"] = msg.ContentType()
+		md["Micro-Topic"] = msg.Topic()
+		md["Micro-Id"] = id
 
-	// get the exchange
-	if len(options.Exchange) > 0 {
-		topic = options.Exchange
-	}
+		// set the topic
+		topic := msg.Topic()
 
-	// encode message body
-	cf, err := r.newCodec(msg.ContentType())
-	if err != nil {
-		return errors.InternalServerError("go.micro.client", err.Error())
-	}
+		// get the exchange
+		if len(options.Exchange) > 0 {
+			topic = options.Exchange
+		}
 
-	var body []byte
-
-	// passed in raw data
-	if d, ok := msg.Payload().(*raw.Frame); ok {
-		body = d.Data
-	} else {
-		// new buffer
-		b := buf.New(nil)
-
-		if err := cf(b).Write(&codec.Message{
-			Target: topic,
-			Type:   codec.Event,
-			Header: map[string]string{
-				"Micro-Id":    id,
-				"Micro-Topic": msg.Topic(),
-			},
-		}, msg.Payload()); err != nil {
+		// encode message body
+		cf, err := r.newCodec(msg.ContentType())
+		if err != nil {
 			return errors.InternalServerError("go.micro.client", err.Error())
 		}
 
-		// set the body
-		body = b.Bytes()
-	}
+		var body []byte
 
-	if !r.once.Load().(bool) {
-		if err = r.opts.Broker.Connect(); err != nil {
-			return errors.InternalServerError("go.micro.client", err.Error())
+		// passed in raw data
+		if d, ok := msg.Payload().(*raw.Frame); ok {
+			body = d.Data
+		} else {
+			// new buffer
+			b := buf.New(nil)
+
+			if err := cf(b).Write(&codec.Message{
+				Target: topic,
+				Type:   codec.Event,
+				Header: map[string]string{
+					"Micro-Id":    id,
+					"Micro-Topic": msg.Topic(),
+				},
+			}, msg.Payload()); err != nil {
+				return errors.InternalServerError("go.micro.client", err.Error())
+			}
+
+			// set the body
+			body = b.Bytes()
 		}
-		r.once.Store(true)
+
+		if !r.once.Load().(bool) {
+			if err = r.opts.Broker.Connect(); err != nil {
+				return errors.InternalServerError("go.micro.client", err.Error())
+			}
+			r.once.Store(true)
+		}
+
+		return r.opts.Broker.Publish(topic, &broker.Message{
+			Header: md,
+			Body:   body,
+		}, broker.PublishContext(options.Context))
 	}
 
-	return r.opts.Broker.Publish(topic, &broker.Message{
-		Header: md,
-		Body:   body,
-	}, broker.PublishContext(options.Context))
+	// wrap the call in reverse
+	for i := len(options.PublishWrappers); i > 0; i-- {
+		publish = options.PublishWrappers[i-1](publish)
+	}
+
+	return publish(ctx, msg, opts...)
 }
 
 func (r *rpcClient) NewMessage(topic string, message interface{}, opts ...MessageOption) Message {

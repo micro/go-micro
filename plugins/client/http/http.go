@@ -420,58 +420,69 @@ func (h *httpClient) Stream(ctx context.Context, req client.Request, opts ...cli
 }
 
 func (h *httpClient) Publish(ctx context.Context, p client.Message, opts ...client.PublishOption) error {
-	options := client.PublishOptions{
-		Context: context.Background(),
-	}
+	options := h.opts.PublishOptions
 	for _, o := range opts {
 		o(&options)
 	}
 
-	md, ok := metadata.FromContext(ctx)
-	if !ok {
-		md = make(map[string]string)
-	}
-	md["Content-Type"] = p.ContentType()
-	md["Micro-Topic"] = p.Topic()
+	publish := func(ctx context.Context, p client.Message, opts ...client.PublishOption) error {
+		options := h.opts.PublishOptions
+		for _, o := range opts {
+			o(&options)
+		}
+		md, ok := metadata.FromContext(ctx)
+		if !ok {
+			md = make(map[string]string)
+		}
+		md["Content-Type"] = p.ContentType()
+		md["Micro-Topic"] = p.Topic()
 
-	cf, err := h.newCodec(p.ContentType())
-	if err != nil {
-		return errors.InternalServerError("go.micro.client", err.Error())
-	}
-
-	var body []byte
-
-	// passed in raw data
-	if d, ok := p.Payload().(*raw.Frame); ok {
-		body = d.Data
-	} else {
-		b := &buffer{bytes.NewBuffer(nil)}
-		if err := cf(b).Write(&codec.Message{Type: codec.Event}, p.Payload()); err != nil {
+		cf, err := h.newCodec(p.ContentType())
+		if err != nil {
 			return errors.InternalServerError("go.micro.client", err.Error())
 		}
-		body = b.Bytes()
+
+		var body []byte
+
+		// passed in raw data
+		if d, ok := p.Payload().(*raw.Frame); ok {
+			body = d.Data
+		} else {
+			b := &buffer{bytes.NewBuffer(nil)}
+			if err := cf(b).Write(&codec.Message{Type: codec.Event}, p.Payload()); err != nil {
+				return errors.InternalServerError("go.micro.client", err.Error())
+			}
+			body = b.Bytes()
+		}
+
+		h.once.Do(func() {
+			h.opts.Broker.Connect()
+		})
+
+		topic := p.Topic()
+
+		// get proxy
+		if prx := os.Getenv("MICRO_PROXY"); len(prx) > 0 {
+			options.Exchange = prx
+		}
+
+		// get the exchange
+		if len(options.Exchange) > 0 {
+			topic = options.Exchange
+		}
+
+		return h.opts.Broker.Publish(topic, &broker.Message{
+			Header: md,
+			Body:   body,
+		})
 	}
 
-	h.once.Do(func() {
-		h.opts.Broker.Connect()
-	})
-
-	topic := p.Topic()
-
-	// get proxy
-	if prx := os.Getenv("MICRO_PROXY"); len(prx) > 0 {
-		options.Exchange = prx
+	// wrap the call in reverse
+	for i := len(options.PublishWrappers); i > 0; i-- {
+		publish = options.PublishWrappers[i-1](publish)
 	}
 
-	// get the exchange
-	if len(options.Exchange) > 0 {
-		topic = options.Exchange
-	}
-
-	return h.opts.Broker.Publish(topic, &broker.Message{
-		Header: md,
-		Body:   body,
-	})
+	return publish(ctx, p, opts...)
 }
 
 func (h *httpClient) String() string {

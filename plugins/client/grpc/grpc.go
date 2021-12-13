@@ -598,55 +598,68 @@ func (g *grpcClient) Stream(ctx context.Context, req client.Request, opts ...cli
 }
 
 func (g *grpcClient) Publish(ctx context.Context, p client.Message, opts ...client.PublishOption) error {
-	var options client.PublishOptions
+	options := g.opts.PublishOptions
 	for _, o := range opts {
 		o(&options)
 	}
 
-	md, ok := metadata.FromContext(ctx)
-	if !ok {
-		md = make(map[string]string)
-	}
-	md["Content-Type"] = p.ContentType()
-	md["Micro-Topic"] = p.Topic()
+	publish := func(ctx context.Context, p client.Message, opts ...client.PublishOption) error {
+		options := g.opts.PublishOptions
+		for _, o := range opts {
+			o(&options)
+		}
+		md, ok := metadata.FromContext(ctx)
+		if !ok {
+			md = make(map[string]string)
+		}
+		md["Content-Type"] = p.ContentType()
+		md["Micro-Topic"] = p.Topic()
 
-	cf, err := g.newGRPCCodec(p.ContentType())
-	if err != nil {
-		return errors.InternalServerError("go.micro.client", err.Error())
-	}
-
-	var body []byte
-
-	// passed in raw data
-	if d, ok := p.Payload().(*raw.Frame); ok {
-		body = d.Data
-	} else {
-		// set the body
-		b, err := cf.Marshal(p.Payload())
+		cf, err := g.newGRPCCodec(p.ContentType())
 		if err != nil {
 			return errors.InternalServerError("go.micro.client", err.Error())
 		}
-		body = b
-	}
 
-	if !g.once.Load().(bool) {
-		if err = g.opts.Broker.Connect(); err != nil {
-			return errors.InternalServerError("go.micro.client", err.Error())
+		var body []byte
+
+		// passed in raw data
+		if d, ok := p.Payload().(*raw.Frame); ok {
+			body = d.Data
+		} else {
+			// set the body
+			b, err := cf.Marshal(p.Payload())
+			if err != nil {
+				return errors.InternalServerError("go.micro.client", err.Error())
+			}
+			body = b
 		}
-		g.once.Store(true)
+
+		if !g.once.Load().(bool) {
+			if err = g.opts.Broker.Connect(); err != nil {
+				return errors.InternalServerError("go.micro.client", err.Error())
+			}
+			g.once.Store(true)
+		}
+
+		topic := p.Topic()
+
+		// get the exchange
+		if len(options.Exchange) > 0 {
+			topic = options.Exchange
+		}
+
+		return g.opts.Broker.Publish(topic, &broker.Message{
+			Header: md,
+			Body:   body,
+		}, broker.PublishContext(options.Context))
 	}
 
-	topic := p.Topic()
-
-	// get the exchange
-	if len(options.Exchange) > 0 {
-		topic = options.Exchange
+	// wrap the call in reverse
+	for i := len(options.PublishWrappers); i > 0; i-- {
+		publish = options.PublishWrappers[i-1](publish)
 	}
 
-	return g.opts.Broker.Publish(topic, &broker.Message{
-		Header: md,
-		Body:   body,
-	}, broker.PublishContext(options.Context))
+	return publish(ctx, p, opts...)
 }
 
 func (g *grpcClient) String() string {

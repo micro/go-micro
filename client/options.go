@@ -38,6 +38,9 @@ type Options struct {
 	// Default Call Options
 	CallOptions CallOptions
 
+	// Default Publish Options
+	PublishOptions PublishOptions
+
 	// Other options for implementations of the interface
 	// can be stored in a context
 	Context context.Context
@@ -76,6 +79,8 @@ type CallOptions struct {
 type PublishOptions struct {
 	// Exchange is the routing exchange for the message
 	Exchange string
+	// Middleware for low level publish func
+	PublishWrappers []PublishWrapper
 	// Other options for implementations of the interface
 	// can be stored in a context
 	Context context.Context
@@ -191,6 +196,13 @@ func Wrap(w Wrapper) Option {
 func WrapCall(cw ...CallWrapper) Option {
 	return func(o *Options) {
 		o.CallOptions.CallWrappers = append(o.CallOptions.CallWrappers, cw...)
+	}
+}
+
+// Adds a Wrapper to the list of PublishFunc wrappers
+func WrapPublish(cw ...PublishWrapper) Option {
+	return func(o *Options) {
+		o.PublishOptions.PublishWrappers = append(o.PublishOptions.PublishWrappers, cw...)
 	}
 }
 
