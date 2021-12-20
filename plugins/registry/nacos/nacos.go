@@ -1,6 +1,7 @@
 package nacos
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net"
@@ -27,7 +28,9 @@ func init() {
 // NewRegistry NewRegistry
 func NewRegistry(opts ...registry.Option) registry.Registry {
 	n := &nacosRegistry{
-		opts: registry.Options{},
+		opts: registry.Options{
+			Context: context.Background(),
+		},
 	}
 	if err := configure(n, opts...); err != nil {
 		panic(err)
