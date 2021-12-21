@@ -18,20 +18,26 @@ type PostcodeService struct {
 
 // Lookup a postcode to retrieve the related region, county, etc
 func (t *PostcodeService) Lookup(request *LookupRequest) (*LookupResponse, error) {
+
 	rsp := &LookupResponse{}
 	return rsp, t.client.Call("postcode", "Lookup", request, rsp)
+
 }
 
 // Return a random postcode and its related info
 func (t *PostcodeService) Random(request *RandomRequest) (*RandomResponse, error) {
+
 	rsp := &RandomResponse{}
 	return rsp, t.client.Call("postcode", "Random", request, rsp)
+
 }
 
 // Validate a postcode.
 func (t *PostcodeService) Validate(request *ValidateRequest) (*ValidateResponse, error) {
+
 	rsp := &ValidateResponse{}
 	return rsp, t.client.Call("postcode", "Validate", request, rsp)
+
 }
 
 type LookupRequest struct {

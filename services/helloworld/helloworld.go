@@ -18,14 +18,34 @@ type HelloworldService struct {
 
 // Call returns a personalised "Hello $name" response
 func (t *HelloworldService) Call(request *CallRequest) (*CallResponse, error) {
+
 	rsp := &CallResponse{}
 	return rsp, t.client.Call("helloworld", "Call", request, rsp)
+
 }
 
 // Stream returns a stream of "Hello $name" responses
-func (t *HelloworldService) Stream(request *StreamRequest) (*StreamResponse, error) {
-	rsp := &StreamResponse{}
-	return rsp, t.client.Call("helloworld", "Stream", request, rsp)
+func (t *HelloworldService) Stream(request *StreamRequest) (*StreamResponseStream, error) {
+	stream, err := t.client.Stream("helloworld", "Stream", request)
+	if err != nil {
+		return nil, err
+	}
+	return &StreamResponseStream{
+		stream: stream,
+	}, nil
+
+}
+
+type StreamResponseStream struct {
+	stream *client.Stream
+}
+
+func (t *StreamResponseStream) Recv() (*StreamResponse, error) {
+	var rsp StreamResponse
+	if err := t.stream.Recv(&rsp); err != nil {
+		return nil, err
+	}
+	return &rsp, nil
 }
 
 type CallRequest struct {

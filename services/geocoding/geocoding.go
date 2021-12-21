@@ -18,21 +18,25 @@ type GeocodingService struct {
 
 // Lookup returns a geocoded address including normalized address and gps coordinates. All fields are optional, provide more to get more accurate results
 func (t *GeocodingService) Lookup(request *LookupRequest) (*LookupResponse, error) {
+
 	rsp := &LookupResponse{}
 	return rsp, t.client.Call("geocoding", "Lookup", request, rsp)
+
 }
 
 // Reverse lookup an address from gps coordinates
 func (t *GeocodingService) Reverse(request *ReverseRequest) (*ReverseResponse, error) {
+
 	rsp := &ReverseResponse{}
 	return rsp, t.client.Call("geocoding", "Reverse", request, rsp)
+
 }
 
 type Address struct {
 	City     string `json:"city"`
 	Country  string `json:"country"`
-	LineOne  string `json:"lineOne"`
-	LineTwo  string `json:"lineTwo"`
+	LineOne  string `json:"line_one"`
+	LineTwo  string `json:"line_two"`
 	Postcode string `json:"postcode"`
 }
 

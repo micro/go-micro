@@ -18,20 +18,26 @@ type RoutingService struct {
 
 // Turn by turn directions from a start point to an end point including maneuvers and bearings
 func (t *RoutingService) Directions(request *DirectionsRequest) (*DirectionsResponse, error) {
+
 	rsp := &DirectionsResponse{}
 	return rsp, t.client.Call("routing", "Directions", request, rsp)
+
 }
 
 // Get the eta for a route from origin to destination. The eta is an estimated time based on car routes
 func (t *RoutingService) Eta(request *EtaRequest) (*EtaResponse, error) {
+
 	rsp := &EtaResponse{}
 	return rsp, t.client.Call("routing", "Eta", request, rsp)
+
 }
 
 // Retrieve a route as a simple list of gps points along with total distance and estimated duration
 func (t *RoutingService) Route(request *RouteRequest) (*RouteResponse, error) {
+
 	rsp := &RouteResponse{}
 	return rsp, t.client.Call("routing", "Route", request, rsp)
+
 }
 
 type Direction struct {
@@ -92,8 +98,8 @@ type Intersection struct {
 
 type Maneuver struct {
 	Action        string  `json:"action"`
-	BearingAfter  float64 `json:"bearingAfter"`
-	BearingBefore float64 `json:"bearingBefore"`
+	BearingAfter  float64 `json:"bearing_after"`
+	BearingBefore float64 `json:"bearing_before"`
 	Direction     string  `json:"direction"`
 	Location      *Point  `json:"location"`
 }

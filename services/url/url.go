@@ -16,27 +16,33 @@ type UrlService struct {
 	client *client.Client
 }
 
-// List information on all the shortened URLs that you have created
+// List all the shortened URLs
 func (t *UrlService) List(request *ListRequest) (*ListResponse, error) {
+
 	rsp := &ListResponse{}
 	return rsp, t.client.Call("url", "List", request, rsp)
+
 }
 
 // Proxy returns the destination URL of a short URL.
 func (t *UrlService) Proxy(request *ProxyRequest) (*ProxyResponse, error) {
+
 	rsp := &ProxyResponse{}
 	return rsp, t.client.Call("url", "Proxy", request, rsp)
+
 }
 
-// Shortens a destination URL and returns a full short URL.
+// Shorten a long URL
 func (t *UrlService) Shorten(request *ShortenRequest) (*ShortenResponse, error) {
+
 	rsp := &ShortenResponse{}
 	return rsp, t.client.Call("url", "Shorten", request, rsp)
+
 }
 
 type ListRequest struct {
 	// filter by short URL, optional
-	ShortUrl string `json:"shortUrl"`
+	ShortUrl string `json:"shortURL"`
 }
 
 type ListResponse struct {
@@ -46,28 +52,28 @@ type ListResponse struct {
 type ProxyRequest struct {
 	// short url ID, without the domain, eg. if your short URL is
 	// `m3o.one/u/someshorturlid` then pass in `someshorturlid`
-	ShortUrl string `json:"shortUrl"`
+	ShortUrl string `json:"shortURL"`
 }
 
 type ProxyResponse struct {
-	DestinationUrl string `json:"destinationUrl"`
+	DestinationUrl string `json:"destinationURL"`
 }
 
 type ShortenRequest struct {
-	DestinationUrl string `json:"destinationUrl"`
+	// the url to shorten
+	DestinationUrl string `json:"destinationURL"`
 }
 
 type ShortenResponse struct {
-	ShortUrl string `json:"shortUrl"`
+	// the shortened url
+	ShortUrl string `json:"shortURL"`
 }
 
 type URLPair struct {
-	Created        int64  `json:"created,string"`
-	DestinationUrl string `json:"destinationUrl"`
-	// HitCount keeps track many times the short URL has been resolved.
-	// Hitcount only gets saved to disk (database) after every 10th hit, so
-	// its not intended to be 100% accurate, more like an almost correct estimate.
-	HitCount int64  `json:"hitCount,string"`
-	Owner    string `json:"owner"`
-	ShortUrl string `json:"shortUrl"`
+	// time of creation
+	Created string `json:"created"`
+	// destination url
+	DestinationUrl string `json:"destinationURL"`
+	// shortened url
+	ShortUrl string `json:"shortURL"`
 }

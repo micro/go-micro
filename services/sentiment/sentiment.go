@@ -18,8 +18,10 @@ type SentimentService struct {
 
 // Analyze and score a piece of text
 func (t *SentimentService) Analyze(request *AnalyzeRequest) (*AnalyzeResponse, error) {
+
 	rsp := &AnalyzeResponse{}
 	return rsp, t.client.Call("sentiment", "Analyze", request, rsp)
+
 }
 
 type AnalyzeRequest struct {

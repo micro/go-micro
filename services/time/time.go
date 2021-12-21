@@ -18,14 +18,18 @@ type TimeService struct {
 
 // Get the current time
 func (t *TimeService) Now(request *NowRequest) (*NowResponse, error) {
+
 	rsp := &NowResponse{}
 	return rsp, t.client.Call("time", "Now", request, rsp)
+
 }
 
 // Get the timezone info for a specific location
 func (t *TimeService) Zone(request *ZoneRequest) (*ZoneResponse, error) {
+
 	rsp := &ZoneResponse{}
 	return rsp, t.client.Call("time", "Zone", request, rsp)
+
 }
 
 type NowRequest struct {

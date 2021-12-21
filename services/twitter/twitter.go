@@ -18,31 +18,39 @@ type TwitterService struct {
 
 // Search for tweets with a simple query
 func (t *TwitterService) Search(request *SearchRequest) (*SearchResponse, error) {
+
 	rsp := &SearchResponse{}
 	return rsp, t.client.Call("twitter", "Search", request, rsp)
+
 }
 
 // Get the timeline for a given user
 func (t *TwitterService) Timeline(request *TimelineRequest) (*TimelineResponse, error) {
+
 	rsp := &TimelineResponse{}
 	return rsp, t.client.Call("twitter", "Timeline", request, rsp)
+
 }
 
 // Get the current global trending topics
 func (t *TwitterService) Trends(request *TrendsRequest) (*TrendsResponse, error) {
+
 	rsp := &TrendsResponse{}
 	return rsp, t.client.Call("twitter", "Trends", request, rsp)
+
 }
 
 // Get a user's twitter profile
 func (t *TwitterService) User(request *UserRequest) (*UserResponse, error) {
+
 	rsp := &UserResponse{}
 	return rsp, t.client.Call("twitter", "User", request, rsp)
+
 }
 
 type Profile struct {
 	// the account creation date
-	CreatedAt string `json:"createdAt"`
+	CreatedAt string `json:"created_at"`
 	// the user description
 	Description string `json:"description"`
 	// the follower count
@@ -50,7 +58,7 @@ type Profile struct {
 	// the user id
 	Id int64 `json:"id,string"`
 	// The user's profile picture
-	ImageUrl string `json:"imageUrl"`
+	ImageUrl string `json:"image_url"`
 	// the user's location
 	Location string `json:"location"`
 	// display name of the user
@@ -91,7 +99,7 @@ type Trend struct {
 	// name of the trend
 	Name string `json:"name"`
 	// the volume of tweets in last 24 hours
-	TweetVolume int64 `json:"tweetVolume,string"`
+	TweetVolume int64 `json:"tweet_volume,string"`
 	// the twitter url
 	Url string `json:"url"`
 }
@@ -106,13 +114,13 @@ type TrendsResponse struct {
 
 type Tweet struct {
 	// time of tweet
-	CreatedAt string `json:"createdAt"`
+	CreatedAt string `json:"created_at"`
 	// number of times favourited
-	FavouritedCount int64 `json:"favouritedCount,string"`
+	FavouritedCount int64 `json:"favourited_count,string"`
 	// id of the tweet
 	Id int64 `json:"id,string"`
 	// number of times retweeted
-	RetweetedCount int64 `json:"retweetedCount,string"`
+	RetweetedCount int64 `json:"retweeted_count,string"`
 	// text of the tweet
 	Text string `json:"text"`
 	// username of the person who tweeted

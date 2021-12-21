@@ -18,38 +18,74 @@ type DbService struct {
 
 // Count records in a table
 func (t *DbService) Count(request *CountRequest) (*CountResponse, error) {
+
 	rsp := &CountResponse{}
 	return rsp, t.client.Call("db", "Count", request, rsp)
+
 }
 
 // Create a record in the database. Optionally include an "id" field otherwise it's set automatically.
 func (t *DbService) Create(request *CreateRequest) (*CreateResponse, error) {
+
 	rsp := &CreateResponse{}
 	return rsp, t.client.Call("db", "Create", request, rsp)
+
 }
 
 // Delete a record in the database by id.
 func (t *DbService) Delete(request *DeleteRequest) (*DeleteResponse, error) {
+
 	rsp := &DeleteResponse{}
 	return rsp, t.client.Call("db", "Delete", request, rsp)
+
+}
+
+// Drop a table in the DB
+func (t *DbService) DropTable(request *DropTableRequest) (*DropTableResponse, error) {
+
+	rsp := &DropTableResponse{}
+	return rsp, t.client.Call("db", "DropTable", request, rsp)
+
+}
+
+// List tables in the DB
+func (t *DbService) ListTables(request *ListTablesRequest) (*ListTablesResponse, error) {
+
+	rsp := &ListTablesResponse{}
+	return rsp, t.client.Call("db", "ListTables", request, rsp)
+
 }
 
 // Read data from a table. Lookup can be by ID or via querying any field in the record.
 func (t *DbService) Read(request *ReadRequest) (*ReadResponse, error) {
+
 	rsp := &ReadResponse{}
 	return rsp, t.client.Call("db", "Read", request, rsp)
+
+}
+
+// Rename a table
+func (t *DbService) RenameTable(request *RenameTableRequest) (*RenameTableResponse, error) {
+
+	rsp := &RenameTableResponse{}
+	return rsp, t.client.Call("db", "RenameTable", request, rsp)
+
 }
 
 // Truncate the records in a table
 func (t *DbService) Truncate(request *TruncateRequest) (*TruncateResponse, error) {
+
 	rsp := &TruncateResponse{}
 	return rsp, t.client.Call("db", "Truncate", request, rsp)
+
 }
 
 // Update a record in the database. Include an "id" in the record to update.
 func (t *DbService) Update(request *UpdateRequest) (*UpdateResponse, error) {
+
 	rsp := &UpdateResponse{}
 	return rsp, t.client.Call("db", "Update", request, rsp)
+
 }
 
 type CountRequest struct {
@@ -63,6 +99,8 @@ type CountResponse struct {
 }
 
 type CreateRequest struct {
+	// optional record id to use
+	Id string `json:"id"`
 	// JSON encoded record or records (can be array or object)
 	Record map[string]interface{} `json:"record"`
 	// Optional table name. Defaults to 'default'
@@ -82,6 +120,21 @@ type DeleteRequest struct {
 }
 
 type DeleteResponse struct {
+}
+
+type DropTableRequest struct {
+	Table string `json:"table"`
+}
+
+type DropTableResponse struct {
+}
+
+type ListTablesRequest struct {
+}
+
+type ListTablesResponse struct {
+	// list of tables
+	Tables []string `json:"tables"`
 }
 
 type ReadRequest struct {
@@ -110,14 +163,21 @@ type ReadResponse struct {
 	Records []map[string]interface{} `json:"records"`
 }
 
+type RenameTableRequest struct {
+	// current table name
+	From string `json:"from"`
+	// new table name
+	To string `json:"to"`
+}
+
+type RenameTableResponse struct {
+}
+
 type TruncateRequest struct {
-	// Optional table name. Defaults to 'default'
 	Table string `json:"table"`
 }
 
 type TruncateResponse struct {
-	// The table truncated
-	Table string `json:"table"`
 }
 
 type UpdateRequest struct {
