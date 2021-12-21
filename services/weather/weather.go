@@ -18,43 +18,47 @@ type WeatherService struct {
 
 // Get the weather forecast for the next 1-10 days
 func (t *WeatherService) Forecast(request *ForecastRequest) (*ForecastResponse, error) {
+
 	rsp := &ForecastResponse{}
 	return rsp, t.client.Call("weather", "Forecast", request, rsp)
+
 }
 
 // Get the current weather report for a location by postcode, city, zip code, ip address
 func (t *WeatherService) Now(request *NowRequest) (*NowResponse, error) {
+
 	rsp := &NowResponse{}
 	return rsp, t.client.Call("weather", "Now", request, rsp)
+
 }
 
 type Forecast struct {
 	// the average temp in celsius
-	AvgTempC float64 `json:"avgTempC"`
+	AvgTempC float64 `json:"avg_temp_c"`
 	// the average temp in fahrenheit
-	AvgTempF float64 `json:"avgTempF"`
+	AvgTempF float64 `json:"avg_temp_f"`
 	// chance of rain (percentage)
-	ChanceOfRain int32 `json:"chanceOfRain"`
+	ChanceOfRain int32 `json:"chance_of_rain"`
 	// forecast condition
 	Condition string `json:"condition"`
 	// date of the forecast
 	Date string `json:"date"`
 	// the URL of forecast condition icon. Simply prefix with either http or https to use it
-	IconUrl string `json:"iconUrl"`
+	IconUrl string `json:"icon_url"`
 	// max temp in celsius
-	MaxTempC float64 `json:"maxTempC"`
+	MaxTempC float64 `json:"max_temp_c"`
 	// max temp in fahrenheit
-	MaxTempF float64 `json:"maxTempF"`
+	MaxTempF float64 `json:"max_temp_f"`
 	// minimum temp in celsius
-	MinTempC float64 `json:"minTempC"`
+	MinTempC float64 `json:"min_temp_c"`
 	// minimum temp in fahrenheit
-	MinTempF float64 `json:"minTempF"`
+	MinTempF float64 `json:"min_temp_f"`
 	// time of sunrise
 	Sunrise string `json:"sunrise"`
 	// time of sunset
 	Sunset string `json:"sunset"`
 	// will it rain
-	WillItRain bool `json:"willItRain"`
+	WillItRain bool `json:"will_it_rain"`
 }
 
 type ForecastRequest struct {
@@ -72,7 +76,7 @@ type ForecastResponse struct {
 	// e.g 37.55
 	Latitude float64 `json:"latitude"`
 	// the local time
-	LocalTime string `json:"localTime"`
+	LocalTime string `json:"local_time"`
 	// location of the request
 	Location string `json:"location"`
 	// e.g -77.46
@@ -98,17 +102,17 @@ type NowResponse struct {
 	// whether its daytime
 	Daytime bool `json:"daytime"`
 	// feels like in celsius
-	FeelsLikeC float64 `json:"feelsLikeC"`
+	FeelsLikeC float64 `json:"feels_like_c"`
 	// feels like in fahrenheit
-	FeelsLikeF float64 `json:"feelsLikeF"`
+	FeelsLikeF float64 `json:"feels_like_f"`
 	// the humidity percentage
 	Humidity int32 `json:"humidity"`
 	// the URL of the related icon. Simply prefix with either http or https to use it
-	IconUrl string `json:"iconUrl"`
+	IconUrl string `json:"icon_url"`
 	// e.g 37.55
 	Latitude float64 `json:"latitude"`
 	// the local time
-	LocalTime string `json:"localTime"`
+	LocalTime string `json:"local_time"`
 	// location of the request
 	Location string `json:"location"`
 	// e.g -77.46
@@ -116,17 +120,17 @@ type NowResponse struct {
 	// region related to the location
 	Region string `json:"region"`
 	// temperature in celsius
-	TempC float64 `json:"tempC"`
+	TempC float64 `json:"temp_c"`
 	// temperature in fahrenheit
-	TempF float64 `json:"tempF"`
+	TempF float64 `json:"temp_f"`
 	// timezone of the location
 	Timezone string `json:"timezone"`
 	// wind degree
-	WindDegree int32 `json:"windDegree"`
+	WindDegree int32 `json:"wind_degree"`
 	// wind direction
-	WindDirection string `json:"windDirection"`
+	WindDirection string `json:"wind_direction"`
 	// wind in kph
-	WindKph float64 `json:"windKph"`
+	WindKph float64 `json:"wind_kph"`
 	// wind in mph
-	WindMph float64 `json:"windMph"`
+	WindMph float64 `json:"wind_mph"`
 }

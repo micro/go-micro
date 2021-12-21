@@ -18,8 +18,10 @@ type ThumbnailService struct {
 
 // Create a thumbnail screenshot by passing in a url, height and width
 func (t *ThumbnailService) Screenshot(request *ScreenshotRequest) (*ScreenshotResponse, error) {
+
 	rsp := &ScreenshotResponse{}
 	return rsp, t.client.Call("thumbnail", "Screenshot", request, rsp)
+
 }
 
 type ScreenshotRequest struct {
@@ -31,5 +33,5 @@ type ScreenshotRequest struct {
 }
 
 type ScreenshotResponse struct {
-	ImageUrl string `json:"imageUrl"`
+	ImageUrl string `json:"imageURL"`
 }

@@ -18,8 +18,10 @@ type GoogleService struct {
 
 // Search for videos on Google
 func (t *GoogleService) Search(request *SearchRequest) (*SearchResponse, error) {
+
 	rsp := &SearchResponse{}
 	return rsp, t.client.Call("google", "Search", request, rsp)
+
 }
 
 type SearchRequest struct {
@@ -34,7 +36,7 @@ type SearchResponse struct {
 
 type SearchResult struct {
 	// abridged version of this search result’s URL, e.g. www.exampe.com
-	DisplayUrl string `json:"displayUrl"`
+	DisplayUrl string `json:"display_url"`
 	// id of the result
 	Id string `json:"id"`
 	// kind of result; "search"

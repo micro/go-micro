@@ -18,26 +18,34 @@ type CurrencyService struct {
 
 // Codes returns the supported currency codes for the API
 func (t *CurrencyService) Codes(request *CodesRequest) (*CodesResponse, error) {
+
 	rsp := &CodesResponse{}
 	return rsp, t.client.Call("currency", "Codes", request, rsp)
+
 }
 
 // Convert returns the currency conversion rate between two pairs e.g USD/GBP
 func (t *CurrencyService) Convert(request *ConvertRequest) (*ConvertResponse, error) {
+
 	rsp := &ConvertResponse{}
 	return rsp, t.client.Call("currency", "Convert", request, rsp)
+
 }
 
 // Returns the historic rates for a currency on a given date
 func (t *CurrencyService) History(request *HistoryRequest) (*HistoryResponse, error) {
+
 	rsp := &HistoryResponse{}
 	return rsp, t.client.Call("currency", "History", request, rsp)
+
 }
 
 // Rates returns the currency rates for a given code e.g USD
 func (t *CurrencyService) Rates(request *RatesRequest) (*RatesResponse, error) {
+
 	rsp := &RatesResponse{}
 	return rsp, t.client.Call("currency", "Rates", request, rsp)
+
 }
 
 type Code struct {

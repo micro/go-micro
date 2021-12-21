@@ -18,14 +18,18 @@ type HolidaysService struct {
 
 // Get the list of countries that are supported by this API
 func (t *HolidaysService) Countries(request *CountriesRequest) (*CountriesResponse, error) {
+
 	rsp := &CountriesResponse{}
 	return rsp, t.client.Call("holidays", "Countries", request, rsp)
+
 }
 
 // List the holiday dates for a given country and year
 func (t *HolidaysService) List(request *ListRequest) (*ListResponse, error) {
+
 	rsp := &ListResponse{}
 	return rsp, t.client.Call("holidays", "List", request, rsp)
+
 }
 
 type CountriesRequest struct {
@@ -44,11 +48,11 @@ type Country struct {
 
 type Holiday struct {
 	// the country this holiday occurs in
-	CountryCode string `json:"countryCode"`
+	CountryCode string `json:"country_code"`
 	// date of the holiday in yyyy-mm-dd format
 	Date string `json:"date"`
 	// the local name of the holiday
-	LocalName string `json:"localName"`
+	LocalName string `json:"local_name"`
 	// the name of the holiday in English
 	Name string `json:"name"`
 	// the regions within the country that observe this holiday (if not all of them)
@@ -59,7 +63,7 @@ type Holiday struct {
 
 type ListRequest struct {
 	// The 2 letter country code (as defined in ISO 3166-1 alpha-2)
-	CountryCode string `json:"countryCode"`
+	CountryCode string `json:"country_code"`
 	// The year to list holidays for
 	Year int64 `json:"year,string"`
 }

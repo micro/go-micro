@@ -18,62 +18,66 @@ type EvchargersService struct {
 
 // Retrieve reference data as used by this API and in conjunction with the Search endpoint
 func (t *EvchargersService) ReferenceData(request *ReferenceDataRequest) (*ReferenceDataResponse, error) {
+
 	rsp := &ReferenceDataResponse{}
 	return rsp, t.client.Call("evchargers", "ReferenceData", request, rsp)
+
 }
 
 // Search by giving a coordinate and a max distance, or bounding box and optional filters
 func (t *EvchargersService) Search(request *SearchRequest) (*SearchResponse, error) {
+
 	rsp := &SearchResponse{}
 	return rsp, t.client.Call("evchargers", "Search", request, rsp)
+
 }
 
 type Address struct {
 	// Any comments about how to access the charger
-	AccessComments  string       `json:"accessComments"`
-	AddressLine1    string       `json:"addressLine1"`
-	AddressLine2    string       `json:"addressLine2"`
+	AccessComments  string       `json:"access_comments"`
+	AddressLine1    string       `json:"address_line_1"`
+	AddressLine2    string       `json:"address_line_2"`
 	Country         *Country     `json:"country"`
-	CountryId       string       `json:"countryId"`
-	LatLng          string       `json:"latLng"`
+	CountryId       string       `json:"country_id"`
+	LatLng          string       `json:"lat_lng"`
 	Location        *Coordinates `json:"location"`
 	Postcode        string       `json:"postcode"`
-	StateOrProvince string       `json:"stateOrProvince"`
+	StateOrProvince string       `json:"state_or_province"`
 	Title           string       `json:"title"`
 	Town            string       `json:"town"`
 }
 
 type BoundingBox struct {
-	BottomLeft *Coordinates `json:"bottomLeft"`
-	TopRight   *Coordinates `json:"topRight"`
+	BottomLeft *Coordinates `json:"bottom_left"`
+	TopRight   *Coordinates `json:"top_right"`
 }
 
 type ChargerType struct {
 	Comments string `json:"comments"`
 	Id       string `json:"id"`
 	// Is this 40KW+
-	IsFastChargeCapable bool   `json:"isFastChargeCapable"`
+	IsFastChargeCapable bool   `json:"is_fast_charge_capable"`
 	Title               string `json:"title"`
 }
 
 type CheckinStatusType struct {
 	Id          string `json:"id"`
-	IsAutomated bool   `json:"isAutomated"`
-	IsPositive  bool   `json:"isPositive"`
+	IsAutomated bool   `json:"is_automated"`
+	IsPositive  bool   `json:"is_positive"`
 	Title       string `json:"title"`
 }
 
 type Connection struct {
 	// The amps offered
 	Amps           float64         `json:"amps"`
-	ConnectionType *ConnectionType `json:"connectionType"`
+	ConnectionType *ConnectionType `json:"connection_type"`
 	// The ID of the connection type
-	ConnectionTypeId string `json:"connectionTypeId"`
+	ConnectionTypeId string `json:"connection_type_id"`
 	// The current
 	Current string       `json:"current"`
 	Level   *ChargerType `json:"level"`
 	// The level of charging power available
-	LevelId string `json:"levelId"`
+	LevelId string `json:"level_id"`
 	// The power in KW
 	Power     float64 `json:"power"`
 	Reference string  `json:"reference"`
@@ -82,10 +86,10 @@ type Connection struct {
 }
 
 type ConnectionType struct {
-	FormalName     string `json:"formalName"`
+	FormalName     string `json:"formal_name"`
 	Id             string `json:"id"`
-	IsDiscontinued bool   `json:"isDiscontinued"`
-	IsObsolete     bool   `json:"isObsolete"`
+	IsDiscontinued bool   `json:"is_discontinued"`
+	IsObsolete     bool   `json:"is_obsolete"`
 	Title          string `json:"title"`
 }
 
@@ -95,9 +99,9 @@ type Coordinates struct {
 }
 
 type Country struct {
-	ContinentCode string `json:"continentCode"`
+	ContinentCode string `json:"continent_code"`
 	Id            string `json:"id"`
-	IsoCode       string `json:"isoCode"`
+	IsoCode       string `json:"iso_code"`
 	Title         string `json:"title"`
 }
 
@@ -109,7 +113,7 @@ type CurrentType struct {
 
 type DataProvider struct {
 	Comments               string                  `json:"comments"`
-	DataProviderStatusType *DataProviderStatusType `json:"dataProviderStatusType"`
+	DataProviderStatusType *DataProviderStatusType `json:"data_provider_status_type"`
 	Id                     string                  `json:"id"`
 	// How is this data licensed
 	License string `json:"license"`
@@ -119,19 +123,19 @@ type DataProvider struct {
 
 type DataProviderStatusType struct {
 	Id                string `json:"id"`
-	IsProviderEnabled bool   `json:"isProviderEnabled"`
+	IsProviderEnabled bool   `json:"is_provider_enabled"`
 	Title             string `json:"title"`
 }
 
 type Operator struct {
 	Comments         string `json:"comments"`
-	ContactEmail     string `json:"contactEmail"`
-	FaultReportEmail string `json:"faultReportEmail"`
+	ContactEmail     string `json:"contact_email"`
+	FaultReportEmail string `json:"fault_report_email"`
 	Id               string `json:"id"`
 	// Is this operator a private individual vs a company
-	IsPrivateIndividual bool   `json:"isPrivateIndividual"`
-	PhonePrimary        string `json:"phonePrimary"`
-	PhoneSecondary      string `json:"phoneSecondary"`
+	IsPrivateIndividual bool   `json:"is_private_individual"`
+	PhonePrimary        string `json:"phone_primary"`
+	PhoneSecondary      string `json:"phone_secondary"`
 	Title               string `json:"title"`
 	Website             string `json:"website"`
 }
@@ -144,19 +148,19 @@ type Poi struct {
 	// The cost of charging
 	Cost string `json:"cost"`
 	// The ID of the data provider
-	DataProviderId string `json:"dataProviderId"`
+	DataProviderId string `json:"data_provider_id"`
 	// The ID of the charger
 	Id string `json:"id"`
 	// The number of charging points
-	NumPoints int64 `json:"numPoints,string"`
+	NumPoints int64 `json:"num_points,string"`
 	// The operator
 	Operator *Operator `json:"operator"`
 	// The ID of the operator of the charger
-	OperatorId string `json:"operatorId"`
+	OperatorId string `json:"operator_id"`
 	// The type of usage
-	UsageType *UsageType `json:"usageType"`
+	UsageType *UsageType `json:"usage_type"`
 	// The type of usage for this charger point (is it public, membership required, etc)
-	UsageTypeId string `json:"usageTypeId"`
+	UsageTypeId string `json:"usage_type_id"`
 }
 
 type ReferenceDataRequest struct {
@@ -164,36 +168,36 @@ type ReferenceDataRequest struct {
 
 type ReferenceDataResponse struct {
 	// The types of charger
-	ChargerTypes *ChargerType `json:"chargerTypes"`
+	ChargerTypes *ChargerType `json:"charger_types"`
 	// The types of checkin status
-	CheckinStatusTypes *CheckinStatusType `json:"checkinStatusTypes"`
+	CheckinStatusTypes *CheckinStatusType `json:"checkin_status_types"`
 	// The types of connection
-	ConnectionTypes *ConnectionType `json:"connectionTypes"`
+	ConnectionTypes *ConnectionType `json:"connection_types"`
 	// The countries
 	Countries []Country `json:"countries"`
 	// The types of current
-	CurrentTypes *CurrentType `json:"currentTypes"`
+	CurrentTypes *CurrentType `json:"current_types"`
 	// The providers of the charger data
-	DataProviders *DataProvider `json:"dataProviders"`
+	DataProviders *DataProvider `json:"data_providers"`
 	// The companies operating the chargers
 	Operators []Operator `json:"operators"`
 	// The status of the charger
-	StatusTypes *StatusType `json:"statusTypes"`
+	StatusTypes *StatusType `json:"status_types"`
 	// The status of a submission
-	SubmissionStatusTypes *SubmissionStatusType `json:"submissionStatusTypes"`
+	SubmissionStatusTypes *SubmissionStatusType `json:"submission_status_types"`
 	// The different types of usage
-	UsageTypes *UsageType `json:"usageTypes"`
+	UsageTypes *UsageType `json:"usage_types"`
 	// The types of user comment
-	UserCommentTypes *UserCommentType `json:"userCommentTypes"`
+	UserCommentTypes *UserCommentType `json:"user_comment_types"`
 }
 
 type SearchRequest struct {
 	// Bounding box to search within (top left and bottom right coordinates)
 	Box *BoundingBox `json:"box"`
 	// IDs of the connection type
-	ConnectionTypes string `json:"connectionTypes"`
+	ConnectionTypes string `json:"connection_types"`
 	// Country ID
-	CountryId string `json:"countryId"`
+	CountryId string `json:"country_id"`
 	// Search distance from point in metres, defaults to 5000m
 	Distance int64 `json:"distance,string"`
 	// Supported charging levels
@@ -201,13 +205,13 @@ type SearchRequest struct {
 	// Coordinates from which to begin search
 	Location *Coordinates `json:"location"`
 	// Maximum number of results to return, defaults to 100
-	MaxResults int64 `json:"maxResults,string"`
+	MaxResults int64 `json:"max_results,string"`
 	// Minimum power in KW. Note: data not available for many chargers
-	MinPower int64 `json:"minPower,string"`
+	MinPower int64 `json:"min_power,string"`
 	// IDs of the the EV charger operator
 	Operators []string `json:"operators"`
 	// Usage of the charge point (is it public, membership required, etc)
-	UsageTypes string `json:"usageTypes"`
+	UsageTypes string `json:"usage_types"`
 }
 
 type SearchResponse struct {
@@ -216,21 +220,21 @@ type SearchResponse struct {
 
 type StatusType struct {
 	Id            string `json:"id"`
-	IsOperational bool   `json:"isOperational"`
+	IsOperational bool   `json:"is_operational"`
 	Title         string `json:"title"`
 }
 
 type SubmissionStatusType struct {
 	Id     string `json:"id"`
-	IsLive bool   `json:"isLive"`
+	IsLive bool   `json:"is_live"`
 	Title  string `json:"title"`
 }
 
 type UsageType struct {
 	Id                   string `json:"id"`
-	IsAccessKeyRequired  bool   `json:"isAccessKeyRequired"`
-	IsMembershipRequired bool   `json:"isMembershipRequired"`
-	IsPayAtLocation      bool   `json:"isPayAtLocation"`
+	IsAccessKeyRequired  bool   `json:"is_access_key_required"`
+	IsMembershipRequired bool   `json:"is_membership_required"`
+	IsPayAtLocation      bool   `json:"is_pay_at_location"`
 	Title                string `json:"title"`
 }
 

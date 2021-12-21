@@ -18,8 +18,10 @@ type IpService struct {
 
 // Lookup the geolocation information for an IP address
 func (t *IpService) Lookup(request *LookupRequest) (*LookupResponse, error) {
+
 	rsp := &LookupResponse{}
 	return rsp, t.client.Call("ip", "Lookup", request, rsp)
+
 }
 
 type LookupRequest struct {

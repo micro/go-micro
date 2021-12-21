@@ -18,27 +18,35 @@ type EmojiService struct {
 
 // Find an emoji by its alias e.g :beer:
 func (t *EmojiService) Find(request *FindRequest) (*FindResponse, error) {
+
 	rsp := &FindResponse{}
 	return rsp, t.client.Call("emoji", "Find", request, rsp)
+
 }
 
 // Get the flag for a country. Requires country code e.g GB for great britain
 func (t *EmojiService) Flag(request *FlagRequest) (*FlagResponse, error) {
+
 	rsp := &FlagResponse{}
 	return rsp, t.client.Call("emoji", "Flag", request, rsp)
+
 }
 
 // Print text and renders the emojis with aliases e.g
 // let's grab a :beer: becomes let's grab a 🍺
 func (t *EmojiService) Print(request *PrintRequest) (*PrintResponse, error) {
+
 	rsp := &PrintResponse{}
 	return rsp, t.client.Call("emoji", "Print", request, rsp)
+
 }
 
 // Send an emoji to anyone via SMS. Messages are sent in the form '<message> Sent from <from>'
 func (t *EmojiService) Send(request *SendRequest) (*SendResponse, error) {
+
 	rsp := &SendResponse{}
 	return rsp, t.client.Call("emoji", "Send", request, rsp)
+
 }
 
 type FindRequest struct {
