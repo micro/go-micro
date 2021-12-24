@@ -1,4 +1,4 @@
-package m3o
+package services
 
 import (
 	"go.m3o.com/address"
