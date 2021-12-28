@@ -120,6 +120,37 @@
 - upgrade github.com/micro/go-micro/v2 to github.com/asim/go-micro/v3.
 - change default transport from gRPC to mucp, using grpc server/client plugins.
 
+# 3.0.0-beta.3 (2020/09/29)
+
+- Secret implementation of config. Supporting config merge (#2027)
+- remove transport options
+- read service package (#2026)
+- env config implementation (#2024)
+- runtime: remove builder package (moved to micro) (#2023)
+- Fix branch names support for k8s runtime (#2020)
+- fix config bug (#2021)
+- runtime: minor fixes for local runtime (#2019)
+- remove memcache and update gomod
+- Add errors to config methods (#2015)
+- store/file: fix segmentation violation bug (#2013)
+- Config interface change (#2010)
+- proxy/grpc: fix client streaming bug (EOF not sent to the server) (#2011)
+- client/grpc: fix stream closed bug (#2009)
+- store/file: don't keep connection to boltdb open (#2006)
+- runtime/builder with golang implementation (#2003)
+- store: implement s3 blob store (#2005)
+- store: add blob interface with file implementation (#2004)
+- auth: remove micro specific code (#1999)
+- Fix running subfolders (#1998)
+- api: fix request body re-sequencing bug (#1996)
+- add Name to auth.Account as a user friendly alias (#1992)
+- Fixing top level run outside repo (#1993)
+- runtime: normalised service statuses (#1994)
+- Add 'Namespace' header to allowed CORS headers (#1990)
+- Remove all the external plugins except grpc (#1988)
+- util/kubernetes: fix TCPSocketAction bug (#1987)
+- Fixing the metric tagging issue here (#1986).
+
 # 3.0.0-beta.2 (2020/09/05)
 
 - Cut a v3 beta 2.
@@ -139,6 +170,18 @@
 # 2.9.0 (2020/06/12)
 
 - Fix regex detection. Fixes #1663 (#1696).
+
+# 2.9.0-rc5 (2020/06/11)
+
+- Merge branch 'master' into release-2.9.0.
+
+# 2.9.0-rc4 (2020/06/11)
+
+- Merge branch 'master' into release-2.9.0.
+
+# 2.9.0-rc1 (2020/06/11)
+
+- Merge branch 'master' into release-2.9.0.
 
 # 2.8.0 (2020/05/31)
 
@@ -336,6 +379,18 @@
 - Add Cloudflare store implementation
 - Add store service implementation.
 
+# 1.11.3 (2019/10/12)
+
+- Fix the quic-go checksum mismatch by updating to 0.12.1.
+
+# 1.11.2 (2019/10/12)
+
+- Fix cache error check.
+
+# 1.11.1 (2019/10/07)
+
+- Fix cache registry deadlocking bug.
+
 # 1.11.0 (2019/10/01)
 
 - This is likely the last release of v1.
@@ -516,7 +571,6 @@
 # 0.23.0 (2019/01/29)
 
 - Move headers from X-Micro to Micro
--
 - Remove Register/Deregister methods from server
 - Move register_interval to be internal
 - Add subscriber context option.
