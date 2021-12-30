@@ -539,8 +539,8 @@ github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2/go.mod h1:UETIi67q
 github.com/yuin/goldmark v1.1.27/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.2.1/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 go.etcd.io/bbolt v1.3.2/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
-go.m3o.com v0.1.0 h1:vYYcMtUzkkl8/zQcLIZFakBvNO/wSrMcNHRySAmEh9E=
-go.m3o.com v0.1.0/go.mod h1:p8FdLqZH3R9a0y04qiMNT+clw69d3SxyQPFzCNbDRtk=
+go.m3o.com v0.6.0 h1:5nBuk+vF9VVe/zhj4OkDYYKsn/hogw/LzxuE5FECyFk=
+go.m3o.com v0.6.0/go.mod h1:p8FdLqZH3R9a0y04qiMNT+clw69d3SxyQPFzCNbDRtk=
 go.opencensus.io v0.20.1/go.mod h1:6WKK9ahsWS3RSO+PY9ZHZUfv2irvY6gN279GOPZjmmk=
 go.opencensus.io v0.20.2/go.mod h1:6WKK9ahsWS3RSO+PY9ZHZUfv2irvY6gN279GOPZjmmk=
 go.opencensus.io v0.21.0/go.mod h1:mSImk1erAIZhrmZN+AvHh14ztQfjbGwt4TtuofqLduU=
