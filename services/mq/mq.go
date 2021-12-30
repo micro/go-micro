@@ -4,6 +4,11 @@ import (
 	"go.m3o.com/client"
 )
 
+type Mq interface {
+	Publish(*PublishRequest) (*PublishResponse, error)
+	Subscribe(*SubscribeRequest) (*SubscribeResponseStream, error)
+}
+
 func NewMqService(token string) *MqService {
 	return &MqService{
 		client: client.NewClient(&client.Options{

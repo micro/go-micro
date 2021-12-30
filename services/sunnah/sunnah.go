@@ -4,6 +4,13 @@ import (
 	"go.m3o.com/client"
 )
 
+type Sunnah interface {
+	Books(*BooksRequest) (*BooksResponse, error)
+	Chapters(*ChaptersRequest) (*ChaptersResponse, error)
+	Collections(*CollectionsRequest) (*CollectionsResponse, error)
+	Hadiths(*HadithsRequest) (*HadithsResponse, error)
+}
+
 func NewSunnahService(token string) *SunnahService {
 	return &SunnahService{
 		client: client.NewClient(&client.Options{

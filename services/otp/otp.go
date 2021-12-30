@@ -4,6 +4,11 @@ import (
 	"go.m3o.com/client"
 )
 
+type Otp interface {
+	Generate(*GenerateRequest) (*GenerateResponse, error)
+	Validate(*ValidateRequest) (*ValidateResponse, error)
+}
+
 func NewOtpService(token string) *OtpService {
 	return &OtpService{
 		client: client.NewClient(&client.Options{

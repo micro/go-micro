@@ -4,6 +4,18 @@ import (
 	"go.m3o.com/client"
 )
 
+type Function interface {
+	Call(*CallRequest) (*CallResponse, error)
+	Delete(*DeleteRequest) (*DeleteResponse, error)
+	Deploy(*DeployRequest) (*DeployResponse, error)
+	Describe(*DescribeRequest) (*DescribeResponse, error)
+	List(*ListRequest) (*ListResponse, error)
+	Proxy(*ProxyRequest) (*ProxyResponse, error)
+	Regions(*RegionsRequest) (*RegionsResponse, error)
+	Reserve(*ReserveRequest) (*ReserveResponse, error)
+	Update(*UpdateRequest) (*UpdateResponse, error)
+}
+
 func NewFunctionService(token string) *FunctionService {
 	return &FunctionService{
 		client: client.NewClient(&client.Options{

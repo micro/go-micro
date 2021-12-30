@@ -4,6 +4,10 @@ import (
 	"go.m3o.com/client"
 )
 
+type Email interface {
+	Send(*SendRequest) (*SendResponse, error)
+}
+
 func NewEmailService(token string) *EmailService {
 	return &EmailService{
 		client: client.NewClient(&client.Options{

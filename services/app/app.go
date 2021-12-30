@@ -4,6 +4,17 @@ import (
 	"go.m3o.com/client"
 )
 
+type App interface {
+	Delete(*DeleteRequest) (*DeleteResponse, error)
+	List(*ListRequest) (*ListResponse, error)
+	Regions(*RegionsRequest) (*RegionsResponse, error)
+	Reserve(*ReserveRequest) (*ReserveResponse, error)
+	Resolve(*ResolveRequest) (*ResolveResponse, error)
+	Run(*RunRequest) (*RunResponse, error)
+	Status(*StatusRequest) (*StatusResponse, error)
+	Update(*UpdateRequest) (*UpdateResponse, error)
+}
+
 func NewAppService(token string) *AppService {
 	return &AppService{
 		client: client.NewClient(&client.Options{

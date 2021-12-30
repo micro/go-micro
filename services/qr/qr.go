@@ -4,6 +4,10 @@ import (
 	"go.m3o.com/client"
 )
 
+type Qr interface {
+	Generate(*GenerateRequest) (*GenerateResponse, error)
+}
+
 func NewQrService(token string) *QrService {
 	return &QrService{
 		client: client.NewClient(&client.Options{

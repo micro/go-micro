@@ -4,6 +4,17 @@ import (
 	"go.m3o.com/client"
 )
 
+type Space interface {
+	Create(*CreateRequest) (*CreateResponse, error)
+	Delete(*DeleteRequest) (*DeleteResponse, error)
+	Download(*DownloadRequest) (*DownloadResponse, error)
+	Head(*HeadRequest) (*HeadResponse, error)
+	List(*ListRequest) (*ListResponse, error)
+	Read(*ReadRequest) (*ReadResponse, error)
+	Update(*UpdateRequest) (*UpdateResponse, error)
+	Upload(*UploadRequest) (*UploadResponse, error)
+}
+
 func NewSpaceService(token string) *SpaceService {
 	return &SpaceService{
 		client: client.NewClient(&client.Options{

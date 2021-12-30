@@ -4,6 +4,11 @@ import (
 	"go.m3o.com/client"
 )
 
+type Holidays interface {
+	Countries(*CountriesRequest) (*CountriesResponse, error)
+	List(*ListRequest) (*ListResponse, error)
+}
+
 func NewHolidaysService(token string) *HolidaysService {
 	return &HolidaysService{
 		client: client.NewClient(&client.Options{

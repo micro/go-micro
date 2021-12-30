@@ -4,6 +4,11 @@ import (
 	"go.m3o.com/client"
 )
 
+type Id interface {
+	Generate(*GenerateRequest) (*GenerateResponse, error)
+	Types(*TypesRequest) (*TypesResponse, error)
+}
+
 func NewIdService(token string) *IdService {
 	return &IdService{
 		client: client.NewClient(&client.Options{

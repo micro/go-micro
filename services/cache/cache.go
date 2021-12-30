@@ -4,6 +4,14 @@ import (
 	"go.m3o.com/client"
 )
 
+type Cache interface {
+	Decrement(*DecrementRequest) (*DecrementResponse, error)
+	Delete(*DeleteRequest) (*DeleteResponse, error)
+	Get(*GetRequest) (*GetResponse, error)
+	Increment(*IncrementRequest) (*IncrementResponse, error)
+	Set(*SetRequest) (*SetResponse, error)
+}
+
 func NewCacheService(token string) *CacheService {
 	return &CacheService{
 		client: client.NewClient(&client.Options{

@@ -4,6 +4,10 @@ import (
 	"go.m3o.com/client"
 )
 
+type Sentiment interface {
+	Analyze(*AnalyzeRequest) (*AnalyzeResponse, error)
+}
+
 func NewSentimentService(token string) *SentimentService {
 	return &SentimentService{
 		client: client.NewClient(&client.Options{

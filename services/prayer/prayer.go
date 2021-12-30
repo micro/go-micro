@@ -4,6 +4,10 @@ import (
 	"go.m3o.com/client"
 )
 
+type Prayer interface {
+	Times(*TimesRequest) (*TimesResponse, error)
+}
+
 func NewPrayerService(token string) *PrayerService {
 	return &PrayerService{
 		client: client.NewClient(&client.Options{

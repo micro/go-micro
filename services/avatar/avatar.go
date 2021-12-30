@@ -4,6 +4,10 @@ import (
 	"go.m3o.com/client"
 )
 
+type Avatar interface {
+	Generate(*GenerateRequest) (*GenerateResponse, error)
+}
+
 func NewAvatarService(token string) *AvatarService {
 	return &AvatarService{
 		client: client.NewClient(&client.Options{

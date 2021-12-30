@@ -4,6 +4,13 @@ import (
 	"go.m3o.com/client"
 )
 
+type File interface {
+	Delete(*DeleteRequest) (*DeleteResponse, error)
+	List(*ListRequest) (*ListResponse, error)
+	Read(*ReadRequest) (*ReadResponse, error)
+	Save(*SaveRequest) (*SaveResponse, error)
+}
+
 func NewFileService(token string) *FileService {
 	return &FileService{
 		client: client.NewClient(&client.Options{

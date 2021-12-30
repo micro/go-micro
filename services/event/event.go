@@ -4,6 +4,12 @@ import (
 	"go.m3o.com/client"
 )
 
+type Event interface {
+	Consume(*ConsumeRequest) (*ConsumeResponseStream, error)
+	Publish(*PublishRequest) (*PublishResponse, error)
+	Read(*ReadRequest) (*ReadResponse, error)
+}
+
 func NewEventService(token string) *EventService {
 	return &EventService{
 		client: client.NewClient(&client.Options{

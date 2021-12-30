@@ -4,6 +4,10 @@ import (
 	"go.m3o.com/client"
 )
 
+type Sms interface {
+	Send(*SendRequest) (*SendResponse, error)
+}
+
 func NewSmsService(token string) *SmsService {
 	return &SmsService{
 		client: client.NewClient(&client.Options{

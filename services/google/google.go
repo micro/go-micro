@@ -4,6 +4,10 @@ import (
 	"go.m3o.com/client"
 )
 
+type Google interface {
+	Search(*SearchRequest) (*SearchResponse, error)
+}
+
 func NewGoogleService(token string) *GoogleService {
 	return &GoogleService{
 		client: client.NewClient(&client.Options{

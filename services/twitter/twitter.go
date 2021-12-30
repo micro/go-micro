@@ -4,6 +4,13 @@ import (
 	"go.m3o.com/client"
 )
 
+type Twitter interface {
+	Search(*SearchRequest) (*SearchResponse, error)
+	Timeline(*TimelineRequest) (*TimelineResponse, error)
+	Trends(*TrendsRequest) (*TrendsResponse, error)
+	User(*UserRequest) (*UserResponse, error)
+}
+
 func NewTwitterService(token string) *TwitterService {
 	return &TwitterService{
 		client: client.NewClient(&client.Options{

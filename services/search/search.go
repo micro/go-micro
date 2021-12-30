@@ -4,6 +4,10 @@ import (
 	"go.m3o.com/client"
 )
 
+type Search interface {
+	Vote(*VoteRequest) (*VoteResponse, error)
+}
+
 func NewSearchService(token string) *SearchService {
 	return &SearchService{
 		client: client.NewClient(&client.Options{

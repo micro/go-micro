@@ -4,6 +4,11 @@ import (
 	"go.m3o.com/client"
 )
 
+type Weather interface {
+	Forecast(*ForecastRequest) (*ForecastResponse, error)
+	Now(*NowRequest) (*NowResponse, error)
+}
+
 func NewWeatherService(token string) *WeatherService {
 	return &WeatherService{
 		client: client.NewClient(&client.Options{

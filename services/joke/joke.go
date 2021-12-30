@@ -4,6 +4,10 @@ import (
 	"go.m3o.com/client"
 )
 
+type Joke interface {
+	Random(*RandomRequest) (*RandomResponse, error)
+}
+
 func NewJokeService(token string) *JokeService {
 	return &JokeService{
 		client: client.NewClient(&client.Options{

@@ -4,6 +4,13 @@ import (
 	"go.m3o.com/client"
 )
 
+type Stream interface {
+	CreateChannel(*CreateChannelRequest) (*CreateChannelResponse, error)
+	ListChannels(*ListChannelsRequest) (*ListChannelsResponse, error)
+	ListMessages(*ListMessagesRequest) (*ListMessagesResponse, error)
+	SendMessage(*SendMessageRequest) (*SendMessageResponse, error)
+}
+
 func NewStreamService(token string) *StreamService {
 	return &StreamService{
 		client: client.NewClient(&client.Options{

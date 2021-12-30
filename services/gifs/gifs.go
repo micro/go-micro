@@ -4,6 +4,10 @@ import (
 	"go.m3o.com/client"
 )
 
+type Gifs interface {
+	Search(*SearchRequest) (*SearchResponse, error)
+}
+
 func NewGifsService(token string) *GifsService {
 	return &GifsService{
 		client: client.NewClient(&client.Options{

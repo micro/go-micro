@@ -4,6 +4,18 @@ import (
 	"go.m3o.com/client"
 )
 
+type Db interface {
+	Count(*CountRequest) (*CountResponse, error)
+	Create(*CreateRequest) (*CreateResponse, error)
+	Delete(*DeleteRequest) (*DeleteResponse, error)
+	DropTable(*DropTableRequest) (*DropTableResponse, error)
+	ListTables(*ListTablesRequest) (*ListTablesResponse, error)
+	Read(*ReadRequest) (*ReadResponse, error)
+	RenameTable(*RenameTableRequest) (*RenameTableResponse, error)
+	Truncate(*TruncateRequest) (*TruncateResponse, error)
+	Update(*UpdateRequest) (*UpdateResponse, error)
+}
+
 func NewDbService(token string) *DbService {
 	return &DbService{
 		client: client.NewClient(&client.Options{

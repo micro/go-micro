@@ -4,6 +4,15 @@ import (
 	"go.m3o.com/client"
 )
 
+type Notes interface {
+	Create(*CreateRequest) (*CreateResponse, error)
+	Delete(*DeleteRequest) (*DeleteResponse, error)
+	Events(*EventsRequest) (*EventsResponseStream, error)
+	List(*ListRequest) (*ListResponse, error)
+	Read(*ReadRequest) (*ReadResponse, error)
+	Update(*UpdateRequest) (*UpdateResponse, error)
+}
+
 func NewNotesService(token string) *NotesService {
 	return &NotesService{
 		client: client.NewClient(&client.Options{

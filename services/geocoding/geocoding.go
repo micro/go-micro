@@ -4,6 +4,11 @@ import (
 	"go.m3o.com/client"
 )
 
+type Geocoding interface {
+	Lookup(*LookupRequest) (*LookupResponse, error)
+	Reverse(*ReverseRequest) (*ReverseResponse, error)
+}
+
 func NewGeocodingService(token string) *GeocodingService {
 	return &GeocodingService{
 		client: client.NewClient(&client.Options{
