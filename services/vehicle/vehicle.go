@@ -4,6 +4,10 @@ import (
 	"go.m3o.com/client"
 )
 
+type Vehicle interface {
+	Lookup(*LookupRequest) (*LookupResponse, error)
+}
+
 func NewVehicleService(token string) *VehicleService {
 	return &VehicleService{
 		client: client.NewClient(&client.Options{

@@ -4,6 +4,13 @@ import (
 	"go.m3o.com/client"
 )
 
+type Image interface {
+	Convert(*ConvertRequest) (*ConvertResponse, error)
+	Delete(*DeleteRequest) (*DeleteResponse, error)
+	Resize(*ResizeRequest) (*ResizeResponse, error)
+	Upload(*UploadRequest) (*UploadResponse, error)
+}
+
 func NewImageService(token string) *ImageService {
 	return &ImageService{
 		client: client.NewClient(&client.Options{

@@ -4,6 +4,10 @@ import (
 	"go.m3o.com/client"
 )
 
+type Answer interface {
+	Question(*QuestionRequest) (*QuestionResponse, error)
+}
+
 func NewAnswerService(token string) *AnswerService {
 	return &AnswerService{
 		client: client.NewClient(&client.Options{

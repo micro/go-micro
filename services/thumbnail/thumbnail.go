@@ -4,6 +4,10 @@ import (
 	"go.m3o.com/client"
 )
 
+type Thumbnail interface {
+	Screenshot(*ScreenshotRequest) (*ScreenshotResponse, error)
+}
+
 func NewThumbnailService(token string) *ThumbnailService {
 	return &ThumbnailService{
 		client: client.NewClient(&client.Options{

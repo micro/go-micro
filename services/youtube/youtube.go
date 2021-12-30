@@ -4,6 +4,11 @@ import (
 	"go.m3o.com/client"
 )
 
+type Youtube interface {
+	Embed(*EmbedRequest) (*EmbedResponse, error)
+	Search(*SearchRequest) (*SearchResponse, error)
+}
+
 func NewYoutubeService(token string) *YoutubeService {
 	return &YoutubeService{
 		client: client.NewClient(&client.Options{

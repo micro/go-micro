@@ -4,6 +4,12 @@ import (
 	"go.m3o.com/client"
 )
 
+type Postcode interface {
+	Lookup(*LookupRequest) (*LookupResponse, error)
+	Random(*RandomRequest) (*RandomResponse, error)
+	Validate(*ValidateRequest) (*ValidateResponse, error)
+}
+
 func NewPostcodeService(token string) *PostcodeService {
 	return &PostcodeService{
 		client: client.NewClient(&client.Options{

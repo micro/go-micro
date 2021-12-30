@@ -4,6 +4,10 @@ import (
 	"go.m3o.com/client"
 )
 
+type News interface {
+	Headlines(*HeadlinesRequest) (*HeadlinesResponse, error)
+}
+
 func NewNewsService(token string) *NewsService {
 	return &NewsService{
 		client: client.NewClient(&client.Options{

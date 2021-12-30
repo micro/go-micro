@@ -4,6 +4,13 @@ import (
 	"go.m3o.com/client"
 )
 
+type Quran interface {
+	Chapters(*ChaptersRequest) (*ChaptersResponse, error)
+	Search(*SearchRequest) (*SearchResponse, error)
+	Summary(*SummaryRequest) (*SummaryResponse, error)
+	Verses(*VersesRequest) (*VersesResponse, error)
+}
+
 func NewQuranService(token string) *QuranService {
 	return &QuranService{
 		client: client.NewClient(&client.Options{

@@ -4,6 +4,13 @@ import (
 	"go.m3o.com/client"
 )
 
+type Emoji interface {
+	Find(*FindRequest) (*FindResponse, error)
+	Flag(*FlagRequest) (*FlagResponse, error)
+	Print(*PrintRequest) (*PrintResponse, error)
+	Send(*SendRequest) (*SendResponse, error)
+}
+
 func NewEmojiService(token string) *EmojiService {
 	return &EmojiService{
 		client: client.NewClient(&client.Options{

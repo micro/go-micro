@@ -4,6 +4,10 @@ import (
 	"go.m3o.com/client"
 )
 
+type Movie interface {
+	Search(*SearchRequest) (*SearchResponse, error)
+}
+
 func NewMovieService(token string) *MovieService {
 	return &MovieService{
 		client: client.NewClient(&client.Options{

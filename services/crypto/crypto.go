@@ -4,6 +4,13 @@ import (
 	"go.m3o.com/client"
 )
 
+type Crypto interface {
+	History(*HistoryRequest) (*HistoryResponse, error)
+	News(*NewsRequest) (*NewsResponse, error)
+	Price(*PriceRequest) (*PriceResponse, error)
+	Quote(*QuoteRequest) (*QuoteResponse, error)
+}
+
 func NewCryptoService(token string) *CryptoService {
 	return &CryptoService{
 		client: client.NewClient(&client.Options{

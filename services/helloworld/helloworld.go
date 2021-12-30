@@ -4,6 +4,11 @@ import (
 	"go.m3o.com/client"
 )
 
+type Helloworld interface {
+	Call(*CallRequest) (*CallResponse, error)
+	Stream(*StreamRequest) (*StreamResponseStream, error)
+}
+
 func NewHelloworldService(token string) *HelloworldService {
 	return &HelloworldService{
 		client: client.NewClient(&client.Options{

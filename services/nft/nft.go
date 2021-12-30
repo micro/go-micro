@@ -4,6 +4,12 @@ import (
 	"go.m3o.com/client"
 )
 
+type Nft interface {
+	Assets(*AssetsRequest) (*AssetsResponse, error)
+	Collections(*CollectionsRequest) (*CollectionsResponse, error)
+	Create(*CreateRequest) (*CreateResponse, error)
+}
+
 func NewNftService(token string) *NftService {
 	return &NftService{
 		client: client.NewClient(&client.Options{

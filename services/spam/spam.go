@@ -4,6 +4,10 @@ import (
 	"go.m3o.com/client"
 )
 
+type Spam interface {
+	Classify(*ClassifyRequest) (*ClassifyResponse, error)
+}
+
 func NewSpamService(token string) *SpamService {
 	return &SpamService{
 		client: client.NewClient(&client.Options{

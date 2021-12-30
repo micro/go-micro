@@ -4,6 +4,14 @@ import (
 	"go.m3o.com/client"
 )
 
+type Contact interface {
+	Create(*CreateRequest) (*CreateResponse, error)
+	Delete(*DeleteRequest) (*DeleteResponse, error)
+	List(*ListRequest) (*ListResponse, error)
+	Read(*ReadRequest) (*ReadResponse, error)
+	Update(*UpdateRequest) (*UpdateResponse, error)
+}
+
 func NewContactService(token string) *ContactService {
 	return &ContactService{
 		client: client.NewClient(&client.Options{

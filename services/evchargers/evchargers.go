@@ -4,6 +4,11 @@ import (
 	"go.m3o.com/client"
 )
 
+type Evchargers interface {
+	ReferenceData(*ReferenceDataRequest) (*ReferenceDataResponse, error)
+	Search(*SearchRequest) (*SearchResponse, error)
+}
+
 func NewEvchargersService(token string) *EvchargersService {
 	return &EvchargersService{
 		client: client.NewClient(&client.Options{

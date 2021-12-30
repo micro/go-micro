@@ -4,6 +4,12 @@ import (
 	"go.m3o.com/client"
 )
 
+type Routing interface {
+	Directions(*DirectionsRequest) (*DirectionsResponse, error)
+	Eta(*EtaRequest) (*EtaResponse, error)
+	Route(*RouteRequest) (*RouteResponse, error)
+}
+
 func NewRoutingService(token string) *RoutingService {
 	return &RoutingService{
 		client: client.NewClient(&client.Options{

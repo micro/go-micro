@@ -4,6 +4,11 @@ import (
 	"go.m3o.com/client"
 )
 
+type Time interface {
+	Now(*NowRequest) (*NowResponse, error)
+	Zone(*ZoneRequest) (*ZoneResponse, error)
+}
+
 func NewTimeService(token string) *TimeService {
 	return &TimeService{
 		client: client.NewClient(&client.Options{

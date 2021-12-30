@@ -4,6 +4,24 @@ import (
 	"go.m3o.com/client"
 )
 
+type User interface {
+	Create(*CreateRequest) (*CreateResponse, error)
+	Delete(*DeleteRequest) (*DeleteResponse, error)
+	List(*ListRequest) (*ListResponse, error)
+	Login(*LoginRequest) (*LoginResponse, error)
+	Logout(*LogoutRequest) (*LogoutResponse, error)
+	Read(*ReadRequest) (*ReadResponse, error)
+	ReadSession(*ReadSessionRequest) (*ReadSessionResponse, error)
+	ResetPassword(*ResetPasswordRequest) (*ResetPasswordResponse, error)
+	SendMagicLink(*SendMagicLinkRequest) (*SendMagicLinkResponse, error)
+	SendPasswordResetEmail(*SendPasswordResetEmailRequest) (*SendPasswordResetEmailResponse, error)
+	SendVerificationEmail(*SendVerificationEmailRequest) (*SendVerificationEmailResponse, error)
+	UpdatePassword(*UpdatePasswordRequest) (*UpdatePasswordResponse, error)
+	Update(*UpdateRequest) (*UpdateResponse, error)
+	VerifyEmail(*VerifyEmailRequest) (*VerifyEmailResponse, error)
+	VerifyToken(*VerifyTokenRequest) (*VerifyTokenResponse, error)
+}
+
 func NewUserService(token string) *UserService {
 	return &UserService{
 		client: client.NewClient(&client.Options{

@@ -4,6 +4,12 @@ import (
 	"go.m3o.com/client"
 )
 
+type Url interface {
+	List(*ListRequest) (*ListResponse, error)
+	Proxy(*ProxyRequest) (*ProxyResponse, error)
+	Shorten(*ShortenRequest) (*ShortenResponse, error)
+}
+
 func NewUrlService(token string) *UrlService {
 	return &UrlService{
 		client: client.NewClient(&client.Options{

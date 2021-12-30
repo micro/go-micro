@@ -4,6 +4,13 @@ import (
 	"go.m3o.com/client"
 )
 
+type Stock interface {
+	History(*HistoryRequest) (*HistoryResponse, error)
+	OrderBook(*OrderBookRequest) (*OrderBookResponse, error)
+	Price(*PriceRequest) (*PriceResponse, error)
+	Quote(*QuoteRequest) (*QuoteResponse, error)
+}
+
 func NewStockService(token string) *StockService {
 	return &StockService{
 		client: client.NewClient(&client.Options{

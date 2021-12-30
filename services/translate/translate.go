@@ -4,6 +4,10 @@ import (
 	"go.m3o.com/client"
 )
 
+type Translate interface {
+	Text(*TextRequest) (*TextResponse, error)
+}
+
 func NewTranslateService(token string) *TranslateService {
 	return &TranslateService{
 		client: client.NewClient(&client.Options{

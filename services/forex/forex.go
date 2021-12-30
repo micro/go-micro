@@ -4,6 +4,12 @@ import (
 	"go.m3o.com/client"
 )
 
+type Forex interface {
+	History(*HistoryRequest) (*HistoryResponse, error)
+	Price(*PriceRequest) (*PriceResponse, error)
+	Quote(*QuoteRequest) (*QuoteResponse, error)
+}
+
 func NewForexService(token string) *ForexService {
 	return &ForexService{
 		client: client.NewClient(&client.Options{

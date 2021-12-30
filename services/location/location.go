@@ -4,6 +4,12 @@ import (
 	"go.m3o.com/client"
 )
 
+type Location interface {
+	Read(*ReadRequest) (*ReadResponse, error)
+	Save(*SaveRequest) (*SaveResponse, error)
+	Search(*SearchRequest) (*SearchResponse, error)
+}
+
 func NewLocationService(token string) *LocationService {
 	return &LocationService{
 		client: client.NewClient(&client.Options{

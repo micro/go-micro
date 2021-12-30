@@ -4,6 +4,10 @@ import (
 	"go.m3o.com/client"
 )
 
+type Address interface {
+	LookupPostcode(*LookupPostcodeRequest) (*LookupPostcodeResponse, error)
+}
+
 func NewAddressService(token string) *AddressService {
 	return &AddressService{
 		client: client.NewClient(&client.Options{

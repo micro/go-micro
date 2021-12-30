@@ -4,6 +4,13 @@ import (
 	"go.m3o.com/client"
 )
 
+type Currency interface {
+	Codes(*CodesRequest) (*CodesResponse, error)
+	Convert(*ConvertRequest) (*ConvertResponse, error)
+	History(*HistoryRequest) (*HistoryResponse, error)
+	Rates(*RatesRequest) (*RatesResponse, error)
+}
+
 func NewCurrencyService(token string) *CurrencyService {
 	return &CurrencyService{
 		client: client.NewClient(&client.Options{

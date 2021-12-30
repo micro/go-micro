@@ -4,6 +4,13 @@ import (
 	"go.m3o.com/client"
 )
 
+type Rss interface {
+	Add(*AddRequest) (*AddResponse, error)
+	Feed(*FeedRequest) (*FeedResponse, error)
+	List(*ListRequest) (*ListResponse, error)
+	Remove(*RemoveRequest) (*RemoveResponse, error)
+}
+
 func NewRssService(token string) *RssService {
 	return &RssService{
 		client: client.NewClient(&client.Options{

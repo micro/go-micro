@@ -4,6 +4,10 @@ import (
 	"go.m3o.com/client"
 )
 
+type Ip interface {
+	Lookup(*LookupRequest) (*LookupResponse, error)
+}
+
 func NewIpService(token string) *IpService {
 	return &IpService{
 		client: client.NewClient(&client.Options{
