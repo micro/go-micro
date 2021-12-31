@@ -1,7 +1,7 @@
 package routing
 
 import (
-	"go.m3o.com/client"
+	"go-micro.dev/v4/services/client"
 )
 
 type Routing interface {
