@@ -6,7 +6,7 @@ import (
 )
 
 func TestBasicCall(t *testing.T) {
-	if v := os.Getenv("IN_TRAVIS"); v == "yes" {
+	if v := os.Getenv("IN_TRAVIS_CI"); v == "yes" {
 		return
 	}
 
