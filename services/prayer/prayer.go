@@ -1,7 +1,7 @@
 package prayer
 
 import (
-	"go-micro.dev/v4/services/client"
+	"go-micro.dev/v4/api/client"
 )
 
 type Prayer interface {

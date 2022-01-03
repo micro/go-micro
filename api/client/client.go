@@ -1,3 +1,4 @@
+// Package client provides an api client
 package client
 
 import (

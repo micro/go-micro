@@ -1,7 +1,7 @@
 package holidays
 
 import (
-	"go-micro.dev/v4/services/client"
+	"go-micro.dev/v4/api/client"
 )
 
 type Holidays interface {

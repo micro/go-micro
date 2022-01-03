@@ -1,7 +1,7 @@
 package otp
 
 import (
-	"go-micro.dev/v4/services/client"
+	"go-micro.dev/v4/api/client"
 )
 
 type Otp interface {

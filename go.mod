@@ -29,7 +29,6 @@ require (
 	github.com/uber/jaeger-client-go v2.29.1+incompatible
 	github.com/uber/jaeger-lib v2.4.1+incompatible
 	github.com/urfave/cli/v2 v2.3.0
-	go.m3o.com v0.6.0
 	golang.org/x/crypto v0.0.0-20210513164829-c07d793c2f9a
 	golang.org/x/net v0.0.0-20210510120150-4163338589ed
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
