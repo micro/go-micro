@@ -24,6 +24,13 @@ func ClusterConfig(c *sarama.Config) broker.Option {
 	return setBrokerOption(clusterConfigKey{}, c)
 }
 
+type asyncProduceErrorKey struct{}
+type asyncProduceSuccessKey struct{}
+
+func AsyncProduce(errors chan<- *sarama.ProducerError, successes chan<- *sarama.ProducerMessage) broker.Option {
+	return setAsyncProduceOption(asyncProduceErrorKey{}, errors, asyncProduceSuccessKey{}, successes)
+}
+
 type subscribeContextKey struct{}
 
 // SubscribeContext set the context for broker.SubscribeOption
