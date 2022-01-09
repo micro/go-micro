@@ -20,8 +20,8 @@ func (c *memCache) Context(ctx context.Context) Cache {
 }
 
 func (c *memCache) Get(key string) (interface{}, time.Time, error) {
-	c.RWMutex.Lock()
-	defer c.RWMutex.Unlock()
+	c.RWMutex.RLock()
+	defer c.RWMutex.RUnlock()
 
 	item, found := c.items[key]
 	if !found {
