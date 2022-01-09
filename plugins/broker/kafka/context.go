@@ -2,8 +2,6 @@ package kafka
 
 import (
 	"context"
-	"github.com/Shopify/sarama"
-
 	"go-micro.dev/v4/broker"
 	"go-micro.dev/v4/server"
 )
@@ -25,21 +23,6 @@ func setBrokerOption(k, v interface{}) broker.Option {
 			o.Context = context.Background()
 		}
 		o.Context = context.WithValue(o.Context, k, v)
-	}
-}
-
-// setAsyncProduceOption returns a function to setup a context with given value
-func setAsyncProduceOption(errorKey interface{}, errors chan<- *sarama.ProducerError, successKey interface{}, successes chan<- *sarama.ProducerMessage) broker.Option {
-	return func(o *broker.Options) {
-		if o.Context == nil {
-			o.Context = context.Background()
-		}
-		if errors != nil {
-			o.Context = context.WithValue(o.Context, errorKey, errors)
-		}
-		if successes != nil {
-			o.Context = context.WithValue(o.Context, successKey, successes)
-		}
 	}
 }
 
