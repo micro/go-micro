@@ -2,6 +2,8 @@
 
 Go Micro is a framework for distributed systems development.
 
+<img src="go-micro.png" />
+
 ## Overview
 
 Go Micro provides the core requirements for distributed systems development including RPC and Event driven communication.
