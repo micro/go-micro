@@ -6,6 +6,7 @@ import (
 	"go-micro.dev/v4/services/app"
 	"go-micro.dev/v4/services/avatar"
 	"go-micro.dev/v4/services/cache"
+	"go-micro.dev/v4/services/carbon"
 	"go-micro.dev/v4/services/contact"
 	"go-micro.dev/v4/services/crypto"
 	"go-micro.dev/v4/services/currency"
@@ -67,6 +68,7 @@ func NewClient(token string) *Client {
 		AppService:        app.NewAppService(token),
 		AvatarService:     avatar.NewAvatarService(token),
 		CacheService:      cache.NewCacheService(token),
+		CarbonService:     carbon.NewCarbonService(token),
 		ContactService:    contact.NewContactService(token),
 		CryptoService:     crypto.NewCryptoService(token),
 		CurrencyService:   currency.NewCurrencyService(token),
@@ -128,6 +130,7 @@ type Client struct {
 	AppService        *app.AppService
 	AvatarService     *avatar.AvatarService
 	CacheService      *cache.CacheService
+	CarbonService     *carbon.CarbonService
 	ContactService    *contact.ContactService
 	CryptoService     *crypto.CryptoService
 	CurrencyService   *currency.CurrencyService

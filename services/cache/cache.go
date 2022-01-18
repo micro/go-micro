@@ -9,6 +9,7 @@ type Cache interface {
 	Delete(*DeleteRequest) (*DeleteResponse, error)
 	Get(*GetRequest) (*GetResponse, error)
 	Increment(*IncrementRequest) (*IncrementResponse, error)
+	ListKeys(*ListKeysRequest) (*ListKeysResponse, error)
 	Set(*SetRequest) (*SetResponse, error)
 }
 
@@ -53,6 +54,14 @@ func (t *CacheService) Increment(request *IncrementRequest) (*IncrementResponse,
 
 	rsp := &IncrementResponse{}
 	return rsp, t.client.Call("cache", "Increment", request, rsp)
+
+}
+
+// List all the available keys
+func (t *CacheService) ListKeys(request *ListKeysRequest) (*ListKeysResponse, error) {
+
+	rsp := &ListKeysResponse{}
+	return rsp, t.client.Call("cache", "ListKeys", request, rsp)
 
 }
 
@@ -114,6 +123,13 @@ type IncrementResponse struct {
 	Key string `json:"key"`
 	// The new value
 	Value int64 `json:"value,string"`
+}
+
+type ListKeysRequest struct {
+}
+
+type ListKeysResponse struct {
+	Keys []string `json:"keys"`
 }
 
 type SetRequest struct {
