@@ -67,7 +67,7 @@ func (t *AppService) Resolve(request *ResolveRequest) (*ResolveResponse, error) 
 
 }
 
-// Run an app from a source repo. Specify region etc.
+// Run an app from source
 func (t *AppService) Run(request *RunRequest) (*RunResponse, error) {
 
 	rsp := &RunResponse{}
@@ -150,7 +150,7 @@ type ResolveResponse struct {
 type RunRequest struct {
 	// branch. defaults to master
 	Branch string `json:"branch"`
-	// associatede env vars to pass in
+	// associated env vars to pass in
 	EnvVars map[string]string `json:"env_vars"`
 	// name of the app
 	Name string `json:"name"`

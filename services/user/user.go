@@ -116,12 +116,12 @@ func (t *UserService) SendPasswordResetEmail(request *SendPasswordResetEmailRequ
 
 }
 
-// Send a verification email
-// to the user being signed up. Email from will be from 'noreply@email.m3ocontent.com',
-// but you can provide the title and contents.
-// The verification link will be injected in to the email as a template variable, $micro_verification_link.
-// Example: 'Hi there, welcome onboard! Use the link below to verify your email: $micro_verification_link'
-// The variable will be replaced with an actual url that will look similar to this:
+// Send a verification email to a user.
+// Email "from" will be 'noreply@email.m3ocontent.com'.
+// The verification link will be injected in the email
+// as a template variable, $micro_verification_link e.g
+// 'Welcome to M3O! Use the link below to verify your email: $micro_verification_link'
+// The variable will be replaced with a url similar to:
 // 'https://user.m3o.com/user/verify?token=a-verification-token&redirectUrl=your-redir-url'
 func (t *UserService) SendVerificationEmail(request *SendVerificationEmailRequest) (*SendVerificationEmailResponse, error) {
 
@@ -316,10 +316,12 @@ type SendPasswordResetEmailResponse struct {
 
 type SendVerificationEmailRequest struct {
 	// email address to send the verification code
-	Email              string `json:"email"`
+	Email string `json:"email"`
+	// The url to redirect to incase of failure
 	FailureRedirectUrl string `json:"failureRedirectUrl"`
 	// Display name of the sender for the email. Note: the email address will still be 'noreply@email.m3ocontent.com'
-	FromName    string `json:"fromName"`
+	FromName string `json:"fromName"`
+	// The url to redirect to after successful verification
 	RedirectUrl string `json:"redirectUrl"`
 	// subject of the email
 	Subject string `json:"subject"`
@@ -371,8 +373,6 @@ type UpdateResponse struct {
 }
 
 type VerifyEmailRequest struct {
-	// the email address to verify
-	Email string `json:"email"`
 	// The token from the verification email
 	Token string `json:"token"`
 }

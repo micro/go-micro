@@ -28,12 +28,15 @@ import (
 	"go-micro.dev/v4/services/ip"
 	"go-micro.dev/v4/services/joke"
 	"go-micro.dev/v4/services/location"
+	"go-micro.dev/v4/services/minecraft"
 	"go-micro.dev/v4/services/movie"
 	"go-micro.dev/v4/services/mq"
 	"go-micro.dev/v4/services/news"
 	"go-micro.dev/v4/services/nft"
 	"go-micro.dev/v4/services/notes"
 	"go-micro.dev/v4/services/otp"
+	"go-micro.dev/v4/services/ping"
+	"go-micro.dev/v4/services/place"
 	"go-micro.dev/v4/services/postcode"
 	"go-micro.dev/v4/services/prayer"
 	"go-micro.dev/v4/services/qr"
@@ -90,12 +93,15 @@ func NewClient(token string) *Client {
 		IpService:         ip.NewIpService(token),
 		JokeService:       joke.NewJokeService(token),
 		LocationService:   location.NewLocationService(token),
+		MinecraftService:  minecraft.NewMinecraftService(token),
 		MovieService:      movie.NewMovieService(token),
 		MqService:         mq.NewMqService(token),
 		NewsService:       news.NewNewsService(token),
 		NftService:        nft.NewNftService(token),
 		NotesService:      notes.NewNotesService(token),
 		OtpService:        otp.NewOtpService(token),
+		PingService:       ping.NewPingService(token),
+		PlaceService:      place.NewPlaceService(token),
 		PostcodeService:   postcode.NewPostcodeService(token),
 		PrayerService:     prayer.NewPrayerService(token),
 		QrService:         qr.NewQrService(token),
@@ -152,12 +158,15 @@ type Client struct {
 	IpService         *ip.IpService
 	JokeService       *joke.JokeService
 	LocationService   *location.LocationService
+	MinecraftService  *minecraft.MinecraftService
 	MovieService      *movie.MovieService
 	MqService         *mq.MqService
 	NewsService       *news.NewsService
 	NftService        *nft.NftService
 	NotesService      *notes.NotesService
 	OtpService        *otp.OtpService
+	PingService       *ping.PingService
+	PlaceService      *place.PlaceService
 	PostcodeService   *postcode.PostcodeService
 	PrayerService     *prayer.PrayerService
 	QrService         *qr.QrService

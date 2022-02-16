@@ -108,8 +108,13 @@ type Record struct {
 }
 
 type SaveRequest struct {
+	// The file to save
 	File *Record `json:"file"`
+	// Make the file public: true or false
+	Public bool `json:"public"`
 }
 
 type SaveResponse struct {
+	// The permalink for the file if made public
+	Url string `json:"url"`
 }

@@ -5,6 +5,7 @@ import (
 )
 
 type Search interface {
+	CreateIndex(*CreateIndexRequest) (*CreateIndexResponse, error)
 	DeleteIndex(*DeleteIndexRequest) (*DeleteIndexResponse, error)
 	Delete(*DeleteRequest) (*DeleteResponse, error)
 	Index(*IndexRequest) (*IndexResponse, error)
@@ -23,7 +24,15 @@ type SearchService struct {
 	client *client.Client
 }
 
-// Delete an index.
+// Create an index by name
+func (t *SearchService) CreateIndex(request *CreateIndexRequest) (*CreateIndexResponse, error) {
+
+	rsp := &CreateIndexResponse{}
+	return rsp, t.client.Call("search", "CreateIndex", request, rsp)
+
+}
+
+// Delete an index by name
 func (t *SearchService) DeleteIndex(request *DeleteIndexRequest) (*DeleteIndexResponse, error) {
 
 	rsp := &DeleteIndexResponse{}
@@ -56,8 +65,7 @@ func (t *SearchService) Search(request *SearchRequest) (*SearchResponse, error) 
 }
 
 type CreateIndexRequest struct {
-	Fields []Field `json:"fields"`
-	// the name of the index
+	// The name of the index
 	Index string `json:"index"`
 }
 
