@@ -10,7 +10,7 @@ such as sending email, sms, etc we leave this up to the user. Yet they are becom
 more core to all forms of distributed systems development beyond infrastructure.
 
 This directory serves as guidance for accessing external Micro services managed 
-and hosted by [m3o.com](https://m3o.com) and powered by [Micro](https://github.com/micro/micro).
+and hosted by [M3O](https://m3o.com) and powered by [Micro](https://github.com/micro/micro).
 
 ## Features
 
