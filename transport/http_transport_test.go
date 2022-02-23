@@ -1,8 +1,10 @@
 package transport
 
 import (
+	"fmt"
 	"io"
 	"net"
+	"sync"
 	"testing"
 	"time"
 )
@@ -243,4 +245,78 @@ func TestHTTPTransportTimeout(t *testing.T) {
 	}
 
 	<-done
+}
+
+func TestHTTPTransportCloseWhenRecv(t *testing.T) {
+	tr := NewHTTPTransport()
+
+	l, err := tr.Listen("127.0.0.1:0")
+	if err != nil {
+		t.Errorf("Unexpected listen err: %v", err)
+	}
+	defer l.Close()
+
+	fn := func(sock Socket) {
+		defer sock.Close()
+
+		for {
+			var m Message
+			if err := sock.Recv(&m); err != nil {
+				return
+			}
+			if err := sock.Send(&m); err != nil {
+				return
+			}
+		}
+	}
+
+	done := make(chan bool)
+
+	go func() {
+		if err := l.Accept(fn); err != nil {
+			select {
+			case <-done:
+			default:
+				t.Errorf("Unexpected accept err: %v", err)
+			}
+		}
+	}()
+
+	c, err := tr.Dial(l.Addr())
+	if err != nil {
+		t.Errorf("Unexpected dial err: %v", err)
+	}
+	defer c.Close()
+
+	m := Message{
+		Header: map[string]string{
+			"Content-Type": "application/json",
+		},
+		Body: []byte(`{"message": "Hello World"}`),
+	}
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for {
+			var rm Message
+
+			if err := c.Recv(&rm); err != nil {
+				if err == io.EOF {
+					return
+				}
+				t.Errorf("Unexpected recv err: %v", err)
+			}
+			fmt.Println("aa")
+		}
+	}()
+	for i := 1; i < 3; i++ {
+		if err := c.Send(&m); err != nil {
+			t.Errorf("Unexpected send err: %v", err)
+		}
+	}
+	close(done)
+
+	c.Close()
+	wg.Wait()
 }
