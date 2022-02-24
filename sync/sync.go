@@ -2,6 +2,7 @@
 package sync
 
 import (
+	"crypto/tls"
 	"errors"
 	"time"
 )
@@ -35,8 +36,9 @@ type Leader interface {
 }
 
 type Options struct {
-	Nodes  []string
-	Prefix string
+	Nodes     []string
+	Prefix    string
+	TLSConfig *tls.Config
 }
 
 type Option func(o *Options)
