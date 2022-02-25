@@ -124,7 +124,7 @@ func (s *stream) Publish(topic string, msg interface{}, opts ...events.PublishOp
 	return nil
 }
 
-// Consume to a topic
+// Consume from a topic
 func (s *stream) Consume(topic string, opts ...events.ConsumeOption) (<-chan events.Event, error) {
 	// validate the topic
 	if len(topic) == 0 {
