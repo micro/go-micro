@@ -19,7 +19,7 @@ type Payload struct {
 	Name string
 }
 
-func SingleEvent(t *testing.T) {
+func TestSingleEvent(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.TODO())
 	defer cancel()
 
