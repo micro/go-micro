@@ -52,6 +52,19 @@ func TestMDNS(t *testing.T) {
 				},
 			},
 		},
+		{
+			Name:    "test4",
+			Version: "1.0.4",
+			Nodes: []*Node{
+				{
+					Id:      "test4-1",
+					Address: "[::]:10004",
+					Metadata: map[string]string{
+						"foo4": "bar4",
+					},
+				},
+			},
+		},
 	}
 
 	travis := os.Getenv("TRAVIS")
@@ -239,6 +252,19 @@ func TestWatcher(t *testing.T) {
 					Address: "10.0.0.3:10003",
 					Metadata: map[string]string{
 						"foo3": "bar3",
+					},
+				},
+			},
+		},
+		{
+			Name:    "test4",
+			Version: "1.0.4",
+			Nodes: []*Node{
+				{
+					Id:      "test4-1",
+					Address: "[::]:10004",
+					Metadata: map[string]string{
+						"foo4": "bar4",
 					},
 				},
 			},
