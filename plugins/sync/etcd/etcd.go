@@ -121,7 +121,9 @@ func (e *etcdSync) Lock(id string, opts ...sync.LockOption) error {
 		lockCtx, cancel = context.WithTimeout(lockCtx, options.Wait)
 		defer cancel()
 	}
-	if err := m.Lock(lockCtx); err != nil {
+	if err := m.Lock(lockCtx); err != nil && err == context.DeadlineExceeded {
+		return sync.ErrLockTimeout
+	} else if err != nil {
 		return err
 	}
 
