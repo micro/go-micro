@@ -1,4 +1,4 @@
-module go-micro.dev/v4
+module github.com/grissom1/go-micro/v4
 
 go 1.17
 
