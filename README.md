@@ -100,6 +100,10 @@ See [services](https://github.com/micro/go-micro/tree/master/services) directory
 
 See [CHANGELOG.md](https://github.com/micro/go-micro/tree/master/CHANGELOG.md) for release history.
 
+## Community
+
+See [github.com/go-micro](https://github.com/go-micro) for community led projects.
+
 ## License
 
 Go Micro is Apache 2.0 licensed.
