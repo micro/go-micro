@@ -7,9 +7,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/streadway/amqp"
 	"go-micro.dev/v4/broker"
 	"go-micro.dev/v4/cmd"
-	"github.com/streadway/amqp"
 )
 
 type rbroker struct {
@@ -267,6 +267,13 @@ func (r *rbroker) Subscribe(topic string, handler broker.Handler, opts ...broker
 		for k, v := range msg.Headers {
 			header[k], _ = v.(string)
 		}
+
+		// Get rid of dependence on 'Micro-Topic'
+		msgTopic := header["Micro-Topic"]
+		if msgTopic == "" {
+			header["Micro-Topic"] = msg.RoutingKey
+		}
+
 		m := &broker.Message{
 			Header: header,
 			Body:   msg.Body,

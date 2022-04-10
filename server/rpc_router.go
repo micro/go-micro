@@ -557,7 +557,7 @@ func (router *router) ProcessMessage(ctx context.Context, msg Message) (err erro
 			}
 
 			// read the body into the handler request value
-			if err = cc.ReadBody(req.Interface()); err != nil {
+			if err = cc.ReadBody(req.Addr().Interface()); err != nil {
 				return err
 			}
 
