@@ -137,6 +137,11 @@ func (g *micro) generateService(file *generator.FileDescriptor, service *pb.Serv
 	}
 	servName := generator.CamelCase(origServName)
 	servAlias := servName + "Service"
+	fullServName := servName
+	useGrpc := g.gen.Param["use_grpc"]
+	if useGrpc != "" {
+		fullServName = fmt.Sprintf("%s.%s", pkg, servName)
+	}
 
 	// strip suffix
 	if strings.HasSuffix(servAlias, "ServiceService") {
@@ -243,10 +248,21 @@ func (g *micro) generateService(file *generator.FileDescriptor, service *pb.Serv
 		g.P(methName, "(ctx ", contextPkg, ".Context, stream server.Stream) error")
 	}
 	g.P("}")
+
 	g.P("type ", servName, " struct {")
 	g.P(unexport(servName))
+	if useGrpc != "" {
+		g.P("fullName string")
+	}
 	g.P("}")
 	g.P("h := &", unexport(servName), "Handler{hdlr}")
+	g.P("rh := &", servName, "{")
+	g.P(unexport(servName), ": h,")
+	if useGrpc != "" {
+		g.P(`fullName:"`, fullServName, `",`)
+	}
+	g.P("}")
+
 	for _, method := range service.Method {
 		if method.Options != nil && proto.HasExtension(method.Options, options.E_Http) {
 			g.P("opts = append(opts, ", apiPkg, ".WithEndpoint(&", apiPkg, ".Endpoint{")
@@ -254,7 +270,7 @@ func (g *micro) generateService(file *generator.FileDescriptor, service *pb.Serv
 			g.P("}))")
 		}
 	}
-	g.P("return s.Handle(s.NewHandler(&", servName, "{h}, opts...))")
+	g.P("return s.Handle(s.NewHandler(rh, opts...))")
 	g.P("}")
 	g.P()
 
