@@ -25,7 +25,15 @@ func newRpcHandler(handler interface{}, opts ...server.HandlerOption) server.Han
 
 	typ := reflect.TypeOf(handler)
 	hdlr := reflect.ValueOf(handler)
-	name := reflect.Indirect(hdlr).Type().Name()
+	hdlrv := reflect.Indirect(hdlr)
+	name := hdlrv.Type().Name()
+	fullNameField := hdlrv.FieldByName("fullName")
+	if fullNameField.IsValid() {
+		fullNameValue := fullNameField.String()
+		if fullNameValue != "" {
+			name = fullNameField.String()
+		}
+	}
 
 	var endpoints []*registry.Endpoint
 
