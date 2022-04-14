@@ -70,33 +70,22 @@ service.Init()
 service.Run()
 ```
 
-See the [examples](https://github.com/micro/go-micro/tree/master/examples) for detailed information on usage.
-
-## Command Line Interface
-
-See [cmd/micro](https://github.com/asim/go-micro/tree/master/cmd/micro) for the command line interface.
+See the [examples](https://github.com/go-micro/examples) for detailed information on usage.
 
 ## Code Generation
 
 See [cmd/protoc-gen-micro](https://github.com/micro/go-micro/tree/master/cmd/protoc-gen-micro) for protobuf code generation.
 
-## Dashboard
+## Community
 
-See [cmd/dashboard](https://github.com/micro/go-micro/tree/master/cmd/dashboard) for go micro dashboard.
+See [github.com/go-micro](https://github.com/go-micro) for community led projects.
 
-## Example Usage
+- [Plugins](https://github.com/go-micro/plugins)
+- [Examples](https://github.com/go-micro/examples)
+- [Dashboard](https://github.com/go-micro/dashboard)
+- [CLI](https://github.com/go-micro/cli)
 
-See [examples](https://github.com/micro/go-micro/tree/master/examples) directory for usage examples.
-
-## Plugins
-
-See [plugins](https://github.com/micro/go-micro/tree/master/plugins) directory for all the plugins.
-
-## Services
-
-See [services](https://github.com/micro/go-micro/tree/master/services) directory for third party services.
-
-## Changelogs
+## Changelog
 
 See [CHANGELOG.md](https://github.com/micro/go-micro/tree/master/CHANGELOG.md) for release history.
 
