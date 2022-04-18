@@ -37,7 +37,9 @@ func newConfig(opts ...Option) (Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	go c.run()
+	if !c.opts.WithWatcherDisabled {
+		go c.run()
+	}
 
 	return &c, nil
 }
@@ -53,7 +55,12 @@ func (c *config) Init(opts ...Option) error {
 
 	// default loader uses the configured reader
 	if c.opts.Loader == nil {
-		c.opts.Loader = memory.NewLoader(memory.WithReader(c.opts.Reader))
+		loaderOpts := []loader.Option{memory.WithReader(c.opts.Reader)}
+		if c.opts.WithWatcherDisabled {
+			loaderOpts = append(loaderOpts, memory.WithWatcherDisabled())
+		}
+
+		c.opts.Loader = memory.NewLoader(loaderOpts...)
 	}
 
 	err := c.opts.Loader.Load(c.opts.Source...)

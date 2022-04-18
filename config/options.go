@@ -26,3 +26,9 @@ func WithReader(r reader.Reader) Option {
 		o.Reader = r
 	}
 }
+
+func WithWatcherDisabled() Option {
+	return func(o *Options) {
+		o.WithWatcherDisabled = true
+	}
+}
