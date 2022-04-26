@@ -1,8 +1,6 @@
-# Go Micro [![License](https://img.shields.io/:license-apache-blue.svg)](https://opensource.org/licenses/Apache-2.0) [![Go.Dev reference](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white&style=flat-square)](https://pkg.go.dev/go-micro.dev/v4?tab=doc)
+# Go Micro [![License](https://img.shields.io/:license-apache-blue.svg)](https://opensource.org/licenses/Apache-2.0) [![Go.Dev reference](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white&style=flat-square)](https://pkg.go.dev/go-micro.dev/v4?tab=doc) [![Community](https://img.shields.io/:community-home-orange.svg)](https://github.com/go-micro) [![Micro](https://img.shields.io/:micro-platform-green.svg)](https://github.com/micro/micro) [![M3O](https://img.shields.io/:m3o-services-red.svg)](https://github.com/m3o/m3o)
 
 Go Micro is a framework for distributed systems development.
-
-<img src="go-micro.png" style="border: 1px solid black;" />
 
 ## Overview
 
@@ -88,6 +86,10 @@ See [github.com/go-micro](https://github.com/go-micro) for community led project
 ## Changelog
 
 See [CHANGELOG.md](https://github.com/micro/go-micro/tree/master/CHANGELOG.md) for release history.
+
+## Evolution
+
+Go Micro started in 2015. It's since evolved into a platform called [Micro](https://micro.dev) and a service called [M3O](https://m3o.com).
 
 ## License
 
