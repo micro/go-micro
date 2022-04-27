@@ -11,8 +11,8 @@ import (
 	"sync"
 	"time"
 
-	"go-micro.dev/v4/logger"
 	"github.com/streadway/amqp"
+	"go-micro.dev/v4/logger"
 )
 
 var (
@@ -129,42 +129,36 @@ func (r *rabbitMQConn) reconnect(secure bool, config *amqp.Config) {
 		chanNotifyClose := make(chan *amqp.Error)
 		channel := r.ExchangeChannel.channel
 		channel.NotifyClose(chanNotifyClose)
-		channelNotifyReturn := make(chan amqp.Return)
-		channel.NotifyReturn(channelNotifyReturn)
 
-		// block until closed
-		select {
-		case result, ok := <-channelNotifyReturn:
-			if !ok {
-				// Channel closed, probably also the channel or connection.
+		// To avoid deadlocks it is necessary to consume the messages from all channels.
+		for notifyClose != nil || chanNotifyClose != nil {
+			// block until closed
+			select {
+			case err := <-chanNotifyClose:
+				if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
+					logger.Error(err)
+				}
+				// block all resubscribe attempt - they are useless because there is no connection to rabbitmq
+				// create channel 'waitConnection' (at this point channel is nil or closed, create it without unnecessary checks)
+				r.Lock()
+				r.connected = false
+				r.waitConnection = make(chan struct{})
+				r.Unlock()
+				chanNotifyClose = nil
+			case err := <-notifyClose:
+				if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
+					logger.Error(err)
+				}
+				// block all resubscribe attempt - they are useless because there is no connection to rabbitmq
+				// create channel 'waitConnection' (at this point channel is nil or closed, create it without unnecessary checks)
+				r.Lock()
+				r.connected = false
+				r.waitConnection = make(chan struct{})
+				r.Unlock()
+				notifyClose = nil
+			case <-r.close:
 				return
 			}
-			// Do what you need with messageFailing.
-			if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
-				logger.Errorf("notify error reason: %s, description: %s", result.ReplyText, result.Exchange)
-			}
-		case err := <-chanNotifyClose:
-			if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
-				logger.Error(err)
-			}
-			// block all resubscribe attempt - they are useless because there is no connection to rabbitmq
-			// create channel 'waitConnection' (at this point channel is nil or closed, create it without unnecessary checks)
-			r.Lock()
-			r.connected = false
-			r.waitConnection = make(chan struct{})
-			r.Unlock()
-		case err := <-notifyClose:
-			if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
-				logger.Error(err)
-			}
-			// block all resubscribe attempt - they are useless because there is no connection to rabbitmq
-			// create channel 'waitConnection' (at this point channel is nil or closed, create it without unnecessary checks)
-			r.Lock()
-			r.connected = false
-			r.waitConnection = make(chan struct{})
-			r.Unlock()
-		case <-r.close:
-			return
 		}
 	}
 }
