@@ -102,6 +102,10 @@ func (s *subscriber) resubscribe() {
 			return
 			//wait until we reconect to rabbit
 		case <-s.r.conn.waitConnection:
+			// When the connection is disconnected, the waitConnection will be re-assigned, so '<-s.r.conn.waitConnection' maybe blocked.
+			// Here, it returns once a second, and then the latest waitconnection will be used
+		case <-time.After(time.Second):
+			continue
 		}
 
 		// it may crash (panic) in case of Consume without connection, so recheck it
