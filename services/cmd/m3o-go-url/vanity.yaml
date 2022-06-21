@@ -1,5 +1,0 @@
-host: go.m3o.com
-
-paths:
-  /:
-    repo: https://github.com/m3o/m3o-go

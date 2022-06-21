@@ -7,9 +7,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/streadway/amqp"
 	"go-micro.dev/v4/broker"
 	"go-micro.dev/v4/cmd"
-	"github.com/streadway/amqp"
 )
 
 type rbroker struct {
@@ -102,6 +102,10 @@ func (s *subscriber) resubscribe() {
 			return
 			//wait until we reconect to rabbit
 		case <-s.r.conn.waitConnection:
+			// When the connection is disconnected, the waitConnection will be re-assigned, so '<-s.r.conn.waitConnection' maybe blocked.
+			// Here, it returns once a second, and then the latest waitconnection will be used
+		case <-time.After(time.Second):
+			continue
 		}
 
 		// it may crash (panic) in case of Consume without connection, so recheck it
@@ -267,6 +271,13 @@ func (r *rbroker) Subscribe(topic string, handler broker.Handler, opts ...broker
 		for k, v := range msg.Headers {
 			header[k], _ = v.(string)
 		}
+
+		// Get rid of dependence on 'Micro-Topic'
+		msgTopic := header["Micro-Topic"]
+		if msgTopic == "" {
+			header["Micro-Topic"] = msg.RoutingKey
+		}
+
 		m := &broker.Message{
 			Header: header,
 			Body:   msg.Body,

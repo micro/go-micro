@@ -2,7 +2,6 @@ package kafka
 
 import (
 	"context"
-
 	"go-micro.dev/v4/broker"
 	"go-micro.dev/v4/server"
 )

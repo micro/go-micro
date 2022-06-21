@@ -4,9 +4,9 @@ import (
 	"sync"
 	"time"
 
+	jwtToken "github.com/asim/go-micro/plugins/auth/jwt/v4/token"
 	"go-micro.dev/v4/auth"
 	"go-micro.dev/v4/cmd"
-	jwtToken "github.com/asim/go-micro/plugins/auth/jwt/v4/token"
 )
 
 func init() {
@@ -92,7 +92,7 @@ func (j *jwtRules) Revoke(rule *auth.Rule) error {
 	j.Lock()
 	defer j.Unlock()
 
-	rules := []*auth.Rule{}
+	rules := make([]*auth.Rule, 0, len(j.rules))
 	for _, r := range j.rules {
 		if r.ID != rule.ID {
 			rules = append(rules, r)

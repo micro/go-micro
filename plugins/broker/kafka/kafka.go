@@ -3,6 +3,7 @@ package kafka
 
 import (
 	"context"
+	"errors"
 	"sync"
 
 	"github.com/Shopify/sarama"
@@ -16,8 +17,9 @@ import (
 type kBroker struct {
 	addrs []string
 
-	c sarama.Client
-	p sarama.SyncProducer
+	c  sarama.Client
+	p  sarama.SyncProducer
+	ap sarama.AsyncProducer
 
 	sc []sarama.Client
 
@@ -105,14 +107,51 @@ func (k *kBroker) Connect() error {
 		return err
 	}
 
-	p, err := sarama.NewSyncProducerFromClient(c)
-	if err != nil {
-		return err
+	var (
+		ap                   sarama.AsyncProducer
+		p                    sarama.SyncProducer
+		errChan, successChan = k.getAsyncProduceChan()
+	)
+
+	// Because error chan must require, so only error chan
+	// If set the error chan, will use async produce
+	// else use sync produce
+	// only keep one client resource, is c variable
+	if errChan != nil {
+		ap, err = sarama.NewAsyncProducerFromClient(c)
+		if err != nil {
+			return err
+		}
+		// When the ap closed, the Errors() & Successes() channel will be closed
+		// So the goroutine will auto exit
+		go func() {
+			for v := range ap.Errors() {
+				errChan <- v
+			}
+		}()
+
+		if successChan != nil {
+			go func() {
+				for v := range ap.Successes() {
+					successChan <- v
+				}
+			}()
+		}
+	} else {
+		p, err = sarama.NewSyncProducerFromClient(c)
+		if err != nil {
+			return err
+		}
 	}
 
 	k.scMutex.Lock()
 	k.c = c
-	k.p = p
+	if p != nil {
+		k.p = p
+	}
+	if ap != nil {
+		k.ap = ap
+	}
 	k.sc = make([]sarama.Client, 0)
 	k.connected = true
 	k.scMutex.Unlock()
@@ -129,6 +168,9 @@ func (k *kBroker) Disconnect() error {
 	k.sc = nil
 	if k.p != nil {
 		k.p.Close()
+	}
+	if k.ap != nil {
+		k.ap.Close()
 	}
 	if err := k.c.Close(); err != nil {
 		return err
@@ -164,11 +206,21 @@ func (k *kBroker) Publish(topic string, msg *broker.Message, opts ...broker.Publ
 	if err != nil {
 		return err
 	}
-	_, _, err = k.p.SendMessage(&sarama.ProducerMessage{
-		Topic: topic,
-		Value: sarama.ByteEncoder(b),
-	})
-	return err
+
+	var produceMsg = &sarama.ProducerMessage{
+		Topic:    topic,
+		Value:    sarama.ByteEncoder(b),
+		Metadata: msg,
+	}
+	if k.ap != nil {
+		k.ap.Input() <- produceMsg
+		return nil
+	} else if k.p != nil {
+		_, _, err = k.p.SendMessage(produceMsg)
+		return err
+	}
+
+	return errors.New(`no connection resources available`)
 }
 
 func (k *kBroker) getSaramaClusterClient(topic string) (sarama.Client, error) {
@@ -268,6 +320,20 @@ func (k *kBroker) getBrokerConfig() *sarama.Config {
 		return c
 	}
 	return DefaultBrokerConfig
+}
+
+func (k *kBroker) getAsyncProduceChan() (chan<- *sarama.ProducerError, chan<- *sarama.ProducerMessage) {
+	var (
+		errors    chan<- *sarama.ProducerError
+		successes chan<- *sarama.ProducerMessage
+	)
+	if c, ok := k.opts.Context.Value(asyncProduceErrorKey{}).(chan<- *sarama.ProducerError); ok {
+		errors = c
+	}
+	if c, ok := k.opts.Context.Value(asyncProduceSuccessKey{}).(chan<- *sarama.ProducerMessage); ok {
+		successes = c
+	}
+	return errors, successes
 }
 
 func (k *kBroker) getClusterConfig() *sarama.Config {

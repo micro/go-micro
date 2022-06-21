@@ -27,8 +27,10 @@ func (n Marshaler) Unmarshal(d []byte, v interface{}) error {
 	switch ve := v.(type) {
 	case *[]byte:
 		*ve = d
+		return nil
 	case *Message:
 		ve.Body = d
+		return nil
 	}
 	return codec.ErrInvalidMessage
 }

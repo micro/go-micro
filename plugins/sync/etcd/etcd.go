@@ -115,7 +115,15 @@ func (e *etcdSync) Lock(id string, opts ...sync.LockOption) error {
 
 	m := cc.NewMutex(s, path)
 
-	if err := m.Lock(context.TODO()); err != nil {
+	lockCtx := context.Background()
+	if options.Wait > 0 {
+		var cancel context.CancelFunc
+		lockCtx, cancel = context.WithTimeout(lockCtx, options.Wait)
+		defer cancel()
+	}
+	if err := m.Lock(lockCtx); err != nil && err == context.DeadlineExceeded {
+		return sync.ErrLockTimeout
+	} else if err != nil {
 		return err
 	}
 
@@ -165,6 +173,7 @@ func NewSync(opts ...sync.Option) sync.Sync {
 	// TODO: parse addresses
 	c, err := clientv3.New(clientv3.Config{
 		Endpoints: endpoints,
+		TLS:       options.TLSConfig,
 	})
 	if err != nil {
 		log.Fatal(err)

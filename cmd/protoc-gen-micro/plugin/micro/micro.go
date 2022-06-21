@@ -131,7 +131,8 @@ func (g *micro) generateService(file *generator.FileDescriptor, service *pb.Serv
 
 	origServName := service.GetName()
 	serviceName := strings.ToLower(service.GetName())
-	if pkg := file.GetPackage(); pkg != "" {
+	pkg := file.GetPackage()
+	if pkg != "" {
 		serviceName = pkg
 	}
 	servName := generator.CamelCase(origServName)
@@ -209,7 +210,7 @@ func (g *micro) generateService(file *generator.FileDescriptor, service *pb.Serv
 			descExpr = fmt.Sprintf("&%s.Streams[%d]", serviceDescVar, streamIndex)
 			streamIndex++
 		}
-		g.generateClientMethod(serviceName, servName, serviceDescVar, method, descExpr)
+		g.generateClientMethod(pkg, serviceName, servName, serviceDescVar, method, descExpr)
 	}
 
 	g.P("// Server API for ", servName, " service")
@@ -331,8 +332,12 @@ func (g *micro) generateClientSignature(servName string, method *pb.MethodDescri
 	return fmt.Sprintf("%s(ctx %s.Context%s, opts ...%s.CallOption) (%s, error)", methName, contextPkg, reqArg, clientPkg, respName)
 }
 
-func (g *micro) generateClientMethod(reqServ, servName, serviceDescVar string, method *pb.MethodDescriptorProto, descExpr string) {
+func (g *micro) generateClientMethod(pkg, reqServ, servName, serviceDescVar string, method *pb.MethodDescriptorProto, descExpr string) {
 	reqMethod := fmt.Sprintf("%s.%s", servName, method.GetName())
+	useGrpc := g.gen.Param["use_grpc"]
+	if useGrpc != "" {
+		reqMethod = fmt.Sprintf("/%s.%s/%s", pkg, servName, method.GetName())
+	}
 	methName := generator.CamelCase(method.GetName())
 	inType := g.typeName(method.GetInputType())
 	outType := g.typeName(method.GetOutputType())

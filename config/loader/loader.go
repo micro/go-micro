@@ -48,6 +48,8 @@ type Options struct {
 
 	// for alternative data
 	Context context.Context
+
+	WithWatcherDisabled bool
 }
 
 type Option func(o *Options)

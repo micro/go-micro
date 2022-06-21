@@ -54,7 +54,7 @@ func makeMap(e encoder.Encoder, kv api.KVPairs, stripPrefix string) (map[string]
 			case mapV.Decode(e, v.Value) == nil:
 				val = mapV
 			default:
-				return nil, fmt.Errorf("faild decode value. path: %s, error: %s", pathString, err)
+				return nil, fmt.Errorf("failed decode value. path: %s, error: %s", pathString, err)
 			}
 		}
 

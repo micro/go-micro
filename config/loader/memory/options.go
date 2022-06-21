@@ -19,3 +19,9 @@ func WithReader(r reader.Reader) loader.Option {
 		o.Reader = r
 	}
 }
+
+func WithWatcherDisabled() loader.Option {
+	return func(o *loader.Options) {
+		o.WithWatcherDisabled = true
+	}
+}

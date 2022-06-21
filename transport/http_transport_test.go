@@ -1,7 +1,6 @@
 package transport
 
 import (
-	"fmt"
 	"io"
 	"net"
 	"sync"
@@ -303,11 +302,11 @@ func TestHTTPTransportCloseWhenRecv(t *testing.T) {
 
 			if err := c.Recv(&rm); err != nil {
 				if err == io.EOF {
+					c.Recv(&rm)
 					return
 				}
 				t.Errorf("Unexpected recv err: %v", err)
 			}
-			fmt.Println("aa")
 		}
 	}()
 	for i := 1; i < 3; i++ {
