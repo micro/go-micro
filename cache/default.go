@@ -9,13 +9,19 @@ import (
 type memCache struct {
 	opts Options
 	sync.RWMutex
+	ctx context.Context
 
 	items map[string]Item
 }
 
-func (c *memCache) Get(ctx context.Context, key string) (interface{}, time.Time, error) {
-	c.RWMutex.RLock()
-	defer c.RWMutex.RUnlock()
+func (c *memCache) Context(ctx context.Context) Cache {
+	c.ctx = ctx
+	return c
+}
+
+func (c *memCache) Get(key string) (interface{}, time.Time, error) {
+	c.RWMutex.Lock()
+	defer c.RWMutex.Unlock()
 
 	item, found := c.items[key]
 	if !found {
@@ -28,7 +34,7 @@ func (c *memCache) Get(ctx context.Context, key string) (interface{}, time.Time,
 	return item.Value, time.Unix(0, item.Expiration), nil
 }
 
-func (c *memCache) Put(ctx context.Context, key string, val interface{}, d time.Duration) error {
+func (c *memCache) Put(key string, val interface{}, d time.Duration) error {
 	var e int64
 	if d == DefaultExpiration {
 		d = c.opts.Expiration
@@ -48,7 +54,7 @@ func (c *memCache) Put(ctx context.Context, key string, val interface{}, d time.
 	return nil
 }
 
-func (c *memCache) Delete(ctx context.Context, key string) error {
+func (c *memCache) Delete(key string) error {
 	c.RWMutex.Lock()
 	defer c.RWMutex.Unlock()
 
@@ -59,8 +65,4 @@ func (c *memCache) Delete(ctx context.Context, key string) error {
 
 	delete(c.items, key)
 	return nil
-}
-
-func (m *memCache) String() string {
-	return "memory"
 }

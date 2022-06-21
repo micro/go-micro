@@ -1,18 +1,11 @@
 package cache
 
-import (
-	"context"
-	"time"
-)
+import "time"
 
 // Options represents the options for the cache.
 type Options struct {
 	Expiration time.Duration
 	Items      map[string]Item
-	// Address represents the address or other connection information of the cache service.
-	Address string
-	// Context should contain all implementation specific options, using context.WithValue.
-	Context context.Context
 }
 
 // Option manipulates the Options passed.
@@ -32,24 +25,11 @@ func Items(i map[string]Item) Option {
 	}
 }
 
-// WithAddress sets the cache service address or connection information
-func WithAddress(addr string) Option {
-	return func(o *Options) {
-		o.Address = addr
-	}
-}
-
-// WithContext sets the cache context, for any extra configuration
-func WithContext(c context.Context) Option {
-	return func(o *Options) {
-		o.Context = c
-	}
-}
-
 // NewOptions returns a new options struct.
 func NewOptions(opts ...Option) Options {
 	options := Options{
-		Items: make(map[string]Item),
+		Expiration: DefaultExpiration,
+		Items:      make(map[string]Item),
 	}
 
 	for _, o := range opts {
