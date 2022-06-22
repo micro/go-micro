@@ -556,8 +556,14 @@ func (router *router) ProcessMessage(ctx context.Context, msg Message) (err erro
 				return err
 			}
 
+			// make request value a pointer, if it's not already
+			reqVal := req.Interface()
+			if req.CanAddr() {
+				reqVal = req.Addr().Interface()
+			}
+
 			// read the body into the handler request value
-			if err = cc.ReadBody(req.Addr().Interface()); err != nil {
+			if err = cc.ReadBody(reqVal); err != nil {
 				return err
 			}
 
