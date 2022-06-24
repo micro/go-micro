@@ -27,7 +27,7 @@ type streamsPool struct {
 	head *poolConn
 	//  busy conns list
 	busy *poolConn
-	//  the siza of list
+	//  the size of list
 	count int
 	//  idle conn
 	idle int
