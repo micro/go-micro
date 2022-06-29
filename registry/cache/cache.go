@@ -42,7 +42,7 @@ type cache struct {
 	exit chan bool
 
 	// indicate whether its running
-	running bool
+	watchedRunning map[string]bool
 	// status of the registry
 	// used to hold onto the cache
 	// in failure state
@@ -179,7 +179,7 @@ func (c *cache) get(service string) ([]*registry.Service, error) {
 		c.watched[service] = true
 
 		// only kick it off if not running
-		if !c.running {
+		if !c.watchedRunning[service] {
 			go c.run(service)
 		}
 
@@ -318,14 +318,14 @@ func (c *cache) update(res *registry.Result) {
 // it creates a new watcher if there's a problem
 func (c *cache) run(service string) {
 	c.Lock()
-	c.running = true
+	c.watchedRunning[service] = true
 	c.Unlock()
 
 	// reset watcher on exit
 	defer func() {
 		c.Lock()
 		c.watched = make(map[string]bool)
-		c.running = false
+		c.watchedRunning[service] = false
 		c.Unlock()
 	}()
 
@@ -475,11 +475,12 @@ func New(r registry.Registry, opts ...Option) Cache {
 	}
 
 	return &cache{
-		Registry: r,
-		opts:     options,
-		watched:  make(map[string]bool),
-		cache:    make(map[string][]*registry.Service),
-		ttls:     make(map[string]time.Time),
-		exit:     make(chan bool),
+		Registry:       r,
+		opts:           options,
+		watched:        make(map[string]bool),
+		watchedRunning: make(map[string]bool),
+		cache:          make(map[string][]*registry.Service),
+		ttls:           make(map[string]time.Time),
+		exit:           make(chan bool),
 	}
 }
