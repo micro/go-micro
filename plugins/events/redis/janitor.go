@@ -71,7 +71,9 @@ func (r *redisStream) cleanupConsumers() error {
 			}
 		}
 
-		if err := r.redisClient.XTrimMinID(ctx, streamName, strconv.FormatInt(time.Now().Add(-d).Unix()*1000, 10)); err != nil {
+		// `XTRIM MINID` requires Redis 6.2
+		minID := strconv.FormatInt(time.Now().Add(-d).Unix()*1000, 10)
+		if err := r.redisClient.XTrimMinID(ctx, streamName, minID).Err(); err != nil {
 			logger.Errorf("Error trimming %s", err)
 		}
 	}
