@@ -34,6 +34,7 @@ type service struct {
 	running bool
 	static  bool
 	exit    chan chan error
+	ex      chan bool
 }
 
 func newService(opts ...Option) Service {
@@ -42,6 +43,7 @@ func newService(opts ...Option) Service {
 		opts:   options,
 		mux:    http.NewServeMux(),
 		static: true,
+		ex:     make(chan bool),
 	}
 	s.srv = s.genSrv()
 	return s
@@ -90,7 +92,7 @@ func (s *service) genSrv() *registry.Service {
 	}
 }
 
-func (s *service) run(exit chan bool) {
+func (s *service) run() {
 	s.RLock()
 	if s.opts.RegisterInterval <= time.Duration(0) {
 		s.RUnlock()
@@ -104,7 +106,7 @@ func (s *service) run(exit chan bool) {
 		select {
 		case <-t.C:
 			s.register()
-		case <-exit:
+		case <-s.ex:
 			t.Stop()
 			return
 		}
@@ -440,6 +442,32 @@ func (s *service) Init(opts ...Option) error {
 	return nil
 }
 
+func (s *service) Start() error {
+	if err := s.start(); err != nil {
+		return err
+	}
+
+	if err := s.register(); err != nil {
+		return err
+	}
+
+	// start reg loop
+	go s.run()
+
+	return nil
+}
+
+func (s *service) Stop() error {
+	// exit reg loop
+	close(s.ex)
+
+	if err := s.deregister(); err != nil {
+		return err
+	}
+
+	return s.stop()
+}
+
 func (s *service) Run() error {
 	if err := s.start(); err != nil {
 		return err
@@ -467,8 +495,7 @@ func (s *service) Run() error {
 	}
 
 	// start reg loop
-	ex := make(chan bool)
-	go s.run(ex)
+	go s.run()
 
 	ch := make(chan os.Signal, 1)
 	if s.opts.Signal {
@@ -489,7 +516,7 @@ func (s *service) Run() error {
 	}
 
 	// exit reg loop
-	close(ex)
+	close(s.ex)
 
 	if err := s.deregister(); err != nil {
 		return err

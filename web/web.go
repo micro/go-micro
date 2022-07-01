@@ -16,6 +16,8 @@ type Service interface {
 	Options() Options
 	Handle(pattern string, handler http.Handler)
 	HandleFunc(pattern string, handler func(http.ResponseWriter, *http.Request))
+	Start() error
+	Stop() error
 	Run() error
 }
 
