@@ -26,12 +26,7 @@ func NewOptions(opts ...Option) Options {
 	}
 
 	if options.Client == nil {
-		WithClient(client.NewClient())(&options)
-	}
-
-	// set namespace if blank
-	if len(options.Namespace) == 0 {
-		WithNamespace("go.micro.api")(&options)
+		WithClient(client.DefaultClient)(&options)
 	}
 
 	if options.MaxRecvSize == 0 {

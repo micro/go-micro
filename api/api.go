@@ -1,6 +1,8 @@
+// Package api is for building api gateways
 package api
 
 import (
+	"context"
 	"errors"
 	"regexp"
 	"strings"
@@ -9,6 +11,8 @@ import (
 	"go-micro.dev/v4/server"
 )
 
+// The Api interface provides a way to 
+// create composable API gateways
 type Api interface {
 	// Initialise options
 	Init(...Option) error
@@ -18,11 +22,16 @@ type Api interface {
 	Register(*Endpoint) error
 	// Register a route
 	Deregister(*Endpoint) error
+	// Run the api
+	Run(context.Context) error
 	// Implemenation of api
 	String() string
 }
 
-type Options struct{}
+type Options struct {
+	// Address of the server
+	Address string
+}
 
 type Option func(*Options) error
 
@@ -184,4 +193,9 @@ func NewGateway() Gateway {
 //	))
 func WithEndpoint(e *Endpoint) server.HandlerOption {
 	return server.EndpointMetadata(e.Name, Encode(e))
+}
+
+// NewApi returns a new api gateway
+func NewApi(opts ...Option) Api {
+	return newApi(opts...)
 }

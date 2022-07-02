@@ -8,8 +8,8 @@ import (
 	"net/http/httputil"
 	"net/url"
 
-	"go-micro.dev/v4/api"
 	"go-micro.dev/v4/api/handler"
+	"go-micro.dev/v4/api/router"
 	"go-micro.dev/v4/selector"
 )
 
@@ -19,9 +19,6 @@ const (
 
 type httpHandler struct {
 	options handler.Options
-
-	// set with different initialiser
-	s *api.Service
 }
 
 func (h *httpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -47,12 +44,9 @@ func (h *httpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // getService returns the service for this request from the selector
 func (h *httpHandler) getService(r *http.Request) (string, error) {
-	var service *api.Service
+	var service *router.Route
 
-	if h.s != nil {
-		// we were given the service
-		service = h.s
-	} else if h.options.Router != nil {
+	if h.options.Router != nil {
 		// try get service from router
 		s, err := h.options.Router.Route(r)
 		if err != nil {
@@ -65,7 +59,7 @@ func (h *httpHandler) getService(r *http.Request) (string, error) {
 	}
 
 	// create a random selector
-	next := selector.Random(service.Services)
+	next := selector.Random(service.Versions)
 
 	// get the next node
 	s, err := next()
@@ -86,15 +80,5 @@ func NewHandler(opts ...handler.Option) handler.Handler {
 
 	return &httpHandler{
 		options: options,
-	}
-}
-
-// WithService creates a handler with a service
-func WithService(s *api.Service, opts ...handler.Option) handler.Handler {
-	options := handler.NewOptions(opts...)
-
-	return &httpHandler{
-		options: options,
-		s:       s,
 	}
 }

@@ -11,9 +11,9 @@ import (
 
 	jsonpatch "github.com/evanphx/json-patch/v5"
 	"github.com/oxtoacart/bpool"
-	"go-micro.dev/v4/api"
 	"go-micro.dev/v4/api/handler"
 	"go-micro.dev/v4/api/internal/proto"
+	"go-micro.dev/v4/api/router"
 	"go-micro.dev/v4/client"
 	"go-micro.dev/v4/codec"
 	"go-micro.dev/v4/codec/jsonrpc"
@@ -54,7 +54,6 @@ var (
 
 type rpcHandler struct {
 	opts handler.Options
-	s    *api.Service
 }
 
 type buffer struct {
@@ -82,12 +81,9 @@ func (h *rpcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	r.Body = http.MaxBytesReader(w, r.Body, bsize)
 
 	defer r.Body.Close()
-	var service *api.Service
+	var service *router.Route
 
-	if h.s != nil {
-		// we were given the service
-		service = h.s
-	} else if h.opts.Router != nil {
+	if h.opts.Router != nil {
 		// try get service from router
 		s, err := h.opts.Router.Route(r)
 		if err != nil {
@@ -142,7 +138,7 @@ func (h *rpcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// create strategy
-	so := selector.WithStrategy(strategy(service.Services))
+	so := selector.WithStrategy(strategy(service.Versions))
 
 	// walk the standard call path
 	// get payload
@@ -167,7 +163,7 @@ func (h *rpcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		response := &proto.Message{}
 
 		req := c.NewRequest(
-			service.Name,
+			service.Service,
 			service.Endpoint.Name,
 			request,
 			client.WithContentType(ct),
@@ -203,7 +199,7 @@ func (h *rpcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		var response json.RawMessage
 
 		req := c.NewRequest(
-			service.Name,
+			service.Service,
 			service.Endpoint.Name,
 			&request,
 			client.WithContentType(ct),
@@ -510,13 +506,5 @@ func NewHandler(opts ...handler.Option) handler.Handler {
 	options := handler.NewOptions(opts...)
 	return &rpcHandler{
 		opts: options,
-	}
-}
-
-func WithService(s *api.Service, opts ...handler.Option) handler.Handler {
-	options := handler.NewOptions(opts...)
-	return &rpcHandler{
-		opts: options,
-		s:    s,
 	}
 }
