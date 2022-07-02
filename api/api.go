@@ -18,13 +18,13 @@ type Api interface {
 	Init(...Option) error
 	// Get the options
 	Options() Options
-	// Register a http handler
+	// Register an endpoint 
 	Register(*Endpoint) error
-	// Register a route
+	// Deregister an endpoint 
 	Deregister(*Endpoint) error
 	// Run the api
 	Run(context.Context) error
-	// Implemenation of api
+	// Implemenation of api e.g http
 	String() string
 }
 
