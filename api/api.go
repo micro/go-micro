@@ -52,10 +52,6 @@ type Endpoint struct {
 	Method []string
 	// HTTP Path e.g /greeter. Expect POSIX regex
 	Path []string
-	// Body destination
-	// "*" or "" - top level message value
-	// "string" - inner message value
-	Body string
 	// Stream flag
 	Stream bool
 }
