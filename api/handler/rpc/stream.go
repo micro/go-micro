@@ -12,7 +12,7 @@ import (
 	"github.com/gobwas/httphead"
 	"github.com/gobwas/ws"
 	"github.com/gobwas/ws/wsutil"
-	"go-micro.dev/v4/api"
+	"go-micro.dev/v4/api/router"
 	"go-micro.dev/v4/client"
 	raw "go-micro.dev/v4/codec/bytes"
 	"go-micro.dev/v4/logger"
@@ -20,7 +20,7 @@ import (
 )
 
 // serveWebsocket will stream rpc back over websockets assuming json
-func serveWebsocket(ctx context.Context, w http.ResponseWriter, r *http.Request, service *api.Service, c client.Client) {
+func serveWebsocket(ctx context.Context, w http.ResponseWriter, r *http.Request, service *router.Route, c client.Client) {
 	var op ws.OpCode
 
 	ct := r.Header.Get("Content-Type")
@@ -103,14 +103,14 @@ func serveWebsocket(ctx context.Context, w http.ResponseWriter, r *http.Request,
 		ct = "application/json"
 	}
 	req := c.NewRequest(
-		service.Name,
+		service.Service,
 		service.Endpoint.Name,
 		request,
 		client.WithContentType(ct),
 		client.StreamingRequest(),
 	)
 
-	so := selector.WithStrategy(strategy(service.Services))
+	so := selector.WithStrategy(strategy(service.Versions))
 	// create a new stream
 	stream, err := c.Stream(ctx, req, client.WithSelectOption(so))
 	if err != nil {
@@ -219,13 +219,13 @@ func writeLoop(rw io.ReadWriter, stream client.Stream) {
 	}
 }
 
-func isStream(r *http.Request, srv *api.Service) bool {
+func isStream(r *http.Request, srv *router.Route) bool {
 	// check if it's a web socket
 	if !isWebSocket(r) {
 		return false
 	}
 	// check if the endpoint supports streaming
-	for _, service := range srv.Services {
+	for _, service := range srv.Versions {
 		for _, ep := range service.Endpoints {
 			// skip if it doesn't match the name
 			if ep.Name != srv.Endpoint.Name {

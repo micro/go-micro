@@ -11,8 +11,8 @@ import (
 	"net/url"
 	"strings"
 
-	"go-micro.dev/v4/api"
 	"go-micro.dev/v4/api/handler"
+	"go-micro.dev/v4/api/router"
 	"go-micro.dev/v4/selector"
 )
 
@@ -22,7 +22,6 @@ const (
 
 type webHandler struct {
 	opts handler.Options
-	s    *api.Service
 }
 
 func (wh *webHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -53,12 +52,9 @@ func (wh *webHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // getService returns the service for this request from the selector
 func (wh *webHandler) getService(r *http.Request) (string, error) {
-	var service *api.Service
+	var service *router.Route
 
-	if wh.s != nil {
-		// we were given the service
-		service = wh.s
-	} else if wh.opts.Router != nil {
+	if wh.opts.Router != nil {
 		// try get service from router
 		s, err := wh.opts.Router.Route(r)
 		if err != nil {
@@ -71,7 +67,7 @@ func (wh *webHandler) getService(r *http.Request) (string, error) {
 	}
 
 	// create a random selector
-	next := selector.Random(service.Services)
+	next := selector.Random(service.Versions)
 
 	// get the next node
 	s, err := next()
@@ -164,14 +160,5 @@ func (wh *webHandler) String() string {
 func NewHandler(opts ...handler.Option) handler.Handler {
 	return &webHandler{
 		opts: handler.NewOptions(opts...),
-	}
-}
-
-func WithService(s *api.Service, opts ...handler.Option) handler.Handler {
-	options := handler.NewOptions(opts...)
-
-	return &webHandler{
-		opts: options,
-		s:    s,
 	}
 }
