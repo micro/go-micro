@@ -20,6 +20,9 @@ Define your service as `greeter.proto`
 ```
 syntax = "proto3";
 
+package greeter;
+option go_package = "/proto;greeter";
+
 service Greeter {
 	rpc Hello(Request) returns (Response) {}
 }
@@ -36,7 +39,7 @@ message Response {
 Generate the code
 
 ```
-protoc --proto_path=$GOPATH/src:. --micro_out=. --go_out=. greeter.proto
+protoc --proto_path=. --micro_out=. --go_out=. greeter.proto
 ```
 
 Your output result should be:
@@ -80,7 +83,7 @@ If you see an error about `protoc-gen-micro` not being found or executable, it's
 Alternative specify the Go plugin paths as arguments to the `protoc` command
 
 ```
-protoc --plugin=protoc-gen-go=$GOPATH/bin/protoc-gen-go --plugin=protoc-gen-micro=$GOPATH/bin/protoc-gen-micro --proto_path=$GOPATH/src:. --micro_out=. --go_out=. greeter.proto
+protoc --plugin=protoc-gen-go=$GOPATH/bin/protoc-gen-go --plugin=protoc-gen-micro=$GOPATH/bin/protoc-gen-micro --proto_path=. --micro_out=. --go_out=. greeter.proto
 ```
 
 ### Endpoint
@@ -94,6 +97,9 @@ Usage:
 
 ```diff
 syntax = "proto3";
+
+package greeter;
+option go_package = "/proto;greeter";
 
 import "google/api/annotations.proto";
 

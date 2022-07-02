@@ -3,7 +3,6 @@ module go-micro.dev/v4
 go 1.17
 
 require (
-	github.com/HdrHistogram/hdrhistogram-go v1.1.2 // indirect
 	github.com/bitly/go-simplejson v0.5.0
 	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
 	github.com/ef-ds/deque v1.0.4
@@ -21,20 +20,16 @@ require (
 	github.com/imdario/mergo v0.3.12
 	github.com/miekg/dns v1.1.43
 	github.com/nxadm/tail v1.4.8
-	github.com/opentracing/opentracing-go v1.2.0
 	github.com/oxtoacart/bpool v0.0.0-20190530202638-03653db5a59c
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.7.0
-	github.com/uber/jaeger-client-go v2.29.1+incompatible
-	github.com/uber/jaeger-lib v2.4.1+incompatible
 	github.com/urfave/cli/v2 v2.3.0
 	golang.org/x/crypto v0.0.0-20210513164829-c07d793c2f9a
 	golang.org/x/net v0.0.0-20210510120150-4163338589ed
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	google.golang.org/genproto v0.0.0-20200305110556-506484158171
 	google.golang.org/protobuf v1.26.0
-	gopkg.in/yaml.v2 v2.4.0
 )
 
 require github.com/gorilla/websocket v1.4.2
@@ -75,7 +70,6 @@ require (
 	github.com/sirupsen/logrus v1.7.0 // indirect
 	github.com/xanzy/ssh-agent v0.3.0 // indirect
 	go.opencensus.io v0.22.3 // indirect
-	go.uber.org/atomic v1.4.0 // indirect
 	golang.org/x/sys v0.0.0-20210502180810-71e4cd670f79 // indirect
 	golang.org/x/text v0.3.6 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
