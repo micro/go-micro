@@ -64,7 +64,7 @@ type Service struct {
 	// The endpoint for this service
 	Endpoint *Endpoint
 	// Versions of this service
-	Services []*registry.Service
+	Versions []*registry.Service
 }
 
 func strip(s string) string {
