@@ -11,6 +11,8 @@ import (
 	"go-micro.dev/v4/server"
 )
 
+// The Api interface provides a way to 
+// create composable API gateways
 type Api interface {
 	// Initialise options
 	Init(...Option) error
