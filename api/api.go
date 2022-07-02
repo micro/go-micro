@@ -12,9 +12,9 @@ import (
 	"go-micro.dev/v4/server"
 )
 
-// The Api interface provides a way to
+// The gateway interface provides a way to
 // create composable API gateways
-type Api interface {
+type Gateway interface {
 	// Initialise options
 	Init(...Option) error
 	// Get the options
@@ -158,28 +158,6 @@ func Validate(e *Endpoint) error {
 	return nil
 }
 
-/*
-Design ideas
-
-// Gateway is an api gateway interface
-type Gateway interface {
-	// Register a http handler
-	Handle(pattern string, http.Handler)
-	// Register a route
-	RegisterRoute(r Route)
-	// Init initialises the command line.
-	// It also parses further options.
-	Init(...Option) error
-	// Run the gateway
-	Run() error
-}
-
-// NewGateway returns a new api gateway
-func NewGateway() Gateway {
-	return newGateway()
-}
-*/
-
 // WithEndpoint returns a server.HandlerOption with endpoint metadata set
 //
 // Usage:
@@ -194,7 +172,7 @@ func WithEndpoint(e *Endpoint) server.HandlerOption {
 	return server.EndpointMetadata(e.Name, Encode(e))
 }
 
-// NewApi returns a new api gateway
-func NewApi(opts ...Option) Api {
-	return newApi(opts...)
+// NewGateway returns a new api gateway
+func NewGateway(opts ...Option) Gateway {
+	return newGateway(opts...)
 }
