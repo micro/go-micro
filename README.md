@@ -79,6 +79,7 @@ See [cmd/protoc-gen-micro](https://github.com/micro/go-micro/tree/master/cmd/pro
 
 See [github.com/go-micro](https://github.com/go-micro) for community led projects.
 
+- [Demo](https://github.com/go-micro/demo)
 - [Plugins](https://github.com/go-micro/plugins)
 - [Examples](https://github.com/go-micro/examples)
 - [Dashboard](https://github.com/go-micro/dashboard)
