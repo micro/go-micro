@@ -7,20 +7,21 @@ import (
 	"regexp"
 	"strings"
 
+	"go-micro.dev/v4/api/router"
 	"go-micro.dev/v4/registry"
 	"go-micro.dev/v4/server"
 )
 
-// The Api interface provides a way to 
+// The Api interface provides a way to
 // create composable API gateways
 type Api interface {
 	// Initialise options
 	Init(...Option) error
 	// Get the options
 	Options() Options
-	// Register an endpoint 
+	// Register an endpoint
 	Register(*Endpoint) error
-	// Deregister an endpoint 
+	// Deregister an endpoint
 	Deregister(*Endpoint) error
 	// Run the api
 	Run(context.Context) error
@@ -31,6 +32,8 @@ type Api interface {
 type Options struct {
 	// Address of the server
 	Address string
+	// Router for resolving routes
+	Router router.Router
 }
 
 type Option func(*Options) error

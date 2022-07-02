@@ -19,8 +19,12 @@ type api struct {
 func newApi(opts ...Option) Api {
 	options := NewOptions(opts...)
 
-	// TODO: make configurable
-	rtr := registry.NewRouter()
+	rtr := options.Router
+
+	if rtr == nil {
+		// TODO: make configurable
+		rtr = registry.NewRouter()
+	}
 
 	// TODO: make configurable
 	hdlr := rpc.NewHandler(
