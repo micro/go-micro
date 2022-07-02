@@ -39,7 +39,7 @@ type registryRouter struct {
 	ceps map[string]*endpoint
 }
 
-func (r *registryRouter) isStopd() bool {
+func (r *registryRouter) isStopped() bool {
 	select {
 	case <-r.exit:
 		return true
@@ -225,7 +225,7 @@ func (r *registryRouter) watch() {
 	var attempts int
 
 	for {
-		if r.isStopd() {
+		if r.isStopped() {
 			return
 		}
 
@@ -293,7 +293,7 @@ func (r *registryRouter) Deregister(ep *router.Route) error {
 }
 
 func (r *registryRouter) Endpoint(req *http.Request) (*router.Route, error) {
-	if r.isStopd() {
+	if r.isStopped() {
 		return nil, errors.New("router closed")
 	}
 
@@ -373,7 +373,6 @@ func (r *registryRouter) Endpoint(req *http.Request) (*router.Route, error) {
 			for k, v := range matches {
 				md[fmt.Sprintf("x-api-field-%s", k)] = v
 			}
-			md["x-api-body"] = ep.Body
 			*req = *req.Clone(metadata.NewContext(ctx, md))
 			break
 		}
@@ -409,7 +408,7 @@ func (r *registryRouter) Endpoint(req *http.Request) (*router.Route, error) {
 }
 
 func (r *registryRouter) Route(req *http.Request) (*router.Route, error) {
-	if r.isStopd() {
+	if r.isStopped() {
 		return nil, errors.New("router closed")
 	}
 

@@ -34,7 +34,7 @@ type Route struct {
 type Endpoint struct {
 	// RPC Method e.g. Greeter.Hello
 	Name string
-	// Description e.g what's this endpoint for
+	// What the endpoint is for
 	Description string
 	// API Handler e.g rpc, proxy
 	Handler string
@@ -44,10 +44,6 @@ type Endpoint struct {
 	Method []string
 	// HTTP Path e.g /greeter. Expect POSIX regex
 	Path []string
-	// Body destination
-	// "*" or "" - top level message value
-	// "string" - inner message value
-	Body string
 	// Stream flag
 	Stream bool
 }

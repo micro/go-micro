@@ -213,7 +213,6 @@ func (r *staticRouter) Endpoint(req *http.Request) (*router.Route, error) {
 			Host:    ep.apiep.Host,
 			Method:  ep.apiep.Method,
 			Path:    ep.apiep.Path,
-			Body:    ep.apiep.Body,
 			Stream:  ep.apiep.Stream,
 		},
 		Versions: services,
@@ -299,7 +298,6 @@ func (r *staticRouter) endpoint(req *http.Request) (*endpoint, error) {
 			for k, v := range matches {
 				md[fmt.Sprintf("x-api-field-%s", k)] = v
 			}
-			md["x-api-body"] = ep.apiep.Body
 			*req = *req.Clone(metadata.NewContext(ctx, md))
 			break
 		}
