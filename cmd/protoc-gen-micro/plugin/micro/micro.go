@@ -304,9 +304,6 @@ func (g *micro) generateEndpoint(servName string, method *pb.MethodDescriptorPro
 	g.P("Name:", fmt.Sprintf(`"%s.%s",`, servName, method.GetName()))
 	g.P("Path:", fmt.Sprintf(`[]string{"%s"},`, path))
 	g.P("Method:", fmt.Sprintf(`[]string{"%s"},`, meth))
-	if len(rule.GetGet()) == 0 {
-		g.P("Body:", fmt.Sprintf(`"%s",`, rule.GetBody()))
-	}
 	if method.GetServerStreaming() || method.GetClientStreaming() {
 		g.P("Stream: true,")
 	}
