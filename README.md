@@ -89,10 +89,6 @@ See [github.com/go-micro](https://github.com/go-micro) for community led project
 
 See [CHANGELOG.md](https://github.com/micro/go-micro/tree/master/CHANGELOG.md) for release history.
 
-## Evolution
-
-Go Micro started in 2015. It's since evolved into a platform called [Micro](https://micro.dev) and a service called [M3O](https://m3o.com).
-
 ## License
 
 Go Micro is Apache 2.0 licensed.
