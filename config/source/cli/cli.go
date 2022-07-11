@@ -9,8 +9,8 @@ import (
 
 	"github.com/imdario/mergo"
 	"github.com/urfave/cli/v2"
-	"go-micro.dev/v4/cmd"
 	"go-micro.dev/v4/config/source"
+	"go-micro.dev/v4/util/cmd"
 )
 
 type cliSource struct {
