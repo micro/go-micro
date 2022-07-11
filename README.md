@@ -75,12 +75,12 @@ See the [examples](https://github.com/go-micro/examples) for detailed informatio
 
 See [github.com/go-micro](https://github.com/go-micro) for community led projects.
 
+- [CLI](https://github.com/go-micro/cli)
 - [Demo](https://github.com/go-micro/demo)
 - [Plugins](https://github.com/go-micro/plugins)
 - [Examples](https://github.com/go-micro/examples)
 - [Dashboard](https://github.com/go-micro/dashboard)
 - [Generator](https://github.com/go-micro/generator)
-- [CLI](https://github.com/go-micro/cli)
 
 ## Changelog
 
