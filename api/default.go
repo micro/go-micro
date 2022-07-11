@@ -16,7 +16,7 @@ type api struct {
 	server server.Server
 }
 
-func newGateway(opts ...Option) Gateway {
+func newApi(opts ...Option) Api {
 	options := NewOptions(opts...)
 
 	rtr := options.Router

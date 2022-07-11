@@ -14,7 +14,7 @@ import (
 
 // The gateway interface provides a way to
 // create composable API gateways
-type Gateway interface {
+type Api interface {
 	// Initialise options
 	Init(...Option) error
 	// Get the options
@@ -172,7 +172,7 @@ func WithEndpoint(e *Endpoint) server.HandlerOption {
 	return server.EndpointMetadata(e.Name, Encode(e))
 }
 
-// NewGateway returns a new api gateway
-func NewGateway(opts ...Option) Gateway {
-	return newGateway(opts...)
+// NewApi returns a new api gateway
+func NewApi(opts ...Option) Api {
+	return newApi(opts...)
 }
