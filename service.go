@@ -8,7 +8,6 @@ import (
 	"sync"
 
 	"go-micro.dev/v4/client"
-	"go-micro.dev/v4/util/cmd"
 	"go-micro.dev/v4/debug/handler"
 	"go-micro.dev/v4/debug/stats"
 	"go-micro.dev/v4/debug/trace"
@@ -16,6 +15,7 @@ import (
 	plugin "go-micro.dev/v4/plugins"
 	"go-micro.dev/v4/server"
 	"go-micro.dev/v4/store"
+	"go-micro.dev/v4/util/cmd"
 	signalutil "go-micro.dev/v4/util/signal"
 	"go-micro.dev/v4/util/wrapper"
 )

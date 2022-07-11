@@ -13,11 +13,11 @@ import (
 
 	"go-micro.dev/v4/broker"
 	"go-micro.dev/v4/client"
-	"go-micro.dev/v4/util/cmd"
 	"go-micro.dev/v4/registry"
 	"go-micro.dev/v4/selector"
 	"go-micro.dev/v4/server"
 	"go-micro.dev/v4/transport"
+	"go-micro.dev/v4/util/cmd"
 )
 
 // Plugin is a plugin loaded from a file
