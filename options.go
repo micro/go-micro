@@ -9,7 +9,7 @@ import (
 	"go-micro.dev/v4/broker"
 	"go-micro.dev/v4/cache"
 	"go-micro.dev/v4/client"
-	"go-micro.dev/v4/cmd"
+	"go-micro.dev/v4/util/cmd"
 	"go-micro.dev/v4/config"
 	"go-micro.dev/v4/debug/profile"
 	"go-micro.dev/v4/debug/trace"

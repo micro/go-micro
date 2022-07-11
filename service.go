@@ -8,7 +8,7 @@ import (
 	"sync"
 
 	"go-micro.dev/v4/client"
-	"go-micro.dev/v4/cmd"
+	"go-micro.dev/v4/util/cmd"
 	"go-micro.dev/v4/debug/handler"
 	"go-micro.dev/v4/debug/stats"
 	"go-micro.dev/v4/debug/trace"

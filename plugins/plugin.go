@@ -13,7 +13,7 @@ import (
 
 	"go-micro.dev/v4/broker"
 	"go-micro.dev/v4/client"
-	"go-micro.dev/v4/cmd"
+	"go-micro.dev/v4/util/cmd"
 	"go-micro.dev/v4/registry"
 	"go-micro.dev/v4/selector"
 	"go-micro.dev/v4/server"
