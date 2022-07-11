@@ -71,11 +71,7 @@ service.Run()
 
 See the [examples](https://github.com/go-micro/examples) for detailed information on usage.
 
-## Code Generation
-
-See [cmd/protoc-gen-micro](https://github.com/micro/go-micro/tree/master/cmd/protoc-gen-micro) for protobuf code generation.
-
-## Community
+## Projects
 
 See [github.com/go-micro](https://github.com/go-micro) for community led projects.
 
@@ -83,6 +79,7 @@ See [github.com/go-micro](https://github.com/go-micro) for community led project
 - [Plugins](https://github.com/go-micro/plugins)
 - [Examples](https://github.com/go-micro/examples)
 - [Dashboard](https://github.com/go-micro/dashboard)
+- [Generator](https://github.com/go-micro/generator)
 - [CLI](https://github.com/go-micro/cli)
 
 ## Changelog
