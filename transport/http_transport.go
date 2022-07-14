@@ -13,12 +13,13 @@ import (
 	"sync"
 	"time"
 
+	"golang.org/x/net/http2"
+	"golang.org/x/net/http2/h2c"
+
 	maddr "github.com/asim/go-micro/v3/util/addr"
 	"github.com/asim/go-micro/v3/util/buf"
 	mnet "github.com/asim/go-micro/v3/util/net"
 	mls "github.com/asim/go-micro/v3/util/tls"
-	"golang.org/x/net/http2"
-	"golang.org/x/net/http2/h2c"
 )
 
 type httpTransport struct {
@@ -32,12 +33,14 @@ type httpTransportClient struct {
 	dialOpts DialOptions
 	once     sync.Once
 
-	sync.RWMutex
-
 	// request must be stored for response processing
-	r      chan *http.Request
-	bl     []*http.Request
+	r chan *http.Request
+
+	blMu sync.RWMutex
+	bl   []*http.Request
+
 	buff   *bufio.Reader
+	buffMu sync.Mutex
 	closed bool
 
 	// local/remote ip
@@ -103,14 +106,14 @@ func (h *httpTransportClient) Send(m *Message) error {
 		Host:          h.addr,
 	}
 
-	h.Lock()
+	h.blMu.Lock()
 	h.bl = append(h.bl, req)
 	select {
 	case h.r <- h.bl[0]:
 		h.bl = h.bl[1:]
 	default:
 	}
-	h.Unlock()
+	h.blMu.Unlock()
 
 	// set timeout if its greater than 0
 	if h.ht.opts.Timeout > time.Duration(0) {
@@ -139,12 +142,12 @@ func (h *httpTransportClient) Recv(m *Message) error {
 		h.conn.SetDeadline(time.Now().Add(h.ht.opts.Timeout))
 	}
 
-	h.Lock()
+	h.buffMu.Lock()
 	if h.closed {
 		return io.EOF
 	}
 	rsp, err := http.ReadResponse(h.buff, r)
-	h.Unlock()
+	h.buffMu.Unlock()
 	if err != nil {
 		return err
 	}
@@ -178,10 +181,10 @@ func (h *httpTransportClient) Recv(m *Message) error {
 
 func (h *httpTransportClient) Close() error {
 	h.once.Do(func() {
-		h.Lock()
+		h.buffMu.Lock()
 		h.buff.Reset(nil)
 		h.closed = true
-		h.Unlock()
+		h.buffMu.Unlock()
 		close(h.r)
 	})
 	return h.conn.Close()
