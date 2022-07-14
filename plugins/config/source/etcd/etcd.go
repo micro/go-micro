@@ -29,7 +29,7 @@ func (c *etcd) Read() (*source.ChangeSet, error) {
 		return nil, c.cerr
 	}
 
-	rsp, err := c.client.Get(context.Background(), c.prefix, clientv3.WithPrefix())
+	rsp, err := c.client.Get(context.Background(), c.prefix)
 	if err != nil {
 		return nil, err
 	}
