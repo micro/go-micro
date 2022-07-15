@@ -192,6 +192,17 @@ func (h *httpTransportClient) Recv(m *Message) error {
 }
 
 func (h *httpTransportClient) Close() error {
+	if !h.dialOpts.Stream {
+		h.once.Do(func() {
+			h.Lock()
+			h.buff.Reset(nil)
+			h.closed = true
+			h.Unlock()
+			close(h.r)
+		})
+		return h.conn.Close()
+	}
+	err := h.conn.Close()
 	h.once.Do(func() {
 		h.Lock()
 		h.buff.Reset(nil)
@@ -199,7 +210,7 @@ func (h *httpTransportClient) Close() error {
 		h.Unlock()
 		close(h.r)
 	})
-	return h.conn.Close()
+	return err
 }
 
 func (h *httpTransportSocket) Local() string {
