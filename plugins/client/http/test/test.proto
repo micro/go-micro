@@ -1,8 +1,0 @@
-syntax = "proto3";
-
-package test;
-
-message Message {
-	int64 seq = 1;
-	string data = 2;
-}

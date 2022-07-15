@@ -22,8 +22,3 @@ to be notified.
 
 - **Sane Defaults** - In case config loads badly or is completely wiped away for some unknown reason, you can specify fallback 
 values when accessing any config values directly. This ensures you'll always be reading some sane default in the event of a problem.
-
-## Getting Started
-
-For detailed information or architecture, installation and general usage see the [docs](https://micro.mu/docs/go-config.html)
-

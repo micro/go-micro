@@ -1,8 +1,7 @@
-# Go Micro [![License](https://img.shields.io/:license-apache-blue.svg)](https://opensource.org/licenses/Apache-2.0) [![Go.Dev reference](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white&style=flat-square)](https://pkg.go.dev/go-micro.dev/v4?tab=doc)
+# Go Micro [![License](https://img.shields.io/:license-apache-blue.svg)](https://opensource.org/licenses/Apache-2.0) [![Go.Dev reference](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white&style=flat-square)](https://pkg.go.dev/go-micro.dev/v4?tab=doc) [![Community](https://img.shields.io/:community-projects-orange.svg)](https://github.com/go-micro)
+
 
 Go Micro is a framework for distributed systems development.
-
-<img src="go-micro.png" style="border: 1px solid black;" />
 
 ## Overview
 
@@ -70,33 +69,20 @@ service.Init()
 service.Run()
 ```
 
-See the [examples](https://github.com/micro/go-micro/tree/master/examples) for detailed information on usage.
+See the [examples](https://github.com/go-micro/examples) for detailed information on usage.
 
-## Command Line Interface
+## Projects
 
-See [cmd/micro](https://github.com/asim/go-micro/tree/master/cmd/micro) for the command line interface.
+See [github.com/go-micro](https://github.com/go-micro) for community led projects.
 
-## Code Generation
+- [CLI](https://github.com/go-micro/cli)
+- [Demo](https://github.com/go-micro/demo)
+- [Plugins](https://github.com/go-micro/plugins)
+- [Examples](https://github.com/go-micro/examples)
+- [Dashboard](https://github.com/go-micro/dashboard)
+- [Generator](https://github.com/go-micro/generator)
 
-See [cmd/protoc-gen-micro](https://github.com/micro/go-micro/tree/master/cmd/protoc-gen-micro) for protobuf code generation.
-
-## Dashboard
-
-See [cmd/dashboard](https://github.com/micro/go-micro/tree/master/cmd/dashboard) for go micro dashboard.
-
-## Example Usage
-
-See [examples](https://github.com/micro/go-micro/tree/master/examples) directory for usage examples.
-
-## Plugins
-
-See [plugins](https://github.com/micro/go-micro/tree/master/plugins) directory for all the plugins.
-
-## Services
-
-See [services](https://github.com/micro/go-micro/tree/master/services) directory for third party services.
-
-## Changelogs
+## Changelog
 
 See [CHANGELOG.md](https://github.com/micro/go-micro/tree/master/CHANGELOG.md) for release history.
 

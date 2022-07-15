@@ -17,8 +17,6 @@ import (
 const (
 	// local address for api
 	localAddress = "http://localhost:8080"
-	// public address for api
-	liveAddress = "https://api.m3o.com"
 )
 
 // Options of the Client
@@ -71,7 +69,7 @@ type Stream struct {
 func NewClient(options *Options) *Client {
 	ret := new(Client)
 	ret.options = Options{
-		Address: liveAddress,
+		Address: localAddress,
 	}
 
 	// no options provided
@@ -115,7 +113,7 @@ func (client *Client) Call(service, endpoint string, request, response interface
 	}
 
 	// set the url to go through the v1 api
-	uri.Path = "/v1/" + service + "/" + endpoint
+	uri.Path = "/" + service + "/" + endpoint
 
 	b, err := marshalRequest(service, endpoint, request)
 	if err != nil {
@@ -168,7 +166,7 @@ func (client *Client) Stream(service, endpoint string, request interface{}) (*St
 	}
 
 	// set the url to go through the v1 api
-	uri.Path = "/v1/" + service + "/" + endpoint
+	uri.Path = "/" + service + "/" + endpoint
 
 	// replace http with websocket
 	uri.Scheme = strings.Replace(uri.Scheme, "http", "ws", 1)

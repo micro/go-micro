@@ -1,28 +1,40 @@
+// Package api is for building api gateways
 package api
 
 import (
+	"context"
 	"errors"
 	"regexp"
 	"strings"
 
+	"go-micro.dev/v4/api/router"
 	"go-micro.dev/v4/registry"
 	"go-micro.dev/v4/server"
 )
 
+// The gateway interface provides a way to
+// create composable API gateways
 type Api interface {
 	// Initialise options
 	Init(...Option) error
 	// Get the options
 	Options() Options
-	// Register a http handler
+	// Register an endpoint
 	Register(*Endpoint) error
-	// Register a route
+	// Deregister an endpoint
 	Deregister(*Endpoint) error
-	// Implemenation of api
+	// Run the api
+	Run(context.Context) error
+	// Implemenation of api e.g http
 	String() string
 }
 
-type Options struct{}
+type Options struct {
+	// Address of the server
+	Address string
+	// Router for resolving routes
+	Router router.Router
+}
 
 type Option func(*Options) error
 
@@ -40,10 +52,6 @@ type Endpoint struct {
 	Method []string
 	// HTTP Path e.g /greeter. Expect POSIX regex
 	Path []string
-	// Body destination
-	// "*" or "" - top level message value
-	// "string" - inner message value
-	Body string
 	// Stream flag
 	Stream bool
 }
@@ -55,7 +63,7 @@ type Service struct {
 	// The endpoint for this service
 	Endpoint *Endpoint
 	// Versions of this service
-	Services []*registry.Service
+	Versions []*registry.Service
 }
 
 func strip(s string) string {
@@ -150,28 +158,6 @@ func Validate(e *Endpoint) error {
 	return nil
 }
 
-/*
-Design ideas
-
-// Gateway is an api gateway interface
-type Gateway interface {
-	// Register a http handler
-	Handle(pattern string, http.Handler)
-	// Register a route
-	RegisterRoute(r Route)
-	// Init initialises the command line.
-	// It also parses further options.
-	Init(...Option) error
-	// Run the gateway
-	Run() error
-}
-
-// NewGateway returns a new api gateway
-func NewGateway() Gateway {
-	return newGateway()
-}
-*/
-
 // WithEndpoint returns a server.HandlerOption with endpoint metadata set
 //
 // Usage:
@@ -184,4 +170,9 @@ func NewGateway() Gateway {
 //	))
 func WithEndpoint(e *Endpoint) server.HandlerOption {
 	return server.EndpointMetadata(e.Name, Encode(e))
+}
+
+// NewApi returns a new api gateway
+func NewApi(opts ...Option) Api {
+	return newApi(opts...)
 }

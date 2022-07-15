@@ -1,3 +1,56 @@
+# 4.7.0 (2022/05/19)
+
+### Features
+
+- remove unused variable in loop (#2495)
+- option to disable file watcher (#2485)
+- Support direct generation of grpc method (#2474)
+- remove cli
+- remove dashboard
+- Remove examples
+- Add header suppor for Kafka broker plugin; (#2470)
+- Fix codec/bytes (#2466)
+- Add Wait option support for sync/etcd plugins (#2459)
+- #2453 Fix with associated test update (#2454)
+- style:arrays pre-allocation (#2449)
+- Bump github.com/nats-io/nats-server/v2 in /plugins/events/natsjs (#2447)
+- add NATS JetStream events plugin (#2433)
+- add tls option for sync etcd plugin (#2440)
+- add new services
+
+### Bug Fixes
+
+- fix: consume and publish blocked after rabbitmq reconnecting (#2492)
+- typo fix; (#2480)
+- fix https://github.com/asim/go-micro/issues/2344 (#2462)
+- fix natsjs syntax error, remove TODOs and enable tests (#2446)
+- http transport deadlock (#2441)
+- Support for `-micro_out=module=<module_prefix>` for protoc-gen-micro (#2435)
+
+# 4.6.0 (2022/02/08)
+
+### Features
+
+- add service updates (#2418)
+- Add files via upload
+- default the content type to json (#2412)
+- Add Kafka asynchronous send support (#2409)
+- use read lock and unlock instead of write ones (#2410)
+- move the api client
+- Update client_test.go
+- switch services client
+- remove the client
+- add service interfaces
+- [FEATURE] add changelog (#2400)
+- nats config plugin (#2397)
+- Update and rename m3o.go to services.go
+- Update services/ (#2392)
+
+### Bug Fixes
+
+- fix client
+- fix context value nil (#2391)
+
 # 4.5.0 (2021/12/19)
 
 ### Bug Fixes

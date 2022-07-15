@@ -8,7 +8,6 @@ import (
 	"strings"
 	"sync"
 
-	"go-micro.dev/v4/api"
 	"go-micro.dev/v4/api/router"
 	"go-micro.dev/v4/api/router/util"
 	"go-micro.dev/v4/logger"
@@ -18,7 +17,7 @@ import (
 )
 
 type endpoint struct {
-	apiep    *api.Endpoint
+	apiep    *router.Endpoint
 	hostregs []*regexp.Regexp
 	pathregs []util.Pattern
 	pcreregs []*regexp.Regexp
@@ -32,7 +31,7 @@ type staticRouter struct {
 	eps map[string]*endpoint
 }
 
-func (r *staticRouter) isClosed() bool {
+func (r *staticRouter) isStopd() bool {
 	select {
 	case <-r.exit:
 		return true
@@ -47,7 +46,7 @@ func (r *staticRouter) watch() {
 	var attempts int
 
 	for {
-		if r.isClosed() {
+		if r.isStopd() {
 			return
 		}
 
@@ -88,8 +87,10 @@ func (r *staticRouter) watch() {
 }
 */
 
-func (r *staticRouter) Register(ep *api.Endpoint) error {
-	if err := api.Validate(ep); err != nil {
+func (r *staticRouter) Register(route *router.Route) error {
+	ep := route.Endpoint
+
+	if err := router.Validate(ep); err != nil {
 		return err
 	}
 
@@ -146,8 +147,9 @@ func (r *staticRouter) Register(ep *api.Endpoint) error {
 	return nil
 }
 
-func (r *staticRouter) Deregister(ep *api.Endpoint) error {
-	if err := api.Validate(ep); err != nil {
+func (r *staticRouter) Deregister(route *router.Route) error {
+	ep := route.Endpoint
+	if err := router.Validate(ep); err != nil {
 		return err
 	}
 	r.Lock()
@@ -160,7 +162,7 @@ func (r *staticRouter) Options() router.Options {
 	return r.opts
 }
 
-func (r *staticRouter) Close() error {
+func (r *staticRouter) Stop() error {
 	select {
 	case <-r.exit:
 		return nil
@@ -170,7 +172,7 @@ func (r *staticRouter) Close() error {
 	return nil
 }
 
-func (r *staticRouter) Endpoint(req *http.Request) (*api.Service, error) {
+func (r *staticRouter) Endpoint(req *http.Request) (*router.Route, error) {
 	ep, err := r.endpoint(req)
 	if err != nil {
 		return nil, err
@@ -203,25 +205,24 @@ func (r *staticRouter) Endpoint(req *http.Request) (*api.Service, error) {
 		services = svcs
 	}
 
-	svc := &api.Service{
-		Name: epf[0],
-		Endpoint: &api.Endpoint{
+	svc := &router.Route{
+		Service: epf[0],
+		Endpoint: &router.Endpoint{
 			Name:    strings.Join(epf[1:], "."),
 			Handler: "rpc",
 			Host:    ep.apiep.Host,
 			Method:  ep.apiep.Method,
 			Path:    ep.apiep.Path,
-			Body:    ep.apiep.Body,
 			Stream:  ep.apiep.Stream,
 		},
-		Services: services,
+		Versions: services,
 	}
 
 	return svc, nil
 }
 
 func (r *staticRouter) endpoint(req *http.Request) (*endpoint, error) {
-	if r.isClosed() {
+	if r.isStopd() {
 		return nil, errors.New("router closed")
 	}
 
@@ -297,7 +298,6 @@ func (r *staticRouter) endpoint(req *http.Request) (*endpoint, error) {
 			for k, v := range matches {
 				md[fmt.Sprintf("x-api-field-%s", k)] = v
 			}
-			md["x-api-body"] = ep.apiep.Body
 			*req = *req.Clone(metadata.NewContext(ctx, md))
 			break
 		}
@@ -329,8 +329,8 @@ func (r *staticRouter) endpoint(req *http.Request) (*endpoint, error) {
 	return nil, fmt.Errorf("endpoint not found for %v", req.URL)
 }
 
-func (r *staticRouter) Route(req *http.Request) (*api.Service, error) {
-	if r.isClosed() {
+func (r *staticRouter) Route(req *http.Request) (*router.Route, error) {
+	if r.isStopd() {
 		return nil, errors.New("router closed")
 	}
 

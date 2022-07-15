@@ -9,7 +9,6 @@ import (
 	"go-micro.dev/v4/broker"
 	"go-micro.dev/v4/cache"
 	"go-micro.dev/v4/client"
-	"go-micro.dev/v4/cmd"
 	"go-micro.dev/v4/config"
 	"go-micro.dev/v4/debug/profile"
 	"go-micro.dev/v4/debug/trace"
@@ -19,6 +18,7 @@ import (
 	"go-micro.dev/v4/server"
 	"go-micro.dev/v4/store"
 	"go-micro.dev/v4/transport"
+	"go-micro.dev/v4/util/cmd"
 )
 
 // Options for micro service

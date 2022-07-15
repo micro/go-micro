@@ -354,10 +354,10 @@ func (m *mdnsRegistry) GetService(service string, opts ...GetOption) ([]*Service
 				addr := ""
 				// prefer ipv4 addrs
 				if len(e.AddrV4) > 0 {
-					addr = e.AddrV4.String()
+					addr = net.JoinHostPort(e.AddrV4.String(), fmt.Sprint(e.Port))
 					// else use ipv6
 				} else if len(e.AddrV6) > 0 {
-					addr = "[" + e.AddrV6.String() + "]"
+					addr = net.JoinHostPort(e.AddrV6.String(), fmt.Sprint(e.Port))
 				} else {
 					if logger.V(logger.InfoLevel, logger.DefaultLogger) {
 						logger.Infof("[mdns]: invalid endpoint received: %v", e)
@@ -366,7 +366,7 @@ func (m *mdnsRegistry) GetService(service string, opts ...GetOption) ([]*Service
 				}
 				s.Nodes = append(s.Nodes, &Node{
 					Id:       strings.TrimSuffix(e.Name, "."+p.Service+"."+p.Domain+"."),
-					Address:  net.JoinHostPort(addr, fmt.Sprint(e.Port)),
+					Address:  addr,
 					Metadata: txt.Metadata,
 				})
 
@@ -584,16 +584,16 @@ func (m *mdnsWatcher) Next() (*Result, error) {
 
 			var addr string
 			if len(e.AddrV4) > 0 {
-				addr = e.AddrV4.String()
+				addr = net.JoinHostPort(e.AddrV4.String(), fmt.Sprint(e.Port))
 			} else if len(e.AddrV6) > 0 {
-				addr = "[" + e.AddrV6.String() + "]"
+				addr = net.JoinHostPort(e.AddrV6.String(), fmt.Sprint(e.Port))
 			} else {
 				addr = e.Addr.String()
 			}
 
 			service.Nodes = append(service.Nodes, &Node{
 				Id:       strings.TrimSuffix(e.Name, suffix),
-				Address:  net.JoinHostPort(addr, fmt.Sprint(e.Port)),
+				Address:  addr,
 				Metadata: txt.Metadata,
 			})
 
