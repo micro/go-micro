@@ -33,14 +33,12 @@ type httpTransportClient struct {
 	dialOpts DialOptions
 	once     sync.Once
 
+	sync.RWMutex
+
 	// request must be stored for response processing
-	r chan *http.Request
-
-	blMu sync.RWMutex
-	bl   []*http.Request
-
+	r      chan *http.Request
+	bl     []*http.Request
 	buff   *bufio.Reader
-	buffMu sync.Mutex
 	closed bool
 
 	// local/remote ip
@@ -106,14 +104,20 @@ func (h *httpTransportClient) Send(m *Message) error {
 		Host:          h.addr,
 	}
 
-	h.blMu.Lock()
-	h.bl = append(h.bl, req)
-	select {
-	case h.r <- h.bl[0]:
-		h.bl = h.bl[1:]
-	default:
+	if !h.dialOpts.Stream {
+		h.Lock()
+		if h.closed {
+			h.Unlock()
+			return io.EOF
+		}
+		h.bl = append(h.bl, req)
+		select {
+		case h.r <- h.bl[0]:
+			h.bl = h.bl[1:]
+		default:
+		}
+		h.Unlock()
 	}
-	h.blMu.Unlock()
 
 	// set timeout if its greater than 0
 	if h.ht.opts.Timeout > time.Duration(0) {
@@ -132,7 +136,14 @@ func (h *httpTransportClient) Recv(m *Message) error {
 	if !h.dialOpts.Stream {
 		rc, ok := <-h.r
 		if !ok {
-			return io.EOF
+			h.Lock()
+			if len(h.bl) == 0 {
+				h.Unlock()
+				return io.EOF
+			}
+			rc = h.bl[0]
+			h.bl = h.bl[1:]
+			h.Unlock()
 		}
 		r = rc
 	}
@@ -142,12 +153,13 @@ func (h *httpTransportClient) Recv(m *Message) error {
 		h.conn.SetDeadline(time.Now().Add(h.ht.opts.Timeout))
 	}
 
-	h.buffMu.Lock()
+	h.Lock()
 	if h.closed {
+		h.Unlock()
 		return io.EOF
 	}
 	rsp, err := http.ReadResponse(h.buff, r)
-	h.buffMu.Unlock()
+	h.Unlock()
 	if err != nil {
 		return err
 	}
@@ -181,10 +193,10 @@ func (h *httpTransportClient) Recv(m *Message) error {
 
 func (h *httpTransportClient) Close() error {
 	h.once.Do(func() {
-		h.buffMu.Lock()
+		h.Lock()
 		h.buff.Reset(nil)
 		h.closed = true
-		h.buffMu.Unlock()
+		h.Unlock()
 		close(h.r)
 	})
 	return h.conn.Close()
@@ -526,7 +538,7 @@ func (h *httpTransport) Dial(addr string, opts ...DialOption) (Client, error) {
 		conn:     conn,
 		buff:     bufio.NewReader(conn),
 		dialOpts: dopts,
-		r:        make(chan *http.Request, 1),
+		r:        make(chan *http.Request, 100),
 		local:    conn.LocalAddr().String(),
 		remote:   conn.RemoteAddr().String(),
 	}, nil
