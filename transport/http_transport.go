@@ -103,14 +103,20 @@ func (h *httpTransportClient) Send(m *Message) error {
 		Host:          h.addr,
 	}
 
-	h.Lock()
-	h.bl = append(h.bl, req)
-	select {
-	case h.r <- h.bl[0]:
-		h.bl = h.bl[1:]
-	default:
+	if !h.dialOpts.Stream {
+		h.Lock()
+		if h.closed {
+			h.Unlock()
+			return io.EOF
+		}
+		h.bl = append(h.bl, req)
+		select {
+		case h.r <- h.bl[0]:
+			h.bl = h.bl[1:]
+		default:
+		}
+		h.Unlock()
 	}
-	h.Unlock()
 
 	// set timeout if its greater than 0
 	if h.ht.opts.Timeout > time.Duration(0) {
@@ -129,7 +135,14 @@ func (h *httpTransportClient) Recv(m *Message) error {
 	if !h.dialOpts.Stream {
 		rc, ok := <-h.r
 		if !ok {
-			return io.EOF
+			h.Lock()
+			if len(h.bl) == 0 {
+				h.Unlock()
+				return io.EOF
+			}
+			rc = h.bl[0]
+			h.bl = h.bl[1:]
+			h.Unlock()
 		}
 		r = rc
 	}
@@ -178,6 +191,17 @@ func (h *httpTransportClient) Recv(m *Message) error {
 }
 
 func (h *httpTransportClient) Close() error {
+	if !h.dialOpts.Stream {
+		h.once.Do(func() {
+			h.Lock()
+			h.buff.Reset(nil)
+			h.closed = true
+			h.Unlock()
+			close(h.r)
+		})
+		return h.conn.Close()
+	}
+	err := h.conn.Close()
 	h.once.Do(func() {
 		h.Lock()
 		h.buff.Reset(nil)
@@ -185,7 +209,7 @@ func (h *httpTransportClient) Close() error {
 		h.Unlock()
 		close(h.r)
 	})
-	return h.conn.Close()
+	return err
 }
 
 func (h *httpTransportSocket) Local() string {
@@ -524,7 +548,7 @@ func (h *httpTransport) Dial(addr string, opts ...DialOption) (Client, error) {
 		conn:     conn,
 		buff:     bufio.NewReader(conn),
 		dialOpts: dopts,
-		r:        make(chan *http.Request, 1),
+		r:        make(chan *http.Request, 100),
 		local:    conn.LocalAddr().String(),
 		remote:   conn.RemoteAddr().String(),
 	}, nil

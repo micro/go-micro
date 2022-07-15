@@ -302,10 +302,8 @@ func TestHTTPTransportCloseWhenRecv(t *testing.T) {
 
 			if err := c.Recv(&rm); err != nil {
 				if err == io.EOF {
-					c.Recv(&rm)
 					return
 				}
-				t.Errorf("Unexpected recv err: %v", err)
 			}
 		}
 	}()
@@ -314,6 +312,90 @@ func TestHTTPTransportCloseWhenRecv(t *testing.T) {
 			t.Errorf("Unexpected send err: %v", err)
 		}
 	}
+	close(done)
+
+	c.Close()
+	wg.Wait()
+}
+
+func TestHTTPTransportMultipleSendWhenRecv(t *testing.T) {
+	tr := NewHTTPTransport()
+
+	l, err := tr.Listen("127.0.0.1:0")
+	if err != nil {
+		t.Errorf("Unexpected listen err: %v", err)
+	}
+	defer l.Close()
+
+	readyToSend := make(chan struct{})
+	m := Message{
+		Header: map[string]string{
+			"Content-Type": "application/json",
+		},
+		Body: []byte(`{"message": "Hello World"}`),
+	}
+
+	wgSend := sync.WaitGroup{}
+	fn := func(sock Socket) {
+		defer sock.Close()
+
+		for {
+			var mr Message
+			if err := sock.Recv(&mr); err != nil {
+				return
+			}
+			wgSend.Add(1)
+			go func() {
+				defer wgSend.Done()
+				<-readyToSend
+				if err := sock.Send(&m); err != nil {
+					return
+				}
+			}()
+		}
+	}
+
+	done := make(chan bool)
+
+	go func() {
+		if err := l.Accept(fn); err != nil {
+			select {
+			case <-done:
+			default:
+				t.Errorf("Unexpected accept err: %v", err)
+			}
+		}
+	}()
+
+	c, err := tr.Dial(l.Addr(), WithStream())
+	if err != nil {
+		t.Errorf("Unexpected dial err: %v", err)
+	}
+	defer c.Close()
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	readyForRecv := make(chan struct{})
+	go func() {
+		defer wg.Done()
+		close(readyForRecv)
+		for {
+			var rm Message
+			if err := c.Recv(&rm); err != nil {
+				if err == io.EOF {
+					return
+				}
+			}
+		}
+	}()
+	<-readyForRecv
+	for i := 0; i < 3; i++ {
+		if err := c.Send(&m); err != nil {
+			t.Errorf("Unexpected send err: %v", err)
+		}
+	}
+	close(readyToSend)
+	wgSend.Wait()
 	close(done)
 
 	c.Close()
