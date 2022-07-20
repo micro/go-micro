@@ -71,9 +71,9 @@ service.Run()
 
 See the [examples](https://github.com/go-micro/examples) for detailed information on usage.
 
-## Projects
+## Tools
 
-See [github.com/go-micro](https://github.com/go-micro) for community led projects.
+See [github.com/go-micro](https://github.com/go-micro) for tooling.
 
 - [CLI](https://github.com/go-micro/cli)
 - [Demo](https://github.com/go-micro/demo)
