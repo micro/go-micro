@@ -82,11 +82,6 @@ func NewEvent(topic string, c client.Client) Event {
 	return &event{c, topic}
 }
 
-// Deprecated: NewPublisher returns a new Publisher
-func NewPublisher(topic string, c client.Client) Event {
-	return NewEvent(topic, c)
-}
-
 // RegisterHandler is syntactic sugar for registering a handler
 func RegisterHandler(s server.Server, h interface{}, opts ...server.HandlerOption) error {
 	return s.Handle(s.NewHandler(h, opts...))
