@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"go-micro.dev/v4/client"
+	"go-micro.dev/v4/debug/handler"
 	proto "go-micro.dev/v4/debug/proto"
 	"go-micro.dev/v4/registry"
 	"go-micro.dev/v4/util/test"
@@ -28,7 +29,7 @@ func testService(ctx context.Context, wg *sync.WaitGroup, name string) Service {
 	r := registry.NewMemoryRegistry(registry.Services(test.Data))
 
 	// create service
-	return NewService(
+	srv := NewService(
 		Name(name),
 		Context(ctx),
 		Registry(r),
@@ -41,6 +42,10 @@ func testService(ctx context.Context, wg *sync.WaitGroup, name string) Service {
 			return nil
 		}),
 	)
+
+	RegisterHandler(srv.Server(), handler.NewHandler(srv.Client()))
+
+	return srv
 }
 
 func testRequest(ctx context.Context, c client.Client, name string) error {

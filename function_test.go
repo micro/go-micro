@@ -5,6 +5,7 @@ import (
 	"sync"
 	"testing"
 
+	"go-micro.dev/v4/debug/handler"
 	proto "go-micro.dev/v4/debug/proto"
 	"go-micro.dev/v4/registry"
 	"go-micro.dev/v4/util/test"
@@ -25,6 +26,8 @@ func TestFunction(t *testing.T) {
 			return nil
 		}),
 	)
+
+	fn.Handle(handler.NewHandler(nil))
 
 	// we can't test fn.Init as it parses the command line
 	// fn.Init()
