@@ -75,6 +75,7 @@ See the [examples](https://github.com/go-micro/examples) for detailed informatio
 
 See [github.com/go-micro](https://github.com/go-micro) for tooling.
 
+- [API](https://github.com/go-micro/api)
 - [CLI](https://github.com/go-micro/cli)
 - [Demo](https://github.com/go-micro/demo)
 - [Plugins](https://github.com/go-micro/plugins)
