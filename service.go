@@ -9,15 +9,12 @@ import (
 
 	"go-micro.dev/v4/client"
 	"go-micro.dev/v4/debug/handler"
-	"go-micro.dev/v4/debug/stats"
-	"go-micro.dev/v4/debug/trace"
 	"go-micro.dev/v4/logger"
 	plugin "go-micro.dev/v4/plugins"
 	"go-micro.dev/v4/server"
 	"go-micro.dev/v4/store"
 	"go-micro.dev/v4/util/cmd"
 	signalutil "go-micro.dev/v4/util/signal"
-	"go-micro.dev/v4/util/wrapper"
 )
 
 type service struct {
@@ -27,29 +24,9 @@ type service struct {
 }
 
 func newService(opts ...Option) Service {
-	service := new(service)
-	options := newOptions(opts...)
-
-	// service name
-	serviceName := options.Server.Options().Name
-
-	// wrap client to inject From-Service header on any calls
-	options.Client = wrapper.FromService(serviceName, options.Client)
-	options.Client = wrapper.TraceCall(serviceName, trace.DefaultTracer, options.Client)
-
-	// wrap the server to provide handler stats
-	err := options.Server.Init(
-		server.WrapHandler(wrapper.HandlerStats(stats.DefaultStats)),
-		server.WrapHandler(wrapper.TraceHandler(trace.DefaultTracer)),
-	)
-	if err != nil {
-		logger.Fatal(err)
+	return &service{
+		opts: newOptions(opts...),
 	}
-
-	// set opts
-	service.opts = options
-
-	return service
 }
 
 func (s *service) Name() string {
