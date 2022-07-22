@@ -159,13 +159,14 @@ func (h *httpTransportClient) Recv(m *Message) error {
 		return io.EOF
 	}
 	rsp, err := http.ReadResponse(h.buff, r)
-	h.Unlock()
 	if err != nil {
+		h.Unlock()
 		return err
 	}
 	defer rsp.Body.Close()
 
 	b, err := ioutil.ReadAll(rsp.Body)
+	h.Unlock()
 	if err != nil {
 		return err
 	}
