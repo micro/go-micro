@@ -4,12 +4,10 @@ import (
 	"os"
 	"os/signal"
 	rtime "runtime"
-	"strings"
 	"sync"
 
 	"go-micro.dev/v4/client"
 	"go-micro.dev/v4/logger"
-	plugin "go-micro.dev/v4/plugins"
 	"go-micro.dev/v4/server"
 	"go-micro.dev/v4/store"
 	"go-micro.dev/v4/util/cmd"
@@ -42,24 +40,6 @@ func (s *service) Init(opts ...Option) {
 	}
 
 	s.once.Do(func() {
-		// setup the plugins
-		for _, p := range strings.Split(os.Getenv("MICRO_PLUGIN"), ",") {
-			if len(p) == 0 {
-				continue
-			}
-
-			// load the plugin
-			c, err := plugin.Load(p)
-			if err != nil {
-				logger.Fatal(err)
-			}
-
-			// initialise the plugin
-			if err := plugin.Init(c); err != nil {
-				logger.Fatal(err)
-			}
-		}
-
 		// set cmd name
 		if len(s.opts.Cmd.App().Name) == 0 {
 			s.opts.Cmd.App().Name = s.Server().Options().Name
