@@ -8,7 +8,6 @@ import (
 	"sync"
 
 	"go-micro.dev/v4/client"
-	"go-micro.dev/v4/debug/handler"
 	"go-micro.dev/v4/logger"
 	plugin "go-micro.dev/v4/plugins"
 	"go-micro.dev/v4/server"
@@ -152,14 +151,6 @@ func (s *service) Run() (err error) {
 			os.Exit(0)
 		}
 	}
-
-	// register the debug handler
-	s.opts.Server.Handle(
-		s.opts.Server.NewHandler(
-			handler.NewHandler(s.opts.Client),
-			server.InternalHandler(true),
-		),
-	)
 
 	// start the profiler
 	if s.opts.Profile != nil {
