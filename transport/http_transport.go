@@ -153,12 +153,11 @@ func (h *httpTransportClient) Recv(m *Message) error {
 	}
 
 	h.Lock()
+	defer h.Unlock()
 	if h.closed {
-		h.Unlock()
 		return io.EOF
 	}
 	rsp, err := http.ReadResponse(h.buff, r)
-	h.Unlock()
 	if err != nil {
 		return err
 	}
