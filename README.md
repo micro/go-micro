@@ -71,7 +71,7 @@ service.Run()
 
 See the [examples](https://github.com/go-micro/examples) for detailed information on usage.
 
-## Tools
+## Toolkit
 
 See [github.com/go-micro](https://github.com/go-micro) for tooling.
 
