@@ -3,8 +3,6 @@ package micro
 import (
 	"context"
 	"errors"
-	"go-micro.dev/v4/server"
-	"go-micro.dev/v4/transport"
 	"net"
 	"sync"
 	"testing"
@@ -13,6 +11,8 @@ import (
 	"go-micro.dev/v4/debug/handler"
 	proto "go-micro.dev/v4/debug/proto"
 	"go-micro.dev/v4/registry"
+	"go-micro.dev/v4/server"
+	"go-micro.dev/v4/transport"
 	"go-micro.dev/v4/util/test"
 )
 
