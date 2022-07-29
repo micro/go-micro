@@ -811,7 +811,7 @@ func (s *rpcServer) Start() error {
 	config := s.Options()
 
 	// start listening on the transport
-	ts, err := config.Transport.Listen(config.Address)
+	ts, err := config.Transport.Listen(config.Address, config.ListenOptions...)
 	if err != nil {
 		return err
 	}

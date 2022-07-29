@@ -14,19 +14,20 @@ import (
 )
 
 type Options struct {
-	Codecs       map[string]codec.NewCodec
-	Broker       broker.Broker
-	Registry     registry.Registry
-	Tracer       trace.Tracer
-	Transport    transport.Transport
-	Metadata     map[string]string
-	Name         string
-	Address      string
-	Advertise    string
-	Id           string
-	Version      string
-	HdlrWrappers []HandlerWrapper
-	SubWrappers  []SubscriberWrapper
+	Codecs        map[string]codec.NewCodec
+	Broker        broker.Broker
+	Registry      registry.Registry
+	Tracer        trace.Tracer
+	Transport     transport.Transport
+	Metadata      map[string]string
+	Name          string
+	Address       string
+	Advertise     string
+	Id            string
+	Version       string
+	HdlrWrappers  []HandlerWrapper
+	SubWrappers   []SubscriberWrapper
+	ListenOptions []transport.ListenOption
 
 	// RegisterCheck runs a check function before registering the service
 	RegisterCheck func(context.Context) error
@@ -254,5 +255,13 @@ func WrapHandler(w HandlerWrapper) Option {
 func WrapSubscriber(w SubscriberWrapper) Option {
 	return func(o *Options) {
 		o.SubWrappers = append(o.SubWrappers, w)
+	}
+}
+
+// Add transport.ListenOption to the ListenOptions list, when using it, it will be passed to the
+// httpTransport.Listen() method
+func ListenOption(option transport.ListenOption) Option {
+	return func(o *Options) {
+		o.ListenOptions = append(o.ListenOptions, option)
 	}
 }

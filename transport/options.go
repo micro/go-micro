@@ -3,6 +3,7 @@ package transport
 import (
 	"context"
 	"crypto/tls"
+	"net"
 	"time"
 
 	"go-micro.dev/v4/codec"
@@ -100,5 +101,18 @@ func WithStream() DialOption {
 func WithTimeout(d time.Duration) DialOption {
 	return func(o *DialOptions) {
 		o.Timeout = d
+	}
+}
+
+// NetListener Set net.Listener for httpTransport
+func NetListener(customListener net.Listener) ListenOption {
+	return func(o *ListenOptions) {
+		if customListener != nil {
+			return
+		}
+		if o.Context == nil {
+			o.Context = context.TODO()
+		}
+		o.Context = context.WithValue(o.Context, netListener{}, customListener)
 	}
 }
