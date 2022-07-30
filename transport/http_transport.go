@@ -562,8 +562,14 @@ func (h *httpTransport) Listen(addr string, opts ...ListenOption) (Listener, err
 	var l net.Listener
 	var err error
 
-	// TODO: support use of listen options
-	if h.opts.Secure || h.opts.TLSConfig != nil {
+	if listener := getNetListener(&options); listener != nil {
+
+		fn := func(addr string) (net.Listener, error) {
+			return listener, nil
+		}
+
+		l, err = mnet.Listen(addr, fn)
+	} else if h.opts.Secure || h.opts.TLSConfig != nil {
 		config := h.opts.TLSConfig
 
 		fn := func(addr string) (net.Listener, error) {

@@ -304,6 +304,13 @@ func WrapSubscriber(w ...server.SubscriberWrapper) Option {
 	}
 }
 
+// Add opt to server option
+func AddListenOption(option server.Option) Option {
+	return func(o *Options) {
+		o.Server.Init(option)
+	}
+}
+
 // Before and Afters
 
 // BeforeStart run funcs before service starts
