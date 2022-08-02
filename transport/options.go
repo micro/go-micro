@@ -107,7 +107,7 @@ func WithTimeout(d time.Duration) DialOption {
 // NetListener Set net.Listener for httpTransport
 func NetListener(customListener net.Listener) ListenOption {
 	return func(o *ListenOptions) {
-		if customListener != nil {
+		if customListener == nil {
 			return
 		}
 		if o.Context == nil {
