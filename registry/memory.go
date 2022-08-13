@@ -172,15 +172,15 @@ func (m *memRegistry) Register(s *Service, opts ...RegisterOption) error {
 			metadata := make(map[string]string)
 			for k, v := range n.Metadata {
 				metadata[k] = v
-				m.records[s.Name][s.Version].Nodes[n.Id] = &node{
-					Node: &Node{
-						Id:       n.Id,
-						Address:  n.Address,
-						Metadata: metadata,
-					},
-					TTL:      options.TTL,
-					LastSeen: time.Now(),
-				}
+			}
+			m.records[s.Name][s.Version].Nodes[n.Id] = &node{
+				Node: &Node{
+					Id:       n.Id,
+					Address:  n.Address,
+					Metadata: metadata,
+				},
+				TTL:      options.TTL,
+				LastSeen: time.Now(),
 			}
 		}
 	}
