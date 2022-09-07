@@ -189,11 +189,13 @@ func Errorf(format string, v ...interface{}) {
 // Fatal logs with Log and then exits with os.Exit(1)
 func Fatal(v ...interface{}) {
 	WithLevel(LevelFatal, v...)
+	os.Exit(1)
 }
 
 // Fatalf logs with Logf and then exits with os.Exit(1)
 func Fatalf(format string, v ...interface{}) {
 	WithLevelf(LevelFatal, format, v...)
+	os.Exit(1)
 }
 
 // SetLogger sets the local logger
