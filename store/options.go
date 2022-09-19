@@ -65,6 +65,9 @@ func WithClient(c client.Client) Option {
 
 // ReadOptions configures an individual Read operation
 type ReadOptions struct {
+	// Context for the read
+	Context context.Context
+	// Read from the following
 	Database, Table string
 	// Prefix returns all records that are prefixed with key
 	Prefix bool
@@ -78,6 +81,13 @@ type ReadOptions struct {
 
 // ReadOption sets values in ReadOptions
 type ReadOption func(r *ReadOptions)
+
+// ReadContext to use for the read
+func ReadContext(context context.Context) ReadOption {
+	return func(r *ReadOptions) {
+		r.Context = context
+	}
+}
 
 // ReadFrom the database and table
 func ReadFrom(database, table string) ReadOption {
@@ -118,6 +128,9 @@ func ReadOffset(o uint) ReadOption {
 // WriteOptions configures an individual Write operation
 // If Expiry and TTL are set TTL takes precedence
 type WriteOptions struct {
+	// Context for the write operation
+	Context context.Context
+	// Write to the following
 	Database, Table string
 	// Expiry is the time the record expires
 	Expiry time.Time
@@ -127,6 +140,13 @@ type WriteOptions struct {
 
 // WriteOption sets values in WriteOptions
 type WriteOption func(w *WriteOptions)
+
+// WriteContext to use for the write
+func WriteContext(context context.Context) WriteOption {
+	return func(w *WriteOptions) {
+		w.Context = context
+	}
+}
 
 // WriteTo the database and table
 func WriteTo(database, table string) WriteOption {
@@ -152,11 +172,21 @@ func WriteTTL(d time.Duration) WriteOption {
 
 // DeleteOptions configures an individual Delete operation
 type DeleteOptions struct {
+	// Context for the delete operation
+	Context context.Context
+	// Delete from the following
 	Database, Table string
 }
 
 // DeleteOption sets values in DeleteOptions
 type DeleteOption func(d *DeleteOptions)
+
+// DeleteContext to use for the delete
+func DeleteContext(context context.Context) DeleteOption {
+	return func(d *DeleteOptions) {
+		d.Context = context
+	}
+}
 
 // DeleteFrom the database and table
 func DeleteFrom(database, table string) DeleteOption {
@@ -168,6 +198,8 @@ func DeleteFrom(database, table string) DeleteOption {
 
 // ListOptions configures an individual List operation
 type ListOptions struct {
+	// Context for the list operation
+	Context context.Context
 	// List from the following
 	Database, Table string
 	// Prefix returns all keys that are prefixed with key
@@ -182,6 +214,13 @@ type ListOptions struct {
 
 // ListOption sets values in ListOptions
 type ListOption func(l *ListOptions)
+
+// ListContext to use for the list
+func ListContext(context context.Context) ListOption {
+	return func(d *ListOptions) {
+		d.Context = context
+	}
+}
 
 // ListFrom the database and table
 func ListFrom(database, table string) ListOption {
