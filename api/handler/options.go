@@ -69,7 +69,7 @@ func WithMaxRecvSize(size int64) Option {
 	}
 }
 
-// WithLogger specifies max body size
+// WithLogger specifies the logger
 func WithLogger(l logger.Logger) Option {
 	return func(o *Options) {
 		o.Logger = logger.NewHelper(l)
