@@ -3,6 +3,8 @@ package cache
 import (
 	"context"
 	"time"
+
+	"go-micro.dev/v4/logger"
 )
 
 // Options represents the options for the cache.
@@ -13,6 +15,8 @@ type Options struct {
 	Address string
 	// Context should contain all implementation specific options, using context.WithValue.
 	Context context.Context
+	// Logger is the be used logger
+	Logger *logger.Helper
 }
 
 // Option manipulates the Options passed.
@@ -46,11 +50,19 @@ func WithContext(c context.Context) Option {
 	}
 }
 
+// WithLogger sets underline logger
+func WithLogger(l logger.Logger) Option {
+	return func(o *Options) {
+		o.Logger = logger.NewHelper(l)
+	}
+}
+
 // NewOptions returns a new options struct.
 func NewOptions(opts ...Option) Options {
 	options := Options{
 		Expiration: DefaultExpiration,
 		Items:      make(map[string]Item),
+		Logger:     logger.DefaultHelper,
 	}
 
 	for _, o := range opts {

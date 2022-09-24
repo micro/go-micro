@@ -1,10 +1,28 @@
 package events
 
-import "time"
+import (
+	"time"
 
-type Options struct{}
+	"go-micro.dev/v4/logger"
+)
+
+type Options struct {
+	Logger *logger.Helper
+}
 
 type Option func(o *Options)
+
+func NewOptions(opts ...Option) *Options {
+	options := Options{
+		Logger: logger.DefaultHelper,
+	}
+
+	for _, o := range opts {
+		o(&options)
+	}
+
+	return &options
+}
 
 type StoreOptions struct {
 	TTL    time.Duration

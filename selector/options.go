@@ -3,6 +3,7 @@ package selector
 import (
 	"context"
 
+	"go-micro.dev/v4/logger"
 	"go-micro.dev/v4/registry"
 )
 
@@ -13,6 +14,8 @@ type Options struct {
 	// Other options for implementations of the interface
 	// can be stored in a context
 	Context context.Context
+	// Logger is the underline logger
+	Logger *logger.Helper
 }
 
 type SelectOptions struct {
@@ -56,5 +59,12 @@ func WithFilter(fn ...Filter) SelectOption {
 func WithStrategy(fn Strategy) SelectOption {
 	return func(o *SelectOptions) {
 		o.Strategy = fn
+	}
+}
+
+// WithLogger sets the underline logger
+func WithLogger(l logger.Logger) Option {
+	return func(o *Options) {
+		o.Logger = logger.NewHelper(l)
 	}
 }

@@ -11,7 +11,6 @@ import (
 	"github.com/gorilla/handlers"
 	"go-micro.dev/v4/api/server"
 	"go-micro.dev/v4/api/server/cors"
-	"go-micro.dev/v4/logger"
 )
 
 type httpServer struct {
@@ -24,10 +23,7 @@ type httpServer struct {
 }
 
 func NewServer(address string, opts ...server.Option) server.Server {
-	var options server.Options
-	for _, o := range opts {
-		o(&options)
-	}
+	options := server.NewOptions(opts...)
 
 	return &httpServer{
 		opts:    options,
@@ -70,6 +66,7 @@ func (s *httpServer) Handle(path string, handler http.Handler) {
 }
 
 func (s *httpServer) Start() error {
+	logger := s.opts.Logger
 	var l net.Listener
 	var err error
 
@@ -86,9 +83,7 @@ func (s *httpServer) Start() error {
 		return err
 	}
 
-	if logger.V(logger.InfoLevel, logger.DefaultLogger) {
-		logger.Infof("HTTP API Listening on %s", l.Addr().String())
-	}
+	logger.Infof("HTTP API Listening on %s", l.Addr().String())
 
 	s.mtx.Lock()
 	s.address = l.Addr().String()

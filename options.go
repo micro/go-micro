@@ -12,6 +12,7 @@ import (
 	"go-micro.dev/v4/config"
 	"go-micro.dev/v4/debug/profile"
 	"go-micro.dev/v4/debug/trace"
+	"go-micro.dev/v4/logger"
 	"go-micro.dev/v4/registry"
 	"go-micro.dev/v4/runtime"
 	"go-micro.dev/v4/selector"
@@ -35,7 +36,7 @@ type Options struct {
 	Runtime   runtime.Runtime
 	Transport transport.Transport
 	Profile   profile.Profile
-
+	Logger    *logger.Helper
 	// Before and After funcs
 	BeforeStart []func() error
 	BeforeStop  []func() error
@@ -64,6 +65,7 @@ func newOptions(opts ...Option) Options {
 		Transport: transport.DefaultTransport,
 		Context:   context.Background(),
 		Signal:    true,
+		Logger:    logger.DefaultHelper,
 	}
 
 	for _, o := range opts {
@@ -338,5 +340,12 @@ func AfterStart(fn func() error) Option {
 func AfterStop(fn func() error) Option {
 	return func(o *Options) {
 		o.AfterStop = append(o.AfterStop, fn)
+	}
+}
+
+// Logger sets the logger for the service
+func Logger(l logger.Logger) Option {
+	return func(o *Options) {
+		o.Logger = logger.NewHelper(l)
 	}
 }

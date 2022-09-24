@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"go-micro.dev/v4/client"
+	"go-micro.dev/v4/logger"
 )
 
 // Options contains configuration for the Store
@@ -21,6 +22,8 @@ type Options struct {
 	Context context.Context
 	// Client to use for RPC
 	Client client.Client
+	// Logger is the underline logger
+	Logger *logger.Helper
 }
 
 // Option sets values in Options
@@ -60,6 +63,13 @@ func WithContext(c context.Context) Option {
 func WithClient(c client.Client) Option {
 	return func(o *Options) {
 		o.Client = c
+	}
+}
+
+// WithLogger sets the client router
+func WithLogger(l logger.Logger) Option {
+	return func(o *Options) {
+		o.Logger = logger.NewHelper(l)
 	}
 }
 

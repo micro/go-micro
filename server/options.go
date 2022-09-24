@@ -9,6 +9,7 @@ import (
 	"go-micro.dev/v4/broker"
 	"go-micro.dev/v4/codec"
 	"go-micro.dev/v4/debug/trace"
+	"go-micro.dev/v4/logger"
 	"go-micro.dev/v4/registry"
 	"go-micro.dev/v4/transport"
 )
@@ -28,6 +29,7 @@ type Options struct {
 	HdlrWrappers  []HandlerWrapper
 	SubWrappers   []SubscriberWrapper
 	ListenOptions []transport.ListenOption
+	Logger        *logger.Helper
 
 	// RegisterCheck runs a check function before registering the service
 	RegisterCheck func(context.Context) error
@@ -53,6 +55,7 @@ func newOptions(opt ...Option) Options {
 		Metadata:         map[string]string{},
 		RegisterInterval: DefaultRegisterInterval,
 		RegisterTTL:      DefaultRegisterTTL,
+		Logger:           logger.DefaultHelper,
 	}
 
 	for _, o := range opt {
@@ -225,6 +228,13 @@ func TLSConfig(t *tls.Config) Option {
 func WithRouter(r Router) Option {
 	return func(o *Options) {
 		o.Router = r
+	}
+}
+
+// WithLogger sets the underline logger
+func WithLogger(l logger.Logger) Option {
+	return func(o *Options) {
+		o.Logger = logger.NewHelper(l)
 	}
 }
 

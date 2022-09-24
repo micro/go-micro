@@ -1,6 +1,9 @@
 package acme
 
-import "github.com/go-acme/lego/v4/challenge"
+import (
+	"github.com/go-acme/lego/v4/challenge"
+	"go-micro.dev/v4/logger"
+)
 
 // Option (or Options) are passed to New() to configure providers
 type Option func(o *Options)
@@ -22,6 +25,9 @@ type Options struct {
 	// there's no defined interface, so if you consume this option
 	// sanity check it before using.
 	Cache interface{}
+
+	// Logger is the underling logging framework
+	Logger *logger.Helper
 }
 
 // AcceptToS indicates whether you accept your CA's terms of service
@@ -60,6 +66,13 @@ func OnDemand(b bool) Option {
 func Cache(c interface{}) Option {
 	return func(o *Options) {
 		o.Cache = c
+	}
+}
+
+// Logger sets the underline logger framework
+func Logger(l logger.Logger) Option {
+	return func(o *Options) {
+		o.Logger = logger.NewHelper(l)
 	}
 }
 

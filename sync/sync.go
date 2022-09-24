@@ -6,6 +6,8 @@ import (
 	"crypto/tls"
 	"errors"
 	"time"
+
+	"go-micro.dev/v4/logger"
 )
 
 var (
@@ -41,6 +43,8 @@ type Options struct {
 	Prefix    string
 	TLSConfig *tls.Config
 	Context   context.Context
+	// Logger is the underline logger
+	Logger *logger.Helper
 }
 
 type Option func(o *Options)

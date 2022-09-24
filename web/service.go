@@ -14,7 +14,7 @@ import (
 
 	"github.com/urfave/cli/v2"
 	"go-micro.dev/v4"
-	"go-micro.dev/v4/logger"
+
 	"go-micro.dev/v4/registry"
 	maddr "go-micro.dev/v4/util/addr"
 	"go-micro.dev/v4/util/backoff"
@@ -53,6 +53,8 @@ func (s *service) genSrv() *registry.Service {
 	var host string
 	var port string
 	var err error
+
+	logger := s.opts.Logger
 
 	// default host:port
 	if len(s.opts.Address) > 0 {
@@ -120,6 +122,9 @@ func (s *service) register() error {
 	if s.srv == nil {
 		return nil
 	}
+
+	logger := s.opts.Logger
+
 	// default to service registry
 	r := s.opts.Service.Client().Options().Registry
 	// switch to option if specified
@@ -134,9 +139,7 @@ func (s *service) register() error {
 
 	// use RegisterCheck func before register
 	if err := s.opts.RegisterCheck(s.opts.Context); err != nil {
-		if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
-			logger.Errorf("Server %s-%s register check error: %s", s.opts.Name, s.opts.Id, err)
-		}
+		logger.Errorf("Server %s-%s register check error: %s", s.opts.Name, s.opts.Id, err)
 		return err
 	}
 
@@ -195,6 +198,8 @@ func (s *service) start() error {
 		return err
 	}
 
+	logger := s.opts.Logger
+
 	s.opts.Address = l.Addr().String()
 	srv := s.genSrv()
 	srv.Endpoints = s.srv.Endpoints
@@ -221,9 +226,7 @@ func (s *service) start() error {
 			if s.static {
 				_, err := os.Stat(static)
 				if err == nil {
-					if logger.V(logger.InfoLevel, logger.DefaultLogger) {
-						logger.Infof("Enabling static file serving from %s", static)
-					}
+					logger.Infof("Enabling static file serving from %s", static)
 					s.mux.Handle("/", http.FileServer(http.Dir(static)))
 				}
 			}
@@ -255,9 +258,7 @@ func (s *service) start() error {
 		ch <- l.Close()
 	}()
 
-	if logger.V(logger.InfoLevel, logger.DefaultLogger) {
-		logger.Infof("Listening on %v", l.Addr().String())
-	}
+	logger.Infof("Listening on %v", l.Addr().String())
 	return nil
 }
 
@@ -279,9 +280,7 @@ func (s *service) stop() error {
 	s.exit <- ch
 	s.running = false
 
-	if logger.V(logger.InfoLevel, logger.DefaultLogger) {
-		logger.Info("Stopping")
-	}
+	s.opts.Logger.Info("Stopping")
 
 	for _, fn := range s.opts.AfterStop {
 		if err := fn(); err != nil {
@@ -473,6 +472,7 @@ func (s *service) Run() error {
 		return err
 	}
 
+	logger := s.opts.Logger
 	// start the profiler
 	if s.opts.Service.Options().Profile != nil {
 		// to view mutex contention
@@ -505,14 +505,10 @@ func (s *service) Run() error {
 	select {
 	// wait on kill signal
 	case sig := <-ch:
-		if logger.V(logger.InfoLevel, logger.DefaultLogger) {
-			logger.Infof("Received signal %s", sig)
-		}
+		logger.Infof("Received signal %s", sig)
 	// wait on context cancel
 	case <-s.opts.Context.Done():
-		if logger.V(logger.InfoLevel, logger.DefaultLogger) {
-			logger.Info("Received context shutdown")
-		}
+		logger.Info("Received context shutdown")
 	}
 
 	// exit reg loop

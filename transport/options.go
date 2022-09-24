@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"go-micro.dev/v4/codec"
+	"go-micro.dev/v4/logger"
 )
 
 type Options struct {
@@ -27,6 +28,8 @@ type Options struct {
 	// Other options for implementations of the interface
 	// can be stored in a context
 	Context context.Context
+	// Logger is the underline logger
+	Logger *logger.Helper
 }
 
 type DialOptions struct {
@@ -101,6 +104,13 @@ func WithStream() DialOption {
 func WithTimeout(d time.Duration) DialOption {
 	return func(o *DialOptions) {
 		o.Timeout = d
+	}
+}
+
+// WithLogger sets the underline logger
+func WithLogger(l logger.Logger) Option {
+	return func(o *Options) {
+		o.Logger = logger.NewHelper(l)
 	}
 }
 

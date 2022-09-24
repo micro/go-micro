@@ -6,6 +6,7 @@ import (
 
 	"go-micro.dev/v4/broker"
 	"go-micro.dev/v4/codec"
+	"go-micro.dev/v4/logger"
 	"go-micro.dev/v4/registry"
 	"go-micro.dev/v4/selector"
 	"go-micro.dev/v4/transport"
@@ -37,6 +38,9 @@ type Options struct {
 
 	// Default Call Options
 	CallOptions CallOptions
+
+	// Logger is the underline logger
+	Logger *logger.Helper
 
 	// Other options for implementations of the interface
 	// can be stored in a context
@@ -113,6 +117,7 @@ func NewOptions(options ...Option) Options {
 		Selector:  selector.DefaultSelector,
 		Registry:  registry.DefaultRegistry,
 		Transport: transport.DefaultTransport,
+		Logger:    logger.DefaultHelper,
 	}
 
 	for _, o := range options {
@@ -362,5 +367,12 @@ func StreamingRequest() RequestOption {
 func WithRouter(r Router) Option {
 	return func(o *Options) {
 		o.Router = r
+	}
+}
+
+// WithLogger sets the client router
+func WithLogger(l logger.Logger) Option {
+	return func(o *Options) {
+		o.Logger = logger.NewHelper(l)
 	}
 }

@@ -24,6 +24,8 @@ type Cache interface {
 type Options struct {
 	// TTL is the cache TTL
 	TTL time.Duration
+
+	Logger *logger.Helper
 }
 
 type Option func(o *Options)
@@ -320,7 +322,7 @@ func (c *cache) run(service string) {
 	c.Lock()
 	c.watchedRunning[service] = true
 	c.Unlock()
-
+	logger := c.opts.Logger
 	// reset watcher on exit
 	defer func() {
 		c.Lock()
@@ -352,9 +354,7 @@ func (c *cache) run(service string) {
 			c.setStatus(err)
 
 			if a > 3 {
-				if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-					logger.Debug("rcache: ", err, " backing off ", d)
-				}
+				logger.Debug("rcache: ", err, " backing off ", d)
 				a = 0
 			}
 
@@ -377,9 +377,7 @@ func (c *cache) run(service string) {
 			c.setStatus(err)
 
 			if b > 3 {
-				if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-					logger.Debug("rcache: ", err, " backing off ", d)
-				}
+				logger.Debug("rcache: ", err, " backing off ", d)
 				b = 0
 			}
 
@@ -467,7 +465,8 @@ func (c *cache) String() string {
 func New(r registry.Registry, opts ...Option) Cache {
 	rand.Seed(time.Now().UnixNano())
 	options := Options{
-		TTL: DefaultTTL,
+		TTL:    DefaultTTL,
+		Logger: logger.DefaultHelper,
 	}
 
 	for _, o := range opts {

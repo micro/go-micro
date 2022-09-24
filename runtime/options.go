@@ -5,6 +5,7 @@ import (
 	"io"
 
 	"go-micro.dev/v4/client"
+	"go-micro.dev/v4/logger"
 )
 
 type Option func(o *Options)
@@ -21,6 +22,20 @@ type Options struct {
 	Image string
 	// Client to use when making requests
 	Client client.Client
+	// Logger underline logger
+	Logger *logger.Helper
+}
+
+func NewOptions(opts ...Option) *Options {
+	options := &Options{
+		Logger: logger.DefaultHelper,
+	}
+
+	for _, o := range opts {
+		o(options)
+	}
+
+	return options
 }
 
 // WithSource sets the base image / repository
@@ -55,6 +70,13 @@ func WithImage(t string) Option {
 func WithClient(c client.Client) Option {
 	return func(o *Options) {
 		o.Client = c
+	}
+}
+
+// WithClient sets the client to use
+func WithLogger(l logger.Logger) Option {
+	return func(o *Options) {
+		o.Logger = logger.NewHelper(l)
 	}
 }
 

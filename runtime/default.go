@@ -24,7 +24,7 @@ const defaultNamespace = "default"
 type runtime struct {
 	sync.RWMutex
 	// options configure runtime
-	options Options
+	options *Options
 	// used to stop the runtime
 	closed chan bool
 	// used to start new services
@@ -39,12 +39,7 @@ type runtime struct {
 // NewRuntime creates new local runtime and returns it
 func NewRuntime(opts ...Option) Runtime {
 	// get default options
-	options := Options{}
-
-	// apply requested options
-	for _, o := range opts {
-		o(&options)
-	}
+	options := NewOptions(opts...)
 
 	// make the logs directory
 	path := filepath.Join(os.TempDir(), "micro", "logs")
@@ -181,7 +176,7 @@ func (r *runtime) Init(opts ...Option) error {
 	defer r.Unlock()
 
 	for _, o := range opts {
-		o(&r.options)
+		o(r.options)
 	}
 
 	return nil
@@ -192,6 +187,7 @@ func (r *runtime) run(events <-chan Event) {
 	t := time.NewTicker(time.Second * 5)
 	defer t.Stop()
 
+	logger := r.options.Logger
 	// process event processes an incoming event
 	processEvent := func(event Event, service *service, ns string) error {
 		// get current vals
@@ -205,9 +201,7 @@ func (r *runtime) run(events <-chan Event) {
 			return nil
 		}
 
-		if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-			logger.Debugf("Runtime updating service %s in %v namespace", name, ns)
-		}
+		logger.Debugf("Runtime updating service %s in %v namespace", name, ns)
 
 		// this will cause a delete followed by created
 		if err := r.Update(service.Service, UpdateNamespace(ns)); err != nil {
@@ -234,13 +228,10 @@ func (r *runtime) run(events <-chan Event) {
 					}
 
 					// TODO: check service error
-					if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-						logger.Debugf("Runtime starting %s", service.Name)
-					}
+					logger.Debugf("Runtime starting %s", service.Name)
+
 					if err := service.Start(); err != nil {
-						if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-							logger.Debugf("Runtime error starting %s: %v", service.Name, err)
-						}
+						logger.Debugf("Runtime error starting %s: %v", service.Name, err)
 					}
 				}
 			}
@@ -250,18 +241,13 @@ func (r *runtime) run(events <-chan Event) {
 				continue
 			}
 			// TODO: check service error
-			if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-				logger.Debugf("Runtime starting service %s", service.Name)
-			}
+			logger.Debugf("Runtime starting service %s", service.Name)
+
 			if err := service.Start(); err != nil {
-				if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-					logger.Debugf("Runtime error starting service %s: %v", service.Name, err)
-				}
+				logger.Debugf("Runtime error starting service %s: %v", service.Name, err)
 			}
 		case event := <-events:
-			if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-				logger.Debugf("Runtime received notification event: %v", event)
-			}
+			logger.Debugf("Runtime received notification event: %v", event)
 			// NOTE: we only handle Update events for now
 			switch event.Type {
 			case Update:
@@ -273,9 +259,7 @@ func (r *runtime) run(events <-chan Event) {
 
 					r.RLock()
 					if _, ok := r.namespaces[ns]; !ok {
-						if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-							logger.Debugf("Runtime unknown namespace: %s", ns)
-						}
+						logger.Debugf("Runtime unknown namespace: %s", ns)
 						r.RUnlock()
 						continue
 					}
@@ -286,9 +270,7 @@ func (r *runtime) run(events <-chan Event) {
 					}
 
 					if err := processEvent(event, service, ns); err != nil {
-						if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-							logger.Debugf("Runtime error updating service %s: %v", event.Service, err)
-						}
+						logger.Debugf("Runtime error updating service %s: %v", event.Service, err)
 					}
 					continue
 				}
@@ -301,17 +283,13 @@ func (r *runtime) run(events <-chan Event) {
 				for ns, services := range namespaces {
 					for _, service := range services {
 						if err := processEvent(event, service, ns); err != nil {
-							if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-								logger.Debugf("Runtime error updating service %s: %v", service.Name, err)
-							}
+							logger.Debugf("Runtime error updating service %s: %v", service.Name, err)
 						}
 					}
 				}
 			}
 		case <-r.closed:
-			if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-				logger.Debugf("Runtime stopped")
-			}
+			logger.Debugf("Runtime stopped")
 			return
 		}
 	}
@@ -357,7 +335,7 @@ func (r *runtime) Create(s *Service, opts ...CreateOption) error {
 	}
 
 	// create new service
-	service := newService(s, options)
+	service := newService(s, options, r.options.Logger)
 
 	f, err := os.OpenFile(logFile(service.Name), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
@@ -590,9 +568,7 @@ func (r *runtime) Delete(s *Service, opts ...DeleteOption) error {
 		return nil
 	}
 
-	if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-		logger.Debugf("Runtime deleting service %s", s.Name)
-	}
+	r.options.Logger.Debugf("Runtime deleting service %s", s.Name)
 
 	service, ok := srvs[serviceKey(s)]
 	if !ok {
@@ -635,9 +611,7 @@ func (r *runtime) Start() error {
 		events, err = r.options.Scheduler.Notify()
 		if err != nil {
 			// TODO: should we bail here?
-			if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-				logger.Debugf("Runtime failed to start update notifier")
-			}
+			r.options.Logger.Debugf("Runtime failed to start update notifier")
 		}
 	}
 
@@ -667,9 +641,7 @@ func (r *runtime) Stop() error {
 		// stop all the services
 		for _, services := range r.namespaces {
 			for _, service := range services {
-				if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-					logger.Debugf("Runtime stopping %s", service.Name)
-				}
+				r.options.Logger.Debugf("Runtime stopping %s", service.Name)
 				service.Stop()
 			}
 		}

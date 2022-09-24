@@ -8,6 +8,7 @@ import (
 
 	"github.com/urfave/cli/v2"
 	"go-micro.dev/v4"
+	"go-micro.dev/v4/logger"
 	"go-micro.dev/v4/registry"
 )
 
@@ -37,6 +38,7 @@ type Options struct {
 
 	Registry registry.Registry
 	Service  micro.Service
+	Logger   *logger.Helper
 
 	Secure      bool
 	TLSConfig   *tls.Config
@@ -63,6 +65,7 @@ func newOptions(opts ...Option) Options {
 		Service:          micro.NewService(),
 		Context:          context.TODO(),
 		Signal:           true,
+		Logger:           logger.DefaultHelper,
 	}
 
 	for _, o := range opts {
@@ -255,5 +258,12 @@ func RegisterCheck(fn func(context.Context) error) Option {
 func HandleSignal(b bool) Option {
 	return func(o *Options) {
 		o.Signal = b
+	}
+}
+
+// Logger is executed before the server stops.
+func Logger(l logger.Logger) Option {
+	return func(o *Options) {
+		o.Logger = logger.NewHelper(l)
 	}
 }

@@ -4,6 +4,9 @@ package logger
 var (
 	// Default logger
 	DefaultLogger Logger = NewLogger()
+
+	// Default logger helper
+	DefaultHelper *Helper = NewHelper(DefaultLogger)
 )
 
 // Logger is a generic logging interface
@@ -40,4 +43,11 @@ func Logf(level Level, format string, v ...interface{}) {
 
 func String() string {
 	return DefaultLogger.String()
+}
+
+func LoggerOrDefault(l Logger) Logger {
+	if l == nil {
+		return DefaultLogger
+	}
+	return l
 }

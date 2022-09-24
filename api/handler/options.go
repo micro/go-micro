@@ -3,6 +3,7 @@ package handler
 import (
 	"go-micro.dev/v4/api/router"
 	"go-micro.dev/v4/client"
+	"go-micro.dev/v4/logger"
 )
 
 var (
@@ -14,6 +15,7 @@ type Options struct {
 	Namespace   string
 	Router      router.Router
 	Client      client.Client
+	Logger      *logger.Helper
 }
 
 type Option func(o *Options)
@@ -31,6 +33,10 @@ func NewOptions(opts ...Option) Options {
 
 	if options.MaxRecvSize == 0 {
 		options.MaxRecvSize = DefaultMaxRecvSize
+	}
+
+	if options.Logger == nil {
+		options.Logger = logger.HelperOrDefault(options.Logger)
 	}
 
 	return options
@@ -56,9 +62,16 @@ func WithClient(c client.Client) Option {
 	}
 }
 
-// WithmaxRecvSize specifies max body size
+// WithMaxRecvSize specifies max body size
 func WithMaxRecvSize(size int64) Option {
 	return func(o *Options) {
 		o.MaxRecvSize = size
+	}
+}
+
+// WithLogger specifies max body size
+func WithLogger(l logger.Logger) Option {
+	return func(o *Options) {
+		o.Logger = logger.NewHelper(l)
 	}
 }

@@ -36,9 +36,11 @@ type service struct {
 	Exec *process.Executable
 	// process pid
 	PID *process.PID
+	// to be used logger
+	Logger *logger.Helper
 }
 
-func newService(s *Service, c CreateOptions) *service {
+func newService(s *Service, c CreateOptions, l *logger.Helper) *service {
 	var exec string
 	var args []string
 
@@ -58,6 +60,7 @@ func newService(s *Service, c CreateOptions) *service {
 			Args: args,
 			Dir:  s.Source,
 		},
+		Logger:     logger.HelperOrDefault(l),
 		closed:     make(chan bool),
 		output:     c.Output,
 		updated:    time.Now(),
@@ -101,7 +104,6 @@ func (s *service) Start() error {
 	if !s.shouldStart() {
 		return nil
 	}
-
 	// reset
 	s.err = nil
 	s.closed = make(chan bool)
@@ -113,9 +115,7 @@ func (s *service) Start() error {
 	s.Status("starting", nil)
 
 	// TODO: pull source & build binary
-	if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-		logger.Debugf("Runtime service %s forking new process", s.Service.Name)
-	}
+	s.Logger.Debugf("Runtime service %s forking new process", s.Service.Name)
 
 	p, err := s.Process.Fork(s.Exec)
 	if err != nil {
@@ -213,9 +213,7 @@ func (s *service) Wait() {
 
 	// save the error
 	if err != nil {
-		if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
-			logger.Errorf("Service %s terminated with error %s", s.Name, err)
-		}
+		s.Logger.Errorf("Service %s terminated with error %s", s.Name, err)
 		s.retries++
 		s.Status("error", err)
 		s.Metadata["retries"] = strconv.Itoa(s.retries)

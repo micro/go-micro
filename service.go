@@ -125,6 +125,8 @@ func (s *service) Stop() error {
 }
 
 func (s *service) Run() (err error) {
+	logger := s.opts.Logger
+
 	// exit when help flag is provided
 	for _, v := range os.Args[1:] {
 		if v == "-h" || v == "--help" {
@@ -150,9 +152,7 @@ func (s *service) Run() (err error) {
 		}()
 	}
 
-	if logger.V(logger.InfoLevel, logger.DefaultLogger) {
-		logger.Infof("Starting [service] %s", s.Name())
-	}
+	logger.Infof("Starting [service] %s", s.Name())
 
 	if err = s.Start(); err != nil {
 		return err
