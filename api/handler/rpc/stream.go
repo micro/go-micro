@@ -12,6 +12,7 @@ import (
 	"github.com/gobwas/httphead"
 	"github.com/gobwas/ws"
 	"github.com/gobwas/ws/wsutil"
+
 	"go-micro.dev/v4/api/router"
 	"go-micro.dev/v4/client"
 	raw "go-micro.dev/v4/codec/bytes"
@@ -19,7 +20,7 @@ import (
 )
 
 // serveWebsocket will stream rpc back over websockets assuming json
-func serveWebsocket(ctx context.Context, w http.ResponseWriter, r *http.Request, service *router.Route, c client.Client) (retErr error) {
+func serveWebsocket(ctx context.Context, w http.ResponseWriter, r *http.Request, service *router.Route, c client.Client) (err error) {
 	var op ws.OpCode
 
 	ct := r.Header.Get("Content-Type")
@@ -48,7 +49,7 @@ func serveWebsocket(ctx context.Context, w http.ResponseWriter, r *http.Request,
 	}
 	payload, err := requestPayload(r)
 	if err != nil {
-		return err
+		return
 	}
 
 	upgrader := ws.HTTPUpgrader{Timeout: 5 * time.Second,
@@ -68,12 +69,12 @@ func serveWebsocket(ctx context.Context, w http.ResponseWriter, r *http.Request,
 
 	conn, rw, _, err := upgrader.Upgrade(r, w)
 	if err != nil {
-		return err
+		return
 	}
 
 	defer func() {
-		if err := conn.Close(); err != nil && retErr == nil {
-			retErr = err
+		if cErr := conn.Close(); cErr != nil && err == nil {
+			err = cErr
 		}
 	}()
 
@@ -104,18 +105,18 @@ func serveWebsocket(ctx context.Context, w http.ResponseWriter, r *http.Request,
 	// create a new stream
 	stream, err := c.Stream(ctx, req, client.WithSelectOption(so))
 	if err != nil {
-		return err
+		return
 	}
 
 	if request != nil {
 		if err = stream.Send(request); err != nil {
-			return err
+			return
 		}
 	}
 
 	go func() {
-		if err := writeLoop(rw, stream); err != nil && retErr == nil {
-			retErr = err
+		if wErr := writeLoop(rw, stream); wErr != nil && err == nil {
+			err = wErr
 		}
 	}()
 
@@ -140,7 +141,7 @@ func serveWebsocket(ctx context.Context, w http.ResponseWriter, r *http.Request,
 			}
 
 			// write the response
-			if err := wsutil.WriteServerMessage(rw, op, buf); err != nil {
+			if err = wsutil.WriteServerMessage(rw, op, buf); err != nil {
 				return err
 			}
 			if err = rw.Flush(); err != nil {
