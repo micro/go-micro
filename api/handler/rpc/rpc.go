@@ -11,6 +11,7 @@ import (
 
 	jsonpatch "github.com/evanphx/json-patch/v5"
 	"github.com/oxtoacart/bpool"
+
 	"go-micro.dev/v4/api/handler"
 	"go-micro.dev/v4/api/internal/proto"
 	"go-micro.dev/v4/api/router"
@@ -27,7 +28,8 @@ import (
 )
 
 const (
-	Handler = "rpc"
+	Handler   = "rpc"
+	packageID = "go.micro.api"
 )
 
 var (
@@ -87,7 +89,7 @@ func (h *rpcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		// try get service from router
 		s, err := h.opts.Router.Route(r)
 		if err != nil {
-			werr := writeError(w, r, errors.InternalServerError("go.micro.api", err.Error()))
+			werr := writeError(w, r, errors.InternalServerError(packageID, err.Error()))
 			if werr != nil {
 				logger.Error(werr)
 			}
@@ -96,7 +98,7 @@ func (h *rpcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		service = s
 	} else {
 		// we have no way of routing the request
-		werr := writeError(w, r, errors.InternalServerError("go.micro.api", "no route found"))
+		werr := writeError(w, r, errors.InternalServerError(packageID, "no route found"))
 		if werr != nil {
 			logger.Error(werr)
 		}
@@ -139,8 +141,7 @@ func (h *rpcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		// drop older context as it can have timeouts and create new
 		//		md, _ := metadata.FromContext(cx)
 		//serveWebsocket(context.TODO(), w, r, service, c)
-		err := serveWebsocket(cx, w, r, service, c)
-		if err != nil {
+		if err := serveWebsocket(cx, w, r, service, c); err != nil {
 			logger.Error(err)
 		}
 		return
@@ -153,8 +154,7 @@ func (h *rpcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// get payload
 	br, err := requestPayload(r)
 	if err != nil {
-		werr := writeError(w, r, err)
-		if werr != nil {
+		if werr := writeError(w, r, err); werr != nil {
 			logger.Error(werr)
 		}
 		return
@@ -183,8 +183,7 @@ func (h *rpcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 		// make the call
 		if err := c.Call(cx, req, response, client.WithSelectOption(so)); err != nil {
-			werr := writeError(w, r, err)
-			if werr != nil {
+			if werr := writeError(w, r, err); werr != nil {
 				logger.Error(werr)
 			}
 			return
@@ -193,8 +192,7 @@ func (h *rpcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		// marshall response
 		rsp, err = response.Marshal()
 		if err != nil {
-			werr := writeError(w, r, err)
-			if werr != nil {
+			if werr := writeError(w, r, err); werr != nil {
 				logger.Error(werr)
 			}
 			return
@@ -224,8 +222,7 @@ func (h *rpcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		)
 		// make the call
 		if err := c.Call(cx, req, &response, client.WithSelectOption(so)); err != nil {
-			werr := writeError(w, r, err)
-			if werr != nil {
+			if werr := writeError(w, r, err); werr != nil {
 				logger.Error(werr)
 			}
 			return
@@ -234,8 +231,7 @@ func (h *rpcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		// marshall response
 		rsp, err = response.MarshalJSON()
 		if err != nil {
-			werr := writeError(w, r, err)
-			if werr != nil {
+			if werr := writeError(w, r, err); werr != nil {
 				logger.Error(werr)
 			}
 			return
@@ -243,11 +239,9 @@ func (h *rpcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// write the response
-	werr := writeResponse(w, r, rsp)
-	if werr != nil {
-		logger.Error(werr)
+	if err := writeResponse(w, r, rsp); err != nil {
+		logger.Error(err)
 	}
-
 }
 
 func (rh *rpcHandler) String() string {
@@ -303,7 +297,9 @@ func requestPayload(r *http.Request) ([]byte, error) {
 		}
 		return raw.Marshal()
 	case strings.Contains(ct, "application/www-x-form-urlencoded"):
-		r.ParseForm()
+		if err := r.ParseForm(); err != nil {
+			return nil, err
+		}
 
 		// generate a new set of values from the form
 		vals := make(map[string]string)
@@ -476,7 +472,7 @@ func writeError(w http.ResponseWriter, r *http.Request, err error) error {
 	case 0:
 		// assuming it's totally screwed
 		ce.Code = 500
-		ce.Id = "go.micro.api"
+		ce.Id = packageID
 		ce.Status = http.StatusText(500)
 		ce.Detail = "error during request: " + ce.Detail
 		w.WriteHeader(500)
