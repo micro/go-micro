@@ -73,7 +73,7 @@ func WithClient(c client.Client) Option {
 	}
 }
 
-// WithClient sets the client to use
+// WithLogger sets the underline logger
 func WithLogger(l logger.Logger) Option {
 	return func(o *Options) {
 		o.Logger = l

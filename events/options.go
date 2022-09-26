@@ -32,7 +32,7 @@ type StoreOptions struct {
 
 type StoreOption func(o *StoreOptions)
 
-// WithOffset sets the offset time at which to start consuming events
+// WithLogger sets the underline logger
 func WithLogger(l logger.Logger) StoreOption {
 	return func(o *StoreOptions) {
 		o.Logger = l

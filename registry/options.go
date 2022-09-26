@@ -163,6 +163,7 @@ func Services(s map[string][]*Service) Option {
 	}
 }
 
+// Logger sets the underline logger
 func Logger(l logger.Logger) Option {
 	return func(o *Options) {
 		o.Logger = l

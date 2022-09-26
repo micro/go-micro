@@ -370,7 +370,7 @@ func WithRouter(r Router) Option {
 	}
 }
 
-// WithLogger sets the client router
+// WithLogger sets the underline logger
 func WithLogger(l logger.Logger) Option {
 	return func(o *Options) {
 		o.Logger = l

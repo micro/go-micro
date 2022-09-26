@@ -261,7 +261,7 @@ func HandleSignal(b bool) Option {
 	}
 }
 
-// Logger is executed before the server stops.
+// Logger sets the underline logger
 func Logger(l logger.Logger) Option {
 	return func(o *Options) {
 		o.Logger = l

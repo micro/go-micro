@@ -69,7 +69,7 @@ func Cache(c interface{}) Option {
 	}
 }
 
-// Logger sets the underline logger framework
+// Logger sets the underline logger
 func Logger(l logger.Logger) Option {
 	return func(o *Options) {
 		o.Logger = l
