@@ -11,7 +11,7 @@ type Options struct {
 	Handler  string
 	Registry registry.Registry
 	Resolver resolver.Resolver
-	Logger   *logger.Helper
+	Logger   logger.Logger
 }
 
 type Option func(o *Options)
@@ -20,7 +20,7 @@ func NewOptions(opts ...Option) Options {
 	options := Options{
 		Handler:  "meta",
 		Registry: registry.DefaultRegistry,
-		Logger:   logger.DefaultHelper,
+		Logger:   logger.DefaultLogger,
 	}
 
 	for _, o := range opts {
@@ -57,6 +57,6 @@ func WithResolver(r resolver.Resolver) Option {
 // WithLogger sets the underline logging framework
 func WithLogger(l logger.Logger) Option {
 	return func(o *Options) {
-		o.Logger = logger.NewHelper(l)
+		o.Logger = l
 	}
 }

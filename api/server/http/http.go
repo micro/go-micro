@@ -11,6 +11,7 @@ import (
 	"github.com/gorilla/handlers"
 	"go-micro.dev/v4/api/server"
 	"go-micro.dev/v4/api/server/cors"
+	mlogger "go-micro.dev/v4/logger"
 )
 
 type httpServer struct {
@@ -83,7 +84,7 @@ func (s *httpServer) Start() error {
 		return err
 	}
 
-	logger.Infof("HTTP API Listening on %s", l.Addr().String())
+	logger.Logf(mlogger.InfoLevel, "HTTP API Listening on %s", l.Addr().String())
 
 	s.mtx.Lock()
 	s.address = l.Addr().String()
@@ -92,7 +93,7 @@ func (s *httpServer) Start() error {
 	go func() {
 		if err := http.Serve(l, s.mux); err != nil {
 			// temporary fix
-			//logger.Fatal(err)
+			//logger.Log(mlogger.FatalLevel, err)
 		}
 	}()
 

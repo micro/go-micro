@@ -44,7 +44,7 @@ type Options struct {
 	TLSConfig *tls.Config
 	Context   context.Context
 	// Logger is the underline logger
-	Logger *logger.Helper
+	Logger logger.Logger
 }
 
 type Option func(o *Options)

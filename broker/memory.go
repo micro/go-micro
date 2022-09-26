@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	mlogger "go-micro.dev/v4/logger"
 	maddr "go-micro.dev/v4/util/addr"
 	mnet "go-micro.dev/v4/util/net"
 )
@@ -188,7 +189,7 @@ func (m *memoryEvent) Message() *Message {
 	case []byte:
 		msg := &Message{}
 		if err := m.opts.Codec.Unmarshal(v, msg); err != nil {
-			m.opts.Logger.Errorf("[memory]: failed to unmarshal: %v\n", err)
+			m.opts.Logger.Logf(mlogger.ErrorLevel, "[memory]: failed to unmarshal: %v\n", err)
 			return nil
 		}
 		return msg

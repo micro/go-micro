@@ -29,7 +29,7 @@ type Options struct {
 	// can be stored in a context
 	Context context.Context
 	// Logger is the underline logger
-	Logger *logger.Helper
+	Logger logger.Logger
 }
 
 type DialOptions struct {
@@ -110,7 +110,7 @@ func WithTimeout(d time.Duration) DialOption {
 // WithLogger sets the underline logger
 func WithLogger(l logger.Logger) Option {
 	return func(o *Options) {
-		o.Logger = logger.NewHelper(l)
+		o.Logger = l
 	}
 }
 

@@ -7,7 +7,7 @@ import (
 	"sync"
 
 	"go-micro.dev/v4/client"
-	"go-micro.dev/v4/logger"
+	mlogger "go-micro.dev/v4/logger"
 	"go-micro.dev/v4/server"
 	"go-micro.dev/v4/store"
 	"go-micro.dev/v4/util/cmd"
@@ -58,14 +58,14 @@ func (s *service) Init(opts ...Option) {
 			cmd.Store(&s.opts.Store),
 			cmd.Profile(&s.opts.Profile),
 		); err != nil {
-			logger.Fatal(err)
+			s.opts.Logger.Log(mlogger.FatalLevel, err)
 		}
 
 		// Explicitly set the table name to the service name
 		name := s.opts.Cmd.App().Name
 		err := s.opts.Store.Init(store.Table(name))
 		if err != nil {
-			logger.Fatal(err)
+			s.opts.Logger.Log(mlogger.FatalLevel, err)
 		}
 	})
 }
@@ -147,12 +147,12 @@ func (s *service) Run() (err error) {
 		defer func() {
 			err = s.opts.Profile.Stop()
 			if err != nil {
-				logger.Error(err)
+				logger.Log(mlogger.ErrorLevel, err)
 			}
 		}()
 	}
 
-	logger.Infof("Starting [service] %s", s.Name())
+	logger.Logf(mlogger.ErrorLevel, "Starting [service] %s", s.Name())
 
 	if err = s.Start(); err != nil {
 		return err

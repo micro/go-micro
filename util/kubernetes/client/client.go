@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"go-micro.dev/v4/logger"
+	mlogger "go-micro.dev/v4/logger"
 	"go-micro.dev/v4/util/kubernetes/api"
 )
 
@@ -228,7 +229,7 @@ func (c *client) Watch(r *Resource, opts ...WatchOption) (Watcher, error) {
 // NewService returns default micro kubernetes service definition
 func NewService(name, version, typ, namespace string) *Service {
 	if logger.V(logger.TraceLevel, logger.DefaultLogger) {
-		logger.Tracef("kubernetes default service: name: %s, version: %s", name, version)
+		logger.Logf(mlogger.TraceLevel, "kubernetes default service: name: %s, version: %s", name, version)
 	}
 
 	Labels := map[string]string{
@@ -271,7 +272,7 @@ func NewService(name, version, typ, namespace string) *Service {
 // NewService returns default micro kubernetes deployment definition
 func NewDeployment(name, version, typ, namespace string) *Deployment {
 	if logger.V(logger.TraceLevel, logger.DefaultLogger) {
-		logger.Tracef("kubernetes default deployment: name: %s, version: %s", name, version)
+		logger.Logf(mlogger.TraceLevel, "kubernetes default deployment: name: %s, version: %s", name, version)
 	}
 
 	Labels := map[string]string{

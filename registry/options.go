@@ -13,7 +13,7 @@ type Options struct {
 	Timeout   time.Duration
 	Secure    bool
 	TLSConfig *tls.Config
-	Logger    *logger.Helper
+	Logger    logger.Logger
 	// Other options for implementations of the interface
 	// can be stored in a context
 	Context context.Context
@@ -50,7 +50,7 @@ type ListOptions struct {
 func NewOptions(opts ...Option) *Options {
 	options := Options{
 		Context: context.Background(),
-		Logger:  logger.DefaultHelper,
+		Logger:  logger.DefaultLogger,
 	}
 
 	for _, o := range opts {
@@ -165,6 +165,6 @@ func Services(s map[string][]*Service) Option {
 
 func Logger(l logger.Logger) Option {
 	return func(o *Options) {
-		o.Logger = logger.NewHelper(l)
+		o.Logger = l
 	}
 }

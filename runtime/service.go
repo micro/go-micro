@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"go-micro.dev/v4/logger"
+	mlogger "go-micro.dev/v4/logger"
 	"go-micro.dev/v4/runtime/local/build"
 	"go-micro.dev/v4/runtime/local/process"
 	proc "go-micro.dev/v4/runtime/local/process/os"
@@ -37,10 +37,10 @@ type service struct {
 	// process pid
 	PID *process.PID
 	// to be used logger
-	Logger *logger.Helper
+	Logger mlogger.Logger
 }
 
-func newService(s *Service, c CreateOptions, l *logger.Helper) *service {
+func newService(s *Service, c CreateOptions, l mlogger.Logger) *service {
 	var exec string
 	var args []string
 
@@ -60,7 +60,7 @@ func newService(s *Service, c CreateOptions, l *logger.Helper) *service {
 			Args: args,
 			Dir:  s.Source,
 		},
-		Logger:     logger.HelperOrDefault(l),
+		Logger:     mlogger.LoggerOrDefault(l),
 		closed:     make(chan bool),
 		output:     c.Output,
 		updated:    time.Now(),
@@ -115,7 +115,7 @@ func (s *service) Start() error {
 	s.Status("starting", nil)
 
 	// TODO: pull source & build binary
-	s.Logger.Debugf("Runtime service %s forking new process", s.Service.Name)
+	s.Logger.Log(mlogger.DebugLevel, "Runtime service %s forking new process", s.Service.Name)
 
 	p, err := s.Process.Fork(s.Exec)
 	if err != nil {
@@ -207,13 +207,13 @@ func (s *service) Wait() {
 
 	if s.PID.ID != thisPID.ID {
 		// trying to update when it's already been switched out, ignore
-		logger.Warnf("Trying to update a process status but PID doesn't match. Old %s, New %s. Skipping update.", thisPID.ID, s.PID.ID)
+		s.Logger.Logf(mlogger.WarnLevel, "Trying to update a process status but PID doesn't match. Old %s, New %s. Skipping update.", thisPID.ID, s.PID.ID)
 		return
 	}
 
 	// save the error
 	if err != nil {
-		s.Logger.Errorf("Service %s terminated with error %s", s.Name, err)
+		s.Logger.Logf(mlogger.ErrorLevel, "Service %s terminated with error %s", s.Name, err)
 		s.retries++
 		s.Status("error", err)
 		s.Metadata["retries"] = strconv.Itoa(s.retries)

@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/uuid"
 	"go-micro.dev/v4/codec"
+	mlogger "go-micro.dev/v4/logger"
 	"go-micro.dev/v4/registry"
 	signalutil "go-micro.dev/v4/util/signal"
 )
@@ -209,7 +210,7 @@ func Run() error {
 
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, signalutil.Shutdown()...)
-	DefaultServer.Options().Logger.Infof("Received signal %s", <-ch)
+	DefaultServer.Options().Logger.Logf(mlogger.InfoLevel, "Received signal %s", <-ch)
 
 	return Stop()
 }
@@ -217,13 +218,13 @@ func Run() error {
 // Start starts the default server
 func Start() error {
 	config := DefaultServer.Options()
-	config.Logger.Infof("Starting server %s id %s", config.Name, config.Id)
+	config.Logger.Logf(mlogger.InfoLevel, "Starting server %s id %s", config.Name, config.Id)
 	return DefaultServer.Start()
 }
 
 // Stop stops the default server
 func Stop() error {
-	DefaultServer.Options().Logger.Infof("Stopping server")
+	DefaultServer.Options().Logger.Logf(mlogger.InfoLevel, "Stopping server")
 	return DefaultServer.Stop()
 }
 

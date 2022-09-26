@@ -7,7 +7,7 @@ import (
 	"sync"
 
 	"go-micro.dev/v4/errors"
-	"go-micro.dev/v4/logger"
+	mlogger "go-micro.dev/v4/logger"
 	"go-micro.dev/v4/server"
 	proto "go-micro.dev/v4/util/file/proto"
 	"golang.org/x/net/context"
@@ -20,6 +20,7 @@ func NewHandler(readDir string) proto.FileHandler {
 		session: &session{
 			files: make(map[int64]*os.File),
 		},
+		logger: mlogger.DefaultLogger,
 	}
 }
 
@@ -31,6 +32,7 @@ func RegisterHandler(s server.Server, readDir string) {
 type handler struct {
 	readDir string
 	session *session
+	logger  mlogger.Logger
 }
 
 func (h *handler) Open(ctx context.Context, req *proto.OpenRequest, rsp *proto.OpenResponse) error {
@@ -47,14 +49,14 @@ func (h *handler) Open(ctx context.Context, req *proto.OpenRequest, rsp *proto.O
 	rsp.Id = h.session.Add(file)
 	rsp.Result = true
 
-	logger.Debugf("Open %s, sessionId=%d", req.Filename, rsp.Id)
+	h.logger.Logf(mlogger.DebugLevel, "Open %s, sessionId=%d", req.Filename, rsp.Id)
 
 	return nil
 }
 
 func (h *handler) Close(ctx context.Context, req *proto.CloseRequest, rsp *proto.CloseResponse) error {
 	h.session.Delete(req.Id)
-	logger.Debugf("Close sessionId=%d", req.Id)
+	h.logger.Logf(mlogger.DebugLevel, "Close sessionId=%d", req.Id)
 	return nil
 }
 
@@ -73,7 +75,7 @@ func (h *handler) Stat(ctx context.Context, req *proto.StatRequest, rsp *proto.S
 	}
 
 	rsp.LastModified = fi.ModTime().Unix()
-	logger.Debugf("Stat %s, %#v", req.Filename, rsp)
+	h.logger.Logf(mlogger.DebugLevel, "Stat %s, %#v", req.Filename, rsp)
 
 	return nil
 }
@@ -97,7 +99,7 @@ func (h *handler) Read(ctx context.Context, req *proto.ReadRequest, rsp *proto.R
 	rsp.Size = int64(n)
 	rsp.Data = rsp.Data[:n]
 
-	logger.Debugf("Read sessionId=%d, Offset=%d, n=%d", req.Id, req.Offset, rsp.Size)
+	h.logger.Logf(mlogger.DebugLevel, "Read sessionId=%d, Offset=%d, n=%d", req.Id, req.Offset, rsp.Size)
 
 	return nil
 }
@@ -112,7 +114,7 @@ func (h *handler) Write(ctx context.Context, req *proto.WriteRequest, rsp *proto
 		return err
 	}
 
-	logger.Debugf("Write sessionId=%d, Offset=%d, n=%d", req.Id, req.Offset)
+	h.logger.Logf(mlogger.DebugLevel, "Write sessionId=%d, Offset=%d, n=%d", req.Id, req.Offset)
 
 	return nil
 }

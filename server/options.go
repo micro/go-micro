@@ -14,6 +14,31 @@ import (
 	"go-micro.dev/v4/transport"
 )
 
+type RouterOptions struct {
+	Logger logger.Logger
+}
+
+type RouterOption func(o *RouterOptions)
+
+func newRouterOptions(opt ...RouterOption) RouterOptions {
+	opts := RouterOptions{
+		Logger: logger.DefaultLogger,
+	}
+
+	for _, o := range opt {
+		o(&opts)
+	}
+
+	return opts
+}
+
+// WithRouterLogger sets the underline router logger
+func WithRouterLogger(l logger.Logger) RouterOption {
+	return func(o *RouterOptions) {
+		o.Logger = l
+	}
+}
+
 type Options struct {
 	Codecs        map[string]codec.NewCodec
 	Broker        broker.Broker
@@ -29,7 +54,7 @@ type Options struct {
 	HdlrWrappers  []HandlerWrapper
 	SubWrappers   []SubscriberWrapper
 	ListenOptions []transport.ListenOption
-	Logger        *logger.Helper
+	Logger        logger.Logger
 
 	// RegisterCheck runs a check function before registering the service
 	RegisterCheck func(context.Context) error
@@ -55,7 +80,7 @@ func newOptions(opt ...Option) Options {
 		Metadata:         map[string]string{},
 		RegisterInterval: DefaultRegisterInterval,
 		RegisterTTL:      DefaultRegisterTTL,
-		Logger:           logger.DefaultHelper,
+		Logger:           logger.DefaultLogger,
 	}
 
 	for _, o := range opt {
@@ -234,7 +259,7 @@ func WithRouter(r Router) Option {
 // WithLogger sets the underline logger
 func WithLogger(l logger.Logger) Option {
 	return func(o *Options) {
-		o.Logger = logger.NewHelper(l)
+		o.Logger = l
 	}
 }
 

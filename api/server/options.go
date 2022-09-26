@@ -23,14 +23,14 @@ type Options struct {
 	TLSConfig    *tls.Config
 	Resolver     resolver.Resolver
 	Wrappers     []Wrapper
-	Logger       *logger.Helper
+	Logger       logger.Logger
 }
 
 type Wrapper func(h http.Handler) http.Handler
 
 func NewOptions(opts ...Option) Options {
 	options := Options{
-		Logger: logger.DefaultHelper,
+		Logger: logger.DefaultLogger,
 	}
 
 	for _, o := range opts {
@@ -97,6 +97,6 @@ func Resolver(r resolver.Resolver) Option {
 // Logger sets the underline logging framework
 func Logger(l logger.Logger) Option {
 	return func(o *Options) {
-		o.Logger = logger.NewHelper(l)
+		o.Logger = l
 	}
 }

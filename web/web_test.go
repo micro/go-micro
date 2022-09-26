@@ -57,14 +57,14 @@ func testFunc() {
 		defer wg.Done()
 		err := s.Run()
 		if err != nil {
-			logger.Errorf("micro run error: %v", err)
+			logger.Logf(logger.ErrorLevel, "micro run error: %v", err)
 		}
 	}()
 	go func() {
 		defer wg.Done()
 		err := w.Run()
 		if err != nil {
-			logger.Errorf("web run error: %v", err)
+			logger.Logf(logger.ErrorLevel, "web run error: %v", err)
 		}
 	}()
 

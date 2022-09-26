@@ -31,7 +31,7 @@ type Options struct {
 	// Addrs sets the addresses of auth
 	Addrs []string
 	// Logger is the underline logger
-	Logger *logger.Helper
+	Logger logger.Logger
 }
 
 type Option func(o *Options)
@@ -67,7 +67,7 @@ func PrivateKey(key string) Option {
 // WithLogger sets the client router
 func WithLogger(l logger.Logger) Option {
 	return func(o *Options) {
-		o.Logger = logger.NewHelper(l)
+		o.Logger = l
 	}
 }
 

@@ -27,7 +27,7 @@ type Options struct {
 	Cache interface{}
 
 	// Logger is the underling logging framework
-	Logger *logger.Helper
+	Logger logger.Logger
 }
 
 // AcceptToS indicates whether you accept your CA's terms of service
@@ -72,7 +72,7 @@ func Cache(c interface{}) Option {
 // Logger sets the underline logger framework
 func Logger(l logger.Logger) Option {
 	return func(o *Options) {
-		o.Logger = logger.NewHelper(l)
+		o.Logger = l
 	}
 }
 

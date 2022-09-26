@@ -15,7 +15,7 @@ type Options struct {
 	Codec  codec.Marshaler
 
 	// Logger is the underline logger
-	Logger *logger.Helper
+	Logger logger.Logger
 
 	// Handler executed when error happens in broker mesage
 	// processing
@@ -64,7 +64,7 @@ type SubscribeOption func(*SubscribeOptions)
 
 func NewOptions(opts ...Option) *Options {
 	options := Options{
-		Logger:  logger.DefaultHelper,
+		Logger:  logger.DefaultLogger,
 		Context: context.Background(),
 	}
 
@@ -148,7 +148,7 @@ func TLSConfig(t *tls.Config) Option {
 // Logger sets the underline logger
 func Logger(l logger.Logger) Option {
 	return func(o *Options) {
-		o.Logger = logger.NewHelper(l)
+		o.Logger = l
 	}
 }
 

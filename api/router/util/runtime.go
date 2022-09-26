@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"strings"
 
-	"go-micro.dev/v4/logger"
+	mlogger "go-micro.dev/v4/logger"
 )
 
 var (
@@ -43,14 +43,14 @@ type Pattern struct {
 
 type patternOptions struct {
 	assumeColonVerb bool
-	logger          *logger.Helper
+	logger          mlogger.Logger
 }
 
 // PatternOpt is an option for creating Patterns.
 type PatternOpt func(*patternOptions)
 
 // Logger sets the logger
-func PatternLogger(l *logger.Helper) PatternOpt {
+func PatternLogger(l mlogger.Logger) PatternOpt {
 	return func(po *patternOptions) {
 		po.logger = l
 	}
@@ -69,16 +69,16 @@ func NewPattern(version int, ops []int, pool []string, verb string, opts ...Patt
 		o(&options)
 	}
 
-	logger := logger.HelperOrDefault(options.logger)
+	logger := mlogger.LoggerOrDefault(options.logger)
 
 	if version != 1 {
-		logger.Debugf("unsupported version: %d", version)
+		logger.Logf(mlogger.DebugLevel, "unsupported version: %d", version)
 		return Pattern{}, ErrInvalidPattern
 	}
 
 	l := len(ops)
 	if l%2 != 0 {
-		logger.Debugf("odd number of ops codes: %d", l)
+		logger.Logf(mlogger.DebugLevel, "odd number of ops codes: %d", l)
 		return Pattern{}, ErrInvalidPattern
 	}
 
@@ -101,14 +101,14 @@ func NewPattern(version int, ops []int, pool []string, verb string, opts ...Patt
 			stack++
 		case OpPushM:
 			if pushMSeen {
-				logger.Debug("pushM appears twice")
+				logger.Logf(mlogger.DebugLevel, "pushM appears twice")
 				return Pattern{}, ErrInvalidPattern
 			}
 			pushMSeen = true
 			stack++
 		case OpLitPush:
 			if op.operand < 0 || len(pool) <= op.operand {
-				logger.Debugf("negative literal index: %d", op.operand)
+				logger.Logf(mlogger.DebugLevel, "negative literal index: %d", op.operand)
 				return Pattern{}, ErrInvalidPattern
 			}
 			if pushMSeen {
@@ -117,18 +117,18 @@ func NewPattern(version int, ops []int, pool []string, verb string, opts ...Patt
 			stack++
 		case OpConcatN:
 			if op.operand <= 0 {
-				logger.Debugf("negative concat size: %d", op.operand)
+				logger.Logf(mlogger.DebugLevel, "negative concat size: %d", op.operand)
 				return Pattern{}, ErrInvalidPattern
 			}
 			stack -= op.operand
 			if stack < 0 {
-				logger.Debug("stack underflow")
+				logger.Logf(mlogger.DebugLevel, "stack underflow")
 				return Pattern{}, ErrInvalidPattern
 			}
 			stack++
 		case OpCapture:
 			if op.operand < 0 || len(pool) <= op.operand {
-				logger.Debugf("variable name index out of bound: %d", op.operand)
+				logger.Logf(mlogger.DebugLevel, "variable name index out of bound: %d", op.operand)
 				return Pattern{}, ErrInvalidPattern
 			}
 			v := pool[op.operand]
@@ -136,11 +136,11 @@ func NewPattern(version int, ops []int, pool []string, verb string, opts ...Patt
 			vars = append(vars, v)
 			stack--
 			if stack < 0 {
-				logger.Debug("stack underflow")
+				logger.Logf(mlogger.DebugLevel, "stack underflow")
 				return Pattern{}, ErrInvalidPattern
 			}
 		default:
-			logger.Debugf("invalid opcode: %d", op.code)
+			logger.Logf(mlogger.DebugLevel, "invalid opcode: %d", op.code)
 			return Pattern{}, ErrInvalidPattern
 		}
 
@@ -163,7 +163,7 @@ func NewPattern(version int, ops []int, pool []string, verb string, opts ...Patt
 // MustPattern is a helper function which makes it easier to call NewPattern in variable initialization.
 func MustPattern(p Pattern, err error) Pattern {
 	if err != nil {
-		logger.DefaultHelper.Fatalf("Pattern initialization failed: %v", err)
+		mlogger.Logf(mlogger.FatalLevel, "Pattern initialization failed: %v", err)
 	}
 	return p
 }

@@ -16,7 +16,7 @@ type Options struct {
 	// Context should contain all implementation specific options, using context.WithValue.
 	Context context.Context
 	// Logger is the be used logger
-	Logger *logger.Helper
+	Logger logger.Logger
 }
 
 // Option manipulates the Options passed.
@@ -53,7 +53,7 @@ func WithContext(c context.Context) Option {
 // WithLogger sets underline logger
 func WithLogger(l logger.Logger) Option {
 	return func(o *Options) {
-		o.Logger = logger.NewHelper(l)
+		o.Logger = l
 	}
 }
 
@@ -62,7 +62,7 @@ func NewOptions(opts ...Option) Options {
 	options := Options{
 		Expiration: DefaultExpiration,
 		Items:      make(map[string]Item),
-		Logger:     logger.DefaultHelper,
+		Logger:     logger.DefaultLogger,
 	}
 
 	for _, o := range opts {

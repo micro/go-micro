@@ -36,7 +36,7 @@ type Options struct {
 	Runtime   runtime.Runtime
 	Transport transport.Transport
 	Profile   profile.Profile
-	Logger    *logger.Helper
+	Logger    logger.Logger
 	// Before and After funcs
 	BeforeStart []func() error
 	BeforeStop  []func() error
@@ -65,7 +65,7 @@ func newOptions(opts ...Option) Options {
 		Transport: transport.DefaultTransport,
 		Context:   context.Background(),
 		Signal:    true,
-		Logger:    logger.DefaultHelper,
+		Logger:    logger.DefaultLogger,
 	}
 
 	for _, o := range opts {
@@ -346,6 +346,6 @@ func AfterStop(fn func() error) Option {
 // Logger sets the logger for the service
 func Logger(l logger.Logger) Option {
 	return func(o *Options) {
-		o.Logger = logger.NewHelper(l)
+		o.Logger = l
 	}
 }

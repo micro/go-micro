@@ -23,7 +23,7 @@ type Options struct {
 	// Client to use for RPC
 	Client client.Client
 	// Logger is the underline logger
-	Logger *logger.Helper
+	Logger logger.Logger
 }
 
 // Option sets values in Options
@@ -69,7 +69,7 @@ func WithClient(c client.Client) Option {
 // WithLogger sets the client router
 func WithLogger(l logger.Logger) Option {
 	return func(o *Options) {
-		o.Logger = logger.NewHelper(l)
+		o.Logger = l
 	}
 }
 

@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"go-micro.dev/v4/logger"
+	mlogger "go-micro.dev/v4/logger"
 	"go-micro.dev/v4/registry"
 	util "go-micro.dev/v4/util/registry"
 	"golang.org/x/sync/singleflight"
@@ -25,7 +25,7 @@ type Options struct {
 	// TTL is the cache TTL
 	TTL time.Duration
 
-	Logger *logger.Helper
+	Logger mlogger.Logger
 }
 
 type Option func(o *Options)
@@ -354,7 +354,7 @@ func (c *cache) run(service string) {
 			c.setStatus(err)
 
 			if a > 3 {
-				logger.Debug("rcache: ", err, " backing off ", d)
+				logger.Logf(mlogger.DebugLevel, "rcache: ", err, " backing off ", d)
 				a = 0
 			}
 
@@ -377,7 +377,7 @@ func (c *cache) run(service string) {
 			c.setStatus(err)
 
 			if b > 3 {
-				logger.Debug("rcache: ", err, " backing off ", d)
+				logger.Logf(mlogger.DebugLevel, "rcache: ", err, " backing off ", d)
 				b = 0
 			}
 
@@ -466,7 +466,7 @@ func New(r registry.Registry, opts ...Option) Cache {
 	rand.Seed(time.Now().UnixNano())
 	options := Options{
 		TTL:    DefaultTTL,
-		Logger: logger.DefaultHelper,
+		Logger: mlogger.DefaultLogger,
 	}
 
 	for _, o := range opts {

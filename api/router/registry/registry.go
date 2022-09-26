@@ -12,6 +12,7 @@ import (
 
 	"go-micro.dev/v4/api/router"
 	"go-micro.dev/v4/api/router/util"
+	mlogger "go-micro.dev/v4/logger"
 	"go-micro.dev/v4/metadata"
 	"go-micro.dev/v4/registry"
 	"go-micro.dev/v4/registry/cache"
@@ -56,7 +57,7 @@ func (r *registryRouter) refresh() {
 		services, err := r.opts.Registry.ListServices()
 		if err != nil {
 			attempts++
-			logger.Errorf("unable to list services: %v", err)
+			logger.Logf(mlogger.ErrorLevel, "unable to list services: %v", err)
 			time.Sleep(time.Duration(attempts) * time.Second)
 			continue
 		}
@@ -67,7 +68,7 @@ func (r *registryRouter) refresh() {
 		for _, s := range services {
 			service, err := r.rc.GetService(s.Name)
 			if err != nil {
-				logger.Errorf("unable to get service: %v", err)
+				logger.Logf(mlogger.ErrorLevel, "unable to get service: %v", err)
 				continue
 			}
 			r.store(service)
@@ -94,7 +95,7 @@ func (r *registryRouter) process(res *registry.Result) {
 	// get entry from cache
 	service, err := r.rc.GetService(res.Service.Name)
 	if err != nil {
-		logger.Errorf("unable to get service: %v", err)
+		logger.Logf(mlogger.ErrorLevel, "unable to get service: %v", err)
 		return
 	}
 
@@ -125,7 +126,7 @@ func (r *registryRouter) store(services []*registry.Service) {
 
 			// if we got nothing skip
 			if err := router.Validate(end); err != nil {
-				logger.Tracef("endpoint validation failed: %v", err)
+				logger.Logf(mlogger.TraceLevel, "endpoint validation failed: %v", err)
 				continue
 			}
 
@@ -170,7 +171,7 @@ func (r *registryRouter) store(services []*registry.Service) {
 			}
 			hostreg, err := regexp.CompilePOSIX(h)
 			if err != nil {
-				logger.Tracef("endpoint have invalid host regexp: %v", err)
+				logger.Logf(mlogger.TraceLevel, "endpoint have invalid host regexp: %v", err)
 				continue
 			}
 			cep.hostregs = append(cep.hostregs, hostreg)
@@ -189,7 +190,7 @@ func (r *registryRouter) store(services []*registry.Service) {
 
 			rule, err := util.Parse(p)
 			if err != nil && !pcreok {
-				logger.Tracef("endpoint have invalid path pattern: %v", err)
+				logger.Logf(mlogger.TraceLevel, "endpoint have invalid path pattern: %v", err)
 				continue
 			} else if err != nil && pcreok {
 				continue
@@ -198,7 +199,7 @@ func (r *registryRouter) store(services []*registry.Service) {
 			tpl := rule.Compile()
 			pathreg, err := util.NewPattern(tpl.Version, tpl.OpCodes, tpl.Pool, "", util.PatternLogger(logger))
 			if err != nil {
-				logger.Tracef("endpoint have invalid path pattern: %v", err)
+				logger.Logf(mlogger.TraceLevel, "endpoint have invalid path pattern: %v", err)
 				continue
 			}
 			cep.pathregs = append(cep.pathregs, pathreg)
@@ -222,7 +223,7 @@ func (r *registryRouter) watch() {
 		w, err := r.opts.Registry.Watch()
 		if err != nil {
 			attempts++
-			logger.Errorf("error watching endpoints: %v", err)
+			logger.Logf(mlogger.ErrorLevel, "error watching endpoints: %v", err)
 			time.Sleep(time.Duration(attempts) * time.Second)
 			continue
 		}
@@ -245,7 +246,7 @@ func (r *registryRouter) watch() {
 			// process next event
 			res, err := w.Next()
 			if err != nil {
-				logger.Errorf("error getting next endoint: %v", err)
+				logger.Logf(mlogger.ErrorLevel, "error getting next endoint: %v", err)
 				close(ch)
 				break
 			}
@@ -312,7 +313,7 @@ func (r *registryRouter) Endpoint(req *http.Request) (*router.Route, error) {
 			continue
 		}
 
-		logger.Debugf("api method match %s", req.Method)
+		logger.Logf(mlogger.DebugLevel, "api method match %s", req.Method)
 
 		// 2. try host
 		if len(ep.Host) == 0 {
@@ -334,16 +335,16 @@ func (r *registryRouter) Endpoint(req *http.Request) (*router.Route, error) {
 			continue
 		}
 
-		logger.Debugf("api host match %s", req.URL.Host)
+		logger.Logf(mlogger.DebugLevel, "api host match %s", req.URL.Host)
 
 		// 3. try path via google.api path matching
 		for _, pathreg := range cep.pathregs {
 			matches, err := pathreg.Match(path, "")
 			if err != nil {
-				logger.Debugf("api gpath not match %s != %v", path, pathreg)
+				logger.Logf(mlogger.DebugLevel, "api gpath not match %s != %v", path, pathreg)
 				continue
 			}
-			logger.Debugf("api gpath match %s = %v", path, pathreg)
+			logger.Logf(mlogger.DebugLevel, "api gpath match %s = %v", path, pathreg)
 			pMatch = true
 			ctx := req.Context()
 			md, ok := metadata.FromContext(ctx)
@@ -361,10 +362,10 @@ func (r *registryRouter) Endpoint(req *http.Request) (*router.Route, error) {
 			// 4. try path via pcre path matching
 			for _, pathreg := range cep.pcreregs {
 				if !pathreg.MatchString(req.URL.Path) {
-					logger.Debugf("api pcre path not match %s != %v", path, pathreg)
+					logger.Logf(mlogger.DebugLevel, "api pcre path not match %s != %v", path, pathreg)
 					continue
 				}
-				logger.Debugf("api pcre path match %s != %v", path, pathreg)
+				logger.Logf(mlogger.DebugLevel, "api pcre path match %s != %v", path, pathreg)
 				pMatch = true
 				break
 			}

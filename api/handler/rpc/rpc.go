@@ -11,7 +11,6 @@ import (
 
 	jsonpatch "github.com/evanphx/json-patch/v5"
 	"github.com/oxtoacart/bpool"
-
 	"go-micro.dev/v4/api/handler"
 	"go-micro.dev/v4/api/internal/proto"
 	"go-micro.dev/v4/api/router"
@@ -20,6 +19,7 @@ import (
 	"go-micro.dev/v4/codec/jsonrpc"
 	"go-micro.dev/v4/codec/protorpc"
 	"go-micro.dev/v4/errors"
+	mlogger "go-micro.dev/v4/logger"
 	"go-micro.dev/v4/metadata"
 	"go-micro.dev/v4/registry"
 	"go-micro.dev/v4/selector"
@@ -91,7 +91,7 @@ func (h *rpcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			werr := writeError(w, r, errors.InternalServerError(packageID, err.Error()))
 			if werr != nil {
-				logger.Error(werr)
+				logger.Log(mlogger.ErrorLevel, werr)
 			}
 			return
 		}
@@ -100,7 +100,7 @@ func (h *rpcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		// we have no way of routing the request
 		werr := writeError(w, r, errors.InternalServerError(packageID, "no route found"))
 		if werr != nil {
-			logger.Error(werr)
+			logger.Log(mlogger.ErrorLevel, werr)
 		}
 		return
 	}
@@ -142,7 +142,7 @@ func (h *rpcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		//		md, _ := metadata.FromContext(cx)
 		//serveWebsocket(context.TODO(), w, r, service, c)
 		if err := serveWebsocket(cx, w, r, service, c); err != nil {
-			logger.Error(err)
+			logger.Log(mlogger.ErrorLevel, err)
 		}
 		return
 	}
@@ -155,7 +155,7 @@ func (h *rpcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	br, err := requestPayload(r)
 	if err != nil {
 		if werr := writeError(w, r, err); werr != nil {
-			logger.Error(werr)
+			logger.Log(mlogger.ErrorLevel, werr)
 		}
 		return
 	}
@@ -184,7 +184,7 @@ func (h *rpcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		// make the call
 		if err := c.Call(cx, req, response, client.WithSelectOption(so)); err != nil {
 			if werr := writeError(w, r, err); werr != nil {
-				logger.Error(werr)
+				logger.Log(mlogger.ErrorLevel, werr)
 			}
 			return
 		}
@@ -193,7 +193,7 @@ func (h *rpcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		rsp, err = response.Marshal()
 		if err != nil {
 			if werr := writeError(w, r, err); werr != nil {
-				logger.Error(werr)
+				logger.Log(mlogger.ErrorLevel, werr)
 			}
 			return
 		}
@@ -223,7 +223,7 @@ func (h *rpcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		// make the call
 		if err := c.Call(cx, req, &response, client.WithSelectOption(so)); err != nil {
 			if werr := writeError(w, r, err); werr != nil {
-				logger.Error(werr)
+				logger.Log(mlogger.ErrorLevel, werr)
 			}
 			return
 		}
@@ -232,7 +232,7 @@ func (h *rpcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		rsp, err = response.MarshalJSON()
 		if err != nil {
 			if werr := writeError(w, r, err); werr != nil {
-				logger.Error(werr)
+				logger.Log(mlogger.ErrorLevel, werr)
 			}
 			return
 		}
@@ -240,7 +240,7 @@ func (h *rpcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// write the response
 	if err := writeResponse(w, r, rsp); err != nil {
-		logger.Error(err)
+		logger.Log(mlogger.ErrorLevel, err)
 	}
 }
 

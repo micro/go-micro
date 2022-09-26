@@ -38,7 +38,7 @@ type Options struct {
 
 	Registry registry.Registry
 	Service  micro.Service
-	Logger   *logger.Helper
+	Logger   logger.Logger
 
 	Secure      bool
 	TLSConfig   *tls.Config
@@ -65,7 +65,7 @@ func newOptions(opts ...Option) Options {
 		Service:          micro.NewService(),
 		Context:          context.TODO(),
 		Signal:           true,
-		Logger:           logger.DefaultHelper,
+		Logger:           logger.DefaultLogger,
 	}
 
 	for _, o := range opts {
@@ -264,6 +264,6 @@ func HandleSignal(b bool) Option {
 // Logger is executed before the server stops.
 func Logger(l logger.Logger) Option {
 	return func(o *Options) {
-		o.Logger = logger.NewHelper(l)
+		o.Logger = l
 	}
 }

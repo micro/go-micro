@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	mlogger "go-micro.dev/v4/logger"
 	"go-micro.dev/v4/util/mdns"
 )
 
@@ -228,7 +229,7 @@ func (m *mdnsRegistry) Register(service *Service, opts ...RegisterOption) error 
 		}
 		port, _ := strconv.Atoi(pt)
 
-		logger.Debugf("[mdns] registry create new service with ip: %s for: %s", net.ParseIP(host).String(), host)
+		logger.Logf(mlogger.DebugLevel, "[mdns] registry create new service with ip: %s for: %s", net.ParseIP(host).String(), host)
 
 		// we got here, new node
 		s, err := mdns.NewMDNSService(
@@ -353,7 +354,7 @@ func (m *mdnsRegistry) GetService(service string, opts ...GetOption) ([]*Service
 				} else if len(e.AddrV6) > 0 {
 					addr = net.JoinHostPort(e.AddrV6.String(), fmt.Sprint(e.Port))
 				} else {
-					logger.Infof("[mdns]: invalid endpoint received: %v", e)
+					logger.Logf(mlogger.InfoLevel, "[mdns]: invalid endpoint received: %v", e)
 					continue
 				}
 				s.Nodes = append(s.Nodes, &Node{

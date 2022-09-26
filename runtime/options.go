@@ -23,12 +23,12 @@ type Options struct {
 	// Client to use when making requests
 	Client client.Client
 	// Logger underline logger
-	Logger *logger.Helper
+	Logger logger.Logger
 }
 
 func NewOptions(opts ...Option) *Options {
 	options := &Options{
-		Logger: logger.DefaultHelper,
+		Logger: logger.DefaultLogger,
 	}
 
 	for _, o := range opts {
@@ -76,7 +76,7 @@ func WithClient(c client.Client) Option {
 // WithClient sets the client to use
 func WithLogger(l logger.Logger) Option {
 	return func(o *Options) {
-		o.Logger = logger.NewHelper(l)
+		o.Logger = l
 	}
 }
 
