@@ -21,11 +21,11 @@ import (
 	"go-micro.dev/v4/codec"
 	merrors "go-micro.dev/v4/errors"
 
-	mlogger "go-micro.dev/v4/logger"
+	log "go-micro.dev/v4/logger"
 )
 
 var (
-	lastStreamResponseError = errors.New("EOS")
+	errLastStreamResponse = errors.New("EOS")
 
 	// Precompute the reflect type for error. Can't use error directly
 	// because Typeof takes an empty interface value. This is annoying.
@@ -121,7 +121,7 @@ func isExportedOrBuiltinType(t reflect.Type) bool {
 
 // prepareMethod returns a methodType for the provided method or nil
 // in case if the method was unsuitable.
-func prepareMethod(method reflect.Method, logger mlogger.Logger) *methodType {
+func prepareMethod(method reflect.Method, logger log.Logger) *methodType {
 	mtype := method.Type
 	mname := method.Name
 	var replyType, argType, contextType reflect.Type
@@ -144,7 +144,7 @@ func prepareMethod(method reflect.Method, logger mlogger.Logger) *methodType {
 		replyType = mtype.In(3)
 		contextType = mtype.In(1)
 	default:
-		logger.Logf(mlogger.ErrorLevel, "method %v of %v has wrong number of ins: %v", mname, mtype, mtype.NumIn())
+		logger.Logf(log.ErrorLevel, "method %v of %v has wrong number of ins: %v", mname, mtype, mtype.NumIn())
 		return nil
 	}
 
@@ -152,7 +152,7 @@ func prepareMethod(method reflect.Method, logger mlogger.Logger) *methodType {
 		// check stream type
 		streamType := reflect.TypeOf((*Stream)(nil)).Elem()
 		if !argType.Implements(streamType) {
-			logger.Logf(mlogger.ErrorLevel, "%v argument does not implement Stream interface: %v", mname, argType)
+			logger.Logf(log.ErrorLevel, "%v argument does not implement Stream interface: %v", mname, argType)
 			return nil
 		}
 	} else {
@@ -160,30 +160,30 @@ func prepareMethod(method reflect.Method, logger mlogger.Logger) *methodType {
 
 		// First arg need not be a pointer.
 		if !isExportedOrBuiltinType(argType) {
-			logger.Logf(mlogger.ErrorLevel, "%v argument type not exported: %v", mname, argType)
+			logger.Logf(log.ErrorLevel, "%v argument type not exported: %v", mname, argType)
 			return nil
 		}
 
 		if replyType.Kind() != reflect.Ptr {
-			logger.Logf(mlogger.ErrorLevel, "method %v reply type not a pointer: %v", mname, replyType)
+			logger.Logf(log.ErrorLevel, "method %v reply type not a pointer: %v", mname, replyType)
 			return nil
 		}
 
 		// Reply type must be exported.
 		if !isExportedOrBuiltinType(replyType) {
-			logger.Logf(mlogger.ErrorLevel, "method %v reply type not exported: %v", mname, replyType)
+			logger.Logf(log.ErrorLevel, "method %v reply type not exported: %v", mname, replyType)
 			return nil
 		}
 	}
 
 	// Method needs one out.
 	if mtype.NumOut() != 1 {
-		logger.Logf(mlogger.ErrorLevel, "method %v has wrong number of outs: %v", mname, mtype.NumOut())
+		logger.Logf(log.ErrorLevel, "method %v has wrong number of outs: %v", mname, mtype.NumOut())
 		return nil
 	}
 	// The return type of the method must be error.
 	if returnType := mtype.Out(0); returnType != typeOfError {
-		logger.Logf(mlogger.ErrorLevel, "method %v returns %v not error", mname, returnType.String())
+		logger.Logf(log.ErrorLevel, "method %v returns %v not error", mname, returnType.String())
 		return nil
 	}
 	return &methodType{method: method, ArgType: argType, ReplyType: replyType, ContextType: contextType, stream: stream}
@@ -269,7 +269,7 @@ func (s *service) call(ctx context.Context, router *router, sending *sync.Mutex,
 			return nil
 		} else {
 			// no error, we send the special EOS error
-			return lastStreamResponseError
+			return errLastStreamResponse
 		}
 	}
 
@@ -512,8 +512,8 @@ func (router *router) ProcessMessage(ctx context.Context, msg Message) (err erro
 	defer func() {
 		// recover any panics
 		if r := recover(); r != nil {
-			router.ops.Logger.Logf(mlogger.ErrorLevel, "panic recovered: %v", r)
-			router.ops.Logger.Log(mlogger.ErrorLevel, string(debug.Stack()))
+			router.ops.Logger.Logf(log.ErrorLevel, "panic recovered: %v", r)
+			router.ops.Logger.Log(log.ErrorLevel, string(debug.Stack()))
 			err = merrors.InternalServerError("go.micro.server", "panic recovered: %v", r)
 		}
 	}()

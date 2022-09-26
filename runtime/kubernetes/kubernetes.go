@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	mlogger "go-micro.dev/v4/logger"
+	log "go-micro.dev/v4/logger"
 	"go-micro.dev/v4/runtime"
 	"go-micro.dev/v4/util/kubernetes/client"
 )
@@ -243,7 +243,7 @@ func (k *kubernetes) run(events <-chan runtime.Event) {
 			// - do we even need the ticker for k8s services?
 		case event := <-events:
 			// NOTE: we only handle Update events for now
-			logger.Logf(mlogger.DebugLevel, "Runtime received notification event: %v", event)
+			logger.Logf(log.DebugLevel, "Runtime received notification event: %v", event)
 			switch event.Type {
 			case runtime.Update:
 				// only process if there's an actual service
@@ -275,7 +275,7 @@ func (k *kubernetes) run(events <-chan runtime.Event) {
 				}, client.GetLabels(labels))
 
 				if err != nil {
-					logger.Logf(mlogger.DebugLevel, "Runtime update failed to get service %s: %v", event.Service, err)
+					logger.Logf(log.DebugLevel, "Runtime update failed to get service %s: %v", event.Service, err)
 					continue
 				}
 
@@ -294,15 +294,15 @@ func (k *kubernetes) run(events <-chan runtime.Event) {
 					// update the build time
 					service.Spec.Template.Metadata.Annotations["updated"] = fmt.Sprintf("%d", event.Timestamp.Unix())
 
-					logger.Logf(mlogger.DebugLevel, "Runtime updating service: %s deployment: %s", event.Service, service.Metadata.Name)
+					logger.Logf(log.DebugLevel, "Runtime updating service: %s deployment: %s", event.Service, service.Metadata.Name)
 					if err := k.client.Update(deploymentResource(&service)); err != nil {
-						logger.Logf(mlogger.DebugLevel, "Runtime failed to update service %s: %v", event.Service, err)
+						logger.Logf(log.DebugLevel, "Runtime failed to update service %s: %v", event.Service, err)
 						continue
 					}
 				}
 			}
 		case <-k.closed:
-			logger.Logf(mlogger.DebugLevel, "Runtime stopped")
+			logger.Logf(log.DebugLevel, "Runtime stopped")
 			return
 		}
 	}
@@ -331,7 +331,7 @@ func (k *kubernetes) Logs(s *runtime.Service, options ...runtime.LogsOption) (ru
 		go func() {
 			records, err := klo.Read()
 			if err != nil {
-				k.options.Logger.Logf(mlogger.ErrorLevel, "Failed to get logs for service '%v' from k8s: %v", err)
+				k.options.Logger.Logf(log.ErrorLevel, "Failed to get logs for service '%v' from k8s: %v", err)
 				return
 			}
 			// @todo: this might actually not run before podLogStream starts
@@ -557,7 +557,7 @@ func (k *kubernetes) Start() error {
 		events, err = k.options.Scheduler.Notify()
 		if err != nil {
 			// TODO: should we bail here?
-			k.options.Logger.Logf(mlogger.DebugLevel, "Runtime failed to start update notifier")
+			k.options.Logger.Logf(log.DebugLevel, "Runtime failed to start update notifier")
 		}
 	}
 

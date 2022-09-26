@@ -4,10 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 
+	"go-micro.dev/v4/logger"
 	"go-micro.dev/v4/metadata"
 	"go-micro.dev/v4/registry"
 	"go-micro.dev/v4/selector"
@@ -39,7 +39,7 @@ func WriteInternalServerError(w http.ResponseWriter, err error) {
 		"error": err.Error(),
 	})
 	if err != nil {
-		log.Println(err)
+		logger.Log(logger.ErrorLevel, err)
 		return
 	}
 	Write(w, "application/json", 500, string(rawBody))

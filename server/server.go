@@ -8,8 +8,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+
 	"go-micro.dev/v4/codec"
-	mlogger "go-micro.dev/v4/logger"
+	log "go-micro.dev/v4/logger"
 	"go-micro.dev/v4/registry"
 	signalutil "go-micro.dev/v4/util/signal"
 )
@@ -111,12 +112,11 @@ type Stream interface {
 //
 // Example:
 //
-//      type Greeter struct {}
+//	type Greeter struct {}
 //
-//      func (g *Greeter) Hello(context, request, response) error {
-//              return nil
-//      }
-//
+//	func (g *Greeter) Hello(context, request, response) error {
+//	        return nil
+//	}
 type Handler interface {
 	Name() string
 	Handler() interface{}
@@ -184,7 +184,6 @@ func NewSubscriber(topic string, h interface{}, opts ...SubscriberOption) Subscr
 //	func (f *Foo) Bar(ctx, req, rsp) error {
 //		return nil
 //	}
-//
 func NewHandler(h interface{}, opts ...HandlerOption) Handler {
 	return DefaultServer.NewHandler(h, opts...)
 }
@@ -210,7 +209,7 @@ func Run() error {
 
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, signalutil.Shutdown()...)
-	DefaultServer.Options().Logger.Logf(mlogger.InfoLevel, "Received signal %s", <-ch)
+	DefaultServer.Options().Logger.Logf(log.InfoLevel, "Received signal %s", <-ch)
 
 	return Stop()
 }
@@ -218,13 +217,13 @@ func Run() error {
 // Start starts the default server
 func Start() error {
 	config := DefaultServer.Options()
-	config.Logger.Logf(mlogger.InfoLevel, "Starting server %s id %s", config.Name, config.Id)
+	config.Logger.Logf(log.InfoLevel, "Starting server %s id %s", config.Name, config.Id)
 	return DefaultServer.Start()
 }
 
 // Stop stops the default server
 func Stop() error {
-	DefaultServer.Options().Logger.Logf(mlogger.InfoLevel, "Stopping server")
+	DefaultServer.Options().Logger.Logf(log.InfoLevel, "Stopping server")
 	return DefaultServer.Stop()
 }
 

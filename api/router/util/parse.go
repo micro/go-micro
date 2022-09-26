@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	mlogger "go-micro.dev/v4/logger"
+	log "go-micro.dev/v4/logger"
 )
 
 // InvalidTemplateError indicates that the path template is not valid.
@@ -98,35 +98,35 @@ func tokenize(path string) (tokens []string, verb string) {
 type parser struct {
 	tokens   []string
 	accepted []string
-	logger   mlogger.Logger
+	logger   log.Logger
 }
 
 // topLevelSegments is the target of this parser.
 func (p *parser) topLevelSegments() ([]segment, error) {
-	logger := mlogger.LoggerOrDefault(p.logger)
+	logger := log.LoggerOrDefault(p.logger)
 
-	logger.Logf(mlogger.DebugLevel, "Parsing %q", p.tokens)
+	logger.Logf(log.DebugLevel, "Parsing %q", p.tokens)
 
 	segs, err := p.segments()
 	if err != nil {
 		return nil, err
 	}
-	logger.Logf(mlogger.DebugLevel, "accept segments: %q; %q", p.accepted, p.tokens)
+	logger.Logf(log.DebugLevel, "accept segments: %q; %q", p.accepted, p.tokens)
 	if _, err := p.accept(typeEOF); err != nil {
 		return nil, fmt.Errorf("unexpected token %q after segments %q", p.tokens[0], strings.Join(p.accepted, ""))
 	}
-	logger.Logf(mlogger.DebugLevel, "accept eof: %q; %q", p.accepted, p.tokens)
+	logger.Logf(log.DebugLevel, "accept eof: %q; %q", p.accepted, p.tokens)
 	return segs, nil
 }
 
 func (p *parser) segments() ([]segment, error) {
-	logger := mlogger.LoggerOrDefault(p.logger)
+	logger := log.LoggerOrDefault(p.logger)
 	s, err := p.segment()
 	if err != nil {
 		return nil, err
 	}
 
-	logger.Logf(mlogger.DebugLevel, "accept segment: %q; %q", p.accepted, p.tokens)
+	logger.Logf(log.DebugLevel, "accept segment: %q; %q", p.accepted, p.tokens)
 
 	segs := []segment{s}
 	for {
@@ -138,7 +138,7 @@ func (p *parser) segments() ([]segment, error) {
 			return segs, err
 		}
 		segs = append(segs, s)
-		logger.Logf(mlogger.DebugLevel, "accept segment: %q; %q", p.accepted, p.tokens)
+		logger.Logf(log.DebugLevel, "accept segment: %q; %q", p.accepted, p.tokens)
 	}
 }
 
@@ -266,11 +266,12 @@ func (p *parser) accept(term termType) (string, error) {
 // expectPChars determines if "t" consists of only pchars defined in RFC3986.
 //
 // https://www.ietf.org/rfc/rfc3986.txt, P.49
-//   pchar         = unreserved / pct-encoded / sub-delims / ":" / "@"
-//   unreserved    = ALPHA / DIGIT / "-" / "." / "_" / "~"
-//   sub-delims    = "!" / "$" / "&" / "'" / "(" / ")"
-//                 / "*" / "+" / "," / ";" / "="
-//   pct-encoded   = "%" HEXDIG HEXDIG
+//
+//	pchar         = unreserved / pct-encoded / sub-delims / ":" / "@"
+//	unreserved    = ALPHA / DIGIT / "-" / "." / "_" / "~"
+//	sub-delims    = "!" / "$" / "&" / "'" / "(" / ")"
+//	              / "*" / "+" / "," / ";" / "="
+//	pct-encoded   = "%" HEXDIG HEXDIG
 func expectPChars(t string) error {
 	const (
 		init = iota

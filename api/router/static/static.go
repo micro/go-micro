@@ -10,7 +10,7 @@ import (
 
 	"go-micro.dev/v4/api/router"
 	"go-micro.dev/v4/api/router/util"
-	mlogger "go-micro.dev/v4/logger"
+	log "go-micro.dev/v4/logger"
 	"go-micro.dev/v4/metadata"
 	"go-micro.dev/v4/registry"
 	rutil "go-micro.dev/v4/util/registry"
@@ -251,7 +251,7 @@ func (r *staticRouter) endpoint(req *http.Request) (*endpoint, error) {
 		if !mMatch {
 			continue
 		}
-		logger.Logf(mlogger.DebugLevel, "api method match %s", req.Method)
+		logger.Logf(log.DebugLevel, "api method match %s", req.Method)
 
 		// 2. try host
 		if len(ep.apiep.Host) == 0 {
@@ -272,16 +272,16 @@ func (r *staticRouter) endpoint(req *http.Request) (*endpoint, error) {
 		if !hMatch {
 			continue
 		}
-		logger.Logf(mlogger.DebugLevel, "api host match %s", req.URL.Host)
+		logger.Logf(log.DebugLevel, "api host match %s", req.URL.Host)
 
 		// 3. try google.api path
 		for _, pathreg := range ep.pathregs {
 			matches, err := pathreg.Match(path, "")
 			if err != nil {
-				logger.Logf(mlogger.DebugLevel, "api gpath not match %s != %v", path, pathreg)
+				logger.Logf(log.DebugLevel, "api gpath not match %s != %v", path, pathreg)
 				continue
 			}
-			logger.Logf(mlogger.DebugLevel, "api gpath match %s = %v", path, pathreg)
+			logger.Logf(log.DebugLevel, "api gpath match %s = %v", path, pathreg)
 			pMatch = true
 			ctx := req.Context()
 			md, ok := metadata.FromContext(ctx)
@@ -299,7 +299,7 @@ func (r *staticRouter) endpoint(req *http.Request) (*endpoint, error) {
 			// 4. try path via pcre path matching
 			for _, pathreg := range ep.pcreregs {
 				if !pathreg.MatchString(req.URL.Path) {
-					logger.Logf(mlogger.DebugLevel, "api pcre path not match %s != %v", req.URL.Path, pathreg)
+					logger.Logf(log.DebugLevel, "api pcre path not match %s != %v", req.URL.Path, pathreg)
 					continue
 				}
 				pMatch = true

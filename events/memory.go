@@ -8,7 +8,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
-	mlogger "go-micro.dev/v4/logger"
+
+	log "go-micro.dev/v4/logger"
 	"go-micro.dev/v4/store"
 )
 
@@ -147,7 +148,7 @@ func (m *mem) lookupPreviousEvents(sub *subscriber, startTime time.Time) {
 	// lookup all events which match the topic (a blank topic will return all results)
 	recs, err := m.store.Read(sub.Topic+"/", store.ReadPrefix())
 	if err != nil {
-		m.options.Logger.Logf(mlogger.ErrorLevel, "Error looking up previous events: %v", err)
+		m.options.Logger.Logf(log.ErrorLevel, "Error looking up previous events: %v", err)
 		return
 	}
 
@@ -185,7 +186,7 @@ func (m *mem) handleEvent(ev *Event) {
 	for _, sub := range filteredSubs {
 		go func(s *subscriber) {
 			if err := sendEvent(ev, s); err != nil {
-				logger.Log(mlogger.ErrorLevel, err)
+				logger.Log(log.ErrorLevel, err)
 			}
 		}(sub)
 	}
