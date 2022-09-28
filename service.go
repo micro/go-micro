@@ -152,7 +152,7 @@ func (s *service) Run() (err error) {
 		}()
 	}
 
-	logger.Logf(log.ErrorLevel, "Starting [service] %s", s.Name())
+	logger.Logf(log.InfoLevel, "Starting [service] %s", s.Name())
 
 	if err = s.Start(); err != nil {
 		return err
