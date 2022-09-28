@@ -45,10 +45,13 @@ func Unmarshal(dst interface{}, query string) error {
 }
 
 // ToJSON will turn a query string like:
-//   cat=1&bar%5Bone%5D%5Btwo%5D=2&bar[one][red]=112
+//
+//	cat=1&bar%5Bone%5D%5Btwo%5D=2&bar[one][red]=112
+//
 // Into a JSON object with all the data merged as nicely as
 // possible. Eg the example above would output:
-//   {"bar":{"one":{"two":2,"red":112}}}
+//
+//	{"bar":{"one":{"two":2,"red":112}}}
 func ToJSON(query string) ([]byte, error) {
 	var (
 		builder interface{} = make(map[string]interface{})
@@ -65,13 +68,14 @@ func ToJSON(query string) ([]byte, error) {
 }
 
 // queryToMap turns something like a[b][c]=4 into
-//   map[string]interface{}{
-//     "a": map[string]interface{}{
-// 		  "b": map[string]interface{}{
-// 			  "c": 4,
-// 		  },
-// 	  },
-//   }
+//
+//	  map[string]interface{}{
+//	    "a": map[string]interface{}{
+//			  "b": map[string]interface{}{
+//				  "c": 4,
+//			  },
+//		  },
+//	  }
 func queryToMap(param string) (map[string]interface{}, error) {
 	rawKey, rawValue, err := splitKeyAndValue(param)
 	if err != nil {
