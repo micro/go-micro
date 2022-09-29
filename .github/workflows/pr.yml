@@ -1,4 +1,4 @@
-name: PR Sanity Check
+name: Run Tests
 on: 
   - push
   - pull_request
@@ -8,14 +8,13 @@ jobs:
     name: PR sanity check
     runs-on: ubuntu-latest
     steps:
+    - uses: actions/checkout@v3
     - name: Set up Go
       uses: actions/setup-go@v3
       with:
         go-version: 1.19
         check-latest: true
         cache: true
-    - name: Check out code into the Go module directory
-      uses: actions/checkout@v3
     - name: Get dependencies
       run: |
         go install github.com/kyoh86/richgo@latest
@@ -29,11 +28,11 @@ jobs:
     name: Lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/setup-go@v3
-        with:
-          go-version: 1.19
-          check-latest: true
-          cache: true
-      - uses: actions/checkout@v3
-      - name: golangci-lint
-        uses: golangci/golangci-lint-action@v3
+    - uses: actions/checkout@v3
+    - uses: actions/setup-go@v3
+      with:
+        go-version: 1.19
+        check-latest: true
+        cache: true
+    - name: golangci-lint
+      uses: golangci/golangci-lint-action@v3
