@@ -43,7 +43,7 @@ type Options struct {
 	Prefix    string
 	TLSConfig *tls.Config
 	Context   context.Context
-	Logger    *logger.Logger
+	Logger    logger.Logger
 }
 
 type Option func(o *Options)

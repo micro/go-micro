@@ -14,7 +14,7 @@ type Options struct {
 	Secure bool
 	Codec  codec.Marshaler
 
-	// Logger is the underline logger
+	// Logger is the underlying logger
 	Logger logger.Logger
 
 	// Handler executed when error happens in broker mesage
@@ -64,8 +64,8 @@ type SubscribeOption func(*SubscribeOptions)
 
 func NewOptions(opts ...Option) *Options {
 	options := Options{
-		Logger:  logger.DefaultLogger,
 		Context: context.Background(),
+		Logger:  logger.DefaultLogger,
 	}
 
 	for _, o := range opts {
