@@ -4,7 +4,7 @@ on:
   - pull_request
   - workflow_dispatch
 jobs:
-  prtest:
+  unittests:
     name: Unit Tests
     runs-on: ubuntu-latest
     steps:
@@ -37,3 +37,23 @@ jobs:
         cache: true
     - name: golangci-lint
       uses: golangci/golangci-lint-action@v3
+  summary:
+    name: Summary
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Go
+      uses: actions/setup-go@v3
+      with:
+        go-version: 1.19
+        check-latest: true
+        cache: true
+    - name: Get dependencies
+      run: |
+        go install github.com/mfridman/tparse@latest
+        go get -v -t -d ./...
+    - name: Run tests
+      id: tests
+      run: go test -v -race -cover -json ./... | tparse -all -notests -format=markdown >> $GITHUB_STEP_SUMMARY
+      env:
+        IN_TRAVIS_CI: yes
