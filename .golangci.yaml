@@ -38,7 +38,7 @@ output:
   # Example: "checkstyle:report.json,colored-line-number"
   #
   # Default: colored-line-number
-  format: github-actions
+  format: colored-line-number
   # Print lines of code with issue.
   # Default: true
   print-issued-lines: true
