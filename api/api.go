@@ -162,7 +162,7 @@ func Validate(e *Endpoint) error {
 //
 // Usage:
 //
-// 	proto.RegisterHandler(service.Server(), new(Handler), api.WithEndpoint(
+//	proto.RegisterHandler(service.Server(), new(Handler), api.WithEndpoint(
 //		&api.Endpoint{
 //			Name: "Greeter.Hello",
 //			Path: []string{"/greeter"},

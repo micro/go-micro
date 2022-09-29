@@ -12,15 +12,15 @@ import (
 	"github.com/gobwas/httphead"
 	"github.com/gobwas/ws"
 	"github.com/gobwas/ws/wsutil"
+
 	"go-micro.dev/v4/api/router"
 	"go-micro.dev/v4/client"
 	raw "go-micro.dev/v4/codec/bytes"
-	"go-micro.dev/v4/logger"
 	"go-micro.dev/v4/selector"
 )
 
 // serveWebsocket will stream rpc back over websockets assuming json
-func serveWebsocket(ctx context.Context, w http.ResponseWriter, r *http.Request, service *router.Route, c client.Client) {
+func serveWebsocket(ctx context.Context, w http.ResponseWriter, r *http.Request, service *router.Route, c client.Client) (err error) {
 	var op ws.OpCode
 
 	ct := r.Header.Get("Content-Type")
@@ -49,9 +49,6 @@ func serveWebsocket(ctx context.Context, w http.ResponseWriter, r *http.Request,
 	}
 	payload, err := requestPayload(r)
 	if err != nil {
-		if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
-			logger.Error(err)
-		}
 		return
 	}
 
@@ -72,18 +69,12 @@ func serveWebsocket(ctx context.Context, w http.ResponseWriter, r *http.Request,
 
 	conn, rw, _, err := upgrader.Upgrade(r, w)
 	if err != nil {
-		if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
-			logger.Error(err)
-		}
 		return
 	}
 
 	defer func() {
-		if err := conn.Close(); err != nil {
-			if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
-				logger.Error(err)
-			}
-			return
+		if cErr := conn.Close(); cErr != nil && err == nil {
+			err = cErr
 		}
 	}()
 
@@ -114,22 +105,20 @@ func serveWebsocket(ctx context.Context, w http.ResponseWriter, r *http.Request,
 	// create a new stream
 	stream, err := c.Stream(ctx, req, client.WithSelectOption(so))
 	if err != nil {
-		if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
-			logger.Error(err)
-		}
 		return
 	}
 
 	if request != nil {
 		if err = stream.Send(request); err != nil {
-			if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
-				logger.Error(err)
-			}
 			return
 		}
 	}
 
-	go writeLoop(rw, stream)
+	go func() {
+		if wErr := writeLoop(rw, stream); wErr != nil && err == nil {
+			err = wErr
+		}
+	}()
 
 	rsp := stream.Response()
 
@@ -137,49 +126,40 @@ func serveWebsocket(ctx context.Context, w http.ResponseWriter, r *http.Request,
 	for {
 		select {
 		case <-ctx.Done():
-			return
+			return nil
 		case <-stream.Context().Done():
-			return
+			return nil
 		default:
 			// read backend response body
 			buf, err := rsp.Read()
 			if err != nil {
 				// wants to avoid import  grpc/status.Status
 				if strings.Contains(err.Error(), "context canceled") {
-					return
+					return nil
 				}
-				if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
-					logger.Error(err)
-				}
-				return
+				return err
 			}
 
 			// write the response
-			if err := wsutil.WriteServerMessage(rw, op, buf); err != nil {
-				if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
-					logger.Error(err)
-				}
-				return
+			if err = wsutil.WriteServerMessage(rw, op, buf); err != nil {
+				return err
 			}
 			if err = rw.Flush(); err != nil {
-				if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
-					logger.Error(err)
-				}
-				return
+				return err
 			}
 		}
 	}
 }
 
 // writeLoop
-func writeLoop(rw io.ReadWriter, stream client.Stream) {
+func writeLoop(rw io.ReadWriter, stream client.Stream) error {
 	// close stream when done
 	defer stream.Close()
 
 	for {
 		select {
 		case <-stream.Context().Done():
-			return
+			return nil
 		default:
 			buf, op, err := wsutil.ReadClientData(rw)
 			if err != nil {
@@ -187,16 +167,13 @@ func writeLoop(rw io.ReadWriter, stream client.Stream) {
 					switch wserr.Code {
 					case ws.StatusGoingAway:
 						// this happens when user leave the page
-						return
+						return nil
 					case ws.StatusNormalClosure, ws.StatusNoStatusRcvd:
 						// this happens when user close ws connection, or we don't get any status
-						return
+						return nil
 					}
 				}
-				if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
-					logger.Error(err)
-				}
-				return
+				return err
 			}
 			switch op {
 			default:
@@ -210,10 +187,7 @@ func writeLoop(rw io.ReadWriter, stream client.Stream) {
 			// if the extracted payload isn't empty lets use it
 			request := &raw.Frame{Data: buf}
 			if err := stream.Send(request); err != nil {
-				if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
-					logger.Error(err)
-				}
-				return
+				return err
 			}
 		}
 	}

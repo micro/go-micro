@@ -1,17 +1,43 @@
 package events
 
-import "time"
+import (
+	"time"
 
-type Options struct{}
+	"go-micro.dev/v4/logger"
+)
+
+type Options struct {
+	Logger logger.Logger
+}
 
 type Option func(o *Options)
+
+func NewOptions(opts ...Option) *Options {
+	options := Options{
+		Logger: logger.DefaultLogger,
+	}
+
+	for _, o := range opts {
+		o(&options)
+	}
+
+	return &options
+}
 
 type StoreOptions struct {
 	TTL    time.Duration
 	Backup Backup
+	Logger logger.Logger
 }
 
 type StoreOption func(o *StoreOptions)
+
+// WithLogger sets the underline logger
+func WithLogger(l logger.Logger) StoreOption {
+	return func(o *StoreOptions) {
+		o.Logger = l
+	}
+}
 
 // PublishOptions contains all the options which can be provided when publishing an event
 type PublishOptions struct {

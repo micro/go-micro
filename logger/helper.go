@@ -129,3 +129,10 @@ func (h *Helper) WithError(err error) *Helper {
 func (h *Helper) WithFields(fields map[string]interface{}) *Helper {
 	return &Helper{logger: h.logger.Fields(fields)}
 }
+
+func HelperOrDefault(h *Helper) *Helper {
+	if h == nil {
+		return DefaultHelper
+	}
+	return h
+}

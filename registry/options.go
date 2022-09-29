@@ -4,6 +4,8 @@ import (
 	"context"
 	"crypto/tls"
 	"time"
+
+	"go-micro.dev/v4/logger"
 )
 
 type Options struct {
@@ -11,6 +13,7 @@ type Options struct {
 	Timeout   time.Duration
 	Secure    bool
 	TLSConfig *tls.Config
+	Logger    logger.Logger
 	// Other options for implementations of the interface
 	// can be stored in a context
 	Context context.Context
@@ -42,6 +45,19 @@ type GetOptions struct {
 
 type ListOptions struct {
 	Context context.Context
+}
+
+func NewOptions(opts ...Option) *Options {
+	options := Options{
+		Context: context.Background(),
+		Logger:  logger.DefaultLogger,
+	}
+
+	for _, o := range opts {
+		o(&options)
+	}
+
+	return &options
 }
 
 // Addrs is the registry addresses to use
@@ -144,5 +160,12 @@ func Services(s map[string][]*Service) Option {
 			o.Context = context.Background()
 		}
 		o.Context = context.WithValue(o.Context, servicesKey{}, s)
+	}
+}
+
+// Logger sets the underline logger
+func Logger(l logger.Logger) Option {
+	return func(o *Options) {
+		o.Logger = l
 	}
 }

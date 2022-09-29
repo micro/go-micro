@@ -20,11 +20,12 @@ import (
 
 	"go-micro.dev/v4/codec"
 	merrors "go-micro.dev/v4/errors"
-	"go-micro.dev/v4/logger"
+
+	log "go-micro.dev/v4/logger"
 )
 
 var (
-	lastStreamResponseError = errors.New("EOS")
+	errLastStreamResponse = errors.New("EOS")
 
 	// Precompute the reflect type for error. Can't use error directly
 	// because Typeof takes an empty interface value. This is annoying.
@@ -60,6 +61,7 @@ type response struct {
 // router represents an RPC router.
 type router struct {
 	name string
+	ops  RouterOptions
 
 	mu         sync.Mutex // protects the serviceMap
 	serviceMap map[string]*service
@@ -93,8 +95,9 @@ func (r rpcRouter) ServeRequest(ctx context.Context, req Request, rsp Response) 
 	return r.h(ctx, req, rsp)
 }
 
-func newRpcRouter() *router {
+func newRpcRouter(opts ...RouterOption) *router {
 	return &router{
+		ops:         newRouterOptions(opts...),
 		serviceMap:  make(map[string]*service),
 		subscribers: make(map[string][]*subscriber),
 	}
@@ -118,7 +121,7 @@ func isExportedOrBuiltinType(t reflect.Type) bool {
 
 // prepareMethod returns a methodType for the provided method or nil
 // in case if the method was unsuitable.
-func prepareMethod(method reflect.Method) *methodType {
+func prepareMethod(method reflect.Method, logger log.Logger) *methodType {
 	mtype := method.Type
 	mname := method.Name
 	var replyType, argType, contextType reflect.Type
@@ -141,7 +144,7 @@ func prepareMethod(method reflect.Method) *methodType {
 		replyType = mtype.In(3)
 		contextType = mtype.In(1)
 	default:
-		logger.Errorf("method %v of %v has wrong number of ins: %v", mname, mtype, mtype.NumIn())
+		logger.Logf(log.ErrorLevel, "method %v of %v has wrong number of ins: %v", mname, mtype, mtype.NumIn())
 		return nil
 	}
 
@@ -149,7 +152,7 @@ func prepareMethod(method reflect.Method) *methodType {
 		// check stream type
 		streamType := reflect.TypeOf((*Stream)(nil)).Elem()
 		if !argType.Implements(streamType) {
-			logger.Errorf("%v argument does not implement Stream interface: %v", mname, argType)
+			logger.Logf(log.ErrorLevel, "%v argument does not implement Stream interface: %v", mname, argType)
 			return nil
 		}
 	} else {
@@ -157,30 +160,30 @@ func prepareMethod(method reflect.Method) *methodType {
 
 		// First arg need not be a pointer.
 		if !isExportedOrBuiltinType(argType) {
-			logger.Errorf("%v argument type not exported: %v", mname, argType)
+			logger.Logf(log.ErrorLevel, "%v argument type not exported: %v", mname, argType)
 			return nil
 		}
 
 		if replyType.Kind() != reflect.Ptr {
-			logger.Errorf("method %v reply type not a pointer: %v", mname, replyType)
+			logger.Logf(log.ErrorLevel, "method %v reply type not a pointer: %v", mname, replyType)
 			return nil
 		}
 
 		// Reply type must be exported.
 		if !isExportedOrBuiltinType(replyType) {
-			logger.Errorf("method %v reply type not exported: %v", mname, replyType)
+			logger.Logf(log.ErrorLevel, "method %v reply type not exported: %v", mname, replyType)
 			return nil
 		}
 	}
 
 	// Method needs one out.
 	if mtype.NumOut() != 1 {
-		logger.Errorf("method %v has wrong number of outs: %v", mname, mtype.NumOut())
+		logger.Logf(log.ErrorLevel, "method %v has wrong number of outs: %v", mname, mtype.NumOut())
 		return nil
 	}
 	// The return type of the method must be error.
 	if returnType := mtype.Out(0); returnType != typeOfError {
-		logger.Errorf("method %v returns %v not error", mname, returnType.String())
+		logger.Logf(log.ErrorLevel, "method %v returns %v not error", mname, returnType.String())
 		return nil
 	}
 	return &methodType{method: method, ArgType: argType, ReplyType: replyType, ContextType: contextType, stream: stream}
@@ -266,7 +269,7 @@ func (s *service) call(ctx context.Context, router *router, sending *sync.Mutex,
 			return nil
 		} else {
 			// no error, we send the special EOS error
-			return lastStreamResponseError
+			return errLastStreamResponse
 		}
 	}
 
@@ -446,7 +449,7 @@ func (router *router) Handle(h Handler) error {
 	// Install the methods
 	for m := 0; m < s.typ.NumMethod(); m++ {
 		method := s.typ.Method(m)
-		if mt := prepareMethod(method); mt != nil {
+		if mt := prepareMethod(method, router.ops.Logger); mt != nil {
 			s.method[method.Name] = mt
 		}
 	}
@@ -509,8 +512,8 @@ func (router *router) ProcessMessage(ctx context.Context, msg Message) (err erro
 	defer func() {
 		// recover any panics
 		if r := recover(); r != nil {
-			logger.Errorf("panic recovered: %v", r)
-			logger.Error(string(debug.Stack()))
+			router.ops.Logger.Logf(log.ErrorLevel, "panic recovered: %v", r)
+			router.ops.Logger.Log(log.ErrorLevel, string(debug.Stack()))
 			err = merrors.InternalServerError("go.micro.server", "panic recovered: %v", r)
 		}
 	}()

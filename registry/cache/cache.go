@@ -7,10 +7,11 @@ import (
 	"sync"
 	"time"
 
-	"go-micro.dev/v4/logger"
+	"golang.org/x/sync/singleflight"
+
+	log "go-micro.dev/v4/logger"
 	"go-micro.dev/v4/registry"
 	util "go-micro.dev/v4/util/registry"
-	"golang.org/x/sync/singleflight"
 )
 
 // Cache is the registry cache interface
@@ -24,6 +25,8 @@ type Cache interface {
 type Options struct {
 	// TTL is the cache TTL
 	TTL time.Duration
+
+	Logger log.Logger
 }
 
 type Option func(o *Options)
@@ -320,7 +323,7 @@ func (c *cache) run(service string) {
 	c.Lock()
 	c.watchedRunning[service] = true
 	c.Unlock()
-
+	logger := c.opts.Logger
 	// reset watcher on exit
 	defer func() {
 		c.Lock()
@@ -352,9 +355,7 @@ func (c *cache) run(service string) {
 			c.setStatus(err)
 
 			if a > 3 {
-				if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-					logger.Debug("rcache: ", err, " backing off ", d)
-				}
+				logger.Logf(log.DebugLevel, "rcache: ", err, " backing off ", d)
 				a = 0
 			}
 
@@ -377,9 +378,7 @@ func (c *cache) run(service string) {
 			c.setStatus(err)
 
 			if b > 3 {
-				if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-					logger.Debug("rcache: ", err, " backing off ", d)
-				}
+				logger.Logf(log.DebugLevel, "rcache: ", err, " backing off ", d)
 				b = 0
 			}
 
@@ -467,7 +466,8 @@ func (c *cache) String() string {
 func New(r registry.Registry, opts ...Option) Cache {
 	rand.Seed(time.Now().UnixNano())
 	options := Options{
-		TTL: DefaultTTL,
+		TTL:    DefaultTTL,
+		Logger: log.DefaultLogger,
 	}
 
 	for _, o := range opts {

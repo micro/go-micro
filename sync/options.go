@@ -4,6 +4,8 @@ import (
 	"context"
 	"crypto/tls"
 	"time"
+
+	"go-micro.dev/v4/logger"
 )
 
 // Nodes sets the addresses to use
@@ -45,5 +47,12 @@ func WithTLS(t *tls.Config) Option {
 func WithContext(c context.Context) Option {
 	return func(o *Options) {
 		o.Context = c
+	}
+}
+
+// WithLogger sets the underline logger
+func WithLogger(l logger.Logger) Option {
+	return func(o *Options) {
+		o.Logger = l
 	}
 }

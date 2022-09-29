@@ -2,8 +2,10 @@ package server
 
 import (
 	"crypto/tls"
-	"go-micro.dev/v4/api/server/cors"
 	"net/http"
+
+	"go-micro.dev/v4/api/server/cors"
+	"go-micro.dev/v4/logger"
 
 	"go-micro.dev/v4/api/resolver"
 	"go-micro.dev/v4/api/server/acme"
@@ -21,9 +23,22 @@ type Options struct {
 	TLSConfig    *tls.Config
 	Resolver     resolver.Resolver
 	Wrappers     []Wrapper
+	Logger       logger.Logger
 }
 
 type Wrapper func(h http.Handler) http.Handler
+
+func NewOptions(opts ...Option) Options {
+	options := Options{
+		Logger: logger.DefaultLogger,
+	}
+
+	for _, o := range opts {
+		o(&options)
+	}
+
+	return options
+}
 
 func WrapHandler(w Wrapper) Option {
 	return func(o *Options) {
@@ -76,5 +91,12 @@ func TLSConfig(t *tls.Config) Option {
 func Resolver(r resolver.Resolver) Option {
 	return func(o *Options) {
 		o.Resolver = r
+	}
+}
+
+// Logger sets the underline logging framework
+func Logger(l logger.Logger) Option {
+	return func(o *Options) {
+		o.Logger = l
 	}
 }

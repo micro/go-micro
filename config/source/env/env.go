@@ -117,15 +117,16 @@ func (e *env) String() string {
 // Underscores are delimiters for nesting, and all keys are lowercased.
 //
 // Example:
-//      "DATABASE_SERVER_HOST=localhost" will convert to
 //
-//      {
-//          "database": {
-//              "server": {
-//                  "host": "localhost"
-//              }
-//          }
-//      }
+//	"DATABASE_SERVER_HOST=localhost" will convert to
+//
+//	{
+//	    "database": {
+//	        "server": {
+//	            "host": "localhost"
+//	        }
+//	    }
+//	}
 func NewSource(opts ...source.Option) source.Source {
 	options := source.NewOptions(opts...)
 

@@ -11,6 +11,7 @@ import (
 
 	jsonpatch "github.com/evanphx/json-patch/v5"
 	"github.com/oxtoacart/bpool"
+
 	"go-micro.dev/v4/api/handler"
 	"go-micro.dev/v4/api/internal/proto"
 	"go-micro.dev/v4/api/router"
@@ -19,7 +20,7 @@ import (
 	"go-micro.dev/v4/codec/jsonrpc"
 	"go-micro.dev/v4/codec/protorpc"
 	"go-micro.dev/v4/errors"
-	"go-micro.dev/v4/logger"
+	log "go-micro.dev/v4/logger"
 	"go-micro.dev/v4/metadata"
 	"go-micro.dev/v4/registry"
 	"go-micro.dev/v4/selector"
@@ -28,7 +29,8 @@ import (
 )
 
 const (
-	Handler = "rpc"
+	Handler   = "rpc"
+	packageID = "go.micro.api"
 )
 
 var (
@@ -73,6 +75,7 @@ func strategy(services []*registry.Service) selector.Strategy {
 }
 
 func (h *rpcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	logger := h.opts.Logger
 	bsize := handler.DefaultMaxRecvSize
 	if h.opts.MaxRecvSize > 0 {
 		bsize = h.opts.MaxRecvSize
@@ -87,13 +90,19 @@ func (h *rpcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		// try get service from router
 		s, err := h.opts.Router.Route(r)
 		if err != nil {
-			writeError(w, r, errors.InternalServerError("go.micro.api", err.Error()))
+			werr := writeError(w, r, errors.InternalServerError(packageID, err.Error()))
+			if werr != nil {
+				logger.Log(log.ErrorLevel, werr)
+			}
 			return
 		}
 		service = s
 	} else {
 		// we have no way of routing the request
-		writeError(w, r, errors.InternalServerError("go.micro.api", "no route found"))
+		werr := writeError(w, r, errors.InternalServerError(packageID, "no route found"))
+		if werr != nil {
+			logger.Log(log.ErrorLevel, werr)
+		}
 		return
 	}
 
@@ -133,7 +142,9 @@ func (h *rpcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		// drop older context as it can have timeouts and create new
 		//		md, _ := metadata.FromContext(cx)
 		//serveWebsocket(context.TODO(), w, r, service, c)
-		serveWebsocket(cx, w, r, service, c)
+		if err := serveWebsocket(cx, w, r, service, c); err != nil {
+			logger.Log(log.ErrorLevel, err)
+		}
 		return
 	}
 
@@ -144,7 +155,9 @@ func (h *rpcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// get payload
 	br, err := requestPayload(r)
 	if err != nil {
-		writeError(w, r, err)
+		if werr := writeError(w, r, err); werr != nil {
+			logger.Log(log.ErrorLevel, werr)
+		}
 		return
 	}
 
@@ -171,14 +184,18 @@ func (h *rpcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 		// make the call
 		if err := c.Call(cx, req, response, client.WithSelectOption(so)); err != nil {
-			writeError(w, r, err)
+			if werr := writeError(w, r, err); werr != nil {
+				logger.Log(log.ErrorLevel, werr)
+			}
 			return
 		}
 
 		// marshall response
 		rsp, err = response.Marshal()
 		if err != nil {
-			writeError(w, r, err)
+			if werr := writeError(w, r, err); werr != nil {
+				logger.Log(log.ErrorLevel, werr)
+			}
 			return
 		}
 
@@ -206,20 +223,26 @@ func (h *rpcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		)
 		// make the call
 		if err := c.Call(cx, req, &response, client.WithSelectOption(so)); err != nil {
-			writeError(w, r, err)
+			if werr := writeError(w, r, err); werr != nil {
+				logger.Log(log.ErrorLevel, werr)
+			}
 			return
 		}
 
 		// marshall response
 		rsp, err = response.MarshalJSON()
 		if err != nil {
-			writeError(w, r, err)
+			if werr := writeError(w, r, err); werr != nil {
+				logger.Log(log.ErrorLevel, werr)
+			}
 			return
 		}
 	}
 
 	// write the response
-	writeResponse(w, r, rsp)
+	if err := writeResponse(w, r, rsp); err != nil {
+		logger.Log(log.ErrorLevel, err)
+	}
 }
 
 func (rh *rpcHandler) String() string {
@@ -275,7 +298,9 @@ func requestPayload(r *http.Request) ([]byte, error) {
 		}
 		return raw.Marshal()
 	case strings.Contains(ct, "application/www-x-form-urlencoded"):
-		r.ParseForm()
+		if err := r.ParseForm(); err != nil {
+			return nil, err
+		}
 
 		// generate a new set of values from the form
 		vals := make(map[string]string)
@@ -441,14 +466,14 @@ func requestPayload(r *http.Request) ([]byte, error) {
 	return []byte{}, nil
 }
 
-func writeError(w http.ResponseWriter, r *http.Request, err error) {
+func writeError(w http.ResponseWriter, r *http.Request, err error) error {
 	ce := errors.Parse(err.Error())
 
 	switch ce.Code {
 	case 0:
 		// assuming it's totally screwed
 		ce.Code = 500
-		ce.Id = "go.micro.api"
+		ce.Id = packageID
 		ce.Status = http.StatusText(500)
 		ce.Detail = "error during request: " + ce.Detail
 		w.WriteHeader(500)
@@ -468,14 +493,10 @@ func writeError(w http.ResponseWriter, r *http.Request, err error) {
 	}
 
 	_, werr := w.Write([]byte(ce.Error()))
-	if werr != nil {
-		if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
-			logger.Error(werr)
-		}
-	}
+	return werr
 }
 
-func writeResponse(w http.ResponseWriter, r *http.Request, rsp []byte) {
+func writeResponse(w http.ResponseWriter, r *http.Request, rsp []byte) error {
 	w.Header().Set("Content-Type", r.Header.Get("Content-Type"))
 	w.Header().Set("Content-Length", strconv.Itoa(len(rsp)))
 
@@ -494,12 +515,7 @@ func writeResponse(w http.ResponseWriter, r *http.Request, rsp []byte) {
 
 	// write response
 	_, err := w.Write(rsp)
-	if err != nil {
-		if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
-			logger.Error(err)
-		}
-	}
-
+	return err
 }
 
 func NewHandler(opts ...handler.Option) handler.Handler {

@@ -3,13 +3,19 @@ package auth
 import (
 	"context"
 	"time"
+
+	"go-micro.dev/v4/logger"
 )
 
 func NewOptions(opts ...Option) Options {
-	var options Options
+	options := Options{
+		Logger: logger.DefaultLogger,
+	}
+
 	for _, o := range opts {
 		o(&options)
 	}
+
 	return options
 }
 
@@ -28,6 +34,8 @@ type Options struct {
 	PrivateKey string
 	// Addrs sets the addresses of auth
 	Addrs []string
+	// Logger is the underline logger
+	Logger logger.Logger
 }
 
 type Option func(o *Options)
@@ -57,6 +65,13 @@ func PublicKey(key string) Option {
 func PrivateKey(key string) Option {
 	return func(o *Options) {
 		o.PrivateKey = key
+	}
+}
+
+// WithLogger sets the underline logger
+func WithLogger(l logger.Logger) Option {
+	return func(o *Options) {
+		o.Logger = l
 	}
 }
 

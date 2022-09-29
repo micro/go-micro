@@ -8,10 +8,11 @@ import (
 
 	"github.com/urfave/cli/v2"
 	"go-micro.dev/v4"
+	"go-micro.dev/v4/logger"
 	"go-micro.dev/v4/registry"
 )
 
-//Options for web
+// Options for web
 type Options struct {
 	Name      string
 	Version   string
@@ -37,6 +38,7 @@ type Options struct {
 
 	Registry registry.Registry
 	Service  micro.Service
+	Logger   logger.Logger
 
 	Secure      bool
 	TLSConfig   *tls.Config
@@ -63,6 +65,7 @@ func newOptions(opts ...Option) Options {
 		Service:          micro.NewService(),
 		Context:          context.TODO(),
 		Signal:           true,
+		Logger:           logger.DefaultLogger,
 	}
 
 	for _, o := range opts {
@@ -93,7 +96,7 @@ func Icon(ico string) Option {
 	}
 }
 
-//Id for Unique server id
+// Id for Unique server id
 func Id(id string) Option {
 	return func(o *Options) {
 		o.Id = id
@@ -121,7 +124,7 @@ func Address(a string) Option {
 	}
 }
 
-//Advertise The address to advertise for discovery - host:port
+// Advertise The address to advertise for discovery - host:port
 func Advertise(a string) Option {
 	return func(o *Options) {
 		o.Advertise = a
@@ -144,28 +147,28 @@ func Registry(r registry.Registry) Option {
 	}
 }
 
-//RegisterTTL Register the service with a TTL
+// RegisterTTL Register the service with a TTL
 func RegisterTTL(t time.Duration) Option {
 	return func(o *Options) {
 		o.RegisterTTL = t
 	}
 }
 
-//RegisterInterval Register the service with at interval
+// RegisterInterval Register the service with at interval
 func RegisterInterval(t time.Duration) Option {
 	return func(o *Options) {
 		o.RegisterInterval = t
 	}
 }
 
-//Handler for custom handler
+// Handler for custom handler
 func Handler(h http.Handler) Option {
 	return func(o *Options) {
 		o.Handler = h
 	}
 }
 
-//Server for custom Server
+// Server for custom Server
 func Server(srv *http.Server) Option {
 	return func(o *Options) {
 		o.Server = srv
@@ -255,5 +258,12 @@ func RegisterCheck(fn func(context.Context) error) Option {
 func HandleSignal(b bool) Option {
 	return func(o *Options) {
 		o.Signal = b
+	}
+}
+
+// Logger sets the underline logger
+func Logger(l logger.Logger) Option {
+	return func(o *Options) {
+		o.Logger = l
 	}
 }

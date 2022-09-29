@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 
 	"go-micro.dev/v4/codec"
+	"go-micro.dev/v4/logger"
 	"go-micro.dev/v4/registry"
 )
 
@@ -12,6 +13,9 @@ type Options struct {
 	Addrs  []string
 	Secure bool
 	Codec  codec.Marshaler
+
+	// Logger is the underlying logger
+	Logger logger.Logger
 
 	// Handler executed when error happens in broker mesage
 	// processing
@@ -57,6 +61,19 @@ func PublishContext(ctx context.Context) PublishOption {
 }
 
 type SubscribeOption func(*SubscribeOptions)
+
+func NewOptions(opts ...Option) *Options {
+	options := Options{
+		Context: context.Background(),
+		Logger:  logger.DefaultLogger,
+	}
+
+	for _, o := range opts {
+		o(&options)
+	}
+
+	return &options
+}
 
 func NewSubscribeOptions(opts ...SubscribeOption) SubscribeOptions {
 	opt := SubscribeOptions{
@@ -125,6 +142,13 @@ func Secure(b bool) Option {
 func TLSConfig(t *tls.Config) Option {
 	return func(o *Options) {
 		o.TLSConfig = t
+	}
+}
+
+// Logger sets the underline logger
+func Logger(l logger.Logger) Option {
+	return func(o *Options) {
+		o.Logger = l
 	}
 }
 

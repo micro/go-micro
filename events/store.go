@@ -5,7 +5,8 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"go-micro.dev/v4/logger"
+
+	log "go-micro.dev/v4/logger"
 	"go-micro.dev/v4/store"
 )
 
@@ -21,6 +22,8 @@ func NewStore(opts ...StoreOption) Store {
 	if options.TTL.Seconds() == 0 {
 		options.TTL = time.Hour * 24
 	}
+
+	options.Logger = log.LoggerOrDefault(options.Logger)
 
 	// return the store
 	evs := &evStore{
@@ -114,7 +117,7 @@ func (s *evStore) backupLoop() {
 	for {
 		err := s.opts.Backup.Snapshot(s.store)
 		if err != nil {
-			logger.Errorf("Error running backup %s", err)
+			s.opts.Logger.Logf(log.ErrorLevel, "Error running backup %s", err)
 		}
 
 		time.Sleep(1 * time.Hour)

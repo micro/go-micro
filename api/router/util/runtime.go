@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"strings"
 
-	"go-micro.dev/v4/logger"
+	log "go-micro.dev/v4/logger"
 )
 
 var (
@@ -43,10 +43,18 @@ type Pattern struct {
 
 type patternOptions struct {
 	assumeColonVerb bool
+	logger          log.Logger
 }
 
 // PatternOpt is an option for creating Patterns.
 type PatternOpt func(*patternOptions)
+
+// Logger sets the logger
+func PatternLogger(l log.Logger) PatternOpt {
+	return func(po *patternOptions) {
+		po.logger = l
+	}
+}
 
 // NewPattern returns a new Pattern from the given definition values.
 // "ops" is a sequence of op codes. "pool" is a constant pool.
@@ -61,18 +69,16 @@ func NewPattern(version int, ops []int, pool []string, verb string, opts ...Patt
 		o(&options)
 	}
 
+	logger := log.LoggerOrDefault(options.logger)
+
 	if version != 1 {
-		if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-			logger.Debugf("unsupported version: %d", version)
-		}
+		logger.Logf(log.DebugLevel, "unsupported version: %d", version)
 		return Pattern{}, ErrInvalidPattern
 	}
 
 	l := len(ops)
 	if l%2 != 0 {
-		if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-			logger.Debugf("odd number of ops codes: %d", l)
-		}
+		logger.Logf(log.DebugLevel, "odd number of ops codes: %d", l)
 		return Pattern{}, ErrInvalidPattern
 	}
 
@@ -95,18 +101,14 @@ func NewPattern(version int, ops []int, pool []string, verb string, opts ...Patt
 			stack++
 		case OpPushM:
 			if pushMSeen {
-				if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-					logger.Debug("pushM appears twice")
-				}
+				logger.Logf(log.DebugLevel, "pushM appears twice")
 				return Pattern{}, ErrInvalidPattern
 			}
 			pushMSeen = true
 			stack++
 		case OpLitPush:
 			if op.operand < 0 || len(pool) <= op.operand {
-				if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-					logger.Debugf("negative literal index: %d", op.operand)
-				}
+				logger.Logf(log.DebugLevel, "negative literal index: %d", op.operand)
 				return Pattern{}, ErrInvalidPattern
 			}
 			if pushMSeen {
@@ -115,24 +117,18 @@ func NewPattern(version int, ops []int, pool []string, verb string, opts ...Patt
 			stack++
 		case OpConcatN:
 			if op.operand <= 0 {
-				if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-					logger.Debugf("negative concat size: %d", op.operand)
-				}
+				logger.Logf(log.DebugLevel, "negative concat size: %d", op.operand)
 				return Pattern{}, ErrInvalidPattern
 			}
 			stack -= op.operand
 			if stack < 0 {
-				if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-					logger.Debug("stack underflow")
-				}
+				logger.Logf(log.DebugLevel, "stack underflow")
 				return Pattern{}, ErrInvalidPattern
 			}
 			stack++
 		case OpCapture:
 			if op.operand < 0 || len(pool) <= op.operand {
-				if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-					logger.Debugf("variable name index out of bound: %d", op.operand)
-				}
+				logger.Logf(log.DebugLevel, "variable name index out of bound: %d", op.operand)
 				return Pattern{}, ErrInvalidPattern
 			}
 			v := pool[op.operand]
@@ -140,15 +136,11 @@ func NewPattern(version int, ops []int, pool []string, verb string, opts ...Patt
 			vars = append(vars, v)
 			stack--
 			if stack < 0 {
-				if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-					logger.Debug("stack underflow")
-				}
+				logger.Logf(log.DebugLevel, "stack underflow")
 				return Pattern{}, ErrInvalidPattern
 			}
 		default:
-			if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-				logger.Debugf("invalid opcode: %d", op.code)
-			}
+			logger.Logf(log.DebugLevel, "invalid opcode: %d", op.code)
 			return Pattern{}, ErrInvalidPattern
 		}
 
@@ -171,9 +163,7 @@ func NewPattern(version int, ops []int, pool []string, verb string, opts ...Patt
 // MustPattern is a helper function which makes it easier to call NewPattern in variable initialization.
 func MustPattern(p Pattern, err error) Pattern {
 	if err != nil {
-		if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-			logger.Fatalf("Pattern initialization failed: %v", err)
-		}
+		log.Logf(log.FatalLevel, "Pattern initialization failed: %v", err)
 	}
 	return p
 }

@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"go-micro.dev/v4/logger"
+	log "go-micro.dev/v4/logger"
 	"go-micro.dev/v4/runtime/local/build"
 	"go-micro.dev/v4/runtime/local/process"
 	proc "go-micro.dev/v4/runtime/local/process/os"
@@ -36,9 +36,11 @@ type service struct {
 	Exec *process.Executable
 	// process pid
 	PID *process.PID
+	// to be used logger
+	Logger log.Logger
 }
 
-func newService(s *Service, c CreateOptions) *service {
+func newService(s *Service, c CreateOptions, l log.Logger) *service {
 	var exec string
 	var args []string
 
@@ -58,6 +60,7 @@ func newService(s *Service, c CreateOptions) *service {
 			Args: args,
 			Dir:  s.Source,
 		},
+		Logger:     log.LoggerOrDefault(l),
 		closed:     make(chan bool),
 		output:     c.Output,
 		updated:    time.Now(),
@@ -101,7 +104,6 @@ func (s *service) Start() error {
 	if !s.shouldStart() {
 		return nil
 	}
-
 	// reset
 	s.err = nil
 	s.closed = make(chan bool)
@@ -113,9 +115,7 @@ func (s *service) Start() error {
 	s.Status("starting", nil)
 
 	// TODO: pull source & build binary
-	if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-		logger.Debugf("Runtime service %s forking new process", s.Service.Name)
-	}
+	s.Logger.Log(log.DebugLevel, "Runtime service %s forking new process", s.Service.Name)
 
 	p, err := s.Process.Fork(s.Exec)
 	if err != nil {
@@ -207,15 +207,13 @@ func (s *service) Wait() {
 
 	if s.PID.ID != thisPID.ID {
 		// trying to update when it's already been switched out, ignore
-		logger.Warnf("Trying to update a process status but PID doesn't match. Old %s, New %s. Skipping update.", thisPID.ID, s.PID.ID)
+		s.Logger.Logf(log.WarnLevel, "Trying to update a process status but PID doesn't match. Old %s, New %s. Skipping update.", thisPID.ID, s.PID.ID)
 		return
 	}
 
 	// save the error
 	if err != nil {
-		if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
-			logger.Errorf("Service %s terminated with error %s", s.Name, err)
-		}
+		s.Logger.Logf(log.ErrorLevel, "Service %s terminated with error %s", s.Name, err)
 		s.retries++
 		s.Status("error", err)
 		s.Metadata["retries"] = strconv.Itoa(s.retries)

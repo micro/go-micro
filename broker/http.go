@@ -3,7 +3,6 @@ package broker
 
 import (
 	"bytes"
-	"context"
 	"crypto/tls"
 	"errors"
 	"fmt"
@@ -17,6 +16,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"golang.org/x/net/http2"
+
 	"go-micro.dev/v4/codec/json"
 	merr "go-micro.dev/v4/errors"
 	"go-micro.dev/v4/registry"
@@ -24,7 +25,6 @@ import (
 	maddr "go-micro.dev/v4/util/addr"
 	mnet "go-micro.dev/v4/util/net"
 	mls "go-micro.dev/v4/util/tls"
-	"golang.org/x/net/http2"
 )
 
 // HTTP Broker is a point to point async broker
@@ -107,11 +107,10 @@ func newTransport(config *tls.Config) *http.Transport {
 }
 
 func newHttpBroker(opts ...Option) Broker {
-	options := Options{
-		Codec:    json.Marshaler{},
-		Context:  context.TODO(),
-		Registry: registry.DefaultRegistry,
-	}
+	options := *NewOptions(opts...)
+
+	options.Registry = registry.DefaultRegistry
+	options.Codec = json.Marshaler{}
 
 	for _, o := range opts {
 		o(&options)
