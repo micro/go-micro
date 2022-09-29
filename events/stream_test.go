@@ -199,7 +199,6 @@ func runTestStream(t *testing.T, stream Stream) {
 			t.Fatalf("Unexpected event received")
 		case <-time.After(7 * time.Second):
 		}
-
 	})
 
 	t.Run("InfiniteRetries", func(t *testing.T) {
