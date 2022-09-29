@@ -130,7 +130,7 @@ linters:
     - scopelint
     - exhaustivestruct
     - testpackage
-    - promlint
+    - promlinter
     - nonamedreturns
     - makezero
     - gofumpt
