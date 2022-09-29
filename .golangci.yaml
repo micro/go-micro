@@ -172,7 +172,7 @@ linters:
     - ifshort
     - structcheck
     - deadcode
-    - nosnakecase
+    # - nosnakecase
     - interfacer
     - maligned
     - scopelint
