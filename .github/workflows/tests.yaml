@@ -54,6 +54,6 @@ jobs:
         go get -v -t -d ./...
     - name: Run tests
       id: tests
-      run: go test -v -race -cover -json ./... | tparse -skip -notests -format=markdown >> $GITHUB_STEP_SUMMARY
+      run: go test -v -race -cover -json ./... | tparse -notests -format=markdown >> $GITHUB_STEP_SUMMARY
       env:
         IN_TRAVIS_CI: yes
