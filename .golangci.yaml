@@ -168,6 +168,11 @@ linters:
   fast: false
   disable:
     - golint
+    - varcheck
+    - ifshort
+    - structcheck
+    - deadcode
+    - nosnakecase
     - interfacer
     - maligned
     - scopelint
@@ -177,11 +182,11 @@ linters:
     - nonamedreturns
     - makezero
     - gofumpt
+
+    # Can be considered to be enabled
     - gochecknoinits
     - gochecknoglobals  # RIP
     - dogsled
-
-    # Can be considered to be enabled
     - wrapcheck
     - paralleltest
     - ireturn
