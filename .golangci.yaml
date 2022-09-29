@@ -62,6 +62,19 @@ linters-settings:
       # Variables used in at most this many lines will be ignored.
       # Default: 5
       max-distance: 16
+      ignore-names:
+        - err
+        - id
+        - ch
+      ignore-decls:
+        - c echo.Context
+        - t testing.T
+        - f *foo.Bar
+        - e error
+        - i int
+        - const C
+        - T any
+        - m map[string]int
   errcheck:
     # report about not checking of errors in type assetions: `a := b.(MyStruct)`;
     # default is false: such cases aren't reported by default.
