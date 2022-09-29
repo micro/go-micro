@@ -23,6 +23,7 @@ jobs:
       id: tests
       env:
         IN_TRAVIS_CI: yes
+        RICHGO_FORCE_COLOR: 1
       run: richgo test -v -race -cover ./...
   golangci:
     name: Lint
