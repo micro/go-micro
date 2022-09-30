@@ -64,6 +64,7 @@ func Subscribe(topic string, handler Handler, opts ...SubscribeOption) (Subscrib
 	return DefaultBroker.Subscribe(topic, handler, opts...)
 }
 
+// String returns the name of the Broker.
 func String() string {
 	return DefaultBroker.String()
 }

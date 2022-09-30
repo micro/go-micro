@@ -1,4 +1,4 @@
-// Package http provides a http based message broker
+// Package broker provides a http based message broker
 package broker
 
 import (
