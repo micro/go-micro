@@ -12,6 +12,8 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+
+	"go-micro.dev/v4/logger"
 )
 
 const (
@@ -60,6 +62,7 @@ type Client struct {
 	options Options
 }
 
+// Stream is a websockets stream.
 type Stream struct {
 	conn              *websocket.Conn
 	service, endpoint string
@@ -115,7 +118,7 @@ func (client *Client) Call(service, endpoint string, request, response interface
 	// set the url to go through the v1 api
 	uri.Path = "/" + service + "/" + endpoint
 
-	b, err := marshalRequest(service, endpoint, request)
+	b, err := marshalRequest(endpoint, request)
 	if err != nil {
 		return err
 	}
@@ -141,21 +144,28 @@ func (client *Client) Call(service, endpoint string, request, response interface
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+
+	defer func() {
+		if err = resp.Body.Close(); err != nil {
+			logger.DefaultLogger.Log(logger.ErrorLevel, err)
+		}
+	}()
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return err
 	}
-	if !(resp.StatusCode >= 200 && resp.StatusCode < 300) {
+
+	if resp.StatusCode <= 200 || resp.StatusCode > 300 {
 		return errors.New(string(body))
 	}
+
 	return unmarshalResponse(body, response)
 }
 
 // Stream enables the ability to stream via websockets.
 func (client *Client) Stream(service, endpoint string, request interface{}) (*Stream, error) {
-	b, err := marshalRequest(service, endpoint, request)
+	b, err := marshalRequest(endpoint, request)
 	if err != nil {
 		return nil, err
 	}
@@ -177,9 +187,10 @@ func (client *Client) Stream(service, endpoint string, request interface{}) (*St
 	if len(client.options.Token) > 0 {
 		header.Set("Authorization", "Bearer "+client.options.Token)
 	}
+
 	header.Set("Content-Type", "application/json")
 
-	// dial the connection
+	// dial the connection, connection not closed as conn is returned
 	conn, _, err := websocket.DefaultDialer.Dial(uri.String(), header)
 	if err != nil {
 		return nil, err
@@ -193,24 +204,28 @@ func (client *Client) Stream(service, endpoint string, request interface{}) (*St
 	return &Stream{conn, service, endpoint}, nil
 }
 
+// Recv will receive a message from a stream and unmarshal it.
 func (s *Stream) Recv(v interface{}) error {
 	// read response
 	_, message, err := s.conn.ReadMessage()
 	if err != nil {
 		return err
 	}
+
 	return unmarshalResponse(message, v)
 }
 
+// Send will send a message into the stream.
 func (s *Stream) Send(v interface{}) error {
-	b, err := marshalRequest(s.service, s.endpoint, v)
+	b, err := marshalRequest(s.endpoint, v)
 	if err != nil {
 		return err
 	}
+
 	return s.conn.WriteMessage(websocket.TextMessage, b)
 }
 
-func marshalRequest(service, endpoint string, v interface{}) ([]byte, error) {
+func marshalRequest(endpoint string, v interface{}) ([]byte, error) {
 	return json.Marshal(v)
 }
 

@@ -60,7 +60,7 @@ linters-settings:
     # The longest distance, in source lines, that is being considered a "small scope".
     # Variables used in at most this many lines will be ignored.
     # Default: 5
-    max-distance: 16
+    max-distance: 26
     ignore-names:
       - err
       - id

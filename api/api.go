@@ -12,7 +12,7 @@ import (
 	"go-micro.dev/v4/server"
 )
 
-// The gateway interface provides a way to
+// API interface provides a way to
 // create composable API gateways.
 type Api interface {
 	// Initialize options
@@ -29,6 +29,7 @@ type Api interface {
 	String() string
 }
 
+// Options are API options.
 type Options struct {
 	// Address of the server
 	Address string
@@ -36,6 +37,7 @@ type Options struct {
 	Router router.Router
 }
 
+// Option type are API option args.
 type Option func(*Options) error
 
 // Endpoint is a mapping between an RPC method and HTTP endpoint.
@@ -89,14 +91,15 @@ func Encode(e *Endpoint) map[string]string {
 	}
 
 	// endpoint map
-	ep := make(map[string]string)
+	em := make(map[string]string)
 
 	// set vals only if they exist
 	set := func(k, v string) {
 		if len(v) == 0 {
 			return
 		}
-		ep[k] = v
+
+		em[k] = v
 	}
 
 	set("endpoint", e.Name)
@@ -106,7 +109,7 @@ func Encode(e *Endpoint) map[string]string {
 	set("path", strings.Join(e.Path, ","))
 	set("host", strings.Join(e.Host, ","))
 
-	return ep
+	return em
 }
 
 // Decode decodes endpoint metadata into an endpoint.
