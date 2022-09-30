@@ -11,7 +11,6 @@ import (
 
 	jsonpatch "github.com/evanphx/json-patch/v5"
 	"github.com/oxtoacart/bpool"
-
 	"go-micro.dev/v4/api/handler"
 	"go-micro.dev/v4/api/internal/proto"
 	"go-micro.dev/v4/api/router"

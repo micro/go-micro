@@ -2,7 +2,6 @@ package acme
 
 import (
 	"github.com/go-acme/lego/v4/challenge"
-
 	"go-micro.dev/v4/logger"
 )
 

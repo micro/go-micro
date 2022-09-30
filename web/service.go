@@ -13,9 +13,7 @@ import (
 	"time"
 
 	"github.com/urfave/cli/v2"
-
 	"go-micro.dev/v4"
-
 	log "go-micro.dev/v4/logger"
 	"go-micro.dev/v4/registry"
 	maddr "go-micro.dev/v4/util/addr"

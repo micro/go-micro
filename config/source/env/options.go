@@ -2,7 +2,6 @@ package env
 
 import (
 	"context"
-
 	"strings"
 
 	"go-micro.dev/v4/config/source"
