@@ -2,9 +2,8 @@
 name: Feature request / Enhancement
 about: If you have a need not served by go-micro
 title: "[FEATURE]"
-labels: ''
-assignees: ''
-
+labels: ""
+assignees: ""
 ---
 
 **Is your feature request related to a problem? Please describe.**

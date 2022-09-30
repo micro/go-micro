@@ -1,4 +1,4 @@
-# Registry Cache 
+# Registry Cache
 
 Cache is a library that provides a caching layer for the go-micro [registry](https://godoc.org/github.com/micro/go-micro/registry#Registry).
 

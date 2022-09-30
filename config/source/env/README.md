@@ -8,7 +8,6 @@ We expect environment variables to be in the standard format of FOO=bar
 
 Keys are converted to lowercase and split on underscore.
 
-
 ### Example
 
 ```
@@ -20,10 +19,10 @@ Becomes
 
 ```json
 {
-    "database": {
-        "address": "127.0.0.1",
-        "port": 3306
-    }
+  "database": {
+    "address": "127.0.0.1",
+    "port": 3306
+  }
 }
 ```
 
@@ -36,7 +35,7 @@ WithPrefix(p ...string)
 WithStrippedPrefix(p ...string)
 ```
 
-The former will preserve the prefix and make it a top level key in the config. The latter eliminates the prefix, reducing the nesting by one. 
+The former will preserve the prefix and make it a top level key in the config. The latter eliminates the prefix, reducing the nesting by one.
 
 #### Example:
 
@@ -70,7 +69,6 @@ The resulting config will be:
     }
 }
 ```
-
 
 ## New Source
 

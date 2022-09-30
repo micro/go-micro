@@ -17,10 +17,10 @@ Becomes
 
 ```json
 {
-    "database": {
-        "address": "127.0.0.1",
-        "port": 3306
-    }
+  "database": {
+    "address": "127.0.0.1",
+    "port": 3306
+  }
 }
 ```
 

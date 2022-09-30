@@ -2,9 +2,8 @@
 name: Bug report
 about: For reporting bugs in go-micro
 title: "[BUG]"
-labels: ''
-assignees: ''
-
+labels: ""
+assignees: ""
 ---
 
 **Describe the bug**
@@ -19,6 +18,7 @@ If possible, please include a minimal code snippet here.
 
 **Environment:**
 Go Version: please paste `go version` output here
+
 ```
 please paste `go env` output here
 ```
