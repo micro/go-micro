@@ -132,7 +132,6 @@ func (r *Request) Body(in interface{}) *Request {
 	return r
 }
 
-
 func (r *Request) Params(p *Params) *Request {
 	for k, v := range p.LabelSelector {
 		// create new key=value pair

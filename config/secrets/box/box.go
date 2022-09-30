@@ -27,7 +27,6 @@ func NewSecrets(opts ...secrets.Option) secrets.Secrets {
 	return b
 }
 
-
 func (b *box) Init(opts ...secrets.Option) error {
 	for _, o := range opts {
 		o(&b.options)

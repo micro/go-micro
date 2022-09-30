@@ -46,7 +46,6 @@ func (c *syncStore) Close() error {
 	return nil
 }
 
-
 func (c *syncStore) Init(opts ...store.Option) error {
 	for _, o := range opts {
 		o(&c.storeOpts)

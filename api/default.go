@@ -45,7 +45,6 @@ func newApi(opts ...Option) Api {
 	}
 }
 
-
 func (a *api) Init(opts ...Option) error {
 	for _, o := range opts {
 		o(&a.options)

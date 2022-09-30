@@ -45,7 +45,6 @@ func Database(db string) Option {
 	}
 }
 
-
 func Table(t string) Option {
 	return func(o *Options) {
 		o.Table = t

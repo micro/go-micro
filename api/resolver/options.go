@@ -4,7 +4,6 @@ import (
 	"net/http"
 )
 
-
 func NewOptions(opts ...Option) Options {
 	var options Options
 	for _, o := range opts {

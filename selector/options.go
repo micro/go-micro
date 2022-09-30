@@ -27,7 +27,6 @@ type SelectOptions struct {
 	Context context.Context
 }
 
-
 type Option func(*Options)
 
 // SelectOption used when making a select call.

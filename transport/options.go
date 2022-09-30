@@ -100,7 +100,6 @@ func WithStream() DialOption {
 	}
 }
 
-
 func WithTimeout(d time.Duration) DialOption {
 	return func(o *DialOptions) {
 		o.Timeout = d

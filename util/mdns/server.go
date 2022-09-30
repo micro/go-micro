@@ -501,7 +501,6 @@ func setCustomPort(port int) {
 	}
 }
 
-
 func getOutboundIP() net.IP {
 	conn, err := net.Dial("udp", "8.8.8.8:80")
 	if err != nil {

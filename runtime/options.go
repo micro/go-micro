@@ -164,7 +164,6 @@ func WithArgs(args ...string) CreateOption {
 	}
 }
 
-
 func WithRetries(retries int) CreateOption {
 	return func(o *CreateOptions) {
 		o.Retries = retries
