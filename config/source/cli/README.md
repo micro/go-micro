@@ -27,10 +27,10 @@ Becomes
 
 ```json
 {
-    "database": {
-        "address": "127.0.0.1",
-        "port": 3306
-    }
+  "database": {
+    "address": "127.0.0.1",
+    "port": 3306
+  }
 }
 ```
 
@@ -63,7 +63,7 @@ func main() {
             // Alternatively, just setup your config right here
         }),
     )
-    
+
     // ... Load and use that source ...
     conf := config.NewConfig()
     conf.Load(clisrc)

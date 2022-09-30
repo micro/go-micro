@@ -12,7 +12,6 @@ import (
 	"github.com/gobwas/httphead"
 	"github.com/gobwas/ws"
 	"github.com/gobwas/ws/wsutil"
-
 	"go-micro.dev/v4/api/router"
 	"go-micro.dev/v4/client"
 	raw "go-micro.dev/v4/codec/bytes"

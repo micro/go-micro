@@ -1,6 +1,7 @@
 # Develop tools
 /.vscode/
 /.idea/
+/.trunk
 
 # Binaries for programs and plugins
 *.exe

@@ -15,7 +15,6 @@ import (
 	"go-micro.dev/v4/broker"
 	"go-micro.dev/v4/codec"
 	raw "go-micro.dev/v4/codec/bytes"
-
 	log "go-micro.dev/v4/logger"
 	"go-micro.dev/v4/metadata"
 	"go-micro.dev/v4/registry"

@@ -6,12 +6,11 @@ import (
 	"path/filepath"
 	"sync"
 
-	"golang.org/x/net/context"
-
 	"go-micro.dev/v4/errors"
 	log "go-micro.dev/v4/logger"
 	"go-micro.dev/v4/server"
 	proto "go-micro.dev/v4/util/file/proto"
+	"golang.org/x/net/context"
 )
 
 // NewHandler is a handler that can be registered with a micro Server.

@@ -7,10 +7,9 @@ import (
 	"net"
 	"os"
 
-	"golang.org/x/crypto/acme/autocert"
-
 	"go-micro.dev/v4/api/server/acme"
 	log "go-micro.dev/v4/logger"
+	"golang.org/x/crypto/acme/autocert"
 )
 
 // autoCertACME is the ACME provider from golang.org/x/crypto/acme/autocert.

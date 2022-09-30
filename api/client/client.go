@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-
 	"go-micro.dev/v4/logger"
 )
 

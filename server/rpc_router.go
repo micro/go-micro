@@ -20,7 +20,6 @@ import (
 
 	"go-micro.dev/v4/codec"
 	merrors "go-micro.dev/v4/errors"
-
 	log "go-micro.dev/v4/logger"
 )
 

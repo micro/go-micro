@@ -11,7 +11,6 @@ import (
 
 	jsonpatch "github.com/evanphx/json-patch/v5"
 	"github.com/oxtoacart/bpool"
-
 	"go-micro.dev/v4/api/handler"
 	"go-micro.dev/v4/api/internal/proto"
 	"go-micro.dev/v4/api/router"
@@ -458,7 +457,6 @@ func requestPayload(r *http.Request) ([]byte, error) {
 			return out, nil
 		}
 
-		//fallback to previous unknown behaviour
 		return bodybuf, nil
 	}
 

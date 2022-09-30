@@ -24,6 +24,7 @@ func mergeMap(a map[string]interface{}, b map[string]interface{}) map[string]int
 			a[bK] = bV
 		}
 	}
+
 	return a
 }
 

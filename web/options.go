@@ -92,6 +92,7 @@ func Icon(ico string) Option {
 		if o.Metadata == nil {
 			o.Metadata = make(map[string]string)
 		}
+
 		o.Metadata["icon"] = ico
 	}
 }
@@ -224,7 +225,8 @@ func AfterStop(fn func() error) Option {
 	}
 }
 
-// Secure Use secure communication. If TLSConfig is not specified we use InsecureSkipVerify and generate a self signed cert.
+// Secure Use secure communication.
+// If TLSConfig is not specified we use InsecureSkipVerify and generate a self signed cert.
 func Secure(b bool) Option {
 	return func(o *Options) {
 		o.Secure = b

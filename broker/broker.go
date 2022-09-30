@@ -18,6 +18,7 @@ type Broker interface {
 // message and optional Ack method to acknowledge receipt of the message.
 type Handler func(Event) error
 
+// Message is a message send/received from the broker.
 type Message struct {
 	Header map[string]string
 	Body   []byte
@@ -39,7 +40,8 @@ type Subscriber interface {
 }
 
 var (
-	DefaultBroker Broker = NewBroker()
+	// DefaultBroker is the default Broker.
+	DefaultBroker = NewBroker()
 )
 
 func Init(opts ...Option) error {
@@ -62,6 +64,7 @@ func Subscribe(topic string, handler Handler, opts ...SubscribeOption) (Subscrib
 	return DefaultBroker.Subscribe(topic, handler, opts...)
 }
 
+// String returns the name of the Broker.
 func String() string {
 	return DefaultBroker.String()
 }

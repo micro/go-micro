@@ -7,11 +7,10 @@ import (
 	"sync"
 	"time"
 
-	"golang.org/x/sync/singleflight"
-
 	log "go-micro.dev/v4/logger"
 	"go-micro.dev/v4/registry"
 	util "go-micro.dev/v4/util/registry"
+	"golang.org/x/sync/singleflight"
 )
 
 // Cache is the registry cache interface.

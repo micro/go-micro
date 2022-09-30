@@ -3,11 +3,11 @@
 package secretbox
 
 import (
+	"crypto/rand"
+
 	"github.com/pkg/errors"
 	"go-micro.dev/v4/config/secrets"
 	"golang.org/x/crypto/nacl/secretbox"
-
-	"crypto/rand"
 )
 
 const keyLength = 32

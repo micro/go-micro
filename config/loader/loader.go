@@ -1,4 +1,4 @@
-// package loader manages loading from multiple sources
+// Package loader manages loading from multiple sources
 package loader
 
 import (
@@ -42,6 +42,7 @@ type Snapshot struct {
 	Version string
 }
 
+// Options contains all options for a config loader.
 type Options struct {
 	Reader reader.Reader
 	Source []source.Source
@@ -52,6 +53,7 @@ type Options struct {
 	WithWatcherDisabled bool
 }
 
+// Option is a helper for a single option.
 type Option func(o *Options)
 
 // Copy snapshot.

@@ -9,10 +9,9 @@ import (
 	"time"
 
 	"github.com/miekg/dns"
+	"go-micro.dev/v4/logger"
 	"golang.org/x/net/ipv4"
 	"golang.org/x/net/ipv6"
-
-	"go-micro.dev/v4/logger"
 )
 
 // ServiceEntry is returned after we query for a service.

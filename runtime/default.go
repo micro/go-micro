@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/nxadm/tail"
-
 	log "go-micro.dev/v4/logger"
 	"go-micro.dev/v4/runtime/local/git"
 )
