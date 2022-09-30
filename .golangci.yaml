@@ -211,6 +211,15 @@ issues:
   #   - path: internal/app/machined/pkg/system/services
   #     linters:
   #       - dupl
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - gocyclo
+        - dupl
+        - gosec
+        - funlen
+        - varnamelen
+        - wsl
 
   # Independently from option `exclude` we use default exclude patterns,
   # it can be disabled by this option. To list all
