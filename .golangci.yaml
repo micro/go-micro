@@ -86,7 +86,7 @@ linters-settings:
     check-blank: true
   govet:
     # report about shadowed variables
-    check-shadowing: true
+    check-shadowing: false
   gofmt:
     # simplify code: gofmt with `-s` option, true by default
     simplify: true
@@ -182,6 +182,7 @@ linters:
     - nonamedreturns
     - makezero
     - gofumpt
+    - nlreturn
 
     # Can be considered to be enabled
     - gochecknoinits
