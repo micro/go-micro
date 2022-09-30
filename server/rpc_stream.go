@@ -9,7 +9,7 @@ import (
 	"go-micro.dev/v4/codec"
 )
 
-// Implements the Streamer interface
+// Implements the Streamer interface.
 type rpcStream struct {
 	sync.RWMutex
 	id      string

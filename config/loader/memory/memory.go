@@ -128,7 +128,7 @@ func (m *memory) loaded() bool {
 	return loaded
 }
 
-// reload reads the sets and creates new values
+// reload reads the sets and creates new values.
 func (m *memory) reload() error {
 	m.Lock()
 
@@ -185,7 +185,7 @@ func (m *memory) update() {
 	}
 }
 
-// Snapshot returns a snapshot of the current loaded config
+// Snapshot returns a snapshot of the current loaded config.
 func (m *memory) Snapshot() (*loader.Snapshot, error) {
 	if m.loaded() {
 		m.RLock()
@@ -207,7 +207,7 @@ func (m *memory) Snapshot() (*loader.Snapshot, error) {
 	return snap, nil
 }
 
-// Sync loads all the sources, calls the parser and updates the config
+// Sync loads all the sources, calls the parser and updates the config.
 func (m *memory) Sync() error {
 	//nolint:prealloc
 	var sets []*source.ChangeSet
@@ -394,7 +394,6 @@ func (w *watcher) Next() (*loader.Snapshot, error) {
 			ChangeSet: cs,
 			Version:   w.version,
 		}
-
 	}
 
 	for {

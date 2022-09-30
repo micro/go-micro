@@ -2,16 +2,16 @@
 package logger
 
 var (
-	// Default logger
+	// Default logger.
 	DefaultLogger Logger = NewLogger()
 
-	// Default logger helper
+	// Default logger helper.
 	DefaultHelper *Helper = NewHelper(DefaultLogger)
 )
 
-// Logger is a generic logging interface
+// Logger is a generic logging interface.
 type Logger interface {
-	// Init initialises options
+	// Init initializes options
 	Init(options ...Option) error
 	// The Logger options
 	Options() Options

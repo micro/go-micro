@@ -18,7 +18,7 @@ import (
 	"go-micro.dev/v4/runtime/local/git"
 )
 
-// defaultNamespace to use if not provided as an option
+// defaultNamespace to use if not provided as an option.
 const defaultNamespace = "default"
 
 type runtime struct {
@@ -36,7 +36,7 @@ type runtime struct {
 	namespaces map[string]map[string]*service
 }
 
-// NewRuntime creates new local runtime and returns it
+// NewRuntime creates new local runtime and returns it.
 func NewRuntime(opts ...Option) Runtime {
 	// get default options
 	options := NewOptions(opts...)
@@ -53,7 +53,7 @@ func NewRuntime(opts ...Option) Runtime {
 	}
 }
 
-// @todo move this to runtime default
+// @todo move this to runtime default.
 func (r *runtime) checkoutSourceIfNeeded(s *Service) error {
 	// Runtime service like config have no source.
 	// Skip checkout in that case
@@ -131,7 +131,6 @@ func uncompress(src string, dst string) error {
 
 		// check the type
 		switch header.Typeflag {
-
 		// if its a dir and it doesn't exist create it (with 0755 permission)
 		case tar.TypeDir:
 			if _, err := os.Stat(target); err != nil {
@@ -162,7 +161,7 @@ func uncompress(src string, dst string) error {
 	return nil
 }
 
-// check for path traversal and correct forward slashes
+// check for path traversal and correct forward slashes.
 func validRelPath(p string) bool {
 	if p == "" || strings.Contains(p, `\`) || strings.HasPrefix(p, "/") || strings.Contains(p, "../") {
 		return false
@@ -170,7 +169,7 @@ func validRelPath(p string) bool {
 	return true
 }
 
-// Init initializes runtime options
+// Init initializes runtime options.
 func (r *runtime) Init(opts ...Option) error {
 	r.Lock()
 	defer r.Unlock()
@@ -182,7 +181,7 @@ func (r *runtime) Init(opts ...Option) error {
 	return nil
 }
 
-// run runs the runtime management loop
+// run runs the runtime management loop.
 func (r *runtime) run(events <-chan Event) {
 	t := time.NewTicker(time.Second * 5)
 	defer t.Stop()
@@ -306,7 +305,7 @@ func serviceKey(s *Service) string {
 	return fmt.Sprintf("%v:%v", s.Name, s.Version)
 }
 
-// Create creates a new service which is then started by runtime
+// Create creates a new service which is then started by runtime.
 func (r *runtime) Create(s *Service, opts ...CreateOption) error {
 	err := r.checkoutSourceIfNeeded(s)
 	if err != nil {
@@ -357,7 +356,7 @@ func (r *runtime) Create(s *Service, opts ...CreateOption) error {
 	return nil
 }
 
-// exists returns whether the given file or directory exists
+// exists returns whether the given file or directory exists.
 func exists(path string) (bool, error) {
 	_, err := os.Stat(path)
 	if err == nil {
@@ -431,7 +430,6 @@ func (r *runtime) Logs(s *Service, options ...LogsOption) (LogStream, error) {
 				return
 			}
 		}
-
 	}()
 	return ret, nil
 }
@@ -516,7 +514,7 @@ func (r *runtime) Read(opts ...ReadOption) ([]*Service, error) {
 	return services, nil
 }
 
-// Update attempts to update the service
+// Update attempts to update the service.
 func (r *runtime) Update(s *Service, opts ...UpdateOption) error {
 	var options UpdateOptions
 	for _, o := range opts {
@@ -553,7 +551,7 @@ func (r *runtime) Update(s *Service, opts ...UpdateOption) error {
 	return service.Start()
 }
 
-// Delete removes the service from the runtime and stops it
+// Delete removes the service from the runtime and stops it.
 func (r *runtime) Delete(s *Service, opts ...DeleteOption) error {
 	r.Lock()
 	defer r.Unlock()
@@ -594,7 +592,7 @@ func (r *runtime) Delete(s *Service, opts ...DeleteOption) error {
 	return nil
 }
 
-// Start starts the runtime
+// Start starts the runtime.
 func (r *runtime) Start() error {
 	r.Lock()
 	defer r.Unlock()
@@ -623,7 +621,7 @@ func (r *runtime) Start() error {
 	return nil
 }
 
-// Stop stops the runtime
+// Stop stops the runtime.
 func (r *runtime) Stop() error {
 	r.Lock()
 	defer r.Unlock()
@@ -658,7 +656,7 @@ func (r *runtime) Stop() error {
 	return nil
 }
 
-// String implements stringer interface
+// String implements stringer interface.
 func (r *runtime) String() string {
 	return "local"
 }

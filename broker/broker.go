@@ -23,7 +23,7 @@ type Message struct {
 	Body   []byte
 }
 
-// Event is given to a subscription handler for processing
+// Event is given to a subscription handler for processing.
 type Event interface {
 	Topic() string
 	Message() *Message
@@ -31,7 +31,7 @@ type Event interface {
 	Error() error
 }
 
-// Subscriber is a convenience return type for the Subscribe method
+// Subscriber is a convenience return type for the Subscribe method.
 type Subscriber interface {
 	Options() SubscribeOptions
 	Topic() string

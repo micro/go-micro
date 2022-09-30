@@ -52,7 +52,7 @@ func testHttp(t *testing.T, path, service, ns string) {
 		t.Fatal(err)
 	}
 
-	// initialise the handler
+	// initialize the handler
 	rt := regRouter.NewRouter(
 		router.WithHandler("http"),
 		router.WithRegistry(r),

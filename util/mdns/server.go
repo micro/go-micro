@@ -18,7 +18,7 @@ var (
 	mdnsGroupIPv4 = net.ParseIP("224.0.0.251")
 	mdnsGroupIPv6 = net.ParseIP("ff02::fb")
 
-	// mDNS wildcard addresses
+	// mDNS wildcard addresses.
 	mdnsWildcardAddrIPv4 = &net.UDPAddr{
 		IP:   net.ParseIP("224.0.0.0"),
 		Port: 5353,
@@ -28,7 +28,7 @@ var (
 		Port: 5353,
 	}
 
-	// mDNS endpoint addresses
+	// mDNS endpoint addresses.
 	ipv4Addr = &net.UDPAddr{
 		IP:   mdnsGroupIPv4,
 		Port: 5353,
@@ -40,10 +40,10 @@ var (
 )
 
 // GetMachineIP is a func which returns the outbound IP of this machine.
-// Used by the server to determine whether to attempt send the response on a local address
+// Used by the server to determine whether to attempt send the response on a local address.
 type GetMachineIP func() net.IP
 
-// Config is used to configure the mDNS server
+// Config is used to configure the mDNS server.
 type Config struct {
 	// Zone must be provided to support responding to queries
 	Zone Zone
@@ -64,7 +64,7 @@ type Config struct {
 }
 
 // Server is an mDNS server used to listen for mDNS queries and respond if we
-// have a matching local record
+// have a matching local record.
 type Server struct {
 	config *Config
 
@@ -79,7 +79,7 @@ type Server struct {
 	outboundIP net.IP
 }
 
-// NewServer is used to create a new mDNS server from a config
+// NewServer is used to create a new mDNS server from a config.
 func NewServer(config *Config) (*Server, error) {
 	setCustomPort(config.Port)
 
@@ -152,7 +152,7 @@ func NewServer(config *Config) (*Server, error) {
 	return s, nil
 }
 
-// Shutdown is used to shutdown the listener
+// Shutdown is used to shutdown the listener.
 func (s *Server) Shutdown() error {
 	s.shutdownLock.Lock()
 	defer s.shutdownLock.Unlock()
@@ -176,7 +176,7 @@ func (s *Server) Shutdown() error {
 	return nil
 }
 
-// recv is a long running routine to receive packets from an interface
+// recv is a long running routine to receive packets from an interface.
 func (s *Server) recv(c *net.UDPConn) {
 	if c == nil {
 		return
@@ -199,7 +199,7 @@ func (s *Server) recv(c *net.UDPConn) {
 	}
 }
 
-// parsePacket is used to parse an incoming packet
+// parsePacket is used to parse an incoming packet.
 func (s *Server) parsePacket(packet []byte, from net.Addr) error {
 	var msg dns.Msg
 	if err := msg.Unpack(packet); err != nil {
@@ -213,7 +213,7 @@ func (s *Server) parsePacket(packet []byte, from net.Addr) error {
 	return s.handleQuery(&msg, from)
 }
 
-// handleQuery is used to handle an incoming query
+// handleQuery is used to handle an incoming query.
 func (s *Server) handleQuery(query *dns.Msg, from net.Addr) error {
 	if query.Opcode != dns.OpcodeQuery {
 		// "In both multicast query and multicast response messages, the OPCODE MUST
@@ -421,7 +421,7 @@ func (s *Server) probe() {
 	}
 }
 
-// SendMulticast us used to send a multicast response packet
+// SendMulticast us used to send a multicast response packet.
 func (s *Server) SendMulticast(msg *dns.Msg) error {
 	buf, err := msg.Pack()
 	if err != nil {
@@ -436,7 +436,7 @@ func (s *Server) SendMulticast(msg *dns.Msg) error {
 	return nil
 }
 
-// sendResponse is used to send a response packet
+// sendResponse is used to send a response packet.
 func (s *Server) sendResponse(resp *dns.Msg, from net.Addr) error {
 	// TODO(reddaly): Respect the unicast argument, and allow sending responses
 	// over multicast.
@@ -463,7 +463,6 @@ func (s *Server) sendResponse(resp *dns.Msg, from net.Addr) error {
 		conn.WriteToUDP(buf, &net.UDPAddr{IP: backupTarget, Port: addr.Port})
 	}
 	return err
-
 }
 
 func (s *Server) unregister() error {
@@ -502,7 +501,6 @@ func setCustomPort(port int) {
 	}
 }
 
-// getOutboundIP returns the IP address of this machine as seen when dialling out
 func getOutboundIP() net.IP {
 	conn, err := net.Dial("udp", "8.8.8.8:80")
 	if err != nil {

@@ -43,7 +43,7 @@ func TestStore(t *testing.T) {
 		assert.Len(t, evs, 2, "Only the events for this topic should be returned")
 	})
 
-	// limits should be honoured
+	// limits should be honored
 	t.Run("ReadTopicLimit", func(t *testing.T) {
 		t.Parallel()
 		evs, err := store.Read("foo", ReadLimit(1))

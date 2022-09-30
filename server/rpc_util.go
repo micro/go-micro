@@ -4,7 +4,7 @@ import (
 	"sync"
 )
 
-// waitgroup for global management of connections
+// waitgroup for global management of connections.
 type waitGroup struct {
 	// local waitgroup
 	lg sync.WaitGroup

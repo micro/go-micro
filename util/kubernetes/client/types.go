@@ -1,6 +1,6 @@
 package client
 
-// ContainerPort
+// ContainerPort.
 type ContainerPort struct {
 	Name          string `json:"name,omitempty"`
 	HostPort      int    `json:"hostPort,omitempty"`
@@ -8,7 +8,7 @@ type ContainerPort struct {
 	Protocol      string `json:"protocol,omitempty"`
 }
 
-// EnvVar is environment variable
+// EnvVar is environment variable.
 type EnvVar struct {
 	Name  string `json:"name"`
 	Value string `json:"value,omitempty"`
@@ -20,7 +20,7 @@ type Condition struct {
 	Message string `json:"message,omitempty"`
 }
 
-// Container defined container runtime values
+// Container defined container runtime values.
 type Container struct {
 	Name    string          `json:"name"`
 	Image   string          `json:"image"`
@@ -30,14 +30,14 @@ type Container struct {
 	Ports   []ContainerPort `json:"ports,omitempty"`
 }
 
-// DeploymentSpec defines micro deployment spec
+// DeploymentSpec defines micro deployment spec.
 type DeploymentSpec struct {
 	Replicas int            `json:"replicas,omitempty"`
 	Selector *LabelSelector `json:"selector"`
 	Template *Template      `json:"template,omitempty"`
 }
 
-// DeploymentCondition describes the state of deployment
+// DeploymentCondition describes the state of deployment.
 type DeploymentCondition struct {
 	LastUpdateTime string `json:"lastUpdateTime"`
 	Type           string `json:"type"`
@@ -45,7 +45,7 @@ type DeploymentCondition struct {
 	Message        string `json:"message,omitempty"`
 }
 
-// DeploymentStatus is returned when querying deployment
+// DeploymentStatus is returned when querying deployment.
 type DeploymentStatus struct {
 	Replicas            int                   `json:"replicas,omitempty"`
 	UpdatedReplicas     int                   `json:"updatedReplicas,omitempty"`
@@ -55,20 +55,20 @@ type DeploymentStatus struct {
 	Conditions          []DeploymentCondition `json:"conditions,omitempty"`
 }
 
-// Deployment is Kubernetes deployment
+// Deployment is Kubernetes deployment.
 type Deployment struct {
 	Metadata *Metadata         `json:"metadata"`
 	Spec     *DeploymentSpec   `json:"spec,omitempty"`
 	Status   *DeploymentStatus `json:"status,omitempty"`
 }
 
-// DeploymentList
+// DeploymentList.
 type DeploymentList struct {
 	Items []Deployment `json:"items"`
 }
 
 // LabelSelector is a label query over a set of resources
-// NOTE: we do not support MatchExpressions at the moment
+// NOTE: we do not support MatchExpressions at the moment.
 type LabelSelector struct {
 	MatchLabels map[string]string `json:"matchLabels,omitempty"`
 }
@@ -82,7 +82,7 @@ type LoadBalancerStatus struct {
 	Ingress []LoadBalancerIngress `json:"ingress,omitempty"`
 }
 
-// Metadata defines api object metadata
+// Metadata defines api object metadata.
 type Metadata struct {
 	Name        string            `json:"name,omitempty"`
 	Namespace   string            `json:"namespace,omitempty"`
@@ -91,25 +91,25 @@ type Metadata struct {
 	Annotations map[string]string `json:"annotations,omitempty"`
 }
 
-// PodSpec is a pod
+// PodSpec is a pod.
 type PodSpec struct {
 	Containers         []Container `json:"containers"`
 	ServiceAccountName string      `json:"serviceAccountName"`
 }
 
-// PodList
+// PodList.
 type PodList struct {
 	Items []Pod `json:"items"`
 }
 
-// Pod is the top level item for a pod
+// Pod is the top level item for a pod.
 type Pod struct {
 	Metadata *Metadata  `json:"metadata"`
 	Spec     *PodSpec   `json:"spec,omitempty"`
 	Status   *PodStatus `json:"status"`
 }
 
-// PodStatus
+// PodStatus.
 type PodStatus struct {
 	Conditions []PodCondition    `json:"conditions,omitempty"`
 	Containers []ContainerStatus `json:"containerStatuses"`
@@ -118,7 +118,7 @@ type PodStatus struct {
 	Reason     string            `json:"reason"`
 }
 
-// PodCondition describes the state of pod
+// PodCondition describes the state of pod.
 type PodCondition struct {
 	Type    string `json:"type"`
 	Reason  string `json:"reason,omitempty"`
@@ -135,21 +135,21 @@ type ContainerState struct {
 	Waiting    *Condition `json:"waiting"`
 }
 
-// Resource is API resource
+// Resource is API resource.
 type Resource struct {
 	Name  string
 	Kind  string
 	Value interface{}
 }
 
-// ServicePort configures service ports
+// ServicePort configures service ports.
 type ServicePort struct {
 	Name     string `json:"name,omitempty"`
 	Port     int    `json:"port"`
 	Protocol string `json:"protocol,omitempty"`
 }
 
-// ServiceSpec provides service configuration
+// ServiceSpec provides service configuration.
 type ServiceSpec struct {
 	ClusterIP string            `json:"clusterIP"`
 	Type      string            `json:"type,omitempty"`
@@ -157,52 +157,52 @@ type ServiceSpec struct {
 	Ports     []ServicePort     `json:"ports,omitempty"`
 }
 
-// ServiceStatus
+// ServiceStatus.
 type ServiceStatus struct {
 	LoadBalancer LoadBalancerStatus `json:"loadBalancer,omitempty"`
 }
 
-// Service is kubernetes service
+// Service is kubernetes service.
 type Service struct {
 	Metadata *Metadata      `json:"metadata"`
 	Spec     *ServiceSpec   `json:"spec,omitempty"`
 	Status   *ServiceStatus `json:"status,omitempty"`
 }
 
-// ServiceList
+// ServiceList.
 type ServiceList struct {
 	Items []Service `json:"items"`
 }
 
-// Template is micro deployment template
+// Template is micro deployment template.
 type Template struct {
 	Metadata *Metadata `json:"metadata,omitempty"`
 	PodSpec  *PodSpec  `json:"spec,omitempty"`
 }
 
-// Namespace is a Kubernetes Namespace
+// Namespace is a Kubernetes Namespace.
 type Namespace struct {
 	Metadata *Metadata `json:"metadata,omitempty"`
 }
 
-// NamespaceList
+// NamespaceList.
 type NamespaceList struct {
 	Items []Namespace `json:"items"`
 }
 
-// ImagePullSecret
+// ImagePullSecret.
 type ImagePullSecret struct {
 	Name string `json:"name"`
 }
 
-// Secret
+// Secret.
 type Secret struct {
 	Type     string            `json:"type,omitempty"`
 	Data     map[string]string `json:"data"`
 	Metadata *Metadata         `json:"metadata"`
 }
 
-// ServiceAccount
+// ServiceAccount.
 type ServiceAccount struct {
 	Metadata         *Metadata         `json:"metadata,omitempty"`
 	ImagePullSecrets []ImagePullSecret `json:"imagePullSecrets,omitempty"`

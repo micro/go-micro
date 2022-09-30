@@ -337,7 +337,6 @@ func (s *service) Handle(pattern string, handler http.Handler) {
 }
 
 func (s *service) HandleFunc(pattern string, handler func(http.ResponseWriter, *http.Request)) {
-
 	var seen bool
 	s.RLock()
 	for _, ep := range s.srv.Endpoints {
@@ -523,7 +522,7 @@ func (s *service) Run() error {
 	return s.stop()
 }
 
-// Options returns the options for the given service
+// Options returns the options for the given service.
 func (s *service) Options() Options {
 	return s.opts
 }

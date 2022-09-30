@@ -23,7 +23,7 @@ type endpoint struct {
 	pcreregs []*regexp.Regexp
 }
 
-// router is the default router
+// router is the default router.
 type staticRouter struct {
 	exit chan bool
 	opts router.Options
@@ -341,7 +341,7 @@ func NewRouter(opts ...router.Option) *staticRouter {
 		opts: options,
 		eps:  make(map[string]*endpoint),
 	}
-	//go r.watch()
+	// go r.watch()
 	//go r.refresh()
 	return r
 }

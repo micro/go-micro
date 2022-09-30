@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	// mock data
+	// mock data.
 	testData = map[string][]*registry.Service{
 		"foo": {
 			{

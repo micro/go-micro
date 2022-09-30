@@ -27,5 +27,4 @@ func TestFormat(t *testing.T) {
 			t.Fatalf("%s: expected %s got %s", d.p, d.f, f)
 		}
 	}
-
 }

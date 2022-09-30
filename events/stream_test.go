@@ -34,7 +34,6 @@ func TestStream(t *testing.T) {
 			runTestStream(t, tc.str)
 		})
 	}
-
 }
 
 func runTestStream(t *testing.T, stream Stream) {
@@ -76,7 +75,7 @@ func runTestStream(t *testing.T, stream Stream) {
 
 				wg.Done()
 			case <-timeout.C:
-				t.Fatalf("Event was not recieved")
+				t.Fatalf("Event was not received")
 			}
 		}()
 
@@ -84,7 +83,7 @@ func runTestStream(t *testing.T, stream Stream) {
 		assert.Nil(t, err, "Publishing a valid message should not return an error")
 		wg.Add(1)
 
-		// wait for the subscriber to recieve the message or timeout
+		// wait for the subscriber to receive the message or timeout
 		wg.Wait()
 	})
 
@@ -120,7 +119,7 @@ func runTestStream(t *testing.T, stream Stream) {
 
 				wg.Done()
 			case <-timeout.C:
-				t.Fatalf("Event was not recieved")
+				t.Fatalf("Event was not received")
 			}
 		}()
 
@@ -150,11 +149,11 @@ func runTestStream(t *testing.T, stream Stream) {
 
 				wg.Done()
 			case <-timeout.C:
-				t.Fatalf("Event was not recieved")
+				t.Fatalf("Event was not received")
 			}
 		}()
 
-		// wait for the subscriber to recieve the message or timeout
+		// wait for the subscriber to receive the message or timeout
 		wg.Wait()
 	})
 
@@ -178,7 +177,6 @@ func runTestStream(t *testing.T, stream Stream) {
 		case <-time.After(7 * time.Second):
 			t.Fatalf("Timed out waiting for message to be put back on queue")
 		}
-
 	})
 
 	t.Run("Retries", func(t *testing.T) {

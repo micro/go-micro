@@ -7,7 +7,7 @@ import (
 	"go-micro.dev/v4/transport"
 )
 
-// Socket is our pseudo socket for transport.Socket
+// Socket is our pseudo socket for transport.Socket.
 type Socket struct {
 	id string
 	// closed
@@ -30,7 +30,7 @@ func (s *Socket) SetRemote(r string) {
 	s.remote = r
 }
 
-// Accept passes a message to the socket which will be processed by the call to Recv
+// Accept passes a message to the socket which will be processed by the call to Recv.
 func (s *Socket) Accept(m *transport.Message) error {
 	select {
 	case s.recv <- m:
@@ -40,7 +40,7 @@ func (s *Socket) Accept(m *transport.Message) error {
 	}
 }
 
-// Process takes the next message off the send queue created by a call to Send
+// Process takes the next message off the send queue created by a call to Send.
 func (s *Socket) Process(m *transport.Message) error {
 	select {
 	case msg := <-s.send:
@@ -91,7 +91,7 @@ func (s *Socket) Recv(m *transport.Message) error {
 	return nil
 }
 
-// Close closes the socket
+// Close closes the socket.
 func (s *Socket) Close() error {
 	select {
 	case <-s.closed:

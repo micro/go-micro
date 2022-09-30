@@ -9,7 +9,7 @@ var templates = map[string]string{
 }
 
 // stripped image pull policy always
-// imagePullPolicy: Always
+// imagePullPolicy: Always.
 var deploymentTmpl = `
 apiVersion: apps/v1
 kind: Deployment

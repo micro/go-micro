@@ -39,7 +39,7 @@ type DialOptions struct {
 	// Timeout for dialing
 	Timeout time.Duration
 
-	// TODO: add tls options when dialling
+	// TODO: add tls options when dialing
 	// Currently set in global options
 
 	// Other options for implementations of the interface
@@ -56,7 +56,7 @@ type ListenOptions struct {
 	Context context.Context
 }
 
-// Addrs to use for transport
+// Addrs to use for transport.
 func Addrs(addrs ...string) Option {
 	return func(o *Options) {
 		o.Addrs = addrs
@@ -64,14 +64,14 @@ func Addrs(addrs ...string) Option {
 }
 
 // Codec sets the codec used for encoding where the transport
-// does not support message headers
+// does not support message headers.
 func Codec(c codec.Marshaler) Option {
 	return func(o *Options) {
 		o.Codec = c
 	}
 }
 
-// Timeout sets the timeout for Send/Recv execution
+// Timeout sets the timeout for Send/Recv execution.
 func Timeout(t time.Duration) Option {
 	return func(o *Options) {
 		o.Timeout = t
@@ -79,7 +79,7 @@ func Timeout(t time.Duration) Option {
 }
 
 // Use secure communication. If TLSConfig is not specified we
-// use InsecureSkipVerify and generate a self signed cert
+// use InsecureSkipVerify and generate a self signed cert.
 func Secure(b bool) Option {
 	return func(o *Options) {
 		o.Secure = b
@@ -93,28 +93,27 @@ func TLSConfig(t *tls.Config) Option {
 	}
 }
 
-// Indicates whether this is a streaming connection
+// Indicates whether this is a streaming connection.
 func WithStream() DialOption {
 	return func(o *DialOptions) {
 		o.Stream = true
 	}
 }
 
-// Timeout used when dialling the remote side
 func WithTimeout(d time.Duration) DialOption {
 	return func(o *DialOptions) {
 		o.Timeout = d
 	}
 }
 
-// WithLogger sets the underline logger
+// WithLogger sets the underline logger.
 func WithLogger(l logger.Logger) Option {
 	return func(o *Options) {
 		o.Logger = l
 	}
 }
 
-// NetListener Set net.Listener for httpTransport
+// NetListener Set net.Listener for httpTransport.
 func NetListener(customListener net.Listener) ListenOption {
 	return func(o *ListenOptions) {
 		if customListener == nil {

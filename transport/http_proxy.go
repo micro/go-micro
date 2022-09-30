@@ -76,7 +76,7 @@ func proxyDial(conn net.Conn, addr string, proxyURL *url.URL) (_ net.Conn, err e
 	return &pbuffer{Conn: conn, r: br}, nil
 }
 
-// Creates a new connection
+// Creates a new connection.
 func newConn(dial func(string) (net.Conn, error)) func(string) (net.Conn, error) {
 	return func(addr string) (net.Conn, error) {
 		// get the proxy url

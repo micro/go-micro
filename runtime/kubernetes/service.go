@@ -115,7 +115,7 @@ func serviceResource(s *client.Service) *client.Resource {
 	}
 }
 
-// Start starts the Kubernetes service. It creates new kubernetes deployment and service API objects
+// Start starts the Kubernetes service. It creates new kubernetes deployment and service API objects.
 func (s *service) Start(k client.Client, opts ...client.CreateOption) error {
 	// create deployment first; if we fail, we dont create service
 	if err := k.Create(deploymentResource(s.kdeploy), opts...); err != nil {

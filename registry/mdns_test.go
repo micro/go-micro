@@ -92,7 +92,6 @@ func TestMDNS(t *testing.T) {
 
 		if len(s) != 1 {
 			t.Fatalf("Expected one result for %s got %d", service.Name, len(s))
-
 		}
 
 		if s[0].Name != service.Name {
@@ -148,7 +147,6 @@ func TestMDNS(t *testing.T) {
 			t.Fatalf("Expected nothing got %+v", s[0])
 		}
 	}
-
 }
 
 func TestEncoding(t *testing.T) {
@@ -208,7 +206,6 @@ func TestEncoding(t *testing.T) {
 			}
 		}
 	}
-
 }
 
 func TestWatcher(t *testing.T) {
@@ -274,7 +271,6 @@ func TestWatcher(t *testing.T) {
 	testFn := func(service, s *Service) {
 		if s == nil {
 			t.Fatalf("Expected one result for %s got nil", service.Name)
-
 		}
 
 		if s.Name != service.Name {

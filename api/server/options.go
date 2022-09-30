@@ -94,7 +94,7 @@ func Resolver(r resolver.Resolver) Option {
 	}
 }
 
-// Logger sets the underline logging framework
+// Logger sets the underline logging framework.
 func Logger(l logger.Logger) Option {
 	return func(o *Options) {
 		o.Logger = l

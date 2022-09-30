@@ -5,7 +5,7 @@ import (
 	"fmt"
 )
 
-// Sum returns the md5 checksum of the ChangeSet data
+// Sum returns the md5 checksum of the ChangeSet data.
 func (c *ChangeSet) Sum() string {
 	h := md5.New()
 	h.Write(c.Data)

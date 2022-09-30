@@ -78,8 +78,6 @@ func TestCallOptions(t *testing.T) {
 			if e := o.CallOptions.DialTimeout * (time.Second * 10); callOpts.DialTimeout != e {
 				t.Fatalf("Expected %v got %v", e, callOpts.DialTimeout)
 			}
-
 		}
-
 	}
 }

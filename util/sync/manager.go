@@ -15,7 +15,7 @@ type operation struct {
 	maxiumum  int
 }
 
-// action represents the type of a queued operation
+// action represents the type of a queued operation.
 type action int
 
 const (

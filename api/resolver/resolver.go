@@ -11,13 +11,13 @@ var (
 	ErrInvalidPath = errors.New("invalid path")
 )
 
-// Resolver resolves requests to endpoints
+// Resolver resolves requests to endpoints.
 type Resolver interface {
 	Resolve(r *http.Request) (*Endpoint, error)
 	String() string
 }
 
-// Endpoint is the endpoint for a http request
+// Endpoint is the endpoint for a http request.
 type Endpoint struct {
 	// e.g greeter
 	Name string
@@ -36,7 +36,7 @@ type Options struct {
 
 type Option func(o *Options)
 
-// StaticNamespace returns the same namespace for each request
+// StaticNamespace returns the same namespace for each request.
 func StaticNamespace(ns string) func(*http.Request) string {
 	return func(*http.Request) string {
 		return ns

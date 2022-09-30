@@ -27,7 +27,7 @@ type defaultLogger struct {
 	opts Options
 }
 
-// Init (opts...) should only overwrite provided options
+// Init (opts...) should only overwrite provided options.
 func (l *defaultLogger) Init(opts ...Option) error {
 	for _, o := range opts {
 		o(&l.opts)
@@ -183,7 +183,7 @@ func (l *defaultLogger) Options() Options {
 	return opts
 }
 
-// NewLogger builds a new logger based on options
+// NewLogger builds a new logger based on options.
 func NewLogger(opts ...Option) Logger {
 	// Default options
 	options := Options{

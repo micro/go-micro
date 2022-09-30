@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-// HostPort format addr and port suitable for dial
+// HostPort format addr and port suitable for dial.
 func HostPort(addr string, port interface{}) string {
 	host := addr
 	if strings.Count(addr, ":") > 0 {
@@ -26,9 +26,8 @@ func HostPort(addr string, port interface{}) string {
 }
 
 // Listen takes addr:portmin-portmax and binds to the first available port
-// Example: Listen("localhost:5000-6000", fn)
+// Example: Listen("localhost:5000-6000", fn).
 func Listen(addr string, fn func(string) (net.Listener, error)) (net.Listener, error) {
-
 	if strings.Count(addr, ":") == 1 && strings.Count(addr, "-") == 0 {
 		return fn(addr)
 	}
@@ -79,7 +78,7 @@ func Listen(addr string, fn func(string) (net.Listener, error)) (net.Listener, e
 	return nil, fmt.Errorf("unable to bind to %s", addr)
 }
 
-// Proxy returns the proxy and the address if it exits
+// Proxy returns the proxy and the address if it exits.
 func Proxy(service string, address []string) (string, []string, bool) {
 	var hasProxy bool
 

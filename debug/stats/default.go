@@ -80,7 +80,7 @@ func (s *stats) Record(err error) error {
 }
 
 // NewStats returns a new in memory stats buffer
-// TODO add options
+// TODO add options.
 func NewStats() Stats {
 	return &stats{
 		started: time.Now().Unix(),

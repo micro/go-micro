@@ -9,9 +9,9 @@ import (
 	"strconv"
 	"time"
 
+	"go-micro.dev/v4/logger"
 	"go-micro.dev/v4/runtime"
 	"go-micro.dev/v4/util/kubernetes/client"
-	"go-micro.dev/v4/util/log"
 )
 
 type klog struct {
@@ -37,7 +37,11 @@ func (k *klog) podLogStream(podName string, stream *kubeStream) error {
 
 	if err != nil {
 		stream.err = err
-		stream.Stop()
+		if err := stream.Stop(); err != nil {
+			stream.err = err
+			return err
+		}
+
 		return err
 	}
 
@@ -86,7 +90,12 @@ func (k *klog) getMatchingPods() ([]string, error) {
 
 	var matches []string
 
-	for _, p := range r.Value.(*client.PodList).Items {
+	podList, ok := r.Value.(*client.PodList)
+	if !ok {
+		logger.DefaultLogger.Log(logger.ErrorLevel, "Failed to cast to *client.PodList")
+	}
+
+	for _, p := range podList.Items {
 		// find labels that match the name
 		if p.Metadata.Labels["name"] == client.Format(k.serviceName) {
 			matches = append(matches, p.Metadata.Name)
@@ -107,7 +116,7 @@ func (k *klog) Read() ([]runtime.LogRecord, error) {
 	for _, pod := range pods {
 		logParams := make(map[string]string)
 
-		//if !opts.Since.Equal(time.Time{}) {
+		// if !opts.Since.Equal(time.Time{}) {
 		//	logParams["sinceSeconds"] = strconv.Itoa(int(time.Since(opts.Since).Seconds()))
 		//}
 
@@ -168,7 +177,7 @@ func (k *klog) Stream() (runtime.LogStream, error) {
 		go func(podName string) {
 			err := k.podLogStream(podName, stream)
 			if err != nil {
-				log.Errorf("Error streaming from pod: %v", err)
+				logger.DefaultLogger.Log(logger.ErrorLevel, err)
 			}
 		}(pod)
 	}
@@ -176,7 +185,7 @@ func (k *klog) Stream() (runtime.LogStream, error) {
 	return stream, nil
 }
 
-// NewLog returns a configured Kubernetes logger
+// NewLog returns a configured Kubernetes logger.
 func newLog(c client.Client, serviceName string, opts ...runtime.LogsOption) *klog {
 	options := runtime.LogsOptions{
 		Namespace: client.DefaultNamespace,

@@ -563,7 +563,6 @@ func (h *httpTransport) Listen(addr string, opts ...ListenOption) (Listener, err
 	var err error
 
 	if listener := getNetListener(&options); listener != nil {
-
 		fn := func(addr string) (net.Listener, error) {
 			return listener, nil
 		}

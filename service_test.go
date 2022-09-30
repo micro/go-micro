@@ -25,7 +25,7 @@ func testShutdown(wg *sync.WaitGroup, cancel func()) {
 	wg.Wait()
 }
 
-func testService(ctx context.Context, wg *sync.WaitGroup, name string) Service {
+func testService(t testing.TB, ctx context.Context, wg *sync.WaitGroup, name string) Service {
 	// add self
 	wg.Add(1)
 
@@ -38,15 +38,19 @@ func testService(ctx context.Context, wg *sync.WaitGroup, name string) Service {
 		Registry(r),
 		AfterStart(func() error {
 			wg.Done()
+
 			return nil
 		}),
 		AfterStop(func() error {
 			wg.Done()
+
 			return nil
 		}),
 	)
 
-	RegisterHandler(srv.Server(), handler.NewHandler(srv.Client()))
+	if err := RegisterHandler(srv.Server(), handler.NewHandler(srv.Client())); err != nil {
+		t.Fatal(err)
+	}
 
 	return srv
 }
@@ -101,7 +105,7 @@ func testRequest(ctx context.Context, c client.Client, name string) error {
 	return nil
 }
 
-// TestService tests running and calling a service
+// TestService tests running and calling a service.
 func TestService(t *testing.T) {
 	// waitgroup for server start
 	var wg sync.WaitGroup
@@ -110,7 +114,7 @@ func TestService(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	// start test server
-	service := testService(ctx, &wg, "test.service")
+	service := testService(t, ctx, &wg, "test.service")
 
 	go func() {
 		// wait for service to start
@@ -132,7 +136,6 @@ func TestService(t *testing.T) {
 }
 
 func benchmarkCustomListenService(b *testing.B, n int, name string) {
-
 	// create custom listen
 	customListen, err := net.Listen("tcp", server.DefaultAddress)
 	if err != nil {
@@ -208,7 +211,7 @@ func benchmarkService(b *testing.B, n int, name string) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	// create test server
-	service := testService(ctx, &wg, name)
+	service := testService(b, ctx, &wg, name)
 
 	// start the server
 	go func() {
@@ -238,7 +241,9 @@ func benchmarkService(b *testing.B, n int, name string) {
 
 			go func() {
 				err := testRequest(ctx, service.Client(), name)
+
 				wg.Done()
+
 				if err != nil {
 					b.Fatal(err)
 				}

@@ -24,7 +24,6 @@ func (e *env) Read() (*source.ChangeSet, error) {
 	var changes map[string]interface{}
 
 	for _, env := range os.Environ() {
-
 		if len(e.prefixes) > 0 || len(e.strippedPrefixes) > 0 {
 			notFound := true
 

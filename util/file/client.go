@@ -12,7 +12,7 @@ import (
 	proto "go-micro.dev/v4/util/file/proto"
 )
 
-// Client is the client interface to access files
+// Client is the client interface to access files.
 type File interface {
 	Open(filename string, truncate bool) (int64, error)
 	Stat(filename string) (*proto.StatResponse, error)
@@ -26,7 +26,7 @@ type File interface {
 	DownloadAt(filename, saveFile string, blockId int) error
 }
 
-// NewClient returns a new Client which uses a micro Client
+// NewClient returns a new Client which uses a micro Client.
 func New(service string, c client.Client) File {
 	return &fc{proto.NewFileService(service, c)}
 }

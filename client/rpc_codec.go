@@ -28,7 +28,7 @@ func (e serverError) Error() string {
 	return string(e)
 }
 
-// errShutdown holds the specific error for closing/closed connections
+// errShutdown holds the specific error for closing/closed connections.
 var (
 	errShutdown = errs.New("connection is shut down")
 )
@@ -63,7 +63,7 @@ var (
 		"application/octet-stream": raw.NewCodec,
 	}
 
-	// TODO: remove legacy codec list
+	// TODO: remove legacy codec list.
 	defaultCodecs = map[string]codec.NewCodec{
 		"application/json":         jsonrpc.NewCodec,
 		"application/json-rpc":     jsonrpc.NewCodec,
@@ -127,7 +127,7 @@ func setHeaders(m *codec.Message, stream string) {
 	}
 }
 
-// setupProtocol sets up the old protocol
+// setupProtocol sets up the old protocol.
 func setupProtocol(msg *transport.Message, node *registry.Node) codec.NewCodec {
 	protocol := node.Metadata["protocol"]
 

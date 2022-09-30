@@ -42,7 +42,7 @@ func (h *httpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	httputil.NewSingleHostReverseProxy(rp).ServeHTTP(w, r)
 }
 
-// getService returns the service for this request from the selector
+// getService returns the service for this request from the selector.
 func (h *httpHandler) getService(r *http.Request) (string, error) {
 	var service *router.Route
 
@@ -74,7 +74,7 @@ func (h *httpHandler) String() string {
 	return "http"
 }
 
-// NewHandler returns a http proxy handler
+// NewHandler returns a http proxy handler.
 func NewHandler(opts ...handler.Option) handler.Handler {
 	options := handler.NewOptions(opts...)
 

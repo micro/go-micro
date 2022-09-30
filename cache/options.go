@@ -36,21 +36,21 @@ func Items(i map[string]Item) Option {
 	}
 }
 
-// WithAddress sets the cache service address or connection information
+// WithAddress sets the cache service address or connection information.
 func WithAddress(addr string) Option {
 	return func(o *Options) {
 		o.Address = addr
 	}
 }
 
-// WithContext sets the cache context, for any extra configuration
+// WithContext sets the cache context, for any extra configuration.
 func WithContext(c context.Context) Option {
 	return func(o *Options) {
 		o.Context = c
 	}
 }
 
-// WithLogger sets underline logger
+// WithLogger sets underline logger.
 func WithLogger(l logger.Logger) Option {
 	return func(o *Options) {
 		o.Logger = l

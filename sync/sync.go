@@ -14,9 +14,9 @@ var (
 	ErrLockTimeout = errors.New("lock timeout")
 )
 
-// Sync is an interface for distributed synchronization
+// Sync is an interface for distributed synchronization.
 type Sync interface {
-	// Initialise options
+	// Initialize options
 	Init(...Option) error
 	// Return the options
 	Options() Options
@@ -30,7 +30,7 @@ type Sync interface {
 	String() string
 }
 
-// Leader provides leadership election
+// Leader provides leadership election.
 type Leader interface {
 	// resign leadership
 	Resign() error

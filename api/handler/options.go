@@ -20,7 +20,7 @@ type Options struct {
 
 type Option func(o *Options)
 
-// NewOptions fills in the blanks
+// NewOptions fills in the blanks.
 func NewOptions(opts ...Option) Options {
 	options := Options{
 		Logger: logger.DefaultLogger,
@@ -45,14 +45,14 @@ func NewOptions(opts ...Option) Options {
 	return options
 }
 
-// WithNamespace specifies the namespace for the handler
+// WithNamespace specifies the namespace for the handler.
 func WithNamespace(s string) Option {
 	return func(o *Options) {
 		o.Namespace = s
 	}
 }
 
-// WithRouter specifies a router to be used by the handler
+// WithRouter specifies a router to be used by the handler.
 func WithRouter(r router.Router) Option {
 	return func(o *Options) {
 		o.Router = r
@@ -65,14 +65,14 @@ func WithClient(c client.Client) Option {
 	}
 }
 
-// WithMaxRecvSize specifies max body size
+// WithMaxRecvSize specifies max body size.
 func WithMaxRecvSize(size int64) Option {
 	return func(o *Options) {
 		o.MaxRecvSize = size
 	}
 }
 
-// WithLogger specifies the logger
+// WithLogger specifies the logger.
 func WithLogger(l logger.Logger) Option {
 	return func(o *Options) {
 		o.Logger = l

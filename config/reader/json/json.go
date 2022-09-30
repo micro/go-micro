@@ -73,7 +73,7 @@ func (j *jsonReader) String() string {
 	return "json"
 }
 
-// NewReader creates a json reader
+// NewReader creates a json reader.
 func NewReader(opts ...reader.Option) reader.Reader {
 	options := reader.NewOptions(opts...)
 	return &jsonReader{

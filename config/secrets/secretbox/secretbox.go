@@ -18,7 +18,7 @@ type secretBox struct {
 	secretKey [keyLength]byte
 }
 
-// NewSecrets returns a secretbox codec
+// NewSecrets returns a secretbox codec.
 func NewSecrets(opts ...secrets.Option) secrets.Secrets {
 	sb := &secretBox{}
 	for _, o := range opts {

@@ -3,8 +3,9 @@ package mdns
 import (
 	"reflect"
 	"testing"
+
+	"github.com/miekg/dns"
 )
-import "github.com/miekg/dns"
 
 type mockMDNSService struct{}
 

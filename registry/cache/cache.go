@@ -14,7 +14,7 @@ import (
 	util "go-micro.dev/v4/util/registry"
 )
 
-// Cache is the registry cache interface
+// Cache is the registry cache interface.
 type Cache interface {
 	// embed the registry interface
 	registry.Registry
@@ -77,7 +77,7 @@ func (c *cache) setStatus(err error) {
 	c.Unlock()
 }
 
-// isValid checks if the service is valid
+// isValid checks if the service is valid.
 func (c *cache) isValid(services []*registry.Service, ttl time.Time) bool {
 	// no services exist
 	if len(services) == 0 {
@@ -318,7 +318,7 @@ func (c *cache) update(res *registry.Result) {
 }
 
 // run starts the cache watcher loop
-// it creates a new watcher if there's a problem
+// it creates a new watcher if there's a problem.
 func (c *cache) run(service string) {
 	c.Lock()
 	c.watchedRunning[service] = true
@@ -394,7 +394,7 @@ func (c *cache) run(service string) {
 }
 
 // watch loops the next event and calls update
-// it returns if there's an error
+// it returns if there's an error.
 func (c *cache) watch(w registry.Watcher) error {
 	// used to stop the watch
 	stop := make(chan bool)
@@ -462,7 +462,7 @@ func (c *cache) String() string {
 	return "cache"
 }
 
-// New returns a new cache
+// New returns a new cache.
 func New(r registry.Registry, opts ...Option) Cache {
 	rand.Seed(time.Now().UnixNano())
 	options := Options{

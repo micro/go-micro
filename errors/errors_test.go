@@ -35,7 +35,6 @@ func TestEqual(t *testing.T) {
 	if Equal(err1, err3) {
 		t.Fatal("errors must be not equal")
 	}
-
 }
 
 func TestErrors(t *testing.T) {

@@ -48,7 +48,7 @@ func testFunc() {
 		web.Context(ctx),
 		web.HandleSignal(false),
 	)
-	//s.Init()
+	// s.Init()
 	//w.Init()
 
 	var wg sync.WaitGroup

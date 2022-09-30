@@ -45,7 +45,6 @@ func newApi(opts ...Option) Api {
 	}
 }
 
-// Initialise options
 func (a *api) Init(opts ...Option) error {
 	for _, o := range opts {
 		o(&a.options)
@@ -53,17 +52,17 @@ func (a *api) Init(opts ...Option) error {
 	return nil
 }
 
-// Get the options
+// Get the options.
 func (a *api) Options() Options {
 	return a.options
 }
 
-// Register a http handler
+// Register a http handler.
 func (a *api) Register(*Endpoint) error {
 	return nil
 }
 
-// Register a route
+// Register a route.
 func (a *api) Deregister(*Endpoint) error {
 	return nil
 }
