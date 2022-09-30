@@ -60,13 +60,13 @@ The resulting config will be:
 
 ```json
 {
-    "database": {
-        "address": "127.0.0.1",
-        "port": 3306
-    },
-    "vault": {
-        "addr": "vault:1337"
-    }
+  "database": {
+    "address": "127.0.0.1",
+    "port": 3306
+  },
+  "vault": {
+    "addr": "vault:1337"
+  }
 }
 ```
 

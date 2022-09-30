@@ -342,6 +342,5 @@ func NewRouter(opts ...router.Option) *staticRouter {
 		eps:  make(map[string]*endpoint),
 	}
 	// go r.watch()
-	//go r.refresh()
 	return r
 }

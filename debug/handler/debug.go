@@ -69,12 +69,14 @@ func (d *Debug) Trace(ctx context.Context, req *proto.TraceRequest, rsp *proto.T
 
 	for _, t := range traces {
 		var typ proto.SpanType
+
 		switch t.Type {
 		case trace.SpanTypeRequestInbound:
 			typ = proto.SpanType_INBOUND
 		case trace.SpanTypeRequestOutbound:
 			typ = proto.SpanType_OUTBOUND
 		}
+
 		rsp.Spans = append(rsp.Spans, &proto.Span{
 			Trace:    t.Trace,
 			Id:       t.Id,

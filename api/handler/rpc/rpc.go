@@ -457,7 +457,6 @@ func requestPayload(r *http.Request) ([]byte, error) {
 			return out, nil
 		}
 
-		//fallback to previous unknown behaviour
 		return bodybuf, nil
 	}
 

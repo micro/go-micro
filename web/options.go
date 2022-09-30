@@ -92,6 +92,7 @@ func Icon(ico string) Option {
 		if o.Metadata == nil {
 			o.Metadata = make(map[string]string)
 		}
+
 		o.Metadata["icon"] = ico
 	}
 }
