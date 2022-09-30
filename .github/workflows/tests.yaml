@@ -1,6 +1,11 @@
 name: Run Tests
 on: 
-  - push
+  push:
+    branches:
+    - '**'
+  pull_request:
+    branches:
+    - '**'
 jobs:
   golangci:
     name: Lint
