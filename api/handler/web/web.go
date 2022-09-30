@@ -50,7 +50,7 @@ func (wh *webHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	httputil.NewSingleHostReverseProxy(rp).ServeHTTP(w, r)
 }
 
-// getService returns the service for this request from the selector
+// getService returns the service for this request from the selector.
 func (wh *webHandler) getService(r *http.Request) (string, error) {
 	var service *router.Route
 
@@ -78,7 +78,7 @@ func (wh *webHandler) getService(r *http.Request) (string, error) {
 	return fmt.Sprintf("http://%s", s.Address), nil
 }
 
-// serveWebSocket used to serve a web socket proxied connection
+// serveWebSocket used to serve a web socket proxied connection.
 func (wh *webHandler) serveWebSocket(host string, w http.ResponseWriter, r *http.Request) {
 	req := new(http.Request)
 	*req = *r

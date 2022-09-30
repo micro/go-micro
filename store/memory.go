@@ -10,7 +10,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-// NewMemoryStore returns a memory store
+// NewMemoryStore returns a memory store.
 func NewMemoryStore(opts ...Option) Store {
 	s := &memoryStore{
 		options: Options{

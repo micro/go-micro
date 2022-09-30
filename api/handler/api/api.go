@@ -21,7 +21,7 @@ const (
 	Handler = "api"
 )
 
-// API handler is the default handler which takes api.Request and returns api.Response
+// API handler is the default handler which takes api.Request and returns api.Response.
 func (a *apiHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	bsize := handler.DefaultMaxRecvSize
 	if a.opts.MaxRecvSize > 0 {

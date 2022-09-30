@@ -8,22 +8,22 @@ import (
 )
 
 const (
-	// BearerScheme used for Authorization header
+	// BearerScheme used for Authorization header.
 	BearerScheme = "Bearer "
-	// ScopePublic is the scope applied to a rule to allow access to the public
+	// ScopePublic is the scope applied to a rule to allow access to the public.
 	ScopePublic = ""
-	// ScopeAccount is the scope applied to a rule to limit to users with any valid account
+	// ScopeAccount is the scope applied to a rule to limit to users with any valid account.
 	ScopeAccount = "*"
 )
 
 var (
-	// ErrInvalidToken is when the token provided is not valid
+	// ErrInvalidToken is when the token provided is not valid.
 	ErrInvalidToken = errors.New("invalid token provided")
-	// ErrForbidden is when a user does not have the necessary scope to access a resource
+	// ErrForbidden is when a user does not have the necessary scope to access a resource.
 	ErrForbidden = errors.New("resource forbidden")
 )
 
-// Auth provides authentication and authorization
+// Auth provides authentication and authorization.
 type Auth interface {
 	// Init the auth
 	Init(opts ...Option)
@@ -39,7 +39,7 @@ type Auth interface {
 	String() string
 }
 
-// Rules manages access to resources
+// Rules manages access to resources.
 type Rules interface {
 	// Verify an account has access to a resource using the rules
 	Verify(acc *Account, res *Resource, opts ...VerifyOption) error
@@ -51,7 +51,7 @@ type Rules interface {
 	List(...ListOption) ([]*Rule, error)
 }
 
-// Account provided by an auth provider
+// Account provided by an auth provider.
 type Account struct {
 	// ID of the account e.g. email
 	ID string `json:"id"`
@@ -67,7 +67,7 @@ type Account struct {
 	Secret string `json:"secret"`
 }
 
-// Token can be short or long lived
+// Token can be short or long lived.
 type Token struct {
 	// The token to be used for accessing resources
 	AccessToken string `json:"access_token"`
@@ -79,12 +79,12 @@ type Token struct {
 	Expiry time.Time `json:"expiry"`
 }
 
-// Expired returns a boolean indicating if the token needs to be refreshed
+// Expired returns a boolean indicating if the token needs to be refreshed.
 func (t *Token) Expired() bool {
 	return t.Expiry.Unix() < time.Now().Unix()
 }
 
-// Resource is an entity such as a user or
+// Resource is an entity such as a user or.
 type Resource struct {
 	// Name of the resource, e.g. go.micro.service.notes
 	Name string `json:"name"`
@@ -94,17 +94,17 @@ type Resource struct {
 	Endpoint string `json:"endpoint"`
 }
 
-// Access defines the type of access a rule grants
+// Access defines the type of access a rule grants.
 type Access int
 
 const (
-	// AccessGranted to a resource
+	// AccessGranted to a resource.
 	AccessGranted Access = iota
-	// AccessDenied to a resource
+	// AccessDenied to a resource.
 	AccessDenied
 )
 
-// Rule is used to verify access to a resource
+// Rule is used to verify access to a resource.
 type Rule struct {
 	// ID of the rule, e.g. "public"
 	ID string
@@ -125,13 +125,13 @@ type accountKey struct{}
 // AccountFromContext gets the account from the context, which
 // is set by the auth wrapper at the start of a call. If the account
 // is not set, a nil account will be returned. The error is only returned
-// when there was a problem retrieving an account
+// when there was a problem retrieving an account.
 func AccountFromContext(ctx context.Context) (*Account, bool) {
 	acc, ok := ctx.Value(accountKey{}).(*Account)
 	return acc, ok
 }
 
-// ContextWithAccount sets the account in the context
+// ContextWithAccount sets the account in the context.
 func ContextWithAccount(ctx context.Context, account *Account) context.Context {
 	return context.WithValue(ctx, accountKey{}, account)
 }

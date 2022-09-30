@@ -9,7 +9,7 @@ import (
 	"github.com/google/uuid"
 )
 
-// Service is a web service with service discovery built in
+// Service is a web service with service discovery built in.
 type Service interface {
 	Client() *http.Client
 	Init(opts ...Option) error
@@ -21,27 +21,27 @@ type Service interface {
 	Run() error
 }
 
-// Option for web
+// Option for web.
 type Option func(o *Options)
 
-// Web basic Defaults
+// Web basic Defaults.
 var (
-	// For serving
+	// For serving.
 	DefaultName    = "go-web"
 	DefaultVersion = "latest"
 	DefaultId      = uuid.New().String()
 	DefaultAddress = ":0"
 
-	// for registration
+	// for registration.
 	DefaultRegisterTTL      = time.Second * 90
 	DefaultRegisterInterval = time.Second * 30
 
-	// static directory
+	// static directory.
 	DefaultStaticDir     = "html"
 	DefaultRegisterCheck = func(context.Context) error { return nil }
 )
 
-// NewService returns a new web.Service
+// NewService returns a new web.Service.
 func NewService(opts ...Option) Service {
 	return newService(opts...)
 }

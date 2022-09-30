@@ -6,10 +6,10 @@ import (
 	"go-micro.dev/v4/logger"
 )
 
-// Option (or Options) are passed to New() to configure providers
+// Option (or Options) are passed to New() to configure providers.
 type Option func(o *Options)
 
-// Options represents various options you can present to ACME providers
+// Options represents various options you can present to ACME providers.
 type Options struct {
 	// AcceptTLS must be set to true to indicate that you have read your
 	// provider's terms of service.
@@ -31,14 +31,14 @@ type Options struct {
 	Logger logger.Logger
 }
 
-// AcceptToS indicates whether you accept your CA's terms of service
+// AcceptToS indicates whether you accept your CA's terms of service.
 func AcceptToS(b bool) Option {
 	return func(o *Options) {
 		o.AcceptToS = b
 	}
 }
 
-// CA sets the CA of an acme.Options
+// CA sets the CA of an acme.Options.
 func CA(CA string) Option {
 	return func(o *Options) {
 		o.CA = CA
@@ -63,14 +63,14 @@ func OnDemand(b bool) Option {
 
 // Cache provides a cache / storage interface to the underlying ACME library
 // as there is no standard, this needs to be validated by the underlying
-// implentation.
+// implementation.
 func Cache(c interface{}) Option {
 	return func(o *Options) {
 		o.Cache = c
 	}
 }
 
-// Logger sets the underline logger
+// Logger sets the underline logger.
 func Logger(l logger.Logger) Option {
 	return func(o *Options) {
 		o.Logger = l

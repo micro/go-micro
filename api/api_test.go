@@ -148,5 +148,4 @@ func TestValidate(t *testing.T) {
 	if err := Validate(epPcreInvalid); err == nil {
 		t.Fatalf("invalid pcre %v", epPcreInvalid.Path[0])
 	}
-
 }

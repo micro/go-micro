@@ -19,7 +19,7 @@ func (e InvalidTemplateError) Error() string {
 	return fmt.Sprintf("%s: %s", e.msg, e.tmpl)
 }
 
-// Parse parses the string representation of path template
+// Parse parses the string representation of path template.
 func Parse(tmpl string) (Compiler, error) {
 	if !strings.HasPrefix(tmpl, "/") {
 		return template{}, InvalidTemplateError{tmpl: tmpl, msg: "no leading /"}

@@ -1,4 +1,4 @@
-// Package vpath resolves using http path and recognised versioned urls
+// Package vpath resolves using http path and recognized versioned urls
 package vpath
 
 import (

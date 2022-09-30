@@ -19,7 +19,7 @@ import (
 	"go-micro.dev/v4/selector"
 )
 
-// serveWebsocket will stream rpc back over websockets assuming json
+// serveWebsocket will stream rpc back over websockets assuming json.
 func serveWebsocket(ctx context.Context, w http.ResponseWriter, r *http.Request, service *router.Route, c client.Client) (err error) {
 	var op ws.OpCode
 
@@ -151,7 +151,7 @@ func serveWebsocket(ctx context.Context, w http.ResponseWriter, r *http.Request,
 	}
 }
 
-// writeLoop
+// writeLoop.
 func writeLoop(rw io.ReadWriter, stream client.Stream) error {
 	// close stream when done
 	defer stream.Close()

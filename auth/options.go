@@ -40,42 +40,42 @@ type Options struct {
 
 type Option func(o *Options)
 
-// Addrs is the auth addresses to use
+// Addrs is the auth addresses to use.
 func Addrs(addrs ...string) Option {
 	return func(o *Options) {
 		o.Addrs = addrs
 	}
 }
 
-// Namespace the service belongs to
+// Namespace the service belongs to.
 func Namespace(n string) Option {
 	return func(o *Options) {
 		o.Namespace = n
 	}
 }
 
-// PublicKey is the JWT public key
+// PublicKey is the JWT public key.
 func PublicKey(key string) Option {
 	return func(o *Options) {
 		o.PublicKey = key
 	}
 }
 
-// PrivateKey is the JWT private key
+// PrivateKey is the JWT private key.
 func PrivateKey(key string) Option {
 	return func(o *Options) {
 		o.PrivateKey = key
 	}
 }
 
-// WithLogger sets the underline logger
+// WithLogger sets the underline logger.
 func WithLogger(l logger.Logger) Option {
 	return func(o *Options) {
 		o.Logger = l
 	}
 }
 
-// Credentials sets the auth credentials
+// Credentials sets the auth credentials.
 func Credentials(id, secret string) Option {
 	return func(o *Options) {
 		o.ID = id
@@ -83,7 +83,7 @@ func Credentials(id, secret string) Option {
 	}
 }
 
-// ClientToken sets the auth token to use when making requests
+// ClientToken sets the auth token to use when making requests.
 func ClientToken(token *Token) Option {
 	return func(o *Options) {
 		o.Token = token
@@ -105,42 +105,42 @@ type GenerateOptions struct {
 
 type GenerateOption func(o *GenerateOptions)
 
-// WithSecret for the generated account
+// WithSecret for the generated account.
 func WithSecret(s string) GenerateOption {
 	return func(o *GenerateOptions) {
 		o.Secret = s
 	}
 }
 
-// WithType for the generated account
+// WithType for the generated account.
 func WithType(t string) GenerateOption {
 	return func(o *GenerateOptions) {
 		o.Type = t
 	}
 }
 
-// WithMetadata for the generated account
+// WithMetadata for the generated account.
 func WithMetadata(md map[string]string) GenerateOption {
 	return func(o *GenerateOptions) {
 		o.Metadata = md
 	}
 }
 
-// WithProvider for the generated account
+// WithProvider for the generated account.
 func WithProvider(p string) GenerateOption {
 	return func(o *GenerateOptions) {
 		o.Provider = p
 	}
 }
 
-// WithScopes for the generated account
+// WithScopes for the generated account.
 func WithScopes(s ...string) GenerateOption {
 	return func(o *GenerateOptions) {
 		o.Scopes = s
 	}
 }
 
-// NewGenerateOptions from a slice of options
+// NewGenerateOptions from a slice of options.
 func NewGenerateOptions(opts ...GenerateOption) GenerateOptions {
 	var options GenerateOptions
 	for _, o := range opts {
@@ -162,7 +162,7 @@ type TokenOptions struct {
 
 type TokenOption func(o *TokenOptions)
 
-// WithExpiry for the token
+// WithExpiry for the token.
 func WithExpiry(ex time.Duration) TokenOption {
 	return func(o *TokenOptions) {
 		o.Expiry = ex
@@ -182,14 +182,14 @@ func WithToken(rt string) TokenOption {
 	}
 }
 
-// NewTokenOptions from a slice of options
+// NewTokenOptions from a slice of options.
 func NewTokenOptions(opts ...TokenOption) TokenOptions {
 	var options TokenOptions
 	for _, o := range opts {
 		o(&options)
 	}
 
-	// set defualt expiry of token
+	// set default expiry of token
 	if options.Expiry == 0 {
 		options.Expiry = time.Minute
 	}

@@ -101,7 +101,7 @@ func testRequest(ctx context.Context, c client.Client, name string) error {
 	return nil
 }
 
-// TestService tests running and calling a service
+// TestService tests running and calling a service.
 func TestService(t *testing.T) {
 	// waitgroup for server start
 	var wg sync.WaitGroup
@@ -132,7 +132,6 @@ func TestService(t *testing.T) {
 }
 
 func benchmarkCustomListenService(b *testing.B, n int, name string) {
-
 	// create custom listen
 	customListen, err := net.Listen("tcp", server.DefaultAddress)
 	if err != nil {

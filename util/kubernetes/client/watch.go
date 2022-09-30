@@ -11,14 +11,14 @@ import (
 )
 
 const (
-	// EventTypes used
+	// EventTypes used.
 	Added    EventType = "ADDED"
 	Modified EventType = "MODIFIED"
 	Deleted  EventType = "DELETED"
 	Error    EventType = "ERROR"
 )
 
-// Watcher is used to watch for events
+// Watcher is used to watch for events.
 type Watcher interface {
 	// A channel of events
 	Chan() <-chan Event
@@ -35,7 +35,7 @@ type Event struct {
 	Object json.RawMessage `json:"object"`
 }
 
-// bodyWatcher scans the body of a request for chunks
+// bodyWatcher scans the body of a request for chunks.
 type bodyWatcher struct {
 	results chan Event
 	cancel  func()
@@ -44,12 +44,12 @@ type bodyWatcher struct {
 	req     *api.Request
 }
 
-// Changes returns the results channel
+// Changes returns the results channel.
 func (wr *bodyWatcher) Chan() <-chan Event {
 	return wr.results
 }
 
-// Stop cancels the request
+// Stop cancels the request.
 func (wr *bodyWatcher) Stop() {
 	select {
 	case <-wr.stop:
@@ -89,7 +89,7 @@ func (wr *bodyWatcher) stream() {
 }
 
 // newWatcher creates a k8s body watcher for
-// a given http request
+// a given http request.
 func newWatcher(req *api.Request) (Watcher, error) {
 	// set request context so we can cancel the request
 	ctx, cancel := context.WithCancel(context.Background())

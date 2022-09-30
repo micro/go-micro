@@ -11,7 +11,7 @@ import (
 	"go-micro.dev/v4/util/kubernetes/client"
 )
 
-// action to take on runtime service
+// action to take on runtime service.
 type action int
 
 type kubernetes struct {
@@ -28,7 +28,7 @@ type kubernetes struct {
 	namespaces []client.Namespace
 }
 
-// namespaceExists returns a boolean indicating if a namespace exists
+// namespaceExists returns a boolean indicating if a namespace exists.
 func (k *kubernetes) namespaceExists(name string) (bool, error) {
 	// populate the cache
 	if k.namespaces == nil {
@@ -50,7 +50,7 @@ func (k *kubernetes) namespaceExists(name string) (bool, error) {
 	return false, nil
 }
 
-// createNamespace creates a new k8s namespace
+// createNamespace creates a new k8s namespace.
 func (k *kubernetes) createNamespace(namespace string) error {
 	ns := client.Namespace{Metadata: &client.Metadata{Name: namespace}}
 	err := k.client.Create(&client.Resource{Kind: "namespace", Value: ns})
@@ -64,7 +64,7 @@ func (k *kubernetes) createNamespace(namespace string) error {
 }
 
 // getService queries kubernetes for micro service
-// NOTE: this function is not thread-safe
+// NOTE: this function is not thread-safe.
 func (k *kubernetes) getService(labels map[string]string, opts ...client.GetOption) ([]*service, error) {
 	// get the service status
 	serviceList := new(client.ServiceList)
@@ -231,7 +231,7 @@ func (k *kubernetes) getService(labels map[string]string, opts ...client.GetOpti
 	return services, nil
 }
 
-// run runs the runtime management loop
+// run runs the runtime management loop.
 func (k *kubernetes) run(events <-chan runtime.Event) {
 	t := time.NewTicker(time.Second * 10)
 	defer t.Stop()
@@ -308,7 +308,7 @@ func (k *kubernetes) run(events <-chan runtime.Event) {
 	}
 }
 
-// Init initializes runtime options
+// Init initializes runtime options.
 func (k *kubernetes) Init(opts ...runtime.Option) error {
 	k.Lock()
 	defer k.Unlock()
@@ -375,7 +375,7 @@ func (k *kubeStream) Stop() error {
 	return nil
 }
 
-// Creates a service
+// Creates a service.
 func (k *kubernetes) Create(s *runtime.Service, opts ...runtime.CreateOption) error {
 	k.Lock()
 	defer k.Unlock()
@@ -421,7 +421,7 @@ func (k *kubernetes) Create(s *runtime.Service, opts ...runtime.CreateOption) er
 	return service.Start(k.client, client.CreateNamespace(options.Namespace))
 }
 
-// Read returns all instances of given service
+// Read returns all instances of given service.
 func (k *kubernetes) Read(opts ...runtime.ReadOption) ([]*runtime.Service, error) {
 	k.Lock()
 	defer k.Unlock()
@@ -463,7 +463,7 @@ func (k *kubernetes) Read(opts ...runtime.ReadOption) ([]*runtime.Service, error
 	return services, nil
 }
 
-// Update the service in place
+// Update the service in place.
 func (k *kubernetes) Update(s *runtime.Service, opts ...runtime.UpdateOption) error {
 	options := runtime.UpdateOptions{
 		Namespace: client.DefaultNamespace,
@@ -515,7 +515,7 @@ func (k *kubernetes) Update(s *runtime.Service, opts ...runtime.UpdateOption) er
 	return nil
 }
 
-// Delete removes a service
+// Delete removes a service.
 func (k *kubernetes) Delete(s *runtime.Service, opts ...runtime.DeleteOption) error {
 	options := runtime.DeleteOptions{
 		Namespace: client.DefaultNamespace,
@@ -537,7 +537,7 @@ func (k *kubernetes) Delete(s *runtime.Service, opts ...runtime.DeleteOption) er
 	return service.Stop(k.client, client.DeleteNamespace(options.Namespace))
 }
 
-// Start starts the runtime
+// Start starts the runtime.
 func (k *kubernetes) Start() error {
 	k.Lock()
 	defer k.Unlock()
@@ -566,7 +566,7 @@ func (k *kubernetes) Start() error {
 	return nil
 }
 
-// Stop shuts down the runtime
+// Stop shuts down the runtime.
 func (k *kubernetes) Stop() error {
 	k.Lock()
 	defer k.Unlock()
@@ -591,12 +591,12 @@ func (k *kubernetes) Stop() error {
 	return nil
 }
 
-// String implements stringer interface
+// String implements stringer interface.
 func (k *kubernetes) String() string {
 	return "kubernetes"
 }
 
-// NewRuntime creates new kubernetes runtime
+// NewRuntime creates new kubernetes runtime.
 func NewRuntime(opts ...runtime.Option) runtime.Runtime {
 	// get default options
 	// Create labels with type "micro": "service"

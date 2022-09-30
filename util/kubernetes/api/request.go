@@ -40,7 +40,7 @@ type Params struct {
 	Additional    map[string]string
 }
 
-// verb sets method
+// verb sets method.
 func (r *Request) verb(method string) *Request {
 	r.method = method
 	return r
@@ -50,32 +50,32 @@ func (r *Request) Context(ctx context.Context) {
 	r.context = ctx
 }
 
-// Get request
+// Get request.
 func (r *Request) Get() *Request {
 	return r.verb("GET")
 }
 
-// Post request
+// Post request.
 func (r *Request) Post() *Request {
 	return r.verb("POST")
 }
 
-// Put request
+// Put request.
 func (r *Request) Put() *Request {
 	return r.verb("PUT")
 }
 
-// Patch request
+// Patch request.
 func (r *Request) Patch() *Request {
 	return r.verb("PATCH")
 }
 
-// Delete request
+// Delete request.
 func (r *Request) Delete() *Request {
 	return r.verb("DELETE")
 }
 
-// Namespace is to set the namespace to operate on
+// Namespace is to set the namespace to operate on.
 func (r *Request) Namespace(s string) *Request {
 	if len(s) > 0 {
 		r.namespace = s
@@ -84,26 +84,26 @@ func (r *Request) Namespace(s string) *Request {
 }
 
 // Resource is the type of resource the operation is
-// for, such as "services", "endpoints" or "pods"
+// for, such as "services", "endpoints" or "pods".
 func (r *Request) Resource(s string) *Request {
 	r.resource = s
 	return r
 }
 
 // SubResource sets a subresource on a resource,
-// e.g. pods/log for pod logs
+// e.g. pods/log for pod logs.
 func (r *Request) SubResource(s string) *Request {
 	r.subResource = &s
 	return r
 }
 
-// Name is for targeting a specific resource by id
+// Name is for targeting a specific resource by id.
 func (r *Request) Name(s string) *Request {
 	r.resourceName = &s
 	return r
 }
 
-// Body pass in a body to set, this is for POST, PUT and PATCH requests
+// Body pass in a body to set, this is for POST, PUT and PATCH requests.
 func (r *Request) Body(in interface{}) *Request {
 	b := new(bytes.Buffer)
 	// if we're not sending YAML request, we encode to JSON
@@ -132,7 +132,7 @@ func (r *Request) Body(in interface{}) *Request {
 	return r
 }
 
-// Params isused to set paramters on a request
+
 func (r *Request) Params(p *Params) *Request {
 	for k, v := range p.LabelSelector {
 		// create new key=value pair
@@ -152,13 +152,13 @@ func (r *Request) Params(p *Params) *Request {
 }
 
 // SetHeader sets a header on a request with
-// a `key` and `value`
+// a `key` and `value`.
 func (r *Request) SetHeader(key, value string) *Request {
 	r.header.Add(key, value)
 	return r
 }
 
-// request builds the http.Request from the options
+// request builds the http.Request from the options.
 func (r *Request) request() (*http.Request, error) {
 	var url string
 	switch r.resource {
@@ -204,7 +204,7 @@ func (r *Request) request() (*http.Request, error) {
 	return req, nil
 }
 
-// Do builds and triggers the request
+// Do builds and triggers the request.
 func (r *Request) Do() *Response {
 	if r.err != nil {
 		return &Response{
@@ -231,7 +231,7 @@ func (r *Request) Do() *Response {
 	return newResponse(res, err)
 }
 
-// Raw performs a Raw HTTP request to the Kubernetes API
+// Raw performs a Raw HTTP request to the Kubernetes API.
 func (r *Request) Raw() (*http.Response, error) {
 	req, err := r.request()
 	if err != nil {
@@ -253,7 +253,7 @@ type Options struct {
 	Client      *http.Client
 }
 
-// NewRequest creates a k8s api request
+// NewRequest creates a k8s api request.
 func NewRequest(opts *Options) *Request {
 	req := &Request{
 		header:    make(http.Header),

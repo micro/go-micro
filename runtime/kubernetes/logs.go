@@ -107,7 +107,7 @@ func (k *klog) Read() ([]runtime.LogRecord, error) {
 	for _, pod := range pods {
 		logParams := make(map[string]string)
 
-		//if !opts.Since.Equal(time.Time{}) {
+		// if !opts.Since.Equal(time.Time{}) {
 		//	logParams["sinceSeconds"] = strconv.Itoa(int(time.Since(opts.Since).Seconds()))
 		//}
 
@@ -176,7 +176,7 @@ func (k *klog) Stream() (runtime.LogStream, error) {
 	return stream, nil
 }
 
-// NewLog returns a configured Kubernetes logger
+// NewLog returns a configured Kubernetes logger.
 func newLog(c client.Client, serviceName string, opts ...runtime.LogsOption) *klog {
 	options := runtime.LogsOptions{
 		Namespace: client.DefaultNamespace,

@@ -11,7 +11,7 @@ import (
 	nlog "go-micro.dev/v4/logger"
 )
 
-// level is a log level
+// level is a log level.
 type Level int32
 
 const (
@@ -28,13 +28,13 @@ type elog struct {
 }
 
 var (
-	// the local logger
+	// the local logger.
 	logger dlog.Log = &elog{}
 
-	// default log level is info
+	// default log level is info.
 	level = LevelInfo
 
-	// prefix for all messages
+	// prefix for all messages.
 	prefix string
 )
 
@@ -104,7 +104,7 @@ func (el *elog) Stream() (dlog.Stream, error) {
 	return el.dlog.Stream()
 }
 
-// Log makes use of github.com/micro/debug/log
+// Log makes use of github.com/micro/debug/log.
 func Log(v ...interface{}) {
 	if len(prefix) > 0 {
 		v = append([]interface{}{prefix, " "}, v...)
@@ -112,7 +112,7 @@ func Log(v ...interface{}) {
 	nlog.DefaultLogger.Log(levelToLevel(level), v)
 }
 
-// Logf makes use of github.com/micro/debug/log
+// Logf makes use of github.com/micro/debug/log.
 func Logf(format string, v ...interface{}) {
 	if len(prefix) > 0 {
 		format = prefix + " " + format
@@ -120,7 +120,7 @@ func Logf(format string, v ...interface{}) {
 	nlog.DefaultLogger.Logf(levelToLevel(level), format, v)
 }
 
-// WithLevel logs with the level specified
+// WithLevel logs with the level specified.
 func WithLevel(l Level, v ...interface{}) {
 	if l > level {
 		return
@@ -128,7 +128,7 @@ func WithLevel(l Level, v ...interface{}) {
 	Log(v...)
 }
 
-// WithLevel logs with the level specified
+// WithLevel logs with the level specified.
 func WithLevelf(l Level, format string, v ...interface{}) {
 	if l > level {
 		return
@@ -136,92 +136,92 @@ func WithLevelf(l Level, format string, v ...interface{}) {
 	Logf(format, v...)
 }
 
-// Trace provides trace level logging
+// Trace provides trace level logging.
 func Trace(v ...interface{}) {
 	WithLevel(LevelTrace, v...)
 }
 
-// Tracef provides trace level logging
+// Tracef provides trace level logging.
 func Tracef(format string, v ...interface{}) {
 	WithLevelf(LevelTrace, format, v...)
 }
 
-// Debug provides debug level logging
+// Debug provides debug level logging.
 func Debug(v ...interface{}) {
 	WithLevel(LevelDebug, v...)
 }
 
-// Debugf provides debug level logging
+// Debugf provides debug level logging.
 func Debugf(format string, v ...interface{}) {
 	WithLevelf(LevelDebug, format, v...)
 }
 
-// Warn provides warn level logging
+// Warn provides warn level logging.
 func Warn(v ...interface{}) {
 	WithLevel(LevelWarn, v...)
 }
 
-// Warnf provides warn level logging
+// Warnf provides warn level logging.
 func Warnf(format string, v ...interface{}) {
 	WithLevelf(LevelWarn, format, v...)
 }
 
-// Info provides info level logging
+// Info provides info level logging.
 func Info(v ...interface{}) {
 	WithLevel(LevelInfo, v...)
 }
 
-// Infof provides info level logging
+// Infof provides info level logging.
 func Infof(format string, v ...interface{}) {
 	WithLevelf(LevelInfo, format, v...)
 }
 
-// Error provides warn level logging
+// Error provides warn level logging.
 func Error(v ...interface{}) {
 	WithLevel(LevelError, v...)
 }
 
-// Errorf provides warn level logging
+// Errorf provides warn level logging.
 func Errorf(format string, v ...interface{}) {
 	WithLevelf(LevelError, format, v...)
 }
 
-// Fatal logs with Log and then exits with os.Exit(1)
+// Fatal logs with Log and then exits with os.Exit(1).
 func Fatal(v ...interface{}) {
 	WithLevel(LevelFatal, v...)
 }
 
-// Fatalf logs with Logf and then exits with os.Exit(1)
+// Fatalf logs with Logf and then exits with os.Exit(1).
 func Fatalf(format string, v ...interface{}) {
 	WithLevelf(LevelFatal, format, v...)
 }
 
-// SetLogger sets the local logger
+// SetLogger sets the local logger.
 func SetLogger(l dlog.Log) {
 	logger = l
 }
 
-// GetLogger returns the local logger
+// GetLogger returns the local logger.
 func GetLogger() dlog.Log {
 	return logger
 }
 
-// SetLevel sets the log level
+// SetLevel sets the log level.
 func SetLevel(l Level) {
 	atomic.StoreInt32((*int32)(&level), int32(l))
 }
 
-// GetLevel returns the current level
+// GetLevel returns the current level.
 func GetLevel() Level {
 	return level
 }
 
-// Set a prefix for the logger
+// Set a prefix for the logger.
 func SetPrefix(p string) {
 	prefix = p
 }
 
-// Set service name
+// Set service name.
 func Name(name string) {
 	prefix = fmt.Sprintf("[%s]", name)
 }

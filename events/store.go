@@ -12,7 +12,7 @@ import (
 
 const joinKey = "/"
 
-// NewStore returns an initialized events store
+// NewStore returns an initialized events store.
 func NewStore(opts ...StoreOption) Store {
 	// parse the options
 	var options StoreOptions
@@ -41,7 +41,7 @@ type evStore struct {
 	store store.Store
 }
 
-// Read events for a topic
+// Read events for a topic.
 func (s *evStore) Read(topic string, opts ...ReadOption) ([]*Event, error) {
 	// validate the topic
 	if len(topic) == 0 {
@@ -80,7 +80,7 @@ func (s *evStore) Read(topic string, opts ...ReadOption) ([]*Event, error) {
 	return result, nil
 }
 
-// Write an event to the store
+// Write an event to the store.
 func (s *evStore) Write(event *Event, opts ...WriteOption) error {
 	// parse the options
 	options := WriteOptions{
@@ -124,7 +124,7 @@ func (s *evStore) backupLoop() {
 	}
 }
 
-// Backup is an interface for snapshotting the events store to long term storage
+// Backup is an interface for snapshotting the events store to long term storage.
 type Backup interface {
 	Snapshot(st store.Store) error
 }

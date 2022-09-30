@@ -36,7 +36,7 @@ func (md Metadata) Delete(key string) {
 	delete(md, strings.Title(key))
 }
 
-// Copy makes a copy of the metadata
+// Copy makes a copy of the metadata.
 func Copy(md Metadata) Metadata {
 	cmd := make(Metadata, len(md))
 	for k, v := range md {
@@ -45,12 +45,12 @@ func Copy(md Metadata) Metadata {
 	return cmd
 }
 
-// Delete key from metadata
+// Delete key from metadata.
 func Delete(ctx context.Context, k string) context.Context {
 	return Set(ctx, k, "")
 }
 
-// Set add key with val to metadata
+// Set add key with val to metadata.
 func Set(ctx context.Context, k, v string) context.Context {
 	md, ok := FromContext(ctx)
 	if !ok {
@@ -64,7 +64,7 @@ func Set(ctx context.Context, k, v string) context.Context {
 	return context.WithValue(ctx, metadataKey{}, md)
 }
 
-// Get returns a single value from metadata in the context
+// Get returns a single value from metadata in the context.
 func Get(ctx context.Context, key string) (string, bool) {
 	md, ok := FromContext(ctx)
 	if !ok {
@@ -82,7 +82,7 @@ func Get(ctx context.Context, key string) (string, bool) {
 	return val, ok
 }
 
-// FromContext returns metadata from the given context
+// FromContext returns metadata from the given context.
 func FromContext(ctx context.Context) (Metadata, bool) {
 	md, ok := ctx.Value(metadataKey{}).(Metadata)
 	if !ok {
@@ -98,12 +98,12 @@ func FromContext(ctx context.Context) (Metadata, bool) {
 	return newMD, ok
 }
 
-// NewContext creates a new context with the given metadata
+// NewContext creates a new context with the given metadata.
 func NewContext(ctx context.Context, md Metadata) context.Context {
 	return context.WithValue(ctx, metadataKey{}, md)
 }
 
-// MergeContext merges metadata to existing metadata, overwriting if specified
+// MergeContext merges metadata to existing metadata, overwriting if specified.
 func MergeContext(ctx context.Context, patchMd Metadata, overwrite bool) context.Context {
 	if ctx == nil {
 		ctx = context.Background()

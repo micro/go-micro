@@ -49,12 +49,10 @@ func TestExtractor(t *testing.T) {
 			if ip == nil {
 				t.Error("Unexpected nil IP")
 			}
-
 		} else if addr != d.expect {
 			t.Errorf("Expected %s got %s", d.expect, addr)
 		}
 	}
-
 }
 
 func TestAppendPrivateBlocks(t *testing.T) {

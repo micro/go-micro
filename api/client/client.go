@@ -15,11 +15,11 @@ import (
 )
 
 const (
-	// local address for api
+	// local address for api.
 	localAddress = "http://localhost:8080"
 )
 
-// Options of the Client
+// Options of the Client.
 type Options struct {
 	// Token for authentication
 	Token string
@@ -33,7 +33,7 @@ type Options struct {
 	Timeout time.Duration
 }
 
-// Request is the request of the generic `api-client` call
+// Request is the request of the generic `api-client` call.
 type Request struct {
 	// eg. "go.micro.srv.greeter"
 	Service string `json:"service"`
@@ -55,7 +55,7 @@ type Response struct {
 	Status string `json:"status"`
 }
 
-// Client enables generic calls to micro
+// Client enables generic calls to micro.
 type Client struct {
 	options Options
 }
@@ -65,7 +65,7 @@ type Stream struct {
 	service, endpoint string
 }
 
-// NewClient returns a generic micro client that connects to live by default
+// NewClient returns a generic micro client that connects to live by default.
 func NewClient(options *Options) *Client {
 	ret := new(Client)
 	ret.options = Options{
@@ -93,17 +93,17 @@ func NewClient(options *Options) *Client {
 	return ret
 }
 
-// SetToken sets the api auth token
+// SetToken sets the api auth token.
 func (client *Client) SetToken(t string) {
 	client.options.Token = t
 }
 
-// SetTimeout sets the http client's timeout
+// SetTimeout sets the http client's timeout.
 func (client *Client) SetTimeout(d time.Duration) {
 	client.options.Timeout = d
 }
 
-// Call enables you to access any endpoint of any service on Micro
+// Call enables you to access any endpoint of any service on Micro.
 func (client *Client) Call(service, endpoint string, request, response interface{}) error {
 	// example curl: curl -XPOST -d '{"service": "go.micro.srv.greeter", "endpoint": "Say.Hello"}'
 	//  -H 'Content-Type: application/json' http://localhost:8080/client {"body":"eyJtc2ciOiJIZWxsbyAifQ=="}
@@ -153,7 +153,7 @@ func (client *Client) Call(service, endpoint string, request, response interface
 	return unmarshalResponse(body, response)
 }
 
-// Stream enables the ability to stream via websockets
+// Stream enables the ability to stream via websockets.
 func (client *Client) Stream(service, endpoint string, request interface{}) (*Stream, error) {
 	b, err := marshalRequest(service, endpoint, request)
 	if err != nil {

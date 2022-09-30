@@ -11,7 +11,7 @@ import (
 	"text/template"
 )
 
-// renderTemplateFile renders template for a given resource into writer w
+// renderTemplateFile renders template for a given resource into writer w.
 func renderTemplate(resource string, w io.Writer, data interface{}) error {
 	t := template.Must(template.New("kubernetes").Parse(templates[resource]))
 
@@ -26,7 +26,7 @@ func renderTemplate(resource string, w io.Writer, data interface{}) error {
 // https://github.com/kubernetes/kubernetes/blob/7a725418af4661067b56506faabc2d44c6d7703a/pkg/util/crypto/crypto.go
 
 // CertPoolFromFile returns an x509.CertPool containing the certificates in the given PEM-encoded file.
-// Returns an error if the file could not be read, a certificate could not be parsed, or if the file does not contain any certificates
+// Returns an error if the file could not be read, a certificate could not be parsed, or if the file does not contain any certificates.
 func CertPoolFromFile(filename string) (*x509.CertPool, error) {
 	certs, err := certificatesFromFile(filename)
 	if err != nil {
@@ -40,7 +40,7 @@ func CertPoolFromFile(filename string) (*x509.CertPool, error) {
 }
 
 // certificatesFromFile returns the x509.Certificates contained in the given PEM-encoded file.
-// Returns an error if the file could not be read, a certificate could not be parsed, or if the file does not contain any certificates
+// Returns an error if the file could not be read, a certificate could not be parsed, or if the file does not contain any certificates.
 func certificatesFromFile(file string) ([]*x509.Certificate, error) {
 	if len(file) == 0 {
 		return nil, errors.New("error reading certificates from an empty filename")
@@ -57,7 +57,7 @@ func certificatesFromFile(file string) ([]*x509.Certificate, error) {
 }
 
 // CertsFromPEM returns the x509.Certificates contained in the given PEM-encoded byte array
-// Returns an error if a certificate could not be parsed, or if the data does not contain any certificates
+// Returns an error if a certificate could not be parsed, or if the data does not contain any certificates.
 func CertsFromPEM(pemCerts []byte) ([]*x509.Certificate, error) {
 	ok := false
 	certs := []*x509.Certificate{}
@@ -87,7 +87,7 @@ func CertsFromPEM(pemCerts []byte) ([]*x509.Certificate, error) {
 	return certs, nil
 }
 
-// Format is used to format a string value into a k8s valid name
+// Format is used to format a string value into a k8s valid name.
 func Format(v string) string {
 	// to lower case
 	v = strings.ToLower(v)

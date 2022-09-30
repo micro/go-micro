@@ -130,7 +130,7 @@ func (s *rpcServer) HandleEvent(e broker.Event) error {
 	return r.ProcessMessage(ctx, rpcMsg)
 }
 
-// ServeConn serves a single connection
+// ServeConn serves a single connection.
 func (s *rpcServer) ServeConn(sock transport.Socket) {
 	logger := s.opts.Logger
 	// global error tracking

@@ -17,7 +17,7 @@ func init() {
 	}
 }
 
-// AppendPrivateBlocks append private network blocks
+// AppendPrivateBlocks append private network blocks.
 func AppendPrivateBlocks(bs ...string) {
 	for _, b := range bs {
 		if _, block, err := net.ParseCIDR(b); err == nil {
@@ -36,7 +36,7 @@ func isPrivateIP(ipAddr string) bool {
 	return false
 }
 
-// IsLocal tells us whether an ip is local
+// IsLocal tells us whether an ip is local.
 func IsLocal(addr string) bool {
 	// extract the host
 	host, _, err := net.SplitHostPort(addr)
@@ -59,7 +59,7 @@ func IsLocal(addr string) bool {
 	return false
 }
 
-// Extract returns a real ip
+// Extract returns a real ip.
 func Extract(addr string) (string, error) {
 	// if addr specified then its returned
 	if len(addr) > 0 && (addr != "0.0.0.0" && addr != "[::]" && addr != "::") {
@@ -71,7 +71,7 @@ func Extract(addr string) (string, error) {
 		return "", fmt.Errorf("Failed to get interfaces! Err: %v", err)
 	}
 
-	//nolint:prealloc
+	
 	var addrs []net.Addr
 	var loAddrs []net.Addr
 	for _, iface := range ifaces {
@@ -132,7 +132,7 @@ func Extract(addr string) (string, error) {
 	return "", fmt.Errorf("No IP address found, and explicit IP not provided")
 }
 
-// IPs returns all known ips
+// IPs returns all known ips.
 func IPs() []string {
 	ifaces, err := net.Interfaces()
 	if err != nil {

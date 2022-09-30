@@ -13,7 +13,7 @@ import (
 	"go-micro.dev/v4/store"
 )
 
-// NewStream returns an initialized memory stream
+// NewStream returns an initialized memory stream.
 func NewStream(opts ...Option) (Stream, error) {
 	// parse the options
 	options := NewOptions(opts...)
@@ -143,7 +143,7 @@ func (m *mem) Consume(topic string, opts ...ConsumeOption) (<-chan Event, error)
 }
 
 // lookupPreviousEvents finds events for a subscriber which occurred before a given time and sends
-// them into the subscribers channel
+// them into the subscribers channel.
 func (m *mem) lookupPreviousEvents(sub *subscriber, startTime time.Time) {
 	// lookup all events which match the topic (a blank topic will return all results)
 	recs, err := m.store.Read(sub.Topic+"/", store.ReadPrefix())

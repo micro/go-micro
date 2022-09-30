@@ -27,7 +27,7 @@ import (
 	mls "go-micro.dev/v4/util/tls"
 )
 
-// HTTP Broker is a point to point async broker
+// HTTP Broker is a point to point async broker.
 type httpBroker struct {
 	id      string
 	address string
@@ -315,7 +315,7 @@ func (h *httpBroker) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 
 	topic := m.Header["Micro-Topic"]
-	//delete(m.Header, ":topic")
+	// delete(m.Header, ":topic")
 
 	if len(topic) == 0 {
 		errr := merr.InternalServerError("go.micro.broker", "Topic not found")
@@ -703,7 +703,7 @@ func (h *httpBroker) String() string {
 	return "http"
 }
 
-// NewBroker returns a new http broker
+// NewBroker returns a new http broker.
 func NewBroker(opts ...Option) Broker {
 	return newHttpBroker(opts...)
 }

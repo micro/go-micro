@@ -49,7 +49,7 @@ type patternOptions struct {
 // PatternOpt is an option for creating Patterns.
 type PatternOpt func(*patternOptions)
 
-// Logger sets the logger
+// Logger sets the logger.
 func PatternLogger(l log.Logger) PatternOpt {
 	return func(po *patternOptions) {
 		po.logger = l

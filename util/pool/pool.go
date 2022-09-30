@@ -7,7 +7,7 @@ import (
 	"go-micro.dev/v4/transport"
 )
 
-// Pool is an interface for connection pooling
+// Pool is an interface for connection pooling.
 type Pool interface {
 	// Close the pool
 	Close() error

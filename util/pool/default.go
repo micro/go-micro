@@ -44,7 +44,7 @@ func (p *pool) Close() error {
 	return nil
 }
 
-// NoOp the Close since we manage it
+// NoOp the Close since we manage it.
 func (p *poolConn) Close() error {
 	return nil
 }

@@ -13,9 +13,9 @@ import (
 )
 
 // The gateway interface provides a way to
-// create composable API gateways
+// create composable API gateways.
 type Api interface {
-	// Initialise options
+	// Initialize options
 	Init(...Option) error
 	// Get the options
 	Options() Options
@@ -38,7 +38,7 @@ type Options struct {
 
 type Option func(*Options) error
 
-// Endpoint is a mapping between an RPC method and HTTP endpoint
+// Endpoint is a mapping between an RPC method and HTTP endpoint.
 type Endpoint struct {
 	// RPC Method e.g. Greeter.Hello
 	Name string
@@ -56,7 +56,7 @@ type Endpoint struct {
 	Stream bool
 }
 
-// Service represents an API service
+// Service represents an API service.
 type Service struct {
 	// Name of service
 	Name string
@@ -82,7 +82,7 @@ func slice(s string) []string {
 	return sl
 }
 
-// Encode encodes an endpoint to endpoint metadata
+// Encode encodes an endpoint to endpoint metadata.
 func Encode(e *Endpoint) map[string]string {
 	if e == nil {
 		return nil
@@ -109,7 +109,7 @@ func Encode(e *Endpoint) map[string]string {
 	return ep
 }
 
-// Decode decodes endpoint metadata into an endpoint
+// Decode decodes endpoint metadata into an endpoint.
 func Decode(e map[string]string) *Endpoint {
 	if e == nil {
 		return nil
@@ -125,7 +125,7 @@ func Decode(e map[string]string) *Endpoint {
 	}
 }
 
-// Validate validates an endpoint to guarantee it won't blow up when being served
+// Validate validates an endpoint to guarantee it won't blow up when being served.
 func Validate(e *Endpoint) error {
 	if e == nil {
 		return errors.New("endpoint is nil")
@@ -172,7 +172,7 @@ func WithEndpoint(e *Endpoint) server.HandlerOption {
 	return server.EndpointMetadata(e.Name, Encode(e))
 }
 
-// NewApi returns a new api gateway
+// NewApi returns a new api gateway.
 func NewApi(opts ...Option) Api {
 	return newApi(opts...)
 }

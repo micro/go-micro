@@ -22,7 +22,7 @@ import (
 )
 
 var (
-	// use a .micro domain rather than .local
+	// use a .micro domain rather than .local.
 	mdnsDomain = "micro"
 )
 
@@ -517,7 +517,6 @@ func (m *mdnsRegistry) Watch(opts ...WatchOption) (Watcher, error) {
 						m.mtx.RUnlock()
 					}
 				}
-
 			}()
 
 			// start listening, blocking call
@@ -614,7 +613,7 @@ func (m *mdnsWatcher) Stop() {
 	}
 }
 
-// NewRegistry returns a new default registry which is mdns
+// NewRegistry returns a new default registry which is mdns.
 func NewRegistry(opts ...Option) Registry {
 	return newRegistry(opts...)
 }

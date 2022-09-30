@@ -159,7 +159,7 @@ func (c *config) Scan(v interface{}) error {
 	return c.vals.Scan(v)
 }
 
-// sync loads all the sources, calls the parser and updates the config
+// sync loads all the sources, calls the parser and updates the config.
 func (c *config) Sync() error {
 	if err := c.opts.Loader.Sync(); err != nil {
 		return err

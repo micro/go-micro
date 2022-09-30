@@ -75,7 +75,7 @@ func (c *cliSource) Watch() (source.Watcher, error) {
 	return source.NewNoopWatcher()
 }
 
-// Write is unsupported
+// Write is unsupported.
 func (c *cliSource) Write(cs *source.ChangeSet) error {
 	return nil
 }

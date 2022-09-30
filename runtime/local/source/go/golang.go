@@ -41,7 +41,7 @@ func (g *Source) Fetch(url string) (*source.Repository, error) {
 	}, nil
 }
 
-// Commit is not yet supported
+// Commit is not yet supported.
 func (g *Source) Commit(r *source.Repository) error {
 	return nil
 }
@@ -50,7 +50,7 @@ func (g *Source) String() string {
 	return "golang"
 }
 
-// whichGo locates the go command
+// whichGo locates the go command.
 func whichGo() string {
 	// check GOROOT
 	if gr := os.Getenv("GOROOT"); len(gr) > 0 {

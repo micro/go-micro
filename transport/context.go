@@ -6,7 +6,7 @@ import (
 
 type netListener struct{}
 
-// getNetListener Get net.Listener from ListenOptions
+// getNetListener Get net.Listener from ListenOptions.
 func getNetListener(o *ListenOptions) net.Listener {
 	if o.Context == nil {
 		return nil

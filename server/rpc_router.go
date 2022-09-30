@@ -81,7 +81,7 @@ type router struct {
 	subscribers map[string][]*subscriber
 }
 
-// rpcRouter encapsulates functions that become a server.Router
+// rpcRouter encapsulates functions that become a server.Router.
 type rpcRouter struct {
 	h func(context.Context, Request, interface{}) error
 	m func(context.Context, Message) error
@@ -570,7 +570,7 @@ func (router *router) ProcessMessage(ctx context.Context, msg Message) (err erro
 				return err
 			}
 
-			// create the handler which will honour the SubscriberFunc type
+			// create the handler which will honor the SubscriberFunc type
 			fn := func(ctx context.Context, msg Message) error {
 				var vals []reflect.Value
 				if sub.typ.Kind() != reflect.Func {

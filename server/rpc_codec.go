@@ -49,7 +49,7 @@ var (
 		"application/octet-stream": raw.NewCodec,
 	}
 
-	// TODO: remove legacy codec list
+	// TODO: remove legacy codec list.
 	defaultCodecs = map[string]codec.NewCodec{
 		"application/json":         jsonrpc.NewCodec,
 		"application/json-rpc":     jsonrpc.NewCodec,
@@ -58,7 +58,7 @@ var (
 		"application/octet-stream": protorpc.NewCodec,
 	}
 
-	// the local buffer pool
+	// the local buffer pool.
 	bufferPool = bpool.NewSizedBufferPool(32, 1)
 )
 
@@ -122,7 +122,7 @@ func setHeaders(m, r *codec.Message) {
 	set("Micro-Error", r.Error)
 }
 
-// setupProtocol sets up the old protocol
+// setupProtocol sets up the old protocol.
 func setupProtocol(msg *transport.Message) codec.NewCodec {
 	service := getHeader("Micro-Service", msg.Header)
 	method := getHeader("Micro-Method", msg.Header)

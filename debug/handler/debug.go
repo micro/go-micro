@@ -13,7 +13,7 @@ import (
 	"go-micro.dev/v4/server"
 )
 
-// NewHandler returns an instance of the Debug Handler
+// NewHandler returns an instance of the Debug Handler.
 func NewHandler(c client.Client) *Debug {
 	return &Debug{
 		log:   log.DefaultLog,
@@ -23,7 +23,7 @@ func NewHandler(c client.Client) *Debug {
 }
 
 type Debug struct {
-	// must honour the debug handler
+	// must honor the debug handler
 	proto.DebugHandler
 	// the logger for retrieving logs
 	log log.Log

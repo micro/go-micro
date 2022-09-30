@@ -138,7 +138,7 @@ func queryToMap(param string) (map[string]interface{}, error) {
 // buildNewKey will take something like:
 // origKey = "bar[one][two]"
 // pieces = [bar one two ]
-// and return "one[two]"
+// and return "one[two]".
 func buildNewKey(origKey string) string {
 	pieces := bracketSplitter.Split(origKey, -1)
 	ret := origKey[len(pieces[0])+1:]

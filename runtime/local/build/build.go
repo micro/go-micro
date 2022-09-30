@@ -5,7 +5,7 @@ import (
 	"go-micro.dev/v4/runtime/local/source"
 )
 
-// Builder builds binaries
+// Builder builds binaries.
 type Builder interface {
 	// Build builds a package
 	Build(*Source) (*Package, error)
@@ -13,7 +13,7 @@ type Builder interface {
 	Clean(*Package) error
 }
 
-// Source is the source of a build
+// Source is the source of a build.
 type Source struct {
 	// Language is the language of code
 	Language string
@@ -21,7 +21,7 @@ type Source struct {
 	Repository *source.Repository
 }
 
-// Package is micro service package
+// Package is micro service package.
 type Package struct {
 	// Name of the binary
 	Name string

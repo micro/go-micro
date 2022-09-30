@@ -34,14 +34,14 @@ const (
 )
 
 var (
-	// supported json codecs
+	// supported json codecs.
 	jsonCodecs = []string{
 		"application/grpc+json",
 		"application/json",
 		"application/json-rpc",
 	}
 
-	// support proto codecs
+	// support proto codecs.
 	protoCodecs = []string{
 		"application/grpc",
 		"application/grpc+proto",
@@ -66,7 +66,7 @@ func (b *buffer) Write(_ []byte) (int, error) {
 	return 0, nil
 }
 
-// strategy is a hack for selection
+// strategy is a hack for selection.
 func strategy(services []*registry.Service) selector.Strategy {
 	return func(_ []*registry.Service) selector.Next {
 		// ignore input to this function, use services above
@@ -141,7 +141,7 @@ func (h *rpcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if isStream(r, service) {
 		// drop older context as it can have timeouts and create new
 		//		md, _ := metadata.FromContext(cx)
-		//serveWebsocket(context.TODO(), w, r, service, c)
+		// serveWebsocket(context.TODO(), w, r, service, c)
 		if err := serveWebsocket(cx, w, r, service, c); err != nil {
 			logger.Log(log.ErrorLevel, err)
 		}
@@ -260,7 +260,7 @@ func hasCodec(ct string, codecs []string) bool {
 
 // requestPayload takes a *http.Request.
 // If the request is a GET the query string parameters are extracted and marshaled to JSON and the raw bytes are returned.
-// If the request method is a POST the request body is read and returned
+// If the request method is a POST the request body is read and returned.
 func requestPayload(r *http.Request) ([]byte, error) {
 	var err error
 
@@ -430,7 +430,7 @@ func requestPayload(r *http.Request) ([]byte, error) {
 			if jsonbody != nil {
 				dstmap[ps[0]] = jsonbody
 			} else {
-				// old unexpected behaviour
+				// old unexpected behavior
 				dstmap[ps[0]] = bodybuf
 			}
 		} else {
@@ -438,7 +438,7 @@ func requestPayload(r *http.Request) ([]byte, error) {
 			if jsonbody != nil {
 				em[ps[len(ps)-1]] = jsonbody
 			} else {
-				// old unexpected behaviour
+				// old unexpected behavior
 				em[ps[len(ps)-1]] = bodybuf
 			}
 			for i := len(ps) - 2; i > 0; i-- {
@@ -460,7 +460,6 @@ func requestPayload(r *http.Request) ([]byte, error) {
 
 		//fallback to previous unknown behaviour
 		return bodybuf, nil
-
 	}
 
 	return []byte{}, nil

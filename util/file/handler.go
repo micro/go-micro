@@ -14,7 +14,7 @@ import (
 	proto "go-micro.dev/v4/util/file/proto"
 )
 
-// NewHandler is a handler that can be registered with a micro Server
+// NewHandler is a handler that can be registered with a micro Server.
 func NewHandler(readDir string) proto.FileHandler {
 	return &handler{
 		readDir: readDir,
@@ -25,7 +25,7 @@ func NewHandler(readDir string) proto.FileHandler {
 	}
 }
 
-// RegisterHandler is a convenience method for registering a handler
+// RegisterHandler is a convenience method for registering a handler.
 func RegisterHandler(s server.Server, readDir string) {
 	proto.RegisterFileHandler(s, NewHandler(readDir))
 }

@@ -13,17 +13,17 @@ import (
 	log "go-micro.dev/v4/logger"
 )
 
-// autoCertACME is the ACME provider from golang.org/x/crypto/acme/autocert
+// autoCertACME is the ACME provider from golang.org/x/crypto/acme/autocert.
 type autocertProvider struct {
 	logger log.Logger
 }
 
-// Listen implements acme.Provider
+// Listen implements acme.Provider.
 func (a *autocertProvider) Listen(hosts ...string) (net.Listener, error) {
 	return autocert.NewListener(hosts...), nil
 }
 
-// TLSConfig returns a new tls config
+// TLSConfig returns a new tls config.
 func (a *autocertProvider) TLSConfig(hosts ...string) (*tls.Config, error) {
 	logger := log.LoggerOrDefault(a.logger)
 	// create a new manager
@@ -42,7 +42,7 @@ func (a *autocertProvider) TLSConfig(hosts ...string) (*tls.Config, error) {
 	return m.TLSConfig(), nil
 }
 
-// New returns an autocert acme.Provider
+// New returns an autocert acme.Provider.
 func NewProvider() acme.Provider {
 	return &autocertProvider{}
 }

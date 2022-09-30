@@ -43,7 +43,7 @@ func (f *fromServiceWrapper) Publish(ctx context.Context, p client.Message, opts
 	return f.Client.Publish(ctx, p, opts...)
 }
 
-// FromService wraps a client to inject service and auth metadata
+// FromService wraps a client to inject service and auth metadata.
 func FromService(name string, c client.Client) client.Client {
 	return &fromServiceWrapper{
 		c,
@@ -53,7 +53,7 @@ func FromService(name string, c client.Client) client.Client {
 	}
 }
 
-// HandlerStats wraps a server handler to generate request/error stats
+// HandlerStats wraps a server handler to generate request/error stats.
 func HandlerStats(stats stats.Stats) server.HandlerWrapper {
 	// return a handler wrapper
 	return func(h server.HandlerFunc) server.HandlerFunc {
@@ -91,7 +91,7 @@ func (c *traceWrapper) Call(ctx context.Context, req client.Request, rsp interfa
 	return err
 }
 
-// TraceCall is a call tracing wrapper
+// TraceCall is a call tracing wrapper.
 func TraceCall(name string, t trace.Tracer, c client.Client) client.Client {
 	return &traceWrapper{
 		name:   name,
@@ -100,7 +100,7 @@ func TraceCall(name string, t trace.Tracer, c client.Client) client.Client {
 	}
 }
 
-// TraceHandler wraps a server handler to perform tracing
+// TraceHandler wraps a server handler to perform tracing.
 func TraceHandler(t trace.Tracer) server.HandlerWrapper {
 	// return a handler wrapper
 	return func(h server.HandlerFunc) server.HandlerFunc {

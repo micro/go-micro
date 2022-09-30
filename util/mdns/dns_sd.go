@@ -46,7 +46,7 @@ func (s *DNSSDService) Records(q dns.Question) []dns.RR {
 // issued to browse for DNS-SD services, as per section 9. of RFC6763.
 //
 // A meta-query has a name of the form "_services._dns-sd._udp.<Domain>" where
-// Domain is a fully-qualified domain, such as "local."
+// Domain is a fully-qualified domain, such as "local.".
 func (s *DNSSDService) dnssdMetaQueryRecords(q dns.Question) []dns.RR {
 	// Intended behavior, as described in the RFC:
 	//     ...it may be useful for network administrators to find the list of
@@ -80,6 +80,6 @@ func (s *DNSSDService) dnssdMetaQueryRecords(q dns.Question) []dns.RR {
 // Announcement returns DNS records that should be broadcast during the initial
 // availability of the service, as described in section 8.3 of RFC 6762.
 // TODO(reddaly): Add this when Announcement is added to the mdns.Zone interface.
-//func (s *DNSSDService) Announcement() []dns.RR {
+// func (s *DNSSDService) Announcement() []dns.RR {
 //	return s.MDNSService.Announcement()
 //}

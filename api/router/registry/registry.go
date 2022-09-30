@@ -18,14 +18,14 @@ import (
 	"go-micro.dev/v4/registry/cache"
 )
 
-// endpoint struct, that holds compiled pcre
+// endpoint struct, that holds compiled pcre.
 type endpoint struct {
 	hostregs []*regexp.Regexp
 	pathregs []util.Pattern
 	pcreregs []*regexp.Regexp
 }
 
-// router is the default router
+// router is the default router.
 type registryRouter struct {
 	exit chan bool
 	opts router.Options
@@ -48,7 +48,7 @@ func (r *registryRouter) isStopped() bool {
 	}
 }
 
-// refresh list of api services
+// refresh list of api services.
 func (r *registryRouter) refresh() {
 	var attempts int
 	logger := r.Options().Logger
@@ -84,7 +84,7 @@ func (r *registryRouter) refresh() {
 	}
 }
 
-// process watch event
+// process watch event.
 func (r *registryRouter) process(res *registry.Result) {
 	logger := r.Options().Logger
 	// skip these things
@@ -103,7 +103,7 @@ func (r *registryRouter) process(res *registry.Result) {
 	r.store(service)
 }
 
-// store local endpoint cache
+// store local endpoint cache.
 func (r *registryRouter) store(services []*registry.Service) {
 	logger := r.Options().Logger
 	// endpoints
@@ -209,7 +209,7 @@ func (r *registryRouter) store(services []*registry.Service) {
 	}
 }
 
-// watch for endpoint changes
+// watch for endpoint changes.
 func (r *registryRouter) watch() {
 	var attempts int
 	logger := r.Options().Logger
@@ -467,7 +467,7 @@ func newRouter(opts ...router.Option) *registryRouter {
 	return r
 }
 
-// NewRouter returns the default router
+// NewRouter returns the default router.
 func NewRouter(opts ...router.Option) router.Router {
 	return newRouter(opts...)
 }

@@ -33,17 +33,17 @@ type Response struct {
 	body []byte
 }
 
-// Error returns an error
+// Error returns an error.
 func (r *Response) Error() error {
 	return r.err
 }
 
-// StatusCode returns status code for response
+// StatusCode returns status code for response.
 func (r *Response) StatusCode() int {
 	return r.res.StatusCode
 }
 
-// Into decode body into `data`
+// Into decode body into `data`.
 func (r *Response) Into(data interface{}) error {
 	if r.err != nil {
 		return r.err

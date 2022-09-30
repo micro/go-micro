@@ -20,28 +20,28 @@ type Options struct {
 	Context context.Context
 }
 
-// WithFields set default fields for the logger
+// WithFields set default fields for the logger.
 func WithFields(fields map[string]interface{}) Option {
 	return func(args *Options) {
 		args.Fields = fields
 	}
 }
 
-// WithLevel set default level for the logger
+// WithLevel set default level for the logger.
 func WithLevel(level Level) Option {
 	return func(args *Options) {
 		args.Level = level
 	}
 }
 
-// WithOutput set default output writer for the logger
+// WithOutput set default output writer for the logger.
 func WithOutput(out io.Writer) Option {
 	return func(args *Options) {
 		args.Out = out
 	}
 }
 
-// WithCallerSkipCount set frame count to skip
+// WithCallerSkipCount set frame count to skip.
 func WithCallerSkipCount(c int) Option {
 	return func(args *Options) {
 		args.CallerSkipCount = c

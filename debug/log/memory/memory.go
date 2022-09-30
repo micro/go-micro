@@ -9,16 +9,16 @@ import (
 )
 
 var (
-	// DefaultSize of the logger buffer
+	// DefaultSize of the logger buffer.
 	DefaultSize = 1024
 )
 
-// memoryLog is default micro log
+// memoryLog is default micro log.
 type memoryLog struct {
 	*ring.Buffer
 }
 
-// NewLog returns default Logger with
+// NewLog returns default Logger with.
 func NewLog(opts ...log.Option) log.Log {
 	// get default options
 	options := log.DefaultOptions()
@@ -33,13 +33,13 @@ func NewLog(opts ...log.Option) log.Log {
 	}
 }
 
-// Write writes logs into logger
+// Write writes logs into logger.
 func (l *memoryLog) Write(r log.Record) error {
 	l.Buffer.Put(fmt.Sprint(r.Message))
 	return nil
 }
 
-// Read reads logs and returns them
+// Read reads logs and returns them.
 func (l *memoryLog) Read(opts ...log.ReadOption) ([]log.Record, error) {
 	options := log.ReadOptions{}
 	// initialize the read options
@@ -83,7 +83,7 @@ func (l *memoryLog) Read(opts ...log.ReadOption) ([]log.Record, error) {
 }
 
 // Stream returns channel for reading log records
-// along with a stop channel, close it when done
+// along with a stop channel, close it when done.
 func (l *memoryLog) Stream() (log.Stream, error) {
 	// get stream channel from ring buffer
 	stream, stop := l.Buffer.Stream()
