@@ -4,6 +4,9 @@ on:
     branches:
     - '**'
   pull_request:
+    types: 
+    - opened 
+    - reopened
     branches:
     - '**'
 jobs:
