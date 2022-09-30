@@ -1,4 +1,4 @@
-## Pull Request template
+# Pull Request template
 
 Please, go through these steps before clicking submit on this PR.
 
@@ -8,4 +8,4 @@ Please, go through these steps before clicking submit on this PR.
 4. Make sure you have some relevant tests.
 5. Put `closes #XXXX` in your comment to auto-close the issue that your PR fixes (if applicable).
 
-**PLEASE REMOVE THIS TEMPLATE BEFORE SUBMITTING**
+## PLEASE REMOVE THIS TEMPLATE BEFORE SUBMITTING

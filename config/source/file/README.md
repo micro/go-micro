@@ -39,7 +39,7 @@ fileSource := file.NewSource(
 
 To load different file formats e.g yaml, toml, xml simply specify them with their extension
 
-```
+```go
 fileSource := file.NewSource(
         file.WithPath("/tmp/config.yaml"),
 )
@@ -47,12 +47,12 @@ fileSource := file.NewSource(
 
 If you want to specify a file without extension, ensure you set the encoder to the same format
 
-```
+```go
 e := toml.NewEncoder()
 
 fileSource := file.NewSource(
         file.WithPath("/tmp/config"),
-	source.WithEncoder(e),
+        source.WithEncoder(e),
 )
 ```
 
