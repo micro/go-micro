@@ -1,6 +1,7 @@
 package util
 
-// download from https://raw.githubusercontent.com/grpc-ecosystem/grpc-gateway/master/protoc-gen-grpc-gateway/httprule/compile.go
+// download from
+// https://raw.githubusercontent.com/grpc-ecosystem/grpc-gateway/master/protoc-gen-grpc-gateway/httprule/compile.go
 
 const (
 	opcodeVersion = 1
@@ -66,6 +67,7 @@ func (v variable) compile() []op {
 	for _, s := range v.segments {
 		ops = append(ops, s.compile()...)
 	}
+
 	ops = append(ops, op{
 		code:    OpConcatN,
 		operand: len(v.segments),
@@ -88,7 +90,9 @@ func (t template) Compile() Template {
 		pool   []string
 		fields []string
 	)
+
 	consts := make(map[string]int)
+
 	for _, op := range rawOps {
 		ops = append(ops, int(op.code))
 		if op.str == "" {
@@ -100,10 +104,12 @@ func (t template) Compile() Template {
 			}
 			ops = append(ops, consts[op.str])
 		}
+
 		if op.code == OpCapture {
 			fields = append(fields, op.str)
 		}
 	}
+
 	return Template{
 		Version:  opcodeVersion,
 		OpCodes:  ops,

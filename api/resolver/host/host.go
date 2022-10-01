@@ -7,10 +7,12 @@ import (
 	"go-micro.dev/v4/api/resolver"
 )
 
+// Resolver is a host resolver.
 type Resolver struct {
 	opts resolver.Options
 }
 
+// Resolve resolves a http.Request to an grpc Endpoint.
 func (r *Resolver) Resolve(req *http.Request) (*resolver.Endpoint, error) {
 	return &resolver.Endpoint{
 		Name:   req.Host,
@@ -20,10 +22,12 @@ func (r *Resolver) Resolve(req *http.Request) (*resolver.Endpoint, error) {
 	}, nil
 }
 
+// String returns the name of the resolver.
 func (r *Resolver) String() string {
 	return "host"
 }
 
+// NewResolver creates a new host resolver.
 func NewResolver(opts ...resolver.Option) resolver.Resolver {
 	return &Resolver{opts: resolver.NewOptions(opts...)}
 }

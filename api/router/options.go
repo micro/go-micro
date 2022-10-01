@@ -7,6 +7,7 @@ import (
 	"go-micro.dev/v4/registry"
 )
 
+// Options is a struct of options available.
 type Options struct {
 	Handler  string
 	Registry registry.Registry
@@ -14,8 +15,10 @@ type Options struct {
 	Logger   logger.Logger
 }
 
+// Option is a helper for a single options.
 type Option func(o *Options)
 
+// NewOptions wires options together.
 func NewOptions(opts ...Option) Options {
 	options := Options{
 		Handler:  "meta",

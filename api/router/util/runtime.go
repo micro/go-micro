@@ -49,7 +49,7 @@ type patternOptions struct {
 // PatternOpt is an option for creating Patterns.
 type PatternOpt func(*patternOptions)
 
-// Logger sets the logger.
+// PatternLogger sets the logger.
 func PatternLogger(l log.Logger) PatternOpt {
 	return func(po *patternOptions) {
 		po.logger = l
@@ -89,8 +89,10 @@ func NewPattern(version int, ops []int, pool []string, verb string, opts ...Patt
 		pushMSeen       bool
 		vars            []string
 	)
+
 	for i := 0; i < l; i += 2 {
 		op := rop{code: OpCode(ops[i]), operand: ops[i+1]}
+
 		switch op.code {
 		case OpNop:
 			continue
@@ -104,6 +106,7 @@ func NewPattern(version int, ops []int, pool []string, verb string, opts ...Patt
 				logger.Logf(log.DebugLevel, "pushM appears twice")
 				return Pattern{}, ErrInvalidPattern
 			}
+
 			pushMSeen = true
 			stack++
 		case OpLitPush:
@@ -111,6 +114,7 @@ func NewPattern(version int, ops []int, pool []string, verb string, opts ...Patt
 				logger.Logf(log.DebugLevel, "negative literal index: %d", op.operand)
 				return Pattern{}, ErrInvalidPattern
 			}
+
 			if pushMSeen {
 				tailLen++
 			}
@@ -120,6 +124,7 @@ func NewPattern(version int, ops []int, pool []string, verb string, opts ...Patt
 				logger.Logf(log.DebugLevel, "negative concat size: %d", op.operand)
 				return Pattern{}, ErrInvalidPattern
 			}
+
 			stack -= op.operand
 			if stack < 0 {
 				logger.Logf(log.DebugLevel, "stack underflow")
@@ -131,10 +136,12 @@ func NewPattern(version int, ops []int, pool []string, verb string, opts ...Patt
 				logger.Logf(log.DebugLevel, "variable name index out of bound: %d", op.operand)
 				return Pattern{}, ErrInvalidPattern
 			}
+
 			v := pool[op.operand]
 			op.operand = len(vars)
 			vars = append(vars, v)
 			stack--
+
 			if stack < 0 {
 				logger.Logf(log.DebugLevel, "stack underflow")
 				return Pattern{}, ErrInvalidPattern
@@ -147,8 +154,10 @@ func NewPattern(version int, ops []int, pool []string, verb string, opts ...Patt
 		if maxstack < stack {
 			maxstack = stack
 		}
+
 		typedOps = append(typedOps, op)
 	}
+
 	return Pattern{
 		ops:             typedOps,
 		pool:            pool,
