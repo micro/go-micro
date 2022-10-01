@@ -20,7 +20,7 @@ var (
 
 func requestToProto(r *http.Request) (*api.Request, error) {
 	if err := r.ParseForm(); err != nil {
-		return nil, fmt.Errorf("Error parsing form: %v", err)
+		return nil, fmt.Errorf("Error parsing form: %w", err)
 	}
 
 	req := &api.Request{
@@ -46,9 +46,11 @@ func requestToProto(r *http.Request) (*api.Request, error) {
 		default:
 			buf := bufferPool.Get()
 			defer bufferPool.Put(buf)
+
 			if _, err = buf.ReadFrom(r.Body); err != nil {
 				return nil, err
 			}
+
 			req.Body = buf.String()
 		}
 	}
@@ -81,6 +83,7 @@ func requestToProto(r *http.Request) (*api.Request, error) {
 			}
 			req.Get[key] = header
 		}
+
 		header.Values = vals
 	}
 
@@ -93,6 +96,7 @@ func requestToProto(r *http.Request) (*api.Request, error) {
 			}
 			req.Post[key] = header
 		}
+
 		header.Values = vals
 	}
 
@@ -104,6 +108,7 @@ func requestToProto(r *http.Request) (*api.Request, error) {
 			}
 			req.Header[key] = header
 		}
+
 		header.Values = vals
 	}
 
