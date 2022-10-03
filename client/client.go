@@ -104,7 +104,7 @@ type RequestOption func(*RequestOptions)
 
 var (
 	// DefaultClient is a default client to use out of the box.
-	DefaultClient Client = newRpcClient()
+	DefaultClient Client = newRPCClient()
 	// DefaultBackoff is the default backoff function for retries.
 	DefaultBackoff = exponentialBackoff
 	// DefaultRetry is the default check-for-retry function for retries.
@@ -119,7 +119,7 @@ var (
 	DefaultPoolTTL = time.Minute
 
 	// NewClient returns a new client.
-	NewClient func(...Option) Client = newRpcClient
+	NewClient func(...Option) Client = newRPCClient
 )
 
 // Makes a synchronous call to a service using the default client.

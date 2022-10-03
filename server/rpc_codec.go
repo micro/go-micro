@@ -6,6 +6,7 @@ import (
 
 	"github.com/oxtoacart/bpool"
 	"github.com/pkg/errors"
+
 	"go-micro.dev/v4/codec"
 	raw "go-micro.dev/v4/codec/bytes"
 	"go-micro.dev/v4/codec/grpc"
@@ -14,6 +15,7 @@ import (
 	"go-micro.dev/v4/codec/proto"
 	"go-micro.dev/v4/codec/protorpc"
 	"go-micro.dev/v4/transport"
+	"go-micro.dev/v4/transport/headers"
 )
 
 type rpcCodec struct {
@@ -93,11 +95,11 @@ func getHeaders(m *codec.Message) {
 		return m.Header[hdr]
 	}
 
-	m.Id = set(m.Id, "Micro-Id")
-	m.Error = set(m.Error, "Micro-Error")
-	m.Endpoint = set(m.Endpoint, "Micro-Endpoint")
-	m.Method = set(m.Method, "Micro-Method")
-	m.Target = set(m.Target, "Micro-Service")
+	m.Id = set(m.Id, headers.ID)
+	m.Error = set(m.Error, headers.Error)
+	m.Endpoint = set(m.Endpoint, headers.Endpoint)
+	m.Method = set(m.Method, headers.Method)
+	m.Target = set(m.Target, headers.Request)
 
 	// TODO: remove this cruft
 	if len(m.Endpoint) == 0 {
@@ -115,21 +117,21 @@ func setHeaders(m, r *codec.Message) {
 	}
 
 	// set headers
-	set("Micro-Id", r.Id)
-	set("Micro-Service", r.Target)
-	set("Micro-Method", r.Method)
-	set("Micro-Endpoint", r.Endpoint)
-	set("Micro-Error", r.Error)
+	set(headers.ID, r.Id)
+	set(headers.Request, r.Target)
+	set(headers.Method, r.Method)
+	set(headers.Endpoint, r.Endpoint)
+	set(headers.Error, r.Error)
 }
 
 // setupProtocol sets up the old protocol.
 func setupProtocol(msg *transport.Message) codec.NewCodec {
-	service := getHeader("Micro-Service", msg.Header)
-	method := getHeader("Micro-Method", msg.Header)
-	endpoint := getHeader("Micro-Endpoint", msg.Header)
-	protocol := getHeader("Micro-Protocol", msg.Header)
-	target := getHeader("Micro-Target", msg.Header)
-	topic := getHeader("Micro-Topic", msg.Header)
+	service := getHeader(headers.Request, msg.Header)
+	method := getHeader(headers.Method, msg.Header)
+	endpoint := getHeader(headers.Endpoint, msg.Header)
+	protocol := getHeader(headers.Protocol, msg.Header)
+	target := getHeader(headers.Target, msg.Header)
+	topic := getHeader(headers.Message, msg.Header)
 
 	// if the protocol exists (mucp) do nothing
 	if len(protocol) > 0 {
@@ -153,12 +155,12 @@ func setupProtocol(msg *transport.Message) codec.NewCodec {
 
 	// no method then set to endpoint
 	if len(method) == 0 {
-		msg.Header["Micro-Method"] = endpoint
+		msg.Header[headers.Method] = endpoint
 	}
 
 	// no endpoint then set to method
 	if len(endpoint) == 0 {
-		msg.Header["Micro-Endpoint"] = method
+		msg.Header[headers.Endpoint] = method
 	}
 
 	return nil
@@ -315,7 +317,7 @@ func (c *rpcCodec) Write(r *codec.Message, b interface{}) error {
 
 		// write an error if it failed
 		m.Error = errors.Wrapf(err, "Unable to encode body").Error()
-		m.Header["Micro-Error"] = m.Error
+		m.Header[headers.Error] = m.Error
 		// no body to write
 		if err := c.codec.Write(m, nil); err != nil {
 			return err

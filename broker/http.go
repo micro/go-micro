@@ -20,6 +20,7 @@ import (
 	merr "go-micro.dev/v4/errors"
 	"go-micro.dev/v4/registry"
 	"go-micro.dev/v4/registry/cache"
+	"go-micro.dev/v4/transport/headers"
 	maddr "go-micro.dev/v4/util/addr"
 	mnet "go-micro.dev/v4/util/net"
 	mls "go-micro.dev/v4/util/tls"
@@ -313,7 +314,7 @@ func (h *httpBroker) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	topic := m.Header["Micro-Topic"]
+	topic := m.Header[headers.Message]
 	// delete(m.Header, ":topic")
 
 	if len(topic) == 0 {
@@ -517,7 +518,7 @@ func (h *httpBroker) Publish(topic string, msg *Message, opts ...PublishOption) 
 		m.Header[k] = v
 	}
 
-	m.Header["Micro-Topic"] = topic
+	m.Header[headers.Message] = topic
 
 	// encode the message
 	b, err := h.opts.Codec.Marshal(m)

@@ -7,17 +7,24 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+
 	"go-micro.dev/v4/broker"
 	"go-micro.dev/v4/codec"
 	raw "go-micro.dev/v4/codec/bytes"
 	"go-micro.dev/v4/errors"
+	log "go-micro.dev/v4/logger"
 	"go-micro.dev/v4/metadata"
 	"go-micro.dev/v4/registry"
 	"go-micro.dev/v4/selector"
 	"go-micro.dev/v4/transport"
+	"go-micro.dev/v4/transport/headers"
 	"go-micro.dev/v4/util/buf"
 	"go-micro.dev/v4/util/net"
 	"go-micro.dev/v4/util/pool"
+)
+
+const (
+	packageID = "go.micro.client"
 )
 
 type rpcClient struct {
@@ -27,7 +34,7 @@ type rpcClient struct {
 	pool pool.Pool
 }
 
-func newRpcClient(opt ...Option) Client {
+func newRPCClient(opt ...Option) Client {
 	opts := NewOptions(opt...)
 
 	p := pool.NewPool(
@@ -57,14 +64,17 @@ func (r *rpcClient) newCodec(contentType string) (codec.NewCodec, error) {
 	if c, ok := r.opts.Codecs[contentType]; ok {
 		return c, nil
 	}
+
 	if cf, ok := DefaultCodecs[contentType]; ok {
 		return cf, nil
 	}
+
 	return nil, fmt.Errorf("unsupported Content-Type: %s", contentType)
 }
 
 func (r *rpcClient) call(ctx context.Context, node *registry.Node, req Request, resp interface{}, opts CallOptions) error {
 	address := node.Address
+	logger := r.Options().Logger
 
 	msg := &transport.Message{
 		Header: make(map[string]string),
@@ -73,11 +83,13 @@ func (r *rpcClient) call(ctx context.Context, node *registry.Node, req Request, 
 	md, ok := metadata.FromContext(ctx)
 	if ok {
 		for k, v := range md {
+			// TODO: comment below
 			// don't copy Micro-Topic header, that used for pub/sub
 			// this fix case then client uses the same context that received in subscriber
-			if k == "Micro-Topic" {
+			if k == headers.Message {
 				continue
 			}
+
 			msg.Header[k] = v
 		}
 	}
@@ -96,6 +108,7 @@ func (r *rpcClient) call(ctx context.Context, node *registry.Node, req Request, 
 	if cf == nil {
 		var err error
 		cf, err = r.newCodec(req.ContentType())
+
 		if err != nil {
 			return errors.InternalServerError("go.micro.client", err.Error())
 		}
@@ -115,11 +128,17 @@ func (r *rpcClient) call(ctx context.Context, node *registry.Node, req Request, 
 	}
 
 	seq := atomic.AddUint64(&r.seq, 1) - 1
-	codec := newRpcCodec(msg, c, cf, "")
+	codec := newRPCCodec(msg, c, cf, "")
 
 	rsp := &rpcResponse{
 		socket: c,
 		codec:  codec,
+	}
+
+	releaseFunc := func(err error) {
+		if err = r.pool.Release(c, err); err != nil {
+			logger.Log(log.ErrorLevel, "failed to release pool", err)
+		}
 	}
 
 	stream := &rpcStream{
@@ -129,11 +148,16 @@ func (r *rpcClient) call(ctx context.Context, node *registry.Node, req Request, 
 		response: rsp,
 		codec:    codec,
 		closed:   make(chan bool),
-		release:  func(err error) { r.pool.Release(c, err) },
+		release:  releaseFunc,
 		sendEOS:  false,
 	}
+
 	// close the stream on exiting this function
-	defer stream.Close()
+	defer func() {
+		if err := stream.Close(); err != nil {
+			logger.Log(log.ErrorLevel, "failed to close stream", err)
+		}
+	}()
 
 	// wait for error response
 	ch := make(chan error, 1)
@@ -184,6 +208,7 @@ func (r *rpcClient) call(ctx context.Context, node *registry.Node, req Request, 
 
 func (r *rpcClient) stream(ctx context.Context, node *registry.Node, req Request, opts CallOptions) (Stream, error) {
 	address := node.Address
+	logger := r.Options().Logger
 
 	msg := &transport.Message{
 		Header: make(map[string]string),
@@ -235,7 +260,7 @@ func (r *rpcClient) stream(ctx context.Context, node *registry.Node, req Request
 	id := fmt.Sprintf("%v", seq)
 
 	// create codec with stream id
-	codec := newRpcCodec(msg, c, cf, id)
+	codec := newRPCCodec(msg, c, cf, id)
 
 	rsp := &rpcResponse{
 		socket: c,
@@ -245,6 +270,12 @@ func (r *rpcClient) stream(ctx context.Context, node *registry.Node, req Request
 	// set request codec
 	if r, ok := req.(*rpcRequest); ok {
 		r.codec = codec
+	}
+
+	releaseFunc := func(err error) {
+		if err := c.Close(); err != nil {
+			logger.Log(log.ErrorLevel, err)
+		}
 	}
 
 	stream := &rpcStream{
@@ -257,8 +288,7 @@ func (r *rpcClient) stream(ctx context.Context, node *registry.Node, req Request
 		closed: make(chan bool),
 		// signal the end of stream,
 		sendEOS: true,
-		// release func
-		release: func(err error) { c.Close() },
+		release: releaseFunc,
 	}
 
 	// wait for error response
@@ -316,6 +346,7 @@ func (r *rpcClient) Init(opts ...Option) error {
 	return nil
 }
 
+// Options retrives the options.
 func (r *rpcClient) Options() Options {
 	return r.opts
 }
@@ -527,6 +558,7 @@ func (r *rpcClient) Stream(ctx context.Context, request Request, opts ...CallOpt
 	}
 
 	ch := make(chan response, retries+1)
+
 	var grr error
 
 	for i := 0; i <= retries; i++ {
@@ -568,15 +600,15 @@ func (r *rpcClient) Publish(ctx context.Context, msg Message, opts ...PublishOpt
 		o(&options)
 	}
 
-	md, ok := metadata.FromContext(ctx)
+	metadata, ok := metadata.FromContext(ctx)
 	if !ok {
-		md = make(map[string]string)
+		metadata = make(map[string]string)
 	}
 
 	id := uuid.New().String()
-	md["Content-Type"] = msg.ContentType()
-	md["Micro-Topic"] = msg.Topic()
-	md["Micro-Id"] = id
+	metadata["Content-Type"] = msg.ContentType()
+	metadata[headers.Message] = msg.Topic()
+	metadata[headers.ID] = id
 
 	// set the topic
 	topic := msg.Topic()
@@ -589,7 +621,7 @@ func (r *rpcClient) Publish(ctx context.Context, msg Message, opts ...PublishOpt
 	// encode message body
 	cf, err := r.newCodec(msg.ContentType())
 	if err != nil {
-		return errors.InternalServerError("go.micro.client", err.Error())
+		return errors.InternalServerError(packageID, err.Error())
 	}
 
 	var body []byte
@@ -598,33 +630,38 @@ func (r *rpcClient) Publish(ctx context.Context, msg Message, opts ...PublishOpt
 	if d, ok := msg.Payload().(*raw.Frame); ok {
 		body = d.Data
 	} else {
-		// new buffer
 		b := buf.New(nil)
 
-		if err := cf(b).Write(&codec.Message{
+		if err = cf(b).Write(&codec.Message{
 			Target: topic,
 			Type:   codec.Event,
 			Header: map[string]string{
-				"Micro-Id":    id,
-				"Micro-Topic": msg.Topic(),
+				headers.ID:      id,
+				headers.Message: msg.Topic(),
 			},
 		}, msg.Payload()); err != nil {
-			return errors.InternalServerError("go.micro.client", err.Error())
+			return errors.InternalServerError(packageID, err.Error())
 		}
 
 		// set the body
 		body = b.Bytes()
 	}
 
-	if !r.once.Load().(bool) {
+	l, ok := r.once.Load().(bool)
+	if !ok {
+		return fmt.Errorf("failed to cast to bool")
+	}
+
+	if !l {
 		if err = r.opts.Broker.Connect(); err != nil {
-			return errors.InternalServerError("go.micro.client", err.Error())
+			return errors.InternalServerError(packageID, err.Error())
 		}
+
 		r.once.Store(true)
 	}
 
 	return r.opts.Broker.Publish(topic, &broker.Message{
-		Header: md,
+		Header: metadata,
 		Body:   body,
 	}, broker.PublishContext(options.Context))
 }

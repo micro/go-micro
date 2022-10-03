@@ -80,7 +80,7 @@ type router struct {
 	subscribers map[string][]*subscriber
 }
 
-// rpcRouter encapsulates functions that become a server.Router.
+// rpcRouter encapsulates functions that become a Router.
 type rpcRouter struct {
 	h func(context.Context, Request, interface{}) error
 	m func(context.Context, Message) error
@@ -96,7 +96,7 @@ func (r rpcRouter) ServeRequest(ctx context.Context, req Request, rsp Response) 
 
 func newRpcRouter(opts ...RouterOption) *router {
 	return &router{
-		ops:         newRouterOptions(opts...),
+		ops:         NewRouterOptions(opts...),
 		serviceMap:  make(map[string]*service),
 		subscribers: make(map[string][]*subscriber),
 	}
@@ -415,7 +415,7 @@ func (router *router) readHeader(cc codec.Reader) (service *service, mtype *meth
 }
 
 func (router *router) NewHandler(h interface{}, opts ...HandlerOption) Handler {
-	return newRpcHandler(h, opts...)
+	return NewRpcHandler(h, opts...)
 }
 
 func (router *router) Handle(h Handler) error {

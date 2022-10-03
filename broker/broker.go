@@ -1,6 +1,7 @@
 // Package broker is an interface used for asynchronous messaging
 package broker
 
+
 // Broker is an interface used for asynchronous messaging.
 type Broker interface {
 	Init(...Option) error

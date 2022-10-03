@@ -20,7 +20,7 @@ type RouterOptions struct {
 
 type RouterOption func(o *RouterOptions)
 
-func newRouterOptions(opt ...RouterOption) RouterOptions {
+func NewRouterOptions(opt ...RouterOption) RouterOptions {
 	opts := RouterOptions{
 		Logger: logger.DefaultLogger,
 	}
@@ -74,7 +74,8 @@ type Options struct {
 	Context context.Context
 }
 
-func newOptions(opt ...Option) Options {
+// NewOptions creates new server options
+func NewOptions(opt ...Option) Options {
 	opts := Options{
 		Codecs:           make(map[string]codec.NewCodec),
 		Metadata:         map[string]string{},
