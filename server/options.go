@@ -276,7 +276,7 @@ func Wait(wg *sync.WaitGroup) Option {
 		if wg == nil {
 			wg = new(sync.WaitGroup)
 		}
-		o.Context = context.WithValue(o.Context, "wait", wg)
+		o.Context = context.WithValue(o.Context, wgKey{}, wg)
 	}
 }
 

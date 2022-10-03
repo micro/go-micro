@@ -38,6 +38,7 @@ type readWriteCloser struct {
 }
 
 var (
+	// DefaultContentType is the default codec content type.
 	DefaultContentType = "application/protobuf"
 
 	DefaultCodecs = map[string]codec.NewCodec{
@@ -67,12 +68,14 @@ var (
 func (rwc *readWriteCloser) Read(p []byte) (n int, err error) {
 	rwc.RLock()
 	defer rwc.RUnlock()
+
 	return rwc.rbuf.Read(p)
 }
 
 func (rwc *readWriteCloser) Write(p []byte) (n int, err error) {
 	rwc.Lock()
 	defer rwc.Unlock()
+
 	return rwc.wbuf.Write(p)
 }
 
@@ -84,6 +87,7 @@ func getHeader(hdr string, md map[string]string) string {
 	if hd := md[hdr]; len(hd) > 0 {
 		return hd
 	}
+
 	return md["X-"+hdr]
 }
 
@@ -92,6 +96,7 @@ func getHeaders(m *codec.Message) {
 		if len(v) > 0 {
 			return v
 		}
+
 		return m.Header[hdr]
 	}
 
@@ -112,6 +117,7 @@ func setHeaders(m, r *codec.Message) {
 		if len(v) == 0 {
 			return
 		}
+
 		m.Header[hdr] = v
 		m.Header["X-"+hdr] = v
 	}
@@ -166,7 +172,7 @@ func setupProtocol(msg *transport.Message) codec.NewCodec {
 	return nil
 }
 
-func newRpcCodec(req *transport.Message, socket transport.Socket, c codec.NewCodec) codec.Codec {
+func newRPCCodec(req *transport.Message, socket transport.Socket, c codec.NewCodec) codec.Codec {
 	rwc := &readWriteCloser{
 		rbuf: bufferPool.Get(),
 		wbuf: bufferPool.Get(),
@@ -187,7 +193,6 @@ func newRpcCodec(req *transport.Message, socket transport.Socket, c codec.NewCod
 	case "grpc":
 		// write the body
 		rwc.rbuf.Write(req.Body)
-		// set the protocol
 		r.protocol = "grpc"
 	default:
 		// first is not preloaded
@@ -199,7 +204,7 @@ func newRpcCodec(req *transport.Message, socket transport.Socket, c codec.NewCod
 
 func (c *rpcCodec) ReadHeader(r *codec.Message, t codec.MessageType) error {
 	// the initial message
-	m := codec.Message{
+	mmsg := codec.Message{
 		Header: c.req.Header,
 		Body:   c.req.Body,
 	}
@@ -223,9 +228,9 @@ func (c *rpcCodec) ReadHeader(r *codec.Message, t codec.MessageType) error {
 		}
 
 		// set the message header
-		m.Header = tm.Header
+		mmsg.Header = tm.Header
 		// set the message body
-		m.Body = tm.Body
+		mmsg.Body = tm.Body
 
 		// set req
 		c.req = &tm
@@ -250,20 +255,20 @@ func (c *rpcCodec) ReadHeader(r *codec.Message, t codec.MessageType) error {
 	}
 
 	// set some internal things
-	getHeaders(&m)
+	getHeaders(&mmsg)
 
 	// read header via codec
-	if err := c.codec.ReadHeader(&m, codec.Request); err != nil {
+	if err := c.codec.ReadHeader(&mmsg, codec.Request); err != nil {
 		return err
 	}
 
 	// fallback for 0.14 and older
-	if len(m.Endpoint) == 0 {
-		m.Endpoint = m.Method
+	if len(mmsg.Endpoint) == 0 {
+		mmsg.Endpoint = mmsg.Method
 	}
 
 	// set message
-	*r = m
+	*r = mmsg
 
 	return nil
 }

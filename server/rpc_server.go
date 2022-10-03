@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"net"
 	"runtime/debug"
@@ -16,7 +15,6 @@ import (
 
 	"go-micro.dev/v4/broker"
 	"go-micro.dev/v4/codec"
-	raw "go-micro.dev/v4/codec/bytes"
 	log "go-micro.dev/v4/logger"
 	"go-micro.dev/v4/metadata"
 	"go-micro.dev/v4/registry"
@@ -66,62 +64,26 @@ func NewRPCServer(opts ...Option) Server {
 	}
 }
 
-// HandleEvent handles inbound messages to the service directly.
-// These events are a result of registering to the topic with the service name.
-// TODO: handle requests from an event. We won't send a response.
-func (s *rpcServer) HandleEvent(e broker.Event) error {
-	// formatting horrible cruft
-	msg := e.Message()
+func (s *rpcServer) Init(opts ...Option) error {
+	s.Lock()
+	defer s.Unlock()
 
-	if msg.Header == nil {
-		msg.Header = make(map[string]string)
+	for _, opt := range opts {
+		opt(&s.opts)
 	}
 
-	contentType, ok := msg.Header["Content-Type"]
-	if !ok || len(contentType) == 0 {
-		msg.Header["Content-Type"] = DefaultContentType
-		contentType = DefaultContentType
+	// update router if its the default
+	if s.opts.Router == nil {
+		r := newRpcRouter()
+		r.hdlrWrappers = s.opts.HdlrWrappers
+		r.serviceMap = s.router.serviceMap
+		r.subWrappers = s.opts.SubWrappers
+		s.router = r
 	}
 
-	cf, err := s.newCodec(contentType)
-	if err != nil {
-		return err
-	}
+	s.rsvc = nil
 
-	header := make(map[string]string, len(msg.Header))
-	for k, v := range msg.Header {
-		header[k] = v
-	}
-
-	// create context
-	ctx := metadata.NewContext(context.Background(), header)
-
-	// TODO: inspect message header for Micro-Service & Micro-Topic
-	rpcMsg := &rpcMessage{
-		topic:       msg.Header[headers.Message],
-		contentType: contentType,
-		payload:     &raw.Frame{Data: msg.Body},
-		codec:       cf,
-		header:      msg.Header,
-		body:        msg.Body,
-	}
-
-	// if the router is present then execute it
-	r := Router(s.router)
-	if s.opts.Router != nil {
-		// create a wrapped function
-		handler := s.opts.Router.ProcessMessage
-
-		// execute the wrapper for it
-		for i := len(s.opts.SubWrappers); i > 0; i-- {
-			handler = s.opts.SubWrappers[i-1](handler)
-		}
-
-		// set the router
-		r = rpcRouter{m: handler}
-	}
-
-	return r.ProcessMessage(ctx, rpcMsg)
+	return nil
 }
 
 // ServeConn serves a single connection.
@@ -289,7 +251,7 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 			// try get a new codec
 			if cf, err = s.newCodec(ct); err != nil {
 				// no codec found so send back an error
-				if err := sock.Send(&transport.Message{
+				if err = sock.Send(&transport.Message{
 					Header: map[string]string{
 						"Content-Type": "text/plain",
 					},
@@ -306,7 +268,7 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 		}
 
 		// create a new rpc codec based on the pseudo socket and codec
-		rcodec := newRpcCodec(&msg, psock, cf)
+		rcodec := newRPCCodec(&msg, psock, cf)
 		// check the protocol as well
 		protocol := rcodec.String()
 
@@ -354,7 +316,7 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 		wg.Add(2)
 
 		// process the outbound messages from the socket
-		go func(id string, psock *socket.Socket) {
+		go func(psock *socket.Socket) {
 			defer func() {
 				// TODO: don't hack this but if its grpc just break out of the stream
 				// We do this because the underlying connection is h2 and its a stream
@@ -386,10 +348,10 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 					return
 				}
 			}
-		}(id, psock)
+		}(psock)
 
 		// serve the request in a go routine as this may be a stream
-		go func(id string, psock *socket.Socket) {
+		go func(psock *socket.Socket) {
 			defer func() {
 				// release the socket
 				pool.Release(psock)
@@ -421,42 +383,8 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 					logger.Logf(log.DebugLevel, "rpc: unable to write error response: %v", writeError)
 				}
 			}
-		}(id, psock)
+		}(psock)
 	}
-}
-
-func (s *rpcServer) newCodec(contentType string) (codec.NewCodec, error) {
-	if cf, ok := s.opts.Codecs[contentType]; ok {
-		return cf, nil
-	}
-
-	if cf, ok := DefaultCodecs[contentType]; ok {
-		return cf, nil
-	}
-
-	return nil, fmt.Errorf("Unsupported Content-Type: %s", contentType)
-}
-
-func (s *rpcServer) Init(opts ...Option) error {
-	s.Lock()
-	defer s.Unlock()
-
-	for _, opt := range opts {
-		opt(&s.opts)
-	}
-
-	// update router if its the default
-	if s.opts.Router == nil {
-		r := newRpcRouter()
-		r.hdlrWrappers = s.opts.HdlrWrappers
-		r.serviceMap = s.router.serviceMap
-		r.subWrappers = s.opts.SubWrappers
-		s.router = r
-	}
-
-	s.rsvc = nil
-
-	return nil
 }
 
 func (s *rpcServer) NewHandler(h interface{}, opts ...HandlerOption) Handler {
@@ -476,38 +404,8 @@ func (s *rpcServer) Handle(h Handler) error {
 	return nil
 }
 
-func (s *rpcServer) NewSubscriber(topic string, sb interface{}, opts ...SubscriberOption) Subscriber {
-	return s.router.NewSubscriber(topic, sb, opts...)
-}
-
-func (s *rpcServer) Subscribe(sb Subscriber) error {
-	s.Lock()
-	defer s.Unlock()
-
-	sub, ok := sb.(*subscriber)
-	if !ok {
-		return fmt.Errorf("invalid subscriber: expected *subscriber")
-	}
-	if len(sub.handlers) == 0 {
-		return fmt.Errorf("invalid subscriber: no handler functions")
-	}
-
-	if err := validateSubscriber(sub); err != nil {
-		return err
-	}
-
-	// append to subscribers
-	// subs := s.subscribers[sub.Topic()]
-	// subs = append(subs, sub)
-	// router.subscribers[sub.Topic()] = subs
-
-	s.subscribers[sb] = nil
-
-	return nil
-}
-
 func (s *rpcServer) Register() error {
-	config := s.getOptions()
+	config := s.Options()
 	logger := config.Logger
 
 	// Registry function used to register the service
@@ -584,7 +482,7 @@ func (s *rpcServer) Register() error {
 }
 
 func (s *rpcServer) Deregister() error {
-	config := s.getOptions()
+	config := s.Options()
 	logger := config.Logger
 
 	addr, _, err := s.getAddr(config)
@@ -656,20 +554,16 @@ func (s *rpcServer) Start() error {
 	logger.Logf(log.InfoLevel, "Transport [%s] Listening on %s", config.Transport.String(), ts.Addr())
 
 	// swap address
-	s.Lock()
-	addr := config.Address
-	s.opts.Address = ts.Addr()
-	s.Unlock()
-
-	bname := config.Broker.String()
+	addr := s.swapAddr(config, ts.Addr())
+	brokerName := config.Broker.String()
 
 	// connect to the broker
-	if err := config.Broker.Connect(); err != nil {
-		logger.Logf(log.ErrorLevel, "Broker [%s] connect error: %v", bname, err)
+	if err = config.Broker.Connect(); err != nil {
+		logger.Logf(log.ErrorLevel, "Broker [%s] connect error: %v", brokerName, err)
 		return err
 	}
 
-	logger.Logf(log.InfoLevel, "Broker [%s] Connected to %s", bname, config.Broker.Address())
+	logger.Logf(log.InfoLevel, "Broker [%s] Connected to %s", brokerName, config.Broker.Address())
 
 	// use RegisterCheck func before register
 	if err = s.opts.RegisterCheck(s.opts.Context); err != nil {
@@ -710,21 +604,19 @@ func (s *rpcServer) Start() error {
 	}()
 
 	go func() {
+		// Only process if it exists
 		t := new(time.Ticker)
-
-		// only process if it exists
 		if s.opts.RegisterInterval > time.Duration(0) {
-			// new ticker
 			t = time.NewTicker(s.opts.RegisterInterval)
 		}
 
-		// return error chan
+		// Return error chan
 		var ch chan error
 
 	Loop:
 		for {
 			select {
-			// register self on interval
+			// Register self on interval
 			case <-t.C:
 				registered := s.isRegistered()
 
@@ -732,7 +624,7 @@ func (s *rpcServer) Start() error {
 				if rerr != nil && registered {
 					logger.Logf(log.ErrorLevel, "Server %s-%s register check error: %s, deregister it", config.Name, config.Id, err)
 					// deregister self in case of error
-					if err := s.Deregister(); err != nil {
+					if err = s.Deregister(); err != nil {
 						logger.Logf(log.ErrorLevel, "Server %s-%s deregister error: %s", config.Name, config.Id, err)
 					}
 				} else if rerr != nil && !registered {
@@ -769,9 +661,9 @@ func (s *rpcServer) Start() error {
 		ch <- ts.Close()
 
 		// disconnect the broker
-		logger.Logf(log.InfoLevel, "Broker [%s] Disconnected from %s", bname, config.Broker.Address())
+		logger.Logf(log.InfoLevel, "Broker [%s] Disconnected from %s", brokerName, config.Broker.Address())
 		if err := config.Broker.Disconnect(); err != nil {
-			logger.Logf(log.ErrorLevel, "Broker [%s] Disconnect error: %v", bname, err)
+			logger.Logf(log.ErrorLevel, "Broker [%s] Disconnect error: %v", brokerName, err)
 		}
 
 		// swap back address
@@ -917,81 +809,4 @@ func (s *rpcServer) getEndpoints() []*registry.Endpoint {
 	}
 
 	return endpoints
-}
-
-// isRegistered will check if the service has already been registered.
-func (s *rpcServer) isRegistered() bool {
-	s.RLock()
-	defer s.RUnlock()
-
-	return s.registered
-}
-
-// setRegistered will set the service as registered safely.
-func (s *rpcServer) setRegistered(b bool) {
-	s.Lock()
-	defer s.Unlock()
-
-	s.registered = b
-}
-
-// isStarted will check if the service has already been started.
-func (s *rpcServer) isStarted() bool {
-	s.RLock()
-	defer s.RUnlock()
-
-	return s.started
-}
-
-// setStarted will set started state safely.
-func (s *rpcServer) setStarted(b bool) {
-	s.Lock()
-	defer s.Unlock()
-
-	s.started = b
-}
-
-// setWg will set the waitgroup safely.
-func (s *rpcServer) setWg(wg *sync.WaitGroup) {
-	s.Lock()
-	defer s.Unlock()
-
-	s.wg = wg
-}
-
-// setOptsAddr will set the address in the service options safely.
-func (s *rpcServer) setOptsAddr(addr string) {
-	s.Lock()
-	defer s.Unlock()
-
-	s.opts.Address = addr
-}
-
-func (s *rpcServer) getOptions() Options {
-	s.RLock()
-	defer s.RUnlock()
-
-	return s.Options()
-}
-
-func (s *rpcServer) getCachedService() *registry.Service {
-	s.RLock()
-	defer s.RUnlock()
-
-	return s.rsvc
-}
-
-// getWaitgroup returns the global waitgroup safely.
-func (s *rpcServer) getWg() *sync.WaitGroup {
-	s.RLock()
-	defer s.RUnlock()
-
-	return s.wg
-}
-
-func (s *rpcServer) Options() Options {
-	s.RLock()
-	defer s.RUnlock()
-
-	return s.opts
 }
