@@ -62,6 +62,7 @@ func NewEvent(topic string, c client.Client) Event {
 	if c == nil {
 		c = client.NewClient()
 	}
+
 	return &event{c, topic}
 }
 

@@ -48,6 +48,7 @@ type rpcServer struct {
 	rsvc *registry.Service
 }
 
+// NewRPCServer will create a new default RPC server.
 func NewRPCServer(opts ...Option) Server {
 	options := NewOptions(opts...)
 	router := newRpcRouter()
@@ -104,7 +105,12 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 	defer func() {
 		// Only wait if there's no error
 		if gerr != nil {
-			logger.Log(log.ErrorLevel, "error while serving connection: %v", gerr)
+			select {
+			case <-s.exit:
+				logger.Logf(log.InfoLevel, "NON FATAL ERROR YEEEEEETTT")
+			default:
+				logger.Logf(log.ErrorLevel, "error while serving connection: %v", gerr)
+			}
 		} else {
 			wg.Wait()
 		}
@@ -132,7 +138,7 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 			// Set a global error and return.
 			// We're saying we essentially can't
 			// use the socket anymore
-			gerr = err
+			gerr = errors.Wrapf(err, "failed to receive from transport socket")
 			return
 		}
 
@@ -545,16 +551,16 @@ func (s *rpcServer) Start() error {
 	config := s.Options()
 	logger := config.Logger
 
-	// start listening on the transport
-	ts, err := config.Transport.Listen(config.Address, config.ListenOptions...)
+	// start listening on the listener
+	listener, err := config.Transport.Listen(config.Address, config.ListenOptions...)
 	if err != nil {
 		return err
 	}
 
-	logger.Logf(log.InfoLevel, "Transport [%s] Listening on %s", config.Transport.String(), ts.Addr())
+	logger.Logf(log.InfoLevel, "Transport [%s] Listening on %s", config.Transport.String(), listener.Addr())
 
 	// swap address
-	addr := s.swapAddr(config, ts.Addr())
+	addr := s.swapAddr(config, listener.Addr())
 	brokerName := config.Broker.String()
 
 	// connect to the broker
@@ -580,7 +586,7 @@ func (s *rpcServer) Start() error {
 	go func() {
 		for {
 			// listen for connections
-			err := ts.Accept(s.ServeConn)
+			err := listener.Accept(s.ServeConn)
 
 			// TODO: listen for messages
 			// msg := broker.Exchange(service).Consume()
@@ -605,9 +611,9 @@ func (s *rpcServer) Start() error {
 
 	go func() {
 		// Only process if it exists
-		t := new(time.Ticker)
+		ticker := new(time.Ticker)
 		if s.opts.RegisterInterval > time.Duration(0) {
-			t = time.NewTicker(s.opts.RegisterInterval)
+			ticker = time.NewTicker(s.opts.RegisterInterval)
 		}
 
 		// Return error chan
@@ -617,7 +623,7 @@ func (s *rpcServer) Start() error {
 		for {
 			select {
 			// Register self on interval
-			case <-t.C:
+			case <-ticker.C:
 				registered := s.isRegistered()
 
 				rerr := s.opts.RegisterCheck(s.opts.Context)
@@ -638,7 +644,7 @@ func (s *rpcServer) Start() error {
 
 			// wait for exit
 			case ch = <-s.exit:
-				t.Stop()
+				ticker.Stop()
 				close(exit)
 
 				break Loop
@@ -658,10 +664,11 @@ func (s *rpcServer) Start() error {
 		}
 
 		// close transport listener
-		ch <- ts.Close()
+		ch <- listener.Close()
+
+		logger.Logf(log.InfoLevel, "Broker [%s] Disconnected from %s", brokerName, config.Broker.Address())
 
 		// disconnect the broker
-		logger.Logf(log.InfoLevel, "Broker [%s] Disconnected from %s", brokerName, config.Broker.Address())
 		if err := config.Broker.Disconnect(); err != nil {
 			logger.Logf(log.ErrorLevel, "Broker [%s] Disconnect error: %v", brokerName, err)
 		}
@@ -698,10 +705,11 @@ func (s *rpcServer) getAddress() (string, error) {
 	return "", nil
 }
 
-// newRegFuc will create a new registry function used to register the service
+// newRegFuc will create a new registry function used to register the service.
 func (s *rpcServer) newRegFuc(config Options) func(service *registry.Service) error {
 	return func(service *registry.Service) error {
 		rOpts := []registry.RegisterOption{registry.RegisterTTL(config.RegisterTTL)}
+
 		var regErr error
 
 		// Attempt to register. If registration fails, back off and try again.
@@ -709,7 +717,9 @@ func (s *rpcServer) newRegFuc(config Options) func(service *registry.Service) er
 		for i := 0; i < 3; i++ {
 			if err := config.Registry.Register(service, rOpts...); err != nil {
 				regErr = err
+
 				time.Sleep(backoff.Do(i + 1))
+
 				continue
 			}
 
@@ -730,12 +740,14 @@ func (s *rpcServer) getAddr(config Options) (string, bool, error) {
 
 	// Use explicit host and port if possible
 	host, port := advt, ""
+
 	if cnt := strings.Count(advt, ":"); cnt >= 1 {
 		// ipv6 address in format [host]:port or ipv4 host:port
 		h, p, err := net.SplitHostPort(advt)
 		if err != nil {
 			return "", false, err
 		}
+
 		host, port = h, p
 	}
 
@@ -775,6 +787,7 @@ func (s *rpcServer) getEndpoints() []*registry.Endpoint {
 	defer s.RUnlock()
 
 	var handlerList []string
+
 	for n, e := range s.handlers {
 		// Only advertise non internal handlers
 		if !e.Options().Internal {
@@ -787,6 +800,7 @@ func (s *rpcServer) getEndpoints() []*registry.Endpoint {
 	sort.Strings(handlerList)
 
 	var subscriberList []Subscriber
+
 	for e := range s.subscribers {
 		// Only advertise non internal subscribers
 		if !e.Options().Internal {

@@ -12,12 +12,14 @@ import (
 	"sync"
 	"time"
 
+	"golang.org/x/net/http2"
+	"golang.org/x/net/http2/h2c"
+
+	log "go-micro.dev/v4/logger"
 	maddr "go-micro.dev/v4/util/addr"
 	"go-micro.dev/v4/util/buf"
 	mnet "go-micro.dev/v4/util/net"
 	mls "go-micro.dev/v4/util/tls"
-	"golang.org/x/net/http2"
-	"golang.org/x/net/http2/h2c"
 )
 
 type httpTransport struct {
@@ -81,6 +83,7 @@ func (h *httpTransportClient) Remote() string {
 }
 
 func (h *httpTransportClient) Send(m *Message) error {
+	logger := h.ht.Options().Logger
 	header := make(http.Header)
 
 	for k, v := range m.Header {
@@ -88,7 +91,11 @@ func (h *httpTransportClient) Send(m *Message) error {
 	}
 
 	b := buf.New(bytes.NewBuffer(m.Body))
-	defer b.Close()
+	defer func() {
+		if err := b.Close(); err != nil {
+			logger.Logf(log.ErrorLevel, "failed to close buffer: %v", err)
+		}
+	}()
 
 	req := &http.Request{
 		Method: http.MethodPost,
