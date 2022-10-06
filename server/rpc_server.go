@@ -94,6 +94,9 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 	// Global error tracking
 	var gerr error
 
+	// Keep track of Connection: close header
+	var closeConn bool
+
 	// Streams are multiplexed on Micro-Stream or Micro-Id header
 	pool := socket.NewPool()
 
@@ -107,9 +110,11 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 		if gerr != nil {
 			select {
 			case <-s.exit:
-				logger.Logf(log.InfoLevel, "NON FATAL ERROR YEEEEEETTT")
 			default:
-				logger.Logf(log.ErrorLevel, "error while serving connection: %v", gerr)
+				// EOF is expected if the client closes the connection
+				if !errors.Is(gerr, io.EOF) {
+					logger.Logf(log.ErrorLevel, "error while serving connection: %v", gerr)
+				}
 			}
 		} else {
 			wg.Wait()
@@ -133,13 +138,24 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 	for {
 		var msg transport.Message
 
+		// Close connection if Connection: close header was set
+		if closeConn {
+			return
+		}
+
 		// Process inbound messages one at a time
 		if err := sock.Recv(&msg); err != nil {
 			// Set a global error and return.
 			// We're saying we essentially can't
 			// use the socket anymore
-			gerr = errors.Wrapf(err, "failed to receive from transport socket")
+			gerr = errors.Wrapf(err, "%s-%s | %s", s.opts.Name, s.opts.Id, sock.Remote())
+
 			return
+		}
+
+		// Keep track of when to close the connection
+		if c := msg.Header["Connection"]; c == "close" {
+			closeConn = true
 		}
 
 		// Check the message header for micro message header, if so handle
@@ -170,11 +186,12 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 			stream bool
 			id     string
 		)
+
 		if s := getHeader(headers.Stream, msg.Header); len(s) > 0 {
 			id = s
 			stream = true
 		} else {
-			// if there's no stream id then its a standard request
+			// If there's no stream id then its a standard request
 			// use the Micro-Id
 			id = msg.Header[headers.ID]
 		}
@@ -183,7 +200,7 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 		psock, ok := pool.Get(id)
 
 		// If we don't have a socket and its a stream
-		// check if its a last stream EOS error
+		// Check if its a last stream EOS error
 		if !ok && stream && msg.Header[headers.Error] == errLastStreamResponse.Error() {
 			pool.Release(psock)
 			continue
@@ -211,14 +228,16 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 		psock.SetRemote(sock.Remote())
 
 		// Load the socket with the current message
-		psock.Accept(&msg)
+		if err := psock.Accept(&msg); err != nil {
+			logger.Logf(log.ErrorLevel, "Socket failed to accept message: %v", err)
+		}
 
 		// Now walk the usual path
 
 		// We use this Timeout header to set a server deadline
 		to := msg.Header["Timeout"]
 		// We use this Content-Type header to identify the codec needed
-		ct := msg.Header["Content-Type"]
+		contentType := msg.Header["Content-Type"]
 
 		// Copy the message headers
 		header := make(map[string]string, len(msg.Header))
@@ -233,30 +252,31 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 		// Create new context with the metadata
 		ctx := metadata.NewContext(context.Background(), header)
 
-		// set the timeout from the header if we have it
+		// Set the timeout from the header if we have it
 		if len(to) > 0 {
 			if n, err := strconv.ParseUint(to, 10, 64); err == nil {
 				var cancel context.CancelFunc
+
 				ctx, cancel = context.WithTimeout(ctx, time.Duration(n))
 				defer cancel()
 			}
 		}
 
-		// if there's no content type default it
-		if len(ct) == 0 {
+		// If there's no content type default it
+		if len(contentType) == 0 {
 			msg.Header["Content-Type"] = DefaultContentType
-			ct = DefaultContentType
+			contentType = DefaultContentType
 		}
 
-		// setup old protocol
+		// Setup old protocol
 		cf := setupProtocol(&msg)
 
-		// no legacy codec needed
+		// No legacy codec needed
 		if cf == nil {
 			var err error
-			// try get a new codec
-			if cf, err = s.newCodec(ct); err != nil {
-				// no codec found so send back an error
+			// Try get a new codec
+			if cf, err = s.newCodec(contentType); err != nil {
+				// No codec found so send back an error
 				if err = sock.Send(&transport.Message{
 					Header: map[string]string{
 						"Content-Type": "text/plain",
@@ -266,24 +286,23 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 					gerr = err
 				}
 
-				// release the socket we just created
 				pool.Release(psock)
-				// now continue
+
 				continue
 			}
 		}
 
-		// create a new rpc codec based on the pseudo socket and codec
+		// Create a new rpc codec based on the pseudo socket and codec
 		rcodec := newRPCCodec(&msg, psock, cf)
-		// check the protocol as well
+		// Check the protocol as well
 		protocol := rcodec.String()
 
-		// internal request
-		request := &rpcRequest{
+		// Internal request
+		request := rpcRequest{
 			service:     getHeader(headers.Request, msg.Header),
 			method:      getHeader(headers.Method, msg.Header),
 			endpoint:    getHeader(headers.Endpoint, msg.Header),
-			contentType: ct,
+			contentType: contentType,
 			codec:       rcodec,
 			header:      msg.Header,
 			body:        msg.Body,
@@ -291,104 +310,50 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 			stream:      stream,
 		}
 
-		// internal response
-		response := &rpcResponse{
+		// Internal response
+		response := rpcResponse{
 			header: make(map[string]string),
 			socket: psock,
 			codec:  rcodec,
 		}
 
-		// set router
-		r := Router(s.router)
-
-		// if not nil use the router specified
-		if s.opts.Router != nil {
-			// create a wrapped function
-			handler := func(ctx context.Context, req Request, rsp interface{}) error {
-				return s.opts.Router.ServeRequest(ctx, req, rsp.(Response))
-			}
-
-			// execute the wrapper for it
-			for i := len(s.opts.HdlrWrappers); i > 0; i-- {
-				handler = s.opts.HdlrWrappers[i-1](handler)
-			}
-
-			// set the router
-			r = rpcRouter{h: handler}
-		}
-
-		// wait for two coroutines to exit
-		// serve the request and process the outbound messages
+		// Wait for two coroutines to exit
+		// Serve the request and process the outbound messages
 		wg.Add(2)
 
-		// process the outbound messages from the socket
+		// Process the outbound messages from the socket
 		go func(psock *socket.Socket) {
 			defer func() {
 				// TODO: don't hack this but if its grpc just break out of the stream
 				// We do this because the underlying connection is h2 and its a stream
-				switch protocol {
-				case "grpc":
-					sock.Close()
+				if protocol == "grpc" {
+					if err := sock.Close(); err != nil {
+						logger.Logf(log.ErrorLevel, "Failed to close socket: %v", err)
+					}
 				}
-				// release the socket
-				pool.Release(psock)
-				// signal we're done
-				wg.Done()
 
-				// recover any panics for outbound process
-				if r := recover(); r != nil {
-					logger.Log(log.ErrorLevel, "panic recovered: ", r)
-					logger.Log(log.ErrorLevel, string(debug.Stack()))
-				}
+				s.deferer(pool, psock, wg)
 			}()
 
 			for {
-				// get the message from our internal handler/stream
+				// Get the message from our internal handler/stream
 				m := new(transport.Message)
 				if err := psock.Process(m); err != nil {
 					return
 				}
 
-				// send the message back over the socket
+				// Send the message back over the socket
 				if err := sock.Send(m); err != nil {
 					return
 				}
 			}
 		}(psock)
 
-		// serve the request in a go routine as this may be a stream
+		// Serve the request in a go routine as this may be a stream
 		go func(psock *socket.Socket) {
-			defer func() {
-				// release the socket
-				pool.Release(psock)
-				// signal we're done
-				wg.Done()
+			defer s.deferer(pool, psock, wg)
 
-				// recover any panics for call handler
-				if r := recover(); r != nil {
-					logger.Log(log.ErrorLevel, "panic recovered: ", r)
-					logger.Log(log.ErrorLevel, string(debug.Stack()))
-				}
-			}()
-
-			// serve the actual request using the request router
-			if serveRequestError := r.ServeRequest(ctx, request, response); serveRequestError != nil {
-				// write an error response
-				writeError := rcodec.Write(&codec.Message{
-					Header: msg.Header,
-					Error:  serveRequestError.Error(),
-					Type:   codec.Error,
-				}, nil)
-
-				// if the server request is an EOS error we let the socket know
-				// sometimes the socket is already closed on the other side, so we can ignore that error
-				alreadyClosed := serveRequestError == errLastStreamResponse && writeError == io.EOF
-
-				// could not write error response
-				if writeError != nil && !alreadyClosed {
-					logger.Logf(log.DebugLevel, "rpc: unable to write error response: %v", writeError)
-				}
-			}
+			s.serveReq(ctx, msg, &request, &response, rcodec)
 		}(psock)
 	}
 }
@@ -423,6 +388,7 @@ func (s *rpcServer) Register() error {
 		if err := regFunc(rsvc); err != nil {
 			return errors.Wrap(err, "failed to register service")
 		}
+
 		return nil
 	}
 
@@ -477,7 +443,9 @@ func (s *rpcServer) Register() error {
 
 	// Router can exchange messages on broker
 	// Subscribe to the topic with its own name
-	s.subscribeServer(config)
+	if err := s.subscribeServer(config); err != nil {
+		return errors.Wrap(err, "failed to subscribe to service name topic")
+	}
 
 	// Subscribe for all of the subscribers
 	if err := s.reSubscribe(config); err != nil {
@@ -511,6 +479,7 @@ func (s *rpcServer) Deregister() error {
 	}
 
 	logger.Logf(log.InfoLevel, "Registry [%s] Deregistering node: %s", config.Registry.String(), node.Id)
+
 	if err := config.Registry.Deregister(service); err != nil {
 		return err
 	}
@@ -528,15 +497,22 @@ func (s *rpcServer) Deregister() error {
 
 	// close the subscriber
 	if s.subscriber != nil {
-		s.subscriber.Unsubscribe()
+		if err := s.subscriber.Unsubscribe(); err != nil {
+			logger.Logf(log.ErrorLevel, "Failed to unsubscribe service from service name topic: %v", err)
+		}
+
 		s.subscriber = nil
 	}
 
 	for sb, subs := range s.subscribers {
-		for _, sub := range subs {
+		for i, sub := range subs {
 			logger.Logf(log.InfoLevel, "Unsubscribing %s from topic: %s", node.Id, sub.Topic())
-			sub.Unsubscribe()
+
+			if err := sub.Unsubscribe(); err != nil {
+				logger.Logf(log.ErrorLevel, "Failed to unsubscribe subscriber nr. %d from topic %s: %v", i+1, sub.Topic(), err)
+			}
 		}
+
 		s.subscribers[sb] = nil
 	}
 
@@ -561,9 +537,9 @@ func (s *rpcServer) Start() error {
 
 	// swap address
 	addr := s.swapAddr(config, listener.Addr())
-	brokerName := config.Broker.String()
 
 	// connect to the broker
+	brokerName := config.Broker.String()
 	if err = config.Broker.Connect(); err != nil {
 		logger.Logf(log.ErrorLevel, "Broker [%s] connect error: %v", brokerName, err)
 		return err
@@ -571,111 +547,21 @@ func (s *rpcServer) Start() error {
 
 	logger.Logf(log.InfoLevel, "Broker [%s] Connected to %s", brokerName, config.Broker.Address())
 
-	// use RegisterCheck func before register
+	// Use RegisterCheck func before register
 	if err = s.opts.RegisterCheck(s.opts.Context); err != nil {
 		logger.Logf(log.ErrorLevel, "Server %s-%s register check error: %s", config.Name, config.Id, err)
-	} else {
-		// announce self to the world
-		if err = s.Register(); err != nil {
-			logger.Logf(log.ErrorLevel, "Server %s-%s register error: %s", config.Name, config.Id, err)
-		}
+	} else if err = s.Register(); err != nil {
+		// Perform initial registration
+		logger.Logf(log.ErrorLevel, "Server %s-%s register error: %s", config.Name, config.Id, err)
 	}
 
 	exit := make(chan bool)
 
-	go func() {
-		for {
-			// listen for connections
-			err := listener.Accept(s.ServeConn)
+	// Listen for connections
+	go s.listen(listener, exit)
 
-			// TODO: listen for messages
-			// msg := broker.Exchange(service).Consume()
-
-			select {
-			// check if we're supposed to exit
-			case <-exit:
-				return
-			// check the error and backoff
-			default:
-				if err != nil {
-					logger.Logf(log.ErrorLevel, "Accept error: %v", err)
-					time.Sleep(time.Second)
-
-					continue
-				}
-			}
-
-			return
-		}
-	}()
-
-	go func() {
-		// Only process if it exists
-		ticker := new(time.Ticker)
-		if s.opts.RegisterInterval > time.Duration(0) {
-			ticker = time.NewTicker(s.opts.RegisterInterval)
-		}
-
-		// Return error chan
-		var ch chan error
-
-	Loop:
-		for {
-			select {
-			// Register self on interval
-			case <-ticker.C:
-				registered := s.isRegistered()
-
-				rerr := s.opts.RegisterCheck(s.opts.Context)
-				if rerr != nil && registered {
-					logger.Logf(log.ErrorLevel, "Server %s-%s register check error: %s, deregister it", config.Name, config.Id, err)
-					// deregister self in case of error
-					if err = s.Deregister(); err != nil {
-						logger.Logf(log.ErrorLevel, "Server %s-%s deregister error: %s", config.Name, config.Id, err)
-					}
-				} else if rerr != nil && !registered {
-					logger.Logf(log.ErrorLevel, "Server %s-%s register check error: %s", config.Name, config.Id, err)
-					continue
-				}
-
-				if err := s.Register(); err != nil {
-					logger.Logf(log.ErrorLevel, "Server %s-%s register error: %s", config.Name, config.Id, err)
-				}
-
-			// wait for exit
-			case ch = <-s.exit:
-				ticker.Stop()
-				close(exit)
-
-				break Loop
-			}
-		}
-
-		if s.isRegistered() {
-			// deregister self
-			if err := s.Deregister(); err != nil {
-				logger.Logf(log.ErrorLevel, "Server %s-%s deregister error: %s", config.Name, config.Id, err)
-			}
-		}
-
-		// wait for requests to finish
-		if swg := s.getWg(); swg != nil {
-			swg.Wait()
-		}
-
-		// close transport listener
-		ch <- listener.Close()
-
-		logger.Logf(log.InfoLevel, "Broker [%s] Disconnected from %s", brokerName, config.Broker.Address())
-
-		// disconnect the broker
-		if err := config.Broker.Disconnect(); err != nil {
-			logger.Logf(log.ErrorLevel, "Broker [%s] Disconnect error: %v", brokerName, err)
-		}
-
-		// swap back address
-		s.setOptsAddr(addr)
-	}()
+	// Keep the service registered to registry
+	go s.registrar(listener, addr, config, exit)
 
 	s.setStarted(true)
 
@@ -699,10 +585,6 @@ func (s *rpcServer) Stop() error {
 
 func (s *rpcServer) String() string {
 	return "mucp"
-}
-
-func (s *rpcServer) getAddress() (string, error) {
-	return "", nil
 }
 
 // newRegFuc will create a new registry function used to register the service.
@@ -823,4 +705,160 @@ func (s *rpcServer) getEndpoints() []*registry.Endpoint {
 	}
 
 	return endpoints
+}
+
+func (s *rpcServer) listen(listener transport.Listener, exit chan bool) {
+	for {
+		// Start listening for connections
+		// This will block until either exit signal given or error occured
+		err := listener.Accept(s.ServeConn)
+
+		// TODO: listen for messages
+		// msg := broker.Exchange(service).Consume()
+
+		select {
+		// check if we're supposed to exit
+		case <-exit:
+			return
+		// check the error and backoff
+		default:
+			if err != nil {
+				s.opts.Logger.Logf(log.ErrorLevel, "Accept error: %v", err)
+				time.Sleep(time.Second)
+
+				continue
+			}
+		}
+
+		return
+	}
+}
+
+// registrar is responsible for keeping the service registered to the registry.
+func (s *rpcServer) registrar(listener transport.Listener, addr string, config Options, exit chan bool) {
+	logger := config.Logger
+
+	// Only process if it exists
+	ticker := new(time.Ticker)
+	if s.opts.RegisterInterval > time.Duration(0) {
+		ticker = time.NewTicker(s.opts.RegisterInterval)
+	}
+
+	// Return error chan
+	var ch chan error
+
+Loop:
+	for {
+		select {
+		// Register self on interval
+		case <-ticker.C:
+			registered := s.isRegistered()
+
+			rerr := s.opts.RegisterCheck(s.opts.Context)
+			if rerr != nil && registered {
+				logger.Logf(log.ErrorLevel, "Server %s-%s register check error: %s, deregister it", config.Name, config.Id, rerr)
+				// deregister self in case of error
+				if err := s.Deregister(); err != nil {
+					logger.Logf(log.ErrorLevel, "Server %s-%s deregister error: %s", config.Name, config.Id, err)
+				}
+			} else if rerr != nil && !registered {
+				logger.Logf(log.ErrorLevel, "Server %s-%s register check error: %s", config.Name, config.Id, rerr)
+				continue
+			}
+
+			if err := s.Register(); err != nil {
+				logger.Logf(log.ErrorLevel, "Server %s-%s register error: %s", config.Name, config.Id, err)
+			}
+
+		// Wait for exit signal
+		case ch = <-s.exit:
+			ticker.Stop()
+			close(exit)
+
+			break Loop
+		}
+	}
+
+	// Shutting down, deregister
+	if s.isRegistered() {
+		if err := s.Deregister(); err != nil {
+			logger.Logf(log.ErrorLevel, "Server %s-%s deregister error: %s", config.Name, config.Id, err)
+		}
+	}
+
+	// Wait for requests to finish
+	if swg := s.getWg(); swg != nil {
+		swg.Wait()
+	}
+
+	// Close transport listener
+	ch <- listener.Close()
+
+	brokerName := config.Broker.String()
+	logger.Logf(log.InfoLevel, "Broker [%s] Disconnected from %s", brokerName, config.Broker.Address())
+
+	// Disconnect the broker
+	if err := config.Broker.Disconnect(); err != nil {
+		logger.Logf(log.ErrorLevel, "Broker [%s] Disconnect error: %v", brokerName, err)
+	}
+
+	// Swap back address
+	s.setOptsAddr(addr)
+}
+
+func (s *rpcServer) serveReq(ctx context.Context, msg transport.Message, req *rpcRequest, resp *rpcResponse, rcodec codec.Codec) {
+	logger := s.opts.Logger
+	router := s.getRouter()
+
+	// serve the actual request using the request router
+	if serveRequestError := router.ServeRequest(ctx, req, resp); serveRequestError != nil {
+		// write an error response
+		writeError := rcodec.Write(&codec.Message{
+			Header: msg.Header,
+			Error:  serveRequestError.Error(),
+			Type:   codec.Error,
+		}, nil)
+
+		// if the server request is an EOS error we let the socket know
+		// sometimes the socket is already closed on the other side, so we can ignore that error
+		alreadyClosed := errors.Is(serveRequestError, errLastStreamResponse) && errors.Is(writeError, io.EOF)
+
+		// could not write error response
+		if writeError != nil && !alreadyClosed {
+			logger.Logf(log.DebugLevel, "rpc: unable to write error response: %v", writeError)
+		}
+	}
+}
+
+func (s *rpcServer) deferer(pool *socket.Pool, psock *socket.Socket, wg *waitGroup) {
+	pool.Release(psock)
+	wg.Done()
+
+	logger := s.opts.Logger
+	if r := recover(); r != nil {
+		logger.Log(log.ErrorLevel, "panic recovered: ", r)
+		logger.Log(log.ErrorLevel, string(debug.Stack()))
+	}
+}
+
+func (s *rpcServer) getRouter() Router {
+	router := Router(s.router)
+
+	// if not nil use the router specified
+	if s.opts.Router != nil {
+		// create a wrapped function
+		handler := func(ctx context.Context, req Request, rsp interface{}) error {
+			return s.opts.Router.ServeRequest(ctx, req, rsp.(Response))
+		}
+
+		// execute the wrapper for it
+		for i := len(s.opts.HdlrWrappers); i > 0; i-- {
+			handler = s.opts.HdlrWrappers[i-1](handler)
+		}
+
+		// set the router
+		router = rpcRouter{h: handler}
+	}
+
+	return router
 }
