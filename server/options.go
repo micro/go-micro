@@ -74,7 +74,7 @@ type Options struct {
 	Context context.Context
 }
 
-// NewOptions creates new server options
+// NewOptions creates new server options.
 func NewOptions(opt ...Option) Options {
 	opts := Options{
 		Codecs:           make(map[string]codec.NewCodec),

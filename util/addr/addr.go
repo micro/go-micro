@@ -1,4 +1,4 @@
-// addr provides functions to retreive local IP addresses from device interfaces.
+// addr provides functions to retrieve local IP addresses from device interfaces.
 package addr
 
 import (

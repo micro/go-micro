@@ -710,7 +710,7 @@ func (s *rpcServer) getEndpoints() []*registry.Endpoint {
 func (s *rpcServer) listen(listener transport.Listener, exit chan bool) {
 	for {
 		// Start listening for connections
-		// This will block until either exit signal given or error occured
+		// This will block until either exit signal given or error occurred
 		err := listener.Accept(s.ServeConn)
 
 		// TODO: listen for messages

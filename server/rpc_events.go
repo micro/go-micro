@@ -114,7 +114,7 @@ func (s *rpcServer) subscribeServer(config Options) error {
 	return nil
 }
 
-// reSubscribe itterates over subscribers and re-subscribes then
+// reSubscribe itterates over subscribers and re-subscribes then.
 func (s *rpcServer) reSubscribe(config Options) error {
 	for sb := range s.subscribers {
 		var opts []broker.SubscribeOption
