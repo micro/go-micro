@@ -35,3 +35,7 @@ _cgo_export.*
 *~
 *.swp
 *.swo
+
+# go work files
+go.work
+go.work.sum

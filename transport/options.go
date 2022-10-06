@@ -10,6 +10,10 @@ import (
 	"go-micro.dev/v4/logger"
 )
 
+var (
+	DefaultBufSizeH2 = 4 * 1024 * 1024
+)
+
 type Options struct {
 	// Addrs is the list of intermediary addresses to connect to
 	Addrs []string
@@ -30,6 +34,8 @@ type Options struct {
 	Context context.Context
 	// Logger is the underline logger
 	Logger logger.Logger
+	// BuffSizeH2 is the HTTP2 buffer size
+	BuffSizeH2 int
 }
 
 type DialOptions struct {
@@ -38,6 +44,10 @@ type DialOptions struct {
 	Stream bool
 	// Timeout for dialing
 	Timeout time.Duration
+	// ConnClose sets the Connection header to close
+	ConnClose bool
+	// InsecureSkipVerify skip TLS verification.
+	InsecureSkipVerify bool
 
 	// TODO: add tls options when dialing
 	// Currently set in global options
@@ -106,22 +116,46 @@ func WithTimeout(d time.Duration) DialOption {
 	}
 }
 
-// WithLogger sets the underline logger.
-func WithLogger(l logger.Logger) Option {
+// WithConnClose sets the Connection header to close.
+func WithConnClose() DialOption {
+	return func(o *DialOptions) {
+		o.ConnClose = true
+	}
+}
+
+func WithInsecureSkipVerify(b bool) DialOption {
+	return func(o *DialOptions) {
+		o.InsecureSkipVerify = b
+	}
+}
+
+// Logger sets the underline logger.
+func Logger(l logger.Logger) Option {
 	return func(o *Options) {
 		o.Logger = l
 	}
 }
 
+// BuffSizeH2 sets the HTTP2 buffer size.
+// Default is 4 * 1024 * 1024.
+func BuffSizeH2(size int) Option {
+	return func(o *Options) {
+		o.BuffSizeH2 = size
+	}
+}
+
+// InsecureSkipVerify sets the TLS options to skip verification.
 // NetListener Set net.Listener for httpTransport.
 func NetListener(customListener net.Listener) ListenOption {
 	return func(o *ListenOptions) {
 		if customListener == nil {
 			return
 		}
+
 		if o.Context == nil {
 			o.Context = context.TODO()
 		}
+
 		o.Context = context.WithValue(o.Context, netListener{}, customListener)
 	}
 }

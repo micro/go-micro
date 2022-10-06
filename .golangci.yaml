@@ -57,6 +57,11 @@ output:
 
 # all available settings of specific linters
 linters-settings:
+  wsl:
+    allow-cuddle-with-calls: ["Lock", "RLock", "defer"]
+  funlen:
+    lines: 80
+    statements: 60
   varnamelen:
     # The longest distance, in source lines, that is being considered a "small scope".
     # Variables used in at most this many lines will be ignored.
@@ -197,6 +202,7 @@ linters:
     - exhaustruct
     - containedctx
     - godox
+    - forcetypeassert
 
 issues:
   # List of regexps of issue texts to exclude, empty list by default.
