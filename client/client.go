@@ -3,9 +3,15 @@ package client
 
 import (
 	"context"
-	"time"
 
 	"go-micro.dev/v4/codec"
+)
+
+var (
+	// NewClient returns a new client.
+	NewClient func(...Option) Client = newRPCClient
+	// DefaultClient is a default client to use out of the box.
+	DefaultClient Client = newRPCClient()
 )
 
 // Client is the interface used to make requests to services.
@@ -101,26 +107,6 @@ type MessageOption func(*MessageOptions)
 
 // RequestOption used by NewRequest.
 type RequestOption func(*RequestOptions)
-
-var (
-	// DefaultClient is a default client to use out of the box.
-	DefaultClient Client = newRPCClient()
-	// DefaultBackoff is the default backoff function for retries.
-	DefaultBackoff = exponentialBackoff
-	// DefaultRetry is the default check-for-retry function for retries.
-	DefaultRetry = RetryOnError
-	// DefaultRetries is the default number of times a request is tried.
-	DefaultRetries = 1
-	// DefaultRequestTimeout is the default request timeout.
-	DefaultRequestTimeout = time.Second * 5
-	// DefaultPoolSize sets the connection pool size.
-	DefaultPoolSize = 100
-	// DefaultPoolTTL sets the connection pool ttl.
-	DefaultPoolTTL = time.Minute
-
-	// NewClient returns a new client.
-	NewClient func(...Option) Client = newRPCClient
-)
 
 // Makes a synchronous call to a service using the default client.
 func Call(ctx context.Context, request Request, response interface{}, opts ...CallOption) error {
