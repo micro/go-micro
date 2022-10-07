@@ -16,12 +16,16 @@ import (
 )
 
 type memorySocket struct {
+	// True server mode, False client mode
 	server bool
-	name   string
-	crecv  *gob.Decoder
-	csend  *gob.Encoder
-	srecv  *gob.Decoder
-	ssend  *gob.Encoder
+	// Client receiver of io.Pipe with gob
+	crecv *gob.Decoder
+	// Client sender of the io.Pipe with gob
+	csend *gob.Encoder
+	// Server receiver of the io.Pip with gob
+	srecv *gob.Decoder
+	// Server sender of the io.Pip with gob
+	ssend *gob.Encoder
 	// sock exit
 	exit chan bool
 	// listener exit
@@ -158,7 +162,6 @@ func (m *memoryListener) Accept(fn func(Socket)) error {
 		case c := <-m.conn:
 			go fn(&memorySocket{
 				server:  true,
-				name:    "server",
 				lexit:   c.lexit,
 				exit:    c.exit,
 				ssend:   c.ssend,
@@ -191,13 +194,11 @@ func (m *memoryTransport) Dial(addr string, opts ...DialOption) (Client, error) 
 
 	client := &memoryClient{
 		&memorySocket{
-			server:  false,
-			name:    "client",
-			csend:   gob.NewEncoder(cwriter),
-			crecv:   gob.NewDecoder(creader),
-			ssend:   gob.NewEncoder(swriter),
-			srecv:   gob.NewDecoder(sreader),
-			exit:    make(chan bool),
+			server: false,
+			csend:  gob.NewEncoder(cwriter),
+			crecv:  gob.NewDecoder(creader),
+			ssend:  gob.NewEncoder(swriter),
+			srecv:  gob.NewDecoder(sreader), exit: make(chan bool),
 			lexit:   listener.exit,
 			local:   addr,
 			remote:  addr,
