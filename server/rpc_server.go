@@ -136,7 +136,9 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 	}()
 
 	for {
-		var msg transport.Message
+		msg := transport.Message{
+			Header: make(map[string]string),
+		}
 
 		// Close connection if Connection: close header was set
 		if closeConn {
