@@ -2,8 +2,10 @@ package transport
 
 import (
 	"context"
+	"encoding/gob"
 	"errors"
 	"fmt"
+	"io"
 	"math/rand"
 	"net"
 	"sync"
@@ -14,8 +16,12 @@ import (
 )
 
 type memorySocket struct {
-	recv chan *Message
-	send chan *Message
+	server bool
+	name   string
+	crecv  *gob.Decoder
+	csend  *gob.Encoder
+	srecv  *gob.Decoder
+	ssend  *gob.Encoder
 	// sock exit
 	exit chan bool
 	// listener exit
@@ -27,7 +33,6 @@ type memorySocket struct {
 	// for send/recv Timeout
 	timeout time.Duration
 	ctx     context.Context
-	sync.RWMutex
 }
 
 type memoryClient struct {
@@ -52,9 +57,6 @@ type memoryTransport struct {
 }
 
 func (ms *memorySocket) Recv(m *Message) error {
-	ms.RLock()
-	defer ms.RUnlock()
-
 	ctx := ms.ctx
 	if ms.timeout > 0 {
 		var cancel context.CancelFunc
@@ -69,9 +71,18 @@ func (ms *memorySocket) Recv(m *Message) error {
 		return errors.New("connection closed")
 	case <-ms.lexit:
 		return errors.New("server connection closed")
-	case cm := <-ms.recv:
-		*m = *cm
+	default:
+		if ms.server {
+			if err := ms.srecv.Decode(m); err != nil {
+				return err
+			}
+		} else {
+			if err := ms.crecv.Decode(m); err != nil {
+				return err
+			}
+		}
 	}
+
 	return nil
 }
 
@@ -84,9 +95,6 @@ func (ms *memorySocket) Remote() string {
 }
 
 func (ms *memorySocket) Send(m *Message) error {
-	ms.RLock()
-	defer ms.RUnlock()
-
 	ctx := ms.ctx
 	if ms.timeout > 0 {
 		var cancel context.CancelFunc
@@ -101,14 +109,22 @@ func (ms *memorySocket) Send(m *Message) error {
 		return errors.New("connection closed")
 	case <-ms.lexit:
 		return errors.New("server connection closed")
-	case ms.send <- m:
+	default:
+		if ms.server {
+			if err := ms.ssend.Encode(m); err != nil {
+				return err
+			}
+		} else {
+			if err := ms.csend.Encode(m); err != nil {
+				return err
+			}
+		}
 	}
+
 	return nil
 }
 
 func (ms *memorySocket) Close() error {
-	ms.Lock()
-	defer ms.Unlock()
 	select {
 	case <-ms.exit:
 		return nil
@@ -141,10 +157,12 @@ func (m *memoryListener) Accept(fn func(Socket)) error {
 			return nil
 		case c := <-m.conn:
 			go fn(&memorySocket{
+				server:  true,
+				name:    "server",
 				lexit:   c.lexit,
 				exit:    c.exit,
-				send:    c.recv,
-				recv:    c.send,
+				ssend:   c.ssend,
+				srecv:   c.srecv,
 				local:   c.Remote(),
 				remote:  c.Local(),
 				timeout: m.topts.Timeout,
@@ -168,10 +186,17 @@ func (m *memoryTransport) Dial(addr string, opts ...DialOption) (Client, error) 
 		o(&options)
 	}
 
+	creader, swriter := io.Pipe()
+	sreader, cwriter := io.Pipe()
+
 	client := &memoryClient{
 		&memorySocket{
-			send:    make(chan *Message),
-			recv:    make(chan *Message),
+			server:  false,
+			name:    "client",
+			csend:   gob.NewEncoder(cwriter),
+			crecv:   gob.NewDecoder(creader),
+			ssend:   gob.NewEncoder(swriter),
+			srecv:   gob.NewDecoder(sreader),
 			exit:    make(chan bool),
 			lexit:   listener.exit,
 			local:   addr,
