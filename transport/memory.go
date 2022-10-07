@@ -72,9 +72,11 @@ func (ms *memorySocket) Recv(m *Message) error {
 	case <-ctx.Done():
 		return ctx.Err()
 	case <-ms.exit:
-		return errors.New("connection closed")
+		// connection closed
+		return io.EOF
 	case <-ms.lexit:
-		return errors.New("server connection closed")
+		// Server connection closed
+		return io.EOF
 	default:
 		if ms.server {
 			if err := ms.srecv.Decode(m); err != nil {
@@ -110,9 +112,11 @@ func (ms *memorySocket) Send(m *Message) error {
 	case <-ctx.Done():
 		return ctx.Err()
 	case <-ms.exit:
-		return errors.New("connection closed")
+		// connection closed
+		return io.EOF
 	case <-ms.lexit:
-		return errors.New("server connection closed")
+		// Server connection closed
+		return io.EOF
 	default:
 		if ms.server {
 			if err := ms.ssend.Encode(m); err != nil {
