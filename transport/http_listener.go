@@ -46,7 +46,7 @@ func (h *httpTransportListener) Accept(fn func(Socket)) error {
 		}
 	}
 
-	// Default http2 server
+	// Server ONLY supports HTTP1 + H2C
 	srv := &http.Server{
 		Handler:           mux,
 		ReadHeaderTimeout: time.Second * 5,
