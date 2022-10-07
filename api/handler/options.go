@@ -7,9 +7,11 @@ import (
 )
 
 var (
-	DefaultMaxRecvSize int64 = 1024 * 1024 * 100 // 10Mb
+	// DefaultMaxRecvSize is 10MiB.
+	DefaultMaxRecvSize int64 = 1024 * 1024 * 100
 )
 
+// Options is the list of api Options.
 type Options struct {
 	MaxRecvSize int64
 	Namespace   string
@@ -18,6 +20,7 @@ type Options struct {
 	Logger      logger.Logger
 }
 
+// Option is a api Option.
 type Option func(o *Options)
 
 // NewOptions fills in the blanks.
@@ -59,6 +62,7 @@ func WithRouter(r router.Router) Option {
 	}
 }
 
+// WithClient sets the client for the handler.
 func WithClient(c client.Client) Option {
 	return func(o *Options) {
 		o.Client = c

@@ -29,11 +29,13 @@ type Endpoint struct {
 	Path string
 }
 
+// Options is a struct of available options.
 type Options struct {
 	Handler   string
 	Namespace func(*http.Request) string
 }
 
+// Option is a helper for a single option.
 type Option func(o *Options)
 
 // StaticNamespace returns the same namespace for each request.

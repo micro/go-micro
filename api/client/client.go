@@ -164,7 +164,7 @@ func (client *Client) Call(service, endpoint string, request, response interface
 
 // Stream enables the ability to stream via websockets.
 func (client *Client) Stream(service, endpoint string, request interface{}) (*Stream, error) {
-	b, err := marshalRequest(endpoint, request)
+	bytes, err := marshalRequest(endpoint, request)
 	if err != nil {
 		return nil, err
 	}
@@ -196,7 +196,7 @@ func (client *Client) Stream(service, endpoint string, request interface{}) (*St
 	}
 
 	// send the first request
-	if err := conn.WriteMessage(websocket.TextMessage, b); err != nil {
+	if err := conn.WriteMessage(websocket.TextMessage, bytes); err != nil {
 		return nil, err
 	}
 
@@ -224,7 +224,7 @@ func (s *Stream) Send(v interface{}) error {
 	return s.conn.WriteMessage(websocket.TextMessage, b)
 }
 
-func marshalRequest(endpoint string, v interface{}) ([]byte, error) {
+func marshalRequest(_ string, v interface{}) ([]byte, error) {
 	return json.Marshal(v)
 }
 
