@@ -174,7 +174,7 @@ func (c *cache) get(service string) ([]*registry.Service, error) {
 	c.RUnlock()
 
 	// check if its being watched
-	if !ok {
+	if c.opts.TTL > 0 && !ok {
 		c.Lock()
 
 		// set to watched
