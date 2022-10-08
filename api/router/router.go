@@ -7,7 +7,7 @@ import (
 	"go-micro.dev/v4/registry"
 )
 
-// Router is used to determine an endpoint for a request
+// Router is used to determine an endpoint for a request.
 type Router interface {
 	// Returns options
 	Options() Options
@@ -30,7 +30,7 @@ type Route struct {
 	Versions []*registry.Service
 }
 
-// Endpoint is a mapping between an RPC method and HTTP endpoint
+// Endpoint is a mapping between an RPC method and HTTP endpoint.
 type Endpoint struct {
 	// RPC Method e.g. Greeter.Hello
 	Name string

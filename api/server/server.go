@@ -5,7 +5,7 @@ import (
 	"net/http"
 )
 
-// Server serves api requests
+// Server serves api requests.
 type Server interface {
 	Address() string
 	Init(opts ...Option) error

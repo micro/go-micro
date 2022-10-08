@@ -3,10 +3,11 @@ package flag
 import (
 	"errors"
 	"flag"
-	"github.com/imdario/mergo"
-	"go-micro.dev/v4/config/source"
 	"strings"
 	"time"
+
+	"github.com/imdario/mergo"
+	"go-micro.dev/v4/config/source"
 )
 
 type flagsrc struct {
@@ -89,13 +90,14 @@ func (fs *flagsrc) String() string {
 // Hyphens are delimiters for nesting, and all keys are lowercased.
 //
 // Example:
-//      dbhost := flag.String("database-host", "localhost", "the db host name")
 //
-//      {
-//          "database": {
-//              "host": "localhost"
-//          }
-//      }
+//	dbhost := flag.String("database-host", "localhost", "the db host name")
+//
+//	{
+//	    "database": {
+//	        "host": "localhost"
+//	    }
+//	}
 func NewSource(opts ...source.Option) source.Source {
 	return &flagsrc{opts: source.NewOptions(opts...)}
 }

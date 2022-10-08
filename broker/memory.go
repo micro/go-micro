@@ -2,20 +2,19 @@
 package broker
 
 import (
-	"context"
 	"errors"
 	"math/rand"
 	"sync"
 	"time"
 
 	"github.com/google/uuid"
-	"go-micro.dev/v4/logger"
+	log "go-micro.dev/v4/logger"
 	maddr "go-micro.dev/v4/util/addr"
 	mnet "go-micro.dev/v4/util/net"
 )
 
 type memoryBroker struct {
-	opts Options
+	opts *Options
 
 	addr string
 	sync.RWMutex
@@ -24,7 +23,7 @@ type memoryBroker struct {
 }
 
 type memoryEvent struct {
-	opts    Options
+	opts    *Options
 	topic   string
 	err     error
 	message interface{}
@@ -39,7 +38,7 @@ type memorySubscriber struct {
 }
 
 func (m *memoryBroker) Options() Options {
-	return m.opts
+	return *m.opts
 }
 
 func (m *memoryBroker) Address() string {
@@ -84,7 +83,7 @@ func (m *memoryBroker) Disconnect() error {
 
 func (m *memoryBroker) Init(opts ...Option) error {
 	for _, o := range opts {
-		o(&m.opts)
+		o(m.opts)
 	}
 	return nil
 }
@@ -190,9 +189,7 @@ func (m *memoryEvent) Message() *Message {
 	case []byte:
 		msg := &Message{}
 		if err := m.opts.Codec.Unmarshal(v, msg); err != nil {
-			if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
-				logger.Errorf("[memory]: failed to unmarshal: %v\n", err)
-			}
+			m.opts.Logger.Logf(log.ErrorLevel, "[memory]: failed to unmarshal: %v\n", err)
 			return nil
 		}
 		return msg
@@ -223,14 +220,9 @@ func (m *memorySubscriber) Unsubscribe() error {
 }
 
 func NewMemoryBroker(opts ...Option) Broker {
-	options := Options{
-		Context: context.Background(),
-	}
+	options := NewOptions(opts...)
 
 	rand.Seed(time.Now().UnixNano())
-	for _, o := range opts {
-		o(&options)
-	}
 
 	return &memoryBroker{
 		opts:        options,

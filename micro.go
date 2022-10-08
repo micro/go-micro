@@ -12,11 +12,11 @@ type serviceKey struct{}
 
 // Service is an interface that wraps the lower level libraries
 // within go-micro. Its a convenience method for building
-// and initialising services.
+// and initializing services.
 type Service interface {
 	// The service name
 	Name() string
-	// Init initialises options
+	// Init initializes options
 	Init(...Option)
 	// Options returns the current options
 	Options() Options
@@ -30,13 +30,13 @@ type Service interface {
 	String() string
 }
 
-// Event is used to publish messages to a topic
+// Event is used to publish messages to a topic.
 type Event interface {
 	// Publish publishes a message to the event topic
 	Publish(ctx context.Context, msg interface{}, opts ...client.PublishOption) error
 }
 
-// Type alias to satisfy the deprecation
+// Type alias to satisfy the deprecation.
 type Publisher = Event
 
 type Option func(*Options)
@@ -57,7 +57,7 @@ func NewContext(ctx context.Context, s Service) context.Context {
 	return context.WithValue(ctx, serviceKey{}, s)
 }
 
-// NewEvent creates a new event publisher
+// NewEvent creates a new event publisher.
 func NewEvent(topic string, c client.Client) Event {
 	if c == nil {
 		c = client.NewClient()
@@ -65,12 +65,12 @@ func NewEvent(topic string, c client.Client) Event {
 	return &event{c, topic}
 }
 
-// RegisterHandler is syntactic sugar for registering a handler
+// RegisterHandler is syntactic sugar for registering a handler.
 func RegisterHandler(s server.Server, h interface{}, opts ...server.HandlerOption) error {
 	return s.Handle(s.NewHandler(h, opts...))
 }
 
-// RegisterSubscriber is syntactic sugar for registering a subscriber
+// RegisterSubscriber is syntactic sugar for registering a subscriber.
 func RegisterSubscriber(topic string, s server.Server, h interface{}, opts ...server.SubscriberOption) error {
 	return s.Subscribe(s.NewSubscriber(topic, h, opts...))
 }

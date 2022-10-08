@@ -7,7 +7,7 @@ import (
 	"sync"
 
 	"go-micro.dev/v4/client"
-	"go-micro.dev/v4/logger"
+	log "go-micro.dev/v4/logger"
 	"go-micro.dev/v4/server"
 	"go-micro.dev/v4/store"
 	"go-micro.dev/v4/util/cmd"
@@ -30,7 +30,7 @@ func (s *service) Name() string {
 	return s.opts.Server.Options().Name
 }
 
-// Init initialises options. Additionally it calls cmd.Init
+// Init initializes options. Additionally it calls cmd.Init
 // which parses command line flags. cmd.Init is only called
 // on first Init.
 func (s *service) Init(opts ...Option) {
@@ -45,7 +45,7 @@ func (s *service) Init(opts ...Option) {
 			s.opts.Cmd.App().Name = s.Server().Options().Name
 		}
 
-		// Initialise the command flags, overriding new service
+		// Initialize the command flags, overriding new service
 		if err := s.opts.Cmd.Init(
 			cmd.Auth(&s.opts.Auth),
 			cmd.Broker(&s.opts.Broker),
@@ -58,14 +58,14 @@ func (s *service) Init(opts ...Option) {
 			cmd.Store(&s.opts.Store),
 			cmd.Profile(&s.opts.Profile),
 		); err != nil {
-			logger.Fatal(err)
+			s.opts.Logger.Log(log.FatalLevel, err)
 		}
 
 		// Explicitly set the table name to the service name
 		name := s.opts.Cmd.App().Name
 		err := s.opts.Store.Init(store.Table(name))
 		if err != nil {
-			logger.Fatal(err)
+			s.opts.Logger.Log(log.FatalLevel, err)
 		}
 	})
 }
@@ -125,6 +125,8 @@ func (s *service) Stop() error {
 }
 
 func (s *service) Run() (err error) {
+	logger := s.opts.Logger
+
 	// exit when help flag is provided
 	for _, v := range os.Args[1:] {
 		if v == "-h" || v == "--help" {
@@ -145,14 +147,12 @@ func (s *service) Run() (err error) {
 		defer func() {
 			err = s.opts.Profile.Stop()
 			if err != nil {
-				logger.Error(err)
+				logger.Log(log.ErrorLevel, err)
 			}
 		}()
 	}
 
-	if logger.V(logger.InfoLevel, logger.DefaultLogger) {
-		logger.Infof("Starting [service] %s", s.Name())
-	}
+	logger.Logf(log.InfoLevel, "Starting [service] %s", s.Name())
 
 	if err = s.Start(); err != nil {
 		return err

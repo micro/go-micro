@@ -2,13 +2,16 @@
 package logger
 
 var (
-	// Default logger
+	// Default logger.
 	DefaultLogger Logger = NewLogger()
+
+	// Default logger helper.
+	DefaultHelper *Helper = NewHelper(DefaultLogger)
 )
 
-// Logger is a generic logging interface
+// Logger is a generic logging interface.
 type Logger interface {
-	// Init initialises options
+	// Init initializes options
 	Init(options ...Option) error
 	// The Logger options
 	Options() Options
@@ -40,4 +43,11 @@ func Logf(level Level, format string, v ...interface{}) {
 
 func String() string {
 	return DefaultLogger.String()
+}
+
+func LoggerOrDefault(l Logger) Logger {
+	if l == nil {
+		return DefaultLogger
+	}
+	return l
 }

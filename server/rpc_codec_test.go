@@ -9,7 +9,7 @@ import (
 	"go-micro.dev/v4/transport"
 )
 
-// testCodec is a dummy codec that only knows how to encode nil bodies
+// testCodec is a dummy codec that only knows how to encode nil bodies.
 type testCodec struct {
 	buf *bytes.Buffer
 }

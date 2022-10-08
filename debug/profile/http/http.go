@@ -20,7 +20,7 @@ var (
 	DefaultAddress = ":6060"
 )
 
-// Start the profiler
+// Start the profiler.
 func (h *httpProfile) Start() error {
 	h.Lock()
 	defer h.Unlock()
@@ -42,7 +42,7 @@ func (h *httpProfile) Start() error {
 	return nil
 }
 
-// Stop the profiler
+// Stop the profiler.
 func (h *httpProfile) Stop() error {
 	h.Lock()
 	defer h.Unlock()

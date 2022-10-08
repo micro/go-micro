@@ -12,7 +12,7 @@ func init() {
 	rand.Seed(time.Now().UnixNano())
 }
 
-// Random is a random strategy algorithm for node selection
+// Random is a random strategy algorithm for node selection.
 func Random(services []*registry.Service) Next {
 	nodes := make([]*registry.Node, 0, len(services))
 
@@ -30,7 +30,7 @@ func Random(services []*registry.Service) Next {
 	}
 }
 
-// RoundRobin is a roundrobin strategy algorithm for node selection
+// RoundRobin is a roundrobin strategy algorithm for node selection.
 func RoundRobin(services []*registry.Service) Next {
 	nodes := make([]*registry.Node, 0, len(services))
 

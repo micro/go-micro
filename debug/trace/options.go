@@ -14,7 +14,7 @@ type ReadOptions struct {
 
 type ReadOption func(o *ReadOptions)
 
-// Read the given trace
+// Read the given trace.
 func ReadTrace(t string) ReadOption {
 	return func(o *ReadOptions) {
 		o.Trace = t
@@ -22,11 +22,11 @@ func ReadTrace(t string) ReadOption {
 }
 
 const (
-	// DefaultSize of the buffer
+	// DefaultSize of the buffer.
 	DefaultSize = 64
 )
 
-// DefaultOptions returns default options
+// DefaultOptions returns default options.
 func DefaultOptions() Options {
 	return Options{
 		Size: DefaultSize,

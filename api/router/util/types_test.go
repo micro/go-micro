@@ -1,6 +1,7 @@
 package util
 
-// download from https://raw.githubusercontent.com/grpc-ecosystem/grpc-gateway/master/protoc-gen-grpc-gateway/httprule/types_test.go
+// download from
+// https://raw.githubusercontent.com/grpc-ecosystem/grpc-gateway/master/protoc-gen-grpc-gateway/httprule/types_test.go
 
 import (
 	"fmt"

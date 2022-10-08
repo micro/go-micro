@@ -12,12 +12,12 @@ import (
 	"github.com/pkg/errors"
 )
 
-// GenerateKey returns an ed25519 key
+// GenerateKey returns an ed25519 key.
 func GenerateKey() (ed25519.PublicKey, ed25519.PrivateKey, error) {
 	return ed25519.GenerateKey(rand.Reader)
 }
 
-// CA generates a self signed CA and returns cert, key in PEM format
+// CA generates a self signed CA and returns cert, key in PEM format.
 func CA(opts ...CertOption) ([]byte, []byte, error) {
 	opts = append(opts, IsCA())
 	options := CertOptions{}
@@ -59,7 +59,7 @@ func CA(opts ...CertOption) ([]byte, []byte, error) {
 	return cert.Bytes(), key.Bytes(), nil
 }
 
-// CSR generates a certificate request in PEM format
+// CSR generates a certificate request in PEM format.
 func CSR(opts ...CertOption) ([]byte, error) {
 	options := CertOptions{}
 	for _, o := range opts {
@@ -83,7 +83,7 @@ func CSR(opts ...CertOption) ([]byte, error) {
 	return out.Bytes(), nil
 }
 
-// Sign decodes a CSR and signs it with the CA
+// Sign decodes a CSR and signs it with the CA.
 func Sign(CACrt, CAKey, CSR []byte, opts ...CertOption) ([]byte, error) {
 	options := CertOptions{}
 	for _, o := range opts {

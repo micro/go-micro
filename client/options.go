@@ -6,6 +6,7 @@ import (
 
 	"go-micro.dev/v4/broker"
 	"go-micro.dev/v4/codec"
+	"go-micro.dev/v4/logger"
 	"go-micro.dev/v4/registry"
 	"go-micro.dev/v4/selector"
 	"go-micro.dev/v4/transport"
@@ -37,6 +38,9 @@ type Options struct {
 
 	// Default Call Options
 	CallOptions CallOptions
+
+	// Logger is the underline logger
+	Logger logger.Logger
 
 	// Other options for implementations of the interface
 	// can be stored in a context
@@ -113,6 +117,7 @@ func NewOptions(options ...Option) Options {
 		Selector:  selector.DefaultSelector,
 		Registry:  registry.DefaultRegistry,
 		Transport: transport.DefaultTransport,
+		Logger:    logger.DefaultLogger,
 	}
 
 	for _, o := range options {
@@ -122,42 +127,42 @@ func NewOptions(options ...Option) Options {
 	return opts
 }
 
-// Broker to be used for pub/sub
+// Broker to be used for pub/sub.
 func Broker(b broker.Broker) Option {
 	return func(o *Options) {
 		o.Broker = b
 	}
 }
 
-// Codec to be used to encode/decode requests for a given content type
+// Codec to be used to encode/decode requests for a given content type.
 func Codec(contentType string, c codec.NewCodec) Option {
 	return func(o *Options) {
 		o.Codecs[contentType] = c
 	}
 }
 
-// Default content type of the client
+// Default content type of the client.
 func ContentType(ct string) Option {
 	return func(o *Options) {
 		o.ContentType = ct
 	}
 }
 
-// PoolSize sets the connection pool size
+// PoolSize sets the connection pool size.
 func PoolSize(d int) Option {
 	return func(o *Options) {
 		o.PoolSize = d
 	}
 }
 
-// PoolTTL sets the connection pool ttl
+// PoolTTL sets the connection pool ttl.
 func PoolTTL(d time.Duration) Option {
 	return func(o *Options) {
 		o.PoolTTL = d
 	}
 }
 
-// Registry to find nodes for a given service
+// Registry to find nodes for a given service.
 func Registry(r registry.Registry) Option {
 	return func(o *Options) {
 		o.Registry = r
@@ -166,28 +171,28 @@ func Registry(r registry.Registry) Option {
 	}
 }
 
-// Transport to use for communication e.g http, rabbitmq, etc
+// Transport to use for communication e.g http, rabbitmq, etc.
 func Transport(t transport.Transport) Option {
 	return func(o *Options) {
 		o.Transport = t
 	}
 }
 
-// Select is used to select a node to route a request to
+// Select is used to select a node to route a request to.
 func Selector(s selector.Selector) Option {
 	return func(o *Options) {
 		o.Selector = s
 	}
 }
 
-// Adds a Wrapper to a list of options passed into the client
+// Adds a Wrapper to a list of options passed into the client.
 func Wrap(w Wrapper) Option {
 	return func(o *Options) {
 		o.Wrappers = append(o.Wrappers, w)
 	}
 }
 
-// Adds a Wrapper to the list of CallFunc wrappers
+// Adds a Wrapper to the list of CallFunc wrappers.
 func WrapCall(cw ...CallWrapper) Option {
 	return func(o *Options) {
 		o.CallOptions.CallWrappers = append(o.CallOptions.CallWrappers, cw...)
@@ -195,7 +200,7 @@ func WrapCall(cw ...CallWrapper) Option {
 }
 
 // Backoff is used to set the backoff function used
-// when retrying Calls
+// when retrying Calls.
 func Backoff(fn BackoffFunc) Option {
 	return func(o *Options) {
 		o.CallOptions.Backoff = fn
@@ -225,14 +230,14 @@ func RequestTimeout(d time.Duration) Option {
 	}
 }
 
-// StreamTimeout sets the stream timeout
+// StreamTimeout sets the stream timeout.
 func StreamTimeout(d time.Duration) Option {
 	return func(o *Options) {
 		o.CallOptions.StreamTimeout = d
 	}
 }
 
-// Transport dial timeout
+// Transport dial timeout.
 func DialTimeout(d time.Duration) Option {
 	return func(o *Options) {
 		o.CallOptions.DialTimeout = d
@@ -241,21 +246,21 @@ func DialTimeout(d time.Duration) Option {
 
 // Call Options
 
-// WithExchange sets the exchange to route a message through
+// WithExchange sets the exchange to route a message through.
 func WithExchange(e string) PublishOption {
 	return func(o *PublishOptions) {
 		o.Exchange = e
 	}
 }
 
-// PublishContext sets the context in publish options
+// PublishContext sets the context in publish options.
 func PublishContext(ctx context.Context) PublishOption {
 	return func(o *PublishOptions) {
 		o.Context = ctx
 	}
 }
 
-// WithAddress sets the remote addresses to use rather than using service discovery
+// WithAddress sets the remote addresses to use rather than using service discovery.
 func WithAddress(a ...string) CallOption {
 	return func(o *CallOptions) {
 		o.Address = a
@@ -268,7 +273,7 @@ func WithSelectOption(so ...selector.SelectOption) CallOption {
 	}
 }
 
-// WithCallWrapper is a CallOption which adds to the existing CallFunc wrappers
+// WithCallWrapper is a CallOption which adds to the existing CallFunc wrappers.
 func WithCallWrapper(cw ...CallWrapper) CallOption {
 	return func(o *CallOptions) {
 		o.CallWrappers = append(o.CallWrappers, cw...)
@@ -276,7 +281,7 @@ func WithCallWrapper(cw ...CallWrapper) CallOption {
 }
 
 // WithBackoff is a CallOption which overrides that which
-// set in Options.CallOptions
+// set in Options.CallOptions.
 func WithBackoff(fn BackoffFunc) CallOption {
 	return func(o *CallOptions) {
 		o.Backoff = fn
@@ -284,7 +289,7 @@ func WithBackoff(fn BackoffFunc) CallOption {
 }
 
 // WithRetry is a CallOption which overrides that which
-// set in Options.CallOptions
+// set in Options.CallOptions.
 func WithRetry(fn RetryFunc) CallOption {
 	return func(o *CallOptions) {
 		o.Retry = fn
@@ -292,7 +297,7 @@ func WithRetry(fn RetryFunc) CallOption {
 }
 
 // WithRetries is a CallOption which overrides that which
-// set in Options.CallOptions
+// set in Options.CallOptions.
 func WithRetries(i int) CallOption {
 	return func(o *CallOptions) {
 		o.Retries = i
@@ -300,14 +305,14 @@ func WithRetries(i int) CallOption {
 }
 
 // WithRequestTimeout is a CallOption which overrides that which
-// set in Options.CallOptions
+// set in Options.CallOptions.
 func WithRequestTimeout(d time.Duration) CallOption {
 	return func(o *CallOptions) {
 		o.RequestTimeout = d
 	}
 }
 
-// WithStreamTimeout sets the stream timeout
+// WithStreamTimeout sets the stream timeout.
 func WithStreamTimeout(d time.Duration) CallOption {
 	return func(o *CallOptions) {
 		o.StreamTimeout = d
@@ -315,7 +320,7 @@ func WithStreamTimeout(d time.Duration) CallOption {
 }
 
 // WithDialTimeout is a CallOption which overrides that which
-// set in Options.CallOptions
+// set in Options.CallOptions.
 func WithDialTimeout(d time.Duration) CallOption {
 	return func(o *CallOptions) {
 		o.DialTimeout = d
@@ -323,7 +328,7 @@ func WithDialTimeout(d time.Duration) CallOption {
 }
 
 // WithServiceToken is a CallOption which overrides the
-// authorization header with the services own auth token
+// authorization header with the services own auth token.
 func WithServiceToken() CallOption {
 	return func(o *CallOptions) {
 		o.ServiceToken = true
@@ -331,7 +336,7 @@ func WithServiceToken() CallOption {
 }
 
 // WithCache is a CallOption which sets the duration the response
-// shoull be cached for
+// shoull be cached for.
 func WithCache(c time.Duration) CallOption {
 	return func(o *CallOptions) {
 		o.CacheExpiry = c
@@ -358,9 +363,16 @@ func StreamingRequest() RequestOption {
 	}
 }
 
-// WithRouter sets the client router
+// WithRouter sets the client router.
 func WithRouter(r Router) Option {
 	return func(o *Options) {
 		o.Router = r
+	}
+}
+
+// WithLogger sets the underline logger.
+func WithLogger(l logger.Logger) Option {
+	return func(o *Options) {
+		o.Logger = l
 	}
 }

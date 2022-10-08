@@ -320,7 +320,7 @@ func (r *rpcClient) Options() Options {
 	return r.opts
 }
 
-// next returns an iterator for the next nodes to call
+// next returns an iterator for the next nodes to call.
 func (r *rpcClient) next(request Request, opts CallOptions) (selector.Next, error) {
 	// try get the proxy
 	service, address, _ := net.Proxy(request.Service(), opts.Address)

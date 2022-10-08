@@ -9,7 +9,7 @@ import (
 // Input:
 // Foo.Bar, /Foo/Bar, /package.Foo/Bar, /a.package.Foo/Bar
 // Output:
-// [Foo, Bar]
+// [Foo, Bar].
 func ServiceMethod(m string) (string, string, error) {
 	if len(m) == 0 {
 		return "", "", fmt.Errorf("malformed method name: %q", m)
@@ -40,7 +40,7 @@ func ServiceMethod(m string) (string, string, error) {
 }
 
 // ServiceFromMethod returns the service
-// /service.Foo/Bar => service
+// /service.Foo/Bar => service.
 func ServiceFromMethod(m string) string {
 	if len(m) == 0 {
 		return m

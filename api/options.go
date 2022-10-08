@@ -16,7 +16,7 @@ func NewOptions(opts ...Option) Options {
 	return options
 }
 
-// WithRouter sets the router to use e.g static or registry
+// WithRouter sets the router to use e.g static or registry.
 func WithRouter(r router.Router) Option {
 	return func(o *Options) error {
 		o.Router = r

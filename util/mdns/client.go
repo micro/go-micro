@@ -3,18 +3,18 @@ package mdns
 import (
 	"context"
 	"fmt"
-	"log"
 	"net"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/miekg/dns"
+	"go-micro.dev/v4/logger"
 	"golang.org/x/net/ipv4"
 	"golang.org/x/net/ipv6"
 )
 
-// ServiceEntry is returned after we query for a service
+// ServiceEntry is returned after we query for a service.
 type ServiceEntry struct {
 	Name       string
 	Host       string
@@ -32,13 +32,12 @@ type ServiceEntry struct {
 	sent   bool
 }
 
-// complete is used to check if we have all the info we need
+// complete is used to check if we have all the info we need.
 func (s *ServiceEntry) complete() bool {
-
 	return (len(s.AddrV4) > 0 || len(s.AddrV6) > 0 || len(s.Addr) > 0) && s.Port != 0 && s.hasTXT
 }
 
-// QueryParam is used to customize how a Lookup is performed
+// QueryParam is used to customize how a Lookup is performed.
 type QueryParam struct {
 	Service             string               // Service to lookup
 	Domain              string               // Lookup domain, default "local"
@@ -50,7 +49,7 @@ type QueryParam struct {
 	WantUnicastResponse bool                 // Unicast response desired, as per 5.4 in RFC
 }
 
-// DefaultParams is used to return a default set of QueryParam's
+// DefaultParams is used to return a default set of QueryParam's.
 func DefaultParams(service string) *QueryParam {
 	return &QueryParam{
 		Service:             service,
@@ -99,7 +98,7 @@ func Query(params *QueryParam) error {
 	return client.query(params)
 }
 
-// Listen listens indefinitely for multicast updates
+// Listen listens indefinitely for multicast updates.
 func Listen(entries chan<- *ServiceEntry, exit chan struct{}) error {
 	// Create a new client
 	client, err := newClient()
@@ -146,7 +145,7 @@ func Listen(entries chan<- *ServiceEntry, exit chan struct{}) error {
 				m.SetQuestion(e.Name, dns.TypePTR)
 				m.RecursionDesired = false
 				if err := client.sendQuery(m); err != nil {
-					log.Printf("[ERR] mdns: Failed to query instance %s: %v", e.Name, err)
+					logger.Logf(logger.ErrorLevel, "[mdns] failed to query instance %s: %v", e.Name, err)
 				}
 			}
 		}
@@ -155,7 +154,7 @@ func Listen(entries chan<- *ServiceEntry, exit chan struct{}) error {
 	return nil
 }
 
-// Lookup is the same as Query, however it uses all the default parameters
+// Lookup is the same as Query, however it uses all the default parameters.
 func Lookup(service string, entries chan<- *ServiceEntry) error {
 	params := DefaultParams(service)
 	params.Entries = entries
@@ -163,7 +162,7 @@ func Lookup(service string, entries chan<- *ServiceEntry) error {
 }
 
 // Client provides a query interface that can be used to
-// search for service providers using mDNS
+// search for service providers using mDNS.
 type client struct {
 	ipv4UnicastConn *net.UDPConn
 	ipv6UnicastConn *net.UDPConn
@@ -177,14 +176,14 @@ type client struct {
 }
 
 // NewClient creates a new mdns Client that can be used to query
-// for records
+// for records.
 func newClient() (*client, error) {
 	// TODO(reddaly): At least attempt to bind to the port required in the spec.
 	// Create a IPv4 listener
 	uconn4, err4 := net.ListenUDP("udp4", &net.UDPAddr{IP: net.IPv4zero, Port: 0})
 	uconn6, err6 := net.ListenUDP("udp6", &net.UDPAddr{IP: net.IPv6zero, Port: 0})
 	if err4 != nil && err6 != nil {
-		log.Printf("[ERR] mdns: Failed to bind to udp port: %v %v", err4, err6)
+		logger.Logf(logger.ErrorLevel, "[mdns] failed to bind to udp port: %v %v", err4, err6)
 	}
 
 	if uconn4 == nil && uconn6 == nil {
@@ -202,7 +201,7 @@ func newClient() (*client, error) {
 	mconn4, err4 := net.ListenUDP("udp4", mdnsWildcardAddrIPv4)
 	mconn6, err6 := net.ListenUDP("udp6", mdnsWildcardAddrIPv6)
 	if err4 != nil && err6 != nil {
-		log.Printf("[ERR] mdns: Failed to bind to udp port: %v %v", err4, err6)
+		logger.Logf(logger.ErrorLevel, "[mdns] failed to bind to udp port: %v %v", err4, err6)
 	}
 
 	if mconn4 == nil && mconn6 == nil {
@@ -239,7 +238,7 @@ func newClient() (*client, error) {
 	}
 
 	if len(ifaces) == errCount1 && len(ifaces) == errCount2 {
-		return nil, fmt.Errorf("Failed to join multicast group on all interfaces!")
+		return nil, fmt.Errorf("failed to join multicast group on all interfaces")
 	}
 
 	c := &client{
@@ -252,7 +251,7 @@ func newClient() (*client, error) {
 	return c, nil
 }
 
-// Close is used to cleanup the client
+// Close is used to cleanup the client.
 func (c *client) Close() error {
 	c.closeLock.Lock()
 	defer c.closeLock.Unlock()
@@ -280,8 +279,8 @@ func (c *client) Close() error {
 	return nil
 }
 
-// setInterface is used to set the query interface, uses sytem
-// default if not provided
+// setInterface is used to set the query interface, uses system
+// default if not provided.
 func (c *client) setInterface(iface *net.Interface, loopback bool) error {
 	p := ipv4.NewPacketConn(c.ipv4UnicastConn)
 	if err := p.JoinGroup(iface, &net.UDPAddr{IP: mdnsGroupIPv4}); err != nil {
@@ -308,7 +307,7 @@ func (c *client) setInterface(iface *net.Interface, loopback bool) error {
 	return nil
 }
 
-// query is used to perform a lookup and stream results
+// query is used to perform a lookup and stream results.
 func (c *client) query(params *QueryParam) error {
 	// Create the service name
 	serviceAddr := fmt.Sprintf("%s.%s.", trimDot(params.Service), trimDot(params.Domain))
@@ -375,7 +374,7 @@ func (c *client) query(params *QueryParam) error {
 				m.SetQuestion(inp.Name, inp.Type)
 				m.RecursionDesired = false
 				if err := c.sendQuery(m); err != nil {
-					log.Printf("[ERR] mdns: Failed to query instance %s: %v", inp.Name, err)
+					logger.Logf(logger.ErrorLevel, "[mdns] failed to query instance %s: %v", inp.Name, err)
 				}
 			}
 		case <-params.Context.Done():
@@ -384,7 +383,7 @@ func (c *client) query(params *QueryParam) error {
 	}
 }
 
-// sendQuery is used to multicast a query out
+// sendQuery is used to multicast a query out.
 func (c *client) sendQuery(q *dns.Msg) error {
 	buf, err := q.Pack()
 	if err != nil {
@@ -399,7 +398,7 @@ func (c *client) sendQuery(q *dns.Msg) error {
 	return nil
 }
 
-// recv is used to receive until we get a shutdown
+// recv is used to receive until we get a shutdown.
 func (c *client) recv(l *net.UDPConn, msgCh chan *dns.Msg) {
 	if l == nil {
 		return
@@ -428,7 +427,7 @@ func (c *client) recv(l *net.UDPConn, msgCh chan *dns.Msg) {
 	}
 }
 
-// ensureName is used to ensure the named node is in progress
+// ensureName is used to ensure the named node is in progress.
 func ensureName(inprogress map[string]*ServiceEntry, name string, typ uint16) *ServiceEntry {
 	if inp, ok := inprogress[name]; ok {
 		return inp
@@ -441,7 +440,7 @@ func ensureName(inprogress map[string]*ServiceEntry, name string, typ uint16) *S
 	return inp
 }
 
-// alias is used to setup an alias between two entries
+// alias is used to setup an alias between two entries.
 func alias(inprogress map[string]*ServiceEntry, src, dst string, typ uint16) {
 	srcEntry := ensureName(inprogress, src, typ)
 	inprogress[dst] = srcEntry

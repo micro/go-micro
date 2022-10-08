@@ -1,19 +1,45 @@
 package events
 
-import "time"
+import (
+	"time"
 
-type Options struct{}
+	"go-micro.dev/v4/logger"
+)
+
+type Options struct {
+	Logger logger.Logger
+}
 
 type Option func(o *Options)
+
+func NewOptions(opts ...Option) *Options {
+	options := Options{
+		Logger: logger.DefaultLogger,
+	}
+
+	for _, o := range opts {
+		o(&options)
+	}
+
+	return &options
+}
 
 type StoreOptions struct {
 	TTL    time.Duration
 	Backup Backup
+	Logger logger.Logger
 }
 
 type StoreOption func(o *StoreOptions)
 
-// PublishOptions contains all the options which can be provided when publishing an event
+// WithLogger sets the underline logger.
+func WithLogger(l logger.Logger) StoreOption {
+	return func(o *StoreOptions) {
+		o.Logger = l
+	}
+}
+
+// PublishOptions contains all the options which can be provided when publishing an event.
 type PublishOptions struct {
 	// Metadata contains any keys which can be used to query the data, for example a customer id
 	Metadata map[string]string
@@ -21,24 +47,24 @@ type PublishOptions struct {
 	Timestamp time.Time
 }
 
-// PublishOption sets attributes on PublishOptions
+// PublishOption sets attributes on PublishOptions.
 type PublishOption func(o *PublishOptions)
 
-// WithMetadata sets the Metadata field on PublishOptions
+// WithMetadata sets the Metadata field on PublishOptions.
 func WithMetadata(md map[string]string) PublishOption {
 	return func(o *PublishOptions) {
 		o.Metadata = md
 	}
 }
 
-// WithTimestamp sets the timestamp field on PublishOptions
+// WithTimestamp sets the timestamp field on PublishOptions.
 func WithTimestamp(t time.Time) PublishOption {
 	return func(o *PublishOptions) {
 		o.Timestamp = t
 	}
 }
 
-// ConsumeOptions contains all the options which can be provided when subscribing to a topic
+// ConsumeOptions contains all the options which can be provided when subscribing to a topic.
 type ConsumeOptions struct {
 	// Group is the name of the consumer group, if two consumers have the same group the events
 	// are distributed between them
@@ -59,17 +85,17 @@ type ConsumeOptions struct {
 	CustomRetries bool
 }
 
-// ConsumeOption sets attributes on ConsumeOptions
+// ConsumeOption sets attributes on ConsumeOptions.
 type ConsumeOption func(o *ConsumeOptions)
 
-// WithGroup sets the consumer group to be part of when consuming events
+// WithGroup sets the consumer group to be part of when consuming events.
 func WithGroup(q string) ConsumeOption {
 	return func(o *ConsumeOptions) {
 		o.Group = q
 	}
 }
 
-// WithOffset sets the offset time at which to start consuming events
+// WithOffset sets the offset time at which to start consuming events.
 func WithOffset(t time.Time) ConsumeOption {
 	return func(o *ConsumeOptions) {
 		o.Offset = t
@@ -77,7 +103,7 @@ func WithOffset(t time.Time) ConsumeOption {
 }
 
 // WithAutoAck sets the AutoAck field on ConsumeOptions and an ackWait duration after which if no ack is received
-// the message is requeued in case auto ack is turned off
+// the message is requeued in case auto ack is turned off.
 func WithAutoAck(ack bool, ackWait time.Duration) ConsumeOption {
 	return func(o *ConsumeOptions) {
 		o.AutoAck = ack
@@ -86,7 +112,7 @@ func WithAutoAck(ack bool, ackWait time.Duration) ConsumeOption {
 }
 
 // WithRetryLimit sets the RetryLimit field on ConsumeOptions.
-// Set to -1 for infinite retries (default)
+// Set to -1 for infinite retries (default).
 func WithRetryLimit(retries int) ConsumeOption {
 	return func(o *ConsumeOptions) {
 		o.RetryLimit = retries
@@ -101,24 +127,24 @@ func (s ConsumeOptions) GetRetryLimit() int {
 	return s.RetryLimit
 }
 
-// WriteOptions contains all the options which can be provided when writing an event to a store
+// WriteOptions contains all the options which can be provided when writing an event to a store.
 type WriteOptions struct {
 	// TTL is the duration the event should be recorded for, a zero value TTL indicates the event should
-	// be stored indefinately
+	// be stored indefinitely
 	TTL time.Duration
 }
 
-// WriteOption sets attributes on WriteOptions
+// WriteOption sets attributes on WriteOptions.
 type WriteOption func(o *WriteOptions)
 
-// WithTTL sets the TTL attribute on WriteOptions
+// WithTTL sets the TTL attribute on WriteOptions.
 func WithTTL(d time.Duration) WriteOption {
 	return func(o *WriteOptions) {
 		o.TTL = d
 	}
 }
 
-// ReadOptions contains all the options which can be provided when reading events from a store
+// ReadOptions contains all the options which can be provided when reading events from a store.
 type ReadOptions struct {
 	// Limit the number of results to return
 	Limit uint
@@ -126,17 +152,17 @@ type ReadOptions struct {
 	Offset uint
 }
 
-// ReadOption sets attributes on ReadOptions
+// ReadOption sets attributes on ReadOptions.
 type ReadOption func(o *ReadOptions)
 
-// ReadLimit sets the limit attribute on ReadOptions
+// ReadLimit sets the limit attribute on ReadOptions.
 func ReadLimit(l uint) ReadOption {
 	return func(o *ReadOptions) {
 		o.Limit = 1
 	}
 }
 
-// ReadOffset sets the offset attribute on ReadOptions
+// ReadOffset sets the offset attribute on ReadOptions.
 func ReadOffset(l uint) ReadOption {
 	return func(o *ReadOptions) {
 		o.Offset = 1

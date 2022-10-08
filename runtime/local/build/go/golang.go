@@ -15,7 +15,7 @@ type Builder struct {
 	Path    string
 }
 
-// whichGo locates the go command
+// whichGo locates the go command.
 func whichGo() string {
 	// check GOROOT
 	if gr := os.Getenv("GOROOT"); len(gr) > 0 {

@@ -8,7 +8,7 @@ We expect the use of the `flag` package. Upper case flags will be lower cased. D
 
 ### Example
 
-```
+```go
 dbAddress := flag.String("database_address", "127.0.0.1", "the db address")
 dbPort := flag.Int("database_port", 3306, "the db port)
 ```
@@ -17,10 +17,10 @@ Becomes
 
 ```json
 {
-    "database": {
-        "address": "127.0.0.1",
-        "port": 3306
-    }
+  "database": {
+    "address": "127.0.0.1",
+    "port": 3306
+  }
 }
 ```
 

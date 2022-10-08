@@ -42,7 +42,7 @@ func TestVerify(t *testing.T) {
 			Account:  &Account{},
 			Resource: srvResource,
 			Rules: []*Rule{
-				&Rule{
+				{
 					Scope:    "",
 					Resource: catchallResource,
 				},
@@ -52,7 +52,7 @@ func TestVerify(t *testing.T) {
 			Name:     "CatchallPublicNoAccount",
 			Resource: srvResource,
 			Rules: []*Rule{
-				&Rule{
+				{
 					Scope:    "",
 					Resource: catchallResource,
 				},
@@ -63,7 +63,7 @@ func TestVerify(t *testing.T) {
 			Account:  &Account{},
 			Resource: srvResource,
 			Rules: []*Rule{
-				&Rule{
+				{
 					Scope:    "*",
 					Resource: catchallResource,
 				},
@@ -73,7 +73,7 @@ func TestVerify(t *testing.T) {
 			Name:     "CatchallPrivateNoAccount",
 			Resource: srvResource,
 			Rules: []*Rule{
-				&Rule{
+				{
 					Scope:    "*",
 					Resource: catchallResource,
 				},
@@ -85,7 +85,7 @@ func TestVerify(t *testing.T) {
 			Resource: srvResource,
 			Account:  &Account{},
 			Rules: []*Rule{
-				&Rule{
+				{
 					Scope: "*",
 					Resource: &Resource{
 						Type:     srvResource.Type,
@@ -100,7 +100,7 @@ func TestVerify(t *testing.T) {
 			Resource: srvResource,
 			Account:  &Account{},
 			Rules: []*Rule{
-				&Rule{
+				{
 					Scope: "*",
 					Resource: &Resource{
 						Type:     srvResource.Type,
@@ -118,7 +118,7 @@ func TestVerify(t *testing.T) {
 				Scopes: []string{"neededscope"},
 			},
 			Rules: []*Rule{
-				&Rule{
+				{
 					Scope:    "neededscope",
 					Resource: srvResource,
 				},
@@ -131,7 +131,7 @@ func TestVerify(t *testing.T) {
 				Scopes: []string{"neededscope"},
 			},
 			Rules: []*Rule{
-				&Rule{
+				{
 					Scope:    "invalidscope",
 					Resource: srvResource,
 				},
@@ -143,7 +143,7 @@ func TestVerify(t *testing.T) {
 			Resource: srvResource,
 			Account:  &Account{},
 			Rules: []*Rule{
-				&Rule{
+				{
 					Scope:    "*",
 					Resource: catchallResource,
 					Access:   AccessDenied,
@@ -156,7 +156,7 @@ func TestVerify(t *testing.T) {
 			Resource: srvResource,
 			Account:  &Account{},
 			Rules: []*Rule{
-				&Rule{
+				{
 					Scope:    "*",
 					Resource: catchallResource,
 					Access:   AccessDenied,
@@ -169,13 +169,13 @@ func TestVerify(t *testing.T) {
 			Resource: srvResource,
 			Account:  &Account{},
 			Rules: []*Rule{
-				&Rule{
+				{
 					Scope:    "*",
 					Resource: catchallResource,
 					Access:   AccessGranted,
 					Priority: 1,
 				},
-				&Rule{
+				{
 					Scope:    "*",
 					Resource: catchallResource,
 					Access:   AccessDenied,
@@ -188,13 +188,13 @@ func TestVerify(t *testing.T) {
 			Resource: srvResource,
 			Account:  &Account{},
 			Rules: []*Rule{
-				&Rule{
+				{
 					Scope:    "*",
 					Resource: catchallResource,
 					Access:   AccessGranted,
 					Priority: 0,
 				},
-				&Rule{
+				{
 					Scope:    "*",
 					Resource: catchallResource,
 					Access:   AccessDenied,
@@ -208,7 +208,7 @@ func TestVerify(t *testing.T) {
 			Resource: webResource,
 			Account:  &Account{},
 			Rules: []*Rule{
-				&Rule{
+				{
 					Scope:    "*",
 					Resource: webResource,
 				},
@@ -219,7 +219,7 @@ func TestVerify(t *testing.T) {
 			Resource: webResource,
 			Account:  &Account{},
 			Rules: []*Rule{
-				&Rule{
+				{
 					Scope: "*",
 					Resource: &Resource{
 						Type:     webResource.Type,
@@ -235,7 +235,7 @@ func TestVerify(t *testing.T) {
 			Resource: webResource,
 			Account:  &Account{},
 			Rules: []*Rule{
-				&Rule{
+				{
 					Scope: "*",
 					Resource: &Resource{
 						Type:     webResource.Type,
@@ -250,7 +250,7 @@ func TestVerify(t *testing.T) {
 			Resource: webResource,
 			Account:  &Account{},
 			Rules: []*Rule{
-				&Rule{
+				{
 					Scope: "*",
 					Resource: &Resource{
 						Type:     webResource.Type,
@@ -265,7 +265,7 @@ func TestVerify(t *testing.T) {
 			Resource: webResource,
 			Account:  &Account{},
 			Rules: []*Rule{
-				&Rule{
+				{
 					Scope: "*",
 					Resource: &Resource{
 						Type:     webResource.Type,

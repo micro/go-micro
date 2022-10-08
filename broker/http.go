@@ -1,9 +1,8 @@
-// Package http provides a http based message broker
+// Package broker provides a http based message broker
 package broker
 
 import (
 	"bytes"
-	"context"
 	"crypto/tls"
 	"errors"
 	"fmt"
@@ -27,7 +26,7 @@ import (
 	"golang.org/x/net/http2"
 )
 
-// HTTP Broker is a point to point async broker
+// HTTP Broker is a point to point async broker.
 type httpBroker struct {
 	id      string
 	address string
@@ -107,11 +106,10 @@ func newTransport(config *tls.Config) *http.Transport {
 }
 
 func newHttpBroker(opts ...Option) Broker {
-	options := Options{
-		Codec:    json.Marshaler{},
-		Context:  context.TODO(),
-		Registry: registry.DefaultRegistry,
-	}
+	options := *NewOptions(opts...)
+
+	options.Registry = registry.DefaultRegistry
+	options.Codec = json.Marshaler{}
 
 	for _, o := range opts {
 		o(&options)
@@ -316,7 +314,7 @@ func (h *httpBroker) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 
 	topic := m.Header["Micro-Topic"]
-	//delete(m.Header, ":topic")
+	// delete(m.Header, ":topic")
 
 	if len(topic) == 0 {
 		errr := merr.InternalServerError("go.micro.broker", "Topic not found")
@@ -704,7 +702,7 @@ func (h *httpBroker) String() string {
 	return "http"
 }
 
-// NewBroker returns a new http broker
+// NewBroker returns a new http broker.
 func NewBroker(opts ...Option) Broker {
 	return newHttpBroker(opts...)
 }

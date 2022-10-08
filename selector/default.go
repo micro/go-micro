@@ -76,7 +76,7 @@ func (c *registrySelector) Mark(service string, node *registry.Node, err error) 
 func (c *registrySelector) Reset(service string) {
 }
 
-// Close stops the watcher and destroys the cache
+// Close stops the watcher and destroys the cache.
 func (c *registrySelector) Close() error {
 	c.rc.Stop()
 

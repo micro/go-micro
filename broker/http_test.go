@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	// mock data
+	// mock data.
 	testData = map[string][]*registry.Service{
 		"foo": {
 			{
@@ -56,19 +56,19 @@ func newTestRegistry() registry.Registry {
 	return registry.NewMemoryRegistry(registry.Services(testData))
 }
 
-func sub(be *testing.B, c int) {
-	be.StopTimer()
+func sub(b *testing.B, c int) {
+	b.StopTimer()
 	m := newTestRegistry()
 
-	b := broker.NewBroker(broker.Registry(m))
+	brker := broker.NewBroker(broker.Registry(m))
 	topic := uuid.New().String()
 
-	if err := b.Init(); err != nil {
-		be.Fatalf("Unexpected init error: %v", err)
+	if err := brker.Init(); err != nil {
+		b.Fatalf("Unexpected init error: %v", err)
 	}
 
-	if err := b.Connect(); err != nil {
-		be.Fatalf("Unexpected connect error: %v", err)
+	if err := brker.Connect(); err != nil {
+		b.Fatalf("Unexpected connect error: %v", err)
 	}
 
 	msg := &broker.Message{
@@ -82,52 +82,54 @@ func sub(be *testing.B, c int) {
 	done := make(chan bool, c)
 
 	for i := 0; i < c; i++ {
-		sub, err := b.Subscribe(topic, func(p broker.Event) error {
+		sub, err := brker.Subscribe(topic, func(p broker.Event) error {
 			done <- true
 			m := p.Message()
 
 			if string(m.Body) != string(msg.Body) {
-				be.Fatalf("Unexpected msg %s, expected %s", string(m.Body), string(msg.Body))
+				b.Fatalf("Unexpected msg %s, expected %s", string(m.Body), string(msg.Body))
 			}
 
 			return nil
 		}, broker.Queue("shared"))
 		if err != nil {
-			be.Fatalf("Unexpected subscribe error: %v", err)
+			b.Fatalf("Unexpected subscribe error: %v", err)
 		}
 		subs = append(subs, sub)
 	}
 
-	for i := 0; i < be.N; i++ {
-		be.StartTimer()
-		if err := b.Publish(topic, msg); err != nil {
-			be.Fatalf("Unexpected publish error: %v", err)
+	for i := 0; i < b.N; i++ {
+		b.StartTimer()
+		if err := brker.Publish(topic, msg); err != nil {
+			b.Fatalf("Unexpected publish error: %v", err)
 		}
 		<-done
-		be.StopTimer()
+		b.StopTimer()
 	}
 
 	for _, sub := range subs {
-		sub.Unsubscribe()
+		if err := sub.Unsubscribe(); err != nil {
+			b.Fatalf("Unexpected unsubscribe error: %v", err)
+		}
 	}
 
-	if err := b.Disconnect(); err != nil {
-		be.Fatalf("Unexpected disconnect error: %v", err)
+	if err := brker.Disconnect(); err != nil {
+		b.Fatalf("Unexpected disconnect error: %v", err)
 	}
 }
 
-func pub(be *testing.B, c int) {
-	be.StopTimer()
+func pub(b *testing.B, c int) {
+	b.StopTimer()
 	m := newTestRegistry()
-	b := broker.NewBroker(broker.Registry(m))
+	brk := broker.NewBroker(broker.Registry(m))
 	topic := uuid.New().String()
 
-	if err := b.Init(); err != nil {
-		be.Fatalf("Unexpected init error: %v", err)
+	if err := brk.Init(); err != nil {
+		b.Fatalf("Unexpected init error: %v", err)
 	}
 
-	if err := b.Connect(); err != nil {
-		be.Fatalf("Unexpected connect error: %v", err)
+	if err := brk.Connect(); err != nil {
+		b.Fatalf("Unexpected connect error: %v", err)
 	}
 
 	msg := &broker.Message{
@@ -139,27 +141,27 @@ func pub(be *testing.B, c int) {
 
 	done := make(chan bool, c*4)
 
-	sub, err := b.Subscribe(topic, func(p broker.Event) error {
+	sub, err := brk.Subscribe(topic, func(p broker.Event) error {
 		done <- true
 		m := p.Message()
 		if string(m.Body) != string(msg.Body) {
-			be.Fatalf("Unexpected msg %s, expected %s", string(m.Body), string(msg.Body))
+			b.Fatalf("Unexpected msg %s, expected %s", string(m.Body), string(msg.Body))
 		}
 		return nil
 	}, broker.Queue("shared"))
 	if err != nil {
-		be.Fatalf("Unexpected subscribe error: %v", err)
+		b.Fatalf("Unexpected subscribe error: %v", err)
 	}
 
 	var wg sync.WaitGroup
 	ch := make(chan int, c*4)
-	be.StartTimer()
+	b.StartTimer()
 
 	for i := 0; i < c; i++ {
 		go func() {
 			for range ch {
-				if err := b.Publish(topic, msg); err != nil {
-					be.Fatalf("Unexpected publish error: %v", err)
+				if err := brk.Publish(topic, msg); err != nil {
+					b.Fatalf("Unexpected publish error: %v", err)
 				}
 				select {
 				case <-done:
@@ -170,19 +172,19 @@ func pub(be *testing.B, c int) {
 		}()
 	}
 
-	for i := 0; i < be.N; i++ {
+	for i := 0; i < b.N; i++ {
 		wg.Add(1)
 		ch <- i
 	}
 
 	wg.Wait()
-	be.StopTimer()
+	b.StopTimer()
 	sub.Unsubscribe()
 	close(ch)
 	close(done)
 
-	if err := b.Disconnect(); err != nil {
-		be.Fatalf("Unexpected disconnect error: %v", err)
+	if err := brk.Disconnect(); err != nil {
+		b.Fatalf("Unexpected disconnect error: %v", err)
 	}
 }
 
@@ -226,7 +228,9 @@ func TestBroker(t *testing.T) {
 	}
 
 	<-done
-	sub.Unsubscribe()
+	if err := sub.Unsubscribe(); err != nil {
+		t.Fatalf("Unexpected unsubscribe error: %v", err)
+	}
 
 	if err := b.Disconnect(); err != nil {
 		t.Fatalf("Unexpected disconnect error: %v", err)
@@ -282,7 +286,9 @@ func TestConcurrentSubBroker(t *testing.T) {
 	wg.Wait()
 
 	for _, sub := range subs {
-		sub.Unsubscribe()
+		if err := sub.Unsubscribe(); err != nil {
+			t.Fatalf("Unexpected unsubscribe error: %v", err)
+		}
 	}
 
 	if err := b.Disconnect(); err != nil {
@@ -336,7 +342,9 @@ func TestConcurrentPubBroker(t *testing.T) {
 
 	wg.Wait()
 
-	sub.Unsubscribe()
+	if err := sub.Unsubscribe(); err != nil {
+		t.Fatalf("Unexpected unsubscribe error: %v", err)
+	}
 
 	if err := b.Disconnect(); err != nil {
 		t.Fatalf("Unexpected disconnect error: %v", err)

@@ -8,15 +8,15 @@ import (
 )
 
 var (
-	// ErrNotFound is returned when a key doesn't exist
+	// ErrNotFound is returned when a key doesn't exist.
 	ErrNotFound = errors.New("not found")
 	// DefaultStore is the memory store.
 	DefaultStore Store = NewStore()
 )
 
-// Store is a data storage interface
+// Store is a data storage interface.
 type Store interface {
-	// Init initialises the store. It must perform any required setup on the backing storage implementation and check that it is ready for use, returning any errors.
+	// Init initializes the store. It must perform any required setup on the backing storage implementation and check that it is ready for use, returning any errors.
 	Init(...Option) error
 	// Options allows you to view the current options.
 	Options() Options
@@ -34,7 +34,7 @@ type Store interface {
 	String() string
 }
 
-// Record is an item stored or retrieved from a Store
+// Record is an item stored or retrieved from a Store.
 type Record struct {
 	// The key to store the record
 	Key string `json:"key"`

@@ -8,7 +8,7 @@ import (
 	"go-micro.dev/v4/metadata"
 )
 
-// Tracer is an interface for distributed tracing
+// Tracer is an interface for distributed tracing.
 type Tracer interface {
 	// Start a trace
 	Start(ctx context.Context, name string) (context.Context, *Span)
@@ -18,17 +18,17 @@ type Tracer interface {
 	Read(...ReadOption) ([]*Span, error)
 }
 
-// SpanType describe the nature of the trace span
+// SpanType describe the nature of the trace span.
 type SpanType int
 
 const (
-	// SpanTypeRequestInbound is a span created when serving a request
+	// SpanTypeRequestInbound is a span created when serving a request.
 	SpanTypeRequestInbound SpanType = iota
-	// SpanTypeRequestOutbound is a span created when making a service call
+	// SpanTypeRequestOutbound is a span created when making a service call.
 	SpanTypeRequestOutbound
 )
 
-// Span is used to record an entry
+// Span is used to record an entry.
 type Span struct {
 	// Id of the trace
 	Trace string
@@ -53,7 +53,7 @@ const (
 	spanIDKey  = "Micro-Span-Id"
 )
 
-// FromContext returns a span from context
+// FromContext returns a span from context.
 func FromContext(ctx context.Context) (traceID string, parentSpanID string, isFound bool) {
 	traceID, traceOk := metadata.Get(ctx, traceIDKey)
 	microID, microOk := metadata.Get(ctx, "Micro-Id")
@@ -68,7 +68,7 @@ func FromContext(ctx context.Context) (traceID string, parentSpanID string, isFo
 	return traceID, parentSpanID, ok
 }
 
-// ToContext saves the trace and span ids in the context
+// ToContext saves the trace and span ids in the context.
 func ToContext(ctx context.Context, traceID, parentSpanID string) context.Context {
 	return metadata.MergeContext(ctx, map[string]string{
 		traceIDKey: traceID,

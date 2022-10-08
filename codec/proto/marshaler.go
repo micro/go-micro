@@ -8,7 +8,7 @@ import (
 	"go-micro.dev/v4/codec"
 )
 
-// create buffer pool with 16 instances each preallocated with 256 bytes
+// create buffer pool with 16 instances each preallocated with 256 bytes.
 var bufferPool = bpool.NewSizedBufferPool(16, 256)
 
 type Marshaler struct{}

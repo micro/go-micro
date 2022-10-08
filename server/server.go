@@ -9,14 +9,14 @@ import (
 
 	"github.com/google/uuid"
 	"go-micro.dev/v4/codec"
-	"go-micro.dev/v4/logger"
+	log "go-micro.dev/v4/logger"
 	"go-micro.dev/v4/registry"
 	signalutil "go-micro.dev/v4/util/signal"
 )
 
-// Server is a simple micro server abstraction
+// Server is a simple micro server abstraction.
 type Server interface {
-	// Initialise options
+	// Initialize options
 	Init(...Option) error
 	// Retrieve the options
 	Options() Options
@@ -36,7 +36,7 @@ type Server interface {
 	String() string
 }
 
-// Router handle serving messages
+// Router handle serving messages.
 type Router interface {
 	// ProcessMessage processes a message
 	ProcessMessage(context.Context, Message) error
@@ -44,7 +44,7 @@ type Router interface {
 	ServeRequest(context.Context, Request, Response) error
 }
 
-// Message is an async message interface
+// Message is an async message interface.
 type Message interface {
 	// Topic of the message
 	Topic() string
@@ -60,7 +60,7 @@ type Message interface {
 	Codec() codec.Reader
 }
 
-// Request is a synchronous request interface
+// Request is a synchronous request interface.
 type Request interface {
 	// Service name requested
 	Service() string
@@ -82,7 +82,7 @@ type Request interface {
 	Stream() bool
 }
 
-// Response is the response writer for unencoded messages
+// Response is the response writer for unencoded messages.
 type Response interface {
 	// Encoded writer
 	Codec() codec.Writer
@@ -111,12 +111,11 @@ type Stream interface {
 //
 // Example:
 //
-//      type Greeter struct {}
+//	type Greeter struct {}
 //
-//      func (g *Greeter) Hello(context, request, response) error {
-//              return nil
-//      }
-//
+//	func (g *Greeter) Hello(context, request, response) error {
+//	        return nil
+//	}
 type Handler interface {
 	Name() string
 	Handler() interface{}
@@ -126,7 +125,7 @@ type Handler interface {
 
 // Subscriber interface represents a subscription to a given topic using
 // a specific subscriber function or object with endpoints. It mirrors
-// the handler in its behaviour.
+// the handler in its behavior.
 type Subscriber interface {
 	Topic() string
 	Subscriber() interface{}
@@ -147,16 +146,15 @@ var (
 	DefaultRegisterInterval        = time.Second * 30
 	DefaultRegisterTTL             = time.Second * 90
 
-	// NewServer creates a new server
+	// NewServer creates a new server.
 	NewServer func(...Option) Server = newRpcServer
 )
 
-// DefaultOptions returns config options for the default service
+// DefaultOptions returns config options for the default service.
 func DefaultOptions() Options {
 	return DefaultServer.Options()
 }
 
-// Init initialises the default server with options passed in
 func Init(opt ...Option) {
 	if DefaultServer == nil {
 		DefaultServer = newRpcServer(opt...)
@@ -164,13 +162,13 @@ func Init(opt ...Option) {
 	DefaultServer.Init(opt...)
 }
 
-// NewRouter returns a new router
+// NewRouter returns a new router.
 func NewRouter() *router {
 	return newRpcRouter()
 }
 
 // NewSubscriber creates a new subscriber interface with the given topic
-// and handler using the default server
+// and handler using the default server.
 func NewSubscriber(topic string, h interface{}, opts ...SubscriberOption) Subscriber {
 	return DefaultServer.NewSubscriber(topic, h, opts...)
 }
@@ -184,25 +182,24 @@ func NewSubscriber(topic string, h interface{}, opts ...SubscriberOption) Subscr
 //	func (f *Foo) Bar(ctx, req, rsp) error {
 //		return nil
 //	}
-//
 func NewHandler(h interface{}, opts ...HandlerOption) Handler {
 	return DefaultServer.NewHandler(h, opts...)
 }
 
 // Handle registers a handler interface with the default server to
-// handle inbound requests
+// handle inbound requests.
 func Handle(h Handler) error {
 	return DefaultServer.Handle(h)
 }
 
 // Subscribe registers a subscriber interface with the default server
-// which subscribes to specified topic with the broker
+// which subscribes to specified topic with the broker.
 func Subscribe(s Subscriber) error {
 	return DefaultServer.Subscribe(s)
 }
 
 // Run starts the default server and waits for a kill
-// signal before exiting. Also registers/deregisters the server
+// signal before exiting. Also registers/deregisters the server.
 func Run() error {
 	if err := Start(); err != nil {
 		return err
@@ -210,31 +207,25 @@ func Run() error {
 
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, signalutil.Shutdown()...)
+	DefaultServer.Options().Logger.Logf(log.InfoLevel, "Received signal %s", <-ch)
 
-	if logger.V(logger.InfoLevel, logger.DefaultLogger) {
-		logger.Infof("Received signal %s", <-ch)
-	}
 	return Stop()
 }
 
-// Start starts the default server
+// Start starts the default server.
 func Start() error {
 	config := DefaultServer.Options()
-	if logger.V(logger.InfoLevel, logger.DefaultLogger) {
-		logger.Infof("Starting server %s id %s", config.Name, config.Id)
-	}
+	config.Logger.Logf(log.InfoLevel, "Starting server %s id %s", config.Name, config.Id)
 	return DefaultServer.Start()
 }
 
-// Stop stops the default server
+// Stop stops the default server.
 func Stop() error {
-	if logger.V(logger.InfoLevel, logger.DefaultLogger) {
-		logger.Infof("Stopping server")
-	}
+	DefaultServer.Options().Logger.Logf(log.InfoLevel, "Stopping server")
 	return DefaultServer.Stop()
 }
 
-// String returns name of Server implementation
+// String returns name of Server implementation.
 func String() string {
 	return DefaultServer.String()
 }

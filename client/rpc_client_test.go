@@ -58,7 +58,6 @@ func TestCallAddress(t *testing.T) {
 	if !called {
 		t.Fatal("wrapper not called")
 	}
-
 }
 
 func TestCallRetry(t *testing.T) {

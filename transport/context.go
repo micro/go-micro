@@ -7,7 +7,7 @@ import (
 
 type netListener struct{}
 
-// setTransportOption Set option for transport
+// setTransportOption Set option for transport.
 func setTransportOption(k, v interface{}) Option {
 	return func(o *Options) {
 		if o.Context == nil {
@@ -17,7 +17,7 @@ func setTransportOption(k, v interface{}) Option {
 	}
 }
 
-// getListener Get net.Listener from ListenOptions
+// getListener Get net.Listener from ListenOptions.
 func getListener(o *Options) net.Listener {
 	if o.Context == nil {
 		return nil

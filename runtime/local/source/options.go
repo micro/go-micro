@@ -7,7 +7,7 @@ type Options struct {
 
 type Option func(o *Options)
 
-// Local path for repository
+// Local path for repository.
 func Path(p string) Option {
 	return func(o *Options) {
 		o.Path = p

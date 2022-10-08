@@ -1,7 +1,7 @@
 // Package stats provides runtime stats
 package stats
 
-// Stats provides stats interface
+// Stats provides stats interface.
 type Stats interface {
 	// Read stat snapshot
 	Read() ([]*Stat, error)
@@ -11,7 +11,7 @@ type Stats interface {
 	Record(error) error
 }
 
-// A runtime stat
+// A runtime stat.
 type Stat struct {
 	// Timestamp of recording
 	Timestamp int64

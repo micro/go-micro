@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"go-micro.dev/v4/logger"
+	log "go-micro.dev/v4/logger"
 	"go-micro.dev/v4/runtime"
 	"go-micro.dev/v4/util/kubernetes/api"
 	"go-micro.dev/v4/util/kubernetes/client"
@@ -18,6 +18,8 @@ type service struct {
 	kservice *client.Service
 	// Kubernetes deployment
 	kdeploy *client.Deployment
+	// to be used logger
+	logger log.Logger
 }
 
 func parseError(err error) *api.Status {
@@ -26,7 +28,7 @@ func parseError(err error) *api.Status {
 	return status
 }
 
-func newService(s *runtime.Service, c runtime.CreateOptions) *service {
+func newService(s *runtime.Service, c runtime.CreateOptions, l log.Logger) *service {
 	// use pre-formatted name/version
 	name := client.Format(s.Name)
 	version := client.Format(s.Version)
@@ -93,6 +95,7 @@ func newService(s *runtime.Service, c runtime.CreateOptions) *service {
 		Service:  s,
 		kservice: kservice,
 		kdeploy:  kdeploy,
+		logger:   log.LoggerOrDefault(l),
 	}
 }
 
@@ -112,13 +115,11 @@ func serviceResource(s *client.Service) *client.Resource {
 	}
 }
 
-// Start starts the Kubernetes service. It creates new kubernetes deployment and service API objects
+// Start starts the Kubernetes service. It creates new kubernetes deployment and service API objects.
 func (s *service) Start(k client.Client, opts ...client.CreateOption) error {
 	// create deployment first; if we fail, we dont create service
 	if err := k.Create(deploymentResource(s.kdeploy), opts...); err != nil {
-		if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-			logger.Debugf("Runtime failed to create deployment: %v", err)
-		}
+		s.logger.Logf(log.DebugLevel, "Runtime failed to create deployment: %v", err)
 		s.Status("error", err)
 		v := parseError(err)
 		if v.Reason == "AlreadyExists" {
@@ -128,9 +129,7 @@ func (s *service) Start(k client.Client, opts ...client.CreateOption) error {
 	}
 	// create service now that the deployment has been created
 	if err := k.Create(serviceResource(s.kservice), opts...); err != nil {
-		if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-			logger.Debugf("Runtime failed to create service: %v", err)
-		}
+		s.logger.Logf(log.DebugLevel, "Runtime failed to create service: %v", err)
 		s.Status("error", err)
 		v := parseError(err)
 		if v.Reason == "AlreadyExists" {
@@ -147,17 +146,13 @@ func (s *service) Start(k client.Client, opts ...client.CreateOption) error {
 func (s *service) Stop(k client.Client, opts ...client.DeleteOption) error {
 	// first attempt to delete service
 	if err := k.Delete(serviceResource(s.kservice), opts...); err != nil {
-		if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-			logger.Debugf("Runtime failed to delete service: %v", err)
-		}
+		s.logger.Logf(log.DebugLevel, "Runtime failed to delete service: %v", err)
 		s.Status("error", err)
 		return err
 	}
 	// delete deployment once the service has been deleted
 	if err := k.Delete(deploymentResource(s.kdeploy), opts...); err != nil {
-		if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-			logger.Debugf("Runtime failed to delete deployment: %v", err)
-		}
+		s.logger.Logf(log.DebugLevel, "Runtime failed to delete deployment: %v", err)
 		s.Status("error", err)
 		return err
 	}
@@ -169,16 +164,12 @@ func (s *service) Stop(k client.Client, opts ...client.DeleteOption) error {
 
 func (s *service) Update(k client.Client, opts ...client.UpdateOption) error {
 	if err := k.Update(deploymentResource(s.kdeploy), opts...); err != nil {
-		if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-			logger.Debugf("Runtime failed to update deployment: %v", err)
-		}
+		s.logger.Logf(log.DebugLevel, "Runtime failed to update deployment: %v", err)
 		s.Status("error", err)
 		return err
 	}
 	if err := k.Update(serviceResource(s.kservice), opts...); err != nil {
-		if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-			logger.Debugf("Runtime failed to update service: %v", err)
-		}
+		s.logger.Logf(log.DebugLevel, "Runtime failed to update service: %v", err)
 		return err
 	}
 

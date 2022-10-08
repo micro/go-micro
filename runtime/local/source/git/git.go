@@ -11,7 +11,7 @@ import (
 )
 
 // Source retrieves source code
-// An empty struct can be used
+// An empty struct can be used.
 type Source struct {
 	Options source.Options
 }

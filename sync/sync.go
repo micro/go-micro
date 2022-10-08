@@ -6,15 +6,17 @@ import (
 	"crypto/tls"
 	"errors"
 	"time"
+
+	"go-micro.dev/v4/logger"
 )
 
 var (
 	ErrLockTimeout = errors.New("lock timeout")
 )
 
-// Sync is an interface for distributed synchronization
+// Sync is an interface for distributed synchronization.
 type Sync interface {
-	// Initialise options
+	// Initialize options
 	Init(...Option) error
 	// Return the options
 	Options() Options
@@ -28,7 +30,7 @@ type Sync interface {
 	String() string
 }
 
-// Leader provides leadership election
+// Leader provides leadership election.
 type Leader interface {
 	// resign leadership
 	Resign() error
@@ -41,6 +43,7 @@ type Options struct {
 	Prefix    string
 	TLSConfig *tls.Config
 	Context   context.Context
+	Logger    logger.Logger
 }
 
 type Option func(o *Options)

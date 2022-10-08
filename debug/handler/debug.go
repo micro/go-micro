@@ -13,7 +13,7 @@ import (
 	"go-micro.dev/v4/server"
 )
 
-// NewHandler returns an instance of the Debug Handler
+// NewHandler returns an instance of the Debug Handler.
 func NewHandler(c client.Client) *Debug {
 	return &Debug{
 		log:   log.DefaultLog,
@@ -23,7 +23,7 @@ func NewHandler(c client.Client) *Debug {
 }
 
 type Debug struct {
-	// must honour the debug handler
+	// must honor the debug handler
 	proto.DebugHandler
 	// the logger for retrieving logs
 	log log.Log
@@ -69,12 +69,14 @@ func (d *Debug) Trace(ctx context.Context, req *proto.TraceRequest, rsp *proto.T
 
 	for _, t := range traces {
 		var typ proto.SpanType
+
 		switch t.Type {
 		case trace.SpanTypeRequestInbound:
 			typ = proto.SpanType_INBOUND
 		case trace.SpanTypeRequestOutbound:
 			typ = proto.SpanType_OUTBOUND
 		}
+
 		rsp.Spans = append(rsp.Spans, &proto.Span{
 			Trace:    t.Trace,
 			Id:       t.Id,

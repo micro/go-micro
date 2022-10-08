@@ -19,7 +19,7 @@ var (
 
 type MessageType int
 
-// Takes in a connection/buffer and returns a new Codec
+// Takes in a connection/buffer and returns a new Codec.
 type NewCodec func(io.ReadWriteCloser) Codec
 
 // Codec encodes/decodes various types of messages used within go-micro.

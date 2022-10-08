@@ -11,7 +11,7 @@ import (
 	"go-micro.dev/v4/store"
 )
 
-// Sync implements a sync in for stores
+// Sync implements a sync in for stores.
 type Sync interface {
 	// Implements the store interface
 	store.Store
@@ -27,7 +27,7 @@ type syncStore struct {
 	sync.RWMutex
 }
 
-// NewSync returns a new Sync
+// NewSync returns a new Sync.
 func NewSync(opts ...Option) Sync {
 	c := &syncStore{}
 	for _, o := range opts {
@@ -46,7 +46,6 @@ func (c *syncStore) Close() error {
 	return nil
 }
 
-// Init initialises the storeOptions
 func (c *syncStore) Init(opts ...store.Option) error {
 	for _, o := range opts {
 		o(&c.storeOpts)
@@ -55,7 +54,7 @@ func (c *syncStore) Init(opts ...store.Option) error {
 		return errors.New("the sync has no stores")
 	}
 	if c.storeOpts.Context == nil {
-		return errors.New("please provide a context to the sync. Cancelling the context signals that the sync is being disposed and syncs the sync")
+		return errors.New("please provide a context to the sync. Canceling the context signals that the sync is being disposed and syncs the sync")
 	}
 	for _, s := range c.syncOpts.Stores {
 		if err := s.Init(); err != nil {
@@ -73,12 +72,12 @@ func (c *syncStore) Init(opts ...store.Option) error {
 	return nil
 }
 
-// Options returns the sync's store options
+// Options returns the sync's store options.
 func (c *syncStore) Options() store.Options {
 	return c.storeOpts
 }
 
-// String returns a printable string describing the sync
+// String returns a printable string describing the sync.
 func (c *syncStore) String() string {
 	backends := make([]string, len(c.syncOpts.Stores))
 	for i, s := range c.syncOpts.Stores {
@@ -99,7 +98,7 @@ func (c *syncStore) Write(r *store.Record, opts ...store.WriteOption) error {
 	return c.syncOpts.Stores[0].Write(r, opts...)
 }
 
-// Delete removes a key from the sync
+// Delete removes a key from the sync.
 func (c *syncStore) Delete(key string, opts ...store.DeleteOption) error {
 	return c.syncOpts.Stores[0].Delete(key, opts...)
 }

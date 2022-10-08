@@ -22,6 +22,7 @@ func getURL(addr string) (*url.URL, error) {
 			Host:   addr,
 		},
 	}
+
 	return http.ProxyFromEnvironment(r)
 }
 
@@ -37,6 +38,7 @@ func (p *pbuffer) Read(b []byte) (int, error) {
 func proxyDial(conn net.Conn, addr string, proxyURL *url.URL) (_ net.Conn, err error) {
 	defer func() {
 		if err != nil {
+			// trunk-ignore(golangci-lint/errcheck)
 			conn.Close()
 		}
 	}()
@@ -56,27 +58,33 @@ func proxyDial(conn net.Conn, addr string, proxyURL *url.URL) (_ net.Conn, err e
 	}
 
 	if err := r.Write(conn); err != nil {
-		return nil, fmt.Errorf("failed to write the HTTP request: %v", err)
+		return nil, fmt.Errorf("failed to write the HTTP request: %w", err)
 	}
 
 	br := bufio.NewReader(conn)
+
 	rsp, err := http.ReadResponse(br, r)
 	if err != nil {
-		return nil, fmt.Errorf("reading server HTTP response: %v", err)
+		return nil, fmt.Errorf("reading server HTTP response: %w", err)
 	}
-	defer rsp.Body.Close()
+
+	defer func() {
+		err = rsp.Body.Close()
+	}()
+
 	if rsp.StatusCode != http.StatusOK {
 		dump, err := httputil.DumpResponse(rsp, true)
 		if err != nil {
 			return nil, fmt.Errorf("failed to do connect handshake, status code: %s", rsp.Status)
 		}
+
 		return nil, fmt.Errorf("failed to do connect handshake, response: %q", dump)
 	}
 
 	return &pbuffer{Conn: conn, r: br}, nil
 }
 
-// Creates a new connection
+// Creates a new connection.
 func newConn(dial func(string) (net.Conn, error)) func(string) (net.Conn, error) {
 	return func(addr string) (net.Conn, error) {
 		// get the proxy url

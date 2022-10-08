@@ -12,10 +12,10 @@ import (
 	"go-micro.dev/v4/server"
 )
 
-// The gateway interface provides a way to
-// create composable API gateways
+// API interface provides a way to
+// create composable API gateways.
 type Api interface {
-	// Initialise options
+	// Initialize options
 	Init(...Option) error
 	// Get the options
 	Options() Options
@@ -29,6 +29,7 @@ type Api interface {
 	String() string
 }
 
+// Options are API options.
 type Options struct {
 	// Address of the server
 	Address string
@@ -36,9 +37,10 @@ type Options struct {
 	Router router.Router
 }
 
+// Option type are API option args.
 type Option func(*Options) error
 
-// Endpoint is a mapping between an RPC method and HTTP endpoint
+// Endpoint is a mapping between an RPC method and HTTP endpoint.
 type Endpoint struct {
 	// RPC Method e.g. Greeter.Hello
 	Name string
@@ -56,7 +58,7 @@ type Endpoint struct {
 	Stream bool
 }
 
-// Service represents an API service
+// Service represents an API service.
 type Service struct {
 	// Name of service
 	Name string
@@ -82,21 +84,22 @@ func slice(s string) []string {
 	return sl
 }
 
-// Encode encodes an endpoint to endpoint metadata
+// Encode encodes an endpoint to endpoint metadata.
 func Encode(e *Endpoint) map[string]string {
 	if e == nil {
 		return nil
 	}
 
 	// endpoint map
-	ep := make(map[string]string)
+	em := make(map[string]string)
 
 	// set vals only if they exist
 	set := func(k, v string) {
 		if len(v) == 0 {
 			return
 		}
-		ep[k] = v
+
+		em[k] = v
 	}
 
 	set("endpoint", e.Name)
@@ -106,10 +109,10 @@ func Encode(e *Endpoint) map[string]string {
 	set("path", strings.Join(e.Path, ","))
 	set("host", strings.Join(e.Host, ","))
 
-	return ep
+	return em
 }
 
-// Decode decodes endpoint metadata into an endpoint
+// Decode decodes endpoint metadata into an endpoint.
 func Decode(e map[string]string) *Endpoint {
 	if e == nil {
 		return nil
@@ -125,7 +128,7 @@ func Decode(e map[string]string) *Endpoint {
 	}
 }
 
-// Validate validates an endpoint to guarantee it won't blow up when being served
+// Validate validates an endpoint to guarantee it won't blow up when being served.
 func Validate(e *Endpoint) error {
 	if e == nil {
 		return errors.New("endpoint is nil")
@@ -162,7 +165,7 @@ func Validate(e *Endpoint) error {
 //
 // Usage:
 //
-// 	proto.RegisterHandler(service.Server(), new(Handler), api.WithEndpoint(
+//	proto.RegisterHandler(service.Server(), new(Handler), api.WithEndpoint(
 //		&api.Endpoint{
 //			Name: "Greeter.Hello",
 //			Path: []string{"/greeter"},
@@ -172,7 +175,7 @@ func WithEndpoint(e *Endpoint) server.HandlerOption {
 	return server.EndpointMetadata(e.Name, Encode(e))
 }
 
-// NewApi returns a new api gateway
+// NewApi returns a new api gateway.
 func NewApi(opts ...Option) Api {
 	return newApi(opts...)
 }
