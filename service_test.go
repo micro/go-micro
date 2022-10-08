@@ -63,7 +63,11 @@ func testCustomListenService(ctx context.Context, customListener net.Listener, w
 		Context(ctx),
 		Registry(r),
 		// injection customListener
-		AddListenOption(server.ListenOption(transport.NetListener(customListener))),
+		ServerListen(
+			server.SetTransportOption(
+				transport.SetListener(customListener),
+			),
+		),
 		AfterStart(func() error {
 			wg.Done()
 			return nil

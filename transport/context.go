@@ -1,13 +1,24 @@
 package transport
 
 import (
+	"context"
 	"net"
 )
 
 type netListener struct{}
 
-// getNetListener Get net.Listener from ListenOptions
-func getNetListener(o *ListenOptions) net.Listener {
+// setTransportOption Set option for transport
+func setTransportOption(k, v interface{}) Option {
+	return func(o *Options) {
+		if o.Context == nil {
+			o.Context = context.Background()
+		}
+		o.Context = context.WithValue(o.Context, k, v)
+	}
+}
+
+// getListener Get net.Listener from ListenOptions
+func getListener(o *Options) net.Listener {
 	if o.Context == nil {
 		return nil
 	}

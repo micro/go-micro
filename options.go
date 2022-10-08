@@ -304,8 +304,8 @@ func WrapSubscriber(w ...server.SubscriberWrapper) Option {
 	}
 }
 
-// Add opt to server option
-func AddListenOption(option server.Option) Option {
+// ServerListen Add Listen to the server
+func ServerListen(option server.Option) Option {
 	return func(o *Options) {
 		o.Server.Init(option)
 	}

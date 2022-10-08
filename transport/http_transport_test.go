@@ -410,10 +410,13 @@ func TestHttpTransportListenerNetListener(t *testing.T) {
 		return
 	}
 
-	tr := NewHTTPTransport(Timeout(time.Millisecond * 100))
+	tr := NewHTTPTransport(
+		SetListener(customListener),
+		Timeout(time.Millisecond*100),
+	)
 
 	// injection
-	l, err := tr.Listen(address, NetListener(customListener))
+	l, err := tr.Listen(address)
 	if err != nil {
 		t.Errorf("Unexpected listen err: %v", err)
 	}
