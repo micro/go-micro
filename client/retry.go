@@ -26,8 +26,9 @@ func RetryOnError(ctx context.Context, req Request, retryCount int, err error) (
 	}
 
 	switch e.Code {
-	// retry on timeout or internal server error
-	case 408, 500:
+	// Retry on timeout, not on 500 internal server error, as that is a business
+	// logic error that should be handled by the user.
+	case 408:
 		return true, nil
 	default:
 		return false, nil
