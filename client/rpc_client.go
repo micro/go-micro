@@ -153,7 +153,6 @@ func (r *rpcClient) call(ctx context.Context, node *registry.Node, req Request, 
 	}
 
 	releaseFunc := func(err error) {
-		// return
 		if err = r.pool.Release(c, err); err != nil {
 			logger.Log(log.ErrorLevel, "failed to release pool", err)
 		}

@@ -97,6 +97,7 @@ func (h *httpTransportClient) Send(m *Message) error {
 	}
 
 	return req.Write(h.conn)
+
 }
 
 // Recv receives a message.
