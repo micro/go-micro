@@ -189,6 +189,7 @@ linters:
     - makezero
     - gofumpt
     - nlreturn
+    - thelper
 
     # Can be considered to be enabled
     - gochecknoinits
@@ -203,6 +204,7 @@ linters:
     - containedctx
     - godox
     - forcetypeassert
+    - gci
 
 issues:
   # List of regexps of issue texts to exclude, empty list by default.
