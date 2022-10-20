@@ -7,10 +7,11 @@ import (
 	"sync"
 	"time"
 
+	"golang.org/x/sync/singleflight"
+
 	log "go-micro.dev/v4/logger"
 	"go-micro.dev/v4/registry"
 	util "go-micro.dev/v4/util/registry"
-	"golang.org/x/sync/singleflight"
 )
 
 // Cache is the registry cache interface.
@@ -464,6 +465,7 @@ func (c *cache) String() string {
 // New returns a new cache.
 func New(r registry.Registry, opts ...Option) Cache {
 	rand.Seed(time.Now().UnixNano())
+
 	options := Options{
 		TTL:    DefaultTTL,
 		Logger: log.DefaultLogger,

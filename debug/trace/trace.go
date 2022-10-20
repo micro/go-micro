@@ -6,6 +6,12 @@ import (
 	"time"
 
 	"go-micro.dev/v4/metadata"
+	"go-micro.dev/v4/transport/headers"
+)
+
+var (
+	// DefaultTracer is the default tracer.
+	DefaultTracer = NewTracer()
 )
 
 // Tracer is an interface for distributed tracing.
@@ -48,52 +54,29 @@ type Span struct {
 	Type SpanType
 }
 
-const (
-	traceIDKey = "Micro-Trace-Id"
-	spanIDKey  = "Micro-Span-Id"
-)
-
 // FromContext returns a span from context.
 func FromContext(ctx context.Context) (traceID string, parentSpanID string, isFound bool) {
-	traceID, traceOk := metadata.Get(ctx, traceIDKey)
-	microID, microOk := metadata.Get(ctx, "Micro-Id")
+	traceID, traceOk := metadata.Get(ctx, headers.TraceIDKey)
+	microID, microOk := metadata.Get(ctx, headers.ID)
+
 	if !traceOk && !microOk {
 		isFound = false
 		return
 	}
+
 	if !traceOk {
 		traceID = microID
 	}
-	parentSpanID, ok := metadata.Get(ctx, spanIDKey)
+
+	parentSpanID, ok := metadata.Get(ctx, headers.SpanID)
+
 	return traceID, parentSpanID, ok
 }
 
 // ToContext saves the trace and span ids in the context.
 func ToContext(ctx context.Context, traceID, parentSpanID string) context.Context {
 	return metadata.MergeContext(ctx, map[string]string{
-		traceIDKey: traceID,
-		spanIDKey:  parentSpanID,
+		headers.TraceIDKey: traceID,
+		headers.SpanID:     parentSpanID,
 	}, true)
-}
-
-var (
-	DefaultTracer Tracer = NewTracer()
-)
-
-type noop struct{}
-
-func (n *noop) Init(...Option) error {
-	return nil
-}
-
-func (n *noop) Start(ctx context.Context, name string) (context.Context, *Span) {
-	return nil, nil
-}
-
-func (n *noop) Finish(*Span) error {
-	return nil
-}
-
-func (n *noop) Read(...ReadOption) ([]*Span, error) {
-	return nil, nil
 }

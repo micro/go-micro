@@ -10,6 +10,7 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"go-micro.dev/v4/codec"
+	"go-micro.dev/v4/transport/headers"
 )
 
 type Codec struct {
@@ -29,8 +30,8 @@ func (c *Codec) ReadHeader(m *codec.Message, t codec.MessageType) error {
 	// service method
 	path := m.Header[":path"]
 	if len(path) == 0 || path[0] != '/' {
-		m.Target = m.Header["Micro-Service"]
-		m.Endpoint = m.Header["Micro-Endpoint"]
+		m.Target = m.Header[headers.Request]
+		m.Endpoint = m.Header[headers.Endpoint]
 	} else {
 		// [ , a.package.Foo, Bar]
 		parts := strings.Split(path, "/")

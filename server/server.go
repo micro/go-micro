@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+
 	"go-micro.dev/v4/codec"
 	log "go-micro.dev/v4/logger"
 	"go-micro.dev/v4/registry"
@@ -140,14 +141,14 @@ var (
 	DefaultName                    = "go.micro.server"
 	DefaultVersion                 = "latest"
 	DefaultId                      = uuid.New().String()
-	DefaultServer           Server = newRpcServer()
+	DefaultServer           Server = NewRPCServer()
 	DefaultRouter                  = newRpcRouter()
 	DefaultRegisterCheck           = func(context.Context) error { return nil }
 	DefaultRegisterInterval        = time.Second * 30
 	DefaultRegisterTTL             = time.Second * 90
 
 	// NewServer creates a new server.
-	NewServer func(...Option) Server = newRpcServer
+	NewServer func(...Option) Server = NewRPCServer
 )
 
 // DefaultOptions returns config options for the default service.
@@ -157,7 +158,7 @@ func DefaultOptions() Options {
 
 func Init(opt ...Option) {
 	if DefaultServer == nil {
-		DefaultServer = newRpcServer(opt...)
+		DefaultServer = NewRPCServer(opt...)
 	}
 	DefaultServer.Init(opt...)
 }

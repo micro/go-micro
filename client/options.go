@@ -12,6 +12,24 @@ import (
 	"go-micro.dev/v4/transport"
 )
 
+var (
+	// DefaultBackoff is the default backoff function for retries.
+	DefaultBackoff = exponentialBackoff
+	// DefaultRetry is the default check-for-retry function for retries.
+	DefaultRetry = RetryOnError
+	// DefaultRetries is the default number of times a request is tried.
+	DefaultRetries = 5
+	// DefaultRequestTimeout is the default request timeout.
+	DefaultRequestTimeout = time.Second * 30
+	// DefaultConnectionTimeout is the default connection timeout.
+	DefaultConnectionTimeout = time.Second * 5
+	// DefaultPoolSize sets the connection pool size.
+	DefaultPoolSize = 100
+	// DefaultPoolTTL sets the connection pool ttl.
+	DefaultPoolTTL = time.Minute
+)
+
+// Options are the Client options.
 type Options struct {
 	// Used to select codec
 	ContentType string
@@ -47,6 +65,7 @@ type Options struct {
 	Context context.Context
 }
 
+// CallOptions are options used to make calls to a server.
 type CallOptions struct {
 	SelectOptions []selector.SelectOption
 
@@ -56,11 +75,14 @@ type CallOptions struct {
 	Backoff BackoffFunc
 	// Check if retriable func
 	Retry RetryFunc
-	// Transport Dial Timeout
-	DialTimeout time.Duration
 	// Number of Call attempts
 	Retries int
-	// Request/Response timeout
+	// Transport Dial Timeout. Used for initial dial to establish a connection.
+	DialTimeout time.Duration
+	// ConnectionTimeout of one request to the server.
+	// Set this lower than the RequestTimeout to enbale retries on connection timeout.
+	ConnectionTimeout time.Duration
+	// Request/Response timeout of entire srv.Call, for single request timeout set ConnectionTimeout.
 	RequestTimeout time.Duration
 	// Stream timeout for the stream
 	StreamTimeout time.Duration
@@ -68,6 +90,8 @@ type CallOptions struct {
 	ServiceToken bool
 	// Duration to cache the response for
 	CacheExpiry time.Duration
+	// ConnClose sets the Connection: close header.
+	ConnClose bool
 
 	// Middleware for low level call func
 	CallWrappers []CallWrapper
@@ -98,6 +122,7 @@ type RequestOptions struct {
 	Context context.Context
 }
 
+// NewOptions creates new Client options.
 func NewOptions(options ...Option) Options {
 	opts := Options{
 		Cache:       NewCache(),
@@ -105,11 +130,12 @@ func NewOptions(options ...Option) Options {
 		ContentType: DefaultContentType,
 		Codecs:      make(map[string]codec.NewCodec),
 		CallOptions: CallOptions{
-			Backoff:        DefaultBackoff,
-			Retry:          DefaultRetry,
-			Retries:        DefaultRetries,
-			RequestTimeout: DefaultRequestTimeout,
-			DialTimeout:    transport.DefaultDialTimeout,
+			Backoff:           DefaultBackoff,
+			Retry:             DefaultRetry,
+			Retries:           DefaultRetries,
+			RequestTimeout:    DefaultRequestTimeout,
+			ConnectionTimeout: DefaultConnectionTimeout,
+			DialTimeout:       transport.DefaultDialTimeout,
 		},
 		PoolSize:  DefaultPoolSize,
 		PoolTTL:   DefaultPoolTTL,
@@ -141,7 +167,7 @@ func Codec(contentType string, c codec.NewCodec) Option {
 	}
 }
 
-// Default content type of the client.
+// ContentType sets the default content type of the client.
 func ContentType(ct string) Option {
 	return func(o *Options) {
 		o.ContentType = ct
@@ -207,8 +233,7 @@ func Backoff(fn BackoffFunc) Option {
 	}
 }
 
-// Number of retries when making the request.
-// Should this be a Call Option?
+// Retries set the number of retries when making the request.
 func Retries(i int) Option {
 	return func(o *Options) {
 		o.CallOptions.Retries = i
@@ -222,8 +247,7 @@ func Retry(fn RetryFunc) Option {
 	}
 }
 
-// The request timeout.
-// Should this be a Call Option?
+// RequestTimeout set the request timeout.
 func RequestTimeout(d time.Duration) Option {
 	return func(o *Options) {
 		o.CallOptions.RequestTimeout = d
@@ -237,7 +261,7 @@ func StreamTimeout(d time.Duration) Option {
 	}
 }
 
-// Transport dial timeout.
+// DialTimeout sets the transport dial timeout.
 func DialTimeout(d time.Duration) Option {
 	return func(o *Options) {
 		o.CallOptions.DialTimeout = d
@@ -296,8 +320,8 @@ func WithRetry(fn RetryFunc) CallOption {
 	}
 }
 
-// WithRetries is a CallOption which overrides that which
-// set in Options.CallOptions.
+// WithRetries sets the number of tries for a call.
+// This CallOption overrides Options.CallOptions.
 func WithRetries(i int) CallOption {
 	return func(o *CallOptions) {
 		o.Retries = i
@@ -309,6 +333,13 @@ func WithRetries(i int) CallOption {
 func WithRequestTimeout(d time.Duration) CallOption {
 	return func(o *CallOptions) {
 		o.RequestTimeout = d
+	}
+}
+
+// WithConnClose sets the Connection header to close.
+func WithConnClose() CallOption {
+	return func(o *CallOptions) {
+		o.ConnClose = true
 	}
 }
 

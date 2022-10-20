@@ -113,7 +113,7 @@ func (s *service) Stop() error {
 		err = fn()
 	}
 
-	if err = s.opts.Server.Stop(); err != nil {
+	if err := s.opts.Server.Stop(); err != nil {
 		return err
 	}
 
@@ -144,6 +144,7 @@ func (s *service) Run() (err error) {
 		if err = s.opts.Profile.Start(); err != nil {
 			return err
 		}
+
 		defer func() {
 			err = s.opts.Profile.Stop()
 			if err != nil {

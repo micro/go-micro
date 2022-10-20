@@ -1,99 +1,107 @@
 syntax = "proto3";
 
+package debug;
+
+option go_package = "./proto;debug";
+
+// Compile this proto by running the following command in the debug directory:
+// protoc --proto_path=. --micro_out=. --go_out=:. proto/debug.proto
+
 service Debug {
-	rpc Log(LogRequest) returns (stream Record) {};
-	rpc Health(HealthRequest) returns (HealthResponse) {};
-	rpc Stats(StatsRequest) returns (StatsResponse) {};
-	rpc Trace(TraceRequest) returns (TraceResponse) {};
+  rpc Log(LogRequest) returns (stream Record) {};
+  rpc Health(HealthRequest) returns (HealthResponse) {};
+  rpc Stats(StatsRequest) returns (StatsResponse) {};
+  rpc Trace(TraceRequest) returns (TraceResponse) {};
+  rpc MessageBus(stream BusMsg) returns (stream BusMsg) {};
 }
 
+message BusMsg { string msg = 1; }
+
 message HealthRequest {
-	// optional service name
-	string service = 1;
+  // optional service name
+  string service = 1;
 }
 
 message HealthResponse {
-	// default: ok
-	string status = 1;
+  // default: ok
+  string status = 1;
 }
 
 message StatsRequest {
-	// optional service name
-	string service = 1;
+  // optional service name
+  string service = 1;
 }
 
 message StatsResponse {
-	// timestamp of recording
-	uint64 timestamp = 1;
-	// unix timestamp
-	uint64 started = 2;
-	// in seconds
-	uint64 uptime = 3;
-	// in bytes
-	uint64 memory = 4;
-	// num threads
-	uint64 threads = 5;
-	// total gc in nanoseconds
-	uint64 gc = 6;
-	// total number of requests
-	uint64 requests = 7;
-	// total number of errors
-	uint64 errors = 8;
+  // timestamp of recording
+  uint64 timestamp = 1;
+  // unix timestamp
+  uint64 started = 2;
+  // in seconds
+  uint64 uptime = 3;
+  // in bytes
+  uint64 memory = 4;
+  // num threads
+  uint64 threads = 5;
+  // total gc in nanoseconds
+  uint64 gc = 6;
+  // total number of requests
+  uint64 requests = 7;
+  // total number of errors
+  uint64 errors = 8;
 }
 
 // LogRequest requests service logs
 message LogRequest {
-	// service to request logs for
-	string service = 1;
-	// stream records continuously
-	bool stream = 2;
-	// count of records to request
-	int64 count = 3;
-	// relative time in seconds
-	// before the current time
-	// from which to show logs
-	int64 since = 4;
+  // service to request logs for
+  string service = 1;
+  // stream records continuously
+  bool stream = 2;
+  // count of records to request
+  int64 count = 3;
+  // relative time in seconds
+  // before the current time
+  // from which to show logs
+  int64 since = 4;
 }
 
 // Record is service log record
+// Also used as default basic message type to test requests.
 message Record {
-    // timestamp of log record
-    int64 timestamp = 1;
-    // record metadata
-    map<string,string> metadata = 2;
-    // message
-    string message = 3;
+  // timestamp of log record
+  int64 timestamp = 1;
+  // record metadata
+  map<string, string> metadata = 2;
+  // message
+  string message = 3;
 }
 
 message TraceRequest {
-	// trace id to retrieve
-	string id = 1;
+  // trace id to retrieve
+  string id = 1;
 }
 
-message TraceResponse {
-	repeated Span spans = 1;
-}
-
+message TraceResponse { repeated Span spans = 1; }
 
 enum SpanType {
-    INBOUND = 0;
-    OUTBOUND = 1;
+  INBOUND = 0;
+  OUTBOUND = 1;
 }
 
 message Span {
-	// the trace id
-	string trace = 1;
-	// id of the span
-	string id = 2;
-	// parent span
-	string parent = 3;
-	// name of the resource
-	string name = 4;
-	// time of start in nanoseconds
-	uint64 started = 5;
-	// duration of the execution in nanoseconds
-	uint64 duration = 6;
-	// associated metadata
-	map<string,string> metadata = 7;
-	SpanType type = 8;
+  // the trace id
+  string trace = 1;
+  // id of the span
+  string id = 2;
+  // parent span
+  string parent = 3;
+  // name of the resource
+  string name = 4;
+  // time of start in nanoseconds
+  uint64 started = 5;
+  // duration of the execution in nanoseconds
+  uint64 duration = 6;
+  // associated metadata
+  map<string, string> metadata = 7;
+  SpanType type = 8;
 }

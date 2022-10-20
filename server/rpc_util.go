@@ -12,6 +12,13 @@ type waitGroup struct {
 	gg *sync.WaitGroup
 }
 
+// NewWaitGroup returns a new double waitgroup for global management of processes.
+func NewWaitGroup(gWg *sync.WaitGroup) *waitGroup {
+	return &waitGroup{
+		gg: gWg,
+	}
+}
+
 func (w *waitGroup) Add(i int) {
 	w.lg.Add(i)
 	if w.gg != nil {

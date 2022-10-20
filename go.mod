@@ -1,6 +1,6 @@
 module go-micro.dev/v4
 
-go 1.17
+go 1.18
 
 require (
 	github.com/bitly/go-simplejson v0.5.0
@@ -69,7 +69,7 @@ require (
 	github.com/sirupsen/logrus v1.7.0 // indirect
 	github.com/xanzy/ssh-agent v0.3.0 // indirect
 	go.opencensus.io v0.22.3 // indirect
-	golang.org/x/sys v0.0.0-20210502180810-71e4cd670f79 // indirect
+	golang.org/x/sys v0.0.0-20210510120138-977fb7262007 // indirect
 	golang.org/x/text v0.3.6 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
