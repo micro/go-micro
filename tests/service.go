@@ -10,6 +10,8 @@ import (
 
 	"github.com/pkg/errors"
 
+	proto "github.com/go-micro/plugins/v4/server/grpc/proto"
+
 	"go-micro.dev/v4"
 	"go-micro.dev/v4/client"
 	"go-micro.dev/v4/debug/handler"
@@ -20,18 +22,22 @@ import (
 var (
 	// ErrNoTests returns no test params are set.
 	ErrNoTests = errors.New("No tests to run, all values set to 0")
+	testTopic  = "Test-Topic"
+	errorTopic = "Error-Topic"
 )
 
 type parTest func(name string, c client.Client, p, s int, errChan chan error)
 type testFunc func(name string, c client.Client, errChan chan error)
 
-// ServiceTestConfig allows you to easilty test a service configuration by
+// ServiceTestConfig allows you to easily test a service configuration by
 // running predefined tests against your custom service. You only need to
 // provide a function to create the service, and how many of which test you
 // want to run.
 //
-// The default tests provided are Sequential Call requests running in parallel
-// routines. And bi-directional stream requests, running in parallel routines.
+// The default tests provided, all running with separate parallel routines are:
+//   - Sequential Call requests
+//   - Bi-directional streaming
+//   - Pub/Sub events brokering
 //
 // You can provide an array of parallel routines to run for the request and
 // stream tests. They will be run as matrix tests, so with each possible combination.
@@ -43,12 +49,17 @@ type ServiceTestConfig struct {
 	// It takes in a list of options, which by default will Context and an
 	// AfterStart with channel to signal when the service has been started.
 	NewService func(name string, opts ...micro.Option) (micro.Service, error)
-	// The number of prallell routines to use for the tests.
+	// Parallel is the number of prallell routines to use for the tests.
 	Parallel []int
-	// The number of sequential requests to send per parallel process.
+	// Sequential is the number of sequential requests to send per parallel process.
 	Sequential []int
-	// The nummber of streaming messages to send over the stream per routine.
+	// Streams is the nummber of streaming messages to send over the stream per routine.
 	Streams []int
+	// PubSub is the number of times to publish messages to the broker per routine.
+	PubSub []int
+
+	mu       sync.Mutex
+	msgCount int
 }
 
 // Run will start the benchmark tests.
@@ -62,6 +73,9 @@ func (stc *ServiceTestConfig) Run(b *testing.B) {
 
 	// Run routines with streams
 	stc.prepBench(b, "streams", stc.runParStreamTest, stc.Streams)
+
+	// Run routines with pub/sub
+	stc.prepBench(b, "pubsub", stc.runBrokerTest, stc.PubSub)
 }
 
 // prepBench will prepare the benmark by setting the right parameters,
@@ -85,6 +99,7 @@ func (stc *ServiceTestConfig) prepBench(b *testing.B, tName string, test parTest
 			}
 
 			benchmark := func(b *testing.B) {
+				b.ReportAllocs()
 				stc.runBench(b, name, test)
 			}
 
@@ -109,6 +124,46 @@ func (stc *ServiceTestConfig) runParSeqTest(name string, c client.Client, p, s i
 			}
 		}
 	})
+}
+
+// Handle is used as a test handler.
+func (stc *ServiceTestConfig) Handle(ctx context.Context, msg *proto.Request) error {
+	stc.mu.Lock()
+	stc.msgCount++
+	stc.mu.Unlock()
+
+	return nil
+}
+
+// HandleError is used as a test handler.
+func (stc *ServiceTestConfig) HandleError(ctx context.Context, msg *proto.Request) error {
+	return errors.New("dummy error")
+}
+
+// runBrokerTest will publish messages to the broker to test pub/sub.
+func (stc *ServiceTestConfig) runBrokerTest(name string, c client.Client, p, s int, errChan chan error) {
+	stc.msgCount = 0
+
+	testParallel(p, func() {
+		for z := 0; z < s; z++ {
+			msg := pb.BusMsg{Msg: "Hello from broker!"}
+			if err := c.Publish(context.Background(), c.NewMessage(testTopic, &msg)); err != nil {
+				errChan <- errors.Wrap(err, "failed to publish message to broker")
+				return
+			}
+
+			msg = pb.BusMsg{Msg: "Some message that will error"}
+			if err := c.Publish(context.Background(), c.NewMessage(errorTopic, &msg)); err == nil {
+				errChan <- errors.New("Publish is supposed to return an error, but got no error")
+				return
+			}
+		}
+	})
+
+	if stc.msgCount != s*p {
+		errChan <- fmt.Errorf("pub/sub does not work properly, invalid message count. Expected %d messaged, but received %d", s*p, stc.msgCount)
+		return
+	}
 }
 
 // runParStreamTest will start streaming, and send s messages parallel in p routines.
@@ -187,16 +242,41 @@ func (stc *ServiceTestConfig) runBench(b *testing.B, name string, test testFunc)
 		b.Fatalf("failed to register handler during initial service setup: %v", err)
 	}
 
+	o := service.Options()
+	if err := o.Broker.Connect(); err != nil {
+		b.Fatal(err)
+	}
+
+	// a := new(testService)
+	if err := o.Server.Subscribe(o.Server.NewSubscriber(testTopic, stc.Handle)); err != nil {
+		b.Fatalf("[%s] Failed to register subscriber: %v", name, err)
+	}
+
+	if err := o.Server.Subscribe(o.Server.NewSubscriber(errorTopic, stc.HandleError)); err != nil {
+		b.Fatalf("[%s] Failed to register subscriber: %v", name, err)
+	}
+
+	b.Logf("# == [ Service ] ==================")
+	b.Logf("#    * Server: %s", o.Server.String())
+	b.Logf("#    * Client: %s", o.Client.String())
+	b.Logf("#    * Transport: %s", o.Transport.String())
+	b.Logf("#    * Broker: %s", o.Broker.String())
+	b.Logf("#    * Registry: %s", o.Registry.String())
+	b.Logf("#    * Auth: %s", o.Auth.String())
+	b.Logf("#    * Cache: %s", o.Cache.String())
+	b.Logf("#    * Runtime: %s", o.Runtime.String())
+	b.Logf("# ================================")
+
 	RunBenchmark(b, name, service, test, cancel, started)
 }
 
 // RunBenchmark will run benchmarks on a provided service.
 //
 // A test function can be provided that will be fun b.N times.
-// make sure to call b.Stoptimer() BEFORE calling this function, as you will
-// probably want to call it before even creating your service.
 func RunBenchmark(b *testing.B, name string, service micro.Service, test testFunc,
 	cancel context.CancelFunc, started chan struct{}) {
+	b.StopTimer()
+
 	// Receive errors from routines on this channel
 	errChan := make(chan error, 1)
 
@@ -217,6 +297,18 @@ func RunBenchmark(b *testing.B, name string, service micro.Service, test testFun
 
 	// Benchmark routine
 	go func() {
+		defer func() {
+			b.StopTimer()
+
+			// Shutdown service
+			b.Logf("[%s] Shutting down", name)
+			cancel()
+
+			// Wait for service to be fully stopped
+			<-done
+			sigTerm <- struct{}{}
+		}()
+
 		// Wait for service to start
 		<-started
 
@@ -232,20 +324,16 @@ func RunBenchmark(b *testing.B, name string, service micro.Service, test testFun
 			}
 		}
 
-		defer func() {
-			b.StopTimer()
-
-			// Shutdown service
-			b.Logf("[%s] Shutting down", name)
-			cancel()
-
-			// Wait for service to be fully stopped
-			<-done
-			sigTerm <- struct{}{}
-		}()
+		// Check registration
+		services, err := service.Options().Registry.GetService(name)
+		if err != nil || len(services) == 0 {
+			errChan <- fmt.Errorf("service registration must have failed (%d services found), unable to get service: %w", len(services), err)
+			return
+		}
 
 		// Start benchmark
 		b.Logf("[%s] Starting benchtest", name)
+		b.ResetTimer()
 		b.StartTimer()
 
 		// Number of iterations

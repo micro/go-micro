@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"go-micro.dev/v4"
+	"go-micro.dev/v4/broker"
 	"go-micro.dev/v4/client"
 	"go-micro.dev/v4/registry"
 	"go-micro.dev/v4/server"
@@ -16,8 +17,9 @@ func BenchmarkService(b *testing.B) {
 		Name:       "test-service",
 		NewService: newService,
 		Parallel:   []int{1, 8, 16, 32, 64},
-		Sequential: []int{1, 10},
-		Streams:    []int{100},
+		Sequential: []int{0},
+		Streams:    []int{0},
+		//		PubSub:     []int{10},
 	}
 
 	cfg.Run(b)
@@ -28,13 +30,19 @@ func newService(name string, opts ...micro.Option) (micro.Service, error) {
 		registry.Services(test.Data),
 	)
 
+	b := broker.NewMemoryBroker()
+
 	t := transport.NewHTTPTransport()
-	c := client.NewClient(client.Transport(t))
+	c := client.NewClient(
+		client.Transport(t),
+		client.Broker(b),
+	)
 
 	s := server.NewRPCServer(
 		server.Name(name),
 		server.Registry(r),
 		server.Transport(t),
+		server.Broker(b),
 	)
 
 	if err := s.Init(); err != nil {
@@ -46,6 +54,7 @@ func newService(name string, opts ...micro.Option) (micro.Service, error) {
 		micro.Server(s),
 		micro.Client(c),
 		micro.Registry(r),
+		micro.Broker(b),
 	}
 	options = append(options, opts...)
 

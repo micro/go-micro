@@ -60,6 +60,10 @@ func (h *httpTransportSocket) Recv(msg *Message) error {
 }
 
 func (h *httpTransportSocket) Send(msg *Message) error {
+	// we need to lock to protect the write
+	h.mtx.RLock()
+	defer h.mtx.RUnlock()
+
 	if h.r.ProtoMajor == 1 {
 		return h.sendHTTP1(msg)
 	}
@@ -243,10 +247,6 @@ func (h *httpTransportSocket) sendHTTP2(msg *Message) error {
 		return io.EOF
 	default:
 	}
-
-	// we need to lock to protect the write
-	h.mtx.RLock()
-	defer h.mtx.RUnlock()
 
 	// set headers
 	for k, v := range msg.Header {
