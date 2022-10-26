@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"go-micro.dev/v4/config/loader"
@@ -42,8 +43,12 @@ type watcher struct {
 	path    []string
 	value   reader.Value
 	reader  reader.Reader
-	version string
+	version atomic.Value
 	updates chan updateValue
+}
+
+func (w *watcher) getVersion() string {
+	return w.version.Load().(string)
 }
 
 func (m *memory) watch(idx int, s source.Source) {
@@ -169,7 +174,7 @@ func (m *memory) update() {
 	m.RUnlock()
 
 	for _, w := range watchers {
-		if w.version >= snap.Version {
+		if w.getVersion() >= snap.Version {
 			continue
 		}
 
@@ -357,8 +362,8 @@ func (m *memory) Watch(path ...string) (loader.Watcher, error) {
 		value:   value,
 		reader:  m.opts.Reader,
 		updates: make(chan updateValue, 1),
-		version: m.snap.Version,
 	}
+	w.version.Store(m.snap.Version)
 
 	e := m.watchers.PushBack(w)
 
@@ -392,7 +397,7 @@ func (w *watcher) Next() (*loader.Snapshot, error) {
 
 		return &loader.Snapshot{
 			ChangeSet: cs,
-			Version:   w.version,
+			Version:   w.getVersion(),
 		}
 	}
 
@@ -402,13 +407,13 @@ func (w *watcher) Next() (*loader.Snapshot, error) {
 			return nil, errors.New("watcher stopped")
 
 		case uv := <-w.updates:
-			if uv.version <= w.version {
+			if uv.version <= w.getVersion() {
 				continue
 			}
 
 			v := uv.value
 
-			w.version = uv.version
+			w.version.Store(uv.version)
 
 			if bytes.Equal(w.value.Bytes(), v.Bytes()) {
 				continue
