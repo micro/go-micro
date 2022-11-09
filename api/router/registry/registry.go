@@ -452,11 +452,22 @@ func (r *registryRouter) Route(req *http.Request) (*router.Route, error) {
 			handler = "rpc"
 		}
 
+        // extract endpoint from Path, case-sensitive
+        // just test it in this case, maybe should put the code somewhere else
+		ep_name := rsp.Method
+		comps := strings.Split(rsp.Path, "/")
+		switch len(comps) {
+		case 3:
+			ep_name = comps[1] + "." + comps[2]
+		case 4:
+			ep_name = comps[2] + "." + comps[3]
+		}
+
 		// construct api service
 		return &router.Route{
 			Service: name,
 			Endpoint: &router.Endpoint{
-				Name:    rsp.Method,
+				Name:    ep_name,
 				Handler: handler,
 			},
 			Versions: services,
