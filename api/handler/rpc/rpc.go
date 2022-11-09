@@ -315,7 +315,7 @@ func requestPayload(r *http.Request) ([]byte, error) {
 		}
 
 		return raw.Marshal()
-	case strings.Contains(myCt, "application/www-x-form-urlencoded"):
+	case strings.Contains(myCt, "application/www-x-form-urlencoded"), strings.Contains(myCt, "application/x-www-form-urlencoded"):
 		if err := r.ParseForm(); err != nil {
 			return nil, err
 		}
