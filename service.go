@@ -149,9 +149,8 @@ func (s *service) Run() (err error) {
 		}
 
 		defer func() {
-			err = s.opts.Profile.Stop()
-			if err != nil {
-				logger.Log(log.ErrorLevel, err)
+			if nerr := s.opts.Profile.Stop(); nerr != nil {
+				logger.Log(log.ErrorLevel, nerr)
 			}
 		}()
 	}
