@@ -167,8 +167,8 @@ func NewMultiError() *MultiError {
 	}
 }
 
-func (e *MultiError) Append(err *Error) {
-	e.Errors = append(e.Errors, err)
+func (e *MultiError) Append(err ...*Error) {
+	e.Errors = append(e.Errors, err...)
 }
 
 func (e *MultiError) HasErrors() bool {
