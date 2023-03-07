@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"go-micro.dev/v4/api/router"
+	"go-micro.dev/v4/client"
 	"go-micro.dev/v4/registry"
 	"go-micro.dev/v4/server"
 )
@@ -35,6 +36,8 @@ type Options struct {
 	Address string
 	// Router for resolving routes
 	Router router.Router
+	// Client to use for RPC
+	Client client.Client
 }
 
 // Option type are API option args.
