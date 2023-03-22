@@ -452,8 +452,8 @@ func (r *registryRouter) Route(req *http.Request) (*router.Route, error) {
 			handler = "rpc"
 		}
 
-        // extract endpoint from Path, case-sensitive
-        // just test it in this case, maybe should put the code somewhere else
+		// extract endpoint from Path, case-sensitive
+		// just test it in this case, maybe should put the code somewhere else
 		ep_name := rsp.Method
 		comps := strings.Split(rsp.Path, "/")
 		switch len(comps) {
