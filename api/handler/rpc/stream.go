@@ -103,9 +103,13 @@ func serveWebsocket(ctx context.Context, w http.ResponseWriter, r *http.Request,
 		client.StreamingRequest(),
 	)
 
+	cCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	so := selector.WithStrategy(strategy(service.Versions))
+
 	// create a new stream
-	stream, err := c.Stream(ctx, req, client.WithSelectOption(so))
+	stream, err := c.Stream(cCtx, req, client.WithSelectOption(so))
 	if err != nil {
 		return
 	}
