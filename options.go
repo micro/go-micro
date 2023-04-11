@@ -112,6 +112,15 @@ func Context(ctx context.Context) Option {
 	}
 }
 
+// Handle will register a handler without any fuss
+func Handle(v interface{}) Option {
+	return func(o *Options) {
+		o.Server.Handle(
+			o.Server.NewHandler(v),
+		)
+	}
+}
+
 // HandleSignal toggles automatic installation of the signal handler that
 // traps TERM, INT, and QUIT.  Users of this feature to disable the signal
 // handler, should control liveness of the service through the context.
