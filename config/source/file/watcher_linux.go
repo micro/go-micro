@@ -39,7 +39,7 @@ func (w *watcher) Next() (*source.ChangeSet, error) {
 			return nil, source.ErrWatcherStopped
 		}
 
-		if event.Op == fsnotify.Rename {
+		if event.Has(fsnotify.Rename) {
 			// check existence of file, and add watch again
 			_, err := os.Stat(event.Name)
 			if err == nil || os.IsExist(err) {
