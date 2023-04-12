@@ -25,7 +25,9 @@ func (c *cliSource) Read() (*source.ChangeSet, error) {
 	for _, f := range c.ctx.App.Flags {
 		name := f.Names()[0]
 		tmp := toEntry(name, c.ctx.Generic(name))
-		mergo.Map(&changes, tmp) // need to sort error handling
+		if err := mergo.Map(&changes, tmp, mergo.WithOverride); err != nil {
+			return nil, err
+		}
 	}
 
 	b, err := c.opts.Encoder.Encode(changes)
