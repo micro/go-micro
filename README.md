@@ -53,14 +53,38 @@ Go Micro abstracts away the details of distributed systems. Here are the main fe
 
 ## Getting Started
 
-To make use of Go Micro
+To make use of Go Micro import it 
 
 ```golang
-import "go-micro.dev/v4"
+import "go-micro.dev/v4
+```
 
+Define a handler (protobuf is optionally supported - see [example](https://github.com/go-micro/examples/blob/main/helloworld/main.go)) 
+
+```
+type Request struct {
+        Name string `json:"name"`
+}
+
+type Response struct {
+        Message string `json:"message"`
+}
+
+type Helloworld struct{}
+
+func (h *Helloworld) Greeting(ctx context.Context, req *Request, rsp *Response) error {
+        rsp.Message = "Hello " + req.Name
+        return nil
+}
+```
+
+Create, initialise and run the service
+
+```golang
 // create a new service
 service := micro.NewService(
     micro.Name("helloworld"),
+    micro.Handle(new(Helloworld)),
 )
 
 // initialise flags
@@ -68,6 +92,25 @@ service.Init()
 
 // start the service
 service.Run()
+```
+
+Optionally set fixed address
+
+```golang
+service := micro.NewService(
+    // set address
+    micro.Handle(":8080"),
+)
+```
+
+Call it via curl
+
+```
+curl -XPOST \
+     -H 'Content-Type: application/json' \
+     -H 'Micro-Endpoint: Helloworld.Greeting' \
+     -d '{"name": "alice"}' \
+      http://localhost:8080
 ```
 
 See the [examples](https://github.com/go-micro/examples) for detailed information on usage.
