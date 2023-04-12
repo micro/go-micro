@@ -61,7 +61,7 @@ import "go-micro.dev/v4
 
 Define a handler (protobuf is optionally supported - see [example](https://github.com/go-micro/examples/blob/main/helloworld/main.go)) 
 
-```
+```golang
 type Request struct {
         Name string `json:"name"`
 }
