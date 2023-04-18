@@ -14,41 +14,48 @@ import (
 
 // Options for web.
 type Options struct {
-	Name      string
-	Version   string
-	Id        string
-	Metadata  map[string]string
-	Address   string
-	Advertise string
-
-	Action func(*cli.Context)
-	Flags  []cli.Flag
-
-	RegisterTTL      time.Duration
-	RegisterInterval time.Duration
-
-	// RegisterCheck runs a check function before registering the service
-	RegisterCheck func(context.Context) error
-
-	Server  *http.Server
 	Handler http.Handler
+
+	Logger logger.Logger
+
+	Service micro.Service
+
+	Registry registry.Registry
 
 	// Alternative Options
 	Context context.Context
 
-	Registry registry.Registry
-	Service  micro.Service
-	Logger   logger.Logger
+	Action    func(*cli.Context)
+	Metadata  map[string]string
+	TLSConfig *tls.Config
 
-	Secure      bool
-	TLSConfig   *tls.Config
+	Server *http.Server
+
+	// RegisterCheck runs a check function before registering the service
+	RegisterCheck func(context.Context) error
+
+	Version string
+
+	// Static directory
+	StaticDir string
+
+	Advertise string
+
+	Address string
+	Name    string
+	Id      string
+	Flags   []cli.Flag
+
 	BeforeStart []func() error
 	BeforeStop  []func() error
 	AfterStart  []func() error
 	AfterStop   []func() error
 
-	// Static directory
-	StaticDir string
+	RegisterInterval time.Duration
+
+	RegisterTTL time.Duration
+
+	Secure bool
 
 	Signal bool
 }

@@ -17,34 +17,35 @@ import (
 )
 
 type memory struct {
-	exit chan bool
-	opts loader.Options
-
-	sync.RWMutex
-	// the current snapshot
-	snap *loader.Snapshot
 	// the current values
 	vals reader.Values
+	exit chan bool
+	// the current snapshot
+	snap *loader.Snapshot
+
+	watchers *list.List
+	opts     loader.Options
+
 	// all the sets
 	sets []*source.ChangeSet
 	// all the sources
 	sources []source.Source
 
-	watchers *list.List
+	sync.RWMutex
 }
 
 type updateValue struct {
-	version string
 	value   reader.Value
+	version string
 }
 
 type watcher struct {
-	exit    chan bool
-	path    []string
 	value   reader.Value
 	reader  reader.Reader
 	version atomic.Value
+	exit    chan bool
 	updates chan updateValue
+	path    []string
 }
 
 func (w *watcher) getVersion() string {

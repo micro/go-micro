@@ -16,25 +16,26 @@ import (
 type memoryBroker struct {
 	opts *Options
 
+	Subscribers map[string][]*memorySubscriber
+
 	addr string
 	sync.RWMutex
-	connected   bool
-	Subscribers map[string][]*memorySubscriber
+	connected bool
 }
 
 type memoryEvent struct {
-	opts    *Options
-	topic   string
 	err     error
 	message interface{}
+	opts    *Options
+	topic   string
 }
 
 type memorySubscriber struct {
-	id      string
-	topic   string
+	opts    SubscribeOptions
 	exit    chan bool
 	handler Handler
-	opts    SubscribeOptions
+	id      string
+	topic   string
 }
 
 func (m *memoryBroker) Options() Options {

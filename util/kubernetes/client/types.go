@@ -3,9 +3,9 @@ package client
 // ContainerPort.
 type ContainerPort struct {
 	Name          string `json:"name,omitempty"`
+	Protocol      string `json:"protocol,omitempty"`
 	HostPort      int    `json:"hostPort,omitempty"`
 	ContainerPort int    `json:"containerPort"`
-	Protocol      string `json:"protocol,omitempty"`
 }
 
 // EnvVar is environment variable.
@@ -32,9 +32,9 @@ type Container struct {
 
 // DeploymentSpec defines micro deployment spec.
 type DeploymentSpec struct {
-	Replicas int            `json:"replicas,omitempty"`
 	Selector *LabelSelector `json:"selector"`
 	Template *Template      `json:"template,omitempty"`
+	Replicas int            `json:"replicas,omitempty"`
 }
 
 // DeploymentCondition describes the state of deployment.
@@ -47,12 +47,12 @@ type DeploymentCondition struct {
 
 // DeploymentStatus is returned when querying deployment.
 type DeploymentStatus struct {
+	Conditions          []DeploymentCondition `json:"conditions,omitempty"`
 	Replicas            int                   `json:"replicas,omitempty"`
 	UpdatedReplicas     int                   `json:"updatedReplicas,omitempty"`
 	ReadyReplicas       int                   `json:"readyReplicas,omitempty"`
 	AvailableReplicas   int                   `json:"availableReplicas,omitempty"`
 	UnavailableReplicas int                   `json:"unavailableReplicas,omitempty"`
-	Conditions          []DeploymentCondition `json:"conditions,omitempty"`
 }
 
 // Deployment is Kubernetes deployment.
@@ -84,17 +84,17 @@ type LoadBalancerStatus struct {
 
 // Metadata defines api object metadata.
 type Metadata struct {
+	Labels      map[string]string `json:"labels,omitempty"`
+	Annotations map[string]string `json:"annotations,omitempty"`
 	Name        string            `json:"name,omitempty"`
 	Namespace   string            `json:"namespace,omitempty"`
 	Version     string            `json:"version,omitempty"`
-	Labels      map[string]string `json:"labels,omitempty"`
-	Annotations map[string]string `json:"annotations,omitempty"`
 }
 
 // PodSpec is a pod.
 type PodSpec struct {
-	Containers         []Container `json:"containers"`
 	ServiceAccountName string      `json:"serviceAccountName"`
+	Containers         []Container `json:"containers"`
 }
 
 // PodList.
@@ -111,11 +111,11 @@ type Pod struct {
 
 // PodStatus.
 type PodStatus struct {
-	Conditions []PodCondition    `json:"conditions,omitempty"`
-	Containers []ContainerStatus `json:"containerStatuses"`
 	PodIP      string            `json:"podIP"`
 	Phase      string            `json:"phase"`
 	Reason     string            `json:"reason"`
+	Conditions []PodCondition    `json:"conditions,omitempty"`
+	Containers []ContainerStatus `json:"containerStatuses"`
 }
 
 // PodCondition describes the state of pod.
@@ -137,16 +137,16 @@ type ContainerState struct {
 
 // Resource is API resource.
 type Resource struct {
+	Value interface{}
 	Name  string
 	Kind  string
-	Value interface{}
 }
 
 // ServicePort configures service ports.
 type ServicePort struct {
 	Name     string `json:"name,omitempty"`
-	Port     int    `json:"port"`
 	Protocol string `json:"protocol,omitempty"`
+	Port     int    `json:"port"`
 }
 
 // ServiceSpec provides service configuration.
@@ -197,9 +197,9 @@ type ImagePullSecret struct {
 
 // Secret.
 type Secret struct {
-	Type     string            `json:"type,omitempty"`
 	Data     map[string]string `json:"data"`
 	Metadata *Metadata         `json:"metadata"`
+	Type     string            `json:"type,omitempty"`
 }
 
 // ServiceAccount.

@@ -21,11 +21,11 @@ type Source interface {
 
 // ChangeSet represents a set of changes from a source.
 type ChangeSet struct {
-	Data      []byte
+	Timestamp time.Time
 	Checksum  string
 	Format    string
 	Source    string
-	Timestamp time.Time
+	Data      []byte
 }
 
 // Watcher watches a source for changes.

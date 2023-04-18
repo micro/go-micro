@@ -6,9 +6,9 @@ import (
 
 type Config struct {
 	AllowOrigin      string
-	AllowCredentials bool
 	AllowMethods     string
 	AllowHeaders     string
+	AllowCredentials bool
 }
 
 // CombinedCORSHandler wraps a server and provides CORS headers.

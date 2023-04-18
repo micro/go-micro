@@ -6,9 +6,9 @@ import (
 )
 
 type MockHandler struct {
-	Id   string
 	Opts server.HandlerOptions
 	Hdlr interface{}
+	Id   string
 }
 
 func (m *MockHandler) Name() string {

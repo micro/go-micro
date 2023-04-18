@@ -47,13 +47,13 @@ type Request struct {
 // Response is the response of the generic `api-client` call.
 type Response struct {
 	// json and base64 encoded response body
-	Body string `json:"body"`
-	// error fields. Error json example
-	// {"id":"go.micro.client","code":500,"detail":"malformed method name: \"\"","status":"Internal Server Error"}
-	Code   int    `json:"code"`
+	Body   string `json:"body"`
 	ID     string `json:"id"`
 	Detail string `json:"detail"`
 	Status string `json:"status"`
+	// error fields. Error json example
+	// {"id":"go.micro.client","code":500,"detail":"malformed method name: \"\"","status":"Internal Server Error"}
+	Code int `json:"code"`
 }
 
 // Client enables generic calls to micro.

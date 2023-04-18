@@ -19,12 +19,13 @@ type Options struct {
 }
 
 type SelectOptions struct {
-	Filters  []Filter
-	Strategy Strategy
 
 	// Other options for implementations of the interface
 	// can be stored in a context
-	Context context.Context
+	Context  context.Context
+	Strategy Strategy
+
+	Filters []Filter
 }
 
 type Option func(*Options)

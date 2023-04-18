@@ -9,30 +9,30 @@ import (
 )
 
 type Options struct {
+	Logger logger.Logger
+	// Other options for implementations of the interface
+	// can be stored in a context
+	Context   context.Context
+	TLSConfig *tls.Config
 	Addrs     []string
 	Timeout   time.Duration
 	Secure    bool
-	TLSConfig *tls.Config
-	Logger    logger.Logger
-	// Other options for implementations of the interface
-	// can be stored in a context
-	Context context.Context
 }
 
 type RegisterOptions struct {
-	TTL time.Duration
 	// Other options for implementations of the interface
 	// can be stored in a context
 	Context context.Context
+	TTL     time.Duration
 }
 
 type WatchOptions struct {
-	// Specify a service to watch
-	// If blank, the watch is for all services
-	Service string
 	// Other options for implementations of the interface
 	// can be stored in a context
 	Context context.Context
+	// Specify a service to watch
+	// If blank, the watch is for all services
+	Service string
 }
 
 type DeregisterOptions struct {

@@ -25,16 +25,16 @@ import (
 )
 
 type service struct {
-	opts Options
-
 	mux *http.ServeMux
 	srv *registry.Service
+
+	exit chan chan error
+	ex   chan bool
+	opts Options
 
 	sync.RWMutex
 	running bool
 	static  bool
-	exit    chan chan error
-	ex      chan bool
 }
 
 func newService(opts ...Option) Service {

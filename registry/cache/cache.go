@@ -23,20 +23,23 @@ type Cache interface {
 }
 
 type Options struct {
+	Logger log.Logger
 	// TTL is the cache TTL
 	TTL time.Duration
-
-	Logger log.Logger
 }
 
 type Option func(o *Options)
 
 type cache struct {
-	registry.Registry
 	opts Options
 
-	// registry cache
-	sync.RWMutex
+	registry.Registry
+	// status of the registry
+	// used to hold onto the cache
+	// in failure state
+	status error
+	// used to prevent cache breakdwon
+	sg      singleflight.Group
 	cache   map[string][]*registry.Service
 	ttls    map[string]time.Time
 	watched map[string]bool
@@ -46,12 +49,9 @@ type cache struct {
 
 	// indicate whether its running
 	watchedRunning map[string]bool
-	// status of the registry
-	// used to hold onto the cache
-	// in failure state
-	status error
-	// used to prevent cache breakdwon
-	sg singleflight.Group
+
+	// registry cache
+	sync.RWMutex
 }
 
 var (

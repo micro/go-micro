@@ -10,11 +10,11 @@ import (
 
 // Buffer is ring buffer.
 type Buffer struct {
-	size int
+	streams map[string]*Stream
+	vals    []*Entry
+	size    int
 
 	sync.RWMutex
-	vals    []*Entry
-	streams map[string]*Stream
 }
 
 // Entry is ring buffer data entry.
@@ -25,12 +25,12 @@ type Entry struct {
 
 // Stream is used to stream the buffer.
 type Stream struct {
-	// Id of the stream
-	Id string
 	// Buffered entries
 	Entries chan *Entry
 	// Stop channel
 	Stop chan bool
+	// Id of the stream
+	Id string
 }
 
 // Put adds a new value to ring buffer.

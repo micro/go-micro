@@ -13,16 +13,16 @@ import (
 type Option func(o *Options)
 
 type Options struct {
+	ACMEProvider acme.Provider
+	Resolver     resolver.Resolver
+	Logger       logger.Logger
+	CORSConfig   *cors.Config
+	TLSConfig    *tls.Config
+	ACMEHosts    []string
+	Wrappers     []Wrapper
 	EnableACME   bool
 	EnableCORS   bool
-	CORSConfig   *cors.Config
-	ACMEProvider acme.Provider
 	EnableTLS    bool
-	ACMEHosts    []string
-	TLSConfig    *tls.Config
-	Resolver     resolver.Resolver
-	Wrappers     []Wrapper
-	Logger       logger.Logger
 }
 
 type Wrapper func(h http.Handler) http.Handler

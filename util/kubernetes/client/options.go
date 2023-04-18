@@ -5,8 +5,8 @@ type CreateOptions struct {
 }
 
 type GetOptions struct {
-	Namespace string
 	Labels    map[string]string
+	Namespace string
 }
 type UpdateOptions struct {
 	Namespace string
@@ -19,13 +19,13 @@ type ListOptions struct {
 }
 
 type LogOptions struct {
-	Namespace string
 	Params    map[string]string
+	Namespace string
 }
 
 type WatchOptions struct {
-	Namespace string
 	Params    map[string]string
+	Namespace string
 }
 
 type CreateOption func(*CreateOptions)

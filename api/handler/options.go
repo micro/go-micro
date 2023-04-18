@@ -13,11 +13,11 @@ var (
 
 // Options is the list of api Options.
 type Options struct {
-	MaxRecvSize int64
-	Namespace   string
 	Router      router.Router
 	Client      client.Client
 	Logger      logger.Logger
+	Namespace   string
+	MaxRecvSize int64
 }
 
 // Option is a api Option.

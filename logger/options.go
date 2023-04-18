@@ -8,16 +8,16 @@ import (
 type Option func(*Options)
 
 type Options struct {
-	// The logging level the logger should log at. default is `InfoLevel`
-	Level Level
-	// fields to always be logged
-	Fields map[string]interface{}
 	// It's common to set this to a file, or leave it default which is `os.Stderr`
 	Out io.Writer
-	// Caller skip frame count for file:line info
-	CallerSkipCount int
 	// Alternative options
 	Context context.Context
+	// fields to always be logged
+	Fields map[string]interface{}
+	// Caller skip frame count for file:line info
+	CallerSkipCount int
+	// The logging level the logger should log at. default is `InfoLevel`
+	Level Level
 }
 
 // WithFields set default fields for the logger.

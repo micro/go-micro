@@ -9,26 +9,26 @@ import (
 )
 
 type rpcRequest struct {
+	socket      transport.Socket
+	codec       codec.Codec
+	rawBody     interface{}
+	header      map[string]string
 	service     string
 	method      string
 	endpoint    string
 	contentType string
-	socket      transport.Socket
-	codec       codec.Codec
-	header      map[string]string
 	body        []byte
-	rawBody     interface{}
 	stream      bool
 	first       bool
 }
 
 type rpcMessage struct {
-	topic       string
-	contentType string
 	payload     interface{}
 	header      map[string]string
-	body        []byte
 	codec       codec.NewCodec
+	topic       string
+	contentType string
+	body        []byte
 }
 
 func (r *rpcRequest) Codec() codec.Reader {

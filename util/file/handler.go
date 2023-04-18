@@ -30,9 +30,9 @@ func RegisterHandler(s server.Server, readDir string) {
 }
 
 type handler struct {
-	readDir string
-	session *session
 	logger  log.Logger
+	session *session
+	readDir string
 }
 
 func (h *handler) Open(ctx context.Context, req *proto.OpenRequest, rsp *proto.OpenResponse) error {
@@ -120,9 +120,9 @@ func (h *handler) Write(ctx context.Context, req *proto.WriteRequest, rsp *proto
 }
 
 type session struct {
-	sync.Mutex
 	files   map[int64]*os.File
 	counter int64
+	sync.Mutex
 }
 
 func (s *session) Add(file *os.File) int64 {

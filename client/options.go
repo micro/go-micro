@@ -31,31 +31,19 @@ var (
 
 // Options are the Client options.
 type Options struct {
-	// Used to select codec
-	ContentType string
 
-	// Plugged interfaces
-	Broker    broker.Broker
-	Codecs    map[string]codec.NewCodec
-	Registry  registry.Registry
-	Selector  selector.Selector
-	Transport transport.Transport
+	// Default Call Options
+	CallOptions CallOptions
 
 	// Router sets the router
 	Router Router
 
-	// Connection Pool
-	PoolSize int
-	PoolTTL  time.Duration
+	Registry  registry.Registry
+	Selector  selector.Selector
+	Transport transport.Transport
 
-	// Response cache
-	Cache *Cache
-
-	// Middleware for client
-	Wrappers []Wrapper
-
-	// Default Call Options
-	CallOptions CallOptions
+	// Plugged interfaces
+	Broker broker.Broker
 
 	// Logger is the underline logger
 	Logger logger.Logger
@@ -63,22 +51,40 @@ type Options struct {
 	// Other options for implementations of the interface
 	// can be stored in a context
 	Context context.Context
+	Codecs  map[string]codec.NewCodec
+
+	// Response cache
+	Cache *Cache
+
+	// Used to select codec
+	ContentType string
+
+	// Middleware for client
+	Wrappers []Wrapper
+
+	// Connection Pool
+	PoolSize int
+	PoolTTL  time.Duration
 }
 
 // CallOptions are options used to make calls to a server.
 type CallOptions struct {
+
+	// Other options for implementations of the interface
+	// can be stored in a context
+	Context context.Context
+	// Backoff func
+	Backoff BackoffFunc
+	// Check if retriable func
+	Retry         RetryFunc
 	SelectOptions []selector.SelectOption
 
 	// Address of remote hosts
 	Address []string
-	// Backoff func
-	Backoff BackoffFunc
-	// Check if retriable func
-	Retry RetryFunc
-	// Number of Call attempts
-	Retries int
-	// Transport Dial Timeout. Used for initial dial to establish a connection.
-	DialTimeout time.Duration
+
+	// Middleware for low level call func
+	CallWrappers []CallWrapper
+
 	// ConnectionTimeout of one request to the server.
 	// Set this lower than the RequestTimeout to enbale retries on connection timeout.
 	ConnectionTimeout time.Duration
@@ -86,27 +92,24 @@ type CallOptions struct {
 	RequestTimeout time.Duration
 	// Stream timeout for the stream
 	StreamTimeout time.Duration
-	// Use the services own auth token
-	ServiceToken bool
 	// Duration to cache the response for
 	CacheExpiry time.Duration
+	// Transport Dial Timeout. Used for initial dial to establish a connection.
+	DialTimeout time.Duration
+	// Number of Call attempts
+	Retries int
+	// Use the services own auth token
+	ServiceToken bool
 	// ConnClose sets the Connection: close header.
 	ConnClose bool
-
-	// Middleware for low level call func
-	CallWrappers []CallWrapper
-
-	// Other options for implementations of the interface
-	// can be stored in a context
-	Context context.Context
 }
 
 type PublishOptions struct {
-	// Exchange is the routing exchange for the message
-	Exchange string
 	// Other options for implementations of the interface
 	// can be stored in a context
 	Context context.Context
+	// Exchange is the routing exchange for the message
+	Exchange string
 }
 
 type MessageOptions struct {
@@ -114,12 +117,12 @@ type MessageOptions struct {
 }
 
 type RequestOptions struct {
-	ContentType string
-	Stream      bool
 
 	// Other options for implementations of the interface
 	// can be stored in a context
-	Context context.Context
+	Context     context.Context
+	ContentType string
+	Stream      bool
 }
 
 // NewOptions creates new Client options.

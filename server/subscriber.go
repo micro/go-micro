@@ -12,19 +12,19 @@ const (
 )
 
 type handler struct {
-	method  reflect.Value
 	reqType reflect.Type
 	ctxType reflect.Type
+	method  reflect.Value
 }
 
 type subscriber struct {
-	topic      string
-	rcvr       reflect.Value
+	opts       SubscriberOptions
 	typ        reflect.Type
 	subscriber interface{}
+	rcvr       reflect.Value
+	topic      string
 	handlers   []*handler
 	endpoints  []*registry.Endpoint
-	opts       SubscriberOptions
 }
 
 func newSubscriber(topic string, sub interface{}, opts ...SubscriberOption) Subscriber {

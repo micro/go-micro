@@ -11,9 +11,9 @@ import (
 )
 
 type httpProfile struct {
+	server *http.Server
 	sync.Mutex
 	running bool
-	server  *http.Server
 }
 
 var (

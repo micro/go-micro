@@ -9,9 +9,9 @@ import (
 )
 
 type template struct {
-	segments []segment
 	verb     string
 	template string
+	segments []segment
 }
 
 type segment interface {

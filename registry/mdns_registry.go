@@ -26,43 +26,43 @@ var (
 )
 
 type mdnsTxt struct {
+	Metadata  map[string]string
 	Service   string
 	Version   string
 	Endpoints []*Endpoint
-	Metadata  map[string]string
 }
 
 type mdnsEntry struct {
-	id   string
 	node *mdns.Server
+	id   string
 }
 
 type mdnsRegistry struct {
-	opts *Options
-	// the mdns domain
-	domain string
-
-	sync.Mutex
+	opts     *Options
 	services map[string][]*mdnsEntry
-
-	mtx sync.RWMutex
 
 	// watchers
 	watchers map[string]*mdnsWatcher
 
 	// listener
 	listener chan *mdns.ServiceEntry
+	// the mdns domain
+	domain string
+
+	mtx sync.RWMutex
+
+	sync.Mutex
 }
 
 type mdnsWatcher struct {
-	id   string
 	wo   WatchOptions
 	ch   chan *mdns.ServiceEntry
 	exit chan struct{}
-	// the mdns domain
-	domain string
 	// the registry
 	registry *mdnsRegistry
+	id       string
+	// the mdns domain
+	domain string
 }
 
 func encode(txt *mdnsTxt) ([]string, error) {

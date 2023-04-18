@@ -13,8 +13,8 @@ type Watcher interface {
 // Result is returned by a call to Next on
 // the watcher. Actions can be create, update, delete.
 type Result struct {
-	Action  string
 	Service *Service
+	Action  string
 }
 
 // EventType defines registry event type.
@@ -45,12 +45,12 @@ func (t EventType) String() string {
 
 // Event is registry event.
 type Event struct {
-	// Id is registry id
-	Id string
-	// Type defines type of event
-	Type EventType
 	// Timestamp is event timestamp
 	Timestamp time.Time
 	// Service is registry service
 	Service *Service
+	// Id is registry id
+	Id string
+	// Type defines type of event
+	Type EventType
 }

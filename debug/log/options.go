@@ -7,12 +7,12 @@ type Option func(*Options)
 
 // Options are logger options.
 type Options struct {
+	// Format specifies the output format
+	Format FormatFunc
 	// Name of the log
 	Name string
 	// Size is the size of ring buffer
 	Size int
-	// Format specifies the output format
-	Format FormatFunc
 }
 
 // Name of the log.

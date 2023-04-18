@@ -39,11 +39,11 @@ type Leader interface {
 }
 
 type Options struct {
-	Nodes     []string
-	Prefix    string
-	TLSConfig *tls.Config
 	Context   context.Context
 	Logger    logger.Logger
+	TLSConfig *tls.Config
+	Prefix    string
+	Nodes     []string
 }
 
 type Option func(o *Options)

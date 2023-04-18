@@ -10,9 +10,9 @@ import (
 )
 
 type file struct {
+	opts source.Options
 	fs   fs.FS
 	path string
-	opts source.Options
 }
 
 var (

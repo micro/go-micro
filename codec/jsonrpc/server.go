@@ -19,9 +19,9 @@ type serverCodec struct {
 }
 
 type serverRequest struct {
-	Method string           `json:"method"`
-	Params *json.RawMessage `json:"params"`
 	ID     interface{}      `json:"id"`
+	Params *json.RawMessage `json:"params"`
+	Method string           `json:"method"`
 }
 
 type serverResponse struct {

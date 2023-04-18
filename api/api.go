@@ -32,12 +32,12 @@ type Api interface {
 
 // Options are API options.
 type Options struct {
-	// Address of the server
-	Address string
 	// Router for resolving routes
 	Router router.Router
 	// Client to use for RPC
 	Client client.Client
+	// Address of the server
+	Address string
 }
 
 // Option type are API option args.

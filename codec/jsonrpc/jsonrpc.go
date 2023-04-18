@@ -11,11 +11,11 @@ import (
 )
 
 type jsonCodec struct {
-	buf *bytes.Buffer
-	mt  codec.MessageType
 	rwc io.ReadWriteCloser
+	buf *bytes.Buffer
 	c   *clientCodec
 	s   *serverCodec
+	mt  codec.MessageType
 }
 
 func (j *jsonCodec) Close() error {

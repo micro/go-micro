@@ -107,9 +107,9 @@ func tokenize(path string) (tokens []string, verb string) {
 
 // parser is a parser of the template syntax defined in github.com/googleapis/googleapis/google/api/http.proto.
 type parser struct {
+	logger   log.Logger
 	tokens   []string
 	accepted []string
-	logger   log.Logger
 }
 
 // topLevelSegments is the target of this parser.

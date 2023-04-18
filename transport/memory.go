@@ -16,8 +16,7 @@ import (
 )
 
 type memorySocket struct {
-	// True server mode, False client mode
-	server bool
+	ctx context.Context
 	// Client receiver of io.Pipe with gob
 	crecv *gob.Decoder
 	// Client sender of the io.Pipe with gob
@@ -36,7 +35,8 @@ type memorySocket struct {
 
 	// for send/recv Timeout
 	timeout time.Duration
-	ctx     context.Context
+	// True server mode, False client mode
+	server bool
 }
 
 type memoryClient struct {
@@ -45,19 +45,19 @@ type memoryClient struct {
 }
 
 type memoryListener struct {
-	addr  string
+	lopts ListenOptions
+	ctx   context.Context
 	exit  chan bool
 	conn  chan *memorySocket
-	lopts ListenOptions
 	topts Options
+	addr  string
 	sync.RWMutex
-	ctx context.Context
 }
 
 type memoryTransport struct {
-	opts Options
-	sync.RWMutex
 	listeners map[string]*memoryListener
+	opts      Options
+	sync.RWMutex
 }
 
 func (ms *memorySocket) Recv(m *Message) error {

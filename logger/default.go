@@ -23,8 +23,8 @@ func init() {
 }
 
 type defaultLogger struct {
-	sync.RWMutex
 	opts Options
+	sync.RWMutex
 }
 
 // Init (opts...) should only overwrite provided options.

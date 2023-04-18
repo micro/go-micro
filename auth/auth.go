@@ -53,30 +53,30 @@ type Rules interface {
 
 // Account provided by an auth provider.
 type Account struct {
+	// Any other associated metadata
+	Metadata map[string]string `json:"metadata"`
 	// ID of the account e.g. email
 	ID string `json:"id"`
 	// Type of the account, e.g. service
 	Type string `json:"type"`
 	// Issuer of the account
 	Issuer string `json:"issuer"`
-	// Any other associated metadata
-	Metadata map[string]string `json:"metadata"`
-	// Scopes the account has access to
-	Scopes []string `json:"scopes"`
 	// Secret for the account, e.g. the password
 	Secret string `json:"secret"`
+	// Scopes the account has access to
+	Scopes []string `json:"scopes"`
 }
 
 // Token can be short or long lived.
 type Token struct {
-	// The token to be used for accessing resources
-	AccessToken string `json:"access_token"`
-	// RefreshToken to be used to generate a new token
-	RefreshToken string `json:"refresh_token"`
 	// Time of token creation
 	Created time.Time `json:"created"`
 	// Time of token expiry
 	Expiry time.Time `json:"expiry"`
+	// The token to be used for accessing resources
+	AccessToken string `json:"access_token"`
+	// RefreshToken to be used to generate a new token
+	RefreshToken string `json:"refresh_token"`
 }
 
 // Expired returns a boolean indicating if the token needs to be refreshed.
@@ -106,13 +106,13 @@ const (
 
 // Rule is used to verify access to a resource.
 type Rule struct {
+	// Resource the rule applies to
+	Resource *Resource
 	// ID of the rule, e.g. "public"
 	ID string
 	// Scope the rule requires, a blank scope indicates open to the public and * indicates the rule
 	// applies to any valid account
 	Scope string
-	// Resource the rule applies to
-	Resource *Resource
 	// Access determines if the rule grants or denies access to the resource
 	Access Access
 	// Priority the rule should take when verifying a request, the higher the value the sooner the

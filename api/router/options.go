@@ -9,10 +9,10 @@ import (
 
 // Options is a struct of options available.
 type Options struct {
-	Handler  string
 	Registry registry.Registry
 	Resolver resolver.Resolver
 	Logger   logger.Logger
+	Handler  string
 }
 
 // Option is a helper for a single options.

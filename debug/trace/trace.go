@@ -36,6 +36,10 @@ const (
 
 // Span is used to record an entry.
 type Span struct {
+	// Start time
+	Started time.Time
+	// associated data
+	Metadata map[string]string
 	// Id of the trace
 	Trace string
 	// name of the span
@@ -44,12 +48,8 @@ type Span struct {
 	Id string
 	// parent span id
 	Parent string
-	// Start time
-	Started time.Time
 	// Duration in nano seconds
 	Duration time.Duration
-	// associated data
-	Metadata map[string]string
 	// Type
 	Type SpanType
 }

@@ -17,10 +17,10 @@ type flusher interface {
 }
 
 type protoCodec struct {
-	sync.Mutex
 	rwc io.ReadWriteCloser
-	mt  codec.MessageType
 	buf *bytes.Buffer
+	mt  codec.MessageType
+	sync.Mutex
 }
 
 func (c *protoCodec) Close() error {

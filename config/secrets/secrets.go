@@ -18,14 +18,14 @@ type Secrets interface {
 }
 
 type Options struct {
+	// Context for other opts
+	Context context.Context
 	// Key is a symmetric key for encoding
 	Key []byte
 	// Private key for decoding
 	PrivateKey []byte
 	// Public key for encoding
 	PublicKey []byte
-	// Context for other opts
-	Context context.Context
 }
 
 // Option sets options.

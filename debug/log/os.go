@@ -10,11 +10,11 @@ import (
 // Should stream from OS.
 type osLog struct {
 	format FormatFunc
-	once   sync.Once
-
-	sync.RWMutex
 	buffer *ring.Buffer
 	subs   map[string]*osStream
+
+	sync.RWMutex
+	once sync.Once
 }
 
 type osStream struct {

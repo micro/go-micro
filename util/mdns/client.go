@@ -18,15 +18,16 @@ import (
 type ServiceEntry struct {
 	Name       string
 	Host       string
+	Info       string
 	AddrV4     net.IP
 	AddrV6     net.IP
-	Port       int
-	Info       string
 	InfoFields []string
-	TTL        int
-	Type       uint16
 
 	Addr net.IP // @Deprecated
+
+	Port int
+	TTL  int
+	Type uint16
 
 	hasTXT bool
 	sent   bool
@@ -39,13 +40,13 @@ func (s *ServiceEntry) complete() bool {
 
 // QueryParam is used to customize how a Lookup is performed.
 type QueryParam struct {
-	Service             string               // Service to lookup
-	Domain              string               // Lookup domain, default "local"
-	Type                uint16               // Lookup type, defaults to dns.TypePTR
 	Context             context.Context      // Context
-	Timeout             time.Duration        // Lookup timeout, default 1 second. Ignored if Context is provided
 	Interface           *net.Interface       // Multicast interface to use
 	Entries             chan<- *ServiceEntry // Entries Channel
+	Service             string               // Service to lookup
+	Domain              string               // Lookup domain, default "local"
+	Timeout             time.Duration        // Lookup timeout, default 1 second. Ignored if Context is provided
+	Type                uint16               // Lookup type, defaults to dns.TypePTR
 	WantUnicastResponse bool                 // Unicast response desired, as per 5.4 in RFC
 }
 
@@ -170,9 +171,10 @@ type client struct {
 	ipv4MulticastConn *net.UDPConn
 	ipv6MulticastConn *net.UDPConn
 
-	closed    bool
 	closedCh  chan struct{} // TODO(reddaly): This doesn't appear to be used.
 	closeLock sync.Mutex
+
+	closed bool
 }
 
 // NewClient creates a new mdns Client that can be used to query

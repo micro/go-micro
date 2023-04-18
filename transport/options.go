@@ -15,39 +15,30 @@ var (
 )
 
 type Options struct {
-	// Addrs is the list of intermediary addresses to connect to
-	Addrs []string
 	// Codec is the codec interface to use where headers are not supported
 	// by the transport and the entire payload must be encoded
 	Codec codec.Marshaler
-	// Secure tells the transport to secure the connection.
-	// In the case TLSConfig is not specified best effort self-signed
-	// certs should be used
-	Secure bool
-	// TLSConfig to secure the connection. The assumption is that this
-	// is mTLS keypair
-	TLSConfig *tls.Config
-	// Timeout sets the timeout for Send/Recv
-	Timeout time.Duration
 	// Other options for implementations of the interface
 	// can be stored in a context
 	Context context.Context
 	// Logger is the underline logger
 	Logger logger.Logger
+	// TLSConfig to secure the connection. The assumption is that this
+	// is mTLS keypair
+	TLSConfig *tls.Config
+	// Addrs is the list of intermediary addresses to connect to
+	Addrs []string
+	// Timeout sets the timeout for Send/Recv
+	Timeout time.Duration
 	// BuffSizeH2 is the HTTP2 buffer size
 	BuffSizeH2 int
+	// Secure tells the transport to secure the connection.
+	// In the case TLSConfig is not specified best effort self-signed
+	// certs should be used
+	Secure bool
 }
 
 type DialOptions struct {
-	// Tells the transport this is a streaming connection with
-	// multiple calls to send/recv and that send may not even be called
-	Stream bool
-	// Timeout for dialing
-	Timeout time.Duration
-	// ConnClose sets the Connection header to close
-	ConnClose bool
-	// InsecureSkipVerify skip TLS verification.
-	InsecureSkipVerify bool
 
 	// TODO: add tls options when dialing
 	// Currently set in global options
@@ -55,6 +46,15 @@ type DialOptions struct {
 	// Other options for implementations of the interface
 	// can be stored in a context
 	Context context.Context
+	// Timeout for dialing
+	Timeout time.Duration
+	// Tells the transport this is a streaming connection with
+	// multiple calls to send/recv and that send may not even be called
+	Stream bool
+	// ConnClose sets the Connection header to close
+	ConnClose bool
+	// InsecureSkipVerify skip TLS verification.
+	InsecureSkipVerify bool
 }
 
 type ListenOptions struct {

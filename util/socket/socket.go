@@ -9,17 +9,17 @@ import (
 
 // Socket is our pseudo socket for transport.Socket.
 type Socket struct {
-	id string
 	// closed
 	closed chan bool
-	// remote addr
-	remote string
-	// local addr
-	local string
 	// send chan
 	send chan *transport.Message
 	// recv chan
 	recv chan *transport.Message
+	id   string
+	// remote addr
+	remote string
+	// local addr
+	local string
 }
 
 func (s *Socket) SetLocal(l string) {

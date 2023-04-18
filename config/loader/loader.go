@@ -45,10 +45,11 @@ type Snapshot struct {
 // Options contains all options for a config loader.
 type Options struct {
 	Reader reader.Reader
-	Source []source.Source
 
 	// for alternative data
 	Context context.Context
+
+	Source []source.Source
 
 	WithWatcherDisabled bool
 }

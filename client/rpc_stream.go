@@ -11,22 +11,23 @@ import (
 
 // Implements the streamer interface.
 type rpcStream struct {
-	sync.RWMutex
-	id     string
-	closed chan bool
-	// Indicates whether connection should be closed directly.
-	close    bool
 	err      error
 	request  Request
 	response Response
 	codec    codec.Codec
 	context  context.Context
 
-	// signal whether we should send EOS
-	sendEOS bool
+	closed chan bool
 
 	// release releases the connection back to the pool
 	release func(err error)
+	id      string
+	sync.RWMutex
+	// Indicates whether connection should be closed directly.
+	close bool
+
+	// signal whether we should send EOS
+	sendEOS bool
 }
 
 func (r *rpcStream) isClosed() bool {

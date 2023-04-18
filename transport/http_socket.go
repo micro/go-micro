@@ -13,15 +13,14 @@ import (
 )
 
 type httpTransportSocket struct {
-	ht *httpTransport
-	w  http.ResponseWriter
-	r  *http.Request
-	rw *bufio.ReadWriter
-
-	mtx sync.RWMutex
+	w http.ResponseWriter
 
 	// the hijacked when using http 1
 	conn net.Conn
+	ht   *httpTransport
+	r    *http.Request
+	rw   *bufio.ReadWriter
+
 	// for the first request
 	ch chan *http.Request
 
@@ -33,6 +32,8 @@ type httpTransportSocket struct {
 	// local/remote ip
 	local  string
 	remote string
+
+	mtx sync.RWMutex
 }
 
 func (h *httpTransportSocket) Local() string {

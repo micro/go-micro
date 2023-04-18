@@ -9,11 +9,11 @@ import (
 )
 
 type MockServer struct {
-	sync.Mutex
-	Running     bool
 	Opts        server.Options
 	Handlers    map[string]server.Handler
 	Subscribers map[string][]server.Subscriber
+	sync.Mutex
+	Running bool
 }
 
 var (

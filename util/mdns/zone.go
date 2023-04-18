@@ -28,13 +28,13 @@ type MDNSService struct {
 	Service      string   // Service name (e.g. "_http._tcp.")
 	Domain       string   // If blank, assumes "local"
 	HostName     string   // Host machine DNS name (e.g. "mymachine.net.")
-	Port         int      // Service Port
+	serviceAddr  string   // Fully qualified service address
+	instanceAddr string   // Fully qualified instance address
+	enumAddr     string   // _services._dns-sd._udp.<domain>
 	IPs          []net.IP // IP addresses for the service's host
 	TXT          []string // Service TXT records
+	Port         int      // Service Port
 	TTL          uint32
-	serviceAddr  string // Fully qualified service address
-	instanceAddr string // Fully qualified instance address
-	enumAddr     string // _services._dns-sd._udp.<domain>
 }
 
 // validateFQDN returns an error if the passed string is not a fully qualified
