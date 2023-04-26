@@ -10,23 +10,24 @@ import (
 )
 
 type Options struct {
-	Addrs  []string
-	Secure bool
-	Codec  codec.Marshaler
+	Codec codec.Marshaler
 
 	// Logger is the underlying logger
 	Logger logger.Logger
+
+	// Registry used for clustering
+	Registry registry.Registry
+	// Other options for implementations of the interface
+	// can be stored in a context
+	Context context.Context
 
 	// Handler executed when error happens in broker mesage
 	// processing
 	ErrorHandler Handler
 
 	TLSConfig *tls.Config
-	// Registry used for clustering
-	Registry registry.Registry
-	// Other options for implementations of the interface
-	// can be stored in a context
-	Context context.Context
+	Addrs     []string
+	Secure    bool
 }
 
 type PublishOptions struct {
@@ -36,17 +37,18 @@ type PublishOptions struct {
 }
 
 type SubscribeOptions struct {
-	// AutoAck defaults to true. When a handler returns
-	// with a nil error the message is acked.
-	AutoAck bool
+
+	// Other options for implementations of the interface
+	// can be stored in a context
+	Context context.Context
 	// Subscribers with the same queue name
 	// will create a shared subscription where each
 	// receives a subset of messages.
 	Queue string
 
-	// Other options for implementations of the interface
-	// can be stored in a context
-	Context context.Context
+	// AutoAck defaults to true. When a handler returns
+	// with a nil error the message is acked.
+	AutoAck bool
 }
 
 type Option func(*Options)

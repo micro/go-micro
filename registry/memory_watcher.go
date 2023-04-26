@@ -5,10 +5,10 @@ import (
 )
 
 type memWatcher struct {
-	id   string
 	wo   WatchOptions
 	res  chan *Result
 	exit chan bool
+	id   string
 }
 
 func (m *memWatcher) Next() (*Result, error) {

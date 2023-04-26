@@ -19,22 +19,23 @@ import (
 )
 
 type rpcCodec struct {
-	socket   transport.Socket
-	codec    codec.Codec
-	protocol string
+	socket transport.Socket
+	codec  codec.Codec
 
 	req *transport.Message
 	buf *readWriteCloser
 
+	first    chan bool
+	protocol string
+
 	// check if we're the first
 	sync.RWMutex
-	first chan bool
 }
 
 type readWriteCloser struct {
-	sync.RWMutex
 	wbuf *bytes.Buffer
 	rbuf *bytes.Buffer
+	sync.RWMutex
 }
 
 var (

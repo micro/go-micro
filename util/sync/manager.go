@@ -8,9 +8,9 @@ import (
 )
 
 type operation struct {
-	operation action
-	record    *store.Record
 	deadline  time.Time
+	record    *store.Record
+	operation action
 	retries   int
 	maxiumum  int
 }

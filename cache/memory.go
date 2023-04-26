@@ -8,9 +8,9 @@ import (
 
 type memCache struct {
 	opts Options
-	sync.RWMutex
 
 	items map[string]Item
+	sync.RWMutex
 }
 
 func (c *memCache) Get(ctx context.Context, key string) (interface{}, time.Time, error) {

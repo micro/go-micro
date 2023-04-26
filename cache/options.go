@@ -9,14 +9,14 @@ import (
 
 // Options represents the options for the cache.
 type Options struct {
-	Expiration time.Duration
-	Items      map[string]Item
-	// Address represents the address or other connection information of the cache service.
-	Address string
 	// Context should contain all implementation specific options, using context.WithValue.
 	Context context.Context
 	// Logger is the be used logger
 	Logger logger.Logger
+	Items  map[string]Item
+	// Address represents the address or other connection information of the cache service.
+	Address    string
+	Expiration time.Duration
 }
 
 // Option manipulates the Options passed.

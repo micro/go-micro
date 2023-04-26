@@ -53,11 +53,12 @@ type Config struct {
 	// is used.
 	Iface *net.Interface
 
+	// GetMachineIP is a function to return the IP of the local machine
+	GetMachineIP GetMachineIP
+
 	// Port If it is not 0, replace the port 5353 with this port number.
 	Port int
 
-	// GetMachineIP is a function to return the IP of the local machine
-	GetMachineIP GetMachineIP
 	// LocalhostChecking if enabled asks the server to also send responses to 0.0.0.0 if the target IP
 	// is this host (as defined by GetMachineIP). Useful in case machine is on a VPN which blocks comms on non standard ports
 	LocalhostChecking bool
@@ -71,12 +72,14 @@ type Server struct {
 	ipv4List *net.UDPConn
 	ipv6List *net.UDPConn
 
-	shutdown     bool
-	shutdownCh   chan struct{}
-	shutdownLock sync.Mutex
-	wg           sync.WaitGroup
+	shutdownCh chan struct{}
 
 	outboundIP net.IP
+	wg         sync.WaitGroup
+
+	shutdownLock sync.Mutex
+
+	shutdown bool
 }
 
 // NewServer is used to create a new mDNS server from a config.

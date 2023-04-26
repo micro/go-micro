@@ -21,9 +21,9 @@ type Sync interface {
 
 type syncStore struct {
 	storeOpts           store.Options
-	syncOpts            Options
 	pendingWrites       []*deque.Deque
 	pendingWriteTickers []*time.Ticker
+	syncOpts            Options
 	sync.RWMutex
 }
 
@@ -108,7 +108,7 @@ func (c *syncStore) Sync() error {
 }
 
 type internalRecord struct {
+	expiresAt time.Time
 	key       string
 	value     []byte
-	expiresAt time.Time
 }

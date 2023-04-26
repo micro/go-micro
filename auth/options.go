@@ -20,22 +20,22 @@ func NewOptions(opts ...Option) Options {
 }
 
 type Options struct {
+	// Logger is the underline logger
+	Logger logger.Logger
+	// Token is the services token used to authenticate itself
+	Token *Token
 	// Namespace the service belongs to
 	Namespace string
 	// ID is the services auth ID
 	ID string
 	// Secret is used to authenticate the service
 	Secret string
-	// Token is the services token used to authenticate itself
-	Token *Token
 	// PublicKey for decoding JWTs
 	PublicKey string
 	// PrivateKey for encoding JWTs
 	PrivateKey string
 	// Addrs sets the addresses of auth
 	Addrs []string
-	// Logger is the underline logger
-	Logger logger.Logger
 }
 
 type Option func(o *Options)
@@ -93,14 +93,14 @@ func ClientToken(token *Token) Option {
 type GenerateOptions struct {
 	// Metadata associated with the account
 	Metadata map[string]string
-	// Scopes the account has access too
-	Scopes []string
 	// Provider of the account, e.g. oauth
 	Provider string
 	// Type of the account, e.g. user
 	Type string
 	// Secret used to authenticate the account
 	Secret string
+	// Scopes the account has access too
+	Scopes []string
 }
 
 type GenerateOption func(o *GenerateOptions)

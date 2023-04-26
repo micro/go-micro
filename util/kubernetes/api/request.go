@@ -16,20 +16,20 @@ import (
 // Request is used to construct a http request for the k8s API.
 type Request struct {
 	// the request context
-	context   context.Context
-	client    *http.Client
-	header    http.Header
-	params    url.Values
-	method    string
-	host      string
-	namespace string
+	context context.Context
+	body    io.Reader
 
-	resource     string
+	err          error
+	client       *http.Client
+	header       http.Header
+	params       url.Values
 	resourceName *string
 	subResource  *string
-	body         io.Reader
+	method       string
+	host         string
+	namespace    string
 
-	err error
+	resource string
 }
 
 // Params is the object to pass in to set parameters
@@ -246,10 +246,10 @@ func (r *Request) Raw() (*http.Response, error) {
 
 // Options ...
 type Options struct {
-	Host        string
-	Namespace   string
 	BearerToken *string
 	Client      *http.Client
+	Host        string
+	Namespace   string
 }
 
 // NewRequest creates a k8s api request.

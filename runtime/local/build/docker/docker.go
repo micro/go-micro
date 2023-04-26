@@ -14,8 +14,8 @@ import (
 )
 
 type Builder struct {
-	Options build.Options
 	Client  *docker.Client
+	Options build.Options
 }
 
 func (d *Builder) Build(s *build.Source) (*build.Package, error) {

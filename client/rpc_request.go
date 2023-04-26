@@ -5,13 +5,13 @@ import (
 )
 
 type rpcRequest struct {
+	opts        RequestOptions
+	codec       codec.Codec
+	body        interface{}
 	service     string
 	method      string
 	endpoint    string
 	contentType string
-	codec       codec.Codec
-	body        interface{}
-	opts        RequestOptions
 }
 
 func newRequest(service, endpoint string, request interface{}, contentType string, reqOpts ...RequestOption) Request {

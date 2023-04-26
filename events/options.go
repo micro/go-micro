@@ -25,9 +25,9 @@ func NewOptions(opts ...Option) *Options {
 }
 
 type StoreOptions struct {
-	TTL    time.Duration
 	Backup Backup
 	Logger logger.Logger
+	TTL    time.Duration
 }
 
 type StoreOption func(o *StoreOptions)
@@ -66,21 +66,21 @@ func WithTimestamp(t time.Time) PublishOption {
 
 // ConsumeOptions contains all the options which can be provided when subscribing to a topic.
 type ConsumeOptions struct {
-	// Group is the name of the consumer group, if two consumers have the same group the events
-	// are distributed between them
-	Group string
 	// Offset is the time from which the messages should be consumed from. If not provided then
 	// the messages will be consumed starting from the moment the Subscription starts.
 	Offset time.Time
+	// Group is the name of the consumer group, if two consumers have the same group the events
+	// are distributed between them
+	Group   string
+	AckWait time.Duration
+	// RetryLimit indicates number of times a message is retried
+	RetryLimit int
 	// AutoAck if true (default true), automatically acknowledges every message so it will not be redelivered.
 	// If false specifies that each message need ts to be manually acknowledged by the subscriber.
 	// If processing is successful the message should be ack'ed to remove the message from the stream.
 	// If processing is unsuccessful the message should be nack'ed (negative acknowledgement) which will mean it will
 	// remain on the stream to be processed again.
 	AutoAck bool
-	AckWait time.Duration
-	// RetryLimit indicates number of times a message is retried
-	RetryLimit int
 	// CustomRetries indicates whether to use RetryLimit
 	CustomRetries bool
 }

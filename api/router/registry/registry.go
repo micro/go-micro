@@ -27,16 +27,17 @@ type endpoint struct {
 
 // router is the default router.
 type registryRouter struct {
-	exit chan bool
 	opts router.Options
 
 	// registry cache
 	rc cache.Cache
 
-	sync.RWMutex
-	eps map[string]*router.Route
+	exit chan bool
+	eps  map[string]*router.Route
 	// compiled regexp for host and path
 	ceps map[string]*endpoint
+
+	sync.RWMutex
 }
 
 func (r *registryRouter) isStopped() bool {

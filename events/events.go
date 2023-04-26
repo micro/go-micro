@@ -38,19 +38,19 @@ type NackFunc func() error
 
 // Event is the object returned by the broker when you subscribe to a topic.
 type Event struct {
-	// ID to uniquely identify the event
-	ID string
-	// Topic of event, e.g. "registry.service.created"
-	Topic string
 	// Timestamp of the event
 	Timestamp time.Time
 	// Metadata contains the values the event was indexed by
 	Metadata map[string]string
-	// Payload contains the encoded message
-	Payload []byte
 
 	ackFunc  AckFunc
 	nackFunc NackFunc
+	// ID to uniquely identify the event
+	ID string
+	// Topic of event, e.g. "registry.service.created"
+	Topic string
+	// Payload contains the encoded message
+	Payload []byte
 }
 
 // Unmarshal the events message into an object.

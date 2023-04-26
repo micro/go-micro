@@ -21,15 +21,16 @@ func NewStream(opts ...Option) (Stream, error) {
 }
 
 type subscriber struct {
-	Group   string
-	Topic   string
 	Channel chan Event
 
-	sync.RWMutex
 	retryMap   map[string]int
+	Group      string
+	Topic      string
 	retryLimit int
-	autoAck    bool
 	ackWait    time.Duration
+
+	sync.RWMutex
+	autoAck bool
 }
 
 type mem struct {

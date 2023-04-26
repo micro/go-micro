@@ -69,8 +69,9 @@ func HandlerStats(stats stats.Stats) server.HandlerWrapper {
 type traceWrapper struct {
 	client.Client
 
-	name  string
 	trace trace.Tracer
+
+	name string
 }
 
 func (c *traceWrapper) Call(ctx context.Context, req client.Request, rsp interface{}, opts ...client.CallOption) error {

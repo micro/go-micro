@@ -14,16 +14,16 @@ type Option func(o *Options)
 type Options struct {
 	// Scheduler for updates
 	Scheduler Scheduler
+	// Client to use when making requests
+	Client client.Client
+	// Logger underline logger
+	Logger logger.Logger
 	// Service type to manage
 	Type string
 	// Source of the services repository
 	Source string
 	// Base image to use
 	Image string
-	// Client to use when making requests
-	Client client.Client
-	// Logger underline logger
-	Logger logger.Logger
 }
 
 func NewOptions(opts ...Option) *Options {
@@ -86,28 +86,30 @@ type ReadOption func(o *ReadOptions)
 
 // CreateOptions configure runtime services.
 type CreateOptions struct {
+	// Log output
+	Output io.Writer
+	// Specify the context to use
+	Context context.Context
+	// Type of service to create
+	Type string
+	// Specify the image to use
+	Image string
+	// Namespace to create the service in
+	Namespace string
 	// Command to execut
 	Command []string
 	// Args to pass into command
 	Args []string
 	// Environment to configure
 	Env []string
-	// Log output
-	Output io.Writer
-	// Type of service to create
-	Type string
 	// Retries before failing deploy
 	Retries int
-	// Specify the image to use
-	Image string
-	// Namespace to create the service in
-	Namespace string
-	// Specify the context to use
-	Context context.Context
 }
 
 // ReadOptions queries runtime services.
 type ReadOptions struct {
+	// Specify the context to use
+	Context context.Context
 	// Service name
 	Service string
 	// Version queries services with given version
@@ -116,8 +118,6 @@ type ReadOptions struct {
 	Type string
 	// Namespace the service is running in
 	Namespace string
-	// Specify the context to use
-	Context context.Context
 }
 
 // CreateType sets the type of service to create.
@@ -222,10 +222,10 @@ func ReadContext(ctx context.Context) ReadOption {
 type UpdateOption func(o *UpdateOptions)
 
 type UpdateOptions struct {
-	// Namespace the service is running in
-	Namespace string
 	// Specify the context to use
 	Context context.Context
+	// Namespace the service is running in
+	Namespace string
 }
 
 // UpdateNamespace sets the namespace.
@@ -245,10 +245,10 @@ func UpdateContext(ctx context.Context) UpdateOption {
 type DeleteOption func(o *DeleteOptions)
 
 type DeleteOptions struct {
-	// Namespace the service is running in
-	Namespace string
 	// Specify the context to use
 	Context context.Context
+	// Namespace the service is running in
+	Namespace string
 }
 
 // DeleteNamespace sets the namespace.
@@ -270,14 +270,14 @@ type LogsOption func(o *LogsOptions)
 
 // LogsOptions configure runtime logging.
 type LogsOptions struct {
+	// Specify the context to use
+	Context context.Context
+	// Namespace the service is running in
+	Namespace string
 	// How many existing lines to show
 	Count int64
 	// Stream new lines?
 	Stream bool
-	// Namespace the service is running in
-	Namespace string
-	// Specify the context to use
-	Context context.Context
 }
 
 // LogsExistingCount confiures how many existing lines to show.

@@ -9,10 +9,10 @@ import (
 )
 
 type memTracer struct {
-	opts Options
 
 	// ring buffer of traces
 	buffer *ring.Buffer
+	opts   Options
 }
 
 func (t *memTracer) Read(opts ...ReadOption) ([]*Span, error) {

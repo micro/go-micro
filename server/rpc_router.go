@@ -26,19 +26,19 @@ var (
 )
 
 type methodType struct {
-	sync.Mutex  // protects counters
-	method      reflect.Method
 	ArgType     reflect.Type
 	ReplyType   reflect.Type
 	ContextType reflect.Type
+	method      reflect.Method
+	sync.Mutex  // protects counters
 	stream      bool
 }
 
 type service struct {
-	name   string                 // name of service
-	rcvr   reflect.Value          // receiver of methods for the service
 	typ    reflect.Type           // type of the receiver
 	method map[string]*methodType // registered methods
+	rcvr   reflect.Value          // receiver of methods for the service
+	name   string                 // name of service
 }
 
 type request struct {
@@ -53,25 +53,29 @@ type response struct {
 
 // router represents an RPC router.
 type router struct {
-	name string
-	ops  RouterOptions
+	ops RouterOptions
 
-	mu         sync.Mutex // protects the serviceMap
 	serviceMap map[string]*service
 
-	reqLock sync.Mutex // protects freeReq
 	freeReq *request
 
-	respLock sync.Mutex // protects freeResp
 	freeResp *response
+
+	subscribers map[string][]*subscriber
+	name        string
 
 	// handler wrappers
 	hdlrWrappers []HandlerWrapper
 	// subscriber wrappers
 	subWrappers []SubscriberWrapper
 
-	su          sync.RWMutex
-	subscribers map[string][]*subscriber
+	su sync.RWMutex
+
+	mu sync.Mutex // protects the serviceMap
+
+	reqLock sync.Mutex // protects freeReq
+
+	respLock sync.Mutex // protects freeResp
 }
 
 // rpcRouter encapsulates functions that become a Router.

@@ -30,10 +30,11 @@ const (
 )
 
 type rpcClient struct {
-	seq  uint64
-	once atomic.Value
 	opts Options
+	once atomic.Value
 	pool pool.Pool
+
+	seq uint64
 
 	mu sync.RWMutex
 }

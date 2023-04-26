@@ -15,29 +15,32 @@ import (
 )
 
 type service struct {
-	sync.RWMutex
-
-	running bool
-	closed  chan bool
-	err     error
 	updated time.Time
 
-	retries    int
-	maxRetries int
+	// to be used logger
+	Logger log.Logger
 
 	// output for logs
 	output io.Writer
 
-	// service to manage
-	*Service
+	err error
 	// process creator
 	Process *proc.Process
+	closed  chan bool
+
+	// service to manage
+	*Service
 	// Exec
 	Exec *process.Executable
 	// process pid
 	PID *process.PID
-	// to be used logger
-	Logger log.Logger
+
+	retries    int
+	maxRetries int
+
+	sync.RWMutex
+
+	running bool
 }
 
 func newService(s *Service, c CreateOptions, l log.Logger) *service {

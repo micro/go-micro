@@ -10,20 +10,20 @@ import (
 
 // Options contains configuration for the Store.
 type Options struct {
-	// Nodes contains the addresses or other connection information of the backing storage.
-	// For example, an etcd implementation would contain the nodes of the cluster.
-	// A SQL implementation could contain one or more connection strings.
-	Nodes []string
-	// Database allows multiple isolated stores to be kept in one backend, if supported.
-	Database string
-	// Table is analogous to a table in database backends or a key prefix in KV backends
-	Table string
 	// Context should contain all implementation specific options, using context.WithValue.
 	Context context.Context
 	// Client to use for RPC
 	Client client.Client
 	// Logger is the underline logger
 	Logger logger.Logger
+	// Database allows multiple isolated stores to be kept in one backend, if supported.
+	Database string
+	// Table is analogous to a table in database backends or a key prefix in KV backends
+	Table string
+	// Nodes contains the addresses or other connection information of the backing storage.
+	// For example, an etcd implementation would contain the nodes of the cluster.
+	// A SQL implementation could contain one or more connection strings.
+	Nodes []string
 }
 
 // Option sets values in Options.
@@ -127,9 +127,9 @@ func ReadOffset(o uint) ReadOption {
 // WriteOptions configures an individual Write operation
 // If Expiry and TTL are set TTL takes precedence.
 type WriteOptions struct {
-	Database, Table string
 	// Expiry is the time the record expires
-	Expiry time.Time
+	Expiry          time.Time
+	Database, Table string
 	// TTL is the time until the record expires
 	TTL time.Duration
 }

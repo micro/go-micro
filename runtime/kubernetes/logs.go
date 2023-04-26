@@ -15,9 +15,9 @@ import (
 )
 
 type klog struct {
+	options     runtime.LogsOptions
 	client      client.Client
 	serviceName string
-	options     runtime.LogsOptions
 }
 
 func (k *klog) podLogStream(podName string, stream *kubeStream) error {

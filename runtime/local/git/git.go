@@ -205,8 +205,6 @@ const defaultRepo = "github.com/micro/services"
 
 // Source is not just git related @todo move.
 type Source struct {
-	// is it a local folder intended for a local runtime?
-	Local bool
 	// absolute path to service folder in local mode
 	FullPath string
 	// path of folder to repo root
@@ -220,6 +218,8 @@ type Source struct {
 	// dir to repo root
 	// blank for non local
 	LocalRepoRoot string
+	// is it a local folder intended for a local runtime?
+	Local bool
 }
 
 // Name to be passed to RPC call runtime.Create Update Delete

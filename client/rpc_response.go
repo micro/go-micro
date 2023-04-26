@@ -6,10 +6,10 @@ import (
 )
 
 type rpcResponse struct {
-	header map[string]string
-	body   []byte
 	socket transport.Socket
 	codec  codec.Codec
+	header map[string]string
+	body   []byte
 }
 
 func (r *rpcResponse) Codec() codec.Reader {

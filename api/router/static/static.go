@@ -25,10 +25,10 @@ type endpoint struct {
 
 // Router is the default router.
 type Router struct {
-	exit chan bool
 	opts router.Options
+	exit chan bool
+	eps  map[string]*endpoint
 	sync.RWMutex
-	eps map[string]*endpoint
 }
 
 func (r *Router) isStopd() bool {

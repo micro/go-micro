@@ -31,8 +31,8 @@ type Endpoint struct {
 
 // Options is a struct of available options.
 type Options struct {
-	Handler   string
 	Namespace func(*http.Request) string
+	Handler   string
 }
 
 // Option is a helper for a single option.

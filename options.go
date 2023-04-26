@@ -24,28 +24,30 @@ import (
 
 // Options for micro service.
 type Options struct {
-	Auth      auth.Auth
-	Broker    broker.Broker
-	Cache     cache.Cache
-	Cmd       cmd.Cmd
-	Config    config.Config
-	Client    client.Client
-	Server    server.Server
-	Store     store.Store
-	Registry  registry.Registry
-	Runtime   runtime.Runtime
-	Transport transport.Transport
-	Profile   profile.Profile
-	Logger    logger.Logger
-	// Before and After funcs
-	BeforeStart []func() error
-	BeforeStop  []func() error
-	AfterStart  []func() error
-	AfterStop   []func() error
+	Registry registry.Registry
+	Store    store.Store
+	Auth     auth.Auth
+	Cmd      cmd.Cmd
+	Config   config.Config
+	Client   client.Client
+	Server   server.Server
 
 	// Other options for implementations of the interface
 	// can be stored in a context
 	Context context.Context
+
+	Cache     cache.Cache
+	Runtime   runtime.Runtime
+	Profile   profile.Profile
+	Transport transport.Transport
+	Logger    logger.Logger
+	Broker    broker.Broker
+	// Before and After funcs
+	BeforeStart []func() error
+	AfterStart  []func() error
+	AfterStop   []func() error
+
+	BeforeStop []func() error
 
 	Signal bool
 }

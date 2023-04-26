@@ -32,10 +32,10 @@ type memoryStore struct {
 }
 
 type storeRecord struct {
+	expiresAt time.Time
+	metadata  map[string]interface{}
 	key       string
 	value     []byte
-	metadata  map[string]interface{}
-	expiresAt time.Time
 }
 
 func (m *memoryStore) key(prefix, key string) string {

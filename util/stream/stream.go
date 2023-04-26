@@ -21,9 +21,10 @@ type Stream interface {
 type stream struct {
 	Stream
 
-	sync.RWMutex
 	err     error
 	request *request
+
+	sync.RWMutex
 }
 
 type request struct {

@@ -27,25 +27,26 @@ import (
 )
 
 type rpcServer struct {
+	opts Options
+	// Subscribe to service name
+	subscriber broker.Subscriber
 	// Goal:
 	// router Router
 	router *router
 	exit   chan chan error
 
-	sync.RWMutex
-	opts        Options
 	handlers    map[string]Handler
 	subscribers map[Subscriber][]broker.Subscriber
-	// Marks the serve as started
-	started bool
-	// Used for first registration
-	registered bool
-	// Subscribe to service name
-	subscriber broker.Subscriber
 	// Graceful exit
 	wg *sync.WaitGroup
 	// Cached service
 	rsvc *registry.Service
+
+	sync.RWMutex
+	// Marks the serve as started
+	started bool
+	// Used for first registration
+	registered bool
 }
 
 // NewRPCServer will create a new default RPC server.

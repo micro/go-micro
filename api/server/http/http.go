@@ -15,12 +15,13 @@ import (
 )
 
 type httpServer struct {
-	mux  *http.ServeMux
 	opts server.Options
 
-	mtx     sync.RWMutex
-	address string
+	mux     *http.ServeMux
 	exit    chan chan error
+	address string
+
+	mtx sync.RWMutex
 }
 
 func NewServer(address string, opts ...server.Option) server.Server {

@@ -37,10 +37,11 @@ type Watcher interface {
 type Options struct {
 	Loader loader.Loader
 	Reader reader.Reader
-	Source []source.Source
 
 	// for alternative data
 	Context context.Context
+
+	Source []source.Source
 
 	WithWatcherDisabled bool
 }

@@ -15,17 +15,17 @@ import (
 type action int
 
 type kubernetes struct {
-	sync.RWMutex
-	// options configure runtime
-	options *runtime.Options
-	// indicates if we're running
-	running bool
-	// used to stop the runtime
-	closed chan bool
 	// client is kubernetes client
 	client client.Client
+	// options configure runtime
+	options *runtime.Options
+	// used to stop the runtime
+	closed chan bool
 	// namespaces which exist
 	namespaces []client.Namespace
+	sync.RWMutex
+	// indicates if we're running
+	running bool
 }
 
 // namespaceExists returns a boolean indicating if a namespace exists.
@@ -346,12 +346,12 @@ func (k *kubernetes) Logs(s *runtime.Service, options ...runtime.LogsOption) (ru
 }
 
 type kubeStream struct {
+	err error
 	// the k8s log stream
 	stream chan runtime.LogRecord
+	stop   chan bool
 	// the stop chan
 	sync.Mutex
-	stop chan bool
-	err  error
 }
 
 func (k *kubeStream) Error() error {

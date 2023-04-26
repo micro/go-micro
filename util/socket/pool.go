@@ -5,8 +5,8 @@ import (
 )
 
 type Pool struct {
-	sync.RWMutex
 	pool map[string]*Socket
+	sync.RWMutex
 }
 
 func (p *Pool) Get(id string) (*Socket, bool) {

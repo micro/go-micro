@@ -17,23 +17,25 @@ import (
 )
 
 type httpTransportClient struct {
-	ht       *httpTransport
-	addr     string
-	conn     net.Conn
 	dialOpts DialOptions
-	once     sync.Once
+	conn     net.Conn
+	ht       *httpTransport
+
+	// request must be stored for response processing
+	req  chan *http.Request
+	buff *bufio.Reader
+	addr string
+
+	// local/remote ip
+	local   string
+	remote  string
+	reqList []*http.Request
 
 	sync.RWMutex
 
-	// request must be stored for response processing
-	req     chan *http.Request
-	reqList []*http.Request
-	buff    *bufio.Reader
-	closed  bool
+	once sync.Once
 
-	// local/remote ip
-	local  string
-	remote string
+	closed bool
 }
 
 func (h *httpTransportClient) Local() string {

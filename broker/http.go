@@ -29,38 +29,40 @@ import (
 
 // HTTP Broker is a point to point async broker.
 type httpBroker struct {
-	id      string
-	address string
-	opts    Options
+	opts Options
+
+	r registry.Registry
 
 	mux *http.ServeMux
 
-	c *http.Client
-	r registry.Registry
-
-	sync.RWMutex
+	c           *http.Client
 	subscribers map[string][]*httpSubscriber
-	running     bool
 	exit        chan chan error
 
+	inbox   map[string][][]byte
+	id      string
+	address string
+
+	sync.RWMutex
+
 	// offline message inbox
-	mtx   sync.RWMutex
-	inbox map[string][][]byte
+	mtx     sync.RWMutex
+	running bool
 }
 
 type httpSubscriber struct {
 	opts  SubscribeOptions
-	id    string
-	topic string
 	fn    Handler
 	svc   *registry.Service
 	hb    *httpBroker
+	id    string
+	topic string
 }
 
 type httpEvent struct {
+	err error
 	m   *Message
 	t   string
-	err error
 }
 
 var (

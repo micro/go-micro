@@ -10,17 +10,9 @@ type Option func(o *Options)
 
 // Options represents various options you can present to ACME providers.
 type Options struct {
-	// AcceptTLS must be set to true to indicate that you have read your
-	// provider's terms of service.
-	AcceptToS bool
-	// CA is the CA to use
-	CA string
 	// ChallengeProvider is a go-acme/lego challenge provider. Set this if you
 	// want to use DNS Challenges. Otherwise, tls-alpn-01 will be used
 	ChallengeProvider challenge.Provider
-	// Issue certificates for domains on demand. Otherwise, certs will be
-	// retrieved / issued on start-up.
-	OnDemand bool
 	// Cache is a storage interface. Most ACME libraries have an cache, but
 	// there's no defined interface, so if you consume this option
 	// sanity check it before using.
@@ -28,6 +20,14 @@ type Options struct {
 
 	// Logger is the underling logging framework
 	Logger logger.Logger
+	// CA is the CA to use
+	CA string
+	// AcceptTLS must be set to true to indicate that you have read your
+	// provider's terms of service.
+	AcceptToS bool
+	// Issue certificates for domains on demand. Otherwise, certs will be
+	// retrieved / issued on start-up.
+	OnDemand bool
 }
 
 // AcceptToS indicates whether you accept your CA's terms of service.

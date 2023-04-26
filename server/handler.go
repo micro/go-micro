@@ -5,19 +5,19 @@ import "context"
 type HandlerOption func(*HandlerOptions)
 
 type HandlerOptions struct {
-	Internal bool
 	Metadata map[string]map[string]string
+	Internal bool
 }
 
 type SubscriberOption func(*SubscriberOptions)
 
 type SubscriberOptions struct {
+	Context context.Context
+	Queue   string
 	// AutoAck defaults to true. When a handler returns
 	// with a nil error the message is acked.
 	AutoAck  bool
-	Queue    string
 	Internal bool
-	Context  context.Context
 }
 
 // EndpointMetadata is a Handler option that allows metadata to be added to
