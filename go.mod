@@ -6,7 +6,7 @@ require (
 	github.com/bitly/go-simplejson v0.5.0
 	github.com/ef-ds/deque v1.0.4
 	github.com/evanphx/json-patch/v5 v5.5.0
-	github.com/fsnotify/fsnotify v1.4.9
+	github.com/fsnotify/fsnotify v1.6.0
 	github.com/fsouza/go-dockerclient v1.7.3
 	github.com/go-acme/lego/v4 v4.4.0
 	github.com/go-git/go-git/v5 v5.4.2
