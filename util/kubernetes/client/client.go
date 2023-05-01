@@ -258,7 +258,9 @@ func NewService(name, version, typ, namespace string) *Service {
 		Type:     "ClusterIP",
 		Selector: Labels,
 		Ports: []ServicePort{{
-			"service-port", 8080, "",
+			Name:     "service-port",
+			Protocol: "",
+			Port:     8080,
 		}},
 	}
 
