@@ -1,6 +1,7 @@
 package events
 
 import (
+	"context"
 	"time"
 
 	"go-micro.dev/v4/logger"
@@ -148,6 +149,8 @@ func WithTTL(d time.Duration) WriteOption {
 type ReadOptions struct {
 	// Limit the number of results to return
 	Limit uint
+	// Context should contain all implementation specific options, using context.WithValue.
+	Context context.Context
 	// Offset the results by this number, useful for paginated queries
 	Offset uint
 }
@@ -158,13 +161,13 @@ type ReadOption func(o *ReadOptions)
 // ReadLimit sets the limit attribute on ReadOptions.
 func ReadLimit(l uint) ReadOption {
 	return func(o *ReadOptions) {
-		o.Limit = 1
+		o.Limit = l
 	}
 }
 
 // ReadOffset sets the offset attribute on ReadOptions.
 func ReadOffset(l uint) ReadOption {
 	return func(o *ReadOptions) {
-		o.Offset = 1
+		o.Offset = l
 	}
 }
