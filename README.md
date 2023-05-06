@@ -56,7 +56,7 @@ Go Micro abstracts away the details of distributed systems. Here are the main fe
 To make use of Go Micro import it 
 
 ```golang
-import "go-micro.dev/v4
+import "go-micro.dev/v4"
 ```
 
 Define a handler (protobuf is optionally supported - see [example](https://github.com/go-micro/examples/blob/main/helloworld/main.go)) 
