@@ -137,6 +137,7 @@ func (s *rpcServer) reSubscribe(config Options) error {
 		}
 
 		s.subscribers[sb] = []broker.Subscriber{sub}
+		s.router.Subscribe(sb)
 	}
 
 	return nil
