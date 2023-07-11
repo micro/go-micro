@@ -1,5 +1,5 @@
-// Package tests implements a testing framwork, and provides default tests.
-package tests
+// Package test implements a testing framwork, and provides default tests.
+package test
 
 import (
 	"context"
