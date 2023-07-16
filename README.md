@@ -99,7 +99,7 @@ Optionally set fixed address
 ```golang
 service := micro.NewService(
     // set address
-    micro.Handle(":8080"),
+    micro.Address(":8080"),
 )
 ```
 
