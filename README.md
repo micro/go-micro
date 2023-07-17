@@ -2,7 +2,7 @@
 
 Go Micro is a framework for distributed systems development.
 
-Note: V5 is in development. Leave feedback in this [form](https://forms.gle/41gEWAcSgnf88GKt7)
+Note: V5 will be a fork known as [Orb](https://github.com/go-orb/go-orb)
 
 ## Overview
 
