@@ -6,12 +6,12 @@ import (
 
 type Config struct {
 	AllowOrigin      string
-	AllowCredentials bool
 	AllowMethods     string
 	AllowHeaders     string
+	AllowCredentials bool
 }
 
-// CombinedCORSHandler wraps a server and provides CORS headers
+// CombinedCORSHandler wraps a server and provides CORS headers.
 func CombinedCORSHandler(h http.Handler, config *Config) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if config != nil {
@@ -25,7 +25,7 @@ func CombinedCORSHandler(h http.Handler, config *Config) http.Handler {
 	})
 }
 
-// SetHeaders sets the CORS headers
+// SetHeaders sets the CORS headers.
 func SetHeaders(w http.ResponseWriter, _ *http.Request, config *Config) {
 	set := func(w http.ResponseWriter, k, v string) {
 		if v := w.Header().Get(k); len(v) > 0 {
@@ -33,7 +33,7 @@ func SetHeaders(w http.ResponseWriter, _ *http.Request, config *Config) {
 		}
 		w.Header().Set(k, v)
 	}
-	//For forward-compatible code, default values may not be provided in the future
+	// For forward-compatible code, default values may not be provided in the future
 	if config.AllowCredentials {
 		set(w, "Access-Control-Allow-Credentials", "true")
 	} else {

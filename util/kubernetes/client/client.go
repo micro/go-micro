@@ -17,13 +17,13 @@ import (
 )
 
 var (
-	// path to kubernetes service account token
+	// path to kubernetes service account token.
 	serviceAccountPath = "/var/run/secrets/kubernetes.io/serviceaccount"
-	// ErrReadNamespace is returned when the names could not be read from service account
-	ErrReadNamespace = errors.New("Could not read namespace from service account secret")
-	// DefaultImage is default micro image
+	// ErrReadNamespace is returned when the names could not be read from service account.
+	ErrReadNamespace = errors.New("could not read namespace from service account secret")
+	// DefaultImage is default micro image.
 	DefaultImage = "micro/go-micro"
-	// DefaultNamespace is the default k8s namespace
+	// DefaultNamespace is the default k8s namespace.
 	DefaultNamespace = "default"
 )
 
@@ -32,7 +32,7 @@ type client struct {
 	opts *api.Options
 }
 
-// Kubernetes client
+// Kubernetes client.
 type Client interface {
 	// Create creates new API resource
 	Create(*Resource, ...CreateOption) error
@@ -50,7 +50,7 @@ type Client interface {
 	Watch(*Resource, ...WatchOption) (Watcher, error)
 }
 
-// Create creates new API object
+// Create creates new API object.
 func (c *client) Create(r *Resource, opts ...CreateOption) error {
 	options := CreateOptions{
 		Namespace: c.opts.Namespace,
@@ -79,12 +79,12 @@ var (
 )
 
 // SerializeResourceName removes all spacial chars from a string so it
-// can be used as a k8s resource name
+// can be used as a k8s resource name.
 func SerializeResourceName(ns string) string {
 	return nameRegex.ReplaceAllString(ns, "-")
 }
 
-// Get queries API objects and stores the result in r
+// Get queries API objects and stores the result in r.
 func (c *client) Get(r *Resource, opts ...GetOption) error {
 	options := GetOptions{
 		Namespace: c.opts.Namespace,
@@ -102,7 +102,7 @@ func (c *client) Get(r *Resource, opts ...GetOption) error {
 		Into(r.Value)
 }
 
-// Log returns logs for a pod
+// Log returns logs for a pod.
 func (c *client) Log(r *Resource, opts ...LogOption) (io.ReadCloser, error) {
 	options := LogOptions{
 		Namespace: c.opts.Namespace,
@@ -133,7 +133,7 @@ func (c *client) Log(r *Resource, opts ...LogOption) (io.ReadCloser, error) {
 	return resp.Body, nil
 }
 
-// Update updates API object
+// Update updates API object.
 func (c *client) Update(r *Resource, opts ...UpdateOption) error {
 	options := UpdateOptions{
 		Namespace: c.opts.Namespace,
@@ -164,7 +164,7 @@ func (c *client) Update(r *Resource, opts ...UpdateOption) error {
 	return resp.Error()
 }
 
-// Delete removes API object
+// Delete removes API object.
 func (c *client) Delete(r *Resource, opts ...DeleteOption) error {
 	options := DeleteOptions{
 		Namespace: c.opts.Namespace,
@@ -182,7 +182,7 @@ func (c *client) Delete(r *Resource, opts ...DeleteOption) error {
 	return resp.Error()
 }
 
-// List lists API objects and stores the result in r
+// List lists API objects and stores the result in r.
 func (c *client) List(r *Resource, opts ...ListOption) error {
 	options := ListOptions{
 		Namespace: c.opts.Namespace,
@@ -194,7 +194,7 @@ func (c *client) List(r *Resource, opts ...ListOption) error {
 	return c.Get(r, GetNamespace(options.Namespace))
 }
 
-// Watch returns an event stream
+// Watch returns an event stream.
 func (c *client) Watch(r *Resource, opts ...WatchOption) (Watcher, error) {
 	options := WatchOptions{
 		Namespace: c.opts.Namespace,
@@ -225,10 +225,10 @@ func (c *client) Watch(r *Resource, opts ...WatchOption) (Watcher, error) {
 	return newWatcher(req)
 }
 
-// NewService returns default micro kubernetes service definition
+// NewService returns default micro kubernetes service definition.
 func NewService(name, version, typ, namespace string) *Service {
 	if logger.V(logger.TraceLevel, logger.DefaultLogger) {
-		logger.Tracef("kubernetes default service: name: %s, version: %s", name, version)
+		logger.Logf(logger.TraceLevel, "kubernetes default service: name: %s, version: %s", name, version)
 	}
 
 	Labels := map[string]string{
@@ -258,7 +258,9 @@ func NewService(name, version, typ, namespace string) *Service {
 		Type:     "ClusterIP",
 		Selector: Labels,
 		Ports: []ServicePort{{
-			"service-port", 8080, "",
+			Name:     "service-port",
+			Protocol: "",
+			Port:     8080,
 		}},
 	}
 
@@ -268,10 +270,10 @@ func NewService(name, version, typ, namespace string) *Service {
 	}
 }
 
-// NewService returns default micro kubernetes deployment definition
+// NewService returns default micro kubernetes deployment definition.
 func NewDeployment(name, version, typ, namespace string) *Deployment {
 	if logger.V(logger.TraceLevel, logger.DefaultLogger) {
-		logger.Tracef("kubernetes default deployment: name: %s, version: %s", name, version)
+		logger.Logf(logger.TraceLevel, "kubernetes default deployment: name: %s, version: %s", name, version)
 	}
 
 	Labels := map[string]string{
@@ -333,7 +335,7 @@ func NewDeployment(name, version, typ, namespace string) *Deployment {
 	}
 }
 
-// NewLocalClient returns a client that can be used with `kubectl proxy`
+// NewLocalClient returns a client that can be used with `kubectl proxy`.
 func NewLocalClient(hosts ...string) *client {
 	if len(hosts) == 0 {
 		hosts[0] = "http://localhost:8001"

@@ -6,7 +6,7 @@ import (
 	"go-micro.dev/v4/store"
 )
 
-// Options represents Sync options
+// Options represents Sync options.
 type Options struct {
 	// Stores represents layers in the sync in ascending order. L0, L1, L2, etc
 	Stores []store.Store
@@ -16,10 +16,10 @@ type Options struct {
 	SyncMultiplier int64
 }
 
-// Option sets Sync Options
+// Option sets Sync Options.
 type Option func(o *Options)
 
-// Stores sets the layers that make up the sync
+// Stores sets the layers that make up the sync.
 func Stores(stores ...store.Store) Option {
 	return func(o *Options) {
 		o.Stores = make([]store.Store, len(stores))
@@ -29,14 +29,14 @@ func Stores(stores ...store.Store) Option {
 	}
 }
 
-// SyncInterval sets the duration between syncs from L0 to L1
+// SyncInterval sets the duration between syncs from L0 to L1.
 func SyncInterval(d time.Duration) Option {
 	return func(o *Options) {
 		o.SyncInterval = d
 	}
 }
 
-// SyncMultiplier sets the multiplication factor for time to wait each sync layer
+// SyncMultiplier sets the multiplication factor for time to wait each sync layer.
 func SyncMultiplier(i int64) Option {
 	return func(o *Options) {
 		o.SyncMultiplier = i

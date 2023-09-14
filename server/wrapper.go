@@ -14,10 +14,10 @@ type HandlerFunc func(ctx context.Context, req Request, rsp interface{}) error
 // publication message.
 type SubscriberFunc func(ctx context.Context, msg Message) error
 
-// HandlerWrapper wraps the HandlerFunc and returns the equivalent
+// HandlerWrapper wraps the HandlerFunc and returns the equivalent.
 type HandlerWrapper func(HandlerFunc) HandlerFunc
 
-// SubscriberWrapper wraps the SubscriberFunc and returns the equivalent
+// SubscriberWrapper wraps the SubscriberFunc and returns the equivalent.
 type SubscriberWrapper func(SubscriberFunc) SubscriberFunc
 
 // StreamWrapper wraps a Stream interface and returns the equivalent.

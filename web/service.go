@@ -14,7 +14,7 @@ import (
 
 	"github.com/urfave/cli/v2"
 	"go-micro.dev/v4"
-	"go-micro.dev/v4/logger"
+	log "go-micro.dev/v4/logger"
 	"go-micro.dev/v4/registry"
 	maddr "go-micro.dev/v4/util/addr"
 	"go-micro.dev/v4/util/backoff"
@@ -25,16 +25,16 @@ import (
 )
 
 type service struct {
-	opts Options
-
 	mux *http.ServeMux
 	srv *registry.Service
+
+	exit chan chan error
+	ex   chan bool
+	opts Options
 
 	sync.RWMutex
 	running bool
 	static  bool
-	exit    chan chan error
-	ex      chan bool
 }
 
 func newService(opts ...Option) Service {
@@ -46,19 +46,24 @@ func newService(opts ...Option) Service {
 		ex:     make(chan bool),
 	}
 	s.srv = s.genSrv()
+
 	return s
 }
 
 func (s *service) genSrv() *registry.Service {
-	var host string
-	var port string
-	var err error
+	var (
+		host string
+		port string
+		err  error
+	)
+
+	logger := s.opts.Logger
 
 	// default host:port
 	if len(s.opts.Address) > 0 {
 		host, port, err = net.SplitHostPort(s.opts.Address)
 		if err != nil {
-			logger.Fatal(err)
+			logger.Log(log.FatalLevel, err)
 		}
 	}
 
@@ -68,13 +73,13 @@ func (s *service) genSrv() *registry.Service {
 	if len(s.opts.Advertise) > 0 {
 		host, port, err = net.SplitHostPort(s.opts.Advertise)
 		if err != nil {
-			logger.Fatal(err)
+			logger.Log(log.FatalLevel, err)
 		}
 	}
 
 	addr, err := maddr.Extract(host)
 	if err != nil {
-		logger.Fatal(err)
+		logger.Log(log.FatalLevel, err)
 	}
 
 	if strings.Count(addr, ":") > 0 {
@@ -120,6 +125,9 @@ func (s *service) register() error {
 	if s.srv == nil {
 		return nil
 	}
+
+	logger := s.opts.Logger
+
 	// default to service registry
 	r := s.opts.Service.Client().Options().Registry
 	// switch to option if specified
@@ -134,9 +142,7 @@ func (s *service) register() error {
 
 	// use RegisterCheck func before register
 	if err := s.opts.RegisterCheck(s.opts.Context); err != nil {
-		if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
-			logger.Errorf("Server %s-%s register check error: %s", s.opts.Name, s.opts.Id, err)
-		}
+		logger.Logf(log.ErrorLevel, "Server %s-%s register check error: %s", s.opts.Name, s.opts.Id, err)
 		return err
 	}
 
@@ -150,10 +156,12 @@ func (s *service) register() error {
 			regErr = err
 			// backoff then retry
 			time.Sleep(backoff.Do(i + 1))
+
 			continue
 		}
 		// success so nil error
 		regErr = nil
+
 		break
 	}
 
@@ -173,6 +181,7 @@ func (s *service) deregister() error {
 	if s.opts.Registry != nil {
 		r = s.opts.Registry
 	}
+
 	return r.Deregister(s.srv)
 }
 
@@ -190,22 +199,24 @@ func (s *service) start() error {
 		}
 	}
 
-	l, err := s.listen("tcp", s.opts.Address)
+	listener, err := s.listen("tcp", s.opts.Address)
 	if err != nil {
 		return err
 	}
 
-	s.opts.Address = l.Addr().String()
+	logger := s.opts.Logger
+
+	s.opts.Address = listener.Addr().String()
 	srv := s.genSrv()
 	srv.Endpoints = s.srv.Endpoints
 	s.srv = srv
 
-	var h http.Handler
+	var handler http.Handler
 
 	if s.opts.Handler != nil {
-		h = s.opts.Handler
+		handler = s.opts.Handler
 	} else {
-		h = s.mux
+		handler = s.mux
 		var r sync.Once
 
 		// register the html dir
@@ -221,9 +232,7 @@ func (s *service) start() error {
 			if s.static {
 				_, err := os.Stat(static)
 				if err == nil {
-					if logger.V(logger.InfoLevel, logger.DefaultLogger) {
-						logger.Infof("Enabling static file serving from %s", static)
-					}
+					logger.Logf(log.InfoLevel, "Enabling static file serving from %s", static)
 					s.mux.Handle("/", http.FileServer(http.Dir(static)))
 				}
 			}
@@ -237,9 +246,9 @@ func (s *service) start() error {
 		httpSrv = &http.Server{}
 	}
 
-	httpSrv.Handler = h
+	httpSrv.Handler = handler
 
-	go httpSrv.Serve(l)
+	go httpSrv.Serve(listener)
 
 	for _, fn := range s.opts.AfterStart {
 		if err := fn(); err != nil {
@@ -252,12 +261,11 @@ func (s *service) start() error {
 
 	go func() {
 		ch := <-s.exit
-		ch <- l.Close()
+		ch <- listener.Close()
 	}()
 
-	if logger.V(logger.InfoLevel, logger.DefaultLogger) {
-		logger.Infof("Listening on %v", l.Addr().String())
-	}
+	logger.Logf(log.InfoLevel, "Listening on %v", listener.Addr().String())
+
 	return nil
 }
 
@@ -279,15 +287,14 @@ func (s *service) stop() error {
 	s.exit <- ch
 	s.running = false
 
-	if logger.V(logger.InfoLevel, logger.DefaultLogger) {
-		logger.Info("Stopping")
-	}
+	s.opts.Logger.Log(log.InfoLevel, "Stopping")
 
 	for _, fn := range s.opts.AfterStop {
 		if err := fn(); err != nil {
 			if chErr := <-ch; chErr != nil {
 				return chErr
 			}
+
 			return err
 		}
 	}
@@ -336,8 +343,8 @@ func (s *service) Handle(pattern string, handler http.Handler) {
 }
 
 func (s *service) HandleFunc(pattern string, handler func(http.ResponseWriter, *http.Request)) {
-
 	var seen bool
+
 	s.RLock()
 	for _, ep := range s.srv.Endpoints {
 		if ep.Name == pattern {
@@ -428,7 +435,9 @@ func (s *service) Init(opts ...Option) error {
 	if s.opts.Service.Name() == "" {
 		serviceOpts = append(serviceOpts, micro.Name(s.opts.Name))
 	}
+
 	serviceOpts = append(serviceOpts, micro.Version(s.opts.Version))
+
 	s.RUnlock()
 
 	s.opts.Service.Init(serviceOpts...)
@@ -473,6 +482,7 @@ func (s *service) Run() error {
 		return err
 	}
 
+	logger := s.opts.Logger
 	// start the profiler
 	if s.opts.Service.Options().Profile != nil {
 		// to view mutex contention
@@ -483,9 +493,10 @@ func (s *service) Run() error {
 		if err := s.opts.Service.Options().Profile.Start(); err != nil {
 			return err
 		}
+
 		defer func() {
 			if err := s.opts.Service.Options().Profile.Stop(); err != nil {
-				logger.Error(err)
+				logger.Log(log.ErrorLevel, err)
 			}
 		}()
 	}
@@ -505,14 +516,10 @@ func (s *service) Run() error {
 	select {
 	// wait on kill signal
 	case sig := <-ch:
-		if logger.V(logger.InfoLevel, logger.DefaultLogger) {
-			logger.Infof("Received signal %s", sig)
-		}
+		logger.Logf(log.InfoLevel, "Received signal %s", sig)
 	// wait on context cancel
 	case <-s.opts.Context.Done():
-		if logger.V(logger.InfoLevel, logger.DefaultLogger) {
-			logger.Info("Received context shutdown")
-		}
+		logger.Log(log.InfoLevel, "Received context shutdown")
 	}
 
 	// exit reg loop
@@ -525,14 +532,16 @@ func (s *service) Run() error {
 	return s.stop()
 }
 
-// Options returns the options for the given service
+// Options returns the options for the given service.
 func (s *service) Options() Options {
 	return s.opts
 }
 
 func (s *service) listen(network, addr string) (net.Listener, error) {
-	var l net.Listener
-	var err error
+	var (
+		listener net.Listener
+		err      error
+	)
 
 	// TODO: support use of listen options
 	if s.opts.Secure || s.opts.TLSConfig != nil {
@@ -558,21 +567,22 @@ func (s *service) listen(network, addr string) (net.Listener, error) {
 				}
 				config = &tls.Config{Certificates: []tls.Certificate{cert}}
 			}
+
 			return tls.Listen(network, addr, config)
 		}
 
-		l, err = mnet.Listen(addr, fn)
+		listener, err = mnet.Listen(addr, fn)
 	} else {
 		fn := func(addr string) (net.Listener, error) {
 			return net.Listen(network, addr)
 		}
 
-		l, err = mnet.Listen(addr, fn)
+		listener, err = mnet.Listen(addr, fn)
 	}
 
 	if err != nil {
 		return nil, err
 	}
 
-	return l, nil
+	return listener, nil
 }

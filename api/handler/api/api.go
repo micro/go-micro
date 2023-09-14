@@ -18,10 +18,11 @@ type apiHandler struct {
 }
 
 const (
+	// Handler is the name of the Handler.
 	Handler = "api"
 )
 
-// API handler is the default handler which takes api.Request and returns api.Response
+// API handler is the default handler which takes api.Request and returns api.Response.
 func (a *apiHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	bsize := handler.DefaultMaxRecvSize
 	if a.opts.MaxRecvSize > 0 {
@@ -29,12 +30,15 @@ func (a *apiHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, bsize)
+
 	request, err := requestToProto(r)
 	if err != nil {
 		er := errors.InternalServerError("go.micro.api", err.Error())
+
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(500)
+		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(er.Error()))
+
 		return
 	}
 
@@ -45,18 +49,23 @@ func (a *apiHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		s, err := a.opts.Router.Route(r)
 		if err != nil {
 			er := errors.InternalServerError("go.micro.api", err.Error())
+
 			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(500)
+			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte(er.Error()))
+
 			return
 		}
+
 		service = s
 	} else {
 		// we have no way of routing the request
 		er := errors.InternalServerError("go.micro.api", "no route found")
+
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(500)
+		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(er.Error()))
+
 		return
 	}
 
@@ -72,14 +81,17 @@ func (a *apiHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	if err := c.Call(cx, req, rsp, client.WithSelectOption(so)); err != nil {
 		w.Header().Set("Content-Type", "application/json")
+
 		ce := errors.Parse(err.Error())
 		switch ce.Code {
 		case 0:
-			w.WriteHeader(500)
+			w.WriteHeader(http.StatusInternalServerError)
 		default:
 			w.WriteHeader(int(ce.Code))
 		}
+
 		w.Write([]byte(ce.Error()))
+
 		return
 	} else if rsp.StatusCode == 0 {
 		rsp.StatusCode = http.StatusOK
@@ -96,6 +108,7 @@ func (a *apiHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(int(rsp.StatusCode))
+
 	w.Write([]byte(rsp.Body))
 }
 
@@ -103,8 +116,10 @@ func (a *apiHandler) String() string {
 	return "api"
 }
 
+// NewHandler returns an api.Handler.
 func NewHandler(opts ...handler.Option) handler.Handler {
 	options := handler.NewOptions(opts...)
+
 	return &apiHandler{
 		opts: options,
 	}

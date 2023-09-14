@@ -36,7 +36,6 @@ func TestMetadataDelete(t *testing.T) {
 	if ok {
 		t.Fatal("key Baz not deleted")
 	}
-
 }
 
 func TestMetadataCopy(t *testing.T) {

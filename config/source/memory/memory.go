@@ -10,9 +10,9 @@ import (
 )
 
 type memory struct {
-	sync.RWMutex
 	ChangeSet *source.ChangeSet
 	Watchers  map[string]*watcher
+	sync.RWMutex
 }
 
 func (s *memory) Read() (*source.ChangeSet, error) {

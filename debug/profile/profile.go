@@ -35,7 +35,7 @@ type Options struct {
 
 type Option func(o *Options)
 
-// Name of the profile
+// Name of the profile.
 func Name(n string) Option {
 	return func(o *Options) {
 		o.Name = n

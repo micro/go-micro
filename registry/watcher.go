@@ -11,25 +11,25 @@ type Watcher interface {
 }
 
 // Result is returned by a call to Next on
-// the watcher. Actions can be create, update, delete
+// the watcher. Actions can be create, update, delete.
 type Result struct {
-	Action  string
 	Service *Service
+	Action  string
 }
 
-// EventType defines registry event type
+// EventType defines registry event type.
 type EventType int
 
 const (
-	// Create is emitted when a new service is registered
+	// Create is emitted when a new service is registered.
 	Create EventType = iota
-	// Delete is emitted when an existing service is deregsitered
+	// Delete is emitted when an existing service is deregsitered.
 	Delete
-	// Update is emitted when an existing servicec is updated
+	// Update is emitted when an existing servicec is updated.
 	Update
 )
 
-// String returns human readable event type
+// String returns human readable event type.
 func (t EventType) String() string {
 	switch t {
 	case Create:
@@ -43,14 +43,14 @@ func (t EventType) String() string {
 	}
 }
 
-// Event is registry event
+// Event is registry event.
 type Event struct {
-	// Id is registry id
-	Id string
-	// Type defines type of event
-	Type EventType
 	// Timestamp is event timestamp
 	Timestamp time.Time
 	// Service is registry service
 	Service *Service
+	// Id is registry id
+	Id string
+	// Type defines type of event
+	Type EventType
 }

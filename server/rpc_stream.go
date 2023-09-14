@@ -9,15 +9,15 @@ import (
 	"go-micro.dev/v4/codec"
 )
 
-// Implements the Streamer interface
+// Implements the Streamer interface.
 type rpcStream struct {
-	sync.RWMutex
-	id      string
-	closed  bool
 	err     error
 	request Request
 	codec   codec.Codec
 	context context.Context
+	id      string
+	sync.RWMutex
+	closed bool
 }
 
 func (r *rpcStream) Context() context.Context {
@@ -65,7 +65,7 @@ func (r *rpcStream) Recv(msg interface{}) error {
 	if len(req.Error) > 0 {
 		// Check the client closed the stream
 		switch req.Error {
-		case lastStreamResponseError.Error():
+		case errLastStreamResponse.Error():
 			// discard body
 			r.Unlock()
 			r.codec.ReadBody(nil)

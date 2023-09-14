@@ -7,14 +7,14 @@ import (
 	"go-micro.dev/v4/config/source"
 )
 
-// Reader is an interface for merging changesets
+// Reader is an interface for merging changesets.
 type Reader interface {
 	Merge(...*source.ChangeSet) (*source.ChangeSet, error)
 	Values(*source.ChangeSet) (Values, error)
 	String() string
 }
 
-// Values is returned by the reader
+// Values is returned by the reader.
 type Values interface {
 	Bytes() []byte
 	Get(path ...string) Value
@@ -24,7 +24,7 @@ type Values interface {
 	Scan(v interface{}) error
 }
 
-// Value represents a value of any type
+// Value represents a value of any type.
 type Value interface {
 	Bool(def bool) bool
 	Int(def int) int

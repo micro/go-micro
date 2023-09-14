@@ -14,6 +14,7 @@ import (
 )
 
 const (
+	// Handler is the name of the handler.
 	Handler = "http"
 )
 
@@ -24,25 +25,25 @@ type httpHandler struct {
 func (h *httpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	service, err := h.getService(r)
 	if err != nil {
-		w.WriteHeader(500)
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	if len(service) == 0 {
-		w.WriteHeader(404)
+		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 
 	rp, err := url.Parse(service)
 	if err != nil {
-		w.WriteHeader(500)
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	httputil.NewSingleHostReverseProxy(rp).ServeHTTP(w, r)
 }
 
-// getService returns the service for this request from the selector
+// getService returns the service for this request from the selector.
 func (h *httpHandler) getService(r *http.Request) (string, error) {
 	var service *router.Route
 
@@ -52,6 +53,7 @@ func (h *httpHandler) getService(r *http.Request) (string, error) {
 		if err != nil {
 			return "", err
 		}
+
 		service = s
 	} else {
 		// we have no way of routing the request
@@ -74,7 +76,7 @@ func (h *httpHandler) String() string {
 	return "http"
 }
 
-// NewHandler returns a http proxy handler
+// NewHandler returns a http proxy handler.
 func NewHandler(opts ...handler.Option) handler.Handler {
 	options := handler.NewOptions(opts...)
 

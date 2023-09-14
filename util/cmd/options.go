@@ -19,28 +19,31 @@ import (
 )
 
 type Options struct {
-	// For the Command Line itself
-	Name        string
-	Description string
-	Version     string
 
-	// We need pointers to things so we can swap them out if needed.
-	Broker    *broker.Broker
-	Registry  *registry.Registry
-	Selector  *selector.Selector
+	// Other options for implementations of the interface
+	// can be stored in a context
+	Context  context.Context
+	Auth     *auth.Auth
+	Selector *selector.Selector
+	Profile  *profile.Profile
+
+	Registry *registry.Registry
+
+	Brokers   map[string]func(...broker.Option) broker.Broker
 	Transport *transport.Transport
 	Cache     *cache.Cache
 	Config    *config.Config
 	Client    *client.Client
 	Server    *server.Server
 	Runtime   *runtime.Runtime
-	Store     *store.Store
+	Caches    map[string]func(...cache.Option) cache.Cache
 	Tracer    *trace.Tracer
-	Auth      *auth.Auth
-	Profile   *profile.Profile
+	Profiles  map[string]func(...profile.Option) profile.Profile
 
-	Brokers    map[string]func(...broker.Option) broker.Broker
-	Caches     map[string]func(...cache.Option) cache.Cache
+	// We need pointers to things so we can swap them out if needed.
+	Broker     *broker.Broker
+	Auths      map[string]func(...auth.Option) auth.Auth
+	Store      *store.Store
 	Configs    map[string]func(...config.Option) (config.Config, error)
 	Clients    map[string]func(...client.Option) client.Client
 	Registries map[string]func(...registry.Option) registry.Registry
@@ -50,29 +53,28 @@ type Options struct {
 	Runtimes   map[string]func(...runtime.Option) runtime.Runtime
 	Stores     map[string]func(...store.Option) store.Store
 	Tracers    map[string]func(...trace.Option) trace.Tracer
-	Auths      map[string]func(...auth.Option) auth.Auth
-	Profiles   map[string]func(...profile.Option) profile.Profile
+	Version    string
 
-	// Other options for implementations of the interface
-	// can be stored in a context
-	Context context.Context
+	// For the Command Line itself
+	Name        string
+	Description string
 }
 
-// Command line Name
+// Command line Name.
 func Name(n string) Option {
 	return func(o *Options) {
 		o.Name = n
 	}
 }
 
-// Command line Description
+// Command line Description.
 func Description(d string) Option {
 	return func(o *Options) {
 		o.Description = d
 	}
 }
 
-// Command line Version
+// Command line Version.
 func Version(v string) Option {
 	return func(o *Options) {
 		o.Version = v
@@ -157,84 +159,84 @@ func Profile(p *profile.Profile) Option {
 	}
 }
 
-// New broker func
+// New broker func.
 func NewBroker(name string, b func(...broker.Option) broker.Broker) Option {
 	return func(o *Options) {
 		o.Brokers[name] = b
 	}
 }
 
-// New cache func
+// New cache func.
 func NewCache(name string, c func(...cache.Option) cache.Cache) Option {
 	return func(o *Options) {
 		o.Caches[name] = c
 	}
 }
 
-// New client func
+// New client func.
 func NewClient(name string, b func(...client.Option) client.Client) Option {
 	return func(o *Options) {
 		o.Clients[name] = b
 	}
 }
 
-// New registry func
+// New registry func.
 func NewRegistry(name string, r func(...registry.Option) registry.Registry) Option {
 	return func(o *Options) {
 		o.Registries[name] = r
 	}
 }
 
-// New selector func
+// New selector func.
 func NewSelector(name string, s func(...selector.Option) selector.Selector) Option {
 	return func(o *Options) {
 		o.Selectors[name] = s
 	}
 }
 
-// New server func
+// New server func.
 func NewServer(name string, s func(...server.Option) server.Server) Option {
 	return func(o *Options) {
 		o.Servers[name] = s
 	}
 }
 
-// New transport func
+// New transport func.
 func NewTransport(name string, t func(...transport.Option) transport.Transport) Option {
 	return func(o *Options) {
 		o.Transports[name] = t
 	}
 }
 
-// New runtime func
+// New runtime func.
 func NewRuntime(name string, r func(...runtime.Option) runtime.Runtime) Option {
 	return func(o *Options) {
 		o.Runtimes[name] = r
 	}
 }
 
-// New tracer func
+// New tracer func.
 func NewTracer(name string, t func(...trace.Option) trace.Tracer) Option {
 	return func(o *Options) {
 		o.Tracers[name] = t
 	}
 }
 
-// New auth func
+// New auth func.
 func NewAuth(name string, t func(...auth.Option) auth.Auth) Option {
 	return func(o *Options) {
 		o.Auths[name] = t
 	}
 }
 
-// New config func
+// New config func.
 func NewConfig(name string, t func(...config.Option) (config.Config, error)) Option {
 	return func(o *Options) {
 		o.Configs[name] = t
 	}
 }
 
-// New profile func
+// New profile func.
 func NewProfile(name string, t func(...profile.Option) profile.Profile) Option {
 	return func(o *Options) {
 		o.Profiles[name] = t

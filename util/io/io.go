@@ -34,7 +34,7 @@ func (r *rwc) Close() error {
 	return r.socket.Close()
 }
 
-// NewRWC returns a new ReadWriteCloser
+// NewRWC returns a new ReadWriteCloser.
 func NewRWC(sock transport.Socket) io.ReadWriteCloser {
 	return &rwc{sock}
 }

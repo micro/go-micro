@@ -9,11 +9,11 @@ import (
 
 var (
 	// ErrProviderNotImplemented can be returned when attempting to
-	// instantiate an unimplemented provider
+	// instantiate an unimplemented provider.
 	ErrProviderNotImplemented = errors.New("Provider not implemented")
 )
 
-// Provider is a ACME provider interface
+// Provider is a ACME provider interface.
 type Provider interface {
 	// Listen returns a new listener
 	Listen(...string) (net.Listener, error)
@@ -21,7 +21,7 @@ type Provider interface {
 	TLSConfig(...string) (*tls.Config, error)
 }
 
-// The Let's Encrypt ACME endpoints
+// The Let's Encrypt ACME endpoints.
 const (
 	LetsEncryptStagingCA    = "https://acme-staging-v02.api.letsencrypt.org/directory"
 	LetsEncryptProductionCA = "https://acme-v02.api.letsencrypt.org/directory"

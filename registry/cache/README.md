@@ -1,4 +1,4 @@
-# Registry Cache 
+# Registry Cache
 
 Cache is a library that provides a caching layer for the go-micro [registry](https://godoc.org/github.com/micro/go-micro/registry#Registry).
 
@@ -6,7 +6,7 @@ If you're looking for caching in your microservices use the [selector](https://m
 
 ## Interface
 
-```
+```go
 // Cache is the registry cache interface
 type Cache interface {
 	// embed the registry interface
@@ -18,7 +18,7 @@ type Cache interface {
 
 ## Usage
 
-```
+```go
 import (
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/registry/cache"

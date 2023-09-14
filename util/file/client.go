@@ -3,17 +3,16 @@ package file
 import (
 	"bufio"
 	"context"
-	"errors"
 	"fmt"
 	"io"
-	"log"
 	"os"
 
 	"go-micro.dev/v4/client"
+	"go-micro.dev/v4/logger"
 	proto "go-micro.dev/v4/util/file/proto"
 )
 
-// Client is the client interface to access files
+// Client is the client interface to access files.
 type File interface {
 	Open(filename string, truncate bool) (int64, error)
 	Stat(filename string) (*proto.StatResponse, error)
@@ -27,7 +26,7 @@ type File interface {
 	DownloadAt(filename, saveFile string, blockId int) error
 }
 
-// NewClient returns a new Client which uses a micro Client
+// NewClient returns a new Client which uses a micro Client.
 func New(service string, c client.Client) File {
 	return &fc{proto.NewFileService(service, c)}
 }
@@ -145,7 +144,7 @@ func (c *fc) DownloadAt(filename, saveFile string, blockId int) error {
 		return err
 	}
 	if stat.Type == "Directory" {
-		return errors.New(fmt.Sprintf("%s is directory.", filename))
+		return fmt.Errorf("%s is directory", filename)
 	}
 
 	blocks := int(stat.Size / blockSize)
@@ -153,7 +152,7 @@ func (c *fc) DownloadAt(filename, saveFile string, blockId int) error {
 		blocks += 1
 	}
 
-	log.Printf("Download %s in %d blocks\n", filename, blocks-blockId)
+	logger.Logf(logger.InfoLevel, "Download %s in %d blocks\n", filename, blocks-blockId)
 
 	file, err := os.OpenFile(saveFile, os.O_CREATE|os.O_WRONLY, 0666)
 	if err != nil {
@@ -176,14 +175,14 @@ func (c *fc) DownloadAt(filename, saveFile string, blockId int) error {
 		}
 
 		if i%((blocks-blockId)/100+1) == 0 {
-			log.Printf("Downloading %s [%d/%d] blocks", filename, i-blockId+1, blocks-blockId)
+			logger.Logf(logger.InfoLevel, "Downloading %s [%d/%d] blocks", filename, i-blockId+1, blocks-blockId)
 		}
 
 		if rerr == io.EOF {
 			break
 		}
 	}
-	log.Printf("Download %s completed", filename)
+	logger.Logf(logger.InfoLevel, "Download %s completed", filename)
 
 	c.Close(sessionId)
 

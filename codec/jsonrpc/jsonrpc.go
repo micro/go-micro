@@ -11,11 +11,11 @@ import (
 )
 
 type jsonCodec struct {
-	buf *bytes.Buffer
-	mt  codec.MessageType
 	rwc io.ReadWriteCloser
+	buf *bytes.Buffer
 	c   *clientCodec
 	s   *serverCodec
+	mt  codec.MessageType
 }
 
 func (j *jsonCodec) Close() error {
@@ -41,7 +41,7 @@ func (j *jsonCodec) Write(m *codec.Message, b interface{}) error {
 		_, err = j.rwc.Write(data)
 		return err
 	default:
-		return fmt.Errorf("Unrecognised message type: %v", m.Type)
+		return fmt.Errorf("Unrecognized message type: %v", m.Type)
 	}
 }
 
@@ -58,7 +58,7 @@ func (j *jsonCodec) ReadHeader(m *codec.Message, mt codec.MessageType) error {
 		_, err := io.Copy(j.buf, j.rwc)
 		return err
 	default:
-		return fmt.Errorf("Unrecognised message type: %v", mt)
+		return fmt.Errorf("Unrecognized message type: %v", mt)
 	}
 }
 
@@ -73,7 +73,7 @@ func (j *jsonCodec) ReadBody(b interface{}) error {
 			return json.Unmarshal(j.buf.Bytes(), b)
 		}
 	default:
-		return fmt.Errorf("Unrecognised message type: %v", j.mt)
+		return fmt.Errorf("Unrecognized message type: %v", j.mt)
 	}
 	return nil
 }

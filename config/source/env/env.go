@@ -15,16 +15,15 @@ var (
 )
 
 type env struct {
+	opts             source.Options
 	prefixes         []string
 	strippedPrefixes []string
-	opts             source.Options
 }
 
 func (e *env) Read() (*source.ChangeSet, error) {
 	var changes map[string]interface{}
 
 	for _, env := range os.Environ() {
-
 		if len(e.prefixes) > 0 || len(e.strippedPrefixes) > 0 {
 			notFound := true
 
@@ -117,15 +116,16 @@ func (e *env) String() string {
 // Underscores are delimiters for nesting, and all keys are lowercased.
 //
 // Example:
-//      "DATABASE_SERVER_HOST=localhost" will convert to
 //
-//      {
-//          "database": {
-//              "server": {
-//                  "host": "localhost"
-//              }
-//          }
-//      }
+//	"DATABASE_SERVER_HOST=localhost" will convert to
+//
+//	{
+//	    "database": {
+//	        "server": {
+//	            "host": "localhost"
+//	        }
+//	    }
+//	}
 func NewSource(opts ...source.Option) source.Source {
 	options := source.NewOptions(opts...)
 

@@ -8,15 +8,15 @@ import (
 var (
 	DefaultRegistry = NewRegistry()
 
-	// Not found error when GetService is called
+	// Not found error when GetService is called.
 	ErrNotFound = errors.New("service not found")
-	// Watcher stopped error when watcher is stopped
+	// Watcher stopped error when watcher is stopped.
 	ErrWatcherStopped = errors.New("watcher stopped")
 )
 
 // The registry provides an interface for service discovery
 // and an abstraction over varying implementations
-// {consul, etcd, zookeeper, ...}
+// {consul, etcd, zookeeper, ...}.
 type Registry interface {
 	Init(...Option) error
 	Options() Options
@@ -37,16 +37,16 @@ type Service struct {
 }
 
 type Node struct {
+	Metadata map[string]string `json:"metadata"`
 	Id       string            `json:"id"`
 	Address  string            `json:"address"`
-	Metadata map[string]string `json:"metadata"`
 }
 
 type Endpoint struct {
-	Name     string            `json:"name"`
 	Request  *Value            `json:"request"`
 	Response *Value            `json:"response"`
 	Metadata map[string]string `json:"metadata"`
+	Name     string            `json:"name"`
 }
 
 type Value struct {
@@ -72,7 +72,7 @@ func Register(s *Service, opts ...RegisterOption) error {
 	return DefaultRegistry.Register(s, opts...)
 }
 
-// Deregister a service node
+// Deregister a service node.
 func Deregister(s *Service) error {
 	return DefaultRegistry.Deregister(s)
 }
@@ -82,7 +82,7 @@ func GetService(name string) ([]*Service, error) {
 	return DefaultRegistry.GetService(name)
 }
 
-// List the services. Only returns service names
+// List the services. Only returns service names.
 func ListServices() ([]*Service, error) {
 	return DefaultRegistry.ListServices()
 }

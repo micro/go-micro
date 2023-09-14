@@ -8,10 +8,9 @@ We expect environment variables to be in the standard format of FOO=bar
 
 Keys are converted to lowercase and split on underscore.
 
+### Format example
 
-### Example
-
-```
+```bash
 DATABASE_ADDRESS=127.0.0.1
 DATABASE_PORT=3306
 ```
@@ -20,10 +19,10 @@ Becomes
 
 ```json
 {
-    "database": {
-        "address": "127.0.0.1",
-        "port": 3306
-    }
+  "database": {
+    "address": "127.0.0.1",
+    "port": 3306
+  }
 }
 ```
 
@@ -31,18 +30,18 @@ Becomes
 
 Environment variables can be namespaced so we only have access to a subset. Two options are available:
 
-```
+```go
 WithPrefix(p ...string)
 WithStrippedPrefix(p ...string)
 ```
 
-The former will preserve the prefix and make it a top level key in the config. The latter eliminates the prefix, reducing the nesting by one. 
+The former will preserve the prefix and make it a top level key in the config. The latter eliminates the prefix, reducing the nesting by one.
 
-#### Example:
+### Prefixes example
 
 Given ENVs of:
 
-```
+```bash
 APP_DATABASE_ADDRESS=127.0.0.1
 APP_DATABASE_PORT=3306
 VAULT_ADDR=vault:1337
@@ -50,7 +49,7 @@ VAULT_ADDR=vault:1337
 
 and a source initialized as follows:
 
-```
+```go
 src := env.NewSource(
     env.WithPrefix("VAULT"),
     env.WithStrippedPrefix("APP"),
@@ -59,18 +58,17 @@ src := env.NewSource(
 
 The resulting config will be:
 
-```
+```json
 {
-    "database": {
-        "address": "127.0.0.1",
-        "port": 3306
-    },
-    "vault": {
-        "addr": "vault:1337"
-    }
+  "database": {
+    "address": "127.0.0.1",
+    "port": 3306
+  },
+  "vault": {
+    "addr": "vault:1337"
+  }
 }
 ```
-
 
 ## New Source
 
@@ -78,8 +76,8 @@ Specify source with data
 
 ```go
 src := env.NewSource(
-	// optionally specify prefix
-	env.WithPrefix("MICRO"),
+  // optionally specify prefix
+  env.WithPrefix("MICRO"),
 )
 ```
 

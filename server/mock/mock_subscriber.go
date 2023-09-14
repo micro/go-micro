@@ -6,9 +6,9 @@ import (
 )
 
 type MockSubscriber struct {
-	Id   string
 	Opts server.SubscriberOptions
 	Sub  interface{}
+	Id   string
 }
 
 func (m *MockSubscriber) Topic() string {

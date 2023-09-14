@@ -1,6 +1,7 @@
 package util
 
-// download from https://raw.githubusercontent.com/grpc-ecosystem/grpc-gateway/master/protoc-gen-grpc-gateway/httprule/compile.go
+// download from
+// https://raw.githubusercontent.com/grpc-ecosystem/grpc-gateway/master/protoc-gen-grpc-gateway/httprule/compile.go
 
 const (
 	opcodeVersion = 1
@@ -8,18 +9,18 @@ const (
 
 // Template is a compiled representation of path templates.
 type Template struct {
-	// Version is the version number of the format.
-	Version int
+	// Verb is a VERB part in the template.
+	Verb string
+	// Original template (example: /v1/a_bit_of_everything)
+	Template string
 	// OpCodes is a sequence of operations.
 	OpCodes []int
 	// Pool is a constant pool
 	Pool []string
-	// Verb is a VERB part in the template.
-	Verb string
 	// Fields is a list of field paths bound in this template.
 	Fields []string
-	// Original template (example: /v1/a_bit_of_everything)
-	Template string
+	// Version is the version number of the format.
+	Version int
 }
 
 // Compiler compiles utilities representation of path templates into marshallable operations.
@@ -29,12 +30,13 @@ type Compiler interface {
 }
 
 type op struct {
-	// code is the opcode of the operation
-	code OpCode
 
 	// str is a string operand of the code.
 	// operand is ignored if str is not empty.
 	str string
+
+	// code is the opcode of the operation
+	code OpCode
 
 	// operand is a numeric operand of the code.
 	operand int
@@ -66,6 +68,7 @@ func (v variable) compile() []op {
 	for _, s := range v.segments {
 		ops = append(ops, s.compile()...)
 	}
+
 	ops = append(ops, op{
 		code:    OpConcatN,
 		operand: len(v.segments),
@@ -88,7 +91,9 @@ func (t template) Compile() Template {
 		pool   []string
 		fields []string
 	)
+
 	consts := make(map[string]int)
+
 	for _, op := range rawOps {
 		ops = append(ops, int(op.code))
 		if op.str == "" {
@@ -100,10 +105,12 @@ func (t template) Compile() Template {
 			}
 			ops = append(ops, consts[op.str])
 		}
+
 		if op.code == OpCapture {
 			fields = append(fields, op.str)
 		}
 	}
+
 	return Template{
 		Version:  opcodeVersion,
 		OpCodes:  ops,

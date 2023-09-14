@@ -1,6 +1,7 @@
 package util
 
-// download from https://raw.githubusercontent.com/grpc-ecosystem/grpc-gateway/master/protoc-gen-grpc-gateway/httprule/types.go
+// download from
+// https://raw.githubusercontent.com/grpc-ecosystem/grpc-gateway/master/protoc-gen-grpc-gateway/httprule/types.go
 
 import (
 	"fmt"
@@ -8,9 +9,9 @@ import (
 )
 
 type template struct {
-	segments []segment
 	verb     string
 	template string
+	segments []segment
 }
 
 type segment interface {
@@ -46,6 +47,7 @@ func (v variable) String() string {
 	for _, s := range v.segments {
 		segs = append(segs, s.String())
 	}
+
 	return fmt.Sprintf("{%s=%s}", v.path, strings.Join(segs, "/"))
 }
 
@@ -54,9 +56,11 @@ func (t template) String() string {
 	for _, s := range t.segments {
 		segs = append(segs, s.String())
 	}
+
 	str := strings.Join(segs, "/")
 	if t.verb != "" {
 		str = fmt.Sprintf("%s:%s", str, t.verb)
 	}
+
 	return "/" + str
 }

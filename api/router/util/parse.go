@@ -1,12 +1,13 @@
 package util
 
-// download from https://raw.githubusercontent.com/grpc-ecosystem/grpc-gateway/master/protoc-gen-grpc-gateway/httprule/parse.go
+// download from
+// https://raw.githubusercontent.com/grpc-ecosystem/grpc-gateway/master/protoc-gen-grpc-gateway/httprule/parse.go
 
 import (
 	"fmt"
 	"strings"
 
-	"go-micro.dev/v4/logger"
+	log "go-micro.dev/v4/logger"
 )
 
 // InvalidTemplateError indicates that the path template is not valid.
@@ -19,14 +20,15 @@ func (e InvalidTemplateError) Error() string {
 	return fmt.Sprintf("%s: %s", e.msg, e.tmpl)
 }
 
-// Parse parses the string representation of path template
+// Parse parses the string representation of path template.
 func Parse(tmpl string) (Compiler, error) {
 	if !strings.HasPrefix(tmpl, "/") {
 		return template{}, InvalidTemplateError{tmpl: tmpl, msg: "no leading /"}
 	}
-	tokens, verb := tokenize(tmpl[1:])
 
+	tokens, verb := tokenize(tmpl[1:])
 	p := parser{tokens: tokens}
+
 	segs, err := p.topLevelSegments()
 	if err != nil {
 		return template{}, InvalidTemplateError{tmpl: tmpl, msg: err.Error()}
@@ -52,8 +54,10 @@ func tokenize(path string) (tokens []string, verb string) {
 	var (
 		st = init
 	)
+
 	for path != "" {
 		var idx int
+
 		switch st {
 		case init:
 			idx = strings.IndexAny(path, "/{")
@@ -62,10 +66,12 @@ func tokenize(path string) (tokens []string, verb string) {
 		case nested:
 			idx = strings.IndexAny(path, "/}")
 		}
+
 		if idx < 0 {
 			tokens = append(tokens, path)
 			break
 		}
+
 		switch r := path[idx]; r {
 		case '/', '.':
 		case '{':
@@ -75,74 +81,83 @@ func tokenize(path string) (tokens []string, verb string) {
 		case '}':
 			st = init
 		}
+
 		if idx == 0 {
 			tokens = append(tokens, path[idx:idx+1])
 		} else {
 			tokens = append(tokens, path[:idx], path[idx:idx+1])
 		}
+
 		path = path[idx+1:]
 	}
 
 	l := len(tokens)
 	t := tokens[l-1]
+
 	if idx := strings.LastIndex(t, ":"); idx == 0 {
 		tokens, verb = tokens[:l-1], t[1:]
 	} else if idx > 0 {
 		tokens[l-1], verb = t[:idx], t[idx+1:]
 	}
+
 	tokens = append(tokens, eof)
+
 	return tokens, verb
 }
 
 // parser is a parser of the template syntax defined in github.com/googleapis/googleapis/google/api/http.proto.
 type parser struct {
+	logger   log.Logger
 	tokens   []string
 	accepted []string
 }
 
 // topLevelSegments is the target of this parser.
 func (p *parser) topLevelSegments() ([]segment, error) {
-	if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-		logger.Debugf("Parsing %q", p.tokens)
-	}
+	logger := log.LoggerOrDefault(p.logger)
+
+	logger.Logf(log.DebugLevel, "Parsing %q", p.tokens)
+
 	segs, err := p.segments()
 	if err != nil {
 		return nil, err
 	}
-	if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-		logger.Debugf("accept segments: %q; %q", p.accepted, p.tokens)
-	}
+
+	logger.Logf(log.DebugLevel, "accept segments: %q; %q", p.accepted, p.tokens)
+
 	if _, err := p.accept(typeEOF); err != nil {
 		return nil, fmt.Errorf("unexpected token %q after segments %q", p.tokens[0], strings.Join(p.accepted, ""))
 	}
-	if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-		logger.Debugf("accept eof: %q; %q", p.accepted, p.tokens)
-	}
+
+	logger.Logf(log.DebugLevel, "accept eof: %q; %q", p.accepted, p.tokens)
+
 	return segs, nil
 }
 
 func (p *parser) segments() ([]segment, error) {
+	logger := log.LoggerOrDefault(p.logger)
 	s, err := p.segment()
+
 	if err != nil {
 		return nil, err
 	}
 
-	if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-		logger.Debugf("accept segment: %q; %q", p.accepted, p.tokens)
-	}
+	logger.Logf(log.DebugLevel, "accept segment: %q; %q", p.accepted, p.tokens)
+
 	segs := []segment{s}
 	for {
 		if _, err := p.accept("/"); err != nil {
 			return segs, nil
 		}
+
 		s, err := p.segment()
 		if err != nil {
 			return segs, err
 		}
+
 		segs = append(segs, s)
-		if logger.V(logger.DebugLevel, logger.DefaultLogger) {
-			logger.Debugf("accept segment: %q; %q", p.accepted, p.tokens)
-		}
+
+		logger.Logf(log.DebugLevel, "accept segment: %q; %q", p.accepted, p.tokens)
 	}
 }
 
@@ -150,17 +165,20 @@ func (p *parser) segment() (segment, error) {
 	if _, err := p.accept("*"); err == nil {
 		return wildcard{}, nil
 	}
+
 	if _, err := p.accept("**"); err == nil {
 		return deepWildcard{}, nil
 	}
+
 	if l, err := p.literal(); err == nil {
 		return l, nil
 	}
 
 	v, err := p.variable()
 	if err != nil {
-		return nil, fmt.Errorf("segment neither wildcards, literal or variable: %v", err)
+		return nil, fmt.Errorf("segment neither wildcards, literal or variable: %w", err)
 	}
+
 	return v, err
 }
 
@@ -169,6 +187,7 @@ func (p *parser) literal() (segment, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return literal(lit), nil
 }
 
@@ -186,7 +205,7 @@ func (p *parser) variable() (segment, error) {
 	if _, err := p.accept("="); err == nil {
 		segs, err = p.segments()
 		if err != nil {
-			return nil, fmt.Errorf("invalid segment in variable %q: %v", path, err)
+			return nil, fmt.Errorf("invalid segment in variable %q: %w", path, err)
 		}
 	} else {
 		segs = []segment{wildcard{}}
@@ -195,6 +214,7 @@ func (p *parser) variable() (segment, error) {
 	if _, err := p.accept("}"); err != nil {
 		return nil, fmt.Errorf("unterminated variable segment: %s", path)
 	}
+
 	return variable{
 		path:     path,
 		segments: segs,
@@ -206,7 +226,9 @@ func (p *parser) fieldPath() (string, error) {
 	if err != nil {
 		return "", err
 	}
+
 	components := []string{c}
+
 	for {
 		if _, err = p.accept("."); err != nil {
 			return strings.Join(components, "."), nil
@@ -242,6 +264,7 @@ const (
 // If it doesn't match, the function does not consume any tokens and return an error.
 func (p *parser) accept(term termType) (string, error) {
 	t := p.tokens[0]
+
 	switch term {
 	case "/", "*", "**", ".", "=", "{", "}":
 		if t != string(term) && t != "/" {
@@ -262,25 +285,29 @@ func (p *parser) accept(term termType) (string, error) {
 	default:
 		return "", fmt.Errorf("unknown termType %q", term)
 	}
+
 	p.tokens = p.tokens[1:]
 	p.accepted = append(p.accepted, t)
+
 	return t, nil
 }
 
 // expectPChars determines if "t" consists of only pchars defined in RFC3986.
 //
 // https://www.ietf.org/rfc/rfc3986.txt, P.49
-//   pchar         = unreserved / pct-encoded / sub-delims / ":" / "@"
-//   unreserved    = ALPHA / DIGIT / "-" / "." / "_" / "~"
-//   sub-delims    = "!" / "$" / "&" / "'" / "(" / ")"
-//                 / "*" / "+" / "," / ";" / "="
-//   pct-encoded   = "%" HEXDIG HEXDIG
+//
+//	pchar         = unreserved / pct-encoded / sub-delims / ":" / "@"
+//	unreserved    = ALPHA / DIGIT / "-" / "." / "_" / "~"
+//	sub-delims    = "!" / "$" / "&" / "'" / "(" / ")"
+//	              / "*" / "+" / "," / ";" / "="
+//	pct-encoded   = "%" HEXDIG HEXDIG
 func expectPChars(t string) error {
 	const (
 		init = iota
 		pct1
 		pct2
 	)
+
 	st := init
 	for _, r := range t {
 		if st != init {
@@ -319,9 +346,11 @@ func expectPChars(t string) error {
 			return fmt.Errorf("invalid character in path segment: %q(%U)", r, r)
 		}
 	}
+
 	if st != init {
 		return fmt.Errorf("invalid percent-encoding in %q", t)
 	}
+
 	return nil
 }
 
@@ -330,12 +359,14 @@ func expectIdent(ident string) error {
 	if ident == "" {
 		return fmt.Errorf("empty identifier")
 	}
+
 	for pos, r := range ident {
 		switch {
 		case '0' <= r && r <= '9':
 			if pos == 0 {
 				return fmt.Errorf("identifier starting with digit: %s", ident)
 			}
+
 			continue
 		case 'A' <= r && r <= 'Z':
 			continue
@@ -347,6 +378,7 @@ func expectIdent(ident string) error {
 			return fmt.Errorf("invalid character %q(%U) in identifier: %s", r, r, ident)
 		}
 	}
+
 	return nil
 }
 
@@ -359,5 +391,6 @@ func isHexDigit(r rune) bool {
 	case 'a' <= r && r <= 'f':
 		return true
 	}
+
 	return false
 }

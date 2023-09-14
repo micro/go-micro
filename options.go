@@ -12,6 +12,7 @@ import (
 	"go-micro.dev/v4/config"
 	"go-micro.dev/v4/debug/profile"
 	"go-micro.dev/v4/debug/trace"
+	"go-micro.dev/v4/logger"
 	"go-micro.dev/v4/registry"
 	"go-micro.dev/v4/runtime"
 	"go-micro.dev/v4/selector"
@@ -21,30 +22,32 @@ import (
 	"go-micro.dev/v4/util/cmd"
 )
 
-// Options for micro service
+// Options for micro service.
 type Options struct {
-	Auth      auth.Auth
-	Broker    broker.Broker
-	Cache     cache.Cache
-	Cmd       cmd.Cmd
-	Config    config.Config
-	Client    client.Client
-	Server    server.Server
-	Store     store.Store
-	Registry  registry.Registry
-	Runtime   runtime.Runtime
-	Transport transport.Transport
-	Profile   profile.Profile
-
-	// Before and After funcs
-	BeforeStart []func() error
-	BeforeStop  []func() error
-	AfterStart  []func() error
-	AfterStop   []func() error
+	Registry registry.Registry
+	Store    store.Store
+	Auth     auth.Auth
+	Cmd      cmd.Cmd
+	Config   config.Config
+	Client   client.Client
+	Server   server.Server
 
 	// Other options for implementations of the interface
 	// can be stored in a context
 	Context context.Context
+
+	Cache     cache.Cache
+	Runtime   runtime.Runtime
+	Profile   profile.Profile
+	Transport transport.Transport
+	Logger    logger.Logger
+	Broker    broker.Broker
+	// Before and After funcs
+	BeforeStart []func() error
+	AfterStart  []func() error
+	AfterStop   []func() error
+
+	BeforeStop []func() error
 
 	Signal bool
 }
@@ -64,6 +67,7 @@ func newOptions(opts ...Option) Options {
 		Transport: transport.DefaultTransport,
 		Context:   context.Background(),
 		Signal:    true,
+		Logger:    logger.DefaultLogger,
 	}
 
 	for _, o := range opts {
@@ -73,7 +77,7 @@ func newOptions(opts ...Option) Options {
 	return opt
 }
 
-// Broker to be used for service
+// Broker to be used for service.
 func Broker(b broker.Broker) Option {
 	return func(o *Options) {
 		o.Broker = b
@@ -95,7 +99,7 @@ func Cmd(c cmd.Cmd) Option {
 	}
 }
 
-// Client to be used for service
+// Client to be used for service.
 func Client(c client.Client) Option {
 	return func(o *Options) {
 		o.Client = c
@@ -110,6 +114,15 @@ func Context(ctx context.Context) Option {
 	}
 }
 
+// Handle will register a handler without any fuss
+func Handle(v interface{}) Option {
+	return func(o *Options) {
+		o.Server.Handle(
+			o.Server.NewHandler(v),
+		)
+	}
+}
+
 // HandleSignal toggles automatic installation of the signal handler that
 // traps TERM, INT, and QUIT.  Users of this feature to disable the signal
 // handler, should control liveness of the service through the context.
@@ -119,21 +132,21 @@ func HandleSignal(b bool) Option {
 	}
 }
 
-// Profile to be used for debug profile
+// Profile to be used for debug profile.
 func Profile(p profile.Profile) Option {
 	return func(o *Options) {
 		o.Profile = p
 	}
 }
 
-// Server to be used for service
+// Server to be used for service.
 func Server(s server.Server) Option {
 	return func(o *Options) {
 		o.Server = s
 	}
 }
 
-// Store sets the store to use
+// Store sets the store to use.
 func Store(s store.Store) Option {
 	return func(o *Options) {
 		o.Store = s
@@ -141,7 +154,7 @@ func Store(s store.Store) Option {
 }
 
 // Registry sets the registry for the service
-// and the underlying components
+// and the underlying components.
 func Registry(r registry.Registry) Option {
 	return func(o *Options) {
 		o.Registry = r
@@ -153,28 +166,28 @@ func Registry(r registry.Registry) Option {
 	}
 }
 
-// Tracer sets the tracer for the service
+// Tracer sets the tracer for the service.
 func Tracer(t trace.Tracer) Option {
 	return func(o *Options) {
 		o.Server.Init(server.Tracer(t))
 	}
 }
 
-// Auth sets the auth for the service
+// Auth sets the auth for the service.
 func Auth(a auth.Auth) Option {
 	return func(o *Options) {
 		o.Auth = a
 	}
 }
 
-// Config sets the config for the service
+// Config sets the config for the service.
 func Config(c config.Config) Option {
 	return func(o *Options) {
 		o.Config = c
 	}
 }
 
-// Selector sets the selector for the service client
+// Selector sets the selector for the service client.
 func Selector(s selector.Selector) Option {
 	return func(o *Options) {
 		o.Client.Init(client.Selector(s))
@@ -182,7 +195,7 @@ func Selector(s selector.Selector) Option {
 }
 
 // Transport sets the transport for the service
-// and the underlying components
+// and the underlying components.
 func Transport(t transport.Transport) Option {
 	return func(o *Options) {
 		o.Transport = t
@@ -192,7 +205,7 @@ func Transport(t transport.Transport) Option {
 	}
 }
 
-// Runtime sets the runtime
+// Runtime sets the runtime.
 func Runtime(r runtime.Runtime) Option {
 	return func(o *Options) {
 		o.Runtime = r
@@ -201,56 +214,56 @@ func Runtime(r runtime.Runtime) Option {
 
 // Convenience options
 
-// Address sets the address of the server
+// Address sets the address of the server.
 func Address(addr string) Option {
 	return func(o *Options) {
 		o.Server.Init(server.Address(addr))
 	}
 }
 
-// Name of the service
+// Name of the service.
 func Name(n string) Option {
 	return func(o *Options) {
 		o.Server.Init(server.Name(n))
 	}
 }
 
-// Version of the service
+// Version of the service.
 func Version(v string) Option {
 	return func(o *Options) {
 		o.Server.Init(server.Version(v))
 	}
 }
 
-// Metadata associated with the service
+// Metadata associated with the service.
 func Metadata(md map[string]string) Option {
 	return func(o *Options) {
 		o.Server.Init(server.Metadata(md))
 	}
 }
 
-// Flags that can be passed to service
+// Flags that can be passed to service.
 func Flags(flags ...cli.Flag) Option {
 	return func(o *Options) {
 		o.Cmd.App().Flags = append(o.Cmd.App().Flags, flags...)
 	}
 }
 
-// Action can be used to parse user provided cli options
+// Action can be used to parse user provided cli options.
 func Action(a func(*cli.Context) error) Option {
 	return func(o *Options) {
 		o.Cmd.App().Action = a
 	}
 }
 
-// RegisterTTL specifies the TTL to use when registering the service
+// RegisterTTL specifies the TTL to use when registering the service.
 func RegisterTTL(t time.Duration) Option {
 	return func(o *Options) {
 		o.Server.Init(server.RegisterTTL(t))
 	}
 }
 
-// RegisterInterval specifies the interval on which to re-register
+// RegisterInterval specifies the interval on which to re-register.
 func RegisterInterval(t time.Duration) Option {
 	return func(o *Options) {
 		o.Server.Init(server.RegisterInterval(t))
@@ -269,14 +282,14 @@ func WrapClient(w ...client.Wrapper) Option {
 	}
 }
 
-// WrapCall is a convenience method for wrapping a Client CallFunc
+// WrapCall is a convenience method for wrapping a Client CallFunc.
 func WrapCall(w ...client.CallWrapper) Option {
 	return func(o *Options) {
 		o.Client.Init(client.WrapCall(w...))
 	}
 }
 
-// WrapHandler adds a handler Wrapper to a list of options passed into the server
+// WrapHandler adds a handler Wrapper to a list of options passed into the server.
 func WrapHandler(w ...server.HandlerWrapper) Option {
 	return func(o *Options) {
 		var wrappers []server.Option
@@ -290,7 +303,7 @@ func WrapHandler(w ...server.HandlerWrapper) Option {
 	}
 }
 
-// WrapSubscriber adds a subscriber Wrapper to a list of options passed into the server
+// WrapSubscriber adds a subscriber Wrapper to a list of options passed into the server.
 func WrapSubscriber(w ...server.SubscriberWrapper) Option {
 	return func(o *Options) {
 		var wrappers []server.Option
@@ -304,32 +317,46 @@ func WrapSubscriber(w ...server.SubscriberWrapper) Option {
 	}
 }
 
+// Add opt to server option.
+func AddListenOption(option server.Option) Option {
+	return func(o *Options) {
+		o.Server.Init(option)
+	}
+}
+
 // Before and Afters
 
-// BeforeStart run funcs before service starts
+// BeforeStart run funcs before service starts.
 func BeforeStart(fn func() error) Option {
 	return func(o *Options) {
 		o.BeforeStart = append(o.BeforeStart, fn)
 	}
 }
 
-// BeforeStop run funcs before service stops
+// BeforeStop run funcs before service stops.
 func BeforeStop(fn func() error) Option {
 	return func(o *Options) {
 		o.BeforeStop = append(o.BeforeStop, fn)
 	}
 }
 
-// AfterStart run funcs after service starts
+// AfterStart run funcs after service starts.
 func AfterStart(fn func() error) Option {
 	return func(o *Options) {
 		o.AfterStart = append(o.AfterStart, fn)
 	}
 }
 
-// AfterStop run funcs after service stops
+// AfterStop run funcs after service stops.
 func AfterStop(fn func() error) Option {
 	return func(o *Options) {
 		o.AfterStop = append(o.AfterStop, fn)
+	}
+}
+
+// Logger sets the logger for the service.
+func Logger(l logger.Logger) Option {
+	return func(o *Options) {
+		o.Logger = l
 	}
 }

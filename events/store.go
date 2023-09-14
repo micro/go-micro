@@ -5,13 +5,13 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"go-micro.dev/v4/logger"
+	log "go-micro.dev/v4/logger"
 	"go-micro.dev/v4/store"
 )
 
 const joinKey = "/"
 
-// NewStore returns an initialized events store
+// NewStore returns an initialized events store.
 func NewStore(opts ...StoreOption) Store {
 	// parse the options
 	var options StoreOptions
@@ -21,6 +21,8 @@ func NewStore(opts ...StoreOption) Store {
 	if options.TTL.Seconds() == 0 {
 		options.TTL = time.Hour * 24
 	}
+
+	options.Logger = log.LoggerOrDefault(options.Logger)
 
 	// return the store
 	evs := &evStore{
@@ -38,7 +40,7 @@ type evStore struct {
 	store store.Store
 }
 
-// Read events for a topic
+// Read events for a topic.
 func (s *evStore) Read(topic string, opts ...ReadOption) ([]*Event, error) {
 	// validate the topic
 	if len(topic) == 0 {
@@ -77,7 +79,7 @@ func (s *evStore) Read(topic string, opts ...ReadOption) ([]*Event, error) {
 	return result, nil
 }
 
-// Write an event to the store
+// Write an event to the store.
 func (s *evStore) Write(event *Event, opts ...WriteOption) error {
 	// parse the options
 	options := WriteOptions{
@@ -114,14 +116,14 @@ func (s *evStore) backupLoop() {
 	for {
 		err := s.opts.Backup.Snapshot(s.store)
 		if err != nil {
-			logger.Errorf("Error running backup %s", err)
+			s.opts.Logger.Logf(log.ErrorLevel, "Error running backup %s", err)
 		}
 
 		time.Sleep(1 * time.Hour)
 	}
 }
 
-// Backup is an interface for snapshotting the events store to long term storage
+// Backup is an interface for snapshotting the events store to long term storage.
 type Backup interface {
 	Snapshot(st store.Store) error
 }

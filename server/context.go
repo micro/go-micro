@@ -6,12 +6,13 @@ import (
 )
 
 type serverKey struct{}
+type wgKey struct{}
 
 func wait(ctx context.Context) *sync.WaitGroup {
 	if ctx == nil {
 		return nil
 	}
-	wg, ok := ctx.Value("wait").(*sync.WaitGroup)
+	wg, ok := ctx.Value(wgKey{}).(*sync.WaitGroup)
 	if !ok {
 		return nil
 	}

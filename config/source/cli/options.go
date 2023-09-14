@@ -9,7 +9,7 @@ import (
 
 type contextKey struct{}
 
-// Context sets the cli context
+// Context sets the cli context.
 func Context(c *cli.Context) source.Option {
 	return func(o *source.Options) {
 		if o.Context == nil {

@@ -3,11 +3,11 @@
 package secretbox
 
 import (
+	"crypto/rand"
+
 	"github.com/pkg/errors"
 	"go-micro.dev/v4/config/secrets"
 	"golang.org/x/crypto/nacl/secretbox"
-
-	"crypto/rand"
 )
 
 const keyLength = 32
@@ -18,7 +18,7 @@ type secretBox struct {
 	secretKey [keyLength]byte
 }
 
-// NewSecrets returns a secretbox codec
+// NewSecrets returns a secretbox codec.
 func NewSecrets(opts ...secrets.Option) secrets.Secrets {
 	sb := &secretBox{}
 	for _, o := range opts {

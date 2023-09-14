@@ -52,7 +52,7 @@ func delNodes(old, del []*registry.Node) []*registry.Node {
 	return nodes
 }
 
-// CopyService make a copy of service
+// CopyService make a copy of service.
 func CopyService(service *registry.Service) *registry.Service {
 	// copy service
 	s := new(registry.Service)
@@ -78,7 +78,7 @@ func CopyService(service *registry.Service) *registry.Service {
 	return s
 }
 
-// Copy makes a copy of services
+// Copy makes a copy of services.
 func Copy(current []*registry.Service) []*registry.Service {
 	services := make([]*registry.Service, len(current))
 	for i, service := range current {
@@ -87,7 +87,7 @@ func Copy(current []*registry.Service) []*registry.Service {
 	return services
 }
 
-// Merge merges two lists of services and returns a new copy
+// Merge merges two lists of services and returns a new copy.
 func Merge(olist []*registry.Service, nlist []*registry.Service) []*registry.Service {
 	var srv []*registry.Service
 
@@ -119,7 +119,7 @@ func Merge(olist []*registry.Service, nlist []*registry.Service) []*registry.Ser
 	return srv
 }
 
-// Remove removes services and returns a new copy
+// Remove removes services and returns a new copy.
 func Remove(old, del []*registry.Service) []*registry.Service {
 	var services []*registry.Service
 

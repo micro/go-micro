@@ -25,7 +25,9 @@ func (c *cliSource) Read() (*source.ChangeSet, error) {
 	for _, f := range c.ctx.App.Flags {
 		name := f.Names()[0]
 		tmp := toEntry(name, c.ctx.Generic(name))
-		mergo.Map(&changes, tmp) // need to sort error handling
+		if err := mergo.Map(&changes, tmp, mergo.WithOverride); err != nil {
+			return nil, err
+		}
 	}
 
 	b, err := c.opts.Encoder.Encode(changes)
@@ -75,7 +77,7 @@ func (c *cliSource) Watch() (source.Watcher, error) {
 	return source.NewNoopWatcher()
 }
 
-// Write is unsupported
+// Write is unsupported.
 func (c *cliSource) Write(cs *source.ChangeSet) error {
 	return nil
 }
@@ -89,14 +91,15 @@ func (c *cliSource) String() string {
 // command line flags have already been parsed.
 //
 // Example:
-//      cli.StringFlag{Name: "db-host"},
+//
+//	cli.StringFlag{Name: "db-host"},
 //
 //
-//      {
-//          "database": {
-//              "host": "localhost"
-//          }
-//      }
+//	{
+//	    "database": {
+//	        "host": "localhost"
+//	    }
+//	}
 func NewSource(opts ...source.Option) source.Source {
 	options := source.NewOptions(opts...)
 

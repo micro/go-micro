@@ -2,11 +2,12 @@ package http
 
 import (
 	"fmt"
-	"go-micro.dev/v4/api/server"
-	"go-micro.dev/v4/api/server/cors"
 	"io"
 	"net/http"
 	"testing"
+
+	"go-micro.dev/v4/api/server"
+	"go-micro.dev/v4/api/server/cors"
 )
 
 func TestHTTPServer(t *testing.T) {

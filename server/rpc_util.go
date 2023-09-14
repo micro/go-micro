@@ -4,12 +4,19 @@ import (
 	"sync"
 )
 
-// waitgroup for global management of connections
+// waitgroup for global management of connections.
 type waitGroup struct {
-	// local waitgroup
-	lg sync.WaitGroup
 	// global waitgroup
 	gg *sync.WaitGroup
+	// local waitgroup
+	lg sync.WaitGroup
+}
+
+// NewWaitGroup returns a new double waitgroup for global management of processes.
+func NewWaitGroup(gWg *sync.WaitGroup) *waitGroup {
+	return &waitGroup{
+		gg: gWg,
+	}
 }
 
 func (w *waitGroup) Add(i int) {

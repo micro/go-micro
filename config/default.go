@@ -13,21 +13,21 @@ import (
 )
 
 type config struct {
+	// the current values
+	vals reader.Values
 	exit chan bool
+	// the current snapshot
+	snap *loader.Snapshot
 	opts Options
 
 	sync.RWMutex
-	// the current snapshot
-	snap *loader.Snapshot
-	// the current values
-	vals reader.Values
 }
 
 type watcher struct {
 	lw    loader.Watcher
 	rd    reader.Reader
-	path  []string
 	value reader.Value
+	path  []string
 }
 
 func newConfig(opts ...Option) (Config, error) {
@@ -159,7 +159,7 @@ func (c *config) Scan(v interface{}) error {
 	return c.vals.Scan(v)
 }
 
-// sync loads all the sources, calls the parser and updates the config
+// sync loads all the sources, calls the parser and updates the config.
 func (c *config) Sync() error {
 	if err := c.opts.Loader.Sync(); err != nil {
 		return err

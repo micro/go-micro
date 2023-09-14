@@ -23,15 +23,16 @@ func init() {
 }
 
 type defaultLogger struct {
-	sync.RWMutex
 	opts Options
+	sync.RWMutex
 }
 
-// Init (opts...) should only overwrite provided options
+// Init (opts...) should only overwrite provided options.
 func (l *defaultLogger) Init(opts ...Option) error {
 	for _, o := range opts {
 		o(&l.opts)
 	}
+
 	return nil
 }
 
@@ -42,6 +43,7 @@ func (l *defaultLogger) String() string {
 func (l *defaultLogger) Fields(fields map[string]interface{}) Logger {
 	l.Lock()
 	nfields := make(map[string]interface{}, len(l.opts.Fields))
+
 	for k, v := range l.opts.Fields {
 		nfields[k] = v
 	}
@@ -65,6 +67,7 @@ func copyFields(src map[string]interface{}) map[string]interface{} {
 	for k, v := range src {
 		dst[k] = v
 	}
+
 	return dst
 }
 
@@ -85,10 +88,13 @@ func logCallerfilePath(loggingFilePath string) string {
 	if idx == -1 {
 		return loggingFilePath
 	}
+
 	idx = strings.LastIndexByte(loggingFilePath[:idx], '/')
+
 	if idx == -1 {
 		return loggingFilePath
 	}
+
 	return loggingFilePath[idx+1:]
 }
 
@@ -121,6 +127,7 @@ func (l *defaultLogger) Log(level Level, v ...interface{}) {
 	}
 
 	sort.Strings(keys)
+
 	metadata := ""
 
 	for _, k := range keys {
@@ -135,7 +142,7 @@ func (l *defaultLogger) Log(level Level, v ...interface{}) {
 
 func (l *defaultLogger) Logf(level Level, format string, v ...interface{}) {
 	//	 TODO decide does we need to write message if log level not used?
-	if level < l.opts.Level {
+	if !l.opts.Level.Enabled(level) {
 		return
 	}
 
@@ -162,6 +169,7 @@ func (l *defaultLogger) Logf(level Level, format string, v ...interface{}) {
 	}
 
 	sort.Strings(keys)
+
 	metadata := ""
 
 	for _, k := range keys {
@@ -177,13 +185,15 @@ func (l *defaultLogger) Logf(level Level, format string, v ...interface{}) {
 func (l *defaultLogger) Options() Options {
 	// not guard against options Context values
 	l.RLock()
+	defer l.RUnlock()
+
 	opts := l.opts
 	opts.Fields = copyFields(l.opts.Fields)
-	l.RUnlock()
+
 	return opts
 }
 
-// NewLogger builds a new logger based on options
+// NewLogger builds a new logger based on options.
 func NewLogger(opts ...Option) Logger {
 	// Default options
 	options := Options{

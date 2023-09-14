@@ -9,22 +9,25 @@ import (
 	"go-micro.dev/v4/codec"
 )
 
-// Implements the streamer interface
+// Implements the streamer interface.
 type rpcStream struct {
-	sync.RWMutex
-	id       string
-	closed   chan bool
 	err      error
 	request  Request
 	response Response
 	codec    codec.Codec
 	context  context.Context
 
-	// signal whether we should send EOS
-	sendEOS bool
+	closed chan bool
 
 	// release releases the connection back to the pool
 	release func(err error)
+	id      string
+	sync.RWMutex
+	// Indicates whether connection should be closed directly.
+	close bool
+
+	// signal whether we should send EOS
+	sendEOS bool
 }
 
 func (r *rpcStream) isClosed() bool {
@@ -79,6 +82,7 @@ func (r *rpcStream) Recv(msg interface{}) error {
 	if r.isClosed() {
 		r.err = errShutdown
 		r.Unlock()
+
 		return errShutdown
 	}
 
@@ -87,15 +91,19 @@ func (r *rpcStream) Recv(msg interface{}) error {
 	r.Unlock()
 	err := r.codec.ReadHeader(&resp, codec.Response)
 	r.Lock()
+
 	if err != nil {
-		if err == io.EOF && !r.isClosed() {
+		if errors.Is(err, io.EOF) && !r.isClosed() {
 			r.err = io.ErrUnexpectedEOF
 			r.Unlock()
+
 			return io.ErrUnexpectedEOF
 		}
+
 		r.err = err
 
 		r.Unlock()
+
 		return err
 	}
 
@@ -124,13 +132,15 @@ func (r *rpcStream) Recv(msg interface{}) error {
 		}
 	}
 
-	r.Unlock()
+	defer r.Unlock()
+
 	return r.err
 }
 
 func (r *rpcStream) Error() error {
 	r.RLock()
 	defer r.RUnlock()
+
 	return r.err
 }
 
@@ -152,6 +162,7 @@ func (r *rpcStream) Close() error {
 		// send the end of stream message
 		if r.sendEOS {
 			// no need to check for error
+			//nolint:errcheck,gosec
 			r.codec.Write(&codec.Message{
 				Id:       r.id,
 				Target:   r.request.Service(),
@@ -164,10 +175,13 @@ func (r *rpcStream) Close() error {
 
 		err := r.codec.Close()
 
+		rerr := r.Error()
+		if r.close && rerr == nil {
+			rerr = errors.New("connection header set to close")
+		}
 		// release the connection
-		r.release(r.Error())
+		r.release(rerr)
 
-		// return the codec error
 		return err
 	}
 }

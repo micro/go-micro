@@ -17,6 +17,7 @@ import (
 )
 
 const (
+	// Handler is the name of the handler.
 	Handler = "web"
 )
 
@@ -27,18 +28,18 @@ type webHandler struct {
 func (wh *webHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	service, err := wh.getService(r)
 	if err != nil {
-		w.WriteHeader(500)
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	if len(service) == 0 {
-		w.WriteHeader(404)
+		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 
 	rp, err := url.Parse(service)
 	if err != nil {
-		w.WriteHeader(500)
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
@@ -50,7 +51,7 @@ func (wh *webHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	httputil.NewSingleHostReverseProxy(rp).ServeHTTP(w, r)
 }
 
-// getService returns the service for this request from the selector
+// getService returns the service for this request from the selector.
 func (wh *webHandler) getService(r *http.Request) (string, error) {
 	var service *router.Route
 
@@ -60,6 +61,7 @@ func (wh *webHandler) getService(r *http.Request) (string, error) {
 		if err != nil {
 			return "", err
 		}
+
 		service = s
 	} else {
 		// we have no way of routing the request
@@ -78,13 +80,13 @@ func (wh *webHandler) getService(r *http.Request) (string, error) {
 	return fmt.Sprintf("http://%s", s.Address), nil
 }
 
-// serveWebSocket used to serve a web socket proxied connection
-func (wh *webHandler) serveWebSocket(host string, w http.ResponseWriter, r *http.Request) {
+// serveWebSocket used to serve a web socket proxied connection.
+func (wh *webHandler) serveWebSocket(host string, rsp http.ResponseWriter, r *http.Request) {
 	req := new(http.Request)
 	*req = *r
 
 	if len(host) == 0 {
-		http.Error(w, "invalid host", 500)
+		http.Error(rsp, "invalid host", http.StatusInternalServerError)
 		return
 	}
 
@@ -93,20 +95,21 @@ func (wh *webHandler) serveWebSocket(host string, w http.ResponseWriter, r *http
 		if ips, ok := req.Header["X-Forwarded-For"]; ok {
 			clientIP = strings.Join(ips, ", ") + ", " + clientIP
 		}
+
 		req.Header.Set("X-Forwarded-For", clientIP)
 	}
 
 	// connect to the backend host
 	conn, err := net.Dial("tcp", host)
 	if err != nil {
-		http.Error(w, err.Error(), 500)
+		http.Error(rsp, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	// hijack the connection
-	hj, ok := w.(http.Hijacker)
+	hj, ok := rsp.(http.Hijacker)
 	if !ok {
-		http.Error(w, "failed to connect", 500)
+		http.Error(rsp, "failed to connect", http.StatusInternalServerError)
 		return
 	}
 
@@ -143,6 +146,7 @@ func isWebSocket(r *http.Request) bool {
 				return true
 			}
 		}
+
 		return false
 	}
 
@@ -157,6 +161,7 @@ func (wh *webHandler) String() string {
 	return "web"
 }
 
+// NewHandler returns a new web handler.
 func NewHandler(opts ...handler.Option) handler.Handler {
 	return &webHandler{
 		opts: handler.NewOptions(opts...),

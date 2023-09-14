@@ -19,7 +19,7 @@ var (
 
 type MessageType int
 
-// Takes in a connection/buffer and returns a new Codec
+// Takes in a connection/buffer and returns a new Codec.
 type NewCodec func(io.ReadWriteCloser) Codec
 
 // Codec encodes/decodes various types of messages used within go-micro.
@@ -55,14 +55,15 @@ type Marshaler interface {
 // the communication, likely followed by the body.
 // In the case of an error, body may be nil.
 type Message struct {
+
+	// The values read from the socket
+	Header   map[string]string
 	Id       string
-	Type     MessageType
 	Target   string
 	Method   string
 	Endpoint string
 	Error    string
 
-	// The values read from the socket
-	Header map[string]string
-	Body   []byte
+	Body []byte
+	Type MessageType
 }

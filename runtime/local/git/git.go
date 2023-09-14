@@ -165,7 +165,7 @@ func dirifyRepo(s string) string {
 	return s
 }
 
-// exists returns whether the given file or directory exists
+// exists returns whether the given file or directory exists.
 func pathExists(path string) (bool, error) {
 	_, err := os.Stat(path)
 	if err == nil {
@@ -178,7 +178,7 @@ func pathExists(path string) (bool, error) {
 }
 
 // GetRepoRoot determines the repo root from a full path.
-// Returns empty string and no error if not found
+// Returns empty string and no error if not found.
 func GetRepoRoot(fullPath string) (string, error) {
 	// traverse parent directories
 	prev := fullPath
@@ -203,10 +203,8 @@ func GetRepoRoot(fullPath string) (string, error) {
 
 const defaultRepo = "github.com/micro/services"
 
-// Source is not just git related @todo move
+// Source is not just git related @todo move.
 type Source struct {
-	// is it a local folder intended for a local runtime?
-	Local bool
 	// absolute path to service folder in local mode
 	FullPath string
 	// path of folder to repo root
@@ -220,6 +218,8 @@ type Source struct {
 	// dir to repo root
 	// blank for non local
 	LocalRepoRoot string
+	// is it a local folder intended for a local runtime?
+	Local bool
 }
 
 // Name to be passed to RPC call runtime.Create Update Delete

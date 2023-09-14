@@ -10,6 +10,7 @@ import (
 	"go-micro.dev/v4/debug/trace"
 	"go-micro.dev/v4/metadata"
 	"go-micro.dev/v4/server"
+	"go-micro.dev/v4/transport/headers"
 )
 
 type fromServiceWrapper struct {
@@ -18,10 +19,6 @@ type fromServiceWrapper struct {
 	// headers to inject
 	headers metadata.Metadata
 }
-
-var (
-	HeaderPrefix = "Micro-"
-)
 
 func (f *fromServiceWrapper) setHeaders(ctx context.Context) context.Context {
 	// don't overwrite keys
@@ -43,17 +40,17 @@ func (f *fromServiceWrapper) Publish(ctx context.Context, p client.Message, opts
 	return f.Client.Publish(ctx, p, opts...)
 }
 
-// FromService wraps a client to inject service and auth metadata
+// FromService wraps a client to inject service and auth metadata.
 func FromService(name string, c client.Client) client.Client {
 	return &fromServiceWrapper{
 		c,
 		metadata.Metadata{
-			HeaderPrefix + "From-Service": name,
+			headers.Prefix + "From-Service": name,
 		},
 	}
 }
 
-// HandlerStats wraps a server handler to generate request/error stats
+// HandlerStats wraps a server handler to generate request/error stats.
 func HandlerStats(stats stats.Stats) server.HandlerWrapper {
 	// return a handler wrapper
 	return func(h server.HandlerFunc) server.HandlerFunc {
@@ -72,8 +69,9 @@ func HandlerStats(stats stats.Stats) server.HandlerWrapper {
 type traceWrapper struct {
 	client.Client
 
-	name  string
 	trace trace.Tracer
+
+	name string
 }
 
 func (c *traceWrapper) Call(ctx context.Context, req client.Request, rsp interface{}, opts ...client.CallOption) error {
@@ -91,7 +89,7 @@ func (c *traceWrapper) Call(ctx context.Context, req client.Request, rsp interfa
 	return err
 }
 
-// TraceCall is a call tracing wrapper
+// TraceCall is a call tracing wrapper.
 func TraceCall(name string, t trace.Tracer, c client.Client) client.Client {
 	return &traceWrapper{
 		name:   name,
@@ -100,7 +98,7 @@ func TraceCall(name string, t trace.Tracer, c client.Client) client.Client {
 	}
 }
 
-// TraceHandler wraps a server handler to perform tracing
+// TraceHandler wraps a server handler to perform tracing.
 func TraceHandler(t trace.Tracer) server.HandlerWrapper {
 	// return a handler wrapper
 	return func(h server.HandlerFunc) server.HandlerFunc {
@@ -159,8 +157,8 @@ func (a *authWrapper) Call(ctx context.Context, req client.Request, rsp interfac
 	}
 
 	// set the namespace header if it has not been set (e.g. on a service to service request)
-	if _, ok := metadata.Get(ctx, "Micro-Namespace"); !ok {
-		ctx = metadata.Set(ctx, "Micro-Namespace", aa.Options().Namespace)
+	if _, ok := metadata.Get(ctx, headers.Namespace); !ok {
+		ctx = metadata.Set(ctx, headers.Namespace, aa.Options().Namespace)
 	}
 
 	// check to see if we have a valid access token

@@ -1,9 +1,9 @@
 package client
 
 type message struct {
+	payload     interface{}
 	topic       string
 	contentType string
-	payload     interface{}
 }
 
 func newMessage(topic string, payload interface{}, contentType string, opts ...MessageOption) Message {

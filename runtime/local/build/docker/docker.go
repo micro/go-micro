@@ -14,8 +14,8 @@ import (
 )
 
 type Builder struct {
-	Options build.Options
 	Client  *docker.Client
+	Options build.Options
 }
 
 func (d *Builder) Build(s *build.Source) (*build.Package, error) {
@@ -84,7 +84,7 @@ func NewBuilder(opts ...build.Option) build.Builder {
 	endpoint := "unix:///var/run/docker.sock"
 	client, err := docker.NewClient(endpoint)
 	if err != nil {
-		logger.Fatal(err)
+		logger.Log(logger.FatalLevel, err)
 	}
 	return &Builder{
 		Options: options,

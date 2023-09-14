@@ -104,7 +104,6 @@ func test(t *testing.T, withContext bool) {
 	if actualDB["host"] != "localhost" {
 		t.Errorf("expected localhost, got %v", actualDB["name"])
 	}
-
 }
 
 func TestCliSource(t *testing.T) {

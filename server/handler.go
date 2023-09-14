@@ -5,19 +5,19 @@ import "context"
 type HandlerOption func(*HandlerOptions)
 
 type HandlerOptions struct {
-	Internal bool
 	Metadata map[string]map[string]string
+	Internal bool
 }
 
 type SubscriberOption func(*SubscriberOptions)
 
 type SubscriberOptions struct {
+	Context context.Context
+	Queue   string
 	// AutoAck defaults to true. When a handler returns
 	// with a nil error the message is acked.
 	AutoAck  bool
-	Queue    string
 	Internal bool
-	Context  context.Context
 }
 
 // EndpointMetadata is a Handler option that allows metadata to be added to
@@ -30,7 +30,7 @@ func EndpointMetadata(name string, md map[string]string) HandlerOption {
 
 // Internal Handler options specifies that a handler is not advertised
 // to the discovery system. In the future this may also limit request
-// to the internal network or authorised user.
+// to the internal network or authorized user.
 func InternalHandler(b bool) HandlerOption {
 	return func(o *HandlerOptions) {
 		o.Internal = b
@@ -65,14 +65,14 @@ func DisableAutoAck() SubscriberOption {
 	}
 }
 
-// Shared queue name distributed messages across subscribers
+// Shared queue name distributed messages across subscribers.
 func SubscriberQueue(n string) SubscriberOption {
 	return func(o *SubscriberOptions) {
 		o.Queue = n
 	}
 }
 
-// SubscriberContext set context options to allow broker SubscriberOption passed
+// SubscriberContext set context options to allow broker SubscriberOption passed.
 func SubscriberContext(ctx context.Context) SubscriberOption {
 	return func(o *SubscriberOptions) {
 		o.Context = ctx

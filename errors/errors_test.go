@@ -35,7 +35,6 @@ func TestEqual(t *testing.T) {
 	if Equal(err1, err3) {
 		t.Fatal("errors must be not equal")
 	}
-
 }
 
 func TestErrors(t *testing.T) {
@@ -122,14 +121,7 @@ func TestAppend(t *testing.T) {
 		},
 	}
 
-	for _, e := range testData {
-		mError.Append(&Error{
-			Id:     e.Id,
-			Code:   e.Code,
-			Detail: e.Detail,
-			Status: e.Status,
-		})
-	}
+	mError.Append(testData...)
 
 	if len(mError.Errors) != 3 {
 		t.Fatalf("Expected 3 got %v", len(mError.Errors))
@@ -163,14 +155,7 @@ func TestHasErrors(t *testing.T) {
 		t.Fatal("Expected no error")
 	}
 
-	for _, e := range testData {
-		mError.Errors = append(mError.Errors, &Error{
-			Id:     e.Id,
-			Code:   e.Code,
-			Detail: e.Detail,
-			Status: e.Status,
-		})
-	}
+	mError.Append(testData...)
 
 	if !mError.HasErrors() {
 		t.Fatal("Expected errors")

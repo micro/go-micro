@@ -3,9 +3,15 @@ package client
 
 import (
 	"context"
-	"time"
 
 	"go-micro.dev/v4/codec"
+)
+
+var (
+	// NewClient returns a new client.
+	NewClient func(...Option) Client = newRPCClient
+	// DefaultClient is a default client to use out of the box.
+	DefaultClient Client = newRPCClient()
 )
 
 // Client is the interface used to make requests to services.
@@ -22,19 +28,19 @@ type Client interface {
 	String() string
 }
 
-// Router manages request routing
+// Router manages request routing.
 type Router interface {
 	SendRequest(context.Context, Request) (Response, error)
 }
 
-// Message is the interface for publishing asynchronously
+// Message is the interface for publishing asynchronously.
 type Message interface {
 	Topic() string
 	Payload() interface{}
 	ContentType() string
 }
 
-// Request is the interface for a synchronous request used by Call or Stream
+// Request is the interface for a synchronous request used by Call or Stream.
 type Request interface {
 	// The service to call
 	Service() string
@@ -52,7 +58,7 @@ type Request interface {
 	Stream() bool
 }
 
-// Response is the response received from a service
+// Response is the response received from a service.
 type Response interface {
 	// Read the response
 	Codec() codec.Reader
@@ -62,7 +68,7 @@ type Response interface {
 	Read() ([]byte, error)
 }
 
-// Stream is the inteface for a bidirectional synchronous stream
+// Stream is the inteface for a bidirectional synchronous stream.
 type Stream interface {
 	Closer
 	// Context for the stream
@@ -81,48 +87,28 @@ type Stream interface {
 	Close() error
 }
 
-// Closer handle client close
+// Closer handle client close.
 type Closer interface {
 	// CloseSend closes the send direction of the stream.
 	CloseSend() error
 }
 
-// Option used by the Client
+// Option used by the Client.
 type Option func(*Options)
 
-// CallOption used by Call or Stream
+// CallOption used by Call or Stream.
 type CallOption func(*CallOptions)
 
-// PublishOption used by Publish
+// PublishOption used by Publish.
 type PublishOption func(*PublishOptions)
 
-// MessageOption used by NewMessage
+// MessageOption used by NewMessage.
 type MessageOption func(*MessageOptions)
 
-// RequestOption used by NewRequest
+// RequestOption used by NewRequest.
 type RequestOption func(*RequestOptions)
 
-var (
-	// DefaultClient is a default client to use out of the box
-	DefaultClient Client = newRpcClient()
-	// DefaultBackoff is the default backoff function for retries
-	DefaultBackoff = exponentialBackoff
-	// DefaultRetry is the default check-for-retry function for retries
-	DefaultRetry = RetryOnError
-	// DefaultRetries is the default number of times a request is tried
-	DefaultRetries = 1
-	// DefaultRequestTimeout is the default request timeout
-	DefaultRequestTimeout = time.Second * 5
-	// DefaultPoolSize sets the connection pool size
-	DefaultPoolSize = 100
-	// DefaultPoolTTL sets the connection pool ttl
-	DefaultPoolTTL = time.Minute
-
-	// NewClient returns a new client
-	NewClient func(...Option) Client = newRpcClient
-)
-
-// Makes a synchronous call to a service using the default client
+// Makes a synchronous call to a service using the default client.
 func Call(ctx context.Context, request Request, response interface{}, opts ...CallOption) error {
 	return DefaultClient.Call(ctx, request, response, opts...)
 }
@@ -133,13 +119,13 @@ func Publish(ctx context.Context, msg Message, opts ...PublishOption) error {
 	return DefaultClient.Publish(ctx, msg, opts...)
 }
 
-// Creates a new message using the default client
+// Creates a new message using the default client.
 func NewMessage(topic string, payload interface{}, opts ...MessageOption) Message {
 	return DefaultClient.NewMessage(topic, payload, opts...)
 }
 
 // Creates a new request using the default client. Content Type will
-// be set to the default within options and use the appropriate codec
+// be set to the default within options and use the appropriate codec.
 func NewRequest(service, endpoint string, request interface{}, reqOpts ...RequestOption) Request {
 	return DefaultClient.NewRequest(service, endpoint, request, reqOpts...)
 }

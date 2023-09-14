@@ -16,6 +16,7 @@ type Transport interface {
 	String() string
 }
 
+// Message is a broker message.
 type Message struct {
 	Header map[string]string
 	Body   []byte

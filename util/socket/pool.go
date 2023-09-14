@@ -5,8 +5,8 @@ import (
 )
 
 type Pool struct {
-	sync.RWMutex
 	pool map[string]*Socket
+	sync.RWMutex
 }
 
 func (p *Pool) Get(id string) (*Socket, bool) {
@@ -44,7 +44,7 @@ func (p *Pool) Release(s *Socket) {
 	delete(p.pool, s.id)
 }
 
-// Close the pool and delete all the sockets
+// Close the pool and delete all the sockets.
 func (p *Pool) Close() {
 	p.Lock()
 	defer p.Unlock()
@@ -54,7 +54,7 @@ func (p *Pool) Close() {
 	}
 }
 
-// NewPool returns a new socket pool
+// NewPool returns a new socket pool.
 func NewPool() *Pool {
 	return &Pool{
 		pool: make(map[string]*Socket),

@@ -21,9 +21,10 @@ type Stream interface {
 type stream struct {
 	Stream
 
-	sync.RWMutex
 	err     error
 	request *request
+
+	sync.RWMutex
 }
 
 type request struct {
@@ -75,7 +76,7 @@ func (s *stream) Error() error {
 }
 
 // New returns a new encapsulated stream
-// Proto stream within a server.Stream
+// Proto stream within a server.Stream.
 func New(service, endpoint string, req interface{}, s Stream) server.Stream {
 	return &stream{
 		Stream: s,

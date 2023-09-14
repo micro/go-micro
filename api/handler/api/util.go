@@ -14,13 +14,13 @@ import (
 )
 
 var (
-	// need to calculate later to specify useful defaults
+	// need to calculate later to specify useful defaults.
 	bufferPool = bpool.NewSizedBufferPool(1024, 8)
 )
 
 func requestToProto(r *http.Request) (*api.Request, error) {
 	if err := r.ParseForm(); err != nil {
-		return nil, fmt.Errorf("Error parsing form: %v", err)
+		return nil, fmt.Errorf("Error parsing form: %w", err)
 	}
 
 	req := &api.Request{
@@ -34,11 +34,11 @@ func requestToProto(r *http.Request) (*api.Request, error) {
 
 	ct, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
 	if err != nil {
-		ct = "text/plain; charset=UTF-8" //default CT is text/plain
+		ct = "text/plain; charset=UTF-8" // default CT is text/plain
 		r.Header.Set("Content-Type", ct)
 	}
 
-	//set the body:
+	// set the body:
 	if r.Body != nil {
 		switch ct {
 		case "application/x-www-form-urlencoded":
@@ -46,9 +46,11 @@ func requestToProto(r *http.Request) (*api.Request, error) {
 		default:
 			buf := bufferPool.Get()
 			defer bufferPool.Put(buf)
+
 			if _, err = buf.ReadFrom(r.Body); err != nil {
 				return nil, err
 			}
+
 			req.Body = buf.String()
 		}
 	}
@@ -81,6 +83,7 @@ func requestToProto(r *http.Request) (*api.Request, error) {
 			}
 			req.Get[key] = header
 		}
+
 		header.Values = vals
 	}
 
@@ -93,6 +96,7 @@ func requestToProto(r *http.Request) (*api.Request, error) {
 			}
 			req.Post[key] = header
 		}
+
 		header.Values = vals
 	}
 
@@ -104,13 +108,14 @@ func requestToProto(r *http.Request) (*api.Request, error) {
 			}
 			req.Header[key] = header
 		}
+
 		header.Values = vals
 	}
 
 	return req, nil
 }
 
-// strategy is a hack for selection
+// strategy is a hack for selection.
 func strategy(services []*registry.Service) selector.Strategy {
 	return func(_ []*registry.Service) selector.Next {
 		// ignore input to this function, use services above

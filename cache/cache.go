@@ -22,7 +22,6 @@ var (
 )
 
 // Cache is the interface that wraps the cache.
-//
 type Cache interface {
 	// Get gets a cached value by key.
 	Get(ctx context.Context, key string) (interface{}, time.Time, error)

@@ -10,7 +10,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-// NewMemoryStore returns a memory store
+// NewMemoryStore returns a memory store.
 func NewMemoryStore(opts ...Option) Store {
 	s := &memoryStore{
 		options: Options{
@@ -32,10 +32,10 @@ type memoryStore struct {
 }
 
 type storeRecord struct {
+	expiresAt time.Time
+	metadata  map[string]interface{}
 	key       string
 	value     []byte
-	metadata  map[string]interface{}
-	expiresAt time.Time
 }
 
 func (m *memoryStore) key(prefix, key string) string {
@@ -121,29 +121,27 @@ func (m *memoryStore) delete(prefix, key string) {
 
 func (m *memoryStore) list(prefix string, limit, offset uint) []string {
 	allItems := m.store.Items()
-	allKeys := make([]string, len(allItems))
-	i := 0
+	foundKeys := make([]string, 0, len(allItems))
 
 	for k := range allItems {
 		if !strings.HasPrefix(k, prefix+"/") {
 			continue
 		}
-		allKeys[i] = strings.TrimPrefix(k, prefix+"/")
-		i++
+		foundKeys = append(foundKeys, strings.TrimPrefix(k, prefix+"/"))
 	}
 
 	if limit != 0 || offset != 0 {
-		sort.Slice(allKeys, func(i, j int) bool { return allKeys[i] < allKeys[j] })
+		sort.Slice(foundKeys, func(i, j int) bool { return foundKeys[i] < foundKeys[j] })
 		min := func(i, j uint) uint {
 			if i < j {
 				return i
 			}
 			return j
 		}
-		return allKeys[offset:min(limit, uint(len(allKeys)))]
+		return foundKeys[offset:min(limit, uint(len(foundKeys)))]
 	}
 
-	return allKeys
+	return foundKeys
 }
 
 func (m *memoryStore) Close() error {

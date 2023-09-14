@@ -16,25 +16,25 @@ const (
 )
 
 // Zone is the interface used to integrate with the server and
-// to serve records dynamically
+// to serve records dynamically.
 type Zone interface {
 	// Records returns DNS records in response to a DNS question.
 	Records(q dns.Question) []dns.RR
 }
 
-// MDNSService is used to export a named service by implementing a Zone
+// MDNSService is used to export a named service by implementing a Zone.
 type MDNSService struct {
 	Instance     string   // Instance name (e.g. "hostService name")
 	Service      string   // Service name (e.g. "_http._tcp.")
 	Domain       string   // If blank, assumes "local"
 	HostName     string   // Host machine DNS name (e.g. "mymachine.net.")
-	Port         int      // Service Port
+	serviceAddr  string   // Fully qualified service address
+	instanceAddr string   // Fully qualified instance address
+	enumAddr     string   // _services._dns-sd._udp.<domain>
 	IPs          []net.IP // IP addresses for the service's host
 	TXT          []string // Service TXT records
+	Port         int      // Service Port
 	TTL          uint32
-	serviceAddr  string // Fully qualified service address
-	instanceAddr string // Fully qualified instance address
-	enumAddr     string // _services._dns-sd._udp.<domain>
 }
 
 // validateFQDN returns an error if the passed string is not a fully qualified
@@ -130,7 +130,7 @@ func NewMDNSService(instance, service, domain, hostName string, port int, ips []
 	}, nil
 }
 
-// trimDot is used to trim the dots from the start or end of a string
+// trimDot is used to trim the dots from the start or end of a string.
 func trimDot(s string) string {
 	return strings.Trim(s, ".")
 }
@@ -174,7 +174,7 @@ func (m *MDNSService) serviceEnum(q dns.Question) []dns.RR {
 	}
 }
 
-// serviceRecords is called when the query matches the service name
+// serviceRecords is called when the query matches the service name.
 func (m *MDNSService) serviceRecords(q dns.Question) []dns.RR {
 	switch q.Qtype {
 	case dns.TypeANY:
@@ -205,7 +205,7 @@ func (m *MDNSService) serviceRecords(q dns.Question) []dns.RR {
 	}
 }
 
-// serviceRecords is called when the query matches the instance name
+// serviceRecords is called when the query matches the instance name.
 func (m *MDNSService) instanceRecords(q dns.Question) []dns.RR {
 	switch q.Qtype {
 	case dns.TypeANY:

@@ -1,0 +1,29 @@
+labelType: long
+coverThreshold: 70
+buildStyle:
+  bold: true
+  foreground: yellow
+startStyle:
+  foreground: lightBlack
+passStyle:
+  foreground: green
+failStyle:
+  bold: true
+  foreground: "#821515"
+skipStyle:
+  foreground: lightBlack
+passPackageStyle:
+  foreground: green
+  hide: false
+failPackageStyle:
+  bold: true
+  foreground: "#821515"
+coveredStyle:
+  foreground: green
+uncoveredStyle:
+  bold: true
+  foreground: yellow
+fileStyle:
+  foreground: cyan
+lineStyle:
+  foreground: magenta

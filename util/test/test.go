@@ -5,7 +5,7 @@ import (
 )
 
 var (
-	// mock registry data
+	// Data is a set of mock registry data.
 	Data = map[string][]*registry.Service{
 		"foo": {
 			{
@@ -45,3 +45,14 @@ var (
 		},
 	}
 )
+
+// EmptyChannel will empty out a error channel by checking if an error is
+// present, and if so return the error.
+func EmptyChannel(c chan error) error {
+	select {
+	case err := <-c:
+		return err
+	default:
+		return nil
+	}
+}

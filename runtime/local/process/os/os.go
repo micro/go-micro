@@ -21,7 +21,6 @@ func (p *Process) Exec(exe *process.Executable) error {
 }
 
 func (p *Process) Fork(exe *process.Executable) (*process.PID, error) {
-
 	// create command
 	cmd := exec.Command(exe.Package.Path, exe.Args...)
 

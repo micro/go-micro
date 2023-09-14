@@ -22,7 +22,7 @@ func slice(s string) []string {
 	return sl
 }
 
-// Encode encodes an endpoint to endpoint metadata
+// Encode encodes an endpoint to endpoint metadata.
 func Encode(e *Endpoint) map[string]string {
 	if e == nil {
 		return nil
@@ -49,7 +49,7 @@ func Encode(e *Endpoint) map[string]string {
 	return ep
 }
 
-// Decode decodes endpoint metadata into an endpoint
+// Decode decodes endpoint metadata into an endpoint.
 func Decode(e map[string]string) *Endpoint {
 	if e == nil {
 		return nil
@@ -65,7 +65,7 @@ func Decode(e map[string]string) *Endpoint {
 	}
 }
 
-// Validate validates an endpoint to guarantee it won't blow up when being served
+// Validate validates an endpoint to guarantee it won't blow up when being served.
 func Validate(e *Endpoint) error {
 	if e == nil {
 		return errors.New("endpoint is nil")

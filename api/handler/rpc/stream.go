@@ -15,43 +15,40 @@ import (
 	"go-micro.dev/v4/api/router"
 	"go-micro.dev/v4/client"
 	raw "go-micro.dev/v4/codec/bytes"
-	"go-micro.dev/v4/logger"
 	"go-micro.dev/v4/selector"
 )
 
-// serveWebsocket will stream rpc back over websockets assuming json
-func serveWebsocket(ctx context.Context, w http.ResponseWriter, r *http.Request, service *router.Route, c client.Client) {
-	var op ws.OpCode
+// serveWebsocket will stream rpc back over websockets assuming json.
+func serveWebsocket(ctx context.Context, w http.ResponseWriter, r *http.Request, service *router.Route, c client.Client) (err error) {
+	var opCode ws.OpCode
 
-	ct := r.Header.Get("Content-Type")
+	myCt := r.Header.Get("Content-Type")
 	// Strip charset from Content-Type (like `application/json; charset=UTF-8`)
-	if idx := strings.IndexRune(ct, ';'); idx >= 0 {
-		ct = ct[:idx]
+	if idx := strings.IndexRune(myCt, ';'); idx >= 0 {
+		myCt = myCt[:idx]
 	}
 
 	// check proto from request
-	switch ct {
+	switch myCt {
 	case "application/json":
-		op = ws.OpText
+		opCode = ws.OpText
 	default:
-		op = ws.OpBinary
+		opCode = ws.OpBinary
 	}
 
 	hdr := make(http.Header)
+
 	if proto, ok := r.Header["Sec-Websocket-Protocol"]; ok {
 		for _, p := range proto {
-			switch p {
-			case "binary":
+			if p == "binary" {
 				hdr["Sec-WebSocket-Protocol"] = []string{"binary"}
-				op = ws.OpBinary
+				opCode = ws.OpBinary
 			}
 		}
 	}
+
 	payload, err := requestPayload(r)
 	if err != nil {
-		if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
-			logger.Error(err)
-		}
 		return
 	}
 
@@ -70,26 +67,21 @@ func serveWebsocket(ctx context.Context, w http.ResponseWriter, r *http.Request,
 		Header: hdr,
 	}
 
-	conn, rw, _, err := upgrader.Upgrade(r, w)
+	conn, uRw, _, err := upgrader.Upgrade(r, w)
 	if err != nil {
-		if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
-			logger.Error(err)
-		}
 		return
 	}
 
 	defer func() {
-		if err := conn.Close(); err != nil {
-			if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
-				logger.Error(err)
-			}
-			return
+		if cErr := conn.Close(); cErr != nil && err == nil {
+			err = cErr
 		}
 	}()
 
 	var request interface{}
+
 	if !bytes.Equal(payload, []byte(`{}`)) {
-		switch ct {
+		switch myCt {
 		case "application/json", "":
 			m := json.RawMessage(payload)
 			request = &m
@@ -99,37 +91,40 @@ func serveWebsocket(ctx context.Context, w http.ResponseWriter, r *http.Request,
 	}
 
 	// we always need to set content type for message
-	if ct == "" {
-		ct = "application/json"
+	if myCt == "" {
+		myCt = "application/json"
 	}
+
 	req := c.NewRequest(
 		service.Service,
 		service.Endpoint.Name,
 		request,
-		client.WithContentType(ct),
+		client.WithContentType(myCt),
 		client.StreamingRequest(),
 	)
 
+	cCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	so := selector.WithStrategy(strategy(service.Versions))
+
 	// create a new stream
-	stream, err := c.Stream(ctx, req, client.WithSelectOption(so))
+	stream, err := c.Stream(cCtx, req, client.WithSelectOption(so))
 	if err != nil {
-		if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
-			logger.Error(err)
-		}
 		return
 	}
 
 	if request != nil {
 		if err = stream.Send(request); err != nil {
-			if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
-				logger.Error(err)
-			}
 			return
 		}
 	}
 
-	go writeLoop(rw, stream)
+	go func() {
+		if wErr := writeLoop(uRw, stream); wErr != nil && err == nil {
+			err = wErr
+		}
+	}()
 
 	rsp := stream.Response()
 
@@ -137,49 +132,42 @@ func serveWebsocket(ctx context.Context, w http.ResponseWriter, r *http.Request,
 	for {
 		select {
 		case <-ctx.Done():
-			return
+			return nil
 		case <-stream.Context().Done():
-			return
+			return nil
 		default:
 			// read backend response body
 			buf, err := rsp.Read()
 			if err != nil {
 				// wants to avoid import  grpc/status.Status
 				if strings.Contains(err.Error(), "context canceled") {
-					return
+					return nil
 				}
-				if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
-					logger.Error(err)
-				}
-				return
+
+				return err
 			}
 
 			// write the response
-			if err := wsutil.WriteServerMessage(rw, op, buf); err != nil {
-				if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
-					logger.Error(err)
-				}
-				return
+			if err = wsutil.WriteServerMessage(uRw, opCode, buf); err != nil {
+				return err
 			}
-			if err = rw.Flush(); err != nil {
-				if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
-					logger.Error(err)
-				}
-				return
+
+			if err = uRw.Flush(); err != nil {
+				return err
 			}
 		}
 	}
 }
 
-// writeLoop
-func writeLoop(rw io.ReadWriter, stream client.Stream) {
+// writeLoop.
+func writeLoop(rw io.ReadWriter, stream client.Stream) error {
 	// close stream when done
 	defer stream.Close()
 
 	for {
 		select {
 		case <-stream.Context().Done():
-			return
+			return nil
 		default:
 			buf, op, err := wsutil.ReadClientData(rw)
 			if err != nil {
@@ -187,17 +175,16 @@ func writeLoop(rw io.ReadWriter, stream client.Stream) {
 					switch wserr.Code {
 					case ws.StatusGoingAway:
 						// this happens when user leave the page
-						return
+						return nil
 					case ws.StatusNormalClosure, ws.StatusNoStatusRcvd:
 						// this happens when user close ws connection, or we don't get any status
-						return
+						return nil
+					default:
+						return err
 					}
 				}
-				if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
-					logger.Error(err)
-				}
-				return
 			}
+
 			switch op {
 			default:
 				// not relevant
@@ -210,10 +197,7 @@ func writeLoop(rw io.ReadWriter, stream client.Stream) {
 			// if the extracted payload isn't empty lets use it
 			request := &raw.Frame{Data: buf}
 			if err := stream.Send(request); err != nil {
-				if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
-					logger.Error(err)
-				}
-				return
+				return err
 			}
 		}
 	}
@@ -237,6 +221,7 @@ func isStream(r *http.Request, srv *router.Route) bool {
 			}
 		}
 	}
+
 	return false
 }
 
@@ -248,6 +233,7 @@ func isWebSocket(r *http.Request) bool {
 				return true
 			}
 		}
+
 		return false
 	}
 

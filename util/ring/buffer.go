@@ -8,32 +8,32 @@ import (
 	"github.com/google/uuid"
 )
 
-// Buffer is ring buffer
+// Buffer is ring buffer.
 type Buffer struct {
-	size int
+	streams map[string]*Stream
+	vals    []*Entry
+	size    int
 
 	sync.RWMutex
-	vals    []*Entry
-	streams map[string]*Stream
 }
 
-// Entry is ring buffer data entry
+// Entry is ring buffer data entry.
 type Entry struct {
 	Value     interface{}
 	Timestamp time.Time
 }
 
-// Stream is used to stream the buffer
+// Stream is used to stream the buffer.
 type Stream struct {
-	// Id of the stream
-	Id string
 	// Buffered entries
 	Entries chan *Entry
 	// Stop channel
 	Stop chan bool
+	// Id of the stream
+	Id string
 }
 
-// Put adds a new value to ring buffer
+// Put adds a new value to ring buffer.
 func (b *Buffer) Put(v interface{}) {
 	b.Lock()
 	defer b.Unlock()
@@ -61,7 +61,7 @@ func (b *Buffer) Put(v interface{}) {
 	}
 }
 
-// Get returns the last n entries
+// Get returns the last n entries.
 func (b *Buffer) Get(n int) []*Entry {
 	b.RLock()
 	defer b.RUnlock()
@@ -78,7 +78,7 @@ func (b *Buffer) Get(n int) []*Entry {
 	return b.vals[delta:]
 }
 
-// Return the entries since a specific time
+// Return the entries since a specific time.
 func (b *Buffer) Since(t time.Time) []*Entry {
 	b.RLock()
 	defer b.RUnlock()
@@ -107,7 +107,7 @@ func (b *Buffer) Since(t time.Time) []*Entry {
 }
 
 // Stream logs from the buffer
-// Close the channel when you want to stop
+// Close the channel when you want to stop.
 func (b *Buffer) Stream() (<-chan *Entry, chan bool) {
 	b.Lock()
 	defer b.Unlock()
@@ -125,12 +125,12 @@ func (b *Buffer) Stream() (<-chan *Entry, chan bool) {
 	return entries, stop
 }
 
-// Size returns the size of the ring buffer
+// Size returns the size of the ring buffer.
 func (b *Buffer) Size() int {
 	return b.size
 }
 
-// New returns a new buffer of the given size
+// New returns a new buffer of the given size.
 func New(i int) *Buffer {
 	return &Buffer{
 		size:    i,

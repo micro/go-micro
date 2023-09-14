@@ -5,22 +5,24 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+
 	"go-micro.dev/v4/transport"
 )
 
 type pool struct {
-	size int
-	ttl  time.Duration
-	tr   transport.Transport
+	tr transport.Transport
+
+	conns map[string][]*poolConn
+	size  int
+	ttl   time.Duration
 
 	sync.Mutex
-	conns map[string][]*poolConn
 }
 
 type poolConn struct {
-	transport.Client
-	id      string
 	created time.Time
+	transport.Client
+	id string
 }
 
 func newPool(options Options) *pool {
@@ -34,17 +36,24 @@ func newPool(options Options) *pool {
 
 func (p *pool) Close() error {
 	p.Lock()
+	defer p.Unlock()
+
+	var err error
+
 	for k, c := range p.conns {
 		for _, conn := range c {
-			conn.Client.Close()
+			if nerr := conn.Client.Close(); nerr != nil {
+				err = nerr
+			}
 		}
+
 		delete(p.conns, k)
 	}
-	p.Unlock()
-	return nil
+
+	return err
 }
 
-// NoOp the Close since we manage it
+// NoOp the Close since we manage it.
 func (p *poolConn) Close() error {
 	return nil
 }
@@ -61,20 +70,24 @@ func (p *pool) Get(addr string, opts ...transport.DialOption) (Conn, error) {
 	p.Lock()
 	conns := p.conns[addr]
 
-	// while we have conns check age and then return one
+	// While we have conns check age and then return one
 	// otherwise we'll create a new conn
 	for len(conns) > 0 {
 		conn := conns[len(conns)-1]
 		conns = conns[:len(conns)-1]
 		p.conns[addr] = conns
 
-		// if conn is old kill it and move on
+		// If conn is old kill it and move on
 		if d := time.Since(conn.Created()); d > p.ttl {
-			conn.Client.Close()
+			if err := conn.Client.Close(); err != nil {
+				p.Unlock()
+				return nil, err
+			}
+
 			continue
 		}
 
-		// we got a good conn, lets unlock and return it
+		// We got a good conn, lets unlock and return it
 		p.Unlock()
 
 		return conn, nil
@@ -87,6 +100,7 @@ func (p *pool) Get(addr string, opts ...transport.DialOption) (Conn, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return &poolConn{
 		Client:  c,
 		id:      uuid.New().String(),
@@ -102,13 +116,14 @@ func (p *pool) Release(conn Conn, err error) error {
 
 	// otherwise put it back for reuse
 	p.Lock()
+	defer p.Unlock()
+
 	conns := p.conns[conn.Remote()]
 	if len(conns) >= p.size {
-		p.Unlock()
 		return conn.(*poolConn).Client.Close()
 	}
+
 	p.conns[conn.Remote()] = append(conns, conn.(*poolConn))
-	p.Unlock()
 
 	return nil
 }

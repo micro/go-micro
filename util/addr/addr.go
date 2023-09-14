@@ -1,55 +1,30 @@
+// addr provides functions to retrieve local IP addresses from device interfaces.
 package addr
 
 import (
-	"fmt"
 	"net"
+
+	"github.com/pkg/errors"
 )
 
 var (
-	privateBlocks []*net.IPNet
+	// ErrIPNotFound no IP address found, and explicit IP not provided.
+	ErrIPNotFound = errors.New("no IP address found, and explicit IP not provided")
 )
 
-func init() {
-	for _, b := range []string{"10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "100.64.0.0/10", "fd00::/8"} {
-		if _, block, err := net.ParseCIDR(b); err == nil {
-			privateBlocks = append(privateBlocks, block)
-		}
-	}
-}
-
-// AppendPrivateBlocks append private network blocks
-func AppendPrivateBlocks(bs ...string) {
-	for _, b := range bs {
-		if _, block, err := net.ParseCIDR(b); err == nil {
-			privateBlocks = append(privateBlocks, block)
-		}
-	}
-}
-
-func isPrivateIP(ipAddr string) bool {
-	ip := net.ParseIP(ipAddr)
-	for _, priv := range privateBlocks {
-		if priv.Contains(ip) {
-			return true
-		}
-	}
-	return false
-}
-
-// IsLocal tells us whether an ip is local
+// IsLocal checks whether an IP belongs to one of the device's interfaces.
 func IsLocal(addr string) bool {
-	// extract the host
+	// Extract the host
 	host, _, err := net.SplitHostPort(addr)
 	if err == nil {
 		addr = host
 	}
 
-	// check if its localhost
 	if addr == "localhost" {
 		return true
 	}
 
-	// check against all local ips
+	// Check against all local ips
 	for _, ip := range IPs() {
 		if addr == ip {
 			return true
@@ -59,80 +34,53 @@ func IsLocal(addr string) bool {
 	return false
 }
 
-// Extract returns a real ip
+// Extract returns a valid IP address. If the address provided is a valid
+// address, it will be returned directly. Otherwise the available interfaces
+// be itterated over to find an IP address, prefferably private.
 func Extract(addr string) (string, error) {
-	// if addr specified then its returned
+	// if addr is already specified then it's directly returned
 	if len(addr) > 0 && (addr != "0.0.0.0" && addr != "[::]" && addr != "::") {
 		return addr, nil
 	}
 
+	var (
+		addrs   []net.Addr
+		loAddrs []net.Addr
+	)
+
 	ifaces, err := net.Interfaces()
 	if err != nil {
-		return "", fmt.Errorf("Failed to get interfaces! Err: %v", err)
+		return "", errors.Wrap(err, "failed to get interfaces")
 	}
 
-	//nolint:prealloc
-	var addrs []net.Addr
-	var loAddrs []net.Addr
 	for _, iface := range ifaces {
 		ifaceAddrs, err := iface.Addrs()
 		if err != nil {
 			// ignore error, interface can disappear from system
 			continue
 		}
+
 		if iface.Flags&net.FlagLoopback != 0 {
 			loAddrs = append(loAddrs, ifaceAddrs...)
 			continue
 		}
+
 		addrs = append(addrs, ifaceAddrs...)
 	}
+
+	// Add loopback addresses to the end of the list
 	addrs = append(addrs, loAddrs...)
 
-	var ipAddr string
-	var publicIP string
-
-	for _, rawAddr := range addrs {
-		var ip net.IP
-		switch addr := rawAddr.(type) {
-		case *net.IPAddr:
-			ip = addr.IP
-		case *net.IPNet:
-			ip = addr.IP
-		default:
-			continue
-		}
-
-		if !isPrivateIP(ip.String()) {
-			publicIP = ip.String()
-			continue
-		}
-
-		ipAddr = ip.String()
-		break
+	// Try to find private IP in list, public IP otherwise
+	ip, err := findIP(addrs)
+	if err != nil {
+		return "", err
 	}
 
-	// return private ip
-	if len(ipAddr) > 0 {
-		a := net.ParseIP(ipAddr)
-		if a == nil {
-			return "", fmt.Errorf("ip addr %s is invalid", ipAddr)
-		}
-		return a.String(), nil
-	}
-
-	// return public or virtual ip
-	if len(publicIP) > 0 {
-		a := net.ParseIP(publicIP)
-		if a == nil {
-			return "", fmt.Errorf("ip addr %s is invalid", publicIP)
-		}
-		return a.String(), nil
-	}
-
-	return "", fmt.Errorf("No IP address found, and explicit IP not provided")
+	return ip.String(), nil
 }
 
-// IPs returns all known ips
+// IPs returns all available interface IP addresses.
 func IPs() []string {
 	ifaces, err := net.Interfaces()
 	if err != nil {
@@ -160,17 +108,42 @@ func IPs() []string {
 				continue
 			}
 
-			// dont skip ipv6 addrs
-			/*
-				ip = ip.To4()
-				if ip == nil {
-					continue
-				}
-			*/
-
 			ipAddrs = append(ipAddrs, ip.String())
 		}
 	}
 
 	return ipAddrs
+}
+
+// findIP will return the first private IP available in the list,
+// if no private IP is available it will return a public IP if present.
+func findIP(addresses []net.Addr) (net.IP, error) {
+	var publicIP net.IP
+
+	for _, rawAddr := range addresses {
+		var ip net.IP
+		switch addr := rawAddr.(type) {
+		case *net.IPAddr:
+			ip = addr.IP
+		case *net.IPNet:
+			ip = addr.IP
+		default:
+			continue
+		}
+
+		if !ip.IsPrivate() {
+			publicIP = ip
+			continue
+		}
+
+		// Return private IP if available
+		return ip, nil
+	}
+
+	// Return public or virtual IP
+	if len(publicIP) > 0 {
+		return publicIP, nil
+	}
+
+	return nil, ErrIPNotFound
 }
