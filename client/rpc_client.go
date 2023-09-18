@@ -46,6 +46,7 @@ func newRPCClient(opt ...Option) Client {
 		pool.Size(opts.PoolSize),
 		pool.TTL(opts.PoolTTL),
 		pool.Transport(opts.Transport),
+		pool.CloseTimeout(opts.PoolCloseTimeout),
 	)
 
 	rc := &rpcClient{
@@ -77,7 +78,13 @@ func (r *rpcClient) newCodec(contentType string) (codec.NewCodec, error) {
 	return nil, fmt.Errorf("unsupported Content-Type: %s", contentType)
 }
 
-func (r *rpcClient) call(ctx context.Context, node *registry.Node, req Request, resp interface{}, opts CallOptions) error {
+func (r *rpcClient) call(
+	ctx context.Context,
+	node *registry.Node,
+	req Request,
+	resp interface{},
+	opts CallOptions,
+) error {
 	address := node.Address
 	logger := r.Options().Logger
 
@@ -142,7 +149,10 @@ func (r *rpcClient) call(ctx context.Context, node *registry.Node, req Request, 
 
 	c, err := r.pool.Get(address, dOpts...)
 	if err != nil {
-		return merrors.InternalServerError("go.micro.client", "connection error: %v", err)
+		if c == nil {
+			return merrors.InternalServerError("go.micro.client", "connection error: %v", err)
+		}
+		logger.Log(log.ErrorLevel, "failed to close pool", err)
 	}
 
 	seq := atomic.AddUint64(&r.seq, 1) - 1
@@ -490,7 +500,10 @@ func (r *rpcClient) Call(ctx context.Context, request Request, response interfac
 				return merrors.InternalServerError("go.micro.client", "service %s: %s", service, err.Error())
 			}
 
-			return merrors.InternalServerError("go.micro.client", "error getting next %s node: %s", service, err.Error())
+			return merrors.InternalServerError("go.micro.client",
+				"error getting next %s node: %s",
+				service,
+				err.Error())
 		}
 
 		// make the call
@@ -586,7 +599,10 @@ func (r *rpcClient) Stream(ctx context.Context, request Request, opts ...CallOpt
 				return nil, merrors.InternalServerError("go.micro.client", "service %s: %s", service, err.Error())
 			}
 
-			return nil, merrors.InternalServerError("go.micro.client", "error getting next %s node: %s", service, err.Error())
+			return nil, merrors.InternalServerError("go.micro.client",
+				"error getting next %s node: %s",
+				service,
+				err.Error())
 		}
 
 		stream, err := r.stream(ctx, node, request, callOpts)

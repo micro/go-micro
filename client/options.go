@@ -27,6 +27,8 @@ var (
 	DefaultPoolSize = 100
 	// DefaultPoolTTL sets the connection pool ttl.
 	DefaultPoolTTL = time.Minute
+	// DefaultPoolCloseTimeout sets the connection pool colse timeout.
+	DefaultPoolCloseTimeout = time.Second
 )
 
 // Options are the Client options.
@@ -63,8 +65,9 @@ type Options struct {
 	Wrappers []Wrapper
 
 	// Connection Pool
-	PoolSize int
-	PoolTTL  time.Duration
+	PoolSize         int
+	PoolTTL          time.Duration
+	PoolCloseTimeout time.Duration
 }
 
 // CallOptions are options used to make calls to a server.
@@ -140,13 +143,14 @@ func NewOptions(options ...Option) Options {
 			ConnectionTimeout: DefaultConnectionTimeout,
 			DialTimeout:       transport.DefaultDialTimeout,
 		},
-		PoolSize:  DefaultPoolSize,
-		PoolTTL:   DefaultPoolTTL,
-		Broker:    broker.DefaultBroker,
-		Selector:  selector.DefaultSelector,
-		Registry:  registry.DefaultRegistry,
-		Transport: transport.DefaultTransport,
-		Logger:    logger.DefaultLogger,
+		PoolSize:         DefaultPoolSize,
+		PoolTTL:          DefaultPoolTTL,
+		PoolCloseTimeout: DefaultPoolCloseTimeout,
+		Broker:           broker.DefaultBroker,
+		Selector:         selector.DefaultSelector,
+		Registry:         registry.DefaultRegistry,
+		Transport:        transport.DefaultTransport,
+		Logger:           logger.DefaultLogger,
 	}
 
 	for _, o := range options {
@@ -188,6 +192,13 @@ func PoolSize(d int) Option {
 func PoolTTL(d time.Duration) Option {
 	return func(o *Options) {
 		o.PoolTTL = d
+	}
+}
+
+// PoolCloseTimeout sets the connection pool close timeout.
+func PoolCloseTimeout(d time.Duration) Option {
+	return func(o *Options) {
+		o.PoolCloseTimeout = d
 	}
 }
 

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/urfave/cli/v2"
+
 	"go-micro.dev/v4/auth"
 	"go-micro.dev/v4/broker"
 	"go-micro.dev/v4/cache"
@@ -509,13 +510,15 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	}
 
 	if len(ctx.String("registry_address")) > 0 {
-		if err := (*c.opts.Registry).Init(registry.Addrs(strings.Split(ctx.String("registry_address"), ",")...)); err != nil {
+		if err := (*c.opts.Registry).Init(registry.Addrs(strings.Split(ctx.String("registry_address"),
+			",")...)); err != nil {
 			logger.Fatalf("Error configuring registry: %v", err)
 		}
 	}
 
 	if len(ctx.String("transport_address")) > 0 {
-		if err := (*c.opts.Transport).Init(transport.Addrs(strings.Split(ctx.String("transport_address"), ",")...)); err != nil {
+		if err := (*c.opts.Transport).Init(transport.Addrs(strings.Split(ctx.String("transport_address"),
+			",")...)); err != nil {
 			logger.Fatalf("Error configuring transport: %v", err)
 		}
 	}
@@ -595,6 +598,14 @@ func (c *cmd) Before(ctx *cli.Context) error {
 			return fmt.Errorf("failed to parse client_pool_ttl: %v", t)
 		}
 		clientOpts = append(clientOpts, client.PoolTTL(d))
+	}
+
+	if t := ctx.String("client_pool_close_timeout"); len(t) > 0 {
+		d, err := time.ParseDuration(t)
+		if err != nil {
+			return fmt.Errorf("failed to parse client_pool_close_timeout: %v", t)
+		}
+		clientOpts = append(clientOpts, client.PoolCloseTimeout(d))
 	}
 
 	// We have some command line opts for the server.
