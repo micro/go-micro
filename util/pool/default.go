@@ -46,7 +46,7 @@ func (p *pool) Close() error {
 
 	for k, c := range p.conns {
 		for _, conn := range c {
-			if nerr := conn.Close(); nerr != nil {
+			if nerr := conn.close(); nerr != nil {
 				err = nerr
 			}
 		}
@@ -57,21 +57,9 @@ func (p *pool) Close() error {
 	return err
 }
 
+// NoOp the Close since we manage it.
 func (p *poolConn) Close() error {
-	ch := make(chan error)
-	go func() {
-		defer close(ch)
-		ch <- p.Client.Close()
-	}()
-	t := time.NewTimer(p.closeTimeout)
-	var err error
-	select {
-	case <-t.C:
-		err = errors.New("unable to close in time")
-	case err = <-ch:
-		t.Stop()
-	}
-	return err
+	return nil
 }
 
 func (p *poolConn) Id() string {
@@ -95,7 +83,7 @@ func (p *pool) Get(addr string, opts ...transport.DialOption) (Conn, error) {
 
 		// If conn is old kill it and move on
 		if d := time.Since(conn.Created()); d > p.ttl {
-			if err := conn.Close(); err != nil {
+			if err := conn.close(); err != nil {
 				p.mu.Unlock()
 				c, errConn := p.newConn(addr, opts)
 				if errConn != nil {
@@ -136,7 +124,7 @@ func (p *pool) newConn(addr string, opts []transport.DialOption) (Conn, error) {
 func (p *pool) Release(conn Conn, err error) error {
 	// don't store the conn if it has errored
 	if err != nil {
-		return conn.(*poolConn).Close()
+		return conn.(*poolConn).close()
 	}
 
 	// otherwise put it back for reuse
@@ -145,10 +133,27 @@ func (p *pool) Release(conn Conn, err error) error {
 
 	conns := p.conns[conn.Remote()]
 	if len(conns) >= p.size {
-		return conn.(*poolConn).Close()
+		return conn.(*poolConn).close()
 	}
 
 	p.conns[conn.Remote()] = append(conns, conn.(*poolConn))
 
 	return nil
+}
+
+func (p *poolConn) close() error {
+	ch := make(chan error)
+	go func() {
+		defer close(ch)
+		ch <- p.Client.Close()
+	}()
+	t := time.NewTimer(p.closeTimeout)
+	var err error
+	select {
+	case <-t.C:
+		err = errors.New("unable to close in time")
+	case err = <-ch:
+		t.Stop()
+	}
+	return err
 }
