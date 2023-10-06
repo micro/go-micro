@@ -163,9 +163,10 @@ func (m *memory) reload() error {
 }
 
 func (m *memory) update() {
+	m.RLock()
+
 	watchers := make([]*watcher, 0, m.watchers.Len())
 
-	m.RLock()
 	for e := m.watchers.Front(); e != nil; e = e.Next() {
 		watchers = append(watchers, e.Value.(*watcher))
 	}

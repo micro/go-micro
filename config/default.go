@@ -2,14 +2,14 @@ package config
 
 import (
 	"bytes"
-	"sync"
-	"time"
-
+	"fmt"
 	"go-micro.dev/v4/config/loader"
 	"go-micro.dev/v4/config/loader/memory"
 	"go-micro.dev/v4/config/reader"
 	"go-micro.dev/v4/config/reader/json"
 	"go-micro.dev/v4/config/source"
+	"sync"
+	"time"
 )
 
 type config struct {
@@ -40,7 +40,6 @@ func newConfig(opts ...Option) (Config, error) {
 	if !c.opts.WithWatcherDisabled {
 		go c.run()
 	}
-
 	return &c, nil
 }
 
@@ -126,7 +125,8 @@ func (c *config) run() {
 			case <-done:
 			case <-c.exit:
 			}
-			w.Stop()
+			err := w.Stop()
+			fmt.Println(err.Error())
 		}()
 
 		// block watch
@@ -240,6 +240,9 @@ func (c *config) Bytes() []byte {
 }
 
 func (c *config) Load(sources ...source.Source) error {
+	c.Lock()
+	defer c.Unlock()
+
 	if err := c.opts.Loader.Load(sources...); err != nil {
 		return err
 	}
@@ -248,9 +251,6 @@ func (c *config) Load(sources ...source.Source) error {
 	if err != nil {
 		return err
 	}
-
-	c.Lock()
-	defer c.Unlock()
 
 	c.snap = snap
 	vals, err := c.opts.Reader.Values(snap.ChangeSet)
