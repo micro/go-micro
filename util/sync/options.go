@@ -23,9 +23,7 @@ type Option func(o *Options)
 func Stores(stores ...store.Store) Option {
 	return func(o *Options) {
 		o.Stores = make([]store.Store, len(stores))
-		for i, s := range stores {
-			o.Stores[i] = s
-		}
+		copy(o.Stores, stores)
 	}
 }
 
