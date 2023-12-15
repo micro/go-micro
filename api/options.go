@@ -19,6 +19,14 @@ func NewOptions(opts ...Option) Options {
 	return options
 }
 
+// WithAddress sets the address to listen
+func WithAddress(addr string) Option {
+	return func(o *Options) error {
+		o.Address = addr
+		return nil
+	}
+}
+
 // WithRouter sets the router to use e.g static or registry.
 func WithRouter(r router.Router) Option {
 	return func(o *Options) error {
@@ -35,3 +43,4 @@ func WithRegistry(r registry.Registry) Option {
 		return nil
 	}
 }
+
