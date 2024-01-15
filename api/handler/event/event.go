@@ -54,7 +54,7 @@ func evRoute(namespace, myPath string) (string, string) {
 
 	// Treat /v[0-9]+ as versioning
 	// /v1/foo/bar => topic: v1.foo action: bar
-	if len(parts) >= 2 && versionRe.Match([]byte(parts[0])) {
+	if len(parts) >= 2 && versionRe.MatchString(parts[0]) {
 		topic := namespace + "." + strings.Join(parts[:2], ".")
 		action := eventName(parts[1:])
 
