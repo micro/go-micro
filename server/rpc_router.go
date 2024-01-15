@@ -549,6 +549,7 @@ func (router *router) ProcessMessage(ctx context.Context, msg Message) (err erro
 	subs, ok := router.subscribers[msg.Topic()]
 	router.su.RUnlock()
 	if !ok {
+		log.Warnf("Subscriber not found for topic %s", msg.Topic())
 		return nil
 	}
 
