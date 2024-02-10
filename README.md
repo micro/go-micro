@@ -2,8 +2,6 @@
 
 Go Micro is a framework for distributed systems development.
 
-**Note**: V5 will be a fork known as [**Orb**](https://github.com/go-orb/go-orb)
-
 ## Overview
 
 Go Micro provides the core requirements for distributed systems development including RPC and Event driven communication.
