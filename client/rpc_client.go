@@ -302,12 +302,6 @@ func (r *rpcClient) stream(ctx context.Context, node *registry.Node, req Request
 		r.codec = codec
 	}
 
-	releaseFunc := func(_ error) {
-		if err = c.Close(); err != nil {
-			logger.Log(log.ErrorLevel, err)
-		}
-	}
-
 	stream := &rpcStream{
 		id:       id,
 		context:  ctx,
@@ -318,7 +312,7 @@ func (r *rpcClient) stream(ctx context.Context, node *registry.Node, req Request
 		closed: make(chan bool),
 		// signal the end of stream,
 		sendEOS: true,
-		release: releaseFunc,
+		release: func(_ error) {},
 	}
 
 	// wait for error response
