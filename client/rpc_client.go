@@ -200,7 +200,7 @@ func (r *rpcClient) call(
 			return
 		}
 
-		// recv request
+		// recv response
 		if err := stream.Recv(resp); err != nil {
 			ch <- err
 			return
