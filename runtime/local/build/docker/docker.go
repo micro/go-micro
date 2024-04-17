@@ -32,6 +32,7 @@ func (d *Builder) Build(s *build.Source) (*build.Package, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer f.Close()
 	// read docker file
 	by, err := io.ReadAll(f)
 	if err != nil {
