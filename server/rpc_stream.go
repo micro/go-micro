@@ -6,7 +6,7 @@ import (
 	"io"
 	"sync"
 
-	"go-micro.dev/v4/codec"
+	"go-micro.dev/v5/codec"
 )
 
 // Implements the Streamer interface.

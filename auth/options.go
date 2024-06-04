@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"go-micro.dev/v4/logger"
+	"go-micro.dev/v5/logger"
 )
 
 func NewOptions(opts ...Option) Options {

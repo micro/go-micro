@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/urfave/cli/v2"
-	"go-micro.dev/v4"
-	"go-micro.dev/v4/logger"
-	"go-micro.dev/v4/web"
+	"go-micro.dev/v5"
+	"go-micro.dev/v5/logger"
+	"go-micro.dev/v5/web"
 )
 
 func TestWeb(t *testing.T) {

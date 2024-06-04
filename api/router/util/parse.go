@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"strings"
 
-	log "go-micro.dev/v4/logger"
+	log "go-micro.dev/v5/logger"
 )
 
 // InvalidTemplateError indicates that the path template is not valid.

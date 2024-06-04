@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/imdario/mergo"
-	"go-micro.dev/v4/config/source"
+	"go-micro.dev/v5/config/source"
 )
 
 type flagsrc struct {

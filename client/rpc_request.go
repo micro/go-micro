@@ -1,7 +1,7 @@
 package client
 
 import (
-	"go-micro.dev/v4/codec"
+	"go-micro.dev/v5/codec"
 )
 
 type rpcRequest struct {

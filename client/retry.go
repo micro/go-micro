@@ -3,7 +3,7 @@ package client
 import (
 	"context"
 
-	"go-micro.dev/v4/errors"
+	"go-micro.dev/v5/errors"
 )
 
 // note that returning either false or a non-nil error will result in the call not being retried.

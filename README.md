@@ -1,4 +1,4 @@
-# Go Micro [![License](https://img.shields.io/:license-apache-blue.svg)](https://opensource.org/licenses/Apache-2.0) [![Go.Dev reference](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white&style=flat-square)](https://pkg.go.dev/go-micro.dev/v4?tab=doc) [![Go Report Card](https://goreportcard.com/badge/github.com/go-micro/go-micro)](https://goreportcard.com/report/github.com/go-micro/go-micro)
+# Go Micro [![Go.Dev reference](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white&style=flat-square)](https://pkg.go.dev/go-micro.dev/v5?tab=doc) [![Go Report Card](https://goreportcard.com/badge/github.com/go-micro/go-micro)](https://goreportcard.com/report/github.com/go-micro/go-micro)
 
 Go Micro is a framework for distributed systems development.
 
@@ -54,7 +54,7 @@ Go Micro abstracts away the details of distributed systems. Here are the main fe
 To make use of Go Micro import it 
 
 ```golang
-import "go-micro.dev/v4"
+import "go-micro.dev/v5"
 ```
 
 Define a handler (protobuf is optionally supported - see [example](https://github.com/go-micro/examples/blob/main/helloworld/main.go)) 
@@ -127,4 +127,4 @@ See [github.com/go-micro](https://github.com/go-micro) for tooling.
 
 ## License
 
-Go Micro is Apache 2.0 licensed.
+[Business Source License 1.1](LICENSE)

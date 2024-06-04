@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"go-micro.dev/v4/api/resolver"
+	"go-micro.dev/v5/api/resolver"
 )
 
 // Resolver is a path resolver.

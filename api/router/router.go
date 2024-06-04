@@ -4,7 +4,7 @@ package router
 import (
 	"net/http"
 
-	"go-micro.dev/v4/registry"
+	"go-micro.dev/v5/registry"
 )
 
 // Router is used to determine an endpoint for a request.

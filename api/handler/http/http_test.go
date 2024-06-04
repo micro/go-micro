@@ -6,12 +6,12 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"go-micro.dev/v4/api/handler"
-	"go-micro.dev/v4/api/resolver"
-	"go-micro.dev/v4/api/resolver/vpath"
-	"go-micro.dev/v4/api/router"
-	regRouter "go-micro.dev/v4/api/router/registry"
-	"go-micro.dev/v4/registry"
+	"go-micro.dev/v5/api/handler"
+	"go-micro.dev/v5/api/resolver"
+	"go-micro.dev/v5/api/resolver/vpath"
+	"go-micro.dev/v5/api/router"
+	regRouter "go-micro.dev/v5/api/router/registry"
+	"go-micro.dev/v5/registry"
 )
 
 func testHttp(t *testing.T, path, service, ns string) {

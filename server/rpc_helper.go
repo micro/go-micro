@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"sync"
 
-	"go-micro.dev/v4/codec"
-	"go-micro.dev/v4/registry"
+	"go-micro.dev/v5/codec"
+	"go-micro.dev/v5/registry"
 )
 
 // setRegistered will set the service as registered safely.
