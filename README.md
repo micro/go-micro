@@ -125,10 +125,6 @@ See [github.com/go-micro](https://github.com/go-micro) for tooling.
 - [Dashboard](https://github.com/go-micro/dashboard)
 - [Generator](https://github.com/go-micro/generator)
 
-## Changelog
-
-See [CHANGELOG.md](https://github.com/micro/go-micro/tree/master/CHANGELOG.md) for release history.
-
 ## License
 
 Go Micro is Apache 2.0 licensed.
