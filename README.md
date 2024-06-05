@@ -128,3 +128,5 @@ See [github.com/go-micro](https://github.com/go-micro) for tooling.
 ## License
 
 [Business Source License 1.1](LICENSE)
+
+Purchase a license through the [Github Sponsorship Page](https://github.com/sponsors/go-micro)
