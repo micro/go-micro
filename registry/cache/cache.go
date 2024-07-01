@@ -162,10 +162,11 @@ func (c *cache) get(service string) ([]*registry.Service, error) {
 
 		// cache results
 		c.Lock()
-		c.set(service, util.Copy(services))
+		cp := util.Copy(services)
+		c.set(service, services)
 		c.Unlock()
 
-		return services, nil
+		return cp, nil
 	}
 
 	// watch service if not watched
