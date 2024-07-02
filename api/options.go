@@ -1,10 +1,10 @@
 package api
 
 import (
-	"go-micro.dev/v4/api/router"
-	registry2 "go-micro.dev/v4/api/router/registry"
-	"go-micro.dev/v4/client"
-	"go-micro.dev/v4/registry"
+	"go-micro.dev/v5/api/router"
+	registry2 "go-micro.dev/v5/api/router/registry"
+	"go-micro.dev/v5/client"
+	"go-micro.dev/v5/registry"
 )
 
 func NewOptions(opts ...Option) Options {
@@ -43,4 +43,3 @@ func WithRegistry(r registry.Registry) Option {
 		return nil
 	}
 }
-

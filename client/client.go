@@ -4,7 +4,7 @@ package client
 import (
 	"context"
 
-	"go-micro.dev/v4/codec"
+	"go-micro.dev/v5/codec"
 )
 
 var (

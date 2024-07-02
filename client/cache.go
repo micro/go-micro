@@ -9,8 +9,8 @@ import (
 
 	cache "github.com/patrickmn/go-cache"
 
-	"go-micro.dev/v4/metadata"
-	"go-micro.dev/v4/transport/headers"
+	"go-micro.dev/v5/metadata"
+	"go-micro.dev/v5/transport/headers"
 )
 
 // NewCache returns an initialized cache.

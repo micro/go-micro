@@ -9,10 +9,10 @@ import (
 
 	"github.com/google/uuid"
 
-	"go-micro.dev/v4/codec"
-	log "go-micro.dev/v4/logger"
-	"go-micro.dev/v4/registry"
-	signalutil "go-micro.dev/v4/util/signal"
+	"go-micro.dev/v5/codec"
+	log "go-micro.dev/v5/logger"
+	"go-micro.dev/v5/registry"
+	signalutil "go-micro.dev/v5/util/signal"
 )
 
 // Server is a simple micro server abstraction.

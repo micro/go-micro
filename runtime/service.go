@@ -8,10 +8,10 @@ import (
 	"sync"
 	"time"
 
-	log "go-micro.dev/v4/logger"
-	"go-micro.dev/v4/runtime/local/build"
-	"go-micro.dev/v4/runtime/local/process"
-	proc "go-micro.dev/v4/runtime/local/process/os"
+	log "go-micro.dev/v5/logger"
+	"go-micro.dev/v5/runtime/local/build"
+	"go-micro.dev/v5/runtime/local/process"
+	proc "go-micro.dev/v5/runtime/local/process/os"
 )
 
 type service struct {

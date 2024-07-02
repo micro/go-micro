@@ -13,17 +13,17 @@ import (
 
 	"github.com/pkg/errors"
 
-	"go-micro.dev/v4/broker"
-	"go-micro.dev/v4/codec"
-	log "go-micro.dev/v4/logger"
-	"go-micro.dev/v4/metadata"
-	"go-micro.dev/v4/registry"
-	"go-micro.dev/v4/transport"
-	"go-micro.dev/v4/transport/headers"
-	"go-micro.dev/v4/util/addr"
-	"go-micro.dev/v4/util/backoff"
-	mnet "go-micro.dev/v4/util/net"
-	"go-micro.dev/v4/util/socket"
+	"go-micro.dev/v5/broker"
+	"go-micro.dev/v5/codec"
+	log "go-micro.dev/v5/logger"
+	"go-micro.dev/v5/metadata"
+	"go-micro.dev/v5/registry"
+	"go-micro.dev/v5/transport"
+	"go-micro.dev/v5/transport/headers"
+	"go-micro.dev/v5/util/addr"
+	"go-micro.dev/v5/util/backoff"
+	mnet "go-micro.dev/v5/util/net"
+	"go-micro.dev/v5/util/socket"
 )
 
 type rpcServer struct {

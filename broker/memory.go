@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	log "go-micro.dev/v4/logger"
-	maddr "go-micro.dev/v4/util/addr"
-	mnet "go-micro.dev/v4/util/net"
+	log "go-micro.dev/v5/logger"
+	maddr "go-micro.dev/v5/util/addr"
+	mnet "go-micro.dev/v5/util/net"
 )
 
 type memoryBroker struct {

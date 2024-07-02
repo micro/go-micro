@@ -11,9 +11,9 @@ import (
 	"net/url"
 	"strings"
 
-	"go-micro.dev/v4/api/handler"
-	"go-micro.dev/v4/api/router"
-	"go-micro.dev/v4/selector"
+	"go-micro.dev/v5/api/handler"
+	"go-micro.dev/v5/api/router"
+	"go-micro.dev/v5/selector"
 )
 
 const (

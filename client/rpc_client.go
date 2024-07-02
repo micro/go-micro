@@ -10,19 +10,19 @@ import (
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 
-	"go-micro.dev/v4/broker"
-	"go-micro.dev/v4/codec"
-	raw "go-micro.dev/v4/codec/bytes"
-	merrors "go-micro.dev/v4/errors"
-	log "go-micro.dev/v4/logger"
-	"go-micro.dev/v4/metadata"
-	"go-micro.dev/v4/registry"
-	"go-micro.dev/v4/selector"
-	"go-micro.dev/v4/transport"
-	"go-micro.dev/v4/transport/headers"
-	"go-micro.dev/v4/util/buf"
-	"go-micro.dev/v4/util/net"
-	"go-micro.dev/v4/util/pool"
+	"go-micro.dev/v5/broker"
+	"go-micro.dev/v5/codec"
+	raw "go-micro.dev/v5/codec/bytes"
+	merrors "go-micro.dev/v5/errors"
+	log "go-micro.dev/v5/logger"
+	"go-micro.dev/v5/metadata"
+	"go-micro.dev/v5/registry"
+	"go-micro.dev/v5/selector"
+	"go-micro.dev/v5/transport"
+	"go-micro.dev/v5/transport/headers"
+	"go-micro.dev/v5/util/buf"
+	"go-micro.dev/v5/util/net"
+	"go-micro.dev/v5/util/pool"
 )
 
 const (
@@ -77,7 +77,13 @@ func (r *rpcClient) newCodec(contentType string) (codec.NewCodec, error) {
 	return nil, fmt.Errorf("unsupported Content-Type: %s", contentType)
 }
 
-func (r *rpcClient) call(ctx context.Context, node *registry.Node, req Request, resp interface{}, opts CallOptions) error {
+func (r *rpcClient) call(
+	ctx context.Context,
+	node *registry.Node,
+	req Request,
+	resp interface{},
+	opts CallOptions,
+) error {
 	address := node.Address
 	logger := r.Options().Logger
 
@@ -194,7 +200,7 @@ func (r *rpcClient) call(ctx context.Context, node *registry.Node, req Request, 
 			return
 		}
 
-		// recv request
+		// recv response
 		if err := stream.Recv(resp); err != nil {
 			ch <- err
 			return
@@ -292,12 +298,6 @@ func (r *rpcClient) stream(ctx context.Context, node *registry.Node, req Request
 		r.codec = codec
 	}
 
-	releaseFunc := func(_ error) {
-		if err = c.Close(); err != nil {
-			logger.Log(log.ErrorLevel, err)
-		}
-	}
-
 	stream := &rpcStream{
 		id:       id,
 		context:  ctx,
@@ -308,7 +308,7 @@ func (r *rpcClient) stream(ctx context.Context, node *registry.Node, req Request
 		closed: make(chan bool),
 		// signal the end of stream,
 		sendEOS: true,
-		release: releaseFunc,
+		release: func(_ error) {},
 	}
 
 	// wait for error response
@@ -490,7 +490,10 @@ func (r *rpcClient) Call(ctx context.Context, request Request, response interfac
 				return merrors.InternalServerError("go.micro.client", "service %s: %s", service, err.Error())
 			}
 
-			return merrors.InternalServerError("go.micro.client", "error getting next %s node: %s", service, err.Error())
+			return merrors.InternalServerError("go.micro.client",
+				"error getting next %s node: %s",
+				service,
+				err.Error())
 		}
 
 		// make the call
@@ -586,7 +589,10 @@ func (r *rpcClient) Stream(ctx context.Context, request Request, opts ...CallOpt
 				return nil, merrors.InternalServerError("go.micro.client", "service %s: %s", service, err.Error())
 			}
 
-			return nil, merrors.InternalServerError("go.micro.client", "error getting next %s node: %s", service, err.Error())
+			return nil, merrors.InternalServerError("go.micro.client",
+				"error getting next %s node: %s",
+				service,
+				err.Error())
 		}
 
 		stream, err := r.stream(ctx, node, request, callOpts)
