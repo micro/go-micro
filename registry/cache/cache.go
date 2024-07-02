@@ -161,8 +161,8 @@ func (c *cache) get(service string) ([]*registry.Service, error) {
 		}
 
 		// cache results
-		c.Lock()
 		cp := util.Copy(services)
+		c.Lock()
 		c.set(service, services)
 		c.Unlock()
 
