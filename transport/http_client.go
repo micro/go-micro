@@ -147,8 +147,8 @@ func (h *httpTransportClient) Recv(msg *Message) (err error) {
 	}
 
 	defer func() {
-		if err = rsp.Body.Close(); err != nil {
-			err = errors.Wrap(err, "failed to close body")
+		if err2 := rsp.Body.Close(); err2 != nil {
+			err = errors.Wrap(err2, "failed to close body")
 		}
 	}()
 
@@ -180,25 +180,29 @@ func (h *httpTransportClient) Recv(msg *Message) (err error) {
 
 func (h *httpTransportClient) Close() error {
 	if !h.dialOpts.Stream {
-		h.once.Do(func() {
-			h.Lock()
-			h.buff.Reset(nil)
-			h.closed = true
-			h.Unlock()
-			close(h.req)
-		})
+		h.once.Do(
+			func() {
+				h.Lock()
+				h.buff.Reset(nil)
+				h.closed = true
+				h.Unlock()
+				close(h.req)
+			},
+		)
 
 		return h.conn.Close()
 	}
 
 	err := h.conn.Close()
-	h.once.Do(func() {
-		h.Lock()
-		h.buff.Reset(nil)
-		h.closed = true
-		h.Unlock()
-		close(h.req)
-	})
+	h.once.Do(
+		func() {
+			h.Lock()
+			h.buff.Reset(nil)
+			h.closed = true
+			h.Unlock()
+			close(h.req)
+		},
+	)
 
 	return err
 }
