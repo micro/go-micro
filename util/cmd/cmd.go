@@ -281,7 +281,6 @@ func newCmd(opts ...Option) Cmd {
 		Selectors:  DefaultSelectors,
 		Servers:    DefaultServers,
 		Transports: DefaultTransports,
-		Runtimes:   DefaultRuntimes,
 		Stores:     DefaultStores,
 		Tracers:    DefaultTracers,
 		Auths:      DefaultAuths,
