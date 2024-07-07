@@ -30,18 +30,14 @@ func TestStream(t *testing.T) {
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
 			runTestStream(t, tc.str)
 		})
 	}
 }
 
 func runTestStream(t *testing.T, stream Stream) {
-	t.Parallel()
-
 	// TestMissingTopic will test the topic validation on publish
 	t.Run("TestMissingTopic", func(t *testing.T) {
-		t.Parallel()
 		err := stream.Publish("", nil)
 		assert.Equalf(t, err, ErrMissingTopic, "Publishing to a blank topic should return an error")
 	})
