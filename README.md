@@ -113,20 +113,4 @@ curl -XPOST \
 
 See the [examples](https://github.com/go-micro/examples) for detailed information on usage.
 
-## Toolkit
 
-See [github.com/go-micro](https://github.com/go-micro) for tooling.
-
-- [API](https://github.com/go-micro/api)
-- [CLI](https://github.com/go-micro/cli)
-- [Demo](https://github.com/go-micro/demo)
-- [Plugins](https://github.com/go-micro/plugins)
-- [Examples](https://github.com/go-micro/examples)
-- [Dashboard](https://github.com/go-micro/dashboard)
-- [Generator](https://github.com/go-micro/generator)
-
-## License
-
-[Business Source License 1.1](LICENSE)
-
-Purchase a license through the [Github Sponsorship Page](https://github.com/sponsors/go-micro)
