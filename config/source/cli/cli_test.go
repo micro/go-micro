@@ -21,6 +21,9 @@ func TestCliSourceDefault(t *testing.T) {
 			&cli.StringFlag{
 				Name: "test.timeout",
 			},
+			&cli.StringFlag{
+				Name: "test.bench",
+			},
 			&cli.BoolFlag{
 				Name: "test.v",
 			},
