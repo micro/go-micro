@@ -34,7 +34,6 @@ type Options struct {
 	Config    *config.Config
 	Client    *client.Client
 	Server    *server.Server
-	Runtime   *runtime.Runtime
 	Caches    map[string]func(...cache.Option) cache.Cache
 	Tracer    *trace.Tracer
 	Profiles  map[string]func(...profile.Option) profile.Profile
@@ -49,7 +48,6 @@ type Options struct {
 	Selectors  map[string]func(...selector.Option) selector.Selector
 	Servers    map[string]func(...server.Option) server.Server
 	Transports map[string]func(...transport.Option) transport.Transport
-	Runtimes   map[string]func(...runtime.Option) runtime.Runtime
 	Stores     map[string]func(...store.Option) store.Store
 	Tracers    map[string]func(...trace.Option) trace.Tracer
 	Version    string
@@ -107,12 +105,6 @@ func Selector(s *selector.Selector) Option {
 func Registry(r *registry.Registry) Option {
 	return func(o *Options) {
 		o.Registry = r
-	}
-}
-
-func Runtime(r *runtime.Runtime) Option {
-	return func(o *Options) {
-		o.Runtime = r
 	}
 }
 
@@ -204,13 +196,6 @@ func NewServer(name string, s func(...server.Option) server.Server) Option {
 func NewTransport(name string, t func(...transport.Option) transport.Transport) Option {
 	return func(o *Options) {
 		o.Transports[name] = t
-	}
-}
-
-// New runtime func.
-func NewRuntime(name string, r func(...runtime.Option) runtime.Runtime) Option {
-	return func(o *Options) {
-		o.Runtimes[name] = r
 	}
 }
 
