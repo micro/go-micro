@@ -36,7 +36,6 @@ type Options struct {
 	Context context.Context
 
 	Cache     cache.Cache
-	Runtime   runtime.Runtime
 	Profile   profile.Profile
 	Transport transport.Transport
 	Logger    logger.Logger
@@ -62,7 +61,6 @@ func newOptions(opts ...Option) Options {
 		Server:    server.DefaultServer,
 		Store:     store.DefaultStore,
 		Registry:  registry.DefaultRegistry,
-		Runtime:   runtime.DefaultRuntime,
 		Transport: transport.DefaultTransport,
 		Context:   context.Background(),
 		Signal:    true,
@@ -201,13 +199,6 @@ func Transport(t transport.Transport) Option {
 		// Update Client and Server
 		o.Client.Init(client.Transport(t))
 		o.Server.Init(server.Transport(t))
-	}
-}
-
-// Runtime sets the runtime.
-func Runtime(r runtime.Runtime) Option {
-	return func(o *Options) {
-		o.Runtime = r
 	}
 }
 
