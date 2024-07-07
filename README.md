@@ -113,8 +113,4 @@ curl -XPOST \
 
 See the [examples](https://github.com/go-micro/examples) for detailed information on usage.
 
-## License
 
-[Business Source License 1.1](LICENSE)
-
-Purchase a license through the [Github Sponsorship Page](https://github.com/sponsors/go-micro)
