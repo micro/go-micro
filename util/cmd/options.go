@@ -11,7 +11,6 @@ import (
 	"go-micro.dev/v5/debug/profile"
 	"go-micro.dev/v5/debug/trace"
 	"go-micro.dev/v5/registry"
-	"go-micro.dev/v5/runtime"
 	"go-micro.dev/v5/selector"
 	"go-micro.dev/v5/server"
 	"go-micro.dev/v5/store"

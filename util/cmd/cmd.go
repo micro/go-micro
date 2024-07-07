@@ -19,7 +19,6 @@ import (
 	"go-micro.dev/v5/debug/trace"
 	"go-micro.dev/v5/logger"
 	"go-micro.dev/v5/registry"
-	"go-micro.dev/v5/runtime"
 	"go-micro.dev/v5/selector"
 	"go-micro.dev/v5/server"
 	"go-micro.dev/v5/store"
@@ -147,17 +146,6 @@ var (
 			Usage:   "Comma-separated list of registry addresses",
 		},
 		&cli.StringFlag{
-			Name:    "runtime",
-			Usage:   "Runtime for building and running services e.g local, kubernetes",
-			EnvVars: []string{"MICRO_RUNTIME"},
-		},
-		&cli.StringFlag{
-			Name:    "runtime_source",
-			Usage:   "Runtime source for building and running services e.g github.com/micro/service",
-			EnvVars: []string{"MICRO_RUNTIME_SOURCE"},
-			Value:   "github.com/micro/services",
-		},
-		&cli.StringFlag{
 			Name:    "selector",
 			EnvVars: []string{"MICRO_SELECTOR"},
 			Usage:   "Selector used to pick nodes for querying",
@@ -252,8 +240,6 @@ var (
 
 	DefaultTransports = map[string]func(...transport.Option) transport.Transport{}
 
-	DefaultRuntimes = map[string]func(...runtime.Option) runtime.Runtime{}
-
 	DefaultStores = map[string]func(...store.Option) store.Store{}
 
 	DefaultTracers = map[string]func(...trace.Option) trace.Tracer{}
@@ -283,7 +269,6 @@ func newCmd(opts ...Option) Cmd {
 		Server:    &server.DefaultServer,
 		Selector:  &selector.DefaultSelector,
 		Transport: &transport.DefaultTransport,
-		Runtime:   &runtime.DefaultRuntime,
 		Store:     &store.DefaultStore,
 		Tracer:    &trace.DefaultTracer,
 		Profile:   &profile.DefaultProfile,
@@ -369,16 +354,6 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		}
 
 		*c.opts.Store = s(store.WithClient(*c.opts.Client))
-	}
-
-	// Set the runtime
-	if name := ctx.String("runtime"); len(name) > 0 {
-		r, ok := c.opts.Runtimes[name]
-		if !ok {
-			return fmt.Errorf("Unsupported runtime: %s", name)
-		}
-
-		*c.opts.Runtime = r(runtime.WithClient(*c.opts.Client))
 	}
 
 	// Set the tracer
@@ -564,12 +539,6 @@ func (c *cmd) Before(ctx *cli.Context) error {
 
 	if val := time.Duration(ctx.Int("register_interval")); val >= 0 {
 		serverOpts = append(serverOpts, server.RegisterInterval(val*time.Second))
-	}
-
-	if len(ctx.String("runtime_source")) > 0 {
-		if err := (*c.opts.Runtime).Init(runtime.WithSource(ctx.String("runtime_source"))); err != nil {
-			logger.Fatalf("Error configuring runtime: %v", err)
-		}
 	}
 
 	// client opts
