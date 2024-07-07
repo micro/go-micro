@@ -264,7 +264,6 @@ func (stc *ServiceTestConfig) runBench(b *testing.B, name string, test testFunc)
 	b.Logf("#    * Registry: %s", o.Registry.String())
 	b.Logf("#    * Auth: %s", o.Auth.String())
 	b.Logf("#    * Cache: %s", o.Cache.String())
-	b.Logf("#    * Runtime: %s", o.Runtime.String())
 	b.Logf("# ================================")
 
 	RunBenchmark(b, name, service, test, cancel, started)
