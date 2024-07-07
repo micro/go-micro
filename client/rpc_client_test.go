@@ -81,7 +81,6 @@ func TestCallRetry(t *testing.T) {
 			if called == 1 {
 				return errors.InternalServerError("test.error", "retry request")
 			}
-
 			// don't do the call
 			return nil
 		}
@@ -91,6 +90,8 @@ func TestCallRetry(t *testing.T) {
 	c := NewClient(
 		Registry(r),
 		WrapCall(wrap),
+		Retry(RetryAlways),
+		Retries(1),
 	)
 
 	if err := c.Options().Selector.Init(selector.Registry(r)); err != nil {
