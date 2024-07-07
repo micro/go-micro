@@ -9,6 +9,7 @@ import (
 	"go-micro.dev/v5/broker"
 	"go-micro.dev/v5/cache"
 	"go-micro.dev/v5/client"
+	"go-micro.dev/v5/cmd"
 	"go-micro.dev/v5/config"
 	"go-micro.dev/v5/debug/profile"
 	"go-micro.dev/v5/debug/trace"
@@ -18,7 +19,6 @@ import (
 	"go-micro.dev/v5/server"
 	"go-micro.dev/v5/store"
 	"go-micro.dev/v5/transport"
-	"go-micro.dev/v5/util/cmd"
 )
 
 // Options for micro service.

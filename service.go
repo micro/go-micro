@@ -7,10 +7,10 @@ import (
 	"sync"
 
 	"go-micro.dev/v5/client"
+	"go-micro.dev/v5/cmd"
 	log "go-micro.dev/v5/logger"
 	"go-micro.dev/v5/server"
 	"go-micro.dev/v5/store"
-	"go-micro.dev/v5/util/cmd"
 	signalutil "go-micro.dev/v5/util/signal"
 )
 
