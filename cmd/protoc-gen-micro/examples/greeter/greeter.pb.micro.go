@@ -12,7 +12,6 @@ import (
 
 import (
 	context "context"
-	api "go-micro.dev/v5/api"
 	client "go-micro.dev/v5/client"
 	server "go-micro.dev/v5/server"
 )
@@ -23,30 +22,9 @@ var _ = fmt.Errorf
 var _ = math.Inf
 
 // Reference imports to suppress errors if they are not otherwise used.
-var _ api.Endpoint
 var _ context.Context
 var _ client.Option
 var _ server.Option
-
-// Api Endpoints for Greeter service
-
-func NewGreeterEndpoints() []*api.Endpoint {
-	return []*api.Endpoint{
-		{
-			Name:    "Greeter.Hello",
-			Path:    []string{"/hello"},
-			Method:  []string{"POST"},
-			Handler: "rpc",
-		},
-		{
-			Name:    "Greeter.Stream",
-			Path:    []string{"/stream"},
-			Method:  []string{"GET"},
-			Stream:  true,
-			Handler: "rpc",
-		},
-	}
-}
 
 // Client API for Greeter service
 
@@ -144,19 +122,6 @@ func RegisterGreeterHandler(s server.Server, hdlr GreeterHandler, opts ...server
 		greeter
 	}
 	h := &greeterHandler{hdlr}
-	opts = append(opts, api.WithEndpoint(&api.Endpoint{
-		Name:    "Greeter.Hello",
-		Path:    []string{"/hello"},
-		Method:  []string{"POST"},
-		Handler: "rpc",
-	}))
-	opts = append(opts, api.WithEndpoint(&api.Endpoint{
-		Name:    "Greeter.Stream",
-		Path:    []string{"/stream"},
-		Method:  []string{"GET"},
-		Stream:  true,
-		Handler: "rpc",
-	}))
 	return s.Handle(s.NewHandler(&Greeter{h}, opts...))
 }
 
