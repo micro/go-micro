@@ -40,6 +40,7 @@ type updateValue struct {
 }
 
 type watcher struct {
+	sync.Mutex
 	value   reader.Value
 	reader  reader.Reader
 	version atomic.Value
@@ -427,6 +428,9 @@ func (w *watcher) Next() (*loader.Snapshot, error) {
 }
 
 func (w *watcher) Stop() error {
+	w.Lock()
+	defer w.Unlock()
+
 	select {
 	case <-w.exit:
 	default:
