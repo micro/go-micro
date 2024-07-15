@@ -105,6 +105,4 @@ curl -XPOST \
       http://localhost:8080
 ```
 
-See the [examples](https://github.com/go-micro/examples) for detailed information on usage.
-
 
