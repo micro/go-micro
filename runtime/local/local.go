@@ -2,7 +2,7 @@
 package local
 
 import (
-	"go-micro.dev/v4/runtime"
+	"go-micro.dev/v5/runtime"
 )
 
 // NewRuntime returns a new local runtime.

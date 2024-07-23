@@ -75,47 +75,47 @@ func TestFindIP(t *testing.T) {
 		},
 		{
 			addrs: []net.Addr{localhost},
-			ip: localhost.IP,
+			ip:    localhost.IP,
 		},
 		{
 			addrs: []net.Addr{localhost, localhostIPv6},
-			ip: localhost.IP,
+			ip:    localhost.IP,
 		},
 		{
 			addrs: []net.Addr{localhostIPv6},
-			ip: localhostIPv6.IP,
+			ip:    localhostIPv6.IP,
 		},
 		{
 			addrs: []net.Addr{privateIP, localhost},
-			ip: privateIP.IP,
+			ip:    privateIP.IP,
 		},
 		{
 			addrs: []net.Addr{privateIP, publicIP, localhost},
-			ip: privateIP.IP,
+			ip:    privateIP.IP,
 		},
 		{
 			addrs: []net.Addr{publicIP, privateIP, localhost},
-			ip: privateIP.IP,
+			ip:    privateIP.IP,
 		},
 		{
 			addrs: []net.Addr{publicIP, localhost},
-			ip: publicIP.IP,
+			ip:    publicIP.IP,
 		},
 		{
 			addrs: []net.Addr{publicIP, localhostIPv6},
-			ip: publicIP.IP,
+			ip:    publicIP.IP,
 		},
 		{
 			addrs: []net.Addr{localhostIPv6, publicIP},
-			ip: publicIP.IP,
+			ip:    publicIP.IP,
 		},
 		{
 			addrs: []net.Addr{localhostIPv6, publicIPv6, publicIP},
-			ip: publicIPv6.IP,
+			ip:    publicIPv6.IP,
 		},
 		{
 			addrs: []net.Addr{publicIP, publicIPv6},
-			ip: publicIP.IP,
+			ip:    publicIP.IP,
 		},
 	}
 

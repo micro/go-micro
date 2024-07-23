@@ -1,9 +1,9 @@
 package handler
 
 import (
-	"go-micro.dev/v4/api/router"
-	"go-micro.dev/v4/client"
-	"go-micro.dev/v4/logger"
+	"go-micro.dev/v5/api/router"
+	"go-micro.dev/v5/client"
+	"go-micro.dev/v5/logger"
 )
 
 var (

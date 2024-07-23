@@ -16,14 +16,14 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"go-micro.dev/v4/codec/json"
-	merr "go-micro.dev/v4/errors"
-	"go-micro.dev/v4/registry"
-	"go-micro.dev/v4/registry/cache"
-	"go-micro.dev/v4/transport/headers"
-	maddr "go-micro.dev/v4/util/addr"
-	mnet "go-micro.dev/v4/util/net"
-	mls "go-micro.dev/v4/util/tls"
+	"go-micro.dev/v5/codec/json"
+	merr "go-micro.dev/v5/errors"
+	"go-micro.dev/v5/registry"
+	"go-micro.dev/v5/registry/cache"
+	"go-micro.dev/v5/transport/headers"
+	maddr "go-micro.dev/v5/util/addr"
+	mnet "go-micro.dev/v5/util/net"
+	mls "go-micro.dev/v5/util/tls"
 	"golang.org/x/net/http2"
 )
 

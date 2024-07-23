@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 
 	docker "github.com/fsouza/go-dockerclient"
-	"go-micro.dev/v4/logger"
-	"go-micro.dev/v4/runtime/local/build"
+	"go-micro.dev/v5/logger"
+	"go-micro.dev/v5/runtime/local/build"
 )
 
 type Builder struct {
@@ -32,6 +32,7 @@ func (d *Builder) Build(s *build.Source) (*build.Package, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer f.Close()
 	// read docker file
 	by, err := io.ReadAll(f)
 	if err != nil {

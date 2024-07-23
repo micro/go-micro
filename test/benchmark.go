@@ -3,13 +3,13 @@ package test
 import (
 	"testing"
 
-	"go-micro.dev/v4"
-	"go-micro.dev/v4/broker"
-	"go-micro.dev/v4/client"
-	"go-micro.dev/v4/registry"
-	"go-micro.dev/v4/server"
-	"go-micro.dev/v4/transport"
-	"go-micro.dev/v4/util/test"
+	"go-micro.dev/v5"
+	"go-micro.dev/v5/broker"
+	"go-micro.dev/v5/client"
+	"go-micro.dev/v5/registry"
+	"go-micro.dev/v5/server"
+	"go-micro.dev/v5/transport"
+	"go-micro.dev/v5/util/test"
 )
 
 func BenchmarkService(b *testing.B) {

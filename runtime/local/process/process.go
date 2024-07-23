@@ -4,7 +4,7 @@ package process
 import (
 	"io"
 
-	"go-micro.dev/v4/runtime/local/build"
+	"go-micro.dev/v5/runtime/local/build"
 )
 
 // Process manages a running process.

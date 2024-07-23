@@ -9,9 +9,9 @@ import (
 
 	"golang.org/x/sync/singleflight"
 
-	log "go-micro.dev/v4/logger"
-	"go-micro.dev/v4/registry"
-	util "go-micro.dev/v4/util/registry"
+	log "go-micro.dev/v5/logger"
+	"go-micro.dev/v5/registry"
+	util "go-micro.dev/v5/util/registry"
 )
 
 // Cache is the registry cache interface.
@@ -161,11 +161,12 @@ func (c *cache) get(service string) ([]*registry.Service, error) {
 		}
 
 		// cache results
+		cp := util.Copy(services)
 		c.Lock()
-		c.set(service, util.Copy(services))
+		c.set(service, services)
 		c.Unlock()
 
-		return services, nil
+		return cp, nil
 	}
 
 	// watch service if not watched

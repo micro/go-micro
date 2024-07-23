@@ -13,8 +13,8 @@ import (
 	"time"
 
 	"github.com/nxadm/tail"
-	log "go-micro.dev/v4/logger"
-	"go-micro.dev/v4/runtime/local/git"
+	log "go-micro.dev/v5/logger"
+	"go-micro.dev/v5/runtime/local/git"
 )
 
 // defaultNamespace to use if not provided as an option.

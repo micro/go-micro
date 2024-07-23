@@ -10,19 +10,19 @@ import (
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 
-	"go-micro.dev/v4/broker"
-	"go-micro.dev/v4/codec"
-	raw "go-micro.dev/v4/codec/bytes"
-	merrors "go-micro.dev/v4/errors"
-	log "go-micro.dev/v4/logger"
-	"go-micro.dev/v4/metadata"
-	"go-micro.dev/v4/registry"
-	"go-micro.dev/v4/selector"
-	"go-micro.dev/v4/transport"
-	"go-micro.dev/v4/transport/headers"
-	"go-micro.dev/v4/util/buf"
-	"go-micro.dev/v4/util/net"
-	"go-micro.dev/v4/util/pool"
+	"go-micro.dev/v5/broker"
+	"go-micro.dev/v5/codec"
+	raw "go-micro.dev/v5/codec/bytes"
+	merrors "go-micro.dev/v5/errors"
+	log "go-micro.dev/v5/logger"
+	"go-micro.dev/v5/metadata"
+	"go-micro.dev/v5/registry"
+	"go-micro.dev/v5/selector"
+	"go-micro.dev/v5/transport"
+	"go-micro.dev/v5/transport/headers"
+	"go-micro.dev/v5/util/buf"
+	"go-micro.dev/v5/util/net"
+	"go-micro.dev/v5/util/pool"
 )
 
 const (
@@ -204,7 +204,7 @@ func (r *rpcClient) call(
 			return
 		}
 
-		// recv request
+		// recv response
 		if err := stream.Recv(resp); err != nil {
 			ch <- err
 			return

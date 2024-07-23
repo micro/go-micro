@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"go-micro.dev/v4/registry"
+	"go-micro.dev/v5/registry"
 )
 
 func init() {

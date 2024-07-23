@@ -8,23 +8,22 @@ import (
 	"time"
 
 	"github.com/urfave/cli/v2"
-
-	"go-micro.dev/v4/auth"
-	"go-micro.dev/v4/broker"
-	"go-micro.dev/v4/cache"
-	"go-micro.dev/v4/client"
-	"go-micro.dev/v4/config"
-	"go-micro.dev/v4/debug/profile"
-	"go-micro.dev/v4/debug/profile/http"
-	"go-micro.dev/v4/debug/profile/pprof"
-	"go-micro.dev/v4/debug/trace"
-	"go-micro.dev/v4/logger"
-	"go-micro.dev/v4/registry"
-	"go-micro.dev/v4/runtime"
-	"go-micro.dev/v4/selector"
-	"go-micro.dev/v4/server"
-	"go-micro.dev/v4/store"
-	"go-micro.dev/v4/transport"
+	"go-micro.dev/v5/auth"
+	"go-micro.dev/v5/broker"
+	"go-micro.dev/v5/cache"
+	"go-micro.dev/v5/client"
+	"go-micro.dev/v5/config"
+	"go-micro.dev/v5/debug/profile"
+	"go-micro.dev/v5/debug/profile/http"
+	"go-micro.dev/v5/debug/profile/pprof"
+	"go-micro.dev/v5/debug/trace"
+	"go-micro.dev/v5/logger"
+	"go-micro.dev/v5/registry"
+	"go-micro.dev/v5/runtime"
+	"go-micro.dev/v5/selector"
+	"go-micro.dev/v5/server"
+	"go-micro.dev/v5/store"
+	"go-micro.dev/v5/transport"
 )
 
 type Cmd interface {
@@ -510,15 +509,13 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	}
 
 	if len(ctx.String("registry_address")) > 0 {
-		if err := (*c.opts.Registry).Init(registry.Addrs(strings.Split(ctx.String("registry_address"),
-			",")...)); err != nil {
+		if err := (*c.opts.Registry).Init(registry.Addrs(strings.Split(ctx.String("registry_address"), ",")...)); err != nil {
 			logger.Fatalf("Error configuring registry: %v", err)
 		}
 	}
 
 	if len(ctx.String("transport_address")) > 0 {
-		if err := (*c.opts.Transport).Init(transport.Addrs(strings.Split(ctx.String("transport_address"),
-			",")...)); err != nil {
+		if err := (*c.opts.Transport).Init(transport.Addrs(strings.Split(ctx.String("transport_address"), ",")...)); err != nil {
 			logger.Fatalf("Error configuring transport: %v", err)
 		}
 	}
