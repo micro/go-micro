@@ -9,17 +9,16 @@ import (
 	"go-micro.dev/v5/broker"
 	"go-micro.dev/v5/cache"
 	"go-micro.dev/v5/client"
+	"go-micro.dev/v5/cmd"
 	"go-micro.dev/v5/config"
 	"go-micro.dev/v5/debug/profile"
 	"go-micro.dev/v5/debug/trace"
 	"go-micro.dev/v5/logger"
 	"go-micro.dev/v5/registry"
-	"go-micro.dev/v5/runtime"
 	"go-micro.dev/v5/selector"
 	"go-micro.dev/v5/server"
 	"go-micro.dev/v5/store"
 	"go-micro.dev/v5/transport"
-	"go-micro.dev/v5/util/cmd"
 )
 
 // Options for micro service.
@@ -37,7 +36,6 @@ type Options struct {
 	Context context.Context
 
 	Cache     cache.Cache
-	Runtime   runtime.Runtime
 	Profile   profile.Profile
 	Transport transport.Transport
 	Logger    logger.Logger
@@ -63,7 +61,6 @@ func newOptions(opts ...Option) Options {
 		Server:    server.DefaultServer,
 		Store:     store.DefaultStore,
 		Registry:  registry.DefaultRegistry,
-		Runtime:   runtime.DefaultRuntime,
 		Transport: transport.DefaultTransport,
 		Context:   context.Background(),
 		Signal:    true,
@@ -202,13 +199,6 @@ func Transport(t transport.Transport) Option {
 		// Update Client and Server
 		o.Client.Init(client.Transport(t))
 		o.Server.Init(server.Transport(t))
-	}
-}
-
-// Runtime sets the runtime.
-func Runtime(r runtime.Runtime) Option {
-	return func(o *Options) {
-		o.Runtime = r
 	}
 }
 
