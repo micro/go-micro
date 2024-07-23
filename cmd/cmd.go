@@ -565,6 +565,14 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		clientOpts = append(clientOpts, client.PoolTTL(d))
 	}
 
+	if t := ctx.String("client_pool_close_timeout"); len(t) > 0 {
+		d, err := time.ParseDuration(t)
+		if err != nil {
+			return fmt.Errorf("failed to parse client_pool_close_timeout: %v", t)
+		}
+		clientOpts = append(clientOpts, client.PoolCloseTimeout(d))
+	}
+
 	// We have some command line opts for the server.
 	// Lets set it up
 	if len(serverOpts) > 0 {

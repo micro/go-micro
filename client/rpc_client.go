@@ -46,6 +46,7 @@ func newRPCClient(opt ...Option) Client {
 		pool.Size(opts.PoolSize),
 		pool.TTL(opts.PoolTTL),
 		pool.Transport(opts.Transport),
+		pool.CloseTimeout(opts.PoolCloseTimeout),
 	)
 
 	rc := &rpcClient{
@@ -148,7 +149,10 @@ func (r *rpcClient) call(
 
 	c, err := r.pool.Get(address, dOpts...)
 	if err != nil {
-		return merrors.InternalServerError("go.micro.client", "connection error: %v", err)
+		if c == nil {
+			return merrors.InternalServerError("go.micro.client", "connection error: %v", err)
+		}
+		logger.Log(log.ErrorLevel, "failed to close pool", err)
 	}
 
 	seq := atomic.AddUint64(&r.seq, 1) - 1
