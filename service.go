@@ -7,10 +7,10 @@ import (
 	"sync"
 
 	"go-micro.dev/v5/client"
+	"go-micro.dev/v5/cmd"
 	log "go-micro.dev/v5/logger"
 	"go-micro.dev/v5/server"
 	"go-micro.dev/v5/store"
-	"go-micro.dev/v5/util/cmd"
 	signalutil "go-micro.dev/v5/util/signal"
 )
 
@@ -50,7 +50,6 @@ func (s *service) Init(opts ...Option) {
 			cmd.Auth(&s.opts.Auth),
 			cmd.Broker(&s.opts.Broker),
 			cmd.Registry(&s.opts.Registry),
-			cmd.Runtime(&s.opts.Runtime),
 			cmd.Transport(&s.opts.Transport),
 			cmd.Client(&s.opts.Client),
 			cmd.Config(&s.opts.Config),

@@ -1,6 +1,7 @@
 package transport
 
 import (
+	"errors"
 	"io"
 	"net"
 	"sync"
@@ -126,7 +127,7 @@ func TestHTTPTransportError(t *testing.T) {
 		for {
 			var m Message
 			if err := sock.Recv(&m); err != nil {
-				if err == io.EOF {
+				if errors.Is(err, io.EOF) {
 					return
 				}
 				t.Fatal(err)
@@ -335,7 +336,7 @@ func TestHTTPTransportMultipleSendWhenRecv(t *testing.T) {
 		Body: []byte(`{"message": "Hello World"}`),
 	}
 
-	wgSend := sync.WaitGroup{}
+	var wgSend sync.WaitGroup
 	fn := func(sock Socket) {
 		defer sock.Close()
 
@@ -344,7 +345,6 @@ func TestHTTPTransportMultipleSendWhenRecv(t *testing.T) {
 			if err := sock.Recv(&mr); err != nil {
 				return
 			}
-			wgSend.Add(1)
 			go func() {
 				defer wgSend.Done()
 				<-readyToSend
@@ -388,6 +388,7 @@ func TestHTTPTransportMultipleSendWhenRecv(t *testing.T) {
 			}
 		}
 	}()
+	wgSend.Add(3)
 	<-readyForRecv
 	for i := 0; i < 3; i++ {
 		if err := c.Send(&m); err != nil {

@@ -126,7 +126,7 @@ func (c *config) run() {
 			case <-c.exit:
 			}
 			err := w.Stop()
-			fmt.Println(err.Error())
+			fmt.Println(err)
 		}()
 
 		// block watch

@@ -10,8 +10,6 @@ import (
 
 	"github.com/pkg/errors"
 
-	proto "github.com/go-micro/plugins/v4/server/grpc/proto"
-
 	"go-micro.dev/v5"
 	"go-micro.dev/v5/client"
 	"go-micro.dev/v5/debug/handler"
@@ -127,7 +125,7 @@ func (stc *ServiceTestConfig) runParSeqTest(name string, c client.Client, p, s i
 }
 
 // Handle is used as a test handler.
-func (stc *ServiceTestConfig) Handle(ctx context.Context, msg *proto.Request) error {
+func (stc *ServiceTestConfig) Handle(ctx context.Context, msg *pb.HealthRequest) error {
 	stc.mu.Lock()
 	stc.msgCount++
 	stc.mu.Unlock()
@@ -136,7 +134,7 @@ func (stc *ServiceTestConfig) Handle(ctx context.Context, msg *proto.Request) er
 }
 
 // HandleError is used as a test handler.
-func (stc *ServiceTestConfig) HandleError(ctx context.Context, msg *proto.Request) error {
+func (stc *ServiceTestConfig) HandleError(ctx context.Context, msg *pb.HealthRequest) error {
 	return errors.New("dummy error")
 }
 
@@ -264,7 +262,6 @@ func (stc *ServiceTestConfig) runBench(b *testing.B, name string, test testFunc)
 	b.Logf("#    * Registry: %s", o.Registry.String())
 	b.Logf("#    * Auth: %s", o.Auth.String())
 	b.Logf("#    * Cache: %s", o.Cache.String())
-	b.Logf("#    * Runtime: %s", o.Runtime.String())
 	b.Logf("# ================================")
 
 	RunBenchmark(b, name, service, test, cancel, started)
