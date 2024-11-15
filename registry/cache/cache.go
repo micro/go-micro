@@ -176,6 +176,9 @@ func (c *cache) get(service string) ([]*registry.Service, error) {
 		// cache results
 		cp := util.Copy(services)
 		c.Lock()
+		for _, s := range services {
+			c.updateNodeTTLs(service, s.Nodes)
+		}
 		c.set(service, services)
 		c.Unlock()
 
@@ -210,13 +213,14 @@ func (c *cache) get(service string) ([]*registry.Service, error) {
 func (c *cache) set(service string, services []*registry.Service) {
 	c.cache[service] = services
 	c.ttls[service] = time.Now().Add(c.opts.TTL)
-	for _, s := range services {
-		for _, n := range s.Nodes {
-			if c.nttls[s.Name] == nil {
-				c.nttls[s.Name] = make(map[string]time.Time)
-			}
-			c.nttls[s.Name][n.Id] = time.Now().Add(c.opts.TTL)
-		}
+}
+
+func (c *cache) updateNodeTTLs(name string, nodes []*registry.Node) {
+	if c.nttls[name] == nil {
+		c.nttls[name] = make(map[string]time.Time)
+	}
+	for _, node := range nodes {
+		c.nttls[name][node.Id] = time.Now().Add(c.opts.TTL)
 	}
 }
 
@@ -260,6 +264,7 @@ func (c *cache) update(res *registry.Result) {
 
 	switch res.Action {
 	case "create", "update":
+		c.updateNodeTTLs(res.Service.Name, res.Service.Nodes)
 		if service == nil {
 			c.set(res.Service.Name, append(services, res.Service))
 			return
