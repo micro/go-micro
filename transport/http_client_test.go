@@ -7,7 +7,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func TestHttpClientTransport(t *testing.T) {
+func TestDefaultHttpClientTransport(t *testing.T) {
 	// arrange
 	l, c, err := echoHttpClient("127.0.0.1:")
 	if err != nil {

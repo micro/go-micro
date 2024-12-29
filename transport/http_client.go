@@ -111,7 +111,15 @@ func (h *httpTransportClient) Recv(msg *Message) (err error) {
 	var req *http.Request
 
 	if !h.dialOpts.Stream {
-		rc, ok := <-h.req
+
+		var rc *http.Request
+		var ok bool
+
+		select {
+		case rc, ok = <-h.req:
+		default:
+		}
+
 		if !ok {
 			h.Lock()
 			if len(h.reqList) == 0 {
