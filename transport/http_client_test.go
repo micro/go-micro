@@ -7,9 +7,9 @@ import (
 	"github.com/pkg/errors"
 )
 
-func TestDefaultHttpClientTransport(t *testing.T) {
+func TestHttpTransportClient(t *testing.T) {
 	// arrange
-	l, c, err := echoHttpClient("127.0.0.1:")
+	l, c, err := echoHttpTransportClient("127.0.0.1:")
 	if err != nil {
 		t.Error(err)
 	}
@@ -49,7 +49,7 @@ func TestDefaultHttpClientTransport(t *testing.T) {
 	}
 }
 
-func echoHttpClient(addr string) (*httpTransportListener, *httpTransportClient, error) {
+func echoHttpTransportClient(addr string) (*httpTransportListener, *httpTransportClient, error) {
 	tr := NewHTTPTransport()
 	l, err := tr.Listen(addr)
 	if err != nil {
