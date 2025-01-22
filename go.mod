@@ -4,7 +4,6 @@ go 1.18
 
 require (
 	github.com/bitly/go-simplejson v0.5.0
-	github.com/ef-ds/deque v1.0.4
 	github.com/fsnotify/fsnotify v1.6.0
 	github.com/golang/protobuf v1.5.4
 	github.com/google/uuid v1.3.0

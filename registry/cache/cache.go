@@ -42,6 +42,7 @@ type cache struct {
 	sg      singleflight.Group
 	cache   map[string][]*registry.Service
 	ttls    map[string]time.Time
+	nttls   map[string]map[string]time.Time // node ttls
 	watched map[string]bool
 
 	// used to stop the cache
@@ -94,6 +95,17 @@ func (c *cache) isValid(services []*registry.Service, ttl time.Time) bool {
 		return false
 	}
 
+	// a node did not get updated
+	for _, s := range services {
+		for _, n := range s.Nodes {
+			nttl := c.nttls[s.Name][n.Id]
+			if time.Since(nttl) > 0 {
+				delete(c.nttls, s.Name)
+				return false
+			}
+		}
+	}
+
 	// ok
 	return true
 }
@@ -115,6 +127,7 @@ func (c *cache) del(service string) {
 	// otherwise delete entries
 	delete(c.cache, service)
 	delete(c.ttls, service)
+	delete(c.nttls, service)
 }
 
 func (c *cache) get(service string) ([]*registry.Service, error) {
@@ -128,7 +141,7 @@ func (c *cache) get(service string) ([]*registry.Service, error) {
 	// make a copy
 	cp := util.Copy(services)
 
-	// got services && within ttl so return cache
+	// got services, nodes && within ttl so return cache
 	if c.isValid(cp, ttl) {
 		c.RUnlock()
 		// return services
@@ -163,6 +176,9 @@ func (c *cache) get(service string) ([]*registry.Service, error) {
 		// cache results
 		cp := util.Copy(services)
 		c.Lock()
+		for _, s := range services {
+			c.updateNodeTTLs(service, s.Nodes)
+		}
 		c.set(service, services)
 		c.Unlock()
 
@@ -197,6 +213,15 @@ func (c *cache) get(service string) ([]*registry.Service, error) {
 func (c *cache) set(service string, services []*registry.Service) {
 	c.cache[service] = services
 	c.ttls[service] = time.Now().Add(c.opts.TTL)
+}
+
+func (c *cache) updateNodeTTLs(name string, nodes []*registry.Node) {
+	if c.nttls[name] == nil {
+		c.nttls[name] = make(map[string]time.Time)
+	}
+	for _, node := range nodes {
+		c.nttls[name][node.Id] = time.Now().Add(c.opts.TTL)
+	}
 }
 
 func (c *cache) update(res *registry.Result) {
@@ -239,6 +264,7 @@ func (c *cache) update(res *registry.Result) {
 
 	switch res.Action {
 	case "create", "update":
+		c.updateNodeTTLs(res.Service.Name, res.Service.Nodes)
 		if service == nil {
 			c.set(res.Service.Name, append(services, res.Service))
 			return
@@ -483,6 +509,7 @@ func New(r registry.Registry, opts ...Option) Cache {
 		watchedRunning: make(map[string]bool),
 		cache:          make(map[string][]*registry.Service),
 		ttls:           make(map[string]time.Time),
+		nttls:          make(map[string]map[string]time.Time),
 		exit:           make(chan bool),
 	}
 }
