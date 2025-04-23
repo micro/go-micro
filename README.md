@@ -74,10 +74,10 @@ Create, initialise and run the service
 
 ```golang
 // create a new service
-service := micro.NewService(
-    micro.Name("helloworld"),
-    micro.Handle(new(Helloworld)),
-)
+service := micro.New("helloworld")
+
+// register handler
+service.Handle(new(Helloworld))
 
 // initialise flags
 service.Init()
@@ -105,4 +105,6 @@ curl -XPOST \
       http://localhost:8080
 ```
 
+## Plugins
 
+See [Plugins](https://github.com/micro/plugins) for implementations of the various core interfaces.
