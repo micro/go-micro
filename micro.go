@@ -43,6 +43,13 @@ type Publisher = Event
 
 type Option func(*Options)
 
+// New represents the new service
+func New(name string) Service {
+	return newService(
+		Name(name),
+	)
+}
+
 // NewService creates and returns a new Service based on the packages within.
 func NewService(opts ...Option) Service {
 	return newService(opts...)
