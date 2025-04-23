@@ -51,7 +51,7 @@ To make use of Go Micro import it
 import "go-micro.dev/v5"
 ```
 
-Define a handler (protobuf is optionally supported - see [example](https://github.com/go-micro/examples/blob/main/helloworld/main.go)) 
+Define a handler (protobuf is supported via [protoc-gen-micro](https://github.com/micro/go-micro/tree/master/cmd/protoc-gen-micro)) 
 
 ```golang
 type Request struct {
