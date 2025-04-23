@@ -128,7 +128,7 @@ func (s *service) Stop() error {
 
 func (s *service) Handle(v interface{}) error {
 	return s.opts.Server.Handle(
-		s.opts.Server.NewHandler(h),
+		s.opts.Server.NewHandler(v),
 	)
 }
 
