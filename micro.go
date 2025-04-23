@@ -20,6 +20,8 @@ type Service interface {
 	Init(...Option)
 	// Options returns the current options
 	Options() Options
+	// Register the handler
+	Handle(v interface{}) error
 	// Client is used to call services
 	Client() client.Client
 	// Server is for handling requests and events

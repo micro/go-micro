@@ -126,6 +126,12 @@ func (s *service) Stop() error {
 	return err
 }
 
+func (s *service) Handle(v interface{}) error {
+	return s.opts.Server.Handle(
+		s.opts.Server.NewHandler(h),
+	)
+}
+
 func (s *service) Run() (err error) {
 	logger := s.opts.Logger
 
