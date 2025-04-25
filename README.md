@@ -111,7 +111,7 @@ Use the [Micro](https://github.com/micro/micro) cli to call it
 micro call helloworld Say.Hello '{"name": "Asim"}'
 ```
 
-Run the micro api and call it via the http
+Run the micro api and call it via http
 
 ```
 micro api
