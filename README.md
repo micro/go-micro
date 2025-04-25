@@ -75,14 +75,16 @@ func (h *Say) Hello(ctx context.Context, req *Request, rsp *Response) error {
         return nil
 }
 
-// create the service
-service := micro.New("helloworld")
+func main() {
+        // create the service
+        service := micro.New("helloworld")
 
-// register handler
-service.Handle(new(Say))
+        // register handler
+        service.Handle(new(Say))
 
-// run the service
-service.Run()
+        // run the service
+        service.Run()
+}
 ```
 
 Optionally set fixed address
