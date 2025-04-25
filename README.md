@@ -51,9 +51,15 @@ To make use of Go Micro import it
 import "go-micro.dev/v5"
 ```
 
-Define a handler (protobuf is supported via [protoc-gen-micro](https://github.com/micro/go-micro/tree/master/cmd/protoc-gen-micro)) 
+Create a service and register a handler
 
 ```golang
+package main
+
+import (
+        "go-micro.dev/v5"
+)
+
 type Request struct {
         Name string `json:"name"`
 }
@@ -62,27 +68,20 @@ type Response struct {
         Message string `json:"message"`
 }
 
-type Helloworld struct{}
+type Say struct{}
 
-func (h *Helloworld) Greeting(ctx context.Context, req *Request, rsp *Response) error {
+func (h *Say) Hello(ctx context.Context, req *Request, rsp *Response) error {
         rsp.Message = "Hello " + req.Name
         return nil
 }
-```
 
-Create, initialise and run the service
-
-```golang
-// create a new service
+// create the service
 service := micro.New("helloworld")
 
 // register handler
-service.Handle(new(Helloworld))
+service.Handle(new(Say))
 
-// initialise flags
-service.Init()
-
-// start the service
+// run the service
 service.Run()
 ```
 
@@ -90,7 +89,6 @@ Optionally set fixed address
 
 ```golang
 service := micro.NewService(
-    // set address
     micro.Address(":8080"),
 )
 ```
@@ -100,10 +98,34 @@ Call it via curl
 ```
 curl -XPOST \
      -H 'Content-Type: application/json' \
-     -H 'Micro-Endpoint: Helloworld.Greeting' \
+     -H 'Micro-Endpoint: Say.Hello' \
      -d '{"name": "alice"}' \
       http://localhost:8080
 ```
+
+## Micro
+
+Use the [Micro](https://github.com/micro/micro) cli to call it 
+
+```
+micro call helloworld Say.Hello '{"name": "Asim"}'
+```
+
+Run the micro api and call it via the http
+
+```
+micro api
+```
+
+Call it via http://localhost:8080/
+
+```
+curl -d '{"name": "Asim"}' https://localhost:8080/helloworld/Say/Hello
+```
+
+## Protobuf
+
+Protobuf is supported via [protoc-gen-micro](https://github.com/micro/go-micro/tree/master/cmd/protoc-gen-micro)
 
 ## Plugins
 
