@@ -127,7 +127,7 @@ curl -d '{"name": "Asim"}' https://localhost:8080/helloworld/Say/Hello
 
 ## Protobuf
 
-Protobuf is supported via [protoc-gen-micro](https://github.com/micro/go-micro/tree/master/cmd/protoc-gen-micro)
+Protobuf is supported via [protoc-gen-micro](https://github.com/micro/micro/tree/master/cmd/protoc-gen-micro)
 
 ## Plugins
 
