@@ -5,6 +5,8 @@ package store
 import (
 	"errors"
 	"time"
+
+	"encoding/json"
 )
 
 var (
@@ -48,4 +50,12 @@ type Record struct {
 
 func NewStore(opts ...Option) Store {
 	return NewMemoryStore(opts...)
+}
+
+func NewRecord(key string, val interface{}) *Record {
+	b, _ := json.Marshal(val)
+	return &Record{
+		Key:   key,
+		Value: b,
+	}
 }
