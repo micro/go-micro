@@ -59,3 +59,24 @@ func NewRecord(key string, val interface{}) *Record {
 		Value: b,
 	}
 }
+
+// Read records
+func Read(key string, opts ...ReadOption) ([]*Record, error) {
+	// execute the query
+	return DefaultStore.Read(key, opts...)
+}
+
+// Write a record to the store
+func Write(r *Record) error {
+	return DefaultStore.Write(r)
+}
+
+// Delete removes the record with the corresponding key from the store.
+func Delete(key string) error {
+	return DefaultStore.Delete(key)
+}
+
+// List returns any keys that match, or an empty list with no error if none matched.
+func List(opts ...ListOption) ([]string, error) {
+	return DefaultStore.List(opts...)
+}
