@@ -1,4 +1,4 @@
-package micro
+package service
 
 import (
 	"os"
@@ -20,7 +20,7 @@ type service struct {
 	once sync.Once
 }
 
-func newService(opts ...Option) Service {
+func New(opts ...Option) *service {
 	return &service{
 		opts: newOptions(opts...),
 	}
