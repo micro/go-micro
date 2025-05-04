@@ -6,6 +6,7 @@ import (
 
 	"go-micro.dev/v5/client"
 	"go-micro.dev/v5/server"
+	"go-micro.dev/v5/service"
 )
 
 type serviceKey struct{}
@@ -32,6 +33,10 @@ type Service interface {
 	String() string
 }
 
+type Option = service.Option
+
+type Options = service.Options
+
 // Event is used to publish messages to a topic.
 type Event interface {
 	// Publish publishes a message to the event topic
@@ -41,18 +46,16 @@ type Event interface {
 // Type alias to satisfy the deprecation.
 type Publisher = Event
 
-type Option func(*Options)
-
 // New represents the new service
 func New(name string) Service {
-	return newService(
-		Name(name),
+	return NewService(
+		service.Name(name),
 	)
 }
 
 // NewService creates and returns a new Service based on the packages within.
 func NewService(opts ...Option) Service {
-	return newService(opts...)
+	return service.New(opts...)
 }
 
 // FromContext retrieves a Service from the Context.
