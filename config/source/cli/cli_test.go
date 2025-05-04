@@ -56,7 +56,9 @@ func TestCliSourceDefault(t *testing.T) {
 	)
 
 	config.Load(cliSrc)
-	if fval := config.Get("flag").String("default"); fval != expVal {
+	if val, err := config.Get("flag"); err != nil {
+		t.Fatal(err)
+	} else if fval := val.String("default"); fval != expVal {
 		t.Fatalf("default flag value not loaded %v != %v", fval, expVal)
 	}
 }

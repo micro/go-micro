@@ -79,7 +79,7 @@ func Sync() error {
 }
 
 // Get a value from the config.
-func Get(path ...string) reader.Value {
+func Get(path ...string) (reader.Value, error) {
 	return DefaultConfig.Get(path...)
 }
 
