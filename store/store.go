@@ -60,6 +60,21 @@ func NewRecord(key string, val interface{}) *Record {
 	}
 }
 
+// Encode will marshal any type into the byte Value field
+func (r *Record) Encode(v interface{}) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	r.Value = b
+	return nil
+}
+
+// Decode is a convenience helper for decoding records
+func (r *Record) Decode(v interface{}) error {
+	return json.Unmarshal(r.Value, v)
+}
+
 // Read records
 func Read(key string, opts ...ReadOption) ([]*Record, error) {
 	// execute the query
