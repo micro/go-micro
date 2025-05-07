@@ -9,6 +9,8 @@ import (
 
 	"github.com/urfave/cli/v2"
 	"go-micro.dev/v5/auth"
+	hbroker "go-micro.dev/v5/broker/http"
+
 	"go-micro.dev/v5/broker"
 	"go-micro.dev/v5/cache"
 	"go-micro.dev/v5/client"
@@ -230,7 +232,10 @@ var (
 		},
 	}
 
-	DefaultBrokers = map[string]func(...broker.Option) broker.Broker{}
+	DefaultBrokers = map[string]func(...broker.Option) broker.Broker{
+		"memory": broker.NewMemoryBroker,
+		"http":   hbroker.NewBroker,
+	}
 
 	DefaultClients = map[string]func(...client.Option) client.Client{}
 
