@@ -124,11 +124,3 @@ Call it via http://localhost:8080/
 ```
 curl -d '{"name": "Asim"}' https://localhost:8080/helloworld/Say/Hello
 ```
-
-## Protobuf
-
-Protobuf is supported via [protoc-gen-micro](https://github.com/micro/micro/tree/master/cmd/protoc-gen-micro)
-
-## Plugins
-
-See [Plugins](https://github.com/micro/plugins) for implementations of the various core interfaces.
