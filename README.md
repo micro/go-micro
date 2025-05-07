@@ -87,7 +87,7 @@ func main() {
 }
 ```
 
-Optionally set fixed address
+Set a fixed address
 
 ```golang
 service := micro.NewService(
