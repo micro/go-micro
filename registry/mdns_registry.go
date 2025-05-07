@@ -1,3 +1,6 @@
+//go:build !nats
+// +build !nats
+
 // Package mdns is a multicast dns registry
 package registry
 

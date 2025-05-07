@@ -1,3 +1,6 @@
+//go:build !nats
+// +build !nats
+
 package registry
 
 import (

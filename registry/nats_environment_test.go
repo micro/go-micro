@@ -1,0 +1,71 @@
+//go:build nats
+// +build nats
+
+package registry_test
+
+import (
+	"os"
+	"testing"
+
+	log "go-micro.dev/v5/logger"
+	"go-micro.dev/v5/registry"
+)
+
+type environment struct {
+	registryOne   Registry
+	registryTwo   Registry
+	registryThree Registry
+
+	serviceOne Service
+	serviceTwo Service
+
+	nodeOne   Node
+	nodeTwo   Node
+	nodeThree Node
+}
+
+var e environment
+
+func TestMain(m *testing.M) {
+	natsURL := os.Getenv("NATS_URL")
+	if natsURL == "" {
+		log.Infof("NATS_URL is undefined - skipping tests")
+		return
+	}
+
+	e.registryOne = registry.NewRegistry(Addrs(natsURL), registry.Quorum(1))
+	e.registryTwo = registry.NewRegistry(Addrs(natsURL), registry.Quorum(1))
+	e.registryThree = registry.NewRegistry(Addrs(natsURL), registry.Quorum(1))
+
+	e.serviceOne.Name = "one"
+	e.serviceOne.Version = "default"
+	e.serviceOne.Nodes = []*Node{&e.nodeOne}
+
+	e.serviceTwo.Name = "two"
+	e.serviceTwo.Version = "default"
+	e.serviceTwo.Nodes = []*Node{&e.nodeOne, &e.nodeTwo}
+
+	e.nodeOne.Id = "one"
+	e.nodeTwo.Id = "two"
+	e.nodeThree.Id = "three"
+
+	if err := e.registryOne.Register(&e.serviceOne); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := e.registryOne.Register(&e.serviceTwo); err != nil {
+		log.Fatal(err)
+	}
+
+	result := m.Run()
+
+	if err := e.registryOne.Deregister(&e.serviceOne); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := e.registryOne.Deregister(&e.serviceTwo); err != nil {
+		log.Fatal(err)
+	}
+
+	os.Exit(result)
+}

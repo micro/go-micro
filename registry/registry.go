@@ -6,8 +6,6 @@ import (
 )
 
 var (
-	DefaultRegistry = NewRegistry()
-
 	// Not found error when GetService is called.
 	ErrNotFound = errors.New("service not found")
 	// Watcher stopped error when watcher is stopped.
