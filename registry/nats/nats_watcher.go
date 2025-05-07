@@ -1,22 +1,20 @@
-//go:build nats
-// +build nats
-
-package registry
+package nats
 
 import (
 	"encoding/json"
 	"time"
 
 	"github.com/nats-io/nats.go"
+	"go-micro.dev/v5/registry"
 )
 
 type natsWatcher struct {
 	sub *nats.Subscription
-	wo  WatchOptions
+	wo  registry.WatchOptions
 }
 
-func (n *natsWatcher) Next() (*Result, error) {
-	var result *Result
+func (n *natsWatcher) Next() (*registry.Result, error) {
+	var result *registry.Result
 	for {
 		m, err := n.sub.NextMsg(time.Minute)
 		if err != nil && err == nats.ErrTimeout {

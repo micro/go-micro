@@ -19,6 +19,8 @@ import (
 	"go-micro.dev/v5/debug/trace"
 	"go-micro.dev/v5/logger"
 	"go-micro.dev/v5/registry"
+	"go-micro.dev/v5/registry/mdns"
+	"go-micro.dev/v5/registry/nats"
 	"go-micro.dev/v5/selector"
 	"go-micro.dev/v5/server"
 	"go-micro.dev/v5/store"
@@ -232,7 +234,11 @@ var (
 
 	DefaultClients = map[string]func(...client.Option) client.Client{}
 
-	DefaultRegistries = map[string]func(...registry.Option) registry.Registry{}
+	DefaultRegistries = map[string]func(...registry.Option) registry.Registry{
+		"memory": registry.NewMemoryRegistry,
+		"nats":   nats.NewRegistry,
+		"mdns":   mdns.NewMDNSRegistry,
+	}
 
 	DefaultSelectors = map[string]func(...selector.Option) selector.Selector{}
 

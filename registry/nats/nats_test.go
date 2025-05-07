@@ -1,14 +1,13 @@
-//go:build nats
-// +build nats
-
-package registry_test
+package nats_test
 
 import (
 	"testing"
+
+	"go-micro.dev/v5/registry"
 )
 
 func TestRegister(t *testing.T) {
-	service := Service{Name: "test"}
+	service := registry.Service{Name: "test"}
 	assertNoError(t, e.registryOne.Register(&service))
 	defer e.registryOne.Deregister(&service)
 
@@ -22,8 +21,8 @@ func TestRegister(t *testing.T) {
 }
 
 func TestDeregister(t *testing.T) {
-	service1 := Service{Name: "test-deregister", Version: "v1"}
-	service2 := Service{Name: "test-deregister", Version: "v2"}
+	service1 := registry.Service{Name: "test-deregister", Version: "v1"}
+	service2 := registry.Service{Name: "test-deregister", Version: "v2"}
 
 	assertNoError(t, e.registryOne.Register(&service1))
 	services, err := e.registryOne.GetService(service1.Name)

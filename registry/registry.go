@@ -93,3 +93,7 @@ func Watch(opts ...WatchOption) (Watcher, error) {
 func String() string {
 	return DefaultRegistry.String()
 }
+
+var (
+	DefaultRegistry = NewMemoryRegistry()
+)

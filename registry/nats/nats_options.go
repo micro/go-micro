@@ -1,12 +1,10 @@
-//go:build nats
-// +build nats
-
-package registry
+package nats
 
 import (
 	"context"
 
 	"github.com/nats-io/nats.go"
+	"go-micro.dev/v5/registry"
 )
 
 type contextQuorumKey struct{}
@@ -19,7 +17,7 @@ var (
 	DefaultQuorum = 0
 )
 
-func getQuorum(o Options) int {
+func getQuorum(o registry.Options) int {
 	if o.Context == nil {
 		return DefaultQuorum
 	}
@@ -32,16 +30,16 @@ func getQuorum(o Options) int {
 	}
 }
 
-func Quorum(n int) Option {
-	return func(o *Options) {
+func Quorum(n int) registry.Option {
+	return func(o *registry.Options) {
 		o.Context = context.WithValue(o.Context, contextQuorumKey{}, n)
 	}
 }
 
 // Options allow to inject a nats.Options struct for configuring
 // the nats connection.
-func NatsOptions(nopts nats.Options) Option {
-	return func(o *Options) {
+func NatsOptions(nopts nats.Options) registry.Option {
+	return func(o *registry.Options) {
 		if o.Context == nil {
 			o.Context = context.Background()
 		}
@@ -52,8 +50,8 @@ func NatsOptions(nopts nats.Options) Option {
 // QueryTopic allows to set a custom nats topic on which service registries
 // query (survey) other services. All registries listen on this topic and
 // then respond to the query message.
-func QueryTopic(s string) Option {
-	return func(o *Options) {
+func QueryTopic(s string) registry.Option {
+	return func(o *registry.Options) {
 		if o.Context == nil {
 			o.Context = context.Background()
 		}
@@ -65,8 +63,8 @@ func QueryTopic(s string) Option {
 // changes (e.g. when services are added, updated or removed). Since we don't
 // have a central registry service, each service typically broadcasts in a
 // determined frequency on this topic.
-func WatchTopic(s string) Option {
-	return func(o *Options) {
+func WatchTopic(s string) registry.Option {
+	return func(o *registry.Options) {
 		if o.Context == nil {
 			o.Context = context.Background()
 		}
@@ -79,8 +77,8 @@ func WatchTopic(s string) Option {
 // - "create" (default) only registers if there is noone already registered under the same key.
 // - "update" only updates the registration if it already exists.
 // - "put" creates or updates a registration
-func RegisterAction(s string) Option {
-	return func(o *Options) {
+func RegisterAction(s string) registry.Option {
+	return func(o *registry.Options) {
 		if o.Context == nil {
 			o.Context = context.Background()
 		}

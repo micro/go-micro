@@ -1,29 +1,28 @@
-//go:build nats
-// +build nats
+package nats
 
-package registry
+import "go-micro.dev/v5/registry"
 
-func cp(current []*Service) []*Service {
-	var services []*Service
+func cp(current []*registry.Service) []*registry.Service {
+	var services []*registry.Service
 
 	for _, service := range current {
 		// copy service
-		s := new(Service)
+		s := new(registry.Service)
 		*s = *service
 
 		// copy nodes
-		var nodes []*Node
+		var nodes []*registry.Node
 		for _, node := range service.Nodes {
-			n := new(Node)
+			n := new(registry.Node)
 			*n = *node
 			nodes = append(nodes, n)
 		}
 		s.Nodes = nodes
 
 		// copy endpoints
-		var eps []*Endpoint
+		var eps []*registry.Endpoint
 		for _, ep := range service.Endpoints {
-			e := new(Endpoint)
+			e := new(registry.Endpoint)
 			*e = *ep
 			eps = append(eps, e)
 		}
@@ -36,7 +35,7 @@ func cp(current []*Service) []*Service {
 	return services
 }
 
-func addNodes(old, neu []*Node) []*Node {
+func addNodes(old, neu []*registry.Node) []*registry.Node {
 	for _, n := range neu {
 		var seen bool
 		for i, o := range old {
@@ -53,7 +52,7 @@ func addNodes(old, neu []*Node) []*Node {
 	return old
 }
 
-func addServices(old, neu []*Service) []*Service {
+func addServices(old, neu []*registry.Service) []*registry.Service {
 	for _, s := range neu {
 		var seen bool
 		for i, o := range old {
@@ -71,8 +70,8 @@ func addServices(old, neu []*Service) []*Service {
 	return old
 }
 
-func delNodes(old, del []*Node) []*Node {
-	var nodes []*Node
+func delNodes(old, del []*registry.Node) []*registry.Node {
+	var nodes []*registry.Node
 	for _, o := range old {
 		var rem bool
 		for _, n := range del {
@@ -88,8 +87,8 @@ func delNodes(old, del []*Node) []*Node {
 	return nodes
 }
 
-func delServices(old, del []*Service) []*Service {
-	var services []*Service
+func delServices(old, del []*registry.Service) []*registry.Service {
+	var services []*registry.Service
 	for i, o := range old {
 		var rem bool
 		for _, s := range del {

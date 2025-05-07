@@ -1,8 +1,5 @@
-//go:build nats
-// +build nats
-
 // Package nats provides a NATS registry using broadcast queries
-package registry
+package nats
 
 import (
 	"context"
@@ -12,11 +9,12 @@ import (
 	"time"
 
 	"github.com/nats-io/nats.go"
+	"go-micro.dev/v5/registry"
 )
 
 type natsRegistry struct {
 	addrs          []string
-	opts           Options
+	opts           registry.Options
 	nopts          nats.Options
 	queryTopic     string
 	watchTopic     string
@@ -24,7 +22,7 @@ type natsRegistry struct {
 
 	sync.RWMutex
 	conn      *nats.Conn
-	services  map[string][]*Service
+	services  map[string][]*registry.Service
 	listeners map[string]chan bool
 }
 
@@ -34,7 +32,7 @@ var (
 	defaultRegisterAction = "create"
 )
 
-func configure(n *natsRegistry, opts ...Option) error {
+func configure(n *natsRegistry, opts ...registry.Option) error {
 	for _, o := range opts {
 		o(&n.opts)
 	}
@@ -135,7 +133,7 @@ func (n *natsRegistry) getConn() (*nats.Conn, error) {
 	return n.conn, nil
 }
 
-func (n *natsRegistry) register(s *Service) error {
+func (n *natsRegistry) register(s *registry.Service) error {
 	conn, err := n.getConn()
 	if err != nil {
 		return err
@@ -145,7 +143,7 @@ func (n *natsRegistry) register(s *Service) error {
 	defer n.Unlock()
 
 	// cache service
-	n.services[s.Name] = addServices(n.services[s.Name], cp([]*Service{s}))
+	n.services[s.Name] = addServices(n.services[s.Name], cp([]*registry.Service{s}))
 
 	// create query listener
 	if n.listeners[s.Name] == nil {
@@ -153,13 +151,13 @@ func (n *natsRegistry) register(s *Service) error {
 
 		// create a subscriber that responds to queries
 		sub, err := conn.Subscribe(n.queryTopic, func(m *nats.Msg) {
-			var result *Result
+			var result *registry.Result
 
 			if err := json.Unmarshal(m.Data, &result); err != nil {
 				return
 			}
 
-			var services []*Service
+			var services []*registry.Service
 
 			switch result.Action {
 			// is this a get query and we own the service?
@@ -207,11 +205,11 @@ func (n *natsRegistry) register(s *Service) error {
 	return nil
 }
 
-func (n *natsRegistry) deregister(s *Service) error {
+func (n *natsRegistry) deregister(s *registry.Service) error {
 	n.Lock()
 	defer n.Unlock()
 
-	services := delServices(n.services[s.Name], cp([]*Service{s}))
+	services := delServices(n.services[s.Name], cp([]*registry.Service{s}))
 	if len(services) > 0 {
 		n.services[s.Name] = services
 		return nil
@@ -229,28 +227,28 @@ func (n *natsRegistry) deregister(s *Service) error {
 	return nil
 }
 
-func (n *natsRegistry) query(s string, quorum int) ([]*Service, error) {
+func (n *natsRegistry) query(s string, quorum int) ([]*registry.Service, error) {
 	conn, err := n.getConn()
 	if err != nil {
 		return nil, err
 	}
 
 	var action string
-	var service *Service
+	var service *registry.Service
 
 	if len(s) > 0 {
 		action = "get"
-		service = &Service{Name: s}
+		service = &registry.Service{Name: s}
 	} else {
 		action = "list"
 	}
 
 	inbox := nats.NewInbox()
 
-	response := make(chan *Service, 10)
+	response := make(chan *registry.Service, 10)
 
 	sub, err := conn.Subscribe(inbox, func(m *nats.Msg) {
-		var service *Service
+		var service *registry.Service
 		if err := json.Unmarshal(m.Data, &service); err != nil {
 			return
 		}
@@ -264,7 +262,7 @@ func (n *natsRegistry) query(s string, quorum int) ([]*Service, error) {
 	}
 	defer sub.Unsubscribe()
 
-	b, err := json.Marshal(&Result{Action: action, Service: service})
+	b, err := json.Marshal(&registry.Result{Action: action, Service: service})
 	if err != nil {
 		return nil, err
 	}
@@ -279,7 +277,7 @@ func (n *natsRegistry) query(s string, quorum int) ([]*Service, error) {
 
 	timeoutChan := time.After(n.opts.Timeout)
 
-	serviceMap := make(map[string]*Service)
+	serviceMap := make(map[string]*registry.Service)
 
 loop:
 	for {
@@ -302,22 +300,22 @@ loop:
 		}
 	}
 
-	var services []*Service
+	var services []*registry.Service
 	for _, service := range serviceMap {
 		services = append(services, service)
 	}
 	return services, nil
 }
 
-func (n *natsRegistry) Init(opts ...Option) error {
+func (n *natsRegistry) Init(opts ...registry.Option) error {
 	return configure(n, opts...)
 }
 
-func (n *natsRegistry) Options() Options {
+func (n *natsRegistry) Options() registry.Options {
 	return n.opts
 }
 
-func (n *natsRegistry) Register(s *Service, opts ...RegisterOption) error {
+func (n *natsRegistry) Register(s *registry.Service, opts ...registry.RegisterOption) error {
 	if err := n.register(s); err != nil {
 		return err
 	}
@@ -327,7 +325,7 @@ func (n *natsRegistry) Register(s *Service, opts ...RegisterOption) error {
 		return err
 	}
 
-	b, err := json.Marshal(&Result{Action: n.registerAction, Service: s})
+	b, err := json.Marshal(&registry.Result{Action: n.registerAction, Service: s})
 	if err != nil {
 		return err
 	}
@@ -335,7 +333,7 @@ func (n *natsRegistry) Register(s *Service, opts ...RegisterOption) error {
 	return conn.Publish(n.watchTopic, b)
 }
 
-func (n *natsRegistry) Deregister(s *Service, opts ...DeregisterOption) error {
+func (n *natsRegistry) Deregister(s *registry.Service, opts ...registry.DeregisterOption) error {
 	if err := n.deregister(s); err != nil {
 		return err
 	}
@@ -345,14 +343,14 @@ func (n *natsRegistry) Deregister(s *Service, opts ...DeregisterOption) error {
 		return err
 	}
 
-	b, err := json.Marshal(&Result{Action: "delete", Service: s})
+	b, err := json.Marshal(&registry.Result{Action: "delete", Service: s})
 	if err != nil {
 		return err
 	}
 	return conn.Publish(n.watchTopic, b)
 }
 
-func (n *natsRegistry) GetService(s string, opts ...GetOption) ([]*Service, error) {
+func (n *natsRegistry) GetService(s string, opts ...registry.GetOption) ([]*registry.Service, error) {
 	services, err := n.query(s, getQuorum(n.opts))
 	if err != nil {
 		return nil, err
@@ -360,17 +358,17 @@ func (n *natsRegistry) GetService(s string, opts ...GetOption) ([]*Service, erro
 	return services, nil
 }
 
-func (n *natsRegistry) ListServices(opts ...ListOption) ([]*Service, error) {
+func (n *natsRegistry) ListServices(opts ...registry.ListOption) ([]*registry.Service, error) {
 	s, err := n.query("", 0)
 	if err != nil {
 		return nil, err
 	}
 
-	var services []*Service
-	serviceMap := make(map[string]*Service)
+	var services []*registry.Service
+	serviceMap := make(map[string]*registry.Service)
 
 	for _, v := range s {
-		serviceMap[v.Name] = &Service{Name: v.Name, Version: v.Version}
+		serviceMap[v.Name] = &registry.Service{Name: v.Name, Version: v.Version}
 	}
 
 	for _, v := range serviceMap {
@@ -380,7 +378,7 @@ func (n *natsRegistry) ListServices(opts ...ListOption) ([]*Service, error) {
 	return services, nil
 }
 
-func (n *natsRegistry) Watch(opts ...WatchOption) (Watcher, error) {
+func (n *natsRegistry) Watch(opts ...registry.WatchOption) (registry.Watcher, error) {
 	conn, err := n.getConn()
 	if err != nil {
 		return nil, err
@@ -391,7 +389,7 @@ func (n *natsRegistry) Watch(opts ...WatchOption) (Watcher, error) {
 		return nil, err
 	}
 
-	var wo WatchOptions
+	var wo registry.WatchOptions
 	for _, o := range opts {
 		o(&wo)
 	}
@@ -403,15 +401,15 @@ func (n *natsRegistry) String() string {
 	return "nats"
 }
 
-func NewRegistry(opts ...Option) Registry {
-	options := Options{
+func NewRegistry(opts ...registry.Option) registry.Registry {
+	options := registry.Options{
 		Timeout: time.Millisecond * 100,
 		Context: context.Background(),
 	}
 
 	n := &natsRegistry{
 		opts:      options,
-		services:  make(map[string][]*Service),
+		services:  make(map[string][]*registry.Service),
 		listeners: make(map[string]chan bool),
 	}
 	configure(n, opts...)

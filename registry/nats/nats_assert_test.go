@@ -1,7 +1,4 @@
-//go:build nats
-// +build nats
-
-package registry_test
+package nats_test
 
 import (
 	"reflect"

@@ -1,7 +1,4 @@
-//go:build nats
-// +build nats
-
-package registry_test
+package nats_test
 
 import (
 	"os"
@@ -9,19 +6,20 @@ import (
 
 	log "go-micro.dev/v5/logger"
 	"go-micro.dev/v5/registry"
+	"go-micro.dev/v5/registry/nats"
 )
 
 type environment struct {
-	registryOne   Registry
-	registryTwo   Registry
-	registryThree Registry
+	registryOne   registry.Registry
+	registryTwo   registry.Registry
+	registryThree registry.Registry
 
-	serviceOne Service
-	serviceTwo Service
+	serviceOne registry.Service
+	serviceTwo registry.Service
 
-	nodeOne   Node
-	nodeTwo   Node
-	nodeThree Node
+	nodeOne   registry.Node
+	nodeTwo   registry.Node
+	nodeThree registry.Node
 }
 
 var e environment
@@ -33,17 +31,17 @@ func TestMain(m *testing.M) {
 		return
 	}
 
-	e.registryOne = registry.NewRegistry(Addrs(natsURL), registry.Quorum(1))
-	e.registryTwo = registry.NewRegistry(Addrs(natsURL), registry.Quorum(1))
-	e.registryThree = registry.NewRegistry(Addrs(natsURL), registry.Quorum(1))
+	e.registryOne = nats.NewRegistry(registry.Addrs(natsURL), nats.Quorum(1))
+	e.registryTwo = nats.NewRegistry(registry.Addrs(natsURL), nats.Quorum(1))
+	e.registryThree = nats.NewRegistry(registry.Addrs(natsURL), nats.Quorum(1))
 
 	e.serviceOne.Name = "one"
 	e.serviceOne.Version = "default"
-	e.serviceOne.Nodes = []*Node{&e.nodeOne}
+	e.serviceOne.Nodes = []*registry.Node{&e.nodeOne}
 
 	e.serviceTwo.Name = "two"
 	e.serviceTwo.Version = "default"
-	e.serviceTwo.Nodes = []*Node{&e.nodeOne, &e.nodeTwo}
+	e.serviceTwo.Nodes = []*registry.Node{&e.nodeOne, &e.nodeTwo}
 
 	e.nodeOne.Id = "one"
 	e.nodeTwo.Id = "two"
