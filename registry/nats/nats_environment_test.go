@@ -31,9 +31,9 @@ func TestMain(m *testing.M) {
 		return
 	}
 
-	e.registryOne = nats.NewRegistry(registry.Addrs(natsURL), nats.Quorum(1))
-	e.registryTwo = nats.NewRegistry(registry.Addrs(natsURL), nats.Quorum(1))
-	e.registryThree = nats.NewRegistry(registry.Addrs(natsURL), nats.Quorum(1))
+	e.registryOne = nats.NewNatsRegistry(registry.Addrs(natsURL), nats.Quorum(1))
+	e.registryTwo = nats.NewNatsRegistry(registry.Addrs(natsURL), nats.Quorum(1))
+	e.registryThree = nats.NewNatsRegistry(registry.Addrs(natsURL), nats.Quorum(1))
 
 	e.serviceOne.Name = "one"
 	e.serviceOne.Version = "default"

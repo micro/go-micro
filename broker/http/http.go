@@ -706,7 +706,7 @@ func (h *httpBroker) String() string {
 	return "http"
 }
 
-// NewBroker returns a new http broker.
-func NewBroker(opts ...broker.Option) broker.Broker {
+// NewHttpBroker returns a new http broker.
+func NewHttpBroker(opts ...broker.Option) broker.Broker {
 	return newHttpBroker(opts...)
 }

@@ -1,5 +1,5 @@
 package nats
 
 var (
-	DefaultRegistry = NewRegistry()
+	DefaultRegistry = NewNatsRegistry()
 )

@@ -10,9 +10,11 @@ import (
 	"github.com/urfave/cli/v2"
 	"go-micro.dev/v5/auth"
 	hbroker "go-micro.dev/v5/broker/http"
+	nbroker "go-micro.dev/v5/broker/nats"
 
 	"go-micro.dev/v5/broker"
 	"go-micro.dev/v5/cache"
+	rediscache "go-micro.dev/v5/cache/rediscache"
 	"go-micro.dev/v5/client"
 	"go-micro.dev/v5/config"
 	"go-micro.dev/v5/debug/profile"
@@ -21,11 +23,14 @@ import (
 	"go-micro.dev/v5/debug/trace"
 	"go-micro.dev/v5/logger"
 	"go-micro.dev/v5/registry"
+	"go-micro.dev/v5/registry/consul"
+	"go-micro.dev/v5/registry/etcd"
 	"go-micro.dev/v5/registry/mdns"
 	"go-micro.dev/v5/registry/nats"
 	"go-micro.dev/v5/selector"
 	"go-micro.dev/v5/server"
 	"go-micro.dev/v5/store"
+	"go-micro.dev/v5/store/mysql"
 	"go-micro.dev/v5/transport"
 )
 
@@ -234,15 +239,18 @@ var (
 
 	DefaultBrokers = map[string]func(...broker.Option) broker.Broker{
 		"memory": broker.NewMemoryBroker,
-		"http":   hbroker.NewBroker,
+		"http":   hbroker.NewHttpBroker,
+		"nats":   nbroker.NewNatsBroker,
 	}
 
 	DefaultClients = map[string]func(...client.Option) client.Client{}
 
 	DefaultRegistries = map[string]func(...registry.Option) registry.Registry{
+		"consul": consul.NewConsulRegistry,
 		"memory": registry.NewMemoryRegistry,
-		"nats":   nats.NewRegistry,
+		"nats":   nats.NewNatsRegistry,
 		"mdns":   mdns.NewMDNSRegistry,
+		"etcd":   etcd.NewEtcdRegistry,
 	}
 
 	DefaultSelectors = map[string]func(...selector.Option) selector.Selector{}
@@ -251,7 +259,10 @@ var (
 
 	DefaultTransports = map[string]func(...transport.Option) transport.Transport{}
 
-	DefaultStores = map[string]func(...store.Option) store.Store{}
+	DefaultStores = map[string]func(...store.Option) store.Store{
+		"memory": store.NewMemoryStore,
+		"mysql":  mysql.NewMysqlStore,
+	}
 
 	DefaultTracers = map[string]func(...trace.Option) trace.Tracer{}
 
@@ -264,7 +275,9 @@ var (
 
 	DefaultConfigs = map[string]func(...config.Option) (config.Config, error){}
 
-	DefaultCaches = map[string]func(...cache.Option) cache.Cache{}
+	DefaultCaches = map[string]func(...cache.Option) cache.Cache{
+		"redis": rediscache.NewRedisCache,
+	}
 )
 
 func init() {
