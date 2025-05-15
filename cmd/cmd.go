@@ -11,6 +11,7 @@ import (
 	"go-micro.dev/v5/auth"
 	hbroker "go-micro.dev/v5/broker/http"
 	nbroker "go-micro.dev/v5/broker/nats"
+	rabbit "go-micro.dev/v5/broker/rabbitmq"
 
 	"go-micro.dev/v5/broker"
 	"go-micro.dev/v5/cache"
@@ -31,7 +32,10 @@ import (
 	"go-micro.dev/v5/server"
 	"go-micro.dev/v5/store"
 	"go-micro.dev/v5/store/mysql"
+	natsjskv "go-micro.dev/v5/store/nats-js-kv"
+	postgres "go-micro.dev/v5/store/postgres"
 	"go-micro.dev/v5/transport"
+	ntransport "go-micro.dev/v5/transport/nats"
 )
 
 type Cmd interface {
@@ -241,6 +245,7 @@ var (
 		"memory": broker.NewMemoryBroker,
 		"http":   hbroker.NewHttpBroker,
 		"nats":   nbroker.NewNatsBroker,
+		"rabbitmq": rabbit.NewBroker,
 	}
 
 	DefaultClients = map[string]func(...client.Option) client.Client{}
@@ -257,11 +262,15 @@ var (
 
 	DefaultServers = map[string]func(...server.Option) server.Server{}
 
-	DefaultTransports = map[string]func(...transport.Option) transport.Transport{}
+	DefaultTransports = map[string]func(...transport.Option) transport.Transport{
+		"nats": ntransport.NewTransport,
+	}
 
 	DefaultStores = map[string]func(...store.Option) store.Store{
 		"memory": store.NewMemoryStore,
 		"mysql":  mysql.NewMysqlStore,
+		"natsjskv": natsjskv.NewStore,
+		"postgres": postgres.NewStore,
 	}
 
 	DefaultTracers = map[string]func(...trace.Option) trace.Tracer{}
