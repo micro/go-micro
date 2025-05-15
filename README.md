@@ -87,10 +87,11 @@ func main() {
 }
 ```
 
-Optionally set fixed address
+Set a fixed address
 
 ```golang
 service := micro.NewService(
+    micro.Name("helloworld"),
     micro.Address(":8080"),
 )
 ```
@@ -103,24 +104,4 @@ curl -XPOST \
      -H 'Micro-Endpoint: Say.Hello' \
      -d '{"name": "alice"}' \
       http://localhost:8080
-```
-
-## Micro
-
-Use the [Micro](https://github.com/micro/micro) cli to call it 
-
-```
-micro call helloworld Say.Hello '{"name": "Asim"}'
-```
-
-Run the micro api and call it via http
-
-```
-micro api
-```
-
-Call it via http://localhost:8080/
-
-```
-curl -d '{"name": "Asim"}' https://localhost:8080/helloworld/Say/Hello
 ```
