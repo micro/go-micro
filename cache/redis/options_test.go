@@ -1,11 +1,11 @@
-package rediscache
+package redis
 
 import (
 	"context"
 	"reflect"
 	"testing"
 
-	"github.com/go-redis/redis/v8"
+	rclient "github.com/go-redis/redis/v8"
 	"go-micro.dev/v5/cache"
 )
 
@@ -60,7 +60,7 @@ func Test_newUniversalClient(t *testing.T) {
 			options: cache.Options{
 				Context: context.WithValue(
 					context.TODO(), redisOptionsContextKey{},
-					redis.UniversalOptions{MasterName: "master-name"}),
+					rclient.UniversalOptions{MasterName: "master-name"}),
 			}},
 			want: wantValues{
 				username: "",
@@ -71,7 +71,7 @@ func Test_newUniversalClient(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			univClient := newUniversalClient(tt.fields.options)
-			client, ok := univClient.(*redis.Client)
+			client, ok := univClient.(*rclient.Client)
 			if !ok {
 				t.Errorf("newUniversalClient() expect a *redis.Client")
 				return
@@ -109,7 +109,7 @@ func Test_newUniversalClientCluster(t *testing.T) {
 				Address: "127.0.0.1:6379", // <- ignored
 				Context: context.WithValue(
 					context.TODO(), redisOptionsContextKey{},
-					redis.UniversalOptions{Addrs: []string{"127.0.0.1:6381", "127.0.0.1:6382"}}),
+					rclient.UniversalOptions{Addrs: []string{"127.0.0.1:6381", "127.0.0.1:6382"}}),
 			}},
 			want: wantValues{
 				username: "",
@@ -120,7 +120,7 @@ func Test_newUniversalClientCluster(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			univClient := newUniversalClient(tt.fields.options)
-			client, ok := univClient.(*redis.ClusterClient)
+			client, ok := univClient.(*rclient.ClusterClient)
 			if !ok {
 				t.Errorf("newUniversalClient() expect a *redis.ClusterClient")
 				return

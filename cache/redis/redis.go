@@ -1,10 +1,10 @@
-package rediscache
+package redis
 
 import (
 	"context"
 	"time"
 
-	"github.com/go-redis/redis/v8"
+	rclient "github.com/go-redis/redis/v8"
 	"go-micro.dev/v5/cache"
 )
 
@@ -19,12 +19,12 @@ func NewRedisCache(opts ...cache.Option) cache.Cache {
 
 type redisCache struct {
 	opts   cache.Options
-	client redis.UniversalClient
+	client rclient.UniversalClient
 }
 
 func (c *redisCache) Get(ctx context.Context, key string) (interface{}, time.Time, error) {
 	val, err := c.client.Get(ctx, key).Bytes()
-	if err != nil && err == redis.Nil {
+	if err != nil && err == rclient.Nil {
 		return nil, time.Time{}, cache.ErrKeyNotFound
 	} else if err != nil {
 		return nil, time.Time{}, err

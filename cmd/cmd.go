@@ -14,7 +14,7 @@ import (
 
 	"go-micro.dev/v5/broker"
 	"go-micro.dev/v5/cache"
-	rediscache "go-micro.dev/v5/cache/rediscache"
+	"go-micro.dev/v5/cache/redis"
 	"go-micro.dev/v5/client"
 	"go-micro.dev/v5/config"
 	"go-micro.dev/v5/debug/profile"
@@ -276,7 +276,7 @@ var (
 	DefaultConfigs = map[string]func(...config.Option) (config.Config, error){}
 
 	DefaultCaches = map[string]func(...cache.Option) cache.Cache{
-		"redis": rediscache.NewRedisCache,
+		"redis": redis.NewRedisCache,
 	}
 )
 

@@ -1,16 +1,16 @@
-package rediscache
+package redis
 
 import (
 	"context"
 
-	"github.com/go-redis/redis/v8"
+	rclient "github.com/go-redis/redis/v8"
 	"go-micro.dev/v5/cache"
 )
 
 type redisOptionsContextKey struct{}
 
 // WithRedisOptions sets advanced options for redis.
-func WithRedisOptions(options redis.UniversalOptions) cache.Option {
+func WithRedisOptions(options rclient.UniversalOptions) cache.Option {
 	return func(o *cache.Options) {
 		if o.Context == nil {
 			o.Context = context.Background()
@@ -20,29 +20,29 @@ func WithRedisOptions(options redis.UniversalOptions) cache.Option {
 	}
 }
 
-func newUniversalClient(options cache.Options) redis.UniversalClient {
+func newUniversalClient(options cache.Options) rclient.UniversalClient {
 	if options.Context == nil {
 		options.Context = context.Background()
 	}
 
-	opts, ok := options.Context.Value(redisOptionsContextKey{}).(redis.UniversalOptions)
+	opts, ok := options.Context.Value(redisOptionsContextKey{}).(rclient.UniversalOptions)
 	if !ok {
 		addr := "redis://127.0.0.1:6379"
 		if len(options.Address) > 0 {
 			addr = options.Address
 		}
 
-		redisOptions, err := redis.ParseURL(addr)
+		redisOptions, err := rclient.ParseURL(addr)
 		if err != nil {
-			redisOptions = &redis.Options{Addr: addr}
+			redisOptions = &rclient.Options{Addr: addr}
 		}
 
-		return redis.NewClient(redisOptions)
+		return rclient.NewClient(redisOptions)
 	}
 
 	if len(opts.Addrs) == 0 && len(options.Address) > 0 {
 		opts.Addrs = []string{options.Address}
 	}
 
-	return redis.NewUniversalClient(&opts)
+	return rclient.NewUniversalClient(&opts)
 }
