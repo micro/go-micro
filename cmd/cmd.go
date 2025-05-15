@@ -373,7 +373,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	if name := ctx.String("store"); len(name) > 0 {
 		s, ok := c.opts.Stores[name]
 		if !ok {
-			return fmt.Errorf("Unsupported store: %s", name)
+			return fmt.Errorf("unsupported store: %s", name)
 		}
 
 		*c.opts.Store = s(store.WithClient(*c.opts.Client))
@@ -383,7 +383,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	if name := ctx.String("tracer"); len(name) > 0 {
 		r, ok := c.opts.Tracers[name]
 		if !ok {
-			return fmt.Errorf("Unsupported tracer: %s", name)
+			return fmt.Errorf("unsupported tracer: %s", name)
 		}
 
 		*c.opts.Tracer = r()
@@ -409,7 +409,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	if name := ctx.String("auth"); len(name) > 0 {
 		r, ok := c.opts.Auths[name]
 		if !ok {
-			return fmt.Errorf("Unsupported auth: %s", name)
+			return fmt.Errorf("unsupported auth: %s", name)
 		}
 
 		*c.opts.Auth = r(authOpts...)
@@ -441,7 +441,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	if name := ctx.String("profile"); len(name) > 0 {
 		p, ok := c.opts.Profiles[name]
 		if !ok {
-			return fmt.Errorf("Unsupported profile: %s", name)
+			return fmt.Errorf("unsupported profile: %s", name)
 		}
 
 		*c.opts.Profile = p()
