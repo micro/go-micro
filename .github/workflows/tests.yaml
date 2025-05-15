@@ -25,12 +25,6 @@ jobs:
         run: |
           go install github.com/kyoh86/richgo@latest
           go get -v -t -d ./...
-
-      - name: Run Redis
-        uses: supercharge/redis-github-action@1.8.0
-        with:
-          redis-version: 7
-
       - name: Run tests
         id: tests
         run: richgo test -v -race -cover -bench=. ./...
