@@ -9,8 +9,12 @@ import (
 
 	"github.com/urfave/cli/v2"
 	"go-micro.dev/v5/auth"
+	hbroker "go-micro.dev/v5/broker/http"
+	nbroker "go-micro.dev/v5/broker/nats"
+
 	"go-micro.dev/v5/broker"
 	"go-micro.dev/v5/cache"
+	"go-micro.dev/v5/cache/redis"
 	"go-micro.dev/v5/client"
 	"go-micro.dev/v5/config"
 	"go-micro.dev/v5/debug/profile"
@@ -19,9 +23,14 @@ import (
 	"go-micro.dev/v5/debug/trace"
 	"go-micro.dev/v5/logger"
 	"go-micro.dev/v5/registry"
+	"go-micro.dev/v5/registry/consul"
+	"go-micro.dev/v5/registry/etcd"
+	"go-micro.dev/v5/registry/mdns"
+	"go-micro.dev/v5/registry/nats"
 	"go-micro.dev/v5/selector"
 	"go-micro.dev/v5/server"
 	"go-micro.dev/v5/store"
+	"go-micro.dev/v5/store/mysql"
 	"go-micro.dev/v5/transport"
 )
 
@@ -228,11 +237,21 @@ var (
 		},
 	}
 
-	DefaultBrokers = map[string]func(...broker.Option) broker.Broker{}
+	DefaultBrokers = map[string]func(...broker.Option) broker.Broker{
+		"memory": broker.NewMemoryBroker,
+		"http":   hbroker.NewHttpBroker,
+		"nats":   nbroker.NewNatsBroker,
+	}
 
 	DefaultClients = map[string]func(...client.Option) client.Client{}
 
-	DefaultRegistries = map[string]func(...registry.Option) registry.Registry{}
+	DefaultRegistries = map[string]func(...registry.Option) registry.Registry{
+		"consul": consul.NewConsulRegistry,
+		"memory": registry.NewMemoryRegistry,
+		"nats":   nats.NewNatsRegistry,
+		"mdns":   mdns.NewMDNSRegistry,
+		"etcd":   etcd.NewEtcdRegistry,
+	}
 
 	DefaultSelectors = map[string]func(...selector.Option) selector.Selector{}
 
@@ -240,7 +259,10 @@ var (
 
 	DefaultTransports = map[string]func(...transport.Option) transport.Transport{}
 
-	DefaultStores = map[string]func(...store.Option) store.Store{}
+	DefaultStores = map[string]func(...store.Option) store.Store{
+		"memory": store.NewMemoryStore,
+		"mysql":  mysql.NewMysqlStore,
+	}
 
 	DefaultTracers = map[string]func(...trace.Option) trace.Tracer{}
 
@@ -253,7 +275,9 @@ var (
 
 	DefaultConfigs = map[string]func(...config.Option) (config.Config, error){}
 
-	DefaultCaches = map[string]func(...cache.Option) cache.Cache{}
+	DefaultCaches = map[string]func(...cache.Option) cache.Cache{
+		"redis": redis.NewRedisCache,
+	}
 )
 
 func init() {
@@ -349,7 +373,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	if name := ctx.String("store"); len(name) > 0 {
 		s, ok := c.opts.Stores[name]
 		if !ok {
-			return fmt.Errorf("Unsupported store: %s", name)
+			return fmt.Errorf("unsupported store: %s", name)
 		}
 
 		*c.opts.Store = s(store.WithClient(*c.opts.Client))
@@ -359,7 +383,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	if name := ctx.String("tracer"); len(name) > 0 {
 		r, ok := c.opts.Tracers[name]
 		if !ok {
-			return fmt.Errorf("Unsupported tracer: %s", name)
+			return fmt.Errorf("unsupported tracer: %s", name)
 		}
 
 		*c.opts.Tracer = r()
@@ -385,7 +409,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	if name := ctx.String("auth"); len(name) > 0 {
 		r, ok := c.opts.Auths[name]
 		if !ok {
-			return fmt.Errorf("Unsupported auth: %s", name)
+			return fmt.Errorf("unsupported auth: %s", name)
 		}
 
 		*c.opts.Auth = r(authOpts...)
@@ -417,7 +441,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	if name := ctx.String("profile"); len(name) > 0 {
 		p, ok := c.opts.Profiles[name]
 		if !ok {
-			return fmt.Errorf("Unsupported profile: %s", name)
+			return fmt.Errorf("unsupported profile: %s", name)
 		}
 
 		*c.opts.Profile = p()

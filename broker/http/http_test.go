@@ -1,4 +1,4 @@
-package broker_test
+package http_test
 
 import (
 	"sync"
@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"go-micro.dev/v5/broker"
+	"go-micro.dev/v5/broker/http"
 	"go-micro.dev/v5/registry"
 )
 
@@ -60,7 +61,7 @@ func sub(b *testing.B, c int) {
 	b.StopTimer()
 	m := newTestRegistry()
 
-	brker := broker.NewBroker(broker.Registry(m))
+	brker := http.NewHttpBroker(broker.Registry(m))
 	topic := uuid.New().String()
 
 	if err := brker.Init(); err != nil {
@@ -121,7 +122,7 @@ func sub(b *testing.B, c int) {
 func pub(b *testing.B, c int) {
 	b.StopTimer()
 	m := newTestRegistry()
-	brk := broker.NewBroker(broker.Registry(m))
+	brk := http.NewHttpBroker(broker.Registry(m))
 	topic := uuid.New().String()
 
 	if err := brk.Init(); err != nil {
@@ -190,7 +191,7 @@ func pub(b *testing.B, c int) {
 
 func TestBroker(t *testing.T) {
 	m := newTestRegistry()
-	b := broker.NewBroker(broker.Registry(m))
+	b := http.NewHttpBroker(broker.Registry(m))
 
 	if err := b.Init(); err != nil {
 		t.Fatalf("Unexpected init error: %v", err)
@@ -239,7 +240,7 @@ func TestBroker(t *testing.T) {
 
 func TestConcurrentSubBroker(t *testing.T) {
 	m := newTestRegistry()
-	b := broker.NewBroker(broker.Registry(m))
+	b := http.NewHttpBroker(broker.Registry(m))
 
 	if err := b.Init(); err != nil {
 		t.Fatalf("Unexpected init error: %v", err)
@@ -298,7 +299,7 @@ func TestConcurrentSubBroker(t *testing.T) {
 
 func TestConcurrentPubBroker(t *testing.T) {
 	m := newTestRegistry()
-	b := broker.NewBroker(broker.Registry(m))
+	b := http.NewHttpBroker(broker.Registry(m))
 
 	if err := b.Init(); err != nil {
 		t.Fatalf("Unexpected init error: %v", err)
