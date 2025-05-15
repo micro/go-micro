@@ -45,10 +45,10 @@ in the plugins repo. State and persistence becomes a core requirement beyond pro
 
 ## Getting Started
 
-To make use of Go Micro import it 
+To make use of Go Micro 
 
 ```golang
-import "go-micro.dev/v5"
+go get "go-micro.dev/v5"
 ```
 
 Create a service and register a handler
