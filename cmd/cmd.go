@@ -25,7 +25,6 @@ import (
 	"go-micro.dev/v5/registry"
 	"go-micro.dev/v5/registry/consul"
 	"go-micro.dev/v5/registry/etcd"
-	"go-micro.dev/v5/registry/mdns"
 	"go-micro.dev/v5/registry/nats"
 	"go-micro.dev/v5/selector"
 	"go-micro.dev/v5/server"
@@ -249,7 +248,7 @@ var (
 		"consul": consul.NewConsulRegistry,
 		"memory": registry.NewMemoryRegistry,
 		"nats":   nats.NewNatsRegistry,
-		"mdns":   mdns.NewMDNSRegistry,
+		"mdns":   registry.NewMDNSRegistry,
 		"etcd":   etcd.NewEtcdRegistry,
 	}
 
