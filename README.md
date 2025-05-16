@@ -45,10 +45,10 @@ in the plugins repo. State and persistence becomes a core requirement beyond pro
 
 ## Getting Started
 
-To make use of Go Micro import it 
+To make use of Go Micro 
 
 ```golang
-import "go-micro.dev/v5"
+go get "go-micro.dev/v5"
 ```
 
 Create a service and register a handler
@@ -105,3 +105,7 @@ curl -XPOST \
      -d '{"name": "alice"}' \
       http://localhost:8080
 ```
+
+## Adopters
+
+- [Sourse](https://sourse.eu) - Work in the field of earth observation, including embedded Kubernetes running onboard aircraft, and we’ve built a mission management SaaS platform using Go Micro.

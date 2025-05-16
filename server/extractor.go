@@ -44,6 +44,8 @@ func extractValue(v reflect.Type, d int) *registry.Value {
 					continue
 				}
 				val.Name = parts[0]
+			} else {
+				val.Name = f.Name
 			}
 
 			// if there's no name default it
