@@ -1,4 +1,4 @@
-package file
+package store
 
 import (
 	"fmt"
@@ -10,19 +10,18 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/kr/pretty"
-	"go-micro.dev/v5/store"
 )
 
-func cleanup(db string, s store.Store) {
+func cleanup(db string, s Store) {
 	s.Close()
 	dir := filepath.Join(DefaultDir, db+"/")
 	os.RemoveAll(dir)
 }
 
 func TestFileStoreReInit(t *testing.T) {
-	s := NewStore(store.Table("aaa"))
+	s := NewStore(Table("aaa"))
 	defer cleanup(DefaultDatabase, s)
-	s.Init(store.Table("bbb"))
+	s.Init(Table("bbb"))
 	if s.Options().Table != "bbb" {
 		t.Error("Init didn't reinitialise the store")
 	}
@@ -35,29 +34,29 @@ func TestFileStoreBasic(t *testing.T) {
 }
 
 func TestFileStoreTable(t *testing.T) {
-	s := NewStore(store.Table("teststore.Table"))
+	s := NewStore(Table("testTable"))
 	defer cleanup(DefaultDatabase, s)
 	fileTest(s, t)
 }
 
 func TestFileStoreDatabase(t *testing.T) {
-	s := NewStore(store.Database("testdb"))
+	s := NewStore(Database("testdb"))
 	defer cleanup("testdb", s)
 	fileTest(s, t)
 }
 
 func TestFileStoreDatabaseTable(t *testing.T) {
-	s := NewStore(store.Table("teststore.Table"), store.Database("testdb"))
+	s := NewStore(Table("testTable"), Database("testdb"))
 	defer cleanup("testdb", s)
 	fileTest(s, t)
 }
 
-func fileTest(s store.Store, t *testing.T) {
+func fileTest(s Store, t *testing.T) {
 	if len(os.Getenv("IN_TRAVIS_CI")) == 0 {
 		t.Logf("Options %s %v\n", s.String(), s.Options())
 	}
 	// Read and Write an expiring Record
-	if err := s.Write(&store.Record{
+	if err := s.Write(&Record{
 		Key:    "Hello",
 		Value:  []byte("World"),
 		Expiry: time.Millisecond * 150,
@@ -82,12 +81,12 @@ func fileTest(s store.Store, t *testing.T) {
 	// wait for expiry
 	time.Sleep(time.Millisecond * 200)
 
-	if _, err := s.Read("Hello"); err != store.ErrNotFound {
-		t.Errorf("Expected %# v, got %# v", store.ErrNotFound, err)
+	if _, err := s.Read("Hello"); err != ErrNotFound {
+		t.Errorf("Expected %# v, got %# v", ErrNotFound, err)
 	}
 
-	// Write 3 records with various expiry and get with store.Table
-	records := []*store.Record{
+	// Write 3 records with various expiry and get with Table
+	records := []*Record{
 		{
 			Key:   "foo",
 			Value: []byte("foofoo"),
@@ -105,30 +104,30 @@ func fileTest(s store.Store, t *testing.T) {
 		}
 	}
 
-	if results, err := s.Read("foo", store.ReadPrefix()); err != nil {
+	if results, err := s.Read("foo", ReadPrefix()); err != nil {
 		t.Errorf("Couldn't read all \"foo\" keys, got %# v (%s)", spew.Sdump(results), err)
 	} else {
 		if len(results) != 2 {
 			t.Errorf("Expected 2 items, got %d", len(results))
-			// t.Logf("store.Table test: %v\n", spew.Sdump(results))
+			// t.Logf("Table test: %v\n", spew.Sdump(results))
 		}
 	}
 
 	// wait for the expiry
 	time.Sleep(time.Millisecond * 200)
 
-	if results, err := s.Read("foo", store.ReadPrefix()); err != nil {
+	if results, err := s.Read("foo", ReadPrefix()); err != nil {
 		t.Errorf("Couldn't read all \"foo\" keys, got %# v (%s)", spew.Sdump(results), err)
 	} else if len(results) != 1 {
 		t.Errorf("Expected 1 item, got %d", len(results))
-		// t.Logf("store.Table test: %v\n", spew.Sdump(results))
+		// t.Logf("Table test: %v\n", spew.Sdump(results))
 	}
 
 	if err := s.Delete("foo"); err != nil {
 		t.Errorf("Delete failed (%v)", err)
 	}
 
-	if results, err := s.Read("foo"); err != store.ErrNotFound {
+	if results, err := s.Read("foo"); err != ErrNotFound {
 		t.Errorf("Expected read failure read all \"foo\" keys, got %# v (%s)", spew.Sdump(results), err)
 	} else {
 		if len(results) != 0 {
@@ -137,7 +136,7 @@ func fileTest(s store.Store, t *testing.T) {
 	}
 
 	// Write 3 records with various expiry and get with Suffix
-	records = []*store.Record{
+	records = []*Record{
 		{
 			Key:   "foo",
 			Value: []byte("foofoo"),
@@ -159,36 +158,36 @@ func fileTest(s store.Store, t *testing.T) {
 			t.Errorf("Couldn't write k: %s, v: %# v (%s)", r.Key, pretty.Formatter(r.Value), err)
 		}
 	}
-	if results, err := s.Read("foo", store.ReadSuffix()); err != nil {
+	if results, err := s.Read("foo", ReadSuffix()); err != nil {
 		t.Errorf("Couldn't read all \"foo\" keys, got %# v (%s)", spew.Sdump(results), err)
 	} else {
 		if len(results) != 3 {
 			t.Errorf("Expected 3 items, got %d", len(results))
-			// t.Logf("store.Table test: %v\n", spew.Sdump(results))
+			// t.Logf("Table test: %v\n", spew.Sdump(results))
 		}
 	}
 	time.Sleep(time.Millisecond * 100)
-	if results, err := s.Read("foo", store.ReadSuffix()); err != nil {
+	if results, err := s.Read("foo", ReadSuffix()); err != nil {
 		t.Errorf("Couldn't read all \"foo\" keys, got %# v (%s)", spew.Sdump(results), err)
 	} else {
 		if len(results) != 2 {
 			t.Errorf("Expected 2 items, got %d", len(results))
-			// t.Logf("store.Table test: %v\n", spew.Sdump(results))
+			// t.Logf("Table test: %v\n", spew.Sdump(results))
 		}
 	}
 	time.Sleep(time.Millisecond * 100)
-	if results, err := s.Read("foo", store.ReadSuffix()); err != nil {
+	if results, err := s.Read("foo", ReadSuffix()); err != nil {
 		t.Errorf("Couldn't read all \"foo\" keys, got %# v (%s)", spew.Sdump(results), err)
 	} else {
 		if len(results) != 1 {
 			t.Errorf("Expected 1 item, got %d", len(results))
-			//	t.Logf("store.Table test: %# v\n", spew.Sdump(results))
+			//	t.Logf("Table test: %# v\n", spew.Sdump(results))
 		}
 	}
 	if err := s.Delete("foo"); err != nil {
 		t.Errorf("Delete failed (%v)", err)
 	}
-	if results, err := s.Read("foo", store.ReadSuffix()); err != nil {
+	if results, err := s.Read("foo", ReadSuffix()); err != nil {
 		t.Errorf("Couldn't read all \"foo\" keys, got %# v (%s)", spew.Sdump(results), err)
 	} else {
 		if len(results) != 0 {
@@ -196,28 +195,28 @@ func fileTest(s store.Store, t *testing.T) {
 		}
 	}
 
-	// Test store.Table, Suffix and WriteOptions
-	if err := s.Write(&store.Record{
+	// Test Table, Suffix and WriteOptions
+	if err := s.Write(&Record{
 		Key:   "foofoobarbar",
 		Value: []byte("something"),
-	}, store.WriteTTL(time.Millisecond*100)); err != nil {
+	}, WriteTTL(time.Millisecond*100)); err != nil {
 		t.Error(err)
 	}
-	if err := s.Write(&store.Record{
+	if err := s.Write(&Record{
 		Key:   "foofoo",
 		Value: []byte("something"),
-	}, store.WriteExpiry(time.Now().Add(time.Millisecond*100))); err != nil {
+	}, WriteExpiry(time.Now().Add(time.Millisecond*100))); err != nil {
 		t.Error(err)
 	}
-	if err := s.Write(&store.Record{
+	if err := s.Write(&Record{
 		Key:   "barbar",
 		Value: []byte("something"),
 		// TTL has higher precedence than expiry
-	}, store.WriteExpiry(time.Now().Add(time.Hour)), store.WriteTTL(time.Millisecond*100)); err != nil {
+	}, WriteExpiry(time.Now().Add(time.Hour)), WriteTTL(time.Millisecond*100)); err != nil {
 		t.Error(err)
 	}
 
-	if results, err := s.Read("foo", store.ReadPrefix(), store.ReadSuffix()); err != nil {
+	if results, err := s.Read("foo", ReadPrefix(), ReadSuffix()); err != nil {
 		t.Error(err)
 	} else {
 		if len(results) != 1 {
@@ -237,14 +236,14 @@ func fileTest(s store.Store, t *testing.T) {
 
 	// write the following records
 	for i := 0; i < 10; i++ {
-		s.Write(&store.Record{
+		s.Write(&Record{
 			Key:   fmt.Sprintf("a%d", i),
 			Value: []byte{},
 		})
 	}
 
 	// read back a few records
-	if results, err := s.Read("a", store.ReadLimit(5), store.ReadPrefix()); err != nil {
+	if results, err := s.Read("a", ReadLimit(5), ReadPrefix()); err != nil {
 		t.Error(err)
 	} else {
 		if len(results) != 5 {
@@ -256,7 +255,7 @@ func fileTest(s store.Store, t *testing.T) {
 	}
 
 	// read the rest back
-	if results, err := s.Read("a", store.ReadLimit(30), store.ReadOffset(5), store.ReadPrefix()); err != nil {
+	if results, err := s.Read("a", ReadLimit(30), ReadOffset(5), ReadPrefix()); err != nil {
 		t.Fatal(err)
 	} else {
 		if len(results) != 5 {
