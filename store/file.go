@@ -1,4 +1,4 @@
-package file
+package store
 
 import (
 	"context"
@@ -10,7 +10,6 @@ import (
 	"sync"
 	"time"
 
-	"go-micro.dev/v5/store"
 	bolt "go.etcd.io/bbolt"
 )
 
@@ -27,7 +26,7 @@ var (
 	dataBucket = "data"
 )
 
-func NewStore(opts ...store.Option) store.Store {
+func NewFileStore(opts ...Option) Store {
 	s := &fileStore{
 		handles: make(map[string]*fileHandle),
 	}
@@ -36,7 +35,7 @@ func NewStore(opts ...store.Option) store.Store {
 }
 
 type fileStore struct {
-	options store.Options
+	options Options
 	dir     string
 
 	// the database handle
@@ -71,7 +70,7 @@ func (m *fileStore) delete(fd *fileHandle, key string) error {
 	})
 }
 
-func (m *fileStore) init(opts ...store.Option) error {
+func (m *fileStore) init(opts ...Option) error {
 	for _, o := range opts {
 		o(&m.options)
 	}
@@ -207,7 +206,7 @@ func (m *fileStore) list(fd *fileHandle, limit, offset uint) []string {
 	return allKeys
 }
 
-func (m *fileStore) get(fd *fileHandle, k string) (*store.Record, error) {
+func (m *fileStore) get(fd *fileHandle, k string) (*Record, error) {
 	var value []byte
 
 	fd.db.View(func(tx *bolt.Tx) error {
@@ -222,7 +221,7 @@ func (m *fileStore) get(fd *fileHandle, k string) (*store.Record, error) {
 	})
 
 	if value == nil {
-		return nil, store.ErrNotFound
+		return nil, ErrNotFound
 	}
 
 	storedRecord := &record{}
@@ -231,7 +230,7 @@ func (m *fileStore) get(fd *fileHandle, k string) (*store.Record, error) {
 		return nil, err
 	}
 
-	newRecord := &store.Record{}
+	newRecord := &Record{}
 	newRecord.Key = storedRecord.Key
 	newRecord.Value = storedRecord.Value
 	newRecord.Metadata = make(map[string]interface{})
@@ -242,7 +241,7 @@ func (m *fileStore) get(fd *fileHandle, k string) (*store.Record, error) {
 
 	if !storedRecord.ExpiresAt.IsZero() {
 		if storedRecord.ExpiresAt.Before(time.Now()) {
-			return nil, store.ErrNotFound
+			return nil, ErrNotFound
 		}
 		newRecord.Expiry = time.Until(storedRecord.ExpiresAt)
 	}
@@ -250,7 +249,7 @@ func (m *fileStore) get(fd *fileHandle, k string) (*store.Record, error) {
 	return newRecord, nil
 }
 
-func (m *fileStore) set(fd *fileHandle, r *store.Record) error {
+func (m *fileStore) set(fd *fileHandle, r *Record) error {
 	// copy the incoming record and then
 	// convert the expiry in to a hard timestamp
 	item := &record{}
@@ -292,12 +291,12 @@ func (f *fileStore) Close() error {
 	return nil
 }
 
-func (f *fileStore) Init(opts ...store.Option) error {
+func (f *fileStore) Init(opts ...Option) error {
 	return f.init(opts...)
 }
 
-func (m *fileStore) Delete(key string, opts ...store.DeleteOption) error {
-	var deleteOptions store.DeleteOptions
+func (m *fileStore) Delete(key string, opts ...DeleteOption) error {
+	var deleteOptions DeleteOptions
 	for _, o := range opts {
 		o(&deleteOptions)
 	}
@@ -310,8 +309,8 @@ func (m *fileStore) Delete(key string, opts ...store.DeleteOption) error {
 	return m.delete(fd, key)
 }
 
-func (m *fileStore) Read(key string, opts ...store.ReadOption) ([]*store.Record, error) {
-	var readOpts store.ReadOptions
+func (m *fileStore) Read(key string, opts ...ReadOption) ([]*Record, error) {
+	var readOpts ReadOptions
 	for _, o := range opts {
 		o(&readOpts)
 	}
@@ -343,7 +342,7 @@ func (m *fileStore) Read(key string, opts ...store.ReadOption) ([]*store.Record,
 		keys = []string{key}
 	}
 
-	var results []*store.Record
+	var results []*Record
 
 	for _, k := range keys {
 		r, err := m.get(fd, k)
@@ -356,8 +355,8 @@ func (m *fileStore) Read(key string, opts ...store.ReadOption) ([]*store.Record,
 	return results, nil
 }
 
-func (m *fileStore) Write(r *store.Record, opts ...store.WriteOption) error {
-	var writeOpts store.WriteOptions
+func (m *fileStore) Write(r *Record, opts ...WriteOption) error {
+	var writeOpts WriteOptions
 	for _, o := range opts {
 		o(&writeOpts)
 	}
@@ -369,7 +368,7 @@ func (m *fileStore) Write(r *store.Record, opts ...store.WriteOption) error {
 
 	if len(opts) > 0 {
 		// Copy the record before applying options, or the incoming record will be mutated
-		newRecord := store.Record{}
+		newRecord := Record{}
 		newRecord.Key = r.Key
 		newRecord.Value = r.Value
 		newRecord.Metadata = make(map[string]interface{})
@@ -392,12 +391,12 @@ func (m *fileStore) Write(r *store.Record, opts ...store.WriteOption) error {
 	return m.set(fd, r)
 }
 
-func (m *fileStore) Options() store.Options {
+func (m *fileStore) Options() Options {
 	return m.options
 }
 
-func (m *fileStore) List(opts ...store.ListOption) ([]string, error) {
-	var listOptions store.ListOptions
+func (m *fileStore) List(opts ...ListOption) ([]string, error) {
+	var listOptions ListOptions
 
 	for _, o := range opts {
 		o(&listOptions)
@@ -440,9 +439,9 @@ func (m *fileStore) String() string {
 
 type dirOptionKey struct{}
 
-// DirOption is a file store store.Option to set the directory for the file
-func DirOption(dir string) store.Option {
-	return func(o *store.Options) {
+// DirOption is a file store Option to set the directory for the file
+func DirOption(dir string) Option {
+	return func(o *Options) {
 		if o.Context == nil {
 			o.Context = context.Background()
 		}
