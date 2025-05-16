@@ -1,4 +1,4 @@
-package store
+package file
 
 import (
 	"fmt"
@@ -10,9 +10,10 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/kr/pretty"
+	"go-micro.dev/v5/store"
 )
 
-func cleanup(db string, s Store) {
+func cleanup(db string, s store.Store) {
 	s.Close()
 	dir := filepath.Join(DefaultDir, db+"/")
 	os.RemoveAll(dir)
@@ -51,7 +52,7 @@ func TestFileStoreDatabaseTable(t *testing.T) {
 	fileTest(s, t)
 }
 
-func fileTest(s Store, t *testing.T) {
+func fileTest(s store.Store, t *testing.T) {
 	if len(os.Getenv("IN_TRAVIS_CI")) == 0 {
 		t.Logf("Options %s %v\n", s.String(), s.Options())
 	}

@@ -1,4 +1,4 @@
-package store
+package file
 
 import (
 	"context"
@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"go-micro.dev/v5/store"
 	bolt "go.etcd.io/bbolt"
 )
 
@@ -26,7 +27,7 @@ var (
 	dataBucket = "data"
 )
 
-func NewFileStore(opts ...Option) Store {
+func NewStore(opts ...Option) store.Store {
 	s := &fileStore{
 		handles: make(map[string]*fileHandle),
 	}
@@ -35,7 +36,7 @@ func NewFileStore(opts ...Option) Store {
 }
 
 type fileStore struct {
-	options Options
+	options store.Options
 	dir     string
 
 	// the database handle
@@ -206,7 +207,7 @@ func (m *fileStore) list(fd *fileHandle, limit, offset uint) []string {
 	return allKeys
 }
 
-func (m *fileStore) get(fd *fileHandle, k string) (*Record, error) {
+func (m *fileStore) get(fd *fileHandle, k string) (*store.Record, error) {
 	var value []byte
 
 	fd.db.View(func(tx *bolt.Tx) error {
@@ -230,7 +231,7 @@ func (m *fileStore) get(fd *fileHandle, k string) (*Record, error) {
 		return nil, err
 	}
 
-	newRecord := &Record{}
+	newRecord := &store.Record{}
 	newRecord.Key = storedRecord.Key
 	newRecord.Value = storedRecord.Value
 	newRecord.Metadata = make(map[string]interface{})
@@ -291,11 +292,11 @@ func (f *fileStore) Close() error {
 	return nil
 }
 
-func (f *fileStore) Init(opts ...Option) error {
+func (f *fileStore) Init(opts ...store.Option) error {
 	return f.init(opts...)
 }
 
-func (m *fileStore) Delete(key string, opts ...DeleteOption) error {
+func (m *fileStore) Delete(key string, opts ...store.DeleteOption) error {
 	var deleteOptions DeleteOptions
 	for _, o := range opts {
 		o(&deleteOptions)
@@ -309,7 +310,7 @@ func (m *fileStore) Delete(key string, opts ...DeleteOption) error {
 	return m.delete(fd, key)
 }
 
-func (m *fileStore) Read(key string, opts ...ReadOption) ([]*Record, error) {
+func (m *fileStore) Read(key string, opts ...store.ReadOption) ([]*store.Record, error) {
 	var readOpts ReadOptions
 	for _, o := range opts {
 		o(&readOpts)
@@ -391,7 +392,7 @@ func (m *fileStore) Write(r *Record, opts ...WriteOption) error {
 	return m.set(fd, r)
 }
 
-func (m *fileStore) Options() Options {
+func (m *fileStore) Options() store.Options {
 	return m.options
 }
 
@@ -439,8 +440,8 @@ func (m *fileStore) String() string {
 
 type dirOptionKey struct{}
 
-// DirOption is a file store Option to set the directory for the file
-func DirOption(dir string) Option {
+// DirOption is a file store store.Option to set the directory for the file
+func DirOption(dir string) store.Option {
 	return func(o *Options) {
 		if o.Context == nil {
 			o.Context = context.Background()
