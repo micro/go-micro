@@ -49,7 +49,7 @@ type Record struct {
 }
 
 func NewStore(opts ...Option) Store {
-	return NewFileStore(opts...)
+	return NewMemoryStore(opts...)
 }
 
 func NewRecord(key string, val interface{}) *Record {
