@@ -95,5 +95,5 @@ func String() string {
 }
 
 var (
-	DefaultRegistry = NewMemoryRegistry()
+	DefaultRegistry = NewMDNSRegistry()
 )

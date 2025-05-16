@@ -1,11 +1,9 @@
-package mdns
+package registry
 
 import (
 	"os"
 	"testing"
 	"time"
-
-	"go-micro.dev/v5/registry"
 )
 
 func TestMDNS(t *testing.T) {
@@ -14,11 +12,11 @@ func TestMDNS(t *testing.T) {
 		t.Skip()
 	}
 
-	testData := []*registry.Service{
+	testData := []*Service{
 		{
 			Name:    "test1",
 			Version: "1.0.1",
-			Nodes: []*registry.Node{
+			Nodes: []*Node{
 				{
 					Id:      "test1-1",
 					Address: "10.0.0.1:10001",
@@ -31,7 +29,7 @@ func TestMDNS(t *testing.T) {
 		{
 			Name:    "test2",
 			Version: "1.0.2",
-			Nodes: []*registry.Node{
+			Nodes: []*Node{
 				{
 					Id:      "test2-1",
 					Address: "10.0.0.2:10002",
@@ -44,7 +42,7 @@ func TestMDNS(t *testing.T) {
 		{
 			Name:    "test3",
 			Version: "1.0.3",
-			Nodes: []*registry.Node{
+			Nodes: []*Node{
 				{
 					Id:      "test3-1",
 					Address: "10.0.0.3:10003",
@@ -57,7 +55,7 @@ func TestMDNS(t *testing.T) {
 		{
 			Name:    "test4",
 			Version: "1.0.4",
-			Nodes: []*registry.Node{
+			Nodes: []*Node{
 				{
 					Id:      "test4-1",
 					Address: "[::]:10004",
@@ -71,10 +69,10 @@ func TestMDNS(t *testing.T) {
 
 	travis := os.Getenv("TRAVIS")
 
-	var opts []registry.Option
+	var opts []Option
 
 	if travis == "true" {
-		opts = append(opts, registry.Timeout(time.Millisecond*100))
+		opts = append(opts, Timeout(time.Millisecond*100))
 	}
 
 	// new registry
@@ -158,14 +156,14 @@ func TestEncoding(t *testing.T) {
 			Metadata: map[string]string{
 				"foo": "bar",
 			},
-			Endpoints: []*registry.Endpoint{
+			Endpoints: []*Endpoint{
 				{
 					Name: "endpoint1",
-					Request: &registry.Value{
+					Request: &Value{
 						Name: "request",
 						Type: "request",
 					},
-					Response: &registry.Value{
+					Response: &Value{
 						Name: "response",
 						Type: "response",
 					},
@@ -215,11 +213,11 @@ func TestWatcher(t *testing.T) {
 		t.Skip()
 	}
 
-	testData := []*registry.Service{
+	testData := []*Service{
 		{
 			Name:    "test1",
 			Version: "1.0.1",
-			Nodes: []*registry.Node{
+			Nodes: []*Node{
 				{
 					Id:      "test1-1",
 					Address: "10.0.0.1:10001",
@@ -232,7 +230,7 @@ func TestWatcher(t *testing.T) {
 		{
 			Name:    "test2",
 			Version: "1.0.2",
-			Nodes: []*registry.Node{
+			Nodes: []*Node{
 				{
 					Id:      "test2-1",
 					Address: "10.0.0.2:10002",
@@ -245,7 +243,7 @@ func TestWatcher(t *testing.T) {
 		{
 			Name:    "test3",
 			Version: "1.0.3",
-			Nodes: []*registry.Node{
+			Nodes: []*Node{
 				{
 					Id:      "test3-1",
 					Address: "10.0.0.3:10003",
@@ -258,7 +256,7 @@ func TestWatcher(t *testing.T) {
 		{
 			Name:    "test4",
 			Version: "1.0.4",
-			Nodes: []*registry.Node{
+			Nodes: []*Node{
 				{
 					Id:      "test4-1",
 					Address: "[::]:10004",
@@ -270,7 +268,7 @@ func TestWatcher(t *testing.T) {
 		},
 	}
 
-	testFn := func(service, s *registry.Service) {
+	testFn := func(service, s *Service) {
 		if s == nil {
 			t.Fatalf("Expected one result for %s got nil", service.Name)
 		}
@@ -300,10 +298,10 @@ func TestWatcher(t *testing.T) {
 
 	travis := os.Getenv("TRAVIS")
 
-	var opts []registry.Option
+	var opts []Option
 
 	if travis == "true" {
-		opts = append(opts, registry.Timeout(time.Millisecond*100))
+		opts = append(opts, Timeout(time.Millisecond*100))
 	}
 
 	// new registry
