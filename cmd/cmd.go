@@ -4,6 +4,7 @@ package cmd
 import (
 	"fmt"
 	"math/rand"
+	"sort"
 	"strings"
 	"time"
 
@@ -656,4 +657,17 @@ func Init(opts ...Option) error {
 
 func NewCmd(opts ...Option) Cmd {
 	return newCmd(opts...)
+}
+
+// Register CLI commands
+func Register(cmds ...*cli.Command) {
+	app := DefaultCmd.App()
+	app.Commands = append(app.Commands, cmds...)
+
+	// sort the commands so they're listed in order on the cli
+	// todo: move this to micro/cli so it's only run when the
+	// commands are printed during "help"
+	sort.Slice(app.Commands, func(i, j int) bool {
+		return app.Commands[i].Name < app.Commands[j].Name
+	})
 }
