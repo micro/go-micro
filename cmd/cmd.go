@@ -33,7 +33,7 @@ import (
 	"go-micro.dev/v5/store"
 	"go-micro.dev/v5/store/mysql"
 	"go-micro.dev/v5/transport"
-	profileconfig "go-micro.dev/v5/profileconfig"
+	mprofile "go-micro.dev/v5/profile"
 )
 
 type Cmd interface {
@@ -448,13 +448,13 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	if profileName != "" {
 		switch profileName {
 		case "local":
-			imported := profileconfig.LocalProfile()
+			imported := mprofile.LocalProfile()
 			*c.opts.Registry = imported.Registry
 			*c.opts.Broker = imported.Broker
 			*c.opts.Store = imported.Store
 			*c.opts.Transport = imported.Transport
 		case "nats":
-			imported := profileconfig.NatsProfile()
+			imported := mprofile.NatsProfile()
 			*c.opts.Registry = imported.Registry
 			*c.opts.Broker = imported.Broker
 			*c.opts.Store = imported.Store
