@@ -14,13 +14,15 @@ import (
 )
 
 var (
+	HomeDir, _ = os.UserHomeDir()
+
 	// DefaultDatabase is the namespace that the bbolt store
 	// will use if no namespace is provided.
 	DefaultDatabase = "micro"
 	// DefaultTable when none is specified.
 	DefaultTable = "micro"
 	// DefaultDir is the default directory for bbolt files.
-	DefaultDir = filepath.Join(".", "micro", "store")
+	DefaultDir = filepath.Join(HomeDir, "micro", "store")
 
 	// bucket used for data storage.
 	dataBucket = "data"
