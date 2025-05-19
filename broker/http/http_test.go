@@ -363,13 +363,6 @@ func BenchmarkSub32(b *testing.B) {
 	sub(b, 32)
 }
 
-func BenchmarkSub64(b *testing.B) {
-	sub(b, 64)
-}
-
-func BenchmarkSub128(b *testing.B) {
-	sub(b, 128)
-}
 
 func BenchmarkPub1(b *testing.B) {
 	pub(b, 1)
@@ -381,12 +374,4 @@ func BenchmarkPub8(b *testing.B) {
 
 func BenchmarkPub32(b *testing.B) {
 	pub(b, 32)
-}
-
-func BenchmarkPub64(b *testing.B) {
-	pub(b, 64)
-}
-
-func BenchmarkPub128(b *testing.B) {
-	pub(b, 128)
 }
