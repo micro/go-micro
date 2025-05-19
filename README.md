@@ -106,6 +106,6 @@ curl -XPOST \
       http://localhost:8080
 ```
 
-## Users
+## Adopters
 
 - [Sourse](https://sourse.eu) - Work in the field of earth observation, including embedded Kubernetes running onboard aircraft, and we’ve built a mission management SaaS platform using Go Micro.

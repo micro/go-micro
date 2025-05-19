@@ -4,6 +4,8 @@ package cmd
 import (
 	"fmt"
 	"math/rand"
+	"os"
+	"sort"
 	"strings"
 	"time"
 
@@ -23,10 +25,10 @@ import (
 	"go-micro.dev/v5/debug/profile/pprof"
 	"go-micro.dev/v5/debug/trace"
 	"go-micro.dev/v5/logger"
+	mprofile "go-micro.dev/v5/profile"
 	"go-micro.dev/v5/registry"
 	"go-micro.dev/v5/registry/consul"
 	"go-micro.dev/v5/registry/etcd"
-	"go-micro.dev/v5/registry/mdns"
 	"go-micro.dev/v5/registry/nats"
 	"go-micro.dev/v5/selector"
 	"go-micro.dev/v5/server"
@@ -145,8 +147,8 @@ var (
 		},
 		&cli.StringFlag{
 			Name:    "profile",
-			Usage:   "Debug profiler for cpu and memory stats",
-			EnvVars: []string{"MICRO_DEBUG_PROFILE"},
+			Usage:   "Plugin profile to use. (local, nats, etc)",
+			EnvVars: []string{"MICRO_PROFILE"},
 		},
 		&cli.StringFlag{
 			Name:    "registry",
@@ -254,7 +256,7 @@ var (
 		"consul": consul.NewConsulRegistry,
 		"memory": registry.NewMemoryRegistry,
 		"nats":   nats.NewNatsRegistry,
-		"mdns":   mdns.NewMDNSRegistry,
+		"mdns":   registry.NewMDNSRegistry,
 		"etcd":   etcd.NewEtcdRegistry,
 	}
 
@@ -450,6 +452,40 @@ func (c *cmd) Before(ctx *cli.Context) error {
 			logger.Fatalf("Error configuring broker: %v", err)
 		}
 		registry.DefaultRegistry = *c.opts.Registry
+	}
+
+	// --- Profile Grouping Extension ---
+	// Check for new profile flag/env (not just debug profiler)
+	profileName := ctx.String("profile")
+	if profileName == "" {
+		profileName = os.Getenv("MICRO_PROFILE")
+	}
+	if profileName != "" {
+		switch profileName {
+		case "local":
+			imported := mprofile.LocalProfile()
+			*c.opts.Registry = imported.Registry
+			registry.DefaultRegistry = imported.Registry
+			*c.opts.Broker = imported.Broker
+			broker.DefaultBroker = imported.Broker
+			*c.opts.Store = imported.Store
+			store.DefaultStore = imported.Store
+			*c.opts.Transport = imported.Transport
+			transport.DefaultTransport = imported.Transport
+		case "nats":
+			imported := mprofile.NatsProfile()
+			*c.opts.Registry = imported.Registry
+			registry.DefaultRegistry = imported.Registry
+			*c.opts.Broker = imported.Broker
+			broker.DefaultBroker = imported.Broker
+			*c.opts.Store = imported.Store
+			store.DefaultStore = imported.Store
+			*c.opts.Transport = imported.Transport
+			transport.DefaultTransport = imported.Transport
+		// Add more profiles as needed
+		default:
+			return fmt.Errorf("unsupported profile: %s", profileName)
+		}
 	}
 
 	// Set the profile
@@ -677,4 +713,17 @@ func Init(opts ...Option) error {
 
 func NewCmd(opts ...Option) Cmd {
 	return newCmd(opts...)
+}
+
+// Register CLI commands
+func Register(cmds ...*cli.Command) {
+	app := DefaultCmd.App()
+	app.Commands = append(app.Commands, cmds...)
+
+	// sort the commands so they're listed in order on the cli
+	// todo: move this to micro/cli so it's only run when the
+	// commands are printed during "help"
+	sort.Slice(app.Commands, func(i, j int) bool {
+		return app.Commands[i].Name < app.Commands[j].Name
+	})
 }
