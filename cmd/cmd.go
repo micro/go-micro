@@ -24,6 +24,7 @@ import (
 	"go-micro.dev/v5/debug/profile/pprof"
 	"go-micro.dev/v5/debug/trace"
 	"go-micro.dev/v5/logger"
+	mprofile "go-micro.dev/v5/profile"
 	"go-micro.dev/v5/registry"
 	"go-micro.dev/v5/registry/consul"
 	"go-micro.dev/v5/registry/etcd"
@@ -33,7 +34,6 @@ import (
 	"go-micro.dev/v5/store"
 	"go-micro.dev/v5/store/mysql"
 	"go-micro.dev/v5/transport"
-	mprofile "go-micro.dev/v5/profile"
 )
 
 type Cmd interface {
@@ -143,8 +143,8 @@ var (
 		},
 		&cli.StringFlag{
 			Name:    "profile",
-			Usage:   "Debug profiler for cpu and memory stats",
-			EnvVars: []string{"MICRO_DEBUG_PROFILE"},
+			Usage:   "Plugin profile to use. (local, nats, etc)",
+			EnvVars: []string{"MICRO_PROFILE"},
 		},
 		&cli.StringFlag{
 			Name:    "registry",
