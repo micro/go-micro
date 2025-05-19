@@ -4,6 +4,7 @@ package cmd
 import (
 	"fmt"
 	"math/rand"
+	"os"
 	"sort"
 	"strings"
 	"time"
@@ -23,6 +24,7 @@ import (
 	"go-micro.dev/v5/debug/profile/pprof"
 	"go-micro.dev/v5/debug/trace"
 	"go-micro.dev/v5/logger"
+	mprofile "go-micro.dev/v5/profile"
 	"go-micro.dev/v5/registry"
 	"go-micro.dev/v5/registry/consul"
 	"go-micro.dev/v5/registry/etcd"
@@ -141,8 +143,8 @@ var (
 		},
 		&cli.StringFlag{
 			Name:    "profile",
-			Usage:   "Debug profiler for cpu and memory stats",
-			EnvVars: []string{"MICRO_DEBUG_PROFILE"},
+			Usage:   "Plugin profile to use. (local, nats, etc)",
+			EnvVars: []string{"MICRO_PROFILE"},
 		},
 		&cli.StringFlag{
 			Name:    "registry",
@@ -434,6 +436,40 @@ func (c *cmd) Before(ctx *cli.Context) error {
 
 		if err := (*c.opts.Broker).Init(broker.Registry(*c.opts.Registry)); err != nil {
 			logger.Fatalf("Error configuring broker: %v", err)
+		}
+	}
+
+	// --- Profile Grouping Extension ---
+	// Check for new profile flag/env (not just debug profiler)
+	profileName := ctx.String("profile")
+	if profileName == "" {
+		profileName = os.Getenv("MICRO_PROFILE")
+	}
+	if profileName != "" {
+		switch profileName {
+		case "local":
+			imported := mprofile.LocalProfile()
+			*c.opts.Registry = imported.Registry
+			registry.DefaultRegistry = imported.Registry
+			*c.opts.Broker = imported.Broker
+			broker.DefaultBroker = imported.Broker
+			*c.opts.Store = imported.Store
+			store.DefaultStore = imported.Store
+			*c.opts.Transport = imported.Transport
+			transport.DefaultTransport = imported.Transport
+		case "nats":
+			imported := mprofile.NatsProfile()
+			*c.opts.Registry = imported.Registry
+			registry.DefaultRegistry = imported.Registry
+			*c.opts.Broker = imported.Broker
+			broker.DefaultBroker = imported.Broker
+			*c.opts.Store = imported.Store
+			store.DefaultStore = imported.Store
+			*c.opts.Transport = imported.Transport
+			transport.DefaultTransport = imported.Transport
+		// Add more profiles as needed
+		default:
+			return fmt.Errorf("unsupported profile: %s", profileName)
 		}
 	}
 
