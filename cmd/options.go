@@ -81,72 +81,84 @@ func Version(v string) Option {
 func Broker(b *broker.Broker) Option {
 	return func(o *Options) {
 		o.Broker = b
+		broker.DefaultBroker = *b
 	}
 }
 
 func Cache(c *cache.Cache) Option {
 	return func(o *Options) {
 		o.Cache = c
+		cache.DefaultCache = *c
 	}
 }
 
 func Config(c *config.Config) Option {
 	return func(o *Options) {
 		o.Config = c
+		config.DefaultConfig = *c
 	}
 }
 
 func Selector(s *selector.Selector) Option {
 	return func(o *Options) {
 		o.Selector = s
+		selector.DefaultSelector = *s
 	}
 }
 
 func Registry(r *registry.Registry) Option {
 	return func(o *Options) {
 		o.Registry = r
+		registry.DefaultRegistry = *r
 	}
 }
 
 func Transport(t *transport.Transport) Option {
 	return func(o *Options) {
 		o.Transport = t
+		transport.DefaultTransport = *t
 	}
 }
 
 func Client(c *client.Client) Option {
 	return func(o *Options) {
 		o.Client = c
+		client.DefaultClient = *c
 	}
 }
 
 func Server(s *server.Server) Option {
 	return func(o *Options) {
 		o.Server = s
+		server.DefaultServer = *s
 	}
 }
 
 func Store(s *store.Store) Option {
 	return func(o *Options) {
 		o.Store = s
+		store.DefaultStore = *s
 	}
 }
 
 func Tracer(t *trace.Tracer) Option {
 	return func(o *Options) {
 		o.Tracer = t
+		trace.DefaultTracer = *t
 	}
 }
 
 func Auth(a *auth.Auth) Option {
 	return func(o *Options) {
 		o.Auth = a
+		auth.DefaultAuth = *a
 	}
 }
 
 func Profile(p *profile.Profile) Option {
 	return func(o *Options) {
 		o.Profile = p
+		profile.DefaultProfile = *p
 	}
 }
 

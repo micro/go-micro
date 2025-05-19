@@ -83,12 +83,14 @@ func Broker(b broker.Broker) Option {
 		// Update Client and Server
 		o.Client.Init(client.Broker(b))
 		o.Server.Init(server.Broker(b))
+		broker.DefaultBroker = b
 	}
 }
 
 func Cache(c cache.Cache) Option {
 	return func(o *Options) {
 		o.Cache = c
+		cache.DefaultCache = c
 	}
 }
 
@@ -102,6 +104,7 @@ func Cmd(c cmd.Cmd) Option {
 func Client(c client.Client) Option {
 	return func(o *Options) {
 		o.Client = c
+		client.DefaultClient = c
 	}
 }
 
@@ -135,6 +138,7 @@ func HandleSignal(b bool) Option {
 func Profile(p profile.Profile) Option {
 	return func(o *Options) {
 		o.Profile = p
+		profile.DefaultProfile = p
 	}
 }
 
@@ -142,6 +146,7 @@ func Profile(p profile.Profile) Option {
 func Server(s server.Server) Option {
 	return func(o *Options) {
 		o.Server = s
+		server.DefaultServer = s
 	}
 }
 
@@ -149,6 +154,7 @@ func Server(s server.Server) Option {
 func Store(s store.Store) Option {
 	return func(o *Options) {
 		o.Store = s
+		store.DefaultStore = s
 	}
 }
 
@@ -162,6 +168,7 @@ func Registry(r registry.Registry) Option {
 		o.Server.Init(server.Registry(r))
 		// Update Broker
 		o.Broker.Init(broker.Registry(r))
+		broker.DefaultBroker = o.Broker
 	}
 }
 
@@ -170,12 +177,15 @@ func Tracer(t trace.Tracer) Option {
 	return func(o *Options) {
 		o.Server.Init(server.Tracer(t))
 	}
+
 }
 
 // Auth sets the auth for the service.
 func Auth(a auth.Auth) Option {
 	return func(o *Options) {
 		o.Auth = a
+			auth.DefaultAuth = a
+
 	}
 }
 
@@ -183,6 +193,7 @@ func Auth(a auth.Auth) Option {
 func Config(c config.Config) Option {
 	return func(o *Options) {
 		o.Config = c
+		config.DefaultConfig = c
 	}
 }
 
@@ -190,6 +201,7 @@ func Config(c config.Config) Option {
 func Selector(s selector.Selector) Option {
 	return func(o *Options) {
 		o.Client.Init(client.Selector(s))
+		selector.DefaultSelector = s
 	}
 }
 
@@ -201,6 +213,7 @@ func Transport(t transport.Transport) Option {
 		// Update Client and Server
 		o.Client.Init(client.Transport(t))
 		o.Server.Init(server.Transport(t))
+		transport.DefaultTransport = t
 	}
 }
 

@@ -367,6 +367,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		// only change if we have the client and type differs
 		if cl, ok := c.opts.Clients[name]; ok && (*c.opts.Client).String() != name {
 			*c.opts.Client = cl()
+			client.DefaultClient = *c.opts.Client
 		}
 	}
 
@@ -375,6 +376,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		// only change if we have the server and type differs
 		if s, ok := c.opts.Servers[name]; ok && (*c.opts.Server).String() != name {
 			*c.opts.Server = s()
+			server.DefaultServer = *c.opts.Server
 		}
 	}
 
@@ -386,6 +388,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		}
 
 		*c.opts.Store = s(store.WithClient(*c.opts.Client))
+		store.DefaultStore = *c.opts.Store
 	}
 
 	// Set the tracer
@@ -396,6 +399,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		}
 
 		*c.opts.Tracer = r()
+		trace.DefaultTracer = *c.opts.Tracer
 	}
 
 	// Setup auth
@@ -422,6 +426,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		}
 
 		*c.opts.Auth = r(authOpts...)
+		auth.DefaultAuth = *c.opts.Auth
 	}
 
 	// Set the registry
@@ -444,6 +449,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		if err := (*c.opts.Broker).Init(broker.Registry(*c.opts.Registry)); err != nil {
 			logger.Fatalf("Error configuring broker: %v", err)
 		}
+		registry.DefaultRegistry = *c.opts.Registry
 	}
 
 	// Set the profile
@@ -454,6 +460,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		}
 
 		*c.opts.Profile = p()
+		profile.DefaultProfile = *c.opts.Profile
 	}
 
 	// Set the broker
@@ -466,6 +473,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		*c.opts.Broker = b()
 		serverOpts = append(serverOpts, server.Broker(*c.opts.Broker))
 		clientOpts = append(clientOpts, client.Broker(*c.opts.Broker))
+		broker.DefaultBroker = *c.opts.Broker
 	}
 
 	// Set the selector
@@ -479,6 +487,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 
 		// No server option here. Should there be?
 		clientOpts = append(clientOpts, client.Selector(*c.opts.Selector))
+		selector.DefaultSelector = *c.opts.Selector
 	}
 
 	// Set the transport
@@ -491,6 +500,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		*c.opts.Transport = t()
 		serverOpts = append(serverOpts, server.Transport(*c.opts.Transport))
 		clientOpts = append(clientOpts, client.Transport(*c.opts.Transport))
+		transport.DefaultTransport = *c.opts.Transport
 	}
 
 	// Parse the server options
@@ -630,6 +640,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 				logger.Fatalf("Error configuring config: %v", err)
 			}
 			*c.opts.Config = rc
+			config.DefaultConfig = *c.opts.Config
 		}
 	}
 
