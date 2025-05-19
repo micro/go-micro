@@ -3,15 +3,14 @@ package profile
 
 import (
 	"os"
+
 	"go-micro.dev/v5/broker"
-	"go-micro.dev/v5/broker/http"
 	"go-micro.dev/v5/broker/nats"
 	"go-micro.dev/v5/registry"
 	nreg "go-micro.dev/v5/registry/nats"
 	"go-micro.dev/v5/store"
 
 	"go-micro.dev/v5/transport"
-
 )
 
 type Profile struct {
@@ -24,7 +23,7 @@ type Profile struct {
 func LocalProfile() Profile {
 	return Profile{
 		Registry:  registry.NewMDNSRegistry(),
-		Broker:    http.NewHttpBroker(),
+		Broker:    broker.NewHttpBroker(),
 		Store:     store.NewFileStore(),
 		Transport: transport.NewHTTPTransport(),
 	}
