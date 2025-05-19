@@ -35,8 +35,8 @@ func NatsProfile() Profile {
 	return Profile{
 		Registry:  nreg.NewNatsRegistry(registry.Addrs(addr)),
 		Broker:    nats.NewNatsBroker(broker.Addrs(addr)),
-		Store:     store.NewFileStore(), // or nats-backed store if available
-		Transport: transport.NewHTTPTransport(), // or nats transport if available
+		Store:     store.NewFileStore(), //  nats-backed store when available
+		Transport: transport.NewHTTPTransport(), //  nats transport when available
 	}
 }
 
