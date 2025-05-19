@@ -450,15 +450,23 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		case "local":
 			imported := mprofile.LocalProfile()
 			*c.opts.Registry = imported.Registry
+			registry.DefaultRegistry = imported.Registry
 			*c.opts.Broker = imported.Broker
+			broker.DefaultBroker = imported.Broker
 			*c.opts.Store = imported.Store
+			store.DefaultStore = imported.Store
 			*c.opts.Transport = imported.Transport
+			transport.DefaultTransport = imported.Transport
 		case "nats":
 			imported := mprofile.NatsProfile()
 			*c.opts.Registry = imported.Registry
+			registry.DefaultRegistry = imported.Registry
 			*c.opts.Broker = imported.Broker
+			broker.DefaultBroker = imported.Broker
 			*c.opts.Store = imported.Store
+			store.DefaultStore = imported.Store
 			*c.opts.Transport = imported.Transport
+			transport.DefaultTransport = imported.Transport
 		// Add more profiles as needed
 		default:
 			return fmt.Errorf("unsupported profile: %s", profileName)
