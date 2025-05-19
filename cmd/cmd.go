@@ -4,6 +4,7 @@ package cmd
 import (
 	"fmt"
 	"math/rand"
+	"os"
 	"sort"
 	"strings"
 	"time"
@@ -32,6 +33,7 @@ import (
 	"go-micro.dev/v5/store"
 	"go-micro.dev/v5/store/mysql"
 	"go-micro.dev/v5/transport"
+	profileconfig "go-micro.dev/v5/profileconfig"
 )
 
 type Cmd interface {
@@ -434,6 +436,32 @@ func (c *cmd) Before(ctx *cli.Context) error {
 
 		if err := (*c.opts.Broker).Init(broker.Registry(*c.opts.Registry)); err != nil {
 			logger.Fatalf("Error configuring broker: %v", err)
+		}
+	}
+
+	// --- Profile Grouping Extension ---
+	// Check for new profile flag/env (not just debug profiler)
+	profileName := ctx.String("profile")
+	if profileName == "" {
+		profileName = os.Getenv("MICRO_PROFILE")
+	}
+	if profileName != "" {
+		switch profileName {
+		case "local":
+			imported := profileconfig.LocalProfile()
+			*c.opts.Registry = imported.Registry
+			*c.opts.Broker = imported.Broker
+			*c.opts.Store = imported.Store
+			*c.opts.Transport = imported.Transport
+		case "nats":
+			imported := profileconfig.NatsProfile()
+			*c.opts.Registry = imported.Registry
+			*c.opts.Broker = imported.Broker
+			*c.opts.Store = imported.Store
+			*c.opts.Transport = imported.Transport
+		// Add more profiles as needed
+		default:
+			return fmt.Errorf("unsupported profile: %s", profileName)
 		}
 	}
 
