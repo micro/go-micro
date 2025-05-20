@@ -184,7 +184,7 @@ func Tracer(t trace.Tracer) Option {
 func Auth(a auth.Auth) Option {
 	return func(o *Options) {
 		o.Auth = a
-			auth.DefaultAuth = a
+		auth.DefaultAuth = a
 
 	}
 }

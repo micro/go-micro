@@ -21,22 +21,22 @@ type Options struct {
 
 	// Other options for implementations of the interface
 	// can be stored in a context
-	Context  context.Context
-	Auth     *auth.Auth
-	Selector *selector.Selector
-	Profile  *profile.Profile
+	Context      context.Context
+	Auth         *auth.Auth
+	Selector     *selector.Selector
+	DebugProfile *profile.Profile
 
 	Registry *registry.Registry
 
-	Brokers   map[string]func(...broker.Option) broker.Broker
-	Transport *transport.Transport
-	Cache     *cache.Cache
-	Config    *config.Config
-	Client    *client.Client
-	Server    *server.Server
-	Caches    map[string]func(...cache.Option) cache.Cache
-	Tracer    *trace.Tracer
-	Profiles  map[string]func(...profile.Option) profile.Profile
+	Brokers       map[string]func(...broker.Option) broker.Broker
+	Transport     *transport.Transport
+	Cache         *cache.Cache
+	Config        *config.Config
+	Client        *client.Client
+	Server        *server.Server
+	Caches        map[string]func(...cache.Option) cache.Cache
+	Tracer        *trace.Tracer
+	DebugProfiles map[string]func(...profile.Option) profile.Profile
 
 	// We need pointers to things so we can swap them out if needed.
 	Broker     *broker.Broker
@@ -157,7 +157,7 @@ func Auth(a *auth.Auth) Option {
 
 func Profile(p *profile.Profile) Option {
 	return func(o *Options) {
-		o.Profile = p
+		o.DebugProfile = p
 		profile.DefaultProfile = *p
 	}
 }
@@ -235,6 +235,6 @@ func NewConfig(name string, t func(...config.Option) (config.Config, error)) Opt
 // New profile func.
 func NewProfile(name string, t func(...profile.Option) profile.Profile) Option {
 	return func(o *Options) {
-		o.Profiles[name] = t
+		o.DebugProfiles[name] = t
 	}
 }

@@ -34,13 +34,24 @@ func LocalProfile() Profile {
 
 func NatsProfile() Profile {
 	addr := os.Getenv("MICRO_NATS_ADDRESS")
+	reg := nreg.NewNatsRegistry(registry.Addrs(addr))
+	brok := nats.NewNatsBroker(broker.Addrs(addr))
+	// this might be wrong, look for a better way to set this up
+	st := nstore.NewStore(nstore.NatsOptions(natslib.Options{Url: addr}))
+	// same, double check for single url vs slice of Server
+	tx := ntx.NewTransport(ntx.Options(natslib.Options{Url: addr}))
+
+	registry.DefaultRegistry = reg
+	broker.DefaultBroker = brok
+	store.DefaultStore = st
+	transport.DefaultTransport = tx
 	return Profile{
-		Registry:  nreg.NewNatsRegistry(registry.Addrs(addr)),
-		Broker:    nats.NewNatsBroker(broker.Addrs(addr)),
+		Registry: reg,
+		Broker:   brok,
 		// this might be wrong, look for a better way to set this up
-		Store:     nstore.NewStore(nstore.NatsOptions(natslib.Options{Url: addr})),
+		Store: st,
 		// same, double check for single url vs slice of Server
-		Transport: ntx.NewTransport(ntx.Options(natslib.Options{Url: addr})),
+		Transport: tx,
 	}
 }
 
