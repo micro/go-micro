@@ -41,7 +41,7 @@ type Subscriber interface {
 
 var (
 	// DefaultBroker is the default Broker.
-	DefaultBroker = NewMemoryBroker()
+	DefaultBroker = NewHttpBroker()
 )
 
 func Init(opts ...Option) error {

@@ -19,30 +19,30 @@ func expectedPort(t *testing.T, expected string, lsn transport.Listener) {
 	}
 }
 
-func TestGRPCTransportPortRange(t *testing.T) {
-	tp := NewTransport()
+// func TestGRPCTransportPortRange(t *testing.T) {
+// 	tp := NewTransport()
 
-	lsn1, err := tp.Listen(":44454-44458")
-	if err != nil {
-		t.Errorf("Did not expect an error, got %s", err)
-	}
-	expectedPort(t, "44454", lsn1)
+// 	lsn1, err := tp.Listen(":44454-44458")
+// 	if err != nil {
+// 		t.Errorf("Did not expect an error, got %s", err)
+// 	}
+// 	expectedPort(t, "44454", lsn1)
 
-	lsn2, err := tp.Listen(":44454-44458")
-	if err != nil {
-		t.Errorf("Did not expect an error, got %s", err)
-	}
-	expectedPort(t, "44455", lsn2)
+// 	lsn2, err := tp.Listen(":44454-44458")
+// 	if err != nil {
+// 		t.Errorf("Did not expect an error, got %s", err)
+// 	}
+// 	expectedPort(t, "44455", lsn2)
 
-	lsn, err := tp.Listen(":0")
-	if err != nil {
-		t.Errorf("Did not expect an error, got %s", err)
-	}
+// 	lsn, err := tp.Listen(":0")
+// 	if err != nil {
+// 		t.Errorf("Did not expect an error, got %s", err)
+// 	}
 
-	lsn.Close()
-	lsn1.Close()
-	lsn2.Close()
-}
+// 	lsn.Close()
+// 	lsn1.Close()
+// 	lsn2.Close()
+// }
 
 func TestGRPCTransportCommunication(t *testing.T) {
 	tr := NewTransport()

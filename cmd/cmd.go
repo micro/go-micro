@@ -4,13 +4,15 @@ package cmd
 import (
 	"fmt"
 	"math/rand"
+	"os"
+	"sort"
 	"strings"
 	"time"
 
 	"github.com/urfave/cli/v2"
 	"go-micro.dev/v5/auth"
-	hbroker "go-micro.dev/v5/broker/http"
 	nbroker "go-micro.dev/v5/broker/nats"
+	rabbit "go-micro.dev/v5/broker/rabbitmq"
 
 	"go-micro.dev/v5/broker"
 	"go-micro.dev/v5/cache"
@@ -22,16 +24,19 @@ import (
 	"go-micro.dev/v5/debug/profile/pprof"
 	"go-micro.dev/v5/debug/trace"
 	"go-micro.dev/v5/logger"
+	mprofile "go-micro.dev/v5/profile"
 	"go-micro.dev/v5/registry"
 	"go-micro.dev/v5/registry/consul"
 	"go-micro.dev/v5/registry/etcd"
-	"go-micro.dev/v5/registry/mdns"
 	"go-micro.dev/v5/registry/nats"
 	"go-micro.dev/v5/selector"
 	"go-micro.dev/v5/server"
 	"go-micro.dev/v5/store"
 	"go-micro.dev/v5/store/mysql"
+	natsjskv "go-micro.dev/v5/store/nats-js-kv"
+	postgres "go-micro.dev/v5/store/postgres"
 	"go-micro.dev/v5/transport"
+	ntransport "go-micro.dev/v5/transport/nats"
 )
 
 type Cmd interface {
@@ -141,7 +146,12 @@ var (
 		},
 		&cli.StringFlag{
 			Name:    "profile",
-			Usage:   "Debug profiler for cpu and memory stats",
+			Usage:   "Plugin profile to use. (local, nats, etc)",
+			EnvVars: []string{"MICRO_PROFILE"},
+		},
+		&cli.StringFlag{
+			Name:    "debug-profile",
+			Usage:   "Debug Plugin profile to use.",
 			EnvVars: []string{"MICRO_DEBUG_PROFILE"},
 		},
 		&cli.StringFlag{
@@ -238,9 +248,10 @@ var (
 	}
 
 	DefaultBrokers = map[string]func(...broker.Option) broker.Broker{
-		"memory": broker.NewMemoryBroker,
-		"http":   hbroker.NewHttpBroker,
-		"nats":   nbroker.NewNatsBroker,
+		"memory":   broker.NewMemoryBroker,
+		"http":     broker.NewHttpBroker,
+		"nats":     nbroker.NewNatsBroker,
+		"rabbitmq": rabbit.NewBroker,
 	}
 
 	DefaultClients = map[string]func(...client.Option) client.Client{}
@@ -249,7 +260,7 @@ var (
 		"consul": consul.NewConsulRegistry,
 		"memory": registry.NewMemoryRegistry,
 		"nats":   nats.NewNatsRegistry,
-		"mdns":   mdns.NewMDNSRegistry,
+		"mdns":   registry.NewMDNSRegistry,
 		"etcd":   etcd.NewEtcdRegistry,
 	}
 
@@ -257,18 +268,22 @@ var (
 
 	DefaultServers = map[string]func(...server.Option) server.Server{}
 
-	DefaultTransports = map[string]func(...transport.Option) transport.Transport{}
+	DefaultTransports = map[string]func(...transport.Option) transport.Transport{
+		"nats": ntransport.NewTransport,
+	}
 
 	DefaultStores = map[string]func(...store.Option) store.Store{
-		"memory": store.NewMemoryStore,
-		"mysql":  mysql.NewMysqlStore,
+		"memory":   store.NewMemoryStore,
+		"mysql":    mysql.NewMysqlStore,
+		"natsjskv": natsjskv.NewStore,
+		"postgres": postgres.NewStore,
 	}
 
 	DefaultTracers = map[string]func(...trace.Option) trace.Tracer{}
 
 	DefaultAuths = map[string]func(...auth.Option) auth.Auth{}
 
-	DefaultProfiles = map[string]func(...profile.Option) profile.Profile{
+	DefaultDebugProfiles = map[string]func(...profile.Option) profile.Profile{
 		"http":  http.NewProfile,
 		"pprof": pprof.NewProfile,
 	}
@@ -286,31 +301,31 @@ func init() {
 
 func newCmd(opts ...Option) Cmd {
 	options := Options{
-		Auth:      &auth.DefaultAuth,
-		Broker:    &broker.DefaultBroker,
-		Client:    &client.DefaultClient,
-		Registry:  &registry.DefaultRegistry,
-		Server:    &server.DefaultServer,
-		Selector:  &selector.DefaultSelector,
-		Transport: &transport.DefaultTransport,
-		Store:     &store.DefaultStore,
-		Tracer:    &trace.DefaultTracer,
-		Profile:   &profile.DefaultProfile,
-		Config:    &config.DefaultConfig,
-		Cache:     &cache.DefaultCache,
+		Auth:         &auth.DefaultAuth,
+		Broker:       &broker.DefaultBroker,
+		Client:       &client.DefaultClient,
+		Registry:     &registry.DefaultRegistry,
+		Server:       &server.DefaultServer,
+		Selector:     &selector.DefaultSelector,
+		Transport:    &transport.DefaultTransport,
+		Store:        &store.DefaultStore,
+		Tracer:       &trace.DefaultTracer,
+		DebugProfile: &profile.DefaultProfile,
+		Config:       &config.DefaultConfig,
+		Cache:        &cache.DefaultCache,
 
-		Brokers:    DefaultBrokers,
-		Clients:    DefaultClients,
-		Registries: DefaultRegistries,
-		Selectors:  DefaultSelectors,
-		Servers:    DefaultServers,
-		Transports: DefaultTransports,
-		Stores:     DefaultStores,
-		Tracers:    DefaultTracers,
-		Auths:      DefaultAuths,
-		Profiles:   DefaultProfiles,
-		Configs:    DefaultConfigs,
-		Caches:     DefaultCaches,
+		Brokers:       DefaultBrokers,
+		Clients:       DefaultClients,
+		Registries:    DefaultRegistries,
+		Selectors:     DefaultSelectors,
+		Servers:       DefaultServers,
+		Transports:    DefaultTransports,
+		Stores:        DefaultStores,
+		Tracers:       DefaultTracers,
+		Auths:         DefaultAuths,
+		DebugProfiles: DefaultDebugProfiles,
+		Configs:       DefaultConfigs,
+		Caches:        DefaultCaches,
 	}
 
 	for _, o := range opts {
@@ -352,12 +367,57 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	// If flags are set then use them otherwise do nothing
 	var serverOpts []server.Option
 	var clientOpts []client.Option
+	// --- Profile Grouping Extension ---
 
+	profileName := ctx.String("profile")
+	if profileName == "" {
+		profileName = os.Getenv("MICRO_PROFILE")
+	}
+	if profileName != "" {
+		switch profileName {
+		case "local":
+			imported := mprofile.LocalProfile()
+			*c.opts.Registry = imported.Registry
+			registry.DefaultRegistry = imported.Registry
+			*c.opts.Broker = imported.Broker
+			broker.DefaultBroker = imported.Broker
+			*c.opts.Store = imported.Store
+			store.DefaultStore = imported.Store
+			*c.opts.Transport = imported.Transport
+			transport.DefaultTransport = imported.Transport
+		case "nats":
+			imported := mprofile.NatsProfile()
+			// Set the registry
+			sopts, clopts := c.setRegistry(imported.Registry)
+			serverOpts = append(serverOpts, sopts...)
+			clientOpts = append(clientOpts, clopts...)
+
+			// set the store
+			sopts, clopts = c.setStore(imported.Store)
+			serverOpts = append(serverOpts, sopts...)
+			clientOpts = append(clientOpts, clopts...)
+
+			// set the transport
+			sopts, clopts = c.setTransport(imported.Transport)
+			serverOpts = append(serverOpts, sopts...)
+			clientOpts = append(clientOpts, clopts...)
+
+			// Set the broker
+			sopts, clopts = c.setBroker(imported.Broker)
+			serverOpts = append(serverOpts, sopts...)
+			clientOpts = append(clientOpts, clopts...)
+
+		// Add more profiles as needed
+		default:
+			return fmt.Errorf("unsupported profile: %s", profileName)
+		}
+	}
 	// Set the client
 	if name := ctx.String("client"); len(name) > 0 {
 		// only change if we have the client and type differs
 		if cl, ok := c.opts.Clients[name]; ok && (*c.opts.Client).String() != name {
 			*c.opts.Client = cl()
+			client.DefaultClient = *c.opts.Client
 		}
 	}
 
@@ -366,6 +426,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		// only change if we have the server and type differs
 		if s, ok := c.opts.Servers[name]; ok && (*c.opts.Server).String() != name {
 			*c.opts.Server = s()
+			server.DefaultServer = *c.opts.Server
 		}
 	}
 
@@ -377,6 +438,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		}
 
 		*c.opts.Store = s(store.WithClient(*c.opts.Client))
+		store.DefaultStore = *c.opts.Store
 	}
 
 	// Set the tracer
@@ -387,6 +449,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		}
 
 		*c.opts.Tracer = r()
+		trace.DefaultTracer = *c.opts.Tracer
 	}
 
 	// Setup auth
@@ -413,6 +476,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		}
 
 		*c.opts.Auth = r(authOpts...)
+		auth.DefaultAuth = *c.opts.Auth
 	}
 
 	// Set the registry
@@ -422,29 +486,19 @@ func (c *cmd) Before(ctx *cli.Context) error {
 			return fmt.Errorf("Registry %s not found", name)
 		}
 
-		*c.opts.Registry = r()
-		serverOpts = append(serverOpts, server.Registry(*c.opts.Registry))
-		clientOpts = append(clientOpts, client.Registry(*c.opts.Registry))
-
-		if err := (*c.opts.Selector).Init(selector.Registry(*c.opts.Registry)); err != nil {
-			logger.Fatalf("Error configuring registry: %v", err)
-		}
-
-		clientOpts = append(clientOpts, client.Selector(*c.opts.Selector))
-
-		if err := (*c.opts.Broker).Init(broker.Registry(*c.opts.Registry)); err != nil {
-			logger.Fatalf("Error configuring broker: %v", err)
-		}
+		sopts, clopts := c.setRegistry(r())
+		serverOpts = append(serverOpts, sopts...)
+		clientOpts = append(clientOpts, clopts...)
 	}
 
-	// Set the profile
-	if name := ctx.String("profile"); len(name) > 0 {
-		p, ok := c.opts.Profiles[name]
+	// Set the debug profile
+	if name := ctx.String("debug-profile"); len(name) > 0 {
+		p, ok := c.opts.DebugProfiles[name]
 		if !ok {
 			return fmt.Errorf("unsupported profile: %s", name)
 		}
-
-		*c.opts.Profile = p()
+		*c.opts.DebugProfile = p()
+		profile.DefaultProfile = *c.opts.DebugProfile
 	}
 
 	// Set the broker
@@ -453,10 +507,9 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		if !ok {
 			return fmt.Errorf("Broker %s not found", name)
 		}
-
-		*c.opts.Broker = b()
-		serverOpts = append(serverOpts, server.Broker(*c.opts.Broker))
-		clientOpts = append(clientOpts, client.Broker(*c.opts.Broker))
+		sopts, clopts := c.setBroker(b())
+		serverOpts = append(serverOpts, sopts...)
+		clientOpts = append(clientOpts, clopts...)
 	}
 
 	// Set the selector
@@ -470,6 +523,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 
 		// No server option here. Should there be?
 		clientOpts = append(clientOpts, client.Selector(*c.opts.Selector))
+		selector.DefaultSelector = *c.opts.Selector
 	}
 
 	// Set the transport
@@ -479,9 +533,10 @@ func (c *cmd) Before(ctx *cli.Context) error {
 			return fmt.Errorf("Transport %s not found", name)
 		}
 
-		*c.opts.Transport = t()
-		serverOpts = append(serverOpts, server.Transport(*c.opts.Transport))
-		clientOpts = append(clientOpts, client.Transport(*c.opts.Transport))
+		sopts, clopts := c.setTransport(t())
+		serverOpts = append(serverOpts, sopts...)
+		clientOpts = append(clientOpts, clopts...)
+
 	}
 
 	// Parse the server options
@@ -621,10 +676,58 @@ func (c *cmd) Before(ctx *cli.Context) error {
 				logger.Fatalf("Error configuring config: %v", err)
 			}
 			*c.opts.Config = rc
+			config.DefaultConfig = *c.opts.Config
 		}
 	}
-
 	return nil
+}
+
+func (c *cmd) setRegistry(r registry.Registry) ([]server.Option, []client.Option) {
+	var serverOpts []server.Option
+	var clientOpts []client.Option
+	*c.opts.Registry = r
+	serverOpts = append(serverOpts, server.Registry(*c.opts.Registry))
+	clientOpts = append(clientOpts, client.Registry(*c.opts.Registry))
+
+	if err := (*c.opts.Selector).Init(selector.Registry(*c.opts.Registry)); err != nil {
+		logger.Fatalf("Error configuring registry: %v", err)
+	}
+
+	clientOpts = append(clientOpts, client.Selector(*c.opts.Selector))
+
+	if err := (*c.opts.Broker).Init(broker.Registry(*c.opts.Registry)); err != nil {
+		logger.Fatalf("Error configuring broker: %v", err)
+	}
+	registry.DefaultRegistry = *c.opts.Registry
+	return serverOpts, clientOpts
+}
+
+func (c *cmd) setBroker(b broker.Broker) ([]server.Option, []client.Option) {
+	var serverOpts []server.Option
+	var clientOpts []client.Option
+	*c.opts.Broker = b
+	serverOpts = append(serverOpts, server.Broker(*c.opts.Broker))
+	clientOpts = append(clientOpts, client.Broker(*c.opts.Broker))
+	broker.DefaultBroker = *c.opts.Broker
+	return serverOpts, clientOpts
+}
+
+func (c *cmd) setStore(s store.Store) ([]server.Option, []client.Option) {
+	var serverOpts []server.Option
+	var clientOpts []client.Option
+	*c.opts.Store = s
+	store.DefaultStore = *c.opts.Store
+	return serverOpts, clientOpts
+}
+
+func (c *cmd) setTransport(t transport.Transport) ([]server.Option, []client.Option) {
+	var serverOpts []server.Option
+	var clientOpts []client.Option
+	*c.opts.Transport = t
+	serverOpts = append(serverOpts, server.Transport(*c.opts.Transport))
+	clientOpts = append(clientOpts, client.Transport(*c.opts.Transport))
+	transport.DefaultTransport = *c.opts.Transport
+	return serverOpts, clientOpts
 }
 
 func (c *cmd) Init(opts ...Option) error {
@@ -657,4 +760,17 @@ func Init(opts ...Option) error {
 
 func NewCmd(opts ...Option) Cmd {
 	return newCmd(opts...)
+}
+
+// Register CLI commands
+func Register(cmds ...*cli.Command) {
+	app := DefaultCmd.App()
+	app.Commands = append(app.Commands, cmds...)
+
+	// sort the commands so they're listed in order on the cli
+	// todo: move this to micro/cli so it's only run when the
+	// commands are printed during "help"
+	sort.Slice(app.Commands, func(i, j int) bool {
+		return app.Commands[i].Name < app.Commands[j].Name
+	})
 }
