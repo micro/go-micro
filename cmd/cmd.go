@@ -283,7 +283,7 @@ var (
 
 	DefaultAuths = map[string]func(...auth.Option) auth.Auth{}
 
-	DefaultProfiles = map[string]func(...profile.Option) profile.Profile{
+	DefaultDebugProfiles = map[string]func(...profile.Option) profile.Profile{
 		"http":  http.NewProfile,
 		"pprof": pprof.NewProfile,
 	}
@@ -323,7 +323,7 @@ func newCmd(opts ...Option) Cmd {
 		Stores:        DefaultStores,
 		Tracers:       DefaultTracers,
 		Auths:         DefaultAuths,
-		DebugProfiles: DefaultProfiles,
+		DebugProfiles: DefaultDebugProfiles,
 		Configs:       DefaultConfigs,
 		Caches:        DefaultCaches,
 	}
@@ -364,12 +364,11 @@ func (c *cmd) Options() Options {
 }
 
 func (c *cmd) Before(ctx *cli.Context) error {
-	fmt.Println("cmd.Before")
 	// If flags are set then use them otherwise do nothing
 	var serverOpts []server.Option
 	var clientOpts []client.Option
 	// --- Profile Grouping Extension ---
-	// Check for new profile flag/env (not just debug profiler)
+
 	profileName := ctx.String("profile")
 	if profileName == "" {
 		profileName = os.Getenv("MICRO_PROFILE")
@@ -388,24 +387,25 @@ func (c *cmd) Before(ctx *cli.Context) error {
 			transport.DefaultTransport = imported.Transport
 		case "nats":
 			imported := mprofile.NatsProfile()
-			*c.opts.Registry = imported.Registry
-			// these need to move out to a function so they can be merged with below ctx.String("Registry")
-			serverOpts = append(serverOpts, server.Registry(*c.opts.Registry))
-			clientOpts = append(clientOpts, client.Registry(*c.opts.Registry))
-			registry.DefaultRegistry = imported.Registry
+			// Set the registry
+			sopts, clopts := c.setRegistry(imported.Registry)
+			serverOpts = append(serverOpts, sopts...)
+			clientOpts = append(clientOpts, clopts...)
 
-			*c.opts.Broker = imported.Broker
-			broker.DefaultBroker = imported.Broker
-			serverOpts = append(serverOpts, server.Broker(*c.opts.Broker))
-			clientOpts = append(clientOpts, client.Broker(*c.opts.Broker))
+			// set the store
+			sopts, clopts = c.setStore(imported.Store)
+			serverOpts = append(serverOpts, sopts...)
+			clientOpts = append(clientOpts, clopts...)
 
-			*c.opts.Store = imported.Store
-			store.DefaultStore = imported.Store
-			*c.opts.Transport = imported.Transport
+			// set the transport
+			sopts, clopts = c.setTransport(imported.Transport)
+			serverOpts = append(serverOpts, sopts...)
+			clientOpts = append(clientOpts, clopts...)
 
-			transport.DefaultTransport = imported.Transport
-			serverOpts = append(serverOpts, server.Transport(*c.opts.Transport))
-			clientOpts = append(clientOpts, client.Transport(*c.opts.Transport))
+			// Set the broker
+			sopts, clopts = c.setBroker(imported.Broker)
+			serverOpts = append(serverOpts, sopts...)
+			clientOpts = append(clientOpts, clopts...)
 
 		// Add more profiles as needed
 		default:
@@ -486,20 +486,9 @@ func (c *cmd) Before(ctx *cli.Context) error {
 			return fmt.Errorf("Registry %s not found", name)
 		}
 
-		*c.opts.Registry = r()
-		serverOpts = append(serverOpts, server.Registry(*c.opts.Registry))
-		clientOpts = append(clientOpts, client.Registry(*c.opts.Registry))
-
-		if err := (*c.opts.Selector).Init(selector.Registry(*c.opts.Registry)); err != nil {
-			logger.Fatalf("Error configuring registry: %v", err)
-		}
-
-		clientOpts = append(clientOpts, client.Selector(*c.opts.Selector))
-
-		if err := (*c.opts.Broker).Init(broker.Registry(*c.opts.Registry)); err != nil {
-			logger.Fatalf("Error configuring broker: %v", err)
-		}
-		registry.DefaultRegistry = *c.opts.Registry
+		sopts, clopts := c.setRegistry(r())
+		serverOpts = append(serverOpts, sopts...)
+		clientOpts = append(clientOpts, clopts...)
 	}
 
 	// Set the debug profile
@@ -518,11 +507,9 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		if !ok {
 			return fmt.Errorf("Broker %s not found", name)
 		}
-
-		*c.opts.Broker = b()
-		serverOpts = append(serverOpts, server.Broker(*c.opts.Broker))
-		clientOpts = append(clientOpts, client.Broker(*c.opts.Broker))
-		broker.DefaultBroker = *c.opts.Broker
+		sopts, clopts := c.setBroker(b())
+		serverOpts = append(serverOpts, sopts...)
+		clientOpts = append(clientOpts, clopts...)
 	}
 
 	// Set the selector
@@ -546,10 +533,10 @@ func (c *cmd) Before(ctx *cli.Context) error {
 			return fmt.Errorf("Transport %s not found", name)
 		}
 
-		*c.opts.Transport = t()
-		serverOpts = append(serverOpts, server.Transport(*c.opts.Transport))
-		clientOpts = append(clientOpts, client.Transport(*c.opts.Transport))
-		transport.DefaultTransport = *c.opts.Transport
+		sopts, clopts := c.setTransport(t())
+		serverOpts = append(serverOpts, sopts...)
+		clientOpts = append(clientOpts, clopts...)
+
 	}
 
 	// Parse the server options
@@ -693,6 +680,54 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		}
 	}
 	return nil
+}
+
+func (c *cmd) setRegistry(r registry.Registry) ([]server.Option, []client.Option) {
+	var serverOpts []server.Option
+	var clientOpts []client.Option
+	*c.opts.Registry = r
+	serverOpts = append(serverOpts, server.Registry(*c.opts.Registry))
+	clientOpts = append(clientOpts, client.Registry(*c.opts.Registry))
+
+	if err := (*c.opts.Selector).Init(selector.Registry(*c.opts.Registry)); err != nil {
+		logger.Fatalf("Error configuring registry: %v", err)
+	}
+
+	clientOpts = append(clientOpts, client.Selector(*c.opts.Selector))
+
+	if err := (*c.opts.Broker).Init(broker.Registry(*c.opts.Registry)); err != nil {
+		logger.Fatalf("Error configuring broker: %v", err)
+	}
+	registry.DefaultRegistry = *c.opts.Registry
+	return serverOpts, clientOpts
+}
+
+func (c *cmd) setBroker(b broker.Broker) ([]server.Option, []client.Option) {
+	var serverOpts []server.Option
+	var clientOpts []client.Option
+	*c.opts.Broker = b
+	serverOpts = append(serverOpts, server.Broker(*c.opts.Broker))
+	clientOpts = append(clientOpts, client.Broker(*c.opts.Broker))
+	broker.DefaultBroker = *c.opts.Broker
+	return serverOpts, clientOpts
+}
+
+func (c *cmd) setStore(s store.Store) ([]server.Option, []client.Option) {
+	var serverOpts []server.Option
+	var clientOpts []client.Option
+	*c.opts.Store = s
+	store.DefaultStore = *c.opts.Store
+	return serverOpts, clientOpts
+}
+
+func (c *cmd) setTransport(t transport.Transport) ([]server.Option, []client.Option) {
+	var serverOpts []server.Option
+	var clientOpts []client.Option
+	*c.opts.Transport = t
+	serverOpts = append(serverOpts, server.Transport(*c.opts.Transport))
+	clientOpts = append(clientOpts, client.Transport(*c.opts.Transport))
+	transport.DefaultTransport = *c.opts.Transport
+	return serverOpts, clientOpts
 }
 
 func (c *cmd) Init(opts ...Option) error {
