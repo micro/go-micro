@@ -1,5 +1,4 @@
-// Package http provides a http based message broker
-package http
+package broker
 
 import (
 	"bytes"
@@ -16,7 +15,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"go-micro.dev/v5/broker"
 	"go-micro.dev/v5/codec/json"
 	merr "go-micro.dev/v5/errors"
 	"go-micro.dev/v5/registry"
@@ -30,7 +28,7 @@ import (
 
 // HTTP Broker is a point to point async broker.
 type httpBroker struct {
-	opts broker.Options
+	opts Options
 
 	r registry.Registry
 
@@ -52,8 +50,8 @@ type httpBroker struct {
 }
 
 type httpSubscriber struct {
-	opts  broker.SubscribeOptions
-	fn    broker.Handler
+	opts  SubscribeOptions
+	fn    Handler
 	svc   *registry.Service
 	hb    *httpBroker
 	id    string
@@ -62,7 +60,7 @@ type httpSubscriber struct {
 
 type httpEvent struct {
 	err error
-	m   *broker.Message
+	m   *Message
 	t   string
 }
 
@@ -109,8 +107,8 @@ func newTransport(config *tls.Config) *http.Transport {
 	return t
 }
 
-func newHttpBroker(opts ...broker.Option) broker.Broker {
-	options := *broker.NewOptions(opts...)
+func newHttpBroker(opts ...Option) Broker {
+	options := *NewOptions(opts...)
 
 	options.Registry = registry.DefaultRegistry
 	options.Codec = json.Marshaler{}
@@ -162,7 +160,7 @@ func (h *httpEvent) Error() error {
 	return h.err
 }
 
-func (h *httpEvent) Message() *broker.Message {
+func (h *httpEvent) Message() *Message {
 	return h.m
 }
 
@@ -170,7 +168,7 @@ func (h *httpEvent) Topic() string {
 	return h.t
 }
 
-func (h *httpSubscriber) Options() broker.SubscribeOptions {
+func (h *httpSubscriber) Options() SubscribeOptions {
 	return h.opts
 }
 
@@ -309,7 +307,7 @@ func (h *httpBroker) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	var m *broker.Message
+	var m *Message
 	if err = h.opts.Codec.Unmarshal(b, &m); err != nil {
 		errr := merr.InternalServerError("go.micro.broker", "Error parsing request body: %v", err)
 		w.WriteHeader(500)
@@ -331,7 +329,7 @@ func (h *httpBroker) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	id := req.Form.Get("id")
 
 	//nolint:prealloc
-	var subs []broker.Handler
+	var subs []Handler
 
 	h.RLock()
 	for _, subscriber := range h.subscribers[topic] {
@@ -459,7 +457,7 @@ func (h *httpBroker) Disconnect() error {
 	return err
 }
 
-func (h *httpBroker) Init(opts ...broker.Option) error {
+func (h *httpBroker) Init(opts ...Option) error {
 	h.RLock()
 	if h.running {
 		h.RUnlock()
@@ -506,13 +504,13 @@ func (h *httpBroker) Init(opts ...broker.Option) error {
 	return nil
 }
 
-func (h *httpBroker) Options() broker.Options {
+func (h *httpBroker) Options() Options {
 	return h.opts
 }
 
-func (h *httpBroker) Publish(topic string, msg *broker.Message, opts ...broker.PublishOption) error {
+func (h *httpBroker) Publish(topic string, msg *Message, opts ...PublishOption) error {
 	// create the message first
-	m := &broker.Message{
+	m := &Message{
 		Header: make(map[string]string),
 		Body:   msg.Body,
 	}
@@ -638,10 +636,10 @@ func (h *httpBroker) Publish(topic string, msg *broker.Message, opts ...broker.P
 	return nil
 }
 
-func (h *httpBroker) Subscribe(topic string, handler broker.Handler, opts ...broker.SubscribeOption) (broker.Subscriber, error) {
+func (h *httpBroker) Subscribe(topic string, handler Handler, opts ...SubscribeOption) (Subscriber, error) {
 	var err error
 	var host, port string
-	options := broker.NewSubscribeOptions(opts...)
+	options := NewSubscribeOptions(opts...)
 
 	// parse address for host, port
 	host, port, err = net.SplitHostPort(h.Address())
@@ -707,6 +705,6 @@ func (h *httpBroker) String() string {
 }
 
 // NewHttpBroker returns a new http broker.
-func NewHttpBroker(opts ...broker.Option) broker.Broker {
+func NewHttpBroker(opts ...Option) Broker {
 	return newHttpBroker(opts...)
 }

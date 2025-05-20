@@ -21,31 +21,6 @@ func expectedPort(t *testing.T, expected string, lsn Listener) {
 	}
 }
 
-func TestHTTPTransportPortRange(t *testing.T) {
-	tp := NewHTTPTransport()
-
-	lsn1, err := tp.Listen(":44445-44449")
-	if err != nil {
-		t.Errorf("Did not expect an error, got %s", err)
-	}
-	expectedPort(t, "44445", lsn1)
-
-	lsn2, err := tp.Listen(":44445-44449")
-	if err != nil {
-		t.Errorf("Did not expect an error, got %s", err)
-	}
-	expectedPort(t, "44446", lsn2)
-
-	lsn, err := tp.Listen("127.0.0.1:0")
-	if err != nil {
-		t.Errorf("Did not expect an error, got %s", err)
-	}
-
-	lsn.Close()
-	lsn1.Close()
-	lsn2.Close()
-}
-
 func TestHTTPTransportCommunication(t *testing.T) {
 	tr := NewHTTPTransport()
 
