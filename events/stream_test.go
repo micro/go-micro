@@ -63,7 +63,7 @@ func runTestStream(t *testing.T, stream Stream) {
 				assert.Equal(t, event.Metadata, metadata, "Metadata didn't match")
 
 				var result testPayload
-				err = event.Unmarshal(&result)
+				err := event.Unmarshal(&result)
 				assert.Nil(t, err, "Error decoding result")
 				assert.Equal(t, result, *payload, "Payload didn't match")
 
@@ -105,7 +105,7 @@ func runTestStream(t *testing.T, stream Stream) {
 				assert.Equal(t, event.Metadata, metadata, "Metadata didn't match")
 
 				var result testPayload
-				err = event.Unmarshal(&result)
+				err := event.Unmarshal(&result)
 				assert.Nil(t, err, "Error decoding result")
 				assert.Equal(t, result, *payload, "Payload didn't match")
 
@@ -135,7 +135,7 @@ func runTestStream(t *testing.T, stream Stream) {
 				assert.Equal(t, event.Metadata, metadata, "Metadata didn't match")
 
 				var result testPayload
-				err = event.Unmarshal(&result)
+				err := event.Unmarshal(&result)
 				assert.Nil(t, err, "Error decoding result")
 				assert.Equal(t, result, *payload, "Payload didn't match")
 

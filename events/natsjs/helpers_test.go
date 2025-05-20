@@ -6,6 +6,7 @@ import (
 	"net"
 	"path/filepath"
 	"testing"
+	"time"
 
 	nserver "github.com/nats-io/nats-server/v2/server"
 	"github.com/test-go/testify/require"
@@ -35,7 +36,10 @@ func natsServer(ctx context.Context, t *testing.T, opts *nserver.Options) {
 
 	// first start NATS
 	go server.Start()
-
+	ready := server.ReadyForConnections(time.Second * 10)
+	if !ready {
+		t.Fatalf("NATS server not ready")
+	}
 	jsConf := &nserver.JetStreamConfig{
 		StoreDir: filepath.Join(t.TempDir(), "nats-js"),
 	}
