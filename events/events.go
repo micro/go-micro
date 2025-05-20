@@ -16,9 +16,9 @@ var (
 
 var (
 	// ErrMissingTopic is returned if a blank topic was provided to publish
-	ErrMissingTopic = errors.New("Missing topic")
+	ErrMissingTopic = errors.New("missing topic")
 	// ErrEncodingMessage is returned from publish if there was an error encoding the message option
-	ErrEncodingMessage = errors.New("Error encoding message")
+	ErrEncodingMessage = errors.New("error encoding message")
 )
 
 // Stream is an event streaming interface
