@@ -239,7 +239,7 @@ func ackFunc(s *subscriber, evCopy Event) func() error {
 	}
 }
 
-func nackFunc(s *subscriber, evCopy Event) func() error {
+func nackFunc(_ *subscriber, _ Event) func() error {
 	return func() error {
 		return nil
 	}
