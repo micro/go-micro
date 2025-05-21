@@ -22,7 +22,7 @@ var (
 	// DefaultTable when none is specified.
 	DefaultTable = "micro"
 	// DefaultDir is the default directory for bbolt files.
-	DefaultDir = filepath.Join(HomeDir, "micro", "store")
+	DefaultDir = filepath.Join(HomeDir, ".micro", "store")
 
 	// bucket used for data storage.
 	dataBucket = "data"
@@ -96,13 +96,8 @@ func (m *fileStore) init(opts ...Option) error {
 	if m.dir == "" {
 		m.dir = DefaultDir
 	}
-
-	// Ignoring this as the folder might exist.
-	// Reads/Writes updates will return with sensible error messages
-	// about the dir not existing in case this cannot create the path anyway
-	os.MkdirAll(m.dir, 0700)
-
-	return nil
+	// create the directory
+	return os.MkdirAll(m.dir, 0700)
 }
 
 func (f *fileStore) getDB(database, table string) (*fileHandle, error) {
