@@ -60,14 +60,11 @@ func (s *service) Init(opts ...Option) {
 			s.opts.Logger.Log(log.FatalLevel, err)
 		}
 
-		// If the store has no Table set, fallback to the
-		// services name
-		if len(s.opts.Store.Options().Table) == 0 {
-			name := s.opts.Cmd.App().Name
-			err := s.opts.Store.Init(store.Table(name))
-			if err != nil {
-				s.opts.Logger.Log(log.FatalLevel, err)
-			}
+		// we might not want to do this
+		name := s.opts.Cmd.App().Name
+		err := s.opts.Store.Init(store.Table(name))
+		if err != nil {
+			s.opts.Logger.Log(log.FatalLevel, err)
 		}
 	})
 }
