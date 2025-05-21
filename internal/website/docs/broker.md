@@ -1,3 +1,7 @@
+---
+layout: default
+---
+
 # Broker
 
 The broker provides pub/sub messaging for Go Micro services.
