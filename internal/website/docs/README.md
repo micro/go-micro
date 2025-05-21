@@ -21,10 +21,10 @@ about the framework.
 
 ## Contents
 
-- [Getting Started](getting-started)
-- [Architecture](architecture)
-- Registry
-- Broker
-- Client/Server
-- Transport
-- Store
+- [Getting Started](getting-started.md)
+- [Architecture](architecture.md)
+- [Registry](registry.md)
+- [Broker](broker.md)
+- [Client/Server](client-server.md)
+- [Transport](transport.md)
+- [Store](store.md)
