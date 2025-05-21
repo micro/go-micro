@@ -1,3 +1,7 @@
+---
+layout: default
+---
+
 # Getting Started
 
 To make use of Go Micro 
@@ -117,15 +121,15 @@ package greeter;
 option go_package = "/proto;helloworld";
 
 service Say {
-	rpc Hello(Request) returns (Response) {}
+        rpc Hello(Request) returns (Response) {}
 }
 
 message Request {
-	string name = 1;
+        string name = 1;
 }
 
 message Response {
-	string message = 1;
+        string message = 1;
 }
 ```
 
