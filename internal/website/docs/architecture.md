@@ -2,29 +2,6 @@
 layout: default
 ---
 
-
-## Example Usage
-
-Here's a minimal Go Micro service demonstrating the architecture:
-
-```go
-package main
-
-import (
-    "go-micro.dev/v5"
-    "log"
-)
-
-func main() {
-    service := micro.NewService(
-        micro.Name("example"),
-    )
-    service.Init()
-    if err := service.Run(); err != nil {
-        log.Fatal(err)
-    }
-}
-```
 ## Architecture
 
 An overview of the Go Micro architecture
@@ -67,3 +44,26 @@ in the plugins repo. State and persistence becomes a core requirement beyond pro
 ## Design
 
 We will share more on architecture soon
+
+## Example Usage
+
+Here's a minimal Go Micro service demonstrating the architecture:
+
+```go
+package main
+
+import (
+    "go-micro.dev/v5"
+    "log"
+)
+
+func main() {
+    service := micro.NewService(
+        micro.Name("example"),
+    )
+    service.Init()
+    if err := service.Run(); err != nil {
+        log.Fatal(err)
+    }
+}
+```
