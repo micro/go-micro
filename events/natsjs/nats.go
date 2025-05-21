@@ -179,14 +179,22 @@ func (s *stream) Consume(topic string, opts ...events.ConsumeOption) (<-chan eve
 			// not acknowledging the message is the way to indicate an error occurred
 			return
 		}
-
-		if !options.AutoAck {
+		if options.AutoAck {
 			// set up the ack funcs
 			evt.SetAckFunc(func() error {
 				return msg.Ack()
 			})
+
 			evt.SetNackFunc(func() error {
 				return msg.Nak()
+			})
+		} else {
+			// set up the ack funcs
+			evt.SetAckFunc(func() error {
+				return nil
+			})
+			evt.SetNackFunc(func() error {
+				return nil
 			})
 		}
 
@@ -198,6 +206,7 @@ func (s *stream) Consume(topic string, opts ...events.ConsumeOption) (<-chan eve
 		}
 
 		if err := msg.Ack(nats.Context(ctx)); err != nil {
+
 			log.Logf(logger.ErrorLevel, "Error acknowledging message: %v", err)
 		}
 	}
@@ -207,6 +216,12 @@ func (s *stream) Consume(topic string, opts ...events.ConsumeOption) (<-chan eve
 	if err != nil {
 		cfg := &nats.StreamConfig{
 			Name: topic,
+		}
+		if s.opts.RetentionPolicy != 0 {
+			cfg.Retention = nats.RetentionPolicy(s.opts.RetentionPolicy)
+		}
+		if s.opts.MaxAge > 0 {
+			cfg.MaxAge = s.opts.MaxAge
 		}
 
 		_, err = s.natsJetStreamCtx.AddStream(cfg)
@@ -223,7 +238,7 @@ func (s *stream) Consume(topic string, opts ...events.ConsumeOption) (<-chan eve
 	}
 
 	if options.AutoAck {
-		subOpts = append(subOpts, nats.AckNone())
+		subOpts = append(subOpts, nats.AckAll())
 	} else {
 		subOpts = append(subOpts, nats.AckExplicit())
 	}

@@ -23,6 +23,7 @@ import (
 	"go-micro.dev/v5/debug/profile/http"
 	"go-micro.dev/v5/debug/profile/pprof"
 	"go-micro.dev/v5/debug/trace"
+	"go-micro.dev/v5/events"
 	"go-micro.dev/v5/logger"
 	mprofile "go-micro.dev/v5/profile"
 	"go-micro.dev/v5/registry"
@@ -293,6 +294,7 @@ var (
 	DefaultCaches = map[string]func(...cache.Option) cache.Cache{
 		"redis": redis.NewRedisCache,
 	}
+	DefaultStreams = map[string]func(...events.Option) (events.Stream, error){}
 )
 
 func init() {
@@ -313,6 +315,7 @@ func newCmd(opts ...Option) Cmd {
 		DebugProfile: &profile.DefaultProfile,
 		Config:       &config.DefaultConfig,
 		Cache:        &cache.DefaultCache,
+		Stream:       &events.DefaultStream,
 
 		Brokers:       DefaultBrokers,
 		Clients:       DefaultClients,
@@ -376,7 +379,10 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	if profileName != "" {
 		switch profileName {
 		case "local":
-			imported := mprofile.LocalProfile()
+			imported, ierr := mprofile.LocalProfile()
+			if ierr != nil {
+				return fmt.Errorf("failed to load local profile: %v", ierr)
+			}
 			*c.opts.Registry = imported.Registry
 			registry.DefaultRegistry = imported.Registry
 			*c.opts.Broker = imported.Broker
@@ -386,7 +392,10 @@ func (c *cmd) Before(ctx *cli.Context) error {
 			*c.opts.Transport = imported.Transport
 			transport.DefaultTransport = imported.Transport
 		case "nats":
-			imported := mprofile.NatsProfile()
+			imported, ierr := mprofile.NatsProfile()
+			if ierr != nil {
+				return fmt.Errorf("failed to load nats profile: %v", ierr)
+			}
 			// Set the registry
 			sopts, clopts := c.setRegistry(imported.Registry)
 			serverOpts = append(serverOpts, sopts...)
@@ -404,6 +413,11 @@ func (c *cmd) Before(ctx *cli.Context) error {
 
 			// Set the broker
 			sopts, clopts = c.setBroker(imported.Broker)
+			serverOpts = append(serverOpts, sopts...)
+			clientOpts = append(clientOpts, clopts...)
+
+			// Set the stream
+			sopts, clopts = c.setStream(imported.Stream)
 			serverOpts = append(serverOpts, sopts...)
 			clientOpts = append(clientOpts, clopts...)
 
@@ -699,6 +713,17 @@ func (c *cmd) setRegistry(r registry.Registry) ([]server.Option, []client.Option
 		logger.Fatalf("Error configuring broker: %v", err)
 	}
 	registry.DefaultRegistry = *c.opts.Registry
+	return serverOpts, clientOpts
+}
+func (c *cmd) setStream(s events.Stream) ([]server.Option, []client.Option) {
+	var serverOpts []server.Option
+	var clientOpts []client.Option
+	*c.opts.Stream = s
+	// TODO: do server and client need a Stream?
+	// serverOpts = append(serverOpts, server.Registry(*c.opts.Registry))
+	// clientOpts = append(clientOpts, client.Registry(*c.opts.Registry))
+
+	events.DefaultStream = *c.opts.Stream
 	return serverOpts, clientOpts
 }
 

@@ -2,6 +2,7 @@ package natsjs
 
 import (
 	"crypto/tls"
+	"time"
 
 	"go-micro.dev/v5/logger"
 )
@@ -19,6 +20,9 @@ type Options struct {
 	DisableDurableStreams bool
 	Username              string
 	Password              string
+	RetentionPolicy       int
+	MaxAge                time.Duration
+	MaxMsgSize            int
 }
 
 // Option is a function which configures options.
@@ -92,5 +96,21 @@ func Authenticate(username, password string) Option {
 	return func(o *Options) {
 		o.Username = username
 		o.Password = password
+	}
+}
+func RetentionPolicy(rp int) Option {
+	return func(o *Options) {
+		o.RetentionPolicy = rp
+	}
+}
+
+func MaxMsgSize(size int) Option {
+	return func(o *Options) {
+		o.MaxMsgSize = size
+	}
+}
+func MaxAge(age time.Duration) Option {
+	return func(o *Options) {
+		o.MaxAge = age
 	}
 }

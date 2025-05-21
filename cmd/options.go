@@ -10,6 +10,7 @@ import (
 	"go-micro.dev/v5/config"
 	"go-micro.dev/v5/debug/profile"
 	"go-micro.dev/v5/debug/trace"
+	"go-micro.dev/v5/events"
 	"go-micro.dev/v5/registry"
 	"go-micro.dev/v5/selector"
 	"go-micro.dev/v5/server"
@@ -42,6 +43,7 @@ type Options struct {
 	Broker     *broker.Broker
 	Auths      map[string]func(...auth.Option) auth.Auth
 	Store      *store.Store
+	Stream     *events.Stream
 	Configs    map[string]func(...config.Option) (config.Config, error)
 	Clients    map[string]func(...client.Option) client.Client
 	Registries map[string]func(...registry.Option) registry.Registry
@@ -49,6 +51,7 @@ type Options struct {
 	Servers    map[string]func(...server.Option) server.Server
 	Transports map[string]func(...transport.Option) transport.Transport
 	Stores     map[string]func(...store.Option) store.Store
+	Streams    map[string]func(...events.Option) events.Stream
 	Tracers    map[string]func(...trace.Option) trace.Tracer
 	Version    string
 
@@ -141,6 +144,13 @@ func Store(s *store.Store) Option {
 	}
 }
 
+func Stream(s *events.Stream) Option {
+	return func(o *Options) {
+		o.Stream = s
+		events.DefaultStream = *s
+	}
+}
+
 func Tracer(t *trace.Tracer) Option {
 	return func(o *Options) {
 		o.Tracer = t
@@ -166,6 +176,13 @@ func Profile(p *profile.Profile) Option {
 func NewBroker(name string, b func(...broker.Option) broker.Broker) Option {
 	return func(o *Options) {
 		o.Brokers[name] = b
+	}
+}
+
+// New stream func.
+func NewStream(name string, b func(...events.Option) events.Stream) Option {
+	return func(o *Options) {
+		o.Streams[name] = b
 	}
 }
 
