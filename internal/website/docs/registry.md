@@ -1,3 +1,7 @@
+---
+layout: default
+---
+
 # Registry
 
 The registry is responsible for service discovery in Go Micro. It allows services to register themselves and discover other services.

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% if page.title %}{{ page.title }} | {% endif %}Go Micro Documentation</title>
+  <style>
+    body { font-family: sans-serif; margin: 0; padding: 0; background: #f9f9f9; }
+    header { display: flex; align-items: center; justify-content: space-between; padding: 1rem 2rem; background: #fff; border-bottom: 1px solid #eee; }
+    .logo-link { display: flex; align-items: center; text-decoration: none; }
+    .logo-link img { height: 40px; margin-right: 10px; }
+    nav a { margin-left: 24px; color: #333; text-decoration: none; font-weight: 500; }
+    nav a:hover { color: #007d9c; }
+    main { max-width: 800px; margin: 2rem auto; background: #fff; padding: 2rem; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.03); }
+    pre { background: whitesmoke; padding: 10px; border-radius: 5px; }
+  </style>
+</head>
+<body>
+  <header>
+    <a class="logo-link" href="/">
+      <img src="/images/logo.png" alt="Go Micro Logo">
+      <span style="font-size: 1.3rem; font-weight: bold; color: #222;">Go Micro</span>
+    </a>
+    <nav>
+      <a href="/docs/">Docs</a>
+      <a href="https://github.com/micro/go-micro" target="_blank" rel="noopener">GitHub</a>
+      <a href="/">Home</a>
+    </nav>
+  </header>
+  <main>
+    {{ content }}
+  </main>
+</body>
+</html>

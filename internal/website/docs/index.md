@@ -1,3 +1,7 @@
+---
+layout: default
+---
+
 # Docs
 
 Documentation for the Go Micro framework 

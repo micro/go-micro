@@ -1,3 +1,7 @@
+---
+layout: default
+---
+
 # Transport
 
 The transport layer is responsible for communication between services.
