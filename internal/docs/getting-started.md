@@ -14,7 +14,7 @@ This is a basic example of how you'd create a service and register a handler in 
 mkdir helloworld
 cd helloworld
 go mod init
-go get go-micro.dev/v5@latest"
+go get go-micro.dev/v5@latest
 ```
 
 Write the following into `main.go`
