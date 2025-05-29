@@ -218,28 +218,37 @@ func (n *ntportSocket) Recv(m *transport.Message) error {
 	}
 	n.Unlock()
 
-	if err := n.opts.Codec.Unmarshal(r.Data, m); err != nil {
-		return err
+	m.Header = make(map[string]string)
+	for k, v := range r.Header {
+		m.Header[k] = v[0]
 	}
+	m.Body = r.Data
+
 	return nil
 }
 
 func (n *ntportSocket) Send(m *transport.Message) error {
-	b, err := n.opts.Codec.Marshal(m)
-	if err != nil {
-		return err
+	header := nats.Header{}
+	for k, v := range m.Header {
+		header.Add(k, v)
+	}
+
+	msg := &nats.Msg{
+		Reply:  n.m.Reply,
+		Header: header,
+		Data:   m.Body,
 	}
 
 	// no deadline
 	if n.opts.Timeout == time.Duration(0) {
-		return n.conn.Publish(n.m.Reply, b)
+		return n.conn.PublishMsg(msg)
 	}
 
 	// use the deadline
 	ch := make(chan error, 1)
 
 	go func() {
-		ch <- n.conn.Publish(n.m.Reply, b)
+		ch <- n.conn.PublishMsg(msg)
 	}()
 
 	select {
