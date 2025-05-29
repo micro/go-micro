@@ -61,8 +61,6 @@ var (
 	DefaultTimeout = time.Minute
 )
 
-
-
 func configure(n *ntport, opts ...transport.Option) {
 	for _, o := range opts {
 		o(&n.opts)
@@ -121,21 +119,28 @@ func (n *ntportClient) Remote() string {
 }
 
 func (n *ntportClient) Send(m *transport.Message) error {
-	b, err := n.opts.Codec.Marshal(m)
-	if err != nil {
-		return err
+	header := nats.Header{}
+	for k, v := range m.Header {
+		header.Add(k, v)
+	}
+
+	msg := &nats.Msg{
+		Subject: n.addr,
+		Reply:   n.id,
+		Header:  header,
+		Data:    m.Body,
 	}
 
 	// no deadline
 	if n.opts.Timeout == time.Duration(0) {
-		return n.conn.PublishRequest(n.addr, n.id, b)
+		return n.conn.PublishMsg(msg)
 	}
 
 	// use the deadline
 	ch := make(chan error, 1)
 
 	go func() {
-		ch <- n.conn.PublishRequest(n.addr, n.id, b)
+		ch <- n.conn.PublishMsg(msg)
 	}()
 
 	select {
@@ -157,12 +162,13 @@ func (n *ntportClient) Recv(m *transport.Message) error {
 		return err
 	}
 
-	var mr transport.Message
-	if err := n.opts.Codec.Unmarshal(rsp.Data, &mr); err != nil {
-		return err
+	m.Header = make(map[string]string)
+	for k, v := range rsp.Header {
+		m.Header[k] = v[0]
 	}
 
-	*m = mr
+	m.Body = rsp.Data
+
 	return nil
 }
 
