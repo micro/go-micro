@@ -234,9 +234,9 @@ func (n *ntportSocket) Send(m *transport.Message) error {
 	}
 
 	msg := &nats.Msg{
-		Reply:  n.m.Reply,
-		Header: header,
-		Data:   m.Body,
+		Subject: n.m.Reply,
+		Header:  header,
+		Data:    m.Body,
 	}
 
 	// no deadline
