@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/nats-io/nats.go"
-	"go-micro.dev/v5/codec/json"
 	"go-micro.dev/v5/server"
 	"go-micro.dev/v5/transport"
 )
@@ -441,8 +440,6 @@ func (n *ntport) String() string {
 
 func NewTransport(opts ...transport.Option) transport.Transport {
 	options := transport.Options{
-		// Default codec
-		Codec:   json.Marshaler{},
 		Timeout: DefaultTimeout,
 		Context: context.Background(),
 	}
