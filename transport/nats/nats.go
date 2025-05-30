@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/nats-io/nats.go"
-	"go-micro.dev/v5/codec/json"
 	"go-micro.dev/v5/server"
 	"go-micro.dev/v5/transport"
 )
@@ -33,7 +32,6 @@ type ntportClient struct {
 
 type ntportSocket struct {
 	conn *nats.Conn
-	m    *nats.Msg
 	r    chan *nats.Msg
 
 	close chan bool
@@ -60,8 +58,6 @@ type ntportListener struct {
 var (
 	DefaultTimeout = time.Minute
 )
-
-
 
 func configure(n *ntport, opts ...transport.Option) {
 	for _, o := range opts {
@@ -121,29 +117,17 @@ func (n *ntportClient) Remote() string {
 }
 
 func (n *ntportClient) Send(m *transport.Message) error {
-	b, err := n.opts.Codec.Marshal(m)
-	if err != nil {
-		return err
+	header := nats.Header{}
+	for k, v := range m.Header {
+		header.Add(k, v)
 	}
 
-	// no deadline
-	if n.opts.Timeout == time.Duration(0) {
-		return n.conn.PublishRequest(n.addr, n.id, b)
-	}
-
-	// use the deadline
-	ch := make(chan error, 1)
-
-	go func() {
-		ch <- n.conn.PublishRequest(n.addr, n.id, b)
-	}()
-
-	select {
-	case err := <-ch:
-		return err
-	case <-time.After(n.opts.Timeout):
-		return errors.New("deadline exceeded")
-	}
+	return n.conn.PublishMsg(&nats.Msg{
+		Subject: n.addr,
+		Reply:   n.id,
+		Header:  header,
+		Data:    m.Body,
+	})
 }
 
 func (n *ntportClient) Recv(m *transport.Message) error {
@@ -157,12 +141,13 @@ func (n *ntportClient) Recv(m *transport.Message) error {
 		return err
 	}
 
-	var mr transport.Message
-	if err := n.opts.Codec.Unmarshal(rsp.Data, &mr); err != nil {
-		return err
+	m.Header = make(map[string]string)
+	for k, v := range rsp.Header {
+		m.Header[k] = v[0]
 	}
 
-	*m = mr
+	m.Body = rsp.Data
+
 	return nil
 }
 
@@ -213,36 +198,26 @@ func (n *ntportSocket) Recv(m *transport.Message) error {
 	}
 	n.Unlock()
 
-	if err := n.opts.Codec.Unmarshal(r.Data, m); err != nil {
-		return err
+	m.Header = make(map[string]string)
+	for k, v := range r.Header {
+		m.Header[k] = v[0]
 	}
+	m.Body = r.Data
+
 	return nil
 }
 
 func (n *ntportSocket) Send(m *transport.Message) error {
-	b, err := n.opts.Codec.Marshal(m)
-	if err != nil {
-		return err
+	header := nats.Header{}
+	for k, v := range m.Header {
+		header.Add(k, v)
 	}
 
-	// no deadline
-	if n.opts.Timeout == time.Duration(0) {
-		return n.conn.Publish(n.m.Reply, b)
-	}
-
-	// use the deadline
-	ch := make(chan error, 1)
-
-	go func() {
-		ch <- n.conn.Publish(n.m.Reply, b)
-	}()
-
-	select {
-	case err := <-ch:
-		return err
-	case <-time.After(n.opts.Timeout):
-		return errors.New("deadline exceeded")
-	}
+	return n.conn.PublishMsg(&nats.Msg{
+		Subject: n.remote,
+		Header:  header,
+		Data:    m.Body,
+	})
 }
 
 func (n *ntportSocket) Close() error {
@@ -291,7 +266,6 @@ func (n *ntportListener) Accept(fn func(transport.Socket)) error {
 		if !ok {
 			sock = &ntportSocket{
 				conn:   n.conn,
-				m:      m,
 				r:      make(chan *nats.Msg, 1),
 				close:  make(chan bool),
 				opts:   n.opts,
@@ -315,7 +289,7 @@ func (n *ntportListener) Accept(fn func(transport.Socket)) error {
 			go func() {
 				<-sock.close
 				n.Lock()
-				delete(n.so, sock.m.Reply)
+				delete(n.so, m.Reply)
 				n.Unlock()
 			}()
 		}
@@ -435,8 +409,6 @@ func (n *ntport) String() string {
 
 func NewTransport(opts ...transport.Option) transport.Transport {
 	options := transport.Options{
-		// Default codec
-		Codec:   json.Marshaler{},
 		Timeout: DefaultTimeout,
 		Context: context.Background(),
 	}
