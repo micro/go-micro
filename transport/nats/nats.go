@@ -32,7 +32,6 @@ type ntportClient struct {
 
 type ntportSocket struct {
 	conn *nats.Conn
-	m    *nats.Msg
 	r    chan *nats.Msg
 
 	close chan bool
@@ -123,31 +122,12 @@ func (n *ntportClient) Send(m *transport.Message) error {
 		header.Add(k, v)
 	}
 
-	msg := &nats.Msg{
+	return n.conn.PublishMsg(&nats.Msg{
 		Subject: n.addr,
 		Reply:   n.id,
 		Header:  header,
 		Data:    m.Body,
-	}
-
-	// no deadline
-	if n.opts.Timeout == time.Duration(0) {
-		return n.conn.PublishMsg(msg)
-	}
-
-	// use the deadline
-	ch := make(chan error, 1)
-
-	go func() {
-		ch <- n.conn.PublishMsg(msg)
-	}()
-
-	select {
-	case err := <-ch:
-		return err
-	case <-time.After(n.opts.Timeout):
-		return errors.New("deadline exceeded")
-	}
+	})
 }
 
 func (n *ntportClient) Recv(m *transport.Message) error {
@@ -233,30 +213,11 @@ func (n *ntportSocket) Send(m *transport.Message) error {
 		header.Add(k, v)
 	}
 
-	msg := &nats.Msg{
-		Subject: n.m.Reply,
+	return n.conn.PublishMsg(&nats.Msg{
+		Subject: n.remote,
 		Header:  header,
 		Data:    m.Body,
-	}
-
-	// no deadline
-	if n.opts.Timeout == time.Duration(0) {
-		return n.conn.PublishMsg(msg)
-	}
-
-	// use the deadline
-	ch := make(chan error, 1)
-
-	go func() {
-		ch <- n.conn.PublishMsg(msg)
-	}()
-
-	select {
-	case err := <-ch:
-		return err
-	case <-time.After(n.opts.Timeout):
-		return errors.New("deadline exceeded")
-	}
+	})
 }
 
 func (n *ntportSocket) Close() error {
@@ -305,7 +266,6 @@ func (n *ntportListener) Accept(fn func(transport.Socket)) error {
 		if !ok {
 			sock = &ntportSocket{
 				conn:   n.conn,
-				m:      m,
 				r:      make(chan *nats.Msg, 1),
 				close:  make(chan bool),
 				opts:   n.opts,
@@ -329,7 +289,7 @@ func (n *ntportListener) Accept(fn func(transport.Socket)) error {
 			go func() {
 				<-sock.close
 				n.Lock()
-				delete(n.so, sock.m.Reply)
+				delete(n.so, m.Reply)
 				n.Unlock()
 			}()
 		}
