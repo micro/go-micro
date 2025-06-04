@@ -167,7 +167,7 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 			// Process the event
 			ev := newEvent(msg)
 
-			if err := s.HandleEvent(ev); err != nil {
+			if err := s.HandleEvent(ev.Topic())(ev); err != nil {
 				msg.Header[headers.Error] = err.Error()
 				logger.Logf(log.ErrorLevel, "failed to handle event: %v", err)
 			}
