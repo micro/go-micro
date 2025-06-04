@@ -21,6 +21,15 @@ type jsonValue struct {
 	*simple.Json
 }
 
+func NewValues(val []byte) (reader.Values, error) {
+	sj := simple.New()
+	data, _ := reader.ReplaceEnvVars(val)
+	if err := sj.UnmarshalJSON(data); err != nil {
+		sj.SetPath(nil, string(data))
+	}
+	return &jsonValues{sj: sj}, nil
+}
+
 func newValues(ch *source.ChangeSet) (reader.Values, error) {
 	sj := simple.New()
 	data, _ := reader.ReplaceEnvVars(ch.Data)
@@ -30,8 +39,8 @@ func newValues(ch *source.ChangeSet) (reader.Values, error) {
 	return &jsonValues{ch, sj}, nil
 }
 
-func (j *jsonValues) Get(path ...string) reader.Value {
-	return &jsonValue{j.sj.GetPath(path...)}
+func (j *jsonValues) Get(path ...string) (reader.Value, error) {
+	return &jsonValue{j.sj.GetPath(path...)}, nil
 }
 
 func (j *jsonValues) Del(path ...string) {

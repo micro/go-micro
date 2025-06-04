@@ -181,9 +181,11 @@ func (m *memory) update() {
 			continue
 		}
 
+		val, _ := vals.Get(w.path...)
+
 		uv := updateValue{
 			version: m.snap.Version,
-			value:   vals.Get(w.path...),
+			value:   val,
 		}
 
 		select {
@@ -287,7 +289,7 @@ func (m *memory) Get(path ...string) (reader.Value, error) {
 
 	// did sync actually work?
 	if m.vals != nil {
-		return m.vals.Get(path...), nil
+		return m.vals.Get(path...)
 	}
 
 	// assuming vals is nil
@@ -305,7 +307,7 @@ func (m *memory) Get(path ...string) (reader.Value, error) {
 	m.vals = v
 
 	if m.vals != nil {
-		return m.vals.Get(path...), nil
+		return m.vals.Get(path...)
 	}
 
 	// ok we're going hardcore now

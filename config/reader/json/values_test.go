@@ -37,7 +37,11 @@ func TestValues(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		err = values.Get(test.path...).Scan(&test.accepter)
+		v, err := values.Get(test.path...)
+		if err != nil {
+			t.Fatal(err)
+		}
+		err = v.Scan(&test.accepter)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -74,7 +78,11 @@ func TestStructArray(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		err = values.Get().Scan(&test.accepter)
+		v, err := values.Get()
+		if err != nil {
+			t.Fatal(err)
+		}
+		err = v.Scan(&test.accepter)
 		if err != nil {
 			t.Fatal(err)
 		}

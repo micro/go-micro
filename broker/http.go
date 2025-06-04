@@ -1,4 +1,3 @@
-// Package broker provides a http based message broker
 package broker
 
 import (
@@ -705,7 +704,7 @@ func (h *httpBroker) String() string {
 	return "http"
 }
 
-// NewBroker returns a new http broker.
-func NewBroker(opts ...Option) Broker {
+// NewHttpBroker returns a new http broker.
+func NewHttpBroker(opts ...Option) Broker {
 	return newHttpBroker(opts...)
 }

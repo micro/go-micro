@@ -606,6 +606,7 @@ func (m *mdnsWatcher) Stop() {
 	default:
 		close(m.exit)
 		// remove self from the registry
+
 		m.registry.mtx.Lock()
 		delete(m.registry.watchers, m.id)
 		m.registry.mtx.Unlock()
@@ -613,6 +614,6 @@ func (m *mdnsWatcher) Stop() {
 }
 
 // NewRegistry returns a new default registry which is mdns.
-func NewRegistry(opts ...Option) Registry {
+func NewMDNSRegistry(opts ...Option) Registry {
 	return newRegistry(opts...)
 }

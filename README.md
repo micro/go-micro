@@ -1,4 +1,4 @@
-# Go Micro [![Go.Dev reference](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white&style=flat-square)](https://pkg.go.dev/go-micro.dev/v5?tab=doc) [![Go Report Card](https://goreportcard.com/badge/github.com/go-micro/go-micro)](https://goreportcard.com/report/github.com/go-micro/go-micro)
+# Go Micro [![Go.Dev reference](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white&style=flat-square)](https://pkg.go.dev/go-micro.dev/v5?tab=doc) [![Go Report Card](https://goreportcard.com/badge/github.com/go-micro/go-micro)](https://goreportcard.com/report/github.com/go-micro/go-micro) [![Discord](https://img.shields.io/badge/discord-chat-800080?style=flat-square)](https://discord.gg/UmFkPbu32m)
 
 Go Micro is a framework for distributed systems development.
 
@@ -45,15 +45,21 @@ in the plugins repo. State and persistence becomes a core requirement beyond pro
 
 ## Getting Started
 
-To make use of Go Micro import it 
+To make use of Go Micro 
 
 ```golang
-import "go-micro.dev/v5"
+go get "go-micro.dev/v5"
 ```
 
-Define a handler (protobuf is optionally supported - see [example](https://github.com/go-micro/examples/blob/main/helloworld/main.go)) 
+Create a service and register a handler
 
 ```golang
+package main
+
+import (
+        "go-micro.dev/v5"
+)
+
 type Request struct {
         Name string `json:"name"`
 }
@@ -62,35 +68,30 @@ type Response struct {
         Message string `json:"message"`
 }
 
-type Helloworld struct{}
+type Say struct{}
 
-func (h *Helloworld) Greeting(ctx context.Context, req *Request, rsp *Response) error {
+func (h *Say) Hello(ctx context.Context, req *Request, rsp *Response) error {
         rsp.Message = "Hello " + req.Name
         return nil
 }
+
+func main() {
+        // create the service
+        service := micro.New("helloworld")
+
+        // register handler
+        service.Handle(new(Say))
+
+        // run the service
+        service.Run()
+}
 ```
 
-Create, initialise and run the service
+Set a fixed address
 
 ```golang
-// create a new service
 service := micro.NewService(
     micro.Name("helloworld"),
-    micro.Handle(new(Helloworld)),
-)
-
-// initialise flags
-service.Init()
-
-// start the service
-service.Run()
-```
-
-Optionally set fixed address
-
-```golang
-service := micro.NewService(
-    // set address
     micro.Address(":8080"),
 )
 ```
@@ -100,9 +101,11 @@ Call it via curl
 ```
 curl -XPOST \
      -H 'Content-Type: application/json' \
-     -H 'Micro-Endpoint: Helloworld.Greeting' \
+     -H 'Micro-Endpoint: Say.Hello' \
      -d '{"name": "alice"}' \
       http://localhost:8080
 ```
 
+## Adopters
 
+- [Sourse](https://sourse.eu) - Work in the field of earth observation, including embedded Kubernetes running onboard aircraft, and we’ve built a mission management SaaS platform using Go Micro.

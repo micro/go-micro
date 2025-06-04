@@ -193,7 +193,7 @@ func (c *config) Close() error {
 	return nil
 }
 
-func (c *config) Get(path ...string) reader.Value {
+func (c *config) Get(path ...string) (reader.Value, error) {
 	c.RLock()
 	defer c.RUnlock()
 
@@ -203,7 +203,7 @@ func (c *config) Get(path ...string) reader.Value {
 	}
 
 	// no value
-	return newValue()
+	return newValue(), nil
 }
 
 func (c *config) Set(val interface{}, path ...string) {
@@ -263,7 +263,10 @@ func (c *config) Load(sources ...source.Source) error {
 }
 
 func (c *config) Watch(path ...string) (Watcher, error) {
-	value := c.Get(path...)
+	value, err := c.Get(path...)
+	if err != nil {
+		return nil, err
+	}
 
 	w, err := c.opts.Loader.Watch(path...)
 	if err != nil {
@@ -299,8 +302,7 @@ func (w *watcher) Next() (reader.Value, error) {
 			return nil, err
 		}
 
-		w.value = v.Get()
-		return w.value, nil
+		return v.Get()
 	}
 }
 

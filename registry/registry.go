@@ -6,8 +6,6 @@ import (
 )
 
 var (
-	DefaultRegistry = NewRegistry()
-
 	// Not found error when GetService is called.
 	ErrNotFound = errors.New("service not found")
 	// Watcher stopped error when watcher is stopped.
@@ -95,3 +93,7 @@ func Watch(opts ...WatchOption) (Watcher, error) {
 func String() string {
 	return DefaultRegistry.String()
 }
+
+var (
+	DefaultRegistry = NewMDNSRegistry()
+)

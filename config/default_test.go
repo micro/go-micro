@@ -123,11 +123,15 @@ func TestConfigMerge(t *testing.T) {
 		t.Fatalf("Expected no error but got %v", err)
 	}
 
-	actualHost := conf.Get("amqp", "host").String("backup")
-	if actualHost != "rabbit.testing.com" {
+	actualHost, err := conf.Get("amqp", "host")
+	if err != nil {
+		t.Fatal(err)
+	}
+	host := actualHost.String("backup")
+	if host != "rabbit.testing.com" {
 		t.Fatalf("Expected %v but got %v",
 			"rabbit.testing.com",
-			actualHost)
+			host)
 	}
 }
 
@@ -161,6 +165,10 @@ func TestConfigWatcherDirtyOverrite(t *testing.T) {
 	for i := range ss {
 		k := fmt.Sprintf("key%d", i)
 		v := fmt.Sprintf("val%d", i)
-		equalS(t, conf.Get(k).String(""), v)
+		cc, err := conf.Get(k)
+		if err != nil {
+			t.Fatal(err)
+		}
+		equalS(t, cc.String(""), v)
 	}
 }
