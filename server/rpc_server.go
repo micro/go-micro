@@ -446,17 +446,6 @@ func (s *rpcServer) Register() error {
 	// Set what we're advertising
 	s.opts.Advertise = addr
 
-	// Router can exchange messages on broker
-	// Subscribe to the topic with its own name
-	if err := s.subscribeServer(config); err != nil {
-		return errors.Wrap(err, "failed to subscribe to service name topic")
-	}
-
-	// Subscribe for all of the subscribers
-	if err := s.reSubscribe(config); err != nil {
-		return errors.Wrap(err, "failed to resubscribe")
-	}
-
 	return nil
 }
 
@@ -606,18 +595,28 @@ func (s *rpcServer) newRegFuc(config Options) func(service *registry.Service) er
 		// Attempt to register. If registration fails, back off and try again.
 		// TODO: see if we can improve the retry mechanism. Maybe retry lib, maybe config values
 		for i := 0; i < 3; i++ {
-			if err := config.Registry.Register(service, rOpts...); err != nil {
-				regErr = err
-
+			if regErr = config.Registry.Register(service, rOpts...); regErr != nil {
 				time.Sleep(backoff.Do(i + 1))
-
 				continue
 			}
-
-			return nil
+			break
 		}
 
-		return regErr
+		if regErr != nil {
+			return regErr
+		}
+
+		s.Lock()
+		defer s.Unlock()
+		// Router can exchange messages on broker
+		// Subscribe to the topic with its own name
+		if err := s.subscribeServer(config); err != nil {
+			return errors.Wrap(err, "failed to subscribe to service name topic")
+		}
+		// Subscribe for all of the subscribers
+		s.reSubscribe(config)
+
+		return nil
 	}
 }
 

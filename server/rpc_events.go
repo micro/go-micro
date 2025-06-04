@@ -107,7 +107,7 @@ func (s *rpcServer) Subscribe(sb Subscriber) error {
 
 // subscribeServer will subscribe the server to the topic with its own name.
 func (s *rpcServer) subscribeServer(config Options) error {
-	if s.opts.Router != nil {
+	if s.opts.Router != nil && s.subscriber == nil {
 		sub, err := s.opts.Broker.Subscribe(config.Name, s.HandleEvent(config.Name))
 		if err != nil {
 			return err
@@ -121,8 +121,11 @@ func (s *rpcServer) subscribeServer(config Options) error {
 }
 
 // reSubscribe itterates over subscribers and re-subscribes then.
-func (s *rpcServer) reSubscribe(config Options) error {
+func (s *rpcServer) reSubscribe(config Options) {
 	for sb := range s.subscribers {
+		if s.subscribers[sb] != nil {
+			continue
+		}
 		var opts []broker.SubscribeOption
 		if queue := sb.Options().Queue; len(queue) > 0 {
 			opts = append(opts, broker.Queue(queue))
@@ -139,12 +142,15 @@ func (s *rpcServer) reSubscribe(config Options) error {
 		config.Logger.Logf(log.InfoLevel, "Subscribing to topic: %s", sb.Topic())
 		sub, err := config.Broker.Subscribe(sb.Topic(), s.HandleEvent(sb.Topic()), opts...)
 		if err != nil {
-			return err
+			config.Logger.Logf(log.WarnLevel, "Unable to subscribing to topic: %s, error: %s", sb.Topic(), err)
+			continue
 		}
-
+		err = s.router.Subscribe(sb)
+		if err != nil {
+			config.Logger.Logf(log.WarnLevel, "Unable to subscribing to topic: %s, error: %s", sb.Topic(), err)
+			sub.Unsubscribe()
+			continue
+		}
 		s.subscribers[sb] = []broker.Subscriber{sub}
-		s.router.Subscribe(sb)
 	}
-
-	return nil
 }
