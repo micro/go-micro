@@ -193,8 +193,8 @@ import (
         pb "github.com/micro/helloworld/proto"
 )
 
-package main() {
-        service := micro.New("helloworld)
+func main() {
+        service := micro.New("helloworld")
         service.Init()
 
         say := pb.NewSayService("helloworld", service.Client())
