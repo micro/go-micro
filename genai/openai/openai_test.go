@@ -1,9 +1,9 @@
 package openai
 
 import (
+	"go-micro.dev/v5/genai"
 	"os"
 	"testing"
-	"go-micro.dev/v5/genai"
 )
 
 func TestOpenAI_GenerateText(t *testing.T) {
@@ -35,4 +35,3 @@ func TestOpenAI_GenerateImage(t *testing.T) {
 		t.Error("Expected non-empty image URL")
 	}
 }
-
