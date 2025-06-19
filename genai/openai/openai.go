@@ -109,46 +109,6 @@ func (o *openAI) GenerateImage(prompt string, opts ...genai.Option) (string, err
 	return result.Data[0].URL, nil
 }
 
-func (o *openAI) SpeechToText(audioData []byte, opts ...genai.Option) (string, error) {
-	options := o.options
-	for _, opt := range opts {
-		opt(&options)
-	}
-
-	var buf bytes.Buffer
-	w := multipart.NewWriter(&buf)
-	fw, err := w.CreateFormFile("file", "audio.wav")
-	if err != nil {
-		return "", err
-	}
-	if _, err := fw.Write(audioData); err != nil {
-		return "", err
-	}
-	w.WriteField("model", "whisper-1")
-	w.Close()
-
-	httpReq, err := http.NewRequest("POST", openAISpeechURL, &buf)
-	if err != nil {
-		return "", err
-	}
-	httpReq.Header.Set("Authorization", "Bearer "+options.APIKey)
-	httpReq.Header.Set("Content-Type", w.FormDataContentType())
-
-	resp, err := http.DefaultClient.Do(httpReq)
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-
-	var result struct {
-		Text string `json:"text"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return "", err
-	}
-	return result.Text, nil
-}
-
 func init() {
 	genai.Register("openai", New())
 }

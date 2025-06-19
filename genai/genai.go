@@ -5,7 +5,6 @@ package genai
 type GenAI interface {
 	GenerateText(prompt string, opts ...Option) (string, error)
 	GenerateImage(prompt string, opts ...Option) (string, error)
-	SpeechToText(audioData []byte, opts ...Option) (string, error)
 }
 
 // Option is a functional option for configuring providers.
