@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"mime/multipart"
 	"net/http"
-	"workspaces/go-micro/genai"
+	"go-micro.dev/v5/genai"
 )
 
 type gemini struct {
