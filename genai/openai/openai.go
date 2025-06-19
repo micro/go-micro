@@ -4,10 +4,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
-	"mime/multipart"
-	"net/http"
 	"go-micro.dev/v5/genai"
+	"io"
+	"net/http"
 )
 
 const (
@@ -35,7 +34,7 @@ func (o *openAI) GenerateText(prompt string, opts ...genai.Option) (string, erro
 	}
 
 	body := map[string]interface{}{
-		"model": "gpt-3.5-turbo",
+		"model":    "gpt-3.5-turbo",
 		"messages": []map[string]string{{"role": "user", "content": prompt}},
 	}
 	b, _ := json.Marshal(body)
@@ -77,8 +76,8 @@ func (o *openAI) GenerateImage(prompt string, opts ...genai.Option) (string, err
 
 	body := map[string]interface{}{
 		"prompt": prompt,
-		"n": 1,
-		"size": "512x512",
+		"n":      1,
+		"size":   "512x512",
 	}
 	b, _ := json.Marshal(body)
 

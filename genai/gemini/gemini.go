@@ -3,14 +3,13 @@ package gemini
 import (
 	"context"
 	"fmt"
-	"google.golang.org/genai/go/genai"
-	"google.golang.org/api/option"
-	"go-micro.dev/v5/genai"
+	ggenai "go-micro.dev/v5/genai"
+	"google.golang.org/genai"
 )
 
 type gemini struct {
 	options genai.Options
-	client  *genai.Client
+	client  *ggenai.Client
 }
 
 func New(opts ...genai.Option) genai.GenAI {
@@ -18,7 +17,7 @@ func New(opts ...genai.Option) genai.GenAI {
 	for _, o := range opts {
 		o(&options)
 	}
-	client, err := genai.NewClient(context.Background(), option.WithAPIKey(options.APIKey))
+	client, err := ggenai.NewClient(context.Background(), option.WithAPIKey(options.APIKey))
 	if err != nil {
 		panic(err) // or handle error appropriately
 	}
@@ -32,10 +31,10 @@ func (g *gemini) GenerateText(ctx context.Context, req *genai.TextRequest, opts 
 	}
 
 	model := "models/gemini-2.5-pro"
-	resp, err := g.client.GenerateContent(ctx, &genai.GenerateContentRequest{
+	resp, err := g.client.GenerateContent(ctx, &ggenai.GenerateContentRequest{
 		Model: model,
-		Contents: []*genai.Content{{
-			Parts: []*genai.Part{{
+		Contents: []*ggenai.Content{{
+			Parts: []*ggenai.Part{{
 				Data: &genai.Part_Text{Text: req.Prompt},
 			}},
 		}},
@@ -56,11 +55,11 @@ func (g *gemini) GenerateImage(ctx context.Context, req *genai.ImageRequest, opt
 	}
 
 	model := "models/gemini-2.5-pro-vision"
-	resp, err := g.client.GenerateContent(ctx, &genai.GenerateContentRequest{
+	resp, err := g.client.GenerateContent(ctx, &ggenai.GenerateContentRequest{
 		Model: model,
-		Contents: []*genai.Content{{
-			Parts: []*genai.Part{{
-				Data: &genai.Part_Text{Text: req.Prompt},
+		Contents: []*ggenai.Content{{
+			Parts: []*ggenai.Part{{
+				Data: &ggenai.Part_Text{Text: req.Prompt},
 			}},
 		}},
 	})
@@ -70,7 +69,7 @@ func (g *gemini) GenerateImage(ctx context.Context, req *genai.ImageRequest, opt
 	if len(resp.Candidates) == 0 || len(resp.Candidates[0].Content.Parts) == 0 {
 		return nil, fmt.Errorf("no image returned")
 	}
-	// Gemini API may return image data as base64 or a URL depending on the model/version
+	// GemIni API may return image data as base64 or a URL depending on the model/version
 	return &genai.ImageResponse{ImageURL: resp.Candidates[0].Content.Parts[0].GetText()}, nil
 }
 
